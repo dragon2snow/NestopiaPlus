@@ -112,7 +112,7 @@ namespace Nestopia
 					Paths::File::IMAGE |
 					Paths::File::STATE |
 					Paths::File::MOVIE |
-					Paths::File::IPS |
+					Paths::File::PATCH |
 					Paths::File::BATTERY |
 					Paths::File::ARCHIVE
 				);
@@ -142,7 +142,7 @@ namespace Nestopia
 			}
 
 			Paths::File file;
-			Paths::File ips;
+			Paths::File patch;
 			Emulator::Context context;
 
 			switch (paths.Load( file, types, path ))
@@ -198,6 +198,7 @@ namespace Nestopia
 					break;
 
 				case Paths::File::IPS:
+				case Paths::File::UPS:
 
 					if (emulator.IsCart())
 					{
@@ -206,8 +207,8 @@ namespace Nestopia
 					}
 
 					types = Paths::File::CARTRIDGE|Paths::File::ARCHIVE;
-					ips.name = file.name;
-					ips.data.Import( file.data );
+					patch.name = file.name;
+					patch.data.Import( file.data );
 					break;
 
 				default:
@@ -248,12 +249,12 @@ namespace Nestopia
 			if (context.save.Empty())
 				context.save = paths.GetSavePath( context.image, file.type );
 
-			if (ips.data.Empty())
+			if (patch.data.Empty())
 			{
-				const Path path(paths.GetIpsPath( context.image, file.type ));
+				const Path path(paths.GetPatchPath( context.image, file.type ));
 
-				if (path.FileExists() && !paths.Load( ips, Paths::File::IPS|Paths::File::ARCHIVE, path, Paths::QUIETLY ))
-					Window::User::Warn( IDS_EMU_WARN_IPS_FAILED );
+				if (path.FileExists() && !paths.Load( patch, Paths::File::PATCH|Paths::File::ARCHIVE, path, Paths::QUIETLY ))
+					Window::User::Warn( Resource::String( IDS_EMU_WARN_PATCH_LOAD_ERR ).Invoke( path ).Ptr() );
 			}
 
 			if (context.tape.Empty())
@@ -261,7 +262,7 @@ namespace Nestopia
 
 			context.samples = paths.GetSamplesPath();
 
-			if (!emulator.Load( file.data, file.name, ips.data, context, preferences.GetFavoredSystem(), preferences.GetAlwaysAskProfile(), !preferences[Preferences::SUPPRESS_WARNINGS] ))
+			if (!emulator.Load( file.data, file.name, patch.data, paths.BypassPatchValidation(), context, preferences.GetFavoredSystem(), preferences.GetAlwaysAskProfile(), !preferences[Preferences::SUPPRESS_WARNINGS] ))
 				return;
 
 			if (context.mode == Emulator::Context::UNKNOWN && menu[IDM_MACHINE_SYSTEM_AUTO].Checked())

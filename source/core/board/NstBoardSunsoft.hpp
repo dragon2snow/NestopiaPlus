@@ -34,5 +34,6 @@
 #include "NstBoardSunsoft3.hpp"
 #include "NstBoardSunsoftDcs.hpp"
 #include "NstBoardSunsoftFme7.hpp"
+#include "NstBoardSunsoft5b.hpp"
 
 #endif

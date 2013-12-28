@@ -43,6 +43,7 @@
 #define IDD_IMAGE_DATABASE              197
 #define IDD_LANGUAGE                    198
 #define IDD_CHOOSE                      199
+#define IDD_VIDEO_FILTER_2XSAI          200
 #define IDS_TITLE_NESTOPIA              201
 #define IDS_TITLE_ERROR                 202
 #define IDS_TITLE_WARNING               203
@@ -143,26 +144,24 @@
 #define IDS_EMU_ERR_CANT_REWIND         298
 #define IDS_EMU_ERR_LOAD_SAMPLES        299
 #define IDS_EMU_ERR_WRONG_MODE          300
-#define IDS_EMU_WARN_IPS_FAILED         301
+#define IDS_EMU_WARN_PATCHING_FAILED    301
 #define IDS_EMU_WARN_BAD_INES           302
 #define IDS_EMU_WARN_BAD_DUMP           303
 #define IDS_EMU_WARN_BAD_PROM           304
 #define IDS_EMU_WARN_BAD_CROM           305
-#define IDS_EMU_WARN_INCORRECT_INES     306
 #define IDS_EMU_WARN_ENCRYPTED          307
 #define IDS_EMU_CRC_MISSMATCH_CONTINUE  308
 #define IDS_EMU_CRC_MISSMATCH           309
 #define IDS_EMU_FDS_NO_FILE             310
 #define IDS_EMU_FDS_SUPPLY_BIOS         311
 #define IDS_EMU_SAMPLES_UNAVAILABLE     312
-#define IDS_EMU_CHOOSE_MAPPER           313
 #define IDS_TEXT_ABORT                  313
 #define IDS_EMU_MOVIE_SAVE_IMAGEDATA    314
 #define IDS_EMU_MOVIE_SAVE_FDS          315
 #define IDS_EMU_MOVIE_SAVE_TURBOFILE    316
 #define IDS_EMU_MOVIE_SAVE_TAPE         317
 #define IDS_EMU_MOVIE_SAVE_EEPROM       318
-#define IDS_EMU_TITLE_CHOOSE_MAPPER     319
+#define IDS_ERR_INVALID_CHECKSUM        319
 #define IDS_AUTOSAVER_START             320
 #define IDS_AUTOSAVER_STOP              321
 #define IDS_SCREEN_LOADED               322
@@ -219,7 +218,7 @@
 #define IDS_FILES_STATE                 373
 #define IDS_FILES_STATE_SLOTS           374
 #define IDS_FILES_MOVIE                 375
-#define IDS_FILES_IPS                   376
+#define IDS_FILES_PATCHES               376
 #define IDS_FILES_PALETTE               377
 #define IDS_FILES_WAVE                  378
 #define IDS_FILES_AVI                   379
@@ -245,7 +244,7 @@
 #define IDS_LAUNCHER_SECTION_UNIF       399
 #define IDS_LAUNCHER_SECTION_FDS        400
 #define IDS_LAUNCHER_SECTION_NSF        401
-#define IDS_LAUNCHER_SECTION_IPS        402
+#define IDS_LAUNCHER_SECTION_PATCH      402
 #define IDS_TEXT_NES_PAL_B              403
 #define IDS_LAUNCHER_SECTION_ARCHIVE    404
 #define IDS_LOAD_APPLY_CURRENT_GAME     405
@@ -280,8 +279,8 @@
 #define IDS_MENU_POWER_ON               434
 #define IDS_MENU_POWER_OFF              435
 #define IDS_MENU_X                      436
-#define IDS_FDS_IPSDATALOAD_FAILED      437
-#define IDS_FDS_IPSDATASAVE_FAILED      438
+#define IDS_FDS_PATCHDATALOAD_FAILED    437
+#define IDS_FDS_PATCHDATASAVE_FAILED    438
 #define IDS_FDS_SAVE_FAILED             439
 #define IDS_FDS_DISK_SIDE_A             440
 #define IDS_FDS_DISK_SIDE_B             441
@@ -502,9 +501,12 @@
 #define IDS_INPUT_HELP_KEY_HELP         656
 #define IDS_MENU_NETPLAY_CONNECT        657
 #define IDS_MENU_NETPLAY_DISCONNECT     658
-#define IDS_TEXT_CANCEL                 659
 #define IDS_TEXT_DEFAULT                659
 #define IDS_TEXT_ALTNAME                660
+#define IDS_FILE_ERR_READONLY           661
+#define IDS_VIDEO_FILTER_2XSAI          662
+#define IDS_TEXT_SOFTPATCHED            663
+#define IDS_EMU_WARN_PATCH_LOAD_ERR     664
 #define IDM_FILE_OPEN                   803
 #define IDM_FILE_CLOSE                  804
 #define IDM_FILE_LOAD_NST               805
@@ -791,24 +793,25 @@
 #define IDC_PATHS_BATTERY               2201
 #define IDC_PATHS_NST                   2202
 #define IDC_PATHS_SAMPLES               2203
-#define IDC_PATHS_IPS                   2204
+#define IDC_PATHS_PATCHES               2204
 #define IDC_PATHS_SCREENSHOTS           2205
 #define IDC_PATHS_IMAGE_LAST            2206
 #define IDC_PATHS_IMAGE_BROWSE          2207
 #define IDC_PATHS_BATTERY_BROWSE        2208
 #define IDC_PATHS_NST_BROWSE            2209
 #define IDC_PATHS_SAMPLES_BROWSE        2210
-#define IDC_PATHS_IPS_BROWSE            2211
+#define IDC_PATHS_PATCHES_BROWSE        2211
 #define IDC_PATHS_SCREENSHOTS_BROWSE    2212
 #define IDC_PATHS_NST_COMPRESS          2213
 #define IDC_PATHS_NST_AUTO_IMPORT       2214
 #define IDC_PATHS_NST_AUTO_EXPORT       2215
 #define IDC_PATHS_BATTERY_PROTECT       2216
-#define IDC_PATHS_IPS_AUTO_APPLY        2217
+#define IDC_PATHS_PATCHES_AUTO_APPLY    2217
 #define IDC_PATHS_DEFAULT               2218
 #define IDC_PATHS_SCREENSHOTS_PNG       2219
 #define IDC_PATHS_SCREENSHOTS_JPEG      2220
 #define IDC_PATHS_SCREENSHOTS_BMP       2221
+#define IDC_PATHS_PATCHES_BYPASS_VALIDATION 2222
 #define IDC_COMPRESSED_FILE_LIST        2300
 #define IDC_IMAGE_INFO_EDIT             2400
 #define IDC_DIPSWITCHES_1_TEXT          2500
@@ -977,7 +980,7 @@
 #define IDC_FDS_BIOS                    2902
 #define IDC_FDS_SAVEDISABLE             2906
 #define IDC_FDS_SAVETOIMAGE             2907
-#define IDC_FDS_SAVETOIPS               2908
+#define IDC_FDS_SAVETOPATCH             2908
 #define IDC_FDS_LED_DISABLE             2909
 #define IDC_FDS_LED_SCREEN              2910
 #define IDC_FDS_LED_NUMLOCK             2911
@@ -1032,7 +1035,7 @@
 #define IDC_LAUNCHER_PATHS_UNF          3908
 #define IDC_LAUNCHER_PATHS_FDS          3909
 #define IDC_LAUNCHER_PATHS_NSF          3910
-#define IDC_LAUNCHER_PATHS_IPS          3911
+#define IDC_LAUNCHER_PATHS_PATCH        3911
 #define IDC_LAUNCHER_PATHS_ARCHIVE      3912
 #define IDC_LAUNCHER_PATHS_CLEAR        3913
 #define IDC_LAUNCHER_PATHS_ALLFILES     3914
@@ -1133,6 +1136,7 @@
 #define IDC_IMAGEDATABASE_INTERNAL      4624
 #define IDC_IMAGEDATABASE_EXTERNAL      4625
 #define IDC_CHOOSE_LIST                 4630
+#define IDC_DIPSWITCHES_DONTSHOWAGAIN   5244
 
 // Next default values for new objects
 // 
@@ -1141,7 +1145,7 @@
 #define _APS_NO_MFC                     1
 #define _APS_NEXT_RESOURCE_VALUE        3065
 #define _APS_NEXT_COMMAND_VALUE         4133
-#define _APS_NEXT_CONTROL_VALUE         5244
+#define _APS_NEXT_CONTROL_VALUE         5245
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

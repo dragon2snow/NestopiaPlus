@@ -48,30 +48,84 @@ namespace Nes
 
 	namespace Api
 	{
+		/**
+		* DIP switches interface.
+		*/
 		class DipSwitches : public Base
 		{
 			Core::DipSwitches* Query() const;
 
 		public:
 
+			/**
+			* Interface constructor.
+			*
+			* @param instance emulator instance
+			*/
 			template<typename T>
-			DipSwitches(T& e)
-			: Base(e) {}
+			DipSwitches(T& instance)
+			: Base(instance) {}
 
 			enum
 			{
 				INVALID = -1
 			};
 
+			/**
+			* Returns the number of available DIP switches.
+			*
+			* @return number
+			*/
 			uint NumDips() const throw();
-			uint NumValues(uint) const throw();
+
+			/**
+			* Returns the number of values that can be chosen for a DIP switch.
+			*
+			* @param dip DIP switch ID
+			* @return number
+			*/
+			uint NumValues(uint dip) const throw();
+
+			/**
+			* Checks if the DIP switches can be changed at this time.
+			*
+			* @return true if DIP switches can be changed
+			*/
 			bool CanModify() const throw();
 
-			const char* GetDipName(uint) const throw();
-			const char* GetValueName(uint,uint) const throw();
+			/**
+			* Returns the name of a DIP switch.
+			*
+			* @param dip DIP switch ID
+			* @return DIP switch name or NULL if unavailable
+			*/
+			const char* GetDipName(uint dip) const throw();
 
-			int GetValue(uint) const throw();
-			Result SetValue(uint,uint) throw();
+			/**
+			* Returns the name of a DIP switch value.
+			*
+			* @param dip DIP switch ID
+			* @param value value ID
+			* @return value name or NULL if unavailable
+			*/
+			const char* GetValueName(uint dip,uint value) const throw();
+
+			/**
+			* Returns the current DIP switch value.
+			*
+			* @param dip DIP switch ID
+			* @return value ID or INVALID if unavailable
+			*/
+			int GetValue(uint dip) const throw();
+
+			/**
+			* Sets a DIP switch value.
+			*
+			* @param dip DIP switch ID
+			* @param value value ID
+			* @return result code
+			*/
+			Result SetValue(uint dip,uint value) throw();
 		};
 	}
 }

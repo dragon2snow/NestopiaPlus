@@ -43,48 +43,161 @@ namespace Nes
 {
 	namespace Api
 	{
+		/**
+		* Cheats interface.
+		*/
 		class Cheats : public Base
 		{
 			struct Lut;
 
 		public:
 
+			/**
+			* Interface constructor.
+			*
+			* @param instance emulator instance
+			*/
 			template<typename T>
-			Cheats(T& e)
-			: Base(e) {}
+			Cheats(T& instance)
+			: Base(instance) {}
 
+			/**
+			* Cheat code.
+			*/
 			struct Code
 			{
+				/**
+				* Address.
+				*/
 				ushort address;
+				/**
+				* Value.
+				*/
 				uchar value;
+				/**
+				* Compare-value.
+				*/
 				uchar compare;
+				/**
+				* Compare-value enable.
+				*/
 				bool useCompare;
 
+				/**
+				* Constructor
+				*
+				* @param a address
+				* @param v value
+				* @param c compare-value
+				* @param u compare-value enable
+				*/
 				Code(ushort a=0,uchar v=0,uchar c=0,bool u=false)
 				: address(a), value(v), compare(c), useCompare(u) {}
 			};
 
-			Result SetCode (const Code&) throw();
-			Result GetCode (ulong,Code&) const throw();
-			Result GetCode (ulong,ushort*,uchar*,uchar*,bool*) const throw();
-			Result DeleteCode (ulong) throw();
-			ulong  NumCodes () const throw();
-			Result ClearCodes () throw();
+			/**
+			* Adds a new code.
+			*
+			* @param code code, any existing code using the same address will be replaced
+			* @return result code
+			*/
+			Result SetCode(const Code& code) throw();
+
+			/**
+			* Returns an existing code.
+			*
+			* @param index code index
+			* @param code object to be filled
+			* @return result code
+			*/
+			Result GetCode(ulong index,Code& code) const throw();
+
+			/**
+			* Returns attributes of an existing code.
+			*
+			* @param index code index
+			* @param address address to be filled or NULL if not needed
+			* @param value value to be filled or NULL if not needed
+			* @param compare compare-value to be filled or NULL if not needed
+			* @param useCompare compare-value enable to be filled or NULL if not needed
+			* @return result code
+			*/
+			Result GetCode(ulong index,ushort* address,uchar* value,uchar* compare,bool* useCompare) const throw();
+
+			/**
+			* Removes an existing code.
+			*
+			* @param index code index
+			* @return result code
+			*/
+			Result DeleteCode(ulong index) throw();
+
+			/**
+			* Returns current number of codes.
+			*
+			* @return number
+			*/
+			ulong NumCodes() const throw();
+
+			/**
+			* Removes all existing codes.
+			*
+			* @return result code
+			*/
+			Result ClearCodes() throw();
 
 			enum
 			{
 				RAM_SIZE = 0x800
 			};
 
+			/**
+			* CPU RAM pointer reference.
+			*/
 			typedef const uchar (&Ram)[RAM_SIZE];
 
+			/**
+			* Returns read-only content of CPU RAM.
+			*
+			* @return CPU RAM
+			*/
 			Ram GetRam() const throw();
 
-			static Result NST_CALL GameGenieEncode(const Code&,char (&)[9]) throw();
-			static Result NST_CALL GameGenieDecode(const char*,Code&) throw();
+			/**
+			* Encodes into a Game Genie code.
+			*
+			* @param code code to be encoded
+			* @param string Game Genie code string to be filled
+			* @return result code
+			*/
+			static Result NST_CALL GameGenieEncode(const Code& code,char (&string)[9]) throw();
 
-			static Result NST_CALL ProActionRockyEncode(const Code&,char (&)[9]) throw();
-			static Result NST_CALL ProActionRockyDecode(const char*,Code&) throw();
+			/**
+			* Decodes a Game Genie code.
+			*
+			* @param string Game Genie encoded string
+			* @param code object to be filled
+			* @return result code
+			*/
+			static Result NST_CALL GameGenieDecode(const char* string,Code& code) throw();
+
+			/**
+			* Encodes into a Pro-Action Rocky code.
+			*
+			* @param code code to be encoded
+			* @param string Pro-Action Rocky code string to be filled
+			* @return result code
+			*/
+			static Result NST_CALL ProActionRockyEncode(const Code& code,char (&string)[9]) throw();
+
+			/**
+			* Decodes a Pro-Action Rocky code.
+			*
+			* @param string Pro-Action Rocky encoded string
+			* @param code object to be filled
+			* @return result
+			*/
+			static Result NST_CALL ProActionRockyDecode(const char* string,Code& code) throw();
 		};
 	}
 }

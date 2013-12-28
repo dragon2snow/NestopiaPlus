@@ -38,17 +38,36 @@ namespace Nes
 	{
 		class Xml
 		{
+			typedef word utfchar;
+			typedef const word* utfstring;
+
+			static inline int ToChar(idword);
+			static inline wchar_t ToWideChar(idword);
+
 			class BaseNode
 			{
-				static wchar_t ParseReference(wcstring&,wcstring);
-				static wchar_t* SetValue(wchar_t* NST_RESTRICT,wcstring,wcstring,bool);
-				static wchar_t* SetType(wchar_t* NST_RESTRICT,wcstring,wcstring,bool);
+			public:
+
+				enum In {IN};
+				enum Out {OUT};
+
+			private:
+
+				static utfchar ParseReference(utfstring&,utfstring);
+
+				static wchar_t* SetType(wchar_t* NST_RESTRICT,utfstring,utfstring,In);
+				static wchar_t* SetType(wchar_t* NST_RESTRICT,wcstring,wcstring,Out);
+
+				static wchar_t* SetValue(wchar_t* NST_RESTRICT,utfstring,utfstring,In);
+				static wchar_t* SetValue(wchar_t* NST_RESTRICT,wcstring,wcstring,Out);
 
 			public:
 
 				struct Attribute
 				{
-					Attribute(wcstring,wcstring,wcstring,wcstring,bool=true);
+					template<typename T,typename U>
+					Attribute(T,T,T,T,U);
+
 					~Attribute();
 
 					wcstring const type;
@@ -56,11 +75,15 @@ namespace Nes
 					Attribute* next;
 				};
 
-				BaseNode(wcstring,wcstring,bool=true);
+				template<typename T,typename U>
+				BaseNode(T,T,U);
+
 				~BaseNode();
 
-				void SetValue(wcstring,wcstring,bool=true);
-				void AddAttribute(wcstring,wcstring,wcstring,wcstring,bool=true);
+				template<typename T,typename U>
+				void SetValue(T,T,U);
+
+				void AddAttribute(utfstring,utfstring,utfstring,utfstring);
 
 				wcstring const type;
 				wcstring value;
@@ -85,11 +108,11 @@ namespace Nes
 			{
 			public:
 
-				long GetSignedValue(uint=10) const;
-				long GetSignedValue(uint,wcstring&) const;
+				long GetSignedValue(uint=0) const;
+				long GetSignedValue(wcstring&,uint=0) const;
 
-				ulong GetUnsignedValue(uint=10) const;
-				ulong GetUnsignedValue(uint,wcstring&) const;
+				ulong GetUnsignedValue(uint=0) const;
+				ulong GetUnsignedValue(wcstring&,uint=0) const;
 
 			private:
 
@@ -152,11 +175,11 @@ namespace Nes
 				Node AddSibling(wcstring,wcstring=NULL);
 				Attribute AddAttribute(wcstring,wcstring);
 
-				long GetSignedValue(uint=10) const;
-				long GetSignedValue(uint,wcstring&) const;
+				long GetSignedValue(uint=0) const;
+				long GetSignedValue(wcstring&,uint=0) const;
 
-				ulong GetUnsignedValue(uint=10) const;
-				ulong GetUnsignedValue(uint,wcstring&) const;
+				ulong GetUnsignedValue(uint=0) const;
+				ulong GetUnsignedValue(wcstring&,uint=0) const;
 
 			private:
 
@@ -240,7 +263,7 @@ namespace Nes
 			};
 
 			Node Create(wcstring);
-			Node Read(wcstring);
+			Node Read(utfstring);
 			Node Read(std::istream&);
 			void Write(Node,std::ostream&,const Format& = Format()) const;
 			void Destroy();
@@ -259,12 +282,11 @@ namespace Nes
 
 			class Input
 			{
-				const char* const stream;
+				static byte* Init(std::istream&,dword&);
+
+				const byte* const stream;
 				const dword size;
 				dword pos;
-
-				static char* Init(std::istream&,dword&);
-				static inline wchar_t WordToWchar(dword);
 
 			public:
 
@@ -273,12 +295,12 @@ namespace Nes
 
 				inline dword Size() const;
 
-				inline byte ToByte(dword) const;
-				inline wchar_t FromUTF16LE(dword) const;
-				inline wchar_t FromUTF16BE(dword) const;
-				inline wchar_t FromChar(dword) const;
+				inline uint ToByte(dword) const;
+				inline int  ToChar(dword) const;
+				inline uint FromUTF16LE(dword) const;
+				inline uint FromUTF16BE(dword) const;
 
-				wchar_t ReadUTF8();
+				uint ReadUTF8();
 				inline void SetReadPointer(dword);
 			};
 
@@ -286,7 +308,7 @@ namespace Nes
 			{
 				std::ostream& stream;
 
-				void Write(cstring,uint);
+				void Write(cstring,uint) const;
 
 			public:
 
@@ -315,8 +337,8 @@ namespace Nes
 				};
 
 				const Output& operator << (char) const;
-				const Output& operator << (uchar) const;
 				const Output& operator << (wchar_t) const;
+				const Output& operator << (byte) const;
 				const Output& operator << (Type) const;
 				const Output& operator << (Value) const;
 
@@ -326,14 +348,15 @@ namespace Nes
 				inline const Output& operator << (const char (&)[N]) const;
 			};
 
-			static bool IsVoid(wchar_t);
-			static Tag CheckTag(wcstring);
+			static bool IsVoid(utfchar);
+			static bool IsCtrl(utfchar);
+			static Tag CheckTag(utfstring);
 
-			static wcstring SkipVoid(wcstring);
-			static wcstring RewindVoid(wcstring,wcstring=NULL);
-			static wcstring ReadTag(wcstring,BaseNode*&);
-			static wcstring ReadValue(wcstring,BaseNode&);
-			static wcstring ReadNode(wcstring,Tag,BaseNode*&);
+			static utfstring SkipVoid(utfstring);
+			static utfstring RewindVoid(utfstring,utfstring=NULL);
+			static utfstring ReadTag(utfstring,BaseNode*&);
+			static utfstring ReadValue(utfstring,BaseNode&);
+			static utfstring ReadNode(utfstring,Tag,BaseNode*&);
 			static void WriteNode(Node,const Output&,uint);
 
 			BaseNode* root;

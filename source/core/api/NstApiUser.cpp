@@ -58,12 +58,22 @@ namespace Nes
 			return RESULT_ERR_NOT_READY;
 		}
 
+		Result User::File::GetPatchContent(Patch,std::ostream&) const throw()
+		{
+			return RESULT_ERR_NOT_READY;
+		}
+
 		Result User::File::SetContent(const void*,ulong) throw()
 		{
 			return RESULT_ERR_NOT_READY;
 		}
 
 		Result User::File::SetContent(std::istream&) throw()
+		{
+			return RESULT_ERR_NOT_READY;
+		}
+
+		Result User::File::SetPatchContent(std::istream&) throw()
 		{
 			return RESULT_ERR_NOT_READY;
 		}

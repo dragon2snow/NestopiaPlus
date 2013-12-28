@@ -95,10 +95,10 @@ namespace Nes
 			#undef NST_R3
 			#undef NST_R4
 
-			void NST_CALL Compute(Key& key,const void* data,dword length)
+			void NST_CALL Compute(Key& key,const byte* data,dword length)
 			{
 				if (length)
-					key.Compute( static_cast<const byte*>(data), length );
+					key.Compute( data, length );
 			}
 
 			#ifdef NST_MSVC_OPTIMIZE

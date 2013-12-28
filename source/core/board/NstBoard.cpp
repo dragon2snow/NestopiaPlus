@@ -144,7 +144,6 @@
 #include "NstBoardBmcGoldenGame260in1.hpp"
 #include "NstBoardBmcHero.hpp"
 #include "NstBoardBmcMarioParty7in1.hpp"
-#include "NstBoardBmcN625092.hpp"
 #include "NstBoardBmcNovelDiamond.hpp"
 #include "NstBoardBmcCh001.hpp"
 #include "NstBoardBmcPowerjoy84in1.hpp"
@@ -785,7 +784,6 @@ namespace Nes
 					{ "BMC-GHOSTBUSTERS63IN1",       Type::BMC_CTC65                },
 					{ "BMC-GS-2004",                 Type::RCM_GS2004               },
 					{ "BMC-GS-2013",                 Type::RCM_GS2013               },
-					{ "BMC-N625092",                 Type::BMC_N625092              },
 					{ "BMC-NOVELDIAMOND9999999IN1",  Type::BMC_NOVELDIAMOND         },
 					{ "BMC-SUPER24IN1SC03",          Type::BMC_SUPER_24IN1          },
 					{ "BMC-SUPERHIK8IN1",            Type::BMC_HERO                 },
@@ -1035,6 +1033,7 @@ namespace Nes
 					{ "NES-UNROM",                   Type::STD_UNROM                },
 					{ "NES-UOROM",                   Type::STD_UOROM                },
 					{ "NES-WH",                      Type::CUSTOM_WH                },
+					{ "NTDEC-N715062",               Type::NTDEC_N715062            },
 					{ "PAL-MH",                      Type::STD_MHROM                },
 					{ "PAL-ZZ",                      Type::CUSTOM_ZZ                },
 					{ "SACHEN-8259A",                Type::SACHEN_8259A             },
@@ -1047,6 +1046,7 @@ namespace Nes
 					{ "SUNSOFT-2",                   Type::SUNSOFT_2B               },
 					{ "SUNSOFT-3",                   Type::SUNSOFT_3                },
 					{ "SUNSOFT-4",                   Type::SUNSOFT_4_0              },
+					{ "SUNSOFT-5B",                  Type::SUNSOFT_5B_0             },
 					{ "SUNSOFT-FME-7",               Type::SUNSOFT_FME7_0           },
 					{ "SUNSOFT-NROM-256",            Type::STD_NROM                 },
 					{ "TAITO-74*139/74",             Type::DISCRETE_74_139_74       },
@@ -1187,6 +1187,7 @@ namespace Nes
 								case Type::IREM_G101A_0:   id = Type::IREM_G101A_1; break;
 								case Type::IREM_G101B_0:   id = Type::IREM_G101B_1; break;
 								case Type::SUNSOFT_FME7_0: id = Type::SUNSOFT_FME7_1; break;
+								case Type::SUNSOFT_5B_0:   id = Type::SUNSOFT_5B_1; break;
 							}
 						}
 						break;
@@ -2115,16 +2116,16 @@ namespace Nes
 
 					case 69:
 
-						name = "SUNSOFT FME7";
+						name = "SUNSOFT 5B/FME7";
 
 						if (wram || useWramAuto)
 						{
 							wramAuto = useWramAuto;
-							id = Type::SUNSOFT_FME7_1;
+							id = Type::SUNSOFT_5B_1;
 						}
 						else
 						{
-							id = Type::SUNSOFT_FME7_0;
+							id = Type::SUNSOFT_5B_0;
 						}
 						break;
 
@@ -2654,12 +2655,6 @@ namespace Nes
 
 						name = "SUBOR (a)";
 						id = Type::SUBOR_TYPE0;
-						break;
-
-					case 169:
-
-						name = "BMC N625092";
-						id = Type::BMC_N625092;
 						break;
 
 					case 170:
@@ -3285,7 +3280,6 @@ namespace Nes
 					case Type::BMC_HERO                   : return new Bmc::Hero(c);
 					case Type::BMC_MARIOPARTY_7IN1        : return new Bmc::MarioParty7in1(c);
 					case Type::BMC_NOVELDIAMOND           : return new Bmc::NovelDiamond(c);
-					case Type::BMC_N625092                : return new Bmc::N625092(c);
 					case Type::BMC_CH001                  : return new Bmc::Ch001(c);
 					case Type::BMC_POWERJOY_84IN1         : return new Bmc::Powerjoy84in1(c);
 					case Type::BMC_RESETBASED_4IN1        : return new Bmc::ResetBased4in1(c);
@@ -3422,6 +3416,7 @@ namespace Nes
 					case Type::NANJING_STD                : return new Nanjing::Standard(c);
 					case Type::NIHON_UNROM_M5             : return new Nihon::UnRomM5(c);
 					case Type::NITRA_TDA                  : return new Nitra::Tda(c);
+					case Type::NTDEC_N715062              : return new Ntdec::N715062(c);
 					case Type::NTDEC_ASDER_0              :
 					case Type::NTDEC_ASDER_1              : return new Ntdec::Asder(c);
 					case Type::NTDEC_FIGHTINGHERO         : return new Ntdec::FightingHero(c);
@@ -3457,6 +3452,8 @@ namespace Nes
 					case Type::SUNSOFT_3                  : return new Sunsoft::S3(c);
 					case Type::SUNSOFT_4_0                :
 					case Type::SUNSOFT_4_1                : return new Sunsoft::S4(c);
+					case Type::SUNSOFT_5B_0               :
+					case Type::SUNSOFT_5B_1               : return new Sunsoft::S5b(c);
 					case Type::SUNSOFT_DCS                : return new Sunsoft::Dcs(c);
 					case Type::SUNSOFT_FME7_0             :
 					case Type::SUNSOFT_FME7_1             : return new Sunsoft::Fme7(c);

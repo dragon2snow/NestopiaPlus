@@ -61,6 +61,9 @@ namespace Nes
 
 	namespace Api
 	{
+		/**
+		* Emulator object instance.
+		*/
 		class Emulator
 		{
 		public:
@@ -68,13 +71,26 @@ namespace Nes
 			Emulator();
 			~Emulator() throw();
 
+			/**
+			* Executes one frame.
+			*
+			* @param video video context object or NULL to skip output
+			* @param sound sound context object or NULL to skip output
+			* @param input input context object or NULL to skip output
+			* @return result code
+			*/
 			Result Execute
 			(
-				Core::Video::Output*,
-				Core::Sound::Output*,
-				Core::Input::Controllers*
+				Core::Video::Output* video,
+				Core::Sound::Output* sound,
+				Core::Input::Controllers* input
 			)   throw();
 
+			/**
+			* Returns the number of executed frames relative to the last machine power/reset.
+			*
+			* @return number
+			*/
 			ulong Frame() const throw();
 
 		private:

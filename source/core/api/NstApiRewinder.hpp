@@ -43,36 +43,104 @@ namespace Nes
 {
 	namespace Api
 	{
+		/**
+		* Game rewinder interface.
+		*/
 		class Rewinder : public Base
 		{
 			struct StateCaller;
 
 		public:
 
+			/**
+			* Interface constructor.
+			*
+			* @param instance emulator instance
+			*/
 			template<typename T>
-			Rewinder(T& e)
-			: Base(e) {}
+			Rewinder(T& instance)
+			: Base(instance) {}
 
+			/**
+			* Direction.
+			*/
 			enum Direction
 			{
+				/**
+				* Forward.
+				*/
 				FORWARD,
+				/**
+				* Backward.
+				*/
 				BACKWARD
 			};
 
-			Result Enable(bool=true) throw();
+			/**
+			* Enables rewinder.
+			*
+			* @param state true to enable
+			* @return result code
+			*/
+			Result Enable(bool state=true) throw();
+
+			/**
+			* Checks if rewinder is enabled.
+			*
+			* @return true if enabled
+			*/
 			bool IsEnabled() const throw();
+
+			/**
+			* Resets rewinder.
+			*/
 			void Reset() throw();
 
-			void EnableSound(bool=true) throw();
+			/**
+			* Enables backward sound.
+			*
+			* @param state true to enable
+			*/
+			void EnableSound(bool state=true) throw();
+
+			/**
+			* Checks if backward sound is enabled.
+			*
+			* @return true if enabled
+			*/
 			bool IsSoundEnabled() const throw();
 
-			Result SetDirection(Direction) throw();
+			/**
+			* Sets direction.
+			*
+			* @param direction direction, FORWARD or BACKWARD
+			* @return result code
+			*/
+			Result SetDirection(Direction direction) throw();
+
+			/**
+			* Returns the current direction.
+			*
+			* @return current direction
+			*/
 			Direction GetDirection() const throw();
 
+			/**
+			* Rewinder state.
+			*/
 			enum State
 			{
+				/**
+				* Rewinding has stopped.
+				*/
 				STOPPED,
+				/**
+				* Rewinding will soon start.
+				*/
 				PREPARING,
+				/**
+				* Rewinding has begun.
+				*/
 				REWINDING
 			};
 
@@ -81,11 +149,27 @@ namespace Nes
 				NUM_STATE_CALLBACKS = 3
 			};
 
-			typedef void (NST_CALLBACK *StateCallback) (UserData,State);
+			/**
+			* Rewinder state callback prototype.
+			*
+			* @param userData optional user data
+			* @param state type of state
+			*/
+			typedef void (NST_CALLBACK *StateCallback) (UserData userData,State state);
 
+			/**
+			* Rewinder state callback manager.
+			*
+			* Static object used for adding the user defined callback.
+			*/
 			static StateCaller stateCallback;
 		};
 
+		/**
+		* Rewinder state callback invoker.
+		*
+		* Used internally by the core.
+		*/
 		struct Rewinder::StateCaller : Core::UserCallback<Rewinder::StateCallback>
 		{
 			void operator () (State state) const

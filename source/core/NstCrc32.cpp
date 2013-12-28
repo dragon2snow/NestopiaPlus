@@ -31,7 +31,7 @@ namespace Nes
 	{
 		namespace Crc32
 		{
-			dword NST_CALL Compute(dword crc,uint data)
+			static dword NST_CALL Iterate(uint data,dword crc)
 			{
 				struct Lut
 				{
@@ -56,12 +56,17 @@ namespace Nes
 				return (crc >> 8) ^ lut.data[(crc ^ data) & 0xFF];
 			}
 
-			dword NST_CALL Compute(const void* const mem,const dword length,dword crc)
+			dword NST_CALL Compute(uint data,dword crc)
+			{
+				return Iterate( data, crc ^ 0xFFFFFFFF ) ^ 0xFFFFFFFF;
+			}
+
+			dword NST_CALL Compute(const byte* NST_RESTRICT data,const dword length,dword crc)
 			{
 				crc ^= 0xFFFFFFFF;
 
-				for (const byte *NST_RESTRICT data=static_cast<const byte*>(mem), *const end=data+length; data != end; ++data)
-					crc = Compute( crc, *data );
+				for (const byte* const end=data+length; data != end; ++data)
+					crc = Iterate( *data, crc );
 
 				crc ^= 0xFFFFFFFF;
 

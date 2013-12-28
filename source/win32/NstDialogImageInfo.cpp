@@ -116,6 +116,7 @@ namespace Nestopia
 					profile.game.players ?                           Resource::String( IDS_TEXT_PLAYERS     ) : HeapString(),
                                                                      Resource::String( IDS_TEXT_FILE        ),
                                                                      Resource::String( IDS_TEXT_DIRECTORY   ),
+                                                                     Resource::String( IDS_TEXT_SOFTPATCHED ),
                                                                                        "CRC",
                                                                                        "SHA-1",
                                                                      Resource::String( IDS_TEXT_SYSTEM      ),
@@ -155,17 +156,19 @@ namespace Nestopia
 				types[6] << emulator.GetImagePath().File();
 				types[7] << emulator.GetImagePath().Directory();
 
+				types[8] << Resource::String( profile.patched ? IDS_TEXT_YES : IDS_TEXT_NO );;
+
 				{
 					char sha1[41] = {0};
 					char crc32[9] = {0};
 
 					profile.hash.Get( sha1, crc32 );
 
-					types[8] << crc32;
-					types[9] << sha1;
+					types[9] << crc32;
+					types[10] << sha1;
 				}
 
-				types[10] << Resource::String
+				types[11] << Resource::String
 				(
 					profile.system.type == Profile::System::VS_UNISYSTEM  ? IDS_TEXT_VSUNISYSTEM  :
 					profile.system.type == Profile::System::VS_DUALSYSTEM ? IDS_TEXT_VSDUALSYSTEM :
@@ -177,46 +180,46 @@ namespace Nestopia
 																			IDS_TEXT_NES_NTSC
 				);
 
-				types[11] << profile.board.type.c_str();
+				types[12] << profile.board.type.c_str();
 
 				if (profile.board.mapper && profile.board.mapper != Profile::Board::NO_MAPPER)
-					types[11] << ", " << Resource::String( IDS_TEXT_MAPPER ) << ' ' << profile.board.mapper;
+					types[12] << ", " << Resource::String( IDS_TEXT_MAPPER ) << ' ' << profile.board.mapper;
 
 				if (const uint prg = profile.board.GetPrg())
-					types[12] << (prg % 1024 ? prg : prg / 1024) << (prg % 1024 ? " bytes" : "k");
+					types[13] << (prg % 1024 ? prg : prg / 1024) << (prg % 1024 ? " bytes" : "k");
 
 				if (const uint chr = profile.board.GetChr())
-					types[13] << (chr % 1024 ? chr : chr / 1024) << (chr % 1024 ? " bytes" : "k");
+					types[14] << (chr % 1024 ? chr : chr / 1024) << (chr % 1024 ? " bytes" : "k");
 
 				if (const uint vram = profile.board.GetVram())
-					types[14] << (vram % 1024 ? vram : vram / 1024) << (vram % 1024 ? " bytes" : "k");
+					types[15] << (vram % 1024 ? vram : vram / 1024) << (vram % 1024 ? " bytes" : "k");
 
 				if (const uint wram = profile.board.GetWram())
-					types[15] << (wram % 1024 ? wram : wram / 1024) << (wram % 1024 ? " bytes" : "k");
+					types[16] << (wram % 1024 ? wram : wram / 1024) << (wram % 1024 ? " bytes" : "k");
 
 				for (uint i=0, n=profile.board.chips.size(); i < n; ++i)
 				{
 					if (i)
-						types[16] << ", ";
+						types[17] << ", ";
 
-					types[16] << profile.board.chips[i].type.c_str();
+					types[17] << profile.board.chips[i].type.c_str();
 				}
 
 				if (profile.board.solderPads & (SP_H|SP_V))
 				{
-					types[17] << "H:"  << ((profile.board.solderPads & SP_H) ? '1' : '0')
+					types[18] << "H:"  << ((profile.board.solderPads & SP_H) ? '1' : '0')
                               << " V:" << ((profile.board.solderPads & SP_V) ? '1' : '0');
 				}
 
-				types[18] << Resource::String( profile.board.HasBattery() ? IDS_TEXT_YES : IDS_TEXT_NO );
+				types[19] << Resource::String( profile.board.HasBattery() ? IDS_TEXT_YES : IDS_TEXT_NO );
 
 				if (profile.board.HasBattery())
 				{
-					types[19] << emulator.GetSavePath().File();
-					types[20] << emulator.GetSavePath().Directory();
+					types[20] << emulator.GetSavePath().File();
+					types[21] << emulator.GetSavePath().Directory();
 				}
 
-				types[21] << Resource::String
+				types[22] << Resource::String
 				(
 					profile.dump.state == Profile::Dump::OK  ? IDS_TEXT_OK :
 					profile.dump.state == Profile::Dump::BAD ? IDS_TEXT_BAD :

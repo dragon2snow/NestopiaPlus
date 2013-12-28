@@ -162,12 +162,12 @@ namespace Nestopia
 						{
 							enum
 							{
-								NES,UNF,XML,FDS,NSF,IPS,ARCHIVE,ANY,UNIQUE
+								NES,UNF,XML,FDS,NSF,PATCH,ARCHIVE,ANY,UNIQUE
 							};
 
 							enum
 							{
-								TYPES = NES|UNF|XML|FDS|NSF|IPS,
+								TYPES = NES|UNF|XML|FDS|NSF|PATCH,
 								FILES = TYPES|ARCHIVE
 							};
 
@@ -295,9 +295,9 @@ namespace Nestopia
 							XML     = 0x04,
 							FDS     = 0x08,
 							NSF     = 0x10,
-							IPS     = 0x20,
+							PATCH   = 0x20,
 							ARCHIVE = 0x80,
-							ALL     = NES|UNF|XML|FDS|NSF|IPS
+							ALL     = NES|UNF|XML|FDS|NSF|PATCH
 						};
 
 						enum

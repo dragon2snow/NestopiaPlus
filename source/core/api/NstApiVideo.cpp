@@ -248,7 +248,7 @@ namespace Nes
 					return false;
 			}
 
-			if (bool(boostYellow) != bool(decoder.boostYellow))
+			if (boostYellow != decoder.boostYellow)
 				return false;
 
 			return true;

@@ -37,7 +37,7 @@ namespace Nes
 		{
 			class Key;
 
-			void NST_CALL Compute(Key&,const void*,dword);
+			void NST_CALL Compute(Key&,const byte*,dword);
 
 			class Key : public ImplicitBool<Key>
 			{
@@ -59,7 +59,7 @@ namespace Nes
 
 			private:
 
-				friend void NST_CALL Compute(Key&,const void*,dword);
+				friend void NST_CALL Compute(Key&,const byte*,dword);
 
 				inline void Update() const;
 				void Compute(const byte*,dword);

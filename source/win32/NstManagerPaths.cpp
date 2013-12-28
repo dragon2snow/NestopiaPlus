@@ -50,7 +50,7 @@ namespace Nestopia
 		Manager ( e, m, this, &Paths::OnEmuEvent, IDM_OPTIONS_PATHS, &Paths::OnMenu ),
 		dialog  ( new Window::Paths(cfg) )
 		{
-			recentImageDir = cfg["paths"]["images"]["use-recent-directory"].Str();
+			recentImageDir = cfg["paths"]["images"]["recent-directory"].Str();
 
 			UpdateSettings();
 		}
@@ -64,7 +64,7 @@ namespace Nestopia
 			dialog->Save( cfg );
 
 			if (recentImageDir.DirectoryExists())
-				cfg["paths"]["images"]["use-recent-directory"].Str() = recentImageDir;
+				cfg["paths"]["images"]["recent-directory"].Str() = recentImageDir;
 		}
 
 		void Paths::UpdateSettings()
@@ -107,11 +107,16 @@ namespace Nestopia
 			return dialog->GetSetting(Window::Paths::COMPRESS_STATES);
 		}
 
+		bool Paths::BypassPatchValidation() const
+		{
+			return dialog->GetSetting(Window::Paths::PATCH_BYPASS_VALIDATION);
+		}
+
 		bool Paths::LocateFile(Path& path,const File::Types types) const
 		{
 			NST_ASSERT( path.File().Length() );
 
-			static const struct { uint type; wchar_t extension[4]; } lut[18] =
+			static const struct { uint type; wchar_t extension[4]; } lut[19] =
 			{
 				{ File::INES,              L"nes" },
 				{ File::UNIF,              L"unf" },
@@ -121,6 +126,7 @@ namespace Nestopia
 				{ File::TAPE,              L"tp"  },
 				{ File::STATE|File::SLOTS, L"nst" },
 				{ File::IPS,               L"ips" },
+				{ File::UPS,               L"ups" },
 				{ File::MOVIE,             L"nsv" },
 				{ File::ROM,               L"rom" },
 				{ File::XML,               L"xml" },
@@ -219,6 +225,7 @@ namespace Nestopia
 				types( File::TAPE              ) ? L"tp"  :
 				types( File::STATE|File::SLOTS ) ? L"nst" :
 				types( File::IPS               ) ? L"ips" :
+				types( File::UPS               ) ? L"ups" :
 				types( File::MOVIE             ) ? L"nsv" :
 				types( File::ROM               ) ? L"rom" :
 				types( File::ROM               ) ? L"xml" :
@@ -249,9 +256,9 @@ namespace Nestopia
 			{
 				type = Window::Paths::DIR_SAVE;
 			}
-			else if (types( File::IPS ))
+			else if (types( File::PATCH ))
 			{
-				type = Window::Paths::DIR_IPS;
+				type = Window::Paths::DIR_PATCHES;
 			}
 			else
 			{
@@ -358,23 +365,28 @@ namespace Nestopia
 			{
 				save.Set
 				(
-					dialog->GetDirectory( (type & File::CARTRIDGE) ? Window::Paths::DIR_SAVE : Window::Paths::DIR_IPS ),
+					dialog->GetDirectory( (type & File::CARTRIDGE) ? Window::Paths::DIR_SAVE : Window::Paths::DIR_PATCHES ),
 					image.Target().File(),
-					(type & File::CARTRIDGE) ? L"sav" : L"ips"
+					(type & File::CARTRIDGE) ? L"sav" : L"ups"
 				);
 			}
 
 			return save;
 		}
 
-		Path Paths::GetIpsPath(const Path& image,const File::Type type) const
+		Path Paths::GetPatchPath(const Path& image,const File::Type type) const
 		{
-			Path ips;
+			Path patch;
 
-			if ((type & File::CARTRIDGE) && dialog->GetSetting( Window::Paths::IPS_AUTO_PATCH ))
-				ips.Set( dialog->GetDirectory( Window::Paths::DIR_IPS ), image.Target().File(), L"ips" );
+			if ((type & File::CARTRIDGE) && dialog->GetSetting( Window::Paths::PATCH_AUTO_APPLY ))
+			{
+				patch.Set( dialog->GetDirectory( Window::Paths::DIR_PATCHES ), image.Target().File(), L"ups" );
 
-			return ips;
+				if (!patch.FileExists())
+					patch.Extension() = L"ips";
+			}
+
+			return patch;
 		}
 
 		Path Paths::GetSamplesPath() const
@@ -530,6 +542,7 @@ namespace Nestopia
 				if (types( File::STATE   )) filter[count++] = L"nst";
 				if (types( File::MOVIE   )) filter[count++] = L"nsv";
 				if (types( File::IPS     )) filter[count++] = L"ips";
+				if (types( File::UPS     )) filter[count++] = L"ups";
 				if (types( File::ROM     )) filter[count++] = L"rom";
 				if (types( File::XML     )) filter[count++] = L"xml";
 				if (types( File::PALETTE )) filter[count++] = L"pal";
@@ -610,6 +623,7 @@ namespace Nestopia
 				case File::ID_FDS_RAW: if (types( File::FDS               )) type = File::FDS;     break;
 				case File::ID_NSF:     if (types( File::NSF               )) type = File::NSF;     break;
 				case File::ID_IPS:     if (types( File::IPS               )) type = File::IPS;     break;
+				case File::ID_UPS:     if (types( File::UPS               )) type = File::UPS;     break;
 				case File::ID_NSV:     if (types( File::MOVIE             )) type = File::MOVIE;   break;
 				case File::ID_NST:     if (types( File::STATE|File::SLOTS )) type = File::STATE;   break;
 				case File::ID_ZIP:
@@ -636,6 +650,7 @@ namespace Nestopia
 						case FourCC<'f','d','s'>::V:
 						case FourCC<'n','s','f'>::V:
 						case FourCC<'i','p','s'>::V:
+						case FourCC<'u','p','s'>::V:
 						case FourCC<'n','s','v'>::V:
 						case FourCC<'n','s','t'>::V:
 						case FourCC<'n','s','0'>::V:

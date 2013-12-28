@@ -53,9 +53,9 @@ namespace Nes
 
 			typedef Api::Cartridge::Profile Profile;
 
-			static void ReadRomset(StdStream,FavoredSystem,bool,Profile&);
-			static void ReadInes(StdStream,FavoredSystem,Profile&);
-			static void ReadUnif(StdStream,FavoredSystem,Profile&);
+			static void ReadRomset(std::istream&,FavoredSystem,bool,Profile&);
+			static void ReadInes(std::istream&,FavoredSystem,Profile&);
+			static void ReadUnif(std::istream&,FavoredSystem,Profile&);
 
 			class Ines;
 			class Unif;

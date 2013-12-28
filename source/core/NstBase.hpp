@@ -151,30 +151,95 @@ namespace Nes
 	#error Unsupported plattform!
 	#endif
 
+	/**
+	* General result codes.
+	*/
 	enum Result
 	{
-		RESULT_ERR_WRONG_MODE               = -13,
-		RESULT_ERR_MISSING_BIOS             = -12,
-		RESULT_ERR_UNSUPPORTED_MAPPER       = -11,
-		RESULT_ERR_UNSUPPORTED_VSSYSTEM     = -10,
-		RESULT_ERR_UNSUPPORTED_FILE_VERSION =  -9,
-		RESULT_ERR_UNSUPPORTED              =  -8,
-		RESULT_ERR_INVALID_CRC              =  -7,
-		RESULT_ERR_CORRUPT_FILE             =  -6,
-		RESULT_ERR_INVALID_FILE             =  -5,
-		RESULT_ERR_INVALID_PARAM            =  -4,
-		RESULT_ERR_NOT_READY                =  -3,
-		RESULT_ERR_OUT_OF_MEMORY            =  -2,
-		RESULT_ERR_GENERIC                  =  -1,
-		RESULT_OK                           =   0,
-		RESULT_NOP                          =  +1,
-		RESULT_WARN_BAD_DUMP                =  +2,
-		RESULT_WARN_BAD_PROM                =  +3,
-		RESULT_WARN_BAD_CROM                =  +4,
-		RESULT_WARN_BAD_FILE_HEADER         =  +5,
-		RESULT_WARN_SAVEDATA_LOST           =  +6,
-		RESULT_WARN_INCORRECT_FILE_HEADER   =  +7,
-		RESULT_WARN_DATA_REPLACED           =  +8
+		/**
+		* NTSC/PAL region mismatch.
+		*/
+		RESULT_ERR_WRONG_MODE = -13,
+		/**
+		* Missing FDS BIOS.
+		*/
+		RESULT_ERR_MISSING_BIOS = -12,
+		/**
+		* Unsupported or malformed mapper.
+		*/
+		RESULT_ERR_UNSUPPORTED_MAPPER = -11,
+		/**
+		* Vs DualSystem is unsupported.
+		*/
+		RESULT_ERR_UNSUPPORTED_VSSYSTEM = -10,
+		/**
+		* File format version is no longer supported.
+		*/
+		RESULT_ERR_UNSUPPORTED_FILE_VERSION = -9,
+		/**
+		* Unsupported operation.
+		*/
+		RESULT_ERR_UNSUPPORTED = -8,
+		/**
+		* Invalid CRC checksum.
+		*/
+		RESULT_ERR_INVALID_CRC = -7,
+		/**
+		* Corrupt file.
+		*/
+		RESULT_ERR_CORRUPT_FILE = -6,
+		/**
+		* Invalid file.
+		*/
+		RESULT_ERR_INVALID_FILE = -5,
+		/**
+		* Invalid parameter(s).
+		*/
+		RESULT_ERR_INVALID_PARAM = -4,
+		/**
+		* System not ready.
+		*/
+		RESULT_ERR_NOT_READY = -3,
+		/**
+		* Out of memory.
+		*/
+		RESULT_ERR_OUT_OF_MEMORY = -2,
+		/**
+		* Generic error.
+		*/
+		RESULT_ERR_GENERIC = -1,
+		/**
+		* Success.
+		*/
+		RESULT_OK = 0,
+		/**
+		* Success but operation had no effect.
+		*/
+		RESULT_NOP = 1,
+		/**
+		* Success but image dump may be bad.
+		*/
+		RESULT_WARN_BAD_DUMP = 2,
+		/**
+		* Success but PRG-ROM may be bad.
+		*/
+		RESULT_WARN_BAD_PROM = 3,
+		/**
+		* Success but CHR-ROM may be bad.
+		*/
+		RESULT_WARN_BAD_CROM = 4,
+		/**
+		* Success but file header may have incorrect data.
+		*/
+		RESULT_WARN_BAD_FILE_HEADER = 5,
+		/**
+		* Success but save data has been lost.
+		*/
+		RESULT_WARN_SAVEDATA_LOST = 6,
+		/**
+		* Success but data may have been replaced.
+		*/
+		RESULT_WARN_DATA_REPLACED = 8
 	};
 
 	namespace Core

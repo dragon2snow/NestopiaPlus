@@ -158,7 +158,7 @@ namespace Nes
 		{
 			try
 			{
-				return Core::Fds::GetBios( &stream );
+				return Core::Fds::GetBios( stream );
 			}
 			catch (Result result)
 			{

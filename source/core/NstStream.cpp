@@ -273,6 +273,12 @@ namespace Nes
 				return data;
 			}
 
+			void In::Peek(byte* data,dword length)
+			{
+				Read( data, length );
+				Seek( -idword(length) );
+			}
+
 			bool In::Eof()
 			{
 				std::istream& ref = *static_cast<std::istream*>(stream);

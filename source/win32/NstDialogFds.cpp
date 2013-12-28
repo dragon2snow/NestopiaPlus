@@ -74,7 +74,7 @@ namespace Nestopia
 			(
 				( method == L"disabled" ) ? Managers::Emulator::DISKIMAGE_SAVE_DISABLED :
 				( method == L"image"    ) ? Managers::Emulator::DISKIMAGE_SAVE_TO_IMAGE :
-											Managers::Emulator::DISKIMAGE_SAVE_TO_IPS
+											Managers::Emulator::DISKIMAGE_SAVE_TO_PATCH
 			);
 
 			const GenericString led( fds["led"].Str() );
@@ -119,7 +119,7 @@ namespace Nestopia
 			fds["save-method"].Str() =
 			(
 				( emulator.GetDiskImageSaveMethod() == Managers::Emulator::DISKIMAGE_SAVE_TO_IMAGE ) ? "image" :
-				( emulator.GetDiskImageSaveMethod() == Managers::Emulator::DISKIMAGE_SAVE_TO_IPS   ) ? "ips" :
+				( emulator.GetDiskImageSaveMethod() == Managers::Emulator::DISKIMAGE_SAVE_TO_PATCH ) ? "patch" :
                                                                                                        "disabled"
 			);
 
@@ -171,7 +171,7 @@ namespace Nestopia
 			(
 				Managers::Emulator::DISKIMAGE_SAVE_DISABLED == IDC_FDS_SAVEDISABLE - IDC_FDS_SAVEDISABLE &&
 				Managers::Emulator::DISKIMAGE_SAVE_TO_IMAGE == IDC_FDS_SAVETOIMAGE - IDC_FDS_SAVEDISABLE &&
-				Managers::Emulator::DISKIMAGE_SAVE_TO_IPS   == IDC_FDS_SAVETOIPS   - IDC_FDS_SAVEDISABLE
+				Managers::Emulator::DISKIMAGE_SAVE_TO_PATCH == IDC_FDS_SAVETOPATCH - IDC_FDS_SAVEDISABLE
 			);
 
 			if (emulator.IsFdsOn())
@@ -208,7 +208,7 @@ namespace Nestopia
 				dialog.RadioButton( IDC_FDS_LED_SCROLLLOCK ).Uncheck();
 				dialog.RadioButton( IDC_FDS_LED_DISABLE    ).Uncheck();
 
-				dialog.RadioButton( IDC_FDS_SAVETOIPS   ).Check();
+				dialog.RadioButton( IDC_FDS_SAVETOPATCH ).Check();
 				dialog.RadioButton( IDC_FDS_SAVETOIMAGE ).Uncheck();
 				dialog.RadioButton( IDC_FDS_SAVEDISABLE ).Uncheck();
 			}
@@ -239,7 +239,7 @@ namespace Nestopia
 				emulator.SetDiskImageSaveMethod
 				(
 					dialog.RadioButton( IDC_FDS_SAVEDISABLE ).Checked() ? Managers::Emulator::DISKIMAGE_SAVE_DISABLED :
-					dialog.RadioButton( IDC_FDS_SAVETOIPS   ).Checked() ? Managers::Emulator::DISKIMAGE_SAVE_TO_IPS :
+					dialog.RadioButton( IDC_FDS_SAVETOPATCH ).Checked() ? Managers::Emulator::DISKIMAGE_SAVE_TO_PATCH :
                                                                           Managers::Emulator::DISKIMAGE_SAVE_TO_IMAGE
 				);
 

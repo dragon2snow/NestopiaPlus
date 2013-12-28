@@ -33,18 +33,20 @@ namespace Nes
 {
 	namespace Core
 	{
-		class Ips;
-
 		class Cartridge::Ines
 		{
+			class Loader;
+
 		public:
 
 			typedef Api::Cartridge::NesHeader Header;
 
 			static void Load
 			(
-				StdStream,
-				StdStream,
+				std::istream&,
+				std::istream*,
+				bool,
+				Result*,
 				Ram&,
 				Ram&,
 				FavoredSystem,
@@ -55,30 +57,6 @@ namespace Nes
 
 			static Result ReadHeader(Header&,const byte*,ulong);
 			static Result WriteHeader(const Header&,byte*,ulong);
-
-		private:
-
-			enum TrainerSetup
-			{
-				TRAINER_NONE,
-				TRAINER_IGNORE,
-				TRAINER_READ
-			};
-
-			enum
-			{
-				VS_MAPPER_99 = 99,
-				VS_MAPPER_151 = 151,
-				FFE_MAPPER_6 = 6,
-				FFE_MAPPER_8 = 8,
-				FFE_MAPPER_17 = 17,
-				TRAINER_LENGTH = 0x200,
-				MIN_DB_SEARCH_STRIDE = SIZE_8K,
-				MAX_DB_SEARCH_LENGTH = SIZE_16K * 0xFFFUL + SIZE_8K * 0xFFFUL
-			};
-
-			static TrainerSetup Collect(FavoredSystem,Profile&,ProfileEx&,StdStream,const Ips&);
-			static ImageDatabase::Entry SearchDatabase(const ImageDatabase&,StdStream,dword,TrainerSetup,FavoredSystem);
 		};
 	}
 }

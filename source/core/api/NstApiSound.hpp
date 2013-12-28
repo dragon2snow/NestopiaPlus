@@ -45,6 +45,9 @@ namespace Nes
 	{
 		namespace Sound
 		{
+			/**
+			* Sound output context.
+			*/
 			class Output
 			{
 				struct Locker;
@@ -57,7 +60,23 @@ namespace Nes
 					MAX_LENGTH = 0x8000
 				};
 
+				/**
+				* Pointer to sound memory to be written to.
+				*
+				* Assign NULL to samples[1] if circular buffers aren't needed.
+				*/
 				void* samples[2];
+
+				/**
+				* Length in <b>number of</b> samples for one frame.
+				*
+				* Assign 0 to length[1] if circular buffers aren't needed.
+				* Length doesn't neccesarily need to be the same value for every frame as long
+				* as they eventually add up in relation to the emulation speed. The requested
+				* number of samples will always be written even if the length is greater
+				* than what the sound engine normally produces. Non-written samples for one frame will
+				* be carried over to the next through an internal buffer.
+				*/
 				uint length[2];
 
 				Output(void* s0=0,uint l0=0,void* s1=0,uint l1=0)
@@ -68,13 +87,48 @@ namespace Nes
 					length[1] = l1;
 				}
 
-				typedef bool (NST_CALLBACK *LockCallback) (void*,Output&);
-				typedef void (NST_CALLBACK *UnlockCallback) (void*,Output&);
+				/**
+				* Sound lock callback prototype.
+				*
+				* Called right before the core is about to render sound for one frame. Non-written
+				* samples will be saved for the next frame.
+				*
+				* @param userData optional user data
+				* @param output object to this class
+				* @return true if output memory is valid and samples can be written to it
+				*/
+				typedef bool (NST_CALLBACK *LockCallback) (void* userData,Output& output);
 
+				/**
+				* Sound unlock callback prototype.
+				*
+				* Called when the core has finished rendering sound for one frame and a previously lock was made.
+				*
+				* @param userData optional user data
+				* @param output object to this class
+				*/
+				typedef void (NST_CALLBACK *UnlockCallback) (void* userData,Output& output);
+
+				/**
+				* Sound lock callback manager.
+				*
+				* Static object used for adding the user defined callback.
+				*/
 				static Locker lockCallback;
+
+				/**
+				* Sound unlock callback manager.
+				*
+				* Static object used for adding the user defined callback.
+				*/
 				static Unlocker unlockCallback;
 			};
 
+			/**
+			* Sound lock callback invoker.
+			*
+			* Used internally by the core.
+			*/
 			struct Output::Locker : UserCallback<Output::LockCallback>
 			{
 				bool operator () (Output& output) const
@@ -83,6 +137,11 @@ namespace Nes
 				}
 			};
 
+			/**
+			* Sound unlock callback invoker.
+			*
+			* Used internally by the core.
+			*/
 			struct Output::Unlocker : UserCallback<Output::UnlockCallback>
 			{
 				void operator () (Output& output) const
@@ -96,35 +155,97 @@ namespace Nes
 
 	namespace Api
 	{
+		/**
+		* Sound interface.
+		*/
 		class Sound : public Base
 		{
 		public:
 
+			/**
+			* Interface constructor.
+			*
+			* @param instance emulator instance
+			*/
 			template<typename T>
-			Sound(T& e)
-			: Base(e) {}
+			Sound(T& instance)
+			: Base(instance) {}
 
+			/**
+			* Sound channel types.
+			*/
 			enum Channel
 			{
-				CHANNEL_SQUARE1  = 0x001,
-				CHANNEL_SQUARE2  = 0x002,
+				/**
+				* First square channel.
+				*/
+				CHANNEL_SQUARE1 = 0x001,
+				/**
+				* Second square channel.
+				*/
+				CHANNEL_SQUARE2 = 0x002,
+				/**
+				* Triangle channel.
+				*/
 				CHANNEL_TRIANGLE = 0x004,
-				CHANNEL_NOISE    = 0x008,
-				CHANNEL_DPCM     = 0x010,
-				CHANNEL_FDS      = 0x020,
-				CHANNEL_MMC5     = 0x040,
-				CHANNEL_VRC6     = 0x080,
-				CHANNEL_VRC7     = 0x100,
-				CHANNEL_N163     = 0x200,
-				CHANNEL_S5B      = 0x400,
-				APU_CHANNELS     = CHANNEL_SQUARE1|CHANNEL_SQUARE2|CHANNEL_TRIANGLE|CHANNEL_NOISE|CHANNEL_DPCM,
-				EXT_CHANNELS     = CHANNEL_FDS|CHANNEL_MMC5|CHANNEL_VRC6|CHANNEL_VRC7|CHANNEL_N163|CHANNEL_S5B,
-				ALL_CHANNELS     = APU_CHANNELS|EXT_CHANNELS
+				/**
+				* Noise channel.
+				*/
+				CHANNEL_NOISE = 0x008,
+				/**
+				* DPCM channel.
+				*/
+				CHANNEL_DPCM = 0x010,
+				/**
+				* FDS sound chip channel.
+				*/
+				CHANNEL_FDS = 0x020,
+				/**
+				* MMC5 sound chip channel.
+				*/
+				CHANNEL_MMC5 = 0x040,
+				/**
+				* Konami VRC6 sound chip channel.
+				*/
+				CHANNEL_VRC6 = 0x080,
+				/**
+				* Konami VRC7 sound chip channel.
+				*/
+				CHANNEL_VRC7 = 0x100,
+				/**
+				* Namcot 163 sound chip channel.
+				*/
+				CHANNEL_N163 = 0x200,
+				/**
+				* Sunsoft 5B sound chip channel.
+				*/
+				CHANNEL_S5B = 0x400,
+				/**
+				* All NES APU channels.
+				*/
+				APU_CHANNELS = CHANNEL_SQUARE1|CHANNEL_SQUARE2|CHANNEL_TRIANGLE|CHANNEL_NOISE|CHANNEL_DPCM,
+				/**
+				* All external sound chip channels.
+				*/
+				EXT_CHANNELS = CHANNEL_FDS|CHANNEL_MMC5|CHANNEL_VRC6|CHANNEL_VRC7|CHANNEL_N163|CHANNEL_S5B,
+				/**
+				* All channels.
+				*/
+				ALL_CHANNELS = APU_CHANNELS|EXT_CHANNELS
 			};
 
+			/**
+			* Speaker type.
+			*/
 			enum Speaker
 			{
+				/**
+				* Mono sound (default).
+				*/
 				SPEAKER_MONO,
+				/**
+				* Pseudo stereo sound.
+				*/
 				SPEAKER_STEREO
 			};
 
@@ -137,21 +258,111 @@ namespace Nes
 				MAX_SPEED = 240
 			};
 
-			Result  SetSampleRate(ulong) throw();
-			ulong   GetSampleRate() const throw();
-			Result  SetSampleBits(uint) throw();
-			uint    GetSampleBits() const throw();
-			void    SetSpeaker(Speaker) throw();
-			Speaker GetSpeaker() const throw();
-			Result  SetVolume(uint,uint) throw();
-			uint    GetVolume(uint) const throw();
-			Result  SetSpeed(uint) throw();
-			uint    GetSpeed() const throw();
-			void    SetAutoTranspose(bool) throw();
-			bool    IsAutoTransposing() const throw();
-			bool    IsAudible() const throw();
-			void    EmptyBuffer() throw();
+			/**
+			* Sets the sample rate.
+			*
+			* @param rate value in the range 11025 to 96000, default is 44100
+			* @return result code
+			*/
+			Result SetSampleRate(ulong rate) throw();
 
+			/**
+			* Returns the sample rate.
+			*
+			* @return sample rate
+			*/
+			ulong GetSampleRate() const throw();
+
+			/**
+			* Sets the sample bits.
+			*
+			* @param bits value of 8 or 16, default is 16
+			* @return result code
+			*/
+			Result SetSampleBits(uint bits) throw();
+
+			/**
+			* Returns the sample bits.
+			*
+			* @return number
+			*/
+			uint GetSampleBits() const throw();
+
+			/**
+			* Sets the speaker type.
+			*
+			* @param speaker speaker type, default is SPEAKER_MONO
+			*/
+			void SetSpeaker(Speaker speaker) throw();
+
+			/**
+			* Returns the speaker type.
+			*
+			* @return speaker type
+			*/
+			Speaker GetSpeaker() const throw();
+
+			/**
+			* Sets a channel volume.
+			*
+			* @param channel channel
+			* @param volume volume in the range 0 to 100, default is 85
+			* @return result code
+			*/
+			Result SetVolume(uint channel,uint volume) throw();
+
+			/**
+			* Returns the volume of a channel.
+			*
+			* @param channel channel
+			* @return volume
+			*/
+			uint GetVolume(uint channel) const throw();
+
+			/**
+			* Sets the speed.
+			*
+			* @param speed speed in the range 30 to 240, set to DEFAULT_SPEED for automatic adjustment
+			* @return result code
+			*/
+			Result SetSpeed(uint speed) throw();
+
+			/**
+			* Returns the current speed.
+			*
+			* @return speed
+			*/
+			uint GetSpeed() const throw();
+
+			/**
+			* Enables automatic transposition.
+			*
+			* @param state true to enable
+			*/
+			void SetAutoTranspose(bool state) throw();
+
+			/**
+			* Checks if automatic transposing is enabled.
+			*
+			* @return true if enabled
+			*/
+			bool IsAutoTransposing() const throw();
+
+			/**
+			* Checks if sound is audible at all.
+			*
+			* @return true if audible
+			*/
+			bool IsAudible() const throw();
+
+			/**
+			* Empties the internal sound buffer.
+			*/
+			void EmptyBuffer() throw();
+
+			/**
+			* Sound output context.
+			*/
 			typedef Core::Sound::Output Output;
 		};
 	}

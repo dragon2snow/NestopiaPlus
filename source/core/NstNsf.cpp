@@ -104,14 +104,14 @@ namespace Nes
 				using Boards::Konami::Vrc7::Sound::GetSample;
 			};
 
-			struct S5B : Boards::Sunsoft::Fme7::Sound
+			struct S5b : Boards::Sunsoft::S5b::Sound
 			{
-				explicit S5B(Apu& a)
+				explicit S5b(Apu& a)
 				: Sound(a,false) {}
 
-				using Boards::Sunsoft::Fme7::Sound::Reset;
-				using Boards::Sunsoft::Fme7::Sound::UpdateSettings;
-				using Boards::Sunsoft::Fme7::Sound::GetSample;
+				using Boards::Sunsoft::S5b::Sound::Reset;
+				using Boards::Sunsoft::S5b::Sound::UpdateSettings;
+				using Boards::Sunsoft::S5b::Sound::GetSample;
 			};
 
 			template<typename T>
@@ -145,7 +145,7 @@ namespace Nes
 			Chip<Vrc6> vrc6;
 			Chip<Vrc7> vrc7;
 			Chip<Fds>  fds;
-			Chip<S5B>  s5b;
+			Chip<S5b>  s5b;
 			Chip<N163> n163;
 		};
 
@@ -231,7 +231,10 @@ namespace Nes
 		chips    (NULL),
 		tuneMode (Api::Nsf::TUNE_MODE_NTSC)
 		{
-			Stream::In stream( context.stream );
+			if (context.patch && context.patchResult)
+				*context.patchResult = RESULT_ERR_UNSUPPORTED;
+
+			Stream::In stream( &context.stream );
 
 			uint version;
 
@@ -520,8 +523,8 @@ namespace Nes
 
 				if (chips->s5b)
 				{
-					cpu.Map( 0xC000 ).Set( &Nsf::Poke_S5B_C );
-					cpu.Map( 0xE000 ).Set( &Nsf::Poke_S5B_E );
+					cpu.Map( 0xC000 ).Set( &Nsf::Poke_S5b_C );
+					cpu.Map( 0xE000 ).Set( &Nsf::Poke_S5b_E );
 				}
 			}
 
@@ -924,8 +927,8 @@ namespace Nes
 		NES_POKE_D (Nsf,Vrc7_9010) { chips->vrc7->SelectReg( data ); }
 		NES_POKE_D (Nsf,Vrc7_9030) { chips->vrc7->WriteReg( data ); }
 
-		NES_POKE_D (Nsf,S5B_C) { chips->s5b->SelectReg( data ); }
-		NES_POKE_D (Nsf,S5B_E) { chips->s5b->WriteReg( data );  }
+		NES_POKE_D (Nsf,S5b_C) { chips->s5b->SelectReg( data ); }
+		NES_POKE_D (Nsf,S5b_E) { chips->s5b->WriteReg( data );  }
 
 		NES_PEEK   (Nsf,N163_48) { return chips->n163->ReadData(); }
 		NES_POKE_D (Nsf,N163_48) { chips->n163->WriteData( data );  }

@@ -68,6 +68,11 @@ namespace Nestopia
 			{ LVN_DELETEITEM,  &Netplay::OnDeleteItem     }
 		};
 
+		bool Netplay::Games::Less::operator () (const Path& a,const Path& b) const
+		{
+			return a.Target().File() < b.Target().File();
+		}
+
 		Netplay::Games::Games()
 		: state(UNINITIALIZED) {}
 

@@ -38,7 +38,7 @@ namespace Nestopia
 			IDC_PATHS_BATTERY     - IDC_PATHS_IMAGE == IDC_PATHS_BATTERY_BROWSE     - IDC_PATHS_IMAGE_BROWSE &&
 			IDC_PATHS_NST         - IDC_PATHS_IMAGE == IDC_PATHS_NST_BROWSE         - IDC_PATHS_IMAGE_BROWSE &&
 			IDC_PATHS_SAMPLES     - IDC_PATHS_IMAGE == IDC_PATHS_SAMPLES_BROWSE     - IDC_PATHS_IMAGE_BROWSE &&
-			IDC_PATHS_IPS         - IDC_PATHS_IMAGE == IDC_PATHS_IPS_BROWSE         - IDC_PATHS_IMAGE_BROWSE &&
+			IDC_PATHS_PATCHES     - IDC_PATHS_IMAGE == IDC_PATHS_PATCHES_BROWSE     - IDC_PATHS_IMAGE_BROWSE &&
 			IDC_PATHS_SCREENSHOTS - IDC_PATHS_IMAGE == IDC_PATHS_SCREENSHOTS_BROWSE - IDC_PATHS_IMAGE_BROWSE
 		);
 
@@ -75,18 +75,19 @@ namespace Nestopia
 			{ DIR_SAVE,       IDC_PATHS_BATTERY,     L"save\\"        },
 			{ DIR_STATE,      IDC_PATHS_NST,         L"states\\"      },
 			{ DIR_SAMPLES,    IDC_PATHS_SAMPLES,     L"samples\\"     },
-			{ DIR_IPS,        IDC_PATHS_IPS,         L"ips\\"         },
+			{ DIR_PATCHES,    IDC_PATHS_PATCHES,     L"patches\\"     },
 			{ DIR_SCREENSHOT, IDC_PATHS_SCREENSHOTS, L"screenshots\\" }
 		};
 
 		const Paths::Lut::B Paths::Lut::flags[NUM_FLAGS] =
 		{
-			{ USE_LAST_IMAGE_DIR,      IDC_PATHS_IMAGE_LAST      },
-			{ READONLY_CARTRIDGE,      IDC_PATHS_BATTERY_PROTECT },
-			{ AUTO_IMPORT_STATE_SLOTS, IDC_PATHS_NST_AUTO_IMPORT },
-			{ AUTO_EXPORT_STATE_SLOTS, IDC_PATHS_NST_AUTO_EXPORT },
-			{ IPS_AUTO_PATCH,          IDC_PATHS_IPS_AUTO_APPLY  },
-			{ COMPRESS_STATES,         IDC_PATHS_NST_COMPRESS    }
+			{ USE_LAST_IMAGE_DIR,      IDC_PATHS_IMAGE_LAST                },
+			{ READONLY_CARTRIDGE,      IDC_PATHS_BATTERY_PROTECT           },
+			{ AUTO_IMPORT_STATE_SLOTS, IDC_PATHS_NST_AUTO_IMPORT           },
+			{ AUTO_EXPORT_STATE_SLOTS, IDC_PATHS_NST_AUTO_EXPORT           },
+			{ PATCH_AUTO_APPLY,        IDC_PATHS_PATCHES_AUTO_APPLY        },
+			{ PATCH_BYPASS_VALIDATION, IDC_PATHS_PATCHES_BYPASS_VALIDATION },
+			{ COMPRESS_STATES,         IDC_PATHS_NST_COMPRESS              }
 		};
 
 		const Paths::Lut::C Paths::Lut::screenShots[NUM_SCREENSHOTS] =
@@ -113,7 +114,7 @@ namespace Nestopia
 			{ IDC_PATHS_BATTERY_BROWSE,     &Paths::OnCmdBrowse      },
 			{ IDC_PATHS_NST_BROWSE,         &Paths::OnCmdBrowse      },
 			{ IDC_PATHS_SAMPLES_BROWSE,     &Paths::OnCmdBrowse      },
-			{ IDC_PATHS_IPS_BROWSE,         &Paths::OnCmdBrowse      },
+			{ IDC_PATHS_PATCHES_BROWSE,     &Paths::OnCmdBrowse      },
 			{ IDC_PATHS_SCREENSHOTS_BROWSE, &Paths::OnCmdBrowse      },
 			{ IDC_PATHS_IMAGE_LAST,         &Paths::OnCmdLastVisited },
 			{ IDC_PATHS_DEFAULT,            &Paths::OnCmdDefault     },
@@ -208,17 +209,26 @@ namespace Nestopia
 			}
 
 			{
-				Configuration::ConstSection ips( paths["ips"] );
+				Configuration::ConstSection patches( paths["patches"] );
 
-				settings.dirs[DIR_IPS] = ips["directory"].Str();
+				settings.dirs[DIR_PATCHES] = patches["directory"].Str();
 
-				if (ips["auto-patch"].Yes())
+				if (patches["auto-apply"].Yes())
 				{
-					settings.flags[IPS_AUTO_PATCH] = true;
+					settings.flags[PATCH_AUTO_APPLY] = true;
 				}
-				else if (ips["auto-patch"].No())
+				else if (patches["auto-apply"].No())
 				{
-					settings.flags[IPS_AUTO_PATCH] = false;
+					settings.flags[PATCH_AUTO_APPLY] = false;
+				}
+
+				if (patches["bypass-validation"].Yes())
+				{
+					settings.flags[PATCH_BYPASS_VALIDATION] = true;
+				}
+				else if (patches["bypass-validation"].No())
+				{
+					settings.flags[PATCH_BYPASS_VALIDATION] = false;
 				}
 			}
 
@@ -284,10 +294,11 @@ namespace Nestopia
 			}
 
 			{
-				Configuration::Section ips( paths["ips"] );
+				Configuration::Section patches( paths["patches"] );
 
-				ips[ "directory"  ].Str() = settings.dirs[DIR_IPS];
-				ips[ "auto-patch" ].YesNo() = settings.flags[IPS_AUTO_PATCH];
+				patches[ "directory"  ].Str() = settings.dirs[DIR_PATCHES];
+				patches[ "auto-apply" ].YesNo() = settings.flags[PATCH_AUTO_APPLY];
+				patches[ "bypass-validation" ].YesNo() = settings.flags[PATCH_BYPASS_VALIDATION];
 			}
 
 			{

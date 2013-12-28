@@ -36,7 +36,7 @@ namespace Nes
 	{
 		namespace Video
 		{
-			class Renderer::FilterScaleX: public Renderer::Filter
+			class Renderer::FilterScaleX : public Renderer::Filter
 			{
 			public:
 

@@ -40,6 +40,8 @@ namespace Nes
 		template<typename T>
 		class Vector;
 
+		typedef void* StdStream;
+
 		namespace Stream
 		{
 			class In
@@ -67,6 +69,7 @@ namespace Nes
 				dword Read32();
 				qword Read64();
 				uint  SafeRead8();
+				void  Peek(byte*,dword);
 				uint  Peek8();
 				uint  Peek16();
 				dword Peek32();

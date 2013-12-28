@@ -87,11 +87,16 @@ namespace Nestopia
 			{
 				Games();
 
-				typedef std::set<Path> Paths;
+				struct Less
+				{
+					bool operator () (const Path&,const Path&) const;
+				};
+
+				typedef std::set<Path,Less> Paths;
 
 				enum
 				{
-					LIMIT = 64
+					LIMIT = 100
 				};
 
 				enum State

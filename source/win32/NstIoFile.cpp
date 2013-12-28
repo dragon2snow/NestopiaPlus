@@ -117,9 +117,22 @@ namespace Nestopia
 				switch (::GetLastError())
 				{
 					case ERROR_FILE_NOT_FOUND:
-					case ERROR_PATH_NOT_FOUND: throw ERR_NOT_FOUND;
-					case ERROR_ALREADY_EXISTS: throw ERR_ALREADY_EXISTS;
-					default:                   throw ERR_OPEN;
+					case ERROR_PATH_NOT_FOUND:
+
+						throw ERR_NOT_FOUND;
+
+					case ERROR_ALREADY_EXISTS:
+
+						throw ERR_ALREADY_EXISTS;
+
+					case ERROR_ACCESS_DENIED:
+
+						if (mode & WRITE)
+							throw ERR_READ_ONLY;
+
+					default:
+
+						throw ERR_OPEN;
 				}
 			}
 		}

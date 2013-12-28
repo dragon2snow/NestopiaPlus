@@ -96,7 +96,7 @@ namespace Nestopia
 
 			for (uint i=0; i < 3; ++i)
 			{
-				static const char types[3][3] = {"ry","rg","rb"};
+				static const char types[3][3] = {"ry","gy","by"};
 
 				Configuration::ConstSection axis( decoder[types[i]] );
 
@@ -127,7 +127,7 @@ namespace Nestopia
 
 			for (uint i=0; i < 3; ++i)
 			{
-				static const char types[3][3] = {"ry","rg","rb"};
+				static const char types[3][3] = {"ry","gy","by"};
 
 				Configuration::Section axis( decoder[types[i]] );
 

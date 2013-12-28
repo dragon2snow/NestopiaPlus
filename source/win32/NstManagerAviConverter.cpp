@@ -22,6 +22,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
+#include "NstIoFile.hpp"
 #include "NstIoStream.hpp"
 #include "NstObjectPod.hpp"
 #include "NstWindowUser.hpp"
@@ -72,330 +73,371 @@ namespace Nestopia
 				emulator.SaveState( saveState, false, Emulator::QUIETLY );
 		}
 
+		#ifdef NST_MSVC_OPTIMIZE
+		#pragma optimize("t", on)
+		#endif
+
 		uint AviConverter::Record(const Path& moviePath,const Path& aviPath) const
 		{
 			if (moviePath.Empty() || aviPath.Empty() || !emulator.IsOn())
 				return 0;
 
-			Io::Stream::In movie( moviePath );
-
+			try
 			{
-				const Nes::Result result = Nes::Movie(emulator).Play( movie );
-
-				if (NES_FAILED(result))
-					return Emulator::ResultToString( result );
-			}
-
-			struct BitmapInfo : Object::Pod<BITMAPINFOHEADER>
-			{
-				BitmapInfo(const uint width,const uint height)
+				class Movie
 				{
-					NST_ASSERT( width && height );
+					Emulator& emulator;
+					Io::Stream::In stream;
 
-					biSize        = sizeof(BITMAPINFOHEADER);
-					biWidth       = width;
-					biHeight      = height;
-					biPlanes      = 1;
-					biBitCount    = VIDEO_BPP;
-					biCompression = BI_RGB;
-					biSizeImage   = biBitCount / 8 * biWidth * biHeight;
-				}
-			};
+				public:
 
-			struct CompressVars : Object::Pod<COMPVARS>
-			{
-				CompressVars()
-				{
-					cbSize = sizeof(COMPVARS);
-				}
+					explicit Movie(Emulator& e,const Path& path)
+					: emulator(e), stream(path) {}
 
-				~CompressVars()
-				{
-					::ICCompressorFree( this );
-				}
-
-				BOOL Choose(BitmapInfo& bitmapInfo)
-				{
-					char title[] = "Choose Video Codec";
-
-					return ::ICCompressorChoose
-					(
-						Application::Instance::GetMainWindow(),
-						ICMF_CHOOSE_DATARATE|ICMF_CHOOSE_KEYFRAME,
-						&bitmapInfo,
-						NULL,
-						this,
-						title
-					);
-				}
-			};
-
-			class File
-			{
-				PAVIFILE file;
-				mutable wcstring name;
-
-			public:
-
-				explicit File(wcstring n)
-				: name(n)
-				{
-					NST_ASSERT( name && *name );
-
-					::AVIFileInit();
-
-					if (::AVIFileOpen( &file, name, OF_WRITE|OF_CREATE, NULL ) != AVIERR_OK)
-						file = NULL;
-				}
-
-				operator PAVIFILE() const
-				{
-					return file;
-				}
-
-				void SetSuccess() const
-				{
-					name = NULL;
-				}
-
-				~File()
-				{
-					if (file)
+					uint Play()
 					{
-						::AVIFileRelease( file );
-
-						if (name)
-							::DeleteFile( name );
+						const Nes::Result result = Nes::Movie(emulator).Play( stream );
+						return NES_FAILED(result) ? Emulator::ResultToString( result ) : 0;
 					}
 
-					::AVIFileExit();
-				}
-			};
+					~Movie()
+					{
+						Nes::Movie(emulator).Stop();
+					}
+				};
 
-			class Stream
-			{
-				PAVISTREAM stream;
-
-			public:
-
-				Stream()
-				: stream(NULL) {}
-
-				Stream(const File* avi,AVISTREAMINFO& info)
+				struct BitmapInfo : Object::Pod<BITMAPINFOHEADER>
 				{
-					NST_ASSERT( !avi || bool(*avi) );
+					BitmapInfo(const uint width,const uint height)
+					{
+						NST_ASSERT( width && height );
 
-					if (!avi || ::AVIFileCreateStream( *avi, &stream, &info ) != AVIERR_OK)
-						stream = NULL;
-				}
+						biSize        = sizeof(BITMAPINFOHEADER);
+						biWidth       = width;
+						biHeight      = height << uint(width / height >= 2);
+						biPlanes      = 1;
+						biBitCount    = VIDEO_BPP;
+						biCompression = BI_RGB;
+						biSizeImage   = VIDEO_BPP/8 * biWidth * biHeight;
+					}
+				};
 
-				Stream(const File& avi,AVISTREAMINFO& info)
+				struct CompressVars : Object::Pod<COMPVARS>
 				{
-					NST_ASSERT( bool(avi) );
+					CompressVars()
+					{
+						cbSize = sizeof(COMPVARS);
+					}
 
-					if (::AVIFileCreateStream( avi, &stream, &info ) != AVIERR_OK)
-						stream = NULL;
-				}
+					~CompressVars()
+					{
+						::ICCompressorFree( this );
+					}
 
-				Stream(const Stream& base,AVICOMPRESSOPTIONS& options)
+					BOOL Choose(BitmapInfo& bitmapInfo)
+					{
+						char title[] = "Choose Video Codec";
+
+						return ::ICCompressorChoose
+						(
+							Application::Instance::GetMainWindow(),
+							ICMF_CHOOSE_DATARATE|ICMF_CHOOSE_KEYFRAME,
+							&bitmapInfo,
+							NULL,
+							this,
+							title
+						);
+					}
+				};
+
+				class File
 				{
-					if (::AVIMakeCompressedStream( &stream, base, &options, NULL ) != AVIERR_OK)
-						stream = NULL;
-				}
+					PAVIFILE file;
+					mutable wcstring name;
 
-				operator PAVISTREAM() const
+				public:
+
+					explicit File(wcstring n)
+					: name(n)
+					{
+						NST_ASSERT( name && *name );
+
+						::AVIFileInit();
+
+						if (::AVIFileOpen( &file, name, OF_WRITE|OF_CREATE, NULL ) != AVIERR_OK)
+							file = NULL;
+					}
+
+					operator PAVIFILE() const
+					{
+						return file;
+					}
+
+					void SetSuccess() const
+					{
+						name = NULL;
+					}
+
+					~File()
+					{
+						if (file)
+						{
+							::AVIFileRelease( file );
+
+							if (name)
+								::DeleteFile( name );
+						}
+
+						::AVIFileExit();
+					}
+				};
+
+				class Stream
 				{
-					return stream;
-				}
+					PAVISTREAM stream;
 
-				bool SetFormat(void* info,uint size) const
+				public:
+
+					Stream()
+					: stream(NULL) {}
+
+					Stream(const File* avi,AVISTREAMINFO& info)
+					{
+						NST_ASSERT( !avi || bool(*avi) );
+
+						if (!avi || ::AVIFileCreateStream( *avi, &stream, &info ) != AVIERR_OK)
+							stream = NULL;
+					}
+
+					Stream(const File& avi,AVISTREAMINFO& info)
+					{
+						NST_ASSERT( bool(avi) );
+
+						if (::AVIFileCreateStream( avi, &stream, &info ) != AVIERR_OK)
+							stream = NULL;
+					}
+
+					Stream(const Stream& base,AVICOMPRESSOPTIONS& options)
+					{
+						if (::AVIMakeCompressedStream( &stream, base, &options, NULL ) != AVIERR_OK)
+							stream = NULL;
+					}
+
+					operator PAVISTREAM() const
+					{
+						return stream;
+					}
+
+					bool SetFormat(void* info,uint size) const
+					{
+						NST_ASSERT( stream && info && size );
+
+						return ::AVIStreamSetFormat( stream, 0, info, size ) == AVIERR_OK;
+					}
+
+					~Stream()
+					{
+						if (stream)
+							::AVIStreamRelease( stream );
+					}
+				};
+
+				struct CompressOptions : Object::Pod<AVICOMPRESSOPTIONS>
 				{
-					NST_ASSERT( stream && info && size );
+					CompressOptions(const CompressVars& compressVars)
+					{
+						fccType          = streamtypeVIDEO;
+						fccHandler       = compressVars.fccHandler;
+						dwKeyFrameEvery  = compressVars.lKey;
+						dwQuality        = compressVars.lQ;
+						dwBytesPerSecond = compressVars.lDataRate;
 
-					return ::AVIStreamSetFormat( stream, 0, info, size ) == AVIERR_OK;
-				}
+						if (compressVars.lDataRate > 0)
+							dwFlags |= AVICOMPRESSF_DATARATE;
 
-				~Stream()
+						if (compressVars.lKey > 0)
+							dwFlags |= AVICOMPRESSF_KEYFRAMES;
+					}
+				};
+
+				struct VideoInfo : Object::Pod<AVISTREAMINFO>
 				{
-					if (stream)
-						::AVIStreamRelease( stream );
-				}
-			};
+					VideoInfo(Emulator& emulator,const BitmapInfo& bitmapInfo,const CompressVars& compressVars)
+					{
+						fccType               = streamtypeVIDEO;
+						fccHandler            = compressVars.fccHandler;
+						dwScale               = 1;
+						dwRate                = emulator.GetDefaultSpeed();
+						dwQuality             = compressVars.lQ;
+						dwSuggestedBufferSize = bitmapInfo.biSizeImage;
+						rcFrame.right         = bitmapInfo.biWidth;
+						rcFrame.bottom        = bitmapInfo.biHeight;
+					}
+				};
 
-			struct CompressOptions : Object::Pod<AVICOMPRESSOPTIONS>
-			{
-				CompressOptions(const CompressVars& compressVars)
+				struct WaveFormat : Object::Pod<WAVEFORMATEX>
 				{
-					fccType          = streamtypeVIDEO;
-					fccHandler       = compressVars.fccHandler;
-					dwKeyFrameEvery  = compressVars.lKey;
-					dwQuality        = compressVars.lQ;
-					dwBytesPerSecond = compressVars.lDataRate;
+					WaveFormat(const Nes::Sound nes)
+					{
+						wFormatTag      = WAVE_FORMAT_PCM;
+						nSamplesPerSec  = nes.GetSampleRate();
+						wBitsPerSample  = nes.GetSampleBits();
+						nChannels       = 1 + (nes.GetSpeaker() == Nes::Sound::SPEAKER_STEREO);
+						nBlockAlign     = wBitsPerSample / 8 * nChannels;
+						nAvgBytesPerSec = nSamplesPerSec * nBlockAlign;
+					}
+				};
 
-					if (compressVars.lDataRate > 0)
-						dwFlags |= AVICOMPRESSF_DATARATE;
-
-					if (compressVars.lKey > 0)
-						dwFlags |= AVICOMPRESSF_KEYFRAMES;
-				}
-			};
-
-			struct VideoInfo : Object::Pod<AVISTREAMINFO>
-			{
-				VideoInfo(Emulator& emulator,const BitmapInfo& bitmapInfo,const CompressVars& compressVars)
+				struct SoundInfo : Object::Pod<AVISTREAMINFO>
 				{
-					fccType               = streamtypeVIDEO;
-					fccHandler            = compressVars.fccHandler;
-					dwScale               = 1;
-					dwRate                = emulator.GetDefaultSpeed();
-					dwQuality             = compressVars.lQ;
-					dwSuggestedBufferSize = bitmapInfo.biSizeImage;
-					rcFrame.right         = bitmapInfo.biWidth;
-					rcFrame.bottom        = bitmapInfo.biHeight;
-				}
-			};
+					SoundInfo(const WaveFormat& waveFormat)
+					{
+						fccType         = streamtypeAUDIO;
+						fccHandler      = 1;
+						dwScale         = waveFormat.nBlockAlign;
+						dwInitialFrames = 1;
+						dwRate          = waveFormat.nAvgBytesPerSec;
+						dwQuality       = DWORD(-1);
+						dwSampleSize    = waveFormat.nBlockAlign;
+					}
+				};
 
-			struct WaveFormat : Object::Pod<WAVEFORMATEX>
-			{
-				WaveFormat(const Nes::Sound nes)
+				struct Buffer
 				{
-					wFormatTag      = WAVE_FORMAT_PCM;
-					nSamplesPerSec  = nes.GetSampleRate();
-					wBitsPerSample  = nes.GetSampleBits();
-					nChannels       = 1 + (nes.GetSpeaker() == Nes::Sound::SPEAKER_STEREO);
-					nBlockAlign     = wBitsPerSample / 8 * nChannels;
-					nAvgBytesPerSec = nSamplesPerSec * nBlockAlign;
-				}
-			};
+					uchar* const ptr;
+					const uint size;
 
-			struct SoundInfo : Object::Pod<AVISTREAMINFO>
-			{
-				SoundInfo(const WaveFormat& waveFormat)
-				{
-					fccType         = streamtypeAUDIO;
-					fccHandler      = 1;
-					dwScale         = waveFormat.nBlockAlign;
-					dwInitialFrames = 1;
-					dwRate          = waveFormat.nAvgBytesPerSec;
-					dwQuality       = DWORD(-1);
-					dwSampleSize    = waveFormat.nBlockAlign;
-				}
-			};
+					Buffer(uint n) : ptr(n ? new uchar [n] : NULL), size(n) {}
+					~Buffer() { delete [] ptr; }
+				};
 
-			struct Buffer
-			{
-				void* const ptr;
-				const uint size;
+				Movie movie( emulator, moviePath );
 
-				Buffer(uint n) : ptr(operator new (n)), size(n) {}
-				~Buffer() { operator delete (ptr); }
-			};
+				if (const uint ids = movie.Play())
+					return ids;
 
-			BitmapInfo bitmapInfo( renderState.width, renderState.height );
-			CompressVars compressVars;
+				BitmapInfo bitmapInfo( renderState.width, renderState.height );
+				CompressVars compressVars;
 
-			if (!compressVars.Choose( bitmapInfo ))
-				return 0;
+				if (!compressVars.Choose( bitmapInfo ))
+					return 0;
 
-			Application::Instance::Waiter wait;
+				Application::Instance::Waiter wait;
 
-			const File avi( aviPath.Ptr() );
+				const File avi( aviPath.Ptr() );
 
-			if (!avi)
-				return IDS_AVI_WRITE_ERR;
-
-			VideoInfo videoInfo( emulator, bitmapInfo, compressVars );
-			const Stream video( avi, videoInfo );
-
-			if (!video)
-				return IDS_AVI_WRITE_ERR;
-
-			CompressOptions compressOptions( compressVars );
-			const Stream compressor( video, compressOptions );
-
-			if (!compressor)
-				return IDS_AVI_WRITE_ERR;
-
-			if (!compressor.SetFormat( &bitmapInfo, bitmapInfo.biSize + bitmapInfo.biClrUsed * sizeof(RGBQUAD) ))
-				return IDS_AVI_WRITE_ERR;
-
-			Window::User::Inform( IDS_AVI_WRITE_INFO );
-			Application::Instance::Locker locker;
-
-			WaveFormat waveFormat( emulator );
-			SoundInfo soundInfo( waveFormat );
-			const Stream sound( Nes::Sound(emulator).IsAudible() ? &avi : NULL, soundInfo );
-
-			if (Nes::Sound(emulator).IsAudible())
-			{
-				if (!sound)
+				if (!avi)
 					return IDS_AVI_WRITE_ERR;
 
-				if (!sound.SetFormat( &waveFormat, sizeof(WAVEFORMATEX) ))
+				VideoInfo videoInfo( emulator, bitmapInfo, compressVars );
+				const Stream video( avi, videoInfo );
+
+				if (!video)
 					return IDS_AVI_WRITE_ERR;
+
+				CompressOptions compressOptions( compressVars );
+				const Stream compressor( video, compressOptions );
+
+				if (!compressor)
+					return IDS_AVI_WRITE_ERR;
+
+				if (!compressor.SetFormat( &bitmapInfo, bitmapInfo.biSize + bitmapInfo.biClrUsed * sizeof(RGBQUAD) ))
+					return IDS_AVI_WRITE_ERR;
+
+				Window::User::Inform( IDS_AVI_WRITE_INFO );
+				Application::Instance::Locker locker;
+
+				WaveFormat waveFormat( emulator );
+				SoundInfo soundInfo( waveFormat );
+				const Stream sound( Nes::Sound(emulator).IsAudible() ? &avi : NULL, soundInfo );
+
+				if (Nes::Sound(emulator).IsAudible())
+				{
+					if (!sound)
+						return IDS_AVI_WRITE_ERR;
+
+					if (!sound.SetFormat( &waveFormat, sizeof(WAVEFORMATEX) ))
+						return IDS_AVI_WRITE_ERR;
+				}
+
+				Buffer pixels( bitmapInfo.biSizeImage );
+				Buffer samples( waveFormat.nAvgBytesPerSec / videoInfo.dwRate );
+
+				// picture will be stored upside down, adjust the pitch
+				Nes::Video::Output videoOutput( pixels.ptr + (VIDEO_BPP/8 * bitmapInfo.biWidth * (renderState.height-1)), -int(VIDEO_BPP/8 * bitmapInfo.biWidth) );
+				Nes::Sound::Output soundOutput( samples.ptr, samples.size / waveFormat.nBlockAlign );
+
+				{
+					Nes::Video::RenderState tmp;
+					Nes::Video(emulator).GetRenderState( tmp );
+
+					tmp.bits.count = VIDEO_BPP;
+					tmp.bits.mask.r = VIDEO_R_MASK;
+					tmp.bits.mask.g = VIDEO_G_MASK;
+					tmp.bits.mask.b = VIDEO_B_MASK;
+
+					Nes::Video(emulator).SetRenderState( tmp );
+				}
+
+				for (uint frame=0, sample=0, size=0; Nes::Movie(emulator).IsPlaying() && size < MAX_FILE_SIZE; ++frame, sample += soundOutput.length[0])
+				{
+					::Sleep( 0 );
+
+					if (locker.CheckInput( VK_ESCAPE ))
+						return IDS_AVI_WRITE_ABORT;
+
+					if (NES_FAILED(emulator.Nes::Emulator::Execute( &videoOutput, sound ? &soundOutput : NULL, NULL )))
+						return IDS_AVI_WRITE_ERR;
+
+					if (bitmapInfo.biHeight == renderState.height * 2)
+					{
+						const uint pitch = -videoOutput.pitch;
+
+						for (uchar *src=pixels.ptr + (pitch * (renderState.height-1)), *dst = pixels.ptr + (bitmapInfo.biSizeImage - pitch); ; src -= pitch)
+						{
+							std::memcpy( dst, src, pitch );
+							dst -= pitch;
+
+							if (dst == pixels.ptr)
+								break;
+
+							std::memcpy( dst, src, pitch );
+							dst -= pitch;
+						}
+					}
+
+					long written[2] = {0,0};
+
+					if
+					(
+						(::AVIStreamWrite( compressor, frame, 1, pixels.ptr, pixels.size, AVIIF_KEYFRAME, NULL, written+0 ) != AVIERR_OK) ||
+						(sound && ::AVIStreamWrite( sound, sample, soundOutput.length[0], samples.ptr, samples.size, 0, NULL, written+1 ) != AVIERR_OK)
+					)
+						return IDS_AVI_WRITE_ERR;
+
+					size += (written[0] > 0 ? written[0] : 0) + (written[1] > 0 ? written[1] : 0);
+				}
+
+				avi.SetSuccess();
+
+				return IDS_AVI_WRITE_FINISHED;
 			}
-
-			Buffer pixels( bitmapInfo.biSizeImage );
-			Buffer flipped( bitmapInfo.biSizeImage );
-			Buffer samples( waveFormat.nAvgBytesPerSec / videoInfo.dwRate );
-
-			Nes::Video::Output videoOutput( pixels.ptr, bitmapInfo.biBitCount / 8 * bitmapInfo.biWidth );
-			Nes::Sound::Output soundOutput( samples.ptr, samples.size / waveFormat.nBlockAlign );
-
+			catch (Io::File::Exception id)
 			{
-				Nes::Video::RenderState tmp;
-				Nes::Video(emulator).GetRenderState( tmp );
-
-				tmp.bits.count = VIDEO_BPP;
-				tmp.bits.mask.r = VIDEO_R_MASK;
-				tmp.bits.mask.g = VIDEO_G_MASK;
-				tmp.bits.mask.b = VIDEO_B_MASK;
-
-				Nes::Video(emulator).SetRenderState( tmp );
+				return id;
 			}
-
-			for (uint frame=0, sample=0, size=0; Nes::Movie(emulator).IsPlaying(); ++frame, sample += soundOutput.length[0])
+			catch (...)
 			{
-				::Sleep( 0 );
-
-				if (locker.CheckInput( VK_ESCAPE ))
-					return IDS_AVI_WRITE_ABORT;
-
-				if (NES_FAILED(emulator.Nes::Emulator::Execute( &videoOutput, sound ? &soundOutput : NULL, NULL )))
-					return IDS_AVI_WRITE_ERR;
-
-				// picture will be stored upside down, flip it
-
-				for (PBYTE dst=PBYTE(flipped.ptr), src=PBYTE(pixels.ptr)+pixels.size-videoOutput.pitch, end=PBYTE(flipped.ptr)+flipped.size; dst != end; dst += videoOutput.pitch, src -= videoOutput.pitch)
-					std::memcpy( dst, src, videoOutput.pitch );
-
-				long written[2] = {0,0};
-
-				if
-				(
-					(::AVIStreamWrite( compressor, frame, 1, flipped.ptr, flipped.size, AVIIF_KEYFRAME, NULL, written+0 ) != AVIERR_OK) ||
-					(sound && ::AVIStreamWrite( sound, sample, soundOutput.length[0], samples.ptr, samples.size, 0, NULL, written+1 ) != AVIERR_OK)
-				)
-					return IDS_AVI_WRITE_ERR;
-
-				size += (written[0] > 0 ? written[0] : 0) + (written[1] > 0 ? written[1] : 0);
-
-				if (size >= MAX_FILE_SIZE)
-				{
-					Nes::Movie(emulator).Stop();
-					break;
-				}
+				return IDS_ERR_GENERIC;
 			}
-
-			avi.SetSuccess();
-
-			return IDS_AVI_WRITE_FINISHED;
 		}
+
+		#ifdef NST_MSVC_OPTIMIZE
+		#pragma optimize("", on)
+		#endif
 
 		AviConverter::~AviConverter()
 		{
-			Nes::Movie(emulator).Stop();
-
 			if (saveState.Size())
 				emulator.LoadState( saveState, Emulator::QUIETLY );
 

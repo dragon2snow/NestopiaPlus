@@ -129,7 +129,7 @@ namespace Nestopia
 			Type ParseUnf();
 			Type ParseFds();
 			Type ParseNsf();
-			Type ParseIps();
+			Type ParsePatch();
 			Type ParseArchive();
 			void AddEntry(uint,const Nes::Cartridge::Profile&);
 			void AddEntry(const Entry&);
@@ -178,7 +178,8 @@ namespace Nestopia
 						case FourCC<'x','m','l'>::V:     return include[Include::XML] ? &Inserter::ParseXml : NULL;
 						case FourCC<'f','d','s'>::V:     return include[Include::FDS] ? &Inserter::ParseFds : NULL;
 						case FourCC<'n','s','f'>::V:     return include[Include::NSF] ? &Inserter::ParseNsf : NULL;
-						case FourCC<'i','p','s'>::V:     return include[Include::IPS] ? &Inserter::ParseIps : NULL;
+						case FourCC<'i','p','s'>::V:
+						case FourCC<'u','p','s'>::V:     return include[Include::PATCH] ? &Inserter::ParsePatch : NULL;
 						case FourCC<'z','i','p'>::V:
 						case FourCC<'r','a','r'>::V:
 						case FourCC<'7','z'>::V:         return include[Include::ARCHIVE] ? &Inserter::ParseArchive : NULL;
@@ -286,7 +287,7 @@ namespace Nestopia
 		inline uint Launcher::List::Files::Inserter::Crc(const uint start,const uint length) const
 		{
 			NST_ASSERT( buffer.Size() );
-			return Nes::Core::Crc32::Compute( &buffer[start], length );
+			return Nes::Core::Crc32::Compute( reinterpret_cast<const uchar*>(&buffer[start]), length );
 		}
 
 		bool Launcher::List::Files::Inserter::UniqueFile()
@@ -532,13 +533,13 @@ namespace Nestopia
 			return TYPE_INVALID;
 		}
 
-		Launcher::List::Files::Inserter::Type Launcher::List::Files::Inserter::ParseIps()
+		Launcher::List::Files::Inserter::Type Launcher::List::Files::Inserter::ParsePatch()
 		{
-			if (PrepareFile( 5, Managers::Paths::File::ID_IPS ))
+			if (PrepareFile( 5, Managers::Paths::File::ID_IPS ) || PrepareFile( 4, Managers::Paths::File::ID_UPS ))
 			{
 				if (UniqueFile())
 				{
-					Entry entry( Entry::IPS | compressed );
+					Entry entry( Entry::PATCH | compressed );
 					AddEntry( entry );
 
 					return TYPE_PROCESSED;
@@ -600,7 +601,7 @@ namespace Nestopia
 				(!include[Include::UNF] || ParseUnf() == TYPE_INVALID) &&
 				(!include[Include::FDS] || ParseFds() == TYPE_INVALID) &&
 				(!include[Include::NSF] || ParseNsf() == TYPE_INVALID) &&
-				(!include[Include::IPS] || ParseIps() == TYPE_INVALID) &&
+				(!include[Include::PATCH] || ParsePatch() == TYPE_INVALID) &&
 				( include[Include::ARCHIVE] && notCompressed)
 			)
 				ParseArchive();
@@ -812,7 +813,7 @@ namespace Nestopia
 					xml.Read( stream );
 				}
 
-				if (!xml.GetRoot().IsType( L"launcher" ))
+				if (!xml.GetRoot().IsType( L"launcher" ) || !xml.GetRoot().GetAttribute( L"version" ).IsValue(L"1.1"))
 					throw 1;
 
 				for (Xml::Node node(xml.GetRoot().GetFirstChild()); node; node=node.GetNextSibling())
@@ -839,9 +840,9 @@ namespace Nestopia
 					{
 						entry.type = Entry::NSF;
 					}
-					else if (node.IsType( L"ips" ))
+					else if (node.IsType( L"patch" ))
 					{
-						entry.type = Entry::IPS;
+						entry.type = Entry::PATCH;
 					}
 					else
 					{
@@ -969,7 +970,7 @@ namespace Nestopia
 
 						Xml xml;
 						Xml::Node root( xml.Create(L"launcher") );
-						root.AddAttribute( L"version", L"1.0" );
+						root.AddAttribute( L"version", L"1.1" );
 
 						for (Entries::ConstIterator it(entries.Begin()), end(entries.End()); it != end; ++it)
 						{
@@ -977,12 +978,12 @@ namespace Nestopia
 
 							switch (it->type & Entry::ALL)
 							{
-								case Entry::NES: type = L"ines";    break;
-								case Entry::UNF: type = L"unif";    break;
-								case Entry::XML: type = L"romset";  break;
-								case Entry::FDS: type = L"fds";     break;
-								case Entry::NSF: type = L"nsf";     break;
-								case Entry::IPS: type = L"ips";     break;
+								case Entry::NES:   type = L"ines";    break;
+								case Entry::UNF:   type = L"unif";    break;
+								case Entry::XML:   type = L"romset";  break;
+								case Entry::FDS:   type = L"fds";     break;
+								case Entry::NSF:   type = L"nsf";     break;
+								case Entry::PATCH: type = L"patch";   break;
 								default: continue;
 							}
 

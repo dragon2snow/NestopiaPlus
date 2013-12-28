@@ -1,4 +1,55 @@
 ----------------------------------------------------------------
+1.39
+----------------------------------------------------------------
+
+Shell:
+
+ Addition:
+
+  - "Don't show again" checkbox in DIP switches popup window.
+  - Soft-patching status in image info dialog.
+
+ Changes:
+
+  - More descriptive error messages. 
+  - Refactoring.
+  
+ Fixes:
+ 
+  - Netplay file opening error leading to crash.
+  - Recent files locking bug on exit.
+  - Last visited image file directory bug on exit.
+  - Esc not working sometimes when disabling dialog
+    controls (Windows quirk).
+  - Crash on cancel when exporting to AVI.
+  - Correct screen height with NTSC filter when exporting to AVI.
+  - Typos in GUI.
+  
+Core:
+
+ Addition:
+ 
+  - Core API documentation in HTML through cppdoc.
+  - UPS patching format support.
+  - Database lookup on soft-patching.
+  - Database entries. Info from Bootgod.
+  - More recognized boards. Info from Bootgod.
+
+ Changes:
+ 
+  - FDS saves through UPS instead of IPS. 
+  - Database entries. Info from Bootgod.
+  - Refactoring.
+
+ Fixes:
+ 
+  - FDS file saving bug.
+  - NTSC burst phase incrementing bug.
+  - Potential memory leak in database loader.
+  - UTF16 to wchar_t portability fix in XML parser.
+  - Const-correctness bug caught by GCC 4.0.
+
+----------------------------------------------------------------
 1.38
 ----------------------------------------------------------------
 

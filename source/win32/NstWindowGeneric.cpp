@@ -190,7 +190,16 @@ namespace Nestopia
 
 		bool Generic::Enable(bool enable) const
 		{
-			return ::EnableWindow( hWnd, enable );
+			bool focused = (!enable && ::GetFocus() == hWnd);
+			bool prevDisabled = ::EnableWindow( hWnd, enable );
+
+			if (!prevDisabled && focused)
+			{
+				if (HWND parent = ::GetParent( hWnd ))
+					::SetFocus( parent );
+			}
+
+			return prevDisabled;
 		}
 
 		void Generic::Show(bool show) const

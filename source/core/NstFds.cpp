@@ -83,7 +83,7 @@ namespace Nes
 			{
 			}
 
-			void Set(StdStream stdStream)
+			void Set(std::istream* const stdStream)
 			{
 				available = false;
 
@@ -111,11 +111,11 @@ namespace Nes
 				}
 			}
 
-			Result Get(StdStream stream) const
+			Result Get(std::ostream& stream) const
 			{
 				if (available)
 				{
-					Stream::Out(stream).Write( rom, SIZE_8K );
+					Stream::Out(&stream).Write( rom, SIZE_8K );
 					return RESULT_OK;
 				}
 				else
@@ -155,12 +155,6 @@ namespace Nes
 		#pragma optimize("s", on)
 		#endif
 
-		inline void Fds::Disks::Sides::Cache() const
-		{
-			if (!dirty)
-				Load();
-		}
-
 		inline void Fds::Adapter::Mount(byte* io,bool protect)
 		{
 			unit.drive.Mount( io, protect );
@@ -177,6 +171,9 @@ namespace Nes
 		{
 			if (!bios.Available())
 				throw RESULT_ERR_MISSING_BIOS;
+
+			if (context.patch && context.patchResult)
+				*context.patchResult = RESULT_ERR_UNSUPPORTED;
 
 			ppu.GetChrMem().Source().Set( Core::Ram::RAM, true, true, SIZE_8K );
 		}
@@ -241,12 +238,12 @@ namespace Nes
 			return true;
 		}
 
-		void Fds::SetBios(StdStream stream)
+		void Fds::SetBios(std::istream* stream)
 		{
 			bios.Set( stream );
 		}
 
-		Result Fds::GetBios(StdStream stream)
+		Result Fds::GetBios(std::ostream& stream)
 		{
 			return bios.Get( stream );
 		}
@@ -410,8 +407,6 @@ namespace Nes
 						{
 							if (chunk == AsciiId<'D','0','A'>::R( 0, i / 2, i % 2 ))
 							{
-								disks.sides.Cache();
-
 								byte* const data = disks.sides[i];
 								state.Uncompress( data, SIDE_SIZE );
 
@@ -453,6 +448,10 @@ namespace Nes
 			);
 		}
 
+		#ifdef NST_MSVC_OPTIMIZE
+		#pragma optimize("", on)
+		#endif
+
 		void Fds::SaveState(State::Saver& state,const dword baseChunk) const
 		{
 			state.Begin( baseChunk );
@@ -486,7 +485,22 @@ namespace Nes
 				state.Begin( AsciiId<'D','S','K'>::V ).Write( data ).End();
 			}
 
-			if (adapter.Dirty() || !state.Internal())
+			bool saveData = true;
+
+			if (state.Internal())
+			{
+				Checksum recentChecksum;
+
+				for (uint i=0; i < disks.sides.count; ++i)
+					recentChecksum.Compute( disks.sides[i], SIDE_SIZE );
+
+				if (checksum == recentChecksum)
+					saveData = false;
+				else
+					checksum = recentChecksum;
+			}
+
+			if (saveData)
 			{
 				struct Dst
 				{
@@ -513,10 +527,6 @@ namespace Nes
 
 			state.End();
 		}
-
-		#ifdef NST_MSVC_OPTIMIZE
-		#pragma optimize("", on)
-		#endif
 
 		NES_PEEK(Fds,Nop)
 		{
@@ -617,10 +627,9 @@ namespace Nes
 		#pragma optimize("s", on)
 		#endif
 
-		Fds::Disks::Sides::Sides(StdStream stdStream)
-		: dirty(false)
+		Fds::Disks::Sides::Sides(std::istream& stdStream)
 		{
-			Stream::In stream( stdStream );
+			Stream::In stream( &stdStream );
 
 			dword size;
 			uint header;
@@ -662,6 +671,7 @@ namespace Nes
 			try
 			{
 				stream.Read( data - header, header + size );
+				file.Load( data - header, header + size, File::DISK );
 			}
 			catch (...)
 			{
@@ -675,32 +685,20 @@ namespace Nes
 			delete [] (data - HEADER_SIZE);
 		}
 
-		NST_NO_INLINE void Fds::Disks::Sides::Load() const
-		{
-			NST_ASSERT( !dirty );
-
-			dirty = true;
-			const uint header = HasHeader() ? HEADER_SIZE : 0;
-			file.Load( data - header, header + count * dword(SIDE_SIZE) );
-		}
-
 		void Fds::Disks::Sides::Save() const
 		{
-			if (dirty)
+			try
 			{
-				try
-				{
-					const uint header = HasHeader() ? HEADER_SIZE : 0;
-					file.Save( File::DISK, data - header, header + count * dword(SIDE_SIZE) );
-				}
-				catch (...)
-				{
-					NST_DEBUG_MSG("fds save failure!");
-				}
+				const uint header = HasHeader() ? HEADER_SIZE : 0;
+				file.Save( File::DISK, data - header, header + count * dword(SIDE_SIZE) );
+			}
+			catch (...)
+			{
+				NST_DEBUG_MSG("fds save failure!");
 			}
 		}
 
-		Fds::Disks::Disks(StdStream stream)
+		Fds::Disks::Disks(std::istream& stream)
 		:
 		sides          (stream),
 		crc            (Crc32::Compute( sides[0], sides.count * dword(SIDE_SIZE) )),
@@ -794,7 +792,7 @@ namespace Nes
 		#endif
 
 		Fds::Unit::Drive::Drive(const Disks::Sides& s)
-		: dirty(false), sides(s)
+		: sides(s)
 		{
 			Reset();
 		}
@@ -1089,10 +1087,6 @@ namespace Nes
 					if (length-- > 3)
 					{
 						++dataPos;
-
-						dirty = true;
-						sides.Cache();
-
 						*stream = data;
 					}
 					else if (length == 2)
@@ -1111,9 +1105,6 @@ namespace Nes
 							NST_VERIFY( ctrl & uint(CTRL_IO_MODE) );
 
 							++dataPos;
-
-							dirty = true;
-							sides.Cache();
 
 							switch (*stream = data)
 							{
@@ -1310,13 +1301,6 @@ namespace Nes
 					break;
 				}
 			}
-		}
-
-		bool Fds::Adapter::Dirty() const
-		{
-			bool dirty = unit.drive.dirty;
-			unit.drive.dirty = false;
-			return dirty;
 		}
 
 		#ifdef NST_MSVC_OPTIMIZE

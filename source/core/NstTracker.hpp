@@ -73,8 +73,8 @@ namespace Nes
 			Result StopRewinding() const;
 			bool   IsRewinding() const;
 
-			Result PlayMovie(Machine&,StdStream);
-			Result RecordMovie(Machine&,StdStream,bool);
+			Result PlayMovie(Machine&,std::istream&);
+			Result RecordMovie(Machine&,std::iostream&,bool);
 			void   StopMovie();
 			bool   IsMoviePlaying() const;
 			bool   IsMovieRecording() const;

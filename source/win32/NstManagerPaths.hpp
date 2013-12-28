@@ -75,7 +75,8 @@ namespace Nestopia
 					STATE   = 0x00040,
 					SLOTS   = 0x00080,
 					IPS     = 0x00100,
-					MOVIE   = 0x00200,
+					UPS     = 0x00200,
+					MOVIE   = 0x00400,
 					ROM     = 0x00800,
 					XML     = 0x01000,
 					PALETTE = 0x02000,
@@ -88,7 +89,8 @@ namespace Nestopia
 				{
 					CARTRIDGE = INES|UNIF|XML,
 					GAME = CARTRIDGE|FDS,
-					IMAGE = GAME|NSF
+					IMAGE = GAME|NSF,
+					PATCH = IPS|UPS
 				};
 
 				enum
@@ -98,6 +100,7 @@ namespace Nestopia
 					ID_FDS     = FourCC<'F','D','S',0x1A>::V,
 					ID_NSF     = FourCC<'N','E','S','M'>::V,
 					ID_IPS     = FourCC<'P','A','T','C'>::V,
+					ID_UPS     = FourCC<'U','P','S','1'>::V,
 					ID_NST     = FourCC<'N','S','T',0x1A>::V,
 					ID_NSV     = FourCC<'N','S','V',0x1A>::V,
 					ID_ZIP     = FourCC<'P','K',0x03,0x04>::V,
@@ -136,7 +139,7 @@ namespace Nestopia
 			bool FindFile(Path&) const;
 			bool LocateFile(Path&,File::Types) const;
 
-			Path GetIpsPath(const Path&,File::Type) const;
+			Path GetPatchPath(const Path&,File::Type) const;
 			Path GetSavePath(const Path&,File::Type) const;
 			Path GetScreenShotPath() const;
 			Path GetSamplesPath() const;
@@ -144,6 +147,7 @@ namespace Nestopia
 			bool SaveSlotExportingEnabled() const;
 			bool SaveSlotImportingEnabled() const;
 			bool UseStateCompression() const;
+			bool BypassPatchValidation() const;
 
 			bool CheckFile
 			(

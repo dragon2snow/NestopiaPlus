@@ -38,7 +38,7 @@ namespace Nestopia
 		{
 		public:
 
-			explicit DipSwitches(Managers::Emulator&);
+			explicit DipSwitches(Managers::Emulator&,bool);
 
 		private:
 
@@ -58,13 +58,13 @@ namespace Nestopia
 
 			Dialog dialog;
 			Nes::DipSwitches dipSwitches;
+			const bool userOpened;
 
 		public:
 
-			void Open()
+			bool Open()
 			{
-				if (dipSwitches.NumDips())
-					dialog.Open();
+				return dipSwitches.NumDips() ? dialog.Open() : false;
 			}
 		};
 	}

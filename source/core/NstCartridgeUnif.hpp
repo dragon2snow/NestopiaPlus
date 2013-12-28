@@ -33,16 +33,18 @@ namespace Nes
 {
 	namespace Core
 	{
-		class Ips;
-
 		class Cartridge::Unif
 		{
+			class Loader;
+
 		public:
 
 			static void Load
 			(
-				StdStream,
-				StdStream,
+				std::istream&,
+				std::istream*,
+				bool,
+				Result*,
 				Ram&,
 				Ram&,
 				FavoredSystem,
@@ -50,65 +52,6 @@ namespace Nes
 				ProfileEx&,
 				const ImageDatabase*
 			);
-
-		private:
-
-			enum
-			{
-				HEADER_RESERVED_LENGTH = 24,
-				MAX_ROM_SIZE = SIZE_16K * 0x1000UL
-			};
-
-			class Context
-			{
-			public:
-
-				Context();
-
-				bool operator () (uint,dword);
-
-				enum System
-				{
-					SYSTEM_NTSC,
-					SYSTEM_PAL,
-					SYSTEM_BOTH
-				};
-
-				struct Rom
-				{
-					Rom();
-
-					Ram data;
-					dword truncated;
-					char crc[12];
-				};
-
-				System system;
-				Rom roms[2][16];
-
-			private:
-
-				byte chunks[80];
-			};
-
-			static bool NewChunk (byte&,dword);
-			static cstring ChunkName (char (&)[5],dword);
-
-			static void  ReadHeader     (StdStream);
-			static void  ReadChunks     (StdStream,Ram&,Ram&,FavoredSystem,Profile&,ProfileEx&);
-			static dword ReadString     (StdStream,cstring,Vector<char>*);
-			static dword ReadName       (StdStream,std::wstring&);
-			static dword ReadDumper     (StdStream);
-			static dword ReadComment    (StdStream);
-			static dword ReadSystem     (StdStream,Context&);
-			static dword ReadMirroring  (StdStream,ProfileEx&);
-			static dword ReadBattery    (ProfileEx&);
-			static dword ReadBoard      (StdStream,Profile::Board&);
-			static dword ReadController (StdStream,Api::Input::Type (&)[5]);
-			static dword ReadChrRam     ();
-			static dword ReadChecksum   (StdStream,uint,uint,Context::Rom&);
-			static dword ReadRom        (StdStream,uint,uint,dword,Context::Rom*);
-			static dword ReadUnknown    (dword);
 		};
 	}
 }

@@ -51,6 +51,9 @@ namespace Nes
 
 	namespace Api
 	{
+		/**
+		* Tape interface.
+		*/
 		class TapeRecorder : public Base
 		{
 			struct EventCaller;
@@ -59,28 +62,90 @@ namespace Nes
 
 		public:
 
+			/**
+			* Interface constructor.
+			*
+			* @param instance emulator instance
+			*/
 			template<typename T>
-			TapeRecorder(T& e)
-			: Base(e) {}
+			TapeRecorder(T& instance)
+			: Base(instance) {}
 
+			/**
+			* Checks if tape is playing.
+			*
+			* @return true if playing
+			*/
 			bool IsPlaying() const throw();
+
+			/**
+			* Checks if tape is recording.
+			*
+			* @return true if recording
+			*/
 			bool IsRecording() const throw();
+
+			/**
+			* Checks if tape has stopped playing or recording.
+			*
+			* @return true if stopped
+			*/
 			bool IsStopped() const throw();
+
+			/**
+			* Checks if tape can be played
+			*
+			* @return true if playable
+			*/
 			bool IsPlayable() const throw();
 
+			/**
+			* Plays tape.
+			*
+			* @return result code
+			*/
 			Result Play() throw();
+
+			/**
+			* Records tape.
+			*
+			* @return result code
+			*/
 			Result Record() throw();
+
+			/**
+			* Stops tape.
+			*
+			* @return result code
+			*/
 			Result Stop() throw();
 
+			/**
+			* Checks if a tape recorder is connected.
+			*
+			* @param true connected
+			*/
 			bool IsConnected() const throw()
 			{
 				return Query();
 			}
 
+			/**
+			* Tape events.
+			*/
 			enum Event
 			{
+				/**
+				* Tape is playing.
+				*/
 				EVENT_PLAYING,
+				/**
+				* Tape is recording.
+				*/
 				EVENT_RECORDING,
+				/**
+				* Tape has stopped playing or recording.
+				*/
 				EVENT_STOPPED
 			};
 
@@ -89,11 +154,27 @@ namespace Nes
 				NUM_EVENT_CALLBACKS = 3
 			};
 
-			typedef void (NST_CALLBACK *EventCallback) (UserData,Event);
+			/**
+			* Tape event callback prototype.
+			*
+			* @param userData optional user data
+			* @param event type of event
+			*/
+			typedef void (NST_CALLBACK *EventCallback) (UserData userData,Event event);
 
+			/**
+			* Tape event callback manager.
+			*
+			* Static object used for adding the user defined callback.
+			*/
 			static EventCaller eventCallback;
 		};
 
+		/**
+		* Tape event callback invoker.
+		*
+		* Used internally by the core.
+		*/
 		struct TapeRecorder::EventCaller : Core::UserCallback<TapeRecorder::EventCallback>
 		{
 			void operator () (Event event) const

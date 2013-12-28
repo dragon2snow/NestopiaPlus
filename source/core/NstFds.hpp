@@ -28,6 +28,7 @@
 #include "NstImage.hpp"
 #include "NstClock.hpp"
 #include "NstFile.hpp"
+#include "NstChecksum.hpp"
 #include "api/NstApiFds.hpp"
 
 #ifdef NST_PRAGMA_ONCE
@@ -50,8 +51,8 @@ namespace Nes
 			Result EjectDisk();
 			Result GetDiskData(uint,Api::Fds::DiskData&) const;
 
-			static void SetBios(StdStream);
-			static Result GetBios(StdStream);
+			static void SetBios(std::istream*);
+			static Result GetBios(std::ostream&);
 			static bool HasBios();
 
 			class Sound : public Apu::Channel
@@ -265,7 +266,7 @@ namespace Nes
 
 			struct Disks
 			{
-				explicit Disks(StdStream);
+				explicit Disks(std::istream&);
 
 				enum
 				{
@@ -277,18 +278,15 @@ namespace Nes
 				{
 				public:
 
-					explicit Sides(StdStream);
+					explicit Sides(std::istream&);
 					~Sides();
 
 					inline byte* operator [] (uint) const;
-					inline void Cache() const;
 					void Save() const;
 
 					uint count;
 
 				private:
-
-					NST_NO_INLINE void Load() const;
 
 					enum
 					{
@@ -296,7 +294,6 @@ namespace Nes
 					};
 
 					byte* data;
-					mutable ibool dirty;
 					File file;
 
 				public:
@@ -415,7 +412,6 @@ namespace Nes
 					byte out;
 					byte ctrl;
 					byte status;
-					mutable bool dirty;
 					const Disks::Sides& sides;
 				};
 
@@ -442,7 +438,6 @@ namespace Nes
 				void Reset(Cpu&,byte*,bool=false);
 				void LoadState(State::Loader&,dword,Ppu&);
 				void SaveState(State::Saver&) const;
-				bool Dirty() const;
 
 				inline void Mount(byte*,bool=false);
 
@@ -478,6 +473,7 @@ namespace Nes
 			Ppu& ppu;
 			Ram ram;
 			Sound sound;
+			mutable Checksum checksum;
 
 			class Bios;
 			static Bios bios;

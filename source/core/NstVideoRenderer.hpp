@@ -171,6 +171,10 @@ namespace Nes
 				class FilterHqX;
 				#endif
 
+				#ifndef NST_NO_2XSAI
+				class Filter2xSaI;
+				#endif
+
 				class NST_NO_VTABLE Filter
 				{
 					struct Format

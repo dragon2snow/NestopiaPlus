@@ -40,7 +40,7 @@ namespace Nes
 
 		Image* Image::Load(Context& context)
 		{
-			switch (Stream::In(context.stream).Peek32())
+			switch (Stream::In(&context.stream).Peek32())
 			{
 				case INES_ID:
 				case UNIF_ID:

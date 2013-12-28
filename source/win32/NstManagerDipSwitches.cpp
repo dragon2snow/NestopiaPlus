@@ -48,7 +48,7 @@ namespace Nestopia
 
 			menu.Popups().Add( this, popups );
 
-			menu[IDM_MACHINE_OPTIONS_DIPSWITCHESONLOAD].Check( cfg["machine"]["dip-switches-on-load"].Yes() );
+			menu[IDM_MACHINE_OPTIONS_DIPSWITCHESONLOAD].Check( !cfg["machine"]["dip-switches-on-load"].No() );
 		}
 
 		void DipSwitches::Save(Configuration& cfg) const
@@ -66,10 +66,9 @@ namespace Nestopia
 			);
 		}
 
-		void DipSwitches::OpenDialog() const
+		bool DipSwitches::OpenDialog(bool userOpen) const
 		{
-			if (Available())
-				Window::DipSwitches( emulator ).Open();
+			return Available() ? Window::DipSwitches( emulator, userOpen ).Open() : false;
 		}
 
 		void DipSwitches::OnMenuExt(const Window::Menu::PopupHandler::Param& param)
@@ -79,7 +78,7 @@ namespace Nestopia
 
 		void DipSwitches::OnCmdDipSwitches(uint)
 		{
-			OpenDialog();
+			OpenDialog( true );
 		}
 
 		void DipSwitches::OnCmdDipSwitchesOnLoad(uint)
@@ -94,7 +93,10 @@ namespace Nestopia
 				case Emulator::EVENT_LOAD:
 
 					if (menu[IDM_MACHINE_OPTIONS_DIPSWITCHESONLOAD].Checked())
-						OpenDialog();
+					{
+						if (OpenDialog( false ))
+							menu[IDM_MACHINE_OPTIONS_DIPSWITCHESONLOAD].Uncheck();
+					}
 
 					break;
 

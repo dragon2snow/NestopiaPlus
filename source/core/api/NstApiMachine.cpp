@@ -53,7 +53,7 @@ namespace Nes
 		#pragma optimize("s", on)
 		#endif
 
-		Result Machine::Load(std::istream& stream,FavoredSystem system,AskProfile ask,std::istream* ips,uint type)
+		Result Machine::Load(std::istream& stream,FavoredSystem system,AskProfile ask,Patch* patch,uint type)
 		{
 			Result result;
 
@@ -61,7 +61,16 @@ namespace Nes
 
 			try
 			{
-				result = emulator.Load( &stream, static_cast<Core::FavoredSystem>(system), ask == ASK_PROFILE, ips, type );
+				result = emulator.Load
+				(
+					stream,
+					static_cast<Core::FavoredSystem>(system),
+					ask == ASK_PROFILE,
+					patch ? &patch->stream : NULL,
+					patch ? patch->bypassChecksum : false,
+					patch ? &patch->result : NULL,
+					type
+				);
 			}
 			catch (Result r)
 			{
@@ -82,14 +91,24 @@ namespace Nes
 			return result;
 		}
 
-		Result Machine::Load(std::istream& stream,FavoredSystem system,AskProfile ask,std::istream* ips) throw()
+		Result Machine::Load(std::istream& stream,FavoredSystem system,AskProfile ask) throw()
 		{
-			return Load( stream, system, ask, ips, Core::Image::UNKNOWN );
+			return Load( stream, system, ask, NULL, Core::Image::UNKNOWN );
 		}
 
-		Result Machine::LoadCartridge(std::istream& stream,FavoredSystem system,AskProfile ask,std::istream* ips) throw()
+		Result Machine::Load(std::istream& stream,FavoredSystem system,Patch& patch,AskProfile ask) throw()
 		{
-			return Load( stream, system, ask, ips, Core::Image::CARTRIDGE );
+			return Load( stream, system, ask, &patch, Core::Image::UNKNOWN );
+		}
+
+		Result Machine::LoadCartridge(std::istream& stream,FavoredSystem system,AskProfile ask) throw()
+		{
+			return Load( stream, system, ask, NULL, Core::Image::CARTRIDGE );
+		}
+
+		Result Machine::LoadCartridge(std::istream& stream,FavoredSystem system,Patch& patch,AskProfile ask) throw()
+		{
+			return Load( stream, system, ask, &patch, Core::Image::CARTRIDGE );
 		}
 
 		Result Machine::LoadDisk(std::istream& stream,FavoredSystem system) throw()

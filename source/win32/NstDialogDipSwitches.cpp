@@ -65,10 +65,11 @@ namespace Nestopia
 			{ IDOK, &DipSwitches::OnCmdOk }
 		};
 
-		DipSwitches::DipSwitches(Managers::Emulator& emulator)
+		DipSwitches::DipSwitches(Managers::Emulator& emulator,bool u)
 		:
 		dialog      (IDD_DIPSWITCHES,this,Handlers::messages,Handlers::commands),
-		dipSwitches (emulator)
+		dipSwitches (emulator),
+		userOpened  (u)
 		{
 		}
 
@@ -130,6 +131,12 @@ namespace Nestopia
 				dialog.Control(i).GetWindow().Position() -= Point(delta.x,0);
 
 			dialog.Control(IDC_DIPSWITCHES_GROUP).GetWindow().Size() -= delta;
+
+			if (userOpened)
+				dialog.Control(IDC_DIPSWITCHES_DONTSHOWAGAIN).GetWindow().Destroy();
+			else
+				dialog.Control(IDC_DIPSWITCHES_DONTSHOWAGAIN).GetWindow().Position() -= Point(0,delta.y);
+
 			dialog.Control(IDOK).GetWindow().Position() -= delta;
 			dialog.Control(IDCANCEL).GetWindow().Position() -= delta;
 
@@ -148,7 +155,7 @@ namespace Nestopia
 						dipSwitches.SetValue( i, dialog.ComboBox( IDC_DIPSWITCHES_1 + i ).Selection().GetIndex() );
 				}
 
-				dialog.Close();
+				dialog.Close( dialog.CheckBox(IDC_DIPSWITCHES_DONTSHOWAGAIN).Checked() );
 			}
 
 			return true;

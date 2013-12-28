@@ -177,8 +177,8 @@ namespace Nes
 			NES_DECL_POKE( N163_48 );
 			NES_DECL_POKE( N163_F8 );
 
-			NES_DECL_POKE( S5B_C );
-			NES_DECL_POKE( S5B_E );
+			NES_DECL_POKE( S5b_C );
+			NES_DECL_POKE( S5b_E );
 
 			NES_DECL_PEEK( FFFA );
 			NES_DECL_PEEK( FFFB );

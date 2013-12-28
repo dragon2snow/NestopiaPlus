@@ -36,11 +36,10 @@ namespace Nes
 		template<typename T>
 		class Vector;
 
-		class Checksum;
-
 		class File
 		{
-			Checksum& checksum;
+			struct Context;
+			Context& context;
 
 		public:
 
@@ -69,13 +68,14 @@ namespace Nes
 			};
 
 			void Load(const byte*,dword) const;
+			void Load(byte*,dword,Type) const;
 			void Load(Type,byte*,dword) const;
 			void Load(Type,Vector<byte>&,dword) const;
 			void Save(Type,const byte*,dword) const;
 
 		private:
 
-			void Load(Type,const LoadBlock*,uint) const;
+			void Load(Type,const LoadBlock*,uint,bool* = NULL) const;
 			void Save(Type,const SaveBlock*,uint) const;
 
 		public:

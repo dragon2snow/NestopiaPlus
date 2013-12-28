@@ -206,7 +206,7 @@ namespace Nes
 
 		void Cartridge::Profile::Hash::Compute(const void* mem,ulong size) throw()
 		{
-			const Core::Checksum checksum( mem, size );
+			const Core::Checksum checksum( static_cast<const byte*>(mem), size );
 			Assign( checksum.GetSha1(), checksum.GetCrc() );
 		}
 
@@ -259,7 +259,7 @@ namespace Nes
 		}
 
 		Cartridge::Profile::Profile() throw()
-		: multiRegion(false)
+		: multiRegion(false), patched(false)
 		{
 		}
 
@@ -379,12 +379,12 @@ namespace Nes
 
 		Result Cartridge::Database::Load(std::istream& stream) throw()
 		{
-			return Create() ? emulator.imageDatabase->Load( &stream ) : RESULT_ERR_OUT_OF_MEMORY;
+			return Create() ? emulator.imageDatabase->Load( stream ) : RESULT_ERR_OUT_OF_MEMORY;
 		}
 
 		Result Cartridge::Database::Load(std::istream& baseStream,std::istream& overloadStream) throw()
 		{
-			return Create() ? emulator.imageDatabase->Load( &baseStream, &overloadStream ) : RESULT_ERR_OUT_OF_MEMORY;
+			return Create() ? emulator.imageDatabase->Load( baseStream, overloadStream ) : RESULT_ERR_OUT_OF_MEMORY;
 		}
 
 		void Cartridge::Database::Unload() throw()
@@ -413,7 +413,7 @@ namespace Nes
 		{
 			try
 			{
-				Core::Cartridge::ReadRomset( &stream, static_cast<Core::FavoredSystem>(system), askProfile, profile );
+				Core::Cartridge::ReadRomset( stream, static_cast<Core::FavoredSystem>(system), askProfile, profile );
 			}
 			catch (Result result)
 			{
@@ -431,7 +431,7 @@ namespace Nes
 		{
 			try
 			{
-				Core::Cartridge::ReadInes( &stream, static_cast<Core::FavoredSystem>(system), profile );
+				Core::Cartridge::ReadInes( stream, static_cast<Core::FavoredSystem>(system), profile );
 			}
 			catch (Result result)
 			{
@@ -449,7 +449,7 @@ namespace Nes
 		{
 			try
 			{
-				Core::Cartridge::ReadUnif( &stream, static_cast<Core::FavoredSystem>(system), profile );
+				Core::Cartridge::ReadUnif( stream, static_cast<Core::FavoredSystem>(system), profile );
 			}
 			catch (Result result)
 			{

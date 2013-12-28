@@ -43,6 +43,7 @@ namespace Nestopia
 				TYPE_NTSC,
 				TYPE_SCALEX,
 				TYPE_HQX,
+				TYPE_2XSAI,
 				NUM_TYPES
 			};
 

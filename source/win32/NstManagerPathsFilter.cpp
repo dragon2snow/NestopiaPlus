@@ -50,6 +50,7 @@ namespace Nestopia
 			if (types( File::SLOTS   )) (*this) << ", *.ns1..9";
 			if (types( File::MOVIE   )) (*this) << ", *.nsv";
 			if (types( File::IPS     )) (*this) << ", *.ips";
+			if (types( File::UPS     )) (*this) << ", *.ups";
 			if (types( File::PALETTE )) (*this) << ", *.pal";
 			if (types( File::WAVE    )) (*this) << ", *.wav";
 			if (types( File::AVI     )) (*this) << ", *.avi";
@@ -79,6 +80,7 @@ namespace Nestopia
 			if (types( File::STATE   )) (*this) << ";*.nst";
 			if (types( File::MOVIE   )) (*this) << ";*.nsv";
 			if (types( File::IPS     )) (*this) << ";*.ips";
+			if (types( File::UPS     )) (*this) << ";*.ups";
 			if (types( File::SLOTS   )) (*this) << ";*.ns1;*.ns2;*.ns3;*.ns4;*.ns5;*.ns6;*.ns7;*.ns8;*.ns9";
 			if (types( File::PALETTE )) (*this) << ";*.pal";
 			if (types( File::WAVE    )) (*this) << ";*.wav";
@@ -104,7 +106,8 @@ namespace Nestopia
 			}
 
 			if (types( File::MOVIE    )) (*this) << '\t' << Resource::String( IDS_FILES_MOVIE   ) << " (*.nsv)\t*.nsv";
-			if (types( File::IPS      )) (*this) << '\t' << Resource::String( IDS_FILES_IPS     ) << " (*.ips)\t*.ips";
+			if (types( File::IPS      )) (*this) << '\t' << Resource::String( IDS_FILES_PATCHES ) << " (*.ips)\t*.ips";
+			if (types( File::UPS      )) (*this) << '\t' << Resource::String( IDS_FILES_PATCHES ) << " (*.ups)\t*.ups";
 			if (types( File::PALETTE  )) (*this) << '\t' << Resource::String( IDS_FILES_PALETTE ) << " (*.pal)\t*.pal";
 			if (types( File::WAVE     )) (*this) << '\t' << Resource::String( IDS_FILES_WAVE    ) << " (*.wav)\t*.wav";
 			if (types( File::AVI      )) (*this) << '\t' << Resource::String( IDS_FILES_AVI     ) << " (*.avi)\t*.avi";

@@ -43,25 +43,45 @@ namespace Nes
 {
 	namespace Api
 	{
+		/**
+		* NES Sound Files interface.
+		*/
 		class Nsf : public Base
 		{
 			struct EventCaller;
 
 		public:
 
+			/**
+			* Interface constructor.
+			*
+			* @param instance emulator instance
+			*/
 			template<typename T>
-			Nsf(T& e)
-			: Base(e) {}
+			Nsf(T& instance)
+			: Base(instance) {}
 
 			enum
 			{
 				NO_SONG = -1
 			};
 
+			/**
+			* Tune mode.
+			*/
 			enum TuneMode
 			{
+				/**
+				* NTSC only.
+				*/
 				TUNE_MODE_NTSC,
+				/**
+				* PAL only.
+				*/
 				TUNE_MODE_PAL,
+				/**
+				* Both NTSC and PAL.
+				*/
 				TUNE_MODE_BOTH
 			};
 
@@ -76,31 +96,149 @@ namespace Nes
 				CHIP_ALL  = 0x3F
 			};
 
-			const char* GetName         () const throw();
-			const char* GetArtist       () const throw();
-			const char* GetCopyright    () const throw();
-			TuneMode    GetMode         () const throw();
-			uint        GetInitAddress  () const throw();
-			uint        GetLoadAddress  () const throw();
-			uint        GetPlayAddress  () const throw();
-			uint        GetNumSongs     () const throw();
-			int         GetCurrentSong  () const throw();
-			int         GetStartingSong () const throw();
+			/**
+			* Returns the name of the NSF.
+			*
+			* @return name or empty string if NSF hasn't been loaded
+			*/
+			const char* GetName() const throw();
 
+			/**
+			* Returns the name of the artists.
+			*
+			* @return artist names or empty string if NSF hasn't been loaded
+			*/
+			const char* GetArtist() const throw();
+
+			/**
+			* Returns the copyright string.
+			*
+			* @return copyright or empty string if NSF hasn't been loaded
+			*/
+			const char* GetCopyright() const throw();
+
+			/**
+			* Return the tune mode.
+			*
+			* @return tune mode
+			*/
+			TuneMode GetMode() const throw();
+
+			/**
+			* Returns the init-address.
+			*
+			* @return address
+			*/
+			uint GetInitAddress() const throw();
+
+			/**
+			* Returns the load-address.
+			*
+			* @return address
+			*/
+			uint GetLoadAddress() const throw();
+
+			/**
+			* Returns the play-address.
+			*
+			* @return address
+			*/
+			uint GetPlayAddress() const throw();
+
+			/**
+			* Returns the total number of songs.
+			*
+			* @return number
+			*/
+			uint GetNumSongs() const throw();
+
+			/**
+			* Returns the current song index.
+			*
+			* @return song index or NO_SONG if NSF hasn't been loaded
+			*/
+			int GetCurrentSong() const throw();
+
+			/**
+			* Returns the starting song index.
+			*
+			* @return song index or NO_SONG if NSF hasn't been loaded
+			*/
+			int GetStartingSong() const throw();
+
+			/**
+			* Returns the OR:ed chips in use.
+			*
+			* @return OR:ed chips used
+			*/
 			uint GetChips() const throw();
+
+			/**
+			* Checks if a song is currently being played.
+			*
+			* @return true if playing
+			*/
 			bool IsPlaying() const throw();
+
+			/**
+			* Checks if the NSF uses bank-switching.
+			*
+			* @return true if NSF uses bank-switching
+			*/
 			bool UsesBankSwitching() const throw();
 
-			Result SelectSong(uint) throw();
+			/**
+			* Selects a song.
+			*
+			* @param song index
+			* @return result code
+			*/
+			Result SelectSong(uint song) throw();
+
+			/**
+			* Selects the next song.
+			*
+			* @return result code
+			*/
 			Result SelectNextSong() throw();
+
+			/**
+			* Selects the previous song.
+			*
+			* @return result code
+			*/
 			Result SelectPrevSong() throw();
+
+			/**
+			* Plays current selected song.
+			*
+			* @return result code
+			*/
 			Result PlaySong() throw();
+
+			/**
+			* Stops current selected song.
+			*
+			* @return result code
+			*/
 			Result StopSong() throw();
 
+			/**
+			* Event.
+			*/
 			enum Event
 			{
+				/**
+				* A new song has been selected.
+				*/
 				EVENT_SELECT_SONG,
+				/*
+				* Song has started playing.
+				*/
 				EVENT_PLAY_SONG,
+				/**
+				* Song has stopped playing.
+				*/
 				EVENT_STOP_SONG
 			};
 
@@ -109,11 +247,27 @@ namespace Nes
 				NUM_EVENT_CALLBACKS = 3
 			};
 
-			typedef void (NST_CALLBACK *EventCallback) (UserData,Event);
+			/**
+			* Event callback prototype.
+			*
+			* @param userData optional user data
+			* @param event type of event
+			*/
+			typedef void (NST_CALLBACK *EventCallback) (UserData userData,Event event);
 
+			/**
+			* Event callback manager.
+			*
+			* Static object used for adding the user defined callback.
+			*/
 			static EventCaller eventCallback;
 		};
 
+		/**
+		* Song event callback invoker.
+		*
+		* Used internally by the core.
+		*/
 		struct Nsf::EventCaller : Core::UserCallback<Nsf::EventCallback>
 		{
 			void operator () (Event event) const

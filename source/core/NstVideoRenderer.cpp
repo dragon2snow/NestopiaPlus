@@ -39,6 +39,9 @@
 #ifndef NST_NO_HQ2X
 #include "NstVideoFilterHqX.hpp"
 #endif
+#ifndef NST_NO_2XSAI
+#include "NstVideoFilter2xSaI.hpp"
+#endif
 
 namespace Nes
 {
@@ -588,6 +591,16 @@ namespace Nes
 
 							if (FilterHqX::Check( renderState ))
 								filter = new FilterHqX( renderState );
+
+							break;
+
+					#endif
+					#ifndef NST_NO_2XSAI
+
+						case RenderState::FILTER_2XSAI:
+
+							if (Filter2xSaI::Check( renderState ))
+								filter = new Filter2xSaI( renderState );
 
 							break;
 

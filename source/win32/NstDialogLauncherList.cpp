@@ -662,7 +662,7 @@ namespace Nestopia
 				FILE_TYPES =
 				(
 					Managers::Paths::File::IMAGE |
-					Managers::Paths::File::IPS |
+					Managers::Paths::File::PATCH |
 					Managers::Paths::File::ARCHIVE
 				)
 			};

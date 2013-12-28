@@ -54,6 +54,7 @@
 				FloatingPointExceptions="true"
 				DisableLanguageExtensions="false"
 				DefaultCharIsUnsigned="true"
+				TreatWChar_tAsBuiltInType="true"
 				RuntimeTypeInfo="false"
 				UsePrecompiledHeader="0"
 				WarningLevel="4"
@@ -351,6 +352,14 @@
 		<Filter
 			Name="VideoFilters"
 			>
+			<File
+				RelativePath="..\source\core\NstVideoFilter2xSaI.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\NstVideoFilter2xSaI.hpp"
+				>
+			</File>
 			<File
 				RelativePath="..\source\core\NstVideoFilterHq2x.inl"
 				>
@@ -1487,6 +1496,14 @@
 					>
 				</File>
 				<File
+					RelativePath="..\source\core\board\NstBoardSunsoft5b.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\source\core\board\NstBoardSunsoft5b.hpp"
+					>
+				</File>
+				<File
 					RelativePath="..\source\core\board\NstBoardSunsoftDcs.cpp"
 					>
 				</File>
@@ -1920,14 +1937,6 @@
 				</File>
 				<File
 					RelativePath="..\source\core\board\NstBoardBmcMarioParty7in1.hpp"
-					>
-				</File>
-				<File
-					RelativePath="..\source\core\board\NstBoardBmcN625092.cpp"
-					>
-				</File>
-				<File
-					RelativePath="..\source\core\board\NstBoardBmcN625092.hpp"
 					>
 				</File>
 				<File
@@ -2429,14 +2438,6 @@
 			>
 		</File>
 		<File
-			RelativePath="..\source\core\NstIps.cpp"
-			>
-		</File>
-		<File
-			RelativePath="..\source\core\NstIps.hpp"
-			>
-		</File>
-		<File
 			RelativePath="..\source\core\NstLog.cpp"
 			>
 		</File>
@@ -2466,6 +2467,30 @@
 		</File>
 		<File
 			RelativePath="..\source\core\NstNsf.hpp"
+			>
+		</File>
+		<File
+			RelativePath="..\source\core\NstPatcher.cpp"
+			>
+		</File>
+		<File
+			RelativePath="..\source\core\NstPatcher.hpp"
+			>
+		</File>
+		<File
+			RelativePath="..\source\core\NstPatcherIps.cpp"
+			>
+		</File>
+		<File
+			RelativePath="..\source\core\NstPatcherIps.hpp"
+			>
+		</File>
+		<File
+			RelativePath="..\source\core\NstPatcherUps.cpp"
+			>
+		</File>
+		<File
+			RelativePath="..\source\core\NstPatcherUps.hpp"
 			>
 		</File>
 		<File

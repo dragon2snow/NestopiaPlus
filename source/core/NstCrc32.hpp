@@ -35,8 +35,8 @@ namespace Nes
 	{
 		namespace Crc32
 		{
-			dword NST_CALL Compute(dword,uint);
-			dword NST_CALL Compute(const void*,dword,dword=0);
+			dword NST_CALL Compute(uint,dword=0);
+			dword NST_CALL Compute(const byte* NST_RESTRICT,dword,dword=0);
 		}
 	}
 }

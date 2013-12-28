@@ -285,7 +285,6 @@ namespace Nes
 						BMC_GOLDENCARD_6IN1        = MakeId<  217, 1024, 1024,  0,  0, CRM_0,  NMT_V,  0 >::ID,
 						BMC_HERO                   = MakeId<   45, 4096, 2048,  8,  0, CRM_0,  NMT_X,  0 >::ID,
 						BMC_MARIOPARTY_7IN1        = MakeId<   52, 1024, 1024,  8,  0, CRM_0,  NMT_V,  0 >::ID,
-						BMC_N625092                = MakeId<  169, 1024,    0,  0,  0, CRM_8,  NMT_V,  0 >::ID,
 						BMC_NOVELDIAMOND           = MakeId<   54,  128,   64,  0,  0, CRM_0,  NMT_X,  0 >::ID,
 						BMC_CH001                  = MakeId<   63, 4096,    0,  0,  0, CRM_8,  NMT_V,  0 >::ID,
 						BMC_POWERJOY_84IN1         = MakeId<  126, 2048, 1024,  0,  0, CRM_0,  NMT_X,  0 >::ID,
@@ -444,6 +443,7 @@ namespace Nes
 						// Nitra
 						NITRA_TDA                  = MakeId<  250,  512,  256,  0,  0, CRM_0,  NMT_V,  0 >::ID,
 						// NTDEC
+						NTDEC_N715062              = MakeId<    3,   32,   32,  0,  0, CRM_0,  NMT_X,  3 >::ID,
 						NTDEC_ASDER_0              = MakeId<  112,  256,  512,  0,  0, CRM_0,  NMT_X,  0 >::ID,
 						NTDEC_ASDER_1              = MakeId<  112,  256,  512,  8,  0, CRM_0,  NMT_X,  0 >::ID,
 						NTDEC_FIGHTINGHERO         = MakeId<  193,  128,  256,  0,  0, CRM_0,  NMT_X,  0 >::ID,
@@ -490,6 +490,8 @@ namespace Nes
 						SUNSOFT_3                  = MakeId<   67,  128,  128,  0,  0, CRM_0,  NMT_V,  0 >::ID,
 						SUNSOFT_4_0                = MakeId<   68,  128,  256,  0,  0, CRM_0,  NMT_V,  0 >::ID,
 						SUNSOFT_4_1                = MakeId<   68,  128,  256,  8,  0, CRM_0,  NMT_V,  0 >::ID,
+						SUNSOFT_5B_0               = MakeId<   69,  256,  256,  0,  0, CRM_0,  NMT_V,  2 >::ID,
+						SUNSOFT_5B_1               = MakeId<   69,  256,  256,  8,  0, CRM_0,  NMT_V,  2 >::ID,
 						SUNSOFT_DCS                = MakeId<   68,  256,  256,  8,  0, CRM_0,  NMT_V,  0 >::ID,
 						SUNSOFT_FME7_0             = MakeId<   69,  256,  256,  0,  0, CRM_0,  NMT_V,  0 >::ID,
 						SUNSOFT_FME7_1             = MakeId<   69,  256,  256,  8,  0, CRM_0,  NMT_V,  0 >::ID,

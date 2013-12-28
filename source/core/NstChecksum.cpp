@@ -37,7 +37,7 @@ namespace Nes
 		Checksum::Checksum()
 		: crc32(0) {}
 
-		Checksum::Checksum(const void* data,dword size)
+		Checksum::Checksum(const byte* data,dword size)
 		: crc32(0)
 		{
 			Compute( data, size );
@@ -49,13 +49,13 @@ namespace Nes
 			sha1.Clear();
 		}
 
-		void Checksum::Compute(const void* data,dword size)
+		void Checksum::Compute(const byte* data,dword size)
 		{
 			crc32 = Crc32::Compute( data, size, crc32 );
 			Sha1::Compute( sha1, data, size );
 		}
 
-		void Checksum::Recompute(const void* data,dword size)
+		void Checksum::Recompute(const byte* data,dword size)
 		{
 			Clear();
 			Compute( data, size );

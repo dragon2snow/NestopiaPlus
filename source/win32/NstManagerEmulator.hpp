@@ -44,15 +44,6 @@ namespace Nes
 
 namespace Nestopia
 {
-	namespace Io
-	{
-		namespace Stream
-		{
-			class Input;
-			class Output;
-		}
-	}
-
 	namespace Managers
 	{
 		class Emulator : public Nes::Emulator
@@ -75,7 +66,7 @@ namespace Nestopia
 			{
 				DISKIMAGE_SAVE_DISABLED,
 				DISKIMAGE_SAVE_TO_IMAGE,
-				DISKIMAGE_SAVE_TO_IPS
+				DISKIMAGE_SAVE_TO_PATCH
 			};
 
 			enum Event
@@ -165,7 +156,19 @@ namespace Nestopia
 			uint GetSpeed();
 			void ToggleSpeed(bool);
 			void ToggleRewind(bool);
-			bool Load(Collection::Buffer&,const Path&,Collection::Buffer&,const Context&,Nes::Machine::FavoredSystem,Nes::Machine::AskProfile,bool);
+
+			bool Load
+			(
+				const Collection::Buffer&,
+				const Path&,
+				const Collection::Buffer&,
+				bool,
+				const Context&,
+				Nes::Machine::FavoredSystem,
+				Nes::Machine::AskProfile,
+				bool
+			);
+
 			void Unload();
 			void SendCommand(Command,Data=0);
 			bool SaveState(Collection::Buffer&,bool,Alert=NOISY);
@@ -246,7 +249,6 @@ namespace Nestopia
 					inline Fds();
 
 					DiskImageSaveMethod save;
-					Collection::Buffer original;
 				};
 
 				struct Cartridge
@@ -306,16 +308,25 @@ namespace Nestopia
 				}
 			};
 
-			bool IsDiskImage(const Collection::Buffer&) const;
 			bool UsesBaseSpeed() const;
 			void StartNetplay(const Netplay::Executor&,const Netplay::Commander&,uint,uint);
 			bool Start();
+
+			Nes::Result Load
+			(
+				const Collection::Buffer&,
+				const Collection::Buffer&,
+				bool,
+				Nes::Machine::FavoredSystem,
+				Nes::Machine::AskProfile,
+				bool
+			);
 
 			void LoadFileData(Nes::User::File&,bool,Path,wcstring) const;
 			void LoadImageData(Nes::User::File&) const;
 			void SaveImageData(Nes::User::File&) const;
 			void SaveDiskData(Nes::User::File&) const;
-			void LoadDiskData(Collection::Buffer&);
+			void LoadDiskData(Nes::User::File&) const;
 			void LoadSampleData(wcstring,Nes::User::File&) const;
 
 			State state;

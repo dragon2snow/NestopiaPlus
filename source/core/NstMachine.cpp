@@ -68,7 +68,16 @@ namespace Nes
 			delete extPort;
 		}
 
-		Result Machine::Load(StdStream stream,FavoredSystem system,bool ask,StdStream ips,uint type)
+		Result Machine::Load
+		(
+			std::istream& imageStream,
+			FavoredSystem system,
+			bool ask,
+			std::istream* const patchStream,
+			bool patchBypassChecksum,
+			Result* patchResult,
+			uint type
+		)
 		{
 			Unload();
 
@@ -78,8 +87,10 @@ namespace Nes
 				cpu,
 				cpu.GetApu(),
 				ppu,
-				stream,
-				ips,
+				imageStream,
+				patchStream,
+				patchBypassChecksum,
+				patchResult,
 				system,
 				ask,
 				imageDatabase

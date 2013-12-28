@@ -441,6 +441,7 @@
           <xs:enumeration value="NES-UNROM" />
           <xs:enumeration value="NES-UOROM" />
           <xs:enumeration value="NES-WH" />
+          <xs:enumeration value="NTDEC-N715062" />
           <xs:enumeration value="PAL-MH" />
           <xs:enumeration value="PAL-ZZ" />
           <xs:enumeration value="SACHEN-8259A" />
@@ -453,6 +454,7 @@
           <xs:enumeration value="SUNSOFT-2" />
           <xs:enumeration value="SUNSOFT-3" />
           <xs:enumeration value="SUNSOFT-4" />
+          <xs:enumeration value="SUNSOFT-5B" />
           <xs:enumeration value="SUNSOFT-FME-7" />
           <xs:enumeration value="SUNSOFT-NROM-256" />
           <xs:enumeration value="TAITO-74*139/74" />

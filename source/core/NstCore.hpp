@@ -325,8 +325,6 @@ namespace Nes
 			SIZE_16384K = 0x1000000
 		};
 
-		typedef void* StdStream;
-
 		template<char T>
 		struct Ascii
 		{
@@ -372,8 +370,7 @@ namespace Nes
 					( T == '\v' ) ? 0x0B :
 					( T == '\n' ) ? 0x0A :
 					( T == '\r' ) ? 0x0D :
-					( T == '\f' ) ? 0x0C :
-					( T == '\b' ) ? 0x08 : 0xFF
+					( T == '\f' ) ? 0x0C : 0xFF
 			};
 
 			NST_COMPILE_ASSERT( V != 0xFF );

@@ -23,6 +23,7 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 
 #include <new>
+#include <iostream>
 #include "NstMachine.hpp"
 #include "NstState.hpp"
 #include "NstTrackerMovie.hpp"
@@ -66,12 +67,12 @@ namespace Nes
 
 			struct Loader : State::Loader
 			{
-				explicit Loader(StdStream s)
-				: State::Loader(s,false) {}
+				explicit Loader(std::istream& s)
+				: State::Loader(&s,false) {}
 
-				bool operator == (StdStream s) const
+				bool operator == (std::istream& s) const
 				{
-					return stream == s;
+					return stream == &s;
 				}
 			};
 
@@ -86,20 +87,20 @@ namespace Nes
 
 		public:
 
-			static dword Validate(StdStream stream,const Cpu& cpu,dword prgCrc)
+			static dword Validate(std::istream& stream,const Cpu& cpu,dword prgCrc)
 			{
 				Loader state( stream );
 				return Validate( state, cpu, prgCrc, true );
 			}
 
-			Player(StdStream stream,Cpu& c,const dword prgCrc)
+			Player(std::istream& stream,Cpu& c,const dword prgCrc)
 			: frame(0), state(stream), cpu(c)
 			{
 				Validate( state, cpu, prgCrc, false );
 				Relink();
 			}
 
-			bool operator == (StdStream stream) const
+			bool operator == (std::istream& stream) const
 			{
 				return state == stream;
 			}
@@ -290,12 +291,12 @@ namespace Nes
 
 			struct Saver : State::Saver
 			{
-				Saver(StdStream s,dword a)
-				: State::Saver(s,true,true,a) {}
+				Saver(std::ostream& s,dword a)
+				: State::Saver(&s,true,true,a) {}
 
-				bool operator == (StdStream s) const
+				bool operator == (std::ostream& s) const
 				{
-					return stream == s;
+					return stream == &s;
 				}
 			};
 
@@ -311,7 +312,7 @@ namespace Nes
 
 		public:
 
-			Recorder(StdStream stream,Cpu& c,const dword prgCrc,const bool append)
+			Recorder(std::iostream& stream,Cpu& c,const dword prgCrc,const bool append)
 			: resync(true), frame(0), state(stream,append ? Player::Validate(stream,c,prgCrc) : 0), cpu(c)
 			{
 				if (!append)
@@ -328,7 +329,7 @@ namespace Nes
 				Relink();
 			}
 
-			bool operator == (StdStream stream) const
+			bool operator == (std::ostream& stream) const
 			{
 				return state == stream;
 			}
@@ -460,10 +461,8 @@ namespace Nes
 			Stop();
 		}
 
-		bool Tracker::Movie::Record(StdStream const stream,const bool append)
+		bool Tracker::Movie::Record(std::iostream& stream,const bool append)
 		{
-			NST_ASSERT( stream );
-
 			if (!Zlib::AVAILABLE)
 				throw RESULT_ERR_UNSUPPORTED;
 
@@ -482,10 +481,8 @@ namespace Nes
 			return true;
 		}
 
-		bool Tracker::Movie::Play(StdStream const stream)
+		bool Tracker::Movie::Play(std::istream& stream)
 		{
-			NST_ASSERT( stream );
-
 			if (!Zlib::AVAILABLE)
 				throw RESULT_ERR_UNSUPPORTED;
 

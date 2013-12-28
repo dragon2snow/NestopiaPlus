@@ -124,9 +124,11 @@
 //                  feature. Although they'll still work without them, memory
 //                  footprint will increase drastically.
 //
+// NST_NO_HQ2X    - hq2x and hq3x video filters
+//
 // NST_NO_SCALEX  - Scale2x and Scale3x video filters
 //
-// NST_NO_HQ2X    - hq2x and hq3x video filters
+// NST_NO_2XSAI   - 2xSaI video filter
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 */

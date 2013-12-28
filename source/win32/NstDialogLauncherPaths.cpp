@@ -73,7 +73,7 @@ namespace Nestopia
 				settings.include[ Settings::Include::XML     ] = !files[ "xml"           ].No();
 				settings.include[ Settings::Include::FDS     ] = !files[ "fds"           ].No();
 				settings.include[ Settings::Include::NSF     ] = !files[ "nsf"           ].No();
-				settings.include[ Settings::Include::IPS     ] = !files[ "ips"           ].No();
+				settings.include[ Settings::Include::PATCH   ] = !files[ "patch"         ].No();
 				settings.include[ Settings::Include::ARCHIVE ] = !files[ "archive"       ].No();
 				settings.include[ Settings::Include::ANY     ] =  files[ "any-extension" ].Yes();
 				settings.include[ Settings::Include::UNIQUE  ] = !files[ "duplicates"    ].Yes();
@@ -113,7 +113,7 @@ namespace Nestopia
 				files[ "xml"           ].YesNo() =  settings.include[ Settings::Include::XML     ];
 				files[ "fds"           ].YesNo() =  settings.include[ Settings::Include::FDS     ];
 				files[ "nsf"           ].YesNo() =  settings.include[ Settings::Include::NSF     ];
-				files[ "ips"           ].YesNo() =  settings.include[ Settings::Include::IPS     ];
+				files[ "patch"         ].YesNo() =  settings.include[ Settings::Include::PATCH   ];
 				files[ "archive"       ].YesNo() =  settings.include[ Settings::Include::ARCHIVE ];
 				files[ "any-extension" ].YesNo() =  settings.include[ Settings::Include::ANY     ];
 				files[ "duplicates"    ].YesNo() = !settings.include[ Settings::Include::UNIQUE  ];
@@ -141,7 +141,7 @@ namespace Nestopia
 			dialog.CheckBox( IDC_LAUNCHER_PATHS_XML         ).Check( settings.include[ Settings::Include::XML     ] );
 			dialog.CheckBox( IDC_LAUNCHER_PATHS_FDS         ).Check( settings.include[ Settings::Include::FDS     ] );
 			dialog.CheckBox( IDC_LAUNCHER_PATHS_NSF         ).Check( settings.include[ Settings::Include::NSF     ] );
-			dialog.CheckBox( IDC_LAUNCHER_PATHS_IPS         ).Check( settings.include[ Settings::Include::IPS     ] );
+			dialog.CheckBox( IDC_LAUNCHER_PATHS_PATCH       ).Check( settings.include[ Settings::Include::PATCH   ] );
 			dialog.CheckBox( IDC_LAUNCHER_PATHS_ARCHIVE     ).Check( settings.include[ Settings::Include::ARCHIVE ] );
 			dialog.CheckBox( IDC_LAUNCHER_PATHS_ALLFILES    ).Check( settings.include[ Settings::Include::ANY     ] );
 			dialog.CheckBox( IDC_LAUNCHER_PATHS_UNIQUEFILES ).Check( settings.include[ Settings::Include::UNIQUE  ] );
@@ -198,7 +198,7 @@ namespace Nestopia
 				settings.include[ Settings::Include::XML     ] = dialog.CheckBox( IDC_LAUNCHER_PATHS_XML         ).Checked();
 				settings.include[ Settings::Include::FDS     ] = dialog.CheckBox( IDC_LAUNCHER_PATHS_FDS         ).Checked();
 				settings.include[ Settings::Include::NSF     ] = dialog.CheckBox( IDC_LAUNCHER_PATHS_NSF         ).Checked();
-				settings.include[ Settings::Include::IPS     ] = dialog.CheckBox( IDC_LAUNCHER_PATHS_IPS         ).Checked();
+				settings.include[ Settings::Include::PATCH   ] = dialog.CheckBox( IDC_LAUNCHER_PATHS_PATCH       ).Checked();
 				settings.include[ Settings::Include::ARCHIVE ] = dialog.CheckBox( IDC_LAUNCHER_PATHS_ARCHIVE     ).Checked();
 				settings.include[ Settings::Include::ANY     ] = dialog.CheckBox( IDC_LAUNCHER_PATHS_ALLFILES    ).Checked();
 				settings.include[ Settings::Include::UNIQUE  ] = dialog.CheckBox( IDC_LAUNCHER_PATHS_UNIQUEFILES ).Checked();

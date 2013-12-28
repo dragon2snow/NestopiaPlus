@@ -25,7 +25,7 @@
 #ifndef NST_VIDEO_FILTER_2XSAI_H
 #define NST_VIDEO_FILTER_2XSAI_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
+#ifdef NST_PRAGMA_ONCE
 #pragma once
 #endif
 
@@ -35,34 +35,26 @@ namespace Nes
 	{
 		namespace Video
 		{
-			class Renderer::Filter2xSaI: public Renderer::Filter
+			class Renderer::Filter2xSaI : public Renderer::Filter
 			{
-				inline dword Blend(dword,dword) const;
-				inline dword Blend(dword,dword,dword,dword) const;
+			public:
 
-				template<typename T>
-				NST_FORCE_INLINE void Blit2xSaI(const Input&,const Output&) const;
+				explicit Filter2xSaI(const RenderState&);
 
-				template<typename T>
-				NST_FORCE_INLINE void BlitSuper2xSaI(const Input&,const Output&) const;
+				static bool Check(const RenderState&);
 
-				template<typename T>
-				NST_FORCE_INLINE void BlitSuperEagle(const Input&,const Output&) const;
-
-				template<typename T>
-				NST_FORCE_INLINE void BlitType(const Input&,const Output&) const;
-
-				const dword lsb0;
-				const dword lsb1;
-				const RenderState::Filter type;
+			private:
 
 				void Blit(const Input&,const Output&,uint);
 
-			public:
+				template<typename T>
+				void BlitType(const Input&,const Output&) const;
 
-				Filter2xSaI(const RenderState&);
+				inline dword Blend(dword,dword) const;
+				inline dword Blend(dword,dword,dword,dword) const;
 
-				static bool Check(const RenderState&);
+				const dword lsb0;
+				const dword lsb1;
 			};
 		}
 	}

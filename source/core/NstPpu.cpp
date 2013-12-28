@@ -983,8 +983,8 @@ namespace Nes
 			{
 				cpu.StealCycles( cpu.GetClock() * 512 );
 
-				const byte* NST_RESTRICT const cpuRam = cpu.GetRam() + (data & (Cpu::RAM_SIZE-1));
-				byte* NST_RESTRICT const oamRam = oam.ram;
+				const byte* const NST_RESTRICT cpuRam = cpu.GetRam() + (data & (Cpu::RAM_SIZE-1));
+				byte* const NST_RESTRICT oamRam = oam.ram;
 
 				for (uint i=0x00; i < 0x100; i += 0x4)
 				{
@@ -1226,7 +1226,7 @@ namespace Nes
 			oam.address = (oam.address + 4) & 0xFF;
 		}
 
-		void Ppu::LoadSprite(const byte* NST_RESTRICT const buffer,const uint a12rising)
+		void Ppu::LoadSprite(const byte* const NST_RESTRICT buffer,const uint a12rising)
 		{
 			const uint comparitor = (uint(scanline) - buffer[0]) ^ ((buffer[2] & uint(Oam::Y_FLIP)) ? 0xF : 0x0);
 
@@ -2437,7 +2437,7 @@ namespace Nes
 						cycles.hClock = hClock;
 						tiles.index = (hClock - 1) & 8;
 
-						byte* NST_RESTRICT const tile = tiles.pixels;
+						byte* const NST_RESTRICT tile = tiles.pixels;
 						Video::Screen::Pixel* NST_RESTRICT target = output.target;
 
 						do
@@ -2542,6 +2542,9 @@ namespace Nes
 						{
 							tiles.mask = tiles.show[1];
 							oam.mask = oam.show[1];
+
+							if (scanline == 0 && model == PPU_RP2C02)
+								output.burstPhase = (output.burstPhase + 1) % 3;
 
 							cycles.vClock += 341;
 							cycles.hClock = 0;

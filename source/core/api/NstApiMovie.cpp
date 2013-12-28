@@ -39,12 +39,12 @@ namespace Nes
 		Result Movie::Play(std::istream& stream) throw()
 		{
 			Api::TapeRecorder(emulator).Stop();
-			return emulator.tracker.PlayMovie( emulator, &stream );
+			return emulator.tracker.PlayMovie( emulator, stream );
 		}
 
 		Result Movie::Record(std::iostream& stream,How how) throw()
 		{
-			return emulator.tracker.RecordMovie( emulator, &stream, how == APPEND );
+			return emulator.tracker.RecordMovie( emulator, stream, how == APPEND );
 		}
 
 		void Movie::Stop() throw()

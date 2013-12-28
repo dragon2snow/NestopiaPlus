@@ -22,7 +22,6 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include <algorithm>
 #include "NstIoStream.hpp"
 #include "NstResourceString.hpp"
 #include "NstWindowParam.hpp"
@@ -329,14 +328,14 @@ namespace Nestopia
 					{
 						ulong v;
 
-						if (0xFFFF < (v=std::wcstoul( address.GetValue(), NULL, 0 )))
+						if (0xFFFF < (v=address.GetUnsignedValue()))
 							return false;
 
 						mem.address = v;
 
 						if (const Xml::Node value=node.GetChild( L"value" ))
 						{
-							if (0xFF < (v=std::wcstoul( value.GetValue(), NULL, 0 )))
+							if (0xFF < (v=value.GetUnsignedValue()))
 								return false;
 
 							mem.value = v;
@@ -344,7 +343,7 @@ namespace Nestopia
 
 						if (const Xml::Node compare=node.GetChild( L"compare" ))
 						{
-							if (0xFF < (v=std::wcstoul( compare.GetValue(), NULL, 0 )))
+							if (0xFF < (v=compare.GetUnsignedValue()))
 								return false;
 
 							mem.compare = v;

@@ -45,6 +45,9 @@ namespace Nes
 	{
 		namespace Video
 		{
+			/**
+			* Video output context.
+			*/
 			class Output
 			{
 				struct Locker;
@@ -59,19 +62,63 @@ namespace Nes
 					NTSC_WIDTH = 602
 				};
 
+				/**
+				* Pointer to surface memory to be written to. Size must be equal to
+				* or greater than bitsPerPixel/8 * NES screen width * NES screen height.
+				*/
 				void* pixels;
+
+				/**
+				* Distance in bytes for each line in the surface memory.
+				* Must be equal to or greater than the actual NES screen width.
+				* Value is allowed to be negative.
+				*/
 				long pitch;
 
 				Output(void* v=0,long p=0)
 				: pixels(v), pitch(p) {}
 
-				typedef bool (NST_CALLBACK *LockCallback) (void*,Output&);
-				typedef void (NST_CALLBACK *UnlockCallback) (void*,Output&);
+				/**
+				* Surface lock callback prototype.
+				*
+				* Called right before the core is about to render to the surface.
+				*
+				* @param userData optional user data
+				* @param output object to this class
+				* @return true if surface is valid and can be written to
+				*/
+				typedef bool (NST_CALLBACK *LockCallback) (void* userData,Output& output);
 
+				/**
+				* Surface unlock callback prototype.
+				*
+				* Called when the core has finished rendering to the surface and a previous locked was made.
+				*
+				* @param userData optional user data
+				* @param output object to this class
+				*/
+				typedef void (NST_CALLBACK *UnlockCallback) (void* userData,Output& output);
+
+				/**
+				* Surface lock callback manager.
+				*
+				* Static object used for adding the user defined callback.
+				*/
 				static Locker lockCallback;
+
+				/**
+				* Surface unlock callback manager.
+				*
+				* Static object used for adding the user defined callback.
+				*/
 				static Unlocker unlockCallback;
 			};
 
+			/**
+			* Surface lock callback invoker.
+			*
+			* Used internally by the core.
+			*/
 			struct Output::Locker : UserCallback<Output::LockCallback>
 			{
 				bool operator () (Output& output) const
@@ -80,6 +127,11 @@ namespace Nes
 				}
 			};
 
+			/**
+			* Surface unlock callback invoker.
+			*
+			* Used internally by the core.
+			*/
 			struct Output::Unlocker : UserCallback<Output::UnlockCallback>
 			{
 				void operator () (Output& output) const
@@ -93,14 +145,25 @@ namespace Nes
 
 	namespace Api
 	{
+		/**
+		* Video interface.
+		*/
 		class Video : public Base
 		{
 		public:
 
+			/**
+			* Interface constructor.
+			*
+			* @param instance emulator instance
+			*/
 			template<typename T>
-			Video(T& e)
-			: Base(e) {}
+			Video(T& instance)
+			: Base(instance) {}
 
+			/**
+			* Video output context.
+			*/
 			typedef Core::Video::Output Output;
 
 			enum
@@ -144,47 +207,226 @@ namespace Nes
 				MAX_HUE                         =  +45
 			};
 
-			Result EnableUnlimSprites(bool) throw();
+			/**
+			* Allows the PPU to render more than eight sprites per line.
+			*
+			* @param state true to allow it, default is false
+			* @return result code
+			*/
+			Result EnableUnlimSprites(bool state) throw();
+
+			/**
+			* Checks if the PPU sprite software extension is enabled.
+			*
+			* @return true if enabled
+			*/
 			bool AreUnlimSpritesEnabled() const throw();
 
+			/**
+			* Returns the current brightness.
+			*
+			* @return brightness value in the range -100 to 100
+			*/
 			int GetBrightness() const throw();
+
+			/**
+			* Returns the current saturation.
+			*
+			* @return saturation value in the range -100 to 100
+			*/
 			int GetSaturation() const throw();
+
+			/**
+			* Returns the current contrast.
+			*
+			* @return contrast value in the range -100 to 100
+			*/
 			int GetContrast() const throw();
+
+			/**
+			* Returns the current sharpness for the NTSC filter.
+			*
+			* @return sharpness value in the range -100 to 100
+			*/
 			int GetSharpness() const throw();
+
+			/**
+			* Returns the current color resolution for the NTSC filter.
+			*
+			* @return color resolution value in the range -100 to 100
+			*/
 			int GetColorResolution() const throw();
+
+			/**
+			* Returns the current color bleed for the NTSC filter.
+			*
+			* @return color bleed value in the range -100 to 100
+			*/
 			int GetColorBleed() const throw();
+
+			/**
+			* Returns the current color artifacts for the NTSC filter.
+			*
+			* @return color artifacts value in the range -100 to 100
+			*/
 			int GetColorArtifacts() const throw();
+
+			/**
+			* Returns the current color fringing for the NTSC filter.
+			*
+			* @return color fringing value in the range -100 to 100
+			*/
 			int GetColorFringing() const throw();
+
+			/**
+			* Returns the current hue.
+			*
+			* @return hue value in the range -45 to 45
+			*/
 			int GetHue() const throw();
 
-			Result SetBrightness(int) throw();
-			Result SetSaturation(int) throw();
-			Result SetContrast(int) throw();
-			Result SetSharpness(int) throw();
-			Result SetColorResolution(int) throw();
-			Result SetColorBleed(int) throw();
-			Result SetColorArtifacts(int) throw();
-			Result SetColorFringing(int) throw();
-			Result SetHue(int) throw();
+			/**
+			* Sets the brightness.
+			*
+			* @param value brightness in the range -100 to 100, default is 0
+			* @return result code
+			*/
+			Result SetBrightness(int value) throw();
 
-			void EnableFieldMerging(bool) throw();
+			/**
+			* Sets the saturation.
+			*
+			* @param value saturation in the range -100 to 100, default is 0
+			* @return result code
+			*/
+			Result SetSaturation(int value) throw();
+
+			/**
+			* Sets the contrast.
+			*
+			* @param value contrast in the range -100 to 100, default is 0
+			* @return result code
+			*/
+			Result SetContrast(int value) throw();
+
+			/**
+			* Sets the sharpness for the NTSC filter.
+			*
+			* @param value sharpness in the range -100 to 100, default is 0
+			* @return result code
+			*/
+			Result SetSharpness(int value) throw();
+
+			/**
+			* Sets the color resolution for the NTSC filter.
+			*
+			* @param value color resolution in the range -100 to 100, default is 0
+			* @return result code
+			*/
+			Result SetColorResolution(int value) throw();
+
+			/**
+			* Sets the color bleed for the NTSC filter.
+			*
+			* @param value color bleed in the range -100 to 100, default is 0
+			* @return result code
+			*/
+			Result SetColorBleed(int value) throw();
+
+			/**
+			* Sets the color artifacts for the NTSC filter.
+			*
+			* @param value color artifacts in the range -100 to 100, default is 0
+			* @return result code
+			*/
+			Result SetColorArtifacts(int value) throw();
+
+			/**
+			* Sets the color fringing for the NTSC filter.
+			*
+			* @param value fringing in the range -100 to 100, default is 0
+			* @return result code
+			*/
+			Result SetColorFringing(int value) throw();
+
+			/**
+			* Sets the hue.
+			*
+			* @param value hue in the range -45 to 45, default is 0
+			* @return result code
+			*/
+			Result SetHue(int value) throw();
+
+			/**
+			* Enables field merging for the NTSC filter.
+			*
+			* @param state true to enable
+			*/
+			void EnableFieldMerging(bool state) throw();
+
+			/**
+			* Checks if NTSC filter field merging is enabled.
+			*
+			* @return true if enabled
+			*/
 			bool IsFieldMergingEnabled() const throw();
 
-			Result Blit(Output&) throw();
+			/**
+			* Performs a manual blit to the video output object.
+			*
+			* The core calls this method internally for each frame.
+			*
+			* @param output video output object to blit to
+			* @return result code
+			*/
+			Result Blit(Output& output) throw();
 
+			/**
+			* YUV decoder presets.
+			*/
 			enum DecoderPreset
 			{
+				/**
+				* Canonical (default)
+				*/
 				DECODER_CANONICAL,
+				/**
+				* Consumer
+				*/
 				DECODER_CONSUMER,
+				/**
+				* Alternative
+				*/
 				DECODER_ALTERNATIVE
 			};
 
+			/**
+			* YUV decoder context.
+			*/
 			struct Decoder
 			{
-				Decoder(DecoderPreset=DECODER_CANONICAL) throw();
+				/**
+				* Constructor.
+				*
+				* @param preset preset, canonical by default
+				*/
+				Decoder(DecoderPreset preset=DECODER_CANONICAL) throw();
 
-				bool operator == (const Decoder&) const throw();
-				bool operator != (const Decoder&) const throw();
+				/**
+				* Tests for equality.
+				*
+				* @param decoder object to compare
+				* @return true if equal
+				*/
+				bool operator == (const Decoder& decoder) const throw();
+
+				/**
+				* Tests for non-equality.
+				*
+				* @param decoder object to compare
+				* @return true if non-equal
+				*/
+				bool operator != (const Decoder& decoder) const throw();
 
 				enum
 				{
@@ -200,20 +442,40 @@ namespace Nes
 					uint angle;
 				}   axes[NUM_AXES];
 
-				uint boostYellow;
+				bool boostYellow;
 			};
 
-			Result SetDecoder(const Decoder&) throw();
+			/**
+			* Sets the YUV decoder.
+			*
+			* @param decoder decoder
+			* @return result code
+			*/
+			Result SetDecoder(const Decoder& decoder) throw();
+
+			/**
+			* Returns the current YUV decoder.
+			*
+			* @return current decoder
+			*/
 			const Decoder& GetDecoder() const throw();
 
+			/**
+			* Palette interface.
+			*/
 			class Palette
 			{
 				Core::Machine& emulator;
 
 			public:
 
-				Palette(Core::Machine& e)
-				: emulator(e) {}
+				/**
+				* Interface constructor
+				*
+				* @param instance emulator instance
+				*/
+				Palette(Core::Machine& instance)
+				: emulator(instance) {}
 
 				enum
 				{
@@ -221,70 +483,211 @@ namespace Nes
 					NUM_ENTRIES_EXT = 512
 				};
 
+				/**
+				* Custom palette types.
+				*/
 				enum CustomType
 				{
+					/**
+					* Standard palette. 64 colors.
+					*/
 					STD_PALETTE = NUM_ENTRIES,
+					/**
+					* Extended palette. 512 colors with emphasis included in it.
+					*/
 					EXT_PALETTE = NUM_ENTRIES_EXT
 				};
 
+				/**
+				* Palette modes
+				*/
 				enum Mode
 				{
+					/**
+					* YUV (default)
+					*/
 					MODE_YUV,
+					/**
+					* RGB
+					*/
 					MODE_RGB,
+					/**
+					* Custom
+					*/
 					MODE_CUSTOM
 				};
 
+				/**
+				* RGB colors.
+				*/
 				typedef const uchar (*Colors)[3];
 
-				Mode       GetMode() const throw();
-				Mode       GetDefaultMode() const throw();
-				Result     SetCustom(Colors,CustomType=STD_PALETTE) throw();
-				uint       GetCustom(uchar (*)[3],CustomType) const throw();
-				void       ResetCustom() throw();
+				/**
+				* Returns the current palette mode.
+				*
+				* @return current mode
+				*/
+				Mode GetMode() const throw();
+
+				/**
+				* Returns the default palette mode.
+				*
+				* @return default palette mode
+				*/
+				Mode GetDefaultMode() const throw();
+
+				/**
+				* Sets the custom palette.
+				*
+				* @param colors RGB color data
+				* @param type custom palette type
+				*/
+				Result SetCustom(Colors colors,CustomType type=STD_PALETTE) throw();
+
+				/**
+				* Returns the custom palette.
+				*
+				* @param colors RGB colors to be filled
+				* @param type custom palette type
+				* @return number of colors written
+				*/
+				uint GetCustom(uchar (*colors)[3],CustomType type) const throw();
+
+				/**
+				* Resets the custom palette.
+				*/
+				void ResetCustom() throw();
+
+				/**
+				* Returns the custom palette type.
+				*
+				* @return custom palette type
+				*/
 				CustomType GetCustomType() const throw();
-				Colors     GetColors() const throw();
-				Result     SetMode(Mode) throw();
+
+				/**
+				* Return the current palette colors.
+				*
+				* @return palette colors
+				*/
+				Colors GetColors() const throw();
+
+				/**
+				* Sets the palette mode.
+				*
+				* @param mode palette mode
+				* @return result code
+				*/
+				Result SetMode(Mode mode) throw();
 			};
 
+			/**
+			* Returns the palette interface.
+			*
+			* @return palette interface
+			*/
 			Palette GetPalette()
 			{
 				return emulator;
 			}
 
+			/**
+			* Render state context.
+			*/
 			struct RenderState
 			{
 				RenderState() throw();
 
+				/**
+				* Pixel context.
+				*/
 				struct Bits
 				{
+					/**
+					* RGB bit mask.
+					*/
 					struct Mask
 					{
 						ulong r,g,b;
 					};
 
+					/**
+					* RGB bit mask.
+					*/
 					Mask mask;
+
+					/**
+					* Bits per pixel.
+					*/
 					uint count;
 				};
 
+				/**
+				* Pixel context.
+				*/
 				Bits bits;
+
+				/**
+				* Screen width.
+				*/
 				ushort width;
+
+				/**
+				* Screen height.
+				*/
 				ushort height;
 
+				/**
+				* Video Filter.
+				*/
 				enum Filter
 				{
+					/**
+					* No filter (default).
+					*/
 					FILTER_NONE,
+					/**
+					* NTSC filter.
+					*/
 					FILTER_NTSC
 				#ifndef NST_NO_SCALEX
-					,FILTER_SCALE2X
-					,FILTER_SCALE3X
+					,
+					/**
+					* Scale2x filter.
+					*/
+					FILTER_SCALE2X,
+					/**
+					* Scale3x filter.
+					*/
+					FILTER_SCALE3X
 				#endif
 				#ifndef NST_NO_HQ2X
-					,FILTER_HQ2X
-					,FILTER_HQ3X
-					,FILTER_HQ4X
+					,
+					/**
+					* Hq2x filter.
+					*/
+					FILTER_HQ2X,
+					/**
+					* Hq3x filter.
+					*/
+					FILTER_HQ3X,
+					/**
+					* Hq4x filter.
+					*/
+					FILTER_HQ4X
+				#endif
+				#ifndef NST_NO_2XSAI
+					,
+					/**
+					* 2xSaI filter.
+					*/
+					FILTER_2XSAI
 				#endif
 				};
 
+				/**
+				* Scale factors.
+				*/
 				enum Scale
 				{
 					SCALE_NONE = 1
@@ -296,13 +699,32 @@ namespace Nes
 					,SCALE_HQ2X = 2
 					,SCALE_HQ3X = 3
 				#endif
+				#ifndef NST_NO_2XSAI
+					,SCALE_2XSAI = 2
+				#endif
 				};
 
+				/**
+				* Filter.
+				*/
 				Filter filter;
 			};
 
-			Result SetRenderState(const RenderState&) throw();
-			Result GetRenderState(RenderState&) const throw();
+			/**
+			* Sets the render state.
+			*
+			* @param state render state to be set
+			* @return result code
+			*/
+			Result SetRenderState(const RenderState& state) throw();
+
+			/**
+			* Returns the current render state.
+			*
+			* @param state object to be filled
+			* @return result code
+			*/
+			Result GetRenderState(RenderState& state) const throw();
 		};
 	}
 }

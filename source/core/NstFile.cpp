@@ -27,6 +27,7 @@
 #include "NstStream.hpp"
 #include "NstVector.hpp"
 #include "NstChecksum.hpp"
+#include "NstPatcher.hpp"
 #include "NstFile.hpp"
 #include "api/NstApiUser.hpp"
 
@@ -38,22 +39,44 @@ namespace Nes
 		#pragma optimize("s", on)
 		#endif
 
+		struct File::Context
+		{
+			Checksum checksum;
+			Vector<byte> data;
+		};
+
 		File::File()
-		: checksum( *new Checksum )
+		: context( *new Context )
 		{
 		}
 
 		File::~File()
 		{
-			delete &checksum;
+			delete &context;
 		}
 
 		void File::Load(const byte* data,dword size) const
 		{
 			NST_ASSERT( data && size );
 
-			checksum.Clear();
-			checksum.Compute( data, size );
+			context.checksum.Clear();
+			context.checksum.Compute( data, size );
+			context.data.Destroy();
+		}
+
+		void File::Load(byte* data,dword size,Type type) const
+		{
+			NST_ASSERT( data && size );
+
+			context.data.Assign( data, size );
+
+			bool altered = false;
+
+			const LoadBlock loadBlock = {data,size};
+			Load( type, &loadBlock, 1, &altered );
+
+			if (altered)
+				context.checksum.Clear();
 		}
 
 		void File::Load(Type type,byte* data,dword size) const
@@ -62,13 +85,14 @@ namespace Nes
 			Load( type, &loadBlock, 1 );
 		}
 
-		void File::Load(const Type type,const LoadBlock* const loadBlock,const uint loadBlockCount) const
+		void File::Load(const Type type,const LoadBlock* const loadBlock,const uint loadBlockCount,bool* const altered) const
 		{
 			class Loader : public Api::User::File
 			{
 				const Action action;
 				const LoadBlock* const loadBlock;
 				const uint loadBlockCount;
+				bool* const altered;
 
 				Action GetAction() const throw()
 				{
@@ -87,6 +111,9 @@ namespace Nes
 
 				Result SetContent(const void* data,ulong filesize) throw()
 				{
+					if (altered)
+						*altered = true;
+
 					if (!data || !filesize)
 						return RESULT_ERR_INVALID_PARAM;
 
@@ -107,6 +134,9 @@ namespace Nes
 
 				Result SetContent(std::istream& stdStream) throw()
 				{
+					if (altered)
+						*altered = true;
+
 					try
 					{
 						Stream::In stream( &stdStream );
@@ -143,32 +173,79 @@ namespace Nes
 					return RESULT_OK;
 				}
 
+				Result SetPatchContent(std::istream& stream) throw()
+				{
+					if (altered)
+						*altered = true;
+
+					Patcher patcher;
+
+					Result result = patcher.Load( stream );
+
+					if (NES_FAILED(result))
+						return result;
+
+					if (loadBlockCount > 1)
+					{
+						Patcher::Block* const patchBlocks = new (std::nothrow) Patcher::Block [loadBlockCount];
+
+						if (!patchBlocks)
+							return RESULT_ERR_OUT_OF_MEMORY;
+
+						for (uint i=0; i < loadBlockCount; ++i)
+						{
+							patchBlocks[i].data = loadBlock[i].data;
+							patchBlocks[i].size = loadBlock[i].size;
+						}
+
+						result = patcher.Test( patchBlocks, loadBlockCount );
+
+						delete [] patchBlocks;
+					}
+					else
+					{
+						result = patcher.Test( loadBlockCount ? loadBlock->data : NULL, loadBlockCount ? loadBlock->size : 0 );
+					}
+
+					if (NES_SUCCEEDED(result))
+					{
+						for (dword i=0, offset=0; i < loadBlockCount; offset += loadBlock[i].size, ++i)
+							patcher.Patch( loadBlock[i].data, loadBlock[i].data, loadBlock[i].size, offset );
+					}
+
+					return result;
+				}
+
 			public:
 
-				Loader(Type t,const LoadBlock* l,uint c)
+				Loader(Type t,const LoadBlock* l,uint c,bool* a)
 				:
 				action
 				(
 					t == EEPROM    ? LOAD_EEPROM :
 					t == TAPE      ? LOAD_TAPE :
 					t == TURBOFILE ? LOAD_TURBOFILE :
+					t == DISK      ? LOAD_FDS :
                                      LOAD_BATTERY
 				),
-				loadBlock(l),
-				loadBlockCount(c)
+				loadBlock      (l),
+				loadBlockCount (c),
+				altered        (a)
 				{
+					if (altered)
+						*altered = false;
 				}
 			};
 
 			{
-				Loader loader( type, loadBlock, loadBlockCount );
+				Loader loader( type, loadBlock, loadBlockCount, altered );
 				Api::User::fileIoCallback( loader );
 			}
 
-			checksum.Clear();
+			context.checksum.Clear();
 
 			for (const LoadBlock* NST_RESTRICT it=loadBlock, *const end=loadBlock+loadBlockCount; it != end; ++it)
-				checksum.Compute( it->data, it->size );
+				context.checksum.Compute( it->data, it->size );
 		}
 
 		void File::Load(const Type type,Vector<byte>& buffer,const dword maxsize) const
@@ -289,12 +366,12 @@ namespace Nes
 		{
 			NST_ASSERT( saveBlock && saveBlockCount );
 
-			Checksum recentChecksum;
+			Checksum checksum;
 
 			for (const SaveBlock *NST_RESTRICT it=saveBlock, *const end=saveBlock+saveBlockCount; it != end; ++it)
-				recentChecksum.Compute( it->data, it->size );
+				checksum.Compute( it->data, it->size );
 
-			if (recentChecksum != checksum)
+			if (checksum != context.checksum)
 			{
 				class Saver : public Api::User::File
 				{
@@ -302,6 +379,7 @@ namespace Nes
 					const SaveBlock* const saveBlock;
 					const uint saveBlockCount;
 					mutable Vector<byte> buffer;
+					const Vector<byte> original;
 
 					Action GetAction() const throw()
 					{
@@ -384,24 +462,58 @@ namespace Nes
 						return RESULT_OK;
 					}
 
+					Result GetPatchContent(Patch format,std::ostream& stream) const throw()
+					{
+						if (!original.Size() || (format != PATCH_UPS && format != PATCH_IPS))
+							return RESULT_ERR_UNSUPPORTED;
+
+						const void* data;
+						ulong size;
+
+						Result result = Saver::GetContent( data, size );
+
+						if (NES_FAILED(result))
+							return result;
+
+						if (size != original.Size())
+							return RESULT_ERR_UNSUPPORTED;
+
+						Patcher patcher;
+
+						result = patcher.Create
+						(
+							format == PATCH_UPS ? Patcher::UPS : Patcher::IPS,
+							original.Begin(),
+							static_cast<const byte*>(data),
+							size
+						);
+
+						if (NES_FAILED(result))
+							return result;
+
+						return patcher.Save( stream );
+					}
+
 				public:
 
-					Saver(Type t,const SaveBlock* s,uint c)
+					Saver(Type t,const SaveBlock* s,uint c,const Vector<byte>& o)
 					:
 					action
 					(
 						t == EEPROM    ? SAVE_EEPROM :
 						t == TAPE      ? SAVE_TAPE :
 						t == TURBOFILE ? SAVE_TURBOFILE :
+						t == DISK      ? SAVE_FDS :
                                          SAVE_BATTERY
 					),
 					saveBlock      (s),
-					saveBlockCount (c)
+					saveBlockCount (c),
+					original       (o)
 					{
 					}
 				};
 
-				Saver saver( type, saveBlock, saveBlockCount );
+				Saver saver( type, saveBlock, saveBlockCount, context.data );
 				Api::User::fileIoCallback( saver );
 			}
 		}

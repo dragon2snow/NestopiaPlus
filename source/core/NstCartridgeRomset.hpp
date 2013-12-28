@@ -25,8 +25,6 @@
 #ifndef NST_CARTRIDGE_ROMSET_H
 #define NST_CARTRIDGE_ROMSET_H
 
-#include <vector>
-
 #ifdef NST_PRAGMA_ONCE
 #pragma once
 #endif
@@ -37,12 +35,16 @@ namespace Nes
 	{
 		class Cartridge::Romset
 		{
+			class Loader;
+
 		public:
 
 			static void Load
 			(
-				StdStream,
-				StdStream,
+				std::istream&,
+				std::istream*,
+				bool,
+				Result*,
 				Ram&,
 				Ram&,
 				FavoredSystem,
@@ -50,27 +52,6 @@ namespace Nes
 				Profile&,
 				bool=false
 			);
-
-		private:
-
-			typedef std::vector<Profile> Profiles;
-
-			enum
-			{
-				DEFAULT_VERSION  = 10,
-				MIN_PLAYERS      = 1,
-				MAX_PLAYERS      = 255,
-				MIN_CHIP_SIZE    = 1,
-				MAX_CHIP_SIZE    = SIZE_16384K,
-				MIN_IC_PINS      = 1,
-				MAX_IC_PINS      = 127,
-				MAX_CHIP_SAMPLES = 255,
-				MAX_MAPPER       = 255
-			};
-
-			static void Collect(StdStream,FavoredSystem,Profiles&);
-			static void ChooseProfile(FavoredSystem,bool,const Profiles&,Profile&);
-			static void LoadRoms(Ram&,Ram&,Profile&,bool);
 		};
 	}
 }

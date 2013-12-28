@@ -42,7 +42,7 @@ namespace Nestopia
 		private:
 
 			bool Available() const;
-			void OpenDialog() const;
+			bool OpenDialog(bool) const;
 
 			void OnMenuExt(const Window::Menu::PopupHandler::Param&);
 			void OnEmuEvent(Emulator::Event,Emulator::Data);

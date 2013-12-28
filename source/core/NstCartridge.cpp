@@ -53,21 +53,56 @@ namespace Nes
 			{
 				ProfileEx profileEx;
 
-				switch (Stream::In(context.stream).Peek32())
+				switch (Stream::In(&context.stream).Peek32())
 				{
 					case INES_ID:
 
-						Ines::Load( context.stream, context.ips, prg, chr, context.favoredSystem, profile, profileEx, context.database );
+						Ines::Load
+						(
+							context.stream,
+							context.patch,
+							context.patchBypassChecksum,
+							context.patchResult,
+							prg,
+							chr,
+							context.favoredSystem,
+							profile,
+							profileEx,
+							context.database
+						);
 						break;
 
 					case UNIF_ID:
 
-						Unif::Load( context.stream, context.ips, prg, chr, context.favoredSystem, profile, profileEx, context.database );
+						Unif::Load
+						(
+							context.stream,
+							context.patch,
+							context.patchBypassChecksum,
+							context.patchResult,
+							prg,
+							chr,
+							context.favoredSystem,
+							profile,
+							profileEx,
+							context.database
+						);
 						break;
 
 					default:
 
-						Romset::Load( context.stream, context.ips, prg, chr, context.favoredSystem, context.askProfile, profile );
+						Romset::Load
+						(
+							context.stream,
+							context.patch,
+							context.patchBypassChecksum,
+							context.patchResult,
+							prg,
+							chr,
+							context.favoredSystem,
+							context.askProfile,
+							profile
+						);
 						break;
 				}
 
@@ -123,30 +158,30 @@ namespace Nes
 			Destroy();
 		}
 
-		void Cartridge::ReadRomset(StdStream stream,FavoredSystem favoredSystem,bool askSystem,Profile& profile)
+		void Cartridge::ReadRomset(std::istream& stream,FavoredSystem favoredSystem,bool askSystem,Profile& profile)
 		{
 			Log::Suppressor logSupressor;
 			Ram prg, chr;
 			ProfileEx profileEx;
-			Romset::Load( stream, NULL, prg, chr, favoredSystem, askSystem, profile, true );
+			Romset::Load( stream, NULL, false, NULL, prg, chr, favoredSystem, askSystem, profile, true );
 			SetupBoard( prg, chr, NULL, NULL, profile, profileEx, NULL, true );
 		}
 
-		void Cartridge::ReadInes(StdStream stream,FavoredSystem favoredSystem,Profile& profile)
+		void Cartridge::ReadInes(std::istream& stream,FavoredSystem favoredSystem,Profile& profile)
 		{
 			Log::Suppressor logSupressor;
 			Ram prg, chr;
 			ProfileEx profileEx;
-			Ines::Load( stream, NULL, prg, chr, favoredSystem, profile, profileEx, NULL );
+			Ines::Load( stream, NULL, false, NULL, prg, chr, favoredSystem, profile, profileEx, NULL );
 			SetupBoard( prg, chr, NULL, NULL, profile, profileEx, NULL );
 		}
 
-		void Cartridge::ReadUnif(StdStream stream,FavoredSystem favoredSystem,Profile& profile)
+		void Cartridge::ReadUnif(std::istream& stream,FavoredSystem favoredSystem,Profile& profile)
 		{
 			Log::Suppressor logSupressor;
 			Ram prg, chr;
 			ProfileEx profileEx;
-			Unif::Load( stream, NULL, prg, chr, favoredSystem, profile, profileEx, NULL );
+			Unif::Load( stream, NULL, false, NULL, prg, chr, favoredSystem, profile, profileEx, NULL );
 			SetupBoard( prg, chr, NULL, NULL, profile, profileEx, NULL );
 		}
 

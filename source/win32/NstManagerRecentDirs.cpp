@@ -55,7 +55,7 @@ namespace Nestopia
 
 			Configuration::ConstSection directories( cfg["paths"]["recent"]["directories"] );
 
-			menu[IDM_FILE_RECENT_LOCK].Check( directories["locked"].Yes() );
+			menu[IDM_FILE_RECENT_DIR_LOCK].Check( directories["locked"].Yes() );
 
 			uint count = 0;
 

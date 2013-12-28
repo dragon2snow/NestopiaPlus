@@ -48,7 +48,7 @@ namespace Nestopia
 			ctrl.Add( Resource::String( IDS_LAUNCHER_SECTION_UNIF    ) );
 			ctrl.Add( Resource::String( IDS_LAUNCHER_SECTION_FDS     ) );
 			ctrl.Add( Resource::String( IDS_LAUNCHER_SECTION_NSF     ) );
-			ctrl.Add( Resource::String( IDS_LAUNCHER_SECTION_IPS     ) );
+			ctrl.Add( Resource::String( IDS_LAUNCHER_SECTION_PATCH   ) );
 			ctrl.Add( Resource::String( IDS_LAUNCHER_SECTION_ARCHIVE ) );
 
 			ctrl[selection].Select();
@@ -77,7 +77,7 @@ namespace Nestopia
 				case 3: return List::Files::Entry::UNF;
 				case 4: return List::Files::Entry::FDS;
 				case 5: return List::Files::Entry::NSF;
-				case 6: return List::Files::Entry::IPS;
+				case 6: return List::Files::Entry::PATCH;
 				case 7: return List::Files::Entry::ARCHIVE;
 			}
 

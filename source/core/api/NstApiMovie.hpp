@@ -44,36 +44,109 @@ namespace Nes
 {
 	namespace Api
 	{
+		/**
+		* Movie playing/recording interface.
+		*/
 		class Movie : public Base
 		{
 			struct EventCaller;
 
 		public:
 
+			/**
+			* Interface constructor.
+			*
+			* @param instance emulator instance
+			*/
 			template<typename T>
-			Movie(T& e)
-			: Base(e) {}
+			Movie(T& instance)
+			: Base(instance) {}
 
+			/**
+			* Recording procedure.
+			*/
 			enum How
 			{
+				/**
+				* Overwrite any previous content.
+				*/
 				CLEAN,
+				/**
+				* Keep any previous content.
+				*/
 				APPEND
 			};
 
-			Result Play(std::istream&) throw();
-			Result Record(std::iostream&,How=CLEAN) throw();
-			void   Stop() throw();
-			void   Eject() {}
+			/**
+			* Plays movie.
+			*
+			* @param stream input stream to movie
+			* @return result code
+			*/
+			Result Play(std::istream& stream) throw();
 
+			/**
+			* Records movie.
+			*
+			* @param stream stream to record movie to
+			* @param how CLEAN to erase any previous content, APPEND to keep content, default is CLEAN
+			* @return result code
+			*/
+			Result Record(std::iostream& stream,How how=CLEAN) throw();
+
+			/**
+			* Stops movie.
+			*/
+			void Stop() throw();
+
+			/**
+			* Ejects movie.
+			*
+			* @deprecated
+			*/
+			void Eject() {}
+
+			/**
+			* Checks if a movie is being played.
+			*
+			* @return true if playing
+			*/
 			bool IsPlaying() const throw();
+
+			/**
+			* Checks if a movie is being recorded.
+			*
+			* @return true if recording
+			*/
 			bool IsRecording() const throw();
+
+			/**
+			* Checks if a movie has stopped playing or recording.
+			*
+			* @return true if stopped
+			*/
 			bool IsStopped() const throw();
 
+			/**
+			* Movie event.
+			*/
 			enum Event
 			{
+				/**
+				* Movie has started playing.
+				*/
 				EVENT_PLAYING,
+				/**
+				* Movie has stopped playing.
+				*/
 				EVENT_PLAYING_STOPPED,
+				/**
+				* Movie has started recording.
+				*/
 				EVENT_RECORDING,
+				/**
+				* Movie has stopped recording.
+				*/
 				EVENT_RECORDING_STOPPED
 			};
 
@@ -82,11 +155,28 @@ namespace Nes
 				NUM_EVENT_CALLBACKS = 4
 			};
 
-			typedef void (NST_CALLBACK *EventCallback) (UserData,Event,Result);
+			/**
+			* Movie event callback prototype.
+			*
+			* @param userData optional user data
+			* @param event type of event
+			* @param result result code of event
+			*/
+			typedef void (NST_CALLBACK *EventCallback) (UserData userData,Event event,Result result);
 
+			/**
+			* Movie event callback manager.
+			*
+			* Static object used for adding the user defined callback.
+			*/
 			static EventCaller eventCallback;
 		};
 
+		/**
+		* Movie event callback invoker.
+		*
+		* Used internally by the core.
+		*/
 		struct Movie::EventCaller : Core::UserCallback<Movie::EventCallback>
 		{
 			void operator () (Event event,Result result=RESULT_OK) const

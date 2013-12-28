@@ -48,13 +48,11 @@ namespace Nes
 			ImageDatabase();
 			~ImageDatabase();
 
-			Result Load(StdStream,StdStream=NULL);
-
 			class Entry : public ImplicitBool<Entry>
 			{
 			public:
 
-				void Fill(Profile&) const;
+				void Fill(Profile&,bool=true) const;
 
 			private:
 
@@ -105,6 +103,7 @@ namespace Nes
 
 		private:
 
+			Result Load(std::istream&,std::istream*);
 			void Unload(bool);
 
 			typedef Vector<wchar_t> Strings;
@@ -135,6 +134,16 @@ namespace Nes
 			Strings strings;
 
 		public:
+
+			Result Load(std::istream& stream)
+			{
+				return Load( stream, NULL );
+			}
+
+			Result Load(std::istream& baseStream,std::istream& overrideStream)
+			{
+				return Load( baseStream, &overrideStream );
+			}
 
 			void Unload()
 			{

@@ -23,7 +23,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 
 #include <new>
-#include <iostream>
 #include "NstIoFile.hpp"
 #include "NstIoLog.hpp"
 #include "NstIoStream.hpp"
@@ -34,7 +33,6 @@
 #include "NstWindowUser.hpp"
 #include "NstApplicationInstance.hpp"
 #include "NstManagerEmulator.hpp"
-#include "../core/NstIps.hpp"
 #include "../core/api/NstApiMachine.hpp"
 #include "../core/api/NstApiCartridge.hpp"
 #include "../core/api/NstApiFds.hpp"
@@ -81,7 +79,7 @@ namespace Nestopia
 
 			static void NST_CALLBACK DoFileIO(Nes::User::UserData user,Nes::User::File& context)
 			{
-				NST_COMPILE_ASSERT( Nes::User::NUM_FILE_CALLBACKS == 16 );
+				NST_COMPILE_ASSERT( Nes::User::NUM_FILE_CALLBACKS == 17 );
 				NST_ASSERT( user );
 
 				Emulator& emulator = *static_cast<Emulator*>(user);
@@ -114,6 +112,11 @@ namespace Nestopia
 					case Nes::User::File::SAVE_TURBOFILE:
 
 						emulator.SaveImageData( context );
+						break;
+
+					case Nes::User::File::LOAD_FDS:
+
+						emulator.LoadDiskData( context );
 						break;
 
 					case Nes::User::File::SAVE_FDS:
@@ -404,7 +407,6 @@ namespace Nestopia
 			paths.image.Clear();
 			paths.save.Clear();
 			paths.tape.Clear();
-			fds.original.Destroy();
 			askSave = false;
 		}
 
@@ -656,17 +658,6 @@ namespace Nestopia
 			}
 		}
 
-		bool Emulator::IsDiskImage(const Collection::Buffer& buffer) const
-		{
-			if (buffer.Size() >= 4)
-			{
-				const uint id = FourCC<>::T( buffer.Ptr() );
-				return id == FourCC<'F','D','S',0x1A>::V || id ==  FourCC<0x01,0x2A,0x4E,0x49>::V;
-			}
-
-			return false;
-		}
-
 		void Emulator::LoadFileData(Nes::User::File& context,const bool loadSamples,Path path,wcstring const filename) const
 		{
 			NST_VERIFY( filename && *filename );
@@ -778,8 +769,7 @@ namespace Nestopia
 						}
 						else
 						{
-							const Io::File file( path, Io::File::COLLECT );
-							Io::Stream::In stream( file );
+							Io::Stream::In stream( path );
 							const Nes::Result result = context.SetContent( stream );
 
 							if (NES_FAILED(result))
@@ -824,8 +814,9 @@ namespace Nestopia
 
 		void Emulator::LoadImageData(Nes::User::File& context) const
 		{
-			cstring desc = "image save";
 			Path path( settings.paths.save );
+
+			cstring desc = "image save";
 
 			switch (context.GetAction())
 			{
@@ -859,17 +850,32 @@ namespace Nestopia
 			{
 				try
 				{
-					Io::File file( path, Io::File::COLLECT );
-					Io::Stream::In stream( file );
+					Io::Stream::In stream( path );
+					const Nes::Result result = context.SetContent( stream );
 
-					if (NES_SUCCEEDED(context.SetContent( stream )))
+					if (NES_SUCCEEDED(result))
+					{
 						Io::Log() << "Emulator: loaded " << desc << " data from \"" << path << "\"\r\n";
+					}
 					else
-						Io::Log() << "Emulator: warning, " << desc << " data file \"" << path << "\" is empty!\r\n";
+					{
+						HeapString msg( Resource::String( IDS_CARTRIDGE_LOAD_FAILED ).Invoke( path ) );
+
+						if (const uint id = ResultToString( result ))
+							msg << ' ' << Resource::String( id );
+
+						Window::User::Warn( msg.Ptr() );
+					}
 				}
-				catch (Io::File::Exception)
+				catch (Io::File::Exception id)
 				{
-					Window::User::Warn( IDS_CARTRIDGE_LOAD_FAILED );
+					HeapString msg;
+
+					msg << Resource::String( IDS_CARTRIDGE_LOAD_FAILED ).Invoke( path )
+						<< ' '
+						<< Resource::String( id );
+
+					Window::User::Warn( msg.Ptr() );
 				}
 			}
 			else if (context.GetAction() != Nes::User::File::LOAD_TAPE)
@@ -883,9 +889,10 @@ namespace Nestopia
 
 		void Emulator::SaveImageData(Nes::User::File& context) const
 		{
+			Path path( settings.paths.save );
+
 			cstring desc = "image save";
 			uint ids = IDS_EMU_MOVIE_SAVE_IMAGEDATA;
-			Path path( settings.paths.save );
 
 			switch (context.GetAction())
 			{
@@ -928,17 +935,33 @@ namespace Nestopia
 				{
 					try
 					{
-						Io::File file( path, Io::File::DUMP|Io::File::WRITE_THROUGH );
-						Io::Stream::Out stream( file );
-						context.GetContent( stream );
-					}
-					catch (Io::File::Exception)
-					{
-						Window::User::Warn( IDS_CARTRIDGE_SAVE_FAILED );
-						return;
-					}
+						Io::Stream::Out stream( path );
+						const Nes::Result result = context.GetContent( stream );
 
-					Io::Log() << "Emulator: " << desc << " data was saved to \"" << path << "\"\r\n";
+						if (NES_SUCCEEDED(result))
+						{
+							Io::Log() << "Emulator: " << desc << " data was saved to \"" << path << "\"\r\n";
+						}
+						else
+						{
+							HeapString msg( Resource::String( IDS_CARTRIDGE_SAVE_FAILED ).Invoke( path ) );
+
+							if (const uint id = ResultToString( result ))
+								msg << ' ' << Resource::String( id );
+
+							Window::User::Warn( msg.Ptr() );
+						}
+					}
+					catch (Io::File::Exception id)
+					{
+						HeapString msg;
+
+						msg << Resource::String( IDS_CARTRIDGE_SAVE_FAILED ).Invoke( path )
+							<< ' '
+							<< Resource::String( id );
+
+						Window::User::Warn( msg.Ptr() );
+					}
 				}
 			}
 			else
@@ -947,38 +970,47 @@ namespace Nestopia
 			}
 		}
 
-		void Emulator::LoadDiskData(Collection::Buffer& data)
+		void Emulator::LoadDiskData(Nes::User::File& context) const
 		{
-			NST_ASSERT( !data.Empty() );
-
-			settings.fds.original = data;
-
 			switch (settings.fds.save)
 			{
-				case DISKIMAGE_SAVE_TO_IPS:
+				case DISKIMAGE_SAVE_TO_PATCH:
 
 					if (settings.paths.save.FileExists())
 					{
 						try
 						{
-							Nes::Core::Ips ips;
 							Io::Stream::In stream( settings.paths.save );
+							const Nes::Result result = context.SetPatchContent( stream );
 
-							if (ips.Load( &static_cast<std::istream&>(stream) ) && ips.Patch( data.Ptr(), data.Size() ))
+							if (NES_SUCCEEDED(result))
 							{
-								Io::Log() << "Emulator: patched image with IPS disk data file \"" << settings.paths.save << "\"\r\n";
-								break;
+								Io::Log() << "Emulator: patched disk image with \"" << settings.paths.save << "\"\r\n";
+							}
+							else
+							{
+								HeapString msg( Resource::String( IDS_FDS_PATCHDATALOAD_FAILED ).Invoke( settings.paths.save ) );
+
+								if (const uint id = ResultToString( result ))
+									msg << ' ' << Resource::String( id );
+
+								Window::User::Warn( msg.Ptr() );
 							}
 						}
-						catch (...)
+						catch (Io::File::Exception id)
 						{
-						}
+							HeapString msg;
 
-						Window::User::Warn( IDS_FDS_IPSDATALOAD_FAILED );
+							msg << Resource::String( IDS_FDS_PATCHDATALOAD_FAILED ).Invoke( settings.paths.save )
+								<< ' '
+								<< Resource::String( id );
+
+							Window::User::Warn( msg.Ptr() );
+						}
 					}
 					else if (settings.paths.save.Length())
 					{
-						Io::Log() << "Emulator: IPS disk data file \"" << settings.paths.save << "\" not found\r\n";
+						Io::Log() << "Emulator: patch file \"" << settings.paths.save << "\" not found\r\n";
 					}
 					break;
 
@@ -993,72 +1025,96 @@ namespace Nestopia
 
 		void Emulator::SaveDiskData(Nes::User::File& context) const
 		{
-			if (settings.askSave && !Window::User::Confirm( IDS_EMU_MOVIE_SAVE_FDS ))
-				return;
-
-			switch (settings.fds.save)
+			if (!settings.askSave || Window::User::Confirm( IDS_EMU_MOVIE_SAVE_FDS ))
 			{
-				case DISKIMAGE_SAVE_TO_IMAGE:
+				switch (settings.fds.save)
+				{
+					case DISKIMAGE_SAVE_TO_IMAGE:
 
-					if (settings.paths.image.FileExists())
-					{
-						try
+						if (settings.paths.image.FileExists())
 						{
-							Io::File file( settings.paths.image, Io::File::DUMP|Io::File::WRITE_THROUGH );
-							Io::Stream::Out stream( file );
-							context.GetContent( stream );
+							try
+							{
+								Io::Stream::Out stream( settings.paths.image );
+								const Nes::Result result = context.GetContent( stream );
+
+								if (NES_SUCCEEDED(result))
+								{
+									Io::Log() << "Emulator: saved disk image to \"" << settings.paths.image << "\"\r\n";
+								}
+								else
+								{
+									HeapString msg( Resource::String( IDS_FDS_SAVE_FAILED ) );
+
+									if (const uint id = ResultToString( result ))
+										msg << ' ' << Resource::String( id );
+
+									Window::User::Warn( msg.Ptr() );
+								}
+							}
+							catch (Io::File::Exception id)
+							{
+								HeapString msg;
+
+								msg << Resource::String( IDS_FDS_SAVE_FAILED )
+									<< ' '
+									<< Resource::String( id );
+
+								Window::User::Warn( msg.Ptr() );
+							}
 						}
-						catch (Io::File::Exception)
+						else
 						{
-							Window::User::Warn( IDS_FDS_SAVE_FAILED );
-							break;
+							Io::Log() << "Emulator: warning, disk image file \"" << settings.paths.image << "\" not found, discarding changes!\r\n";
 						}
+						break;
 
-						Io::Log() << "Emulator: updated disk image file \"" << settings.paths.image << "\"\r\n";
-					}
-					else
-					{
-						Io::Log() << "Emulator: warning, disk image file \"" << settings.paths.image << "\" not found, discarding changes!\r\n";
-					}
-					break;
+					case DISKIMAGE_SAVE_TO_PATCH:
 
-				case DISKIMAGE_SAVE_TO_IPS:
-
-					if (settings.paths.save.Length())
-					{
-						const void* data;
-						ulong size;
-						context.GetContent( data, size );
-
-						NST_ASSERT( settings.fds.original.Size() == size );
-
-						try
+						if (settings.paths.save.Length())
 						{
-							Nes::Core::Ips ips;
-
-							if (ips.Create( settings.fds.original.Ptr(), data, size ))
+							try
 							{
 								Io::Stream::Out stream( settings.paths.save );
 
-								if (ips.Save( &static_cast<std::ostream&>(stream) ))
+								const Nes::Result result = context.GetPatchContent
+								(
+									settings.paths.save.Extension() == L"ips" ? Nes::User::File::PATCH_IPS : Nes::User::File::PATCH_UPS,
+									stream
+								);
+
+								if (NES_SUCCEEDED(result))
 								{
-									Io::Log() << "Emulator: saved IPS disk data to \"" << settings.paths.save << "\"\r\n";
-									break;
+									Io::Log() << "Emulator: saved disk image patch to \"" << settings.paths.save << "\"\r\n";
+								}
+								else
+								{
+									HeapString msg( Resource::String( IDS_FDS_PATCHDATASAVE_FAILED ).Invoke( settings.paths.save ) );
+
+									if (const uint id = ResultToString( result ))
+										msg << ' ' << Resource::String( id );
+
+									Window::User::Warn( msg.Ptr() );
 								}
 							}
-						}
-						catch (...)
-						{
-						}
+							catch (Io::File::Exception id)
+							{
+								HeapString msg;
 
-						Window::User::Warn( IDS_FDS_IPSDATASAVE_FAILED );
+								msg << Resource::String( IDS_FDS_PATCHDATASAVE_FAILED ).Invoke( settings.paths.save )
+									<< ' '
+									<< Resource::String( id );
+
+								Window::User::Warn( msg.Ptr() );
+							}
+						}
 						break;
-					}
 
-				case DISKIMAGE_SAVE_DISABLED:
+					case DISKIMAGE_SAVE_DISABLED:
 
-					Io::Log() << "Emulator: changes made to the disk image was not saved..\r\n";
-					break;
+						Io::Log() << "Emulator: disk image changes were not saved\r\n";
+						break;
+				}
 			}
 		}
 
@@ -1104,9 +1160,10 @@ namespace Nestopia
 
 		bool Emulator::Load
 		(
-			Collection::Buffer& image,
+			const Collection::Buffer& imageBuffer,
 			const Path& start,
-			Collection::Buffer& ips,
+			const Collection::Buffer& patchBuffer,
+			const bool bypassPatchValidation,
 			const Context& context,
 			const Nes::Machine::FavoredSystem favoredSystem,
 			const Nes::Machine::AskProfile ask,
@@ -1125,29 +1182,38 @@ namespace Nestopia
 			settings.paths.tape = context.tape;
 			settings.paths.samples = context.samples;
 
-			if (IsDiskImage( image ))
-				LoadDiskData( image );
+			Nes::Result result = Load( imageBuffer, patchBuffer, bypassPatchValidation, favoredSystem, ask, warn );
 
-			Nes::Result result;
-			Io::Stream::In ipsStream(ips);
-
-			for (Io::Stream::In stream(image); ; static_cast<std::istream&>(stream).seekg(0,std::istream::beg))
+			if (result == Nes::RESULT_ERR_MISSING_BIOS && !netplay)
 			{
-				result = Nes::Machine(*this).Load( stream, favoredSystem, ask, ips.Length() ? &static_cast<std::istream&>(ipsStream) : NULL );
-
-				if (result != Nes::RESULT_ERR_MISSING_BIOS || netplay)
-					break;
-
 				if (Window::User::Confirm( IDS_EMU_FDS_SUPPLY_BIOS ))
 				{
 					events( EVENT_DISK_QUERY_BIOS );
 
 					if (Nes::Fds(*this).HasBIOS())
-						continue;
+						result = Load( imageBuffer, patchBuffer, bypassPatchValidation, favoredSystem, ask, warn );
 				}
+				else
+				{
+					settings.Reset();
+					return false;
+				}
+			}
 
-				settings.Reset();
-				return false;
+			if (const uint msg = ResultToString( result ))
+			{
+				if (NES_FAILED(result))
+				{
+					Window::User::Fail( msg );
+				}
+				else if (warn)
+				{
+					Window::User::Warn( msg );
+				}
+				else
+				{
+					Io::Log() << "Emulator: warning, " << Resource::String( msg ) << "\r\n";
+				}
 			}
 
 			if (NES_SUCCEEDED(result))
@@ -1164,24 +1230,51 @@ namespace Nestopia
 					}
 				}
 
-				if (const uint msg = ResultToString( result ))
-				{
-					if (warn)
-						Window::User::Warn( msg );
-					else
-						Io::Log() << "Emulator: warning, " << Resource::String( msg ) << "\r\n";
-				}
-
 				return true;
 			}
 			else
 			{
 				settings.Reset();
-
-				if (const uint msg = ResultToString( result ))
-					Window::User::Fail( msg );
-
 				return false;
+			}
+		}
+
+		Nes::Result Emulator::Load
+		(
+			const Collection::Buffer& imageBuffer,
+			const Collection::Buffer& patchBuffer,
+			const bool bypassPatchValidation,
+			const Nes::Machine::FavoredSystem favoredSystem,
+			const Nes::Machine::AskProfile ask,
+			const bool warn
+		)
+		{
+			Io::Stream::In imageStream( imageBuffer );
+
+			if (patchBuffer.Size())
+			{
+				Io::Stream::In patchStream( patchBuffer );
+				Nes::Machine::Patch patch( patchStream, bypassPatchValidation );
+				const Nes::Result result = Nes::Machine(*this).Load( imageStream, favoredSystem, patch, ask );
+
+				if (NES_FAILED(patch.result))
+				{
+					HeapString msg( Resource::String(IDS_EMU_WARN_PATCHING_FAILED) );
+
+					if (const uint id = ResultToString( patch.result ))
+						msg << ' ' << Resource::String( id );
+
+					if (warn)
+						Window::User::Warn( msg.Ptr() );
+					else
+						Io::Log() << "Emulator: warning, " << msg << "\r\n";
+				}
+
+				return result;
+			}
+			else
+			{
+				return Nes::Machine(*this).Load( imageStream, favoredSystem, ask );
 			}
 		}
 
@@ -1381,11 +1474,10 @@ namespace Nestopia
 				{
 					switch (result)
 					{
-						case Nes::RESULT_WARN_BAD_DUMP:              return IDS_EMU_WARN_BAD_DUMP;
-						case Nes::RESULT_WARN_BAD_PROM:              return IDS_EMU_WARN_BAD_PROM;
-						case Nes::RESULT_WARN_BAD_CROM:              return IDS_EMU_WARN_BAD_CROM;
-						case Nes::RESULT_WARN_BAD_FILE_HEADER:       return IDS_EMU_WARN_BAD_INES;
-						case Nes::RESULT_WARN_INCORRECT_FILE_HEADER: return IDS_EMU_WARN_INCORRECT_INES;
+						case Nes::RESULT_WARN_BAD_DUMP:        return IDS_EMU_WARN_BAD_DUMP;
+						case Nes::RESULT_WARN_BAD_PROM:        return IDS_EMU_WARN_BAD_PROM;
+						case Nes::RESULT_WARN_BAD_CROM:        return IDS_EMU_WARN_BAD_CROM;
+						case Nes::RESULT_WARN_BAD_FILE_HEADER: return IDS_EMU_WARN_BAD_INES;
 					}
 
 					NST_DEBUG_MSG("warning result not handled");
@@ -1406,8 +1498,8 @@ namespace Nestopia
 					case Nes::RESULT_ERR_INVALID_FILE:             return IDS_FILE_ERR_INVALID;
 					case Nes::RESULT_ERR_OUT_OF_MEMORY:            return IDS_ERR_OUT_OF_MEMORY;
 					case Nes::RESULT_ERR_GENERIC:                  return IDS_ERR_GENERIC;
-					case Nes::RESULT_ERR_NOT_READY:
-					case Nes::RESULT_ERR_INVALID_CRC:              return 0;
+					case Nes::RESULT_ERR_INVALID_CRC:              return IDS_ERR_INVALID_CHECKSUM;
+					case Nes::RESULT_ERR_NOT_READY:                return 0;
 				}
 
 				NST_DEBUG_MSG("error result not handled");

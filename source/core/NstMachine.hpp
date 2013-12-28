@@ -25,6 +25,7 @@
 #ifndef NST_MACHINE_H
 #define NST_MACHINE_H
 
+#include <iosfwd>
 #include "NstCpu.hpp"
 #include "NstPpu.hpp"
 #include "NstTracker.hpp"
@@ -80,7 +81,17 @@ namespace Nes
 				COLORMODE_CUSTOM
 			};
 
-			Result Load(StdStream,FavoredSystem,bool,StdStream,uint);
+			Result Load
+			(
+				std::istream&,
+				FavoredSystem,
+				bool,
+				std::istream*,
+				bool,
+				Result*,
+				uint
+			);
+
 			Result Unload();
 			Result PowerOff(Result=RESULT_OK);
 			void   Reset(bool);

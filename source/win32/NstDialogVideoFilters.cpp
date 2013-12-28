@@ -166,15 +166,22 @@ namespace Nestopia
 					if (maxScreenScale >= 2)
 						type = TYPE_HQX;
 				}
+				else if (string == L"2xsai")
+				{
+					if (maxScreenScale >= 2)
+						type = TYPE_2XSAI;
+				}
 			}
 
 			if (canDoBilinear)
 			{
 				for (uint i=0; i < NUM_TYPES; ++i)
 				{
+					NST_COMPILE_ASSERT(NUM_TYPES == 5);
+
 					static cstring const types[] =
 					{
-						"standard", "ntsc", "scalex", "hqx"
+						"standard", "ntsc", "scalex", "hqx", "2xsai"
 					};
 
 					if (filters[types[i]]["bilinear"].Yes())
@@ -268,9 +275,11 @@ namespace Nestopia
 		{
 			Configuration::Section filters( cfg["video"]["filters"] );
 
+			NST_COMPILE_ASSERT( NUM_TYPES == 5 );
+
 			static cstring const types[] =
 			{
-				"standard", "ntsc", "scalex", "hqx"
+				"standard", "ntsc", "scalex", "hqx", "2xsai"
 			};
 
 			filters["type"].Str() = types[type];
@@ -429,6 +438,9 @@ namespace Nestopia
 
 						dialog.RadioButton(IDC_VIDEO_FILTER_HQX_SCALING_4X).Disable();
 					}
+					break;
+
+				case IDD_VIDEO_FILTER_2XSAI:
 					break;
 			}
 
@@ -688,6 +700,9 @@ namespace Nestopia
 						dialog.RadioButton(IDC_VIDEO_FILTER_HQX_SCALING_2X).Uncheck();
 						dialog.RadioButton(IDC_VIDEO_FILTER_HQX_SCALING_3X).Uncheck();
 						dialog.RadioButton(IDC_VIDEO_FILTER_HQX_SCALING_4X).Uncheck();
+						break;
+
+					case IDD_VIDEO_FILTER_2XSAI:
 						break;
 				}
 

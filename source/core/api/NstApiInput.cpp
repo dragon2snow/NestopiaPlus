@@ -396,10 +396,19 @@ namespace Nes
 			return ConnectController( port, type );
 		}
 
-		void Input::AutoSelectControllers() throw()
+		Result Input::AutoSelectControllers() throw()
 		{
+			Result result = RESULT_NOP;
+
 			for (uint i=0; i < NUM_PORTS; ++i)
-				AutoSelectController( i );
+			{
+				const Result tmp = AutoSelectController( i );
+
+				if (result > tmp)
+					result = tmp;
+			}
+
+			return result;
 		}
 
 		Result Input::AutoSelectAdapter() throw()

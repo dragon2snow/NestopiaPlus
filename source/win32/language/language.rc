@@ -28,7 +28,7 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 
 VS_VERSION_INFO VERSIONINFO
  FILEVERSION 0,0,0,1
- PRODUCTVERSION 0,1,3,8
+ PRODUCTVERSION 0,1,3,9
  FILEFLAGSMASK 0x17L
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -49,7 +49,7 @@ BEGIN
             VALUE "LegalCopyright", "Copyright © 2003-2008 Martin Freij"
             VALUE "OriginalFilename", "English.nlg"
             VALUE "ProductName", "Nestopia Language Plugin - English (US)"
-            VALUE "ProductVersion", "1.38"
+            VALUE "ProductVersion", "1.39"
         END
     END
     BLOCK "VarFileInfo"
@@ -274,7 +274,7 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 214
         TOPMARGIN, 7
-        BOTTOMMARGIN, 175
+        BOTTOMMARGIN, 194
     END
 
     IDD_COMPRESSED_FILE, DIALOG
@@ -404,6 +404,14 @@ BEGIN
         TOPMARGIN, 7
         BOTTOMMARGIN, 148
     END
+
+    IDD_VIDEO_FILTER_2XSAI, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 170
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 55
+    END
 END
 #endif    // APSTUDIO_INVOKED
 
@@ -453,7 +461,7 @@ BEGIN
     CONTROL         "",IDC_TIMING_FRAME_SKIPS,"msctls_trackbar32",TBS_BOTH | TBS_NOTICKS | WS_TABSTOP,73,41,71,13,WS_EX_STATICEDGE
     CTEXT           "0",IDC_TIMING_FRAME_SKIPS_NUM,149,41,19,13,SS_SUNKEN | NOT WS_GROUP
     CONTROL         "VSync",IDC_TIMING_VSYNC,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,177,43,31,10
-    CONTROL         "Use high-precision Timer",IDC_TIMING_PFC,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,62,90,10
+    CONTROL         "Use high-precision timer",IDC_TIMING_PFC,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,62,90,10
     CONTROL         "Enable triple buffering",IDC_TIMING_TRIPLE_BUFFERING,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,115,62,86,10
     GROUPBOX        "Speed",IDC_STATIC,7,81,208,47
@@ -512,23 +520,23 @@ BEGIN
     CONTROL         "",IDC_SOUND_LATENCY,"msctls_trackbar32",TBS_AUTOTICKS | TBS_TOP | WS_GROUP | WS_TABSTOP,14,173,151,22
     GROUPBOX        "Channels",IDC_STATIC,178,7,208,193
     LTEXT           "Master",IDC_SOUND_MASTER_TEXT,189,18,23,8
-    CONTROL         "",IDC_SOUND_MASTER_SLIDER,"msctls_trackbar32",TBS_VERT | TBS_BOTH | TBS_NOTICKS | WS_TABSTOP,191,25,17,58
+    CONTROL         "",IDC_SOUND_MASTER_SLIDER,"msctls_trackbar32",TBS_VERT | TBS_BOTH | TBS_NOTICKS | WS_TABSTOP,191,27,17,58
     LTEXT           "Square 1",IDC_SOUND_SQUARE1_TEXT,218,18,30,8
-    CONTROL         "",IDC_SOUND_SQUARE1_SLIDER,"msctls_trackbar32",TBS_VERT | TBS_BOTH | TBS_NOTICKS | WS_TABSTOP,225,25,17,58
+    CONTROL         "",IDC_SOUND_SQUARE1_SLIDER,"msctls_trackbar32",TBS_VERT | TBS_BOTH | TBS_NOTICKS | WS_TABSTOP,225,27,17,58
     LTEXT           "Square 2",IDC_SOUND_SQUARE2_TEXT,251,18,30,8
-    CONTROL         "",IDC_SOUND_SQUARE2_SLIDER,"msctls_trackbar32",TBS_VERT | TBS_BOTH | TBS_NOTICKS | WS_TABSTOP,257,25,17,58
+    CONTROL         "",IDC_SOUND_SQUARE2_SLIDER,"msctls_trackbar32",TBS_VERT | TBS_BOTH | TBS_NOTICKS | WS_TABSTOP,257,27,17,58
     LTEXT           "Triangle",IDC_SOUND_TRIANGLE_TEXT,286,18,26,8
-    CONTROL         "",IDC_SOUND_TRIANGLE_SLIDER,"msctls_trackbar32",TBS_VERT | TBS_BOTH | TBS_NOTICKS | WS_TABSTOP,291,25,17,58
+    CONTROL         "",IDC_SOUND_TRIANGLE_SLIDER,"msctls_trackbar32",TBS_VERT | TBS_BOTH | TBS_NOTICKS | WS_TABSTOP,291,27,17,58
     LTEXT           "Noise",IDC_SOUND_NOISE_TEXT,323,18,18,8
-    CONTROL         "",IDC_SOUND_NOISE_SLIDER,"msctls_trackbar32",TBS_VERT | TBS_BOTH | TBS_NOTICKS | WS_TABSTOP,323,25,17,58
+    CONTROL         "",IDC_SOUND_NOISE_SLIDER,"msctls_trackbar32",TBS_VERT | TBS_BOTH | TBS_NOTICKS | WS_TABSTOP,323,27,17,58
     LTEXT           "DPCM",IDC_SOUND_DPCM_TEXT,355,18,20,8
-    CONTROL         "",IDC_SOUND_DPCM_SLIDER,"msctls_trackbar32",TBS_VERT | TBS_BOTH | TBS_NOTICKS | WS_TABSTOP,357,25,17,58
-    CTEXT           "100",IDC_SOUND_MASTER_VALUE,190,83,21,11,0,WS_EX_CLIENTEDGE
-    CTEXT           "100",IDC_SOUND_SQUARE1_VALUE,223,83,21,11,0,WS_EX_CLIENTEDGE
-    CTEXT           "100",IDC_SOUND_SQUARE2_VALUE,255,83,21,11,0,WS_EX_CLIENTEDGE
-    CTEXT           "100",IDC_SOUND_TRIANGLE_VALUE,289,83,21,11,0,WS_EX_CLIENTEDGE
-    CTEXT           "100",IDC_SOUND_NOISE_VALUE,322,83,21,11,0,WS_EX_CLIENTEDGE
-    CTEXT           "100",IDC_SOUND_DPCM_VALUE,354,83,21,11,0,WS_EX_CLIENTEDGE
+    CONTROL         "",IDC_SOUND_DPCM_SLIDER,"msctls_trackbar32",TBS_VERT | TBS_BOTH | TBS_NOTICKS | WS_TABSTOP,357,27,17,58
+    CTEXT           "100",IDC_SOUND_MASTER_VALUE,190,85,21,11,0,WS_EX_CLIENTEDGE
+    CTEXT           "100",IDC_SOUND_SQUARE1_VALUE,223,85,21,11,0,WS_EX_CLIENTEDGE
+    CTEXT           "100",IDC_SOUND_SQUARE2_VALUE,255,85,21,11,0,WS_EX_CLIENTEDGE
+    CTEXT           "100",IDC_SOUND_TRIANGLE_VALUE,289,85,21,11,0,WS_EX_CLIENTEDGE
+    CTEXT           "100",IDC_SOUND_NOISE_VALUE,322,85,21,11,0,WS_EX_CLIENTEDGE
+    CTEXT           "100",IDC_SOUND_DPCM_VALUE,354,85,21,11,0,WS_EX_CLIENTEDGE
     LTEXT           "FDS",IDC_SOUND_FDS_TEXT,193,100,14,8
     CONTROL         "",IDC_SOUND_FDS_SLIDER,"msctls_trackbar32",TBS_VERT | TBS_BOTH | TBS_NOTICKS | WS_TABSTOP,191,108,17,58
     LTEXT           "MMC5",IDC_SOUND_MMC5_TEXT,222,100,20,8
@@ -648,10 +656,12 @@ BEGIN
     GROUPBOX        "Sound Samples",IDC_STATIC,6,143,294,35,BS_LEFT | WS_GROUP
     EDITTEXT        IDC_PATHS_SAMPLES,13,154,235,13,ES_AUTOHSCROLL | WS_GROUP
     PUSHBUTTON      "Browse..",IDC_PATHS_SAMPLES_BROWSE,256,154,37,13,WS_GROUP
-    GROUPBOX        "IPS Files",IDC_STATIC,6,184,294,41,BS_LEFT | WS_GROUP
-    EDITTEXT        IDC_PATHS_IPS,13,197,235,13,ES_AUTOHSCROLL | WS_GROUP
-    PUSHBUTTON      "Browse..",IDC_PATHS_IPS_BROWSE,256,197,37,13,WS_GROUP
-    CONTROL         "Auto patch",IDC_PATHS_IPS_AUTO_APPLY,"Button",BS_AUTOCHECKBOX | WS_GROUP | WS_TABSTOP,13,212,51,10
+    GROUPBOX        "Patches",IDC_STATIC,6,184,294,41,BS_LEFT | WS_GROUP
+    EDITTEXT        IDC_PATHS_PATCHES,13,197,235,13,ES_AUTOHSCROLL | WS_GROUP
+    PUSHBUTTON      "Browse..",IDC_PATHS_PATCHES_BROWSE,256,197,37,13,WS_GROUP
+    CONTROL         "Auto patch",IDC_PATHS_PATCHES_AUTO_APPLY,"Button",BS_AUTOCHECKBOX | WS_GROUP | WS_TABSTOP,13,212,51,10
+    CONTROL         "Bypass CRC validation",IDC_PATHS_PATCHES_BYPASS_VALIDATION,
+                    "Button",BS_AUTOCHECKBOX | WS_GROUP | WS_TABSTOP,67,212,87,10
     GROUPBOX        "Screenshots",IDC_STATIC,6,230,294,41,BS_LEFT | WS_GROUP
     EDITTEXT        IDC_PATHS_SCREENSHOTS,13,244,235,13,ES_AUTOHSCROLL | WS_GROUP
     PUSHBUTTON      "Browse..",IDC_PATHS_SCREENSHOTS_BROWSE,256,244,37,13,WS_GROUP
@@ -728,7 +738,7 @@ BEGIN
     CONTROL         "UNF files",IDC_LAUNCHER_PATHS_UNF,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,218,65,44,11
     CONTROL         "FDS files",IDC_LAUNCHER_PATHS_FDS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,218,82,44,11
     CONTROL         "NSF files",IDC_LAUNCHER_PATHS_NSF,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,218,99,44,11
-    CONTROL         "IPS files",IDC_LAUNCHER_PATHS_IPS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,218,116,44,11
+    CONTROL         "Patch files",IDC_LAUNCHER_PATHS_PATCH,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,218,116,44,11
     CONTROL         "Archive files",IDC_LAUNCHER_PATHS_ARCHIVE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,218,133,50,11
     GROUPBOX        "",IDC_STATIC,7,161,145,36
     CONTROL         "Check all files regardless of extension",IDC_LAUNCHER_PATHS_ALLFILES,
@@ -986,7 +996,7 @@ BEGIN
     PUSHBUTTON      "Clear",IDC_FDS_CLEAR,274,20,35,14
     GROUPBOX        "File Save Options",IDC_STATIC,7,51,83,51
     CONTROL         "Disable",IDC_FDS_SAVEDISABLE,"Button",BS_AUTORADIOBUTTON | WS_GROUP | WS_TABSTOP,14,63,38,9
-    CONTROL         "Save to IPS",IDC_FDS_SAVETOIPS,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,14,75,53,9
+    CONTROL         "Save to UPS",IDC_FDS_SAVETOPATCH,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,14,75,53,9
     CONTROL         "Overwrite image",IDC_FDS_SAVETOIMAGE,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,14,87,65,9
     GROUPBOX        "Disk Access LED",IDC_STATIC,99,51,217,51
     CONTROL         "Don't show",IDC_FDS_LED_DISABLE,"Button",BS_AUTORADIOBUTTON | WS_GROUP | WS_TABSTOP,108,66,48,9
@@ -997,13 +1007,13 @@ BEGIN
     PUSHBUTTON      "Default",IDC_FDS_DEFAULT,164,105,46,14,WS_GROUP
 END
 
-IDD_DIPSWITCHES DIALOGEX 0, 0, 221, 182
+IDD_DIPSWITCHES DIALOGEX 0, 0, 221, 201
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "DIP Switches"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    DEFPUSHBUTTON   "OK",IDOK,106,161,50,14,WS_GROUP
-    PUSHBUTTON      "Cancel",IDCANCEL,164,161,50,14
+    DEFPUSHBUTTON   "OK",IDOK,106,180,50,14,WS_GROUP
+    PUSHBUTTON      "Cancel",IDCANCEL,164,180,50,14
     GROUPBOX        "",IDC_DIPSWITCHES_GROUP,7,7,207,148
     LTEXT           "Unknown",IDC_DIPSWITCHES_1_TEXT,14,20,30,8
     COMBOBOX        IDC_DIPSWITCHES_1,94,18,113,47,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
@@ -1021,6 +1031,7 @@ BEGIN
     COMBOBOX        IDC_DIPSWITCHES_7,94,119,113,47,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     LTEXT           "Unknown",IDC_DIPSWITCHES_8_TEXT,14,139,30,8
     COMBOBOX        IDC_DIPSWITCHES_8,94,136,113,47,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "Don't show again",IDC_DIPSWITCHES_DONTSHOWAGAIN,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,164,71,10
 END
 
 IDD_COMPRESSED_FILE DIALOGEX 0, 0, 251, 155
@@ -1089,7 +1100,7 @@ BEGIN
     GROUPBOX        "System",IDC_STATIC,130,79,192,34
     CONTROL         "Home console",IDC_INES_HEADER_SYSTEM_HOME,"Button",BS_AUTORADIOBUTTON | WS_GROUP | WS_TABSTOP,137,94,60,10
     CONTROL         "VS System",IDC_INES_HEADER_SYSTEM_VS,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,201,94,49,10
-    CONTROL         "Playchoice 10",IDC_INES_HEADER_SYSTEM_PC10,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,255,94,59,10
+    CONTROL         "PlayChoice-10",IDC_INES_HEADER_SYSTEM_PC10,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,255,94,59,10
     GROUPBOX        "VS System",IDC_STATIC,130,118,192,53
     LTEXT           "PPU:",IDC_INES_HEADER_VS_PPU_TEXT,145,134,16,8
     COMBOBOX        IDC_INES_HEADER_VS_PPU_LIST,175,132,101,48,CBS_DROPDOWNLIST | WS_VSCROLL | WS_GROUP | WS_TABSTOP
@@ -1338,6 +1349,19 @@ BEGIN
     PUSHBUTTON      "Abort",IDABORT,194,134,50,14
 END
 
+IDD_VIDEO_FILTER_2XSAI DIALOGEX 0, 0, 177, 62
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Filter Options"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,64,41,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,120,41,50,14
+    GROUPBOX        "",-1,7,7,163,27
+    CONTROL         "Bilinear interpolation",IDC_VIDEO_FILTER_BILINEAR,
+                    "Button",BS_AUTOCHECKBOX | WS_GROUP | WS_TABSTOP,14,18,81,9
+    PUSHBUTTON      "Default",IDC_VIDEO_FILTER_DEFAULT,7,41,50,14,WS_GROUP
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -1385,7 +1409,7 @@ BEGIN
     POPUP "&File"
     BEGIN
         MENUITEM "&Open...",                    IDM_FILE_OPEN
-        MENUITEM "&Close...",                   IDM_FILE_CLOSE
+        MENUITEM "&Close",                      IDM_FILE_CLOSE
         MENUITEM SEPARATOR
         MENUITEM "&Load State...",              IDM_FILE_LOAD_NST
         MENUITEM "&Save State...",              IDM_FILE_SAVE_NST
@@ -1496,7 +1520,7 @@ BEGIN
                 MENUITEM "&Mouse",                      IDM_MACHINE_INPUT_PORT1_MOUSE
                 MENUITEM "Power &Glove",                IDM_MACHINE_INPUT_PORT1_POWERGLOVE
                 MENUITEM "Power &Pad",                  IDM_MACHINE_INPUT_PORT1_POWERPAD
-                MENUITEM "&R.O.B",                      IDM_MACHINE_INPUT_PORT1_ROB
+                MENUITEM "&R.O.B.",                     IDM_MACHINE_INPUT_PORT1_ROB
                 MENUITEM "&Zapper",                     IDM_MACHINE_INPUT_PORT1_ZAPPER
             END
             POPUP "Port &2"
@@ -1510,7 +1534,7 @@ BEGIN
                 MENUITEM "&Mouse",                      IDM_MACHINE_INPUT_PORT2_MOUSE
                 MENUITEM "Power &Glove",                IDM_MACHINE_INPUT_PORT2_POWERGLOVE
                 MENUITEM "Power &Pad",                  IDM_MACHINE_INPUT_PORT2_POWERPAD
-                MENUITEM "&R.O.B",                      IDM_MACHINE_INPUT_PORT2_ROB
+                MENUITEM "&R.O.B.",                     IDM_MACHINE_INPUT_PORT2_ROB
                 MENUITEM "&Zapper",                     IDM_MACHINE_INPUT_PORT2_ZAPPER
             END
             POPUP "Port &3"
@@ -1620,7 +1644,7 @@ BEGIN
         POPUP "&Options"
         BEGIN
             MENUITEM "No &Sprite Limit",            IDM_MACHINE_OPTIONS_UNLIMITEDSPRITES
-            MENUITEM "&DIP Switches On Load",       IDM_MACHINE_OPTIONS_DIPSWITCHESONLOAD
+            MENUITEM "&DIP Switches on Load",       IDM_MACHINE_OPTIONS_DIPSWITCHESONLOAD
         END
         MENUITEM SEPARATOR
         MENUITEM "P&ause",                      IDM_MACHINE_PAUSE
@@ -1727,7 +1751,7 @@ END
 
 STRINGTABLE 
 BEGIN
-    IDS_TEXT_OK             "Ok"
+    IDS_TEXT_OK             "OK"
     IDS_TEXT_SYSTEM         "System"
     IDS_TEXT_YES            "Yes"
     IDS_TEXT_NO             "No"
@@ -1772,6 +1796,31 @@ BEGIN
     IDS_MENU_NETPLAY_DISCONNECT "&Disconnect"
     IDS_TEXT_DEFAULT        "Default"
     IDS_TEXT_ALTNAME        "Alt. Name"
+    IDS_FILE_ERR_READONLY   "File is read-only!"
+    IDS_VIDEO_FILTER_2XSAI  "2xSaI"
+    IDS_TEXT_SOFTPATCHED    "Soft-patched"
+    IDS_EMU_WARN_PATCH_LOAD_ERR "Couldn't load patch file ""%""!"
+END
+
+STRINGTABLE 
+BEGIN
+    IDS_EMU_WARN_BAD_PROM   "Possibly corrupt PRG-ROM! Emulation of this image may not work properly!"
+    IDS_EMU_WARN_BAD_CROM   "Possibly corrupt CHR-ROM! Emulation of this Image may not work properly!"
+    IDS_EMU_WARN_ENCRYPTED  "ROM image is encrypted and will not run properly!"
+    IDS_EMU_CRC_MISSMATCH_CONTINUE 
+                            "The file may not work on this particular image, continue?"
+    IDS_EMU_CRC_MISSMATCH   "CRC mismatch"
+    IDS_EMU_FDS_NO_FILE     "Changes to this FDS image won't be saved unless you select patch saving in the options dialog."
+    IDS_EMU_FDS_SUPPLY_BIOS "Can't proceed without a valid FDS BIOS-ROM file! Set one up now?"
+    IDS_EMU_SAMPLES_UNAVAILABLE 
+                            "Sample package file not found. Some game sounds will be missing."
+    IDS_TEXT_ABORT          "Abort"
+    IDS_EMU_MOVIE_SAVE_IMAGEDATA "Do you want to update the save data file?"
+    IDS_EMU_MOVIE_SAVE_FDS  "Do you want to update the FDS/patch file?"
+    IDS_EMU_MOVIE_SAVE_TURBOFILE "Do you want to update the turbo file?"
+    IDS_EMU_MOVIE_SAVE_TAPE "Do you want to update the tape file?"
+    IDS_EMU_MOVIE_SAVE_EEPROM "Do you want to update the EEPROM file?"
+    IDS_ERR_INVALID_CHECKSUM "Invalid checksum!"
 END
 
 STRINGTABLE 
@@ -1797,7 +1846,7 @@ END
 STRINGTABLE 
 BEGIN
     IDS_TEXT_NES_NTSC       "NES-NTSC"
-    IDS_TEXT_PLAYCHOICE10   "Playchoice-10"
+    IDS_TEXT_PLAYCHOICE10   "PlayChoice-10"
     IDS_TEXT_ANY            "Any"
     IDS_FILE_ERR_READ       "Couldn't read from file!"
     IDS_FILE_ERR_WRITE      "Couldn't write to file!"
@@ -1833,29 +1882,6 @@ BEGIN
     IDS_TEXT_LOADADDRESS    "Load Address"
     IDS_TEXT_INITADDRESS    "Init Address"
     IDS_TEXT_PLAYADDRESS    "Play Address"
-END
-
-STRINGTABLE 
-BEGIN
-    IDS_EMU_WARN_BAD_PROM   "Possibly corrupt PRG-ROM! Emulation of this image may not work properly!"
-    IDS_EMU_WARN_BAD_CROM   "Possibly corrupt CHR-ROM! Emulation of this Image may not work properly!"
-    IDS_EMU_WARN_INCORRECT_INES 
-                            "One or more file header attributes may have incorrect data! They've been internally adjusted for now."
-    IDS_EMU_WARN_ENCRYPTED  "ROM image is encrypted and will not run properly!"
-    IDS_EMU_CRC_MISSMATCH_CONTINUE 
-                            "The file may not work on this particular image, continue?"
-    IDS_EMU_CRC_MISSMATCH   "CRC mismatch"
-    IDS_EMU_FDS_NO_FILE     "Changes to this FDS image won't be saved unless you select IPS saving in the options dialog."
-    IDS_EMU_FDS_SUPPLY_BIOS "Can't proceed without a valid FDS BIOS-ROM file! Set one up now?"
-    IDS_EMU_SAMPLES_UNAVAILABLE 
-                            "Sample package file not found. Some game sounds will be missing."
-    IDS_TEXT_ABORT          "Abort"
-    IDS_EMU_MOVIE_SAVE_IMAGEDATA "Do you want to update the save data file?"
-    IDS_EMU_MOVIE_SAVE_FDS  "Do you want to update the FDS/IPS file?"
-    IDS_EMU_MOVIE_SAVE_TURBOFILE "Do you want to update the turbo file?"
-    IDS_EMU_MOVIE_SAVE_TAPE "Do you want to update the tape file?"
-    IDS_EMU_MOVIE_SAVE_EEPROM "Do you want to update the EEPROM file?"
-    IDS_EMU_TITLE_CHOOSE_MAPPER "Unknown board!"
 END
 
 STRINGTABLE 
@@ -1902,8 +1928,7 @@ STRINGTABLE
 BEGIN
     IDS_FILE_ERR_WRITE_PROTECTED "File is write-protected!"
     IDS_EMU_ERR_GENERIC     "Generic emulation error!"
-    IDS_EMU_ERR_UNSUPPORTED_MAPPER 
-                            "Unsupported mapper, or insufficient file information for emulating the game correctly!"
+    IDS_EMU_ERR_UNSUPPORTED_MAPPER "Unsupported or malformed mapper!"
     IDS_EMU_ERR_UNSUPPORTED_VSSYSTEM "VS Dual System emulation not supported!"
     IDS_EMU_ERR_BIOS_FILE_MISSING 
                             "Can't proceed without a valid FDS BIOS-ROM file!"
@@ -1916,7 +1941,7 @@ BEGIN
     IDS_EMU_ERR_LOAD_SAMPLES 
                             "Sample package file loading failed. Some game sounds will be missing."
     IDS_EMU_ERR_WRONG_MODE  "You must change the region mode before continuing!"
-    IDS_EMU_WARN_IPS_FAILED "IPS patching on image failed!"
+    IDS_EMU_WARN_PATCHING_FAILED "Image couldn't be patched!"
     IDS_EMU_WARN_BAD_INES   "File header has unknown/garbage data!"
     IDS_EMU_WARN_BAD_DUMP   "Possibly bad dump! Emulation of this image may not work properly!"
 END
@@ -1928,10 +1953,9 @@ BEGIN
     IDS_MENU_POWER_ON       "&Power on"
     IDS_MENU_POWER_OFF      "&Power off"
     IDS_MENU_X              "&%X"
-    IDS_FDS_IPSDATALOAD_FAILED 
-                            "Couldn't patch the FDS image with the save data!"
-    IDS_FDS_IPSDATASAVE_FAILED "Couldn't save the FDS data to the IPS file!"
-    IDS_FDS_SAVE_FAILED     "Couldn't update the FDS image file! "
+    IDS_FDS_PATCHDATALOAD_FAILED "Couldn't patch the disk image from ""%""!"
+    IDS_FDS_PATCHDATASAVE_FAILED "Couldn't save disk image patch to ""%""!"
+    IDS_FDS_SAVE_FAILED     "Couldn't write to the disk image file! "
     IDS_FDS_DISK_SIDE_A     "Disk % Side A"
     IDS_FDS_DISK_SIDE_B     "Disk % Side B"
     IDS_FDS_ERR_INVALIDBIOS "Invalid FDS BIOS file!"
@@ -2016,7 +2040,7 @@ BEGIN
     IDS_FILES_STATE         "Nestopia State Files"
     IDS_FILES_STATE_SLOTS   "Nestopia State Slot Files"
     IDS_FILES_MOVIE         "Nestopia Movie Files"
-    IDS_FILES_IPS           "IPS files"
+    IDS_FILES_PATCHES       "Patches"
     IDS_FILES_PALETTE       "NES Palette Files"
     IDS_FILES_WAVE          "WAVE Files"
     IDS_FILES_AVI           "AVI Files"
@@ -2051,7 +2075,7 @@ STRINGTABLE
 BEGIN
     IDS_LAUNCHER_SECTION_FDS "FDS Files"
     IDS_LAUNCHER_SECTION_NSF "NSF Files"
-    IDS_LAUNCHER_SECTION_IPS "IPS Files"
+    IDS_LAUNCHER_SECTION_PATCH "Patch Files"
     IDS_TEXT_NES_PAL_B      "PAL-B"
     IDS_LAUNCHER_SECTION_ARCHIVE "Archive Files"
     IDS_LOAD_APPLY_CURRENT_GAME 
@@ -2107,8 +2131,8 @@ BEGIN
     IDS_DIALOG_PREFERENCES_REGISTRYUPDATED_TITLE "Registry Updated"
     IDS_MACHINE_POWER_OFF_TITLE "Power off Machine"
     IDS_MACHINE_RESET_TITLE "Reset Machine"
-    IDS_CARTRIDGE_LOAD_FAILED "Couldn't load the image data!"
-    IDS_CARTRIDGE_SAVE_FAILED "Couldn't save the image data!"
+    IDS_CARTRIDGE_LOAD_FAILED "Couldn't load image data from ""%""!"
+    IDS_CARTRIDGE_SAVE_FAILED "Couldn't save image data to ""%""!"
     IDS_PRIORITY_NORMAL     "Normal"
     IDS_PRIORITY_ABOVE_NORMAL "Above Normal"
     IDS_PRIORITY_HIGH       "High"

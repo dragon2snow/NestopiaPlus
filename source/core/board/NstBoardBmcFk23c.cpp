@@ -330,7 +330,7 @@ namespace Nes
 					{
 						if (exRegs[3] & 0x2U)
 						{
-							const uint base = (exRegs[2] & 0x7FU) << 3;							
+							const uint base = (exRegs[2] & 0x7FU) << 3;
 
 							chr.SwapBank<SIZE_1K,0x0400>( base | exRegs[6] );
 							chr.SwapBank<SIZE_1K,0x0C00>( base | exRegs[7] );

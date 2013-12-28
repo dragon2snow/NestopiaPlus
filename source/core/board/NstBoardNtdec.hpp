@@ -29,6 +29,8 @@
 #pragma once
 #endif
 
+#include "NstBoardCxRom.hpp"
+
 namespace Nes
 {
 	namespace Core
@@ -37,6 +39,8 @@ namespace Nes
 		{
 			namespace Ntdec
 			{
+				typedef CnRom N715062;
+
 				class Asder : public Board
 				{
 				public:

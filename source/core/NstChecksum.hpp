@@ -41,11 +41,11 @@ namespace Nes
 		public:
 
 			Checksum();
-			Checksum(const void*,dword);
+			Checksum(const byte*,dword);
 
 			void Clear();
-			void Compute(const void*,dword);
-			void Recompute(const void*,dword);
+			void Compute(const byte*,dword);
+			void Recompute(const byte*,dword);
 
 			bool operator == (const Checksum&) const;
 			bool operator ! () const;

@@ -603,6 +603,15 @@ namespace Nestopia
 						}
 					}
 					break;
+
+				case Filter::TYPE_2XSAI:
+
+					if (settings.adapter->maxScreenSize.x >= NES_WIDTH*2 && settings.adapter->maxScreenSize.y >= NES_HEIGHT*2)
+					{
+						scale = 2;
+						state.filter = State::FILTER_2XSAI;
+					}
+					break;
 			}
 
 			state.width = state.width * scale;
@@ -879,7 +888,8 @@ namespace Nestopia
 					IDD_VIDEO_FILTER_STD,
 					IDD_VIDEO_FILTER_NTSC,
 					IDD_VIDEO_FILTER_SCALEX,
-					IDD_VIDEO_FILTER_HQX
+					IDD_VIDEO_FILTER_HQX,
+					IDD_VIDEO_FILTER_2XSAI
 				};
 
 				VideoFilters
@@ -1177,6 +1187,7 @@ namespace Nestopia
 
 				comboBox.Add( Resource::String(IDS_VIDEO_FILTER_SCALEX) ).Data() = Filter::TYPE_SCALEX;
 				comboBox.Add( Resource::String(IDS_VIDEO_FILTER_HQX) ).Data() = Filter::TYPE_HQX;
+				comboBox.Add( Resource::String(IDS_VIDEO_FILTER_2XSAI) ).Data() = Filter::TYPE_2XSAI;
 			}
 
 			for (uint i=0, size=comboBox.Size(); i < size; ++i)

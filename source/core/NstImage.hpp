@@ -29,6 +29,8 @@
 #pragma once
 #endif
 
+#include <iosfwd>
+
 namespace Nes
 {
 	namespace Core
@@ -70,15 +72,17 @@ namespace Nes
 				Cpu& cpu;
 				Apu& apu;
 				Ppu& ppu;
-				StdStream const stream;
-				StdStream const ips;
+				std::istream& stream;
+				std::istream* const patch;
+				const bool patchBypassChecksum;
+				Result* const patchResult;
 				const FavoredSystem favoredSystem;
 				const bool askProfile;
 				const ImageDatabase* const database;
 				Result result;
 
-				Context(Type t,Cpu& c,Apu& a,Ppu& p,StdStream s,StdStream i,FavoredSystem f,bool b,const ImageDatabase* d)
-				: type(t), cpu(c), apu(a), ppu(p), stream(s), ips(i), favoredSystem(f), askProfile(b), database(d), result(RESULT_OK) {}
+				Context(Type t,Cpu& c,Apu& a,Ppu& p,std::istream& s,std::istream* h,bool k,Result* r,FavoredSystem f,bool b,const ImageDatabase* d)
+				: type(t), cpu(c), apu(a), ppu(p), stream(s), patch(h), patchBypassChecksum(k), patchResult(r), favoredSystem(f), askProfile(b), database(d), result(RESULT_OK) {}
 			};
 
 			static Image* Load(Context&);

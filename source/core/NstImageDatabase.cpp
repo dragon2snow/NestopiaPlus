@@ -465,61 +465,68 @@ namespace Nes
 				return multiRegion;
 			}
 
-			void Fill(Profile& profile) const
+			void Fill(Profile& profile,const bool full) const
 			{
-				if (*dump.by)
-					profile.dump.by = dump.by;
-
-				if (*dump.date)
-					profile.dump.date = dump.date;
-
-				if (dump.state != Profile::Dump::UNKNOWN)
-					profile.dump.state = dump.state;
-
-				if (*title)
-					profile.game.title = title;
-
-				if (*altTitle)
-					profile.game.altTitle = altTitle;
-
-				if (*clss)
-					profile.game.clss = clss;
-
-				if (*subClss)
-					profile.game.subClss = subClss;
-
-				if (*catalog)
-					profile.game.catalog = catalog;
-
-				if (*publisher)
-					profile.game.publisher = publisher;
-
-				if (*developer)
-					profile.game.developer = developer;
-
-				if (*portDeveloper)
-					profile.game.portDeveloper = portDeveloper;
-
-				if (*region)
-					profile.game.region = region;
-
-				if (*revision)
-					profile.game.revision = revision;
-
-				if (players)
-					profile.game.players = players;
-
-				profile.multiRegion = multiRegion;
-
-				if (const dword size = properties.size())
+				if (full)
 				{
-					profile.properties.resize( size );
+					if (*dump.by)
+						profile.dump.by = dump.by;
 
-					Profile::Properties::iterator b(profile.properties.begin());
-					for (Properties::const_iterator a(properties.begin()), end(properties.end()); a != end; ++a, ++b)
+					if (*dump.date)
+						profile.dump.date = dump.date;
+
+					if (dump.state != Profile::Dump::UNKNOWN)
+						profile.dump.state = dump.state;
+
+					if (*title)
+						profile.game.title = title;
+
+					if (*altTitle)
+						profile.game.altTitle = altTitle;
+
+					if (*clss)
+						profile.game.clss = clss;
+
+					if (*subClss)
+						profile.game.subClss = subClss;
+
+					if (*catalog)
+						profile.game.catalog = catalog;
+
+					if (*publisher)
+						profile.game.publisher = publisher;
+
+					if (*developer)
+						profile.game.developer = developer;
+
+					if (*portDeveloper)
+						profile.game.portDeveloper = portDeveloper;
+
+					if (*region)
+						profile.game.region = region;
+
+					if (*revision)
+						profile.game.revision = revision;
+
+					if (players)
+						profile.game.players = players;
+
+					if (*cic)
+						profile.board.cic = cic;
+
+					if (*pcb)
+						profile.board.pcb = pcb;
+
+					if (const dword size = properties.size())
 					{
-						b->name = a->name;
-						b->value = a->value;
+						profile.properties.resize( size );
+
+						Profile::Properties::iterator b(profile.properties.begin());
+						for (Properties::const_iterator a(properties.begin()), end(properties.end()); a != end; ++a, ++b)
+						{
+							b->name = a->name;
+							b->value = a->value;
+						}
 					}
 				}
 
@@ -689,18 +696,14 @@ namespace Nes
 					}
 				}
 
+				profile.multiRegion = multiRegion;
+
 				profile.system.type = static_cast<Profile::System::Type>(system);
 				profile.system.cpu = static_cast<Profile::System::Cpu>(cpu);
 				profile.system.ppu = static_cast<Profile::System::Ppu>(ppu);
 
 				if (*board)
 					profile.board.type = board;
-
-				if (*pcb)
-					profile.board.pcb = pcb;
-
-				if (*cic)
-					profile.board.cic = cic;
 
 				if (mapper != Profile::Board::NO_MAPPER)
 					profile.board.mapper = mapper;
@@ -709,52 +712,64 @@ namespace Nes
 
 				for (uint j=0; j < 2; ++j)
 				{
-					const Roms& src = (j ? chr : prg);
-					Profile::Board::Roms& dst = (j ? profile.board.chr : profile.board.prg);
-
-					dst.resize( src.size() );
-
-					Profile::Board::Roms::iterator b(dst.begin());
-					for (Roms::const_iterator a(src.begin()), end(src.end()); a != end; ++a, ++b)
+					if (full || (j ? profile.board.GetChr() == GetChrSize() : profile.board.GetPrg() == GetPrgSize()))
 					{
-						b->name = a->name;
-						b->size = a->size;
-						b->package = a->package;
-						b->hash = a->hash;
+						const Roms& src = (j ? chr : prg);
+						Profile::Board::Roms& dst = (j ? profile.board.chr : profile.board.prg);
 
-						b->pins.resize( a->pins.size() );
+						dst.resize( src.size() );
 
-						Profile::Board::Pins::iterator d(b->pins.begin());
-						for (Rom::Pins::const_iterator c(a->pins.begin()), end(a->pins.end()); c != end; ++c, ++d)
+						Profile::Board::Roms::iterator b(dst.begin());
+						for (Roms::const_iterator a(src.begin()), end(src.end()); a != end; ++a, ++b)
 						{
-							d->number = c->number;
-							d->function = c->function;
+							b->size = a->size;
+
+							if (full)
+							{
+								b->name = a->name;
+								b->package = a->package;
+								b->hash = a->hash;
+							}
+
+							b->pins.resize( a->pins.size() );
+
+							Profile::Board::Pins::iterator d(b->pins.begin());
+							for (Rom::Pins::const_iterator c(a->pins.begin()), end(a->pins.end()); c != end; ++c, ++d)
+							{
+								d->number = c->number;
+								d->function = c->function;
+							}
 						}
 					}
 				}
 
 				for (uint j=0; j < 2; ++j)
 				{
-					const Rams& src = (j ? vram : wram);
-					Profile::Board::Rams& dst = (j ? profile.board.vram : profile.board.wram);
-
-					dst.resize( src.size() );
-
-					Profile::Board::Rams::iterator b(dst.begin());
-					for (Rams::const_iterator a(src.begin()), end(src.end()); a != end; ++a, ++b)
+					if (full || (j ? profile.board.GetVram() == GetVramSize() : profile.board.GetWram() == GetWramSize()))
 					{
-						b->id = a->id;
-						b->size = a->size;
-						b->package = a->package;
-						b->battery = a->battery;
+						const Rams& src = (j ? vram : wram);
+						Profile::Board::Rams& dst = (j ? profile.board.vram : profile.board.wram);
 
-						b->pins.resize( a->pins.size() );
+						dst.resize( src.size() );
 
-						Profile::Board::Pins::iterator d(b->pins.begin());
-						for (Ram::Pins::const_iterator c(a->pins.begin()), end(a->pins.end()); c != end; ++c, ++d)
+						Profile::Board::Rams::iterator b(dst.begin());
+						for (Rams::const_iterator a(src.begin()), end(src.end()); a != end; ++a, ++b)
 						{
-							d->number = c->number;
-							d->function = c->function;
+							b->id = a->id;
+							b->size = a->size;
+							b->battery = a->battery;
+
+							if (full)
+								b->package = a->package;
+
+							b->pins.resize( a->pins.size() );
+
+							Profile::Board::Pins::iterator d(b->pins.begin());
+							for (Ram::Pins::const_iterator c(a->pins.begin()), end(a->pins.end()); c != end; ++c, ++d)
+							{
+								d->number = c->number;
+								d->function = c->function;
+							}
 						}
 					}
 				}
@@ -960,7 +975,7 @@ namespace Nes
 					if (const dword size = itemMap.size())
 					{
 						strings.Resize( stringLength );
-						wchar_t* NST_RESTRICT const sdst = strings.Begin();
+						wchar_t* const NST_RESTRICT sdst = strings.Begin();
 
 						for (StringMap::const_iterator src(stringMap.begin()), end(stringMap.end()); src != end; ++src)
 							std::wcscpy( sdst + src->second, src->first );
@@ -1145,13 +1160,13 @@ namespace Nes
 			return item && item->HasBattery();
 		}
 
-		void ImageDatabase::Entry::Fill(Profile& profile) const
+		void ImageDatabase::Entry::Fill(Profile& profile,bool full) const
 		{
 			if (item)
-				item->Fill( profile );
+				item->Fill( profile, full );
 		}
 
-		Result ImageDatabase::Load(StdStream baseStream,StdStream overrideStream)
+		Result ImageDatabase::Load(std::istream& baseStream,std::istream* overrideStream)
 		{
 			Unload();
 
@@ -1166,7 +1181,7 @@ namespace Nes
 
 					try
 					{
-						if (!xml.Read( *static_cast<std::istream*>(multi ? overrideStream : baseStream) ))
+						if (!xml.Read( multi ? *overrideStream : baseStream ))
 							return RESULT_ERR_CORRUPT_FILE;
 					}
 					catch (...)
@@ -1440,7 +1455,7 @@ namespace Nes
 									if (const Xml::Attribute attribute=node.GetAttribute( L"size" ))
 									{
 										wcstring end;
-										const ulong value = attribute.GetUnsignedValue( 10, end );
+										const ulong value = attribute.GetUnsignedValue( end, 10 );
 
 										if (end[0] == L'\0')
 										{
@@ -1593,7 +1608,7 @@ namespace Nes
 				}
 				while (++it != items.end);
 
-				delete items.begin;
+				delete [] items.begin;
 
 				items.begin = NULL;
 				items.end = NULL;
