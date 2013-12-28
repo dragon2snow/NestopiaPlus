@@ -50,7 +50,7 @@ namespace Nes
 
 		NES_POKE(Mapper189,4120)
 		{
-			prg.SwapBank<SIZE_32K,0x0000U>( (data >> 4 | data) & 3 );
+			prg.SwapBank<SIZE_32K,0x0000U>( (data >> 4) | data );
 		}
 
 		void Mapper189::UpdatePrg()

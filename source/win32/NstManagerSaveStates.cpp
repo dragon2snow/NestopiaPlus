@@ -401,21 +401,23 @@ namespace Nestopia
 		{
 			if (autoSaveEnabled)
 			{
-				if (autoSaver->GetStateFile().Length())
+				const Path stateFile( autoSaver->GetStateFile() );
+
+				if (stateFile.Length())
 				{
 					Collection::Buffer buffer;
 
 					if
 					(
 						emulator.SaveState( buffer, paths.UseStateCompression(), Emulator::STICKY ) &&
-						paths.Save( buffer.Ptr(), buffer.Size(), Paths::File::STATE, autoSaver->GetStateFile(), Paths::STICKY ) &&
+						paths.Save( buffer.Ptr(), buffer.Size(), Paths::File::STATE, stateFile, Paths::STICKY ) &&
 						autoSaver->ShouldNotify()
 					)
 					{
 						const uint length = window.GetMaxMessageLength();
 
 						if (length > 20)
-							Io::Screen() << Resource::String( IDS_SCREEN_SAVE_STATE_TO ).Invoke( Path::Compact( autoSaver->GetStateFile(), length - 18 ) );
+							Io::Screen() << Resource::String( IDS_SCREEN_SAVE_STATE_TO ).Invoke( Path::Compact( stateFile, length - 18 ) );
 					}
 				}
 				else

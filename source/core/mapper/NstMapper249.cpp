@@ -79,14 +79,13 @@ namespace Nes
 		{
 			return (!exReg) ? data :
 			(
-				( ( ( data & 0x01 ) >> 0 ) << 0 ) |
-				( ( ( data & 0x02 ) >> 1 ) << 1 ) |
-				( ( ( data & 0x04 ) >> 2 ) << 5 ) |
-				( ( ( data & 0x08 ) >> 3 ) << 2 ) |
-				( ( ( data & 0x10 ) >> 4 ) << 6 ) |
-				( ( ( data & 0x20 ) >> 5 ) << 7 ) |
-				( ( ( data & 0x40 ) >> 6 ) << 4 ) |
-				( ( ( data & 0x80 ) >> 7 ) << 3 )
+				(data >> 0 & 0x03) |
+				(data >> 1 & 0x04) |
+				(data >> 4 & 0x08) |
+				(data >> 2 & 0x10) |
+				(data << 3 & 0x20) |
+				(data << 2 & 0x40) |
+				(data << 2 & 0x80)
 			);
 		}
 
@@ -94,11 +93,10 @@ namespace Nes
 		{
 			return (!exReg) ? data :
 			(
-				( ( ( data & 0x01 ) >> 0 ) << 0 ) |
-				( ( ( data & 0x02 ) >> 1 ) << 3 ) |
-				( ( ( data & 0x04 ) >> 2 ) << 4 ) |
-				( ( ( data & 0x08 ) >> 3 ) << 2 ) |
-				( ( ( data & 0x10 ) >> 4 ) << 1 )
+				(data << 0 & 0x01) |
+				(data >> 3 & 0x02) |
+				(data >> 1 & 0x04) |
+				(data << 2 & 0x18)
 			);
 		}
 

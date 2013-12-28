@@ -50,12 +50,12 @@ namespace Nes
 			delete &object;
 		}
 
-		void Log::Append(cstring const c,const size_t n)
+		void Log::Append(cstring c,size_t n)
 		{
 			object.string.append( c, n );
 		}
 
-		Log& Log::operator << (const long value)
+		Log& Log::operator << (long value)
 		{
 			char buffer[16];
 
@@ -68,7 +68,7 @@ namespace Nes
 			return *this;
 		}
 
-		Log& Log::operator << (const ulong value)
+		Log& Log::operator << (ulong value)
 		{
 			char buffer[16];
 
@@ -81,13 +81,13 @@ namespace Nes
 			return *this;
 		}
 
-		Log& Log::operator << (cstring const c)
+		Log& Log::operator << (cstring c)
 		{
 			object.string.append( c );
 			return *this;
 		}
 
-		Log& Log::operator << (const char c)
+		Log& Log::operator << (char c)
 		{
 			object.string.append( 1, c );
 			return *this;

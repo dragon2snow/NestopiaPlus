@@ -54,6 +54,7 @@ namespace Nes
 
 			void VSync();
 			uint GetDesiredController(uint) const;
+			uint GetDesiredAdapter() const;
 
 			Result GetDiskData(uint,Api::Fds::DiskData&);
 

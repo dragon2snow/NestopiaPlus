@@ -76,10 +76,10 @@ namespace Nes
 					T* NST_RESTRICT dst;
 					const T* const end;
 
-					BaseRenderer(const Output& stream,bool stereo=false)
+					BaseRenderer(void* samples,uint length,bool stereo=false)
 					:
-					dst (static_cast<T*>(stream.samples)),
-					end (static_cast<const T*>(stream.samples) + (stream.length << (uint) stereo))
+					dst (static_cast<T*>(samples)),
+					end (static_cast<const T*>(samples) + (length << (uint) stereo))
 					{}
 
 				public:
@@ -139,8 +139,8 @@ namespace Nes
 			{
 			public:
 
-				Renderer(const Output& stream)
-				: BaseRenderer<i16>(stream) {}
+				Renderer(void* samples,uint length)
+				: BaseRenderer<i16>(samples,length) {}
 
 				NST_FORCE_INLINE void operator << (Apu::Sample sample)
 				{
@@ -178,8 +178,8 @@ namespace Nes
 
 			public:
 
-				Renderer(const Output& stream,History& h)
-				: BaseRenderer<i16>(stream,true), history(h) {}
+				Renderer(void* samples,uint length,History& h)
+				: BaseRenderer<i16>(samples,length,true), history(h) {}
 
 				NST_FORCE_INLINE void operator << (Apu::Sample sample)
 				{
@@ -207,8 +207,8 @@ namespace Nes
 			{
 			public:
 
-				Renderer(const Output& stream)
-				: BaseRenderer<u8>(stream) {}
+				Renderer(void* samples,uint length)
+				: BaseRenderer<u8>(samples,length) {}
 
 				NST_FORCE_INLINE void operator << (Apu::Sample sample)
 				{
@@ -235,8 +235,8 @@ namespace Nes
 
 			public:
 
-				Renderer(const Output& stream,History& h)
-				: BaseRenderer<u8>(stream,true), history(h) {}
+				Renderer(void* samples,uint length,History& h)
+				: BaseRenderer<u8>(samples,length,true), history(h) {}
 
 				NST_FORCE_INLINE void operator << (Apu::Sample sample)
 				{

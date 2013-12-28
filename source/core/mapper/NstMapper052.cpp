@@ -41,7 +41,6 @@ namespace Nes
 
 			Mmc3::SubReset( hard );
 
-			Map( WRK_PEEK );
 			Map( 0x6000U, 0x7FFFU, &Mapper52::Poke_Wrk );
 		}
 
@@ -80,7 +79,10 @@ namespace Nes
 		{
 			if (exRegs[1])
 			{
-				wrk[0][address - 0x6000U] = data;
+				NST_VERIFY( wrk.Writable(0) );
+
+				if (wrk.Writable(0))
+					wrk[0][address - 0x6000U] = data;
 			}
 			else
 			{
@@ -96,8 +98,8 @@ namespace Nes
 		{
 			const uint r[2] =
 			{
-				((exRegs[0] & 0x8) << 1) ^ 0x1F,
-				((exRegs[0] & 0x6) | ((exRegs[0] >> 3) & exRegs[0] & 0x1)) << 4
+				(exRegs[0] << 1 & 0x10) ^ 0x1F,
+				((exRegs[0] & 0x6) | (exRegs[0] >> 3 & exRegs[0] & 0x1)) << 4
 			};
 
 			const uint i = (regs.ctrl0 & Regs::CTRL0_XOR_PRG) >> 5;
@@ -118,7 +120,7 @@ namespace Nes
 			const uint r[2] =
 			{
 				((exRegs[0] & 0x40) << 1) ^ 0xFF,
-				(((exRegs[0] >> 3) & 0x4) | ((exRegs[0] >> 1) & 0x2) | ((exRegs[0] >> 6) & (exRegs[0] >> 4) & 0x1)) << 7
+				((exRegs[0] >> 3 & 0x4) | (exRegs[0] >> 1 & 0x2) | ((exRegs[0] >> 6) & (exRegs[0] >> 4) & 0x1)) << 7
 			};
 
 			const uint swap = (regs.ctrl0 & Regs::CTRL0_XOR_CHR) << 5;
@@ -126,8 +128,8 @@ namespace Nes
 			chr.SwapBanks<SIZE_2K>
 			(
 				0x0000U ^ swap,
-				(banks.chr[0] & (r[0] >> 1)) | (r[1] >> 1),
-				(banks.chr[1] & (r[0] >> 1)) | (r[1] >> 1)
+				(banks.chr[0] & r[0] >> 1) | (r[1] >> 1),
+				(banks.chr[1] & r[0] >> 1) | (r[1] >> 1)
 			);
 
 			chr.SwapBanks<SIZE_1K>

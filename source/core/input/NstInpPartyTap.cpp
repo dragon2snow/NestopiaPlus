@@ -83,7 +83,7 @@ namespace Nes
 				if (port)
 				{
 					port = stream & 0x1C;
-					stream = (stream >> 3) | mode;
+					stream = stream >> 3 | mode;
 				}
 
 				return port;

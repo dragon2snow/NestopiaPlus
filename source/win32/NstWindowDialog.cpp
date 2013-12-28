@@ -27,11 +27,38 @@
 #include "NstResourceIcon.hpp"
 #include "NstWindowParam.hpp"
 #include "NstWindowDialog.hpp"
+#include "NstWindowDynamic.hpp"
 
 namespace Nestopia
 {
 	namespace Window
 	{
+		class Dialog::NoTaskbarWindow : Dynamic
+		{
+		public:
+
+			NoTaskbarWindow(Window::Generic fakeParent)
+			{
+				Context context;
+
+				const Point pos( fakeParent.Coordinates().Position() );
+
+				context.className = _T("Helper");
+				context.x         = pos.x;
+				context.y         = pos.y + 30;
+				context.width     = 8;
+				context.height    = 8;
+				context.exStyle   = WS_EX_TOOLWINDOW;
+
+				Create( context );
+			}
+
+			Generic GetHandle() const
+			{
+				return *this;
+			}
+		};
+
 		Dialog::Instances Dialog::instances;
 		Dialog::ModelessDialogs::Instances Dialog::ModelessDialogs::instances;
 		Dialog::ModelessDialogs::Processor Dialog::ModelessDialogs::processor = Dialog::ModelessDialogs::ProcessNone;
@@ -110,11 +137,13 @@ namespace Nestopia
 		{
 			if (hWnd)
 			{
-				Show();
-				Parent().Redraw();
-				Activate();
+				if (Visible())
+					Activate();
+
 				return 0;
 			}
+
+			NST_ASSERT( !noTaskbarWindow );
 
 			if (type == MODAL)
 			{
@@ -147,11 +176,14 @@ namespace Nestopia
 
 			Application::Instance::Waiter wait;
 
+			if (type == MODELESS_FREE)
+				noTaskbarWindow = new NoTaskbarWindow( Application::Instance::GetActiveWindow() );
+
 			CreateDialogParam
 			(
 				Application::Instance::GetLanguage().GetResourceHandle(),
 				MAKEINTRESOURCE(id),
-				Application::Instance::GetActiveWindow(),
+				noTaskbarWindow ? noTaskbarWindow->GetHandle() : Application::Instance::GetActiveWindow(),
 				DlgProc,
 				reinterpret_cast<LPARAM>(this)
 			);
@@ -178,6 +210,9 @@ namespace Nestopia
 					::EndDialog( hWnd, ret );
 				}
 			}
+
+			delete noTaskbarWindow;
+			noTaskbarWindow = NULL;
 		}
 
 		Dialog::~Dialog()

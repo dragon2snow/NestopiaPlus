@@ -33,23 +33,14 @@ namespace Nes
 		#pragma optimize("s", on)
 		#endif
 
-		Mapper241::Mapper241(Context& c)
-		:
-		Mapper (c,CROM_NONE),
-		edu    (c.prgCrc == 0xD5D6EAC4UL) // Edu (Asia)
-		{
-		}
-
 		void Mapper241::SubReset(bool)
 		{
-			if (!edu)
-				Map( 0x5000U, 0x5FFFU, PRG_SWAP_32K );
-
 			Map( 0x8000U, 0xFFFFU, PRG_SWAP_32K );
 		}
 
 		#ifdef NST_PRAGMA_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
+
 	}
 }

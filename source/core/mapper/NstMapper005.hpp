@@ -35,11 +35,21 @@ namespace Nes
 	{
 		class Mapper5 : public Boards::Mmc5
 		{
-			static uint GetWrkSize(const Context&);
-
 		public:
 
 			Mapper5(Context&);
+
+		private:
+
+			enum
+			{
+				ATR_ELROM = 1,
+				ATR_EKROM,
+				ATR_ETROM,
+				ATR_EWROM
+			};
+
+			static Board GetBoard(uint);
 		};
 	}
 }

@@ -190,8 +190,8 @@ namespace Nes
 				const u8 d[4] =
 				{
 					data & 0xFF,
-					(data >>  8) & 0xFF,
-					(data >> 16) & 0xFF,
+					data >>  8 & 0xFF,
+					data >> 16 & 0xFF,
 					data >> 24
 				};
 

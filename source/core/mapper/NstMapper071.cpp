@@ -33,18 +33,25 @@ namespace Nes
 		#pragma optimize("s", on)
 		#endif
 
+		Mapper71::Mapper71(Context& c)
+		:
+		Mapper  (c,c.attribute == ATR_BF9093 || c.attribute == ATR_BF9097 ? CROM_MAX_8K|WRAM_NONE : CROM_MAX_8K|WRAM_DEFAULT),
+		nmtCtrl (c.attribute == ATR_BF9097)
+		{}
+
 		void Mapper71::SubReset(bool)
 		{
-			Map( 0x6000U, 0x7FFFU, PRG_SWAP_16K );
-			Map( 0x9000U, 0x9FFFU, &Mapper71::Poke_9000 );
-			Map( 0xC000U, 0xFFFFU, PRG_SWAP_16K );
+			if (nmtCtrl)
+				Map( 0x8000U, 0x9FFFU, &Mapper71::Poke_8000 );
+
+			Map( 0xC000U, 0xFFFFU, PRG_SWAP_16K_0 );
 		}
 
 		#ifdef NST_PRAGMA_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
-		NES_POKE(Mapper71,9000)
+		NES_POKE(Mapper71,8000)
 		{
 			ppu.SetMirroring( (data & 0x10) ? Ppu::NMT_ONE : Ppu::NMT_ZERO );
 		}

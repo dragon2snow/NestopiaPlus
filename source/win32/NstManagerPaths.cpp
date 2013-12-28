@@ -208,12 +208,13 @@ namespace Nestopia
 			path.Extension().Clear();
 
 			const uint offset = path.Length() + 1;
-			path << _T("_xx.") << dialog->GetScreenShotExtension();
+			path << _T("_xxx.") << dialog->GetScreenShotExtension();
 
-			for (uint i=1; i < 100; ++i)
+			for (uint i=1; i < 1000; ++i)
 			{
-				path[offset+0] = '0' + (i / 10);
-				path[offset+1] = '0' + (i % 10);
+				path[offset+0] = '0' + (i / 100);
+				path[offset+1] = '0' + (i % 100 / 10);
+				path[offset+2] = '0' + (i % 10);
 
 				if (!path.FileExists())
 					break;
@@ -245,7 +246,7 @@ namespace Nestopia
 			);
 		}
 
-		const GenericString Paths::GetDefaultDirectory(const File::Types types) const
+		const Path Paths::GetDefaultDirectory(const File::Types types) const
 		{
 			Window::Paths::Type type;
 
@@ -317,7 +318,7 @@ namespace Nestopia
 				Window::Browser::OpenFile
 				(
 					Filter( types ).Ptr(),
-					dir.Length() ? dir : GetDefaultDirectory( types ),
+					dir.Length() ? Path(dir) : GetDefaultDirectory( types ),
 					GetDefaultExtension( types )
 				)
 			);
@@ -378,20 +379,12 @@ namespace Nestopia
 
 			if (type & File::GAME)
 			{
-				GenericString dir, ext;
-
-				if (type & File::CARTRIDGE)
-				{
-					dir = dialog->GetDirectory( Window::Paths::DIR_SAVE );
-					ext = _T("sav");
-				}
-				else
-				{
-					dir = dialog->GetDirectory( Window::Paths::DIR_IPS );
-					ext = _T("ips");
-				}
-
-				save.Set( dir, image.Target().File(), ext );
+				save.Set
+				(
+					dialog->GetDirectory( (type & File::CARTRIDGE) ? Window::Paths::DIR_SAVE : Window::Paths::DIR_IPS ),
+					image.Target().File(),
+					(type & File::CARTRIDGE) ? _T("sav") : _T("ips")
+				);
 			}
 
 			return save;
@@ -407,7 +400,7 @@ namespace Nestopia
 			return ips;
 		}
 
-		const Path& Paths::GetSamplesPath() const
+		Path Paths::GetSamplesPath() const
 		{
 			return dialog->GetDirectory( Window::Paths::DIR_SAMPLES );
 		}
@@ -432,7 +425,7 @@ namespace Nestopia
 				file.name = BrowseLoad( types );
 			}
 
-			if (file.name.Empty() || (alert == QUIETLY && !file.name.FileExists()))
+			if (file.name.Empty())
 				return File::NONE;
 
 			try

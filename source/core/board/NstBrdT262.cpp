@@ -38,7 +38,7 @@ namespace Nes
 			void T262::SubReset(const bool hard)
 			{
 				mode = false;
-				prg.SwapBanks<SIZE_16K,0x0000U>( 0x0, 0x07 );
+				prg.SwapBanks<SIZE_16K,0x0000U>( 0x0, 0x7 );
 
 				Map( 0x8000U, 0xFFFFU, &T262::Poke_Prg );
 			}

@@ -160,7 +160,7 @@ namespace Nes
 			emulator.ppu.EnableEmphasis( state.bits.count != 8 );
 			const Result result = emulator.renderer.SetState( state );
 
-			if (NES_SUCCEEDED(result))
+			if (result == RESULT_OK)
 				emulator.UpdateColorMode();
 
 			return result;

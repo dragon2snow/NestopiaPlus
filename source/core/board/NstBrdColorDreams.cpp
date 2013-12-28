@@ -36,7 +36,10 @@ namespace Nes
 			#endif
 
 			ColorDreams::ColorDreams(Context& c,Type t)
-			: Mapper(c,WRAM_NONE), type(t) {}
+			:
+			Mapper (c,PROM_MAX_128K|CROM_MAX_128K|WRAM_DEFAULT),
+			type   (t)
+			{}
 
 			void ColorDreams::SubReset(const bool hard)
 			{
@@ -50,8 +53,8 @@ namespace Nes
 			NES_POKE(ColorDreams,Prg)
 			{
 				ppu.Update();
-				prg.SwapBank<SIZE_32K,0x0000U>(data & 0x3);
-				chr.SwapBank<SIZE_8K,0x0000U>(data >> 4);
+				prg.SwapBank<SIZE_32K,0x0000U>( data );
+				chr.SwapBank<SIZE_8K,0x0000U>( data >> 4 );
 			}
 		}
 	}

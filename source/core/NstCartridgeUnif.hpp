@@ -29,8 +29,6 @@
 #pragma once
 #endif
 
-#include "api/NstApiCartridge.hpp"
-
 namespace Nes
 {
 	namespace Core
@@ -46,14 +44,16 @@ namespace Nes
 				Ram&,
 				Ram&,
 				Api::Cartridge::Info&,
-				const ImageDatabase*
+				const ImageDatabase*,
+				ImageDatabase::Handle&
 			);
 
 		private:
 
-			void Import();
-			void CopyRom();
-			bool NewChunk(bool&);
+			void  Import();
+			dword ComputeCrc() const;
+			void  CopyRom();
+			bool  NewChunk(bool&);
 
 			ulong ReadName       ();
 			ulong ReadComment    ();
@@ -73,7 +73,8 @@ namespace Nes
 
 			enum
 			{
-				HEADER_RESERVED_LENGTH = 24
+				HEADER_RESERVED_LENGTH = 24,
+				NO_MAPPER = SHRT_MAX
 			};
 
 			struct Dump
@@ -102,6 +103,9 @@ namespace Nes
 			Api::Cartridge::Info& info;
 
 			const ImageDatabase* const database;
+			ImageDatabase::Handle& databaseHandle;
+
+			dword crc;
 
 			Result result;
 
@@ -123,6 +127,7 @@ namespace Nes
 
 				cstring name;
 				u16 mapper;
+				u16 wrkRam;
 			};
 
 			static bool sorted;

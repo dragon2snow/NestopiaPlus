@@ -61,7 +61,6 @@ namespace Nestopia
 			};
 
 			Video(Managers::Emulator&,const Adapters&,const Managers::Paths&,const Configuration&);
-			~Video();
 
 			void Save(Configuration&) const;
 			void LoadGamePalette(const Path&);

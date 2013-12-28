@@ -34,53 +34,48 @@ namespace Nes
 		#pragma optimize("s", on)
 		#endif
 
-		uint Mapper1::GetWrkSize(const Context& c)
+		Mapper1::Board Mapper1::GetBoard(const Context& c)
 		{
-			if (c.wrk.Size() > SIZE_8K)
+			if (c.attribute & ATR_BOARD)
 			{
-				return WRAM_16K;
-			}
-			else switch (c.prgCrc)
-			{
-				case 0xFB69743AUL: // Aoki Ookami to Shiroki Mejika - Genghis Khan (J)
-				case 0xB8747ABFUL: // Best Play Pro Yakyuu Special (J)
-				case 0x2225C20FUL: // Genghis Khan (U)
-				case 0x29449BA9UL: // Nobunaga no Yabou - Zenkoku Han (J)
-				case 0x2B11E0B0UL: // Nobunaga no Yabou - Zenkoku Han (J) alt
-				case 0x4642DDA6UL: // Nobunaga's Ambition (U)
-				case 0xC6182024UL: // Romance of the Three Kingdoms (U)
-				case 0xABBF7217UL: // Sangokushi (J)
-				case 0x1028FC27UL: // Sangokushi (J) alt
-
-					return WRAM_16K; // SOROM
-			}
-
-			return WRAM_8K;
-		}
-
-		Boards::Mmc1::Revision Mapper1::GetRevision(dword crc)
-		{
-			switch (crc)
-			{
-				case 0x54430B24UL: // Desert Commander (U)
-				case 0xD9F0749FUL: // Kid Icarus (U)
-				case 0x3FE272FBUL: // Legend of Zelda (U)
-				case 0x70080810UL: // Metroid (U)
-				case 0x8CE9C87BUL: // Money Game (J)
-				case 0x4642DDA6UL: // Nobunaga's Ambition (U)
-				case 0x29449BA9UL: // Nobunaga no Yabou - Zenkoku Han (J)
-				case 0x2B11E0B0UL: // Nobunaga no Yabou - Zenkoku Han (J) alt
-				case 0x15d53e78UL: // Tatakae!! Rahmen Man - Sakuretsu Choujin 102 Gei (J)
-				case 0xEE8C9971UL: // Zelda II: Adventures of Link (U)
-
-					return REV_1A;
+				switch (c.attribute & ATR_BOARD)
+				{
+					case ATR_SAROM:    return BRD_SAROM;
+					case ATR_SBROM:    return BRD_SBROM;
+					case ATR_SCROM:    return BRD_SCROM;
+					case ATR_SC1ROM:   return BRD_SC1ROM;
+					case ATR_SEROM:    return BRD_SEROM;
+					case ATR_SFROM:    return BRD_SFROM;
+					case ATR_SF1ROM:   return BRD_SF1ROM;
+					case ATR_SFEOROM:  return BRD_SFEOROM;
+					case ATR_SFEXPROM: return BRD_SFEXPROM;
+					case ATR_SGROM:    return BRD_SGROM;
+					case ATR_SHROM:    return BRD_SHROM;
+					case ATR_SH1ROM:   return BRD_SH1ROM;
+					case ATR_SJROM:    return BRD_SJROM;
+					case ATR_SKROM:    return BRD_SKROM;
+					case ATR_SLROM:    return BRD_SLROM;
+					case ATR_SL1ROM:   return BRD_SL1ROM;
+					case ATR_SL3ROM:   return BRD_SL3ROM;
+					case ATR_SLRROM:   return BRD_SLRROM;
+					case ATR_SNROM:    return BRD_SNROM;
+					case ATR_SOROM:    return BRD_SOROM;
+					case ATR_SUROM:    return BRD_SUROM;
+					case ATR_SXROM:    return BRD_SXROM;
+				}
 			}
 
-			return REV_1B;
+			if (c.wrk.Size() >= SIZE_32K)
+				return BRD_SXROM;
+
+			if (c.wrk.Size() >= SIZE_16K)
+				return BRD_SOROM;
+
+			return BRD_GENERIC;
 		}
 
 		Mapper1::Mapper1(Context& c)
-		: Mmc1(c,GetWrkSize(c),GetRevision(c.prgCrc))
+		: Mmc1(c,GetBoard(c),(c.attribute & ATR_MMC1A) ? REV_A : REV_B)
 		{
 		}
 

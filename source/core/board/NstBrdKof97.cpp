@@ -69,11 +69,11 @@ namespace Nes
 			{
 				return
 				(
-					((data & 0xD8) >> 0) |
-					((data & 0x20) >> 4) |
-					((data & 0x04) << 3) |
-					((data & 0x02) >> 1) |
-					((data & 0x01) << 2)
+					(data >> 1 & 0x01) |
+					(data >> 4 & 0x02) |
+					(data << 2 & 0x04) |
+					(data >> 0 & 0xD8) |
+					(data << 3 & 0x20)
 				);
 			}
 

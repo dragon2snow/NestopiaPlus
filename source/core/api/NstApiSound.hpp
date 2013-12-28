@@ -54,11 +54,16 @@ namespace Nes
 					MAX_LENGTH = 0x8000U
 				};
 
-				void* samples;
-				uint length;
+				void* samples[2];
+				uint length[2];
 
-				Output(void* s=NULL,uint l=0)
-				: samples(s), length(l) {}
+				Output(void* s0=NULL,uint l0=0,void* s1=NULL,uint l1=0)
+				{
+					samples[0] = s0;
+					samples[1] = s1;
+					length[0] = l0;
+					length[1] = l1;
+				}
 
 				typedef bool (NST_CALLBACK *LockCallback) (void*,Output&);
 				typedef void (NST_CALLBACK *UnlockCallback) (void*,Output&);

@@ -192,7 +192,6 @@ namespace Nestopia
 			public:
 
 				Keyboard(Base&);
-				~Keyboard();
 
 				enum
 				{
@@ -251,7 +250,6 @@ namespace Nestopia
 			public:
 
 				Joystick(Base&,const DIDEVICEINSTANCE&);
-				~Joystick();
 
 				enum
 				{

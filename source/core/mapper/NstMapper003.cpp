@@ -34,25 +34,10 @@ namespace Nes
 		#pragma optimize("s", on)
 		#endif
 
-		Sound::Player* Mapper3::DetectSound(dword crc,Cpu& cpu)
-		{
-			if (crc == 0xF8DA2506UL)
-			{
-				return Sound::Player::Create
-				(
-					cpu,
-					Sound::Loader::AEROBICS_STUDIO,
-					Sound::Loader::AEROBICS_STUDIO_SAMPLES
-				);
-			}
-
-			return NULL;
-		}
-
 		Mapper3::Mapper3(Context& c)
 		:
-		Mapper (c),
-		sound  (DetectSound(c.prgCrc,c.cpu))
+		Mapper (c,PROM_MAX_32K|WRAM_DEFAULT),
+		sound  (c.attribute == ATR_SAMPLES_AS ? Sound::Player::Create(cpu,Sound::Loader::AEROBICS_STUDIO,Sound::Loader::AEROBICS_STUDIO_SAMPLES) : NULL)
 		{}
 
 		Mapper3::~Mapper3()

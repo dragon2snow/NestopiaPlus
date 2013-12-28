@@ -139,23 +139,25 @@ namespace Nestopia
 
 		ibool Movie::CanPlay() const
 		{
+			const Path path( dialog->GetMovieFile() );
+
 			return
 			(
 				emulator.Is( Nes::Machine::GAME ) &&
 				Nes::Movie( emulator ).IsStopped() &&
-				dialog->GetMovieFile().Length() &&
-				dialog->GetMovieFile().FileExists()
+				path.Length() && path.FileExists()
 			);
 		}
 
 		ibool Movie::CanRecord() const
 		{
+			const Path path( dialog->GetMovieFile() );
+
 			return
 			(
 				emulator.Is( Nes::Machine::GAME ) &&
 				Nes::Movie( emulator ).IsStopped() &&
-				dialog->GetMovieFile().Length() &&
-				!dialog->GetMovieFile().FileProtected()
+				path.Length() && !path.FileProtected()
 			);
 		}
 
@@ -171,14 +173,16 @@ namespace Nestopia
 
 		ibool Movie::CanForward() const
 		{
+			const Path path( dialog->GetMovieFile() );
+
 			return
 			(
 				pos != FORWARDED &&
 				emulator.Is( Nes::Machine::GAME ) &&
 				Nes::Movie( emulator ).IsStopped() &&
-				dialog->GetMovieFile().Length() &&
-				dialog->GetMovieFile().FileExists() &&
-				!dialog->GetMovieFile().FileProtected()
+				path.Length() &&
+				path.FileExists() &&
+				!path.FileProtected()
 			);
 		}
 

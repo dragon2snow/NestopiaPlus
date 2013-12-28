@@ -639,10 +639,10 @@ namespace Nes
 				{
 					u8* const ptr = output.End() - 4;
 
-					ptr[0] = (count >> 24) | LOCK_BIT;
-					ptr[1] = (count >> 16) & 0xFF;
-					ptr[2] = (count >>  8) & 0xFF;
-					ptr[3] = (count >>  0) & 0xFF;
+					ptr[0] = count >> 24 | LOCK_BIT;
+					ptr[1] = count >> 16 & 0xFF;
+					ptr[2] = count >>  8 & 0xFF;
+					ptr[3] = count >>  0 & 0xFF;
 				}
 
 				return true;

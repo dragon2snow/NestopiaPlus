@@ -35,21 +35,22 @@ namespace Nes
 
 		Mapper60::Mapper60(Context& c)
 		:
-		Mapper (c),
-		rt4in1 (c.prgCrc == 0xF9C484A0UL) // Reset-triggered 4-in-1
+		Mapper       (c,PROM_MAX_128K|CROM_MAX_64K|WRAM_DEFAULT),
+		resetTrigger (c.attribute == ATR_RESET_TRIGGER),
+		menu         (0)
 		{}
 
 		void Mapper60::SubReset(const bool hard)
 		{
 			latch = 0;
 
-			if (hard)
-				menu = 0;
-			else
-				menu = (menu + 1) & 0x3;
-
-			if (rt4in1)
+			if (resetTrigger)
 			{
+				if (hard)
+					menu = 0;
+				else
+					menu = (menu + 1) & 0x3;
+
 				chr.SwapBank<SIZE_8K,0x0000U>( menu );
 				prg.SwapBanks<SIZE_16K,0x0000U>( menu, menu );
 			}
@@ -93,13 +94,8 @@ namespace Nes
 		{
 			latch = address & 0x100;
 			ppu.SetMirroring( (address & 0x8) ? Ppu::NMT_HORIZONTAL : Ppu::NMT_VERTICAL );
-
-			if (address & 0x80)
-				prg.SwapBanks<SIZE_16K,0x0000U>( address >> 4 & 0x7, address >> 4 & 0x7 );
-			else
-				prg.SwapBank<SIZE_32K,0x0000U>( address >> 5 & 0x3 );
-
-			chr.SwapBank<SIZE_8K,0x0000U>( address & 0x07 );
+			prg.SwapBanks<SIZE_16K,0x0000U>( (address >> 4) & ~(~address >> 7 & 0x1), (address >> 4) | (~address >> 7 & 0x1) );
+			chr.SwapBank<SIZE_8K,0x0000U>( address );
 		}
 	}
 }

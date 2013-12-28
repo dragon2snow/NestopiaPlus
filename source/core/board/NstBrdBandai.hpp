@@ -41,9 +41,10 @@ namespace Nes
 
 				enum Type
 				{
-					TYPE_A,
-					TYPE_B,
-					TYPE_C
+					TYPE_E2401,
+					TYPE_E2402,
+					TYPE_WRAM,
+					TYPE_DATACH
 				};
 
 				Bandai(Context&,Type);
@@ -54,7 +55,6 @@ namespace Nes
 				class DatachJointSystem;
 
 				template<uint N> class E24C0X;
-				static bool HasEEPROM(uint,Type,dword);
 
 				void SubReset(bool);
 				void BaseSave(State::Saver&) const;

@@ -90,17 +90,45 @@ namespace Nes
 					G_MASK = BPP == 32 ? 0x00FF00 : BPP == 16 ? 0x07E0 : 0x03E0,
 					B_MASK = BPP == 32 ? 0x0000FF : BPP == 16 ? 0x001F : 0x001F,
 					RB_MASK = R_MASK|B_MASK,
-					S_SHIFT = BPP == 32 ? 8 : 5
+					S_SHIFT = BPP == 32 ? 8 : 5,
+					DEF_BLACK = 15
 				};
 
 				void Blit(const Input&,const Output&,uint);
 
-				struct Lut : nes_ntsc_emph_t
+				class Lut : public nes_ntsc_emph_t
 				{
+					static uint GetBlack(const u8 (&p)[Renderer::PALETTE][3])
+					{
+						uint index = DEF_BLACK;
+						double intensity = 1.0;
+
+						for (uint i=0; i < NST_MIN(64,Renderer::PALETTE); ++i)
+						{
+							const double v =
+							(
+								p[i][0] / 255.0 * 0.30 +
+								p[i][1] / 255.0 * 0.59 +
+								p[i][2] / 255.0 * 0.11
+							);
+
+							if (intensity > v)
+							{
+								intensity = v;
+								index = i;
+							}
+						}
+
+						return index;
+					}
+
+				public:
+
 					const uint noFieldMerging;
+					const uint black;
 
 					Lut(const FilterNtscState& state)
-					: noFieldMerging(state.fieldMerging ? 0U : ~0U)
+					: noFieldMerging(state.fieldMerging ? 0U : ~0U), black(GetBlack( state.palette ))
 					{
 						FpuPrecision precision;
 
@@ -176,7 +204,7 @@ namespace Nes
 
 				for (uint y=0; y < HEIGHT; ++y)
 				{
-					NES_NTSC_BEGIN_ROW( &lut, phase, 0xF, 0xF, *src++ );
+					NES_NTSC_BEGIN_ROW( &lut, phase, lut.black, lut.black, *src++ );
 
 					Pixel* NST_RESTRICT cache = buffer;
 
@@ -200,15 +228,15 @@ namespace Nes
 						cache += 7;
 					}
 
-					NES_NTSC_COLOR_IN( 0, 0xF );
+					NES_NTSC_COLOR_IN( 0, lut.black );
 					NES_NTSC_RGB_OUT( 0, dst[0]=cache[0], BPP );
 					NES_NTSC_RGB_OUT( 1, dst[1]=cache[1], BPP );
 
-					NES_NTSC_COLOR_IN( 1, 0xF );
+					NES_NTSC_COLOR_IN( 1, lut.black );
 					NES_NTSC_RGB_OUT( 2, dst[2]=cache[2], BPP );
 					NES_NTSC_RGB_OUT( 3, dst[3]=cache[3], BPP );
 
-					NES_NTSC_COLOR_IN( 2, 0xF );
+					NES_NTSC_COLOR_IN( 2, lut.black );
 					NES_NTSC_RGB_OUT( 4, dst[4]=cache[4], BPP );
 					NES_NTSC_RGB_OUT( 5, dst[5]=cache[5], BPP );
 					NES_NTSC_RGB_OUT( 6, dst[6]=cache[6], BPP );

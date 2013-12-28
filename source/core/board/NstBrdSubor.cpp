@@ -37,7 +37,7 @@ namespace Nes
 
 			Subor::Subor(Context& c,Mode m)
 			:
-			Mapper (c),
+			Mapper (c,CROM_MAX_8K),
 			mode   (m)
 			{}
 
@@ -76,8 +76,8 @@ namespace Nes
 
 				uint banks[2] =
 				{
-					((regs[0] ^ regs[1]) & 0x10) << 1,
-					((regs[2] ^ regs[3]) & 0x1F) << 0
+					(regs[0] ^ regs[1]) << 1 & 0x20,
+					(regs[2] ^ regs[3]) << 0 & 0x1F
 				};
 
 				if (regs[1] & 0x8)

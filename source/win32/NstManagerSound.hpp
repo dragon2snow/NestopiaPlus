@@ -60,7 +60,7 @@ namespace Nestopia
 			void OnEmuEvent(Emulator::Event);
 			void Disable(tstring=NULL);
 			void UpdateSettings();
-			uint GetLatency() const;
+			ibool CanRunInBackground() const;
 
 			struct Callbacks;
 			class Recorder;

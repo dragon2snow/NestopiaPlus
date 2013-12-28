@@ -37,13 +37,7 @@ namespace Nes
 	namespace Core
 	{
 		Image::Image(Type t)
-		: type(t)
-		{
-		}
-
-		Image::~Image()
-		{
-		}
+		: type(t) {}
 
 		Result Image::Load(Context& context)
 		{
@@ -116,6 +110,11 @@ namespace Nes
 				case Api::Input::PORT_2: return Api::Input::PAD2;
 				default: return Api::Input::UNCONNECTED;
 			}
+		}
+
+		uint Image::GetDesiredAdapter() const
+		{
+			return Api::Input::ADAPTER_NES;
 		}
 	}
 }

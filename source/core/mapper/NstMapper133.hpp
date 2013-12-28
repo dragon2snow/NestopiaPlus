@@ -38,13 +38,13 @@ namespace Nes
 		public:
 
 			Mapper133(Context& c)
-			: Mapper(c) {}
+			: Mapper(c,PROM_MAX_64K|CROM_MAX_32K|WRAM_DEFAULT) {}
 
 		private:
 
 			void SubReset(bool);
 
-			NES_DECL_POKE( 4120 )
+			NES_DECL_POKE( 4100 )
 		};
 	}
 }

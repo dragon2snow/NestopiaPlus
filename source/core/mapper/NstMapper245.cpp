@@ -34,9 +34,6 @@ namespace Nes
 		#pragma optimize("s", on)
 		#endif
 
-		Mapper245::Mapper245(Context& c)
-		: Mmc3(c,WRAM_8K | (c.prgCrc == 0xD3A269DCUL ? CROM_NONE : 0)) {} // Dragon Quest II (J)
-
 		void Mapper245::SubReset(const bool hard)
 		{
 			if (hard)
@@ -44,13 +41,11 @@ namespace Nes
 
 			Mmc3::SubReset( hard );
 
-			banks.prg[2] = 0x3E;
-			banks.prg[3] = 0x3F;
+			if (wrk.RamSize() >= SIZE_8K)
+				Map( WRK_PEEK_POKE );
 
-			for (uint i=0x8001U; i < 0x9000; i += 0x2)
+			for (uint i=0x8001U; i < 0x9000U; i += 0x2)
 				Map( i, &Mapper245::Poke_8001 );
-
-			Map( WRK_PEEK_POKE );
 		}
 
 		void Mapper245::SubLoad(State::Loader& state)
@@ -58,7 +53,7 @@ namespace Nes
 			while (const dword chunk = state.Begin())
 			{
 				if (chunk == NES_STATE_CHUNK_ID('R','E','G','\0'))
-					exReg = (state.Read8() & 0x2) << 5;
+					exReg = state.Read8() << 5 & 0x40;
 
 				state.End();
 			}
@@ -79,10 +74,10 @@ namespace Nes
 
 			prg.SwapBanks<SIZE_8K,0x0000U>
 			(
-				exReg | banks.prg[i],
-				exReg | banks.prg[1],
-				exReg | banks.prg[i^2],
-				exReg | banks.prg[3]
+				exReg | (banks.prg[i]   & 0x3F),
+				exReg | (banks.prg[1]   & 0x3F),
+				exReg | (banks.prg[i^2] & 0x3F),
+				exReg | (banks.prg[3]   & 0x3F)
 			);
 		}
 
@@ -94,40 +89,18 @@ namespace Nes
 
 		NES_POKE(Mapper245,8001)
 		{
-			address = (regs.ctrl0 & Regs::CTRL0_MODE);
-
-			if (address >= 6)
+			if (!(regs.ctrl0 & Regs::CTRL0_MODE))
 			{
-				if (banks.prg[address - 6] != data)
+				uint ex = data << 5 & 0x40;
+
+				if (exReg != ex)
 				{
-					banks.prg[address - 6] = data;
+					exReg = ex;
 					Mapper245::UpdatePrg();
 				}
 			}
-			else
-			{
-				if (address < 2)
-				{
-					if (address == 0)
-					{
-						const uint tmp = (data & 0x2) << 5;
 
-						if (exReg != tmp)
-						{
-							exReg = tmp;
-							Mapper245::UpdatePrg();
-						}
-					}
-
-					data >>= 1;
-				}
-
-				if (banks.chr[address] != data)
-				{
-					banks.chr[address] = data;
-					Mapper245::UpdateChr();
-				}
-			}
+			NES_CALL_POKE(Mmc3,8001,address,data);
 		}
 	}
 }

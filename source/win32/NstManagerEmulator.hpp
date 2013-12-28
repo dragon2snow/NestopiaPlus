@@ -161,7 +161,6 @@ namespace Nestopia
 			void  AutoSelectController(uint);
 			void  AutoSelectControllers();
 			void  ConnectController(uint,Nes::Input::Type);
-			ibool ControllerConnected(Nes::Input::Type);
 			void  PlaySong();
 			void  StopSong();
 			void  SelectNextSong();
@@ -178,8 +177,6 @@ namespace Nestopia
 			void  EndNetplayMode();
 			void  DisableNetplay();
 			void  Unhook();
-
-			Nes::Input::Type GetController(uint);
 
 		private:
 

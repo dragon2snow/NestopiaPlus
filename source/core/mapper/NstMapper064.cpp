@@ -41,7 +41,10 @@ namespace Nes
 		{}
 
 		Mapper64::Mapper64(Context& c)
-		: Mapper(c), irq(c.cpu,c.ppu) {}
+		:
+		Mapper (c,CROM_MAX_256K|WRAM_DEFAULT),
+		irq    (c.cpu,c.ppu)
+		{}
 
 		void Mapper64::Irq::Unit::Reset(const bool hard)
 		{

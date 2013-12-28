@@ -41,6 +41,11 @@ namespace Nes
 
 		private:
 
+			enum
+			{
+				ATR_RESET_TRIGGER = 1
+			};
+
 			void SubReset(bool);
 			void SubSave(State::Saver&) const;
 			void SubLoad(State::Loader&);
@@ -50,7 +55,7 @@ namespace Nes
 
 			uint latch;
 			uint menu;
-			const ibool rt4in1;
+			const ibool resetTrigger;
 		};
 	}
 }

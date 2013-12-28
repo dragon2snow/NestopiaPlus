@@ -35,10 +35,15 @@ namespace Nes
 	{
 		class Mapper17 : public Boards::Ffe
 		{
+			enum
+			{
+				ATR_IRQ_OFFSET = 1
+			};
+
 		public:
 
 			Mapper17(Context& c)
-			: Ffe(c,F8_XXX) {}
+			: Ffe(c,c.attribute == ATR_IRQ_OFFSET ? F8_XXX_1 : F8_XXX_0) {}
 		};
 	}
 }

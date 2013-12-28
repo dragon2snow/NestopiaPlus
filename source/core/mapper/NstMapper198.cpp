@@ -24,7 +24,7 @@
 
 #include "../NstMapper.hpp"
 #include "../board/NstBrdMmc3.hpp"
-#include "../board/NstBrdMmc3China.hpp"
+#include "../board/NstBrdMmc3Waixing.hpp"
 #include "NstMapper198.hpp"
 
 namespace Nes
@@ -36,7 +36,7 @@ namespace Nes
 			if (banks.prg[0] >= 0x50)
 				banks.prg[0] &= 0x4F;
 
-			Mmc3China::UpdatePrg();
+			Mmc3Waixing::UpdatePrg();
 		}
 
 		uint Mapper198::GetChrSource(uint) const

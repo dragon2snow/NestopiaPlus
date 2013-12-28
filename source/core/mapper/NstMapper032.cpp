@@ -33,15 +33,16 @@ namespace Nes
 		#pragma optimize("s", on)
 		#endif
 
+		Mapper32::Mapper32(Context& c)
+		:
+		Mapper (c,CROM_MAX_256K),
+		nmt1k  (c.attribute == ATR_NMT_1K)
+		{}
+
 		void Mapper32::SubReset(const bool hard)
 		{
 			if (hard)
-			{
-				prgOffset = 0x0000U;
-
-				if (prgCrc == 0xC0FED437UL) // Major League
-					ppu.SetMirroring( Ppu::NMT_ZERO );
-			}
+				regs[1] = regs[0] = 0;
 
 			Map( 0x8000U, 0x8FFFU, &Mapper32::Poke_8000 );
 			Map( 0x9000U, 0x9FFFU, &Mapper32::Poke_9000 );
@@ -55,17 +56,25 @@ namespace Nes
 				Map( i + 0x3, CHR_SWAP_1K_3 );
 				Map( i + 0x4, CHR_SWAP_1K_4 );
 				Map( i + 0x5, CHR_SWAP_1K_5 );
-				Map( i + 0x6, &Mapper32::Poke_B006 );
-				Map( i + 0x7, &Mapper32::Poke_B007 );
+				Map( i + 0x6, CHR_SWAP_1K_6 );
+				Map( i + 0x7, CHR_SWAP_1K_7 );
 			}
+
+			if (nmt1k)
+				ppu.SetMirroring( Ppu::NMT_ZERO );
 		}
 
 		void Mapper32::SubLoad(State::Loader& state)
 		{
 			while (const dword chunk = state.Begin())
 			{
-				if (chunk == NES_STATE_CHUNK_ID('R','E','G','\0'))
-					prgOffset = (state.Read8() & 0x2) << 13;
+				if (chunk == NES_STATE_CHUNK_ID('B','N','K','\0'))
+				{
+					const State::Loader::Data<2> data( state );
+
+					regs[0] = data[0];
+					regs[1] = data[1];
+				}
 
 				state.End();
 			}
@@ -73,43 +82,32 @@ namespace Nes
 
 		void Mapper32::SubSave(State::Saver& state) const
 		{
-			state.Begin('R','E','G','\0').Write8( prgOffset >> 13 ).End();
+			state.Begin('B','N','K','\0').Write16( regs[0] | (regs[1] << 8) ).End();
 		}
 
 		#ifdef NST_PRAGMA_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
+		void Mapper32::UpdatePrg()
+		{
+			prg.SwapBank<SIZE_8K,0x0000U>( (regs[1] & 0x2) ? ~1U : regs[0] );
+			prg.SwapBank<SIZE_8K,0x4000U>( (regs[1] & 0x2) ? regs[0] : ~1U );
+		}
+
 		NES_POKE(Mapper32,8000)
 		{
-			prg.SwapBank<SIZE_8K>( prgOffset, data );
+			regs[0] = data;
+			UpdatePrg();
 		}
 
 		NES_POKE(Mapper32,9000)
 		{
-			ppu.SetMirroring( (data & 0x1) ? Ppu::NMT_HORIZONTAL : Ppu::NMT_VERTICAL );
-			prgOffset = (data & 0x2) << 13;
-		}
+			regs[1] = data;
+			UpdatePrg();
 
-		NES_POKE(Mapper32,B006)
-		{
-			ppu.Update();
-			chr.SwapBank<SIZE_1K,0x1800U>(data);
-
-			if (prgCrc == 0xC0FED437UL && (data & 0x40)) // Major League
-			{
-				const uchar mirroring[4] = {0,0,0,1};
-				ppu.SetMirroring( mirroring );
-			}
-		}
-
-		NES_POKE(Mapper32,B007)
-		{
-			ppu.Update();
-			chr.SwapBank<SIZE_1K,0x1C00U>(data);
-
-			if (prgCrc == 0xC0FED437UL && (data & 0x40)) // Major League
-				ppu.SetMirroring( Ppu::NMT_ZERO );
+			if (!nmt1k)
+				ppu.SetMirroring( (data & 0x1) ? Ppu::NMT_HORIZONTAL : Ppu::NMT_VERTICAL );
 		}
 	}
 }

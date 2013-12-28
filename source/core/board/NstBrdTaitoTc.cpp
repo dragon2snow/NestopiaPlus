@@ -38,7 +38,7 @@ namespace Nes
 
 			TaitoTc::TaitoTc(Context& c,const Type type)
 			:
-			Mapper (c),
+			Mapper (c,CROM_MAX_512K|WRAM_DEFAULT),
 			irq    (type == TYPE_TC190V ? new Mmc3::Irq(c.cpu,c.ppu,Mmc3::Irq::IRQ_DELAY) : NULL)
 			{
 			}

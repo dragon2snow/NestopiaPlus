@@ -40,7 +40,7 @@ namespace Nes
 			public:
 
 				DreamTech01(Context& c)
-				: Mapper(c) {}
+				: Mapper(c,CROM_MAX_8K|WRAM_DEFAULT) {}
 
 			private:
 

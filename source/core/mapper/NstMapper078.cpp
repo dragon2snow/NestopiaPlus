@@ -34,9 +34,14 @@ namespace Nes
 		#endif
 
 		Mapper78::Mapper78(Context& c)
-		: Mapper(c)
+		: Mapper(c,PROM_MAX_128K|CROM_MAX_128K|WRAM_DEFAULT)
 		{
-			if (c.prgCrc == 0xBC1197A4UL) // Holy Diver
+			if (mirroring == Ppu::NMT_FOURSCREEN)
+			{
+				nmt[0] = Ppu::NMT_FOURSCREEN;
+				nmt[1] = Ppu::NMT_FOURSCREEN;
+			}
+			else if (c.attribute == ATR_HV_MIRRORING)
 			{
 				nmt[0] = Ppu::NMT_HORIZONTAL;
 				nmt[1] = Ppu::NMT_VERTICAL;
@@ -59,8 +64,8 @@ namespace Nes
 
 		NES_POKE(Mapper78,Prg)
 		{
-			ppu.SetMirroring( nmt[(data >> 3) & 0x1] );
-			prg.SwapBank<SIZE_16K,0x0000U>( data & 0xF );
+			ppu.SetMirroring( nmt[data >> 3 & 0x1] );
+			prg.SwapBank<SIZE_16K,0x0000U>( data );
 			chr.SwapBank<SIZE_8K,0x0000U>( data >> 4 );
 		}
 	}

@@ -40,8 +40,13 @@ namespace Nes
 			else
 				regs[0] = (regs[0] + 1) % 4;
 
-			Map( 0x6000U,          &Mapper57::Peek_6000 );
-			Map( 0x8000U, 0xFFFFU, &Mapper57::Poke_8000 );
+			Map( 0x6000U, &Mapper57::Peek_6000 );
+
+			for (dword i=0x8000U; i <= 0xFFFFU; i += 0x1000U)
+			{
+				Map( i+0x000, i+0x7FF, &Mapper57::Poke_8000 );
+				Map( i+0x800, i+0xFFF, &Mapper57::Poke_8800 );
+			}
 		}
 
 		void Mapper57::SubLoad(State::Loader& state)
@@ -75,26 +80,24 @@ namespace Nes
 			return regs[0];
 		}
 
+		void Mapper57::UpdateChr() const
+		{
+			chr.SwapBank<SIZE_8K,0x0000U>( (regs[1] >> 1 & 0x8) | (regs[1] & 0x7) | (regs[2] & 0x3) );
+		}
+
 		NES_POKE(Mapper57,8000)
 		{
-			if ((address & 0x8800U) == 0x8800U)
-			{
-				regs[1] = data;
+			regs[2] = data;
+			ppu.Update();
+			UpdateChr();
+		}
 
-				if (data & 0x80)
-					prg.SwapBank<SIZE_32K,0x0000U>( data >> 6 );
-				else
-					prg.SwapBanks<SIZE_16K,0x0000U>( data >> 5, data >> 5 );
-
-				ppu.SetMirroring( (data & 0x8) ? Ppu::NMT_HORIZONTAL : Ppu::NMT_VERTICAL );
-			}
-			else
-			{
-				regs[2] = data;
-				ppu.Update();
-			}
-
-			chr.SwapBank<SIZE_8K,0x0000U>( (regs[1] >> 1 & 0x8) | (regs[1] & 0x7) | (regs[2] & 0x3) );
+		NES_POKE(Mapper57,8800)
+		{
+			regs[1] = data;
+			prg.SwapBanks<SIZE_16K,0x0000U>( (data >> 5) & ~(data >> 7), (data >> 5) | (data >> 7) );
+			ppu.SetMirroring( (data & 0x8) ? Ppu::NMT_HORIZONTAL : Ppu::NMT_VERTICAL );
+			UpdateChr();
 		}
 	}
 }

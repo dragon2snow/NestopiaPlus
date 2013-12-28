@@ -35,7 +35,7 @@ namespace Nes
 
 		void Mapper77::SubReset(const bool hard)
 		{
-			Map( 0x6000U, 0xFFFFU, &Mapper77::Poke_Prg );
+			Map( 0x8000U, 0xFFFFU, &Mapper77::Poke_Prg );
 
 			chr.Source(1).SwapBank<SIZE_2K,0x0800U>( 0 );
 			chr.Source(1).SwapBank<SIZE_2K,0x1000U>( 1 );
@@ -49,7 +49,7 @@ namespace Nes
 		NES_POKE(Mapper77,Prg)
 		{
 			ppu.Update();
-			prg.SwapBank<SIZE_32K,0x0000U>(data & 0x7);
+			prg.SwapBank<SIZE_32K,0x0000U>(data);
 			chr.SwapBank<SIZE_2K,0x0000U>(data >> 4);
 		}
 	}

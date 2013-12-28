@@ -48,7 +48,7 @@ namespace Nestopia
 
 		void Netplay::Chat::Open()
 		{
-			dialog.Open( Dialog::MODELESS );
+			dialog.Open( Dialog::MODELESS_CHILD );
 		}
 
 		void Netplay::Chat::Close()
@@ -67,14 +67,19 @@ namespace Nestopia
 		{
 			if (param.wParam == 1 && param.lParam == 0)
 			{
+				HeapString wtext;
+
 				const Control::Edit edit( dialog.Edit(IDC_CHAT_EDIT) );
 
-				if (edit.Text() >> text)
+				if (edit.Text() >> wtext)
 				{
-					text.Trim();
+					wtext.Trim();
 
-					if (text.Length())
-						callback( text.Ptr() );
+					if (wtext.Length())
+					{
+						text.Clear();
+						callback( text.Import( wtext.Ptr(), true ).Ptr() );
+					}
 
 					edit.Text().Clear();
 				}

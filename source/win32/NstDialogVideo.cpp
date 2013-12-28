@@ -349,10 +349,6 @@ namespace Nestopia
 			UpdateFinalRects();
 		}
 
-		Video::~Video()
-		{
-		}
-
 		void Video::Save(Configuration& cfg) const
 		{
 			if (settings.adapter != adapters.end())
@@ -982,7 +978,7 @@ namespace Nestopia
 					paths.BrowseLoad
 					(
 						Managers::Paths::File::PALETTE|Managers::Paths::File::ARCHIVE,
-						settings.palette
+						Application::Instance::GetFullPath( settings.palette )
 					)
 				);
 
@@ -1301,7 +1297,7 @@ namespace Nestopia
 
 			Managers::Paths::File file;
 
-			if (paths.Load( file, Managers::Paths::File::PALETTE|Managers::Paths::File::ARCHIVE, palette, alert ))
+			if (paths.Load( file, Managers::Paths::File::PALETTE|Managers::Paths::File::ARCHIVE, Application::Instance::GetFullPath(palette), alert ))
 			{
 				if (file.data.Size() >= Nes::Video::Palette::NUM_ENTRIES*3)
 				{

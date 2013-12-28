@@ -35,10 +35,20 @@ namespace Nes
 
 		void Mapper34::SubReset(bool)
 		{
-			Map( 0x7FFDU, PRG_SWAP_32K  );
-			Map( 0x7FFEU, CHR_SWAP_4K_0 );
-			Map( 0x7FFFU, CHR_SWAP_4K_1 );
-			Map( 0x8000U, 0xFFFFU, PRG_SWAP_32K );
+			if (chr.Source().Writable())
+			{
+				// BxROM
+
+				Map( 0x8000U, 0xFFFFU, PRG_SWAP_32K );
+			}
+			else
+			{
+				// NINA-1
+
+				Map( 0x7FFDU, PRG_SWAP_32K  );
+				Map( 0x7FFEU, CHR_SWAP_4K_0 );
+				Map( 0x7FFFU, CHR_SWAP_4K_1 );
+			}
 		}
 
 		#ifdef NST_PRAGMA_OPTIMIZE

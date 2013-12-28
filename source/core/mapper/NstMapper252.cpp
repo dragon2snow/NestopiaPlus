@@ -36,7 +36,10 @@ namespace Nes
 		#endif
 
 		Mapper252::Mapper252(Context& c)
-		: Mapper(c), irq(c.cpu) {}
+		:
+		Mapper (c,CROM_MAX_256K),
+		irq    (c.cpu)
+		{}
 
 		void Mapper252::SubReset(const bool hard)
 		{

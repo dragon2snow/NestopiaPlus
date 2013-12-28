@@ -784,7 +784,7 @@ namespace Nestopia
 				NST_COMPILE_ASSERT( Io::Nsp::Context::NUM_CONTROLLER_PORTS == Nes::Input::NUM_PORTS );
 
 				for (uint i=0; i < Nes::Input::NUM_PORTS; ++i)
-					context.controllers[i] = GetController( i );
+					context.controllers[i] = Nes::Input(*this).GetConnectedController(i);
 			}
 		}
 
@@ -1072,16 +1072,6 @@ namespace Nestopia
 			netplay.callback.Unset();
 			netplay.player = 0;
 			netplay.players = 0;
-		}
-
-		ibool Emulator::ControllerConnected(const Nes::Input::Type type)
-		{
-			return Nes::Input(*this).IsAnyControllerConnected( type );
-		}
-
-		Nes::Input::Type Emulator::GetController(const uint port)
-		{
-			return Nes::Input(*this).GetConnectedController( port );
 		}
 
 		void Emulator::ConnectController(const uint port,const Nes::Input::Type type)

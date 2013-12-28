@@ -45,21 +45,22 @@ namespace Nestopia
 				Nes::Input::PADDLE            ==  6 &&
 				Nes::Input::POWERPAD          ==  7 &&
 				Nes::Input::MOUSE             ==  8 &&
-				Nes::Input::FAMILYTRAINER     ==  9 &&
-				Nes::Input::FAMILYKEYBOARD    == 10 &&
-				Nes::Input::SUBORKEYBOARD     == 11 &&
-				Nes::Input::DOREMIKKOKEYBOARD == 12 &&
-				Nes::Input::HORITRACK         == 13 &&
-				Nes::Input::PACHINKO          == 14 &&
-				Nes::Input::OEKAKIDSTABLET    == 15 &&
-				Nes::Input::HYPERSHOT         == 16 &&
-				Nes::Input::CRAZYCLIMBER      == 17 &&
-				Nes::Input::MAHJONG           == 18 &&
-				Nes::Input::EXCITINGBOXING    == 19 &&
-				Nes::Input::TOPRIDER          == 20 &&
-				Nes::Input::POKKUNMOGURAA     == 21 &&
-				Nes::Input::PARTYTAP          == 22 &&
-				Nes::Input::NUM_CONTROLLERS   == 22
+				Nes::Input::ROB               ==  9 &&
+				Nes::Input::FAMILYTRAINER     == 10 &&
+				Nes::Input::FAMILYKEYBOARD    == 11 &&
+				Nes::Input::SUBORKEYBOARD     == 12 &&
+				Nes::Input::DOREMIKKOKEYBOARD == 13 &&
+				Nes::Input::HORITRACK         == 14 &&
+				Nes::Input::PACHINKO          == 15 &&
+				Nes::Input::OEKAKIDSTABLET    == 16 &&
+				Nes::Input::HYPERSHOT         == 17 &&
+				Nes::Input::CRAZYCLIMBER      == 18 &&
+				Nes::Input::MAHJONG           == 19 &&
+				Nes::Input::EXCITINGBOXING    == 20 &&
+				Nes::Input::TOPRIDER          == 21 &&
+				Nes::Input::POKKUNMOGURAA     == 22 &&
+				Nes::Input::PARTYTAP          == 23 &&
+				Nes::Input::NUM_CONTROLLERS   == 23
 			);
 
 			Context::Context()
@@ -67,10 +68,6 @@ namespace Nestopia
 			{
 				for (uint i=0; i < NUM_CONTROLLER_PORTS; ++i)
 					controllers[i] = UNKNOWN;
-			}
-
-			Context::~Context()
-			{
 			}
 
 			void Context::Reset()
@@ -102,6 +99,7 @@ namespace Nestopia
 				_T( "paddle"            ),
 				_T( "powerpad"          ),
 				_T( "mouse"             ),
+				_T( "rob"               ),
 				_T( "familytrainer"     ),
 				_T( "familykeyboard"    ),
 				_T( "suborkeyboard"     ),
@@ -120,7 +118,7 @@ namespace Nestopia
 
 			void File::Save(Output& output,const Context& context) const
 			{
-				NST_COMPILE_ASSERT( Context::NUM_CONTROLLER_PORTS == 5 && Context::NUM_CONTROLLERS == 22 );
+				NST_COMPILE_ASSERT( Context::NUM_CONTROLLER_PORTS == 5 && Context::NUM_CONTROLLERS == 23 );
 
 				output << "//\r\n"
                           "// Generated Nestopia Script File. Version " << Application::Instance::GetVersion() << "\r\n"
@@ -135,7 +133,7 @@ namespace Nestopia
                           "//  -IPS <filename>\r\n"
                           "//  -PALETTE <filename>\r\n"
                           "//  -MODE <ntsc/pal>\r\n"
-                          "//  -PORT1..PORT5 <unconnected,pad1,pad2,pad3,pad4,zapper,paddle,powerpad,mouse,\r\n"
+                          "//  -PORT1..PORT5 <unconnected,pad1,pad2,pad3,pad4,zapper,paddle,powerpad,mouse,rob,\r\n"
                           "//                 familytrainer,familykeyboard,suborkeyboard,doremikkokeyboard,\r\n"
                           "//                 horitrack,pachinko,oekakidstablet,hypershot,crazyclimber,\r\n"
                           "//                 mahjong,excitingboxing,toprider,pokkunmoguraa,partytap>\r\n"

@@ -45,9 +45,6 @@ namespace Nes
 		#pragma optimize("s", on)
 		#endif
 
-		Cartridge::Wrk::Wrk()
-		: autoSized(false) {}
-
 		Cartridge::Cartridge(Context& context,Result& result)
 		:
 		Image        (CARTRIDGE),
@@ -58,73 +55,108 @@ namespace Nes
 		{
 			try
 			{
+				ImageDatabase::Handle databaseHandle = NULL;
+
 				switch (Stream::In(context.stream).Peek32())
 				{
-					case 0x1A53454EUL: result = Ines( context.stream, prg, chr, wrk, info, context.database ).GetResult(); break;
-					case 0x46494E55UL: result = Unif( context.stream, prg, chr, wrk, info, context.database ).GetResult(); break;
+					case 0x1A53454EUL: result = Ines( context.stream, prg, chr, wrk, info, context.database, databaseHandle ).GetResult(); break;
+					case 0x46494E55UL: result = Unif( context.stream, prg, chr, wrk, info, context.database, databaseHandle ).GetResult(); break;
 					default: throw RESULT_ERR_INVALID_FILE;
 				}
 
-				if (DetectEncryption())
+				if (context.database && databaseHandle)
 				{
-					result = RESULT_WARN_ENCRYPTED_ROM;
-				}
-				else if (context.database && context.database->Enabled())
-				{
-					DetectBadChr();
-				}
+					info.condition = context.database->Condition(databaseHandle);
 
-				DetectControllers();
-				DetectTurboFile( context );
+					if (info.condition == Api::Cartridge::DUMP_BAD)
+						result = RESULT_WARN_BAD_DUMP;
 
-				if (info.battery)
-					LoadBattery();
+					if (context.database->Encrypted(databaseHandle))
+					{
+						result = RESULT_WARN_ENCRYPTED_ROM;
+						Log::Flush( "Cartridge: file is encrypted!" NST_LINEBREAK );
+					}
+
+					if (const uint id = context.database->Input(databaseHandle))
+						DetectControllers( id );
+
+					if (context.database->InputEx(databaseHandle) == ImageDatabase::INPUT_EX_TURBOFILE)
+					{
+						Log::Flush( "Cartridge: Turbo File storage device present" NST_LINEBREAK );
+						turboFile = new Peripherals::TurboFile( context.cpu );
+					}
+				}
 
 				if (info.board.empty())
-					info.board = Mapper::GetBoard( info.mapper );
-
-				vs = VsSystem::Create( context.cpu, context.ppu, info.pRomCrc, info.system == Api::Cartridge::SYSTEM_VS );
-
-				if (vs)
-				{
-					info.system = Api::Cartridge::SYSTEM_VS;
-				}
-				else if (info.system != Api::Cartridge::SYSTEM_PC10)
-				{
-					dataRecorder = new Peripherals::DataRecorder(context.cpu);
-				}
-
-				prg.Mirror( SIZE_16K );
-				chr.Mirror( SIZE_8K );
+					info.board = Mapper::GetBoard( info.setup.mapper );
 
 				Mapper::Context settings
 				(
-					info.mapper,
+					info.setup.mapper,
 					context.cpu,
 					context.ppu,
 					prg,
 					chr,
 					wrk,
-					info.mirroring == Api::Cartridge::MIRROR_HORIZONTAL ? Ppu::NMT_HORIZONTAL :
-					info.mirroring == Api::Cartridge::MIRROR_VERTICAL   ? Ppu::NMT_VERTICAL :
-					info.mirroring == Api::Cartridge::MIRROR_FOURSCREEN ? Ppu::NMT_FOURSCREEN :
-					info.mirroring == Api::Cartridge::MIRROR_ZERO       ? Ppu::NMT_ZERO :
-					info.mirroring == Api::Cartridge::MIRROR_ONE        ? Ppu::NMT_ONE :
-                                                                          Ppu::NMT_CONTROLLED,
-					info.battery,
-					info.pRomCrc
+					info.setup.mirroring == Api::Cartridge::MIRROR_HORIZONTAL ? Ppu::NMT_HORIZONTAL :
+					info.setup.mirroring == Api::Cartridge::MIRROR_VERTICAL   ? Ppu::NMT_VERTICAL :
+					info.setup.mirroring == Api::Cartridge::MIRROR_FOURSCREEN ? Ppu::NMT_FOURSCREEN :
+					info.setup.mirroring == Api::Cartridge::MIRROR_ZERO       ? Ppu::NMT_ZERO :
+					info.setup.mirroring == Api::Cartridge::MIRROR_ONE        ? Ppu::NMT_ONE :
+																				Ppu::NMT_CONTROLLED,
+					info.setup.wrkRamBacked,
+					context.database && databaseHandle && info.setup.mapper == context.database->Mapper(databaseHandle) ? context.database->Attribute(databaseHandle) : 0
 				);
 
 				mapper = Mapper::Create( settings );
 
-				info.wRam = wrk.Size();
+				info.setup.prgRom = prg.Size();
+				info.setup.chrRom = chr.Size();
+				info.setup.chrRam = settings.chrRam;
+				info.setup.wrkRamAuto = settings.wrkAuto;
+
+				if (info.setup.wrkRamBacked+info.setup.wrkRam != wrk.Size())
+				{
+					if (info.setup.wrkRamBacked > wrk.Size())
+						info.setup.wrkRamBacked = wrk.Size();
+
+					info.setup.wrkRam = wrk.Size() - info.setup.wrkRamBacked;
+				}
 
 				if (wrk.Size())
 				{
-					if (info.battery)
-						wrk.batteryCheckSum = Checksum::Md5::Compute( wrk.Mem(), wrk.Size() );
-					else
-						wrk.autoSized = settings.wrkAuto;
+					ResetWrkRam( 0 );
+					LoadBattery();
+				}
+
+				info.crc = info.prgCrc = Checksum::Crc32::Compute( prg.Mem(), prg.Size() );
+
+				if (chr.Size())
+				{
+					info.chrCrc = Checksum::Crc32::Compute( chr.Mem(), chr.Size() );
+					info.crc = Checksum::Crc32::Compute( chr.Mem(), chr.Size(), info.crc );
+				}
+
+				if (info.setup.system == SYSTEM_VS)
+				{
+					vs = VsSystem::Create
+					(
+						context.cpu,
+						context.ppu,
+						info.setup.ppu,
+						info.setup.security == 1 ? VsSystem::MODE_RBI :
+						info.setup.security == 2 ? VsSystem::MODE_TKO :
+						info.setup.security == 3 ? VsSystem::MODE_XEV :
+                                                   VsSystem::MODE_STD,
+						info.prgCrc,
+						info.setup.version == 0 || (context.database && context.database->Enabled())
+					);
+
+					info.setup.ppu = vs->GetPpuType();
+				}
+				else if (info.setup.system != SYSTEM_PC10)
+				{
+					dataRecorder = new Peripherals::DataRecorder(context.cpu);
 				}
 			}
 			catch (...)
@@ -138,8 +170,8 @@ namespace Nes
 		{
 			delete dataRecorder;
 			delete turboFile;
-			VsSystem::Destroy( vs );
-			Mapper::Destroy( mapper );
+			delete vs;
+			delete mapper;
 		}
 
 		Cartridge::~Cartridge()
@@ -156,6 +188,11 @@ namespace Nes
 		{
 			NST_ASSERT( port < Api::Input::NUM_CONTROLLERS );
 			return info.controllers[port];
+		}
+
+		uint Cartridge::GetDesiredAdapter() const
+		{
+			return info.adapter;
 		}
 
 		Cartridge::ExternalDevice Cartridge::QueryExternalDevice(ExternalDeviceType type)
@@ -183,390 +220,129 @@ namespace Nes
 			}
 		}
 
-		void Cartridge::DetectControllers()
+		void Cartridge::DetectControllers(uint inputId)
 		{
-			switch (info.pRomCrc)
+			switch (inputId)
 			{
-				case 0xFBFC6A6CUL: // Adventures of Bayou Billy, The (E)
-				case 0xCB275051UL: // Adventures of Bayou Billy, The (U)
-				case 0xFB69C131UL: // Baby Boomer (JUE)
-				case 0xF2641AD0UL: // Barker Bill's Trick Shooting (U)
-				case 0x639CB8B8UL: // Chiller
-				case 0xBC1DCE96UL: // -||-
-				case 0xBE1BF10CUL: // -||-
-				case 0x320194F8UL: // -||-
-				case 0x90CA616DUL: // Duck Hunt (JUE)
-				case 0x59E3343FUL: // Freedom Force (U)
-				case 0x242A270CUL: // Gotcha! (U)
-				case 0x7B5BD2DEUL: // Gumshoe (UE)
-				case 0x255B129CUL: // Gun Sight (J)
-				case 0x8963AE6EUL: // Hogan's Alley (JU)
-				case 0x51D2112FUL: // Laser Invasion (U)
-				case 0x0A866C94UL: // Lone Ranger, The (U)
-				case 0xE4C04EEAUL: // Mad City (J)
-				case 0x9EEF47AAUL: // Mechanized Attack (U)
-				case 0xC2DB7551UL: // Shooting Range (U)
-				case 0x0CD00488UL: // Space Shadow
-				case 0x03B6596CUL: // -||-
-				case 0x81069812UL: // Super Mario Bros / Duck Hunt (U)
-				case 0xE8F8F7A5UL: // -||- (E)
-				case 0xD4F018F5UL: // Super Mario Bros / Duck Hunt / Track Meet
-				case 0x163E86C0UL: // To The Earth (U)
-				case 0x389960DBUL: // Wild Gunman (JUE)
-				case 0x0D3CF705UL: // -||- (J)
-				case 0x4A60A644UL: // -||-
-				case 0x1388AEB9UL: // Operation Wolf (U)
-				case 0x42d893E4UL: // -||- (J)
-				case 0x54C34223UL: // -||- (E)
-				case 0xACD34C1DUL: // -||-
-				case 0x694041D7UL: // -||-
-				case 0xE85B4D3DUL: // Hit Marmot (J)
-				case 0xE5F4C206UL: // Master Shooter (A)
+				case ImageDatabase::INPUT_LIGHTGUN:
 
-					info.controllers[0] = Api::Input::PAD1;
 					info.controllers[1] = Api::Input::ZAPPER;
-					info.controllers[2] = Api::Input::UNCONNECTED;
-					info.controllers[3] = Api::Input::UNCONNECTED;
-					info.controllers[4] = Api::Input::UNCONNECTED;
 					break;
 
-				case 0xED588F00UL: // VS Duck Hunt
-				case 0x17AE56BEUL: // VS Freedom Force
-				case 0xFF5135A3UL: // VS Hogan's Alley
+				case ImageDatabase::INPUT_LIGHTGUN_VS:
 
 					info.controllers[0] = Api::Input::ZAPPER;
 					info.controllers[1] = Api::Input::UNCONNECTED;
-					info.controllers[2] = Api::Input::UNCONNECTED;
-					info.controllers[3] = Api::Input::UNCONNECTED;
-					info.controllers[4] = Api::Input::UNCONNECTED;
 					break;
 
-				case 0x35893B67UL: // Arkanoid (J)
-				case 0x9D0B83E0UL: // -||-
-				case 0x95DBB274UL: // -||-
-				case 0xAE56518EUL: // -||-
-				case 0xAF4A2A1DUL: // -||-
-				case 0x6267FBD1UL: // Arkanoid 2 (J)
-				case 0x9C6868A8UL: // -||-
-				case 0x8FBF8C2CUL: // -||-
-				case 0xD04D6C50UL: // -||-
+				case ImageDatabase::INPUT_POWERPAD:
 
-					info.controllers[0] = Api::Input::PAD1;
-					info.controllers[1] = Api::Input::PAD2;
-					info.controllers[2] = Api::Input::UNCONNECTED;
-					info.controllers[3] = Api::Input::UNCONNECTED;
-					info.controllers[4] = Api::Input::PADDLE;
-					break;
-
-				case 0xB8BB48D3UL: // Arkanoid (U)
-
-					info.controllers[0] = Api::Input::PAD1;
-					info.controllers[1] = Api::Input::PADDLE;
-					info.controllers[2] = Api::Input::UNCONNECTED;
-					info.controllers[3] = Api::Input::UNCONNECTED;
-					info.controllers[4] = Api::Input::UNCONNECTED;
-					break;
-
-				case 0xBC5F6C94UL: // Athletic World (U)
-				case 0xD836A90BUL: // Dance Aerobics (U)
-				case 0xFD37CA4CUL: // Short Order - Eggsplode (U)
-				case 0x96C4CE38UL: // -||-
-				case 0x29292EE4UL: // -||-
-				case 0x987DCDA3UL: // Street Cop (U)
-				case 0xDD978A90UL: // Stadium Events (U)
-				case 0xD06CEB9AUL: // Stadium Events (E)
-				case 0x2D76A271UL: // World Track Meet (U)
-				case 0xF210E68FUL: // Super Team Games (U)
-
-					info.controllers[0] = Api::Input::PAD1;
 					info.controllers[1] = Api::Input::POWERPAD;
-					info.controllers[2] = Api::Input::UNCONNECTED;
-					info.controllers[3] = Api::Input::UNCONNECTED;
-					info.controllers[4] = Api::Input::UNCONNECTED;
 					break;
 
-				case 0xF8DA2506UL: // Aerobics Studio (J)
-				case 0x8C8FA83BUL: // Athletic World (J)
-				case 0xCA26A0F1UL: // Dai Undoukai (J)
-				case 0xEE11FE78UL: // Fuuun! Takeshi Shiro 2 (J)
-				case 0x28068B8CUL: // Fuuun! Takeshi Jou 2 (J) bad
-				case 0x7E704A14UL: // Jogging Race (J)
-				case 0x10BB8F9AUL: // Manhattan Police (J)
-				case 0xAD3DF455UL: // Meiro Dai Sakusen (J)
-				case 0x2330A5D3UL: // Rairai Kyonshiizu (J)
-				case 0xB8C54977UL: // -||-
-				case 0x8A5B72C0UL: // Running Stadium (J)
-				case 0x59794F2DUL: // Totsugeki Fuuun Takeshi Jou (J)
+				case ImageDatabase::INPUT_FAMILYTRAINER:
 
-					info.controllers[0] = Api::Input::PAD1;
 					info.controllers[1] = Api::Input::UNCONNECTED;
-					info.controllers[2] = Api::Input::UNCONNECTED;
-					info.controllers[3] = Api::Input::UNCONNECTED;
 					info.controllers[4] = Api::Input::FAMILYTRAINER;
 					break;
 
-				case 0x868FCD89UL: // Family BASIC (Ver 1.0)
-				case 0xF9DEF527UL: // Family BASIC (Ver 2.0)
-				case 0xDE34526EUL: // Family BASIC (Ver 2.1a)
-				case 0xF050B611UL: // Family BASIC (Ver 3)
-				case 0x3AAEED3FUL: // Family BASIC (Ver 3) (Alt)
-				case 0xDA03D908UL: // Playbox BASIC (Ver 1.0)
-				case 0x2D6B7E5AUL: // Playbox BASIC Prototype
+				case ImageDatabase::INPUT_PADDLE_NES:
 
-					info.controllers[0] = Api::Input::PAD1;
-					info.controllers[1] = Api::Input::PAD2;
-					info.controllers[2] = Api::Input::UNCONNECTED;
-					info.controllers[3] = Api::Input::UNCONNECTED;
+					info.controllers[1] = Api::Input::PADDLE;
+					break;
+
+				case ImageDatabase::INPUT_PADDLE_FAMICOM:
+
+					info.controllers[4] = Api::Input::PADDLE;
+					break;
+
+				case ImageDatabase::INPUT_ADAPTER_FAMICOM:
+
+					info.adapter = Api::Input::ADAPTER_FAMICOM;
+
+				case ImageDatabase::INPUT_ADAPTER_NES:
+
+					info.controllers[2] = Api::Input::PAD3;
+					info.controllers[3] = Api::Input::PAD4;
+					break;
+
+				case ImageDatabase::INPUT_SUBORKEYBOARD:
+
+					info.controllers[4] = Api::Input::SUBORKEYBOARD;
+					break;
+
+				case ImageDatabase::INPUT_FAMILYKEYBOARD:
+
 					info.controllers[4] = Api::Input::FAMILYKEYBOARD;
 					break;
 
-				case 0x903A95EBUL: // Magistr v1.0
-				case 0x7BDD12F3UL: // Simbas v1.0
-				case 0x1460EC7BUL: // Subor v1.0
-				case 0x82F1FB96UL: // Subor v1.0 (Russian)
-				case 0x589B6B0DUL: // Supor v2.0
-				case 0x41401C6DUL: // Supor v4.0
-				case 0x41EF9AC4UL: // -||-
-				case 0x5E073A1BUL: // Supor English (Chinese)
-				case 0x8B265862UL: // -||-
-				case 0xABB2F974UL: // Study and Game 32-in-1
-				case 0xD5D6EAC4UL: // Edu (Asia)
-				case 0x368C19A8UL: // LIKO Study Cartridge
-				case 0x543AB532UL: // LIKO Color Lines
-				case 0xB066111AUL: // Text Editor (Russian)
+				case ImageDatabase::INPUT_PARTYTAP:
 
-					info.controllers[0] = Api::Input::PAD1;
-					info.controllers[1] = Api::Input::PAD2;
-					info.controllers[2] = Api::Input::UNCONNECTED;
-					info.controllers[3] = Api::Input::UNCONNECTED;
-					info.controllers[4] = Api::Input::SUBORKEYBOARD;
-					break;
-
-				case 0xE9A7FE9EUL: // Educational Computer 2000
-
-					info.controllers[0] = Api::Input::PAD1;
-					info.controllers[1] = Api::Input::MOUSE;
-					info.controllers[2] = Api::Input::UNCONNECTED;
-					info.controllers[3] = Api::Input::UNCONNECTED;
-					info.controllers[4] = Api::Input::SUBORKEYBOARD;
-					break;
-
-				case 0x3B997543UL: // Gauntlet 2 (E)
-				case 0x2C609B52UL: // Gauntlet 2 (U)
-				case 0x1352F1B9UL: // Greg Norman's Golf Power (U)
-				case 0xAB8371F6UL: // Kings of the Beach (U)
-				case 0x0939852FUL: // M.U.L.E. (U)
-				case 0xDA2CB59AUL: // Nightmare on Elm Street, A (U)
-				case 0x9EDD2159UL: // R.C. Pro-Am 2 (U)
-				case 0xD3428E2EUL: // Super Jeopardy! (U)
-				case 0x15E98A14UL: // Super Spike V'Ball (U)
-				case 0xEBB9DF3DUL: // Super Spike V'Ball (E)
-				case 0x35190A3FUL: // Super Spike V'Ball - World Cup (U)
-				case 0x3417EC46UL: // Swords and Serpents (U)
-				case 0xD153CAF6UL: // Swords and Serpents (E)
-				case 0x85C5B6B4UL: // Nekketsu Kakutou Densetsu
-				case 0x3B7B3BE1UL: // -||- (T)
-				case 0x9771A019UL: // -||- (T)
-				case 0xAAFED9B4UL: // -||-
-				case 0x7BD7B849UL: // Nekketsu Koukou - Dodgeball Bu
-				case 0xDEDDD5E5UL: // Kunio Kun no Nekketsu Soccer League
-				case 0x6EF0C08EUL: // -||- (T)
-				case 0x6375C11EUL: // -||- (T)
-				case 0xF985AC97UL: // -||- (T)
-				case 0xBA11692DUL: // -||- (T)
-				case 0x4FB460CDUL: // Nekketsu! Street Basket - Ganbare Dunk Heroes
-				case 0x457BC688UL: // -||- (T)
-				case 0x5D4A01A9UL: // -||- (T)
-
-					info.controllers[0] = Api::Input::PAD1;
-					info.controllers[1] = Api::Input::PAD2;
-					info.controllers[2] = Api::Input::PAD3;
-					info.controllers[3] = Api::Input::PAD4;
-					info.controllers[4] = Api::Input::UNCONNECTED;
-					break;
-
-				case 0xC3C0811DUL: // Oeka Kids - Anpanman no Hiragana Daisuki (J)
-				case 0x9D048EA4UL: // Oeka Kids - Anpanman to Oekaki Shiyou (J)
-
-					info.controllers[0] = Api::Input::UNCONNECTED;
 					info.controllers[1] = Api::Input::UNCONNECTED;
-					info.controllers[2] = Api::Input::UNCONNECTED;
-					info.controllers[3] = Api::Input::UNCONNECTED;
-					info.controllers[4] = Api::Input::OEKAKIDSTABLET;
+					info.controllers[4] = Api::Input::PARTYTAP;
 					break;
 
-				case 0xFF6621CEUL: // Hyper Olympic
-				case 0x3FC5293EUL: // -||-
-				case 0x39AB6510UL: // -||-
-				case 0xDB9418E8UL: // -||-
-				case 0xAC98CD70UL: // Hyper Sports
-				case 0x435F621EUL: // -||-
+				case ImageDatabase::INPUT_CRAZYCLIMBER:
 
-					info.controllers[0] = Api::Input::UNCONNECTED;
-					info.controllers[1] = Api::Input::UNCONNECTED;
-					info.controllers[2] = Api::Input::UNCONNECTED;
-					info.controllers[3] = Api::Input::UNCONNECTED;
-					info.controllers[4] = Api::Input::HYPERSHOT;
-					break;
-
-				case 0xC68363F6UL: // Crazy Climber
-				case 0x814188EEUL: // -||-
-				case 0xD9934AEFUL: // -||-
-				case 0xC1DC5B12UL: // -||-
-
-					info.controllers[0] = Api::Input::PAD1;
-					info.controllers[1] = Api::Input::PAD2;
-					info.controllers[2] = Api::Input::UNCONNECTED;
-					info.controllers[3] = Api::Input::UNCONNECTED;
 					info.controllers[4] = Api::Input::CRAZYCLIMBER;
 					break;
 
-				case 0x9FAE4D46UL: // Ide Yousuke Meijin no Jissen Mahjong
-				case 0x3BCEBB61UL: // -||-
-				case 0x7B44FB2AUL: // Ide Yousuke Meijin no Jissen Mahjong 2
+				case ImageDatabase::INPUT_EXCITINGBOXING:
 
-					info.controllers[0] = Api::Input::UNCONNECTED;
-					info.controllers[1] = Api::Input::UNCONNECTED;
-					info.controllers[2] = Api::Input::UNCONNECTED;
-					info.controllers[3] = Api::Input::UNCONNECTED;
-					info.controllers[4] = Api::Input::MAHJONG;
-					break;
-
-				case 0x786148B6UL: // Exciting Boxing
-
-					info.controllers[0] = Api::Input::PAD1;
-					info.controllers[1] = Api::Input::PAD2;
-					info.controllers[2] = Api::Input::UNCONNECTED;
-					info.controllers[3] = Api::Input::UNCONNECTED;
 					info.controllers[4] = Api::Input::EXCITINGBOXING;
 					break;
 
-				case 0x20D22251UL: // Top Rider
-				case 0x26171D7DUL: // -||-
+				case ImageDatabase::INPUT_HYPERSHOT:
 
 					info.controllers[0] = Api::Input::UNCONNECTED;
 					info.controllers[1] = Api::Input::UNCONNECTED;
-					info.controllers[2] = Api::Input::UNCONNECTED;
-					info.controllers[3] = Api::Input::UNCONNECTED;
-					info.controllers[4] = Api::Input::TOPRIDER;
+					info.controllers[4] = Api::Input::HYPERSHOT;
 					break;
 
-				case 0x3993B4EBUL: // Super Mogura Tataki!! - Pokkun Moguraa
+				case ImageDatabase::INPUT_POKKUNMOGURAA:
 
-					info.controllers[0] = Api::Input::PAD1;
 					info.controllers[1] = Api::Input::UNCONNECTED;
-					info.controllers[2] = Api::Input::UNCONNECTED;
-					info.controllers[3] = Api::Input::UNCONNECTED;
 					info.controllers[4] = Api::Input::POKKUNMOGURAA;
 					break;
 
-				case 0xE44001D8UL: // Casino Derby
-				case 0xD9F45BE9UL: // Gimmi a Break - Shijou Saikyou no Quiz Ou Ketteisen
-				case 0x1545BD13UL: // Gimmi a Break - Shijou Saikyou no Quiz Ou Ketteisen 2
-				case 0xC1BA8BB9UL: // Project Q
+				case ImageDatabase::INPUT_OEKAKIDS:
 
-					info.controllers[0] = Api::Input::PAD1;
+					info.controllers[0] = Api::Input::UNCONNECTED;
 					info.controllers[1] = Api::Input::UNCONNECTED;
-					info.controllers[2] = Api::Input::UNCONNECTED;
-					info.controllers[3] = Api::Input::UNCONNECTED;
-					info.controllers[4] = Api::Input::PARTYTAP;
+					info.controllers[4] = Api::Input::OEKAKIDSTABLET;
 					break;
-			}
-		}
 
-		void Cartridge::DetectTurboFile(Context& context)
-		{
-			NST_ASSERT( turboFile == NULL );
+				case ImageDatabase::INPUT_MAHJONG:
 
-			switch (info.pRomCrc)
-			{
-				case 0xE792DE94UL: // Best Play - Pro Yakyuu (J)
-				case 0x042F17C4UL: // -||-
-				case 0xF79D684AUL: // -||-
-				case 0xC2EF3422UL: // Best Play - Pro Yakyuu 2 (J)
-				case 0xCB810E8FUL: // -||-
-				case 0x236CBA4DUL: // -||-
-				case 0x974E8840UL: // Best Play - Pro Yakyuu '90 (J)
-				case 0xB8747ABFUL: // Best Play - Pro Yakyuu Special (J)
-				case 0xF7D51D87UL: // -||-
-				case 0xE3C2C174UL: // -||-
-				case 0x9FA1C11FUL: // Castle Excellent (J)
-				case 0x0B0D4D1BUL: // Derby Stallion - Zenkoku Ban (J)
-				case 0x728C3D98UL: // Downtown - Nekketsu Monogatari (J)
-				case 0xD68A6F33UL: // Dungeon Kid (J)
-				case 0x3A51EB04UL: // Fleet Commander (J)
-				case 0x7C46998BUL: // Haja no Fuuin (J)
-				case 0x7E5D2F1AUL: // Itadaki Street - Watashi no Mise ni Yottette (J)
-				case 0xCEE5857BUL: // Ninjara Hoi! (J)
-				case 0xCB8F9273UL: // -||-
-				case 0x50EC5E8BUL: // Wizardry - Legacy of Llylgamyn (J)
-				case 0x343E9146UL: // Wizardry - Proving Grounds of the Mad Overlord (J)
-				case 0x33D07E45UL: // Wizardry - The Knight of Diamonds (J)
-
-					turboFile = new Peripherals::TurboFile( context.cpu );
+					info.controllers[0] = Api::Input::UNCONNECTED;
+					info.controllers[1] = Api::Input::UNCONNECTED;
+					info.controllers[4] = Api::Input::MAHJONG;
 					break;
-			}
-		}
 
-		void Cartridge::DetectBadChr()
-		{
-			if (chr.Size())
-			{
-				switch (info.cRomCrc)
-				{
-					case 0x2B58AA2DUL: // Viva! Las Vegas (J)
+				case ImageDatabase::INPUT_TOPRIDER:
 
-						chr[0] = 0xFF;
-						break;
-				}
-			}
-		}
+					info.controllers[0] = Api::Input::UNCONNECTED;
+					info.controllers[1] = Api::Input::UNCONNECTED;
+					info.controllers[4] = Api::Input::TOPRIDER;
+					break;
 
-		bool Cartridge::DetectEncryption() const
-		{
-			switch (info.pRomCrc)
-			{
-				case 0xA80A2185UL: // Pikachu Y2K
-				case 0x0A4CF093UL: // Shui Hu Zhuan
-				case 0x7F25140EUL: // San Shi Liu Ji
-				case 0xAA34D5D5UL: // Duo Bao Xiao Ying Hao - Guang Ming yu An Hei Chuan Shuo
-				case 0xDF6773D0UL: // Yu Zhou Zhan Jiang - Space General
-				case 0x82A879B7UL: // Yong Zhe Dou E Long - Dragon Quest 5
-				case 0x260D32E0UL: // Yong Zhe Dou E Long - Dragon Quest 7
-				case 0x5E09D30FUL: // Yin He Shi Dai
-				case 0xB68266C9UL: // Dragon Quest
-				case 0x03D6B055UL: // Dong Fang de Chuan Shuo - The Hyrule Fantasy (Zelda)
-				case 0x746E2815UL: // San Guo Zhi
+				case ImageDatabase::INPUT_PAD_SWAP:
 
-					Log::Flush( "Cartridge: game is encrypted!" NST_LINEBREAK );
-					return true;
-			}
+					info.controllers[0] = Api::Input::PAD2;
+					info.controllers[1] = Api::Input::PAD1;
+					break;
 
-			return false;
-		}
+				case ImageDatabase::INPUT_ROB:
 
-		void Cartridge::ResetWRam()
-		{
-			NST_ASSERT( (wrk.Size() % SIZE_8K) == 0 );
-
-			if (wrk.Size())
-			{
-				const uint mask = wrk.autoSized ? 0xFF : 0x00;
-
-				for (uint i=0x6000U; i < 0x7000U; ++i)
-					wrk[i-0x6000U] = (i >> 8) & mask;
-
-				for (uint i=(info.trained ? 0x7200U : 0x7000U); i < 0x8000U; ++i)
-					wrk[i-0x6000U] = (i >> 8) & mask;
-
-				std::memset( wrk.Mem(0x2000U), 0x00, wrk.Size() - 0x2000U );
+					info.controllers[1] = Api::Input::ROB;
+					break;
 			}
 		}
 
 		void Cartridge::Reset(const bool hard)
 		{
-			if (hard && !info.battery)
-				ResetWRam();
+			if (hard && info.setup.wrkRam)
+				ResetWrkRam( info.setup.wrkRamBacked );
 
 			mapper->Reset( hard );
 
@@ -578,6 +354,23 @@ namespace Nes
 
 			if (dataRecorder)
 				dataRecorder->Reset();
+		}
+
+		void Cartridge::ResetWrkRam(uint i)
+		{
+			NST_ASSERT( info.setup.wrkRamBacked+info.setup.wrkRam == wrk.Size() && (i == 0 || i == info.setup.wrkRamBacked) );
+
+			for (const uint n=NST_MIN(wrk.Size(),Ines::TRAINER_BEGIN), openBus=info.setup.wrkRamAuto; i < n; ++i)
+				wrk[i] = openBus ? (0x6000U + i) >> 8 : Wrk::GARBAGE;
+
+			if (i < Ines::TRAINER_END && info.setup.trainer)
+				i = Ines::TRAINER_END;
+
+			for (const uint n=NST_MIN(wrk.Size(),0x2000U), openBus=info.setup.wrkRamAuto; i < n; ++i)
+				wrk[i] = openBus ? (0x6000U + i) >> 8 : Wrk::GARBAGE;
+
+			if (i < wrk.Size())
+				std::memset( wrk.Mem() + i, Wrk::GARBAGE, wrk.Size() - i );
 		}
 
 		void Cartridge::SaveState(State::Saver& state) const
@@ -639,36 +432,27 @@ namespace Nes
 
 		void Cartridge::LoadBattery()
 		{
-			NST_ASSERT( info.battery && wrk.batteryCheckSum.IsNull() );
+			NST_ASSERT( info.setup.wrkRamBacked+info.setup.wrkRam == wrk.Size() && wrk.ramCheckSum.IsNull() );
 
-			std::vector<u8> data;
-			Api::User::fileIoCallback( Api::User::FILE_LOAD_BATTERY, data );
-
-			if (ulong size = data.size())
+			if (info.setup.wrkRamBacked >= Wrk::MIN_BATTERY_SIZE)
 			{
-				ulong pad = 0;
+				Api::User::FileData data;
+				Api::User::fileIoCallback( Api::User::FILE_LOAD_BATTERY, data );
 
-				if (size > SIZE_8K * 0xFFUL)
+				if (ulong size = data.size())
 				{
-					size = SIZE_8K * 0xFFUL;
-					Log::Flush( "Cartridge: warning, save data size is too big! Only the first 2040k will be used!" NST_LINEBREAK );
-				}
-				else
-				{
-					pad = size % SIZE_8K;
+					if (size != info.setup.wrkRamBacked)
+					{
+						if (size > info.setup.wrkRamBacked)
+							size = info.setup.wrkRamBacked;
 
-					if (pad)
-						Log::Flush( "Cartridge: warning, save data size is not evenly divisible by 8k!" NST_LINEBREAK );
-				}
+						Log::Flush( "Cartridge: warning, save file and W-RAM size mismatch!" NST_LINEBREAK );
+					}
 
-				if (wrk.Size() < size)
-				{
-					// Current WRAM size is too small. Resize and do zero-padding.
-					wrk.Set( size + (pad ? SIZE_8K - pad : 0) );
-					std::memset( wrk.Mem(size), 0x00, wrk.Size() - size );
+					std::memcpy( wrk.Mem(), &data.front(), size );
 				}
 
-				std::memcpy( wrk.Mem(), &data.front(), size );
+				wrk.ramCheckSum = Checksum::Md5::Compute( wrk.Mem(), info.setup.wrkRamBacked );
 			}
 		}
 
@@ -677,17 +461,19 @@ namespace Nes
 			if (mapper)
 				mapper->Flush( power );
 
-			if (info.battery && wrk.Size())
-			{
-				const Checksum::Md5::Key key( Checksum::Md5::Compute( wrk.Mem(), wrk.Size() ) );
+			NST_ASSERT( info.setup.wrkRamBacked+info.setup.wrkRam == wrk.Size() );
 
-				if (wrk.batteryCheckSum != key)
+			if (info.setup.wrkRamBacked >= Wrk::MIN_BATTERY_SIZE)
+			{
+				const Checksum::Md5::Key key( Checksum::Md5::Compute( wrk.Mem(), info.setup.wrkRamBacked ) );
+
+				if (wrk.ramCheckSum != key)
 				{
 					try
 					{
-						std::vector<u8> vector( wrk.Mem(), wrk.Mem() + wrk.Size() );
+						Api::User::FileData vector( wrk.Mem(), wrk.Mem() + info.setup.wrkRamBacked );
 						Api::User::fileIoCallback( Api::User::FILE_SAVE_BATTERY, vector );
-						wrk.batteryCheckSum = key;
+						wrk.ramCheckSum = key;
 					}
 					catch (...)
 					{
@@ -699,49 +485,22 @@ namespace Nes
 			return RESULT_OK;
 		}
 
-		const void* Cartridge::SearchDatabase(const ImageDatabase& database,const u8* const data,ulong size)
+		const void* Cartridge::SearchDatabase(const ImageDatabase& database,const void* file,ulong length)
 		{
-			const void* entry = NULL;
-
-			if (data && size > 16+512)
-			{
-				size = (size-16) - (size-16) % 512;
-				entry = database.GetHandle( Checksum::Crc32::Compute( data+16, size ) );
-
-				if (entry == NULL)
-				{
-					const dword banks = data[4] * SIZE_16K + data[5] * SIZE_8K;
-
-					if (banks && size > banks)
-						entry = database.GetHandle( Checksum::Crc32::Compute( data+16, banks ) );
-				}
-			}
-
-			return entry;
+			return Ines::SearchDatabase( database, static_cast<const u8*>(file), length );
 		}
 
-		Cartridge::PpuType Cartridge::QueryPpu(bool yuvConversion)
+		PpuType Cartridge::QueryPpu(bool yuvConversion)
 		{
 			if (vs)
-			{
-				switch (vs->EnableYuvConversion( yuvConversion ))
-				{
-					case VsSystem::RP2C04_0001: return RP2C04_0001;
-					case VsSystem::RP2C04_0002: return RP2C04_0002;
-					case VsSystem::RP2C04_0003: return RP2C04_0003;
-					case VsSystem::RP2C04_0004: return RP2C04_0004;
-				}
+				vs->EnableYuvConversion( yuvConversion );
 
-				return RP2C03;
-			}
-			else if (info.system == Api::Cartridge::SYSTEM_PC10)
-			{
-				return RP2C03;
-			}
-			else
-			{
-				return RP2C02;
-			}
+			return info.setup.ppu;
+		}
+
+		Mode Cartridge::GetMode() const
+		{
+			return info.setup.region == REGION_PAL ? MODE_PAL : MODE_NTSC;
 		}
 
 		#ifdef NST_PRAGMA_OPTIMIZE
@@ -750,7 +509,7 @@ namespace Nes
 
 		void Cartridge::BeginFrame(const Api::Input& input,Input::Controllers* controllers)
 		{
-			if (mapper->GetID() == 188)
+			if (info.setup.mapper == 188)
 				static_cast<Mapper188*>(mapper)->BeginFrame( controllers );
 
 			if (vs)
@@ -766,11 +525,6 @@ namespace Nes
 
 			if (dataRecorder)
 				dataRecorder->VSync();
-		}
-
-		Mode Cartridge::GetMode() const
-		{
-			return info.system == Api::Cartridge::SYSTEM_PAL ? MODE_PAL : MODE_NTSC;
 		}
 	}
 }

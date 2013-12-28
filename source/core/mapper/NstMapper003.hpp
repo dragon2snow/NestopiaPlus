@@ -47,7 +47,10 @@ namespace Nes
 
 		private:
 
-			Sound::Player* DetectSound(dword,Cpu&);
+			enum
+			{
+				ATR_SAMPLES_AS = 1
+			};
 
 			void SubReset(bool);
 

@@ -35,18 +35,18 @@ namespace Nes
 
 		void Mapper133::SubReset(bool)
 		{
-			Map( 0x4120U, &Mapper133::Poke_4120 );
+			Map( 0x4100U, 0x6000U, &Mapper133::Poke_4100 );
 		}
 
 		#ifdef NST_PRAGMA_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
-		NES_POKE(Mapper133,4120)
+		NES_POKE(Mapper133,4100)
 		{
 			ppu.Update();
-			prg.SwapBank<SIZE_32K,0x0000U>( data >> 2 & 0x1 );
-			chr.SwapBank<SIZE_8K,0x0000U>( data & 0x3 );
+			prg.SwapBank<SIZE_32K,0x0000U>( data >> 2 );
+			chr.SwapBank<SIZE_8K,0x0000U>( data );
 		}
 	}
 }

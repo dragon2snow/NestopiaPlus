@@ -35,7 +35,10 @@ namespace Nes
 		#endif
 
 		Mapper73::Mapper73(Context& c)
-		: Mapper(c,CROM_NONE), irq(c.cpu) {}
+		:
+		Mapper (c,CROM_MAX_8K),
+		irq    (c.cpu)
+		{}
 
 		void Mapper73::Irq::Reset(const bool hard)
 		{
@@ -56,7 +59,7 @@ namespace Nes
 			Map( 0xB000U, 0xBFFFU, &Mapper73::Poke_B000 );
 			Map( 0xC000U, 0xCFFFU, &Mapper73::Poke_C000 );
 			Map( 0xD000U, 0xDFFFU, &Mapper73::Poke_D000 );
-			Map( 0xF000U, 0xFFFFU, PRG_SWAP_16K );
+			Map( 0xF000U, 0xFFFFU, PRG_SWAP_16K_0 );
 		}
 
 		void Mapper73::SubLoad(State::Loader& state)

@@ -38,13 +38,11 @@ namespace Nes
 		public:
 
 			Mapper101(Context& c)
-			: Mapper(c,WRAM_NONE) {}
+			: Mapper(c,PROM_MAX_32K|CROM_MAX_32K|WRAM_NONE) {}
 
 		private:
 
 			void SubReset(bool);
-
-			NES_DECL_POKE( Prg )
 		};
 	}
 }

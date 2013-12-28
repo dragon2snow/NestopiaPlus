@@ -336,7 +336,7 @@ namespace Nestopia
 				static const HeapString droppedOut( HeapString() << ") " << Resource::String(IDS_TEXT_DROPPEDOUT) );
 
 				if (nick && *nick)
-					Io::Screen() << player << playerNum << " (" << nick << droppedOut;
+					Io::Screen() << player << playerNum << " (" << HeapString().Import(nick,true) << droppedOut;
 			}
 
 			static void WINAPI ChatRecieve(char* nick,char* text)
@@ -344,7 +344,7 @@ namespace Nestopia
 				static const HeapString says( HeapString() << Resource::String(IDS_TEXT_SAYS) << ": " );
 
 				if (nick && *nick && text && *text)
-					Io::Screen() << nick << says << text;
+					Io::Screen() << HeapString().Import(nick,true) << says << HeapString().Import(text,true);
 			}
 		};
 
@@ -734,7 +734,7 @@ namespace Nestopia
 		void Netplay::Kaillera::Input::Capture()
 		{
 			for (uint i=0; i < 5; ++i)
-				normalSetup[i] = instance->emulator.GetController( i );
+				normalSetup[i] = Nes::Input(instance->emulator).GetConnectedController( i );
 
 			Nes::Input::Controllers::Pad::callback.Get( pollCallback.code, pollCallback.data );
 			Nes::Input::Controllers::Pad::callback.Set( NULL, NULL );
@@ -788,7 +788,7 @@ namespace Nestopia
 		{
 			if (port == instance->network.player-1)
 			{
-				switch (const Nes::Input::Type type = instance->emulator.GetController( port ))
+				switch (const Nes::Input::Type type = Nes::Input(instance->emulator).GetConnectedController( port ))
 				{
 					case Nes::Input::PAD1:
 					case Nes::Input::PAD2:

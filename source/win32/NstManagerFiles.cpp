@@ -178,7 +178,7 @@ namespace Nestopia
 
 				case Paths::File::BATTERY:
 
-					if (emulator.Is( Nes::Machine::CARTRIDGE ) && Nes::Cartridge(emulator).GetInfo()->battery)
+					if (emulator.Is( Nes::Machine::CARTRIDGE ) && Nes::Cartridge(emulator).GetInfo()->setup.wrkRamBacked)
 					{
 						if (Window::User::Confirm( IDS_LOAD_APPLY_CURRENT_GAME ))
 							context.image = emulator.GetImagePath();

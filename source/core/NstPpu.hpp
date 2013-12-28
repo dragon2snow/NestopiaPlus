@@ -53,6 +53,7 @@ namespace Nes
 		public:
 
 			Ppu(Cpu&);
+			~Ppu();
 
 			enum Mirroring
 			{
@@ -99,7 +100,7 @@ namespace Nes
 			void Reset(bool=false);
 			void ClearScreen();
 			void BeginFrame(ibool);
-			void Update();
+			void Update(Cycle=0);
 			void EndFrame();
 
 			void SetMode(Mode);
@@ -117,6 +118,7 @@ namespace Nes
 			void  EnableUnlimSprites(ibool);
 			ibool AreUnlimSpritesEnabled() const;
 			void  EnableEmphasis(ibool);
+			uint  SolidColors() const;
 
 			class ChrMem : public Memory<SIZE_8K,SIZE_1K,2>
 			{
@@ -497,6 +499,13 @@ namespace Nes
 				u8 ram[SIZE];
 			};
 
+			struct YuvMap
+			{
+				YuvMap(const u8*);
+
+				u8 colors[Palette::COLORS];
+			};
+
 			Cpu& cpu;
 			Cycles cycles;
 			Phase phase;
@@ -514,7 +523,7 @@ namespace Nes
 			Palette palette;
 			Oam oam;
 			NameTable nameTable;
-			u8 yuvMap[Palette::COLORS];
+			const YuvMap* yuvMap;
 			Video::Screen screen;
 
 			static void LogMsg(cstring,uint,uint);
@@ -583,10 +592,15 @@ namespace Nes
 				output.pixels = pixels;
 			}
 
+			const Palette& GetPalette() const
+			{
+				return palette;
+			}
+
 			uint GetYuvPixel(uint i) const
 			{
 				NST_ASSERT( i < Video::Screen::PIXELS );
-				return yuvMap[output.pixels[i] & 0x3F];
+				return yuvMap ? yuvMap->colors[output.pixels[i] & 0x3F] : output.pixels[i];
 			}
 
 			uint GetPixelCycles() const

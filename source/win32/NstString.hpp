@@ -63,6 +63,9 @@ namespace Nestopia
 			static bool Trim(char*);
 			static bool Trim(wchar_t*);
 
+			static uint GetAbsolutePath(const char*,char*,uint);
+			static uint GetAbsolutePath(const wchar_t*,wchar_t*,uint);
+
 			template<typename T> static T* FromUnsigned(T (&)[MAX_INT_LENGTH],u32);
 			template<typename T> static T* FromSigned(T (&)[MAX_INT_LENGTH],i32);
 
@@ -1208,7 +1211,7 @@ namespace Nestopia
 		}
 
 		template<typename T=tchar>
-		class Heap : Base
+		class Heap : public Base
 		{
 		public:
 
@@ -1229,7 +1232,8 @@ namespace Nestopia
 			void Defrag();
 			void Destroy();
 			void Erase(uint,uint);
-			void Import(cstring);
+			Heap& Import(cstring,ibool=false);
+			Heap& Import(wstring,ibool=false);
 
 		private:
 
@@ -1686,8 +1690,9 @@ namespace Nestopia
 				return *this;
 			}
 
-			void Set(Any,Any,Any=Any());
-			void MakePretty(ibool=false);
+			void  Set(Any,Any,Any=Any());
+			void  MakePretty(ibool=false);
+			Path& MakeAbsolute(ibool=false);
 
 			bool FileExists() const;
 			bool FileProtected() const;
@@ -1871,6 +1876,25 @@ namespace Nestopia
 				if (checkSlash && Parent::Back() != '\\' && Parent::Back() != '/')
 					(*this) << '\\';
 			}
+		}
+
+		template<typename T>
+		Path<T>& Path<T>::MakeAbsolute(const ibool checkSlash)
+		{
+			Heap<T> buffer;
+			buffer.Reserve( 255 );
+			buffer.Resize( Parent::GetAbsolutePath( Parent::Ptr(), buffer.Ptr(), 255+1 ) );
+
+			if (buffer.Length() > 255+1)
+			{
+				Parent::GetAbsolutePath( Parent::Ptr(), buffer.Ptr(), buffer.Length() );
+				buffer.ShrinkTo( buffer.Length() - 1 );
+			}
+
+			if (checkSlash && Parent::Length() && Parent::Back() != '\\' && Parent::Back() != '/')
+				buffer << '\\';
+
+			return *this = buffer;
 		}
 
 		template<typename T>

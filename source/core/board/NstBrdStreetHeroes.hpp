@@ -40,7 +40,7 @@ namespace Nes
 			public:
 
 				StreetHeroes(Context& c)
-				: Mmc3(c,CRAM_8K) {}
+				: Mmc3(c,BRD_GENERIC,PROM_MAX_512K|CROM_MAX_512K|CRAM_8K|WRAM_DEFAULT) {}
 
 			private:
 

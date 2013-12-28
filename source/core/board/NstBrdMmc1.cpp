@@ -35,14 +35,45 @@ namespace Nes
 			#pragma optimize("s", on)
 			#endif
 
-			Mmc1::Mmc1(Context& c,uint settings,Revision rev)
+			uint Mmc1::BoardToWRam(Board board)
+			{
+				switch (board)
+				{
+					case BRD_GENERIC:
+
+						return WRAM_AUTO;
+
+					case BRD_SAROM:
+					case BRD_SJROM:
+					case BRD_SKROM:
+					case BRD_SNROM:
+					case BRD_SUROM:
+					case BRD_GENERIC_WRAM:
+
+						return WRAM_8K;
+
+					case BRD_SOROM:
+
+						return WRAM_16K;
+
+					case BRD_SXROM:
+
+						return WRAM_32K;
+
+					default:
+
+						return WRAM_NONE;
+				}
+			}
+
+			Mmc1::Mmc1(Context& c,Board b,Revision rev)
 			:
-			Mapper   (c,settings),
+			Mapper   (c,BoardToWRam(b) | PROM_MAX_512K|CROM_MAX_128K),
 			revision (rev)
 			{
 			}
 
-			void Mmc1::ClearRegisters()
+			void Mmc1::ResetRegisters()
 			{
 				serial.buffer = 0;
 				serial.shifter = 0;
@@ -50,35 +81,24 @@ namespace Nes
 				regs[CTRL] = CTRL_RESET;
 				regs[CHR0] = 0;
 				regs[CHR1] = 0;
-				regs[PRG0] = (revision == REV_1C ? PRG0_WRAM_DISABLED : 0);
+				regs[PRG0] = (revision == REV_C ? PRG0_WRAM_DISABLED : 0);
 			}
 
 			void Mmc1::SubReset(const bool hard)
 			{
-				if (wrk.HasRam())
-				{
-					if (revision == REV_1A && wrk.RamSize() != SIZE_16K)
-					{
-						Map( WRK_PEEK_POKE );
-					}
-					else Map
-					(
-						0x6000U, 0x7FFFU,
-						wrk.RamSize() == SIZE_16K ? revision == REV_1A ? &Mmc1::Peek_wRam_SoRom_1a : &Mmc1::Peek_wRam_SoRom : &Mmc1::Peek_wRam,
-						wrk.RamSize() == SIZE_16K ? revision == REV_1A ? &Mmc1::Poke_wRam_SoRom_1a : &Mmc1::Poke_wRam_SoRom : &Mmc1::Poke_wRam
-					);
-				}
+				if (wrk.RamSize() >= SIZE_8K && revision != REV_A)
+					Map( WRK_SAFE_PEEK_POKE );
 
 				Map( 0x8000U, 0xFFFFU, &Mmc1::Poke_Prg );
 
-				serial.time = -2;
+				serial.ready = cpu.GetMasterClockCycle(Serial::RESET_CYCLES);
 
 				if (hard)
 				{
-					ClearRegisters();
-					UpdatePrg();
-					UpdateChr();
-					UpdateMirroring();
+					ResetRegisters();
+
+					for (uint i=0; i < 4; ++i)
+						UpdateRegisters( i );
 				}
 			}
 
@@ -86,7 +106,7 @@ namespace Nes
 			{
 				NST_VERIFY( id == NES_STATE_CHUNK_ID('M','M','1','\0') );
 
-				serial.time = -2;
+				serial.ready = 0;
 
 				if (id == NES_STATE_CHUNK_ID('M','M','1','\0'))
 				{
@@ -129,35 +149,39 @@ namespace Nes
 
 			void Mmc1::UpdatePrg()
 			{
-				const uint base = (prg.Source().Size() < SIZE_512K) ? 0 : (regs[PRG1] & PRG1_256K_BANK);
-				const uint bank = regs[PRG0] & PRG0_BANK;
+				prg.SwapBanks<SIZE_16K,0x0000U>
+				(
+					(regs[CHR0] & 0x10) | ((regs[PRG0] | 0x0) & ((regs[CTRL] & CTRL_PRG_SWAP_16K) ? (regs[CTRL] & CTRL_PRG_SWAP_LOW) ? 0xF : 0x0 : 0xE)),
+					(regs[CHR0] & 0x10) | ((regs[PRG0] & 0xF) | ((regs[CTRL] & CTRL_PRG_SWAP_16K) ? (regs[CTRL] & CTRL_PRG_SWAP_LOW) ? 0xF : 0x0 : 0x1))
+				);
+			}
 
-				if (regs[CTRL] & CTRL_PRG_SWAP_16K)
-				{
-					prg.SwapBanks<SIZE_16K,0x0000U>
-					(
-						base | ((regs[CTRL] & CTRL_PRG_SWAP_LOW) ? bank : 0x0),
-						base | ((regs[CTRL] & CTRL_PRG_SWAP_LOW) ? 0xF : bank)
-					);
-				}
-				else
-				{
-					prg.SwapBank<SIZE_32K,0x0000U>( (base | bank) >> 1 );
-				}
+			void Mmc1::UpdateWrk()
+			{
+				wrk.Source().SetSecurity
+				(
+					~regs[PRG0] & PRG0_WRAM_DISABLED,
+					~regs[PRG0] & PRG0_WRAM_DISABLED
+				);
+
+				if (wrk.Source().Size() >= SIZE_16K)
+					wrk.SwapBank<SIZE_8K,0x0000U>( regs[CHR0] >> (2 + (wrk.Source().Size() == SIZE_16K)) );
 			}
 
 			void Mmc1::UpdateChr() const
 			{
 				ppu.Update();
 
+				const uint mode = regs[CTRL] >> 4 & 0x1;
+
 				chr.SwapBanks<SIZE_4K,0x0000U>
 				(
-					(regs[CTRL] & CTRL_CHR_SWAP_4K) ? regs[CHR0] : regs[CHR0] & 0x1E,
-					(regs[CTRL] & CTRL_CHR_SWAP_4K) ? regs[CHR1] : regs[CHR0] | 0x01
+					regs[CHR0] & (0x1E | mode),
+					regs[CHR0+mode] & 0x1F | (mode^1)
 				);
 			}
 
-			void Mmc1::UpdateMirroring() const
+			void Mmc1::UpdateNmt()
 			{
 				static const uchar lut[4][4] =
 				{
@@ -170,38 +194,32 @@ namespace Nes
 				ppu.SetMirroring( lut[regs[CTRL] & CTRL_MIRRORING] );
 			}
 
-			void Mmc1::UpdateRegister0()
+			void Mmc1::UpdateRegisters(const uint index)
 			{
-				UpdateMirroring();
-				UpdateChr();
-				UpdatePrg();
-			}
+				NST_ASSERT( index < 4 );
 
-			void Mmc1::UpdateRegister1()
-			{
-				if (prg.Source().Size() >= SIZE_512K)
+				if (index != CHR1)
+				{
 					UpdatePrg();
 
-				UpdateChr();
-			}
+					if (wrk.HasRam())
+						UpdateWrk();
+				}
 
-			void Mmc1::UpdateRegister2()
-			{
-				UpdateChr();
-			}
+				if (index != PRG0)
+				{
+					if (index == CTRL)
+						UpdateNmt();
 
-			void Mmc1::UpdateRegister3()
-			{
-				UpdatePrg();
+					UpdateChr();
+				}
 			}
 
 			NES_POKE(Mmc1,Prg)
 			{
-				const iword time = cpu.GetAutoClockCycles();
-
-				if ((time - serial.time) >= 2)
+				if (cpu.GetMasterClockCycles() >= serial.ready)
 				{
-					if (!(data & Serial::RESET))
+					if (!(data & Serial::RESET_BIT))
 					{
 						serial.buffer |= (data & 0x1) << serial.shifter++;
 
@@ -212,31 +230,24 @@ namespace Nes
 						data = serial.buffer;
 						serial.buffer = 0;
 
-						address = (address >> 13) & 0x3;
+						address = address >> 13 & 0x3;
 
 						if (regs[address] != data)
 						{
 							regs[address] = data;
-
-							switch (address)
-							{
-								case 0: UpdateRegister0(); break;
-								case 1: UpdateRegister1(); break;
-								case 2: UpdateRegister2(); break;
-								case 3: UpdateRegister3(); break;
-							}
+							UpdateRegisters( address );
 						}
 					}
 					else
 					{
-						serial.time = time;
+						serial.ready = cpu.GetMasterClockCycles() + cpu.GetMasterClockCycle(Serial::RESET_CYCLES);
 						serial.buffer = 0;
 						serial.shifter = 0;
 
 						if ((regs[CTRL] & CTRL_RESET) != CTRL_RESET)
 						{
 							regs[CTRL] |= CTRL_RESET;
-							UpdateRegister0();
+							UpdateRegisters( CTRL );
 						}
 					}
 				}
@@ -249,66 +260,12 @@ namespace Nes
 				}
 			}
 
-			inline bool Mmc1::IsWRamEnabled() const
-			{
-				return !(regs[PRG0] & PRG0_WRAM_DISABLED);
-			}
-
-			NES_PEEK(Mmc1,wRam)
-			{
-				NST_VERIFY( IsWRamEnabled() );
-				return IsWRamEnabled() ? wrk[0][address - 0x6000U] : (address >> 8);
-			}
-
-			NES_POKE(Mmc1,wRam)
-			{
-				NST_VERIFY( IsWRamEnabled() );
-
-				if (IsWRamEnabled())
-					wrk[0][address - 0x6000U] = data;
-			}
-
-			NES_PEEK(Mmc1,wRam_SoRom_1a)
-			{
-				if (regs[CTRL] & CTRL_CHR_SWAP_4K)
-					address -= (regs[CHR0] & 0x10) ? 0x4000 : 0x6000;
-				else
-					address -= (regs[CHR0] & 0x08) ? 0x4000 : 0x6000;
-
-				return wrk[0][address];
-			}
-
-			NES_PEEK(Mmc1,wRam_SoRom)
-			{
-				NST_VERIFY( IsWRamEnabled() );
-
-				return IsWRamEnabled() ? NES_CALL_PEEK(Mmc1,wRam_SoRom_1a,address) : address >> 8;
-			}
-
-			NES_POKE(Mmc1,wRam_SoRom_1a)
-			{
-				if (regs[CTRL] & CTRL_CHR_SWAP_4K)
-					address -= (regs[CHR0] & 0x10) ? 0x4000 : 0x6000;
-				else
-					address -= (regs[CHR0] & 0x08) ? 0x4000 : 0x6000;
-
-				wrk[0][address] = data;
-			}
-
-			NES_POKE(Mmc1,wRam_SoRom)
-			{
-				NST_VERIFY( IsWRamEnabled() );
-
-				if (IsWRamEnabled())
-					NES_CALL_POKE(Mmc1,wRam_SoRom_1a,address,data);
-			}
-
 			void Mmc1::VSync()
 			{
-				serial.time -= (iword) cpu.GetAutoClockFrameCycles();
-
-				if (serial.time < -2)
-					serial.time = -2;
+				if (serial.ready <= cpu.GetMasterClockFrameCycles())
+					serial.ready = 0;
+				else
+					serial.ready -= cpu.GetMasterClockFrameCycles();
 			}
 		}
 	}

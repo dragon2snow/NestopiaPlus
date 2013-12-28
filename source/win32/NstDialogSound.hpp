@@ -43,11 +43,11 @@ namespace Nestopia
 		{
 			typedef DirectX::DirectSound::Adapter Adapter;
 			typedef DirectX::DirectSound::Adapters Adapters;
+			typedef DirectX::DirectSound DirectSound;
 
 		public:
 
 			Sound(Managers::Emulator&,const Adapters&,const Managers::Paths&,const Configuration&);
-			~Sound();
 
 			void Save(Configuration&) const;
 			uint GetVolume(uint) const;
@@ -58,7 +58,7 @@ namespace Nestopia
 			{
 				DEFAULT_BITS = 16,
 				DEFAULT_RATE = 44100,
-				LATENCY_MAX = DirectX::DirectSound::LATENCY_MAX,
+				LATENCY_MAX = 10,
 				DEFAULT_LATENCY = 2,
 				VOLUME_MAX = 100,
 				DEFAULT_VOLUME = Nes::Sound::DEFAULT_VOLUME,
@@ -72,6 +72,7 @@ namespace Nestopia
 			{
 				uint adapter;
 				uint latency;
+				DirectX::DirectSound::Pool pool;
 				u8 volumes[NUM_CHANNELS];
 			};
 
@@ -95,9 +96,10 @@ namespace Nestopia
 			struct ChannelLut
 			{
 				cstring cfg;
-				ushort ctrlSlider;
-				ushort ctrlValue;
-				ushort channel;
+				u16 ctrlSlider;
+				u16 ctrlValue;
+				u16 ctrlText;
+				u16 channel;
 			};
 
 			static const ChannelLut channelLut[NUM_CHANNELS];
@@ -109,6 +111,8 @@ namespace Nestopia
 			public:
 
 				explicit Recorder(const Managers::Paths&);
+
+				const Path WaveFile() const;
 
 			private:
 
@@ -128,11 +132,6 @@ namespace Nestopia
 				void Open()
 				{
 					dialog.Open();
-				}
-
-				const Path& WaveFile() const
-				{
-					return waveFile;
 				}
 			};
 
@@ -165,6 +164,11 @@ namespace Nestopia
 			uint GetLatency() const
 			{
 				return settings.latency;
+			}
+
+			DirectX::DirectSound::Pool GetPool() const
+			{
+				return settings.pool;
 			}
 		};
 	}

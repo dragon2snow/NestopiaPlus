@@ -58,10 +58,8 @@
      }
  }
  #endif
-/*
-#elif defined(__GNUC__) && defined(__i386__)
- #define NES_IO_CALL __attribute__((regparm(3)))
-*/
+// #elif defined(__GNUC__) && defined(__i386__)
+//  #define NES_IO_CALL __attribute__((regparm(3)))
 #else
  #define NES_IO_CALL
 #endif
@@ -99,6 +97,38 @@ namespace Nes
 
 		typedef void* StdStream;
 	}
+
+	enum PpuType
+	{
+		PPU_RP2C02,
+		PPU_RP2C03B,
+		PPU_RP2C03G,
+		PPU_RP2C04_0001,
+		PPU_RP2C04_0002,
+		PPU_RP2C04_0003,
+		PPU_RP2C04_0004,
+		PPU_RC2C03B,
+		PPU_RC2C03C,
+		PPU_RC2C05_01,
+		PPU_RC2C05_02,
+		PPU_RC2C05_03,
+		PPU_RC2C05_04,
+		PPU_RC2C05_05
+	};
+
+	enum System
+	{
+		SYSTEM_HOME,
+		SYSTEM_VS,
+		SYSTEM_PC10
+	};
+
+	enum Region
+	{
+		REGION_NTSC = 1,
+		REGION_PAL,
+		REGION_BOTH
+	};
 
 	enum
 	{

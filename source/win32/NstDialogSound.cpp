@@ -23,7 +23,7 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 
 #include <algorithm>
-#include "NstApplicationConfiguration.hpp"
+#include "NstApplicationInstance.hpp"
 #include "NstResourceString.hpp"
 #include "NstWindowParam.hpp"
 #include "NstManagerPaths.hpp"
@@ -37,18 +37,18 @@ namespace Nestopia
 	{
 		const Sound::ChannelLut Sound::channelLut[NUM_CHANNELS] =
 		{
-			{ "sound master volume",       IDC_SOUND_MASTER_SLIDER,   IDC_SOUND_MASTER_VALUE,   0                            },
-			{ "sound apu square 1 volume", IDC_SOUND_SQUARE1_SLIDER,  IDC_SOUND_SQUARE1_VALUE,  Nes::Sound::CHANNEL_SQUARE1  },
-			{ "sound apu square 2 volume", IDC_SOUND_SQUARE2_SLIDER,  IDC_SOUND_SQUARE2_VALUE,  Nes::Sound::CHANNEL_SQUARE2  },
-			{ "sound apu triangle volume", IDC_SOUND_TRIANGLE_SLIDER, IDC_SOUND_TRIANGLE_VALUE, Nes::Sound::CHANNEL_TRIANGLE },
-			{ "sound apu noise volume",    IDC_SOUND_NOISE_SLIDER,    IDC_SOUND_NOISE_VALUE,    Nes::Sound::CHANNEL_NOISE    },
-			{ "sound apu dpcm volume",     IDC_SOUND_DPCM_SLIDER,     IDC_SOUND_DPCM_VALUE,     Nes::Sound::CHANNEL_DPCM     },
-			{ "sound fds volume",          IDC_SOUND_FDS_SLIDER,      IDC_SOUND_FDS_VALUE,      Nes::Sound::CHANNEL_FDS      },
-			{ "sound mmc5 volume",         IDC_SOUND_MMC5_SLIDER,     IDC_SOUND_MMC5_VALUE,     Nes::Sound::CHANNEL_MMC5     },
-			{ "sound vrc6 volume",         IDC_SOUND_VRC6_SLIDER,     IDC_SOUND_VRC6_VALUE,     Nes::Sound::CHANNEL_VRC6     },
-			{ "sound vrc7 volume",         IDC_SOUND_VRC7_SLIDER,     IDC_SOUND_VRC7_VALUE,     Nes::Sound::CHANNEL_VRC7     },
-			{ "sound n106 volume",         IDC_SOUND_N106_SLIDER,     IDC_SOUND_N106_VALUE,     Nes::Sound::CHANNEL_N106     },
-			{ "sound s5b volume",          IDC_SOUND_S5B_SLIDER,      IDC_SOUND_S5B_VALUE,      Nes::Sound::CHANNEL_S5B      }
+			{ "sound master volume",       IDC_SOUND_MASTER_SLIDER,   IDC_SOUND_MASTER_VALUE,   IDC_SOUND_MASTER_TEXT,   0                            },
+			{ "sound apu square 1 volume", IDC_SOUND_SQUARE1_SLIDER,  IDC_SOUND_SQUARE1_VALUE,  IDC_SOUND_SQUARE1_TEXT,  Nes::Sound::CHANNEL_SQUARE1  },
+			{ "sound apu square 2 volume", IDC_SOUND_SQUARE2_SLIDER,  IDC_SOUND_SQUARE2_VALUE,  IDC_SOUND_SQUARE2_TEXT,  Nes::Sound::CHANNEL_SQUARE2  },
+			{ "sound apu triangle volume", IDC_SOUND_TRIANGLE_SLIDER, IDC_SOUND_TRIANGLE_VALUE, IDC_SOUND_TRIANGLE_TEXT, Nes::Sound::CHANNEL_TRIANGLE },
+			{ "sound apu noise volume",    IDC_SOUND_NOISE_SLIDER,    IDC_SOUND_NOISE_VALUE,    IDC_SOUND_NOISE_TEXT,    Nes::Sound::CHANNEL_NOISE    },
+			{ "sound apu dpcm volume",     IDC_SOUND_DPCM_SLIDER,     IDC_SOUND_DPCM_VALUE,     IDC_SOUND_DPCM_TEXT,     Nes::Sound::CHANNEL_DPCM     },
+			{ "sound fds volume",          IDC_SOUND_FDS_SLIDER,      IDC_SOUND_FDS_VALUE,      IDC_SOUND_FDS_TEXT,      Nes::Sound::CHANNEL_FDS      },
+			{ "sound mmc5 volume",         IDC_SOUND_MMC5_SLIDER,     IDC_SOUND_MMC5_VALUE,     IDC_SOUND_MMC5_TEXT,     Nes::Sound::CHANNEL_MMC5     },
+			{ "sound vrc6 volume",         IDC_SOUND_VRC6_SLIDER,     IDC_SOUND_VRC6_VALUE,     IDC_SOUND_VRC6_TEXT,     Nes::Sound::CHANNEL_VRC6     },
+			{ "sound vrc7 volume",         IDC_SOUND_VRC7_SLIDER,     IDC_SOUND_VRC7_VALUE,     IDC_SOUND_VRC7_TEXT,     Nes::Sound::CHANNEL_VRC7     },
+			{ "sound n106 volume",         IDC_SOUND_N106_SLIDER,     IDC_SOUND_N106_VALUE,     IDC_SOUND_N106_TEXT,     Nes::Sound::CHANNEL_N106     },
+			{ "sound s5b volume",          IDC_SOUND_S5B_SLIDER,      IDC_SOUND_S5B_VALUE,      IDC_SOUND_S5B_TEXT,      Nes::Sound::CHANNEL_S5B      }
 		};
 
 		struct Sound::Handlers
@@ -133,14 +133,12 @@ namespace Nestopia
 					nes.SetVolume( channelLut[i].channel, GetVolume( channelLut[i].channel ) );
 			}
 
+			settings.pool = (GenericString(cfg["sound pool"]) == _T("system") ? DirectSound::POOL_SYSTEM : DirectSound::POOL_HARDWARE);
+
 			settings.latency = cfg[ "sound buffers" ].Default( (uint) DEFAULT_LATENCY );
 
 			if (settings.latency > LATENCY_MAX)
 				settings.latency = DEFAULT_LATENCY;
-		}
-
-		Sound::~Sound()
-		{
 		}
 
 		void Sound::Save(Configuration& cfg) const
@@ -155,6 +153,7 @@ namespace Nestopia
 			cfg[ "sound buffers"      ] = settings.latency;
 			cfg[ "sound output"       ] = (nes.GetSpeaker() == Nes::Sound::SPEAKER_STEREO ? _T("stereo") : _T("mono"));
 			cfg[ "sound adjust pitch" ].YesNo() = nes.IsAutoTransposing();
+			cfg[ "sound pool"         ] = (settings.pool == DirectSound::POOL_HARDWARE ? _T("hardware") : _T("system"));
 
 			for (uint i=0; i < NUM_CHANNELS; ++i)
 				cfg[channelLut[i].cfg] = (uint) settings.volumes[i];
@@ -227,8 +226,9 @@ namespace Nestopia
 					comboBox[index].Select();
 				}
 
-				dialog.RadioButton( (nes.GetSampleBits() == 8 ? IDC_SOUND_8_BIT : IDC_SOUND_16_BIT) ).Check();
-				dialog.RadioButton( (nes.GetSpeaker() == Nes::Sound::SPEAKER_STEREO ? IDC_SOUND_STEREO : IDC_SOUND_MONO) ).Check();
+				dialog.RadioButton( nes.GetSampleBits() == 8 ? IDC_SOUND_8_BIT : IDC_SOUND_16_BIT ).Check();
+				dialog.RadioButton( nes.GetSpeaker() == Nes::Sound::SPEAKER_STEREO ? IDC_SOUND_STEREO : IDC_SOUND_MONO ).Check();
+				dialog.RadioButton( settings.pool == DirectSound::POOL_SYSTEM ? IDC_SOUND_POOL_SYSTEM : IDC_SOUND_POOL_HARDWARE ).Check();
 
 				for (uint i=0; i < NUM_CHANNELS; ++i)
 				{
@@ -268,14 +268,19 @@ namespace Nestopia
 			dialog.Control( IDC_SOUND_8_BIT         ).Enable( state );
 			dialog.Control( IDC_SOUND_16_BIT        ).Enable( state );
 			dialog.Control( IDC_SOUND_LATENCY       ).Enable( state );
+			dialog.Control( IDC_SOUND_LATENCY_ONE   ).Enable( state );
+			dialog.Control( IDC_SOUND_LATENCY_TEN   ).Enable( state );
 			dialog.Control( IDC_SOUND_MONO          ).Enable( state );
 			dialog.Control( IDC_SOUND_STEREO        ).Enable( state );
 			dialog.Control( IDC_SOUND_ADJUST_PITCH  ).Enable( state );
+			dialog.Control( IDC_SOUND_POOL_HARDWARE ).Enable( state );
+			dialog.Control( IDC_SOUND_POOL_SYSTEM   ).Enable( state );
 
 			for (uint i=0; i < NUM_CHANNELS; ++i)
 			{
 				dialog.Control( channelLut[i].ctrlSlider ).Enable( state );
 				dialog.Control( channelLut[i].ctrlValue ).Enable( state );
+				dialog.Control( channelLut[i].ctrlText ).Enable( state );
 			}
 
 			if (state)
@@ -354,6 +359,9 @@ namespace Nestopia
 				dialog.RadioButton( IDC_SOUND_MONO ).Check();
 				dialog.RadioButton( IDC_SOUND_STEREO ).Uncheck();
 
+				dialog.RadioButton( IDC_SOUND_POOL_HARDWARE ).Check();
+				dialog.RadioButton( IDC_SOUND_POOL_SYSTEM ).Uncheck();
+
 				dialog.CheckBox( IDC_SOUND_ADJUST_PITCH ).Uncheck();
 				dialog.Slider( IDC_SOUND_LATENCY ).Position() = DEFAULT_LATENCY;
 
@@ -371,6 +379,7 @@ namespace Nestopia
 				{
 					settings.adapter = dialog.ComboBox( IDC_SOUND_DEVICE ).Selection().GetIndex() - 1U;
 					settings.latency = dialog.Slider( IDC_SOUND_LATENCY ).Position();
+					settings.pool = (dialog.RadioButton( IDC_SOUND_POOL_SYSTEM ).Checked() ? DirectSound::POOL_SYSTEM : DirectSound::POOL_HARDWARE);
 
 					static const uint rates[] = {11025,22050,44100,48000,88200,96000};
 
@@ -413,6 +422,11 @@ namespace Nestopia
 		Sound::Recorder::Recorder(const Managers::Paths& p)
 		: dialog(IDD_SOUND_RECORDER,this,Handlers::messages,Handlers::commands), paths(p) {}
 
+		const Path Sound::Recorder::WaveFile() const
+		{
+			return Application::Instance::GetFullPath( waveFile );
+		}
+
 		ibool Sound::Recorder::OnInitDialog(Param&)
 		{
 			dialog.Edit( IDC_SOUND_CAPTURE_FILE ) << waveFile.Ptr();
@@ -435,7 +449,7 @@ namespace Nestopia
 			{
 				Path tmp;
 				dialog.Edit(IDC_SOUND_CAPTURE_FILE) >> tmp;
-				dialog.Edit(IDC_SOUND_CAPTURE_FILE).Try() << paths.BrowseSave( Managers::Paths::File::WAVE, Managers::Paths::SUGGEST, tmp ).Ptr();
+				dialog.Edit(IDC_SOUND_CAPTURE_FILE).Try() << paths.BrowseSave( Managers::Paths::File::WAVE, Managers::Paths::SUGGEST, Application::Instance::GetFullPath(tmp) ).Ptr();
 			}
 
 			return true;

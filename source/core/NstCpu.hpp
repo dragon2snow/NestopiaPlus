@@ -145,7 +145,6 @@ namespace Nes
 				SAVE_PAL       = b10000000
 			};
 
-			void ResetLog();
 			static void TryLogMsg(cstring,uint,uint);
 
 			template<size_t N>
@@ -306,7 +305,7 @@ namespace Nes
 			NST_NO_INLINE uint Sre (uint);
 
 			void Dop () const;
-			void Top () const;
+			void Top (uint) const;
 
 			NST_FORCE_INLINE void Brk ();
 			NST_NO_INLINE void Jam ();

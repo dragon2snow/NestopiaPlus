@@ -87,7 +87,7 @@ namespace Nes
 			}
 			else
 			{
-				prg.SwapBanks<SIZE_16K,0x0000U>( (bank << 1) | (mode >> 1), (bank << 1) | 0x7 );
+				prg.SwapBanks<SIZE_16K,0x0000U>( (bank << 1) | (mode >> 1), bank << 1 | 0x7 );
 				offset = 0x2F;
 			}
 

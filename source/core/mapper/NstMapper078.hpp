@@ -41,6 +41,11 @@ namespace Nes
 
 		private:
 
+			enum
+			{
+				ATR_HV_MIRRORING = 1
+			};
+
 			void SubReset(bool);
 
 			NES_DECL_POKE( Prg )

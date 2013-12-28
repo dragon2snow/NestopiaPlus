@@ -38,7 +38,7 @@ namespace Nes
 		public:
 
 			Mapper112(Context& c)
-			: Mapper(c) {}
+			: Mapper(c,PROM_MAX_512K|CROM_MAX_256K) {}
 
 		private:
 
@@ -48,6 +48,7 @@ namespace Nes
 
 			NES_DECL_POKE( 8000 )
 			NES_DECL_POKE( A000 )
+			NES_DECL_POKE( C000 )
 
 			uint command;
 		};

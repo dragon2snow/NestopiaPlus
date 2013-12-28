@@ -521,7 +521,7 @@ namespace Nes
 
 			NES_PEEK(Jy,5000)
 			{
-				return (cartSwitches.GetSetting() & DIPSWITCH_GAME) | ((address >> 8) & ~uint(DIPSWITCH_GAME));
+				return (cartSwitches.GetSetting() & DIPSWITCH_GAME) | (address >> 8 & ~uint(DIPSWITCH_GAME));
 			}
 
 			NES_POKE(Jy::Regs,5800) { mul[0] = data; }
@@ -853,7 +853,7 @@ namespace Nes
 				);
 			}
 
-			void Jy::UpdateNmt() const
+			void Jy::UpdateNmt()
 			{
 				if ((regs.ctrl[0] >> 5 & cartSwitches.GetSetting() & 0x1) | (cartSwitches.GetSetting() & 0x2))
 				{
@@ -864,15 +864,7 @@ namespace Nes
 				}
 				else
 				{
-					static const uchar lut[4] =
-					{
-						Ppu::NMT_VERTICAL,
-						Ppu::NMT_HORIZONTAL,
-						Ppu::NMT_ZERO,
-						Ppu::NMT_ONE
-					};
-
-					ppu.SetMirroring( lut[regs.ctrl[1] & Regs::CTRL1_MIRRORING] );
+					SetMirroringVH01( regs.ctrl[1] );
 				}
 			}
 

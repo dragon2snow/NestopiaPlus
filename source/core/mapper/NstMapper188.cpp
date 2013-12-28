@@ -64,7 +64,7 @@ namespace Nes
 		{
 			prg.SwapBank<SIZE_16K,0x0000U>
 			(
-				data ? (data & 0x7) | (data >> 1 & 0x8 ^ 0x8) : (prg.Source().Size() >> 18) + 0x7
+				data ? (data & 0x7) | (~data >> 1 & 0x8) : (prg.Source().Size() >> 18) + 0x7
 			);
 		}
 

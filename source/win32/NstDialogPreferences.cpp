@@ -311,10 +311,6 @@ namespace Nestopia
 				association.Update( i, icons[i][iconOffset] );
 		}
 
-		Preferences::~Preferences()
-		{
-		}
-
 		void Preferences::Save(Configuration& cfg) const
 		{
 			cfg[ "preferences autostart emulation"      ].YesNo() = settings[ AUTOSTART_EMULATION      ];

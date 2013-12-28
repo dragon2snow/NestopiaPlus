@@ -56,7 +56,14 @@ namespace Nes
 
 			private:
 
-				static Sound::Player* DetectSound(dword,Cpu&);
+				static Sound::Player* DetectSound(Type,uint,Cpu&);
+
+				enum
+				{
+					ATR_TYPE_0_SAMPLES_MPT    = 1,
+					ATR_TYPE_1_SAMPLES_MPY88K = 1,
+					ATR_TYPE_2_SAMPLES_MPY    = 1
+				};
 
 				void SubReset(bool);
 				void BaseSave(State::Saver&) const;

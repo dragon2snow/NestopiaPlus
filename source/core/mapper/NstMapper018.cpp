@@ -35,11 +35,11 @@ namespace Nes
 		#pragma optimize("s", on)
 		#endif
 
-		Sound::Player* Mapper18::DetectSound(dword crc,Cpu& cpu)
+		Sound::Player* Mapper18::DetectSound(uint attribute,Cpu& cpu)
 		{
-			switch (crc)
+			switch (attribute)
 			{
-				case 0x3C361B36UL:
+				case ATR_SAMPLES_TNDO:
 
 					return Sound::Player::Create
 					(
@@ -48,7 +48,7 @@ namespace Nes
 						Sound::Loader::TERAO_NO_DOSUKOI_OOZUMOU_SAMPLES
 					);
 
-				case 0xC2222BB1UL:
+				case ATR_SAMPLES_MP90KH:
 
 					return Sound::Player::Create
 					(
@@ -57,7 +57,7 @@ namespace Nes
 						Sound::Loader::MOE_PRO_90_KANDOU_HEN_SAMPLES
 					);
 
-				case 0x035CC54BUL:
+				case ATR_SAMPLES_MPSH:
 
 					return Sound::Player::Create
 					(
@@ -66,7 +66,7 @@ namespace Nes
 						Sound::Loader::MOE_PRO_SAIKYOU_HEN_SAMPLES
 					);
 
-				case 0x142F7F3FUL:
+				case ATR_SAMPLES_SMPY:
 
 					return Sound::Player::Create
 					(
@@ -91,9 +91,9 @@ namespace Nes
 
 		Mapper18::Mapper18(Context& c)
 		:
-		Mapper (c),
+		Mapper (c,CROM_MAX_256K),
 		irq    (c.cpu),
-		sound  (DetectSound(c.prgCrc,c.cpu))
+		sound  (DetectSound(c.attribute,c.cpu))
 		{}
 
 		Mapper18::~Mapper18()
@@ -103,8 +103,13 @@ namespace Nes
 
 		void Mapper18::SubReset(const bool hard)
 		{
+			if (hard)
+				wrk.Source().SetSecurity( false, false );
+
 			reg = 0;
 			irq.Reset( hard, hard ? false : irq.IsLineEnabled() );
+
+			Map( WRK_SAFE_PEEK_POKE );
 
 			for (uint i=0x0000U; i < 0x1000U; i += 0x4)
 			{
@@ -114,6 +119,8 @@ namespace Nes
 				Map( 0x8003U + i, &Mapper18::Poke_8003 );
 				Map( 0x9000U + i, &Mapper18::Poke_9000 );
 				Map( 0x9001U + i, &Mapper18::Poke_9001 );
+				Map( 0x9002U + i, &Mapper18::Poke_9002 );
+				Map( 0x9003U + i, &Mapper18::Poke_9003 );
 				Map( 0xA000U + i, &Mapper18::Poke_A000 );
 				Map( 0xA001U + i, &Mapper18::Poke_A001 );
 				Map( 0xA002U + i, &Mapper18::Poke_A002 );
@@ -136,7 +143,7 @@ namespace Nes
 				Map( 0xE003U + i, &Mapper18::Poke_E003 );
 				Map( 0xF000U + i, &Mapper18::Poke_F000 );
 				Map( 0xF001U + i, &Mapper18::Poke_F001 );
-				Map( 0xF002U + i, &Mapper18::Poke_F002 );
+				Map( 0xF002U + i, NMT_SWAP_HV01        );
 
 				if (sound)
 					Map( 0xF003U + i, &Mapper18::Poke_F003 );
@@ -214,6 +221,17 @@ namespace Nes
 		NES_POKE(Mapper18,9000) { SwapPrg<0xF0,0>( 0x4000U, data ); }
 		NES_POKE(Mapper18,9001) { SwapPrg<0x0F,4>( 0x4000U, data ); }
 
+		NES_POKE(Mapper18,9002)
+		{
+			NST_VERIFY( data == 0x3 || data == 0x0 );
+			wrk.Source().SetSecurity( data & 0x1, data & 0x2 );
+		}
+
+		NES_POKE(Mapper18,9003)
+		{
+			NST_DEBUG_MSG("Mapper18: $9003 unknown write!");
+		}
+
 		template<uint MASK,uint SHIFT>
 		void Mapper18::SwapChr(const uint address,const uint data) const
 		{
@@ -280,16 +298,6 @@ namespace Nes
 
 			irq.EnableLine( data & 0x1 );
 			irq.ClearIRQ();
-		}
-
-		NES_POKE(Mapper18,F002)
-		{
-			ppu.SetMirroring
-			(
-				(data & 0x3) == 0 ? Ppu::NMT_HORIZONTAL :
-				(data & 0x3) == 1 ? Ppu::NMT_VERTICAL :
-									Ppu::NMT_ZERO
-			);
 		}
 
 		NES_POKE(Mapper18,F003)

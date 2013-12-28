@@ -36,6 +36,8 @@ namespace Nes
 
 		void Mapper187::SubReset(const bool hard)
 		{
+			suppressIrq = true;
+
 			if (hard)
 			{
 				exCtrl = 0;
@@ -101,9 +103,7 @@ namespace Nes
 			}
 			else
 			{
-				const uint i = (regs.ctrl0 & Regs::CTRL0_XOR_PRG) >> 5;
-
-				prg.SwapBanks<SIZE_8K,0x0000U>( banks.prg[i], banks.prg[1], banks.prg[i^2], banks.prg[3] );
+				Mmc3::UpdatePrg();
 			}
 		}
 
@@ -140,6 +140,12 @@ namespace Nes
 
 		NES_POKE(Mapper187,5001)
 		{
+			if (suppressIrq)
+			{
+				suppressIrq = false;
+				cpu.Poke( 0x4017, 0x40 );
+			}
+
 			exLast = data;
 		}
 

@@ -57,7 +57,7 @@ namespace Nes
 			void Paddle::LoadState(State::Loader& state,const dword id)
 			{
 				if (id == NES_STATE_CHUNK_ID('P','L','\0','\0'))
-					shifter = (state.Read8() & 0x1) ^ 1;
+					shifter = ~state.Read8() & 0x1;
 			}
 
 			#ifdef NST_PRAGMA_OPTIMIZE

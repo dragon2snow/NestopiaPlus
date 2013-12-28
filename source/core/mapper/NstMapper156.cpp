@@ -35,25 +35,19 @@ namespace Nes
 
 		void Mapper156::SubReset(bool)
 		{
-			Map( 0xC000U, 0xC003U, &Mapper156::Poke_C000 );
-			Map( 0xC008U, 0xC00BU, &Mapper156::Poke_C008 );
-			Map( 0xC010U, PRG_SWAP_16K );
+			Map( 0xC000U, CHR_SWAP_1K_0  );
+			Map( 0xC001U, CHR_SWAP_1K_1  );
+			Map( 0xC002U, CHR_SWAP_1K_2  );
+			Map( 0xC003U, CHR_SWAP_1K_3  );
+			Map( 0xC008U, CHR_SWAP_1K_4  );
+			Map( 0xC009U, CHR_SWAP_1K_5  );
+			Map( 0xC00AU, CHR_SWAP_1K_6  );
+			Map( 0xC00BU, CHR_SWAP_1K_7  );
+			Map( 0xC010U, PRG_SWAP_16K_0 );
 		}
 
 		#ifdef NST_PRAGMA_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
-
-		NES_POKE(Mapper156,C000)
-		{
-			ppu.Update();
-			chr.SwapBank<SIZE_1K>( 0x0000U + (address & 0x3) * SIZE_1K, data );
-		}
-
-		NES_POKE(Mapper156,C008)
-		{
-			ppu.Update();
-			chr.SwapBank<SIZE_1K>( 0x1000U + (address & 0x3) * SIZE_1K, data );
-		}
 	}
 }

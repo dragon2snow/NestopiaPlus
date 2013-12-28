@@ -45,7 +45,7 @@ namespace Nes
 		NES_POKE(Mapper225,Prg)
 		{
 			ppu.SetMirroring( (address & 0x2000) ? Ppu::NMT_HORIZONTAL : Ppu::NMT_VERTICAL );
-			chr.SwapBank<SIZE_8K,0x0000U>( address & 0x3F );
+			chr.SwapBank<SIZE_8K,0x0000U>( address );
 
 			uint bank = address >> 7 & 0x1F;
 

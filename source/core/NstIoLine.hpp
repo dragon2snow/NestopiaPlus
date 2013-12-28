@@ -152,7 +152,7 @@ namespace Nes
                                                                                                       \
 				static void NES_IO_CALL Line_##a_(void* instance,Cycle cycle)                         \
 				{                                                                                     \
-					Line_Type_##a_( instance, cycle, Line_Member_##a_ );                              \
+					Line_Type_##a_( instance, cycle, &Line_Member_##a_ );                             \
 				}
 
 			#define NES_LINE(o_,a_) void NES_IO_CALL o_::Line_Member_##a_(Cycle cycle)

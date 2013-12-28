@@ -35,6 +35,12 @@ namespace Nes
 			#pragma optimize("s", on)
 			#endif
 
+			N118::N118(Context& c,Type t)
+			:
+			Mapper (c,CROM_MAX_256K|WRAM_DEFAULT),
+			type   (t)
+			{}
+
 			void N118::SubReset(const bool hard)
 			{
 				if (hard)
@@ -92,13 +98,9 @@ namespace Nes
 						ppu.Update();
 
 					if (index > 0x1)
-					{
 						chr.SwapBank<SIZE_1K>( (index << 10) + 0x800U, data | 0x40 );
-					}
 					else
-					{
 						chr.SwapBank<SIZE_2K>( index << 11, data >> 1 );
-					}
 				}
 				else
 				{

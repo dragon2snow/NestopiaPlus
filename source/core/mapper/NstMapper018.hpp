@@ -49,6 +49,14 @@ namespace Nes
 
 			static Sound::Player* DetectSound(dword,Cpu&);
 
+			enum
+			{
+				ATR_SAMPLES_TNDO   = 1,
+				ATR_SAMPLES_MP90KH = 2,
+				ATR_SAMPLES_MPSH   = 3,
+				ATR_SAMPLES_SMPY   = 4
+			};
+
 			void SubReset(bool);
 			void SubSave(State::Saver&) const;
 			void SubLoad(State::Loader&);
@@ -63,6 +71,8 @@ namespace Nes
 			NES_DECL_POKE( 8003 )
 			NES_DECL_POKE( 9000 )
 			NES_DECL_POKE( 9001 )
+			NES_DECL_POKE( 9002 )
+			NES_DECL_POKE( 9003 )
 			NES_DECL_POKE( A000 )
 			NES_DECL_POKE( A001 )
 			NES_DECL_POKE( A002 )
@@ -85,7 +95,6 @@ namespace Nes
 			NES_DECL_POKE( E003 )
 			NES_DECL_POKE( F000 )
 			NES_DECL_POKE( F001 )
-			NES_DECL_POKE( F002 )
 			NES_DECL_POKE( F003 )
 
 			struct Irq

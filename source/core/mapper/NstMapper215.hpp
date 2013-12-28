@@ -41,6 +41,11 @@ namespace Nes
 
 		private:
 
+			enum
+			{
+				ATR_6000_CTRL = 1
+			};
+
 			void SubReset(bool);
 			void SubSave(State::Saver&) const;
 			void SubLoad(State::Loader&);
@@ -62,7 +67,7 @@ namespace Nes
 			NES_DECL_POKE( E001 )
 
 			uint exRegs[4];
-			const ibool patch;
+			const ibool ctrl6000;
 		};
 	}
 }

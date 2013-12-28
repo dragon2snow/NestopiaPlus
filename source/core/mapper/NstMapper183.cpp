@@ -35,7 +35,10 @@ namespace Nes
 		#endif
 
 		Mapper183::Mapper183(Context& c)
-		: Mapper(c,WRAM_NONE), irq(c.cpu) {}
+		:
+		Mapper (c,CROM_MAX_256K|WRAM_NONE),
+		irq    (c.cpu)
+		{}
 
 		void Mapper183::Irq::Reset(const bool hard)
 		{
@@ -140,13 +143,13 @@ namespace Nes
 		NES_POKE(Mapper183,F000)
 		{
 			irq.Update();
-			irq.unit.count[1] = (irq.unit.count[1] & 0xF0) | ((data & 0xF) << 0);
+			irq.unit.count[1] = (irq.unit.count[1] & 0xF0) | (data << 0 & 0x0F);
 		}
 
 		NES_POKE(Mapper183,F004)
 		{
 			irq.Update();
-			irq.unit.count[1] = (irq.unit.count[1] & 0x0F) | ((data & 0xF) << 4);
+			irq.unit.count[1] = (irq.unit.count[1] & 0x0F) | (data << 4 & 0xF0);
 		}
 
 		NES_POKE(Mapper183,F008)

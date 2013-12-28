@@ -35,16 +35,11 @@ namespace Nes
 
 		void Mapper180::SubReset(bool)
 		{
-			Map( 0x8000U, 0xFFFFU, &Mapper180::Poke_Prg );
+			Map( 0x8000U, 0xFFFFU, PRG_SWAP_16K_1 );
 		}
 
 		#ifdef NST_PRAGMA_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
-
-		NES_POKE(Mapper180,Prg)
-		{
-			prg.SwapBank<SIZE_16K,0x4000U>(data & 0x7);
-		}
 	}
 }

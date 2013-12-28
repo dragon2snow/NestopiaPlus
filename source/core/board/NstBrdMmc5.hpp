@@ -177,11 +177,22 @@ namespace Nes
 
 			protected:
 
-				Mmc5(Context&,uint=WRAM_AUTO);
+				enum Board
+				{
+					BRD_GENERIC,
+					BRD_ELROM,
+					BRD_EKROM,
+					BRD_ETROM,
+					BRD_EWROM
+				};
+
+				Mmc5(Context&,Board);
 
 				void SubReset(bool);
 
 			private:
+
+				static uint BoardToWRam(Board,dword);
 
 				void VBlank();
 				void HDummy();
@@ -215,11 +226,11 @@ namespace Nes
 				NES_DECL_HOOK( PpuBgMode )
 				NES_DECL_HOOK( PpuSpMode )
 
-				template<uint NT> NES_DECL_ACCESSOR( Nt         )
-				template<uint NT> NES_DECL_ACCESSOR( NtExt      )
-				template<uint NT> NES_DECL_ACCESSOR( NtSplit    )
-				template<uint NT> NES_DECL_ACCESSOR( NtExtSplit )
-				template<uint AT> NES_DECL_ACCESSOR( AtSplit    )
+				NES_DECL_ACCESSOR_TEMPLATE( uint, NT, Nt         )
+				NES_DECL_ACCESSOR_TEMPLATE( uint, NT, NtExt      )
+				NES_DECL_ACCESSOR_TEMPLATE( uint, NT, NtSplit    )
+				NES_DECL_ACCESSOR_TEMPLATE( uint, NT, NtExtSplit )
+				NES_DECL_ACCESSOR_TEMPLATE( uint, AT, AtSplit    )
 
 				NES_DECL_ACCESSOR( CRom         )
 				NES_DECL_ACCESSOR( CRomExt      )

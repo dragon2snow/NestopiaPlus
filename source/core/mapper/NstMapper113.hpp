@@ -33,22 +33,12 @@ namespace Nes
 {
 	namespace Core
 	{
-		class Mapper113 : public Mapper
+		class Mapper113 : public Boards::Nina
 		{
 		public:
 
-			Mapper113(Context&);
-
-		private:
-
-			void SubReset(bool);
-
-			NES_DECL_POKE( 4100 )
-			NES_DECL_POKE( 8008 )
-			NES_DECL_POKE( 8E66 )
-			NES_DECL_POKE( E00A )
-
-			const ibool hes6in1;
+			Mapper113(Context& c)
+			: Nina(c,TYPE_003_006_NMT) {}
 		};
 	}
 }

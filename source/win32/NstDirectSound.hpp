@@ -61,16 +61,16 @@ namespace Nestopia
 			enum Channels
 			{
 				MONO = 1,
-				STEREO = 2
+				STEREO
 			};
 
-			enum
+			enum Pool
 			{
-				LATENCY_MAX = 10
+				POOL_HARDWARE,
+				POOL_SYSTEM
 			};
 
-			tstring Update(uint,uint,uint,Channels,uint,uint);
-			tstring UpdateSpeed(uint,uint);
+			tstring Update(uint,uint,uint,Channels,uint,Pool,ibool);
 			void    Destroy();
 
 		private:
@@ -84,24 +84,20 @@ namespace Nestopia
 				Buffer();
 				~Buffer();
 
-				tstring Update(IDirectSound8&,ibool,uint,uint,Channels,uint,uint);
-				tstring UpdateSpeed(IDirectSound8&,ibool,uint,uint);
+				tstring Update(IDirectSound8&,bool,uint,uint,Channels,uint,Pool,bool);
 				void    StartStream();
-				ibool   LockStream(void*&,uint&);
+				ibool   LockStream(void**,uint*);
+				void    StopStream(IDirectSound8*,bool);
 				void    Release();
 
 			private:
 
-				static uint CalculateSize(uint,uint,uint,uint);
-
-				tstring Create(IDirectSound8&,ibool);
+				tstring Create(IDirectSound8&,bool);
 
 				enum
 				{
 					DC_OFFSET_8 = 0x80,
-					DC_OFFSET_16 = 0x0000,
-					DECAY_8 = 1,
-					DECAY_16 = 64
+					DC_OFFSET_16 = 0x0000
 				};
 
 				struct Settings
@@ -109,6 +105,8 @@ namespace Nestopia
 					Settings();
 
 					uint size;
+					Pool pool;
+					ibool globalFocus;
 				};
 
 				ComInterface<IDirectSoundBuffer8> com;
@@ -123,16 +121,15 @@ namespace Nestopia
 					return waveFormat;
 				}
 
-				uint NumSamples() const
+				ibool GlobalFocus() const
 				{
-					NST_ASSERT( settings.size % waveFormat.nBlockAlign == 0 );
-					return settings.size / waveFormat.nBlockAlign;
+					return settings.globalFocus;
 				}
 
-				void UnlockStream(void* data) const
+				void UnlockStream(void** data,uint* size) const
 				{
 					NST_ASSERT( data && com != NULL );
-					com->Unlock( data, settings.size, NULL, 0 );
+					com->Unlock( data[0], size[0]*waveFormat.nBlockAlign, data[1], size[1]*waveFormat.nBlockAlign );
 				}
 
 				ibool Streaming() const
@@ -145,12 +142,6 @@ namespace Nestopia
 						(status & (DSBSTATUS_BUFFERLOST|DSBSTATUS_PLAYING|DSBSTATUS_LOOPING)) == (DSBSTATUS_PLAYING|DSBSTATUS_LOOPING)
 					);
 				}
-
-				void StopStream() const
-				{
-					if (com != NULL)
-						com->Stop();
-				}
 			};
 
 			struct Settings
@@ -158,8 +149,9 @@ namespace Nestopia
 				Settings(HWND);
 
 				HWND const hWnd;
-				uint deviceId;
-				ibool priority;
+				u16 deviceId;
+				bool priority;
+				bool buggyDriver;
 			};
 
 			ComInterface<IDirectSound8> device;
@@ -174,9 +166,9 @@ namespace Nestopia
 				return buffer.Streaming();
 			}
 
-			void StopStream() const
+			void StopStream()
 			{
-				buffer.StopStream();
+				buffer.StopStream( settings.buggyDriver ? *device : NULL, settings.priority );
 			}
 
 			void StartStream()
@@ -184,19 +176,14 @@ namespace Nestopia
 				buffer.StartStream();
 			}
 
-			ibool LockStream(void*& data,uint& size)
+			ibool LockStream(void** data,uint* size)
 			{
 				return buffer.LockStream( data, size );
 			}
 
-			void UnlockStream(void* data) const
+			void UnlockStream(void** data,uint* size) const
 			{
-				buffer.UnlockStream( data );
-			}
-
-			uint NumSamples() const
-			{
-				return buffer.NumSamples();
+				buffer.UnlockStream( data, size );
 			}
 
 			const Adapters& GetAdapters() const
@@ -207,6 +194,11 @@ namespace Nestopia
 			const WAVEFORMATEX& GetWaveFormat() const
 			{
 				return buffer.GetWaveFormat();
+			}
+
+			ibool GlobalFocus() const
+			{
+				return buffer.GlobalFocus();
 			}
 		};
 	}

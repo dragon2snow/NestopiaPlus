@@ -95,6 +95,8 @@ namespace Nestopia
 				void operator += (const Point&) const;
 				void operator -= (const Point&) const;
 
+				void BringBehind(HWND) const;
+
 				Point Coordinates() const;
 
 				operator Point () const
@@ -170,6 +172,7 @@ namespace Nestopia
 			ibool Maximized() const;
 			ibool Minimized() const;
 			ibool Restored() const;
+			ibool Visible() const;
 
 			Rect GetPlacement() const;
 			void SetPlacement(const Rect&) const;

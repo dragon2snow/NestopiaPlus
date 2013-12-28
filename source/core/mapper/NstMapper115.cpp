@@ -81,7 +81,7 @@ namespace Nes
 		void Mapper115::UpdatePrg()
 		{
 			if (exRegs[0] & 0x80)
-				prg.SwapBank<SIZE_32K,0x0000U>( exRegs[0] >> 1 & 0x3 );
+				prg.SwapBank<SIZE_32K,0x0000U>( exRegs[0] >> 1 );
 			else
 				Mmc3::UpdatePrg();
 		}

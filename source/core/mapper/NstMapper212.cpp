@@ -46,18 +46,18 @@ namespace Nes
 		void Mapper212::SwapGfx(const uint address) const
 		{
 			ppu.SetMirroring( (address & 0x8) ? Ppu::NMT_HORIZONTAL : Ppu::NMT_VERTICAL );
-			chr.SwapBank<SIZE_8K,0x0000U>( address & 0x7 );
+			chr.SwapBank<SIZE_8K,0x0000U>( address );
 		}
 
 		NES_POKE(Mapper212,8000)
 		{
-			prg.SwapBanks<SIZE_16K,0x0000U>( address & 0x7, address & 0x7 );
+			prg.SwapBanks<SIZE_16K,0x0000U>( address, address );
 			SwapGfx( address );
 		}
 
 		NES_POKE(Mapper212,C000)
 		{
-			prg.SwapBank<SIZE_32K,0x0000U>( (address & 0x7) >> 1 );
+			prg.SwapBank<SIZE_32K,0x0000U>( address >> 1 );
 			SwapGfx( address );
 		}
 	}

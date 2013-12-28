@@ -37,15 +37,24 @@ namespace Nes
 		{
 		public:
 
-			Mapper232(Context& c)
-			: Mapper(c,CROM_NONE) {}
+			Mapper232(Context&);
 
 		private:
 
-			void SubReset(bool);
+			enum
+			{
+				ATR_BF9096 = 1,
+				ATR_BF9096_ALADDIN
+			};
 
-			NES_DECL_POKE( 9000 )
-			NES_DECL_POKE( A000 )
+			void SubReset(bool);
+			void SwapBasePrg(uint);
+
+			NES_DECL_POKE( 8000   )
+			NES_DECL_POKE( 8000_A )
+			NES_DECL_POKE( A000   )
+
+			const ibool aladdin;
 		};
 	}
 }

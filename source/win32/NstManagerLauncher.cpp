@@ -38,14 +38,21 @@ namespace Nestopia
 	{
 		Launcher::Launcher(Emulator& e,const Configuration& cfg,Window::Menu& m,const Paths& paths,Window::Custom& window)
 		:
-		emulator ( e ),
-		menu     ( m ),
-		dialog   ( new Window::Launcher(Nes::Cartridge(ImportDatabase(e)).GetDatabase(),paths,cfg) )
+		emulator   ( e ),
+		menu       ( m ),
+		fullscreen ( false ),
+		dialog     ( new Window::Launcher(Nes::Cartridge(ImportDatabase(e)).GetDatabase(),paths,cfg) )
 		{
 			state[FITS] = true;
 			state[AVAILABLE] = true;
 
-			window.Messages().Hooks().Add( WM_DISPLAYCHANGE, this, &Launcher::OnDisplayChange );
+			static const Window::MsgHandler::HookEntry<Launcher> hooks[] =
+			{
+				{ WM_ACTIVATE,      &Launcher::OnActivate      },
+				{ WM_DISPLAYCHANGE, &Launcher::OnDisplayChange }
+			};
+
+			window.Messages().Hooks().Add( this, hooks );
 			m.Commands().Add( IDM_FILE_LAUNCHER, this, &Launcher::OnMenu );
 
 			Application::Instance::Events::Add( this, &Launcher::OnAppEvent );
@@ -85,7 +92,14 @@ namespace Nestopia
 
 		void Launcher::OnMenu(uint)
 		{
-			dialog->Open();
+			emulator.Wait();
+			dialog->Open( fullscreen );
+		}
+
+		void Launcher::OnActivate(Window::Param& param)
+		{
+			if (param.Activator().Entering() && !param.Activator().Minimized())
+				dialog->Synchronize( param.hWnd );
 		}
 
 		void Launcher::OnDisplayChange(Window::Param& param)
@@ -117,7 +131,9 @@ namespace Nestopia
 			switch (event)
 			{
 				case Application::Instance::EVENT_FULLSCREEN:
+				case Application::Instance::EVENT_DESKTOP:
 
+					fullscreen = (event == Application::Instance::EVENT_FULLSCREEN);
 					dialog->Close();
 					break;
 			}

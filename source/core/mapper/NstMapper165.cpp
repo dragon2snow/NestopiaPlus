@@ -36,7 +36,7 @@ namespace Nes
 		#endif
 
 		Mapper165::Mapper165(Context& c)
-		: Mmc3(c,WRAM_8K|CRAM_4K) {}
+		: Mmc3(c,BRD_GENERIC,PROM_MAX_512K|CROM_MAX_256K|CRAM_4K) {}
 
 		void Mapper165::SubReset(bool)
 		{
@@ -60,8 +60,8 @@ namespace Nes
 				if (chunk == NES_STATE_CHUNK_ID('L','T','C','\0'))
 				{
 					const uint data = state.Read8();
-					selector[0] = (data << 0) & 0x1;
-					selector[1] = (data << 1) & 0x6;
+					selector[0] = data << 0 & 0x1;
+					selector[1] = data << 1 & 0x6;
 				}
 
 				state.End();

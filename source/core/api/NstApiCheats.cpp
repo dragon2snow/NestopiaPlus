@@ -43,14 +43,14 @@ namespace Nes
 
 			const u8 codes[8] =
 			{
-				((code.value   >>  0) & (0x1|0x2|0x4)) | ((code.value   >> 4) & 0x8),
-				((code.value   >>  4) & (0x1|0x2|0x4)) | ((code.address >> 4) & 0x8),
-				((code.address >>  4) & (0x1|0x2|0x4)) | ((code.useCompare ? 0x8 : 0x0)),
-				((code.address >> 12) & (0x1|0x2|0x4)) | ((code.address >> 0) & 0x8),
-				((code.address >>  0) & (0x1|0x2|0x4)) | ((code.address >> 8) & 0x8),
-				((code.address >>  8) & (0x1|0x2|0x4)) | ((code.useCompare ? code.compare : code.value) & 0x8),
-				(code.useCompare ? (((code.compare >> 0) & (0x1|0x2|0x4)) | ((code.compare >> 4) & 0x8)) : 0),
-				(code.useCompare ? (((code.compare >> 4) & (0x1|0x2|0x4)) | ((code.value   >> 0) & 0x8)) : 0)
+				(code.value   >>  0 & (0x1|0x2|0x4)) | (code.value   >> 4 & 0x8),
+				(code.value   >>  4 & (0x1|0x2|0x4)) | (code.address >> 4 & 0x8),
+				(code.address >>  4 & (0x1|0x2|0x4)) | (code.useCompare ? 0x8 : 0x0),
+				(code.address >> 12 & (0x1|0x2|0x4)) | (code.address >> 0 & 0x8),
+				(code.address >>  0 & (0x1|0x2|0x4)) | (code.address >> 8 & 0x8),
+				(code.address >>  8 & (0x1|0x2|0x4)) | ((code.useCompare ? code.compare : code.value) & 0x8),
+				(code.useCompare ? ((code.compare >> 0 & (0x1|0x2|0x4)) | (code.compare >> 4 & 0x8)) : 0),
+				(code.useCompare ? ((code.compare >> 4 & (0x1|0x2|0x4)) | (code.value   >> 0 & 0x8)) : 0)
 			};
 
 			uint i = code.useCompare ? 8 : 6;
@@ -183,8 +183,8 @@ namespace Nes
 					31, 24, 26, 25, 30, 27, 28
 				};
 
-				const uint ctrl = (input >> scrambled[i]) & 0x1;
-				output |= ((key >> 31) ^ ctrl) << (i+1);
+				const uint ctrl = input >> scrambled[i] & 0x1;
+				output |= (key >> 31 ^ ctrl) << (i+1);
 
 				if (ctrl)
 					key ^= 0xB8309722UL;
@@ -251,8 +251,8 @@ namespace Nes
 			}
 
 			code.address    = (output & 0x7FFFU) | 0x8000U;
-			code.compare    = (output >> 16) & 0xFF;
-			code.value      = (output >> 24) & 0xFF;
+			code.compare    = output >> 16 & 0xFF;
+			code.value      = output >> 24 & 0xFF;
 			code.useCompare = true;
 
 			return RESULT_OK;

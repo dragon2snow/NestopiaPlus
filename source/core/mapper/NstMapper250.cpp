@@ -52,14 +52,14 @@ namespace Nes
 
 			switch (address)
 			{
-				case 0x8000U: NES_CALL_POKE( Mmc3, 8000,   address, data ); break;
-				case 0x8001U: NES_CALL_POKE( Mmc3, 8001,   address, data ); break;
-				case 0xA000U: NES_CALL_POKE( Mmc3, Nmt_Hv, address, data ); break;
-				case 0xA001U: NES_CALL_POKE( Mmc3, A001,   address, data ); break;
-				case 0xC000U: NES_CALL_POKE( Mmc3, C000,   address, data ); break;
-				case 0xC001U: NES_CALL_POKE( Mmc3, C001,   address, data ); break;
-				case 0xE000U: NES_CALL_POKE( Mmc3, E000,   address, data ); break;
-				case 0xE001U: NES_CALL_POKE( Mmc3, E001,   address, data ); break;
+				case 0x8000U: NES_CALL_POKE( Mmc3, 8000, address, data ); break;
+				case 0x8001U: NES_CALL_POKE( Mmc3, 8001, address, data ); break;
+				case 0xA000U: SetMirroringHV( data );                     break;
+				case 0xA001U: NES_CALL_POKE( Mmc3, A001, address, data ); break;
+				case 0xC000U: NES_CALL_POKE( Mmc3, C000, address, data ); break;
+				case 0xC001U: NES_CALL_POKE( Mmc3, C001, address, data ); break;
+				case 0xE000U: NES_CALL_POKE( Mmc3, E000, address, data ); break;
+				case 0xE001U: NES_CALL_POKE( Mmc3, E001, address, data ); break;
 			}
 		}
 	}

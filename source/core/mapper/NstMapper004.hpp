@@ -41,8 +41,35 @@ namespace Nes
 
 		private:
 
-			static Revision GetRevision(dword);
-			static bool IsMmc6(dword);
+			enum Chip
+			{
+				CHIP_MMC3A,
+				CHIP_MMC3B,
+				CHIP_MMC6,
+				CHIP_MIMIC
+			};
+
+			enum
+			{
+				ATR_TEROM = 1,
+				ATR_TFROM,
+				ATR_TGROM,
+				ATR_TKROM,
+				ATR_TLROM,
+				ATR_TL1ROM,
+				ATR_TLSROM,
+				ATR_TR1ROM,
+				ATR_TSROM,
+				ATR_TVROM,
+				ATR_BOARD  = 0x1F,
+				ATR_MMC3A  = 1U << 5,
+				ATR_MMC6   = 2U << 5,
+				ATR_MIMIC1 = 3U << 5,
+				ATR_CHIP   = 0xE0
+			};
+
+			static Board GetBoard(uint);
+			static Chip  GetChip(const Context&);
 
 			void SubReset(bool);
 			void SubSave(State::Saver&) const;
@@ -69,13 +96,10 @@ namespace Nes
 				};
 
 				uint wRam;
-				const ibool indeed;
-
-				Mmc6(bool b)
-				: indeed(b) {}
 			};
 
 			Mmc6 mmc6;
+			const Chip chip;
 		};
 	}
 }

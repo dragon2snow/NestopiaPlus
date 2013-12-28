@@ -70,14 +70,8 @@ namespace Nes
 			void SubLoad(State::Loader&);
 			Device QueryDevice(DeviceType);
 
-			void UpdatePrg();
 			void UpdateTimer();
-
-			void UpdateRegister0();
-			void UpdateRegister1();
-			void UpdateRegister2() {}
-			void UpdateRegister3();
-
+			void UpdateRegisters(uint);
 			void VSync();
 
 			enum

@@ -92,7 +92,7 @@ namespace Nes
 			}
 			else
 			{
-				UpdatePrg();
+				Mmc3::UpdatePrg();
 			}
 		}
 

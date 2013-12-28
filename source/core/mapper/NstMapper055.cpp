@@ -36,8 +36,7 @@ namespace Nes
 		void Mapper55::SubReset(bool)
 		{
 			Map( 0x6000U, 0x6FFFU, &Mapper55::Peek_Prg  );
-			Map( 0x7000U, 0x77FFU, &Mapper55::Peek_wRam, &Mapper55::Poke_wRam );
-			Map( 0x7800U, 0x7FFFU, &Mapper55::Peek_Prg  );
+			Map( 0x7000U, 0x7FFFU, &Mapper55::Peek_wRam, &Mapper55::Poke_wRam );
 		}
 
 		#ifdef NST_PRAGMA_OPTIMIZE
@@ -51,12 +50,12 @@ namespace Nes
 
 		NES_PEEK(Mapper55,wRam)
 		{
-			return wrk[0][address - 0x7000U];
+			return wrk[0][address & 0x7FF];
 		}
 
 		NES_POKE(Mapper55,wRam)
 		{
-			wrk[0][address - 0x7000U] = data;
+			wrk[0][address & 0x7FF] = data;
 		}
 	}
 }

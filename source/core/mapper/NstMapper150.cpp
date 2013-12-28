@@ -113,8 +113,7 @@ namespace Nes
 					ppu.SetMirroring( mirroring[data >> 1 & 0x3] );
 				}
 
-				default:
-					return;
+				default: return;
 			}
 
 			if (banks[0] != ~0U)

@@ -140,7 +140,7 @@ namespace Nes
 
 			NES_POKE(Unl8237,5001)
 			{
-				data = (data & 0x4) << 6;
+				data = data << 6 & 0x100;
 
 				if (exRegs[1] != data)
 				{
@@ -151,7 +151,7 @@ namespace Nes
 
 			NES_POKE(Unl8237,8000)
 			{
-				NES_CALL_POKE(Mmc3,Nmt_Hv,0xA000U,data >> 7 | data);
+				SetMirroringHV( data >> 7 | data );
 			}
 
 			NES_POKE(Unl8237,A000)

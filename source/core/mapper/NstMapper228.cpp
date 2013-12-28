@@ -57,7 +57,7 @@ namespace Nes
 			}
 
 			ppu.SetMirroring( (address & 0x2000U) ? Ppu::NMT_HORIZONTAL : Ppu::NMT_VERTICAL );
-			chr.SwapBank<SIZE_8K,0x0000U>( (address << 2 & 0x3C) | (data & 0x3) );
+			chr.SwapBank<SIZE_8K,0x0000U>( (address << 2 & 0x3C) | (data & 0x03) );
 		}
 	}
 }

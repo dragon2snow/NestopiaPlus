@@ -37,13 +37,12 @@ namespace Nes
 		{
 		public:
 
-			Mapper241(Context&);
+			Mapper241(Context& c)
+			: Mapper(c,CROM_MAX_8K) {}
 
 		private:
 
 			void SubReset(bool);
-
-			const ibool edu;
 		};
 	}
 }

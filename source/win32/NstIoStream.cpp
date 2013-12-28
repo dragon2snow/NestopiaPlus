@@ -175,10 +175,6 @@ namespace Nestopia
 		Stream::Input::Input(Collection::Buffer& input)
 		: std::istream(&buffer), buffer(input) {}
 
-		Stream::Input::~Input()
-		{
-		}
-
 		Stream::Input& Stream::Input::operator = (const File& file)
 		{
 			buffer = file;
@@ -328,10 +324,6 @@ namespace Nestopia
 
 		Stream::Output::Output(const File& file)
 		: std::ostream(&buffer), buffer(file) {}
-
-		Stream::Output::~Output()
-		{
-		}
 
 		Stream::Output& Stream::Output::operator = (const File& file)
 		{

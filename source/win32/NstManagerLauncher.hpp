@@ -61,6 +61,7 @@ namespace Nestopia
 
 			void Update();
 			void OnMenu(uint);
+			void OnActivate(Window::Param&);
 			void OnDisplayChange(Window::Param&);
 			void OnEmuEvent(Emulator::Event);
 			void OnAppEvent(Application::Instance::Event,const void*);
@@ -70,6 +71,7 @@ namespace Nestopia
 			Emulator& emulator;
 			const Window::Menu& menu;
 			Collection::BitSet state;
+			ibool fullscreen;
 			Object::Heap<Window::Launcher> dialog;
 		};
 	}

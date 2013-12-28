@@ -90,33 +90,16 @@ namespace Nes
 			{
 				if (wrk.Source().Writable() && !power)
 				{
-					wrk.Source().Fill( 0x00 );
+					wrk.Source().Fill( 0xFF );
 					Log::Flush( "Mapper0: battery-switch OFF, discarding data!" NST_LINEBREAK );
 				}
-			}
-
-			static bool IsBasic(const dword crc)
-			{
-				switch (crc)
-				{
-					case 0x868FCD89UL: // Family BASIC v1.0
-					case 0xF9DEF527UL: // Family BASIC v2.0a
-					case 0xDE34526EUL: // Family BASIC v2.1a
-					case 0x3AAEED3FUL: // Family BASIC v3.0
-					case 0xF050B611UL: // -||-
-					case 0xDA03D908UL: // Playbox BASIC v1.0
-					case 0x2D6B7E5AUL: // Playbox BASIC Prototype
-						return true;
-				}
-
-				return false;
 			}
 		};
 
 		Mapper0::Mapper0(Context& c)
 		:
-		Mapper     (c,CartSwitch::IsBasic(c.prgCrc) ? WRAM_8K : 0),
-		cartSwitch (CartSwitch::IsBasic(c.prgCrc) ? new CartSwitch(wrk) : NULL)
+		Mapper     (c,c.attribute == ATR_BACKUP_SWITCH ? PROM_MAX_32K|CROM_MAX_8K|WRAM_8K : PROM_MAX_32K|CROM_MAX_8K|WRAM_DEFAULT),
+		cartSwitch (c.attribute == ATR_BACKUP_SWITCH ? new CartSwitch(wrk) : NULL)
 		{}
 
 		Mapper0::~Mapper0()
@@ -127,7 +110,7 @@ namespace Nes
 		void Mapper0::SubReset(bool)
 		{
 			if (cartSwitch)
-				Map( WRK_PEEK_POKE_BUS );
+				Map( WRK_SAFE_PEEK_POKE );
 		}
 
 		void Mapper0::Flush(bool power)

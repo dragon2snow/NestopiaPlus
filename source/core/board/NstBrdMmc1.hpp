@@ -39,64 +39,54 @@ namespace Nes
 			{
 			protected:
 
-				enum Revision
+				enum Board
 				{
-					REV_1A,
-					REV_1B,
-					REV_1C
+					BRD_GENERIC,
+					BRD_SAROM,
+					BRD_SBROM,
+					BRD_SCROM,
+					BRD_SC1ROM,
+					BRD_SEROM,
+					BRD_SFROM,
+					BRD_SF1ROM,
+					BRD_SFEOROM,
+					BRD_SFEXPROM,
+					BRD_SGROM,
+					BRD_SHROM,
+					BRD_SH1ROM,
+					BRD_SJROM,
+					BRD_SKROM,
+					BRD_SLROM,
+					BRD_SL1ROM,
+					BRD_SL3ROM,
+					BRD_SLRROM,
+					BRD_SNROM,
+					BRD_SOROM,
+					BRD_SUROM,
+					BRD_SXROM,
+					BRD_GENERIC_WRAM
 				};
 
-				Mmc1(Context&,uint=WRAM_AUTO,Revision=REV_1B);
+				enum Revision
+				{
+					REV_A,
+					REV_B,
+					REV_C
+				};
+
+				Mmc1(Context&,Board=BRD_GENERIC,Revision=REV_B);
 
 				void SubReset(bool);
 				void UpdatePrg();
+				void UpdateWrk();
 				void UpdateChr() const;
-				void UpdateMirroring() const;
+				void UpdateNmt();
 				void VSync();
-
-			private:
-
-				void BaseSave(State::Saver&) const;
-				void BaseLoad(State::Loader&,dword);
-
-				virtual void UpdateRegister0();
-				virtual void UpdateRegister1();
-				virtual void UpdateRegister2();
-				virtual void UpdateRegister3();
-
-				void ClearRegisters();
-
-				inline bool IsWRamEnabled() const;
-
-				NES_DECL_PEEK( wRam )
-				NES_DECL_POKE( wRam )
-				NES_DECL_PEEK( wRam_SoRom )
-				NES_DECL_POKE( wRam_SoRom )
-				NES_DECL_PEEK( wRam_SoRom_1a )
-				NES_DECL_POKE( wRam_SoRom_1a )
-				NES_DECL_POKE( Prg )
-
-				struct Serial
-				{
-					enum
-					{
-						RESET = b10000000
-					};
-
-					uint buffer;
-					uint shifter;
-					iword time;
-				};
-
-				Serial serial;
-
-			protected:
 
 				enum
 				{
 					CTRL,
 					CHR0,
-					PRG1 = CHR0,
 					CHR1,
 					PRG0
 				};
@@ -108,14 +98,39 @@ namespace Nes
 					CTRL_PRG_SWAP_16K  = b00001000,
 					CTRL_CHR_SWAP_4K   = b00010000,
 					CTRL_RESET         = CTRL_PRG_SWAP_LOW|CTRL_PRG_SWAP_16K,
-					PRG1_256K_BANK     = b00010000,
-					PRG0_BANK          = b00001111,
 					PRG0_WRAM_DISABLED = b00010000
 				};
 
-				uint regs[4];
-
 			private:
+
+				static uint BoardToWRam(Board);
+
+				void BaseSave(State::Saver&) const;
+				void BaseLoad(State::Loader&,dword);
+
+				void ResetRegisters();
+				virtual void UpdateRegisters(uint);
+
+				NES_DECL_POKE( Prg )
+
+				struct Serial
+				{
+					enum
+					{
+						RESET_BIT = 0x80,
+						RESET_CYCLES = 2
+					};
+
+					uint buffer;
+					uint shifter;
+					Cycle ready;
+				};
+
+				Serial serial;
+
+			protected:
+
+				u8 regs[4];
 
 				const Revision revision;
 			};

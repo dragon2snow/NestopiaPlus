@@ -40,7 +40,7 @@ namespace Nes
 			public:
 
 				Ws(Context& c)
-				: Mapper(c,WRAM_NONE) {}
+				: Mapper(c,PROM_MAX_128K|CROM_MAX_64K|WRAM_NONE) {}
 
 			private:
 

@@ -25,9 +25,10 @@
 #include <new>
 #include "../NstMachine.hpp"
 #include "../NstCartridge.hpp"
+#include "../NstLog.hpp"
 #include "../NstImageDatabase.hpp"
+#include "../NstCartridgeInes.hpp"
 #include "NstApiMachine.hpp"
-#include "NstApiCartridge.hpp"
 
 #ifdef NST_PRAGMA_OPTIMIZE
 #pragma optimize("s", on)
@@ -37,30 +38,64 @@ namespace Nes
 {
 	namespace Api
 	{
+		Cartridge::Setup::Setup() throw()
+		{
+			Clear();
+		}
+
+		void Cartridge::Setup::Clear() throw()
+		{
+			system = SYSTEM_HOME;
+			region = REGION_NTSC;
+			prgRom = 0;
+			wrkRam = 0;
+			wrkRamBacked = 0;
+			chrRom = 0;
+			chrRam = 0;
+			chrRamBacked = 0;
+			ppu = PPU_RP2C02;
+			mirroring = MIRROR_HORIZONTAL;
+			mapper = 0;
+			subMapper = 0;
+			security = 0;
+			version = 0;
+			trainer = false;
+			wrkRamAuto = false;
+		}
+
+		Cartridge::Info::Info() throw()
+		{
+			Clear();
+		}
+
 		void Cartridge::Info::Clear() throw()
 		{
 			name.clear();
 			maker.clear();
 			board.clear();
 
-			mapper         = 0;
-			pRom           = 0;
-			cRom           = 0;
-			wRam           = 0;
-			isCRam         = false;
 			crc            = 0;
-			pRomCrc        = 0;
-			cRomCrc        = 0;
-			system         = SYSTEM_NTSC;
-			mirroring      = MIRROR_HORIZONTAL;
-			battery        = false;
-			trained        = false;
+			prgCrc         = 0;
+			chrCrc         = 0;
 			controllers[0] = Input::PAD1;
 			controllers[1] = Input::PAD2;
 			controllers[2] = Input::UNCONNECTED;
 			controllers[3] = Input::UNCONNECTED;
 			controllers[4] = Input::UNCONNECTED;
-			condition      = UNKNOWN;
+			adapter        = Input::ADAPTER_NES;
+			condition      = DUMP_UNKNOWN;
+
+			setup.Clear();
+		}
+
+		Result NST_CALL Cartridge::ReadNesHeader(Setup& setup,const void* const data,const ulong length) throw()
+		{
+			return Core::Cartridge::Ines::ReadHeader( setup, data, length );
+		}
+
+		Result NST_CALL Cartridge::WriteNesHeader(const Setup& setup,void* data,ulong length) throw()
+		{
+			return Core::Cartridge::Ines::WriteHeader( setup, data, length );
 		}
 
 		Cartridge::Database Cartridge::GetDatabase() throw()
@@ -123,17 +158,22 @@ namespace Nes
 
 		Cartridge::Database::Entry Cartridge::Database::FindEntry(ulong crc) const throw()
 		{
-			return imageDatabase ? imageDatabase->GetHandle( crc ) : NULL;
+			return imageDatabase ? imageDatabase->Search( crc ) : NULL;
 		}
 
-		Cartridge::Database::Entry Cartridge::Database::FindEntry(const void* data,ulong size) const throw()
+		Cartridge::Database::Entry Cartridge::Database::FindEntry(const void* file,ulong length) const throw()
 		{
-			return imageDatabase ? Core::Cartridge::SearchDatabase( *imageDatabase, static_cast<const u8*>(data), size ) : NULL;
+			return imageDatabase ? Core::Cartridge::SearchDatabase( *imageDatabase, file, length ) : NULL;
 		}
 
-		Cartridge::System Cartridge::Database::GetSystem(Entry entry) const throw()
+		System Cartridge::Database::GetSystem(Entry entry) const throw()
 		{
-			return imageDatabase && entry ? imageDatabase->GetSystem( entry ) : SYSTEM_NTSC;
+			return imageDatabase && entry ? imageDatabase->GetSystem( entry ) : SYSTEM_HOME;
+		}
+
+		Region Cartridge::Database::GetRegion(Entry entry) const throw()
+		{
+			return imageDatabase && entry ? imageDatabase->GetRegion( entry ) : REGION_NTSC;
 		}
 
 		Cartridge::Mirroring Cartridge::Database::GetMirroring(Entry entry) const throw()
@@ -146,19 +186,34 @@ namespace Nes
 			return imageDatabase && entry ? imageDatabase->Crc( entry ) : 0;
 		}
 
-		ulong Cartridge::Database::GetPRomSize(Entry entry) const throw()
+		ulong Cartridge::Database::GetPrgRom(Entry entry) const throw()
 		{
-			return imageDatabase && entry ? imageDatabase->PrgSize( entry ) : 0;
+			return imageDatabase && entry ? imageDatabase->PrgRom( entry ) : 0;
 		}
 
-		ulong Cartridge::Database::GetCRomSize(Entry entry) const throw()
+		ulong Cartridge::Database::GetWrkRam(Entry entry) const throw()
 		{
-			return imageDatabase && entry ? imageDatabase->ChrSize( entry ) : 0;
+			return imageDatabase && entry ? imageDatabase->WrkRam( entry ) : 0;
 		}
 
-		ulong Cartridge::Database::GetWRamSize(Entry entry) const throw()
+		ulong Cartridge::Database::GetWrkRamBacked(Entry entry) const throw()
 		{
-			return imageDatabase && entry ? imageDatabase->WrkSize( entry ) : 0;
+			return imageDatabase && entry ? imageDatabase->WrkRamBacked( entry ) : 0;
+		}
+
+		ulong Cartridge::Database::GetChrRom(Entry entry) const throw()
+		{
+			return imageDatabase && entry ? imageDatabase->ChrRom( entry ) : 0;
+		}
+
+		ulong Cartridge::Database::GetChrRam(Entry entry) const throw()
+		{
+			return imageDatabase && entry ? imageDatabase->ChrRam( entry ) : 0;
+		}
+
+		ulong Cartridge::Database::GetChrRamBacked(Entry entry) const throw()
+		{
+			return imageDatabase && entry ? imageDatabase->ChrRamBacked( entry ) : 0;
 		}
 
 		uint Cartridge::Database::GetMapper(Entry entry) const throw()
@@ -166,19 +221,14 @@ namespace Nes
 			return imageDatabase && entry ? imageDatabase->Mapper( entry ) : 0;
 		}
 
-		bool Cartridge::Database::HasBattery(Entry entry) const throw()
-		{
-			return imageDatabase && entry && imageDatabase->HasBattery( entry );
-		}
-
 		bool Cartridge::Database::HasTrainer(Entry entry) const throw()
 		{
-			return imageDatabase && entry && imageDatabase->HasTrainer( entry );
+			return imageDatabase && entry && imageDatabase->Trainer( entry );
 		}
 
-		bool Cartridge::Database::IsBad(Entry entry) const throw()
+		Cartridge::Condition Cartridge::Database::GetCondition(Entry entry) const throw()
 		{
-			return imageDatabase && entry && imageDatabase->IsBad( entry );
+			return imageDatabase && entry ? imageDatabase->Condition( entry ) : DUMP_UNKNOWN;
 		}
 	}
 }

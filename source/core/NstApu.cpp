@@ -35,40 +35,40 @@ namespace Nes
 		const u16 Apu::Noise::lut[2][16] =
 		{
 			{
-				0x002U * PULSE,
-				0x004U * PULSE,
-				0x008U * PULSE,
-				0x010U * PULSE,
-				0x020U * PULSE,
-				0x030U * PULSE,
-				0x040U * PULSE,
-				0x050U * PULSE,
-				0x065U * PULSE,
-				0x07FU * PULSE,
-				0x0BEU * PULSE,
-				0x0FEU * PULSE,
-				0x17DU * PULSE,
-				0x1FCU * PULSE,
-				0x3F9U * PULSE,
-				0x7F2U * PULSE,
+				0x004,
+				0x008,
+				0x010,
+				0x020,
+				0x040,
+				0x060,
+				0x080,
+				0x0A0,
+				0x0CA,
+				0x0FE,
+				0x17C,
+				0x1FC,
+				0x2FA,
+				0x3F8,
+				0x7F2,
+				0xFE4
 			},
 			{
-				0x001U * PULSE,
-				0x003U * PULSE,
-				0x007U * PULSE,
-				0x00EU * PULSE,
-				0x01DU * PULSE,
-				0x02CU * PULSE,
-				0x03BU * PULSE,
-				0x04AU * PULSE,
-				0x05DU * PULSE,
-				0x075U * PULSE,
-				0x0B0U * PULSE,
-				0x0EBU * PULSE,
-				0x161U * PULSE,
-				0x1D7U * PULSE,
-				0x3B0U * PULSE,
-				0x761U * PULSE
+				0x004,
+				0x007,
+				0x00E,
+				0x01E,
+				0x03C,
+				0x058,
+				0x076,
+				0x094,
+				0x0BC,
+				0x0EC,
+				0x162,
+				0x1D8,
+				0x2C4,
+				0x3B0,
+				0x762,
+				0xEC2
 			}
 		};
 
@@ -135,14 +135,14 @@ namespace Nes
 		const Cycle Apu::Cycles::frame[2] =
 		{
 			29830UL * Cpu::MC_DIV_NTSC,
-			33252UL * Cpu::MC_DIV_PAL
+			33254UL * Cpu::MC_DIV_PAL
 		};
 
 		const Cycle Apu::Cycles::frameClocks[2][2][4] =
 		{
 			{
 				{
-					Cpu::MC_DIV_NTSC * 7458,
+					Cpu::MC_DIV_NTSC * (7459 - 1),
 					Cpu::MC_DIV_NTSC * 7456,
 					Cpu::MC_DIV_NTSC * 7458,
 					Cpu::MC_DIV_NTSC * 7458
@@ -151,21 +151,21 @@ namespace Nes
 					Cpu::MC_DIV_NTSC * 7458,
 					Cpu::MC_DIV_NTSC * 7456,
 					Cpu::MC_DIV_NTSC * 7458,
-					Cpu::MC_DIV_NTSC * (7456 + 7454)
+					Cpu::MC_DIV_NTSC * (7458 + 7452)
 				}
 			},
 			{
 				{
-					Cpu::MC_DIV_PAL * 8313,
-					Cpu::MC_DIV_PAL * 8313,
-					Cpu::MC_DIV_PAL * 8313,
-					Cpu::MC_DIV_PAL * 8313
+					Cpu::MC_DIV_PAL * (8315 - 1),
+					Cpu::MC_DIV_PAL * 8314,
+					Cpu::MC_DIV_PAL * 8312,
+					Cpu::MC_DIV_PAL * 8314
 				},
 				{
-					Cpu::MC_DIV_PAL * 8313,
-					Cpu::MC_DIV_PAL * 8313,
-					Cpu::MC_DIV_PAL * 8313,
-					Cpu::MC_DIV_PAL * 8313
+					Cpu::MC_DIV_PAL * 8314,
+					Cpu::MC_DIV_PAL * 8314,
+					Cpu::MC_DIV_PAL * 8312,
+					Cpu::MC_DIV_PAL * (8314 + 8312)
 				}
 			}
 		};
@@ -244,13 +244,11 @@ namespace Nes
 
 		void Apu::Envelope::Reset()
 		{
-			reset = false;
-			count = 1;
-			rate = 1;
-			loop = false;
-			volume = 0x0;
-			disabled = true;
 			output = 0;
+			reset = false;
+			reg = DECAY_DISABLE;
+			count = 1;
+			volume = 0x0;
 		}
 
 		Apu::Dmc::Dmc()
@@ -379,7 +377,7 @@ namespace Nes
 
 			for (uint i=0; i < MAX_CHANNELS; ++i)
 			{
-				if (channels & (1U << i))
+				if (channels & 1U << i)
 				{
 					if (context.volumes[i] != volume)
 					{
@@ -401,7 +399,7 @@ namespace Nes
 		{
 			for (uint i=0; i < MAX_CHANNELS; ++i)
 			{
-				if (channel & (1U << i))
+				if (channel & 1U << i)
 					return context.volumes[i];
 			}
 
@@ -535,41 +533,47 @@ namespace Nes
 		{
 			if (stream && context.audible && Sound::Output::lockCallback( *stream ))
 			{
-				Sound::Buffer::Block block( stream->length );
-				buffer >> block;
-
-				if (context.bits == 16)
+				for (uint i=0; i < 2; ++i)
 				{
-					if (context.stereo)
+					if (stream->length[i])
 					{
-						Sound::Buffer::Renderer<i16,true> output(*stream,buffer.history);
+						Sound::Buffer::Block block( stream->length[i] );
+						buffer >> block;
 
-						if (output << block)
-							UpdateBuffer( output );
-					}
-					else
-					{
-						Sound::Buffer::Renderer<i16,false> output(*stream);
+						if (context.bits == 16)
+						{
+							if (context.stereo)
+							{
+								Sound::Buffer::Renderer<i16,true> output(stream->samples[i],stream->length[i],buffer.history);
 
-						if (output << block)
-							UpdateBuffer( output );
-					}
-				}
-				else
-				{
-					if (context.stereo)
-					{
-						Sound::Buffer::Renderer<u8,true> output(*stream,buffer.history);
+								if (output << block)
+									UpdateBuffer( output );
+							}
+							else
+							{
+								Sound::Buffer::Renderer<i16,false> output(stream->samples[i],stream->length[i]);
 
-						if (output << block)
-							UpdateBuffer( output );
-					}
-					else
-					{
-						Sound::Buffer::Renderer<u8,false> output(*stream);
+								if (output << block)
+									UpdateBuffer( output );
+							}
+						}
+						else
+						{
+							if (context.stereo)
+							{
+								Sound::Buffer::Renderer<u8,true> output(stream->samples[i],stream->length[i],buffer.history);
 
-						if (output << block)
-							UpdateBuffer( output );
+								if (output << block)
+									UpdateBuffer( output );
+							}
+							else
+							{
+								Sound::Buffer::Renderer<u8,false> output(stream->samples[i],stream->length[i]);
+
+								if (output << block)
+									UpdateBuffer( output );
+							}
+						}
 					}
 				}
 
@@ -629,6 +633,12 @@ namespace Nes
 
 			dcBlocker.Reset();
 			buffer.Reset( context.bits, false );
+		}
+
+		Apu::Envelope::Envelope()
+		: outputVolume(OUTPUT_MUL)
+		{
+			Reset();
 		}
 
 		Apu::Channel::Channel()
@@ -786,8 +796,8 @@ namespace Nes
 				if (--count)
 					return;
 
-				if (volume | loop)
-					volume = (volume - 1) & 0xF;
+				if (volume | (reg & DECAY_LOOP))
+					volume = (volume - 1U) & 0xF;
 			}
 			else
 			{
@@ -795,18 +805,21 @@ namespace Nes
 				volume = 0xF;
 			}
 
-			if (!disabled)
-				output = volume * outputVolume;
+			count = (reg & DECAY_RATE) + 1;
 
-			count = rate;
+			if (!(reg & DECAY_DISABLE))
+				output = volume * outputVolume;
+		}
+
+		inline void Apu::Envelope::UpdateOutput()
+		{
+			output = ((reg & DECAY_DISABLE) ? (reg & DECAY_RATE) : volume) * outputVolume;
 		}
 
 		void Apu::Envelope::Write(const uint data)
 		{
-			rate = (data & DECAY_RATE) + 1;
-			disabled = data & DECAY_DISABLE;
-			loop = data & DECAY_LOOP;
-			output = (disabled ? (data & DECAY_RATE) : volume) * outputVolume;
+			reg = data;
+			UpdateOutput();
 		}
 
 		inline void Apu::Square::Toggle(const uint state)
@@ -856,12 +869,20 @@ namespace Nes
 			return lengthCounter.GetCount() && envelope.Volume() && validFrequency;
 		}
 
+		#ifdef NST_PRAGMA_OPTIMIZE
+		#pragma optimize("s", on)
+		#endif
+
 		void Apu::Square::SetContext(dword r,uint f,uint v)
 		{
 			Oscillator::SetContext( r, f );
 			envelope.SetOutputVolume( v );
 			active = CanOutput();
 		}
+
+		#ifdef NST_PRAGMA_OPTIMIZE
+		#pragma optimize("", on)
+		#endif
 
 		bool Apu::Square::UpdateFrequency()
 		{
@@ -872,7 +893,7 @@ namespace Nes
 				enum {CARRY = (sizeof(dword) * CHAR_BIT) - 1};
 				const dword sweepFrq = waveLength + (sweepNegate ^ (waveLength >> sweepShift));
 
-				if ((sweepFrq & (0x1UL << CARRY)) || sweepFrq <= MAX_FRQ)
+				if ((sweepFrq & 0x1UL << CARRY) || sweepFrq <= MAX_FRQ)
 				{
 					validFrequency = true;
 					return lengthCounter.GetCount() && envelope.Volume();
@@ -973,12 +994,20 @@ namespace Nes
 			return lengthCounter.GetCount() && linearCounter && waveLength >= MIN_FRQ && outputVolume;
 		}
 
+		#ifdef NST_PRAGMA_OPTIMIZE
+		#pragma optimize("s", on)
+		#endif
+
 		void Apu::Triangle::SetContext(dword r,uint f,uint v)
 		{
 			Oscillator::SetContext( r, f );
 			outputVolume = v;
 			active = CanOutput();
 		}
+
+		#ifdef NST_PRAGMA_OPTIMIZE
+		#pragma optimize("", on)
+		#endif
 
 		NST_FORCE_INLINE void Apu::Triangle::WriteReg0(const uint data)
 		{
@@ -1035,6 +1064,10 @@ namespace Nes
 			return lengthCounter.GetCount() && envelope.Volume();
 		}
 
+		#ifdef NST_PRAGMA_OPTIMIZE
+		#pragma optimize("s", on)
+		#endif
+
 		void Apu::Noise::SetContext(dword r,uint f,uint v,Mode m)
 		{
 			Oscillator::SetContext( r, f );
@@ -1042,6 +1075,10 @@ namespace Nes
 			envelope.SetOutputVolume( v );
 			active = CanOutput();
 		}
+
+		#ifdef NST_PRAGMA_OPTIMIZE
+		#pragma optimize("", on)
+		#endif
 
 		NST_FORCE_INLINE void Apu::Noise::WriteReg0(const uint data)
 		{
@@ -1724,11 +1761,8 @@ namespace Nes
 
 		void Apu::Envelope::SetOutputVolume(uint v)
 		{
-			if (outputVolume)
-				output /= outputVolume;
-
-			output *= v;
 			outputVolume = v;
+			UpdateOutput();
 		}
 
 		void Apu::SaveState(State::Saver& state)
@@ -1831,18 +1865,18 @@ namespace Nes
 
 		void Apu::Envelope::SaveState(State::Saver& state) const
 		{
-			NST_VERIFY( count && rate );
+			NST_VERIFY( count );
 
 			u8 data[3] =
 			{
 				count - 1,
 				volume,
-				rate - 1
+				reg & DECAY_RATE
 			};
 
-			if ( reset    ) data[1] |= SAVE_1_RESET;
-			if ( disabled ) data[2] |= SAVE_2_DECAY_DISABLE;
-			if ( loop     ) data[2] |= SAVE_2_DECAY_LOOP;
+			if ( reset               ) data[1] |= SAVE_1_RESET;
+			if ( reg & DECAY_DISABLE ) data[2] |= SAVE_2_DECAY_DISABLE;
+			if ( reg & DECAY_LOOP    ) data[2] |= SAVE_2_DECAY_LOOP;
 
 			state.Write( data );
 		}
@@ -1851,13 +1885,18 @@ namespace Nes
 		{
 			const State::Loader::Data<3> data( state );
 
-			count    = (data[0] & SAVE_0_COUNT) + 1;
-			volume   = data[1] & SAVE_1_VOLUME;
-			reset    = data[1] >> SAVE_1_RESET_SHIFT;
-			rate     = (data[2] & SAVE_2_DECAY_RATE) + 1;
-			disabled = data[2] & SAVE_2_DECAY_DISABLE;
-			loop     = data[2] & SAVE_2_DECAY_LOOP;
-			output   = (disabled ? (data[2] & SAVE_2_DECAY_RATE) : volume) * outputVolume;
+			count  = (data[0] & SAVE_0_COUNT) + 1;
+			volume = data[1] & SAVE_1_VOLUME;
+			reset  = data[1] >> SAVE_1_RESET_SHIFT;
+			reg    = data[2] & DECAY_RATE;
+
+			if (data[2] & SAVE_2_DECAY_DISABLE)
+				reg |= DECAY_DISABLE;
+
+			if (data[2] & SAVE_2_DECAY_LOOP)
+				reg |= DECAY_LOOP;
+
+			UpdateOutput();
 		}
 
 		void Apu::LengthCounter::LoadState(State::Loader& state)

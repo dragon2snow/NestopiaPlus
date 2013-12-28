@@ -534,34 +534,34 @@ namespace Nes
 			{
 				case 0:
 
-					output.samples = buffer;
-					output.length = rate / NUM_FRAMES;
+					output.samples[0] = buffer;
+					output.length[0] = rate / NUM_FRAMES;
 					input = buffer + (size / 1);
 					break;
 
 				case LAST_FRAME:
 
-					output.samples = static_cast<u8*>(output.samples) + (output.length * SampleSize());
-					output.length = (buffer + (size / 2) - static_cast<u8*>(output.samples)) / SampleSize();
+					output.samples[0] = static_cast<u8*>(output.samples[0]) + (output.length[0] * SampleSize());
+					output.length[0] = (buffer + (size / 2) - static_cast<u8*>(output.samples[0])) / SampleSize();
 					break;
 
 				case NUM_FRAMES:
 
-					output.samples = buffer + (size / 2);
-					output.length = rate / NUM_FRAMES;
+					output.samples[0] = buffer + (size / 2);
+					output.length[0] = rate / NUM_FRAMES;
 					input = buffer + (size / 2);
 					break;
 
 				case NUM_FRAMES+LAST_FRAME:
 
 					index = 0;
-					output.samples = static_cast<u8*>(output.samples) + (output.length * SampleSize());
-					output.length = (buffer + (size / 1) - static_cast<u8*>(output.samples)) / SampleSize();
+					output.samples[0] = static_cast<u8*>(output.samples[0]) + (output.length[0] * SampleSize());
+					output.length[0] = (buffer + (size / 1) - static_cast<u8*>(output.samples[0])) / SampleSize();
 					break;
 
 				default:
 
-					output.samples = static_cast<u8*>(output.samples) + (output.length * SampleSize());
+					output.samples[0] = static_cast<u8*>(output.samples[0]) + (output.length[0] * SampleSize());
 					break;
 			}
 
@@ -585,27 +585,33 @@ namespace Nes
 		template<typename T>
 		void Tracker::Rewinder::ReverseSound::ReverseCopy(const Output& target)
 		{
-			T* dst = static_cast<T*>(target.samples);
-
-			if (enabled && good)
+			for (uint i=0; i < 2; ++i)
 			{
-				const T* const dstEnd = dst + (target.length << stereo);
+				if (const uint length = target.length[i])
+				{
+					T* dst = static_cast<T*>(target.samples[i]);
 
-				const T* src = reinterpret_cast<const T*>(input);
-				const T* const srcEnd = reinterpret_cast<const T*>(buffer);
+					if (enabled && good)
+					{
+						const T* const dstEnd = dst + (length << stereo);
 
-				while (dst != dstEnd && src-- != srcEnd)
-					*dst++ = *src;
+						const T* src = reinterpret_cast<const T*>(input);
+						const T* const srcEnd = reinterpret_cast<const T*>(buffer);
 
-				input = reinterpret_cast<const u8*>(src + 1);
-				const T last = src[1];
+						while (dst != dstEnd && src-- != srcEnd)
+							*dst++ = *src;
 
-				while (dst != dstEnd)
-					*dst++ = last;
-			}
-			else
-			{
-				std::memset( dst, sizeof(T) == sizeof(u8) ? 0x80 : 0x00, (target.length << stereo) * sizeof(T) );
+						input = reinterpret_cast<const u8*>(src + 1);
+						const T last = src[1];
+
+						while (dst != dstEnd)
+							*dst++ = last;
+					}
+					else
+					{
+						std::memset( dst, sizeof(T) == sizeof(u8) ? 0x80 : 0x00, (length << stereo) * sizeof(T) );
+					}
+				}
 			}
 		}
 

@@ -109,8 +109,8 @@ namespace Nes
 
 							pos = data[0] | ((data[1] & 0x1F) << 8);
 							bit = 1U << (data[2] & 0x7);
-							old = (data[2] >> 1) & WRITE_BIT;
-							out = (data[2] >> 2) & READ_BIT;
+							old = data[2] >> 1 & WRITE_BIT;
+							out = data[2] >> 2 & READ_BIT;
 
 							break;
 						}

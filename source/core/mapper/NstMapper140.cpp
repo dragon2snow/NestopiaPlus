@@ -45,7 +45,7 @@ namespace Nes
 		NES_POKE(Mapper140,6000)
 		{
 			ppu.Update();
-			chr.SwapBank<SIZE_8K,0x0000U>( data & 0xF );
+			chr.SwapBank<SIZE_8K,0x0000U>( data );
 			prg.SwapBank<SIZE_32K,0x0000U>( data >> 4 );
 		}
 	}

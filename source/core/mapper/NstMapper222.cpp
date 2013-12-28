@@ -35,7 +35,10 @@ namespace Nes
 		#endif
 
 		Mapper222::Mapper222(Context& c)
-		: Mapper(c), irq(c.cpu,c.ppu,Irq::SIGNAL_DURATION) {}
+		:
+		Mapper (c,CROM_MAX_256K|WRAM_DEFAULT),
+		irq    (c.cpu,c.ppu,Irq::SIGNAL_DURATION)
+		{}
 
 		void Mapper222::Irq::Reset(bool)
 		{
@@ -49,6 +52,7 @@ namespace Nes
 			for (uint i=0x0000U; i < 0x1000U; i += 0x4)
 			{
 				Map( 0x8000U + i, PRG_SWAP_8K_0 );
+				Map( 0x9000U + i, NMT_SWAP_HV   );
 				Map( 0xA000U + i, PRG_SWAP_8K_1 );
 				Map( 0xB000U + i, CHR_SWAP_1K_0 );
 				Map( 0xB002U + i, CHR_SWAP_1K_1 );

@@ -36,12 +36,12 @@ namespace Nes
 
 			const uint swap = (regs.ctrl0 & Regs::CTRL0_XOR_CHR) << 5;
 
-			chr.Source( (banks.chr[0] >> 5) & 1 ).SwapBank<SIZE_2K>( 0x0000U ^ swap, banks.chr[0] );
-			chr.Source( (banks.chr[1] >> 5) & 1 ).SwapBank<SIZE_2K>( 0x0800U ^ swap, banks.chr[1] );
-			chr.Source( (banks.chr[2] >> 6) & 1 ).SwapBank<SIZE_1K>( 0x1000U ^ swap, banks.chr[2] );
-			chr.Source( (banks.chr[3] >> 6) & 1 ).SwapBank<SIZE_1K>( 0x1400U ^ swap, banks.chr[3] );
-			chr.Source( (banks.chr[4] >> 6) & 1 ).SwapBank<SIZE_1K>( 0x1800U ^ swap, banks.chr[4] );
-			chr.Source( (banks.chr[5] >> 6) & 1 ).SwapBank<SIZE_1K>( 0x1C00U ^ swap, banks.chr[5] );
+			chr.Source( banks.chr[0] >> 5 & 0x1 ).SwapBank<SIZE_2K>( 0x0000U ^ swap, banks.chr[0] );
+			chr.Source( banks.chr[1] >> 5 & 0x1 ).SwapBank<SIZE_2K>( 0x0800U ^ swap, banks.chr[1] );
+			chr.Source( banks.chr[2] >> 6 & 0x1 ).SwapBank<SIZE_1K>( 0x1000U ^ swap, banks.chr[2] );
+			chr.Source( banks.chr[3] >> 6 & 0x1 ).SwapBank<SIZE_1K>( 0x1400U ^ swap, banks.chr[3] );
+			chr.Source( banks.chr[4] >> 6 & 0x1 ).SwapBank<SIZE_1K>( 0x1800U ^ swap, banks.chr[4] );
+			chr.Source( banks.chr[5] >> 6 & 0x1 ).SwapBank<SIZE_1K>( 0x1C00U ^ swap, banks.chr[5] );
 		}
 	}
 }

@@ -37,22 +37,27 @@ namespace Nes
 		{
 		public:
 
-			Mapper32(Context& c)
-			: Mapper(c), prgCrc(c.prgCrc) {}
+			Mapper32(Context&);
 
 		private:
+
+			enum
+			{
+				ATR_NMT_1K = 1
+			};
 
 			void SubReset(bool);
 			void SubSave(State::Saver&) const;
 			void SubLoad(State::Loader&);
+			void UpdatePrg();
 
 			NES_DECL_POKE( 8000 )
 			NES_DECL_POKE( 9000 )
 			NES_DECL_POKE( B006 )
 			NES_DECL_POKE( B007 )
 
-			uint prgOffset;
-			const dword prgCrc;
+			uint regs[2];
+			const ibool nmt1k;
 		};
 	}
 }

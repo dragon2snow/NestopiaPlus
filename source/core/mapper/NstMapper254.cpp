@@ -36,7 +36,7 @@ namespace Nes
 
 		void Mapper254::SubReset(const bool hard)
 		{
-			latchFlip = 0x1;
+			security = ~0U;
 
 			Mmc3::SubReset( hard );
 
@@ -52,7 +52,7 @@ namespace Nes
 			while (const dword chunk = state.Begin())
 			{
 				if (chunk == NES_STATE_CHUNK_ID('R','E','G','\0'))
-					latchFlip = state.Read8() & 0x1;
+					security = (state.Read8() & 0x1) ? ~0U : 0U;
 
 				state.End();
 			}
@@ -60,7 +60,7 @@ namespace Nes
 
 		void Mapper254::SubSave(State::Saver& state) const
 		{
-			state.Begin('R','E','G','\0').Write8( latchFlip ).End();
+			state.Begin('R','E','G','\0').Write8( security & 0x1 ).End();
 		}
 
 		#ifdef NST_PRAGMA_OPTIMIZE
@@ -69,13 +69,13 @@ namespace Nes
 
 		NES_PEEK(Mapper254,Wrk)
 		{
-			return wrk[0][address - 0x6000U] ^ latchFlip;
+			return wrk[0][address - 0x6000U] ^ (regs.ctrl1 & security);
 		}
 
 		NES_POKE(Mapper254,8000)
 		{
-			latchFlip = 0x0;
-			NES_CALL_POKE(Mmc3,8000,0x8000U,data);
+			security = 0U;
+			NES_CALL_POKE(Mmc3,8000,address,data);
 		}
 	}
 }

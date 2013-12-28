@@ -38,12 +38,13 @@ namespace Nestopia
 		public:
 
 			explicit AutoSaver(const Managers::Paths&);
-			~AutoSaver();
 
 			enum
 			{
 				DEFAULT_SAVE_SLOT = 0
 			};
+
+			const Path GetStateFile() const;
 
 		private:
 
@@ -82,11 +83,6 @@ namespace Nestopia
 			ibool ShouldNotify() const
 			{
 				return settings.notify;
-			}
-
-			const Path& GetStateFile() const
-			{
-				return settings.stateFile;
 			}
 		};
 	}

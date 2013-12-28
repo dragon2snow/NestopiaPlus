@@ -43,7 +43,7 @@ namespace Nes
 		public:
 
 			Mapper188(Context& c)
-			: Mapper(c,WRAM_NONE) {}
+			: Mapper(c,CROM_MAX_8K|WRAM_NONE) {}
 
 			void BeginFrame(Input::Controllers*);
 

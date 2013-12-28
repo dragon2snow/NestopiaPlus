@@ -36,8 +36,8 @@ namespace Nes
 
 		Mapper215::Mapper215(Context& c)
 		:
-		Mmc3  (c,WRAM_NONE),
-		patch (c.prgCrc == 0x7374EF2DUL) // Boogerman
+		Mmc3     (c,BRD_GENERIC,PROM_MAX_512K|WRAM_NONE),
+		ctrl6000 (c.attribute == ATR_6000_CTRL)
 		{}
 
 		void Mapper215::SubReset(const bool hard)
@@ -53,7 +53,7 @@ namespace Nes
 			Map( 0x5001U, &Mapper215::Poke_5001 );
 			Map( 0x5007U, &Mapper215::Poke_5007 );
 
-			if (patch)
+			if (ctrl6000)
 			{
 				Map( 0x6000U, &Mapper215::Poke_5000 );
 				Map( 0x6001U, &Mapper215::Poke_5001 );
@@ -230,14 +230,14 @@ namespace Nes
 			}
 			else
 			{
-				NES_CALL_POKE(Mmc3,Nmt_Hv,0xA000U,data);
+				SetMirroringHV( data );
 			}
 		}
 
 		NES_POKE(Mapper215,C000)
 		{
 			if (exRegs[2])
-				NES_CALL_POKE(Mmc3,Nmt_Hv,0xA000U,data >> 7 | data);
+				SetMirroringHV( data >> 7 | data );
 			else
 				NES_CALL_POKE(Mmc3,C000,0xC000U,data);
 		}

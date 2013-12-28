@@ -46,17 +46,10 @@ namespace Nes
 		{
 			ppu.SetMirroring( (address & 0x10) ? Ppu::NMT_HORIZONTAL : Ppu::NMT_VERTICAL );
 
-			uint bank = address & 0x7;
-			uint add = 0x0;
+			data = address >> 1 & address >> 2 & 0x1;
 
-			if ((bank & 0x6) == 0x6)
-			{
-				bank = 0x6;
-				add = 0x1;
-			}
-
-			chr.SwapBank<SIZE_8K,0x0000U>( bank );
-			prg.SwapBanks<SIZE_16K,0x0000U>( bank, bank | add );
+			chr.SwapBank<SIZE_8K,0x0000U>( address & ~data );
+			prg.SwapBanks<SIZE_16K,0x0000U>( address & ~data, address | data );
 		}
 	}
 }

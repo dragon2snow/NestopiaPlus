@@ -25,8 +25,6 @@
 #include "NstApplicationException.hpp"
 #include "NstApplicationMain.hpp"
 
-#include "NstSystemInfo.hpp"
-
 #ifdef _MSC_VER
 
  #ifdef _MBCS

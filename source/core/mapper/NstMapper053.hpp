@@ -41,6 +41,11 @@ namespace Nes
 
 		private:
 
+			enum
+			{
+				EPROM_CRC = 0x63794E25UL
+			};
+
 			void SubReset(bool);
 			void SubSave(State::Saver&) const;
 			void SubLoad(State::Loader&);
@@ -50,7 +55,7 @@ namespace Nes
 			NES_DECL_POKE( 8000 )
 
 			uint regs[2];
-			const ibool eepromFirst;
+			const ibool epromFirst;
 		};
 	}
 }

@@ -49,10 +49,20 @@ namespace Nestopia
 				ComboBox_SetCurSel( control, index );
 			}
 
+			void ComboBox::Item::Erase() const
+			{
+				ComboBox_DeleteString( control, index );
+			}
+
 			ComboBox::Item ComboBox::Add(tstring name) const
 			{
 				NST_ASSERT( name );
 				return Item( control, ComboBox_AddString( control, name ) );
+			}
+
+			void ComboBox::Reserve(uint items,uint lengths) const
+			{
+				control.Send( CB_INITSTORAGE, items, sizeof(tchar) * lengths );
 			}
 
 			uint ComboBox::Size() const

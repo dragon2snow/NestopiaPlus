@@ -38,9 +38,9 @@ namespace Nestopia
 		public:
 
 			explicit Movie(const Managers::Paths&);
-			~Movie();
 
 			ibool SetMovieFile(const Path&);
+			const Path GetMovieFile() const;
 
 		private:
 
@@ -60,11 +60,6 @@ namespace Nestopia
 			void Open()
 			{
 				dialog.Open();
-			}
-
-			const Path& GetMovieFile() const
-			{
-				return movieFile;
 			}
 
 			void ClearMovieFile()

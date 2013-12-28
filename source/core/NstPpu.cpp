@@ -23,6 +23,7 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 
 #include <cstring>
+#include <new>
 #include "NstLog.hpp"
 #include "NstState.hpp"
 #include "NstCpu.hpp"
@@ -269,16 +270,31 @@ namespace Nes
 		Ppu::Output::Output(Video::Screen::Pixels& p)
 		: emphasisMask(Regs::CTRL1_BG_COLOR), pixels(p) {}
 
+		Ppu::YuvMap::YuvMap(const u8* const NST_RESTRICT map)
+		{
+			std::memcpy( colors, map, Palette::COLORS );
+		}
+
 		#ifdef _MSC_VER
 		#pragma warning( push )
 		#pragma warning( disable : 4355 )
 		#endif
 
 		Ppu::Ppu(Cpu& c)
-		: cpu(c), output(screen.pixels), bgHook(this,&Ppu::Hook_Nop), spHook(this,&Ppu::Hook_Nop)
+		:
+		cpu    (c),
+		output (screen.pixels),
+		bgHook (this,&Ppu::Hook_Nop),
+		spHook (this,&Ppu::Hook_Nop),
+		yuvMap (NULL)
 		{
 			oam.limit = oam.buffer + Oam::STD_LINE_SPRITES;
 			SetMode( cpu.GetMode() );
+		}
+
+		Ppu::~Ppu()
+		{
+			delete yuvMap;
 		}
 
 		#ifdef _MSC_VER
@@ -618,14 +634,18 @@ namespace Nes
 
 		void Ppu::SetYuvMap(const u8* const NST_RESTRICT map,const bool transform)
 		{
+			delete yuvMap;
+			yuvMap = NULL;
+
+			if (map && !transform)
+				yuvMap = new (std::nothrow) YuvMap( map );
+
 			if (map && transform)
 			{
 				for (uint i=0; i < Palette::COLORS; ++i)
 				{
 					NST_ASSERT( map[i] <= 0x3F );
-
 					palette.map[i] = map[i];
-					yuvMap[i] = i;
 				}
 			}
 			else
@@ -633,9 +653,7 @@ namespace Nes
 				for (uint i=0; i < Palette::COLORS; ++i)
 				{
 					NST_ASSERT( map == NULL || map[i] <= 0x3F );
-
 					palette.map[i] = i;
-					yuvMap[i] = map ? map[i] : i;
 				}
 			}
 		}
@@ -729,13 +747,13 @@ namespace Nes
 			}
 		}
 
-		void Ppu::Update()
+		void Ppu::Update(Cycle dataSetup)
 		{
-			const Cycle elapsed = cpu.GetMasterClockCycles();
+			dataSetup += cpu.GetMasterClockCycles();
 
-			if (cycles.count < elapsed)
+			if (cycles.count < dataSetup)
 			{
-				cycles.round = elapsed;
+				cycles.round = dataSetup;
 
 			#ifdef NST_TAILCALL_OPTIMIZE
 				(*this.*phase)();
@@ -744,13 +762,15 @@ namespace Nes
 				{
 					(*this.*phase)();
 				}
-				while (cycles.count < elapsed);
+				while (cycles.count < dataSetup);
 			#endif
 			}
 		}
 
 		void Ppu::SetMirroring(uint type)
 		{
+			Update( cycles.one );
+
 			NST_ASSERT( type < 6 );
 			NST_VERIFY( type < 5 );
 
@@ -763,8 +783,6 @@ namespace Nes
 				NMT_ONE        == 4 &&
 				NMT_CONTROLLED == 5
 			);
-
-			Update();
 
 			static const uchar banks[6][4] =
 			{
@@ -787,7 +805,7 @@ namespace Nes
 
 		void Ppu::SetMirroring(const uchar (&banks)[4])
 		{
-			Update();
+			Update( cycles.one );
 
 			NST_ASSERT( banks[0] < 4 && banks[1] < 4 && banks[2] < 4 && banks[3] < 4 );
 
@@ -831,30 +849,25 @@ namespace Nes
 			return accessors[address >> 12].Fetch( address );
 		}
 
-		NST_FORCE_INLINE uint Ppu::NmtMem::FetchName(const uint address) const
+		NST_FORCE_INLINE uint Ppu::NmtMem::FetchName(uint address) const
 		{
-			const uint offset = address & (Scroll::Y_TILE|Scroll::X_TILE);
-			return accessors[(address & Scroll::NAME) >> 10][(offset + 0x40) >> 10].Fetch( offset );
+			const uint offset = address & 0x03FF;
+			return accessors[address >> 10 & 0x3][(offset + 0x40) >> 10].Fetch( offset );
 		}
 
-		NST_FORCE_INLINE uint Ppu::NmtMem::FetchAttribute(const uint address) const
+		NST_FORCE_INLINE uint Ppu::NmtMem::FetchAttribute(uint address) const
 		{
-			return accessors[(address & Scroll::NAME) >> 10][1].Fetch
-			(
-				0x3C0 |
-				((address & (Scroll::X_TILE ^ b00000011)) >> 2) |
-				((address & (Scroll::Y_TILE ^ b01100000)) >> 4)
-			);
+			return accessors[address >> 10 & 0x3][1].Fetch( 0x3C0 | (address >> 4 & 0x038) | (address >> 2 & 0x007) );
 		}
 
 		NST_FORCE_INLINE uint Ppu::FetchName() const
 		{
-			return scroll.pattern | (nmtMem.FetchName( io.address ) << 4) | (scroll.address >> 12);
+			return nmtMem.FetchName( io.address ) << 4 | scroll.address >> 12 | scroll.pattern;
 		}
 
 		NST_FORCE_INLINE uint Ppu::FetchAttribute() const
 		{
-			return (nmtMem.FetchAttribute( io.address ) >> ((scroll.address & 0x02) | ((scroll.address & 0x40) >> 4))) & 0x3;
+			return nmtMem.FetchAttribute( io.address ) >> ((scroll.address & 0x2) | (scroll.address >> 4 & 0x4)) & 0x3;
 		}
 
 		inline bool Ppu::IsDead() const
@@ -873,12 +886,11 @@ namespace Nes
 
 		NES_POKE(Ppu,2000)
 		{
-			Update();
+			Update( cycles.one );
 
 			io.latch = data;
 
-			scroll.latch &= (Scroll::NAME ^ 0x7FFFU);
-			scroll.latch |= (data & Regs::CTRL0_NAME_OFFSET) << 10;
+			scroll.latch = (scroll.latch & 0x73FF) | (data & 0x03) << 10;
 			scroll.increase = (data & Regs::CTRL0_INC32) ? 32 : 1;
 			scroll.pattern = (data & Regs::CTRL0_BG_OFFSET) << 8;
 
@@ -891,7 +903,7 @@ namespace Nes
 
 		NES_POKE(Ppu,2001)
 		{
-			Update();
+			Update( cycles.one );
 
 			regs.ctrl1 = io.latch = data;
 			io.enabled = data & (Regs::CTRL1_BG_ENABLED|Regs::CTRL1_SP_ENABLED);
@@ -904,14 +916,14 @@ namespace Nes
 
 		NES_PEEK(Ppu,2002)
 		{
-			Update();
+			Update( cycles.one );
 
 			uint status = regs.status & 0xFF;
-			regs.status &= (Regs::STATUS_VBLANK ^ 0xFF);
+			regs.status &= (Regs::STATUS_VBLANK^0xFF);
 
 			scroll.toggle = 0;
 
-			if (cycles.spriteOverflow < cpu.GetMasterClockCycles())
+			if (cycles.spriteOverflow <= cpu.GetMasterClockCycles())
 				status |= Regs::STATUS_SP_OVERFLOW;
 
 			io.latch = (io.latch & Regs::STATUS_LATCH) | status;
@@ -921,14 +933,14 @@ namespace Nes
 
 		NES_POKE(Ppu,2003)
 		{
-			Update();
+			Update( cycles.one );
 
 			oam.address = io.latch = data;
 		}
 
 		NES_POKE(Ppu,2004)
 		{
-			Update();
+			Update( cycles.one );
 
 			NST_ASSERT( oam.address < Oam::SIZE );
 			NST_VERIFY( IsDead() );
@@ -941,7 +953,7 @@ namespace Nes
 
 		NES_PEEK(Ppu,2004)
 		{
-			Update();
+			Update( cycles.one );
 
 			NST_ASSERT( oam.address < Oam::SIZE );
 
@@ -953,7 +965,7 @@ namespace Nes
 			}
 			else
 			{
-				data = cpu.GetMasterClockCycles() / cycles.one % 341;
+				data = cpu.GetMasterClockCycles() / cycles.one % 341 + (cpu.GetMasterClockFrameCycles() == MC_DIV_NTSC*CC_FRAME_1_NTSC);
 
 				if (data < 64)
 				{
@@ -961,11 +973,11 @@ namespace Nes
 				}
 				else if (data < 192)
 				{
-					data = oam.ram[((data - 64) << 1) & 0xFC];
+					data = oam.ram[(data-64) << 1 & 0xFC];
 				}
 				else if (data < 256)
 				{
-					data = oam.ram[(data & 1) ? 0xFC : ((data - 192) << 1) & 0xFC];
+					data = oam.ram[(data & 1) ? 0xFC : (data-192) << 1 & 0xFC];
 				}
 				else if (data < 320)
 				{
@@ -982,38 +994,34 @@ namespace Nes
 
 		NES_POKE(Ppu,2005)
 		{
-			Update();
+			Update( cycles.one );
 
 			io.latch = data;
 
 			if (scroll.toggle ^= 1)
 			{
-				scroll.latch &= (Scroll::X_TILE ^ 0x7FFFU);
-				scroll.latch |= data >> 3;
-				scroll.xFine = data & b111;
+				scroll.latch = (scroll.latch & 0x7FE0) | data >> 3;
+				scroll.xFine = data & 0x7;
 			}
 			else
 			{
-				scroll.latch &= ((Scroll::Y_TILE|Scroll::Y_FINE) ^ 0x7FFFU);
-				scroll.latch |= ((data << 2) | (data << 12)) & (Scroll::Y_TILE|Scroll::Y_FINE);
+				scroll.latch = (scroll.latch & 0x0C1F) | ((data << 2 | data << 12) & 0x73E0);
 			}
 		}
 
 		NES_POKE(Ppu,2006)
 		{
-			Update();
+			Update( cycles.one );
 
 			io.latch = data;
 
 			if (scroll.toggle ^= 1)
 			{
-				scroll.latch &= (Scroll::HIGH ^ 0x7FFFU);
-				scroll.latch |= (data & b00111111) << 8;
+				scroll.latch = (scroll.latch & 0x00FF) | (data & 0x3F) << 8;
 			}
 			else
 			{
-				scroll.latch &= (Scroll::LOW ^ 0x7FFFU);
-				scroll.latch |= data;
+				scroll.latch = (scroll.latch & 0x7F00) | data;
 
 				UpdateScrollAddress( scroll.latch );
 			}
@@ -1021,7 +1029,7 @@ namespace Nes
 
 		NES_POKE(Ppu,2007)
 		{
-			Update();
+			Update( cycles.four );
 
 			NST_VERIFY( IsDead() );
 
@@ -1053,7 +1061,7 @@ namespace Nes
 
 		NES_PEEK(Ppu,2007)
 		{
-			Update();
+			Update( cycles.one );
 
 			NST_VERIFY( IsDead() );
 
@@ -1079,7 +1087,7 @@ namespace Nes
 
 		NES_POKE(Ppu,4014)
 		{
-			Update();
+			Update( cycles.one );
 
 			NST_ASSERT( oam.address < Oam::SIZE );
 			NST_VERIFY( IsDead() );
@@ -1134,7 +1142,7 @@ namespace Nes
 
 		inline void Ppu::Scroll::ResetX()
 		{
-			address &= ((X_TILE|NAME_LOW) ^ 0x7FFFU);
+			address &= (X_TILE|NAME_LOW) ^ 0x7FFFU;
 			address |= latch & (X_TILE|NAME_LOW);
 		}
 
@@ -1147,7 +1155,7 @@ namespace Nes
 			else switch (address & Y_TILE)
 			{
 				case (29U << 5): address ^= NAME_HIGH;
-				case (31U << 5): address &= ((Y_FINE|Y_TILE) ^ 0x7FFFU); break;
+				case (31U << 5): address &= (Y_FINE|Y_TILE) ^ 0x7FFFU; break;
 				default:         address = (address & (Y_FINE ^ 0x7FFFU)) + (1U << 5); break;
 			}
 		}
@@ -1183,7 +1191,7 @@ namespace Nes
 						eval->attribute =
 						(
 							(i == 4) |
-							((obj[2] & Oam::COLOR) << 2) |
+							(obj[2] & Oam::COLOR) << 2 |
 							(obj[2] & (Oam::BEHIND|Oam::X_FLIP))
 						);
 
@@ -1627,10 +1635,10 @@ namespace Nes
 
 		void Ppu::HBlankBg7()
 		{
-			NST_ASSERT( stage < 2 && scanline < 240 );
-
 			if (io.enabled)
 				tiles.pattern[1] = chrMem.FetchPattern( io.address );
+
+			NST_ASSERT( stage < 2 && scanline < 240 );
 
 			if (stage ^= 1)
 			{
@@ -1684,10 +1692,9 @@ namespace Nes
 		void Ppu::VBlank()
 		{
 			NST_ASSERT( scanline != SCANLINE_VBLANK && oam.address < Oam::SIZE );
-
 			NST_VERIFY_MSG( regs.status & Regs::STATUS_VBLANKING, "Ppu $2002/VBlank conflict!" );
 
-			regs.status = (regs.status & 0xFF) | ((regs.status >> 1) & Regs::STATUS_VBLANK);
+			regs.status = (regs.status & 0xFF) | (regs.status >> 1 & Regs::STATUS_VBLANK);
 			scanline = SCANLINE_VBLANK;
 			oam.address = 0x00;
 			oam.visible = oam.output;

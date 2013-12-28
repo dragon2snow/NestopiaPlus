@@ -122,11 +122,11 @@ namespace Nestopia
 				text << (maker || artist ? ", " : "\r\n");
 
 				if ( chips & Nes::Nsf::CHIP_MMC5 ) text << "MMC5 ";
-				if ( chips & Nes::Nsf::CHIP_FDS  )  text << "FDS ";
-				if ( chips & Nes::Nsf::CHIP_VRC6 )  text << "VRC6 ";
-				if ( chips & Nes::Nsf::CHIP_VRC7 )  text << "VRC7 ";
-				if ( chips & Nes::Nsf::CHIP_N106 )  text << "N106 ";
-				if ( chips & Nes::Nsf::CHIP_S5B  )  text << "Sunsoft5B ";
+				if ( chips & Nes::Nsf::CHIP_FDS  ) text << "FDS ";
+				if ( chips & Nes::Nsf::CHIP_VRC6 ) text << "VRC6 ";
+				if ( chips & Nes::Nsf::CHIP_VRC7 ) text << "VRC7 ";
+				if ( chips & Nes::Nsf::CHIP_N106 ) text << "N106 ";
+				if ( chips & Nes::Nsf::CHIP_S5B  ) text << "Sunsoft5B ";
 
 				text << ((chips & (chips-1)) ? "chips" : "chip");
 			}
@@ -555,7 +555,7 @@ namespace Nestopia
 
 		ibool Video::MustClearFrameScreen() const
 		{
-			return Fullscreen() && dialog->GetFullscreenScale() != Window::Video::SCREEN_STRETCHED;
+			return Fullscreen() && (dialog->GetFullscreenScale() != Window::Video::SCREEN_STRETCHED || dialog->TvAspect());
 		}
 
 		ibool Video::OnPaint(Window::Param&)
@@ -799,15 +799,23 @@ namespace Nestopia
 				{
 					const Point screen( GetDisplayMode() );
 
-					if (dialog->GetFullscreenScale() == Window::Video::SCREEN_STRETCHED)
+					if (dialog->GetFullscreenScale() == Window::Video::SCREEN_STRETCHED && !dialog->TvAspect())
 					{
 						picture = screen;
 					}
-					else // scale up and center to screen
+					else
 					{
 						Point nesPoint( dialog->GetNesRect() );
 						nesPoint.ScaleToFit( screen + (screen / SCALE_TOLERANCE), Point::SCALE_BELOW, dialog->GetFullscreenScale() );
 						picture = nesPoint;
+
+						if (dialog->GetFullscreenScale() == Window::Video::SCREEN_STRETCHED)
+						{
+							picture.right += screen.y - picture.bottom;
+							picture.top = 0;
+							picture.bottom = screen.y;
+						}
+
 						picture.Center() = screen.Center();
 
 						if (nesPoint.x > screen.x + (screen.x / SCALE_TOLERANCE))

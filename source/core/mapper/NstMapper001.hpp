@@ -35,8 +35,35 @@ namespace Nes
 	{
 		class Mapper1 : public Boards::Mmc1
 		{
-			static uint GetWrkSize(const Context&);
-			static Revision GetRevision(dword);
+			enum
+			{
+				ATR_SAROM = 1,
+				ATR_SBROM,
+				ATR_SCROM,
+				ATR_SC1ROM,
+				ATR_SEROM,
+				ATR_SFROM,
+				ATR_SF1ROM,
+				ATR_SFEOROM,
+				ATR_SFEXPROM,
+				ATR_SGROM,
+				ATR_SHROM,
+				ATR_SH1ROM,
+				ATR_SJROM,
+				ATR_SKROM,
+				ATR_SLROM,
+				ATR_SL1ROM,
+				ATR_SL3ROM,
+				ATR_SLRROM,
+				ATR_SNROM,
+				ATR_SOROM,
+				ATR_SUROM,
+				ATR_SXROM,
+				ATR_BOARD = 0x1F,
+				ATR_MMC1A = 0x40
+			};
+
+			static Board GetBoard(const Context&);
 
 		public:
 

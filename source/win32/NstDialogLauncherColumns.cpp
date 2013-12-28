@@ -128,10 +128,6 @@ namespace Nestopia
 				Reset();
 		}
 
-		Launcher::List::Columns::~Columns()
-		{
-		}
-
 		void Launcher::List::Columns::Reset()
 		{
 			selected.Resize( NUM_DEFAULT_SELECTED_TYPES );

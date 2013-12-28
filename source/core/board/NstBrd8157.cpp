@@ -79,9 +79,14 @@ namespace Nes
 			NES_POKE(Unl8157,Prg)
 			{
 				trash = address & menu;
-				const uint base = (address & 0x0060) >> 2;
-				prg.SwapBanks<SIZE_16K,0x0000U>( base | ((address & 0x001C) >> 2), base | ((address & 0x0200) ? 0x7 : 0x0) );
-				ppu.SetMirroring( (address & 0x0002) ? Ppu::NMT_HORIZONTAL : Ppu::NMT_VERTICAL );
+
+				prg.SwapBanks<SIZE_16K,0x0000U>
+				(
+					(address >> 2 & 0x18) | (address >> 2 & 0x7),
+					(address >> 2 & 0x18) | ((address & 0x200) ? 0x7 : 0x0)
+				);
+
+				ppu.SetMirroring( (address & 0x2) ? Ppu::NMT_HORIZONTAL : Ppu::NMT_VERTICAL );
 			}
 		}
 	}

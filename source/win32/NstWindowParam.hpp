@@ -102,6 +102,11 @@ namespace Nestopia
 					return HIWORD(wParam) == CBN_SELCHANGE;
 				}
 
+				ibool DropingDown() const
+				{
+					return HIWORD(wParam) == CBN_DROPDOWN;
+				}
+
 				uint GetId() const
 				{
 					return LOWORD(wParam);

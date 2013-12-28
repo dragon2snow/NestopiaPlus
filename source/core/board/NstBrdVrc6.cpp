@@ -61,9 +61,12 @@ namespace Nes
 			}
 
 			Vrc6::Vrc6(Context& c,const Type t)
-			: Mapper(c,WRAM_8K), irq(c.cpu), sound(c.cpu), type(t)
-			{
-			}
+			:
+			Mapper (c,CROM_MAX_256K),
+			irq    (c.cpu),
+			sound  (c.cpu),
+			type   (t)
+			{}
 
 			void Vrc6::Sound::BaseChannel::Reset()
 			{
@@ -109,9 +112,9 @@ namespace Nes
 
 				for (dword i=0x8000U; i <= 0xFFFFUL; ++i)
 				{
-					switch ((type == TYPE_NORMAL ? i : ((i & 0xFFFCU) | ((i >> 1) & 0x1) | ((i << 1) & 0x2))) & 0xF003U)
+					switch ((type == TYPE_NORMAL ? i : ((i & 0xFFFCU) | (i >> 1 & 0x1) | (i << 1 & 0x2))) & 0xF003U)
 					{
-						case 0x8000U: Map( i, PRG_SWAP_16K     ); break;
+						case 0x8000U: Map( i, PRG_SWAP_16K_0   ); break;
 						case 0x9000U: Map( i, &Vrc6::Poke_9000 ); break;
 						case 0x9001U: Map( i, &Vrc6::Poke_9001 ); break;
 						case 0x9002U: Map( i, &Vrc6::Poke_9002 ); break;
@@ -262,7 +265,7 @@ namespace Nes
 						digitized = data[0] & b10;
 						waveLength = data[1] | ((data[2] & b1111) << 8);
 						duty = (data[3] & b111) + 1;
-						volume = ((data[3] >> 3) & b1111) * VOLUME;
+						volume = (data[3] >> 3 & b1111) * VOLUME;
 
 						timer = 0;
 						step = 0;
@@ -295,7 +298,7 @@ namespace Nes
 						const State::Loader::Data<3> data( state );
 
 						enabled = data[0] & b1;
-						phase = (data[0] >> 1) & b111111;
+						phase = data[0] >> 1 & b111111;
 						waveLength = data[1] | ((data[2] & b1111) << 8);
 
 						timer = 0;
@@ -504,15 +507,7 @@ namespace Nes
 
 			NES_POKE(Vrc6,B003)
 			{
-				static const uchar lut[4] =
-				{
-					Ppu::NMT_VERTICAL,
-					Ppu::NMT_HORIZONTAL,
-					Ppu::NMT_ZERO,
-					Ppu::NMT_ONE
-				};
-
-				ppu.SetMirroring( lut[data >> 2 & 0x3] );
+				SetMirroringVH01( data >> 2 );
 			}
 
 			NES_POKE(Vrc6,F000)

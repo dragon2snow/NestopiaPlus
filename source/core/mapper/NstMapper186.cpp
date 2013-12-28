@@ -46,7 +46,7 @@ namespace Nes
 			for (uint i=0x4200; i < 0x4400; i += 0x2)
 			{
 				Map( i + 0x0, &Mapper186::Poke_4200 );
-				Map( i + 0x1, PRG_SWAP_16K          );
+				Map( i + 0x1, PRG_SWAP_16K_0        );
 			}
 
 			Map( 0x4400U, 0x4EFFU, &Mapper186::Peek_4400, &Mapper186::Poke_4400 );

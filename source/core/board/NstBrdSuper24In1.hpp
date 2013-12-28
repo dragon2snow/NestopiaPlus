@@ -40,7 +40,7 @@ namespace Nes
 			public:
 
 				Super24In1(Context& c)
-				: Mmc3(c,WRAM_8K|CRAM_8K) {}
+				: Mmc3(c,BRD_GENERIC,WRAM_8K|CRAM_8K) {}
 
 			private:
 

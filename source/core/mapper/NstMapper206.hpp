@@ -33,23 +33,16 @@ namespace Nes
 {
 	namespace Core
 	{
-		class Mapper206 : public Mapper
+		class Mapper206 : public Boards::Mmc3
 		{
 		public:
 
 			Mapper206(Context& c)
-			: Mapper(c) {}
+			: Mmc3(c,BRD_GENERIC,PROM_MAX_512K|CROM_MAX_256K|WRAM_DEFAULT) {}
 
 		private:
 
 			void SubReset(bool);
-			void SubSave(State::Saver&) const;
-			void SubLoad(State::Loader&);
-
-			NES_DECL_POKE( 8000 )
-			NES_DECL_POKE( 8001 )
-
-			uint command;
 		};
 	}
 }

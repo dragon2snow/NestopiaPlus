@@ -38,7 +38,7 @@ namespace Nes
 		public:
 
 			Mapper49(Context& c)
-			: Mmc3(c,WRAM_NONE) {}
+			: Mmc3(c,BRD_GENERIC,PROM_MAX_512K|CROM_MAX_512K|WRAM_NONE) {}
 
 		private:
 

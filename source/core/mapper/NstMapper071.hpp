@@ -37,14 +37,21 @@ namespace Nes
 		{
 		public:
 
-			Mapper71(Context& c)
-			: Mapper(c,WRAM_NONE|CROM_NONE) {}
+			Mapper71(Context&);
 
 		private:
 
+			enum
+			{
+				ATR_BF9093 = 1,
+				ATR_BF9097
+			};
+
 			void SubReset(bool);
 
-			NES_DECL_POKE( 9000 )
+			NES_DECL_POKE( 8000 )
+
+			const ibool nmtCtrl;
 		};
 	}
 }

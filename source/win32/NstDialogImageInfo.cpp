@@ -102,22 +102,25 @@ namespace Nestopia
 
 					HeapString types[] =
 					{
-                                              Resource::String( IDS_TEXT_FILE        ),
-                                              Resource::String( IDS_TEXT_DIRECTORY   ),
-															_T( "CRC"                ),
-						!info.name.empty() ?  Resource::String( IDS_TEXT_NAME        ) : HeapString(),
-						!info.maker.empty() ? Resource::String( IDS_TEXT_MAKER       ) : HeapString(),
-                                              Resource::String( IDS_TEXT_REGION      ),
-                                              Resource::String( IDS_TEXT_CHIPSBOARDS ),
-						info.mapper <= 255 ?  Resource::String( IDS_TEXT_MAPPER      ) : HeapString(),
-															_T( "PRG-ROM"            ),
-															_T( "CHR-ROM"            ),
-                                              Resource::String( IDS_TEXT_MIRRORING   ),
-                                              Resource::String( IDS_TEXT_BATTERY     ),
-						info.battery ?        Resource::String( IDS_TEXT_FILE        ) : HeapString(),
-						info.battery ?        Resource::String( IDS_TEXT_DIRECTORY   ) : HeapString(),
-                                              Resource::String( IDS_TEXT_TRAINER     ),
-                                              Resource::String( IDS_TEXT_CONDITION   )
+                                                   Resource::String( IDS_TEXT_FILE        ),
+                                                   Resource::String( IDS_TEXT_DIRECTORY   ),
+                                                                 _T( "CRC"                ),
+						!info.name.empty() ?       Resource::String( IDS_TEXT_NAME        ) : HeapString(),
+						!info.maker.empty() ?      Resource::String( IDS_TEXT_MAKER       ) : HeapString(),
+                                                   Resource::String( IDS_TEXT_SYSTEM      ),
+                                                   Resource::String( IDS_TEXT_CHIPSBOARDS ),
+						info.setup.mapper <= 255 ? Resource::String( IDS_TEXT_MAPPER      ) : HeapString(),
+                                                                 _T( "PRG-ROM"            ),
+						info.setup.chrRom ?                      _T( "CHR-ROM"            ) : HeapString(),
+						info.setup.chrRam ?                      _T( "CHR-RAM"            ) : HeapString(),
+						info.setup.wrkRam +
+						info.setup.wrkRamBacked ?                _T( "W-RAM"              ) : HeapString(),
+                                                   Resource::String( IDS_TEXT_MIRRORING   ),
+                                                   Resource::String( IDS_TEXT_BATTERY     ),
+						info.setup.wrkRamBacked ?  Resource::String( IDS_TEXT_FILE        ) : HeapString(),
+						info.setup.wrkRamBacked ?  Resource::String( IDS_TEXT_DIRECTORY   ) : HeapString(),
+                                                   Resource::String( IDS_TEXT_TRAINER     ),
+                                                   Resource::String( IDS_TEXT_CONDITION   )
 					};
 
 					Table::Tab( types, NST_COUNT(types), fixedFont );
@@ -134,59 +137,62 @@ namespace Nestopia
 
 					types[5] <<
 					(
-						info.system == Nes::Cartridge::SYSTEM_NTSC_PAL ? "NTSC/PAL" :
-						info.system == Nes::Cartridge::SYSTEM_PAL      ? "PAL"      :
-						info.system == Nes::Cartridge::SYSTEM_VS       ? "VS"       :
-						info.system == Nes::Cartridge::SYSTEM_PC10     ? "PC10"     :
-                                                                         "NTSC"
+						info.setup.system == Nes::SYSTEM_VS   ? "VS"       :
+						info.setup.system == Nes::SYSTEM_PC10 ? "PC10"     :
+						info.setup.region == Nes::REGION_BOTH ? "NTSC/PAL" :
+						info.setup.region == Nes::REGION_PAL  ? "PAL"      :
+																"NTSC"
 					);
 
 					types[6].Import( info.board.c_str() );
 
 					if (types[7].Length())
-						types[7] << info.mapper;
+						types[7] << info.setup.mapper;
 
-					types[8] << (uint) (info.pRom / 1024) << "k";
+					types[8] << (uint) (info.setup.prgRom / 1024) << "k";
 
-					if (info.pRom)
-						types[8] << ", CRC: " << HexString( (u32) info.pRomCrc );
+					if (info.setup.prgRom)
+						types[8] << ", CRC: " << HexString( (u32) info.prgCrc );
 
-					types[9] << (uint) (info.cRom / 1024) << "k";
+					if (info.setup.chrRom)
+						types[9] << (uint) (info.setup.chrRom / 1024) << "k, CRC: " << HexString( (u32) info.chrCrc );
 
-					if (info.cRom)
-						types[9] << ", CRC: " << HexString( (u32) info.cRomCrc );
+					if (info.setup.chrRam)
+						types[10] << (uint) (info.setup.chrRam / 1024) << "k";
 
-					types[10] <<
+					if (info.setup.wrkRam+info.setup.wrkRamBacked)
+						types[11] << (uint) ((info.setup.wrkRam+info.setup.wrkRamBacked) / 1024) << (info.setup.wrkRamAuto ? "k auto" : "k");
+
+					types[12] <<
 					(
-						info.mirroring == Nes::Cartridge::MIRROR_HORIZONTAL ? Resource::String( IDS_TEXT_HORIZONTAL       ) :
-						info.mirroring == Nes::Cartridge::MIRROR_VERTICAL   ? Resource::String( IDS_TEXT_VERTICAL         ) :
-						info.mirroring == Nes::Cartridge::MIRROR_FOURSCREEN ? Resource::String( IDS_TEXT_FOURSCREEN       ) :
-						info.mirroring == Nes::Cartridge::MIRROR_ZERO       ?               _T( "$2000"                   ) :
-						info.mirroring == Nes::Cartridge::MIRROR_ONE        ?               _T( "$2400"                   ) :
-						info.mirroring == Nes::Cartridge::MIRROR_CONTROLLED ? Resource::String( IDS_TEXT_MAPPERCONTROLLED ) :
-                                                                              Resource::String( IDS_TEXT_UNKNOWN          )
+						info.setup.mirroring == Nes::Cartridge::MIRROR_HORIZONTAL ? Resource::String( IDS_TEXT_HORIZONTAL       ) :
+						info.setup.mirroring == Nes::Cartridge::MIRROR_VERTICAL   ? Resource::String( IDS_TEXT_VERTICAL         ) :
+						info.setup.mirroring == Nes::Cartridge::MIRROR_FOURSCREEN ? Resource::String( IDS_TEXT_FOURSCREEN       ) :
+						info.setup.mirroring == Nes::Cartridge::MIRROR_ZERO       ?               _T( "$2000"                   ) :
+						info.setup.mirroring == Nes::Cartridge::MIRROR_ONE        ?               _T( "$2400"                   ) :
+						info.setup.mirroring == Nes::Cartridge::MIRROR_CONTROLLED ? Resource::String( IDS_TEXT_MAPPERCONTROLLED ) :
+																					Resource::String( IDS_TEXT_UNKNOWN          )
 					);
 
-					types[11] << Resource::String
+					types[13] << Resource::String
 					(
-						info.battery == Nes::Cartridge::YES ? IDS_TEXT_YES :
-						info.battery == Nes::Cartridge::NO  ? IDS_TEXT_NO :
-                                                              IDS_TEXT_UNKNOWN
+						info.setup.wrkRamBacked ? IDS_TEXT_YES : IDS_TEXT_NO
 					);
 
-					if (info.battery)
+					if (info.setup.wrkRamBacked)
 					{
-						types[12] << emulator.GetSavePath().File();
-						types[13] << emulator.GetSavePath().Directory();
+						types[14] << emulator.GetSavePath().File();
+						types[15] << emulator.GetSavePath().Directory();
 					}
 
-					types[14] << Resource::String( info.trained ? IDS_TEXT_YES : IDS_TEXT_NO );
+					types[16] << Resource::String( info.setup.trainer ? IDS_TEXT_YES : IDS_TEXT_NO );
 
-					types[15] << Resource::String
+					types[17] << Resource::String
 					(
-						info.condition == Nes::Cartridge::YES ? IDS_TEXT_GOOD :
-						info.condition == Nes::Cartridge::NO  ? IDS_TEXT_BAD :
-																IDS_TEXT_UNKNOWN
+						info.condition == Nes::Cartridge::DUMP_OK         ? IDS_TEXT_OK :
+						info.condition == Nes::Cartridge::DUMP_BAD        ? IDS_TEXT_BAD :
+						info.condition == Nes::Cartridge::DUMP_REPAIRABLE ? IDS_TEXT_REPAIRABLE :
+																			IDS_TEXT_UNKNOWN
 					);
 
 					Table::Output( text, types, NST_COUNT(types) );

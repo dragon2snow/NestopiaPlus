@@ -43,29 +43,27 @@ namespace Nes
 		{
 		public:
 
-			static VsSystem* Create(Cpu&,Ppu&,dword,bool);
-			static void Destroy(VsSystem*&);
-
-			enum PpuType
+			enum Mode
 			{
-				RP2C03,
-				RP2C04_0001,
-				RP2C04_0002,
-				RP2C04_0003,
-				RP2C04_0004
+				MODE_STD,
+				MODE_RBI,
+				MODE_TKO,
+				MODE_XEV
 			};
+
+			static VsSystem* Create(Cpu&,Ppu&,PpuType,Mode,dword,bool);
+			virtual ~VsSystem();
 
 			void Reset(bool);
 			void SaveState(State::Saver&) const;
 			void LoadState(State::Loader&);
-			PpuType EnableYuvConversion(bool);
+			void EnableYuvConversion(bool);
 
 		protected:
 
 			struct Context;
 
 			VsSystem(Context&);
-			virtual ~VsSystem();
 
 		private:
 
@@ -117,7 +115,9 @@ namespace Nes
 
 			NES_DECL_PEEK( Nop  )
 			NES_DECL_POKE( Nop  )
-			NES_DECL_PEEK( 2002 )
+			NES_DECL_PEEK( 2002_RC2C05_01_04 )
+			NES_DECL_PEEK( 2002_RC2C05_02    )
+			NES_DECL_PEEK( 2002_RC2C05_03    )
 			NES_DECL_POKE( 2002 )
 			NES_DECL_PEEK( 4016 )
 			NES_DECL_POKE( 4016 )
@@ -174,7 +174,6 @@ namespace Nes
 
 			uint coin;
 			VsDipSwitches dips;
-			const uint securityPpu;
 			const PpuType ppuType;
 			ibool yuvConvert;
 			Io::Port p2002;
@@ -195,6 +194,11 @@ namespace Nes
 			{
 				if (inputMapper)
 					inputMapper->End();
+			}
+
+			PpuType GetPpuType() const
+			{
+				return ppuType;
 			}
 
 			DipSwitches& GetDipSwiches()

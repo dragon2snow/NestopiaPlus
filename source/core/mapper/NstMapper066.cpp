@@ -35,7 +35,7 @@ namespace Nes
 
 		void Mapper66::SubReset(bool)
 		{
-			Map( 0x6000U, 0xFFFFU, &Mapper66::Poke_Prg );
+			Map( 0x8000U, 0xFFFFU, &Mapper66::Poke_Prg );
 		}
 
 		#ifdef NST_PRAGMA_OPTIMIZE
@@ -45,7 +45,7 @@ namespace Nes
 		NES_POKE(Mapper66,Prg)
 		{
 			ppu.Update();
-			chr.SwapBank<SIZE_8K,0x0000U>( data & 0xF );
+			chr.SwapBank<SIZE_8K,0x0000U>( data );
 			prg.SwapBank<SIZE_32K,0x0000U>( data >> 4 );
 		}
 	}

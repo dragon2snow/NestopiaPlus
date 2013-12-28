@@ -110,7 +110,7 @@ namespace Nes
                                                                      \
 			static void Hook_##a_(void* instance)                    \
 			{                                                        \
-				Hook_Type_##a_( instance, Hook_Member_##a_ );        \
+				Hook_Type_##a_( instance, &Hook_Member_##a_ );       \
 			}
 
 		#define NES_HOOK(o_,a_) void o_::Hook_Member_##a_()

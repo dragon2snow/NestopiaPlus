@@ -83,22 +83,22 @@ namespace Nes
 
 			prg.SwapBank<SIZE_8K>( 0x0000U ^ swap, base | (banks.prg[0] & 0xF) );
 			prg.SwapBank<SIZE_8K>( 0x2000U,        base | (banks.prg[1] & 0xF) );
-			prg.SwapBank<SIZE_8K>( 0x4000U ^ swap, base | (exReg == 0x2 ? 0xE : 0x6) );
-			prg.SwapBank<SIZE_8K>( 0x6000U,        base | (exReg == 0x2 ? 0xF : 0x7) );
+			prg.SwapBank<SIZE_8K>( 0x4000U ^ swap, base | (base == 0x10 ? 0xE : 0x6) );
+			prg.SwapBank<SIZE_8K>( 0x6000U,        base | (base == 0x10 ? 0xF : 0x7) );
 		}
 
 		void Mapper37::UpdateChr() const
 		{
 			ppu.Update();
 
-			const uint base = (exReg & 0x2) << 6;
+			const uint base = exReg << 6 & 0x80;
 			const uint swap = (regs.ctrl0 & Regs::CTRL0_XOR_CHR) << 5;
 
 			chr.SwapBanks<SIZE_2K>
 			(
 				0x0000U ^ swap,
-				(base >> 1) | (banks.chr[0] & 0x3F),
-				(base >> 1) | (banks.chr[1] & 0x3F)
+				base >> 1 | (banks.chr[0] & 0x3F),
+				base >> 1 | (banks.chr[1] & 0x3F)
 			);
 
 			chr.SwapBanks<SIZE_1K>

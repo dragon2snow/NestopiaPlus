@@ -44,6 +44,11 @@ namespace Nes
 
 			class DoubleCassette;
 
+			enum
+			{
+				ATR_DOUBLECASSETTE = 1
+			};
+
 			void SubReset(bool);
 			void SubSave(State::Saver&) const;
 			void SubLoad(State::Loader&);

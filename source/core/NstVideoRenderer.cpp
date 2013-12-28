@@ -32,6 +32,7 @@
 #include "NstVideoRenderer.hpp"
 #include "NstVideoFilterNone.hpp"
 #include "NstVideoFilterScanlines.hpp"
+#include "NstVideoFilterNtsc.hpp"
 #ifndef NST_NO_2XSAI
 #include "NstVideoFilter2xSaI.hpp"
 #endif
@@ -40,9 +41,6 @@
 #endif
 #ifndef NST_NO_HQ2X
 #include "NstVideoFilterHqX.hpp"
-#endif
-#ifndef NST_NO_NTSCVIDEO
-#include "NstVideoFilterNtsc.hpp"
 #endif
 
 namespace Nes
@@ -146,6 +144,20 @@ namespace Nes
 					{0x6D,0xDB,0x00}, {0xDB,0xB6,0xFF}, {0x00,0xFF,0xFF}, {0x24,0x49,0x00}
 				}
 			};
+
+			const uchar Renderer::Palette::Constants::tints[8] =
+			{
+				0, 6, 10, 8, 2, 4, 0, 0
+			};
+
+			const double Renderer::Palette::Constants::levels[2][4] =
+			{
+				{-0.12, 0.00, 0.31, 0.72 },
+				{ 0.40, 0.68, 1.00, 1.00 }
+			};
+
+			const double Renderer::Palette::Constants::attenMul = 0.79399;
+			const double Renderer::Palette::Constants::attenSub = 0.0782838;
 
 			#ifdef NST_PRAGMA_OPTIMIZE
 			#pragma optimize("s", on)
@@ -382,22 +394,40 @@ namespace Nes
 						{
 							if (type == PALETTE_CUSTOM)
 							{
-								if (!custom->emphasis)
+								if (!custom->emphasis && (j & 0xF) <= 0xD)
 								{
-									static const double emphasis[7][3] =
+									double yiq[3] =
 									{
-										{1.00,0.80,0.81},
-										{0.78,0.94,0.66},
-										{0.79,0.77,0.63},
-										{0.82,0.83,1.12},
-										{0.81,0.71,0.87},
-										{0.68,0.79,0.79},
-										{0.70,0.70,0.70}
+										0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2],
+										0.596 * rgb[0] - 0.275 * rgb[1] - 0.321 * rgb[2],
+										0.212 * rgb[0] - 0.523 * rgb[1] + 0.311 * rgb[2]
 									};
 
-									rgb[0] *= emphasis[i-1][0];
-									rgb[1] *= emphasis[i-1][1];
-									rgb[2] *= emphasis[i-1][2];
+									if (i == 7)
+									{
+										yiq[0] = yiq[0] * (Constants::attenMul * 1.13) - (Constants::attenSub * 1.13);
+									}
+									else
+									{
+										double s = Constants::levels[(j & 0xF) != 0xD][j >> 4 & 0x3] * (0.5 - Constants::attenMul * 0.5) + Constants::attenSub * 0.5;
+
+										yiq[0] -= s * 0.5;
+
+										if (i >= 3 && i != 4)
+										{
+											s *= 0.6;
+											yiq[0] -= s;
+										}
+
+										const double angle = NST_PI / 12 * (Constants::tints[i] * 2 - 7);
+
+										yiq[1] += std::sin( angle ) * s;
+										yiq[2] += std::cos( angle ) * s;
+									}
+
+									rgb[0] = yiq[0] + 0.956 * yiq[1] + 0.621 * yiq[2];
+									rgb[1] = yiq[0] - 0.272 * yiq[1] - 0.647 * yiq[2];
+									rgb[2] = yiq[0] - 1.105 * yiq[1] + 1.702 * yiq[2];
 								}
 							}
 							else switch (i)
@@ -438,16 +468,10 @@ namespace Nes
 
 				for (uint n=0; n < PALETTE; ++n)
 				{
-					static const double levels[2][4] =
-					{
-						{-0.12, 0.00, 0.31, 0.72 },
-						{ 0.40, 0.68, 1.00, 1.00 }
-					};
-
 					double level[2] =
 					{
-						levels[0][n >> 4 & 3],
-						levels[1][n >> 4 & 3]
+						Constants::levels[0][n >> 4 & 3],
+						Constants::levels[1][n >> 4 & 3]
 					};
 
 					const int color = n & 0x0F;
@@ -476,20 +500,15 @@ namespace Nes
 
 					if (tint && color <= 0x0D)
 					{
-						const double attenMul = 0.79399;
-						const double attenSub = 0.0782838;
-
 						if (tint == 7)
 						{
-							y = y * (attenMul * 1.13) - (attenSub * 1.13);
+							y = y * (Constants::attenMul * 1.13) - (Constants::attenSub * 1.13);
 						}
 						else
 						{
-							static const uchar tints[8] = {0,6,10,8,2,4,0,0};
+							const double angle = NST_PI / 12 * (Constants::tints[tint] * 2 - 7);
 
-							const double angle = NST_PI / 12 * (tints[tint] * 2 - 7);
-
-							s = level[1] * (0.5 - attenMul * 0.5) + attenSub * 0.5;
+							s = level[1] * (0.5 - Constants::attenMul * 0.5) + Constants::attenSub * 0.5;
 							y -= s * 0.5;
 
 							if (tint >= 3 && tint != 4)
@@ -680,7 +699,6 @@ namespace Nes
 						break;
 
 				#endif
-				#ifndef NST_NO_NTSCVIDEO
 
 					case RenderState::FILTER_NTSC:
 					{
@@ -710,8 +728,6 @@ namespace Nes
 						}
 						break;
 					}
-
-				#endif
 				}
 
 				if (filter)

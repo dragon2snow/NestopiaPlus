@@ -71,12 +71,7 @@ namespace Nes
 				if (!reg)
 				{
 					reg = data & 0x20;
-
-					if (data & 0x08)
-						prg.SwapBanks<SIZE_16K,0x0000U>( data & 0x7, data & 0x7 );
-					else
-						prg.SwapBank<SIZE_32K,0x0000U>( (data & 0x6) >> 1 );
-
+					prg.SwapBanks<SIZE_16K,0x0000U>( data & ~(~data >> 3 & 0x1), data | (~data >> 3 & 0x1) );
 					ppu.SetMirroring( (data & 0x10) ? Ppu::NMT_HORIZONTAL : Ppu::NMT_VERTICAL );
 				}
 			}
@@ -86,7 +81,7 @@ namespace Nes
 				if (!reg)
 				{
 					ppu.Update();
-					chr.SwapBank<SIZE_8K,0x0000U>( data & 0x7 );
+					chr.SwapBank<SIZE_8K,0x0000U>( data );
 				}
 			}
 		}

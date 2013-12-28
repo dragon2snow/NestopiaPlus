@@ -235,12 +235,13 @@ namespace Nestopia
 
 			struct VideoInfo : Object::Pod<AVISTREAMINFO>
 			{
-				VideoInfo(const Nes::Machine machine,const BitmapInfo& bitmapInfo,DWORD quality)
+				VideoInfo(const Nes::Machine machine,const BitmapInfo& bitmapInfo,const CompressVars& compressVars)
 				{
 					fccType               = streamtypeVIDEO;
+					fccHandler            = compressVars.fccHandler;
 					dwScale               = 1;
 					dwRate                = (machine.Is(Nes::Machine::NTSC) ? Nes::FPS_NTSC : Nes::FPS_PAL);
-					dwQuality             = quality;
+					dwQuality             = compressVars.lQ;
 					dwSuggestedBufferSize = bitmapInfo.biSizeImage;
 					rcFrame.right         = bitmapInfo.biWidth;
 					rcFrame.bottom        = bitmapInfo.biHeight;
@@ -265,6 +266,7 @@ namespace Nestopia
 				SoundInfo(const WaveFormat& waveFormat)
 				{
 					fccType         = streamtypeAUDIO;
+					fccHandler      = 1;
 					dwScale         = waveFormat.nBlockAlign;
 					dwInitialFrames = 1;
 					dwRate          = waveFormat.nAvgBytesPerSec;
@@ -295,7 +297,7 @@ namespace Nestopia
 			if (!avi)
 				return IDS_AVI_WRITE_ERR;
 
-			VideoInfo videoInfo( emulator, bitmapInfo, compressVars.lQ );
+			VideoInfo videoInfo( emulator, bitmapInfo, compressVars );
 			const Stream video( avi, videoInfo );
 
 			if (!video)
@@ -345,7 +347,7 @@ namespace Nestopia
 				Nes::Video(emulator).SetRenderState( tmp );
 			}
 
-			for (uint frame=0, sample=0, size=0; Nes::Movie(emulator).IsPlaying(); ++frame, sample += soundOutput.length)
+			for (uint frame=0, sample=0, size=0; Nes::Movie(emulator).IsPlaying(); ++frame, sample += soundOutput.length[0])
 			{
 				::Sleep( 0 );
 
@@ -365,7 +367,7 @@ namespace Nestopia
 				if
 				(
 					(::AVIStreamWrite( compressor, frame, 1, flipped.ptr, flipped.size, AVIIF_KEYFRAME, NULL, written+0 ) != AVIERR_OK) ||
-					(sound && ::AVIStreamWrite( sound, sample, soundOutput.length, samples.ptr, samples.size, 0, NULL, written+1 ) != AVIERR_OK)
+					(sound && ::AVIStreamWrite( sound, sample, soundOutput.length[0], samples.ptr, samples.size, 0, NULL, written+1 ) != AVIERR_OK)
 				)
 					return IDS_AVI_WRITE_ERR;
 

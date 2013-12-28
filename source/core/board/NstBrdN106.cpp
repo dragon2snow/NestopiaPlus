@@ -69,7 +69,7 @@ namespace Nes
 
 			N106::N106(Context& c,const Type type)
 			:
-			Mapper (c,CRAM_8K|WRAM_8K),
+			Mapper (c,PROM_MAX_512K|CROM_MAX_256K|CRAM_8K),
 			chips  (type == TYPE_ADD_ONS ? new Chips(c.cpu) : NULL)
 			{
 			}
@@ -366,7 +366,7 @@ namespace Nes
 
 			inline void N106::Sound::SetChannelState(uint data)
 			{
-				data = ((data >> 4) & 0x7) + 1;
+				data = (data >> 4 & 0x7) + 1;
 				frequency = data << SPEED_SHIFT;
 				startChannel = NUM_CHANNELS - data;
 			}
@@ -505,18 +505,18 @@ namespace Nes
 
 			NES_POKE(N106,E000)
 			{
-				prg.SwapBank<SIZE_8K,0x0000U>( data & 0x3F );
+				prg.SwapBank<SIZE_8K,0x0000U>( data );
 			}
 
 			NES_POKE(N106,E800)
 			{
 				reg = data;
-				prg.SwapBank<SIZE_8K,0x2000U>( data & 0x3F );
+				prg.SwapBank<SIZE_8K,0x2000U>( data );
 			}
 
 			NES_POKE(N106,F000)
 			{
-				prg.SwapBank<SIZE_8K,0x4000U>( data & 0x3F );
+				prg.SwapBank<SIZE_8K,0x4000U>( data );
 			}
 
 			void N106::Sound::Poke_F800(const uint data)

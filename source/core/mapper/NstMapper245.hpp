@@ -37,7 +37,8 @@ namespace Nes
 		{
 		public:
 
-			Mapper245(Context&);
+			Mapper245(Context& c)
+			: Mmc3(c,BRD_GENERIC,PROM_MAX_1024K|CROM_MAX_256K) {}
 
 		private:
 

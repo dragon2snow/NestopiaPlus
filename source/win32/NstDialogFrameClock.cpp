@@ -81,7 +81,7 @@ namespace Nestopia
 				settings.pfCounter = (cfg["timer performance counter"] == Configuration::YES);
 			}
 
-			settings.vsync                 = ( cfg[ "timer vsync"                ] != Configuration::NO  );
+			settings.vsync                 = ( cfg[ "timer vsync"                ] == Configuration::YES );
 			settings.rewinder              = ( cfg[ "timer rewinder"             ] == Configuration::YES );
 			settings.useDefaultSpeed       = ( cfg[ "timer default speed"        ] != Configuration::NO  );
 			settings.useDefaultRewindSpeed = ( cfg[ "timer default rewind speed" ] != Configuration::NO  );
@@ -249,7 +249,7 @@ namespace Nestopia
 				dialog.Slider      ( IDC_TIMING_FRAME_SKIPS            ).Position() = DEFAULT_FRAME_SKIPS;
 				dialog.RadioButton ( IDC_TIMING_SYNC_REFRESH           ).Check  ( true  );
 				dialog.RadioButton ( IDC_TIMING_AUTO_FRAME_SKIP        ).Check  ( System::Info::GetCpuSpeed() && System::Info::GetCpuSpeed() <= MAX_MHZ_AUTO_FRAME_SKIP_ENABLE );
-				dialog.CheckBox    ( IDC_TIMING_VSYNC                  ).Check  ( true  );
+				dialog.CheckBox    ( IDC_TIMING_VSYNC                  ).Check  ( false  );
 				dialog.CheckBox    ( IDC_TIMING_TRIPLE_BUFFERING       ).Check  ( !modernGPU || System::Info::GetCpuSpeed() <= MAX_MHZ_TRIPLE_BUFFERING_ENABLE );
 				dialog.CheckBox    ( IDC_TIMING_DEFAULT_SPEED          ).Check  ( true  );
 				dialog.CheckBox    ( IDC_TIMING_REWINDER               ).Check  ( false );

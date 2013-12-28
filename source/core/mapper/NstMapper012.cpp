@@ -62,7 +62,7 @@ namespace Nes
 
 		void Mapper12::SubSave(State::Saver& state) const
 		{
-			state.Begin('R','E','G','\0').Write8( ((exRegs[0] >> 8) & 0x01) | ((exRegs[1] >> 4) & 0x10) ).End();
+			state.Begin('R','E','G','\0').Write8( (exRegs[0] >> 8 & 0x01) | (exRegs[1] >> 4 & 0x10) ).End();
 		}
 
 		#ifdef NST_PRAGMA_OPTIMIZE
@@ -90,8 +90,8 @@ namespace Nes
 
 			const uint base[2] =
 			{
-				exRegs[(regs.ctrl0 >> Regs::CTRL0_MODE) ^ 0],
-				exRegs[(regs.ctrl0 >> Regs::CTRL0_MODE) ^ 1]
+				exRegs[regs.ctrl0 >> 7 ^ 0],
+				exRegs[regs.ctrl0 >> 7 ^ 1]
 			};
 
 			chr.SwapBanks<SIZE_2K>( 0x0000U ^ swap, base[0] + banks.chr[0], base[0] + banks.chr[1] );

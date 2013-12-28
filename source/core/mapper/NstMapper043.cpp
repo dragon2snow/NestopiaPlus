@@ -35,7 +35,10 @@ namespace Nes
 		#endif
 
 		Mapper43::Mapper43(Context& c)
-		: Mapper(c,WRAM_NONE), irq(c.cpu) {}
+		:
+		Mapper (c,CROM_MAX_8K|WRAM_NONE),
+		irq    (c.cpu)
+		{}
 
 		void Mapper43::SubReset(const bool hard)
 		{

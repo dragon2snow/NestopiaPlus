@@ -367,8 +367,8 @@ namespace Nes
 				if (v < 32)
 				{
 					u32 t = hi << (32-v);
-					hi = (hi >> v);
-					lo = (lo >> v) | t;
+					hi = hi >> v;
+					lo = lo >> v | t;
 				}
 				else
 				{

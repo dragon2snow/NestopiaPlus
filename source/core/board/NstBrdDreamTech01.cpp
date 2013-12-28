@@ -37,7 +37,7 @@ namespace Nes
 
 			void DreamTech01::SubReset(const bool)
 			{
-				Map( 0x5020U, PRG_SWAP_16K );
+				Map( 0x5020U, PRG_SWAP_16K_0 );
 			}
 
 			#ifdef NST_PRAGMA_OPTIMIZE

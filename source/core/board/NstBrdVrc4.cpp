@@ -38,11 +38,10 @@ namespace Nes
 
 			Vrc4::Vrc4(Context& c,const Type t)
 			:
-			Mapper (c),
+			Mapper (c,CROM_MAX_256K),
 			irq    (t != TYPE_A ? new Irq(c.cpu) : NULL),
 			type   (t)
-			{
-			}
+			{}
 
 			Vrc4::~Vrc4()
 			{
@@ -91,7 +90,7 @@ namespace Nes
 					{
 						for (dword i=0x9000U; i <= 0xFFFFU; ++i)
 						{
-							switch ((i | ((i >> 5) & 0xF)) & 0xF006U)
+							switch ((i | (i >> 5 & 0xF)) & 0xF006U)
 							{
 								case 0x9000:
 								case 0x9002: Map( i, NMT_SWAP_VH01    ); break;
@@ -157,7 +156,7 @@ namespace Nes
 					{
 						for (dword i=0x9000U; i <= 0xFFFFU; ++i)
 						{
-							switch ((i | ((i >> 2) & 0x3)) & 0xF003U)
+							switch ((i | (i >> 2 & 0x3)) & 0xF003U)
 							{
 								case 0x9000:
 								case 0x9002: Map( i, NMT_SWAP_VH01    ); break;

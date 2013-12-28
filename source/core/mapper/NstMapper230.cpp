@@ -42,6 +42,9 @@ namespace Nes
 
 			prg.SwapBanks<SIZE_16K,0x0000U>( romSwitch ? 0 : 8, romSwitch ? 7 : 39 );
 
+			if (romSwitch)
+				ppu.SetMirroring( Ppu::NMT_VERTICAL );
+
 			Map( 0x8000U, 0xFFFFU, &Mapper230::Poke_Prg );
 
 			// for the soft reset triggering feature
@@ -76,12 +79,8 @@ namespace Nes
 			}
 			else
 			{
+				prg.SwapBanks<SIZE_16K,0x0000U>( 8 + (data & 0x1F), (8 + (data & 0x1F)) | (~data >> 5 & 0x1) );
 				ppu.SetMirroring( (data & 0x40) ? Ppu::NMT_VERTICAL : Ppu::NMT_HORIZONTAL );
-
-				if (data & 0x20)
-					prg.SwapBanks<SIZE_16K,0x0000U>( 8 + (data & 0x1F), 8 + (data & 0x1F) );
-				else
-					prg.SwapBank<SIZE_32K,0x0000U>( 4 + (data >> 1 & 0xF) );
 			}
 		}
 	}

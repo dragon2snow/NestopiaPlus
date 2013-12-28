@@ -59,7 +59,7 @@ namespace Nes
                      const uint data = state.Read8();
 
                      mode = data & 0x1;
-                     scan = (data >> 1) & 0xF;
+                     scan = data >> 1 & 0xF;
 
                      if (scan > 12)
                          scan = 0;

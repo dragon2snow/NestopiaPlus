@@ -35,7 +35,10 @@ namespace Nes
 		#endif
 
 		Mapper67::Mapper67(Context& c)
-		: Mapper(c), irq (c.cpu) {}
+		:
+		Mapper (c,CROM_MAX_512K|WRAM_DEFAULT),
+		irq    (c.cpu)
+		{}
 
 		void Mapper67::Irq::Reset(const bool hard)
 		{
@@ -58,7 +61,7 @@ namespace Nes
 			Map( 0xC000U, 0xCFFFU, &Mapper67::Poke_C000 );
 			Map( 0xD800U, 0xDFFFU, &Mapper67::Poke_D800 );
 			Map( 0xE800U, 0xEFFFU, NMT_SWAP_VH01        );
-			Map( 0xF800U, 0xFFFFU, PRG_SWAP_16K         );
+			Map( 0xF800U, 0xFFFFU, PRG_SWAP_16K_0       );
 		}
 
 		void Mapper67::SubLoad(State::Loader& state)
@@ -70,8 +73,8 @@ namespace Nes
 					const State::Loader::Data<3> data( state );
 
 					irq.unit.enabled = data[0] & 0x1;
-					irq.unit.toggle = (data[0] & 0x2) >> 1;
-					irq.unit.count = data[1] | (data[2] << 8);
+					irq.unit.toggle = data[0] >> 1 & 0x1;
+					irq.unit.count = data[1] | data[2] << 8;
 				}
 
 				state.End();

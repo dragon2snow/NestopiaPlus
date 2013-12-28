@@ -33,18 +33,12 @@ namespace Nes
 {
 	namespace Core
 	{
-		class Mapper79 : public Mapper
+		class Mapper79 : public Boards::Nina
 		{
 		public:
 
 			Mapper79(Context& c)
-			: Mapper(c) {}
-
-		private:
-
-			void SubReset(bool);
-
-			NES_DECL_POKE( 4100 )
+			: Nina(c,TYPE_003_006_STD) {}
 		};
 	}
 }

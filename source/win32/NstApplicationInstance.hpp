@@ -48,6 +48,7 @@ namespace Nestopia
 			static const Path GetExePath(const GenericString);
 			static const Path GetLongPath(tstring);
 			static const Path GetTmpPath(GenericString=GenericString());
+			static const Path GetFullPath(const GenericString);
 			static const String::Heap<char>& GetVersion();
 
 			static uint NumChildWindows();

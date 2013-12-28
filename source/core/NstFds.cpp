@@ -418,6 +418,11 @@ namespace Nes
 				return Image::GetDesiredController( port );
 		}
 
+		uint Fds::GetDesiredAdapter() const
+		{
+			return Api::Input::ADAPTER_FAMICOM;
+		}
+
 		void Fds::Io::Reset()
 		{
 			ctrl = 0;

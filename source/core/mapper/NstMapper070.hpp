@@ -43,6 +43,11 @@ namespace Nes
 
 			void SubReset(bool);
 
+			enum
+			{
+				ATR_LIGHTGUN = 1
+			};
+
 			NES_DECL_PEEK( SpaceShadow )
 			NES_DECL_POKE( SpaceShadow )
 			NES_DECL_POKE( Prg )

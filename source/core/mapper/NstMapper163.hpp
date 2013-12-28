@@ -38,7 +38,7 @@ namespace Nes
 		public:
 
 			Mapper163(Context& c)
-			: Mapper(c,WRAM_8K|CRAM_8K) {}
+			: Mapper(c,CROM_MAX_8K|CRAM_8K) {}
 
 		private:
 
@@ -47,10 +47,19 @@ namespace Nes
 			void SubLoad(State::Loader&);
 			void UpdatePrg();
 
+			NES_DECL_PEEK( 5000 )
 			NES_DECL_POKE( 5000 )
+			NES_DECL_PEEK( 5100 )
+			NES_DECL_POKE( 5100 )
+			NES_DECL_POKE( 5101 )
+			NES_DECL_POKE( 5300 )
+			NES_DECL_PEEK( 5500 )
 			NES_DECL_HOOK( Ppu )
 
-			u16 regs[2];
+			u8 regs[2];
+			u8 strobe;
+			u8 trigger;
+			uint security;
 		};
 	}
 }

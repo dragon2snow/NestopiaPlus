@@ -49,7 +49,7 @@ namespace Nes
 
 			void PowerPad::SaveState(State::Saver& state,const uchar id) const
 			{
-				state.Begin('P','P',id,'\0').Write8( (shifter >> 1) ^ 0x1 ).Write16( (stream >> 3) ^ 0x55FFU ).End();
+				state.Begin('P','P',id,'\0').Write8( shifter >> 1 ^ 0x1 ).Write16( stream >> 3 ^ 0x55FFU ).End();
 			}
 
 			void PowerPad::LoadState(State::Loader& state,const dword id)

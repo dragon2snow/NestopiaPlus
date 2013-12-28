@@ -36,7 +36,7 @@ namespace Nes
 
 		Mapper117::Mapper117(Context& c)
 		:
-		Mapper (c),
+		Mapper (c,CROM_MAX_256K|WRAM_DEFAULT),
 		irq    (c.cpu,c.ppu,Irq::SIGNAL_DURATION)
 		{}
 

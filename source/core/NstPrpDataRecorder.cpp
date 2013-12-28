@@ -108,14 +108,14 @@ namespace Nes
 							status,
 							in,
 							out,
-							(p >>  0) & 0xFF,
-							(p >>  8) & 0xFF,
-							(p >> 16) & 0xFF,
-							(p >> 24) & 0xFF,
-							(c >>  0) & 0xFF,
-							(c >>  8) & 0xFF,
-							(c >> 16) & 0xFF,
-							(c >> 24) & 0xFF
+							p >>  0 & 0xFF,
+							p >>  8 & 0xFF,
+							p >> 16 & 0xFF,
+							p >> 24 & 0xFF,
+							c >>  0 & 0xFF,
+							c >>  8 & 0xFF,
+							c >> 16 & 0xFF,
+							c >> 24 & 0xFF
 						};
 
 						state.Begin('R','E','G','\0').Write( data ).End();
@@ -194,6 +194,7 @@ namespace Nes
 
 				loaded = true;
 				status = RECORDING;
+				in = 0;
 				out = 0;
 				cycles = 0;
 				stream.Destroy();

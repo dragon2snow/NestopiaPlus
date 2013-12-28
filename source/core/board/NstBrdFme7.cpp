@@ -121,10 +121,10 @@ namespace Nes
 
 			Fme7::Fme7(Context& c)
 			:
-			Mapper       (c,WRAM_8K),
+			Mapper       (c,CROM_MAX_256K),
 			irq          (c.cpu),
 			sound        (c.cpu),
-			barcodeWorld (c.prgCrc == 0x67898319UL ? new BarcodeWorld : NULL)
+			barcodeWorld (c.attribute == ATR_BARCODE_READER ? new BarcodeWorld : NULL)
 			{}
 
 			Fme7::~Fme7()
@@ -205,7 +205,7 @@ namespace Nes
 					barcodeWorld->Reset( cpu );
 
 				Map( WRK_PEEK );
-				Map( WRK_POKE_BUS );
+				Map( WRK_SAFE_POKE );
 				Map( 0x8000U, 0x9FFFU, &Fme7::Poke_8000 );
 				Map( 0xA000U, 0xBFFFU, &Fme7::Poke_A000 );
 				Map( 0xC000U, 0xDFFFU, &Fme7::Poke_C000 );
@@ -443,8 +443,8 @@ namespace Nes
 					{
 						const State::Loader::Data<3> data( state );
 
-						status = (~data[0] & 0x1) | ((data[2] >> 1) & 0x8);
-						ctrl = (data[0] >> 1) & 0x1F;
+						status = (~data[0] & 0x1) | (data[2] >> 1 & 0x8);
+						ctrl = data[0] >> 1 & 0x1F;
 						length = data[1] | ((data[2] & 0xF) << 8);
 						volume = levels[(ctrl & 0xF) ? (ctrl & 0xF) * 2 + 1 : 0];
 						dc = (status & 0x1) ? ~0UL : 0UL;
@@ -553,18 +553,9 @@ namespace Nes
 						break;
 
 					case 0xC:
-					{
-						static const uchar lut[4] =
-						{
-							Ppu::NMT_VERTICAL,
-							Ppu::NMT_HORIZONTAL,
-							Ppu::NMT_ZERO,
-							Ppu::NMT_ONE
-						};
 
-						ppu.SetMirroring( lut[data & 0x3] );
+						SetMirroringVH01( data );
 						break;
-					}
 
 					case 0xD:
 

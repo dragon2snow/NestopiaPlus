@@ -89,6 +89,16 @@ namespace Nestopia
 			return ::CompareStringW( MAKELCID(MAKELANGID(LANG_ENGLISH,SUBLANG_ENGLISH_US),SORT_DEFAULT), 0, t, n, u, m ) - 2;
 		}
 
+		uint Base::GetAbsolutePath(const char* relPath,char* dst,uint size)
+		{
+			return ::GetFullPathNameA( relPath, size, dst, NULL );
+		}
+
+		uint Base::GetAbsolutePath(const wchar_t* relPath,wchar_t* dst,uint size)
+		{
+			return ::GetFullPathNameW( relPath, size, dst, NULL );
+		}
+
 		template<>
 		ibool Path<char>::Compact(char* to,const char* from,uint maxLength)
 		{
@@ -102,22 +112,45 @@ namespace Nestopia
 		}
 
 		template<>
-		void Heap<char>::Import(cstring from)
+		Heap<char>& Heap<char>::Import(cstring from,ibool)
 		{
-			*this = from;
+			return *this = from;
 		}
 
 		template<>
-		void Heap<wchar_t>::Import(cstring src)
+		Heap<char>& Heap<char>::Import(wstring src,ibool utf8)
 		{
-			const int n = ::MultiByteToWideChar( CP_ACP, 0, src, -1, NULL, 0 );
+			const int n = ::WideCharToMultiByte( utf8 ? CP_UTF8 : CP_ACP, 0, src, -1, NULL, 0, NULL, NULL );
 
 			if (n > 1)
 			{
 				const uint l = length;
 				Resize( l + n-1 );
-				::MultiByteToWideChar( CP_ACP, 0, src, -1, string + l, n );
+				::WideCharToMultiByte( utf8 ? CP_UTF8 : CP_ACP, 0, src, -1, string + l, n, NULL, NULL );
 			}
+
+			return *this;
+		}
+
+		template<>
+		Heap<wchar_t>& Heap<wchar_t>::Import(cstring src,ibool utf8)
+		{
+			const int n = ::MultiByteToWideChar( utf8 ? CP_UTF8 : CP_ACP, 0, src, -1, NULL, 0 );
+
+			if (n > 1)
+			{
+				const uint l = length;
+				Resize( l + n-1 );
+				::MultiByteToWideChar( utf8 ? CP_UTF8 : CP_ACP, 0, src, -1, string + l, n );
+			}
+
+			return *this;
+		}
+
+		template<>
+		Heap<wchar_t>& Heap<wchar_t>::Import(wstring from,ibool)
+		{
+			return *this = from;
 		}
 
 		bool Base::Trim(char* string)

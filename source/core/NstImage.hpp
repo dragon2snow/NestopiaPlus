@@ -57,16 +57,6 @@ namespace Nes
 
 			typedef void* ExternalDevice;
 
-			enum PpuType
-			{
-				RP2C02,
-				RP2C03,
-				RP2C04_0001,
-				RP2C04_0002,
-				RP2C04_0003,
-				RP2C04_0004
-			};
-
 			enum ExternalDeviceType
 			{
 				EXT_DIP_SWITCHES = 1,
@@ -103,6 +93,7 @@ namespace Nes
 			virtual void LoadState(State::Loader&) {}
 			virtual void SaveState(State::Saver&) const {}
 			virtual uint GetDesiredController(uint) const;
+			virtual uint GetDesiredAdapter() const;
 
 			virtual Mode GetMode() const = 0;
 			virtual void SetMode(Mode) {}
@@ -119,13 +110,13 @@ namespace Nes
 
 			virtual PpuType QueryPpu(bool)
 			{
-				return RP2C02;
+				return PPU_RP2C02;
 			}
 
 		protected:
 
 			Image(Type);
-			virtual ~Image();
+			virtual ~Image() {}
 
 		private:
 

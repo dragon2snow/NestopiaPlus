@@ -44,8 +44,7 @@ namespace Nes
 
 		NES_POKE(Mapper94,Prg)
 		{
-			if ((address & 0xFFF0U) == 0xFF00U)
-				prg.SwapBank<SIZE_16K,0x0000U>( data >> 2 & 0x7 );
+			prg.SwapBank<SIZE_16K,0x0000U>( data >> 2 );
 		}
 	}
 }

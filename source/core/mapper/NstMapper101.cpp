@@ -35,17 +35,11 @@ namespace Nes
 
 		void Mapper101::SubReset(const bool hard)
 		{
-			Map( 0x6000U, 0xFFFFU, &Mapper101::Poke_Prg );
+			Map( 0x6000U, 0xFFFFU, CHR_SWAP_8K );
 		}
 
 		#ifdef NST_PRAGMA_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
-
-		NES_POKE(Mapper101,Prg)
-		{
-			ppu.Update();
-			chr.SwapBank<SIZE_8K,0x0000U>(data & 0x3);
-		}
 	}
 }

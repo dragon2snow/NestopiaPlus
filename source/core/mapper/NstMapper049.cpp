@@ -78,15 +78,15 @@ namespace Nes
 		{
 			if (exReg & 0x1)
 			{
-				const uint r = (exReg & 0xC0) >> 2;
+				const uint r = exReg >> 2 & 0x30;
 				const uint i = (regs.ctrl0 & Regs::CTRL0_XOR_PRG) >> 5;
 
 				prg.SwapBanks<SIZE_8K,0x0000U>
 				(
-					(banks.prg[i]   & 0xF) | r,
-					(banks.prg[1]   & 0xF) | r,
-					(banks.prg[i^2] & 0xF) | r,
-					(banks.prg[3]   & 0xF) | r
+					(banks.prg[i]   & 0x0F) | r,
+					(banks.prg[1]   & 0x0F) | r,
+					(banks.prg[i^2] & 0x0F) | r,
+					(banks.prg[3]   & 0x0F) | r
 				);
 			}
 			else

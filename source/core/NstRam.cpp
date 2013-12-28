@@ -124,7 +124,7 @@ namespace Nes
 			writable = w;
 		}
 
-		void Ram::Fill(const uint value)
+		void Ram::Fill(uint value)
 		{
 			NST_ASSERT( bool(mem) == bool(size) );
 			std::memset( mem, value, size );

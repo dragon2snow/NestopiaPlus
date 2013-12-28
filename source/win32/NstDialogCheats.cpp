@@ -646,10 +646,6 @@ namespace Nestopia
 			staticList.Load( cfg );
 		}
 
-		Cheats::~Cheats()
-		{
-		}
-
 		void Cheats::Save(Configuration& cfg) const
 		{
 			staticList.Save( cfg );

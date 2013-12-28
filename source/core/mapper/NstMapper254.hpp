@@ -38,7 +38,7 @@ namespace Nes
 		public:
 
 			Mapper254(Context& c)
-			: Mmc3(c,WRAM_8K) {}
+			: Mmc3(c,BRD_GENERIC,PROM_MAX_512K|CROM_MAX_256K|WRAM_8K) {}
 
 		private:
 
@@ -49,7 +49,7 @@ namespace Nes
 			NES_DECL_POKE( 8000 )
 			NES_DECL_PEEK( Wrk  )
 
-			uint latchFlip;
+			uint security;
 		};
 	}
 }

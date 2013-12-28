@@ -65,7 +65,7 @@ namespace Nes
 					if (~latch & data & 0x2)
 						stream <<= 1;
 
-					state = (data & 0x2) ? (~stream >> 15) & 0x8 : 0x4;
+					state = (data & 0x2) ? (~stream >> 15 & 0x8) : 0x4;
 					latch = data;
 				}
 				else

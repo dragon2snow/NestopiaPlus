@@ -109,6 +109,14 @@ namespace Nes
 
 				private:
 
+					struct Constants
+					{
+						static const uchar tints[8];
+						static const double levels[2][4];
+						static const double attenMul;
+						static const double attenSub;
+					};
+
 					struct Custom
 					{
 						inline Custom();
@@ -155,6 +163,7 @@ namespace Nes
 
 				class FilterNone;
 				class FilterScanlines;
+				template<uint BITS> class FilterNtsc;
 
 				#ifndef NST_NO_2XSAI
 				class Filter2xSaI;
@@ -166,10 +175,6 @@ namespace Nes
 
 				#ifndef NST_NO_HQ2X
 				class FilterHqX;
-				#endif
-
-				#ifndef NST_NO_NTSCVIDEO
-				template<uint BITS> class FilterNtsc;
 				#endif
 
 				class NST_NO_VTABLE Filter

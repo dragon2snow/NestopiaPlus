@@ -32,6 +32,7 @@
 #include "NstApplicationException.hpp"
 #include "NstDirect2D.hpp"
 #include "NstIoScreen.hpp"
+
 namespace Nestopia
 {
 	namespace DirectX
@@ -886,8 +887,6 @@ namespace Nestopia
 
 		void Direct2D::Device::SwitchFullscreen(const Mode& mode)
 		{
-			NST_ASSERT( !presentation.Flags );
-
 			presentation.Windowed = false;
 			presentation.BackBufferWidth = mode.width;
 			presentation.BackBufferHeight = mode.height;
@@ -1392,17 +1391,98 @@ namespace Nestopia
 		{
 			NST_ASSERT( file && *file && width && height );
 
-			IDirect3DSurface9* surface;
+			if (com == NULL)
+				return false;
 
-			if (com != NULL && SUCCEEDED(com->GetSurfaceLevel( 0, &surface )))
+			ComInterface<IDirect3DSurface9> surface;
+			const RECT rect = {0,0,width,height};
+
+			uint bitFormat = 0;
+
+			switch (format)
 			{
-				const RECT rect = {0,0,width,height};
-				const ibool result = SUCCEEDED(::D3DXSaveSurfaceToFile( file, type, surface, NULL, &rect ));
-				surface->Release();
-				return result;
+				case D3DFMT_A8R8G8B8:
+				case D3DFMT_X8R8G8B8:
+
+					bitFormat = 32;
+					break;
+
+				case D3DFMT_R5G6B5:
+				case D3DFMT_X1R5G5B5:
+				case D3DFMT_A1R5G5B5:
+
+					bitFormat = 16;
+					break;
 			}
 
-			return false;
+			if (bitFormat == 32 || (bitFormat == 16 && type == D3DXIFF_BMP))
+			{
+				{
+					ComInterface<IDirect3DDevice9> device;
+
+					if (FAILED(com->GetDevice( &device )))
+						return false;
+
+					if (FAILED(device->CreateOffscreenPlainSurface( width, height, D3DFMT_R8G8B8, D3DPOOL_SCRATCH, &surface, NULL )))
+						return false;
+				}
+
+				D3DLOCKED_RECT dstLock, srcLock;
+
+				if (FAILED(surface->LockRect( &dstLock, NULL, D3DLOCK_NOSYSLOCK )))
+					return false;
+
+				if (FAILED(com->LockRect( 0, &srcLock, &rect, D3DLOCK_READONLY|D3DLOCK_NOSYSLOCK )))
+				{
+					surface->UnlockRect();
+					return false;
+				}
+
+				if (bitFormat == 16)
+				{
+					const uint g = (format == D3DFMT_R5G6B5 ?  2 :  3);
+					const uint b = (format == D3DFMT_R5G6B5 ? 11 : 10);
+
+					for (uint y=0; y < height; ++y)
+					{
+						const u16* NST_RESTRICT src = static_cast<u16*>(srcLock.pBits);
+						u8* NST_RESTRICT dst = static_cast<u8*>(dstLock.pBits);
+
+						for (const u8* const end=dst+width*3; dst != end; dst += 3, ++src)
+						{
+							dst[0] = *src << 3 & 0xFF;
+							dst[1] = *src >> 5 << g & 0xFF;
+							dst[2] = *src >> b << 3 & 0xFF;
+						}
+
+						srcLock.pBits = static_cast<u8*>(srcLock.pBits) + srcLock.Pitch;
+						dstLock.pBits = static_cast<u8*>(dstLock.pBits) + dstLock.Pitch;
+					}
+				}
+				else
+				{
+					for (uint y=0; y < height; ++y)
+					{
+						const u8* NST_RESTRICT src = static_cast<u8*>(srcLock.pBits);
+						u8* NST_RESTRICT dst = static_cast<u8*>(dstLock.pBits);
+
+						for (const u8* const end=dst+width*3; dst != end; dst += 3, src += 4)
+							std::memcpy( dst, src, 3 );
+
+						srcLock.pBits = static_cast<u8*>(srcLock.pBits) + srcLock.Pitch;
+						dstLock.pBits = static_cast<u8*>(dstLock.pBits) + dstLock.Pitch;
+					}
+				}
+
+				com->UnlockRect( 0 );
+				surface->UnlockRect();
+			}
+			else if (FAILED(com->GetSurfaceLevel( 0, &surface )))
+			{
+				return false;
+			}
+
+			return SUCCEEDED(::D3DXSaveSurfaceToFile( file, type, *surface, NULL, &rect ));
 		}
 
 		Direct2D::Direct2D(HWND hWnd)

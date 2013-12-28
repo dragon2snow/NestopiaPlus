@@ -181,6 +181,11 @@ namespace Nes
 
 				class BarcodeWorld;
 
+				enum
+				{
+					ATR_BARCODE_READER = 1
+				};
+
 				void SubReset(bool);
 				void BaseSave(State::Saver&) const;
 				void BaseLoad(State::Loader&,dword);

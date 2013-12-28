@@ -45,7 +45,7 @@ namespace Nes
 			enum
 			{
 				NUM_PADS = 4,
-				NUM_CONTROLLERS = 22
+				NUM_CONTROLLERS = 23
 			};
 
 			class Controllers
@@ -589,6 +589,12 @@ namespace Nes
 				NUM_PADS = Core::Input::NUM_PADS
 			};
 
+			enum Adapter
+			{
+				ADAPTER_NES,
+				ADAPTER_FAMICOM
+			};
+
 			enum Type
 			{
 				UNCONNECTED,
@@ -600,6 +606,7 @@ namespace Nes
 				PADDLE,
 				POWERPAD,
 				MOUSE,
+				ROB,
 				FAMILYTRAINER,
 				FAMILYKEYBOARD,
 				SUBORKEYBOARD,
@@ -629,14 +636,15 @@ namespace Nes
 			typedef Core::Input::Controllers Controllers;
 
 			Result AutoSelectController(uint) throw();
+			void AutoSelectAdapter() throw();
 
 			Result ConnectController(uint,Type) throw();
-			Type GetConnectedController(uint) const throw();
+			void ConnectAdapter(Adapter) throw();
 
-			bool IsAnyControllerConnected(Type) const throw();
-			bool IsAnyControllerConnected(Type,Type) const throw();
-			bool IsAnyControllerConnected(Type,Type,Type) const throw();
-			bool IsAnyControllerConnected(Type,Type,Type,Type) const throw();
+			Type GetConnectedController(uint) const throw();
+			Adapter GetConnectedAdapter() const throw();
+
+			bool IsControllerConnected(Type) const throw();
 		};
 	}
 }

@@ -40,7 +40,7 @@ namespace Nes
 			public:
 
 				Cc21(Context& c)
-				: Mapper(c) {}
+				: Mapper(c,PROM_MAX_32K|CROM_MAX_16K|WRAM_DEFAULT) {}
 
 			private:
 

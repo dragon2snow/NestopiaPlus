@@ -35,7 +35,10 @@ namespace Nes
 		#endif
 
 		Mapper40::Mapper40(Context& c)
-		: Mapper(c,WRAM_NONE), irq(c.cpu) {}
+		:
+		Mapper (c,PROM_MAX_64K|CROM_MAX_8K|WRAM_NONE),
+		irq    (c.cpu)
+		{}
 
 		void Mapper40::SubReset(const bool hard)
 		{
@@ -108,7 +111,7 @@ namespace Nes
 
 		NES_PEEK(Mapper40,6000)
 		{
-			return *prg.Source().Mem( (0xC000U-0x6000U) + address );
+			return *prg.Source().Mem( (SIZE_64K-SIZE_16K-0x6000U) + address );
 		}
 
 		NES_POKE(Mapper40,8000)

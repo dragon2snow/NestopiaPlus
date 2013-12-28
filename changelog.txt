@@ -1,4 +1,67 @@
 ----------------------------------------------------------------
+1.35
+----------------------------------------------------------------
+
+Shell:
+
+ Additions:
+
+  - Memory pool select for sound buffers.
+  - Famicom and NES four player adapter select in menu.
+  - More cartridge info in image file dialog.
+
+ Changes:
+ 
+  - Better sound synchronization.
+  - Launcher fixes and improvements.
+  - Workaround for bugs in E-MU sound drivers.
+  - Workaround for bug in ::D3DXSaveSurfaceToFile() using D3DXIFF_BMP.
+  - MBC strings now passed in netplay chat.
+  - Aspect ratio option now preserved on ALT+S in fullscreen mode.
+  - VSync now disabled by default.
+
+ Fixes:
+
+  - Settings for compressed palette and FDS BIOS files now properly saved on exit.
+  - AVISTREAMINFO::fccHandler.
+  - Relative paths in Paths dialog.
+
+Core:
+
+ Additions:
+
+  - Preliminary support for NES 2.0 file headers.
+  - R.O.B / Famicom Robot peripheral support.
+  - Mapper 14, 196, 214 and 169 (partially). Info from Ca4He3.
+  - Mapper 171 (KAISER KS7058) for "Tui Do Woo Ma Jeung".
+  - Mapper 172 (IDEA-TEK CNROM +SECURITY) for "1991 Du Ma Racing" (unaltered version).
+  - Database entries.
+
+ Changes:
+
+  - PAL APU noise channel rates and frame sequencer steps. Info from Blargg.
+  - Emphasis color calculations on user palettes.
+  - Better board type detection for several mappers, particulary 1 and 4.
+  - Board names. Info from Pongbashi.
+  - Removed worthless mapper 100.
+  - Refactoring.
+
+ Fixes:
+
+  - Mapper 12 to use MMC3A revision. Fixes "Dragon Ball Z 5".
+  - Mapper 15, 147 and 222. Info from CaH4e3.
+  - Mapper 99, PRG-ROM bank switching. Fixes "VS Gumshoe".
+  - Mapper 115 and moved "Bao Qing Tian" to it.
+  - Mapper 156. Fixes "Ko Ko Eo Deu Ben Ce" and "Metal Force".
+  - Mapper 163. Info from CaH4e3 and tpu.
+  - Mapper 230. Fixes "Contra" in "22-in-1".
+  - Mapper 232. Fixes the Quattro games.
+  - Right mouse button for light gun firing off-screen.
+  - Minor sound volume control bug.
+  - AbsX 3-byte NOP instruction timing.
+  - Database entries.
+
+----------------------------------------------------------------
 1.34
 ----------------------------------------------------------------
 

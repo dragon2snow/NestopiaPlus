@@ -43,7 +43,8 @@ namespace Nes
 				{
 					F3_XXX,
 					F4_XXX,
-					F8_XXX
+					F8_XXX_0,
+					F8_XXX_1
 				};
 
 				Ffe(Context&,Type);
@@ -55,8 +56,6 @@ namespace Nes
 				void BaseSave(State::Saver&) const;
 				void BaseLoad(State::Loader&,dword);
 				void VSync();
-
-				static uint GetIrqBase(dword);
 
 				NES_DECL_POKE( 42FC )
 				NES_DECL_POKE( 42FD )

@@ -88,7 +88,7 @@ namespace Nes
 				void UpdateChr() const;
 				void UpdateChrLatch() const;
 				void UpdateExChr();
-				void UpdateNmt() const;
+				void UpdateNmt();
 				Device QueryDevice(DeviceType);
 				void VSync();
 

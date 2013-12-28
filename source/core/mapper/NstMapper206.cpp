@@ -23,6 +23,7 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 
 #include "../NstMapper.hpp"
+#include "../board/NstBrdMmc3.hpp"
 #include "NstMapper206.hpp"
 
 namespace Nes
@@ -33,62 +34,15 @@ namespace Nes
 		#pragma optimize("s", on)
 		#endif
 
-		void Mapper206::SubReset(const bool hard)
+		void Mapper206::SubReset(bool hard)
 		{
-			if (hard)
-				command = 0;
+			Mmc3::SubReset( hard );
 
-			for (dword i=0x8000U; i < 0x10000UL; i += 0x2)
-			{
-				Map( i + 0x0, &Mapper206::Poke_8000 );
-				Map( i + 0x1, &Mapper206::Poke_8001 );
-			}
-		}
-
-		void Mapper206::SubLoad(State::Loader& state)
-		{
-			while (const dword chunk = state.Begin())
-			{
-				if (chunk == NES_STATE_CHUNK_ID('R','E','G','\0'))
-					command = state.Read8();
-
-				state.End();
-			}
-		}
-
-		void Mapper206::SubSave(State::Saver& state) const
-		{
-			state.Begin('R','E','G','\0').Write8( command ).End();
+			Map( 0xA000U, 0xFFFFU, NOP_POKE );
 		}
 
 		#ifdef NST_PRAGMA_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
-
-		NES_POKE(Mapper206,8000)
-		{
-			command = data;
-		}
-
-		NES_POKE(Mapper206,8001)
-		{
-			const uint index = command & 0x7;
-
-			if (index < 0x6)
-			{
-				ppu.Update();
-
-				data &= 0x3F;
-
-				if (index < 0x2)
-					chr.SwapBank<SIZE_2K>( index << 11, data >> 1 );
-				else
-					chr.SwapBank<SIZE_1K>( (index + 0x2) << 10, data );
-			}
-			else
-			{
-				prg.SwapBank<SIZE_8K>( (index & 0x1) << 13, data & 0xF );
-			}
-		}
 	}
 }

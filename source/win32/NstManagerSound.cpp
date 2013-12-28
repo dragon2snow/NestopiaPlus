@@ -49,15 +49,16 @@ namespace Nestopia
 
 				if (sound.directSound.Streaming())
 				{
-					if (Nes::Sound(sound.emulator).GetLatency())
-						return sound.directSound.LockStream( sound.output.samples, sound.output.length );
+					return sound.directSound.LockStream( sound.output.samples, sound.output.length );
 				}
 				else
 				{
-					sound.directSound.StartStream();
-				}
+					if (bool(sound.CanRunInBackground()) != bool(sound.directSound.GlobalFocus()))
+						sound.UpdateSettings();
 
-				return false;
+					sound.directSound.StartStream();
+					return false;
+				}
 			}
 
 			static void NST_CALLBACK Unlock(Nes::Sound::UserData data,Nes::Sound::Output&)
@@ -67,12 +68,7 @@ namespace Nestopia
 				if (sound.recorder->IsRecording())
 					sound.recorder->Flush( sound.output );
 
-				sound.directSound.UnlockStream( sound.output.samples );
-
-				Nes::Sound nes( sound.emulator );
-
-				if (nes.GetLatency() >= sound.directSound.NumSamples() * 2)
-					nes.EmptyBuffer();
+				sound.directSound.UnlockStream( sound.output.samples, sound.output.length );
 			}
 
 			#ifdef NST_PRAGMA_OPTIMIZE
@@ -236,12 +232,12 @@ namespace Nestopia
 		)
 		:
 		emulator    ( e ),
-		menu        ( m ),
 		paths       ( p ),
 		preferences ( r ),
 		directSound ( window ),
 		dialog      ( new Window::Sound(e,directSound.GetAdapters(),p,cfg) ),
-		recorder    ( new Recorder(m,dialog->GetRecorder(),e) )
+		recorder    ( new Recorder(m,dialog->GetRecorder(),e) ),
+		menu        ( m )
 		{
 			m.Commands().Add( IDM_OPTIONS_SOUND, this, &Sound::OnMenuOptionsSound );
 			emulator.Events().Add( this, &Sound::OnEmuEvent );
@@ -258,9 +254,12 @@ namespace Nestopia
 			emulator.Events().Remove( this );
 		}
 
-		uint Sound::GetLatency() const
+		ibool Sound::CanRunInBackground() const
 		{
-			return emulator.Is(Nes::Machine::SOUND) ? DirectX::DirectSound::LATENCY_MAX + 1 : dialog->GetLatency() + 1;
+			if (emulator.Is(Nes::Machine::SOUND))
+				return menu[IDM_MACHINE_NSF_OPTIONS_PLAYINBACKGROUND].Checked();
+			else
+				return preferences[Managers::Preferences::RUN_IN_BACKGROUND];
 		}
 
 		void Sound::OnEmuEvent(Emulator::Event event)
@@ -272,18 +271,8 @@ namespace Nestopia
 
 					if (emuOutput)
 					{
-						const uint speed = emulator.GetSpeed();
-						tstring const errMsg = directSound.UpdateSpeed( speed, GetLatency() );
-
-						if (errMsg == NULL)
-						{
-							Nes::Sound( emulator ).SetSpeed( speed );
-							recorder->Enable( directSound.GetWaveFormat() );
-						}
-						else
-						{
-							Disable( errMsg );
-						}
+						Nes::Sound( emulator ).SetSpeed( emulator.GetSpeed() );
+						Nes::Sound( emulator ).EmptyBuffer();
 					}
 					break;
 
@@ -334,8 +323,9 @@ namespace Nestopia
 					nesSound.GetSampleRate(),
 					nesSound.GetSampleBits(),
 					nesSound.GetSpeaker() == Nes::Sound::SPEAKER_STEREO ? DirectX::DirectSound::STEREO : DirectX::DirectSound::MONO,
-					emulator.GetSpeed(),
-					GetLatency()
+					emulator.Is(Nes::Machine::SOUND) ? 500 : (dialog->GetLatency() + 2) * 21,
+					dialog->GetPool(),
+					CanRunInBackground()
 				);
 
 				if (errMsg == NULL)

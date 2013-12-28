@@ -407,6 +407,14 @@
 				>
 			</File>
 			<File
+				RelativePath="..\source\core\mapper\NstMapper014.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\mapper\NstMapper014.hpp"
+				>
+			</File>
+			<File
 				RelativePath="..\source\core\mapper\NstMapper015.cpp"
 				>
 			</File>
@@ -492,6 +500,14 @@
 			</File>
 			<File
 				RelativePath="..\source\core\mapper\NstMapper037.hpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\mapper\NstMapper039.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\mapper\NstMapper039.hpp"
 				>
 			</File>
 			<File
@@ -775,10 +791,6 @@
 				>
 			</File>
 			<File
-				RelativePath="..\source\core\mapper\NstMapper079.cpp"
-				>
-			</File>
-			<File
 				RelativePath="..\source\core\mapper\NstMapper079.hpp"
 				>
 			</File>
@@ -891,10 +903,6 @@
 				>
 			</File>
 			<File
-				RelativePath="..\source\core\mapper\NstMapper100.hpp"
-				>
-			</File>
-			<File
 				RelativePath="..\source\core\mapper\NstMapper101.cpp"
 				>
 			</File>
@@ -924,10 +932,6 @@
 			</File>
 			<File
 				RelativePath="..\source\core\mapper\NstMapper112.hpp"
-				>
-			</File>
-			<File
-				RelativePath="..\source\core\mapper\NstMapper113.cpp"
 				>
 			</File>
 			<File
@@ -980,6 +984,14 @@
 			</File>
 			<File
 				RelativePath="..\source\core\mapper\NstMapper119.hpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\mapper\NstMapper123.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\mapper\NstMapper123.hpp"
 				>
 			</File>
 			<File
@@ -1131,6 +1143,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\source\core\mapper\NstMapper159.hpp"
+				>
+			</File>
+			<File
 				RelativePath="..\source\core\mapper\NstMapper163.cpp"
 				>
 			</File>
@@ -1163,11 +1179,35 @@
 				>
 			</File>
 			<File
+				RelativePath="..\source\core\mapper\NstMapper169.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\mapper\NstMapper169.hpp"
+				>
+			</File>
+			<File
 				RelativePath="..\source\core\mapper\NstMapper170.cpp"
 				>
 			</File>
 			<File
 				RelativePath="..\source\core\mapper\NstMapper170.hpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\mapper\NstMapper171.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\mapper\NstMapper171.hpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\mapper\NstMapper172.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\mapper\NstMapper172.hpp"
 				>
 			</File>
 			<File
@@ -1264,6 +1304,14 @@
 			</File>
 			<File
 				RelativePath="..\source\core\mapper\NstMapper195.hpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\mapper\NstMapper196.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\mapper\NstMapper196.hpp"
 				>
 			</File>
 			<File
@@ -1384,6 +1432,14 @@
 			</File>
 			<File
 				RelativePath="..\source\core\mapper\NstMapper213.hpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\mapper\NstMapper214.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\mapper\NstMapper214.hpp"
 				>
 			</File>
 			<File
@@ -1571,14 +1627,6 @@
 				>
 			</File>
 			<File
-				RelativePath="..\source\core\mapper\NstMapper248.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\source\core\mapper\NstMapper248.hpp"
-				>
-			</File>
-			<File
 				RelativePath="..\source\core\mapper\NstMapper249.cpp"
 				>
 			</File>
@@ -1618,6 +1666,182 @@
 				RelativePath="..\source\core\mapper\NstMapper255.hpp"
 				>
 			</File>
+			<Filter
+				Name="Input"
+				>
+				<File
+					RelativePath="..\source\core\input\NstInpAdapter.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\source\core\input\NstInpAdapter.hpp"
+					>
+				</File>
+				<File
+					RelativePath="..\source\core\input\NstInpCrazyClimber.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\source\core\input\NstInpCrazyClimber.hpp"
+					>
+				</File>
+				<File
+					RelativePath="..\source\core\input\NstInpDevice.hpp"
+					>
+				</File>
+				<File
+					RelativePath="..\source\core\input\NstInpDoremikkoKeyboard.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\source\core\input\NstInpDoremikkoKeyboard.hpp"
+					>
+				</File>
+				<File
+					RelativePath="..\source\core\input\NstInpExcitingBoxing.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\source\core\input\NstInpExcitingBoxing.hpp"
+					>
+				</File>
+				<File
+					RelativePath="..\source\core\input\NstInpFamilyKeyboard.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\source\core\input\NstInpFamilyKeyboard.hpp"
+					>
+				</File>
+				<File
+					RelativePath="..\source\core\input\NstInpFamilyTrainer.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\source\core\input\NstInpFamilyTrainer.hpp"
+					>
+				</File>
+				<File
+					RelativePath="..\source\core\input\NstInpHoriTrack.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\source\core\input\NstInpHoriTrack.hpp"
+					>
+				</File>
+				<File
+					RelativePath="..\source\core\input\NstInpHyperShot.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\source\core\input\NstInpHyperShot.hpp"
+					>
+				</File>
+				<File
+					RelativePath="..\source\core\input\NstInpLightGun.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\source\core\input\NstInpLightGun.hpp"
+					>
+				</File>
+				<File
+					RelativePath="..\source\core\input\NstInpMahjong.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\source\core\input\NstInpMahjong.hpp"
+					>
+				</File>
+				<File
+					RelativePath="..\source\core\input\NstInpMouse.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\source\core\input\NstInpMouse.hpp"
+					>
+				</File>
+				<File
+					RelativePath="..\source\core\input\NstInpOekaKidsTablet.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\source\core\input\NstInpOekaKidsTablet.hpp"
+					>
+				</File>
+				<File
+					RelativePath="..\source\core\input\NstInpPachinko.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\source\core\input\NstInpPachinko.hpp"
+					>
+				</File>
+				<File
+					RelativePath="..\source\core\input\NstInpPad.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\source\core\input\NstInpPad.hpp"
+					>
+				</File>
+				<File
+					RelativePath="..\source\core\input\NstInpPaddle.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\source\core\input\NstInpPaddle.hpp"
+					>
+				</File>
+				<File
+					RelativePath="..\source\core\input\NstInpPartyTap.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\source\core\input\NstInpPartyTap.hpp"
+					>
+				</File>
+				<File
+					RelativePath="..\source\core\input\NstInpPokkunMoguraa.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\source\core\input\NstInpPokkunMoguraa.hpp"
+					>
+				</File>
+				<File
+					RelativePath="..\source\core\input\NstInpPowerPad.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\source\core\input\NstInpPowerPad.hpp"
+					>
+				</File>
+				<File
+					RelativePath="..\source\core\input\NstInpRob.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\source\core\input\NstInpRob.hpp"
+					>
+				</File>
+				<File
+					RelativePath="..\source\core\input\NstInpSuborKeyboard.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\source\core\input\NstInpSuborKeyboard.hpp"
+					>
+				</File>
+				<File
+					RelativePath="..\source\core\input\NstInpTopRider.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\source\core\input\NstInpTopRider.hpp"
+					>
+				</File>
+			</Filter>
 		</Filter>
 		<Filter
 			Name="VsSystem"
@@ -1763,14 +1987,6 @@
 				>
 			</File>
 			<File
-				RelativePath="..\source\core\board\NstBrdH2288.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\source\core\board\NstBrdH2288.hpp"
-				>
-			</File>
-			<File
 				RelativePath="..\source\core\board\NstBrdJaleco.cpp"
 				>
 			</File>
@@ -1819,11 +2035,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\source\core\board\NstBrdMmc3China.cpp"
+				RelativePath="..\source\core\board\NstBrdMmc3Waixing.cpp"
 				>
 			</File>
 			<File
-				RelativePath="..\source\core\board\NstBrdMmc3China.hpp"
+				RelativePath="..\source\core\board\NstBrdMmc3Waixing.hpp"
 				>
 			</File>
 			<File
@@ -1848,6 +2064,14 @@
 			</File>
 			<File
 				RelativePath="..\source\core\board\NstBrdN118.hpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\board\NstBrdNina.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\board\NstBrdNina.hpp"
 				>
 			</File>
 			<File
@@ -1936,174 +2160,6 @@
 			</File>
 			<File
 				RelativePath="..\source\core\board\NstBrdWs.hpp"
-				>
-			</File>
-		</Filter>
-		<Filter
-			Name="Input"
-			>
-			<File
-				RelativePath="..\source\core\input\NstInpAdapter.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\source\core\input\NstInpAdapter.hpp"
-				>
-			</File>
-			<File
-				RelativePath="..\source\core\input\NstInpCrazyClimber.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\source\core\input\NstInpCrazyClimber.hpp"
-				>
-			</File>
-			<File
-				RelativePath="..\source\core\input\NstInpDevice.hpp"
-				>
-			</File>
-			<File
-				RelativePath="..\source\core\input\NstInpDoremikkoKeyboard.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\source\core\input\NstInpDoremikkoKeyboard.hpp"
-				>
-			</File>
-			<File
-				RelativePath="..\source\core\input\NstInpExcitingBoxing.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\source\core\input\NstInpExcitingBoxing.hpp"
-				>
-			</File>
-			<File
-				RelativePath="..\source\core\input\NstInpFamilyKeyboard.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\source\core\input\NstInpFamilyKeyboard.hpp"
-				>
-			</File>
-			<File
-				RelativePath="..\source\core\input\NstInpFamilyTrainer.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\source\core\input\NstInpFamilyTrainer.hpp"
-				>
-			</File>
-			<File
-				RelativePath="..\source\core\input\NstInpHoriTrack.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\source\core\input\NstInpHoriTrack.hpp"
-				>
-			</File>
-			<File
-				RelativePath="..\source\core\input\NstInpHyperShot.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\source\core\input\NstInpHyperShot.hpp"
-				>
-			</File>
-			<File
-				RelativePath="..\source\core\input\NstInpLightGun.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\source\core\input\NstInpLightGun.hpp"
-				>
-			</File>
-			<File
-				RelativePath="..\source\core\input\NstInpMahjong.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\source\core\input\NstInpMahjong.hpp"
-				>
-			</File>
-			<File
-				RelativePath="..\source\core\input\NstInpMouse.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\source\core\input\NstInpMouse.hpp"
-				>
-			</File>
-			<File
-				RelativePath="..\source\core\input\NstInpOekaKidsTablet.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\source\core\input\NstInpOekaKidsTablet.hpp"
-				>
-			</File>
-			<File
-				RelativePath="..\source\core\input\NstInpPachinko.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\source\core\input\NstInpPachinko.hpp"
-				>
-			</File>
-			<File
-				RelativePath="..\source\core\input\NstInpPad.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\source\core\input\NstInpPad.hpp"
-				>
-			</File>
-			<File
-				RelativePath="..\source\core\input\NstInpPaddle.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\source\core\input\NstInpPaddle.hpp"
-				>
-			</File>
-			<File
-				RelativePath="..\source\core\input\NstInpPartyTap.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\source\core\input\NstInpPartyTap.hpp"
-				>
-			</File>
-			<File
-				RelativePath="..\source\core\input\NstInpPokkunMoguraa.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\source\core\input\NstInpPokkunMoguraa.hpp"
-				>
-			</File>
-			<File
-				RelativePath="..\source\core\input\NstInpPowerPad.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\source\core\input\NstInpPowerPad.hpp"
-				>
-			</File>
-			<File
-				RelativePath="..\source\core\input\NstInpSuborKeyboard.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\source\core\input\NstInpSuborKeyboard.hpp"
-				>
-			</File>
-			<File
-				RelativePath="..\source\core\input\NstInpTopRider.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\source\core\input\NstInpTopRider.hpp"
 				>
 			</File>
 		</Filter>

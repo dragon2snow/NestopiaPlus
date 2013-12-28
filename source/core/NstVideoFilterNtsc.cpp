@@ -25,8 +25,6 @@
 #define NST_TYPES_H
 #include "api/NstApiCompiler.hpp"
 
-#ifndef NST_NO_NTSCVIDEO
-
 #ifdef _MSC_VER
 #pragma warning( push )
 #pragma warning( disable : 4127 )
@@ -37,6 +35,4 @@
 
 #ifdef _MSC_VER
 #pragma warning( pop )
-#endif
-
 #endif

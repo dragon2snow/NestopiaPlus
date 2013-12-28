@@ -40,7 +40,7 @@ namespace Nes
 			protected:
 
 				Mmc2(Context& c)
-				: Mapper(c) {}
+				: Mapper(c,CROM_MAX_1024K|WRAM_DEFAULT) {}
 
 				void SubReset(bool);
 

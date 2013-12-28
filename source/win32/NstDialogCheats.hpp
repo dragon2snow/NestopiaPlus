@@ -47,7 +47,6 @@ namespace Nestopia
 		public:
 
 			Cheats(Managers::Emulator&,const Configuration&,const Managers::Paths&);
-			~Cheats();
 
 			typedef Nes::Cheats::Code Mem;
 

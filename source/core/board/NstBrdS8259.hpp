@@ -52,7 +52,6 @@ namespace Nes
 				void SubReset(bool);
 				void BaseSave(State::Saver&) const;
 				void BaseLoad(State::Loader&,dword);
-				void UpdateChr() const;
 
 				NES_DECL_POKE( 4100 )
 				NES_DECL_POKE( 4101 )
@@ -64,7 +63,7 @@ namespace Nes
 			protected:
 
 				S8259(Context& c,Type t)
-				: Mapper(c), type(t) {}
+				: Mapper(c,WRAM_NONE), type(t) {}
 			};
 		}
 	}

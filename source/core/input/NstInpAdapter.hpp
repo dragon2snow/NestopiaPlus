@@ -37,25 +37,37 @@ namespace Nes
 		{
 			class NST_NO_VTABLE Adapter
 			{
+			protected:
+
+				typedef Api::Input::Adapter Type;
+				Type type;
+
 			public:
+
+				Adapter(Type);
+				virtual ~Adapter() {}
 
 				virtual void Reset() = 0;
 				virtual void BeginFrame(Controllers*) = 0;
-				virtual void Initialize(dword) = 0;
+				virtual void Initialize(bool) = 0;
 				virtual void Poke(uint) = 0;
 				virtual uint Peek(uint) = 0;
 				virtual uint NumPorts() const = 0;
 				virtual Device* GetDevice(uint) const = 0;
 				virtual Device* Connect(uint,Device*) = 0;
+				virtual void SetType(Type);
 
-				virtual ~Adapter() {}
+				Type GetType() const
+				{
+					return type;
+				}
 			};
 
 			class AdapterTwo : public Adapter
 			{
 				void Reset();
 				void BeginFrame(Controllers*);
-				void Initialize(dword);
+				void Initialize(bool);
 				void Poke(uint);
 				uint Peek(uint);
 				uint NumPorts() const;
@@ -66,29 +78,29 @@ namespace Nes
 
 			public:
 
-				AdapterTwo(Device*,Device*);
+				AdapterTwo(Device*,Device*,Type=Api::Input::ADAPTER_NES);
 			};
 
 			class AdapterFour : public Adapter
 			{
 				void Reset();
 				void BeginFrame(Controllers*);
-				void Initialize(dword);
+				void Initialize(bool);
 				uint Peek(uint);
 				void Poke(uint);
 				uint NumPorts() const;
 				Device* GetDevice(uint) const;
 				Device* Connect(uint,Device*);
 
-				ibool fourscore;
 				uint increaser;
 				uint count[2];
 				Device* devices[4];
 
 			public:
 
-				AdapterFour(Device*,Device*,Device*,Device*);
+				AdapterFour(Device*,Device*,Device*,Device*,Type=Api::Input::ADAPTER_NES);
 
+				void SetType(Type);
 				void SaveState(State::Saver&,dword) const;
 				void LoadState(State::Loader&);
 			};

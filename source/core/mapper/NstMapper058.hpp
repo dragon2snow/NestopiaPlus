@@ -37,15 +37,14 @@ namespace Nes
 		{
 		public:
 
-			Mapper58(Context&);
+			Mapper58(Context& c)
+			: Mapper(c,PROM_MAX_128K|CROM_MAX_64K|WRAM_DEFAULT) {}
 
 		private:
 
 			void SubReset(bool);
 
 			NES_DECL_POKE( Prg )
-
-			const ibool studyGame;
 		};
 	}
 }

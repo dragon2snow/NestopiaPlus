@@ -81,8 +81,8 @@ namespace Nes
 			const u8 data[3] =
 			{
 				irq.IsLineEnabled() ? 0x1 : 0x0,
-				(irq.unit.count >> 0) & 0xFF,
-				(irq.unit.count >> 8) & 0x7F
+				irq.unit.count >> 0 & 0xFF,
+				irq.unit.count >> 8 & 0x7F
 			};
 
 			state.Begin('I','R','Q','\0').Write( data ).End();

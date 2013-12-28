@@ -38,7 +38,7 @@ namespace Nes
 		public:
 
 			Mapper16(Context& c)
-			: Bandai(c,TYPE_A) {}
+			: Bandai(c,TYPE_E2402) {}
 		};
 	}
 }

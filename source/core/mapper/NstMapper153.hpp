@@ -38,7 +38,7 @@ namespace Nes
 		public:
 
 			Mapper153(Context& c)
-			: Bandai(c,TYPE_B) {}
+			: Bandai(c,TYPE_WRAM) {}
 		};
 	}
 }

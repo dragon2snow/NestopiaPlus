@@ -36,7 +36,7 @@ namespace Nes
 
 		Mapper116::Mapper116(Context& c)
 		:
-		Mapper (c),
+		Mapper (c,WRAM_DEFAULT),
 		irq    (c.cpu,c.ppu)
 		{}
 
@@ -160,7 +160,7 @@ namespace Nes
 
 				case 0x1:
 				{
-					const uint i = (mmc3.ctrl & 0x40) >> 5;
+					const uint i = mmc3.ctrl >> 5 & 0x2;
 					prg.SwapBanks<SIZE_8K,0x0000U>( mmc3.banks[6+i], mmc3.banks[6+1], mmc3.banks[6+(i^2)], mmc3.banks[6+3] );
 					break;
 				}

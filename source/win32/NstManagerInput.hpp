@@ -81,6 +81,7 @@ namespace Nestopia
 			void OnMenuExpPort(Window::Menu::PopupHandler::Param&);
 			void OnCmdMachineAutoSelectController(uint);
 			void OnCmdMachinePort(uint);
+			void OnCmdMachineAdapter(uint);
 			void OnCmdMachineKeyboardPaste(uint);
 			void OnCmdOptionsInput(uint);
 

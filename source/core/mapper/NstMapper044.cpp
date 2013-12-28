@@ -70,22 +70,26 @@ namespace Nes
 
 		NES_POKE(Mapper44,A001)
 		{
-			exReg = NST_MIN(data & 7,6);
+			data &= 0x7;
 
-			Mapper44::UpdatePrg();
-			Mapper44::UpdateChr();
+			if (exReg != data)
+			{
+				exReg = data;
+				Mapper44::UpdatePrg();
+				Mapper44::UpdateChr();
+			}
 		}
 
 		void Mapper44::UpdatePrg()
 		{
 			const uint swap = (regs.ctrl0 & Regs::CTRL0_XOR_PRG) << 8;
-			const uint bank = exReg << 4;
-			const uint mask = (exReg == 6) ? 0x1F : 0x0F;
+			const uint base = exReg << 4;
+			const uint mask = (exReg >= 6) ? 0x1F : 0x0F;
 
-			prg.SwapBank<SIZE_8K>( 0x0000U ^ swap, bank | (banks.prg[0] & mask) );
-			prg.SwapBank<SIZE_8K>( 0x2000U,        bank | (banks.prg[1] & mask) );
-			prg.SwapBank<SIZE_8K>( 0x4000U ^ swap, bank | (mask-1)              );
-			prg.SwapBank<SIZE_8K>( 0x6000U,        bank | mask                  );
+			prg.SwapBank<SIZE_8K>( 0x0000U ^ swap, base | (banks.prg[0] & mask) );
+			prg.SwapBank<SIZE_8K>( 0x2000U,        base | (banks.prg[1] & mask) );
+			prg.SwapBank<SIZE_8K>( 0x4000U ^ swap, base | (mask-1)              );
+			prg.SwapBank<SIZE_8K>( 0x6000U,        base | mask                  );
 		}
 
 		void Mapper44::UpdateChr() const
@@ -93,23 +97,23 @@ namespace Nes
 			ppu.Update();
 
 			const uint swap = (regs.ctrl0 & Regs::CTRL0_XOR_CHR) << 5;
-			const uint bank = exReg << 7;
-			const uint mask = (exReg == 6) ? 0xFF : 0x7F;
+			const uint base = exReg << 7;
+			const uint mask = (exReg < 6) ? 0x7F : 0xFF;
 
 			chr.SwapBanks<SIZE_2K>
 			(
 				0x0000U ^ swap,
-				(bank >> 1) | (banks.chr[0] & (mask >> 1)),
-				(bank >> 1) | (banks.chr[1] & (mask >> 1))
+				base >> 1 | (banks.chr[0] & mask >> 1),
+				base >> 1 | (banks.chr[1] & mask >> 1)
 			);
 
 			chr.SwapBanks<SIZE_1K>
 			(
 				0x1000U ^ swap,
-				bank | (banks.chr[2] & mask),
-				bank | (banks.chr[3] & mask),
-				bank | (banks.chr[4] & mask),
-				bank | (banks.chr[5] & mask)
+				base | (banks.chr[2] & mask),
+				base | (banks.chr[3] & mask),
+				base | (banks.chr[4] & mask),
+				base | (banks.chr[5] & mask)
 			);
 		}
 	}

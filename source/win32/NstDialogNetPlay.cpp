@@ -106,10 +106,6 @@ namespace Nestopia
 		{
 		}
 
-		Netplay::~Netplay()
-		{
-		}
-
 		void Netplay::LoadFile()
 		{
 			HeapString text;

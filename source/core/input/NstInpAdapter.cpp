@@ -35,7 +35,16 @@ namespace Nes
 			#pragma optimize("s", on)
 			#endif
 
-			AdapterTwo::AdapterTwo(Device* a,Device* b)
+			Adapter::Adapter(Type t)
+			: type(t) {}
+
+			void Adapter::SetType(Type t)
+			{
+				type = t;
+			}
+
+			AdapterTwo::AdapterTwo(Device* a,Device* b,Type t)
+			: Adapter(t)
 			{
 				devices[0] = a;
 				devices[1] = b;
@@ -51,10 +60,10 @@ namespace Nes
 				return old;
 			}
 
-			void AdapterTwo::Initialize(dword crc)
+			void AdapterTwo::Initialize(bool arcade)
 			{
 				for (uint i=0; i < 2; ++i)
-					devices[i]->Initialize( crc );
+					devices[i]->Initialize( arcade );
 			}
 
 			void AdapterTwo::Reset()
@@ -100,8 +109,8 @@ namespace Nes
 			#pragma optimize("s", on)
 			#endif
 
-			AdapterFour::AdapterFour(Device* a,Device* b,Device* c,Device* d)
-			: fourscore(true), increaser(1)
+			AdapterFour::AdapterFour(Device* a,Device* b,Device* c,Device* d,Type t)
+			: Adapter(t), increaser(1)
 			{
 				count[1] = count[0] = 0;
 
@@ -121,35 +130,10 @@ namespace Nes
 				return old;
 			}
 
-			void AdapterFour::Initialize(dword crc)
+			void AdapterFour::Initialize(bool arcade)
 			{
-				switch (crc)
-				{
-					case 0x85C5B6B4UL: // Nekketsu Kakutou Densetsu
-					case 0x3B7B3BE1UL: // -||- (T)
-					case 0x9771A019UL: // -||- (T)
-					case 0xAAFED9B4UL: // -||-
-					case 0x7BD7B849UL: // Nekketsu Koukou - Dodgeball Bu
-					case 0xDEDDD5E5UL: // Kunio Kun no Nekketsu Soccer League
-					case 0x6EF0C08EUL: // -||- (T)
-					case 0x6375C11EUL: // -||- (T)
-					case 0xF985AC97UL: // -||- (T)
-					case 0xBA11692DUL: // -||- (T)
-					case 0x4FB460CDUL: // Nekketsu! Street Basket - Ganbare Dunk Heroes
-					case 0x457BC688UL: // -||- (T)
-					case 0x5D4A01A9UL: // -||- (T)
-
-						fourscore = false;
-						break;
-
-					default:
-
-						fourscore = true;
-						break;
-				}
-
 				for (uint i=0; i < 4; ++i)
-					devices[i]->Initialize( crc );
+					devices[i]->Initialize( arcade );
 			}
 
 			void AdapterFour::Reset()
@@ -161,9 +145,19 @@ namespace Nes
 					devices[i]->Reset();
 			}
 
+			void AdapterFour::SetType(Type t)
+			{
+				if (type != t)
+				{
+					type = t;
+					increaser = 1;
+					count[1] = count[0] = 0;
+				}
+			}
+
 			void AdapterFour::SaveState(State::Saver& state,const dword id) const
 			{
-				if (fourscore)
+				if (type == Api::Input::ADAPTER_NES)
 				{
 					const u8 data[3] =
 					{
@@ -176,11 +170,11 @@ namespace Nes
 
 			void AdapterFour::LoadState(State::Loader& state)
 			{
-				if (fourscore)
+				if (type == Api::Input::ADAPTER_NES)
 				{
 					const State::Loader::Data<3> data( state );
 
-					increaser = (data[0] & 0x1) ^ 1;
+					increaser = ~data[0] & 0x1;
 					count[0] = data[1] <= 20 ? data[1] : 0;
 					count[1] = data[2] <= 20 ? data[2] : 0;
 				}
@@ -209,9 +203,9 @@ namespace Nes
 
 			void AdapterFour::Poke(const uint data)
 			{
-				if (fourscore)
+				if (type == Api::Input::ADAPTER_NES)
 				{
-					increaser = (data & 0x1) ^ 1;
+					increaser = ~data & 0x1;
 
 					if (!increaser)
 						count[1] = count[0] = 0;
@@ -225,7 +219,7 @@ namespace Nes
 			{
 				NST_ASSERT( line < 2 );
 
-				if (fourscore)
+				if (type == Api::Input::ADAPTER_NES)
 				{
 					const uint index = count[line];
 
@@ -249,8 +243,8 @@ namespace Nes
 				{
 					return
 					(
-						((devices[line+0]->Peek( line ) & 0x1) << 0) |
-						((devices[line+2]->Peek( line ) & 0x1) << 1)
+						(devices[line+0]->Peek( line ) << 0 & 0x1) |
+						(devices[line+2]->Peek( line ) << 1 & 0x2)
 					);
 				}
 			}

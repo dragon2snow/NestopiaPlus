@@ -117,7 +117,7 @@ namespace Nes
 
 		Result Machine::UpdateColorMode(const ColorMode colorMode)
 		{
-			const Cartridge::PpuType ppuType = image ? image->QueryPpu( colorMode == COLORMODE_YUV ) : Cartridge::RP2C02;
+			const PpuType ppuType = image ? image->QueryPpu( colorMode == COLORMODE_YUV ) : PPU_RP2C02;
 			Video::Renderer::PaletteType paletteType;
 
 			switch (colorMode)
@@ -126,11 +126,11 @@ namespace Nes
 
 					switch (ppuType)
 					{
-						case Cartridge::RP2C04_0001: paletteType = Video::Renderer::PALETTE_VS1;  break;
-						case Cartridge::RP2C04_0002: paletteType = Video::Renderer::PALETTE_VS2;  break;
-						case Cartridge::RP2C04_0003: paletteType = Video::Renderer::PALETTE_VS3;  break;
-						case Cartridge::RP2C04_0004: paletteType = Video::Renderer::PALETTE_VS4;  break;
-						default:                     paletteType = Video::Renderer::PALETTE_PC10; break;
+						case PPU_RP2C04_0001: paletteType = Video::Renderer::PALETTE_VS1;  break;
+						case PPU_RP2C04_0002: paletteType = Video::Renderer::PALETTE_VS2;  break;
+						case PPU_RP2C04_0003: paletteType = Video::Renderer::PALETTE_VS3;  break;
+						case PPU_RP2C04_0004: paletteType = Video::Renderer::PALETTE_VS4;  break;
+						default:              paletteType = Video::Renderer::PALETTE_PC10; break;
 					}
 					break;
 
@@ -232,10 +232,10 @@ namespace Nes
 		{
 			if (image && image->GetType() == Image::CARTRIDGE)
 			{
-				const dword crc = static_cast<const Cartridge*>(image)->GetInfo().pRomCrc;
+				const bool arcade = (static_cast<const Cartridge*>(image)->GetInfo().setup.system == SYSTEM_VS);
 
-				extPort->Initialize( crc );
-				expPort->Initialize( crc );
+				extPort->Initialize( arcade );
+				expPort->Initialize( arcade );
 			}
 		}
 
@@ -371,7 +371,7 @@ namespace Nes
 										);
 									}
 								}
-								else switch (const uint index = ((subId >> 16) & 0xFF))
+								else switch (const uint index = (subId >> 16 & 0xFF))
 								{
 									case '2':
 									case '3':

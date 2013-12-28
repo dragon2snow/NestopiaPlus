@@ -38,7 +38,7 @@ namespace Nes
 		public:
 
 			Mapper107(Context& c)
-			: Mapper(c) {}
+			: Mapper(c,CROM_MAX_64K|PROM_MAX_128K|WRAM_DEFAULT) {}
 
 		private:
 

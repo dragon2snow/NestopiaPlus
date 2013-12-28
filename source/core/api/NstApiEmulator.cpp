@@ -49,9 +49,9 @@ namespace Nes
 
 		Result Emulator::Execute
 		(
-			Core::Video::Output* const video,
-			Core::Sound::Output* const sound,
-			Core::Input::Controllers* const input
+			Core::Video::Output* video,
+			Core::Sound::Output* sound,
+			Core::Input::Controllers* input
 		)   throw()
 		{
 			return machine.tracker.Execute( machine, video, sound, input );

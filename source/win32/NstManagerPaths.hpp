@@ -140,7 +140,7 @@ namespace Nestopia
 			Path GetIpsPath(const Path&,File::Type) const;
 			Path GetSavePath(const Path&,File::Type) const;
 			Path GetScreenShotPath() const;
-			const Path& GetSamplesPath() const;
+			Path GetSamplesPath() const;
 
 			ibool SaveSlotExportingEnabled() const;
 			ibool SaveSlotImportingEnabled() const;
@@ -185,7 +185,7 @@ namespace Nestopia
 				Alert=NOISY
 			)   const;
 
-			const GenericString GetDefaultDirectory(File::Types) const;
+			const Path GetDefaultDirectory(File::Types) const;
 
 		private:
 

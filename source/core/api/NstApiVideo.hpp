@@ -304,10 +304,8 @@ namespace Nes
 
 				enum Filter
 				{
-					FILTER_NONE
-				#ifndef NST_NO_NTSCVIDEO
-					,FILTER_NTSC
-				#endif
+					FILTER_NONE,
+					FILTER_NTSC
 				#ifndef NST_NO_2XSAI
 					,FILTER_2XSAI
 					,FILTER_SUPER_2XSAI

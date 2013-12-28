@@ -36,7 +36,7 @@ namespace Nes
 
 		Mapper182::Mapper182(Context& c)
 		:
-		Mapper (c),
+		Mapper (c,CROM_MAX_256K|WRAM_DEFAULT),
 		irq    (c.cpu,c.ppu)
 		{}
 
@@ -105,7 +105,7 @@ namespace Nes
 				case 0x4: prg.SwapBank<SIZE_8K,0x0000U>(data);       break;
 				case 0x5: prg.SwapBank<SIZE_8K,0x2000U>(data);       break;
 				case 0x6: chr.SwapBank<SIZE_1K,0x1000U>(data);       break;
-				case 0x7: chr.SwapBank<SIZE_1K,0x1800U>(data);      break;
+				case 0x7: chr.SwapBank<SIZE_1K,0x1800U>(data);       break;
 			}
 		}
 

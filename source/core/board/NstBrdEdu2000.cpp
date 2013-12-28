@@ -47,8 +47,8 @@ namespace Nes
 
 			NES_POKE(Edu2000,Prg)
 			{
+				prg.SwapBank<SIZE_32K,0x0000U>( data );
 				wrk.SwapBank<SIZE_8K,0x0000U>( data >> 6 & 0x3 );
-				prg.SwapBank<SIZE_32K,0x0000U>( data & 0x1F );
 			}
 		}
 	}

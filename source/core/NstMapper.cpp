@@ -43,14 +43,14 @@
 #include "board/NstBrdColorDreams.hpp"
 #include "board/NstBrdJy.hpp"
 #include "board/NstBrdFfe.hpp"
-#include "board/NstBrdMmc3China.hpp"
+#include "board/NstBrdMmc3Waixing.hpp"
+#include "board/NstBrdNina.hpp"
 #include "board/NstBrdS8259.hpp"
 #include "board/NstBrdSuper24In1.hpp"
 #include "board/NstBrd8157.hpp"
 #include "board/NstBrd8237.hpp"
 #include "board/NstBrdWs.hpp"
 #include "board/NstBrdDreamTech01.hpp"
-#include "board/NstBrdH2288.hpp"
 #include "board/NstBrdCc21.hpp"
 #include "board/NstBrdKof97.hpp"
 #include "board/NstBrd64in1Nr.hpp"
@@ -75,6 +75,7 @@
 #include "mapper/NstMapper011.hpp"
 #include "mapper/NstMapper012.hpp"
 #include "mapper/NstMapper013.hpp"
+#include "mapper/NstMapper014.hpp"
 #include "mapper/NstMapper015.hpp"
 #include "mapper/NstMapper016.hpp"
 #include "mapper/NstMapper017.hpp"
@@ -91,6 +92,7 @@
 #include "mapper/NstMapper033.hpp"
 #include "mapper/NstMapper034.hpp"
 #include "mapper/NstMapper037.hpp"
+#include "mapper/NstMapper039.hpp"
 #include "mapper/NstMapper040.hpp"
 #include "mapper/NstMapper041.hpp"
 #include "mapper/NstMapper042.hpp"
@@ -146,7 +148,6 @@
 #include "mapper/NstMapper096.hpp"
 #include "mapper/NstMapper097.hpp"
 #include "mapper/NstMapper099.hpp"
-#include "mapper/NstMapper100.hpp"
 #include "mapper/NstMapper101.hpp"
 #include "mapper/NstMapper105.hpp"
 #include "mapper/NstMapper107.hpp"
@@ -158,6 +159,7 @@
 #include "mapper/NstMapper117.hpp"
 #include "mapper/NstMapper118.hpp"
 #include "mapper/NstMapper119.hpp"
+#include "mapper/NstMapper123.hpp"
 #include "mapper/NstMapper132.hpp"
 #include "mapper/NstMapper133.hpp"
 #include "mapper/NstMapper137.hpp"
@@ -181,12 +183,16 @@
 #include "mapper/NstMapper155.hpp"
 #include "mapper/NstMapper156.hpp"
 #include "mapper/NstMapper157.hpp"
+#include "mapper/NstMapper159.hpp"
 #include "mapper/NstMapper163.hpp"
 #include "mapper/NstMapper164.hpp"
 #include "mapper/NstMapper165.hpp"
 #include "mapper/NstMapper166.hpp"
 #include "mapper/NstMapper167.hpp"
+#include "mapper/NstMapper169.hpp"
 #include "mapper/NstMapper170.hpp"
+#include "mapper/NstMapper171.hpp"
+#include "mapper/NstMapper172.hpp"
 #include "mapper/NstMapper180.hpp"
 #include "mapper/NstMapper182.hpp"
 #include "mapper/NstMapper183.hpp"
@@ -201,6 +207,7 @@
 #include "mapper/NstMapper193.hpp"
 #include "mapper/NstMapper194.hpp"
 #include "mapper/NstMapper195.hpp"
+#include "mapper/NstMapper196.hpp"
 #include "mapper/NstMapper197.hpp"
 #include "mapper/NstMapper198.hpp"
 #include "mapper/NstMapper199.hpp"
@@ -218,6 +225,7 @@
 #include "mapper/NstMapper211.hpp"
 #include "mapper/NstMapper212.hpp"
 #include "mapper/NstMapper213.hpp"
+#include "mapper/NstMapper214.hpp"
 #include "mapper/NstMapper215.hpp"
 #include "mapper/NstMapper216.hpp"
 #include "mapper/NstMapper217.hpp"
@@ -241,7 +249,6 @@
 #include "mapper/NstMapper244.hpp"
 #include "mapper/NstMapper245.hpp"
 #include "mapper/NstMapper246.hpp"
-#include "mapper/NstMapper248.hpp"
 #include "mapper/NstMapper249.hpp"
 #include "mapper/NstMapper250.hpp"
 #include "mapper/NstMapper252.hpp"
@@ -296,277 +303,276 @@ namespace Nes
 
 		const Mapper::Setup Mapper::setup[256+NUM_EXT_MAPPERS] =
 		{
-			{ "NROM",                                       Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 000
-			{ "MMC1",                                       Setup::PRG_DEFAULT,  Setup::NMT_ZERO,       Setup::NMT_ZERO       }, // 001
-			{ "UNROM",                                      Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 002
-			{ "CNROM",                                      Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 003
-			{ "MMC3 / MMC6 / MIMIC-1 / NAMCOT 108/109/119", Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 004
-			{ "MMC5",                                       Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 005
-			{ "FFE F4xxx(128+128)/F3xxx(128+64)",           Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 006
-			{ "AOROM / AMROM",                              Setup::PRG_0123_32K, Setup::NMT_ZERO,       Setup::NMT_ZERO       }, // 007
-			{ "FFE F3xxx",                                  Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 008
-			{ "MMC2",                                       Setup::PRG_0XXX_24K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 009
-			{ "MMC4",                                       Setup::PRG_01XX_16K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 010
-			{ "COLOR DREAMS",                               Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 011
-			{ "BTL REX DBZ5",                               Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 012
-			{ "CPROM",                                      Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 013
-			{ "",                                           Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 014
-			{ "BMC CONTRA 100-IN-1",                        Setup::PRG_0123_32K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 015
-			{ "BANDAI",                                     Setup::PRG_01XX_16K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 016
-			{ "FFE F8xxx/SMxxxx",                           Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 017
-			{ "JALECO SS8806",                              Setup::PRG_012X_8K,  Setup::NMT_HORIZONTAL, Setup::NMT_HORIZONTAL }, // 018
-			{ "NAMCOT 106/163",                             Setup::PRG_012X_8K,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 019
-			{ "",                                           Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 020
-			{ "KONAMI VRC4 2A",                             Setup::PRG_01XX_16K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 021
-			{ "KONAMI VRC4 1B",                             Setup::PRG_01XX_16K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 022
-			{ "KONAMI VRC2/VRC2B",                          Setup::PRG_01XX_16K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 023
-			{ "KONAMI VRC6 A0/A1",                          Setup::PRG_01XX_16K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 024
-			{ "KONAMI VRC4 Y",                              Setup::PRG_01XX_16K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 025
-			{ "KONAMI VRC6 A1/A0",                          Setup::PRG_01XX_16K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 026
-			{ "VRC4 clone?",                                Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 027
-			{ "",                                           Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 028
-			{ "",                                           Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 029
-			{ "",                                           Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 030
-			{ "",                                           Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 031
-			{ "IREM G-101",                                 Setup::PRG_XXXX_16K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 032
-			{ "TAITO TC0190/TC0350",                        Setup::PRG_0XXX_24K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 033
-			{ "NINA-1 / BNROM",                             Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 034
-			{ "",                                           Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 035
-			{ "",                                           Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 036
-			{ "3-IN-1 SMB+TETRIS+NWC",                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 037
-			{ "",                                           Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 038
-			{ "",                                           Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 039
-			{ "BTL SMB2",                                   Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 040
-			{ "CALTRON 6-IN-1",                             Setup::PRG_0123_32K, Setup::NMT_HORIZONTAL, Setup::NMT_HORIZONTAL }, // 041
-			{ "BTL AI SENSHI NICOL / MARIO BABY",           Setup::PRG_XXXX_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 042
-			{ "BTL SMB2 (LF-36)",                           Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 043
-			{ "BMC SUPER BIG 7-IN-1",                       Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 044
-			{ "BMC SUPER/HERO X-IN-1",                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 045
-			{ "RUMBLE-STATION 15-IN-1",                     Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 046
-			{ "NES-QJ",                                     Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 047
-			{ "TAITO TC190V",                               Setup::PRG_0XXX_24K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 048
-			{ "BMC SUPER HiK 4-IN-1",                       Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 049
-			{ "BTL SMB2 (alt)",                             Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 050
-			{ "BMC BALL GAMES 11-IN-1",                     Setup::PRG_0123_32K, Setup::NMT_HORIZONTAL, Setup::NMT_HORIZONTAL }, // 051
-			{ "BMC MARIO PARTY 7-IN-1",                     Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 052
-			{ "BMC SUPERVISION 16-IN-1",                    Setup::PRG_DEFAULT,  Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 053
-			{ "BMC NOVELDIAMOND 9999999-IN-1",              Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 054
-			{ "BTL MARIO1-MALEE2",                          Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 055
-			{ "BTL SMB3",                                   Setup::PRG_012X_8K,  Setup::NMT_HORIZONTAL, Setup::NMT_HORIZONTAL }, // 056
-			{ "BMC GK-54/GK-L01A/GK-L02A",                  Setup::PRG_0101_16K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 057
-			{ "BMC STUDY & GAME 32-IN-1 / GK-192",          Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 058
-			{ "BMC T3H53",                                  Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 059
-			{ "BMC VT5201",                                 Setup::PRG_DEFAULT,  Setup::NMT_HORIZONTAL, Setup::NMT_HORIZONTAL }, // 060
-			{ "BMC 20-IN-1",                                Setup::PRG_01XX_16K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 061
-			{ "BMC SUPER 700-IN-1",                         Setup::PRG_0123_32K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 062
-			{ "",                                           Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 063
-			{ "TENGEN RAMBO-1",                             Setup::PRG_DEFAULT,  Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 064
-			{ "IREM H-3001",                                Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 065
-			{ "GNROM",                                      Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 066
-			{ "SUNSOFT3",                                   Setup::PRG_01XX_16K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 067
-			{ "SUNSOFT4",                                   Setup::PRG_01XX_16K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 068
-			{ "FME-7 / SUNSOFT5A / SUNSOFT5B",              Setup::PRG_01XX_16K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 069
-			{ "BANDAI 74161/32",                            Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 070
-			{ "CAMERICA",                                   Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 071
-			{ "JALECO",                                     Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 072
-			{ "KONAMI VRC3(UN-ROM)",                        Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 073
-			{ "MMC3 CHINA +XRAM.4K +CRAM.2K",               Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 074
-			{ "JALECO SS8805 / KONAMI VRC1",                Setup::PRG_012X_8K,  Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 075
-			{ "NAMCOT 108 +MB74LS32",                       Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 076
-			{ "IREM",                                       Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 077
-			{ "IREM 74HC161/32",                            Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 078
-			{ "NINA-06 / NINA-03",                          Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 079
-			{ "TAITO X-005",                                Setup::PRG_012X_8K,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 080
-			{ "",                                           Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 081
-			{ "TAITO X1-017",                               Setup::PRG_01XX_16K, Setup::NMT_HORIZONTAL, Setup::NMT_HORIZONTAL }, // 082
-			{ "BMC DBZ 4-IN-1 / CONY",                      Setup::PRG_DEFAULT,  Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 083
-			{ "",                                           Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 084
-			{ "KONAMI VRC7",                                Setup::PRG_01XX_16K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 085
-			{ "JALECO JF-13",                               Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 086
-			{ "KONAMI 74HC161/32 / JALECO",                 Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 087
-			{ "NAMCOT 118",                                 Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 088
-			{ "SUNSOFT2",                                   Setup::PRG_01XX_16K, Setup::NMT_ZERO,       Setup::NMT_ZERO       }, // 089
-			{ "J.Y.COMPANY +EXT.MIRR.OFF",                  Setup::PRG_DEFAULT,  Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 090
-			{ "BTL SF3",                                    Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 091
-			{ "JALECO",                                     Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 092
-			{ "SUNSOFT1 / SUNSOFT2(UN-ROM)",                Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 093
-			{ "CAPCOM 74HC161/32",                          Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 094
-			{ "NAMCOT 118 +A1.D5.MIRR",                     Setup::PRG_01XX_16K, Setup::NMT_ZERO,       Setup::NMT_ZERO       }, // 095
-			{ "BANDAI 74HC161/32",                          Setup::PRG_0123_32K, Setup::NMT_ZERO,       Setup::NMT_ZERO       }, // 096
-			{ "IREM 74HC161/32",                            Setup::PRG_XX01_16K, Setup::NMT_HORIZONTAL, Setup::NMT_HORIZONTAL }, // 097
-			{ "",                                           Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 098
-			{ "VS-SYSTEM 8K CHR-SWITCH",                    Setup::PRG_01XX_16K, Setup::NMT_FOURSCREEN, Setup::NMT_FOURSCREEN }, // 099
-			{ "MMC3 (debug/hack)",                          Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 100
-			{ "JALECO 74HC161/32",                          Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 101
-			{ "",                                           Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 102
-			{ "",                                           Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 103
-			{ "",                                           Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 104
-			{ "NES-EVENT",                                  Setup::PRG_DEFAULT,  Setup::NMT_ZERO,       Setup::NMT_ZERO       }, // 105
-			{ "",                                           Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 106
-			{ "MAGICSERIES",                                Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 107
-			{ "",                                           Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 108
-			{ "",                                           Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 109
-			{ "",                                           Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 110
-			{ "",                                           Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 111
-			{ "ASDER (NTDEC)",                              Setup::PRG_01XX_16K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 112
-			{ "MB-91",                                      Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 113
-			{ "BTL THE LION KING",                          Setup::PRG_01XX_16K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 114
-			{ "CARTSAINT",                                  Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 115
-			{ "SOMARI TEAM (MMC1+MMC3+VRC2)",               Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 116
-			{ "FUTUREMEDIA",                                Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 117
-			{ "TLSROM / TKSROM / TENGEN RAMBO1 (alt)",      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 118
-			{ "TQROM",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 119
-			{ "",                                           Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 120
-			{ "",                                           Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 121
-			{ "",                                           Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 122
-			{ "",                                           Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 123
-			{ "",                                           Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 124
-			{ "",                                           Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 125
-			{ "",                                           Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 126
-			{ "",                                           Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 127
-			{ "",                                           Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 128
-			{ "",                                           Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 129
-			{ "",                                           Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 130
-			{ "",                                           Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 131
-			{ "22211",                                      Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 132
-			{ "SA72008",                                    Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 133
-			{ "",                                           Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 134
-			{ "",                                           Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 135
-			{ "",                                           Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 136
-			{ "S8259D",                                     Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 137
-			{ "S8259C",                                     Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 138
-			{ "S8259B",                                     Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 139
-			{ "JALECO JF-14",                               Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 140
-			{ "S8259A",                                     Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 141
-			{ "KS 202",                                     Setup::PRG_012X_8K,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 142
-			{ "TCA01",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 143
-			{ "AGCI 50282",                                 Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 144
-			{ "SA72007",                                    Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 145
-			{ "SA0161M",                                    Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 146
-			{ "TCU01",                                      Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 147
-			{ "SA0037",                                     Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 148
-			{ "SA0036",                                     Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 149
-			{ "S74LS374N",                                  Setup::PRG_0123_32K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 150
-			{ "KONAMI VS-SYSTEM",                           Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 151
-			{ "BANDAI 74161/32 +MIRR",                      Setup::PRG_01XX_16K, Setup::NMT_ZERO,       Setup::NMT_ZERO       }, // 152
-			{ "BANDAI +WRAM",                               Setup::PRG_01XX_16K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 153
-			{ "NAMCOT 118 +A0.D6.MIRR",                     Setup::PRG_01XX_16K, Setup::NMT_ZERO,       Setup::NMT_ZERO       }, // 154
-			{ "MMC1A",                                      Setup::PRG_DEFAULT,  Setup::NMT_ZERO,       Setup::NMT_ZERO       }, // 155
-			{ "BUZZ AND WALDOG",                            Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 156
-			{ "BANDAI +BARCODE",                            Setup::PRG_01XX_16K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 157
-			{ "",                                           Setup::PRG_DEFAULT,  Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 158
-			{ "",                                           Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 159
-			{ "",                                           Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 160
-			{ "",                                           Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 161
-			{ "",                                           Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 162
-			{ "NANJING",                                    Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 163
-			{ "WAIXING / MARS PRODUCTION",                  Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 164
-			{ "WAIXING SHENGHUO HUIZHANG 2",                Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 165
-			{ "SUBOR (Russian)",                            Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 166
-			{ "SUBOR (Chinese)",                            Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 167
-			{ "",                                           Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 168
-			{ "",                                           Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 169
-			{ "NROM +SECURITY",                             Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 170
-			{ "",                                           Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 171
-			{ "",                                           Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 172
-			{ "",                                           Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 173
-			{ "",                                           Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 174
-			{ "",                                           Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 175
-			{ "",                                           Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 176
-			{ "",                                           Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 177
-			{ "",                                           Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 178
-			{ "",                                           Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 179
-			{ "HVC-UNROM-02",                               Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 180
-			{ "",                                           Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 181
-			{ "HOSENKAN ELECTRONICS SDK",                   Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 182
-			{ "BTL SHUI GUAN PIPE",                         Setup::PRG_012X_8K,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 183
-			{ "SUNSOFT1(CN-ROM)",                           Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 184
-			{ "CNROM +CHR.DISABLE",                         Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 185
-			{ "SBX",                                        Setup::PRG_0101_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 186
-			{ "BTL SFZ297/KOF96/S3DB6",                     Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 187
-			{ "BANDAI KARAOKE STUDIO",                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 188
-			{ "YOKOSOFT / TXC",                             Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 189
-			{ "",                                           Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 190
-			{ "MMC3 CHINA +XRAM.4K +CRAM.2K",               Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 191
-			{ "WAIXING MMC3 +XRAM.4K +CRAM.4K",             Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 192
-			{ "MEGA SOFT (NTDEC)",                          Setup::PRG_0XXX_24K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 193
-			{ "MMC3 CHINA +XRAM.4K +CRAM.2K (alt)",         Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 194
-			{ "WAIXING MMC3 +XRAM.4K +CRAM.4K (alt)",       Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 195
-			{ "",                                           Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 196
-			{ "SUPER FIGHTER III",                          Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 197
-			{ "MMC3 CHINA +XRAM.4K",                        Setup::PRG_01XX_16K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 198
-			{ "WAIXING MMC3 +XRAM.4K +CRAM.8K",             Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 199
-			{ "BMC 1200/36-IN-1",                           Setup::PRG_0101_16K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 200
-			{ "BMC 21/8-IN-1",                              Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 201
-			{ "BMC 150-IN-1",                               Setup::PRG_01XX_16K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 202
-			{ "BMC 35-IN-1",                                Setup::PRG_0101_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 203
-			{ "BMC 64-IN-1",                                Setup::PRG_0101_16K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 204
-			{ "BMC 15/3-IN-1",                              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 205
-			{ "DE1ROM",                                     Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 206
-			{ "TAITO X-005 +MIRR",                          Setup::PRG_012X_8K,  Setup::NMT_HORIZONTAL, Setup::NMT_HORIZONTAL }, // 207
-			{ "GOUDER BTL SF4",                             Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 208
-			{ "J.Y.COMPANY +EXT.MIRR.CTRL",                 Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 209
-			{ "NAMCOT",                                     Setup::PRG_012X_8K,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 210
-			{ "J.Y.COMPANY +EXT.MIRR.ON",                   Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 211
-			{ "BMC SUPER HIK 300-IN-1",                     Setup::PRG_XXXX_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 212
-			{ "BMC 9999999-IN-1",                           Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 213
-			{ "",                                           Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 214
-			{ "BMC SUPER 308 3-IN-1 / M-E3",                Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 215
-			{ "RCM MAGIC JEWELRY 2",                        Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 216
-			{ "BMC SPC009",                                 Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 217
-			{ "",                                           Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 218
-			{ "",                                           Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 219
-			{ "",                                           Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 220
-			{ "",                                           Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 221
-			{ "BTL DRAGON NINJA",                           Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 222
-			{ "",                                           Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 223
-			{ "",                                           Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 224
-			{ "BMC 58/64/72-IN-1",                          Setup::PRG_0123_32K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 225
-			{ "BMC 76-IN-1 / SUPER 42-IN-1",                Setup::PRG_0123_32K, Setup::NMT_HORIZONTAL, Setup::NMT_HORIZONTAL }, // 226
-			{ "BMC 1200-IN-1",                              Setup::PRG_DEFAULT,  Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 227
-			{ "ACTION 52",                                  Setup::PRG_0123_32K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 228
-			{ "BMC 31-IN-1",                                Setup::PRG_0123_32K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 229
-			{ "BMC 22-IN-1",                                Setup::PRG_DEFAULT,  Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 230
-			{ "BMC 20-IN-1",                                Setup::PRG_0101_16K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 231
-			{ "BIC-48",                                     Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 232
-			{ "BMC (unknown)",                              Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 233
-			{ "MAXI-15",                                    Setup::PRG_0123_32K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 234
-			{ "BMC GOLDEN GAME 150/260-IN-1",               Setup::PRG_0123_32K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 235
-			{ "BMC 800/70-IN-1",                            Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 236
-			{ "",                                           Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 237
-			{ "",                                           Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 238
-			{ "",                                           Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 239
-			{ "SUPERTONE / C&E",                            Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 240
-			{ "MXMDHTWO / TXC",                             Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 241
-			{ "WAIXING ZHAN SHI",                           Setup::PRG_0123_32K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 242
-			{ "SACHEN 74LS374N",                            Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 243
-			{ "C&E DECATHLON",                              Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 244
-			{ "WAIXING MMC3 +EX.PRG",                       Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 245
-			{ "C&E PHONE SERM BERM",                        Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 246
-			{ "",                                           Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 247
-			{ "CARTSAINT BAO QING TIAN",                    Setup::PRG_01XX_16K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 248
-			{ "WAIXING MMC3 +EX.PRG/CHR",                   Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 249
-			{ "TIME DIVER AVENGER",                         Setup::PRG_DEFAULT,  Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 250
-			{ "",                                           Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 251
-			{ "WAIXING SAN GUO ZHI",                        Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 252
-			{ "",                                           Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 253
-			{ "BTL PIKACHU Y2K",                            Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 254
-			{ "BMC 110/115-IN-1",                           Setup::PRG_0123_32K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 255
-			{ "BMC SUPER 24-IN-1",                          Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // Ext. 256
-			{ "BMC 8157",                                   Setup::PRG_0101_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // Ext. 257
-			{ "8237",                                       Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // Ext. 258
-			{ "WS",                                         Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // Ext. 259
-			{ "DREAMTECH-01",                               Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // Ext. 260
-			{ "H2288",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // Ext. 261
-			{ "CC21",                                       Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // Ext. 262
-			{ "KOF97",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // Ext. 263
-			{ "BMC 64-IN-1 NO REPEAT",                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // Ext. 264
-			{ "SHERO",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // Ext. 265
-			{ "BMC T-262",                                  Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // Ext. 266
-			{ "BMC FK23C",                                  Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // Ext. 267
-			{ "603-5052",                                   Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // Ext. 268
-			{ "A65AS",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // Ext. 269
-			{ "EDU2000",                                    Setup::PRG_DEFAULT,  Setup::NMT_ZERO,       Setup::NMT_ZERO       }  // Ext. 270
+			{ "NROM",                                  Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 000
+			{ "SxROM",                                 Setup::PRG_DEFAULT,  Setup::NMT_ZERO,       Setup::NMT_ZERO       }, // 001
+			{ "UxROM",                                 Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 002
+			{ "CNROM",                                 Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 003
+			{ "TxROM / HxROM / DxROM / TENGEN 8000xx", Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 004
+			{ "ExROM",                                 Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 005
+			{ "FFE F4xxx(128+128)/F3xxx(128+64)",      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 006
+			{ "AxROM",                                 Setup::PRG_0123_32K, Setup::NMT_ZERO,       Setup::NMT_ZERO       }, // 007
+			{ "FFE F3xxx",                             Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 008
+			{ "PxROM",                                 Setup::PRG_0XXX_24K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 009
+			{ "FxROM",                                 Setup::PRG_01XX_16K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 010
+			{ "COLOR DREAMS",                          Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 011
+			{ "BTL REX DBZ5",                          Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 012
+			{ "CPROM",                                 Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 013
+			{ "SL1632",                                Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 014
+			{ "BMC CONTRA 100-IN-1",                   Setup::PRG_0123_32K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 015
+			{ "BANDAI +24C02",                         Setup::PRG_01XX_16K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 016
+			{ "FFE F8xxx/SMxxxx",                      Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 017
+			{ "JALECO SS8806",                         Setup::PRG_012X_8K,  Setup::NMT_HORIZONTAL, Setup::NMT_HORIZONTAL }, // 018
+			{ "NAMCOT 106/163",                        Setup::PRG_012X_8K,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 019
+			{ "",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 020
+			{ "KONAMI VRC4 2A",                        Setup::PRG_01XX_16K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 021
+			{ "KONAMI VRC4 1B",                        Setup::PRG_01XX_16K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 022
+			{ "KONAMI VRC2/VRC2B",                     Setup::PRG_01XX_16K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 023
+			{ "KONAMI VRC6 A0/A1",                     Setup::PRG_01XX_16K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 024
+			{ "KONAMI VRC4 Y",                         Setup::PRG_01XX_16K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 025
+			{ "KONAMI VRC6 A1/A0",                     Setup::PRG_01XX_16K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 026
+			{ "VRC4 +EXT.CHR",                         Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 027
+			{ "",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 028
+			{ "",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 029
+			{ "",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 030
+			{ "",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 031
+			{ "IREM G-101",                            Setup::PRG_XXXX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 032
+			{ "TAITO TC0190/TC0350",                   Setup::PRG_0XXX_24K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 033
+			{ "BNROM / AVE NINA-001",                  Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 034
+			{ "",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 035
+			{ "",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 036
+			{ "ZZ",                                    Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 037
+			{ "",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 038
+			{ "BMC STUDY & GAME 32-IN-1",              Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 039
+			{ "BTL SMB2",                              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 040
+			{ "CALTRON 6-IN-1",                        Setup::PRG_0123_32K, Setup::NMT_HORIZONTAL, Setup::NMT_HORIZONTAL }, // 041
+			{ "BTL AI SENSHI NICOL / MARIO BABY",      Setup::PRG_XXXX_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 042
+			{ "BTL SMB2 (LF-36)",                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 043
+			{ "BMC SUPER BIG 7-IN-1",                  Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 044
+			{ "BMC SUPER/HERO X-IN-1",                 Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 045
+			{ "RUMBLE-STATION 15-IN-1",                Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 046
+			{ "QJ",                                    Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 047
+			{ "TAITO TC190V",                          Setup::PRG_0XXX_24K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 048
+			{ "BMC SUPER HiK 4-IN-1",                  Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 049
+			{ "BTL SMB2 (alt)",                        Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 050
+			{ "BMC BALL GAMES 11-IN-1",                Setup::PRG_0123_32K, Setup::NMT_HORIZONTAL, Setup::NMT_HORIZONTAL }, // 051
+			{ "BMC MARIO PARTY 7-IN-1",                Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 052
+			{ "BMC SUPERVISION 16-IN-1",               Setup::PRG_DEFAULT,  Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 053
+			{ "BMC NOVELDIAMOND 9999999-IN-1",         Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 054
+			{ "BTL MARIO1-MALEE2",                     Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 055
+			{ "BTL SMB3",                              Setup::PRG_012X_8K,  Setup::NMT_HORIZONTAL, Setup::NMT_HORIZONTAL }, // 056
+			{ "BMC GK-54/GK-L01A/GK-L02A",             Setup::PRG_0101_16K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 057
+			{ "GK-192",                                Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 058
+			{ "BMC T3H53",                             Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 059
+			{ "BMC VT5201",                            Setup::PRG_DEFAULT,  Setup::NMT_HORIZONTAL, Setup::NMT_HORIZONTAL }, // 060
+			{ "BMC 20-IN-1",                           Setup::PRG_01XX_16K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 061
+			{ "BMC SUPER 700-IN-1",                    Setup::PRG_0123_32K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 062
+			{ "",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 063
+			{ "TENGEN 800032",                         Setup::PRG_DEFAULT,  Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 064
+			{ "IREM H-3001",                           Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 065
+			{ "GNROM / MHROM",                         Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 066
+			{ "SUNSOFT3",                              Setup::PRG_01XX_16K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 067
+			{ "SUNSOFT4",                              Setup::PRG_01XX_16K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 068
+			{ "FME-7 / SUNSOFT5A / SUNSOFT5B",         Setup::PRG_01XX_16K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 069
+			{ "BANDAI 74161/32",                       Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 070
+			{ "CAMERICA BF9093/BF9097",                Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 071
+			{ "JALECO",                                Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 072
+			{ "KONAMI VRC3",                           Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 073
+			{ "WAIXING MMC3 +XRAM.4K +CRAM.2K",        Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 074
+			{ "JALECO SS8805 / KONAMI VRC1",           Setup::PRG_012X_8K,  Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 075
+			{ "NAMCOT 108 +MB74LS32",                  Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 076
+			{ "IREM",                                  Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 077
+			{ "IREM 74HC161/32",                       Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 078
+			{ "AVE NINA-03/NINA-06",                   Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 079
+			{ "TAITO X-005",                           Setup::PRG_012X_8K,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 080
+			{ "",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 081
+			{ "TAITO X1-017",                          Setup::PRG_01XX_16K, Setup::NMT_HORIZONTAL, Setup::NMT_HORIZONTAL }, // 082
+			{ "BMC DBZ 4-IN-1 / CONY",                 Setup::PRG_DEFAULT,  Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 083
+			{ "",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 084
+			{ "KONAMI VRC7",                           Setup::PRG_01XX_16K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 085
+			{ "JALECO JF-14",                          Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 086
+			{ "KONAMI 74HC161/32 / JALECO",            Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 087
+			{ "NAMCOT 118",                            Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 088
+			{ "SUNSOFT2",                              Setup::PRG_01XX_16K, Setup::NMT_ZERO,       Setup::NMT_ZERO       }, // 089
+			{ "J.Y.COMPANY +EXT.MIRR.OFF",             Setup::PRG_DEFAULT,  Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 090
+			{ "BTL SF3",                               Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 091
+			{ "JALECO",                                Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 092
+			{ "SUNSOFT1 / SUNSOFT2",                   Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 093
+			{ "CAPCOM 74HC161/32",                     Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 094
+			{ "NAMCOT 118 +A1.D5.MIRR",                Setup::PRG_01XX_16K, Setup::NMT_ZERO,       Setup::NMT_ZERO       }, // 095
+			{ "BANDAI 74HC161/32",                     Setup::PRG_0123_32K, Setup::NMT_ZERO,       Setup::NMT_ZERO       }, // 096
+			{ "IREM 74HC161/32",                       Setup::PRG_XX01_16K, Setup::NMT_HORIZONTAL, Setup::NMT_HORIZONTAL }, // 097
+			{ "",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 098
+			{ "VS-SYSTEM +D2.CHR/PRG",                 Setup::PRG_0123_32K, Setup::NMT_FOURSCREEN, Setup::NMT_FOURSCREEN }, // 099
+			{ "",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 100
+			{ "JALECO 74HC161/32",                     Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 101
+			{ "",                                      Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 102
+			{ "",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 103
+			{ "",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 104
+			{ "EVENT",                                 Setup::PRG_DEFAULT,  Setup::NMT_ZERO,       Setup::NMT_ZERO       }, // 105
+			{ "",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 106
+			{ "MAGICSERIES",                           Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 107
+			{ "",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 108
+			{ "",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 109
+			{ "",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 110
+			{ "",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 111
+			{ "ASDER (NTDEC)",                         Setup::PRG_01XX_16K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 112
+			{ "NINA-03/NINA-06 +MIRR",                 Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_HORIZONTAL }, // 113
+			{ "BTL THE LION KING",                     Setup::PRG_01XX_16K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 114
+			{ "KASING",                                Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 115
+			{ "SOMERI TEAM SL-12",                     Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 116
+			{ "FUTUREMEDIA",                           Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 117
+			{ "TLSROM / TKSROM / TENGEN 800037",       Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 118
+			{ "TQROM",                                 Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 119
+			{ "",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 120
+			{ "",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 121
+			{ "",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 122
+			{ "H2288",                                 Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 123
+			{ "",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 124
+			{ "",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 125
+			{ "",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 126
+			{ "",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 127
+			{ "",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 128
+			{ "",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 129
+			{ "",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 130
+			{ "",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 131
+			{ "TXC 22211",                             Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 132
+			{ "SA72008",                               Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 133
+			{ "",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 134
+			{ "",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 135
+			{ "",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 136
+			{ "S8259D",                                Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 137
+			{ "S8259C",                                Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 138
+			{ "S8259B",                                Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 139
+			{ "JALECO JF-xx",                          Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 140
+			{ "S8259A",                                Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 141
+			{ "KS 202",                                Setup::PRG_012X_8K,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 142
+			{ "TCA01",                                 Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 143
+			{ "AGCI 50282",                            Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 144
+			{ "SA72007",                               Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 145
+			{ "SA0161M",                               Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 146
+			{ "TCU01",                                 Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 147
+			{ "SA0037",                                Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 148
+			{ "SA0036",                                Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 149
+			{ "S74LS374N",                             Setup::PRG_0123_32K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 150
+			{ "KONAMI VS-SYSTEM",                      Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 151
+			{ "BANDAI 74161/32 +MIRR",                 Setup::PRG_01XX_16K, Setup::NMT_ZERO,       Setup::NMT_ZERO       }, // 152
+			{ "BANDAI +WRAM",                          Setup::PRG_01XX_16K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 153
+			{ "NAMCOT 118 +A0.D6.MIRR",                Setup::PRG_01XX_16K, Setup::NMT_ZERO,       Setup::NMT_ZERO       }, // 154
+			{ "MMC1A",                                 Setup::PRG_DEFAULT,  Setup::NMT_ZERO,       Setup::NMT_ZERO       }, // 155
+			{ "DAOU 306",                              Setup::PRG_01XX_16K, Setup::NMT_ZERO,       Setup::NMT_ZERO       }, // 156
+			{ "BANDAI DATACH JOINT SYSTEM",            Setup::PRG_01XX_16K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 157
+			{ "",                                      Setup::PRG_DEFAULT,  Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 158
+			{ "BANDAI +24C01",                         Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 159
+			{ "",                                      Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 160
+			{ "",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 161
+			{ "",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 162
+			{ "NANJING",                               Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 163
+			{ "WAIXING / MARS PRODUCTION",             Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 164
+			{ "WAIXING SHENGHUO HUIZHANG 2",           Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 165
+			{ "SUBOR (Russian)",                       Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 166
+			{ "SUBOR (Chinese)",                       Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 167
+			{ "",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 168
+			{ "N625092",                               Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 169
+			{ "FUJIYA NROM +SECURITY",                 Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 170
+			{ "KAISER KS7058",                         Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 171
+			{ "IDEA-TEK CNROM +SECURITY",              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 172
+			{ "",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 173
+			{ "",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 174
+			{ "",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 175
+			{ "",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 176
+			{ "",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 177
+			{ "",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 178
+			{ "",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 179
+			{ "UNROM M5",                              Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 180
+			{ "",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 181
+			{ "HOSENKAN ELECTRONICS",                  Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 182
+			{ "BTL SHUI GUAN PIPE",                    Setup::PRG_012X_8K,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 183
+			{ "SUNSOFT1",                              Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 184
+			{ "CNROM +CHR.DISABLE",                    Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 185
+			{ "SBX",                                   Setup::PRG_0101_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 186
+			{ "BTL SFZ297/KOF96/S3DB6",                Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 187
+			{ "BANDAI KARAOKE STUDIO",                 Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 188
+			{ "YOKOSOFT / TXC",                        Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 189
+			{ "",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 190
+			{ "WAIXING MMC3 +XRAM.4K +CRAM.2K",        Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 191
+			{ "WAIXING MMC3 +XRAM.4K +CRAM.4K",        Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 192
+			{ "MEGA SOFT (NTDEC)",                     Setup::PRG_0XXX_24K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 193
+			{ "WAIXING MMC3 +XRAM.4K +CRAM.2K (alt)",  Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 194
+			{ "WAIXING MMC3 +XRAM.4K +CRAM.4K (alt)",  Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 195
+			{ "MMC3 +A0/A2",                           Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 196
+			{ "SUPER FIGHTER III",                     Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 197
+			{ "WAIXING MMC3 +XRAM.4K",                 Setup::PRG_01XX_16K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 198
+			{ "WAIXING MMC3 +XRAM.4K +CRAM.8K",        Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 199
+			{ "BMC 1200/36-IN-1",                      Setup::PRG_0101_16K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 200
+			{ "BMC 21/8-IN-1",                         Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 201
+			{ "BMC 150-IN-1",                          Setup::PRG_01XX_16K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 202
+			{ "BMC 35-IN-1",                           Setup::PRG_0101_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 203
+			{ "BMC 64-IN-1",                           Setup::PRG_0101_16K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 204
+			{ "BMC 15/3-IN-1",                         Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 205
+			{ "DE1ROM",                                Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 206
+			{ "TAITO X-005 +MIRR",                     Setup::PRG_012X_8K,  Setup::NMT_HORIZONTAL, Setup::NMT_HORIZONTAL }, // 207
+			{ "GOUDER BTL SF4",                        Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 208
+			{ "J.Y.COMPANY +EXT.MIRR.CTRL",            Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 209
+			{ "NAMCOT",                                Setup::PRG_012X_8K,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 210
+			{ "J.Y.COMPANY +EXT.MIRR.ON",              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 211
+			{ "BMC SUPER HIK 300-IN-1",                Setup::PRG_XXXX_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 212
+			{ "BMC 9999999-IN-1",                      Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 213
+			{ "BMC SUPER GUN 20-IN-1",                 Setup::PRG_0101_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 214
+			{ "BMC SUPER 308 3-IN-1 / M-E3",           Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 215
+			{ "RCM MAGIC JEWELRY 2",                   Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 216
+			{ "BMC SPC009",                            Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 217
+			{ "",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 218
+			{ "",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 219
+			{ "",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 220
+			{ "",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 221
+			{ "BTL DRAGON NINJA",                      Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 222
+			{ "",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 223
+			{ "",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 224
+			{ "BMC 58/64/72-IN-1",                     Setup::PRG_0123_32K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 225
+			{ "BMC 76-IN-1 / SUPER 42-IN-1",           Setup::PRG_0123_32K, Setup::NMT_HORIZONTAL, Setup::NMT_HORIZONTAL }, // 226
+			{ "BMC 1200-IN-1",                         Setup::PRG_DEFAULT,  Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 227
+			{ "ACTION 52",                             Setup::PRG_0123_32K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 228
+			{ "BMC 31-IN-1",                           Setup::PRG_0123_32K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 229
+			{ "BMC 22-IN-1",                           Setup::PRG_DEFAULT,  Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 230
+			{ "BMC 20-IN-1",                           Setup::PRG_0101_16K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 231
+			{ "CAMERICA BF9096",                       Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 232
+			{ "BMC 20/22-IN-1",                        Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 233
+			{ "AVE D-1012",                            Setup::PRG_0123_32K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 234
+			{ "BMC GOLDEN GAME 150/260-IN-1",          Setup::PRG_0123_32K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 235
+			{ "BMC 800/70-IN-1",                       Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 236
+			{ "",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 237
+			{ "",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 238
+			{ "",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 239
+			{ "SUPERTONE / C&E",                       Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 240
+			{ "MXMDHTWO / TXC",                        Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 241
+			{ "WAIXING ZHAN SHI",                      Setup::PRG_0123_32K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 242
+			{ "SACHEN 74LS374N",                       Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 243
+			{ "C&E DECATHLON",                         Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 244
+			{ "WAIXING MMC3 +EX.PRG",                  Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 245
+			{ "C&E PHONE SERM BERM",                   Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 246
+			{ "",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 247
+			{ "",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 248
+			{ "WAIXING MMC3 +EX.PRG/CHR",              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 249
+			{ "NITRA MMC3",                            Setup::PRG_DEFAULT,  Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 250
+			{ "",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 251
+			{ "WAIXING SAN GUO ZHI",                   Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 252
+			{ "",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 253
+			{ "BTL PIKACHU Y2K",                       Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 254
+			{ "BMC 110/115-IN-1",                      Setup::PRG_0123_32K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 255
+			{ "BMC SUPER 24-IN-1",                     Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // Ext. 256
+			{ "BMC 8157",                              Setup::PRG_0101_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // Ext. 257
+			{ "8237",                                  Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // Ext. 258
+			{ "WS",                                    Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // Ext. 259
+			{ "DREAMTECH-01",                          Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // Ext. 260
+			{ "CC21",                                  Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // Ext. 261
+			{ "KOF97",                                 Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // Ext. 262
+			{ "BMC 64-IN-1 NO REPEAT",                 Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // Ext. 263
+			{ "SHERO",                                 Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // Ext. 264
+			{ "BMC T-262",                             Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // Ext. 265
+			{ "BMC FK23C",                             Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // Ext. 266
+			{ "603-5052",                              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // Ext. 267
+			{ "A65AS",                                 Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // Ext. 268
+			{ "EDU2000",                               Setup::PRG_DEFAULT,  Setup::NMT_ZERO,       Setup::NMT_ZERO       }  // Ext. 269
 		};
 
 		Mapper* Mapper::Create(Context& context)
@@ -587,6 +593,7 @@ namespace Nes
 				case  11: return new Mapper11  ( context );
 				case  12: return new Mapper12  ( context );
 				case  13: return new Mapper13  ( context );
+				case  14: return new Mapper14  ( context );
 				case  15: return new Mapper15  ( context );
 				case  16: return new Mapper16  ( context );
 				case  17: return new Mapper17  ( context );
@@ -603,6 +610,7 @@ namespace Nes
 				case  33: return new Mapper33  ( context );
 				case  34: return new Mapper34  ( context );
 				case  37: return new Mapper37  ( context );
+				case  39: return new Mapper39  ( context );
 				case  40: return new Mapper40  ( context );
 				case  41: return new Mapper41  ( context );
 				case  42: return new Mapper42  ( context );
@@ -658,7 +666,6 @@ namespace Nes
 				case  96: return new Mapper96  ( context );
 				case  97: return new Mapper97  ( context );
 				case  99: return new Mapper99  ( context );
-				case 100: return new Mapper100 ( context );
 				case 101: return new Mapper101 ( context );
 				case 105: return new Mapper105 ( context );
 				case 107: return new Mapper107 ( context );
@@ -670,6 +677,7 @@ namespace Nes
 				case 117: return new Mapper117 ( context );
 				case 118: return new Mapper118 ( context );
 				case 119: return new Mapper119 ( context );
+				case 123: return new Mapper123 ( context );
 				case 132: return new Mapper132 ( context );
 				case 133: return new Mapper133 ( context );
 				case 137: return new Mapper137 ( context );
@@ -693,12 +701,16 @@ namespace Nes
 				case 155: return new Mapper155 ( context );
 				case 156: return new Mapper156 ( context );
 				case 157: return new Mapper157 ( context );
+				case 159: return new Mapper159 ( context );
 				case 163: return new Mapper163 ( context );
 				case 164: return new Mapper164 ( context );
 				case 165: return new Mapper165 ( context );
 				case 166: return new Mapper166 ( context );
 				case 167: return new Mapper167 ( context );
+				case 169: return new Mapper169 ( context );
 				case 170: return new Mapper170 ( context );
+				case 171: return new Mapper171 ( context );
+				case 172: return new Mapper172 ( context );
 				case 180: return new Mapper180 ( context );
 				case 182: return new Mapper182 ( context );
 				case 183: return new Mapper183 ( context );
@@ -713,6 +725,7 @@ namespace Nes
 				case 193: return new Mapper193 ( context );
 				case 194: return new Mapper194 ( context );
 				case 195: return new Mapper195 ( context );
+				case 196: return new Mapper196 ( context );
 				case 197: return new Mapper197 ( context );
 				case 198: return new Mapper198 ( context );
 				case 199: return new Mapper199 ( context );
@@ -730,6 +743,7 @@ namespace Nes
 				case 211: return new Mapper211 ( context );
 				case 212: return new Mapper212 ( context );
 				case 213: return new Mapper213 ( context );
+				case 214: return new Mapper214 ( context );
 				case 215: return new Mapper215 ( context );
 				case 216: return new Mapper216 ( context );
 				case 217: return new Mapper217 ( context );
@@ -753,7 +767,6 @@ namespace Nes
 				case 244: return new Mapper244 ( context );
 				case 245: return new Mapper245 ( context );
 				case 246: return new Mapper246 ( context );
-				case 248: return new Mapper248 ( context );
 				case 249: return new Mapper249 ( context );
 				case 250: return new Mapper250 ( context );
 				case 252: return new Mapper252 ( context );
@@ -765,7 +778,6 @@ namespace Nes
 				case EXT_8237:         return new Boards::Unl8237      ( context );
 				case EXT_WS:           return new Boards::Ws           ( context );
 				case EXT_DREAMTECH01:  return new Boards::DreamTech01  ( context );
-				case EXT_H2288:        return new Boards::H2288        ( context );
 				case EXT_CC21:         return new Boards::Cc21         ( context );
 				case EXT_KOF97:        return new Boards::Kof97        ( context );
 				case EXT_64IN1NR:      return new Boards::Bmc64In1Nr   ( context );
@@ -780,57 +792,98 @@ namespace Nes
 			}
 		}
 
-		void Mapper::Destroy(Mapper*& mapper)
-		{
-			delete mapper;
-			mapper = NULL;
-		}
-
-		bool Mapper::CheckNoStartingFrameIrq(dword crc)
-		{
-			switch (crc)
-			{
-				case 0xC428F142UL: // KOF97
-				case 0x0A1969BEUL: // KOF98 (Super HiK 7-in-1)
-				case 0x008D61CCUL: // KOF99
-				case 0xF7968840UL: // Sonic 3D Blast 6
-					return true;
-			}
-
-			return false;
-		}
-
 		Mapper::Mapper(Context& context,const uint settings)
 		:
-		prg                (context.prg.Mem(),context.prg.Size(),true,false),
-		cpu                (context.cpu),
-		ppu                (context.ppu),
-		chr                (context.ppu.GetChrMem()),
-		nmt                (context.ppu.GetNmtMem()),
-		id                 (context.id),
-		mirroring          (context.mirroring),
-		noStartingFrameIrq (CheckNoStartingFrameIrq( context.prgCrc ))
+		cpu       (context.cpu),
+		ppu       (context.ppu),
+		chr       (context.ppu.GetChrMem()),
+		nmt       (context.ppu.GetNmtMem()),
+		id        (context.id),
+		mirroring (context.mirroring)
 		{
-			const bool cRomDiscarded = (settings & CROM_NONE) && context.chr.Size();
+			dword size = context.prg.Size();
 
-			if (cRomDiscarded)
-				context.chr.Destroy();
+			switch (settings & PROM_SETTINGS)
+			{
+				case PROM_MAX_16K:  size = SIZE_16K;  break;
+				case PROM_MAX_32K:  size = SIZE_32K;  break;
+				case PROM_MAX_64K:  size = SIZE_64K;  break;
+				case PROM_MAX_128K: size = SIZE_128K; break;
+				case PROM_MAX_256K: size = SIZE_256K; break;
+				case PROM_MAX_512K: size = SIZE_512K; break;
+			}
 
-			dword cRamSize = (settings & CRAM_SIZES) << 2;
+			if (context.prg.Size() > size)
+			{
+				NST_DEBUG_MSG( "PRG-ROM truncated!" );
+				context.prg.Set( size );
+			}
+			else
+			{
+				context.prg.Mirror( SIZE_16K );
+			}
+
+			prg.Source(0).Set( context.prg.Mem(), context.prg.Size(), true, false );
+
+			cstring chrRomDiscarded = NULL;
+
+			size = context.chr.Size();
+
+			if (size)
+			{
+				switch (settings & CROM_SETTINGS)
+				{
+					case CROM_NONE:      size = 0;         break;
+					case CROM_MAX_8K:    size = SIZE_8K;   break;
+					case CROM_MAX_16K:   size = SIZE_16K;  break;
+					case CROM_MAX_32K:   size = SIZE_32K;  break;
+					case CROM_MAX_64K:   size = SIZE_64K;  break;
+					case CROM_MAX_128K:  size = SIZE_128K; break;
+					case CROM_MAX_256K:  size = SIZE_256K; break;
+					case CROM_MAX_512K:  size = SIZE_512K; break;
+				}
+
+				if (context.chr.Size() > size)
+				{
+					NST_DEBUG_MSG( "CHR-ROM truncated!" );
+
+					if (!size)
+						chrRomDiscarded = "warning, CHR-ROM discarded!" NST_LINEBREAK;
+
+					context.chr.Set( size );
+				}
+				else
+				{
+					context.chr.Mirror( SIZE_8K );
+				}
+			}
+
+			switch (settings & CRAM_SETTINGS)
+			{
+				case CRAM_1K:  size = SIZE_1K;  break;
+				case CRAM_2K:  size = SIZE_2K;  break;
+				case CRAM_4K:  size = SIZE_4K;  break;
+				case CRAM_8K:  size = SIZE_8K;  break;
+				case CRAM_16K: size = SIZE_16K; break;
+				case CRAM_32K: size = SIZE_32K; break;
+				default:       size = 0;        break;
+			}
 
 			if (context.chr.Size())
 			{
 				chr.Source(0).Set( context.chr.Mem(), context.chr.Size(), true, false );
 				chr.Source(1).Set( context.chr.Mem(), context.chr.Size(), true, false );
 			}
-			else if (cRamSize < SIZE_8K)
+			else if (size < SIZE_8K)
 			{
-				cRamSize = SIZE_8K;
+				size = SIZE_8K;
 			}
 
-			if (cRamSize)
+			context.chrRam = size;
+
+			if (context.chrRam)
 			{
-				chr.Source( context.chr.Size() != 0 ).Set( cRamSize, true, true );
+				chr.Source( context.chr.Size() != 0 ).Set( context.chrRam, true, true );
 
 				if (context.chr.Empty())
 					chr.Source(1).Set( chr.Source().Mem(), chr.Source().Size(), true, true );
@@ -841,46 +894,33 @@ namespace Nes
 
 			nmt.Source(1).Set( chr.Source().Mem(), chr.Source().Size(), true, context.chr.Size() == 0 );
 
-			NST_ASSERT( context.wrk.Size() % SIZE_8K == 0 );
-
 			context.wrkAuto = false;
 
 			switch (settings & WRAM_SETTINGS)
 			{
-				case WRAM_AUTO:
+				case WRAM_NONE: size = 0;        break;
+				case WRAM_1K:   size = SIZE_1K;  break;
+				case WRAM_2K:   size = SIZE_2K;  break;
+				case WRAM_4K:   size = SIZE_4K;  break;
+				case WRAM_8K:   size = SIZE_8K;  break;
+				case WRAM_16K:  size = SIZE_16K; break;
+				case WRAM_32K:  size = SIZE_32K; break;
+				case WRAM_40K:  size = SIZE_40K; break;
+				case WRAM_64K:  size = SIZE_32K; break;
 
-					context.wrkAuto = context.wrk.Empty();
+				case WRAM_DEFAULT:
 
-					if (context.wrk.Empty() || (!context.battery && context.wrk.Size() != SIZE_8K))
-					{
-						context.wrk.Set( SIZE_8K );
-
-						if (context.wrkAuto)
-							std::memset( context.wrk.Mem(), 0x00, SIZE_8K );
-					}
-					break;
-
-				case WRAM_NONE:
-
-					context.wrk.Destroy();
+					size = context.wrk.Size() ? NST_MAX(context.wrkBacked,SIZE_8K) : 0;
 					break;
 
 				default:
-				{
-					const dword size = (settings & WRAM_SIZES) * SIZE_8K;
-					const dword curr = context.wrk.Size();
 
-					if (curr != size)
-					{
-						context.wrk.Set( size );
-
-						if (curr < size)
-							std::memset( context.wrk.Mem(curr), 0x00, size - curr );
-					}
-
+					size = NST_MAX(context.wrkBacked,SIZE_8K);
+					context.wrkAuto = context.wrk.Empty();
 					break;
-				}
 			}
+
+			context.wrk.Set( size );
 
 			wrk.Source(0).Set
 			(
@@ -909,14 +949,14 @@ namespace Nes
 			log << title << (prg.Source().Size() / SIZE_1K) << "k PRG-ROM" NST_LINEBREAK
 				<< title << (chr.Source().Size() / SIZE_1K) << (context.chr.Size() ? "k CHR-ROM" NST_LINEBREAK : "k CHR-RAM" NST_LINEBREAK);
 
-			if (cRomDiscarded)
-				log << title << "warning, CHR-ROM discarded!" NST_LINEBREAK;
+			if (chrRomDiscarded)
+				log << title << chrRomDiscarded;
 
 			if (chr.Source(1).Internal())
 				log << title << (chr.Source(1).Size() / SIZE_1K) << "k CHR-RAM" NST_LINEBREAK;
 
 			if (context.wrk.Size())
-				log << title << (context.wrk.Size() / SIZE_1K) << ((settings & WRAM_SIZES) ? "k WRAM" NST_LINEBREAK : "k auto WRAM" NST_LINEBREAK);
+				log << title << (context.wrk.Size() / SIZE_1K) << (context.wrkAuto ? "k auto W-RAM" NST_LINEBREAK : "k W-RAM" NST_LINEBREAK);
 
 			cstring type;
 
@@ -931,7 +971,7 @@ namespace Nes
 				default:                  type = "unknown";           break;
 			}
 
-			log << title << type << " screen mirroring" NST_LINEBREAK;
+			log << title << type << " mirroring" NST_LINEBREAK;
 		}
 
 		Mapper::~Mapper()
@@ -947,7 +987,7 @@ namespace Nes
 		{
 			cpu.Map( 0x4018U, 0x5FFFU ).Set( this, &Mapper::Peek_Nop, &Mapper::Poke_Nop );
 
-			if (wrk.HasRam())
+			if (wrk.RamSize() >= SIZE_8K)
 				cpu.Map( 0x6000U, 0x7FFFU ).Set( this, &Mapper::Peek_Wrk_6, &Mapper::Poke_Wrk_6 );
 			else
 				cpu.Map( 0x6000U, 0x7FFFU ).Set( this, &Mapper::Peek_Nop, &Mapper::Poke_Nop );
@@ -956,9 +996,6 @@ namespace Nes
 			cpu.Map( 0xA000U, 0xBFFFU ).Set( this, &Mapper::Peek_Prg_A, &Mapper::Poke_Nop );
 			cpu.Map( 0xC000U, 0xDFFFU ).Set( this, &Mapper::Peek_Prg_C, &Mapper::Poke_Nop );
 			cpu.Map( 0xE000U, 0xFFFFU ).Set( this, &Mapper::Peek_Prg_E, &Mapper::Poke_Nop );
-
-			if (noStartingFrameIrq)
-				Map( Cpu::RESET_VECTOR, &Mapper::Peek_NoFrameIrq );
 
 			cpu.ClearIRQ();
 
@@ -1015,16 +1052,16 @@ namespace Nes
 			SubReset( hard );
 		}
 
-		void Mapper::Map(WRamMapping mapping) const
+		void Mapper::Map(WrkMapping mapping) const
 		{
 			switch (mapping)
 			{
-				case WRK_PEEK:          Map( 0x6000U, 0x7FFFU, &Mapper::Peek_Wrk_6 ); break;
-				case WRK_POKE:          Map( 0x6000U, 0x7FFFU, &Mapper::Poke_Wrk_6 ); break;
-				case WRK_PEEK_POKE:     Map( 0x6000U, 0x7FFFU, &Mapper::Peek_Wrk_6, &Mapper::Poke_Wrk_6 ); break;
-				case WRK_POKE_BUS:      Map( 0x6000U, 0x7FFFU, &Mapper::Poke_Wrk_Bus_6 ); break;
-				case WRK_PEEK_BUS:      Map( 0x6000U, 0x7FFFU, &Mapper::Peek_Wrk_Bus_6 ); break;
-				case WRK_PEEK_POKE_BUS: Map( 0x6000U, 0x7FFFU, &Mapper::Peek_Wrk_Bus_6, &Mapper::Poke_Wrk_Bus_6 ); break;
+				case WRK_PEEK:           Map( 0x6000U, 0x7FFFU, &Mapper::Peek_Wrk_6 ); break;
+				case WRK_POKE:           Map( 0x6000U, 0x7FFFU, &Mapper::Poke_Wrk_6 ); break;
+				case WRK_PEEK_POKE:      Map( 0x6000U, 0x7FFFU, &Mapper::Peek_Wrk_6, &Mapper::Poke_Wrk_6 ); break;
+				case WRK_SAFE_POKE:      Map( 0x6000U, 0x7FFFU, &Mapper::Poke_Wrk_Safe_6 ); break;
+				case WRK_SAFE_PEEK:      Map( 0x6000U, 0x7FFFU, &Mapper::Peek_Wrk_Safe_6 ); break;
+				case WRK_SAFE_PEEK_POKE: Map( 0x6000U, 0x7FFFU, &Mapper::Peek_Wrk_Safe_6, &Mapper::Poke_Wrk_Safe_6 ); break;
 			}
 		}
 
@@ -1043,16 +1080,15 @@ namespace Nes
 					EXT_8237         == 258 &&
 					EXT_WS           == 259 &&
 					EXT_DREAMTECH01  == 260 &&
-					EXT_H2288        == 261 &&
-					EXT_CC21         == 262 &&
-					EXT_KOF97        == 263 &&
-					EXT_64IN1NR      == 264 &&
-					EXT_STREETHEROES == 265 &&
-					EXT_T262         == 266 &&
-					EXT_FK23C        == 267 &&
-					EXT_6035052      == 268 &&
-					EXT_A65AS        == 269 &&
-					EXT_EDU2000      == 270
+					EXT_CC21         == 261 &&
+					EXT_KOF97        == 262 &&
+					EXT_64IN1NR      == 263 &&
+					EXT_STREETHEROES == 264 &&
+					EXT_T262         == 265 &&
+					EXT_FK23C        == 266 &&
+					EXT_6035052      == 267 &&
+					EXT_A65AS        == 268 &&
+					EXT_EDU2000      == 269
 				);
 
 				static const dword chunks[] =
@@ -1062,7 +1098,6 @@ namespace Nes
 					NES_STATE_CHUNK_ID('8','2','3','\0'),
 					NES_STATE_CHUNK_ID('W','S','4','\0'),
 					NES_STATE_CHUNK_ID('D','0','1','\0'),
-					NES_STATE_CHUNK_ID('H','2','2','\0'),
 					NES_STATE_CHUNK_ID('C','2','1','\0'),
 					NES_STATE_CHUNK_ID('K','O','F','\0'),
 					NES_STATE_CHUNK_ID('6','4','N','\0'),
@@ -1141,53 +1176,18 @@ namespace Nes
 		#pragma optimize("", on)
 		#endif
 
-		NES_POKE(Mapper,Wrk_6)
-		{
-			NST_VERIFY( wrk.Writable(0) );
-			wrk[0][address - 0x6000U] = data;
-		}
-
-		NES_PEEK(Mapper,Wrk_6)
-		{
-			NST_VERIFY( wrk.Readable(0) );
-			return wrk[0][address - 0x6000U];
-		}
-
-		NES_POKE(Mapper,Wrk_Bus_6)
-		{
-			NST_VERIFY( wrk.Writable(0) );
-
-			if (wrk.Writable(0))
-				wrk[0][address - 0x6000U] = data;
-		}
-
-		NES_PEEK(Mapper,Wrk_Bus_6)
-		{
-			NST_VERIFY( wrk.Readable(0) );
-			return wrk.Readable(0) ? wrk[0][address - 0x6000U] : (address >> 8);
-		}
-
 		NES_PEEK(Mapper,Prg_8) { return prg[0][address - 0x8000U]; }
 		NES_PEEK(Mapper,Prg_A) { return prg[1][address - 0xA000U]; }
 		NES_PEEK(Mapper,Prg_C) { return prg[2][address - 0xC000U]; }
 		NES_PEEK(Mapper,Prg_E) { return prg[3][address - 0xE000U]; }
 
-		NES_PEEK(Mapper,NoFrameIrq)
-		{
-			NST_ASSERT( address == Cpu::RESET_VECTOR );
-
-			cpu.Poke( 0x4017, 0x40 );
-			Map( Cpu::RESET_VECTOR, &Mapper::Peek_Prg_E );
-
-			return prg.Peek( Cpu::RESET_VECTOR - 0x8000U );
-		}
-
-		NES_POKE(Mapper,Prg_8k_0) { prg.SwapBank<SIZE_8K,0x0000U>( data ); }
-		NES_POKE(Mapper,Prg_8k_1) { prg.SwapBank<SIZE_8K,0x2000U>( data ); }
-		NES_POKE(Mapper,Prg_8k_2) { prg.SwapBank<SIZE_8K,0x4000U>( data ); }
-		NES_POKE(Mapper,Prg_8k_3) { prg.SwapBank<SIZE_8K,0x6000U>( data ); }
-		NES_POKE(Mapper,Prg_16k)  { prg.SwapBank<SIZE_16K,0x0000U>( data ); }
-		NES_POKE(Mapper,Prg_32k)  { prg.SwapBank<SIZE_32K,0x0000U>( data ); }
+		NES_POKE(Mapper,Prg_8k_0)  { prg.SwapBank<SIZE_8K,0x0000U>( data ); }
+		NES_POKE(Mapper,Prg_8k_1)  { prg.SwapBank<SIZE_8K,0x2000U>( data ); }
+		NES_POKE(Mapper,Prg_8k_2)  { prg.SwapBank<SIZE_8K,0x4000U>( data ); }
+		NES_POKE(Mapper,Prg_8k_3)  { prg.SwapBank<SIZE_8K,0x6000U>( data ); }
+		NES_POKE(Mapper,Prg_16k_0) { prg.SwapBank<SIZE_16K,0x0000U>( data ); }
+		NES_POKE(Mapper,Prg_16k_1) { prg.SwapBank<SIZE_16K,0x4000U>( data ); }
+		NES_POKE(Mapper,Prg_32k)   { prg.SwapBank<SIZE_32K,0x0000U>( data ); }
 
 		NES_POKE(Mapper,Chr_1k_0) { ppu.Update(); chr.SwapBank<SIZE_1K,0x0000U>( data ); }
 		NES_POKE(Mapper,Chr_1k_1) { ppu.Update(); chr.SwapBank<SIZE_1K,0x0400U>( data ); }
@@ -1204,6 +1204,32 @@ namespace Nes
 		NES_POKE(Mapper,Chr_4k_0) { ppu.Update(); chr.SwapBank<SIZE_4K,0x0000U>( data ); }
 		NES_POKE(Mapper,Chr_4k_1) { ppu.Update(); chr.SwapBank<SIZE_4K,0x1000U>( data ); }
 		NES_POKE(Mapper,Chr_8k)   { ppu.Update(); chr.SwapBank<SIZE_8K,0x0000U>( data ); }
+
+		NES_POKE(Mapper,Wrk_6)
+		{
+			NST_VERIFY( wrk.Writable(0) );
+			wrk[0][address - 0x6000U] = data;
+		}
+
+		NES_PEEK(Mapper,Wrk_6)
+		{
+			NST_VERIFY( wrk.Readable(0) );
+			return wrk[0][address - 0x6000U];
+		}
+
+		NES_POKE(Mapper,Wrk_Safe_6)
+		{
+			NST_VERIFY( wrk.Writable(0) );
+
+			if (wrk.Writable(0))
+				wrk[0][address - 0x6000U] = data;
+		}
+
+		NES_PEEK(Mapper,Wrk_Safe_6)
+		{
+			NST_VERIFY( wrk.Readable(0) );
+			return wrk.Readable(0) ? wrk[0][address - 0x6000U] : (address >> 8);
+		}
 
 		NES_POKE(Mapper,Nmt_Hv)
 		{
@@ -1223,12 +1249,25 @@ namespace Nes
 
 		NES_POKE(Mapper,Nmt_Vh01)
 		{
-			static const uchar lut[4] =
+			static const uchar lut[4][4] =
 			{
-				Ppu::NMT_VERTICAL,
-				Ppu::NMT_HORIZONTAL,
-				Ppu::NMT_ZERO,
-				Ppu::NMT_ONE
+				{0,1,0,1},
+				{0,0,1,1},
+				{0,0,0,0},
+				{1,1,1,1}
+			};
+
+			ppu.SetMirroring( lut[data & 0x3] );
+		}
+
+		NES_POKE(Mapper,Nmt_Hv01)
+		{
+			static const uchar lut[4][4] =
+			{
+				{0,0,1,1},
+				{0,1,0,1},
+				{0,0,0,0},
+				{1,1,1,1}
 			};
 
 			ppu.SetMirroring( lut[data & 0x3] );

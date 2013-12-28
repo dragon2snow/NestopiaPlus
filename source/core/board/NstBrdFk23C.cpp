@@ -23,6 +23,7 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 
 #include "../NstMapper.hpp"
+#include "../NstChecksumCrc32.hpp"
 #include "NstBrdMmc3.hpp"
 #include "NstBrdFk23C.hpp"
 
@@ -36,12 +37,18 @@ namespace Nes
 			#pragma optimize("s", on)
 			#endif
 
+			Fk23C::Fk23C(Context& c)
+			:
+			Mmc3    (c,BRD_GENERIC,PROM_MAX_1024K|CROM_MAX_1024K|WRAM_DEFAULT),
+			dipMask (Checksum::Crc32::Compute(c.prg.Mem(),c.prg.Size()) == CRC_4_IN_1 ? 0x1 : 0x7)
+			{}
+
 			void Fk23C::SubReset(const bool hard)
 			{
 				if (hard)
 					dipSwitch = 0x0;
 				else
-					dipSwitch = (dipSwitch + 1) & 0x3;
+					dipSwitch = (dipSwitch + 1) & dipMask;
 
 				exRegs[3] = exRegs[2] = exRegs[1] = exRegs[0] = 0x00;
 				exRegs[7] = exRegs[6] = exRegs[5] = exRegs[4] = 0xFF;
@@ -96,9 +103,13 @@ namespace Nes
 
 			void Fk23C::UpdatePrg()
 			{
-				if (exRegs[0] & 0x4)
+				if ((exRegs[0] & 0x7) == 4)
 				{
 					prg.SwapBank<SIZE_32K,0x0000U>( exRegs[1] >> 1 );
+				}
+				else if ((exRegs[0] & 0x7) == 3)
+				{
+					prg.SwapBanks<SIZE_16K,0x0000U>( exRegs[1], exRegs[1] );
 				}
 				else
 				{
@@ -169,7 +180,7 @@ namespace Nes
 
 						if (exRegs[3] << 2 & regs.ctrl0 & 0x8)
 						{
-							exRegs[4 + (regs.ctrl0 & 0x3)] = data;
+							exRegs[4 | (regs.ctrl0 & 3)] = data;
 							Fk23C::UpdatePrg();
 							Fk23C::UpdateChr();
 						}

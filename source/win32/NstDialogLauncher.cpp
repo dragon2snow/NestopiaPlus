@@ -28,6 +28,7 @@
 #include "NstWindowParam.hpp"
 #include "NstSystemKeyboard.hpp"
 #include "NstDialogLauncher.hpp"
+#include "NstDialogInesHeader.hpp"
 
 namespace Nestopia
 {
@@ -53,9 +54,11 @@ namespace Nestopia
 		const Menu::CmdHandler::Entry<Launcher> Launcher::Handlers::commands[] =
 		{
 			{ IDM_LAUNCHER_FILE_RUN,                   &Launcher::OnCmdFileRun                   },
+			{ IDM_LAUNCHER_FILE_EDITHEADER,            &Launcher::OnCmdEditHeader                },
 			{ IDM_LAUNCHER_FILE_REFRESH,               &Launcher::OnCmdFileRefresh               },
 			{ IDM_LAUNCHER_VIEW_SHOWGRIDS,             &Launcher::OnCmdViewShowGrids             },
 			{ IDM_LAUNCHER_VIEW_SHOWDATABASECORRECTED, &Launcher::OnCmdViewShowDatabaseCorrected },
+			{ IDM_LAUNCHER_VIEW_ONTOP,                 &Launcher::OnCmdViewShowOnTop             },
 			{ IDM_LAUNCHER_OPTIONS_COLORS,             &Launcher::OnCmdOptionsColors             },
 			{ IDM_LAUNCHER_OPTIONS_PATHS,              &Launcher::OnCmdOptionsPaths              }
 		};
@@ -69,7 +72,7 @@ namespace Nestopia
 			{ LVN_ITEMCHANGED,    &Launcher::OnListItemChanged       },
 			{ LVN_INSERTITEM,     &Launcher::OnListInsertItem        },
 			{ LVN_DELETEALLITEMS, &Launcher::OnListDeleteAllItems    },
-			{ LVN_DELETEITEM,     &Launcher::OnListDeleteItem        },
+			{ LVN_DELETEITEM,     &Launcher::OnListDeleteItem        }
 		};
 
 		const Control::NotificationHandler::Entry<Launcher> Launcher::Handlers::treeNotifications[] =
@@ -92,6 +95,11 @@ namespace Nestopia
 			listNotifications.Add( this, Handlers::listNotifications );
 			treeNotifications.Add( this, Handlers::treeNotifications );
 
+			menu[IDM_LAUNCHER_VIEW_ONTOP].Check
+			(
+				cfg["launcher view on top"] == Configuration::YES
+			);
+
 			initialSize.x = cfg["launcher window size x"];
 			initialSize.y = cfg["launcher window size y"];
 
@@ -103,15 +111,16 @@ namespace Nestopia
 
 			HeapString name;
 
-			for (uint i=0; i < 5; ++i)
+			for (uint i=0; i < 6; ++i)
 			{
-				static const u16 keys[5][2] =
+				static const u16 keys[6][2] =
 				{
-					{ IDM_LAUNCHER_FILE_RUN,     VK_RETURN },
-					{ IDM_LAUNCHER_FILE_REFRESH, VK_F5     },
-					{ IDM_LAUNCHER_EDIT_FIND,    VK_F3     },
-					{ IDM_LAUNCHER_EDIT_INSERT,  VK_INSERT },
-					{ IDM_LAUNCHER_EDIT_REMOVE,  VK_DELETE }
+					{ IDM_LAUNCHER_FILE_RUN,        VK_RETURN },
+					{ IDM_LAUNCHER_FILE_EDITHEADER, VK_F4     },
+					{ IDM_LAUNCHER_FILE_REFRESH,    VK_F5     },
+					{ IDM_LAUNCHER_EDIT_FIND,       VK_F3     },
+					{ IDM_LAUNCHER_EDIT_INSERT,     VK_INSERT },
+					{ IDM_LAUNCHER_EDIT_REMOVE,     VK_DELETE }
 				};
 
 				menu[keys[i][0]].Text() >> name;
@@ -132,18 +141,27 @@ namespace Nestopia
 				cfg["launcher window size y"] = initialSize.y;
 			}
 
+			cfg["launcher view on top"].YesNo() = menu[IDM_LAUNCHER_VIEW_ONTOP].Checked();
+
 			list.Save( cfg, saveFiles );
 			colors.Save( cfg );
 		}
 
-		void Launcher::Open()
+		void Launcher::Open(ibool child)
 		{
-			dialog.Open( Dialog::MODELESS );
+			menu[IDM_LAUNCHER_VIEW_ONTOP].Enable( !child );
+			dialog.Open( child ? Dialog::MODELESS_CHILD : Dialog::MODELESS_FREE );
 		}
 
 		void Launcher::Close()
 		{
 			dialog.Close();
+		}
+
+		void Launcher::Synchronize(HWND hWnd) const
+		{
+			if (dialog.IsOpen() && menu[IDM_LAUNCHER_VIEW_ONTOP].Enabled() && menu[IDM_LAUNCHER_VIEW_ONTOP].Unchecked())
+				dialog.Position().BringBehind( hWnd );
 		}
 
 		ibool Launcher::OnInitDialog(Param&)
@@ -152,6 +170,9 @@ namespace Nestopia
 			menu.Show();
 
 			statusBar.Enable();
+
+			if (menu[IDM_LAUNCHER_VIEW_ONTOP].Enabled())
+				dialog.MakeTopMost( menu[IDM_LAUNCHER_VIEW_ONTOP].Checked() );
 
 			list = dialog.ListView( IDC_LAUNCHER_LIST );
 			tree = dialog.TreeView( IDC_LAUNCHER_TREE );
@@ -245,10 +266,11 @@ namespace Nestopia
 		{
 			switch (reinterpret_cast<const NMLVKEYDOWN&>(nmhdr).wVKey)
 			{
-				case VK_INSERT: if (menu[ IDM_LAUNCHER_EDIT_INSERT  ].Enabled()) dialog.PostCommand( IDM_LAUNCHER_EDIT_INSERT  ); break;
-				case VK_DELETE: if (menu[ IDM_LAUNCHER_EDIT_REMOVE  ].Enabled()) dialog.PostCommand( IDM_LAUNCHER_EDIT_REMOVE  ); break;
-				case VK_F3:     if (menu[ IDM_LAUNCHER_EDIT_FIND    ].Enabled()) dialog.PostCommand( IDM_LAUNCHER_EDIT_FIND    ); break;
-				case VK_F5:     if (menu[ IDM_LAUNCHER_FILE_REFRESH ].Enabled()) dialog.PostCommand( IDM_LAUNCHER_FILE_REFRESH ); break;
+				case VK_INSERT: if (menu[ IDM_LAUNCHER_EDIT_INSERT     ].Enabled()) dialog.PostCommand( IDM_LAUNCHER_EDIT_INSERT     ); break;
+				case VK_DELETE: if (menu[ IDM_LAUNCHER_EDIT_REMOVE     ].Enabled()) dialog.PostCommand( IDM_LAUNCHER_EDIT_REMOVE     ); break;
+				case VK_F3:     if (menu[ IDM_LAUNCHER_EDIT_FIND       ].Enabled()) dialog.PostCommand( IDM_LAUNCHER_EDIT_FIND       ); break;
+				case VK_F4:     if (menu[ IDM_LAUNCHER_FILE_EDITHEADER ].Enabled()) dialog.PostCommand( IDM_LAUNCHER_FILE_EDITHEADER ); break;
+				case VK_F5:     if (menu[ IDM_LAUNCHER_FILE_REFRESH    ].Enabled()) dialog.PostCommand( IDM_LAUNCHER_FILE_REFRESH    ); break;
 			}
 		}
 
@@ -286,6 +308,7 @@ namespace Nestopia
 						}
 
 						menu[IDM_LAUNCHER_FILE_RUN].Enable();
+						menu[IDM_LAUNCHER_FILE_EDITHEADER].Enable( entry->GetType() == List::Files::Entry::NES );
 						menu[IDM_LAUNCHER_EDIT_REMOVE].Enable();
 					}
 				}
@@ -324,6 +347,7 @@ namespace Nestopia
 			statusBar.Text(StatusBar::FIRST_FIELD).Clear();
 
 			menu[IDM_LAUNCHER_FILE_RUN].Disable();
+			menu[IDM_LAUNCHER_FILE_EDITHEADER].Disable();
 			menu[IDM_LAUNCHER_EDIT_REMOVE].Disable();
 		}
 
@@ -338,6 +362,12 @@ namespace Nestopia
 			list.Refresh();
 		}
 
+		void Launcher::OnCmdEditHeader(uint)
+		{
+			if (const List::Files::Entry* const entry = list.GetSelection())
+				Window::InesHeader( list.GetDatabase(), list.GetPaths() ).Open( Path(entry->GetPath(list.GetStrings()),entry->GetFile(list.GetStrings())) );
+		}
+
 		void Launcher::OnCmdViewShowGrids(uint)
 		{
 			menu[IDM_LAUNCHER_VIEW_SHOWGRIDS].Check( list.ToggleGrids() );
@@ -346,6 +376,11 @@ namespace Nestopia
 		void Launcher::OnCmdViewShowDatabaseCorrected(uint)
 		{
 			menu[IDM_LAUNCHER_VIEW_SHOWDATABASECORRECTED].Check( list.ToggleDatabase() );
+		}
+
+		void Launcher::OnCmdViewShowOnTop(uint)
+		{
+			dialog.MakeTopMost( menu[IDM_LAUNCHER_VIEW_ONTOP].ToggleCheck() );
 		}
 
 		void Launcher::OnCmdOptionsPaths(uint)

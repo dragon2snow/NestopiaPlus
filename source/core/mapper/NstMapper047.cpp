@@ -97,8 +97,8 @@ namespace Nes
 			chr.SwapBanks<SIZE_2K>
 			(
 				0x0000U ^ swap,
-				(base >> 1) | (banks.chr[0] & 0x3F),
-				(base >> 1) | (banks.chr[1] & 0x3F)
+				base >> 1 | (banks.chr[0] & 0x3F),
+				base >> 1 | (banks.chr[1] & 0x3F)
 			);
 
 			chr.SwapBanks<SIZE_1K>

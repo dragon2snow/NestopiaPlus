@@ -36,28 +36,10 @@ namespace Nes
 			#pragma optimize("s", on)
 			#endif
 
-			uint Ffe::GetIrqBase(dword prgCrc)
-			{
-				switch (prgCrc)
-				{
-					case 0x57BAF095UL: // Doki! Doki! Yuuenchi
-					case 0xE64138ECUL: // Dragon Ball Z 2 - Gekishin Freeza!!
-					case 0xC7A4583EUL: // Dragon Ball Z 3 - Ressen Jinzou Ningen
-					case 0xCB7E529DUL: // SD Gundam Gaiden - Knight Gundam Monogatari 2 - Hikari no Kishi
-					case 0x8F3F8B1FUL: // Spartan X2
-					case 0xA3047263UL: // -||-
-					case 0xC529C604UL: // -||-
-
-						return 0xFFFFU;
-				}
-
-				return 0xCFFFU;
-			}
-
 			Ffe::Ffe(Context& c,const Type t)
 			:
-			Mapper (c,t == F4_XXX ? CRAM_32K : 0),
-			irq    (t == F3_XXX ? NULL : new Clock::M2<Irq>(c.cpu,GetIrqBase(c.prgCrc))),
+			Mapper (c,t == F4_XXX ? CRAM_32K : WRAM_8K),
+			irq    (t == F3_XXX ? NULL : new Clock::M2<Irq>(c.cpu,t == F8_XXX_1 ? 0xFFFFU : 0xCFFFU)),
 			type   (t)
 			{
 			}
@@ -113,7 +95,8 @@ namespace Nes
 
 						break;
 
-					case F8_XXX:
+					case F8_XXX_0:
+					case F8_XXX_1:
 
 						Map( 0x4504U, PRG_SWAP_8K_0 );
 						Map( 0x4505U, PRG_SWAP_8K_1 );

@@ -38,14 +38,11 @@ namespace Nes
 		public:
 
 			Mapper156(Context& c)
-			: Mapper(c) {}
+			: Mapper(c,CROM_MAX_256K) {}
 
 		private:
 
 			void SubReset(bool);
-
-			NES_DECL_POKE( C000 )
-			NES_DECL_POKE( C008 )
 		};
 	}
 }

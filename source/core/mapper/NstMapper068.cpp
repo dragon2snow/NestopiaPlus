@@ -37,38 +37,15 @@ namespace Nes
 		{
 			enum {SIGNAL = 1784};
 
-			u8 prgBank;
-			const u8 mainBank;
-			u16 counter;
-
-			DoubleCassette(uint b)
-			: mainBank(b) {}
+			uint prgBank;
+			uint counter;
 
 		public:
 
-			static DoubleCassette* Create(dword crc)
-			{
-				switch (crc)
-				{
-					case 0xEA0753E4UL: // Nantettatte!! Baseball '91 Kaimaku Hen
-					case 0xDEB6D3C8UL: // Nantettatte!! Baseball OB Allstar Hen
-
-						return new DoubleCassette( 0x8 );
-
-					case 0x1A23F270UL: // Nantettatte!! Baseball '91 Kaimaku Hen (UNIF)
-					case 0x3B9E30F1UL: // Nantettatte!! Baseball OB Allstar Hen (UNIF)
-
-						return new DoubleCassette( 0x0 );
-				}
-
-				return NULL;
-			}
-
-			uint Reset()
+			void Reset()
 			{
 				counter = SIGNAL;
-				prgBank = mainBank;
-				return mainBank;
+				prgBank = 0;
 			}
 
 			void SaveState(State::Saver& state)
@@ -88,26 +65,27 @@ namespace Nes
 			uint Swap(uint data)
 			{
 				prgBank = (data & 0x7) | (~data & 0x8);
-				return prgBank^mainBank;
+				return prgBank;
 			}
 
 			uint Begin()
 			{
 				counter = 0;
-				return prgBank^mainBank;
+				return prgBank;
 			}
 
 			uint End()
 			{
-				return (prgBank & 0x8) && counter < SIGNAL && ++counter == SIGNAL ? (mainBank ? prgBank : prgBank & 0x7) | 0x10 : 0;
+				return (prgBank & 0x8) && counter < SIGNAL && ++counter == SIGNAL ? (prgBank & 0x7) | 0x10 : 0;
 			}
 		};
 
 		Mapper68::Mapper68(Context& c)
 		:
-		Mapper         (c),
-		doubleCassette (DoubleCassette::Create(c.prgCrc))
-		{}
+		Mapper         (c,CROM_MAX_512K),
+		doubleCassette (c.attribute == ATR_DOUBLECASSETTE ? new DoubleCassette : NULL)
+		{
+		}
 
 		Mapper68::~Mapper68()
 		{
@@ -133,8 +111,8 @@ namespace Nes
 
 			if (doubleCassette)
 			{
-				const uint bank = doubleCassette->Reset();
-				prg.SwapBanks<SIZE_16K,0x0000U>( bank + 0x0, bank + 0x7 );
+				doubleCassette->Reset();
+				prg.SwapBanks<SIZE_16K,0x0000U>( 0x0, 0x7 );
 
 				Map( 0x6000U,          &Mapper68::Poke_6000 );
 				Map( 0x8000U, 0xBFFFU, &Mapper68::Peek_8000 );
@@ -142,7 +120,7 @@ namespace Nes
 			}
 			else
 			{
-				Map( 0xF000U, 0xFFFFU, PRG_SWAP_16K );
+				Map( 0xF000U, 0xFFFFU, PRG_SWAP_16K_0 );
 			}
 		}
 

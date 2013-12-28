@@ -38,7 +38,6 @@ namespace Nestopia
 		public:
 
 			Fds(Managers::Emulator&,const Configuration&,const Managers::Paths&);
-			~Fds();
 
 			void Save(Configuration&) const;
 			void QueryBiosFile();

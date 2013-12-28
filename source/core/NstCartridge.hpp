@@ -67,22 +67,20 @@ namespace Nes
 
 			Mode GetMode() const;
 			uint GetDesiredController(uint) const;
+			uint GetDesiredAdapter() const;
 			ExternalDevice QueryExternalDevice(ExternalDeviceType);
 			PpuType QueryPpu(bool);
 
-			static const void* SearchDatabase(const ImageDatabase&,const u8*,ulong);
-
-		private:
+			static const void* SearchDatabase(const ImageDatabase&,const void*,ulong);
 
 			class Ines;
 			class Unif;
 
+		private:
+
 			void Destroy();
-			void DetectControllers();
-			void DetectTurboFile(Context&);
-			bool DetectEncryption() const;
-			void DetectBadChr();
-			void ResetWRam();
+			void DetectControllers(uint);
+			void ResetWrkRam(uint);
 
 			void LoadBattery();
 			Result SaveBattery(bool) const;
@@ -91,10 +89,13 @@ namespace Nes
 
 			struct Wrk : Ram
 			{
-				Wrk();
+				enum
+				{
+					MIN_BATTERY_SIZE = SIZE_1K,
+					GARBAGE = 0xFF
+				};
 
-				ibool autoSized;
-				mutable Checksum::Md5::Key batteryCheckSum;
+				mutable Checksum::Md5::Key ramCheckSum;
 			};
 
 			Mapper* mapper;
@@ -115,7 +116,7 @@ namespace Nes
 
 			dword GetPrgCrc() const
 			{
-				return info.pRomCrc;
+				return info.prgCrc;
 			}
 
 			bool IsVS() const

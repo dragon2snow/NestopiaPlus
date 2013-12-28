@@ -37,7 +37,8 @@ namespace Nes
 		{
 		public:
 
-			Mapper45(Context&);
+			Mapper45(Context& c)
+			: Mmc3(c) {}
 
 		private:
 
@@ -50,7 +51,6 @@ namespace Nes
 			NES_DECL_POKE( 6000 )
 
 			uint exRegs[5];
-			const uint mask;
 		};
 	}
 }

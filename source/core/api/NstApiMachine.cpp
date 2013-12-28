@@ -77,7 +77,7 @@ namespace Nes
 						{
 							emulator.state |= VS;
 						}
-						else if (static_cast<const Core::Cartridge*>(emulator.image)->GetInfo().system == Cartridge::SYSTEM_PC10)
+						else if (static_cast<const Core::Cartridge*>(emulator.image)->GetInfo().setup.system == SYSTEM_PC10)
 						{
 							emulator.state |= PC10;
 						}

@@ -45,7 +45,7 @@ namespace Nes
 		}
 		Mapper83::Mapper83(Context& c)
 		:
-		Mapper (c,c.battery ? WRAM_AUTO : WRAM_NONE),
+		Mapper (c,WRAM_DEFAULT),
 		irq    (c.cpu)
 		{}
 
@@ -249,17 +249,7 @@ namespace Nes
 			}
 
 			if (diff & 0x03)
-			{
-				static const uchar lut[4] =
-				{
-					Ppu::NMT_VERTICAL,
-					Ppu::NMT_HORIZONTAL,
-					Ppu::NMT_ZERO,
-					Ppu::NMT_ONE
-				};
-
-				ppu.SetMirroring( lut[data & 0x3] );
-			}
+				SetMirroringVH01( data );
 		}
 
 		NES_POKE(Mapper83,8200)

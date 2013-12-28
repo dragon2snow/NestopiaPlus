@@ -114,11 +114,30 @@ namespace Nes
 			Mmc5::Banks::Banks(uint wrkSize)
 			: wrk(wrkSize) {}
 
-			Mmc5::Mmc5(Context& c,uint settings)
+			uint Mmc5::BoardToWRam(Board board,dword wRamSize)
+			{
+				switch (board)
+				{
+					case BRD_ELROM: return WRAM_NONE;
+					case BRD_EKROM: return WRAM_8K;
+					case BRD_ETROM: return WRAM_16K;
+					case BRD_EWROM: return WRAM_32K;
+				}
+
+				if ( wRamSize > SIZE_40K ) return WRAM_64K;
+				if ( wRamSize > SIZE_32K ) return WRAM_40K;
+				if ( wRamSize > SIZE_16K ) return WRAM_32K;
+				if ( wRamSize > SIZE_8K  ) return WRAM_16K;
+				if ( wRamSize > 0        ) return WRAM_8K;
+
+				return WRAM_NONE;
+			}
+
+			Mmc5::Mmc5(Context& c,Board board)
 			:
-			Mapper ( c, settings ),
-			banks  ( wrk.Source(0).Size() ),
-			sound  ( c.cpu )
+			Mapper (c,BoardToWRam(board,c.wrk.Size())),
+			banks  (wrk.Source(0).Size()),
+			sound  (c.cpu)
 			{
 				nmt.Source(1).Set( exRam.mem, sizeof(exRam.mem), true, true );
 			}
@@ -336,7 +355,7 @@ namespace Nes
 						(banks.chrB[0] >> 8) | ((banks.chrB[1] >> 8) << 2) | ((banks.chrB[2] >> 8) << 4) | ((banks.chrB[3] >> 8) << 6),
 						(banks.chrHigh >> 6) | (banks.lastChr != Banks::LAST_CHR_A ? 0x80 : 0x00),
 						filler.tile,
-						(filler.attribute & 0x3) | ((spliter.tile >> 2) & 0xF8),
+						(filler.attribute & 0x3) | (spliter.tile >> 2 & 0xF8),
 						exRam.tile,
 						spliter.ctrl,
 						spliter.yStart,
@@ -378,9 +397,9 @@ namespace Nes
 							{
 								const State::Loader::Data<32> data( state );
 
-								regs.prgMode = (data[0] >> 0) & Regs::PRG_MODE;
-								regs.chrMode = (data[0] >> 2) & Regs::CHR_MODE;
-								regs.exRamMode = (data[0] >> 4) & Regs::EXRAM_MODE;
+								regs.prgMode = data[0] >> 0 & Regs::PRG_MODE;
+								regs.chrMode = data[0] >> 2 & Regs::CHR_MODE;
+								regs.exRamMode = data[0] >> 4 & Regs::EXRAM_MODE;
 
 								for (uint i=0; i < 4; ++i)
 									banks.prg[i] = data[1+i];
@@ -961,7 +980,7 @@ namespace Nes
 
 			uint Mmc5::GetSpliterAttribute() const
 			{
-				return Filler::squared[(exRam.mem[0x3C0 + ((spliter.tile & 0x380) >> 4) + ((spliter.tile & 0x1C) >> 2)] >> (((spliter.tile >> 4) & 0x4) | (spliter.tile & 0x2))) & 0x3];
+				return Filler::squared[(exRam.mem[0x3C0 + (spliter.tile >> 4 & 0x38) + (spliter.tile >> 2 & 0x7)] >> ((spliter.tile >> 4 & 0x4) | (spliter.tile & 0x2))) & 0x3];
 			}
 
 			template<uint AT>
@@ -1088,7 +1107,7 @@ namespace Nes
 			{
 				ppu.Update();
 
-				const uint method = regs.exRamMode | ((spliter.ctrl >> 5) & 0x4);
+				const uint method = regs.exRamMode | (spliter.ctrl >> 5 & 0x4);
 
 				chr.SetAccessors
 				(
@@ -1102,10 +1121,10 @@ namespace Nes
 				nmt.SetAccessors
 				(
 					this,
-					nmtMethods[method][(bank >> 0) & Regs::NMT_MODE],
-					nmtMethods[method][(bank >> 2) & Regs::NMT_MODE],
-					nmtMethods[method][(bank >> 4) & Regs::NMT_MODE],
-					nmtMethods[method][(bank >> 6) & Regs::NMT_MODE]
+					nmtMethods[method][bank >> 0 & Regs::NMT_MODE],
+					nmtMethods[method][bank >> 2 & Regs::NMT_MODE],
+					nmtMethods[method][bank >> 4 & Regs::NMT_MODE],
+					nmtMethods[method][bank >> 6 & Regs::NMT_MODE]
 				);
 
 				for (uint address=0; address < SIZE_4K; address += SIZE_1K, bank >>= 2)
@@ -1178,19 +1197,19 @@ namespace Nes
 			NES_POKE(Mmc5::Sound,5000)
 			{
 				cpu.GetApu().Update();
-				square[(address >> 2) & 0x1].WriteReg0( data );
+				square[address >> 2 & 0x1].WriteReg0( data );
 			}
 
 			NES_POKE(Mmc5::Sound,5002)
 			{
 				cpu.GetApu().Update();
-				square[(address >> 2) & 0x1].WriteReg1( data, fixed );
+				square[address >> 2 & 0x1].WriteReg1( data, fixed );
 			}
 
 			NES_POKE(Mmc5::Sound,5003)
 			{
 				cpu.GetApu().Update();
-				square[(address >> 2) & 0x1].WriteReg2( data, fixed );
+				square[address >> 2 & 0x1].WriteReg2( data, fixed );
 			}
 
 			NST_FORCE_INLINE void Mmc5::Sound::Pcm::WriteReg0(const uint data)

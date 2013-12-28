@@ -206,7 +206,7 @@ namespace Nes
 																											\
 				static Data NES_IO_CALL Peek_##a_(void* instance,Address address)                           \
 				{                                                                                           \
-					return Peek_Type_##a_( instance, address, Peek_Member_##a_ );                           \
+					return Peek_Type_##a_( instance, address, &Peek_Member_##a_ );                          \
 				}
 
 			#define NES_DECL_POKE(a_)                                                                                      \
@@ -221,7 +221,7 @@ namespace Nes
                                                                                                                            \
 				static void NES_IO_CALL Poke_##a_(void* instance,Address address,Data data)                                \
 				{                                                                                                          \
-					Poke_Type_##a_( instance, address, data, Poke_Member_##a_ );                                           \
+					Poke_Type_##a_( instance, address, data, &Poke_Member_##a_ );                                          \
 				}
 
 			#define NES_PEEK(o_,a_) Data NES_IO_CALL o_::Peek_Member_##a_(Address address)

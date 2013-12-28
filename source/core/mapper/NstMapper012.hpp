@@ -38,14 +38,13 @@ namespace Nes
 		public:
 
 			Mapper12(Context& c)
-			: Mmc3(c) {}
+			: Mmc3(c,BRD_GENERIC,PROM_MAX_512K|CROM_MAX_512K|WRAM_DEFAULT,REV_A) {}
 
 		private:
 
 			void SubReset(bool);
 			void SubSave(State::Saver&) const;
 			void SubLoad(State::Loader&);
-
 			void UpdateChr() const;
 
 			NES_DECL_PEEK( 4100 )

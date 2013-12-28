@@ -41,7 +41,7 @@ namespace Nes
 		: time(0), showTime(true) {}
 
 		Mapper105::Mapper105(Context& c)
-		: Mmc1(c,WRAM_8K)
+		: Mmc1(c,BRD_GENERIC_WRAM,REV_B)
 		{
 			std::strcpy( text, "Time Left: " );
 		}
@@ -208,66 +208,64 @@ namespace Nes
 		#pragma optimize("", on)
 		#endif
 
-		void Mapper105::UpdatePrg()
+		void Mapper105::UpdateRegisters(const uint index)
 		{
-			if (regs[1] & 0x8)
+			NST_ASSERT( index < 4 );
+
+			if (index != 2)
 			{
-				switch (regs[0] & 0xC)
+				if (regs[1] & 0x8)
 				{
-					case 0x0:
-					case 0x4:
+					switch (regs[0] & 0xC)
+					{
+						case 0x0:
+						case 0x4:
 
-						prg.SwapBank<SIZE_32K,0x0000U>( 0x4 | (regs[3] >> 1 & 0x3) );
-						break;
+							prg.SwapBank<SIZE_32K,0x0000U>( 0x4 | (regs[3] >> 1 & 0x3) );
+							break;
 
-					case 0x8:
+						case 0x8:
 
-						prg.SwapBanks<SIZE_16K,0x0000U>( 0x8, 0x8 | (regs[3] & 0x7) );
-						break;
+							prg.SwapBanks<SIZE_16K,0x0000U>( 0x8, 0x8 | (regs[3] & 0x7) );
+							break;
 
-					case 0xC:
+						case 0xC:
 
-						prg.SwapBanks<SIZE_16K,0x0000U>( 0x8 | (regs[3] & 0x7), 0xF );
-						break;
-				}
-			}
-			else
-			{
-				prg.SwapBank<SIZE_32K,0x0000U>( regs[1] >> 1 & 0x3 );
-			}
-		}
-
-		void Mapper105::UpdateRegister0()
-		{
-			UpdateMirroring();
-			UpdatePrg();
-		}
-
-		void Mapper105::UpdateRegister1()
-		{
-			const uint state = (regs[1] & IRQ_DISABLE) ^ IRQ_DISABLE;
-
-			if (irqEnabled != state)
-			{
-				irqEnabled = state;
-
-				if (state)
-				{
-					frames = 1;
-					seconds = time;
+							prg.SwapBanks<SIZE_16K,0x0000U>( 0x8 | (regs[3] & 0x7), 0xF );
+							break;
+					}
 				}
 				else
 				{
-					cpu.ClearIRQ();
+					prg.SwapBank<SIZE_32K,0x0000U>( regs[1] >> 1 & 0x3 );
+				}
+
+				UpdateWrk();
+
+				if (index == 0)
+				{
+					UpdateNmt();
+				}
+				else
+				{
+					const uint state = (regs[1] & IRQ_DISABLE) ^ IRQ_DISABLE;
+
+					if (irqEnabled != state)
+					{
+						irqEnabled = state;
+
+						if (state)
+						{
+							frames = 1;
+							seconds = time;
+						}
+						else
+						{
+							cpu.ClearIRQ();
+						}
+					}
 				}
 			}
-
-			UpdatePrg();
-		}
-
-		void Mapper105::UpdateRegister3()
-		{
-			UpdatePrg();
 		}
 
 		void Mapper105::VSync()

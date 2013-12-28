@@ -35,7 +35,10 @@ namespace Nes
 		#endif
 
 		Mapper50::Mapper50(Context& c)
-		: Mapper(c,WRAM_NONE|CROM_NONE), irq(c.cpu) {}
+		:
+		Mapper (c,PROM_MAX_128K|CROM_MAX_8K|WRAM_NONE),
+		irq    (c.cpu)
+		{}
 
 		void Mapper50::Irq::Reset(const bool hard)
 		{
@@ -50,11 +53,8 @@ namespace Nes
 
 			irq.Reset( hard, hard ? false : irq.IsLineEnabled() );
 
-			for (uint i=0x4020U; i < 0x6000U; ++i)
-			{
-				if ((i & 0xE060U) == 0x4020U)
-					Map( i, (i & 0x0100U) ? &Mapper50::Poke_4120 : &Mapper50::Poke_4020 );
-			}
+			for (uint i=0x4020U; i < 0x6000U; i += 0x80)
+				Map( i+0x00, i+0x20, (i & 0x100) ? &Mapper50::Poke_4120 : &Mapper50::Poke_4020 );
 
 			Map( 0x6000U, 0x7FFFU, &Mapper50::Peek_wRom );
 		}
@@ -92,7 +92,7 @@ namespace Nes
 
 		NES_PEEK(Mapper50,wRom)
 		{
-			return *prg.Source().Mem( (0x1E000UL - 0x6000U) + address );
+			return *prg.Source().Mem( (SIZE_128K-SIZE_8K-0x6000U) + address );
 		}
 
 		NES_POKE(Mapper50,4020)

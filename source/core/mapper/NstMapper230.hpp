@@ -38,7 +38,7 @@ namespace Nes
 		public:
 
 			Mapper230(Context& c)
-			: Mapper(c,CROM_NONE), romSwitch(1) {}
+			: Mapper(c,CROM_MAX_8K|WRAM_DEFAULT), romSwitch(1) {}
 
 		private:
 

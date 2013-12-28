@@ -24,6 +24,7 @@
 
 #include "NstWindowParam.hpp"
 #include "NstManagerPaths.hpp"
+#include "NstApplicationInstance.hpp"
 #include "NstDialogMovie.hpp"
 
 namespace Nestopia
@@ -51,8 +52,9 @@ namespace Nestopia
 		Movie::Movie(const Managers::Paths& p)
 		: dialog(IDD_MOVIE,this,Handlers::messages,Handlers::commands), paths(p) {}
 
-		Movie::~Movie()
+		const Path Movie::GetMovieFile() const
 		{
+			return Application::Instance::GetFullPath( movieFile );
 		}
 
 		ibool Movie::SetMovieFile(const Path& file)
@@ -84,7 +86,7 @@ namespace Nestopia
 			{
 				Path tmp;
 				dialog.Edit(IDC_MOVIE_FILE).Text() >> tmp;
-				dialog.Edit(IDC_MOVIE_FILE).Try() << paths.BrowseSave( Managers::Paths::File::MOVIE, Managers::Paths::SUGGEST, tmp ).Ptr();
+				dialog.Edit(IDC_MOVIE_FILE).Try() << paths.BrowseSave( Managers::Paths::File::MOVIE, Managers::Paths::SUGGEST, Application::Instance::GetFullPath(tmp) ).Ptr();
 			}
 
 			return true;

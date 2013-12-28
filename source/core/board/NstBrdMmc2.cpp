@@ -70,8 +70,8 @@ namespace Nes
 							banks[0][1] = data[1];
 							banks[1][0] = data[2];
 							banks[1][1] = data[3];
-							selector[0] = (data[4] >> 0) & 0x1;
-							selector[1] = (data[4] >> 1) & 0x1;
+							selector[0] = data[4] >> 0 & 0x1;
+							selector[1] = data[4] >> 1 & 0x1;
 						}
 
 						state.End();

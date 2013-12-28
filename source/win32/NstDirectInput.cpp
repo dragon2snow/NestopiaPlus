@@ -406,10 +406,6 @@ namespace Nestopia
 			Clear();
 		}
 
-		DirectInput::Keyboard::~Keyboard()
-		{
-		}
-
 		IDirectInputDevice8& DirectInput::Keyboard::Create(IDirectInput8& base)
 		{
 			IDirectInputDevice8* com;
@@ -594,10 +590,6 @@ namespace Nestopia
 
 				com.Unacquire();
 			}
-		}
-
-		DirectInput::Joystick::~Joystick()
-		{
 		}
 
 		DirectInput::Joystick::Calibrator::Calibrator()

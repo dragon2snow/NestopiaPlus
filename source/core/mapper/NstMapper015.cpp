@@ -45,50 +45,31 @@ namespace Nes
 
 		NES_POKE(Mapper15,Prg)
 		{
-			uint bank = data << 1 & 0x7E;
-			uint flip = data >> 7;
+			ppu.SetMirroring( (data & 0x40) ? Ppu::NMT_HORIZONTAL : Ppu::NMT_VERTICAL );
 
-			uint banks[4];
+			const uint flip = data >> 7;
+			data = data << 1 & 0xFE;
 
-			switch (address & 0x3)
+			switch (address & 0xFFFU)
 			{
-				case 0x0:
+				case 0x000:
 
-					bank &= 0x7C;
-					banks[0] = bank | (0 ^ flip);
-					banks[1] = bank | (1 ^ flip);
-					banks[2] = bank | (2 ^ flip);
-					banks[3] = bank | (3 ^ flip);
+					prg.SwapBanks<SIZE_8K,0x0000U>( (data+0) ^ flip, (data+1) ^ flip, (data+2) ^ flip, (data+3) ^ flip );
 					break;
 
-				case 0x1:
+				case 0x002:
 
-					banks[0] = bank | (0 ^ flip);
-					banks[1] = bank | (1 ^ flip);
-					banks[2] = 0x7E | (0 ^ flip);
-					banks[3] = 0x7F | (1 ^ flip);
+					data |= flip;
+					prg.SwapBanks<SIZE_8K,0x0000U>( data, data, data, data );
 					break;
 
-				case 0x2:
+				case 0x001:
+				case 0x003:
 
-					bank ^= flip;
-					banks[0] = bank;
-					banks[1] = bank;
-					banks[2] = bank;
-					banks[3] = bank;
-					break;
-
-				case 0x3:
-
-					banks[0] = bank | (0 ^ flip);
-					banks[1] = bank | (1 ^ flip);
-					banks[2] = bank | (0 ^ flip);
-					banks[3] = bank | (1 ^ flip);
+					data |= flip;
+					prg.SwapBanks<SIZE_8K,0x0000U>( data, data+1, data + (~address >> 1 & 1), data+1 );
 					break;
 			}
-
-			prg.SwapBanks<SIZE_8K,0x0000U>( banks[0], banks[1], banks[2], banks[3] );
-			ppu.SetMirroring( (data & 0x40) ? Ppu::NMT_HORIZONTAL : Ppu::NMT_VERTICAL );
 		}
 	}
 }

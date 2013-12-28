@@ -60,7 +60,7 @@ namespace Nestopia
 				EnumerateResources( paths );
 
 				if (paths.empty())
-					throw Exception(_T("Language plugin file missing!"));
+					throw Exception(_T("language\\english.nlg file missing!"));
 
 				Paths::const_iterator path(std::find( paths.begin(), paths.end(), Instance::GetExePath(_T("english.nlg")) ));
 
@@ -84,38 +84,41 @@ namespace Nestopia
 
 		void Instance::Language::EnumerateResources(Paths& paths) const
 		{
-			struct FileFinder
+			for (uint i=0; i < 2 && paths.empty(); ++i)
 			{
-				WIN32_FIND_DATA data;
-				HANDLE const handle;
-
-				FileFinder(tstring const path)
-				: handle(::FindFirstFile( path, &data )) {}
-
-				~FileFinder()
+				struct FileFinder
 				{
-					if (handle != INVALID_HANDLE_VALUE)
-						::FindClose( handle );
-				}
-			};
+					WIN32_FIND_DATA data;
+					HANDLE const handle;
 
-			Path path( Instance::GetExePath(_T("language\\*.*")) );
+					FileFinder(tstring const path)
+					: handle(::FindFirstFile( path, &data )) {}
 
-			FileFinder findFile( path.Ptr() );
-
-			if (findFile.handle != INVALID_HANDLE_VALUE)
-			{
-				do
-				{
-					if (!(findFile.data.dwFileAttributes & (FILE_ATTRIBUTE_HIDDEN|FILE_ATTRIBUTE_SYSTEM|FILE_ATTRIBUTE_DIRECTORY)))
+					~FileFinder()
 					{
-						path.File() = findFile.data.cFileName;
-
-						if (path.Extension() == _T("nlg"))
-							paths.push_back( path );
+						if (handle != INVALID_HANDLE_VALUE)
+							::FindClose( handle );
 					}
+				};
+
+				Path path( Instance::GetExePath(i ? _T("*.*") : _T("language\\*.*")) );
+
+				FileFinder findFile( path.Ptr() );
+
+				if (findFile.handle != INVALID_HANDLE_VALUE)
+				{
+					do
+					{
+						if (!(findFile.data.dwFileAttributes & (FILE_ATTRIBUTE_HIDDEN|FILE_ATTRIBUTE_SYSTEM|FILE_ATTRIBUTE_DIRECTORY)))
+						{
+							path.File() = findFile.data.cFileName;
+
+							if (path.Extension() == _T("nlg"))
+								paths.push_back( path );
+						}
+					}
+					while (::FindNextFile( findFile.handle, &findFile.data ));
 				}
-				while (::FindNextFile( findFile.handle, &findFile.data ));
 			}
 		}
 	}

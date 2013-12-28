@@ -34,12 +34,6 @@ namespace Nes
 		#pragma optimize("s", on)
 		#endif
 
-		Mapper45::Mapper45(Context& c)
-		:
-		Mmc3 (c,WRAM_8K),
-		mask (c.prgCrc == 0xB8FB3383 ? 0xFF : 0x00) // Famicon Yarou Vol.5 (7-in-1)
-		{}
-
 		void Mapper45::SubReset(const bool hard)
 		{
 			if (hard)
@@ -89,17 +83,20 @@ namespace Nes
 
 		NES_POKE(Mapper45,6000)
 		{
-			if (!(exRegs[3] & 0x40))
+			if (exRegs[3] & 0x40)
+			{
+				NST_VERIFY( wrk.Writable(0) );
+
+				if (wrk.Writable(0))
+					wrk[0][address - 0x6000U] = data;
+			}
+			else
 			{
 				exRegs[exRegs[4]] = data;
 				exRegs[4] = (exRegs[4] + 1) & 0x3;
 
 				Mapper45::UpdatePrg();
 				Mapper45::UpdateChr();
-			}
-			else
-			{
-				wrk[0][address - 0x6000U] = data;
 			}
 		}
 
@@ -126,8 +123,8 @@ namespace Nes
 
 			const uint r[2] =
 			{
-				(exRegs[2] & 0x8) ? (1U << ((exRegs[2] & 0x7) + 1)) - 1 : mask,
-				exRegs[0] | ((exRegs[2] & 0xF0) << 4)
+				(exRegs[2] & 0x8) ? (1U << ((exRegs[2] & 0x7) + 1)) - 1 : exRegs[2] ? 0U : ~0U,
+				exRegs[0] | (exRegs[2] << 4 & 0xF00)
 			};
 
 			const uint swap = (regs.ctrl0 & Regs::CTRL0_XOR_CHR) << 5;
@@ -135,10 +132,10 @@ namespace Nes
 			chr.SwapBanks<SIZE_1K>
 			(
 				0x0000U ^ swap,
-				(((banks.chr[0] << 1) | 0) & r[0]) | r[1],
-				(((banks.chr[0] << 1) | 1) & r[0]) | r[1],
-				(((banks.chr[1] << 1) | 0) & r[0]) | r[1],
-				(((banks.chr[1] << 1) | 1) & r[0]) | r[1]
+				((banks.chr[0] << 1 | 0) & r[0]) | r[1],
+				((banks.chr[0] << 1 | 1) & r[0]) | r[1],
+				((banks.chr[1] << 1 | 0) & r[0]) | r[1],
+				((banks.chr[1] << 1 | 1) & r[0]) | r[1]
 			);
 
 			chr.SwapBanks<SIZE_1K>

@@ -35,8 +35,8 @@ namespace Nes
 
 		Mapper70::Mapper70(Context& c)
 		:
-		Mapper (c),
-		useGun (c.prgCrc == 0x0CD00488UL || c.prgCrc == 0x03B6596CUL)
+		Mapper (c,PROM_MAX_256K|CROM_MAX_128K|WRAM_DEFAULT),
+		useGun (c.attribute == ATR_LIGHTGUN)
 		{}
 
 		void Mapper70::SubReset(bool)
@@ -57,8 +57,8 @@ namespace Nes
 		NES_POKE(Mapper70,Prg)
 		{
 			ppu.Update();
+			chr.SwapBank<SIZE_8K,0x0000U>( data );
 			prg.SwapBank<SIZE_16K,0x0000U>( data >> 4 );
-			chr.SwapBank<SIZE_8K,0x0000U>( data & 0xF );
 		}
 
 		NES_PEEK(Mapper70,SpaceShadow)

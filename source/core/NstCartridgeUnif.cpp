@@ -50,107 +50,135 @@ namespace Nes
 
 		Cartridge::Unif::Board Cartridge::Unif::boards[] =
 		{
-			{"NROM",                   0},
-			{"NROM-128",               0},
-			{"NROM-256",               0},
-			{"RROM",                   0},
-			{"RROM-128",               0},
-			{"SNROM",                  1},  // MMC1
-			{"SKROM",                  1},
-			{"SAROM",                  1},
-			{"SBROM",                  1},
-			{"SCEOROM",                1},
-			{"SC1ROM",                 1},
-			{"SEROM",                  1},
-			{"SFROM",                  1},
-			{"SGROM",                  1},
-			{"SHROM",                  1},
-			{"SJROM",                  1},
-			{"SLROM",                  1},
-			{"SLRROM",                 1},
-			{"SL2ROM",                 1},
-			{"SL3ROM",                 1},
-			{"SN1-ROM",                1},
-			{"SOROM",                  1},
-			{"SVROM",                  1},
-			{"SUROM",                  1},
-			{"351258",                 2},  // UNROM
-			{"351298",                 2},
-			{"351908",                 2},
-			{"UNROM",                  2},
-			{"CNROM",                  3},
-			{"51555",                  4},  // MMC3/MMC6
-			{"DRROM",                  4},
-			{"EKROM",                  4},
-			{"SL1ROM",                 4},
-			{"SL2ROM",                 4},
-			{"SL3ROM",                 4},
-			{"TEROM",                  4},
-			{"TFROM",                  4},
-			{"TGROM",                  4},
-			{"TKROM",                  4},
-			{"TLROM",                  4},
-			{"TSROM",                  4},
-			{"TVROM",                  4},
-			{"TL1ROM",                 4},
-			{"B4",                     4},
-			{"HKROM",                  4},  // MMC6B
-			{"ELROM",                  5},  // MMC5
-			{"ETROM",                  5},
-			{"EWROM",                  5},
-			{"AOROM",                  7},
-			{"PNROM",                  9},  // MMC2
-			{"CPROM",                  13},
-			{"BNROM",                  34},
-			{"1991SUPERHIK7IN1",       45},
-			{"SUPERHIK8IN1",           45},
-			{"1992BALLGAMES11IN1",     51},
-			{"MARIO7IN1",              52},
-			{"SUPERVISION16IN1",       53},
-			{"NOVELDIAMOND9999999IN1", 54},
-			{"MARIO1-MALEE2",          55},
-			{"STUDYGAME32IN1",         58},
-			{"RESET4IN1",              60},
-			{"D1038",                  60},
-			{"GNROM",                  66},
-			{"NTBROM",                 68},
-			{"TEK90",                  90},
-			{"TKSROM",                 118},
-			{"TLSROM",                 118},
-			{"TQROM",                  119},
-			{"22211",                  132},
-			{"SA-72008",               133},
-			{"SACHEN-8259D",           137},
-			{"SACHEN-8259B",           138},
-			{"SACHEN-8259C",           139},
-			{"SACHEN-8259A",           141},
-			{"SA-NROM",                143},
-			{"SA-72007",               145},
-			{"SA-016-1M",              146},
-			{"TC-U01-1.5M",            147},
-			{"SA-0037",                148},
-			{"SA-0036",                149},
-			{"SACHEN-74LS374N",        150},
-			{"DE1ROM",                 206},
-			{"42IN1RESETSWITCH",       233},
-			{"GOLDENGAME150IN1",       235},
-			{"70IN1",                  236},
-			{"70IN1B",                 236},
-			{"SUPER24IN1SC03",         Mapper::EXT_SUPER24IN1},
-			{"8157",                   Mapper::EXT_8157},
-			{"8237",                   Mapper::EXT_8237},
-			{"WS",                     Mapper::EXT_WS},
-			{"DREAMTECH01",            Mapper::EXT_DREAMTECH01},
-			{"H2288",                  Mapper::EXT_H2288},
-			{"CC-21",                  Mapper::EXT_CC21},
-			{"KOF97",                  Mapper::EXT_KOF97},
-			{"64IN1NOREPEAT",          Mapper::EXT_64IN1NR},
-			{"SHERO",                  Mapper::EXT_STREETHEROES},
-			{"T-262",                  Mapper::EXT_T262},
-			{"FK23C",                  Mapper::EXT_FK23C},
-			{"603-5052",               Mapper::EXT_6035052},
-			{"A65AS",                  Mapper::EXT_A65AS},
-			{"EDU2000",                Mapper::EXT_EDU2000}
+			{"NROM",                   0,0},
+			{"NROM-128",               0,0},
+			{"NROM-256",               0,0},
+			{"RROM",                   0,0},
+			{"RROM-128",               0,0},
+			{"SAROM",                  1,SIZE_8K},
+			{"SBROM",                  1,0},
+			{"SCROM",                  1,0},
+			{"SC1ROM",                 1,0},
+			{"SCEOROM",                1,0},
+			{"SEROM",                  1,0},
+			{"SFROM",                  1,0},
+			{"SF1ROM",                 1,0},
+			{"SFEOROM",                1,0},
+			{"SFEXPROM",               1,0},
+			{"SGROM",                  1,0},
+			{"SHROM",                  1,0},
+			{"SH1ROM",                 1,0},
+			{"SJROM",                  1,SIZE_8K},
+			{"SKROM",                  1,SIZE_8K},
+			{"SLROM",                  1,0},
+			{"SL1ROM",                 1,0},
+			{"SL2ROM",                 1,0},
+			{"SL3ROM",                 1,0},
+			{"SLRROM",                 1,0},
+			{"SL1RROM",                1,0},
+			{"SNROM",                  1,SIZE_8K},
+			{"SN1ROM",                 1,SIZE_8K},
+			{"SOROM",                  1,SIZE_16K},
+			{"SUROM",                  1,SIZE_8K},
+			{"SVROM",                  1,SIZE_16K},
+			{"SXROM",                  1,SIZE_32K},
+			{"UNROM",                  2,0},
+			{"UOROM",                  2,0},
+			{"CNROM",                  3,0},
+			{"TEROM",                  4,0},
+			{"TFROM",                  4,0},
+			{"TGROM",                  4,0},
+			{"TKROM",                  4,SIZE_8K},
+			{"TLROM",                  4,0},
+			{"TL1ROM",                 4,0},
+			{"TLSROM",                 4,0},
+			{"TR1ROM",                 4,0},
+			{"TSROM",                  4,SIZE_8K},
+			{"TVROM",                  4,0},
+			{"HKROM",                  4,SIZE_1K},
+			{"B4",                     4,0},
+			{"EKROM",                  5,SIZE_8K},
+			{"ELROM",                  5,0},
+			{"ETROM",                  5,SIZE_16K},
+			{"EWROM",                  5,SIZE_32K},
+			{"AMROM",                  7,0},
+			{"ANROM",                  7,0},
+			{"AOROM",                  7,0},
+			{"PNROM",                  9,0},
+			{"PEEOROM",                9,0},
+			{"FJROM",                  10,0},
+			{"CDREAMS",                11,0},
+			{"AVENINA-07",             11,0},
+			{"CPROM",                  13,0},
+			{"SL1632",                 14,0},
+			{"BNROM",                  34,0},
+			{"AVENINA-01",             34,SIZE_8K},
+			{"1991SUPERHIK7IN1",       45,0},
+			{"SUPERHIK8IN1",           45,0},
+			{"QJ",                     47,0},
+			{"1992BALLGAMES11IN1",     51,0},
+			{"MARIO7IN1",              52,0},
+			{"SUPERVISION16IN1",       53,0},
+			{"NOVELDIAMOND9999999IN1", 54,0},
+			{"MARIO1-MALEE2",          55,0},
+			{"STUDYGAME32IN1",         58,0},
+			{"RESET4IN1",              60,0},
+			{"D1038",                  60,0},
+			{"TEN800032",              64,0},
+			{"GNROM",                  66,0},
+			{"MHROM",                  66,0},
+			{"NTBROM",                 68,0},
+			{"TEN800042",              68,0},
+			{"BTR",                    69,SIZE_8K},
+			{"CAMBF9093",              71,0},
+			{"CAMALADDINNORMAL",       71,0},
+			{"AVENINA-03",             79,0},
+			{"AVENINA-06",             79,0},
+			{"TEK90",                  90,0},
+			{"TEN800037",              118,0},
+			{"TLSROM",                 118,0},
+			{"TKSROM",                 118,SIZE_8K},
+			{"TQROM",                  119,0},
+			{"H2288",                  123,0},
+			{"22211",                  132,0},
+			{"SA-72008",               133,0},
+			{"SACHEN-8259D",           137,0},
+			{"SACHEN-8259B",           138,0},
+			{"SACHEN-8259C",           139,0},
+			{"SACHEN-8259A",           141,0},
+			{"SA-NROM",                143,0},
+			{"SA-72007",               145,0},
+			{"SA-016-1M",              146,0},
+			{"TC-U01-1.5M",            147,0},
+			{"SA-0037",                148,0},
+			{"SA-0036",                149,0},
+			{"SACHEN-74LS374N",        150,0},
+			{"DEROM",                  206,0},
+			{"DE1ROM",                 206,0},
+			{"DRROM",                  206,0},
+			{"TEN800030",              206,0},
+			{"TEN800002",              206,0},
+			{"TEN800004",              206,0},
+			{"CAMBF9096",              232,0},
+			{"CAMALADDINQUATTRO",      232,0},
+			{"42IN1RESETSWITCH",       233,0},
+			{"GOLDENGAME150IN1",       235,0},
+			{"70IN1",                  236,0},
+			{"70IN1B",                 236,0},
+			{"SUPER24IN1SC03",         Mapper::EXT_SUPER24IN1,SIZE_8K},
+			{"8157",                   Mapper::EXT_8157,0},
+			{"8237",                   Mapper::EXT_8237,0},
+			{"WS",                     Mapper::EXT_WS,0},
+			{"DREAMTECH01",            Mapper::EXT_DREAMTECH01,0},
+			{"CC-21",                  Mapper::EXT_CC21,0},
+			{"KOF97",                  Mapper::EXT_KOF97,0},
+			{"64IN1NOREPEAT",          Mapper::EXT_64IN1NR,0},
+			{"SHERO",                  Mapper::EXT_STREETHEROES,0},
+			{"T-262",                  Mapper::EXT_T262,0},
+			{"FK23C",                  Mapper::EXT_FK23C,0},
+			{"603-5052",               Mapper::EXT_6035052,0},
+			{"A65AS",                  Mapper::EXT_A65AS,0},
+			{"EDU2000",                Mapper::EXT_EDU2000,SIZE_32K}
 		};
 
 		bool Cartridge::Unif::Board::operator < (const Board& board) const
@@ -168,16 +196,19 @@ namespace Nes
 			Ram& c,
 			Ram& w,
 			Api::Cartridge::Info& i,
-			const ImageDatabase* const r
+			const ImageDatabase* const r,
+			ImageDatabase::Handle& h
 		)
 		:
-		stream   (s),
-		prg      (p),
-		chr      (c),
-		wrk      (w),
-		info     (i),
-		database (r),
-		result   (RESULT_OK)
+		stream         (s),
+		prg            (p),
+		chr            (c),
+		wrk            (w),
+		info           (i),
+		database       (r),
+		databaseHandle (h),
+		crc            (0),
+		result         (RESULT_OK)
 		{
 			if (!sorted)
 			{
@@ -187,6 +218,16 @@ namespace Nes
 
 			info.Clear();
 			Import();
+		}
+
+		dword Cartridge::Unif::ComputeCrc() const
+		{
+			dword crc = Checksum::Crc32::Compute( prg.Mem(), prg.Size() );
+
+			if (chr.Size())
+				crc = Checksum::Crc32::Compute( chr.Mem(), chr.Size(), crc );
+
+			return crc;
 		}
 
 		bool Cartridge::Unif::NewChunk(bool& index)
@@ -212,7 +253,7 @@ namespace Nes
 
 			stream.Seek( HEADER_RESERVED_LENGTH );
 
-			info.mapper = UINT_MAX;
+			info.setup.mapper = NO_MAPPER;
 
 			bool chunks[9] = {false};
 
@@ -257,13 +298,17 @@ namespace Nes
 
 			CopyRom();
 
-			info.crc = info.pRomCrc = Checksum::Crc32::Compute( prg.Mem(), prg.Size() );
-
-			if (chr.Size())
+			if (info.setup.wrkRamBacked && info.setup.wrkRam)
 			{
-				info.cRomCrc = Checksum::Crc32::Compute( chr.Mem(), chr.Size() );
-				info.crc = Checksum::Crc32::Compute( chr.Mem(), chr.Size(), info.crc );
+				info.setup.wrkRamBacked = info.setup.wrkRam;
+				info.setup.wrkRam = 0;
 			}
+
+			info.setup.ppu = PPU_RP2C02;
+			info.setup.prgRom = prg.Size();
+			info.setup.chrRom = chr.Size();
+
+			databaseHandle = NULL;
 
 			if (database)
 				CheckImageDatabase();
@@ -271,9 +316,7 @@ namespace Nes
 			if (!CheckMapper())
 				throw RESULT_ERR_UNSUPPORTED_MAPPER;
 
-			info.pRom = prg.Size();
-			info.cRom = chr.Size();
-			info.wRam = wrk.Size();
+			wrk.Set( info.setup.wrkRam + info.setup.wrkRamBacked );
 		}
 
 		void Cartridge::Unif::CopyRom()
@@ -297,12 +340,12 @@ namespace Nes
 
 							if (src.crc == Checksum::Crc32::Compute( src.rom.Mem(), size ))
 							{
-								msg = " crc check ok" NST_LINEBREAK;
+								msg = " CRC check ok" NST_LINEBREAK;
 							}
 							else
 							{
-								msg = " crc check failed" NST_LINEBREAK;
-								info.condition = Api::Cartridge::NO;
+								msg = " CRC check failed" NST_LINEBREAK;
+								info.condition = Api::Cartridge::DUMP_BAD;
 								result = (i ? RESULT_WARN_BAD_CROM : RESULT_WARN_BAD_PROM);
 							}
 
@@ -323,14 +366,17 @@ namespace Nes
 
 		bool Cartridge::Unif::CheckMapper()
 		{
-			if (info.mapper != UINT_MAX)
+			if (info.setup.mapper != NO_MAPPER)
 				return true;
 
-			if (info.crc && database)
+			if (database)
 			{
-				if (ImageDatabase::Handle handle = database->GetHandle( info.crc ))
+				if (crc == 0)
+					crc = ComputeCrc();
+
+				if (ImageDatabase::Handle handle = database->Search( crc ))
 				{
-					info.mapper = database->Mapper( handle );
+					info.setup.mapper = database->Mapper( handle );
 					return true;
 				}
 			}
@@ -350,7 +396,7 @@ namespace Nes
 
 				if (id >= 0 && id <= 255)
 				{
-					info.mapper = id;
+					info.setup.mapper = id;
 					return true;
 				}
 			}
@@ -412,9 +458,9 @@ namespace Nes
 
 			switch (stream.Read8())
 			{
-				case 0:  info.system = Api::Cartridge::SYSTEM_NTSC;     msg = "Unif: NTSC system"     NST_LINEBREAK; break;
-				case 1:  info.system = Api::Cartridge::SYSTEM_PAL;      msg = "Unif: PAL system"      NST_LINEBREAK; break;
-				default: info.system = Api::Cartridge::SYSTEM_NTSC_PAL; msg = "Unif: NTSC/PAL system" NST_LINEBREAK; break;
+				case 0:  info.setup.region = REGION_NTSC;  msg = "Unif: NTSC system"     NST_LINEBREAK; break;
+				case 1:  info.setup.region = REGION_PAL;   msg = "Unif: PAL system"      NST_LINEBREAK; break;
+				default: info.setup.region = REGION_BOTH;  msg = "Unif: NTSC/PAL system" NST_LINEBREAK; break;
 			}
 
 			log << msg;
@@ -521,7 +567,10 @@ namespace Nes
 					begin = std::lower_bound( begin, end, board );
 
 					if (begin != end && info.board == begin->name)
-						info.mapper = begin->mapper;
+					{
+						info.setup.mapper = begin->mapper;
+						info.setup.wrkRam = begin->wrkRam;
+					}
 				}
 			}
 
@@ -533,9 +582,7 @@ namespace Nes
 
 		ulong Cartridge::Unif::ReadBattery()
 		{
-			info.battery = true;
-			wrk.Set( SIZE_8K );
-			wrk.Fill( 0x00 );
+			info.setup.wrkRamBacked = SIZE_8K;
 			log << "Unif: battery present" NST_LINEBREAK;
 			return 0;
 		}
@@ -546,12 +593,12 @@ namespace Nes
 
 			switch (stream.Read8())
 			{
-				case 0:  info.mirroring = Api::Cartridge::MIRROR_HORIZONTAL; text = "Unif: horizontal mirroring"                    NST_LINEBREAK; break;
-				case 1:  info.mirroring = Api::Cartridge::MIRROR_VERTICAL;   text = "Unif: vertical mirroring"                      NST_LINEBREAK; break;
-				case 2:  info.mirroring = Api::Cartridge::MIRROR_ZERO;       text = "Unif: zero mirroring"                          NST_LINEBREAK; break;
-				case 3:  info.mirroring = Api::Cartridge::MIRROR_ONE;        text = "Unif: one mirroring"                           NST_LINEBREAK; break;
-				case 4:  info.mirroring = Api::Cartridge::MIRROR_FOURSCREEN; text = "Unif: four-screen mirroring"                   NST_LINEBREAK; break;
-				default: info.mirroring = Api::Cartridge::MIRROR_CONTROLLED; text = "Unif: mirroring controlled by mapper hardware" NST_LINEBREAK; break;
+				case 0:  info.setup.mirroring = Api::Cartridge::MIRROR_HORIZONTAL; text = "Unif: horizontal mirroring"                    NST_LINEBREAK; break;
+				case 1:  info.setup.mirroring = Api::Cartridge::MIRROR_VERTICAL;   text = "Unif: vertical mirroring"                      NST_LINEBREAK; break;
+				case 2:  info.setup.mirroring = Api::Cartridge::MIRROR_ZERO;       text = "Unif: zero mirroring"                          NST_LINEBREAK; break;
+				case 3:  info.setup.mirroring = Api::Cartridge::MIRROR_ONE;        text = "Unif: one mirroring"                           NST_LINEBREAK; break;
+				case 4:  info.setup.mirroring = Api::Cartridge::MIRROR_FOURSCREEN; text = "Unif: four-screen mirroring"                   NST_LINEBREAK; break;
+				default: info.setup.mirroring = Api::Cartridge::MIRROR_CONTROLLED; text = "Unif: mirroring controlled by mapper hardware" NST_LINEBREAK; break;
 			}
 
 			log << text;
@@ -643,7 +690,6 @@ namespace Nes
 
 		ulong Cartridge::Unif::ReadChrRam()
 		{
-			info.isCRam = true;
 			log << "Unif: CHR is writable" NST_LINEBREAK;
 			return 0;
 		}
@@ -652,34 +698,37 @@ namespace Nes
 		{
 			NST_ASSERT( database );
 
-			if (const ImageDatabase::Handle handle = database->GetHandle( info.crc ))
+			if (crc == 0)
+				crc = ComputeCrc();
+
+			if (const ImageDatabase::Handle handle = database->Search( crc ))
 			{
-				if (database->IsBad(handle) || database->MustFix(handle))
+				databaseHandle = handle;
+
+				switch (database->GetSystem(handle))
 				{
-					info.condition = Api::Cartridge::NO;
-					result = RESULT_WARN_BAD_DUMP;
-				}
-				else
-				{
-					info.condition = Api::Cartridge::YES;
+					case SYSTEM_VS:
+
+						info.setup.system = SYSTEM_VS;
+						info.setup.ppu = PPU_RP2C03B;
+						break;
+
+					case SYSTEM_PC10:
+
+						info.setup.system = SYSTEM_PC10;
+						info.setup.ppu = PPU_RP2C03B;
+						break;
 				}
 
 				if (database->Enabled())
 				{
-					info.mapper = database->Mapper(handle);
+					info.setup.mapper = database->Mapper(handle);
 
-					switch (database->GetSystem(handle))
-					{
-						case Api::Cartridge::SYSTEM_VS:
+					if (const dword wrkRam = database->WrkRam(handle))
+						info.setup.wrkRam = wrkRam;
 
-							info.system = Api::Cartridge::SYSTEM_VS;
-							break;
-
-						case Api::Cartridge::SYSTEM_PC10:
-
-							info.system = Api::Cartridge::SYSTEM_PC10;
-							break;
-					}
+					if (const dword wrkRamBacked = database->WrkRamBacked(handle))
+						info.setup.wrkRamBacked = wrkRamBacked;
 				}
 			}
 		}

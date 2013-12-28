@@ -177,10 +177,6 @@ namespace Nestopia
 			}
 		}
 
-		Paths::~Paths()
-		{
-		}
-
 		void Paths::Save(Configuration& cfg) const
 		{
 			for (uint i=0; i < NUM_DIRS; ++i)
@@ -192,7 +188,7 @@ namespace Nestopia
 			cfg["files screenshot format"] = Lut::screenShots[settings.screenShotFormat].cfg;
 		}
 
-		GenericString Paths::GetScreenShotExtension() const
+		const GenericString Paths::GetScreenShotExtension() const
 		{
 			switch (settings.screenShotFormat)
 			{
@@ -202,12 +198,15 @@ namespace Nestopia
 			}
 		}
 
+		const Path Paths::GetDirectory(Type type) const
+		{
+			return Application::Instance::GetFullPath( settings.dirs[type] );
+		}
+
 		void Paths::UpdateDirectory(const uint i)
 		{
-			const Path def( Application::Instance::GetExePath(Lut::dirs[i].def) );
-
+			Path def( Application::Instance::GetExePath(Lut::dirs[i].def) );
 			Path& dir = settings.dirs[Lut::dirs[i].type];
-
 			bool useDef;
 
 			if (dir.Length())
@@ -221,11 +220,13 @@ namespace Nestopia
 				useDef = true;
 			}
 
-			if (::GetFileAttributes( dir.Ptr() ) == INVALID_FILE_ATTRIBUTES)
+			def = Application::Instance::GetFullPath( dir );
+
+			if (::GetFileAttributes( def.Ptr() ) == INVALID_FILE_ATTRIBUTES)
 			{
-				if (useDef || User::Confirm( Resource::String(IDS_FILE_ASK_CREATE_DIR).Invoke(dir) ))
+				if (useDef || User::Confirm( Resource::String(IDS_FILE_ASK_CREATE_DIR).Invoke(def) ))
 				{
-					if (!::CreateDirectory( dir.Ptr(), NULL ))
+					if (!::CreateDirectory( def.Ptr(), NULL ))
 					{
 						if (useDef)
 							dir = Application::Instance::GetExePath().Directory();

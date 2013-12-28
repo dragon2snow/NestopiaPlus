@@ -33,20 +33,35 @@ namespace Nes
 		#pragma optimize("s", on)
 		#endif
 
+		Mapper232::Mapper232(Context& c)
+		:
+		Mapper  (c,c.attribute == ATR_BF9096 || c.attribute == ATR_BF9096_ALADDIN ? PROM_MAX_256K|CROM_MAX_8K|WRAM_NONE : PROM_MAX_256K|CROM_MAX_8K|WRAM_DEFAULT),
+		aladdin (c.attribute == ATR_BF9096_ALADDIN)
+		{}
+
 		void Mapper232::SubReset(bool)
 		{
-			Map( 0x9000U,          &Mapper232::Poke_9000 );
-			Map( 0xA000U, 0xFFFFU, &Mapper232::Poke_A000 );
+			Map( 0x8000U, 0xBFFFU, aladdin ? &Mapper232::Poke_8000_A : &Mapper232::Poke_8000 );
+			Map( 0xC000U, 0xFFFFU, &Mapper232::Poke_A000 );
 		}
 
 		#ifdef NST_PRAGMA_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
-		NES_POKE(Mapper232,9000)
+		void Mapper232::SwapBasePrg(uint base)
 		{
-			data = data >> 1 & 0xC;
-			prg.SwapBanks<SIZE_16K,0x0000U>( data | (prg.GetBank<SIZE_16K,0x0000U>() & 0x3), data | 0x3 );
+			prg.SwapBanks<SIZE_16K,0x0000U>( base | (prg.GetBank<SIZE_16K,0x0000U>() & 0x3), base | 0x3 );
+		}
+
+		NES_POKE(Mapper232,8000)
+		{
+			SwapBasePrg( (data & 0x8) | (data >> 2 & 0x4) );
+		}
+
+		NES_POKE(Mapper232,8000_A)
+		{
+			SwapBasePrg( data >> 1 & 0xC );
 		}
 
 		NES_POKE(Mapper232,A000)

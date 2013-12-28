@@ -127,6 +127,11 @@ namespace Nestopia
 			Set( Coordinates() - p );
 		}
 
+		void Generic::PositionProxy::BringBehind(HWND hOther) const
+		{
+			::SetWindowPos( hWnd, hOther, 0, 0, 0, 0, SWP_NOMOVE|SWP_NOSIZE|SWP_NOACTIVATE );
+		}
+
 		Generic::StyleProxy::operator long () const
 		{
 			return ::GetWindowLong( hWnd, ex ? GWL_EXSTYLE : GWL_STYLE ) & flags;
@@ -176,6 +181,11 @@ namespace Nestopia
 		ibool Generic::Focused() const
 		{
 			return hWnd && hWnd == ::GetFocus();
+		}
+
+		ibool Generic::Visible() const
+		{
+			return ::IsWindowVisible( hWnd );
 		}
 
 		ibool Generic::Enable(ibool enable) const

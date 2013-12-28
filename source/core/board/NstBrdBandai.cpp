@@ -602,45 +602,13 @@ namespace Nes
 				}
 			};
 
-			bool Bandai::HasEEPROM(const uint size,const Type type,const dword crc)
-			{
-				if (type == TYPE_A)
-				{
-					switch (crc)
-					{
-						case 0x2E991109UL: // Dragon Ball Z Gaiden - Saiya Jin Zetsumetsu Keikaku
-						case 0x9C3457E0UL: // -||-
-						case 0xE49FC53EUL: // Dragon Ball Z 2 - Gekishin Freeza!!
-						case 0x4DC67A94UL: // -||-
-						case 0x4710C295UL: // -||-
-						case 0xEEC199D4UL: // -||-
-						case 0x7B1730A9UL: // -||-
-						case 0x1D6F27F7UL: // -||-
-						case 0x1582FEE0UL: // -||- redump
-						case 0x09499F4DUL: // Dragon Ball Z 3 - Ressen Jinzou Ningen
-						case 0xBD064C82UL: // -||-
-						case 0xC196AC58UL: // -||-
-						case 0x170250DEUL: // Rokudenashi Blues
-						case 0x73AC76DBUL: // SD Gundam Gaiden - Knight Gundam Monogatari 2 - Hikari no Kishi
-						case 0x81A15EB8UL: // SD Gundam Gaiden - Knight Gundam Monogatari 3 - Densetsu no Kishi Dan
-							return (size == 256);
-					}
-
-					return (size == 128);
-				}
-				else
-				{
-					return (type == TYPE_C);
-				}
-			}
-
 			Bandai::Bandai(Context& c,const Type t)
 			:
-			Mapper (c,t == TYPE_B ? WRAM_AUTO : WRAM_NONE),
+			Mapper (c,t == TYPE_WRAM ? CROM_MAX_256K : CROM_MAX_256K|WRAM_DEFAULT),
 			irq    (c.cpu),
-			datach (t == TYPE_C ? new DatachJointSystem(c.cpu) : NULL),
-			e24C01 (HasEEPROM( 128, t, c.prgCrc ) ? new E24C0X<128> : NULL),
-			e24C02 (HasEEPROM( 256, t, c.prgCrc ) ? new E24C0X<256> : NULL),
+			datach (t == TYPE_DATACH ? new DatachJointSystem(c.cpu) : NULL),
+			e24C01 (t == TYPE_DATACH || t == TYPE_E2401 ? new E24C0X<128> : NULL),
+			e24C02 (t == TYPE_DATACH || t == TYPE_E2402 ? new E24C0X<256> : NULL),
 			type   (t)
 			{
 				if (e24C01 || e24C02)
@@ -673,8 +641,7 @@ namespace Nes
 				{
 					try
 					{
-						std::vector<u8> data;
-						data.resize( (e24C01 ? 128 : 0) + (e24C02 ? 256 : 0) );
+						std::vector<u8> data( (e24C01 ? 128 : 0) + (e24C02 ? 256 : 0) );
 
 						bool altered = false;
 
@@ -698,12 +665,16 @@ namespace Nes
 				delete datach;
 			}
 
-			Bandai::Device Bandai::QueryDevice(DeviceType type)
+			Bandai::Device Bandai::QueryDevice(DeviceType devType)
 			{
-				if (type == DEVICE_BARCODE_READER && datach)
+				if (devType == DEVICE_BARCODE_READER && datach)
+				{
 					return datach;
+				}
 				else
-					return Mapper::QueryDevice( type );
+				{
+					return Mapper::QueryDevice( devType );
+				}
 			}
 
 			void Bandai::Irq::Reset(const bool hard)
@@ -730,7 +701,8 @@ namespace Nes
 
 				switch (type)
 				{
-					case TYPE_A:
+					case TYPE_E2401:
+					case TYPE_E2402:
 
 						for (dword i=0x6000U; i <= 0x7FFFU; i += 0x100)
 							Map( i, e24C01 ? &Bandai::Peek_6000_A1 : &Bandai::Peek_6000_A2 );
@@ -745,7 +717,7 @@ namespace Nes
 							Map( i + 0x5, CHR_SWAP_1K_5      );
 							Map( i + 0x6, CHR_SWAP_1K_6      );
 							Map( i + 0x7, CHR_SWAP_1K_7      );
-							Map( i + 0x8, PRG_SWAP_16K       );
+							Map( i + 0x8, PRG_SWAP_16K_0     );
 							Map( i + 0x9, NMT_SWAP_VH01      );
 							Map( i + 0xA, &Bandai::Poke_800A );
 							Map( i + 0xB, &Bandai::Poke_800B );
@@ -754,7 +726,7 @@ namespace Nes
 						}
 						break;
 
-					case TYPE_B:
+					case TYPE_WRAM:
 
 						for (dword i=0x8000U; i <= 0xFFFFU; i += 0x10)
 						{
@@ -767,7 +739,7 @@ namespace Nes
 						}
 						break;
 
-					case TYPE_C:
+					case TYPE_DATACH:
 
 						for (dword i=0x6000U; i <= 0x7FFFU; i += 0x100)
 							Map( i, &Bandai::Peek_6000_C );
@@ -775,7 +747,7 @@ namespace Nes
 						for (dword i=0x6000U; i <= 0xFFFFU; i += 0x10)
 						{
 							Map( i + 0x0, i + 0x7, &Bandai::Poke_8000_C );
-							Map( i + 0x8,          PRG_SWAP_16K         );
+							Map( i + 0x8,          PRG_SWAP_16K_0       );
 							Map( i + 0x9,          NMT_SWAP_VH01        );
 							Map( i + 0xA,          &Bandai::Poke_800A   );
 							Map( i + 0xB,          &Bandai::Poke_800B   );
@@ -808,6 +780,8 @@ namespace Nes
 
 							case NES_STATE_CHUNK_ID('B','R','C','\0'):
 
+								NST_VERIFY( datach );
+
 								if (datach)
 									datach->LoadState( State::Loader::Subset(state).Ref() );
 
@@ -815,12 +789,16 @@ namespace Nes
 
 							case NES_STATE_CHUNK_ID('C','0','1','\0'):
 
+								NST_VERIFY( e24C01 );
+
 								if (e24C01)
 									e24C01->LoadState( State::Loader::Subset(state).Ref() );
 
 								break;
 
 							case NES_STATE_CHUNK_ID('C','0','2','\0'):
+
+								NST_VERIFY( e24C02 );
 
 								if (e24C02)
 									e24C02->LoadState( State::Loader::Subset(state).Ref() );

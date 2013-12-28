@@ -164,7 +164,7 @@ namespace Nes
 			}
 			else
 			{
-				UpdatePrg();
+				Mapper217::UpdatePrg();
 			}
 		}
 
@@ -173,7 +173,7 @@ namespace Nes
 			if (exRegs[1] != data)
 			{
 				exRegs[1] = data;
-				UpdatePrg();
+				Mapper217::UpdatePrg();
 			}
 		}
 
@@ -219,14 +219,14 @@ namespace Nes
 			}
 			else
 			{
-				NES_CALL_POKE(Mmc3,Nmt_Hv,0xA000U,data);
+				SetMirroringHV( data );
 			}
 		}
 
 		NES_POKE(Mapper217,A001)
 		{
 			if (exRegs[2])
-				NES_CALL_POKE(Mmc3,Nmt_Hv,0xA000U,data);
+				SetMirroringHV( data );
 			else
 				NES_CALL_POKE(Mmc3,A001,0xA001U,data);
 		}

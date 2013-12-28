@@ -35,7 +35,7 @@ namespace Nes
 
 		void Mapper2::SubReset(bool)
 		{
-			Map( 0x8000U, 0xFFFFU, PRG_SWAP_16K );
+			Map( 0x8000U, 0xFFFFU, PRG_SWAP_16K_0 );
 		}
 
 		#ifdef NST_PRAGMA_OPTIMIZE

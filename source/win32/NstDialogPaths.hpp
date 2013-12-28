@@ -75,10 +75,10 @@ namespace Nestopia
 			};
 
 			explicit Paths(const Configuration&);
-			~Paths();
 
 			void Save(Configuration&) const;
-			GenericString GetScreenShotExtension() const;
+			const GenericString GetScreenShotExtension() const;
+			const Path GetDirectory(Type) const;
 
 		private:
 
@@ -118,11 +118,6 @@ namespace Nestopia
 			void Open()
 			{
 				dialog.Open();
-			}
-
-			const Path& GetDirectory(Type type) const
-			{
-				return settings.dirs[type];
 			}
 
 			ibool GetSetting(uint flag) const

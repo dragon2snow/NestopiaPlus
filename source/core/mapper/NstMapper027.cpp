@@ -36,7 +36,10 @@ namespace Nes
 		#endif
 
 		Mapper27::Mapper27(Context& c)
-		: Mapper(c), irq(c.cpu) {}
+		: 
+		Mapper (c,WRAM_DEFAULT), 
+		irq    (c.cpu) 
+		{}
 
 		void Mapper27::SubReset(const bool hard)
 		{

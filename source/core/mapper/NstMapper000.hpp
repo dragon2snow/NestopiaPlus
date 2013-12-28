@@ -44,6 +44,11 @@ namespace Nes
 
 			class CartSwitch;
 
+			enum
+			{
+				ATR_BACKUP_SWITCH = 1
+			};
+
 			void SubReset(bool);
 			void Flush(bool);
 			Device QueryDevice(DeviceType);

@@ -35,7 +35,10 @@ namespace Nes
 		#endif
 
 		Mapper56::Mapper56(Context& c)
-		: Mapper(c,WRAM_8K), irq(c.cpu) {}
+		:
+		Mapper (c,PROM_MAX_256K|CROM_MAX_256K),
+		irq    (c.cpu)
+		{}
 
 		void Mapper56::Irq::Reset(const bool hard)
 		{

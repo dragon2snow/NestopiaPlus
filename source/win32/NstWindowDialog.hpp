@@ -62,7 +62,8 @@ namespace Nestopia
 			enum Type
 			{
 				MODAL,
-				MODELESS
+				MODELESS_CHILD,
+				MODELESS_FREE
 			};
 
 			INT_PTR Open(Type=MODAL);
@@ -70,6 +71,8 @@ namespace Nestopia
 			void SetItemIcon(uint,uint) const;
 
 		private:
+
+			class NoTaskbarWindow;
 
 			typedef Collection::Vector<Dialog*> Instances;
 
@@ -83,6 +86,7 @@ namespace Nestopia
 
 			MsgHandler cmdHandler;
 			const uint id;
+			const NoTaskbarWindow* noTaskbarWindow;
 
 			class ModelessDialogs
 			{

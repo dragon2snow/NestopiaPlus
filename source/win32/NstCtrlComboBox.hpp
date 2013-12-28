@@ -66,6 +66,7 @@ namespace Nestopia
 					Item(Window::Generic w,int i)
 					: control(w), index(i) {}
 
+					void Erase() const;
 					void Select() const;
 
 					int GetIndex() const
@@ -92,6 +93,7 @@ namespace Nestopia
 				ComboBox(HWND hWnd,uint id)
 				: Generic( hWnd, id ) {}
 
+				void Reserve(uint,uint) const;
 				Item Add(tstring) const;
 				void Clear() const;
 				Item Selection() const;
@@ -100,6 +102,11 @@ namespace Nestopia
 				Item operator [] (uint i) const
 				{
 					return Item( control, i );
+				}
+
+				Item Back() const
+				{
+					return Item( control, Size() - 1 );
 				}
 
 				template<typename T>

@@ -35,8 +35,8 @@ namespace Nes
 
 		void Mapper201::SubReset(bool)
 		{
-			NES_CALL_POKE(Mapper201,Prg,0x8000U,0x00);
 			Map( 0x8000U, 0xFFFFU, &Mapper201::Poke_Prg );
+			NES_CALL_POKE(Mapper201,Prg,0x8000U,0x00);
 		}
 
 		#ifdef NST_PRAGMA_OPTIMIZE
@@ -46,10 +46,8 @@ namespace Nes
 		NES_POKE(Mapper201,Prg)
 		{
 			ppu.Update();
-
-			const uint bank = address & 0x3;
-			prg.SwapBank<SIZE_32K,0x0000U>( bank );
-			chr.SwapBank<SIZE_8K,0x0000U>( bank );
+			prg.SwapBank<SIZE_32K,0x0000U>( address );
+			chr.SwapBank<SIZE_8K,0x0000U>( address );
 		}
 	}
 }

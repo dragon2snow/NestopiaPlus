@@ -46,7 +46,7 @@ namespace Nes
 				if (type == TYPE_D && !chr.Source().Writable())
 					chr.SwapBank<SIZE_4K,0x1000U>( ~0U );
 
-				for (uint i=0x4100U; i < 0x6000U; i += 0x200)
+				for (uint i=0x4100U; i < 0x8000U; i += 0x200)
 				{
 					for (uint j=0; j < 0x100; j += 0x2)
 					{
@@ -84,43 +84,6 @@ namespace Nes
 			#pragma optimize("", on)
 			#endif
 
-			void S8259::UpdateChr() const
-			{
-				for (uint i=0; i < 4; ++i)
-				{
-					uint bank;
-
-					if (type == TYPE_D)
-					{
-						bank = regs[i] & 0x7;
-
-						switch (i & 3)
-						{
-							case 01: bank |= (regs[4] & 0x1) << 4; break;
-							case 02: bank |= (regs[4] & 0x2) << 3; break;
-							case 03: bank |= ((regs[4] & 0x4) << 2) | ((regs[6] & 0x1) << 3); break;
-						}
-
-						chr.SwapBank<SIZE_1K>( i << 10, bank );
-					}
-					else
-					{
-						bank = (regs[(regs[7] & 0x1) ? 0 : i] & 0x7) | ((regs[4] & 0x7) << 3);
-
-						if (type == TYPE_A)
-						{
-							bank = (bank << 1) | (i & 0x1);
-						}
-						else if (type == TYPE_C)
-						{
-							bank = (bank << 2) | (i & 0x3);
-						}
-
-						chr.SwapBank<SIZE_2K>( i << 11, bank );
-					}
-				}
-			}
-
 			NES_POKE(S8259,4100)
 			{
 				ctrl = data;
@@ -135,7 +98,7 @@ namespace Nes
 					case 0x5:
 
 						prg.SwapBank<SIZE_32K,0x0000U>( data );
-						return;
+						break;
 
 					case 0x7:
 					{
@@ -147,17 +110,41 @@ namespace Nes
 							{0,0,0,0}
 						};
 
-						ppu.SetMirroring( lut[(data >> 1) & 0x3] );
+						ppu.SetMirroring( lut[(data & 0x1) ? 0 : (data >> 1 & 0x3)] );
 					}
 
 					default:
 
-						ppu.Update();
+						if (!chr.Source().Writable())
+						{
+							ppu.Update();
+
+							if (type == TYPE_D)
+							{
+								chr.SwapBanks<SIZE_1K,0x0000U>
+								(
+									(regs[0] & 0x07),
+									(regs[1] & 0x07) | (regs[4] << 4 & 0x10),
+									(regs[2] & 0x07) | (regs[4] << 3 & 0x10),
+									(regs[3] & 0x07) | (regs[4] << 2 & 0x10) | (regs[6] << 3 & 0x08)
+								);
+							}
+							else
+							{
+								const uint h = regs[4] << 3 & 0x38;
+								const uint s = (type == TYPE_A ? 1 : type == TYPE_C ? 2 : 0);
+
+								chr.SwapBanks<SIZE_2K,0x0000U>
+								(
+									(regs[(regs[7] & 0x1) ? 0 : 0] & 0x07 | h) << s,
+									(regs[(regs[7] & 0x1) ? 0 : 1] & 0x07 | h) << s | (type != TYPE_B ? 1 : 0),
+									(regs[(regs[7] & 0x1) ? 0 : 2] & 0x07 | h) << s | (type == TYPE_C ? 2 : 0),
+									(regs[(regs[7] & 0x1) ? 0 : 3] & 0x07 | h) << s | (type == TYPE_A ? 1 : type == TYPE_C ? 3 : 0)
+								);
+							}
+						}
 						break;
 				}
-
-				if (!chr.Source().Writable())
-					UpdateChr();
 			}
 		}
 	}

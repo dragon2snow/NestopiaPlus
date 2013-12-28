@@ -47,7 +47,6 @@ namespace Nestopia
 				Input();
 				explicit Input(const File&);
 				explicit Input(Collection::Buffer&); // invalidates input vector
-				~Input();
 
 				Input& operator = (const File&);
 				Input& operator = (Collection::Buffer&); // invalidates input vector
@@ -101,7 +100,6 @@ namespace Nestopia
 				Output();
 				explicit Output(const File&);
 				explicit Output(Collection::Buffer&); // Invalidates input vector
-				~Output();
 
 				Output& operator = (const File&);
 				Output& operator = (Collection::Buffer&); // invalidates input vector

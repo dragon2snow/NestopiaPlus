@@ -36,39 +36,48 @@ namespace Nes
 			#pragma optimize("s", on)
 			#endif
 
-			Sound::Player* Jaleco::DetectSound(dword crc,Cpu& cpu)
+			Sound::Player* Jaleco::DetectSound(Type type,uint attribute,Cpu& cpu)
 			{
-				switch (crc)
+				switch (type)
 				{
-					case 0xDB53A88DUL:
-					case 0x93B9B15CUL:
-					case 0xE30B210EUL:
-					case 0xE374C3E7UL:
+					case TYPE_0:
 
-						return Sound::Player::Create
-						(
-							cpu,
-							Sound::Loader::MOERO_PRO_YAKYUU,
-							Sound::Loader::MOERO_PRO_YAKYUU_SAMPLES
-						);
+						if (attribute == ATR_TYPE_0_SAMPLES_MPT)
+						{
+							return Sound::Player::Create
+							(
+								cpu,
+								Sound::Loader::MOERO_PRO_TENNIS,
+								Sound::Loader::MOERO_PRO_TENNIS_SAMPLES
+							);
+						}
+						break;
 
-					case 0x9F50A100UL:
+					case TYPE_1:
 
-						return Sound::Player::Create
-						(
-							cpu,
-							Sound::Loader::MOERO_PRO_YAKYUU_88,
-							Sound::Loader::MOERO_PRO_YAKYUU_88_SAMPLES
-						);
+						if (attribute == ATR_TYPE_1_SAMPLES_MPY88K)
+						{
+							return Sound::Player::Create
+							(
+								cpu,
+								Sound::Loader::MOERO_PRO_YAKYUU_88,
+								Sound::Loader::MOERO_PRO_YAKYUU_88_SAMPLES
+							);
+						}
+						break;
 
-					case 0x598A7398UL:
+					case TYPE_2:
 
-						return Sound::Player::Create
-						(
-							cpu,
-							Sound::Loader::MOERO_PRO_TENNIS,
-							Sound::Loader::MOERO_PRO_TENNIS_SAMPLES
-						);
+						if (attribute == ATR_TYPE_2_SAMPLES_MPY)
+						{
+							return Sound::Player::Create
+							(
+								cpu,
+								Sound::Loader::MOERO_PRO_YAKYUU,
+								Sound::Loader::MOERO_PRO_YAKYUU_SAMPLES
+							);
+						}
+						break;
 				}
 
 				return NULL;
@@ -76,9 +85,9 @@ namespace Nes
 
 			Jaleco::Jaleco(Context& c,Type t)
 			:
-			Mapper    (c),
+			Mapper    (c,WRAM_DEFAULT),
 			prgOffset (t == TYPE_1 ? 0x4000U : 0x0000U),
-			sound     (DetectSound(c.prgCrc,c.cpu)),
+			sound     (DetectSound(t,c.attribute,c.cpu)),
 			type      (t)
 			{
 			}

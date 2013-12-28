@@ -45,6 +45,25 @@ namespace Nes
 			Api::Cartridge::MIRROR_CONTROLLED == 5
 		);
 
+		const u32 ImageDatabase::ramLut[16] =
+		{
+			0,
+			128,
+			256,
+			512,
+			SIZE_1K,
+			SIZE_2K,
+			SIZE_4K,
+			SIZE_8K,
+			SIZE_16K,
+			SIZE_32K,
+			SIZE_64K,
+			SIZE_128K,
+			SIZE_256K,
+			SIZE_512K,
+			SIZE_1024K
+		};
+
 		ImageDatabase::ImageDatabase()
 		:
 		enabled    (true),
@@ -77,17 +96,19 @@ namespace Nes
 
 				for (Ref const end = it + numEntries; it != end; ++it)
 				{
-					u8 data[12];
+					u8 data[14];
 					stream.Read( data );
 
-					it->crc     = data[0] | (data[1] << 8) | (data[2] << 16) | (data[3] << 24);
-					it->prgSize = data[4];
-					it->prgSkip = data[5];
-					it->chrSize = data[6];
-					it->chrSkip = data[7];
-					it->wrkSize = data[8];
-					it->mapper  = data[9];
-					it->flags   = data[10] | (data[11] << 8);
+					it->crc       = data[0] | (data[1] << 8) | (data[2] << 16) | (data[3] << 24);
+					it->prgSize   = data[4];
+					it->prgSkip   = data[5];
+					it->chrSize   = data[6];
+					it->chrSkip   = data[7];
+					it->wrkSize   = data[8];
+					it->mapper    = data[9];
+					it->attribute = data[10];
+					it->input     = data[11];
+					it->flags     = data[12] | (data[13] << 8);
 				}
 
 				return RESULT_OK;
@@ -117,7 +138,7 @@ namespace Nes
 			entries = NULL;
 		}
 
-		ImageDatabase::Handle ImageDatabase::GetHandle(const dword crc) const
+		ImageDatabase::Handle ImageDatabase::Search(const dword crc) const
 		{
 			if (Ref entry = entries)
 			{
@@ -131,30 +152,68 @@ namespace Nes
 			return NULL;
 		}
 
-		Api::Cartridge::System ImageDatabase::GetSystem(Handle h) const
+		dword ImageDatabase::WrkRam(Handle h) const
+		{
+			return ramLut[static_cast<Ref>(h)->wrkSize >> 4];
+		}
+
+		dword ImageDatabase::WrkRamBacked(Handle h) const
+		{
+			return ramLut[static_cast<Ref>(h)->wrkSize & 0xF];
+		}
+
+		dword ImageDatabase::ChrRam(Handle h) const
+		{
+			return static_cast<Ref>(h)->chrSize ? 0 : SIZE_8K;
+		}
+
+		System ImageDatabase::GetSystem(Handle h) const
 		{
 			const uint flags = static_cast<Ref>(h)->flags;
 
-			Api::Cartridge::System system;
-
-			if (flags & Entry::FLAGS_P10)
+			if (flags & Entry::FLAGS_VS)
 			{
-				system = Api::Cartridge::SYSTEM_PC10;
+				return SYSTEM_VS;
 			}
-			else if (flags & Entry::FLAGS_VS)
+			else if (flags & Entry::FLAGS_P10)
 			{
-				system = Api::Cartridge::SYSTEM_VS;
-			}
-			else if (flags & Entry::FLAGS_PAL)
-			{
-				system = (flags & Entry::FLAGS_NTSC) ? Api::Cartridge::SYSTEM_NTSC_PAL : Api::Cartridge::SYSTEM_PAL;
+				return SYSTEM_PC10;
 			}
 			else
 			{
-				system = Api::Cartridge::SYSTEM_NTSC;
+				return SYSTEM_HOME;
 			}
+		}
 
-			return system;
+		Region ImageDatabase::GetRegion(Handle h) const
+		{
+			switch (static_cast<Ref>(h)->flags & (Entry::FLAGS_NTSC|Entry::FLAGS_PAL))
+			{
+				case (Entry::FLAGS_NTSC|Entry::FLAGS_PAL):
+					return REGION_BOTH;
+
+				case Entry::FLAGS_PAL:
+					return REGION_PAL;
+
+				default:
+					return REGION_NTSC;
+			}
+		}
+
+		Api::Cartridge::Condition ImageDatabase::Condition(Handle h) const
+		{
+			if (static_cast<Ref>(h)->flags & Entry::FLAGS_BAD)
+			{
+				return Api::Cartridge::DUMP_BAD;
+			}
+			else if ((static_cast<Ref>(h)->prgSkip | static_cast<Ref>(h)->chrSkip) && !(static_cast<Ref>(h)->flags & Entry::FLAGS_P10))
+			{
+				return Api::Cartridge::DUMP_REPAIRABLE;
+			}
+			else
+			{
+				return Api::Cartridge::DUMP_OK;
+			}
 		}
 	}
 }

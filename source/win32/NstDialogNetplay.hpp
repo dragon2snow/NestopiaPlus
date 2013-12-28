@@ -44,7 +44,6 @@ namespace Nestopia
 		public:
 
 			Netplay(Managers::Emulator&,const Managers::Paths&,ibool);
-			~Netplay();
 
 			void SaveFile() const;
 

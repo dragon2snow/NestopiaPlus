@@ -45,6 +45,8 @@ namespace Nes
 					TYPE_B
 				};
 
+				TaitoX(Context&,Type);
+
 			private:
 
 				void SubReset(bool);
@@ -56,11 +58,6 @@ namespace Nes
 				NES_DECL_POKE( 7EF1_1 )
 
 				const Type type;
-
-			protected:
-
-				TaitoX(Context& c,Type t)
-				: Mapper(c), type(t) {}
 			};
 		}
 	}

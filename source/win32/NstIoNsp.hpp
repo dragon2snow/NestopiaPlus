@@ -46,7 +46,6 @@ namespace Nestopia
 			struct Context
 			{
 				Context();
-				~Context();
 
 				void Reset();
 

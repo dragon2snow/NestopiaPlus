@@ -38,8 +38,29 @@ namespace Nes
 			Mmc3::Irq::Irq(Cpu& cpu,Ppu& ppu,IrqDelay delay,bool persistant)
 			: Clock::A12<BaseIrq>(cpu,ppu,SIGNAL_DURATION,delay,persistant) {}
 
-			Mmc3::Mmc3(Context& c,const uint settings,const Revision revision)
-			: Mapper(c,settings), irq(c.cpu,c.ppu,Irq::NO_IRQ_DELAY,revision != REV_A)
+			uint Mmc3::BoardToWRam(Board board,uint settings)
+			{
+				switch (board)
+				{
+					case BRD_GENERIC:
+
+						return settings;
+
+					case BRD_TKROM:
+					case BRD_TSROM:
+
+						return (settings & ~uint(WRAM_SETTINGS)) | WRAM_8K;
+
+					default:
+
+						return (settings & ~uint(WRAM_SETTINGS)) | WRAM_NONE;
+				}
+			}
+
+			Mmc3::Mmc3(Context& c,Board b,uint settings,Revision revision)
+			:
+			Mapper (c,BoardToWRam(b,settings)),
+			irq    (c.cpu,c.ppu,Irq::NO_IRQ_DELAY,revision != REV_A)
 			{
 			}
 
@@ -103,8 +124,8 @@ namespace Nes
 						Map( i, NMT_SWAP_HV );
 				}
 
-				if (wrk.HasRam())
-					Map( WRK_PEEK_POKE_BUS );
+				if (wrk.RamSize() >= SIZE_8K)
+					Map( WRK_SAFE_PEEK_POKE );
 
 				UpdatePrg();
 				UpdateChr();
@@ -213,7 +234,7 @@ namespace Nes
 				if (diff & Regs::CTRL0_XOR_PRG)
 					UpdatePrg();
 
-				if (diff & (Regs::CTRL0_XOR_CHR|Regs::CTRL0_MODE))
+				if (diff & Regs::CTRL0_XOR_CHR)
 					UpdateChr();
 			}
 

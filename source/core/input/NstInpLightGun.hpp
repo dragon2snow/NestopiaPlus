@@ -46,7 +46,7 @@ namespace Nes
 			private:
 
 				void Reset();
-				void Initialize(dword);
+				void Initialize(bool);
 				uint Poll();
 				void Poke(uint);
 				uint Peek(uint);
@@ -56,23 +56,18 @@ namespace Nes
 
 				enum
 				{
-					PHOSPHOR_DECAY = 384
+					PHOSPHOR_DECAY = 384,
+					LIGHT_SENSOR = 0x40
 				};
 
-				enum Patch
-				{
-					PATCH_NORMAL,
-					PATCH_VS
-				};
-
-				Patch patch;
+				ibool arcade;
 				uint stream;
 				uint shifter;
 				uint pos;
 				uint fire;
 				Ppu& ppu;
 
-				static const u8 lightMap[64];
+				static const u8 lightMap[Video::Screen::PALETTE];
 			};
 		}
 	}

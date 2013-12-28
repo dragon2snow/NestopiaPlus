@@ -26,6 +26,7 @@
 #pragma comment(lib,"comctl32")
 #endif
 
+#include <clocale>
 #include "NstResourceCursor.hpp"
 #include "NstResourceVersion.hpp"
 #include "NstApplicationException.hpp"
@@ -51,7 +52,8 @@ namespace Nestopia
 			{
 				Paths(HINSTANCE);
 
-				Path path;
+				Path exePath;
+				Path wrkPath;
 			};
 
 			struct Hooks
@@ -92,14 +94,18 @@ namespace Nestopia
 
 			do
 			{
-				path.Reserve( path.Capacity() + 255 );
-				length = ::GetModuleFileName( hInstance, path.Ptr(), path.Capacity() );
+				exePath.Reserve( exePath.Capacity() + 255 );
+				length = ::GetModuleFileName( hInstance, exePath.Ptr(), exePath.Capacity() );
 			}
-			while (length == path.Capacity());
+			while (length == exePath.Capacity());
 
-			path.ShrinkTo( length );
-			path.MakePretty();
-			path.Defrag();
+			exePath.ShrinkTo( length );
+			exePath.MakePretty( false );
+			exePath.Defrag();
+
+			wrkPath = ".";
+			wrkPath.MakeAbsolute( true );
+			wrkPath.Defrag();
 		}
 
 		Instance::Global::Hooks::Hooks(HINSTANCE const hInstance)
@@ -224,7 +230,7 @@ namespace Nestopia
 		Instance::Global::Global()
 		:
 		paths     ( ::GetModuleHandle(NULL) ),
-		version   ( paths.path.Ptr(), Resource::Version::PRODUCT ),
+		version   ( paths.exePath.Ptr(), Resource::Version::PRODUCT ),
 		hooks     ( ::GetModuleHandle(NULL) ),
 		iconStyle ( ICONSTYLE_NES )
 		{
@@ -242,12 +248,28 @@ namespace Nestopia
 
 		const Path& Instance::GetExePath()
 		{
-			return global.paths.path;
+			return global.paths.exePath;
 		}
 
 		const Path Instance::GetExePath(const GenericString file)
 		{
-			return Path( global.paths.path.Directory(), file );
+			return Path( global.paths.exePath.Directory(), file );
+		}
+
+		const Path Instance::GetFullPath(const GenericString relPath)
+		{
+			Path curPath( "." );
+			curPath.MakeAbsolute( true );
+
+			const BOOL succeeded = ::SetCurrentDirectory( global.paths.wrkPath.Ptr() );
+
+			Path wrkPath( relPath );
+			wrkPath.MakeAbsolute();
+
+			if (succeeded)
+				::SetCurrentDirectory( curPath.Ptr() );
+
+			return wrkPath;
 		}
 
 		const Path Instance::GetLongPath(tstring const shortPath)
@@ -399,8 +421,8 @@ namespace Nestopia
 
 		Instance::Instance()
 		{
-			if (global.paths.path.Empty())
-				throw Exception(_T("::GetModuleFileName() failed!"));
+			if (global.paths.exePath.Empty())
+				throw Exception(_T("unicows.dll file is missing!"));
 
 			if (global.hooks.handle == NULL)
 				throw Exception(_T("SetWindowsHookEx() failed!"));

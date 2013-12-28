@@ -28,13 +28,14 @@
 
 #include "NstIoLog.hpp"
 #include "NstDirectSound.hpp"
+#include <Shlwapi.h>
 
 namespace Nestopia
 {
 	namespace DirectX
 	{
 		DirectSound::Settings::Settings(HWND h)
-		: hWnd(h), deviceId(0), priority(false) {}
+		: hWnd(h), deviceId(0), priority(false), buggyDriver(false) {}
 
 		DirectSound::DirectSound(HWND const hWnd)
 		: settings( hWnd )
@@ -43,6 +44,16 @@ namespace Nestopia
 
 			if (FAILED(::DirectSoundEnumerate( EnumAdapter, &adapters )) || adapters.empty())
 				EnumAdapter( NULL, _T("Primary Sound Driver"), NULL, &adapters );
+
+			for (Adapters::const_iterator it(adapters.begin()), end(adapters.end()); it != end; ++it)
+			{
+				if (::StrStrI( it->name.Ptr(), _T("E-DSP Wave") ))
+				{
+					settings.buggyDriver = true;
+					Io::Log() << "DirectSound: warning, possibly buggy drivers!! activating stupid-mode..\r\n";
+					break;
+				}
+			}
 		}
 
 		DirectSound::~DirectSound()
@@ -90,8 +101,9 @@ namespace Nestopia
 			const uint rate,
 			const uint bits,
 			const Channels channels,
-			const uint speed,
-			const uint latency
+			const uint latency,
+			const Pool pool,
+			const ibool globalFocus
 		)
 		{
 			NST_ASSERT( deviceId < adapters.size() );
@@ -121,7 +133,7 @@ namespace Nestopia
 				}
 			}
 
-			if (tstring errMsg = buffer.Update( **device, settings.priority, rate, bits, channels, speed, latency ))
+			if (tstring errMsg = buffer.Update( **device, settings.priority, rate, bits, channels, latency, pool, globalFocus ))
 			{
 				Destroy();
 				return errMsg;
@@ -130,13 +142,8 @@ namespace Nestopia
 			return NULL;
 		}
 
-		tstring DirectSound::UpdateSpeed(const uint speed,const uint latency)
-		{
-			return buffer.UpdateSpeed( **device, settings.priority, speed, latency );
-		}
-
 		DirectSound::Buffer::Settings::Settings()
-		: size(0) {}
+		: size(0), pool(POOL_HARDWARE), globalFocus(false) {}
 
 		DirectSound::Buffer::Buffer()
 		: writeOffset(0)
@@ -158,7 +165,7 @@ namespace Nestopia
 			}
 		}
 
-		tstring DirectSound::Buffer::Create(IDirectSound8& device,const ibool priority)
+		tstring DirectSound::Buffer::Create(IDirectSound8& device,const bool priority)
 		{
 			Release();
 
@@ -188,43 +195,57 @@ namespace Nestopia
 
 			desc.Clear();
 			desc.dwSize = sizeof(desc);
-			desc.dwFlags = DSBCAPS_LOCSOFTWARE|DSBCAPS_GETCURRENTPOSITION2|DSBCAPS_GLOBALFOCUS;
-			desc.dwBufferBytes = settings.size * 2;
+			desc.dwFlags = DSBCAPS_GETCURRENTPOSITION2;
+
+			if (settings.globalFocus)
+				desc.dwFlags |= DSBCAPS_GLOBALFOCUS;
+
+			if (settings.pool == POOL_SYSTEM)
+				desc.dwFlags |= DSBCAPS_LOCSOFTWARE;
+
+			desc.dwBufferBytes = settings.size;
 			desc.lpwfxFormat = &waveFormat;
 
-			ComInterface<IDirectSoundBuffer> oldie;
+			ComInterface<IDirectSoundBuffer> oldCom;
 
-			if (FAILED(device.CreateSoundBuffer( &desc, &oldie, NULL )))
-				return _T("IDirectSound8::CreateSoundBuffer() failed! Sound will be disabled!");
+			if (FAILED(device.CreateSoundBuffer( &desc, &oldCom, NULL )))
+			{
+				if (!(desc.dwFlags & DSBCAPS_LOCSOFTWARE))
+				{
+					desc.dwFlags |= DSBCAPS_LOCSOFTWARE;
 
-			if (FAILED(oldie->QueryInterface( IID_IDirectSoundBuffer8, reinterpret_cast<void**>(&com) )))
+					static bool logged = false;
+
+					if (logged == false)
+					{
+						logged = true;
+						Io::Log() << "DirectSound: warning, couldn't create the sound buffer! Retrying with software buffers..\r\n";
+					}
+
+					if (FAILED(device.CreateSoundBuffer( &desc, &oldCom, NULL )))
+						return _T("IDirectSound8::CreateSoundBuffer() failed! Sound will be disabled!");
+				}
+			}
+
+			if (FAILED(oldCom->QueryInterface( IID_IDirectSoundBuffer8, reinterpret_cast<void**>(&com) )))
 				return _T("IDirectSoundBuffer::QueryInterface() failed! Sound will be disabled!");
 
 			return NULL;
 		}
 
-		uint DirectSound::Buffer::CalculateSize(uint rate,uint block,uint speed,uint latency)
-		{
-			uint size = rate * block * latency / speed;
-
-			if (size % block)
-				size += block - size % block;
-
-			return size;
-		}
-
 		tstring DirectSound::Buffer::Update
 		(
 			IDirectSound8& device,
-			const ibool priority,
+			const bool priority,
 			const uint rate,
 			const uint bits,
 			const Channels channels,
-			const uint speed,
-			const uint latency
+			const uint latency,
+			const Pool pool,
+			const bool globalFocus
 		)
 		{
-			const uint size = CalculateSize( rate, bits / 8 * channels, speed, latency );
+			const uint size = rate * latency / 1000 * (bits / 8 * channels);
 
 			if
 			(
@@ -232,7 +253,9 @@ namespace Nestopia
 				waveFormat.nSamplesPerSec == rate &&
 				waveFormat.wBitsPerSample == bits &&
 				waveFormat.nChannels == channels &&
-				settings.size == size
+				settings.size == size &&
+				settings.pool == pool &&
+				bool(settings.globalFocus) == globalFocus
 			)
 				return NULL;
 
@@ -243,27 +266,10 @@ namespace Nestopia
 			waveFormat.nAvgBytesPerSec = waveFormat.nSamplesPerSec * waveFormat.nBlockAlign;
 
 			settings.size = size;
+			settings.pool = pool;
+			settings.globalFocus = globalFocus;
 
 			return Create( device, priority );
-		}
-
-		tstring DirectSound::Buffer::UpdateSpeed
-		(
-			IDirectSound8& device,
-			const ibool priority,
-			const uint speed,
-			const uint latency
-		)
-		{
-			const uint size = CalculateSize( waveFormat.nSamplesPerSec, waveFormat.nBlockAlign, speed, latency );
-
-			if (com == NULL || settings.size != size)
-			{
-				settings.size = size;
-				return Create( device, priority );
-			}
-
-			return NULL;
 		}
 
 		void DirectSound::Buffer::StartStream()
@@ -288,13 +294,10 @@ namespace Nestopia
 				{
 					const HRESULT hResult = com->Restore();
 
-					if (FAILED(hResult))
-					{
-						if (hResult != DSERR_BUFFERLOST)
-							com.Release();
+					if (FAILED(hResult) && hResult != DSERR_BUFFERLOST)
+						com.Release();
 
-						return;
-					}
+					return;
 				}
 
 				void* data;
@@ -307,6 +310,7 @@ namespace Nestopia
 				}
 
 				writeOffset = 0;
+				com->SetCurrentPosition( 0 );
 				const HRESULT hResult = com->Play( 0, 0, DSBPLAY_LOOPING );
 
 				if (FAILED(hResult) && hResult != DSERR_BUFFERLOST)
@@ -314,34 +318,44 @@ namespace Nestopia
 			}
 		}
 
+		void DirectSound::Buffer::StopStream(IDirectSound8* const device,const bool priority)
+		{
+			if (com != NULL)
+			{
+				if (device)
+					Create( *device, priority );
+				else
+					com->Stop();
+			}
+		}
+
 		#ifdef NST_PRAGMA_OPTIMIZE
 		#pragma optimize("t", on)
 		#endif
 
-		ibool DirectSound::Buffer::LockStream(void*& data,uint& size)
+		ibool DirectSound::Buffer::LockStream(void** data,uint* size)
 		{
 			DWORD pos;
-			HRESULT hResult = com->GetCurrentPosition( NULL, &pos );
 
-			if (SUCCEEDED(hResult))
+			if (SUCCEEDED(com->GetCurrentPosition( &pos, NULL )))
 			{
-				if (uint(pos >= settings.size) == writeOffset)
-					return false;
+				pos = (pos > writeOffset ? pos - writeOffset : pos + settings.size - writeOffset);
 
-				hResult = com->Lock( writeOffset ? settings.size : 0, settings.size, &data, &pos, NULL, NULL, 0 );
+				DWORD bytes[2];
 
-				if (SUCCEEDED(hResult) && pos == settings.size)
+				if (SUCCEEDED(com->Lock( writeOffset, pos, data+0, bytes+0, data+1, bytes+1, 0 )))
 				{
-					NST_ASSERT( pos % waveFormat.nBlockAlign == 0 );
+					writeOffset = (writeOffset + pos) % settings.size;
 
-					size = pos / waveFormat.nBlockAlign;
-					writeOffset ^= 1;
+					size[0] = bytes[0] / waveFormat.nBlockAlign;
+					size[1] = bytes[1] / waveFormat.nBlockAlign;
 
 					return true;
 				}
 			}
 
 			com->Stop();
+
 			NST_DEBUG_MSG("DirectSound::Buffer::Lock() failed!");
 
 			return false;

@@ -34,7 +34,7 @@ namespace Nes
 		#endif
 
 		Mapper76::Mapper76(Context& c)
-		: Mmc3(c) {}
+		: Mmc3(c,BRD_GENERIC,PROM_MAX_512K|CROM_MAX_256K|WRAM_DEFAULT) {}
 
 		void Mapper76::SubReset(const bool hard)
 		{

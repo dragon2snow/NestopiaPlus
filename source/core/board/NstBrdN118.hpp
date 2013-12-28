@@ -46,6 +46,8 @@ namespace Nes
 					TYPE_MIRROR_CTRL_1
 				};
 
+				N118(Context&,Type);
+
 			private:
 
 				void SubReset(bool);
@@ -57,11 +59,6 @@ namespace Nes
 
 				uint reg;
 				const Type type;
-
-			protected:
-
-				N118(Context& c,Type t)
-				: Mapper(c), type(t) {}
 			};
 		}
 	}

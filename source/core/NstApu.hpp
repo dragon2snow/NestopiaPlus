@@ -221,6 +221,8 @@ namespace Nes
 			{
 			public:
 
+				Envelope();
+
 				void Reset();
 				void SetOutputVolume(uint);
 				void LoadState(State::Loader&);
@@ -230,6 +232,8 @@ namespace Nes
 				void Write(uint);
 
 			private:
+
+				inline void UpdateOutput();
 
 				enum
 				{
@@ -249,26 +253,18 @@ namespace Nes
 					SAVE_2_DECAY_LOOP    = b00100000
 				};
 
-				ibool reset;
-				uint  count;
-				uint  rate;
-				ibool loop;
-				uint  volume;
-				ibool disabled;
 				dword output;
 				uint  outputVolume;
+				bool  reset;
+				u8    reg;
+				u8    count;
+				u8    volume;
 
 			public:
 
-				Envelope()
-				: outputVolume(OUTPUT_MUL)
-				{
-					Reset();
-				}
-
 				uint Loop() const
 				{
-					return loop;
+					return reg & DECAY_LOOP;
 				}
 
 				dword Volume() const
@@ -561,11 +557,6 @@ namespace Nes
 			private:
 
 				inline bool CanOutput() const;
-
-				enum
-				{
-					PULSE = 2
-				};
 
 				enum
 				{

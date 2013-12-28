@@ -39,7 +39,6 @@ namespace Nestopia
 		public:
 
 			Preferences(Managers::Emulator&,const Configuration&);
-			~Preferences();
 
 			void Save(Configuration&) const;
 

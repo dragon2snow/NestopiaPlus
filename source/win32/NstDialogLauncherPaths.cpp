@@ -95,10 +95,6 @@ namespace Nestopia
 			}
 		}
 
-		Launcher::List::Paths::~Paths()
-		{
-		}
-
 		void Launcher::List::Paths::Save(Configuration& cfg) const
 		{
 			cfg[ "launcher search files nes"          ].YesNo() = settings.include[ Settings::Include::NES     ];

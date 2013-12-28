@@ -67,7 +67,7 @@ namespace Nes
 
 		NES_POKE(Mapper205,6800)
 		{
-			data = (data & 0x3) << 4;
+			data = data << 4 & 0x30;
 
 			if (exReg != data)
 			{

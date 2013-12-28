@@ -26,7 +26,7 @@
 #include "NstManagerPaths.hpp"
 #include "NstManagerEmulator.hpp"
 #include "NstDialogTapeRecorder.hpp"
-#include "NstApplicationConfiguration.hpp"
+#include "NstApplicationInstance.hpp"
 
 namespace Nestopia
 {
@@ -59,14 +59,15 @@ namespace Nestopia
 			paths.FixFile( Managers::Paths::File::TAPE, settings.customFile );
 		}
 
-		TapeRecorder::~TapeRecorder()
-		{
-		}
-
 		void TapeRecorder::Save(Configuration& cfg) const
 		{
 			cfg["files use image tape name"].YesNo() = settings.useImageNaming;
 			cfg["files tape"].Quote() = settings.customFile;
+		}
+
+		const Path TapeRecorder::GetCustomFile() const
+		{
+			return Application::Instance::GetFullPath( settings.customFile );
 		}
 
 		ibool TapeRecorder::OnInitDialog(Param&)
@@ -110,7 +111,7 @@ namespace Nestopia
 			{
 				Path tmp;
 				dialog.Edit(IDC_TAPE_RECORDER_FILE) >> tmp;
-				dialog.Edit(IDC_TAPE_RECORDER_FILE).Try() << paths.BrowseSave( Managers::Paths::File::TAPE, Managers::Paths::SUGGEST, tmp ).Ptr();
+				dialog.Edit(IDC_TAPE_RECORDER_FILE).Try() << paths.BrowseSave( Managers::Paths::File::TAPE, Managers::Paths::SUGGEST, Application::Instance::GetFullPath(tmp) ).Ptr();
 			}
 
 			return true;

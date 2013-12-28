@@ -40,7 +40,7 @@ namespace Nes
 			public:
 
 				Unl8237(Context& c)
-				: Mmc3(c) {}
+				: Mmc3(c,BRD_GENERIC,PROM_MAX_512K|CROM_MAX_512K) {}
 
 			private:
 

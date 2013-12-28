@@ -111,8 +111,8 @@ namespace Nes
 
 		inline uint Cpu::IoMap::Peek16(const uint address) const
 		{
-			NST_ASSERT( (address + 1) < (SIZE_64K + OVERFLOW_SIZE) );
-			return u8(ports[address].Peek( address )) | (u8(ports[address + 1].Peek( address + 1 )) << 8);
+			NST_ASSERT( address < (SIZE_64K + OVERFLOW_SIZE - 1) );
+			return ports[address].Peek( address ) | (ports[address + 1].Peek( address + 1 ) << 8);
 		}
 
 		inline void Cpu::IoMap::Poke8(const uint address,const uint data) const
@@ -399,27 +399,11 @@ namespace Nes
 			ticks    = 0;
 			logged   = 0;
 
-			ResetLog();
+			Log() << "Cpu: reset" NST_LINEBREAK;
 
 			apu.Reset( hard );
 
 			pc = map.Peek16( pc );
-		}
-
-		void Cpu::ResetLog()
-		{
-			Log() << "Cpu: reset" NST_LINEBREAK "Cpu: PC: "
-                  << Log::Hex( (u16) pc ) << ", SP: "
-                  << Log::Hex( (u8)  sp ) << NST_LINEBREAK "Cpu: A: "
-                  << Log::Hex( (u8)   a ) << ", X: "
-                  << Log::Hex( (u8)   x ) << ", Y: "
-                  << Log::Hex( (u8)   y ) << NST_LINEBREAK "Cpu: C:"
-                  << (flags.c             ? '1' : '0') << ", Z:"
-                  << ((flags.nz & 0xFF)   ? '0' : '1') << ", I:"
-                  << (flags.i             ? '1' : '0') << ", D:"
-                  << (flags.d             ? '1' : '0') << ", V:"
-                  << (flags.v             ? '1' : '0') << ", N:"
-                  << ((flags.nz & 0x180U) ? "1" NST_LINEBREAK : "0"  NST_LINEBREAK);
 		}
 
 		void Cpu::SaveState(State::Saver& state) const
@@ -450,10 +434,10 @@ namespace Nes
 					((interrupt.low & IRQ_EXT)             ? SAVE_INT_EXT   : 0) |
 					(jammed                                ? SAVE_JAMMED    : 0) |
 					(mode == MODE_PAL                      ? SAVE_PAL       : 0),
-					(cycles.count >>  0) & 0xFF,
-					(cycles.count >>  8) & 0xFF,
-					(cycles.count >> 16) & 0xFF,
-					(cycles.count >> 24)
+					cycles.count & 0xFF,
+					cycles.count >>  8 & 0xFF,
+					cycles.count >> 16 & 0xFF,
+					cycles.count >> 24
 				};
 
 				state.Begin('F','R','M','\0').Write( data ).End();
@@ -1082,7 +1066,7 @@ namespace Nes
 			// 6502 trap, can't cross between pages
 
 			const uint pos = map.Peek16( pc );
-			pc = u8(map.Peek8( pos )) | (u8(map.Peek8( (pos & 0xFF00U) | ((pos + 1) & 0x00FFU) )) << 8);
+			pc = map.Peek8( pos ) | (map.Peek8( (pos & 0xFF00U) | ((pos + 1) & 0x00FFU) ) << 8);
 
 			cycles.count += cycles.clock[JMP_IND_CYCLES-1];
 		}
@@ -1136,24 +1120,17 @@ namespace Nes
 		{
 			NST_ASSERT( flags.c <= 1 );
 
-			// N2A03 has no BCD mode
+			// the N2A03 has no BCD mode
 
 			const uint tmp = a + data + flags.c;
-			flags.v = (~(a ^ data)) & (a ^ tmp) & 0x80;
+			flags.v = ~(a ^ data) & (a ^ tmp) & 0x80;
 			flags.nz = a = tmp & 0xFF;
-			flags.c = (tmp >> 8) & 0x1;
+			flags.c = tmp >> 8 & 0x1;
 		}
 
 		inline void Cpu::Sbc(const uint data)
 		{
-			NST_ASSERT( flags.c <= 1 );
-
-			// the N2A03 has no BCD mode
-
-			const uint tmp = a - data - (flags.c ^ 0x1);
-			flags.v = (a ^ data) & (a ^ tmp) & 0x80;
-			flags.nz = a = tmp & 0xFF;
-			flags.c = (~tmp >> 8) & 0x1;
+			Adc( data ^ 0xFF );
 		}
 
 		////////////////////////////////////////////////////////////////////////////////////////
@@ -1185,21 +1162,21 @@ namespace Nes
 		{
 			data = a - data;
 			flags.nz = data & 0xFF;
-			flags.c = (~data >> 8) & 0x1;
+			flags.c = ~data >> 8 & 0x1;
 		}
 
 		inline void Cpu::Cpx(uint data)
 		{
 			data = x - data;
 			flags.nz = data & 0xFF;
-			flags.c = (~data >> 8) & 0x1;
+			flags.c = ~data >> 8 & 0x1;
 		}
 
 		inline void Cpu::Cpy(uint data)
 		{
 			data = y - data;
 			flags.nz = data & 0xFF;
-			flags.c = (~data >> 8) & 0x1;
+			flags.c = ~data >> 8 & 0x1;
 		}
 
 		////////////////////////////////////////////////////////////////////////////////////////
@@ -1209,7 +1186,7 @@ namespace Nes
 		inline uint Cpu::Asl(const uint data)
 		{
 			flags.c = data >> 7;
-			return flags.nz = (data << 1) & 0xFF;
+			return flags.nz = data << 1 & 0xFF;
 		}
 
 		inline uint Cpu::Lsr(const uint data)
@@ -1222,7 +1199,7 @@ namespace Nes
 		{
 			NST_ASSERT( flags.c <= 1 );
 
-			flags.nz = ((data << 1) & 0xFF) | flags.c;
+			flags.nz = (data << 1 & 0xFF) | flags.c;
 			flags.c = data >> 7;
 
 			return flags.nz;
@@ -1410,6 +1387,10 @@ namespace Nes
 		// undocumented instructions, rarely used
 		////////////////////////////////////////////////////////////////////////////////////////
 
+		#ifdef NST_PRAGMA_OPTIMIZE
+		#pragma optimize("s", on)
+		#endif
+
 		void Cpu::Anc(const uint data)
 		{
 			flags.nz = a = a & data;
@@ -1426,7 +1407,7 @@ namespace Nes
 		NST_FORCE_INLINE void Cpu::Arr(const uint data)
 		{
 			flags.nz = a = ((data & a) >> 1) | (flags.c << 7);
-			flags.c = (a & 0x40) >> 6;
+			flags.c = a >> 6 & 0x1;
 			flags.v = ((a >> 6) ^ (a >> 5)) & 0x1;
 			LogMsg("Cpu: unofficial opcode executed - ARR" NST_LINEBREAK,1UL << 2);
 		}
@@ -1476,7 +1457,7 @@ namespace Nes
 		{
 			const uint carry = flags.c;
 			flags.c = data >> 7;
-			data = ((data << 1) & 0xFF) | carry;
+			data = (data << 1 & 0xFF) | carry;
 			flags.nz = a = a & data;
 			LogMsg("Cpu: unofficial opcode executed - RLA" NST_LINEBREAK,1UL << 9);
 			return data;
@@ -1539,7 +1520,7 @@ namespace Nes
 		uint Cpu::Slo(uint data)
 		{
 			flags.c = data >> 7;
-			data = (data << 1) & 0xFF;
+			data = data << 1 & 0xFF;
 			flags.nz = a = a | data;
 			LogMsg("Cpu: unofficial opcode executed - SLO" NST_LINEBREAK,1UL << 17);
 			return data;
@@ -1559,10 +1540,14 @@ namespace Nes
 			LogMsg("Cpu: unofficial opcode executed - DOP" NST_LINEBREAK,1UL << 19);
 		}
 
-		void Cpu::Top() const
+		void Cpu::Top(uint=0) const
 		{
 			LogMsg("Cpu: unofficial opcode executed - TOP" NST_LINEBREAK,1UL << 20);
 		}
+
+		#ifdef NST_PRAGMA_OPTIMIZE
+		#pragma optimize("", on)
+		#endif
 
 		////////////////////////////////////////////////////////////////////////////////////////
 		// interrupts
@@ -1613,6 +1598,142 @@ namespace Nes
 				Api::User::eventCallback( Api::User::EVENT_CPU_JAM );
 				Log::Flush( "Cpu: jammed" NST_LINEBREAK );
 			}
+		}
+
+		////////////////////////////////////////////////////////////////////////////////////////
+		// main
+		////////////////////////////////////////////////////////////////////////////////////////
+
+		void Cpu::BeginFrame(Sound::Output* const sound)
+		{
+			NST_VERIFY( cycles.count < frameClock );
+
+			apu.BeginFrame( sound );
+
+			Clock();
+		}
+
+		void Cpu::EndFrame()
+		{
+			apu.EndFrame();
+
+			NST_VERIFY( cycles.count >= frameClock );
+
+			ticks += frameClock;
+			cycles.count -= frameClock;
+			interrupt.EndFrame( frameClock );
+		}
+
+		void Cpu::DoIRQ(const uint line,const Cycle cycle)
+		{
+			NST_VERIFY( interrupt.source & line );
+
+			interrupt.low |= line;
+
+			if (!(flags.i | Cycle(interrupt.irqClock+1U)))
+			{
+				// give some time for the falling edge
+				interrupt.irqClock = cycle + cycles.clock[1];
+				cycles.NextRound( interrupt.irqClock );
+			}
+		}
+
+		void Cpu::DoNMI(const Cycle cycle)
+		{
+			if (interrupt.nmiClock == NES_CYCLE_MAX)
+			{
+				// give some time for the falling edge
+				interrupt.nmiClock = cycle + cycles.clock[0] + cycles.clock[0] / 2;
+				cycles.NextRound( interrupt.nmiClock );
+			}
+		}
+
+		void Cpu::Clock()
+		{
+			Cycle clock = apu.Clock( cycles.count );
+
+			if (const uint vector = interrupt.Clock( cycles.count ))
+				DoISR( vector );
+
+			if (clock > interrupt.irqClock)
+				clock = interrupt.irqClock;
+
+			if (clock > interrupt.nmiClock)
+				clock = interrupt.nmiClock;
+
+			if (clock > frameClock)
+				clock = frameClock;
+
+			cycles.round = clock;
+		}
+
+		void Cpu::Run0()
+		{
+			do
+			{
+				do
+				{
+					(*this.*(opcodes[FetchPc8()]))();
+				}
+				while (cycles.count < cycles.round);
+
+				Clock();
+			}
+			while (cycles.count < frameClock);
+		}
+
+		void Cpu::Run1()
+		{
+			const Hook hook( hooks[0] );
+
+			do
+			{
+				do
+				{
+					(*this.*(opcodes[FetchPc8()]))();
+					hook.Execute();
+				}
+				while (cycles.count < cycles.round);
+
+				Clock();
+			}
+			while (cycles.count < frameClock);
+		}
+
+		void Cpu::Run2()
+		{
+			const Hook* const begin = hooks.Begin();
+			const Hook* const end = hooks.End();
+
+			do
+			{
+				do
+				{
+					(*this.*(opcodes[FetchPc8()]))();
+
+					const Hook* NST_RESTRICT hook = begin;
+
+					do
+					{
+						hook->Execute();
+					}
+					while (++hook != end);
+				}
+				while (cycles.count < cycles.round);
+
+				Clock();
+			}
+			while (cycles.count < frameClock);
+		}
+
+		uint Cpu::Peek(const uint address)
+		{
+			return map.Peek8( address );
+		}
+
+		void Cpu::Poke(const uint address,const uint data)
+		{
+			return map.Poke8( address, data );
 		}
 
 		////////////////////////////////////////////////////////////////////////////////////////
@@ -1952,12 +2073,12 @@ namespace Nes
 		NES_IRW__( Sre, IndX,     0x43 )
 		NES_IRW__( Sre, IndY,     0x53 )
 		NES_IP_C_( Top, 2,     4, 0x0C )
-		NES_IP_C_( Top, 2,     5, 0x1C )
-		NES_IP_C_( Top, 2,     5, 0x3C )
-		NES_IP_C_( Top, 2,     5, 0x5C )
-		NES_IP_C_( Top, 2,     5, 0x7C )
-		NES_IP_C_( Top, 2,     5, 0xDC )
-		NES_IP_C_( Top, 2,     5, 0xFC )
+		NES_IR___( Top, AbsX,     0x1C )
+		NES_IR___( Top, AbsX,     0x3C )
+		NES_IR___( Top, AbsX,     0x5C )
+		NES_IR___( Top, AbsX,     0x7C )
+		NES_IR___( Top, AbsX,     0xDC )
+		NES_IR___( Top, AbsX,     0xFC )
 
 		#ifdef NST_PRAGMA_OPTIMIZE
 		#pragma optimize("", on)
@@ -1979,141 +2100,5 @@ namespace Nes
 		#undef NES_IRA__
 		#undef NES_I_W_A
 		#undef NES_IP_C_
-
-		////////////////////////////////////////////////////////////////////////////////////////
-		// main
-		////////////////////////////////////////////////////////////////////////////////////////
-
-		void Cpu::BeginFrame(Sound::Output* const sound)
-		{
-			NST_VERIFY( cycles.count < frameClock );
-
-			apu.BeginFrame( sound );
-
-			Clock();
-		}
-
-		void Cpu::EndFrame()
-		{
-			apu.EndFrame();
-
-			NST_VERIFY( cycles.count >= frameClock );
-
-			ticks += frameClock;
-			cycles.count -= frameClock;
-			interrupt.EndFrame( frameClock );
-		}
-
-		void Cpu::DoIRQ(const uint line,const Cycle cycle)
-		{
-			NST_VERIFY( interrupt.source & line );
-
-			interrupt.low |= line;
-
-			if (!(flags.i | Cycle(interrupt.irqClock+1)))
-			{
-				// give some time for the falling edge
-				interrupt.irqClock = cycle + cycles.clock[1];
-				cycles.NextRound( interrupt.irqClock );
-			}
-		}
-
-		void Cpu::DoNMI(const Cycle cycle)
-		{
-			if (interrupt.nmiClock == NES_CYCLE_MAX)
-			{
-				// give some time for the falling edge
-				interrupt.nmiClock = cycle + cycles.clock[1];
-				cycles.NextRound( interrupt.nmiClock );
-			}
-		}
-
-		void Cpu::Clock()
-		{
-			Cycle clock = apu.Clock( cycles.count );
-
-			if (const uint vector = interrupt.Clock( cycles.count ))
-				DoISR( vector );
-
-			if (clock > interrupt.irqClock)
-				clock = interrupt.irqClock;
-
-			if (clock > interrupt.nmiClock)
-				clock = interrupt.nmiClock;
-
-			if (clock > frameClock)
-				clock = frameClock;
-
-			cycles.round = clock;
-		}
-
-		void Cpu::Run0()
-		{
-			do
-			{
-				do
-				{
-					(*this.*(opcodes[FetchPc8()]))();
-				}
-				while (cycles.count < cycles.round);
-
-				Clock();
-			}
-			while (cycles.count < frameClock);
-		}
-
-		void Cpu::Run1()
-		{
-			const Hook hook( hooks[0] );
-
-			do
-			{
-				do
-				{
-					(*this.*(opcodes[FetchPc8()]))();
-					hook.Execute();
-				}
-				while (cycles.count < cycles.round);
-
-				Clock();
-			}
-			while (cycles.count < frameClock);
-		}
-
-		void Cpu::Run2()
-		{
-			const Hook* const begin = hooks.Begin();
-			const Hook* const end = hooks.End();
-
-			do
-			{
-				do
-				{
-					(*this.*(opcodes[FetchPc8()]))();
-
-					const Hook* NST_RESTRICT hook = begin;
-
-					do
-					{
-						hook->Execute();
-					}
-					while (++hook != end);
-				}
-				while (cycles.count < cycles.round);
-
-				Clock();
-			}
-			while (cycles.count < frameClock);
-		}
-
-		uint Cpu::Peek(const uint address)
-		{
-			return map.Peek8( address );
-		}
-
-		void Cpu::Poke(const uint address,const uint data)
-		{
-			return map.Poke8( address, data );
-		}
 	}
 }

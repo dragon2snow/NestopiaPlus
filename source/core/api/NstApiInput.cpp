@@ -48,6 +48,7 @@
 #include "../input/NstInpTopRider.hpp"
 #include "../input/NstInpPokkunMoguraa.hpp"
 #include "../input/NstInpPartyTap.hpp"
+#include "../input/NstInpRob.hpp"
 #include "../NstMapper.hpp"
 #include "../NstClock.hpp"
 #include "../board/NstBrdBandai.hpp"
@@ -166,6 +167,11 @@ namespace Nes
 								device = new Core::Input::Mouse( emulator.cpu );
 								break;
 
+							case ROB:
+
+								device = new Core::Input::Rob( emulator.cpu, emulator.ppu );
+								break;
+
 							default: return RESULT_ERR_INVALID_PARAM;
 						}
 
@@ -190,7 +196,8 @@ namespace Nes
 										Core::Input::Adapter* const adapter = new Core::Input::AdapterTwo
 										(
 											emulator.extPort->GetDevice(0),
-											emulator.extPort->GetDevice(1)
+											emulator.extPort->GetDevice(1),
+											emulator.extPort->GetType()
 										);
 
 										for (uint i=2; i < 4; ++i)
@@ -246,7 +253,8 @@ namespace Nes
 												emulator.extPort->GetDevice(0),
 												emulator.extPort->GetDevice(1),
 												devices[port == PORT_3],
-												devices[port != PORT_3]
+												devices[port != PORT_3],
+												emulator.extPort->GetType()
 											)
 										)
 									)
@@ -312,6 +320,11 @@ namespace Nes
 			return RESULT_OK;
 		}
 
+		void Input::ConnectAdapter(Adapter adapter) throw()
+		{
+			emulator.extPort->SetType( adapter );
+		}
+
 		Result Input::AutoSelectController(uint port) throw()
 		{
 			if (port >= NUM_PORTS)
@@ -333,6 +346,11 @@ namespace Nes
 			return ConnectController( port, type );
 		}
 
+		void Input::AutoSelectAdapter() throw()
+		{
+			ConnectAdapter( emulator.image ? (Adapter) emulator.image->GetDesiredAdapter() : ADAPTER_NES );
+		}
+
 		Input::Type Input::GetConnectedController(uint port) const throw()
 		{
 			if (port == EXPANSION_PORT)
@@ -344,7 +362,12 @@ namespace Nes
 			return UNCONNECTED;
 		}
 
-		bool Input::IsAnyControllerConnected(Type type) const throw()
+		Input::Adapter Input::GetConnectedAdapter() const throw()
+		{
+			return emulator.extPort->GetType();
+		}
+
+		bool Input::IsControllerConnected(Type type) const throw()
 		{
 			if (emulator.expPort->GetType() == type)
 				return true;
@@ -356,36 +379,6 @@ namespace Nes
 			}
 
 			return false;
-		}
-
-		bool Input::IsAnyControllerConnected(Type p0,Type p1) const throw()
-		{
-			return
-			(
-				IsAnyControllerConnected( p0 ) ||
-				IsAnyControllerConnected( p1 )
-			);
-		}
-
-		bool Input::IsAnyControllerConnected(Type p0,Type p1,Type p2) const throw()
-		{
-			return
-			(
-				IsAnyControllerConnected( p0 ) ||
-				IsAnyControllerConnected( p1 ) ||
-				IsAnyControllerConnected( p2 )
-			);
-		}
-
-		bool Input::IsAnyControllerConnected(Type p0,Type p1,Type p2,Type p3) const throw()
-		{
-			return
-			(
-				IsAnyControllerConnected( p0 ) ||
-				IsAnyControllerConnected( p1 ) ||
-				IsAnyControllerConnected( p2 ) ||
-				IsAnyControllerConnected( p3 )
-			);
 		}
 	}
 }

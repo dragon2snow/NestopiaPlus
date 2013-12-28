@@ -35,7 +35,10 @@ namespace Nes
 		#endif
 
 		Mapper142::Mapper142(Context& c)
-		: Mapper(c,WRAM_NONE), irq(c.cpu) {}
+		:
+		Mapper (c,PROM_MAX_128K|CROM_MAX_8K|WRAM_NONE),
+		irq    (c.cpu)
+		{}
 
 		void Mapper142::Irq::Reset(const bool hard)
 		{
@@ -144,14 +147,13 @@ namespace Nes
 		{
 			address = (ctrl & 0xF) - 1U;
 
-			if (address < 4)
+			if (address < 3)
 			{
-				data &= 0xF;
-
-				if (address < 3)
-					prg.SwapBank<SIZE_8K>( address << 13, data );
-				else
-					wrk.SwapBank<SIZE_8K,0x0000U>( data );
+				prg.SwapBank<SIZE_8K>( address << 13, data );
+			}
+			else if (address < 4)
+			{
+				wrk.SwapBank<SIZE_8K,0x0000U>( data );
 			}
 		}
 

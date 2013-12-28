@@ -218,7 +218,8 @@ namespace Nestopia
 
 				try
 				{
-					file.Write( output.samples, output.length * waveFormat.nBlockAlign );
+					for (uint i=0; i < 2; ++i)
+						file.Write( output.samples[i], output.length[i] * waveFormat.nBlockAlign );
 				}
 				catch (Io::Wave::Exception ids)
 				{
@@ -230,7 +231,7 @@ namespace Nestopia
 					return;
 				}
 
-				size += output.length;
+				size += output.length[0] + output.length[1];
 
 				if (size >= nextBigSizeNotification)
 				{

@@ -24,6 +24,7 @@
 
 #include "../NstMapper.hpp"
 #include "NstMapper053.hpp"
+#include "../NstChecksumCrc32.hpp"
 
 namespace Nes
 {
@@ -35,9 +36,10 @@ namespace Nes
 
 		Mapper53::Mapper53(Context& c)
 		:
-		Mapper      (c,WRAM_NONE|CROM_NONE),
-		eepromFirst (c.prgCrc == 0x7E449555UL)
-		{}
+		Mapper     (c,CROM_MAX_8K|WRAM_NONE),
+		epromFirst (c.prg.Size() >= SIZE_32K && Checksum::Crc32::Compute(c.prg.Mem(),SIZE_32K) == EPROM_CRC)
+		{
+		}
 
 		void Mapper53::SubReset(const bool hard)
 		{
@@ -86,13 +88,13 @@ namespace Nes
 
 			wrk.SwapBank<SIZE_8K,0x0000U>
 			(
-				(r << 1 | 0xF) + (eepromFirst ? 0x4 : 0x0)
+				(r << 1 | 0xF) + (epromFirst ? 0x4 : 0x0)
 			);
 
 			prg.SwapBanks<SIZE_16K,0x0000U>
 			(
-				(regs[0] & 0x10) ? (r | (regs[1] & 0x7)) + (eepromFirst ? 0x2 : 0x0) : eepromFirst ? 0x00 : 0x80,
-				(regs[0] & 0x10) ? (r | (0xFF    & 0x7)) + (eepromFirst ? 0x2 : 0x0) : eepromFirst ? 0x01 : 0x81
+				(regs[0] & 0x10) ? (r | (regs[1] & 0x7)) + (epromFirst ? 0x2 : 0x0) : epromFirst ? 0x00 : 0x80,
+				(regs[0] & 0x10) ? (r | (0xFF    & 0x7)) + (epromFirst ? 0x2 : 0x0) : epromFirst ? 0x01 : 0x81
 			);
 		}
 

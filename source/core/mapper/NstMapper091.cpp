@@ -36,7 +36,7 @@ namespace Nes
 
 		Mapper91::Mapper91(Context& c)
 		:
-		Mapper (c,WRAM_NONE),
+		Mapper (c,CROM_MAX_512K|WRAM_NONE),
 		irq    (c.cpu,c.ppu)
 		{}
 

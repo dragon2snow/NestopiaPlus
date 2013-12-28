@@ -22,6 +22,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
+#include "NstApplicationInstance.hpp"
 #include "NstWindowParam.hpp"
 #include "NstManagerPaths.hpp"
 #include "NstDialogAutoSaver.hpp"
@@ -54,8 +55,9 @@ namespace Nestopia
 		AutoSaver::AutoSaver(const Managers::Paths& p)
 		: dialog(IDD_AUTOSAVER,this,Handlers::messages,Handlers::commands), paths(p) {}
 
-		AutoSaver::~AutoSaver()
+		const Path AutoSaver::GetStateFile() const
 		{
+			return Application::Instance::GetFullPath( settings.stateFile );
 		}
 
 		ibool AutoSaver::OnInitDialog(Param&)
@@ -82,7 +84,7 @@ namespace Nestopia
 			{
 				Path tmp;
 				dialog.Edit(IDC_AUTOSAVE_FILE) >> tmp;
-				dialog.Edit(IDC_AUTOSAVE_FILE).Try() << paths.BrowseSave( Managers::Paths::File::STATE, Managers::Paths::SUGGEST, tmp ).Ptr();
+				dialog.Edit(IDC_AUTOSAVE_FILE).Try() << paths.BrowseSave( Managers::Paths::File::STATE, Managers::Paths::SUGGEST, Application::Instance::GetFullPath(tmp) ).Ptr();
 			}
 
 			return true;

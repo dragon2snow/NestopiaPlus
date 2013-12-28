@@ -44,55 +44,51 @@ namespace Nestopia
 		private:
 
 			struct Handlers;
+			class CustomSize;
 
-			#pragma pack(push,1)
-
-			struct Header
+			enum SizeType
 			{
-				enum
-				{
-					SIGNATURE  = 0x1A53454E,
-					VERTICAL   = 0x0001,
-					BATTERY    = 0x0002,
-					TRAINER    = 0x0004,
-					FOURSCREEN = 0x0008,
-					MAPPER_LO  = 0x00F0,
-					VS         = 0x0100,
-					MAPPER_HI  = 0xF000,
-					PAL        = 0x1
-				};
-
-				u32 signature;
-				u8  num16kPRomBanks;
-				u8  num8kCRomBanks;
-				u16 flags;
-				u8  num8kWRamBanks;
-				u8  pal;
-				u8  reserved[6];
+				SIZETYPE_EXT = 0,
+				SIZETYPE_STD_8K = 8,
+				SIZETYPE_STD_16K = 16,
+				SIZETYPE_STATE = 2
 			};
 
-			#pragma pack(pop)
+			enum
+			{
+				OTHER_SIZE     = 0x40000000UL,
+				OTHER_SIZE_DIV = SIZETYPE_STD_8K|SIZETYPE_STD_16K,
+				HEADER_SIZE    = 16,
+				HEADER_ID      = 0x1A53454EUL
+			};
 
-			NST_COMPILE_ASSERT( sizeof(Header) == 16 );
+			typedef u8 Header[HEADER_SIZE];
 
 			static uint Import(const Path&,Collection::Buffer&);
 			static uint Export(const Path&,const Collection::Buffer&);
-			static ibool Bad(const Header&,ulong);
 
-			ibool Save(Header&) const;
-			void UpdateOriginal() const;
-			void UpdateDetect() const;
+			void UpdateHeader(const Nes::Api::Cartridge::Setup&) const;
+			void UpdateVersion() const;
+			void UpdateSystem() const;
+			void UpdateSizes(uint,SizeType,uint) const;
 
-			ibool OnInitDialog  (Param&);
-			ibool OnCmdOriginal (Param&);
-			ibool OnCmdDetect   (Param&);
-			ibool OnCmdSave     (Param&);
+			void  DetectHeader(Nes::Api::Cartridge::Setup&) const;
+			ibool SaveHeader(Header&) const;
+			uint  GetMaxSize(uint) const;
+			ibool OkToSave(uint) const;
+
+			ibool OnInitDialog   (Param&);
+			ibool OnCmdFileType  (Param&);
+			ibool OnCmdSystem    (Param&);
+			ibool OnCmdSizeOther (Param&);
+			ibool OnCmdOriginal  (Param&);
+			ibool OnCmdDetect    (Param&);
+			ibool OnCmdSave      (Param&);
 
 			Dialog dialog;
 			const Nes::Cartridge::Database database;
 			Nes::Cartridge::Database::Entry dbEntry;
 			Header header;
-			ulong imageSize;
 			const Path* path;
 			const Managers::Paths& paths;
 		};

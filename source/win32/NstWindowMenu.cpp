@@ -195,6 +195,7 @@ namespace Nestopia
 				}
 
 				window->Messages().RemoveAll( this );
+				Show( false );
 				window = NULL;
 			}
 

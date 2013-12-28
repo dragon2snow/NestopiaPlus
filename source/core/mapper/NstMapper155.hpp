@@ -38,7 +38,7 @@ namespace Nes
 		public:
 
 			Mapper155(Context& c)
-			: Mmc1(c,WRAM_8K,REV_1A) {}
+			: Mmc1(c,BRD_GENERIC_WRAM,REV_A) {}
 		};
 	}
 }

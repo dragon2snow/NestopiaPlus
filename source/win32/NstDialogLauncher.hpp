@@ -63,7 +63,8 @@ namespace Nestopia
 			~Launcher();
 
 			void Save(Configuration&,ibool,ibool);
-			void Open();
+			void Open(ibool);
+			void Synchronize(HWND) const;
 			void Close();
 
 		private:
@@ -88,8 +89,10 @@ namespace Nestopia
 
 			void OnCmdFileRun                   (uint=0);
 			void OnCmdFileRefresh               (uint);
+			void OnCmdEditHeader                (uint);
 			void OnCmdViewShowGrids             (uint);
 			void OnCmdViewShowDatabaseCorrected (uint);
+			void OnCmdViewShowOnTop             (uint);
 			void OnCmdOptionsPaths              (uint);
 			void OnCmdOptionsColors             (uint);
 
@@ -116,8 +119,6 @@ namespace Nestopia
 					const Nes::Cartridge::Database&
 				);
 
-				~List();
-
 				void operator = (const Control::ListView&);
 
 				enum Updater
@@ -141,7 +142,6 @@ namespace Nestopia
 				public:
 
 					explicit Paths(const Configuration&);
-					~Paths();
 
 					void Save(Configuration&) const;
 
@@ -274,7 +274,6 @@ namespace Nestopia
 					};
 
 					explicit Files(const Nes::Cartridge::Database&);
-					~Files();
 
 					void  Save(const Nes::Cartridge::Database&);
 					void  Refresh(const Paths::Settings&,const Nes::Cartridge::Database&);
@@ -324,13 +323,6 @@ namespace Nestopia
 							SYSTEM_NTSC_PAL
 						};
 
-						enum Condition
-						{
-							CONDITION_UNKNOWN,
-							CONDITION_BAD,
-							CONDITION_OK
-						};
-
 						tstring GetName(const Strings&,const Nes::Cartridge::Database*) const;
 						uint GetSystem() const;
 						uint GetMirroring(const Nes::Cartridge::Database*) const;
@@ -350,7 +342,7 @@ namespace Nestopia
 						u16 pRom;
 						u16 cRom;
 						u16 wRam;
-						u8 mapper;
+						u16 mapper;
 						u8 type;
 
 						enum
@@ -424,17 +416,17 @@ namespace Nestopia
 
 						uint GetPRom(const Nes::Cartridge::Database* db) const
 						{
-							return dBaseEntry && db ? db->GetPRomSize( dBaseEntry ) / Nes::Core::SIZE_1K : pRom;
+							return dBaseEntry && db ? db->GetPrgRom( dBaseEntry ) / Nes::Core::SIZE_1K : pRom;
 						}
 
 						uint GetCRom(const Nes::Cartridge::Database* db) const
 						{
-							return dBaseEntry && db ? db->GetCRomSize( dBaseEntry ) / Nes::Core::SIZE_1K : cRom;
+							return dBaseEntry && db ? db->GetChrRom( dBaseEntry ) / Nes::Core::SIZE_1K : cRom;
 						}
 
 						uint GetWRam(const Nes::Cartridge::Database* db) const
 						{
-							return dBaseEntry && db ? db->GetWRamSize( dBaseEntry ) / Nes::Core::SIZE_1K : wRam;
+							return dBaseEntry && db ? (db->GetWrkRam( dBaseEntry ) + db->GetWrkRamBacked( dBaseEntry )) / Nes::Core::SIZE_1K : wRam;
 						}
 
 						uint GetMapper() const
@@ -459,7 +451,7 @@ namespace Nestopia
 
 						ibool GetBattery(const Nes::Cartridge::Database* db) const
 						{
-							return dBaseEntry && db ? db->HasBattery( dBaseEntry ) : bits.battery;
+							return dBaseEntry && db ? db->GetWrkRamBacked( dBaseEntry ) : bits.battery;
 						}
 
 						ibool GetTrainer(const Nes::Cartridge::Database* db) const
@@ -472,9 +464,9 @@ namespace Nestopia
 							return dBaseEntry && db ? db->GetMapper( dBaseEntry ) : mapper;
 						}
 
-						Condition GetCondition(const Nes::Cartridge::Database* db) const
+						Nes::Cartridge::Condition GetCondition(const Nes::Cartridge::Database* db) const
 						{
-							return dBaseEntry && db ? db->IsBad( dBaseEntry ) ? CONDITION_BAD : CONDITION_OK : CONDITION_UNKNOWN;
+							return dBaseEntry && db ? db->GetCondition( dBaseEntry ) : Nes::Cartridge::DUMP_UNKNOWN;
 						}
 					};
 
@@ -500,7 +492,7 @@ namespace Nestopia
 						{
 							ID = NST_FOURCC('n','s','d',0),
 							MAX_ENTRIES = 0xFFFFF,
-							VERSION = 2,
+							VERSION = 3,
 							FLAGS_UTF16 = 0x1
 						};
 
@@ -552,7 +544,6 @@ namespace Nestopia
 				public:
 
 					explicit Columns(const Configuration&);
-					~Columns();
 
 					void Update(const uchar*);
 					void Save(Configuration&) const;
@@ -633,11 +624,16 @@ namespace Nestopia
 				{
 				public:
 
+					tstring GetMapper(uint);
 					tstring GetSize(u32);
-					inline tstring GetMapper(uint) const;
-					inline void Flush();
+					void Flush();
 
 				private:
+
+					struct ValueString
+					{
+						tchar string[5];
+					};
 
 					struct SizeString : String::Stack<10+1,tchar>
 					{
@@ -647,9 +643,11 @@ namespace Nestopia
 						}
 					};
 
-					Collection::Map<u32,SizeString,true> sizes;
+					typedef Collection::Map<u32,SizeString,true> Sizes;
+					typedef Collection::Vector<ValueString> Mappers;
 
-					static const tchar mappers[256][4];
+					Sizes sizes;
+					Mappers mappers;
 				};
 
 				enum
@@ -770,6 +768,16 @@ namespace Nestopia
 				const Files::Strings& GetStrings() const
 				{
 					return files.GetStrings();
+				}
+
+				const Nes::Cartridge::Database& GetDatabase() const
+				{
+					return imageDatabase;
+				}
+
+				const Managers::Paths& GetPaths() const
+				{
+					return pathManager;
 				}
 			};
 

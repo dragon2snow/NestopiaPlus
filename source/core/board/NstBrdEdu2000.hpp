@@ -40,7 +40,7 @@ namespace Nes
 			public:
 
 				Edu2000(Context& c)
-				: Mapper(c,WRAM_32K) {}
+				: Mapper(c,PROM_MAX_1024K|CROM_MAX_8K|WRAM_32K) {}
 
 			private:
 

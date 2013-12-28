@@ -38,9 +38,13 @@ namespace Nes
 			if (hard)
 				command = 0;
 
-			Map( 0x8000U, &Mapper112::Poke_8000 );
-			Map( 0xA000U, &Mapper112::Poke_A000 );
-			Map( 0xE000U, NMT_SWAP_HV );
+			for (uint i=0x0000U; i < 0x2000U; i += 0x2)
+			{
+				Map( 0x8000U + i, &Mapper112::Poke_8000 );
+				Map( 0xA000U + i, &Mapper112::Poke_A000 );
+				Map( 0xC000U + i, &Mapper112::Poke_C000 );
+				Map( 0xE000U + i, NMT_SWAP_HV );
+			}
 		}
 
 		void Mapper112::SubLoad(State::Loader& state)
@@ -70,19 +74,26 @@ namespace Nes
 
 		NES_POKE(Mapper112,A000)
 		{
-			ppu.Update();
+			address = command & 0x7;
 
-			switch (command & 0x7)
+			if (address < 2)
 			{
-				case 0x0: prg.SwapBank<SIZE_8K,0x0000U>( data      ); break;
-				case 0x1: prg.SwapBank<SIZE_8K,0x2000U>( data      ); break;
-				case 0x2: chr.SwapBank<SIZE_2K,0x0000U>( data >> 1 ); break;
-				case 0x3: chr.SwapBank<SIZE_2K,0x0800U>( data >> 1 ); break;
-				case 0x4: chr.SwapBank<SIZE_1K,0x1000U>( data      ); break;
-				case 0x5: chr.SwapBank<SIZE_1K,0x1400U>( data      ); break;
-				case 0x6: chr.SwapBank<SIZE_1K,0x1800U>( data      ); break;
-				case 0x7: chr.SwapBank<SIZE_1K,0x1C00U>( data      ); break;
+				prg.SwapBank<SIZE_8K>( address << 13, data );
 			}
+			else
+			{
+				ppu.Update();
+
+				if (address < 4)
+					chr.SwapBank<SIZE_2K>( (address-2) << 11, data >> 1 );
+				else
+					chr.SwapBank<SIZE_1K>( address << 10, data );
+			}
+		}
+
+		NES_POKE(Mapper112,C000)
+		{
+			// CHR scrambling ?
 		}
 	}
 }

@@ -35,6 +35,12 @@ namespace Nes
 			#pragma optimize("s", on)
 			#endif
 
+			TaitoX::TaitoX(Context& c,Type t)
+			:
+			Mapper (c,CROM_MAX_128K),
+			type   (t)
+			{}
+
 			void TaitoX::SubReset(bool)
 			{
 				Map( 0x7EF0U, type == TYPE_A ? &TaitoX::Poke_7EF0_0 : &TaitoX::Poke_7EF0_1 );
@@ -58,7 +64,7 @@ namespace Nes
 			void TaitoX::SwapChr(const uint address,const uint data) const
 			{
 				ppu.Update();
-				chr.SwapBank<SIZE_2K>( address, (data >> 1) & 0x3F );
+				chr.SwapBank<SIZE_2K>( address, data >> 1 );
 			}
 
 			NES_POKE(TaitoX,7EF0_0)

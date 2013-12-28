@@ -39,10 +39,14 @@ namespace Nes
 			{
 			public:
 
-				Fk23C(Context& c)
-				: Mmc3(c) {}
+				Fk23C(Context&);
 
 			private:
+
+				enum
+				{
+					CRC_4_IN_1 = 0x38BA830EUL
+				};
 
 				void SubReset(bool);
 				void SubLoad(State::Loader&);
@@ -57,6 +61,7 @@ namespace Nes
 				u8 exRegs[8];
 				uint unromChr;
 				uint dipSwitch;
+				const uint dipMask;
 			};
 		}
 	}

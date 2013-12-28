@@ -57,7 +57,7 @@ namespace Nes
 
 				virtual ~Device() {}
 
-				virtual void Initialize(dword) {}
+				virtual void Initialize(bool) {}
 				virtual void Reset() {}
 				virtual void LoadState(State::Loader&,dword) {}
 				virtual void SaveState(State::Saver&,uchar) const {}

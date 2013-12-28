@@ -232,7 +232,11 @@ namespace Nes
 			}
 
 			Vrc7::Vrc7(Context& c)
-			: Mapper(c), irq(c.cpu), sound(c.cpu) {}
+			:
+			Mapper (c,CROM_MAX_256K),
+			irq    (c.cpu),
+			sound  (c.cpu)
+			{}
 
 			void Vrc7::SubReset(const bool hard)
 			{
@@ -398,7 +402,7 @@ namespace Nes
 						case NES_STATE_CHUNK_ID('C','H','4','\0'):
 						case NES_STATE_CHUNK_ID('C','H','5','\0'):
 
-							chunk = ((chunk >> 16) & 0xFF) - '0';
+							chunk = (chunk >> 16 & 0xFF) - '0';
 
 							if (chunk < NUM_OPLL_CHANNELS)
 								channels[chunk].LoadState( State::Loader::Subset(state).Ref(), tables );

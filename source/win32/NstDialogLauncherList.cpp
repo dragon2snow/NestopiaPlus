@@ -34,40 +34,34 @@ namespace Nestopia
 {
 	namespace Window
 	{
-		const tchar Launcher::List::Strings::mappers[256][4] =
-		{
-			_T("-"),_T("1"),_T("2"),_T("3"),_T("4"),_T("5"),_T("6"),_T("7"),_T("8"),_T("9"),
-			_T("10"),_T("11"),_T("12"),_T("13"),_T("14"),_T("15"),_T("16"),_T("17"),_T("18"),_T("19"),
-			_T("20"),_T("21"),_T("22"),_T("23"),_T("24"),_T("25"),_T("26"),_T("27"),_T("28"),_T("29"),
-			_T("30"),_T("31"),_T("32"),_T("33"),_T("34"),_T("35"),_T("36"),_T("37"),_T("38"),_T("39"),
-			_T("40"),_T("41"),_T("42"),_T("43"),_T("44"),_T("45"),_T("46"),_T("47"),_T("48"),_T("49"),
-			_T("50"),_T("51"),_T("52"),_T("53"),_T("54"),_T("55"),_T("56"),_T("57"),_T("58"),_T("59"),
-			_T("60"),_T("61"),_T("62"),_T("63"),_T("64"),_T("65"),_T("66"),_T("67"),_T("68"),_T("69"),
-			_T("70"),_T("71"),_T("72"),_T("73"),_T("74"),_T("75"),_T("76"),_T("77"),_T("78"),_T("79"),
-			_T("80"),_T("81"),_T("82"),_T("83"),_T("84"),_T("85"),_T("86"),_T("87"),_T("88"),_T("89"),
-			_T("90"),_T("91"),_T("92"),_T("93"),_T("94"),_T("95"),_T("96"),_T("97"),_T("98"),_T("99"),
-			_T("100"),_T("101"),_T("102"),_T("103"),_T("104"),_T("105"),_T("106"),_T("107"),_T("108"),_T("109"),
-			_T("110"),_T("111"),_T("112"),_T("113"),_T("114"),_T("115"),_T("116"),_T("117"),_T("118"),_T("119"),
-			_T("120"),_T("121"),_T("122"),_T("123"),_T("124"),_T("125"),_T("126"),_T("127"),_T("128"),_T("129"),
-			_T("130"),_T("131"),_T("132"),_T("133"),_T("134"),_T("135"),_T("136"),_T("137"),_T("138"),_T("139"),
-			_T("140"),_T("141"),_T("142"),_T("143"),_T("144"),_T("145"),_T("146"),_T("147"),_T("148"),_T("149"),
-			_T("150"),_T("151"),_T("152"),_T("153"),_T("154"),_T("155"),_T("156"),_T("157"),_T("158"),_T("159"),
-			_T("160"),_T("161"),_T("162"),_T("163"),_T("164"),_T("165"),_T("166"),_T("167"),_T("168"),_T("169"),
-			_T("170"),_T("171"),_T("172"),_T("173"),_T("174"),_T("175"),_T("176"),_T("177"),_T("178"),_T("179"),
-			_T("180"),_T("181"),_T("182"),_T("183"),_T("184"),_T("185"),_T("186"),_T("187"),_T("188"),_T("189"),
-			_T("190"),_T("191"),_T("192"),_T("193"),_T("194"),_T("195"),_T("196"),_T("197"),_T("198"),_T("199"),
-			_T("200"),_T("201"),_T("202"),_T("203"),_T("204"),_T("205"),_T("206"),_T("207"),_T("208"),_T("209"),
-			_T("210"),_T("211"),_T("212"),_T("213"),_T("214"),_T("215"),_T("216"),_T("217"),_T("218"),_T("219"),
-			_T("220"),_T("221"),_T("222"),_T("223"),_T("224"),_T("225"),_T("226"),_T("227"),_T("228"),_T("229"),
-			_T("230"),_T("231"),_T("232"),_T("233"),_T("234"),_T("235"),_T("236"),_T("237"),_T("238"),_T("239"),
-			_T("240"),_T("241"),_T("242"),_T("243"),_T("244"),_T("245"),_T("246"),_T("247"),_T("248"),_T("249"),
-			_T("250"),_T("251"),_T("252"),_T("253"),_T("254"),_T("255")
-		};
+		#ifdef NST_PRAGMA_OPTIMIZE
+		#pragma optimize("t", on)
+		#endif
 
-		inline tstring Launcher::List::Strings::GetMapper(uint index) const
+		tstring Launcher::List::Strings::GetMapper(const uint value)
 		{
-			NST_ASSERT( index < 256 );
-			return mappers[index];
+			if (value-1U < 4095U)
+			{
+				uint count = mappers.Size();
+
+				if (count <= value)
+				{
+					const uint size = NST_MAX(256,count+value+1);
+					mappers.Resize( size );
+
+					do
+					{
+						_itot( count, mappers[count].string, 10 );
+					}
+					while (++count != size);
+				}
+
+				return mappers[value].string;
+			}
+			else
+			{
+				return _T("-");
+			}
 		}
 
 		tstring Launcher::List::Strings::GetSize(u32 value)
@@ -75,9 +69,14 @@ namespace Nestopia
 			return value ? sizes(value).Ptr() : _T("-");
 		}
 
-		inline void Launcher::List::Strings::Flush()
+		#ifdef NST_PRAGMA_OPTIMIZE
+		#pragma optimize("", on)
+		#endif
+
+		void Launcher::List::Strings::Flush()
 		{
 			sizes.Destroy();
+			mappers.Destroy();
 		}
 
 		Launcher::List::List
@@ -116,10 +115,6 @@ namespace Nestopia
 
 			if (cfg["launcher use image database"] != Configuration::NO)
 				useImageDatabase = &imageDatabase;
-		}
-
-		Launcher::List::~List()
-		{
 		}
 
 		void Launcher::List::operator = (const Control::ListView& listView)
@@ -255,6 +250,10 @@ namespace Nestopia
 			}
 		}
 
+		#ifdef NST_PRAGMA_OPTIMIZE
+		#pragma optimize("t", on)
+		#endif
+
 		void Launcher::List::OnGetDisplayInfo(LPARAM lParam)
 		{
 			LVITEM& item = reinterpret_cast<NMLVDISPINFO*>(lParam)->item;
@@ -346,16 +345,18 @@ namespace Nestopia
 					{
 						NST_COMPILE_ASSERT
 						(
-							Files::Entry::CONDITION_UNKNOWN == 0 &&
-							Files::Entry::CONDITION_BAD     == 1 &&
-							Files::Entry::CONDITION_OK      == 2
+							Nes::Cartridge::DUMP_OK         == 0 &&
+							Nes::Cartridge::DUMP_REPAIRABLE == 1 &&
+							Nes::Cartridge::DUMP_BAD        == 2 &&
+							Nes::Cartridge::DUMP_UNKNOWN    == 3
 						);
 
 						static const tchar lut[][4] =
 						{
-							_T( "-"   ),
+							_T( "ok"  ),
+							_T( "fix" ),
 							_T( "bad" ),
-							_T( "ok"  )
+							_T( "-"   )
 						};
 
 						item.pszText = const_cast<tchar*>( lut[entry.GetCondition( useImageDatabase )] );
@@ -405,6 +406,10 @@ namespace Nestopia
 				}
 			}
 		}
+
+		#ifdef NST_PRAGMA_OPTIMIZE
+		#pragma optimize("", on)
+		#endif
 
 		void Launcher::List::ReloadListColumns() const
 		{
@@ -585,7 +590,7 @@ namespace Nestopia
 						if (condition[0] == condition[1])
 							continue;
 
-						return condition[0] < condition[1] ? +1 : -1;
+						return condition[0] > condition[1] ? +1 : -1;
 					}
 
 					case Columns::TYPE_NAME:

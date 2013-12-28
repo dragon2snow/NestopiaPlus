@@ -45,16 +45,7 @@ namespace Nes
 		NES_POKE(Mapper242,Prg)
 		{
 			prg.SwapBank<SIZE_32K,0x0000U>( address >> 3 & 0xF );
-
-			static const uchar lut[4] =
-			{
-				Ppu::NMT_VERTICAL,
-				Ppu::NMT_HORIZONTAL,
-				Ppu::NMT_ZERO,
-				Ppu::NMT_ONE
-			};
-
-			ppu.SetMirroring( lut[data & 0x3] );
+			SetMirroringVH01( data );
 		}
 	}
 }

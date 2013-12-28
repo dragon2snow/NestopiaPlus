@@ -24,7 +24,7 @@
 
 #include "../NstMapper.hpp"
 #include "../board/NstBrdMmc3.hpp"
-#include "../board/NstBrdMmc3China.hpp"
+#include "../board/NstBrdMmc3Waixing.hpp"
 #include "NstMapper199.hpp"
 
 namespace Nes
@@ -39,7 +39,7 @@ namespace Nes
 		{
 			exChr[1] = exChr[0] = 0;
 
-			Mmc3China::SubReset( hard );
+			Mmc3Waixing::SubReset( hard );
 
 			for (uint i=0x0000U; i < 0x2000U; i += 0x2)
 				Map( i + 0x8001U, &Mapper199::Poke_8001 );
@@ -94,7 +94,7 @@ namespace Nes
 				case 0x9:
 
 					banks.prg[address - 0x6] = data;
-					Mmc3China::UpdatePrg();
+					Mmc3Waixing::UpdatePrg();
 					break;
 
 				case 0xA:

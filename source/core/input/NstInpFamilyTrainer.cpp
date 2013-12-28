@@ -120,15 +120,15 @@ namespace Nes
 
 				if ((data & 0x1) == 0)
 				{
-					output = (state >> 8) & 0x1E;
+					output = state >> 8 & 0x1E;
 				}
 				else if ((data & 0x2) == 0)
 				{
-					output = (state >> 4) & 0x1E;
+					output = state >> 4 & 0x1E;
 				}
 				else if ((data & 0x4) == 0)
 				{
-					output = (state >> 0) & 0x1E;
+					output = state >> 0 & 0x1E;
 				}
 				else
 				{

@@ -99,7 +99,7 @@ namespace Nes
 		NES_POKE(Mapper96,Prg)
 		{
 			ppu.Update();
-			prg.SwapBank<SIZE_32K,0x0000U>( data & 0x3 );
+			prg.SwapBank<SIZE_32K,0x0000U>( data );
 			chr.SwapBanks<SIZE_4K,0x0000U>( (data & 0x4) | (chr.GetBank<SIZE_4K,0x0000U>() & 0x3), (data & 0x4) | 0x3 );
 		}
 	}

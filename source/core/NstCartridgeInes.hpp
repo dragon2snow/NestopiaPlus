@@ -29,8 +29,6 @@
 #pragma once
 #endif
 
-#include "api/NstApiCartridge.hpp"
-
 namespace Nes
 {
 	namespace Core
@@ -46,57 +44,31 @@ namespace Nes
 				Ram&,
 				Ram&,
 				Api::Cartridge::Info&,
-				const ImageDatabase*
+				const ImageDatabase*,
+				ImageDatabase::Handle&
 			);
+
+			enum
+			{
+				TRAINER_BEGIN  = 0x1000U,
+				TRAINER_END    = 0x1200U,
+				TRAINER_LENGTH = 0x0200U
+			};
+
+			static Result ReadHeader(Api::Cartridge::Setup&,const void*,ulong);
+			static Result WriteHeader(const Api::Cartridge::Setup&,void*,ulong);
+
+			static ImageDatabase::Handle SearchDatabase(const ImageDatabase&,const u8*,ulong);
 
 		private:
 
 			enum
 			{
-				VS_MAPPER = 99
-			};
-
-			enum
-			{
-				TRAINER_OFFSET = 0x1000,
-				TRAINER_LENGTH = 0x0200
-			};
-
-			enum
-			{
-				FLAGS_VERTICAL   = 0x0001,
-				FLAGS_BATTERY    = 0x0002,
-				FLAGS_TRAINER    = 0x0004,
-				FLAGS_FOURSCREEN = 0x0008,
-				FLAGS_MAPPER_LO  = 0x00F0,
-				FLAGS_VS         = 0x0100,
-				FLAGS_MAPPER_HI  = 0xF000
-			};
-
-			struct Header
-			{
-				enum
-				{
-					PAL_BIT = 0x01,
-					RESERVED_LENGTH = 6,
-					LENGTH = 6 + RESERVED_LENGTH
-				};
-
-				uint num16kPrgBanks;
-				uint num8kChrBanks;
-				uint flags;
-				uint num8kWrkBanks;
-				ibool pal;
-				u8 reserved[RESERVED_LENGTH];
-			};
-
-			enum
-			{
-				CRC_OFFSET = 4 + Header::LENGTH
+				VS_MAPPER_99 = 99,
+				VS_MAPPER_151 = 151
 			};
 
 			void Import();
-			void MessWithTheHeader(Header&);
 			void TryDatabase();
 
 			Result result;
@@ -114,6 +86,7 @@ namespace Nes
 			dword chrSkip;
 
 			const ImageDatabase* const database;
+			ImageDatabase::Handle& databaseHandle;
 
 		public:
 

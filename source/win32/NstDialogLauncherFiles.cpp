@@ -314,66 +314,31 @@ namespace Nestopia
 		{
 			if (PrepareFile( 16, Managers::Paths::File::FILEID_INES ))
 			{
+				Nes::Api::Cartridge::Setup setup;
+
 				if (UniqueFile())
 				{
-					enum
-					{
-						INES_VERTICAL   = 0x0001,
-						INES_BATTERY    = 0x0002,
-						INES_TRAINER    = 0x0004,
-						INES_FOURSCREEN = 0x0008,
-						INES_MAPPER_LO  = 0x00F0,
-						INES_VS         = 0x0100,
-						INES_MAPPER_HI  = 0xF000,
-						INES_PAL        = 0x1
-					};
-
-					#pragma pack(push,1)
-
-					struct Header
-					{
-						u32 signature;
-						u8  num16kPRomBanks;
-						u8  num8kCRomBanks;
-						u16 flags;
-						u8  num8kWRamBanks;
-						u8  pal;
-						u32 reserved1;
-						u16 reserved2;
-					};
-
-					#pragma pack(pop)
-
-					NST_COMPILE_ASSERT( sizeof(Header) == 16 );
-
-					const Header& header = reinterpret_cast<const Header&>( buffer.Front() );
-
-					if (header.reserved1 | header.reserved2)
-						std::memset( buffer.Ptr() + 7, 0x00, sizeof(Header) - 7 );
+					Nes::Api::Cartridge::ReadNesHeader( setup, buffer.Ptr(), buffer.Size() );
 
 					Entry entry( Entry::NES | compressed );
 
-					entry.pRom = header.num16kPRomBanks * 16;
-					entry.cRom = header.num8kCRomBanks * 8;
-					entry.wRam = header.num8kWRamBanks * 8;
-
-					entry.mapper = u8
-					(
-						((header.flags & INES_MAPPER_LO) >> 4) |
-						((header.flags & INES_MAPPER_HI) >> 8)
-					);
+					entry.pRom = setup.prgRom / Nes::Core::SIZE_1K;
+					entry.cRom = setup.chrRom / Nes::Core::SIZE_1K;
+					entry.wRam = (setup.wrkRam + setup.wrkRamBacked) / Nes::Core::SIZE_1K;
+					entry.mapper = setup.mapper;
 
 					entry.bits.mirroring =
 					(
-						(header.flags & INES_FOURSCREEN) ? Entry::MIRROR_FOURSCREEN :
-						(header.flags & INES_VERTICAL)   ? Entry::MIRROR_VERTICAL   :
-                                                           Entry::MIRROR_HORIZONTAL
+						setup.mirroring == Nes::Api::Cartridge::MIRROR_FOURSCREEN ? Entry::MIRROR_FOURSCREEN :
+						setup.mirroring == Nes::Api::Cartridge::MIRROR_VERTICAL   ? Entry::MIRROR_VERTICAL   :
+																					Entry::MIRROR_HORIZONTAL
 					);
 
-					entry.bits.battery = ( header.flags & INES_BATTERY ) != 0;
-					entry.bits.trainer = ( header.flags & INES_TRAINER ) != 0;
-					entry.bits.vs      = ( header.flags & INES_VS      ) != 0;
-					entry.bits.pal     = ( header.pal & INES_PAL       ) != 0;
+					entry.bits.battery = ( setup.wrkRamBacked >= Nes::Core::SIZE_1K);
+					entry.bits.trainer = ( setup.trainer != false );
+					entry.bits.vs      = ( setup.system == Nes::SYSTEM_VS );
+					entry.bits.pal     = ( setup.region == Nes::REGION_PAL || setup.region == Nes::REGION_BOTH );
+					entry.bits.ntsc    = ( setup.region == Nes::REGION_NTSC || setup.region == Nes::REGION_BOTH );
 
 					entry.dBaseEntry = imageDatabase.FindEntry( buffer.Ptr(), buffer.Size() );
 
@@ -507,7 +472,8 @@ namespace Nestopia
 				{
 					Entry entry( Entry::FDS | compressed );
 
-					entry.pRom = (buffer.Size() - (hasHeader ? 16 : 0)) / Nes::Core::SIZE_1K;
+					const uint size = buffer.Size() - (hasHeader ? 16 : 0);
+					entry.pRom = (size / Nes::Core::SIZE_1K) + (size % Nes::Core::SIZE_1K != 0);
 					entry.wRam = 32;
 					entry.bits.ntsc = true;
 
@@ -554,7 +520,8 @@ namespace Nestopia
 
 					Entry entry( Entry::NSF | compressed );
 
-					entry.pRom = (buffer.Size() - sizeof(Header)) / Nes::Core::SIZE_1K;
+					const uint size = buffer.Size() - sizeof(Header);
+					entry.pRom = (size / Nes::Core::SIZE_1K) + (size % Nes::Core::SIZE_1K != 0);
 
 					switch (header.mode & 0x3)
 					{
@@ -982,10 +949,6 @@ namespace Nestopia
 			User::Warn( IDS_INVALID_LAUNCHERFILE );
 		}
 
-		Launcher::List::Files::~Files()
-		{
-		}
-
 		void Launcher::List::Files::Save(const Nes::Cartridge::Database& imageDatabase)
 		{
 			if (dirty)
@@ -1238,19 +1201,30 @@ namespace Nestopia
 		{
 			if (dBaseEntry && db)
 			{
-				Nes::Cartridge::System s = db->GetSystem( dBaseEntry );
+				switch (db->GetSystem( dBaseEntry ))
+				{
+					case Nes::SYSTEM_VS:
+						return SYSTEM_VS;
 
-				return
-				(
-					s == Nes::Cartridge::SYSTEM_VS       ? SYSTEM_VS :
-					s == Nes::Cartridge::SYSTEM_PC10     ? SYSTEM_PC10 :
-					s == Nes::Cartridge::SYSTEM_PAL      ? SYSTEM_PAL :
-					s == Nes::Cartridge::SYSTEM_NTSC_PAL ? SYSTEM_NTSC_PAL :
-                                                           SYSTEM_NTSC
-				);
+					case Nes::SYSTEM_PC10:
+						return SYSTEM_PC10;
+				}
+
+				switch (db->GetRegion( dBaseEntry ))
+				{
+					case Nes::REGION_BOTH:
+						return SYSTEM_NTSC_PAL;
+
+					case Nes::REGION_PAL:
+						return SYSTEM_PAL;
+				}
+
+				return SYSTEM_NTSC;
 			}
-
-			return GetSystem();
+			else
+			{
+				return GetSystem();
+			}
 		}
 
 		#ifdef NST_PRAGMA_OPTIMIZE

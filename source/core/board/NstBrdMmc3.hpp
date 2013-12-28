@@ -113,13 +113,29 @@ namespace Nes
 
 			protected:
 
-				enum Revision
+				enum Board
 				{
-					REV_B_C,
-					REV_A
+					BRD_GENERIC,
+					BRD_TEROM,
+					BRD_TFROM,
+					BRD_TGROM,
+					BRD_TKROM,
+					BRD_TLROM,
+					BRD_TL1ROM,
+					BRD_TLSROM,
+					BRD_TR1ROM,
+					BRD_TSROM,
+					BRD_TVROM
 				};
 
-				Mmc3(Context&,uint=WRAM_AUTO,Revision=REV_B_C);
+				enum Revision
+				{
+					REV_A,
+					REV_B,
+					REV_C
+				};
+
+				Mmc3(Context&,Board=BRD_GENERIC,uint=WRAM_AUTO,Revision=REV_B);
 
 				void SubReset(bool);
 
@@ -156,11 +172,6 @@ namespace Nes
 				{
 					void Reset();
 
-					enum
-					{
-						PRG_MAX = 0x3F
-					};
-
 					uint chr[6];
 					uint prg[4];
 				};
@@ -176,6 +187,8 @@ namespace Nes
 			private:
 
 				NST_COMPILE_ASSERT( sizeof(Banks) == sizeof(uint) * 10 );
+
+				static uint BoardToWRam(Board,uint);
 
 				void BaseSave(State::Saver&) const;
 				void BaseLoad(State::Loader&,dword);

@@ -35,7 +35,7 @@ namespace Nes
 
 		void Mapper152::SubReset(bool)
 		{
-			Map( 0x6000U, 0xFFFFU, &Mapper152::Poke_Prg );
+			Map( 0x8000U, 0xFFFFU, &Mapper152::Poke_Prg );
 		}
 
 		#ifdef NST_PRAGMA_OPTIMIZE
@@ -45,8 +45,8 @@ namespace Nes
 		NES_POKE(Mapper152,Prg)
 		{
 			ppu.SetMirroring( (data & 0x80) ? Ppu::NMT_ONE : Ppu::NMT_ZERO );
-			prg.SwapBank<SIZE_16K,0x0000U>( data >> 4 & 0x7 );
-			chr.SwapBank<SIZE_8K,0x0000U>( data & 0xF );
+			prg.SwapBank<SIZE_16K,0x0000U>( data >> 4 );
+			chr.SwapBank<SIZE_8K,0x0000U>( data );
 		}
 	}
 }

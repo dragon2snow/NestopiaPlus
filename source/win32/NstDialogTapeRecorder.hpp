@@ -38,9 +38,9 @@ namespace Nestopia
 		public:
 
 			TapeRecorder(const Configuration&,const Managers::Paths&);
-			~TapeRecorder();
 
 			void Save(Configuration&) const;
+			const Path GetCustomFile() const;
 
 		private:
 
@@ -74,11 +74,6 @@ namespace Nestopia
 			ibool UseImageNaming() const
 			{
 				return settings.useImageNaming;
-			}
-
-			const Path& GetCustomFile() const
-			{
-				return settings.customFile;
 			}
 		};
 	}

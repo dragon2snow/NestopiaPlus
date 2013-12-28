@@ -105,10 +105,6 @@ namespace Nestopia
 				SubmitBios();
 		}
 
-		Fds::~Fds()
-		{
-		}
-
 		void Fds::Save(Configuration& cfg) const
 		{
 			cfg["files fds bios"].Quote() = settings.bios;
@@ -150,7 +146,7 @@ namespace Nestopia
 
 			Managers::Paths::File file;
 
-			if (paths.Load( file, BIOS_FILE_TYPES, settings.bios, Managers::Paths::QUIETLY ))
+			if (paths.Load( file, BIOS_FILE_TYPES, Path(Application::Instance::GetFullPath(settings.bios.Directory()),settings.bios.File()), Managers::Paths::QUIETLY ))
 			{
 				Io::Stream::Input stream( file.data );
 

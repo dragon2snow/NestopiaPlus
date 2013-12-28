@@ -65,21 +65,40 @@ namespace Nes
 				MIRROR_CONTROLLED
 			};
 
-			enum System
+			enum Condition
 			{
-				SYSTEM_NTSC,
-				SYSTEM_PAL,
-				SYSTEM_NTSC_PAL,
-				SYSTEM_VS,
-				SYSTEM_PC10
+				DUMP_OK,
+				DUMP_REPAIRABLE,
+				DUMP_BAD,
+				DUMP_UNKNOWN
 			};
 
-			enum State
+			struct Setup
 			{
-				YES     = +1,
-				NO      =  0,
-				UNKNOWN = -1
+				Setup() throw();
+
+				void Clear() throw();
+
+				System system;
+				Region region;
+				ulong prgRom;
+				ulong wrkRam;
+				ulong wrkRamBacked;
+				ulong chrRom;
+				ulong chrRam;
+				ulong chrRamBacked;
+				PpuType ppu;
+				Mirroring mirroring;
+				ushort mapper;
+				ushort subMapper;
+				uchar security;
+				uchar version;
+				bool trainer;
+				bool wrkRamAuto;
 			};
+
+			static Result NST_CALL ReadNesHeader(Setup&,const void*,ulong) throw();
+			static Result NST_CALL WriteNesHeader(const Setup&,void*,ulong) throw();
 
 			class Database
 			{
@@ -104,41 +123,39 @@ namespace Nes
 				Entry  FindEntry(ulong) const throw();
 				Entry  FindEntry(const void*,ulong) const throw();
 
-				System    GetSystem    (Entry) const throw();
-				Mirroring GetMirroring (Entry) const throw();
-				ulong     GetCrc       (Entry) const throw();
-				ulong     GetPRomSize  (Entry) const throw();
-				ulong     GetCRomSize  (Entry) const throw();
-				ulong     GetWRamSize  (Entry) const throw();
-				uint      GetMapper    (Entry) const throw();
-				bool      HasBattery   (Entry) const throw();
-				bool      HasTrainer   (Entry) const throw();
-				bool      IsBad        (Entry) const throw();
+				System    GetSystem       (Entry) const throw();
+				Region    GetRegion       (Entry) const throw();
+				Mirroring GetMirroring    (Entry) const throw();
+				ulong     GetCrc          (Entry) const throw();
+				ulong     GetPrgRom       (Entry) const throw();
+				ulong     GetWrkRam       (Entry) const throw();
+				ulong     GetWrkRamBacked (Entry) const throw();
+				ulong     GetChrRom       (Entry) const throw();
+				ulong     GetChrRam       (Entry) const throw();
+				ulong     GetChrRamBacked (Entry) const throw();
+				uint      GetMapper       (Entry) const throw();
+				Condition GetCondition    (Entry) const throw();
+				bool      HasTrainer      (Entry) const throw();
 			};
 
 			Database GetDatabase() throw();
 
 			struct Info
 			{
+				Info() throw();
+
 				void Clear() throw();
 
-				std::string name;
-				std::string maker;
-				std::string board;
-				uint        mapper;
-				ulong       pRom;
-				ulong       cRom;
-				ulong       wRam;
-				bool        isCRam;
-				ulong       crc;
-				ulong       pRomCrc;
-				ulong       cRomCrc;
-				System      system;
-				Mirroring   mirroring;
-				bool        battery;
-				bool        trained;
-				Input::Type controllers[5];
-				State       condition;
+				Setup          setup;
+				std::string    name;
+				std::string    maker;
+				std::string    board;
+				ulong          crc;
+				ulong          prgCrc;
+				ulong          chrCrc;
+				Input::Type    controllers[5];
+				Input::Adapter adapter;
+				Condition      condition;
 			};
 
 			const Info* GetInfo() const throw();

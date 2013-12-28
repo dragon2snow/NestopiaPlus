@@ -35,7 +35,7 @@ namespace Nestopia
 		namespace Control
 		{
 			TreeView::ImageList::ImageList(const uint x,const uint y,const uint selected,const uint unselected)
-			: handle(ImageList_Create(x,y,ILC_COLOR16,0,2))
+			: handle(ImageList_Create(x,y,ILC_COLOR16|ILC_MASK,0,2))
 			{
 				if (handle)
 				{
@@ -43,8 +43,8 @@ namespace Nestopia
 					{
 						if
 						(
-							ImageList_Add( static_cast<HIMAGELIST>(handle), Resource::Bitmap( selected   ), NULL ) == -1 ||
-							ImageList_Add( static_cast<HIMAGELIST>(handle), Resource::Bitmap( unselected ), NULL ) == -1
+							ImageList_AddMasked( static_cast<HIMAGELIST>(handle), Resource::Bitmap( selected   ), 0 ) == -1 ||
+							ImageList_AddMasked( static_cast<HIMAGELIST>(handle), Resource::Bitmap( unselected ), 0 ) == -1
 						)
 							throw Application::Exception(_T("ImageList_Add() failed!"));
 					}
