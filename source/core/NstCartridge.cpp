@@ -55,24 +55,23 @@ CARTRIDGE::~CARTRIDGE()
 // load rom image
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT CARTRIDGE::Load(PDXFILE& file,CPU* const cpu,PPU* const ppu,const IO::GENERAL::CONTEXT& c)
+PDXRESULT CARTRIDGE::Load(PDXFILE& ImageFile,const PDXSTRING* const save,CPU* const cpu,PPU* const ppu,const IO::GENERAL::CONTEXT& c)
 {
-	context = c;
-
 	Unload();
 
-	info.Reset();
-	info.file = file.Name();
+	context = c;
 
-	if (file.Peek<U32>() == 0x1A53454EUL)
+	info.file = ImageFile.Name();
+
+	if (ImageFile.Peek<U32>() == 0x1A53454EUL)
 	{
 		INES ines;
-		PDX_TRY(ines.Import( this, file, context ));
+		PDX_TRY(ines.Import( this, ImageFile, context ));
 	}
 	else
 	{
 		UNIF unif;
-		PDX_TRY(unif.Import( this, file, context ));
+		PDX_TRY(unif.Import( this, ImageFile, context ));
 	}
 
 	if (info.system != SYSTEM_VS)
@@ -85,9 +84,12 @@ PDXRESULT CARTRIDGE::Load(PDXFILE& file,CPU* const cpu,PPU* const ppu,const IO::
 		DetectBattery();
 
 	if (info.battery)
-		LoadBatteryRam();
+	{
+		if (save)
+			SaveName = *save;
 
-	delete mapper;
+		LoadBatteryRam();
+	}
 
 	MAPPER::CONTEXT context;
 
@@ -179,6 +181,9 @@ VOID CARTRIDGE::DetectControllers()
 		case 0xE4C04EEAUL: // Mad City (J)
 		case 0x9EEF47AAUL: // Mechanized Attack (U)
 		case 0xC2DB7551UL: // Shooting Range (U)
+		case 0x81069812UL: // Super Mario Bros / Duck Hunt (U)
+		case 0xE8F8F7A5UL: // Super Mario Bros / Duck Hunt (E)
+		case 0xD4F018F5UL: // Super Mario Bros / Duck Hunt / Track Meet
 		case 0x163E86C0UL: // To The Earth (U)
 		case 0x389960DBUL: // Wild Gunman (JUE)
 		case 0xED588f00UL: // VS Duck Hunt
@@ -294,7 +299,6 @@ VOID CARTRIDGE::DetectVS()
 		case 0x66BB838FUL: // Super Xevious
 		case 0xCC2C4B5DUL: // Golf
 		case 0x86167220UL: // Lady Golf
-//		case 0xB90497AAUL: // Tennis
 
 		// Dual System
 		case 0xB90497AAUL: // Tennis
@@ -319,8 +323,10 @@ VOID CARTRIDGE::DetectVS()
 
 PDXRESULT CARTRIDGE::Unload()
 {
-	if (info.battery && !context.DisableSaveRamWrite)
+	if (info.battery && !context.WriteProtectBattery)
 		SaveBatteryRam();
+
+	SaveName.Clear();
 
 	delete mapper;
 	mapper = NULL;
@@ -340,7 +346,7 @@ PDXRESULT CARTRIDGE::Unload()
 
 PDXRESULT CARTRIDGE::Reset(const BOOL hard)
 {
-	if (info.battery && !context.DisableSaveRamWrite)
+	if (info.battery && !context.WriteProtectBattery)
 		SaveBatteryRam();
 
 	if (mapper)
@@ -355,41 +361,17 @@ PDXRESULT CARTRIDGE::Reset(const BOOL hard)
 
 VOID CARTRIDGE::LoadBatteryRam()
 {
-	PDXFILE file( PDXFILE::INPUT );
-
-	PDXSTRING SaveName( info.file );
-	SaveName.ReplaceFileExtension( "sav" );
-
-	if ((context.LookInRomPathForSaveRam || context.SaveRamPath.IsEmpty()) && PDX_SUCCEEDED(file.Open( SaveName )))
-	{
-		LoadBatteryRam( file );
-	}
-	else if (context.SaveRamPath.Size())
-	{
-		SaveName.ReplaceFilePath( context.SaveRamPath );
-
-		if (PDX_SUCCEEDED(file.Open( SaveName )))
-			LoadBatteryRam( file );
-	}
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-// load the battery ram file
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID CARTRIDGE::LoadBatteryRam(PDXFILE& file)
-{
-	PDX_ASSERT(file.IsOpen());
-
 	BOOL yep = FALSE;
 
-	if (file.Size())
+	PDXFILE SaveFile;
+
+	if (SaveName.Length() && PDX_SUCCEEDED(SaveFile.Open( SaveName, PDXFILE::INPUT )) && SaveFile.Size())
 	{
-		const UINT size = PDX_MIN( wRam.Size(), file.Size() - file.Position() );
-	
+		const UINT size = PDX_MIN( wRam.Size(), SaveFile.Size() - SaveFile.Position() );
+
 		yep = 
 		(
-        	size >= n8k ||
+			size >= n8k ||
 			MsgQuestion("Spooky Save File","Save file may be invalid! Sure you want to load it in?")
 		);
 
@@ -398,7 +380,7 @@ VOID CARTRIDGE::LoadBatteryRam(PDXFILE& file)
 			if (size < n8k)
 				LogOutput("CARTRIDGE: warning, battery-backup ram file is less than 8k in size!");
 
-			file.Read( wRam.At(0), wRam.At(size) );
+			SaveFile.Read( wRam.At(0), wRam.At(size) );
 		}
 	}
 
@@ -407,7 +389,7 @@ VOID CARTRIDGE::LoadBatteryRam(PDXFILE& file)
 	if (yep)
 	{
 		log  = "CARTRIDGE: battery-backup ram was read from \"";
-		log += file.Name();
+		log += SaveFile.Name();
 		log += "\"";
 	}
 	else
@@ -424,53 +406,26 @@ VOID CARTRIDGE::LoadBatteryRam(PDXFILE& file)
 
 VOID CARTRIDGE::SaveBatteryRam() const
 {
-	PDXFILE file( PDXFILE::OUTPUT );
+	PDXSTRING log;
 
-	PDXSTRING SaveName( info.file );
-	SaveName.ReplaceFileExtension( "sav" );
-
-	BOOL groovie = FALSE;
-
-	if ((context.LookInRomPathForSaveRam || context.SaveRamPath.IsEmpty()) && PDX_SUCCEEDED(file.Open( SaveName )))
 	{
-		SaveBatteryRam( file );
-		groovie = TRUE;
-	}
-	else if (context.SaveRamPath.Size())
-	{
-		SaveName.ReplaceFilePath( context.SaveRamPath );
+		PDXFILE SaveFile;
 
-		if (PDX_SUCCEEDED(file.Open( SaveName )))
+		if (SaveName.Length() && PDX_SUCCEEDED(SaveFile.Open( SaveName, PDXFILE::OUTPUT )))
 		{
-			SaveBatteryRam( file );
-			groovie = TRUE;
+			SaveFile.Write( wRam.Begin(), wRam.End() );
+
+			log  = "CARTRIDGE: battery-backup ram was written to \"";
+			log += SaveFile.Name();
+			log += "\"";
+		}
+		else
+		{
+			log = "CARTRIDGE: warning, battery-backup ram was not written to any file";
 		}
 	}
 
-	PDXSTRING log;
-
-	if (groovie)
-	{
-		log  = "CARTRIDGE: battery-backup ram was written to \"";
-		log += file.Name();
-		log += "\"";
-	}
-	else
-	{
-		log = "CARTRIDGE: warning, battery-backup ram was not written to any file";
-	}
-
 	LogOutput( log );
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-// save the battery-backup RAM to a file
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID CARTRIDGE::SaveBatteryRam(PDXFILE& file) const
-{
-	PDX_ASSERT( file.IsOpen() );
-	file.Write( wRam.Begin(), wRam.End() );
 }
 
 NES_NAMESPACE_END

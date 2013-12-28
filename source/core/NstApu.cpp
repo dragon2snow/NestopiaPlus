@@ -37,8 +37,8 @@ NES_NAMESPACE_BEGIN
 #define NES_APU_BUFFER_MASK    (NES_APU_BUFFER_SIZE-1)
 #define NES_APU_BUFFER_TO_8(x) (((x) >> 8) ^ 0x80)
 
-#define NES_TRIANGLE_MIN_FREQUENCY NES_APU_TO_FIXED(0x4)
-#define NES_SQUARE_MIN_FREQUENCY   NES_APU_TO_FIXED(0x8)
+#define NES_TRIANGLE_MIN_FREQUENCY NES_APU_TO_FIXED(0x4UL)
+#define NES_SQUARE_MIN_FREQUENCY   NES_APU_TO_FIXED(0x8UL)
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // length counter conversion table
@@ -47,7 +47,7 @@ NES_NAMESPACE_BEGIN
 const UCHAR APU::CHANNEL::LengthTable[32] = 
 {
 	0x05, 0x7F, 0x0A, 0x01, 0x14, 0x02, 0x28, 0x03, 
-	0x50, 0x04, 0x1E, 0x05, 0x07, 0x06, 0x0E, 0x07, 
+	0x50, 0x04, 0x1E, 0x05, 0x07, 0x06, 0x0D, 0x07, 
 	0x06, 0x08, 0x0C, 0x09, 0x18, 0x0A, 0x30, 0x0B, 
 	0x60, 0x0C, 0x24, 0x0D, 0x08, 0x0E, 0x10, 0x0F
 };
@@ -204,11 +204,13 @@ VOID APU::BUFFER::Flush8(IO::SFX* const stream,const TSIZE NewStart)
 
 APU::APU(CPU* const c) 
 :
-square1 (0),
-square2 (1),
-dmc     (c),
-cpu     (c),
-pal     (FALSE)
+square1  (0),
+square2  (1),
+noise    (dmc),
+triangle (dmc),
+dmc      (c),
+cpu      (c),
+pal      (FALSE)
 {}
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -449,39 +451,7 @@ NES_POKE(APU,400F) { Synchronize(); noise.WriteReg3    (data); }
 NES_POKE(APU,4010) { Synchronize(); dmc.WriteReg0      (data); }
 NES_POKE(APU,4012) { Synchronize(); dmc.WriteReg2      (data); }
 NES_POKE(APU,4013) { Synchronize(); dmc.WriteReg3      (data); }
-
-NES_POKE(APU,4011) 
-{ 
-	Synchronize(); 
-
-	const UINT mask = data & 0x7F;
-
- #ifdef APU_DAC_HACK
-
-	{
-		// the 4011 DAC port can indirectly control
-		// the noise and triangle channel volume
-
-		FLOAT volume;
-
-		     if (mask == 0x7F) volume = 0.63;
-		else if (mask == 0x00) volume = 1.00;
-		else if (mask >= 0x5F) volume = 0.68;
-		else if (mask >= 0x4F) volume = 0.73;
-		else if (mask >= 0x3F) volume = 0.78;
-		else if (mask >= 0x2F) volume = 0.84;
-		else if (mask >= 0x1F) volume = 0.89;
-		else if (mask >= 0x0F) volume = 0.95;
-		else                   volume = 0.65;
-
-		noise.HackVolume(volume);
-		triangle.HackVolume(volume);
-	}
-
- #endif
-
-	dmc.WriteReg1(mask); 
-}
+NES_POKE(APU,4011) { Synchronize(); dmc.WriteReg1      (data); }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // channel enable/disable
@@ -756,10 +726,13 @@ VOID APU::SQUARE::Reset()
 	SweepUpdateRate = 0;
 	SweepShift = 0;
 	SweepDecrease = 0;
-	SweepCarry = NES_APU_TO_FIXED(0x7F1); 
+	SweepCarry = NES_APU_TO_FIXED(0x400); 
 
 	WaveLengthLow = 0;
 	WaveLengthHigh = 0;
+
+	volume = 0;
+	ValidFrequency = FALSE;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -785,6 +758,15 @@ VOID APU::SQUARE::Toggle(const BOOL state)
 inline VOID APU::SQUARE::UpdateVolume()
 {
 	volume = NES_APU_OUTPUT(EnvDecayDisable ? EnvDecayRate : EnvCount);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+inline BOOL APU::SQUARE::IsValidFrequency() const
+{
+	return frequency >= NES_SQUARE_MIN_FREQUENCY && (SweepDecrease || frequency <= SweepCarry);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -827,7 +809,10 @@ VOID APU::SQUARE::WriteReg1(const UINT data)
 	SweepUpdateRate	= reg.SweepUpdateRate + 1;
 	SweepRate       = SweepUpdateRate;
 	SweepEnabled    = reg.SweepEnabled;
-	SweepCarry      = NES_APU_TO_FIXED(SweepCarries[data & 0x7]);
+	SweepCarry      = NES_APU_TO_FIXED(SweepCarries[reg.SweepShift]);
+
+	ValidFrequency = IsValidFrequency();
+	active = LengthCounter && ValidFrequency && enabled && emulate;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -838,7 +823,9 @@ VOID APU::SQUARE::WriteReg2(const UINT data)
 {
 	WaveLengthLow = data;
 	frequency = NES_APU_TO_FIXED(WaveLengthLow + WaveLengthHigh + 1);
-	active = emulate && enabled && LengthCounter && frequency >= NES_SQUARE_MIN_FREQUENCY && (SweepDecrease || frequency <= SweepCarry);
+
+	ValidFrequency = IsValidFrequency();
+	active = LengthCounter && ValidFrequency && enabled && emulate;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -858,7 +845,9 @@ VOID APU::SQUARE::WriteReg3(const UINT data)
 	LengthCounter  = LengthTable[reg.LengthCount];
 	WaveLengthHigh = reg.WaveLengthHigh << 8;
 	frequency      = NES_APU_TO_FIXED(WaveLengthLow + WaveLengthHigh + 1);
-	active         = emulate && enabled && frequency >= NES_SQUARE_MIN_FREQUENCY && (SweepDecrease || frequency <= SweepCarry);
+
+	ValidFrequency = IsValidFrequency();
+	active = enabled && ValidFrequency && emulate;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -881,35 +870,28 @@ VOID APU::SQUARE::UpdateQuarter()
 
 VOID APU::SQUARE::UpdateHalf()
 {
-	if (frequency < NES_SQUARE_MIN_FREQUENCY || (!SweepDecrease && frequency > SweepCarry))
+	if (SweepEnabled && ValidFrequency && !--SweepRate)
 	{
-		active = 0;
-	}
-	else
-	{
-		if (SweepEnabled && !--SweepRate)
+		SweepRate = SweepUpdateRate;
+
+		if (SweepShift)
 		{
-			SweepRate = SweepUpdateRate;
+			const UINT f = NES_APU_FROM_FIXED(frequency);
+			const UINT shifted = f >> SweepShift;
 
-			if (SweepShift)
+			if (SweepDecrease)
 			{
-				const UINT f = NES_APU_FROM_FIXED(frequency);
-				const UINT shifted = f >> SweepShift;
+				frequency = NES_APU_TO_FIXED(f - (shifted + complement));
 
-				if (SweepDecrease)
-				{
-					frequency = NES_APU_TO_FIXED(f - (shifted + complement));
+				if (frequency < NES_SQUARE_MIN_FREQUENCY)
+					ValidFrequency = active = 0;
+			}
+			else
+			{
+				frequency = NES_APU_TO_FIXED(f + shifted);
 
-					if (frequency < NES_SQUARE_MIN_FREQUENCY)
-						active = 0;
-				}
-				else
-				{
-					frequency = NES_APU_TO_FIXED(f + shifted);
-
-					if (frequency > SweepCarry)
-						active = 0;
-				}
+				if (frequency > SweepCarry)
+					ValidFrequency = active = 0;
 			}
 		}
 	}
@@ -933,18 +915,30 @@ LONG APU::SQUARE::Sample()
 {
 	if (active)
 	{
-		for (timer += rate; timer > 0; timer -= frequency)
+		if ((timer += rate) > 0)
 		{
-			step = (step + 1) & 0xF;
+			LONG sum = 0;
+			INT num = 0;
 
-			if (!step) 
+			do
 			{
-				amp = +volume;
+				step = (step + 1) & 0xF;
+			
+				if (!step) 
+				{
+					amp = +volume;
+				}
+				else if (step == DutyPeriod)
+				{
+					amp = -volume;
+				}
+				
+				sum += amp;
+				++num;
 			}
-			else if (step == DutyPeriod)
-			{
-				amp = -volume;
-			}
+			while ((timer -= frequency) > 0);
+
+			return sum / num;
 		}
 	}
 	else
@@ -985,6 +979,8 @@ PDXRESULT APU::SQUARE::LoadState(PDXFILE& file)
 		WaveLengthHigh	 = header.WaveLengthHigh << 8;
 		SweepCarry       = header.SweepCarry;
 	}
+
+	ValidFrequency = IsValidFrequency();
 
 	UpdateVolume();
 
@@ -1040,12 +1036,6 @@ VOID APU::TRIANGLE::Reset()
 	
 	WaveLengthLow = 0;
 	WaveLengthHigh = 0;
-
- #ifdef APU_DAC_HACK
-
-	VolHack = 1.f;
-
- #endif
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -1066,19 +1056,6 @@ VOID APU::TRIANGLE::Toggle(const BOOL state)
 		ChangeMode = FALSE;
 	}
 }
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-#ifdef APU_DAC_HACK
-
-VOID APU::TRIANGLE::HackVolume(const FLOAT percent)
-{
-	VolHack = percent;
-}
-
-#endif
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // triangle	channel register writes
@@ -1242,12 +1219,6 @@ VOID APU::NOISE::Reset()
 	volume = 0;
 	bits = 1;
 	shifter = 13;
-
- #ifdef APU_DAC_HACK
-
-	VolHack = 1.f;
-
- #endif
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -1270,39 +1241,9 @@ VOID APU::NOISE::Toggle(const BOOL state)
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#ifdef APU_DAC_HACK
-
-VOID APU::NOISE::HackVolume(const FLOAT percent)
-{
-	VolHack = percent;
-	UpdateVolume();
-}
-
-#endif
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
 inline VOID APU::NOISE::UpdateVolume()
 {
 	volume = NES_APU_OUTPUT(EnvDecayDisable ? EnvDecayRate : EnvCount);
-
-#ifdef NES_APU_DAC_HACK
-
-	if (VolHack != 1.f)
-		volume = INT(FLOAT(volume) * VolHack);
-
-#endif
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-inline VOID APU::NOISE::UpdateAmplitude()
-{
-	amp = (bits & 0x4000) ? -volume : +volume;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -1395,13 +1336,24 @@ LONG APU::NOISE::Sample()
 {
 	if (active)
 	{
-		UpdateAmplitude();
-
-		for (timer += rate; timer > 0; timer -= frequency)
+		if ((timer += rate) > 0)
 		{
-			bits = (bits << 1) | (((bits >> 14) ^ (bits >> shifter)) & 0x1);
-			UpdateAmplitude();
+			LONG sum = 0;
+			INT num = 0;
+
+			do
+			{
+				bits = (bits << 1) | (((bits >> 14) ^ (bits >> shifter)) & 0x1);
+				amp = (bits & 0x4000U) ? -volume : +volume;
+				sum += amp;
+				++num;
+			}
+			while ((timer -= frequency) > 0);
+
+			return sum / num;
 		}
+
+		return amp;
 	}
 	else
 	{
@@ -1547,6 +1499,7 @@ VOID APU::DMC::WriteReg0(const UINT data)
 
 inline VOID APU::DMC::WriteReg1(UINT data)
 {
+	data &= 0x7F;
 	amp += NES_APU_OUTPUT(data - output);
 	output = data;
 }

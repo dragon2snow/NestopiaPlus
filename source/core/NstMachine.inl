@@ -33,6 +33,7 @@ inline BOOL MACHINE::IsNsf()       const { return nsf ? TRUE : FALSE;       }
 inline BOOL MACHINE::IsCartridge() const { return cartridge ? TRUE : FALSE; }
 inline BOOL MACHINE::IsFds()       const { return fds ? TRUE : FALSE;       }
 inline BOOL MACHINE::IsVs()        const { return VsSystem ? TRUE : FALSE;  }
+inline BOOL MACHINE::IsImage()     const { return cartridge || fds;         }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //

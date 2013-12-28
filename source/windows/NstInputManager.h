@@ -180,9 +180,18 @@ private:
 
 	struct ACTIVEJOYSTICK
 	{
-		BOOL operator == (const ACTIVEJOYSTICK& joy) const
-		{ return device == joy.device; }
+		ACTIVEJOYSTICK()
+		:
+		device (NULL),
+		active (FALSE)
+		{
+			PDXMemZero( state );
+		}
 
+		BOOL operator == (const LPDIRECTINPUTDEVICE8 d) const
+		{ return device == d; }
+
+		BOOL active;
 		LPDIRECTINPUTDEVICE8 device;
 		DIJOYSTATE state;
 	};

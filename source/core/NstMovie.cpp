@@ -34,12 +34,11 @@ NES_NAMESPACE_BEGIN
 
 MOVIE::MOVIE(MACHINE* const m)
 :				   
-frame       (0),
-NextFrame   (0),
-machine     (m),
-UpdateState (0),
-state       (NOTHING),
-stopped     (TRUE)
+frame     (0),
+NextFrame (0),
+machine   (m),
+state     (NOTHING),
+stopped   (TRUE)
 {}
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -48,15 +47,16 @@ stopped     (TRUE)
 
 MOVIE::~MOVIE()
 {
-	if (file.IsOpen() && !stopped)
+	if (file.IsOpen())
 	{
-		if (state == RECORDING)
+		if (file.Position() >= sizeof(U32) * 2)
 		{
-			Close();
+			file.Seek( PDXFILE::BEGIN, file.Size() );
+			file.Close();
 		}
 		else
 		{
-			MsgOutput( "File broken, movie stopped.." );
+			file.Abort();
 		}
 	}
 }
@@ -65,50 +65,32 @@ MOVIE::~MOVIE()
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT MOVIE::Load(const CHAR* const FileName)
+PDXRESULT MOVIE::Load(const PDXSTRING& FileName)
 {
-	if (state == PLAYING && file.Name() == FileName)
+	if (file.IsOpen() && file.Name() == FileName)
 		return PDX_OK;
 
-	Close();
-	state = NOTHING;
+	PDX_TRY(file.Open( FileName, PDXFILE::APPEND ));
+	file.Seek( PDXFILE::BEGIN );
 
-	if (PDX_FAILED(file.Open( FileName, PDXFILE::INPUT )))
-		return PDX_FAILURE;
+	if (file.Readable(sizeof(U32) * 2))
+	{
+		if (file.Read<U32>() != 0x1A564D4EUL)
+			return PDX_FAILURE;
 
-	if (!file.Readable(sizeof(U32)) || file.Read<U32>() != 0x1A564D4EUL)
-		return PDX_FAILURE;
-
-	frame     = 0;
-	NextFrame = 0;
-	state     = PLAYING;
-	stopped   = TRUE;
+		file.Seek( PDXFILE::CURRENT, sizeof(U32) );
+	}
+	else
+	{
+		file << U32(0x1A564D4EUL);
+		file << U32(0);
+	}
 	
-	return PDX_OK;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-PDXRESULT MOVIE::Save(const CHAR* const FileName)
-{
-	if (state == RECORDING && file.Name() == FileName)
-		return PDX_OK;
-
-	Close();
-	state = NOTHING;
-
-	if (PDX_FAILED(file.Open( FileName, PDXFILE::OUTPUT )))
-		return PDX_FAILURE;
-
-	file << U32(0x1A564D4EUL);
-
-	frame     = 0;
-	PrevFrame = 0;
-	state     = RECORDING;
-	stopped   = TRUE;
-
+	frame      = 0;
+	NextFrame  = 0;
+	state      = NOTHING;
+	stopped    = TRUE;
+	
 	return PDX_OK;
 }
 
@@ -135,39 +117,31 @@ VOID MOVIE::RemoveInputDevices()
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-VOID MOVIE::Start()
-{
-	PDX_ASSERT( state != NOTHING );
-
-	if (stopped)
-	{
-		stopped = FALSE;
-
-		if (state == RECORDING)
-		{
-			UpdateState = UPDATE_SAVE_STATE;
-			MsgOutput( frame ? "Movie recording resumed.." : "Movie recording started.." );
-		}
-		else
-		{
-			Rewind();
-			MsgOutput( "Movie started, grab your popcorn.." );
-		}
-	}
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
 VOID MOVIE::Stop()
 {
 	if (!stopped)
 	{
 		stopped = TRUE;
-	
+
 		if (state == RECORDING)
 		{
+			file << U32(frame - PrevFrame);
+			file << U8(UPDATE_SAVE_STATE);
+
+			const U32 SavePos = file.Position();
+
+			if (PDX_FAILED(machine->SaveNST( file )))
+				return;
+
+			const TSIZE CurrentPos = file.Position();
+
+			file.Seek( PDXFILE::BEGIN, sizeof(U32) );
+			file << SavePos;
+			file.Seek( PDXFILE::BEGIN, CurrentPos );
+
+			frame = 0;
+			PrevFrame = 0;
+
 			MsgOutput( "Movie recording paused.." );
 		}
 		else if (state == PLAYING)
@@ -181,28 +155,65 @@ VOID MOVIE::Stop()
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-VOID MOVIE::Close()
+VOID MOVIE::Record()
 {
-	Stop();
-
-	if (file.IsOpen())
+	if (CanRecord())
 	{
-		if (state == RECORDING)
-		{
-			if (frame)
-			{
-				const U32 count = frame - PrevFrame;
-				PrevFrame = frame;
-				file << count;
-			}
+		stopped   = FALSE;
+		state     = RECORDING;
+		frame     = 0;
+		NextFrame = 0;
 
-			file << U8(UPDATE_EOF);
+		const BOOL started = (file.Position() == sizeof(U32) * 2);
+		file.Buffer().Resize( file.Position() );
+
+		if (!started)
+		{
+			file << U32(1);
+			file << U8(UPDATE_SAVE_STATE);
 		}
 
-		file.Close();
+		const U32 SavePos = file.Position();
+
+		if (PDX_FAILED(machine->SaveNST( file )))
+			return;
+
+		const TSIZE CurrentPos = file.Position();
+
+		file.Seek( PDXFILE::BEGIN, sizeof(U32) );
+		file << SavePos;
+		file.Seek( PDXFILE::BEGIN, CurrentPos );
+
+		MsgOutput( started ? "Movie recording started.." : "Movie recording resumed.." );
 	}
-  
-	state = NOTHING;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+VOID MOVIE::Play()
+{
+	if (CanPlay())
+	{
+		stopped = FALSE;
+		state = PLAYING;
+		frame = 0;
+
+		file.Seek( PDXFILE::BEGIN, sizeof(U32) * 2 );
+
+		if (PDX_FAILED(machine->LoadNST( file )))
+			return;
+
+		U32 next;
+
+		if (!file.Read(next))
+			return;
+
+		NextFrame = next;
+
+		MsgOutput( "Movie started, grab your popcorn.." );
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -211,16 +222,45 @@ VOID MOVIE::Close()
 
 VOID MOVIE::Rewind()
 {
-	PDX_ASSERT( state != NOTHING );
+	if (CanRewind())
+	{
+		MsgOutput( "Movie rewinded.." );
+		file.Seek( PDXFILE::BEGIN, sizeof(U32) * 2 );
+		frame = 0;
+		NextFrame = 0;
+	}
+}
 
-	frame = 0;
-	NextFrame = 0;
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
 
-	if (file.IsOpen())
+VOID MOVIE::Forward()
+{
+	if (CanForward())
 	{
 		file.Seek( PDXFILE::BEGIN, sizeof(U32) );
-		MsgOutput( "Movie rewinded.." );
+		file.Seek( PDXFILE::BEGIN, file.Peek<U32>() );
+
+		if (PDX_FAILED(machine->LoadNST( file )))
+			return;			
+
+		MsgOutput( "Reached end of movie.." );
+
+		frame = 0;
+		NextFrame = 0;
 	}
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+VOID MOVIE::Close()
+{
+	Stop();
+	file.Close();
+	state = NOTHING;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -229,15 +269,16 @@ VOID MOVIE::Rewind()
 
 PDXRESULT MOVIE::ExecuteFrame()
 {
-	PDX_ASSERT( state != NOTHING );
-
-	switch (state)
+	if (!stopped)
 	{
-    	case PLAYING:   return ExecuteFrameRead();
-		case RECORDING:	return ExecuteFrameWrite();
+		switch (state)
+		{
+     		case PLAYING:   return ExecuteFrameRead();
+     		case RECORDING:	return ExecuteFrameWrite();
+		}
 	}
 
-	return PDX_FAILURE;
+	return PDX_OK;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -246,24 +287,22 @@ PDXRESULT MOVIE::ExecuteFrame()
 
 PDXRESULT MOVIE::ExecuteFrameRead()
 {
-	if (stopped)
-		return PDX_OK;
-
 	if (frame == NextFrame)
 	{
-		U8 update;
+		U8 u;
 
-		if (!file.Read(update))
+		if (!file.Read(u))
 			return PDX_FAILURE;
 
-		if (update & UPDATE_EOF)
-		{
-			Stop();
-			return PDX_OK;
-		}
+		const UINT update = u;
 
-		if ((update & UPDATE_SAVE_STATE) && PDX_FAILED(machine->LoadNST( file )))
-			return PDX_FAILURE;			
+		if (update & UPDATE_SAVE_STATE)
+		{
+			if (PDX_FAILED(machine->LoadNST( file )))
+				return PDX_FAILURE;			
+
+			frame = 0;
+		}
 
 		for (UINT i=0; i < 6; ++i)
 		{
@@ -272,6 +311,12 @@ PDXRESULT MOVIE::ExecuteFrameRead()
 				if (devices.Size() <= i || !file.Read(devices[i].state))
 					return PDX_FAILURE;
 			}
+		}
+
+		if (file.Eof())
+		{
+			Stop();
+			return PDX_OK;
 		}
 
 		U32 next;
@@ -296,43 +341,31 @@ PDXRESULT MOVIE::ExecuteFrameRead()
 
 PDXRESULT MOVIE::ExecuteFrameWrite()
 {
-	if (!stopped)
-	{
-		UINT update = UpdateState;
+	UINT update = 0;
 	
+	for (UINT i=0; i < devices.Size(); ++i)
+	{
+		const ULONG state = devices[i].device->GetState();
+	
+		if (devices[i].state != state)
+		{
+			devices[i].state = state;
+			update |= (1U << i);
+		}
+	}
+	
+	if (update)
+	{
+		const U32 count = frame - PrevFrame;
+		PrevFrame = frame;
+
+		file << count;
+		file << U8(update);
+
 		for (UINT i=0; i < devices.Size(); ++i)
 		{
-			const ULONG state = devices[i].device->GetState();
-	
-			if (devices[i].state != state)
-			{
-				devices[i].state = state;
-				update |= (1U << i);
-			}
-		}
-	
-		if (update)
-		{
-			if (frame)
-			{
-				const U32 count = frame - PrevFrame;
-				PrevFrame = frame;
-				file << count;
-			}
-	
-			file << U8(update);
-	
-			if (update & UPDATE_SAVE_STATE)
-			{
-				UpdateState = 0;
-				PDX_TRY(machine->SaveNST( file ));
-			}
-	
-			for (UINT i=0; i < devices.Size(); ++i)
-			{
-				if (update & (1U << i))
-					file << U32(devices[i].state);
-			}
+			if (update & (1U << i))
+				file << U32(devices[i].state);
 		}
 	}
 

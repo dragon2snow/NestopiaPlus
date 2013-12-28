@@ -31,47 +31,32 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-VOID MOVIEMANAGER::Play() 
+VOID MOVIEMANAGER::Load(PDXSTRING& name)
 {
-	if (file.Length())
+	if (name.Size())
 	{
-		if (PDX_SUCCEEDED(nes->LoadMovie(file)))		
-			nes->StartMovie();
+		if (name.GetFileExtension().IsEmpty())
+			name += ".nsv";
+
+		file = name;
+		nes->LoadMovie( file );
+	}
+	else
+	{
+		file.Clear();
+		nes->CloseMovie();
 	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
 ////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MOVIEMANAGER::Stop() 
-{
-	if (nes->IsMoviePlaying() || nes->IsMovieRecording())
-		nes->StopMovie();
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MOVIEMANAGER::Record() 
-{
-	if (file.Length())
-	{
-		if (PDX_SUCCEEDED(nes->SaveMovie(file)))
-			nes->StartMovie();
-	}
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MOVIEMANAGER::Rewind() 
-{
-	if (file.Length())
-		nes->RewindMovie();
-}
+														 
+VOID MOVIEMANAGER::Play()    { if (nes->CanPlayMovie())    nes->PlayMovie();    } 
+VOID MOVIEMANAGER::Stop()    { if (nes->CanStopMovie())    nes->StopMovie();    }
+VOID MOVIEMANAGER::Record()  { if (nes->CanRecordMovie())  nes->RecordMovie();  }
+VOID MOVIEMANAGER::Rewind()  { if (nes->CanRewindMovie())  nes->RewindMovie();  }
+VOID MOVIEMANAGER::Forward() { if (nes->CanForwardMovie()) nes->ForwardMovie(); }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -88,22 +73,13 @@ VOID MOVIEMANAGER::UpdateDialog(HWND hDlg)
 
 VOID MOVIEMANAGER::UpdateSettings(HWND hDlg)
 {
-	file.Clear();
-	file.Buffer().Resize( NST_MAX_PATH );
+	PDXSTRING name;
+	name.Buffer().Resize( NST_MAX_PATH );
+	name.Front() = '\0';
 
-	GetDlgItemText( hDlg, IDC_MOVIE_FILE, file.Begin(), NST_MAX_PATH );
-
-	file.Validate();
-
-	if (file.Size())
-	{
-		if (file.GetFileExtension().IsEmpty())
-			file += ".nsv";
-	}
-	else
-	{
-		nes->CloseMovie();
-	}
+	GetDlgItemText( hDlg, IDC_MOVIE_FILE, name.Begin(), NST_MAX_PATH );
+	name.Validate();
+	Load( name );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -121,10 +97,9 @@ VOID MOVIEMANAGER::OnBrowse(HWND hDlg)
 
 	ofn.lStructSize     = sizeof(ofn);
 	ofn.hwndOwner       = hWnd;
-	ofn.hInstance       = application.GetHInstance();
 	ofn.lpstrFilter     = "NES Movie File (*.nsv)\0*.nsv\0All Files (*.*)\0*.*\0";
 	ofn.nFilterIndex    = 1;
-	ofn.lpstrInitialDir	= application.GetStatePath();
+	ofn.lpstrInitialDir	= application.GetFileManager().GetNstPath();
 	ofn.lpstrFile       = file.Begin();
 	ofn.lpstrTitle      = "Select NES Movie File";
 	ofn.nMaxFile        = NST_MAX_PATH;
@@ -165,7 +140,7 @@ BOOL MOVIEMANAGER::DialogProc(HWND hDlg,UINT uMsg,WPARAM wParam,LPARAM)
 
 		case WM_COMMAND:
 
-         	switch (LOWORD(wParam))
+			switch (LOWORD(wParam))
 			{
     			case IDC_MOVIE_CLEAR:  OnClear( hDlg ); return TRUE;
     			case IDC_MOVIE_BROWSE: OnBrowse( hDlg ); return TRUE;

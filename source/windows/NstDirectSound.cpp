@@ -145,8 +145,7 @@ PDXRESULT DIRECTSOUND::Create(const GUID* const guid)
 {
 	PDX_ASSERT(guid && hWnd);
 
-	if (PDX_FAILED(Destroy()))
-		return PDX_FAILURE;
+	PDX_TRY(Destroy());
 
 	PDX_ASSERT(!device);
 

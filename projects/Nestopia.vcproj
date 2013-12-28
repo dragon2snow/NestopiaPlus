@@ -57,7 +57,8 @@
 					EnableFunctionLevelLinking="1"
 					ForceConformanceInForLoopScope="1"
 					RecognizeRestrictKeyword="1"
-					AllOptions="/c  /I &quot;.\source\paradox&quot; /Zi /nologo /W3 /Od /Op /G7 /D &quot;WIN32&quot; /D &quot;_DEBUG&quot; /D &quot;_WINDOWS&quot; /D &quot;_USE_INTEL_COMPILER&quot; /D &quot;_M_IX86&quot; /FD /MLd /Gy /Zc:forScope /Qrestrict /YX&quot;StdAfx.h&quot; /Fp&quot;Debug/Nestopia.pch&quot; /Fo&quot;Debug/&quot; /Fd&quot;Debug/vc70.pdb&quot; /Gd /TP /Qinline_debug_info /Qlong_double"/>
+					AllOptions="/c  /I &quot;.\source\paradox&quot; /Zi /nologo /W3 /Od /Op /G7 /D &quot;WIN32&quot; /D &quot;_DEBUG&quot; /D &quot;_WINDOWS&quot; /D &quot;_USE_INTEL_COMPILER&quot; /D &quot;_M_IX86&quot; /FD /MLd /Gy /Zc:forScope /Qrestrict /YX&quot;StdAfx.h&quot; /Fp&quot;Debug/Nestopia.pch&quot; /Fo&quot;Debug/&quot; /Fd&quot;Debug/vc70.pdb&quot; /Gd /TP /Qinline_debug_info /Qlong_double"
+					MSOriginalAdditionalOptions="/Qinline_debug_info /Qlong_double"/>
 			</Tool>
 			<Tool
 				Name="VCCustomBuildTool"/>
@@ -75,9 +76,11 @@
 				OptimizeReferences="2"
 				EnableCOMDATFolding="0"
 				OptimizeForWindows98="0"
-				TargetMachine="0">
+				TargetMachine="0"
+				AdditionalOptions="">
 				<IntelOptions
-					AllOptions="/NOLOGO /OUT:&quot;Debug/Nestopia.exe&quot; /INCREMENTAL:NO /LIBPATH:&quot;.\lib\\&quot; /LIBPATH:&quot;.\source\zlib\\&quot; /NODEFAULTLIB:&quot;libc&quot; /DEBUG /PDB:&quot;Debug/Nestopia.pdb&quot; /SUBSYSTEM:WINDOWS /OPT:REF /TLBID:1  kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib"/>
+					AllOptions="/NOLOGO /OUT:&quot;Debug/Nestopia.exe&quot; /INCREMENTAL:NO /LIBPATH:&quot;.\lib\\&quot; /LIBPATH:&quot;.\source\zlib\\&quot; /NODEFAULTLIB:&quot;libc&quot; /DEBUG /PDB:&quot;Debug/Nestopia.pdb&quot; /SUBSYSTEM:WINDOWS /OPT:REF /TLBID:1  kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib"
+					MSOriginalAdditionalOptions=""/>
 			</Tool>
 			<Tool
 				Name="VCMIDLTool"/>
@@ -163,7 +166,8 @@
 					EnableFunctionLevelLinking="0"
 					ForceConformanceInForLoopScope="1"
 					RecognizeRestrictKeyword="1"
-					AllOptions="/c  /GL /nologo /W3 /O3 /Og /Ob2 /Oi /Op /Ot /Oy /G7 /GA /QaxW /QxM /Qparallel /D &quot;WIN32&quot; /D &quot;NDEBUG&quot; /D &quot;_USE_INTEL_COMPILER&quot; /D &quot;_WINDOWS&quot; /D &quot;_M_IX86&quot; /GF /FD /ML /Zc:forScope /Qrestrict /YX&quot;StdAfx.h&quot; /Fp&quot;Release/Nestopia.pch&quot; /FAs /Fa&quot;.\Release/&quot; /Fo&quot;.\Release/&quot; /Gr /TP /Qwn1 /Qlong_double /Qipo_obj"/>
+					AllOptions="/c  /GL /nologo /W3 /O3 /Og /Ob2 /Oi /Op /Ot /Oy /G7 /GA /QaxW /QxM /Qparallel /D &quot;WIN32&quot; /D &quot;NDEBUG&quot; /D &quot;_USE_INTEL_COMPILER&quot; /D &quot;_WINDOWS&quot; /D &quot;_M_IX86&quot; /GF /FD /ML /Zc:forScope /Qrestrict /YX&quot;StdAfx.h&quot; /Fp&quot;Release/Nestopia.pch&quot; /FAs /Fa&quot;.\Release/&quot; /Fo&quot;.\Release/&quot; /Gr /TP /Qwn1 /Qlong_double /Qipo_obj"
+					MSOriginalAdditionalOptions="/Qwn1 /Qlong_double /Qipo_obj"/>
 			</Tool>
 			<Tool
 				Name="VCCustomBuildTool"/>
@@ -180,9 +184,11 @@
 				OptimizeReferences="2"
 				EnableCOMDATFolding="2"
 				TargetMachine="0"
-				FixedBaseAddress="0">
+				FixedBaseAddress="0"
+				AdditionalOptions="">
 				<IntelOptions
-					AllOptions="/NOLOGO /LTCG /OUT:&quot;Release/Nestopia.exe&quot; /INCREMENTAL:NO /LIBPATH:&quot;.\..\lib/&quot; /SUBSYSTEM:WINDOWS /OPT:REF /OPT:ICF /TLBID:1  kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib"/>
+					AllOptions="/NOLOGO /LTCG /OUT:&quot;Release/Nestopia.exe&quot; /INCREMENTAL:NO /LIBPATH:&quot;.\..\lib/&quot; /SUBSYSTEM:WINDOWS /OPT:REF /OPT:ICF /TLBID:1  kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib"
+					MSOriginalAdditionalOptions=""/>
 			</Tool>
 			<Tool
 				Name="VCMIDLTool"/>
@@ -273,6 +279,10 @@
 				RelativePath="..\source\core\NstNsf.cpp"/>
 			<File
 				RelativePath="..\source\core\NstNsf.h"/>
+			<File
+				RelativePath="..\source\core\NstNsp.cpp"/>
+			<File
+				RelativePath="..\source\core\NstNsp.h"/>
 			<File
 				RelativePath="..\source\core\NstPalette.cpp"/>
 			<File
@@ -928,6 +938,8 @@
 			<File
 				RelativePath="..\source\windows\NstApplication.h"/>
 			<File
+				RelativePath="..\source\windows\NstApplication.inl"/>
+			<File
 				RelativePath="..\source\windows\NstFdsManager.cpp"/>
 			<File
 				RelativePath="..\source\windows\NstFdsManager.h"/>
@@ -1004,41 +1016,51 @@
 						Name="Debug|Win32">
 						<Tool
 							Name="VCCLCompilerTool"
-							ObjectFile="$(IntDir)/$(InputName)1.obj">
+							ObjectFile="$(IntDir)/$(InputName)1.obj"
+							AdditionalOptions="">
 							<IntelOptions
-								AllOptions="/c /Qinline_debug_info /Qlong_double /I &quot;.\source\paradox&quot; /Zi /nologo /W3 /Od /Op /G7 /D &quot;WIN32&quot; /D &quot;_DEBUG&quot; /D &quot;_WINDOWS&quot; /D &quot;_USE_INTEL_COMPILER&quot; /D &quot;_M_IX86&quot; /FD /MLd /Gy /Zc:forScope /Qrestrict /YX&quot;StdAfx.h&quot; /Fp&quot;Debug/Nestopia.pch&quot; /Fo&quot;Debug/NstDirectDraw1.obj&quot; /Fd&quot;Debug/vc70.pdb&quot; /Gd /TP"/>
+								AllOptions="/c /Qinline_debug_info /Qlong_double /I &quot;.\source\paradox&quot; /Zi /nologo /W3 /Od /Op /G7 /D &quot;WIN32&quot; /D &quot;_DEBUG&quot; /D &quot;_WINDOWS&quot; /D &quot;_USE_INTEL_COMPILER&quot; /D &quot;_M_IX86&quot; /FD /MLd /Gy /Zc:forScope /Qrestrict /YX&quot;StdAfx.h&quot; /Fp&quot;Debug/Nestopia.pch&quot; /Fo&quot;Debug/NstDirectDraw1.obj&quot; /Fd&quot;Debug/vc70.pdb&quot; /Gd /TP"
+								MSOriginalAdditionalOptions=""/>
 						</Tool>
 					</FileConfiguration>
 					<FileConfiguration
 						Name="Release|Win32">
 						<Tool
 							Name="VCCLCompilerTool"
-							ObjectFile="$(IntDir)/$(InputName)1.obj">
+							ObjectFile="$(IntDir)/$(InputName)1.obj"
+							AdditionalOptions="">
 							<IntelOptions
-								AllOptions="/c /Qwn1 /Qlong_double /Qipo_obj /GL /nologo /W3 /O3 /Og /Ob2 /Oi /Op /Ot /Oy /G7 /GA /QaxW /QxM /Qparallel /D &quot;WIN32&quot; /D &quot;NDEBUG&quot; /D &quot;_USE_INTEL_COMPILER&quot; /D &quot;_WINDOWS&quot; /D &quot;_M_IX86&quot; /GF /FD /ML /Zc:forScope /Qrestrict /YX&quot;StdAfx.h&quot; /Fp&quot;Release/Nestopia.pch&quot; /FAs /Fa&quot;.\Release/&quot; /Fo&quot;Release/NstDirectDraw1.obj&quot; /Gr /TP"/>
+								AllOptions="/c /Qwn1 /Qlong_double /Qipo_obj /GL /nologo /W3 /O3 /Og /Ob2 /Oi /Op /Ot /Oy /G7 /GA /QaxW /QxM /Qparallel /D &quot;WIN32&quot; /D &quot;NDEBUG&quot; /D &quot;_USE_INTEL_COMPILER&quot; /D &quot;_WINDOWS&quot; /D &quot;_M_IX86&quot; /GF /FD /ML /Zc:forScope /Qrestrict /YX&quot;StdAfx.h&quot; /Fp&quot;Release/Nestopia.pch&quot; /FAs /Fa&quot;.\Release/&quot; /Fo&quot;Release/NstDirectDraw1.obj&quot; /Gr /TP"
+								MSOriginalAdditionalOptions=""/>
 						</Tool>
 					</FileConfiguration>
 				</File>
 				<File
 					RelativePath="..\source\windows\NstDirectDraw.h"/>
 				<File
+					RelativePath="..\source\windows\NstDirectDraw.inl"/>
+				<File
 					RelativePath="..\source\windows\NstDirectInput.cpp">
 					<FileConfiguration
 						Name="Debug|Win32">
 						<Tool
 							Name="VCCLCompilerTool"
-							ObjectFile="$(IntDir)/$(InputName)1.obj">
+							ObjectFile="$(IntDir)/$(InputName)1.obj"
+							AdditionalOptions="">
 							<IntelOptions
-								AllOptions="/c /Qinline_debug_info /Qlong_double /I &quot;.\source\paradox&quot; /Zi /nologo /W3 /Od /Op /G7 /D &quot;WIN32&quot; /D &quot;_DEBUG&quot; /D &quot;_WINDOWS&quot; /D &quot;_USE_INTEL_COMPILER&quot; /D &quot;_M_IX86&quot; /FD /MLd /Gy /Zc:forScope /Qrestrict /YX&quot;StdAfx.h&quot; /Fp&quot;Debug/Nestopia.pch&quot; /Fo&quot;Debug/NstDirectInput1.obj&quot; /Fd&quot;Debug/vc70.pdb&quot; /Gd /TP"/>
+								AllOptions="/c /Qinline_debug_info /Qlong_double /I &quot;.\source\paradox&quot; /Zi /nologo /W3 /Od /Op /G7 /D &quot;WIN32&quot; /D &quot;_DEBUG&quot; /D &quot;_WINDOWS&quot; /D &quot;_USE_INTEL_COMPILER&quot; /D &quot;_M_IX86&quot; /FD /MLd /Gy /Zc:forScope /Qrestrict /YX&quot;StdAfx.h&quot; /Fp&quot;Debug/Nestopia.pch&quot; /Fo&quot;Debug/NstDirectInput1.obj&quot; /Fd&quot;Debug/vc70.pdb&quot; /Gd /TP"
+								MSOriginalAdditionalOptions=""/>
 						</Tool>
 					</FileConfiguration>
 					<FileConfiguration
 						Name="Release|Win32">
 						<Tool
 							Name="VCCLCompilerTool"
-							ObjectFile="$(IntDir)/$(InputName)1.obj">
+							ObjectFile="$(IntDir)/$(InputName)1.obj"
+							AdditionalOptions="">
 							<IntelOptions
-								AllOptions="/c /Qwn1 /Qlong_double /Qipo_obj /GL /nologo /W3 /O3 /Og /Ob2 /Oi /Op /Ot /Oy /G7 /GA /QaxW /QxM /Qparallel /D &quot;WIN32&quot; /D &quot;NDEBUG&quot; /D &quot;_USE_INTEL_COMPILER&quot; /D &quot;_WINDOWS&quot; /D &quot;_M_IX86&quot; /GF /FD /ML /Zc:forScope /Qrestrict /YX&quot;StdAfx.h&quot; /Fp&quot;Release/Nestopia.pch&quot; /FAs /Fa&quot;.\Release/&quot; /Fo&quot;Release/NstDirectInput1.obj&quot; /Gr /TP"/>
+								AllOptions="/c /Qwn1 /Qlong_double /Qipo_obj /GL /nologo /W3 /O3 /Og /Ob2 /Oi /Op /Ot /Oy /G7 /GA /QaxW /QxM /Qparallel /D &quot;WIN32&quot; /D &quot;NDEBUG&quot; /D &quot;_USE_INTEL_COMPILER&quot; /D &quot;_WINDOWS&quot; /D &quot;_M_IX86&quot; /GF /FD /ML /Zc:forScope /Qrestrict /YX&quot;StdAfx.h&quot; /Fp&quot;Release/Nestopia.pch&quot; /FAs /Fa&quot;.\Release/&quot; /Fo&quot;Release/NstDirectInput1.obj&quot; /Gr /TP"
+								MSOriginalAdditionalOptions=""/>
 						</Tool>
 					</FileConfiguration>
 				</File>
@@ -1050,18 +1072,22 @@
 						Name="Debug|Win32">
 						<Tool
 							Name="VCCLCompilerTool"
-							ObjectFile="$(IntDir)/$(InputName)1.obj">
+							ObjectFile="$(IntDir)/$(InputName)1.obj"
+							AdditionalOptions="">
 							<IntelOptions
-								AllOptions="/c /Qinline_debug_info /Qlong_double /I &quot;.\source\paradox&quot; /Zi /nologo /W3 /Od /Op /G7 /D &quot;WIN32&quot; /D &quot;_DEBUG&quot; /D &quot;_WINDOWS&quot; /D &quot;_USE_INTEL_COMPILER&quot; /D &quot;_M_IX86&quot; /FD /MLd /Gy /Zc:forScope /Qrestrict /YX&quot;StdAfx.h&quot; /Fp&quot;Debug/Nestopia.pch&quot; /Fo&quot;Debug/NstDirectSound1.obj&quot; /Fd&quot;Debug/vc70.pdb&quot; /Gd /TP"/>
+								AllOptions="/c /Qinline_debug_info /Qlong_double /I &quot;.\source\paradox&quot; /Zi /nologo /W3 /Od /Op /G7 /D &quot;WIN32&quot; /D &quot;_DEBUG&quot; /D &quot;_WINDOWS&quot; /D &quot;_USE_INTEL_COMPILER&quot; /D &quot;_M_IX86&quot; /FD /MLd /Gy /Zc:forScope /Qrestrict /YX&quot;StdAfx.h&quot; /Fp&quot;Debug/Nestopia.pch&quot; /Fo&quot;Debug/NstDirectSound1.obj&quot; /Fd&quot;Debug/vc70.pdb&quot; /Gd /TP"
+								MSOriginalAdditionalOptions=""/>
 						</Tool>
 					</FileConfiguration>
 					<FileConfiguration
 						Name="Release|Win32">
 						<Tool
 							Name="VCCLCompilerTool"
-							ObjectFile="$(IntDir)/$(InputName)1.obj">
+							ObjectFile="$(IntDir)/$(InputName)1.obj"
+							AdditionalOptions="">
 							<IntelOptions
-								AllOptions="/c /Qwn1 /Qlong_double /Qipo_obj /GL /nologo /W3 /O3 /Og /Ob2 /Oi /Op /Ot /Oy /G7 /GA /QaxW /QxM /Qparallel /D &quot;WIN32&quot; /D &quot;NDEBUG&quot; /D &quot;_USE_INTEL_COMPILER&quot; /D &quot;_WINDOWS&quot; /D &quot;_M_IX86&quot; /GF /FD /ML /Zc:forScope /Qrestrict /YX&quot;StdAfx.h&quot; /Fp&quot;Release/Nestopia.pch&quot; /FAs /Fa&quot;.\Release/&quot; /Fo&quot;Release/NstDirectSound1.obj&quot; /Gr /TP"/>
+								AllOptions="/c /Qwn1 /Qlong_double /Qipo_obj /GL /nologo /W3 /O3 /Og /Ob2 /Oi /Op /Ot /Oy /G7 /GA /QaxW /QxM /Qparallel /D &quot;WIN32&quot; /D &quot;NDEBUG&quot; /D &quot;_USE_INTEL_COMPILER&quot; /D &quot;_WINDOWS&quot; /D &quot;_M_IX86&quot; /GF /FD /ML /Zc:forScope /Qrestrict /YX&quot;StdAfx.h&quot; /Fp&quot;Release/Nestopia.pch&quot; /FAs /Fa&quot;.\Release/&quot; /Fo&quot;Release/NstDirectSound1.obj&quot; /Gr /TP"
+								MSOriginalAdditionalOptions=""/>
 						</Tool>
 					</FileConfiguration>
 				</File>
@@ -1090,6 +1116,14 @@
 				<File
 					RelativePath="..\source\windows\resource\RomDatabase.dat"/>
 			</Filter>
+		</Filter>
+		<Filter
+			Name="2xSai"
+			Filter="">
+			<File
+				RelativePath="..\source\2xsai\2xSai.cpp"/>
+			<File
+				RelativePath="..\source\2xsai\2xSai.h"/>
 		</Filter>
 		<File
 			RelativePath="..\source\nestopia.cpp"/>

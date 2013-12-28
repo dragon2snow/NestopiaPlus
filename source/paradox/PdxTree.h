@@ -109,7 +109,10 @@ public:
 	{ return size == 0 ? TRUE : FALSE; }
 
 	VOID Reserve(const TSIZE length)
-	{ allocator.Reserve(sizeof(NODE) * length); }
+	{
+		if (length)
+			allocator.Reserve(sizeof(NODE) * length); 
+	}
 
 	inline ITERATOR Begin()
 	{ return ITERATOR(first); }
@@ -260,10 +263,14 @@ template<class DATA> template<class BEGIN,class END>
 TSIZE PDXTREE<DATA>::InsertSequence(BEGIN begin,const END& end)
 {
 	const TSIZE length = end - begin;
-	allocator.Reserve(sizeof(NODE) * length);
 
-	for (; begin != end; ++begin)
-		Insert(*begin);
+	if (length)
+	{
+		allocator.Reserve(sizeof(NODE) * length);
+
+		for (; begin != end; ++begin)
+			Insert(*begin);
+	}
 
 	return length;
 }
@@ -276,12 +283,16 @@ template<class DATA> template<class BEGIN,class END>
 TSIZE PDXTREE<DATA>::SafeInsertSequence(BEGIN begin,const END& end)
 {
 	TSIZE length = end - begin;
-	allocator.Reserve(sizeof(NODE) * length);
 
-	length = 0;
+	if (length)
+	{
+		allocator.Reserve(sizeof(NODE) * length);
 
-	for (; begin != end; ++begin)
-		length += SafeInsert(*begin).Second();
+		length = 0;
+
+		for (; begin != end; ++begin)
+			length += SafeInsert(*begin).Second();
+	}
 
 	return length;
 }
@@ -321,6 +332,12 @@ TSIZE PDXTREE<DATA>::EraseSequence(BEGIN begin,const END& end)
 template<class DATA> 
 VOID PDXTREE<DATA>::operator = (const TREE& tree)
 {
+	if (!tree.size)
+	{
+		Destroy();
+		return;
+	}
+
 	Destroy(root);
 	allocator.Reserve(tree.size * sizeof(NODE));
 

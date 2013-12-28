@@ -38,13 +38,19 @@ class GAMEGENIEMANAGER : public MANAGER
 {
 public:
 
-	GAMEGENIEMANAGER(const INT id,const UINT chunk)
-	: MANAGER(id,chunk) {}
+	GAMEGENIEMANAGER(const INT id)
+	: MANAGER(id) {}
+
+	PDXRESULT ClearAllCodes();
+	PDXRESULT AddCode(const PDXSTRING&,const BOOL=TRUE,const PDXSTRING* const=NULL);
+	PDXRESULT GetCode(const UINT,PDXSTRING&,PDXSTRING* const) const;
+
+	inline UINT NumCodes() const
+	{ return codes.Size(); }
 
 private:
 
-	PDXRESULT Create  (PDXFILE* const);
-	PDXRESULT Destroy (PDXFILE* const);
+	PDXRESULT Create(PDXFILE* const);
 
 	struct CODE
 	{

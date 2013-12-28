@@ -246,6 +246,8 @@ INPUTMANAGER::INPUTMANAGER(const INT id,const UINT chunk)
 MANAGER      (id,chunk), 
 hDlg         (NULL),
 AutoFireStep (0),
+SelectDevice (0),
+SelectKey    (0),
 MenuHeight   (GetSystemMetrics(SM_CYMENU))
 {
 	map.category[ CATEGORY_PAD1     ].keys.Resize( NUM_PAD_KEYS      );
@@ -296,6 +298,11 @@ PDXRESULT INPUTMANAGER::Create(PDXFILE* const file)
 	{
 		Reset();
 	}
+
+	ActiveJoysticks.Resize( joysticks.Size() );
+
+	for (UINT i=0; i < joysticks.Size(); ++i)
+		ActiveJoysticks[i].device = joysticks[i].device;
 
 	UpdateJoystickDevices();
 
@@ -450,22 +457,22 @@ VOID INPUTMANAGER::PollJoysticks()
 
 	for (UINT i=0; i < NumDevices; ++i)
 	{
-		if (FAILED(ActiveJoysticks[i].device->Poll()))
+		if (ActiveJoysticks[i].active && ActiveJoysticks[i].device)
 		{
-			while (ActiveJoysticks[i].device->Acquire() == DIERR_INPUTLOST)
-				Sleep(100);
-
 			if (FAILED(ActiveJoysticks[i].device->Poll()))
 			{
-				PDXMemZero( ActiveJoysticks[i].state );
-				continue;
-			}
-		}
+				while (ActiveJoysticks[i].device->Acquire() == DIERR_INPUTLOST)
+					Sleep(100);
 
-		if (FAILED(ActiveJoysticks[i].device->GetDeviceState( sizeof(DIJOYSTATE), PDX_CAST(LPVOID,&ActiveJoysticks[i].state) )))
-		{
-			PDXMemZero( ActiveJoysticks[i].state );
-			continue;
+				if (FAILED(ActiveJoysticks[i].device->Poll()))
+				{
+					PDXMemZero( ActiveJoysticks[i].state );
+					continue;
+				}
+			}
+
+			if (FAILED(ActiveJoysticks[i].device->GetDeviceState( sizeof(DIJOYSTATE), PDX_CAST(LPVOID,&ActiveJoysticks[i].state) )))
+				PDXMemZero( ActiveJoysticks[i].state );
 		}
 	}
 }
@@ -484,8 +491,8 @@ BOOL INPUTMANAGER::OnMouseMove(POINT& point)
 	}
 	else
 	{
-		rcClient.right = application.GetDisplayWidth();
-		rcClient.bottom = application.GetDisplayHeight();
+		rcClient.right = application.GetGraphicManager().GetDisplayWidth();
+		rcClient.bottom = application.GetGraphicManager().GetDisplayHeight();
 
 		if (application.IsMenuSet())
 			point.y += MenuHeight;
@@ -644,6 +651,32 @@ BOOL INPUTMANAGER::DialogProc(HWND h,UINT uMsg,WPARAM wParam,LPARAM)
 
 					ScanInput();
 					return TRUE;
+
+				case IDC_INPUT_SETALL:
+				{
+					HWND hItem = GetDlgItem( hDlg, IDC_INPUT_MAP );
+					const UINT count = ListBox_GetCount( hItem );
+
+					for (SelectKey=0; SelectKey < count;)
+					{
+						ListBox_SetCurSel( hItem, SelectKey );
+
+						ScanInput();
+						UpdateJoystickDevices();
+
+						const DWORD key = map.category[SelectDevice].keys[SelectKey].key;
+
+						do 
+						{	
+							if (key & NST_USE_JOYSTICK) PollJoysticks();
+							else                        PollKeyboard();
+						} 
+						while (IsButtonPressed(key));
+
+						++SelectKey;
+					}
+				}
+				return TRUE;
 
 				case IDC_INPUT_CLEAR:
 
@@ -822,11 +855,11 @@ VOID INPUTMANAGER::Clear()
 VOID INPUTMANAGER::ScanInput()
 {
 	HWND hItem = GetDlgItem( hDlg, IDC_INPUT_KEYPRESS_TEXT );
-	SetWindowText( hItem, "Press any key/button to use, ESC to abort.." );
+	SetWindowText( hItem, "Press any key/button to use, ESC to skip.." );
 	
 	DialogBoxParam
 	( 
-    	application.GetHInstance(), 
+    	application.GetInstance(), 
 		MAKEINTRESOURCE(IDD_INPUT_KEYPRESS), 
 		hDlg, 
 		StaticKeyPressDialogProc,
@@ -842,18 +875,22 @@ VOID INPUTMANAGER::ScanInput()
 
 VOID INPUTMANAGER::UpdateJoystickDevices()
 {
-	ActiveJoysticks.Clear();
-
-	ACTIVEJOYSTICK joy;
+	for (UINT i=0; i < ActiveJoysticks.Size(); ++i)
+		ActiveJoysticks[i].active = FALSE;
 
 	for (UINT i=0; i < NUM_CATEGORIES; ++i)
 	{
 		for (TSIZE j=0; j < map.category[i].keys.Size(); ++j)
 		{
-			joy.device = map.category[i].keys[j].device;
+			LPDIRECTINPUTDEVICE8 device = map.category[i].keys[j].device;
 
-			if (joy.device && joy.device != GetDevice(0) && PDX::Find(ActiveJoysticks.Begin(),ActiveJoysticks.End(),joy) == ActiveJoysticks.End())
-				ActiveJoysticks.InsertBack(joy);
+			if (device && device != GetDevice(0))
+			{
+				ACTIVEJOYSTICK* const joy = PDX::Find( ActiveJoysticks.Begin(), ActiveJoysticks.End(), device );
+
+				if (joy)
+					joy->active = TRUE;
+			}
 		}
 	}
 }

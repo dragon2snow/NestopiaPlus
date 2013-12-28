@@ -53,6 +53,11 @@ public:
 	inline UINT GetLastSlot() const
 	{ return LastSlot + 1; }
 
+	inline PDXFILE& GetFile(const UINT index)
+	{ return slots[IndexToSlot(index)].file; }
+
+	PDXRESULT SetFile(UINT index,PDXFILE&);
+
 	enum
 	{
 		MAX_SLOTS = 9,

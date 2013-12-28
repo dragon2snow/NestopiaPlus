@@ -22,118 +22,63 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "../paradox/PdxFile.h"
-#include "NstApplication.h"
+inline HWND APPLICATION::GetHWnd() const
+{ 
+	return hWnd; 
+}
 
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
+inline HINSTANCE APPLICATION::GetInstance() const
+{ 
+	return hInstance; 
+}
 
-MANAGER::MANAGER(const INT did,const UINT chunk)
-: 
-nes       (NULL), 
-hWnd      (NULL),
-hInstance (NULL),
-DialogID  (did),
-FileChunk (chunk)
-{}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-PDXRESULT MANAGER::Init(HWND w,HINSTANCE i,NES::MACHINE* const n,PDXFILE* const file)
-{
-	hWnd = w;
-	hInstance = i;
-	nes = n;
-
-	BOOL IsNull = TRUE;
-
-	if (file && !file->IsEmpty() && FileChunk != NO_FILE)
-	{
-		if (FileChunk == file->Read<U8>())
-		{
-			IsNull = FALSE;
-		}
-		else
-		{
-			file->Seek( PDXFILE::CURRENT, -LONG(sizeof(U8)) );
-		}
-	}
-
-	return Create( IsNull ? NULL : file );
+inline HMENU APPLICATION::GetMenu() const
+{ 
+	return hMenu ? hMenu : ::GetMenu(hWnd); 
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT MANAGER::Close(PDXFILE* const file)
+inline VOID APPLICATION::ResetTimer()
 {
-	hWnd = NULL;
-	hInstance = NULL;
-
-	BOOL IsNull = TRUE;
-
-	if (file && FileChunk != NO_FILE)
-	{
-		IsNull = FALSE;
-		file->Write( U8(FileChunk) );
-	}
-  
-	PDXRESULT result = Destroy( IsNull ? NULL : file );
-
-	nes = NULL;
-
-	return result;
+	timer.Reset();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-VOID MANAGER::StartDialog()
-{
-	PDX_ASSERT( hWnd && DialogID != INT_MAX );
+inline BOOL APPLICATION::IsActive()   const { return active;        }
+inline BOOL APPLICATION::IsWindowed() const { return windowed;      }
+inline BOOL APPLICATION::IsMenuSet()  const { return hMenu == NULL; }
 
-	DialogBoxParam
-	(
-	    application.GetInstance(),
-		MAKEINTRESOURCE(DialogID),
-		hWnd,
-		StaticDialogProc,
-		PDX_CAST(LPARAM,this)
-	);
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+inline const RECT& APPLICATION::NesRect() const
+{ 
+	return nes.IsPAL() ? GraphicManager->GetRectNTSC() : GraphicManager->GetRectPAL(); 
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-BOOL CALLBACK MANAGER::StaticDialogProc(HWND hDlg,UINT uMsg,WPARAM wParam,LPARAM lParam)
-{
-	static MANAGER* manager = NULL;
+inline SAVESTATEMANAGER& APPLICATION::GetSaveStateManager() { return *SaveStateManager;   }
+inline FILEMANAGER&      APPLICATION::GetFileManager()      { return *FileManager;        }
+inline GAMEGENIEMANAGER& APPLICATION::GetGameGenieManager() { return *GameGenieManager;   }
+inline GRAPHICMANAGER&   APPLICATION::GetGraphicManager()   { return *GraphicManager;     }
+inline PREFERENCES&      APPLICATION::GetPreferences()      { return *preferences;        }
+inline MOVIEMANAGER&     APPLICATION::GetMovieManager()     { return *MovieManager;       }
 
-	BOOL GotIt = FALSE;
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
 
-	if (uMsg == WM_INITDIALOG)
-	{
-		PDX_ASSERT( !manager );
-		manager = PDX_CAST(MANAGER*,lParam);
-		application.BeginDialogMode();
-		GotIt = TRUE;
-	}
-
-	if (manager && manager->DialogProc( hDlg, uMsg, wParam, lParam ))
-		GotIt = TRUE;
-
-	if (uMsg == WM_DESTROY)
-	{
-		manager = NULL;
-		application.EndDialogMode();
-		GotIt = TRUE;
-	}
-
-	return GotIt;
+inline NES::MODE APPLICATION::GetNesMode() const
+{ 
+	return NesMode; 
 }

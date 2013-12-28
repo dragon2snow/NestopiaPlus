@@ -51,11 +51,15 @@ PDXRESULT PREFERENCES::Create(PDXFILE* const file)
 		hidemenu           = header.hidemenu;
 		confirmexit        = header.confirmexit;
 		uselogfile         = header.logfile;
+		highpriority       = header.highpriority;
 	}
 	else
 	{
 		Reset();
 	}
+
+	if ((DefPriority = GetThreadPriority(GetCurrentThread())) == THREAD_PRIORITY_ERROR_RETURN)
+		DefPriority = THREAD_PRIORITY_NORMAL;
 
 	SetContext();
 
@@ -81,6 +85,7 @@ PDXRESULT PREFERENCES::Destroy(PDXFILE* const file)
 		header.hidemenu           = hidemenu           ? 1 : 0;
 		header.confirmexit        = confirmexit        ? 1 : 0;
 		header.logfile            = uselogfile         ? 1 : 0;
+		header.highpriority       = highpriority       ? 1 : 0;
 
 		file->Write( header );
 	}
@@ -103,6 +108,7 @@ VOID PREFERENCES::Reset()
 	hidemenu           = FALSE;
 	confirmexit        = TRUE;
 	uselogfile         = FALSE;
+	highpriority       = FALSE;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -114,6 +120,7 @@ VOID PREFERENCES::UpdateDialog(HWND hDlg)
 	CheckDlgButton( hDlg, IDC_PREFERENCES_BEGIN_EMULATION,      emulateimmediately ? BST_CHECKED : BST_UNCHECKED );	
 	CheckDlgButton( hDlg, IDC_PREFERENCES_RUN_IN_BACKGROUND,    background         ? BST_CHECKED : BST_UNCHECKED );	
 	CheckDlgButton( hDlg, IDC_PREFERENCES_NSF_IN_BACKGROUND,    backgroundnsf      ? BST_CHECKED : BST_UNCHECKED );	
+	CheckDlgButton( hDlg, IDC_PREFERENCES_HIGH_PRIORITY,        highpriority       ? BST_CHECKED : BST_UNCHECKED );	
 	CheckDlgButton( hDlg, IDC_PREFERENCES_STARTUP_FULLSCREEN,   fullscreen         ? BST_CHECKED : BST_UNCHECKED );	
 	CheckDlgButton( hDlg, IDC_PREFERENCES_DISABLE_ROM_WARNINGS, nowarnings         ? BST_CHECKED : BST_UNCHECKED );	
 	CheckDlgButton( hDlg, IDC_PREFERENCES_CLOSE_POWER_OFF,      closepoweroff      ? BST_CHECKED : BST_UNCHECKED );	
@@ -133,6 +140,7 @@ VOID PREFERENCES::SetContext(HWND hDlg)
 		emulateimmediately = IsDlgButtonChecked( hDlg, IDC_PREFERENCES_BEGIN_EMULATION      ) == BST_CHECKED ? TRUE : FALSE;	
 		background         = IsDlgButtonChecked( hDlg, IDC_PREFERENCES_RUN_IN_BACKGROUND    ) == BST_CHECKED ? TRUE : FALSE;	
 		backgroundnsf      = IsDlgButtonChecked( hDlg, IDC_PREFERENCES_NSF_IN_BACKGROUND    ) == BST_CHECKED ? TRUE : FALSE;	
+		highpriority       = IsDlgButtonChecked( hDlg, IDC_PREFERENCES_HIGH_PRIORITY        ) == BST_CHECKED ? TRUE : FALSE;	
 		fullscreen         = IsDlgButtonChecked( hDlg, IDC_PREFERENCES_STARTUP_FULLSCREEN   ) == BST_CHECKED ? TRUE : FALSE;	
 		nowarnings         = IsDlgButtonChecked( hDlg, IDC_PREFERENCES_DISABLE_ROM_WARNINGS ) == BST_CHECKED ? TRUE : FALSE;
 		closepoweroff      = IsDlgButtonChecked( hDlg, IDC_PREFERENCES_CLOSE_POWER_OFF      ) == BST_CHECKED ? TRUE : FALSE;
@@ -140,6 +148,8 @@ VOID PREFERENCES::SetContext(HWND hDlg)
 		confirmexit        = IsDlgButtonChecked( hDlg, IDC_PREFERENCES_CONFIRM_EXIT         ) == BST_CHECKED ? TRUE : FALSE;
 		uselogfile         = IsDlgButtonChecked( hDlg, IDC_PREFERENCES_LOGFILE              ) == BST_CHECKED ? TRUE : FALSE;
 	}
+
+	SetThreadPriority( GetCurrentThread(), highpriority ? THREAD_PRIORITY_HIGHEST : DefPriority );
 
 	NES::IO::GENERAL::CONTEXT context;
 	nes->GetGeneralContext( context );

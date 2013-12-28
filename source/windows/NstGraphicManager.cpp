@@ -36,8 +36,10 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 
 GRAPHICMANAGER::GRAPHICMANAGER(const INT id,const UINT chunk)
-: MANAGER( id, chunk ), ShouldBeFullscreen(FALSE), GdiPlusAvailable(FALSE)
+: MANAGER( id, chunk ), ShouldBeFullscreen(FALSE), PreviousMode(-1), GdiPlusAvailable(FALSE)
 {
+	SetRect( &SaveRect, 0, 0, 0, 0 );
+
 	format.device = PDX_CAST(VOID*,PDX_STATIC_CAST(DIRECTDRAW*,this));
 
 	HMODULE hDLL = LoadLibrary("GdiPlus.dll");
@@ -139,8 +141,11 @@ PDXRESULT GRAPHICMANAGER::Create(PDXFILE* const file)
 
 		switch (header.effect)
 		{
-     		case HEADER::EFFECT_NONE:      SelectedEffect = 0; break;
-     		case HEADER::EFFECT_SCANLINES: SelectedEffect = 1; break;
+     		case HEADER::EFFECT_NONE:        SelectedEffect = 0; break;
+     		case HEADER::EFFECT_SCANLINES:   SelectedEffect = 1; break;
+			case HEADER::EFFECT_2XSAI:       SelectedEffect = 2; break;
+			case HEADER::EFFECT_SUPER_2XSAI: SelectedEffect = 3; break;
+			case HEADER::EFFECT_SUPER_EAGLE: SelectedEffect = 4; break;
 		}
 
 		switch (header.palette)
@@ -208,8 +213,11 @@ PDXRESULT GRAPHICMANAGER::Destroy(PDXFILE* const file)
 
 			switch (SelectedEffect)
 			{
-     			case 0: header.effect = HEADER::EFFECT_NONE;      break;
-				case 1: header.effect = HEADER::EFFECT_SCANLINES; break;
+     			case 0: header.effect = HEADER::EFFECT_NONE;        break;
+				case 1: header.effect = HEADER::EFFECT_SCANLINES;   break;
+				case 2: header.effect = HEADER::EFFECT_2XSAI;       break;
+				case 3: header.effect = HEADER::EFFECT_SUPER_2XSAI; break;
+				case 4: header.effect = HEADER::EFFECT_SUPER_EAGLE; break;
 			}
 
 			switch (SelectedPalette)
@@ -236,6 +244,32 @@ PDXRESULT GRAPHICMANAGER::Destroy(PDXFILE* const file)
 	}
 	
 	return DIRECTDRAW::Destroy();
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+PDXRESULT GRAPHICMANAGER::LoadPalette(const PDXSTRING& name)
+{
+	{
+		const PDXSTRING tmp(name);
+		PaletteFile = name;
+
+		if (!ImportPalette())
+		{
+			PaletteFile = name;
+			return PDX_FAILURE;
+		}
+	}
+
+	SelectedPalette = IDC_GRAPHICS_PALETTE_CUSTOM;
+
+	nes->GetGraphicContext( context );
+	context.palette = palette;
+	nes->SetGraphicContext( context );
+
+	return PDX_OK;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -336,20 +370,24 @@ VOID GRAPHICMANAGER::EnableBpp()
 
 PDXRESULT GRAPHICMANAGER::BeginDialogMode()
 {
+	application.ResetTimer();
+
 	if (!IsWindowed())
 	{
+		SaveRect = GetScreenRect();
+
 		if (CanRenderWindowed())
 		{
 			const DISPLAYMODE& mode = adapters[SelectedAdapter].DisplayModes[ModeIndices[SelectedMode]];
 
-			if ((mode.width < 640 || mode.height < 480) && PDX_FAILED(DIRECTDRAW::SwitchToFullScreen(640,480,16)))
-				return PDX_FAILURE;
+			if (mode.width < 640 || mode.height < 480)
+				PDX_TRY(DIRECTDRAW::SwitchToFullScreen(640,480,16));
 		}
 		else
 		{
-			if (PDX_FAILED(DIRECTDRAW::SwitchToWindowed()))
-				return PDX_FAILURE;
-
+			RECT rect;
+			SetRect( &rect, 0, 0, 256, 224 );
+			PDX_TRY(DIRECTDRAW::SwitchToWindowed(rect));
 			ShouldBeFullscreen = TRUE;
 		}
 
@@ -365,15 +403,26 @@ PDXRESULT GRAPHICMANAGER::BeginDialogMode()
 
 PDXRESULT GRAPHICMANAGER::EndDialogMode()
 {
+	application.ResetTimer();
+
 	if (!IsWindowed() || ShouldBeFullscreen)
 	{
 		ShouldBeFullscreen = FALSE;
 		
+		if (PreviousMode != SelectedMode)
+		{
+			PreviousMode = SelectedMode;
+			SetScreenSize( SCREEN_FACTOR_4X, SaveRect );
+		}
+
 		const DISPLAYMODE& mode = adapters[SelectedAdapter].DisplayModes[ModeIndices[SelectedMode]];
-		
-		PDX_TRY(SwitchToFullScreen());
-		
-		return DIRECTDRAW::EnableGDI( FALSE );
+
+		PDX_TRY(DIRECTDRAW::SwitchToFullScreen( mode.width, mode.height, mode.bpp, &SaveRect ));
+		PDX_TRY(DIRECTDRAW::EnableGDI( FALSE ));
+
+		application.UpdateWindowSizes( mode.width, mode.height );
+
+		format.PaletteChanged = TRUE;
 	}
 
 	return PDX_OK;
@@ -390,6 +439,7 @@ BOOL GRAPHICMANAGER::DialogProc(HWND h,UINT uMsg,WPARAM wParam,LPARAM)
     	case WM_INITDIALOG:
 
 			hDlg = h;
+			PreviousMode = SelectedMode;
 			UpdateDialog();
      		return TRUE;
 
@@ -555,11 +605,19 @@ VOID GRAPHICMANAGER::EnablePAL(const BOOL UsePAL)
 
 VOID GRAPHICMANAGER::UpdateDirectDraw()
 {
+	DIRECTDRAW::SCREENEFFECT effect = DIRECTDRAW::SCREENEFFECT_NONE;
+
+	switch (SelectedEffect)
+	{
+		case 1: effect = DIRECTDRAW::SCREENEFFECT_SCANLINES;   break;
+		case 2: effect = DIRECTDRAW::SCREENEFFECT_2XSAI;       break;
+		case 3: effect = DIRECTDRAW::SCREENEFFECT_SUPER_2XSAI; break;
+		case 4: effect = DIRECTDRAW::SCREENEFFECT_SUPER_EAGLE; break;
+	}
+
 	SetScreenParameters
 	(
-		SelectedEffect == 0 ? 
-		DIRECTDRAW::SCREENEFFECT_NONE : 
-     	DIRECTDRAW::SCREENEFFECT_SCANLINES,
+	    effect,
 		SelectedOffScreen == IDC_GRAPHICS_VRAM ? TRUE : FALSE,
 		nes->IsPAL() ? pal : ntsc,
 		SelectedTiming == IDC_GRAPHICS_TIMING_VSYNC ? TRUE : FALSE
@@ -712,7 +770,7 @@ VOID GRAPHICMANAGER::ResetColors()
 
 VOID GRAPHICMANAGER::UpdateColors()
 {
-	static const INT types[] = 
+	static const INT types[3] = 
 	{
 		IDC_GRAPHICS_COLORS_BRIGHTNESS,
 		IDC_GRAPHICS_COLORS_SATURATION,
@@ -845,7 +903,6 @@ VOID GRAPHICMANAGER::BrowsePalette()
 
 	ofn.lStructSize  = sizeof(ofn);
 	ofn.hwndOwner    = MANAGER::hWnd;
-	ofn.hInstance    = application.GetHInstance();
 	ofn.lpstrFilter  = "Palette Files (.pal)\0*.pal\0All Files (*.*)\0*.*\0";
 	ofn.nFilterIndex = 1;
 	ofn.lpstrFile    = name;
@@ -890,6 +947,9 @@ VOID GRAPHICMANAGER::UpdateEffects()
 	ComboBox_ResetContent( hItem );
 	ComboBox_AddString( hItem, "none" );
 	ComboBox_AddString( hItem, "scanlines" );
+	ComboBox_AddString( hItem, "2xSaI" );
+	ComboBox_AddString( hItem, "Super 2xSaI" );
+	ComboBox_AddString( hItem, "Super Eagle" );
 	ComboBox_SetCurSel( hItem, SelectedEffect );
 }
 
@@ -908,12 +968,79 @@ PDXRESULT GRAPHICMANAGER::SwitchToWindowed(const RECT& rect)
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT GRAPHICMANAGER::SwitchToFullScreen()
+PDXRESULT GRAPHICMANAGER::SwitchToFullScreen(const SCREENTYPE ScreenType)
 {
+	RECT rect;
+	SetScreenSize( ScreenType, rect );
+	
 	const DISPLAYMODE& mode = adapters[SelectedAdapter].DisplayModes[ModeIndices[SelectedMode]];
-	PDX_TRY(DIRECTDRAW::SwitchToFullScreen( mode.width, mode.height, mode.bpp ));
-	format.PaletteChanged = TRUE;
+	PDX_TRY(DIRECTDRAW::SwitchToFullScreen( mode.width, mode.height, mode.bpp, &rect ));
+	
+	format.PaletteChanged = TRUE;	
+	
 	return PDX_OK;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+PDXRESULT GRAPHICMANAGER::SetScreenSize(const SCREENTYPE ScreenType)
+{
+	RECT rect;
+	SetScreenSize( ScreenType, rect );
+	UpdateScreenRect( rect );
+	return PDX_OK;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+VOID GRAPHICMANAGER::SetScreenSize(const SCREENTYPE ScreenType,RECT& rect)
+{
+	const UINT width  = adapters[SelectedAdapter].DisplayModes[ModeIndices[SelectedMode]].width;
+	const UINT height = adapters[SelectedAdapter].DisplayModes[ModeIndices[SelectedMode]].height;
+
+	if (ScreenType == SCREEN_STRETCHED)
+	{
+		SetRect
+		( 
+	     	&rect, 
+			0, 
+			0, 
+			width, 
+			height
+		);
+	}
+	else
+	{
+		UINT x = GetNesRect().right - GetNesRect().left;
+		UINT y = GetNesRect().bottom - GetNesRect().top;
+
+		const UINT factor = UINT(ScreenType);
+
+		for (UINT i=0; i < factor; ++i)
+		{
+			if (x * 2 > width || y * 2 > height) 
+				break;
+
+			x *= 2;
+			y *= 2;
+		}
+
+		x = ( width  - x ) / 2;
+		y = ( height - y ) / 2;
+
+		SetRect
+		(
+			&rect, 
+			x, 
+			y, 
+			width - x, 
+			height - y 
+		);
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -1131,7 +1258,6 @@ PDXRESULT GRAPHICMANAGER::SaveScreenShot()
 
 		ofn.lStructSize  = sizeof(ofn);
 		ofn.hwndOwner    = MANAGER::hWnd;
-		ofn.hInstance    = application.GetHInstance();
 		ofn.lpstrFilter  = "Bitmap Files (*.png, *.jpg, *.bmp, *.tif)\0*.png;*.jpg;*.bmp;*.tif\0All Files (*.*)\0*.*\0";
 		ofn.nFilterIndex = 1;
 		ofn.lpstrFile    = filename.Begin();
@@ -1145,7 +1271,7 @@ PDXRESULT GRAPHICMANAGER::SaveScreenShot()
 
 	filename.Validate();
 
-	if (filename.GetFileExtension().IsEmpty())
+	if (filename.Size() && filename.GetFileExtension().IsEmpty())
 		filename.Append( NST_DEFAULT_SCREENSHOT_FILE_FORMAT );
 
 	return ExportBitmap( filename );

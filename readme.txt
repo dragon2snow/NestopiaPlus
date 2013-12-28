@@ -1,5 +1,5 @@
 -----------------------------------------------------------------------------
-Nestopia 1.02 - NES/Famicom emulator
+Nestopia 1.03 - NES/Famicom emulator
 -----------------------------------------------------------------------------
 
 Nestopia is Copyright 2003 by Martin Freij
@@ -7,8 +7,9 @@ under the terms and conditions of the
 GNU General Public License. 
 http://www.gnu.org
 
-page: http://sourceforge.net/projects/nestopia/
-mail: martin-freij at home.se
+Homepage: http://nestopia.znes.org/
+Project:  http://sourceforge.net/projects/nestopia/
+Mail:     martin-freij at home.se
 
 -----------------------------------------------------------------------------
 Licence
@@ -69,7 +70,7 @@ OS:        Windows 98/Me/NT/2000/XP or greater
 Software:  DirectX 8.1 or greater
 
 
-note: If you have GdiPlus from Microsoft installed (comes with XP) you'll be 
+Note: If you have GdiPlus from Microsoft installed (comes with XP) you'll be 
       able to save screenshots in png, jpg, bmp and tif format.
 
 -----------------------------------------------------------------------------
@@ -85,6 +86,37 @@ NES  - NES Rom Image. Since this fileformat is somewhat lacking in cartridge
 UNIF - NES Rom Image. If Nestopia can't recognize the specified board name you 
        have the option to select the corresponding mapper the cartridge should 
        use. IPS patching is not supported for this format.
+
+NSP  - Nestopia Game Configuration File. It's text based and easy to edit by 
+       hand. The available commands are:
+        
+        -ROM or -IMAGE <file>
+        -SAV or -SAVE  <file>
+        -STATE <file>
+        -MOVIE <file>
+        -STATESLOT1..STATESLOT9 <file>
+        -IPS <file>
+        -PALETTE <file>
+        -MODE <ntsc/pal>
+        -PORT1..PORT5 <unconnected,pad1,pad2,pad3,pad4,zapper,paddle,powerpad,
+                       keyboard>
+        -GENIE or -CHEAT <code> <comment> (last is optional)
+
+       Note, the brackets <> should not be included.
+
+       Example - c:\game.nsp:
+       
+        -IMAGE mammamia.nes // C style comments are supported
+        -MODE ntsc
+        -PORT1 pad1
+        -PORT2 unconnected
+        -CHEAT SXIOPO infinite plumbers
+
+       This will load up the mammamia.nes file and force it into NTSC mode using
+       one standard controller plugged into the first port and enable one game-
+       genie code. These files can both be directly or indirectly loaded. You can 
+       also at any time have your current game configuration saved into this 
+       format.
 
 NSF  - Nes Sound File. Scroll down for info on supported sound chips.
 
@@ -112,9 +144,15 @@ ZIP  - If Nestopia finds more than one valid file in the archive you may choose
        instead you'll be prompted if you want to save any changed data outside 
        the archive.
 
-NST  - Nestopia Save State File. 
+NST  - Nestopia Save State File. Aside from loading and saving via files there 
+       are also nine slots accessable by the numerical keys. Remember to hold in 
+       SHIFT if you want to load a state. Push '0' to save into the next slot in 
+       incrementing order and Shift + '0' to load from the last saved slot.
 
-NSV  - Nestopia Movie File.
+NSV  - Nestopia Movie File. Available commands are located in the menu. One note,
+       if you don't rewind the tape the next time you record anything (assuming 
+       you're in the same game) it will continue off from the last saved 
+       position.
 
 -----------------------------------------------------------------------------
 Fully or Partially Supported Mappers
@@ -184,6 +222,7 @@ Credits and Thanks
 
 Brad Taylor               - PPU and pAPU technical documents
 Chris Covell              - demos, test roms and general info
+Derek Liauw Kie Fa.       - 2xSaI engine
 Digitoxin                 - Nestoy rom database which is the one used 
                             internally by Nestopia
 FireBug                   - mapper documents

@@ -109,7 +109,7 @@ VOID FDSMANAGER::Reset()
 				return;
 		}
 
-		bios  = application.GetRomPath();
+		bios  = application.GetFileManager().GetRomPath();
 		bios +=	"disksys.rom";
 
 		if (PDX_FAILED(file.Open(bios,PDXFILE::INPUT)))
@@ -143,7 +143,7 @@ VOID FDSMANAGER::SubmitBios(const BOOL SkipBios)
 
 				file.Close();
 
-				if (application.GetFileManager()->OpenZipFile( "Choose BIOS Rom", bios, extensions, file ) == 0)
+				if (application.GetFileManager().OpenZipFile( "Choose BIOS Rom", bios, extensions, file ) == 0)
 				{
 					file.Close();
 					application.OnWarning("Either the zip file is corrupt or the bios file could not be found inside it!");
@@ -199,9 +199,8 @@ VOID FDSMANAGER::OnBrowse(HWND hDlg)
 
 	ofn.lStructSize     = sizeof(ofn);
 	ofn.hwndOwner       = hWnd;
-	ofn.hInstance       = application.GetHInstance();
 	ofn.nFilterIndex    = 1;
-	ofn.lpstrInitialDir	= application.GetStatePath();
+	ofn.lpstrInitialDir	= application.GetFileManager().GetRomPath();
 	ofn.lpstrFile       = file.Begin();
 	ofn.lpstrTitle      = "Famicom Disk System Bios Rom";
 	ofn.nMaxFile        = NST_MAX_PATH;

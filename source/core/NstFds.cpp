@@ -246,16 +246,15 @@ VOID FDS::WriteDiskFile()
 	{
 		PDXFILE file( ImageFileName, PDXFILE::APPEND );
 
-		if (!file.IsOpen())
-		{
-			if (MsgQuestion
-			(
-			    "Saving back FDS image to hardrive",
-		     	"The loaded FDS image file couldn't be located, probably as a result "
-				"of opening it from a compressed archive. Do you want to keep the "
-				"the current changes and write it back to a new file outside the archive?"
-			)) file.Open( ImageFileName, PDXFILE::OUTPUT );
-		}
+		static const CHAR* msg = 
+   		(
+       		"The loaded FDS image file couldn't be located, probably as a result "
+     		"of opening it from a compressed archive. Do you want to keep the "
+     		"the current changes and write it back to a new file outside the archive?"
+		);
+
+		if (!file.Size() && !MsgQuestion( "Saving back FDS image to hard drive", msg ))
+			file.Close();
 
 		if (file.IsOpen())
 		{

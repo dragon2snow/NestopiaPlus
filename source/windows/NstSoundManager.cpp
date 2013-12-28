@@ -711,7 +711,7 @@ VOID SOUNDMANAGER::SOUNDRECORDER::NotifySize()
 			KeepGoing = application.OnQuestion
 			(
 				"Sound Recorder",
-				"You've wasted 100MB of harddrive space on the wave file " 
+				"You've wasted 100MB of hard drive space on the wave file " 
 				"recording so far. Are you sure you want to continue?"
 			);
 
@@ -854,7 +854,6 @@ VOID SOUNDMANAGER::SOUNDRECORDER::OnBrowse(HWND hDlg)
 
 	ofn.lStructSize     = sizeof(ofn);
 	ofn.hwndOwner       = hWnd;
-	ofn.hInstance       = application.GetHInstance();
 	ofn.lpstrFilter     = "Wave Files (*.wav)\0*.wav\0All Files (*.*)\0*.*\0";
 	ofn.nFilterIndex    = 1;
 	ofn.lpstrFile       = file.Begin();

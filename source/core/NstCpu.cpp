@@ -1247,7 +1247,7 @@ VOID CPU::ResetLog()
 VOID CPU::UpdateFrameCounter()
 {
 	IntLow |= IRQ_FRAME;
-	FrameCounter += (pal ? NES_MASTER_CC_QUARTER_FRAME_PAL : NES_MASTER_CC_QUARTER_FRAME_NTSC);
+	FrameCounter += (pal ? NES_CPU_MCC_FRAME_PAL : NES_CPU_MCC_FRAME_NTSC);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -1322,7 +1322,7 @@ VOID CPU::Poke_4017(const UINT data)
 	}
 	else
 	{
-		FrameCounter = cycles + (pal ? NES_MASTER_CC_QUARTER_FRAME_PAL : NES_MASTER_CC_QUARTER_FRAME_NTSC);
+		FrameCounter = cycles + (pal ? NES_CPU_MCC_FRAME_PAL : NES_CPU_MCC_FRAME_NTSC);
 	}
 
 	apu.Poke_4017( data );

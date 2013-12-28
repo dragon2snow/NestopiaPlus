@@ -411,7 +411,7 @@ LONG SNDFDS::CHANNEL::Sample()
 			a += (cWave[WavePos >> 19] * PDX_MIN(WaveAmp,0x20)) * 4 / reverb;
 		}
 
-		amp = (a / i) << 2;
+		amp = (a / i) << 1;
 	}
 	else
 	{

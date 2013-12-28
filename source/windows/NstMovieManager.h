@@ -41,45 +41,22 @@ public:
 	MOVIEMANAGER(const INT id) 
 	: MANAGER(id) {}
 
-	VOID Play   ();
-	VOID Stop   ();
-	VOID Record ();
-	VOID Rewind ();
+	VOID Load(PDXSTRING&);
+
+	VOID Play    ();
+	VOID Record  ();
+	VOID Stop    ();
+	VOID Rewind  ();
+	VOID Forward ();
 	
 	VOID SetFile(const PDXSTRING& name)
-	{ 
-		file = name; 
-	}
+	{ file = name; }
 
-	BOOL IsLoaded() const 
-	{ 
-		return 
-		(
-	     	file.Length() &&
-			nes->IsOn() && 
-			(nes->IsCartridge() || nes->IsFds())
-		); 
-	}
-
-	BOOL IsPlaying() const 
-	{ 
-		return nes->IsMoviePlaying(); 
-	}
-
-	BOOL IsRecording() const 
-	{ 
-		return nes->IsMovieRecording(); 
-	}
-
-	BOOL CanPlay() const 
-	{ 
-		return 
-		(
-	     	file.Length() && 
-			nes->IsOn() && 
-			(nes->IsCartridge() || nes->IsFds())
-		); 
-	}
+	inline BOOL CanStop()    const { return nes->CanStopMovie();    }
+	inline BOOL CanPlay()    const { return nes->CanPlayMovie();    }
+	inline BOOL CanRecord()  const { return nes->CanRecordMovie();  }
+	inline BOOL CanRewind()  const { return nes->CanRewindMovie();  }
+	inline BOOL CanForward() const { return nes->CanForwardMovie(); }
 
 private:
 

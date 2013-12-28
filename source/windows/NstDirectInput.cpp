@@ -38,7 +38,7 @@ hWnd     (NULL),
 device   (NULL),
 keyboard (NULL)
 {
-	memset( KeyboardBuffer, 0x00, sizeof(KeyboardBuffer) );
+	PDXMemZero( KeyboardBuffer, KEYBOARD_BUFFER_SIZE );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -93,7 +93,7 @@ PDXRESULT DIRECTINPUT::Initialize(HWND h)
 
 	application.LogOutput("DIRECTINPUT: Initializing");
 
-	if (FAILED(DirectInput8Create(application.GetHInstance(),DIRECTINPUT_VERSION,IID_IDirectInput8,PDX_CAST(LPVOID*,&device),NULL)))
+	if (FAILED(DirectInput8Create(application.GetInstance(),DIRECTINPUT_VERSION,IID_IDirectInput8,PDX_CAST(LPVOID*,&device),NULL)))
 		return Error("DirectInput8Create() failed!");
 
 	if (FAILED(device->EnumDevices(DI8DEVCLASS_GAMECTRL,EnumJoysticks,PDX_CAST(LPVOID,this),DIEDFL_ATTACHEDONLY)))
@@ -123,16 +123,20 @@ PDXRESULT DIRECTINPUT::Initialize(HWND h)
 
 PDXRESULT DIRECTINPUT::SetUpKeyboard()
 {
-	if (!device)
-		return PDX_FAILURE;
+	if (device)
+	{
+		DIRECTX::Release(keyboard);
 
-	if (FAILED(device->CreateDevice( GUID_SysKeyboard, &keyboard, NULL )))
-		return Error("IDirectInput8::CreateDevice() failed!");
+		if (FAILED(device->CreateDevice( GUID_SysKeyboard, &keyboard, NULL )))
+			return Error("IDirectInput8::CreateDevice() failed!");
 
-	if (FAILED(keyboard->SetDataFormat( &c_dfDIKeyboard )))
-		return Error("IDirectInputDevice8::SetDataFormat() failed!");
+		if (FAILED(keyboard->SetDataFormat( &c_dfDIKeyboard )))
+			return Error("IDirectInputDevice8::SetDataFormat() failed!");
 
-	return PDX_OK;
+		return PDX_OK;
+	}
+
+	return PDX_FAILURE;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -175,8 +179,11 @@ VOID DIRECTINPUT::AcquireDevices()
 
 		for (UINT i=0; i < joysticks.Size(); ++i)
 		{
-			while (joysticks[i].device->Acquire() == DIERR_INPUTLOST)
-				Sleep(100);
+			if (joysticks[i].device)
+			{
+				while (joysticks[i].device->Acquire() == DIERR_INPUTLOST)
+					Sleep(100);
+			}
 		}
 	}
 }
@@ -187,21 +194,26 @@ VOID DIRECTINPUT::AcquireDevices()
 
 PDXRESULT DIRECTINPUT::SetCooperativeLevel(DWORD flags)
 {
-	if (!keyboard)
-		return PDX_FAILURE;
-
-	flags |= DISCL_NONEXCLUSIVE;
-
-	if (FAILED(keyboard->SetCooperativeLevel(hWnd,flags)))
-		return Error("IDirectInputDevice8::SetCooperativeLevel() failed!");
-
-	for (UINT i=0; i < joysticks.Size(); ++i)
+	if (keyboard)
 	{
-		if (FAILED(joysticks[i].device->SetCooperativeLevel(hWnd,flags)))
+		flags |= DISCL_NONEXCLUSIVE;
+
+		if (FAILED(keyboard->SetCooperativeLevel(hWnd,flags)))
 			return Error("IDirectInputDevice8::SetCooperativeLevel() failed!");
+
+		for (UINT i=0; i < joysticks.Size(); ++i)
+		{
+			if (!joysticks[i].device)
+				return PDX_FAILURE;
+
+			if (FAILED(joysticks[i].device->SetCooperativeLevel(hWnd,flags)))
+				return Error("IDirectInputDevice8::SetCooperativeLevel() failed!");
+		}
+
+		return PDX_OK;
 	}
 
-	return PDX_OK;
+	return PDX_FAILURE;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -230,29 +242,29 @@ VOID DIRECTINPUT::PollKeyboard()
 
 BOOL DIRECTINPUT::ScanKeyboard(DWORD& key)
 {
-	if (!keyboard)
-		return PDX_FAILURE;
-
-	PDXMemZero( KeyboardBuffer, KEYBOARD_BUFFER_SIZE );
-
-	if (FAILED(keyboard->GetDeviceState( sizeof(KeyboardBuffer), PDX_CAST(LPVOID,KeyboardBuffer) )))
+	if (keyboard)
 	{
-		while (keyboard->Acquire() == DIERR_INPUTLOST)
-			Sleep(100);
-	}
-	else
-	{
-		for (UINT i=0; i < KEYBOARD_BUFFER_SIZE; ++i)
+		PDXMemZero( KeyboardBuffer, KEYBOARD_BUFFER_SIZE );
+
+		if (FAILED(keyboard->GetDeviceState( sizeof(KeyboardBuffer), PDX_CAST(LPVOID,KeyboardBuffer) )))
 		{
-			if (KeyboardBuffer[i] & 0x80)
+			while (keyboard->Acquire() == DIERR_INPUTLOST)
+				Sleep(100);
+		}
+		else
+		{
+			for (UINT i=0; i < KEYBOARD_BUFFER_SIZE; ++i)
 			{
-				key = i;
-				return TRUE;
+				if (KeyboardBuffer[i] & 0x80)
+				{
+					key = i;
+					return TRUE;
+				}
 			}
 		}
-	}
 
-	key = 0;
+		key = 0;
+	}
 
 	return FALSE;
 }
@@ -268,6 +280,9 @@ UINT DIRECTINPUT::ScanJoystick(DWORD& button,LPDIRECTINPUTDEVICE8& device)
 	for (UINT i=0; i < joysticks.Size(); ++i)
 	{
 		device = joysticks[i].device;
+
+		if (!device)
+			continue;
 
 		if (FAILED(device->Poll()))
 		{

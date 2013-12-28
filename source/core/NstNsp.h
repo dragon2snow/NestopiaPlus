@@ -24,26 +24,42 @@
 
 #pragma once
 
-#ifndef NST_MAPPER_78_H
-#define NST_MAPPER_78_H
+#ifndef NST_NSP_H
+#define NST_NSP_H
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
 
 NES_NAMESPACE_BEGIN
 
-////////////////////////////////////////////////////////////////////////////////////////
-// 74161/32 (1)
-////////////////////////////////////////////////////////////////////////////////////////
-
-class MAPPER78 : public MAPPER
+class NSP
 {
 public:
 
-	MAPPER78(CONTEXT& c)
-	: MAPPER(c) {}
+	PDXRESULT Load(PDXFILE&);
+	PDXRESULT Save(PDXFILE&) const;
+
+	VOID SetContext(const IO::NSP::CONTEXT&); 
+	VOID GetContext(IO::NSP::CONTEXT&) const;
 
 private:
 
-	VOID Reset();
-	NES_DECL_POKE( pRom );
+	VOID ValidateContext();
+
+	PDXRESULT ParseType      (PDXFILE&);
+	PDXRESULT ParseComment   (PDXFILE&);
+	PDXRESULT ParseMode      (PDXFILE&);
+	PDXRESULT ParseGenie     (PDXFILE&);
+	PDXRESULT ParsePort      (PDXFILE&);
+	PDXRESULT ParseStateSlot (PDXFILE&);
+
+	static PDXRESULT ParseLineEnd  (PDXFILE&);
+	static PDXRESULT ParseChoice   (PDXFILE&,PDXSTRING&);
+	static PDXRESULT ParseRestType (PDXFILE&,const CHAR* const);
+	static VOID      RemoveSpace   (PDXSTRING&);
+
+	IO::NSP::CONTEXT context;
 };
 
 NES_NAMESPACE_END

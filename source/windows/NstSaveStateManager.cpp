@@ -68,9 +68,14 @@ VOID SAVESTATEMANAGER::Reset()
 {
 	LastSlot = MAX_SLOTS - 1;
 
+	PDXSTRING name("StateSlot.ns");
+
 	for (UINT i=0; i < MAX_SLOTS; ++i)
 	{
-		slots[i].file.Open( PDXSTRING("SaveStateSlot") + i + ".nst", PDXFILE::OUTPUT );
+		name.Resize(12);
+		name += (i+1);
+
+		slots[i].file.Open( name, PDXFILE::OUTPUT );
 		slots[i].valid = FALSE;
 	}
 
@@ -86,10 +91,30 @@ VOID SAVESTATEMANAGER::Reset()
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
+PDXRESULT SAVESTATEMANAGER::SetFile(UINT index,PDXFILE& file)
+{
+	if (file.IsOpen() && file.Size())
+	{
+		index = IndexToSlot( index );
+
+		slots[index].file.Seek( PDXFILE::BEGIN );
+		slots[index].file.Write( file.Begin(), file.End() );
+		slots[index].valid = TRUE;
+
+		return PDX_OK;
+	}
+
+	return PDX_FAILURE;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
 PDXRESULT SAVESTATEMANAGER::LoadState(UINT index)
 {
 	index = IndexToSlot( index );
-	slots[index].file.Seek( PDXFILE::BEGIN, 0 );
+	slots[index].file.Seek( PDXFILE::BEGIN );
 
 	PDXRESULT result = PDX_FAILURE;
 
@@ -134,7 +159,7 @@ PDXRESULT SAVESTATEMANAGER::SaveState(UINT index)
 
 VOID CALLBACK SAVESTATEMANAGER::OnAutoSaveProc(HWND,UINT,UINT_PTR,DWORD)
 {
-	application.GetSaveStateManager()->OnAutoSave();
+	application.GetSaveStateManager().OnAutoSave();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -260,7 +285,7 @@ VOID SAVESTATEMANAGER::UpdateSettings(HWND hDlg)
 	{
 		AutoSave.name = buffer;
 
-		if (AutoSave.name.GetFileExtension().IsEmpty())
+		if (AutoSave.name.Length() && AutoSave.name.GetFileExtension().IsEmpty())
 			AutoSave.name.Append( ".nst" );
 	}
 }
@@ -280,10 +305,9 @@ VOID SAVESTATEMANAGER::OnBrowse(HWND hDlg)
 
 	ofn.lStructSize     = sizeof(ofn);
 	ofn.hwndOwner       = hWnd;
-	ofn.hInstance       = application.GetHInstance();
 	ofn.lpstrFilter     = "NES State (*.nst)\0*.nst\0All Files (*.*)\0*.*\0";
 	ofn.nFilterIndex    = 1;
-	ofn.lpstrInitialDir	= application.GetStatePath();
+	ofn.lpstrInitialDir	= application.GetFileManager().GetNstPath();
 	ofn.lpstrFile       = file.Begin();
 	ofn.lpstrTitle      = "Save State File";
 	ofn.nMaxFile        = NST_MAX_PATH;
@@ -293,7 +317,7 @@ VOID SAVESTATEMANAGER::OnBrowse(HWND hDlg)
 	{
 		file.Validate();
 
-		if (file.GetFileExtension().IsEmpty())
+		if (file.Length() && file.GetFileExtension().IsEmpty())
 			file.Append( ".nst" );
 
 		SetDlgItemText( hDlg, IDC_AUTOSAVE_FILE, file );

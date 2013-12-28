@@ -72,7 +72,7 @@ LANGUAGE LANG_SWEDISH, SUBLANG_DEFAULT
 IDD_GRAPHICS DIALOGEX 0, 0, 410, 236
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | 
     WS_SYSMENU
-CAPTION "Video"
+CAPTION "Video Options"
 FONT 8, "MS Shell Dlg", 0, 0, 0x0
 BEGIN
     DEFPUSHBUTTON   "OK",IDC_GRAPHICS_OK,360,210,43,19
@@ -81,7 +81,7 @@ BEGIN
     COMBOBOX        IDC_GRAPHICS_DEVICE,41,16,94,46,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
     LTEXT           "Mode",IDC_STATIC,14,40,25,8
-    COMBOBOX        IDC_GRAPHICS_MODE,41,37,94,53,CBS_DROPDOWNLIST | 
+    COMBOBOX        IDC_GRAPHICS_MODE,41,37,94,68,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP,0,HIDC_GRAPHICS_MODE
     RADIOBUTTON     "16 bit",IDC_GRAPHICS_16_BIT,44,58,34,10,WS_DISABLED | 
                     WS_TABSTOP
@@ -105,9 +105,9 @@ BEGIN
     EDITTEXT        IDC_GRAPHICS_PAL_RIGHT,354,39,30,12,ES_NUMBER
     LTEXT           "Bottom",IDC_STATIC,195,43,25,8
     EDITTEXT        IDC_GRAPHICS_PAL_BOTTOM,318,54,30,12,ES_NUMBER
-    GROUPBOX        "Fullscreen Effects",IDC_STATIC,7,78,127,51
-    COMBOBOX        IDC_GRAPHICS_EFFECTS,14,92,97,32,CBS_DROPDOWNLIST | 
-                    CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    GROUPBOX        "Graphic Filter",IDC_STATIC,7,78,127,51
+    COMBOBOX        IDC_GRAPHICS_EFFECTS,14,92,97,55,CBS_DROPDOWNLIST | 
+                    WS_VSCROLL | WS_TABSTOP
     GROUPBOX        "Emulation",IDC_STATIC,139,78,117,51
     CONTROL         "Allow more than eight sprites",
                     IDC_GRAPHICS_INFINITE_SPRITES,"Button",BS_AUTOCHECKBOX | 
@@ -151,13 +151,13 @@ BEGIN
     PUSHBUTTON      "Default",IDC_GRAPHICS_DEFAULT,311,210,44,19
 END
 
-IDD_PATHS DIALOGEX 0, 0, 308, 242
+IDD_PATHS DIALOGEX 0, 0, 308, 289
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | 
     WS_SYSMENU
 CAPTION "Paths"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    DEFPUSHBUTTON   "OK",IDC_PATHS_OK,263,217,37,18,WS_GROUP
+    DEFPUSHBUTTON   "OK",IDC_PATHS_OK,263,264,37,18,WS_GROUP
     GROUPBOX        "Image Files",IDC_STATIC,6,7,249,45,BS_LEFT | WS_GROUP
     EDITTEXT        IDC_PATHS_ROM_IMAGES,13,18,235,13,ES_AUTOHSCROLL
     CONTROL         "Last visited",IDC_PATHS_ROM_IMAGES_LAST,"Button",
@@ -173,82 +173,95 @@ BEGIN
                     IDC_PATHS_DISABLE_SAVERAM_WRITE,"Button",BS_AUTOCHECKBOX | 
                     WS_TABSTOP,143,88,101,10
     PUSHBUTTON      "Browse",IDC_PATHS_SAVE_RAM_BROWSE,263,64,37,18
-    GROUPBOX        "Save States",IDC_STATIC,6,107,250,44,BS_LEFT | WS_GROUP
-    EDITTEXT        IDC_PATHS_SAVE_STATES,13,118,237,13,ES_AUTOHSCROLL
+    GROUPBOX        "Save States",IDC_STATIC,6,159,250,44,BS_LEFT | WS_GROUP
+    EDITTEXT        IDC_PATHS_SAVE_STATES,13,170,237,13,ES_AUTOHSCROLL
     CONTROL         "Last visited",IDC_PATHS_SAVE_STATES_LAST,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,13,135,52,12
-    PUSHBUTTON      "Browse",IDC_PATHS_SAVE_STATES_BROWSE,263,114,37,18
-    PUSHBUTTON      "Default",IDC_PATHS_DEFAULT,165,217,42,18
-    PUSHBUTTON      "Cancel",IDC_PATHS_CANCEL,213,217,42,18
+                    BS_AUTOCHECKBOX | WS_TABSTOP,13,186,52,12
+    PUSHBUTTON      "Browse",IDC_PATHS_SAVE_STATES_BROWSE,263,166,37,18
+    PUSHBUTTON      "Default",IDC_PATHS_DEFAULT,165,264,42,18
+    PUSHBUTTON      "Cancel",IDC_PATHS_CANCEL,213,264,42,18
     CONTROL         "Auto apply",IDC_PATHS_IPS_AUTO_APPLY,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,136,189,51,10
-    GROUPBOX        "IPS Files",IDC_STATIC,6,158,250,44,BS_LEFT | WS_GROUP
-    EDITTEXT        IDC_PATHS_IPS,13,169,237,13,ES_AUTOHSCROLL
+                    BS_AUTOCHECKBOX | WS_TABSTOP,136,240,51,10
+    GROUPBOX        "IPS Files",IDC_STATIC,6,210,250,44,BS_LEFT | WS_GROUP
+    EDITTEXT        IDC_PATHS_IPS,13,221,237,13,ES_AUTOHSCROLL
     CONTROL         "Look in image file directory first",IDC_PATHS_IPS_ROM,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,13,187,115,12
-    PUSHBUTTON      "Browse",IDC_PATHS_IPS_BROWSE,263,166,37,18
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,13,238,115,12
+    PUSHBUTTON      "Browse",IDC_PATHS_IPS_BROWSE,263,218,37,18
+    CONTROL         "Auto apply",IDC_PATHS_NSP_AUTO_APPLY,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,189,140,51,10
+    GROUPBOX        "Script Files",IDC_STATIC,6,109,250,44,BS_LEFT | 
+                    WS_GROUP
+    CONTROL         "Look in image file directory first",IDC_PATHS_NSP_ROM,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,67,139,115,12
+    PUSHBUTTON      "Browse",IDC_PATHS_NSP_BROWSE,263,117,37,18
+    EDITTEXT        IDC_PATHS_NSP,13,122,237,13,ES_AUTOHSCROLL
+    CONTROL         "Last visited",IDC_PATHS_NSP_LAST,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,13,138,52,12
 END
 
-IDD_SOUND DIALOGEX 0, 0, 208, 127
+IDD_SOUND DIALOGEX 0, 0, 273, 163
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | 
     WS_SYSMENU
-CAPTION "Sound"
+CAPTION "Sound Options"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    DEFPUSHBUTTON   "OK",IDC_SOUND_OK,173,102,28,18
-    GROUPBOX        "Enable",IDC_STATIC,7,7,31,27,BS_CENTER
+    DEFPUSHBUTTON   "OK",IDC_SOUND_OK,228,138,36,18
+    GROUPBOX        "Enable",IDC_STATIC,7,7,31,38,BS_CENTER
     CONTROL         "",IDC_SOUND_ENABLE,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,17,16,8,15
-    GROUPBOX        "Device",IDC_STATIC,40,7,101,27
-    COMBOBOX        IDC_SOUND_DEVICE,43,16,95,46,CBS_DROPDOWNLIST | 
+                    WS_TABSTOP,17,20,8,15
+    GROUPBOX        "Device",IDC_STATIC,45,7,129,38
+    COMBOBOX        IDC_SOUND_DEVICE,53,20,113,46,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
-    GROUPBOX        "Sample Rate",IDC_STATIC,40,40,52,42
-    COMBOBOX        IDC_SOUND_SAMPLE_RATE,43,55,45,41,CBS_DROPDOWNLIST | 
+    GROUPBOX        "Sample Rate",IDC_STATIC,52,53,123,56
+    COMBOBOX        IDC_SOUND_SAMPLE_RATE,63,68,67,41,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
-    GROUPBOX        "Sample Size",IDC_STATIC,93,40,46,42,BS_RIGHT
     CONTROL         "8 Bit",IDC_SOUND_8_BIT,"Button",BS_AUTORADIOBUTTON | 
-                    WS_TABSTOP,100,52,30,10
+                    WS_TABSTOP,63,89,30,10
     CONTROL         "16 Bit",IDC_SOUND_16_BIT,"Button",BS_AUTORADIOBUTTON | 
-                    WS_TABSTOP,100,65,34,10
-    GROUPBOX        "Volume",IDC_STATIC,7,36,31,84,BS_CENTER
-    LTEXT           "0",IDC_SOUND_V0,20,105,8,8
-    LTEXT           "100",IDC_SOUND_V100,15,45,13,8
+                    WS_TABSTOP,100,89,34,10
+    GROUPBOX        "Volume",IDC_STATIC,7,52,37,104,BS_CENTER
+    LTEXT           "0",IDC_SOUND_V0,22,140,8,8
+    LTEXT           "100",IDC_SOUND_V100,18,63,13,8
     CONTROL         "",IDC_SOUND_VOLUME,"msctls_trackbar32",TBS_VERT | 
-                    TBS_BOTH | TBS_NOTICKS | WS_TABSTOP,14,53,17,54
-    GROUPBOX        "Frame Buffers",IDC_STATIC,40,82,99,38
-    LTEXT           "1",IDC_SOUND_FB1,49,92,8,8
-    LTEXT           "10",IDC_SOUND_FB10,125,92,8,8
+                    TBS_BOTH | TBS_NOTICKS | WS_TABSTOP,16,73,17,68
+    GROUPBOX        "Frame Buffers",IDC_STATIC,51,113,124,43
+    LTEXT           "1",IDC_SOUND_FB1,59,122,8,8
+    LTEXT           "10",IDC_SOUND_FB10,157,122,8,8
     CONTROL         "",IDC_SOUND_LATENCY,"msctls_trackbar32",TBS_AUTOTICKS | 
-                    TBS_TOP | WS_TABSTOP,42,99,95,15
-    GROUPBOX        "Channels",IDC_STATIC,141,7,60,93
+                    TBS_TOP | WS_TABSTOP,52,131,118,15
+    GROUPBOX        "Channels",IDC_STATIC,182,7,84,102
     CONTROL         "Square #1",IDC_SOUND_SQUARE1,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,147,14,50,15
+                    WS_TABSTOP,191,18,50,15
     CONTROL         "Square #2",IDC_SOUND_SQUARE2,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,147,27,50,15
+                    WS_TABSTOP,191,31,50,15
     CONTROL         "Triangle",IDC_SOUND_TRIANGLE,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,147,40,50,15
+                    WS_TABSTOP,191,44,50,15
     CONTROL         "Noise",IDC_SOUND_NOISE,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,147,53,50,15
+                    WS_TABSTOP,191,57,50,15
     CONTROL         "DPCM",IDC_SOUND_DPCM,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,147,66,50,15
+                    WS_TABSTOP,191,70,50,15
     CONTROL         "External",IDC_SOUND_EXTERNAL,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,147,80,46,15
-    PUSHBUTTON      "Default",IDC_SOUND_DEFAULT,141,102,28,18
+                    WS_TABSTOP,191,84,50,15
+    PUSHBUTTON      "Default",IDC_SOUND_DEFAULT,185,138,36,18
 END
 
-IDD_ABOUT DIALOGEX 0, 0, 161, 108
+IDD_ABOUT DIALOGEX 0, 0, 161, 138
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | 
     WS_SYSMENU
 CAPTION "About"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    CTEXT           "Nestopia 1.02 \n\nCopyright (c) 2003 Martin Freij\nunder the terms and conditions of the\nGNU General Public License.",
+    CTEXT           "Nestopia 1.03 \n\nCopyright (c) 2003 Martin Freij\nunder the terms and conditions of the\nGNU General Public License.",
                     IDC_STATIC,14,22,133,42
-    GROUPBOX        "",IDC_STATIC,7,7,147,94
-    CTEXT           "http://sourceforge.net/projects/nestopia",IDC_ABOUT_URL,
-                    14,78,133,12,SS_NOTIFY
+    GROUPBOX        "",IDC_STATIC,7,7,147,124
+    CTEXT           "http://sourceforge.net/projects/nestopia",
+                    IDC_ABOUT_URL1,14,112,133,12,SS_NOTIFY
     CTEXT           "http://www.gnu.org",IDC_ABOUT_GNU,14,63,133,11,
                     SS_NOTIFY
+    CTEXT           "http://nestopia.znes.org/",IDC_ABOUT_URL2,14,88,133,12,
+                    SS_NOTIFY
+    LTEXT           "Home",IDC_STATIC,70,79,20,10
+    LTEXT           "Project",IDC_STATIC,68,102,24,10
 END
 
 IDD_INPUT_KEYPRESS DIALOGEX 0, 0, 120, 83
@@ -267,43 +280,44 @@ BEGIN
                     WS_EX_CLIENTEDGE
 END
 
-IDD_INPUT DIALOGEX 0, 0, 257, 156
+IDD_INPUT DIALOGEX 0, 0, 257, 190
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | 
     WS_SYSMENU
-CAPTION "Input"
+CAPTION "Input Options"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    DEFPUSHBUTTON   "OK",IDC_INPUT_OK,218,134,32,14
-    GROUPBOX        "Category",IDC_STATIC,7,7,66,112
-    LISTBOX         IDC_INPUT_DEVICES,14,18,53,93,LBS_NOINTEGRALHEIGHT | 
+    DEFPUSHBUTTON   "OK",IDC_INPUT_OK,218,168,32,14
+    GROUPBOX        "Device",IDC_STATIC,7,7,66,132
+    LISTBOX         IDC_INPUT_DEVICES,14,18,53,111,LBS_NOINTEGRALHEIGHT | 
                     WS_VSCROLL
-    GROUPBOX        "Keys/Buttons",IDC_STATIC,77,7,103,112
-    LISTBOX         IDC_INPUT_KEYS,82,18,92,92,LBS_NOINTEGRALHEIGHT | 
+    GROUPBOX        "Keys/Buttons",IDC_STATIC,77,7,103,132
+    LISTBOX         IDC_INPUT_KEYS,82,18,92,111,LBS_NOINTEGRALHEIGHT | 
                     LBS_NOSEL | WS_VSCROLL
-    GROUPBOX        "Mapping",IDC_STATIC,185,7,65,119
-    LISTBOX         IDC_INPUT_MAP,191,18,53,93,LBS_NOINTEGRALHEIGHT | 
+    GROUPBOX        "Mapping",IDC_STATIC,185,7,65,155
+    LISTBOX         IDC_INPUT_MAP,191,18,53,112,LBS_NOINTEGRALHEIGHT | 
                     WS_VSCROLL
-    LTEXT           "",IDC_INPUT_KEYPRESS_TEXT,7,134,163,14,WS_BORDER,
+    LTEXT           "",IDC_INPUT_KEYPRESS_TEXT,7,168,163,14,WS_BORDER,
                     WS_EX_CLIENTEDGE
-    PUSHBUTTON      "Set",IDC_INPUT_SET,192,113,26,9
-    PUSHBUTTON      "Clear",IDC_INPUT_CLEAR,221,113,23,9
-    PUSHBUTTON      "Default",IDC_INPUT_DEFAULT,177,134,37,14
+    PUSHBUTTON      "Set",IDC_INPUT_SET,190,135,26,9
+    PUSHBUTTON      "Clear",IDC_INPUT_CLEAR,219,135,23,9
+    PUSHBUTTON      "Default",IDC_INPUT_DEFAULT,177,168,37,14
+    PUSHBUTTON      "Set All",IDC_INPUT_SETALL,204,148,26,9
 END
 
-IDD_GAMEGENIE DIALOGEX 0, 0, 321, 145
+IDD_GAMEGENIE DIALOGEX 0, 0, 321, 183
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | 
     WS_SYSMENU
 CAPTION "Game Genie"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    DEFPUSHBUTTON   "OK",IDC_GAMEGENIE_OK,272,124,36,14
+    DEFPUSHBUTTON   "OK",IDC_GAMEGENIE_OK,272,162,36,14
     CONTROL         "",IDC_GAMEGENIE_LIST,"SysListView32",LVS_REPORT | 
-                    LVS_ALIGNLEFT | WS_BORDER,7,7,305,106
-    PUSHBUTTON      "Add",IDC_GAMEGENIE_ADD,7,124,36,14,WS_GROUP
-    PUSHBUTTON      "Remove",IDC_GAMEGENIE_REMOVE,60,124,36,14
-    PUSHBUTTON      "Import",IDC_GAMEGENIE_IMPORT,113,124,36,14
-    PUSHBUTTON      "Export",IDC_GAMEGENIE_EXPORT,166,124,36,14
-    PUSHBUTTON      "Clear All",IDC_GAMEGENIE_CLEAR_ALL,219,124,36,14
+                    LVS_ALIGNLEFT | WS_BORDER,7,7,305,147
+    PUSHBUTTON      "Add",IDC_GAMEGENIE_ADD,7,162,36,14,WS_GROUP
+    PUSHBUTTON      "Remove",IDC_GAMEGENIE_REMOVE,60,162,36,14
+    PUSHBUTTON      "Import",IDC_GAMEGENIE_IMPORT,113,162,36,14
+    PUSHBUTTON      "Export",IDC_GAMEGENIE_EXPORT,166,162,36,14
+    PUSHBUTTON      "Clear All",IDC_GAMEGENIE_CLEAR_ALL,219,162,36,14
 END
 
 IDD_GAMEGENIE_ADDCODE DIALOGEX 0, 0, 258, 114
@@ -385,14 +399,14 @@ BEGIN
                     WS_GROUP
 END
 
-IDD_PREFERENCES DIALOGEX 0, 0, 227, 217
+IDD_PREFERENCES DIALOGEX 0, 0, 227, 233
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | 
     WS_SYSMENU
 CAPTION "Preferences"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    DEFPUSHBUTTON   "OK",IDC_PREFERENCES_OK,170,196,50,14
-    GROUPBOX        "",IDC_STATIC,7,7,213,182
+    DEFPUSHBUTTON   "OK",IDC_PREFERENCES_OK,170,212,50,14
+    GROUPBOX        "",IDC_STATIC,7,7,213,198
     CONTROL         "Begin emulation as soon as an image file has been loaded",
                     IDC_PREFERENCES_BEGIN_EMULATION,"Button",BS_AUTOCHECKBOX | 
                     WS_TABSTOP,14,19,198,11
@@ -400,25 +414,27 @@ BEGIN
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,36,78,11
     CONTROL         "Switch to fullscreen on startup",
                     IDC_PREFERENCES_STARTUP_FULLSCREEN,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,14,70,114,12
+                    BS_AUTOCHECKBOX | WS_TABSTOP,14,88,114,12
     CONTROL         "Disable not-so-important warning messages",
                     IDC_PREFERENCES_DISABLE_ROM_WARNINGS,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,14,88,156,12
+                    BS_AUTOCHECKBOX | WS_TABSTOP,14,106,156,12
     CONTROL         "On exit, first power off machine",
                     IDC_PREFERENCES_CLOSE_POWER_OFF,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,14,106,128,12
+                    WS_TABSTOP,14,124,128,12
     CONTROL         "Automatically hide menu when switching to fullscreen (may be brought back with right mouse button click)",
                     IDC_PREFERENCES_HIDE_MENU_FULLSCREEN,"Button",
-                    BS_AUTOCHECKBOX | BS_MULTILINE | WS_TABSTOP,14,124,185,
+                    BS_AUTOCHECKBOX | BS_MULTILINE | WS_TABSTOP,14,142,185,
                     18
     CONTROL         "Confirm on exit",IDC_PREFERENCES_CONFIRM_EXIT,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,14,148,66,12
-    PUSHBUTTON      "Default",IDC_PREFERENCES_DEFAULT,108,196,50,14
+                    BS_AUTOCHECKBOX | WS_TABSTOP,14,166,66,12
+    PUSHBUTTON      "Default",IDC_PREFERENCES_DEFAULT,108,212,50,14
     CONTROL         "Always play NSF files in background",
                     IDC_PREFERENCES_NSF_IN_BACKGROUND,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,14,53,129,11
     CONTROL         "Save logfile",IDC_PREFERENCES_LOGFILE,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,14,166,54,12
+                    BS_AUTOCHECKBOX | WS_TABSTOP,14,184,54,12
+    CONTROL         "High Priority",IDC_PREFERENCES_HIGH_PRIORITY,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,14,70,53,12
 END
 
 IDD_AUTO_SAVE DIALOGEX 0, 0, 251, 161
@@ -446,20 +462,21 @@ BEGIN
     PUSHBUTTON      "Cancel",IDC_AUTOSAVE_CANCEL,132,140,50,14
 END
 
-IDD_FDS DIALOGEX 0, 0, 251, 65
+IDD_FDS DIALOGEX 0, 0, 265, 83
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | 
     WS_SYSMENU
 CAPTION "Famicom Disk System Options"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    DEFPUSHBUTTON   "OK",IDC_FDS_OK,206,44,38,14
-    LTEXT           "BIOS file",IDC_STATIC,7,22,30,12
-    EDITTEXT        IDC_FDS_BIOS,38,20,135,13,ES_AUTOHSCROLL
-    PUSHBUTTON      "Clear",IDC_FDS_CLEAR,177,20,30,14
-    PUSHBUTTON      "Browse",IDC_FDS_BROWSE,209,20,30,14
+    DEFPUSHBUTTON   "OK",IDC_FDS_OK,220,62,38,14
+    EDITTEXT        IDC_FDS_BIOS,14,20,160,13,ES_AUTOHSCROLL
+    PUSHBUTTON      "Clear",IDC_FDS_CLEAR,184,20,30,14
+    PUSHBUTTON      "Browse",IDC_FDS_BROWSE,217,20,30,14
     CONTROL         "Write-protect disk(s)",IDC_FDS_WRITE_PROTECT,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,7,47,81,11
-    PUSHBUTTON      "Cancel",IDC_FDS_CANCEL,161,44,38,14
+                    BS_AUTOCHECKBOX | WS_TABSTOP,14,58,81,11
+    PUSHBUTTON      "Cancel",IDC_FDS_CANCEL,176,62,38,14
+    GROUPBOX        "BIOS ROM File",IDC_STATIC,7,7,251,36
+    GROUPBOX        "Disk Options",IDC_STATIC,7,47,102,29
 END
 
 IDD_SOUND_RECORD DIALOGEX 0, 0, 251, 65
@@ -484,7 +501,7 @@ FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     DEFPUSHBUTTON   "OK",IDC_MOVIE_OK,193,44,50,14
     PUSHBUTTON      "Cancel",IDC_MOVIE_CANCEL,135,44,50,14
-    GROUPBOX        "File",IDC_STATIC,7,7,237,30
+    GROUPBOX        "Move File",IDC_STATIC,7,7,237,30
     EDITTEXT        IDC_MOVIE_FILE,14,17,147,13,ES_AUTOHSCROLL
     PUSHBUTTON      "Clear",IDC_MOVIE_CLEAR,167,18,34,13
     PUSHBUTTON      "Browse",IDC_MOVIE_BROWSE,205,18,34,13
@@ -507,7 +524,7 @@ STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION
 CAPTION "Licence"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    DEFPUSHBUTTON   "OK",IDC_LICENCE_OK,123,246,50,14
+    DEFPUSHBUTTON   "OK",IDC_LICENCE_OK,137,246,50,14
     EDITTEXT        IDC_LICENCE_EDIT,7,7,312,227,ES_MULTILINE | 
                     ES_AUTOHSCROLL | ES_READONLY | WS_VSCROLL
 END
@@ -546,15 +563,15 @@ BEGIN
         LEFTMARGIN, 6
         RIGHTMARGIN, 300
         TOPMARGIN, 7
-        BOTTOMMARGIN, 235
+        BOTTOMMARGIN, 282
     END
 
     IDD_SOUND, DIALOG
     BEGIN
         LEFTMARGIN, 7
-        RIGHTMARGIN, 201
+        RIGHTMARGIN, 266
         TOPMARGIN, 7
-        BOTTOMMARGIN, 120
+        BOTTOMMARGIN, 156
     END
 
     IDD_ABOUT, DIALOG
@@ -562,7 +579,7 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 154
         TOPMARGIN, 7
-        BOTTOMMARGIN, 101
+        BOTTOMMARGIN, 131
     END
 
     IDD_INPUT_KEYPRESS, DIALOG
@@ -586,7 +603,7 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 250
         TOPMARGIN, 7
-        BOTTOMMARGIN, 148
+        BOTTOMMARGIN, 182
     END
 
     IDD_GAMEGENIE, DIALOG
@@ -594,7 +611,7 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 312
         TOPMARGIN, 7
-        BOTTOMMARGIN, 138
+        BOTTOMMARGIN, 176
     END
 
     IDD_GAMEGENIE_ADDCODE, DIALOG
@@ -626,7 +643,7 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 220
         TOPMARGIN, 7
-        BOTTOMMARGIN, 210
+        BOTTOMMARGIN, 226
     END
 
     IDD_AUTO_SAVE, DIALOG
@@ -640,9 +657,9 @@ BEGIN
     IDD_FDS, DIALOG
     BEGIN
         LEFTMARGIN, 7
-        RIGHTMARGIN, 244
+        RIGHTMARGIN, 258
         TOPMARGIN, 7
-        BOTTOMMARGIN, 58
+        BOTTOMMARGIN, 76
     END
 
     IDD_SOUND_RECORD, DIALOG
@@ -723,53 +740,61 @@ BEGIN
         MENUITEM "&Open..\tCtrl+Shift+O",       IDM_FILE_OPEN
         MENUITEM "&Close..",                    IDM_FILE_CLOSE
         MENUITEM SEPARATOR
-        MENUITEM "&Load State\tCtrl+Shift+L",   IDM_FILE_LOAD_STATE
-        MENUITEM "&Save State\tCtrl+Shift+S",   IDM_FILE_SAVE_STATE
-        MENUITEM SEPARATOR
-        POPUP "Quick Load State"
+        POPUP "&Load.."
         BEGIN
-            MENUITEM "Slot 1\tShift+1",             IDM_FILE_QUICK_LOAD_STATE_SLOT_1
+            MENUITEM "&Game Config\tCtrl+Shift+W",  IDM_FILE_LOAD_SCRIPT
+            MENUITEM "S&tate\tCtrl+Shift+E",        IDM_FILE_LOAD_STATE
+        END
+        POPUP "&Save.."
+        BEGIN
+            MENUITEM "&Game Config\tCtrl+Shift+S",  IDM_FILE_SAVE_SCRIPT
+            MENUITEM "S&tate\tCtrl+Shift+D",        IDM_FILE_SAVE_STATE
+        END
+        MENUITEM SEPARATOR
+        POPUP "Quick Lo&ad State"
+        BEGIN
+            MENUITEM "Slot &1\tShift+1",            IDM_FILE_QUICK_LOAD_STATE_SLOT_1
             , GRAYED
-            MENUITEM "Slot 2\tShift+2",             IDM_FILE_QUICK_LOAD_STATE_SLOT_2
+            MENUITEM "Slot &2\tShift+2",            IDM_FILE_QUICK_LOAD_STATE_SLOT_2
             , GRAYED
-            MENUITEM "Slot 3\tShift+3",             IDM_FILE_QUICK_LOAD_STATE_SLOT_3
+            MENUITEM "Slot &3\tShift+3",            IDM_FILE_QUICK_LOAD_STATE_SLOT_3
             , GRAYED
-            MENUITEM "Slot 4\tShift+4",             IDM_FILE_QUICK_LOAD_STATE_SLOT_4
+            MENUITEM "Slot &4\tShift+4",            IDM_FILE_QUICK_LOAD_STATE_SLOT_4
             , GRAYED
-            MENUITEM "Slot 5\tShift+5",             IDM_FILE_QUICK_LOAD_STATE_SLOT_5
+            MENUITEM "Slot &5\tShift+5",            IDM_FILE_QUICK_LOAD_STATE_SLOT_5
             , GRAYED
-            MENUITEM "Slot 6\tShift+6",             IDM_FILE_QUICK_LOAD_STATE_SLOT_6
+            MENUITEM "Slot &6\tShift+6",            IDM_FILE_QUICK_LOAD_STATE_SLOT_6
             , GRAYED
-            MENUITEM "Slot 7\tShift+7",             IDM_FILE_QUICK_LOAD_STATE_SLOT_7
+            MENUITEM "Slot &7\tShift+7",            IDM_FILE_QUICK_LOAD_STATE_SLOT_7
             , GRAYED
-            MENUITEM "Slot 8\tShift+8",             IDM_FILE_QUICK_LOAD_STATE_SLOT_8
+            MENUITEM "Slot &8\tShift+8",            IDM_FILE_QUICK_LOAD_STATE_SLOT_8
             , GRAYED
-            MENUITEM "Slot 9\tShift+9",             IDM_FILE_QUICK_LOAD_STATE_SLOT_9
+            MENUITEM "Slot &9\tShift+9",            IDM_FILE_QUICK_LOAD_STATE_SLOT_9
             , GRAYED
-            MENUITEM "Last Saved\tShift+0",         IDM_FILE_QUICK_LOAD_STATE_SLOT_LAST
+            MENUITEM "&Last Saved\tShift+0",        IDM_FILE_QUICK_LOAD_STATE_SLOT_LAST
             , GRAYED
         END
-        POPUP "Quick Save State"
+        POPUP "Quick Sa&ve State"
         BEGIN
-            MENUITEM "Slot 1\t1",                   IDM_FILE_QUICK_SAVE_STATE_SLOT_1
+            MENUITEM "Slot &1\t1",                  IDM_FILE_QUICK_SAVE_STATE_SLOT_1
             , GRAYED
-            MENUITEM "Slot 2\t2",                   IDM_FILE_QUICK_SAVE_STATE_SLOT_2
+            MENUITEM "Slot &2\t2",                  IDM_FILE_QUICK_SAVE_STATE_SLOT_2
             , GRAYED
-            MENUITEM "Slot 3\t3",                   IDM_FILE_QUICK_SAVE_STATE_SLOT_3
+            MENUITEM "Slot &3\t3",                  IDM_FILE_QUICK_SAVE_STATE_SLOT_3
             , GRAYED
-            MENUITEM "Slot 4\t4",                   IDM_FILE_QUICK_SAVE_STATE_SLOT_4
+            MENUITEM "Slot &4\t4",                  IDM_FILE_QUICK_SAVE_STATE_SLOT_4
             , GRAYED
-            MENUITEM "Slot 5\t5",                   IDM_FILE_QUICK_SAVE_STATE_SLOT_5
+            MENUITEM "Slot &5\t5",                  IDM_FILE_QUICK_SAVE_STATE_SLOT_5
             , GRAYED
-            MENUITEM "Slot 6\t6",                   IDM_FILE_QUICK_SAVE_STATE_SLOT_6
+            MENUITEM "Slot &6\t6",                  IDM_FILE_QUICK_SAVE_STATE_SLOT_6
             , GRAYED
-            MENUITEM "Slot 7\t7",                   IDM_FILE_QUICK_SAVE_STATE_SLOT_7
+            MENUITEM "Slot &7\t7",                  IDM_FILE_QUICK_SAVE_STATE_SLOT_7
             , GRAYED
-            MENUITEM "Slot 8\t8",                   IDM_FILE_QUICK_SAVE_STATE_SLOT_8
+            MENUITEM "Slot &8\t8",                  IDM_FILE_QUICK_SAVE_STATE_SLOT_8
             , GRAYED
-            MENUITEM "Slot 9\t9",                   IDM_FILE_QUICK_SAVE_STATE_SLOT_9
+            MENUITEM "Slot &9\t9",                  IDM_FILE_QUICK_SAVE_STATE_SLOT_9
             , GRAYED
-            MENUITEM "Next\t0",                     IDM_FILE_QUICK_SAVE_STATE_SLOT_NEXT
+            MENUITEM "&Next\t0",                    IDM_FILE_QUICK_SAVE_STATE_SLOT_NEXT
             , GRAYED
         END
         MENUITEM SEPARATOR
@@ -779,7 +804,7 @@ BEGIN
         BEGIN
             MENUITEM "&File..",                     IDM_FILE_RECORD_SOUND_FILE
 
-            MENUITEM "&Start",                      IDM_FILE_RECORD_SOUND_START
+            MENUITEM "&Record",                     IDM_FILE_RECORD_SOUND_START
 
             MENUITEM "S&top",                       IDM_FILE_RECORD_SOUND_STOP
 
@@ -793,6 +818,7 @@ BEGIN
             MENUITEM "&Play",                       IDM_FILE_MOVIE_PLAY
             MENUITEM "&Stop",                       IDM_FILE_MOVIE_STOP
             MENUITEM "R&ewind",                     IDM_FILE_MOVIE_REWIND
+            MENUITEM "F&orward",                    IDM_FILE_MOVIE_FORWARD
         END
         MENUITEM SEPARATOR
         POPUP "&Recent Files"
@@ -874,9 +900,9 @@ BEGIN
         END
         POPUP "&Expansion Port"
         BEGIN
-            MENUITEM "Unconnected",                 IDM_MACHINE_EXPANSION_UNCONNECTED
+            MENUITEM "&Unconnected",                IDM_MACHINE_EXPANSION_UNCONNECTED
             , CHECKED
-            MENUITEM "Family Basic Keyboard",       IDM_MACHINE_EXPANSION_FAMILYBASICKEYBOARD
+            MENUITEM "Family Basic &Keyboard",      IDM_MACHINE_EXPANSION_FAMILYBASICKEYBOARD
 
         END
         MENUITEM SEPARATOR
@@ -894,22 +920,22 @@ BEGIN
     BEGIN
         POPUP "&Insert Disk", GRAYED
         BEGIN
-            MENUITEM "1",                           IDM_FDS_INSERT_DISK_1
-            MENUITEM "2",                           IDM_FDS_INSERT_DISK_2
-            MENUITEM "3",                           IDM_FDS_INSERT_DISK_3
-            MENUITEM "4",                           IDM_FDS_INSERT_DISK_4
-            MENUITEM "5",                           IDM_FDS_INSERT_DISK_5
-            MENUITEM "6",                           IDM_FDS_INSERT_DISK_6
-            MENUITEM "7",                           IDM_FDS_INSERT_DISK_7
-            MENUITEM "8",                           IDM_FDS_INSERT_DISK_8
-            MENUITEM "9",                           IDM_FDS_INSERT_DISK_9
-            MENUITEM "10",                          IDM_FDS_INSERT_DISK_10
-            MENUITEM "11",                          IDM_FDS_INSERT_DISK_11
-            MENUITEM "12",                          IDM_FDS_INSERT_DISK_12
-            MENUITEM "13",                          IDM_FDS_INSERT_DISK_13
-            MENUITEM "14",                          IDM_FDS_INSERT_DISK_14
-            MENUITEM "15",                          IDM_FDS_INSERT_DISK_15
-            MENUITEM "16",                          IDM_FDS_INSERT_DISK_16
+            MENUITEM "&1",                          IDM_FDS_INSERT_DISK_1
+            MENUITEM "&2",                          IDM_FDS_INSERT_DISK_2
+            MENUITEM "&3",                          IDM_FDS_INSERT_DISK_3
+            MENUITEM "&4",                          IDM_FDS_INSERT_DISK_4
+            MENUITEM "&5",                          IDM_FDS_INSERT_DISK_5
+            MENUITEM "&6",                          IDM_FDS_INSERT_DISK_6
+            MENUITEM "&7",                          IDM_FDS_INSERT_DISK_7
+            MENUITEM "&8",                          IDM_FDS_INSERT_DISK_8
+            MENUITEM "&9",                          IDM_FDS_INSERT_DISK_9
+            MENUITEM "&10",                         IDM_FDS_INSERT_DISK_10
+            MENUITEM "&11",                         IDM_FDS_INSERT_DISK_11
+            MENUITEM "&12",                         IDM_FDS_INSERT_DISK_12
+            MENUITEM "&13",                         IDM_FDS_INSERT_DISK_13
+            MENUITEM "&14",                         IDM_FDS_INSERT_DISK_14
+            MENUITEM "&15",                         IDM_FDS_INSERT_DISK_15
+            MENUITEM "&16",                         IDM_FDS_INSERT_DISK_16
         END
         MENUITEM "&Eject Disk",                 IDM_FDS_EJECT_DISK, GRAYED
         POPUP "&Disk Side", GRAYED
@@ -929,9 +955,9 @@ BEGIN
     POPUP "&View"
     BEGIN
         MENUITEM "&Image File Info",            IDM_VIEW_ROM_INFO, GRAYED
-        MENUITEM "Log file",                    IDM_VIEW_LOGFILE
+        MENUITEM "&Log file",                   IDM_VIEW_LOGFILE
         MENUITEM "&Fullscreen\tCtrl+Shift+F",   IDM_VIEW_SWITCH_SCREEN
-        POPUP "Window &Size"
+        POPUP "&Screen Size"
         BEGIN
             MENUITEM "&1X",                         IDM_VIEW_WINDOWSIZE_1X
             MENUITEM "&2X",                         IDM_VIEW_WINDOWSIZE_2X
@@ -939,7 +965,7 @@ BEGIN
             MENUITEM "&8X",                         IDM_VIEW_WINDOWSIZE_8X
             MENUITEM "&Max",                        IDM_VIEW_WINDOWSIZE_MAX
         END
-        MENUITEM "Hide Menu",                   IDM_VIEW_HIDE_MENU, GRAYED
+        MENUITEM "Hide &Menu",                  IDM_VIEW_HIDE_MENU, GRAYED
     END
     POPUP "&Options"
     BEGIN
@@ -968,7 +994,7 @@ END
 
 IDR_ACCELERATOR ACCELERATORS 
 BEGIN
-    "L",            IDM_FILE_LOAD_STATE,    VIRTKEY, SHIFT, CONTROL, 
+    "E",            IDM_FILE_LOAD_STATE,    VIRTKEY, SHIFT, CONTROL, 
                                                     NOINVERT
     "O",            IDM_FILE_OPEN,          VIRTKEY, SHIFT, CONTROL, 
                                                     NOINVERT
@@ -1004,8 +1030,6 @@ BEGIN
     "0",            IDM_FILE_QUICK_SAVE_STATE_SLOT_NEXT, VIRTKEY, NOINVERT
     "X",            IDM_FILE_QUIT,          VIRTKEY, ALT, NOINVERT
     "E",            IDM_FILE_SAVE_SCREENSHOT, VIRTKEY, ALT, NOINVERT
-    "S",            IDM_FILE_SAVE_STATE,    VIRTKEY, SHIFT, CONTROL, 
-                                                    NOINVERT
     "P",            IDM_MACHINE_PAUSE,      VIRTKEY, SHIFT, NOINVERT
     "F",            IDM_MACHINE_POWER_OFF,  VIRTKEY, SHIFT, NOINVERT
     "D",            IDM_MACHINE_POWER_ON,   VIRTKEY, SHIFT, NOINVERT
@@ -1015,9 +1039,13 @@ BEGIN
     VK_UP,          IDM_NSF_PLAY,           VIRTKEY, SHIFT, NOINVERT
     VK_LEFT,        IDM_NSF_PREV,           VIRTKEY, SHIFT, NOINVERT
     VK_DOWN,        IDM_NSF_STOP,           VIRTKEY, SHIFT, NOINVERT
-    "W",            IDM_VIEW_NORMAL_WINDOW_SIZE, VIRTKEY, SHIFT, CONTROL, 
-                                                    NOINVERT
     "F",            IDM_VIEW_SWITCH_SCREEN, VIRTKEY, SHIFT, CONTROL, 
+                                                    NOINVERT
+    "D",            IDM_FILE_SAVE_STATE,    VIRTKEY, SHIFT, CONTROL, 
+                                                    NOINVERT
+    "W",            IDM_FILE_LOAD_SCRIPT,   VIRTKEY, SHIFT, CONTROL, 
+                                                    NOINVERT
+    "S",            IDM_FILE_SAVE_SCRIPT,   VIRTKEY, SHIFT, CONTROL, 
                                                     NOINVERT
 END
 

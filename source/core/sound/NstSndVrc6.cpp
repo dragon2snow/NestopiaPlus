@@ -244,19 +244,33 @@ LONG SNDVRC6::SQUARE::Sample()
 {
 	if (active)
 	{
-		for (timer += rate; timer > 0; timer -= frequency)
+		if ((timer += rate) > 0)
 		{
-			step = (step + 1) & 0xF;
+			LONG sum = 0;
+			INT num = 0;
 
-			if (!step) 
+			do
 			{
-				amp = +volume;
+				step = (step + 1) & 0xF;
+
+				if (!step) 
+				{
+					amp = +volume;
+				}
+				else if (step == duty)
+				{
+					amp = -volume;
+				}
+
+				sum += amp;
+				++num;
 			}
-			else if (step == duty)
-			{
-				amp = -volume;
-			}
+			while ((timer -= frequency) > 0);
+
+			return sum / num;
 		}
+
+		return amp;
 	}
 	else
 	{
@@ -325,16 +339,30 @@ LONG SNDVRC6::SAWTOOTH::Sample()
 {
 	if (active)
 	{
-		for (timer += rate; timer > 0; timer -= frequency)
+		if ((timer += rate) > 0)
 		{
-			amp += phase;
+			LONG sum = 0;
+			INT num = 0;
 
-			if (++step == 7)
+			do
 			{
-				step = 0;
-				amp = 0;
+				amp += phase;
+			
+				if (++step == 7)
+				{
+					step = 0;
+					amp = 0;
+				}
+
+     			sum += amp;
+     			++num;
 			}
+			while ((timer -= frequency) > 0);
+
+			return sum / num;
 		}
+
+		return amp;
 	}
 	else
 	{

@@ -44,6 +44,107 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
+PDX_COMPILE_ASSERT
+(
+	( IDM_MACHINE_PORT1_PAD1		            - IDM_MACHINE_PORT1_UNCONNECTED ) == 1  &&  
+	( IDM_MACHINE_PORT1_PAD2		            - IDM_MACHINE_PORT1_UNCONNECTED ) == 2  && 
+	( IDM_MACHINE_PORT1_PAD3		            - IDM_MACHINE_PORT1_UNCONNECTED ) == 3  && 
+	( IDM_MACHINE_PORT1_PAD4	                - IDM_MACHINE_PORT1_UNCONNECTED ) == 4  && 
+	( IDM_MACHINE_PORT1_ZAPPER	                - IDM_MACHINE_PORT1_UNCONNECTED ) == 5  && 
+	( IDM_MACHINE_PORT1_PADDLE	                - IDM_MACHINE_PORT1_UNCONNECTED ) == 6  && 
+	( IDM_MACHINE_PORT1_POWERPAD                - IDM_MACHINE_PORT1_UNCONNECTED ) == 7  && 
+	( IDM_MACHINE_PORT2_UNCONNECTED             - IDM_MACHINE_PORT1_UNCONNECTED ) == 8  && 
+	( IDM_MACHINE_PORT2_PAD1		            - IDM_MACHINE_PORT1_UNCONNECTED ) == 9	&&
+	( IDM_MACHINE_PORT2_PAD2		            - IDM_MACHINE_PORT1_UNCONNECTED ) == 10 && 
+	( IDM_MACHINE_PORT2_PAD3	  	            - IDM_MACHINE_PORT1_UNCONNECTED ) == 11 &&  
+	( IDM_MACHINE_PORT2_PAD4	                - IDM_MACHINE_PORT1_UNCONNECTED ) == 12 && 
+	( IDM_MACHINE_PORT2_ZAPPER	                - IDM_MACHINE_PORT1_UNCONNECTED ) == 13 && 
+	( IDM_MACHINE_PORT2_PADDLE	                - IDM_MACHINE_PORT1_UNCONNECTED ) == 14 && 
+	( IDM_MACHINE_PORT2_POWERPAD                - IDM_MACHINE_PORT1_UNCONNECTED ) == 15 && 
+	( IDM_MACHINE_PORT3_UNCONNECTED             - IDM_MACHINE_PORT1_UNCONNECTED ) == 16 && 
+	( IDM_MACHINE_PORT3_PAD1		            - IDM_MACHINE_PORT1_UNCONNECTED ) == 17 && 
+	( IDM_MACHINE_PORT3_PAD2		            - IDM_MACHINE_PORT1_UNCONNECTED ) == 18 && 
+	( IDM_MACHINE_PORT3_PAD3		            - IDM_MACHINE_PORT1_UNCONNECTED ) == 19 &&
+	( IDM_MACHINE_PORT3_PAD4	                - IDM_MACHINE_PORT1_UNCONNECTED ) == 20 && 
+	( IDM_MACHINE_PORT4_UNCONNECTED             - IDM_MACHINE_PORT1_UNCONNECTED ) == 21 && 
+	( IDM_MACHINE_PORT4_PAD1		            - IDM_MACHINE_PORT1_UNCONNECTED ) == 22 && 
+	( IDM_MACHINE_PORT4_PAD2		            - IDM_MACHINE_PORT1_UNCONNECTED ) == 23 && 
+	( IDM_MACHINE_PORT4_PAD3		            - IDM_MACHINE_PORT1_UNCONNECTED ) == 24 && 
+	( IDM_MACHINE_PORT4_PAD4	                - IDM_MACHINE_PORT1_UNCONNECTED ) == 25 && 
+	( IDM_MACHINE_EXPANSION_UNCONNECTED         - IDM_MACHINE_PORT1_UNCONNECTED ) == 26 &&
+	( IDM_MACHINE_EXPANSION_FAMILYBASICKEYBOARD - IDM_MACHINE_PORT1_UNCONNECTED ) == 27
+);
+
+PDX_COMPILE_ASSERT
+(
+	( IDM_FDS_INSERT_DISK_2  - IDM_FDS_INSERT_DISK_1 ) == 1  && 
+	( IDM_FDS_INSERT_DISK_3  - IDM_FDS_INSERT_DISK_1 ) == 2  &&  
+	( IDM_FDS_INSERT_DISK_4  - IDM_FDS_INSERT_DISK_1 ) == 3  && 
+	( IDM_FDS_INSERT_DISK_5  - IDM_FDS_INSERT_DISK_1 ) == 4  && 
+	( IDM_FDS_INSERT_DISK_6  - IDM_FDS_INSERT_DISK_1 ) == 5  && 
+	( IDM_FDS_INSERT_DISK_7  - IDM_FDS_INSERT_DISK_1 ) == 6  && 
+	( IDM_FDS_INSERT_DISK_8  - IDM_FDS_INSERT_DISK_1 ) == 7  && 
+	( IDM_FDS_INSERT_DISK_9  - IDM_FDS_INSERT_DISK_1 ) == 8  && 
+	( IDM_FDS_INSERT_DISK_10 - IDM_FDS_INSERT_DISK_1 ) == 9	 &&
+	( IDM_FDS_INSERT_DISK_11 - IDM_FDS_INSERT_DISK_1 ) == 10 &&
+	( IDM_FDS_INSERT_DISK_12 - IDM_FDS_INSERT_DISK_1 ) == 11 &&
+	( IDM_FDS_INSERT_DISK_13 - IDM_FDS_INSERT_DISK_1 ) == 12 &&
+	( IDM_FDS_INSERT_DISK_14 - IDM_FDS_INSERT_DISK_1 ) == 13 &&
+	( IDM_FDS_INSERT_DISK_15 - IDM_FDS_INSERT_DISK_1 ) == 14 &&
+	( IDM_FDS_INSERT_DISK_16 - IDM_FDS_INSERT_DISK_1 ) == 15
+);
+
+PDX_COMPILE_ASSERT
+(
+	( IDM_FILE_QUICK_LOAD_STATE_SLOT_1 - IDM_FILE_QUICK_LOAD_STATE_SLOT_LAST ) == 1 && 
+	( IDM_FILE_QUICK_LOAD_STATE_SLOT_2 - IDM_FILE_QUICK_LOAD_STATE_SLOT_LAST ) == 2 &&  
+	( IDM_FILE_QUICK_LOAD_STATE_SLOT_3 - IDM_FILE_QUICK_LOAD_STATE_SLOT_LAST ) == 3 && 
+	( IDM_FILE_QUICK_LOAD_STATE_SLOT_4 - IDM_FILE_QUICK_LOAD_STATE_SLOT_LAST ) == 4 && 
+	( IDM_FILE_QUICK_LOAD_STATE_SLOT_5 - IDM_FILE_QUICK_LOAD_STATE_SLOT_LAST ) == 5 && 
+	( IDM_FILE_QUICK_LOAD_STATE_SLOT_6 - IDM_FILE_QUICK_LOAD_STATE_SLOT_LAST ) == 6 && 
+	( IDM_FILE_QUICK_LOAD_STATE_SLOT_7 - IDM_FILE_QUICK_LOAD_STATE_SLOT_LAST ) == 7 && 
+	( IDM_FILE_QUICK_LOAD_STATE_SLOT_8 - IDM_FILE_QUICK_LOAD_STATE_SLOT_LAST ) == 8 && 
+	( IDM_FILE_QUICK_LOAD_STATE_SLOT_9 - IDM_FILE_QUICK_LOAD_STATE_SLOT_LAST ) == 9
+);
+
+PDX_COMPILE_ASSERT
+(
+	( IDM_FILE_QUICK_SAVE_STATE_SLOT_1 - IDM_FILE_QUICK_SAVE_STATE_SLOT_NEXT ) == 1 && 
+	( IDM_FILE_QUICK_SAVE_STATE_SLOT_2 - IDM_FILE_QUICK_SAVE_STATE_SLOT_NEXT ) == 2 &&  
+	( IDM_FILE_QUICK_SAVE_STATE_SLOT_3 - IDM_FILE_QUICK_SAVE_STATE_SLOT_NEXT ) == 3 && 
+	( IDM_FILE_QUICK_SAVE_STATE_SLOT_4 - IDM_FILE_QUICK_SAVE_STATE_SLOT_NEXT ) == 4 && 
+	( IDM_FILE_QUICK_SAVE_STATE_SLOT_5 - IDM_FILE_QUICK_SAVE_STATE_SLOT_NEXT ) == 5 && 
+	( IDM_FILE_QUICK_SAVE_STATE_SLOT_6 - IDM_FILE_QUICK_SAVE_STATE_SLOT_NEXT ) == 6 && 
+	( IDM_FILE_QUICK_SAVE_STATE_SLOT_7 - IDM_FILE_QUICK_SAVE_STATE_SLOT_NEXT ) == 7 && 
+	( IDM_FILE_QUICK_SAVE_STATE_SLOT_8 - IDM_FILE_QUICK_SAVE_STATE_SLOT_NEXT ) == 8 && 
+	( IDM_FILE_QUICK_SAVE_STATE_SLOT_9 - IDM_FILE_QUICK_SAVE_STATE_SLOT_NEXT ) == 9
+);
+
+PDX_COMPILE_ASSERT
+(
+	( IDM_FILE_RECENT_1 - IDM_FILE_RECENT_0 ) == 1 && 
+	( IDM_FILE_RECENT_2 - IDM_FILE_RECENT_0 ) == 2 &&  
+	( IDM_FILE_RECENT_3 - IDM_FILE_RECENT_0 ) == 3 && 
+	( IDM_FILE_RECENT_4 - IDM_FILE_RECENT_0 ) == 4 && 
+	( IDM_FILE_RECENT_5 - IDM_FILE_RECENT_0 ) == 5 && 
+	( IDM_FILE_RECENT_6 - IDM_FILE_RECENT_0 ) == 6 && 
+	( IDM_FILE_RECENT_7 - IDM_FILE_RECENT_0 ) == 7 && 
+	( IDM_FILE_RECENT_8 - IDM_FILE_RECENT_0 ) == 8 && 
+	( IDM_FILE_RECENT_9 - IDM_FILE_RECENT_0 ) == 9
+);
+
+PDX_COMPILE_ASSERT
+(
+    ( IDM_VIEW_WINDOWSIZE_1X - IDM_VIEW_WINDOWSIZE_MAX ) == 1 &&
+	( IDM_VIEW_WINDOWSIZE_2X - IDM_VIEW_WINDOWSIZE_MAX ) == 2 && 
+	( IDM_VIEW_WINDOWSIZE_4X - IDM_VIEW_WINDOWSIZE_MAX ) == 3 &&
+	( IDM_VIEW_WINDOWSIZE_8X - IDM_VIEW_WINDOWSIZE_MAX ) == 4
+);
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
 PDXSTRING APPLICATION::ScreenMsg;
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -101,18 +202,18 @@ AutoSelectController (TRUE),
 AcceleratorEnabled   (TRUE),
 NesMode              (NES::MODE_AUTO),
 hMenuFullscreenBrush (NULL),
-GraphicManager       (new GRAPHICMANAGER     ( IDD_GRAPHICS,    CHUNK_GRAPHICMANAGER   )),
-SoundManager         (new SOUNDMANAGER       ( IDD_SOUND,       CHUNK_SOUNDMANAGER     )),
-InputManager         (new INPUTMANAGER       ( IDD_INPUT,       CHUNK_INPUTMANAGER     )),
-FileManager          (new FILEMANAGER        ( IDD_PATHS,       CHUNK_FILEMANAGER      )),
-FdsManager           (new FDSMANAGER         ( IDD_FDS,         CHUNK_FDSMANAGER       )),
-preferences          (new PREFERENCES        ( IDD_PREFERENCES, CHUNK_PREFERENCES      )),
-RomInfo              (new ROMINFO            ( IDD_ROM_INFO                            )),
-VsDipSwitchManager   (new VSDIPSWITCHMANAGER ( IDD_DIPSWITCHES                         )),
-GameGenieManager     (new GAMEGENIEMANAGER   ( IDD_GAMEGENIE,   CHUNK_GAMEGENIEMANAGER )),
-SaveStateManager     (new SAVESTATEMANAGER   ( IDD_AUTO_SAVE                           )),
-MovieManager         (new MOVIEMANAGER       ( IDD_MOVIE                               )),
-LogFileManager       (new LOGFILEMANAGER     ( IDD_LOGFILE                             )),
+GraphicManager       (new GRAPHICMANAGER     ( IDD_GRAPHICS,    CHUNK_GRAPHICMANAGER )),
+SoundManager         (new SOUNDMANAGER       ( IDD_SOUND,       CHUNK_SOUNDMANAGER   )),
+InputManager         (new INPUTMANAGER       ( IDD_INPUT,       CHUNK_INPUTMANAGER   )),
+FileManager          (new FILEMANAGER        ( IDD_PATHS,       CHUNK_FILEMANAGER    )),
+FdsManager           (new FDSMANAGER         ( IDD_FDS,         CHUNK_FDSMANAGER     )),
+preferences          (new PREFERENCES        ( IDD_PREFERENCES, CHUNK_PREFERENCES    )),
+RomInfo              (new ROMINFO            ( IDD_ROM_INFO                          )),
+VsDipSwitchManager   (new VSDIPSWITCHMANAGER ( IDD_DIPSWITCHES                       )),
+GameGenieManager     (new GAMEGENIEMANAGER   ( IDD_GAMEGENIE                         )),
+SaveStateManager     (new SAVESTATEMANAGER   ( IDD_AUTO_SAVE                         )),
+MovieManager         (new MOVIEMANAGER       ( IDD_MOVIE                             )),
+LogFileManager       (new LOGFILEMANAGER     ( IDD_LOGFILE                           )),
 HelpManager          (new HELPMANAGER),
 UserInputManager     (new USERINPUTMANAGER),
 hMenuWindowBrush     (NULL)
@@ -181,24 +282,23 @@ PDXRESULT APPLICATION::Init(HINSTANCE h,const CHAR* const RomImage,const INT iCm
 	hInstance = h;
 	hCursor = LoadCursor(NULL,IDC_ARROW);
 
-	const WNDCLASSEX WndClass = 
-	{ 
-		sizeof(WNDCLASSEX),
-		0,
-		WndProc, 
-		0, 
-		0, 
-		hInstance,
-		LoadIcon(hInstance,MAKEINTRESOURCE(IDI_GEEK_1)),
-		hCursor,
-		(HBRUSH) GetStockObject(NULL_BRUSH),
-		NULL,
-		TEXT("Nestopia"),
-		LoadIcon(hInstance,MAKEINTRESOURCE(IDI_GEEK_2))
-	};
+	{
+		WNDCLASSEX wndcls;
+		PDXMemZero( wndcls );
 
-	if (!RegisterClassEx(&WndClass))
-		return OnError("RegisterClassEx() failed!");
+		wndcls.cbSize        = sizeof(wndcls);
+		wndcls.style         = CS_HREDRAW | CS_HREDRAW | CS_SAVEBITS;
+		wndcls.lpfnWndProc	 = WndProc;
+		wndcls.hInstance     = hInstance;
+		wndcls.hIcon         = LoadIcon(hInstance,MAKEINTRESOURCE(IDI_GEEK_1));
+		wndcls.hCursor       = hCursor;
+		wndcls.hbrBackground = HBRUSH(GetStockObject(NULL_BRUSH));
+		wndcls.lpszClassName = TEXT("Nestopia");
+		wndcls.hIconSm       = LoadIcon(hInstance,MAKEINTRESOURCE(IDI_GEEK_2));
+
+		if (!RegisterClassEx(&wndcls))
+			return OnError("RegisterClassEx() failed!");
+	}
 
 	hWnd = CreateWindow
 	(
@@ -256,9 +356,9 @@ PDXRESULT APPLICATION::Init(HINSTANCE h,const CHAR* const RomImage,const INT iCm
 		NST_INIT_F ( SoundManager,     file );
 		NST_INIT_F ( InputManager,     file );
 		NST_INIT_F ( FdsManager,       file );
-		NST_INIT_F ( GameGenieManager, file );
 		NST_INIT_F ( preferences,      file );
 		NST_INIT_S ( HelpManager            );
+		NST_INIT   ( GameGenieManager       );
 		NST_INIT   ( SaveStateManager       );
 		NST_INIT   ( MovieManager           );
 		NST_INIT   ( VsDipSwitchManager     );
@@ -298,7 +398,7 @@ PDXRESULT APPLICATION::Init(HINSTANCE h,const CHAR* const RomImage,const INT iCm
 	{
 		ShowWindow( hWnd, iCmdShow );
 	}
-  
+
 	active = ready = TRUE;
 
 	return PDX_OK;
@@ -365,6 +465,8 @@ PDXRESULT APPLICATION::OnWarning(const CHAR* const text)
 
 		if (yourcardsuck)
 			SwitchScreen();
+
+		timer.Reset();
 	}
 
 	return PDX_FAILURE;
@@ -394,6 +496,8 @@ BOOL APPLICATION::OnQuestion(const CHAR* const head,const CHAR* const text)
 
 		if (!windowed && hMenu)
 			while (ShowCursor( TRUE ) >= 0);
+
+		timer.Reset();
 
 		return yep;
 	}
@@ -507,6 +611,9 @@ LRESULT APPLICATION::MsgProc(const HWND hWnd,const UINT uMsg,const WPARAM wParam
 			break;
 
 		case WM_EXITSIZEMOVE:
+
+			OnExitSizeMove();
+
 		case WM_EXITMENULOOP:
 
 			OnActive();
@@ -538,7 +645,7 @@ LRESULT APPLICATION::MsgProc(const HWND hWnd,const UINT uMsg,const WPARAM wParam
 
 			switch (wParam)
 			{
-     			case PBT_APMQUERYSUSPEND:  OnInactive( TRUE ); return 0;
+     			case PBT_APMQUERYSUSPEND:  OnInactive(TRUE); return 0;
 				case PBT_APMRESUMESUSPEND: OnActive(); return 0;
 			}
 			break;
@@ -567,8 +674,10 @@ BOOL APPLICATION::OnCommand(const WPARAM wParam)
 
 	switch (idm)
 	{
-		case IDM_FILE_OPEN:                       OnOpen();                               return TRUE;
+		case IDM_FILE_OPEN:                       OnOpen( FILE_ALL );                     return TRUE;
 		case IDM_FILE_CLOSE:                      OnClose();                              return TRUE;
+		case IDM_FILE_LOAD_SCRIPT:                OnLoadScript();                         return TRUE;
+		case IDM_FILE_SAVE_SCRIPT:                OnSaveScript();                         return TRUE;
 		case IDM_FILE_LOAD_STATE:                 OnLoadState();                          return TRUE;
 		case IDM_FILE_SAVE_STATE:                 OnSaveState();                          return TRUE;
 		case IDM_FILE_QUIT:			              OnCloseWindow();                        return TRUE;
@@ -582,6 +691,7 @@ BOOL APPLICATION::OnCommand(const WPARAM wParam)
 		case IDM_FILE_MOVIE_RECORD:               MovieManager->Record();                 return TRUE;
 		case IDM_FILE_MOVIE_STOP:                 MovieManager->Stop();                   return TRUE;
 		case IDM_FILE_MOVIE_REWIND:               MovieManager->Rewind();                 return TRUE;
+		case IDM_FILE_MOVIE_FORWARD:              MovieManager->Forward();                return TRUE;
 		case IDM_MACHINE_POWER_ON:		          OnPower( TRUE  );                       return TRUE;
 		case IDM_MACHINE_POWER_OFF:               OnPower( FALSE );                       return TRUE;
 		case IDM_MACHINE_RESET_SOFT:              OnReset( FALSE );                       return TRUE;
@@ -609,7 +719,7 @@ BOOL APPLICATION::OnCommand(const WPARAM wParam)
 		case IDM_VIEW_WINDOWSIZE_8X:              OnWindowSize( 3 );                      return TRUE;
 		case IDM_VIEW_HIDE_MENU:                  OnHideMenu();                           return TRUE;
 		case IDM_OPTIONS_PREFERENCES:             preferences        ->StartDialog();     return TRUE;
-		case IDM_OPTIONS_VIDEO:                   OnOptionsVideo();                       return TRUE;
+		case IDM_OPTIONS_VIDEO:                   GraphicManager     ->StartDialog();     return TRUE;
 		case IDM_OPTIONS_SOUND:                   SoundManager       ->StartDialog();     return TRUE;
 		case IDM_OPTIONS_INPUT:                   InputManager       ->StartDialog();     return TRUE;
 		case IDM_OPTIONS_PATHS:                   FileManager        ->StartDialog();     return TRUE;
@@ -661,37 +771,6 @@ BOOL APPLICATION::OnCommand(const WPARAM wParam)
 
 VOID APPLICATION::OnPort(const UINT wParam)
 {
-	PDX_COMPILE_ASSERT
-	(
-		( IDM_MACHINE_PORT1_PAD1		            - IDM_MACHINE_PORT1_UNCONNECTED ) == 1  &&  
-		( IDM_MACHINE_PORT1_PAD2		            - IDM_MACHINE_PORT1_UNCONNECTED ) == 2  && 
-		( IDM_MACHINE_PORT1_PAD3		            - IDM_MACHINE_PORT1_UNCONNECTED ) == 3  && 
-		( IDM_MACHINE_PORT1_PAD4	                - IDM_MACHINE_PORT1_UNCONNECTED ) == 4  && 
-		( IDM_MACHINE_PORT1_ZAPPER	                - IDM_MACHINE_PORT1_UNCONNECTED ) == 5  && 
-		( IDM_MACHINE_PORT1_PADDLE	                - IDM_MACHINE_PORT1_UNCONNECTED ) == 6  && 
-		( IDM_MACHINE_PORT1_POWERPAD                - IDM_MACHINE_PORT1_UNCONNECTED ) == 7  && 
-		( IDM_MACHINE_PORT2_UNCONNECTED             - IDM_MACHINE_PORT1_UNCONNECTED ) == 8  && 
-		( IDM_MACHINE_PORT2_PAD1		            - IDM_MACHINE_PORT1_UNCONNECTED ) == 9	&&
-		( IDM_MACHINE_PORT2_PAD2		            - IDM_MACHINE_PORT1_UNCONNECTED ) == 10 && 
-		( IDM_MACHINE_PORT2_PAD3	  	            - IDM_MACHINE_PORT1_UNCONNECTED ) == 11 &&  
-		( IDM_MACHINE_PORT2_PAD4	                - IDM_MACHINE_PORT1_UNCONNECTED ) == 12 && 
-		( IDM_MACHINE_PORT2_ZAPPER	                - IDM_MACHINE_PORT1_UNCONNECTED ) == 13 && 
-		( IDM_MACHINE_PORT2_PADDLE	                - IDM_MACHINE_PORT1_UNCONNECTED ) == 14 && 
-		( IDM_MACHINE_PORT2_POWERPAD                - IDM_MACHINE_PORT1_UNCONNECTED ) == 15 && 
-		( IDM_MACHINE_PORT3_UNCONNECTED             - IDM_MACHINE_PORT1_UNCONNECTED ) == 16 && 
-		( IDM_MACHINE_PORT3_PAD1		            - IDM_MACHINE_PORT1_UNCONNECTED ) == 17 && 
-		( IDM_MACHINE_PORT3_PAD2		            - IDM_MACHINE_PORT1_UNCONNECTED ) == 18 && 
-		( IDM_MACHINE_PORT3_PAD3		            - IDM_MACHINE_PORT1_UNCONNECTED ) == 19 &&
-		( IDM_MACHINE_PORT3_PAD4	                - IDM_MACHINE_PORT1_UNCONNECTED ) == 20 && 
-		( IDM_MACHINE_PORT4_UNCONNECTED             - IDM_MACHINE_PORT1_UNCONNECTED ) == 21 && 
-		( IDM_MACHINE_PORT4_PAD1		            - IDM_MACHINE_PORT1_UNCONNECTED ) == 22 && 
-		( IDM_MACHINE_PORT4_PAD2		            - IDM_MACHINE_PORT1_UNCONNECTED ) == 23 && 
-		( IDM_MACHINE_PORT4_PAD3		            - IDM_MACHINE_PORT1_UNCONNECTED ) == 24 && 
-		( IDM_MACHINE_PORT4_PAD4	                - IDM_MACHINE_PORT1_UNCONNECTED ) == 25 && 
-		( IDM_MACHINE_EXPANSION_UNCONNECTED         - IDM_MACHINE_PORT1_UNCONNECTED ) == 26 &&
-		( IDM_MACHINE_EXPANSION_FAMILYBASICKEYBOARD - IDM_MACHINE_PORT1_UNCONNECTED ) == 27
-	);
-
 	PDX_ASSERT( wParam >= IDM_MACHINE_PORT1_UNCONNECTED && wParam <= IDM_MACHINE_EXPANSION_FAMILYBASICKEYBOARD );
 
 	UINT* port = NULL;
@@ -775,33 +854,6 @@ VOID APPLICATION::OnAutoSelectController()
 	{
 		AutoSelectController = TRUE;
 		CheckMenuItem( GetMenu(), IDM_MACHINE_AUTOSELECTCONTROLLER, MF_CHECKED );
-	}
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID APPLICATION::OnOptionsVideo()
-{
-	const RECT rcOld( GraphicManager->GetScreenRect() );
-
-	GraphicManager->StartDialog();
-
-	if (!windowed)
-	{
-		const RECT& rcNew = GraphicManager->GetScreenRect();
-
-		if 
-		(
-	     	rcOld.bottom != rcNew.bottom || 
-			rcOld.top    != rcNew.top    || 
-			rcOld.left   != rcNew.left	 ||
-			rcOld.right  != rcNew.right
-		)
-		{
-			OnWindowSize( 3 );
-		}
 	}
 }
 
@@ -902,12 +954,23 @@ VOID APPLICATION::OnNsfCommand(const NES::IO::NSF::OP op)
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
+VOID APPLICATION::OnExitSizeMove()
+{
+	GraphicManager->UpdateScreenRect( rcScreen, TRUE );
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
 VOID APPLICATION::OnActive()
 {
-	InBackground = FALSE;
-	active = ready;
+	InputManager->AcquireDevices();
 	SoundManager->Start();
 	timer.Reset();
+
+	InBackground = FALSE;
+	active = ready;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -918,22 +981,31 @@ VOID APPLICATION::OnInactive(const BOOL force)
 {
 	InBackground = TRUE;
 
-	if (!force && (preferences->RunInBackground() || (nes.IsNsf() && nes.IsOn() && preferences->RunNsfInBackground())))
-		return;
-
-	active = FALSE;
-	SoundManager->Stop();
+	if (force || (!preferences->RunInBackground() && !(nes.IsNsf() && nes.IsOn() && preferences->RunNsfInBackground())))
+	{
+		active = FALSE;
+		SoundManager->Stop();
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-VOID APPLICATION::OnOpen(const INT recent)
+VOID APPLICATION::OnOpen(const FILETYPE FileType,const INT recent)
 {
 	const bool WasPAL = nes.IsPAL();
 
-	if (PDX_SUCCEEDED(FileManager->Load( recent, preferences->EmulateImmediately() )))
+	PDXRESULT result = PDX_FAILURE;
+
+	switch (FileType)
+	{
+       	case FILE_ALL: result = FileManager->Load    ( recent, preferences->EmulateImmediately() ); break;
+		case FILE_NSP: result = FileManager->LoadNSP ( recent, preferences->EmulateImmediately() ); break;
+		default: return;
+	}
+
+	if (PDX_SUCCEEDED(result))
 	{
 		const bool IsPAL = nes.IsPAL();
 
@@ -956,15 +1028,8 @@ VOID APPLICATION::OnOpen(const INT recent)
     		string  = "Loaded \"";
      		string += FileManager->GetRecentFile().GetFileName();
 
-    		if (WasPAL != IsPAL)
-     		{
-    			string += "\" and switched to ";
-     			string += (IsPAL ? "PAL.." : "NTSC..");
-    		}
-     		else
-    		{
-     			string += "\"..";
-    		}
+    		if (WasPAL != IsPAL) string += (IsPAL ? "\" PAL selected" : "NTSC selected");
+     		else                 string += "\"..";
 
 			StartScreenMsg( string, 1500 );
 		}
@@ -1044,9 +1109,28 @@ VOID APPLICATION::UpdateControllerPorts()
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
+VOID APPLICATION::OnLoadScript()
+{
+	OnOpen(FILE_NSP);
+	UpdateFdsMenu();
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+VOID APPLICATION::OnSaveScript()
+{
+	FileManager->SaveNSP();
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
 VOID APPLICATION::OnLoadState()
 {
-	FileManager->LoadState();
+	FileManager->LoadNST();
 	UpdateFdsMenu();
 }
 
@@ -1056,7 +1140,7 @@ VOID APPLICATION::OnLoadState()
 
 VOID APPLICATION::OnSaveState()
 {
-	FileManager->SaveState();
+	FileManager->SaveNST();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -1091,25 +1175,6 @@ VOID APPLICATION::UpdateDynamicMenuItems()
 
 VOID APPLICATION::OnFdsInsertDisk(const UINT wParam)
 {
-	PDX_COMPILE_ASSERT
-	(
-		( IDM_FDS_INSERT_DISK_2  - IDM_FDS_INSERT_DISK_1 ) == 1  && 
-		( IDM_FDS_INSERT_DISK_3  - IDM_FDS_INSERT_DISK_1 ) == 2  &&  
-		( IDM_FDS_INSERT_DISK_4  - IDM_FDS_INSERT_DISK_1 ) == 3  && 
-		( IDM_FDS_INSERT_DISK_5  - IDM_FDS_INSERT_DISK_1 ) == 4  && 
-		( IDM_FDS_INSERT_DISK_6  - IDM_FDS_INSERT_DISK_1 ) == 5  && 
-		( IDM_FDS_INSERT_DISK_7  - IDM_FDS_INSERT_DISK_1 ) == 6  && 
-		( IDM_FDS_INSERT_DISK_8  - IDM_FDS_INSERT_DISK_1 ) == 7  && 
-		( IDM_FDS_INSERT_DISK_9  - IDM_FDS_INSERT_DISK_1 ) == 8  && 
-		( IDM_FDS_INSERT_DISK_10 - IDM_FDS_INSERT_DISK_1 ) == 9	 &&
-		( IDM_FDS_INSERT_DISK_11 - IDM_FDS_INSERT_DISK_1 ) == 10 &&
-		( IDM_FDS_INSERT_DISK_12 - IDM_FDS_INSERT_DISK_1 ) == 11 &&
-		( IDM_FDS_INSERT_DISK_13 - IDM_FDS_INSERT_DISK_1 ) == 12 &&
-		( IDM_FDS_INSERT_DISK_14 - IDM_FDS_INSERT_DISK_1 ) == 13 &&
-		( IDM_FDS_INSERT_DISK_15 - IDM_FDS_INSERT_DISK_1 ) == 14 &&
-		( IDM_FDS_INSERT_DISK_16 - IDM_FDS_INSERT_DISK_1 ) == 15
-	);
-
 	PDX_ASSERT( wParam >= IDM_FDS_INSERT_DISK_1 && wParam <= IDM_FDS_INSERT_DISK_16 );
 
 	NES::IO::FDS::CONTEXT context;
@@ -1267,30 +1332,30 @@ VOID APPLICATION::UpdateWindowItems()
 
 	UpdateNsf();
 
-	const BOOL IsGame = nes.IsCartridge() || nes.IsFds();
-	const BOOL IsLoaded = IsGame || nes.IsNsf();
+	const BOOL IsLoaded = nes.IsImage() || nes.IsNsf();
 
-	ResetSaveSlots( nes.IsOn() && IsGame );
+	ResetSaveSlots( nes.IsOn() && nes.IsImage() );
 
 	SetWindowText( hWnd, name ); 
 
 	const BOOL ExportBitmaps = GraphicManager->CanExportBitmaps();
 
-	EnableMenuItem( hMenu, IDM_FILE_LOAD_STATE,      NST_MENUSTATE( nes.IsOn() && IsGame                   ) );
-	EnableMenuItem( hMenu, IDM_FILE_SAVE_STATE,      NST_MENUSTATE( nes.IsOn() && IsGame                   ) );
-	EnableMenuItem( hMenu, IDM_FILE_CLOSE,           NST_MENUSTATE( IsLoaded                               ) );
-	EnableMenuItem( hMenu, IDM_FILE_SAVE_SCREENSHOT, NST_MENUSTATE( nes.IsOn() && IsGame && ExportBitmaps  ) );
-	EnableMenuItem( hMenu, IDM_MACHINE_RESET_SOFT,   NST_MENUSTATE( nes.IsOn()                             ) );
-	EnableMenuItem( hMenu, IDM_MACHINE_RESET_HARD,   NST_MENUSTATE( nes.IsOn()                             ) );
-	EnableMenuItem( hMenu, IDM_MACHINE_POWER_ON,     NST_MENUSTATE( nes.IsOff() && IsLoaded                ) );
-	EnableMenuItem( hMenu, IDM_MACHINE_POWER_OFF,    NST_MENUSTATE( nes.IsOn()                             ) );
-	EnableMenuItem( hMenu, IDM_MACHINE_PAUSE,        NST_MENUSTATE( nes.IsOn() && IsLoaded                 ) );
-	EnableMenuItem( hMenu, IDM_NSF_PLAY,             NST_MENUSTATE( nes.IsOn() && nes.IsNsf()              ) );
-	EnableMenuItem( hMenu, IDM_NSF_STOP,             NST_MENUSTATE( nes.IsOn() && nes.IsNsf()              ) );
-	EnableMenuItem( hMenu, IDM_NSF_PREV,             NST_MENUSTATE( nes.IsOn() && nes.IsNsf()              ) );
-	EnableMenuItem( hMenu, IDM_NSF_NEXT,             NST_MENUSTATE( nes.IsOn() && nes.IsNsf()              ) );
-	EnableMenuItem( hMenu, IDM_VIEW_ROM_INFO,        NST_MENUSTATE( nes.IsCartridge()                      ) );
-	EnableMenuItem( hMenu, IDM_OPTIONS_DIP_SWITCHES, NST_MENUSTATE( nes.GetNumVsSystemDipSwitches()        ) );
+	EnableMenuItem( hMenu, IDM_FILE_CLOSE,           NST_MENUSTATE( IsLoaded                                      ) );
+	EnableMenuItem( hMenu, IDM_FILE_LOAD_STATE,      NST_MENUSTATE( nes.IsOn() && nes.IsImage()                   ) );
+	EnableMenuItem( hMenu, IDM_FILE_SAVE_STATE,      NST_MENUSTATE( nes.IsOn() && nes.IsImage()                   ) );
+	EnableMenuItem( hMenu, IDM_FILE_SAVE_SCRIPT,     NST_MENUSTATE( nes.IsImage()                                 ) );
+	EnableMenuItem( hMenu, IDM_FILE_SAVE_SCREENSHOT, NST_MENUSTATE( nes.IsOn() && nes.IsImage() && ExportBitmaps  ) );
+	EnableMenuItem( hMenu, IDM_MACHINE_RESET_SOFT,   NST_MENUSTATE( nes.IsOn()                                    ) );
+	EnableMenuItem( hMenu, IDM_MACHINE_RESET_HARD,   NST_MENUSTATE( nes.IsOn()                                    ) );
+	EnableMenuItem( hMenu, IDM_MACHINE_POWER_ON,     NST_MENUSTATE( nes.IsOff() && IsLoaded                       ) );
+	EnableMenuItem( hMenu, IDM_MACHINE_POWER_OFF,    NST_MENUSTATE( nes.IsOn()                                    ) );
+	EnableMenuItem( hMenu, IDM_MACHINE_PAUSE,        NST_MENUSTATE( nes.IsOn() && IsLoaded                        ) );
+	EnableMenuItem( hMenu, IDM_NSF_PLAY,             NST_MENUSTATE( nes.IsOn() && nes.IsNsf()                     ) );
+	EnableMenuItem( hMenu, IDM_NSF_STOP,             NST_MENUSTATE( nes.IsOn() && nes.IsNsf()                     ) );
+	EnableMenuItem( hMenu, IDM_NSF_PREV,             NST_MENUSTATE( nes.IsOn() && nes.IsNsf()                     ) );
+	EnableMenuItem( hMenu, IDM_NSF_NEXT,             NST_MENUSTATE( nes.IsOn() && nes.IsNsf()                     ) );
+	EnableMenuItem( hMenu, IDM_VIEW_ROM_INFO,        NST_MENUSTATE( nes.IsCartridge()                             ) );
+	EnableMenuItem( hMenu, IDM_OPTIONS_DIP_SWITCHES, NST_MENUSTATE( nes.GetNumVsSystemDipSwitches()               ) );
 
 	CheckMenuItem( hMenu, IDM_MACHINE_PAUSE, nes.IsPaused() ? MF_CHECKED : MF_UNCHECKED );
 
@@ -1298,8 +1363,8 @@ VOID APPLICATION::UpdateWindowItems()
 		HMENU hSubMenu;
 		
 		hSubMenu = GetSubMenu( hMenu, 0 );
-		EnableMenuItem( hSubMenu, 6,  MF_BYPOSITION | NST_MENUSTATE( nes.IsOn() && IsGame          ) );
-		EnableMenuItem( hSubMenu, 7,  MF_BYPOSITION | NST_MENUSTATE( nes.IsOn() && IsGame          ) );
+		EnableMenuItem( hSubMenu, 6,  MF_BYPOSITION | NST_MENUSTATE( nes.IsOn() && nes.IsImage()   ) );
+		EnableMenuItem( hSubMenu, 7,  MF_BYPOSITION | NST_MENUSTATE( nes.IsOn() && nes.IsImage()   ) );
 		EnableMenuItem( hSubMenu, 13, MF_BYPOSITION | NST_MENUSTATE( FileManager->NumRecentFiles() ) );
 		
 		hSubMenu = GetSubMenu( hMenu, 1 );
@@ -1321,7 +1386,7 @@ VOID APPLICATION::UpdateSoundRecorderMenu()
 	(
      	SoundManager->IsSoundRecordingFilePresent() && 
 		nes.IsOn() && 
-		(nes.IsCartridge() || nes.IsFds() || nes.IsNsf())
+		(nes.IsImage() || nes.IsNsf())
 	);
 
 	HMENU hMenu = GetMenu();
@@ -1339,10 +1404,11 @@ VOID APPLICATION::UpdateMovieMenu()
 {
 	HMENU hMenu = GetMenu();
 
-	EnableMenuItem( hMenu, IDM_FILE_MOVIE_STOP,	  NST_MENUSTATE( MovieManager->IsPlaying() || MovieManager->IsRecording() ) );
-	EnableMenuItem( hMenu, IDM_FILE_MOVIE_PLAY,   NST_MENUSTATE( !MovieManager->IsPlaying() && MovieManager->CanPlay()    ) );
-	EnableMenuItem( hMenu, IDM_FILE_MOVIE_RECORD, NST_MENUSTATE( !MovieManager->IsRecording() && MovieManager->IsLoaded() ) );
-	EnableMenuItem( hMenu, IDM_FILE_MOVIE_REWIND, NST_MENUSTATE( MovieManager->IsLoaded()                                 ) );
+	EnableMenuItem( hMenu, IDM_FILE_MOVIE_STOP,	   NST_MENUSTATE( MovieManager->CanStop()    ) );
+	EnableMenuItem( hMenu, IDM_FILE_MOVIE_PLAY,    NST_MENUSTATE( MovieManager->CanPlay()    ) );
+	EnableMenuItem( hMenu, IDM_FILE_MOVIE_RECORD,  NST_MENUSTATE( MovieManager->CanRecord()  ) );
+	EnableMenuItem( hMenu, IDM_FILE_MOVIE_REWIND,  NST_MENUSTATE( MovieManager->CanRewind()  ) );
+	EnableMenuItem( hMenu, IDM_FILE_MOVIE_FORWARD, NST_MENUSTATE( MovieManager->CanForward() ) );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -1391,6 +1457,7 @@ VOID APPLICATION::OnClose()
 {
 	nes.Unload();
 
+	GameGenieManager->ClearAllCodes();
 	GraphicManager->ClearNesScreen();
 	SoundManager->Stop();
 
@@ -1432,7 +1499,7 @@ VOID APPLICATION::OnCloseWindow()
 VOID APPLICATION::OnRecent(const UINT idm)
 {
 	PDX_ASSERT( idm >= IDM_FILE_RECENT_0 && idm <= IDM_FILE_RECENT_9 );
-	OnOpen( idm - IDM_FILE_RECENT_0 );
+	OnOpen( FILE_ALL, idm - IDM_FILE_RECENT_0 );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -1682,7 +1749,6 @@ VOID APPLICATION::OnMove(const LPARAM lParam)
 
 		UpdateWindowRect( rcWindow, rcScreen );
 		GraphicManager->UpdateScreenRect( rcScreen );
-		InvalidateRect( hWnd, NULL, FALSE ); 
 	}
 }
 
@@ -1701,7 +1767,6 @@ VOID APPLICATION::OnSize(const LPARAM lParam)
 
 		UpdateWindowRect( rcWindow, rcScreen );
 		GraphicManager->UpdateScreenRect( rcScreen );
-		InvalidateRect( hWnd, NULL, FALSE ); 
 
 		ScreenInvisible = !(rcScreen.right - rcScreen.left) || !(rcScreen.bottom - rcScreen.top);
 	}
@@ -1717,24 +1782,14 @@ VOID APPLICATION::OnActivate(const WPARAM wParam)
 	{
    		case WA_INACTIVE: 
 
-			InBackground = TRUE;
-
-			if (!(preferences->RunInBackground() || (nes.IsNsf() && nes.IsOn() && preferences->RunNsfInBackground())))
-			{
-				SoundManager->Stop();
-				active = FALSE; 
-			}
-   			return;
+			OnInactive();
+			return;
 
    		case WA_ACTIVE:
    		case WA_CLICKACTIVE: 
 
-			InBackground = FALSE;
- 			InputManager->AcquireDevices();
-			active = ready;
-			SoundManager->Start();
-			timer.Reset();
-   			return;
+			OnActive();
+			return;
 	}
 }
 
@@ -1936,55 +1991,22 @@ VOID APPLICATION::OnWindowSize(const UINT factor,UINT width,UINT height)
 				}
 			}
 
-			GraphicManager->UpdateScreenRect( rcScreen );
+			GraphicManager->UpdateScreenRect( rcScreen, TRUE );
 			InvalidateRect( hWnd, NULL, FALSE ); 
 		}
 	}
 	else
 	{
-		RECT rect;
+		GraphicManager->SetScreenSize
+		(
+       		factor == UINT_MAX ? GRAPHICMANAGER::SCREEN_STRETCHED : GRAPHICMANAGER::SCREENTYPE(factor)		    
+		);
 
-		if (factor == UINT_MAX)
-		{
-			SetRect
-			( 
-		     	&rect, 
-				0, 
-				0, 
-				GraphicManager->GetDisplayWidth(), 
-				GraphicManager->GetDisplayHeight()
-			);
-		}
-		else
-		{
-			UpdateWindowSizes( width, height );
-
-			UINT x = GraphicManager->GetNesRect().right - GraphicManager->GetNesRect().left;
-			UINT y = GraphicManager->GetNesRect().bottom - GraphicManager->GetNesRect().top;
-
-			for (UINT i=0; i < factor; ++i)
-			{
-				if (x * 2 > width || y * 2 > height) 
-					break;
-
-				x *= 2;
-				y *= 2;
-			}
-
-			x = ( width  - x ) / 2;
-			y = ( height - y ) / 2;
-
-			SetRect
-			(
-				&rect, 
-				x, 
-				y, 
-				width - x, 
-				height - y 
-			);
-		}
-
-		GraphicManager->UpdateScreenRect( rect );
+		UpdateWindowSizes
+		( 
+			GraphicManager->GetDisplayWidth(), 
+			GraphicManager->GetDisplayHeight()
+		);
 	}
 }
 
@@ -2049,7 +2071,7 @@ VOID APPLICATION::ExecuteFrame()
 {
 	PDXRESULT result = PDX_OK;
 
-	if (nes.IsCartridge() || nes.IsFds())
+	if (nes.IsImage())
 	{
 		result = GraphicManager->TryClearScreen();
 
@@ -2108,21 +2130,6 @@ VOID APPLICATION::ExecuteFrame()
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
-// detect the absolute desktop rectangle coordinates
-////////////////////////////////////////////////////////////////////////////////////////
-
-PDXRESULT APPLICATION::SetScreenRect(RECT& rc)
-{
-	PDX_ASSERT(hWnd);
-
-	rc = rcClient;
-	ClientToScreen( hWnd, LPPOINT( &rc.left  ) );
-	ClientToScreen( hWnd, LPPOINT( &rc.right ) );
-
-	return PDX_OK;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
 // switch to full screen / window
 ////////////////////////////////////////////////////////////////////////////////////////
 
@@ -2137,17 +2144,19 @@ PDXRESULT APPLICATION::SwitchScreen()
 	if (windowed)
 	{
 		PDX_TRY(PushWindow());
-		PDX_TRY(GraphicManager->SwitchToFullScreen());
+		PDX_TRY(GraphicManager->SwitchToFullScreen( GRAPHICMANAGER::SCREEN_FACTOR_4X ));
+
+		UpdateWindowSizes( GraphicManager->GetDisplayWidth(), GraphicManager->GetDisplayHeight() );
 
 		if (!preferences->HideMenuInFullScreen())
 			OnRightMouseButtonDown();
-
-		OnWindowSize( 3 );
 	}
 	else
 	{
 		PDX_TRY(GraphicManager->SwitchToWindowed( rcScreen ));
 		PDX_TRY(PopWindow());
+
+		OnWindowSize( 3 );
 	}
 
 	PDX_TRY(SoundManager->Start());
@@ -2274,7 +2283,7 @@ PDXRESULT APPLICATION::PopWindow()
 
 VOID APPLICATION::OutputScreenMsg()
 {
-	const UINT height = windowed ? 224 : GraphicManager->GetDisplayHeight();
+	const UINT height = windowed ? GraphicManager->GetNesDesc().dwHeight - (PDX_MAX(1,GraphicManager->GetScaleFactor()) * 16) : GraphicManager->GetDisplayHeight();
 	GraphicManager->Print( ScreenMsg, 2, height - 16, RGB(0x20,0x20,0xA0), ScreenMsg.Length() );
 	GraphicManager->Print( ScreenMsg, 1, height - 17, RGB(0xFF,0x20,0x20), ScreenMsg.Length() );
 }
@@ -2318,19 +2327,6 @@ VOID APPLICATION::OutputNsfInfo()
 
 VOID APPLICATION::OnLoadStateSlot(const UINT idm)
 {
-	PDX_COMPILE_ASSERT
-	(
-		( IDM_FILE_QUICK_LOAD_STATE_SLOT_1 - IDM_FILE_QUICK_LOAD_STATE_SLOT_LAST ) == 1 && 
-		( IDM_FILE_QUICK_LOAD_STATE_SLOT_2 - IDM_FILE_QUICK_LOAD_STATE_SLOT_LAST ) == 2 &&  
-		( IDM_FILE_QUICK_LOAD_STATE_SLOT_3 - IDM_FILE_QUICK_LOAD_STATE_SLOT_LAST ) == 3 && 
-		( IDM_FILE_QUICK_LOAD_STATE_SLOT_4 - IDM_FILE_QUICK_LOAD_STATE_SLOT_LAST ) == 4 && 
-		( IDM_FILE_QUICK_LOAD_STATE_SLOT_5 - IDM_FILE_QUICK_LOAD_STATE_SLOT_LAST ) == 5 && 
-		( IDM_FILE_QUICK_LOAD_STATE_SLOT_6 - IDM_FILE_QUICK_LOAD_STATE_SLOT_LAST ) == 6 && 
-		( IDM_FILE_QUICK_LOAD_STATE_SLOT_7 - IDM_FILE_QUICK_LOAD_STATE_SLOT_LAST ) == 7 && 
-		( IDM_FILE_QUICK_LOAD_STATE_SLOT_8 - IDM_FILE_QUICK_LOAD_STATE_SLOT_LAST ) == 8 && 
-		( IDM_FILE_QUICK_LOAD_STATE_SLOT_9 - IDM_FILE_QUICK_LOAD_STATE_SLOT_LAST ) == 9
-	);
-
 	PDXSTRING string;
 
 	const UINT slot = idm - IDM_FILE_QUICK_LOAD_STATE_SLOT_LAST;
@@ -2338,7 +2334,7 @@ VOID APPLICATION::OnLoadStateSlot(const UINT idm)
 	if (PDX_SUCCEEDED(SaveStateManager->LoadState( slot )))
 	{
 		string  = "Loaded from slot ";
-		string += slot ? slot : SaveStateManager->GetLastSlot();
+		string += (slot ? slot : SaveStateManager->GetLastSlot());
 		string += "..";
 	}
 	else
@@ -2357,19 +2353,6 @@ VOID APPLICATION::OnLoadStateSlot(const UINT idm)
 
 VOID APPLICATION::OnSaveStateSlot(const UINT idm)
 {
-	PDX_COMPILE_ASSERT
-	(
-		( IDM_FILE_QUICK_SAVE_STATE_SLOT_1 - IDM_FILE_QUICK_SAVE_STATE_SLOT_NEXT ) == 1 && 
-		( IDM_FILE_QUICK_SAVE_STATE_SLOT_2 - IDM_FILE_QUICK_SAVE_STATE_SLOT_NEXT ) == 2 &&  
-		( IDM_FILE_QUICK_SAVE_STATE_SLOT_3 - IDM_FILE_QUICK_SAVE_STATE_SLOT_NEXT ) == 3 && 
-		( IDM_FILE_QUICK_SAVE_STATE_SLOT_4 - IDM_FILE_QUICK_SAVE_STATE_SLOT_NEXT ) == 4 && 
-		( IDM_FILE_QUICK_SAVE_STATE_SLOT_5 - IDM_FILE_QUICK_SAVE_STATE_SLOT_NEXT ) == 5 && 
-		( IDM_FILE_QUICK_SAVE_STATE_SLOT_6 - IDM_FILE_QUICK_SAVE_STATE_SLOT_NEXT ) == 6 && 
-		( IDM_FILE_QUICK_SAVE_STATE_SLOT_7 - IDM_FILE_QUICK_SAVE_STATE_SLOT_NEXT ) == 7 && 
-		( IDM_FILE_QUICK_SAVE_STATE_SLOT_8 - IDM_FILE_QUICK_SAVE_STATE_SLOT_NEXT ) == 8 && 
-		( IDM_FILE_QUICK_SAVE_STATE_SLOT_9 - IDM_FILE_QUICK_SAVE_STATE_SLOT_NEXT ) == 9
-	);
-
 	PDXSTRING string;
 
 	if (PDX_SUCCEEDED(SaveStateManager->SaveState( idm - IDM_FILE_QUICK_SAVE_STATE_SLOT_NEXT )))
@@ -2392,19 +2375,6 @@ VOID APPLICATION::OnSaveStateSlot(const UINT idm)
 
 VOID APPLICATION::UpdateRecentFiles()
 {
-	PDX_COMPILE_ASSERT
-	(
-		( IDM_FILE_RECENT_1 - IDM_FILE_RECENT_0 ) == 1 && 
-		( IDM_FILE_RECENT_2 - IDM_FILE_RECENT_0 ) == 2 &&  
-		( IDM_FILE_RECENT_3 - IDM_FILE_RECENT_0 ) == 3 && 
-		( IDM_FILE_RECENT_4 - IDM_FILE_RECENT_0 ) == 4 && 
-		( IDM_FILE_RECENT_5 - IDM_FILE_RECENT_0 ) == 5 && 
-		( IDM_FILE_RECENT_6 - IDM_FILE_RECENT_0 ) == 6 && 
-		( IDM_FILE_RECENT_7 - IDM_FILE_RECENT_0 ) == 7 && 
-		( IDM_FILE_RECENT_8 - IDM_FILE_RECENT_0 ) == 8 && 
-		( IDM_FILE_RECENT_9 - IDM_FILE_RECENT_0 ) == 9
-	);
-
 	HMENU hSubMenu;
 	hSubMenu = GetSubMenu( GetMenu(),  0 );
 	hSubMenu = GetSubMenu( hSubMenu,  13 );

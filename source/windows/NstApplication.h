@@ -65,50 +65,31 @@ public:
 
 	INT Loop();
 
-	inline HWND GetHWnd()
-	{ return hWnd; }
+	HINSTANCE GetInstance() const;
+	HWND      GetHWnd()     const;
+	HMENU     GetMenu()     const;
 
-	inline BOOL IsActive() const
-	{ return active; }
+	BOOL IsActive()   const;
+	BOOL IsWindowed() const;
+	BOOL IsMenuSet()  const;
 
-	inline BOOL IsWindowed() const
-	{ return windowed; }
+	VOID ResetTimer();
 
-	inline BOOL IsMenuSet() const
-	{ return hMenu == NULL; }
+	const RECT& NesRect() const;
 
-	inline HINSTANCE GetHInstance() const
-	{ return hInstance; }
+	SAVESTATEMANAGER& GetSaveStateManager();
+	FILEMANAGER&      GetFileManager();     
+	GAMEGENIEMANAGER& GetGameGenieManager();
+	GRAPHICMANAGER&   GetGraphicManager();  
+	PREFERENCES&      GetPreferences();
+	MOVIEMANAGER&     GetMovieManager();
 
-	inline const PDXSTRING& GetStatePath() const
-	{ return FileManager->GetStatePath(); }
-
-	inline const PDXSTRING& GetRomPath() const
-	{ return FileManager->GetRomPath(); }
-
-	inline const PDXSTRING& GetSavePath() const
-	{ return FileManager->GetSavePath(); }
-
-	inline HMENU GetMenu() const
-	{ return hMenu ? hMenu : ::GetMenu(hWnd); }
-
-	inline const RECT& NesRect() const
-	{ return nes.IsPAL() ? GraphicManager->GetRectNTSC() : GraphicManager->GetRectPAL(); }
-
-	inline UINT GetDisplayWidth() const
-	{ return GraphicManager->GetDisplayWidth(); }
-
-	inline UINT GetDisplayHeight() const
-	{ return GraphicManager->GetDisplayHeight(); }
-
-	inline SAVESTATEMANAGER* GetSaveStateManager()
-	{ return SaveStateManager; }
-
-	inline FILEMANAGER* GetFileManager()
-	{ return FileManager; }
+	NES::MODE GetNesMode() const;
 
 	PDXRESULT BeginDialogMode();
 	PDXRESULT EndDialogMode();
+
+	VOID UpdateWindowSizes(const UINT,const UINT);
 
 	VOID StartScreenMsg(const CHAR* const,const UINT);
 	VOID LogOutput(const CHAR* const) const;
@@ -133,11 +114,16 @@ private:
 		CHUNK_SOUNDMANAGER       = 0x22,
 		CHUNK_INPUTMANAGER       = 0x33,
 		CHUNK_FILEMANAGER        = 0x44,
-		CHUNK_GAMEGENIEMANAGER   = 0x55,
 		CHUNK_VSDIPSWITCHMANAGER = 0x66,
 		CHUNK_PREFERENCES        = 0x77,
 		CHUNK_ROMINFOMANAGER     = 0x88,
 		CHUNK_FDSMANAGER         = 0x99
+	};
+
+	enum FILETYPE
+	{
+		FILE_ALL,
+		FILE_NSP
 	};
 
 	static LRESULT CALLBACK WndProc(HWND,UINT,WPARAM,LPARAM);
@@ -146,7 +132,6 @@ private:
 	VOID ExecuteFrame();
 
 	PDXRESULT SwitchScreen();
-	PDXRESULT SetScreenRect(RECT&);
 	PDXRESULT PushWindow();
 	PDXRESULT PopWindow();
 	
@@ -154,7 +139,6 @@ private:
 	VOID UpdateRecentFiles();
 	VOID UpdateWindowsTitle();
 	VOID UpdateWindowItems();
-	VOID UpdateWindowSizes(const UINT,const UINT);
 	VOID UpdateWindowRect(RECT&,const RECT&);
 	VOID UpdateWindowRect(RECT&);
 	VOID UpdateControllerPorts();
@@ -173,9 +157,12 @@ private:
 	VOID OnMode(const UINT);
 	VOID OnPort(const UINT);
 	VOID OnAutoSelectController();
+	VOID OnExitSizeMove();
 	VOID OnActive();
 	VOID OnInactive(const BOOL=FALSE);
 	VOID OnRecent(const UINT);
+	VOID OnLoadScript();
+	VOID OnSaveScript();
 	VOID OnLoadState();
 	VOID OnSaveState();
 	VOID OnSaveStateSlot(const UINT);
@@ -190,7 +177,7 @@ private:
 	VOID OnMove(const LPARAM);
 	VOID OnSize(const LPARAM);
 	VOID OnActivate(const WPARAM);
-	VOID OnOpen(const INT=-1);
+	VOID OnOpen(const FILETYPE,const INT=-1);
 	VOID OnReset(const BOOL);
 	VOID OnPower(const BOOL);
 	VOID OnClose();
@@ -200,7 +187,6 @@ private:
 	VOID OnFdsSide(const UINT);
 	VOID OnNsfCommand(const NES::IO::NSF::OP);
 	VOID OnWindowSize(const UINT,UINT=0,UINT=0);
-	VOID OnOptionsVideo();
 	VOID OnHideMenu();
 	VOID OnShowMenu();
 	VOID OnExit();
@@ -259,7 +245,7 @@ private:
 
 	struct NSFINFO
 	{
-		VOID Clear()
+		PDX_NO_INLINE VOID Clear()
 		{
 			name.Clear();
 			artist.Clear();
@@ -284,6 +270,8 @@ private:
 };
 
 extern APPLICATION application;
+
+#include "NstApplication.inl"
 
 #endif
 

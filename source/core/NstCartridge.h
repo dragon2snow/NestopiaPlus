@@ -46,7 +46,7 @@ public:
 	CARTRIDGE();
 	~CARTRIDGE();
 
-	PDX_NO_INLINE PDXRESULT Load(PDXFILE&,CPU* const,PPU* const,const IO::GENERAL::CONTEXT&);
+	PDX_NO_INLINE PDXRESULT Load(PDXFILE&,const PDXSTRING* const,CPU* const,PPU* const,const IO::GENERAL::CONTEXT&);
 	PDX_NO_INLINE PDXRESULT Unload();
 	PDX_NO_INLINE PDXRESULT Reset(const BOOL);
 
@@ -68,12 +68,8 @@ private:
 	VOID DetectMirroring();
 	VOID DetectBattery();
 	VOID DetectControllers();
-
 	VOID LoadBatteryRam();
 	VOID SaveBatteryRam() const;
-
-	VOID LoadBatteryRam(PDXFILE&);
-	VOID SaveBatteryRam(PDXFILE&) const;
 
 	MAPPER* mapper;
 
@@ -83,7 +79,7 @@ private:
 
 	IO::CARTRIDGE::INFO info;
 
-	PDXSTRING SaveFileName;
+	PDXSTRING SaveName;
 	IO::GENERAL::CONTEXT context;
 };
 

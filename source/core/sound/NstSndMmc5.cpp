@@ -328,19 +328,33 @@ LONG SNDMMC5::SQUARE::Sample()
 {
 	if (active)
 	{
-		for (timer += rate; timer > 0; timer -= frequency)
+		if ((timer += rate) > 0)
 		{
-			step = (step + 1) & 0xF;
+			LONG sum = 0;
+			INT num = 0;
 
-			if (!step) 
+			do
 			{
-				amp = +volume;
+				step = (step + 1) & 0xF;
+
+				if (!step) 
+				{
+					amp = +volume;
+				}
+				else if (step == DutyPeriod)
+				{
+					amp = -volume;
+				}
+
+				sum += amp;
+				++num;
 			}
-			else if (step == DutyPeriod)
-			{
-				amp = -volume;
-			}
+			while ((timer -= frequency) > 0);
+
+			return sum / num;
 		}
+
+		return amp;
 	}
 	else
 	{

@@ -54,8 +54,6 @@ protected:
 	NES_DECL_POKE( E001 );
 	NES_DECL_PEEK( wRam );
 	NES_DECL_POKE( wRam );
-	NES_DECL_PEEK( cRam );
-	NES_DECL_POKE( cRam );
 
 	VOID IrqSync();
 

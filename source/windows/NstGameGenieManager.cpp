@@ -26,6 +26,8 @@
 #include <CommCtrl.h>
 #include "../paradox/PdxFile.h"
 #include "resource/resource.h"
+#include "../NstNes.h"
+#include "../core/NstNsp.h"
 #include "NstGameGenieManager.h"
 #include "NstApplication.h"
 
@@ -33,32 +35,42 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT GAMEGENIEMANAGER::Create(PDXFILE* const file)
+PDXRESULT GAMEGENIEMANAGER::Create(PDXFILE* const)
 {
 	hDlg = NULL;
 	hList = NULL;
+	return PDX_OK;
+}
 
-	if (file)
-	{
-		CODE code;
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
 
-		const UINT count = file->Read<U32>();
+PDXRESULT GAMEGENIEMANAGER::ClearAllCodes()
+{
+	NesDestroy();
+	codes.Destroy();
+	return PDX_OK;
+}
 
-		for (UINT i=0; i < count; ++i)
-		{
-			code.code = file->Read<U32>();
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
 
-			file->Text().Read( code.comment );
+PDXRESULT GAMEGENIEMANAGER::GetCode(const UINT index,PDXSTRING& characters,PDXSTRING* const comment) const
+{
+	if (index >= codes.Size())
+		return PDX_FAILURE;
 
-			const NES::IO::GAMEGENIE::STATE state = 
-			(
-		     	file->Read<U8>() ? NES::IO::GAMEGENIE::ENABLE : NES::IO::GAMEGENIE::DISABLE
-			);
-			
-			if (PDX_SUCCEEDED(NesSet( code.code, state )))
-				codes.Insert( code );
-		}
-	}
+	CODES::CONSTITERATOR iterator( codes.Begin() );
+
+	for (UINT i=0; i < index; ++i)
+		++iterator;
+
+	PDX_TRY(NesEncode( (*iterator).code, characters ));
+
+	if (comment)
+		*comment = (*iterator).comment;
 
 	return PDX_OK;
 }
@@ -67,22 +79,24 @@ PDXRESULT GAMEGENIEMANAGER::Create(PDXFILE* const file)
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT GAMEGENIEMANAGER::Destroy(PDXFILE* const file)
+PDXRESULT GAMEGENIEMANAGER::AddCode(const PDXSTRING& characters,const BOOL state,const PDXSTRING* const comment)
 {
-	if (file)
-	{
-		file->Write( U32(codes.Size()) );
+	ULONG packed;
+	PDX_TRY(NesDecode( characters, packed ));
 
-		for (CODES::CONSTITERATOR iterator = codes.Begin(); iterator != codes.End(); ++iterator)
-		{
-			const CODE& code = *iterator;
-			file->Write( U32(code.code) );
-			file->Text().Write( code.comment );
-			file->Write( U8(NesIsEnabled( code.code ) ? 1 : 0) );
-		}
+	CODE code;
+	code.code = packed;
+	
+	if (comment)
+		code.comment = *comment;
+
+	if (PDX_SUCCEEDED(NesSet( code.code, state ? NES::IO::GAMEGENIE::ENABLE : NES::IO::GAMEGENIE::DISABLE )))
+	{
+		codes.Insert( code );
+		return PDX_OK;
 	}
 
-	return PDX_OK;
+	return PDX_FAILURE;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -150,6 +164,11 @@ BOOL CALLBACK GAMEGENIEMANAGER::StaticCodeDialogProc(HWND hDlg,UINT uMsg,WPARAM 
         		IDC_GAMEGENIE_ADDCODE_DECODED, 
         		IDC_GAMEGENIE_ADDCODE_ENCODED 
        		);
+
+			EnableWindow( GetDlgItem( ggm->hDlg, IDC_GAMEGENIE_EXPORT    ), ggm->codes.Size() ? TRUE : FALSE );
+			EnableWindow( GetDlgItem( ggm->hDlg, IDC_GAMEGENIE_CLEAR_ALL ), ggm->codes.Size() ? TRUE : FALSE );
+			EnableWindow( GetDlgItem( ggm->hDlg, IDC_GAMEGENIE_REMOVE    ), ggm->codes.Size() ? TRUE : FALSE );
+
 			return TRUE;
 		
 		case WM_COMMAND:
@@ -164,9 +183,13 @@ BOOL CALLBACK GAMEGENIEMANAGER::StaticCodeDialogProc(HWND hDlg,UINT uMsg,WPARAM 
 
 		case WM_CLOSE:
 
+			EndDialog( hDlg, 0 );
+			return TRUE;
+
+		case WM_DESTROY:
+
 			PDX_ASSERT( ggm );
 			ggm = NULL;
-			EndDialog( hDlg, 0 );
 			return TRUE;
 	}
 
@@ -190,7 +213,13 @@ VOID GAMEGENIEMANAGER::SubmitCode(HWND hDlg)
 	code.comment.Buffer().Resize( GetDlgItemText( hDlg, IDC_GAMEGENIE_ADDCODE_COMMENT, code.comment.Begin(), code.comment.Length() ) + 1);
 
 	if (PDX_SUCCEEDED(NesDecode( characters, code.code )) && codes.Find( code ) == codes.End() && AddCode( code, TRUE ))
+	{
 		codes.Insert( code );
+
+		EnableWindow( GetDlgItem( this->hDlg, IDC_GAMEGENIE_EXPORT    ), TRUE );
+		EnableWindow( GetDlgItem( this->hDlg, IDC_GAMEGENIE_CLEAR_ALL ), TRUE );
+		EnableWindow( GetDlgItem( this->hDlg, IDC_GAMEGENIE_REMOVE    ), TRUE );
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -299,7 +328,7 @@ VOID GAMEGENIEMANAGER::CreateCodeDialog()
 {
 	DialogBoxParam
 	( 
-     	application.GetHInstance(), 
+     	application.GetInstance(), 
 		MAKEINTRESOURCE(IDD_GAMEGENIE_ADDCODE), 
 		hDlg, 
 		StaticCodeDialogProc,
@@ -397,6 +426,11 @@ VOID GAMEGENIEMANAGER::RemoveCode()
 		if (PDX_SUCCEEDED(NesDecode( buffer, packed )))
 		{
 			codes.Erase( packed );
+			
+			EnableWindow( GetDlgItem( hDlg, IDC_GAMEGENIE_EXPORT    ), codes.Size() ? TRUE : FALSE );
+			EnableWindow( GetDlgItem( hDlg, IDC_GAMEGENIE_CLEAR_ALL ), codes.Size() ? TRUE : FALSE );
+			EnableWindow( GetDlgItem( hDlg, IDC_GAMEGENIE_REMOVE    ), codes.Size() ? TRUE : FALSE );
+			
 			NesEnable( packed, NES::IO::GAMEGENIE::DISABLE );
 		}
 	}
@@ -411,6 +445,10 @@ VOID GAMEGENIEMANAGER::ClearCodes()
 	NesDestroy();
 	ListView_DeleteAllItems( hList );
 	codes.Destroy();
+
+	EnableWindow( GetDlgItem( hDlg, IDC_GAMEGENIE_EXPORT    ), FALSE );
+	EnableWindow( GetDlgItem( hDlg, IDC_GAMEGENIE_CLEAR_ALL ), FALSE );
+	EnableWindow( GetDlgItem( hDlg, IDC_GAMEGENIE_REMOVE    ), FALSE );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -432,6 +470,13 @@ VOID GAMEGENIEMANAGER::UpdateCodes()
 			CODES::ITERATOR kill( iterator++ );
 			codes.Erase( *kill );
 		}
+	}
+
+	if (hDlg)
+	{
+		EnableWindow( GetDlgItem( hDlg, IDC_GAMEGENIE_EXPORT    ), codes.Size() ? TRUE : FALSE );
+		EnableWindow( GetDlgItem( hDlg, IDC_GAMEGENIE_CLEAR_ALL ), codes.Size() ? TRUE : FALSE );
+		EnableWindow( GetDlgItem( hDlg, IDC_GAMEGENIE_REMOVE    ), codes.Size() ? TRUE : FALSE );
 	}
 }
 
@@ -606,15 +651,15 @@ VOID GAMEGENIEMANAGER::UpdateColumns()
 VOID GAMEGENIEMANAGER::ExportCodes()
 {
 	PDXSTRING name;
-	name.Resize( NST_MAX_PATH );
+
+	name.Buffer().Resize( NST_MAX_PATH );
+	name.Buffer().Front() = '\0';
 
 	OPENFILENAME ofn;
 	PDXMemZero( ofn );
 
 	ofn.lStructSize     = sizeof(ofn);
 	ofn.hwndOwner       = hWnd;
-	ofn.hInstance       = application.GetHInstance();
-	ofn.lpstrFilter     = NULL;
 	ofn.nFilterIndex    = 1;
 	ofn.lpstrInitialDir	= NULL;
 	ofn.lpstrFile       = name.Begin();
@@ -622,14 +667,64 @@ VOID GAMEGENIEMANAGER::ExportCodes()
 	ofn.nMaxFile        = NST_MAX_PATH;
 	ofn.Flags           = OFN_HIDEREADONLY|OFN_PATHMUSTEXIST;
 
+	ofn.lpstrFilter =
+	(
+    	"All supported files\0"
+		"*.nsp;*.txt\0"
+		"Nestopia Script Files (*.nsp)\0"
+		"*.nsp\0"
+		"Text Files (*.txt)\0"
+		"*.txt\0"
+		"All files (*.*)\0"
+		"*.*\0"									   
+	);
+
 	if (GetSaveFileName(&ofn))
 	{
 		name.Validate();
 
+		if (name.IsEmpty())
+			return;
+
+		if (name.GetFileExtension().IsEmpty())
+			name.Append( ".nsp" );
+
 		PDXFILE file;
 		
-		if (PDX_FAILED(file.Open(name,PDXFILE::OUTPUT)))
+		if (PDX_FAILED(file.Open( name, PDXFILE::APPEND )))
+		{
+			application.OnWarning( "Couldn't create file!" );
 			return;
+		}
+
+		NES::IO::NSP::CONTEXT context;
+		NES::NSP NspFile;
+
+		if (file.Size())
+		{
+			file.Seek( PDXFILE::BEGIN );
+
+			if (!application.OnQuestion("File already exist!","Discard the current content in the file?"))
+			{
+				if (PDX_SUCCEEDED(NspFile.Load( file )))
+				{
+					NspFile.GetContext( context );
+
+					if (context.GenieCodes.Size() && !application.OnQuestion("Existing Codes","Keep the existing codes in the file?"))
+						context.GenieCodes.Clear();
+				}
+				else
+				{
+					if (!application.OnQuestion("Invalid File!","File was invalid, do you still want to replace it?"))
+					{
+						file.Abort();
+						return;
+					}
+				}
+			}
+
+			file.Seek( PDXFILE::BEGIN );
+		}
 
 		CHAR buffer[512];
 
@@ -637,14 +732,27 @@ VOID GAMEGENIEMANAGER::ExportCodes()
 
 		for (INT i=0; i < num; ++i)
 		{
+			buffer[0] = '\0';
 			ListView_GetItemText( hList, i, 0, buffer, 14 );			
-			const UINT length = strlen(buffer);
-			file.Write( buffer, buffer + length );
-			memset( buffer, ' ', 10 );
-			file.Write( buffer + length, buffer + 10 );
-			ListView_GetItemText( hList, i, 4, buffer, 512-1 );
-			file.Write( buffer, buffer + strlen(buffer) );
-			file.Write( '\r' );
+		
+			if (buffer[0] != '\0')
+			{
+				context.GenieCodes.Grow();
+				context.GenieCodes.Back().code = buffer;
+
+				ListView_GetItemText( hList, i, 4, buffer, 512-1 );
+
+				if (buffer[0] != '\0')
+					context.GenieCodes.Back().comment = buffer;
+			}
+		}
+
+		NspFile.SetContext( context );
+
+		if (PDX_FAILED(NspFile.Save( file )))
+		{
+			application.OnWarning( "Couldn't save the file!" );
+			return;
 		}
 	}
 }
@@ -656,95 +764,61 @@ VOID GAMEGENIEMANAGER::ExportCodes()
 VOID GAMEGENIEMANAGER::ImportCodes()
 {
 	PDXSTRING name;
-	name.Resize( NST_MAX_PATH );
+
+	name.Buffer().Resize( NST_MAX_PATH );
+	name.Buffer().Front() = '\0';
 
 	OPENFILENAME ofn;
 	PDXMemZero( ofn );
 
 	ofn.lStructSize     = sizeof(ofn);
-	ofn.hwndOwner       = hWnd;
-	ofn.hInstance       = application.GetHInstance();
-	ofn.lpstrFilter     = NULL;
+	ofn.hwndOwner       = NULL;
 	ofn.nFilterIndex    = 1;
-	ofn.lpstrInitialDir	= NULL;
+	ofn.lpstrInitialDir	= application.GetFileManager().GetNspPath();
 	ofn.lpstrFile       = name.Begin();
 	ofn.lpstrTitle      = "Import Game Genie codes";
 	ofn.nMaxFile        = NST_MAX_PATH;
 	ofn.Flags           = OFN_FILEMUSTEXIST|OFN_PATHMUSTEXIST;
 
-	if (GetOpenFileName(&ofn))
+	ofn.lpstrFilter =
+	(
+		"Nestopia Game Configuration Files (*.nsp)\0"
+		"*.nsp\0"
+		"All files (*.*)\0"
+		"*.*\0"									   
+	);
+
+	if (GetOpenFileName( &ofn ))
 	{
 		name.Validate();
 
 		PDXFILE file;
 
-		if (PDX_FAILED(file.Open(name,PDXFILE::INPUT)))
+		if (PDX_FAILED(file.Open( name, PDXFILE::INPUT )))
+		{
+			application.OnWarning( "Couldn't open file!" );
 			return;
+		}
 
 		ClearCodes();
 
-		CHAR buffer[512];
-		CODE code;
+		NES::NSP NspFile;
 
-		while (!file.Eof())
+		if (PDX_FAILED(NspFile.Load( file )))
 		{
-			static const CHAR ValidCharacter[32] =
-			{
-				'A','a','P','p','Z','z','L','l',
-				'G','g','I','i','T','t','Y','y',
-				'E','e','O','o','X','x','U','u',
-				'K','k','S','s','V','v','N','n'
-			};
+			application.OnWarning( "Parse Error!" );			
+			return;
+		}
+			
+		NES::IO::NSP::CONTEXT context;
+		NspFile.GetContext( context );
 
-			CHAR character = file.Peek<CHAR>();
-			BOOL god = FALSE;
-
-			for (UINT i=0; i < 32; ++i)
-			{
-				if (character == ValidCharacter[i])
-				{
-					god = TRUE;
-					break;
-				}
-			}
-
-			if (god == FALSE)
-				goto hell;
-
-			UINT length;
-
-			for (length=0; !file.Eof() && (length < 512) && (character = file.Read<CHAR>()) != ' '; ++length)
-				buffer[length] = character;
-
-			if (file.Eof())
-				goto hell;
-
-			buffer[length] = '\0';
-
-			if (PDX_FAILED(NesDecode( buffer, code.code )))
-				goto hell;
-
-			while (!file.Eof() && file.Read<CHAR>() == ' ');
-
-			file.Seek(PDXFILE::CURRENT,-1);
-
-			for (length=0; !file.Eof() && (length < 512) && (character = file.Read<CHAR>()) != '\r'; ++length)
-				buffer[length] = character;
-						
-			buffer[length] = '\0';
-
-			code.comment = buffer;
-
-			if (PDX_SUCCEEDED(NesSet( code.code, NES::IO::GAMEGENIE::ENABLE )))
-				codes.Insert( code );
+		for (UINT i=0; i < context.GenieCodes.Size(); ++i)
+		{
+			const PDXSTRING* const comment = &context.GenieCodes[i].comment;
+			AddCode( context.GenieCodes[i].code, TRUE, comment->Length() ? comment : NULL );
 		}
 
 		UpdateCodes();
 	}
-
-	return;
-
-hell:
-
-	application.OnWarning( "File is corrupt!" );
 }

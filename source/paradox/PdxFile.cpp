@@ -57,7 +57,10 @@ static BOOL PDX_STDCALL GetFileSize(FILE* const file,TSIZE& size)
 //////////////////////////////////////////////////////////////////////////////////////////////
 
 PDXFILE::PDXFILE(const MODE m)
-: pos(0), mode(m), open(FALSE) {}
+: pos(0), mode(m), open(FALSE) 
+{
+	PDX_ASSERT( UINT(m) <= 2 );
+}
 
 //////////////////////////////////////////////////////////////////////////////////////////////
 // Constructor, open the file and set mode to read or/and write
@@ -73,10 +76,46 @@ PDXFILE::PDXFILE(const CHAR* const n,const MODE m)
 PDXFILE::~PDXFILE()
 {
 	if ((mode==OUTPUT || mode==APPEND) && open && pos)
+		WriteBuffer();
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+// Open file
+//////////////////////////////////////////////////////////////////////////////////////////////
+
+PDXRESULT PDXFILE::Open(const CHAR* const string,const MODE m)
+{
+	PDX_ASSERT( string );
+
+	if (!string)
+		return PDX_FAILURE;
+
+	if (open)
 	{
-		const PDXRESULT result = WriteBuffer();
-		PDX_ASSERT(PDX_SUCCEEDED(result));
+		if (mode == m && name == string)
+			return PDX_OK;
+
+		Close();
 	}
+
+	name = string;
+	mode = m;
+
+	return Open(); 
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+// Open file
+//////////////////////////////////////////////////////////////////////////////////////////////
+
+PDXRESULT PDXFILE::Open(const MODE m)
+{ 
+	if (open && mode == m)
+		return PDX_OK;
+
+	mode = m; 
+
+	return Open(); 
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -85,23 +124,52 @@ PDXFILE::~PDXFILE()
 
 PDXRESULT PDXFILE::Open(const CHAR* const string)
 {
-	PDX_ASSERT(!open);
+	PDX_ASSERT( string );
 
-	if (string)
-		name = string;
+	if (!string)
+		return PDX_FAILURE;
 
+	if (open)
+	{
+		if (name == string)
+			return PDX_OK;
+
+		Close();
+	}
+
+	name = string;
+
+	return Open();
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+// Open file
+//////////////////////////////////////////////////////////////////////////////////////////////
+
+PDXRESULT PDXFILE::Open()
+{
 	if (name.IsEmpty())
-		return PDX_FILE_NOT_FOUND;
+		return PDX_FAILURE;
+
+	if (open)
+		return PDX_OK;
 
 	switch (mode)
 	{
      	case INPUT:
-		case APPEND:
 		{
 			const PDXRESULT result = ReadBuffer();
 			open = (result == PDX_OK);
-			pos = (mode == APPEND) ? buffer.Size() : 0;
+			pos = 0;
 			return result;
+		}
+
+		case APPEND:
+		{
+			ReadBuffer();
+			pos = buffer.Size();
+			open = TRUE;
+			return PDX_OK;
 		}
 
 		default:
@@ -131,6 +199,18 @@ PDXRESULT PDXFILE::Close()
 	buffer.Destroy();
 
 	return result;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+// Flush file
+//////////////////////////////////////////////////////////////////////////////////////////////
+
+PDXRESULT PDXFILE::Flush()
+{
+	if (mode != OUTPUT && mode != APPEND)
+		return PDX_FAILURE;
+
+	return WriteBuffer();
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -323,10 +403,10 @@ PDXRESULT PDXFILE::WriteBuffer() const
     #endif
 	}
 
-	fwrite(buffer.Begin(),pos,1,file);
+	const TSIZE count = fwrite(buffer.Begin(),pos,1,file);
 
 	if (fclose(file) != 0)
 		return PDX_FAILURE;
 
-	return PDX_OK;
+	return (count == 1) ? PDX_OK : PDX_FAILURE;
 }

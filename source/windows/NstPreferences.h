@@ -40,6 +40,7 @@ public:
 	PREFERENCES(const INT a,const UINT b)
 	: MANAGER(a,b) {}
 
+	inline BOOL HighPriority()         const { return highpriority;       }
 	inline BOOL EmulateImmediately()   const { return emulateimmediately; }
 	inline BOOL RunInBackground()      const { return background;         }
 	inline BOOL RunNsfInBackground()   const { return backgroundnsf;      }
@@ -48,6 +49,8 @@ public:
 	inline BOOL HideMenuInFullScreen() const { return hidemenu;           }
 	inline BOOL ConfirmExit()		   const { return confirmexit;        }
 	inline BOOL LogFileEnabled()       const { return uselogfile;         }
+	inline BOOL NoWarnings()           const { return nowarnings;         }
+	inline BOOL ShowWarnings()         const { return !nowarnings;        }
 
 private:
 
@@ -73,6 +76,7 @@ private:
 		U8 hidemenu           : 1;
 		U8 confirmexit        : 1;
 		U8 logfile            : 1;
+		U8 highpriority       : 1;
 	};
 
    #pragma pack(pop)
@@ -86,6 +90,9 @@ private:
 	BOOL hidemenu;
 	BOOL confirmexit;
 	BOOL uselogfile;
+	BOOL highpriority;
+
+	INT DefPriority;
 };
 
 #endif

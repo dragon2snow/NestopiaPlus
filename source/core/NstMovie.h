@@ -42,13 +42,14 @@ public:
 	MOVIE(MACHINE* const);
 	~MOVIE();
 
-	PDXRESULT Load(const CHAR* const);
-	PDXRESULT Save(const CHAR* const);
+	PDXRESULT Load(const PDXSTRING&);
 	PDXRESULT ExecuteFrame();
 	
-	VOID Start();
+	VOID Record();
+	VOID Play();
 	VOID Stop();
 	VOID Rewind();
+	VOID Forward();
 	VOID Close();
 
 	VOID AddInputDevice(MACHINE::CONTROLLER* const);
@@ -58,7 +59,13 @@ public:
 	BOOL IsRecording() const; 
 	BOOL IsPlaying()   const; 
 	BOOL IsStopped()   const; 
-	BOOL CanPlay()     const;
+	BOOL IsRewinded()  const;
+
+	BOOL CanStop()    const;
+	BOOL CanPlay()    const;
+	BOOL CanRecord()  const;
+	BOOL CanRewind()  const;
+	BOOL CanForward() const;
 
 	const PDXSTRING& FileName() const;
 
@@ -81,7 +88,6 @@ private:
 	};
 
 	STATE state;
-	UINT  UpdateState;
 	BOOL  stopped;
 
   #ifdef PDX_U64_SUPPORT

@@ -189,6 +189,7 @@ private:
 	private:
 
 		VOID UpdateVolume();
+		BOOL IsValidFrequency() const;
 
 		LONG  volume;
 		UINT  step;
@@ -206,6 +207,7 @@ private:
 		ULONG SweepCarry;
 		UINT  WaveLengthLow;
 		UINT  WaveLengthHigh;
+		BOOL  ValidFrequency;
 		
 		const UINT complement;
 
@@ -279,9 +281,14 @@ private:
        #pragma pack(pop)
 	};
 
+	class DMC;
+
 	class TRIANGLE : public CHANNEL
 	{
 	public:
+
+		TRIANGLE(const DMC& d)
+		: dmc(d) {}
 
 		VOID Reset();
 		VOID Toggle(const BOOL);
@@ -289,12 +296,6 @@ private:
 		VOID WriteReg0(const UINT);
 		VOID WriteReg2(const UINT);
 		VOID WriteReg3(const UINT);
-
-     #ifdef APU_DAC_HACK
-
-		VOID HackVolume(const FLOAT);
-
-     #endif
 		
 		LONG Sample();
 		VOID UpdateQuarter();
@@ -314,11 +315,7 @@ private:
 		UINT WaveLengthLow;
 		UINT WaveLengthHigh;
 
-       #ifdef APU_DAC_HACK
-
-		FLOAT VolHack;
-
-       #endif
+		const DMC& dmc;
 
        #pragma pack(push,1)
 
@@ -369,18 +366,15 @@ private:
 	{
 	public:
 
+		NOISE(const DMC& d)
+		: dmc(d) {}
+
 		VOID Reset();
 		VOID Toggle(const BOOL);
 		
 		VOID WriteReg0(const UINT);
 		VOID WriteReg2(const UINT);
 		VOID WriteReg3(const UINT);
-
-     #ifdef APU_DAC_HACK
-
-		VOID HackVolume(const FLOAT);
-
-     #endif
 		
 		LONG Sample();
 		VOID UpdateQuarter();
@@ -392,7 +386,6 @@ private:
 	private:
 
 		VOID UpdateVolume();
-		VOID UpdateAmplitude();
 
 		LONG volume;
 		UINT bits;
@@ -404,11 +397,7 @@ private:
 		UINT EnvDecayDisable;
 		UINT EnvDecayLoop;
 
-       #ifdef APU_DAC_HACK
-
-		FLOAT VolHack;
-
-       #endif
+		const DMC& dmc;
 
        #pragma pack(push,1)
 
@@ -504,6 +493,9 @@ private:
 		PDXRESULT LoadState(PDXFILE&);
 
 	private:
+
+		friend class TRIANGLE;
+		friend class NOISE;
 
 		UINT BitCounter;
 		INT  LengthCounter;

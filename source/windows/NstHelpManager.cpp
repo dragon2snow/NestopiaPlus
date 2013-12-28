@@ -78,8 +78,15 @@ BOOL HELPMANAGER::ABOUT::DialogProc(HWND hDlg,UINT uMsg,WPARAM wParam,LPARAM)
 	switch (uMsg) 
 	{
        	case WM_SETCURSOR:
+		{
+			const BOOL touching =
+			(
+			    HWND(wParam) == GetDlgItem( hDlg, IDC_ABOUT_GNU  ) || 
+				HWND(wParam) == GetDlgItem( hDlg, IDC_ABOUT_URL1 ) ||
+				HWND(wParam) == GetDlgItem( hDlg, IDC_ABOUT_URL2 )
+			);
 
-			if (HWND(wParam) == GetDlgItem(hDlg,IDC_ABOUT_GNU) || HWND(wParam) == GetDlgItem(hDlg,IDC_ABOUT_URL))
+			if (touching)
 			{
 				SetCursor( LoadCursor(NULL,IDC_UPARROW) );
 				SetWindowLong( hDlg, DWL_MSGRESULT, MAKELONG(TRUE,0) );
@@ -90,17 +97,19 @@ BOOL HELPMANAGER::ABOUT::DialogProc(HWND hDlg,UINT uMsg,WPARAM wParam,LPARAM)
 				SetWindowLong( hDlg, DWL_MSGRESULT, MAKELONG(TRUE,0) );
 			}
 			return TRUE;
+		}
 
 		case WM_COMMAND:
 
 			switch (LOWORD(wParam))
 			{
 		       	case IDC_ABOUT_GNU:
-				case IDC_ABOUT_URL:
+				case IDC_ABOUT_URL1:
+				case IDC_ABOUT_URL2:
 				{
 					CHAR url[MAX_PATH];
 					GetDlgItemText( hDlg, LOWORD(wParam), url, MAX_PATH );
-					ShellExecute( hDlg, "open", url, NULL, NULL, SW_SHOWNORMAL);
+					ShellExecute( hDlg, "open", url, NULL, NULL, SW_SHOWNORMAL );
 					return TRUE;
 				}
 			}		

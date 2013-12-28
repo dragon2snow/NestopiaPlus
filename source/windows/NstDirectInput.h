@@ -78,7 +78,6 @@ private:
 	LPDIRECTINPUT8 device;         
 	LPDIRECTINPUTDEVICE8 keyboard;
 	BYTE KeyboardBuffer[KEYBOARD_BUFFER_SIZE];
-	DWORD NumKeys;
 
 	struct JOYSTICK
 	{
@@ -88,7 +87,9 @@ private:
 		NumButtons (0), 
 		NumPOVs    (0),
 		axes       (0) 
-		{}
+		{
+			PDXMemZero( guid );
+		}
 
 		~JOYSTICK()
 		{

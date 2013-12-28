@@ -648,21 +648,66 @@ namespace IO
 		{
 			CONTEXT()
 			: 
-			DisableWarnings         ( FALSE ), 
-			LookInRomPathForSaveRam ( TRUE  ),
-			DisableSaveRamWrite     ( FALSE ),
-			LookInRomPathForIps     ( TRUE  ),
-			ApplyIPS                ( FALSE )
+			DisableWarnings     ( FALSE ), 
+			WriteProtectBattery ( FALSE )
 			{}
 
 			BOOL DisableWarnings;
-			BOOL LookInRomPathForSaveRam;
-			BOOL DisableSaveRamWrite;
-			BOOL ApplyIPS;
-			BOOL LookInRomPathForIps;
-			PDXSTRING RomPath;
-			PDXSTRING SaveRamPath;
-			PDXSTRING IpsPath;
+			BOOL WriteProtectBattery;
+		};
+	}
+
+	namespace NSP
+	{
+		struct CONTEXT
+		{
+			CONTEXT()
+			{
+				Reset();
+			}
+
+			VOID Reset()
+			{				
+				ImageFile.Clear();
+				IpsFile.Clear();
+				SaveFile.Clear();
+				StateFile.Clear();
+				MovieFile.Clear();
+			
+				for (UINT i=0; i < 10; ++i)
+					StateSlots[i].Clear();
+
+				PaletteFile.Clear();
+
+				GenieCodes.Clear();
+
+				pal = -1;
+
+				controllers[0] = CONTROLLER_PAD1;
+				controllers[1] = CONTROLLER_PAD2;
+				controllers[2] = CONTROLLER_UNCONNECTED;
+				controllers[3] = CONTROLLER_UNCONNECTED;
+				controllers[4] = CONTROLLER_UNCONNECTED;
+			}
+
+			struct GENIECODE
+			{
+				PDXSTRING code;
+				PDXSTRING comment;
+			};
+
+			typedef PDXARRAY<GENIECODE> GENIECODES;
+
+			PDXSTRING      ImageFile;
+			PDXSTRING      IpsFile;
+			PDXSTRING      SaveFile;
+			PDXSTRING      StateFile;
+			PDXSTRING      MovieFile;
+			PDXSTRING      StateSlots[10];
+			PDXSTRING      PaletteFile;
+			GENIECODES     GenieCodes;	
+			INT            pal;
+			CONTROLLERTYPE controllers[5];
 		};
 	}
 }

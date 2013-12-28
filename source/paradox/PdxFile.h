@@ -51,14 +51,12 @@ public:
 	PDXFILE(const CHAR* const,const MODE=APPEND);	
 	~PDXFILE();
 
-	inline PDXRESULT Open(const CHAR* const n,const MODE m)
-	{ mode=m; return Open(n); }
-
-	inline PDXRESULT Open(const MODE m)
-	{ mode=m; return Open(); }
-
-	PDXRESULT Open(const CHAR* const=NULL);
+	PDXRESULT Open(const CHAR* const,const MODE);
+	PDXRESULT Open(const CHAR* const);
+	PDXRESULT Open(const MODE);
+	PDXRESULT Open();
 	PDXRESULT Close();
+	PDXRESULT Flush();
 
 	template<class T> 
 	inline PDXFILE& operator << (const T& t)
@@ -108,7 +106,7 @@ public:
 	{ return buffer.Size(); }
 
 	inline BOOL IsEmpty() const
-	{ return buffer.Size() == 0 ? TRUE : FALSE; }
+	{ return buffer.Size() == 0; }
 
 	VOID Abort()
 	{ open=FALSE; Close(); }

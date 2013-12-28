@@ -153,7 +153,11 @@
 #define IDM_VIEW_WINDOWSIZE_2X          249
 #define IDM_VIEW_WINDOWSIZE_4X          250
 #define IDM_VIEW_WINDOWSIZE_8X          251
-#define IDD_DIALOG1                     600
+#define IDM_FILE_LOAD_SCRIPT            262
+#define IDM_FILE_SAVE_SCRIPT            264
+#define IDM_FILE_LOAD_STATE3            269
+#define IDM_FILE_SAVE_STATE4            270
+#define IDM_FILE_MOVIE_FORWARD          276
 #define IDD_USERINPUT                   600
 #define IDC_SOUND_DEVICE                1001
 #define IDC_SOUND_SAMPLE_RATE           1002
@@ -182,6 +186,7 @@
 #define IDC_INPUT_SET                   1105
 #define IDC_INPUT_DEFAULT               1106
 #define IDC_INPUT_OK                    1107
+#define IDC_INPUT_SETALL                1108
 #define IDC_PATHS_ROM_IMAGES            1200
 #define IDC_PATHS_ROM_IMAGES_LAST       1201
 #define IDC_PATHS_ROM_IMAGES_BROWSE     1202
@@ -197,8 +202,12 @@
 #define IDC_PATHS_DEFAULT               1211
 #define IDC_PATHS_OK                    1212
 #define IDC_PATHS_CANCEL                1213
+#define IDC_PATHS_NSP                   1214
+#define IDC_PATHS_NSP_LAST              1215
 #define IDC_PATHS_IPS_ROM               1217
 #define IDC_PATHS_IPS_BROWSE            1218
+#define IDC_PATHS_NSP_ROM               1219
+#define IDC_PATHS_NSP_BROWSE            1220
 #define IDC_COMPRESSED_FILE_LIST        1300
 #define IDC_COMPRESSED_FILE_CANCEL      1301
 #define IDC_COMPRESSED_FILE_OK          1302
@@ -286,6 +295,7 @@
 #define IDC_PREFERENCES_BEGIN_EMULATION 1808
 #define IDC_PREFERENCES_NSF_IN_BACKGROUND 1809
 #define IDC_PREFERENCES_LOGFILE         1810
+#define IDC_PREFERENCES_HIGH_PRIORITY   1811
 #define IDC_FDS_BROWSE                  1900
 #define IDC_FDS_CLEAR                   1901
 #define IDC_FDS_BIOS                    1902
@@ -303,6 +313,7 @@
 #define IDC_AUTOSAVE_OK                 2007
 #define IDC_PATHS_IPS_AUTO_APPLY        2008
 #define IDC_SOUND_RECORD_FILE           2009
+#define IDC_PATHS_NSP_AUTO_APPLY        2009
 #define IDC_SOUND_RECORD_CLEAR          2010
 #define IDC_SOUND_RECORD_BROWSE         2011
 #define IDC_SOUND_RECORD_CANCEL         2012
@@ -318,8 +329,10 @@
 #define IDC_LICENCE_OK                  2023
 #define IDC_LICENCE_EDIT                2024
 #define IDC_ABOUT_URL                   2028
+#define IDC_ABOUT_URL1                  2028
 #define IDC_ABOUT_GNU                   2029
 #define IDC_USERINPUT_ABORT             2030
+#define IDC_ABOUT_URL2                  2030
 #define IDC_USERINPUT_OK                2031
 #define IDC_USERINPUT_EDIT              2032
 #define IDC_USERINPUT_TEXT              2034
@@ -329,7 +342,7 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NEXT_RESOURCE_VALUE        601
-#define _APS_NEXT_COMMAND_VALUE         258
+#define _APS_NEXT_COMMAND_VALUE         277
 #define _APS_NEXT_CONTROL_VALUE         2035
 #define _APS_NEXT_SYMED_VALUE           101
 #endif

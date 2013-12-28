@@ -735,7 +735,7 @@ PDXRESULT MAPPER::LoadState(PDXFILE& file)
 	PDX_TRY(pRom.LoadState( file, FALSE ));
 
 	if (cRom.Size())
-		PDX_TRY(cRom.LoadState( file, FALSE ));
+		PDX_TRY(cRom.LoadState( file, IsCRam ));
 
 	PDX_TRY(LoadIrqData( file ));
 	PDX_TRY(LoadStateChunks( file ));
@@ -753,7 +753,7 @@ PDXRESULT MAPPER::SaveState(PDXFILE& file) const
 	PDX_TRY(pRom.SaveState( file, FALSE ));
 
 	if (cRom.Size())
-		PDX_TRY(cRom.SaveState( file, FALSE ));
+		PDX_TRY(cRom.SaveState( file, IsCRam ));
 
 	PDX_TRY(SaveIrqData( file ));
 	PDX_TRY(SaveStateChunks( file ));

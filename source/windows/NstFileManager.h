@@ -44,8 +44,10 @@ public:
 	: MANAGER( id, chunk ), ZipFile(NULL) {}
 
 	PDXRESULT Load(INT=-1,const BOOL=TRUE);
-	PDXRESULT LoadState();
-	PDXRESULT SaveState();
+	PDXRESULT LoadNSP(INT=-1,const BOOL=TRUE);
+	PDXRESULT LoadNST();
+	PDXRESULT SaveNSP();
+	PDXRESULT SaveNST();
 
 	UINT NumRecentFiles() const
 	{ return RecentFiles.Size(); }
@@ -64,22 +66,30 @@ public:
 
 	VOID AddRecentFile(const CHAR* const);
 
-	inline const PDXSTRING& GetRomPath() const
-	{ return UseRomPathLast ? RomPathLast : RomPath; }
-
-	inline const PDXSTRING& GetSavePath() const
-	{ return UseSavePathRom ? GetRomPath() : SavePath; }
-
-	inline const PDXSTRING& GetStatePath() const
-	{ return UseStatePathLast ? StatePathLast : StatePath; }
-
-	inline const PDXSTRING& GetIpsPath() const
-	{ return UseIpsPathRom ? GetRomPath() : IpsPath; }
+	inline const PDXSTRING& GetRomPath()  const { return UseRomPathLast   ? RomPathLast   : RomPath;   }
+	inline const PDXSTRING& GetSavePath() const { return UseSavePathRom   ? GetRomPath()  : SavePath;  }
+	inline const PDXSTRING& GetNstPath()  const { return UseStatePathLast ? StatePathLast : StatePath; }
+	inline const PDXSTRING& GetIpsPath()  const { return UseIpsPathRom    ? GetRomPath()  : IpsPath;   }
+	inline const PDXSTRING& GetNspPath()  const { return UseNspPathLast   ? NspPathLast   : NspPath;   }
 
 	inline UINT OpenZipFile(const CHAR* const title,const CHAR* const name,const PDXARRAY<PDXSTRING>& extensions,PDXFILE& file)
 	{ return OpenZipFile( title, name, extensions, file, FALSE ); }
 
 private:
+
+	PDXRESULT LoadNesFile (PDXFILE&,const BOOL);
+
+	PDXRESULT ApplyRom (const PDXSTRING&,PDXFILE&,PDXSTRING&);
+	PDXRESULT ApplyNps (const PDXSTRING&,NES::IO::NSP::CONTEXT&,BOOL&) const;
+	PDXRESULT ApplySav (const PDXSTRING&,PDXSTRING&);
+	PDXRESULT ApplyIps (PDXFILE&,PDXSTRING&,BOOL&);
+	PDXRESULT ApplyNst (PDXFILE&,PDXSTRING&,BOOL&) const;
+
+	BOOL FindRom (const PDXSTRING&,PDXSTRING&) const;
+	BOOL FindIps (const PDXSTRING&,PDXSTRING&) const;
+	BOOL FindSav (const PDXSTRING&,PDXSTRING&) const;
+	BOOL FindNsp (const PDXSTRING&,PDXSTRING&) const;
+	BOOL FindNst (const PDXSTRING&,PDXSTRING&) const;
 
 	VOID UpdateContext();
 
@@ -88,12 +98,15 @@ private:
 
 	enum
 	{
-		USE_ROM_PATH_LAST     = b0000001,
-		USE_SAVE_PATH_ROM     = b0000010,
-		USE_STATE_PATH_LAST   = b0000100,
-		DISABLE_SAVERAM_WRITE = b0001000,
-		USE_IPS_PATH_ROM      = b0010000,
-		AUTO_APPLY_IPS        = b0100000
+		USE_ROM_PATH_LAST     = 0x001,
+		USE_SAVE_PATH_ROM     = 0x002,
+		USE_STATE_PATH_LAST   = 0x004,
+		DISABLE_SAVERAM_WRITE = 0x008,
+		USE_IPS_PATH_ROM      = 0x010,
+		AUTO_APPLY_IPS        = 0x020,
+		USE_NSP_PATH_ROM      = 0x040,
+		AUTO_APPLY_NSP        = 0x080,
+		USE_NSP_PATH_LAST     = 0x100
 	};
 
 	PDXRESULT LoadFile
@@ -145,6 +158,15 @@ private:
 	PDXSTRING IpsPath;
 	BOOL      UseIpsPathRom;
 	BOOL      AutoApplyIps;
+	PDXSTRING NspPath;
+	PDXSTRING NspPathLast;
+	BOOL      UseNspPathRom;
+	BOOL      UseNspPathLast;
+	BOOL      AutoApplyNsp;
+
+	PDXSTRING LastImageFile;
+	PDXSTRING LastIpsFile;
+	PDXSTRING LastSaveFile;
 
 	BOOL UpdatedRecentFile;
 
@@ -154,7 +176,6 @@ private:
 	enum {MAX_RECENT_FILES = 10};
 
 	RECENTFILES RecentFiles;
-
 	PDXSTRING ZipDialogTitle;
 };
 

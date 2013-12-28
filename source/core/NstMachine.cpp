@@ -41,7 +41,6 @@
 #include "input/NstPaddle.h"
 #include "input/NstPowerPad.h"
 #include "input/NstKeyboard.h"
-#include "NstIps.h"
 #include "NstMovie.h"
   
 NES_NAMESPACE_BEGIN
@@ -62,7 +61,7 @@ on        (FALSE),
 paused    (FALSE),
 mode      (MODE_AUTO),
 expansion (NULL),
-GameGenie (NULL),
+GameGenie (new GAMEGENIE(cpu)),
 VsSystem  (NULL),
 nsf       (NULL),
 movie     (NULL)
@@ -238,17 +237,11 @@ VOID MACHINE::GetAudioContext(IO::SFX::CONTEXT& context) const
 
 PDXRESULT MACHINE::SetGameGenieContext(const IO::GAMEGENIE::CONTEXT& context)
 {
-	if (!GameGenie)
-		GameGenie = new GAMEGENIE(cpu);
-
 	return GameGenie->SetContext( context );
 }
 
 PDXRESULT MACHINE::GetGameGenieContext(IO::GAMEGENIE::CONTEXT& context)
 {
-	if (!GameGenie)
-		GameGenie = new GAMEGENIE(cpu);
-
 	return GameGenie->GetContext( context );
 }
 
@@ -391,23 +384,19 @@ BOOL MACHINE::IsPAL() const
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT MACHINE::Load(PDXFILE& file)
+PDXRESULT MACHINE::LoadRom(PDXFILE& ImageFile,const PDXSTRING* const SaveFile)
 {
-	if (file.Readable(sizeof(U32)))
+	if (ImageFile.IsOpen() && ImageFile.Readable(sizeof(U32)))
 	{
-		switch (file.Peek<U32>())
+		switch (ImageFile.Peek<U32>())
 		{
-     		case 0x1A53454EUL: return LoadINES  ( file );
-			case 0x46494E55UL: return LoadUNIF  ( file );
-			case 0x1A534446UL: return LoadFDS   ( file );
-    		case 0x4D53454EUL: return LoadNSF   ( file );
-			case 0x43544150UL: return LoadIPS   ( file );
-			case 0x1A54534EUL: return LoadNST   ( file );
-			case 0x1A564D4EUL: return LoadMovie ( file.Name() );
+     		case 0x1A53454EUL: return LoadINES ( ImageFile, SaveFile );
+			case 0x46494E55UL: return LoadUNIF ( ImageFile, SaveFile );
+			case 0x1A534446UL: return LoadFDS  ( ImageFile           );
 		}
 	}
 
-	return MsgWarning("Unsupported file format");
+	return PDX_FAILURE;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -444,17 +433,15 @@ VOID MACHINE::Unload()
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT MACHINE::LoadINES(PDXFILE& file)
+PDXRESULT MACHINE::LoadINES(PDXFILE& ImageFile,const PDXSTRING* const SaveFile)
 {
 	Unload();
-
-	RecentImage = file.Name();
 
 	{
 		PDXSTRING log;
 		
 		log  = "MACHINE: Loading NES file \"";
-		log	+= file.Name();
+		log	+= ImageFile.Name();
 		log += "\"";
 		
 		LogOutput( log );
@@ -462,10 +449,7 @@ PDXRESULT MACHINE::LoadINES(PDXFILE& file)
 
 	cartridge = new CARTRIDGE;
 
-	if (GeneralContext.ApplyIPS)
-		ApplyIPS( file );
-
-	if (PDX_FAILED(cartridge->Load( file, cpu, ppu, GeneralContext )))
+	if (PDX_FAILED(cartridge->Load( ImageFile, SaveFile, cpu, ppu, GeneralContext )))
 	{
 		Unload();
 		return PDX_FAILURE;
@@ -487,17 +471,15 @@ PDXRESULT MACHINE::LoadINES(PDXFILE& file)
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT MACHINE::LoadUNIF(PDXFILE& file)
+PDXRESULT MACHINE::LoadUNIF(PDXFILE& ImageFile,const PDXSTRING* const SaveFile)
 {
 	Unload();
-
-	RecentImage = file.Name();
 
 	{
 		PDXSTRING log;
 
 		log  = "MACHINE: Loading UNIF file \"";
-		log	+= file.Name();
+		log	+= ImageFile.Name();
 		log += "\"";
 
 		LogOutput( log );
@@ -505,14 +487,7 @@ PDXRESULT MACHINE::LoadUNIF(PDXFILE& file)
 
 	cartridge = new CARTRIDGE;
 
- #ifdef NES_AUTO_IPS_ON_UNIF // IPS patching is not that useful for UNIF files so default is off
-
-	if (GeneralContext.ApplyIPS)
-		ApplyIPS( file );
-
- #endif
-
-	if (PDX_FAILED(cartridge->Load( file, cpu, ppu, GeneralContext )))
+	if (PDX_FAILED(cartridge->Load( ImageFile, SaveFile, cpu, ppu, GeneralContext )))
 	{
 		Unload();
 		return PDX_FAILURE;
@@ -534,17 +509,15 @@ PDXRESULT MACHINE::LoadUNIF(PDXFILE& file)
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT MACHINE::LoadFDS(PDXFILE& file)
+PDXRESULT MACHINE::LoadFDS(PDXFILE& ImageFile)
 {
 	Unload();
-
-	RecentImage = file.Name();
 
 	{
 		PDXSTRING log;
 
 		log  = "MACHINE: Loading FDS file \"";
-		log	+= file.Name();
+		log	+= ImageFile.Name();
 		log += "\"";
 
 		LogOutput( log );
@@ -552,10 +525,7 @@ PDXRESULT MACHINE::LoadFDS(PDXFILE& file)
 
 	fds = new FDS(cpu,ppu);
 
-	if (GeneralContext.ApplyIPS)
-		ApplyIPS( file );
-
-	if (PDX_FAILED(fds->Load( file )))
+	if (PDX_FAILED(fds->Load( ImageFile )))
 	{
 		Unload();
 		return PDX_FAILURE;
@@ -568,7 +538,7 @@ PDXRESULT MACHINE::LoadFDS(PDXFILE& file)
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT MACHINE::LoadNSF(PDXFILE& file)
+PDXRESULT MACHINE::LoadNSF(PDXFILE& ImageFile)
 {
 	Unload();
 
@@ -576,7 +546,7 @@ PDXRESULT MACHINE::LoadNSF(PDXFILE& file)
 		PDXSTRING log;
 
 		log  = "MACHINE: Loading NSF file \"";
-		log	+= file.Name();
+		log	+= ImageFile.Name();
 		log += "\"";
 
 		LogOutput( log );
@@ -584,132 +554,11 @@ PDXRESULT MACHINE::LoadNSF(PDXFILE& file)
 
 	nsf = new NSF(cpu);
 
-	if (PDX_FAILED(nsf->Load( file )))
+	if (PDX_FAILED(nsf->Load( ImageFile )))
 	{
 		Unload();
 		return PDX_FAILURE;
 	}
-
-	return PDX_OK;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-PDXRESULT MACHINE::LoadIPS(PDXFILE& IpsFile)
-{
-	PDX_ASSERT( IpsFile.IsOpen() );
-
-	const BOOL loaded = cartridge || fds;
-
-	Unload();
-
-	PDXFILE ImageFile( PDXFILE::INPUT );
-
-	const PDXSTRING backup( RecentImage );
-
-	RecentImage = IpsFile.Name();
-	RecentImage.ReplaceFileExtension( "nes" );
-
-	if (PDX_FAILED(ImageFile.Open( RecentImage )))
-	{
-		RecentImage.ReplaceFileExtension( "fds" );
-
-		if (PDX_FAILED(ImageFile.Open( RecentImage )))
-		{
-			if (GeneralContext.RomPath.IsEmpty())
-				return MsgWarning("Couldn't find any matching image file!");
-
-			RecentImage.ReplaceFilePath( GeneralContext.RomPath );
-
-			if (PDX_FAILED(ImageFile.Open( RecentImage )))
-			{
-				RecentImage.ReplaceFileExtension( "nes" );
-
-				if (PDX_FAILED(ImageFile.Open( RecentImage )))
-					RecentImage = backup;
-			}
-		}
-	}
-
-	if (RecentImage.IsEmpty() || (!ImageFile.IsOpen() && PDX_FAILED(ImageFile.Open( RecentImage ))))
-		return MsgWarning( loaded ? "Couldn't open image file!" : "Couldn't find any matching image file!");
-
-	PDX_TRY(ApplyIPS( ImageFile, IpsFile ));
-
-	const BOOL ApplyIPS = GeneralContext.ApplyIPS;
-	GeneralContext.ApplyIPS = FALSE;
-
-	const PDXRESULT result = Load( ImageFile );
-	
-	GeneralContext.ApplyIPS = ApplyIPS;
-
-	return result;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MACHINE::ApplyIPS(PDXFILE& ImageFile)
-{
-	PDXSTRING IpsName( ImageFile.Name() );
-	IpsName.ReplaceFileExtension( "ips" );
-
-	PDXFILE IpsFile( PDXFILE::INPUT );
-
-	BOOL ok = FALSE;
-
-	if ((GeneralContext.LookInRomPathForIps || GeneralContext.IpsPath.IsEmpty()) && PDX_SUCCEEDED(IpsFile.Open( IpsName )))
-	{
-		ok = TRUE;
-	}
-	else if (GeneralContext.IpsPath.Size())
-	{
-		IpsName.ReplaceFilePath( GeneralContext.IpsPath );
-		ok = PDX_SUCCEEDED(IpsFile.Open( IpsName ));
-	}
-
-	if (ok)
-	{
-		ApplyIPS( ImageFile, IpsFile );
-	}
-	else
-	{
-		LogOutput("MACHINE: found no matching IPS file");
-	}
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-PDXRESULT MACHINE::ApplyIPS(PDXFILE& ImageFile,PDXFILE& IpsFile)
-{
-	PDXSTRING log;
-
-	if (PDX_FAILED(IPS::Load( ImageFile, IpsFile )))
-	{
-		log  = "MACHINE: warning, IPS file \"";
-		log += IpsFile.Name();
-		log += "\" is either invalid or corrupt";
-	
-		LogOutput( log );
-
-		if (!GeneralContext.DisableWarnings)
-			MsgWarning("Invalid or corrupt IPS file..");
-
-		return PDX_FAILURE;
-	}
-
-	log  = "MACHINE: file \"";
-	log += ImageFile.Name();
-	log += "\" was succesfully patched by IPS file \"";
-	log += IpsFile.Name();
-	log += "\"";
-
-	LogOutput( log );
 
 	return PDX_OK;
 }
@@ -739,29 +588,30 @@ PDXRESULT MACHINE::LoadNST(PDXFILE& file)
 			"Do you still want to load it?"
 		);
 
-		if (!MsgQuestion( wrn, msg ))
+		if (!MsgQuestion(wrn,msg))
 			return PDX_FAILURE;
 
-		if (MsgQuestion( wrn, "Do you want to repair it?" ))
+		if (MsgQuestion(wrn,"Do you want to repair it?"))
 		{
 			const TSIZE pos = file.Position() - sizeof(U32);
 			PDXFILE FixFile;
 
-			if (PDX_SUCCEEDED(FixFile.Open( file.Name(), PDXFILE::APPEND )))
+			if (PDX_SUCCEEDED(FixFile.Open(file.Name(),PDXFILE::APPEND)) && FixFile.Size() >= pos)
 			{
 				FixFile.Seek( PDXFILE::BEGIN, pos );
 				FixFile << U32(cartridge->GetInfo().crc);
 			}
 			else
 			{
-				MsgWarning( "Couldn't repair the file!" );
+				FixFile.Abort();
+				MsgWarning("Couldn't repair the file!");
 			}
 		}
 	}
 
-	PDX_TRY( cpu->LoadState( file ));
-	PDX_TRY( apu->LoadState( file ));
-	PDX_TRY( ppu->LoadState( file ));
+	PDX_TRY( cpu->LoadState( file ) );
+	PDX_TRY( apu->LoadState( file ) );
+	PDX_TRY( ppu->LoadState( file ) );
 
 	if (!file.Readable(sizeof(U8)))
 		return MsgWarning("Corrupt data!");
@@ -814,45 +664,19 @@ PDXRESULT MACHINE::SaveNST(PDXFILE& file) const
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT MACHINE::SaveMovie(const CHAR* const FileName)
+PDXRESULT MACHINE::LoadMovie(const PDXSTRING& FileName)
 {
-	if (!on || (!cartridge && !fds))
-		return PDX_FAILURE;
-
 	if (!movie)
 		movie = new MOVIE(this);
 
-	if (PDX_FAILED(movie->Save( FileName )))
-	{
-		CloseMovie();
-		return PDX_FAILURE;
-	}
-	
-	InitializeControllers();
-
-	return PDX_OK;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-PDXRESULT MACHINE::LoadMovie(const CHAR* const FileName)
-{
-	if (!on || (!cartridge && !fds))
-		return PDX_FAILURE;
-
-	if (!movie)
-		movie = new MOVIE(this);
-	
 	if (PDX_FAILED(movie->Load( FileName )))
 	{
 		CloseMovie();
 		return PDX_FAILURE;
 	}
-  
-	InitializeControllers();
 	
+	InitializeControllers();
+
 	return PDX_OK;
 }
 
@@ -869,11 +693,11 @@ const PDXSTRING* MACHINE::GetMovieFileName() const
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT MACHINE::StartMovie()
+PDXRESULT MACHINE::PlayMovie()
 {
-	if (movie)
+	if (movie && on && IsImage())
 	{
-		movie->Start();
+		movie->Play();
 		return PDX_OK;
 	}
   
@@ -884,13 +708,25 @@ PDXRESULT MACHINE::StartMovie()
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT MACHINE::StopMovie()
+PDXRESULT MACHINE::RecordMovie()
 {
-	if (movie)
+	if (movie && on && IsImage())
 	{
-		movie->Stop();
+		movie->Record();
 		return PDX_OK;
 	}
+
+	return PDX_FAILURE;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+PDXRESULT MACHINE::StopMovie()
+{
+	if (movie && on && IsImage())
+		movie->Stop();
   
 	return PDX_OK;
 }
@@ -902,12 +738,21 @@ PDXRESULT MACHINE::StopMovie()
 PDXRESULT MACHINE::RewindMovie()
 {
 	if (movie)
-	{
 		movie->Rewind();
-		return PDX_OK;
-	}
 
-	return PDX_FAILURE;
+	return PDX_OK;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+PDXRESULT MACHINE::ForwardMovie()
+{
+	if (movie)
+		movie->Forward();
+
+	return PDX_OK;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -925,8 +770,19 @@ PDXRESULT MACHINE::CloseMovie()
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-BOOL MACHINE::IsMoviePlaying()   const { return on && (cartridge || fds) && movie && movie->IsPlaying();   }
-BOOL MACHINE::IsMovieRecording() const { return on && (cartridge || fds) && movie && movie->IsRecording(); }
+BOOL MACHINE::CanPlayMovie()    const { return on && (cartridge || fds) && movie && movie->CanPlay();    }
+BOOL MACHINE::CanStopMovie()    const { return on && (cartridge || fds) && movie && movie->CanStop();    }
+BOOL MACHINE::CanRecordMovie()  const { return on && (cartridge || fds) && movie && movie->CanRecord();  }
+BOOL MACHINE::CanRewindMovie()  const { return on && (cartridge || fds) && movie && movie->CanRewind();  }
+BOOL MACHINE::CanForwardMovie() const { return on && (cartridge || fds) && movie && movie->CanForward(); }
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+BOOL MACHINE::IsMoviePlaying()   const { return on && (cartridge || fds) && movie && movie->IsPlaying();     }
+BOOL MACHINE::IsMovieRecording() const { return on && (cartridge || fds) && movie && movie->IsRecording();   }
+BOOL MACHINE::IsMovieRewinded()  const { return !(on && (cartridge || fds) && movie) || movie->IsRewinded(); }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -959,7 +815,6 @@ PDXRESULT MACHINE::Power(const BOOL state)
 		{
 			LogOutput("MACHINE: power off");
 			on = FALSE;
-
 		}
 	}
 
@@ -1191,8 +1046,8 @@ PDXRESULT MACHINE::Reset(const BOOL hard)
 		{
 			if (movie)
 			{
-				StopMovie();
-				CloseMovie();
+				movie->Stop();
+				movie->Rewind();
 			}
 
 			InitializeControllers();
@@ -1223,8 +1078,7 @@ PDXRESULT MACHINE::Reset(const BOOL hard)
 			if (VsSystem)
 				VsSystem->Reset( hard );
 
-			if (GameGenie)
-				GameGenie->Reset();
+			GameGenie->Reset();
 
 			if (cartridge && cartridge->GetInfo().pRomCrc == 0x885ACC2BUL)
 			{

@@ -43,11 +43,25 @@ public:
 
 	GRAPHICMANAGER(const INT,const UINT);
 
-	PDXRESULT SwitchToFullScreen();
+	enum SCREENTYPE
+	{
+		SCREEN_FACTOR_1X,
+		SCREEN_FACTOR_2X,
+		SCREEN_FACTOR_3X,
+		SCREEN_FACTOR_4X,
+		SCREEN_STRETCHED
+	};
+
+	PDXRESULT SwitchToFullScreen(const SCREENTYPE);
 	PDXRESULT SwitchToWindowed(const RECT&);
 	PDXRESULT BeginDialogMode();
 	PDXRESULT EndDialogMode();
 	PDXRESULT SaveScreenShot();
+	PDXRESULT LoadPalette(const PDXSTRING&);
+	PDXRESULT SetScreenSize(const SCREENTYPE);
+
+	inline UINT GetSelectedDisplayWidth()  const { return adapters[SelectedAdapter].DisplayModes[ModeIndices[SelectedMode]].width;  }
+	inline UINT GetSelectedDisplayHeight() const { return adapters[SelectedAdapter].DisplayModes[ModeIndices[SelectedMode]].height; }
 
 	inline BOOL CanExportBitmaps() const
 	{ return GdiPlusAvailable; }
@@ -63,7 +77,15 @@ public:
 	inline const RECT& GetRectNTSC() const { return ntsc; }
 	inline const RECT& GetRectPAL()  const { return pal;  }
 
+	inline BOOL IsCustomPalette() const
+	{ return SelectedPalette == IDC_GRAPHICS_PALETTE_CUSTOM; }
+
+	inline const PDXSTRING& GetPaletteFile() const
+	{ return PaletteFile; }
+
 private:
+
+	VOID SetScreenSize(const SCREENTYPE,RECT&);
 
 	PDXRESULT Create  (PDXFILE* const);
 	PDXRESULT Destroy (PDXFILE* const);
@@ -102,12 +124,15 @@ private:
 	UINT SelectedEffect;
 	UINT SelectedPalette;
 
+	INT PreviousMode;
+
 	BOOL Support16Bpp;
 	BOOL Support32Bpp;
 	BOOL SupportSRam;
 
 	RECT ntsc;
 	RECT pal;
+	RECT SaveRect;
 
 	PDXSTRING PaletteFile;
 	
@@ -142,7 +167,10 @@ private:
 		enum EFFECT
 		{
 			EFFECT_NONE,
-			EFFECT_SCANLINES
+			EFFECT_SCANLINES,
+			EFFECT_2XSAI,
+			EFFECT_SUPER_2XSAI,
+			EFFECT_SUPER_EAGLE
 		};
 
 		enum PALETTE
@@ -164,7 +192,7 @@ private:
 		RECT ntsc;
 		RECT pal;
 		U8   bpp : 1;
-		U8   effect : 1;
+		U8   effect : 3;
 		U8   offscreen : 1;
 		U8   timing : 1;
 		U8   InfiniteSprites : 1;

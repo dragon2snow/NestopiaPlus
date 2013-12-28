@@ -60,24 +60,31 @@ public:
 	PDXRESULT Pause(const BOOL);
 	PDXRESULT Execute(IO::GFX* const,IO::SFX* const,IO::INPUT* const);
 
-	PDXRESULT Load     (PDXFILE&);
-	PDXRESULT LoadINES (PDXFILE&);
-	PDXRESULT LoadUNIF (PDXFILE&);
+	PDXRESULT LoadRom  (PDXFILE&,const PDXSTRING* const);
+	PDXRESULT LoadINES (PDXFILE&,const PDXSTRING* const);
+	PDXRESULT LoadUNIF (PDXFILE&,const PDXSTRING* const);
 	PDXRESULT LoadFDS  (PDXFILE&);
 	PDXRESULT LoadNSF  (PDXFILE&);
 	PDXRESULT LoadNST  (PDXFILE&);
-	PDXRESULT LoadIPS  (PDXFILE&);
 	PDXRESULT SaveNST  (PDXFILE&) const;
 	
-	PDXRESULT SaveMovie   (const CHAR* const);
-	PDXRESULT LoadMovie   (const CHAR* const);
-	PDXRESULT CloseMovie  ();
-	PDXRESULT StartMovie  ();
-	PDXRESULT StopMovie   ();
-	PDXRESULT RewindMovie ();
+	PDXRESULT LoadMovie    (const PDXSTRING&);
+	PDXRESULT CloseMovie   ();
+	PDXRESULT PlayMovie    ();
+	PDXRESULT RecordMovie  ();
+	PDXRESULT StopMovie    ();
+	PDXRESULT RewindMovie  ();
+	PDXRESULT ForwardMovie ();
 	
+	BOOL CanPlayMovie()    const;
+	BOOL CanStopMovie()    const;
+	BOOL CanRecordMovie()  const;
+	BOOL CanRewindMovie()  const;
+	BOOL CanForwardMovie() const;
+
 	BOOL IsMoviePlaying()   const;
 	BOOL IsMovieRecording() const;
+	BOOL IsMovieRewinded()  const;
 
 	const PDXSTRING* GetMovieFileName() const;
 
@@ -87,6 +94,7 @@ public:
 	BOOL IsOn        () const;
 	BOOL IsOff       () const;
 	BOOL IsPaused    () const;
+	BOOL IsImage     () const;
 	BOOL IsCartridge () const;
 	BOOL IsFds       () const;
 	BOOL IsNsf       () const;
@@ -183,9 +191,6 @@ public:
 
 private:
 
-	VOID ApplyIPS(PDXFILE&);
-	PDXRESULT ApplyIPS(PDXFILE&,PDXFILE&);
-
 	VOID InitializeControllers();
 
 	NES_DECL_POKE( 4016 );
@@ -201,14 +206,13 @@ private:
 	CONTROLLER* expansion;
 	VSSYSTEM* VsSystem;
 	PALETTE* const palette;
-	GAMEGENIE* GameGenie;
+	GAMEGENIE* const GameGenie;
 	FDS* fds;
 	NSF* nsf;
 	BOOL on;
 	BOOL paused;
 	MODE mode;
 	IO::GENERAL::CONTEXT GeneralContext;
-	PDXSTRING RecentImage;
 	MOVIE* movie;
 };
 
