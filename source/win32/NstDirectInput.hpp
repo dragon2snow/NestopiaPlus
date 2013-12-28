@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -91,7 +91,7 @@ namespace Nestopia
 			void Calibrate();
 			void Poll();
 			void Build(const Key*,uint);
-			bool MapKey(Key&,tstring,const System::Guid* = NULL,uint=0) const;
+			bool MapKey(Key&,wcstring,const System::Guid* = NULL,uint=0) const;
 			const HeapString GetKeyName(const Key&) const;
 
 			void BeginScanMode(HWND) const;
@@ -204,7 +204,7 @@ namespace Nestopia
 
 				NST_FORCE_INLINE void Poll();
 
-				bool Map(Key&,tstring) const;
+				bool Map(Key&,wcstring) const;
 				bool Map(Key&,uint) const;
 
 				void BeginScanMode(HWND) const;
@@ -213,7 +213,7 @@ namespace Nestopia
 				void EndScanMode() const;
 
 				bool Assigned(const Key&) const;
-				tstring GetName(const Key&) const;
+				wcstring GetName(const Key&) const;
 
 			private:
 
@@ -272,7 +272,7 @@ namespace Nestopia
 
 				NST_FORCE_INLINE void Poll();
 
-				bool Map(Key&,tstring) const;
+				bool Map(Key&,wcstring) const;
 
 				void BeginScanMode() const;
 				bool Scan(Key&);
@@ -280,7 +280,7 @@ namespace Nestopia
 
 				bool Assigned(const Key&) const;
 				bool SetAxisDeadZone(uint);
-				tstring GetName(const Key&) const;
+				wcstring GetName(const Key&) const;
 
 			private:
 

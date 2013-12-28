@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -37,7 +37,6 @@ namespace Nes
 		{
 			Output::Locker Output::lockCallback;
 			Output::Unlocker Output::unlockCallback;
-			Loader::Callbacker Loader::loadCallback;
 		}
 	}
 
@@ -54,7 +53,7 @@ namespace Nes
 			Sound::CHANNEL_MMC5     == 1U << Core::Apu::Channel::EXT_MMC5     &&
 			Sound::CHANNEL_VRC6     == 1U << Core::Apu::Channel::EXT_VRC6     &&
 			Sound::CHANNEL_VRC7     == 1U << Core::Apu::Channel::EXT_VRC7     &&
-			Sound::CHANNEL_N106     == 1U << Core::Apu::Channel::EXT_N106     &&
+			Sound::CHANNEL_N163     == 1U << Core::Apu::Channel::EXT_N163     &&
 			Sound::CHANNEL_S5B      == 1U << Core::Apu::Channel::EXT_S5B
 		);
 

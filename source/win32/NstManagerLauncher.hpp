@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -65,8 +65,6 @@ namespace Nestopia
 			void OnDisplayChange(Window::Param&);
 			void OnEmuEvent(Emulator::Event,Emulator::Data);
 			void OnAppEvent(Application::Instance::Event,const void*);
-
-			static Nes::Emulator& ImportDatabase(Nes::Emulator&);
 
 			Collection::BitSet state;
 			bool fullscreen;

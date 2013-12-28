@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -22,7 +22,9 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
+#include <cstring>
 #include "NstResourceString.hpp"
+#include "NstWindowParam.hpp"
 #include "NstWindowDialog.hpp"
 #include "NstWindowUser.hpp"
 #include "NstApplicationInstance.hpp"
@@ -36,8 +38,8 @@ namespace Nestopia
 		{
 			class InputDialog
 			{
-				tstring const text;
-				tstring const title;
+				wcstring const text;
+				wcstring const title;
 				HeapString& response;
 				Dialog dialog;
 
@@ -69,7 +71,7 @@ namespace Nestopia
 
 			public:
 
-				InputDialog(tstring const t,tstring const i,HeapString& r)
+				InputDialog(wcstring const t,wcstring const i,HeapString& r)
 				: text(t), title(i), response(r), dialog(IDD_USER_INPUT)
 				{
 					dialog.Messages().Add( WM_INITDIALOG, this, &InputDialog::OnInitDialog );
@@ -83,7 +85,75 @@ namespace Nestopia
 				}
 			};
 
-			static int Present(tstring const text,tstring const title,const uint flags)
+			class ChooseDialog
+			{
+				wcstring const title;
+				wcstring const otherCmd;
+				wcstring* const choices;
+				const uint* indices;
+				const uint numChoices;
+				Dialog dialog;
+
+				ibool OnInitDialog(Param&)
+				{
+					dialog.Text() << title;
+
+					dialog.Control(IDABORT).Text() << otherCmd;
+
+					const Window::Control::ListBox listBox( dialog.ListBox(IDC_CHOOSE_LIST) );
+					Window::Control::ListBox::HScrollBar hScrollBar( listBox.GetWindow() );
+
+					listBox.Reserve( numChoices );
+
+					for (uint i=0; i < numChoices; ++i)
+					{
+						hScrollBar.Update( choices[i], std::wcslen(choices[i]) );
+						listBox.Add( choices[i] ).Data() = (indices ? indices[i] : i);
+					}
+
+					NST_VERIFY( listBox.Size() );
+
+					listBox[0].Select();
+
+					return true;
+				}
+
+				ibool OnCmdDblClk(Window::Param& param)
+				{
+					if (HIWORD(param.wParam) == LBN_DBLCLK)
+					{
+						dialog.Close( dialog.ListBox(IDC_CHOOSE_LIST).Selection().Data() + 1 );
+						return true;
+					}
+
+					return false;
+				}
+
+				ibool OnCmdOk(Param& param)
+				{
+					if (param.Button().Clicked())
+						dialog.Close( dialog.ListBox(IDC_CHOOSE_LIST).Selection().Data() + 1 );
+
+					return true;
+				}
+
+			public:
+
+				ChooseDialog(wcstring t,wcstring o,wcstring* c,const uint* d,uint n)
+				: title(t), otherCmd(o), choices(c), indices(d), numChoices(n), dialog(IDD_CHOOSE)
+				{
+					dialog.Messages().Add( WM_INITDIALOG, this, &ChooseDialog::OnInitDialog );
+					dialog.Commands().Add( IDC_CHOOSE_LIST, this, &ChooseDialog::OnCmdDblClk );
+					dialog.Commands().Add( IDOK, this, &ChooseDialog::OnCmdOk );
+				}
+
+				uint Open()
+				{
+					return dialog.Open();
+				}
+			};
+
+			static int Present(wcstring const text,wcstring const title,const uint flags)
 			{
 				return ::MessageBox
 				(
@@ -94,12 +164,12 @@ namespace Nestopia
 				);
 			}
 
-			void Fail(tstring const text,tstring const title)
+			void Fail(wcstring const text,wcstring const title)
 			{
-				Present( text, title && *title ? title : _T("Nestopia Error"), MB_OK|MB_ICONERROR );
+				Present( text, title && *title ? title : L"Nestopia Error", MB_OK|MB_ICONERROR );
 			}
 
-			void Fail(tstring const text,const uint titleId)
+			void Fail(wcstring const text,const uint titleId)
 			{
 				Fail( text, Resource::String(titleId ? titleId : IDS_TITLE_ERROR).Ptr() );
 			}
@@ -109,12 +179,12 @@ namespace Nestopia
 				Fail( Resource::String(textId).Ptr(), titleId );
 			}
 
-			void Warn(tstring const text,tstring const title)
+			void Warn(wcstring const text,wcstring const title)
 			{
-				Present( text, title && *title ? title : _T("Nestopia Warning"), MB_OK|MB_ICONWARNING );
+				Present( text, title && *title ? title : L"Nestopia Warning", MB_OK|MB_ICONWARNING );
 			}
 
-			void Warn(tstring const text,const uint titleId)
+			void Warn(wcstring const text,const uint titleId)
 			{
 				Warn( text, Resource::String(titleId ? titleId : IDS_TITLE_WARNING).Ptr() );
 			}
@@ -124,12 +194,12 @@ namespace Nestopia
 				Warn( Resource::String(textId).Ptr(), titleId );
 			}
 
-			void Inform(tstring const text,tstring const title)
+			void Inform(wcstring const text,wcstring const title)
 			{
-				Present( text, title && *title ? title : _T("Nestopia"), MB_OK|MB_ICONINFORMATION );
+				Present( text, title && *title ? title : L"Nestopia", MB_OK|MB_ICONINFORMATION );
 			}
 
-			void Inform(tstring const text,const uint titleId)
+			void Inform(wcstring const text,const uint titleId)
 			{
 				Inform( text, Resource::String(titleId ? titleId : IDS_TITLE_NESTOPIA).Ptr() );
 			}
@@ -139,12 +209,12 @@ namespace Nestopia
 				Inform( Resource::String(textId).Ptr(), titleId );
 			}
 
-			bool Confirm(tstring const text,tstring const title)
+			bool Confirm(wcstring const text,wcstring const title)
 			{
-				return Present( text, title && *title ? title : _T("Nestopia"), MB_YESNO|MB_ICONQUESTION ) == IDYES;
+				return Present( text, title && *title ? title : L"Nestopia", MB_YESNO|MB_ICONQUESTION ) == IDYES;
 			}
 
-			bool Confirm(tstring const text,const uint titleId)
+			bool Confirm(wcstring const text,const uint titleId)
 			{
 				return Confirm( text, Resource::String(titleId ? titleId : IDS_TITLE_NESTOPIA).Ptr() );
 			}
@@ -154,9 +224,21 @@ namespace Nestopia
 				return Confirm( Resource::String(textId), titleId );
 			}
 
-			bool Input (HeapString& response,tstring const text,tstring const title)
+			bool Input (HeapString& response,wcstring const text,wcstring const title)
 			{
 				return InputDialog( text, title ? title : Resource::String(IDS_TITLE_NESTOPIA), response ).Open();
+			}
+
+			uint Choose(uint titleId,uint cmdOtherId,wcstring* choices,uint numChoices,const uint* indices)
+			{
+				return ChooseDialog
+				(
+					titleId ? Resource::String(titleId).Ptr() : L"Choose",
+					cmdOtherId ? Resource::String(cmdOtherId).Ptr() : L"Abort",
+					choices,
+					indices,
+					numChoices
+				).Open();
 			}
 		}
 	}

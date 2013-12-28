@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -58,79 +58,123 @@ namespace Nestopia
 		FrameClock::FrameClock(const Configuration& cfg,bool mGPU)
 		: dialog(IDD_TIMING,this,Handlers::messages,Handlers::commands), modernGPU(mGPU)
 		{
-			if (System::Info::GetCpuSpeed() && System::Info::GetCpuSpeed() <= MAX_MHZ_AUTO_FRAME_SKIP_ENABLE)
-				settings.autoFrameSkip = (cfg["timer auto frame skip"] != Configuration::NO);
-			else
-				settings.autoFrameSkip = (cfg["timer auto frame skip"] == Configuration::YES);
+			Configuration::ConstSection timing( cfg["timing"] );
 
-			if (!modernGPU || System::Info::GetCpuSpeed() <= MAX_MHZ_TRIPLE_BUFFERING_ENABLE)
-				settings.tripleBuffering = (cfg["timer triple buffering"] != Configuration::NO);
-			else
-				settings.tripleBuffering = (cfg["timer triple buffering"] == Configuration::YES);
+			{
+				Configuration::ConstSection autoFrameSkipping( timing["auto-frame-skipping"] );
 
-			if (!System::Timer::HasPerformanceCounter())
-			{
-				settings.pfCounter = false;
-			}
-			else if (System::Info::GetCpuCount() == 1)
-			{
-				settings.pfCounter = (cfg["timer performance counter"] != Configuration::NO);
-			}
-			else
-			{
-				settings.pfCounter = (cfg["timer performance counter"] == Configuration::YES);
+				if (System::Info::GetCpuSpeed() && System::Info::GetCpuSpeed() <= MAX_MHZ_AUTO_FRAME_SKIP_ENABLE)
+					settings.autoFrameSkip = !autoFrameSkipping["enabled"].No();
+				else
+					settings.autoFrameSkip = autoFrameSkipping["enabled"].Yes();
+
+				settings.maxFrameSkips = autoFrameSkipping["max-frames"].Int();
+
+				settings.maxFrameSkips =
+				(
+					settings.maxFrameSkips ? NST_CLAMP(settings.maxFrameSkips,MIN_FRAME_SKIPS,MAX_FRAME_SKIPS) :
+                                             DEFAULT_FRAME_SKIPS
+				);
 			}
 
-			settings.vsync                 = ( cfg[ "timer vsync"                ] == Configuration::YES );
-			settings.rewinder              = ( cfg[ "timer rewinder"             ] == Configuration::YES );
-			settings.useDefaultSpeed       = ( cfg[ "timer default speed"        ] != Configuration::NO  );
-			settings.useDefaultRewindSpeed = ( cfg[ "timer default rewind speed" ] != Configuration::NO  );
-			settings.noRewindSound         = ( cfg[ "timer no rewind sound"      ] == Configuration::YES );
+			{
+				Configuration::ConstSection performance( timing["performance"] );
 
-			settings.speed = cfg[ "timer speed" ];
-			settings.altSpeed = cfg[ "timer alternative speed" ];
-			settings.rewindSpeed = cfg[ "timer rewind speed" ];
-			settings.maxFrameSkips = cfg[ "timer max frame skips" ];
+				if (!modernGPU || System::Info::GetCpuSpeed() <= MAX_MHZ_TRIPLE_BUFFERING_ENABLE)
+					settings.tripleBuffering = !performance["triple-buffering"].No();
+				else
+					settings.tripleBuffering = performance["triple-buffering"].Yes();
 
-			settings.maxFrameSkips =
-			(
-				settings.maxFrameSkips ? NST_CLAMP(settings.maxFrameSkips,MIN_FRAME_SKIPS,MAX_FRAME_SKIPS) :
-                                         DEFAULT_FRAME_SKIPS
-			);
+				if (!System::Timer::HasPerformanceCounter())
+				{
+					settings.pfCounter = false;
+				}
+				else if (System::Info::GetCpuCount() == 1)
+				{
+					settings.pfCounter = !performance["high-precision-timer"].No();
+				}
+				else
+				{
+					settings.pfCounter = performance["high-precision-timer"].Yes();
+				}
 
-			settings.speed =
-			(
-				settings.speed ? NST_CLAMP(settings.speed,MIN_SPEED,MAX_SPEED) :
-                                 DEFAULT_SPEED
-			);
+				settings.vsync = performance["vsync"].Yes();
+			}
 
-			settings.altSpeed =
-			(
-				settings.altSpeed ? NST_CLAMP(settings.altSpeed,MIN_SPEED,MAX_SPEED) :
-									DEFAULT_ALT_SPEED
-			);
+			{
+				Configuration::ConstSection rewinder( timing["rewinder"] );
 
-			settings.rewindSpeed =
-			(
-				settings.rewindSpeed ? NST_CLAMP(settings.rewindSpeed,MIN_SPEED,MAX_SPEED) :
-                                       DEFAULT_REWIND_SPEED
-			);
+				settings.rewinder = rewinder["enabled"].Yes();
+				settings.noRewindSound = rewinder["sound"].No();
+				settings.useDefaultRewindSpeed = !rewinder["use-native-speed"].No();
+
+				settings.rewindSpeed = rewinder["speed"].Int();
+
+				settings.rewindSpeed =
+				(
+					settings.rewindSpeed ? NST_CLAMP(settings.rewindSpeed,MIN_SPEED,MAX_SPEED) :
+                                           DEFAULT_REWIND_SPEED
+				);
+			}
+
+			{
+				Configuration::ConstSection speed( timing["speed"] );
+
+				settings.speed = speed["default-speed"].Int();
+
+				settings.speed =
+				(
+					settings.speed ? NST_CLAMP(settings.speed,MIN_SPEED,MAX_SPEED) :
+                                     DEFAULT_SPEED
+				);
+
+				settings.altSpeed = speed["alt-speed"].Int();
+
+				settings.altSpeed =
+				(
+					settings.altSpeed ? NST_CLAMP(settings.altSpeed,MIN_SPEED,MAX_SPEED) :
+										DEFAULT_ALT_SPEED
+				);
+
+				settings.useDefaultSpeed = !speed["use-native-speed"].No();
+			}
 		}
 
 		void FrameClock::Save(Configuration& cfg) const
 		{
-			cfg[ "timer speed"                ] = uint(settings.speed);
-			cfg[ "timer alternative speed"    ] = uint(settings.altSpeed);
-			cfg[ "timer rewind speed"         ] = uint(settings.rewindSpeed);
-			cfg[ "timer max frame skips"      ] = uint(settings.maxFrameSkips);
-			cfg[ "timer auto frame skip"      ].YesNo() = settings.autoFrameSkip;
-			cfg[ "timer vsync"                ].YesNo() = settings.vsync;
-			cfg[ "timer triple buffering"     ].YesNo() = settings.tripleBuffering;
-			cfg[ "timer rewinder"             ].YesNo() = settings.rewinder;
-			cfg[ "timer default speed"        ].YesNo() = settings.useDefaultSpeed;
-			cfg[ "timer default rewind speed" ].YesNo() = settings.useDefaultRewindSpeed;
-			cfg[ "timer no rewind sound"      ].YesNo() = settings.noRewindSound;
-			cfg[ "timer performance counter"  ].YesNo() = settings.pfCounter;
+			Configuration::Section timing( cfg["timing"] );
+
+			{
+				Configuration::Section rewinder( timing["rewinder"] );
+
+				rewinder[ "enabled"          ].YesNo() = settings.rewinder;
+				rewinder[ "use-native-speed" ].YesNo() = settings.useDefaultRewindSpeed;
+				rewinder[ "speed"            ].Int() = settings.rewindSpeed;
+				rewinder[ "sound"            ].YesNo() = !settings.noRewindSound;
+			}
+
+			{
+				Configuration::Section autoFrameSkipping( timing["auto-frame-skipping"] );
+
+				autoFrameSkipping[ "max-frames" ].Int() = settings.maxFrameSkips;
+				autoFrameSkipping[ "enabled"    ].YesNo() = settings.autoFrameSkip;
+			}
+
+			{
+				Configuration::Section speed( timing["speed"] );
+
+				speed[ "default-speed"    ].Int() = settings.speed;
+				speed[ "alt-speed"        ].Int() = settings.altSpeed;
+				speed[ "use-native-speed" ].YesNo() = settings.useDefaultSpeed;
+			}
+
+			{
+				Configuration::Section performance( timing["performance"] );
+
+				performance[ "vsync"                ].YesNo() = settings.vsync;
+				performance[ "triple-buffering"     ].YesNo() = settings.tripleBuffering;
+				performance[ "high-precision-timer" ].YesNo() = settings.pfCounter;
+			}
 		}
 
 		void FrameClock::UpdateRewinderEnable() const

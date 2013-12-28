@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -72,27 +72,40 @@ namespace Nes
 				PAL  = 0x08
 			};
 
-			enum
+			enum FavoredSystem
 			{
-				CLK_NTSC_DOT   = Clocks::NTSC_CLK,
-				CLK_NTSC_DIV   = Clocks::NTSC_DIV,
-				CLK_NTSC_VSYNC = Clocks::RP2C02_HVSYNC * ulong(Clocks::NTSC_DIV),
-				CLK_PAL_DOT    = Clocks::PAL_CLK,
-				CLK_PAL_DIV    = Clocks::PAL_DIV,
-				CLK_PAL_VSYNC  = Clocks::RP2C07_HVSYNC * ulong(Clocks::PAL_DIV)
+				FAVORED_NES_NTSC = Core::FAVORED_NES_NTSC,
+				FAVORED_NES_PAL  = Core::FAVORED_NES_PAL,
+				FAVORED_FAMICOM  = Core::FAVORED_FAMICOM
 			};
 
-			Result Load          (std::istream&) throw();
-			Result LoadCartridge (std::istream&) throw();
-			Result LoadDisk      (std::istream&) throw();
-			Result LoadSound     (std::istream&) throw();
+			enum AskProfile
+			{
+				DONT_ASK_PROFILE,
+				ASK_PROFILE
+			};
+
+			enum
+			{
+				CLK_NTSC_DOT   = Core::CLK_NTSC,
+				CLK_NTSC_DIV   = Core::CLK_NTSC_DIV,
+				CLK_NTSC_VSYNC = Core::PPU_RP2C02_HVSYNC * ulong(Core::CLK_NTSC_DIV),
+				CLK_PAL_DOT    = Core::CLK_PAL,
+				CLK_PAL_DIV    = Core::CLK_PAL_DIV,
+				CLK_PAL_VSYNC  = Core::PPU_RP2C07_HVSYNC * ulong(Core::CLK_PAL_DIV)
+			};
+
+			Result Load          (std::istream&,FavoredSystem,AskProfile=DONT_ASK_PROFILE,std::istream* = NULL) throw();
+			Result LoadCartridge (std::istream&,FavoredSystem,AskProfile=DONT_ASK_PROFILE,std::istream* = NULL) throw();
+			Result LoadDisk      (std::istream&,FavoredSystem) throw();
+			Result LoadSound     (std::istream&,FavoredSystem) throw();
 			Result Unload        () throw();
 
 			Result Power (bool) throw();
 			Result Reset (bool) throw();
 
-			Mode   GetMode() const throw();
-			Mode   GetDesiredMode() const throw();
+			Mode GetMode() const throw();
+			Mode GetDesiredMode() const throw();
 			Result SetMode (Mode) throw();
 
 			enum Compression
@@ -132,7 +145,7 @@ namespace Nes
 
 		private:
 
-			Result Load(std::istream&,uint);
+			Result Load(std::istream&,FavoredSystem,AskProfile,std::istream*,uint);
 		};
 
 		struct Machine::EventCaller : Core::UserCallback<Machine::EventCallback>

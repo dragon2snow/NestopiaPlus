@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -47,7 +47,8 @@ namespace Nestopia
 			typedef Nes::Input::Controllers::PowerGlove        PowerGlove;
 			typedef Nes::Input::Controllers::Mouse             Mouse;
 			typedef Nes::Input::Controllers::OekaKidsTablet    OekaKidsTablet;
-			typedef Nes::Input::Controllers::HyperShot         HyperShot;
+			typedef Nes::Input::Controllers::KonamiHyperShot   KonamiHyperShot;
+			typedef Nes::Input::Controllers::BandaiHyperShot   BandaiHyperShot;
 			typedef Nes::Input::Controllers::CrazyClimber      CrazyClimber;
 			typedef Nes::Input::Controllers::FamilyTrainer     FamilyTrainer;
 			typedef Nes::Input::Controllers::FamilyKeyboard    FamilyKeyboard;
@@ -70,7 +71,8 @@ namespace Nestopia
 			static bool NST_CALLBACK PollPowerGlove        (UserData,PowerGlove&);
 			static bool NST_CALLBACK PollMouse             (UserData,Mouse&);
 			static bool NST_CALLBACK PollOekaKidsTablet    (UserData,OekaKidsTablet&);
-			static bool NST_CALLBACK PollHyperShot         (UserData,HyperShot&);
+			static bool NST_CALLBACK PollKonamiHyperShot   (UserData,KonamiHyperShot&);
+			static bool NST_CALLBACK PollBandaiHyperShot   (UserData,BandaiHyperShot&);
 			static bool NST_CALLBACK PollCrazyClimber      (UserData,CrazyClimber&);
 			static bool NST_CALLBACK PollFamilyTrainer     (UserData,FamilyTrainer&);
 			static bool NST_CALLBACK PollFamilyKeyboard    (UserData,FamilyKeyboard&,uint,uint);
@@ -162,13 +164,16 @@ namespace Nestopia
 				{ IDM_MACHINE_INPUT_EXP_PACHINKO,            &Input::OnCmdMachinePort                 },
 				{ IDM_MACHINE_INPUT_EXP_PADDLE,              &Input::OnCmdMachinePort                 },
 				{ IDM_MACHINE_INPUT_EXP_OEKAKIDSTABLET,      &Input::OnCmdMachinePort                 },
-				{ IDM_MACHINE_INPUT_EXP_HYPERSHOT,           &Input::OnCmdMachinePort                 },
+				{ IDM_MACHINE_INPUT_EXP_KONAMIHYPERSHOT,     &Input::OnCmdMachinePort                 },
+				{ IDM_MACHINE_INPUT_EXP_BANDAIHYPERSHOT,     &Input::OnCmdMachinePort                 },
 				{ IDM_MACHINE_INPUT_EXP_CRAZYCLIMBER,        &Input::OnCmdMachinePort                 },
 				{ IDM_MACHINE_INPUT_EXP_MAHJONG,             &Input::OnCmdMachinePort                 },
 				{ IDM_MACHINE_INPUT_EXP_EXCITINGBOXING,      &Input::OnCmdMachinePort                 },
 				{ IDM_MACHINE_INPUT_EXP_TOPRIDER,            &Input::OnCmdMachinePort                 },
 				{ IDM_MACHINE_INPUT_EXP_POKKUNMOGURAA,       &Input::OnCmdMachinePort                 },
 				{ IDM_MACHINE_INPUT_EXP_PARTYTAP,            &Input::OnCmdMachinePort                 },
+				{ IDM_MACHINE_INPUT_EXP_TURBOFILE,           &Input::OnCmdMachinePort                 },
+				{ IDM_MACHINE_INPUT_EXP_BARCODEWORLD,        &Input::OnCmdMachinePort                 },
 				{ IDM_MACHINE_INPUT_ADAPTER_AUTO,            &Input::OnCmdMachineAdapter              },
 				{ IDM_MACHINE_INPUT_ADAPTER_NES,             &Input::OnCmdMachineAdapter              },
 				{ IDM_MACHINE_INPUT_ADAPTER_FAMICOM,         &Input::OnCmdMachineAdapter              },
@@ -197,7 +202,8 @@ namespace Nestopia
 			Controllers::PowerGlove::callback.Set        ( &Callbacks::PollPowerGlove,        this    );
 			Controllers::Mouse::callback.Set             ( &Callbacks::PollMouse,             &cursor );
 			Controllers::OekaKidsTablet::callback.Set    ( &Callbacks::PollOekaKidsTablet,    &cursor );
-			Controllers::HyperShot::callback.Set         ( &Callbacks::PollHyperShot,         this    );
+			Controllers::KonamiHyperShot::callback.Set   ( &Callbacks::PollKonamiHyperShot,   this    );
+			Controllers::BandaiHyperShot::callback.Set   ( &Callbacks::PollBandaiHyperShot,   this    );
 			Controllers::FamilyTrainer::callback.Set     ( &Callbacks::PollFamilyTrainer,     this    );
 			Controllers::FamilyKeyboard::callback.Set    ( &Callbacks::PollFamilyKeyboard,    this    );
 			Controllers::SuborKeyboard::callback.Set     ( &Callbacks::PollSuborKeyboard,     this    );
@@ -213,18 +219,20 @@ namespace Nestopia
 			Controllers::VsSystem::callback.Set          ( &Callbacks::PollVsSystem,          this    );
 			Controllers::KaraokeStudio::callback.Set     ( &Callbacks::PollKaraokeStudio,     this    );
 
+			Configuration::ConstSection machine( cfg["machine"] );
+
 			{
-				const GenericString type( cfg["machine adapter"] );
+				const GenericString type( machine["adapter"].Str() );
 
 				SetAdapter
 				(
-					type == _T("nes")     ? IDM_MACHINE_INPUT_ADAPTER_NES :
-					type == _T("famicom") ? IDM_MACHINE_INPUT_ADAPTER_FAMICOM :
-											IDM_MACHINE_INPUT_ADAPTER_AUTO
+					type == L"nes"     ? IDM_MACHINE_INPUT_ADAPTER_NES :
+					type == L"famicom" ? IDM_MACHINE_INPUT_ADAPTER_FAMICOM :
+                                         IDM_MACHINE_INPUT_ADAPTER_AUTO
 				);
 			}
 
-			menu[IDM_MACHINE_INPUT_AUTOSELECT].Check( cfg["machine autoselect controllers"] != Configuration::NO );
+			menu[IDM_MACHINE_INPUT_AUTOSELECT].Check( !machine["auto-select-controllers"].No() );
 
 			{
 				NST_COMPILE_ASSERT
@@ -234,12 +242,12 @@ namespace Nestopia
 					Emulator::EVENT_PORT4_CONTROLLER - Emulator::EVENT_PORT1_CONTROLLER == 3
 				);
 
-				String::Stack<16,char> string("machine port #");
+				String::Stack<16,char> string("port-#");
 
 				for (uint i=0; i < 5; ++i)
 				{
-					string[13] = '1' + i;
-					const GenericString type( cfg[string] );
+					string[5] = '1' + i;
+					const GenericString type( machine[string.Ptr()].Str() );
 
 					Nes::Input::Type controller = Nes::Input::UNCONNECTED;
 
@@ -248,43 +256,46 @@ namespace Nestopia
 						case 0:
 						case 1:
 
-                                 if (type == _T( "zapper"     )) { controller = Nes::Input::ZAPPER;     break; }
-							else if (type == _T( "paddle"     )) { controller = Nes::Input::PADDLE;     break; }
-							else if (type == _T( "powerpad"   )) { controller = Nes::Input::POWERPAD;   break; }
-							else if (type == _T( "powerglove" )) { controller = Nes::Input::POWERGLOVE; break; }
-							else if (type == _T( "mouse"      )) { controller = Nes::Input::MOUSE;      break; }
-							else if (type == _T( "rob"        )) { controller = Nes::Input::ROB;        break; }
+                                 if (type == L"zapper"     ) { controller = Nes::Input::ZAPPER;     break; }
+							else if (type == L"paddle"     ) { controller = Nes::Input::PADDLE;     break; }
+							else if (type == L"powerpad"   ) { controller = Nes::Input::POWERPAD;   break; }
+							else if (type == L"powerglove" ) { controller = Nes::Input::POWERGLOVE; break; }
+							else if (type == L"mouse"      ) { controller = Nes::Input::MOUSE;      break; }
+							else if (type == L"rob"        ) { controller = Nes::Input::ROB;        break; }
 
 						case 2:
 						case 3:
 
-                                 if (type == _T( "pad1"        )) controller = Nes::Input::PAD1;
-							else if (type == _T( "pad2"        )) controller = Nes::Input::PAD2;
-							else if (type == _T( "pad3"        )) controller = Nes::Input::PAD3;
-							else if (type == _T( "pad4"        )) controller = Nes::Input::PAD4;
-							else if (type == _T( "unconnected" )) controller = Nes::Input::UNCONNECTED;
-							else if (i == 0                     ) controller = Nes::Input::PAD1;
-							else if (i == 1                     ) controller = Nes::Input::PAD2;
+                                 if (type == L"pad1"        ) controller = Nes::Input::PAD1;
+							else if (type == L"pad2"        ) controller = Nes::Input::PAD2;
+							else if (type == L"pad3"        ) controller = Nes::Input::PAD3;
+							else if (type == L"pad4"        ) controller = Nes::Input::PAD4;
+							else if (type == L"unconnected" ) controller = Nes::Input::UNCONNECTED;
+							else if (i == 0                 ) controller = Nes::Input::PAD1;
+							else if (i == 1                 ) controller = Nes::Input::PAD2;
 
 							break;
 
 						case 4:
 
-                                 if (type == _T( "paddle"            )) controller = Nes::Input::PADDLE;
-							else if (type == _T( "familytrainer"     )) controller = Nes::Input::FAMILYTRAINER;
-							else if (type == _T( "familykeyboard"    )) controller = Nes::Input::FAMILYKEYBOARD;
-							else if (type == _T( "suborkeyboard"     )) controller = Nes::Input::SUBORKEYBOARD;
-							else if (type == _T( "doremikkokeyboard" )) controller = Nes::Input::DOREMIKKOKEYBOARD;
-							else if (type == _T( "horitrack"         )) controller = Nes::Input::HORITRACK;
-							else if (type == _T( "pachinko"          )) controller = Nes::Input::PACHINKO;
-							else if (type == _T( "oekakidstablet"    )) controller = Nes::Input::OEKAKIDSTABLET;
-							else if (type == _T( "hypershot"         )) controller = Nes::Input::HYPERSHOT;
-							else if (type == _T( "crazyclimber"      )) controller = Nes::Input::CRAZYCLIMBER;
-							else if (type == _T( "mahjong"           )) controller = Nes::Input::MAHJONG;
-							else if (type == _T( "excitingboxing"    )) controller = Nes::Input::EXCITINGBOXING;
-							else if (type == _T( "toprider"          )) controller = Nes::Input::TOPRIDER;
-							else if (type == _T( "pokkunmoguraa"     )) controller = Nes::Input::POKKUNMOGURAA;
-							else if (type == _T( "partytap"          )) controller = Nes::Input::PARTYTAP;
+                                 if (type == L"paddle"            ) controller = Nes::Input::PADDLE;
+							else if (type == L"familytrainer"     ) controller = Nes::Input::FAMILYTRAINER;
+							else if (type == L"familykeyboard"    ) controller = Nes::Input::FAMILYKEYBOARD;
+							else if (type == L"suborkeyboard"     ) controller = Nes::Input::SUBORKEYBOARD;
+							else if (type == L"doremikkokeyboard" ) controller = Nes::Input::DOREMIKKOKEYBOARD;
+							else if (type == L"horitrack"         ) controller = Nes::Input::HORITRACK;
+							else if (type == L"pachinko"          ) controller = Nes::Input::PACHINKO;
+							else if (type == L"oekakidstablet"    ) controller = Nes::Input::OEKAKIDSTABLET;
+							else if (type == L"konamihypershot"   ) controller = Nes::Input::KONAMIHYPERSHOT;
+							else if (type == L"bandaihypershot"   ) controller = Nes::Input::BANDAIHYPERSHOT;
+							else if (type == L"crazyclimber"      ) controller = Nes::Input::CRAZYCLIMBER;
+							else if (type == L"mahjong"           ) controller = Nes::Input::MAHJONG;
+							else if (type == L"excitingboxing"    ) controller = Nes::Input::EXCITINGBOXING;
+							else if (type == L"toprider"          ) controller = Nes::Input::TOPRIDER;
+							else if (type == L"pokkunmoguraa"     ) controller = Nes::Input::POKKUNMOGURAA;
+							else if (type == L"partytap"          ) controller = Nes::Input::PARTYTAP;
+							else if (type == L"turbofile"         ) controller = Nes::Input::TURBOFILE;
+							else if (type == L"barcodeworld"      ) controller = Nes::Input::BARCODEWORLD;
 
 							break;
 					}
@@ -307,7 +318,8 @@ namespace Nestopia
 			Controllers::PowerGlove::callback.Unset();
 			Controllers::Mouse::callback.Unset();
 			Controllers::OekaKidsTablet::callback.Unset();
-			Controllers::HyperShot::callback.Unset();
+			Controllers::KonamiHyperShot::callback.Unset();
+			Controllers::BandaiHyperShot::callback.Unset();
 			Controllers::FamilyTrainer::callback.Unset();
 			Controllers::FamilyKeyboard::callback.Unset();
 			Controllers::SuborKeyboard::callback.Unset();
@@ -326,9 +338,11 @@ namespace Nestopia
 
 		void Input::Save(Configuration& cfg) const
 		{
-			cfg["machine autoselect controllers"].YesNo() = menu[IDM_MACHINE_INPUT_AUTOSELECT].Checked();
+			Configuration::Section machine( cfg["machine"] );
 
-			cfg["machine adapter"] =
+			machine["auto-select-controllers"].YesNo() = menu[IDM_MACHINE_INPUT_AUTOSELECT].Checked();
+
+			machine["adapter"].Str() =
 			(
 				menu[ IDM_MACHINE_INPUT_ADAPTER_NES     ].Checked() ? "nes" :
 				menu[ IDM_MACHINE_INPUT_ADAPTER_FAMICOM ].Checked() ? "famicom" :
@@ -336,43 +350,46 @@ namespace Nestopia
 			);
 
 			{
-				String::Stack<16,char> string("machine port #");
+				String::Stack<16,char> string("port-x");
 
 				for (uint i=0; i < 5; ++i)
 				{
-					tstring type;
+					cstring type;
 
 					switch (Nes::Input(emulator).GetConnectedController( i ))
 					{
-						case Nes::Input::PAD1:              type = _T( "pad1"              ); break;
-						case Nes::Input::PAD2:              type = _T( "pad2"              ); break;
-						case Nes::Input::PAD3:              type = _T( "pad3"              ); break;
-						case Nes::Input::PAD4:              type = _T( "pad4"              ); break;
-						case Nes::Input::ZAPPER:            type = _T( "zapper"            ); break;
-						case Nes::Input::PADDLE:            type = _T( "paddle"            ); break;
-						case Nes::Input::POWERPAD:          type = _T( "powerpad"          ); break;
-						case Nes::Input::POWERGLOVE:        type = _T( "powerglove"        ); break;
-						case Nes::Input::MOUSE:             type = _T( "mouse"             ); break;
-						case Nes::Input::ROB:               type = _T( "rob"               ); break;
-						case Nes::Input::FAMILYTRAINER:     type = _T( "familytrainer"     ); break;
-						case Nes::Input::FAMILYKEYBOARD:    type = _T( "familykeyboard"    ); break;
-						case Nes::Input::SUBORKEYBOARD:     type = _T( "suborkeyboard"     ); break;
-						case Nes::Input::DOREMIKKOKEYBOARD: type = _T( "doremikkokeyboard" ); break;
-						case Nes::Input::HORITRACK:         type = _T( "horitrack"         ); break;
-						case Nes::Input::PACHINKO:          type = _T( "pachinko"          ); break;
-						case Nes::Input::OEKAKIDSTABLET:    type = _T( "oekakidstablet"    ); break;
-						case Nes::Input::HYPERSHOT:         type = _T( "hypershot"         ); break;
-						case Nes::Input::CRAZYCLIMBER:      type = _T( "crazyclimber"      ); break;
-						case Nes::Input::MAHJONG:           type = _T( "mahjong"           ); break;
-						case Nes::Input::EXCITINGBOXING:    type = _T( "excitingboxing"    ); break;
-						case Nes::Input::TOPRIDER:          type = _T( "toprider"          ); break;
-						case Nes::Input::POKKUNMOGURAA:     type = _T( "pokkunmoguraa"     ); break;
-						case Nes::Input::PARTYTAP:          type = _T( "partytap"          ); break;
-						default:                            type = _T( "unconnected"       ); break;
+						case Nes::Input::PAD1:              type = "pad1";              break;
+						case Nes::Input::PAD2:              type = "pad2";              break;
+						case Nes::Input::PAD3:              type = "pad3";              break;
+						case Nes::Input::PAD4:              type = "pad4";              break;
+						case Nes::Input::ZAPPER:            type = "zapper";            break;
+						case Nes::Input::PADDLE:            type = "paddle";            break;
+						case Nes::Input::POWERPAD:          type = "powerpad";          break;
+						case Nes::Input::POWERGLOVE:        type = "powerglove";        break;
+						case Nes::Input::MOUSE:             type = "mouse";             break;
+						case Nes::Input::ROB:               type = "rob";               break;
+						case Nes::Input::FAMILYTRAINER:     type = "familytrainer";     break;
+						case Nes::Input::FAMILYKEYBOARD:    type = "familykeyboard";    break;
+						case Nes::Input::SUBORKEYBOARD:     type = "suborkeyboard";     break;
+						case Nes::Input::DOREMIKKOKEYBOARD: type = "doremikkokeyboard"; break;
+						case Nes::Input::HORITRACK:         type = "horitrack";         break;
+						case Nes::Input::PACHINKO:          type = "pachinko";          break;
+						case Nes::Input::OEKAKIDSTABLET:    type = "oekakidstablet";    break;
+						case Nes::Input::KONAMIHYPERSHOT:   type = "konamihypershot";   break;
+						case Nes::Input::BANDAIHYPERSHOT:   type = "bandaihypershot";   break;
+						case Nes::Input::CRAZYCLIMBER:      type = "crazyclimber";      break;
+						case Nes::Input::MAHJONG:           type = "mahjong";           break;
+						case Nes::Input::EXCITINGBOXING:    type = "excitingboxing";    break;
+						case Nes::Input::TOPRIDER:          type = "toprider";          break;
+						case Nes::Input::POKKUNMOGURAA:     type = "pokkunmoguraa";     break;
+						case Nes::Input::PARTYTAP:          type = "partytap";          break;
+						case Nes::Input::TURBOFILE:         type = "turbofile";         break;
+						case Nes::Input::BARCODEWORLD:      type = "barcodeworld";      break;
+						default:                            type = "unconnected";       break;
 					}
 
-					string[13] = '1' + i;
-					cfg[string] = type;
+					string[5] = '1' + i;
+					machine[string.Ptr()].Str() = type;
 				}
 			}
 
@@ -426,60 +443,58 @@ namespace Nestopia
 
 			static const ushort lut[Settings::NUM_COMMAND_KEYS][2] =
 			{
-				{ Settings::FILE_KEYS    + Settings::FILE_KEY_OPEN,                  IDM_FILE_OPEN                        },
-				{ Settings::FILE_KEYS    + Settings::FILE_KEY_LOAD_SCRIPT,           IDM_FILE_LOAD_NSP                    },
-				{ Settings::FILE_KEYS    + Settings::FILE_KEY_LOAD_STATE,            IDM_FILE_LOAD_NST                    },
-				{ Settings::FILE_KEYS    + Settings::FILE_KEY_SAVE_SCRIPT,           IDM_FILE_SAVE_NSP                    },
-				{ Settings::FILE_KEYS    + Settings::FILE_KEY_SAVE_STATE,            IDM_FILE_SAVE_NST                    },
-				{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_LOAD_STATE_1,    IDM_FILE_QUICK_LOAD_STATE_SLOT_1     },
-				{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_LOAD_STATE_2,    IDM_FILE_QUICK_LOAD_STATE_SLOT_2     },
-				{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_LOAD_STATE_3,    IDM_FILE_QUICK_LOAD_STATE_SLOT_3     },
-				{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_LOAD_STATE_4,    IDM_FILE_QUICK_LOAD_STATE_SLOT_4     },
-				{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_LOAD_STATE_5,    IDM_FILE_QUICK_LOAD_STATE_SLOT_5     },
-				{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_LOAD_STATE_6,    IDM_FILE_QUICK_LOAD_STATE_SLOT_6     },
-				{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_LOAD_STATE_7,    IDM_FILE_QUICK_LOAD_STATE_SLOT_7     },
-				{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_LOAD_STATE_8,    IDM_FILE_QUICK_LOAD_STATE_SLOT_8     },
-				{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_LOAD_STATE_9,    IDM_FILE_QUICK_LOAD_STATE_SLOT_9     },
-				{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_LOAD_LAST_STATE, IDM_FILE_QUICK_LOAD_STATE_SLOT_NEWEST  },
-				{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_SAVE_STATE_1,    IDM_FILE_QUICK_SAVE_STATE_SLOT_1     },
-				{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_SAVE_STATE_2,    IDM_FILE_QUICK_SAVE_STATE_SLOT_2     },
-				{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_SAVE_STATE_3,    IDM_FILE_QUICK_SAVE_STATE_SLOT_3     },
-				{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_SAVE_STATE_4,    IDM_FILE_QUICK_SAVE_STATE_SLOT_4     },
-				{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_SAVE_STATE_5,    IDM_FILE_QUICK_SAVE_STATE_SLOT_5     },
-				{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_SAVE_STATE_6,    IDM_FILE_QUICK_SAVE_STATE_SLOT_6     },
-				{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_SAVE_STATE_7,    IDM_FILE_QUICK_SAVE_STATE_SLOT_7     },
-				{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_SAVE_STATE_8,    IDM_FILE_QUICK_SAVE_STATE_SLOT_8     },
-				{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_SAVE_STATE_9,    IDM_FILE_QUICK_SAVE_STATE_SLOT_9     },
-				{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_SAVE_NEXT_STATE, IDM_FILE_QUICK_SAVE_STATE_SLOT_OLDEST  },
-				{ Settings::FILE_KEYS    + Settings::FILE_KEY_SAVE_SCREENSHOT,       IDM_FILE_SAVE_SCREENSHOT             },
-				{ Settings::FILE_KEYS    + Settings::FILE_KEY_LAUNCHER,              IDM_FILE_LAUNCHER                    },
-				{ Settings::FILE_KEYS    + Settings::FILE_KEY_EXIT,                  IDM_FILE_QUIT                        },
-				{ Settings::MACHINE_KEYS + Settings::MACHINE_KEY_POWER,              IDM_MACHINE_POWER                    },
-				{ Settings::MACHINE_KEYS + Settings::MACHINE_KEY_RESET_SOFT,         IDM_MACHINE_RESET_SOFT               },
-				{ Settings::MACHINE_KEYS + Settings::MACHINE_KEY_RESET_HARD,         IDM_MACHINE_RESET_HARD               },
-				{ Settings::MACHINE_KEYS + Settings::MACHINE_KEY_PAUSE,              IDM_MACHINE_PAUSE                    },
-				{ Settings::MACHINE_KEYS + Settings::MACHINE_KEY_UNLIMITED_SPRITES,  IDM_MACHINE_OPTIONS_UNLIMITEDSPRITES },
-				{ Settings::MACHINE_KEYS + Settings::MACHINE_KEY_CHANGE_DISK_SIDE,   IDM_MACHINE_EXT_FDS_CHANGE_SIDE          },
-				{ Settings::NSF_KEYS     + Settings::NSF_KEY_PLAY,                   IDM_MACHINE_NSF_PLAY                 },
-				{ Settings::NSF_KEYS     + Settings::NSF_KEY_STOP,                   IDM_MACHINE_NSF_STOP                 },
-				{ Settings::NSF_KEYS     + Settings::NSF_KEY_NEXT,                   IDM_MACHINE_NSF_NEXT                 },
-				{ Settings::NSF_KEYS     + Settings::NSF_KEY_PREV,                   IDM_MACHINE_NSF_PREV                 },
-				{ Settings::VIEW_KEYS    + Settings::VIEW_KEY_SCREENSIZE_1X,         IDM_VIEW_WINDOWSIZE_1X               },
-				{ Settings::VIEW_KEYS    + Settings::VIEW_KEY_SCREENSIZE_2X,         IDM_VIEW_WINDOWSIZE_2X               },
-				{ Settings::VIEW_KEYS    + Settings::VIEW_KEY_SCREENSIZE_3X,         IDM_VIEW_WINDOWSIZE_3X               },
-				{ Settings::VIEW_KEYS    + Settings::VIEW_KEY_SCREENSIZE_4X,         IDM_VIEW_WINDOWSIZE_4X               },
-				{ Settings::VIEW_KEYS    + Settings::VIEW_KEY_SCREENSIZE_5X,         IDM_VIEW_WINDOWSIZE_5X               },
-				{ Settings::VIEW_KEYS    + Settings::VIEW_KEY_SCREENSIZE_6X,         IDM_VIEW_WINDOWSIZE_6X               },
-				{ Settings::VIEW_KEYS    + Settings::VIEW_KEY_SCREENSIZE_7X,         IDM_VIEW_WINDOWSIZE_7X               },
-				{ Settings::VIEW_KEYS    + Settings::VIEW_KEY_SCREENSIZE_8X,         IDM_VIEW_WINDOWSIZE_8X               },
-				{ Settings::VIEW_KEYS    + Settings::VIEW_KEY_SCREENSIZE_9X,         IDM_VIEW_WINDOWSIZE_9X               },
-				{ Settings::VIEW_KEYS    + Settings::VIEW_KEY_SCREENSIZE_MAX,        IDM_VIEW_WINDOWSIZE_MAX              },
-				{ Settings::VIEW_KEYS    + Settings::VIEW_KEY_SHOW_MENU,             IDM_VIEW_MENU                        },
-				{ Settings::VIEW_KEYS    + Settings::VIEW_KEY_SHOW_STATUSBAR,        IDM_VIEW_STATUSBAR                   },
-				{ Settings::VIEW_KEYS    + Settings::VIEW_KEY_SHOW_ONTOP,            IDM_VIEW_ON_TOP                      },
-				{ Settings::VIEW_KEYS    + Settings::VIEW_KEY_SHOW_FPS,              IDM_VIEW_FPS                         },
-				{ Settings::VIEW_KEYS    + Settings::VIEW_KEY_FULLSCREEN,            IDM_VIEW_SWITCH_SCREEN               },
-				{ Settings::HELP_KEYS    + Settings::HELP_KEY_HELP,                  IDM_HELP_HELP                        }
+				{ Settings::FILE_KEYS    + Settings::FILE_KEY_OPEN,                  IDM_FILE_OPEN                         },
+				{ Settings::FILE_KEYS    + Settings::FILE_KEY_LOAD_STATE,            IDM_FILE_LOAD_NST                     },
+				{ Settings::FILE_KEYS    + Settings::FILE_KEY_SAVE_STATE,            IDM_FILE_SAVE_NST                     },
+				{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_LOAD_STATE_1,    IDM_FILE_QUICK_LOAD_STATE_SLOT_1      },
+				{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_LOAD_STATE_2,    IDM_FILE_QUICK_LOAD_STATE_SLOT_2      },
+				{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_LOAD_STATE_3,    IDM_FILE_QUICK_LOAD_STATE_SLOT_3      },
+				{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_LOAD_STATE_4,    IDM_FILE_QUICK_LOAD_STATE_SLOT_4      },
+				{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_LOAD_STATE_5,    IDM_FILE_QUICK_LOAD_STATE_SLOT_5      },
+				{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_LOAD_STATE_6,    IDM_FILE_QUICK_LOAD_STATE_SLOT_6      },
+				{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_LOAD_STATE_7,    IDM_FILE_QUICK_LOAD_STATE_SLOT_7      },
+				{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_LOAD_STATE_8,    IDM_FILE_QUICK_LOAD_STATE_SLOT_8      },
+				{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_LOAD_STATE_9,    IDM_FILE_QUICK_LOAD_STATE_SLOT_9      },
+				{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_LOAD_LAST_STATE, IDM_FILE_QUICK_LOAD_STATE_SLOT_NEWEST },
+				{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_SAVE_STATE_1,    IDM_FILE_QUICK_SAVE_STATE_SLOT_1      },
+				{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_SAVE_STATE_2,    IDM_FILE_QUICK_SAVE_STATE_SLOT_2      },
+				{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_SAVE_STATE_3,    IDM_FILE_QUICK_SAVE_STATE_SLOT_3      },
+				{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_SAVE_STATE_4,    IDM_FILE_QUICK_SAVE_STATE_SLOT_4      },
+				{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_SAVE_STATE_5,    IDM_FILE_QUICK_SAVE_STATE_SLOT_5      },
+				{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_SAVE_STATE_6,    IDM_FILE_QUICK_SAVE_STATE_SLOT_6      },
+				{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_SAVE_STATE_7,    IDM_FILE_QUICK_SAVE_STATE_SLOT_7      },
+				{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_SAVE_STATE_8,    IDM_FILE_QUICK_SAVE_STATE_SLOT_8      },
+				{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_SAVE_STATE_9,    IDM_FILE_QUICK_SAVE_STATE_SLOT_9      },
+				{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_SAVE_NEXT_STATE, IDM_FILE_QUICK_SAVE_STATE_SLOT_OLDEST },
+				{ Settings::FILE_KEYS    + Settings::FILE_KEY_SAVE_SCREENSHOT,       IDM_FILE_SAVE_SCREENSHOT              },
+				{ Settings::FILE_KEYS    + Settings::FILE_KEY_LAUNCHER,              IDM_FILE_LAUNCHER                     },
+				{ Settings::FILE_KEYS    + Settings::FILE_KEY_EXIT,                  IDM_FILE_QUIT                         },
+				{ Settings::MACHINE_KEYS + Settings::MACHINE_KEY_POWER,              IDM_MACHINE_POWER                     },
+				{ Settings::MACHINE_KEYS + Settings::MACHINE_KEY_RESET_SOFT,         IDM_MACHINE_RESET_SOFT                },
+				{ Settings::MACHINE_KEYS + Settings::MACHINE_KEY_RESET_HARD,         IDM_MACHINE_RESET_HARD                },
+				{ Settings::MACHINE_KEYS + Settings::MACHINE_KEY_PAUSE,              IDM_MACHINE_PAUSE                     },
+				{ Settings::MACHINE_KEYS + Settings::MACHINE_KEY_UNLIMITED_SPRITES,  IDM_MACHINE_OPTIONS_UNLIMITEDSPRITES  },
+				{ Settings::MACHINE_KEYS + Settings::MACHINE_KEY_CHANGE_DISK_SIDE,   IDM_MACHINE_EXT_FDS_CHANGE_SIDE       },
+				{ Settings::NSF_KEYS     + Settings::NSF_KEY_PLAY,                   IDM_MACHINE_NSF_PLAY                  },
+				{ Settings::NSF_KEYS     + Settings::NSF_KEY_STOP,                   IDM_MACHINE_NSF_STOP                  },
+				{ Settings::NSF_KEYS     + Settings::NSF_KEY_NEXT,                   IDM_MACHINE_NSF_NEXT                  },
+				{ Settings::NSF_KEYS     + Settings::NSF_KEY_PREV,                   IDM_MACHINE_NSF_PREV                  },
+				{ Settings::VIEW_KEYS    + Settings::VIEW_KEY_SCREENSIZE_1X,         IDM_VIEW_WINDOWSIZE_1X                },
+				{ Settings::VIEW_KEYS    + Settings::VIEW_KEY_SCREENSIZE_2X,         IDM_VIEW_WINDOWSIZE_2X                },
+				{ Settings::VIEW_KEYS    + Settings::VIEW_KEY_SCREENSIZE_3X,         IDM_VIEW_WINDOWSIZE_3X                },
+				{ Settings::VIEW_KEYS    + Settings::VIEW_KEY_SCREENSIZE_4X,         IDM_VIEW_WINDOWSIZE_4X                },
+				{ Settings::VIEW_KEYS    + Settings::VIEW_KEY_SCREENSIZE_5X,         IDM_VIEW_WINDOWSIZE_5X                },
+				{ Settings::VIEW_KEYS    + Settings::VIEW_KEY_SCREENSIZE_6X,         IDM_VIEW_WINDOWSIZE_6X                },
+				{ Settings::VIEW_KEYS    + Settings::VIEW_KEY_SCREENSIZE_7X,         IDM_VIEW_WINDOWSIZE_7X                },
+				{ Settings::VIEW_KEYS    + Settings::VIEW_KEY_SCREENSIZE_8X,         IDM_VIEW_WINDOWSIZE_8X                },
+				{ Settings::VIEW_KEYS    + Settings::VIEW_KEY_SCREENSIZE_9X,         IDM_VIEW_WINDOWSIZE_9X                },
+				{ Settings::VIEW_KEYS    + Settings::VIEW_KEY_SCREENSIZE_MAX,        IDM_VIEW_WINDOWSIZE_MAX               },
+				{ Settings::VIEW_KEYS    + Settings::VIEW_KEY_SHOW_MENU,             IDM_VIEW_MENU                         },
+				{ Settings::VIEW_KEYS    + Settings::VIEW_KEY_SHOW_STATUSBAR,        IDM_VIEW_STATUSBAR                    },
+				{ Settings::VIEW_KEYS    + Settings::VIEW_KEY_SHOW_ONTOP,            IDM_VIEW_ON_TOP                       },
+				{ Settings::VIEW_KEYS    + Settings::VIEW_KEY_SHOW_FPS,              IDM_VIEW_FPS                          },
+				{ Settings::VIEW_KEYS    + Settings::VIEW_KEY_FULLSCREEN,            IDM_VIEW_SWITCH_SCREEN                },
+				{ Settings::HELP_KEYS    + Settings::HELP_KEY_HELP,                  IDM_HELP_HELP                         }
 			};
 
 			commands.BeginAdd();
@@ -614,17 +629,20 @@ namespace Nestopia
 				case Nes::Input::PACHINKO:          id = IDM_MACHINE_INPUT_EXP_PACHINKO;            break;
 				case Nes::Input::PADDLE:            id = IDM_MACHINE_INPUT_EXP_PADDLE;              break;
 				case Nes::Input::OEKAKIDSTABLET:    id = IDM_MACHINE_INPUT_EXP_OEKAKIDSTABLET;      break;
-				case Nes::Input::HYPERSHOT:         id = IDM_MACHINE_INPUT_EXP_HYPERSHOT;           break;
+				case Nes::Input::KONAMIHYPERSHOT:   id = IDM_MACHINE_INPUT_EXP_KONAMIHYPERSHOT;     break;
+				case Nes::Input::BANDAIHYPERSHOT:   id = IDM_MACHINE_INPUT_EXP_BANDAIHYPERSHOT;     break;
 				case Nes::Input::CRAZYCLIMBER:      id = IDM_MACHINE_INPUT_EXP_CRAZYCLIMBER;        break;
 				case Nes::Input::MAHJONG:           id = IDM_MACHINE_INPUT_EXP_MAHJONG;             break;
 				case Nes::Input::EXCITINGBOXING:    id = IDM_MACHINE_INPUT_EXP_EXCITINGBOXING;      break;
 				case Nes::Input::TOPRIDER:          id = IDM_MACHINE_INPUT_EXP_TOPRIDER;            break;
 				case Nes::Input::POKKUNMOGURAA:     id = IDM_MACHINE_INPUT_EXP_POKKUNMOGURAA;       break;
 				case Nes::Input::PARTYTAP:          id = IDM_MACHINE_INPUT_EXP_PARTYTAP;            break;
+				case Nes::Input::TURBOFILE:         id = IDM_MACHINE_INPUT_EXP_TURBOFILE;           break;
+				case Nes::Input::BARCODEWORLD:      id = IDM_MACHINE_INPUT_EXP_BARCODEWORLD;        break;
 				default:                            id = IDM_MACHINE_INPUT_EXP_UNCONNECTED;         break;
 			}
 
-			param.menu[id].Check( IDM_MACHINE_INPUT_EXP_UNCONNECTED, IDM_MACHINE_INPUT_EXP_PARTYTAP, param.show );
+			param.menu[id].Check( IDM_MACHINE_INPUT_EXP_UNCONNECTED, IDM_MACHINE_INPUT_EXP_BARCODEWORLD, param.show );
 		}
 
 		bool Input::SetAdapter(const uint id) const
@@ -698,7 +716,7 @@ namespace Nestopia
 					menu[IDM_MACHINE_INPUT_AUTOSELECT].Enable( data );
 					menu[IDM_POS_MACHINE][IDM_POS_MACHINE_INPUT][IDM_POS_MACHINE_INPUT_EXP].Enable( data );
 
-					for (uint i=IDM_MACHINE_INPUT_EXP_UNCONNECTED; i <= IDM_MACHINE_INPUT_EXP_PARTYTAP; ++i)
+					for (uint i=IDM_MACHINE_INPUT_EXP_UNCONNECTED; i <= IDM_MACHINE_INPUT_EXP_BARCODEWORLD; ++i)
 						menu[i].Enable( data );
 
 					for (uint i=IDM_MACHINE_INPUT_ADAPTER_AUTO; i <= IDM_MACHINE_INPUT_ADAPTER_FAMICOM; ++i)
@@ -830,13 +848,16 @@ namespace Nestopia
 				{ 4, Nes::Input::PACHINKO          },
 				{ 4, Nes::Input::PADDLE            },
 				{ 4, Nes::Input::OEKAKIDSTABLET    },
-				{ 4, Nes::Input::HYPERSHOT         },
+				{ 4, Nes::Input::KONAMIHYPERSHOT   },
+				{ 4, Nes::Input::BANDAIHYPERSHOT   },
 				{ 4, Nes::Input::CRAZYCLIMBER      },
 				{ 4, Nes::Input::MAHJONG           },
 				{ 4, Nes::Input::EXCITINGBOXING    },
 				{ 4, Nes::Input::TOPRIDER          },
 				{ 4, Nes::Input::POKKUNMOGURAA     },
-				{ 4, Nes::Input::PARTYTAP          }
+				{ 4, Nes::Input::PARTYTAP          },
+				{ 4, Nes::Input::TURBOFILE         },
+				{ 4, Nes::Input::BARCODEWORLD      }
 			};
 
 			const uchar* const offset = table[id - IDM_MACHINE_INPUT_PORT1_UNCONNECTED];
@@ -943,6 +964,36 @@ namespace Nestopia
 					zapper.x = ~1U;
 				}
 			}
+
+			return true;
+		}
+
+		bool NST_CALLBACK Input::Callbacks::PollBandaiHyperShot(UserData data,BandaiHyperShot& bandaiHyperShot)
+		{
+			uint x, y, offscreen;
+
+			if (static_cast<Input*>(data)->cursor.Poll( x, y, bandaiHyperShot.fire, &offscreen ))
+			{
+				if (offscreen)
+				{
+					bandaiHyperShot.fire = true;
+					bandaiHyperShot.x = ~0U;
+					bandaiHyperShot.y = ~0U;
+				}
+				else if (bandaiHyperShot.x != ~0U)
+				{
+					bandaiHyperShot.x = x;
+					bandaiHyperShot.y = y;
+				}
+				else if (bandaiHyperShot.fire)
+				{
+					bandaiHyperShot.x = ~1U;
+				}
+			}
+
+			const Key* const NST_RESTRICT keys = static_cast<Input*>(data)->dialog->GetSettings().GetKeys(Settings::PAD1_KEYS);
+
+			bandaiHyperShot.move = keys[Settings::PAD_KEY_UP].GetState();
 
 			return true;
 		}
@@ -1116,7 +1167,7 @@ namespace Nestopia
 			return true;
 		}
 
-		bool NST_CALLBACK Input::Callbacks::PollHyperShot(UserData data,HyperShot& hyperShot)
+		bool NST_CALLBACK Input::Callbacks::PollKonamiHyperShot(UserData data,KonamiHyperShot& konamiHyperShot)
 		{
 			Input& input = *static_cast<Input*>(data);
 
@@ -1130,20 +1181,20 @@ namespace Nestopia
 
 			uint buttons = 0;
 
-			keys[0][ Settings::PAD_KEY_A ].GetState( buttons, HyperShot::PLAYER1_BUTTON_1 );
-			keys[0][ Settings::PAD_KEY_B ].GetState( buttons, HyperShot::PLAYER1_BUTTON_2 );
-			keys[1][ Settings::PAD_KEY_A ].GetState( buttons, HyperShot::PLAYER2_BUTTON_1 );
-			keys[1][ Settings::PAD_KEY_B ].GetState( buttons, HyperShot::PLAYER2_BUTTON_2 );
+			keys[0][ Settings::PAD_KEY_A ].GetState( buttons, KonamiHyperShot::PLAYER1_BUTTON_1 );
+			keys[0][ Settings::PAD_KEY_B ].GetState( buttons, KonamiHyperShot::PLAYER1_BUTTON_2 );
+			keys[1][ Settings::PAD_KEY_A ].GetState( buttons, KonamiHyperShot::PLAYER2_BUTTON_1 );
+			keys[1][ Settings::PAD_KEY_B ].GetState( buttons, KonamiHyperShot::PLAYER2_BUTTON_2 );
 
 			if (input.autoFire)
 			{
-				keys[0][ Settings::PAD_KEY_AUTOFIRE_A ].GetState( buttons, HyperShot::PLAYER1_BUTTON_1 );
-				keys[0][ Settings::PAD_KEY_AUTOFIRE_B ].GetState( buttons, HyperShot::PLAYER1_BUTTON_2 );
-				keys[1][ Settings::PAD_KEY_AUTOFIRE_A ].GetState( buttons, HyperShot::PLAYER2_BUTTON_1 );
-				keys[1][ Settings::PAD_KEY_AUTOFIRE_B ].GetState( buttons, HyperShot::PLAYER2_BUTTON_2 );
+				keys[0][ Settings::PAD_KEY_AUTOFIRE_A ].GetState( buttons, KonamiHyperShot::PLAYER1_BUTTON_1 );
+				keys[0][ Settings::PAD_KEY_AUTOFIRE_B ].GetState( buttons, KonamiHyperShot::PLAYER1_BUTTON_2 );
+				keys[1][ Settings::PAD_KEY_AUTOFIRE_A ].GetState( buttons, KonamiHyperShot::PLAYER2_BUTTON_1 );
+				keys[1][ Settings::PAD_KEY_AUTOFIRE_B ].GetState( buttons, KonamiHyperShot::PLAYER2_BUTTON_2 );
 			}
 
-			hyperShot.buttons = buttons;
+			konamiHyperShot.buttons = buttons;
 
 			return true;
 		}

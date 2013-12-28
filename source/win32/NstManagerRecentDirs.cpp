@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -52,21 +52,22 @@ namespace Nestopia
 			};
 
 			menu.Commands().Add( this, commands );
-			menu[IDM_FILE_RECENT_DIR_LOCK].Check( cfg["files recent dir locked"] == Configuration::YES );
+
+			Configuration::ConstSection directories( cfg["paths"]["recent"]["directories"] );
+
+			menu[IDM_FILE_RECENT_LOCK].Check( directories["locked"].Yes() );
 
 			uint count = 0;
 
-			String::Stack<24,char> index( "files recent dir x" );
 			Path dir;
 
 			for (uint i=0; i < MAX_DIRS; ++i)
 			{
-				index.Back() = '1' + i;
-				dir = cfg[index];
+				dir = directories["directory"][i].Str();
 
 				if (dir.Length())
 				{
-					dir.MakePretty( true );
+					dir.MakePretty();
 					dir.Insert( 0, "&x ", 3 );
 					dir[1] = '1' + count;
 
@@ -82,16 +83,14 @@ namespace Nestopia
 
 		void RecentDirs::Save(Configuration& cfg) const
 		{
-			cfg["files recent dir locked"].YesNo() = menu[IDM_FILE_RECENT_DIR_LOCK].Checked();
+			Configuration::Section directories( cfg["paths"]["recent"]["directories"] );
 
-			String::Stack<24,char> index( "files recent dir x" );
+			directories["locked"].YesNo() = menu[IDM_FILE_RECENT_DIR_LOCK].Checked();
+
 			HeapString dir;
 
 			for (uint i=0; i < MAX_DIRS && menu[IDM_FILE_RECENT_DIR_1 + i].Text() >> dir; ++i)
-			{
-				index.Back() = '1' + i;
-				cfg[index].Quote() = dir(3);
-			}
+				directories["directory"][i].Str() = dir(3);
 		}
 
 		void RecentDirs::OnMenu(uint cmd)

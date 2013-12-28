@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -185,7 +185,7 @@ namespace Nestopia
 					return false;
 				}
 
-				void UnlockStream(void** data,uint* size) const
+				NST_FORCE_INLINE void UnlockStream(void** data,uint* size) const
 				{
 					NST_ASSERT( data && com );
 					com->Unlock( data[0], size[0]*waveFormat.nBlockAlign, data[1], size[1]*waveFormat.nBlockAlign );
@@ -224,7 +224,7 @@ namespace Nestopia
 				return buffer.LockStream( data, size );
 			}
 
-			void UnlockStream(void** data,uint* size) const
+			NST_FORCE_INLINE void UnlockStream(void** data,uint* size) const
 			{
 				buffer.UnlockStream( data, size );
 			}

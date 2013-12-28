@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -63,62 +63,74 @@ namespace Nestopia
 		dialog ( IDD_LAUNCHER_PATHS, this, Handlers::messages, Handlers::commands ),
 		notifications ( IDC_LAUNCHER_PATHS_LIST, dialog.Messages(), this, Handlers::notifications )
 		{
-			settings.include[ Settings::Include::NES     ] = ( cfg[ "launcher search files nes"          ] != Configuration::NO  );
-			settings.include[ Settings::Include::UNF     ] = ( cfg[ "launcher search files unf"          ] != Configuration::NO  );
-			settings.include[ Settings::Include::FDS     ] = ( cfg[ "launcher search files fds"          ] != Configuration::NO  );
-			settings.include[ Settings::Include::NSF     ] = ( cfg[ "launcher search files nsf"          ] != Configuration::NO  );
-			settings.include[ Settings::Include::IPS     ] = ( cfg[ "launcher search files ips"          ] != Configuration::NO  );
-			settings.include[ Settings::Include::NSP     ] = ( cfg[ "launcher search files nsp"          ] != Configuration::NO  );
-			settings.include[ Settings::Include::ARCHIVE ] = ( cfg[ "launcher search files archive"      ] != Configuration::NO  );
-			settings.include[ Settings::Include::ANY     ] = ( cfg[ "launcher search any file extension" ] == Configuration::YES );
-			settings.include[ Settings::Include::UNIQUE  ] = ( cfg[ "launcher search no duplicate files" ] != Configuration::NO  );
+			Configuration::ConstSection search( cfg["launcher"]["search"] );
 
-			NST_COMPILE_ASSERT( LIMIT <= 999 );
-
-			String::Stack<32,char> type("launcher search path ");
-			Path path;
-
-			for (uint i=0; i < LIMIT; ++i)
 			{
-				type(21) = (i+1);
-				path = cfg[type];
+				Configuration::ConstSection files( search["files"] );
 
-				if (path.Empty())
-					break;
+				settings.include[ Settings::Include::NES     ] = !files[ "nes"           ].No();
+				settings.include[ Settings::Include::UNF     ] = !files[ "unf"           ].No();
+				settings.include[ Settings::Include::XML     ] = !files[ "xml"           ].No();
+				settings.include[ Settings::Include::FDS     ] = !files[ "fds"           ].No();
+				settings.include[ Settings::Include::NSF     ] = !files[ "nsf"           ].No();
+				settings.include[ Settings::Include::IPS     ] = !files[ "ips"           ].No();
+				settings.include[ Settings::Include::ARCHIVE ] = !files[ "archive"       ].No();
+				settings.include[ Settings::Include::ANY     ] =  files[ "any-extension" ].Yes();
+				settings.include[ Settings::Include::UNIQUE  ] = !files[ "duplicates"    ].Yes();
+			}
 
-				path.MakePretty( true );
+			{
+				Configuration::ConstSection directories( search["directories"] );
+				Path dir;
 
-				type << " subs";
-				settings.folders.resize( settings.folders.size() + 1 );
-				settings.folders.back().path = path;
-				settings.folders.back().incSubDir = (cfg[type] == Configuration::YES);
+				for (uint i=0; i < LIMIT; ++i)
+				{
+					Configuration::ConstSection path( directories["path"][i] );
+
+					dir = path["directory"].Str();
+
+					if (dir.Empty())
+						break;
+
+					dir.MakePretty( true );
+
+					settings.folders.resize( settings.folders.size() + 1 );
+					settings.folders.back().path = dir;
+					settings.folders.back().incSubDir = path["sub-directories"].Yes();
+				}
 			}
 		}
 
 		void Launcher::List::Paths::Save(Configuration& cfg) const
 		{
-			cfg[ "launcher search files nes"          ].YesNo() = settings.include[ Settings::Include::NES     ];
-			cfg[ "launcher search files unf"          ].YesNo() = settings.include[ Settings::Include::UNF     ];
-			cfg[ "launcher search files fds"          ].YesNo() = settings.include[ Settings::Include::FDS     ];
-			cfg[ "launcher search files nsf"          ].YesNo() = settings.include[ Settings::Include::NSF     ];
-			cfg[ "launcher search files ips"          ].YesNo() = settings.include[ Settings::Include::IPS     ];
-			cfg[ "launcher search files nsp"          ].YesNo() = settings.include[ Settings::Include::NSP     ];
-			cfg[ "launcher search files archive"      ].YesNo() = settings.include[ Settings::Include::ARCHIVE ];
-			cfg[ "launcher search any file extension" ].YesNo() = settings.include[ Settings::Include::ANY     ];
-			cfg[ "launcher search no duplicate files" ].YesNo() = settings.include[ Settings::Include::UNIQUE  ];
+			Configuration::Section search( cfg["launcher"]["search"] );
 
-			String::Heap<char> type;
-
-			for (uint i=0, n=settings.folders.size(); i < n; ++i)
 			{
-				type = "launcher search path ";
-				type << (i+1);
+				Configuration::Section files( search["files"] );
 
-				NST_ASSERT( settings.folders[i].path.Length() );
-				cfg[type].Quote() = settings.folders[i].path;
+				files[ "nes"           ].YesNo() =  settings.include[ Settings::Include::NES     ];
+				files[ "unf"           ].YesNo() =  settings.include[ Settings::Include::UNF     ];
+				files[ "xml"           ].YesNo() =  settings.include[ Settings::Include::XML     ];
+				files[ "fds"           ].YesNo() =  settings.include[ Settings::Include::FDS     ];
+				files[ "nsf"           ].YesNo() =  settings.include[ Settings::Include::NSF     ];
+				files[ "ips"           ].YesNo() =  settings.include[ Settings::Include::IPS     ];
+				files[ "archive"       ].YesNo() =  settings.include[ Settings::Include::ARCHIVE ];
+				files[ "any-extension" ].YesNo() =  settings.include[ Settings::Include::ANY     ];
+				files[ "duplicates"    ].YesNo() = !settings.include[ Settings::Include::UNIQUE  ];
+			}
 
-				type << " subs";
-				cfg[type].YesNo() = settings.folders[i].incSubDir;
+			{
+				Configuration::Section directories( search["directories"] );
+
+				for (uint i=0, n=settings.folders.size(); i < n; ++i)
+				{
+					Configuration::Section path( directories["path"][i] );
+
+					NST_ASSERT( settings.folders[i].path.Length() );
+
+					path["directory"].Str() = settings.folders[i].path;
+					path["sub-directories"].YesNo() = settings.folders[i].incSubDir;
+				}
 			}
 		}
 
@@ -126,10 +138,10 @@ namespace Nestopia
 		{
 			dialog.CheckBox( IDC_LAUNCHER_PATHS_NES         ).Check( settings.include[ Settings::Include::NES     ] );
 			dialog.CheckBox( IDC_LAUNCHER_PATHS_UNF         ).Check( settings.include[ Settings::Include::UNF     ] );
+			dialog.CheckBox( IDC_LAUNCHER_PATHS_XML         ).Check( settings.include[ Settings::Include::XML     ] );
 			dialog.CheckBox( IDC_LAUNCHER_PATHS_FDS         ).Check( settings.include[ Settings::Include::FDS     ] );
 			dialog.CheckBox( IDC_LAUNCHER_PATHS_NSF         ).Check( settings.include[ Settings::Include::NSF     ] );
 			dialog.CheckBox( IDC_LAUNCHER_PATHS_IPS         ).Check( settings.include[ Settings::Include::IPS     ] );
-			dialog.CheckBox( IDC_LAUNCHER_PATHS_NSP         ).Check( settings.include[ Settings::Include::NSP     ] );
 			dialog.CheckBox( IDC_LAUNCHER_PATHS_ARCHIVE     ).Check( settings.include[ Settings::Include::ARCHIVE ] );
 			dialog.CheckBox( IDC_LAUNCHER_PATHS_ALLFILES    ).Check( settings.include[ Settings::Include::ANY     ] );
 			dialog.CheckBox( IDC_LAUNCHER_PATHS_UNIQUEFILES ).Check( settings.include[ Settings::Include::UNIQUE  ] );
@@ -183,10 +195,10 @@ namespace Nestopia
 			{
 				settings.include[ Settings::Include::NES     ] = dialog.CheckBox( IDC_LAUNCHER_PATHS_NES         ).Checked();
 				settings.include[ Settings::Include::UNF     ] = dialog.CheckBox( IDC_LAUNCHER_PATHS_UNF         ).Checked();
+				settings.include[ Settings::Include::XML     ] = dialog.CheckBox( IDC_LAUNCHER_PATHS_XML         ).Checked();
 				settings.include[ Settings::Include::FDS     ] = dialog.CheckBox( IDC_LAUNCHER_PATHS_FDS         ).Checked();
 				settings.include[ Settings::Include::NSF     ] = dialog.CheckBox( IDC_LAUNCHER_PATHS_NSF         ).Checked();
 				settings.include[ Settings::Include::IPS     ] = dialog.CheckBox( IDC_LAUNCHER_PATHS_IPS         ).Checked();
-				settings.include[ Settings::Include::NSP     ] = dialog.CheckBox( IDC_LAUNCHER_PATHS_NSP         ).Checked();
 				settings.include[ Settings::Include::ARCHIVE ] = dialog.CheckBox( IDC_LAUNCHER_PATHS_ARCHIVE     ).Checked();
 				settings.include[ Settings::Include::ANY     ] = dialog.CheckBox( IDC_LAUNCHER_PATHS_ALLFILES    ).Checked();
 				settings.include[ Settings::Include::UNIQUE  ] = dialog.CheckBox( IDC_LAUNCHER_PATHS_UNIQUEFILES ).Checked();

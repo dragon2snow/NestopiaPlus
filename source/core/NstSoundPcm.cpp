@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -41,15 +41,9 @@ namespace Nes
 				Connect( UpdateSettings() );
 			}
 
-			Result Pcm::CanDo(const void* data,dword length,uint bits,dword rate)
+			bool Pcm::CanDo(uint bits,dword rate)
 			{
-				if (data == NULL || length == 0 || bits == 0 || rate == 0)
-					return RESULT_ERR_INVALID_PARAM;
-
-				if ((bits != 8 && bits != 16) || (rate < 8000 || rate > 96000))
-					return RESULT_ERR_UNSUPPORTED;
-
-				return RESULT_OK;
+				return (bits == 8 || bits == 16) && (rate >= 8000 && rate <= 96000);
 			}
 
 			void Pcm::Reset()
@@ -72,7 +66,7 @@ namespace Nes
 
 			void Pcm::Play(const iword* w,dword l,dword r)
 			{
-				NST_ASSERT( NES_SUCCEEDED(CanDo(w,l,16,r)) );
+				NST_ASSERT( w && l && CanDo(16,r) );
 
 				pos = 0;
 

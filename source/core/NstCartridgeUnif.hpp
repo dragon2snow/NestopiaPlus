@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -33,48 +33,25 @@ namespace Nes
 {
 	namespace Core
 	{
+		class Ips;
+
 		class Cartridge::Unif
 		{
-			typedef Api::Cartridge Ref;
-
 		public:
 
-			Unif
+			static void Load
 			(
+				StdStream,
 				StdStream,
 				Ram&,
 				Ram&,
-				Ram&,
-				Ref::Info&,
-				const ImageDatabase*,
-				ImageDatabase::Handle&
+				FavoredSystem,
+				Profile&,
+				ProfileEx&,
+				const ImageDatabase*
 			);
 
 		private:
-
-			class Boards;
-
-			void CopyRom();
-			void CheckImageDatabase(const ImageDatabase*,ImageDatabase::Handle&);
-
-			static bool NewChunk(byte&,dword);
-			static cstring ChunkName(char (&)[5],dword);
-
-			void  ReadHeader     ();
-			void  ReadChunks     ();
-			dword ReadName       ();
-			dword ReadComment    ();
-			dword ReadString     (cstring,Vector<char>*);
-			dword ReadDumper     ();
-			dword ReadSystem     ();
-			dword ReadRomCrc     (uint,uint);
-			dword ReadRomData    (uint,uint,dword);
-			dword ReadBattery    ();
-			dword ReadMapper     ();
-			dword ReadMirroring  ();
-			dword ReadController ();
-			dword ReadChrRam     () const;
-			dword ReadUnknown    (dword) const;
 
 			enum
 			{
@@ -82,45 +59,56 @@ namespace Nes
 				MAX_ROM_SIZE = SIZE_16K * 0x1000UL
 			};
 
-			struct Rom
+			class Context
 			{
-				Rom();
+			public:
 
-				dword crc;
-				dword truncated;
-				Ram rom;
-			};
+				Context();
 
-			struct Dump
-			{
-				enum
+				bool operator () (uint,dword);
+
+				enum System
 				{
-					NAME_LENGTH = 100,
-					AGENT_LENGTH = 100,
-					LENGTH = NAME_LENGTH + 4 + AGENT_LENGTH
+					SYSTEM_NTSC,
+					SYSTEM_PAL,
+					SYSTEM_BOTH
 				};
 
-				char name[NAME_LENGTH];
-				byte day;
-				byte month;
-				word year;
-				char agent[AGENT_LENGTH];
+				struct Rom
+				{
+					Rom();
+
+					Ram data;
+					dword truncated;
+					char crc[12];
+				};
+
+				System system;
+				Rom roms[2][16];
+
+			private:
+
+				byte chunks[80];
 			};
 
-			Stream::In stream;
-			Ram& prg;
-			Ram& chr;
-			Ref::Info& info;
-			Rom roms[2][16];
-			Result result;
-			bool knownBoard;
+			static bool NewChunk (byte&,dword);
+			static cstring ChunkName (char (&)[5],dword);
 
-		public:
-
-			Result GetResult() const
-			{
-				return result;
-			}
+			static void  ReadHeader     (StdStream);
+			static void  ReadChunks     (StdStream,Ram&,Ram&,FavoredSystem,Profile&,ProfileEx&);
+			static dword ReadString     (StdStream,cstring,Vector<char>*);
+			static dword ReadName       (StdStream,std::wstring&);
+			static dword ReadDumper     (StdStream);
+			static dword ReadComment    (StdStream);
+			static dword ReadSystem     (StdStream,Context&);
+			static dword ReadMirroring  (StdStream,ProfileEx&);
+			static dword ReadBattery    (ProfileEx&);
+			static dword ReadBoard      (StdStream,Profile::Board&);
+			static dword ReadController (StdStream,Api::Input::Type (&)[5]);
+			static dword ReadChrRam     ();
+			static dword ReadChecksum   (StdStream,uint,uint,Context::Rom&);
+			static dword ReadRom        (StdStream,uint,uint,dword,Context::Rom*);
+			static dword ReadUnknown    (dword);
 		};
 	}
 }

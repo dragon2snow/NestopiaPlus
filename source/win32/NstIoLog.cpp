@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -31,12 +31,12 @@ namespace Nestopia
 		struct Log::Callbacker
 		{
 			void* data;
-			void (NST_CALL *code)(void*,tstring,uint);
+			void (NST_CALL *code)(void*,wcstring,uint);
 		};
 
 		Log::Callbacker Log::callbacker = {NULL,NULL};
 
-		void Log::SetCallback(void* data,void (NST_CALL* code)(void*,tstring,uint))
+		void Log::SetCallback(void* data,void (NST_CALL* code)(void*,wcstring,uint))
 		{
 			NST_ASSERT( bool(data) == bool(code) );
 

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -50,7 +50,6 @@ namespace Nestopia
 				NES_WIDTH            = Nes::Video::Output::WIDTH,
 				NES_HEIGHT           = Nes::Video::Output::HEIGHT,
 				NTSC_WIDTH           = Nes::Video::Output::NTSC_WIDTH,
-				NTSC_HEIGHT          = Nes::Video::Output::NTSC_HEIGHT,
 				DEFAULT_WIDTH        = 640,
 				DEFAULT_HEIGHT       = 480,
 				DEFAULT_BPP          = 16,
@@ -64,11 +63,9 @@ namespace Nestopia
 			~Video();
 
 			void Save(Configuration&) const;
-			void LoadGamePalette(const Path&);
-			void UnloadGamePalette();
-			void SavePalette(Path&) const;
 			void UpdateAutoModes() const;
 			const Rect GetRenderState(Nes::Video::RenderState&,const Point) const;
+			uint GetScanlines() const;
 			Modes::const_iterator GetDialogMode() const;
 
 		private:
@@ -120,7 +117,6 @@ namespace Nestopia
 				Filter::Settings filters[Filter::NUM_TYPES];
 				Rects rects;
 				Path palette;
-				Path lockedPalette;
 				Nes::Video::Palette::Mode lockedMode;
 				int screenCurvature;
 				uchar fullscreenScale;
@@ -208,7 +204,7 @@ namespace Nestopia
 				return settings.adapter;
 			}
 
-			Adapter::Filter GetDirect2dFilter() const
+			Adapter::Filter GetTextureFilter() const
 			{
 				if (settings.filter->attributes[Filter::ATR_BILINEAR] && (settings.adapter->filters & Adapter::FILTER_BILINEAR))
 					return Adapter::FILTER_BILINEAR;

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -43,7 +43,7 @@ namespace Nestopia
 			Log() {}
 			~Log();
 
-			static void SetCallback(void*,void (NST_CALL*)(void*,tstring,uint));
+			static void SetCallback(void*,void (NST_CALL*)(void*,wcstring,uint));
 			static void UnsetCallback();
 
 			template<typename T>

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -226,6 +226,8 @@ namespace Nes
 			void VSync();
 			uint GetDesiredController(uint) const;
 			uint GetDesiredAdapter() const;
+			Region GetDesiredRegion() const;
+			System GetDesiredSystem(Region,CpuModel*,PpuModel*) const;
 			void LoadState(State::Loader&);
 			void SaveState(State::Saver&,dword) const;
 			bool PowerOff();
@@ -376,7 +378,7 @@ namespace Nes
 						BYTES_GAP_INIT = CLK_HEAD/8UL * 398 / 1000,
 						BYTES_GAP_NEXT = CLK_HEAD/8UL * 10  / 1000,
 
-						CLK_BYTE = Clocks::NTSC_CLK / (CLK_HEAD/8UL * Clocks::RP2A03_CC * Clocks::NTSC_DIV),
+						CLK_BYTE = CLK_NTSC / (CLK_HEAD/8UL * CPU_RP2A03_CC * CLK_NTSC_DIV),
 
 						CLK_MOTOR  = CLK_HEAD/8UL * 100 * CLK_BYTE / 1000,
 						CLK_REWIND = CLK_HEAD/8UL * 135 * CLK_BYTE / 1000,
@@ -481,11 +483,6 @@ namespace Nes
 			static Bios bios;
 
 		public:
-
-			Region::Type GetRegion() const
-			{
-				return Region::NTSC;
-			}
 
 			bool IsAnyDiskInserted() const
 			{

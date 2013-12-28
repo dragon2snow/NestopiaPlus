@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -22,13 +22,15 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstIoFile.hpp"
 #include "NstIoLog.hpp"
+#include "NstIoStream.hpp"
+#include "NstIoFile.hpp"
 #include "NstApplicationInstance.hpp"
 #include "NstWindowParam.hpp"
 #include "NstWindowDropFiles.hpp"
 #include "NstManagerPaths.hpp"
 #include "NstDialogNetPlay.hpp"
+#include "../core/NstXml.hpp"
 #include <CommCtrl.h>
 
 namespace Nestopia
@@ -69,31 +71,6 @@ namespace Nestopia
 		Netplay::Games::Games()
 		: state(UNINITIALIZED) {}
 
-		Netplay::Games::~Games()
-		{
-			for (Iterator it(Begin()), end(End()); it != end; ++it)
-				it->Path::~Path();
-		}
-
-		Netplay::Games::Iterator Netplay::Games::Add(const Path& path)
-		{
-			if (Iterator const it = Insert( path ))
-			{
-				state = DIRTY;
-				return it;
-			}
-
-			return NULL;
-		}
-
-		void Netplay::Games::Erase(uint index)
-		{
-			state = DIRTY;
-			Iterator const it = At( index );
-			it->Path::~Path();
-			Array().Erase( it );
-		}
-
 		Netplay::Netplay(Managers::Emulator& e,const Managers::Paths& p,bool fullscreen)
 		:
 		dialog        ( IDD_NETPLAY, this, Handlers::messages, Handlers::commands ),
@@ -110,56 +87,42 @@ namespace Nestopia
 
 		void Netplay::LoadFile()
 		{
-			HeapString text;
-
 			try
 			{
-				Io::File( Application::Instance::GetExePath(_T("netplaylist.dat")), Io::File::COLLECT ).ReadText( text );
-			}
-			catch (Io::File::Exception id)
-			{
-				Io::Log log;
+				const Path path( Application::Instance::GetExePath(L"netplaylist.xml") );
 
-				if (id == Io::File::ERR_NOT_FOUND)
+				if (path.FileExists())
 				{
-					log << "Netplay: game list file \"netplaylist.dat\" not present..\r\n";
+					typedef Nes::Core::Xml Xml;
+					Xml xml;
+
+					{
+						Io::Stream::In stream( path );
+						xml.Read( stream );
+					}
+
+					if (!xml.GetRoot().IsType( L"netplaylist" ))
+						throw 1;
+
+					for (Xml::Node node(xml.GetRoot().GetFirstChild()); node; node=node.GetNextSibling())
+					{
+						if (!node.IsType( L"file" ))
+							throw 1;
+
+						Add( node.GetValue() );
+					}
+
+					Io::Log() << "Netplay: loaded game list from \"netplaylist.xml\"\r\n";
 				}
 				else
 				{
-					log << "Netplay: warning, couldn't load game list \"netplaylist.dat\"!\r\n";
-					games.state = Games::DIRTY;
+					Io::Log() << "Netplay: game list file \"netplaylist.xml\" not present..\r\n";
 				}
-
-				return;
 			}
-
-			text << '\n';
-
-			Path path;
-
-			for (tstring it=text.Ptr(),offset=text.Ptr(); *it; )
+			catch (...)
 			{
-				if (*it == '\r' || *it == '\n')
-				{
-					if (const uint length = it - offset)
-					{
-						path.Assign( offset, length );
-						path.Trim();
-						Add( path );
-					}
-
-					do
-					{
-						++it;
-					}
-					while (*it == '\r' || *it == '\n');
-
-					offset = it;
-				}
-				else
-				{
-					++it;
-				}
+				games.state = Games::DIRTY;
+				Io::Log() << "Netplay: warning, couldn't load game list \"netplaylist.xml\"!\r\n";
 			}
 		}
 
@@ -167,34 +130,45 @@ namespace Nestopia
 		{
 			if (games.state == Games::DIRTY)
 			{
-				Io::Log log;
-				const Path path( Application::Instance::GetExePath(_T("netplaylist.dat")) );
+				const Path path( Application::Instance::GetExePath(L"netplaylist.xml") );
 
-				if (games.Size())
+				if (!games.paths.empty())
 				{
-					HeapString text;
-
-					for (Games::ConstIterator it(games.Begin()), end(games.End()); it != end; ++it)
-						text << *it << "\r\n";
-
 					try
 					{
-						Io::File( path, Io::File::DUMP|Io::File::WRITE_THROUGH ).WriteText( text.Ptr(), text.Length() );
-						log << "Netplay: saved game list to \"netplaylist.dat\"\r\n";
+						typedef Nes::Core::Xml Xml;
+
+						Xml xml;
+						Xml::Node root( xml.Create( L"netplaylist" ) );
+						root.AddAttribute( L"version", L"1.0" );
+
+						for (Games::Paths::const_iterator it(games.paths.begin()), end(games.paths.end()); it != end; ++it)
+							root.AddChild( L"file", it->Ptr() );
+
+						Io::Stream::Out stream( path );
+						xml.Write( root, stream );
+
+						Io::Log() << "Netplay: saved game list to \"netplaylist.xml\"\r\n";
 					}
-					catch (Io::File::Exception)
+					catch (...)
 					{
-						log << "Netplay: warning, couldn't save game list to \"netplaylist.dat\"!\r\n";
+						Io::Log() << "Netplay: warning, couldn't save game list to \"netplaylist.xml\"!\r\n";
 					}
 				}
 				else if (path.FileExists())
 				{
 					if (Io::File::Delete( path.Ptr() ))
-						log << "Netplay: game list empty, deleted \"netplaylist.dat\"\r\n";
+						Io::Log() << "Netplay: game list empty, deleted \"netplaylist.xml\"\r\n";
 					else
-						log << "Netplay: warning, couldn't delete \"netplaylist.dat\"!\r\n";
+						Io::Log() << "Netplay: warning, couldn't delete \"netplaylist.xml\"!\r\n";
 				}
 			}
+		}
+
+		wcstring Netplay::GetPath(wcstring const path) const
+		{
+			Games::Paths::const_iterator it(games.paths.find( path ));
+			return it != games.paths.end() ? it->Ptr() : NULL;
 		}
 
 		void Netplay::Add(Path path)
@@ -204,8 +178,13 @@ namespace Nestopia
 				TYPES = Managers::Paths::File::GAME|Managers::Paths::File::ARCHIVE
 			};
 
-			if (path.Length() && games.Size() < Games::LIMIT && paths.CheckFile( path, TYPES ) && games.Add( path ) && dialog)
-				dialog.ListView( IDC_NETPLAY_GAMELIST ).Add( path.Target().File() );
+			if (path.Length() && games.paths.size() < Games::LIMIT && paths.CheckFile( path, TYPES ) && games.paths.insert( path ).second)
+			{
+				games.state = Games::DIRTY;
+
+				if (dialog)
+					dialog.ListView( IDC_NETPLAY_GAMELIST ).Add( path.Target().File() );
+			}
 		}
 
 		ibool Netplay::OnInitDialog(Param&)
@@ -220,14 +199,14 @@ namespace Nestopia
 			else
 			{
 				Control::ListView list( dialog.ListView( IDC_NETPLAY_GAMELIST ) );
-				list.Reserve( games.Size() );
+				list.Reserve( games.paths.size() );
 
-				for (Games::ConstIterator it(games.Begin()), end(games.End()); it != end; ++it)
+				for (Games::Paths::const_iterator it(games.paths.begin()), end(games.paths.end()); it != end; ++it)
 					list.Add( it->Target().File().Ptr() );
 			}
 
-			dialog.CheckBox( IDC_NETPLAY_CLEAR ).Enable( games.Size() );
-			dialog.CheckBox( IDC_NETPLAY_LAUNCH ).Enable( games.Size() );
+			dialog.CheckBox( IDC_NETPLAY_CLEAR ).Enable( games.paths.size() );
+			dialog.CheckBox( IDC_NETPLAY_LAUNCH ).Enable( games.paths.size() );
 
 			return true;
 		}
@@ -321,7 +300,13 @@ namespace Nestopia
 
 		void Netplay::OnDeleteItem(const NMHDR& nmhdr)
 		{
-			games.Erase( reinterpret_cast<const NMLISTVIEW&>(nmhdr).iItem );
+			Games::Paths::iterator it(games.paths.begin());
+
+			for (int i=reinterpret_cast<const NMLISTVIEW&>(nmhdr).iItem; i > 0; --i)
+				++it;
+
+			games.paths.erase( it );
+			games.state = Games::DIRTY;
 
 			if (dialog.ListView( IDC_NETPLAY_GAMELIST ).Size() <= 1)
 			{

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -28,7 +28,7 @@
 #pragma once
 
 #include "NstObjectDelegate.hpp"
-#include <Windows.h>
+#include <windows.h>
 
 namespace Nestopia
 {

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -24,8 +24,6 @@
 
 #include "NstIoScreen.hpp"
 #include "NstIoLog.hpp"
-#include "NstIoIps.hpp"
-#include "NstIoNsp.hpp"
 #include "NstResourceString.hpp"
 #include "NstWindowUser.hpp"
 #include "NstWindowParam.hpp"
@@ -78,10 +76,8 @@ namespace Nestopia
 
 			static const Window::Menu::CmdHandler::Entry<Files> commands[] =
 			{
-				{ IDM_FILE_OPEN,     &Files::OnCmdOpen       },
-				{ IDM_FILE_CLOSE,    &Files::OnCmdClose      },
-				{ IDM_FILE_LOAD_NSP, &Files::OnCmdLoadScript },
-				{ IDM_FILE_SAVE_NSP, &Files::OnCmdSaveScript }
+				{ IDM_FILE_OPEN,  &Files::OnCmdOpen  },
+				{ IDM_FILE_CLOSE, &Files::OnCmdClose }
 			};
 
 			menu.Commands().Add( this, commands );
@@ -99,11 +95,10 @@ namespace Nestopia
 			const bool available = (emulator.NetPlayers() == 0 && emulator.IsGame());
 
 			menu[IDM_FILE_CLOSE].Enable( emulator.IsImage() );
-			menu[IDM_POS_FILE][IDM_POS_FILE_SAVE].Enable( available );
-			menu[IDM_FILE_SAVE_NSP].Enable( available );
+			menu[IDM_FILE_SAVE_NST].Enable( available );
 		}
 
-		void Files::Open(tstring const name,uint types) const
+		void Files::Open(wcstring const name,uint types) const
 		{
 			Application::Instance::Events::Signal( Application::Instance::EVENT_SYSTEM_BUSY );
 
@@ -117,7 +112,6 @@ namespace Nestopia
 					Paths::File::IMAGE |
 					Paths::File::STATE |
 					Paths::File::MOVIE |
-					Paths::File::SCRIPT |
 					Paths::File::IPS |
 					Paths::File::BATTERY |
 					Paths::File::ARCHIVE
@@ -148,8 +142,8 @@ namespace Nestopia
 			}
 
 			Paths::File file;
-			Io::Ips ips;
-			Io::Nsp::Context context;
+			Paths::File ips;
+			Emulator::Context context;
 
 			switch (paths.Load( file, types, path ))
 			{
@@ -187,7 +181,13 @@ namespace Nestopia
 
 				case Paths::File::BATTERY:
 
-					if (emulator.IsCart() && Nes::Cartridge(emulator).GetInfo()->setup.wrkRamBacked)
+					if (file.name.FileInArchive().Length())
+					{
+						Window::User::Fail( IDS_FILE_ERR_CANT_USE_IN_ARCHIVE );
+						return;
+					}
+
+					if (emulator.IsCart() && Nes::Cartridge(emulator).GetProfile()->board.HasBattery())
 					{
 						if (Window::User::Confirm( IDS_LOAD_APPLY_CURRENT_GAME ))
 							context.image = emulator.GetImagePath();
@@ -199,45 +199,15 @@ namespace Nestopia
 
 				case Paths::File::IPS:
 
-					try
-					{
-						ips.Parse( file.data.Ptr(), file.data.Size() );
-					}
-					catch (Io::Ips::Exception id)
-					{
-						Window::User::Fail( id );
-						return;
-					}
-
-					if (emulator.IsGame())
+					if (emulator.IsCart())
 					{
 						if (Window::User::Confirm( IDS_LOAD_APPLY_CURRENT_GAME ))
 							context.image = emulator.GetImagePath();
 					}
 
-					types = Paths::File::GAME|Paths::File::ARCHIVE;
-					context.ips = file.name;
-					break;
-
-				case Paths::File::SCRIPT:
-
-					try
-					{
-						Io::Nsp::File().Load( file.data, context );
-					}
-					catch (Io::Nsp::File::Exception ids)
-					{
-						Window::User::Fail( ids );
-						return;
-					}
-
-					if (context.image.Empty() && emulator.IsGame())
-					{
-						if (Window::User::Confirm( IDS_LOAD_APPLY_CURRENT_GAME ))
-							context.image = emulator.GetImagePath();
-					}
-
-					types = Paths::File::GAME|Paths::File::ARCHIVE;
+					types = Paths::File::CARTRIDGE|Paths::File::ARCHIVE;
+					ips.name = file.name;
+					ips.data.Import( file.data );
 					break;
 
 				default:
@@ -275,59 +245,26 @@ namespace Nestopia
 
 			NST_ASSERT( file.type & Paths::File::IMAGE );
 
-			if (!ips.Loaded())
-			{
-				if (context.ips.Empty())
-					context.ips = paths.GetIpsPath( context.image, file.type );
-
-				if (context.ips.FileExists())
-				{
-					Paths::File input;
-
-					if (paths.Load( input, Paths::File::IPS|Paths::File::ARCHIVE, context.ips, Paths::QUIETLY ))
-					{
-						try
-						{
-							ips.Parse( input.data.Ptr(), input.data.Size() );
-						}
-						catch (...)
-						{
-							ips.Reset();
-							Window::User::Warn( IDS_EMU_WARN_IPS_FAILED );
-						}
-					}
-					else
-					{
-						Window::User::Warn( IDS_EMU_WARN_IPS_FAILED );
-					}
-				}
-			}
-
-			if (ips.Loaded())
-			{
-				try
-				{
-					ips.Patch( file.data.Ptr(), file.data.Size() );
-					Io::Log() << "Emulator: patched \"" << context.image << "\" with \"" << context.ips << "\"\r\n";
-				}
-				catch (...)
-				{
-					Window::User::Warn( IDS_EMU_WARN_IPS_FAILED );
-				}
-			}
-
 			if (context.save.Empty())
 				context.save = paths.GetSavePath( context.image, file.type );
+
+			if (ips.data.Empty())
+			{
+				const Path path(paths.GetIpsPath( context.image, file.type ));
+
+				if (path.FileExists() && !paths.Load( ips, Paths::File::IPS|Paths::File::ARCHIVE, path, Paths::QUIETLY ))
+					Window::User::Warn( IDS_EMU_WARN_IPS_FAILED );
+			}
 
 			if (context.tape.Empty())
 				context.tape = tapeRecorder.GetFile( context.save );
 
-			window.Load( context );
+			context.samples = paths.GetSamplesPath();
 
-			if (!emulator.Load( file.data, file.name, context, !preferences[Preferences::SUPPRESS_WARNINGS] ))
+			if (!emulator.Load( file.data, file.name, ips.data, context, preferences.GetFavoredSystem(), preferences.GetAlwaysAskProfile(), !preferences[Preferences::SUPPRESS_WARNINGS] ))
 				return;
 
-			if (context.mode == Io::Nsp::Context::UNKNOWN && menu[IDM_MACHINE_SYSTEM_AUTO].Checked())
+			if (context.mode == Emulator::Context::UNKNOWN && menu[IDM_MACHINE_SYSTEM_AUTO].Checked())
 				Nes::Machine(emulator).SetMode( Nes::Machine(emulator).GetDesiredMode() );
 
 			if (context.state.Length())
@@ -338,8 +275,6 @@ namespace Nestopia
 
 			if (context.movie.Length())
 				movie.Load( context.movie, Movie::QUIET );
-
-			cheats.Load( context );
 
 			AutoStart();
 		}
@@ -400,10 +335,10 @@ namespace Nestopia
 
 				if (copyData.dwData == Application::Instance::COPYDATA_OPENFILE_ID)
 				{
-					NST_VERIFY( copyData.lpData && copyData.cbData >= sizeof(tchar) && static_cast<tstring>(copyData.lpData)[copyData.cbData/sizeof(tchar)-1] == '\0' );
+					NST_VERIFY( copyData.lpData && copyData.cbData >= sizeof(wchar_t) && static_cast<wcstring>(copyData.lpData)[copyData.cbData/sizeof(wchar_t)-1] == '\0' );
 
-					if (copyData.lpData && copyData.cbData >= sizeof(tchar) && static_cast<tstring>(copyData.lpData)[copyData.cbData/sizeof(tchar)-1] == '\0')
-						Open( static_cast<tstring>(copyData.lpData) );
+					if (copyData.lpData && copyData.cbData >= sizeof(wchar_t) && static_cast<wcstring>(copyData.lpData)[copyData.cbData/sizeof(wchar_t)-1] == '\0')
+						Open( static_cast<wcstring>(copyData.lpData) );
 				}
 			}
 
@@ -414,7 +349,7 @@ namespace Nestopia
 		ibool Files::OnMsgLaunch(Window::Param& param)
 		{
 			NST_ASSERT( param.lParam );
-			Open( reinterpret_cast<tstring>(param.lParam), param.wParam );
+			Open( reinterpret_cast<wcstring>(param.lParam), param.wParam );
 			return true;
 		}
 
@@ -426,32 +361,6 @@ namespace Nestopia
 		void Files::OnCmdClose(uint)
 		{
 			Close();
-		}
-
-		void Files::OnCmdLoadScript(uint)
-		{
-			Open( NULL, Paths::File::SCRIPT|Paths::File::ARCHIVE );
-		}
-
-		void Files::OnCmdSaveScript(uint)
-		{
-			if (emulator.IsGame())
-			{
-				Io::Nsp::Context context;
-
-				emulator.Save( context );
-				movie.Save( context );
-				cheats.Save( context );
-				window.Save( context );
-
-				Io::Nsp::File::Output output;
-				Io::Nsp::File().Save( output, context );
-
-				const Path path( paths.BrowseSave( Paths::File::SCRIPT, Paths::SUGGEST ) );
-
-				if (path.Length())
-					paths.Save( output.Ptr(), output.Length(), Paths::File::SCRIPT, path );
-			}
 		}
 
 		void Files::OnEmuEvent(const Emulator::Event event,const Emulator::Data data)
@@ -468,8 +377,7 @@ namespace Nestopia
 				case Emulator::EVENT_NETPLAY_MODE:
 
 					menu[IDM_FILE_OPEN].Enable( !data );
-					menu[IDM_FILE_LOAD_NSP].Enable( !data );
-					menu[IDM_POS_FILE][IDM_POS_FILE_LOAD].Enable( !data );
+					menu[IDM_FILE_LOAD_NST].Enable( !data );
 					break;
 			}
 		}

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -43,7 +43,7 @@ namespace Nestopia
 
 				const Point pos( fakeParent.Coordinates().Position() );
 
-				context.className = _T("Helper");
+				context.className = L"Helper";
 				context.x         = pos.x;
 				context.y         = pos.y + 30;
 				context.width     = 8;
@@ -211,7 +211,7 @@ namespace Nestopia
 			);
 
 			if (hWnd == NULL)
-				throw Application::Exception( IDS_ERR_FAILED, _T("CreateDialogParam()") );
+				throw Application::Exception( IDS_ERR_FAILED, L"CreateDialogParam()" );
 
 			ModelessDialogs::Add( hWnd );
 
@@ -323,7 +323,7 @@ namespace Nestopia
 		ibool Dialog::OnCommand(Param& param)
 		{
 			if (const MsgHandler::Item* const item = cmdHandler( LOWORD(param.wParam) ))
-				return item->value( param );
+				return item->callback( param );
 
 			return false;
 		}
@@ -344,7 +344,7 @@ namespace Nestopia
 					if (const MsgHandler::Item* const item = dialog.msgHandler( uMsg ))
 					{
 						Param param = {wParam,lParam,0,hWnd};
-						ret = item->value( param );
+						ret = item->callback( param );
 					}
 
 					if (uMsg == WM_DESTROY)

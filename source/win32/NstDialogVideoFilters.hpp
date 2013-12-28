@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -77,25 +77,25 @@ namespace Nestopia
 				schar attributes[8];
 			};
 
-			VideoFilters(Nes::Video,uint,Settings&,uint,bool,Nes::Video::Palette::Mode);
+			VideoFilters(Nes::Video,uint,Settings&,const Point&,bool,bool,Nes::Video::Palette::Mode);
 			~VideoFilters();
 
-			static Type Load(const Configuration&,Settings (&)[NUM_TYPES],Nes::Video,uint,bool,Nes::Video::Palette::Mode);
+			static Type Load(const Configuration&,Settings (&)[NUM_TYPES],Nes::Video,const Point&,bool,bool,Nes::Video::Palette::Mode);
 			static void Save(Configuration&,const Settings (&)[NUM_TYPES],Nes::Video,Type);
 
 			static void UpdateAutoModes(const Settings (&)[NUM_TYPES],Nes::Video,Nes::Video::Palette::Mode);
 
 			enum
 			{
-				MAX_2X_SIZE   = NST_MAX(Nes::Video::Output::WIDTH*2,Nes::Video::Output::HEIGHT*2),
-				MAX_3X_SIZE   = NST_MAX(Nes::Video::Output::WIDTH*3,Nes::Video::Output::HEIGHT*3),
-				MAX_4X_SIZE   = NST_MAX(Nes::Video::Output::WIDTH*4,Nes::Video::Output::HEIGHT*4),
-				MAX_NTSC_SIZE = NST_MAX(Nes::Video::Output::NTSC_WIDTH,Nes::Video::Output::NTSC_HEIGHT)
+				NES_WIDTH  = Nes::Video::Output::WIDTH,
+				NES_HEIGHT = Nes::Video::Output::HEIGHT,
+				NTSC_WIDTH = Nes::Video::Output::NTSC_WIDTH
 			};
 
 		private:
 
 			static void ResetAutoModes(Nes::Video,Nes::Video::Palette::Mode);
+			static uint GetMaxScreenScale(const Point&);
 
 			struct Handlers;
 
@@ -130,7 +130,9 @@ namespace Nestopia
 
 			Settings& settings;
 			Backup backup;
-			const uint maxScreenSize;
+			const uchar maxScreenScale;
+			const bool canDoScanlines;
+			const bool canDoNtsc;
 			const bool canDoBilinear;
 			const Nes::Video::Palette::Mode paletteMode;
 			Nes::Video nes;

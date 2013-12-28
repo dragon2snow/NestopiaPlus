@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -23,7 +23,7 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 
 #include <algorithm>
-#include "NstIoFile.hpp"
+#include "NstIoStream.hpp"
 #include "NstResourceString.hpp"
 #include "NstWindowParam.hpp"
 #include "NstWindowDropFiles.hpp"
@@ -31,7 +31,7 @@
 #include "NstManagerPaths.hpp"
 #include "NstDialogCheats.hpp"
 #include "NstApplicationInstance.hpp"
-#include "NstIoNsp.hpp"
+#include "../core/NstXml.hpp"
 #include <CommCtrl.h>
 
 namespace Nestopia
@@ -75,9 +75,6 @@ namespace Nestopia
 		Cheats::List::Code::Code(const Mem& m)
 		: mem(m) {}
 
-		Cheats::Searcher::Searcher()
-		: filter(NO_FILTER), a(0x00), b(0x00), hex(false) {}
-
 		void Cheats::List::Code::CheckDesc()
 		{
 			if (desc.Length())
@@ -86,6 +83,9 @@ namespace Nestopia
 				desc.Trim();
 			}
 		}
+
+		Cheats::Searcher::Searcher()
+		: filter(NO_FILTER), a(0x00), b(0x00), hex(false) {}
 
 		Cheats::List::Codes::~Codes()
 		{
@@ -102,116 +102,78 @@ namespace Nestopia
 
 		void Cheats::List::Codes::Load(const Configuration& cfg)
 		{
-			String::Stack<32,char> index("cheat ");
+			Configuration::ConstSection cheats( cfg["cheats"] );
 
-			for (uint count=1; ; ++count)
+			for (uint i=0; i < MAX_CODES; ++i)
 			{
-				index(6) = count;
-				const GenericString string( cfg[index] );
-
-				if (string.Empty() || Size() == MAX_CODES)
-					break;
-
-				String::Stack<3,tchar> state;
-				String::Stack<255,tchar> desc;
-
-				Mem mem;
-
-				if ((string[0] >= 'A' && string[0] <= 'Z') || (string[0] >= 'a' && string[0] <= 'z'))
+				if (Configuration::ConstSection cheat=cheats["cheat"][i])
 				{
-					String::Stack<8,tchar> characters;
+					Mem mem;
 
-					if (::_stscanf( string.Ptr(), _T("%8s %3s %255[^\0]"), characters.Ptr(), state.Ptr(), desc.Ptr() ) < 1)
+					uint data = cheat["address"].Int();
+
+					if (data > 0xFFFF)
 						continue;
 
-					if (NES_FAILED(Nes::Cheats::GameGenieDecode( String::Stack<8,char>(characters).Ptr(), mem )))
-						continue;
-				}
-				else
-				{
-					int address=INT_MAX, value=INT_MAX, compare=INT_MAX;
-					int count = ::_stscanf( string.Ptr(), _T("%x %x %x %3s %255[^\0]"), &address, &value, &compare, state.Ptr(), desc.Ptr() );
+					mem.address = data;
 
-					if (count > 2 && compare >= 0x00 && compare <= 0xFF)
+					data = cheat["value"].Int();
+
+					if (data > 0xFF)
+						continue;
+
+					mem.value = data;
+
+					if (Configuration::ConstSection compare=cheat["compare"])
 					{
+						data = compare.Int();
+
+						if (data > 0xFF)
+							continue;
+
 						mem.useCompare = true;
-						mem.compare = compare;
-					}
-					else if (count == 2)
-					{
-						mem.useCompare = false;
-						mem.compare = 0x00;
-						count = ::_stscanf( string.Ptr(), _T("%*s %*s %3s %255[^\0]"), state.Ptr(), desc.Ptr() );
+						mem.compare = data;
 					}
 					else
 					{
-						continue;
+						mem.useCompare = false;
 					}
 
-					if (address < 0x0000 || address > 0xFFFF || value < 0x00 || value > 0xFF)
-						continue;
+					Code& code = Add( mem );
 
-					mem.address = address;
-					mem.value = value;
+					code.enabled = !cheat["enabled"].No();
+					code.desc = cheat["description"].Str();
+					code.CheckDesc();
 				}
-
-				Code& code = Add( mem );
-
-				state.Validate();
-				code.enabled = (state != _T("off"));
-
-				code.desc = desc.Ptr();
-				code.CheckDesc();
+				else
+				{
+					break;
+				}
 			}
 		}
 
 		void Cheats::List::Codes::Save(Configuration& cfg) const
 		{
-			String::Stack<32,char> index("cheat ");
-
-			for (ConstIterator it(Begin()), end(End()); it != end; ++it)
+			if (const uint size=Size())
 			{
-				index(6) = 1U + (it - Begin());
-				HeapString& string = cfg[index].GetString();
+				Configuration::Section cheats( cfg["cheats"] );
 
-				string.Reserve( 2+4 + 1 + 2+2 + 1 + 2+2 + 4 + 1+1 + it->desc.Length() );
-
-				string << HexString( 16, it->mem.address )
-                       << ' '
-                       << HexString( 8, it->mem.value );
-
-               if (it->mem.useCompare)
-                   string << ' ' << HexString( 8, it->mem.compare );
-
-				string << (it->enabled ? " on" : " off");
-
-				if (it->desc.Length())
-					string << " \"" << it->desc << '\"';
-			}
-		}
-
-		uint Cheats::List::Codes::Save(Io::Nsp::Context& context) const
-		{
-			const uint oldSize = context.cheats.size();
-			context.cheats.reserve( oldSize + Size() );
-
-			for (ConstIterator it(Begin()), end(End()); it != end; ++it)
-			{
-				if (std::find( context.cheats.begin(), context.cheats.begin() + oldSize, it->mem.address ) == context.cheats.begin() + oldSize)
+				for (uint i=0; i < size; ++i)
 				{
-					context.cheats.push_back( Io::Nsp::Context::Cheat() );
-					Io::Nsp::Context::Cheat& cheat = context.cheats.back();
+					Configuration::Section cheat( cheats["cheat"][i] );
+					const Code& code = *At(i);
 
-					cheat.address = it->mem.address;
-					cheat.value = it->mem.value;
-					cheat.compare = it->mem.compare;
-					cheat.useCompare = it->mem.useCompare;
-					cheat.enabled = it->enabled;
-					cheat.desc = it->desc;
+					cheat[ "enabled" ].YesNo() = code.enabled;
+					cheat[ "address" ].Str() = HexString( 16, code.mem.address ).Ptr();
+					cheat[ "value"   ].Str() = HexString(  8, code.mem.value   ).Ptr();
+
+					if (code.mem.useCompare)
+						cheat["compare"].Str() = HexString( 8, code.mem.compare ).Ptr();
+
+					if (code.desc.Length())
+						cheat["description"].Str() = code.desc.Ptr();
 				}
 			}
-
-			return context.cheats.size() - oldSize;
 		}
 
 		Cheats::List::Code& Cheats::List::Codes::Add(const Mem& mem)
@@ -290,9 +252,9 @@ namespace Nestopia
 
 			const HexString address( 16, code.mem.address );
 			const HexString value( 8, code.mem.value );
-			const String::Stack<8,tchar> compare( code.mem.useCompare ? HexString( 8, code.mem.compare ).Ptr() : _T("-") );
+			const String::Stack<8,wchar_t> compare( code.mem.useCompare ? HexString( 8, code.mem.compare ).Ptr() : L"-" );
 
-			String::Stack<8,tchar> characters;
+			String::Stack<8,wchar_t> characters;
 
 			if (code.mem.address >= 0x8000)
 			{
@@ -320,7 +282,7 @@ namespace Nestopia
 			if (index == -1)
 				index = listView->Add( characters.Ptr(), code.mem.address, code.enabled );
 
-			tstring const table[] =
+			wcstring const table[] =
 			{
 				address.Ptr(), value.Ptr(), compare.Ptr(), code.desc.Ptr()
 			};
@@ -341,43 +303,174 @@ namespace Nestopia
 			AddToDialog( code );
 		}
 
-		void Cheats::List::Load(const Io::Nsp::Context& context)
+		bool Cheats::List::Import(Codes& codes,const Path& path)
 		{
-			for (Io::Nsp::Context::Cheats::const_iterator it(context.cheats.begin()), end(context.cheats.end()); it != end; ++it)
+			try
 			{
-				if (codes.Size() == MAX_CODES)
-					break;
+				typedef Nes::Core::Xml Xml;
+				Xml xml;
 
-				Code& code = codes.Add( Mem(it->address,it->value,it->compare,it->useCompare) );
+				{
+					Io::Stream::In stream( path );
+					xml.Read( stream );
+				}
 
-				code.enabled = it->enabled;
-				code.desc = it->desc;
-				code.CheckDesc();
+				if (!xml.GetRoot().IsType( L"cheats" ))
+					return false;
 
-				if (listView && listView->GetHandle())
-					AddToDialog( code );
+				for (Xml::Node node(xml.GetRoot().GetFirstChild()); node && codes.Size() < MAX_CODES; node=node.GetNextSibling())
+				{
+					if (!node.IsType( L"cheat" ))
+						return false;
+
+					Mem mem;
+
+					if (const Xml::Node address=node.GetChild( L"address" ))
+					{
+						ulong v;
+
+						if (0xFFFF < (v=std::wcstoul( address.GetValue(), NULL, 0 )))
+							return false;
+
+						mem.address = v;
+
+						if (const Xml::Node value=node.GetChild( L"value" ))
+						{
+							if (0xFF < (v=std::wcstoul( value.GetValue(), NULL, 0 )))
+								return false;
+
+							mem.value = v;
+						}
+
+						if (const Xml::Node compare=node.GetChild( L"compare" ))
+						{
+							if (0xFF < (v=std::wcstoul( compare.GetValue(), NULL, 0 )))
+								return false;
+
+							mem.compare = v;
+							mem.useCompare = true;
+						}
+					}
+					else if (const Xml::Node genie=node.GetChild( L"genie" ))
+					{
+						if (NES_FAILED(Nes::Cheats::GameGenieDecode( String::Heap<char>(genie.GetValue()).Ptr(), mem )))
+							return false;
+					}
+					else if (const Xml::Node rocky=node.GetChild( L"rocky" ))
+					{
+						if (NES_FAILED(Nes::Cheats::ProActionRockyDecode( String::Heap<char>(rocky.GetValue()).Ptr(), mem )))
+							return false;
+					}
+
+					if (!codes.Find( mem.address ))
+					{
+						codes.PushBack( Code(mem) );
+						Code& code = codes.Back();
+
+						code.desc = node.GetChild( L"description" ).GetValue();
+						code.enabled = !(node.GetAttribute( L"enabled" ).IsValue( L"0" ));
+					}
+				}
+			}
+			catch (...)
+			{
+				return false;
+			}
+
+			return true;
+		}
+
+		void Cheats::List::Import(const Path& path)
+		{
+			if (path.Length())
+			{
+				Codes imported;
+
+				if (Import( imported, path ))
+				{
+					for (Codes::ConstIterator it(imported.Begin()), end(imported.End()); it != end && codes.Size() < MAX_CODES; ++it)
+					{
+						Code& code = codes.Add( it->mem );
+
+						code.enabled = it->enabled;
+						code.desc = it->desc;
+						code.CheckDesc();
+
+						if (listView && listView->GetHandle())
+							AddToDialog( code );
+					}
+				}
+				else
+				{
+					User::Fail( IDS_FILE_ERR_INVALID );
+				}
 			}
 		}
 
-		void Cheats::List::Import(const GenericString path)
+		void Cheats::List::Export(const Path& path) const
 		{
-			Managers::Paths::File file;
+			NST_VERIFY( codes.Size() );
 
-			if (paths.Load( file, Managers::Paths::File::SCRIPT|Managers::Paths::File::ARCHIVE, path ))
+			if (path.Length() && codes.Size())
 			{
-				Io::Nsp::Context context;
+				Codes imported;
+
+				for (uint i=0, n=codes.Size(); i < n; ++i)
+				{
+					Code& code = imported.Add( codes[i].mem );
+					code.enabled = codes[i].enabled;
+					code.desc = codes[i].desc;
+				}
+
+				if (path.FileExists() && User::Confirm( IDS_CHEATS_EXPORTEXISTING ))
+				{
+					if (!Import( imported, path ))
+					{
+						imported.Destroy();
+						User::Warn( IDS_CHEATS_EXPORTEXISTING_ERROR );
+					}
+				}
 
 				try
 				{
-					Io::Nsp::File().Load( file.data, context );
+					typedef Nes::Core::Xml Xml;
+
+					Xml xml;
+					Xml::Node root( xml.GetRoot() );
+
+					root = xml.Create( L"cheats" );
+					root.AddAttribute( L"version", L"1.0" );
+
+					for (Codes::ConstIterator it(imported.Begin()), end(imported.End()); it != end; ++it)
+					{
+						Xml::Node node( root.AddChild( L"cheat" ) );
+						node.AddAttribute( L"enabled", it->enabled ? L"1" : L"0" );
+
+						char buffer[9];
+
+						if (NES_SUCCEEDED(Nes::Cheats::GameGenieEncode( it->mem, buffer )))
+							node.AddChild( L"genie", HeapString(buffer).Ptr() );
+
+						if (NES_SUCCEEDED(Nes::Cheats::ProActionRockyEncode( it->mem, buffer )))
+							node.AddChild( L"rocky", HeapString(buffer).Ptr() );
+
+						node.AddChild( L"address", HexString( 16, it->mem.address ).Ptr() );
+						node.AddChild( L"value",   HexString( 8,  it->mem.value   ).Ptr() );
+
+						if (it->mem.useCompare)
+							node.AddChild( L"compare", HexString( 8, it->mem.compare ).Ptr() );
+
+						if (it->desc.Length())
+							node.AddChild( L"description", it->desc.Ptr() );
+					}
+
+					Io::Stream::Out stream( path );
+					xml.Write( root, stream );
 				}
 				catch (...)
 				{
 					User::Fail( IDS_FILE_ERR_INVALID );
-					return;
 				}
-
-				Load( context );
 			}
 		}
 
@@ -511,43 +604,9 @@ namespace Nestopia
 		{
 			if (param.Button().Clicked())
 			{
-				NST_VERIFY( codes.Size() );
-
-				const Path fileName( paths.BrowseSave( Managers::Paths::File::SCRIPT ) );
-
-				if (fileName.Length())
-				{
-					Io::Nsp::Context context;
-
-					if (fileName.FileExists() && User::Confirm( IDS_CHEATS_EXPORTEXISTING ))
-					{
-						try
-						{
-							Collection::Buffer buffer;
-							Io::File( fileName, Io::File::COLLECT ).Stream() >> buffer;
-							Io::Nsp::File().Load( buffer, context );
-						}
-						catch (...)
-						{
-							User::Warn( IDS_CHEATS_EXPORTEXISTING_ERROR );
-							context.Reset();
-						}
-					}
-
-					if (Save( context ))
-					{
-						try
-						{
-							Io::Nsp::File::Buffer buffer;
-							Io::Nsp::File().Save( buffer, context );
-							Io::File( fileName, Io::File::DUMP|Io::File::WRITE_THROUGH ).WriteText( buffer.Ptr(), buffer.Length() );
-						}
-						catch (...)
-						{
-							User::Fail( IDS_FILE_ERR_INVALID );
-						}
-					}
-				}
+				Path path( paths.BrowseSave(Managers::Paths::File::XML) );
+				paths.FixFile( Managers::Paths::File::XML, path );
+				Export( path );
 			}
 
 			return true;
@@ -556,7 +615,7 @@ namespace Nestopia
 		ibool Cheats::List::OnCmdImport(Param& param)
 		{
 			if (param.Button().Clicked())
-				Import();
+				Import( paths.BrowseLoad(Managers::Paths::File::XML) );
 
 			return true;
 		}
@@ -652,17 +711,6 @@ namespace Nestopia
 			staticList.Save( cfg );
 		}
 
-		void Cheats::Save(Io::Nsp::Context& context) const
-		{
-			tempList.Save( context );
-			staticList.Save( context );
-		}
-
-		void Cheats::Load(const Io::Nsp::Context& context)
-		{
-			tempList.Load( context );
-		}
-
 		uint Cheats::ClearTemporaryCodes()
 		{
 			uint prev = tempList.Size();
@@ -715,9 +763,9 @@ namespace Nestopia
 
 				listView.StyleEx() = LVS_EX_FULLROWSELECT;
 
-				static tstring const columns[] =
+				static wcstring const columns[] =
 				{
-					_T("Index"), _T("R0"), _T("R1")
+					L"Index", L"R0", L"R1"
 				};
 
 				listView.Columns().Set( columns );
@@ -777,8 +825,8 @@ namespace Nestopia
 			}
 			else
 			{
-				list[index].Text(1) << String::Num<tchar>( uint(searcher.ram[address]) ).Ptr();
-				list[index].Text(2) << String::Num<tchar>( uint(Nes::Cheats(emulator).GetRam()[address]) ).Ptr();
+				list[index].Text(1) << String::Num<wchar_t>( uint(searcher.ram[address]) ).Ptr();
+				list[index].Text(2) << String::Num<wchar_t>( uint(Nes::Cheats(emulator).GetRam()[address]) ).Ptr();
 			}
 		}
 

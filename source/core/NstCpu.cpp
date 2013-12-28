@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -102,6 +102,42 @@ namespace Nes
 			&Cpu::op0xFC, &Cpu::op0xFD, &Cpu::op0xFE, &Cpu::op0xFF
 		};
 
+		const byte Cpu::writeClocks[0x100] =
+		{
+			0x1C, 0x00, 0x00, 0xC0, 0x00, 0x00, 0x18, 0x18,
+			0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x30, 0x30,
+			0x00, 0x00, 0x00, 0xC0, 0x00, 0x00, 0x30, 0x30,
+			0x00, 0x00, 0x00, 0x60, 0x00, 0x00, 0x60, 0x60,
+			0x1C, 0x00, 0x00, 0xC0, 0x00, 0x00, 0x18, 0x18,
+			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x30, 0x30,
+			0x00, 0x00, 0x00, 0xC0, 0x00, 0x00, 0x30, 0x30,
+			0x00, 0x00, 0x00, 0x60, 0x00, 0x00, 0x60, 0x60,
+			0x00, 0x00, 0x00, 0xC0, 0x00, 0x00, 0x18, 0x18,
+			0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x30, 0x30,
+			0x00, 0x00, 0x00, 0xC0, 0x00, 0x00, 0x30, 0x30,
+			0x00, 0x00, 0x00, 0x60, 0x00, 0x00, 0x60, 0x60,
+			0x00, 0x00, 0x00, 0xC0, 0x00, 0x00, 0x18, 0x18,
+			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x30, 0x30,
+			0x00, 0x00, 0x00, 0xC0, 0x00, 0x00, 0x30, 0x30,
+			0x00, 0x00, 0x00, 0x60, 0x00, 0x00, 0x60, 0x60,
+			0x00, 0x20, 0x00, 0x20, 0x04, 0x04, 0x04, 0x04,
+			0x00, 0x00, 0x00, 0x00, 0x08, 0x08, 0x08, 0x08,
+			0x00, 0x20, 0x00, 0x00, 0x08, 0x08, 0x08, 0x08,
+			0x00, 0x10, 0x00, 0x00, 0x00, 0x10, 0x00, 0x00,
+			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+			0x00, 0x00, 0x00, 0xC0, 0x00, 0x00, 0x18, 0x18,
+			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x30, 0x30,
+			0x00, 0x00, 0x00, 0xC0, 0x00, 0x00, 0x30, 0x30,
+			0x00, 0x00, 0x00, 0x60, 0x00, 0x00, 0x60, 0x60,
+			0x00, 0x00, 0x00, 0xC0, 0x00, 0x00, 0x18, 0x18,
+			0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x30, 0x30,
+			0x00, 0x00, 0x00, 0xC0, 0x00, 0x00, 0x30, 0x30,
+			0x00, 0x00, 0x00, 0x60, 0x00, 0x00, 0x60, 0x60
+		};
+
 		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("s", on)
 		#endif
@@ -113,12 +149,12 @@ namespace Nes
 
 		Cpu::Cpu()
 		:
-		region ( Region::NTSC ),
-		apu    ( *this ),
-		map    ( this, &Cpu::Peek_Overflow, &Cpu::Poke_Overflow )
+		model ( CPU_RP2A03 ),
+		apu   ( *this ),
+		map   ( this, &Cpu::Peek_Overflow, &Cpu::Poke_Overflow )
 		{
 			Reset( false, false );
-			cycles.SetRegion( GetRegion() );
+			cycles.SetModel( GetModel() );
 		}
 
 		#if NST_MSVC >= 1200
@@ -156,15 +192,18 @@ namespace Nes
 				sp = (sp - 3) & 0xFF;
 			}
 
-			pc      = RESET_VECTOR;
+			opcode  = 0;
 			flags.i = Flags::I;
 			jammed  = false;
 			ticks   = 0;
 			logged  = 0;
 
-			cycles.count = 0;
-			cycles.round = 0;
-			cycles.frame = (region == Region::NTSC ? Clocks::RP2C02_HVSYNC : Clocks::RP2C07_HVSYNC);
+			pc = RESET_VECTOR;
+
+			cycles.count  = 0;
+			cycles.offset = 0;
+			cycles.round  = 0;
+			cycles.frame  = (model == CPU_RP2A03 ? PPU_RP2C02_HVSYNC : PPU_RP2C07_HVSYNC);
 
 			interrupt.Reset();
 			hooks.Clear();
@@ -191,18 +230,28 @@ namespace Nes
 			}
 		}
 
-		void Cpu::SetRegion(const Region::Type r)
+		void Cpu::Boot(const bool hard)
 		{
-			if (region != r)
+			NST_VERIFY( pc == RESET_VECTOR );
+
+			pc = map.Peek16( RESET_VECTOR );
+
+			if (hard)
+				cycles.count = cycles.clock[RESET_CYCLES-1];
+		}
+
+		void Cpu::SetModel(const CpuModel m)
+		{
+			if (model != m)
 			{
-				region = r;
-				cycles.SetRegion( r );
-				interrupt.SetRegion( r );
+				model = m;
+				cycles.SetModel( m );
+				interrupt.SetModel( m );
 
-				ticks = ticks / uint(r == Region::NTSC ? Clocks::RP2A07_CC : Clocks::RP2A03_CC) *
-								uint(r == Region::NTSC ? Clocks::RP2A03_CC : Clocks::RP2A07_CC);
+				ticks = ticks / uint(m == CPU_RP2A03 ? CPU_RP2A07_CC : CPU_RP2A03_CC) *
+								uint(m == CPU_RP2A03 ? CPU_RP2A03_CC : CPU_RP2A07_CC);
 
-				apu.UpdateRegion();
+				apu.UpdateModel();
 			}
 		}
 
@@ -216,12 +265,12 @@ namespace Nes
 			hooks.Remove( hook );
 		}
 
-		Cycle Cpu::ClockConvert(Cycle clock,Region::Type region)
+		Cycle Cpu::ClockConvert(Cycle clock,CpuModel model)
 		{
 			return
 			(
-				clock / (region == Region::NTSC ? Clocks::RP2A07_CC : Clocks::RP2A03_CC) *
-						(region == Region::NTSC ? Clocks::RP2A03_CC : Clocks::RP2A07_CC)
+				clock / (model == CPU_RP2A03 ? CPU_RP2A07_CC : CPU_RP2A03_CC) *
+						(model == CPU_RP2A03 ? CPU_RP2A03_CC : CPU_RP2A07_CC)
 			);
 		}
 
@@ -234,14 +283,22 @@ namespace Nes
 			return uint((ticks + cycles.count) % cycles.clock[1]);
 		}
 
-		inline uint Cpu::Cycles::NmiEdge() const
+		bool Cpu::IsWriteCycle(Cycle clock) const
 		{
-			return clock[0] + clock[0] / 2;
+			if (writeClocks[opcode])
+			{
+				clock = (clock - cycles.offset) / cycles.clock[0];
+
+				if (clock < 8)
+					return writeClocks[opcode] & (1U << clock);
+			}
+
+			return false;
 		}
 
-		inline uint Cpu::Cycles::IrqEdge() const
+		inline uint Cpu::Cycles::InterruptEdge() const
 		{
-			return clock[1];
+			return clock[0] + clock[0] / 2;
 		}
 
 		#ifdef NST_MSVC_OPTIMIZE
@@ -277,7 +334,7 @@ namespace Nes
 					((interrupt.low & IRQ_DMC)         ? 0x04U : 0x00U) |
 					((interrupt.low & IRQ_EXT)         ? 0x08U : 0x00U) |
 					(jammed                            ? 0x40U : 0x00U) |
-					(region == Region::PAL             ? 0x80U : 0x00U),
+					(model == CPU_RP2A03               ? 0x80U : 0x00U),
 					cycles.count & 0xFF,
 					cycles.count >> 8,
 					(interrupt.nmiClock != CYCLE_MAX) ? interrupt.nmiClock+1 : 0,
@@ -298,7 +355,7 @@ namespace Nes
 		{
 			if (baseChunk == cpuChunk)
 			{
-				Region::Type stateRegion = GetRegion();
+				CpuModel stateModel = GetModel();
 				ticks = 0;
 
 				while (const dword chunk = state.Begin())
@@ -328,7 +385,7 @@ namespace Nes
 						{
 							State::Loader::Data<5> data( state );
 
-							stateRegion = (data[0] & 0x80) ? Region::PAL : Region::NTSC;
+							stateModel = (data[0] & 0x80) ? CPU_RP2A07 : CPU_RP2A03;
 
 							interrupt.nmiClock = CYCLE_MAX;
 							interrupt.irqClock = CYCLE_MAX;
@@ -350,7 +407,7 @@ namespace Nes
 							cycles.count = data[1] | data[2] << 8;
 
 							if (data[0] & 0x1)
-								interrupt.nmiClock = data[3] ? data[3] - 1 : cycles.NmiEdge();
+								interrupt.nmiClock = data[3] ? data[3] - 1 : cycles.InterruptEdge();
 
 							jammed = data[0] >> 6 & 0x1;
 
@@ -369,15 +426,15 @@ namespace Nes
 					state.End();
 				}
 
-				const Region::Type actualRegion = GetRegion();
+				const CpuModel actualModel = GetModel();
 
-				if (stateRegion != actualRegion)
+				if (stateModel != actualModel)
 				{
-					cycles.SetRegion( actualRegion );
-					interrupt.SetRegion( actualRegion );
+					cycles.SetModel( actualModel );
+					interrupt.SetModel( actualModel );
 
-					ticks = ticks / uint(actualRegion == Region::NTSC ? Clocks::RP2A07_CC : Clocks::RP2A03_CC) *
-									uint(actualRegion == Region::NTSC ? Clocks::RP2A03_CC : Clocks::RP2A07_CC);
+					ticks = ticks / uint(actualModel == CPU_RP2A03 ? CPU_RP2A07_CC : CPU_RP2A03_CC) *
+									uint(actualModel == CPU_RP2A03 ? CPU_RP2A03_CC : CPU_RP2A07_CC);
 				}
 
 				NST_VERIFY( cycles.count < cycles.frame );
@@ -598,23 +655,17 @@ namespace Nes
 			}
 		}
 
-		void Cpu::Cycles::SetRegion(Region::Type region)
+		void Cpu::Cycles::SetModel(CpuModel model)
 		{
-			count = ClockConvert( count, region );
+			count = ClockConvert( count, model );
 
 			for (uint i=0; i < 8; ++i)
-				clock[i] = (i+1) * (region == Region::NTSC ? Clocks::RP2A03_CC : Clocks::RP2A07_CC);
+				clock[i] = (i+1) * (model == CPU_RP2A03 ? CPU_RP2A03_CC : CPU_RP2A07_CC);
 		}
 
 		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
-
-		inline void Cpu::Cycles::NextRound(const Cycle next)
-		{
-			if (round > next)
-				round = next;
-		}
 
 		uint Cpu::Flags::Pack() const
 		{
@@ -652,55 +703,14 @@ namespace Nes
 			low = 0;
 		}
 
-		void Cpu::Interrupt::SetRegion(Region::Type region)
+		void Cpu::Interrupt::SetModel(CpuModel model)
 		{
 			if (nmiClock != CYCLE_MAX)
-				nmiClock = ClockConvert( nmiClock, region );
+				nmiClock = ClockConvert( nmiClock, model );
 
 			if (irqClock != CYCLE_MAX)
-				irqClock = ClockConvert( nmiClock, region );
+				irqClock = ClockConvert( nmiClock, model );
 		}
-
-		#ifdef NST_MSVC_OPTIMIZE
-		#pragma optimize("", on)
-		#endif
-
-		NST_FORCE_INLINE uint Cpu::Interrupt::Clock(const Cycle cycle)
-		{
-			if (cycle >= nmiClock)
-			{
-				NST_VERIFY( irqClock == CYCLE_MAX );
-
-				nmiClock = CYCLE_MAX;
-				irqClock = CYCLE_MAX;
-				return NMI_VECTOR;
-			}
-			else if (cycle >= irqClock)
-			{
-				irqClock = CYCLE_MAX;
-				return IRQ_VECTOR;
-			}
-			else
-			{
-				return 0;
-			}
-		}
-
-		NST_SINGLE_CALL void Cpu::Interrupt::EndFrame(const Cycle frameCycles)
-		{
-			if (nmiClock != CYCLE_MAX)
-			{
-				NST_VERIFY( nmiClock >= frameCycles );
-				nmiClock -= frameCycles;
-			}
-
-			if (irqClock != CYCLE_MAX)
-				irqClock = irqClock > frameCycles ? irqClock - frameCycles : 0;
-		}
-
-		#ifdef NST_MSVC_OPTIMIZE
-		#pragma optimize("s", on)
-		#endif
 
 		template<typename T,typename U>
 		Cpu::IoMap::IoMap(Cpu* cpu,T peek,U poke)
@@ -734,11 +744,7 @@ namespace Nes
 
 		void Cpu::Ram::Reset()
 		{
-			std::memset( mem + 0x000, 0xFF, 0x3F0 );
-			std::memset( mem + 0x3F0, 0x00, 0x010 );
-			std::memset( mem + 0x400, 0xFF, 0x1F0 );
-			std::memset( mem + 0x5F0, 0x00, 0x010 );
-			std::memset( mem + 0x600, 0xFF, 0x200 );
+			std::memset( mem, 0xFF, sizeof(mem) );
 
 			mem[0x08] = 0xF7;
 			mem[0x09] = 0xEF;
@@ -1471,8 +1477,6 @@ namespace Nes
 				flags.i = Flags::I;
 				interrupt.irqClock = CYCLE_MAX;
 
-				// new I flag respect is delayed for one instruction
-
 				if (interrupt.low)
 					DoISR( IRQ_VECTOR );
 			}
@@ -1487,8 +1491,6 @@ namespace Nes
 				flags.i = 0;
 
 				NST_VERIFY( interrupt.irqClock == CYCLE_MAX );
-
-				// new I flag respect is delayed for one instruction
 
 				if (interrupt.low)
 				{
@@ -1529,8 +1531,6 @@ namespace Nes
 
 			const uint i = flags.i;
 			flags.Unpack( Pull8() );
-
-			// new I flag respect is delayed for one instruction
 
 			if (interrupt.low)
 			{
@@ -1635,9 +1635,9 @@ namespace Nes
 
 		NST_SINGLE_CALL void Cpu::Lxa(const uint data)
 		{
-			a &= data;
-			x = a;
-			flags.nz = a;
+			a = data;
+			x = data;
+			flags.nz = data;
 			NotifyOp("LXA",1UL << 8);
 		}
 
@@ -1743,20 +1743,17 @@ namespace Nes
 
 		NST_SINGLE_CALL void Cpu::Brk()
 		{
+			NST_DEBUG_MSG("6502 BRK");
+
 			Push16( pc + 1 );
 			Push8( flags.Pack() | Flags::B );
 			flags.i = Flags::I;
 
-			// 6502 trap, a pending NMI can get serviced right inside BRK if
-			// it occurs before the flags get pushed on the stack
+			NST_VERIFY_MSG(interrupt.irqClock == CYCLE_MAX,"BRK -> IRQ collision!");
+			interrupt.irqClock = CYCLE_MAX;
 
-			const uint vector = interrupt.Clock( cycles.count + cycles.clock[2] );
-			NST_VERIFY( vector != NMI_VECTOR );
-
-			pc = map.Peek16( vector ? vector : IRQ_VECTOR );
 			cycles.count += cycles.clock[BRK_CYCLES-1];
-
-			NST_DEBUG_MSG("6502 BRK");
+			pc = map.Peek16( FetchIRQISRVector() );
 		}
 
 		NST_NO_INLINE void Cpu::Jam()
@@ -1779,15 +1776,41 @@ namespace Nes
 		#pragma optimize("", on)
 		#endif
 
+		uint Cpu::FetchIRQISRVector()
+		{
+			if (cycles.count >= cycles.frame)
+				map.Peek8( 0x3000 );
+
+			if (interrupt.nmiClock != CYCLE_MAX)
+			{
+				NST_DEBUG_MSG("IRQ -> NMI collision!");
+
+				if (interrupt.nmiClock + cycles.clock[1] <= cycles.count)
+				{
+					interrupt.nmiClock = CYCLE_MAX;
+					return NMI_VECTOR;
+				}
+
+				interrupt.nmiClock = cycles.count + 1;
+			}
+
+			return IRQ_VECTOR;
+		}
+
 		void Cpu::DoISR(const uint vector)
 		{
+			NST_ASSERT( interrupt.irqClock == CYCLE_MAX );
+
 			if (!jammed)
 			{
 				Push16( pc );
 				Push8( flags.Pack() );
 				flags.i = Flags::I;
-				pc = map.Peek16( vector );
+
 				cycles.count += cycles.clock[INT_CYCLES-1];
+				pc = map.Peek16( vector == NMI_VECTOR ? NMI_VECTOR : FetchIRQISRVector() );
+
+				apu.Clock();
 			}
 		}
 
@@ -1797,7 +1820,7 @@ namespace Nes
 
 			if (!flags.i && interrupt.irqClock == CYCLE_MAX)
 			{
-				interrupt.irqClock = cycle + cycles.IrqEdge();
+				interrupt.irqClock = cycle + cycles.InterruptEdge();
 				cycles.NextRound( interrupt.irqClock );
 			}
 		}
@@ -1806,7 +1829,7 @@ namespace Nes
 		{
 			if (interrupt.nmiClock == CYCLE_MAX)
 			{
-				interrupt.nmiClock = cycle + cycles.NmiEdge();
+				interrupt.nmiClock = cycle + cycles.InterruptEdge();
 				cycles.NextRound( interrupt.nmiClock );
 			}
 		}
@@ -1814,16 +1837,6 @@ namespace Nes
 		////////////////////////////////////////////////////////////////////////////////////////
 		// main
 		////////////////////////////////////////////////////////////////////////////////////////
-
-		void Cpu::Boot()
-		{
-			NST_VERIFY( pc == RESET_VECTOR );
-
-			cycles.count = cycles.clock[RESET_CYCLES-1];
-			cycles.round = 0;
-
-			pc = map.Peek16( RESET_VECTOR );
-		}
 
 		void Cpu::ExecuteFrame(Sound::Output* sound)
 		{
@@ -1845,30 +1858,62 @@ namespace Nes
 		{
 			apu.EndFrame();
 
-			NST_VERIFY( cycles.count >= cycles.frame );
+			for (const Hook *hook = hooks.Ptr(), *const end = hook+hooks.Size(); hook != end; ++hook)
+				hook->Execute();
 
-			ticks += cycles.frame;
+			NST_ASSERT( cycles.count >= cycles.frame && interrupt.nmiClock >= cycles.frame );
+
 			cycles.count -= cycles.frame;
-			interrupt.EndFrame( cycles.frame );
+			ticks += cycles.frame;
+
+			if (interrupt.nmiClock != CYCLE_MAX)
+				interrupt.nmiClock -= cycles.frame;
+
+			if (interrupt.irqClock != CYCLE_MAX)
+				interrupt.irqClock = (interrupt.irqClock > cycles.frame ? interrupt.irqClock - cycles.frame : 0);
 		}
 
 		void Cpu::Clock()
 		{
-			Cycle clock = apu.Clock( cycles.count );
-
-			if (const uint vector = interrupt.Clock( cycles.count ))
-				DoISR( vector );
-
-			if (clock > interrupt.irqClock)
-				clock = interrupt.irqClock;
-
-			if (clock > interrupt.nmiClock)
-				clock = interrupt.nmiClock;
+			Cycle clock = apu.Clock();
 
 			if (clock > cycles.frame)
 				clock = cycles.frame;
 
+			if (cycles.count < interrupt.nmiClock)
+			{
+				if (clock > interrupt.nmiClock)
+					clock = interrupt.nmiClock;
+
+				if (cycles.count < interrupt.irqClock)
+				{
+					if (clock > interrupt.irqClock)
+						clock = interrupt.irqClock;
+				}
+				else
+				{
+					interrupt.irqClock = CYCLE_MAX;
+
+					DoISR( IRQ_VECTOR );
+				}
+			}
+			else
+			{
+				NST_VERIFY( interrupt.irqClock == CYCLE_MAX );
+
+				interrupt.nmiClock = CYCLE_MAX;
+				interrupt.irqClock = CYCLE_MAX;
+
+				DoISR( NMI_VECTOR );
+			}
+
 			cycles.round = clock;
+		}
+
+		inline void Cpu::ExecuteOp()
+		{
+			cycles.offset = cycles.count;
+			(*this.*opcodes[opcode=FetchPc8()])();
 		}
 
 		void Cpu::Run0()
@@ -1877,7 +1922,7 @@ namespace Nes
 			{
 				do
 				{
-					(*this.*opcodes[FetchPc8()])();
+					ExecuteOp();
 				}
 				while (cycles.count < cycles.round);
 
@@ -1894,7 +1939,7 @@ namespace Nes
 			{
 				do
 				{
-					(*this.*opcodes[FetchPc8()])();
+					ExecuteOp();
 					hook.Execute();
 				}
 				while (cycles.count < cycles.round);
@@ -1913,7 +1958,7 @@ namespace Nes
 			{
 				do
 				{
-					(*this.*opcodes[FetchPc8()])();
+					ExecuteOp();
 
 					const Hook* NST_RESTRICT hook = first;
 

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -39,7 +39,7 @@ namespace Nestopia
 
 			Logfile();
 
-			bool Open(tstring);
+			bool Open(wcstring);
 
 		private:
 
@@ -49,7 +49,7 @@ namespace Nestopia
 			ibool OnCtlColorStatic (Param&);
 			ibool OnCmdClear       (Param&);
 
-			tstring text;
+			wcstring text;
 			bool clear;
 			Dialog dialog;
 		};

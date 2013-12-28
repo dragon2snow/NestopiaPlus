@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -27,13 +27,35 @@
 
 #pragma once
 
-#include "NstCollectionMap.hpp"
+#include <new>
+#include "NstCollectionVector.hpp"
 #include "NstObjectDelegate.hpp"
 
 namespace Nestopia
 {
 	namespace Collection
 	{
+		template<typename T> struct ConstParam
+		{
+			typedef const T& Type;
+		};
+
+		template<typename T> struct ConstParam<T*>
+		{
+			typedef const T* const Type;
+		};
+
+		template<> struct ConstParam< bool   > { typedef const bool   Type; };
+		template<> struct ConstParam< char   > { typedef const int    Type; };
+		template<> struct ConstParam< schar  > { typedef const int    Type; };
+		template<> struct ConstParam< uchar  > { typedef const uint   Type; };
+		template<> struct ConstParam< short  > { typedef const int    Type; };
+		template<> struct ConstParam< ushort > { typedef const uint   Type; };
+		template<> struct ConstParam< int    > { typedef const int    Type; };
+		template<> struct ConstParam< uint   > { typedef const uint   Type; };
+		template<> struct ConstParam< long   > { typedef const long   Type; };
+		template<> struct ConstParam< ulong  > { typedef const ulong  Type; };
+
 		template<typename Output,typename Input,typename Key=uint>
 		class Router
 		{
@@ -53,6 +75,15 @@ namespace Nestopia
 			{
 				Key key;
 				void (T::*function)(Input);
+			};
+
+			struct Item
+			{
+				const Key key;
+				Callback callback;
+
+				Item(KeyParam k)
+				: key(k) {}
 			};
 
 			template<typename Data,typename Code>
@@ -81,11 +112,40 @@ namespace Nestopia
 			template<typename Data>
 			void Set(Data*,const Entry<Data>*,uint);
 
-			typedef Collection::Map<Key,Callback> Items;
+			class Items : public Collection::Vector<Item>
+			{
+			public:
 
-		public:
+				Item& GetSorted(KeyParam,bool&);
+				Item* FindSorted(KeyParam);
+				Item& AtSorted(KeyParam);
 
-			typedef typename Items::Entry Item;
+			private:
+
+				NST_FORCE_INLINE uint LowerBound(KeyParam key) const
+				{
+					uint left = 0, right = Size();
+
+					while (left < right)
+					{
+						const uint middle = (left + right) / 2;
+
+						if (this->At(middle)->key < key)
+							left = middle + 1;
+						else
+							right = middle;
+					}
+
+					return left;
+				}
+
+			public:
+
+				const Item* FindSorted(KeyParam key) const
+				{
+					return const_cast<Items*>(this)->FindSorted(key);
+				}
+			};
 
 		private:
 
@@ -151,7 +211,7 @@ namespace Nestopia
 
 			const Item* operator () (KeyParam key) const
 			{
-				return items.Find( key );
+				return items.FindSorted( key );
 			}
 
 			uint Size() const

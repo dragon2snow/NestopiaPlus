@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -22,7 +22,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include <fstream>
+#include "NstIoStream.hpp"
 #include "NstObjectPod.hpp"
 #include "NstWindowUser.hpp"
 #include "NstManager.hpp"
@@ -77,10 +77,7 @@ namespace Nestopia
 			if (moviePath.Empty() || aviPath.Empty() || !emulator.IsOn())
 				return 0;
 
-			std::ifstream movie( moviePath.Ptr(), std::fstream::binary|std::fstream::in );
-
-			if (!movie.is_open())
-				return IDS_FILE_ERR_OPEN;
+			Io::Stream::In movie( moviePath );
 
 			{
 				const Nes::Result result = Nes::Movie(emulator).Play( movie );
@@ -136,11 +133,11 @@ namespace Nestopia
 			class File
 			{
 				PAVIFILE file;
-				mutable tstring name;
+				mutable wcstring name;
 
 			public:
 
-				explicit File(tstring n)
+				explicit File(wcstring n)
 				: name(n)
 				{
 					NST_ASSERT( name && *name );

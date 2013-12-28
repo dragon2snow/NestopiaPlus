@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -92,25 +92,26 @@ namespace Nestopia
 			void Flush() const;
 			uint Size() const;
 
-			void Write    (const void*,uint) const;
-			void Write8   (uint) const;
-			void Write16  (uint) const;
-			void Write32  (uint) const;
-			void Read     (void*,uint) const;
-			uint ReadSome (void*,uint) const;
-			uint Read8    () const;
-			uint Read16   () const;
-			uint Read32   () const;
-			void Peek     (void*,uint) const;
-			void Peek     (uint,void*,uint) const;
-			uint Peek8    () const;
-			uint Peek16   () const;
-			uint Peek32   () const;
+			void Write     (const void*,uint) const;
+			uint WriteSome (const void*,uint) const;
+			void Write8    (uint) const;
+			void Write16   (uint) const;
+			void Write32   (uint) const;
+			void Read      (void*,uint) const;
+			uint ReadSome  (void*,uint) const;
+			uint Read8     () const;
+			uint Read16    () const;
+			uint Read32    () const;
+			void Peek      (void*,uint) const;
+			void Peek      (uint,void*,uint) const;
+			uint Peek8     () const;
+			uint Peek16    () const;
+			uint Peek32    () const;
 
 			void ReadText (String::Heap<char>&) const;
 			void ReadText (String::Heap<wchar_t>&) const;
 			void WriteText (cstring,uint,bool=false) const;
-			void WriteText (wstring,uint,bool=false) const;
+			void WriteText (wcstring,uint,bool=false) const;
 
 			static void ParseText (cstring,uint,String::Heap<char>&);
 			static void ParseText (cstring,uint,String::Heap<wchar_t>&);
@@ -202,7 +203,7 @@ namespace Nestopia
 				Seek( BEGIN );
 			}
 
-			static bool Delete(tstring);
+			static bool Delete(wcstring);
 		};
 	}
 }

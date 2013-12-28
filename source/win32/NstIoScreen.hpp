@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -36,7 +36,7 @@ namespace Nestopia
 	{
 		class Screen : protected HeapString
 		{
-			typedef Object::Delegate2<void,const GenericString&,uint> Callback;
+			typedef Object::Delegate<void,const GenericString&,uint> Callback;
 
 			static Callback callback;
 

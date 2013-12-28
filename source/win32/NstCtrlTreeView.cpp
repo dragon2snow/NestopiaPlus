@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -47,7 +47,7 @@ namespace Nestopia
 							ImageList_AddMasked( static_cast<HIMAGELIST>(handle), Resource::Bitmap( selected   ), 0 ) == -1 ||
 							ImageList_AddMasked( static_cast<HIMAGELIST>(handle), Resource::Bitmap( unselected ), 0 ) == -1
 						)
-							throw Application::Exception( IDS_ERR_FAILED, _T("ImageList_Add()") );
+							throw Application::Exception( IDS_ERR_FAILED, L"ImageList_Add()" );
 					}
 					catch (const Application::Exception& exception)
 					{
@@ -57,7 +57,7 @@ namespace Nestopia
 				}
 				else
 				{
-					throw Application::Exception( IDS_ERR_FAILED, _T("ImageList_Create()") );
+					throw Application::Exception( IDS_ERR_FAILED, L"ImageList_Create()" );
 				}
 			}
 
@@ -86,7 +86,7 @@ namespace Nestopia
 				tv.hParent = TVI_ROOT;
 				tv.hInsertAfter = TVI_LAST;
 				tv.item.mask = TVIF_TEXT;
-				tv.item.pszText = const_cast<tchar*>( text.Ptr() );
+				tv.item.pszText = const_cast<wchar_t*>( text.Ptr() );
 				tv.item.cchTextMax = text.Length();
 
 				if (TreeView_GetImageList( control, TVSIL_NORMAL ))

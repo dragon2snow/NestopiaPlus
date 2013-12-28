@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -27,7 +27,6 @@
 
 #pragma once
 
-#include "NstCollectionMap.hpp"
 #include "NstString.hpp"
 
 namespace Nestopia
@@ -36,207 +35,108 @@ namespace Nestopia
 	{
 		class Configuration
 		{
+			struct Node;
+
 		public:
 
 			Configuration();
 			~Configuration();
 
 			void Reset(bool=true);
+			void EnableSaving(bool=true);
+			const Path& GetStartupFile() const;
 
-			enum State
-			{
-				YES,
-				NO,
-				ON,
-				OFF
-			};
-
-		private:
-
-			class ConstValue : public GenericString
+			class ConstSection : public ImplicitBool<ConstSection>
 			{
 			public:
 
-				ConstValue(const GenericString& g)
-				: GenericString(g) {}
+				ConstSection operator [] (cstring) const;
+				ConstSection operator [] (uint) const;
 
-				bool operator == (State) const;
+				GenericString Str() const;
 
-				bool operator != (State state) const
-				{
-					return !(*this == state);
-				}
+				ulong Int() const;
+				ulong Int(ulong) const;
 
-				operator long () const
-				{
-					long i;
-					*this >> i;
-					return i;
-				}
+				bool Yes() const;
+				bool No() const;
 
-				operator ulong () const
-				{
-					ulong i;
-					*this >> i;
-					return i;
-				}
+			private:
 
-				operator schar  () const { return schar  (operator long  ()); }
-				operator uchar  () const { return uchar  (operator ulong ()); }
-				operator short  () const { return short  (operator long  ()); }
-				operator ushort () const { return ushort (operator ulong ()); }
-				operator int    () const { return int    (operator long  ()); }
-				operator uint   () const { return uint   (operator ulong ()); }
-
-				tstring Default(tstring d) const
-				{
-					return Length() ? Ptr() : d;
-				}
-
-				tchar Default(tchar d) const
-				{
-					return Length() ? Front() : d;
-				}
-
-				long Default(long d) const
-				{
-					long i;
-					return (*this >> i) ? i : d;
-				}
-
-				ulong Default(ulong d) const
-				{
-					ulong i;
-					return (*this >> i) ? i : d;
-				}
-
-				schar  Default( schar  i ) const { return schar  (Default( long  (i) )); }
-				uchar  Default( uchar  i ) const { return uchar  (Default( ulong (i) )); }
-				short  Default( short  i ) const { return short  (Default( long  (i) )); }
-				ushort Default( ushort i ) const { return ushort (Default( ulong (i) )); }
-				int    Default( int    i ) const { return int    (Default( long  (i) )); }
-				uint   Default( uint   i ) const { return uint   (Default( ulong (i) )); }
-			};
-
-			class Value
-			{
-				HeapString& string;
+				const Node* node;
 
 			public:
 
-				Value(HeapString& s)
-				: string(s) {}
+				ConstSection(const Node* n)
+				: node(n) {}
 
-				class QuoteProxy
+				bool operator ! () const
 				{
-					HeapString& string;
+					return !node;
+				}
+			};
+
+			class Section
+			{
+			public:
+
+				Section operator [] (cstring);
+				Section operator [] (uint);
+
+				HeapString& Str();
+
+			private:
+
+				Node* node;
+
+				class IntProxy
+				{
+					Node& node;
 
 				public:
 
-					QuoteProxy(HeapString& s)
-					: string(s) {}
+					IntProxy(Node& n)
+					: node(n) {}
 
-					void operator = (const GenericString&);
+					void operator = (ulong);
 				};
 
 				class YesNoProxy
 				{
-					HeapString& string;
+					Node& node;
 
 				public:
 
-					YesNoProxy(HeapString& s)
-					: string(s) {}
+					YesNoProxy(Node& n)
+					: node(n) {}
 
 					void operator = (bool);
 				};
 
-				class OnOffProxy
+			public:
+
+				Section(Node* n)
+				: node(n) {}
+
+				IntProxy Int()
 				{
-					HeapString& string;
-
-				public:
-
-					OnOffProxy(HeapString& s)
-					: string(s) {}
-
-					void operator = (bool);
-				};
-
-				template<typename T>
-				void operator = (const T& t)
-				{
-					string << t;
-				}
-
-				HeapString& GetString()
-				{
-					return string;
-				}
-
-				QuoteProxy Quote()
-				{
-					return string;
+					return *node;
 				}
 
 				YesNoProxy YesNo()
 				{
-					return string;
-				}
-
-				OnOffProxy OnOff()
-				{
-					return string;
+					return *node;
 				}
 			};
 
-		public:
-
-			Value operator [] (const String::Generic<char>);
-			const ConstValue operator [] (const String::Generic<char>) const;
+			Section operator [] (cstring);
+			ConstSection operator [] (cstring) const;
 
 		private:
 
-			enum
-			{
-				UTF16_LE = 0xFEFF,
-				UTF16_BE = 0xFFFE,
-				HINTED_SIZE = 414
-			};
-
-			enum Error
-			{
-				ERR_PARSING
-			};
-
-			void Parse(tstring,uint);
-
-			struct Command : String::Heap<char>
-			{
-				mutable bool referenced;
-
-				template<typename T>
-				Command(const T& t)
-				: String::Heap<char>(t), referenced(false) {}
-			};
-
-			typedef Collection::Map<Command,HeapString> Items;
-
-			Items items;
-			HeapString startupFile;
+			Node& root;
 			bool save;
-
-		public:
-
-			void EnableSaving(bool enable=true)
-			{
-				save = enable;
-			}
-
-			const HeapString& GetStartupFile() const
-			{
-				return startupFile;
-			}
+			Path startupFile;
 		};
 	}
 }

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -22,11 +22,8 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "resource/resource.h"
 #include "NstObjectHeap.hpp"
 #include "NstWindowParam.hpp"
-#include "NstResourceFile.hpp"
-#include "NstIoStream.hpp"
 #include "NstManager.hpp"
 #include "NstDialogLauncher.hpp"
 #include "NstManagerLauncher.hpp"
@@ -40,7 +37,7 @@ namespace Nestopia
 		Manager    ( e, m, this, &Launcher::OnEmuEvent, IDM_FILE_LAUNCHER, &Launcher::OnCmdLauncher, &Launcher::OnAppEvent ),
 		fullscreen ( false ),
 		window     ( w ),
-		dialog     ( new Window::Launcher(Nes::Cartridge(ImportDatabase(e)).GetDatabase(),paths,cfg) )
+		dialog     ( new Window::Launcher(Nes::Cartridge(e).GetDatabase(),paths,cfg) )
 		{
 			state[FITS] = true;
 			state[AVAILABLE] = true;
@@ -57,19 +54,6 @@ namespace Nestopia
 		Launcher::~Launcher()
 		{
 			window.Messages().Hooks().Remove( this );
-		}
-
-		Nes::Emulator& Launcher::ImportDatabase(Nes::Emulator& emulator)
-		{
-			Collection::Buffer buffer;
-
-			if (Resource::File( IDR_IMAGEDATABASE, _T("ImageDatabase") ).Uncompress( buffer ))
-			{
-				Io::Stream::Input stream( buffer );
-				Nes::Cartridge( emulator ).GetDatabase().Load( stream );
-			}
-
-			return emulator;
 		}
 
 		void Launcher::Save(Configuration& cfg,bool saveSize,bool saveFiles) const

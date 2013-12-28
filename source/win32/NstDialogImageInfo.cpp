@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -96,101 +96,131 @@ namespace Nestopia
 
 			if (emulator.IsCart())
 			{
-				const Nes::Cartridge::Info& info = *Nes::Cartridge(emulator).GetInfo();
+				typedef Nes::Cartridge::Profile Profile;
+
+				enum
+				{
+					SP_H = Profile::Board::SOLDERPAD_H,
+					SP_V = Profile::Board::SOLDERPAD_V
+				};
+
+				const Profile& profile = *Nes::Cartridge(emulator).GetProfile();
 
 				HeapString types[] =
 				{
-                                               Resource::String( IDS_TEXT_FILE        ),
-                                               Resource::String( IDS_TEXT_DIRECTORY   ),
-                                                             _T( "CRC"                ),
-					!info.name.empty() ?       Resource::String( IDS_TEXT_NAME        ) : HeapString(),
-					!info.maker.empty() ?      Resource::String( IDS_TEXT_MAKER       ) : HeapString(),
-                                               Resource::String( IDS_TEXT_SYSTEM      ),
-                                               Resource::String( IDS_TEXT_CHIPSBOARDS ),
-					info.setup.mapper <= 255 ? Resource::String( IDS_TEXT_MAPPER      ) : HeapString(),
-                                                             _T( "PRG-ROM"            ),
-					info.setup.chrRom ?                      _T( "CHR-ROM"            ) : HeapString(),
-					info.setup.chrRam ?                      _T( "CHR-RAM"            ) : HeapString(),
-					info.setup.wrkRam +
-					info.setup.wrkRamBacked ?                _T( "W-RAM"              ) : HeapString(),
-                                               Resource::String( IDS_TEXT_MIRRORING   ),
-                                               Resource::String( IDS_TEXT_BATTERY     ),
-					info.setup.wrkRamBacked ?  Resource::String( IDS_TEXT_FILE        ) : HeapString(),
-					info.setup.wrkRamBacked ?  Resource::String( IDS_TEXT_DIRECTORY   ) : HeapString(),
-                                               Resource::String( IDS_TEXT_TRAINER     ),
-                                               Resource::String( IDS_TEXT_CONDITION   )
+					!profile.game.title.empty() ?                    Resource::String( IDS_TEXT_NAME        ) : HeapString(),
+					!profile.game.altTitle.empty() ?                 Resource::String( IDS_TEXT_ALTNAME     ) : HeapString(),
+					!profile.game.publisher.empty() ?                Resource::String( IDS_TEXT_PUBLISHER   ) : HeapString(),
+					!profile.game.developer.empty() ?                Resource::String( IDS_TEXT_DEVELOPER   ) : HeapString(),
+					!profile.game.region.empty() ?                   Resource::String( IDS_TEXT_REGION      ) : HeapString(),
+					profile.game.players ?                           Resource::String( IDS_TEXT_PLAYERS     ) : HeapString(),
+                                                                     Resource::String( IDS_TEXT_FILE        ),
+                                                                     Resource::String( IDS_TEXT_DIRECTORY   ),
+                                                                                       "CRC",
+                                                                                       "SHA-1",
+                                                                     Resource::String( IDS_TEXT_SYSTEM      ),
+                                                                     Resource::String( IDS_TEXT_BOARD       ),
+					profile.board.GetPrg() ?                                           "PRG-ROM"              : HeapString(),
+					profile.board.GetChr() ?                                           "CHR-ROM"              : HeapString(),
+					profile.board.GetVram() ?                                          "V-RAM"                : HeapString(),
+					profile.board.GetWram() ?                                          "W-RAM"                : HeapString(),
+					!profile.board.chips.empty() ?                   Resource::String( IDS_TEXT_CHIPS       ) : HeapString(),
+					profile.board.solderPads & (SP_H|SP_V) ?         Resource::String( IDS_TEXT_SOLDERPAD   ) : HeapString(),
+                                                                     Resource::String( IDS_TEXT_BATTERY     ),
+					profile.board.HasBattery() ?                     Resource::String( IDS_TEXT_FILE        ) : HeapString(),
+					profile.board.HasBattery() ?                     Resource::String( IDS_TEXT_DIRECTORY   ) : HeapString(),
+                                                                     Resource::String( IDS_TEXT_DUMP        )
 				};
 
 				Table::Tab( types, sizeof(array(types)), fixedFont );
 
-				types[0] << emulator.GetImagePath().File();
-				types[1] << emulator.GetImagePath().Directory();
-				types[2] << HexString( 32, info.crc );
+				if (!profile.game.title.empty())
+					types[0] << profile.game.title.c_str();
 
-				if (info.name.size())
-					types[3].Import( info.name.c_str() );
+				if (!profile.game.title.empty())
+					types[1] << profile.game.altTitle.c_str();
 
-				if (info.maker.size())
-					types[4].Import( info.maker.c_str() );
+				if (!profile.game.publisher.empty())
+					types[2] << profile.game.publisher.c_str();
 
-				types[5] <<
-				(
-					info.setup.system == Nes::Cartridge::SYSTEM_VS   ? "VS"       :
-					info.setup.system == Nes::Cartridge::SYSTEM_PC10 ? "PC10"     :
-					info.setup.region == Nes::Cartridge::REGION_BOTH ? "NTSC/PAL" :
-					info.setup.region == Nes::Cartridge::REGION_PAL  ? "PAL"      :
-                                                                       "NTSC"
-				);
+				if (!profile.game.developer.empty())
+					types[3] << profile.game.developer.c_str();
 
-				types[6].Import( info.board.c_str() );
+				if (!profile.game.region.empty())
+					types[4] << profile.game.region.c_str();
 
-				if (types[7].Length())
-					types[7] << info.setup.mapper;
+				if (profile.game.players)
+					types[5] << profile.game.players;
 
-				types[8] << (info.setup.prgRom / 1024) << "k";
+				types[6] << emulator.GetImagePath().File();
+				types[7] << emulator.GetImagePath().Directory();
 
-				if (info.setup.prgRom)
-					types[8] << ", CRC: " << HexString( 32, info.prgCrc );
-
-				if (info.setup.chrRom)
-					types[9] << (info.setup.chrRom / 1024) << "k, CRC: " << HexString( 32, info.chrCrc );
-
-				if (info.setup.chrRam)
-					types[10] << (info.setup.chrRam / 1024) << "k";
-
-				if (info.setup.wrkRam+info.setup.wrkRamBacked)
-					types[11] << ((info.setup.wrkRam+info.setup.wrkRamBacked) / 1024) << (info.setup.wrkRamAuto ? "k auto" : "k");
-
-				types[12] <<
-				(
-					info.setup.mirroring == Nes::Cartridge::MIRROR_HORIZONTAL ? Resource::String( IDS_TEXT_HORIZONTAL       ) :
-					info.setup.mirroring == Nes::Cartridge::MIRROR_VERTICAL   ? Resource::String( IDS_TEXT_VERTICAL         ) :
-					info.setup.mirroring == Nes::Cartridge::MIRROR_FOURSCREEN ? Resource::String( IDS_TEXT_FOURSCREEN       ) :
-					info.setup.mirroring == Nes::Cartridge::MIRROR_ZERO       ?               _T( "$2000"                   ) :
-					info.setup.mirroring == Nes::Cartridge::MIRROR_ONE        ?               _T( "$2400"                   ) :
-					info.setup.mirroring == Nes::Cartridge::MIRROR_CONTROLLED ? Resource::String( IDS_TEXT_MAPPERCONTROLLED ) :
-																				Resource::String( IDS_TEXT_UNKNOWN          )
-				);
-
-				types[13] << Resource::String
-				(
-					info.setup.wrkRamBacked ? IDS_TEXT_YES : IDS_TEXT_NO
-				);
-
-				if (info.setup.wrkRamBacked)
 				{
-					types[14] << emulator.GetSavePath().File();
-					types[15] << emulator.GetSavePath().Directory();
+					char sha1[41] = {0};
+					char crc32[9] = {0};
+
+					profile.hash.Get( sha1, crc32 );
+
+					types[8] << crc32;
+					types[9] << sha1;
 				}
 
-				types[16] << Resource::String( info.setup.trainer ? IDS_TEXT_YES : IDS_TEXT_NO );
-
-				types[17] << Resource::String
+				types[10] << Resource::String
 				(
-					info.condition == Nes::Cartridge::DUMP_OK         ? IDS_TEXT_OK :
-					info.condition == Nes::Cartridge::DUMP_BAD        ? IDS_TEXT_BAD :
-					info.condition == Nes::Cartridge::DUMP_REPAIRABLE ? IDS_TEXT_REPAIRABLE :
-																		IDS_TEXT_UNKNOWN
+					profile.system.type == Profile::System::VS_UNISYSTEM  ? IDS_TEXT_VSUNISYSTEM  :
+					profile.system.type == Profile::System::VS_DUALSYSTEM ? IDS_TEXT_VSDUALSYSTEM :
+					profile.system.type == Profile::System::PLAYCHOICE_10 ? IDS_TEXT_PLAYCHOICE10 :
+					profile.system.type == Profile::System::NES_PAL       ? IDS_TEXT_NES_PAL      :
+					profile.system.type == Profile::System::NES_PAL_A     ? IDS_TEXT_NES_PAL_A    :
+					profile.system.type == Profile::System::NES_PAL_B     ? IDS_TEXT_NES_PAL_B    :
+					profile.system.type == Profile::System::FAMICOM       ? IDS_TEXT_FAMICOM      :
+																			IDS_TEXT_NES_NTSC
+				);
+
+				types[11] << profile.board.type.c_str();
+
+				if (profile.board.mapper && profile.board.mapper != Profile::Board::NO_MAPPER)
+					types[11] << ", " << Resource::String( IDS_TEXT_MAPPER ) << ' ' << profile.board.mapper;
+
+				if (const uint prg = profile.board.GetPrg())
+					types[12] << (prg % 1024 ? prg : prg / 1024) << (prg % 1024 ? " bytes" : "k");
+
+				if (const uint chr = profile.board.GetChr())
+					types[13] << (chr % 1024 ? chr : chr / 1024) << (chr % 1024 ? " bytes" : "k");
+
+				if (const uint vram = profile.board.GetVram())
+					types[14] << (vram % 1024 ? vram : vram / 1024) << (vram % 1024 ? " bytes" : "k");
+
+				if (const uint wram = profile.board.GetWram())
+					types[15] << (wram % 1024 ? wram : wram / 1024) << (wram % 1024 ? " bytes" : "k");
+
+				for (uint i=0, n=profile.board.chips.size(); i < n; ++i)
+				{
+					if (i)
+						types[16] << ", ";
+
+					types[16] << profile.board.chips[i].type.c_str();
+				}
+
+				if (profile.board.solderPads & (SP_H|SP_V))
+				{
+					types[17] << "H:"  << ((profile.board.solderPads & SP_H) ? '1' : '0')
+                              << " V:" << ((profile.board.solderPads & SP_V) ? '1' : '0');
+				}
+
+				types[18] << Resource::String( profile.board.HasBattery() ? IDS_TEXT_YES : IDS_TEXT_NO );
+
+				if (profile.board.HasBattery())
+				{
+					types[19] << emulator.GetSavePath().File();
+					types[20] << emulator.GetSavePath().Directory();
+				}
+
+				types[21] << Resource::String
+				(
+					profile.dump.state == Profile::Dump::OK  ? IDS_TEXT_OK :
+					profile.dump.state == Profile::Dump::BAD ? IDS_TEXT_BAD :
+                                                               IDS_TEXT_UNKNOWN
 				);
 
 				Table::Output( text, types, sizeof(array(types)) );
@@ -245,7 +275,7 @@ namespace Nestopia
 											Resource::String( IDS_TEXT_DIRECTORY     ),
 					*nsf.GetName() ?        Resource::String( IDS_TEXT_NAME          ) : HeapString(),
 					*nsf.GetArtist() ?      Resource::String( IDS_TEXT_ARTIST        ) : HeapString(),
-					*nsf.GetMaker() ?       Resource::String( IDS_TEXT_MAKER         ) : HeapString(),
+					*nsf.GetCopyright() ?   Resource::String( IDS_TEXT_COPYRIGHT     ) : HeapString(),
 											Resource::String( IDS_TEXT_REGION        ),
 											Resource::String( IDS_TEXT_SONGS         ),
 					nsf.GetNumSongs() > 1 ? Resource::String( IDS_TEXT_STARTINGSONG  ) : HeapString(),
@@ -267,8 +297,8 @@ namespace Nestopia
 				if (*nsf.GetArtist())
 					types[3].Import( nsf.GetArtist() );
 
-				if (*nsf.GetMaker())
-					types[4].Import( nsf.GetMaker() );
+				if (*nsf.GetCopyright())
+					types[4].Import( nsf.GetCopyright() );
 
 				types[5] <<
 				(
@@ -289,7 +319,7 @@ namespace Nestopia
 					if ( chips & Nes::Nsf::CHIP_MMC5 ) { types[8]      << "MMC5";      c = "+"; }
 					if ( chips & Nes::Nsf::CHIP_VRC6 ) { types[8] << c << "VRC6";      c = "+"; }
 					if ( chips & Nes::Nsf::CHIP_VRC7 ) { types[8] << c << "VRC7";      c = "+"; }
-					if ( chips & Nes::Nsf::CHIP_N106 ) { types[8] << c << "N106";      c = "+"; }
+					if ( chips & Nes::Nsf::CHIP_N163 ) { types[8] << c << "N163";      c = "+"; }
 					if ( chips & Nes::Nsf::CHIP_S5B  ) { types[8] << c << "Sunsoft5B"; c = "+"; }
 					if ( chips & Nes::Nsf::CHIP_FDS  ) { types[8] << c << "FDS";       c = "+"; }
 				}

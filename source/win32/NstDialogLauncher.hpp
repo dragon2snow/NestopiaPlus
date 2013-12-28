@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -28,6 +28,7 @@
 #pragma once
 
 #include <vector>
+#include <map>
 #include "NstCollectionBitSet.hpp"
 #include "NstWindowMenu.hpp"
 #include "NstWindowStatusBar.hpp"
@@ -129,7 +130,7 @@ namespace Nestopia
 					REPAINT
 				};
 
-				void Add(tstring);
+				void Add(wcstring);
 				void Close();
 				void Save(Configuration&,bool);
 				void Sort(uint=0);
@@ -161,12 +162,12 @@ namespace Nestopia
 						{
 							enum
 							{
-								NES,UNF,FDS,NSF,IPS,NSP,ARCHIVE,ANY,UNIQUE
+								NES,UNF,XML,FDS,NSF,IPS,ARCHIVE,ANY,UNIQUE
 							};
 
 							enum
 							{
-								TYPES = NES|UNF|FDS|NSF|IPS|NSP,
+								TYPES = NES|UNF|XML|FDS|NSF|IPS,
 								FILES = TYPES|ARCHIVE
 							};
 
@@ -239,9 +240,6 @@ namespace Nestopia
 
 						int  Find(GenericString) const;
 						void Clear();
-						uint Count() const;
-						bool Import(const Io::File&,uint,bool);
-						void Export(const Io::File&) const;
 
 						template<typename T>
 						Index operator << (const T& t)
@@ -259,26 +257,21 @@ namespace Nestopia
 							return pos;
 						}
 
-						tstring operator [] (uint i) const
+						wcstring operator [] (uint i) const
 						{
 							return container.Ptr() + i;
 						}
 
-						bool IsUTF16() const
-						{
-							return container.Wide();
-						}
-
 						uint Size() const
 						{
-							return container.Length() * (IsUTF16() ? 2 : 1);
+							return container.Length() * (container.Wide() ? 2 : 1);
 						}
 					};
 
 					Files();
 
-					void Load(const Nes::Cartridge::Database&);
-					void Save(const Nes::Cartridge::Database&);
+					void Load();
+					void Save();
 					void Refresh(const Paths::Settings&,const Nes::Cartridge::Database&);
 					bool Insert(const Nes::Cartridge::Database&,GenericString);
 					void Clear();
@@ -293,27 +286,18 @@ namespace Nestopia
 
 					public:
 
+						typedef Nes::Cartridge::Database Db;
+
 						enum Type
 						{
 							NES     = 0x01,
 							UNF     = 0x02,
-							FDS     = 0x04,
-							NSF     = 0x08,
-							IPS     = 0x10,
-							NSP     = 0x20,
-							ARCHIVE = 0x40,
-							ALL     = NES|UNF|FDS|NSF|IPS|NSP
-						};
-
-						enum
-						{
-							MIRROR_NONE,
-							MIRROR_HORIZONTAL,
-							MIRROR_VERTICAL,
-							MIRROR_ZERO,
-							MIRROR_ONE,
-							MIRROR_FOURSCREEN,
-							MIRROR_CONTROLLED
+							XML     = 0x04,
+							FDS     = 0x08,
+							NSF     = 0x10,
+							IPS     = 0x20,
+							ARCHIVE = 0x80,
+							ALL     = NES|UNF|XML|FDS|NSF|IPS
 						};
 
 						enum
@@ -326,135 +310,125 @@ namespace Nestopia
 							SYSTEM_NTSC_PAL
 						};
 
-						tstring GetName(const Strings&,const Nes::Cartridge::Database*) const;
-						uint GetSystem() const;
-						uint GetMirroring(const Nes::Cartridge::Database*) const;
-						uint GetSystem(const Nes::Cartridge::Database*) const;
+						uint GetSystem(const Db*) const;
 
 					private:
 
 						explicit Entry(uint=0);
 
+						Db::Entry SearchDb(const Db*) const;
+
 						enum
 						{
-							ATR_MIRRORING = 0x07,
-							ATR_BATTERY   = 0x08,
-							ATR_TRAINER   = 0x10,
-							ATR_VS        = 0x20,
-							ATR_PAL       = 0x40,
-							ATR_NTSC      = 0x80,
-							ATR_NTSC_PAL  = ATR_PAL|ATR_NTSC
+							ATR_BATTERY     = 0x08,
+							ATR_PC10        = 0x10,
+							ATR_VS          = 0x20,
+							ATR_PAL         = 0x40,
+							ATR_NTSC        = 0x80,
+							ATR_NTSC_PAL    = ATR_PAL|ATR_NTSC,
+							ATR_DEFAULT_FDS = ATR_NTSC
 						};
 
 						Strings::Index file;
 						Strings::Index path;
 						Strings::Index name;
-						Strings::Index maker;
 
-						Nes::Cartridge::Database::Entry dBaseEntry;
+						typedef Nes::Cartridge::Profile::Hash Hash;
+
+						Hash hash;
 
 						ushort pRom;
 						ushort cRom;
 						ushort wRam;
+						ushort vRam;
 						ushort mapper;
 						uchar type;
 						uchar attributes;
 
 					public:
 
-						Type GetType() const
+						uint GetType() const
 						{
-							return static_cast<Type>(type);
+							return type;
 						}
 
-						tstring GetPath(const Strings& strings) const
+						wcstring GetPath(const Strings& strings) const
 						{
 							return strings[path];
 						}
 
-						tstring GetFile(const Strings& strings) const
+						wcstring GetFile(const Strings& strings) const
 						{
 							return strings[file];
 						}
 
-						tstring GetName(const Strings& strings) const
+						wcstring GetName(const Strings& strings,const Db* db) const
 						{
-							return strings[name];
+							if (const Db::Entry entry = SearchDb( db ))
+							{
+								wcstring title = entry.GetTitle();
+
+								if (*title)
+									return title;
+							}
+
+							return name ? strings[name] : L"-";
 						}
 
-						tstring GetMaker(const Strings& strings) const
+						uint GetPRom(const Db* db=NULL) const
 						{
-							return strings[maker];
+							if (const Db::Entry entry = SearchDb( db ))
+								return entry.GetPrgRom() / Nes::Core::SIZE_1K;
+							else
+								return pRom;
 						}
 
-						uint GetPRom() const
+						uint GetCRom(const Db* db=NULL) const
 						{
-							return pRom;
+							if (const Db::Entry entry = SearchDb( db ))
+								return entry.GetChrRom() / Nes::Core::SIZE_1K;
+							else
+								return cRom;
 						}
 
-						uint GetCRom() const
+						uint GetWRam(const Db* db=NULL) const
 						{
-							return cRom;
+							if (const Db::Entry entry = SearchDb( db ))
+								return entry.GetWram() / Nes::Core::SIZE_1K;
+							else
+								return wRam;
 						}
 
-						uint GetWRam() const
+						uint GetVRam(const Db* db=NULL) const
 						{
-							return wRam;
+							if (const Db::Entry entry = SearchDb( db ))
+								return entry.GetVram() / Nes::Core::SIZE_1K;
+							else
+								return vRam;
 						}
 
-						uint GetPRom(const Nes::Cartridge::Database* db) const
+						bool GetBattery(const Db* db=NULL) const
 						{
-							return dBaseEntry && db ? db->GetPrgRom( dBaseEntry ) / Nes::Core::SIZE_1K : pRom;
+							if (const Db::Entry entry = SearchDb( db ))
+								return entry.HasBattery();
+							else
+								return (attributes & ATR_BATTERY);
 						}
 
-						uint GetCRom(const Nes::Cartridge::Database* db) const
+						uint GetMapper(const Db* db=NULL) const
 						{
-							return dBaseEntry && db ? db->GetChrRom( dBaseEntry ) / Nes::Core::SIZE_1K : cRom;
+							if (const Db::Entry entry = SearchDb( db ))
+								return entry.GetMapper();
+							else
+								return mapper;
 						}
 
-						uint GetWRam(const Nes::Cartridge::Database* db) const
+						Nes::Cartridge::Profile::Dump::State GetDump(const Db* db=NULL) const
 						{
-							return dBaseEntry && db ? (db->GetWrkRam( dBaseEntry ) + db->GetWrkRamBacked( dBaseEntry )) / Nes::Core::SIZE_1K : wRam;
-						}
-
-						uint GetMapper() const
-						{
-							return mapper;
-						}
-
-						bool GetBattery() const
-						{
-							return attributes & ATR_BATTERY;
-						}
-
-						bool GetTrainer() const
-						{
-							return attributes & ATR_TRAINER;
-						}
-
-						uint GetMirroring() const
-						{
-							return attributes & ATR_MIRRORING;
-						}
-
-						bool GetBattery(const Nes::Cartridge::Database* db) const
-						{
-							return dBaseEntry && db ? db->GetWrkRamBacked( dBaseEntry ) : (attributes & ATR_BATTERY);
-						}
-
-						bool GetTrainer(const Nes::Cartridge::Database* db) const
-						{
-							return dBaseEntry && db ? db->HasTrainer( dBaseEntry ) : (attributes & ATR_TRAINER);
-						}
-
-						uint GetMapper(const Nes::Cartridge::Database* db) const
-						{
-							return dBaseEntry && db ? db->GetMapper( dBaseEntry ) : mapper;
-						}
-
-						Nes::Cartridge::Condition GetCondition(const Nes::Cartridge::Database* db) const
-						{
-							return dBaseEntry && db ? db->GetCondition( dBaseEntry ) : Nes::Cartridge::DUMP_UNKNOWN;
+							if (const Db::Entry entry = SearchDb( db ))
+								return entry.GetDumpState();
+							else
+								return Nes::Cartridge::Profile::Dump::UNKNOWN;
 						}
 					};
 
@@ -469,10 +443,7 @@ namespace Nestopia
 
 					enum
 					{
-						HEADER_ID = FourCC<'n','s','d'>::V,
-						HEADER_MAX_ENTRIES = 0xFFFFF,
-						HEADER_VERSION = 3,
-						HEADER_FLAGS_UTF16 = 0x1,
+						MAX_ENTRIES = 0xFFFFF,
 						GARBAGE_THRESHOLD = 127
 					};
 
@@ -525,23 +496,19 @@ namespace Nestopia
 						TYPE_PROM,
 						TYPE_CROM,
 						TYPE_WRAM,
+						TYPE_VRAM,
 						TYPE_BATTERY,
-						TYPE_TRAINER,
-						TYPE_MIRRORING,
-						TYPE_CONDITION,
+						TYPE_DUMP,
 						TYPE_NAME,
-						TYPE_MAKER,
 						TYPE_FOLDER,
 						NUM_TYPES,
-						NUM_DEFAULT_SELECTED_TYPES = 10,
+						NUM_DEFAULT_SELECTED_TYPES = 9,
 						NUM_DEFAULT_AVAILABLE_TYPES = NUM_TYPES - NUM_DEFAULT_SELECTED_TYPES
 					};
 
 				private:
 
 					struct Handlers;
-
-					static cstring CfgName(uint);
 
 					void Reset();
 					void Add(uint,uint);
@@ -562,7 +529,7 @@ namespace Nestopia
 					Types selected;
 					Dialog dialog;
 
-					static tstring const cfgStrings[NUM_TYPES];
+					static wcstring const cfgStrings[NUM_TYPES];
 
 				public:
 
@@ -593,26 +560,19 @@ namespace Nestopia
 				{
 				public:
 
-					tstring GetMapper(uint);
-					tstring GetSize(uint);
+					wcstring GetMapper(uint);
+					wcstring GetSize(uint);
 					void Flush();
 
 				private:
 
 					struct ValueString
 					{
-						tchar string[5];
+						wchar_t string[5];
 					};
 
-					struct SizeString : String::Stack<10+1,tchar>
-					{
-						explicit SizeString(uint i)
-						{
-							(*this) << i << 'k';
-						}
-					};
-
-					typedef Collection::Map<uint,SizeString,true> Sizes;
+					typedef String::Stack<10+1> SizeString;
+					typedef std::map<uint,SizeString> Sizes;
 					typedef Collection::Vector<ValueString> Mappers;
 
 					Sizes sizes;
@@ -737,11 +697,6 @@ namespace Nestopia
 				const Files::Strings& GetStrings() const
 				{
 					return files.GetStrings();
-				}
-
-				const Nes::Cartridge::Database& GetDatabase() const
-				{
-					return imageDatabase;
 				}
 
 				const Managers::Paths& GetPaths() const

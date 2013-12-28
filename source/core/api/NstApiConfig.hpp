@@ -1,8 +1,9 @@
+/*
 ////////////////////////////////////////////////////////////////////////////////////////
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -21,24 +22,19 @@
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
 ////////////////////////////////////////////////////////////////////////////////////////
+*/
 
 #ifndef NST_BASE_H
 #error Do not include NstApConfig.hpp directly!
 #endif
 
-////////////////////////////////////////////////////////////////////////////////////////
-//
-// Important: For non-debug builds, the C/C++ standard NDEBUG macro must be defined
-//            somewhere (optionally here) for the emulation core to see. Otherwise,
-//            run-time checks will be performed by the emulator which degrades
-//            performance.
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
+/*
 ////////////////////////////////////////////////////////////////////////////////////////
 //
 // Compiler Configuration:
 // -----------------------
+//
+// NST_DEBUG                 - Debug mode compilation.
 //
 // NST_PRAGMA_ONCE           - Define if #pragma once is supported. Auto-defined if
 //                             compiler is MCW or MSVC.
@@ -51,6 +47,10 @@
 //
 //                             If no suitable type is available, a default class based
 //                             implementation will be used which may generate slower code.
+//
+// NST_MM_INTRINSICS         - For MMX/SSE compiler intrinsics support through
+//                             xmmintrin.h/emmintrin.h/mmintrin.h. Auto-defined if
+//                             compiler is Win32 MSVC and _M_IX86 is defined.
 //
 // NST_CALL <attribute>      - Compiler/platform specific calling convention for non-member
 //                             functions. Placed between return type and function name, e.g
@@ -67,7 +67,7 @@
 //
 //                             Example usage in Nestopia:
 //
-//                              Print( "Hey!" NST_LINE_BREAK "get off my lawn!" NST_LINE_BREAK );
+//                              Print( "Hey!" NST_LINEBREAK "get off my lawn!" NST_LINEBREAK );
 //
 // NST_NO_INLINE <attribute> - To prevent automatic inline expansion of certain functions
 //                             that won't benefit from it. Auto-defined if compiler is
@@ -85,10 +85,10 @@
 //
 //                             Example usage in Nestopia:
 //
-//                             #ifdef NDEBUG
-//                              NST_ASSUME( miss_july == hot );
-//                             #else
+//                             #ifdef NST_DEBUG
 //                              assert( miss_july == hot );
+//                             #else
+//                              NST_ASSUME( miss_july == hot );
 //                             #endif
 //
 // NST_FASTDELEGATE          - Define this if your compiler can handle casts between member
@@ -102,17 +102,6 @@
 //                             this option is not worth using and Nestopia will force a
 //                             compile time error. Auto-defined if compiler is MSVC.
 //
-// NST_TAILCALL_OPTIMIZE     - Define this if your compiler can do tail-call optimizations,
-//                             i.e it will convert a CALL+RET into a JMP. Compiling with
-//                             this macro defined could result in a huge performance boost.
-//                             However, if the compiler does *not* perform this optimization
-//                             it could cause the opposite, possibly leading to a stack
-//                             overflow crash.
-//                             Auto-defined if compiler is MSVC. Although GCC is generally
-//                             known to have this optimization feature, it's not auto-defined
-//                             for safety reasons as not all brands of GCC may do it. This
-//                             macro has no effect on debug builds (NDEBUG not defined).
-//
 // Abbrevations:
 //
 // BC - Borland C++
@@ -122,7 +111,9 @@
 // MSVC - Microsoft Visual C++
 //
 ////////////////////////////////////////////////////////////////////////////////////////
+*/
 
+/*
 ////////////////////////////////////////////////////////////////////////////////////////
 //
 // Define to disable a particular feature.
@@ -138,3 +129,4 @@
 // NST_NO_HQ2X    - hq2x and hq3x video filters
 //
 ////////////////////////////////////////////////////////////////////////////////////////
+*/

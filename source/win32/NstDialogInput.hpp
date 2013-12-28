@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -281,9 +281,7 @@ namespace Nestopia
 					FILE_KEYS = COMMAND_KEYS,
 					FILE_KEY_OPEN = 0,
 					FILE_KEY_SAVE_STATE,
-					FILE_KEY_SAVE_SCRIPT,
 					FILE_KEY_LOAD_STATE,
-					FILE_KEY_LOAD_SCRIPT,
 					FILE_KEY_QUICK_LOAD_STATE_1,
 					FILE_KEY_QUICK_LOAD_STATE_2,
 					FILE_KEY_QUICK_LOAD_STATE_3,
@@ -387,7 +385,8 @@ namespace Nestopia
 					uchar index;
 					ushort key;
 					ushort dlgName;
-					cstring cfgName;
+					cstring cfgType;
+					cstring cfgKey;
 				};
 
 			#pragma pack(pop)

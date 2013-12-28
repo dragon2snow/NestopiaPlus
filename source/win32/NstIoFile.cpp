@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -24,7 +24,7 @@
 
 #include "NstIoFile.hpp"
 #include "NstCollectionVector.hpp"
-#include <Windows.h>
+#include <windows.h>
 
 namespace Nestopia
 {
@@ -146,6 +146,23 @@ namespace Nestopia
 				if (!::WriteFile( handle, data, size, &written, NULL ) || written != size)
 					throw ERR_WRITE;
 			}
+		}
+
+		uint File::WriteSome(const void* const data,const uint size) const
+		{
+			NST_ASSERT( IsOpen() && bool(data) >= bool(size) );
+
+			if (size)
+			{
+				DWORD written = 0;
+
+				if (!::WriteFile( handle, data, size, &written, NULL ))
+					throw ERR_WRITE;
+
+				return written;
+			}
+
+			return 0;
 		}
 
 		void File::Write8(uint data) const
@@ -323,7 +340,7 @@ namespace Nestopia
 			Write( string, length );
 		}
 
-		void File::WriteText(wstring string,uint length,bool forceUnicode) const
+		void File::WriteText(wcstring string,uint length,bool forceUnicode) const
 		{
 			if (length)
 			{
@@ -405,7 +422,7 @@ namespace Nestopia
 			}
 		}
 
-		bool File::Delete(tstring const path)
+		bool File::Delete(wcstring const path)
 		{
 			NST_ASSERT( path && *path );
 			return ::DeleteFile( path );

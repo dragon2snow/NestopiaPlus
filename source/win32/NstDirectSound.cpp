@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -45,13 +45,13 @@ namespace Nestopia
 			Io::Log() << "DirectSound: initializing..\r\n";
 
 			if (FAILED(::DirectSoundEnumerate( Enumerator, &list )) || list.empty())
-				Enumerator( NULL, _T("Primary Sound Driver"), NULL, &list );
+				Enumerator( NULL, L"Primary Sound Driver", NULL, &list );
 
 			bool report = true;
 
 			for (Adapters::iterator it(list.begin()), end(list.end()); it != end; ++it)
 			{
-				if (::StrStrI( it->name.Ptr(), _T("E-DSP Wave") ))
+				if (::StrStrI( it->name.Ptr(), L"E-DSP Wave" ))
 				{
 					it->buggy = true;
 
@@ -81,9 +81,9 @@ namespace Nestopia
 		BOOL CALLBACK DirectSound::SoundAdapters::Enumerator(LPGUID const guid,LPCTSTR const desc,LPCTSTR,LPVOID const context)
 		{
 			Io::Log() << "DirectSound: enumerating device - name: "
-                      << (desc && *desc ? desc : _T("unknown"))
+                      << (desc && *desc ? desc : L"unknown")
                       << ", GUID: "
-                      << (guid ? System::Guid( *guid ).GetString() : _T("unspecified"))
+                      << (guid ? System::Guid( *guid ).GetString() : L"unspecified")
                       << "\r\n";
 
 			ComInterface<IDirectSound8> device;

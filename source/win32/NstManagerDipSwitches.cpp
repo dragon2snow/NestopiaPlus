@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -48,12 +48,12 @@ namespace Nestopia
 
 			menu.Popups().Add( this, popups );
 
-			menu[IDM_MACHINE_OPTIONS_DIPSWITCHESONLOAD].Check( cfg["machine dipswitches on load"] == Configuration::YES );
+			menu[IDM_MACHINE_OPTIONS_DIPSWITCHESONLOAD].Check( cfg["machine"]["dip-switches-on-load"].Yes() );
 		}
 
 		void DipSwitches::Save(Configuration& cfg) const
 		{
-			cfg["machine dipswitches on load"].YesNo() = menu[IDM_MACHINE_OPTIONS_DIPSWITCHESONLOAD].Checked();
+			cfg["machine"]["dip-switches-on-load"].YesNo() = menu[IDM_MACHINE_OPTIONS_DIPSWITCHESONLOAD].Checked();
 		}
 
 		bool DipSwitches::Available() const

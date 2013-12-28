@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -27,6 +27,7 @@
 
 #pragma once
 
+#include <set>
 #include "NstWindowDialog.hpp"
 
 namespace Nestopia
@@ -47,6 +48,7 @@ namespace Nestopia
 			~Netplay();
 
 			void SaveFile() const;
+			wcstring GetPath(wcstring) const;
 
 			class Chat
 			{
@@ -81,13 +83,11 @@ namespace Nestopia
 				LAUNCH = 0xB00B
 			};
 
-			struct Games : Collection::Set<Path>
+			struct Games
 			{
 				Games();
-				~Games();
 
-				Iterator Add(const Path&);
-				void Erase(uint);
+				typedef std::set<Path> Paths;
 
 				enum
 				{
@@ -102,7 +102,14 @@ namespace Nestopia
 				};
 
 				State state;
+				Paths paths;
 			};
+
+		public:
+
+			typedef Games::Paths GamePaths;
+
+		private:
 
 			void LoadFile();
 			void Add(Path);
@@ -140,25 +147,9 @@ namespace Nestopia
 				return doFullscreen;
 			}
 
-			uint GetNumGames() const
+			const GamePaths& GetGamePaths() const
 			{
-				return games.Size();
-			}
-
-			GenericString GetGame(const uint i) const
-			{
-				return games[i].Target().File();
-			}
-
-			tstring GetPath(tstring const game) const
-			{
-				for (uint i=0; i < games.Size(); ++i)
-				{
-					if (GetGame(i) == game)
-						return games[i].Ptr();
-				}
-
-				return NULL;
+				return games.paths;
 			}
 		};
 	}

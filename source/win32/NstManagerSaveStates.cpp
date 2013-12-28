@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -65,7 +65,7 @@ namespace Nestopia
 			}
 		};
 
-		SaveStates::SaveStates(Emulator& e,const Configuration&,Window::Menu& m,const Paths& p,const Window::Main& w)
+		SaveStates::SaveStates(Emulator& e,Window::Menu& m,const Paths& p,const Window::Main& w)
 		:
 		Manager         ( e, m, this, &SaveStates::OnEmuEvent ),
 		window          ( w ),
@@ -148,7 +148,7 @@ namespace Nestopia
 				}
 			}
 
-			HeapString string( _T("&1  ...") );
+			HeapString string( "&1  ..." );
 
 			for (uint i=0; i < NUM_SLOTS; ++i)
 			{
@@ -258,7 +258,7 @@ namespace Nestopia
 					ExportSlot( index );
 
 				if (notify)
-					Io::Screen() << Resource::String( IDS_SCREEN_SAVE_STATE_TO_SLOT ).Invoke( tchar('1'+index) );
+					Io::Screen() << Resource::String( IDS_SCREEN_SAVE_STATE_TO_SLOT ).Invoke( wchar_t('1'+index) );
 			}
 			else
 			{
@@ -274,7 +274,7 @@ namespace Nestopia
 			if (emulator.LoadState( slots[index].data, Emulator::STICKY ))
 			{
 				if (notify)
-					Io::Screen() << Resource::String( IDS_SCREEN_LOAD_STATE_FROM_SLOT ).Invoke( tchar('1'+index) );
+					Io::Screen() << Resource::String( IDS_SCREEN_LOAD_STATE_FROM_SLOT ).Invoke( wchar_t('1'+index) );
 			}
 		}
 
@@ -294,7 +294,7 @@ namespace Nestopia
 			Path path( emulator.GetImagePath().Target().File() );
 			NST_ASSERT( slots[index].data.Size() && path.Length() );
 
-			path.Extension() = _T("ns1");
+			path.Extension() = L"ns1";
 			path.Back() = '1' + index;
 
 			paths.Save( slots[index].data.Ptr(), slots[index].data.Size(), Paths::File::SLOTS, path );
@@ -307,7 +307,7 @@ namespace Nestopia
 			Path path( emulator.GetImagePath().Target().File() );
 			NST_ASSERT( path.Length() );
 
-			path.Extension() = _T("ns1");
+			path.Extension() = L"ns1";
 
 			Paths::File file;
 

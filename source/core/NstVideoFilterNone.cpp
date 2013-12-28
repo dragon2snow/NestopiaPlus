@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -33,56 +33,55 @@ namespace Nes
 		namespace Video
 		{
 			template<typename T>
-			void Renderer::FilterNone::BlitAligned(const Input& input,const Output& output,uint) const
+			void Renderer::FilterNone::BlitAligned(const Input& input,const Output& output)
 			{
 				const Input::Pixel* NST_RESTRICT src = input.pixels;
 				T* NST_RESTRICT dst = static_cast<T*>(output.pixels);
 
-				for (uint prefetched=src[0], i=PIXELS; i; --i)
+				for (uint prefetched=*src++, i=PIXELS; i; --i)
 				{
 					const dword reg = input.palette[prefetched];
-					prefetched = *(++src);
+					prefetched = *src++;
 					*dst++ = reg;
 				}
 			}
 
 			template<typename T>
-			void Renderer::FilterNone::BlitUnaligned(const Input& input,const Output& output,uint) const
+			void Renderer::FilterNone::BlitUnaligned(const Input& input,const Output& output)
 			{
 				const Input::Pixel* NST_RESTRICT src = input.pixels;
 				T* NST_RESTRICT dst = static_cast<T*>(output.pixels);
 
 				const long pad = output.pitch - WIDTH * sizeof(T);
 
-				for (uint prefetched=src[0], y=HEIGHT, x=WIDTH; y; --y, x=WIDTH)
+				for (uint prefetched=*src++, y=HEIGHT; y; --y)
 				{
-					do
+					for (uint x=WIDTH; x; --x)
 					{
 						const dword reg = input.palette[prefetched];
-						prefetched = *(++src);
+						prefetched = *src++;
 						*dst++ = reg;
 					}
-					while (--x);
 
 					dst = reinterpret_cast<T*>(reinterpret_cast<byte*>(dst) + pad);
 				}
 			}
 
-			void Renderer::FilterNone::Blit(const Input& input,const Output& output,uint phase)
+			void Renderer::FilterNone::Blit(const Input& input,const Output& output,uint)
 			{
-				if (bpp == 32)
+				if (format.bpp == 32)
 				{
 					if (output.pitch == WIDTH * sizeof(dword))
-						BlitAligned<dword>( input, output, phase );
+						BlitAligned<dword>( input, output );
 					else
-						BlitUnaligned<dword>( input, output, phase );
+						BlitUnaligned<dword>( input, output );
 				}
 				else
 				{
 					if (output.pitch == WIDTH * sizeof(word))
-						BlitAligned<word>( input, output, phase );
+						BlitAligned<word>( input, output );
 					else
-						BlitUnaligned<word>( input, output, phase );
+						BlitUnaligned<word>( input, output );
 				}
 			}
 

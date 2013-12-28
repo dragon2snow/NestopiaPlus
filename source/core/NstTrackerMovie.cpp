@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -193,7 +193,7 @@ namespace Nes
 
 			const dword length = state.Length();
 
-			Region::Type region = Region::NTSC;
+			Region region = REGION_NTSC;
 			dword crc = 0;
 
 			while (const dword chunk = state.Check())
@@ -201,7 +201,7 @@ namespace Nes
 				if (chunk == AsciiId<'P','A','L'>::V)
 				{
 					state.Begin();
-					region = Region::PAL;
+					region = REGION_PAL;
 					state.End();
 				}
 				else if (chunk == AsciiId<'C','R','C'>::V)
@@ -318,7 +318,7 @@ namespace Nes
 				{
 					state.Begin( AsciiId<'N','S','V'>::V | 0x1AUL << 24 );
 
-					if (cpu.GetRegion() == Region::PAL)
+					if (cpu.GetRegion() == REGION_PAL)
 						state.Begin( AsciiId<'P','A','L'>::V ).End();
 
 					if (prgCrc)

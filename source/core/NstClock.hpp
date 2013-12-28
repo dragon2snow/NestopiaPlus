@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -63,7 +63,7 @@ namespace Nes
 
 				enum
 				{
-					IRQ_DELAY_CYCLES = 2
+					IRQ_SETUP = 2
 				};
 
 				NES_DECL_HOOK( Signaled );
@@ -131,10 +131,10 @@ namespace Nes
 			{
 				NST_COMPILE_ASSERT( Divider <= 8 );
 
-				while (count < cpu.GetCycles())
+				while (count <= cpu.GetCycles())
 				{
 					if (connected && unit.Clock())
-						cpu.DoIRQ( Cpu::IRQ_EXT, count + cpu.GetClock(IRQ_DELAY_CYCLES) );
+						cpu.DoIRQ( Cpu::IRQ_EXT, count + cpu.GetClock(IRQ_SETUP) );
 
 					count += cpu.GetClock(Divider);
 				}
@@ -143,6 +143,7 @@ namespace Nes
 			template<typename Unit,uint Divider>
 			void M2<Unit,Divider>::VSync()
 			{
+				NST_VERIFY( count == 0 || count >= cpu.GetFrameCycles());
 				count = (count > cpu.GetFrameCycles() ? count - cpu.GetFrameCycles() : 0);
 			}
 
@@ -212,7 +213,7 @@ namespace Nes
 			{
 			public:
 
-				void Reset(bool,bool);
+				void Reset(bool,bool=true);
 
 			private:
 

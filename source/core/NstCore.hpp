@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -26,7 +26,6 @@
 #define NST_CORE_H
 
 #include <cstddef>
-#include <climits>
 
 #ifndef NST_BASE_H
 #include "NstBase.hpp"
@@ -42,11 +41,7 @@
 
 #if NST_MSVC
 
- #if !defined(NDEBUG) && !defined(_DEBUG)
- #define NDEBUG
- #endif
-
- #pragma warning( disable : 4018 4100 4127 4244 4245 4308 4310 4512 4800 4996 )
+ #pragma warning( disable : 4018 4100 4127 4244 4245 4308 4309 4310 4512 4800 4996 )
 
  #if NST_MSVC >= 800
 
@@ -61,13 +56,14 @@
    #define NST_FASTDELEGATE
    #endif
 
-   #ifdef NDEBUG
+   #ifndef _DEBUG
    #define NST_MSVC_OPTIMIZE
    #define NST_FORCE_INLINE __forceinline
-   #define NST_SINGLE_CALL __forceinline
    #pragma inline_depth( 255 )
    #pragma inline_recursion( on )
    #endif
+
+   #define NST_SINGLE_CALL __forceinline
 
    #if NST_MSVC >= 1300
 
@@ -79,12 +75,15 @@
 	#define NST_ASSUME(x_) __assume(x_)
 	#endif
 
-	#define NST_UNREACHABLE default: __assume(0);
-	#define NST_NO_VTABLE __declspec(novtable)
-
-	#if !defined(NST_TAILCALL_OPTIMIZE) && !NST_ICC
-	#define NST_TAILCALL_OPTIMIZE
+	#ifndef NST_DEBUG
+	#define NST_UNREACHABLE() __assume(0)
 	#endif
+
+	#if !defined(NST_MM_INTRINSICS) && defined(NST_WIN32) && defined(_M_IX86)
+	#define NST_MM_INTRINSICS
+	#endif
+
+	#define NST_NO_VTABLE __declspec(novtable)
 
 	#if NST_MSVC >= 1400
 
@@ -123,9 +122,7 @@
    #define NST_NO_INLINE __attribute__((noinline))
    #endif
 
-   #ifdef NDEBUG
    #define NST_SINGLE_CALL __attribute__((always_inline))
-   #endif
 
    #if (NST_GCC >= 304) && defined(__i386__)
    #define NST_REGCALL __attribute__((regparm(2)))
@@ -149,12 +146,12 @@
 
 #define NST_NOP() ((void)0)
 
-#ifndef NST_SINGLE_CALL
-#define NST_SINGLE_CALL inline
-#endif
-
 #ifndef NST_FORCE_INLINE
 #define NST_FORCE_INLINE inline
+#endif
+
+#ifndef NST_SINGLE_CALL
+#define NST_SINGLE_CALL NST_FORCE_INLINE
 #endif
 
 #ifndef NST_NO_INLINE
@@ -174,7 +171,7 @@
 #endif
 
 #ifndef NST_UNREACHABLE
-#define NST_UNREACHABLE
+#define NST_UNREACHABLE() NST_ASSERT(0)
 #endif
 
 #ifndef NST_FASTCALL
@@ -197,59 +194,10 @@
 
 namespace Nes
 {
-	#if UCHAR_MAX >= 0xFF
-	typedef unsigned char byte;
-	#else
-	#error Unsupported plattform!
-	#endif
-
-	#if UCHAR_MAX >= 0xFFFF
-	typedef unsigned char word;
-	#elif USHRT_MAX >= 0xFFFF
-	typedef unsigned short word;
-	#elif UINT_MAX >= 0xFFFF
-	typedef unsigned int word;
-	#else
-	#error Unsupported plattform!
-	#endif
-
-	#if SCHAR_MAX >= 32767 && SCHAR_MIN <= -32767
-	typedef signed char iword;
-	#elif SHRT_MAX >= 32767 && SHRT_MIN <= -32767
-	typedef signed short iword;
-	#elif INT_MAX >= 32767 && INT_MIN <= -32767
-	typedef signed int iword;
-	#else
-	#error Unsupported plattform!
-	#endif
-
-	#if UCHAR_MAX >= 0xFFFFFFFF
-	typedef unsigned char dword;
-	#elif USHRT_MAX >= 0xFFFFFFFF
-	typedef unsigned short dword;
-	#elif UINT_MAX >= 0xFFFFFFFF
-	typedef unsigned int dword;
-	#elif ULONG_MAX >= 0xFFFFFFFF
-	typedef unsigned long dword;
-	#else
-	#error Unsupported plattform!
-	#endif
-
-	#if SCHAR_MAX >= 2147483647 && SCHAR_MIN <= -2147483647
-	typedef signed char idword;
-	#elif SHRT_MAX >= 2147483647 && SHRT_MIN <= -2147483647
-	typedef signed short idword;
-	#elif INT_MAX >= 2147483647 && INT_MIN <= -2147483647
-	typedef signed int idword;
-	#elif LONG_MAX >= 2147483647 && LONG_MIN <= -2147483647
-	typedef signed long idword;
-	#else
-	#error Unsupported plattform!
-	#endif
-
 	namespace Core
 	{
 		typedef const char* cstring;
+		typedef const wchar_t* wcstring;
 		typedef uint ibool;
 		typedef uint Data;
 		typedef uint Address;
@@ -257,32 +205,6 @@ namespace Nes
 
 		template<typename T,dword N>
 		char(& array(T(&)[N]))[N];
-
-		template<typename T>
-		class ImplicitBool;
-
-		template<>
-		class ImplicitBool<void>
-		{
-		public:
-
-			int type;
-			typedef int ImplicitBool<void>::*Type;
-		};
-
-		template<typename T>
-		class ImplicitBool
-		{
-			template<typename U> void operator == (const ImplicitBool<U>&) const;
-			template<typename U> void operator != (const ImplicitBool<U>&) const;
-
-		public:
-
-			operator ImplicitBool<void>::Type () const
-			{
-				return !static_cast<const T&>(*this) ? 0 : &ImplicitBool<void>::type;
-			}
-		};
 
 		namespace Helper
 		{
@@ -294,6 +216,11 @@ namespace Nes
 			template<> struct CountBits<1UL>
 			{
 				enum { VALUE = 1 };
+			};
+
+			template<> struct CountBits<0UL>
+			{
+				enum { VALUE = 0 };
 			};
 
 			template<typename T,bool>
@@ -375,60 +302,27 @@ namespace Nes
 			return (value <= Max) ? (value >= Min) ? value : Min : Max;
 		}
 
-		namespace Region
-		{
-			enum Type
-			{
-				NTSC,
-				PAL
-			};
-		}
-
-		namespace Revision
-		{
-			enum Cpu
-			{
-				CPU_RP2A03,
-				CPU_RP2A07
-			};
-
-			enum Ppu
-			{
-				PPU_RP2C02,
-				PPU_RP2C03B,
-				PPU_RP2C03G,
-				PPU_RP2C04_0001,
-				PPU_RP2C04_0002,
-				PPU_RP2C04_0003,
-				PPU_RP2C04_0004,
-				PPU_RC2C03B,
-				PPU_RC2C03C,
-				PPU_RC2C05_01,
-				PPU_RC2C05_02,
-				PPU_RC2C05_03,
-				PPU_RC2C05_04,
-				PPU_RC2C05_05,
-				PPU_RP2C07
-			};
-		}
-
 		enum
 		{
-			SIZE_1K    = 0x400,
-			SIZE_2K    = 0x800,
-			SIZE_4K    = 0x1000,
-			SIZE_8K    = 0x2000,
-			SIZE_16K   = 0x4000,
-			SIZE_32K   = 0x8000,
-			SIZE_40K   = 0xA000,
-			SIZE_64K   = 0x10000,
-			SIZE_128K  = 0x20000,
-			SIZE_256K  = 0x40000,
-			SIZE_512K  = 0x80000,
-			SIZE_1024K = 0x100000,
-			SIZE_2048K = 0x200000,
-			SIZE_3072K = 0x300000,
-			SIZE_4096K = 0x400000
+			SIZE_1K     = 0x400,
+			SIZE_2K     = 0x800,
+			SIZE_4K     = 0x1000,
+			SIZE_5K     = 0x1400,
+			SIZE_6K     = 0x1800,
+			SIZE_8K     = 0x2000,
+			SIZE_16K    = 0x4000,
+			SIZE_32K    = 0x8000,
+			SIZE_40K    = 0xA000,
+			SIZE_64K    = 0x10000,
+			SIZE_128K   = 0x20000,
+			SIZE_256K   = 0x40000,
+			SIZE_512K   = 0x80000,
+			SIZE_1024K  = 0x100000,
+			SIZE_2048K  = 0x200000,
+			SIZE_3072K  = 0x300000,
+			SIZE_4096K  = 0x400000,
+			SIZE_8192K  = 0x800000,
+			SIZE_16384K = 0x1000000
 		};
 
 		typedef void* StdStream;
@@ -510,9 +404,55 @@ namespace Nes
 				);
 			}
 		};
+
+		template<typename T,typename U>
+		int StringCompare(const T* a,const U* b)
+		{
+			do
+			{
+				const wchar_t v[] =
+				{
+					(*a < L'a' || *a > L'z') ? *a : (L'A' + (*a - L'a')),
+					(*b < L'a' || *b > L'z') ? *b : (L'A' + (*b - L'a'))
+				};
+
+				if (v[0] < v[1])
+					return -1;
+
+				if (v[0] > v[1])
+					return +1;
+			}
+			while (++b, *a++);
+
+			return 0;
+		}
+
+		template<typename T,typename U>
+		int StringCompare(const T* a,const U* b,uint l)
+		{
+			for (; l--; ++a, ++b)
+			{
+				const wchar_t v[] =
+				{
+					(*a < L'a' || *a > L'z') ? *a : (L'A' + (*a - L'a')),
+					(*b < L'a' || *b > L'z') ? *b : (L'A' + (*b - L'a'))
+				};
+
+				if (v[0] < v[1])
+					return -1;
+
+				if (v[0] > v[1])
+					return +1;
+
+				if (!v[0])
+					return 0;
+			}
+
+			return 0;
+		}
 	}
 
-#if defined(NST_U64)
+#ifdef NST_U64
 
 	typedef NST_U64 qword;
 	#define NST_NATIVE_QWORD

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -71,7 +71,6 @@ namespace Nestopia
 			class UnZip;
 			class UnRar;
 			class Un7zip;
-			class Gui;
 
 			class Item
 			{
@@ -82,7 +81,7 @@ namespace Nestopia
 
 			public:
 
-				inline Item(Codec*,tstring,uint,uint);
+				inline Item(Codec*,wcstring,uint,uint);
 
 				uint Uncompress(void*) const;
 

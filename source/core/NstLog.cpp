@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -24,6 +24,7 @@
 
 #include <cstdio>
 #include <new>
+#include <string>
 #include "NstAssert.hpp"
 #include "NstLog.hpp"
 #include "api/NstApiUser.hpp"
@@ -41,8 +42,10 @@ namespace Nes
 			std::string string;
 		};
 
+		bool Log::enabled = true;
+
 		Log::Log()
-		: object( Api::User::logCallback.IsSet() ? new (std::nothrow) Object : NULL )
+		: object( !Api::User::logCallback ? NULL : new (std::nothrow) Object )
 		{
 		}
 
@@ -50,14 +53,16 @@ namespace Nes
 		{
 			if (object)
 			{
-				Api::User::logCallback( object->string.c_str(), object->string.size() );
+				if (enabled)
+					Api::User::logCallback( object->string.c_str(), object->string.size() );
+
 				delete object;
 			}
 		}
 
 		bool Log::Available()
 		{
-			return Api::User::logCallback.IsSet();
+			return Api::User::logCallback;
 		}
 
 		void Log::Append(cstring c,ulong n)
@@ -67,7 +72,7 @@ namespace Nes
 
 		Log& Log::operator << (long value)
 		{
-			if (object)
+			if (enabled && object)
 			{
 				char buffer[24];
 
@@ -83,7 +88,7 @@ namespace Nes
 
 		Log& Log::operator << (ulong value)
 		{
-			if (object)
+			if (enabled && object)
 			{
 				char buffer[24];
 
@@ -99,7 +104,7 @@ namespace Nes
 
 		Log& Log::operator << (cstring c)
 		{
-			if (object)
+			if (enabled && object)
 				object->string.append( c );
 
 			return *this;
@@ -107,7 +112,7 @@ namespace Nes
 
 		Log& Log::operator << (char c)
 		{
-			if (object)
+			if (enabled && object)
 				object->string.append( 1, c );
 
 			return *this;
@@ -115,7 +120,7 @@ namespace Nes
 
 		Log& Log::operator << (const Hex& hex)
 		{
-			if (object)
+			if (enabled && object)
 			{
 				char buffer[16];
 
@@ -134,7 +139,8 @@ namespace Nes
 
 		void Log::Flush(cstring string,dword length)
 		{
-			Api::User::logCallback( string, length );
+			if (enabled)
+				Api::User::logCallback( string, length );
 		}
 
 		#ifdef NST_MSVC_OPTIMIZE

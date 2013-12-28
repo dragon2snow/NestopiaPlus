@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -49,7 +49,7 @@ namespace Nestopia
 					}
 					else
 					{
-						throw;
+						throw 1;
 					}
 				}
 				else if (msg)
@@ -63,7 +63,7 @@ namespace Nestopia
 			}
 			catch (...)
 			{
-				Window::User::Fail( _T("Unhandled error! Call the Ghostbusters!") );
+				Window::User::Fail( L"Unhandled error! Call the Ghostbusters!" );
 			}
 
 			return EXIT_FAILURE;

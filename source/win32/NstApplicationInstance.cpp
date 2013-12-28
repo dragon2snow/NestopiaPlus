@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -38,7 +38,7 @@ namespace Nestopia
 {
 	namespace Application
 	{
-		const tchar Instance::appClassName[] = _T("Nestopia");
+		const wchar_t Instance::appClassName[] = L"Nestopia";
 
 		struct Instance::Global
 		{
@@ -127,7 +127,7 @@ namespace Nestopia
 			if (window == createStruct.hwndParent || !window)
 			{
 				{
-					static const tchar menuClassName[] = _T("#32768"); // documented on MSDN
+					static const wchar_t menuClassName[] = L"#32768"; // documented on MSDN
 
 					enum
 					{
@@ -135,10 +135,10 @@ namespace Nestopia
                                      NST_MAX( sizeof(array(STATUSCLASSNAME)) - 1, sizeof(array(menuClassName)) - 1 ))
 					};
 
-					String::Stack<MAX_LENGTH,tchar> name;
+					String::Stack<MAX_LENGTH,wchar_t> name;
 					name.ShrinkTo( ::GetClassName( hWnd, name.Ptr(), MAX_LENGTH+1 ) );
 
-					if (name.Equal( menuClassName ) || name.Equal( STATUSCLASSNAME ) || name.Equal( _T("IME") ))
+					if (name.Equal( menuClassName ) || name.Equal( STATUSCLASSNAME ) || name.Equal( L"IME" ))
 						return;
 
 					if (window)
@@ -273,7 +273,7 @@ namespace Nestopia
 			return wrkPath;
 		}
 
-		const Path Instance::GetLongPath(tstring const shortPath)
+		const Path Instance::GetLongPath(wcstring const shortPath)
 		{
 			Path longPath;
 
@@ -289,7 +289,7 @@ namespace Nestopia
 			if (!length)
 				return shortPath;
 
-			const tchar slashed = GenericString(shortPath).Back();
+			const wchar_t slashed = GenericString(shortPath).Back();
 
 			longPath.ShrinkTo( length );
 			longPath.MakePretty( slashed == '\\' || slashed == '/' );
@@ -320,7 +320,7 @@ namespace Nestopia
 				path << ".\\";
 
 			if (file.Empty())
-				file = _T("nestopia.tmp");
+				file = L"nestopia.tmp";
 
 			path << file;
 
@@ -427,9 +427,9 @@ namespace Nestopia
 
 		Instance::Instance()
 		{
-			if (static_cast<const Configuration&>(cfg)["preferences allow multiple instances"] != Configuration::YES)
+			if (!static_cast<const Configuration&>(cfg)["preferences"]["application"]["allow-multiple-instances"].Yes())
 			{
-				::CreateMutex( NULL, true, _T("Nestopia Mutex") );
+				::CreateMutex( NULL, true, L"Nestopia Mutex" );
 
 				if (::GetLastError() == ERROR_ALREADY_EXISTS)
 				{
@@ -442,8 +442,8 @@ namespace Nestopia
 							COPYDATASTRUCT cds;
 
 							cds.dwData = COPYDATA_OPENFILE_ID;
-							cds.cbData = (length + 1) * sizeof(tchar);
-							cds.lpData = const_cast<tchar*>(cfg.GetStartupFile().Ptr());
+							cds.cbData = (length + 1) * sizeof(wchar_t);
+							cds.lpData = const_cast<wchar_t*>(cfg.GetStartupFile().Ptr());
 
 							window.Send( WM_COPYDATA, 0, &cds );
 						}
@@ -454,15 +454,15 @@ namespace Nestopia
 			}
 
 			if (global.paths.exePath.Empty())
-				throw Exception(_T("unicows.dll file is missing!"));
+				throw Exception( L"unicows.dll file is missing!" );
 
 			global.language.Load( cfg );
 
 			if (global.hooks.handle == NULL)
-				throw Exception( IDS_ERR_FAILED, _T("SetWindowsHookEx()") );
+				throw Exception( IDS_ERR_FAILED, L"SetWindowsHookEx()" );
 
 			if (FAILED(::CoInitializeEx( NULL, COINIT_APARTMENTTHREADED )))
-				throw Exception( IDS_ERR_FAILED, _T("CoInitializeEx()") );
+				throw Exception( IDS_ERR_FAILED, L"CoInitializeEx()" );
 
 			Object::Pod<INITCOMMONCONTROLSEX> initCtrlEx;
 

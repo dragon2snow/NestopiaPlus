@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -33,70 +33,52 @@ namespace Nes
 {
 	namespace Core
 	{
-		class Log;
+		class Ips;
 
 		class Cartridge::Ines
 		{
-			typedef Api::Cartridge Ref;
-
 		public:
 
-			Ines
+			typedef Api::Cartridge::NesHeader Header;
+
+			static void Load
 			(
+				StdStream,
 				StdStream,
 				Ram&,
 				Ram&,
-				Ram&,
-				Ref::Info&,
-				const ImageDatabase*,
-				ImageDatabase::Handle&
+				FavoredSystem,
+				Profile&,
+				ProfileEx&,
+				const ImageDatabase*
 			);
 
-			enum
-			{
-				TRAINER_BEGIN  = 0x1000,
-				TRAINER_END    = 0x1200,
-				TRAINER_LENGTH = 0x0200
-			};
-
-			static Result ReadHeader(Ref::Setup&,const byte*,ulong);
-			static Result WriteHeader(const Ref::Setup&,byte*,ulong);
-
-			static ImageDatabase::Handle SearchDatabase(const ImageDatabase&,const byte*,ulong);
+			static Result ReadHeader(Header&,const byte*,ulong);
+			static Result WriteHeader(const Header&,byte*,ulong);
 
 		private:
+
+			enum TrainerSetup
+			{
+				TRAINER_NONE,
+				TRAINER_IGNORE,
+				TRAINER_READ
+			};
 
 			enum
 			{
 				VS_MAPPER_99 = 99,
 				VS_MAPPER_151 = 151,
-				MIN_CRC_SEARCH_STRIDE = NST_MIN(dword(SIZE_8K),dword(TRAINER_LENGTH)),
-				MAX_CRC_SEARCH_LENGTH = TRAINER_LENGTH + SIZE_16K * 0xFFFUL + SIZE_8K * 0xFFFUL
+				FFE_MAPPER_6 = 6,
+				FFE_MAPPER_8 = 8,
+				FFE_MAPPER_17 = 17,
+				TRAINER_LENGTH = 0x200,
+				MIN_DB_SEARCH_STRIDE = SIZE_8K,
+				MAX_DB_SEARCH_LENGTH = SIZE_16K * 0xFFFUL + SIZE_8K * 0xFFFUL
 			};
 
-			Result Collect();
-			dword  Process();
-			dword  Repair(Log&);
-
-			Result result;
-
-			Stream::In stream;
-
-			Ram& prg;
-			Ram& chr;
-			Ram& wrk;
-
-			Ref::Info& info;
-
-			const ImageDatabase* const database;
-			ImageDatabase::Handle& databaseHandle;
-
-		public:
-
-			Result GetResult() const
-			{
-				return result;
-			}
+			static TrainerSetup Collect(FavoredSystem,Profile&,ProfileEx&,StdStream,const Ips&);
+			static ImageDatabase::Entry SearchDatabase(const ImageDatabase&,StdStream,dword,TrainerSetup,FavoredSystem);
 		};
 	}
 }

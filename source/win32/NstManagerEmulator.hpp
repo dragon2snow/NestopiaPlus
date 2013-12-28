@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -34,6 +34,8 @@
 #include "../core/api/NstApiVideo.hpp"
 #include "../core/api/NstApiSound.hpp"
 #include "../core/api/NstApiInput.hpp"
+#include "../core/api/NstApiMachine.hpp"
+#include "../core/api/NstApiUser.hpp"
 
 namespace Nes
 {
@@ -44,11 +46,6 @@ namespace Nestopia
 {
 	namespace Io
 	{
-		namespace Nsp
-		{
-			struct Context;
-		}
-
 		namespace Stream
 		{
 			class Input;
@@ -139,6 +136,26 @@ namespace Nestopia
 				MASTER = 0
 			};
 
+			struct Context
+			{
+				Context();
+				~Context();
+
+				enum
+				{
+					UNKNOWN = INT_MAX
+				};
+
+				Path image;
+				Path save;
+				Path state;
+				Path tape;
+				Path movie;
+				Path samples;
+				uint controllers[Nes::Input::NUM_PORTS];
+				uint mode;
+			};
+
 			void Stop();
 			void Pause(bool);
 			void ResetSpeed(uint,bool,bool);
@@ -148,8 +165,7 @@ namespace Nestopia
 			uint GetSpeed();
 			void ToggleSpeed(bool);
 			void ToggleRewind(bool);
-			void Save(Io::Nsp::Context&);
-			bool Load(Collection::Buffer&,const Path&,const Io::Nsp::Context&,bool);
+			bool Load(Collection::Buffer&,const Path&,Collection::Buffer&,const Context&,Nes::Machine::FavoredSystem,Nes::Machine::AskProfile,bool);
 			void Unload();
 			void SendCommand(Command,Data=0);
 			bool SaveState(Collection::Buffer&,bool,Alert=NOISY);
@@ -179,14 +195,13 @@ namespace Nestopia
 		private:
 
 			struct Callbacks;
-			struct CallbackData;
 
 			class EventHandler
 			{
 				friend class Emulator;
 				friend struct Callbacks;
 
-				typedef Object::Delegate2<void,Event,Data> Callback;
+				typedef Object::Delegate<void,Event,Data> Callback;
 				typedef Collection::Vector<Callback> Callbacks;
 
 				Callbacks callbacks;
@@ -249,6 +264,7 @@ namespace Nestopia
 					Path image;
 					Path save;
 					Path tape;
+					Path samples;
 				}   paths;
 
 				Cartridge cartridge;
@@ -276,7 +292,7 @@ namespace Nestopia
 			{
 				Netplay();
 
-				typedef Object::Delegate2<void,Command,Data> Commander;
+				typedef Object::Delegate<void,Command,Data> Commander;
 				typedef Object::Delegate<void,Nes::Input::Controllers&> Executor;
 
 				Executor executor;
@@ -295,10 +311,12 @@ namespace Nestopia
 			void StartNetplay(const Netplay::Executor&,const Netplay::Commander&,uint,uint);
 			bool Start();
 
-			void LoadImageData(CallbackData&);
-			void SaveImageData(CallbackData&) const;
+			void LoadFileData(Nes::User::File&,bool,Path,wcstring) const;
+			void LoadImageData(Nes::User::File&) const;
+			void SaveImageData(Nes::User::File&) const;
+			void SaveDiskData(Nes::User::File&) const;
 			void LoadDiskData(Collection::Buffer&);
-			void SaveDiskData(CallbackData&) const;
+			void LoadSampleData(wcstring,Nes::User::File&) const;
 
 			State state;
 			EventHandler events;

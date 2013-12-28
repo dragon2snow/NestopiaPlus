@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -27,7 +27,6 @@
 
 #pragma once
 
-#include <iosfwd>
 #include "NstObjectHeap.hpp"
 
 namespace Nestopia
@@ -39,9 +38,9 @@ namespace Nestopia
 
 	namespace Io
 	{
-		namespace Nsp
+		namespace Stream
 		{
-			struct Context;
+			class InOut;
 		}
 	}
 
@@ -63,7 +62,6 @@ namespace Nestopia
 			};
 
 			bool Load(const Path&,Alert);
-			void Save(Io::Nsp::Context&) const;
 
 		private:
 
@@ -115,7 +113,7 @@ namespace Nestopia
 				bool IsReady() const;
 				bool CanSetPos() const;
 
-				std::iostream* stream;
+				Io::Stream::InOut* stream;
 				Pos pos;
 				Emulator& emulator;
 				Path path;

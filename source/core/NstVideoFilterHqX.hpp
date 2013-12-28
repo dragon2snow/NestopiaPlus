@@ -2,8 +2,8 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
 // Copyright (C) 2003 MaxSt ( maxst@hiend3d.com )
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -48,7 +48,7 @@ namespace Nes
 
 				~FilterHqX() {}
 
-				typedef void (FilterHqX::*Path)(const Input&,const Output&,uint) const;
+				typedef void (FilterHqX::*Path)(const Input&,const Output&) const;
 
 				static Path GetPath(const RenderState&);
 
@@ -69,20 +69,20 @@ namespace Nes
 				inline dword Diff(uint,uint) const;
 
 				template<typename T,dword R,dword G,dword B>
-				void Blit2x(const Input&,const Output&,uint) const;
+				void Blit2x(const Input&,const Output&) const;
 
 				template<typename T,dword R,dword G,dword B>
-				void Blit3x(const Input&,const Output&,uint) const;
+				void Blit3x(const Input&,const Output&) const;
 
 				template<typename T,dword R,dword G,dword B>
-				void Blit4x(const Input&,const Output&,uint) const;
+				void Blit4x(const Input&,const Output&) const;
 
 				template<typename T>
 				struct Buffer;
 
 				struct Lut
 				{
-					Lut(bool,const dword (&)[3],dword* = NULL);
+					Lut(bool,const byte (&)[3],dword* = NULL);
 					~Lut();
 
 					enum

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -71,7 +71,7 @@ namespace Nestopia
 			if (entries.Size())
 			{
 				if (::CopyAcceleratorTable( handle, entries.Ptr(), entries.Size() ) != int(entries.Size()))
-					throw Application::Exception( IDS_ERR_FAILED, _T("CopyAcceleratorTable()") );
+					throw Application::Exception( IDS_ERR_FAILED, L"CopyAcceleratorTable()" );
 
 				return true;
 			}
@@ -97,7 +97,7 @@ namespace Nestopia
 				}
 
 				if (actualSize && (handle = ::CreateAcceleratorTable( actualEntries.Ptr(), actualSize )) == 0)
-					throw Application::Exception( IDS_ERR_FAILED, _T("CreateAcceleratorTable()") );
+					throw Application::Exception( IDS_ERR_FAILED, L"CreateAcceleratorTable()" );
 			}
 		}
 

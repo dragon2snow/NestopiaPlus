@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -48,7 +48,7 @@ namespace Nes
 			enum
 			{
 				NUM_PADS = 4,
-				NUM_CONTROLLERS = 24
+				NUM_CONTROLLERS = 27
 			};
 
 			class Controllers
@@ -390,7 +390,7 @@ namespace Nes
 					static PollCaller1<OekaKidsTablet> callback;
 				};
 
-				struct HyperShot
+				struct KonamiHyperShot
 				{
 					enum
 					{
@@ -402,12 +402,27 @@ namespace Nes
 
 					uint buttons;
 
-					HyperShot()
+					KonamiHyperShot()
 					: buttons(0) {}
 
-					typedef bool (NST_CALLBACK *PollCallback) (void*,HyperShot&);
+					typedef bool (NST_CALLBACK *PollCallback) (void*,KonamiHyperShot&);
 
-					static PollCaller1<HyperShot> callback;
+					static PollCaller1<KonamiHyperShot> callback;
+				};
+
+				struct BandaiHyperShot
+				{
+					uint x;
+					uint y;
+					uint fire;
+					uint move;
+
+					BandaiHyperShot()
+					: x(0), y(0), fire(0), move(0) {}
+
+					typedef bool (NST_CALLBACK *PollCallback) (void*,BandaiHyperShot&);
+
+					static PollCaller1<BandaiHyperShot> callback;
 				};
 
 				struct CrazyClimber
@@ -602,7 +617,8 @@ namespace Nes
 				Pachinko pachinko;
 				VsSystem vsSystem;
 				OekaKidsTablet oekaKidsTablet;
-				HyperShot hyperShot;
+				KonamiHyperShot konamiHyperShot;
+				BandaiHyperShot bandaiHyperShot;
 				CrazyClimber crazyClimber;
 				Mahjong mahjong;
 				ExcitingBoxing excitingBoxing;
@@ -659,13 +675,16 @@ namespace Nes
 				HORITRACK,
 				PACHINKO,
 				OEKAKIDSTABLET,
-				HYPERSHOT,
+				KONAMIHYPERSHOT,
+				BANDAIHYPERSHOT,
 				CRAZYCLIMBER,
 				MAHJONG,
 				EXCITINGBOXING,
 				TOPRIDER,
 				POKKUNMOGURAA,
-				PARTYTAP
+				PARTYTAP,
+				TURBOFILE,
+				BARCODEWORLD
 			};
 
 			enum

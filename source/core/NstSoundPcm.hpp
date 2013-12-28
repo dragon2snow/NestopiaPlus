@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -41,13 +41,13 @@ namespace Nes
 
 				void Stop();
 
+				static bool CanDo(uint,dword);
+
 			protected:
 
 				explicit Pcm(Apu&);
 
 				void Play(const iword*,dword,dword);
-
-				static Result CanDo(const void*,dword,uint,dword);
 
 			private:
 

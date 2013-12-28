@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -23,7 +23,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 
 #include "resource/resource.h"
-#include "NstIoNsp.hpp"
 #include "NstResourceString.hpp"
 #include "NstResourceIcon.hpp"
 #include "NstApplicationInstance.hpp"
@@ -40,7 +39,7 @@ namespace Nestopia
 {
 	namespace Window
 	{
-		const tchar Main::MainWindow::name[] = _T("Nestopia");
+		const wchar_t Main::MainWindow::name[] = L"Nestopia";
 
 		Main::MainWindow::MainWindow(const Configuration& cfg,const Menu& menu)
 		: menu(false), maximized(false)
@@ -55,14 +54,18 @@ namespace Nestopia
 			context.winStyle    = WIN_STYLE;
 			context.exStyle     = WIN_EXSTYLE;
 
-			if (cfg["view show on top"] == Configuration::YES)
 			{
-				context.exStyle |= WS_EX_TOPMOST;
-				menu[IDM_VIEW_ON_TOP].Check();
-			}
+				Configuration::ConstSection show( cfg["view"]["show"] );
 
-			if (cfg["view show window menu"] != Configuration::NO)
-				context.hMenu = menu.GetHandle();
+				if (show["on-top"].Yes())
+				{
+					context.exStyle |= WS_EX_TOPMOST;
+					menu[IDM_VIEW_ON_TOP].Check();
+				}
+
+				if (!show["window-menu"].No())
+					context.hMenu = menu.GetHandle();
+			}
 
 			Create( context );
 		}
@@ -118,12 +121,14 @@ namespace Nestopia
 
 			if (preferences[Managers::Preferences::SAVE_WINDOWPOS])
 			{
+				Configuration::ConstSection pos( cfg["view"]["window-position"] );
+
 				const Rect rect
 				(
-					cfg[ "view window left"   ],
-					cfg[ "view window top"    ],
-					cfg[ "view window right"  ],
-					cfg[ "view window bottom" ]
+					pos[ "left"   ].Int(),
+					pos[ "top"    ].Int(),
+					pos[ "right"  ].Int(),
+					pos[ "bottom" ].Int()
 				);
 
 				const Point mode( video.GetDisplayMode() );
@@ -165,18 +170,24 @@ namespace Nestopia
 
 		void Main::Save(Configuration& cfg) const
 		{
-			cfg[ "view show on top"      ].YesNo() = menu[IDM_VIEW_ON_TOP].Checked();
-			cfg[ "view show window menu" ].YesNo() = (Windowed() ? menu.Visible() : window.menu);
+			{
+				Configuration::Section show( cfg["view"]["show"] );
+
+				show[ "on-top"      ].YesNo() = menu[IDM_VIEW_ON_TOP].Checked();
+				show[ "window-menu" ].YesNo() = (Windowed() ? menu.Visible() : window.menu);
+			}
 
 			Rect rect( video.Fullscreen() ? window.rect : window.GetPlacement() );
 			rect.Position() += Point(rect.left < 0 ? -rect.left : 0, rect.top < 0 ? -rect.top : 0 );
 
 			if (preferences[Managers::Preferences::SAVE_WINDOWPOS])
 			{
-				cfg[ "view window left"   ] = rect.left;
-				cfg[ "view window top"    ] = rect.top;
-				cfg[ "view window right"  ] = rect.right;
-				cfg[ "view window bottom" ] = rect.bottom;
+				Configuration::Section pos( cfg["view"]["window-position"] );
+
+				pos[ "left"   ].Int() = rect.left;
+				pos[ "top"    ].Int() = rect.top;
+				pos[ "right"  ].Int() = rect.right;
+				pos[ "bottom" ].Int() = rect.bottom;
 			}
 
 			video.Save( cfg, rect );
@@ -319,16 +330,6 @@ namespace Nestopia
 			video.StopEmulation();
 			input.StopEmulation();
 			frameClock.StopEmulation();
-		}
-
-		void Main::Load(const Io::Nsp::Context& context)
-		{
-			video.LoadPalette( context.palette );
-		}
-
-		void Main::Save(Io::Nsp::Context& context) const
-		{
-			video.SavePalette( context.palette );
 		}
 
 		bool Main::ToggleMenu() const
@@ -590,7 +591,7 @@ namespace Nestopia
 
 					if (emulator.IsCart())
 					{
-						name.Import( Nes::Cartridge(emulator).GetInfo()->name.c_str() );
+						name = Nes::Cartridge(emulator).GetProfile()->game.title.c_str();
 					}
 					else if (emulator.IsNsf())
 					{

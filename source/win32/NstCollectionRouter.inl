@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -63,10 +63,10 @@ namespace Nestopia
 		template<typename Output,typename Input,typename Key>
 		void Router<Output,Input,Key>::Add(KeyParam key,const Callback& callback)
 		{
-			bool found;
-			Callback& item = items( key, found );
+			bool existing;
+			Callback& item = items.GetSorted( key, existing ).callback;
 
-			if (found)
+			if (existing)
 			{
 				NST_ASSERT
 				(
@@ -102,12 +102,12 @@ namespace Nestopia
 		template<typename Output,typename Input,typename Key>
 		void Router<Output,Input,Key>::Set(KeyParam key,const Callback& callback)
 		{
-			if (Item* const item = items.Find( key ))
+			if (Item* const item = items.FindSorted( key ))
 			{
-				if (item->value.template CodePtr<Hook>() == &Hook::Invoke)
-					item->value.template DataPtr<Hook>()->main = callback;
+				if (item->callback.template CodePtr<Hook>() == &Hook::Invoke)
+					item->callback.template DataPtr<Hook>()->main = callback;
 				else
-					item->value = callback;
+					item->callback = callback;
 			}
 			else
 			{
@@ -125,19 +125,19 @@ namespace Nestopia
 		template<typename Output,typename Input,typename Key>
 		void Router<Output,Input,Key>::Remove(KeyParam key,const Callback& callback)
 		{
-			if (Item* const item = items.Find( key ))
+			if (Item* const item = items.FindSorted( key ))
 			{
-				if (item->value == callback)
+				if (item->callback == callback)
 				{
-					items.Array().Erase( item );
+					items.Erase( item );
 				}
 				else if
 				(
-					item->value.template CodePtr<Hook>() == &Hook::Invoke &&
-					item->value.template DataPtr<Hook>()->main == callback
+					item->callback.template CodePtr<Hook>() == &Hook::Invoke &&
+					item->callback.template DataPtr<Hook>()->main == callback
 				)
 				{
-					item->value.template DataPtr<Hook>()->main.Reset();
+					item->callback.template DataPtr<Hook>()->main.Reset();
 				}
 			}
 		}
@@ -147,11 +147,11 @@ namespace Nestopia
 		{
 			for (uint i=0; i < items.Size(); )
 			{
-				const Callback& callback = items[i].value;
+				const Callback& callback = items[i].callback;
 
 				if (callback.VoidPtr() == data)
 				{
-					items.Array().Erase( items.At(i) );
+					items.Erase( items.At(i) );
 				}
 				else
 				{
@@ -185,17 +185,17 @@ namespace Nestopia
 		{
 			Hook* hook;
 
-			bool found;
-			Callback& callback = items( key, found );
+			bool existing;
+			Callback& callback = items.GetSorted( key, existing ).callback;
 
-			if (found && callback.template CodePtr<Hook>() == &Hook::Invoke)
+			if (existing && callback.template CodePtr<Hook>() == &Hook::Invoke)
 			{
 				hook = callback.template DataPtr<Hook>();
 				NST_ASSERT( hook && hook->items.Size() );
 			}
 			else
 			{
-				NST_ASSERT( !found || callback );
+				NST_ASSERT( !existing || callback );
 
 				hook = new Hook;
 
@@ -211,7 +211,7 @@ namespace Nestopia
 					hooks = hook;
 				}
 
-				if (found)
+				if (existing)
 					hook->main = callback;
 
 				callback.Set( hook, &Hook::Invoke );
@@ -235,12 +235,12 @@ namespace Nestopia
 			if (hook->main)
 			{
 				result = 1;
-				mainItem->value = hook->main;
+				mainItem->callback = hook->main;
 			}
 			else
 			{
 				result = 2;
-				items.Array().Erase( mainItem );
+				items.Erase( mainItem );
 			}
 
 			if (hooks == hook)
@@ -264,14 +264,14 @@ namespace Nestopia
 		template<typename Output,typename Input,typename Key>
 		void Router<Output,Input,Key>::RemoveHook(KeyParam key,const typename Hook::Item& item)
 		{
-			if (Item* const mainItem = items.Find( key ))
+			if (Item* const mainItem = items.FindSorted( key ))
 			{
-				NST_ASSERT( mainItem->value.template CodePtr<Hook>() == &Hook::Invoke );
+				NST_ASSERT( mainItem->callback.template CodePtr<Hook>() == &Hook::Invoke );
 
-				Hook* const hook = mainItem->value.template DataPtr<Hook>();
+				Hook* const hook = mainItem->callback.template DataPtr<Hook>();
 				NST_ASSERT( hook );
 
-				if (typename Hook::Item* const hookItem = hook->items.Find( item ))
+				if (typename Hook::Item* const hookItem = hook->items.FindSorted( item ))
 					RemoveHook( mainItem, hook, hookItem );
 			}
 		}
@@ -283,9 +283,9 @@ namespace Nestopia
 			{
 				Item& mainItem = items[i];
 
-				if (mainItem.value.template CodePtr<Hook>() == &Hook::Invoke)
+				if (mainItem.callback.template CodePtr<Hook>() == &Hook::Invoke)
 				{
-					Hook* const hook = mainItem.value.template DataPtr<Hook>();
+					Hook* const hook = mainItem.callback.template DataPtr<Hook>();
 					NST_ASSERT( hook );
 
 					for (uint j=0; j < hook->items.Size(); )
@@ -309,12 +309,42 @@ namespace Nestopia
 		template<typename Output,typename Input,typename Key>
 		typename Router<Output,Input,Key>::Callback& Router<Output,Input,Key>::operator [] (KeyParam key)
 		{
-			Callback& callback = items.Locate( key );
+			Callback& callback = items.AtSorted( key ).callback;
 
 			if (callback.template CodePtr<Hook>() == &Hook::Invoke)
 				return callback.template DataPtr<Hook>()->main;
 
 			return callback;
+		}
+
+		template<typename Output,typename Input,typename Key>
+		typename Router<Output,Input,Key>::Item& Router<Output,Input,Key>::Items::GetSorted(KeyParam key,bool& existing)
+		{
+			const uint pos = this->LowerBound( key );
+			existing = (pos != this->Size() && this->At(pos)->key == key);
+
+			if (!existing)
+			{
+				this->Insert( this->At(pos), NULL, 1 );
+				new (static_cast<void*>(this->At(pos))) Item( key );
+			}
+
+			return *this->At(pos);
+		}
+
+		template<typename Output,typename Input,typename Key>
+		typename Router<Output,Input,Key>::Item* Router<Output,Input,Key>::Items::FindSorted(KeyParam key)
+		{
+			const uint pos = this->LowerBound( key );
+			return pos != this->Size() && this->At(pos)->key == key ? this->At(pos) : NULL;
+		}
+
+		template<typename Output,typename Input,typename Key>
+		typename Router<Output,Input,Key>::Item& Router<Output,Input,Key>::Items::AtSorted(KeyParam key)
+		{
+			const uint pos = this->LowerBound( key );
+			NST_ASSERT( pos < this->Size() && this->At(pos)->key == key );
+			return *this->At(pos);
 		}
 	}
 }

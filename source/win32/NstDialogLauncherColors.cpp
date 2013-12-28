@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -57,14 +57,18 @@ namespace Nestopia
 		foreground (20,33,74,53),
 		dialog     (IDD_LAUNCHER_COLORS,this,Handlers::messages,Handlers::commands)
 		{
-			background.color = cfg["launcher color background"].Default( uint(DEF_BACKGROUND_COLOR) );
-			foreground.color = cfg["launcher color foreground"].Default( uint(DEF_FOREGROUND_COLOR) );
+			Configuration::ConstSection color( cfg["launcher"]["view"]["colors"] );
+
+			background.color = color["background"].Int( DEF_BACKGROUND_COLOR );
+			foreground.color = color["foreground"].Int( DEF_FOREGROUND_COLOR );
 		}
 
 		void Launcher::Colors::Save(Configuration& cfg) const
 		{
-			cfg[ "launcher color foreground" ] = HexString( 32, foreground.color );
-			cfg[ "launcher color background" ] = HexString( 32, background.color );
+			Configuration::Section color( cfg["launcher"]["view"]["colors"] );
+
+			color[ "foreground" ].Str() = HexString( 32, foreground.color );
+			color[ "background" ].Str() = HexString( 32, background.color );
 		}
 
 		void Launcher::Colors::UpdateColor(const Type& type) const

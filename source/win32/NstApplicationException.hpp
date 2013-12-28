@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -35,18 +35,18 @@ namespace Nestopia
 	{
 		class Exception
 		{
-			tstring const msg;
+			wcstring const msg;
 			const uint id;
 
 		public:
 
-			explicit Exception(tstring string)
+			explicit Exception(wcstring string)
 			: msg(string), id(0) {}
 
-			explicit Exception(uint i=0,tstring string=NULL)
+			explicit Exception(uint i=0,wcstring string=NULL)
 			: msg(string), id(i) {}
 
-			tstring GetMsg() const
+			wcstring GetMsg() const
 			{
 				return msg;
 			}

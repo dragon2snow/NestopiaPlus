@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -34,27 +34,6 @@ namespace Nestopia
 {
 	namespace Collection
 	{
-		template<typename T> struct ConstParam
-		{
-			typedef const T& Type;
-		};
-
-		template<typename T> struct ConstParam<T*>
-		{
-			typedef const T* const Type;
-		};
-
-		template<> struct ConstParam< bool   > { typedef const bool   Type; };
-		template<> struct ConstParam< char   > { typedef const int    Type; };
-		template<> struct ConstParam< schar  > { typedef const int    Type; };
-		template<> struct ConstParam< uchar  > { typedef const uint   Type; };
-		template<> struct ConstParam< short  > { typedef const int    Type; };
-		template<> struct ConstParam< ushort > { typedef const uint   Type; };
-		template<> struct ConstParam< int    > { typedef const int    Type; };
-		template<> struct ConstParam< uint   > { typedef const uint   Type; };
-		template<> struct ConstParam< long   > { typedef const long   Type; };
-		template<> struct ConstParam< ulong  > { typedef const ulong  Type; };
-
 		template<typename T> class Vector;
 
 		template<>
@@ -130,19 +109,18 @@ namespace Nestopia
 		{
 		public:
 
-			typedef T Item;
 			typedef T Type;
 			typedef T* Iterator;
 			typedef const T* ConstIterator;
 
 			enum
 			{
-				ITEM_SIZE = sizeof(Item)
+				ITEM_SIZE = sizeof(Type)
 			};
 
 			Vector() {}
 
-			Vector(const Item* items,uint count)
+			Vector(const Type* items,uint count)
 			: Vector<void>(items,ITEM_SIZE * count) {}
 
 			explicit Vector(uint count)
@@ -157,7 +135,7 @@ namespace Nestopia
 				return *this;
 			}
 
-			void PushBack(const Item& item)
+			void PushBack(const Type& item)
 			{
 				Vector<void>::Append( &item, ITEM_SIZE );
 			}
@@ -182,7 +160,7 @@ namespace Nestopia
 				Vector<void>::Insert( pos, items, ITEM_SIZE * count );
 			}
 
-			void Insert(Iterator pos,const Item& item)
+			void Insert(Iterator pos,const Type& item)
 			{
 				Vector<void>::Insert( pos, &item, ITEM_SIZE );
 			}
@@ -197,24 +175,24 @@ namespace Nestopia
 				Vector<void>::Erase( offset, offset + count );
 			}
 
-			Item& operator [] (uint i)
+			Type& operator [] (uint i)
 			{
-				return static_cast<Item*>(data)[i];
+				return static_cast<Type*>(data)[i];
 			}
 
-			const Item& operator [] (uint i) const
+			const Type& operator [] (uint i) const
 			{
-				return static_cast<Item*>(data)[i];
+				return static_cast<Type*>(data)[i];
 			}
 
-			Item* Ptr()
+			Type* Ptr()
 			{
-				return static_cast<Item*>(data);
+				return static_cast<Type*>(data);
 			}
 
-			const Item* Ptr() const
+			const Type* Ptr() const
 			{
-				return static_cast<const Item*>(data);
+				return static_cast<const Type*>(data);
 			}
 
 			Iterator Begin()
@@ -247,25 +225,25 @@ namespace Nestopia
 				return static_cast<ConstIterator>(data) + pos;
 			}
 
-			Item& Front()
+			Type& Front()
 			{
 				NST_ASSERT( size );
 				return *static_cast<Iterator>(data);
 			}
 
-			const Item& Front() const
+			const Type& Front() const
 			{
 				NST_ASSERT( size );
 				return *static_cast<ConstIterator>(data);
 			}
 
-			Item& Back()
+			Type& Back()
 			{
 				NST_ASSERT( size );
 				return *(reinterpret_cast<Iterator>(bytes + size) - 1);
 			}
 
-			const Item& Back() const
+			const Type& Back() const
 			{
 				NST_ASSERT( size );
 				return *(reinterpret_cast<ConstIterator>(bytes + size) - 1);
@@ -331,7 +309,7 @@ namespace Nestopia
 			Iterator Find(const Value& value)
 			{
 				ConstIterator const it = static_cast<const Vector<T>*>(this)->Find( value );
-				return reinterpret_cast<Item*>(bytes + (reinterpret_cast<const uchar*>(it) - bytes));
+				return reinterpret_cast<Type*>(bytes + (reinterpret_cast<const uchar*>(it) - bytes));
 			}
 		};
 

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -70,12 +70,17 @@ namespace Nes
 			Log& operator << (long);
 			Log& operator << (ulong);
 
+			static void Flush(cstring,dword);
+			static bool Available();
+
 		private:
 
 			void Append(cstring,ulong);
 
 			struct Object;
 			Object* const object;
+
+			static bool enabled;
 
 		public:
 
@@ -86,8 +91,23 @@ namespace Nes
 			Log& operator << (int    i) { return operator << ( long  (i) ); }
 			Log& operator << (uint   i) { return operator << ( ulong (i) ); }
 
-			static void Flush(cstring,dword);
-			static bool Available();
+			class Suppressor
+			{
+				const bool state;
+
+			public:
+
+				Suppressor()
+				: state(enabled)
+				{
+					enabled = false;
+				}
+
+				~Suppressor()
+				{
+					enabled = state;
+				}
+			};
 
 			template<dword N>
 			static void Flush(const char (&c)[N])

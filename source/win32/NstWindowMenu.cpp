@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -145,7 +145,7 @@ namespace Nestopia
 		acceleratorEnabled ( true )
 		{
 			if (!handle)
-				throw Application::Exception( IDS_ERR_FAILED, _T("LoadMenu()") );
+				throw Application::Exception( IDS_ERR_FAILED, L"LoadMenu()" );
 		}
 
 		Menu::~Menu()
@@ -245,7 +245,7 @@ namespace Nestopia
 				)
 				{
 					if (const CmdHandler::Item* const item = cmdHandler( cmd ))
-						item->value( cmd );
+						item->callback( cmd );
 				}
 			}
 			else if (cmdCallback)
@@ -263,7 +263,7 @@ namespace Nestopia
 		ibool Menu::OnInitMenuPopup(Param& param)
 		{
 			if (const PopupHandler::Handler::Item* const item = popupHandler( PopupHandler::Key(param.wParam) ))
-				item->value( PopupHandler::Param( item->key.item, true ) );
+				item->callback( PopupHandler::Param( item->key.item, true ) );
 
 			return true;
 		}
@@ -271,7 +271,7 @@ namespace Nestopia
 		ibool Menu::OnUninitMenuPopup(Param& param)
 		{
 			if (const PopupHandler::Handler::Item* const item = popupHandler( PopupHandler::Key(param.wParam) ))
-				item->value( PopupHandler::Param( item->key.item, false ) );
+				item->callback( PopupHandler::Param( item->key.item, false ) );
 
 			return true;
 		}
@@ -376,7 +376,7 @@ namespace Nestopia
 				info.cbSize = sizeof(info);
 				info.fMask = MIIM_STRING|MIIM_ID;
 				info.wID = cmd;
-				info.dwTypeData = const_cast<tchar*>(name.Ptr());
+				info.dwTypeData = const_cast<wchar_t*>(name.Ptr());
 
 				::InsertMenuItem( item.hMenu, item.pos, item.pos < IDM_OFFSET, &info );
 
@@ -585,7 +585,7 @@ namespace Nestopia
 			return 0;
 		}
 
-		bool Menu::Item::Stream::GetFullString(tchar* string,uint length) const
+		bool Menu::Item::Stream::GetFullString(wchar_t* string,uint length) const
 		{
 			if (item.hMenu)
 			{
@@ -602,7 +602,7 @@ namespace Nestopia
 			return false;
 		}
 
-		void Menu::Item::Stream::SetFullString(tstring string) const
+		void Menu::Item::Stream::SetFullString(wcstring string) const
 		{
 			if (item.hMenu)
 			{
@@ -610,7 +610,7 @@ namespace Nestopia
 
 				info.cbSize = sizeof(info);
 				info.fMask = MIIM_STRING;
-				info.dwTypeData = const_cast<tchar*>(string);
+				info.dwTypeData = const_cast<wchar_t*>(string);
 
 				::SetMenuItemInfo( item.hMenu, item.pos, item.pos < IDM_OFFSET, &info );
 

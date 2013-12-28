@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -66,7 +66,7 @@ namespace Nes
 			};
 
 			void Reset(bool);
-			void Boot();
+			void Boot(bool);
 			void ExecuteFrame(Sound::Output*);
 			void EndFrame();
 			void PowerOff();
@@ -78,15 +78,16 @@ namespace Nes
 			void Poke(uint,uint) const;
 
 			bool IsOddCycle() const;
+			bool IsWriteCycle(Cycle) const;
 
-			void SetRegion(Region::Type);
+			void SetModel(CpuModel);
 			void AddHook(const Hook&);
 			void RemoveHook(const Hook&);
 
 			void SaveState(State::Saver&,dword,dword) const;
 			void LoadState(State::Loader&,dword,dword,dword);
 
-			static Cycle ClockConvert(Cycle,Region::Type);
+			static Cycle ClockConvert(Cycle,CpuModel);
 
 		private:
 
@@ -121,12 +122,14 @@ namespace Nes
 			NES_DECL_PEEK( Jam_2    );
 
 			void DoISR(uint);
+			uint FetchIRQISRVector();
 			void Clock();
 
 			void Run0();
 			void Run1();
 			void Run2();
 
+			inline void ExecuteOp();
 			inline uint FetchPc8();
 			inline uint FetchPc16();
 			inline uint FetchZpg16(uint) const;
@@ -340,16 +343,20 @@ namespace Nes
 
 			struct Cycles
 			{
-				void SetRegion(Region::Type);
-
-				inline uint NmiEdge() const;
-				inline uint IrqEdge() const;
-				inline void NextRound(Cycle);
+				void SetModel(CpuModel);
+				inline uint InterruptEdge() const;
 
 				Cycle count;
 				byte clock[8];
+				Cycle offset;
 				Cycle round;
 				Cycle frame;
+
+				void NextRound(Cycle next)
+				{
+					if (round > next)
+						round = next;
+				}
 			};
 
 			struct Flags
@@ -359,14 +366,14 @@ namespace Nes
 
 				enum
 				{
-					C = 0x01,  // carry
-					Z = 0x02,  // zero
-					I = 0x04,  // interrupt enable/disable
-					D = 0x08,  // decimal mode (not supported on the N2A03)
-					B = 0x10,  // software interrupt
-					R = 0x20,  // unused but always set
-					V = 0x40,  // overflow
-					N = 0x80   // negative
+					C = 0x01, // carry
+					Z = 0x02, // zero
+					I = 0x04, // interrupt enable/disable
+					D = 0x08, // decimal mode (not supported on the N2A03)
+					B = 0x10, // software interrupt
+					R = 0x20, // unused but always set
+					V = 0x40, // overflow
+					N = 0x80  // negative
 				};
 
 				uint nz;
@@ -379,10 +386,7 @@ namespace Nes
 			struct Interrupt
 			{
 				void Reset();
-				void SetRegion(Region::Type);
-
-				NST_FORCE_INLINE uint Clock(Cycle);
-				NST_SINGLE_CALL void EndFrame(Cycle);
+				void SetModel(CpuModel);
 
 				Cycle nmiClock;
 				Cycle irqClock;
@@ -471,8 +475,9 @@ namespace Nes
 			Flags flags;
 			Interrupt interrupt;
 			Hooks hooks;
+			uint opcode;
 			word jammed;
-			word region;
+			word model;
 			Linker linker;
 			qword ticks;
 			Ram ram;
@@ -481,6 +486,7 @@ namespace Nes
 
 			static dword logged;
 			static void (Cpu::*const opcodes[0x100])();
+			static const byte writeClocks[0x100];
 
 		public:
 
@@ -489,9 +495,10 @@ namespace Nes
 				return apu;
 			}
 
-			void DoNMI()
+			Cycle Update()
 			{
-				DoNMI( cycles.count );
+				apu.ClockDMA();
+				return cycles.count;
 			}
 
 			void DoIRQ(IrqLine line=IRQ_EXT)
@@ -501,6 +508,8 @@ namespace Nes
 
 			void ClearIRQ(IrqLine line=IRQ_EXT)
 			{
+				NST_VERIFY( interrupt.irqClock == CYCLE_MAX );
+
 				interrupt.low &= line ^ uint(IRQ_EXT|IRQ_FRAME|IRQ_DMC);
 
 				if (!interrupt.low)
@@ -512,9 +521,14 @@ namespace Nes
 				return interrupt.low;
 			}
 
-			Region::Type GetRegion() const
+			CpuModel GetModel() const
 			{
-				return static_cast<Region::Type>(region);
+				return static_cast<CpuModel>(model);
+			}
+
+			Region GetRegion() const
+			{
+				return GetModel() == CPU_RP2A03 ? REGION_NTSC : REGION_PAL;
 			}
 
 			Cycle GetClock(uint count=1) const
@@ -541,9 +555,7 @@ namespace Nes
 			void SetFrameCycles(Cycle count)
 			{
 				cycles.frame = count;
-
-				if (cycles.round > count)
-					cycles.round = count;
+				cycles.NextRound( count );
 			}
 
 			Ram::Ref GetRam()

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -33,7 +33,7 @@ namespace Nestopia
 {
 	namespace Resource
 	{
-		Version::Version(tstring const path,const VersionType versiontype)
+		Version::Version(wcstring const path,const VersionType versiontype)
 		{
 			NST_ASSERT( path );
 
@@ -45,7 +45,7 @@ namespace Nestopia
 
 				if (::GetFileVersionInfo( path, 0, size, data ))
 				{
-					tchar type[] = _T("\\");
+					wchar_t type[] = L"\\";
 					void* ptr;
 
 					if (::VerQueryValue( data, type, &ptr, &size ) && size == sizeof(info))

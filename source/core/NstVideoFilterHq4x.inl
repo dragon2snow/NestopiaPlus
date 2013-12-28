@@ -2,8 +2,8 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
 // Copyright (C) 2003 MaxSt ( maxst@hiend3d.com )
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -5297,7 +5297,7 @@ switch
 
 		break;
 
-	NST_UNREACHABLE
+	default: NST_UNREACHABLE();
 }
 #undef PIXEL00_0
 #undef PIXEL00_11

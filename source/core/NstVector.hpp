@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -86,6 +86,7 @@ namespace Nes
 			Vector();
 			explicit Vector(dword);
 			Vector(const Vector<T>&);
+			Vector(const T*,dword);
 
 			bool operator == (const Vector<T>&) const;
 
@@ -184,10 +185,17 @@ namespace Nes
 		}
 
 		template<typename T>
+		Vector<T>::Vector(const T* in,const dword count)
+		: data(count ? static_cast<T*>(Allocator::Malloc(count * sizeof(T))) : NULL), size(count), capacity(count)
+		{
+			Allocator::Copy( data, in, count * sizeof(T) );
+		}
+
+		template<typename T>
 		Vector<T>::Vector(const Vector<T>& v)
 		: data(v.size ? static_cast<T*>(Allocator::Malloc(v.size * sizeof(T))) : NULL), size(v.size), capacity(v.size)
 		{
-			Copy( data, v.data, v.size * sizeof(T) );
+			Allocator::Copy( data, v.data, v.size * sizeof(T) );
 		}
 
 		template<typename T>

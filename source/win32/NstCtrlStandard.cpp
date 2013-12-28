@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -77,7 +77,7 @@ namespace Nestopia
 								HeapString text;
 								control.Text() >> text;
 
-								for (tstring s=text.Ptr(), n=s; *s; s=n, ++n)
+								for (wcstring s=text.Ptr(), n=s; *s; s=n, ++n)
 								{
 									while (*n && *n != '\n')
 										++n;
@@ -131,8 +131,10 @@ namespace Nestopia
 
 				if (control == nmhdr.idFrom)
 				{
-					if (const Items::Entry* const entry = items.Find( nmhdr.code ))
-						entry->value( nmhdr );
+					Items::iterator it(items.find( nmhdr.code ));
+
+					if (it != items.end())
+						it->second( nmhdr );
 				}
 			}
 		}

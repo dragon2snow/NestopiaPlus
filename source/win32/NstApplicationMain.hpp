@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -45,6 +45,7 @@
 #include "NstManagerRecentFiles.hpp"
 #include "NstManagerRecentDirs.hpp"
 #include "NstManagerImageInfo.hpp"
+#include "NstManagerImageDatabase.hpp"
 #include "NstManagerLanguage.hpp"
 #include "NstManagerHelp.hpp"
 #include "NstManagerFiles.hpp"
@@ -98,6 +99,7 @@ namespace Nestopia
 			Managers::Movie movie;
 			Managers::Cheats cheats;
 			Managers::SaveStates saveStates;
+			Managers::ImageDatabase imageDatabase;
 			Managers::ImageInfo imageInfo;
 			Managers::Help help;
 			Managers::InesHeader inesHeader;

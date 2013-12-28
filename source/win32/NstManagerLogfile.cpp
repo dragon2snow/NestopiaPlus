@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -35,13 +35,13 @@ namespace Nestopia
 	{
 		struct Logfile::Callbacks
 		{
-			static void NST_CALLBACK DoOutput(Nes::User::UserData data,tstring text,uint length)
+			static void NST_CALLBACK DoOutput(Nes::User::UserData data,wcstring text,uint length)
 			{
 				NST_ASSERT( data && text );
 
 				if (length)
 				{
-				#ifndef NDEBUG
+				#ifdef NST_DEBUG
 					::OutputDebugString( text );
 				#endif
 
@@ -62,7 +62,7 @@ namespace Nestopia
 								log.Open();
 							}
 
-							log.file.Write( text, length * sizeof(tchar) );
+							log.file.Write( text, length * sizeof(wchar_t) );
 						}
 						catch (Io::File::Exception)
 						{
@@ -149,7 +149,7 @@ namespace Nestopia
 		{
 			file.Open
 			(
-				Application::Instance::GetExePath(_T("nestopia.log")),
+				Application::Instance::GetExePath(L"nestopia.log"),
 				Io::File::READ|Io::File::WRITE|Io::File::EMPTY|Io::File::SEQUENTIAL_ACCESS
 			);
 

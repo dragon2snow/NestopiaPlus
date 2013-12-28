@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -119,7 +119,7 @@ namespace Nestopia
 		}
 
 		template<>
-		Heap<char>& Heap<char>::Import(wstring src,bool utf8)
+		Heap<char>& Heap<char>::Import(wcstring src,bool utf8)
 		{
 			const int n = ::WideCharToMultiByte( utf8 ? CP_UTF8 : CP_ACP, 0, src, -1, NULL, 0, NULL, NULL );
 
@@ -149,7 +149,7 @@ namespace Nestopia
 		}
 
 		template<>
-		Heap<wchar_t>& Heap<wchar_t>::Import(wstring from,bool)
+		Heap<wchar_t>& Heap<wchar_t>::Import(wcstring from,bool)
 		{
 			*this = from;
 			return *this;

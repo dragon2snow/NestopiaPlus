@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -96,7 +96,7 @@ namespace Nestopia
 				0,
 				REG_SZ,
 				reinterpret_cast<const BYTE*>(dataName.Ptr()),
-				(dataName.Length() + 1) * sizeof(tchar)
+				(dataName.Length() + 1) * sizeof(wchar_t)
 			);
 
 			if (result != ERROR_SUCCESS)
@@ -135,7 +135,7 @@ namespace Nestopia
 			if (size <= 1)
 				return false;
 
-			string.Resize( (size-1) / sizeof(tchar) );
+			string.Resize( (size-1) / sizeof(wchar_t) );
 
 			if (::RegQueryValueEx( keys[count].handle, NULL, NULL, NULL, reinterpret_cast<BYTE*>(string.Ptr()), &size ) != ERROR_SUCCESS)
 			{
@@ -208,14 +208,14 @@ namespace Nestopia
 
 			enum {PAD_TO_CHECK_REAL_LENGTH = 1};
 
-			Collection::Vector<tchar> storedData( dataName.Length() + 1 + PAD_TO_CHECK_REAL_LENGTH );
+			Collection::Vector<wchar_t> storedData( dataName.Length() + 1 + PAD_TO_CHECK_REAL_LENGTH );
 
 			for (uint i=0; ; ++i)
 			{
 				DWORD storedType;
-				tchar storedValue[NST_MAX(MAX_PATH+1,512)];
+				wchar_t storedValue[NST_MAX(MAX_PATH+1,512)];
 				DWORD storedValueSize = sizeof(storedValue);
-				DWORD storedDataSize = storedData.Size() * sizeof(tchar);
+				DWORD storedDataSize = storedData.Size() * sizeof(wchar_t);
 
 				result = ::RegEnumValue
 				(
@@ -235,7 +235,7 @@ namespace Nestopia
 				if
 				(
 					storedType == REG_SZ &&
-					storedDataSize == (storedData.Size() - PAD_TO_CHECK_REAL_LENGTH) * sizeof(tchar) &&
+					storedDataSize == (storedData.Size() - PAD_TO_CHECK_REAL_LENGTH) * sizeof(wchar_t) &&
 					std::memcmp( storedData.Ptr(), dataName.Ptr(), storedDataSize ) == 0
 				)
 				{

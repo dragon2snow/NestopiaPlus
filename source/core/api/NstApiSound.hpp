@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -91,46 +91,6 @@ namespace Nes
 						function( userdata, output );
 				}
 			};
-
-			class Loader
-			{
-				struct Callbacker;
-
-			public:
-
-				enum Type
-				{
-					MOERO_PRO_YAKYUU = 1,
-					MOERO_PRO_YAKYUU_88,
-					MOERO_PRO_TENNIS,
-					TERAO_NO_DOSUKOI_OOZUMOU,
-					AEROBICS_STUDIO
-				};
-
-				enum
-				{
-					MOERO_PRO_YAKYUU_SAMPLES = 16,
-					MOERO_PRO_YAKYUU_88_SAMPLES = 20,
-					MOERO_PRO_TENNIS_SAMPLES = 19,
-					TERAO_NO_DOSUKOI_OOZUMOU_SAMPLES = 6,
-					AEROBICS_STUDIO_SAMPLES = 8
-				};
-
-				virtual Result Load(uint,const void*,ulong,bool,uint,ulong) throw() = 0;
-
-				typedef void (NST_CALLBACK *LoadCallback) (void*,Type,Loader&);
-
-				static Callbacker loadCallback;
-			};
-
-			struct Loader::Callbacker : UserCallback<Loader::LoadCallback>
-			{
-				void operator () (Type type,Loader& loader) const
-				{
-					if (function)
-						function( userdata, type, loader );
-				}
-			};
 		}
 	}
 
@@ -155,10 +115,10 @@ namespace Nes
 				CHANNEL_MMC5     = 0x040,
 				CHANNEL_VRC6     = 0x080,
 				CHANNEL_VRC7     = 0x100,
-				CHANNEL_N106     = 0x200,
+				CHANNEL_N163     = 0x200,
 				CHANNEL_S5B      = 0x400,
 				APU_CHANNELS     = CHANNEL_SQUARE1|CHANNEL_SQUARE2|CHANNEL_TRIANGLE|CHANNEL_NOISE|CHANNEL_DPCM,
-				EXT_CHANNELS     = CHANNEL_FDS|CHANNEL_MMC5|CHANNEL_VRC6|CHANNEL_VRC7|CHANNEL_N106|CHANNEL_S5B,
+				EXT_CHANNELS     = CHANNEL_FDS|CHANNEL_MMC5|CHANNEL_VRC6|CHANNEL_VRC7|CHANNEL_N163|CHANNEL_S5B,
 				ALL_CHANNELS     = APU_CHANNELS|EXT_CHANNELS
 			};
 
@@ -193,7 +153,6 @@ namespace Nes
 			void    EmptyBuffer() throw();
 
 			typedef Core::Sound::Output Output;
-			typedef Core::Sound::Loader Loader;
 		};
 	}
 }

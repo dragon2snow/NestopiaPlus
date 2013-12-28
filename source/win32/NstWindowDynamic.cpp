@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -66,7 +66,7 @@ namespace Nestopia
 			winClass.hIconSm       = create.hIcon;
 
 			if (!RegisterClassEx( &winClass ))
-				throw Application::Exception( IDS_ERR_FAILED, _T("RegisterClassEx()") );
+				throw Application::Exception( IDS_ERR_FAILED, L"RegisterClassEx()" );
 
 			className = create.className;
 
@@ -87,7 +87,7 @@ namespace Nestopia
 			);
 
 			if (!hWnd)
-				throw Application::Exception( IDS_ERR_FAILED, _T("CreateWindowEx()") );
+				throw Application::Exception( IDS_ERR_FAILED, L"CreateWindowEx()" );
 		}
 
 		void Dynamic::Destroy()
@@ -111,7 +111,7 @@ namespace Nestopia
 			const LONG_PTR ptr = reinterpret_cast<LONG_PTR>( instances.Size() == 1 ? WndProcSingle : WndProcMulti );
 
 			if (!::SetWindowLongPtr( hWnd, GWLP_WNDPROC, ptr ))
-				throw Application::Exception( IDS_ERR_FAILED, _T("SetWindowLongPtr()") );
+				throw Application::Exception( IDS_ERR_FAILED, L"SetWindowLongPtr()" );
 		}
 
 		ibool Dynamic::OnNcDestroy(Param&)
@@ -138,7 +138,7 @@ namespace Nestopia
 			{
 				Param param = {wParam,lParam,0,hWnd};
 
-				if (item->value( param ))
+				if (item->callback( param ))
 					return param.lResult;
 			}
 
@@ -155,7 +155,7 @@ namespace Nestopia
 			{
 				Param param = {wParam,lParam,0,hWnd};
 
-				if (item->value( param ))
+				if (item->callback( param ))
 					return param.lResult;
 			}
 
@@ -178,7 +178,7 @@ namespace Nestopia
 					{
 						Param param = {wParam,lParam,0,hWnd};
 
-						if (item->value( param ))
+						if (item->callback( param ))
 							return param.lResult;
 					}
 				}

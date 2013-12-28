@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -43,17 +43,14 @@ namespace Nes
 {
 	namespace Core
 	{
-		namespace Peripherals
-		{
-			class BarcodeReader;
-		}
+		class BarcodeReader;
 	}
 
 	namespace Api
 	{
 		class BarcodeReader : public Base
 		{
-			Core::Peripherals::BarcodeReader* Query() const;
+			Core::BarcodeReader* Query() const;
 
 		public:
 

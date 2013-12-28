@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -44,8 +44,6 @@
 #error Unsupported plattform!
 #endif
 
-#include <tchar.h>
-
 #if NST_ICC
 
  #pragma warning( disable : 11 304 373 383 444 810 981 1572 1599 1786 )
@@ -80,7 +78,7 @@
 #define STRICT
 #define WIN32_LEAN_AND_MEAN
 
-// <Windows.h>
+// <windows.h>
 
 #ifndef NOMINMAX
 #define NOMINMAX
@@ -129,10 +127,8 @@ namespace Nestopia
 	typedef unsigned int uint;
 	typedef unsigned long ulong;
 	typedef uint ibool;
-	typedef TCHAR tchar;
 	typedef const char* cstring;
-	typedef const wchar_t* wstring;
-	typedef const TCHAR* tstring;
+	typedef const wchar_t* wcstring;
 	typedef Nes::qword qword;
 
 	#define NST_CLAMP(t_,x_,y_) ((t_) < (x_) ? (x_) : (t_) > (y_) ? (y_) : (t_))
@@ -198,8 +194,6 @@ namespace Nestopia
 	enum
 	{
 		IDM_POS_FILE = 0,
-		IDM_POS_FILE_LOAD = 3,
-		IDM_POS_FILE_SAVE = 4,
 		IDM_POS_FILE_QUICKLOADSTATE = 6,
 		IDM_POS_FILE_QUICKSAVESTATE = 7,
 		IDM_POS_FILE_SOUNDRECORDER = 12,
@@ -226,7 +220,7 @@ namespace Nestopia
 		IDM_POS_VIEW = 3,
 		IDM_POS_VIEW_SCREENSIZE = 3,
 		IDM_POS_OPTIONS = 4,
-		IDM_POS_OPTIONS_AUTOSAVER = 9,
+		IDM_POS_OPTIONS_AUTOSAVER = 10,
 		IDM_POS_OPTIONS_AUTOSAVER_OPTIONS = 0,
 		IDM_POS_OPTIONS_AUTOSAVER_START
 	};

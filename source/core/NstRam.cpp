@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -40,10 +40,35 @@ namespace Nes
 		mem      ( NULL  ),
 		mask     ( 0     ),
 		size     ( 0     ),
-		writable ( false ),
+		type     ( RAM   ),
 		readable ( false ),
-		internal ( false ),
-		padding  ( false )
+		writable ( false ),
+		internal ( false )
+		{}
+
+		Ram::Ram(Type t,bool r,bool w,dword s,byte* m)
+		:
+		mem      ( NULL  ),
+		mask     ( 0     ),
+		size     ( 0     ),
+		type     ( t     ),
+		readable ( r     ),
+		writable ( w     ),
+		internal ( false )
+		{
+			Set( s, m );
+		}
+
+		Ram::Ram(const Ram& ram)
+		:
+		mem      ( ram.mem      ),
+		mask     ( ram.mask     ),
+		size     ( ram.size     ),
+		type     ( ram.type     ),
+		readable ( ram.readable ),
+		writable ( ram.writable ),
+		internal ( false        ),
+		pins     ( ram.pins     )
 		{}
 
 		Ram::~Ram()
@@ -52,8 +77,29 @@ namespace Nes
 				std::free( mem );
 		}
 
+		Ram& Ram::operator = (const Ram& ram)
+		{
+			if (this != &ram)
+			{
+				Destroy();
+
+				mem      = ram.mem;
+				mask     = ram.mask;
+				size     = ram.size;
+				type     = ram.type;
+				readable = ram.readable;
+				writable = ram.writable;
+				internal = false;
+				pins     = ram.pins;
+			}
+
+			return *this;
+		}
+
 		void Ram::Destroy()
 		{
+			pins.Clear();
+
 			mask = 0;
 			size = 0;
 
@@ -71,10 +117,10 @@ namespace Nes
 
 		void Ram::Set(dword s,byte* m)
 		{
-			NST_ASSERT( s != 1 );
-
 			if (s)
 			{
+				dword prev = mask+1;
+
 				mask = s - 1;
 				mask |= mask >> 1;
 				mask |= mask >> 2;
@@ -84,10 +130,10 @@ namespace Nes
 
 				size = s;
 
+				NST_VERIFY( s == mask+1 );
+
 				if (m)
 				{
-					NST_VERIFY( s == mask+1 );
-
 					if (internal)
 					{
 						internal = false;
@@ -100,7 +146,14 @@ namespace Nes
 
 					if (m)
 					{
-						internal = true;
+						if (!internal)
+						{
+							internal = true;
+							prev = 0;
+						}
+
+						if (prev < mask+1)
+							std::memset( m+prev, 0, mask+1-prev );
 					}
 					else
 					{
@@ -117,28 +170,61 @@ namespace Nes
 			}
 		}
 
-		void Ram::Set(bool r,bool w,dword s,byte* m)
+		void Ram::Set(Type t,bool r,bool w,dword s,byte* m)
 		{
 			Set( s, m );
+			type = t;
 			readable = r;
 			writable = w;
 		}
 
-		void Ram::Fill(uint value)
+		void Ram::Fill(uint value) const
 		{
-			NST_ASSERT( bool(mem) == bool(size) && value <= 0xFF );
-			std::memset( mem, value, size );
+			NST_ASSERT( bool(mem) == bool(size) );
+			NST_VERIFY( value <= 0xFF );
+
+			std::memset( mem, value & 0xFF, size );
 		}
 
 		void Ram::Mirror(dword block)
 		{
-			if (dword next = size)
-			{
-				if (block > next)
-					block = next;
+			NST_VERIFY( block );
 
-				for (const dword begin=next-block, end=mask+1; next < end; next += block)
-					std::memcpy( mem + next, mem + begin, NST_MIN(end-next,block) );
+			if (block)
+			{
+				const dword nearest = mask+1;
+
+				if (internal || !size)
+				{
+					block--;
+					block |= block >> 1;
+					block |= block >> 2;
+					block |= block >> 4;
+					block |= block >> 8;
+					block |= block >> 16;
+					block++;
+
+					if (mask+1 < block)
+					{
+						const dword tmp = size;
+						Set( block );
+						size = tmp;
+					}
+				}
+
+				NST_ASSERT( nearest <= mask+1 && !((mask+1) & mask) && !(nearest & (nearest-1)) );
+
+				if (size)
+				{
+					for (block=nearest; size % block; )
+						block /= 2;
+
+					for (dword i=size, n=size-block; i != nearest; i += block)
+						std::memcpy( mem + i, mem + n, block );
+
+					for (dword i=nearest, n=mask+1; i != n; i += nearest)
+						std::memcpy( mem + i, mem, nearest );
+				}
 			}
 		}
 

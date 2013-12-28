@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -333,7 +333,7 @@ namespace Nestopia
 			return false;
 		}
 
-		Generic Generic::Find(tstring className)
+		Generic Generic::Find(wcstring className)
 		{
 			return className ? ::FindWindow( className, NULL ) : NULL;
 		}
@@ -382,7 +382,7 @@ namespace Nestopia
 
 		uint Generic::Stream::operator >> (ulong& value) const
 		{
-			String::Stack<16,tchar> string;
+			String::Stack<16,wchar_t> string;
 			string.ShrinkTo( ::GetWindowText( hWnd, string.Ptr(), 16+1 ) );
 			string >> value;
 			return string.Length();
@@ -390,7 +390,7 @@ namespace Nestopia
 
 		uint Generic::Stream::operator >> (long& value) const
 		{
-			String::Stack<16,tchar> string;
+			String::Stack<16,wchar_t> string;
 			string.ShrinkTo( ::GetWindowText( hWnd, string.Ptr(), 16+1 ) );
 			string >> value;
 			return string.Length();
@@ -398,7 +398,7 @@ namespace Nestopia
 
 		void Generic::Stream::Clear() const
 		{
-			::SetWindowText( hWnd, _T("") );
+			::SetWindowText( hWnd, L"" );
 		}
 
 		Generic::LockDraw::LockDraw(HWND h)

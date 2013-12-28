@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -60,7 +60,7 @@ namespace Nestopia
 					ColumnsProxy(Window::Generic w)
 					: control(w) {}
 
-					void Insert(uint,tstring) const;
+					void Insert(uint,wcstring) const;
 					void GetOrder(int*,uint) const;
 					uint GetIndex(uint) const;
 					void Align() const;
@@ -97,7 +97,7 @@ namespace Nestopia
 						TextProxy(const Item& i,uint s)
 						: item(i), index(s) {}
 
-						void operator << (tstring) const;
+						void operator << (wcstring) const;
 
 						template<typename T>
 						uint operator >> (T& string) const
@@ -162,7 +162,7 @@ namespace Nestopia
 					}
 				};
 
-				typedef Object::Delegate2<int,const void*,const void*> SortFunction;
+				typedef Object::Delegate<int,const void*,const void*> SortFunction;
 
 				void Sort(const SortFunction&) const;
 

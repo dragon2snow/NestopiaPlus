@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -49,13 +49,6 @@ namespace Nestopia
 			IDC_VIDEO_DECODER_BY_GAIN == IDC_VIDEO_DECODER_RY_GAIN + 2
 		);
 
-		cstring const VideoDecoder::cfgAxes[3][2] =
-		{
-			{ "video decoder ry angle", "video decoder ry gain" },
-			{ "video decoder rg angle", "video decoder rg gain" },
-			{ "video decoder rb angle", "video decoder rb gain" }
-		};
-
 		struct VideoDecoder::Handlers
 		{
 			static const MsgHandler::Entry<VideoDecoder> messages[];
@@ -95,42 +88,52 @@ namespace Nestopia
 
 		void VideoDecoder::Load(const Configuration& cfg,Nes::Video nes)
 		{
-			Nes::Video::Decoder decoder( Nes::Video::DECODER_CANONICAL );
+			Configuration::ConstSection decoder( cfg["video"]["decoder"] );
 
-			GenericString string;
+			Nes::Video::Decoder nesDecoder( Nes::Video::DECODER_CANONICAL );
+
+			nesDecoder.boostYellow = decoder[ "yellow-boost" ].Yes();
 
 			for (uint i=0; i < 3; ++i)
 			{
-				string = cfg[cfgAxes[i][0]];
+				static const char types[3][3] = {"ry","rg","rb"};
+
+				Configuration::ConstSection axis( decoder[types[i]] );
+
+				GenericString string( axis[ "angle" ].Str() );
 
 				if (string.Length())
-					string >> decoder.axes[i].angle;
+					string >> nesDecoder.axes[i].angle;
 
-				string = cfg[cfgAxes[i][1]];
+				string = axis[ "gain" ].Str();
 
 				if (string.Length())
 				{
-					decoder.axes[i].gain = std::atof( String::Heap<char>(string).Ptr() );
-					decoder.axes[i].gain = NST_CLAMP(decoder.axes[i].gain,0.0f,2.0f);
+					nesDecoder.axes[i].gain = std::atof( String::Heap<char>(string).Ptr() );
+					nesDecoder.axes[i].gain = NST_CLAMP(nesDecoder.axes[i].gain,0.0f,2.0f);
 				}
 			}
 
-			decoder.boostYellow = (cfg["video decoder yellow boost"] == Configuration::YES);
-
-			nes.SetDecoder( decoder );
+			nes.SetDecoder( nesDecoder );
 		}
 
 		void VideoDecoder::Save(Configuration& cfg,const Nes::Video nes)
 		{
-			const Nes::Video::Decoder& decoder = nes.GetDecoder();
+			Configuration::Section decoder( cfg["video"]["decoder"] );
+
+			const Nes::Video::Decoder& nesDecoder = nes.GetDecoder();
+
+			decoder[ "yellow-boost" ].YesNo() = nesDecoder.boostYellow;
 
 			for (uint i=0; i < 3; ++i)
 			{
-				cfg[cfgAxes[i][0]] = decoder.axes[i].angle;
-				cfg[cfgAxes[i][1]] = RealString( decoder.axes[i].gain, 3, true );
-			}
+				static const char types[3][3] = {"ry","rg","rb"};
 
-			cfg["video decoder yellow boost"].YesNo() = decoder.boostYellow;
+				Configuration::Section axis( decoder[types[i]] );
+
+				axis[ "angle" ].Int() = nesDecoder.axes[i].angle;
+				axis[ "gain"  ].Str() = RealString( nesDecoder.axes[i].gain, 3, true );
+			}
 		}
 
 		ibool VideoDecoder::OnInitDialog(Param&)

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -71,7 +71,7 @@ namespace Nestopia
 
 			Dll()
 			:
-			System::Dll        (_T("kailleraclient.dll")),
+			System::Dll        (L"kailleraclient.dll"),
 			Init               (Fetch< InitFunc               >( "_kailleraInit@0"               )),
 			Shutdown           (Fetch< ShutdownFunc           >( "_kailleraShutdown@0"           )),
 			GetVersion         (Fetch< GetVersionFunc         >( "_kailleraGetVersion@4"         )),
@@ -129,12 +129,6 @@ namespace Nestopia
 				WM_NST_OPEN_CLIENT  = WM_APP + 57,
 				WM_NST_CLOSE_CLIENT = WM_APP + 58,
 				WM_NST_START_GAME   = WM_APP + 59
-			};
-
-			enum Mode
-			{
-				MODE_INPUT,
-				MODE_COMMAND
 			};
 
 			class Command
@@ -252,15 +246,15 @@ namespace Nestopia
 						}
 					}
 
-					return command;
+					const uint code = command;
+					command = 0;
+					return code;
 				}
 
 				NST_FORCE_INLINE bool Dispatch(const uint packet,Nes::Input::Controllers& controllers)
 				{
-					if (packet != 0xFF)
+					if (packet)
 					{
-						command = 0;
-
 						const uint data = packet >> PACKET_DATA_SHIFT;
 
 						switch (packet & PACKET_TYPE)
@@ -405,7 +399,6 @@ namespace Nestopia
 			struct
 			{
 				bool connected;
-				Mode mode;
 				Command command;
 				Input input;
 				uint player;
@@ -496,8 +489,8 @@ namespace Nestopia
 
 					return
 					(
-						(name.Length() >= 8 && name(0,8) == _T( "Kaillera" )) ||
-						(name.Length() >= 6 && name(0,6) == _T( "Anti3D"   ))
+						(name.Length() >= 8 && name(0,8) == L"Kaillera" ) ||
+						(name.Length() >= 6 && name(0,6) == L"Anti3D"   )
 					);
 				}
 
@@ -572,7 +565,7 @@ namespace Nestopia
 				{
 					static bool IsVersion6()
 					{
-						const System::Dll comctl32(_T("comctl32.dll"));
+						const System::Dll comctl32( L"comctl32.dll" );
 
 						if (DLLGETVERSIONPROC const getVersion = comctl32.Fetch<DLLGETVERSIONPROC>("DllGetVersion"))
 						{
@@ -592,7 +585,7 @@ namespace Nestopia
 
 				if (isVersion6)
 				{
-					const System::Dll uxtheme(_T("uxtheme.dll"));
+					const System::Dll uxtheme( L"uxtheme.dll" );
 
 					typedef DWORD (STDAPICALLTYPE* GetProperty)();
 					typedef void (STDAPICALLTYPE* SetProperty)(DWORD);
@@ -617,7 +610,7 @@ namespace Nestopia
 			{
 				if (visualStyles)
 				{
-					const System::Dll uxtheme(_T("uxtheme.dll"));
+					const System::Dll uxtheme( L"uxtheme.dll" );
 
 					typedef void (STDAPICALLTYPE* SetProperty)(DWORD);
 
@@ -792,38 +785,19 @@ namespace Nestopia
 
 			if (network.connected)
 			{
-				uchar packet[MAX_PLAYERS];
+				uchar packets[MAX_PLAYERS][2] = {{0},{0}};
 
-				const uint code = network.command.GetCode();
+				packets[0][0] = network.input.GetCode();
+				packets[0][1] = network.command.GetCode();
 
-				if (network.mode == MODE_INPUT)
+				if (dll.ModifyPlayValues( packets, 2 ) != -1)
 				{
-					packet[0] = (code ? 0xFF : network.input.GetCode());
+					network.command.Dispatch( packets[0][1], controllers );
 
-					if (dll.ModifyPlayValues( packet, 1 ) != -1)
-					{
-						if (packet[0] == 0xFF)
-						{
-							network.mode = MODE_COMMAND;
-						}
-						else for (uint i=0, n=NST_MIN(4,network.players); i < n; ++i)
-						{
-							network.input.Dispatch( i, packet[i], controllers );
-						}
-						return;
-					}
-				}
-				else
-				{
-					packet[0] = code;
+					for (uint i=0, n=NST_MIN(4,network.players); i < n; ++i)
+						network.input.Dispatch( i, packets[i][0], controllers );
 
-					if (dll.ModifyPlayValues( packet, 1 ) != -1)
-					{
-						if (network.command.Dispatch( packet[0], controllers ))
-							network.mode = MODE_INPUT;
-
-						return;
-					}
+					return;
 				}
 			}
 
@@ -863,12 +837,12 @@ namespace Nestopia
 
 				window.Messages().Add( this, messages );
 
-				NST_ASSERT( dialog.GetNumGames() );
+				NST_ASSERT( dialog.GetGamePaths().size() );
 
 				String::Heap<char> strings;
 
-				for (uint i=0, n=dialog.GetNumGames(); i < n; ++i)
-					strings << dialog.GetGame(i) << '\0';
+				for (Window::Netplay::GamePaths::const_iterator it(dialog.GetGamePaths().begin()), end(dialog.GetGamePaths().end()); it != end; ++it)
+					strings << it->Target().File() << '\0';
 
 				String::Heap<char> name;
 				name << "Nestopia " << Application::Instance::GetVersion();
@@ -911,7 +885,6 @@ namespace Nestopia
 							Client::Hide();
 
 							network.connected = true;
-							network.mode = MODE_INPUT;
 							network.command.Begin();
 
 							menu[IDM_NETPLAY_CHAT].Enable();
@@ -966,7 +939,7 @@ namespace Nestopia
 		window       ( w ),
 		paths        ( p ),
 		fullscreen   ( false ),
-		doFullscreen ( cfg["netplay in fullscreen"] == Configuration::YES )
+		doFullscreen ( cfg["netplay"]["fullscreen"].Yes() )
 		{
 			menu[IDM_NETPLAY_CONNECTION].Text() << Resource::String( IDS_MENU_NETPLAY_CONNECT );
 			menu[IDM_NETPLAY_CHAT].Disable();
@@ -1024,7 +997,7 @@ namespace Nestopia
 
 		void Netplay::Save(Configuration& cfg,const bool saveGameList) const
 		{
-			cfg["netplay in fullscreen"].YesNo() = (kaillera ? kaillera->ShouldGoFullscreen() : doFullscreen);
+			cfg["netplay"]["fullscreen"].YesNo() = (kaillera ? kaillera->ShouldGoFullscreen() : doFullscreen);
 
 			if (kaillera && saveGameList)
 				kaillera->SaveFile();

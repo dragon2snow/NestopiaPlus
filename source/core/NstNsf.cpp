@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,12 +25,11 @@
 #include <cstring>
 #include "NstLog.hpp"
 #include "NstFds.hpp"
-#include "NstMapper.hpp"
-#include "board/NstBrdVrc6.hpp"
-#include "board/NstBrdVrc7.hpp"
-#include "board/NstBrdN106.hpp"
-#include "board/NstBrdFme7.hpp"
-#include "board/NstBrdMmc5.hpp"
+#include "board/NstBoard.hpp"
+#include "board/NstBoardMmc5.hpp"
+#include "board/NstBoardKonami.hpp"
+#include "board/NstBoardNamcot.hpp"
+#include "board/NstBoardSunsoft.hpp"
 #include "api/NstApiNsf.hpp"
 #include "NstNsf.hpp"
 
@@ -75,44 +74,44 @@ namespace Nes
 				using Core::Fds::Sound::Clock;
 			};
 
-			struct N106 : Boards::N106::Sound
+			struct N163 : Boards::Namcot::N163::Sound
 			{
-				explicit N106(Apu& a)
+				explicit N163(Apu& a)
 				: Sound(a,false) {}
 
-				using Boards::N106::Sound::Reset;
-				using Boards::N106::Sound::UpdateSettings;
-				using Boards::N106::Sound::GetSample;
+				using Boards::Namcot::N163::Sound::Reset;
+				using Boards::Namcot::N163::Sound::UpdateSettings;
+				using Boards::Namcot::N163::Sound::GetSample;
 			};
 
-			struct Vrc6 : Boards::Vrc6::Sound
+			struct Vrc6 : Boards::Konami::Vrc6::Sound
 			{
 				explicit Vrc6(Apu& a)
 				: Sound(a,false) {}
 
-				using Boards::Vrc6::Sound::Reset;
-				using Boards::Vrc6::Sound::UpdateSettings;
-				using Boards::Vrc6::Sound::GetSample;
+				using Boards::Konami::Vrc6::Sound::Reset;
+				using Boards::Konami::Vrc6::Sound::UpdateSettings;
+				using Boards::Konami::Vrc6::Sound::GetSample;
 			};
 
-			struct Vrc7 : Boards::Vrc7::Sound
+			struct Vrc7 : Boards::Konami::Vrc7::Sound
 			{
 				explicit Vrc7(Apu& a)
 				: Sound(a,false) {}
 
-				using Boards::Vrc7::Sound::Reset;
-				using Boards::Vrc7::Sound::UpdateSettings;
-				using Boards::Vrc7::Sound::GetSample;
+				using Boards::Konami::Vrc7::Sound::Reset;
+				using Boards::Konami::Vrc7::Sound::UpdateSettings;
+				using Boards::Konami::Vrc7::Sound::GetSample;
 			};
 
-			struct S5B : Boards::Fme7::Sound
+			struct S5B : Boards::Sunsoft::Fme7::Sound
 			{
 				explicit S5B(Apu& a)
 				: Sound(a,false) {}
 
-				using Boards::Fme7::Sound::Reset;
-				using Boards::Fme7::Sound::UpdateSettings;
-				using Boards::Fme7::Sound::GetSample;
+				using Boards::Sunsoft::Fme7::Sound::Reset;
+				using Boards::Sunsoft::Fme7::Sound::UpdateSettings;
+				using Boards::Sunsoft::Fme7::Sound::GetSample;
 			};
 
 			template<typename T>
@@ -147,7 +146,7 @@ namespace Nes
 			Chip<Vrc7> vrc7;
 			Chip<Fds>  fds;
 			Chip<S5B>  s5b;
-			Chip<N106> n106;
+			Chip<N163> n163;
 		};
 
 		void Nsf::Chips::Mmc5::ClearExRam()
@@ -185,7 +184,7 @@ namespace Nes
 		vrc7     ( apu, types & Api::Nsf::CHIP_VRC7 ),
 		fds      ( apu, types & Api::Nsf::CHIP_FDS  ),
 		s5b      ( apu, types & Api::Nsf::CHIP_S5B  ),
-		n106     ( apu, types & Api::Nsf::CHIP_N106 )
+		n163     ( apu, types & Api::Nsf::CHIP_N163 )
 		{
 			Connect( UpdateSettings() );
 		}
@@ -206,7 +205,7 @@ namespace Nes
 			if ( vrc7 ) vrc7->Reset();
 			if ( fds  ) fds->Reset();
 			if ( s5b  ) s5b->Reset();
-			if ( n106 ) n106->Reset();
+			if ( n163 ) n163->Reset();
 		}
 
 		bool Nsf::Chips::UpdateSettings()
@@ -220,7 +219,7 @@ namespace Nes
 				( vrc7 ? vrc7->UpdateSettings() : 0U ) |
 				( fds  ? fds->UpdateSettings()  : 0U ) |
 				( s5b  ? s5b->UpdateSettings()  : 0U ) |
-				( n106 ? n106->UpdateSettings() : 0U )
+				( n163 ? n163->UpdateSettings() : 0U )
 			);
 		}
 
@@ -265,11 +264,11 @@ namespace Nes
 
 			stream.Read( songs.info.name, 32 );
 			stream.Read( songs.info.artist, 32 );
-			stream.Read( songs.info.maker, 32 );
+			stream.Read( songs.info.copyright, 32 );
 
 			songs.info.name[31] = '\0';
 			songs.info.artist[31] = '\0';
-			songs.info.maker[31] = '\0';
+			songs.info.copyright[31] = '\0';
 
 			speed.ntsc = stream.Read16();
 			stream.Read( banks );
@@ -315,7 +314,8 @@ namespace Nes
 			{
 				const uint offset = addressing.load & 0xFFFU;
 
-				prg.Source().Set( offset + length, true, false ).Fill( JAM );
+				prg.Source().Set( Ram::ROM, true, false, offset + length );
+				prg.Source().Fill( JAM );
 				stream.Read( prg.Source().Mem() + offset, length );
 			}
 
@@ -334,8 +334,8 @@ namespace Nes
 				if (*songs.info.artist)
 					log << NST_LINEBREAK "Nsf: artist: " << songs.info.artist;
 
-				if (*songs.info.maker)
-					log << NST_LINEBREAK "Nsf: maker: " << songs.info.maker;
+				if (*songs.info.copyright)
+					log << NST_LINEBREAK "Nsf: copyright: " << songs.info.copyright;
 
 				log << NST_LINEBREAK "Nsf: starting song "
 					<< (songs.start+1U)
@@ -363,7 +363,7 @@ namespace Nes
 					if ( chips->vrc7 ) log << "Nsf: VRC7 sound chip present" NST_LINEBREAK;
 					if ( chips->fds  ) log << "Nsf: FDS sound chip present" NST_LINEBREAK;
 					if ( chips->s5b  ) log << "Nsf: Sunsoft5B sound chip present" NST_LINEBREAK;
-					if ( chips->n106 ) log << "Nsf: N106 sound chip present" NST_LINEBREAK;
+					if ( chips->n163 ) log << "Nsf: N163 sound chip present" NST_LINEBREAK;
 				}
 			}
 		}
@@ -373,15 +373,9 @@ namespace Nes
 			delete chips;
 		}
 
-		void Nsf::SetRegion(const Region::Type region)
+		Region Nsf::GetDesiredRegion() const
 		{
-			routine.nmi = Routine::NMI;
-			cpu.SetFrameCycles( region == Region::NTSC ? Clocks::RP2C02_HVSYNC : Clocks::RP2C07_HVSYNC );
-		}
-
-		Region::Type Nsf::GetRegion() const
-		{
-			return tuneMode == Api::Nsf::TUNE_MODE_PAL ? Region::PAL : Region::NTSC;
+			return tuneMode == Api::Nsf::TUNE_MODE_PAL ? REGION_PAL : REGION_NTSC;
 		}
 
 		uint Nsf::GetChips() const
@@ -394,7 +388,7 @@ namespace Nes
 				if ( chips->vrc7 ) types |= Api::Nsf::CHIP_VRC7;
 				if ( chips->fds  ) types |= Api::Nsf::CHIP_FDS;
 				if ( chips->mmc5 ) types |= Api::Nsf::CHIP_MMC5;
-				if ( chips->n106 ) types |= Api::Nsf::CHIP_N106;
+				if ( chips->n163 ) types |= Api::Nsf::CHIP_N163;
 				if ( chips->s5b  ) types |= Api::Nsf::CHIP_S5B;
 			}
 
@@ -518,10 +512,10 @@ namespace Nes
 					cpu.Map( 0x9030 ).Set( &Nsf::Poke_Vrc7_9030 );
 				}
 
-				if (chips->n106)
+				if (chips->n163)
 				{
-					cpu.Map( 0x4800 ).Set( this, &Nsf::Peek_N106_48, &Nsf::Poke_N106_48 );
-					cpu.Map( 0xF800 ).Set( &Nsf::Poke_N106_F8 );
+					cpu.Map( 0x4800 ).Set( this, &Nsf::Peek_N163_48, &Nsf::Poke_N163_48 );
+					cpu.Map( 0xF800 ).Set( &Nsf::Poke_N163_F8 );
 				}
 
 				if (chips->s5b)
@@ -537,8 +531,9 @@ namespace Nes
 			cpu.Map( 0xFFFD ).Set( &Nsf::Peek_FFFD );
 
 			routine.reset = Routine::RESET;
+			routine.nmi = Routine::NMI;
 
-			SetRegion( cpu.GetRegion() );
+			cpu.SetFrameCycles( cpu.GetModel() == CPU_RP2A03 ? PPU_RP2C02_HVSYNC : PPU_RP2C07_HVSYNC );
 		}
 
 		bool Nsf::PowerOff()
@@ -692,7 +687,7 @@ namespace Nes
 				(vrc7 ? vrc7->GetSample() : 0) +
 				(fds  ? fds->GetSample()  : 0) +
 				(s5b  ? s5b->GetSample()  : 0) +
-				(n106 ? n106->GetSample() : 0)
+				(n163 ? n163->GetSample() : 0)
 			);
 		}
 
@@ -763,7 +758,7 @@ namespace Nes
 		NES_PEEK(Nsf,38F2)
 		{
 			NST_VERIFY( routine.playing );
-			return cpu.GetRegion() == Region::PAL;
+			return cpu.GetModel() == CPU_RP2A07;
 		}
 
 		NES_PEEK(Nsf,38F3)
@@ -932,8 +927,8 @@ namespace Nes
 		NES_POKE_D (Nsf,S5B_C) { chips->s5b->SelectReg( data ); }
 		NES_POKE_D (Nsf,S5B_E) { chips->s5b->WriteReg( data );  }
 
-		NES_PEEK   (Nsf,N106_48) { return chips->n106->ReadData(); }
-		NES_POKE_D (Nsf,N106_48) { chips->n106->WriteData( data );  }
-		NES_POKE_D (Nsf,N106_F8) { chips->n106->WriteAddress( data );  }
+		NES_PEEK   (Nsf,N163_48) { return chips->n163->ReadData(); }
+		NES_POKE_D (Nsf,N163_48) { chips->n163->WriteData( data );  }
+		NES_POKE_D (Nsf,N163_F8) { chips->n163->WriteAddress( data );  }
 	}
 }

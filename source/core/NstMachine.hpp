@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -80,7 +80,7 @@ namespace Nes
 				COLORMODE_CUSTOM
 			};
 
-			Result Load(StdStream,uint);
+			Result Load(StdStream,FavoredSystem,bool,StdStream,uint);
 			Result Unload();
 			Result PowerOff(Result=RESULT_OK);
 			void   Reset(bool);
@@ -92,6 +92,8 @@ namespace Nes
 			Result UpdateColorMode(ColorMode);
 
 		private:
+
+			void UpdateModels();
 
 			enum
 			{

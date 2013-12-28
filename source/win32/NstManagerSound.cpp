@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -41,7 +41,6 @@ namespace Nestopia
 		{
 			static bool NST_CALLBACK Lock(Nes::Sound::UserData,Nes::Sound::Output&);
 			static void NST_CALLBACK Unlock(Nes::Sound::UserData,Nes::Sound::Output&);
-			static void NST_CALLBACK Load(Nes::Sound::UserData,Nes::Sound::Loader::Type,Nes::Sound::Loader&);
 		};
 
 		Sound::Sound
@@ -63,7 +62,6 @@ namespace Nestopia
 		{
 			Nes::Sound::Output::lockCallback.Set( &Callbacks::Lock, this );
 			Nes::Sound::Output::unlockCallback.Set( &Callbacks::Unlock, this );
-			Nes::Sound::Loader::loadCallback.Set( &Callbacks::Load, this );
 
 			UpdateSettings();
 		}
@@ -72,7 +70,6 @@ namespace Nestopia
 		{
 			Nes::Sound::Output::lockCallback.Unset();
 			Nes::Sound::Output::unlockCallback.Unset();
-			Nes::Sound::Loader::loadCallback.Unset();
 		}
 
 		bool Sound::CanRunInBackground() const
@@ -218,141 +215,6 @@ namespace Nestopia
 
 		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
-		#endif
-
-		#if NST_MSVC >= 1200
-		#pragma warning( push )
-		#pragma warning( disable : 4701 )
-		#endif
-
-		void NST_CALLBACK Sound::Callbacks::Load(Nes::Sound::UserData user,Nes::Sound::Loader::Type type,Nes::Sound::Loader& loader)
-		{
-			typedef Nes::Sound::Loader Loader;
-
-			static const struct { uchar type; uchar samples; tstring name; } games[8] =
-			{
-				{ Loader::MOERO_PRO_YAKYUU,         Loader::MOERO_PRO_YAKYUU_SAMPLES,         _T("moepro")   },
-				{ Loader::MOERO_PRO_YAKYUU_88,      Loader::MOERO_PRO_YAKYUU_88_SAMPLES,      _T("moepro88") },
-				{ Loader::MOERO_PRO_TENNIS,         Loader::MOERO_PRO_TENNIS_SAMPLES,         _T("mptennis") },
-				{ Loader::TERAO_NO_DOSUKOI_OOZUMOU, Loader::TERAO_NO_DOSUKOI_OOZUMOU_SAMPLES, _T("terao")    },
-				{ Loader::AEROBICS_STUDIO,          Loader::AEROBICS_STUDIO_SAMPLES,          _T("ftaerobi") }
-			};
-
-			const Sound& sound = *static_cast<const Sound*>(user);
-
-			for (uint i=8; i--; )
-			{
-				if (type != games[i].type)
-					continue;
-
-				Path path( sound.paths.GetSamplesPath(), games[i].name, _T("") );
-				bool oneError = false;
-
-				for (uint j=0; ; ++j)
-				{
-					static const tchar types[][4] =
-					{
-						_T("zip"),
-						_T("rar"),
-						_T("7z\0")
-					};
-
-					path.Extension() = types[j];
-
-					if (path.FileExists())
-					{
-						Io::Log() << "Sound: Loading "
-                                  << games[i].samples
-                                  << " samples from \""
-                                  << path
-                                  << "\"\r\n";
-						break;
-					}
-					else if (j == sizeof(array(types))-1)
-					{
-						if (!sound.preferences[Preferences::SUPPRESS_WARNINGS])
-							Window::User::Warn( IDS_EMU_SAMPLES_UNAVAILABLE );
-
-						path.Extension().Clear();
-
-						Io::Log() << "Sound: warning, sample package file \""
-                                  << path
-                                  << ".*\" not found!\r\n";
-						return;
-					}
-				}
-
-				try
-				{
-					tchar name[] = _T("xx.wav");
-
-					const Io::File file( path, Io::File::READ|Io::File::EXISTING );
-					const Io::Archive archive( file );
-
-					for (uint j=0; j < games[i].samples; ++j)
-					{
-						name[0] = '0' + j / 10;
-						name[1] = '0' + j % 10;
-
-						for (uint k=archive.NumFiles(); k--; )
-						{
-							if (archive[k].GetName().File() != name)
-							{
-								if (k == 0)
-									Io::Log() << "Sound: warning, \"" << name << "\" not found!\r\n";
-
-								continue;
-							}
-
-							Collection::Buffer buffer;
-							WAVEFORMATEX format;
-
-							try
-							{
-								Collection::Buffer tmp( archive[k].Size() );
-								archive[k].Uncompress( tmp.Ptr() );
-
-								Io::Wave wave( Io::Wave::MODE_READ );
-
-								if (const uint size = wave.Open( tmp.Ptr(), tmp.Size(), format ))
-								{
-									buffer.Resize( size );
-									wave.Read( buffer.Ptr() );
-								}
-							}
-							catch (...)
-							{
-								buffer.Clear();
-							}
-
-							if (buffer.Size() && NES_FAILED(loader.Load( j, buffer.Ptr(), buffer.Size() / format.nBlockAlign, format.nChannels == 2, format.wBitsPerSample, format.nSamplesPerSec )))
-								buffer.Clear();
-
-							if (buffer.Empty())
-							{
-								Io::Log() << "Sound: warning, error loading \"" << name << "\"!\r\n";
-								oneError = true;
-							}
-
-							break;
-						}
-					}
-				}
-				catch (...)
-				{
-					Io::Log() << "Sound: warning, sample loading error!\r\n";
-					oneError = true;
-				}
-
-				if (oneError)
-					Window::User::Warn( IDS_EMU_ERR_LOAD_SAMPLES );
-
-				break;
-			}
-		}
-
-		#if NST_MSVC >= 1200
-		#pragma warning( pop )
 		#endif
 	}
 }

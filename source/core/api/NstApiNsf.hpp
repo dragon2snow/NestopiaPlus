@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -71,14 +71,14 @@ namespace Nes
 				CHIP_VRC7 = 0x02,
 				CHIP_FDS  = 0x04,
 				CHIP_MMC5 = 0x08,
-				CHIP_N106 = 0x10,
+				CHIP_N163 = 0x10,
 				CHIP_S5B  = 0x20,
 				CHIP_ALL  = 0x3F
 			};
 
 			const char* GetName         () const throw();
 			const char* GetArtist       () const throw();
-			const char* GetMaker        () const throw();
+			const char* GetCopyright    () const throw();
 			TuneMode    GetMode         () const throw();
 			uint        GetInitAddress  () const throw();
 			uint        GetLoadAddress  () const throw();

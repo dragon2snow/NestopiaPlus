@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -36,7 +36,6 @@ namespace Nestopia
 		NST_COMPILE_ASSERT
 		(
 			IDC_PATHS_BATTERY     - IDC_PATHS_IMAGE == IDC_PATHS_BATTERY_BROWSE     - IDC_PATHS_IMAGE_BROWSE &&
-			IDC_PATHS_NSP         - IDC_PATHS_IMAGE == IDC_PATHS_NSP_BROWSE         - IDC_PATHS_IMAGE_BROWSE &&
 			IDC_PATHS_NST         - IDC_PATHS_IMAGE == IDC_PATHS_NST_BROWSE         - IDC_PATHS_IMAGE_BROWSE &&
 			IDC_PATHS_SAMPLES     - IDC_PATHS_IMAGE == IDC_PATHS_SAMPLES_BROWSE     - IDC_PATHS_IMAGE_BROWSE &&
 			IDC_PATHS_IPS         - IDC_PATHS_IMAGE == IDC_PATHS_IPS_BROWSE         - IDC_PATHS_IMAGE_BROWSE &&
@@ -49,22 +48,20 @@ namespace Nestopia
 			{
 				ushort type;
 				ushort dlg;
-				cstring cfg;
-				tstring def;
+				wcstring def;
 			};
 
 			struct B
 			{
 				ushort type;
 				ushort dlg;
-				cstring cfg;
 			};
 
 			struct C
 			{
 				ushort type;
 				ushort dlg;
-				tstring cfg;
+				wcstring cfg;
 			};
 
 			static const A dirs[NUM_DIRS];
@@ -74,31 +71,29 @@ namespace Nestopia
 
 		const Paths::Lut::A Paths::Lut::dirs[NUM_DIRS] =
 		{
-			{ DIR_IMAGE,      IDC_PATHS_IMAGE,       "files path image",      _T(""              ) },
-			{ DIR_SAVE,       IDC_PATHS_BATTERY,     "files path save",       _T("save\\"        ) },
-			{ DIR_STATE,      IDC_PATHS_NST,         "files path state",      _T("states\\"      ) },
-			{ DIR_SCRIPT,     IDC_PATHS_NSP,         "files path script",     _T("scripts\\"     ) },
-			{ DIR_SAMPLES,    IDC_PATHS_SAMPLES,     "files path samples",    _T("samples\\"     ) },
-			{ DIR_IPS,        IDC_PATHS_IPS,         "files path ips",        _T("ips\\"         ) },
-			{ DIR_SCREENSHOT, IDC_PATHS_SCREENSHOTS, "files path screenshot", _T("screenshots\\" ) }
+			{ DIR_IMAGE,      IDC_PATHS_IMAGE,       L""              },
+			{ DIR_SAVE,       IDC_PATHS_BATTERY,     L"save\\"        },
+			{ DIR_STATE,      IDC_PATHS_NST,         L"states\\"      },
+			{ DIR_SAMPLES,    IDC_PATHS_SAMPLES,     L"samples\\"     },
+			{ DIR_IPS,        IDC_PATHS_IPS,         L"ips\\"         },
+			{ DIR_SCREENSHOT, IDC_PATHS_SCREENSHOTS, L"screenshots\\" }
 		};
 
 		const Paths::Lut::B Paths::Lut::flags[NUM_FLAGS] =
 		{
-			{ USE_LAST_IMAGE_DIR,      IDC_PATHS_IMAGE_LAST,      "files use last image path"  },
-			{ USE_LAST_SCRIPT_DIR,     IDC_PATHS_NSP_LAST,        "files use last script path" },
-			{ READONLY_CARTRIDGE,      IDC_PATHS_BATTERY_PROTECT, "files readonly cartridge"   },
-			{ AUTO_IMPORT_STATE_SLOTS, IDC_PATHS_NST_AUTO_IMPORT, "files auto import states"   },
-			{ AUTO_EXPORT_STATE_SLOTS, IDC_PATHS_NST_AUTO_EXPORT, "files auto export states"   },
-			{ IPS_AUTO_PATCH,          IDC_PATHS_IPS_AUTO_APPLY,  "files auto ips patching"    },
-			{ COMPRESS_STATES,         IDC_PATHS_NST_COMPRESS,    "files compress states"      }
+			{ USE_LAST_IMAGE_DIR,      IDC_PATHS_IMAGE_LAST      },
+			{ READONLY_CARTRIDGE,      IDC_PATHS_BATTERY_PROTECT },
+			{ AUTO_IMPORT_STATE_SLOTS, IDC_PATHS_NST_AUTO_IMPORT },
+			{ AUTO_EXPORT_STATE_SLOTS, IDC_PATHS_NST_AUTO_EXPORT },
+			{ IPS_AUTO_PATCH,          IDC_PATHS_IPS_AUTO_APPLY  },
+			{ COMPRESS_STATES,         IDC_PATHS_NST_COMPRESS    }
 		};
 
 		const Paths::Lut::C Paths::Lut::screenShots[NUM_SCREENSHOTS] =
 		{
-			{ SCREENSHOT_PNG,  IDC_PATHS_SCREENSHOTS_PNG,  _T( "png" ) },
-			{ SCREENSHOT_JPEG, IDC_PATHS_SCREENSHOTS_JPEG, _T( "jpg" ) },
-			{ SCREENSHOT_BMP,  IDC_PATHS_SCREENSHOTS_BMP,  _T( "bmp" ) }
+			{ SCREENSHOT_PNG,  IDC_PATHS_SCREENSHOTS_PNG,  L"png" },
+			{ SCREENSHOT_JPEG, IDC_PATHS_SCREENSHOTS_JPEG, L"jpg" },
+			{ SCREENSHOT_BMP,  IDC_PATHS_SCREENSHOTS_BMP,  L"bmp" }
 		};
 
 		struct Paths::Handlers
@@ -117,12 +112,10 @@ namespace Nestopia
 			{ IDC_PATHS_IMAGE_BROWSE,       &Paths::OnCmdBrowse      },
 			{ IDC_PATHS_BATTERY_BROWSE,     &Paths::OnCmdBrowse      },
 			{ IDC_PATHS_NST_BROWSE,         &Paths::OnCmdBrowse      },
-			{ IDC_PATHS_NSP_BROWSE,         &Paths::OnCmdBrowse      },
 			{ IDC_PATHS_SAMPLES_BROWSE,     &Paths::OnCmdBrowse      },
 			{ IDC_PATHS_IPS_BROWSE,         &Paths::OnCmdBrowse      },
 			{ IDC_PATHS_SCREENSHOTS_BROWSE, &Paths::OnCmdBrowse      },
 			{ IDC_PATHS_IMAGE_LAST,         &Paths::OnCmdLastVisited },
-			{ IDC_PATHS_NSP_LAST,           &Paths::OnCmdLastVisited },
 			{ IDC_PATHS_DEFAULT,            &Paths::OnCmdDefault     },
 			{ IDOK,                         &Paths::OnCmdOk          }
 		};
@@ -131,7 +124,6 @@ namespace Nestopia
 		: Collection::BitSet
 		(
 			1U << USE_LAST_IMAGE_DIR      |
-			1U << USE_LAST_SCRIPT_DIR     |
 			1U << AUTO_IMPORT_STATE_SLOTS |
 			1U << AUTO_EXPORT_STATE_SLOTS |
 			1U << COMPRESS_STATES
@@ -144,37 +136,114 @@ namespace Nestopia
 		Paths::Paths(const Configuration& cfg)
 		: dialog(IDD_PATHS,this,Handlers::messages,Handlers::commands)
 		{
-			for (uint i=0; i < NUM_DIRS; ++i)
+			Configuration::ConstSection paths( cfg["paths"] );
+
 			{
-				settings.dirs[Lut::dirs[i].type] = cfg[Lut::dirs[i].cfg];
-				UpdateDirectory( i );
+				Configuration::ConstSection images( paths["images"] );
+
+				settings.dirs[DIR_IMAGE] = images["directory"].Str();
+
+				if (images["use-recent-directory"].Yes())
+				{
+					settings.flags[USE_LAST_IMAGE_DIR] = true;
+				}
+				else if (images["use-recent-directory"].No())
+				{
+					settings.flags[USE_LAST_IMAGE_DIR] = false;
+				}
 			}
 
-			for (uint i=0; i < NUM_FLAGS; ++i)
 			{
-				if (cfg[Lut::flags[i].cfg] == Configuration::YES)
+				Configuration::ConstSection saves( paths["saves"] );
+
+				settings.dirs[DIR_SAVE] = saves["directory"].Str();
+
+				if (saves["force-read-only"].Yes())
 				{
-					settings.flags[Lut::flags[i].type] = true;
+					settings.flags[READONLY_CARTRIDGE] = true;
 				}
-				else if (cfg[Lut::flags[i].cfg] == Configuration::NO)
+				else if (saves["force-read-only"].No())
 				{
-					settings.flags[Lut::flags[i].type] = false;
+					settings.flags[READONLY_CARTRIDGE] = false;
 				}
 			}
 
-			const GenericString format( cfg["files screenshot format"] );
-
-			if (format.Length())
 			{
-				for (uint i=0; i < NUM_SCREENSHOTS; ++i)
+				Configuration::ConstSection states( paths["states"] );
+
+				settings.dirs[DIR_STATE] = states["directory"].Str();
+
+				if (states["use-compression"].Yes())
 				{
-					if (format == Lut::screenShots[i].cfg)
+					settings.flags[COMPRESS_STATES] = true;
+				}
+				else if (states["use-compression"].No())
+				{
+					settings.flags[COMPRESS_STATES] = false;
+				}
+
+				if (states["auto-import"].Yes())
+				{
+					settings.flags[AUTO_IMPORT_STATE_SLOTS] = true;
+				}
+				else if (states["auto-import"].No())
+				{
+					settings.flags[AUTO_IMPORT_STATE_SLOTS] = false;
+				}
+
+				if (states["auto-export"].Yes())
+				{
+					settings.flags[AUTO_EXPORT_STATE_SLOTS] = true;
+				}
+				else if (states["auto-export"].No())
+				{
+					settings.flags[AUTO_EXPORT_STATE_SLOTS] = false;
+				}
+			}
+
+			{
+				Configuration::ConstSection samples( paths["samples"] );
+
+				settings.dirs[DIR_SAMPLES] = samples["directory"].Str();
+			}
+
+			{
+				Configuration::ConstSection ips( paths["ips"] );
+
+				settings.dirs[DIR_IPS] = ips["directory"].Str();
+
+				if (ips["auto-patch"].Yes())
+				{
+					settings.flags[IPS_AUTO_PATCH] = true;
+				}
+				else if (ips["auto-patch"].No())
+				{
+					settings.flags[IPS_AUTO_PATCH] = false;
+				}
+			}
+
+			{
+				Configuration::ConstSection screenshots( paths["screenshots"] );
+
+				settings.dirs[DIR_SCREENSHOT] = screenshots["directory"].Str();
+
+				const GenericString format( screenshots["format"].Str() );
+
+				if (format.Length())
+				{
+					for (uint i=0; i < NUM_SCREENSHOTS; ++i)
 					{
-						settings.screenShotFormat = static_cast<ScreenShotFormat>(Lut::screenShots[i].type);
-						break;
+						if (format == Lut::screenShots[i].cfg)
+						{
+							settings.screenShotFormat = static_cast<ScreenShotFormat>(Lut::screenShots[i].type);
+							break;
+						}
 					}
 				}
 			}
+
+			for (uint i=0; i < NUM_DIRS; ++i)
+				UpdateDirectory( i );
 		}
 
 		Paths::~Paths()
@@ -183,22 +252,59 @@ namespace Nestopia
 
 		void Paths::Save(Configuration& cfg) const
 		{
-			for (uint i=0; i < NUM_DIRS; ++i)
-				cfg[Lut::dirs[i].cfg].Quote() = settings.dirs[Lut::dirs[i].type];
+			Configuration::Section paths( cfg["paths"] );
 
-			for (uint i=0; i < NUM_FLAGS; ++i)
-				cfg[Lut::flags[i].cfg].YesNo() = settings.flags[Lut::flags[i].type];
+			{
+				Configuration::Section images( paths["images"] );
 
-			cfg["files screenshot format"] = Lut::screenShots[settings.screenShotFormat].cfg;
+				images[ "directory"            ].Str() = settings.dirs[DIR_IMAGE];
+				images[ "use-recent-directory" ].YesNo() = settings.flags[USE_LAST_IMAGE_DIR];
+			}
+
+			{
+				Configuration::Section saves( paths["saves"] );
+
+				saves[ "directory"       ].Str() = settings.dirs[DIR_SAVE];
+				saves[ "force-read-only" ].YesNo() = settings.flags[READONLY_CARTRIDGE];
+			}
+
+			{
+				Configuration::Section states( paths["states"] );
+
+				states[ "directory"       ].Str() = settings.dirs[DIR_STATE];
+				states[ "use-compression" ].YesNo() = settings.flags[COMPRESS_STATES];
+				states[ "auto-import"     ].YesNo() = settings.flags[AUTO_IMPORT_STATE_SLOTS];
+				states[ "auto-export"     ].YesNo() = settings.flags[AUTO_EXPORT_STATE_SLOTS];
+			}
+
+			{
+				Configuration::Section samples( paths["samples"] );
+
+				samples[ "directory" ].Str() = settings.dirs[DIR_SAMPLES];
+			}
+
+			{
+				Configuration::Section ips( paths["ips"] );
+
+				ips[ "directory"  ].Str() = settings.dirs[DIR_IPS];
+				ips[ "auto-patch" ].YesNo() = settings.flags[IPS_AUTO_PATCH];
+			}
+
+			{
+				Configuration::Section screenshots( paths["screenshots"] );
+
+				screenshots[ "directory" ].Str() = settings.dirs[DIR_SCREENSHOT];
+				screenshots[ "format"    ].Str() = Lut::screenShots[settings.screenShotFormat].cfg;
+			}
 		}
 
 		const GenericString Paths::GetScreenShotExtension() const
 		{
 			switch (settings.screenShotFormat)
 			{
-				case SCREENSHOT_JPEG: return _T("jpg");
-				case SCREENSHOT_BMP:  return _T("bmp");
-				default:              return _T("png");
+				case SCREENSHOT_JPEG: return L"jpg";
+				case SCREENSHOT_BMP:  return L"bmp";
+				default:              return L"png";
 			}
 		}
 
@@ -270,10 +376,6 @@ namespace Nestopia
 			bool unchecked = dialog.CheckBox( IDC_PATHS_IMAGE_LAST ).Unchecked();
 			dialog.Control( IDC_PATHS_IMAGE ).Enable( unchecked );
 			dialog.Control( IDC_PATHS_IMAGE_BROWSE ).Enable( unchecked );
-
-			unchecked = dialog.CheckBox( IDC_PATHS_NSP_LAST ).Unchecked();
-			dialog.Control( IDC_PATHS_NSP ).Enable( unchecked );
-			dialog.Control( IDC_PATHS_NSP_BROWSE ).Enable( unchecked );
 		}
 
 		ibool Paths::OnInitDialog(Param&)

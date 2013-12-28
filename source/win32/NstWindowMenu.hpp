@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -84,8 +84,8 @@ namespace Nestopia
 					const Item& item;
 
 					uint GetLength() const;
-					bool GetFullString(tchar*,uint) const;
-					void SetFullString(tstring) const;
+					bool GetFullString(wchar_t*,uint) const;
+					void SetFullString(wcstring) const;
 
 					template<typename T>
 					void GetFullString(T& string) const

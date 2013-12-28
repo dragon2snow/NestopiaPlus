@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -23,9 +23,10 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 
 #include <cstring>
-#include "NstStream.hpp"
 #include "NstLog.hpp"
-#include "NstCrc32.hpp"
+#include "NstIps.hpp"
+#include "NstStream.hpp"
+#include "NstChecksum.hpp"
 #include "NstImageDatabase.hpp"
 #include "NstCartridge.hpp"
 #include "NstCartridgeInes.hpp"
@@ -38,83 +39,415 @@ namespace Nes
 		#pragma optimize("s", on)
 		#endif
 
-		Cartridge::Ines::Ines
+		void Cartridge::Ines::Load
 		(
-			StdStream s,
-			Ram& p,
-			Ram& c,
-			Ram& w,
-			Ref::Info& i,
-			const ImageDatabase* d,
-			ImageDatabase::Handle& h
+			StdStream const stdStreamImage,
+			StdStream const stdStreamIps,
+			Ram& prg,
+			Ram& chr,
+			const FavoredSystem favoredSystem,
+			Profile& profile,
+			ProfileEx& profileEx,
+			const ImageDatabase* const database
 		)
-		:
-		stream         (s),
-		prg            (p),
-		chr            (c),
-		wrk            (w),
-		info           (i),
-		database       (d),
-		databaseHandle (h)
+		{
+			NST_ASSERT( prg.Empty() && chr.Empty() );
+
+			Ips ips;
+
+			if (stdStreamIps && !ips.Load( stdStreamIps ))
+				Log::Flush( "Ines: Warning, invalid or corrupt IPS file" NST_LINEBREAK );
+
+			profile = Profile();
+			profileEx = ProfileEx();
+
+			const TrainerSetup trainerSetup = Collect( favoredSystem, profile, profileEx, stdStreamImage, ips );
+
+			if (ips.Empty() && database && database->Enabled())
+			{
+				if (const ImageDatabase::Entry entry = SearchDatabase( *database, stdStreamImage, profile.board.GetPrg() + profile.board.GetChr(), trainerSetup, favoredSystem ))
+				{
+					entry.Fill( profile );
+					profileEx.wramAuto = false;
+				}
+			}
+
+			prg.Set( profile.board.GetPrg() );
+			chr.Set( profile.board.GetChr() );
+
+			if (!profile.board.prg.empty())
+			{
+				for (Profile::Board::Pins::const_iterator it(profile.board.prg.front().pins.begin()), end(profile.board.prg.front().pins.end()); it != end; ++it)
+					prg.Pin(it->number) = it->function.c_str();
+			}
+
+			if (!profile.board.chr.empty())
+			{
+				for (Profile::Board::Pins::const_iterator it(profile.board.chr.front().pins.begin()), end(profile.board.chr.front().pins.end()); it != end; ++it)
+					chr.Pin(it->number) = it->function.c_str();
+			}
+
+			Stream::In stream( stdStreamImage );
+
+			if (trainerSetup == TRAINER_READ)
+			{
+				profileEx.trainer.Set( TRAINER_LENGTH );
+				stream.Read( profileEx.trainer.Mem(), TRAINER_LENGTH );
+			}
+			else if (trainerSetup == TRAINER_IGNORE)
+			{
+				stream.Seek( TRAINER_LENGTH );
+			}
+
+			if (prg.Size())
+			{
+				stream.Read( prg.Mem(), prg.Size() );
+
+				if (ips.Patch( prg.Mem(), prg.Size(), 16 ))
+					Log::Flush( "Ines: PRG-ROM was IPS patched" NST_LINEBREAK );
+			}
+
+			if (chr.Size())
+			{
+				stream.Read( chr.Mem(), chr.Size() );
+
+				if (ips.Patch( chr.Mem(), chr.Size(), 16 + prg.Size() ))
+					Log::Flush( "Ines: CHR-ROM was IPS patched" NST_LINEBREAK );
+			}
+		}
+
+		Cartridge::Ines::TrainerSetup Cartridge::Ines::Collect
+		(
+			const FavoredSystem favoredSystem,
+			Profile& profile,
+			ProfileEx& profileEx,
+			StdStream stream,
+			const Ips& ips
+		)
 		{
 			NST_COMPILE_ASSERT
 			(
-				Ref::PPU_RP2C03B     ==  1 &&
-				Ref::PPU_RP2C03G     ==  2 &&
-				Ref::PPU_RP2C04_0001 ==  3 &&
-				Ref::PPU_RP2C04_0002 ==  4 &&
-				Ref::PPU_RP2C04_0003 ==  5 &&
-				Ref::PPU_RP2C04_0004 ==  6 &&
-				Ref::PPU_RC2C03B     ==  7 &&
-				Ref::PPU_RC2C03C     ==  8 &&
-				Ref::PPU_RC2C05_01   ==  9 &&
-				Ref::PPU_RC2C05_02   == 10 &&
-				Ref::PPU_RC2C05_03   == 11 &&
-				Ref::PPU_RC2C05_04   == 12 &&
-				Ref::PPU_RC2C05_05   == 13
+				Header::PPU_RP2C03B     ==  1 &&
+				Header::PPU_RP2C03G     ==  2 &&
+				Header::PPU_RP2C04_0001 ==  3 &&
+				Header::PPU_RP2C04_0002 ==  4 &&
+				Header::PPU_RP2C04_0003 ==  5 &&
+				Header::PPU_RP2C04_0004 ==  6 &&
+				Header::PPU_RC2C03B     ==  7 &&
+				Header::PPU_RC2C03C     ==  8 &&
+				Header::PPU_RC2C05_01   ==  9 &&
+				Header::PPU_RC2C05_02   == 10 &&
+				Header::PPU_RC2C05_03   == 11 &&
+				Header::PPU_RC2C05_04   == 12 &&
+				Header::PPU_RC2C05_05   == 13
 			);
 
-			result = Collect();
+			Header setup;
+
+			byte header[16];
+			Stream::In(stream).Read( header );
+
+			if (ips.Patch( header, 16 ))
+				Log::Flush( "Ines: header was IPS patched" NST_LINEBREAK );
+
+			Result result = ReadHeader( setup, header, 16 );
 
 			if (NES_FAILED(result))
 				throw RESULT_ERR_CORRUPT_FILE;
 
-			const dword prgSkip = Process();
+			Log log;
 
-			if (!info.setup.prgRom)
-				throw RESULT_ERR_CORRUPT_FILE;
+			static const char title[] = "Ines: ";
 
-			if (info.setup.mapper > 255)
-				throw RESULT_ERR_UNSUPPORTED_MAPPER;
+			if (setup.version)
+				log << title << "version 2.0 detected" NST_LINEBREAK;
 
-			wrk.Set( info.setup.wrkRam + info.setup.wrkRamBacked );
+			if (result == RESULT_WARN_BAD_FILE_HEADER)
+				log << title << "warning, unknown or invalid header data!" NST_LINEBREAK;
 
-			if (info.setup.trainer)
-				stream.Read( wrk.Mem() + TRAINER_BEGIN, TRAINER_LENGTH );
+			log << title
+				<< (setup.prgRom / SIZE_1K)
+				<< "k PRG-ROM set" NST_LINEBREAK;
 
-			prg.Set( info.setup.prgRom );
-			stream.Read( prg.Mem(), info.setup.prgRom );
+			if (setup.version)
+			{
+				if (setup.prgRam)
+				{
+					log << title
+						<< (setup.prgRam % SIZE_1K ? setup.prgRam : setup.prgRam / SIZE_1K)
+						<< (setup.prgRam % SIZE_1K ? " byte" : "k")
+						<< " PRG-RAM set" NST_LINEBREAK;
+				}
 
-			if (prgSkip)
-				stream.Seek( prgSkip );
+				if (setup.prgNvRam)
+				{
+					log << title
+						<< (setup.prgNvRam % SIZE_1K ? setup.prgNvRam : setup.prgNvRam / SIZE_1K)
+						<< (setup.prgNvRam % SIZE_1K ? " bytes" : "k")
+						<< " non-volatile PRG-RAM set" NST_LINEBREAK;
+				}
+			}
 
-			chr.Set( info.setup.chrRom );
+			if (setup.chrRom)
+			{
+				log << title
+					<< (setup.chrRom / SIZE_1K)
+					<< "k CHR-ROM set" NST_LINEBREAK;
+			}
 
-			if (info.setup.chrRom)
-				stream.Read( chr.Mem(), info.setup.chrRom );
+			if (setup.version)
+			{
+				if (setup.chrRam)
+				{
+					log << title
+						<< (setup.chrRam % SIZE_1K ? setup.chrRam : setup.chrRam / SIZE_1K)
+						<< (setup.chrRam % SIZE_1K ? " bytes" : "k")
+						<< " CHR-RAM set" NST_LINEBREAK;
+				}
+
+				if (setup.chrNvRam)
+				{
+					log << title
+						<< (setup.chrNvRam % SIZE_1K ? setup.chrNvRam : setup.chrNvRam / SIZE_1K)
+						<< (setup.chrNvRam % SIZE_1K ? " bytes" : "k")
+						<< " non-volatile CHR-RAM set" NST_LINEBREAK;
+				}
+			}
+			else
+			{
+				if (header[8])
+				{
+					log << title
+						<< (header[8] * 8U)
+						<< "k W-RAM set" NST_LINEBREAK;
+				}
+
+				if (header[6] & 0x2U)
+				{
+					log << title
+						<< "battery set" NST_LINEBREAK;
+				}
+			}
+
+			log << title <<
+			(
+				setup.mirroring == Header::MIRRORING_FOURSCREEN ? "four-screen" :
+				setup.mirroring == Header::MIRRORING_VERTICAL   ? "vertical" :
+                                                                  "horizontal"
+			) << " mirroring set" NST_LINEBREAK;
+
+			log << title <<
+			(
+				setup.region == Header::REGION_BOTH ? "NTSC/PAL" :
+				setup.region == Header::REGION_PAL  ? "PAL":
+                                                      "NTSC"
+			) << " set" NST_LINEBREAK;
+
+			if (setup.system == Header::SYSTEM_VS)
+			{
+				log << title << "VS System set" NST_LINEBREAK;
+
+				if (setup.version)
+				{
+					if (setup.ppu)
+					{
+						static cstring const names[] =
+						{
+							"RP2C03B",
+							"RP2C03G",
+							"RP2C04-0001",
+							"RP2C04-0002",
+							"RP2C04-0003",
+							"RP2C04-0004",
+							"RC2C03B",
+							"RC2C03C",
+							"RC2C05-01",
+							"RC2C05-02",
+							"RC2C05-03",
+							"RC2C05-04",
+							"RC2C05-05"
+						};
+
+						NST_ASSERT( setup.ppu < 1+sizeof(array(names)) );
+						log << title << names[setup.ppu-1] << " PPU set" NST_LINEBREAK;
+					}
+
+					if (setup.security)
+					{
+						static const cstring names[] =
+						{
+							"RBI Baseball",
+							"TKO Boxing",
+							"Super Xevious"
+						};
+
+						NST_ASSERT( setup.security < 1+sizeof(array(names)) );
+						log << title << names[setup.security-1] << " VS mode set" NST_LINEBREAK;
+					}
+				}
+			}
+			else if (setup.system == Header::SYSTEM_PC10)
+			{
+				log << title << "Playchoice 10 set" NST_LINEBREAK;
+			}
+
+			log << title << "mapper " << setup.mapper << " set";
+
+			if (setup.system != Header::SYSTEM_VS && (setup.mapper == VS_MAPPER_99 || setup.mapper == VS_MAPPER_151))
+			{
+				setup.system = Header::SYSTEM_VS;
+				setup.ppu = Header::PPU_RP2C03B;
+				log << ", forcing VS System";
+			}
+
+			log << NST_LINEBREAK;
+
+			if (setup.version && setup.subMapper)
+				log << title << "unknown sub-mapper " << setup.subMapper << " set" NST_LINEBREAK;
+
+			TrainerSetup trainerSetup;
+
+			if (!setup.trainer)
+			{
+				trainerSetup = TRAINER_NONE;
+			}
+			else if (setup.mapper == FFE_MAPPER_6 || setup.mapper == FFE_MAPPER_8 || setup.mapper == FFE_MAPPER_17)
+			{
+				trainerSetup = TRAINER_READ;
+				log << title << "trainer set" NST_LINEBREAK;
+
+				if (setup.prgRam + setup.prgNvRam < SIZE_8K)
+				{
+					setup.prgRam = SIZE_8K - setup.prgNvRam;
+					log << title << "warning, forcing 8k of W-RAM for trainer" NST_LINEBREAK;
+				}
+			}
+			else
+			{
+				trainerSetup = TRAINER_IGNORE;
+				log << title << "warning, trainer ignored" NST_LINEBREAK;
+			}
+
+			if (setup.prgRom)
+			{
+				Profile::Board::Rom rom;
+				rom.size = setup.prgRom;
+				profile.board.prg.push_back( rom );
+			}
+
+			if (setup.chrRom)
+			{
+				Profile::Board::Rom rom;
+				rom.size = setup.chrRom;
+				profile.board.chr.push_back( rom );
+			}
+
+			if (setup.prgNvRam)
+			{
+				Profile::Board::Ram ram;
+				ram.size = setup.prgNvRam;
+				ram.battery = true;
+				profile.board.wram.push_back( ram );
+			}
+
+			if (setup.prgRam)
+			{
+				Profile::Board::Ram ram;
+				ram.size = setup.prgRam;
+				profile.board.wram.push_back( ram );
+			}
+
+			if (setup.chrNvRam)
+			{
+				Profile::Board::Ram ram;
+				ram.size = setup.chrNvRam;
+				ram.battery = true;
+				profile.board.vram.push_back( ram );
+			}
+
+			if (setup.chrRam)
+			{
+				Profile::Board::Ram ram;
+				ram.size = setup.chrRam;
+				profile.board.vram.push_back( ram );
+			}
+
+			profile.board.mapper = setup.mapper;
+			profileEx.wramAuto = (setup.version == 0 && profile.board.wram.empty());
+
+			switch (setup.mirroring)
+			{
+				case Header::MIRRORING_HORIZONTAL:
+
+					profile.board.solderPads = Profile::Board::SOLDERPAD_V;
+					break;
+
+				case Header::MIRRORING_VERTICAL:
+
+					profile.board.solderPads = Profile::Board::SOLDERPAD_H;
+					break;
+
+				case Header::MIRRORING_FOURSCREEN:
+
+					profileEx.nmt = ProfileEx::NMT_FOURSCREEN;
+					break;
+			}
+
+			profile.system.cpu = Profile::System::CPU_RP2A03;
+			profile.system.ppu = static_cast<Profile::System::Ppu>(setup.ppu);
+
+			switch (setup.system)
+			{
+				case Header::SYSTEM_VS:
+
+					profile.system.type = Profile::System::VS_UNISYSTEM;
+					break;
+
+				case Header::SYSTEM_PC10:
+
+					profile.system.type = Profile::System::PLAYCHOICE_10;
+					break;
+
+				default:
+
+					switch (setup.region)
+					{
+						case Header::REGION_NTSC:
+
+							if (favoredSystem == FAVORED_FAMICOM)
+								profile.system.type = Profile::System::FAMICOM;
+							else
+								profile.system.type = Profile::System::NES_NTSC;
+							break;
+
+						default:
+
+							profile.multiRegion = true;
+
+							if (favoredSystem == FAVORED_FAMICOM)
+							{
+								profile.system.type = Profile::System::FAMICOM;
+								break;
+							}
+							else if (favoredSystem != FAVORED_NES_PAL)
+							{
+								profile.system.type = Profile::System::NES_NTSC;
+								break;
+							}
+
+						case Header::REGION_PAL:
+
+							profile.system.type = Profile::System::NES_PAL;
+							profile.system.cpu = Profile::System::CPU_RP2A07;
+							break;
+					}
+					break;
+			}
+
+			return trainerSetup;
 		}
 
-		Result Cartridge::Ines::Collect()
-		{
-			info.Clear();
-
-			byte header[16];
-			stream.Read( header );
-
-			return ReadHeader( info.setup, header, 16 );
-		}
-
-		Result Cartridge::Ines::ReadHeader(Ref::Setup& setup,const byte* const file,const ulong length)
+		Result Cartridge::Ines::ReadHeader(Header& setup,const byte* const file,const ulong length)
 		{
 			if (file == NULL)
 				return RESULT_ERR_INVALID_PARAM;
@@ -179,28 +512,28 @@ namespace Nes
 
 			if (header[6] & 0x8U)
 			{
-				setup.mirroring = Ref::MIRROR_FOURSCREEN;
+				setup.mirroring = Header::MIRRORING_FOURSCREEN;
 			}
 			else if (header[6] & 0x1U)
 			{
-				setup.mirroring = Ref::MIRROR_VERTICAL;
+				setup.mirroring = Header::MIRRORING_VERTICAL;
 			}
 			else
 			{
-				setup.mirroring = Ref::MIRROR_HORIZONTAL;
+				setup.mirroring = Header::MIRRORING_HORIZONTAL;
 			}
 
 			setup.security = 0;
 
 			if (header[7] & 0x1U)
 			{
-				setup.system = Ref::SYSTEM_VS;
-				setup.ppu = Ref::PPU_RP2C03B;
+				setup.system = Header::SYSTEM_VS;
+				setup.ppu = Header::PPU_RP2C03B;
 
 				if (setup.version)
 				{
 					if ((header[13] & 0xFU) < 13)
-						setup.ppu = static_cast<Ref::Ppu>((header[13] & 0xFU) + 1);
+						setup.ppu = static_cast<Header::Ppu>((header[13] & 0xFU) + 1);
 
 					if ((header[13] >> 4) < 4)
 						setup.security = header[13] >> 4;
@@ -208,53 +541,55 @@ namespace Nes
 			}
 			else if (setup.version && (header[7] & 0x2U))
 			{
-				setup.system = Ref::SYSTEM_PC10;
-				setup.ppu = Ref::PPU_RP2C03B;
+				setup.system = Header::SYSTEM_PC10;
+				setup.ppu = Header::PPU_RP2C03B;
 			}
 			else
 			{
-				setup.system = Ref::SYSTEM_HOME;
-				setup.ppu = Ref::PPU_RP2C02;
+				setup.system = Header::SYSTEM_CONSOLE;
+				setup.ppu = Header::PPU_RP2C02;
 			}
 
 			if (setup.version && (header[12] & 0x2U))
 			{
-				setup.region = Ref::REGION_BOTH;
-				setup.cpu = Ref::CPU_RP2A03;
+				setup.region = Header::REGION_BOTH;
 			}
 			else if (header[setup.version ? 12 : 9] & 0x1U)
 			{
-				setup.region = Ref::REGION_PAL;
-				setup.cpu = Ref::CPU_RP2A07;
-
-				if (setup.ppu == Ref::PPU_RP2C02)
-					setup.ppu = Ref::PPU_RP2C07;
+				if (setup.system == Header::SYSTEM_CONSOLE)
+				{
+					setup.region = Header::REGION_PAL;
+					setup.ppu = Header::PPU_RP2C07;
+				}
+				else
+				{
+					setup.region = Header::REGION_NTSC;
+				}
 			}
 			else
 			{
-				setup.region = Ref::REGION_NTSC;
-				setup.cpu = Ref::CPU_RP2A03;
+				setup.region = Header::REGION_NTSC;
 			}
 
 			if (setup.version)
 			{
-				setup.wrkRam       = ((header[10]) & 0xFU) - 1U < 14 ? 64UL << (header[10] & 0xFU) : 0;
-				setup.wrkRamBacked = ((header[10]) >>   4) - 1U < 14 ? 64UL << (header[10] >>   4) : 0;
-				setup.chrRam       = ((header[11]) & 0xFU) - 1U < 14 ? 64UL << (header[11] & 0xFU) : 0;
-				setup.chrRamBacked = ((header[11]) >>   4) - 1U < 14 ? 64UL << (header[11] >>   4) : 0;
+				setup.prgRam   = ((header[10]) & 0xFU) - 1U < 14 ? 64UL << (header[10] & 0xFU) : 0;
+				setup.prgNvRam = ((header[10]) >>   4) - 1U < 14 ? 64UL << (header[10] >>   4) : 0;
+				setup.chrRam   = ((header[11]) & 0xFU) - 1U < 14 ? 64UL << (header[11] & 0xFU) : 0;
+				setup.chrNvRam = ((header[11]) >>   4) - 1U < 14 ? 64UL << (header[11] >>   4) : 0;
 			}
 			else
 			{
-				setup.wrkRam       = ((header[6] & 0x2U) ? 0 : header[8] * dword(SIZE_8K));
-				setup.wrkRamBacked = ((header[6] & 0x2U) ? NST_MAX(header[8],1U) * dword(SIZE_8K) : 0);
-				setup.chrRam       = (setup.chrRom ? 0 : SIZE_8K);
-				setup.chrRamBacked = 0;
+				setup.prgRam   = ((header[6] & 0x2U) ? 0 : header[8] * dword(SIZE_8K));
+				setup.prgNvRam = ((header[6] & 0x2U) ? NST_MAX(header[8],1U) * dword(SIZE_8K) : 0);
+				setup.chrRam   = (setup.chrRom ? 0 : SIZE_8K);
+				setup.chrNvRam = 0;
 			}
 
 			return result;
 		}
 
-		Result Cartridge::Ines::WriteHeader(const Ref::Setup& setup,byte* const file,const ulong length)
+		Result Cartridge::Ines::WriteHeader(const Header& setup,byte* const file,const ulong length)
 		{
 			if
 			(
@@ -298,26 +633,26 @@ namespace Nes
 				header[9] |= (setup.chrRom / SIZE_8K) >> 4 & 0xF0;
 			}
 
-			if (setup.mirroring == Ref::MIRROR_FOURSCREEN)
+			if (setup.mirroring == Header::MIRRORING_FOURSCREEN)
 			{
 				header[6] |= 0x8U;
 			}
-			else if (setup.mirroring == Ref::MIRROR_VERTICAL)
+			else if (setup.mirroring == Header::MIRRORING_VERTICAL)
 			{
 				header[6] |= 0x1U;
 			}
 
-			if (setup.wrkRamBacked)
+			if (setup.prgNvRam)
 				header[6] |= 0x2U;
 
 			if (setup.trainer)
 				header[6] |= 0x4U;
 
-			if (setup.system == Ref::SYSTEM_VS)
+			if (setup.system == Header::SYSTEM_VS)
 			{
 				header[7] |= 0x1U;
 			}
-			else if (setup.version && setup.system == Ref::SYSTEM_PC10)
+			else if (setup.version && setup.system == Header::SYSTEM_PC10)
 			{
 				header[7] |= 0x2U;
 			}
@@ -332,7 +667,7 @@ namespace Nes
 
 				uint i, data;
 
-				for (i=0, data=setup.wrkRam >> 7; data; data >>= 1, ++i)
+				for (i=0, data=setup.prgRam >> 7; data; data >>= 1, ++i)
 				{
 					if (i > 0xF)
 						return RESULT_ERR_INVALID_PARAM;
@@ -340,7 +675,7 @@ namespace Nes
 
 				header[10] |= i;
 
-				for (i=0, data=setup.wrkRamBacked >> 7; data; data >>= 1, ++i)
+				for (i=0, data=setup.prgNvRam >> 7; data; data >>= 1, ++i)
 				{
 					if (i > 0xF)
 						return RESULT_ERR_INVALID_PARAM;
@@ -356,7 +691,7 @@ namespace Nes
 
 				header[11] |= i;
 
-				for (i=0, data=setup.chrRamBacked >> 7; data; data >>= 1, ++i);
+				for (i=0, data=setup.chrNvRam >> 7; data; data >>= 1, ++i);
 				{
 					if (i > 0xF)
 						return RESULT_ERR_INVALID_PARAM;
@@ -364,16 +699,16 @@ namespace Nes
 
 				header[11] |= i << 4;
 
-				if (setup.region == Ref::REGION_BOTH)
+				if (setup.region == Header::REGION_BOTH)
 				{
 					header[12] |= 0x2U;
 				}
-				else if (setup.region == Ref::REGION_PAL)
+				else if (setup.region == Header::REGION_PAL)
 				{
 					header[12] |= 0x1U;
 				}
 
-				if (setup.system == Ref::SYSTEM_VS)
+				if (setup.system == Header::SYSTEM_VS)
 				{
 					if (setup.ppu > 0xF || setup.security > 0xF)
 						return RESULT_ERR_INVALID_PARAM;
@@ -386,8 +721,8 @@ namespace Nes
 			}
 			else
 			{
-				header[8] = setup.wrkRam / SIZE_8K;
-				header[9] = (setup.region == Ref::REGION_PAL ? 0x1 : 0x0);
+				header[8] = (setup.prgRam + setup.prgNvRam) / SIZE_8K;
+				header[9] = (setup.region == Header::REGION_PAL ? 0x1 : 0x0);
 			}
 
 			std::memcpy( file, header, 16 );
@@ -395,418 +730,51 @@ namespace Nes
 			return RESULT_OK;
 		}
 
-		dword Cartridge::Ines::Process()
+		ImageDatabase::Entry Cartridge::Ines::SearchDatabase
+		(
+			const ImageDatabase& database,
+			StdStream s,const dword romLength,
+			const TrainerSetup trainerSetup,
+			const FavoredSystem favoredSystem
+		)
 		{
-			Log log;
+			Stream::In stream(s);
 
-			static const char title[] = "Ines: ";
+			if (trainerSetup != TRAINER_NONE)
+				stream.Seek( TRAINER_LENGTH );
 
-			if (info.setup.version)
-				log << title << "version 2.0 detected" NST_LINEBREAK;
+			ImageDatabase::Entry entry;
 
-			if (result == RESULT_WARN_BAD_FILE_HEADER)
-				log << title << "warning, unknown or invalid header data!" NST_LINEBREAK;
+			dword count = 0;
 
-			log << title
-				<< (info.setup.prgRom / SIZE_1K)
-				<< "k PRG-ROM set" NST_LINEBREAK;
-
-			if (info.setup.chrRom)
-			{
-				log << title
-					<< (info.setup.chrRom / SIZE_1K)
-					<< "k CHR-ROM set" NST_LINEBREAK;
-			}
-
-			if (info.setup.chrRam)
-			{
-				log << title
-					<< (info.setup.chrRam % SIZE_1K ? info.setup.chrRam : info.setup.chrRam / SIZE_1K)
-					<< (info.setup.chrRam % SIZE_1K ? " bytes" : "k")
-					<< " CHR-RAM set" NST_LINEBREAK;
-			}
-
-			if (info.setup.chrRamBacked)
-			{
-				log << title
-					<< (info.setup.chrRamBacked % SIZE_1K ? info.setup.chrRamBacked : info.setup.chrRamBacked / SIZE_1K)
-					<< (info.setup.chrRamBacked % SIZE_1K ? " bytes" : "k")
-					<< " battery-backed CHR-RAM set" NST_LINEBREAK;
-			}
-
-			if (info.setup.wrkRam)
-			{
-				log << title
-					<< (info.setup.wrkRam % SIZE_1K ? info.setup.wrkRam : info.setup.wrkRam / SIZE_1K)
-					<< (info.setup.wrkRam % SIZE_1K ? " byte" : "k")
-					<< " W-RAM set" NST_LINEBREAK;
-			}
-
-			if (info.setup.wrkRamBacked)
-			{
-				log << title
-					<< (info.setup.wrkRamBacked % SIZE_1K ? info.setup.wrkRamBacked : info.setup.wrkRamBacked / SIZE_1K)
-					<< (info.setup.wrkRamBacked % SIZE_1K ? " byte" : "k")
-					<< (info.setup.wrkRamBacked >= SIZE_1K ? " battery-backed W-RAM set" NST_LINEBREAK : " non-volatile W-RAM set" NST_LINEBREAK);
-			}
-
-			log << title <<
-			(
-				info.setup.mirroring == Ref::MIRROR_FOURSCREEN ? "four-screen" :
-				info.setup.mirroring == Ref::MIRROR_VERTICAL   ? "vertical" :
-                                                                 "horizontal"
-			) << " mirroring set" NST_LINEBREAK;
-
-			log << title <<
-			(
-				info.setup.region == Ref::REGION_BOTH ? "NTSC/PAL" :
-				info.setup.region == Ref::REGION_PAL  ? "PAL":
-														"NTSC"
-			) << " set" NST_LINEBREAK;
-
-			if (info.setup.system == Ref::SYSTEM_VS)
-			{
-				log << title << "VS System set" NST_LINEBREAK;
-
-				if (info.setup.version)
-				{
-					if (info.setup.ppu)
-					{
-						static cstring const names[] =
-						{
-							"RP2C03B",
-							"RP2C03G",
-							"RP2C04-0001",
-							"RP2C04-0002",
-							"RP2C04-0003",
-							"RP2C04-0004",
-							"RC2C03B",
-							"RC2C03C",
-							"RC2C05-01",
-							"RC2C05-02",
-							"RC2C05-03",
-							"RC2C05-04",
-							"RC2C05-05"
-						};
-
-						NST_ASSERT( info.setup.ppu < 1+sizeof(array(names)) );
-						log << title << names[info.setup.ppu-1] << " PPU set" NST_LINEBREAK;
-					}
-
-					if (info.setup.security)
-					{
-						static const cstring names[] =
-						{
-							"RBI Baseball",
-							"TKO Boxing",
-							"Super Xevious"
-						};
-
-						NST_ASSERT( info.setup.security < 1+sizeof(array(names)) );
-						log << title << names[info.setup.security-1] << " VS mode set" NST_LINEBREAK;
-					}
-				}
-			}
-			else if (info.setup.system == Ref::SYSTEM_PC10)
-			{
-				log << title << "Playchoice 10 set" NST_LINEBREAK;
-			}
-
-			log << title << "mapper " << info.setup.mapper << " set";
-
-			if (info.setup.system != Ref::SYSTEM_VS && (info.setup.mapper == VS_MAPPER_99 || info.setup.mapper == VS_MAPPER_151))
-			{
-				info.setup.system = Ref::SYSTEM_VS;
-				info.setup.ppu = Ref::PPU_RP2C03B;
-				log << ", forcing VS System";
-			}
-
-			log << NST_LINEBREAK;
-
-			if (info.setup.version && info.setup.subMapper)
-				log << title << "unknown sub-mapper " << info.setup.subMapper << " set" NST_LINEBREAK;
-
-			if (info.setup.trainer)
-				log << title << "trainer set" NST_LINEBREAK;
-
-			databaseHandle = NULL;
-			const dword prgSkip = database ? Repair( log ) : 0;
-
-			if (info.setup.trainer && info.setup.wrkRamBacked+info.setup.wrkRam < SIZE_8K)
-			{
-				info.setup.wrkRam = SIZE_8K - info.setup.wrkRamBacked;
-				log << title << "warning, forcing 8k of W-RAM for trainer" NST_LINEBREAK;
-			}
-
-			return prgSkip;
-		}
-
-		ImageDatabase::Handle Cartridge::Ines::SearchDatabase(const ImageDatabase& database,const byte* const stream,ulong maxlength)
-		{
-			ImageDatabase::Handle handle = NULL;
-
-			if (stream && maxlength > 16+MIN_CRC_SEARCH_STRIDE)
-			{
-				maxlength -= 16;
-
-				if (maxlength > MAX_CRC_SEARCH_LENGTH)
-					maxlength = MAX_CRC_SEARCH_LENGTH;
-				else
-					maxlength -= maxlength % MIN_CRC_SEARCH_STRIDE;
-
-				dword length =
-				(
-					(stream[4] | ((stream[7] & 0xCU) == 0x8 ? uint(stream[9]) << 8 & 0xF00UL : 0UL)) * SIZE_16K +
-					(stream[5] | ((stream[7] & 0xCU) == 0x8 ? uint(stream[9]) << 4 & 0xF00UL : 0UL)) * SIZE_8K
-				);
-
-				if (length > maxlength)
-					length = maxlength;
-
-				const dword crc = Crc32::Compute( stream+16, length );
-
-				handle = database.Search( crc );
-
-				if (handle == NULL && maxlength > length)
-					handle = database.Search( Crc32::Compute( stream+16+length, maxlength-length, crc ) );
-			}
-
-			return handle;
-		}
-
-		dword Cartridge::Ines::Repair(Log& log)
-		{
-			NST_ASSERT( database );
-
-			ImageDatabase::Handle handle = NULL;
-
-			for (dword count=0,crc=0xFFFFFFFF,crcIt=0xFFFFFFFF,checkpoint=info.setup.prgRom+info.setup.chrRom+1;;)
+			for (Checksum it, checksum;;)
 			{
 				const uint data = stream.SafeRead8();
 
-				if (data > 0xFF || ++count == MAX_CRC_SEARCH_LENGTH+1)
+				if (data <= 0xFF)
 				{
-					handle = database->Search( crc ^ 0xFFFFFFFF );
-					stream.Seek( -idword(count) );
-					break;
-				}
-				else if (count == checkpoint)
-				{
-					handle = database->Search( crc ^ 0xFFFFFFFF );
+					const byte in = data;
+					it.Compute( &in, 1 );
 
-					if (handle)
-					{
-						stream.Seek( -idword(count) );
+					if (++count % MIN_DB_SEARCH_STRIDE == 0)
+						checksum = it;
+				}
+
+				const bool stop = (data > 0xFF || count == MAX_DB_SEARCH_LENGTH);
+
+				if (stop || count == romLength)
+				{
+					entry = database.Search( Profile::Hash(checksum.GetSha1(),checksum.GetCrc()), favoredSystem );
+
+					if (stop || entry)
 						break;
-					}
-				}
-
-				crcIt = Crc32::Compute( crcIt, data );
-
-				if (count % MIN_CRC_SEARCH_STRIDE == 0)
-					crc = crcIt;
-			}
-
-			if (handle == NULL)
-				return 0;
-
-			databaseHandle = handle;
-
-			NST_VERIFY( database->PrgRom(handle) );
-
-			if (!info.setup.version && info.setup.system == Ref::SYSTEM_HOME && database->GetSystem(handle) == Ref::SYSTEM_PC10)
-			{
-				info.setup.system = Ref::SYSTEM_PC10;
-				info.setup.ppu = Ref::PPU_RP2C03B;
-			}
-
-			if (!database->Enabled() || !database->PrgRom(handle))
-				return 0;
-
-			const dword prgSkip = database->PrgRomSkip(handle);
-			const dword chrSkip = database->ChrRomSkip(handle);
-
-			if (result == RESULT_OK)
-			{
-				if
-				(
-					(info.setup.prgRom != database->PrgRom(handle)+prgSkip && (info.setup.prgRom != database->PrgRom(handle) || database->ChrRom(handle))) ||
-					(info.setup.chrRom != database->ChrRom(handle)+chrSkip && (info.setup.chrRom != database->ChrRom(handle)))
-				)
-					result = RESULT_WARN_INCORRECT_FILE_HEADER;
-			}
-
-			static const char title[] = "Database: warning, ";
-
-			if (info.setup.prgRom != database->PrgRom(handle))
-			{
-				const dword prgRom = info.setup.prgRom;
-				info.setup.prgRom = database->PrgRom(handle);
-
-				log << title
-					<< "changed PRG-ROM size: "
-					<< (prgRom / SIZE_1K)
-					<< "k to: "
-					<< (info.setup.prgRom / SIZE_1K)
-					<< "k" NST_LINEBREAK;
-			}
-
-			if (info.setup.chrRom != database->ChrRom(handle))
-			{
-				const dword chrRom = info.setup.chrRom;
-				info.setup.chrRom = database->ChrRom(handle);
-
-				log << title;
-
-				if (chrSkip == SIZE_8K && info.setup.chrRom+chrSkip == chrRom && database->GetSystem(handle) == Ref::SYSTEM_PC10)
-				{
-					log << "ignored last 8k CHR-ROM" NST_LINEBREAK;
-				}
-				else
-				{
-					log << "changed CHR-ROM size: "
-						<< (chrRom / SIZE_1K)
-						<< "k to: "
-						<< (info.setup.chrRom / SIZE_1K)
-						<< "k" NST_LINEBREAK;
 				}
 			}
 
-			if (info.setup.wrkRam != database->WrkRam(handle))
-			{
-				const dword wrkRam = info.setup.wrkRam;
-				info.setup.wrkRam = database->WrkRam(handle);
+			if (count)
+				stream.Seek( -idword(count) + (trainerSetup == TRAINER_NONE ? 0 : -TRAINER_LENGTH)  );
 
-				log << title
-					<< "changed W-RAM: "
-					<< (wrkRam % SIZE_1K ? wrkRam : wrkRam / SIZE_1K)
-					<< (wrkRam % SIZE_1K ? " bytes to: " : "k to: ")
-					<< (info.setup.wrkRam % SIZE_1K ? info.setup.wrkRam : info.setup.wrkRam / SIZE_1K)
-					<< (info.setup.wrkRam % SIZE_1K ? " bytes" NST_LINEBREAK : "k" NST_LINEBREAK);
-			}
-
-			if (info.setup.wrkRamBacked != database->WrkRamBacked(handle))
-			{
-				const dword wrkRamBacked = info.setup.wrkRamBacked;
-				info.setup.wrkRamBacked = database->WrkRamBacked(handle);
-
-				log << title
-					<< "changed non-volatile W-RAM: "
-					<< (wrkRamBacked % SIZE_1K ? wrkRamBacked : wrkRamBacked / SIZE_1K)
-					<< (wrkRamBacked % SIZE_1K ? " bytes to: " : "k to: ")
-					<< (info.setup.wrkRamBacked % SIZE_1K ? info.setup.wrkRamBacked : info.setup.wrkRamBacked / SIZE_1K)
-					<< (info.setup.wrkRamBacked % SIZE_1K ? " bytes" NST_LINEBREAK : "k" NST_LINEBREAK);
-			}
-
-			if (info.setup.mapper != database->Mapper(handle))
-			{
-				const uint mapper = info.setup.mapper;
-				info.setup.mapper = database->Mapper(handle);
-
-				if (result == RESULT_OK)
-					result = RESULT_WARN_INCORRECT_FILE_HEADER;
-
-				log << title
-					<< "changed mapper "
-					<< mapper
-					<< " to "
-					<< info.setup.mapper
-					<< NST_LINEBREAK;
-			}
-
-			if (info.setup.mirroring != database->GetMirroring(handle))
-			{
-				const Ref::Mirroring mirroring = info.setup.mirroring;
-				info.setup.mirroring = database->GetMirroring(handle);
-
-				if (result == RESULT_OK)
-				{
-					switch (info.setup.mirroring)
-					{
-						case Ref::MIRROR_HORIZONTAL:
-						case Ref::MIRROR_VERTICAL:
-						case Ref::MIRROR_FOURSCREEN:
-
-							result = RESULT_WARN_INCORRECT_FILE_HEADER;
-							break;
-					}
-				}
-
-				NST_COMPILE_ASSERT
-				(
-					Ref::MIRROR_HORIZONTAL < 6 &&
-					Ref::MIRROR_VERTICAL   < 6 &&
-					Ref::MIRROR_FOURSCREEN < 6 &&
-					Ref::MIRROR_ZERO       < 6 &&
-					Ref::MIRROR_ONE        < 6 &&
-					Ref::MIRROR_CONTROLLED < 6
-				);
-
-				cstring types[6];
-
-				types[ Ref::MIRROR_HORIZONTAL ] = "horizontal mirroring";
-				types[ Ref::MIRROR_VERTICAL   ] = "vertical mirroring";
-				types[ Ref::MIRROR_FOURSCREEN ] = "four-screen mirroring";
-				types[ Ref::MIRROR_ZERO       ] = "$2000 mirroring";
-				types[ Ref::MIRROR_ONE        ] = "$2400 mirroring";
-				types[ Ref::MIRROR_CONTROLLED ] = "mapper controlled mirroring";
-
-				log << title
-					<< "changed "
-					<< types[mirroring]
-					<< " to "
-					<< types[info.setup.mirroring]
-					<< NST_LINEBREAK;
-			}
-
-			if (info.setup.trainer != database->Trainer(handle))
-			{
-				info.setup.trainer = database->Trainer(handle);
-
-				if (result == RESULT_OK)
-					result = RESULT_WARN_INCORRECT_FILE_HEADER;
-
-				log << title << (info.setup.trainer ? "enabled trainer" NST_LINEBREAK : "ignored trainer" NST_LINEBREAK);
-			}
-
-			if (info.setup.system != database->GetSystem(handle))
-			{
-				const Ref::System system = info.setup.system;
-				info.setup.system = database->GetSystem(handle);
-
-				if (result == RESULT_OK && system != Ref::SYSTEM_PC10 && info.setup.system != Ref::SYSTEM_PC10)
-					result = RESULT_WARN_INCORRECT_FILE_HEADER;
-
-				log << title
-					<< "changed "
-					<< (system == Ref::SYSTEM_VS ? "VS" : system == Ref::SYSTEM_PC10 ? "Playchoice" : "home")
-					<< " system to "
-					<< (info.setup.system == Ref::SYSTEM_VS ? "VS" : info.setup.system == Ref::SYSTEM_PC10 ? "Playchoice" : "home")
-					<< " system" NST_LINEBREAK;
-			}
-
-			if (info.setup.region != database->GetRegion(handle))
-			{
-				const Ref::Region region = info.setup.region;
-				info.setup.region = database->GetRegion(handle);
-
-				info.setup.cpu = (info.setup.region == Ref::REGION_PAL ? Ref::CPU_RP2A07 : Ref::CPU_RP2A03);
-
-				if (info.setup.ppu == Ref::PPU_RP2C02 || info.setup.ppu == Ref::PPU_RP2C07)
-					info.setup.ppu = (info.setup.region == Ref::REGION_PAL ? Ref::PPU_RP2C07 : Ref::PPU_RP2C02);
-
-				if (result == RESULT_OK && region != Ref::REGION_BOTH && info.setup.region != Ref::REGION_BOTH)
-					result = RESULT_WARN_INCORRECT_FILE_HEADER;
-
-				log << title
-					<< "changed "
-					<< (region == Ref::REGION_BOTH ? "NTSC/PAL" : region == Ref::REGION_PAL ? "PAL" : "NTSC")
-					<< " to "
-					<< (info.setup.region == Ref::REGION_BOTH ? "NTSC/PAL" : info.setup.region == Ref::REGION_PAL ? "PAL" : "NTSC")
-					<< NST_LINEBREAK;
-			}
-
-			return prgSkip;
+			return entry;
 		}
 
 		#ifdef NST_MSVC_OPTIMIZE

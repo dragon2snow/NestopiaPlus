@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -61,7 +61,7 @@ namespace Nestopia
 						TextProxy(const Item& i)
 						: item(i) {}
 
-						void operator << (tstring) const;
+						void operator << (wcstring) const;
 
 						template<typename T>
 						uint operator >> (T&) const;
@@ -107,8 +107,8 @@ namespace Nestopia
 				ListBox(HWND hWnd,uint id)
 				: Generic( hWnd, id ) {}
 
-				Item Add(tstring) const;
-				Item Insert(uint,tstring) const;
+				Item Add(wcstring) const;
+				Item Insert(uint,wcstring) const;
 				Item Selection() const;
 				bool AnySelection() const;
 				void Reserve(uint) const;
@@ -140,7 +140,7 @@ namespace Nestopia
 					HScrollBar(HWND);
 					~HScrollBar();
 
-					void Update(tstring,uint);
+					void Update(wcstring,uint);
 				};
 			};
 
@@ -155,7 +155,7 @@ namespace Nestopia
 				{
 					string.Resize( size );
 
-					if (item.control.Send( LB_GETTEXT, item.index, static_cast<tchar*>(string.Ptr()) ) > 0)
+					if (item.control.Send( LB_GETTEXT, item.index, static_cast<wchar_t*>(string.Ptr()) ) > 0)
 						return string.Validate();
 				}
 

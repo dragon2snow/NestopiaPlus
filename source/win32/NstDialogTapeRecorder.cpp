@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -53,8 +53,10 @@ namespace Nestopia
 		TapeRecorder::TapeRecorder(const Configuration& cfg,const Managers::Paths& p)
 		: dialog(IDD_TAPE_RECORDER,this,Handlers::messages,Handlers::commands), paths(p)
 		{
-			settings.useImageNaming = (cfg["files use image tape name"] != Configuration::NO);
-			settings.customFile = cfg["files tape"];
+			Configuration::ConstSection tapes( cfg["paths"]["tapes"] );
+
+			settings.useImageNaming = !tapes["use-image-name"].No();
+			settings.customFile = tapes["file"].Str();
 			paths.FixFile( Managers::Paths::File::TAPE, settings.customFile );
 		}
 
@@ -64,8 +66,10 @@ namespace Nestopia
 
 		void TapeRecorder::Save(Configuration& cfg) const
 		{
-			cfg["files use image tape name"].YesNo() = settings.useImageNaming;
-			cfg["files tape"].Quote() = settings.customFile;
+			Configuration::Section tapes( cfg["paths"]["tapes"] );
+
+			tapes["use-image-name"].YesNo() = settings.useImageNaming;
+			tapes["file"].Str() = settings.customFile;
 		}
 
 		const Path TapeRecorder::GetCustomFile() const

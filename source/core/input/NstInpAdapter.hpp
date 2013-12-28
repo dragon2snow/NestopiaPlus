@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -50,6 +50,7 @@ namespace Nes
 
 				virtual void Reset() = 0;
 				virtual void BeginFrame(Controllers*) = 0;
+				virtual void EndFrame() = 0;
 				virtual void Initialize(bool) = 0;
 				virtual void Poke(uint) = 0;
 				virtual uint Peek(uint) = 0;
@@ -70,6 +71,7 @@ namespace Nes
 
 				void Reset();
 				void BeginFrame(Controllers*);
+				void EndFrame();
 				void Initialize(bool);
 				void Poke(uint);
 				uint Peek(uint);
@@ -91,6 +93,7 @@ namespace Nes
 
 				void Reset();
 				void BeginFrame(Controllers*);
+				void EndFrame();
 				void Initialize(bool);
 				uint Peek(uint);
 				void Poke(uint);

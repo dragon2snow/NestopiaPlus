@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -51,13 +51,15 @@ namespace Nes
 
 			explicit Apu(Cpu&);
 
-			void Reset(bool);
-			void PowerOff();
-			void ClearBuffers();
-			void UpdateRegion();
-			void BeginFrame(Sound::Output*);
-			void EndFrame();
-			void WriteFrameCtrl(uint);
+			void  Reset(bool);
+			void  PowerOff();
+			void  ClearBuffers();
+			void  UpdateModel();
+			void  BeginFrame(Sound::Output*);
+			void  EndFrame();
+			void  WriteFrameCtrl(uint);
+			Cycle Clock();
+			void  ClockDMA();
 
 			Result SetSampleRate(dword);
 			Result SetSampleBits(uint);
@@ -84,7 +86,7 @@ namespace Nes
 				dword GetSampleRate() const;
 				uint  GetVolume(uint) const;
 				void  GetOscillatorClock(Cycle&,uint&) const;
-				Region::Type GetRegion() const;
+				CpuModel GetModel() const;
 
 			public:
 
@@ -101,7 +103,7 @@ namespace Nes
 					EXT_MMC5,
 					EXT_VRC6,
 					EXT_VRC7,
-					EXT_N106,
+					EXT_N163,
 					EXT_S5B
 				};
 
@@ -152,7 +154,7 @@ namespace Nes
 						count = lut[data >> 3] & enabled;
 					}
 
-					void Write(uint data,const Cycle frameCounterDelta)
+					void Write(uint data,bool frameCounterDelta)
 					{
 						NST_VERIFY_MSG( frameCounterDelta, "APU $40xx/framecounter conflict" );
 
@@ -240,9 +242,9 @@ namespace Nes
 			typedef void (NST_FASTCALL Apu::*Updater)(Cycle);
 
 			inline void Update(Cycle);
-			inline void Update();
-			inline void UpdateLatency();
-			inline Cycle UpdateDelta();
+			void Update();
+			void UpdateLatency();
+			bool UpdateDelta();
 
 			void Reset(bool,bool);
 			void CalculateOscillatorClock(Cycle&,uint&) const;
@@ -298,21 +300,21 @@ namespace Nes
 
 			NST_NO_INLINE void ClockFrameIRQ(Cycle);
 			NST_NO_INLINE void ClockFrameCounter();
-			void ClockOscillators(bool);
-			void ClockDmc(Cycle);
+			NST_NO_INLINE void ClockDmc(Cycle);
+			NST_NO_INLINE void ClockOscillators(bool);
 
 			template<typename T,bool STEREO>
 			void FlushSound();
 
 			void UpdateSettings();
-			void UpdateSettings(Region::Type);
+			void UpdateSettings(CpuModel);
 			void UpdateVolumes();
 
 			struct Cycles
 			{
 				Cycles();
 
-				void Update(dword,uint,Region::Type);
+				void Update(dword,uint,CpuModel);
 				void Reset(bool);
 
 				uint fixed;
@@ -320,7 +322,7 @@ namespace Nes
 				Cycle rateCounter;
 				Cycle frameCounter;
 				Cycle extCounter;
-				Region::Type region;
+				CpuModel model;
 				word frameDivider;
 				word frameIrqRepeat;
 				Cycle frameIrqClock;
@@ -341,9 +343,9 @@ namespace Nes
 
 				Synchronizer();
 
-				void Reset(uint,Region::Type,dword);
-				void Resync(uint,Region::Type);
-				NST_SINGLE_CALL dword Clock(dword,Region::Type,dword);
+				void Reset(uint,CpuModel,dword);
+				void Resync(uint,CpuModel);
+				NST_SINGLE_CALL dword Clock(dword,CpuModel,dword);
 			};
 
 			class Oscillator
@@ -477,13 +479,13 @@ namespace Nes
 			{
 			public:
 
-				void Reset(Region::Type);
-				void UpdateSettings(dword,uint,uint,Region::Type);
-				void LoadState(State::Loader&,Region::Type);
+				void Reset(CpuModel);
+				void UpdateSettings(dword,uint,uint,CpuModel);
+				void LoadState(State::Loader&,CpuModel);
 				void SaveState(State::Saver&,dword) const;
 
 				NST_SINGLE_CALL void WriteReg0(uint);
-				NST_SINGLE_CALL void WriteReg2(uint,Region::Type);
+				NST_SINGLE_CALL void WriteReg2(uint,CpuModel);
 				NST_SINGLE_CALL void WriteReg3(uint,Cycle);
 				NST_SINGLE_CALL void Disable(uint);
 
@@ -519,12 +521,12 @@ namespace Nes
 
 				Dmc();
 
-				void Reset(Region::Type);
-				void UpdateSettings(Cycle&,uint,Region::Type);
-				void LoadState(State::Loader&,const Cpu&,Region::Type,Cycle&);
+				void Reset(CpuModel);
+				void UpdateSettings(Cycle&,uint,CpuModel);
+				void LoadState(State::Loader&,const Cpu&,CpuModel,Cycle&);
 				void SaveState(State::Saver&,dword,const Cpu&,Cycle) const;
 
-				NST_SINGLE_CALL bool WriteReg0(uint,Region::Type);
+				NST_SINGLE_CALL bool WriteReg0(uint,CpuModel);
 				NST_SINGLE_CALL void WriteReg1(uint);
 				NST_SINGLE_CALL void WriteReg2(uint);
 				NST_SINGLE_CALL void WriteReg3(uint);
@@ -534,20 +536,19 @@ namespace Nes
 
 				NST_SINGLE_CALL bool ClockDAC();
 				NST_SINGLE_CALL void Update();
-				NST_SINGLE_CALL Cycle ClockDMA(Cpu&);
+				NST_SINGLE_CALL void ClockDMA(Cpu&,Cycle&);
 
 				inline void ClearAmp();
 				inline uint GetLengthCounter() const;
 
-				static Cycle GetResetFrequency(Region::Type);
+				static Cycle GetResetFrequency(CpuModel);
 
 			private:
 
-				void DoDMA(Cpu&);
+				void DoDMA(Cpu&,Cycle);
 
 				enum
 				{
-					DMA_CYCLES      = 4,
 					REG0_FREQUENCY  = 0x0F,
 					REG0_LOOP       = 0x40,
 					REG0_IRQ_ENABLE = 0x80,
@@ -614,17 +615,6 @@ namespace Nes
 			Settings settings;
 
 		public:
-
-			Cycle Clock(const Cycle elapsed)
-			{
-				if (cycles.frameIrqClock <= elapsed)
-					ClockFrameIRQ( elapsed );
-
-				if (cycles.dmcClock <= elapsed)
-					ClockDmc( elapsed );
-
-				return NST_MIN(cycles.frameIrqClock,cycles.dmcClock);
-			}
 
 			dword GetSampleRate() const
 			{

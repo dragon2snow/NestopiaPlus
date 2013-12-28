@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -83,7 +83,7 @@ namespace Nestopia
 				{
 					Resource::Clipboard resource;
 
-					if (wstring string = resource)
+					if (wcstring string = resource)
 					{
 						pos = 0;
 						releasing = 0;

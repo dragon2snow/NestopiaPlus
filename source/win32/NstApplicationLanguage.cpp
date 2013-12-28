@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -29,7 +29,7 @@ namespace Nestopia
 {
 	namespace Application
 	{
-		bool Instance::Language::Resource::Load(tstring const p)
+		bool Instance::Language::Resource::Load(wcstring const p)
 		{
 			if (!Dll::Load( p ))
 				return false;
@@ -42,16 +42,16 @@ namespace Nestopia
 		void Instance::Language::Load(const Configuration& cfg)
 		{
 			if (!resource)
-				Load( cfg["language"].Ptr() );
+				Load( cfg["language"]["file"].Str().Ptr() );
 		}
 
 		void Instance::Language::Save(Configuration& cfg) const
 		{
 			if (resource.path.Length())
-				cfg["language"].Quote() = resource.path;
+				cfg["language"]["file"].Str() = resource.path;
 		}
 
-		void Instance::Language::Load(tstring const path)
+		void Instance::Language::Load(wcstring const path)
 		{
 			if (!path || !*path)
 			{
@@ -59,13 +59,13 @@ namespace Nestopia
 				EnumerateResources( paths );
 
 				if (paths.empty())
-					throw Exception(_T("language\\english.nlg file not found!"));
+					throw Exception( L"language\\english.nlg file not found!" );
 
 				Paths::const_iterator it( paths.begin() );
 
 				for (Paths::const_iterator end(paths.end()); it != end; ++it)
 				{
-					if (it->File() == _T("english.nlg"))
+					if (it->File() == L"english.nlg")
 						break;
 				}
 
@@ -73,7 +73,7 @@ namespace Nestopia
 					it = paths.begin();
 
 				if (!resource.Load( it->Ptr() ))
-					throw Exception(_T("Failed to load language plugin file!"));
+					throw Exception( L"Failed to load language plugin file!" );
 			}
 			else if (!resource.Load( path ))
 			{
@@ -81,7 +81,7 @@ namespace Nestopia
 			}
 		}
 
-		void Instance::Language::UpdateResource(tstring const update)
+		void Instance::Language::UpdateResource(wcstring const update)
 		{
 			NST_ASSERT( update );
 			resource.path = update;
@@ -96,7 +96,7 @@ namespace Nestopia
 					WIN32_FIND_DATA data;
 					HANDLE const handle;
 
-					FileFinder(tstring const path)
+					FileFinder(wcstring const path)
 					: handle(::FindFirstFile( path, &data )) {}
 
 					~FileFinder()
@@ -106,7 +106,7 @@ namespace Nestopia
 					}
 				};
 
-				Path path( Instance::GetExePath(i ? _T("*.*") : _T("language\\*.*")) );
+				Path path( Instance::GetExePath(i ? L"*.*" : L"language\\*.*") );
 
 				FileFinder findFile( path.Ptr() );
 
@@ -118,7 +118,7 @@ namespace Nestopia
 						{
 							path.File() = findFile.data.cFileName;
 
-							if (path.Extension() == _T("nlg"))
+							if (path.Extension() == L"nlg")
 								paths.push_back( path );
 						}
 					}

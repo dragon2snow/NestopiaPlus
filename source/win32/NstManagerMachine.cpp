@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -45,27 +45,31 @@ namespace Nestopia
 		Manager     ( e, m, this, &Machine::OnEmuEvent ),
 		preferences ( p )
 		{
-			static const Window::Menu::CmdHandler::Entry<Machine> commands[] =
 			{
-				{ IDM_MACHINE_POWER,       &Machine::OnCmdPower   },
-				{ IDM_MACHINE_RESET_SOFT,  &Machine::OnCmdReset   },
-				{ IDM_MACHINE_RESET_HARD,  &Machine::OnCmdReset   },
-				{ IDM_MACHINE_PAUSE,       &Machine::OnCmdPause   },
-				{ IDM_MACHINE_SYSTEM_AUTO, &Machine::OnCmdSystem  },
-				{ IDM_MACHINE_SYSTEM_NTSC, &Machine::OnCmdSystem  },
-				{ IDM_MACHINE_SYSTEM_PAL,  &Machine::OnCmdSystem  }
-			};
+				static const Window::Menu::CmdHandler::Entry<Machine> commands[] =
+				{
+					{ IDM_MACHINE_POWER,       &Machine::OnCmdPower   },
+					{ IDM_MACHINE_RESET_SOFT,  &Machine::OnCmdReset   },
+					{ IDM_MACHINE_RESET_HARD,  &Machine::OnCmdReset   },
+					{ IDM_MACHINE_PAUSE,       &Machine::OnCmdPause   },
+					{ IDM_MACHINE_SYSTEM_AUTO, &Machine::OnCmdSystem  },
+					{ IDM_MACHINE_SYSTEM_NTSC, &Machine::OnCmdSystem  },
+					{ IDM_MACHINE_SYSTEM_PAL,  &Machine::OnCmdSystem  }
+				};
 
-			menu.Commands().Add( this, commands );
+				menu.Commands().Add( this, commands );
+			}
 
-			const GenericString type( cfg["machine region"] );
+			{
+				const GenericString type( cfg["machine"]["region"].Str() );
 
-			SetRegion
-			(
-				type == _T("ntsc") ? IDM_MACHINE_SYSTEM_NTSC :
-				type == _T("pal")  ? IDM_MACHINE_SYSTEM_PAL  :
-                                     IDM_MACHINE_SYSTEM_AUTO
-			);
+				SetRegion
+				(
+					type == L"ntsc" ? IDM_MACHINE_SYSTEM_NTSC :
+					type == L"pal"  ? IDM_MACHINE_SYSTEM_PAL  :
+                                      IDM_MACHINE_SYSTEM_AUTO
+				);
+			}
 
 			UpdateMenu();
 			UpdateMenuPowerState();
@@ -73,11 +77,11 @@ namespace Nestopia
 
 		void Machine::Save(Configuration& cfg) const
 		{
-			cfg["machine region"] =
+			cfg["machine"]["region"].Str() =
 			(
-				menu[IDM_MACHINE_SYSTEM_AUTO].Checked()       ? _T( "auto" ) :
-				Nes::Machine(emulator).Is(Nes::Machine::NTSC) ? _T( "ntsc" ) :
-																_T( "pal"  )
+				menu[IDM_MACHINE_SYSTEM_AUTO].Checked()       ? "auto" :
+				Nes::Machine(emulator).Is(Nes::Machine::NTSC) ? "ntsc" :
+																"pal"
 			);
 		}
 

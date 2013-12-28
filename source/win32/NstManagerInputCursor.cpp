@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -68,7 +68,11 @@ namespace Nestopia
 			bool autoHide = false;
 			bool usesRButton = false;
 
-			if (Nes::Input(emulator).IsControllerConnected( Nes::Input::ZAPPER ))
+			if
+			(
+				Nes::Input(emulator).IsControllerConnected( Nes::Input::ZAPPER ) ||
+				Nes::Input(emulator).IsControllerConnected( Nes::Input::BANDAIHYPERSHOT )
+			)
 			{
 				hCursor = gun;
 				usesRButton = true;

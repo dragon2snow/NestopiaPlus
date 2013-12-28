@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -27,6 +27,7 @@
 
 #pragma once
 
+#include <map>
 #include "NstWindowGeneric.hpp"
 
 namespace Nestopia
@@ -106,7 +107,7 @@ namespace Nestopia
 			private:
 
 				typedef Object::Delegate<void,const NMHDR&> Callback;
-				typedef Collection::Map<uint,Callback> Items;
+				typedef std::map<uint,Callback> Items;
 
 				const uint control;
 				Items items;
@@ -120,7 +121,7 @@ namespace Nestopia
 
 				Callback& operator () (uint id)
 				{
-					return items( id );
+					return items[id];
 				}
 
 			public:

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -111,13 +111,16 @@ namespace Nestopia
 			IDM_MACHINE_INPUT_EXP_PACHINKO              == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 38 &&
 			IDM_MACHINE_INPUT_EXP_PADDLE                == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 39 &&
 			IDM_MACHINE_INPUT_EXP_OEKAKIDSTABLET        == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 40 &&
-			IDM_MACHINE_INPUT_EXP_HYPERSHOT             == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 41 &&
-			IDM_MACHINE_INPUT_EXP_CRAZYCLIMBER          == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 42 &&
-			IDM_MACHINE_INPUT_EXP_MAHJONG               == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 43 &&
-			IDM_MACHINE_INPUT_EXP_EXCITINGBOXING        == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 44 &&
-			IDM_MACHINE_INPUT_EXP_TOPRIDER              == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 45 &&
-			IDM_MACHINE_INPUT_EXP_POKKUNMOGURAA         == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 46 &&
-			IDM_MACHINE_INPUT_EXP_PARTYTAP              == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 47
+			IDM_MACHINE_INPUT_EXP_KONAMIHYPERSHOT       == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 41 &&
+			IDM_MACHINE_INPUT_EXP_BANDAIHYPERSHOT       == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 42 &&
+			IDM_MACHINE_INPUT_EXP_CRAZYCLIMBER          == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 43 &&
+			IDM_MACHINE_INPUT_EXP_MAHJONG               == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 44 &&
+			IDM_MACHINE_INPUT_EXP_EXCITINGBOXING        == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 45 &&
+			IDM_MACHINE_INPUT_EXP_TOPRIDER              == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 46 &&
+			IDM_MACHINE_INPUT_EXP_POKKUNMOGURAA         == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 47 &&
+			IDM_MACHINE_INPUT_EXP_PARTYTAP              == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 48 &&
+			IDM_MACHINE_INPUT_EXP_TURBOFILE             == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 49 &&
+			IDM_MACHINE_INPUT_EXP_BARCODEWORLD          == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 50
 		);
 
 		const Input::Settings::Type Input::Settings::types[OFFSET_COUNT] =
@@ -147,229 +150,227 @@ namespace Nestopia
 
 		const Input::Settings::Mapping Input::Settings::map[NUM_KEYS] =
 		{
-			{ PAD1_KEYS + PAD_KEY_LEFT,       DIK_LEFT,   IDS_INPUT_PAD_KEY_LEFT,       "input pad1 left"       },
-			{ PAD1_KEYS + PAD_KEY_UP,         DIK_UP,     IDS_INPUT_PAD_KEY_UP,         "input pad1 up"         },
-			{ PAD1_KEYS + PAD_KEY_RIGHT,      DIK_RIGHT,  IDS_INPUT_PAD_KEY_RIGHT,      "input pad1 right"      },
-			{ PAD1_KEYS + PAD_KEY_DOWN,       DIK_DOWN,   IDS_INPUT_PAD_KEY_DOWN,       "input pad1 down"       },
-			{ PAD1_KEYS + PAD_KEY_SELECT,     DIK_RSHIFT, IDS_INPUT_PAD_KEY_SELECT,     "input pad1 select"     },
-			{ PAD1_KEYS + PAD_KEY_START,      DIK_RETURN, IDS_INPUT_PAD_KEY_START,      "input pad1 start"      },
-			{ PAD1_KEYS + PAD_KEY_B,          DIK_COMMA,  IDS_INPUT_PAD_KEY_B,          "input pad1 b"          },
-			{ PAD1_KEYS + PAD_KEY_A,          DIK_PERIOD, IDS_INPUT_PAD_KEY_A,          "input pad1 a"          },
-			{ PAD1_KEYS + PAD_KEY_AUTOFIRE_B, DIK_K,      IDS_INPUT_PAD_KEY_AUTOFIRE_B, "input pad1 autofire b" },
-			{ PAD1_KEYS + PAD_KEY_AUTOFIRE_A, DIK_L,      IDS_INPUT_PAD_KEY_AUTOFIRE_A, "input pad1 autofire a" },
-			{ PAD1_KEYS + PAD_KEY_MIC,        NO_KEY,     IDS_INPUT_PAD_KEY_MIC,        "input pad1 mic"        },
+			{ PAD1_KEYS + PAD_KEY_LEFT,       DIK_LEFT,   IDS_INPUT_PAD_KEY_LEFT,       "pad-1", "left"        },
+			{ PAD1_KEYS + PAD_KEY_UP,         DIK_UP,     IDS_INPUT_PAD_KEY_UP,         "pad-1", "up"          },
+			{ PAD1_KEYS + PAD_KEY_RIGHT,      DIK_RIGHT,  IDS_INPUT_PAD_KEY_RIGHT,      "pad-1", "right"       },
+			{ PAD1_KEYS + PAD_KEY_DOWN,       DIK_DOWN,   IDS_INPUT_PAD_KEY_DOWN,       "pad-1", "down"        },
+			{ PAD1_KEYS + PAD_KEY_SELECT,     DIK_RSHIFT, IDS_INPUT_PAD_KEY_SELECT,     "pad-1", "select"      },
+			{ PAD1_KEYS + PAD_KEY_START,      DIK_RETURN, IDS_INPUT_PAD_KEY_START,      "pad-1", "start"       },
+			{ PAD1_KEYS + PAD_KEY_B,          DIK_COMMA,  IDS_INPUT_PAD_KEY_B,          "pad-1", "b"           },
+			{ PAD1_KEYS + PAD_KEY_A,          DIK_PERIOD, IDS_INPUT_PAD_KEY_A,          "pad-1", "a"           },
+			{ PAD1_KEYS + PAD_KEY_AUTOFIRE_B, DIK_K,      IDS_INPUT_PAD_KEY_AUTOFIRE_B, "pad-1", "auto-fire-b" },
+			{ PAD1_KEYS + PAD_KEY_AUTOFIRE_A, DIK_L,      IDS_INPUT_PAD_KEY_AUTOFIRE_A, "pad-1", "auto-fire-a" },
+			{ PAD1_KEYS + PAD_KEY_MIC,        NO_KEY,     IDS_INPUT_PAD_KEY_MIC,        "pad-1", "mic"         },
 
-			{ PAD2_KEYS + PAD_KEY_LEFT,       DIK_C, IDS_INPUT_PAD_KEY_LEFT,       "input pad2 left"       },
-			{ PAD2_KEYS + PAD_KEY_UP,         DIK_F, IDS_INPUT_PAD_KEY_UP,         "input pad2 up"         },
-			{ PAD2_KEYS + PAD_KEY_RIGHT,      DIK_B, IDS_INPUT_PAD_KEY_RIGHT,      "input pad2 right"      },
-			{ PAD2_KEYS + PAD_KEY_DOWN,       DIK_V, IDS_INPUT_PAD_KEY_DOWN,       "input pad2 down"       },
-			{ PAD2_KEYS + PAD_KEY_SELECT,     DIK_A, IDS_INPUT_PAD_KEY_SELECT,     "input pad2 select"     },
-			{ PAD2_KEYS + PAD_KEY_START,      DIK_S, IDS_INPUT_PAD_KEY_START,      "input pad2 start"      },
-			{ PAD2_KEYS + PAD_KEY_B,          DIK_Z, IDS_INPUT_PAD_KEY_B,          "input pad2 b"          },
-			{ PAD2_KEYS + PAD_KEY_A,          DIK_X, IDS_INPUT_PAD_KEY_A,          "input pad2 a"          },
-			{ PAD2_KEYS + PAD_KEY_AUTOFIRE_B, DIK_Q, IDS_INPUT_PAD_KEY_AUTOFIRE_B, "input pad2 autofire b" },
-			{ PAD2_KEYS + PAD_KEY_AUTOFIRE_A, DIK_W, IDS_INPUT_PAD_KEY_AUTOFIRE_A, "input pad2 autofire a" },
-			{ PAD2_KEYS + PAD_KEY_MIC,        DIK_M, IDS_INPUT_PAD_KEY_MIC,        "input pad2 mic"        },
+			{ PAD2_KEYS + PAD_KEY_LEFT,       DIK_C, IDS_INPUT_PAD_KEY_LEFT,       "pad-2", "left"        },
+			{ PAD2_KEYS + PAD_KEY_UP,         DIK_F, IDS_INPUT_PAD_KEY_UP,         "pad-2", "up"          },
+			{ PAD2_KEYS + PAD_KEY_RIGHT,      DIK_B, IDS_INPUT_PAD_KEY_RIGHT,      "pad-2", "right"       },
+			{ PAD2_KEYS + PAD_KEY_DOWN,       DIK_V, IDS_INPUT_PAD_KEY_DOWN,       "pad-2", "down"        },
+			{ PAD2_KEYS + PAD_KEY_SELECT,     DIK_A, IDS_INPUT_PAD_KEY_SELECT,     "pad-2", "select"      },
+			{ PAD2_KEYS + PAD_KEY_START,      DIK_S, IDS_INPUT_PAD_KEY_START,      "pad-2", "start"       },
+			{ PAD2_KEYS + PAD_KEY_B,          DIK_Z, IDS_INPUT_PAD_KEY_B,          "pad-2", "b"           },
+			{ PAD2_KEYS + PAD_KEY_A,          DIK_X, IDS_INPUT_PAD_KEY_A,          "pad-2", "a"           },
+			{ PAD2_KEYS + PAD_KEY_AUTOFIRE_B, DIK_Q, IDS_INPUT_PAD_KEY_AUTOFIRE_B, "pad-2", "auto-fire-b" },
+			{ PAD2_KEYS + PAD_KEY_AUTOFIRE_A, DIK_W, IDS_INPUT_PAD_KEY_AUTOFIRE_A, "pad-2", "auto-fire-a" },
+			{ PAD2_KEYS + PAD_KEY_MIC,        DIK_M, IDS_INPUT_PAD_KEY_MIC,        "pad-2", "mic"         },
 
-			{ PAD3_KEYS + PAD_KEY_LEFT,       NO_KEY, IDS_INPUT_PAD_KEY_LEFT,       "input pad3 left"       },
-			{ PAD3_KEYS + PAD_KEY_UP,         NO_KEY, IDS_INPUT_PAD_KEY_UP,         "input pad3 up"         },
-			{ PAD3_KEYS + PAD_KEY_RIGHT,      NO_KEY, IDS_INPUT_PAD_KEY_RIGHT,      "input pad3 right"      },
-			{ PAD3_KEYS + PAD_KEY_DOWN,       NO_KEY, IDS_INPUT_PAD_KEY_DOWN,       "input pad3 down"       },
-			{ PAD3_KEYS + PAD_KEY_SELECT,     NO_KEY, IDS_INPUT_PAD_KEY_SELECT,     "input pad3 select"     },
-			{ PAD3_KEYS + PAD_KEY_START,      NO_KEY, IDS_INPUT_PAD_KEY_START,      "input pad3 start"      },
-			{ PAD3_KEYS + PAD_KEY_B,          NO_KEY, IDS_INPUT_PAD_KEY_B,          "input pad3 b"          },
-			{ PAD3_KEYS + PAD_KEY_A,          NO_KEY, IDS_INPUT_PAD_KEY_A,          "input pad3 a"          },
-			{ PAD3_KEYS + PAD_KEY_AUTOFIRE_B, NO_KEY, IDS_INPUT_PAD_KEY_AUTOFIRE_B, "input pad3 autofire b" },
-			{ PAD3_KEYS + PAD_KEY_AUTOFIRE_A, NO_KEY, IDS_INPUT_PAD_KEY_AUTOFIRE_A, "input pad3 autofire a" },
-			{ PAD3_KEYS + PAD_KEY_MIC,        NO_KEY, IDS_INPUT_PAD_KEY_MIC,        "input pad3 mic"        },
+			{ PAD3_KEYS + PAD_KEY_LEFT,       NO_KEY, IDS_INPUT_PAD_KEY_LEFT,       "pad-3", "left"        },
+			{ PAD3_KEYS + PAD_KEY_UP,         NO_KEY, IDS_INPUT_PAD_KEY_UP,         "pad-3", "up"          },
+			{ PAD3_KEYS + PAD_KEY_RIGHT,      NO_KEY, IDS_INPUT_PAD_KEY_RIGHT,      "pad-3", "right"       },
+			{ PAD3_KEYS + PAD_KEY_DOWN,       NO_KEY, IDS_INPUT_PAD_KEY_DOWN,       "pad-3", "down"        },
+			{ PAD3_KEYS + PAD_KEY_SELECT,     NO_KEY, IDS_INPUT_PAD_KEY_SELECT,     "pad-3", "select"      },
+			{ PAD3_KEYS + PAD_KEY_START,      NO_KEY, IDS_INPUT_PAD_KEY_START,      "pad-3", "start"       },
+			{ PAD3_KEYS + PAD_KEY_B,          NO_KEY, IDS_INPUT_PAD_KEY_B,          "pad-3", "b"           },
+			{ PAD3_KEYS + PAD_KEY_A,          NO_KEY, IDS_INPUT_PAD_KEY_A,          "pad-3", "a"           },
+			{ PAD3_KEYS + PAD_KEY_AUTOFIRE_B, NO_KEY, IDS_INPUT_PAD_KEY_AUTOFIRE_B, "pad-3", "auto-fire-b" },
+			{ PAD3_KEYS + PAD_KEY_AUTOFIRE_A, NO_KEY, IDS_INPUT_PAD_KEY_AUTOFIRE_A, "pad-3", "auto-fire-a" },
+			{ PAD3_KEYS + PAD_KEY_MIC,        NO_KEY, IDS_INPUT_PAD_KEY_MIC,        "pad-3", "mic"         },
 
-			{ PAD4_KEYS + PAD_KEY_LEFT,       NO_KEY, IDS_INPUT_PAD_KEY_LEFT,       "input pad4 left"       },
-			{ PAD4_KEYS + PAD_KEY_UP,         NO_KEY, IDS_INPUT_PAD_KEY_UP,         "input pad4 up"         },
-			{ PAD4_KEYS + PAD_KEY_RIGHT,      NO_KEY, IDS_INPUT_PAD_KEY_RIGHT,      "input pad4 right"      },
-			{ PAD4_KEYS + PAD_KEY_DOWN,       NO_KEY, IDS_INPUT_PAD_KEY_DOWN,       "input pad4 down"       },
-			{ PAD4_KEYS + PAD_KEY_SELECT,     NO_KEY, IDS_INPUT_PAD_KEY_SELECT,     "input pad4 select"     },
-			{ PAD4_KEYS + PAD_KEY_START,      NO_KEY, IDS_INPUT_PAD_KEY_START,      "input pad4 start"      },
-			{ PAD4_KEYS + PAD_KEY_B,          NO_KEY, IDS_INPUT_PAD_KEY_B,          "input pad4 b"          },
-			{ PAD4_KEYS + PAD_KEY_A,          NO_KEY, IDS_INPUT_PAD_KEY_A,          "input pad4 a"          },
-			{ PAD4_KEYS + PAD_KEY_AUTOFIRE_B, NO_KEY, IDS_INPUT_PAD_KEY_AUTOFIRE_B, "input pad4 autofire b" },
-			{ PAD4_KEYS + PAD_KEY_AUTOFIRE_A, NO_KEY, IDS_INPUT_PAD_KEY_AUTOFIRE_A, "input pad4 autofire a" },
-			{ PAD4_KEYS + PAD_KEY_MIC,        NO_KEY, IDS_INPUT_PAD_KEY_MIC,        "input pad4 mic"        },
+			{ PAD4_KEYS + PAD_KEY_LEFT,       NO_KEY, IDS_INPUT_PAD_KEY_LEFT,       "pad-4", "left"        },
+			{ PAD4_KEYS + PAD_KEY_UP,         NO_KEY, IDS_INPUT_PAD_KEY_UP,         "pad-4", "up"          },
+			{ PAD4_KEYS + PAD_KEY_RIGHT,      NO_KEY, IDS_INPUT_PAD_KEY_RIGHT,      "pad-4", "right"       },
+			{ PAD4_KEYS + PAD_KEY_DOWN,       NO_KEY, IDS_INPUT_PAD_KEY_DOWN,       "pad-4", "down"        },
+			{ PAD4_KEYS + PAD_KEY_SELECT,     NO_KEY, IDS_INPUT_PAD_KEY_SELECT,     "pad-4", "select"      },
+			{ PAD4_KEYS + PAD_KEY_START,      NO_KEY, IDS_INPUT_PAD_KEY_START,      "pad-4", "start"       },
+			{ PAD4_KEYS + PAD_KEY_B,          NO_KEY, IDS_INPUT_PAD_KEY_B,          "pad-4", "b"           },
+			{ PAD4_KEYS + PAD_KEY_A,          NO_KEY, IDS_INPUT_PAD_KEY_A,          "pad-4", "a"           },
+			{ PAD4_KEYS + PAD_KEY_AUTOFIRE_B, NO_KEY, IDS_INPUT_PAD_KEY_AUTOFIRE_B, "pad-4", "auto-fire-b" },
+			{ PAD4_KEYS + PAD_KEY_AUTOFIRE_A, NO_KEY, IDS_INPUT_PAD_KEY_AUTOFIRE_A, "pad-4", "auto-fire-a" },
+			{ PAD4_KEYS + PAD_KEY_MIC,        NO_KEY, IDS_INPUT_PAD_KEY_MIC,        "pad-4", "mic"         },
 
-			{ POWERPAD_KEYS + POWERPAD_KEY_SIDE_A_1,  DIK_Q, IDS_INPUT_POWERPAD_KEY_SIDE_A_1,  "input powerpad side a 1"  },
-			{ POWERPAD_KEYS + POWERPAD_KEY_SIDE_A_2,  DIK_W, IDS_INPUT_POWERPAD_KEY_SIDE_A_2,  "input powerpad side a 2"  },
-			{ POWERPAD_KEYS + POWERPAD_KEY_SIDE_A_3,  DIK_E, IDS_INPUT_POWERPAD_KEY_SIDE_A_3,  "input powerpad side a 3"  },
-			{ POWERPAD_KEYS + POWERPAD_KEY_SIDE_A_4,  DIK_R, IDS_INPUT_POWERPAD_KEY_SIDE_A_4,  "input powerpad side a 4"  },
-			{ POWERPAD_KEYS + POWERPAD_KEY_SIDE_A_5,  DIK_A, IDS_INPUT_POWERPAD_KEY_SIDE_A_5,  "input powerpad side a 5"  },
-			{ POWERPAD_KEYS + POWERPAD_KEY_SIDE_A_6,  DIK_S, IDS_INPUT_POWERPAD_KEY_SIDE_A_6,  "input powerpad side a 6"  },
-			{ POWERPAD_KEYS + POWERPAD_KEY_SIDE_A_7,  DIK_D, IDS_INPUT_POWERPAD_KEY_SIDE_A_7,  "input powerpad side a 7"  },
-			{ POWERPAD_KEYS + POWERPAD_KEY_SIDE_A_8,  DIK_F, IDS_INPUT_POWERPAD_KEY_SIDE_A_8,  "input powerpad side a 8"  },
-			{ POWERPAD_KEYS + POWERPAD_KEY_SIDE_A_9,  DIK_Z, IDS_INPUT_POWERPAD_KEY_SIDE_A_9,  "input powerpad side a 9"  },
-			{ POWERPAD_KEYS + POWERPAD_KEY_SIDE_A_10, DIK_X, IDS_INPUT_POWERPAD_KEY_SIDE_A_10, "input powerpad side a 10" },
-			{ POWERPAD_KEYS + POWERPAD_KEY_SIDE_A_11, DIK_C, IDS_INPUT_POWERPAD_KEY_SIDE_A_11, "input powerpad side a 11" },
-			{ POWERPAD_KEYS + POWERPAD_KEY_SIDE_A_12, DIK_V, IDS_INPUT_POWERPAD_KEY_SIDE_A_12, "input powerpad side a 12" },
-			{ POWERPAD_KEYS + POWERPAD_KEY_SIDE_B_3,  DIK_Y, IDS_INPUT_POWERPAD_KEY_SIDE_B_3,  "input powerpad side b 3"  },
-			{ POWERPAD_KEYS + POWERPAD_KEY_SIDE_B_2,  DIK_U, IDS_INPUT_POWERPAD_KEY_SIDE_B_2,  "input powerpad side b 2"  },
-			{ POWERPAD_KEYS + POWERPAD_KEY_SIDE_B_8,  DIK_G, IDS_INPUT_POWERPAD_KEY_SIDE_B_8,  "input powerpad side b 8"  },
-			{ POWERPAD_KEYS + POWERPAD_KEY_SIDE_B_7,  DIK_H, IDS_INPUT_POWERPAD_KEY_SIDE_B_7,  "input powerpad side b 7"  },
-			{ POWERPAD_KEYS + POWERPAD_KEY_SIDE_B_6,  DIK_J, IDS_INPUT_POWERPAD_KEY_SIDE_B_6,  "input powerpad side b 6"  },
-			{ POWERPAD_KEYS + POWERPAD_KEY_SIDE_B_5,  DIK_K, IDS_INPUT_POWERPAD_KEY_SIDE_B_5,  "input powerpad side b 5"  },
-			{ POWERPAD_KEYS + POWERPAD_KEY_SIDE_B_11, DIK_N, IDS_INPUT_POWERPAD_KEY_SIDE_B_11, "input powerpad side b 11" },
-			{ POWERPAD_KEYS + POWERPAD_KEY_SIDE_B_10, DIK_M, IDS_INPUT_POWERPAD_KEY_SIDE_B_10, "input powerpad side b 10" },
+			{ POWERPAD_KEYS + POWERPAD_KEY_SIDE_A_1,  DIK_Q, IDS_INPUT_POWERPAD_KEY_SIDE_A_1,  "powerpad", "side-a-1"  },
+			{ POWERPAD_KEYS + POWERPAD_KEY_SIDE_A_2,  DIK_W, IDS_INPUT_POWERPAD_KEY_SIDE_A_2,  "powerpad", "side-a-2"  },
+			{ POWERPAD_KEYS + POWERPAD_KEY_SIDE_A_3,  DIK_E, IDS_INPUT_POWERPAD_KEY_SIDE_A_3,  "powerpad", "side-a-3"  },
+			{ POWERPAD_KEYS + POWERPAD_KEY_SIDE_A_4,  DIK_R, IDS_INPUT_POWERPAD_KEY_SIDE_A_4,  "powerpad", "side-a-4"  },
+			{ POWERPAD_KEYS + POWERPAD_KEY_SIDE_A_5,  DIK_A, IDS_INPUT_POWERPAD_KEY_SIDE_A_5,  "powerpad", "side-a-5"  },
+			{ POWERPAD_KEYS + POWERPAD_KEY_SIDE_A_6,  DIK_S, IDS_INPUT_POWERPAD_KEY_SIDE_A_6,  "powerpad", "side-a-6"  },
+			{ POWERPAD_KEYS + POWERPAD_KEY_SIDE_A_7,  DIK_D, IDS_INPUT_POWERPAD_KEY_SIDE_A_7,  "powerpad", "side-a-7"  },
+			{ POWERPAD_KEYS + POWERPAD_KEY_SIDE_A_8,  DIK_F, IDS_INPUT_POWERPAD_KEY_SIDE_A_8,  "powerpad", "side-a-8"  },
+			{ POWERPAD_KEYS + POWERPAD_KEY_SIDE_A_9,  DIK_Z, IDS_INPUT_POWERPAD_KEY_SIDE_A_9,  "powerpad", "side-a-9"  },
+			{ POWERPAD_KEYS + POWERPAD_KEY_SIDE_A_10, DIK_X, IDS_INPUT_POWERPAD_KEY_SIDE_A_10, "powerpad", "side-a-10" },
+			{ POWERPAD_KEYS + POWERPAD_KEY_SIDE_A_11, DIK_C, IDS_INPUT_POWERPAD_KEY_SIDE_A_11, "powerpad", "side-a-11" },
+			{ POWERPAD_KEYS + POWERPAD_KEY_SIDE_A_12, DIK_V, IDS_INPUT_POWERPAD_KEY_SIDE_A_12, "powerpad", "side-a-12" },
+			{ POWERPAD_KEYS + POWERPAD_KEY_SIDE_B_3,  DIK_Y, IDS_INPUT_POWERPAD_KEY_SIDE_B_3,  "powerpad", "side-b-3"  },
+			{ POWERPAD_KEYS + POWERPAD_KEY_SIDE_B_2,  DIK_U, IDS_INPUT_POWERPAD_KEY_SIDE_B_2,  "powerpad", "side-b-2"  },
+			{ POWERPAD_KEYS + POWERPAD_KEY_SIDE_B_8,  DIK_G, IDS_INPUT_POWERPAD_KEY_SIDE_B_8,  "powerpad", "side-b-8"  },
+			{ POWERPAD_KEYS + POWERPAD_KEY_SIDE_B_7,  DIK_H, IDS_INPUT_POWERPAD_KEY_SIDE_B_7,  "powerpad", "side-b-7"  },
+			{ POWERPAD_KEYS + POWERPAD_KEY_SIDE_B_6,  DIK_J, IDS_INPUT_POWERPAD_KEY_SIDE_B_6,  "powerpad", "side-b-6"  },
+			{ POWERPAD_KEYS + POWERPAD_KEY_SIDE_B_5,  DIK_K, IDS_INPUT_POWERPAD_KEY_SIDE_B_5,  "powerpad", "side-b-5"  },
+			{ POWERPAD_KEYS + POWERPAD_KEY_SIDE_B_11, DIK_N, IDS_INPUT_POWERPAD_KEY_SIDE_B_11, "powerpad", "side-b-11" },
+			{ POWERPAD_KEYS + POWERPAD_KEY_SIDE_B_10, DIK_M, IDS_INPUT_POWERPAD_KEY_SIDE_B_10, "powerpad", "side-b-10" },
 
-			{ POWERGLOVE_KEYS + POWERGLOVE_KEY_SELECT,     DIK_RSHIFT, IDS_INPUT_POWERGLOVE_KEY_SELECT,     "input powerglove select"     },
-			{ POWERGLOVE_KEYS + POWERGLOVE_KEY_START,      DIK_RETURN, IDS_INPUT_POWERGLOVE_KEY_START,      "input powerglove start"      },
-			{ POWERGLOVE_KEYS + POWERGLOVE_KEY_MOVE_IN,    DIK_A,      IDS_INPUT_POWERGLOVE_KEY_MOVE_IN,    "input powerglove move in"    },
-			{ POWERGLOVE_KEYS + POWERGLOVE_KEY_MOVE_OUT,   DIK_Z,      IDS_INPUT_POWERGLOVE_KEY_MOVE_OUT,   "input powerglove move out"   },
-			{ POWERGLOVE_KEYS + POWERGLOVE_KEY_ROLL_LEFT,  DIK_X,      IDS_INPUT_POWERGLOVE_KEY_ROLL_LEFT,  "input powerglove roll left"  },
-			{ POWERGLOVE_KEYS + POWERGLOVE_KEY_ROLL_RIGHT, DIK_C,      IDS_INPUT_POWERGLOVE_KEY_ROLL_RIGHT, "input powerglove roll right" },
+			{ POWERGLOVE_KEYS + POWERGLOVE_KEY_SELECT,     DIK_RSHIFT, IDS_INPUT_POWERGLOVE_KEY_SELECT,     "powerglove", "select"     },
+			{ POWERGLOVE_KEYS + POWERGLOVE_KEY_START,      DIK_RETURN, IDS_INPUT_POWERGLOVE_KEY_START,      "powerglove", "start"      },
+			{ POWERGLOVE_KEYS + POWERGLOVE_KEY_MOVE_IN,    DIK_A,      IDS_INPUT_POWERGLOVE_KEY_MOVE_IN,    "powerglove", "move-in"    },
+			{ POWERGLOVE_KEYS + POWERGLOVE_KEY_MOVE_OUT,   DIK_Z,      IDS_INPUT_POWERGLOVE_KEY_MOVE_OUT,   "powerglove", "move-out"   },
+			{ POWERGLOVE_KEYS + POWERGLOVE_KEY_ROLL_LEFT,  DIK_X,      IDS_INPUT_POWERGLOVE_KEY_ROLL_LEFT,  "powerglove", "roll-left"  },
+			{ POWERGLOVE_KEYS + POWERGLOVE_KEY_ROLL_RIGHT, DIK_C,      IDS_INPUT_POWERGLOVE_KEY_ROLL_RIGHT, "powerglove", "roll-right" },
 
-			{ HORITRACK_KEYS + HORITRACK_KEY_LEFT,        DIK_LEFT,   IDS_INPUT_HORITRACK_KEY_LEFT,        "input horitrack left"        },
-			{ HORITRACK_KEYS + HORITRACK_KEY_UP,          DIK_UP,     IDS_INPUT_HORITRACK_KEY_UP,          "input horitrack up"          },
-			{ HORITRACK_KEYS + HORITRACK_KEY_RIGHT,       DIK_RIGHT,  IDS_INPUT_HORITRACK_KEY_RIGHT,       "input horitrack right"       },
-			{ HORITRACK_KEYS + HORITRACK_KEY_DOWN,        DIK_DOWN,   IDS_INPUT_HORITRACK_KEY_DOWN,        "input horitrack down"        },
-			{ HORITRACK_KEYS + HORITRACK_KEY_SELECT,      DIK_RSHIFT, IDS_INPUT_HORITRACK_KEY_SELECT,      "input horitrack select"      },
-			{ HORITRACK_KEYS + HORITRACK_KEY_START,       DIK_RETURN, IDS_INPUT_HORITRACK_KEY_START,       "input horitrack start"       },
-			{ HORITRACK_KEYS + HORITRACK_KEY_B,           DIK_COMMA,  IDS_INPUT_HORITRACK_KEY_B,           "input horitrack b"           },
-			{ HORITRACK_KEYS + HORITRACK_KEY_A,           DIK_PERIOD, IDS_INPUT_HORITRACK_KEY_A,           "input horitrack a"           },
-			{ HORITRACK_KEYS + HORITRACK_KEY_SPEED,       DIK_S,      IDS_INPUT_HORITRACK_KEY_SPEED,       "input horitrack speed"       },
-			{ HORITRACK_KEYS + HORITRACK_KEY_ORIENTATION, DIK_D,      IDS_INPUT_HORITRACK_KEY_ORIENTATION, "input horitrack orientation" },
+			{ HORITRACK_KEYS + HORITRACK_KEY_LEFT,        DIK_LEFT,   IDS_INPUT_HORITRACK_KEY_LEFT,        "horitrack", "left"        },
+			{ HORITRACK_KEYS + HORITRACK_KEY_UP,          DIK_UP,     IDS_INPUT_HORITRACK_KEY_UP,          "horitrack", "up"          },
+			{ HORITRACK_KEYS + HORITRACK_KEY_RIGHT,       DIK_RIGHT,  IDS_INPUT_HORITRACK_KEY_RIGHT,       "horitrack", "right"       },
+			{ HORITRACK_KEYS + HORITRACK_KEY_DOWN,        DIK_DOWN,   IDS_INPUT_HORITRACK_KEY_DOWN,        "horitrack", "down"        },
+			{ HORITRACK_KEYS + HORITRACK_KEY_SELECT,      DIK_RSHIFT, IDS_INPUT_HORITRACK_KEY_SELECT,      "horitrack", "select"      },
+			{ HORITRACK_KEYS + HORITRACK_KEY_START,       DIK_RETURN, IDS_INPUT_HORITRACK_KEY_START,       "horitrack", "start"       },
+			{ HORITRACK_KEYS + HORITRACK_KEY_B,           DIK_COMMA,  IDS_INPUT_HORITRACK_KEY_B,           "horitrack", "b"           },
+			{ HORITRACK_KEYS + HORITRACK_KEY_A,           DIK_PERIOD, IDS_INPUT_HORITRACK_KEY_A,           "horitrack", "a"           },
+			{ HORITRACK_KEYS + HORITRACK_KEY_SPEED,       DIK_S,      IDS_INPUT_HORITRACK_KEY_SPEED,       "horitrack", "speed"       },
+			{ HORITRACK_KEYS + HORITRACK_KEY_ORIENTATION, DIK_D,      IDS_INPUT_HORITRACK_KEY_ORIENTATION, "horitrack", "orientation" },
 
-			{ PACHINKO_KEYS + PACHINKO_KEY_LEFT,          DIK_LEFT,   IDS_INPUT_PACHINKO_KEY_LEFT,   "input pachinko left"   },
-			{ PACHINKO_KEYS + PACHINKO_KEY_UP,            DIK_UP,     IDS_INPUT_PACHINKO_KEY_UP,     "input pachinko up"     },
-			{ PACHINKO_KEYS + PACHINKO_KEY_RIGHT,         DIK_RIGHT,  IDS_INPUT_PACHINKO_KEY_RIGHT,  "input pachinko right"  },
-			{ PACHINKO_KEYS + PACHINKO_KEY_DOWN,          DIK_DOWN,   IDS_INPUT_PACHINKO_KEY_DOWN,   "input pachinko down"   },
-			{ PACHINKO_KEYS + PACHINKO_KEY_SELECT,        DIK_RSHIFT, IDS_INPUT_PACHINKO_KEY_SELECT, "input pachinko select" },
-			{ PACHINKO_KEYS + PACHINKO_KEY_START,         DIK_RETURN, IDS_INPUT_PACHINKO_KEY_START,  "input pachinko start"  },
-			{ PACHINKO_KEYS + PACHINKO_KEY_B,             DIK_COMMA,  IDS_INPUT_PACHINKO_KEY_B,      "input pachinko b"      },
-			{ PACHINKO_KEYS + PACHINKO_KEY_A,             DIK_PERIOD, IDS_INPUT_PACHINKO_KEY_A,      "input pachinko a"      },
+			{ PACHINKO_KEYS + PACHINKO_KEY_LEFT,          DIK_LEFT,   IDS_INPUT_PACHINKO_KEY_LEFT,   "pachinko", "left"   },
+			{ PACHINKO_KEYS + PACHINKO_KEY_UP,            DIK_UP,     IDS_INPUT_PACHINKO_KEY_UP,     "pachinko", "up"     },
+			{ PACHINKO_KEYS + PACHINKO_KEY_RIGHT,         DIK_RIGHT,  IDS_INPUT_PACHINKO_KEY_RIGHT,  "pachinko", "right"  },
+			{ PACHINKO_KEYS + PACHINKO_KEY_DOWN,          DIK_DOWN,   IDS_INPUT_PACHINKO_KEY_DOWN,   "pachinko", "down"   },
+			{ PACHINKO_KEYS + PACHINKO_KEY_SELECT,        DIK_RSHIFT, IDS_INPUT_PACHINKO_KEY_SELECT, "pachinko", "select" },
+			{ PACHINKO_KEYS + PACHINKO_KEY_START,         DIK_RETURN, IDS_INPUT_PACHINKO_KEY_START,  "pachinko", "start"  },
+			{ PACHINKO_KEYS + PACHINKO_KEY_B,             DIK_COMMA,  IDS_INPUT_PACHINKO_KEY_B,      "pachinko", "b"      },
+			{ PACHINKO_KEYS + PACHINKO_KEY_A,             DIK_PERIOD, IDS_INPUT_PACHINKO_KEY_A,      "pachinko", "a"      },
 
-			{ CRAZYCLIMBER_KEYS + CRAZYCLIMBER_KEY_LEFT_UP,     DIK_W, IDS_INPUT_CRAZYCLIMBER_KEY_LEFT_UP,     "input crazyclimber left up"     },
-			{ CRAZYCLIMBER_KEYS + CRAZYCLIMBER_KEY_LEFT_RIGHT,  DIK_D, IDS_INPUT_CRAZYCLIMBER_KEY_LEFT_RIGHT,  "input crazyclimber left right"  },
-			{ CRAZYCLIMBER_KEYS + CRAZYCLIMBER_KEY_LEFT_DOWN,   DIK_S, IDS_INPUT_CRAZYCLIMBER_KEY_LEFT_DOWN,   "input crazyclimber left down"   },
-			{ CRAZYCLIMBER_KEYS + CRAZYCLIMBER_KEY_LEFT_LEFT,   DIK_A, IDS_INPUT_CRAZYCLIMBER_KEY_LEFT_LEFT,   "input crazyclimber left left"   },
-			{ CRAZYCLIMBER_KEYS + CRAZYCLIMBER_KEY_RIGHT_UP,    DIK_Y, IDS_INPUT_CRAZYCLIMBER_KEY_RIGHT_UP,    "input crazyclimber right up"    },
-			{ CRAZYCLIMBER_KEYS + CRAZYCLIMBER_KEY_RIGHT_RIGHT, DIK_J, IDS_INPUT_CRAZYCLIMBER_KEY_RIGHT_RIGHT, "input crazyclimber right right" },
-			{ CRAZYCLIMBER_KEYS + CRAZYCLIMBER_KEY_RIGHT_DOWN,  DIK_H, IDS_INPUT_CRAZYCLIMBER_KEY_RIGHT_DOWN,  "input crazyclimber right down"  },
-			{ CRAZYCLIMBER_KEYS + CRAZYCLIMBER_KEY_RIGHT_LEFT,  DIK_G, IDS_INPUT_CRAZYCLIMBER_KEY_RIGHT_LEFT,  "input crazyclimber right left"  },
+			{ CRAZYCLIMBER_KEYS + CRAZYCLIMBER_KEY_LEFT_UP,     DIK_W, IDS_INPUT_CRAZYCLIMBER_KEY_LEFT_UP,     "crazyclimber", "left-up"     },
+			{ CRAZYCLIMBER_KEYS + CRAZYCLIMBER_KEY_LEFT_RIGHT,  DIK_D, IDS_INPUT_CRAZYCLIMBER_KEY_LEFT_RIGHT,  "crazyclimber", "left-right"  },
+			{ CRAZYCLIMBER_KEYS + CRAZYCLIMBER_KEY_LEFT_DOWN,   DIK_S, IDS_INPUT_CRAZYCLIMBER_KEY_LEFT_DOWN,   "crazyclimber", "left-down"   },
+			{ CRAZYCLIMBER_KEYS + CRAZYCLIMBER_KEY_LEFT_LEFT,   DIK_A, IDS_INPUT_CRAZYCLIMBER_KEY_LEFT_LEFT,   "crazyclimber", "left-left"   },
+			{ CRAZYCLIMBER_KEYS + CRAZYCLIMBER_KEY_RIGHT_UP,    DIK_Y, IDS_INPUT_CRAZYCLIMBER_KEY_RIGHT_UP,    "crazyclimber", "right-up"    },
+			{ CRAZYCLIMBER_KEYS + CRAZYCLIMBER_KEY_RIGHT_RIGHT, DIK_J, IDS_INPUT_CRAZYCLIMBER_KEY_RIGHT_RIGHT, "crazyclimber", "right-right" },
+			{ CRAZYCLIMBER_KEYS + CRAZYCLIMBER_KEY_RIGHT_DOWN,  DIK_H, IDS_INPUT_CRAZYCLIMBER_KEY_RIGHT_DOWN,  "crazyclimber", "right-down"  },
+			{ CRAZYCLIMBER_KEYS + CRAZYCLIMBER_KEY_RIGHT_LEFT,  DIK_G, IDS_INPUT_CRAZYCLIMBER_KEY_RIGHT_LEFT,  "crazyclimber", "right-left"  },
 
-			{ MAHJONG_KEYS + MAHJONG_KEY_A,      DIK_Q, IDS_INPUT_MAHJONG_KEY_A,      "input mahjong a"      },
-			{ MAHJONG_KEYS + MAHJONG_KEY_B,      DIK_W, IDS_INPUT_MAHJONG_KEY_B,      "input mahjong b"      },
-			{ MAHJONG_KEYS + MAHJONG_KEY_C,      DIK_E, IDS_INPUT_MAHJONG_KEY_C,      "input mahjong c"      },
-			{ MAHJONG_KEYS + MAHJONG_KEY_D,      DIK_R, IDS_INPUT_MAHJONG_KEY_D,      "input mahjong d"      },
-			{ MAHJONG_KEYS + MAHJONG_KEY_E,      DIK_T, IDS_INPUT_MAHJONG_KEY_E,      "input mahjong e"      },
-			{ MAHJONG_KEYS + MAHJONG_KEY_F,      DIK_A, IDS_INPUT_MAHJONG_KEY_F,      "input mahjong f"      },
-			{ MAHJONG_KEYS + MAHJONG_KEY_G,      DIK_S, IDS_INPUT_MAHJONG_KEY_G,      "input mahjong g"      },
-			{ MAHJONG_KEYS + MAHJONG_KEY_H,      DIK_D, IDS_INPUT_MAHJONG_KEY_H,      "input mahjong h"      },
-			{ MAHJONG_KEYS + MAHJONG_KEY_I,      DIK_F, IDS_INPUT_MAHJONG_KEY_I,      "input mahjong i"      },
-			{ MAHJONG_KEYS + MAHJONG_KEY_J,      DIK_G, IDS_INPUT_MAHJONG_KEY_J,      "input mahjong j"      },
-			{ MAHJONG_KEYS + MAHJONG_KEY_K,      DIK_H, IDS_INPUT_MAHJONG_KEY_K,      "input mahjong k"      },
-			{ MAHJONG_KEYS + MAHJONG_KEY_L,      DIK_J, IDS_INPUT_MAHJONG_KEY_L,      "input mahjong l"      },
-			{ MAHJONG_KEYS + MAHJONG_KEY_M,      DIK_K, IDS_INPUT_MAHJONG_KEY_M,      "input mahjong m"      },
-			{ MAHJONG_KEYS + MAHJONG_KEY_N,      DIK_L, IDS_INPUT_MAHJONG_KEY_N,      "input mahjong n"      },
-			{ MAHJONG_KEYS + MAHJONG_KEY_START,  DIK_Z, IDS_INPUT_MAHJONG_KEY_START,  "input mahjong start"  },
-			{ MAHJONG_KEYS + MAHJONG_KEY_SELECT, DIK_X, IDS_INPUT_MAHJONG_KEY_SELECT, "input mahjong select" },
-			{ MAHJONG_KEYS + MAHJONG_KEY_KAN,    DIK_C, IDS_INPUT_MAHJONG_KEY_KAN,    "input mahjong kan"    },
-			{ MAHJONG_KEYS + MAHJONG_KEY_PON,    DIK_V, IDS_INPUT_MAHJONG_KEY_PON,    "input mahjong pon"    },
-			{ MAHJONG_KEYS + MAHJONG_KEY_CHI,    DIK_B, IDS_INPUT_MAHJONG_KEY_CHI,    "input mahjong chi"    },
-			{ MAHJONG_KEYS + MAHJONG_KEY_REACH,  DIK_N, IDS_INPUT_MAHJONG_KEY_REACH,  "input mahjong reach"  },
-			{ MAHJONG_KEYS + MAHJONG_KEY_RON,    DIK_M, IDS_INPUT_MAHJONG_KEY_RON,    "input mahjong ron"    },
+			{ MAHJONG_KEYS + MAHJONG_KEY_A,      DIK_Q, IDS_INPUT_MAHJONG_KEY_A,      "mahjong", "a"      },
+			{ MAHJONG_KEYS + MAHJONG_KEY_B,      DIK_W, IDS_INPUT_MAHJONG_KEY_B,      "mahjong", "b"      },
+			{ MAHJONG_KEYS + MAHJONG_KEY_C,      DIK_E, IDS_INPUT_MAHJONG_KEY_C,      "mahjong", "c"      },
+			{ MAHJONG_KEYS + MAHJONG_KEY_D,      DIK_R, IDS_INPUT_MAHJONG_KEY_D,      "mahjong", "d"      },
+			{ MAHJONG_KEYS + MAHJONG_KEY_E,      DIK_T, IDS_INPUT_MAHJONG_KEY_E,      "mahjong", "e"      },
+			{ MAHJONG_KEYS + MAHJONG_KEY_F,      DIK_A, IDS_INPUT_MAHJONG_KEY_F,      "mahjong", "f"      },
+			{ MAHJONG_KEYS + MAHJONG_KEY_G,      DIK_S, IDS_INPUT_MAHJONG_KEY_G,      "mahjong", "g"      },
+			{ MAHJONG_KEYS + MAHJONG_KEY_H,      DIK_D, IDS_INPUT_MAHJONG_KEY_H,      "mahjong", "h"      },
+			{ MAHJONG_KEYS + MAHJONG_KEY_I,      DIK_F, IDS_INPUT_MAHJONG_KEY_I,      "mahjong", "i"      },
+			{ MAHJONG_KEYS + MAHJONG_KEY_J,      DIK_G, IDS_INPUT_MAHJONG_KEY_J,      "mahjong", "j"      },
+			{ MAHJONG_KEYS + MAHJONG_KEY_K,      DIK_H, IDS_INPUT_MAHJONG_KEY_K,      "mahjong", "k"      },
+			{ MAHJONG_KEYS + MAHJONG_KEY_L,      DIK_J, IDS_INPUT_MAHJONG_KEY_L,      "mahjong", "l"      },
+			{ MAHJONG_KEYS + MAHJONG_KEY_M,      DIK_K, IDS_INPUT_MAHJONG_KEY_M,      "mahjong", "m"      },
+			{ MAHJONG_KEYS + MAHJONG_KEY_N,      DIK_L, IDS_INPUT_MAHJONG_KEY_N,      "mahjong", "n"      },
+			{ MAHJONG_KEYS + MAHJONG_KEY_START,  DIK_Z, IDS_INPUT_MAHJONG_KEY_START,  "mahjong", "start"  },
+			{ MAHJONG_KEYS + MAHJONG_KEY_SELECT, DIK_X, IDS_INPUT_MAHJONG_KEY_SELECT, "mahjong", "select" },
+			{ MAHJONG_KEYS + MAHJONG_KEY_KAN,    DIK_C, IDS_INPUT_MAHJONG_KEY_KAN,    "mahjong", "kan"    },
+			{ MAHJONG_KEYS + MAHJONG_KEY_PON,    DIK_V, IDS_INPUT_MAHJONG_KEY_PON,    "mahjong", "pon"    },
+			{ MAHJONG_KEYS + MAHJONG_KEY_CHI,    DIK_B, IDS_INPUT_MAHJONG_KEY_CHI,    "mahjong", "chi"    },
+			{ MAHJONG_KEYS + MAHJONG_KEY_REACH,  DIK_N, IDS_INPUT_MAHJONG_KEY_REACH,  "mahjong", "reach"  },
+			{ MAHJONG_KEYS + MAHJONG_KEY_RON,    DIK_M, IDS_INPUT_MAHJONG_KEY_RON,    "mahjong", "ron"    },
 
-			{ EXCITINGBOXING_KEYS + EXCITINGBOXING_KEY_LEFT_HOOK,  DIK_K,      IDS_INPUT_EXCITINGBOXING_KEY_LEFT_HOOK,  "input excitingboxing left hook"  },
-			{ EXCITINGBOXING_KEYS + EXCITINGBOXING_KEY_RIGHT_HOOK, DIK_L,      IDS_INPUT_EXCITINGBOXING_KEY_RIGHT_HOOK, "input excitingboxing right hook" },
-			{ EXCITINGBOXING_KEYS + EXCITINGBOXING_KEY_LEFT_JAB,   DIK_COMMA,  IDS_INPUT_EXCITINGBOXING_KEY_LEFT_JAB,   "input excitingboxing left jab"   },
-			{ EXCITINGBOXING_KEYS + EXCITINGBOXING_KEY_RIGHT_JAB,  DIK_PERIOD, IDS_INPUT_EXCITINGBOXING_KEY_RIGHT_JAB,  "input excitingboxing right jab"  },
-			{ EXCITINGBOXING_KEYS + EXCITINGBOXING_KEY_STRAIGHT,   DIK_UP,     IDS_INPUT_EXCITINGBOXING_KEY_STRAIGHT,   "input excitingboxing straight"   },
-			{ EXCITINGBOXING_KEYS + EXCITINGBOXING_KEY_BODY,       DIK_DOWN,   IDS_INPUT_EXCITINGBOXING_KEY_BODY,       "input excitingboxing body"       },
-			{ EXCITINGBOXING_KEYS + EXCITINGBOXING_KEY_LEFT_MOVE,  DIK_LEFT,   IDS_INPUT_EXCITINGBOXING_KEY_LEFT_MOVE,  "input excitingboxing left move"  },
-			{ EXCITINGBOXING_KEYS + EXCITINGBOXING_KEY_RIGHT_MOVE, DIK_RIGHT,  IDS_INPUT_EXCITINGBOXING_KEY_RIGHT_MOVE, "input excitingboxing right move" },
+			{ EXCITINGBOXING_KEYS + EXCITINGBOXING_KEY_LEFT_HOOK,  DIK_K,      IDS_INPUT_EXCITINGBOXING_KEY_LEFT_HOOK,  "excitingboxing", "left-hook"  },
+			{ EXCITINGBOXING_KEYS + EXCITINGBOXING_KEY_RIGHT_HOOK, DIK_L,      IDS_INPUT_EXCITINGBOXING_KEY_RIGHT_HOOK, "excitingboxing", "right-hook" },
+			{ EXCITINGBOXING_KEYS + EXCITINGBOXING_KEY_LEFT_JAB,   DIK_COMMA,  IDS_INPUT_EXCITINGBOXING_KEY_LEFT_JAB,   "excitingboxing", "left-jab"   },
+			{ EXCITINGBOXING_KEYS + EXCITINGBOXING_KEY_RIGHT_JAB,  DIK_PERIOD, IDS_INPUT_EXCITINGBOXING_KEY_RIGHT_JAB,  "excitingboxing", "right-jab"  },
+			{ EXCITINGBOXING_KEYS + EXCITINGBOXING_KEY_STRAIGHT,   DIK_UP,     IDS_INPUT_EXCITINGBOXING_KEY_STRAIGHT,   "excitingboxing", "straight"   },
+			{ EXCITINGBOXING_KEYS + EXCITINGBOXING_KEY_BODY,       DIK_DOWN,   IDS_INPUT_EXCITINGBOXING_KEY_BODY,       "excitingboxing", "body"       },
+			{ EXCITINGBOXING_KEYS + EXCITINGBOXING_KEY_LEFT_MOVE,  DIK_LEFT,   IDS_INPUT_EXCITINGBOXING_KEY_LEFT_MOVE,  "excitingboxing", "left-move"  },
+			{ EXCITINGBOXING_KEYS + EXCITINGBOXING_KEY_RIGHT_MOVE, DIK_RIGHT,  IDS_INPUT_EXCITINGBOXING_KEY_RIGHT_MOVE, "excitingboxing", "right-move" },
 
-			{ POKKUNMOGURAA_KEYS + POKKUNMOGURAA_KEY_ROW_1_1, DIK_T,     IDS_INPUT_POKKUNMOGURAA_KEY_ROW_1_1, "input pokkunmoguraa row 1 button 1" },
-			{ POKKUNMOGURAA_KEYS + POKKUNMOGURAA_KEY_ROW_1_2, DIK_Y,     IDS_INPUT_POKKUNMOGURAA_KEY_ROW_1_2, "input pokkunmoguraa row 1 button 2" },
-			{ POKKUNMOGURAA_KEYS + POKKUNMOGURAA_KEY_ROW_1_3, DIK_U,     IDS_INPUT_POKKUNMOGURAA_KEY_ROW_1_3, "input pokkunmoguraa row 1 button 3" },
-			{ POKKUNMOGURAA_KEYS + POKKUNMOGURAA_KEY_ROW_1_4, DIK_I,     IDS_INPUT_POKKUNMOGURAA_KEY_ROW_1_4, "input pokkunmoguraa row 1 button 4" },
-			{ POKKUNMOGURAA_KEYS + POKKUNMOGURAA_KEY_ROW_2_1, DIK_G,     IDS_INPUT_POKKUNMOGURAA_KEY_ROW_2_1, "input pokkunmoguraa row 2 button 1" },
-			{ POKKUNMOGURAA_KEYS + POKKUNMOGURAA_KEY_ROW_2_2, DIK_H,     IDS_INPUT_POKKUNMOGURAA_KEY_ROW_2_2, "input pokkunmoguraa row 2 button 2" },
-			{ POKKUNMOGURAA_KEYS + POKKUNMOGURAA_KEY_ROW_2_3, DIK_J,     IDS_INPUT_POKKUNMOGURAA_KEY_ROW_2_3, "input pokkunmoguraa row 2 button 3" },
-			{ POKKUNMOGURAA_KEYS + POKKUNMOGURAA_KEY_ROW_2_4, DIK_K,     IDS_INPUT_POKKUNMOGURAA_KEY_ROW_2_4, "input pokkunmoguraa row 2 button 4" },
-			{ POKKUNMOGURAA_KEYS + POKKUNMOGURAA_KEY_ROW_3_1, DIK_B,     IDS_INPUT_POKKUNMOGURAA_KEY_ROW_3_1, "input pokkunmoguraa row 3 button 1" },
-			{ POKKUNMOGURAA_KEYS + POKKUNMOGURAA_KEY_ROW_3_2, DIK_N,     IDS_INPUT_POKKUNMOGURAA_KEY_ROW_3_2, "input pokkunmoguraa row 3 button 2" },
-			{ POKKUNMOGURAA_KEYS + POKKUNMOGURAA_KEY_ROW_3_3, DIK_M,     IDS_INPUT_POKKUNMOGURAA_KEY_ROW_3_3, "input pokkunmoguraa row 3 button 3" },
-			{ POKKUNMOGURAA_KEYS + POKKUNMOGURAA_KEY_ROW_3_4, DIK_COMMA, IDS_INPUT_POKKUNMOGURAA_KEY_ROW_3_4, "input pokkunmoguraa row 3 button 4" },
+			{ POKKUNMOGURAA_KEYS + POKKUNMOGURAA_KEY_ROW_1_1, DIK_T,     IDS_INPUT_POKKUNMOGURAA_KEY_ROW_1_1, "pokkunmoguraa", "row-1-button-1" },
+			{ POKKUNMOGURAA_KEYS + POKKUNMOGURAA_KEY_ROW_1_2, DIK_Y,     IDS_INPUT_POKKUNMOGURAA_KEY_ROW_1_2, "pokkunmoguraa", "row-1-button-2" },
+			{ POKKUNMOGURAA_KEYS + POKKUNMOGURAA_KEY_ROW_1_3, DIK_U,     IDS_INPUT_POKKUNMOGURAA_KEY_ROW_1_3, "pokkunmoguraa", "row-1-button-3" },
+			{ POKKUNMOGURAA_KEYS + POKKUNMOGURAA_KEY_ROW_1_4, DIK_I,     IDS_INPUT_POKKUNMOGURAA_KEY_ROW_1_4, "pokkunmoguraa", "row-1-button-4" },
+			{ POKKUNMOGURAA_KEYS + POKKUNMOGURAA_KEY_ROW_2_1, DIK_G,     IDS_INPUT_POKKUNMOGURAA_KEY_ROW_2_1, "pokkunmoguraa", "row-2-button-1" },
+			{ POKKUNMOGURAA_KEYS + POKKUNMOGURAA_KEY_ROW_2_2, DIK_H,     IDS_INPUT_POKKUNMOGURAA_KEY_ROW_2_2, "pokkunmoguraa", "row-2-button-2" },
+			{ POKKUNMOGURAA_KEYS + POKKUNMOGURAA_KEY_ROW_2_3, DIK_J,     IDS_INPUT_POKKUNMOGURAA_KEY_ROW_2_3, "pokkunmoguraa", "row-2-button-3" },
+			{ POKKUNMOGURAA_KEYS + POKKUNMOGURAA_KEY_ROW_2_4, DIK_K,     IDS_INPUT_POKKUNMOGURAA_KEY_ROW_2_4, "pokkunmoguraa", "row-2-button-4" },
+			{ POKKUNMOGURAA_KEYS + POKKUNMOGURAA_KEY_ROW_3_1, DIK_B,     IDS_INPUT_POKKUNMOGURAA_KEY_ROW_3_1, "pokkunmoguraa", "row-3-button-1" },
+			{ POKKUNMOGURAA_KEYS + POKKUNMOGURAA_KEY_ROW_3_2, DIK_N,     IDS_INPUT_POKKUNMOGURAA_KEY_ROW_3_2, "pokkunmoguraa", "row-3-button-2" },
+			{ POKKUNMOGURAA_KEYS + POKKUNMOGURAA_KEY_ROW_3_3, DIK_M,     IDS_INPUT_POKKUNMOGURAA_KEY_ROW_3_3, "pokkunmoguraa", "row-3-button-3" },
+			{ POKKUNMOGURAA_KEYS + POKKUNMOGURAA_KEY_ROW_3_4, DIK_COMMA, IDS_INPUT_POKKUNMOGURAA_KEY_ROW_3_4, "pokkunmoguraa", "row-3-button-4" },
 
-			{ PARTYTAP_KEYS + PARTYTAP_UNIT_1, DIK_Q, IDS_INPUT_PARTYTAP_UNIT_1, "input partytap 1" },
-			{ PARTYTAP_KEYS + PARTYTAP_UNIT_2, DIK_W, IDS_INPUT_PARTYTAP_UNIT_2, "input partytap 2" },
-			{ PARTYTAP_KEYS + PARTYTAP_UNIT_3, DIK_E, IDS_INPUT_PARTYTAP_UNIT_3, "input partytap 3" },
-			{ PARTYTAP_KEYS + PARTYTAP_UNIT_4, DIK_R, IDS_INPUT_PARTYTAP_UNIT_4, "input partytap 4" },
-			{ PARTYTAP_KEYS + PARTYTAP_UNIT_5, DIK_T, IDS_INPUT_PARTYTAP_UNIT_5, "input partytap 5" },
-			{ PARTYTAP_KEYS + PARTYTAP_UNIT_6, DIK_Y, IDS_INPUT_PARTYTAP_UNIT_6, "input partytap 6" },
+			{ PARTYTAP_KEYS + PARTYTAP_UNIT_1, DIK_Q, IDS_INPUT_PARTYTAP_UNIT_1, "partytap", "unit-1" },
+			{ PARTYTAP_KEYS + PARTYTAP_UNIT_2, DIK_W, IDS_INPUT_PARTYTAP_UNIT_2, "partytap", "unit-2" },
+			{ PARTYTAP_KEYS + PARTYTAP_UNIT_3, DIK_E, IDS_INPUT_PARTYTAP_UNIT_3, "partytap", "unit-3" },
+			{ PARTYTAP_KEYS + PARTYTAP_UNIT_4, DIK_R, IDS_INPUT_PARTYTAP_UNIT_4, "partytap", "unit-4" },
+			{ PARTYTAP_KEYS + PARTYTAP_UNIT_5, DIK_T, IDS_INPUT_PARTYTAP_UNIT_5, "partytap", "unit-5" },
+			{ PARTYTAP_KEYS + PARTYTAP_UNIT_6, DIK_Y, IDS_INPUT_PARTYTAP_UNIT_6, "partytap", "unit-6" },
 
-			{ KARAOKESTUDIO_KEYS + KARAOKESTUDIO_MIC, DIK_G, IDS_INPUT_KARAOKESTUDIO_MIC, "input karaokestudio mic" },
-			{ KARAOKESTUDIO_KEYS + KARAOKESTUDIO_A,   DIK_H, IDS_INPUT_KARAOKESTUDIO_A,   "input karaokestudio a"   },
-			{ KARAOKESTUDIO_KEYS + KARAOKESTUDIO_B,   DIK_J, IDS_INPUT_KARAOKESTUDIO_B,   "input karaokestudio b"   },
+			{ KARAOKESTUDIO_KEYS + KARAOKESTUDIO_MIC, DIK_G, IDS_INPUT_KARAOKESTUDIO_MIC, "karaokestudio", "mic" },
+			{ KARAOKESTUDIO_KEYS + KARAOKESTUDIO_A,   DIK_H, IDS_INPUT_KARAOKESTUDIO_A,   "karaokestudio", "a"   },
+			{ KARAOKESTUDIO_KEYS + KARAOKESTUDIO_B,   DIK_J, IDS_INPUT_KARAOKESTUDIO_B,   "karaokestudio", "b"   },
 
-			{ EMULATION_KEYS + EMULATION_KEY_ALT_SPEED,     DIK_TAB,  IDS_INPUT_EMULATION_KEY_ALT_SPEED,     "input emulation alternative speed" },
-			{ EMULATION_KEYS + EMULATION_KEY_REWIND,        DIK_BACK, IDS_INPUT_EMULATION_KEY_REWIND,        "input emulation rewind"            },
-			{ EMULATION_KEYS + EMULATION_KEY_INSERT_COIN_1, DIK_F2,   IDS_INPUT_EMULATION_KEY_INSERT_COIN_1, "input emulation insert coin 1"     },
-			{ EMULATION_KEYS + EMULATION_KEY_INSERT_COIN_2, DIK_F3,   IDS_INPUT_EMULATION_KEY_INSERT_COIN_2, "input emulation insert coin 2"     },
+			{ EMULATION_KEYS + EMULATION_KEY_ALT_SPEED,     DIK_TAB,  IDS_INPUT_EMULATION_KEY_ALT_SPEED,     "emulation", "alt-speed"     },
+			{ EMULATION_KEYS + EMULATION_KEY_REWIND,        DIK_BACK, IDS_INPUT_EMULATION_KEY_REWIND,        "emulation", "rewind"        },
+			{ EMULATION_KEYS + EMULATION_KEY_INSERT_COIN_1, DIK_F2,   IDS_INPUT_EMULATION_KEY_INSERT_COIN_1, "emulation", "insert-coin-1" },
+			{ EMULATION_KEYS + EMULATION_KEY_INSERT_COIN_2, DIK_F3,   IDS_INPUT_EMULATION_KEY_INSERT_COIN_2, "emulation", "insert-coin-2" },
 
-			{ FILE_KEYS + FILE_KEY_OPEN,                  CTRL | 'O',         IDS_INPUT_FILE_KEY_OPEN,                  "input file open"                    },
-			{ FILE_KEYS + FILE_KEY_SAVE_STATE,            VK_F5,              IDS_INPUT_FILE_KEY_SAVE_STATE,            "input file save state"              },
-			{ FILE_KEYS + FILE_KEY_SAVE_SCRIPT,           CTRL | 'S',         IDS_INPUT_FILE_KEY_SAVE_SCRIPT,           "input file save script"             },
-			{ FILE_KEYS + FILE_KEY_LOAD_STATE,            VK_F7,              IDS_INPUT_FILE_KEY_LOAD_STATE,            "input file load state"              },
-			{ FILE_KEYS + FILE_KEY_LOAD_SCRIPT,           CTRL | 'W',         IDS_INPUT_FILE_KEY_LOAD_SCRIPT,           "input file load script"             },
-			{ FILE_KEYS + FILE_KEY_QUICK_LOAD_STATE_1,    '1',                IDS_INPUT_FILE_KEY_QUICK_LOAD_STATE_1,    "input file quick load state 1"      },
-			{ FILE_KEYS + FILE_KEY_QUICK_LOAD_STATE_2,    '2',                IDS_INPUT_FILE_KEY_QUICK_LOAD_STATE_2,    "input file quick load state 2"      },
-			{ FILE_KEYS + FILE_KEY_QUICK_LOAD_STATE_3,    '3',                IDS_INPUT_FILE_KEY_QUICK_LOAD_STATE_3,    "input file quick load state 3"      },
-			{ FILE_KEYS + FILE_KEY_QUICK_LOAD_STATE_4,    '4',                IDS_INPUT_FILE_KEY_QUICK_LOAD_STATE_4,    "input file quick load state 4"      },
-			{ FILE_KEYS + FILE_KEY_QUICK_LOAD_STATE_5,    '5',                IDS_INPUT_FILE_KEY_QUICK_LOAD_STATE_5,    "input file quick load state 5"      },
-			{ FILE_KEYS + FILE_KEY_QUICK_LOAD_STATE_6,    '6',                IDS_INPUT_FILE_KEY_QUICK_LOAD_STATE_6,    "input file quick load state 6"      },
-			{ FILE_KEYS + FILE_KEY_QUICK_LOAD_STATE_7,    '7',                IDS_INPUT_FILE_KEY_QUICK_LOAD_STATE_7,    "input file quick load state 7"      },
-			{ FILE_KEYS + FILE_KEY_QUICK_LOAD_STATE_8,    '8',                IDS_INPUT_FILE_KEY_QUICK_LOAD_STATE_8,    "input file quick load state 8"      },
-			{ FILE_KEYS + FILE_KEY_QUICK_LOAD_STATE_9,    '9',                IDS_INPUT_FILE_KEY_QUICK_LOAD_STATE_9,    "input file quick load state 9"      },
-			{ FILE_KEYS + FILE_KEY_QUICK_LOAD_LAST_STATE, '0',                IDS_INPUT_FILE_KEY_QUICK_LOAD_LAST_STATE, "input file quick load state newest" },
-			{ FILE_KEYS + FILE_KEY_QUICK_SAVE_STATE_1,    SHIFT | '1',        IDS_INPUT_FILE_KEY_QUICK_SAVE_STATE_1,    "input file quick save state 1"      },
-			{ FILE_KEYS + FILE_KEY_QUICK_SAVE_STATE_2,    SHIFT | '2',        IDS_INPUT_FILE_KEY_QUICK_SAVE_STATE_2,    "input file quick save state 2"      },
-			{ FILE_KEYS + FILE_KEY_QUICK_SAVE_STATE_3,    SHIFT | '3',        IDS_INPUT_FILE_KEY_QUICK_SAVE_STATE_3,    "input file quick save state 3"      },
-			{ FILE_KEYS + FILE_KEY_QUICK_SAVE_STATE_4,    SHIFT | '4',        IDS_INPUT_FILE_KEY_QUICK_SAVE_STATE_4,    "input file quick save state 4"      },
-			{ FILE_KEYS + FILE_KEY_QUICK_SAVE_STATE_5,    SHIFT | '5',        IDS_INPUT_FILE_KEY_QUICK_SAVE_STATE_5,    "input file quick save state 5"      },
-			{ FILE_KEYS + FILE_KEY_QUICK_SAVE_STATE_6,    SHIFT | '6',        IDS_INPUT_FILE_KEY_QUICK_SAVE_STATE_6,    "input file quick save state 6"      },
-			{ FILE_KEYS + FILE_KEY_QUICK_SAVE_STATE_7,    SHIFT | '7',        IDS_INPUT_FILE_KEY_QUICK_SAVE_STATE_7,    "input file quick save state 7"      },
-			{ FILE_KEYS + FILE_KEY_QUICK_SAVE_STATE_8,    SHIFT | '8',        IDS_INPUT_FILE_KEY_QUICK_SAVE_STATE_8,    "input file quick save state 8"      },
-			{ FILE_KEYS + FILE_KEY_QUICK_SAVE_STATE_9,    SHIFT | '9',        IDS_INPUT_FILE_KEY_QUICK_SAVE_STATE_9,    "input file quick save state 9"      },
-			{ FILE_KEYS + FILE_KEY_QUICK_SAVE_NEXT_STATE, SHIFT | '0',        IDS_INPUT_FILE_KEY_QUICK_SAVE_NEXT_STATE, "input file quick save state oldest" },
-			{ FILE_KEYS + FILE_KEY_SAVE_SCREENSHOT,       ALT | 'E',          IDS_INPUT_FILE_KEY_SAVE_SCREENSHOT,       "input file save screenshot"         },
-			{ FILE_KEYS + FILE_KEY_LAUNCHER,              ALT | 'L',          IDS_INPUT_FILE_KEY_LAUNCHER,              "input file launcher"                },
-			{ FILE_KEYS + FILE_KEY_EXIT,                  ALT | 'X',          IDS_INPUT_FILE_KEY_EXIT,                  "input file exit"                    },
+			{ FILE_KEYS + FILE_KEY_OPEN,                  CTRL | 'O',         IDS_INPUT_FILE_KEY_OPEN,                  "file", "open"                    },
+			{ FILE_KEYS + FILE_KEY_SAVE_STATE,            VK_F5,              IDS_INPUT_FILE_KEY_SAVE_STATE,            "file", "save-state"              },
+			{ FILE_KEYS + FILE_KEY_LOAD_STATE,            VK_F7,              IDS_INPUT_FILE_KEY_LOAD_STATE,            "file", "load-state"              },
+			{ FILE_KEYS + FILE_KEY_QUICK_LOAD_STATE_1,    '1',                IDS_INPUT_FILE_KEY_QUICK_LOAD_STATE_1,    "file", "quick-load-state-1"      },
+			{ FILE_KEYS + FILE_KEY_QUICK_LOAD_STATE_2,    '2',                IDS_INPUT_FILE_KEY_QUICK_LOAD_STATE_2,    "file", "quick-load-state-2"      },
+			{ FILE_KEYS + FILE_KEY_QUICK_LOAD_STATE_3,    '3',                IDS_INPUT_FILE_KEY_QUICK_LOAD_STATE_3,    "file", "quick-load-state-3"      },
+			{ FILE_KEYS + FILE_KEY_QUICK_LOAD_STATE_4,    '4',                IDS_INPUT_FILE_KEY_QUICK_LOAD_STATE_4,    "file", "quick-load-state-4"      },
+			{ FILE_KEYS + FILE_KEY_QUICK_LOAD_STATE_5,    '5',                IDS_INPUT_FILE_KEY_QUICK_LOAD_STATE_5,    "file", "quick-load-state-5"      },
+			{ FILE_KEYS + FILE_KEY_QUICK_LOAD_STATE_6,    '6',                IDS_INPUT_FILE_KEY_QUICK_LOAD_STATE_6,    "file", "quick-load-state-6"      },
+			{ FILE_KEYS + FILE_KEY_QUICK_LOAD_STATE_7,    '7',                IDS_INPUT_FILE_KEY_QUICK_LOAD_STATE_7,    "file", "quick-load-state-7"      },
+			{ FILE_KEYS + FILE_KEY_QUICK_LOAD_STATE_8,    '8',                IDS_INPUT_FILE_KEY_QUICK_LOAD_STATE_8,    "file", "quick-load-state-8"      },
+			{ FILE_KEYS + FILE_KEY_QUICK_LOAD_STATE_9,    '9',                IDS_INPUT_FILE_KEY_QUICK_LOAD_STATE_9,    "file", "quick-load-state-9"      },
+			{ FILE_KEYS + FILE_KEY_QUICK_LOAD_LAST_STATE, '0',                IDS_INPUT_FILE_KEY_QUICK_LOAD_LAST_STATE, "file", "quick-load-state-newest" },
+			{ FILE_KEYS + FILE_KEY_QUICK_SAVE_STATE_1,    SHIFT | '1',        IDS_INPUT_FILE_KEY_QUICK_SAVE_STATE_1,    "file", "quick-save-state-1"      },
+			{ FILE_KEYS + FILE_KEY_QUICK_SAVE_STATE_2,    SHIFT | '2',        IDS_INPUT_FILE_KEY_QUICK_SAVE_STATE_2,    "file", "quick-save-state-2"      },
+			{ FILE_KEYS + FILE_KEY_QUICK_SAVE_STATE_3,    SHIFT | '3',        IDS_INPUT_FILE_KEY_QUICK_SAVE_STATE_3,    "file", "quick-save-state-3"      },
+			{ FILE_KEYS + FILE_KEY_QUICK_SAVE_STATE_4,    SHIFT | '4',        IDS_INPUT_FILE_KEY_QUICK_SAVE_STATE_4,    "file", "quick-save-state-4"      },
+			{ FILE_KEYS + FILE_KEY_QUICK_SAVE_STATE_5,    SHIFT | '5',        IDS_INPUT_FILE_KEY_QUICK_SAVE_STATE_5,    "file", "quick-save-state-5"      },
+			{ FILE_KEYS + FILE_KEY_QUICK_SAVE_STATE_6,    SHIFT | '6',        IDS_INPUT_FILE_KEY_QUICK_SAVE_STATE_6,    "file", "quick-save-state-6"      },
+			{ FILE_KEYS + FILE_KEY_QUICK_SAVE_STATE_7,    SHIFT | '7',        IDS_INPUT_FILE_KEY_QUICK_SAVE_STATE_7,    "file", "quick-save-state-7"      },
+			{ FILE_KEYS + FILE_KEY_QUICK_SAVE_STATE_8,    SHIFT | '8',        IDS_INPUT_FILE_KEY_QUICK_SAVE_STATE_8,    "file", "quick-save-state-8"      },
+			{ FILE_KEYS + FILE_KEY_QUICK_SAVE_STATE_9,    SHIFT | '9',        IDS_INPUT_FILE_KEY_QUICK_SAVE_STATE_9,    "file", "quick-save-state-9"      },
+			{ FILE_KEYS + FILE_KEY_QUICK_SAVE_NEXT_STATE, SHIFT | '0',        IDS_INPUT_FILE_KEY_QUICK_SAVE_NEXT_STATE, "file", "quick-save-state-oldest" },
+			{ FILE_KEYS + FILE_KEY_SAVE_SCREENSHOT,       ALT | 'E',          IDS_INPUT_FILE_KEY_SAVE_SCREENSHOT,       "file", "save-screenshot"         },
+			{ FILE_KEYS + FILE_KEY_LAUNCHER,              ALT | 'L',          IDS_INPUT_FILE_KEY_LAUNCHER,              "file", "launcher"                },
+			{ FILE_KEYS + FILE_KEY_EXIT,                  ALT | 'X',          IDS_INPUT_FILE_KEY_EXIT,                  "file", "exit"                    },
 
-			{ MACHINE_KEYS + MACHINE_KEY_POWER,             SHIFT | 'D', IDS_INPUT_MACHINE_KEY_POWER,             "input machine power"                   },
-			{ MACHINE_KEYS + MACHINE_KEY_RESET_SOFT,        SHIFT | 'R', IDS_INPUT_MACHINE_KEY_RESET_SOFT,        "input machine soft reset"              },
-			{ MACHINE_KEYS + MACHINE_KEY_RESET_HARD,        SHIFT | 'T', IDS_INPUT_MACHINE_KEY_RESET_HARD,        "input machine hard reset"              },
-			{ MACHINE_KEYS + MACHINE_KEY_PAUSE,             SHIFT | 'P', IDS_INPUT_MACHINE_KEY_PAUSE,             "input machine pause"                   },
-			{ MACHINE_KEYS + MACHINE_KEY_UNLIMITED_SPRITES, SHIFT | 'U', IDS_INPUT_MACHINE_KEY_UNLIMITED_SPRITES, "input machine unlimited sprite toggle" },
-			{ MACHINE_KEYS + MACHINE_KEY_CHANGE_DISK_SIDE,  SHIFT | 'B', IDS_INPUT_MACHINE_KEY_CHANGE_DISK_SIDE,  "input machine change disk side"        },
+			{ MACHINE_KEYS + MACHINE_KEY_POWER,             SHIFT | 'D', IDS_INPUT_MACHINE_KEY_POWER,             "machine", "power"                  },
+			{ MACHINE_KEYS + MACHINE_KEY_RESET_SOFT,        SHIFT | 'R', IDS_INPUT_MACHINE_KEY_RESET_SOFT,        "machine", "soft-reset"             },
+			{ MACHINE_KEYS + MACHINE_KEY_RESET_HARD,        SHIFT | 'T', IDS_INPUT_MACHINE_KEY_RESET_HARD,        "machine", "hard-reset"             },
+			{ MACHINE_KEYS + MACHINE_KEY_PAUSE,             SHIFT | 'P', IDS_INPUT_MACHINE_KEY_PAUSE,             "machine", "pause"                  },
+			{ MACHINE_KEYS + MACHINE_KEY_UNLIMITED_SPRITES, SHIFT | 'U', IDS_INPUT_MACHINE_KEY_UNLIMITED_SPRITES, "machine", "no-sprite-limit-toggle" },
+			{ MACHINE_KEYS + MACHINE_KEY_CHANGE_DISK_SIDE,  SHIFT | 'B', IDS_INPUT_MACHINE_KEY_CHANGE_DISK_SIDE,  "machine", "change-disk-side"       },
 
-			{ NSF_KEYS + NSF_KEY_PLAY, SHIFT | VK_UP,    IDS_INPUT_NSF_KEY_PLAY, "input nsf play song"     },
-			{ NSF_KEYS + NSF_KEY_STOP, SHIFT | VK_DOWN,  IDS_INPUT_NSF_KEY_STOP, "input nsf stop song"     },
-			{ NSF_KEYS + NSF_KEY_NEXT, SHIFT | VK_RIGHT, IDS_INPUT_NSF_KEY_NEXT, "input nsf next song"     },
-			{ NSF_KEYS + NSF_KEY_PREV, SHIFT | VK_LEFT,  IDS_INPUT_NSF_KEY_PREV, "input nsf previous song" },
+			{ NSF_KEYS + NSF_KEY_PLAY, SHIFT | VK_UP,    IDS_INPUT_NSF_KEY_PLAY, "nsf", "play-song"     },
+			{ NSF_KEYS + NSF_KEY_STOP, SHIFT | VK_DOWN,  IDS_INPUT_NSF_KEY_STOP, "nsf", "stop-song"     },
+			{ NSF_KEYS + NSF_KEY_NEXT, SHIFT | VK_RIGHT, IDS_INPUT_NSF_KEY_NEXT, "nsf", "next-song"     },
+			{ NSF_KEYS + NSF_KEY_PREV, SHIFT | VK_LEFT,  IDS_INPUT_NSF_KEY_PREV, "nsf", "previous-song" },
 
-			{ VIEW_KEYS + VIEW_KEY_SCREENSIZE_1X,  ALT | '1',        IDS_INPUT_VIEW_KEY_SCREENSIZE_1X,  "input view screen size 1x"      },
-			{ VIEW_KEYS + VIEW_KEY_SCREENSIZE_2X,  ALT | '2',        IDS_INPUT_VIEW_KEY_SCREENSIZE_2X,  "input view screen size 2x"      },
-			{ VIEW_KEYS + VIEW_KEY_SCREENSIZE_3X,  ALT | '3',        IDS_INPUT_VIEW_KEY_SCREENSIZE_3X,  "input view screen size 3x"      },
-			{ VIEW_KEYS + VIEW_KEY_SCREENSIZE_4X,  ALT | '4',        IDS_INPUT_VIEW_KEY_SCREENSIZE_4X,  "input view screen size 4x"      },
-			{ VIEW_KEYS + VIEW_KEY_SCREENSIZE_5X,  ALT | '5',        IDS_INPUT_VIEW_KEY_SCREENSIZE_5X,  "input view screen size 5x"      },
-			{ VIEW_KEYS + VIEW_KEY_SCREENSIZE_6X,  ALT | '6',        IDS_INPUT_VIEW_KEY_SCREENSIZE_6X,  "input view screen size 6x"      },
-			{ VIEW_KEYS + VIEW_KEY_SCREENSIZE_7X,  ALT | '7',        IDS_INPUT_VIEW_KEY_SCREENSIZE_7X,  "input view screen size 7x"      },
-			{ VIEW_KEYS + VIEW_KEY_SCREENSIZE_8X,  ALT | '8',        IDS_INPUT_VIEW_KEY_SCREENSIZE_8X,  "input view screen size 8x"      },
-			{ VIEW_KEYS + VIEW_KEY_SCREENSIZE_9X,  ALT | '9',        IDS_INPUT_VIEW_KEY_SCREENSIZE_9X,  "input view screen size 9x"      },
-			{ VIEW_KEYS + VIEW_KEY_SCREENSIZE_MAX, ALT | 'S',        IDS_INPUT_VIEW_KEY_SCREENSIZE_MAX, "input view screen size max"     },
-			{ VIEW_KEYS + VIEW_KEY_SHOW_MENU,      VK_ESCAPE,        IDS_INPUT_VIEW_KEY_SHOW_MENU,      "input view toggle menu"         },
-			{ VIEW_KEYS + VIEW_KEY_SHOW_STATUSBAR, CTRL | 'B',       IDS_INPUT_VIEW_KEY_SHOW_STATUSBAR, "input view toggle statusbar"    },
-			{ VIEW_KEYS + VIEW_KEY_SHOW_ONTOP,     CTRL | 'T',       IDS_INPUT_VIEW_KEY_SHOW_ONTOP,     "input view toggle window ontop" },
-			{ VIEW_KEYS + VIEW_KEY_SHOW_FPS,       CTRL | 'F',       IDS_INPUT_VIEW_KEY_SHOW_FPS,       "input view toggle fps"          },
-			{ VIEW_KEYS + VIEW_KEY_FULLSCREEN,     ALT  | VK_RETURN, IDS_INPUT_VIEW_KEY_FULLSCREEN,     "input view fullscreen"          },
+			{ VIEW_KEYS + VIEW_KEY_SCREENSIZE_1X,  ALT | '1',        IDS_INPUT_VIEW_KEY_SCREENSIZE_1X,  "view", "screen-size-1x"       },
+			{ VIEW_KEYS + VIEW_KEY_SCREENSIZE_2X,  ALT | '2',        IDS_INPUT_VIEW_KEY_SCREENSIZE_2X,  "view", "screen-size-2x"       },
+			{ VIEW_KEYS + VIEW_KEY_SCREENSIZE_3X,  ALT | '3',        IDS_INPUT_VIEW_KEY_SCREENSIZE_3X,  "view", "screen-size-3x"       },
+			{ VIEW_KEYS + VIEW_KEY_SCREENSIZE_4X,  ALT | '4',        IDS_INPUT_VIEW_KEY_SCREENSIZE_4X,  "view", "screen-size-4x"       },
+			{ VIEW_KEYS + VIEW_KEY_SCREENSIZE_5X,  ALT | '5',        IDS_INPUT_VIEW_KEY_SCREENSIZE_5X,  "view", "screen-size-5x"       },
+			{ VIEW_KEYS + VIEW_KEY_SCREENSIZE_6X,  ALT | '6',        IDS_INPUT_VIEW_KEY_SCREENSIZE_6X,  "view", "screen-size-6x"       },
+			{ VIEW_KEYS + VIEW_KEY_SCREENSIZE_7X,  ALT | '7',        IDS_INPUT_VIEW_KEY_SCREENSIZE_7X,  "view", "screen-size-7x"       },
+			{ VIEW_KEYS + VIEW_KEY_SCREENSIZE_8X,  ALT | '8',        IDS_INPUT_VIEW_KEY_SCREENSIZE_8X,  "view", "screen-size-8x"       },
+			{ VIEW_KEYS + VIEW_KEY_SCREENSIZE_9X,  ALT | '9',        IDS_INPUT_VIEW_KEY_SCREENSIZE_9X,  "view", "screen-size-9x"       },
+			{ VIEW_KEYS + VIEW_KEY_SCREENSIZE_MAX, ALT | 'S',        IDS_INPUT_VIEW_KEY_SCREENSIZE_MAX, "view", "screen-size-max"      },
+			{ VIEW_KEYS + VIEW_KEY_SHOW_MENU,      VK_ESCAPE,        IDS_INPUT_VIEW_KEY_SHOW_MENU,      "view", "toggle-menu"          },
+			{ VIEW_KEYS + VIEW_KEY_SHOW_STATUSBAR, CTRL | 'B',       IDS_INPUT_VIEW_KEY_SHOW_STATUSBAR, "view", "toggle-status-bar"    },
+			{ VIEW_KEYS + VIEW_KEY_SHOW_ONTOP,     CTRL | 'T',       IDS_INPUT_VIEW_KEY_SHOW_ONTOP,     "view", "toggle-window-on-top" },
+			{ VIEW_KEYS + VIEW_KEY_SHOW_FPS,       CTRL | 'F',       IDS_INPUT_VIEW_KEY_SHOW_FPS,       "view", "toggle-fps"           },
+			{ VIEW_KEYS + VIEW_KEY_FULLSCREEN,     ALT  | VK_RETURN, IDS_INPUT_VIEW_KEY_FULLSCREEN,     "view", "fullscreen"           },
 
-			{ HELP_KEYS + HELP_KEY_HELP, VK_F1, IDS_INPUT_HELP_KEY_HELP, "input help help" }
+			{ HELP_KEYS + HELP_KEY_HELP, VK_F1, IDS_INPUT_HELP_KEY_HELP, "help", "readme" }
 		};
 
 		struct Input::Handlers
@@ -539,9 +540,11 @@ namespace Nestopia
 		directInput ( di ),
 		dialog      ( IDD_INPUT, this, Handlers::messages, Handlers::commands )
 		{
+			Configuration::ConstSection input( cfg["input"] );
+
 			settings.Clear();
-			settings.autoFireSpeed = cfg["input autofire speed"].Default( uint(Settings::AUTOFIRE_DEFAULT_SPEED) );
-			settings.allowSimulAxes = (cfg["input allow simultaneous axes"] == Configuration::YES);
+			settings.autoFireSpeed = input["auto-fire-speed"].Int( Settings::AUTOFIRE_DEFAULT_SPEED );
+			settings.allowSimulAxes = input["allow-simultaneous-axes"].Yes();
 
 			if (settings.autoFireSpeed > Settings::AUTOFIRE_MAX_SPEED)
 				settings.autoFireSpeed = Settings::AUTOFIRE_DEFAULT_SPEED;
@@ -551,100 +554,64 @@ namespace Nestopia
 
 			if (const uint numJoysticks = directInput.NumJoysticks())
 			{
+				bool referenced[DirectX::DirectInput::MAX_JOYSTICKS] = {false};
+
+				if (Configuration::ConstSection joysticks=input["joysticks"])
 				{
-					uchar joyRefs[DirectX::DirectInput::MAX_JOYSTICKS];
+					bool alert = true;
 
-					String::Stack<16,char> deviceIndex( "input device xx" );
-					NST_COMPILE_ASSERT( DirectX::DirectInput::MAX_JOYSTICKS <= 99 );
-
-					for (uint i=0; i < DirectX::DirectInput::MAX_JOYSTICKS; ++i)
+					for (uint i=0; i < numJoysticks; ++i)
 					{
-						deviceIndex(13) = i;
-						const GenericString string( cfg[deviceIndex] );
+						Configuration::ConstSection joystick( joysticks["joystick"][i] );
 
-						if (string.Length())
+						if (!joystick)
+							break;
+
+						uint index = UINT_MAX;
+
+						const System::Guid guid( joystick["device"].Str() );
+
+						for (uint j=0; j < numJoysticks; ++j)
 						{
-							joyGuids[i] = string;
-							joyRefs[i] = 1;
-							maxGuids = i + 1;
+							if (guid == directInput.GetJoystickGuid(j))
+							{
+								index = j;
+								referenced[j] = true;
+								break;
+							}
+						}
 
+						if (index == UINT_MAX)
+						{
 							for (uint j=0; j < numJoysticks; ++j)
 							{
-								if (joyGuids[i] == directInput.GetJoystickGuid(j))
+								if (!referenced[j])
 								{
-									joyRefs[i] = 2 + j;
+									index = j;
+									referenced[j] = true;
 									break;
 								}
 							}
-						}
-						else
-						{
-							joyRefs[i] = 0;
-						}
-					}
 
-					for (uint i=0, remap=false; i < maxGuids; ++i)
-					{
-						if (joyRefs[i] == 1)
-						{
-							if (!remap && !Window::User::Confirm( IDS_INPUT_JOY_GUID_MISMATCH ))
+							if (index == UINT_MAX || (alert && !Window::User::Confirm( IDS_INPUT_JOY_GUID_MISMATCH )))
 								break;
 
-							remap = true;
-
-							for (uint j=0; j < numJoysticks; ++j)
-							{
-								bool referenced = false;
-
-								for (uint k=0; k < maxGuids; ++k)
-								{
-									if (joyRefs[k] - 2U == j)
-									{
-										referenced = true;
-										break;
-									}
-								}
-
-								if (!referenced)
-								{
-									joyRefs[i] = 2 + j;
-									break;
-								}
-							}
-
-							if (joyRefs[i] < 2)
-								joyRefs[i] = 2;
-
-							joyGuids[i] = directInput.GetJoystickGuid( joyRefs[i] - 2 );
+							alert = false;
 						}
-					}
-				}
 
-				String::Stack<32,char> joyIndex("input joy xx");
+						joyGuids[maxGuids++] = directInput.GetJoystickGuid(index);
 
-				for (uint i=0; i < maxGuids; ++i)
-				{
-					joyIndex(10) = i;
-					const uint joyOffset = joyIndex.Length();
+						directInput.ScanEnableJoystick( index, !joystick["enabled"].No() );
 
-					for (uint j=0; j < numJoysticks; ++j)
-					{
-						if (joyGuids[i] == directInput.GetJoystickGuid(j))
+						uint deadzone = joystick["deadzone"].Int( DirectX::DirectInput::DEFAULT_DEADZONE );
+
+						if (deadzone > DirectX::DirectInput::DEADZONE_MAX)
+							deadzone = DirectX::DirectInput::DEFAULT_DEADZONE;
+
+						directInput.SetAxisDeadZone( index, deadzone );
+
+						if (Configuration::ConstSection scan=joystick["scan"])
 						{
-							joyIndex(joyOffset) = " enabled";
-							directInput.ScanEnableJoystick( j, cfg[joyIndex] != Configuration::NO );
-
-							joyIndex(joyOffset) = " deadzone";
-							uint deadzone = cfg[joyIndex].Default( uint(DirectX::DirectInput::DEFAULT_DEADZONE) );
-
-							if (deadzone > DirectX::DirectInput::DEADZONE_MAX)
-								deadzone = DirectX::DirectInput::DEFAULT_DEADZONE;
-
-							directInput.SetAxisDeadZone( j, deadzone );
-
-							joyIndex(joyOffset) = " scan ";
-							const uint joyOffset2 = joyIndex.Length();
-
 							uint axes = 0;
 
 							static cstring const names[] =
@@ -652,26 +619,25 @@ namespace Nestopia
 								"x","y","z","rx","ry","rz","z0","z1","p0","p1","p2","p3"
 							};
 
-							for (uint k=0; k < sizeof(array(names)); ++k)
+							for (uint j=0; j < sizeof(array(names)); ++j)
 							{
-								joyIndex(joyOffset2) = names[k];
-
-								if (cfg[joyIndex] == Configuration::YES)
+								if (scan[names[j]].Yes())
 								{
-									axes |= (1U << k);
+									axes |= (1U << j);
 								}
-								else if (cfg[joyIndex] != Configuration::NO)
+								else if (!scan[names[j]].No())
 								{
-									axes |= (1U << k) & DirectX::DirectInput::DEFAULT_AXES;
+									axes |= (1U << j) & DirectX::DirectInput::DEFAULT_AXES;
 								}
 							}
 
-							directInput.SetScannerAxes( j, axes );
+							directInput.SetScannerAxes( index, axes );
 						}
 					}
 				}
 			}
 
+			Configuration::ConstSection keys( input["keys"] );
 			HeapString keyName;
 
 			for (uint i=0; i < Settings::NUM_TYPES; ++i)
@@ -679,10 +645,7 @@ namespace Nestopia
 				for (uint j=0, n=Settings::NumTypeKeys(i); j < n; ++j)
 				{
 					const Settings::Mapping& mapping = Settings::GetMapping( i, j );
-					keyName = cfg[mapping.cfgName];
-
-					while (tstring const quote=::StrStrI( keyName.Ptr(), _T("quotation") ))
-						keyName( quote - keyName.Ptr(), 9 ) = _T('\"');
+					keyName = keys[mapping.cfgType][mapping.cfgKey].Str();
 
 					Settings::Key key;
 
@@ -700,63 +663,56 @@ namespace Nestopia
 					}
 
 					if (!settings.Map( mapping.index, key ))
-						Io::Log() << "DirectInput: warning, key assigned to \"" << mapping.cfgName << "\" is already in use!\r\n";
+					{
+						Io::Log() << "DirectInput: warning, key assigned to \""
+                                  << mapping.cfgType
+                                  << ':'
+                                  << mapping.cfgKey
+                                  << "\" is already in use!\r\n";
+					}
 				}
 			}
 		}
 
 		void Input::Save(Configuration& cfg) const
 		{
-			cfg["input autofire speed"] = settings.autoFireSpeed;
-			cfg["input allow simultaneous axes"].YesNo() = settings.allowSimulAxes;
+			Configuration::Section input( cfg["input"] );
 
+			input["auto-fire-speed"].Int() = settings.autoFireSpeed;
+			input["allow-simultaneous-axes"].YesNo() = settings.allowSimulAxes;
+
+			if (const uint numJoysticks=directInput.NumJoysticks())
 			{
-				String::Stack<16,char> deviceIndex( "input device xx" );
-				String::Stack<32,char> joyIndex( "input joy xx" );
+				Configuration::Section joysticks( input["joysticks"] );
 
-				for (uint i=0, n=directInput.NumJoysticks(); i < n; ++i)
+				for (uint i=0; i < numJoysticks; ++i)
 				{
-					deviceIndex(13) = i;
-					cfg[deviceIndex].Quote() = directInput.GetJoystickGuid(i).GetString();
+					Configuration::Section joystick( joysticks["joystick"][i] );
 
-					joyIndex(10) = i;
-					const uint joyOffset = joyIndex.Length();
-
-					joyIndex(joyOffset) = " enabled";
-					cfg[joyIndex].YesNo() = directInput.JoystickScanEnabled(i);
-
-					joyIndex(joyOffset) = " deadzone";
-					cfg[joyIndex] = directInput.GetAxisDeadZone(i);
-
-					joyIndex(joyOffset) = " scan ";
-					const uint joyOffset2 = joyIndex.Length();
+					joystick["device"].Str() = directInput.GetJoystickGuid(i).GetString();
+					joystick["enabled"].YesNo() = directInput.JoystickScanEnabled(i);
+					joystick["deadzone"].Int() = directInput.GetAxisDeadZone(i);
 
 					static cstring const names[] =
 					{
 						"x","y","z","rx","ry","rz","z0","z1","p0","p1","p2","p3"
 					};
 
+					Configuration::Section scan( joystick["scan"] );
+
 					for (uint j=0, axes=directInput.GetScannerAxes(i); j < sizeof(array(names)); ++j)
-					{
-						joyIndex(joyOffset2) = names[j];
-						cfg[joyIndex].YesNo() = (axes & (1U << j));
-					}
+						scan[names[j]].YesNo() = (axes & (1U << j));
 				}
 			}
 
-			HeapString keyName;
+			Configuration::Section keys( input["keys"] );
 
 			for (uint i=0; i < Settings::NUM_TYPES; ++i)
 			{
 				for (uint j=0, n=Settings::NumTypeKeys(i); j < n; ++j)
 				{
 					const Settings::Mapping& mapping = Settings::GetMapping( i, j );
-					keyName = directInput.GetKeyName( settings.GetKey(mapping.index) );
-
-					while (tstring const quote=::StrChr( keyName.Ptr(), _T('\"') ))
-						keyName( quote - keyName.Ptr() ) = _T("quotation");
-
-					cfg[mapping.cfgName].Quote() = GenericString(keyName);
+					keys[mapping.cfgType][mapping.cfgKey].Str() = directInput.GetKeyName( settings.GetKey(mapping.index) );
 				}
 			}
 		}
@@ -1137,7 +1093,7 @@ namespace Nestopia
 					else
 						msgId = IDS_DIALOG_INPUT_PRESS_ANY_KEY_EMU;
 
-					base.dialog.Control(IDC_INPUT_KEYPRESS_TEXT).Text() << Resource::String(msgId).Invoke( tchar('0' + (timer.clock / Timer::SEC)) );
+					base.dialog.Control(IDC_INPUT_KEYPRESS_TEXT).Text() << Resource::String(msgId).Invoke( wchar_t('0' + (timer.clock / Timer::SEC)) );
 
 					timer.clock -= Timer::CLOCK;
 				}
@@ -1250,7 +1206,8 @@ namespace Nestopia
 
 				Context context;
 
-				context.windowName = context.className = _T("Poll Key");
+				context.className = L"Poll Key";
+				context.windowName = context.className;
 				context.winStyle = WS_POPUP;
 				context.hParent = base.dialog;
 

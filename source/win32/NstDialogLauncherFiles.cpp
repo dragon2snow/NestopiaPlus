@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -27,26 +27,33 @@
 #include "NstWindowUser.hpp"
 #include "NstIoFile.hpp"
 #include "NstIoArchive.hpp"
+#include "NstIoStream.hpp"
 #include "NstSystemThread.hpp"
 #include "NstIoLog.hpp"
 #include "NstManagerPaths.hpp"
 #include "NstDialogLauncher.hpp"
 #include "../core/NstCrc32.hpp"
+#include "../core/NstChecksum.hpp"
+#include "../core/NstXml.hpp"
+
 
 namespace Nestopia
 {
 	namespace Window
 	{
+		#ifdef NST_MSVC_OPTIMIZE
+		#pragma optimize("t", on)
+		#endif
+
 		Launcher::List::Files::Entry::Entry(uint t)
 		:
 		file       (0),
 		path       (0),
 		name       (0),
-		maker      (0),
-		dBaseEntry (NULL),
 		pRom       (0),
 		cRom       (0),
 		wRam       (0),
+		vRam       (0),
 		mapper     (0),
 		type       (t),
 		attributes (0)
@@ -71,7 +78,7 @@ namespace Nestopia
 
 		protected:
 
-			void ReadFile(tstring const,const Dialog&);
+			void ReadFile(wcstring const,const Dialog&);
 
 			enum Stop
 			{
@@ -106,7 +113,7 @@ namespace Nestopia
 				TYPE_PROCESSED
 			};
 
-			typedef Collection::Set<uint> FileChecksums;
+			typedef std::set<uint> FileChecksums;
 			typedef Collection::Buffer Buffer;
 			typedef Type (Inserter::*Parser)();
 
@@ -117,13 +124,14 @@ namespace Nestopia
 			bool UniqueFile();
 			bool PrepareFile(const uint=1,const uint=0);
 			Type ParseAny();
+			Type ParseXml();
 			Type ParseNes();
 			Type ParseUnf();
 			Type ParseFds();
 			Type ParseNsf();
 			Type ParseIps();
-			Type ParseNsp();
 			Type ParseArchive();
+			void AddEntry(uint,const Nes::Cartridge::Profile&);
 			void AddEntry(const Entry&);
 
 			Buffer buffer;
@@ -151,10 +159,14 @@ namespace Nestopia
 			{
 				if (include[Include::ANY])
 				{
-					if (extension == FourCC<'n','s','p'>::V)
-						return include[Include::NSP] ? &Inserter::ParseNsp : NULL;
+					if (extension == FourCC<'x','m','l'>::V)
+					{
+						return include[Include::XML] ? &Inserter::ParseXml : NULL;
+					}
 					else
+					{
 						return &Inserter::ParseAny;
+					}
 				}
 				else
 				{
@@ -163,10 +175,10 @@ namespace Nestopia
 						case FourCC<'n','e','s'>::V:     return include[Include::NES] ? &Inserter::ParseNes : NULL;
 						case FourCC<'u','n','f'>::V:
 						case FourCC<'u','n','i','f'>::V: return include[Include::UNF] ? &Inserter::ParseUnf : NULL;
+						case FourCC<'x','m','l'>::V:     return include[Include::XML] ? &Inserter::ParseXml : NULL;
 						case FourCC<'f','d','s'>::V:     return include[Include::FDS] ? &Inserter::ParseFds : NULL;
 						case FourCC<'n','s','f'>::V:     return include[Include::NSF] ? &Inserter::ParseNsf : NULL;
 						case FourCC<'i','p','s'>::V:     return include[Include::IPS] ? &Inserter::ParseIps : NULL;
-						case FourCC<'n','s','p'>::V:     return include[Include::NSP] ? &Inserter::ParseNsp : NULL;
 						case FourCC<'z','i','p'>::V:
 						case FourCC<'r','a','r'>::V:
 						case FourCC<'7','z'>::V:         return include[Include::ARCHIVE] ? &Inserter::ParseArchive : NULL;
@@ -196,7 +208,7 @@ namespace Nestopia
 
 			back.path = path.reference;
 
-			if (entries.Size() == HEADER_MAX_ENTRIES)
+			if (entries.Size() == MAX_ENTRIES)
 				throw STOP_SEARCH;
 		}
 
@@ -204,7 +216,7 @@ namespace Nestopia
 		{
 			NST_ASSERT( fileName.Length() && fileName.Length() <= MAX_PATH );
 
-			if (entries.Size() == HEADER_MAX_ENTRIES)
+			if (entries.Size() == MAX_ENTRIES)
 				return false;
 
 			compressed = 0;
@@ -246,7 +258,7 @@ namespace Nestopia
 			return false;
 		}
 
-		void Launcher::List::Files::Inserter::ReadFile(tstring const fileName,const Dialog& dialog)
+		void Launcher::List::Files::Inserter::ReadFile(wcstring const fileName,const Dialog& dialog)
 		{
 			path.string.File() = fileName;
 
@@ -280,7 +292,7 @@ namespace Nestopia
 		bool Launcher::List::Files::Inserter::UniqueFile()
 		{
 			NST_ASSERT( buffer.Size() );
-			return !include[Include::UNIQUE] || parsedFiles.Insert(Crc(0,buffer.Size()));
+			return !include[Include::UNIQUE] || parsedFiles.insert(Crc(0,buffer.Size())).second;
 		}
 
 		bool Launcher::List::Files::Inserter::PrepareFile(const uint minSize,const uint fileId)
@@ -309,44 +321,83 @@ namespace Nestopia
 			);
 		}
 
+		void Launcher::List::Files::Inserter::AddEntry(const uint flags,const Nes::Cartridge::Profile& profile)
+		{
+			Entry entry( flags );
+
+			if (!profile.game.title.empty())
+				entry.name = strings << profile.game.title.c_str();
+
+			entry.pRom = profile.board.GetPrg() / Nes::Core::SIZE_1K;
+			entry.cRom = profile.board.GetChr() / Nes::Core::SIZE_1K;
+			entry.wRam = profile.board.GetWram() / Nes::Core::SIZE_1K;
+			entry.vRam = profile.board.GetVram() / Nes::Core::SIZE_1K;
+
+			if (profile.board.mapper != Nes::Cartridge::Profile::Board::NO_MAPPER)
+				entry.mapper = profile.board.mapper;
+
+			if (profile.board.HasBattery())
+				entry.attributes |= Entry::ATR_BATTERY;
+
+			if (profile.multiRegion)
+			{
+				entry.attributes |= Entry::ATR_NTSC_PAL;
+			}
+			else switch (profile.system.type)
+			{
+				case Nes::Cartridge::Profile::System::NES_PAL:
+				case Nes::Cartridge::Profile::System::NES_PAL_A:
+				case Nes::Cartridge::Profile::System::NES_PAL_B:
+
+					entry.attributes |= Entry::ATR_PAL;
+					break;
+
+				default:
+
+					entry.attributes |= Entry::ATR_NTSC;
+					break;
+			}
+
+			entry.hash = profile.hash;
+
+			AddEntry( entry );
+		}
+
 		Launcher::List::Files::Inserter::Type Launcher::List::Files::Inserter::ParseNes()
 		{
 			if (PrepareFile( 16, Managers::Paths::File::ID_INES ))
 			{
-				Nes::Cartridge::Setup setup;
-
 				if (UniqueFile())
 				{
-					Nes::Cartridge::ReadNesHeader( setup, buffer.Ptr(), buffer.Size() );
+					Io::Stream::In stream( buffer );
+					Nes::Cartridge::Profile profile;
+					Nes::Cartridge::ReadInes( stream, Nes::Machine::FAVORED_NES_NTSC, profile );
 
-					Entry entry( Entry::NES | compressed );
+					if (!imageDatabase.FindEntry( profile.hash, Nes::Machine::FAVORED_NES_NTSC ))
+					{
+						uint length = buffer.Size();
 
-					entry.pRom = setup.prgRom / Nes::Core::SIZE_1K;
-					entry.cRom = setup.chrRom / Nes::Core::SIZE_1K;
-					entry.wRam = (setup.wrkRam + setup.wrkRamBacked) / Nes::Core::SIZE_1K;
-					entry.mapper = setup.mapper;
+						if (length >= 16+Nes::Core::SIZE_8K)
+						{
+							length -= 16;
 
-					entry.attributes =
-					(
-						( setup.wrkRamBacked >= Nes::Core::SIZE_1K  ? Entry::ATR_BATTERY : 0 ) |
-						( setup.trainer                             ? Entry::ATR_TRAINER : 0 ) |
-						( setup.system == Nes::Cartridge::SYSTEM_VS ? Entry::ATR_VS      : 0 ) |
-						(
-							setup.region == Nes::Cartridge::REGION_BOTH ? Entry::ATR_NTSC_PAL :
-							setup.region == Nes::Cartridge::REGION_PAL  ? Entry::ATR_PAL :
-                                                                          Entry::ATR_NTSC
-						)
-							|
-						(
-							setup.mirroring == Nes::Cartridge::MIRROR_FOURSCREEN ? Entry::MIRROR_FOURSCREEN :
-							setup.mirroring == Nes::Cartridge::MIRROR_VERTICAL   ? Entry::MIRROR_VERTICAL   :
-                                                                                   Entry::MIRROR_HORIZONTAL
-						)
-					);
+							if (length > Nes::Cartridge::NesHeader::MAX_PRG_ROM + Nes::Cartridge::NesHeader::MAX_CHR_ROM)
+								length = Nes::Cartridge::NesHeader::MAX_PRG_ROM + Nes::Cartridge::NesHeader::MAX_CHR_ROM;
+							else
+								length -= length % Nes::Core::SIZE_8K;
 
-					entry.dBaseEntry = imageDatabase.FindEntry( buffer.Ptr(), buffer.Size() );
+							if (length != profile.board.GetPrg() + profile.board.GetChr())
+							{
+								Nes::Cartridge::Profile::Hash hash;
+								hash.Compute( buffer.At(16), length );
 
-					AddEntry( entry );
+								if (imageDatabase.FindEntry( hash, Nes::Machine::FAVORED_NES_NTSC ))
+									profile.hash = hash;
+							}
+						}
+					}
+
+					AddEntry( Entry::NES | compressed, profile );
 				}
 
 				return TYPE_PROCESSED;
@@ -361,105 +412,30 @@ namespace Nestopia
 			{
 				if (UniqueFile())
 				{
-					Entry entry( Entry::UNF | compressed );
+					Io::Stream::In stream( buffer );
+					Nes::Cartridge::Profile profile;
+					Nes::Cartridge::ReadUnif( stream, Nes::Machine::FAVORED_NES_NTSC, profile );
 
-					cstring const end = buffer.End() - 8;
-					uint pRom = 0, cRom = 0;
+					AddEntry( Entry::UNF | compressed, profile );
+				}
 
-					for (char* it = buffer.At(32); it <= end; it += 8 + FourCC<>::T( it+4 ))
-					{
-						switch (FourCC<>::T( it+0 ))
-						{
-							case FourCC<'N','A','M','E'>::V:
+				return TYPE_PROCESSED;
+			}
 
-								// limit to 255 characters by looking at the first byte only
-								if (it+1 < end && FourCC<>::T( it+4 ) > 1)
-								{
-									// in case string is not terminated
-									it[8-1 + NST_MIN( it[4], end-it )] = '\0';
-									entry.name = strings.Import( it+8 );
-								}
-								break;
+			return TYPE_INVALID;
+		}
 
-							case FourCC<'P','R','G','0'>::V:
-							case FourCC<'P','R','G','1'>::V:
-							case FourCC<'P','R','G','2'>::V:
-							case FourCC<'P','R','G','3'>::V:
-							case FourCC<'P','R','G','4'>::V:
-							case FourCC<'P','R','G','5'>::V:
-							case FourCC<'P','R','G','6'>::V:
-							case FourCC<'P','R','G','7'>::V:
-							case FourCC<'P','R','G','8'>::V:
-							case FourCC<'P','R','G','9'>::V:
-							case FourCC<'P','R','G','A'>::V:
-							case FourCC<'P','R','G','B'>::V:
-							case FourCC<'P','R','G','C'>::V:
-							case FourCC<'P','R','G','D'>::V:
-							case FourCC<'P','R','G','E'>::V:
-							case FourCC<'P','R','G','F'>::V:
+		Launcher::List::Files::Inserter::Type Launcher::List::Files::Inserter::ParseXml()
+		{
+			if (PrepareFile())
+			{
+				if (UniqueFile())
+				{
+					Io::Stream::In stream( buffer );
+					Nes::Cartridge::Profile profile;
 
-								entry.pRom = (pRom += FourCC<>::T( it+4 )) / Nes::Core::SIZE_1K;
-								break;
-
-							case FourCC<'C','H','R','0'>::V:
-							case FourCC<'C','H','R','1'>::V:
-							case FourCC<'C','H','R','2'>::V:
-							case FourCC<'C','H','R','3'>::V:
-							case FourCC<'C','H','R','4'>::V:
-							case FourCC<'C','H','R','5'>::V:
-							case FourCC<'C','H','R','6'>::V:
-							case FourCC<'C','H','R','7'>::V:
-							case FourCC<'C','H','R','8'>::V:
-							case FourCC<'C','H','R','9'>::V:
-							case FourCC<'C','H','R','A'>::V:
-							case FourCC<'C','H','R','B'>::V:
-							case FourCC<'C','H','R','C'>::V:
-							case FourCC<'C','H','R','D'>::V:
-							case FourCC<'C','H','R','E'>::V:
-							case FourCC<'C','H','R','F'>::V:
-
-								entry.cRom = (cRom += FourCC<>::T( it+4 )) / Nes::Core::SIZE_1K;
-								break;
-
-							case FourCC<'T','V','C','I'>::V:
-
-								if (it < end)
-								{
-									switch (it[8])
-									{
-										case 1:  entry.attributes |= Entry::ATR_PAL;      break;
-										case 2:  entry.attributes |= Entry::ATR_NTSC_PAL; break;
-										default: entry.attributes |= Entry::ATR_NTSC;     break;
-									}
-								}
-								break;
-
-							case FourCC<'B','A','T','R'>::V:
-
-								entry.attributes |= Entry::ATR_BATTERY;
-								break;
-
-							case FourCC<'M','I','R','R'>::V:
-
-								if (it < end)
-								{
-									entry.attributes &= ~uint(Entry::ATR_MIRRORING);
-
-									switch (it[8])
-									{
-										case 0: entry.attributes |= Entry::MIRROR_HORIZONTAL; break;
-										case 1: entry.attributes |= Entry::MIRROR_VERTICAL;   break;
-										case 2: entry.attributes |= Entry::MIRROR_ZERO;       break;
-										case 3: entry.attributes |= Entry::MIRROR_ONE;        break;
-										case 4: entry.attributes |= Entry::MIRROR_FOURSCREEN; break;
-										case 5: entry.attributes |= Entry::MIRROR_CONTROLLED; break;
-									}
-								}
-								break;
-						}
-					}
-
-					AddEntry( entry );
+					if (NES_SUCCEEDED(Nes::Cartridge::ReadRomset( stream, Nes::Machine::FAVORED_NES_NTSC, Nes::Machine::DONT_ASK_PROFILE, profile )))
+						AddEntry( Entry::XML | compressed, profile );
 				}
 
 				return TYPE_PROCESSED;
@@ -481,7 +457,8 @@ namespace Nestopia
 					const uint size = buffer.Size() - (hasHeader ? 16 : 0);
 					entry.pRom = (size / Nes::Core::SIZE_1K) + (size % Nes::Core::SIZE_1K != 0);
 					entry.wRam = 32;
-					entry.attributes |= Entry::ATR_NTSC;
+					entry.vRam = 8;
+					entry.attributes |= Entry::ATR_DEFAULT_FDS;
 
 					AddEntry( entry );
 				}
@@ -546,9 +523,6 @@ namespace Nestopia
 					header.pad2[0] = '\0'; // in case string is not terminated
 					entry.name = strings.Import( header.name );
 
-					header.pad3[0] = '\0'; // in case string is not terminated
-					entry.maker = strings.Import( header.maker );
-
 					AddEntry( entry );
 				}
 
@@ -565,22 +539,6 @@ namespace Nestopia
 				if (UniqueFile())
 				{
 					Entry entry( Entry::IPS | compressed );
-					AddEntry( entry );
-
-					return TYPE_PROCESSED;
-				}
-			}
-
-			return TYPE_INVALID;
-		}
-
-		Launcher::List::Files::Inserter::Type Launcher::List::Files::Inserter::ParseNsp()
-		{
-			if (PrepareFile())
-			{
-				if (UniqueFile())
-				{
-					Entry entry( Entry::NSP | compressed );
 					AddEntry( entry );
 
 					return TYPE_PROCESSED;
@@ -678,7 +636,7 @@ namespace Nestopia
 			bool UniquePath();
 			void Start(System::Thread::Terminator);
 			void Search(System::Thread::Terminator);
-			void ReadPath(tstring const,System::Thread::Terminator);
+			void ReadPath(wcstring const,System::Thread::Terminator);
 
 			const Settings::Folders& folders;
 			SearchedPaths searchedPaths;
@@ -758,7 +716,7 @@ namespace Nestopia
 				WIN32_FIND_DATA data;
 				HANDLE const handle;
 
-				FileFinder(tstring path)
+				FileFinder(wcstring path)
 				: handle(::FindFirstFile( path, &data )) {}
 
 				~FileFinder()
@@ -768,7 +726,7 @@ namespace Nestopia
 				}
 			};
 
-			path.string.File() = _T("*.*");
+			path.string.File() = "*.*";
 
 			FileFinder findFile( path.string.Ptr() );
 
@@ -808,7 +766,7 @@ namespace Nestopia
 			return false;
 		}
 
-		void Launcher::List::Files::Searcher::ReadPath(tstring const subDir,System::Thread::Terminator terminator)
+		void Launcher::List::Files::Searcher::ReadPath(wcstring const subDir,System::Thread::Terminator terminator)
 		{
 			NST_ASSERT( subDir );
 
@@ -831,13 +789,13 @@ namespace Nestopia
 		Launcher::List::Files::Files()
 		:
 		dirty  (false),
-		loaded (!Application::Instance::GetExePath(_T("launcher.nsd")).FileExists())
+		loaded (!Application::Instance::GetExePath(L"launcher.xml").FileExists())
 		{
 			if (loaded)
-				Io::Log() << "Launcher: database file \"launcher.nsd\" not present\r\n";
+				Io::Log() << "Launcher: database file \"launcher.xml\" not present\r\n";
 		}
 
-		void Launcher::List::Files::Load(const Nes::Cartridge::Database& imageDatabase)
+		void Launcher::List::Files::Load()
 		{
 			if (loaded)
 				return;
@@ -846,93 +804,144 @@ namespace Nestopia
 
 			try
 			{
-				const Io::File file( Application::Instance::GetExePath(_T("launcher.nsd")), Io::File::COLLECT );
+				typedef Nes::Core::Xml Xml;
+				Xml xml;
 
-				uint numEntries, numStrings, stringSize;
+				{
+					Io::Stream::In stream( Application::Instance::GetExePath(L"launcher.xml") );
+					xml.Read( stream );
+				}
 
-				if
-				(
-					file.Read32() != HEADER_ID ||
-					file.Read32() != HEADER_VERSION ||
-					0 == (stringSize=file.Read32()) ||
-					0 == (numStrings=file.Read32()) ||
-					0 == (numEntries=file.Read32()) ||
-					numEntries > HEADER_MAX_ENTRIES ||
-					!strings.Import( file, stringSize, file.Read32() & HEADER_FLAGS_UTF16 ) ||
-					strings.Count() != numStrings
-				)
-					throw ERR_CORRUPT_DATA;
+				if (!xml.GetRoot().IsType( L"launcher" ))
+					throw 1;
 
-				entries.Resize( numEntries );
-
-				for (uint i=0; i < numEntries; ++i)
+				for (Xml::Node node(xml.GetRoot().GetFirstChild()); node; node=node.GetNextSibling())
 				{
 					Entry entry;
 
-					entry.file = file.Read32();
-					entry.path = file.Read32();
-					entry.type = file.Read8();
+					if (node.IsType( L"romset" ))
+					{
+						entry.type = Entry::XML;
+					}
+					else if (node.IsType( L"ines" ))
+					{
+						entry.type = Entry::NES;
+					}
+					else if (node.IsType( L"unif" ))
+					{
+						entry.type = Entry::UNF;
+					}
+					else if (node.IsType( L"fds" ))
+					{
+						entry.type = Entry::FDS;
+					}
+					else if (node.IsType( L"nsf" ))
+					{
+						entry.type = Entry::NSF;
+					}
+					else if (node.IsType( L"ips" ))
+					{
+						entry.type = Entry::IPS;
+					}
+					else
+					{
+						throw 1;
+					}
+
+					wcstring string;
+
+					if (!*(string=node.GetChild( L"file" ).GetValue()))
+						throw 1;
+
+					entry.file = strings << string;
+
+					if (!*(string=node.GetChild( L"dir" ).GetValue()))
+						throw 1;
+
+					entry.path = strings << string;
+
+					if (node.GetChild( L"archive" ).IsValue( L"yes" ))
+						entry.type |= Entry::ARCHIVE;
 
 					switch (entry.type & Entry::ALL)
 					{
+						case Entry::XML:
 						case Entry::UNF:
-
-							entry.name = file.Read32();
-							entry.maker = file.Read32();
-
 						case Entry::NES:
+						{
+							if (*(string=node.GetChild( L"name" ).GetValue()))
+								entry.name = strings << string;
 
-							entry.pRom = file.Read16();
-							entry.cRom = file.Read16();
-							entry.wRam = file.Read16();
-							entry.mapper = file.Read16();
-							entry.attributes = file.Read8();
+							const Xml::Node system( node.GetChild( L"system" ) );
 
-							entry.dBaseEntry = imageDatabase.FindEntry( file.Read32() );
+							if (system.IsValue( L"vs" ))
+							{
+								entry.attributes = Entry::ATR_VS;
+							}
+							else if (system.IsValue( L"pc10" ))
+							{
+								entry.attributes = Entry::ATR_PC10;
+							}
+							else if (system.IsValue( L"pal" ))
+							{
+								entry.attributes = Entry::ATR_PAL;
+							}
+							else if (system.IsValue( L"ntsc/pal" ))
+							{
+								entry.attributes = Entry::ATR_NTSC_PAL;
+							}
+							else
+							{
+								entry.attributes = Entry::ATR_NTSC;
+							}
+
+							entry.pRom = node.GetChild( L"prg" ).GetUnsignedValue() & 0xFFFF;
+							entry.cRom = node.GetChild( L"chr" ).GetUnsignedValue() & 0xFFFF;
+							entry.wRam = node.GetChild( L"wram" ).GetUnsignedValue() & 0xFFFF;
+							entry.vRam = node.GetChild( L"vram" ).GetUnsignedValue() & 0xFFFF;
+							entry.mapper = node.GetChild( L"mapper" ).GetUnsignedValue() & 0xFFFF;
+
+							if (node.GetChild( L"battery" ).IsValue( L"yes" ))
+								entry.attributes |= Entry::ATR_BATTERY;
+
+							entry.hash.Assign( node.GetChild( L"sha1" ).GetValue(), node.GetChild( L"crc" ).GetValue() );
 							break;
-
-						case Entry::NSF:
-
-							entry.name = file.Read32();
-							entry.maker = file.Read32();
-							entry.pRom = file.Read16();
-							entry.wRam = file.Read16();
-							entry.attributes = file.Read8();
-
-							entry.attributes &= Entry::ATR_NTSC_PAL;
-							break;
+						}
 
 						case Entry::FDS:
 
-							entry.pRom = file.Read16();
+							entry.pRom = node.GetChild( L"prg" ).GetUnsignedValue() & 0xFFFF;
 							entry.wRam = 32;
-							entry.attributes |= Entry::ATR_NTSC;
-
-						case Entry::IPS:
-						case Entry::NSP:
+							entry.attributes = Entry::ATR_DEFAULT_FDS;
 							break;
 
-						default: throw ERR_CORRUPT_DATA;
+						case Entry::NSF:
+						{
+							if (*string)
+								entry.name = strings << string;
+
+							entry.pRom = node.GetChild( L"prg" ).GetUnsignedValue() & 0xFFFF;
+							entry.wRam = node.GetChild( L"wram" ).GetUnsignedValue() & 0xFFFF;
+
+							const Xml::Node system( node.GetChild( L"system" ) );
+
+							if (system.IsValue( L"pal" ))
+							{
+								entry.attributes = Entry::ATR_PAL;
+							}
+							else if (system.IsValue( L"ntsc/pal" ))
+							{
+								entry.attributes = Entry::ATR_NTSC_PAL;
+							}
+							else
+							{
+								entry.attributes = Entry::ATR_NTSC;
+							}
+							break;
+						}
 					}
 
-					NST_VERIFY
-					(
-						entry.file  < stringSize &&
-						entry.path  < stringSize &&
-						entry.name  < stringSize &&
-						entry.maker < stringSize
-					);
-
-					if
-					(
-						entry.file  >= stringSize ||
-						entry.path  >= stringSize ||
-						entry.name  >= stringSize ||
-						entry.maker >= stringSize
-					)
-						throw ERR_CORRUPT_DATA;
-
-					entries[i] = entry;
+					entries.PushBack( entry );
 				}
 			}
 			catch (...)
@@ -942,79 +951,187 @@ namespace Nestopia
 				Clear();
 				User::Warn( IDS_LAUNCHER_ERR_LOAD_DB );
 			}
+
+			Defrag();
 		}
 
-		void Launcher::List::Files::Save(const Nes::Cartridge::Database& imageDatabase)
+		void Launcher::List::Files::Save()
 		{
 			if (dirty)
 			{
-				Io::Log log;
-
-				const Path fileName( Application::Instance::GetExePath(_T("launcher.nsd")) );
-
-				NST_ASSERT( bool(entries.Size()) <= bool(strings.Size()) );
-
-				Defrag();
+				const Path fileName( Application::Instance::GetExePath(L"launcher.xml") );
 
 				if (entries.Size())
 				{
 					try
 					{
-						const Io::File file( fileName, Io::File::DUMP );
+						typedef Nes::Core::Xml Xml;
 
-						file.Write32( HEADER_ID      );
-						file.Write32( HEADER_VERSION );
-						file.Write32( strings.Size()  );
-						file.Write32( strings.Count() );
-						file.Write32( entries.Size()  );
-						file.Write32( strings.IsUTF16() ? HEADER_FLAGS_UTF16 : 0 );
-
-						strings.Export( file );
+						Xml xml;
+						Xml::Node root( xml.Create(L"launcher") );
+						root.AddAttribute( L"version", L"1.0" );
 
 						for (Entries::ConstIterator it(entries.Begin()), end(entries.End()); it != end; ++it)
 						{
-							NST_ASSERT( it->type );
+							wcstring type;
 
-							file.Write32( it->file );
-							file.Write32( it->path );
-							file.Write8( it->type );
+							switch (it->type & Entry::ALL)
+							{
+								case Entry::NES: type = L"ines";    break;
+								case Entry::UNF: type = L"unif";    break;
+								case Entry::XML: type = L"romset";  break;
+								case Entry::FDS: type = L"fds";     break;
+								case Entry::NSF: type = L"nsf";     break;
+								case Entry::IPS: type = L"ips";     break;
+								default: continue;
+							}
+
+							Xml::Node node( root.AddChild( type ) );
+
+							node.AddChild( L"file", strings[it->file] );
+							node.AddChild( L"dir", strings[it->path] );
+
+							if (it->type & Entry::ARCHIVE)
+								node.AddChild( L"archive", L"yes" );
+
+							wchar_t buffer[32];
 
 							switch (it->type & Entry::ALL)
 							{
 								case Entry::NSF:
-
+								{
 									NST_ASSERT( !(it->attributes & ~uint(Entry::ATR_NTSC_PAL)) );
 
-									file.Write32( it->name );
-									file.Write32( it->maker );
-									file.Write16( it->pRom );
-									file.Write16( it->wRam );
-									file.Write8( it->attributes );
+									if (it->name)
+										node.AddChild( L"name", strings[it->name] );
+
+									wcstring system = L"ntsc";
+
+									if (it->attributes & Entry::ATR_PAL)
+									{
+										if (it->attributes & Entry::ATR_NTSC)
+											system = L"ntsc/pal";
+										else
+											system = L"pal";
+									}
+
+									node.AddChild( L"system", system );
+
+									if (it->pRom)
+									{
+										std::swprintf( buffer, L"%u", uint(it->pRom) );
+										node.AddChild( L"prg", buffer );
+									}
+
+									if (it->wRam)
+									{
+										std::swprintf( buffer, L"%u", uint(it->wRam) );
+										node.AddChild( L"wram", buffer );
+									}
+
 									break;
+								}
 
 								case Entry::FDS:
 
-									file.Write16( it->pRom );
+									if (it->pRom)
+									{
+										std::swprintf( buffer, L"%u", uint(it->pRom) );
+										node.AddChild( L"prg", buffer );
+									}
 									break;
 
+								case Entry::XML:
 								case Entry::UNF:
-
-									file.Write32( it->name );
-									file.Write32( it->maker );
-
 								case Entry::NES:
+								{
+									if (it->name)
+										node.AddChild( L"name", strings[it->name] );
 
-									file.Write16( it->pRom );
-									file.Write16( it->cRom );
-									file.Write16( it->wRam );
-									file.Write16( it->mapper );
-									file.Write8( it->attributes );
-									file.Write32( it->dBaseEntry ? imageDatabase.GetCrc(it->dBaseEntry) : 0 );
+									wcstring system = L"ntsc";
+
+									if (it->attributes & Entry::ATR_VS)
+									{
+										system = L"vs";
+									}
+									else if (it->attributes & Entry::ATR_PC10)
+									{
+										system = L"pc10";
+									}
+									else if (it->attributes & Entry::ATR_PAL)
+									{
+										if (it->attributes & Entry::ATR_NTSC)
+											system = L"ntsc/pal";
+										else
+											system = L"pal";
+									}
+
+									node.AddChild( L"system", system );
+
+									if (it->pRom)
+									{
+										std::swprintf( buffer, L"%u", uint(it->pRom) );
+										node.AddChild( L"prg", buffer );
+									}
+
+									if (it->cRom)
+									{
+										std::swprintf( buffer, L"%u", uint(it->cRom) );
+										node.AddChild( L"chr", buffer );
+									}
+
+									if (it->wRam)
+									{
+										std::swprintf( buffer, L"%u", uint(it->wRam) );
+										node.AddChild( L"wram", buffer );
+									}
+
+									if (it->vRam)
+									{
+										std::swprintf( buffer, L"%u", uint(it->vRam) );
+										node.AddChild( L"vram", buffer );
+									}
+
+									if (it->attributes & Entry::ATR_BATTERY)
+										node.AddChild( L"battery", L"yes" );
+
+									if (it->mapper)
+									{
+										std::swprintf( buffer, L"%u", uint(it->mapper) );
+										node.AddChild( L"mapper", buffer );
+									}
+
+									if (it->hash)
+									{
+										std::swprintf( buffer, L"%08X", uint(it->hash.GetCrc32()) );
+										node.AddChild( L"crc", buffer );
+
+										wchar_t sha1[Entry::Hash::SHA1_WORD_LENGTH*8+1];
+										sha1[Entry::Hash::SHA1_WORD_LENGTH*8] = '\0';
+
+										for (uint i=0; i < Entry::Hash::SHA1_WORD_LENGTH; ++i)
+											std::swprintf( sha1+i*8, L"%08X", uint(it->hash.GetSha1()[i]) );
+
+										node.AddChild( L"sha1", sha1 );
+									}
+
 									break;
+								}
 							}
 						}
 
-						log << "Launcher: database saved to \"launcher.nsd\"\r\n";
+						Collection::Buffer buffer;
+
+						{
+							Io::Stream::Out stream( buffer );
+							xml.Write( root, stream );
+						}
+
+						xml.Destroy();
+
+						Io::File( fileName, Io::File::DUMP ).Write( buffer.Ptr(), buffer.Size() );
+
+						Io::Log() << "Launcher: database saved to \"launcher.xml\"\r\n";
 					}
 					catch (...)
 					{
@@ -1024,16 +1141,16 @@ namespace Nestopia
 				else if (fileName.FileExists())
 				{
 					if (Io::File::Delete( fileName.Ptr() ))
-						log << "Launcher: empty database, deleted \"launcher.nsd\"\r\n";
+						Io::Log() << "Launcher: empty database, deleted \"launcher.xml\"\r\n";
 					else
-						log << "Launcher: warning, couldn't delete \"launcher.nsd\"!\r\n";
+						Io::Log() << "Launcher: warning, couldn't delete \"launcher.xml\"!\r\n";
 				}
 			}
 		}
 
 		void Launcher::List::Files::Defrag()
 		{
-			typedef Collection::Map<GenericString,uint> References;
+			typedef std::map<GenericString,uint> References;
 
 			References references;
 
@@ -1046,10 +1163,9 @@ namespace Nestopia
 				{
 					if (it->type)
 					{
-						if ( it->file  ) references( strings[ it->file  ] );
-						if ( it->path  ) references( strings[ it->path  ] );
-						if ( it->name  ) references( strings[ it->name  ] );
-						if ( it->maker ) references( strings[ it->maker ] );
+						if ( it->file ) references[strings[it->file]] = 0;
+						if ( it->path ) references[strings[it->path]] = 0;
+						if ( it->name ) references[strings[it->name]] = 0;
 
 						tmp.PushBack( *it );
 					}
@@ -1063,15 +1179,14 @@ namespace Nestopia
 			{
 				Strings tmp( strings.Size() );
 
-				for (References::Iterator it(references.Begin()), end(references.End()); it != end; ++it)
-					it->value = (tmp << it->key);
+				for (References::iterator it(references.begin()), end(references.end()); it != end; ++it)
+					it->second = (tmp << it->first);
 
 				for (Entries::Iterator it(entries.Begin()), end(entries.End()); it != end; ++it)
 				{
-					if ( it->file  ) it->file  = references.Locate( strings[ it->file  ] );
-					if ( it->path  ) it->path  = references.Locate( strings[ it->path  ] );
-					if ( it->name  ) it->name  = references.Locate( strings[ it->name  ] );
-					if ( it->maker ) it->maker = references.Locate( strings[ it->maker ] );
+					if ( it->file ) it->file = references.find( strings[ it->file  ] )->second;
+					if ( it->path ) it->path = references.find( strings[ it->path  ] )->second;
+					if ( it->name ) it->name = references.find( strings[ it->name  ] )->second;
 				}
 
 				strings = tmp;
@@ -1125,88 +1240,67 @@ namespace Nestopia
 			Searcher( strings, entries, settings, imageDatabase ).Search();
 		}
 
-		#ifdef NST_MSVC_OPTIMIZE
-		#pragma optimize("t", on)
-		#endif
-
-		tstring Launcher::List::Files::Entry::GetName(const Strings& strings,const Nes::Cartridge::Database* db) const
+		Nes::Cartridge::Database::Entry Launcher::List::Files::Entry::SearchDb(const Nes::Cartridge::Database* db) const
 		{
-			if (name || !dBaseEntry || !db)
-				return GetName( strings );
-			else
-				return _T("-");
-		}
+			Nes::Cartridge::Database::Entry entry;
 
-		uint Launcher::List::Files::Entry::GetSystem() const
-		{
-			if (attributes & ATR_VS)
-			{
-				return SYSTEM_VS;
-			}
-			else if ((attributes & ATR_NTSC_PAL) == ATR_NTSC_PAL)
-			{
-				return SYSTEM_NTSC_PAL;
-			}
-			else if (attributes & ATR_NTSC)
-			{
-				return SYSTEM_NTSC;
-			}
-			else if (attributes & ATR_NTSC_PAL)
-			{
-				return SYSTEM_PAL;
-			}
+			if (db && (type & (NES|UNF|XML)))
+				entry = db->FindEntry( hash, Nes::Machine::FAVORED_NES_NTSC );
 
-			return SYSTEM_UNKNOWN;
-		}
-
-		uint Launcher::List::Files::Entry::GetMirroring(const Nes::Cartridge::Database* db) const
-		{
-			if (dBaseEntry && db)
-			{
-				uint m = db->GetMirroring( dBaseEntry );
-
-				return
-				(
-					m == Nes::Cartridge::MIRROR_HORIZONTAL ? MIRROR_HORIZONTAL :
-					m == Nes::Cartridge::MIRROR_VERTICAL   ? MIRROR_VERTICAL :
-					m == Nes::Cartridge::MIRROR_FOURSCREEN ? MIRROR_FOURSCREEN :
-					m == Nes::Cartridge::MIRROR_ZERO       ? MIRROR_ZERO :
-					m == Nes::Cartridge::MIRROR_ONE        ? MIRROR_ONE :
-                                                             MIRROR_CONTROLLED
-				);
-			}
-
-			return attributes & ATR_MIRRORING;
+			return entry;
 		}
 
 		uint Launcher::List::Files::Entry::GetSystem(const Nes::Cartridge::Database* db) const
 		{
-			if (dBaseEntry && db)
+			if (const Nes::Cartridge::Database::Entry entry = SearchDb( db ))
 			{
-				switch (db->GetSystem( dBaseEntry ))
+				if (entry.IsMultiRegion())
 				{
-					case Nes::Cartridge::SYSTEM_VS:
+					return SYSTEM_NTSC_PAL;
+				}
+				else switch (entry.GetSystem())
+				{
+					case Nes::Cartridge::Profile::System::NES_NTSC:
+					case Nes::Cartridge::Profile::System::FAMICOM:
+						return SYSTEM_NTSC;
+
+					case Nes::Cartridge::Profile::System::NES_PAL:
+					case Nes::Cartridge::Profile::System::NES_PAL_A:
+					case Nes::Cartridge::Profile::System::NES_PAL_B:
+						return SYSTEM_PAL;
+
+					case Nes::Cartridge::Profile::System::VS_UNISYSTEM:
 						return SYSTEM_VS;
 
-					case Nes::Cartridge::SYSTEM_PC10:
+					case Nes::Cartridge::Profile::System::PLAYCHOICE_10:
 						return SYSTEM_PC10;
 				}
-
-				switch (db->GetRegion( dBaseEntry ))
-				{
-					case Nes::Cartridge::REGION_BOTH:
-						return SYSTEM_NTSC_PAL;
-
-					case Nes::Cartridge::REGION_PAL:
-						return SYSTEM_PAL;
-				}
-
-				return SYSTEM_NTSC;
 			}
 			else
 			{
-				return GetSystem();
+				if (attributes & ATR_VS)
+				{
+					return SYSTEM_VS;
+				}
+				else if (attributes & ATR_PC10)
+				{
+					return SYSTEM_PC10;
+				}
+				else if ((attributes & ATR_NTSC_PAL) == ATR_NTSC_PAL)
+				{
+					return SYSTEM_NTSC_PAL;
+				}
+				else if (attributes & ATR_NTSC)
+				{
+					return SYSTEM_NTSC;
+				}
+				else if (attributes & ATR_PAL)
+				{
+					return SYSTEM_PAL;
+				}
 			}
+
+			return SYSTEM_UNKNOWN;
 		}
 
 		#ifdef NST_MSVC_OPTIMIZE

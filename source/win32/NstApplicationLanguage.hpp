@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -44,16 +44,16 @@ namespace Nestopia
 
 			typedef std::vector<Path> Paths;
 
-			void UpdateResource(tstring);
+			void UpdateResource(wcstring);
 			void EnumerateResources(Paths&) const;
 
 		private:
 
-			void Load(tstring);
+			void Load(wcstring);
 
 			struct Resource : System::Dll
 			{
-				bool Load(tstring);
+				bool Load(wcstring);
 
 				Path path;
 			};

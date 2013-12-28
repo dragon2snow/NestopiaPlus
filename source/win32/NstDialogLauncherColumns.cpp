@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -36,44 +36,28 @@ namespace Nestopia
 			IDS_LAUNCHER_COLUMN_MAPPER    == IDS_LAUNCHER_COLUMN_FILE +  2 &&
 			IDS_LAUNCHER_COLUMN_PRG       == IDS_LAUNCHER_COLUMN_FILE +  3 &&
 			IDS_LAUNCHER_COLUMN_CHR       == IDS_LAUNCHER_COLUMN_FILE +  4 &&
-			IDS_LAUNCHER_COLUMN_WRK       == IDS_LAUNCHER_COLUMN_FILE +  5 &&
-			IDS_LAUNCHER_COLUMN_BATTERY   == IDS_LAUNCHER_COLUMN_FILE +  6 &&
-			IDS_LAUNCHER_COLUMN_TRAINER   == IDS_LAUNCHER_COLUMN_FILE +  7 &&
-			IDS_LAUNCHER_COLUMN_MIRRORING == IDS_LAUNCHER_COLUMN_FILE +  8 &&
-			IDS_LAUNCHER_COLUMN_CONDITION == IDS_LAUNCHER_COLUMN_FILE +  9 &&
-			IDS_LAUNCHER_COLUMN_NAME      == IDS_LAUNCHER_COLUMN_FILE + 10 &&
-			IDS_LAUNCHER_COLUMN_MAKER     == IDS_LAUNCHER_COLUMN_FILE + 11 &&
-			IDS_LAUNCHER_COLUMN_FOLDER    == IDS_LAUNCHER_COLUMN_FILE + 12
+			IDS_LAUNCHER_COLUMN_WRAM      == IDS_LAUNCHER_COLUMN_FILE +  5 &&
+			IDS_LAUNCHER_COLUMN_VRAM      == IDS_LAUNCHER_COLUMN_FILE +  6 &&
+			IDS_LAUNCHER_COLUMN_BATTERY   == IDS_LAUNCHER_COLUMN_FILE +  7 &&
+			IDS_LAUNCHER_COLUMN_DUMP      == IDS_LAUNCHER_COLUMN_FILE +  8 &&
+			IDS_LAUNCHER_COLUMN_NAME      == IDS_LAUNCHER_COLUMN_FILE +  9 &&
+			IDS_LAUNCHER_COLUMN_FOLDER    == IDS_LAUNCHER_COLUMN_FILE + 10
 		);
 
-		tstring const Launcher::List::Columns::cfgStrings[NUM_TYPES] =
+		wcstring const Launcher::List::Columns::cfgStrings[NUM_TYPES] =
 		{
-			_T( "file"      ),
-			_T( "system"    ),
-			_T( "mapper"    ),
-			_T( "prom"      ),
-			_T( "crom"      ),
-			_T( "wram"      ),
-			_T( "battery"   ),
-			_T( "trainer"   ),
-			_T( "mirroring" ),
-			_T( "condition" ),
-			_T( "name"      ),
-			_T( "maker"     ),
-			_T( "folder"    )
+			L"file",
+			L"system",
+			L"mapper",
+			L"prg",
+			L"chr",
+			L"wram",
+			L"vram",
+			L"battery",
+			L"dump",
+			L"name",
+			L"folder"
 		};
-
-		cstring Launcher::List::Columns::CfgName(const uint i)
-		{
-			NST_ASSERT( i < 20 );
-
-			static char name[] = "launcher column xx";
-
-			name[16] = (i < 9 ? '1' + i : '1');
-			name[17] = (i < 9 ? '\0' : '0' + i - 9);
-
-			return name;
-		}
 
 		struct Launcher::List::Columns::Handlers
 		{
@@ -101,6 +85,8 @@ namespace Nestopia
 		available (NUM_TYPES),
 		dialog    (IDD_LAUNCHER_COLUMNS,this,Handlers::messages,Handlers::commands)
 		{
+			Configuration::ConstSection column( cfg["launcher"]["view"]["columns"]["column"] );
+
 			for (uint i=0; i < NUM_TYPES; ++i)
 				available[i] = i;
 
@@ -108,7 +94,7 @@ namespace Nestopia
 
 			for (uint i=0; i < NUM_TYPES; ++i)
 			{
-				const GenericString string( cfg[CfgName(i)] );
+				const GenericString string( column[i].Str() );
 
 				if (string.Empty())
 					break;
@@ -147,8 +133,13 @@ namespace Nestopia
 
 		void Launcher::List::Columns::Save(Configuration& cfg) const
 		{
-			for (uint i=0, n=selected.Size(); i < n; ++i)
-				cfg[CfgName(i)] = cfgStrings[selected[i]];
+			if (const uint n=selected.Size())
+			{
+				Configuration::Section column( cfg["launcher"]["view"]["columns"]["column"] );
+
+				for (uint i=0; i < n; ++i)
+					column[i].Str() = cfgStrings[selected[i]];
+			}
 		}
 
 		void Launcher::List::Columns::UpdateButtonRemove()

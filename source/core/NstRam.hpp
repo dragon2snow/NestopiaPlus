@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -29,6 +29,8 @@
 #pragma once
 #endif
 
+#include "NstPins.hpp"
+
 namespace Nes
 {
 	namespace Core
@@ -37,24 +39,36 @@ namespace Nes
 		{
 		public:
 
+			enum Type
+			{
+				RAM,
+				NVRAM,
+				ROM
+			};
+
 			Ram();
+			Ram(const Ram&);
+			Ram(Type,bool,bool,dword,byte* = NULL);
 			~Ram();
 
 			void Set(dword,byte* = NULL);
-			void Set(bool,bool,dword,byte* = NULL);
+			void Set(Type,bool,bool,dword,byte* = NULL);
 			void Destroy();
-			void Fill(uint);
+			void Fill(uint) const;
 			void Mirror(dword);
+
+			Ram& operator = (const Ram&);
 
 		private:
 
 			byte* mem;
 			dword mask;
 			dword size;
-			bool writable;
+			byte type;
 			bool readable;
+			bool writable;
 			bool internal;
-			const bool padding;
+			Pins pins;
 
 		public:
 
@@ -88,6 +102,11 @@ namespace Nes
 				return internal;
 			}
 
+			Type GetType() const
+			{
+				return static_cast<Type>(type);
+			}
+
 			void ReadEnable(bool r)
 			{
 				readable = r;
@@ -98,24 +117,40 @@ namespace Nes
 				writable = w;
 			}
 
-			byte* Mem(dword offset=0)
+			void SetSecurity(bool r,bool w)
+			{
+				readable = r;
+				writable = w;
+			}
+
+			void SetType(Type t)
+			{
+				type = t;
+			}
+
+			byte* Mem(dword offset=0) const
 			{
 				return mem + (offset & mask);
 			}
 
-			const byte* Mem(dword offset=0) const
-			{
-				return mem + (offset & mask);
-			}
-
-			byte& operator [] (dword i)
+			byte& operator [] (dword i) const
 			{
 				return mem[i];
 			}
 
-			const byte& operator [] (dword i) const
+			Pins::PinsProxy Pin(uint i)
 			{
-				return mem[i];
+				return pins[i];
+			}
+
+			Pins::ConstPinsProxy Pin(uint i) const
+			{
+				return pins[i];
+			}
+
+			bool PinsDefined() const
+			{
+				return pins;
 			}
 		};
 	}

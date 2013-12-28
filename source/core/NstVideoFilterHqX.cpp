@@ -2,8 +2,8 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
 // Copyright (C) 2003 MaxSt ( maxst@hiend3d.com )
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -27,6 +27,7 @@
 
 #ifndef NST_NO_HQ2X
 
+#include "NstAssert.hpp"
 #include "NstVideoRenderer.hpp"
 #include "NstVideoFilterHqX.hpp"
 
@@ -36,9 +37,9 @@ namespace Nes
 	{
 		namespace Video
 		{
-			void Renderer::FilterHqX::Blit(const Input& input,const Output& output,uint phase)
+			void Renderer::FilterHqX::Blit(const Input& input,const Output& output,uint)
 			{
-				(*this.*path)( input, output, phase );
+				(*this.*path)( input, output );
 			}
 
 			template<dword R,dword G,dword B>
@@ -152,7 +153,7 @@ namespace Nes
 			};
 
 			template<typename T,dword R,dword G,dword B>
-			void Renderer::FilterHqX::Blit2x(const Input& input,const Output& output,uint) const
+			void Renderer::FilterHqX::Blit2x(const Input& input,const Output& output) const
 			{
 				const byte* NST_RESTRICT src = reinterpret_cast<const byte*>(input.pixels);
 				const long pitch = output.pitch + output.pitch - (WIDTH*2 * sizeof(T));
@@ -210,7 +211,7 @@ namespace Nes
 			}
 
 			template<typename T,dword R,dword G,dword B>
-			void Renderer::FilterHqX::Blit3x(const Input& input,const Output& output,uint) const
+			void Renderer::FilterHqX::Blit3x(const Input& input,const Output& output) const
 			{
 				const byte* NST_RESTRICT src = reinterpret_cast<const byte*>(input.pixels);
 				const long pitch = (output.pitch * 2) + output.pitch - (WIDTH*3 * sizeof(T));
@@ -271,7 +272,7 @@ namespace Nes
 			}
 
 			template<typename T,dword R,dword G,dword B>
-			void Renderer::FilterHqX::Blit4x(const Input& input,const Output& output,uint) const
+			void Renderer::FilterHqX::Blit4x(const Input& input,const Output& output) const
 			{
 				const byte* NST_RESTRICT src = reinterpret_cast<const byte*>(input.pixels);
 				const long pitch = (output.pitch * 3) + output.pitch - (WIDTH*4 * sizeof(T));
@@ -338,14 +339,14 @@ namespace Nes
 			#pragma optimize("s", on)
 			#endif
 
-			Renderer::FilterHqX::Lut::Lut(const bool bpp32,const dword (&left)[3],dword* tmp)
+			Renderer::FilterHqX::Lut::Lut(const bool bpp32,const byte (&formatShifts)[3],dword* tmp)
 			: rgb(tmp = (bpp32 ? new dword [0x10000] : NULL))
 			{
 				const uint shifts[3] =
 				{
-					bpp32 ? 11 : left[0],
-					bpp32 ?  5 : left[1],
-					bpp32 ?  0 : left[2]
+					bpp32 ? 11 : formatShifts[0],
+					bpp32 ?  5 : formatShifts[1],
+					bpp32 ?  0 : formatShifts[2]
 				};
 
 				for (uint i=0; i < 32; ++i)
@@ -432,13 +433,13 @@ namespace Nes
 			:
 			Filter (state),
 			path   (GetPath(state)),
-			lut    (state.bits.count == 32,format.left)
+			lut    (state.bits.count == 32,format.shifts)
 			{
 			}
 
 			bool Renderer::FilterHqX::Check(const RenderState& state)
 			{
-				return (state.scanlines == 0) &&
+				return
 				(
 					(state.bits.count == 16 && state.bits.mask.b == 0x001F && ((state.bits.mask.g == 0x07E0 && state.bits.mask.r == 0xF800) || (state.bits.mask.g == 0x03E0 && state.bits.mask.r == 0x7C00))) ||
 					(state.bits.count == 32 && state.bits.mask.r == 0xFF0000 && state.bits.mask.g == 0x00FF00 && state.bits.mask.b == 0x0000FF)
@@ -453,35 +454,21 @@ namespace Nes
 
 			void Renderer::FilterHqX::Transform(const byte (&src)[PALETTE][3],Input::Palette& dst) const
 			{
-				uint rgb[2][3];
-
-				if (bpp == 16)
+				if (format.bpp == 32)
 				{
-					rgb[0][0] = format.right[0];
-					rgb[0][1] = format.right[1];
-					rgb[0][2] = format.right[2];
-					rgb[1][0] = format.left[0];
-					rgb[1][1] = format.left[1];
-					rgb[1][2] = format.left[2];
+					for (uint i=0; i < PALETTE; ++i)
+					{
+						dst[i] =
+						(
+							((src[i][0] * 0x1FU + 0x7F) / 0xFF) << 11 |
+							((src[i][1] * 0x3FU + 0x7F) / 0xFF) <<  5 |
+							((src[i][2] * 0x1FU + 0x7F) / 0xFF) <<  0
+						);
+					}
 				}
 				else
 				{
-					rgb[0][0] = 3;
-					rgb[0][1] = 2;
-					rgb[0][2] = 3;
-					rgb[1][0] = 11;
-					rgb[1][1] = 5;
-					rgb[1][2] = 0;
-				}
-
-				for (uint i=0; i < PALETTE; ++i)
-				{
-					dst[i] =
-					(
-						(dword(src[i][0]) >> rgb[0][0] << rgb[1][0]) |
-						(dword(src[i][1]) >> rgb[0][1] << rgb[1][1]) |
-						(dword(src[i][2]) >> rgb[0][2] << rgb[1][2])
-					);
+					Filter::Transform( src, dst );
 				}
 			}
 

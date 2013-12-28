@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -209,82 +209,81 @@ namespace Nestopia
 		dialog   ( IDD_VIDEO, this, Handlers::messages, Handlers::commands ),
 		paths    ( p )
 		{
+			if (cfg["view"]["size"]["fullscreen"].Str() == L"stretched")
+				settings.fullscreenScale = SCREEN_STRETCHED;
+
+			Configuration::ConstSection video( cfg["video"] );
+
 			settings.adapter = std::find
 			(
 				adapters.begin(),
 				adapters.end(),
-				System::Guid( cfg["video device"] )
+				System::Guid( video["device"].Str() )
 			);
 
 			if (settings.adapter == adapters.end())
 				settings.adapter = adapters.begin();
 
-			settings.mode = settings.adapter->modes.find
-			(
-				Mode
+			{
+				Configuration::ConstSection fullscreen( video["fullscreen"] );
+
+				settings.mode = settings.adapter->modes.find
 				(
-					cfg[ "video fullscreen width"  ],
-					cfg[ "video fullscreen height" ],
-					cfg[ "video fullscreen bpp"    ]
-				)
-			);
+					Mode
+					(
+						fullscreen[ "width"  ].Int(),
+						fullscreen[ "height" ].Int(),
+						fullscreen[ "bpp"    ].Int()
+					)
+				);
+			}
 
 			if (settings.mode == settings.adapter->modes.end())
 				settings.mode = GetDefaultMode();
 
-			if (GenericString(cfg["view size fullscreen"]) == _T("stretched"))
-				settings.fullscreenScale = SCREEN_STRETCHED;
-
-			settings.filter = settings.filters + Filter::Load
+			settings.texMem =
 			(
-				cfg,
-				settings.filters,
-				Nes::Video(nes),
-				settings.adapter->maxScreenSize,
-				settings.adapter->filters & Adapter::FILTER_BILINEAR,
-				GetDesiredPaletteMode()
+				video["memory-pool"].Str() == L"system" ? Settings::TEXMEM_SYSMEM :
+                                                          Settings::TEXMEM_VIDMEM
 			);
 
 			{
-				const GenericString type( cfg["video texture location"] );
+				Configuration::ConstSection region( video["region"] );
 
-				if (type == _T("sysmem"))
-					settings.texMem = Settings::TEXMEM_SYSMEM;
-				else
-					settings.texMem = Settings::TEXMEM_VIDMEM;
+				settings.rects.ntsc.Set
+				(
+					region[ "ntsc" ][ "left"   ].Int( 0                  ),
+					region[ "ntsc" ][ "top"    ].Int( NTSC_CLIP_TOP      ),
+					region[ "ntsc" ][ "right"  ].Int( NES_WIDTH-1        ),
+					region[ "ntsc" ][ "bottom" ].Int( NTSC_CLIP_BOTTOM-1 )
+				);
+
+				settings.rects.pal.Set
+				(
+					region[ "pal" ][ "left"   ].Int( 0                 ),
+					region[ "pal" ][ "top"    ].Int( PAL_CLIP_TOP      ),
+					region[ "pal" ][ "right"  ].Int( NES_WIDTH-1       ),
+					region[ "pal" ][ "bottom" ].Int( PAL_CLIP_BOTTOM-1 )
+				);
 			}
 
-			{
-				Rect& ntsc = settings.rects.ntsc;
-				Rect& pal = settings.rects.pal;
-
-				ntsc.left   = cfg[ "video ntsc left"   ].Default( uint( 0                  ) );
-				ntsc.top    = cfg[ "video ntsc top"    ].Default( uint( NTSC_CLIP_TOP      ) );
-				ntsc.right  = cfg[ "video ntsc right"  ].Default( uint( NES_WIDTH-1        ) );
-				ntsc.bottom = cfg[ "video ntsc bottom" ].Default( uint( NTSC_CLIP_BOTTOM-1 ) );
-				pal.left    = cfg[ "video pal left"    ].Default( uint( 0                  ) );
-				pal.top     = cfg[ "video pal top"     ].Default( uint( PAL_CLIP_TOP       ) );
-				pal.right   = cfg[ "video pal right"   ].Default( uint( NES_WIDTH-1        ) );
-				pal.bottom  = cfg[ "video pal bottom"  ].Default( uint( PAL_CLIP_BOTTOM-1  ) );
-
-				ValidateRects();
-			}
+			ValidateRects();
 
 			{
-				uint value;
+				Configuration::ConstSection colors( video["colors"] );
 
-				if (200 >= (value=cfg["video color brightness"].Default( 100U )))
-					Nes::Video(nes).SetBrightness( int(value) - 100 );
+				uint v;
 
-				if (200 >= (value=cfg["video color saturation"].Default( 100U )))
-					Nes::Video(nes).SetSaturation( int(value) - 100 );
+				if (200 >= (v=colors["brightness"].Int( 100 )))
+					Nes::Video(nes).SetBrightness( int(v) - 100 );
 
-				if (200 >= (value=cfg["video color contrast"].Default( 100U )))
-					Nes::Video(nes).SetContrast( int(value) - 100 );
-			}
+				if (200 >= (v=colors["saturation"].Int( 100 )))
+					Nes::Video(nes).SetSaturation( int(v) - 100 );
 
-			{
-				int hue = cfg["video color hue"].Default( 0U );
+				if (200 >= (v=colors["contrast"].Int( 100 )))
+					Nes::Video(nes).SetContrast( int(v) - 100 );
+
+				int hue = colors["hue"].Int( 0 );
 
 				if (hue > 180 && hue <= 360)
 					hue -= 360;
@@ -293,24 +292,22 @@ namespace Nestopia
 					Nes::Video(nes).SetHue( hue );
 			}
 
-			settings.palette = cfg["video palette file"];
-			ImportPalette( settings.palette, Managers::Paths::QUIETLY );
-
 			{
 				settings.autoPalette = false;
-				const GenericString type( cfg["video palette"] );
+				settings.palette = video["palette"]["file"].Str();
 
 				Nes::Video::Palette::Mode mode;
+				const GenericString type( video["palette"]["type"].Str() );
 
-				if (type == _T("yuv"))
+				if (type == L"yuv")
 				{
 					mode = Nes::Video::Palette::MODE_YUV;
 				}
-				else if (type == _T("rgb"))
+				else if (type == L"rgb")
 				{
 					mode = Nes::Video::Palette::MODE_RGB;
 				}
-				else if (type == _T("custom") && settings.palette.Length())
+				else if (type == L"custom" && settings.palette.Length())
 				{
 					mode = Nes::Video::Palette::MODE_CUSTOM;
 				}
@@ -323,20 +320,33 @@ namespace Nestopia
 				Nes::Video(nes).GetPalette().SetMode( mode );
 			}
 
+			ImportPalette( settings.palette, Managers::Paths::QUIETLY );
+
 			{
-				int value;
+				int v;
 
-				if (MAX_SCREEN_CURVATURE-MIN_SCREEN_CURVATURE >= (value=cfg["video screen curvature"].Default( uint(MAX_SCREEN_CURVATURE) )))
-					value -= MAX_SCREEN_CURVATURE;
+				if (MAX_SCREEN_CURVATURE-MIN_SCREEN_CURVATURE >= (v=video["screen-curvature"].Int( MAX_SCREEN_CURVATURE )))
+					v -= MAX_SCREEN_CURVATURE;
 
-				settings.screenCurvature = value;
+				if (v >= MIN_SCREEN_CURVATURE && v <= MAX_SCREEN_CURVATURE)
+					settings.screenCurvature = v;
+				else
+					settings.screenCurvature = 0;
 			}
 
-			if (settings.screenCurvature > MAX_SCREEN_CURVATURE || settings.screenCurvature < MIN_SCREEN_CURVATURE)
-				settings.screenCurvature = 0;
+			settings.autoHz = !video[ "auto-display-frequency" ].No();
+			settings.tvAspect = video[ "tv-aspect-ratio" ].Yes();
 
-			settings.autoHz = (cfg["video auto display frequency"] != Configuration::NO);
-			settings.tvAspect = (cfg["video tv aspect ratio"] == Configuration::YES);
+			settings.filter = settings.filters + Filter::Load
+			(
+				cfg,
+				settings.filters,
+				Nes::Video(nes),
+				settings.adapter->maxScreenSize,
+				settings.adapter->filters & Adapter::FILTER_BILINEAR,
+				settings.adapter->canDoScanlineEffect,
+				GetDesiredPaletteMode()
+			);
 
 			VideoDecoder::Load( cfg, Nes::Video(nes) );
 
@@ -349,16 +359,79 @@ namespace Nestopia
 
 		void Video::Save(Configuration& cfg) const
 		{
+			cfg["view" ]["size"]["fullscreen"].Str() =
+			(
+				settings.fullscreenScale == SCREEN_STRETCHED ? "stretched" :
+                                                               "matched"
+			);
+
+			Configuration::Section video( cfg["video"] );
+
 			if (settings.adapter != adapters.end())
 			{
-				cfg[ "video device" ].Quote() = settings.adapter->guid.GetString();
+				video["device"].Str() = settings.adapter->guid.GetString();
 
 				if (settings.mode != settings.adapter->modes.end())
 				{
-					cfg[ "video fullscreen width"  ] = settings.mode->width;
-					cfg[ "video fullscreen height" ] = settings.mode->height;
-					cfg[ "video fullscreen bpp"    ] = settings.mode->bpp;
+					Configuration::Section fullscreen( video["fullscreen"] );
+
+					fullscreen[ "width"  ].Int() = settings.mode->width;
+					fullscreen[ "height" ].Int() = settings.mode->height;
+					fullscreen[ "bpp"    ].Int() = settings.mode->bpp;
 				}
+			}
+
+			video["memory-pool"].Str() =
+			(
+				settings.texMem == Settings::TEXMEM_SYSMEM ? "system" :
+                                                             "video"
+			);
+
+			video[ "screen-curvature"       ].Int() = MAX_SCREEN_CURVATURE + settings.screenCurvature;
+			video[ "auto-display-frequency" ].YesNo() = settings.autoHz;
+			video[ "tv-aspect-ratio"        ].YesNo() = settings.tvAspect;
+
+			{
+				Configuration::Section palette( video["palette"] );
+
+				palette["file"].Str() = settings.palette;
+
+				GenericString type;
+
+				if (settings.autoPalette)
+				{
+					type = L"auto";
+				}
+				else switch (Nes::Video(nes).GetPalette().GetMode())
+				{
+					case Nes::Video::Palette::MODE_YUV: type = L"yuv";    break;
+					case Nes::Video::Palette::MODE_RGB: type = L"rgb";    break;
+					default:                            type = L"custom"; break;
+				}
+
+				palette["type"].Str() = type;
+			}
+
+			{
+				Configuration::Section region( video["region"] );
+
+				region[ "ntsc" ][ "left"   ].Int() = settings.rects.ntsc.left;
+				region[ "ntsc" ][ "top"    ].Int() = settings.rects.ntsc.top;
+				region[ "ntsc" ][ "right"  ].Int() = settings.rects.ntsc.right - 1;
+				region[ "ntsc" ][ "bottom" ].Int() = settings.rects.ntsc.bottom - 1;
+				region[ "pal"  ][ "left"   ].Int() = settings.rects.pal.left;
+				region[ "pal"  ][ "top"    ].Int() = settings.rects.pal.top;
+				region[ "pal"  ][ "right"  ].Int() = settings.rects.pal.right - 1;
+				region[ "pal"  ][ "bottom" ].Int() = settings.rects.pal.bottom - 1;
+			}
+
+			{
+				Configuration::Section colors( video["colors"] );
+
+				colors[ "brightness" ].Int() = 100 + Nes::Video(nes).GetBrightness();
+				colors[ "saturation" ].Int() = 100 + Nes::Video(nes).GetSaturation();
+				colors[ "contrast"   ].Int() = 100 + Nes::Video(nes).GetContrast();
+				colors[ "hue"        ].Int() = Nes::Video(nes).GetHue() + (Nes::Video(nes).GetHue() < 0 ? 360 : 0);
 			}
 
 			Filter::Save
@@ -368,43 +441,6 @@ namespace Nestopia
 				Nes::Video(nes),
 				static_cast<Filter::Type>(settings.filter - settings.filters)
 			);
-
-			cfg[ "video texture location" ] = (settings.texMem == Settings::TEXMEM_SYSMEM ? "sysmem" : "vidmem");
-
-			{
-				GenericString name;
-
-				if (settings.autoPalette)
-				{
-					name = _T("auto");
-				}
-				else switch (Nes::Video(nes).GetPalette().GetMode())
-				{
-					case Nes::Video::Palette::MODE_YUV: name = _T("yuv");    break;
-					case Nes::Video::Palette::MODE_RGB: name = _T("rgb");    break;
-					default:                            name = _T("custom"); break;
-				}
-
-				cfg[ "video palette" ] = name;
-			}
-
-			cfg[ "video palette file"           ].Quote() = settings.palette;
-			cfg[ "video ntsc left"              ] = uint( settings.rects.ntsc.left       );
-			cfg[ "video ntsc top"               ] = uint( settings.rects.ntsc.top        );
-			cfg[ "video ntsc right"             ] = uint( settings.rects.ntsc.right - 1  );
-			cfg[ "video ntsc bottom"            ] = uint( settings.rects.ntsc.bottom - 1 );
-			cfg[ "video pal left"               ] = uint( settings.rects.pal.left        );
-			cfg[ "video pal top"                ] = uint( settings.rects.pal.top         );
-			cfg[ "video pal right"              ] = uint( settings.rects.pal.right - 1   );
-			cfg[ "video pal bottom"             ] = uint( settings.rects.pal.bottom - 1  );
-			cfg[ "video color brightness"       ] = uint( 100 + Nes::Video(nes).GetBrightness() );
-			cfg[ "video color saturation"       ] = uint( 100 + Nes::Video(nes).GetSaturation() );
-			cfg[ "video color contrast"         ] = uint( 100 + Nes::Video(nes).GetContrast()   );
-			cfg[ "video color hue"              ] = uint( Nes::Video(nes).GetHue() + (Nes::Video(nes).GetHue() < 0 ? 360 : 0) );
-			cfg[ "video screen curvature"       ] = uint( MAX_SCREEN_CURVATURE + settings.screenCurvature );
-			cfg[ "video auto display frequency" ].YesNo() = settings.autoHz;
-			cfg[ "video tv aspect ratio"        ].YesNo() = settings.tvAspect;
-			cfg[ "view size fullscreen"         ] = (settings.fullscreenScale == SCREEN_STRETCHED ? _T("stretched") : _T("matched"));
 
 			VideoDecoder::Save( cfg, Nes::Video(nes) );
 		}
@@ -421,10 +457,29 @@ namespace Nestopia
 		{
 			const Nes::Video::Palette::Mode mode = GetDesiredPaletteMode();
 
-			if (settings.autoPalette && settings.lockedPalette.Empty())
+			if (settings.autoPalette)
 				Nes::Video(nes).GetPalette().SetMode( mode );
 
 			VideoFilters::UpdateAutoModes( settings.filters, nes, mode );
+		}
+
+		uint Video::GetScanlines() const
+		{
+			if (settings.adapter->canDoScanlineEffect)
+			{
+				switch (settings.filter - settings.filters)
+				{
+					case Filter::TYPE_STD:
+
+						return settings.filters[Filter::TYPE_STD].attributes[Filter::ATR_SCANLINES];
+
+					case Filter::TYPE_NTSC:
+
+						return settings.filters[Filter::TYPE_NTSC].attributes[Filter::ATR_SCANLINES];
+				}
+			}
+
+			return 0;
 		}
 
 		const Rect Video::GetRenderState(Nes::Video::RenderState& state,const Point screen) const
@@ -435,7 +490,6 @@ namespace Nestopia
 
 			state.width = NES_WIDTH;
 			state.height = NES_HEIGHT;
-			state.scanlines = 0;
 			state.filter = State::FILTER_NONE;
 
 			uint scale = 1;
@@ -443,121 +497,112 @@ namespace Nestopia
 			switch (settings.filter - settings.filters)
 			{
 				case Filter::TYPE_STD:
-
-					state.scanlines = settings.filters[Filter::TYPE_STD].attributes[Filter::ATR_SCANLINES];
-
-					if (state.scanlines && settings.adapter->maxScreenSize >= Filter::MAX_2X_SIZE && screen.y >= rect.Height() * 2)
-						scale = 2;
-
 					break;
 
 				case Filter::TYPE_NTSC:
 
-					NST_ASSERT( settings.adapter->maxScreenSize >= Filter::MAX_NTSC_SIZE );
+					if (settings.adapter->maxScreenSize.x >= NTSC_WIDTH)
+					{
+						rect.left  = (rect.left  * (NTSC_WIDTH - 4) + NES_WIDTH / 2) / NES_WIDTH + 3;
+						rect.right = (rect.right * (NTSC_WIDTH - 4) + NES_WIDTH / 2) / NES_WIDTH + 3;
 
-					rect.left   = (rect.left   * (NTSC_WIDTH  - 4) + NES_WIDTH  / 2) / NES_WIDTH  + 3;
-					rect.top    = (rect.top    * (NTSC_HEIGHT - 0) + NES_HEIGHT / 2) / NES_HEIGHT + 0;
-					rect.right  = (rect.right  * (NTSC_WIDTH  - 4) + NES_WIDTH  / 2) / NES_WIDTH  + 3;
-					rect.bottom = (rect.bottom * (NTSC_HEIGHT - 0) + NES_HEIGHT / 2) / NES_HEIGHT + 0;
-
-					state.width = NTSC_WIDTH;
-					state.height = NTSC_HEIGHT;
-					state.filter = State::FILTER_NTSC;
-					state.scanlines = settings.filters[Filter::TYPE_NTSC].attributes[Filter::ATR_SCANLINES];
+						state.width = NTSC_WIDTH;
+						state.filter = State::FILTER_NTSC;
+					}
 					break;
 
 				case Filter::TYPE_SCALEX:
-				{
-					NST_ASSERT( settings.adapter->maxScreenSize >= Filter::MAX_2X_SIZE );
 
-					int attribute = settings.filters[Filter::TYPE_SCALEX].attributes[Filter::ATR_TYPE];
-
-					if (attribute == Filter::ATR_SCALEAX)
+					if (settings.adapter->maxScreenSize.x >= NES_WIDTH*2 && settings.adapter->maxScreenSize.y >= NES_HEIGHT*2)
 					{
-						const Point nes( rect.Size() );
+						int attribute = settings.filters[Filter::TYPE_SCALEX].attributes[Filter::ATR_TYPE];
 
-						if (screen.x >= nes.x*3 && screen.y >= nes.y*3)
+						if (attribute == Filter::ATR_SCALEAX)
 						{
-							attribute = Filter::ATR_SCALE3X;
-						}
-						else if (screen.x >= nes.x*2 && screen.y >= nes.y*2)
-						{
-							attribute = Filter::ATR_SCALE2X;
-						}
-					}
+							const Point nes( rect.Size() );
 
-					switch (attribute)
-					{
-						case Filter::ATR_SCALE3X:
-
-							if (settings.adapter->maxScreenSize >= Filter::MAX_3X_SIZE)
+							if (screen.x >= nes.x*3 && screen.y >= nes.y*3)
 							{
-								scale = 3;
-								state.filter = State::FILTER_SCALE3X;
-								break;
+								attribute = Filter::ATR_SCALE3X;
 							}
+							else if (screen.x >= nes.x*2 && screen.y >= nes.y*2)
+							{
+								attribute = Filter::ATR_SCALE2X;
+							}
+						}
 
-						case Filter::ATR_SCALE2X:
+						switch (attribute)
+						{
+							case Filter::ATR_SCALE3X:
 
-							scale = 2;
-							state.filter = State::FILTER_SCALE2X;
-							break;
+								if (settings.adapter->maxScreenSize.x >= NES_WIDTH*3 && settings.adapter->maxScreenSize.y >= NES_HEIGHT*3)
+								{
+									scale = 3;
+									state.filter = State::FILTER_SCALE3X;
+									break;
+								}
+
+							case Filter::ATR_SCALE2X:
+
+								scale = 2;
+								state.filter = State::FILTER_SCALE2X;
+								break;
+						}
 					}
 					break;
-				}
 
 				case Filter::TYPE_HQX:
-				{
-					NST_ASSERT( settings.adapter->maxScreenSize >= Filter::MAX_2X_SIZE );
 
-					int attribute = settings.filters[Filter::TYPE_HQX].attributes[Filter::ATR_TYPE];
-
-					if (attribute == Filter::ATR_HQAX)
+					if (settings.adapter->maxScreenSize.x >= NES_WIDTH*2 && settings.adapter->maxScreenSize.y >= NES_HEIGHT*2)
 					{
-						const Point nes( rect.Size() );
+						int attribute = settings.filters[Filter::TYPE_HQX].attributes[Filter::ATR_TYPE];
 
-						if (screen.x >= nes.x*4 && screen.y >= nes.y*4)
+						if (attribute == Filter::ATR_HQAX)
 						{
-							attribute = Filter::ATR_HQ4X;
-						}
-						else if (screen.x >= nes.x*3 && screen.y >= nes.y*3)
-						{
-							attribute = Filter::ATR_HQ3X;
-						}
-						else if (screen.x >= nes.x*2 && screen.y >= nes.y*2)
-						{
-							attribute = Filter::ATR_HQ2X;
-						}
-					}
+							const Point nes( rect.Size() );
 
-					switch (attribute)
-					{
-						case Filter::ATR_HQ4X:
-
-							if (settings.adapter->maxScreenSize >= Filter::MAX_4X_SIZE)
+							if (screen.x >= nes.x*4 && screen.y >= nes.y*4)
 							{
-								scale = 4;
-								state.filter = State::FILTER_HQ4X;
-								break;
+								attribute = Filter::ATR_HQ4X;
 							}
-
-						case Filter::ATR_HQ3X:
-
-							if (settings.adapter->maxScreenSize >= Filter::MAX_3X_SIZE)
+							else if (screen.x >= nes.x*3 && screen.y >= nes.y*3)
 							{
-								scale = 3;
-								state.filter = State::FILTER_HQ3X;
-								break;
+								attribute = Filter::ATR_HQ3X;
 							}
+							else if (screen.x >= nes.x*2 && screen.y >= nes.y*2)
+							{
+								attribute = Filter::ATR_HQ2X;
+							}
+						}
 
-						case Filter::ATR_HQ2X:
+						switch (attribute)
+						{
+							case Filter::ATR_HQ4X:
 
-							scale = 2;
-							state.filter = State::FILTER_HQ2X;
-							break;
+								if (settings.adapter->maxScreenSize.x >= NES_WIDTH*4 && settings.adapter->maxScreenSize.y >= NES_HEIGHT*4)
+								{
+									scale = 4;
+									state.filter = State::FILTER_HQ4X;
+									break;
+								}
+
+							case Filter::ATR_HQ3X:
+
+								if (settings.adapter->maxScreenSize.x >= NES_WIDTH*3 && settings.adapter->maxScreenSize.y >= NES_HEIGHT*3)
+								{
+									scale = 3;
+									state.filter = State::FILTER_HQ3X;
+									break;
+								}
+
+							case Filter::ATR_HQ2X:
+
+								scale = 2;
+								state.filter = State::FILTER_HQ2X;
+								break;
+						}
 					}
 					break;
-				}
 			}
 
 			state.width = state.width * scale;
@@ -569,42 +614,6 @@ namespace Nestopia
 			rect.bottom *= scale;
 
 			return rect;
-		}
-
-		void Video::LoadGamePalette(const Path& path)
-		{
-			if (path.Length())
-			{
-				settings.lockedPalette = path;
-				settings.lockedMode = Nes::Video(nes).GetPalette().GetMode();
-				Nes::Video(nes).GetPalette().SetMode( Nes::Video::Palette::MODE_CUSTOM );
-				ImportPalette( settings.lockedPalette, Managers::Paths::QUIETLY );
-			}
-		}
-
-		void Video::UnloadGamePalette()
-		{
-			if (settings.lockedPalette.Length())
-			{
-				settings.lockedPalette.Destroy();
-				Nes::Video(nes).GetPalette().SetMode( settings.lockedMode );
-				ImportPalette( settings.palette, Managers::Paths::QUIETLY );
-			}
-		}
-
-		void Video::SavePalette(Path& path) const
-		{
-			if (Nes::Video(nes).GetPalette().GetMode() == Nes::Video::Palette::MODE_CUSTOM)
-			{
-				if (settings.lockedPalette.Length())
-				{
-					path = settings.lockedPalette;
-				}
-				else if (settings.palette.Length())
-				{
-					path = settings.palette;
-				}
-			}
 		}
 
 		Video::Modes::const_iterator Video::GetDialogMode() const
@@ -640,10 +649,10 @@ namespace Nestopia
 				{
 					if (settings.tvAspect || !settings.filters[Filter::TYPE_NTSC].attributes[Filter::ATR_RESCALE_PIC])
 					{
-						rect.left   = (rect.left   * (NTSC_WIDTH  - 4) + NES_WIDTH  / 2) / NES_WIDTH  + 3;
-						rect.top    = (rect.top    * (NTSC_HEIGHT - 0) + NES_HEIGHT / 2) / NES_HEIGHT + 0;
-						rect.right  = (rect.right  * (NTSC_WIDTH  - 4) + NES_WIDTH  / 2) / NES_WIDTH  + 3;
-						rect.bottom = (rect.bottom * (NTSC_HEIGHT - 0) + NES_HEIGHT / 2) / NES_HEIGHT + 0;
+						rect.top *= 2;
+						rect.bottom *= 2;
+						rect.left  = (rect.left  * (NTSC_WIDTH - 4) + NES_WIDTH  / 2) / NES_WIDTH + 3;
+						rect.right = (rect.right * (NTSC_WIDTH - 4) + NES_WIDTH  / 2) / NES_WIDTH + 3;
 					}
 				}
 				else if (settings.tvAspect)
@@ -880,6 +889,7 @@ namespace Nestopia
 					*settings.filter,
 					settings.adapter->maxScreenSize,
 					settings.adapter->filters & Adapter::FILTER_BILINEAR,
+					settings.adapter->canDoScanlineEffect,
 					GetDesiredPaletteMode()
 				).Open();
 
@@ -1050,8 +1060,7 @@ namespace Nestopia
 				const Nes::Video::Palette::Mode mode = GetDesiredPaletteMode();
 				Nes::Video video(nes);
 
-				if (settings.lockedPalette.Empty())
-					video.GetPalette().SetMode( mode );
+				video.GetPalette().SetMode( mode );
 
 				VideoFilters::UpdateAutoModes( settings.filters, video, mode );
 
@@ -1156,10 +1165,15 @@ namespace Nestopia
 
 			comboBox.Add( Resource::String(IDS_VIDEO_FILTER_STD) ).Data() = Filter::TYPE_STD;
 
-			if (settings.adapter->maxScreenSize >= Filter::MAX_2X_SIZE)
+			if (settings.adapter->maxScreenSize.x >= NTSC_WIDTH)
+				comboBox.Add( Resource::String(IDS_VIDEO_FILTER_NTSC) ).Data() = Filter::TYPE_NTSC;
+
+			if
+			(
+				settings.adapter->maxScreenSize.x >= NES_WIDTH*2 &&
+				settings.adapter->maxScreenSize.y >= NES_HEIGHT*2
+			)
 			{
-				if (settings.adapter->maxScreenSize >= Filter::MAX_NTSC_SIZE)
-					comboBox.Add( Resource::String(IDS_VIDEO_FILTER_NTSC) ).Data() = Filter::TYPE_NTSC;
 
 				comboBox.Add( Resource::String(IDS_VIDEO_FILTER_SCALEX) ).Data() = Filter::TYPE_SCALEX;
 				comboBox.Add( Resource::String(IDS_VIDEO_FILTER_HQX) ).Data() = Filter::TYPE_HQX;
@@ -1227,18 +1241,13 @@ namespace Nestopia
 
 		void Video::UpdatePalette() const
 		{
-			const bool unlocked = settings.lockedPalette.Empty();
-
-			for (uint i=IDC_VIDEO_PALETTE_AUTO; i <= IDC_VIDEO_PALETTE_EDITOR; ++i)
-				dialog.Control( i ).Enable( unlocked );
-
 			const Nes::Video::Palette::Mode mode = Nes::Video(nes).GetPalette().GetMode();
 
-			dialog.Control( IDC_VIDEO_PALETTE_CLEAR  ).Enable( unlocked && settings.palette.Length() );
-			dialog.Control( IDC_VIDEO_PALETTE_CUSTOM ).Enable( unlocked && settings.palette.Length() );
-			dialog.Control( IDC_VIDEO_PALETTE_PATH   ).Enable( unlocked && mode == Nes::Video::Palette::MODE_CUSTOM );
+			dialog.Control( IDC_VIDEO_PALETTE_CLEAR  ).Enable( settings.palette.Length() );
+			dialog.Control( IDC_VIDEO_PALETTE_CUSTOM ).Enable( settings.palette.Length() );
+			dialog.Control( IDC_VIDEO_PALETTE_PATH   ).Enable( mode == Nes::Video::Palette::MODE_CUSTOM );
 
-			dialog.Edit( IDC_VIDEO_PALETTE_PATH ) << (unlocked ? settings.palette.Ptr() : settings.lockedPalette.Ptr());
+			dialog.Edit( IDC_VIDEO_PALETTE_PATH ) << settings.palette.Ptr();
 
 			dialog.Control( IDC_VIDEO_COLORS_ADVANCED ).Enable( mode == Nes::Video::Palette::MODE_YUV );
 

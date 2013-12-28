@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -66,31 +66,31 @@ namespace Nestopia
 				struct AutoKey;
 
 				const uint count;
-				tstring stack[MAX_STACK];
+				wcstring stack[MAX_STACK];
 
 			public:
 
-				Key(const Key& parent,tstring name)
+				Key(const Key& parent,wcstring name)
 				: count(parent.count + 1)
 				{
 					NST_ASSERT( count <= MAX_STACK );
-					std::memcpy( stack, parent.stack, parent.count * sizeof(tchar*) );
+					std::memcpy( stack, parent.stack, parent.count * sizeof(wchar_t*) );
 					stack[parent.count] = name;
 				}
 
 				Key(const Key& parent)
 				: count(parent.count)
 				{
-					std::memcpy( stack, parent.stack, parent.count * sizeof(tchar*) );
+					std::memcpy( stack, parent.stack, parent.count * sizeof(wchar_t*) );
 				}
 
-				Key(tstring name)
+				Key(wcstring name)
 				: count(1)
 				{
 					stack[0] = name;
 				}
 
-				Key operator [] (tstring name) const
+				Key operator [] (wcstring name) const
 				{
 					return Key( *this, name );
 				}
@@ -98,7 +98,7 @@ namespace Nestopia
 
 		public:
 
-			Key operator [] (tstring name) const
+			Key operator [] (wcstring name) const
 			{
 				return name;
 			}

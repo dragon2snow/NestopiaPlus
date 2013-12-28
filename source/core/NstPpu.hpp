@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -49,27 +49,25 @@ namespace Nes
 
 			explicit Ppu(Cpu&);
 
-			enum Mirroring
-			{
-				NMT_HORIZONTAL,
-				NMT_VERTICAL,
-				NMT_FOURSCREEN,
-				NMT_ZERO,
-				NMT_ONE,
-				NMT_CONTROLLED
-			};
-
-			void Reset(bool);
+			void Reset(bool,bool);
 			void PowerOff();
 			void BeginFrame(bool);
 			void EndFrame();
 
-			void SetRegion(Region::Type);
-			void SetMirroring(Mirroring);
+			enum NmtMirroring
+			{
+				NMT_H = 0xC,
+				NMT_V = 0xA,
+				NMT_0 = 0x0,
+				NMT_1 = 0xF
+			};
+
+			void SetModel(PpuModel,bool);
+			void SetMirroring(NmtMirroring);
 			void SetMirroring(const byte (&)[4]);
-			void SetYuvMap(const byte*,bool);
 			void SetHActiveHook(const Hook&);
 			void SetHBlankHook(const Hook&);
+			uint GetPixelCycles() const;
 
 			void EnableCpuSynchronization();
 
@@ -163,17 +161,26 @@ namespace Nes
 				NST_FORCE_INLINE uint FetchAttribute(uint) const;
 			};
 
-			typedef void (Ppu::*Phase)();
-
 			enum
 			{
-				WARM_UP_FRAMES  = 2,
 				SCANLINE_HDUMMY = -1,
 				SCANLINE_VBLANK = 255
 			};
 
+			enum
+			{
+				HCLOCK_DUMMY    = 341,
+				HCLOCK_VBLANK_0 = 681,
+				HCLOCK_VBLANK_1 = 682,
+				HCLOCK_VBLANK_2 = 684,
+				HCLOCK_BOOT     = 685
+			};
+
 			NES_DECL_POKE( 2000 );
 			NES_DECL_PEEK( 2002 );
+			NES_DECL_PEEK( 2002_RC2C05_01_04 );
+			NES_DECL_PEEK( 2002_RC2C05_02 );
+			NES_DECL_PEEK( 2002_RC2C05_03 );
 			NES_DECL_POKE( 2001 );
 			NES_DECL_POKE( 2003 );
 			NES_DECL_PEEK( 2004 );
@@ -184,11 +191,15 @@ namespace Nes
 			NES_DECL_POKE( 2007 );
 			NES_DECL_PEEK( 2xxx );
 			NES_DECL_POKE( 2xxx );
+			NES_DECL_PEEK( 3000 );
 			NES_DECL_PEEK( 4014 );
 			NES_DECL_POKE( 4014 );
 
 			NES_DECL_HOOK( Sync );
 			NES_DECL_HOOK( Nop  );
+
+			inline Cycle GetCycles() const;
+			inline Cycle GetLocalCycles(Cycle) const;
 
 			inline bool IsDead() const;
 			inline void UpdateScrollAddress(uint);
@@ -197,70 +208,60 @@ namespace Nes
 
 			NST_FORCE_INLINE uint FetchName() const;
 			NST_FORCE_INLINE uint FetchAttribute() const;
-			NST_SINGLE_CALL  void EvaluateSprites();
 
-			void Reset(bool,bool);
+			NST_FORCE_INLINE void EvaluateSpritesEven();
+			NST_FORCE_INLINE void EvaluateSpritesOdd();
+
+			void EvaluateSpritesPhase0();
+			void EvaluateSpritesPhase1();
+			void EvaluateSpritesPhase2();
+			void EvaluateSpritesPhase3();
+			void EvaluateSpritesPhase4();
+			void EvaluateSpritesPhase5();
+			void EvaluateSpritesPhase6();
+			void EvaluateSpritesPhase7();
+			void EvaluateSpritesPhase8();
+			void EvaluateSpritesPhase9();
+
+			void Reset(bool,bool,bool);
 			void Update(Cycle);
 			void UpdateStates();
-			void LoadSprite();
 			void UpdatePalette();
+			void LoadSprite(const byte* NST_RESTRICT,uint=0x1000);
 
-			NST_FORCE_INLINE void LoadTiles();
+			NST_SINGLE_CALL void PreLoadTiles();
+			NST_SINGLE_CALL void LoadTiles();
 			NST_FORCE_INLINE void RenderPixel();
-
-			void WarmUp();
-			void VBlankIn();
-			void VBlank();
-			void VBlankOut();
-			void HDummy();
-			void HDummyBg();
-			void HDummySp();
-			void HDummyScroll();
-			void HActive0();
-			void HActive1();
-			void HActive2();
-			void HActive3();
-			void HActive4();
-			void HActive5();
-			void HActive6();
-			void HActive7();
-			void HBlank();
-			void HBlankSp();
-			void HBlankBg();
-			void HBlankBg0();
-			void HBlankBg1();
-			void HBlankBg2();
-			void HBlankBg3();
-			void HBlankBg4();
-			void HBlankBg5();
-			void HBlankBg6();
-			void HBlankBg7();
+			NST_SINGLE_CALL void RenderPixel255();
+			NST_NO_INLINE void Run();
 
 			struct Regs
 			{
 				enum
 				{
-					CTRL0_NAME_OFFSET     = 0x03,
-					CTRL0_INC32           = 0x04,
-					CTRL0_SP_OFFSET       = 0x08,
-					CTRL0_BG_OFFSET       = 0x10,
-					CTRL0_SP8X16          = 0x20,
-					CTRL0_NMI             = 0x80,
-					CTRL1_MONOCHROME      = 0x01,
-					CTRL1_BG_NO_CLIPPING  = 0x02,
-					CTRL1_SP_NO_CLIPPING  = 0x04,
-					CTRL1_BG_ENABLED      = 0x08,
-					CTRL1_SP_ENABLED      = 0x10,
-					CTRL1_FULL_BG_ENABLED = CTRL1_BG_ENABLED|CTRL1_BG_NO_CLIPPING,
-					CTRL1_FULL_SP_ENABLED = CTRL1_SP_ENABLED|CTRL1_SP_NO_CLIPPING,
-					CTRL1_EMPHASIS        = 0xE0,
-					STATUS_LATCH          = 0x1F,
-					STATUS_SP_OVERFLOW    = 0x20,
-					STATUS_SP_ZERO_HIT    = 0x40,
-					STATUS_VBLANK         = 0x80,
-					STATUS_BITS           = STATUS_SP_OVERFLOW|STATUS_SP_ZERO_HIT|STATUS_VBLANK,
-					STATUS_VBLANKING      = 0x100,
-					FRAME_ODD             = CTRL1_BG_ENABLED|CTRL1_SP_ENABLED
+					CTRL0_NAME_OFFSET        = 0x03,
+					CTRL0_INC32              = 0x04,
+					CTRL0_SP_OFFSET          = 0x08,
+					CTRL0_BG_OFFSET          = 0x10,
+					CTRL0_SP8X16             = 0x20,
+					CTRL0_NMI                = 0x80,
+					CTRL0_NMI_OCCUR          = 0x100,
+					CTRL1_MONOCHROME         = 0x01,
+					CTRL1_BG_NO_CLIP         = 0x02,
+					CTRL1_SP_NO_CLIP         = 0x04,
+					CTRL1_BG_ENABLED         = 0x08,
+					CTRL1_SP_ENABLED         = 0x10,
+					CTRL1_BG_ENABLED_NO_CLIP = CTRL1_BG_ENABLED|CTRL1_BG_NO_CLIP,
+					CTRL1_SP_ENABLED_NO_CLIP = CTRL1_SP_ENABLED|CTRL1_SP_NO_CLIP,
+					CTRL1_BG_SP_ENABLED      = CTRL1_BG_ENABLED|CTRL1_SP_ENABLED,
+					CTRL1_EMPHASIS           = 0xE0,
+					STATUS_LATCH             = 0x1F,
+					STATUS_SP_OVERFLOW       = 0x20,
+					STATUS_SP_ZERO_HIT       = 0x40,
+					STATUS_VBLANK            = 0x80,
+					STATUS_BITS              = STATUS_SP_OVERFLOW|STATUS_SP_ZERO_HIT|STATUS_VBLANK,
+					STATUS_VBLANKING         = 0x100,
+					FRAME_ODD                = CTRL1_BG_ENABLED|CTRL1_SP_ENABLED
 				};
 
 				uint ctrl0;
@@ -328,7 +329,6 @@ namespace Nes
 			{
 				explicit Output(Video::Screen::Pixel*);
 
-				uint index;
 				Video::Screen::Pixel* target;
 				Video::Screen::Pixel* pixels;
 				uint burstPhase;
@@ -345,27 +345,14 @@ namespace Nes
 					OFFSET_TO_0_1    = 0xF8,
 					STD_LINE_SPRITES = 8,
 					MAX_LINE_SPRITES = 32,
-					DMA_CYCLES       = 512 + 1,
 					GARBAGE          = 0xFF,
 					COLOR            = 0x03,
 					BEHIND           = 0x20,
 					X_FLIP           = 0x40,
-					Y_FLIP           = 0x80
-				};
-
-				struct Buffer
-				{
-					enum
-					{
-						XFINE     = 0x07,
-						RANGE_MSB = 0x08,
-						TILE_LSB  = 0x01
-					};
-
-					byte tile;
-					byte x;
-					byte attribute;
-					byte comparitor;
+					Y_FLIP           = 0x80,
+					XFINE            = 0x07,
+					RANGE_MSB        = 0x08,
+					TILE_LSB         = 0x01
 				};
 
 				struct Output
@@ -377,20 +364,25 @@ namespace Nes
 					byte pixels[8];
 				};
 
-				Output* visible;
-				Buffer* evaluated;
-				const Buffer* loaded;
-				const Buffer* limit;
+				typedef void (Ppu::*Phase)();
 
+				const byte* limit;
+				Output* visible;
+				Phase phase;
+				uint latch;
+				uint index;
+				byte* buffered;
+				uint address;
+				uint height;
 				uint mask;
 				byte show[2];
+				bool spriteZeroInLine;
 				bool spriteLimit;
-				const byte padding;
+
+				byte ram[0x100];
+				byte buffer[MAX_LINE_SPRITES*4];
 
 				Output output[MAX_LINE_SPRITES];
-				Buffer buffer[MAX_LINE_SPRITES];
-
-				byte ram[SIZE];
 			};
 
 			struct NameTable
@@ -398,7 +390,7 @@ namespace Nes
 				enum
 				{
 					SIZE = SIZE_2K,
-					GARBAGE = 0x00
+					GARBAGE = 0xFF
 				};
 
 				byte ram[SIZE];
@@ -411,39 +403,40 @@ namespace Nes
 				byte block[0x400][4];
 			};
 
-			Cpu& cpu;
-
-			struct
+			struct Io
 			{
-				Cycle spriteOverflow;
-				byte  one;
-				byte  four;
-				byte  eight;
-				byte  six;
-				Cycle count;
-				Cycle round;
-			}   cycles;
+				enum
+				{
+					BUFFER_GARBAGE = 0xE8
+				};
 
-			Phase phase;
-
-			struct
-			{
-				uint enabled;
 				uint address;
 				uint pattern;
 				uint latch;
 				uint buffer;
 				Core::Io::Line a12;
-			}   io;
+			};
 
+			Cpu& cpu;
+
+			struct
+			{
+				Cycle count;
+				Cycle hClock;
+				Cycle vClock;
+				uint  one;
+				Cycle reset;
+			}   cycles;
+
+			Io io;
 			Regs regs;
 			Scroll scroll;
 			Tiles tiles;
-			uint stage;
 			Chr chr;
 			Nmt nmt;
 			int scanline;
 			Output output;
+			PpuModel model;
 			Hook hActiveHook;
 			Hook hBlankHook;
 			const byte* rgbMap;
@@ -454,6 +447,8 @@ namespace Nes
 			const TileLut tileLut;
 			Video::Screen screen;
 
+			static const byte yuvMaps[4][0x40];
+
 		public:
 
 			void Update()
@@ -461,14 +456,19 @@ namespace Nes
 				Update(0);
 			}
 
+			PpuModel GetModel() const
+			{
+				return model;
+			}
+
 			ibool IsEnabled() const
 			{
-				return io.enabled;
+				return regs.ctrl1 & Regs::CTRL1_BG_SP_ENABLED;
 			}
 
 			bool IsActive() const
 			{
-				return io.enabled && scanline < Video::Screen::HEIGHT;
+				return (regs.ctrl1 & Regs::CTRL1_BG_SP_ENABLED) && scanline < Video::Screen::HEIGHT;
 			}
 
 			int GetScanline() const
@@ -518,11 +518,6 @@ namespace Nes
 				return output.pixels[i];
 			}
 
-			uint GetPixelCycles() const
-			{
-				return output.index;
-			}
-
 			uint GetYuvColor(uint i) const
 			{
 				NST_ASSERT( i < Palette::COLORS );
@@ -568,11 +563,6 @@ namespace Nes
 			bool HasSpriteLimit() const
 			{
 				return oam.spriteLimit;
-			}
-
-			uint GetFps() const
-			{
-				return cycles.one == Clocks::RP2C02_CC ? Clocks::RP2C02_FPS : Clocks::RP2C07_FPS;
 			}
 		};
 	}

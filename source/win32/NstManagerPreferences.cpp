@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -39,15 +39,14 @@ namespace Nestopia
 			Preferences::RUN_IN_BACKGROUND        - Window::Preferences::RUN_IN_BACKGROUND        == 0 &&
 			Preferences::AUTOSTART_EMULATION      - Window::Preferences::AUTOSTART_EMULATION      == 0 &&
 			Preferences::SAVE_LOGFILE             - Window::Preferences::SAVE_LOGFILE             == 0 &&
-			Preferences::AUTOCORRECT_IMAGES       - Window::Preferences::AUTOCORRECT_IMAGES       == 0 &&
 			Preferences::ALLOW_MULTIPLE_INSTANCES - Window::Preferences::ALLOW_MULTIPLE_INSTANCES == 0 &&
-			Preferences::SAVE_SETTINGS            - Window::Preferences::SAVE_SETTINGS            == 0 &&
 			Preferences::SAVE_LAUNCHER            - Window::Preferences::SAVE_LAUNCHER            == 0 &&
 			Preferences::CONFIRM_RESET            - Window::Preferences::CONFIRM_RESET            == 0 &&
 			Preferences::SAVE_CHEATS              - Window::Preferences::SAVE_CHEATS              == 0 &&
 			Preferences::SAVE_NETPLAY_GAMELIST    - Window::Preferences::SAVE_NETPLAY_GAMELIST    == 0 &&
 			Preferences::SAVE_WINDOWPOS           - Window::Preferences::SAVE_WINDOWPOS           == 0 &&
 			Preferences::SAVE_LAUNCHERSIZE        - Window::Preferences::SAVE_LAUNCHERSIZE        == 0 &&
+			Preferences::SAVE_SETTINGS            - Window::Preferences::SAVE_SETTINGS            == 0 &&
 			Preferences::NUM_SETTINGS             - Window::Preferences::NUM_SETTINGS             == 0
 		);
 
@@ -94,6 +93,9 @@ namespace Nestopia
 		{
 			settings.flags = dialog->GetSettings();
 			settings.priority = static_cast<Priority>(dialog->GetSettings().priority);
+			settings.favoredSystem = dialog->GetSettings().favoredSystem;
+			settings.alwaysAskSystem = dialog->GetSettings().alwaysAskSystem;
+
 			UpdateMenuColor();
 		}
 

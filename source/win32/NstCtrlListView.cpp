@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -32,7 +32,7 @@ namespace Nestopia
 	{
 		namespace Control
 		{
-			void ListView::ColumnsProxy::Insert(const uint index,tstring const text) const
+			void ListView::ColumnsProxy::Insert(const uint index,wcstring const text) const
 			{
 				NST_ASSERT( text );
 
@@ -40,7 +40,7 @@ namespace Nestopia
 
 				lvColumn.mask = LVCF_FMT|LVCF_TEXT;
 				lvColumn.fmt = LVCFMT_LEFT;
-				lvColumn.pszText = const_cast<tchar*>( text );
+				lvColumn.pszText = const_cast<wchar_t*>( text );
 
 				ListView_InsertColumn( control, index, &lvColumn );
 			}
@@ -90,9 +90,9 @@ namespace Nestopia
 				ListView_SetExtendedListViewStyle( control, style );
 			}
 
-			void ListView::Item::TextProxy::operator << (tstring const text) const
+			void ListView::Item::TextProxy::operator << (wcstring const text) const
 			{
-				ListView_SetItemText( item.control, item.index, index, const_cast<tchar*>(text) );
+				ListView_SetItemText( item.control, item.index, index, const_cast<wchar_t*>(text) );
 			}
 
 			void ListView::Item::TextProxy::GetText(Buffer& buffer) const
@@ -182,7 +182,7 @@ namespace Nestopia
 				{
 					if (text.NullTerminated())
 					{
-						lvItem.pszText = const_cast<tchar*>(text.Ptr());
+						lvItem.pszText = const_cast<wchar_t*>(text.Ptr());
 					}
 					else
 					{

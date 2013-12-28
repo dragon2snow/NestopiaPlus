@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -38,12 +38,12 @@ namespace Nestopia
 
 			uint offset = Length();
 
+			if (types( File::XML     )) (*this) << ", *.xml";
 			if (types( File::INES    )) (*this) << ", *.nes";
 			if (types( File::UNIF    )) (*this) << ", *.unf";
 			if (types( File::FDS     )) (*this) << ", *.fds";
 			if (types( File::NSF     )) (*this) << ", *.nsf";
 			if (types( File::ROM     )) (*this) << ", *.rom";
-			if (types( File::SCRIPT  )) (*this) << ", *.nsp";
 			if (types( File::BATTERY )) (*this) << ", *.sav";
 			if (types( File::TAPE    )) (*this) << ", *.tp";
 			if (types( File::STATE   )) (*this) << ", *.nst";
@@ -68,12 +68,12 @@ namespace Nestopia
 				ShrinkTo( offset );
 			}
 
+			if (types( File::XML     )) (*this) << ";*.xml";
 			if (types( File::INES    )) (*this) << ";*.nes";
 			if (types( File::UNIF    )) (*this) << ";*.unf;*.unif";
 			if (types( File::FDS     )) (*this) << ";*.fds";
 			if (types( File::NSF     )) (*this) << ";*.nsf";
 			if (types( File::ROM     )) (*this) << ";*.rom";
-			if (types( File::SCRIPT  )) (*this) << ";*.nsp";
 			if (types( File::BATTERY )) (*this) << ";*.sav";
 			if (types( File::TAPE    )) (*this) << ";*.tp";
 			if (types( File::STATE   )) (*this) << ";*.nst";
@@ -87,12 +87,12 @@ namespace Nestopia
 
 			At(offset) = '\t';
 
+			if (types( File::XML      )) (*this) << '\t' << Resource::String( IDS_FILES_XML     ) << " (*.xml)\t*.xml";
 			if (types( File::INES     )) (*this) << '\t' << Resource::String( IDS_FILES_INES    ) << " (*.nes)\t*.nes";
 			if (types( File::UNIF     )) (*this) << '\t' << Resource::String( IDS_FILES_UNIF    ) << " (*.unf,*.unif)\t*.unf;*.unif";
 			if (types( File::FDS      )) (*this) << '\t' << Resource::String( IDS_FILES_FDS     ) << " (*.fds)\t*.fds";
 			if (types( File::NSF      )) (*this) << '\t' << Resource::String( IDS_FILES_NSF     ) << " (*.nsf)\t*.nsf";
 			if (types( File::ROM      )) (*this) << '\t' << Resource::String( IDS_FILES_ROM     ) << " (*.rom)\t*.rom";
-			if (types( File::SCRIPT   )) (*this) << '\t' << Resource::String( IDS_FILES_SCRIPT  ) << " (*.nsp)\t*.nsp";
 			if (types( File::BATTERY  )) (*this) << '\t' << Resource::String( IDS_FILES_BATTERY ) << " (*.sav)\t*.sav";
 			if (types( File::TAPE     )) (*this) << '\t' << Resource::String( IDS_FILES_TAPE    ) << " (*.tp)\t*.tp";
 

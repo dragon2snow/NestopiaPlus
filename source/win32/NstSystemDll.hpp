@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -28,7 +28,7 @@
 #pragma once
 
 #include "NstMain.hpp"
-#include <Windows.h>
+#include <windows.h>
 
 namespace Nestopia
 {
@@ -38,7 +38,7 @@ namespace Nestopia
 		{
 		public:
 
-			bool Load(tstring);
+			bool Load(wcstring);
 
 		private:
 
@@ -49,7 +49,7 @@ namespace Nestopia
 			Dll()
 			: hModule(NULL) {}
 
-			explicit Dll(tstring file)
+			explicit Dll(wcstring file)
 			: hModule(::LoadLibrary(file))
 			{
 				NST_ASSERT( file && *file );

@@ -13,10 +13,10 @@
     <h1 class="heading"><a name="pagetop" id="pagetop">Nestopia Documentation</a></h1>
     <p class="heading">
       <em>
-        version 1.37<br>
-        last updated May 19, 2007<br>
+        version 1.38<br>
+        last updated 9 april, 2008<br>
         <br>
-        Homepage: <a href="http://nestopia.sourceforge.net/">http://nestopia.sourceforge.net/</a><br>
+          Site: <a href="http://nestopia.sourceforge.net/">http://nestopia.sourceforge.net/</a><br>
         Mail: martin-freij at home.se<br>
       </em>
     </p>
@@ -38,7 +38,6 @@
       <li><a href="#introduction">Introduction</a></li>
       <li><a href="#features">Features</a></li>
       <li><a href="#systemRequirements">System Requirements</a></li>
-      <li><a href="#gettingStarted">Getting Started</a></li>
       <li><a href="#troubleshooting">Troubleshooting</a></li>
       <li><a href="#credits">Credits</a></li>
     </ul>
@@ -48,60 +47,407 @@
     <hr>
     <h2><a name="introduction" id="introduction">Introduction</a></h2>
     <p>
-      Nestopia is a portable open source NES/Famicom emulator written in C++.
-      It's designed to be as accurate as possible and supports a large number
-      of peripherals. The hardware is emulated at cycle-by-cycle granularity,
-      ensuring full support for software that do mid-scanline and other
-      timing trickery. The emulation core has been carefully made to conform
-      to the C++98 standard and any decent compiler should be able to compile
-      it without any hassle. To ease the process of porting the emulator to a
-      platform of choice, the core provides a set of API classes.<br>
+      Nestopia is an open source NES/Famicom emulator written in standard C++, 
+      focused on delivering as accurate emulation as possible. Development began in 
+      mid 2002, initially released for the Windows platform a year later.
+      It has since been ported to other platforms, including Linux and Mac OS X.
+      See credits section for the list of authors involved.
+      <br>
       <br>
       <a href="#pagetop">Back to Top</a>
     </p>
     <hr>
-    <h2><a name="features" id="features">Features</a></h2>
-    <h4>Boards (not mapper-assigned)</h4>
+    <h2><a name="features" id="features">Features</a></h2>    
+    <h4>Boards:</h4>
     <ul>
-      <li>603-5052</li>
-      <li>64-in-1 NoRepeat</li>
-      <li>8157 4/20-in-1</li>
-      <li>A65AS</li>
-      <li>AX5705</li>
-      <li>CC-21</li>
-      <li>CTC-65</li>
-      <li>DreamTech 01</li>
-      <li>Edu2000</li>
-      <li>FK23C</li>
-      <li>Golden 190-in-1</li>
-      <li>GS-2004</li>
-      <li>Kof97</li>
-      <li>Street Heroes</li>
-      <li>Super 24-in-1</li>
-      <li>Super Game 8237</li>
-      <li>T-230</li>
-      <li>T-262</li>
-      <li>TF1201</li>
-      <li>WS 40-in-1</li>
-    </ul>
-    <h4>External Sound Chips</h4>
+      <li>ACCLAIM-AOROM</li>               
+      <li>ACCLAIM-MC-ACC</li>              
+      <li>ACCLAIM-TLROM</li>               
+      <li>AGCI-47516</li>                  
+      <li>AGCI-50282</li>                  
+      <li>AVE-74*161</li>                  
+      <li>AVE-NINA-01</li>                 
+      <li>AVE-NINA-02</li>                 
+      <li>AVE-NINA-03</li>                 
+      <li>AVE-NINA-06</li>                 
+      <li>AVE-NINA-07</li>                 
+      <li>AVE-MB-91</li>                  
+      <li>BANDAI-74*161/161/32</li>        
+      <li>BANDAI-CNROM</li>                
+      <li>BANDAI-FCG-1</li>                
+      <li>BANDAI-FCG-2</li>                
+      <li>BANDAI-GNROM</li>                
+      <li>BANDAI-JUMP2</li>                
+      <li>BANDAI-LZ93D50+24C01</li>        
+      <li>BANDAI-LZ93D50+24C02</li>        
+      <li>BANDAI-NROM-128</li>             
+      <li>BANDAI-NROM-256</li>             
+      <li>BANDAI-PT-554</li>               
+      <li>BMC-190IN1</li>                  
+      <li>BMC-42IN1RESETSWITCH</li>        
+      <li>BMC-64IN1NOREPEAT</li>           
+      <li>BMC-70IN1</li>                   
+      <li>BMC-70IN1B</li>                  
+      <li>BMC-8157</li>                    
+      <li>BMC-A65AS</li>
+      <li>BMC-BS-5</li>
+      <li>BMC-D1038</li>                   
+      <li>BMC-FK23C</li>                   
+      <li>BMC-GHOSTBUSTERS63IN1</li>       
+      <li>BMC-GS-2004</li>                 
+      <li>BMC-GS-2013</li>                 
+      <li>BMC-N625092</li>                 
+      <li>BMC-NOVELDIAMOND9999999IN1</li>  
+      <li>BMC-SUPER24IN1SC03</li>          
+      <li>BMC-SUPERHIK8IN1</li>            
+      <li>BMC-SUPERVISION16IN1</li>        
+      <li>BMC-T-262</li>                   
+      <li>BMC-WS</li>                      
+      <li>BTL-MARIO1-MALEE2</li>           
+      <li>CAMERICA-ALGN</li>               
+      <li>CAMERICA-ALGQ</li>               
+      <li>CAMERICA-BF9093</li>             
+      <li>CAMERICA-BF9096</li>             
+      <li>CAMERICA-BF9097</li>             
+      <li>CAMERICA-GAMEGENIE</li>          
+      <li>COLORDREAMS-74*377</li>          
+      <li>DREAMTECH01</li>                 
+      <li>HVC-AMROM</li>                   
+      <li>HVC-AN1ROM</li>                  
+      <li>HVC-ANROM</li>                   
+      <li>HVC-AOROM</li>                   
+      <li>HVC-BNROM</li>                   
+      <li>HVC-CNROM</li>                   
+      <li>HVC-CPROM</li>                   
+      <li>HVC-DE1ROM</li>                  
+      <li>HVC-DEROM</li>                   
+      <li>HVC-DRROM</li>                   
+      <li>HVC-EKROM</li>                   
+      <li>HVC-ELROM</li>                   
+      <li>HVC-ETROM</li>                   
+      <li>HVC-EWROM</li>                   
+      <li>HVC-FAMILYBASIC</li>             
+      <li>HVC-FJROM</li>                   
+      <li>HVC-FKROM</li>                   
+      <li>HVC-GNROM</li>                   
+      <li>HVC-HKROM</li>                   
+      <li>HVC-HROM</li>                    
+      <li>HVC-JLROM</li>                   
+      <li>HVC-JSROM</li>                   
+      <li>HVC-MHROM</li>                   
+      <li>HVC-NROM</li>                    
+      <li>HVC-NROM-128</li>                
+      <li>HVC-NROM-256</li>                
+      <li>HVC-NTBROM</li>                  
+      <li>HVC-PEEOROM</li>                 
+      <li>HVC-PNROM</li>                   
+      <li>HVC-RROM</li>                    
+      <li>HVC-RROM-128</li>                
+      <li>HVC-SAROM</li>                   
+      <li>HVC-SBROM</li>                   
+      <li>HVC-SC1ROM</li>                  
+      <li>HVC-SCROM</li>                   
+      <li>HVC-SEROM</li>                   
+      <li>HVC-SF1ROM</li>                  
+      <li>HVC-SFROM</li>                   
+      <li>HVC-SGROM</li>                   
+      <li>HVC-SH1ROM</li>                  
+      <li>HVC-SHROM</li>                   
+      <li>HVC-SJROM</li>                   
+      <li>HVC-SKROM</li>                   
+      <li>HVC-SL1ROM</li>                  
+      <li>HVC-SL2ROM</li>                  
+      <li>HVC-SL3ROM</li>                  
+      <li>HVC-SLROM</li>                   
+      <li>HVC-SLRROM</li>                  
+      <li>HVC-SNROM</li>                   
+      <li>HVC-SOROM</li>                   
+      <li>HVC-SROM</li>                    
+      <li>HVC-STROM</li>                   
+      <li>HVC-SUROM</li>                   
+      <li>HVC-SXROM</li>                   
+      <li>HVC-TBROM</li>                   
+      <li>HVC-TEROM</li>                   
+      <li>HVC-TFROM</li>                   
+      <li>HVC-TGROM</li>                   
+      <li>HVC-TKROM</li>                   
+      <li>HVC-TKSROM</li>                  
+      <li>HVC-TL1ROM</li>                  
+      <li>HVC-TL2ROM</li>                  
+      <li>HVC-TLROM</li>                   
+      <li>HVC-TLSROM</li>                  
+      <li>HVC-TNROM</li>                   
+      <li>HVC-TQROM</li>                   
+      <li>HVC-TR1ROM</li>                  
+      <li>HVC-TSROM</li>                   
+      <li>HVC-TVROM</li>                   
+      <li>HVC-UN1ROM</li>                  
+      <li>HVC-UNROM</li>                   
+      <li>HVC-UOROM</li>                   
+      <li>IREM-74*161/161/21/138</li>      
+      <li>IREM-BNROM</li>                  
+      <li>IREM-G101</li>                   
+      <li>IREM-G101-A</li>                 
+      <li>IREM-G101-B</li>                 
+      <li>IREM-HOLYDIVER</li>              
+      <li>IREM-NROM-128</li>               
+      <li>IREM-NROM-256</li>               
+      <li>IREM-UNROM</li>                  
+      <li>JALECO-JF-01</li>                
+      <li>JALECO-JF-02</li>                
+      <li>JALECO-JF-03</li>                
+      <li>JALECO-JF-04</li>                
+      <li>JALECO-JF-05</li>                
+      <li>JALECO-JF-06</li>                
+      <li>JALECO-JF-07</li>                
+      <li>JALECO-JF-08</li>                
+      <li>JALECO-JF-09</li>                
+      <li>JALECO-JF-10</li>                
+      <li>JALECO-JF-11</li>                
+      <li>JALECO-JF-12</li>                
+      <li>JALECO-JF-13</li>                
+      <li>JALECO-JF-14</li>                
+      <li>JALECO-JF-15</li>                
+      <li>JALECO-JF-16</li>                
+      <li>JALECO-JF-17</li>                
+      <li>JALECO-JF-18</li>                
+      <li>JALECO-JF-19</li>                
+      <li>JALECO-JF-20</li>                
+      <li>JALECO-JF-21</li>                
+      <li>JALECO-JF-22</li>                
+      <li>JALECO-JF-23</li>                
+      <li>JALECO-JF-24</li>                
+      <li>JALECO-JF-25</li>                
+      <li>JALECO-JF-26</li>                
+      <li>JALECO-JF-27</li>                
+      <li>JALECO-JF-28</li>                
+      <li>JALECO-JF-29</li>                
+      <li>JALECO-JF-30</li>                
+      <li>JALECO-JF-31</li>                
+      <li>JALECO-JF-32</li>                
+      <li>JALECO-JF-33</li>                
+      <li>JALECO-JF-34</li>                
+      <li>JALECO-JF-35</li>                
+      <li>JALECO-JF-36</li>                
+      <li>JALECO-JF-37</li>                
+      <li>JALECO-JF-38</li>                
+      <li>JALECO-JF-39</li>                
+      <li>JALECO-JF-40</li>                
+      <li>JALECO-JF-41</li>                
+      <li>KONAMI-74*139/74</li>            
+      <li>KONAMI-CNROM</li>                
+      <li>KONAMI-NROM-128</li>             
+      <li>KONAMI-SLROM</li>                
+      <li>KONAMI-TLROM</li>                
+      <li>KONAMI-UNROM</li>                
+      <li>KONAMI-VRC-1</li>                
+      <li>KONAMI-VRC-2</li>               
+      <li>KONAMI-VRC-3</li>                
+      <li>KONAMI-VRC-4</li>               
+      <li>KONAMI-VRC-6</li>               
+      <li>KONAMI-VRC-7</li>                
+      <li>MLT-ACTION52</li>                
+      <li>MLT-CALTRON6IN1</li>             
+      <li>MLT-MAXI15</li>                  
+      <li>NAMCOT-163</li>                  
+      <li>NAMCOT-3301</li>                 
+      <li>NAMCOT-3302</li>                 
+      <li>NAMCOT-3303</li>                 
+      <li>NAMCOT-3305</li>                 
+      <li>NAMCOT-3311</li>                 
+      <li>NAMCOT-3401</li>                 
+      <li>NAMCOT-3405</li>                 
+      <li>NAMCOT-3406</li>                 
+      <li>NAMCOT-3407</li>                 
+      <li>NAMCOT-3411</li>                 
+      <li>NAMCOT-3413</li>                 
+      <li>NAMCOT-3414</li>                 
+      <li>NAMCOT-3415</li>                 
+      <li>NAMCOT-3416</li>                 
+      <li>NAMCOT-3417</li>                 
+      <li>NAMCOT-3425</li>                 
+      <li>NAMCOT-3433</li>                 
+      <li>NAMCOT-3443</li>                 
+      <li>NAMCOT-3446</li>                 
+      <li>NAMCOT-3451</li>                 
+      <li>NES-AMROM</li>                   
+      <li>NES-AN1ROM</li>                  
+      <li>NES-ANROM</li>                   
+      <li>NES-AOROM</li>                   
+      <li>NES-B4</li>                      
+      <li>NES-BNROM</li>                   
+      <li>NES-BTR</li>                     
+      <li>NES-CNROM</li>                   
+      <li>NES-CPROM</li>                   
+      <li>NES-DE1ROM</li>                  
+      <li>NES-DEROM</li>                   
+      <li>NES-DRROM</li>                   
+      <li>NES-EKROM</li>                   
+      <li>NES-ELROM</li>                   
+      <li>NES-ETROM</li>                   
+      <li>NES-EVENT</li>                   
+      <li>NES-EWROM</li>                   
+      <li>NES-FJROM</li>                   
+      <li>NES-FKROM</li>                   
+      <li>NES-GNROM</li>                   
+      <li>NES-HKROM</li>                   
+      <li>NES-HROM</li>                    
+      <li>NES-JLROM</li>                   
+      <li>NES-JSROM</li>                   
+      <li>NES-MHROM</li>                   
+      <li>NES-NROM</li>                    
+      <li>NES-NROM-128</li>                
+      <li>NES-NROM-256</li>                
+      <li>NES-NTBROM</li>                  
+      <li>NES-PEEOROM</li>                 
+      <li>NES-PNROM</li>                   
+      <li>NES-QJ</li>                      
+      <li>NES-RROM</li>                    
+      <li>NES-RROM-128</li>                
+      <li>NES-SAROM</li>                   
+      <li>NES-SBROM</li>                   
+      <li>NES-SC1ROM</li>                  
+      <li>NES-SCROM</li>                   
+      <li>NES-SEROM</li>                   
+      <li>NES-SF1ROM</li>                  
+      <li>NES-SFROM</li>                   
+      <li>NES-SGROM</li>                   
+      <li>NES-SH1ROM</li>                  
+      <li>NES-SHROM</li>                   
+      <li>NES-SJROM</li>                   
+      <li>NES-SKROM</li>                   
+      <li>NES-SL1ROM</li>                  
+      <li>NES-SL2ROM</li>                  
+      <li>NES-SL3ROM</li>                  
+      <li>NES-SLROM</li>                   
+      <li>NES-SLRROM</li>                  
+      <li>NES-SNROM</li>                   
+      <li>NES-SOROM</li>                   
+      <li>NES-SROM</li>                    
+      <li>NES-STROM</li>                   
+      <li>NES-SUROM</li>                   
+      <li>NES-SXROM</li>                   
+      <li>NES-TBROM</li>                   
+      <li>NES-TEROM</li>                   
+      <li>NES-TFROM</li>                   
+      <li>NES-TGROM</li>                   
+      <li>NES-TKROM</li>                   
+      <li>NES-TKSROM</li>                  
+      <li>NES-TL1ROM</li>                  
+      <li>NES-TL2ROM</li>                  
+      <li>NES-TLROM</li>                   
+      <li>NES-TLSROM</li>                  
+      <li>NES-TNROM</li>                   
+      <li>NES-TQROM</li>                   
+      <li>NES-TR1ROM</li>                  
+      <li>NES-TSROM</li>                   
+      <li>NES-TVROM</li>                   
+      <li>NES-UN1ROM</li>                  
+      <li>NES-UNROM</li>                   
+      <li>NES-UOROM</li>                   
+      <li>NES-WH</li>                      
+      <li>PAL-MH</li>                      
+      <li>PAL-ZZ</li>                      
+      <li>SACHEN-8259A</li>                
+      <li>SACHEN-8259B</li>                
+      <li>SACHEN-8259C</li>                
+      <li>SACHEN-8259D</li>                
+      <li>SACHEN-CNROM</li>                
+      <li>SETA-NROM-128</li>               
+      <li>SUNSOFT-1</li>                   
+      <li>SUNSOFT-2</li>                   
+      <li>SUNSOFT-3</li>                   
+      <li>SUNSOFT-4</li>                   
+      <li>SUNSOFT-FME-7</li>               
+      <li>SUNSOFT-NROM-256</li>            
+      <li>TAITO-74*139/74</li>             
+      <li>TAITO-74*161/161/32</li>         
+      <li>TAITO-CNROM</li>                 
+      <li>TAITO-NROM-128</li>              
+      <li>TAITO-NROM-256</li>              
+      <li>TAITO-TC0190FMC</li>             
+      <li>TAITO-TC0190FMC+PAL16R4</li>     
+      <li>TAITO-UNROM</li>                 
+      <li>TAITO-X1-005</li>                
+      <li>TAITO-X1-017</li>                
+      <li>TENGEN-800002</li>               
+      <li>TENGEN-800003</li>               
+      <li>TENGEN-800004</li>               
+      <li>TENGEN-800008</li>               
+      <li>TENGEN-800030</li>               
+      <li>TENGEN-800032</li>               
+      <li>TENGEN-800037</li>               
+      <li>TENGEN-800042</li>               
+      <li>UNL-22211</li>                   
+      <li>UNL-603-5052</li>                
+      <li>UNL-8237</li>                    
+      <li>UNL-AX5705</li>                  
+      <li>UNL-CC-21</li>                   
+      <li>UNL-EDU2000</li>                 
+      <li>UNL-H2288</li>                   
+      <li>UNL-KOF97</li>                   
+      <li>UNL-KS7032</li>                  
+      <li>UNL-SA-0036</li>                 
+      <li>UNL-SA-0037</li>                 
+      <li>UNL-SA-016-1M</li>               
+      <li>UNL-SA-72007</li>                
+      <li>UNL-SA-72008</li>                
+      <li>UNL-SA-NROM</li>                 
+      <li>UNL-SACHEN-74LS374N</li>         
+      <li>UNL-SACHEN-8259A</li>            
+      <li>UNL-SACHEN-8259B</li>            
+      <li>UNL-SACHEN-8259C</li>            
+      <li>UNL-SACHEN-8259D</li>            
+      <li>UNL-SHERO</li>                   
+      <li>UNL-SL1632</li>                  
+      <li>UNL-SMB2J</li>                   
+      <li>UNL-T-230</li>                   
+      <li>UNL-TC-U01-1.5M</li>             
+      <li>UNL-TEK90</li>                   
+      <li>UNL-TF1201</li>                  
+      <li>VIRGIN-SNROM</li>                
+    </ul>    
+    <h4>iNES Mappers:</h4>
     <ul>
+      <li>0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,</li>
+      <li>17, 18, 19,*21, 22,*23, 24,*25, 26, 27, 32, 33, 34, 36,</li>
+      <li>37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50,</li>
+      <li>51, 52, 53, 54, 55, 56, 57, 58, 60, 61, 62, 63, 64, 65,</li>
+      <li>66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79,</li>
+      <li>80, 82, 83, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95,</li>
+      <li>96, 97, 99, 103, 104, 105, 106, 107, 108, 112, 113, 114,</li>
+      <li>115, 116, 117, 118, 119, 120, 121, 123, 126, 132, 133, 134,</li>
+      <li>136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147,</li>
+      <li>148, 149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159,</li>
+      <li>163, 164, 165, 166, 167, 169, 170, 171, 172, 173, 175, 176,</li>
+      <li>178, 180, 182, 183, 184,*185, 186, 187, 188, 189, 191, 192,</li>
+      <li>193, 194, 195, 196, 197, 198, 199, 200, 201, 202, 203, 204,</li>
+      <li>205, 206, 207, 208, 209, 211, 212, 213, 214, 215, 216, 217,</li>
+      <li>222, 223, 224, 225, 226, 227, 228, 229, 230, 231, 232, 233,</li>
+      <li>234, 235, 236, 240, 241, 242, 243, 244, 245, 246, 249, 250,</li>
+      <li>252, 254, 255</li>
+    </ul>      
+    <p class="fineprint">
+        &nbsp;&nbsp;&nbsp;&nbsp;* only supported if PIN wiring info is available through a database or ROM set.<br>
+    </p>    
+    <h4>External Sound Chips:</h4>
+    <ul>
+      <li>Konami VRC6</li>
+      <li>Konami VRC7</li>
       <li>MMC5</li>
-      <li>NAMCOT 106/163</li>
+      <li>Namcot 163 </li>
       <li>RP2C33</li>
-      <li>SUNSOFT5B</li>
-      <li>VRC6</li>
-      <li>VRC7</li>
+      <li>Sunsoft 5B</li>
     </ul>
-    <h4>Controllers</h4>    
+    <h4>Controllers:</h4>    
     <ul>
-      <li>Arkanoid Paddle <span class="fineprint">(1)</span></li>
-      <li>Crazy Climber Stick</li>
+      <li>Arkanoid <span class="fineprint">(1)</span></li>
+      <li>Crazy Climber Sticks</li>
       <li>Doremikko Keyboard</li>
       <li>Exciting Boxing Bop Bag</li>
       <li>Family BASIC Keyboard</li>
       <li>Family Computer Robot / R.O.B</li>
-      <li>Family Trainer / Power Pad</li>
+      <li>Family Trainer / Family Fun Fitness / Power Pad</li>
       <li>Hori Track <span class="fineprint">(1)</span></li>
       <li>Hyper Shot</li>
       <li>Light Gun <span class="fineprint">(1)</span></li>
@@ -109,7 +455,7 @@
       <li>Oeka Kids Tablet <span class="fineprint">(1)</span></li>
       <li>Pachinko Controller <span class="fineprint">(2)</span></li>
       <li>Party Tap</li>
-      <li>Pokkun Moguraa Tap-tap Mat</li>
+      <li>Pokkun Moguraa</li>
       <li>Power Glove <span class="fineprint">(1)</span></li>
       <li>Standard Pad</li>
       <li>Subor Keyboard + Mouse</li>
@@ -119,7 +465,7 @@
         &nbsp;&nbsp;&nbsp;&nbsp;(1) Using the mouse<br>
         &nbsp;&nbsp;&nbsp;&nbsp;(2) Using the mouse wheel<br>
     </p>
-    <h4>Other Peripherals/Systems</h4>
+    <h4>Other Peripherals/Systems:</h4>
     <ul>
       <li>Bandai Karaoke Studio</li>
       <li>Barcode Battler</li>
@@ -128,236 +474,34 @@
       <li>Famicom Disk System</li>
       <li>Game Genie &amp; Pro Action Rocky</li>
       <li>Turbo File</li>
-      <li>Vs.System</li>
-    </ul>
-    <h4>Extras</h4>
+      <li>VS System </li>
+    </ul>    
+    <h4>Image File Formats:</h4>
+    <ul>
+      <li>ROM images backed by XML descriptor (.zip)</li>
+      <li>UNIF (.unf)</li>
+      <li>iNES (.nes)</li>
+      <li>FDS with/without headers (.fds)</li>
+    </ul>    
+    <h4>Extras:</h4>
     <ul>
       <li>Savestates / Saveslots</li>
-      <li>Png/Jpeg/Bmp File Screenshots</li>
-      <li>Movie/Avi File Recording</li>
-      <li>Wave File Recording</li>
-      <li>Zip/Rar/7zip Archive Support</li>
+      <li>PNG/JPEG/BMP File Screenshots</li>
+      <li>Movie/AVI File Recording</li>
+      <li>WAVE File Recording</li>
+      <li>ZIP/RAR/7zip Archive Support</li>
       <li>On-the-fly IPS Patching</li>
       <li>Netplay</li>
       <li>NSF Player</li>
       <li>Video Filters including NTSC video emulation</li>
       <li>Real-time Rewinding</li>
       <li>Cheat Searching</li>
-      <li>Database for correcting bad file-headers </li>
-      <li>Game Configuration Files</li>
+      <li>Databases of cartridge info</li>
       <li>File Launcher</li>
       <li>Palette Editor</li>
       <li>iNES File Header Editor</li>
     </ul>    
-    <h4> Mappers (fully or partially)</h4>
-    <table border="1">
-      <tr><th>Number</th><th>Chips/Board</th></tr>
-      <tr><td align="center">0</td>   <td>NROM</td></tr>                                        
-      <tr><td align="center">1</td>   <td>SxROM</td></tr>                                 
-      <tr><td align="center">2</td>   <td>UxROM</td></tr>                                 
-      <tr><td align="center">3</td>   <td>CNROM</td></tr>                                 
-      <tr><td align="center">4</td>   <td>TxROM / HxROM / DxROM / TENGEN 8000xx</td></tr> 
-      <tr><td align="center">5</td>   <td>ExROM</td></tr>                                 
-      <tr><td align="center">6</td>   <td>FFE F4xxx(128+128)/F3xxx(128+64)</td></tr>      
-      <tr><td align="center">7</td>   <td>AxROM</td></tr>                                 
-      <tr><td align="center">8</td>   <td>FFE F3xxx</td></tr>                             
-      <tr><td align="center">9</td>   <td>PxROM</td></tr>                                 
-      <tr><td align="center">10</td>  <td>FxROM</td></tr>                                 
-      <tr><td align="center">11</td>  <td>COLOR DREAMS</td></tr>                          
-      <tr><td align="center">12</td>  <td>BTL REX DBZ5</td></tr>                          
-      <tr><td align="center">13</td>  <td>CPROM</td></tr>                                 
-      <tr><td align="center">14</td>  <td>SOMERI TEAM SL-1632</td></tr>                   
-      <tr><td align="center">15</td>  <td>BMC CONTRA 100-IN-1</td></tr>                   
-      <tr><td align="center">16</td>  <td>BANDAI FCG-1/FCG-2/LZ93D50 +X24C02</td></tr>    
-      <tr><td align="center">17</td>  <td>FFE F8xxx/SMxxxx</td></tr>                      
-      <tr><td align="center">18</td>  <td>JALECO SS8806</td></tr>                         
-      <tr><td align="center">19</td>  <td>NAMCOT 106/163</td></tr>                                          
-      <tr><td align="center">21</td>  <td>KONAMI 352889 VRC4</td></tr>                        
-      <tr><td align="center">22</td>  <td>KONAMI 35xxxx VRC2</td></tr>                        
-      <tr><td align="center">23</td>  <td>KONAMI 350926 VRC2 / 352396 VRC4</td></tr>                     
-      <tr><td align="center">24</td>  <td>KONAMI 35xxxx VRC6</td></tr>                     
-      <tr><td align="center">25</td>  <td>KONAMI 351406 VRC4</td></tr>                         
-      <tr><td align="center">26</td>  <td>KONAMI 351949 VRC6</td></tr>                     
-      <tr><td align="center">27</td>  <td>VRC4 +EXT.CHR</td></tr>                         
-      <tr><td align="center">32</td>  <td>IREM G-101</td></tr>                            
-      <tr><td align="center">33</td>  <td>TAITO TC0190/TC0350</td></tr>                   
-      <tr><td align="center">34</td>  <td>BNROM / AVE NINA-001</td></tr>                  
-      <tr><td align="center">37</td>  <td>ZZ</td></tr>                                    
-      <tr><td align="center">38</td>  <td>BIT CORP 74HC161/138</td></tr>                  
-      <tr><td align="center">39</td>  <td>BMC STUDY &amp; GAME 32-IN-1</td></tr>              
-      <tr><td align="center">40</td>  <td>BTL SMB2</td></tr>                              
-      <tr><td align="center">41</td>  <td>CALTRON 6-IN-1</td></tr>                        
-      <tr><td align="center">42</td>  <td>BTL AI SENSHI NICOL / MARIO BABY</td></tr>      
-      <tr><td align="center">43</td>  <td>BTL SMB2</td></tr>                              
-      <tr><td align="center">44</td>  <td>BMC SUPER BIG 7-IN-1</td></tr>                  
-      <tr><td align="center">45</td>  <td>BMC SUPER/HERO X-IN-1</td></tr>                 
-      <tr><td align="center">46</td>  <td>RUMBLE-STATION 15-IN-1</td></tr>                
-      <tr><td align="center">47</td>  <td>QJ</td></tr>                                    
-      <tr><td align="center">48</td>  <td>TAITO TC190V</td></tr>                          
-      <tr><td align="center">49</td>  <td>BMC SUPER HiK 4-IN-1</td></tr>                  
-      <tr><td align="center">50</td>  <td>BTL SMB2 (LF-36)</td></tr>                      
-      <tr><td align="center">51</td>  <td>BMC BALL GAMES 11-IN-1</td></tr>                
-      <tr><td align="center">52</td>  <td>BMC MARIO PARTY 7-IN-1</td></tr>                
-      <tr><td align="center">53</td>  <td>BMC SUPERVISION 16-IN-1</td></tr>               
-      <tr><td align="center">54</td>  <td>BMC NOVELDIAMOND 9999999-IN-1</td></tr>         
-      <tr><td align="center">55</td>  <td>BTL MARIO1-MALEE2</td></tr>                     
-      <tr><td align="center">56</td>  <td>KS-202</td></tr>                                
-      <tr><td align="center">57</td>  <td>BMC GK-54/GK-L01A/GK-L02A</td></tr>             
-      <tr><td align="center">58</td>  <td>GK-192</td></tr>                                
-      <tr><td align="center">60</td>  <td>BMC VT5201</td></tr>                            
-      <tr><td align="center">61</td>  <td>BMC 20-IN-1</td></tr>                           
-      <tr><td align="center">62</td>  <td>BMC SUPER 700-IN-1</td></tr>                    
-      <tr><td align="center">63</td>  <td>BMC CH-001</td></tr>                            
-      <tr><td align="center">64</td>  <td>TENGEN 800032</td></tr>                         
-      <tr><td align="center">65</td>  <td>IREM H-3001</td></tr>                           
-      <tr><td align="center">66</td>  <td>GNROM / MHROM</td></tr>                         
-      <tr><td align="center">67</td>  <td>SUNSOFT3</td></tr>                              
-      <tr><td align="center">68</td>  <td>SUNSOFT4</td></tr>                              
-      <tr><td align="center">69</td>  <td>JLROM / JSROM / SUNSOFT5</td></tr>         
-      <tr><td align="center">70</td>  <td>BANDAI 74HC161/32</td></tr>                     
-      <tr><td align="center">71</td>  <td>CAMERICA BF9093/BF9097</td></tr>
-      <tr><td align="center">72</td>  <td>JALECO JF-17/26/28</td></tr>                          
-      <tr><td align="center">73</td>  <td>KONAMI 350685 VRC3</td></tr>                           
-      <tr><td align="center">74</td>  <td>WAIXING MMC3 +XRAM.4K +CRAM.2K</td></tr>        
-      <tr><td align="center">75</td>  <td>JALECO SS8805 / KONAMI VRC1</td></tr>           
-      <tr><td align="center">76</td>  <td>NAMCOT 108 +74LS32</td></tr>                    
-      <tr><td align="center">77</td>  <td>IREM</td></tr>                                  
-      <tr><td align="center">78</td>  <td>IREM 74HC161/32</td></tr>                       
-      <tr><td align="center">79</td>  <td>NINA-03 / NINA-06 / SA-009</td></tr>            
-      <tr><td align="center">80</td>  <td>TAITO X1-005</td></tr>                          
-      <tr><td align="center">82</td>  <td>TAITO X1-017</td></tr>                          
-      <tr><td align="center">83</td>  <td>BMC DBZ 4-IN-1 / CONY</td></tr>                 
-      <tr><td align="center">85</td>  <td>KONAMI VRC7</td></tr>                           
-      <tr><td align="center">86</td>  <td>JALECO 74HC174/174/139 JF-13</td></tr>                
-      <tr><td align="center">87</td>  <td>JALECO/KONAMI 74HC139/74</td></tr> 
-      <tr><td align="center">88</td>  <td>NAMCOT 108/118</td></tr>                        
-      <tr><td align="center">89</td>  <td>SUNSOFT2</td></tr>                              
-      <tr><td align="center">90</td>  <td>J.Y.COMPANY +EXT.MIRR.OFF</td></tr>             
-      <tr><td align="center">91</td>  <td>BTL SF3/MKR/SM&amp;S2</td></tr>                      
-      <tr><td align="center">92</td>  <td>JALECO JF-19/21</td></tr>                                
-      <tr><td align="center">93</td>  <td>SUNSOFT1/SUNSOFT2 UNROM</td></tr>                   
-      <tr><td align="center">94</td>  <td>CAPCOM 74HC161/32</td></tr>                     
-      <tr><td align="center">95</td>  <td>NAMCOT 118 +A1.D5.MIRR</td></tr>                
-      <tr><td align="center">96</td>  <td>BANDAI 74HC161/32</td></tr>                     
-      <tr><td align="center">97</td>  <td>IREM 74HC161/32</td></tr>                       
-      <tr><td align="center">99</td>  <td>VS.SYSTEM +D2.CHR/PRG</td></tr>                 
-      <tr><td align="center">101</td> <td>JALECO 74HC139/74 JF-10</td></tr>                     
-      <tr><td align="center">105</td> <td>EVENT</td></tr>                                 
-      <tr><td align="center">107</td> <td>MAGICSERIES</td></tr>                           
-      <tr><td align="center">108</td> <td>WHIRLWIND MANU. 2706</td></tr>                  
-      <tr><td align="center">112</td> <td>ASDER (NTDEC)</td></tr>                         
-      <tr><td align="center">113</td> <td>NINA-03/NINA-06 +MIRR</td></tr>                    
-      <tr><td align="center">114</td> <td>BTL THE LION KING</td></tr>                     
-      <tr><td align="center">115</td> <td>KASING</td></tr>                                
-      <tr><td align="center">116</td> <td>SOMERI TEAM SL-12</td></tr>                     
-      <tr><td align="center">117</td> <td>FUTUREMEDIA</td></tr>                           
-      <tr><td align="center">118</td> <td>TLSROM / TKSROM / TENGEN 800037</td></tr>       
-      <tr><td align="center">119</td> <td>TQROM</td></tr>                                 
-      <tr><td align="center">121</td> <td>SHIN-SHIN PANDA PRINCE</td></tr>                
-      <tr><td align="center">123</td> <td>H2288</td></tr>                                 
-      <tr><td align="center">132</td> <td>TXC 22211</td></tr>                             
-      <tr><td align="center">133</td> <td>SACHEN SA72008</td></tr>                        
-      <tr><td align="center">134</td> <td>BMC FAMILY 4646B</td></tr>                        
-      <tr><td align="center">136</td> <td>SACHEN SA-002 3011</td></tr>                    
-      <tr><td align="center">137</td> <td>SACHEN S8259D</td></tr>                         
-      <tr><td align="center">138</td> <td>SACHEN S8259C</td></tr>                         
-      <tr><td align="center">139</td> <td>SACHEN S8259B</td></tr>                         
-      <tr><td align="center">140</td> <td>JALECO 74HC174/139 JF-06/11/12</td></tr>                    
-      <tr><td align="center">141</td> <td>SACHEN S8259A</td></tr>                         
-      <tr><td align="center">142</td> <td>KS-7032</td></tr>                               
-      <tr><td align="center">143</td> <td>SACHEN TCA01</td></tr>                          
-      <tr><td align="center">144</td> <td>AGCI 50282</td></tr>                            
-      <tr><td align="center">145</td> <td>SACHEN SA72007</td></tr>                        
-      <tr><td align="center">146</td> <td>SACHEN SA0161M</td></tr>                        
-      <tr><td align="center">147</td> <td>SACHEN TCU01</td></tr>                          
-      <tr><td align="center">148</td> <td>SACHEN SA0037</td></tr>                         
-      <tr><td align="center">149</td> <td>SACHEN SA0036</td></tr>                         
-      <tr><td align="center">150</td> <td>SACHEN S74LS374N</td></tr>                      
-      <tr><td align="center">151</td> <td>KONAMI VS.SYSTEM</td></tr>                      
-      <tr><td align="center">152</td> <td>BANDAI 74HC161/161/32</td></tr>                 
-      <tr><td align="center">153</td> <td>BANDAI +WRAM</td></tr>                          
-      <tr><td align="center">154</td> <td>NAMCOT 118 +A0.D6.MIRR</td></tr>                
-      <tr><td align="center">155</td> <td>MMC1A</td></tr>                                 
-      <tr><td align="center">156</td> <td>DAOU 306</td></tr>                              
-      <tr><td align="center">157</td> <td>BANDAI DATACH JOINT SYSTEM</td></tr>            
-      <tr><td align="center">159</td> <td>BANDAI LZ93D50 +X24C01</td></tr>                
-      <tr><td align="center">163</td> <td>NANJING</td></tr>                               
-      <tr><td align="center">164</td> <td>WAIXING / MARS PRODUCTION</td></tr>             
-      <tr><td align="center">165</td> <td>WAIXING SHENGHUO HUIZHANG 2</td></tr>           
-      <tr><td align="center">166</td> <td>SUBOR (Russian)</td></tr>                       
-      <tr><td align="center">167</td> <td>SUBOR (Chinese)</td></tr>                       
-      <tr><td align="center">169</td> <td>N625092</td></tr>                               
-      <tr><td align="center">170</td> <td>FUJIYA NROM +SECURITY</td></tr>                 
-      <tr><td align="center">171</td> <td>KAISER KS7058</td></tr>                         
-      <tr><td align="center">172</td> <td>IDEA-TEK 22211</td></tr>                        
-      <tr><td align="center">173</td> <td>NEI-HU (IDEA-TEK) 22211</td></tr>               
-      <tr><td align="center">178</td> <td>SAN GUO ZHONG LIE ZHUAN</td></tr>               
-      <tr><td align="center">180</td> <td>UNROM M5</td></tr>                              
-      <tr><td align="center">182</td> <td>HOSENKAN ELECTRONICS</td></tr>                  
-      <tr><td align="center">183</td> <td>BTL SHUI GUAN PIPE</td></tr>                    
-      <tr><td align="center">184</td> <td>SUNSOFT1 CNROM</td></tr>                              
-      <tr><td align="center">185</td> <td>CNROM +CHR.DISABLE</td></tr>                    
-      <tr><td align="center">186</td> <td>SBX</td></tr>                                   
-      <tr><td align="center">187</td> <td>BTL SFZ297/KOF96/S3DB6</td></tr>                
-      <tr><td align="center">188</td> <td>BANDAI KARAOKE STUDIO</td></tr>                 
-      <tr><td align="center">189</td> <td>YOKOSOFT / TXC</td></tr>                        
-      <tr><td align="center">191</td> <td>WAIXING MMC3 +XRAM.4K +CRAM.2K</td></tr>        
-      <tr><td align="center">192</td> <td>WAIXING MMC3 +XRAM.4K +CRAM.4K</td></tr>        
-      <tr><td align="center">193</td> <td>MEGA SOFT (NTDEC)</td></tr>                     
-      <tr><td align="center">194</td> <td>WAIXING MMC3 +XRAM.4K +CRAM.2K (alt)</td></tr>  
-      <tr><td align="center">195</td> <td>WAIXING MMC3 +XRAM.4K +CRAM.4K (alt)</td></tr>  
-      <tr><td align="center">196</td> <td>MMC3 +A0/A2</td></tr>                           
-      <tr><td align="center">197</td> <td>SUPER FIGHTER III</td></tr>                     
-      <tr><td align="center">198</td> <td>WAIXING MMC3 +XRAM.4K</td></tr>                 
-      <tr><td align="center">199</td> <td>WAIXING MMC3 +XRAM.4K +CRAM.8K</td></tr>        
-      <tr><td align="center">200</td> <td>BMC 1200/36-IN-1</td></tr>                      
-      <tr><td align="center">201</td> <td>BMC 21/8-IN-1</td></tr>                         
-      <tr><td align="center">202</td> <td>BMC 150-IN-1</td></tr>                          
-      <tr><td align="center">203</td> <td>BMC 35-IN-1</td></tr>                           
-      <tr><td align="center">204</td> <td>BMC 64-IN-1</td></tr>                           
-      <tr><td align="center">205</td> <td>BMC 15/3-IN-1</td></tr>                         
-      <tr><td align="center">206</td> <td>DE1ROM</td></tr>                                
-      <tr><td align="center">207</td> <td>TAITO X1-005 +MIRR</td></tr>                    
-      <tr><td align="center">208</td> <td>GOUDER 37017</td></tr>                          
-      <tr><td align="center">209</td> <td>J.Y.COMPANY +EXT.MIRR.CTRL</td></tr>            
-      <tr><td align="center">210</td> <td>NAMCOT</td></tr>                                
-      <tr><td align="center">211</td> <td>J.Y.COMPANY +EXT.MIRR.ON</td></tr>              
-      <tr><td align="center">212</td> <td>BMC SUPER HIK 300-IN-1</td></tr>                
-      <tr><td align="center">213</td> <td>BMC 9999999-IN-1</td></tr>                      
-      <tr><td align="center">214</td> <td>BMC SUPER GUN 20-IN-1</td></tr>                 
-      <tr><td align="center">215</td> <td>BMC SUPER 308 3-IN-1 / M-E3</td></tr>           
-      <tr><td align="center">216</td> <td>RCM GS-2015</td></tr>                           
-      <tr><td align="center">217</td> <td>BMC SPC009</td></tr>                            
-      <tr><td align="center">222</td> <td>BTL DRAGON NINJA</td></tr>                      
-      <tr><td align="center">225</td> <td>BMC 58/64/72-IN-1</td></tr>                     
-      <tr><td align="center">226</td> <td>BMC 76-IN-1 / SUPER 42-IN-1</td></tr>           
-      <tr><td align="center">227</td> <td>BMC 1200-IN-1</td></tr>                         
-      <tr><td align="center">228</td> <td>ACTION 52</td></tr>                             
-      <tr><td align="center">229</td> <td>BMC 31-IN-1</td></tr>                           
-      <tr><td align="center">230</td> <td>BMC 22-IN-1</td></tr>                           
-      <tr><td align="center">231</td> <td>BMC 20-IN-1</td></tr>                           
-      <tr><td align="center">232</td> <td>CAMERICA BF9096</td></tr>                       
-      <tr><td align="center">233</td> <td>BMC 20/22-IN-1</td></tr>                        
-      <tr><td align="center">234</td> <td>AVE D-1012</td></tr>                            
-      <tr><td align="center">235</td> <td>BMC GOLDEN GAME 150/260-IN-1</td></tr>          
-      <tr><td align="center">236</td> <td>BMC 800/70-IN-1</td></tr>                       
-      <tr><td align="center">240</td> <td>SUPERTONE / C&amp;E</td></tr>                       
-      <tr><td align="center">241</td> <td>MXMDHTWO / TXC</td></tr>                        
-      <tr><td align="center">242</td> <td>WAIXING ZHAN SHI</td></tr>                      
-      <tr><td align="center">243</td> <td>SACHEN 74LS374N</td></tr>                       
-      <tr><td align="center">244</td> <td>C&amp;E DECATHLON</td></tr>                         
-      <tr><td align="center">245</td> <td>WAIXING MMC3 +EX.PRG</td></tr>                  
-      <tr><td align="center">246</td> <td>C&amp;E PHONE SERM BERM</td></tr>                   
-      <tr><td align="center">249</td> <td>WAIXING MMC3 +EX.PRG/CHR</td></tr>              
-      <tr><td align="center">250</td> <td>NITRA MMC3</td></tr>                            
-      <tr><td align="center">252</td> <td>WAIXING SAN GUO ZHI</td></tr>                   
-      <tr><td align="center">254</td> <td>BTL PIKACHU Y2K</td></tr>                       
-      <tr><td align="center">255</td> <td>BMC 110/115-IN-1</td></tr>
-    </table>                                                                                   
-    <p>
-      ..that renders a total of <strong>201</strong>.
-    </p>
-    <h4>Recognized Vs.System Games</h4>
+    <h4>Recognized VS System Games:</h4>
     <table border="1">
       <tr><th>Name</th>                         <th style="width:100px">Dip Switch Info</th></tr>
       <tr><td>Battle City</td>                  <td align="center">partial</td></tr>
@@ -393,7 +537,7 @@
       <tr><td>TKO Boxing</td>                   <td align="center">partial</td></tr>
       <tr><td>Top Gun</td>                      <td align="center">full</td></tr>
     </table>
-    <h4>Games with Sound Sample Support</h4>
+    <h4>Games with Sound Sample Support:</h4>
     <table border="1">
       <tr>
           <th>Game</th>
@@ -440,11 +584,11 @@
       The compression format may be <strong>zip</strong>, <strong>rar</strong> or <strong>7zip</strong>. The archives must be placed in the directory specified<br>
       in the <strong>Paths Settings</strong> (defaulted to <strong>.\Samples</strong>).
     </p>
-    <h4>Mappers/Boards with DIP switches</h4>
+    <h4>Mappers/Boards with DIP switches:</h4>
     <ul>
       <li>57, 60, 83, 90, 105, 150, 209, 211, 230, 233, 236</li>
-      <li>UNIF Boards: 8157, FK23C, StreetHeroes</li>
-      <li>Family BASIC, Playbox BASIC, VS.System</li>
+      <li>UNIF Boards: 8157, BS-5, FK23C, StreetHeroes</li>
+      <li>Family BASIC, Playbox BASIC, VS System</li>
     </ul>
     <p>
       <a href="#pagetop">Back to Top</a>
@@ -457,7 +601,7 @@
       </tr>
       <tr>
           <td>Processor</td>
-          <td>Pentium III +700 MHz or comparable AMD</td>
+          <td>Pentium III +800 MHz or comparable AMD</td>
       </tr>
       <tr>
           <td>Ram</td>
@@ -514,2973 +658,6 @@
       <a href="#pagetop">Back to Top</a>
     </p>
     <hr>
-    <h2><a name="gettingStarted" id="gettingStarted">Getting Started</a></h2>
-    <h4>NES / Famicom Console</h4>
-    <p>
-      Supported cartridge formats are <strong>.nes</strong> and <strong>.unif</strong>. To
-      get beyond the limitation of the <strong>.nes</strong> format Nestopia maintains an
-      internal database that will attempt to fix incorrect headers as well as provide necessary
-      info for certain cartridge types. No changes are made to the physical file. This feature
-      can be disabled in the preferences dialog.
-      <br>
-      <br>
-      Non-volatile save data is managed by Nestopia as needed. The save data is usually an 8K
-      sized chunk of battery-backed RAM which when in use, will be placed in a default or user-defined directory. It's possible to instruct Nestopia not to save the data through an
-      option in the paths dialog, thus making it read-only.
-    </p>
-    <h4>Famicom Disk System</h4>
-    <p>
-      Supported disk formats are <strong>.fds</strong> and raw files. In order to run FDS
-      software a valid BIOS ROM file in either a <strong>.nes</strong> or a raw format is
-      required. During application startup Nestopia performs a search in various directories
-      for it by the name "disksys.rom". If none was found you have to open the FDS dialog and
-      set the file path yourself.
-      <br>
-      <br>
-      You can select between three options that let you choose how changes to disk
-      files should be handled. The default and prefered way to handle it is
-      through the use of IPS files. Any data that was changed during a gaming session
-      is saved and put into a default or user-defined directory. The next time
-      the game is loaded Nestopia will locate this IPS file and use it to patch
-      the original disk file in memory. This method however, is not garuanteed to
-      work if the disk file has been altered between saves unknowingly to Nestopia,
-      by for example another emulator. The second option will simply make the changes
-      directly to the disk file. Be aware that this method is unsafe and can if you're very unlucky, cause the disk file to become corrupted. Possible reasons
-      could be I/O error, system crash, in-game bug etc. The last option simply disables
-      disk file saving altogether.
-    </p>
-    <h4>Save States / Movies</h4>
-    <p>
-      Whenever a game is running its current state can be captured and
-      saved into a file enabling you to resume your game at a later time. Also
-      available are 9 quick save slots which are automatically managed
-      by Nestopia. Unless you disable the auto import/export to files
-      option in the paths dialog the save
-      slots will be saved to/loaded from files with the same
-      name as the game file - i.e, <em>nighthawk.nes</em> will save
-      them as <em><em>nighthawk</em>.ns1</em>..<em><em>nighthawk</em>.ns9</em>.
-      <br>
-      <br>
-      Nestopia is capable of recording movies by listening to the NES I/O
-      ports collecting any data that gets transmitted from any
-      connected input devices to the CPU. During playback the recorded
-      data stream is then fed to the CPU whenever it makes a read
-      from one of the I/O ports. Available commands are play, record, stop,
-      rewind and forward.
-      <br>
-      <br>
-      The files are chunk based and uses (unless disabled by the user)
-      internal compression with the help of <a href="http://www.zlib.net/">ZLib</a>.
-      The file extensions for the state and movie files are <strong>.nst</strong> respective <strong>.nsv</strong>.
-    </p>
-    <h4>Image Patching</h4>
-    <p>
-      Nestopia can apply IPS patching on all the supported image file
-      formats. By making the changes in memory
-      your physical files will remain intact. There are several
-      ways to apply the patching. Either you can just open the IPS file
-      and apply it on a game currently running, in
-      which case a power-reset will be made. Another option is to enable
-      Nestopia to look for it when a game is loaded and have the patch
-      applied automatically.
-    </p>
-    <h4>Cheats</h4>
-    <p>
-      The cheat dialog provides two tables for cheat codes. Codes listed in
-      the "temporary codes" table will get flushed once a game has
-      been unloaded. This is useful if you're trying out codes but later
-      forget to remove or disable them, causing the next game you load to
-      misbehave due to the codes still being in use. Codes listed in
-      the "static codes" table will be preserved at all time, even after the
-      application is closed.
-    </p>
-    <p>
-      Cheat codes can be submitted in two different ways. Either by
-      providing the <em>address</em>, <em>data</em> and <em>compare</em> bytes
-      explicitly; or through the Game Genie / Pro Action Rocky
-      method with the values packed and encoded into a 6-8
-      character string.
-    </p>
-    <p>
-      The cheat searcher is another recently added feature that can help
-      you locate and modify in-game-data values inside
-      the CPU RAM. It could be the number of lives, money, weapons, basically
-      anything that a game reads/writes in that region. The way it works is that the
-      cheat dialog shows you two different states of the CPU RAM; one with
-      the content at the time you hit the reset button or opened the dialog for
-      the first time after a new game was started and the other with
-      what's currently stored in it. They're referred to as R0
-      (old) and R1 (current) in the dialog. Now, with the help of the
-      provided search filters you can compare the values on different addresses
-      and see what changes the game made to it - before and after you lost a
-      life for instance. Once you think you've found the address where
-      the game stores its current-number-of-lifes-value you can now change it to
-      something else and with a bit of luck, it will work as expected and you
-      can now cheat your way to victory.
-    </p>
-    <h4>Netplay</h4>
-    <p>
-      Netplay is supported through the Kaillera network. The user interface
-      should be fairly easy to navigate through. Before you start playing make
-      sure you and your gaming buddies share the same emulation settings. For
-      more Kaillera info visit the <a href="http://www.kaillera.com/">official
-      site</a>.
-    </p>
-    <h4>NSP Files</h4>
-    <p>
-      This is a text based game configuration file format.
-      It's easy to edit by hand and will give you more control over what files
-      and settings to use for individual games. You may also at
-      any time save your current emulation configuration
-      into this format.
-      <br>
-      <br>
-      Available arguments are:
-      <br>
-    </p>
-    <ul class="fineprint">
-      <li>-ROM or -IMAGE [filename]</li>
-      <li>-SAVE [filename]</li>
-      <li>-TAPE [filename]</li>
-      <li>-STATE [filename]</li>
-      <li>-MOVIE [filename]</li>
-      <li>-STATESLOT1..STATESLOT9 [filename]</li>
-      <li>-PALETTE [filename]</li>
-      <li>-IPS [filename]</li>
-      <li>-MODE [ntsc,pal]</li>
-      <li>-PORT1..PORT5 [unconnected,pad1,pad2,pad3,pad4,zapper,mouse,paddle,powerpad,powerglove,familytrainer,familykeyboard,suborkeyboard,doremikkokeyboard,horitrack,pachinko,oekakidstablet,hypershot,crazyclimber,excitingboxing,toprider,pokkunmoguraa,partytap]</li>
-      <li>-GENIE [code] [on,off] [optional comment]</li>
-      <li>-CHEAT [address] [value] [optional compare value] [on,off] [optional comment]</li>
-    </ul>
-    <p>
-      Note, the brackets [] should not be included and you can only specify one argument per line.
-      <br>
-      <br>
-      Example - c:\game.nsp:
-      <br>
-      <br>
-      -IMAGE c:\games\willybeamish.nes<br>
-      -MODE pal<br>
-      -PORT1 pad1<br>
-      -PORT2 unconnected<br>
-      -GENIE szneevvk on<br>
-      <br>
-      This will load willybeamish.nes, force it into PAL mode with one
-      standard controller plugged in and enable one cheat code.
-    </p>
-    <hr>
-    <h3>Command Line/Configuration File Parameters</h3>
-    <p>
-      While parameters in the command line and configuration file shares the same
-      syntax and can be used interchangeably, command line
-      parameters are given higher priority. Directories, filenames, guids
-      and input keys must be surrounded by quotation marks.
-      <br>
-      <br>
-      Example: Nestopia.exe "c:\gianasisters.nes" -video fullscreen bpp : 16 -video
-      fullscreen width : 1024 -video fullscreen height : 768 -preferences fullscreen
-      on start : yes -view size fullscreen : stretched
-    </p>
-    <table border="1">
-      <tr>
-        <th>Argument
-        </th>
-        <th>
-          Values
-        </th>
-        <th>
-          Default
-        </th>
-      </tr>
-      <tr>
-        <td>cheat 1..N</td>
-        <td style="width:300px">(code) / (address) (value) (compare), (on,off), (description)</td>
-        <td>-</td>
-      </tr>
-      <tr>
-        <td>files auto export states
-        </td>
-        <td>yes, no
-        </td>
-        <td>yes
-        </td>
-      </tr>
-      <tr>
-        <td>files auto import states
-        </td>
-        <td>yes, no
-        </td>
-        <td>yes
-        </td>
-      </tr>
-      <tr>
-        <td>files auto ips patching
-        </td>
-        <td>yes, no
-        </td>
-        <td>no
-        </td>
-      </tr>
-      <tr>
-        <td>files compress states
-        </td>
-        <td>yes, no
-        </td>
-        <td>yes
-        </td>
-      </tr>
-      <tr>
-        <td>files fds bios
-        </td>
-        <td>file</td>
-        <td>-
-        </td>
-      </tr>
-      <tr>
-        <td>files fds led
-        </td>
-        <td>screen, numlock, scrolllock, capslock, disable
-        </td>
-        <td>screen
-        </td>
-      </tr>
-      <tr>
-        <td>files fds save
-        </td>
-        <td>ips, image, disable
-        </td>
-        <td>ips
-        </td>
-      </tr>
-      <tr>
-        <td>files last path images
-        </td>
-        <td>dir
-        </td>
-        <td>-
-        </td>
-      </tr>
-      <tr>
-        <td>files last path scripts
-        </td>
-        <td>dir
-        </td>
-        <td>-
-        </td>
-      </tr>
-      <tr>
-        <td>files path save
-        </td>
-        <td>dir
-        </td>
-        <td>.\save\
-        </td>
-      </tr>
-      <tr>
-        <td>files path image
-        </td>
-        <td>dir
-        </td>
-        <td>.\
-        </td>
-      </tr>
-      <tr>
-        <td>files path ips
-        </td>
-        <td>dir
-        </td>
-        <td>.\ips\
-        </td>
-      </tr>
-      <tr>
-        <td>files path screenshot
-        </td>
-        <td>dir
-        </td>
-        <td>.\screenshots\
-        </td>
-      </tr>
-      <tr>
-        <td>files path script
-        </td>
-        <td>dir
-        </td>
-        <td>.\scripts\
-        </td>
-      </tr>
-      <tr>
-        <td>files path state
-        </td>
-        <td>dir
-        </td>
-        <td>.\states\
-        </td>
-      </tr>
-      <tr>
-        <td>files readonly cartridge
-        </td>
-        <td>yes, no
-        </td>
-        <td>no
-        </td>
-      </tr>
-      <tr>
-        <td>files recent 1..9
-        </td>
-        <td>file
-        </td>
-        <td>-
-        </td>
-      </tr>
-      <tr>
-        <td>files recent locked
-        </td>
-        <td>yes, no
-        </td>
-        <td>no
-        </td>
-      </tr>
-      <tr>
-        <td>files recent dir 1..5
-        </td>
-        <td>dir
-        </td>
-        <td>-
-        </td>
-      </tr>
-      <tr>
-        <td>files recent dir locked
-        </td>
-        <td>yes, no
-        </td>
-        <td>no
-        </td>
-      </tr>
-      <tr>
-        <td>files screenshot format
-        </td>
-        <td>
-          png, jpg, bmp
-        </td>
-        <td>png
-        </td>
-      </tr>
-      <tr>
-        <td>files tape
-        </td>
-        <td>file
-        </td>
-        <td>-
-        </td>
-      </tr>
-      <tr>
-        <td>files use image tape name
-        </td>
-        <td>yes, no
-        </td>
-        <td>yes
-        </td>
-      </tr>
-      <tr>
-        <td>files use last image path
-        </td>
-        <td>yes, no
-        </td>
-        <td>yes
-        </td>
-      </tr>
-      <tr>
-        <td>files use last script path
-        </td>
-        <td>yes, no
-        </td>
-        <td>yes
-        </td>
-      </tr>
-      <tr>
-        <td>input allow simultaneous axes
-        </td>
-        <td>yes, no
-        </td>
-        <td>no
-        </td>
-      </tr>
-      <tr>
-        <td>input autofire speed
-        </td>
-        <td>0..6
-        </td>
-        <td>3
-        </td>
-      </tr>
-      <tr>
-        <td>input crazyclimber left down
-        </td>
-        <td>key, ...
-        </td>
-        <td>S
-        </td>
-      </tr>
-      <tr>
-        <td>input crazyclimber left left
-        </td>
-        <td>key, ...
-        </td>
-        <td>A
-        </td>
-      </tr>
-      <tr>
-        <td>input crazyclimber left right
-        </td>
-        <td>key, ...
-        </td>
-        <td>D
-        </td>
-      </tr>
-      <tr>
-        <td>input crazyclimber left up
-        </td>
-        <td>key, ...
-        </td>
-        <td>W
-        </td>
-      </tr>
-      <tr>
-        <td>input crazyclimber right down
-        </td>
-        <td>key, ...
-        </td>
-        <td>H
-        </td>
-      </tr>
-      <tr>
-        <td>input crazyclimber right left
-        </td>
-        <td>key, ...
-        </td>
-        <td>G
-        </td>
-      </tr>
-      <tr>
-        <td>input crazyclimber right right
-        </td>
-        <td>key, ...
-        </td>
-        <td>J
-        </td>
-      </tr>
-      <tr>
-        <td>input crazyclimber right up
-        </td>
-        <td>key, ...
-        </td>
-        <td>Y
-        </td>
-      </tr>
-      <tr>
-        <td>input device 0..N
-        </td>
-        <td>guid
-        </td>
-        <td>-
-        </td>
-      </tr>
-      <tr>
-        <td>input emulation alternative speed
-        </td>
-        <td>key, ...
-        </td>
-        <td>BACK
-        </td>
-      </tr>
-      <tr>
-        <td>input emulation insert coin 1..2
-        </td>
-        <td>key, ...
-        </td>
-        <td>F2, F3
-        </td>
-      </tr>
-      <tr>
-        <td>input excitingboxing body
-        </td>
-        <td>key, ...
-        </td>
-        <td>DOWN
-        </td>
-      </tr>
-      <tr>
-        <td>input excitingboxing left hook
-        </td>
-        <td>key, ...
-        </td>
-        <td>K
-        </td>
-      </tr>
-      <tr>
-        <td>input excitingboxing left jab
-        </td>
-        <td>key, ...
-        </td>
-        <td>,
-        </td>
-      </tr>
-      <tr>
-        <td>input excitingboxing left move
-        </td>
-        <td>key, ...
-        </td>
-        <td>LEFT
-        </td>
-      </tr>
-      <tr>
-        <td>input excitingboxing right hook
-        </td>
-        <td>key, ...
-        </td>
-        <td>L
-        </td>
-      </tr>
-      <tr>
-        <td>input excitingboxing right jab
-        </td>
-        <td>key, ...
-        </td>
-        <td>.
-        </td>
-      </tr>
-      <tr>
-        <td>input excitingboxing right move
-        </td>
-        <td>key, ...
-        </td>
-        <td>RIGHT
-        </td>
-      </tr>
-      <tr>
-        <td>input excitingboxing straight
-        </td>
-        <td>key, ...
-        </td>
-        <td>UP
-        </td>
-      </tr>
-      <tr>
-        <td>input file exit
-        </td>
-        <td>key, ...
-        </td>
-        <td>ALT+X
-        </td>
-      </tr>
-      <tr>
-        <td>input file launcher
-        </td>
-        <td>key, ...
-        </td>
-        <td>ALT+L
-        </td>
-      </tr>
-      <tr>
-        <td>input file load script
-        </td>
-        <td>key, ...
-        </td>
-        <td>CTRL+W
-        </td>
-      </tr>
-      <tr>
-        <td>input file load state
-        </td>
-        <td>key, ...
-        </td>
-        <td>F7
-        </td>
-      </tr>
-      <tr>
-        <td>input file open
-        </td>
-        <td>key, ...
-        </td>
-        <td>CTRL+O
-        </td>
-      </tr>
-      <tr>
-        <td>input file quick load state 1
-        </td>
-        <td>key, ...
-        </td>
-        <td>1
-        </td>
-      </tr>
-      <tr>
-        <td>input file quick load state 2
-        </td>
-        <td>key, ...
-        </td>
-        <td>2
-        </td>
-      </tr>
-      <tr>
-        <td>input file quick load state 3
-        </td>
-        <td>key, ...
-        </td>
-        <td>3
-        </td>
-      </tr>
-      <tr>
-        <td>input file quick load state 4
-        </td>
-        <td>key, ...
-        </td>
-        <td>4
-        </td>
-      </tr>
-      <tr>
-        <td>input file quick load state 5
-        </td>
-        <td>key, ...
-        </td>
-        <td>5
-        </td>
-      </tr>
-      <tr>
-        <td>input file quick load state 6
-        </td>
-        <td>key, ...
-        </td>
-        <td>6
-        </td>
-      </tr>
-      <tr>
-        <td>input file quick load state 7
-        </td>
-        <td>key, ...
-        </td>
-        <td>7
-        </td>
-      </tr>
-      <tr>
-        <td>input file quick load state 8
-        </td>
-        <td>key, ...
-        </td>
-        <td>8
-        </td>
-      </tr>
-      <tr>
-        <td>input file quick load state 9
-        </td>
-        <td>key, ...
-        </td>
-        <td>9
-        </td>
-      </tr>
-      <tr>
-        <td>input file quick load state newest
-        </td>
-        <td>key, ...
-        </td>
-        <td>0
-        </td>
-      </tr>
-      <tr>
-        <td>input file quick save state 1
-        </td>
-        <td>key, ...
-        </td>
-        <td>SHIFT+1
-        </td>
-      </tr>
-      <tr>
-        <td>input file quick save state 2
-        </td>
-        <td>key, ...
-        </td>
-        <td>SHIFT+2
-        </td>
-      </tr>
-      <tr>
-        <td>input file quick save state 3
-        </td>
-        <td>key, ...
-        </td>
-        <td>SHIFT+3
-        </td>
-      </tr>
-      <tr>
-        <td>input file quick save state 4
-        </td>
-        <td>key, ...
-        </td>
-        <td>SHIFT+4
-        </td>
-      </tr>
-      <tr>
-        <td>input file quick save state 5
-        </td>
-        <td>key, ...
-        </td>
-        <td>SHIFT+5
-        </td>
-      </tr>
-      <tr>
-        <td>input file quick save state 6
-        </td>
-        <td>key, ...
-        </td>
-        <td>SHIFT+6
-        </td>
-      </tr>
-      <tr>
-        <td>input file quick save state 7
-        </td>
-        <td>key, ...
-        </td>
-        <td>SHIFT+7
-        </td>
-      </tr>
-      <tr>
-        <td>input file quick save state 8
-        </td>
-        <td>key, ...
-        </td>
-        <td>SHIFT+8
-        </td>
-      </tr>
-      <tr>
-        <td>input file quick save state 9
-        </td>
-        <td>key, ...
-        </td>
-        <td>SHIFT+9
-        </td>
-      </tr>
-      <tr>
-        <td>input file quick save state oldest
-        </td>
-        <td>key, ...
-        </td>
-        <td>SHIFT+0
-        </td>
-      </tr>
-      <tr>
-        <td>input file save screenshot
-        </td>
-        <td>key, ...
-        </td>
-        <td>ALT+E
-        </td>
-      </tr>
-      <tr>
-        <td>input file save script
-        </td>
-        <td>key, ...
-        </td>
-        <td>CTRL+S
-        </td>
-      </tr>
-      <tr>
-        <td>input file save state
-        </td>
-        <td>key, ...
-        </td>
-        <td>F5</td>
-      </tr>
-      <tr>
-        <td>input help help
-        </td>
-        <td>key, ...
-        </td>
-        <td>F1
-        </td>
-      </tr>
-      <tr>
-        <td>input horitrack a
-        </td>
-        <td>key, ...
-        </td>
-        <td>.
-        </td>
-      </tr>          
-      <tr>
-        <td>input horitrack b
-        </td>
-        <td>key, ...
-        </td>
-        <td>,
-        </td>
-      </tr>          
-      <tr>
-        <td>input horitrack down
-        </td>
-        <td>key, ...
-        </td>
-        <td>DOWN
-        </td>
-      </tr>      
-      <tr>
-        <td>input horitrack left
-        </td>
-        <td>key, ...
-        </td>
-        <td>LEFT
-        </td>
-      </tr>       
-      <tr>
-        <td>input horitrack orientation
-        </td>
-        <td>key, ...
-        </td>
-        <td>D
-        </td>
-      </tr>      
-      <tr>
-        <td>input horitrack right
-        </td>
-        <td>key, ...
-        </td>
-        <td>RIGHT
-        </td>
-      </tr>      
-      <tr>
-        <td>input horitrack select
-        </td>
-        <td>key, ...
-        </td>
-        <td>RSHIFT
-        </td>
-      </tr>     
-      <tr>
-        <td>input horitrack speed
-        </td>
-        <td>key, ...
-        </td>
-        <td>S
-        </td>
-      </tr>      
-      <tr>
-        <td>input horitrack start
-        </td>
-        <td>key, ...
-        </td>
-        <td>RETURN
-        </td>
-      </tr>     
-      <tr>
-        <td>input horitrack up
-        </td>
-        <td>key, ...
-        </td>
-        <td>UP
-        </td>
-      </tr>         
-      <tr>
-        <td>input ignore rotation axis</td>
-        <td>yes, no</td>
-        <td>no</td>
-      </tr>
-      <tr>
-        <td>input ignore slider axis</td>
-        <td>yes, no</td>
-        <td>no</td>
-      </tr>
-      <tr>
-        <td>input karaokestudio a
-        </td>
-        <td>key, ...
-        </td>
-        <td>H
-        </td>
-      </tr>
-      <tr>
-        <td>input karaokestudio b
-        </td>
-        <td>key, ...
-        </td>
-        <td>J
-        </td>
-      </tr>
-      <tr>
-        <td>input karaokestudio mic
-        </td>
-        <td>key, ...
-        </td>
-        <td>G
-        </td>
-      </tr>
-      <tr>
-        <td>input machine change disk side
-        </td>
-        <td>key, ...
-        </td>
-        <td>SHIFT+B
-        </td>
-      </tr>
-      <tr>
-        <td>input machine hard reset
-        </td>
-        <td>key, ...
-        </td>
-        <td>SHIFT+T
-        </td>
-      </tr>
-      <tr>
-        <td>input machine pause
-        </td>
-        <td>key, ...
-        </td>
-        <td>SHIFT+P
-        </td>
-      </tr>
-      <tr>
-        <td>input machine power
-        </td>
-        <td>key, ...
-        </td>
-        <td>SHIFT+D
-        </td>
-      </tr>
-      <tr>
-        <td>input machine soft reset
-        </td>
-        <td>key, ...
-        </td>
-        <td>SHIFT+R
-        </td>
-      </tr>
-      <tr>
-        <td>input machine unlimited sprite toggle
-        </td>
-        <td>key, ...
-        </td>
-        <td>SHIFT+U
-        </td>
-      </tr>
-      <tr>
-        <td>input mahjong a
-        </td>
-        <td>key, ...
-        </td>
-        <td>Q
-        </td>
-      </tr>
-      <tr>
-        <td>input mahjong b
-        </td>
-        <td>key, ...
-        </td>
-        <td>W
-        </td>
-      </tr>
-      <tr>
-        <td>input mahjong c
-        </td>
-        <td>key, ...
-        </td>
-        <td>E
-        </td>
-      </tr>
-      <tr>
-        <td>input mahjong chi
-        </td>
-        <td>key, ...
-        </td>
-        <td>B
-        </td>
-      </tr>
-      <tr>
-        <td>input mahjong d
-        </td>
-        <td>key, ...
-        </td>
-        <td>R
-        </td>
-      </tr>
-      <tr>
-        <td>input mahjong e
-        </td>
-        <td>key, ...
-        </td>
-        <td>T
-        </td>
-      </tr>
-      <tr>
-        <td>input mahjong f
-        </td>
-        <td>key, ...
-        </td>
-        <td>A
-        </td>
-      </tr>
-      <tr>
-        <td>input mahjong g
-        </td>
-        <td>key, ...
-        </td>
-        <td>S
-        </td>
-      </tr>
-      <tr>
-        <td>input mahjong h
-        </td>
-        <td>key, ...
-        </td>
-        <td>D
-        </td>
-      </tr>
-      <tr>
-        <td>input mahjong i
-        </td>
-        <td>key, ...
-        </td>
-        <td>F
-        </td>
-      </tr>
-      <tr>
-        <td>input mahjong j
-        </td>
-        <td>key, ...
-        </td>
-        <td>G
-        </td>
-      </tr>
-      <tr>
-        <td>input mahjong k
-        </td>
-        <td>key, ...
-        </td>
-        <td>H
-        </td>
-      </tr>
-      <tr>
-        <td>input mahjong kan
-        </td>
-        <td>key, ...
-        </td>
-        <td>C
-        </td>
-      </tr>
-      <tr>
-        <td>input mahjong l
-        </td>
-        <td>key, ...
-        </td>
-        <td>J
-        </td>
-      </tr>
-      <tr>
-        <td>input mahjong m
-        </td>
-        <td>key, ...
-        </td>
-        <td>K
-        </td>
-      </tr>
-      <tr>
-        <td>input mahjong n
-        </td>
-        <td>key, ...
-        </td>
-        <td>L
-        </td>
-      </tr>
-      <tr>
-        <td>input mahjong pon
-        </td>
-        <td>key, ...
-        </td>
-        <td>V
-        </td>
-      </tr>
-      <tr>
-        <td>input mahjong reach
-        </td>
-        <td>key, ...
-        </td>
-        <td>N
-        </td>
-      </tr>
-      <tr>
-        <td>input mahjong ron
-        </td>
-        <td>key, ...
-        </td>
-        <td>M
-        </td>
-      </tr>
-      <tr>
-        <td>input mahjong select
-        </td>
-        <td>key, ...
-        </td>
-        <td>X
-        </td>
-      </tr>
-      <tr>
-        <td>input mahjong start
-        </td>
-        <td>key, ...
-        </td>
-        <td>Z
-        </td>
-      </tr>
-      <tr>
-        <td>input nsf next song
-        </td>
-        <td>key, ...
-        </td>
-        <td>SHIFT+RIGHT
-        </td>
-      </tr>
-      <tr>
-        <td>input nsf play song
-        </td>
-        <td>key, ...
-        </td>
-        <td>SHIFT+UP
-        </td>
-      </tr>
-      <tr>
-        <td>input nsf previous song
-        </td>
-        <td>key, ...
-        </td>
-        <td>SHIFT+LEFT
-        </td>
-      </tr>
-      <tr>
-        <td>input nsf stop song
-        </td>
-        <td>key, ...
-        </td>
-        <td>SHIFT+DOWN
-        </td>
-      </tr>
-      <tr>
-        <td>input pachinko a
-        </td>
-        <td>key, ...
-        </td>
-        <td>.
-        </td>
-      </tr>          
-      <tr>
-        <td>input pachinko b
-        </td>
-        <td>key, ...
-        </td>
-        <td>,
-        </td>
-      </tr>          
-      <tr>
-        <td>input pachinko down
-        </td>
-        <td>key, ...
-        </td>
-        <td>DOWN
-        </td>
-      </tr>      
-      <tr>
-        <td>input pachinko left
-        </td>
-        <td>key, ...
-        </td>
-        <td>LEFT
-        </td>
-      </tr>            
-      <tr>
-        <td>input pachinko right
-        </td>
-        <td>key, ...
-        </td>
-        <td>RIGHT
-        </td>
-      </tr>      
-      <tr>
-        <td>input pachinko select
-        </td>
-        <td>key, ...
-        </td>
-        <td>RSHIFT
-        </td>
-      </tr>          
-      <tr>
-        <td>input pachinko start
-        </td>
-        <td>key, ...
-        </td>
-        <td>RETURN
-        </td>
-      </tr>     
-      <tr>
-        <td>input pachinko up
-        </td>
-        <td>key, ...
-        </td>
-        <td>UP
-        </td>
-      </tr>         
-      <tr>
-        <td>input pad1 a
-        </td>
-        <td>key, ...
-        </td>
-        <td>.
-        </td>
-      </tr>
-      <tr>
-        <td>input pad1 autofire a
-        </td>
-        <td>key, ...
-        </td>
-        <td>L
-        </td>
-      </tr>
-      <tr>
-        <td>input pad1 autofire b
-        </td>
-        <td>key, ...
-        </td>
-        <td>K
-        </td>
-      </tr>
-      <tr>
-        <td>input pad1 b
-        </td>
-        <td>key, ...
-        </td>
-        <td>,
-        </td>
-      </tr>
-      <tr>
-        <td>input pad1 down
-        </td>
-        <td>key, ...
-        </td>
-        <td>DOWN
-        </td>
-      </tr>
-      <tr>
-        <td>input pad1 left
-        </td>
-        <td>key, ...
-        </td>
-        <td>LEFT
-        </td>
-      </tr>
-      <tr>
-        <td>input pad1 right
-        </td>
-        <td>key, ...
-        </td>
-        <td>RIGHT
-        </td>
-      </tr>
-      <tr>
-        <td>input pad1 select
-        </td>
-        <td>key, ...
-        </td>
-        <td>RSHIFT
-        </td>
-      </tr>
-      <tr>
-        <td>input pad1 start
-        </td>
-        <td>key, ...
-        </td>
-        <td>RETURN
-        </td>
-      </tr>
-      <tr>
-        <td>input pad1 up
-        </td>
-        <td>key, ...
-        </td>
-        <td>UP
-        </td>
-      </tr>
-      <tr>
-        <td>input pad2 a
-        </td>
-        <td>key, ...
-        </td>
-        <td>X
-        </td>
-      </tr>
-      <tr>
-        <td>input pad2 autofire a
-        </td>
-        <td>key, ...
-        </td>
-        <td>W
-        </td>
-      </tr>
-      <tr>
-        <td>input pad2 autofire b
-        </td>
-        <td>key, ...
-        </td>
-        <td>Q
-        </td>
-      </tr>
-      <tr>
-        <td>input pad2 b
-        </td>
-        <td>key, ...
-        </td>
-        <td>Z
-        </td>
-      </tr>
-      <tr>
-        <td>input pad2 down
-        </td>
-        <td>key, ...
-        </td>
-        <td>V
-        </td>
-      </tr>
-      <tr>
-        <td>input pad2 left
-        </td>
-        <td>key, ...
-        </td>
-        <td>C
-        </td>
-      </tr>
-      <tr>
-        <td>input pad2 right
-        </td>
-        <td>key, ...
-        </td>
-        <td>B
-        </td>
-      </tr>
-      <tr>
-        <td>input pad2 select
-        </td>
-        <td>key, ...
-        </td>
-        <td>A
-        </td>
-      </tr>
-      <tr>
-        <td>input pad2 start
-        </td>
-        <td>key, ...
-        </td>
-        <td>S
-        </td>
-      </tr>
-      <tr>
-        <td>input pad2 up
-        </td>
-        <td>key, ...
-        </td>
-        <td>F
-        </td>
-      </tr>
-      <tr>
-        <td>input pad3 a
-        </td>
-        <td>key, ...
-        </td>
-        <td>-
-        </td>
-      </tr>
-      <tr>
-        <td>input pad3 autofire a
-        </td>
-        <td>key, ...
-        </td>
-        <td>-
-        </td>
-      </tr>
-      <tr>
-        <td>input pad3 autofire b
-        </td>
-        <td>key, ...
-        </td>
-        <td>-
-        </td>
-      </tr>
-      <tr>
-        <td>input pad3 b
-        </td>
-        <td>key, ...
-        </td>
-        <td>-
-        </td>
-      </tr>
-      <tr>
-        <td>input pad3 down
-        </td>
-        <td>key, ...
-        </td>
-        <td>-
-        </td>
-      </tr>
-      <tr>
-        <td>input pad3 left
-        </td>
-        <td>key, ...
-        </td>
-        <td>-
-        </td>
-      </tr>
-      <tr>
-        <td>input pad3 right
-        </td>
-        <td>key, ...
-        </td>
-        <td>-
-        </td>
-      </tr>
-      <tr>
-        <td>input pad3 select
-        </td>
-        <td>key, ...
-        </td>
-        <td>-
-        </td>
-      </tr>
-      <tr>
-        <td>input pad3 start
-        </td>
-        <td>key, ...
-        </td>
-        <td>-
-        </td>
-      </tr>
-      <tr>
-        <td>input pad3 up
-        </td>
-        <td>key, ...
-        </td>
-        <td>-
-        </td>
-      </tr>
-      <tr>
-        <td>input pad4 a
-        </td>
-        <td>key, ...
-        </td>
-        <td>-
-        </td>
-      </tr>
-      <tr>
-        <td>input pad4 autofire a
-        </td>
-        <td>key, ...
-        </td>
-        <td>-
-        </td>
-      </tr>
-      <tr>
-        <td>input pad4 autofire b
-        </td>
-        <td>key, ...
-        </td>
-        <td>-
-        </td>
-      </tr>
-      <tr>
-        <td>input pad4 b
-        </td>
-        <td>key, ...
-        </td>
-        <td>-
-        </td>
-      </tr>
-      <tr>
-        <td>input pad4 down
-        </td>
-        <td>key, ...
-        </td>
-        <td>-
-        </td>
-      </tr>
-      <tr>
-        <td>input pad4 left
-        </td>
-        <td>key, ...
-        </td>
-        <td>-
-        </td>
-      </tr>
-      <tr>
-        <td>input pad4 right
-        </td>
-        <td>key, ...
-        </td>
-        <td>-
-        </td>
-      </tr>
-      <tr>
-        <td>input pad4 select
-        </td>
-        <td>key, ...
-        </td>
-        <td>-
-        </td>
-      </tr>
-      <tr>
-        <td>input pad4 start
-        </td>
-        <td>key, ...
-        </td>
-        <td>-
-        </td>
-      </tr>
-      <tr>
-        <td>input pad4 up
-        </td>
-        <td>key, ...
-        </td>
-        <td>-
-        </td>
-      </tr>
-        <tr>
-        <td>input partytap 1
-        </td>
-        <td>key, ...
-        </td>
-        <td>Q
-        </td>
-      </tr>
-      <tr>
-        <td>input partytap 2
-        </td>
-        <td>key, ...
-        </td>
-        <td>W
-        </td>
-      </tr>
-      <tr>
-        <td>input partytap 3
-        </td>
-        <td>key, ...
-        </td>
-        <td>E</td>
-      </tr>
-      <tr>
-        <td>input partytap 4
-        </td>
-        <td>key, ...
-        </td>
-        <td>R</td>
-      </tr>
-      <tr>
-        <td>input partytap 5
-        </td>
-        <td>key, ...
-        </td>
-        <td>T
-        </td>
-      </tr>
-      <tr>
-        <td>input partytap 6
-        </td>
-        <td>key, ...
-        </td>
-        <td>Y
-        </td>
-      </tr>
-      <tr>
-        <td>input pokkunmoguraa row 1 button 1
-        </td>
-        <td>key, ...
-        </td>
-        <td>T
-        </td>
-      </tr>
-      <tr>
-        <td>input pokkunmoguraa row 1 button 2
-        </td>
-        <td>key, ...
-        </td>
-        <td>Y
-        </td>
-      </tr>
-      <tr>
-        <td>input pokkunmoguraa row 1 button 3
-        </td>
-        <td>key, ...
-        </td>
-        <td>U
-        </td>
-      </tr>
-      <tr>
-        <td>input pokkunmoguraa row 1 button 4
-        </td>
-        <td>key, ...
-        </td>
-        <td>I
-        </td>
-      </tr>
-      <tr>
-        <td>input pokkunmoguraa row 2 button 1
-        </td>
-        <td>key, ...
-        </td>
-        <td>G
-        </td>
-      </tr>
-      <tr>
-        <td>input pokkunmoguraa row 2 button 2
-        </td>
-        <td>key, ...
-        </td>
-        <td>H
-        </td>
-      </tr>
-      <tr>
-        <td>input pokkunmoguraa row 2 button 3
-        </td>
-        <td>key, ...
-        </td>
-        <td>J
-        </td>
-      </tr>
-      <tr>
-        <td>input pokkunmoguraa row 2 button 4
-        </td>
-        <td>key, ...
-        </td>
-        <td>K
-        </td>
-      </tr>
-      <tr>
-        <td>input pokkunmoguraa row 3 button 1
-        </td>
-        <td>key, ...
-        </td>
-        <td>B
-        </td>
-      </tr>
-      <tr>
-        <td>input pokkunmoguraa row 3 button 2
-        </td>
-        <td>key, ...
-        </td>
-        <td>N
-        </td>
-      </tr>
-      <tr>
-        <td>input pokkunmoguraa row 3 button 3
-        </td>
-        <td>key, ...
-        </td>
-        <td>M
-        </td>
-      </tr>
-      <tr>
-        <td>input pokkunmoguraa row 3 button 4
-        </td>
-        <td>key, ...
-        </td>
-        <td>,
-        </td>
-      </tr>      
-      <tr>
-        <td>input powerglove select
-        </td>
-        <td>key, ...
-        </td>
-        <td>RSHIFT
-        </td>
-      </tr>
-      <tr>
-        <td>input powerglove start
-        </td>
-        <td>key, ...
-        </td>
-        <td>RETURN
-        </td>
-      </tr>
-      <tr>
-        <td>input powerglove move in
-        </td>
-        <td>key, ...
-        </td>
-        <td>A
-        </td>
-      </tr>
-      <tr>
-        <td>input powerglove move out
-        </td>
-        <td>key, ...
-        </td>
-        <td>Z
-        </td>
-      </tr>
-      <tr>
-        <td>input powerglove roll left
-        </td>
-        <td>key, ...
-        </td>
-        <td>X
-        </td>
-      </tr>
-      <tr>
-        <td>input powerglove roll right
-        </td>
-        <td>key, ...
-        </td>
-        <td>C
-        </td>
-      </tr>      
-      <tr>
-        <td>input powerpad side a 1
-        </td>
-        <td>key, ...
-        </td>
-        <td>Q
-        </td>
-      </tr>
-      <tr>
-        <td>input powerpad side a 10
-        </td>
-        <td>key, ...
-        </td>
-        <td>X
-        </td>
-      </tr>
-      <tr>
-        <td>input powerpad side a 11
-        </td>
-        <td>key, ...
-        </td>
-        <td>C
-        </td>
-      </tr>
-      <tr>
-        <td>input powerpad side a 12
-        </td>
-        <td>key, ...
-        </td>
-        <td>V
-        </td>
-      </tr>
-      <tr>
-        <td>input powerpad side a 2
-        </td>
-        <td>key, ...
-        </td>
-        <td>W
-        </td>
-      </tr>
-      <tr>
-        <td>input powerpad side a 3
-        </td>
-        <td>key, ...
-        </td>
-        <td>E
-        </td>
-      </tr>
-      <tr>
-        <td>input powerpad side a 4
-        </td>
-        <td>key, ...
-        </td>
-        <td>R
-        </td>
-      </tr>
-      <tr>
-        <td>input powerpad side a 5
-        </td>
-        <td>key, ...
-        </td>
-        <td>A
-        </td>
-      </tr>
-      <tr>
-        <td>input powerpad side a 6
-        </td>
-        <td>key, ...
-        </td>
-        <td>S
-        </td>
-      </tr>
-      <tr>
-        <td>input powerpad side a 7
-        </td>
-        <td>key, ...
-        </td>
-        <td>D
-        </td>
-      </tr>
-      <tr>
-        <td>input powerpad side a 8
-        </td>
-        <td>key, ...
-        </td>
-        <td>F
-        </td>
-      </tr>
-      <tr>
-        <td>input powerpad side a 9
-        </td>
-        <td>key, ...
-        </td>
-        <td>Z
-        </td>
-      </tr>
-      <tr>
-        <td>input powerpad side b 10
-        </td>
-        <td>key, ...
-        </td>
-        <td>M
-        </td>
-      </tr>
-      <tr>
-        <td>input powerpad side b 11
-        </td>
-        <td>key, ...
-        </td>
-        <td>N
-        </td>
-      </tr>
-      <tr>
-        <td>input powerpad side b 2
-        </td>
-        <td>key, ...
-        </td>
-        <td>U
-        </td>
-      </tr>
-      <tr>
-        <td>input powerpad side b 3
-        </td>
-        <td>key, ...
-        </td>
-        <td>Y
-        </td>
-      </tr>
-      <tr>
-        <td>input powerpad side b 5
-        </td>
-        <td>key, ...
-        </td>
-        <td>K
-        </td>
-      </tr>
-      <tr>
-        <td>input powerpad side b 6
-        </td>
-        <td>key, ...
-        </td>
-        <td>J
-        </td>
-      </tr>
-      <tr>
-        <td>input powerpad side b 7
-        </td>
-        <td>key, ...
-        </td>
-        <td>H
-        </td>
-      </tr>
-      <tr>
-        <td>input powerpad side b 8
-        </td>
-        <td>key, ...
-        </td>
-        <td>G
-        </td>
-      </tr>
-      <tr>
-        <td>input view fullscreen
-        </td>
-        <td>key, ...
-        </td>
-        <td>ALT+RETURN
-        </td>
-      </tr>
-      <tr>
-        <td>input view screen size 1x..9x
-        </td>
-        <td>key, ...
-        </td>
-        <td>ALT+1..9
-        </td>
-      </tr>
-      <tr>
-        <td>input view screen size max
-        </td>
-        <td>key, ...
-        </td>
-        <td>ALT+S
-        </td>
-      </tr>
-      <tr>
-        <td>input view toggle fps
-        </td>
-        <td>key, ...
-        </td>
-        <td>CTRL+F
-        </td>
-      </tr>
-      <tr>
-        <td>input view toggle menu
-        </td>
-        <td>key, ...
-        </td>
-        <td>ESC
-        </td>
-      </tr>
-      <tr>
-        <td>input view toggle statusbar
-        </td>
-        <td>key, ...
-        </td>
-        <td>CTRL+B
-        </td>
-      </tr>
-      <tr>
-        <td>input view toggle window ontop
-        </td>
-        <td>key, ...
-        </td>
-        <td>CTRL+T
-        </td>
-      </tr>
-      <tr>
-        <td>language
-        </td>
-        <td>file
-        </td>
-        <td>english.nlg
-        </td>
-      </tr>
-      <tr>
-        <td>launcher color background
-        </td>
-        <td>0x00000000..0xFFFFFFFF
-        </td>
-        <td>0x00FFFFFF
-        </td>
-      </tr>
-      <tr>
-        <td>launcher color foreground
-        </td>
-        <td>0x00000000..0xFFFFFFFF
-        </td>
-        <td>0x00000000
-        </td>
-      </tr>
-      <tr>
-        <td>launcher column 1..10
-        </td>
-        <td style="width:300px">file, system, mapper, prom, crom, wram, battery, trainer,
-          mirroring, name, maker, folder
-        </td>
-        <td>-
-        </td>
-      </tr>
-      <tr>
-        <td>launcher search any file extension
-        </td>
-        <td>yes, no
-        </td>
-        <td>no
-        </td>
-      </tr>
-      <tr>
-        <td>launcher search files fds
-        </td>
-        <td>yes, no
-        </td>
-        <td>yes
-        </td>
-      </tr>
-      <tr>
-        <td>launcher search files ips
-        </td>
-        <td>yes, no
-        </td>
-        <td>yes
-        </td>
-      </tr>
-      <tr>
-        <td>launcher search files nes
-        </td>
-        <td>yes, no
-        </td>
-        <td>yes
-        </td>
-      </tr>
-      <tr>
-        <td>launcher search files nsf
-        </td>
-        <td>yes, no
-        </td>
-        <td>yes
-        </td>
-      </tr>
-      <tr>
-        <td>launcher search files nsp
-        </td>
-        <td>yes, no
-        </td>
-        <td>yes
-        </td>
-      </tr>
-      <tr>
-        <td>launcher search files unf
-        </td>
-        <td>yes, no
-        </td>
-        <td>yes
-        </td>
-      </tr>
-      <tr>
-        <td>launcher search files archive
-        </td>
-        <td>yes, no
-        </td>
-        <td>yes
-        </td>
-      </tr>
-      <tr>
-        <td>launcher search no duplicate files
-        </td>
-        <td>yes, no
-        </td>
-        <td>yes
-        </td>
-      </tr>
-      <tr>
-        <td>launcher search path 1..N
-        </td>
-        <td>dir
-        </td>
-        <td>-
-        </td>
-      </tr>
-      <tr>
-        <td>launcher search path 1..N subs
-        </td>
-        <td>yes, no
-        </td>
-        <td>-
-        </td>
-      </tr>
-      <tr>
-        <td>launcher show gridlines
-        </td>
-        <td>yes, no
-        </td>
-        <td>yes
-        </td>
-      </tr>
-      <tr>
-        <td>launcher use image database
-        </td>
-        <td>yes, no
-        </td>
-        <td>yes
-        </td>
-      </tr>
-      <tr>
-        <td>launcher view on top
-        </td>
-        <td>yes, no
-        </td>
-        <td>yes
-        </td>
-      </tr>
-      <tr>
-        <td>launcher window size x
-        </td>
-        <td>1..N
-        </td>
-        <td>-
-        </td>
-      </tr>
-      <tr>
-        <td>launcher window size y
-        </td>
-        <td>1..N
-        </td>
-        <td>-
-        </td>
-      </tr>
-      <tr>
-        <td>machine adapter</td>
-        <td>nes, famicom, auto</td>
-        <td>auto</td>
-      </tr>
-      <tr>
-        <td>machine autoselect controller</td>
-        <td>yes, no</td>
-        <td>yes</td>
-      </tr>
-      <tr>
-        <td>machine dipswitches on load</td>
-        <td>yes, no</td>
-        <td>no</td>
-      </tr>                 
-      <tr>
-        <td>machine no sprite limit</td>
-        <td>yes, no</td>
-        <td>no</td>
-      </tr>
-      <tr>
-        <td>machine port 1..5</td>
-        <td style="width:300px">
-            pad1, pad2, pad3, pad4, zapper, mouse, paddle,
-            powerpad, familytrainer, rob, familykeyboard,
-            suborkeyboard, doremikkokeyboard, horitrack, pachinko,
-            oekakidstablet,hypershot, crazyclimber, excitingboxing, 
-            toprider,pokkunmoguraa, partytap, unconnected</td>
-        <td>pad1, pad2</td>
-      </tr>
-      <tr>
-        <td>machine region</td>
-        <td>ntsc, pal, auto</td>
-        <td>auto</td>
-      </tr>
-      <tr>
-        <td>netplay in fullscreen
-        </td>
-        <td>yes, no
-        </td>
-        <td>no
-        </td>
-      </tr>
-      <tr>
-        <td>nsf in background
-        </td>
-        <td>yes, no
-        </td>
-        <td>yes
-        </td>
-      </tr>
-      <tr>
-        <td>preferences allow multiple instances
-        </td>
-        <td>yes, no
-        </td>
-        <td>no
-        </td>
-      </tr>
-      <tr>
-        <td>preferences autocorrect images
-        </td>
-        <td>yes, no
-        </td>
-        <td>yes
-        </td>
-      </tr>
-      <tr>
-        <td>preferences autostart emulation
-        </td>
-        <td>yes, no
-        </td>
-        <td>yes
-        </td>
-      </tr>
-      <tr>
-        <td>preferences confirm exit
-        </td>
-        <td>yes, no
-        </td>
-        <td>yes
-        </td>
-      </tr>
-      <tr>
-        <td>preferences confirm machine reset
-        </td>
-        <td>yes, no
-        </td>
-        <td>no
-        </td>
-      </tr>
-      <tr>
-        <td>preferences default desktop menu color
-        </td>
-        <td>yes, no
-        </td>
-        <td>yes
-        </td>
-      </tr>
-      <tr>
-        <td>preferences default fullscreen menu color
-        </td>
-        <td>yes, no
-        </td>
-        <td>yes
-        </td>
-      </tr>
-      <tr>
-        <td>preferences desktop menu color
-        </td>
-        <td>0x00000000..0xFFFFFFFF
-        </td>
-        <td>0x00EFCA18
-        </td>
-      </tr>
-      <tr>
-        <td>preferences fullscreen menu color
-        </td>
-        <td>0x00000000..0xFFFFFFFF
-        </td>
-        <td>0x00EFCA18
-        </td>
-      </tr>
-      <tr>
-        <td>preferences icon style
-        </td>
-        <td>nes, famicom
-        </td>
-        <td>nes
-        </td>
-      </tr>
-      <tr>
-        <td>preferences power off on exit
-        </td>
-        <td>yes, no
-        </td>
-        <td>no
-        </td>
-      </tr>
-      <tr>
-        <td>preferences priority
-        </td>
-        <td>normal, above normal, high
-        </td>
-        <td>normal
-        </td>
-      </tr>
-      <tr>
-        <td>preferences run in background
-        </td>
-        <td>yes, no
-        </td>
-        <td>no
-        </td>
-      </tr>
-      <tr>
-        <td>preferences save cheats
-        </td>
-        <td>yes, no
-        </td>
-        <td>yes
-        </td>
-      </tr>
-      <tr>
-        <td>preferences save launcher files
-        </td>
-        <td>yes, no
-        </td>
-        <td>yes
-        </td>
-      </tr>
-      <tr>
-        <td>preferences save launcher window
-        </td>
-        <td>yes, no
-        </td>
-        <td>no
-        </td>
-      </tr>      
-      <tr>
-        <td>preferences save logfile
-        </td>
-        <td>yes, no
-        </td>
-        <td>yes
-        </td>
-      </tr>
-      <tr>
-        <td>preferences save netplay list
-        </td>
-        <td>yes, no
-        </td>
-        <td>yes
-        </td>
-      </tr>
-      <tr>
-        <td>preferences save settings
-        </td>
-        <td>yes, no
-        </td>
-        <td>yes
-        </td>
-      </tr>
-      <tr>
-        <td>preferences save window</td>
-        <td>yes, no</td>
-        <td>no</td>
-      </tr>
-      <tr>
-        <td>preferences start in fullscreen
-        </td>
-        <td>yes, no
-        </td>
-        <td>no
-        </td>
-      </tr>
-      <tr>
-        <td>preferences suppress warnings
-        </td>
-        <td>yes, no
-        </td>
-        <td>no
-        </td>
-      </tr>
-      <tr>
-        <td>sound adjust pitch</td>
-        <td>yes, no</td>
-        <td>yes</td>
-      </tr>
-      <tr>
-        <td>sound apu dpcm volume
-        </td>
-        <td>0..100
-        </td>
-        <td>85
-        </td>
-      </tr>
-      <tr>
-        <td>sound apu noise volume
-        </td>
-        <td>0..100
-        </td>
-        <td>85
-        </td>
-      </tr>
-      <tr>
-        <td>sound apu square 1 volume
-        </td>
-        <td>0..100
-        </td>
-        <td>85
-        </td>
-      </tr>
-      <tr>
-        <td>sound apu square 2 volume
-        </td>
-        <td>0..100
-        </td>
-        <td>85
-        </td>
-      </tr>
-      <tr>
-        <td>sound apu triangle volume
-        </td>
-        <td>0..100
-        </td>
-        <td>85
-        </td>
-      </tr>
-      <tr>
-        <td>sound buffers
-        </td>
-        <td>1..10
-        </td>
-        <td>2
-        </td>
-      </tr>
-      <tr>
-        <td>sound device
-        </td>
-        <td>guid, none
-        </td>
-        <td>-
-        </td>
-      </tr>
-      <tr>
-        <td>sound enabled
-        </td>
-        <td>yes, no
-        </td>
-        <td>yes
-        </td>
-      </tr>
-      <tr>
-        <td>sound fds volume
-        </td>
-        <td>0..100
-        </td>
-        <td>85
-        </td>
-      </tr>
-      <tr>
-        <td>sound master volume
-        </td>
-        <td>0..100
-        </td>
-        <td>85
-        </td>
-      </tr>
-      <tr>
-        <td>sound mmc5 volume
-        </td>
-        <td>0..100
-        </td>
-        <td>85
-        </td>
-      </tr>
-      <tr>
-        <td>sound n106 volume
-        </td>
-        <td>0..100
-        </td>
-        <td>85
-        </td>
-      </tr>
-      <tr>
-        <td>sound output
-        </td>
-        <td>mono, stereo
-        </td>
-        <td>mono
-        </td>
-      </tr>
-      <tr>
-        <td>sound pool
-        </td>
-        <td>hardware, system
-        </td>
-        <td>hardware
-        </td>
-      </tr>
-      <tr>
-        <td>sound sample bits
-        </td>
-        <td>8, 16
-        </td>
-        <td>16
-        </td>
-      </tr>
-      <tr>
-        <td>sound sample rate
-        </td>
-        <td>11025, 22050, 44100, 48000, 96000
-        </td>
-        <td>44100
-        </td>
-      </tr>
-      <tr>
-        <td>sound s5b volume
-        </td>
-        <td>0..100
-        </td>
-        <td>85
-        </td>
-      </tr>
-      <tr>
-        <td>sound vrc6 volume
-        </td>
-        <td>0..100
-        </td>
-        <td>85
-        </td>
-      </tr>
-      <tr>
-        <td>sound vrc7 volume
-        </td>
-        <td>0..100
-        </td>
-        <td>85
-        </td>
-      </tr>
-      <tr>
-        <td>timer alternative speed
-        </td>
-        <td>30..240
-        </td>
-        <td>120
-        </td>
-      </tr>
-      <tr>
-        <td>timer auto frame skip
-        </td>
-        <td>yes, no
-        </td>
-        <td>system dependent
-        </td>
-      </tr>
-      <tr>
-        <td>timer default rewinder speed</td>
-        <td>yes, no</td>
-        <td>yes</td>
-      </tr>
-      <tr>
-        <td>timer default speed
-        </td>
-        <td>yes, no
-        </td>
-        <td>yes
-        </td>
-      </tr>
-      <tr>
-        <td>timer max frame skips
-        </td>
-        <td>1..16
-        </td>
-        <td>8
-        </td>
-      </tr>
-      <tr>
-        <td>timer no rewind sound</td>
-        <td>yes, no</td>
-        <td>no</td>
-      </tr>
-      <tr>
-        <td>timer performance counter
-        </td>
-        <td>yes, no
-        </td>
-        <td>system dependent
-        </td>
-      </tr>
-      <tr>
-        <td>timer rewind speed</td>
-        <td>30..240</td>
-        <td>60</td>
-      </tr>
-      <tr>
-        <td>timer rewinder</td>
-        <td>yes, no</td>
-        <td>no</td>
-      </tr>
-      <tr>
-        <td>timer speed
-        </td>
-        <td>30..240
-        </td>
-        <td>60
-        </td>
-      </tr>
-        <tr>
-        <td>timer triple buffering</td>
-        <td>yes, no</td>
-        <td>system dependent</td>
-      </tr>
-      <tr>
-        <td>timer vsync
-        </td>
-        <td>yes, no
-        </td>
-        <td>no
-        </td>
-      </tr>
-      <tr>
-        <td>video auto display frequency</td>
-        <td>yes, no</td>
-        <td>
-            yes</td>
-      </tr>
-      <tr>
-        <td>video color brightness</td>
-        <td>0..200</td>
-        <td>100</td>
-      </tr>
-      <tr>
-        <td>video color contrast</td>
-        <td>0..200</td>
-        <td>100</td>
-      </tr>
-      <tr>
-        <td>video color hue</td>
-        <td>315..45</td>
-        <td>0</td>
-      </tr>
-      <tr>
-        <td>video color saturation
-        </td>
-        <td>0..200</td>
-        <td>100</td>
-      </tr>
-      <tr>
-        <td>video decoder by angle
-        </td>
-        <td>330..30
-        </td>
-        <td>15</td>
-      </tr>
-      <tr>
-        <td>video decoder by gain
-        </td>
-        <td>0.0 .. 2.0
-        </td>
-        <td>1.015
-        </td>
-      </tr>
-      <tr>
-        <td>video decoder gy angle
-        </td>
-        <td>0..255
-        </td>
-        <td>251
-        </td>
-      </tr>
-      <tr>
-        <td>video decoder gy gain
-        </td>
-        <td>0.0 .. 2.0
-        </td>
-        <td>0.351
-        </td>
-      </tr>
-      <tr>
-        <td>video decoder ry angle
-        </td>
-        <td>60..120
-        </td>
-        <td>105
-        </td>
-      </tr>
-      <tr>
-        <td>video decoder ry gain
-        </td>
-        <td>0.0 .. 2.0
-        </td>
-        <td>0.570
-        </td>
-      </tr>
-      <tr>
-        <td>video decoder yellow boost
-        </td>
-        <td>yes, no
-        </td>
-        <td>no
-        </td>
-      </tr>
-      <tr>
-        <td>video device
-        </td>
-        <td>guid
-        </td>
-        <td>-
-        </td>
-      </tr>
-      <tr>
-        <td>video filter
-        </td>
-        <td>standard, ntsc, scalex, hqx</td>
-        <td>standard
-        </td>
-      </tr>
-      <tr>
-        <td>video filter hqx bilinear
-        </td>
-        <td>yes, no
-        </td>
-        <td>no
-        </td>
-      </tr>
-      <tr>
-        <td>video filter hqx scale
-        </td>
-        <td>auto, 2, 3, 4
-        </td>
-        <td>auto
-        </td>
-      </tr>
-      <tr>
-        <td>video filter ntsc auto tuning
-        </td>
-        <td>yes, no
-        </td>
-        <td>yes
-        </td>
-      </tr>
-      <tr>
-        <td>video filter ntsc bilinear
-        </td>
-        <td>yes, no
-        </td>
-        <td>no
-        </td>
-      </tr>
-      <tr>
-        <td>video filter ntsc fieldmerging
-        </td>
-        <td>auto, yes, no
-        </td>
-        <td>auto
-        </td>
-      </tr>
-      <tr>
-        <td>video filter ntsc artifacts
-        </td>
-        <td>0..200</td>
-        <td>100</td>
-      </tr>
-      <tr>
-        <td>video filter ntsc colorbleed
-        </td>
-        <td>0..200</td>
-        <td>100</td>
-      </tr>
-      <tr>
-        <td>video filter ntsc fringing
-        </td>
-        <td>0..200</td>
-        <td>100</td>
-      </tr>
-      <tr>
-        <td>video filter ntsc resolution
-        </td>
-        <td>0..200</td>
-        <td>100</td>
-      </tr>
-      <tr>
-        <td>video filter ntsc scanlines
-        </td>
-        <td>0..100
-        </td>
-        <td>0
-        </td>
-      </tr>
-      <tr>
-        <td>video filter ntsc sharpness
-        </td>
-        <td>0..200</td>
-        <td>100</td>
-      </tr>
-      <tr>
-        <td>video filter ntsc tv aspect
-        </td>
-        <td>yes, no
-        </td>
-        <td>yes</td>
-      </tr>
-      <tr>
-        <td>video filter scalex bilinear
-        </td>
-        <td>yes, no
-        </td>
-        <td>no
-        </td>
-      </tr>
-      <tr>
-        <td>video filter scalex scale
-        </td>
-        <td>auto, 2, 3
-        </td>
-        <td>auto
-        </td>
-      </tr>
-      <tr>
-        <td>video filter standard bilinear
-        </td>
-        <td>yes, no
-        </td>
-        <td>no
-        </td>
-      </tr>
-      <tr>
-        <td>video filter standard scanlines
-        </td>
-        <td>0..100
-        </td>
-        <td>0
-        </td>
-      </tr>
-      <tr>
-        <td>video fullscreen bpp
-        </td>
-        <td>16, 32
-        </td>
-        <td>16
-        </td>
-      </tr>
-      <tr>
-        <td>video fullscreen height
-        </td>
-        <td>height
-        </td>
-        <td>480
-        </td>
-      </tr>
-      <tr>
-        <td>video fullscreen width
-        </td>
-        <td>width
-        </td>
-        <td>640
-        </td>
-      </tr>
-      <tr>
-        <td>video ntsc bottom
-        </td>
-        <td>1..239
-        </td>
-        <td>231
-        </td>
-      </tr>
-      <tr>
-        <td>video ntsc left
-        </td>
-        <td>0..255
-        </td>
-        <td>0
-        </td>
-      </tr>
-      <tr>
-        <td>video ntsc right
-        </td>
-        <td>1..255
-        </td>
-        <td>255
-        </td>
-      </tr>
-      <tr>
-        <td>video ntsc top
-        </td>
-        <td>0..239
-        </td>
-        <td>8
-        </td>
-      </tr>
-      <tr>
-        <td>video pal bottom
-        </td>
-        <td>1..239
-        </td>
-        <td>239
-        </td>
-      </tr>
-      <tr>
-        <td>video pal left
-        </td>
-        <td>0..255
-        </td>
-        <td>0
-        </td>
-      </tr>
-      <tr>
-        <td>video pal right
-        </td>
-        <td>1..255
-        </td>
-        <td>255
-        </td>
-      </tr>
-      <tr>
-        <td>video pal top
-        </td>
-        <td>0..239
-        </td>
-        <td>1
-        </td>
-      </tr>
-      <tr>
-        <td>video palette
-        </td>
-        <td>auto, yuv, rgb, custom
-        </td>
-        <td>auto
-        </td>
-      </tr>
-      <tr>
-        <td>video palette file
-        </td>
-        <td>file
-        </td>
-        <td>-
-        </td>
-      </tr>      
-      <tr>
-        <td>video screen curvature
-        </td>
-        <td>0..20
-        </td>
-        <td>10
-        </td>
-      </tr>
-      <tr>
-        <td>video texture location</td>
-        <td>vidmem, sysmem</td>
-        <td>vidmem</td>
-      </tr>
-      <tr>
-        <td>video tv aspect</td>
-        <td>yes, no</td>
-        <td>no</td>
-      </tr>
-      <tr>
-        <td>view show fps
-        </td>
-        <td>yes, no
-        </td>
-        <td>no
-        </td>
-      </tr>
-      <tr>
-        <td>view show on top
-        </td>
-        <td>yes, no
-        </td>
-        <td>no
-        </td>
-      </tr>
-      <tr>
-        <td>view show status bar
-        </td>
-        <td>yes, no
-        </td>
-        <td>yes
-        </td>
-      </tr>
-      <tr>
-        <td>view show window menu
-        </td>
-        <td>yes, no
-        </td>
-        <td>yes
-        </td>
-      </tr>
-      <tr>
-        <td>view size fullscreen
-        </td>
-        <td>matched, stretched
-        </td>
-        <td>matched
-        </td>
-      </tr>
-      <tr>
-        <td>view size window
-        </td>
-        <td>1..9
-        </td>
-        <td>1
-        </td>
-      </tr>
-      <tr>
-        <td>view window bottom</td>
-        <td>1..N+1</td>
-        <td>-</td>
-      </tr>
-      <tr>
-        <td>view window left</td>
-        <td>0..N</td>
-        <td>-</td>
-      </tr>
-      <tr>
-        <td>view window right</td>
-        <td>1..N+1</td>
-        <td>-</td>
-      </tr>
-      <tr>
-        <td>view window top</td>
-        <td>0..N</td>
-        <td>-</td>
-      </tr>
-    </table>
-    <p>
-      <br>
-      <a href="#pagetop">Back to Top</a>
-    </p>
-    <hr>
     <h2><a name="troubleshooting" id="troubleshooting">Troubleshooting</a></h2>
     <p>
       If you experience slow performance with Nestopia, here are a couple of
@@ -3490,7 +667,7 @@
       <li>Lower the screen resolution and/or pixel bit-depth (video dialog).</li>
       <li>Disable video filtering effects (video dialog).</li>
       <li>Change the NES screen memory location (video dialog)</li>
-      <li>Enable triple buffering (timing dialog).</li>
+      <li>Enable triple-buffering (timing dialog).</li>
       <li>Enable auto-frame-skipping (timing dialog).</li>
       <li>Disable vsync (timing dialog).</li>
       <li>Disable the rewinder (timing dialog).</li>
@@ -3502,14 +679,14 @@
       If you have trouble running a particular game, possible reasons could be:
     </p>
     <ul>
-      <li>The image file has incorrect header data such as wrong mapper or name-table mirroring.</li>
       <li>It's a bad dump.</li>
+      <li>The image comes with incorrect or insufficient emulation information.</li>
       <li>Does it work on the actual hardware? If not, it's not supposed to work on Nestopia either.</li>
       <li>It has been hacked solely for the purpose of making it run on another emulator.</li>
-      <li>Wrong region setting, try switching to either PAL or NTSC.</li>
+      <li>Wrong region setting, try switching to/from PAL.</li>
       <li>Proper controller(s) connected? For instance, it could be a keyboard-only program or a game that only responds to the secondary controller.</li>
       <li>Is the 'no sprite limit' option enabled? Try disabling it, some games might depend on this hardware limitation.</li>
-      <li>It's possible that the image database will cause more harm than good with some games. If the problem goes away when you disable the option for auto-correction of faulty images, please send me a report with the name of the game so I can correct it.</li>
+      <li>The database may have an error in it. Try turning it off temporarily.</li>
       <li>It's unsupported by Nestopia.</li>
     </ul>
     <p>
@@ -3525,7 +702,7 @@
     <h2><a name="credits" id="credits">Credits</a></h2>
     <table border="1">
       <tr>
-        <th>Name</th>
+        <th>Author</th>
         <th>Contribution</th>
       </tr>
       <tr>
@@ -3538,7 +715,7 @@
       </tr>
       <tr>
         <td>Andrea Mazzoleni</td>
-        <td><a href="http://scale2x.sourceforge.net/">Scale2x/Scale3x</a></td>
+        <td><a href="http://scale2x.sourceforge.net/">ScaleX filters</a></td>
       </tr>
       <tr>
         <td>Bootgod</td>
@@ -3577,8 +754,8 @@
         <td>Various technical documents</td>
       </tr>
       <tr>
-        <td>Hap</td>
-        <td>Sound samples info</td>
+        <td>hap</td>
+        <td>D7756C info</td>
       </tr>
       <tr>
         <td>Hellsbane</td>
@@ -3614,7 +791,7 @@
       </tr>
       <tr>
         <td>MAME dev.team</td>
-        <td>Vs.System info</td>
+        <td>VS System info</td>
       </tr>
       <tr>
         <td>Marat Fayzullin</td>
@@ -3638,7 +815,11 @@
       </tr>
       <tr>
         <td>Maxim Stepin</td>
-        <td><a href="http://www.hiend3d.com/hq2x.html">hq2x/hq3x</a></td>
+        <td><a href="http://www.hiend3d.com/hq2x.html">hqx filters</a></td>
+      </tr>
+      <tr>
+        <td>NewRisingSun</td>
+        <td>NTSC info</td>
       </tr>
       <tr>
         <td>Norix</td>
@@ -3661,6 +842,10 @@
         <td><a href="http://www.slack.net/~ant/">nes_ntsc</a>, APU and PPU info</td>
       </tr>
       <tr>
+        <td>The Mad Dumper</td>
+        <td>Mapper info</td>
+      </tr>
+      <tr>
         <td>Xodnizel</td>
         <td>Mapper info</td>
       </tr>
@@ -3668,7 +853,7 @@
     <h2><a name="translations" id="translations">Translations</a></h2>
     <table border="1">
       <tr>
-        <th>Name</th>
+        <th>Author</th>
         <th>Language</th>
       </tr>
       <tr>
@@ -3703,13 +888,17 @@
     <h2><a name="ports" id="ports">Ports</a></h2>
     <table border="1">
       <tr>
-        <th>Name</th>
+        <th>Author</th>
         <th>Platform</th>
       </tr>
       <tr>
-        <td>R.Belmont</td>
-        <td><a href="http://rbelmont.mameworld.info/?p=194">Linux</a></td>
+        <td>Arbee</td>
+        <td><a href="http://rbelmont.mameworld.info/?page_id=200">Linux</a></td>
       </tr>
+      <tr>
+        <td>Daemoncollector</td>
+        <td><a href="http://opennestopia.staulkor.com/">Mac OS X</a></td>
+      </tr>      
       <tr>
         <td>Richard Bannister</td>
         <td><a href="http://www.bannister.org/software/nestopia.htm">Mac OS X</a> (alt. license)</td>
@@ -3721,7 +910,7 @@
     </p>
     <hr>
     <p>
-      Nestopia is Copyright &copy; 2003-2007 by Martin Freij.<br>
+      Nestopia is Copyright &copy; 2003-2008 by Martin Freij.<br>
       <br>
       NES is either a trademark or registered trademark of Nintendo of America Inc.<br>
       Famicom is either a trademark or registered trademark of Nintendo Co., LTD.<br>
@@ -3730,4 +919,3 @@
     </p>
   </body>
 </html>
-

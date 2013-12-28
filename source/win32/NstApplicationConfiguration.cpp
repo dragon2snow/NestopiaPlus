@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -22,101 +22,108 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstIoFile.hpp"
+#include <map>
 #include "NstIoLog.hpp"
+#include "NstIoStream.hpp"
 #include "NstWindowUser.hpp"
 #include "NstApplicationInstance.hpp"
+#include "../core/NstXml.hpp"
 
 namespace Nestopia
 {
 	namespace Application
 	{
-		Configuration::Configuration()
-		: save(false)
+		struct Configuration::Node
 		{
-			items.Reserve( HINTED_SIZE );
+			Node();
 
-			try
+			typedef Nes::Core::Xml Xml;
+
+			Node& Get(const HeapString&);
+			const Node* Find(cstring) const;
+
+			void Load(Xml::Node);
+			void Save(Xml::Node,wcstring=NULL) const;
+			void CheckReference(wcstring) const;
+
+			typedef HeapString Key;
+			typedef std::multimap<Key,Node> Map;
+
+			Map map;
+			HeapString string;
+
+			struct
 			{
+				Map* map;
+				Map::iterator item;
+			}   parent;
+
+			mutable bool referenced;
+		};
+
+		Configuration::Configuration()
+		: root(*new Node), save(false)
+		{
+			const Path path( Instance::GetExePath(L"nestopia.xml") );
+
+			if (path.FileExists())
+			{
+				try
 				{
-					HeapString buffer;
+					Nes::Core::Xml xml;
 
-					try
 					{
-						Io::File( Instance::GetExePath(_T("nestopia.cfg")), Io::File::COLLECT ).ReadText( buffer );
-					}
-					catch (Io::File::Exception id)
-					{
-						if (id != Io::File::ERR_NOT_FOUND)
-							Window::User::Warn( _T("Configuration file load error! Default settings will be used!") );
-
-						buffer.Clear();
+						Io::Stream::In file( path );
+						xml.Read( file );
 					}
 
-					if (buffer.Length())
-					{
-						try
-						{
-							Parse( buffer.Ptr(), buffer.Length() );
-						}
-						catch (Error)
-						{
-							Reset( false );
-							Window::User::Warn( _T("Corrupt configuration file! Default settings will be used!") );
-						}
-					}
+					if (!xml.GetRoot().IsType( L"configuration" ))
+						throw 1;
+
+					if (HeapString(Instance::GetVersion()) != xml.GetRoot().GetAttribute(L"version").GetValue())
+						Window::User::Warn( L"The configuration file is old and may not work reliably with this version of Nestopia!", L"Configuration file version conflict!" );
+
+					root.Load( xml.GetRoot().GetFirstChild() );
 				}
-
-				if (tstring ptr = ::GetCommandLine())
+				catch (...)
 				{
-					for (uint quote=0; (*ptr > ' ') || (*ptr && quote); ++ptr)
-					{
-						if (*ptr == '\"')
-							quote ^= 1;
-					}
-
-					while (*ptr && *ptr <= ' ')
-						++ptr;
-
-					if (*ptr)
-					{
-						if (*ptr != '-')
-						{
-							tstring const offset = ptr;
-
-							for (uint quote=0; (*ptr > ' ') || (*ptr && quote); ++ptr)
-							{
-								if (*ptr == '\"')
-									quote ^= 1;
-							}
-
-							startupFile.Assign( offset, ptr - offset );
-							startupFile.Remove( '\"' );
-							startupFile.Trim();
-
-							// Win98/ME/2k fix
-							if (startupFile.Length())
-								startupFile = Instance::GetLongPath( startupFile.Ptr() );
-						}
-
-						if (const uint length = _tcslen(ptr))
-						{
-							try
-							{
-								Parse( ptr, length );
-							}
-							catch (Error)
-							{
-								Window::User::Warn( _T("Command line parser error!") );
-							}
-						}
-					}
+					Reset( false );
+					Window::User::Warn( L"Configuration file load error! Default settings will be used!" );
 				}
 			}
-			catch (...)
+
+			if (wcstring ptr = ::GetCommandLine())
 			{
-				Reset( false );
-				Window::User::Fail( _T("Generic configuration loading error!") );
+				for (uint quote=0; (*ptr > ' ') || (*ptr && quote); ++ptr)
+				{
+					if (*ptr == '\"')
+						quote ^= 1;
+				}
+
+				while (*ptr && *ptr <= ' ')
+					++ptr;
+
+				if (*ptr)
+				{
+					if (*ptr != '-')
+					{
+						wcstring const offset = ptr;
+
+						for (uint quote=0; (*ptr > ' ') || (*ptr && quote); ++ptr)
+						{
+							if (*ptr == '\"')
+								quote ^= 1;
+						}
+
+						startupFile.Assign( offset, ptr - offset );
+						startupFile.Remove( '\"' );
+						startupFile.Trim();
+
+						// Win98/ME/2k fix
+						if (startupFile.Length())
+							startupFile = Instance::GetLongPath( startupFile.Ptr() );
+					}
+				}
 			}
 		}
 
@@ -124,261 +131,241 @@ namespace Nestopia
 		{
 			if (save)
 			{
-				static const char header1[] =
-
-					"/////////////////////////////////////////////////////////////////////////////\r\n"
-					"//\r\n"
-					"// Nestopia Configuration File. Version ";
-
-				static const char header2[] =
-
-					"\r\n"
-					"//\r\n"
-					"/////////////////////////////////////////////////////////////////////////////\r\n"
-					"\r\n";
-
-				HeapString buffer;
-				buffer << header1 << Instance::GetVersion() << header2;
-
-				for (Items::ConstIterator it(items.Begin()), end(items.End()); it != end; ++it)
-					buffer << '-' << it->key << " : " << it->value << "\r\n";
-
 				try
 				{
-					Io::File( Instance::GetExePath(_T("nestopia.cfg")), Io::File::DUMP|Io::File::WRITE_THROUGH ).WriteText( buffer.Ptr(), buffer.Length() );
+					Nes::Core::Xml xml;
+					xml.Create( L"configuration" ).AddAttribute( L"version", HeapString(Instance::GetVersion()).Ptr() );
+					root.Save( xml.GetRoot() );
+
+					Io::Stream::Out file( Instance::GetExePath(L"nestopia.xml") );
+					xml.Write( xml.GetRoot(), file );
 				}
-				catch (Io::File::Exception)
+				catch (...)
 				{
-					Window::User::Warn( _T("Couldn't save the configuration!") );
+					Window::User::Warn( L"Couldn't save the configuration!" );
 				}
 			}
 
-			Reset( false );
+			delete &root;
 		}
 
-		void Configuration::Reset(const bool notify)
+		void Configuration::Reset(bool notify)
 		{
-			for (Items::Iterator it(items.Begin()), end(items.End()); it != end; ++it)
-			{
-				if (notify && !it->key.referenced)
-					Io::Log() << "Configuration: warning, unused/invalid parameter: \"" << it->key << "\"\r\n";
+			if (notify)
+				root.CheckReference( L"" );
 
-				it->key.Command::~Command();
-				it->value.HeapString::~HeapString();
+			root.map.clear();
+		}
+
+		void Configuration::EnableSaving(bool enable)
+		{
+			save = enable;
+		}
+
+		const Path& Configuration::GetStartupFile() const
+		{
+			return startupFile;
+		}
+
+		Configuration::ConstSection Configuration::operator [] (cstring key) const
+		{
+			return root.Find( key );
+		}
+
+		Configuration::Section Configuration::operator [] (cstring key)
+		{
+			return &root.Get( key );
+		}
+
+		Configuration::ConstSection Configuration::ConstSection::operator [] (cstring key) const
+		{
+			return node ? node->Find( key ) : NULL;
+		}
+
+		Configuration::ConstSection Configuration::ConstSection::operator [] (uint i) const
+		{
+			if (node)
+			{
+				if (i)
+				{
+					Node::Map::iterator it( node->parent.item );
+
+					while (++it != node->parent.map->end() && it->first == node->parent.item->first)
+					{
+						if (!--i)
+						{
+							it->second.referenced = true;
+							return &it->second;
+						}
+					}
+				}
+				else
+				{
+					return *this;
+				}
 			}
 
-			items.Destroy();
+			return NULL;
 		}
 
-		void Configuration::Parse(tstring string,uint length)
+		Configuration::Section Configuration::Section::operator [] (cstring key)
 		{
-			class CommandLine
+			return &node->Get( key );
+		}
+
+		Configuration::Section Configuration::Section::operator [] (uint i)
+		{
+			if (i)
 			{
-				struct Stream : HeapString
+				Node::Map::iterator it( node->parent.item );
+
+				while (++it != node->parent.map->end() && it->first == node->parent.item->first)
 				{
-					Stream(const tchar* NST_RESTRICT src,const uint length)
-					{
-						if (length)
-						{
-							Reserve( length * 2 );
-
-							Type* dst = Ptr();
-							const Type* const end = src + length;
-
-							do
-							{
-								const Type ch = *src++;
-
-								if (ch > 31)
-								{
-									*dst++ = ch;
-								}
-								else if (ch == '\n')
-								{
-									*dst++ = '\r';
-									*dst++ = '\n';
-								}
-								else if (ch == '\t')
-								{
-									*dst++ = ' ';
-								}
-							}
-							while (src != end);
-
-							ShrinkTo( dst - Ptr() );
-						}
-					}
-
-					const String::Heap<char> operator () (tstring begin,tstring end) const
-					{
-						return String::Heap<Type>::operator () (begin-Ptr(),end-begin);
-					}
-				};
-
-				const Stream stream;
-				tstring it;
-
-				void Skip(int ch)
-				{
-					while (*it == ch)
-						++it;
+					if (!--i)
+						return &it->second;
 				}
 
-				void Parse(tstring (&range)[2],int breaker)
+				const Node::Map::value_type item( node->parent.item->first,Node() );
+
+				do
 				{
-					for (range[0] = it; *it != breaker; ++it)
-						if (!*it) throw ERR_PARSING;
-
-					for (range[1] = it++; range[1][-1] == ' '; --range[1]);
+					it = node->parent.map->insert( it, item );
+					it->second.parent.map = node->parent.map;
+					it->second.parent.item = it;
 				}
+				while (--i);
 
-				bool ParseQuoted(tstring (&range)[2])
-				{
-					if (*it == '\"')
-					{
-						++it;
-						Skip(' ');
-						Parse( range, '\"' );
-
-						return true;
-					}
-
-					return false;
-				}
-
-				void Parse(tstring (&range)[2])
-				{
-					if (!ParseQuoted( range ))
-					{
-						range[0] = it;
-
-						while (*it && *it != '\r' && *it != '-' && (it[0] != '/' || it[1] != '/'))
-						{
-							if (*it++ == '\"')
-							{
-								Skip(' ');
-
-								while (*it != '\"')
-									if (!*it++) throw ERR_PARSING;
-
-								range[1] = ++it;
-								return;
-							}
-						}
-
-						range[1] = it;
-
-						while (range[1] != range[0] && range[1][-1] == ' ')
-							--range[1];
-					}
-				}
-
-			public:
-
-				CommandLine(tstring string,uint length)
-				: stream(string,length), it(stream.Ptr()) {}
-
-				void operator >> (Items& items)
-				{
-					NST_ASSERT( *(it-1) == '-' );
-
-					tstring ranges[2][2];
-
-					Skip(' ');
-					Parse( ranges[0], ':' );
-					Skip(' ');
-					Parse( ranges[1] );
-
-					if (ranges[0][0] == ranges[0][1])
-						throw ERR_PARSING;
-
-					if (ranges[1][0] != ranges[1][1])
-						items( stream(ranges[0][0],ranges[0][1]) ).Assign( ranges[1][0], ranges[1][1] - ranges[1][0] );
-				}
-
-				operator bool ()
-				{
-					for (;;)
-					{
-						if (*it == '\r')
-						{
-							it += 2;
-						}
-						else if (it[0] == '/' && it[1] == '/')
-						{
-							for (it += 2; *it && *it != '\r'; ++it);
-						}
-						else if (*it == ' ')
-						{
-							++it;
-						}
-						else
-						{
-							break;
-						}
-					}
-
-					if (*it == '-')
-					{
-						++it;
-						return true;
-					}
-
-					if (*it)
-						throw ERR_PARSING;
-
-					return false;
-				}
-			};
-
-			for (CommandLine stream(string,length); stream; stream >> items);
-		}
-
-		Configuration::Value Configuration::operator [] (const String::Generic<char> name)
-		{
-			return items( name );
-		}
-
-		const Configuration::ConstValue Configuration::operator [] (const String::Generic<char> name) const
-		{
-			GenericString match;
-
-			if (const Items::Entry* entry = items.Find( name ))
+				return &it->second;
+			}
+			else
 			{
-				entry->key.referenced = true;
-				match = entry->value;
+				return *this;
+			}
+		}
+
+		HeapString& Configuration::Section::Str()
+		{
+			return node->string;
+		}
+
+		GenericString Configuration::ConstSection::Str() const
+		{
+			return node ? GenericString(node->string) : GenericString();
+		}
+
+		ulong Configuration::ConstSection::Int() const
+		{
+			ulong i;
+			return node && (node->string >> i) ? i : 0;
+		}
+
+		ulong Configuration::ConstSection::Int(ulong d) const
+		{
+			ulong i;
+			return node && (node->string >> i) ? i : d;
+		}
+
+		void Configuration::Section::IntProxy::operator = (ulong i)
+		{
+			node.string << i;
+		}
+
+		void Configuration::Section::YesNoProxy::operator = (bool yes)
+		{
+			node.string.Assign( yes ? L"yes" : L"no", yes ? 3 : 2 );
+		}
+
+		bool Configuration::ConstSection::Yes() const
+		{
+			return node && node->string == L"yes";
+		}
+
+		bool Configuration::ConstSection::No() const
+		{
+			return node && node->string == L"no";
+		}
+
+		Configuration::Node::Node()
+		: referenced(false) {}
+
+		Configuration::Node& Configuration::Node::Get(const HeapString& key)
+		{
+			Map::iterator it(map.lower_bound( key ));
+
+			if (it == map.end() || it->first != key)
+			{
+				it = map.insert( it, Map::value_type(key,Node()) );
+				it->second.parent.map = &map;
+				it->second.parent.item = it;
 			}
 
-			return match;
+			return it->second;
 		}
 
-		void Configuration::Value::YesNoProxy::operator = (bool i)
+		const Configuration::Node* Configuration::Node::Find(cstring key) const
 		{
-			string.Assign( i ? "yes" : "no", i ? 3 : 2 );
-		}
+			Map::const_iterator it(map.find( key ));
 
-		void Configuration::Value::OnOffProxy::operator = (bool i)
-		{
-			string.Assign( i ? "on" : "off", i ? 2 : 3 );
-		}
-
-		void Configuration::Value::QuoteProxy::operator = (const GenericString& input)
-		{
-			string.Clear();
-			string.Reserve( 2 + input.Length() );
-			string << '\"' << input << '\"';
-		}
-
-		bool Configuration::ConstValue::operator == (State state) const
-		{
-			NST_ASSERT( state < 4 );
-
-			static const tchar yesNoOnOff[4][4] =
+			if (it != map.end())
 			{
-				_T("yes"), _T("no"), _T("on"), _T("off")
-			};
+				it->second.referenced = true;
+				return &it->second;
+			}
 
-			return GenericString::operator == (yesNoOnOff[state]);
+			return NULL;
+		}
+
+		void Configuration::Node::Load(Xml::Node xmlNode)
+		{
+			do
+			{
+				Map::iterator it(map.insert( Map::value_type(xmlNode.GetType(),Node()) ));
+
+				it->second.parent.map = &map;
+				it->second.parent.item = it;
+
+				if (const Xml::Node xmlChild=xmlNode.GetFirstChild())
+					it->second.Load( xmlChild );
+				else
+					it->second.string = xmlNode.GetValue();
+
+				xmlNode = xmlNode.GetNextSibling();
+			}
+			while (xmlNode);
+		}
+
+		void Configuration::Node::Save(Xml::Node node,wcstring const key) const
+		{
+			NST_ASSERT( node && (!key || *key) );
+
+			if (map.empty())
+			{
+				if (key)
+					node.AddChild( key, string.Ptr() );
+			}
+			else
+			{
+				if (key)
+					node = node.AddChild( key );
+
+				for (Map::const_iterator it(map.begin()), end(map.end()); it != end; ++it)
+					it->second.Save( node, it->first.Ptr() );
+			}
+		}
+
+		void Configuration::Node::CheckReference(wcstring const key) const
+		{
+			NST_ASSERT( key );
+
+			if (map.empty())
+			{
+				if (*key && !referenced)
+					Io::Log() << "Configuration: warning, unused/invalid parameter: \"" << key << "\"\r\n";
+			}
+			else for (Map::const_iterator it(map.begin()), end(map.end()); it != end; ++it)
+			{
+				it->second.CheckReference( it->first.Ptr() );
+			}
 		}
 	}
 }

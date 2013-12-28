@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -30,6 +30,7 @@
 #include "NstApplicationInstance.hpp"
 #include "NstCollectionBitSet.hpp"
 #include "NstObjectHeap.hpp"
+#include "../core/api/NstApiMachine.hpp"
 
 namespace Nestopia
 {
@@ -56,15 +57,14 @@ namespace Nestopia
 				RUN_IN_BACKGROUND,
 				AUTOSTART_EMULATION,
 				SAVE_LOGFILE,
-				AUTOCORRECT_IMAGES,
 				ALLOW_MULTIPLE_INSTANCES,
-				SAVE_SETTINGS,
 				SAVE_LAUNCHER,
 				CONFIRM_RESET,
 				SAVE_CHEATS,
 				SAVE_NETPLAY_GAMELIST,
 				SAVE_WINDOWPOS,
 				SAVE_LAUNCHERSIZE,
+				SAVE_SETTINGS,
 				NUM_SETTINGS
 			};
 
@@ -91,6 +91,8 @@ namespace Nestopia
 			{
 				Collection::BitSet flags;
 				Priority priority;
+				Nes::Machine::FavoredSystem favoredSystem;
+				bool alwaysAskSystem;
 			}   settings;
 
 			Object::Heap<Window::Preferences> dialog;
@@ -106,6 +108,16 @@ namespace Nestopia
 			Priority GetPriority() const
 			{
 				return settings.priority;
+			}
+
+			Nes::Machine::FavoredSystem GetFavoredSystem() const
+			{
+				return settings.favoredSystem;
+			}
+
+			Nes::Machine::AskProfile GetAlwaysAskProfile() const
+			{
+				return settings.alwaysAskSystem ? Nes::Machine::ASK_PROFILE : Nes::Machine::DONT_ASK_PROFILE;
 			}
 		};
 	}

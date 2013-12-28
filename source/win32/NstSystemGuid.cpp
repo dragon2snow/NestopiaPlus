@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -55,7 +55,7 @@ namespace Nestopia
 		{
 			uint value;
 
-			if (!((String::Stack<2+8>(_T("0x")) << slice) >> value))
+			if (!((String::Stack<2+8>("0x") << slice) >> value))
 				throw ERR_INVALID_STRING;
 
 			return value;

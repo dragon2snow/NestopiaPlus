@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -22,17 +22,17 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include <cstdlib>
 #include <cstring>
 #include <cmath>
 #include <new>
+#include "NstCore.hpp"
 #include "NstAssert.hpp"
 #include "NstFpuPrecision.hpp"
 #include "api/NstApiVideo.hpp"
 #include "NstVideoRenderer.hpp"
 #include "NstVideoFilterNone.hpp"
-#include "NstVideoFilterScanlines.hpp"
 #include "NstVideoFilterNtsc.hpp"
+
 #ifndef NST_NO_SCALEX
 #include "NstVideoFilterScaleX.hpp"
 #endif
@@ -471,33 +471,30 @@ namespace Nes
 				return palette;
 			}
 
-			Renderer::Filter::Format::Format(const RenderState::Bits::Mask& m)
+			Renderer::Filter::Format::Format(const RenderState& state)
+			: bpp(state.bits.count)
 			{
-				const dword mask[3] = {m.r,m.g,m.b};
-
 				for (uint i=0; i < 3; ++i)
 				{
-					left[i] = 0;
+					ulong mask = (i == 0 ? state.bits.mask.r : i == 1 ? state.bits.mask.g : state.bits.mask.b);
 
-					if (mask[i])
+					shifts[i] = 0;
+
+					if (mask)
 					{
-						while (!(mask[i] & (0x1UL << left[i])))
-							++left[i];
+						while (!(mask & 0x1))
+						{
+							mask >>= 1;
+							shifts[i]++;
+						}
 					}
 
-					for
-					(
-						right[i] = 0;
-						right[i] < 8 && mask[i] & (0x1UL << (left[i] + right[i]));
-						right[i] += 1
-					);
-
-					right[i] = 8 - right[i];
+					masks[i] = mask;
 				}
 			}
 
 			Renderer::Filter::Filter(const RenderState& state)
-			: bpp(state.bits.count), format(state.bits.mask) {}
+			: format(state) {}
 
 			void Renderer::Filter::Transform(const byte (&src)[PALETTE][3],Input::Palette& dst) const
 			{
@@ -505,18 +502,18 @@ namespace Nes
 				{
 					dst[i] =
 					(
-						(dword(src[i][0]) >> format.right[0] << format.left[0]) |
-						(dword(src[i][1]) >> format.right[1] << format.left[1]) |
-						(dword(src[i][2]) >> format.right[2] << format.left[2])
+						((src[i][0] * format.masks[0] + 0x7F) / 0xFF) << format.shifts[0] |
+						((src[i][1] * format.masks[1] + 0x7F) / 0xFF) << format.shifts[1] |
+						((src[i][2] * format.masks[2] + 0x7F) / 0xFF) << format.shifts[2]
 					);
 				}
 			}
 
 			Renderer::State::State()
 			:
-			filter       (RenderState::FILTER_NONE),
 			width        (0),
 			height       (0),
+			filter       (RenderState::FILTER_NONE),
 			update       (UPDATE_PALETTE),
 			brightness   (0),
 			saturation   (0),
@@ -527,7 +524,6 @@ namespace Nes
 			bleed        (0),
 			artifacts    (0),
 			fringing     (0),
-			scanlines    (0),
 			fieldMerging (0)
 			{
 				mask.r = 0;
@@ -552,11 +548,10 @@ namespace Nes
 						state.filter == renderState.filter &&
 						state.width == renderState.width &&
 						state.height == renderState.height &&
-						filter->bpp == renderState.bits.count &&
+						filter->format.bpp == renderState.bits.count &&
 						state.mask.r == renderState.bits.mask.r &&
 						state.mask.g == renderState.bits.mask.g &&
-						state.mask.b == renderState.bits.mask.b &&
-						state.scanlines == renderState.scanlines
+						state.mask.b == renderState.bits.mask.b
 					)
 						return RESULT_NOP;
 
@@ -564,67 +559,69 @@ namespace Nes
 					filter = NULL;
 				}
 
-				switch (renderState.filter)
+				try
 				{
-					case RenderState::FILTER_NONE:
+					switch (renderState.filter)
+					{
+						case RenderState::FILTER_NONE:
 
-						if (renderState.scanlines)
-						{
-							if (FilterScanlines::Check( renderState ))
-								filter = new (std::nothrow) FilterScanlines( renderState );
-						}
-						else
-						{
 							if (FilterNone::Check( renderState ))
-								filter = new (std::nothrow) FilterNone( renderState );
-						}
-						break;
+								filter = new FilterNone( renderState );
 
-				#ifndef NST_NO_SCALEX
+							break;
 
-					case RenderState::FILTER_SCALE2X:
-					case RenderState::FILTER_SCALE3X:
+					#ifndef NST_NO_SCALEX
 
-						if (FilterScaleX::Check( renderState ))
-							filter = new (std::nothrow) FilterScaleX( renderState );
+						case RenderState::FILTER_SCALE2X:
+						case RenderState::FILTER_SCALE3X:
 
-						break;
-				#endif
-				#ifndef NST_NO_HQ2X
+							if (FilterScaleX::Check( renderState ))
+								filter = new FilterScaleX( renderState );
 
-					case RenderState::FILTER_HQ2X:
-					case RenderState::FILTER_HQ3X:
-					case RenderState::FILTER_HQ4X:
+							break;
+					#endif
+					#ifndef NST_NO_HQ2X
 
-						if (FilterHqX::Check( renderState ))
-							filter = new (std::nothrow) FilterHqX( renderState );
+						case RenderState::FILTER_HQ2X:
+						case RenderState::FILTER_HQ3X:
+						case RenderState::FILTER_HQ4X:
 
-						break;
+							if (FilterHqX::Check( renderState ))
+								filter = new FilterHqX( renderState );
 
-				#endif
+							break;
 
-					case RenderState::FILTER_NTSC:
+					#endif
 
-						if (FilterNtsc::Check( renderState ))
-						{
-							filter = new (std::nothrow) FilterNtsc
-							(
-								renderState,
-								GetPalette(),
-								state.sharpness,
-								state.resolution,
-								state.bleed,
-								state.artifacts,
-								state.fringing,
-								state.fieldMerging
-							);
-						}
-						break;
+						case RenderState::FILTER_NTSC:
+
+							if (FilterNtsc::Check( renderState ))
+							{
+								filter = new FilterNtsc
+								(
+									renderState,
+									GetPalette(),
+									state.sharpness,
+									state.resolution,
+									state.bleed,
+									state.artifacts,
+									state.fringing,
+									state.fieldMerging
+								);
+							}
+							break;
+					}
+				}
+				catch (const std::bad_alloc&)
+				{
+					delete filter;
+					filter = NULL;
+
+					return RESULT_ERR_OUT_OF_MEMORY;
 				}
 
 				if (filter)
 				{
-					state.scanlines = renderState.scanlines;
 					state.filter = renderState.filter;
 					state.width = renderState.width;
 					state.height = renderState.height;
@@ -647,11 +644,10 @@ namespace Nes
 			{
 				if (filter)
 				{
-					output.filter = state.filter;
+					output.filter = static_cast<RenderState::Filter>(state.filter);
 					output.width = state.width;
 					output.height = state.height;
-					output.scanlines = state.scanlines;
-					output.bits.count = filter->bpp;
+					output.bits.count = filter->format.bpp;
 					output.bits.mask = state.mask;
 
 					return RESULT_OK;
@@ -663,7 +659,7 @@ namespace Nes
 			void Renderer::EnableFieldMerging(bool fieldMerging)
 			{
 				const bool old = state.fieldMerging;
-				state.fieldMerging &= uint(State::FIELD_MERGING_PAL);
+				state.fieldMerging &= uint(State::FIELD_MERGING_FORCED);
 
 				if (fieldMerging)
 					state.fieldMerging |= uint(State::FIELD_MERGING_USER);
@@ -672,13 +668,13 @@ namespace Nes
 					state.update |= uint(State::UPDATE_NTSC);
 			}
 
-			void Renderer::SetRegion(Region::Type region)
+			void Renderer::EnableForcedFieldMerging(bool fieldMerging)
 			{
 				const bool old = state.fieldMerging;
 				state.fieldMerging &= uint(State::FIELD_MERGING_USER);
 
-				if (region == Region::PAL)
-					state.fieldMerging |= uint(State::FIELD_MERGING_PAL);
+				if (fieldMerging)
+					state.fieldMerging |= uint(State::FIELD_MERGING_FORCED);
 
 				if (bool(state.fieldMerging) != old)
 					state.update |= uint(State::UPDATE_NTSC);
@@ -794,9 +790,9 @@ namespace Nes
 
 					if (Output::lockCallback( output ))
 					{
-						NST_VERIFY( std::labs(output.pitch) >= filter->bpp * WIDTH / 8 );
+						NST_VERIFY( std::labs(output.pitch) >= dword(state.width) << (filter->format.bpp / 16) );
 
-						if (std::labs(output.pitch) >= filter->bpp * WIDTH / 8)
+						if (std::labs(output.pitch) >= dword(state.width) << (filter->format.bpp / 16))
 							filter->Blit( input, output, burstPhase );
 
 						Output::unlockCallback( output );

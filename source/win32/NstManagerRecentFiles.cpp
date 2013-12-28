@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -60,17 +60,18 @@ namespace Nestopia
 			};
 
 			menu.Commands().Add( this, commands );
-			menu[IDM_FILE_RECENT_LOCK].Check( cfg["files recent locked"] == Configuration::YES );
+
+			Configuration::ConstSection files( cfg["paths"]["recent"]["files"] );
+
+			menu[IDM_FILE_RECENT_LOCK].Check( files["locked"].Yes() );
 
 			uint count = 0;
 
-			String::Stack<16,char> index( "files recent x" );
 			Path path;
 
 			for (uint i=0; i < MAX_FILES; ++i)
 			{
-				index.Back() = '1' + i;
-				path = cfg[index];
+				path = files["file"][i].Str();
 
 				if (path.Length())
 				{
@@ -90,16 +91,14 @@ namespace Nestopia
 
 		void RecentFiles::Save(Configuration& cfg) const
 		{
-			cfg["files recent locked"].YesNo() = menu[IDM_FILE_RECENT_LOCK].Checked();
+			Configuration::Section files( cfg["paths"]["recent"]["files"] );
 
-			String::Stack<16,char> index( "files recent x" );
+			files["locked"].YesNo() = menu[IDM_FILE_RECENT_LOCK].Checked();
+
 			HeapString path;
 
 			for (uint i=0; i < MAX_FILES && menu[IDM_FILE_RECENT_1 + i].Text() >> path; ++i)
-			{
-				index.Back() = '1' + i;
-				cfg[index].Quote() = path(3);
-			}
+				files["file"][i].Str() = path(3);
 		}
 
 		void RecentFiles::OnMenu(uint cmd)

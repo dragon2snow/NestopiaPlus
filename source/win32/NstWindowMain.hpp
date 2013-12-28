@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -56,8 +56,6 @@ namespace Nestopia
 			int  Run();
 			void Save(Configuration&) const;
 			uint GetMaxMessageLength() const;
-			void Load(const Io::Nsp::Context&);
-			void Save(Io::Nsp::Context&) const;
 
 		private:
 
@@ -95,7 +93,7 @@ namespace Nestopia
 				bool maximized;
 				Rect rect;
 
-				static const tchar name[];
+				static const wchar_t name[];
 			};
 
 			inline bool Fullscreen() const;

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -105,23 +105,23 @@ namespace Nestopia
 			text << Info::GetMode( emulator.GetMode() );
 
 			cstring const artist = Info::GoodName( emulator.GetArtist() );
-			cstring const maker = Info::GoodName( emulator.GetMaker() );
+			cstring const copyright = Info::GoodName( emulator.GetCopyright() );
 
 			if (artist)
 				(text << "\r\n").Import( artist );
 
-			if (maker)
-				(text << "\r\n").Import( maker );
+			if (copyright)
+				(text << "\r\n").Import( copyright );
 
 			if (const uint chips = emulator.GetChips())
 			{
-				text << (maker || artist ? ", " : "\r\n");
+				text << (copyright || artist ? ", " : "\r\n");
 
 				if ( chips & Nes::Nsf::CHIP_MMC5 ) text << "MMC5 ";
 				if ( chips & Nes::Nsf::CHIP_FDS  ) text << "FDS ";
 				if ( chips & Nes::Nsf::CHIP_VRC6 ) text << "VRC6 ";
 				if ( chips & Nes::Nsf::CHIP_VRC7 ) text << "VRC7 ";
-				if ( chips & Nes::Nsf::CHIP_N106 ) text << "N106 ";
+				if ( chips & Nes::Nsf::CHIP_N163 ) text << "N163 ";
 				if ( chips & Nes::Nsf::CHIP_S5B  ) text << "Sunsoft5B ";
 
 				text << ((chips & (chips-1)) ? "chips" : "chip");
@@ -213,25 +213,27 @@ namespace Nestopia
 
 			menu[IDM_FILE_SAVE_SCREENSHOT].Disable();
 
-			if (cfg["view show status bar"] != Configuration::NO)
-			{
-				menu[IDM_VIEW_STATUSBAR].Check();
-				statusBar.Enable();
-			}
-			else
-			{
-				menu[IDM_VIEW_FPS].Disable();
-			}
-
-			if (cfg["view show fps"] == Configuration::YES)
-				menu[IDM_VIEW_FPS].Check();
-
-			if (cfg["machine no sprite limit"] == Configuration::YES)
+			if (cfg["machine"]["no-sprite-limit"].Yes())
 				Nes::Video(emulator).EnableUnlimSprites( true );
 
 			{
-				const GenericString type( cfg["view size window"] );
-				ResetScreenRect( (type.Length() == 1 && type[0] >= '2' && type[0] <= '9') ? type[0] - '1' : 0 );
+				Configuration::ConstSection view( cfg["view"] );
+
+				if (view["show"]["status-bar"].No())
+				{
+					menu[IDM_VIEW_FPS].Disable();
+				}
+				else
+				{
+					menu[IDM_VIEW_STATUSBAR].Check();
+					statusBar.Enable();
+				}
+
+				if (view["show"]["fps"].Yes())
+					menu[IDM_VIEW_FPS].Check();
+
+				const uint size = view["size"]["window"].Int();
+				ResetScreenRect( size >= 2 && size <= 9 ? size-1 : 0 );
 			}
 
 			menu[IDM_VIEW_WINDOWSIZE_TVASPECT].Check( dialog->TvAspect() );
@@ -252,27 +254,19 @@ namespace Nestopia
 
 		void Video::Save(Configuration& cfg,const Rect& client) const
 		{
-			cfg[ "view show status bar" ].YesNo() = menu[IDM_VIEW_STATUSBAR].Checked();
-			cfg[ "view show fps" ].YesNo() = menu[IDM_VIEW_FPS].Checked();
-			cfg[ "machine no sprite limit" ].YesNo() = Nes::Video(emulator).AreUnlimSpritesEnabled();
+			cfg[ "machine" ][ "no-sprite-limit" ].YesNo() = Nes::Video(emulator).AreUnlimSpritesEnabled();
 
 			{
-				const uint scale = Point(dialog->GetNesRect()).ScaleToFit( client, Point::SCALE_NEAREST );
+				Configuration::Section view( cfg["view"] );
 
-				cfg["view size window"] = (scale <= 8 ? scale + 1 : 1);
+				const uint size = Point(dialog->GetNesRect()).ScaleToFit( client, Point::SCALE_NEAREST );
+
+				view[ "size" ][ "window"     ].Int() = (size <= 8 ? size+1 : 1);
+				view[ "show" ][ "status-bar" ].YesNo() = menu[ IDM_VIEW_STATUSBAR ].Checked();
+				view[ "show" ][ "fps"        ].YesNo() = menu[ IDM_VIEW_FPS       ].Checked();
 			}
 
 			dialog->Save( cfg );
-		}
-
-		void Video::LoadPalette(const Path& path)
-		{
-			dialog->LoadGamePalette( path );
-		}
-
-		void Video::SavePalette(Path& path) const
-		{
-			dialog->SavePalette( path );
 		}
 
 		Video::Point Video::GetDisplayMode() const
@@ -549,7 +543,7 @@ namespace Nestopia
 
 			for (uint i=0; i < (IDM_VIEW_WINDOWSIZE_MAX-IDM_VIEW_WINDOWSIZE_1X); ++i)
 			{
-				menu.Insert( menu[IDM_VIEW_WINDOWSIZE_MAX], IDM_VIEW_WINDOWSIZE_1X + i, Resource::String(IDS_MENU_X).Invoke( tchar('1'+i) ) );
+				menu.Insert( menu[IDM_VIEW_WINDOWSIZE_MAX], IDM_VIEW_WINDOWSIZE_1X + i, Resource::String(IDS_MENU_X).Invoke( wchar_t('1'+i) ) );
 				nes = original * (i+2);
 
 				if (nes.x > screen.x || nes.y > screen.y)
@@ -689,7 +683,7 @@ namespace Nestopia
 						return (*this)(offset);
 					}
 
-					tstring Full() const
+					wcstring Full() const
 					{
 						return Ptr();
 					}
@@ -836,6 +830,10 @@ namespace Nestopia
 			}
 		}
 
+		#ifdef NST_MSVC_OPTIMIZE
+		#pragma optimize("t", on)
+		#endif
+
 		const Video::Rect& Video::GetInputRect() const
 		{
 			return dialog->GetInputRect();
@@ -899,7 +897,7 @@ namespace Nestopia
 				NST_ASSERT( renderState.bits.mask.r && renderState.bits.mask.g && renderState.bits.mask.b );
 
 				const Rect nesScreen( dialog->GetRenderState( renderState, picture.Size() ) );
-				NST_ASSERT( direct2d.GetAdapter().maxScreenSize >= NST_MAX(renderState.width,renderState.height) );
+				NST_ASSERT( direct2d.GetAdapter().maxScreenSize.x >= renderState.width && direct2d.GetAdapter().maxScreenSize.y >= renderState.height );
 
 				Nes::Video(emulator).SetRenderState( renderState );
 
@@ -909,8 +907,9 @@ namespace Nestopia
 					(
 						Point(renderState.width,renderState.height),
 						nesScreen,
+						dialog->GetScanlines(),
 						dialog->GetScreenCurvature(),
-						dialog->GetDirect2dFilter(),
+						dialog->GetTextureFilter(),
 						dialog->PutTextureInVideoMemory()
 					);
 				}
@@ -921,8 +920,9 @@ namespace Nestopia
 						picture,
 						Point(renderState.width,renderState.height),
 						nesScreen,
+						dialog->GetScanlines(),
 						dialog->GetScreenCurvature(),
-						dialog->GetDirect2dFilter(),
+						dialog->GetTextureFilter(),
 						dialog->PutTextureInVideoMemory()
 					);
 				}
@@ -934,6 +934,10 @@ namespace Nestopia
 				direct2d.UpdateWindowView();
 			}
 		}
+
+		#ifdef NST_MSVC_OPTIMIZE
+		#pragma optimize("", on)
+		#endif
 
 		void Video::UpdateFieldMergingState() const
 		{
@@ -955,7 +959,7 @@ namespace Nestopia
 				if (statusBar.Enabled())
 					statusBar.Text(Window::StatusBar::SECOND_FIELD) << (Resource::String(IDS_TEXT_FPS) << ": ").Ptr();
 				else
-					direct2d.DrawFps( _T("0.0") );
+					direct2d.DrawFps( L"0.0" );
 
 				window.StartTimer( this, &Video::OnTimerFps, Fps::UPDATE_INTERVAL );
 			}
@@ -1051,11 +1055,6 @@ namespace Nestopia
 						nsf.Load( Nes::Nsf(emulator) );
 						direct2d.DrawNfo( nsf.text );
 					}
-					break;
-
-				case Emulator::EVENT_UNLOAD:
-
-					dialog->UnloadGamePalette();
 					break;
 
 				case Emulator::EVENT_NETPLAY_MODE:

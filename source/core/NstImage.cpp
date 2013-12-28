@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -44,6 +44,7 @@ namespace Nes
 			{
 				case INES_ID:
 				case UNIF_ID:
+				default:
 
 					if (context.type == CARTRIDGE || context.type == UNKNOWN)
 						return new Cartridge (context);
@@ -87,6 +88,30 @@ namespace Nes
 		uint Image::GetDesiredAdapter() const
 		{
 			return Api::Input::ADAPTER_NES;
+		}
+
+		System Image::GetDesiredSystem(Region region,CpuModel* cpu,PpuModel* ppu) const
+		{
+			if (region == REGION_NTSC)
+			{
+				if (cpu)
+					*cpu = CPU_RP2A03;
+
+				if (ppu)
+					*ppu = PPU_RP2C02;
+
+				return SYSTEM_NES_NTSC;
+			}
+			else
+			{
+				if (cpu)
+					*cpu = CPU_RP2A07;
+
+				if (ppu)
+					*ppu = PPU_RP2C07;
+
+				return SYSTEM_NES_PAL;
+			}
 		}
 
 		#ifdef NST_MSVC_OPTIMIZE

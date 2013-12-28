@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -39,7 +39,6 @@ namespace Nes
 			const dword baseChunk,
 			const Ram* const NST_RESTRICT sources,
 			const uint numSources,
-			const uint sourceMask,
 			const byte* const NST_RESTRICT pages,
 			const uint numPages
 		)   const
@@ -57,12 +56,6 @@ namespace Nes
 				state.Begin( AsciiId<'A','C','C'>::V ).Write( data, numSources ).End();
 			}
 
-			for (uint i=0; i < numSources; ++i)
-			{
-				if (sourceMask & (1U << i))
-					state.Begin( AsciiId<'R','M','0'>::R(0,0,i) ).Compress( sources[i].Mem(), sources[i].Size() ).End();
-			}
-
 			state.Begin( AsciiId<'B','N','K'>::V ).Write( pages, numPages * 3 ).End();
 
 			state.End();
@@ -73,7 +66,6 @@ namespace Nes
 			State::Loader& state,
 			Ram* const NST_RESTRICT sources,
 			const uint numSources,
-			const uint sourceMask,
 			byte* const NST_RESTRICT pages,
 			const uint numPages
 		)   const
@@ -94,7 +86,11 @@ namespace Nes
 						for (uint i=0; i < numSources; ++i)
 						{
 							sources[i].ReadEnable( data[i] & 0x1U );
-							sources[i].WriteEnable( data[i] & 0x2U );
+
+							NST_VERIFY( sources[i].GetType() != Ram::ROM || !(data[i] & 0x2U) );
+
+							if (sources[i].GetType() != Ram::ROM)
+								sources[i].WriteEnable( data[i] & 0x2U );
 						}
 						break;
 					}
@@ -107,13 +103,14 @@ namespace Nes
 
 					default:
 
+						// deprecated
+
 						for (uint i=0; i < numSources; ++i)
 						{
 							if (chunk == AsciiId<'R','M','0'>::R(0,0,i))
 							{
-								if (sourceMask & (1U << i))
-									state.Uncompress( sources[i].Mem(), sources[i].Size() );
-
+								NST_DEBUG_MSG("Memory::LoadState() deprecated!");
+								state.Uncompress( sources[i].Mem(), sources[i].Size() );
 								break;
 							}
 						}

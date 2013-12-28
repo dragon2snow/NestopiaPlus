@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -37,7 +37,7 @@ namespace Nestopia
 		{
 		public:
 
-			InesHeader(const Nes::Cartridge::Database&,const Managers::Paths&);
+			InesHeader(const Managers::Paths&);
 
 			void Open(const Path&);
 
@@ -67,12 +67,11 @@ namespace Nestopia
 			static uint Import(const Path&,Collection::Buffer&);
 			static uint Export(const Path&,const Collection::Buffer&);
 
-			void UpdateHeader(const Nes::Cartridge::Setup&) const;
+			void UpdateHeader(const Nes::Cartridge::NesHeader&) const;
 			void UpdateVersion() const;
 			void UpdateSystem() const;
 			void UpdateSizes(uint,SizeType,uint) const;
 
-			void DetectHeader(Nes::Cartridge::Setup&) const;
 			bool SaveHeader(Header&) const;
 			uint GetMaxSize(uint) const;
 			bool OkToSave(uint) const;
@@ -81,13 +80,10 @@ namespace Nestopia
 			ibool OnCmdFileType  (Param&);
 			ibool OnCmdSystem    (Param&);
 			ibool OnCmdSizeOther (Param&);
-			ibool OnCmdOriginal  (Param&);
-			ibool OnCmdDetect    (Param&);
+			ibool OnCmdUndoAll   (Param&);
 			ibool OnCmdSave      (Param&);
 
 			Dialog dialog;
-			const Nes::Cartridge::Database database;
-			Nes::Cartridge::Database::Entry dbEntry;
 			Header header;
 			const Path* path;
 			const Managers::Paths& paths;

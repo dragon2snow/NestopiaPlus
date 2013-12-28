@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -22,16 +22,14 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include <cstdlib>
 #include <cstring>
-#include <algorithm>
 #include "NstLog.hpp"
-#include "NstCrc32.hpp"
+#include "NstIps.hpp"
+#include "NstStream.hpp"
+#include "NstChecksum.hpp"
 #include "NstImageDatabase.hpp"
 #include "NstCartridge.hpp"
-#include "NstMapper.hpp"
 #include "NstCartridgeUnif.hpp"
-#include "api/NstApiUser.hpp"
 
 namespace Nes
 {
@@ -41,309 +39,90 @@ namespace Nes
 		#pragma optimize("s", on)
 		#endif
 
-		class Cartridge::Unif::Boards
+		Cartridge::Unif::Context::Rom::Rom()
+		: truncated(0)
 		{
-			Boards();
-
-			struct Board
-			{
-				bool operator < (const Board&) const;
-				bool operator == (const Board&) const;
-
-				cstring name;
-				word mapper;
-				word wrkRam;
-			};
-
-			static Board table[];
-
-		public:
-
-			static bool Set(cstring,Info&);
-		};
-
-		Cartridge::Unif::Boards::Board Cartridge::Unif::Boards::table[] =
-		{
-			{"NROM",                   0,0},
-			{"NROM-128",               0,0},
-			{"NROM-256",               0,0},
-			{"RROM",                   0,0},
-			{"RROM-128",               0,0},
-			{"FAMILYBASIC",            0,SIZE_2K},
-			{"SAROM",                  1,SIZE_8K},
-			{"SBROM",                  1,0},
-			{"SCROM",                  1,0},
-			{"SC1ROM",                 1,0},
-			{"SCEOROM",                1,0},
-			{"SEROM",                  1,0},
-			{"SFROM",                  1,0},
-			{"SF1ROM",                 1,0},
-			{"SFEOROM",                1,0},
-			{"SFEXPROM",               1,0},
-			{"SGROM",                  1,0},
-			{"SHROM",                  1,0},
-			{"SH1ROM",                 1,0},
-			{"SJROM",                  1,SIZE_8K},
-			{"SKROM",                  1,SIZE_8K},
-			{"SLROM",                  1,0},
-			{"SL1ROM",                 1,0},
-			{"SL2ROM",                 1,0},
-			{"SL3ROM",                 1,0},
-			{"SLRROM",                 1,0},
-			{"SL1RROM",                1,0},
-			{"SNROM",                  1,SIZE_8K},
-			{"SN1ROM",                 1,SIZE_8K},
-			{"SOROM",                  1,SIZE_16K},
-			{"SUROM",                  1,SIZE_8K},
-			{"SVROM",                  1,SIZE_16K},
-			{"SXROM",                  1,SIZE_32K},
-			{"UNROM",                  2,0},
-			{"UOROM",                  2,0},
-			{"CNROM",                  3,0},
-			{"TEROM",                  4,0},
-			{"TFROM",                  4,0},
-			{"TGROM",                  4,0},
-			{"TKROM",                  4,SIZE_8K},
-			{"TLROM",                  4,0},
-			{"TL1ROM",                 4,0},
-			{"TLSROM",                 4,0},
-			{"TR1ROM",                 4,0},
-			{"TSROM",                  4,SIZE_8K},
-			{"TVROM",                  4,0},
-			{"HKROM",                  4,SIZE_1K},
-			{"B4",                     4,0},
-			{"EKROM",                  5,SIZE_8K},
-			{"ELROM",                  5,0},
-			{"ETROM",                  5,SIZE_16K},
-			{"EWROM",                  5,SIZE_32K},
-			{"AMROM",                  7,0},
-			{"ANROM",                  7,0},
-			{"AOROM",                  7,0},
-			{"PNROM",                  9,0},
-			{"PEEOROM",                9,0},
-			{"FJROM",                  10,SIZE_8K},
-			{"FKROM",                  10,SIZE_8K},
-			{"CDREAMS",                11,0},
-			{"AVENINA-07",             11,0},
-			{"CPROM",                  13,0},
-			{"SL1632",                 14,0},
-			{"BANDAI-FCG-1",           16,0},
-			{"BANDAI-FCG-2",           16,0},
-			{"BANDAI-LZ93D50",         16,0},
-			{"KONAMI-VRC-4C",          21,SIZE_8K},
-			{"KONAMI-VRC-2B",          23,0},
-			{"KONAMI-VRC-4B",          25,SIZE_8K},
-			{"TAITO-TC0190FMC",        33,0},
-			{"BNROM",                  34,0},
-			{"AVENINA-01",             34,SIZE_8K},
-			{"PAL-ZZ",                 37,0},
-			{"MLT-CALTRON6IN1",        41,0},
-			{"SMB2J",                  43,0},
-			{"1991SUPERHIK7IN1",       45,0},
-			{"SUPERHIK8IN1",           45,0},
-			{"QJ",                     47,0},
-			{"1992BALLGAMES11IN1",     51,0},
-			{"MARIO7IN1",              52,0},
-			{"SUPERVISION16IN1",       53,0},
-			{"NOVELDIAMOND9999999IN1", 54,0},
-			{"MARIO1-MALEE2",          55,0},
-			{"STUDYGAME32IN1",         58,0},
-			{"RESET4IN1",              60,0},
-			{"D1038",                  60,0},
-			{"TEN800032",              64,0},
-			{"GNROM",                  66,0},
-			{"MHROM",                  66,0},
-			{"NTBROM",                 68,0},
-			{"TEN800042",              68,0},
-			{"BTR",                    69,SIZE_8K},
-			{"JLROM",                  69,SIZE_8K},
-			{"JSROM",                  69,SIZE_8K},
-			{"SUNSOFT-FME-7",          69,SIZE_8K},
-			{"BANDAI-LS161+LS32",      70,0},
-			{"CAMBF9093",              71,0},
-			{"CAMALADDINNORMAL",       71,0},
-			{"KONAMI-VRC-1",           75,0},
-			{"AVENINA-03",             79,0},
-			{"AVENINA-06",             79,0},
-			{"TAITO-X1-005",           80,0},
-			{"KONAMI-VRC-7",           85,0},
-			{"JALECO-LS139+LS174*2",   86,0},
-			{"KONAMI-LS139+LS74",      87,0},
-			{"TAITO-LS139+LS74",       87,0},
-			{"JALECO-LS139+LS74",      87,0},
-			{"NAMCO-118+LS32",         88,0},
-			{"TEK90",                  90,0},
-			{"TEN800037",              118,0},
-			{"TLSROM",                 118,0},
-			{"TKSROM",                 118,SIZE_8K},
-			{"TQROM",                  119,0},
-			{"H2288",                  123,0},
-			{"22211",                  132,0},
-			{"SA-72008",               133,0},
-			{"SACHEN-8259D",           137,0},
-			{"SACHEN-8259B",           138,0},
-			{"SACHEN-8259C",           139,0},
-			{"SACHEN-8259A",           141,0},
-			{"KS7032",                 142,0},
-			{"SA-NROM",                143,0},
-			{"SA-72007",               145,0},
-			{"SA-016-1M",              146,0},
-			{"TC-U01-1.5M",            147,0},
-			{"SA-0037",                148,0},
-			{"SA-0036",                149,0},
-			{"SACHEN-74LS374N",        150,0},
-			{"N625092",                169,0},
-			{"SUNSOFT-1",              184,0},
-			{"DEROM",                  206,0},
-			{"DE1ROM",                 206,0},
-			{"DRROM",                  206,0},
-			{"TEN800030",              206,0},
-			{"TEN800002",              206,0},
-			{"TEN800004",              206,0},
-			{"MLT-ACT52",              228,0},
-			{"CAMBF9096",              232,0},
-			{"CAMALADDINQUATTRO",      232,0},
-			{"42IN1RESETSWITCH",       233,0},
-			{"MAXI15",                 234,0},
-			{"GOLDENGAME150IN1",       235,0},
-			{"70IN1",                  236,0},
-			{"70IN1B",                 236,0},
-			{"SUPER24IN1SC03",         Mapper::EXT_SUPER24IN1,SIZE_8K},
-			{"8157",                   Mapper::EXT_8157,0},
-			{"8237",                   Mapper::EXT_8237,0},
-			{"WS",                     Mapper::EXT_WS,0},
-			{"DREAMTECH01",            Mapper::EXT_DREAMTECH01,0},
-			{"CC-21",                  Mapper::EXT_CC21,0},
-			{"KOF97",                  Mapper::EXT_KOF97,0},
-			{"64IN1NOREPEAT",          Mapper::EXT_64IN1NR,0},
-			{"SHERO",                  Mapper::EXT_STREETHEROES,0},
-			{"T-262",                  Mapper::EXT_T262,0},
-			{"FK23C",                  Mapper::EXT_FK23C,0},
-			{"603-5052",               Mapper::EXT_6035052,0},
-			{"A65AS",                  Mapper::EXT_A65AS,0},
-			{"EDU2000",                Mapper::EXT_EDU2000,SIZE_32K},
-			{"TF1201",                 Mapper::EXT_TF1201,0},
-			{"GS-2004",                Mapper::EXT_GS2004,0},
-			{"AX5705",                 Mapper::EXT_AX5705,0},
-			{"T-230",                  Mapper::EXT_T230,0},
-			{"190IN1",                 Mapper::EXT_190IN1,0},
-			{"GHOSTBUSTERS63IN1",      Mapper::EXT_CTC65,0}
-		};
-
-		bool Cartridge::Unif::Boards::Board::operator < (const Board& board) const
-		{
-			return std::strcmp( name, board.name ) < 0;
+			for (uint i=0; i < sizeof(crc); ++i)
+				crc[i] = '\0';
 		}
 
-		bool Cartridge::Unif::Boards::Board::operator == (const Board& board) const
+		Cartridge::Unif::Context::Context()
+		: system(SYSTEM_NTSC)
 		{
-			return std::strcmp( name, board.name ) == 0;
+			std::memset( chunks, 0, sizeof(chunks) );
 		}
 
-		Cartridge::Unif::Boards::Boards()
-		{
-			std::sort( table, table + sizeof(array(table)) );
-		}
-
-		bool Cartridge::Unif::Boards::Set(cstring name,Info& info)
-		{
-			static Boards instance;
-
-			const Board board = { name, 0, 0 };
-			const Board* const result = std::lower_bound( table, table + sizeof(array(table)), board );
-
-			if (result != table + sizeof(array(table)) && *result == board)
-			{
-				info.setup.mapper = result->mapper;
-				info.setup.wrkRam = result->wrkRam;
-
-				return true;
-			}
-
-			return false;
-		}
-
-		Cartridge::Unif::Rom::Rom()
-		: crc(0), truncated(0) {}
-
-		Cartridge::Unif::Unif
+		void Cartridge::Unif::Load
 		(
-			StdStream s,
-			Ram& p,
-			Ram& c,
-			Ram& wrk,
-			Ref::Info& i,
-			const ImageDatabase* const database,
-			ImageDatabase::Handle& databaseHandle
+			StdStream const stdStreamImage,
+			StdStream const stdStreamIps,
+			Ram& prg,
+			Ram& chr,
+			const FavoredSystem favoredSystem,
+			Profile& profile,
+			ProfileEx& profileEx,
+			const ImageDatabase* const database
 		)
-		:
-		stream     (s),
-		prg        (p),
-		chr        (c),
-		info       (i),
-		result     (RESULT_OK),
-		knownBoard (false)
 		{
-			info.Clear();
+			NST_ASSERT( prg.Empty() && chr.Empty() );
 
-			ReadHeader();
-			ReadChunks();
+			profile = Profile();
+			profileEx = ProfileEx();
 
-			CopyRom();
+			ReadHeader( stdStreamImage );
+			ReadChunks( stdStreamImage, prg, chr, favoredSystem, profile, profileEx );
 
-			info.setup.prgRom = prg.Size();
-			info.setup.chrRom = chr.Size();
+			Ips ips;
 
-			if (info.setup.wrkRamBacked && info.setup.wrkRam)
+			if (stdStreamIps && !ips.Load( stdStreamIps ))
+				Log::Flush( "Unif: Warning, invalid or corrupt IPS file" NST_LINEBREAK );
+
+			if (ips.Empty() && database && database->Enabled())
 			{
-				info.setup.wrkRamBacked = info.setup.wrkRam;
-				info.setup.wrkRam = 0;
+				Checksum checksum;
+
+				checksum.Compute( prg.Mem(), prg.Size() );
+				checksum.Compute( chr.Mem(), chr.Size() );
+
+				if (const ImageDatabase::Entry entry = database->Search( Profile::Hash(checksum.GetSha1(),checksum.GetCrc()), favoredSystem ))
+					entry.Fill( profile );
 			}
 
-			CheckImageDatabase( database, databaseHandle );
+			if (ips.Patch( prg.Mem(), prg.Size(), 16 ))
+				Log::Flush( "Unif: PRG-ROM was IPS patched" NST_LINEBREAK );
 
-			wrk.Set( info.setup.wrkRam + info.setup.wrkRamBacked );
+			if (ips.Patch( chr.Mem(), chr.Size(), 16 + prg.Size() ))
+				Log::Flush( "Unif: CHR-ROM was IPS patched" NST_LINEBREAK );
 		}
 
-		cstring Cartridge::Unif::ChunkName(char (&name)[5],const dword id)
+		bool Cartridge::Unif::Context::operator () (const uint id,const dword chunk)
 		{
-			const byte bytes[] =
+			NST_VERIFY( chunks[id] == 0 );
+
+			if (chunks[id] == 0)
 			{
-				id >>  0 & 0xFF,
-				id >>  8 & 0xFF,
-				id >> 16 & 0xFF,
-				id >> 24 & 0xFF,
-				0
-			};
-
-			Stream::In::AsciiToC( name, bytes, 5 );
-
-			return name;
-		}
-
-		bool Cartridge::Unif::NewChunk(byte& processed,const dword id)
-		{
-			NST_VERIFY( !processed );
-
-			if (!processed)
-			{
-				processed = true;
+				chunks[id] = 1;
 				return true;
 			}
 			else
 			{
 				char name[5];
-				Log() << "Unif: warning, duplicate chunk: \"" << ChunkName(name,id) << "\" ignored" NST_LINEBREAK;
+				Log() << "Unif: warning, duplicate chunk: \"" << ChunkName(name,chunk) << "\" ignored" NST_LINEBREAK;
+
 				return false;
 			}
 		}
 
-		void Cartridge::Unif::ReadHeader()
+		void Cartridge::Unif::ReadHeader(StdStream stdStream)
 		{
+			Stream::In stream( stdStream );
+
 			if (stream.Read32() != AsciiId<'U','N','I','F'>::V)
 				throw RESULT_ERR_INVALID_FILE;
 
-			Log() << "Unif: revision " << stream.Read32() << NST_LINEBREAK;
+			dword version = stream.Read32();
+
+			Log() << "Unif: revision " << version << NST_LINEBREAK;
 
 			byte reserved[HEADER_RESERVED_LENGTH];
 			stream.Read( reserved );
@@ -360,12 +139,11 @@ namespace Nes
 			}
 		}
 
-		void Cartridge::Unif::ReadChunks()
+		void Cartridge::Unif::ReadChunks(StdStream stdStream,Ram& prg,Ram& chr,const FavoredSystem favoredSystem,Profile& profile,ProfileEx& profileEx)
 		{
-			byte chunks[80];
-			std::memset( chunks, 0, sizeof(chunks) );
+			Context context;
 
-			while (!stream.Eof())
+			for (Stream::In stream(stdStream); !stream.Eof(); )
 			{
 				dword id = stream.Read32();
 				const dword length = stream.Read32();
@@ -373,15 +151,15 @@ namespace Nes
 
 				switch (id)
 				{
-					case AsciiId<'N','A','M','E'>::V: id = (NewChunk( chunks[0], id ) ? ReadName()       : 0); break;
-					case AsciiId<'R','E','A','D'>::V: id = (NewChunk( chunks[1], id ) ? ReadComment()    : 0); break;
-					case AsciiId<'D','I','N','F'>::V: id = (NewChunk( chunks[2], id ) ? ReadDumper()     : 0); break;
-					case AsciiId<'T','V','C','I'>::V: id = (NewChunk( chunks[3], id ) ? ReadSystem()     : 0); break;
-					case AsciiId<'B','A','T','R'>::V: id = (NewChunk( chunks[4], id ) ? ReadBattery()    : 0); break;
-					case AsciiId<'M','A','P','R'>::V: id = (NewChunk( chunks[5], id ) ? ReadMapper()     : 0); break;
-					case AsciiId<'M','I','R','R'>::V: id = (NewChunk( chunks[6], id ) ? ReadMirroring()  : 0); break;
-					case AsciiId<'C','T','R','L'>::V: id = (NewChunk( chunks[7], id ) ? ReadController() : 0); break;
-					case AsciiId<'V','R','O','R'>::V: id = (NewChunk( chunks[8], id ) ? ReadChrRam()     : 0); break;
+					case AsciiId<'N','A','M','E'>::V: id = (context( 0, id ) ? ReadName       ( stdStream, profile.game.title       ) : 0); break;
+					case AsciiId<'R','E','A','D'>::V: id = (context( 1, id ) ? ReadComment    ( stdStream                           ) : 0); break;
+					case AsciiId<'D','I','N','F'>::V: id = (context( 2, id ) ? ReadDumper     ( stdStream                           ) : 0); break;
+					case AsciiId<'T','V','C','I'>::V: id = (context( 3, id ) ? ReadSystem     ( stdStream, context                  ) : 0); break;
+					case AsciiId<'B','A','T','R'>::V: id = (context( 4, id ) ? ReadBattery    ( profileEx                           ) : 0); break;
+					case AsciiId<'M','A','P','R'>::V: id = (context( 5, id ) ? ReadBoard      ( stdStream, profile.board            ) : 0); break;
+					case AsciiId<'M','I','R','R'>::V: id = (context( 6, id ) ? ReadMirroring  ( stdStream, profileEx                ) : 0); break;
+					case AsciiId<'C','T','R','L'>::V: id = (context( 7, id ) ? ReadController ( stdStream, profile.game.controllers ) : 0); break;
+					case AsciiId<'V','R','O','R'>::V: id = (context( 8, id ) ? ReadChrRam     (                                     ) : 0); break;
 
 					default: switch (id & 0x00FFFFFF)
 					{
@@ -396,10 +174,6 @@ namespace Nes
 							{
 								index -= Ascii<'0'>::V;
 							}
-							else if (index >= Ascii<'a'>::V && index <= Ascii<'f'>::V)
-							{
-								index = index - Ascii<'a'>::V + 10;
-							}
 							else if (index >= Ascii<'A'>::V && index <= Ascii<'F'>::V)
 							{
 								index = index - Ascii<'A'>::V + 10;
@@ -413,10 +187,10 @@ namespace Nes
 							{
 								switch (id & 0x00FFFFFF)
 								{
-									case AsciiId<'P','C','K'>::V: id = (NewChunk( chunks[9+0+index],  id ) ? ReadRomCrc  ( 0, index         ) : 0); break;
-									case AsciiId<'C','C','K'>::V: id = (NewChunk( chunks[9+16+index], id ) ? ReadRomCrc  ( 1, index         ) : 0); break;
-									case AsciiId<'P','R','G'>::V: id = (NewChunk( chunks[9+32+index], id ) ? ReadRomData ( 0, index, length ) : 0); break;
-									case AsciiId<'C','H','R'>::V: id = (NewChunk( chunks[9+48+index], id ) ? ReadRomData ( 1, index, length ) : 0); break;
+									case AsciiId<'P','C','K'>::V: id = (context( 9+0+index,  id ) ? ReadChecksum ( stdStream, 0, index, context.roms[0][index]  ) : 0); break;
+									case AsciiId<'C','C','K'>::V: id = (context( 9+16+index, id ) ? ReadChecksum ( stdStream, 1, index, context.roms[1][index]  ) : 0); break;
+									case AsciiId<'P','R','G'>::V: id = (context( 9+32+index, id ) ? ReadRom      ( stdStream, 0, index, length, context.roms[0] ) : 0); break;
+									case AsciiId<'C','H','R'>::V: id = (context( 9+48+index, id ) ? ReadRom      ( stdStream, 1, index, length, context.roms[1] ) : 0); break;
 								}
 
 								break;
@@ -443,16 +217,122 @@ namespace Nes
 					throw RESULT_ERR_CORRUPT_FILE;
 				}
 			}
+
+			for (uint i=0; i < 2; ++i)
+			{
+				uint count = 0;
+				dword size = 0;
+
+				for (uint j=0; j < 16; ++j)
+				{
+					if (const dword n=context.roms[i][j].data.Size())
+					{
+						count++;
+						size += n;
+					}
+				}
+
+				if (count)
+				{
+					Profile::Board::Roms& rom = (i ? profile.board.chr : profile.board.prg);
+					rom.resize( count );
+
+					Ram& dst = (i ? chr : prg);
+					dst.Set( size );
+
+					if (!rom.empty())
+					{
+						for (Profile::Board::Pins::const_iterator it(rom.front().pins.begin()), end(rom.front().pins.end()); it != end; ++it)
+							dst.Pin(it->number) = it->function.c_str();
+					}
+
+					size = 0;
+
+					for (uint j=0, k=0; j < 16; ++j)
+					{
+						const Context::Rom& src = context.roms[i][j];
+
+						if (src.data.Size())
+						{
+							rom[k].id = k;
+							rom[k].size = src.data.Size();
+							rom[k].hash.Assign( NULL, src.crc );
+							k++;
+
+							std::memcpy( dst.Mem(size), src.data.Mem(), src.data.Size() );
+							size += src.data.Size();
+						}
+					}
+				}
+			}
+
+			if (profileEx.nmt == ProfileEx::NMT_HORIZONTAL)
+			{
+				profile.board.solderPads = Profile::Board::SOLDERPAD_V;
+			}
+			else if (profileEx.nmt == ProfileEx::NMT_HORIZONTAL)
+			{
+				profile.board.solderPads = Profile::Board::SOLDERPAD_H;
+			}
+
+			switch (context.system)
+			{
+				case Context::SYSTEM_NTSC:
+
+					if (favoredSystem == FAVORED_FAMICOM)
+						profile.system.type = Profile::System::FAMICOM;
+					else
+						profile.system.type = Profile::System::NES_NTSC;
+					break;
+
+				default:
+
+					profile.multiRegion = true;
+
+					if (favoredSystem == FAVORED_FAMICOM)
+					{
+						profile.system.type = Profile::System::FAMICOM;
+						break;
+					}
+					else if (favoredSystem != FAVORED_NES_PAL)
+					{
+						profile.system.type = Profile::System::NES_NTSC;
+						break;
+					}
+
+				case Context::SYSTEM_PAL:
+
+					profile.system.type = Profile::System::NES_PAL;
+					profile.system.cpu = Profile::System::CPU_RP2A07;
+					profile.system.ppu = Profile::System::PPU_RP2C07;
+					break;
+			}
 		}
 
-		dword Cartridge::Unif::ReadString(cstring const logtext,Vector<char>* string=NULL)
+		cstring Cartridge::Unif::ChunkName(char (&name)[5],const dword id)
+		{
+			const byte bytes[] =
+			{
+				id >>  0 & 0xFF,
+				id >>  8 & 0xFF,
+				id >> 16 & 0xFF,
+				id >> 24 & 0xFF,
+				0
+			};
+
+			Stream::In::AsciiToC( name, bytes, 5 );
+
+			return name;
+		}
+
+		dword Cartridge::Unif::ReadString(StdStream stream,cstring const logtext,Vector<char>* string)
 		{
 			Vector<char> tmp;
 
 			if (string == NULL)
 				string = &tmp;
 
-			const dword count = stream.Read( *string );
+			const dword count = Stream::In(stream).Read( *string );
 
 			if (string->Size() > 1)
 				Log() << logtext << string->Begin() << NST_LINEBREAK;
@@ -460,89 +340,132 @@ namespace Nes
 			return count;
 		}
 
-		dword Cartridge::Unif::ReadName()
+		dword Cartridge::Unif::ReadName(StdStream stream,std::wstring& name)
 		{
-			return ReadString("Unif: name: ");
+			Vector<char> buffer;
+			const dword length = ReadString( stream, "Unif: name: ", &buffer );
+
+			if (length)
+			{
+				const std::wstring tmp( buffer.Begin(), buffer.End() );
+				name = tmp;
+			}
+
+			return length;
 		}
 
-		dword Cartridge::Unif::ReadComment()
+		dword Cartridge::Unif::ReadComment(StdStream stream)
 		{
-			return ReadString("Unif: comment: ");
+			return ReadString( stream, "Unif: comment: ", NULL );
 		}
 
-		dword Cartridge::Unif::ReadDumper()
+		dword Cartridge::Unif::ReadDumper(StdStream stdStream)
 		{
-			Dump dump;
+			Stream::In stream( stdStream );
 
-			stream.Read( dump.name, Dump::NAME_LENGTH );
-			dump.name[Dump::NAME_LENGTH-1] = '\0';
+			struct Dumper
+			{
+				enum
+				{
+					NAME_LENGTH = 100,
+					AGENT_LENGTH = 100,
+					LENGTH = NAME_LENGTH + 4 + AGENT_LENGTH
+				};
 
-			dump.day   = stream.Read8();
-			dump.month = stream.Read8();
-			dump.year  = stream.Read16();
+				char name[NAME_LENGTH];
+				byte day;
+				byte month;
+				word year;
+				char agent[AGENT_LENGTH];
+			};
 
-			stream.Read( dump.agent, Dump::AGENT_LENGTH );
-			dump.agent[Dump::AGENT_LENGTH-1] = '\0';
+			Dumper dumper;
+
+			stream.Read( dumper.name, Dumper::NAME_LENGTH );
+			dumper.name[Dumper::NAME_LENGTH-1] = '\0';
+
+			dumper.day   = stream.Read8();
+			dumper.month = stream.Read8();
+			dumper.year  = stream.Read16();
+
+			stream.Read( dumper.agent, Dumper::AGENT_LENGTH );
+			dumper.agent[Dumper::AGENT_LENGTH-1] = '\0';
 
 			Log log;
 
-			if (*dump.name)
-				log << "Unif: dumped by: " << dump.name << NST_LINEBREAK;
+			if (*dumper.name)
+				log << "Unif: dumped by: " << dumper.name << NST_LINEBREAK;
 
-			log << "Unif: dump year: "  << dump.year << NST_LINEBREAK
-                   "Unif: dump month: " << dump.month << NST_LINEBREAK
-                   "Unif: dump day: "   << dump.day << NST_LINEBREAK;
+			log << "Unif: dump year: "  << dumper.year << NST_LINEBREAK
+                   "Unif: dump month: " << dumper.month << NST_LINEBREAK
+                   "Unif: dump day: "   << dumper.day << NST_LINEBREAK;
 
-			if (*dump.agent)
-				log << "Unif: dumper agent: " << dump.agent << NST_LINEBREAK;
+			if (*dumper.agent)
+				log << "Unif: dumper agent: " << dumper.agent << NST_LINEBREAK;
 
-			return Dump::LENGTH;
+			return Dumper::LENGTH;
 		}
 
-		dword Cartridge::Unif::ReadSystem()
+		dword Cartridge::Unif::ReadSystem(StdStream stream,Context& context)
 		{
-			switch (stream.Read8())
+			switch (Stream::In(stream).Read8())
 			{
 				case 0:
 
+					context.system = Context::SYSTEM_NTSC;
 					Log::Flush( "Unif: NTSC system" NST_LINEBREAK );
 					break;
 
 				case 1:
 
-					info.setup.cpu = Ref::CPU_RP2A07;
-					info.setup.ppu = Ref::PPU_RP2C07;
-					info.setup.region = Ref::REGION_PAL;
+					context.system = Context::SYSTEM_PAL;
 					Log::Flush( "Unif: PAL system" NST_LINEBREAK );
 					break;
 
 				default:
 
-					info.setup.region = Ref::REGION_BOTH;
-					Log::Flush( "Unif: NTSC/PAL system" NST_LINEBREAK );
+					context.system = Context::SYSTEM_BOTH;
+					Log::Flush( "Unif: dual system" NST_LINEBREAK );
 					break;
 			}
 
 			return 1;
 		}
 
-		dword Cartridge::Unif::ReadRomCrc(const uint type,const uint index)
+		dword Cartridge::Unif::ReadChecksum
+		(
+			StdStream stream,
+			const uint type,
+			const uint index,
+			Context::Rom& rom
+		)
 		{
 			NST_ASSERT( type < 2 && index < 16 );
 
-			roms[type][index].crc = stream.Read32();
+			for (dword crc=Stream::In(stream).Read32(), i=0; i < 8; ++i)
+			{
+				uint c = crc >> (i*4) & 0xF;
+				rom.crc[i] = (c < 0xA ? '0' + c : 'A' + (c - 0xA) );
+			}
 
 			Log() << "Unif: "
                   << (type ? "CHR-ROM " : "PRG-ROM ")
                   << char(index < 10 ? index + '0' : index-10 + 'A')
                   << " CRC: "
-                  << Log::Hex( 32, roms[type][index].crc )
+                  << rom.crc
                   << NST_LINEBREAK;
 
 			return 4;
 		}
 
-		dword Cartridge::Unif::ReadRomData(const uint type,const uint index,dword length)
+		dword Cartridge::Unif::ReadRom
+		(
+			StdStream stream,
+			const uint type,
+			const uint index,
+			dword length,
+			Context::Rom* const roms
+		)
 		{
 			NST_ASSERT( type < 2 && index < 16 );
 
@@ -556,14 +479,14 @@ namespace Nes
 			dword available = 0;
 
 			for (uint i=0; i < 16; ++i)
-				available += roms[type][i].rom.Size();
+				available += roms[i].data.Size();
 
 			available = MAX_ROM_SIZE - available;
 			NST_VERIFY( length <= available );
 
 			if (length > available)
 			{
-				roms[type][index].truncated = length - available;
+				roms[index].truncated = length - available;
 				length = available;
 
 				Log() << "Unif: warning, "
@@ -576,134 +499,104 @@ namespace Nes
 
 			if (length)
 			{
-				roms[type][index].rom.Set( length );
-				stream.Read( roms[type][index].rom.Mem(), length );
+				roms[index].data.Set( length );
+				Stream::In(stream).Read( roms[index].data.Mem(), length );
 			}
 
 			return length;
 		}
 
-		dword Cartridge::Unif::ReadMapper()
+		dword Cartridge::Unif::ReadBoard(StdStream stream,Profile::Board& board)
 		{
 			Vector<char> buffer;
-			const dword length = ReadString( "Unif: board: ", &buffer );
+			const dword length = ReadString( stream, "Unif: board: ", &buffer );
 
-			if (buffer.Size() > 1)
-			{
-				for (char* it=buffer.Begin(); *it; ++it)
-				{
-					if (*it >= 'a' && *it <= 'z')
-						*it = *it - 'a' + 'A';
-				}
-
-				char* board = buffer.Begin();
-
-				if (buffer.Size() > 1+4)
-				{
-					static const char types[][4] =
-					{
-						{'N','E','S','-'},
-						{'U','N','L','-'},
-						{'H','V','C','-'},
-						{'B','T','L','-'},
-						{'B','M','C','-'}
-					};
-
-					for (uint i=0; i < sizeof(array(types)); ++i)
-					{
-						if (board[0] == types[i][0] && board[1] == types[i][1] && board[2] == types[i][2] && board[3] == types[i][3])
-						{
-							board += 4;
-							break;
-						}
-					}
-				}
-
-				knownBoard = Boards::Set( board, info );
-				info.board.assign( board, buffer.End() );
-			}
+			if (length && *buffer.Begin())
+				board.type.assign( buffer.Begin(), buffer.End() );
 
 			return length;
 		}
 
-		dword Cartridge::Unif::ReadBattery()
+		dword Cartridge::Unif::ReadBattery(ProfileEx& profileEx)
 		{
-			info.setup.wrkRamBacked = SIZE_8K;
+			profileEx.battery = true;
 			Log::Flush( "Unif: battery present" NST_LINEBREAK );
 			return 0;
 		}
 
-		dword Cartridge::Unif::ReadMirroring()
+		dword Cartridge::Unif::ReadMirroring(StdStream stream,ProfileEx& profileEx)
 		{
-			switch (stream.Read8())
+			switch (Stream::In(stream).Read8())
 			{
-				case 0:  info.setup.mirroring = Ref::MIRROR_HORIZONTAL; Log::Flush( "Unif: horizontal mirroring"        NST_LINEBREAK ); break;
-				case 1:  info.setup.mirroring = Ref::MIRROR_VERTICAL;   Log::Flush( "Unif: vertical mirroring"          NST_LINEBREAK ); break;
-				case 2:  info.setup.mirroring = Ref::MIRROR_ZERO;       Log::Flush( "Unif: zero mirroring"              NST_LINEBREAK ); break;
-				case 3:  info.setup.mirroring = Ref::MIRROR_ONE;        Log::Flush( "Unif: one mirroring"               NST_LINEBREAK ); break;
-				case 4:  info.setup.mirroring = Ref::MIRROR_FOURSCREEN; Log::Flush( "Unif: four-screen mirroring"       NST_LINEBREAK ); break;
-				default: info.setup.mirroring = Ref::MIRROR_CONTROLLED; Log::Flush( "Unif: mapper controlled mirroring" NST_LINEBREAK ); break;
+				case 0: profileEx.nmt = ProfileEx::NMT_HORIZONTAL;   Log::Flush( "Unif: horizontal mirroring"        NST_LINEBREAK ); break;
+				case 1: profileEx.nmt = ProfileEx::NMT_VERTICAL;     Log::Flush( "Unif: vertical mirroring"          NST_LINEBREAK ); break;
+				case 2:
+				case 3: profileEx.nmt = ProfileEx::NMT_SINGLESCREEN; Log::Flush( "Unif: single-screen mirroring"     NST_LINEBREAK ); break;
+				case 4: profileEx.nmt = ProfileEx::NMT_FOURSCREEN;   Log::Flush( "Unif: four-screen mirroring"       NST_LINEBREAK ); break;
+				case 5: profileEx.nmt = ProfileEx::NMT_CONTROLLED;   Log::Flush( "Unif: mapper controlled mirroring" NST_LINEBREAK ); break;
 			}
 
 			return 1;
 		}
 
-		dword Cartridge::Unif::ReadController()
+		dword Cartridge::Unif::ReadController(StdStream stream,Api::Input::Type (&controllers)[5])
 		{
 			Log log;
+
 			log << "Unif: controllers: ";
 
-			const uint controller = stream.Read8();
+			const uint controller = Stream::In(stream).Read8();
 			NST_VERIFY( !(controller & (0x40|0x80)) );
 
 			if (controller & (0x1|0x2|0x4|0x8|0x10|0x20))
 			{
 				if (controller & 0x01)
 				{
-					info.controllers[0] = Api::Input::PAD1;
-					info.controllers[1] = Api::Input::PAD2;
+					controllers[0] = Api::Input::PAD1;
+					controllers[1] = Api::Input::PAD2;
+
 					log << "standard joypad";
 				}
 
 				if (controller & 0x02)
 				{
-					info.controllers[1] = Api::Input::ZAPPER;
+					controllers[1] = Api::Input::ZAPPER;
 
 					cstring const zapper = ", zapper";
-					log << (zapper + (controller & 0x1) ? 0 : 2);
+					log << (zapper + ((controller & 0x1) ? 0 : 2));
 				}
 
 				if (controller & 0x04)
 				{
-					info.controllers[1] = Api::Input::ROB;
+					controllers[1] = Api::Input::ROB;
 
 					cstring const rob = ", R.O.B";
-					log << (rob + (controller & (0x1|0x2)) ? 0 : 2);
+					log << (rob + ((controller & (0x1|0x2)) ? 0 : 2));
 				}
 
 				if (controller & 0x08)
 				{
-					info.controllers[0] = Api::Input::PADDLE;
+					controllers[0] = Api::Input::PADDLE;
 
 					cstring const paddle = ", paddle";
-					log << (paddle + (controller & (0x1|0x2|0x4)) ? 0 : 2);
+					log << (paddle + ((controller & (0x1|0x2|0x4)) ? 0 : 2));
 				}
 
 				if (controller & 0x10)
 				{
-					info.controllers[1] = Api::Input::POWERPAD;
+					controllers[1] = Api::Input::POWERPAD;
 
 					cstring const powerpad = ", power pad";
-					log << (powerpad + (controller & (0x1|0x2|0x4|0x8)) ? 0 : 2);
+					log << (powerpad + ((controller & (0x1|0x2|0x4|0x8)) ? 0 : 2));
 				}
 
 				if (controller & 0x20)
 				{
-					info.controllers[2] = Api::Input::PAD3;
-					info.controllers[3] = Api::Input::PAD4;
+					controllers[2] = Api::Input::PAD3;
+					controllers[3] = Api::Input::PAD4;
 
 					cstring const fourplayer = ", four player adapter";
-					log << (fourplayer + (controller & (0x1|0x2|0x4|0x8|0x10)) ? 0 : 2);
+					log << (fourplayer + ((controller & (0x1|0x2|0x4|0x8|0x10)) ? 0 : 2));
 				}
 
 				log << NST_LINEBREAK;
@@ -716,137 +609,20 @@ namespace Nes
 			return 1;
 		}
 
-		dword Cartridge::Unif::ReadChrRam() const
+		dword Cartridge::Unif::ReadChrRam()
 		{
 			Log::Flush( "Unif: CHR is writable" NST_LINEBREAK );
 			return 0;
 		}
 
-		dword Cartridge::Unif::ReadUnknown(dword id) const
+		dword Cartridge::Unif::ReadUnknown(dword id)
 		{
+			NST_DEBUG_MSG("unknown unif chunk");
+
 			char name[5];
 			Log() << "Unif: warning, skipping unknown chunk: \"" << ChunkName(name,id) << "\"" NST_LINEBREAK;
-			NST_DEBUG_MSG("unknown unif chunk");
+
 			return 0;
-		}
-
-		void Cartridge::Unif::CopyRom()
-		{
-			for (uint i=2; i--; )
-			{
-				Ram& dst = (i ? chr : prg);
-				cstring const type = (i ? "Unif: CHR-ROM " : "Unif: PRG-ROM ");
-
-				dst.Destroy();
-
-				for (uint j=0; j < 16; ++j)
-				{
-					Rom& src = roms[i][j];
-
-					if (const dword size = src.rom.Size())
-					{
-						if (src.crc && !src.truncated)
-						{
-							cstring msg;
-
-							if (src.crc == Crc32::Compute( src.rom.Mem(), size ))
-							{
-								msg = " CRC check ok" NST_LINEBREAK;
-							}
-							else
-							{
-								msg = " CRC check failed" NST_LINEBREAK;
-								info.condition = Ref::DUMP_BAD;
-								result = (i ? RESULT_WARN_BAD_CROM : RESULT_WARN_BAD_PROM);
-							}
-
-							Log() << type << j << msg;
-						}
-
-						const dword pos = dst.Size();
-						dst.Set( pos + size );
-						std::memcpy( dst.Mem(pos), src.rom.Mem(), size );
-						src.rom.Destroy();
-					}
-				}
-			}
-
-			if (prg.Empty())
-				throw RESULT_ERR_CORRUPT_FILE;
-		}
-
-		void Cartridge::Unif::CheckImageDatabase(const ImageDatabase* const database,ImageDatabase::Handle& databaseHandle)
-		{
-			if (database)
-			{
-				dword crc = Crc32::Compute( prg.Mem(), prg.Size() );
-
-				if (chr.Size())
-					crc = Crc32::Compute( chr.Mem(), chr.Size(), crc );
-
-				if (const ImageDatabase::Handle handle = database->Search( crc ))
-				{
-					databaseHandle = handle;
-
-					if (!knownBoard)
-						info.setup.mapper = database->Mapper(handle);
-
-					switch (database->GetSystem(handle))
-					{
-						case Ref::SYSTEM_VS:
-
-							info.setup.system = Ref::SYSTEM_VS;
-							info.setup.ppu = Ref::PPU_RP2C03B;
-							break;
-
-						case Ref::SYSTEM_PC10:
-
-							info.setup.system = Ref::SYSTEM_PC10;
-							info.setup.ppu = Ref::PPU_RP2C03B;
-							break;
-					}
-
-					if (database->Enabled())
-					{
-						info.setup.mapper = database->Mapper(handle);
-
-						if (const dword wrkRam = database->WrkRam(handle))
-							info.setup.wrkRam = wrkRam;
-
-						if (const dword wrkRamBacked = database->WrkRamBacked(handle))
-							info.setup.wrkRamBacked = wrkRamBacked;
-					}
-
-					return;
-				}
-			}
-
-			databaseHandle = NULL;
-
-			if (!knownBoard)
-			{
-				std::string choice;
-
-				Api::User::inputCallback
-				(
-					Api::User::INPUT_CHOOSE_MAPPER,
-					info.board.empty() ? "unknown" : info.board.c_str(),
-					choice
-				);
-
-				if (choice.length() > 0 && choice.length() < 4)
-				{
-					const int id = std::atoi( choice.c_str() );
-
-					if (id >= 0 && id <= 255)
-					{
-						info.setup.mapper = id;
-						return;
-					}
-				}
-
-				throw RESULT_ERR_UNSUPPORTED_MAPPER;
-			}
 		}
 
 		#ifdef NST_MSVC_OPTIMIZE

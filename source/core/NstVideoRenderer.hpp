@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,6 +25,7 @@
 #ifndef NST_VIDEO_RENDERER_H
 #define NST_VIDEO_RENDERER_H
 
+#include <cstdlib>
 #include "api/NstApiVideo.hpp"
 #include "NstVideoScreen.hpp"
 
@@ -74,7 +75,6 @@ namespace Nes
 				Result SetHue(int);
 				void Blit(Output&,Input&,uint);
 
-				void SetRegion(Region::Type);
 				Result SetDecoder(const Decoder&);
 
 				Result SetPaletteType(PaletteType);
@@ -82,6 +82,7 @@ namespace Nes
 				void   ResetCustomPalette();
 
 				void EnableFieldMerging(bool);
+				void EnableForcedFieldMerging(bool);
 
 				typedef byte PaletteEntries[PALETTE][3];
 
@@ -161,7 +162,6 @@ namespace Nes
 
 				class FilterNone;
 				class FilterNtsc;
-				class FilterScanlines;
 
 				#ifndef NST_NO_SCALEX
 				class FilterScaleX;
@@ -175,10 +175,11 @@ namespace Nes
 				{
 					struct Format
 					{
-						explicit Format(const RenderState::Bits::Mask&);
+						explicit Format(const RenderState&);
 
-						dword left[3];
-						dword right[3];
+						dword masks[3];
+						byte shifts[3];
+						const byte bpp;
 					};
 
 				protected:
@@ -192,7 +193,6 @@ namespace Nes
 					virtual void Blit(const Input&,const Output&,uint) = 0;
 					virtual void Transform(const byte (&)[PALETTE][3],Input::Palette&) const;
 
-					const uint bpp;
 					const Format format;
 				};
 
@@ -206,12 +206,12 @@ namespace Nes
 						UPDATE_FILTER = 0x2,
 						UPDATE_NTSC = 0x4,
 						FIELD_MERGING_USER = 0x1,
-						FIELD_MERGING_PAL = 0x2
+						FIELD_MERGING_FORCED = 0x2
 					};
 
-					RenderState::Filter filter;
 					word width;
 					word height;
+					byte filter;
 					byte update;
 					schar brightness;
 					schar saturation;
@@ -222,7 +222,6 @@ namespace Nes
 					schar bleed;
 					schar artifacts;
 					schar fringing;
-					byte scanlines;
 					byte fieldMerging;
 					RenderState::Bits::Mask mask;
 				};

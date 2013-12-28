@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -178,7 +178,7 @@ namespace Nes
 			if (!bios.Available())
 				throw RESULT_ERR_MISSING_BIOS;
 
-			ppu.GetChrMem().Source().Set( SIZE_8K, true, true );
+			ppu.GetChrMem().Source().Set( Core::Ram::RAM, true, true, SIZE_8K );
 		}
 
 		Fds::~Fds()
@@ -254,6 +254,29 @@ namespace Nes
 		bool Fds::HasBios()
 		{
 			return bios.Available();
+		}
+
+		Region Fds::GetDesiredRegion() const
+		{
+			return REGION_NTSC;
+		}
+
+		System Fds::GetDesiredSystem(Region region,CpuModel* cpu,PpuModel* ppu) const
+		{
+			if (region == REGION_NTSC)
+			{
+				if (cpu)
+					*cpu = CPU_RP2A03;
+
+				if (ppu)
+					*ppu = PPU_RP2C02;
+
+				return SYSTEM_FAMICOM;
+			}
+			else
+			{
+				return Image::GetDesiredSystem( region, cpu, ppu );
+			}
 		}
 
 		uint Fds::GetDesiredController(const uint port) const
@@ -668,7 +691,7 @@ namespace Nes
 				try
 				{
 					const uint header = HasHeader() ? HEADER_SIZE : 0;
-					file.Save( File::SAVE_FDS, data - header, header + count * dword(SIDE_SIZE), false );
+					file.Save( File::DISK, data - header, header + count * dword(SIDE_SIZE) );
 				}
 				catch (...)
 				{
@@ -1115,7 +1138,9 @@ namespace Nes
 									NST_VERIFY( length > 3 );
 									break;
 
-								NST_UNREACHABLE
+								default:
+
+									NST_UNREACHABLE();
 							}
 						}
 					}
@@ -1281,7 +1306,7 @@ namespace Nes
 					if (unit.drive.headPos < unit.drive.dataPos)
 						unit.drive.headPos = unit.drive.dataPos;
 
-					ppu.SetMirroring( (unit.drive.ctrl & uint(CTRL1_NMT_HORIZONTAL)) ? Ppu::NMT_HORIZONTAL : Ppu::NMT_VERTICAL );
+					ppu.SetMirroring( (unit.drive.ctrl & uint(CTRL1_NMT_HORIZONTAL)) ? Ppu::NMT_H : Ppu::NMT_V );
 					break;
 				}
 			}
@@ -1454,7 +1479,7 @@ namespace Nes
 		NES_POKE_D(Fds,4025)
 		{
 			adapter.Write( data );
-			ppu.SetMirroring( (data & CTRL1_NMT_HORIZONTAL) ? Ppu::NMT_HORIZONTAL : Ppu::NMT_VERTICAL );
+			ppu.SetMirroring( (data & CTRL1_NMT_HORIZONTAL) ? Ppu::NMT_H : Ppu::NMT_V );
 		}
 
 		NES_PEEK(Fds,4031)
@@ -1615,8 +1640,8 @@ namespace Nes
 		{
 			envelopes.clock =
 			(
-				(GetRegion() == Region::NTSC) ? (Clocks::RP2A03_CC * Envelopes::PULSE) :
-												(Clocks::RP2A07_CC * Envelopes::PULSE)
+				GetModel() == CPU_RP2A03 ? (CPU_RP2A03_CC * Envelopes::PULSE) :
+                                           (CPU_RP2A07_CC * Envelopes::PULSE)
 			);
 
 			Cycle rate;
@@ -1630,15 +1655,15 @@ namespace Nes
 
 			wave.rate = GetSampleRate();
 
-			if (GetRegion() == Region::NTSC)
+			if (GetModel() == CPU_RP2A03)
 			{
-				wave.frame = Clocks::NTSC_CLK;
-				wave.clock = 0x10000UL * Clocks::RP2A03_CC * Clocks::NTSC_DIV;
+				wave.frame = CLK_NTSC;
+				wave.clock = 0x10000UL * CPU_RP2A03_CC * CLK_NTSC_DIV;
 			}
 			else
 			{
-				wave.frame = Clocks::PAL_CLK;
-				wave.clock = 0x10000UL * Clocks::RP2A07_CC * Clocks::PAL_DIV;
+				wave.frame = CLK_PAL;
+				wave.clock = 0x10000UL * CPU_RP2A07_CC * CLK_PAL_DIV;
 			}
 
 			amp = 0;

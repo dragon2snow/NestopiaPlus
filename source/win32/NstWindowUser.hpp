@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -45,18 +45,19 @@ namespace Nestopia
 			};
 
 			void Fail    (uint,uint=0);
-			void Fail    (tstring,uint=0);
-			void Fail    (tstring,tstring);
+			void Fail    (wcstring,uint=0);
+			void Fail    (wcstring,wcstring);
 			void Warn    (uint,uint=0);
-			void Warn    (tstring,uint=0);
-			void Warn    (tstring,tstring);
+			void Warn    (wcstring,uint=0);
+			void Warn    (wcstring,wcstring);
 			void Inform  (uint,uint=0);
-			void Inform  (tstring,uint=0);
-			void Inform  (tstring,tstring);
+			void Inform  (wcstring,uint=0);
+			void Inform  (wcstring,wcstring);
 			bool Confirm (uint,uint=0);
-			bool Confirm (tstring,uint=0);
-			bool Confirm (tstring,tstring);
-			bool Input   (HeapString&,tstring,tstring=NULL);
+			bool Confirm (wcstring,uint=0);
+			bool Confirm (wcstring,wcstring);
+			bool Input   (HeapString&,wcstring,wcstring=NULL);
+			uint Choose  (uint,uint,wcstring*,uint,const uint* = NULL);
 		}
 	}
 }

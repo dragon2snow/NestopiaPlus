@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -43,12 +43,12 @@ namespace Nestopia
 			ctrl.SetImageList( imageList );
 
 			ctrl.Add( Resource::String( IDS_LAUNCHER_SECTION_ALL     ) );
+			ctrl.Add( Resource::String( IDS_LAUNCHER_SECTION_XML     ) );
 			ctrl.Add( Resource::String( IDS_LAUNCHER_SECTION_NES     ) );
 			ctrl.Add( Resource::String( IDS_LAUNCHER_SECTION_UNIF    ) );
 			ctrl.Add( Resource::String( IDS_LAUNCHER_SECTION_FDS     ) );
 			ctrl.Add( Resource::String( IDS_LAUNCHER_SECTION_NSF     ) );
 			ctrl.Add( Resource::String( IDS_LAUNCHER_SECTION_IPS     ) );
-			ctrl.Add( Resource::String( IDS_LAUNCHER_SECTION_NSP     ) );
 			ctrl.Add( Resource::String( IDS_LAUNCHER_SECTION_ARCHIVE ) );
 
 			ctrl[selection].Select();
@@ -72,12 +72,12 @@ namespace Nestopia
 		{
 			switch (ctrl.GetIndex( hItem ))
 			{
-				case 1: return List::Files::Entry::NES;
-				case 2: return List::Files::Entry::UNF;
-				case 3: return List::Files::Entry::FDS;
-				case 4: return List::Files::Entry::NSF;
-				case 5: return List::Files::Entry::IPS;
-				case 6: return List::Files::Entry::NSP;
+				case 1: return List::Files::Entry::XML;
+				case 2: return List::Files::Entry::NES;
+				case 3: return List::Files::Entry::UNF;
+				case 4: return List::Files::Entry::FDS;
+				case 5: return List::Files::Entry::NSF;
+				case 6: return List::Files::Entry::IPS;
 				case 7: return List::Files::Entry::ARCHIVE;
 			}
 

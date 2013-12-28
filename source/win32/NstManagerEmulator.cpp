@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -22,16 +22,19 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
+#include <new>
+#include <iostream>
 #include "NstIoFile.hpp"
 #include "NstIoLog.hpp"
-#include "NstIoNsp.hpp"
 #include "NstIoStream.hpp"
+#include "NstIoArchive.hpp"
 #include "NstIoScreen.hpp"
-#include "NstIoIps.hpp"
+#include "NstIoWave.hpp"
 #include "NstResourceString.hpp"
 #include "NstWindowUser.hpp"
 #include "NstApplicationInstance.hpp"
 #include "NstManagerEmulator.hpp"
+#include "../core/NstIps.hpp"
 #include "../core/api/NstApiMachine.hpp"
 #include "../core/api/NstApiCartridge.hpp"
 #include "../core/api/NstApiFds.hpp"
@@ -45,15 +48,6 @@ namespace Nestopia
 {
 	namespace Managers
 	{
-		struct Emulator::CallbackData
-		{
-			Nes::User::FileData& data;
-			const Nes::User::File type;
-
-			CallbackData(Nes::User::FileData& d,Nes::User::File t)
-			: data(d), type(t) {}
-		};
-
 		struct Emulator::Callbacks
 		{
 			static Nes::User::Answer NST_CALLBACK Confirm(Nes::User::UserData,Nes::User::Question question)
@@ -73,53 +67,83 @@ namespace Nestopia
 				}
 			}
 
-			static void NST_CALLBACK DoInput(Nes::User::UserData,Nes::User::Input type,cstring info,Nes::User::String& response)
+			static uint NST_CALLBACK ChooseProfile(Nes::User::UserData,const Nes::Cartridge::Profile*,const std::wstring* names,const uint count)
 			{
-				NST_COMPILE_ASSERT( Nes::User::NUM_INPUT_CALLBACKS == 1 );
-				NST_ASSERT( info && *info && response.empty() );
-				NST_VERIFY( type == Nes::User::INPUT_CHOOSE_MAPPER );
+				std::vector<wcstring> strings( count );
 
-				if (type == Nes::User::INPUT_CHOOSE_MAPPER)
-				{
-					HeapString output;
+				for (uint i=0; i < count; ++i)
+					strings[i] = names[i].c_str();
 
-					if (Window::User::Input( output, Resource::String(IDS_EMU_CHOOSE_MAPPER).Invoke(info), Resource::String(IDS_EMU_TITLE_CHOOSE_MAPPER) ))
-					{
-						const String::Heap<char> tmp( output );
-						response.assign( tmp.Ptr(), tmp.Length() );
-					}
-				}
+				const uint choice = Window::User::Choose( IDS_CHOOSE_GAME, IDS_TEXT_DEFAULT, &strings.front(), count );
+
+				return choice ? choice - 1 : Nes::Cartridge::CHOOSE_DEFAULT_PROFILE;
 			}
 
-			static void NST_CALLBACK DoFileIO(Nes::User::UserData user,Nes::User::File type,Nes::User::FileData& data)
+			static void NST_CALLBACK DoFileIO(Nes::User::UserData user,Nes::User::File& context)
 			{
-				NST_COMPILE_ASSERT( Nes::User::NUM_FILE_CALLBACKS == 9 );
+				NST_COMPILE_ASSERT( Nes::User::NUM_FILE_CALLBACKS == 16 );
 				NST_ASSERT( user );
 
 				Emulator& emulator = *static_cast<Emulator*>(user);
-				CallbackData callbackData( data, type );
 
-				switch (type)
+				switch (context.GetAction())
 				{
-					case Nes::User::FILE_LOAD_BATTERY:
-					case Nes::User::FILE_LOAD_EEPROM:
-					case Nes::User::FILE_LOAD_TAPE:
-					case Nes::User::FILE_LOAD_TURBOFILE:
+					case Nes::User::File::LOAD_ROM:
+					case Nes::User::File::LOAD_SAMPLE:
 
-						emulator.LoadImageData( callbackData );
+						emulator.LoadFileData
+						(
+							context,
+							context.GetAction() == Nes::User::File::LOAD_SAMPLE,
+							emulator.settings.paths.image.Archive(),
+							context.GetName()
+						);
 						break;
 
-					case Nes::User::FILE_SAVE_BATTERY:
-					case Nes::User::FILE_SAVE_EEPROM:
-					case Nes::User::FILE_SAVE_TAPE:
-					case Nes::User::FILE_SAVE_TURBOFILE:
+					case Nes::User::File::LOAD_BATTERY:
+					case Nes::User::File::LOAD_EEPROM:
+					case Nes::User::File::LOAD_TAPE:
+					case Nes::User::File::LOAD_TURBOFILE:
 
-						emulator.SaveImageData( callbackData );
+						emulator.LoadImageData( context );
 						break;
 
-					case Nes::User::FILE_SAVE_FDS:
+					case Nes::User::File::SAVE_BATTERY:
+					case Nes::User::File::SAVE_EEPROM:
+					case Nes::User::File::SAVE_TAPE:
+					case Nes::User::File::SAVE_TURBOFILE:
 
-						emulator.SaveDiskData( callbackData );
+						emulator.SaveImageData( context );
+						break;
+
+					case Nes::User::File::SAVE_FDS:
+
+						emulator.SaveDiskData( context );
+						break;
+
+					case Nes::User::File::LOAD_SAMPLE_MOERO_PRO_YAKYUU:
+
+						emulator.LoadSampleData( L"moepro", context );
+						break;
+
+					case Nes::User::File::LOAD_SAMPLE_MOERO_PRO_YAKYUU_88:
+
+						emulator.LoadSampleData( L"moepro88", context );
+						break;
+
+					case Nes::User::File::LOAD_SAMPLE_MOERO_PRO_TENNIS:
+
+						emulator.LoadSampleData( L"mptennis", context );
+						break;
+
+					case Nes::User::File::LOAD_SAMPLE_TERAO_NO_DOSUKOI_OOZUMOU:
+
+						emulator.LoadSampleData( L"terao", context );
+						break;
+
+					case Nes::User::File::LOAD_SAMPLE_AEROBICS_STUDIO:
+
+						emulator.LoadSampleData( L"ftaerobi", context );
 						break;
 				}
 			}
@@ -340,6 +364,17 @@ namespace Nestopia
 		#pragma optimize("", on)
 		#endif
 
+		Emulator::Context::Context()
+		: mode(UNKNOWN)
+		{
+			for (uint i=0; i < Nes::Input::NUM_PORTS; ++i)
+				controllers[i] = UNKNOWN;
+		}
+
+		Emulator::Context::~Context()
+		{
+		}
+
 		inline Emulator::Settings::Cartridge::Cartridge()
 		: writeProtect(false) {}
 
@@ -397,9 +432,9 @@ namespace Nestopia
 		{
 			Nes::Machine::eventCallback.Set( &Callbacks::OnMachine, this );
 			Nes::User::eventCallback.Set( &Callbacks::OnEvent, NULL );
-			Nes::User::inputCallback.Set( &Callbacks::DoInput, NULL );
 			Nes::User::questionCallback.Set( &Callbacks::Confirm, NULL );
 			Nes::User::fileIoCallback.Set( &Callbacks::DoFileIO, this );
+			Nes::Cartridge::chooseProfileCallback.Set( &Callbacks::ChooseProfile, NULL );
 			Nes::Input::adapterCallback.Set( &Callbacks::OnAdapterPort, this );
 			Nes::Input::controllerCallback.Set( &Callbacks::OnControllerPort, this );
 			Nes::Fds::diskCallback.Set( &Callbacks::OnDisk, this );
@@ -415,9 +450,9 @@ namespace Nestopia
 
 			Nes::Machine::eventCallback.Unset();
 			Nes::User::eventCallback.Unset();
-			Nes::User::inputCallback.Unset();
 			Nes::User::questionCallback.Unset();
 			Nes::User::fileIoCallback.Unset();
+			Nes::Cartridge::chooseProfileCallback.Unset();
 			Nes::Input::adapterCallback.Unset();
 			Nes::Input::controllerCallback.Unset();
 			Nes::Fds::diskCallback.Unset();
@@ -632,37 +667,190 @@ namespace Nestopia
 			return false;
 		}
 
-		void Emulator::LoadImageData(CallbackData& callbackData)
+		void Emulator::LoadFileData(Nes::User::File& context,const bool loadSamples,Path path,wcstring const filename) const
 		{
-			NST_ASSERT( callbackData.data.empty() );
+			NST_VERIFY( filename && *filename );
 
+			if (!filename || !*filename)
+				return;
+
+			cstring errReason = NULL;
+
+			try
+			{
+				if (path.Length())
+				{
+					Io::File file( path, Io::File::COLLECT );
+					Io::Archive archive( file );
+
+					uint index = archive.Find( filename );
+
+					if (index && index-- != Io::Archive::NO_FILES)
+					{
+						Collection::Buffer buffer( archive[index].Size() );
+
+						if (buffer.Size())
+						{
+							archive[index].Uncompress( buffer.Ptr() );
+
+							archive.Close();
+							file.Close();
+
+							if (loadSamples)
+							{
+								WAVEFORMATEX format;
+								Io::Wave wave( Io::Wave::MODE_READ );
+
+								if (const uint size = wave.Open( buffer.Ptr(), buffer.Size(), format ))
+								{
+									buffer.Resize( size );
+									wave.Read( buffer.Ptr() );
+									wave.Close();
+
+									const Nes::Result result = context.SetSampleContent
+									(
+										buffer.Ptr(),
+										buffer.Size() / format.nBlockAlign,
+										format.nChannels == 2,
+										format.wBitsPerSample,
+										format.nSamplesPerSec
+									);
+
+									if (NES_FAILED(result))
+										throw result;
+								}
+								else
+								{
+									throw Nes::RESULT_ERR_INVALID_FILE;
+								}
+							}
+							else
+							{
+								const Nes::Result result = context.SetContent( buffer.Ptr(), buffer.Size() );
+
+								if (NES_FAILED(result))
+									throw result;
+							}
+						}
+						else
+						{
+							throw Nes::RESULT_ERR_INVALID_FILE;
+						}
+					}
+					else
+					{
+						throw Io::File::ERR_NOT_FOUND;
+					}
+				}
+				else
+				{
+					path.Set( settings.paths.image.Directory(), filename );
+
+					if (path.FileExists())
+					{
+						if (loadSamples)
+						{
+							WAVEFORMATEX format;
+							Io::Wave wave( Io::Wave::MODE_READ );
+
+							if (const uint size = wave.Open( path, format ))
+							{
+								Collection::Buffer buffer( size );
+								wave.Read( buffer.Ptr() );
+								wave.Close();
+
+								const Nes::Result result = context.SetSampleContent
+								(
+									buffer.Ptr(),
+									buffer.Size() / format.nBlockAlign,
+									format.nChannels == 2,
+									format.wBitsPerSample,
+									format.nSamplesPerSec
+								);
+
+								if (NES_FAILED(result))
+									throw result;
+							}
+							else
+							{
+								throw Nes::RESULT_ERR_INVALID_FILE;
+							}
+						}
+						else
+						{
+							const Io::File file( path, Io::File::COLLECT );
+							Io::Stream::In stream( file );
+							const Nes::Result result = context.SetContent( stream );
+
+							if (NES_FAILED(result))
+								throw result;
+						}
+					}
+					else
+					{
+						throw Io::File::ERR_NOT_FOUND;
+					}
+				}
+			}
+			catch (Nes::Result r)
+			{
+				if (r == Nes::RESULT_ERR_UNSUPPORTED)
+					errReason = "unsupported format";
+				else
+					errReason = "invalid data";
+			}
+			catch (Io::File::Exception e)
+			{
+				if (e == Io::File::ERR_NOT_FOUND)
+					errReason = "file not found";
+				else
+					errReason = "file I/O error";
+			}
+			catch (Io::Wave::Exception)
+			{
+				errReason = "invalid data";
+			}
+			catch (...)
+			{
+				NST_DEBUG_MSG("Emulator::LoadFileData() generic error!");
+				errReason = "generic error";
+			}
+
+			if (errReason)
+				Io::Log() << "Emulator: error loading \"" << filename << "\" - " << errReason << "!\r\n";
+			else
+				Io::Log() << "Emulator: loading \"" << filename << "\"\r\n";
+		}
+
+		void Emulator::LoadImageData(Nes::User::File& context) const
+		{
 			cstring desc = "image save";
 			Path path( settings.paths.save );
 
-			switch (callbackData.type)
+			switch (context.GetAction())
 			{
-				case Nes::User::FILE_LOAD_BATTERY:
+				case Nes::User::File::LOAD_BATTERY:
 
 					desc = "battery";
 					break;
 
-				case Nes::User::FILE_LOAD_EEPROM:
+				case Nes::User::File::LOAD_EEPROM:
 
 					desc = "EEPROM";
 					break;
 
-				case Nes::User::FILE_LOAD_TAPE:
+				case Nes::User::File::LOAD_TAPE:
 
 					desc = "tape";
 					path = settings.paths.tape;
 					break;
 
-				case Nes::User::FILE_LOAD_TURBOFILE:
+				case Nes::User::File::LOAD_TURBOFILE:
 
 					desc = "turbo file";
 
 					if (path.Length())
-						path.Extension() = _T("tf");
+						path.Extension() = L"tf";
 
 					break;
 			}
@@ -672,72 +860,60 @@ namespace Nestopia
 				try
 				{
 					Io::File file( path, Io::File::COLLECT );
+					Io::Stream::In stream( file );
 
-					if (const uint size = file.Size())
-					{
-						callbackData.data.resize( size );
-						file.Read( &callbackData.data.front(), size );
+					if (NES_SUCCEEDED(context.SetContent( stream )))
 						Io::Log() << "Emulator: loaded " << desc << " data from \"" << path << "\"\r\n";
-					}
 					else
-					{
 						Io::Log() << "Emulator: warning, " << desc << " data file \"" << path << "\" is empty!\r\n";
-					}
 				}
 				catch (Io::File::Exception)
 				{
-					callbackData.data.clear();
 					Window::User::Warn( IDS_CARTRIDGE_LOAD_FAILED );
 				}
 			}
-			else if (callbackData.type != Nes::User::FILE_LOAD_TAPE)
+			else if (context.GetAction() != Nes::User::File::LOAD_TAPE)
 			{
 				if (path.Length())
-				{
 					Io::Log() << "Emulator: " << desc << " data file \"" << path << "\" not found\r\n";
-				}
 				else
-				{
 					Io::Log() << "Emulator: " << desc << " data was not loaded!\r\n";
-				}
 			}
 		}
 
-		void Emulator::SaveImageData(CallbackData& callbackData) const
+		void Emulator::SaveImageData(Nes::User::File& context) const
 		{
-			NST_ASSERT( !callbackData.data.empty() );
-
 			cstring desc = "image save";
 			uint ids = IDS_EMU_MOVIE_SAVE_IMAGEDATA;
 			Path path( settings.paths.save );
 
-			switch (callbackData.type)
+			switch (context.GetAction())
 			{
-				case Nes::User::FILE_SAVE_BATTERY:
+				case Nes::User::File::SAVE_BATTERY:
 
 					desc = "battery";
 					break;
 
-				case Nes::User::FILE_SAVE_EEPROM:
+				case Nes::User::File::SAVE_EEPROM:
 
 					desc = "EEPROM";
 					ids = IDS_EMU_MOVIE_SAVE_EEPROM;
 					break;
 
-				case Nes::User::FILE_SAVE_TAPE:
+				case Nes::User::File::SAVE_TAPE:
 
 					desc = "cassette tape";
 					ids = IDS_EMU_MOVIE_SAVE_TAPE;
 					path = settings.paths.tape;
 					break;
 
-				case Nes::User::FILE_SAVE_TURBOFILE:
+				case Nes::User::File::SAVE_TURBOFILE:
 
 					desc = "turbo file";
 					ids = IDS_EMU_MOVIE_SAVE_TURBOFILE;
 
 					if (path.Length())
-						path.Extension() = _T("tf");
+						path.Extension() = L"tf";
 
 					break;
 			}
@@ -752,7 +928,9 @@ namespace Nestopia
 				{
 					try
 					{
-						Io::File( path, Io::File::DUMP|Io::File::WRITE_THROUGH ).Write( &callbackData.data.front(), callbackData.data.size() );
+						Io::File file( path, Io::File::DUMP|Io::File::WRITE_THROUGH );
+						Io::Stream::Out stream( file );
+						context.GetContent( stream );
 					}
 					catch (Io::File::Exception)
 					{
@@ -781,22 +959,22 @@ namespace Nestopia
 
 					if (settings.paths.save.FileExists())
 					{
-						Io::Ips ips;
-						Io::Ips::PatchData patchData;
-
 						try
 						{
-							Io::File( settings.paths.save, Io::File::COLLECT ).Stream() >> patchData;
-							ips.Parse( patchData.Ptr(), patchData.Size() );
-							ips.Patch( data.Ptr(), data.Size() );
+							Nes::Core::Ips ips;
+							Io::Stream::In stream( settings.paths.save );
+
+							if (ips.Load( &static_cast<std::istream&>(stream) ) && ips.Patch( data.Ptr(), data.Size() ))
+							{
+								Io::Log() << "Emulator: patched image with IPS disk data file \"" << settings.paths.save << "\"\r\n";
+								break;
+							}
 						}
 						catch (...)
 						{
-							Window::User::Warn( IDS_FDS_IPSDATALOAD_FAILED );
-							return;
 						}
 
-						Io::Log() << "Emulator: patched image with IPS disk data file \"" << settings.paths.save << "\"\r\n";
+						Window::User::Warn( IDS_FDS_IPSDATALOAD_FAILED );
 					}
 					else if (settings.paths.save.Length())
 					{
@@ -813,10 +991,8 @@ namespace Nestopia
 			}
 		}
 
-		void Emulator::SaveDiskData(CallbackData& callbackData) const
+		void Emulator::SaveDiskData(Nes::User::File& context) const
 		{
-			NST_ASSERT( !callbackData.data.empty() );
-
 			if (settings.askSave && !Window::User::Confirm( IDS_EMU_MOVIE_SAVE_FDS ))
 				return;
 
@@ -828,7 +1004,9 @@ namespace Nestopia
 					{
 						try
 						{
-							Io::File( settings.paths.image, Io::File::DUMP|Io::File::WRITE_THROUGH ).Write( &callbackData.data.front(), callbackData.data.size() );
+							Io::File file( settings.paths.image, Io::File::DUMP|Io::File::WRITE_THROUGH );
+							Io::Stream::Out stream( file );
+							context.GetContent( stream );
 						}
 						catch (Io::File::Exception)
 						{
@@ -848,24 +1026,32 @@ namespace Nestopia
 
 					if (settings.paths.save.Length())
 					{
-						NST_ASSERT( settings.fds.original.Size() == callbackData.data.size() );
+						const void* data;
+						ulong size;
+						context.GetContent( data, size );
+
+						NST_ASSERT( settings.fds.original.Size() == size );
 
 						try
 						{
-							Io::Ips::PatchData patchData;
+							Nes::Core::Ips ips;
 
-							if (!Io::Ips::Create( settings.fds.original.Ptr(), &callbackData.data.front(), callbackData.data.size(), patchData ))
-								break;
+							if (ips.Create( settings.fds.original.Ptr(), data, size ))
+							{
+								Io::Stream::Out stream( settings.paths.save );
 
-							Io::File( settings.paths.save, Io::File::DUMP|Io::File::WRITE_THROUGH ).Stream() << patchData;
+								if (ips.Save( &static_cast<std::ostream&>(stream) ))
+								{
+									Io::Log() << "Emulator: saved IPS disk data to \"" << settings.paths.save << "\"\r\n";
+									break;
+								}
+							}
 						}
 						catch (...)
 						{
-							Window::User::Warn( IDS_FDS_IPSDATASAVE_FAILED );
-							break;
 						}
 
-						Io::Log() << "Emulator: saved IPS disk data to \"" << settings.paths.save << "\"\r\n";
+						Window::User::Warn( IDS_FDS_IPSDATASAVE_FAILED );
 						break;
 					}
 
@@ -876,11 +1062,54 @@ namespace Nestopia
 			}
 		}
 
+		void Emulator::LoadSampleData(wcstring const filename,Nes::User::File& context) const
+		{
+			NST_ASSERT( filename && *filename );
+
+			Path path( settings.paths.samples, filename );
+
+			for (uint i=0; ; ++i)
+			{
+				static const wchar_t types[][4] =
+				{
+					L"zip",
+					L"rar",
+					L"7z\0"
+				};
+
+				path.Extension() = types[i];
+
+				if (path.FileExists())
+					break;
+
+				if (i == 2)
+				{
+					Io::Log() << "Emulator: warning, sound sample pack not found!";
+					return;
+				}
+			}
+
+			wchar_t wavefile[] = L"xx.wav";
+
+			uint id = context.GetId();
+
+			if (id > 99)
+				return;
+
+			wavefile[0] = '0' + id / 10;
+			wavefile[1] = '0' + id % 10;
+
+			LoadFileData( context, true, path, wavefile );
+		}
+
 		bool Emulator::Load
 		(
 			Collection::Buffer& image,
 			const Path& start,
-			const Io::Nsp::Context& context,
+			Collection::Buffer& ips,
+			const Context& context,
+			const Nes::Machine::FavoredSystem favoredSystem,
+			const Nes::Machine::AskProfile ask,
 			const bool warn
 		)
 		{
@@ -894,15 +1123,17 @@ namespace Nestopia
 			settings.paths.image = context.image;
 			settings.paths.save = context.save;
 			settings.paths.tape = context.tape;
+			settings.paths.samples = context.samples;
 
 			if (IsDiskImage( image ))
 				LoadDiskData( image );
 
 			Nes::Result result;
+			Io::Stream::In ipsStream(ips);
 
-			for (Io::Stream::Input stream(image); ; stream.seekg(0,std::istream::beg))
+			for (Io::Stream::In stream(image); ; static_cast<std::istream&>(stream).seekg(0,std::istream::beg))
 			{
-				result = Nes::Machine(*this).Load( stream );
+				result = Nes::Machine(*this).Load( stream, favoredSystem, ask, ips.Length() ? &static_cast<std::istream&>(ipsStream) : NULL );
 
 				if (result != Nes::RESULT_ERR_MISSING_BIOS || netplay)
 					break;
@@ -921,14 +1152,14 @@ namespace Nestopia
 
 			if (NES_SUCCEEDED(result))
 			{
-				if (context.mode != Io::Nsp::Context::UNKNOWN)
+				if (context.mode != Context::UNKNOWN)
 					Nes::Machine(*this).SetMode( static_cast<Nes::Machine::Mode>(context.mode) );
 
 				if (IsGame())
 				{
 					for (uint port=0; port < Nes::Input::NUM_PORTS; ++port)
 					{
-						if (context.controllers[port] != Io::Nsp::Context::UNKNOWN)
+						if (context.controllers[port] != Context::UNKNOWN)
 							Nes::Input(*this).ConnectController( port, static_cast<Nes::Input::Type>(context.controllers[port]) );
 					}
 				}
@@ -959,26 +1190,6 @@ namespace Nestopia
 			Nes::Machine(*this).Unload();
 		}
 
-		void Emulator::Save(Io::Nsp::Context& context)
-		{
-			context.image = settings.paths.image;
-			context.mode = (Nes::Machine(*this).Is(Nes::Machine::PAL) ? Nes::Machine::PAL : Nes::Machine::NTSC);
-
-			if (IsGame())
-			{
-				if (settings.paths.save.FileExists())
-					context.save = settings.paths.save;
-
-				if (settings.paths.tape.FileExists())
-					context.tape = settings.paths.tape;
-
-				NST_COMPILE_ASSERT( Io::Nsp::Context::NUM_CONTROLLER_PORTS - Nes::Input::NUM_PORTS == 0 );
-
-				for (uint i=0; i < Nes::Input::NUM_PORTS; ++i)
-					context.controllers[i] = Nes::Input(*this).GetConnectedController(i);
-			}
-		}
-
 		bool Emulator::SaveState(Collection::Buffer& buffer,const bool compress,const Alert alert)
 		{
 			buffer.Clear();
@@ -986,9 +1197,8 @@ namespace Nestopia
 			Nes::Result result;
 
 			{
-				Io::Stream::Output stream( buffer );
+				Io::Stream::Out stream( buffer );
 				result = Nes::Machine(*this).SaveState( stream, compress ? Nes::Machine::USE_COMPRESSION : Nes::Machine::NO_COMPRESSION );
-				stream.Export( buffer );
 			}
 
 			if (NES_SUCCEEDED(result))
@@ -1030,9 +1240,8 @@ namespace Nestopia
 			Nes::Result result;
 
 			{
-				Io::Stream::Input stream( buffer );
+				Io::Stream::In stream( buffer );
 				result = Nes::Machine(*this).LoadState( stream );
-				stream.Export( buffer );
 			}
 
 			if (NES_SUCCEEDED(result))
@@ -1177,7 +1386,6 @@ namespace Nestopia
 						case Nes::RESULT_WARN_BAD_CROM:              return IDS_EMU_WARN_BAD_CROM;
 						case Nes::RESULT_WARN_BAD_FILE_HEADER:       return IDS_EMU_WARN_BAD_INES;
 						case Nes::RESULT_WARN_INCORRECT_FILE_HEADER: return IDS_EMU_WARN_INCORRECT_INES;
-						case Nes::RESULT_WARN_ENCRYPTED_ROM:         return IDS_EMU_WARN_ENCRYPTED;
 					}
 
 					NST_DEBUG_MSG("warning result not handled");

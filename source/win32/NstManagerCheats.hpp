@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -34,14 +34,6 @@ namespace Nestopia
 		class Cheats;
 	}
 
-	namespace Io
-	{
-		namespace Nsp
-		{
-			struct Context;
-		}
-	}
-
 	namespace Managers
 	{
 		class Paths;
@@ -54,8 +46,6 @@ namespace Nestopia
 			~Cheats();
 
 			void Save(Configuration&) const;
-			void Save(Io::Nsp::Context&) const;
-			void Load(const Io::Nsp::Context&) const;
 
 		private:
 

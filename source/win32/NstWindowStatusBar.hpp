@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -104,7 +104,7 @@ namespace Nestopia
 				Stream(Generic w,uint f)
 				: window(w), field(f) {}
 
-				void operator << (tstring) const;
+				void operator << (wcstring) const;
 				void Clear() const;
 			};
 

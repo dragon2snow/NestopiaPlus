@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -55,8 +55,7 @@ namespace Nes
 			void Reset(bool);
 			bool PowerOff();
 			void InitSong();
-			void SetRegion(Region::Type);
-			Region::Type GetRegion() const;
+			Region GetDesiredRegion() const;
 
 			inline uint FetchLast(uint) const;
 
@@ -174,9 +173,9 @@ namespace Nes
 			NES_DECL_POKE( Vrc7_9010 );
 			NES_DECL_POKE( Vrc7_9030 );
 
-			NES_DECL_PEEK( N106_48 );
-			NES_DECL_POKE( N106_48 );
-			NES_DECL_POKE( N106_F8 );
+			NES_DECL_PEEK( N163_48 );
+			NES_DECL_POKE( N163_48 );
+			NES_DECL_POKE( N163_F8 );
 
 			NES_DECL_POKE( S5B_C );
 			NES_DECL_POKE( S5B_E );
@@ -208,7 +207,7 @@ namespace Nes
 				{
 					char name[32];
 					char artist[32];
-					char maker[32];
+					char copyright[32];
 				}   info;
 
 				Songs()
@@ -298,9 +297,9 @@ namespace Nes
 				return songs.info.artist;
 			}
 
-			cstring GetMaker() const
+			cstring GetCopyright() const
 			{
-				return songs.info.maker;
+				return songs.info.copyright;
 			}
 
 			uint GetTuneMode() const

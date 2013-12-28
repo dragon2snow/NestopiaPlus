@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -38,7 +38,7 @@ namespace Nestopia
 		#pragma optimize("t", on)
 		#endif
 
-		tstring Launcher::List::Strings::GetMapper(const uint value)
+		wcstring Launcher::List::Strings::GetMapper(const uint value)
 		{
 			if (value-1 < 4095)
 			{
@@ -51,7 +51,7 @@ namespace Nestopia
 
 					do
 					{
-						_itot( count, mappers[count].string, 10 );
+						_itow( count, mappers[count].string, 10 );
 					}
 					while (++count != size);
 				}
@@ -60,13 +60,23 @@ namespace Nestopia
 			}
 			else
 			{
-				return _T("-");
+				return L"-";
 			}
 		}
 
-		tstring Launcher::List::Strings::GetSize(uint value)
+		wcstring Launcher::List::Strings::GetSize(uint value)
 		{
-			return value ? sizes(value).Ptr() : _T("-");
+			if (value)
+			{
+				SizeString& string = sizes[value];
+
+				if (string.Empty())
+					string << value << 'k';
+
+				return string.Ptr();
+			}
+
+			return L"-";
 		}
 
 		#ifdef NST_MSVC_OPTIMIZE
@@ -75,7 +85,7 @@ namespace Nestopia
 
 		void Launcher::List::Strings::Flush()
 		{
-			sizes.Destroy();
+			sizes.clear();
 			mappers.Destroy();
 		}
 
@@ -109,10 +119,12 @@ namespace Nestopia
 
 			cmdHandler.Add( this, commands );
 
-			if (cfg["launcher show gridlines"] != Configuration::NO)
+			Configuration::ConstSection show( cfg["launcher"]["view"]["show"] );
+
+			if (!show["grid-lines"].No())
 				style |= LVS_EX_GRIDLINES;
 
-			if (cfg["launcher use image database"] != Configuration::NO)
+			if (!show["image-database-adjusted"].No())
 				useImageDatabase = &imageDatabase;
 		}
 
@@ -122,7 +134,7 @@ namespace Nestopia
 
 		void Launcher::List::operator = (const Control::ListView& listView)
 		{
-			files.Load( imageDatabase );
+			files.Load();
 
 			typeFilter = 0;
 
@@ -161,7 +173,7 @@ namespace Nestopia
 			}
 		}
 
-		void Launcher::List::Add(tstring const fileName)
+		void Launcher::List::Add(wcstring const fileName)
 		{
 			if (files.Insert( imageDatabase, fileName ) && !Optimize())
 				Redraw();
@@ -173,10 +185,12 @@ namespace Nestopia
 			columns.Save( cfg );
 
 			if (saveFiles)
-				files.Save( imageDatabase );
+				files.Save();
 
-			cfg["launcher show gridlines"].YesNo() = style & LVS_EX_GRIDLINES;
-			cfg["launcher use image database"].YesNo() = useImageDatabase;
+			Configuration::Section show( cfg["launcher"]["view"]["show"] );
+
+			show["grid-lines"].YesNo() = style & LVS_EX_GRIDLINES;
+			show["image-database-adjusted"].YesNo() = useImageDatabase;
 		}
 
 		void Launcher::List::SetColors(const uint bg,const uint fg,const Updater redraw) const
@@ -271,7 +285,7 @@ namespace Nestopia
 				{
 					case Columns::TYPE_FILE:
 
-						item.pszText = const_cast<tchar*>( entry.GetFile(files.GetStrings()) );
+						item.pszText = const_cast<wchar_t*>( entry.GetFile(files.GetStrings()) );
 						break;
 
 					case Columns::TYPE_SYSTEM:
@@ -286,127 +300,91 @@ namespace Nestopia
 							Files::Entry::SYSTEM_NTSC_PAL == 5
 						);
 
-						static const tchar lut[][9] =
+						static const wchar_t lut[][9] =
 						{
-							_T( "-"        ),
-							_T( "pc10"     ),
-							_T( "vs"       ),
-							_T( "pal"      ),
-							_T( "ntsc"     ),
-							_T( "ntsc/pal" )
+							L"-",
+							L"pc10",
+							L"vs",
+							L"pal",
+							L"ntsc",
+							L"ntsc/pal"
 						};
 
-						item.pszText = const_cast<tchar*>( lut[entry.GetSystem( useImageDatabase )] );
+						item.pszText = const_cast<wchar_t*>( lut[entry.GetSystem( useImageDatabase )] );
 						break;
 					}
 
 					case Columns::TYPE_BATTERY:
 
-						item.pszText = const_cast<tchar*>
+						item.pszText = const_cast<wchar_t*>
 						(
 							(entry.GetType() & (Files::Entry::NES|Files::Entry::UNF)) ?
-							entry.GetBattery( useImageDatabase ) ? _T("yes") : _T("no") : _T("-")
+							entry.GetBattery( useImageDatabase ) ? L"yes" : L"no" : L"-"
 						);
 						break;
 
-					case Columns::TYPE_TRAINER:
-
-						item.pszText = const_cast<tchar*>
-						(
-							(entry.GetType() & Files::Entry::NES) ?
-							entry.GetTrainer( useImageDatabase ) ? _T("yes") : _T("no") : _T("-")
-						);
-						break;
-
-					case Columns::TYPE_MIRRORING:
+					case Columns::TYPE_DUMP:
 					{
 						NST_COMPILE_ASSERT
 						(
-							Files::Entry::MIRROR_NONE       == 0 &&
-							Files::Entry::MIRROR_HORIZONTAL == 1 &&
-							Files::Entry::MIRROR_VERTICAL   == 2 &&
-							Files::Entry::MIRROR_ZERO       == 3 &&
-							Files::Entry::MIRROR_ONE        == 4 &&
-							Files::Entry::MIRROR_FOURSCREEN == 5 &&
-							Files::Entry::MIRROR_CONTROLLED == 6
+							Nes::Cartridge::Profile::Dump::OK      == 0 &&
+							Nes::Cartridge::Profile::Dump::BAD     == 1 &&
+							Nes::Cartridge::Profile::Dump::UNKNOWN == 2
 						);
 
-						static const tchar lut[][11] =
+						static const wchar_t lut[][4] =
 						{
-							_T( "-"          ),
-							_T( "horizontal" ),
-							_T( "vertical"   ),
-							_T( "zero"       ),
-							_T( "one"        ),
-							_T( "fourscreen" ),
-							_T( "controlled" )
+							L"ok",
+							L"bad",
+							L"-"
 						};
 
-						item.pszText = const_cast<tchar*>( lut[entry.GetMirroring( useImageDatabase )] );
-						break;
-					}
-
-					case Columns::TYPE_CONDITION:
-					{
-						NST_COMPILE_ASSERT
-						(
-							Nes::Cartridge::DUMP_OK         == 0 &&
-							Nes::Cartridge::DUMP_REPAIRABLE == 1 &&
-							Nes::Cartridge::DUMP_BAD        == 2 &&
-							Nes::Cartridge::DUMP_UNKNOWN    == 3
-						);
-
-						static const tchar lut[][4] =
-						{
-							_T( "ok"  ),
-							_T( "fix" ),
-							_T( "bad" ),
-							_T( "-"   )
-						};
-
-						item.pszText = const_cast<tchar*>( lut[entry.GetCondition( useImageDatabase )] );
+						item.pszText = const_cast<wchar_t*>( lut[entry.GetDump( useImageDatabase )] );
 						break;
 					}
 
 					case Columns::TYPE_NAME:
 
-						item.pszText = const_cast<tchar*>( entry.GetName( files.GetStrings(), useImageDatabase ) );
-						break;
-
-					case Columns::TYPE_MAKER:
-
-						item.pszText = const_cast<tchar*>( entry.GetMaker( files.GetStrings() ) );
+						item.pszText = const_cast<wchar_t*>( entry.GetName( files.GetStrings(), useImageDatabase ) );
 						break;
 
 					case Columns::TYPE_FOLDER:
 
-						item.pszText = const_cast<tchar*>( entry.GetPath( files.GetStrings() ) );
+						item.pszText = const_cast<wchar_t*>( entry.GetPath( files.GetStrings() ) );
 						break;
 
 					case Columns::TYPE_PROM:
 
-						item.pszText = const_cast<tchar*>( strings.GetSize(entry.GetPRom(useImageDatabase)) );
+						item.pszText = const_cast<wchar_t*>( strings.GetSize(entry.GetPRom(useImageDatabase)) );
 						break;
 
 					case Columns::TYPE_CROM:
 
 						if (const uint cRom = entry.GetCRom( useImageDatabase ))
-							item.pszText = const_cast<tchar*>( strings.GetSize( cRom ) );
+							item.pszText = const_cast<wchar_t*>( strings.GetSize( cRom ) );
 						else
-							item.pszText = const_cast<tchar*>( _T("-") );
+							item.pszText = const_cast<wchar_t*>( L"-" );
 						break;
 
 					case Columns::TYPE_MAPPER:
 
-						item.pszText = const_cast<tchar*>( strings.GetMapper(entry.GetMapper( useImageDatabase )) );
+						item.pszText = const_cast<wchar_t*>( strings.GetMapper(entry.GetMapper( useImageDatabase )) );
 						break;
 
 					case Columns::TYPE_WRAM:
 
 						if (const uint wRam = entry.GetWRam( useImageDatabase ))
-							item.pszText = const_cast<tchar*>( strings.GetSize( wRam ) );
+							item.pszText = const_cast<wchar_t*>( strings.GetSize( wRam ) );
 						else
-							item.pszText = const_cast<tchar*>( _T("-") );
+							item.pszText = const_cast<wchar_t*>( L"-" );
+						break;
+
+					case Columns::TYPE_VRAM:
+
+						if (const uint vRam = entry.GetVRam( useImageDatabase ))
+							item.pszText = const_cast<wchar_t*>( strings.GetSize( vRam ) );
+						else
+							item.pszText = const_cast<wchar_t*>( L"-" );
 						break;
 				}
 			}
@@ -542,6 +520,20 @@ namespace Nestopia
 						return wRam[0] > wRam[1] ? +1 : -1;
 					}
 
+					case Columns::TYPE_VRAM:
+					{
+						const uint vRam[] =
+						{
+							a.GetVRam( useImageDatabase ),
+							b.GetVRam( useImageDatabase )
+						};
+
+						if (vRam[0] == vRam[1])
+							continue;
+
+						return vRam[0] > vRam[1] ? +1 : -1;
+					}
+
 					case Columns::TYPE_BATTERY:
 					{
 						const uint battery[] =
@@ -556,71 +548,26 @@ namespace Nestopia
 						return battery[0] < battery[1] ? +1 : -1;
 					}
 
-					case Columns::TYPE_TRAINER:
+					case Columns::TYPE_DUMP:
 					{
-						const uint trainer[] =
+						const uint dump[] =
 						{
-							a.GetTrainer( useImageDatabase ) + (bool) (a.GetType() & List::Files::Entry::NES),
-							b.GetTrainer( useImageDatabase ) + (bool) (b.GetType() & List::Files::Entry::NES)
+							a.GetDump( useImageDatabase ),
+							b.GetDump( useImageDatabase )
 						};
 
-						if (trainer[0] == trainer[1])
+						if (dump[0] == dump[1])
 							continue;
 
-						return trainer[0] < trainer[1] ? +1 : -1;
-					}
-
-					case Columns::TYPE_MIRRORING:
-					{
-						const uint mirroring[] =
-						{
-							a.GetMirroring( useImageDatabase ),
-							b.GetMirroring( useImageDatabase )
-						};
-
-						if (mirroring[0] == mirroring[1])
-							continue;
-
-						return mirroring[0] > mirroring[1] ? +1 : -1;
-					}
-
-					case Columns::TYPE_CONDITION:
-					{
-						const uint condition[] =
-						{
-							a.GetCondition( useImageDatabase ),
-							b.GetCondition( useImageDatabase )
-						};
-
-						if (condition[0] == condition[1])
-							continue;
-
-						return condition[0] > condition[1] ? +1 : -1;
+						return dump[0] > dump[1] ? +1 : -1;
 					}
 
 					case Columns::TYPE_NAME:
 					{
-						tstring const names[] =
+						wcstring const names[] =
 						{
 							a.GetName( files.GetStrings(), useImageDatabase ),
 							b.GetName( files.GetStrings(), useImageDatabase )
-						};
-
-						if (names[0][0] != '-' && names[1][0] == '-') return -1;
-						if (names[0][0] == '-' && names[1][0] != '-') return +1;
-
-						if (const int ret = ::StrCmp( names[0], names[1] ))
-							return ret;
-
-						continue;
-					}
-
-					case Columns::TYPE_MAKER:
-					{
-						tstring const names[] =
-						{
-							a.GetMaker( files.GetStrings() ),
-							b.GetMaker( files.GetStrings() )
 						};
 
 						if (names[0][0] != '-' && names[1][0] == '-') return -1;
@@ -715,7 +662,6 @@ namespace Nestopia
 				FILE_TYPES =
 				(
 					Managers::Paths::File::IMAGE |
-					Managers::Paths::File::SCRIPT |
 					Managers::Paths::File::IPS |
 					Managers::Paths::File::ARCHIVE
 				)

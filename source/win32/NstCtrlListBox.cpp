@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -44,7 +44,7 @@ namespace Nestopia
 				ListBox_SetItemData( item.control, item.index, data );
 			}
 
-			void ListBox::Item::TextProxy::operator << (tstring const string) const
+			void ListBox::Item::TextProxy::operator << (wcstring const string) const
 			{
 				NST_ASSERT( string );
 
@@ -77,13 +77,13 @@ namespace Nestopia
 				return ListBox_GetCurSel( control ) != LB_ERR;
 			}
 
-			ListBox::Item ListBox::Add(tstring const text) const
+			ListBox::Item ListBox::Add(wcstring const text) const
 			{
 				NST_ASSERT( text );
 				return Item( control, ListBox_AddString( control, text ) );
 			}
 
-			ListBox::Item ListBox::Insert(const uint index,tstring const text) const
+			ListBox::Item ListBox::Insert(const uint index,wcstring const text) const
 			{
 				NST_ASSERT( text );
 				return Item( control, ListBox_InsertString( control, index, text ) );
@@ -112,7 +112,7 @@ namespace Nestopia
 				NST_VERIFY( hWnd );
 			}
 
-			void ListBox::HScrollBar::Update(tstring string,uint length)
+			void ListBox::HScrollBar::Update(wcstring string,uint length)
 			{
 				NST_ASSERT( string || !length );
 

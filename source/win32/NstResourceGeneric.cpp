@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -23,13 +23,13 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 
 #include "NstResourceGeneric.hpp"
-#include <Windows.h>
+#include <windows.h>
 
 namespace Nestopia
 {
 	namespace Resource
 	{
-		bool Generic::Load(const uint id,tstring const type)
+		bool Generic::Load(const uint id,wcstring const type)
 		{
 			data = NULL;
 			size = 0;

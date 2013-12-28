@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -97,6 +97,12 @@ namespace Nes
 			{
 				devices[0]->BeginFrame( input );
 				devices[1]->BeginFrame( input );
+			}
+
+			void AdapterTwo::EndFrame()
+			{
+				devices[0]->EndFrame();
+				devices[1]->EndFrame();
 			}
 
 			void AdapterTwo::Poke(uint data)
@@ -213,6 +219,12 @@ namespace Nes
 			{
 				for (uint i=0; i < 4; ++i)
 					devices[i]->BeginFrame( input );
+			}
+
+			void AdapterFour::EndFrame()
+			{
+				for (uint i=0; i < 4; ++i)
+					devices[i]->EndFrame();
 			}
 
 			void AdapterFour::Poke(const uint data)

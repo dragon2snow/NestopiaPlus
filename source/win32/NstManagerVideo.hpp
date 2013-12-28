@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -29,7 +29,7 @@
 
 #include "NstWindowStatusBar.hpp"
 #include "NstObjectHeap.hpp"
-#include "NstDirect2d.hpp"
+#include "NstDirect2D.hpp"
 #include "../core/api/NstApiNsf.hpp"
 
 namespace Nestopia
@@ -59,8 +59,7 @@ namespace Nestopia
 			{
 				NES_WIDTH = Nes::Video::Output::WIDTH,
 				NES_HEIGHT = Nes::Video::Output::HEIGHT,
-				NTSC_WIDTH = Nes::Video::Output::NTSC_WIDTH,
-				NTSC_HEIGHT = Nes::Video::Output::NTSC_HEIGHT
+				NTSC_WIDTH = Nes::Video::Output::NTSC_WIDTH
 			};
 
 			void StartEmulation();
@@ -68,8 +67,6 @@ namespace Nestopia
 			void SwitchScreen();
 			void Save(Configuration&,const Rect&) const;
 			uint GetMaxMessageLength() const;
-			void LoadPalette(const Path&);
-			void SavePalette(Path&) const;
 			const Rect& GetInputRect() const;
 			bool MustClearFrameScreen() const;
 

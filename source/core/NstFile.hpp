@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -36,10 +36,11 @@ namespace Nes
 		template<typename T>
 		class Vector;
 
+		class Checksum;
+
 		class File
 		{
-			class Buffer;
-			Buffer& buffer;
+			Checksum& checksum;
 
 		public:
 
@@ -48,21 +49,48 @@ namespace Nes
 
 			enum Type
 			{
-				LOAD_BATTERY = 1,
-				SAVE_BATTERY,
-				SAVE_FDS,
-				LOAD_EEPROM,
-				SAVE_EEPROM,
-				LOAD_TAPE,
-				SAVE_TAPE,
-				LOAD_TURBOFILE,
-				SAVE_TURBOFILE
+				BATTERY,
+				EEPROM,
+				TAPE,
+				TURBOFILE,
+				DISK
 			};
 
-			void Load(const byte* NST_RESTRICT,dword) const;
-			bool Load(Type,byte* NST_RESTRICT,dword) const;
-			bool Load(Type,Vector<byte>&,dword) const;
-			void Save(Type,const byte* NST_RESTRICT,dword,bool=true) const;
+			struct LoadBlock
+			{
+				byte* NST_RESTRICT data;
+				dword size;
+			};
+
+			struct SaveBlock
+			{
+				const byte* NST_RESTRICT data;
+				dword size;
+			};
+
+			void Load(const byte*,dword) const;
+			void Load(Type,byte*,dword) const;
+			void Load(Type,Vector<byte>&,dword) const;
+			void Save(Type,const byte*,dword) const;
+
+		private:
+
+			void Load(Type,const LoadBlock*,uint) const;
+			void Save(Type,const SaveBlock*,uint) const;
+
+		public:
+
+			template<uint N>
+			void Load(Type type,const LoadBlock (&block)[N]) const
+			{
+				Load( type, block, N );
+			}
+
+			template<uint N>
+			void Save(Type type,const SaveBlock (&block)[N]) const
+			{
+				Save( type, block, N );
+			}
 		};
 	}
 }

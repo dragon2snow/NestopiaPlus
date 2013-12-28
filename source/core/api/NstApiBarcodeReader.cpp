@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -26,7 +26,10 @@
 #include <ctime>
 #include "../NstMachine.hpp"
 #include "../NstImage.hpp"
-#include "../NstPrpBarcodeReader.hpp"
+#include "../NstBarcodeReader.hpp"
+#include "../input/NstInpDevice.hpp"
+#include "../input/NstInpBarcodeWorld.hpp"
+#include "NstApiInput.hpp"
 #include "NstApiBarcodeReader.hpp"
 
 namespace Nes
@@ -37,12 +40,18 @@ namespace Nes
 		#pragma optimize("s", on)
 		#endif
 
-		Core::Peripherals::BarcodeReader* BarcodeReader::Query() const
+		Core::BarcodeReader* BarcodeReader::Query() const
 		{
 			if (emulator.image)
 			{
 				if (Core::Image::ExternalDevice device = emulator.image->QueryExternalDevice( Core::Image::EXT_BARCODE_READER ))
-					return static_cast<Core::Peripherals::BarcodeReader*>(device);
+				{
+					return static_cast<Core::BarcodeReader*>(device);
+				}
+				else if (emulator.expPort->GetType() == Input::BARCODEWORLD)
+				{
+					return &static_cast<Core::Input::BarcodeWorld*>(emulator.expPort)->GetReader();
+				}
 			}
 
 			return NULL;
@@ -52,7 +61,7 @@ namespace Nes
 		{
 			uint digits = 0;
 
-			if (Core::Peripherals::BarcodeReader* const barcodeReader = Query())
+			if (Core::BarcodeReader* const barcodeReader = Query())
 			{
 				static uint extra = 0x1234;
 				std::srand( std::time(NULL) + extra++ );
@@ -89,7 +98,7 @@ namespace Nes
 
 		bool BarcodeReader::IsDigitsSupported(uint count) const throw()
 		{
-			if (Core::Peripherals::BarcodeReader* const barcodeReader = Query())
+			if (Core::BarcodeReader* const barcodeReader = Query())
 				return barcodeReader->IsDigitsSupported( count );
 
 			return false;
@@ -104,7 +113,7 @@ namespace Nes
 		{
 			if (!emulator.tracker.IsLocked())
 			{
-				if (Core::Peripherals::BarcodeReader* const barcodeReader = Query())
+				if (Core::BarcodeReader* const barcodeReader = Query())
 					return emulator.tracker.TryResync( barcodeReader->Transfer( string, length ) ? RESULT_OK : RESULT_ERR_INVALID_PARAM );
 			}
 

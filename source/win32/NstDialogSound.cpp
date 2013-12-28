@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -49,18 +49,18 @@ namespace Nestopia
 
 		const Sound::ChannelLut Sound::channelLut[NUM_CHANNELS] =
 		{
-			{ "sound master volume",       IDC_SOUND_MASTER_SLIDER,   IDC_SOUND_MASTER_VALUE,   IDC_SOUND_MASTER_TEXT,   0                            },
-			{ "sound apu square 1 volume", IDC_SOUND_SQUARE1_SLIDER,  IDC_SOUND_SQUARE1_VALUE,  IDC_SOUND_SQUARE1_TEXT,  Nes::Sound::CHANNEL_SQUARE1  },
-			{ "sound apu square 2 volume", IDC_SOUND_SQUARE2_SLIDER,  IDC_SOUND_SQUARE2_VALUE,  IDC_SOUND_SQUARE2_TEXT,  Nes::Sound::CHANNEL_SQUARE2  },
-			{ "sound apu triangle volume", IDC_SOUND_TRIANGLE_SLIDER, IDC_SOUND_TRIANGLE_VALUE, IDC_SOUND_TRIANGLE_TEXT, Nes::Sound::CHANNEL_TRIANGLE },
-			{ "sound apu noise volume",    IDC_SOUND_NOISE_SLIDER,    IDC_SOUND_NOISE_VALUE,    IDC_SOUND_NOISE_TEXT,    Nes::Sound::CHANNEL_NOISE    },
-			{ "sound apu dpcm volume",     IDC_SOUND_DPCM_SLIDER,     IDC_SOUND_DPCM_VALUE,     IDC_SOUND_DPCM_TEXT,     Nes::Sound::CHANNEL_DPCM     },
-			{ "sound fds volume",          IDC_SOUND_FDS_SLIDER,      IDC_SOUND_FDS_VALUE,      IDC_SOUND_FDS_TEXT,      Nes::Sound::CHANNEL_FDS      },
-			{ "sound mmc5 volume",         IDC_SOUND_MMC5_SLIDER,     IDC_SOUND_MMC5_VALUE,     IDC_SOUND_MMC5_TEXT,     Nes::Sound::CHANNEL_MMC5     },
-			{ "sound vrc6 volume",         IDC_SOUND_VRC6_SLIDER,     IDC_SOUND_VRC6_VALUE,     IDC_SOUND_VRC6_TEXT,     Nes::Sound::CHANNEL_VRC6     },
-			{ "sound vrc7 volume",         IDC_SOUND_VRC7_SLIDER,     IDC_SOUND_VRC7_VALUE,     IDC_SOUND_VRC7_TEXT,     Nes::Sound::CHANNEL_VRC7     },
-			{ "sound n106 volume",         IDC_SOUND_N106_SLIDER,     IDC_SOUND_N106_VALUE,     IDC_SOUND_N106_TEXT,     Nes::Sound::CHANNEL_N106     },
-			{ "sound s5b volume",          IDC_SOUND_S5B_SLIDER,      IDC_SOUND_S5B_VALUE,      IDC_SOUND_S5B_TEXT,      Nes::Sound::CHANNEL_S5B      }
+			{ NULL,       "master",   IDC_SOUND_MASTER_SLIDER,   IDC_SOUND_MASTER_VALUE,   IDC_SOUND_MASTER_TEXT,   0                            },
+			{ "apu",      "square-1", IDC_SOUND_SQUARE1_SLIDER,  IDC_SOUND_SQUARE1_VALUE,  IDC_SOUND_SQUARE1_TEXT,  Nes::Sound::CHANNEL_SQUARE1  },
+			{ "apu",      "square-2", IDC_SOUND_SQUARE2_SLIDER,  IDC_SOUND_SQUARE2_VALUE,  IDC_SOUND_SQUARE2_TEXT,  Nes::Sound::CHANNEL_SQUARE2  },
+			{ "apu",      "triangle", IDC_SOUND_TRIANGLE_SLIDER, IDC_SOUND_TRIANGLE_VALUE, IDC_SOUND_TRIANGLE_TEXT, Nes::Sound::CHANNEL_TRIANGLE },
+			{ "apu",      "noise",    IDC_SOUND_NOISE_SLIDER,    IDC_SOUND_NOISE_VALUE,    IDC_SOUND_NOISE_TEXT,    Nes::Sound::CHANNEL_NOISE    },
+			{ "apu",      "dpcm",     IDC_SOUND_DPCM_SLIDER,     IDC_SOUND_DPCM_VALUE,     IDC_SOUND_DPCM_TEXT,     Nes::Sound::CHANNEL_DPCM     },
+			{ "external", "fds",      IDC_SOUND_FDS_SLIDER,      IDC_SOUND_FDS_VALUE,      IDC_SOUND_FDS_TEXT,      Nes::Sound::CHANNEL_FDS      },
+			{ "external", "mmc5",     IDC_SOUND_MMC5_SLIDER,     IDC_SOUND_MMC5_VALUE,     IDC_SOUND_MMC5_TEXT,     Nes::Sound::CHANNEL_MMC5     },
+			{ "external", "vrc6",     IDC_SOUND_VRC6_SLIDER,     IDC_SOUND_VRC6_VALUE,     IDC_SOUND_VRC6_TEXT,     Nes::Sound::CHANNEL_VRC6     },
+			{ "external", "vrc7",     IDC_SOUND_VRC7_SLIDER,     IDC_SOUND_VRC7_VALUE,     IDC_SOUND_VRC7_TEXT,     Nes::Sound::CHANNEL_VRC7     },
+			{ "external", "n163",     IDC_SOUND_N163_SLIDER,     IDC_SOUND_N163_VALUE,     IDC_SOUND_N163_TEXT,     Nes::Sound::CHANNEL_N163     },
+			{ "external", "s5b",      IDC_SOUND_S5B_SLIDER,      IDC_SOUND_S5B_VALUE,      IDC_SOUND_S5B_TEXT,      Nes::Sound::CHANNEL_S5B      }
 		};
 
 		struct Sound::Handlers
@@ -90,13 +90,15 @@ namespace Nestopia
 		dialog   ( IDD_SOUND, this, Handlers::messages, Handlers::commands ),
 		recorder ( paths )
 		{
+			Configuration::ConstSection sound( cfg["sound"] );
+
 			settings.adapter = UINT_MAX;
 
 			if (adapters.size())
 			{
-				const GenericString device( cfg["sound device"] );
+				const GenericString device( sound["device"].Str() );
 
-				if (device != _T("none"))
+				if (device != L"none")
 				{
 					const Adapters::const_iterator it( std::find( adapters.begin(), adapters.end(), System::Guid(device) ));
 
@@ -107,7 +109,7 @@ namespace Nestopia
 				}
 			}
 
-			switch (uint rate = cfg["sound sample rate"])
+			switch (uint rate = sound["sample-rate"].Int())
 			{
 				case 11025:
 				case 22050:
@@ -120,7 +122,7 @@ namespace Nestopia
 					break;
 			}
 
-			switch (uint bits = cfg["sound sample bits"])
+			switch (uint bits = sound["sample-bits"].Int())
 			{
 				case 8:
 				case 16:
@@ -129,12 +131,25 @@ namespace Nestopia
 					break;
 			}
 
-			nes.SetAutoTranspose( cfg["sound adjust pitch"] == Configuration::YES );
-			nes.SetSpeaker( GenericString(cfg["sound output"]) == _T("stereo") ? Nes::Sound::SPEAKER_STEREO : Nes::Sound::SPEAKER_MONO );
+			nes.SetAutoTranspose( sound["adjust-pitch"].Yes() );
+			nes.SetSpeaker( sound["speakers"].Str() == L"stereo" ? Nes::Sound::SPEAKER_STEREO : Nes::Sound::SPEAKER_MONO );
+			settings.pool = (sound["memory-pool"].Str() == L"system" ? DirectSound::POOL_SYSTEM : DirectSound::POOL_HARDWARE);
+
+			settings.latency = sound["buffers"].Int( DEFAULT_LATENCY );
+
+			if (settings.latency > LATENCY_MAX)
+				settings.latency = DEFAULT_LATENCY;
+
+			Configuration::ConstSection volumes( sound["volumes"] );
 
 			for (uint i=0; i < NUM_CHANNELS; ++i)
 			{
-				uint volume = cfg[channelLut[i].cfg].Default( uint(DEFAULT_VOLUME) );
+				uint volume;
+
+				if (channelLut[i].cfgCategory)
+					volume = volumes[channelLut[i].cfgCategory][channelLut[i].cfgChannel].Int( DEFAULT_VOLUME );
+				else
+					volume = volumes[channelLut[i].cfgChannel].Int( DEFAULT_VOLUME );
 
 				if (volume > VOLUME_MAX)
 					volume = DEFAULT_VOLUME;
@@ -144,13 +159,6 @@ namespace Nestopia
 				if (channelLut[i].channel)
 					nes.SetVolume( channelLut[i].channel, GetVolume( channelLut[i].channel ) );
 			}
-
-			settings.pool = (GenericString(cfg["sound pool"]) == _T("system") ? DirectSound::POOL_SYSTEM : DirectSound::POOL_HARDWARE);
-
-			settings.latency = cfg[ "sound buffers" ].Default( uint(DEFAULT_LATENCY) );
-
-			if (settings.latency > LATENCY_MAX)
-				settings.latency = DEFAULT_LATENCY;
 		}
 
 		Sound::~Sound()
@@ -159,20 +167,29 @@ namespace Nestopia
 
 		void Sound::Save(Configuration& cfg) const
 		{
-			if (settings.adapter < adapters.size())
-				cfg[ "sound device" ].Quote() = adapters[settings.adapter].guid.GetString();
-			else
-				cfg[ "sound device" ] = _T("none");
+			Configuration::Section sound( cfg["sound"] );
 
-			cfg[ "sound sample rate"  ] = nes.GetSampleRate();
-			cfg[ "sound sample bits"  ] = nes.GetSampleBits();
-			cfg[ "sound buffers"      ] = settings.latency;
-			cfg[ "sound output"       ] = (nes.GetSpeaker() == Nes::Sound::SPEAKER_STEREO ? _T("stereo") : _T("mono"));
-			cfg[ "sound adjust pitch" ].YesNo() = nes.IsAutoTransposing();
-			cfg[ "sound pool"         ] = (settings.pool == DirectSound::POOL_HARDWARE ? _T("hardware") : _T("system"));
+			if (settings.adapter < adapters.size())
+				sound["device"].Str() = adapters[settings.adapter].guid.GetString();
+			else
+				sound["device"].Str() = "none";
+
+			sound[ "sample-rate"  ].Int() = nes.GetSampleRate();
+			sound[ "sample-bits"  ].Int() = nes.GetSampleBits();
+			sound[ "buffers"      ].Int() = settings.latency;
+			sound[ "speakers"     ].Str() = (nes.GetSpeaker() == Nes::Sound::SPEAKER_STEREO ? "stereo" : "mono");
+			sound[ "adjust-pitch" ].YesNo() = nes.IsAutoTransposing();
+			sound[ "memory-pool"  ].Str() = (settings.pool == DirectSound::POOL_HARDWARE ? "hardware" : "system");
+
+			Configuration::Section volumes( sound["volumes"] );
 
 			for (uint i=0; i < NUM_CHANNELS; ++i)
-				cfg[channelLut[i].cfg] = uint(settings.volumes[i]);
+			{
+				if (channelLut[i].cfgCategory)
+					volumes[channelLut[i].cfgCategory][channelLut[i].cfgChannel].Int() = settings.volumes[i];
+				else
+					volumes[channelLut[i].cfgChannel].Int() = settings.volumes[i];
+			}
 		}
 
 		uint Sound::GetVolume(const uint channel) const
@@ -214,14 +231,14 @@ namespace Nestopia
 				}
 
 				{
-					static const tchar rates[][6] =
+					static const wchar_t rates[][6] =
 					{
-						_T("11025"),
-						_T("22050"),
-						_T("44100"),
-						_T("48000"),
-						_T("88200"),
-						_T("96000")
+						L"11025",
+						L"22050",
+						L"44100",
+						L"48000",
+						L"88200",
+						L"96000"
 					};
 
 					uint index;

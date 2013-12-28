@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -51,12 +51,12 @@ namespace Nestopia
 
 			menu.Popups().Add( this, popups );
 
-			menu[IDM_MACHINE_NSF_OPTIONS_PLAYINBACKGROUND].Check( cfg["nsf in background"] != Configuration::NO );
+			menu[IDM_MACHINE_NSF_OPTIONS_PLAYINBACKGROUND].Check( !cfg["nsf"]["play-in-background"].No() );
 		}
 
 		void Nsf::Save(Configuration& cfg) const
 		{
-			cfg["nsf in background"].YesNo() = menu[IDM_MACHINE_NSF_OPTIONS_PLAYINBACKGROUND].Checked();
+			cfg["nsf"]["play-in-background"].YesNo() = menu[IDM_MACHINE_NSF_OPTIONS_PLAYINBACKGROUND].Checked();
 		}
 
 		void Nsf::OnMenu(const Window::Menu::PopupHandler::Param& param)

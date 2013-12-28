@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -32,6 +32,14 @@ namespace Nes
 	{
 		namespace Stream
 		{
+			void In::Clear()
+			{
+				std::istream& ref = *static_cast<std::istream*>(stream);
+
+				if (!ref.bad())
+					ref.clear();
+			}
+
 			void In::SafeRead(byte* data,dword size)
 			{
 				static_cast<std::istream*>(stream)->read( reinterpret_cast<char*>(data), size );
@@ -93,13 +101,33 @@ namespace Nes
 
 			void In::Seek(idword distance)
 			{
+				Clear();
+
+				if (!static_cast<std::istream*>(stream)->seekg( distance, std::ios::cur ))
+					throw RESULT_ERR_CORRUPT_FILE;
+			}
+
+			ulong In::Length()
+			{
+				Clear();
+
 				std::istream& ref = *static_cast<std::istream*>(stream);
 
-				if (!ref.bad())
-					ref.clear();
+				const ulong pos = ref.tellg();
 
-				if (!ref.seekg( distance, std::ios::cur ))
+				if (!ref.seekg( 0, std::istream::end ))
 					throw RESULT_ERR_CORRUPT_FILE;
+
+				Clear();
+
+				const ulong length = ulong(ref.tellg()) - pos;
+
+				if (!ref.seekg( pos ))
+					throw RESULT_ERR_CORRUPT_FILE;
+
+				Clear();
+
+				return length;
 			}
 
 			dword In::AsciiToC(char* NST_RESTRICT dst,const byte* NST_RESTRICT src,dword length)

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -30,7 +30,7 @@
 #include "../input/NstInpDevice.hpp"
 #include "../input/NstInpAdapter.hpp"
 #include "../input/NstInpPad.hpp"
-#include "../input/NstInpLightGun.hpp"
+#include "../input/NstInpZapper.hpp"
 #include "../input/NstInpPaddle.hpp"
 #include "../input/NstInpPowerPad.hpp"
 #include "../input/NstInpPowerGlove.hpp"
@@ -42,7 +42,8 @@
 #include "../input/NstInpHoriTrack.hpp"
 #include "../input/NstInpPachinko.hpp"
 #include "../input/NstInpOekaKidsTablet.hpp"
-#include "../input/NstInpHyperShot.hpp"
+#include "../input/NstInpKonamiHyperShot.hpp"
+#include "../input/NstInpBandaiHyperShot.hpp"
 #include "../input/NstInpCrazyClimber.hpp"
 #include "../input/NstInpMahjong.hpp"
 #include "../input/NstInpExcitingBoxing.hpp"
@@ -50,6 +51,8 @@
 #include "../input/NstInpPokkunMoguraa.hpp"
 #include "../input/NstInpPartyTap.hpp"
 #include "../input/NstInpRob.hpp"
+#include "../input/NstInpTurboFile.hpp"
+#include "../input/NstInpBarcodeWorld.hpp"
 
 namespace Nes
 {
@@ -81,7 +84,8 @@ namespace Nes
 			Controllers::PollCaller1< Controllers::Pachinko          > Controllers::Pachinko::callback;
 			Controllers::PollCaller1< Controllers::VsSystem          > Controllers::VsSystem::callback;
 			Controllers::PollCaller1< Controllers::OekaKidsTablet    > Controllers::OekaKidsTablet::callback;
-			Controllers::PollCaller1< Controllers::HyperShot         > Controllers::HyperShot::callback;
+			Controllers::PollCaller1< Controllers::KonamiHyperShot   > Controllers::KonamiHyperShot::callback;
+			Controllers::PollCaller1< Controllers::BandaiHyperShot   > Controllers::BandaiHyperShot::callback;
 			Controllers::PollCaller1< Controllers::CrazyClimber      > Controllers::CrazyClimber::callback;
 			Controllers::PollCaller2< Controllers::Mahjong           > Controllers::Mahjong::callback;
 			Controllers::PollCaller2< Controllers::ExcitingBoxing    > Controllers::ExcitingBoxing::callback;
@@ -159,7 +163,7 @@ namespace Nes
 
 						case ZAPPER:
 
-							old = new (std::nothrow) Core::Input::LightGun( emulator.cpu, emulator.ppu );
+							old = new (std::nothrow) Core::Input::Zapper( emulator.cpu, emulator.ppu );
 							break;
 
 						case PADDLE:
@@ -318,22 +322,25 @@ namespace Nes
 					}
 					else switch (type)
 					{
-						case UNCONNECTED:       old = new (std::nothrow) Core::Input::Device( emulator.cpu );            break;
-						case PADDLE:            old = new (std::nothrow) Core::Input::Paddle( emulator.cpu, true );      break;
-						case FAMILYTRAINER:     old = new (std::nothrow) Core::Input::FamilyTrainer( emulator.cpu );     break;
-						case FAMILYKEYBOARD:    old = new (std::nothrow) Core::Input::FamilyKeyboard( emulator.cpu );    break;
-						case SUBORKEYBOARD:     old = new (std::nothrow) Core::Input::SuborKeyboard( emulator.cpu );     break;
-						case DOREMIKKOKEYBOARD: old = new (std::nothrow) Core::Input::DoremikkoKeyboard( emulator.cpu ); break;
-						case HORITRACK:         old = new (std::nothrow) Core::Input::HoriTrack( emulator.cpu );         break;
-						case PACHINKO:          old = new (std::nothrow) Core::Input::Pachinko( emulator.cpu );          break;
-						case OEKAKIDSTABLET:    old = new (std::nothrow) Core::Input::OekaKidsTablet( emulator.cpu );    break;
-						case HYPERSHOT:         old = new (std::nothrow) Core::Input::HyperShot( emulator.cpu );         break;
-						case CRAZYCLIMBER:      old = new (std::nothrow) Core::Input::CrazyClimber( emulator.cpu );      break;
-						case MAHJONG:           old = new (std::nothrow) Core::Input::Mahjong( emulator.cpu );           break;
-						case EXCITINGBOXING:    old = new (std::nothrow) Core::Input::ExcitingBoxing( emulator.cpu );    break;
-						case TOPRIDER:          old = new (std::nothrow) Core::Input::TopRider( emulator.cpu );          break;
-						case POKKUNMOGURAA:     old = new (std::nothrow) Core::Input::PokkunMoguraa( emulator.cpu );     break;
-						case PARTYTAP:          old = new (std::nothrow) Core::Input::PartyTap( emulator.cpu );          break;
+						case UNCONNECTED:       old = new (std::nothrow) Core::Input::Device( emulator.cpu );                        break;
+						case PADDLE:            old = new (std::nothrow) Core::Input::Paddle( emulator.cpu, true );                  break;
+						case FAMILYTRAINER:     old = new (std::nothrow) Core::Input::FamilyTrainer( emulator.cpu );                 break;
+						case FAMILYKEYBOARD:    old = new (std::nothrow) Core::Input::FamilyKeyboard( emulator.cpu, true );          break;
+						case SUBORKEYBOARD:     old = new (std::nothrow) Core::Input::SuborKeyboard( emulator.cpu );                 break;
+						case DOREMIKKOKEYBOARD: old = new (std::nothrow) Core::Input::DoremikkoKeyboard( emulator.cpu );             break;
+						case HORITRACK:         old = new (std::nothrow) Core::Input::HoriTrack( emulator.cpu );                     break;
+						case PACHINKO:          old = new (std::nothrow) Core::Input::Pachinko( emulator.cpu );                      break;
+						case OEKAKIDSTABLET:    old = new (std::nothrow) Core::Input::OekaKidsTablet( emulator.cpu );                break;
+						case KONAMIHYPERSHOT:   old = new (std::nothrow) Core::Input::KonamiHyperShot( emulator.cpu );               break;
+						case BANDAIHYPERSHOT:   old = new (std::nothrow) Core::Input::BandaiHyperShot( emulator.cpu, emulator.ppu ); break;
+						case CRAZYCLIMBER:      old = new (std::nothrow) Core::Input::CrazyClimber( emulator.cpu );                  break;
+						case MAHJONG:           old = new (std::nothrow) Core::Input::Mahjong( emulator.cpu );                       break;
+						case EXCITINGBOXING:    old = new (std::nothrow) Core::Input::ExcitingBoxing( emulator.cpu );                break;
+						case TOPRIDER:          old = new (std::nothrow) Core::Input::TopRider( emulator.cpu );                      break;
+						case POKKUNMOGURAA:     old = new (std::nothrow) Core::Input::PokkunMoguraa( emulator.cpu );                 break;
+						case PARTYTAP:          old = new (std::nothrow) Core::Input::PartyTap( emulator.cpu );                      break;
+						case TURBOFILE:         old = new (std::nothrow) Core::Input::TurboFile( emulator.cpu );                     break;
+						case BARCODEWORLD:      old = new (std::nothrow) Core::Input::BarcodeWorld( emulator.cpu );                  break;
 
 						default: return RESULT_ERR_INVALID_PARAM;
 					}

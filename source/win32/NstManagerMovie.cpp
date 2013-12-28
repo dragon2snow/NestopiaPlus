@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -22,10 +22,9 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include <fstream>
 #include "NstIoLog.hpp"
+#include "NstIoStream.hpp"
 #include "NstIoScreen.hpp"
-#include "NstIoNsp.hpp"
 #include "NstResourceString.hpp"
 #include "NstWindowUser.hpp"
 #include "NstManagerPaths.hpp"
@@ -88,11 +87,6 @@ namespace Nestopia
 			file.Update( dialog->GetMovieFile() );
 
 			return !file.GetPath().Empty();
-		}
-
-		void Movie::Save(Io::Nsp::Context& context) const
-		{
-			context.movie = dialog->GetMovieFile();
 		}
 
 		void Movie::OnMenu(const Window::Menu::PopupHandler::Param& param)
@@ -214,11 +208,11 @@ namespace Nestopia
 					}
 					break;
 
-				case Emulator::EVENT_LOAD:
-				case Emulator::EVENT_UNLOAD:
+				case Emulator::EVENT_POWER_ON:
+				case Emulator::EVENT_POWER_OFF:
 
 					if (emulator.NetPlayers())
-						menu[IDM_POS_FILE][IDM_POS_FILE_MOVIE].Enable( event == Emulator::EVENT_UNLOAD );
+						menu[IDM_FILE_MOVIE_FILE].Enable( event == Emulator::EVENT_POWER_OFF );
 
 					break;
 			}
@@ -259,18 +253,16 @@ namespace Nestopia
 
 			if (mode == MODE_PLAY || !path.FileProtected())
 			{
-				std::fstream* const file = new std::fstream
-				(
-					path.Ptr(),
-					mode == MODE_PLAY ? (std::fstream::binary|std::fstream::in) :
-					pos  == POS_BEG   ? (std::fstream::binary|std::fstream::in|std::fstream::out|std::fstream::trunc) :
-										(std::fstream::binary|std::fstream::in|std::fstream::out)
-				);
-
-				stream = file;
-
-				if (file->is_open())
+				try
 				{
+					stream = new Io::Stream::InOut
+					(
+						path,
+						mode == MODE_PLAY ? Io::Stream::InOut::READ :
+						pos  == POS_BEG   ? Io::Stream::InOut::READ|Io::Stream::InOut::WRITE|Io::Stream::InOut::TRUNCATE :
+											Io::Stream::InOut::READ|Io::Stream::InOut::WRITE
+					);
+
 					const Nes::Result result =
 					(
 						mode == MODE_RECORD ? Nes::Movie(emulator).Record( *stream, pos == POS_BEG ? Nes::Movie::CLEAN : Nes::Movie::APPEND ) :
@@ -282,7 +274,7 @@ namespace Nestopia
 
 					msg = Emulator::ResultToString( result );
 				}
-				else
+				catch (...)
 				{
 					msg = IDS_FILE_ERR_OPEN;
 				}

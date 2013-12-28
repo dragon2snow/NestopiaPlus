@@ -1,4 +1,56 @@
 ----------------------------------------------------------------
+1.38
+----------------------------------------------------------------
+
+Shell:
+
+ Additions:
+ 
+  - Option to select favored console in preferences dialog.
+
+ Changes:
+ 
+  - Some video filtering work offloaded to the GPU.
+  - Most settings now stored in XML format.
+  - Misc launcher dialog display properties.
+  - Refactoring.
+
+ Fixes:
+ 
+  - Netplay input communication.
+  - Netplay movie recording bug (menu item accidently grayed).
+
+Core:
+
+ Additions:
+
+  - ROM sets and external database support using new XML format
+    co-developed with Bootgod.    
+  - Mapper 36, 103, 104, 106, 120, 126, 175, 176, 223 and 224. 
+    Info from mad dumper, CaH4e3 and Temryu.
+  - UNIF boards GS-2013 and BS-5. info from CaH4e3.
+  - Emulation of bus conflicts for certain boards.  
+  - Database entries.
+
+ Changes:
+
+  - PPU power/reset timing and register states. Info from blargg.
+  - Misc IRQ/NMI/BRK/DMA special-case behavior. Info from blargg.
+  - NTSC/PAL switch during emulation will now force a hard-reset.
+  - Misc mapper emulation improvements. Info from Bootgod.
+  - NES-EVENT board timer more accurate.
+  - Board names. Info from Bootgod.
+  - Refactoring and mapper codebase overhaul.
+  - Speed optimizations (accuracy NOT compromised!).
+  - Mappers 21, 23, 25 and 185 no longer supported using plain iNES
+    files because of format restrictions.
+  
+ Fixes:
+
+  - MMC3 soft-reset IRQ bug.
+  - Database entries.
+
+----------------------------------------------------------------
 1.37
 ----------------------------------------------------------------
 

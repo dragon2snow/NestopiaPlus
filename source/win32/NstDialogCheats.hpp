@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -32,14 +32,6 @@
 
 namespace Nestopia
 {
-	namespace Io
-	{
-		namespace Nsp
-		{
-			struct Context;
-		}
-	}
-
 	namespace Window
 	{
 		class Cheats
@@ -52,8 +44,6 @@ namespace Nestopia
 			typedef Nes::Cheats::Code Mem;
 
 			void Save(Configuration&) const;
-			void Save(Io::Nsp::Context&) const;
-			void Load(const Io::Nsp::Context&);
 			uint ClearTemporaryCodes();
 
 			enum
@@ -86,8 +76,8 @@ namespace Nestopia
 				~List();
 
 				void Add(const Mem&,Generic::Stream);
-				void Load(const Io::Nsp::Context&);
-				void Import(GenericString=GenericString());
+				void Import(const Path&);
+				void Export(const Path&) const;
 				void InitDialog(Dialog&,uint);
 
 			private:
@@ -123,9 +113,7 @@ namespace Nestopia
 					~Codes();
 
 					void Load(const Configuration&);
-					void Load(const Io::Nsp::Context&);
 					void Save(Configuration&) const;
-					uint Save(Io::Nsp::Context&) const;
 					void Clear();
 					Code& Add(const Mem&);
 				};
@@ -145,6 +133,7 @@ namespace Nestopia
 				};
 
 				void AddToDialog(const Code&) const;
+				static bool Import(Codes&,const Path&);
 
 				ibool OnCmdAdd    (Param&);
 				ibool OnCmdRemove (Param&);
@@ -177,11 +166,6 @@ namespace Nestopia
 				void Save(Configuration& cfg) const
 				{
 					codes.Save( cfg );
-				}
-
-				uint Save(Io::Nsp::Context& context) const
-				{
-					return codes.Save( context );
 				}
 
 				uint Size() const

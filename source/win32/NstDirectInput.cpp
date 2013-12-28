@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -22,6 +22,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
+#include <new>
 #include "language/resource.h"
 #include "NstApplicationException.hpp"
 #include "NstApplicationInstance.hpp"
@@ -46,43 +47,43 @@ namespace Nestopia
 			uint (*code)(const void* const);
 			ushort offset;
 			ushort axis;
-			tstring name;
+			wcstring name;
 		};
 
 		const DirectInput::Joystick::Lookup DirectInput::Joystick::table[TABLE_KEYS] =
 		{
-			{ KeyPosDir,   DIJOFS_Y,         AXIS_Y,        _T("+y")   },
-			{ KeyPosDir,   DIJOFS_X,         AXIS_X,        _T("+x")   },
-			{ KeyNegDir,   DIJOFS_Y,         AXIS_Y,        _T("-y")   },
-			{ KeyNegDir,   DIJOFS_X,         AXIS_X,        _T("-x")   },
-			{ KeyPosDir,   DIJOFS_Z,         AXIS_Z,        _T("+z")   },
-			{ KeyNegDir,   DIJOFS_Z,         AXIS_Z,        _T("-z")   },
-			{ KeyPosDir,   DIJOFS_RY,        AXIS_RY,       _T("+ry")  },
-			{ KeyPosDir,   DIJOFS_RX,        AXIS_RX,       _T("+rx")  },
-			{ KeyPosDir,   DIJOFS_RY,        AXIS_RY,       _T("-ry")  },
-			{ KeyNegDir,   DIJOFS_RX,        AXIS_RX,       _T("-rx")  },
-			{ KeyPosDir,   DIJOFS_RZ,        AXIS_RZ,       _T("+rz")  },
-			{ KeyNegDir,   DIJOFS_RZ,        AXIS_RZ,       _T("-rz")  },
-			{ KeyNegDir,   DIJOFS_SLIDER(0), AXIS_SLIDER_0, _T("-s0")  },
-			{ KeyPosDir,   DIJOFS_SLIDER(0), AXIS_SLIDER_0, _T("+s0")  },
-			{ KeyNegDir,   DIJOFS_SLIDER(1), AXIS_SLIDER_1, _T("-s1")  },
-			{ KeyPosDir,   DIJOFS_SLIDER(1), AXIS_SLIDER_1, _T("+s1")  },
-			{ KeyPovUp,    DIJOFS_POV(0),    AXIS_POV_0,    _T("-p0y") },
-			{ KeyPovRight, DIJOFS_POV(0),    AXIS_POV_0,    _T("+p0x") },
-			{ KeyPovDown,  DIJOFS_POV(0),    AXIS_POV_0,    _T("+p0y") },
-			{ KeyPovLeft,  DIJOFS_POV(0),    AXIS_POV_0,    _T("-p0x") },
-			{ KeyPovUp,    DIJOFS_POV(1),    AXIS_POV_1,    _T("-p1y") },
-			{ KeyPovRight, DIJOFS_POV(1),    AXIS_POV_1,    _T("+p1x") },
-			{ KeyPovDown,  DIJOFS_POV(1),    AXIS_POV_1,    _T("+p1y") },
-			{ KeyPovLeft,  DIJOFS_POV(1),    AXIS_POV_1,    _T("-p1x") },
-			{ KeyPovUp,    DIJOFS_POV(2),    AXIS_POV_2,    _T("-p2y") },
-			{ KeyPovRight, DIJOFS_POV(2),    AXIS_POV_2,    _T("+p2x") },
-			{ KeyPovDown,  DIJOFS_POV(2),    AXIS_POV_2,    _T("+p2y") },
-			{ KeyPovLeft,  DIJOFS_POV(2),    AXIS_POV_2,    _T("-p2x") },
-			{ KeyPovUp,    DIJOFS_POV(3),    AXIS_POV_3,    _T("-p3y") },
-			{ KeyPovRight, DIJOFS_POV(3),    AXIS_POV_3,    _T("+p3x") },
-			{ KeyPovDown,  DIJOFS_POV(3),    AXIS_POV_3,    _T("+p3y") },
-			{ KeyPovLeft,  DIJOFS_POV(3),    AXIS_POV_3,    _T("-p3x") }
+			{ KeyPosDir,   DIJOFS_Y,         AXIS_Y,        L"+y"   },
+			{ KeyPosDir,   DIJOFS_X,         AXIS_X,        L"+x"   },
+			{ KeyNegDir,   DIJOFS_Y,         AXIS_Y,        L"-y"   },
+			{ KeyNegDir,   DIJOFS_X,         AXIS_X,        L"-x"   },
+			{ KeyPosDir,   DIJOFS_Z,         AXIS_Z,        L"+z"   },
+			{ KeyNegDir,   DIJOFS_Z,         AXIS_Z,        L"-z"   },
+			{ KeyPosDir,   DIJOFS_RY,        AXIS_RY,       L"+ry"  },
+			{ KeyPosDir,   DIJOFS_RX,        AXIS_RX,       L"+rx"  },
+			{ KeyPosDir,   DIJOFS_RY,        AXIS_RY,       L"-ry"  },
+			{ KeyNegDir,   DIJOFS_RX,        AXIS_RX,       L"-rx"  },
+			{ KeyPosDir,   DIJOFS_RZ,        AXIS_RZ,       L"+rz"  },
+			{ KeyNegDir,   DIJOFS_RZ,        AXIS_RZ,       L"-rz"  },
+			{ KeyNegDir,   DIJOFS_SLIDER(0), AXIS_SLIDER_0, L"-s0"  },
+			{ KeyPosDir,   DIJOFS_SLIDER(0), AXIS_SLIDER_0, L"+s0"  },
+			{ KeyNegDir,   DIJOFS_SLIDER(1), AXIS_SLIDER_1, L"-s1"  },
+			{ KeyPosDir,   DIJOFS_SLIDER(1), AXIS_SLIDER_1, L"+s1"  },
+			{ KeyPovUp,    DIJOFS_POV(0),    AXIS_POV_0,    L"-p0y" },
+			{ KeyPovRight, DIJOFS_POV(0),    AXIS_POV_0,    L"+p0x" },
+			{ KeyPovDown,  DIJOFS_POV(0),    AXIS_POV_0,    L"+p0y" },
+			{ KeyPovLeft,  DIJOFS_POV(0),    AXIS_POV_0,    L"-p0x" },
+			{ KeyPovUp,    DIJOFS_POV(1),    AXIS_POV_1,    L"-p1y" },
+			{ KeyPovRight, DIJOFS_POV(1),    AXIS_POV_1,    L"+p1x" },
+			{ KeyPovDown,  DIJOFS_POV(1),    AXIS_POV_1,    L"+p1y" },
+			{ KeyPovLeft,  DIJOFS_POV(1),    AXIS_POV_1,    L"-p1x" },
+			{ KeyPovUp,    DIJOFS_POV(2),    AXIS_POV_2,    L"-p2y" },
+			{ KeyPovRight, DIJOFS_POV(2),    AXIS_POV_2,    L"+p2x" },
+			{ KeyPovDown,  DIJOFS_POV(2),    AXIS_POV_2,    L"+p2y" },
+			{ KeyPovLeft,  DIJOFS_POV(2),    AXIS_POV_2,    L"-p2x" },
+			{ KeyPovUp,    DIJOFS_POV(3),    AXIS_POV_3,    L"-p3y" },
+			{ KeyPovRight, DIJOFS_POV(3),    AXIS_POV_3,    L"+p3x" },
+			{ KeyPovDown,  DIJOFS_POV(3),    AXIS_POV_3,    L"+p3y" },
+			{ KeyPovLeft,  DIJOFS_POV(3),    AXIS_POV_3,    L"-p3x" }
 		};
 
 		#ifdef NST_MSVC_OPTIMIZE
@@ -150,7 +151,7 @@ namespace Nestopia
 			IDirectInput8* com;
 
 			if (FAILED(::DirectInput8Create( ::GetModuleHandle(NULL), DIRECTINPUT_VERSION, IID_IDirectInput8, reinterpret_cast<void**>(&com), NULL )))
-				throw Application::Exception( IDS_ERR_FAILED, _T("DirectInput8Create()") );
+				throw Application::Exception( IDS_ERR_FAILED, L"DirectInput8Create()" );
 
 			return *com;
 		}
@@ -183,7 +184,7 @@ namespace Nestopia
 				}
 
 				Io::Log() << "DirectInput: enumerating device - name: "
-                          << (*instance->tszProductName ? instance->tszProductName : _T("unknown"))
+                          << (*instance->tszProductName ? instance->tszProductName : L"unknown")
                           << ", GUID: "
                           << System::Guid( instance->guidInstance ).GetString()
                           << "\r\n";
@@ -291,7 +292,7 @@ namespace Nestopia
 			return scan;
 		}
 
-		bool DirectInput::MapKey(Key& key,tstring const name,const System::Guid* const guids,const uint numGuids) const
+		bool DirectInput::MapKey(Key& key,wcstring const name,const System::Guid* const guids,const uint numGuids) const
 		{
 			key.Unmap();
 
@@ -353,7 +354,7 @@ namespace Nestopia
 					for (uint i=0, n=joysticks.Size(); i < n; ++i)
 					{
 						if (joysticks[i].Assigned( key ))
-							return HeapString(_T("(joy ")) << i << _T(") ") << joysticks[i].GetName( key );
+							return HeapString("(joy ") << i << ") " << joysticks[i].GetName( key );
 					}
 
 					HeapString name;
@@ -373,7 +374,7 @@ namespace Nestopia
 				}
 			}
 
-			return _T("...");
+			return L"...";
 		}
 
 		DirectInput::Device::Device(IDirectInputDevice8& c)
@@ -416,12 +417,12 @@ namespace Nestopia
 			IDirectInputDevice8* com;
 
 			if (FAILED(base.CreateDevice( GUID_SysKeyboard, &com, NULL )))
-				throw Application::Exception( IDS_ERR_FAILED, _T("IDirectInput8::CreateDevice()") );
+				throw Application::Exception( IDS_ERR_FAILED, L"IDirectInput8::CreateDevice()" );
 
 			if (FAILED(com->SetDataFormat( &c_dfDIKeyboard )))
 			{
 				com->Release();
-				throw Application::Exception( IDS_ERR_FAILED, _T("IDirectInputDevice8::SetDataFormat()") );
+				throw Application::Exception( IDS_ERR_FAILED, L"IDirectInputDevice8::SetDataFormat()" );
 			}
 
 			return *com;
@@ -448,10 +449,10 @@ namespace Nestopia
 		void DirectInput::Keyboard::SetCooperativeLevel(HWND const hWnd,const DWORD flags) const
 		{
 			if (FAILED(com.SetCooperativeLevel( hWnd, flags )))
-				throw Application::Exception( IDS_ERR_FAILED, _T("IDirectInputDevice8::SetCooperativeLevel()") );
+				throw Application::Exception( IDS_ERR_FAILED, L"IDirectInputDevice8::SetCooperativeLevel()" );
 		}
 
-		bool DirectInput::Keyboard::Map(Key& key,tstring name) const
+		bool DirectInput::Keyboard::Map(Key& key,wcstring name) const
 		{
 			for (uint i=0; i < MAX_KEYS; ++i)
 			{
@@ -553,7 +554,7 @@ namespace Nestopia
 			return key.data >= buffer && key.data < (buffer + Buffer::SIZE);
 		}
 
-		tstring DirectInput::Keyboard::GetName(const Key& key) const
+		wcstring DirectInput::Keyboard::GetName(const Key& key) const
 		{
 			NST_VERIFY( Assigned(key) );
 			return keyNames[key.data - buffer].Ptr();
@@ -610,7 +611,7 @@ namespace Nestopia
 		: caps(c), com(d), numButtons(0) {}
 
 		DirectInput::Joystick::Caps::Caps(IDirectInputDevice8& com,const DIDEVICEINSTANCE& instance)
-		: axes(0), guid(instance.guidInstance), name(*instance.tszProductName ? instance.tszProductName : _T("unknown"))
+		: axes(0), guid(instance.guidInstance), name(*instance.tszProductName ? instance.tszProductName : L"unknown")
 		{
 			Context context( *this, com );
 
@@ -857,7 +858,7 @@ namespace Nestopia
 			return false;
 		}
 
-		bool DirectInput::Joystick::Map(Key& key,tstring const name) const
+		bool DirectInput::Joystick::Map(Key& key,wcstring const name) const
 		{
 			if (*name)
 			{
@@ -906,13 +907,13 @@ namespace Nestopia
 			);
 		}
 
-		tstring DirectInput::Joystick::GetName(const Key& key) const
+		wcstring DirectInput::Joystick::GetName(const Key& key) const
 		{
 			NST_VERIFY( Assigned(key) );
 
 			if (key.code == KeyDown)
 			{
-				static tchar button[] = _T("xx");
+				static wchar_t button[] = L"xx";
 
 				const uint index = key.data - state.rgbButtons;
 				button[0] = index < 10 ? '0' + index : '0' + index / 10;
@@ -943,7 +944,7 @@ namespace Nestopia
 				case DIERR_UNPLUGGED:
 
 					Enable( false );
-					Io::Screen() << _T("Error! Joystick unplugged!");
+					Io::Screen() << L"Error! Joystick unplugged!";
 
 				default:
 

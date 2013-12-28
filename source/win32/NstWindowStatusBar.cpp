@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -98,7 +98,7 @@ namespace Nestopia
 					);
 
 					if (window == NULL)
-						throw Application::Exception( IDS_ERR_FAILED, _T("CreateWindowEx()") );
+						throw Application::Exception( IDS_ERR_FAILED, L"CreateWindowEx()" );
 
 					width.Calculate( window );
 					Update();
@@ -120,7 +120,7 @@ namespace Nestopia
 			window.Show();
 		}
 
-		void StatusBar::Stream::operator << (tstring text) const
+		void StatusBar::Stream::operator << (wcstring text) const
 		{
 			if (window)
 				window.Send( SB_SETTEXT, field|0, text );
@@ -128,7 +128,7 @@ namespace Nestopia
 
 		void StatusBar::Stream::Clear() const
 		{
-			operator << (_T(""));
+			operator << (L"");
 		}
 
 		uint StatusBar::GetMaxMessageLength() const

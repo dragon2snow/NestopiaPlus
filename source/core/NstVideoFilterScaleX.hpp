@@ -2,8 +2,8 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
 // Copyright (C) 2001, 2002, 2003, 2004 Andrea Mazzoleni
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -48,32 +48,32 @@ namespace Nes
 
 				~FilterScaleX() {}
 
-				typedef void (FilterScaleX::*Path)(const Input&,const Output&,uint) const;
+				typedef void (*Path)(const Input&,const Output&);
 
 				static Path GetPath(const RenderState&);
 
 				void Blit(const Input&,const Output&,uint);
 
 				template<typename T,int PREV,int NEXT>
-				NST_FORCE_INLINE T* Blit2xBorder(T* NST_RESTRICT,const Input::Pixel* NST_RESTRICT,const Input::Palette&) const;
+				static NST_FORCE_INLINE T* Blit2xBorder(T* NST_RESTRICT,const Input::Pixel* NST_RESTRICT,const Input::Palette&);
 
 				template<typename T,int PREV,int NEXT>
-				NST_FORCE_INLINE T* Blit3xBorder(T* NST_RESTRICT,const Input::Pixel* NST_RESTRICT,const Input::Palette&) const;
+				static NST_FORCE_INLINE T* Blit3xBorder(T* NST_RESTRICT,const Input::Pixel* NST_RESTRICT,const Input::Palette&);
 
 				template<typename T>
-				NST_FORCE_INLINE T* Blit3xCenter(T* NST_RESTRICT,const Input::Pixel* NST_RESTRICT,const Input::Palette&) const;
+				static NST_FORCE_INLINE T* Blit3xCenter(T* NST_RESTRICT,const Input::Pixel* NST_RESTRICT,const Input::Palette&);
 
 				template<typename T,int PREV,int NEXT>
-				NST_FORCE_INLINE T* Blit2xLine(T*,const Input::Pixel*,const Input::Palette&,long) const;
+				static NST_FORCE_INLINE T* Blit2xLine(T*,const Input::Pixel*,const Input::Palette&,long);
 
 				template<typename T,int PREV,int NEXT>
-				NST_FORCE_INLINE T* Blit3xLine(T*,const Input::Pixel*,const Input::Palette&,long) const;
+				static NST_FORCE_INLINE T* Blit3xLine(T*,const Input::Pixel*,const Input::Palette&,long);
 
 				template<typename T>
-				void Blit2x(const Input&,const Output&,uint) const;
+				static void Blit2x(const Input&,const Output&);
 
 				template<typename T>
-				void Blit3x(const Input&,const Output&,uint) const;
+				static void Blit3x(const Input&,const Output&);
 
 				const Path path;
 			};

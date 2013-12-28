@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -23,7 +23,7 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 
 #include "NstSystemInfo.hpp"
-#include <Windows.h>
+#include <windows.h>
 
 namespace Nestopia
 {
@@ -65,7 +65,7 @@ namespace Nestopia
 							ERROR_SUCCESS == ::RegOpenKeyEx
 							(
 								HKEY_LOCAL_MACHINE,
-								_T("HARDWARE\\DESCRIPTION\\System\\CentralProcessor\\0"),
+								L"HARDWARE\\DESCRIPTION\\System\\CentralProcessor\\0",
 								0,
 								KEY_QUERY_VALUE,
 								&hKey
@@ -79,7 +79,7 @@ namespace Nestopia
 								ERROR_SUCCESS == ::RegQueryValueEx
 								(
 									hKey,
-									_T("~MHz"),
+									L"~MHz",
 									NULL,
 									&data,
 									NULL,
@@ -90,7 +90,7 @@ namespace Nestopia
 								&& ERROR_SUCCESS == ::RegQueryValueEx
 								(
 									hKey,
-									_T("~MHz"),
+									L"~MHz",
 									NULL,
 									NULL,
 									reinterpret_cast<BYTE*>(&data),

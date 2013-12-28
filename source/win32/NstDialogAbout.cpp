@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -84,8 +84,8 @@ namespace Nestopia
 
 				if (dialog.Control( param.Button().GetId() ).Text() >> cmd)
 				{
-					cmd.Insert( 0, param.Button().GetId() == IDC_ABOUT_MAIL ? _T("mailto:") : _T("http://") );
-					::ShellExecute( NULL, _T("open"), cmd.Ptr(), NULL, NULL, SW_SHOWNORMAL );
+					cmd.Insert( 0, param.Button().GetId() == IDC_ABOUT_MAIL ? L"mailto:" : L"http://" );
+					::ShellExecute( NULL, L"open", cmd.Ptr(), NULL, NULL, SW_SHOWNORMAL );
 				}
 			}
 

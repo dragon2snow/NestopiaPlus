@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -35,50 +35,6 @@ namespace Nes
 {
 	namespace Core
 	{
-		const byte Cartridge::VsSystem::yuvMaps[4][0x40] =
-		{
-			{
-				0x35, 0x23, 0x16, 0x22, 0x1C, 0x09, 0x2D, 0x15,
-				0x20, 0x00, 0x27, 0x05, 0x04, 0x28, 0x08, 0x20,
-				0x21, 0x27, 0x07, 0x29, 0x3C, 0x32, 0x36, 0x12,
-				0x28, 0x2B, 0x0D, 0x08, 0x10, 0x3D, 0x24, 0x01,
-				0x01, 0x31, 0x33, 0x2A, 0x2C, 0x0C, 0x1B, 0x14,
-				0x0D, 0x07, 0x34, 0x06, 0x13, 0x02, 0x26, 0x0D,
-				0x0D, 0x19, 0x10, 0x0A, 0x39, 0x03, 0x37, 0x17,
-				0x09, 0x11, 0x1A, 0x1D, 0x38, 0x25, 0x18, 0x3A
-			},
-			{
-				0x0D, 0x27, 0x18, 0x39, 0x3A, 0x25, 0x1C, 0x31,
-				0x16, 0x13, 0x38, 0x34, 0x20, 0x23, 0x3C, 0x1A,
-				0x09, 0x21, 0x06, 0x10, 0x1B, 0x29, 0x08, 0x22,
-				0x2D, 0x24, 0x01, 0x2B, 0x32, 0x08, 0x0D, 0x03,
-				0x04, 0x36, 0x26, 0x33, 0x11, 0x07, 0x10, 0x02,
-				0x14, 0x28, 0x00, 0x09, 0x12, 0x0D, 0x28, 0x20,
-				0x27, 0x1D, 0x2A, 0x17, 0x0C, 0x01, 0x15, 0x19,
-				0x0D, 0x2C, 0x07, 0x37, 0x35, 0x05, 0x0A, 0x3D
-			},
-			{
-				0x14, 0x25, 0x3A, 0x10, 0x1A, 0x20, 0x31, 0x09,
-				0x01, 0x0D, 0x36, 0x08, 0x15, 0x10, 0x27, 0x3C,
-				0x22, 0x1C, 0x05, 0x12, 0x19, 0x18, 0x17, 0x1B,
-				0x00, 0x03, 0x0D, 0x02, 0x16, 0x06, 0x34, 0x35,
-				0x23, 0x09, 0x01, 0x37, 0x1D, 0x27, 0x26, 0x20,
-				0x29, 0x04, 0x21, 0x24, 0x11, 0x3D, 0x0D, 0x07,
-				0x2C, 0x08, 0x39, 0x33, 0x07, 0x2A, 0x28, 0x2D,
-				0x0A, 0x0D, 0x32, 0x38, 0x13, 0x2B, 0x28, 0x0C
-			},
-			{
-				0x18, 0x03, 0x1C, 0x28, 0x0D, 0x35, 0x01, 0x17,
-				0x10, 0x07, 0x2A, 0x01, 0x36, 0x37, 0x1A, 0x39,
-				0x25, 0x08, 0x12, 0x34, 0x0D, 0x2D, 0x06, 0x26,
-				0x27, 0x1B, 0x22, 0x19, 0x04, 0x0D, 0x3A, 0x21,
-				0x05, 0x0A, 0x07, 0x02, 0x13, 0x14, 0x00, 0x15,
-				0x0C, 0x10, 0x11, 0x09, 0x1D, 0x38, 0x3D, 0x24,
-				0x33, 0x20, 0x08, 0x16, 0x28, 0x2B, 0x20, 0x3C,
-				0x0D, 0x27, 0x23, 0x31, 0x29, 0x32, 0x2C, 0x09
-			}
-		};
-
 		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("s", on)
 		#endif
@@ -300,7 +256,7 @@ namespace Nes
 			uint numDips;
 			Cpu& cpu;
 			Ppu& ppu;
-			Revision::Ppu ppuRev;
+			PpuModel ppuModel;
 			Mode mode;
 			InputMapper::Type inputMapper;
 
@@ -310,7 +266,7 @@ namespace Nes
 			numDips     (0),
 			cpu         (c),
 			ppu         (p),
-			ppuRev      (Revision::PPU_RP2C03B),
+			ppuModel    (PPU_RP2C03B),
 			mode        (MODE_STD),
 			inputMapper (InputMapper::TYPE_NONE)
 			{
@@ -327,10 +283,8 @@ namespace Nes
 		(
 			Cpu& cpu,
 			Ppu& ppu,
-			const Revision::Ppu ppuRev,
-			const Mode mode,
-			const dword prgCrc,
-			const bool correctData
+			const PpuModel ppuModel,
+			const dword prgCrc
 		)
 		{
 			switch (prgCrc)
@@ -357,7 +311,6 @@ namespace Nes
 				case 0xF42DAB14: // Ice Climber P1
 				case 0x7D6B764F: // Ice Climber P2
 
-					Log::Flush( "VsSystem: error, Dual-System games are not supported" NST_LINEBREAK );
 					throw RESULT_ERR_UNSUPPORTED_VSSYSTEM;
 			}
 
@@ -377,22 +330,22 @@ namespace Nes
 						context.dips[0][1] = Dip::Value( "1 Coin / 2 Credits", 0x01 );
 						context.dips[0][2] = Dip::Value( "2 Coins / 1 Credit", 0x02 );
 						context.dips[0][3] = Dip::Value( "3 Coins / 1 Credit", 0x03 );
-						context.dips[1]    = Dip::Value( "Unknown",            2, 0 );
+						context.dips[1]    = Dip::Value( "Unknown/Unused",     2, 0 );
 						context.dips[1][0] = Dip::Value( "Off",                0x00 );
 						context.dips[1][1] = Dip::Value( "On",                 0x04 );
-						context.dips[2]    = Dip::Value( "Unknown",            2, 0 );
+						context.dips[2]    = Dip::Value( "Unknown/Unused",     2, 0 );
 						context.dips[2][0] = Dip::Value( "Off",                0x00 );
 						context.dips[2][1] = Dip::Value( "On",                 0x08 );
-						context.dips[3]    = Dip::Value( "Unknown",            2, 0 );
+						context.dips[3]    = Dip::Value( "Unknown/Unused",     2, 0 );
 						context.dips[3][0] = Dip::Value( "Off",                0x00 );
 						context.dips[3][1] = Dip::Value( "On",                 0x10 );
 						context.dips[4]    = Dip::Value( "Palette Color",      2, 1 );
 						context.dips[4][0] = Dip::Value( "Black",              0x00 );
 						context.dips[4][1] = Dip::Value( "White",              0x20 );
-						context.dips[5]    = Dip::Value( "Unknown",            2, 0 );
+						context.dips[5]    = Dip::Value( "Unknown/Unused",     2, 0 );
 						context.dips[5][0] = Dip::Value( "Off",                0x00 );
 						context.dips[5][1] = Dip::Value( "On",                 0x40 );
-						context.dips[6]    = Dip::Value( "Unknown",            2, 0 );
+						context.dips[6]    = Dip::Value( "Unknown/Unused",     2, 0 );
 						context.dips[6][0] = Dip::Value( "Off",                0x00 );
 						context.dips[6][1] = Dip::Value( "On",                 0x80 );
 
@@ -471,17 +424,17 @@ namespace Nes
 						context.dips[1][0] = Dip::Value( "3",                   0x00 );
 						context.dips[1][1] = Dip::Value( "4",                   0x10 );
 						context.dips[1][2] = Dip::Value( "5",                   0x08 );
-						context.dips[2]    = Dip::Value( "Unknown",             2, 0 );
+						context.dips[2]    = Dip::Value( "Unknown/Unused",      2, 0 );
 						context.dips[2][0] = Dip::Value( "Off",                 0x00 );
 						context.dips[2][1] = Dip::Value( "On",                  0x20 );
-						context.dips[3]    = Dip::Value( "Unknown",             2, 0 );
+						context.dips[3]    = Dip::Value( "Unknown/Unused",      2, 0 );
 						context.dips[3][0] = Dip::Value( "Off",                 0x00 );
 						context.dips[3][1] = Dip::Value( "On",                  0x40 );
 						context.dips[4]    = Dip::Value( "Demo Sounds",         2, 1 );
 						context.dips[4][0] = Dip::Value( "Off",                 0x00 );
 						context.dips[4][1] = Dip::Value( "On",                  0x80 );
 
-						context.ppuRev = Revision::PPU_RC2C05_01;
+						context.ppuModel = PPU_RC2C05_01;
 						context.inputMapper = InputMapper::TYPE_3;
 						break;
 
@@ -493,20 +446,20 @@ namespace Nes
 						context.dips[0][1] = Dip::Value( "1 Coin / 2 Credits", 0x02 );
 						context.dips[0][2] = Dip::Value( "2 Coins / 1 Credit", 0x01 );
 						context.dips[0][3] = Dip::Value( "3 Coins / 1 Credit", 0x03 );
-						context.dips[1]    = Dip::Value( "Unknown",            2, 0 );
+						context.dips[1]    = Dip::Value( "Unknown/Unused",     2, 0 );
 						context.dips[1][0] = Dip::Value( "Off",                0x00 );
 						context.dips[1][1] = Dip::Value( "On",                 0x04 );
-						context.dips[2]    = Dip::Value( "Unknown",            2, 0 );
+						context.dips[2]    = Dip::Value( "Unknown/Unused",     2, 0 );
 						context.dips[2][0] = Dip::Value( "Off",                0x00 );
 						context.dips[2][1] = Dip::Value( "On",                 0x08 );
-						context.dips[3]    = Dip::Value( "Unknown",            2, 0 );
+						context.dips[3]    = Dip::Value( "Unknown/Unused",     2, 0 );
 						context.dips[3][0] = Dip::Value( "Off",                0x00 );
 						context.dips[3][1] = Dip::Value( "On",                 0x10 );
 						context.dips[4]    = Dip::Value( "Palette Color",      3, 2 );
 						context.dips[4][0] = Dip::Value( "Black",              0x40 );
 						context.dips[4][1] = Dip::Value( "Green",              0x20 );
 						context.dips[4][2] = Dip::Value( "Grey",               0x60 );
-						context.dips[5]    = Dip::Value( "Unknown",            2, 0 );
+						context.dips[5]    = Dip::Value( "Unknown/Unused",     2, 0 );
 						context.dips[5][0] = Dip::Value( "Off",                0x00 );
 						context.dips[5][1] = Dip::Value( "On",                 0x80 );
 
@@ -540,7 +493,7 @@ namespace Nes
 						context.dips[4][0] = Dip::Value( "Off",                 0x00 );
 						context.dips[4][1] = Dip::Value( "On",                  0x80 );
 
-						context.ppuRev = Revision::PPU_RC2C05_04;
+						context.ppuModel = PPU_RC2C05_04;
 						context.inputMapper = InputMapper::TYPE_1;
 						break;
 
@@ -571,17 +524,17 @@ namespace Nes
 						context.dips[4][0] = Dip::Value( "Off",                 0x00 );
 						context.dips[4][1] = Dip::Value( "On",                  0x80 );
 
-						context.ppuRev = Revision::PPU_RP2C04_0002;
+						context.ppuModel = PPU_RP2C04_0002;
 						context.inputMapper = InputMapper::TYPE_1;
 						break;
 
 					case 0xCF36261E: // Super Sky Kid
 
 						context.SetDips(5);
-						context.dips[0]    = Dip::Value( "Unknown",            2, 0 );
+						context.dips[0]    = Dip::Value( "Unknown/Unused",     2, 0 );
 						context.dips[0][0] = Dip::Value( "Off",                0x00 );
 						context.dips[0][1] = Dip::Value( "On",                 0x01 );
-						context.dips[1]    = Dip::Value( "Unknown",            2, 0 );
+						context.dips[1]    = Dip::Value( "Unknown/Unused",     2, 0 );
 						context.dips[1][0] = Dip::Value( "Off",                0x00 );
 						context.dips[1][1] = Dip::Value( "On",                 0x02 );
 						context.dips[2]    = Dip::Value( "Lives",              2, 0 );
@@ -610,20 +563,20 @@ namespace Nes
 						context.dips[0][1] = Dip::Value( "1 Coin / 2 Credits", 0x02 );
 						context.dips[0][2] = Dip::Value( "2 Coins / 1 Credit", 0x01 );
 						context.dips[0][3] = Dip::Value( "3 Coins / 1 Credit", 0x03 );
-						context.dips[1]    = Dip::Value( "Unknown",            2, 0 );
+						context.dips[1]    = Dip::Value( "Unknown/Unused",     2, 0 );
 						context.dips[1][0] = Dip::Value( "Off",                0x00 );
 						context.dips[1][1] = Dip::Value( "On",                 0x04 );
-						context.dips[2]    = Dip::Value( "Unknown",            2, 0 );
+						context.dips[2]    = Dip::Value( "Unknown/Unused",     2, 0 );
 						context.dips[2][0] = Dip::Value( "Off",                0x00 );
 						context.dips[2][1] = Dip::Value( "On",                 0x08 );
-						context.dips[3]    = Dip::Value( "Unknown",            2, 0 );
+						context.dips[3]    = Dip::Value( "Unknown/Unused",     2, 0 );
 						context.dips[3][0] = Dip::Value( "Off",                0x00 );
 						context.dips[3][1] = Dip::Value( "On",                 0x10 );
 						context.dips[4]    = Dip::Value( "Palette Color",      3, 0 );
 						context.dips[4][0] = Dip::Value( "Black",              0x40 );
 						context.dips[4][1] = Dip::Value( "Green",              0x20 );
 						context.dips[4][2] = Dip::Value( "Grey",               0x60 );
-						context.dips[5]    = Dip::Value( "Unknown",            2, 0 );
+						context.dips[5]    = Dip::Value( "Unknown/Unused",     2, 0 );
 						context.dips[5][0] = Dip::Value( "Off",                0x00 );
 						context.dips[5][1] = Dip::Value( "On",                 0x80 );
 
@@ -655,12 +608,11 @@ namespace Nes
 						context.dips[4][0] = Dip::Value( "Off",                       0x00 );
 						context.dips[4][1] = Dip::Value( "On",                        0x80 );
 
-						context.ppuRev = Revision::PPU_RP2C04_0003;
+						context.ppuModel = PPU_RP2C04_0003;
 						context.inputMapper = InputMapper::TYPE_2;
 						break;
 
 					case 0xFFBEF374: // Castlevania
-					case 0xBAB3DDB9: // -||- bad
 
 						context.SetDips(4);
 						context.dips[0]    = Dip::Value( "Coinage",            8, 0 );
@@ -684,26 +636,26 @@ namespace Nes
 						context.dips[3][0] = Dip::Value( "Normal",             0x00 );
 						context.dips[3][1] = Dip::Value( "Hard",               0x40 );
 
-						context.ppuRev = Revision::PPU_RP2C04_0002;
+						context.ppuModel = PPU_RP2C04_0002;
 						context.inputMapper = InputMapper::TYPE_1;
 						break;
 
 					case 0xE2C0A2BE: // Platoon
 
 						context.SetDips(6);
-						context.dips[0]    = Dip::Value( "Unknown",            2, 0 );
+						context.dips[0]    = Dip::Value( "Unknown/Unused",     2, 0 );
 						context.dips[0][0] = Dip::Value( "Off",                0x00 );
 						context.dips[0][1] = Dip::Value( "On",                 0x01 );
-						context.dips[1]    = Dip::Value( "Unknown",            2, 0 );
+						context.dips[1]    = Dip::Value( "Unknown/Unused",     2, 0 );
 						context.dips[1][0] = Dip::Value( "Off",                0x00 );
 						context.dips[1][1] = Dip::Value( "On",                 0x02 );
 						context.dips[2]    = Dip::Value( "Demo Sounds",        2, 1 );
 						context.dips[2][0] = Dip::Value( "Off",                0x00 );
 						context.dips[2][1] = Dip::Value( "On",                 0x04 );
-						context.dips[3]    = Dip::Value( "Unknown",            2, 0 );
+						context.dips[3]    = Dip::Value( "Unknown/Unused",     2, 0 );
 						context.dips[3][0] = Dip::Value( "Off",                0x00 );
 						context.dips[3][1] = Dip::Value( "On",                 0x08 );
-						context.dips[4]    = Dip::Value( "Unknown",            2, 0 );
+						context.dips[4]    = Dip::Value( "Unknown/Unused",     2, 0 );
 						context.dips[4][0] = Dip::Value( "Off",                0x00 );
 						context.dips[4][1] = Dip::Value( "On",                 0x10 );
 						context.dips[5]    = Dip::Value( "Coinage",            8, 0 );
@@ -716,7 +668,7 @@ namespace Nes
 						context.dips[5][6] = Dip::Value( "5 Coins / 1 Credit", 0xC0 );
 						context.dips[5][7] = Dip::Value( "Free Play",          0xE0 );
 
-						context.ppuRev = Revision::PPU_RP2C04_0001;
+						context.ppuModel = PPU_RP2C04_0001;
 						context.inputMapper = InputMapper::TYPE_1;
 						break;
 
@@ -746,9 +698,9 @@ namespace Nes
 						context.dips[3][1] = Dip::Value( "Hard",                     0x40 );
 
 						if (prgCrc == 0x29155E0C)
-							context.ppuRev = Revision::PPU_RP2C04_0004;
+							context.ppuModel = PPU_RP2C04_0004;
 						else
-							context.ppuRev = Revision::PPU_RP2C04_0003;
+							context.ppuModel = PPU_RP2C04_0003;
 
 						context.inputMapper = InputMapper::TYPE_1;
 						break;
@@ -765,10 +717,10 @@ namespace Nes
 						context.dips[0][5] = Dip::Value( "3 Coins / 1 Credit", 0x05 );
 						context.dips[0][6] = Dip::Value( "4 Coins / 1 Credit", 0x03 );
 						context.dips[0][7] = Dip::Value( "Free Play",          0x07 );
-						context.dips[1]    = Dip::Value( "Unknown",            2, 0 );
+						context.dips[1]    = Dip::Value( "Unknown/Unused",     2, 0 );
 						context.dips[1][0] = Dip::Value( "Off",                0x00 );
 						context.dips[1][1] = Dip::Value( "On",                 0x08 );
-						context.dips[2]    = Dip::Value( "Unknown",            2, 0 );
+						context.dips[2]    = Dip::Value( "Unknown/Unused",     2, 0 );
 						context.dips[2][0] = Dip::Value( "Off",                0x00 );
 						context.dips[2][1] = Dip::Value( "On",                 0x10 );
 						context.dips[3]    = Dip::Value( "Lives",              4, 1 );
@@ -776,11 +728,11 @@ namespace Nes
 						context.dips[3][1] = Dip::Value( "3",                  0x00 );
 						context.dips[3][2] = Dip::Value( "4",                  0x40 );
 						context.dips[3][3] = Dip::Value( "5",                  0x20 );
-						context.dips[4]    = Dip::Value( "Unknown",            2, 0 );
+						context.dips[4]    = Dip::Value( "Unknown/Unused",     2, 0 );
 						context.dips[4][0] = Dip::Value( "Off",                0x00 );
 						context.dips[4][1] = Dip::Value( "On",                 0x80 );
 
-						context.ppuRev = Revision::PPU_RP2C04_0004;
+						context.ppuModel = PPU_RP2C04_0004;
 						context.inputMapper = InputMapper::TYPE_2;
 						break;
 
@@ -809,7 +761,7 @@ namespace Nes
 						context.dips[3][0] = Dip::Value( "Long",                 0x00 );
 						context.dips[3][1] = Dip::Value( "Short",                0x40 );
 
-						context.ppuRev = Revision::PPU_RP2C04_0004;
+						context.ppuModel = PPU_RP2C04_0004;
 
 						if (prgCrc == 0x43A357EF)
 							context.inputMapper = InputMapper::TYPE_2;
@@ -848,7 +800,7 @@ namespace Nes
 						context.dips[4][0] = Dip::Value( "3",                  0x80 );
 						context.dips[4][1] = Dip::Value( "4",                  0x00 );
 
-						context.ppuRev = Revision::PPU_RP2C04_0004;
+						context.ppuModel = PPU_RP2C04_0004;
 						context.inputMapper = InputMapper::TYPE_1;
 						break;
 
@@ -865,10 +817,10 @@ namespace Nes
 						context.dips[0][5] = Dip::Value( "3 Coins / 1 Credit", 0x03 );
 						context.dips[0][6] = Dip::Value( "4 Coins / 1 Credit", 0x07 );
 						context.dips[0][7] = Dip::Value( "Free Play",          0x00 );
-						context.dips[1]    = Dip::Value( "Unknown",            2, 0 );
+						context.dips[1]    = Dip::Value( "Unknown/Unused",     2, 0 );
 						context.dips[1][0] = Dip::Value( "Off",                0x00 );
 						context.dips[1][1] = Dip::Value( "On",                 0x08 );
-						context.dips[2]    = Dip::Value( "Unknown",            2, 0 );
+						context.dips[2]    = Dip::Value( "Unknown/Unused",     2, 0 );
 						context.dips[2][0] = Dip::Value( "Off",                0x00 );
 						context.dips[2][1] = Dip::Value( "On",                 0x10 );
 						context.dips[3]    = Dip::Value( "Balls",              4, 1 );
@@ -882,7 +834,7 @@ namespace Nes
 
 						if (prgCrc == 0xEC461DB9)
 						{
-							context.ppuRev = Revision::PPU_RP2C04_0001;
+							context.ppuModel = PPU_RP2C04_0001;
 							context.inputMapper = InputMapper::TYPE_1;
 						}
 						else
@@ -906,17 +858,17 @@ namespace Nes
 						context.dips[1]    = Dip::Value( "Km 1st Race",        2, 0 );
 						context.dips[1][0] = Dip::Value( "12",                 0x00 );
 						context.dips[1][1] = Dip::Value( "15",                 0x10 );
-						context.dips[2]    = Dip::Value( "Unknown",            2, 0 );
+						context.dips[2]    = Dip::Value( "Unknown/Unused",     2, 0 );
 						context.dips[2][0] = Dip::Value( "Off",                0x00 );
 						context.dips[2][1] = Dip::Value( "On",                 0x20 );
-						context.dips[3]    = Dip::Value( "Unknown",            2, 0 );
+						context.dips[3]    = Dip::Value( "Unknown/Unused",     2, 0 );
 						context.dips[3][0] = Dip::Value( "Off",                0x00 );
 						context.dips[3][1] = Dip::Value( "On",                 0x40 );
-						context.dips[4]    = Dip::Value( "Unknown",            2, 0 );
+						context.dips[4]    = Dip::Value( "Unknown/Unused",     2, 0 );
 						context.dips[4][0] = Dip::Value( "Off",                0x00 );
 						context.dips[4][1] = Dip::Value( "On",                 0x80 );
 
-						context.ppuRev = Revision::PPU_RP2C04_0001;
+						context.ppuModel = PPU_RP2C04_0001;
 						context.inputMapper = InputMapper::TYPE_1;
 						break;
 
@@ -938,17 +890,17 @@ namespace Nes
 						context.dips[1][1] = Dip::Value( "250",                0x10 );
 						context.dips[1][2] = Dip::Value( "220",                0x08 );
 						context.dips[1][3] = Dip::Value( "200",                0x18 );
-						context.dips[2]    = Dip::Value( "Unknown",            2, 0 );
+						context.dips[2]    = Dip::Value( "Unknown/Unused",     2, 0 );
 						context.dips[2][0] = Dip::Value( "Off",                0x00 );
 						context.dips[2][1] = Dip::Value( "On",                 0x20 );
-						context.dips[3]    = Dip::Value( "Unknown",            2, 0 );
+						context.dips[3]    = Dip::Value( "Unknown/Unused",     2, 0 );
 						context.dips[3][0] = Dip::Value( "Off",                0x00 );
 						context.dips[3][1] = Dip::Value( "On",                 0x40 );
-						context.dips[4]    = Dip::Value( "Unknown",            2, 0 );
+						context.dips[4]    = Dip::Value( "Unknown/Unused",     2, 0 );
 						context.dips[4][0] = Dip::Value( "Off",                0x00 );
 						context.dips[4][1] = Dip::Value( "On",                 0x80 );
 
-						context.ppuRev = Revision::PPU_RP2C04_0002;
+						context.ppuModel = PPU_RP2C04_0002;
 						context.inputMapper = InputMapper::TYPE_1;
 						break;
 
@@ -975,12 +927,11 @@ namespace Nes
 						context.dips[2][2] = Dip::Value( "Hard",               0x20 );
 						context.dips[2][3] = Dip::Value( "Very Hard",          0x60 );
 
-						context.ppuRev = Revision::PPU_RP2C04_0003;
+						context.ppuModel = PPU_RP2C04_0003;
 						context.inputMapper = InputMapper::TYPE_2;
 						break;
 
 					case 0x70433F2C: // Battle City
-					case 0x8D15A6E6: // -||- bad
 
 						context.SetDips(7);
 						context.dips[0]    = Dip::Value( "Credits for 2 Players", 2, 1 );
@@ -992,13 +943,13 @@ namespace Nes
 						context.dips[2]    = Dip::Value( "Demo Sounds",           2, 1 );
 						context.dips[2][0] = Dip::Value( "Off",                   0x00 );
 						context.dips[2][1] = Dip::Value( "On",                    0x04 );
-						context.dips[3]    = Dip::Value( "Unknown",               2, 0 );
+						context.dips[3]    = Dip::Value( "Unknown/Unused",        2, 0 );
 						context.dips[3][0] = Dip::Value( "Off",                   0x00 );
 						context.dips[3][1] = Dip::Value( "On",                    0x08 );
-						context.dips[4]    = Dip::Value( "Unknown",               2, 0 );
+						context.dips[4]    = Dip::Value( "Unknown/Unused",        2, 0 );
 						context.dips[4][0] = Dip::Value( "Off",                   0x00 );
 						context.dips[4][1] = Dip::Value( "On",                    0x10 );
-						context.dips[5]    = Dip::Value( "Unknown",               2, 0 );
+						context.dips[5]    = Dip::Value( "Unknown/Unused",        2, 0 );
 						context.dips[5][0] = Dip::Value( "Off",                   0x00 );
 						context.dips[5][1] = Dip::Value( "On",                    0x20 );
 						context.dips[6]    = Dip::Value( "PPU",                   4, 0 );
@@ -1007,7 +958,7 @@ namespace Nes
 						context.dips[6][2] = Dip::Value( "RP2C04-0003",           0x80 );
 						context.dips[6][3] = Dip::Value( "RP2C04-0004",           0xC0 );
 
-						context.ppuRev = Revision::PPU_RP2C04_0001;
+						context.ppuModel = PPU_RP2C04_0001;
 						context.inputMapper = InputMapper::TYPE_2;
 						break;
 
@@ -1038,7 +989,7 @@ namespace Nes
 						context.dips[4][0] = Dip::Value( "Off",                0x00 );
 						context.dips[4][1] = Dip::Value( "On",                 0x80 );
 
-						context.ppuRev = Revision::PPU_RP2C04_0001;
+						context.ppuModel = PPU_RP2C04_0001;
 						context.inputMapper = InputMapper::TYPE_2;
 						break;
 
@@ -1057,10 +1008,10 @@ namespace Nes
 						context.dips[1]    = Dip::Value( "Lives",              2, 0 );
 						context.dips[1][0] = Dip::Value( "3",                  0x00 );
 						context.dips[1][1] = Dip::Value( "2",                  0x08 );
-						context.dips[2]    = Dip::Value( "Unknown",            2, 0 );
+						context.dips[2]    = Dip::Value( "Unknown/Unused",     2, 0 );
 						context.dips[2][0] = Dip::Value( "Off",                0x00 );
 						context.dips[2][1] = Dip::Value( "On",                 0x10 );
-						context.dips[3]    = Dip::Value( "Unknown",            2, 0 );
+						context.dips[3]    = Dip::Value( "Unknown/Unused",     2, 0 );
 						context.dips[3][0] = Dip::Value( "Off",                0x00 );
 						context.dips[3][1] = Dip::Value( "On",                 0x20 );
 						context.dips[4]    = Dip::Value( "Timer",              2, 0 );
@@ -1070,7 +1021,7 @@ namespace Nes
 						context.dips[5][0] = Dip::Value( "Off",                0x00 );
 						context.dips[5][1] = Dip::Value( "On",                 0x80 );
 
-						context.ppuRev = Revision::PPU_RP2C04_0003;
+						context.ppuModel = PPU_RP2C04_0003;
 						context.inputMapper = InputMapper::TYPE_1;
 						break;
 
@@ -1100,7 +1051,7 @@ namespace Nes
 						context.dips[3][2] = Dip::Value( "80000",              0x80 );
 						context.dips[3][3] = Dip::Value( "100000",             0xC0 );
 
-						context.ppuRev = Revision::PPU_RP2C04_0001;
+						context.ppuModel = PPU_RP2C04_0001;
 						break;
 
 					case 0x17AE56BE: // Freedom Force
@@ -1115,23 +1066,23 @@ namespace Nes
 						context.dips[0][5] = Dip::Value( "4 Coins / 1 Credit", 0x05 );
 						context.dips[0][6] = Dip::Value( "5 Coins / 1 Credit", 0x03 );
 						context.dips[0][7] = Dip::Value( "Free Play",          0x07 );
-						context.dips[1]    = Dip::Value( "Unknown",            2, 0 );
+						context.dips[1]    = Dip::Value( "Unknown/Unused",     2, 0 );
 						context.dips[1][0] = Dip::Value( "Off",                0x00 );
 						context.dips[1][1] = Dip::Value( "On",                 0x08 );
-						context.dips[2]    = Dip::Value( "Unknown",            2, 0 );
+						context.dips[2]    = Dip::Value( "Unknown/Unused",     2, 0 );
 						context.dips[2][0] = Dip::Value( "Off",                0x00 );
 						context.dips[2][1] = Dip::Value( "On",                 0x10 );
-						context.dips[3]    = Dip::Value( "Unknown",            2, 0 );
+						context.dips[3]    = Dip::Value( "Unknown/Unused",     2, 0 );
 						context.dips[3][0] = Dip::Value( "Off",                0x00 );
 						context.dips[3][1] = Dip::Value( "On",                 0x20 );
-						context.dips[4]    = Dip::Value( "Unknown",            2, 0 );
+						context.dips[4]    = Dip::Value( "Unknown/Unused",     2, 0 );
 						context.dips[4][0] = Dip::Value( "Off",                0x00 );
 						context.dips[4][1] = Dip::Value( "On",                 0x40 );
-						context.dips[5]    = Dip::Value( "Unknown",            2, 0 );
+						context.dips[5]    = Dip::Value( "Unknown/Unused",     2, 0 );
 						context.dips[5][0] = Dip::Value( "Off",                0x00 );
 						context.dips[5][1] = Dip::Value( "On",                 0x80 );
 
-						context.ppuRev = Revision::PPU_RP2C04_0001;
+						context.ppuModel = PPU_RP2C04_0001;
 						break;
 
 					case 0xC99EC059: // Raid on Bungeling Bay
@@ -1149,20 +1100,20 @@ namespace Nes
 						context.dips[1]    = Dip::Value( "Lives",              2, 0 );
 						context.dips[1][0] = Dip::Value( "2",                  0x00 );
 						context.dips[1][1] = Dip::Value( "3",                  0x08 );
-						context.dips[2]    = Dip::Value( "Unknown",            2, 0 );
+						context.dips[2]    = Dip::Value( "Unknown/Unused",     2, 0 );
 						context.dips[2][0] = Dip::Value( "Off",                0x00 );
 						context.dips[2][1] = Dip::Value( "On",                 0x10 );
-						context.dips[3]    = Dip::Value( "Unknown",            2, 0 );
+						context.dips[3]    = Dip::Value( "Unknown/Unused",     2, 0 );
 						context.dips[3][0] = Dip::Value( "Off",                0x00 );
 						context.dips[3][1] = Dip::Value( "On",                 0x20 );
-						context.dips[4]    = Dip::Value( "Unknown",            2, 0 );
+						context.dips[4]    = Dip::Value( "Unknown/Unused",     2, 0 );
 						context.dips[4][0] = Dip::Value( "Off",                0x00 );
 						context.dips[4][1] = Dip::Value( "On",                 0x40 );
-						context.dips[5]    = Dip::Value( "Unknown",            2, 0 );
+						context.dips[5]    = Dip::Value( "Unknown/Unused",     2, 0 );
 						context.dips[5][0] = Dip::Value( "Off",                0x00 );
 						context.dips[5][1] = Dip::Value( "On",                 0x80 );
 
-						context.ppuRev = Revision::PPU_RP2C04_0002;
+						context.ppuModel = PPU_RP2C04_0002;
 						context.inputMapper = InputMapper::TYPE_4;
 						break;
 
@@ -1171,16 +1122,16 @@ namespace Nes
 					case 0x9924980A: // -||-
 
 						context.SetDips(6);
-						context.dips[0]    = Dip::Value( "Unknown",            2, 0 );
+						context.dips[0]    = Dip::Value( "Unknown/Unused",     2, 0 );
 						context.dips[0][0] = Dip::Value( "Off",                0x00 );
 						context.dips[0][1] = Dip::Value( "On",                 0x01 );
-						context.dips[1]    = Dip::Value( "Unknown",            2, 0 );
+						context.dips[1]    = Dip::Value( "Unknown/Unused",     2, 0 );
 						context.dips[1][0] = Dip::Value( "Off",                0x00 );
 						context.dips[1][1] = Dip::Value( "On",                 0x02 );
-						context.dips[2]    = Dip::Value( "Unknown",            2, 0 );
+						context.dips[2]    = Dip::Value( "Unknown/Unused",     2, 0 );
 						context.dips[2][0] = Dip::Value( "Off",                0x00 );
 						context.dips[2][1] = Dip::Value( "On",                 0x04 );
-						context.dips[3]    = Dip::Value( "Unknown",            2, 0 );
+						context.dips[3]    = Dip::Value( "Unknown/Unused",     2, 0 );
 						context.dips[3][0] = Dip::Value( "Off",                0x00 );
 						context.dips[3][1] = Dip::Value( "On",                 0x08 );
 						context.dips[4]    = Dip::Value( "Coinage",            4, 0 );
@@ -1195,14 +1146,14 @@ namespace Nes
 						context.dips[5][3] = Dip::Value( "RP2C04-0004",        0xC0 );
 
 						context.inputMapper = InputMapper::TYPE_1;
-						context.ppuRev = Revision::PPU_RP2C04_0001;
+						context.ppuModel = PPU_RP2C04_0001;
 						context.mode = MODE_XEV;
 						break;
 
 					case 0xCC2C4B5D: // Golf (J)
 					case 0x86167220: // Lady Golf
 
-						context.ppuRev = Revision::PPU_RP2C04_0002;
+						context.ppuModel = PPU_RP2C04_0002;
 
 					case 0xA93A5AEE: // Golf
 
@@ -1251,22 +1202,21 @@ namespace Nes
 						context.dips[1][1] = Dip::Value( "3",                  0x00 );
 						context.dips[1][2] = Dip::Value( "4",                  0x08 );
 						context.dips[1][3] = Dip::Value( "5",                  0x18 );
-						context.dips[2]    = Dip::Value( "Unknown",            2, 0 );
+						context.dips[2]    = Dip::Value( "Unknown/Unused",     2, 0 );
 						context.dips[2][0] = Dip::Value( "Off",                0x00 );
 						context.dips[2][1] = Dip::Value( "On",                 0x20 );
-						context.dips[3]    = Dip::Value( "Unknown",            2, 0 );
+						context.dips[3]    = Dip::Value( "Unknown/Unused",     2, 0 );
 						context.dips[3][0] = Dip::Value( "Off",                0x00 );
 						context.dips[3][1] = Dip::Value( "On",                 0x40 );
-						context.dips[4]    = Dip::Value( "Unknown",            2, 0 );
+						context.dips[4]    = Dip::Value( "Unknown/Unused",     2, 0 );
 						context.dips[4][0] = Dip::Value( "Off",                0x00 );
 						context.dips[4][1] = Dip::Value( "On",                 0x80 );
 
-						context.ppuRev = Revision::PPU_RC2C05_02;
+						context.ppuModel = PPU_RC2C05_02;
 						context.inputMapper = InputMapper::TYPE_1;
 						break;
 
 					case 0xFE446787: // Gumshoe
-					case 0x74C78E8C: // -||- bad
 
 						context.SetDips(5);
 						context.dips[0]    = Dip::Value( "Coinage",             8, 0 );
@@ -1293,7 +1243,7 @@ namespace Nes
 						context.dips[4][0] = Dip::Value( "80000",               0x00 );
 						context.dips[4][1] = Dip::Value( "100000",              0x80 );
 
-						context.ppuRev = Revision::PPU_RC2C05_03;
+						context.ppuModel = PPU_RC2C05_03;
 						break;
 
 					default:
@@ -1307,19 +1257,10 @@ namespace Nes
 							context.dips[i][1] = Dip::Value( "On",      1U << i );
 						}
 
-						if (ppuRev != Revision::PPU_RP2C02)
-							context.ppuRev = ppuRev;
+						if (ppuModel != PPU_RP2C02)
+							context.ppuModel = ppuModel;
 
-						context.mode = mode;
 						break;
-				}
-
-				if (!correctData)
-				{
-					if (ppuRev != Revision::PPU_RP2C02)
-						context.ppuRev = ppuRev;
-
-					context.mode = mode;
 				}
 
 				switch (context.mode)
@@ -1467,19 +1408,8 @@ namespace Nes
 		ppu         (context.ppu),
 		inputMapper (InputMapper::Create( context.inputMapper )),
 		dips        (context.dips,context.numDips),
-		ppuRev      (context.ppuRev),
-		yuvMapping  (false)
+		ppuModel    (context.ppuModel)
 		{
-			NST_COMPILE_ASSERT
-			(
-				Revision::PPU_RP2C04_0002 == Revision::PPU_RP2C04_0001+1 &&
-				Revision::PPU_RP2C04_0003 == Revision::PPU_RP2C04_0001+2 &&
-				Revision::PPU_RP2C04_0004 == Revision::PPU_RP2C04_0001+3 &&
-				Revision::PPU_RC2C05_02   == Revision::PPU_RC2C05_01+1   &&
-				Revision::PPU_RC2C05_03   == Revision::PPU_RC2C05_01+2   &&
-				Revision::PPU_RC2C05_04   == Revision::PPU_RC2C05_01+3   &&
-				Revision::PPU_RC2C05_05   == Revision::PPU_RC2C05_01+4
-			);
 		}
 
 		Cartridge::VsSystem::~VsSystem()
@@ -1487,63 +1417,8 @@ namespace Nes
 			delete inputMapper;
 		}
 
-		void Cartridge::VsSystem::EnableYuvConversion(bool enable)
-		{
-			const uint type = uint(ppuRev) - Revision::PPU_RP2C04_0001;
-
-			if (type < 4 && bool(yuvMapping) != enable)
-			{
-				yuvMapping = enable;
-				ppu.SetYuvMap( yuvMaps[type], enable );
-			}
-		}
-
 		void Cartridge::VsSystem::Reset(bool)
 		{
-			switch (const uint type = ppuRev)
-			{
-				case Revision::PPU_RC2C05_01:
-				case Revision::PPU_RC2C05_02:
-				case Revision::PPU_RC2C05_03:
-				case Revision::PPU_RC2C05_04:
-
-					p2002 = cpu.Map( 0x2002 );
-
-					for (uint i=0x2002; i < 0x4000; i += 0x8)
-					{
-						cpu.Map( i ).Set
-						(
-							this,
-							type == Revision::PPU_RC2C05_03 ? &VsSystem::Peek_2002_RC2C05_03 :
-							type == Revision::PPU_RC2C05_02 ? &VsSystem::Peek_2002_RC2C05_02 :
-                                                              &VsSystem::Peek_2002_RC2C05_01_04,
-							&VsSystem::Poke_2002
-						);
-					}
-
-				case Revision::PPU_RC2C05_05:
-				{
-					const Io::Port p2000( cpu.Map( 0x2000 ) );
-					const Io::Port p2001( cpu.Map( 0x2001 ) );
-
-					for (uint i=0x2000; i < 0x4000; i += 0x8)
-					{
-						cpu.Map( i + 0x0 ) = p2001;
-						cpu.Map( i + 0x1 ) = p2000;
-					}
-
-					break;
-				}
-
-				case Revision::PPU_RP2C04_0001:
-				case Revision::PPU_RP2C04_0002:
-				case Revision::PPU_RP2C04_0003:
-				case Revision::PPU_RP2C04_0004:
-
-					ppu.SetYuvMap( yuvMaps[type - Revision::PPU_RP2C04_0001], yuvMapping );
-					break;
-			}
-
 			dips.Reset();
 
 			coin = 0;
@@ -1592,26 +1467,6 @@ namespace Nes
 
 		NES_POKE(Cartridge::VsSystem,Nop)
 		{
-		}
-
-		NES_PEEK_A(Cartridge::VsSystem,2002_RC2C05_01_04)
-		{
-			return p2002.Peek( address ) & 0xC0 | 0x1B;
-		}
-
-		NES_PEEK_A(Cartridge::VsSystem,2002_RC2C05_02)
-		{
-			return p2002.Peek( address ) & 0xC0 | 0x3D;
-		}
-
-		NES_PEEK_A(Cartridge::VsSystem,2002_RC2C05_03)
-		{
-			return p2002.Peek( address ) & 0xC0 | 0x1C;
-		}
-
-		NES_POKE_AD(Cartridge::VsSystem,2002)
-		{
-			p2002.Poke( address, data );
 		}
 
 		NES_PEEK_A(Cartridge::VsSystem,4016)

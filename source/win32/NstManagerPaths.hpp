@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -65,28 +65,28 @@ namespace Nestopia
 
 				enum Type
 				{
-					NONE    = 0x0000,
-					INES    = 0x0001,
-					UNIF    = 0x0002,
-					FDS     = 0x0004,
-					NSF     = 0x0008,
-					BATTERY = 0x0010,
-					TAPE    = 0x0020,
-					STATE   = 0x0040,
-					SLOTS   = 0x0080,
-					IPS     = 0x0100,
-					MOVIE   = 0x0200,
-					SCRIPT  = 0x0400,
-					ROM     = 0x0800,
-					PALETTE = 0x1000,
-					WAVE    = 0x2000,
-					AVI     = 0x4000,
-					ARCHIVE = 0x8000
+					NONE    = 0x00000,
+					INES    = 0x00001,
+					UNIF    = 0x00002,
+					FDS     = 0x00004,
+					NSF     = 0x00008,
+					BATTERY = 0x00010,
+					TAPE    = 0x00020,
+					STATE   = 0x00040,
+					SLOTS   = 0x00080,
+					IPS     = 0x00100,
+					MOVIE   = 0x00200,
+					ROM     = 0x00800,
+					XML     = 0x01000,
+					PALETTE = 0x02000,
+					WAVE    = 0x04000,
+					AVI     = 0x08000,
+					ARCHIVE = 0x10000
 				};
 
 				enum
 				{
-					CARTRIDGE = INES|UNIF,
+					CARTRIDGE = INES|UNIF|XML,
 					GAME = CARTRIDGE|FDS,
 					IMAGE = GAME|NSF
 				};
@@ -190,20 +190,13 @@ namespace Nestopia
 
 			class Filter;
 
-			enum
-			{
-				RECENT_DIR_IMAGE,
-				RECENT_DIR_SCRIPT,
-				NUM_RECENT_DIRS
-			};
-
 			void OnMenu(uint);
 			void OnEmuEvent(Emulator::Event,Emulator::Data);
 
-			static tstring GetDefaultExtension(File::Types);
+			static wcstring GetDefaultExtension(File::Types);
 
 			void UpdateSettings();
-			void UpdateRecentDirectory(const Path&,File::Types) const;
+			void UpdateRecentImageDirectory(const Path&,File::Types) const;
 
 			static File::Type CheckFile
 			(
@@ -228,10 +221,8 @@ namespace Nestopia
 				File::Types
 			);
 
-			mutable Path recentDirs[NUM_RECENT_DIRS];
+			mutable Path recentImageDir;
 			Object::Heap<Window::Paths> dialog;
-
-			static cstring const recentDirCfgNames[NUM_RECENT_DIRS];
 		};
 	}
 }

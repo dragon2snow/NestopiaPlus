@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -115,12 +115,12 @@ namespace Nes
 
 					idword offset;
 
-					Cartridge::Setup setup;
+					Cartridge::NesHeader setup;
 
 					byte header[16];
 					stream.Read( header );
 
-					if (NES_FAILED(Cartridge::ReadNesHeader( setup, header, 16 )))
+					if (NES_FAILED(setup.Import( header, 16 )))
 					{
 						offset = -16;
 					}

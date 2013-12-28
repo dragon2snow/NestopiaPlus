@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -93,7 +93,6 @@ namespace Nes
 				dword,
 				const Ram* NST_RESTRICT,
 				uint,
-				uint,
 				const byte* NST_RESTRICT,
 				uint
 			)   const;
@@ -102,7 +101,6 @@ namespace Nes
 			(
 				State::Loader&,
 				Ram* NST_RESTRICT,
-				uint,
 				uint,
 				byte* NST_RESTRICT,
 				uint
@@ -311,8 +309,11 @@ namespace Nes
 			template<uint SIZE>
 			void SwapBanks(uint,dword,dword,dword,dword,dword,dword,dword,dword);
 
-			void SaveState(State::Saver&,dword,uint) const;
-			void LoadState(State::Loader&,uint);
+			template<uint SIZE,uint A,uint B>
+			void SwapPages();
+
+			void SaveState(State::Saver&,dword) const;
+			void LoadState(State::Loader&);
 
 			class SourceProxy
 			{
@@ -347,8 +348,7 @@ namespace Nes
 
 				void SetSecurity(bool read,bool write) const
 				{
-					ref.sources[source].ReadEnable( read );
-					ref.sources[source].WriteEnable( write );
+					ref.sources[source].SetSecurity( read, write );
 				}
 
 				bool Readable() const
@@ -361,21 +361,24 @@ namespace Nes
 					return ref.sources[source].Writable();
 				}
 
-				const SourceProxy& Set(byte* mem,dword size,bool read,bool write) const
+				Ram::Type GetType() const
 				{
-					ref.sources[source].Set( read, write, size, mem );
-					return *this;
+					return ref.sources[source].GetType();
 				}
 
-				const SourceProxy& Set(dword size,bool read,bool write) const
+				void Set(Ram::Type type,bool read,bool write,dword size,byte* mem) const
 				{
-					ref.sources[source].Set( read, write, size );
-					return *this;
+					ref.sources[source].Set( type, read, write, size, mem );
 				}
 
-				void Remove() const
+				void Set(Ram::Type type,bool read,bool write,dword size) const
 				{
-					ref.sources[source].Destroy();
+					ref.sources[source].Set( type, read, write, size );
+				}
+
+				void Set(const Ram& ram) const
+				{
+					ref.sources[source] = ram;
 				}
 
 				void Fill(uint value) const
@@ -388,6 +391,11 @@ namespace Nes
 					return ref.sources[source].Mem(offset);
 				}
 
+				byte& operator [] (dword i) const
+				{
+					return ref.sources[source][i];
+				}
+
 				dword Size() const
 				{
 					return ref.sources[source].Size();
@@ -398,14 +406,14 @@ namespace Nes
 					return ref.sources[source].Masking();
 				}
 
-				bool Internal() const
-				{
-					return ref.sources[source].Internal();
-				}
-
 				bool Empty() const
 				{
 					return ref.sources[source].Size() == 0;
+				}
+
+				const Ram& Reference() const
+				{
+					return ref.sources[source];
 				}
 			};
 
@@ -697,8 +705,39 @@ namespace Nes
 			);
 		}
 
+		template<dword SPACE,uint U,uint V> template<uint SIZE,uint A,uint B>
+		void Memory<SPACE,U,V>::SwapPages()
+		{
+			NST_COMPILE_ASSERT
+			(
+				(A != B) &&
+				(SPACE >= A + SIZE) &&
+				(SPACE >= B + SIZE) &&
+				(SIZE && (SIZE % MEM_PAGE_SIZE) == 0)
+			);
+
+			enum
+			{
+				MEM_A_BEGIN = A / MEM_PAGE_SIZE,
+				MEM_B_BEGIN = B / MEM_PAGE_SIZE,
+				MEM_PAGE_COUNT = SIZE / MEM_PAGE_SIZE
+			};
+
+			for (uint i=0; i < MEM_PAGE_COUNT; ++i)
+			{
+				byte* const mem = pages.mem[MEM_A_BEGIN+i];
+				const byte ref = pages.ref[MEM_A_BEGIN+i];
+
+				pages.mem[MEM_A_BEGIN+i] = pages.mem[MEM_B_BEGIN+i];
+				pages.ref[MEM_A_BEGIN+i] = pages.ref[MEM_B_BEGIN+i];
+
+				pages.mem[MEM_B_BEGIN+i] = mem;
+				pages.ref[MEM_B_BEGIN+i] = ref;
+			}
+		}
+
 		template<dword SPACE,uint U,uint V>
-		void Memory<SPACE,U,V>::SaveState(State::Saver& state,const dword baseChunk,const uint sourceMask) const
+		void Memory<SPACE,U,V>::SaveState(State::Saver& state,const dword baseChunk) const
 		{
 			byte pageData[MEM_NUM_PAGES*3];
 
@@ -711,15 +750,15 @@ namespace Nes
 				pageData[i*3+2] = bank >> 8;
 			}
 
-			Memory<0,0,0>::SaveState( state, baseChunk, sources, NUM_SOURCES, sourceMask, pageData, MEM_NUM_PAGES );
+			Memory<0,0,0>::SaveState( state, baseChunk, sources, NUM_SOURCES, pageData, MEM_NUM_PAGES );
 		}
 
 		template<dword SPACE,uint U,uint V>
-		void Memory<SPACE,U,V>::LoadState(State::Loader& state,const uint sourceMask)
+		void Memory<SPACE,U,V>::LoadState(State::Loader& state)
 		{
 			byte pageData[MEM_NUM_PAGES*3];
 
-			if (Memory<0,0,0>::LoadState( state, sources, NUM_SOURCES, sourceMask, pageData, MEM_NUM_PAGES ))
+			if (Memory<0,0,0>::LoadState( state, sources, NUM_SOURCES, pageData, MEM_NUM_PAGES ))
 			{
 				for (uint i=0; i < MEM_NUM_PAGES; ++i)
 				{

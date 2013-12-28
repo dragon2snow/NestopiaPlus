@@ -42,6 +42,7 @@
 				AdditionalOptions="/vmb"
 				Optimization="0"
 				EnableIntrinsicFunctions="true"
+				PreprocessorDefinitions="NST_DEBUG"
 				StringPooling="true"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -273,23 +274,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\source\win32\NstCollectionMap.hpp"
-				>
-			</File>
-			<File
 				RelativePath="..\source\win32\NstCollectionRouter.hpp"
 				>
 			</File>
 			<File
 				RelativePath="..\source\win32\NstCollectionRouter.inl"
-				>
-			</File>
-			<File
-				RelativePath="..\source\win32\NstCollectionSet.hpp"
-				>
-			</File>
-			<File
-				RelativePath="..\source\win32\NstCollectionSet.inl"
 				>
 			</File>
 			<File
@@ -477,6 +466,14 @@
 				</File>
 				<File
 					RelativePath="..\source\win32\NstDialogFrameClock.hpp"
+					>
+				</File>
+				<File
+					RelativePath="..\source\win32\NstDialogImageDatabase.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\source\win32\NstDialogImageDatabase.hpp"
 					>
 				</File>
 				<File
@@ -805,6 +802,14 @@
 				>
 			</File>
 			<File
+				RelativePath="..\source\win32\NstManagerImageDatabase.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\win32\NstManagerImageDatabase.hpp"
+				>
+			</File>
+			<File
 				RelativePath="..\source\win32\NstManagerImageInfo.cpp"
 				>
 			</File>
@@ -997,27 +1002,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\source\win32\NstIoIps.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\source\win32\NstIoIps.hpp"
-				>
-			</File>
-			<File
 				RelativePath="..\source\win32\NstIoLog.cpp"
 				>
 			</File>
 			<File
 				RelativePath="..\source\win32\NstIoLog.hpp"
-				>
-			</File>
-			<File
-				RelativePath="..\source\win32\NstIoNsp.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\source\win32\NstIoNsp.hpp"
 				>
 			</File>
 			<File

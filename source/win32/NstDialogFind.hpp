@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -58,7 +58,7 @@ namespace Nestopia
 
 		private:
 
-			typedef Object::Delegate2<void,GenericString,uint> Callback;
+			typedef Object::Delegate<void,GenericString,uint> Callback;
 
 			void Open(const Callback&,uint);
 

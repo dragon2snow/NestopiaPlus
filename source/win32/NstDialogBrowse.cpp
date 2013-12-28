@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -32,7 +32,7 @@ namespace Nestopia
 {
 	namespace Window
 	{
-		const Path Browser::OpenFile(tchar* const filter,const Path dir,const Path ext)
+		const Path Browser::OpenFile(wchar_t* const filter,const Path dir,const Path ext)
 		{
 			for (uint i=0; filter[i]; ++i)
 			{
@@ -49,7 +49,7 @@ namespace Nestopia
 			ofn.hwndOwner       = Application::Instance::GetActiveWindow();
 			ofn.lpstrFile       = path.Ptr();
 			ofn.nMaxFile        = path.Capacity();
-			ofn.lpstrInitialDir = dir.Length() ? dir.Ptr() : _T(".");
+			ofn.lpstrInitialDir = dir.Length() ? dir.Ptr() : L".";
 			ofn.Flags           = OFN_EXPLORER|OFN_FILEMUSTEXIST|OFN_HIDEREADONLY;
 
 			if (filter)
@@ -69,7 +69,7 @@ namespace Nestopia
 			return path;
 		}
 
-		const Path Browser::SaveFile(tchar* const filter,Path initial)
+		const Path Browser::SaveFile(wchar_t* const filter,Path initial)
 		{
 			Path path;
 			path.Reserve( MAX_PATH*2 );
@@ -87,7 +87,7 @@ namespace Nestopia
 			ofn.hwndOwner       = Application::Instance::GetActiveWindow();
 			ofn.lpstrFile       = path.Ptr();
 			ofn.nMaxFile        = path.Capacity();
-			ofn.lpstrInitialDir = initial.Length() ? initial.Ptr() : _T(".");
+			ofn.lpstrInitialDir = initial.Length() ? initial.Ptr() : L".";
 			ofn.Flags           = OFN_EXPLORER|OFN_PATHMUSTEXIST|OFN_HIDEREADONLY;
 
 			if (filter)

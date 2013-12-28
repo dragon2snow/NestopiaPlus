@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -68,7 +68,7 @@ namespace Nes
 			delete extPort;
 		}
 
-		Result Machine::Load(StdStream stream,uint type)
+		Result Machine::Load(StdStream stream,FavoredSystem system,bool ask,StdStream ips,uint type)
 		{
 			Unload();
 
@@ -79,6 +79,9 @@ namespace Nes
 				cpu.GetApu(),
 				ppu,
 				stream,
+				ips,
+				system,
+				ask,
 				imageDatabase
 			);
 
@@ -90,14 +93,14 @@ namespace Nes
 
 					state |= Api::Machine::CARTRIDGE;
 
-					switch (static_cast<const Cartridge*>(image)->GetInfo().setup.system)
+					switch (static_cast<const Cartridge*>(image)->GetProfile().system.type)
 					{
-						case Api::Cartridge::SYSTEM_VS:
+						case Api::Cartridge::Profile::System::VS_UNISYSTEM:
 
 							state |= Api::Machine::VS;
 							break;
 
-						case Api::Cartridge::SYSTEM_PC10:
+						case Api::Cartridge::Profile::System::PLAYCHOICE_10:
 
 							state |= Api::Machine::PC10;
 							break;
@@ -115,6 +118,7 @@ namespace Nes
 					break;
 			}
 
+			UpdateModels();
 			UpdateColorMode();
 
 			Api::Machine::eventCallback( Api::Machine::EVENT_LOAD, context.result );
@@ -130,7 +134,6 @@ namespace Nes
 			const Result result = PowerOff();
 
 			tracker.Unload();
-			UpdateColorMode();
 
 			Image::Unload( image );
 			image = NULL;
@@ -140,6 +143,29 @@ namespace Nes
 			Api::Machine::eventCallback( Api::Machine::EVENT_UNLOAD, result );
 
 			return result;
+		}
+
+		void Machine::UpdateModels()
+		{
+			const Region region = (state & Api::Machine::NTSC) ? REGION_NTSC : REGION_PAL;
+
+			CpuModel cpuModel;
+			PpuModel ppuModel;
+
+			if (image)
+			{
+				image->GetDesiredSystem( region, &cpuModel, &ppuModel );
+			}
+			else
+			{
+				cpuModel = (region == REGION_NTSC ? CPU_RP2A03 : CPU_RP2A07);
+				ppuModel = (region == REGION_NTSC ? PPU_RP2C02 : PPU_RP2C07);
+			}
+
+			cpu.SetModel( cpuModel );
+			ppu.SetModel( ppuModel, renderer.GetPaletteType() == Video::Renderer::PALETTE_YUV );
+
+			renderer.EnableForcedFieldMerging( ppuModel != PPU_RP2C02 );
 		}
 
 		Result Machine::UpdateColorMode()
@@ -152,37 +178,38 @@ namespace Nes
 			);
 		}
 
-		Result Machine::UpdateColorMode(const ColorMode colorMode)
+		Result Machine::UpdateColorMode(const ColorMode mode)
 		{
-			const Revision::Ppu ppuRev = (image ? image->QueryPpu( colorMode == COLORMODE_YUV ) : Revision::PPU_RP2C02);
-			Video::Renderer::PaletteType paletteType;
+			ppu.SetModel( ppu.GetModel(), mode == COLORMODE_YUV );
 
-			switch (colorMode)
+			Video::Renderer::PaletteType palette;
+
+			switch (mode)
 			{
 				case COLORMODE_RGB:
 
-					switch (ppuRev)
+					switch (ppu.GetModel())
 					{
-						case Revision::PPU_RP2C04_0001: paletteType = Video::Renderer::PALETTE_VS1;  break;
-						case Revision::PPU_RP2C04_0002: paletteType = Video::Renderer::PALETTE_VS2;  break;
-						case Revision::PPU_RP2C04_0003: paletteType = Video::Renderer::PALETTE_VS3;  break;
-						case Revision::PPU_RP2C04_0004: paletteType = Video::Renderer::PALETTE_VS4;  break;
-						default:                        paletteType = Video::Renderer::PALETTE_PC10; break;
+						case PPU_RP2C04_0001: palette = Video::Renderer::PALETTE_VS1;  break;
+						case PPU_RP2C04_0002: palette = Video::Renderer::PALETTE_VS2;  break;
+						case PPU_RP2C04_0003: palette = Video::Renderer::PALETTE_VS3;  break;
+						case PPU_RP2C04_0004: palette = Video::Renderer::PALETTE_VS4;  break;
+						default:              palette = Video::Renderer::PALETTE_PC10; break;
 					}
 					break;
 
 				case COLORMODE_CUSTOM:
 
-					paletteType = Video::Renderer::PALETTE_CUSTOM;
+					palette = Video::Renderer::PALETTE_CUSTOM;
 					break;
 
 				default:
 
-					paletteType = Video::Renderer::PALETTE_YUV;
+					palette = Video::Renderer::PALETTE_YUV;
 					break;
 			}
 
-			return renderer.SetPaletteType( paletteType );
+			return renderer.SetPaletteType( palette );
 		}
 
 		Result Machine::PowerOff(Result result)
@@ -206,12 +233,15 @@ namespace Nes
 			return result;
 		}
 
-		void Machine::Reset(const bool hard)
+		void Machine::Reset(bool hard)
 		{
+			if (state & Api::Machine::SOUND)
+				hard = true;
+
 			try
 			{
 				frame = 0;
-				cpu.Reset( hard || (state & Api::Machine::SOUND) );
+				cpu.Reset( hard );
 
 				if (!(state & Api::Machine::SOUND))
 				{
@@ -223,7 +253,11 @@ namespace Nes
 					extPort->Reset();
 					expPort->Reset();
 
-					ppu.Reset( hard );
+					ppu.Reset
+					(
+						hard,
+						image ? image->GetDesiredSystem((state & Api::Machine::NTSC) ? REGION_NTSC : REGION_PAL) != SYSTEM_FAMICOM : true
+					);
 
 					if (image)
 						image->Reset( hard );
@@ -238,7 +272,7 @@ namespace Nes
 					image->Reset( true );
 				}
 
-				cpu.Boot();
+				cpu.Boot( hard );
 
 				if (state & Api::Machine::ON)
 				{
@@ -259,20 +293,16 @@ namespace Nes
 
 		void Machine::SwitchMode()
 		{
-			const Region::Type region = (state & Api::Machine::NTSC) ? Region::PAL : Region::NTSC;
+			NST_ASSERT( !(state & Api::Machine::ON) );
 
-			state &= ~uint(Api::Machine::PAL|Api::Machine::NTSC);
-			state |= (region == Region::NTSC ? Api::Machine::NTSC : Api::Machine::PAL);
+			if (state & Api::Machine::NTSC)
+				state = (state & ~uint(Api::Machine::NTSC)) | Api::Machine::PAL;
+			else
+				state = (state & ~uint(Api::Machine::PAL)) | Api::Machine::NTSC;
 
-			cpu.SetRegion( region );
-			ppu.SetRegion( region );
+			UpdateModels();
 
-			if (image)
-				image->SetRegion( region );
-
-			renderer.SetRegion( region );
-
-			Api::Machine::eventCallback( region == Region::NTSC ? Api::Machine::EVENT_MODE_NTSC : Api::Machine::EVENT_MODE_PAL );
+			Api::Machine::eventCallback( (state & Api::Machine::NTSC) ? Api::Machine::EVENT_MODE_NTSC : Api::Machine::EVENT_MODE_PAL );
 		}
 
 		void Machine::InitializeInputDevices() const
@@ -458,7 +488,10 @@ namespace Nes
 				if (image)
 					image->VSync();
 
-				++frame;
+				extPort->EndFrame();
+				expPort->EndFrame();
+
+				frame++;
 			}
 			else
 			{

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -22,25 +22,25 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
+#include <new>
 #include "NstApplicationException.hpp"
 #include "NstApplicationMain.hpp"
 
 #if NST_MSVC
 
- #ifdef _MBCS
- #error compile with _UNICODE, not _MBCS!
+ #ifndef _UNICODE
+ #error compile with _UNICODE!
  #endif
 
- #ifdef NDEBUG
-
-  #pragma comment(lib,"emucore")
-
+ #ifdef _DEBUG
+ #pragma comment(lib,"emucoredebug")
  #else
+ #pragma comment(lib,"emucore")
+ #endif
 
-  #pragma comment(lib,"emucoredebug")
-  #define CRTDBG_MAP_ALLOC
-  #include <crtdbg.h>
-
+ #ifdef NST_DEBUG
+ #define CRTDBG_MAP_ALLOC
+ #include <crtdbg.h>
  #endif
 
  #if NST_MSVC >= 1400 && !NST_ICC
@@ -57,7 +57,7 @@
 
 int WINAPI WinMain(HINSTANCE,HINSTANCE,char*,int cmdShow)
 {
-#if NST_MSVC && !defined(NDEBUG)
+#if NST_MSVC && defined(NST_DEBUG)
 	_CrtSetDbgFlag( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
 #endif
 
@@ -73,7 +73,7 @@ int WINAPI WinMain(HINSTANCE,HINSTANCE,char*,int cmdShow)
 	{
 		return Nestopia::Application::Exception( IDS_ERR_OUT_OF_MEMORY ).Issue();
 	}
-#ifdef NDEBUG
+#ifndef NST_DEBUG
 	catch (...)
 	{
 		return Nestopia::Application::Exception( IDS_ERR_GENERIC ).Issue();

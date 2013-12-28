@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -40,17 +40,30 @@ namespace Nes
 		{
 			class Player : public Pcm
 			{
+				enum
+				{
+					GAME_NUM_SAMPLES_SHIFT = 4
+				};
+
 			public:
 
-				static Player* Create(Apu&,Loader::Type,uint);
+				enum Game
+				{
+					GAME_UNKNOWN,
+					GAME_MOERO_PRO_YAKYUU         = 16U << GAME_NUM_SAMPLES_SHIFT | 1,
+					GAME_MOERO_PRO_YAKYUU_88      = 20U << GAME_NUM_SAMPLES_SHIFT | 2,
+					GAME_MOERO_PRO_TENNIS         = 19U << GAME_NUM_SAMPLES_SHIFT | 3,
+					GAME_TERAO_NO_DOSUKOI_OOZUMOU = 6U  << GAME_NUM_SAMPLES_SHIFT | 4,
+					GAME_AEROBICS_STUDIO          = 8U  << GAME_NUM_SAMPLES_SHIFT | 5
+				};
+
+				static Player* Create(Apu&,const Chips&,wcstring,Game,uint);
 				static void Destroy(Player*);
 
 			private:
 
 				Player(Apu&,uint);
 				~Player();
-
-				class SampleLoader;
 
 				struct Slot
 				{

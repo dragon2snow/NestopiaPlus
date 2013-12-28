@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -24,8 +24,7 @@
 
 #include <new>
 #include "NstApplicationInstance.hpp"
-#include "NstWindowParam.hpp"
-#include "NstWindowDialog.hpp"
+#include "NstWindowUser.hpp"
 #include "NstSystemDll.hpp"
 #include "NstObjectPod.hpp"
 #include "NstIoFile.hpp"
@@ -111,13 +110,9 @@ namespace Nestopia
 				{
 					if (::unzGetCurrentFileInfo( handle, &info, path, MAX_PATH, NULL, 0, NULL, 0 ) == UNZ_OK && info.uncompressed_size && *path)
 					{
-					#ifdef UNICODE
 						wchar_t unipath[MAX_PATH+1];
 						::MultiByteToWideChar( CP_OEMCP, 0, path, -1, unipath, MAX_PATH );
 						files.push_back( Item(this,unipath,info.uncompressed_size,i) );
-					#else
-						files.push_back( Item(this,Path(path).Ptr(),info.uncompressed_size,i) );
-					#endif
 					}
 				}
 				while (++i < numFiles && ::unzGoToNextFile( handle ) == UNZ_OK);
@@ -366,7 +361,7 @@ namespace Nestopia
 					{
 						return true;
 					}
-					else if (System::Dll::Load(_T("unrar.dll")))
+					else if (System::Dll::Load( L"unrar.dll" ))
 					{
 						if
 						(
@@ -409,13 +404,8 @@ namespace Nestopia
 		{
 			Object::Pod<RAROpenArchiveDataEx> data;
 
-		#ifdef UNICODE
 			data.ArcName = NULL;
 			data.ArcNameW = path.Ptr();
-		#else
-			data.ArcName = path.Ptr();
-			data.ArcNameW = NULL;
-		#endif
 			data.OpenMode = mode;
 			data.CmtBuf = NULL;
 
@@ -428,26 +418,12 @@ namespace Nestopia
 			{
 				try
 				{
-				#ifdef UNICODE
 					Object::Pod<RARHeaderDataEx> header;
-				#else
-					Object::Pod<RARHeaderData> header;
-				#endif
 
-				#ifdef UNICODE
 					for (uint i=0; dll.ReadHeaderEx( handle, &header ) == 0; ++i)
-				#else
-					for (uint i=0; dll.ReadHeader( handle, &header ) == 0; ++i)
-				#endif
 					{
 						if (header.UnpSize && *header.FileName)
-						{
-						#ifdef UNICODE
 							files.push_back( Item(this,header.FileNameW,header.UnpSize,i) );
-						#else
-							files.push_back( Item(this,header.FileName,header.UnpSize,i) );
-						#endif
-						}
 
 						if (dll.ProcessFile( handle, RAR_SKIP, NULL, NULL ))
 							break;
@@ -521,14 +497,7 @@ namespace Nestopia
 						{
 							Path path( Application::Instance::GetTmpPath() );
 
-						#ifdef UNICODE
 							if (dll.ProcessFileW( handle, RAR_EXTRACT, NULL, path.Ptr() ) == 0)
-						#else
-							Path oem;
-							oem.Resize( path.Length() );
-
-							if (::CharToOemA( path.Ptr(), oem.Ptr() ) && dll.ProcessFile( handle, RAR_EXTRACT, NULL, oem.Ptr() ) == 0)
-						#endif
 							{
 								if (stream.pos == stream.size)
 									extracted = size;
@@ -859,7 +828,7 @@ namespace Nestopia
 		{
 			static System::Dll dll;
 
-			if (!dll && !dll.Load(_T("7zxa.dll")))
+			if (!dll && !dll.Load( L"7zxa.dll" ))
 				throw ERR_DLL;
 
 			typedef UINT32 (WINAPI *CreateObjectFunc)(const GUID*,const GUID*,void**);
@@ -943,16 +912,7 @@ namespace Nestopia
 					if (FAILED(archive.GetProperty( i, kpidPath, &prop )) || prop.vt != VT_BSTR || prop.bstrVal == NULL)
 						continue;
 
-				#ifdef UNICODE
 					path = prop.bstrVal;
-				#else
-					{
-						char buffer[MAX_PATH+2];
-
-						if (::WideCharToMultiByte( CP_OEMCP, 0, prop.bstrVal, -1, buffer, MAX_PATH+1, NULL, NULL ))
-							path = buffer;
-					}
-				#endif
 
 					::VariantClear( reinterpret_cast<VARIANTARG*>(&prop) );
 
@@ -1076,15 +1036,15 @@ namespace Nestopia
 		inline Archive::Item::Item
 		(
 			Codec* const c,
-			tstring const n,
+			wcstring const n,
 			const uint s,
 			const uint i
 		)
 		:
-		codec     ( c ),
-		name      ( n ),
-		size      ( s ),
-		index     ( i )
+		codec ( c ),
+		name  ( n ),
+		size  ( s ),
+		index ( i )
 		{}
 
 		uint Archive::Item::Uncompress(void* const data) const
@@ -1104,142 +1064,33 @@ namespace Nestopia
 			return NO_FILES;
 		}
 
-		class Archive::Gui
+		uint Archive::UserSelect() const
 		{
-		public:
-
-			explicit Gui
-			(
-				const Items&,
-				const GenericString* = NULL,
-				const uint=0
-			);
-
-			uint Open();
-
-		private:
-
-			struct Handlers;
-
-			ibool OnInitDialog (Window::Param&);
-			ibool OnCmdOk      (Window::Param&);
-			ibool OnDblClk     (Window::Param&);
-
-			Window::Dialog dialog;
-			const Items& files;
-
-			struct Filter
+			if (files.empty())
 			{
-				const GenericString* const extensions;
-				const uint count;
-
-				Filter(const GenericString* e,const uint c)
-				: extensions(e), count(c) {}
-			};
-
-			const Filter filter;
-		};
-
-		struct Archive::Gui::Handlers
-		{
-			static const Window::MsgHandler::Entry<Gui> messages[];
-			static const Window::MsgHandler::Entry<Gui> commands[];
-		};
-
-		const Window::MsgHandler::Entry<Archive::Gui> Archive::Gui::Handlers::messages[] =
-		{
-			{ WM_INITDIALOG, &Gui::OnInitDialog }
-		};
-
-		const Window::MsgHandler::Entry<Archive::Gui> Archive::Gui::Handlers::commands[] =
-		{
-			{ IDOK, &Gui::OnCmdOk },
-			{ IDC_COMPRESSED_FILE_LIST, &Gui::OnDblClk }
-		};
-
-		Archive::Gui::Gui(const Items& f,const GenericString* e,const uint c)
-		:
-		dialog ( IDD_COMPRESSED_FILE, this, Handlers::messages, Handlers::commands ),
-		files  ( f ),
-		filter ( e, c )
-		{
-			NST_ASSERT( bool(e) >= bool(c) );
-		}
-
-		uint Archive::Gui::Open()
-		{
-			return dialog.Open();
-		}
-
-		ibool Archive::Gui::OnInitDialog(Window::Param&)
-		{
-			const Window::Control::ListBox listBox( dialog.ListBox(IDC_COMPRESSED_FILE_LIST) );
-			Window::Control::ListBox::HScrollBar hScrollBar( listBox.GetWindow() );
-
-			if (filter.count)
+				return NO_FILES;
+			}
+			else if (files.size() == 1)
 			{
-				for (Items::const_iterator it(files.begin()), end(files.end()); it != end; ++it)
-				{
-					const GenericString extension( it->GetName().Extension() );
-
-					for (uint i=0; i < filter.count; ++i)
-					{
-						if (filter.extensions[i] == extension)
-						{
-							hScrollBar.Update( it->GetName().Ptr(), it->GetName().Length() );
-							listBox.Add( it->GetName().Ptr() ).Data() = it - files.begin();
-							break;
-						}
-					}
-				}
+				return FIRST_FILE;
 			}
 			else
 			{
-				listBox.Reserve( files.size() );
+				std::vector<wcstring> names( files.size() );
 
-				for (Items::const_iterator it(files.begin()), end(files.end()); it != end; ++it)
-				{
-					hScrollBar.Update( it->GetName().Ptr(), it->GetName().Length() );
-					listBox.Add( it->GetName().Ptr() ).Data() = it - files.begin();
-				}
+				for (uint i=0, n=names.size(); i < n; ++i)
+					names[i] = files[i].GetName().Ptr();
+
+				return Window::User::Choose( IDS_CHOOSE_FILE, IDS_TEXT_ABORT, &names.front(), names.size() );
 			}
-
-			NST_VERIFY( listBox.Size() );
-
-			listBox[0].Select();
-
-			return true;
-		}
-
-		ibool Archive::Gui::OnCmdOk(Window::Param& param)
-		{
-			if (param.Button().Clicked())
-				dialog.Close( dialog.ListBox(IDC_COMPRESSED_FILE_LIST).Selection().Data() + 1 );
-
-			return true;
-		}
-
-		ibool Archive::Gui::OnDblClk(Window::Param& param)
-		{
-			if (HIWORD(param.wParam) == LBN_DBLCLK)
-			{
-				dialog.Close( dialog.ListBox(IDC_COMPRESSED_FILE_LIST).Selection().Data() + 1 );
-				return true;
-			}
-
-			return false;
-		}
-
-		uint Archive::UserSelect() const
-		{
-			return files.size() > 1 ? Gui( files ).Open() : files.empty() ? NO_FILES : FIRST_FILE;
 		}
 
 		uint Archive::UserSelect(const GenericString* const filter,const uint count) const
 		{
 			if (filter && count)
 			{
-				uint match = 0;
+				std::vector<wcstring> names;
+				std::vector<uint> indices;
 
 				for (Items::const_iterator it(files.begin()), end(files.end()); it != end; ++it)
 				{
@@ -1249,16 +1100,32 @@ namespace Nestopia
 					{
 						if (filter[i] == extension)
 						{
-							if (match)
-								return Gui( files, filter, count ).Open();
-							else
-								match = it - files.begin() + 1;
+							indices.push_back( it - files.begin() );
+							names.push_back( it->GetName().Ptr() );
 							break;
 						}
 					}
 				}
 
-				return match ? match : NO_FILES;
+				if (names.empty())
+				{
+					return NO_FILES;
+				}
+				else if (names.size() == 1)
+				{
+					return indices.front() + 1;
+				}
+				else
+				{
+					return Window::User::Choose
+					(
+						IDS_CHOOSE_FILE,
+						IDS_TEXT_ABORT,
+						&names.front(),
+						names.size(),
+						&indices.front()
+					);
+				}
 			}
 			else
 			{

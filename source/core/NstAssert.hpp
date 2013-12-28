@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -33,7 +33,7 @@
 #pragma once
 #endif
 
-#if defined(NDEBUG)
+#ifndef NST_DEBUG
 
   #define NST_DEBUG_MSG(msg_) NST_NOP()
   #define NST_ASSERT_MSG(expr_,msg_) NST_ASSUME(expr_)

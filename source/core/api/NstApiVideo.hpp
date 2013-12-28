@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -56,8 +56,7 @@ namespace Nes
 				{
 					WIDTH = 256,
 					HEIGHT = 240,
-					NTSC_WIDTH = 602,
-					NTSC_HEIGHT = 480
+					NTSC_WIDTH = 602
 				};
 
 				void* pixels;
@@ -271,14 +270,6 @@ namespace Nes
 				ushort width;
 				ushort height;
 
-				enum Scanlines
-				{
-					SCANLINES_NONE = 0,
-					SCANLINES_MAX = 100
-				};
-
-				uint scanlines;
-
 				enum Filter
 				{
 					FILTER_NONE,
@@ -296,16 +287,15 @@ namespace Nes
 
 				enum Scale
 				{
-					SCALE_NONE_SCANLINES = 2,
+					SCALE_NONE = 1
 				#ifndef NST_NO_SCALEX
-					SCALE_SCALE2X = 2,
-					SCALE_SCALE3X = 3,
+					,SCALE_SCALE2X = 2
+					,SCALE_SCALE3X = 3
 				#endif
 				#ifndef NST_NO_HQ2X
-					SCALE_HQ2X = 2,
-					SCALE_HQ3X = 3,
+					,SCALE_HQ2X = 2
+					,SCALE_HQ3X = 3
 				#endif
-					SCALE_NONE = 1
 				};
 
 				Filter filter;

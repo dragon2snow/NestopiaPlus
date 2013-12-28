@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -29,6 +29,7 @@
 
 #include "NstCollectionBitSet.hpp"
 #include "NstWindowDialog.hpp"
+#include "../core/api/NstApiMachine.hpp"
 
 namespace Nestopia
 {
@@ -51,15 +52,14 @@ namespace Nestopia
 				RUN_IN_BACKGROUND,
 				AUTOSTART_EMULATION,
 				SAVE_LOGFILE,
-				AUTOCORRECT_IMAGES,
 				ALLOW_MULTIPLE_INSTANCES,
-				SAVE_SETTINGS,
 				SAVE_LAUNCHER,
 				CONFIRM_RESET,
 				SAVE_CHEATS,
 				SAVE_NETPLAY_GAMELIST,
 				SAVE_WINDOWPOS,
 				SAVE_LAUNCHERSIZE,
+				SAVE_SETTINGS,
 				NUM_SETTINGS
 			};
 
@@ -102,6 +102,8 @@ namespace Nestopia
 			struct Settings : Collection::BitSet
 			{
 				Priority priority;
+				Nes::Machine::FavoredSystem favoredSystem;
+				bool alwaysAskSystem;
 				MenuLook menuLookDesktop;
 				MenuLook menuLookFullscreen;
 			};
@@ -111,7 +113,7 @@ namespace Nestopia
 			Managers::Emulator& emulator;
 
 			static MenuColorWindow menuColorWindows[2];
-			static const ushort icons[5][5];
+			static const ushort icons[4][5];
 
 		public:
 

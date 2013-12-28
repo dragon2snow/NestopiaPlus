@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -50,10 +50,10 @@ namespace Nes
 				void Blit(const Input&,const Output&,uint);
 
 				template<typename T>
-				void BlitAligned(const Input&,const Output&,uint) const;
+				static void BlitAligned(const Input&,const Output&);
 
 				template<typename T>
-				void BlitUnaligned(const Input&,const Output&,uint) const;
+				static void BlitUnaligned(const Input&,const Output&);
 			};
 		}
 	}

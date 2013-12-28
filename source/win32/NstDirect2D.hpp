@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -32,7 +32,7 @@
 #include "NstWindowRect.hpp"
 #include "NstDirectX.hpp"
 
-#ifndef NDEBUG
+#ifdef NST_DEBUG
 #define D3D_DEBUG_INFO
 #endif
 
@@ -52,6 +52,11 @@ namespace Nestopia
 
 			typedef Window::Rect Rect;
 			typedef Window::Point Point;
+
+			enum
+			{
+				MAX_SCANLINES = 100
+			};
 
 			struct Mode
 			{
@@ -102,13 +107,15 @@ namespace Nestopia
 
 				uint ordinal;
 				DeviceType deviceType;
-				ulong maxScreenSize;
+				Point maxScreenSize;
 				bool videoMemScreen;
+				bool anyTextureSize;
+				bool canDoScanlineEffect;
 				bool intervalTwo;
 				bool intervalThree;
 				bool intervalFour;
-				uint filters;
 				bool modern;
+				uint filters;
 				Modes modes;
 			};
 
@@ -128,8 +135,8 @@ namespace Nestopia
 			bool SwitchFullscreen(const Adapter::Modes::const_iterator);
 			bool SwitchWindowed();
 			void UpdateWindowView();
-			void UpdateWindowView(const Point&,const Rect&,int,Adapter::Filter,bool);
-			void UpdateFullscreenView(const Rect&,const Point&,const Rect&,int,Adapter::Filter,bool);
+			void UpdateWindowView(const Point&,const Rect&,uint,int,Adapter::Filter,bool);
+			void UpdateFullscreenView(const Rect&,const Point&,const Rect&,uint,int,Adapter::Filter,bool);
 			void UpdateFrameRate(uint,bool,bool);
 			void EnableDialogBoxMode(bool);
 			bool Reset();
@@ -141,7 +148,7 @@ namespace Nestopia
 				SCREENSHOT_ERROR
 			};
 
-			ScreenShotResult SaveScreenShot(tstring,uint) const;
+			ScreenShotResult SaveScreenShot(wcstring,uint) const;
 
 		private:
 
@@ -151,6 +158,7 @@ namespace Nestopia
 				TSL_PATCHES = 32
 			};
 
+			void FlushObjects();
 			void InvalidateObjects();
 			void ValidateObjects();
 
@@ -204,7 +212,7 @@ namespace Nestopia
 				void SwitchFullscreen(const Mode&);
 				void SwitchWindowed();
 
-				NST_FORCE_INLINE HRESULT RenderScreen(uint,uint,uint) const;
+				NST_SINGLE_CALL HRESULT RenderScreen(uint,uint,uint) const;
 
 				HRESULT ResetWindowClient(const Point&,HRESULT);
 				HRESULT ToggleDialogBoxMode();
@@ -218,6 +226,7 @@ namespace Nestopia
 				void  Prepare() const;
 				void  LogDisplaySwitch() const;
 				uint  GetRefreshRate() const;
+				DWORD GetPresentationFlags() const;
 				D3DSWAPEFFECT GetSwapEffect() const;
 				uint  GetDesiredPresentationRate(const Mode&) const;
 				DWORD GetDesiredPresentationInterval(uint) const;
@@ -245,7 +254,7 @@ namespace Nestopia
 					void OnReset() const;
 					void OnLost() const;
 
-					NST_FORCE_INLINE void Render(const D3DPRESENT_PARAMETERS&,uint) const;
+					NST_SINGLE_CALL void Render(const D3DPRESENT_PARAMETERS&,uint) const;
 
 				private:
 
@@ -328,6 +337,7 @@ namespace Nestopia
 				uchar intervalThree;
 				uchar intervalFour;
 				D3DPRESENT_PARAMETERS presentation;
+				bool dialogBoxMode;
 
 			public:
 
@@ -401,6 +411,169 @@ namespace Nestopia
 				}
 			};
 
+			class Textures
+			{
+			public:
+
+				explicit Textures(D3DFORMAT);
+
+				void Update(const Adapter&,const Point&,uint,Adapter::Filter,bool);
+				HRESULT Validate(IDirect3DDevice9&,const Adapter&,D3DFORMAT);
+				void Invalidate();
+				void Flush();
+				bool SaveToFile(wcstring,D3DXIMAGE_FILEFORMAT) const;
+
+				inline double GetScreenLeftU(uint) const;
+				inline double GetScreenRightU(uint) const;
+				inline double GetScreenTopV(uint) const;
+				inline double GetScreenBottomV(uint) const;
+				inline double GetEffectLeftU(uint) const;
+				inline double GetEffectRightU(uint) const;
+				inline double GetEffectTopV(uint) const;
+				inline double GetEffectBottomV(uint) const;
+
+			private:
+
+				class Texture : public ImplicitBool<Texture>
+				{
+				public:
+
+					void Invalidate();
+
+				protected:
+
+					explicit Texture(uint,D3DFORMAT);
+					~Texture();
+
+					bool Validate(IDirect3DDevice9&,D3DFORMAT,bool);
+
+					static uint GetSquared(const Point&);
+
+					ComInterface<IDirect3DTexture9> com;
+					Object::Pod<D3DSURFACE_DESC> desc;
+					Point size;
+					const uint stage;
+
+				public:
+
+					bool operator ! () const
+					{
+						return !com;
+					}
+
+					void GetBitMask(ulong& r,ulong& g,ulong& b) const
+					{
+						Base::FormatToMask( desc.Format, r, g, b );
+					}
+
+					uint GetBitsPerPixel() const
+					{
+						return Base::FormatToBpp( desc.Format );
+					}
+
+					NST_FORCE_INLINE HRESULT Lock(D3DLOCKED_RECT& lockedRect) const
+					{
+						const RECT rect = {0,0,size.x,size.y};
+
+						if (com)
+						{
+							return com->LockRect
+							(
+								0,
+								&lockedRect,
+								(desc.Usage & D3DUSAGE_DYNAMIC) ? NULL : &rect,
+								(desc.Usage & D3DUSAGE_DYNAMIC) ? (D3DLOCK_DISCARD|D3DLOCK_NOSYSLOCK) : D3DLOCK_NOSYSLOCK
+							);
+						}
+						else
+						{
+							return D3DERR_DEVICELOST;
+						}
+					}
+
+					NST_FORCE_INLINE void Unlock() const
+					{
+						com->UnlockRect( 0 );
+					}
+				};
+
+				class ScreenTexture : public Texture
+				{
+				public:
+
+					explicit ScreenTexture(D3DFORMAT);
+
+					void Update(const Adapter&,Point,bool);
+					void Flush();
+					bool Validate(IDirect3DDevice9&,D3DFORMAT,const Adapter&);
+					bool SaveToFile(wcstring,D3DXIMAGE_FILEFORMAT) const;
+
+					inline double GetLeftU(uint) const;
+					inline double GetRightU(uint) const;
+					inline double GetTopV(uint) const;
+					inline double GetBottomV(uint) const;
+
+				private:
+
+					bool useVidMem;
+				};
+
+				class EffectTexture : public Texture
+				{
+				public:
+
+					explicit EffectTexture(D3DFORMAT);
+
+					void Update(const Adapter&,Point,uint);
+					bool Validate(IDirect3DDevice9&,D3DFORMAT);
+
+					inline double GetLeftU(uint) const;
+					inline double GetRightU(uint) const;
+					inline double GetTopV(uint) const;
+					inline double GetBottomV(uint) const;
+
+				private:
+
+					uint scanlines;
+					bool dirty;
+				};
+
+				ScreenTexture screenTexture;
+				EffectTexture effectTexture;
+				Adapter::Filter filter;
+
+			public:
+
+				NST_FORCE_INLINE HRESULT LockScreen(void*& data,long& pitch) const
+				{
+					D3DLOCKED_RECT lockedRect;
+					const HRESULT hResult = screenTexture.Lock( lockedRect );
+
+					if (SUCCEEDED(hResult))
+					{
+						data = lockedRect.pBits;
+						pitch = lockedRect.Pitch;
+					}
+
+					return hResult;
+				}
+
+				NST_FORCE_INLINE void UnlockScreen() const
+				{
+					screenTexture.Unlock();
+				}
+
+				void GetScreenBitMask(ulong& r,ulong& g,ulong& b) const
+				{
+					screenTexture.GetBitMask( r, g, b );
+				}
+
+				uint GetScreenBitsPerPixel() const
+				{
+					return screenTexture.GetBitsPerPixel();
+				}
+			};
+
 			class VertexBuffer
 			{
 			public:
@@ -408,35 +581,36 @@ namespace Nestopia
 				VertexBuffer();
 				~VertexBuffer();
 
-				enum
-				{
-					FVF = D3DFVF_XYZRHW|D3DFVF_TEX1
-				};
-
-				void Update(const Rect&,const Rect&,float,uint,int);
-				HRESULT Validate(IDirect3DDevice9&,bool=true);
+				void Update(const Rect&,const Rect&,int);
+				HRESULT Validate(IDirect3DDevice9&,const Textures&);
 				void Invalidate();
 
 				inline uint NumVertices() const;
 
 			private:
 
+				enum
+				{
+					FVF = D3DFVF_XYZRHW|D3DFVF_TEX2
+				};
+
 				#pragma pack(push,1)
 
 				struct Vertex
 				{
-					Vertex();
-
-					float x,y,z,rhw,u,v;
+					float x,y,z,rhw,u0,v0,u1,v1;
 				};
 
 				#pragma pack(pop)
 
-				NST_COMPILE_ASSERT( sizeof(Vertex) == 24 );
+				NST_COMPILE_ASSERT( sizeof(Vertex) == 32 );
 
 				ComInterface<IDirect3DVertexBuffer9> com;
 				Rect rect;
-				std::vector<Vertex> vertices;
+				Rect clip;
+				uint numVertices;
+				int screenCurvature;
+				bool dirty;
 
 			public:
 
@@ -450,85 +624,26 @@ namespace Nestopia
 			{
 			public:
 
-				inline IndexBuffer();
+				IndexBuffer();
 				~IndexBuffer();
 
-				void Update(uint);
-				HRESULT Validate(IDirect3DDevice9&,bool=true);
+				void Update(bool);
+				HRESULT Validate(IDirect3DDevice9&);
 				void Invalidate();
 
 				inline uint NumStrips() const;
 
 			private:
 
-				uint strips;
-				uint patches;
 				ComInterface<IDirect3DIndexBuffer9> com;
-			};
-
-			class Texture
-			{
-			public:
-
-				explicit Texture(D3DFORMAT);
-				~Texture();
-
-				void Update(const Point&,Adapter::Filter,bool);
-				inline uint Size() const;
-
-				HRESULT Validate(IDirect3DDevice9&,const Adapter&,D3DFORMAT);
-				void Invalidate();
-				bool SaveToFile(tstring,D3DXIMAGE_FILEFORMAT) const;
-
-			private:
-
-				ComInterface<IDirect3DTexture9> com;
-				ushort width;
-				ushort height;
-				ushort size;
-				uchar filter;
-				bool useVidMem;
-				DWORD lockFlags;
-				D3DFORMAT format;
-
-			public:
-
-				NST_FORCE_INLINE HRESULT Lock(void*& data,long& pitch) const
-				{
-					D3DLOCKED_RECT locked;
-					const RECT rect = {0,0,width,height};
-					const HRESULT hResult = com->LockRect( 0, &locked, (lockFlags & D3DLOCK_DISCARD) ? NULL : &rect, lockFlags );
-
-					if (SUCCEEDED(hResult))
-					{
-						data = locked.pBits;
-						pitch = locked.Pitch;
-					}
-
-					return hResult;
-				}
-
-				NST_FORCE_INLINE void Unlock() const
-				{
-					com->UnlockRect( 0 );
-				}
-
-				void GetBitMask(ulong& r,ulong& g,ulong& b) const
-				{
-					Base::FormatToMask( format, r, g, b );
-				}
-
-				uint GetBitsPerPixel() const
-				{
-					return Base::FormatToBpp( format );
-				}
+				uint numStrips;
 			};
 
 			Base base;
 			Device device;
+			Textures textures;
 			VertexBuffer vertexBuffer;
 			IndexBuffer indexBuffer;
-			Texture texture;
 			HRESULT lastResult;
 
 		public:
@@ -560,12 +675,12 @@ namespace Nestopia
 
 			uint GetBitsPerPixel() const
 			{
-				return texture.GetBitsPerPixel();
+				return textures.GetScreenBitsPerPixel();
 			}
 
 			void GetBitMask(ulong& r,ulong& g,ulong& b) const
 			{
-				texture.GetBitMask( r, g, b );
+				textures.GetScreenBitMask( r, g, b );
 			}
 
 			const Rect& GetScreenRect() const
@@ -576,7 +691,7 @@ namespace Nestopia
 			NST_FORCE_INLINE bool LockScreen(void*& data,long& pitch)
 			{
 				if (SUCCEEDED(lastResult))
-					lastResult = texture.Lock( data, pitch );
+					lastResult = textures.LockScreen( data, pitch );
 
 				return SUCCEEDED(lastResult);
 			}
@@ -584,7 +699,7 @@ namespace Nestopia
 			NST_FORCE_INLINE void UnlockScreen() const
 			{
 				NST_VERIFY( SUCCEEDED(lastResult) );
-				texture.Unlock();
+				textures.UnlockScreen();
 			}
 
 			bool ClearScreen()

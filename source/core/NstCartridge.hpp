@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -38,12 +38,9 @@ namespace Nes
 {
 	namespace Core
 	{
-		class Mapper;
-
-		namespace Peripherals
+		namespace Boards
 		{
-			class TurboFile;
-			class DataRecorder;
+			class Board;
 		}
 
 		class Cartridge : public Image
@@ -54,16 +51,53 @@ namespace Nes
 
 			void BeginFrame(const Api::Input&,Input::Controllers*);
 
-			typedef Api::Cartridge::Info Info;
+			typedef Api::Cartridge::Profile Profile;
+
+			static void ReadRomset(StdStream,FavoredSystem,bool,Profile&);
+			static void ReadInes(StdStream,FavoredSystem,Profile&);
+			static void ReadUnif(StdStream,FavoredSystem,Profile&);
 
 			class Ines;
 			class Unif;
+			class Romset;
 
 		private:
 
 			~Cartridge();
 
+			struct ProfileEx
+			{
+				ProfileEx();
+
+				enum Nmt
+				{
+					NMT_DEFAULT,
+					NMT_HORIZONTAL,
+					NMT_VERTICAL,
+					NMT_SINGLESCREEN,
+					NMT_FOURSCREEN,
+					NMT_CONTROLLED
+				};
+
+				Nmt nmt;
+				bool battery;
+				bool wramAuto;
+				Ram trainer;
+			};
+
 			class VsSystem;
+
+			static Result SetupBoard
+			(
+				Ram&,
+				Ram&,
+				Boards::Board**,
+				const Context*,
+				Profile&,
+				const ProfileEx&,
+				dword*,
+				bool=false
+			);
 
 			void Reset(bool);
 			bool PowerOff();
@@ -72,49 +106,32 @@ namespace Nes
 			void Destroy();
 			void VSync();
 
-			Region::Type GetRegion() const;
 			uint GetDesiredController(uint) const;
 			uint GetDesiredAdapter() const;
 			void DetectControllers(uint);
+			Region GetDesiredRegion() const;
+			System GetDesiredSystem(Region,CpuModel*,PpuModel*) const;
+
 			ExternalDevice QueryExternalDevice(ExternalDeviceType);
-			Revision::Ppu QueryPpu(bool);
 
-			class Wrk : public Ram
-			{
-				enum
-				{
-					GARBAGE = 0x00,
-					MIN_BATTERY_SIZE = SIZE_1K
-				};
-
-				File file;
-
-			public:
-
-				void Reset(const Info&,bool);
-				void Load(const Info&);
-				void Save(const Info&) const;
-			};
-
-			Mapper* mapper;
+			Boards::Board* board;
 			VsSystem* vs;
-			Peripherals::TurboFile* turboFile;
-			Peripherals::DataRecorder* dataRecorder;
 			Ram prg;
 			Ram chr;
-			Wrk wrk;
-			Info info;
+			Profile profile;
+			dword prgCrc;
+			File savefile;
 
 		public:
 
-			const Info& GetInfo() const
+			const Profile& GetProfile() const
 			{
-				return info;
+				return profile;
 			}
 
 			dword GetPrgCrc() const
 			{
-				return info.prgCrc;
+				return prgCrc;
 			}
 		};
 	}

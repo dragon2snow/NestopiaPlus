@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -52,7 +52,7 @@ namespace Nestopia
 				NULL == (hExit  = ::CreateEvent( NULL, false, false, NULL )) ||
 				NULL == (hAbort = ::CreateEvent( NULL, false, false, NULL ))
 			)
-				throw Application::Exception( IDS_ERR_FAILED, _T("CreateEvent()") );
+				throw Application::Exception( IDS_ERR_FAILED, L"CreateEvent()" );
 
 			class Entry
 			{
@@ -93,7 +93,7 @@ namespace Nestopia
 			Entry entry( callback, priority, hEnter, hExit, Terminator(hAbort) );
 
 			if (!::_beginthread( Entry::Run, 0, &entry ))
-				throw Application::Exception( IDS_ERR_FAILED, _T("_beginthread()") );
+				throw Application::Exception( IDS_ERR_FAILED, L"_beginthread()" );
 
 			::WaitForSingleObject( hEnter, INFINITE );
 		}

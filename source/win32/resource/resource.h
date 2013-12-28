@@ -15,14 +15,12 @@
 #define IDI_FDS                         147
 #define IDI_NSF                         148
 #define IDI_NSF_J                       149
-#define IDI_NSP                         150
-#define IDI_NSP_J                       151
 #define IDI_PAD                         152
 #define IDI_PAD_J                       153
 #define IDC_CURSOR_GUN                  161
 
 // Next default values for new objects
-//
+// 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1

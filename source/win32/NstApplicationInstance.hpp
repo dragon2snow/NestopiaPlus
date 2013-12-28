@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -28,6 +28,7 @@
 #pragma once
 
 #include "NstObjectDelegate.hpp"
+#include "NstCollectionVector.hpp"
 #include "NstApplicationConfiguration.hpp"
 #include "NstWindowGeneric.hpp"
 
@@ -46,7 +47,7 @@ namespace Nestopia
 
 			static const Path& GetExePath();
 			static const Path GetExePath(const GenericString);
-			static const Path GetLongPath(tstring);
+			static const Path GetLongPath(wcstring);
 			static const Path GetTmpPath(GenericString=GenericString());
 			static const Path GetFullPath(const GenericString);
 			static const String::Heap<char>& GetVersion();
@@ -104,7 +105,7 @@ namespace Nestopia
 
 			private:
 
-				typedef Object::Delegate2<void,Event,const void*> Callback;
+				typedef Object::Delegate<void,Event,const void*> Callback;
 
 				struct Callbacks : Collection::Vector<Callback>
 				{
@@ -134,16 +135,16 @@ namespace Nestopia
 			struct Global;
 			static Global global;
 
-			static const tchar appClassName[];
+			static const wchar_t appClassName[];
 
 		public:
 
-			Configuration& GetConfiguration()
+			Configuration& GetConfiguration2()
 			{
 				return cfg;
 			}
 
-			static tstring GetClassName()
+			static wcstring GetClassName()
 			{
 				return appClassName;
 			}

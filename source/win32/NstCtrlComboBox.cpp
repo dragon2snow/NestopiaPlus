@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -54,7 +54,7 @@ namespace Nestopia
 				ComboBox_DeleteString( control, index );
 			}
 
-			ComboBox::Item ComboBox::Add(tstring name) const
+			ComboBox::Item ComboBox::Add(wcstring name) const
 			{
 				NST_ASSERT( name );
 				return Item( control, ComboBox_AddString( control, name ) );
@@ -62,7 +62,7 @@ namespace Nestopia
 
 			void ComboBox::Reserve(uint items,uint lengths) const
 			{
-				control.Send( CB_INITSTORAGE, items, sizeof(tchar) * lengths );
+				control.Send( CB_INITSTORAGE, items, sizeof(wchar_t) * lengths );
 			}
 
 			uint ComboBox::Size() const

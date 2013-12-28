@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -457,7 +457,7 @@ namespace Nestopia
 			return p;
 		}
 
-		template<typename T=tchar,bool I=false>
+		template<typename T=wchar_t,bool I=false>
 		class Generic : protected Base
 		{
 		public:
@@ -659,7 +659,7 @@ namespace Nestopia
 			Generic& operator = ( ulong  i ) { SetValue( uint (i) ); return *this; }
 		};
 
-		template<typename T=tchar>
+		template<typename T=wchar_t>
 		class Num : public Generic<T,true>
 		{
 		public:
@@ -867,7 +867,7 @@ namespace Nestopia
 			string.Insert( offset, t, n );
 		}
 
-		template<uint N,typename T=tchar>
+		template<uint N,typename T=wchar_t>
 		class Stack : Base
 		{
 		public:
@@ -1215,7 +1215,7 @@ namespace Nestopia
 			}
 		}
 
-		template<typename T=tchar>
+		template<typename T=wchar_t>
 		class Heap : public Base
 		{
 		public:
@@ -1238,7 +1238,7 @@ namespace Nestopia
 			void Destroy();
 			void Erase(uint,uint);
 			Heap& Import(cstring,bool=false);
-			Heap& Import(wstring,bool=false);
+			Heap& Import(wcstring,bool=false);
 
 		private:
 
@@ -1656,7 +1656,7 @@ namespace Nestopia
 			}
 		}
 
-		template<typename T=tchar>
+		template<typename T=wchar_t>
 		class Path : public Heap<T>
 		{
 			typedef Heap<T> Parent;
@@ -2161,7 +2161,7 @@ namespace Nestopia
 			return path;
 		}
 
-		template<typename T=tchar>
+		template<typename T=wchar_t>
 		class Hex
 		{
 		public:
@@ -2227,7 +2227,7 @@ namespace Nestopia
 			*--it = '0';
 		}
 
-		template<typename T=tchar>
+		template<typename T=wchar_t>
 		class Real : Base
 		{
 		public:
@@ -2269,12 +2269,12 @@ namespace Nestopia
 		: length( Base::FromDouble( buffer, v, p || (d > 1 && Fraction(v)) ? d : 1 )) {}
 	}
 
-	typedef String::Heap<tchar>         HeapString;
-	typedef String::Generic<tchar>      GenericString;
-	typedef String::Generic<tchar,true> ValueString;
-	typedef String::Hex<tchar>          HexString;
-	typedef String::Real<tchar>         RealString;
-	typedef String::Path<tchar>         Path;
+	typedef String::Heap<wchar_t>         HeapString;
+	typedef String::Generic<wchar_t>      GenericString;
+	typedef String::Generic<wchar_t,true> ValueString;
+	typedef String::Hex<wchar_t>          HexString;
+	typedef String::Real<wchar_t>         RealString;
+	typedef String::Path<wchar_t>         Path;
 }
 
 #endif

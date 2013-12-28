@@ -2,8 +2,8 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
 // Copyright (C) 2001, 2002, 2003, 2004 Andrea Mazzoleni
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -36,13 +36,13 @@ namespace Nes
 	{
 		namespace Video
 		{
-			void Renderer::FilterScaleX::Blit(const Input& input,const Output& output,uint phase)
+			void Renderer::FilterScaleX::Blit(const Input& input,const Output& output,uint)
 			{
-				(*this.*path)( input, output, phase );
+				path( input, output );
 			}
 
 			template<typename T,int PREV,int NEXT>
-			NST_FORCE_INLINE T* Renderer::FilterScaleX::Blit2xBorder(T* NST_RESTRICT dst,const Input::Pixel* NST_RESTRICT src,const Input::Palette& palette) const
+			NST_FORCE_INLINE T* Renderer::FilterScaleX::Blit2xBorder(T* NST_RESTRICT dst,const Input::Pixel* NST_RESTRICT src,const Input::Palette& palette)
 			{
 				{
 					dword p[4] =
@@ -111,7 +111,7 @@ namespace Nes
 			}
 
 			template<typename T,int PREV,int NEXT>
-			NST_FORCE_INLINE T* Renderer::FilterScaleX::Blit3xBorder(T* NST_RESTRICT dst,const Input::Pixel* NST_RESTRICT src,const Input::Palette& palette) const
+			NST_FORCE_INLINE T* Renderer::FilterScaleX::Blit3xBorder(T* NST_RESTRICT dst,const Input::Pixel* NST_RESTRICT src,const Input::Palette& palette)
 			{
 				{
 					const dword p = palette[src[0]];
@@ -160,7 +160,7 @@ namespace Nes
 			}
 
 			template<typename T>
-			NST_FORCE_INLINE T* Renderer::FilterScaleX::Blit3xCenter(T* NST_RESTRICT dst,const Input::Pixel* NST_RESTRICT src,const Input::Palette& palette) const
+			NST_FORCE_INLINE T* Renderer::FilterScaleX::Blit3xCenter(T* NST_RESTRICT dst,const Input::Pixel* NST_RESTRICT src,const Input::Palette& palette)
 			{
 				for (uint x=WIDTH; x; --x)
 				{
@@ -177,7 +177,7 @@ namespace Nes
 			}
 
 			template<typename T,int PREV,int NEXT>
-			NST_FORCE_INLINE T* Renderer::FilterScaleX::Blit2xLine(T* dst,const Input::Pixel* const src,const Input::Palette& palette,const long pad) const
+			NST_FORCE_INLINE T* Renderer::FilterScaleX::Blit2xLine(T* dst,const Input::Pixel* const src,const Input::Palette& palette,const long pad)
 			{
 				dst = reinterpret_cast<T*>(reinterpret_cast<byte*>(Blit2xBorder<T,PREV,NEXT>( dst, src, palette )) + pad);
 				dst = reinterpret_cast<T*>(reinterpret_cast<byte*>(Blit2xBorder<T,NEXT,PREV>( dst, src, palette )) + pad);
@@ -186,7 +186,7 @@ namespace Nes
 			}
 
 			template<typename T,int PREV,int NEXT>
-			NST_FORCE_INLINE T* Renderer::FilterScaleX::Blit3xLine(T* dst,const Input::Pixel* const src,const Input::Palette& palette,const long pad) const
+			NST_FORCE_INLINE T* Renderer::FilterScaleX::Blit3xLine(T* dst,const Input::Pixel* const src,const Input::Palette& palette,const long pad)
 			{
 				dst = reinterpret_cast<T*>(reinterpret_cast<byte*>(Blit3xBorder<T,PREV,NEXT>( dst, src, palette )) + pad);
 				dst = reinterpret_cast<T*>(reinterpret_cast<byte*>(Blit3xCenter<T>( dst, src, palette )) + pad);
@@ -196,7 +196,7 @@ namespace Nes
 			}
 
 			template<typename T>
-			void Renderer::FilterScaleX::Blit2x(const Input& input,const Output& output,uint) const
+			void Renderer::FilterScaleX::Blit2x(const Input& input,const Output& output)
 			{
 				const Input::Pixel* src = input.pixels;
 				T* dst = static_cast<T*>(output.pixels);
@@ -211,7 +211,7 @@ namespace Nes
 			}
 
 			template<typename T>
-			void Renderer::FilterScaleX::Blit3x(const Input& input,const Output& output,uint) const
+			void Renderer::FilterScaleX::Blit3x(const Input& input,const Output& output)
 			{
 				const Input::Pixel* src = input.pixels;
 				T* dst = static_cast<T*>(output.pixels);
@@ -256,7 +256,7 @@ namespace Nes
 
 			bool Renderer::FilterScaleX::Check(const RenderState& state)
 			{
-				return (state.bits.count == 16 || state.bits.count == 32) && (state.scanlines == 0) &&
+				return (state.bits.count == 16 || state.bits.count == 32) &&
 				(
 					(state.filter == RenderState::FILTER_SCALE2X && state.width == WIDTH*2 && state.height == HEIGHT*2) ||
 					(state.filter == RenderState::FILTER_SCALE3X && state.width == WIDTH*3 && state.height == HEIGHT*3)

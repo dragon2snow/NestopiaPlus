@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -66,27 +66,29 @@ namespace Nestopia
 		Fds::Fds(Managers::Emulator& e,const Configuration& cfg,const Managers::Paths& p)
 		: dialog(IDD_FDS,this,Handlers::messages,Handlers::commands), emulator(e), paths(p)
 		{
-			const GenericString method( cfg["files fds save"] );
+			Configuration::ConstSection fds( cfg["paths"]["fds"] );
+
+			const GenericString method( fds["save-method"].Str() );
 
 			emulator.SetDiskImageSaveMethod
 			(
-				( method == _T("disable") ) ? Managers::Emulator::DISKIMAGE_SAVE_DISABLED :
-				( method == _T("image")   ) ? Managers::Emulator::DISKIMAGE_SAVE_TO_IMAGE :
-                                              Managers::Emulator::DISKIMAGE_SAVE_TO_IPS
+				( method == L"disabled" ) ? Managers::Emulator::DISKIMAGE_SAVE_DISABLED :
+				( method == L"image"    ) ? Managers::Emulator::DISKIMAGE_SAVE_TO_IMAGE :
+											Managers::Emulator::DISKIMAGE_SAVE_TO_IPS
 			);
 
-			const GenericString led( cfg["files fds led"] );
+			const GenericString led( fds["led"].Str() );
 
 			settings.led =
 			(
-				( led == _T("numlock"    )) ? LED_NUM_LOCK :
-				( led == _T("capslock"   )) ? LED_CAPS_LOCK :
-				( led == _T("scrolllock" )) ? LED_SCROLL_LOCK :
-				( led == _T("disable"    )) ? LED_DISABLED :
-                                              LED_SCREEN
+				( led == L"numlock"    ) ? LED_NUM_LOCK :
+				( led == L"capslock"   ) ? LED_CAPS_LOCK :
+				( led == L"scrolllock" ) ? LED_SCROLL_LOCK :
+				( led == L"disabled"   ) ? LED_DISABLED :
+                                           LED_SCREEN
 			);
 
-			settings.bios = cfg["files fds bios"];
+			settings.bios = fds["bios"].Str();
 
 			if (settings.bios.Length())
 			{
@@ -94,7 +96,7 @@ namespace Nestopia
 			}
 			else
 			{
-				settings.bios = _T("disksys.rom");
+				settings.bios = "disksys.rom";
 
 				if (!paths.FindFile( settings.bios ))
 					settings.bios.Clear();
@@ -110,22 +112,24 @@ namespace Nestopia
 
 		void Fds::Save(Configuration& cfg) const
 		{
-			cfg["files fds bios"].Quote() = settings.bios;
+			Configuration::Section fds( cfg["paths"]["fds"] );
 
-			cfg["files fds save"] =
+			fds["bios"].Str() = settings.bios;
+
+			fds["save-method"].Str() =
 			(
-				( emulator.GetDiskImageSaveMethod() == Managers::Emulator::DISKIMAGE_SAVE_TO_IMAGE ) ? _T("image") :
-				( emulator.GetDiskImageSaveMethod() == Managers::Emulator::DISKIMAGE_SAVE_TO_IPS   ) ? _T("ips") :
-                                                                                                       _T("disable")
+				( emulator.GetDiskImageSaveMethod() == Managers::Emulator::DISKIMAGE_SAVE_TO_IMAGE ) ? "image" :
+				( emulator.GetDiskImageSaveMethod() == Managers::Emulator::DISKIMAGE_SAVE_TO_IPS   ) ? "ips" :
+                                                                                                       "disabled"
 			);
 
-			cfg["files fds led"] =
+			fds["led"].Str() =
 			(
-				( settings.led == LED_SCREEN      ) ? _T("screen") :
-				( settings.led == LED_NUM_LOCK    ) ? _T("numlock") :
-				( settings.led == LED_CAPS_LOCK   ) ? _T("capslock") :
-				( settings.led == LED_SCROLL_LOCK ) ? _T("scrolllock") :
-                                                      _T("disable")
+				( settings.led == LED_SCREEN      ) ? "screen" :
+				( settings.led == LED_NUM_LOCK    ) ? "numlock" :
+				( settings.led == LED_CAPS_LOCK   ) ? "capslock" :
+				( settings.led == LED_SCROLL_LOCK ) ? "scrolllock" :
+                                                      "disabled"
 			);
 		}
 
@@ -151,9 +155,9 @@ namespace Nestopia
 
 			if (paths.Load( file, BIOS_FILE_TYPES, Path(Application::Instance::GetFullPath(settings.bios.Directory()),settings.bios.File()), Managers::Paths::QUIETLY ))
 			{
-				Io::Stream::Input stream( file.data );
+				Io::Stream::In stream( file.data );
 
-				if (NES_SUCCEEDED(Nes::Fds(emulator).SetBIOS( &stream )))
+				if (NES_SUCCEEDED(Nes::Fds(emulator).SetBIOS( &static_cast<std::istream&>(stream) )))
 					return;
 			}
 

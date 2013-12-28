@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -49,13 +49,12 @@ namespace Nes
 				MODE_XEV
 			};
 
-			static VsSystem* Create(Cpu&,Ppu&,Revision::Ppu,Mode,dword,bool);
+			static VsSystem* Create(Cpu&,Ppu&,PpuModel,dword);
 			static void Destroy(VsSystem*);
 
 			void Reset(bool);
 			void SaveState(State::Saver&,dword) const;
 			void LoadState(State::Loader&);
-			void EnableYuvConversion(bool);
 
 		protected:
 
@@ -118,10 +117,6 @@ namespace Nes
 
 			NES_DECL_PEEK( Nop  );
 			NES_DECL_POKE( Nop  );
-			NES_DECL_PEEK( 2002_RC2C05_01_04 );
-			NES_DECL_PEEK( 2002_RC2C05_02    );
-			NES_DECL_PEEK( 2002_RC2C05_03    );
-			NES_DECL_POKE( 2002 );
 			NES_DECL_PEEK( 4016 );
 			NES_DECL_POKE( 4016 );
 			NES_DECL_PEEK( 4017 );
@@ -174,12 +169,8 @@ namespace Nes
 			Io::Port p4016;
 			Io::Port p4017;
 			VsDipSwitches dips;
-			Io::Port p2002;
 			uint coin;
-			const Revision::Ppu ppuRev;
-			ibool yuvMapping;
-
-			static const byte yuvMaps[4][0x40];
+			const PpuModel ppuModel;
 
 		public:
 
@@ -197,9 +188,9 @@ namespace Nes
 					inputMapper->End();
 			}
 
-			Revision::Ppu GetPpuRevion() const
+			PpuModel GetPpuModel() const
 			{
-				return ppuRev;
+				return ppuModel;
 			}
 
 			DipSwitches& GetDipSwiches()

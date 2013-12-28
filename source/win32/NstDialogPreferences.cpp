@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -32,7 +32,6 @@
 #include "NstDialogPreferences.hpp"
 #include "NstIoLog.hpp"
 #include "NstResourceString.hpp"
-#include "../core/api/NstApiCartridge.hpp"
 #include <CommDlg.h>
 
 namespace Nestopia
@@ -43,8 +42,7 @@ namespace Nestopia
 		(
 			IDC_PREFERENCES_ASSOCIATE_UNF == IDC_PREFERENCES_ASSOCIATE_NES + 1 &&
 			IDC_PREFERENCES_ASSOCIATE_FDS == IDC_PREFERENCES_ASSOCIATE_NES + 2 &&
-			IDC_PREFERENCES_ASSOCIATE_NSF == IDC_PREFERENCES_ASSOCIATE_NES + 3 &&
-			IDC_PREFERENCES_ASSOCIATE_NSP == IDC_PREFERENCES_ASSOCIATE_NES + 4
+			IDC_PREFERENCES_ASSOCIATE_NSF == IDC_PREFERENCES_ASSOCIATE_NES + 3
 		);
 
 		NST_COMPILE_ASSERT
@@ -67,7 +65,7 @@ namespace Nestopia
 
 			enum
 			{
-				NUM_EXTENSIONS = 5
+				NUM_EXTENSIONS = 4
 			};
 
 			explicit Association(bool=false);
@@ -93,16 +91,15 @@ namespace Nestopia
 			bool updated;
 			const bool notify;
 
-			static tstring const keyNames[NUM_EXTENSIONS][NUM_KEYTYPES];
+			static wcstring const keyNames[NUM_EXTENSIONS][NUM_KEYTYPES];
 		};
 
-		tstring const Preferences::Association::keyNames[NUM_EXTENSIONS][NUM_KEYTYPES] =
+		wcstring const Preferences::Association::keyNames[NUM_EXTENSIONS][NUM_KEYTYPES] =
 		{
-			{ _T( ".nes" ), _T( "Nestopia.nes" ), _T( "Nestopia iNES File"                ) },
-			{ _T( ".unf" ), _T( "Nestopia.unf" ), _T( "Nestopia UNIF File"                ) },
-			{ _T( ".fds" ), _T( "Nestopia.fds" ), _T( "Nestopia Famicom Disk System File" ) },
-			{ _T( ".nsf" ), _T( "Nestopia.nsf" ), _T( "Nestopia NES Sound File"           ) },
-			{ _T( ".nsp" ), _T( "Nestopia.nsp" ), _T( "Nestopia Script File"              ) }
+			{ L".nes", L"Nestopia.nes", L"Nestopia iNES File"                },
+			{ L".unf", L"Nestopia.unf", L"Nestopia UNIF File"                },
+			{ L".fds", L"Nestopia.fds", L"Nestopia Famicom Disk System File" },
+			{ L".nsf", L"Nestopia.nsf", L"Nestopia NES Sound File"           }
 		};
 
 		Preferences::Association::Association(bool n)
@@ -137,7 +134,7 @@ namespace Nestopia
 
 				// "nestopia.extension\DefaultIcon" <- "drive:\directory\nestopia.exe,icon"
 
-				if (registry[keyNames[index][NAME]][_T("DefaultIcon")] << (path << ',' << icon))
+				if (registry[keyNames[index][NAME]][L"DefaultIcon"] << (path << ',' << icon))
 				{
 					refresh = true;
 					updated = true;
@@ -147,7 +144,7 @@ namespace Nestopia
 
 				// "nestopia.extension\Shell\Open\Command" <- "drive:\directory\nestopia.exe "%1"
 
-				if (registry[keyNames[index][NAME]][_T("Shell\\Open\\Command")] << (path << _T(" \"%1\"")))
+				if (registry[keyNames[index][NAME]][L"Shell\\Open\\Command"] << (path << " \"%1\""))
 					updated = true;
 			}
 		}
@@ -203,13 +200,12 @@ namespace Nestopia
 			}
 		}
 
-		const ushort Preferences::icons[5][5] =
+		const ushort Preferences::icons[Preferences::Association::NUM_EXTENSIONS][5] =
 		{
 			{ IDC_PREFERENCES_ICON_NES, IDI_NES, IDI_NES_J,  2,  3 },
 			{ IDC_PREFERENCES_ICON_UNF, IDI_UNF, IDI_UNF_J,  4,  5 },
 			{ IDC_PREFERENCES_ICON_FDS, IDI_FDS, IDI_FDS,    6,  6 },
-			{ IDC_PREFERENCES_ICON_NSF, IDI_NSF, IDI_NSF_J,  7,  8 },
-			{ IDC_PREFERENCES_ICON_NSP, IDI_NSP, IDI_NSP_J,  9, 10 }
+			{ IDC_PREFERENCES_ICON_NSF, IDI_NSF, IDI_NSF_J,  7,  8 }
 		};
 
 		struct Preferences::Handlers
@@ -250,7 +246,6 @@ namespace Nestopia
 				RUN_IN_BACKGROUND        == IDC_PREFERENCES_RUN_IN_BACKGROUND     - IDC_PREFERENCES_STARTUP_FULLSCREEN &&
 				AUTOSTART_EMULATION      == IDC_PREFERENCES_BEGIN_EMULATION       - IDC_PREFERENCES_STARTUP_FULLSCREEN &&
 				SAVE_LOGFILE             == IDC_PREFERENCES_SAVE_LOGFILE          - IDC_PREFERENCES_STARTUP_FULLSCREEN &&
-				AUTOCORRECT_IMAGES       == IDC_PREFERENCES_USE_ROM_DATABASE      - IDC_PREFERENCES_STARTUP_FULLSCREEN &&
 				ALLOW_MULTIPLE_INSTANCES == IDC_PREFERENCES_MULTIPLE_INSTANCES    - IDC_PREFERENCES_STARTUP_FULLSCREEN &&
 				SAVE_LAUNCHER            == IDC_PREFERENCES_SAVE_LAUNCHER         - IDC_PREFERENCES_STARTUP_FULLSCREEN &&
 				CONFIRM_RESET            == IDC_PREFERENCES_CONFIRM_RESET         - IDC_PREFERENCES_STARTUP_FULLSCREEN &&
@@ -260,49 +255,84 @@ namespace Nestopia
 				SAVE_LAUNCHERSIZE        == IDC_PREFERENCES_SAVE_LAUNCHERSIZE     - IDC_PREFERENCES_STARTUP_FULLSCREEN
 			);
 
-			settings[ AUTOSTART_EMULATION      ] = ( cfg[ "preferences autostart emulation"      ] != Configuration::NO  );
-			settings[ RUN_IN_BACKGROUND        ] = ( cfg[ "preferences run in background"        ] == Configuration::YES );
-			settings[ START_IN_FULLSCREEN      ] = ( cfg[ "preferences start in fullscreen"      ] == Configuration::YES );
-			settings[ SUPPRESS_WARNINGS        ] = ( cfg[ "preferences suppress warnings"        ] == Configuration::YES );
-			settings[ FIRST_UNLOAD_ON_EXIT     ] = ( cfg[ "preferences power off on exit"        ] == Configuration::YES );
-			settings[ CONFIRM_EXIT             ] = ( cfg[ "preferences confirm exit"             ] != Configuration::NO  );
-			settings[ CONFIRM_RESET            ] = ( cfg[ "preferences confirm machine reset"    ] == Configuration::YES );
-			settings[ AUTOCORRECT_IMAGES       ] = ( cfg[ "preferences autocorrect images"       ] != Configuration::NO  );
-			settings[ ALLOW_MULTIPLE_INSTANCES ] = ( cfg[ "preferences allow multiple instances" ] == Configuration::YES );
-			settings[ SAVE_LOGFILE             ] = ( cfg[ "preferences save logfile"             ] != Configuration::NO  );
-			settings[ SAVE_SETTINGS            ] = ( cfg[ "preferences save settings"            ] != Configuration::NO  );
-			settings[ SAVE_LAUNCHER            ] = ( cfg[ "preferences save launcher files"      ] != Configuration::NO  );
-			settings[ SAVE_CHEATS              ] = ( cfg[ "preferences save cheats"              ] != Configuration::NO  );
-			settings[ SAVE_NETPLAY_GAMELIST    ] = ( cfg[ "preferences save netplay list"        ] != Configuration::NO  );
-			settings[ SAVE_WINDOWPOS           ] = ( cfg[ "preferences save window"              ] == Configuration::YES );
-			settings[ SAVE_LAUNCHERSIZE        ] = ( cfg[ "preferences save launcher window"     ] == Configuration::YES );
-
-			Application::Instance::SetIconStyle( GenericString(cfg["preferences icon style"]) == _T("famicom") ? Application::Instance::ICONSTYLE_FAMICOM : Application::Instance::ICONSTYLE_NES );
-
-			settings.menuLookDesktop.enabled    = ( cfg[ "preferences default desktop menu color"    ] == Configuration::NO );
-			settings.menuLookFullscreen.enabled = ( cfg[ "preferences default fullscreen menu color" ] == Configuration::NO );
-
-			settings.menuLookDesktop.color    = cfg[ "preferences desktop menu color"    ].Default( uint(DEFAULT_DESKTOP_MENU_COLOR) );
-			settings.menuLookFullscreen.color = cfg[ "preferences fullscreen menu color" ].Default( uint(DEFAULT_FULLSCREEN_MENU_COLOR) );
+			Configuration::ConstSection preferences( cfg["preferences"] );
 
 			{
-				const GenericString priority( cfg[ "preferences priority" ] );
+				Configuration::ConstSection application( preferences["application"] );
 
-				if (priority == _T("high"))
+				settings[ AUTOSTART_EMULATION      ] = !application[ "autostart"                ].No();
+				settings[ RUN_IN_BACKGROUND        ] =  application[ "run-background"           ].Yes();
+				settings[ START_IN_FULLSCREEN      ] =  application[ "start-fullscreen"         ].Yes();
+				settings[ SUPPRESS_WARNINGS        ] =  application[ "suppress-warnings"        ].Yes();
+				settings[ FIRST_UNLOAD_ON_EXIT     ] =  application[ "exit-power-off"           ].Yes();
+				settings[ CONFIRM_EXIT             ] = !application[ "confirm-exit"             ].No();
+				settings[ CONFIRM_RESET            ] =  application[ "confirm-reset"            ].Yes();
+				settings[ ALLOW_MULTIPLE_INSTANCES ] =  application[ "allow-multiple-instances" ].Yes();
+
 				{
-					settings.priority = PRIORITY_HIGH;
+					const GenericString priority( application[ "priority" ].Str() );
+
+					if (priority == L"high")
+					{
+						settings.priority = PRIORITY_HIGH;
+					}
+					else if (priority == L"above normal")
+					{
+						settings.priority = PRIORITY_ABOVE_NORMAL;
+					}
+					else
+					{
+						settings.priority = PRIORITY_NORMAL;
+					}
 				}
-				else if (priority == _T("above normal"))
+
 				{
-					settings.priority = PRIORITY_ABOVE_NORMAL;
+					const GenericString favored( application[ "favored-system" ].Str() );
+
+					if (favored == L"nes-pal")
+					{
+						settings.favoredSystem = Nes::Machine::FAVORED_NES_PAL;
+					}
+					else if (favored == L"famicom")
+					{
+						settings.favoredSystem = Nes::Machine::FAVORED_FAMICOM;
+					}
+					else
+					{
+						settings.favoredSystem = Nes::Machine::FAVORED_NES_NTSC;
+					}
 				}
-				else
-				{
-					settings.priority = PRIORITY_NORMAL;
-				}
+
+				settings.alwaysAskSystem = application[ "favored-system-always-ask" ].Yes();
 			}
 
-			Nes::Cartridge(emulator).GetDatabase().Enable( settings[AUTOCORRECT_IMAGES] );
+			{
+				Configuration::ConstSection save( preferences["save"] );
+
+				settings[ SAVE_LOGFILE             ] = !save[ "logfile"         ].No();
+				settings[ SAVE_SETTINGS            ] = !save[ "settings"        ].No();
+				settings[ SAVE_LAUNCHER            ] = !save[ "launcher"        ].No();
+				settings[ SAVE_CHEATS              ] = !save[ "cheats"          ].No();
+				settings[ SAVE_NETPLAY_GAMELIST    ] = !save[ "netplay-list"    ].No();
+				settings[ SAVE_WINDOWPOS           ] =  save[ "window-main"     ].Yes();
+				settings[ SAVE_LAUNCHERSIZE        ] =  save[ "window-launcher" ].Yes();
+			}
+
+			{
+				Configuration::ConstSection appearance( preferences["appearance"] );
+
+				settings.menuLookDesktop.enabled    = appearance[ "menu-desktop"    ][ "use-custom-color" ].Yes();
+				settings.menuLookFullscreen.enabled = appearance[ "menu-fullscreen" ][ "use-custom-color" ].Yes();
+
+				settings.menuLookDesktop.color    = appearance[ "menu-desktop"    ][ "custom-color" ].Int( DEFAULT_DESKTOP_MENU_COLOR );
+				settings.menuLookFullscreen.color = appearance[ "menu-fullscreen" ][ "custom-color" ].Int( DEFAULT_FULLSCREEN_MENU_COLOR );
+
+				Application::Instance::SetIconStyle
+				(
+					appearance[ "icon-style" ].Str() == L"famicom" ? Application::Instance::ICONSTYLE_FAMICOM :
+                                                                     Application::Instance::ICONSTYLE_NES
+				);
+			}
 
 			Association association;
 			const uint iconOffset = (Application::Instance::GetIconStyle() == Application::Instance::ICONSTYLE_NES ? 3 : 4);
@@ -313,39 +343,64 @@ namespace Nestopia
 
 		void Preferences::Save(Configuration& cfg) const
 		{
-			cfg[ "preferences autostart emulation"      ].YesNo() = settings[ AUTOSTART_EMULATION      ];
-			cfg[ "preferences run in background"        ].YesNo() = settings[ RUN_IN_BACKGROUND        ];
-			cfg[ "preferences start in fullscreen"      ].YesNo() = settings[ START_IN_FULLSCREEN      ];
-			cfg[ "preferences suppress warnings"        ].YesNo() = settings[ SUPPRESS_WARNINGS        ];
-			cfg[ "preferences power off on exit"        ].YesNo() = settings[ FIRST_UNLOAD_ON_EXIT     ];
-			cfg[ "preferences confirm exit"             ].YesNo() = settings[ CONFIRM_EXIT             ];
-			cfg[ "preferences confirm machine reset"    ].YesNo() = settings[ CONFIRM_RESET            ];
-			cfg[ "preferences autocorrect images"       ].YesNo() = settings[ AUTOCORRECT_IMAGES       ];
-			cfg[ "preferences allow multiple instances" ].YesNo() = settings[ ALLOW_MULTIPLE_INSTANCES ];
-			cfg[ "preferences save logfile"             ].YesNo() = settings[ SAVE_LOGFILE             ];
-			cfg[ "preferences save settings"            ].YesNo() = settings[ SAVE_SETTINGS            ];
-			cfg[ "preferences save launcher files"      ].YesNo() = settings[ SAVE_LAUNCHER            ];
-			cfg[ "preferences save cheats"              ].YesNo() = settings[ SAVE_CHEATS              ];
-			cfg[ "preferences save netplay list"        ].YesNo() = settings[ SAVE_NETPLAY_GAMELIST    ];
-			cfg[ "preferences save window"              ].YesNo() = settings[ SAVE_WINDOWPOS           ];
-			cfg[ "preferences save launcher window"     ].YesNo() = settings[ SAVE_LAUNCHERSIZE        ];
+			Configuration::Section preferences( cfg["preferences"] );
 
-			cfg[ "preferences icon style" ] = (Application::Instance::GetIconStyle() == Application::Instance::ICONSTYLE_NES ? _T("nes") : _T("famicom"));
+			{
+				Configuration::Section application( preferences["application"] );
 
-			cfg[ "preferences default desktop menu color"    ].YesNo() = !settings.menuLookDesktop.enabled;
-			cfg[ "preferences default fullscreen menu color" ].YesNo() = !settings.menuLookFullscreen.enabled;
+				application[ "autostart"                ].YesNo() = settings[ AUTOSTART_EMULATION      ];
+				application[ "run-background"           ].YesNo() = settings[ RUN_IN_BACKGROUND        ];
+				application[ "start-fullscreen"         ].YesNo() = settings[ START_IN_FULLSCREEN      ];
+				application[ "suppress-warnings"        ].YesNo() = settings[ SUPPRESS_WARNINGS        ];
+				application[ "exit-power-off"           ].YesNo() = settings[ FIRST_UNLOAD_ON_EXIT     ];
+				application[ "confirm-exit"             ].YesNo() = settings[ CONFIRM_EXIT             ];
+				application[ "confirm-reset"            ].YesNo() = settings[ CONFIRM_RESET            ];
+				application[ "allow-multiple-instances" ].YesNo() = settings[ ALLOW_MULTIPLE_INSTANCES ];
 
-			cfg[ "preferences desktop menu color"    ] = HexString( 32, settings.menuLookDesktop.color );
-			cfg[ "preferences fullscreen menu color" ] = HexString( 32, settings.menuLookFullscreen.color );
+				application[ "priority" ].Str() =
+				(
+					settings.priority == PRIORITY_HIGH         ? "high"         :
+					settings.priority == PRIORITY_ABOVE_NORMAL ? "above normal" :
+                                                                 "normal"
+				);
 
-			tstring const priority =
-			(
-				settings.priority == PRIORITY_HIGH         ? _T( "high"         ) :
-				settings.priority == PRIORITY_ABOVE_NORMAL ? _T( "above normal" ) :
-                                                             _T( "normal"       )
-			);
+				application[ "favored-system" ].Str() =
+				(
+					settings.favoredSystem == Nes::Machine::FAVORED_NES_PAL ? "nes-pal"    :
+					settings.favoredSystem == Nes::Machine::FAVORED_FAMICOM ? "famicom"    :
+                                                                              "nes-ntsc"
+				);
 
-			cfg[ "preferences priority" ] = priority;
+				application[ "favored-system-always-ask" ].YesNo() = settings.alwaysAskSystem;
+			}
+
+			{
+				Configuration::Section save( preferences["save"] );
+
+				save[ "logfile"         ].YesNo() = settings[ SAVE_LOGFILE          ];
+				save[ "settings"        ].YesNo() = settings[ SAVE_SETTINGS         ];
+				save[ "launcher"        ].YesNo() = settings[ SAVE_LAUNCHER         ];
+				save[ "cheats"          ].YesNo() = settings[ SAVE_CHEATS           ];
+				save[ "netplay-list"    ].YesNo() = settings[ SAVE_NETPLAY_GAMELIST ];
+				save[ "window-main"     ].YesNo() = settings[ SAVE_WINDOWPOS        ];
+				save[ "window-launcher" ].YesNo() = settings[ SAVE_LAUNCHERSIZE     ];
+			}
+
+			{
+				Configuration::Section appearance( preferences["appearance"] );
+
+				appearance[ "icon-style" ].Str() =
+				(
+					Application::Instance::GetIconStyle() == Application::Instance::ICONSTYLE_NES ? "nes" :
+																									"famicom"
+				);
+
+				appearance[ "menu-desktop"    ][ "use-custom-color" ].YesNo() = settings.menuLookDesktop.enabled;
+				appearance[ "menu-fullscreen" ][ "use-custom-color" ].YesNo() = settings.menuLookFullscreen.enabled;
+
+				appearance[ "menu-desktop"    ][ "custom-color" ].Str() = HexString( 32, settings.menuLookDesktop.color );
+				appearance[ "menu-fullscreen" ][ "custom-color" ].Str() = HexString( 32, settings.menuLookFullscreen.color );
+			}
 		}
 
 		ibool Preferences::OnInitDialog(Param&)
@@ -378,6 +433,12 @@ namespace Nestopia
 				for (uint i=0; i < Association::NUM_EXTENSIONS; ++i)
 					dialog.CheckBox( IDC_PREFERENCES_ASSOCIATE_NES + i ).Check( association.Enabled(i) );
 			}
+
+			dialog.RadioButton( IDC_PREFERENCES_FAVORED_NES_NTSC ).Check( settings.favoredSystem == Nes::Machine::FAVORED_NES_NTSC );
+			dialog.RadioButton( IDC_PREFERENCES_FAVORED_NES_PAL  ).Check( settings.favoredSystem == Nes::Machine::FAVORED_NES_PAL  );
+			dialog.RadioButton( IDC_PREFERENCES_FAVORED_FAMICOM  ).Check( settings.favoredSystem == Nes::Machine::FAVORED_FAMICOM  );
+
+			dialog.CheckBox( IDC_PREFERENCES_FAVORED_ALWAYS_ASK ).Check( settings.alwaysAskSystem );
 
 			{
 				Control::ComboBox priorities( dialog.ComboBox( IDC_PREFERENCES_PRIORITY ) );
@@ -498,7 +559,6 @@ namespace Nestopia
 			dialog.CheckBox( IDC_PREFERENCES_CLOSE_POWER_OFF       ).Check( false );
 			dialog.CheckBox( IDC_PREFERENCES_CONFIRM_EXIT          ).Check( true  );
 			dialog.CheckBox( IDC_PREFERENCES_CONFIRM_RESET         ).Check( false );
-			dialog.CheckBox( IDC_PREFERENCES_USE_ROM_DATABASE      ).Check( true  );
 			dialog.CheckBox( IDC_PREFERENCES_MULTIPLE_INSTANCES    ).Check( false );
 			dialog.CheckBox( IDC_PREFERENCES_SAVE_LOGFILE          ).Check( true  );
 			dialog.CheckBox( IDC_PREFERENCES_SAVE_LAUNCHER         ).Check( true  );
@@ -508,6 +568,12 @@ namespace Nestopia
 			dialog.CheckBox( IDC_PREFERENCES_SAVE_LAUNCHERSIZE     ).Check( false );
 
 			dialog.ComboBox( IDC_PREFERENCES_PRIORITY )[ PRIORITY_NORMAL ].Select();
+
+			dialog.RadioButton( IDC_PREFERENCES_FAVORED_NES_NTSC ).Check( true  );
+			dialog.RadioButton( IDC_PREFERENCES_FAVORED_NES_PAL  ).Check( false );
+			dialog.RadioButton( IDC_PREFERENCES_FAVORED_FAMICOM  ).Check( false );
+
+			dialog.CheckBox( IDC_PREFERENCES_FAVORED_ALWAYS_ASK ).Check( false );
 
 			dialog.CheckBox( IDC_PREFERENCES_MENUCOLOR_DESKTOP_DEFAULT ).Check( true );
 			dialog.CheckBox( IDC_PREFERENCES_MENUCOLOR_FULLSCREEN_DEFAULT ).Check( true );
@@ -541,7 +607,14 @@ namespace Nestopia
 				settings.menuLookDesktop.enabled = dialog.CheckBox( IDC_PREFERENCES_MENUCOLOR_DESKTOP_DEFAULT ).Unchecked();
 				settings.menuLookFullscreen.enabled = dialog.CheckBox( IDC_PREFERENCES_MENUCOLOR_FULLSCREEN_DEFAULT ).Unchecked();
 
-				Nes::Cartridge(emulator).GetDatabase().Enable( settings[AUTOCORRECT_IMAGES] );
+				settings.favoredSystem =
+				(
+					dialog.RadioButton( IDC_PREFERENCES_FAVORED_NES_PAL ).Checked() ? Nes::Machine::FAVORED_NES_PAL :
+					dialog.RadioButton( IDC_PREFERENCES_FAVORED_FAMICOM ).Checked() ? Nes::Machine::FAVORED_FAMICOM :
+                                                                                      Nes::Machine::FAVORED_NES_NTSC
+				);
+
+				settings.alwaysAskSystem = dialog.RadioButton( IDC_PREFERENCES_FAVORED_ALWAYS_ASK ).Checked();
 
 				Application::Instance::SetIconStyle( dialog.RadioButton(IDC_PREFERENCES_STYLE_NES).Checked() ? Application::Instance::ICONSTYLE_NES : Application::Instance::ICONSTYLE_FAMICOM );
 

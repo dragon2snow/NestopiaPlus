@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -33,7 +33,94 @@ namespace Nestopia
 {
 	namespace Object
 	{
-		template<typename Output=void,typename Input=void> class Delegate : public ImplicitBool< Delegate<Output,Input> >
+		template<typename Output,typename Param1=void,typename Param2=void> class Delegate : public ImplicitBool< Delegate<Output,Param1,Param2> >
+		{
+			class Object {};
+
+			typedef Object* Data;
+			typedef Output (Object::*Code)(Param1,Param2);
+
+			Data data;
+			Code code;
+
+		public:
+
+			Delegate()
+			: data(NULL), code(NULL) {}
+
+			template<typename T>
+			Delegate(T* d,Output (T::*c)(Param1,Param2))
+			: data(reinterpret_cast<Data>(d)), code(reinterpret_cast<Code>(c))
+			{
+				NST_COMPILE_ASSERT( sizeof(code) == sizeof(c) );
+				NST_ASSERT( !data == !code );
+			}
+
+			Output operator () (Param1 param1,Param2 param2) const
+			{
+				return (*data.*code)( param1, param2 );
+			}
+
+			template<typename T>
+			void Set(T* d,Output (T::*c)(Param1,Param2))
+			{
+				NST_COMPILE_ASSERT( sizeof(code) == sizeof(c) );
+				NST_ASSERT( !data == !code );
+
+				data = reinterpret_cast<Data>(d);
+				code = reinterpret_cast<Code>(c);
+			}
+
+			bool operator == (const Delegate& delegate) const
+			{
+				return code == delegate.code && data == delegate.data;
+			}
+
+			bool operator != (const Delegate& delegate) const
+			{
+				return code != delegate.code || data != delegate.data;
+			}
+
+			bool operator ! () const
+			{
+				return data == NULL;
+			}
+
+			void Unset()
+			{
+				data = NULL;
+				code = NULL;
+			}
+
+			template<typename T>
+			const Delegate Replace(T* d,Output (T::*c)(Param1,Param2))
+			{
+				const Delegate tmp(*this);
+				Set( d, c );
+				return tmp;
+			}
+
+			template<typename T> T* DataPtr() const
+			{
+				typedef Output (T::*F)(Param1,Param2);
+				NST_COMPILE_ASSERT( sizeof(F) == sizeof(code) );
+				return reinterpret_cast<T*>(data);
+			}
+
+			void* VoidPtr() const
+			{
+				return data;
+			}
+
+			template<typename T> Output (T::*CodePtr() const) (Param1,Param2)
+			{
+				typedef Output (T::*F)(Param1,Param2);
+				NST_COMPILE_ASSERT( sizeof(F) == sizeof(code) );
+				return reinterpret_cast<F>(code);
+			}
+		};
+
+		template<typename Output,typename Input> class Delegate<Output,Input,void> : public ImplicitBool< Delegate<Output,Input,void> >
 		{
 			class Object {};
 
@@ -56,7 +143,7 @@ namespace Nestopia
 				NST_ASSERT( !data == !code );
 			}
 
-			Output operator()(Input input) const
+			Output operator () (Input input) const
 			{
 				return (*data.*code)( input );
 			}
@@ -120,7 +207,7 @@ namespace Nestopia
 			}
 		};
 
-		template<typename Output> class Delegate<Output,void> : public ImplicitBool< Delegate<Output,void> >
+		template<typename Output> class Delegate<Output,void,void> : public ImplicitBool< Delegate<Output,void,void> >
 		{
 			class Object {};
 
@@ -202,95 +289,6 @@ namespace Nestopia
 			template<typename T> Output (T::*CodePtr() const) ()
 			{
 				typedef Output (T::*F)();
-				NST_COMPILE_ASSERT( sizeof(F) == sizeof(code) );
-				return reinterpret_cast<F>(code);
-			}
-		};
-
-		typedef Delegate<> Procedure;
-
-		template<typename Output,typename Param1,typename Param2> class Delegate2 : public ImplicitBool< Delegate2<Output,Param1,Param2> >
-		{
-			class Object {};
-
-			typedef Object* Data;
-			typedef Output (Object::*Code)(Param1,Param2);
-
-			Data data;
-			Code code;
-
-		public:
-
-			Delegate2()
-			: data(NULL), code(NULL) {}
-
-			template<typename T>
-			Delegate2(T* d,Output (T::*c)(Param1,Param2))
-			: data(reinterpret_cast<Data>(d)), code(reinterpret_cast<Code>(c))
-			{
-				NST_COMPILE_ASSERT( sizeof(code) == sizeof(c) );
-				NST_ASSERT( !data == !code );
-			}
-
-			Output operator () (Param1 param1,Param2 param2) const
-			{
-				return (*data.*code)( param1, param2 );
-			}
-
-			template<typename T>
-			void Set(T* d,Output (T::*c)(Param1,Param2))
-			{
-				NST_COMPILE_ASSERT( sizeof(code) == sizeof(c) );
-				NST_ASSERT( !data == !code );
-
-				data = reinterpret_cast<Data>(d);
-				code = reinterpret_cast<Code>(c);
-			}
-
-			bool operator == (const Delegate2& delegate) const
-			{
-				return code == delegate.code && data == delegate.data;
-			}
-
-			bool operator != (const Delegate2& delegate) const
-			{
-				return code != delegate.code || data != delegate.data;
-			}
-
-			bool operator ! () const
-			{
-				return data == NULL;
-			}
-
-			void Unset()
-			{
-				data = NULL;
-				code = NULL;
-			}
-
-			template<typename T>
-			const Delegate2 Replace(T* d,Output (T::*c)(Param1,Param2))
-			{
-				const Delegate2 tmp(*this);
-				Set( d, c );
-				return tmp;
-			}
-
-			template<typename T> T* DataPtr() const
-			{
-				typedef Output (T::*F)(Param1,Param2);
-				NST_COMPILE_ASSERT( sizeof(F) == sizeof(code) );
-				return reinterpret_cast<T*>(data);
-			}
-
-			void* VoidPtr() const
-			{
-				return data;
-			}
-
-			template<typename T> Output (T::*CodePtr() const) (Param1,Param2)
-			{
-				typedef Output (T::*F)(Param1,Param2);
 				NST_COMPILE_ASSERT( sizeof(F) == sizeof(code) );
 				return reinterpret_cast<F>(code);
 			}

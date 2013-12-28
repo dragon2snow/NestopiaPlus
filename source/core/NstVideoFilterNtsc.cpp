@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -41,23 +41,11 @@ namespace Nes
 			template<typename Pixel,uint BITS>
 			void Renderer::FilterNtsc::BlitType(const Input& input,const Output& output,uint phase) const
 			{
-				enum
-				{
-					BPP = BITS,
-					R_MASK = BPP == 32 ? 0xFF0000 : BPP == 16 ? 0xF800 : 0x7C00,
-					G_MASK = BPP == 32 ? 0x00FF00 : BPP == 16 ? 0x07E0 : 0x03E0,
-					B_MASK = BPP == 32 ? 0x0000FF : BPP == 16 ? 0x001F : 0x001F,
-					RB_MASK = R_MASK|B_MASK,
-					S_SHIFT = BPP == 32 ? 8 : 5
-				};
-
 				NST_ASSERT( phase < 3 );
-
-				Pixel buffer[NTSC_WIDTH+1];
 
 				const Input::Pixel* NST_RESTRICT src = input.pixels;
 				Pixel* NST_RESTRICT dst = static_cast<Pixel*>(output.pixels);
-				const long pad = output.pitch - NTSC_WIDTH * sizeof(Pixel);
+				const long pad = output.pitch - (NTSC_WIDTH-7) * sizeof(Pixel);
 
 				phase &= lut.noFieldMerging;
 
@@ -65,48 +53,37 @@ namespace Nes
 				{
 					NES_NTSC_BEGIN_ROW( &lut, phase, lut.black, lut.black, *src++ );
 
-					Pixel* NST_RESTRICT cache = buffer;
-
-					for (const Input::Pixel* const end=src+(NTSC_WIDTH/7*3-3); src != end; src += 3, dst += 7, cache += 7)
+					for (const Input::Pixel* const end=src+(NTSC_WIDTH/7*3-3); src != end; src += 3, dst += 7)
 					{
 						NES_NTSC_COLOR_IN( 0, src[0] );
-						NES_NTSC_RGB_OUT( 0, cache[0], BPP ); dst[0] = cache[0];
-						NES_NTSC_RGB_OUT( 1, cache[1], BPP ); dst[1] = cache[1];
+						NES_NTSC_RGB_OUT( 0, dst[0], BITS );
+						NES_NTSC_RGB_OUT( 1, dst[1], BITS );
 
 						NES_NTSC_COLOR_IN( 1, src[1] );
-						NES_NTSC_RGB_OUT( 2, cache[2], BPP ); dst[2] = cache[2];
-						NES_NTSC_RGB_OUT( 3, cache[3], BPP ); dst[3] = cache[3];
+						NES_NTSC_RGB_OUT( 2, dst[2], BITS );
+						NES_NTSC_RGB_OUT( 3, dst[3], BITS );
 
 						NES_NTSC_COLOR_IN( 2, src[2] );
-						NES_NTSC_RGB_OUT( 4, cache[4], BPP ); dst[4] = cache[4];
-						NES_NTSC_RGB_OUT( 5, cache[5], BPP ); dst[5] = cache[5];
-						NES_NTSC_RGB_OUT( 6, cache[6], BPP ); dst[6] = cache[6];
+						NES_NTSC_RGB_OUT( 4, dst[4], BITS );
+						NES_NTSC_RGB_OUT( 5, dst[5], BITS );
+						NES_NTSC_RGB_OUT( 6, dst[6], BITS );
 					}
 
 					NES_NTSC_COLOR_IN( 0, lut.black );
-					NES_NTSC_RGB_OUT( 0, cache[0], BPP ); dst[0] = cache[0];
-					NES_NTSC_RGB_OUT( 1, cache[1], BPP ); dst[1] = cache[1];
+					NES_NTSC_RGB_OUT( 0, dst[0], BITS );
+					NES_NTSC_RGB_OUT( 1, dst[1], BITS );
 
 					NES_NTSC_COLOR_IN( 1, lut.black );
-					NES_NTSC_RGB_OUT( 2, cache[2], BPP ); dst[2] = cache[2];
-					NES_NTSC_RGB_OUT( 3, cache[3], BPP ); dst[3] = cache[3];
+					NES_NTSC_RGB_OUT( 2, dst[2], BITS );
+					NES_NTSC_RGB_OUT( 3, dst[3], BITS );
 
 					NES_NTSC_COLOR_IN( 2, lut.black );
-					NES_NTSC_RGB_OUT( 4, cache[4], BPP ); dst[4] = cache[4];
-					NES_NTSC_RGB_OUT( 5, cache[5], BPP ); dst[5] = cache[5];
-					NES_NTSC_RGB_OUT( 6, cache[6], BPP ); dst[6] = cache[6];
-
-					dst = reinterpret_cast<Pixel*>(reinterpret_cast<byte*>(dst) + pad + 7 * sizeof(Pixel));
-					cache = buffer;
-
-					for (dword reg=buffer[0], x=NTSC_WIDTH, scale=scanlines; x; --x)
-					{
-						const dword prefetched = *(++cache);
-						*dst++ = (scale * (reg & dword(G_MASK)) >> S_SHIFT & G_MASK) | (scale * (reg & dword(RB_MASK)) >> S_SHIFT & RB_MASK);
-						reg = prefetched;
-					}
+					NES_NTSC_RGB_OUT( 4, dst[4], BITS );
+					NES_NTSC_RGB_OUT( 5, dst[5], BITS );
+					NES_NTSC_RGB_OUT( 6, dst[6], BITS );
 
 					dst = reinterpret_cast<Pixel*>(reinterpret_cast<byte*>(dst) + pad);
+
 					phase = (phase + 1) % 3;
 				}
 			}
@@ -114,6 +91,31 @@ namespace Nes
 			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("s", on)
 			#endif
+
+			bool Renderer::FilterNtsc::Check(const RenderState& state)
+			{
+				return (state.width == NTSC_WIDTH && state.height == HEIGHT) &&
+				(
+					(state.bits.count == 16 && state.bits.mask.b == 0x001F && ((state.bits.mask.g == 0x07E0 && state.bits.mask.r == 0xF800) || (state.bits.mask.g == 0x03E0 && state.bits.mask.r == 0x7C00))) ||
+					(state.bits.count == 32 && state.bits.mask.r == 0xFF0000 && state.bits.mask.g == 0x00FF00 && state.bits.mask.b == 0x0000FF)
+				);
+			}
+
+			Renderer::FilterNtsc::Path Renderer::FilterNtsc::GetPath(const RenderState& state,const Lut& lut)
+			{
+				if (state.bits.count == 32)
+				{
+					return &FilterNtsc::BlitType<dword,32>;
+				}
+				else if (state.bits.mask.g == 0x07E0)
+				{
+					return &FilterNtsc::BlitType<word,16>;
+				}
+				else
+				{
+					return &FilterNtsc::BlitType<word,15>;
+				}
+			}
 
 			inline uint Renderer::FilterNtsc::Lut::GetBlack(const byte (&p)[PALETTE][3])
 			{
@@ -170,31 +172,6 @@ namespace Nes
 				::nes_ntsc_init( this, &setup );
 			}
 
-			bool Renderer::FilterNtsc::Check(const RenderState& state)
-			{
-				return (state.width == NTSC_WIDTH && state.height == NTSC_HEIGHT && state.scanlines <= 100) &&
-				(
-					(state.bits.count == 16 && state.bits.mask.b == 0x001F && ((state.bits.mask.g == 0x07E0 && state.bits.mask.r == 0xF800) || (state.bits.mask.g == 0x03E0 && state.bits.mask.r == 0x7C00))) ||
-					(state.bits.count == 32 && state.bits.mask.r == 0xFF0000 && state.bits.mask.g == 0x00FF00 && state.bits.mask.b == 0x0000FF)
-				);
-			}
-
-			Renderer::FilterNtsc::Path Renderer::FilterNtsc::GetPath(const RenderState& state)
-			{
-				if (state.bits.count == 32)
-				{
-					return &FilterNtsc::BlitType<dword,32>;
-				}
-				else if (state.bits.mask.g == 0x07E0)
-				{
-					return &FilterNtsc::BlitType<word,16>;
-				}
-				else
-				{
-					return &FilterNtsc::BlitType<word,15>;
-				}
-			}
-
 			Renderer::FilterNtsc::FilterNtsc
 			(
 				const RenderState& state,
@@ -207,10 +184,9 @@ namespace Nes
 				bool fieldMerging
 			)
 			:
-			Filter    (state),
-			path      (GetPath(state)),
-			lut       (palette,sharpness,resolution,bleed,artifacts,fringing,fieldMerging),
-			scanlines ((100-state.scanlines) * (state.bits.count == 32 ? 256 : 32) / 100)
+			Filter (state),
+			path   (GetPath(state,lut)),
+			lut    (palette,sharpness,resolution,bleed,artifacts,fringing,fieldMerging)
 			{
 			}
 

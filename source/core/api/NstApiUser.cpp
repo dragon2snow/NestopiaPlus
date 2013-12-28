@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -30,8 +30,47 @@ namespace Nes
 	{
 		User::LogCaller      User::logCallback;
 		User::EventCaller    User::eventCallback;
-		User::InputCaller    User::inputCallback;
 		User::QuestionCaller User::questionCallback;
 		User::FileIoCaller   User::fileIoCallback;
+
+		const wchar_t* User::File::GetName() const throw()
+		{
+			return L"";
+		}
+
+		uint User::File::GetId() const throw()
+		{
+			return 0;
+		}
+
+		ulong User::File::GetMaxSize() const throw()
+		{
+			return ULONG_MAX;
+		}
+
+		Result User::File::GetContent(const void*&,ulong&) const throw()
+		{
+			return RESULT_ERR_NOT_READY;
+		}
+
+		Result User::File::GetContent(std::ostream&) const throw()
+		{
+			return RESULT_ERR_NOT_READY;
+		}
+
+		Result User::File::SetContent(const void*,ulong) throw()
+		{
+			return RESULT_ERR_NOT_READY;
+		}
+
+		Result User::File::SetContent(std::istream&) throw()
+		{
+			return RESULT_ERR_NOT_READY;
+		}
+
+		Result User::File::SetSampleContent(const void*,ulong,bool,uint,ulong) throw()
+		{
+			return RESULT_ERR_NOT_READY;
+		}
 	}
 }

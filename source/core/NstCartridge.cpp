@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -22,17 +22,18 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
+#include <cstdlib>
 #include <cstring>
 #include "NstLog.hpp"
-#include "NstCrc32.hpp"
+#include "NstChecksum.hpp"
 #include "NstImageDatabase.hpp"
-#include "NstMapper.hpp"
+#include "board/NstBoard.hpp"
 #include "NstCartridge.hpp"
+#include "NstCartridgeRomset.hpp"
 #include "NstCartridgeInes.hpp"
 #include "NstCartridgeUnif.hpp"
 #include "vssystem/NstVsSystem.hpp"
-#include "NstPrpTurboFile.hpp"
-#include "NstPrpDataRecorder.hpp"
+#include "api/NstApiUser.hpp"
 
 namespace Nes
 {
@@ -42,136 +43,63 @@ namespace Nes
 		#pragma optimize("s", on)
 		#endif
 
-		Cartridge::Cartridge(Context& context)
-		:
-		Image        (CARTRIDGE),
-		mapper       (NULL),
-		vs           (NULL),
-		turboFile    (NULL),
-		dataRecorder (NULL)
-		{
-			NST_COMPILE_ASSERT
-			(
-				Revision::PPU_RP2C02      - Api::Cartridge::PPU_RP2C02      == 0 &&
-				Revision::PPU_RP2C03B     - Api::Cartridge::PPU_RP2C03B     == 0 &&
-				Revision::PPU_RP2C03G     - Api::Cartridge::PPU_RP2C03G     == 0 &&
-				Revision::PPU_RP2C04_0001 - Api::Cartridge::PPU_RP2C04_0001 == 0 &&
-				Revision::PPU_RP2C04_0002 - Api::Cartridge::PPU_RP2C04_0002 == 0 &&
-				Revision::PPU_RP2C04_0003 - Api::Cartridge::PPU_RP2C04_0003 == 0 &&
-				Revision::PPU_RP2C04_0004 - Api::Cartridge::PPU_RP2C04_0004 == 0 &&
-				Revision::PPU_RC2C03B     - Api::Cartridge::PPU_RC2C03B     == 0 &&
-				Revision::PPU_RC2C03C     - Api::Cartridge::PPU_RC2C03C     == 0 &&
-				Revision::PPU_RC2C05_01   - Api::Cartridge::PPU_RC2C05_01   == 0 &&
-				Revision::PPU_RC2C05_02   - Api::Cartridge::PPU_RC2C05_02   == 0 &&
-				Revision::PPU_RC2C05_03   - Api::Cartridge::PPU_RC2C05_03   == 0 &&
-				Revision::PPU_RC2C05_04   - Api::Cartridge::PPU_RC2C05_04   == 0 &&
-				Revision::PPU_RC2C05_05   - Api::Cartridge::PPU_RC2C05_05   == 0 &&
-				Revision::PPU_RP2C07      - Api::Cartridge::PPU_RP2C07      == 0
-			);
+		Cartridge::ProfileEx::ProfileEx()
+		: nmt(NMT_DEFAULT), battery(false), wramAuto(false) {}
 
+		Cartridge::Cartridge(Context& context)
+		: Image(CARTRIDGE), board(NULL), vs(NULL)
+		{
 			try
 			{
-				ImageDatabase::Handle databaseHandle = NULL;
+				ProfileEx profileEx;
 
 				switch (Stream::In(context.stream).Peek32())
 				{
-					case INES_ID: context.result = Ines( context.stream, prg, chr, wrk, info, context.database, databaseHandle ).GetResult(); break;
-					case UNIF_ID: context.result = Unif( context.stream, prg, chr, wrk, info, context.database, databaseHandle ).GetResult(); break;
-					default: throw RESULT_ERR_INVALID_FILE;
+					case INES_ID:
+
+						Ines::Load( context.stream, context.ips, prg, chr, context.favoredSystem, profile, profileEx, context.database );
+						break;
+
+					case UNIF_ID:
+
+						Unif::Load( context.stream, context.ips, prg, chr, context.favoredSystem, profile, profileEx, context.database );
+						break;
+
+					default:
+
+						Romset::Load( context.stream, context.ips, prg, chr, context.favoredSystem, context.askProfile, profile );
+						break;
 				}
 
-				if (context.database && databaseHandle)
+				if (profile.dump.state == Profile::Dump::BAD)
+					context.result = RESULT_WARN_BAD_DUMP;
+				else
+					context.result = RESULT_OK;
+
+				const Result result = SetupBoard( prg, chr, &board, &context, profile, profileEx, &prgCrc );
+
+				if (NES_FAILED(result))
+					throw result;
+
+				board->Load( savefile );
+
+				switch (profile.system.type)
 				{
-					info.condition = context.database->GetCondition(databaseHandle);
+					case Profile::System::VS_UNISYSTEM:
 
-					if (info.condition == Api::Cartridge::DUMP_BAD)
-						context.result = RESULT_WARN_BAD_DUMP;
+						vs = VsSystem::Create
+						(
+							context.cpu,
+							context.ppu,
+							static_cast<PpuModel>(profile.system.ppu),
+							prgCrc
+						);
 
-					if (context.database->Encrypted(databaseHandle))
-					{
-						context.result = RESULT_WARN_ENCRYPTED_ROM;
-						Log::Flush( "Cartridge: file is encrypted!" NST_LINEBREAK );
-					}
+						profile.system.ppu = static_cast<Profile::System::Ppu>(vs->GetPpuModel());
+						break;
 
-					if (const uint id = context.database->Input(databaseHandle))
-						DetectControllers( id );
-
-					if (context.database->InputEx(databaseHandle) == ImageDatabase::INPUT_EX_TURBOFILE)
-					{
-						turboFile = new Peripherals::TurboFile( context.cpu );
-						Log::Flush( "Cartridge: Turbo File storage device present" NST_LINEBREAK );
-					}
-				}
-
-				if (info.board.empty())
-					info.board = Mapper::GetBoard( info.setup.mapper );
-
-				Mapper::Context settings
-				(
-					info.setup.mapper,
-					context.cpu,
-					context.apu,
-					context.ppu,
-					prg,
-					chr,
-					wrk,
-					info.setup.mirroring == Api::Cartridge::MIRROR_HORIZONTAL ? Ppu::NMT_HORIZONTAL :
-					info.setup.mirroring == Api::Cartridge::MIRROR_VERTICAL   ? Ppu::NMT_VERTICAL :
-					info.setup.mirroring == Api::Cartridge::MIRROR_FOURSCREEN ? Ppu::NMT_FOURSCREEN :
-					info.setup.mirroring == Api::Cartridge::MIRROR_ZERO       ? Ppu::NMT_ZERO :
-					info.setup.mirroring == Api::Cartridge::MIRROR_ONE        ? Ppu::NMT_ONE :
-																				Ppu::NMT_CONTROLLED,
-					info.setup.wrkRamBacked,
-					context.database && databaseHandle && info.setup.mapper == context.database->Mapper(databaseHandle) ? context.database->Attribute(databaseHandle) : 0
-				);
-
-				mapper = Mapper::Create( settings );
-
-				info.setup.prgRom = prg.Size();
-				info.setup.chrRom = chr.Size();
-				info.setup.chrRam = settings.chrRam;
-				info.setup.wrkRamAuto = settings.wrkAuto;
-
-				if (info.setup.wrkRamBacked+info.setup.wrkRam != wrk.Size())
-				{
-					if (info.setup.wrkRamBacked > wrk.Size())
-						info.setup.wrkRamBacked = wrk.Size();
-
-					info.setup.wrkRam = wrk.Size() - info.setup.wrkRamBacked;
-				}
-
-				wrk.Reset( info, false );
-				wrk.Load( info );
-
-				info.prgCrc = Crc32::Compute( prg.Mem(), prg.Size() );
-				info.crc = info.prgCrc;
-
-				if (chr.Size())
-				{
-					info.chrCrc = Crc32::Compute( chr.Mem(), chr.Size() );
-					info.crc = Crc32::Compute( chr.Mem(), chr.Size(), info.crc );
-				}
-
-				if (info.setup.system == Api::Cartridge::SYSTEM_VS)
-				{
-					vs = VsSystem::Create
-					(
-						context.cpu,
-						context.ppu,
-						static_cast<Revision::Ppu>(info.setup.ppu),
-						info.setup.security == 1 ? VsSystem::MODE_RBI :
-						info.setup.security == 2 ? VsSystem::MODE_TKO :
-						info.setup.security == 3 ? VsSystem::MODE_XEV :
-                                                   VsSystem::MODE_STD,
-						info.prgCrc,
-						info.setup.version == 0 || (context.database && context.database->Enabled())
-					);
-
-					info.setup.ppu = static_cast<Api::Cartridge::Ppu>(vs->GetPpuRevion());
-				}
-				else if (info.setup.system == Api::Cartridge::SYSTEM_HOME)
-				{
-					dataRecorder = new Peripherals::DataRecorder(context.cpu);
+					case Profile::System::VS_DUALSYSTEM:
+						throw RESULT_ERR_UNSUPPORTED_VSSYSTEM;
 				}
 
 				if (Cartridge::QueryExternalDevice( EXT_DIP_SWITCHES ))
@@ -186,10 +114,8 @@ namespace Nes
 
 		void Cartridge::Destroy()
 		{
-			delete dataRecorder;
-			delete turboFile;
 			VsSystem::Destroy( vs );
-			Mapper::Destroy( mapper );
+			Boards::Board::Destroy( board );
 		}
 
 		Cartridge::~Cartridge()
@@ -197,197 +123,217 @@ namespace Nes
 			Destroy();
 		}
 
+		void Cartridge::ReadRomset(StdStream stream,FavoredSystem favoredSystem,bool askSystem,Profile& profile)
+		{
+			Log::Suppressor logSupressor;
+			Ram prg, chr;
+			ProfileEx profileEx;
+			Romset::Load( stream, NULL, prg, chr, favoredSystem, askSystem, profile, true );
+			SetupBoard( prg, chr, NULL, NULL, profile, profileEx, NULL, true );
+		}
+
+		void Cartridge::ReadInes(StdStream stream,FavoredSystem favoredSystem,Profile& profile)
+		{
+			Log::Suppressor logSupressor;
+			Ram prg, chr;
+			ProfileEx profileEx;
+			Ines::Load( stream, NULL, prg, chr, favoredSystem, profile, profileEx, NULL );
+			SetupBoard( prg, chr, NULL, NULL, profile, profileEx, NULL );
+		}
+
+		void Cartridge::ReadUnif(StdStream stream,FavoredSystem favoredSystem,Profile& profile)
+		{
+			Log::Suppressor logSupressor;
+			Ram prg, chr;
+			ProfileEx profileEx;
+			Unif::Load( stream, NULL, prg, chr, favoredSystem, profile, profileEx, NULL );
+			SetupBoard( prg, chr, NULL, NULL, profile, profileEx, NULL );
+		}
+
 		uint Cartridge::GetDesiredController(uint port) const
 		{
 			NST_ASSERT( port < Api::Input::NUM_CONTROLLERS );
-			return info.controllers[port];
+			return profile.game.controllers[port];
 		}
 
 		uint Cartridge::GetDesiredAdapter() const
 		{
-			return info.adapter;
+			return profile.game.adapter;
 		}
 
 		Cartridge::ExternalDevice Cartridge::QueryExternalDevice(ExternalDeviceType deviceType)
 		{
 			switch (deviceType)
 			{
-				case EXT_TURBO_FILE:
-					return turboFile;
-
-				case EXT_DATA_RECORDER:
-					return dataRecorder;
-
 				case EXT_DIP_SWITCHES:
 
 					if (vs)
 						return &vs->GetDipSwiches();
 					else
-						return mapper->QueryDevice( Mapper::DEVICE_DIP_SWITCHES );
+						return board->QueryDevice( Boards::Board::DEVICE_DIP_SWITCHES );
 
 				case EXT_BARCODE_READER:
-					return mapper->QueryDevice( Mapper::DEVICE_BARCODE_READER );
+
+					return board->QueryDevice( Boards::Board::DEVICE_BARCODE_READER );
 
 				default:
+
 					return Image::QueryExternalDevice( deviceType );
 			}
 		}
 
-		void Cartridge::DetectControllers(uint inputId)
+		Result Cartridge::SetupBoard
+		(
+			Ram& prg,
+			Ram& chr,
+			Boards::Board** board,
+			const Context* const context,
+			Profile& profile,
+			const ProfileEx& profileEx,
+			dword* const prgCrc,
+			const bool readOnly
+		)
 		{
-			switch (inputId)
+			NST_ASSERT( bool(board) == bool(context) );
+
+			Boards::Board::Type::Nmt nmt;
+
+			if (profile.board.solderPads & (Profile::Board::SOLDERPAD_H|Profile::Board::SOLDERPAD_V))
 			{
-				case ImageDatabase::INPUT_LIGHTGUN:
-
-					info.controllers[1] = Api::Input::ZAPPER;
-					break;
-
-				case ImageDatabase::INPUT_LIGHTGUN_VS:
-
-					info.controllers[0] = Api::Input::ZAPPER;
-					info.controllers[1] = Api::Input::UNCONNECTED;
-					break;
-
-				case ImageDatabase::INPUT_POWERPAD:
-
-					info.controllers[1] = Api::Input::POWERPAD;
-					break;
-
-				case ImageDatabase::INPUT_FAMILYTRAINER:
-
-					info.controllers[1] = Api::Input::UNCONNECTED;
-					info.controllers[4] = Api::Input::FAMILYTRAINER;
-					break;
-
-				case ImageDatabase::INPUT_PADDLE_NES:
-
-					info.controllers[1] = Api::Input::PADDLE;
-					break;
-
-				case ImageDatabase::INPUT_PADDLE_FAMICOM:
-
-					info.controllers[4] = Api::Input::PADDLE;
-					break;
-
-				case ImageDatabase::INPUT_ADAPTER_FAMICOM:
-
-					info.adapter = Api::Input::ADAPTER_FAMICOM;
-
-				case ImageDatabase::INPUT_ADAPTER_NES:
-
-					info.controllers[2] = Api::Input::PAD3;
-					info.controllers[3] = Api::Input::PAD4;
-					break;
-
-				case ImageDatabase::INPUT_SUBORKEYBOARD:
-
-					info.controllers[4] = Api::Input::SUBORKEYBOARD;
-					break;
-
-				case ImageDatabase::INPUT_FAMILYKEYBOARD:
-
-					info.controllers[4] = Api::Input::FAMILYKEYBOARD;
-					break;
-
-				case ImageDatabase::INPUT_PARTYTAP:
-
-					info.controllers[1] = Api::Input::UNCONNECTED;
-					info.controllers[4] = Api::Input::PARTYTAP;
-					break;
-
-				case ImageDatabase::INPUT_CRAZYCLIMBER:
-
-					info.controllers[4] = Api::Input::CRAZYCLIMBER;
-					break;
-
-				case ImageDatabase::INPUT_EXCITINGBOXING:
-
-					info.controllers[4] = Api::Input::EXCITINGBOXING;
-					break;
-
-				case ImageDatabase::INPUT_HYPERSHOT:
-
-					info.controllers[0] = Api::Input::UNCONNECTED;
-					info.controllers[1] = Api::Input::UNCONNECTED;
-					info.controllers[4] = Api::Input::HYPERSHOT;
-					break;
-
-				case ImageDatabase::INPUT_POKKUNMOGURAA:
-
-					info.controllers[1] = Api::Input::UNCONNECTED;
-					info.controllers[4] = Api::Input::POKKUNMOGURAA;
-					break;
-
-				case ImageDatabase::INPUT_OEKAKIDS:
-
-					info.controllers[0] = Api::Input::UNCONNECTED;
-					info.controllers[1] = Api::Input::UNCONNECTED;
-					info.controllers[4] = Api::Input::OEKAKIDSTABLET;
-					break;
-
-				case ImageDatabase::INPUT_MAHJONG:
-
-					info.controllers[0] = Api::Input::UNCONNECTED;
-					info.controllers[1] = Api::Input::UNCONNECTED;
-					info.controllers[4] = Api::Input::MAHJONG;
-					break;
-
-				case ImageDatabase::INPUT_TOPRIDER:
-
-					info.controllers[0] = Api::Input::UNCONNECTED;
-					info.controllers[1] = Api::Input::UNCONNECTED;
-					info.controllers[4] = Api::Input::TOPRIDER;
-					break;
-
-				case ImageDatabase::INPUT_PAD_SWAP:
-
-					info.controllers[0] = Api::Input::PAD2;
-					info.controllers[1] = Api::Input::PAD1;
-					break;
-
-				case ImageDatabase::INPUT_ROB:
-
-					info.controllers[1] = Api::Input::ROB;
-					break;
-
-				case ImageDatabase::INPUT_POWERGLOVE:
-
-					info.controllers[0] = Api::Input::POWERGLOVE;
-					break;
+				if (profile.board.solderPads & Profile::Board::SOLDERPAD_H)
+					nmt = Boards::Board::Type::NMT_VERTICAL;
+				else
+					nmt = Boards::Board::Type::NMT_HORIZONTAL;
 			}
+			else switch (profileEx.nmt)
+			{
+				case ProfileEx::NMT_HORIZONTAL:   nmt = Boards::Board::Type::NMT_HORIZONTAL;   break;
+				case ProfileEx::NMT_VERTICAL:     nmt = Boards::Board::Type::NMT_VERTICAL;     break;
+				case ProfileEx::NMT_SINGLESCREEN: nmt = Boards::Board::Type::NMT_SINGLESCREEN; break;
+				case ProfileEx::NMT_FOURSCREEN:   nmt = Boards::Board::Type::NMT_FOURSCREEN;   break;
+				default:                          nmt = Boards::Board::Type::NMT_CONTROLLED;   break;
+			}
+
+			Chips chips;
+
+			for (Profile::Board::Chips::const_iterator i(profile.board.chips.begin()), end(profile.board.chips.end()); i != end; ++i)
+			{
+				Chips::Type& type = chips.Add( i->type.c_str() );
+
+				for (Profile::Board::Pins::const_iterator j(i->pins.begin()), end(i->pins.end()); j != end; ++j)
+					type.Pin(j->number) = j->function.c_str();
+
+				for (Profile::Board::Samples::const_iterator j(i->samples.begin()), end(i->samples.end()); j != end; ++j)
+					type.Sample(j->id) = j->file.c_str();
+			}
+
+			Boards::Board::Context b
+			(
+				context ? &context->cpu : NULL,
+				context ? &context->apu : NULL,
+				context ? &context->ppu : NULL,
+				prg,
+				chr,
+				profileEx.trainer,
+				nmt,
+				profileEx.battery || profile.board.HasWramBattery(),
+				profile.board.HasMmcBattery(),
+				chips
+			);
+
+			if (profile.board.type.empty() || !b.DetectBoard( profile.board.type.c_str(), profile.board.GetWram() ))
+			{
+				if (profile.board.mapper == Profile::Board::NO_MAPPER || !b.DetectBoard( profile.board.mapper, profile.board.GetWram(), profileEx.wramAuto ) && board)
+					return RESULT_ERR_UNSUPPORTED_MAPPER;
+
+				if (profile.board.type.empty())
+				{
+					const std::wstring tmp( b.name, b.name + std::strlen(b.name) );
+					profile.board.type = tmp;
+				}
+			}
+
+			for (uint i=0; i < 2; ++i)
+			{
+				dword size = (i ? b.chr : b.prg).Size();
+
+				if (size != (i ? profile.board.GetChr() : profile.board.GetPrg()))
+				{
+					Profile::Board::Roms& roms = (i ? profile.board.chr : profile.board.prg);
+					roms.clear();
+
+					if (size)
+					{
+						Profile::Board::Rom rom;
+						rom.size = size;
+						roms.push_back( rom );
+					}
+				}
+
+				size = (i ? b.type.GetVram() : b.type.GetWram());
+
+				if (size != (i ? profile.board.GetVram() : profile.board.GetWram()))
+				{
+					Profile::Board::Rams& rams = (i ? profile.board.vram : profile.board.wram);
+					rams.clear();
+
+					for (uint j=0; j < 2; ++j)
+					{
+						size = i ? (j ? b.type.GetNonSavableVram() : b.type.GetSavableVram()) :
+                                   (j ? b.type.GetNonSavableWram() : b.type.GetSavableWram());
+
+						if (size)
+						{
+							Profile::Board::Ram ram;
+							ram.size = size;
+							ram.battery = (j == 0);
+							rams.push_back( ram );
+						}
+					}
+				}
+
+				Profile::Board::Roms& roms = (i ? profile.board.chr : profile.board.prg);
+
+				for (dword j=0, k=0, n=roms.size(); j < n; k += roms[j].size, ++j)
+					roms[j].hash.Compute( (i ? chr : prg).Mem(k), roms[j].size );
+			}
+
+			if (!readOnly)
+			{
+				Checksum checksum;
+
+				checksum.Compute( prg.Mem(), prg.Size() );
+
+				if (prgCrc)
+					*prgCrc = checksum.GetCrc();
+
+				checksum.Compute( chr.Mem(), chr.Size() );
+				profile.hash.Assign( checksum.GetSha1(), checksum.GetCrc() );
+			}
+
+			if (board)
+				*board = Boards::Board::Create( b );
+
+			return RESULT_OK;
 		}
 
 		void Cartridge::Reset(const bool hard)
 		{
-			if (hard)
-				wrk.Reset( info, true );
-
-			mapper->Reset( hard );
+			board->Reset( hard );
 
 			if (vs)
 				vs->Reset( hard );
-
-			if (turboFile)
-				turboFile->Reset();
-
-			if (dataRecorder)
-				dataRecorder->Reset();
 		}
 
 		bool Cartridge::PowerOff()
 		{
 			try
 			{
-				if (mapper)
-					mapper->Sync( Mapper::EVENT_POWER_OFF, NULL );
-
-				wrk.Save( info );
-
-				if (turboFile)
-					turboFile->PowerOff();
-
-				if (dataRecorder)
-					dataRecorder->PowerOff();
+				if (board)
+				{
+					board->Sync( Boards::Board::EVENT_POWER_OFF, NULL );
+					board->Save( savefile );
+				}
 
 				return true;
 			}
@@ -401,32 +347,23 @@ namespace Nes
 		{
 			state.Begin( baseChunk );
 
-			mapper->SaveState( state, AsciiId<'M','P','R'>::V );
+			board->SaveState( state, AsciiId<'M','P','R'>::V );
 
 			if (vs)
 				vs->SaveState( state, AsciiId<'V','S','S'>::V );
-
-			if (turboFile)
-				turboFile->SaveState( state, AsciiId<'T','B','F'>::V );
-
-			if (dataRecorder)
-				dataRecorder->SaveState( state, AsciiId<'D','R','C'>::V );
 
 			state.End();
 		}
 
 		void Cartridge::LoadState(State::Loader& state)
 		{
-			if (dataRecorder)
-				dataRecorder->Stop();
-
 			while (const dword chunk = state.Begin())
 			{
 				switch (chunk)
 				{
 					case AsciiId<'M','P','R'>::V:
 
-						mapper->LoadState( state );
+						board->LoadState( state );
 						break;
 
 					case AsciiId<'V','S','S'>::V:
@@ -437,79 +374,44 @@ namespace Nes
 							vs->LoadState( state );
 
 						break;
-
-					case AsciiId<'T','B','F'>::V:
-
-						NST_VERIFY( turboFile );
-
-						if (turboFile)
-							turboFile->LoadState( state );
-
-						break;
-
-					case AsciiId<'D','R','C'>::V:
-
-						NST_VERIFY( dataRecorder );
-
-						if (dataRecorder)
-							dataRecorder->LoadState( state );
-
-						break;
 				}
 
 				state.End();
 			}
 		}
 
-		void Cartridge::Wrk::Reset(const Info& info,const bool preserveBattery)
+		Region Cartridge::GetDesiredRegion() const
 		{
-			NST_ASSERT( info.setup.wrkRamBacked+info.setup.wrkRam == Size() );
-
-			uint i = (preserveBattery ? info.setup.wrkRamBacked : 0);
-
-			for (const uint n=NST_MIN(Size(),Ines::TRAINER_BEGIN), openBus=info.setup.wrkRamAuto; i < n; ++i)
-				(*this)[i] = openBus ? (0x6000 + i) >> 8 : GARBAGE;
-
-			if (i < Ines::TRAINER_END && info.setup.trainer)
-				i = Ines::TRAINER_END;
-
-			for (const uint n=NST_MIN(Size(),0x2000), openBus=info.setup.wrkRamAuto; i < n; ++i)
-				(*this)[i] = openBus ? (0x6000 + i) >> 8 : GARBAGE;
-
-			if (i < Size())
-				std::memset( Mem() + i, GARBAGE, Size() - i );
-		}
-
-		void Cartridge::Wrk::Load(const Info& info)
-		{
-			NST_ASSERT( info.setup.wrkRamBacked+info.setup.wrkRam == Size() );
-
-			if (info.setup.wrkRamBacked >= MIN_BATTERY_SIZE)
+			switch (profile.system.type)
 			{
-				if (!file.Load( File::LOAD_BATTERY, Mem(), info.setup.wrkRamBacked ))
-					Log::Flush( "Cartridge: warning, save file and W-RAM size mismatch!" NST_LINEBREAK );
+				case Profile::System::NES_PAL:
+				case Profile::System::NES_PAL_A:
+				case Profile::System::NES_PAL_B:
+
+					return REGION_PAL;
+
+				default:
+
+					return REGION_NTSC;
 			}
 		}
 
-		void Cartridge::Wrk::Save(const Info& info) const
+		System Cartridge::GetDesiredSystem(Region region,CpuModel* cpu,PpuModel* ppu) const
 		{
-			NST_ASSERT( info.setup.wrkRamBacked+info.setup.wrkRam == Size() );
+			if (region == Cartridge::GetDesiredRegion())
+			{
+				if (cpu)
+					*cpu = static_cast<CpuModel>(profile.system.cpu);
 
-			if (info.setup.wrkRamBacked >= MIN_BATTERY_SIZE)
-				file.Save( File::SAVE_BATTERY, Mem(), info.setup.wrkRamBacked );
-		}
+				if (ppu)
+					*ppu = static_cast<PpuModel>(profile.system.ppu);
 
-		Revision::Ppu Cartridge::QueryPpu(bool yuvConversion)
-		{
-			if (vs)
-				vs->EnableYuvConversion( yuvConversion );
-
-			return static_cast<Revision::Ppu>(info.setup.ppu);
-		}
-
-		Region::Type Cartridge::GetRegion() const
-		{
-			return info.setup.region == Api::Cartridge::REGION_PAL ? Region::PAL : Region::NTSC;
+				return static_cast<System>(profile.system.type);
+			}
+			else
+			{
+				return Image::GetDesiredSystem( region, cpu, ppu );
+			}
 		}
 
 		#ifdef NST_MSVC_OPTIMIZE
@@ -518,7 +420,7 @@ namespace Nes
 
 		void Cartridge::BeginFrame(const Api::Input& input,Input::Controllers* controllers)
 		{
-			mapper->Sync( Mapper::EVENT_BEGIN_FRAME, controllers );
+			board->Sync( Boards::Board::EVENT_BEGIN_FRAME, controllers );
 
 			if (vs)
 				vs->BeginFrame( input, controllers );
@@ -526,13 +428,10 @@ namespace Nes
 
 		void Cartridge::VSync()
 		{
-			mapper->Sync( Mapper::EVENT_END_FRAME, NULL );
+			board->Sync( Boards::Board::EVENT_END_FRAME, NULL );
 
 			if (vs)
 				vs->VSync();
-
-			if (dataRecorder)
-				dataRecorder->VSync();
 		}
 	}
 }

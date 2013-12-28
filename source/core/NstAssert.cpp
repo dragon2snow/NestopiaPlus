@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -22,11 +22,11 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include <cstdlib>
 #include "NstCore.hpp"
 
-#if !defined(NDEBUG) && defined(NST_WIN32)
+#if defined(NST_DEBUG) && defined(NST_WIN32)
 
+#include <cstdlib>
 #include <cstdio>
 #include <cstring>
 #include <new>
@@ -35,7 +35,7 @@
 #define WIN32_LEAN_AND_MEAN
 #endif
 
-#include <Windows.h>
+#include <windows.h>
 
 #ifdef _UNICODE
  #define NST_MESSAGEBOX MessageBoxA

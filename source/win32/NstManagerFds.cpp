@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -75,7 +75,7 @@ namespace Nestopia
 
 			static void NST_CALLBACK OnDiskAccessScreen(Nes::Fds::UserData,Nes::Fds::Motor motor)
 			{
-				Io::Screen(15000) << (motor != Nes::Fds::MOTOR_OFF ? Resource::String(motor == Nes::Fds::MOTOR_READ ? IDS_SCREEN_FDS_READING : IDS_SCREEN_FDS_WRITING).Ptr() : _T(""));
+				Io::Screen(15000) << (motor != Nes::Fds::MOTOR_OFF ? Resource::String(motor == Nes::Fds::MOTOR_READ ? IDS_SCREEN_FDS_READING : IDS_SCREEN_FDS_WRITING).Ptr() : L"");
 			}
 		};
 
@@ -169,7 +169,7 @@ namespace Nestopia
 					(
 						subMenu[i],
 						IDM_MACHINE_EXT_FDS_INSERT_DISK_1_SIDE_A + i,
-						Resource::String( (i % 2) ? IDS_FDS_DISK_SIDE_B : IDS_FDS_DISK_SIDE_A ).Invoke( tchar('1' + i / 2) )
+						Resource::String( (i % 2) ? IDS_FDS_DISK_SIDE_B : IDS_FDS_DISK_SIDE_A ).Invoke( wchar_t('1' + i / 2) )
 					);
 				}
 			}
@@ -277,7 +277,7 @@ namespace Nestopia
 				case Emulator::EVENT_DISK_INSERT:
 				case Emulator::EVENT_DISK_EJECT:
 
-					Io::Screen() << Resource::String( event == Emulator::EVENT_DISK_EJECT ? IDS_SCREEN_DISK_EJECTED : (data % 2U ? IDS_SCREEN_DISK_SIDE_B_INSERTED : IDS_SCREEN_DISK_SIDE_A_INSERTED) ).Invoke( tchar('1' + data / 2U) );
+					Io::Screen() << Resource::String( event == Emulator::EVENT_DISK_EJECT ? IDS_SCREEN_DISK_EJECTED : (data % 2U ? IDS_SCREEN_DISK_SIDE_B_INSERTED : IDS_SCREEN_DISK_SIDE_A_INSERTED) ).Invoke( wchar_t('1' + data / 2U) );
 					break;
 
 				case Emulator::EVENT_LOAD:

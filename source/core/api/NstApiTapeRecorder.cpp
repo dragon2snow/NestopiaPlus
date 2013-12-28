@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -23,11 +23,10 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 
 #include "../NstMachine.hpp"
-#include "../NstImage.hpp"
-#include "../NstFile.hpp"
-#include "../NstPrpDataRecorder.hpp"
-#include "NstApiMachine.hpp"
+#include "../input/NstInpDevice.hpp"
+#include "../input/NstInpFamilyKeyboard.hpp"
 #include "NstApiTapeRecorder.hpp"
+#include "NstApiMachine.hpp"
 
 namespace Nes
 {
@@ -39,55 +38,52 @@ namespace Nes
 
 		TapeRecorder::EventCaller TapeRecorder::eventCallback;
 
-		Core::Peripherals::DataRecorder* TapeRecorder::Query() const
+		Core::Input::FamilyKeyboard* TapeRecorder::Query() const
 		{
-			if (emulator.image)
-			{
-				if (Core::Image::ExternalDevice device = emulator.image->QueryExternalDevice( Core::Image::EXT_DATA_RECORDER ))
-					return static_cast<Core::Peripherals::DataRecorder*>(device);
-			}
-
-			return NULL;
+			if (emulator.expPort->GetType() == Input::FAMILYKEYBOARD)
+				return static_cast<Core::Input::FamilyKeyboard*>(emulator.expPort);
+			else
+				return NULL;
 		}
 
 		bool TapeRecorder::IsPlaying() const throw()
 		{
-			if (Core::Peripherals::DataRecorder* const dataRecorder = Query())
-				return dataRecorder->IsPlaying();
+			if (Core::Input::FamilyKeyboard* const familyKeyboard = Query())
+				return familyKeyboard->IsTapePlaying();
 
 			return false;
 		}
 
 		bool TapeRecorder::IsRecording() const throw()
 		{
-			if (Core::Peripherals::DataRecorder* const dataRecorder = Query())
-				return dataRecorder->IsRecording();
+			if (Core::Input::FamilyKeyboard* const familyKeyboard = Query())
+				return familyKeyboard->IsTapeRecording();
 
 			return false;
 		}
 
 		bool TapeRecorder::IsStopped() const throw()
 		{
-			if (Core::Peripherals::DataRecorder* const dataRecorder = Query())
-				return dataRecorder->IsStopped();
+			if (Core::Input::FamilyKeyboard* const familyKeyboard = Query())
+				return familyKeyboard->IsTapeStopped();
 
 			return true;
 		}
 
 		bool TapeRecorder::IsPlayable() const throw()
 		{
-			if (Core::Peripherals::DataRecorder* const dataRecorder = Query())
-				return dataRecorder->Playable();
+			if (Core::Input::FamilyKeyboard* const familyKeyboard = Query())
+				return familyKeyboard->IsTapePlayable();
 
 			return false;
 		}
 
 		Result TapeRecorder::Play() throw()
 		{
-			if (Core::Peripherals::DataRecorder* const dataRecorder = Query())
+			if (Core::Input::FamilyKeyboard* const familyKeyboard = Query())
 			{
 				if (emulator.Is(Machine::ON) && !emulator.tracker.IsLocked())
-					return emulator.tracker.TryResync( dataRecorder->Play() );
+					return emulator.tracker.TryResync( familyKeyboard->PlayTape() );
 			}
 
 			return RESULT_ERR_NOT_READY;
@@ -95,10 +91,10 @@ namespace Nes
 
 		Result TapeRecorder::Record() throw()
 		{
-			if (Core::Peripherals::DataRecorder* const dataRecorder = Query())
+			if (Core::Input::FamilyKeyboard* const familyKeyboard = Query())
 			{
 				if (emulator.Is(Machine::ON) && !emulator.tracker.IsLocked())
-					return emulator.tracker.TryResync( dataRecorder->Record() );
+					return emulator.tracker.TryResync( familyKeyboard->RecordTape() );
 			}
 
 			return RESULT_ERR_NOT_READY;
@@ -106,14 +102,14 @@ namespace Nes
 
 		Result TapeRecorder::Stop() throw()
 		{
-			if (Core::Peripherals::DataRecorder* const dataRecorder = Query())
+			if (Core::Input::FamilyKeyboard* const familyKeyboard = Query())
 			{
-				if (dataRecorder->IsPlaying())
+				if (familyKeyboard->IsTapePlaying() || familyKeyboard->IsTapeRecording())
 				{
 					if (emulator.tracker.IsLocked())
 						return RESULT_ERR_NOT_READY;
 
-					return emulator.tracker.TryResync( dataRecorder->Stop() );
+					return emulator.tracker.TryResync( familyKeyboard->StopTape() );
 				}
 			}
 

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -191,10 +191,9 @@ namespace Nes
 
 		Video::RenderState::RenderState() throw()
 		:
-		width     (0),
-		height    (0),
-		scanlines (0),
-		filter    (FILTER_NONE)
+		width  (0),
+		height (0),
+		filter (FILTER_NONE)
 		{
 			bits.count = 0;
 			bits.mask.r = 0;

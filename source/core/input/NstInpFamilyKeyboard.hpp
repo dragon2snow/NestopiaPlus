@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -39,15 +39,27 @@ namespace Nes
 			{
 			public:
 
-				explicit FamilyKeyboard(const Cpu&);
+				explicit FamilyKeyboard(Cpu&,bool);
+
+				Result PlayTape();
+				Result RecordTape();
+				Result StopTape();
+
+				bool IsTapeRecording() const;
+				bool IsTapePlaying() const;
+				bool IsTapePlayable() const;
+				bool IsTapeStopped() const;
 
 			private:
 
-				~FamilyKeyboard() {}
+				class DataRecorder;
+
+				~FamilyKeyboard();
 
 				void Reset();
 				void Poke(uint);
 				uint Peek(uint);
+				void EndFrame();
 				void LoadState(State::Loader&,dword);
 				void SaveState(State::Saver&,byte) const;
 
@@ -60,6 +72,7 @@ namespace Nes
 
 				uint mode;
 				uint scan;
+				DataRecorder* const dataRecorder;
 			};
 		}
 	}

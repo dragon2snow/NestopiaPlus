@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,6 +25,7 @@
 #ifndef NST_BASE_H
 #define NST_BASE_H
 
+#include <climits>
 #include "api/NstApiConfig.hpp"
 
 //--------------------------------------------------------------------------------------
@@ -100,6 +101,56 @@ namespace Nes
 	typedef unsigned int uint;
 	typedef unsigned long ulong;
 
+	#if UCHAR_MAX >= 0xFF
+	typedef unsigned char byte;
+	#else
+	#error Unsupported plattform!
+	#endif
+
+	#if UCHAR_MAX >= 0xFFFF
+	typedef unsigned char word;
+	#elif USHRT_MAX >= 0xFFFF
+	typedef unsigned short word;
+	#elif UINT_MAX >= 0xFFFF
+	typedef unsigned int word;
+	#else
+	#error Unsupported plattform!
+	#endif
+
+	#if SCHAR_MAX >= 32767 && SCHAR_MIN <= -32767
+	typedef signed char iword;
+	#elif SHRT_MAX >= 32767 && SHRT_MIN <= -32767
+	typedef signed short iword;
+	#elif INT_MAX >= 32767 && INT_MIN <= -32767
+	typedef signed int iword;
+	#else
+	#error Unsupported plattform!
+	#endif
+
+	#if UCHAR_MAX >= 0xFFFFFFFF
+	typedef unsigned char dword;
+	#elif USHRT_MAX >= 0xFFFFFFFF
+	typedef unsigned short dword;
+	#elif UINT_MAX >= 0xFFFFFFFF
+	typedef unsigned int dword;
+	#elif ULONG_MAX >= 0xFFFFFFFF
+	typedef unsigned long dword;
+	#else
+	#error Unsupported plattform!
+	#endif
+
+	#if SCHAR_MAX >= 2147483647 && SCHAR_MIN <= -2147483647
+	typedef signed char idword;
+	#elif SHRT_MAX >= 2147483647 && SHRT_MIN <= -2147483647
+	typedef signed short idword;
+	#elif INT_MAX >= 2147483647 && INT_MIN <= -2147483647
+	typedef signed int idword;
+	#elif LONG_MAX >= 2147483647 && LONG_MIN <= -2147483647
+	typedef signed long idword;
+	#else
+	#error Unsupported plattform!
+	#endif
+
 	enum Result
 	{
 		RESULT_ERR_WRONG_MODE               = -13,
@@ -122,60 +173,139 @@ namespace Nes
 		RESULT_WARN_BAD_CROM                =  +4,
 		RESULT_WARN_BAD_FILE_HEADER         =  +5,
 		RESULT_WARN_SAVEDATA_LOST           =  +6,
-		RESULT_WARN_ENCRYPTED_ROM           =  +7,
-		RESULT_WARN_INCORRECT_FILE_HEADER   =  +8,
-		RESULT_WARN_DATA_REPLACED           =  +9
+		RESULT_WARN_INCORRECT_FILE_HEADER   =  +7,
+		RESULT_WARN_DATA_REPLACED           =  +8
 	};
 
-	namespace Clocks
+	namespace Core
 	{
-		enum
+		enum Region
 		{
-			M2_MUL      = 6,
-			NTSC_DIV    = 11,
-			NTSC_CLK    = 39375000UL * M2_MUL,
-			NTSC_HVSYNC = 525UL * 455 * NTSC_DIV * M2_MUL / 4,
-			PAL_DIV     = 8,
-			PAL_CLK     = 35468950UL * M2_MUL,
-			PAL_HVSYNC  = 625UL * 1418758 / (10000/PAL_DIV) * M2_MUL
+			REGION_NTSC,
+			REGION_PAL
+		};
+
+		enum System
+		{
+			SYSTEM_NES_NTSC,
+			SYSTEM_NES_PAL,
+			SYSTEM_NES_PAL_A,
+			SYSTEM_NES_PAL_B,
+			SYSTEM_FAMICOM,
+			SYSTEM_VS_UNISYSTEM,
+			SYSTEM_VS_DUALSYSTEM,
+			SYSTEM_PLAYCHOICE_10
+		};
+
+		enum FavoredSystem
+		{
+			FAVORED_NES_NTSC,
+			FAVORED_NES_PAL,
+			FAVORED_FAMICOM
+		};
+
+		enum CpuModel
+		{
+			CPU_RP2A03,
+			CPU_RP2A07
+		};
+
+		enum PpuModel
+		{
+			PPU_RP2C02,
+			PPU_RP2C03B,
+			PPU_RP2C03G,
+			PPU_RP2C04_0001,
+			PPU_RP2C04_0002,
+			PPU_RP2C04_0003,
+			PPU_RP2C04_0004,
+			PPU_RC2C03B,
+			PPU_RC2C03C,
+			PPU_RC2C05_01,
+			PPU_RC2C05_02,
+			PPU_RC2C05_03,
+			PPU_RC2C05_04,
+			PPU_RC2C05_05,
+			PPU_RP2C07
 		};
 
 		enum
 		{
-			RP2A03_CC = 12,
-			RP2A07_CC = 16
+			CLK_M2_MUL      = 6,
+			CLK_NTSC        = 39375000UL * CLK_M2_MUL,
+			CLK_NTSC_DIV    = 11,
+			CLK_NTSC_HVSYNC = 525UL * 455 * CLK_NTSC_DIV * CLK_M2_MUL / 4,
+			CLK_PAL         = 35468950UL * CLK_M2_MUL,
+			CLK_PAL_DIV     = 8,
+			CLK_PAL_HVSYNC  = 625UL * 1418758 / (10000/CLK_PAL_DIV) * CLK_M2_MUL
 		};
 
 		enum
 		{
-			RP2C02_CC        = 4,
-			RP2C02_HACTIVE   = RP2C02_CC * 256,
-			RP2C02_HBLANK    = RP2C02_CC * 85,
-			RP2C02_HSYNC     = RP2C02_HACTIVE + RP2C02_HBLANK,
-			RP2C02_VACTIVE   = 240,
-			RP2C02_VSLEEP    = 1,
-			RP2C02_VINT      = 20,
-			RP2C02_VDUMMY    = 1,
-			RP2C02_VBLANK    = RP2C02_VSLEEP + RP2C02_VINT + RP2C02_VDUMMY,
-			RP2C02_VSYNC     = RP2C02_VACTIVE + RP2C02_VBLANK,
-			RP2C02_HVINT     = RP2C02_VINT * ulong(RP2C02_HSYNC),
-			RP2C02_HVSYNC_0  = RP2C02_VSYNC * ulong(RP2C02_HSYNC),
-			RP2C02_HVSYNC_1  = RP2C02_VSYNC * ulong(RP2C02_HSYNC) - RP2C02_CC,
-			RP2C02_HVSYNC    = (RP2C02_HVSYNC_0 + ulong(RP2C02_HVSYNC_1)) / 2,
-			RP2C02_FPS       = (NTSC_CLK + NTSC_DIV * ulong(RP2C02_HVSYNC) / 2) / (NTSC_DIV * ulong(RP2C02_HVSYNC)),
-			RP2C07_CC        = 5,
-			RP2C07_HACTIVE   = RP2C07_CC * 256,
-			RP2C07_HBLANK    = RP2C07_CC * 85,
-			RP2C07_HSYNC     = RP2C07_HACTIVE + RP2C07_HBLANK,
-			RP2C07_VACTIVE   = 240,
-			RP2C07_VSLEEP    = 1,
-			RP2C07_VINT      = 70,
-			RP2C07_VDUMMY    = 1,
-			RP2C07_VBLANK    = RP2C07_VSLEEP + RP2C07_VINT + RP2C07_VDUMMY,
-			RP2C07_VSYNC     = RP2C07_VACTIVE + RP2C07_VBLANK,
-			RP2C07_HVINT     = RP2C07_VINT * ulong(RP2C07_HSYNC),
-			RP2C07_HVSYNC    = RP2C07_VSYNC * ulong(RP2C07_HSYNC),
-			RP2C07_FPS       = (PAL_CLK + PAL_DIV * ulong(RP2C07_HVSYNC) / 2) / (PAL_DIV * ulong(RP2C07_HVSYNC))
+			CPU_RP2A03_CC = 12,
+			CPU_RP2A07_CC = 16
+		};
+
+		enum
+		{
+			PPU_RP2C02_CC         = 4,
+			PPU_RP2C02_HACTIVE    = PPU_RP2C02_CC * 256,
+			PPU_RP2C02_HBLANK     = PPU_RP2C02_CC * 85,
+			PPU_RP2C02_HSYNC      = PPU_RP2C02_HACTIVE + PPU_RP2C02_HBLANK,
+			PPU_RP2C02_VACTIVE    = 240,
+			PPU_RP2C02_VSLEEP     = 1,
+			PPU_RP2C02_VINT       = 20,
+			PPU_RP2C02_VDUMMY     = 1,
+			PPU_RP2C02_VBLANK     = PPU_RP2C02_VSLEEP + PPU_RP2C02_VINT + PPU_RP2C02_VDUMMY,
+			PPU_RP2C02_VSYNC      = PPU_RP2C02_VACTIVE + PPU_RP2C02_VBLANK,
+			PPU_RP2C02_HVSYNCBOOT = PPU_RP2C02_VACTIVE * PPU_RP2C02_HSYNC + PPU_RP2C02_CC * 312,
+			PPU_RP2C02_HVREGBOOT  = (PPU_RP2C02_VACTIVE + PPU_RP2C02_VINT) * PPU_RP2C02_HSYNC + PPU_RP2C02_CC * 314,
+			PPU_RP2C02_HVINT      = PPU_RP2C02_VINT * ulong(PPU_RP2C02_HSYNC),
+			PPU_RP2C02_HVSYNC_0   = PPU_RP2C02_VSYNC * ulong(PPU_RP2C02_HSYNC),
+			PPU_RP2C02_HVSYNC_1   = PPU_RP2C02_VSYNC * ulong(PPU_RP2C02_HSYNC) - PPU_RP2C02_CC,
+			PPU_RP2C02_HVSYNC     = (PPU_RP2C02_HVSYNC_0 + ulong(PPU_RP2C02_HVSYNC_1)) / 2,
+			PPU_RP2C02_FPS        = (CLK_NTSC + CLK_NTSC_DIV * ulong(PPU_RP2C02_HVSYNC) / 2) / (CLK_NTSC_DIV * ulong(PPU_RP2C02_HVSYNC)),
+			PPU_RP2C07_CC         = 5,
+			PPU_RP2C07_HACTIVE    = PPU_RP2C07_CC * 256,
+			PPU_RP2C07_HBLANK     = PPU_RP2C07_CC * 85,
+			PPU_RP2C07_HSYNC      = PPU_RP2C07_HACTIVE + PPU_RP2C07_HBLANK,
+			PPU_RP2C07_VACTIVE    = 240,
+			PPU_RP2C07_VSLEEP     = 1,
+			PPU_RP2C07_VINT       = 70,
+			PPU_RP2C07_VDUMMY     = 1,
+			PPU_RP2C07_VBLANK     = PPU_RP2C07_VSLEEP + PPU_RP2C07_VINT + PPU_RP2C07_VDUMMY,
+			PPU_RP2C07_VSYNC      = PPU_RP2C07_VACTIVE + PPU_RP2C07_VBLANK,
+			PPU_RP2C07_HVSYNCBOOT = PPU_RP2C07_VACTIVE * PPU_RP2C07_HSYNC + PPU_RP2C07_CC * 312,
+			PPU_RP2C07_HVREGBOOT  = (PPU_RP2C07_VACTIVE + PPU_RP2C07_VINT) * PPU_RP2C07_HSYNC + PPU_RP2C07_CC * 314,
+			PPU_RP2C07_HVINT      = PPU_RP2C07_VINT * ulong(PPU_RP2C07_HSYNC),
+			PPU_RP2C07_HVSYNC     = PPU_RP2C07_VSYNC * ulong(PPU_RP2C07_HSYNC),
+			PPU_RP2C07_FPS        = (CLK_PAL + CLK_PAL_DIV * ulong(PPU_RP2C07_HVSYNC) / 2) / (CLK_PAL_DIV * ulong(PPU_RP2C07_HVSYNC))
+		};
+
+		template<typename T>
+		class ImplicitBool;
+
+		template<>
+		class ImplicitBool<void>
+		{
+		public:
+
+			int type;
+			typedef int ImplicitBool<void>::*Type;
+		};
+
+		template<typename T>
+		class ImplicitBool
+		{
+			template<typename U> void operator == (const ImplicitBool<U>&) const;
+			template<typename U> void operator != (const ImplicitBool<U>&) const;
+
+		public:
+
+			operator ImplicitBool<void>::Type () const
+			{
+				return !static_cast<const T&>(*this) ? 0 : &ImplicitBool<void>::type;
+			}
 		};
 	}
 }

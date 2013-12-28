@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -95,18 +95,21 @@ namespace Nestopia
 			listNotifications.Add( this, Handlers::listNotifications );
 			treeNotifications.Add( this, Handlers::treeNotifications );
 
-			menu[IDM_LAUNCHER_VIEW_ONTOP].Check
-			(
-				cfg["launcher view on top"] == Configuration::YES
-			);
-
-			initialSize.x = uint(cfg["launcher window size x"]);
-			initialSize.y = uint(cfg["launcher window size y"]);
-
-			if (!initialSize.x || !initialSize.y)
 			{
-				initialSize.x = 0;
-				initialSize.y = 0;
+				Configuration::ConstSection launcher( cfg["launcher"] );
+
+				menu[IDM_LAUNCHER_VIEW_ONTOP].Check( launcher["view"]["show"]["on-top"].Yes() );
+
+				Configuration::ConstSection size( launcher["window-size"] );
+
+				initialSize.x = size["x"].Int();
+				initialSize.y = size["y"].Int();
+
+				if (!initialSize.x || !initialSize.y)
+				{
+					initialSize.x = 0;
+					initialSize.y = 0;
+				}
 			}
 
 			HeapString name;
@@ -135,13 +138,17 @@ namespace Nestopia
 
 		void Launcher::Save(Configuration& cfg,bool saveSize,bool saveFiles)
 		{
+			Configuration::Section launcher( cfg["launcher"] );
+
 			if (saveSize)
 			{
-				cfg["launcher window size x"] = initialSize.x;
-				cfg["launcher window size y"] = initialSize.y;
+				Configuration::Section size( cfg["window-size"] );
+
+				size["x"].Int() = initialSize.x;
+				size["y"].Int() = initialSize.y;
 			}
 
-			cfg["launcher view on top"].YesNo() = menu[IDM_LAUNCHER_VIEW_ONTOP].Checked();
+			launcher["view"]["show"]["on-top"].YesNo() = menu[IDM_LAUNCHER_VIEW_ONTOP].Checked();
 
 			list.Save( cfg, saveFiles );
 			colors.Save( cfg );
@@ -366,7 +373,7 @@ namespace Nestopia
 		void Launcher::OnCmdEditHeader(uint)
 		{
 			if (const List::Files::Entry* const entry = list.GetSelection())
-				Window::InesHeader( list.GetDatabase(), list.GetPaths() ).Open( Path(entry->GetPath(list.GetStrings()),entry->GetFile(list.GetStrings())) );
+				Window::InesHeader( list.GetPaths() ).Open( Path(entry->GetPath(list.GetStrings()),entry->GetFile(list.GetStrings())) );
 		}
 
 		void Launcher::OnCmdViewShowGrids(uint)

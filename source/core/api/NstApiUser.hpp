@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,8 +25,7 @@
 #ifndef NST_API_USER_H
 #define NST_API_USER_H
 
-#include <vector>
-#include <string>
+#include <iosfwd>
 #include "NstApi.hpp"
 
 #ifdef NST_PRAGMA_ONCE
@@ -49,7 +48,6 @@ namespace Nes
 		{
 			struct LogCaller;
 			struct EventCaller;
-			struct InputCaller;
 			struct QuestionCaller;
 			struct FileIoCaller;
 
@@ -79,44 +77,53 @@ namespace Nes
 				EVENT_CPU_UNOFFICIAL_OPCODE
 			};
 
-			enum File
+			struct File
 			{
-				FILE_LOAD_BATTERY = 1,
-				FILE_SAVE_BATTERY,
-				FILE_SAVE_FDS,
-				FILE_LOAD_EEPROM,
-				FILE_SAVE_EEPROM,
-				FILE_LOAD_TAPE,
-				FILE_SAVE_TAPE,
-				FILE_LOAD_TURBOFILE,
-				FILE_SAVE_TURBOFILE
-			};
+				enum Action
+				{
+					LOAD_BATTERY = 1,
+					SAVE_BATTERY,
+					SAVE_FDS,
+					LOAD_EEPROM,
+					SAVE_EEPROM,
+					LOAD_TAPE,
+					SAVE_TAPE,
+					LOAD_TURBOFILE,
+					SAVE_TURBOFILE,
+					LOAD_ROM,
+					LOAD_SAMPLE,
+					LOAD_SAMPLE_MOERO_PRO_YAKYUU,
+					LOAD_SAMPLE_MOERO_PRO_YAKYUU_88,
+					LOAD_SAMPLE_MOERO_PRO_TENNIS,
+					LOAD_SAMPLE_TERAO_NO_DOSUKOI_OOZUMOU,
+					LOAD_SAMPLE_AEROBICS_STUDIO
+				};
 
-			enum Input
-			{
-				INPUT_CHOOSE_MAPPER = 1
+				virtual Action GetAction() const throw() = 0;
+				virtual const wchar_t* GetName() const throw();
+				virtual uint GetId() const throw();
+				virtual ulong GetMaxSize() const throw();
+				virtual Result GetContent(std::ostream&) const throw();
+				virtual Result GetContent(const void*&,ulong&) const throw();
+				virtual Result SetContent(std::istream&) throw();
+				virtual Result SetContent(const void*,ulong) throw();
+				virtual Result SetSampleContent(const void*,ulong,bool,uint,ulong) throw();
 			};
 
 			enum
 			{
 				NUM_QUESTION_CALLBACKS = 2,
 				NUM_EVENT_CALLBACKS = 3,
-				NUM_FILE_CALLBACKS = 9,
-				NUM_INPUT_CALLBACKS = 1
+				NUM_FILE_CALLBACKS = 16
 			};
-
-			typedef std::string String;
-			typedef std::vector<uchar> FileData;
 
 			typedef void   ( NST_CALLBACK *LogCallback      ) (UserData,const char*,ulong);
 			typedef void   ( NST_CALLBACK *EventCallback    ) (UserData,Event,const void*);
-			typedef void   ( NST_CALLBACK *InputCallback    ) (UserData,Input,const char*,String&);
 			typedef Answer ( NST_CALLBACK *QuestionCallback ) (UserData,Question);
-			typedef void   ( NST_CALLBACK *FileIoCallback   ) (UserData,File,FileData&);
+			typedef void   ( NST_CALLBACK *FileIoCallback   ) (UserData,File&);
 
 			static LogCaller logCallback;
 			static EventCaller eventCallback;
-			static InputCaller inputCallback;
 			static QuestionCaller questionCallback;
 			static FileIoCaller fileIoCallback;
 		};
@@ -145,15 +152,6 @@ namespace Nes
 			}
 		};
 
-		struct User::InputCaller : Core::UserCallback<User::InputCallback>
-		{
-			void operator () (Input what,const char* info,String& answer) const
-			{
-				if (function)
-					function( userdata, what, info, answer );
-			}
-		};
-
 		struct User::QuestionCaller : Core::UserCallback<User::QuestionCallback>
 		{
 			Answer operator () (Question question) const
@@ -164,10 +162,10 @@ namespace Nes
 
 		struct User::FileIoCaller : Core::UserCallback<User::FileIoCallback>
 		{
-			void operator () (File file,FileData& data) const
+			void operator () (File& file) const
 			{
 				if (function)
-					function( userdata, file, data );
+					function( userdata, file );
 			}
 		};
 	}

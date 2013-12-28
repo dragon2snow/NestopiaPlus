@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -31,11 +31,6 @@
 #pragma once
 #endif
 
-#if NST_MSVC >= 1200
-#pragma warning( push )
-#pragma warning( disable : 4127 )
-#endif
-
 namespace Nes
 {
 	namespace Core
@@ -56,13 +51,10 @@ namespace Nes
 
 				enum
 				{
-					NTSC_WIDTH = 602,
-					NTSC_HEIGHT = HEIGHT * 2
+					NTSC_WIDTH = 602
 				};
 
 				typedef void (FilterNtsc::*Path)(const Input&,const Output&,uint) const;
-
-				static Path GetPath(const RenderState&);
 
 				void Blit(const Input&,const Output&,uint);
 
@@ -86,16 +78,13 @@ namespace Nes
 					const uint black;
 				};
 
+				static Path GetPath(const RenderState&,const Lut&);
+
 				const Path path;
 				const Lut lut;
-				const uint scanlines;
 			};
 		}
 	}
 }
-
-#if NST_MSVC >= 1200
-#pragma warning( pop )
-#endif
 
 #endif

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -27,8 +27,9 @@
 
 #pragma once
 
-#include <iostream>
+#include <iosfwd>
 #include "NstCollectionVector.hpp"
+#include "NstString.hpp"
 
 namespace Nestopia
 {
@@ -38,125 +39,92 @@ namespace Nestopia
 
 		namespace Stream
 		{
-			class Output;
+			class Out;
 
-			class Input : public std::istream
+			class In
 			{
 			public:
 
-				Input();
-				explicit Input(const File&);
-				explicit Input(Collection::Buffer&); // invalidates input vector
-				~Input();
-
-				Input& operator = (const File&);
-				Input& operator = (Collection::Buffer&); // invalidates input vector
+				explicit In(const File&);
+				explicit In(GenericString);
+				explicit In(const Collection::Buffer&);
+				In(const void*,uint);
+				~In();
 
 			private:
 
-				class Buffer : public std::streambuf
-				{
-				public:
+				friend class Out;
 
-					Buffer();
-					explicit Buffer(const File&);
-					explicit Buffer(Collection::Buffer&);
+				class FileStream;
+				class BufferStream;
 
-					inline void operator = (const File&);
-					inline void operator = (Collection::Buffer&);
-
-					void Export(Collection::Buffer&); // invalidates stream buffer
-
-				private:
-
-					enum
-					{
-						BAD_POS = 0x7FFFFFFF
-					};
-
-					void Clear();
-					void Initialize ();
-					void Initialize (const File&);
-					void Initialize (Collection::Buffer&);
-
-					uint pos;
-					Collection::Buffer vector;
-
-					int_type underflow();
-					int_type uflow();
-					std::streamsize xsgetn(char*,std::streamsize);
-					std::streampos seekoff(std::streamoff,std::ios::seekdir,std::ios::openmode);
-					std::streampos seekpos(std::streampos,std::ios::openmode);
-
-				#if NST_MSVC >= 1400 // ugh
-					std::streamsize _Xsgetn_s(char*,std::size_t,std::streamsize);
-				#endif
-				};
-
-				Buffer buffer;
+				std::istream& stream;
 
 			public:
 
-				void Export(Collection::Buffer& vector)
+				operator std::istream& ()
 				{
-					buffer.Export( vector );
+					return stream;
 				}
 			};
 
-			class Output : public std::ostream
+			class InOut;
+
+			class Out
 			{
 			public:
 
-				Output();
-				explicit Output(const File&);
-				explicit Output(Collection::Buffer&); // Invalidates input vector
-				~Output();
-
-				Output& operator = (const File&);
-				Output& operator = (Collection::Buffer&); // invalidates input vector
+				explicit Out(const File&);
+				explicit Out(GenericString);
+				explicit Out(Collection::Buffer&);
+				~Out();
 
 			private:
 
-				class Buffer : public std::streambuf
-				{
-				public:
+				friend class InOut;
 
-					Buffer();
-					explicit Buffer(const File&);
-					explicit Buffer(Collection::Buffer&);
+				class FileStream;
+				class BufferStream;
 
-					inline void operator = (const File&);
-					inline void operator = (Collection::Buffer&);
-
-					void Export(Collection::Buffer&); // invalidates stream buffer
-
-				private:
-
-					enum
-					{
-						BAD_POS = 0x7FFFFFFF
-					};
-
-					void Initialize ();
-					void Initialize (const File&);
-					void Initialize (Collection::Buffer&);
-
-					int_type overflow(int_type);
-					std::streamsize xsputn(const char*,std::streamsize);
-					std::streampos seekoff(std::streamoff,std::ios::seekdir,std::ios::openmode);
-					std::streampos seekpos(std::streampos,std::ios::openmode);
-
-					uint pos;
-					Collection::Buffer vector;
-				};
-
-				Buffer buffer;
+				std::ostream& stream;
 
 			public:
 
-				void Export(Collection::Buffer& vector)
+				operator std::ostream& ()
 				{
-					buffer.Export( vector );
+					return stream;
+				}
+			};
+
+			class InOut
+			{
+			public:
+
+				enum
+				{
+					READ = 0x1,
+					WRITE = 0x2,
+					TRUNCATE = 0x4
+				};
+
+				explicit InOut(const File&);
+				explicit InOut(GenericString,uint=READ|WRITE);
+				~InOut();
+
+				operator std::istream& ();
+				operator std::ostream& ();
+
+			private:
+
+				class FileStream;
+
+				std::iostream& stream;
+
+			public:
+
+				operator std::iostream& ()
+				{
+					return stream;
 				}
 			};
 		}

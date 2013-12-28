@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2007 Martin Freij
+// Copyright (C) 2003-2008 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -43,9 +43,9 @@ namespace Nes
 {
 	namespace Core
 	{
-		namespace Peripherals
+		namespace Input
 		{
-			class DataRecorder;
+			class FamilyKeyboard;
 		}
 	}
 
@@ -55,7 +55,7 @@ namespace Nes
 		{
 			struct EventCaller;
 
-			Core::Peripherals::DataRecorder* Query() const;
+			Core::Input::FamilyKeyboard* Query() const;
 
 		public:
 
