@@ -175,6 +175,12 @@
 				RelativePath="..\source\core\NstCartridge.hpp">
 			</File>
 			<File
+				RelativePath="..\source\core\NstCheats.cpp">
+			</File>
+			<File
+				RelativePath="..\source\core\NstCheats.hpp">
+			</File>
+			<File
 				RelativePath="..\source\core\NstCore.hpp">
 			</File>
 			<File
@@ -194,12 +200,6 @@
 			</File>
 			<File
 				RelativePath="..\source\core\NstFds.hpp">
-			</File>
-			<File
-				RelativePath="..\source\core\NstGameGenie.cpp">
-			</File>
-			<File
-				RelativePath="..\source\core\NstGameGenie.hpp">
 			</File>
 			<File
 				RelativePath="..\source\core\NstImage.cpp">
@@ -266,6 +266,12 @@
 			</File>
 			<File
 				RelativePath="..\source\core\NstPpu.hpp">
+			</File>
+			<File
+				RelativePath="..\source\core\NstRewinder.cpp">
+			</File>
+			<File
+				RelativePath="..\source\core\NstRewinder.hpp">
 			</File>
 			<File
 				RelativePath="..\source\core\NstSignedArithmetic.hpp">
@@ -902,6 +908,12 @@
 					RelativePath="..\source\core\mapper\NstMapper144.hpp">
 				</File>
 				<File
+					RelativePath="..\source\core\mapper\NstMapper148.cpp">
+				</File>
+				<File
+					RelativePath="..\source\core\mapper\NstMapper148.hpp">
+				</File>
+				<File
 					RelativePath="..\source\core\mapper\NstMapper151.cpp">
 				</File>
 				<File
@@ -974,6 +986,12 @@
 					RelativePath="..\source\core\mapper\NstMapper182.hpp">
 				</File>
 				<File
+					RelativePath="..\source\core\mapper\NstMapper183.cpp">
+				</File>
+				<File
+					RelativePath="..\source\core\mapper\NstMapper183.hpp">
+				</File>
+				<File
 					RelativePath="..\source\core\mapper\NstMapper184.cpp">
 				</File>
 				<File
@@ -984,6 +1002,12 @@
 				</File>
 				<File
 					RelativePath="..\source\core\mapper\NstMapper185.hpp">
+				</File>
+				<File
+					RelativePath="..\source\core\mapper\NstMapper186.cpp">
+				</File>
+				<File
+					RelativePath="..\source\core\mapper\NstMapper186.hpp">
 				</File>
 				<File
 					RelativePath="..\source\core\mapper\NstMapper187.cpp">
@@ -1095,6 +1119,12 @@
 				</File>
 				<File
 					RelativePath="..\source\core\mapper\NstMapper215.hpp">
+				</File>
+				<File
+					RelativePath="..\source\core\mapper\NstMapper216.cpp">
+				</File>
+				<File
+					RelativePath="..\source\core\mapper\NstMapper216.hpp">
 				</File>
 				<File
 					RelativePath="..\source\core\mapper\NstMapper217.cpp">
@@ -1337,6 +1367,12 @@
 					RelativePath="..\source\core\board\NstBrdColorDreams.hpp">
 				</File>
 				<File
+					RelativePath="..\source\core\board\NstBrdDreamTech01.cpp">
+				</File>
+				<File
+					RelativePath="..\source\core\board\NstBrdDreamTech01.hpp">
+				</File>
+				<File
 					RelativePath="..\source\core\board\NstBrdFfe.cpp">
 				</File>
 				<File
@@ -1347,6 +1383,12 @@
 				</File>
 				<File
 					RelativePath="..\source\core\board\NstBrdFme7.hpp">
+				</File>
+				<File
+					RelativePath="..\source\core\board\NstBrdH2288.cpp">
+				</File>
+				<File
+					RelativePath="..\source\core\board\NstBrdH2288.hpp">
 				</File>
 				<File
 					RelativePath="..\source\core\board\NstBrdMario1Malee2.cpp">
@@ -1453,6 +1495,12 @@
 				RelativePath="..\source\core\api\NstApiCartridge.hpp">
 			</File>
 			<File
+				RelativePath="..\source\core\api\NstApiCheats.cpp">
+			</File>
+			<File
+				RelativePath="..\source\core\api\NstApiCheats.hpp">
+			</File>
+			<File
 				RelativePath="..\source\core\api\NstApiCompiler.hpp">
 			</File>
 			<File
@@ -1472,12 +1520,6 @@
 			</File>
 			<File
 				RelativePath="..\source\core\api\NstApiFds.hpp">
-			</File>
-			<File
-				RelativePath="..\source\core\api\NstApiGameGenie.cpp">
-			</File>
-			<File
-				RelativePath="..\source\core\api\NstApiGameGenie.hpp">
 			</File>
 			<File
 				RelativePath="..\source\core\api\NstApiInput.cpp">
@@ -1502,6 +1544,12 @@
 			</File>
 			<File
 				RelativePath="..\source\core\api\NstApiNsf.hpp">
+			</File>
+			<File
+				RelativePath="..\source\core\api\NstApiRewinder.cpp">
+			</File>
+			<File
+				RelativePath="..\source\core\api\NstApiRewinder.hpp">
 			</File>
 			<File
 				RelativePath="..\source\core\api\NstApiSound.cpp">

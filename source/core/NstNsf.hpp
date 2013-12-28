@@ -46,7 +46,7 @@ namespace Nes
 			Nsf(Context&);
 			~Nsf();
 
-			Result Reset(bool,bool);
+			void Reset(bool);
 			Result SelectSong(uint);
 			Result PlaySong();
 			Result StopSong();

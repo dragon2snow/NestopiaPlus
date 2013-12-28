@@ -27,6 +27,9 @@
 
 #pragma once
 
+#include <fstream>
+#include "NstWindowMenu.hpp"
+
 namespace Nestopia
 {
 	namespace Window
@@ -68,24 +71,31 @@ namespace Nestopia
 				FORWARDED
 			};
 
-			class Data;
 			struct Callbacks;
 
-			void UpdateMenu () const;
-			void OnEmuEvent (Emulator::Event);
+			void  Close (Pos=REWINDED,ibool=TRUE);
+			ibool Open  (std::fstream::open_mode);
 
+			ibool CanPlay    () const;
+			ibool CanRecord  () const;
+			ibool CanStop    () const;
+			ibool CanRewind  () const;
+			ibool CanForward () const;
+
+			void OnEmuEvent   (Emulator::Event);
+			void OnMenuView   (Window::Menu::PopupHandler::Param&);
 			void OnCmdFile    (uint);
 			void OnCmdRecord  (uint);
 			void OnCmdPlay    (uint);
-			void OnCmdStop    (uint=0);
+			void OnCmdStop    (uint);
 			void OnCmdRewind  (uint);
 			void OnCmdForward (uint);
 
 			Emulator& emulator;
 			Pos pos;
+			std::fstream stream;
 			const Window::Menu& menu;
 			Object::Heap<Window::Movie> dialog;
-			Object::Heap<Data> data;
 		};
 	}
 }

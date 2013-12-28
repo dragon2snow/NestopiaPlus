@@ -1,0 +1,106 @@
+////////////////////////////////////////////////////////////////////////////////////////
+//
+// Nestopia - NES / Famicom emulator written in C++
+//
+// Copyright (C) 2003-2005 Martin Freij
+//
+// This file is part of Nestopia.
+// 
+// Nestopia is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// Nestopia is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with Nestopia; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+#include "../NstMapper.hpp"
+#include "NstMapper186.hpp"
+	   
+namespace Nes
+{
+	namespace Core
+	{
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("s", on)
+        #endif
+	
+		void Mapper186::SubReset(const bool hard)
+		{
+			if (hard)
+				std::memset( ram, 0, sizeof(ram) );
+
+			Map( 0x4200U, 0x4201U, &Mapper186::Peek_4200 );
+			Map( 0x4202U,          &Mapper186::Peek_4202 );
+			Map( 0x4203U,          &Mapper186::Peek_4200 );
+			Map( 0x4204U, 0x43FFU, &Mapper186::Peek_4204 );
+
+			for (uint i=0x4200; i < 0x4400; i += 0x2)
+			{
+				Map( i + 0x0, &Mapper186::Poke_4200 );
+				Map( i + 0x1, PRG_SWAP_16K          );
+			}
+
+			Map( 0x4400U, 0x4EFFU, &Mapper186::Peek_4400, &Mapper186::Poke_4400 );
+			Map( WRK_PEEK );
+		}
+
+		void Mapper186::SubLoad(State::Loader& state)
+		{
+			while (const dword chunk = state.Begin())
+			{
+				if (chunk == NES_STATE_CHUNK_ID('R','A','M','\0'))
+					state.Uncompress( ram );
+
+				state.End();
+			}
+		}
+
+		void Mapper186::SubSave(State::Saver& state) const
+		{
+			state.Begin('R','A','M','\0').Compress( ram ).End();
+		}
+
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("", on)
+        #endif
+
+		NES_PEEK(Mapper186,4200)
+		{
+			return 0x00;
+		}
+
+		NES_PEEK(Mapper186,4202)
+		{
+			return 0x40;
+		}
+
+		NES_PEEK(Mapper186,4204)
+		{
+			return 0xFF;
+		}
+
+		NES_POKE(Mapper186,4200)
+		{
+			wrk.SwapBank<NES_8K,0x0000U>( data >> 6 );
+		}
+
+		NES_PEEK(Mapper186,4400)
+		{
+			return ram[address - 0x4400U];
+		}
+
+		NES_POKE(Mapper186,4400)
+		{
+			ram[address - 0x4400U] = data;
+		}
+	}
+}

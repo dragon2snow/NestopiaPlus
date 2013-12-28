@@ -62,6 +62,7 @@ namespace Nestopia
 			void OnMenu(uint);
 			void OnDisplayChange(Window::Param&);
 			void OnEmuEvent(Emulator::Event);
+			void OnAppEvent(Application::Instance::Event,const void*);
 
 			static Nes::Emulator& ImportDatabase(Nes::Emulator&);
 

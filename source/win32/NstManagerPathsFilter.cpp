@@ -42,7 +42,7 @@ namespace Nestopia
     #define NST_FILTER_SLOTS_ALL        ", *.ns1..9"
     #define NST_FILTER_PALETTE_ALL      ", *.pal"
     #define NST_FILTER_WAVE_ALL         ", *.wav"
-    #define NST_FILTER_ARCHIVE_ALL      ", *.zip"
+    #define NST_FILTER_ARCHIVE_ALL      ", *.zip, *.rar, *.7z"
     #define NST_FILTER_INES             ";*.nes"
     #define NST_FILTER_UNIF             ";*.unf;*.unif"
     #define NST_FILTER_FDS              ";*.fds"
@@ -56,7 +56,7 @@ namespace Nestopia
     #define NST_FILTER_SLOTS            ";*.ns1;*.ns2;*.ns3;*.ns4;*.ns5;*.ns6;*.ns7;*.ns8;*.ns9"
     #define NST_FILTER_PALETTE          ";*.pal"
     #define NST_FILTER_WAVE             ";*.wav"
-    #define NST_FILTER_ARCHIVE          ";*.zip"
+    #define NST_FILTER_ARCHIVE          ";*.zip;*.rar;*.7z"
     #define NST_FILTER_INES_DESC        "\0iNes ROM Images (*.nes)\0*.nes"
     #define NST_FILTER_UNIF_DESC        "\0UNIF ROM Images (*.unf,*.unif)\0*.unf;*.unif"
     #define NST_FILTER_FDS_DESC         "\0Famicom Disk System Images (*.fds)\0*.fds"
@@ -71,7 +71,7 @@ namespace Nestopia
     #define NST_FILTER_IPS_DESC         "\0IPS files (*.ips)\0*.ips"
     #define NST_FILTER_PALETTE_DESC     "\0NES Palette Files (*.pal)\0*.pal"
     #define NST_FILTER_WAVE_DESC        "\0WAVE Files (*.wav)\0*.wav"
-    #define NST_FILTER_ARCHIVE_DESC     "\0ZIP files (*.zip)\0*.zip"
+    #define NST_FILTER_ARCHIVE_DESC     "\0Archives (*.zip,*.rar,*.7z)\0*.zip;*.rar;*.7z"
     #define NST_FILTER_ALL_DESC         "\0All files (*.*)\0*.*\0"
 
 	Managers::Paths::Filter::Filter(const File::Types types)

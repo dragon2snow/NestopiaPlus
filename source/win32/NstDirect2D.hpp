@@ -537,10 +537,17 @@ namespace Nestopia
 					lastResult = device.RenderScreen( state );
 			}
 
-			void PresentScreen()
+			ibool PresentScreen()
 			{
 				if (SUCCEEDED(lastResult))
+				{
 					lastResult = device.PresentScreen();
+					return SUCCEEDED(lastResult);
+				}
+				else
+				{
+					return lastResult == NST_E_INVALID_RECT;
+				}
 			}
 
 			void DrawFps(const String::Generic& string)

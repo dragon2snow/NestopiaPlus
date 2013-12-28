@@ -68,8 +68,8 @@ namespace Nestopia
 				Edit(HWND hWnd,uint id)
 				: Generic( hWnd, id ) {}
 
-				void Select(ibool=TRUE) const;
 				void Limit(uint) const;
+				void SetNumberOnly(ibool=TRUE) const;
 
 				void Clear() const
 				{

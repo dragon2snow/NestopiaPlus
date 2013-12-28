@@ -32,13 +32,13 @@ namespace Nes
 	{
 		namespace Stream
 		{
-			static void SeekG(StdStream stream,std::istream::pos_type offset,std::istream::seekdir dir)
+			static void SeekG(StdStream stream,long offset,std::istream::seekdir dir)
 			{
 				if (static_cast<std::istream*>(stream)->seekg( offset, dir ).fail())
 					throw RESULT_ERR_CORRUPT_FILE;
 			}
 
-			static void SeekP(StdStream stream,std::ostream::pos_type offset,std::ostream::seekdir dir)
+			static void SeekP(StdStream stream,long offset,std::ostream::seekdir dir)
 			{
 				if (static_cast<std::ostream*>(stream)->seekp( offset, dir ).fail())
 					throw RESULT_ERR_CORRUPT_FILE;

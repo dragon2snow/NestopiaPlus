@@ -234,7 +234,9 @@ namespace Nes
 			void RenderPixel();
 
 			void WarmUp();
+			void VBlankIn();
 			void VBlank();
+			void VBlankOut();
 			void HDummy();
 			void HDummyBg();
 			void HDummySp();
@@ -261,15 +263,12 @@ namespace Nes
 
 			struct Cycles
 			{
-				Cycle frame;
-				u16   dead;
-				u16   rest;
 				Cycle spriteOverflow;
 				Cycle count;
 				u8    one;
 				u8    four;
 				u8    eight;
-				u8    seven;
+				u8    six;
 				Cycle round;
 			};
 
@@ -305,12 +304,20 @@ namespace Nes
 					STATUS_SP_OVERFLOW = b00100000,
 					STATUS_SP_ZERO_HIT = b01000000,
 					STATUS_VBLANK      = b10000000,
-					STATUS_BITS        = b11100000
+					STATUS_BITS        = b11100000,
+					STATUS_VBLANKING   = 0x100
+				};
+
+				enum
+				{
+					FRAME_ODD     = 0x100,
+					FRAME_DEAD_CC = CTRL1_BG_ENABLED
 				};
 
 				uint ctrl0;
 				uint ctrl1;
 				uint status;
+				uint frame;
 			};
 
 			struct Scroll
@@ -557,9 +564,14 @@ namespace Nes
 				return io.a12.InUse();
 			}
 
-			void SetScreen(u16 (&screen)[WIDTH * HEIGHT])
+			void SetScreen(u16* screen)
 			{
 				output.screen = screen;
+			}
+
+			u16* GetScreen() const
+			{
+				return output.screen;
 			}
 
 			uint GetPixel(dword i) const
@@ -620,7 +632,7 @@ namespace Nes
 
 			bool IsShortFrame() const
 			{
-				return cycles.frame == MC_DIV_NTSC * CC_FRAME_1_NTSC;
+				return regs.ctrl1 & regs.frame;
 			}
 		};
 	}

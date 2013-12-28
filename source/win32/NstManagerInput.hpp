@@ -75,7 +75,7 @@ namespace Nestopia
 			void OnCmdMachinePort(uint);
 			void OnCmdOptionsInput(uint);
 
-			void Poll();
+			void ForcePoll();
 
 			inline void AutoPoll();
 
@@ -171,11 +171,10 @@ namespace Nestopia
 			Nes::Input::Controllers* GetOutput()
 			{
 				autoFire.Step();
-
 				polled ^= TRUE;
 
 				if (polled)
-					Poll();
+					ForcePoll();
 
 				return &nesControllers;
 			}

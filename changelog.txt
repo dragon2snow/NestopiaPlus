@@ -1,4 +1,42 @@
 ----------------------------------------------------------------
+1.22
+----------------------------------------------------------------
+
+Windows Port:
+
+- Added support for RAR and 7-Zip files.
+- Enabled use of XP visual styles.
+- Cleaned up the GUI a bit and fixed proper tab ordering.
+- Added cheat search support.
+- Added some joystick options. People having joystick problems in earlier versions can now disable the buggy axes.
+- Improved auto frame skipping performance.
+- Fixed an FDS BIOS path saving bug.
+- Fixed an auto IPS patching bug.
+- Fixed a Wave file recording bug.
+- Fixed an Alt+Tab from fullscreen bug.
+- Fixed a cheats delete/clear bug.
+
+Emulation Core:
+
+- Added real-time rewinding support (up to 1 minute). To use it, assign it to any key and enable it in the Timing dialog.
+- Added support for cheats in the whole address range.
+- Added support for "Pro Action Rocky" cheat codes.
+- Added DPCM channel sample interpolation and DC offset removal.
+- Improved PPU vblank timing and flag behaviour, info from Blargg.
+- Fixed mapper 6 and moved "Mi Hu Chen (hFFE)" to it, info from CaH4e3.
+- Moved "Shin Samurai Spirits 2", "Power Rangers III" and "Power Rangers IV" to mapper 209.
+- Moved "Mortal Kombat 3 - Special 56 People" to mapper 90.
+- Hacked mapper 90, more games are playable now,
+- Added mapper 148 and moved "Sugoro Quest - Dice no Senshitachi (asia)" to it.
+- Added mapper 183, info from CaH4e3.
+- Added mapper 186, info from CaH4e3.
+- Fixed mapper 187, "King Of Fighters 96" is now playable.
+- Added mapper 216, info from CaH4e3.
+- Added DreamTech UNIF board, info from CaH4e3.
+- Added H2288 UNIF board, info from Kevtris and CaH4e3.
+- Added proper handling of FDS disk insert/eject during movie playing/recording.
+           
+----------------------------------------------------------------
 1.21
 ----------------------------------------------------------------
 
@@ -82,7 +120,7 @@ Other emu core related things:
  - Save state and movie file formats rewritten, old files will no longer work
  - More accurate APU and PPU emulation thanks to RE work by Blargg, Kevtris and Quietust
  - Perfectly time-aligned sound sample output by using a common clocking rate
- - Uses new updated palette by Matrixz
+ - Uses new updated palette by BMF
  - Better (but not perfect) NTSC color generation algorithm based on tweaks by AWJ
  - ROM database fixes and additions
  - Support for phantom stereo sound output

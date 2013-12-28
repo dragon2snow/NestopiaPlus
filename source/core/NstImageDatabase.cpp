@@ -63,6 +63,7 @@ namespace Nes
 		{
 			Unload();
 
+			Result result;
 			Stream::In stream( input );
 	
 			try
@@ -113,24 +114,25 @@ namespace Nes
 					entry.mapper   = data[14];
 					entry.flags    = data[15] | (data[16] << 8);
 				}
+
+				return RESULT_OK;
 			}
-			catch (Result result)
+			catch (Result r)
 			{
-				Unload();
-				return result;
+				result = r;
 			}
-			catch (std::bad_alloc&)
+			catch (const std::bad_alloc&)
 			{
-				Unload();
-				return RESULT_ERR_OUT_OF_MEMORY;
+				result = RESULT_ERR_OUT_OF_MEMORY;
 			}
 			catch (...)
 			{
-				Unload();
-				return RESULT_ERR_GENERIC;
+				result = RESULT_ERR_GENERIC;
 			}
+
+			Unload();
 	
-			return RESULT_OK;
+			return result;
 		}
 	
 		void ImageDatabase::Unload()

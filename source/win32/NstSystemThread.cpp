@@ -244,7 +244,7 @@ namespace Nestopia
 		{
 			execute( *this );
 		}
-		catch (Application::Exception& exception)
+		catch (const Application::Exception& exception)
 		{
 			return ExitFailure( exception );
 		}

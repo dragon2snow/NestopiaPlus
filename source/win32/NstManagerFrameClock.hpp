@@ -52,25 +52,24 @@ namespace Nestopia
 			void OnEmuEvent(Emulator::Event);
 			void OnMenuOptionsTiming(uint);
 			void Synchronize(ibool,uint);
+			void UpdateRewinderState(ibool=TRUE) const;
 			void UpdateSettings();
 			void ResetTimer();
 
 			enum 
 			{
-				TIME_OUT = 600
+				MAX_SPEED_NO_FRAMESKIP = 60
 			};
 
 			struct Timing
 			{
 				System::Timer::Value counter;
-				System::Timer::Value out;
 				uint frameSkips;
 			};
 
 			struct Settings
 			{
 				uint refreshRate;
-				ibool vsync;
 				ibool autoFrameSkip;
 				uint maxFrameSkips;
 			};
@@ -84,37 +83,22 @@ namespace Nestopia
 
 		public:
 
-			void SynchronizeGame(ibool wait)
-			{
-				if (wait | settings.autoFrameSkip)
-					Synchronize( wait, ~0U );
-			}
-
-			void SynchronizeSound()
-			{
-				Synchronize( TRUE, 0U );
-			}
-
-			ibool IsVSyncEnabled() const
-			{
-				return settings.vsync;
-			}
-
-			uint GetRefreshRate() const
-			{
-				return settings.refreshRate;
-			}
-
-			uint GetVSyncRate() const
-			{
-				return settings.vsync ? settings.refreshRate : ~0U;
-			}
-
 			uint NumFrameSkips()
 			{
 				uint count = time.frameSkips;
 				time.frameSkips = 0;
 				return count;
+			}
+
+			void GameSynchronize(ibool wait)
+			{
+				if (wait | settings.autoFrameSkip)
+					Synchronize( wait, ~0U );
+			}
+
+			void SoundSynchronize()
+			{
+				Synchronize( TRUE, 0U );
 			}
 
 			void StartEmulation()

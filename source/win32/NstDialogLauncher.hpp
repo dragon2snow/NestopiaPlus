@@ -152,13 +152,13 @@ namespace Nestopia
 						{
 							enum
 							{
-								NES,UNF,FDS,NSF,IPS,NSP,ZIP,ANY,UNIQUE
+								NES,UNF,FDS,NSF,IPS,NSP,ARCHIVE,ANY,UNIQUE
 							};
 
 							enum						
 							{
 								TYPES = NES|UNF|FDS|NSF|IPS|NSP,
-								FILES = TYPES|ZIP
+								FILES = TYPES|ARCHIVE
 							};
 
 							explicit Include(bool a=false)
@@ -272,14 +272,14 @@ namespace Nestopia
 
 						enum Type
 						{
-							NES   = 0x01,
-							UNF   = 0x02,
-							FDS   = 0x04,
-							NSF   = 0x08,
-							IPS   = 0x10,
-							NSP	  = 0x20,
-							ZIP   = 0x40,
-							ALL   = NES|UNF|FDS|NSF|IPS|NSP
+							NES     = 0x01,
+							UNF     = 0x02,
+							FDS     = 0x04,
+							NSF     = 0x08,
+							IPS     = 0x10,
+							NSP	    = 0x20,
+							ARCHIVE = 0x40,
+							ALL     = NES|UNF|FDS|NSF|IPS|NSP
 						};
 
 						enum

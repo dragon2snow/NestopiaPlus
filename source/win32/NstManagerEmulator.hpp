@@ -27,7 +27,6 @@
 
 #pragma once
 
-#include "NstObjectRaw.hpp"
 #include "NstCollectionVector.hpp"
 #include "NstObjectDelegate.hpp"
 #include "NstString.hpp"
@@ -88,7 +87,7 @@ namespace Nestopia
 
 			enum
 			{
-				DEFAULT_SPEED
+				DEFAULT_SPEED = 0
 			};
 
 			enum Alert
@@ -124,7 +123,14 @@ namespace Nestopia
 				EVENT_NETPLAY_POWER_ON,
 				EVENT_NETPLAY_POWER_OFF,
 				EVENT_SPEED,
-				EVENT_ALT_SPEED,
+				EVENT_BASE_SPEED,
+				EVENT_SPEEDING_ON,
+				EVENT_SPEEDING_OFF,
+				EVENT_REWINDING_ON,
+				EVENT_REWINDING_OFF,
+				EVENT_REWINDING_PREPARE,
+				EVENT_REWINDING_START,
+				EVENT_REWINDING_STOP,
 				EVENT_NSF_PLAY,
 				EVENT_NSF_STOP,
 				EVENT_NSF_NEXT,
@@ -142,9 +148,13 @@ namespace Nestopia
 			void  Resume();
 			void  Wait();
 			ibool Pause(ibool);
-			void  SetSpeed(uint,ibool);
+			void  ResetSpeed(uint,ibool);
+			void  SetSpeed(uint);
+			uint  GetBaseSpeed();
 			uint  GetSpeed();
 			ibool SetMode(Nes::Machine::Mode);
+			void  ToggleSpeed(ibool);
+			void  ToggleRewind(ibool);
 			ibool AutoSetMode();
 			void  AutoSelectController(uint);
 			void  AutoSelectControllers();
@@ -163,7 +173,6 @@ namespace Nestopia
 			ibool Reset(ibool);
 			void  Execute(Nes::Video::Output*,Nes::Sound::Output*,Nes::Input::Controllers*);
 			void  BeginNetplayMode();
-			void  EnableAlternativeSpeed(ibool);
 			void  EndNetplayMode();
 			void  DisableNetplay();
 			void  Unhook();
@@ -183,6 +192,7 @@ namespace Nestopia
 			private:
 
 				friend class Emulator;
+				friend struct Callbacks;
 
 				typedef Object::Delegate<void,Event> Callback;
 				typedef Collection::Vector<Callback> Callbacks;
@@ -206,16 +216,19 @@ namespace Nestopia
 
 			struct Settings
 			{
+				inline Settings();
+
 				void Reset();
 
 				struct Timing
 				{
 					inline Timing();
 
-					uint speed;
-					ibool sync;
-					ibool speedAlternating;
-					uint altSpeed;
+					uint  speed;
+					uchar baseSpeed;
+					bool  speeding;
+					bool  sync;
+					bool  rewinding;
 				};
 
 				struct Paths
@@ -230,7 +243,7 @@ namespace Nestopia
 					inline Fds();
 
 					DiskImageSaveMethod save;
-					Collection::Vector<u8> original;
+					Collection::Buffer original;
 				};
 
 				struct Cartridge
@@ -244,6 +257,7 @@ namespace Nestopia
 				Paths paths;
 				Cartridge cartridge;
 				Fds fds;
+				ibool askSave;
 			};
 
 			struct State
@@ -258,19 +272,21 @@ namespace Nestopia
 
 				ibool running;
 				ibool paused;
+				uint frame;
 				Activator activator;
 				Inactivator inactivator;
 			};
 
-			ibool IsDiskImage(const Object::ConstRaw&) const;
+			ibool IsDiskImage(const Collection::Buffer&) const;
 			ibool UsesSaveData();
+			ibool UsesBaseSpeed() const;
 			void  EnableNetplay(const Netplay::Callback&,uint,uint);
 			void  Unpause();
 
 			template<typename T> void LoadCartridgeData(T&) const;
-			void SaveCartridgeData(const Object::ConstRaw&) const;
-			void LoadDiskData(const Object::Raw&);
-			void SaveDiskData(const Object::ConstRaw&) const;
+			void SaveCartridgeData(const void*,uint);
+			void LoadDiskData(Collection::Buffer&);
+			void SaveDiskData(const void*,uint);
 
 			State state;
 			EventHandler events;
@@ -294,9 +310,19 @@ namespace Nestopia
 				return state.paused;
 			}
 
+			ibool IsSpeeding() const
+			{
+				return settings.timing.speeding;
+			}
+
+			ibool IsRewinding() const
+			{
+				return settings.timing.rewinding;
+			}
+
 			uint GetFrame()
 			{
-				return Nes::Machine(*this).GetFrame();
+				return state.frame;
 			}
 
 			uint Is(uint what)
@@ -307,6 +333,11 @@ namespace Nestopia
 			uint Is(uint what,uint that)
 			{
 				return Nes::Machine(*this).Is( what, that );
+			}
+
+			void AskBeforeSaving()
+			{
+				settings.askSave = TRUE;
 			}
 
 			DiskImageSaveMethod GetDiskImageSaveMethod() const
@@ -344,24 +375,9 @@ namespace Nestopia
 				return settings.paths.save;
 			}
 
-			ibool IsSpeedAlternating() const
-			{
-				return settings.timing.speedAlternating;
-			}
-
 			ibool SyncFrameRate() const
 			{
 				return settings.timing.sync;
-			}
-
-			uint GetAltSpeed() const
-			{
-				return settings.timing.altSpeed;
-			}
-
-			void SetAltSpeed(uint speed)
-			{
-				settings.timing.altSpeed = speed;
 			}
 
 			uint GetPlayer() const

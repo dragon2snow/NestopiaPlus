@@ -7,8 +7,8 @@
 			<center>Nestopia Documentation
 			</center>
 		</H1>
-		<CENTER><EM>version 1.21</EM></CENTER>
-		<CENTER><EM>&nbsp;last&nbsp;updated&nbsp;october 20, 2005</EM></CENTER>
+		<CENTER><EM>version 1.22</EM></CENTER>
+		<CENTER><EM>&nbsp;last&nbsp;updated&nbsp;november 23, 2005</EM></CENTER>
 		<H1>
 			<CENTER>
 				<DIV align="left">
@@ -82,7 +82,11 @@
 			<LI>
 			Super Game 8237
 			<LI>
-				WS 40-in-1</LI></UL>
+			WS 40-in-1
+			<LI>
+			DreamTech 01
+			<LI>
+				H2288</LI></UL>
 		<H4>Sound Chips
 		</H4>
 		<UL>
@@ -724,6 +728,10 @@
 				<td>AGCI 50282
 				</td>
 			</tr>
+			<TR>
+				<TD>148</TD>
+				<TD>MMC3 TAIWAN (alt)</TD>
+			</TR>
 			<tr>
 				<td>151
 				</td>
@@ -808,6 +816,10 @@
 				<td>SUPER DONKEY KONG
 				</td>
 			</tr>
+			<TR>
+				<TD>183</TD>
+				<TD>BTL SUIKAN PIPE</TD>
+			</TR>
 			<tr>
 				<td>184
 				</td>
@@ -820,6 +832,10 @@
 				<td>CROM WRITE-ENABLE
 				</td>
 			</tr>
+			<TR>
+				<TD>186</TD>
+				<TD>STUDY BOX</TD>
+			</TR>
 			<tr>
 				<td>187
 				</td>
@@ -940,6 +956,10 @@
 				<td>M-E3
 				</td>
 			</tr>
+			<TR>
+				<TD>216</TD>
+				<TD>MAGIC JEWELRY 2</TD>
+			</TR>
 			<tr>
 				<td>217
 				</td>
@@ -1097,7 +1117,7 @@
 				</td>
 			</tr>
 		</table>
-		<P>..that renders a total of <STRONG>159</STRONG>.</P>
+		<P>..that renders a total of <STRONG>162</STRONG>.</P>
 		<h3>Recognized VS UniSystem Games
 		</h3>
 		<table border="1">
@@ -1466,8 +1486,24 @@
 		</P>
 		<P>Cheat codes can be submitted in two different&nbsp;ways. Either&nbsp;by 
 			providing&nbsp;the <EM>address, data </EM>and<EM> compare</EM> bytes 
-			explicitly;&nbsp;or&nbsp;through the&nbsp;Game Genie&nbsp;method with&nbsp;the 
-			values&nbsp;packed and encoded into a 6-8 character&nbsp;string.</P>
+			explicitly;&nbsp;or&nbsp;through the&nbsp;Game Genie&nbsp;/ Pro Action Rocky 
+			method with&nbsp;the values&nbsp;packed and encoded into a 6-8 
+			character&nbsp;string.</P>
+		<P>The cheat searcher is another recently added feature that can help 
+			you&nbsp;locate&nbsp;and&nbsp;modify in-game-data values&nbsp;inside 
+			the&nbsp;CPU RAM. It could be the number of lifes, money, weapons, basically 
+			anything that a game reads/writes in that region. The way it works is that the 
+			cheat dialog&nbsp;shows you two different states of the CPU RAM; one&nbsp;with 
+			the content at&nbsp;the time you hit the reset button or opened the dialog for 
+			the first time&nbsp;after a new game was started and the other with 
+			what's&nbsp;currently stored in it. They're refered&nbsp;to as R0 
+			(old)&nbsp;and R1 (current)&nbsp;in the dialog. Now,&nbsp;with the help of the 
+			provided search filters you can compare the values&nbsp;on different adresses 
+			and see what changes the game made to it -&nbsp;before and after you lost a 
+			life for instance.&nbsp;Once you think you've found the&nbsp;address where 
+			the&nbsp;game stores its current-number-of-lifes-value you can now change it to 
+			something else and with a bit of&nbsp;luck, it will work as expected and you 
+			can now cheat your way to victory.</P>
 		<H4>Netplay</H4>
 		<P>Netplay is supported through the Kaillera network. The&nbsp;user interface 
 			should be&nbsp;fairly easy to navigate through. Before you start playing make 
@@ -1502,7 +1538,10 @@
 				<FONT size="2">-PORT1..PORT5 
 					[unconnected,pad1,pad2,pad3,pad4,zapper,paddle,powerpad,keyboard,oekakidstablet,hypershot,crazyclimber,excitingboxing,toprider,pokkunmoguraa]</FONT>
 			<LI>
-				<FONT size="2">-GENIE or -CHEAT [code] [on,off] [optional comment]</FONT></LI></UL>
+				<FONT size="2">-GENIE&nbsp;[code] [on,off] [optional comment]</FONT>
+			<LI>
+				<FONT size="2">-CHEAT [address] [value] [optional compare value] [on,off] [optional 
+					comment]</FONT></LI></UL>
 		<P>Note, the brackets [] should not be included and you can only specify one 
 			argument per line.</P>
 		Example - c:\game.nsp:
@@ -1516,7 +1555,7 @@
 		<BR>
 		-PORT2 unconnected
 		<BR>
-		-CHEAT szneevvk on
+		-GENIE szneevvk on
 		<BR>
 		<P>
 			This will load the willybeamish.nes file, force it into PAL mode&nbsp;with one 
@@ -1549,6 +1588,11 @@
 					<TH height="23">
 						Default
 					</TH>
+				</TR>
+				<TR>
+					<TD>cheat 1..N</TD>
+					<TD width="292">(code) / (address) (value) (compare), (on,off), (description)</TD>
+					<TD>-</TD>
 				</TR>
 				<TR>
 					<TD>files auto export states
@@ -1717,14 +1761,6 @@
 					<TD width="292">yes, no
 					</TD>
 					<TD>yes
-					</TD>
-				</TR>
-				<TR>
-					<TD>gamegenie 1..N
-					</TD>
-					<TD width="292">code on, off
-					</TD>
-					<TD>-
 					</TD>
 				</TR>
 				<TR>
@@ -3089,7 +3125,7 @@
 					</TD>
 				</TR>
 				<TR>
-					<TD>launcher search files zip
+					<TD>launcher search files&nbsp;archive
 					</TD>
 					<TD width="292">yes, no
 					</TD>
@@ -3465,6 +3501,11 @@
 					</TD>
 				</TR>
 				<TR>
+					<TD>timer default rewinder speed</TD>
+					<TD width="292">yes, no</TD>
+					<TD>yes</TD>
+				</TR>
+				<TR>
 					<TD>timer default speed
 					</TD>
 					<TD width="292">yes, no
@@ -3481,12 +3522,27 @@
 					</TD>
 				</TR>
 				<TR>
+					<TD>timer no rewind sound</TD>
+					<TD width="292">yes, no</TD>
+					<TD>no</TD>
+				</TR>
+				<TR>
 					<TD>timer performance counter
 					</TD>
 					<TD width="292">yes, no
 					</TD>
 					<TD>yes
 					</TD>
+				</TR>
+				<TR>
+					<TD>timer rewind speed</TD>
+					<TD width="292">30..240</TD>
+					<TD>60</TD>
+				</TR>
+				<TR>
+					<TD>timer rewinder</TD>
+					<TD width="292">yes, no</TD>
+					<TD>no</TD>
 				</TR>
 				<TR>
 					<TD>timer speed
@@ -3750,6 +3806,8 @@
 			<LI>
 			Disable vsync (timing dialog).&nbsp;
 			<LI>
+			Disable the rewinder (timing dialog).
+			<LI>
 			Change the application priority to "above normal" or "high" (preferences 
 			dialog).
 			<LI>
@@ -3759,7 +3817,7 @@
 			completely (sound dialog).
 			<LI>
 				If your video driver has an option for&nbsp;vsync,&nbsp;make sure it's&nbsp;set 
-				to be application controlled.</LI></UL>
+				to be application-controlled.</LI></UL>
 		<P>If you have trouble&nbsp;running a&nbsp;particular game, possible reasons could 
 			be:</P>
 		<UL>
@@ -3791,6 +3849,12 @@
 			me&nbsp;a report&nbsp;with the name of the game so I can correct it.
 			<LI>
 				It's unsupported by Nestopia.</LI></UL>
+		<P>Misc:</P>
+		<UL>
+			<LI>
+				If&nbsp;the gridlines&nbsp;are not drawn properly&nbsp;in the launcher dialog, 
+				follow&nbsp;this <A href="http://support.microsoft.com/default.aspx?scid=kb;en-us;813791">
+					link</A>.</LI></UL>
 		<H2>
 			<HR>
 		</H2>
@@ -3811,6 +3875,10 @@
 				<td>Image file database
 				</td>
 			</tr>
+			<TR>
+				<TD width="171">Alexander Roshal</TD>
+				<TD><A href="http://www.rarlab.com">Unrar</A></TD>
+			</TR>
 			<tr>
 				<td width="171">Andrea Mazzoleni
 				</td>
@@ -3820,9 +3888,13 @@
 			<tr>
 				<td width="171">Blargg
 				</td>
-				<td>APU technical documents
+				<td>APU&nbsp;and&nbsp;PPU info&nbsp;
 				</td>
 			</tr>
+			<TR>
+				<TD width="171">BMF</TD>
+				<TD>Palette used internally in Nestopia</TD>
+			</TR>
 			<tr>
 				<td width="171">Brad Taylor
 				</td>
@@ -3877,6 +3949,10 @@
 				<td>Testing
 				</td>
 			</tr>
+			<TR>
+				<TD width="171">Igor Pavlov</TD>
+				<TD><A href="http://www.7-zip.org">7-Zip</A></TD>
+			</TR>
 			<tr>
 				<td width="171">Jean-loup Gailly
 				</td>
@@ -3941,12 +4017,6 @@
 				<td width="171">Marko Mäkelä
 				</td>
 				<td>65xx/85xx technical document
-				</td>
-			</tr>
-			<tr>
-				<td width="171">Matrixz
-				</td>
-				<td>Palette used internally by Nestopia
 				</td>
 			</tr>
 			<tr>

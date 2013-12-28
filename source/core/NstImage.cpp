@@ -49,7 +49,7 @@ namespace Nes
 		{
 			NST_ASSERT( context.image == NULL );
 
-			Unload( context.image );
+			Result result;
 
 			try
 			{
@@ -60,15 +60,14 @@ namespace Nes
 				
 						if (context.type == CARTRIDGE || context.type == UNKNOWN)
 						{
-							Result result = RESULT_OK;
+							result = RESULT_OK;
 							context.image = new Cartridge (context,result);
 							return result;
 						}
-				
 						break;
 				
 					case 0x1A534446UL: // fds
-					case 0x494E2A01UL: // 
+					case 0x494E2A01UL: //
 				
 						if (context.type == DISK || context.type == UNKNOWN)
 							context.image = new Fds (context);
@@ -81,27 +80,26 @@ namespace Nes
 							context.image = new Nsf (context);
 				
 						break;
-				
-					default: throw RESULT_ERR_INVALID_FILE;
 				}
+
+				return context.image ? RESULT_OK : RESULT_ERR_INVALID_FILE;
 			}
-			catch (Result result)
+			catch (Result r)
 			{
-				Unload( context.image );
-				return result;
+				result = r;
 			}
-			catch (std::bad_alloc&)
+			catch (const std::bad_alloc&)
 			{
-				Unload( context.image );
-				return RESULT_ERR_OUT_OF_MEMORY;
+				result = RESULT_ERR_OUT_OF_MEMORY;
 			}
 			catch (...)
 			{
-				Unload( context.image );
-				return RESULT_ERR_GENERIC;
+				result = RESULT_ERR_GENERIC;
 			}
 
-			return RESULT_OK;
+			Unload( context.image );
+
+			return result;
 		}
 
 		void Image::Unload(Image*& image)

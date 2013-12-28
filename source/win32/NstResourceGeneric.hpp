@@ -27,7 +27,7 @@
 
 #pragma once
 
-#include "NstObjectRaw.hpp"
+#include "NstMain.hpp"
 
 namespace Nestopia
 {
@@ -35,15 +35,21 @@ namespace Nestopia
 	{
 		class Generic : Sealed
 		{
-			Object::ConstRaw data;
+			const void* data;
+			uint size;
 
 		public:
 
 			ibool Load(uint,cstring);
 
-			const Object::ConstRaw& GetData() const
+			const void* GetData() const
 			{
 				return data;
+			}
+
+			uint GetSize() const
+			{
+				return size;
 			}
 		};
 	}

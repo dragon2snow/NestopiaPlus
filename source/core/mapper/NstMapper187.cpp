@@ -38,45 +38,24 @@ namespace Nes
 		{
 			if (hard)
 			{
-				latch = 0;
+				exCtrl = 0;
+				exMode = false;
+				exLast = 0;
 				hack = true;
-
-				exBanks[0] = 0;
-				exBanks[1] = 1;
-
-				useExBank = false;
-				exBankMode = 0;
 			}
 	
 			Mmc3::SubReset( hard );
-	
-			Map( 0x5000U,          &Mapper187::Peek_5000, &Mapper187::Poke_5000 );
-			Map( 0x5001U, 0x7FFFU, &Mapper187::Peek_5000, &Mapper187::Poke_5001 );
-	
-			for (uint i=0x8000U; i < 0xA000U; )
+
+			Map( 0x5000U, &Mapper187::Peek_5000, &Mapper187::Poke_5000 );
+			Map( 0x5001U, 0x5FFFU,               &Mapper187::Poke_5001 );
+
+			for (uint i=0x8000U; i < 0xA000U; i += 0x4)
 			{
-				Map( i++, &Mapper187::Poke_8000 );
-				Map( i++, &Mapper187::Poke_8001 );			
-				Map( i++, NOP_POKE              );			
-				Map( i++, &Mapper187::Poke_8003 );
+				Map( i + 0x0, &Mapper187::Poke_8000 );
+				Map( i + 0x1, &Mapper187::Poke_8001 );			
+				Map( i + 0x2, NOP_POKE              );			
+				Map( i + 0x3, &Mapper187::Poke_8003 );			
 			}
-	
-			Map( 0x8000U,          &Mapper187::Poke_8000 );
-			Map( 0x8002U,          NOP_POKE              );
-			Map( 0x8001U,          &Mapper187::Poke_8001 );
-			Map( 0x8003U,          &Mapper187::Poke_8003 );
-			Map( 0x8004U, 0x9FFFU, NOP_POKE              );				
-			Map( 0xA000U,          NMT_SWAP_HV           );
-			Map( 0xA001U,          &Mapper187::Poke_A001 );
-			Map( 0xA003U, 0xBFFFU, NOP_POKE              );
-			Map( 0xC000U,          &Mapper187::Poke_C000 );
-			Map( 0xC001U,          &Mapper187::Poke_C001 );
-			Map( 0xC002U, 0xDFFFU, NOP_POKE              );
-			Map( 0xE000U,          &Mapper187::Poke_E000 );
-			Map( 0xE002U,          &Mapper187::Poke_E000 );
-			Map( 0xE001U,          &Mapper187::Poke_E001 );
-			Map( 0xE003U,          &Mapper187::Poke_E001 );
-			Map( 0xE004U, 0xFFFFU, NOP_POKE              );
 		}
 	
 		void Mapper187::SubLoad(State::Loader& state)
@@ -85,13 +64,11 @@ namespace Nes
 			{
 				if (chunk == NES_STATE_CHUNK_ID('R','E','G','\0'))
 				{
-					const State::Loader::Data<5> data( state );
-	
-					exBankMode = data[0];
-					exBanks[0] = data[1];
-					exBanks[1] = data[2];
-					useExBank = data[3] & 0x1;
-					latch = (data[3] >> 1) & 0x3;
+					const State::Loader::Data<3> data( state );
+
+					exCtrl = data[0];
+					exMode = data[1] & 0x1;
+					exLast = data[2];
 				}
 	
 				state.End();
@@ -100,12 +77,9 @@ namespace Nes
 	
 		void Mapper187::SubSave(State::Saver& state) const
 		{
-			const u8 data[4] =
+			const u8 data[3] = 
 			{
-				exBankMode,
-				exBanks[0],
-				exBanks[1],
-				useExBank | (latch << 1)
+				exCtrl, exMode, exLast
 			};
 
 			state.Begin('R','E','G','\0').Write( data ).End();
@@ -114,56 +88,61 @@ namespace Nes
         #ifdef NST_PRAGMA_OPTIMIZE
         #pragma optimize("", on)
         #endif
-	
-		NES_POKE(Mapper187,5000)
+
+		void Mapper187::UpdatePrg()
 		{
-			latch = data & 0x3;
-			exBankMode = data;
-	
-			if (data & SWAP_NO_EXBANK)
+			if (exCtrl & 0x80)
 			{
-				if (data & SWAP_32)
-				{
-					const uint bank = (data & 0x1E) << 1;
-	
-					banks.prg[0] = bank + 0;
-					banks.prg[1] = bank + 1;
-					banks.prg[2] = bank + 2;
-					banks.prg[3] = bank + 3;
-				}
+				const uint bank = exCtrl & 0x1F;
+
+				if (exCtrl & 0x20)
+					prg.SwapBank<NES_32K,0x0000U>( bank >> 2 );
 				else
-				{
-					const uint bank = (data & 0x1F) << 1;
-	
-					banks.prg[2] = bank + 0;
-					banks.prg[3] = bank + 1;
-				}
+					prg.SwapBanks<NES_16K,0x0000U>( bank, bank );
 			}
 			else
 			{
-				banks.prg[0] = exBanks[0];
-				banks.prg[1] = exBanks[1];
-				banks.prg[2] = 0xFE;
-				banks.prg[3] = 0xFF;
+				const uint i = (regs.ctrl0 & Regs::CTRL0_XOR_PRG) >> 5;
+
+				prg.SwapBanks<NES_8K,0x0000U>( banks.prg[i], banks.prg[1], banks.prg[i^2], banks.prg[3] );
 			}
-	
-			Mapper187::UpdatePrg();
 		}
-	
+
+		void Mapper187::UpdateChr() const
+		{
+			ppu.Update();
+
+			const uint swap = (regs.ctrl0 & Regs::CTRL0_XOR_CHR) << 5;
+
+			chr.SwapBanks<NES_2K>( 0x0000U ^ swap, banks.chr[0] | 0x80, banks.chr[1] | 0x80 ); 
+			chr.SwapBanks<NES_1K>( 0x1000U ^ swap, banks.chr[2], banks.chr[3], banks.chr[4], banks.chr[5] ); 
+		}
+
 		NES_PEEK(Mapper187,5000)
 		{
-			switch (latch)
+			static const uchar protection[4] =
 			{
-				case 0:
-				case 1:	return 0x83;
-				case 2: return 0x42;
-			}
-	
-			return 0x00;
+				0x83,0x83,0x42,0x00
+			};
+
+			return protection[exLast & 0x3];
 		}
-	
+
+		NES_POKE(Mapper187,5000)
+		{
+			exLast = data;
+
+			if (exCtrl != data)
+			{
+				exCtrl = data;
+				Mapper187::UpdatePrg();
+			}
+		}
+
 		NES_POKE(Mapper187,5001)
 		{
+			exLast = data;
+
 			if (hack)
 			{
 				hack = false;
@@ -173,78 +152,26 @@ namespace Nes
 
 				cpu.Poke( 0x4017, 0x40 ); 
 			}
-
-			latch = data & 0x3;
 		}
-	
+
 		NES_POKE(Mapper187,8000)
 		{
-			useExBank = false;
-			regs.ctrl0 = data;
+			exMode = true;
+			NES_CALL_POKE(Mmc3,8000,address,data);
 		}
-	
+
 		NES_POKE(Mapper187,8001)
 		{
-			const uint index = regs.ctrl0 & Regs::CTRL0_MODE;
-	
-			if (index == 6 || index == 7)
-				exBanks[index - 6] = data;
-	
-			if (useExBank)
-			{
-				switch (regs.ctrl0)
-				{
-					case 0x2A: banks.prg[1] = 0x0F; break;
-					case 0x28: banks.prg[2] = 0x17; break;
-				}
-	
-				Mapper187::UpdatePrg();
-			}
-			else switch (index)
-			{
-				case 0:		
-				case 1:					
-			
-					banks.chr[index] = (data | 0x100) >> 1;
-					UpdateChr(); 
-					break;
-			
-				case 2:
-				case 3:
-				case 4:
-				case 5:
-			
-					banks.chr[index] = data >> 0;
-					UpdateChr(); 
-					break;
-			
-				case 6: 
-				case 7: 
-			
-					if ((exBankMode & 0xA0) != 0xA0)
-					{
-						banks.prg[index - 0x6] = data;
-						Mapper187::UpdatePrg();
-					}
-					break;
-			}
+			if (exMode)
+				NES_CALL_POKE(Mmc3,8001,address,data);
 		}
-	
+
 		NES_POKE(Mapper187,8003)
 		{
-			useExBank = true;
-			regs.ctrl0 = data;
-	
-			if (!(data & 0xF0))
-			{
-				banks.prg[2] = 0xFE;
-				Mapper187::UpdatePrg();
-			}
-		}
-	
-		void Mapper187::UpdatePrg()
-		{
-			prg.SwapBanks<NES_8K,0x0000U>( banks.prg[0], banks.prg[1], banks.prg[2], banks.prg[3] );
+			exMode = false;
+
+			if (data == 0x28 || data == 0x2A || data == 0x06)
+				prg.SwapBanks<NES_8K,0x2000U>( data == 0x2A ? 0x0F : 0x1F, data == 0x06 ? 0x1F : 0x17 );
 		}
 	}
 }

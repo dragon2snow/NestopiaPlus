@@ -138,7 +138,7 @@ namespace Nestopia
 
 		Update( index );
 
-		Io::Log() << "Preferences: Creating registry keys: \"HKEY_CLASSES_ROOT\\" 
+		Io::Log() << "Preferences: creating registry keys: \"HKEY_CLASSES_ROOT\\" 
 			      << keyNames[index][EXTENSION] 
 			      << "\" and \"HKEY_CLASSES_ROOT\\" 
 				  << keyNames[index][NAME] 
@@ -154,7 +154,7 @@ namespace Nestopia
 		registry[keyNames[index][EXTENSION]].Delete( keyNames[index][NAME] );
 		registry[keyNames[index][NAME]].Delete();
 
-		Io::Log() << "Preferences: Deleting registry keys: \"HKEY_CLASSES_ROOT\\" 
+		Io::Log() << "Preferences: deleting registry keys: \"HKEY_CLASSES_ROOT\\" 
 			      << keyNames[index][EXTENSION] 
 		       	  << "\" and \"HKEY_CLASSES_ROOT\\" 
 				  << keyNames[index][NAME] 

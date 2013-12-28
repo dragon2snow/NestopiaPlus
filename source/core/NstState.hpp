@@ -125,6 +125,11 @@ namespace Nes
 				{
 					return stream;
 				}
+
+				const Stream::Out& GetStream() const
+				{
+					return stream;
+				}
 			};
 
 			class Loader
@@ -223,6 +228,11 @@ namespace Nes
 				}
 
 				Stream::In& GetStream()
+				{
+					return stream;
+				}
+
+				const Stream::In& GetStream() const
 				{
 					return stream;
 				}

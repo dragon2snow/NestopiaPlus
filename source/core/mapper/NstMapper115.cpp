@@ -37,12 +37,15 @@ namespace Nes
 		void Mapper115::SubReset(const bool hard)
 		{
 			if (hard)
-				exReg = 0;
+			{
+				exRegs[0] = 0;
+				exRegs[1] = 0;
+			}
 
 			Mmc3::SubReset( hard );
 	
-			Map( 0x6000U,          &Mapper115::Poke_6000 );
-			Map( 0x6001U, 0x7FFFU, &Mapper115::Poke_6001 );
+			Map( 0x6000U, &Mapper115::Poke_6000 );
+			Map( 0x6001U, &Mapper115::Poke_6001 );
 		}
 	
 		void Mapper115::SubLoad(State::Loader& state)
@@ -50,7 +53,11 @@ namespace Nes
 			while (const dword chunk = state.Begin())
 			{
 				if (chunk == NES_STATE_CHUNK_ID('R','E','G','\0'))
-					exReg = state.Read8();
+				{
+					const State::Loader::Data<2> data( state );
+					exRegs[0] = data[0];
+					exRegs[1] = data[1];
+				}
 	
 				state.End();
 			}
@@ -58,30 +65,69 @@ namespace Nes
 	
 		void Mapper115::SubSave(State::Saver& state) const
 		{
-			state.Begin('R','E','G','\0').Write8( exReg ).End();
+			const u8 data[2] =
+			{
+				exRegs[0],
+				exRegs[1]
+			};
+
+			state.Begin('R','E','G','\0').Write( data ).End();
 		}
 	
         #ifdef NST_PRAGMA_OPTIMIZE
         #pragma optimize("", on)
         #endif
 	
+		void Mapper115::UpdatePrg()
+		{
+			Mmc3::UpdatePrg();
+
+			if (exRegs[0] & 0x80)
+				prg.SwapBank<NES_16K,0x0000U>( exRegs[0] & 0x07 );
+		}
+
+		void Mapper115::UpdateChr() const
+		{
+			ppu.Update();
+
+			const uint swap = (regs.ctrl0 & Regs::CTRL0_XOR_CHR) << 5;
+			uint high = (exRegs[1] & 0x1) << 7;
+
+			chr.SwapBanks<NES_2K>
+			( 
+		    	0x0000U ^ swap, 
+				banks.chr[0] | high, 
+				banks.chr[1] | high 
+			); 
+			
+			high <<= 1;
+
+			chr.SwapBanks<NES_1K>
+			( 
+		     	0x1000U ^ swap, 
+				banks.chr[2] | high, 
+				banks.chr[3] | high, 
+				banks.chr[4] | high, 
+				banks.chr[5] | high 
+			); 
+		}
+
 		NES_POKE(Mapper115,6000)
 		{
-			exReg = data;
-			Mapper115::UpdatePrg();
+			if (exRegs[0] != data)
+			{
+				exRegs[0] = data;
+				Mapper115::UpdatePrg();
+			}
 		}
 	
 		NES_POKE(Mapper115,6001)
 		{
-			Mapper115::UpdatePrg();
-		}
-	
-		void Mapper115::UpdatePrg()
-		{
-			Mmc3::UpdatePrg();
-	
-			if (exReg & 0x80)
-				prg.SwapBank<NES_16K,0x0000U>(exReg & 0x7);
+			if (exRegs[1] != data)
+			{
+				exRegs[1] = data;
+				Mapper115::UpdateChr();
+			}
 		}
 	}
 }

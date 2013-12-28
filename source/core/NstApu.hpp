@@ -53,6 +53,17 @@ namespace Nes
 
 			typedef idword Sample;
 
+				enum 
+				{
+					CHANNEL_SQUARE1  = 0x01,
+					CHANNEL_SQUARE2  = 0x02,
+					CHANNEL_TRIANGLE = 0x04,
+					CHANNEL_NOISE    = 0x08,
+					CHANNEL_DMC      = 0x10,
+					CHANNEL_EXTERNAL = 0x20,
+					ALL_CHANNELS     = 0x3F
+				};
+
 			enum
 			{
 				FRAME_CLOCK_NTSC = 14915,
@@ -601,18 +612,18 @@ namespace Nes
 
 			private:
 
-				inline void Output();
 				void OutputBuffer();
 				void DoDMA(Cpu&);
 
 				enum
 				{
-					DMA_CYCLES        = 4,
-					REG0_FREQUENCY    = b00001111,
-					REG0_LOOP         = b01000000,
-					REG0_IRQ_ENABLE   = b10000000,
-					FINE_VOLUME_MUL   = 13,
-					FINE_VOLUME_SHIFT = 4
+					DMA_CYCLES         = 4,
+					REG0_FREQUENCY     = b00001111,
+					REG0_LOOP          = b01000000,
+					REG0_IRQ_ENABLE    = b10000000,
+					INTERPOLATION_STEP = 8 * OUTPUT_MUL,
+					FINE_VOLUME_MUL    = 13,
+					FINE_VOLUME_SHIFT  = 4
 				};
 
 				enum
@@ -657,7 +668,8 @@ namespace Nes
 				Cycle frequency;
 				Out out;
 				Dma dma;
-				uint sample;
+				uint curSample;
+				uint linSample;
 				DcRemover dcRemover;
 
 				static const Cycle lut[2][16];
@@ -666,17 +678,6 @@ namespace Nes
 			struct Context
 			{
 				Context();
-
-				enum 
-				{
-					CHANNEL_SQUARE1  = 0x01,
-					CHANNEL_SQUARE2  = 0x02,
-					CHANNEL_TRIANGLE = 0x04,
-					CHANNEL_NOISE    = 0x08,
-					CHANNEL_DMC      = 0x10,
-					CHANNEL_EXTERNAL = 0x20,
-					ALL_CHANNELS     = 0x3F
-				};
 
 				struct Sample
 				{

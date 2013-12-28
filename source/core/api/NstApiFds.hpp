@@ -43,6 +43,7 @@ namespace Nes
 	{
 		class Fds : public Base
 		{
+			struct DiskChange;
 			struct Lamp;
 
 		public:
@@ -54,10 +55,17 @@ namespace Nes
 			{
 				NO_DISK = -1
 			};
+
+			enum Event
+			{
+				DISK_INSERT,
+				DISK_EJECT
+			};
 	
 			bool IsAnyDiskInserted() const;
 	
 			Result InsertDisk(uint,uint);
+			Result ChangeSide();
 			Result EjectDisk();
 	
 			Result SetBIOS(std::istream*);
@@ -69,9 +77,20 @@ namespace Nes
 			int GetCurrentDiskSide() const;
 			bool HasHeader() const;
 	
+			typedef void (NST_CALLBACK *DiskChangeCallback)(UserData,Event,uint,uint);
 			typedef void (NST_CALLBACK *DiskAccessLampCallback)(UserData,bool);
 	
 			static Lamp diskAccessLampCallback;
+			static DiskChange diskChangeCallback;
+		};
+
+		struct Fds::DiskChange : Core::UserCallback<Fds::DiskChangeCallback>
+		{
+			void operator () (Event event,uint disk,uint side) const
+			{
+				if (function)
+					function( userdata, event, disk, side );
+			}
 		};
 
 		struct Fds::Lamp : Core::UserCallback<Fds::DiskAccessLampCallback>

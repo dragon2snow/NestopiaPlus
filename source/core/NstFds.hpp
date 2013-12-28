@@ -46,7 +46,7 @@ namespace Nes
 			Fds(Context&);
 			~Fds();
 
-			Result Reset(bool,bool);
+			void Reset(bool);
 			Result InsertDisk(uint,uint);
 			Result EjectDisk();
 			

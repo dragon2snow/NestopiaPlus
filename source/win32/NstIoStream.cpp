@@ -32,7 +32,7 @@ namespace Nestopia
 	using Io::File;
 
 	Input::Buffer::Buffer()
-	: pos(0)
+	: pos(0), data(NULL), size(0)
 	{
 		Initialize();
 	}
@@ -74,8 +74,8 @@ namespace Nestopia
 	void Input::Buffer::Initialize(Collection::Buffer& buffer)
 	{
 		pos = 0;
-		data = buffer;
-		buffer.Export();
+		size = buffer.Size();
+		data = buffer.Export();
 	}
 
 	void Input::Buffer::Initialize(const File& file)
@@ -95,8 +95,9 @@ namespace Nestopia
 	void Input::Buffer::Export(Collection::Buffer& vector)
 	{
 		pos = 0;
-		vector.Import( data, data.Size() );
-		data.Reset();
+		vector.Import( data, size );
+		data = NULL;
+		size = 0;
 	}
 
     #ifdef NST_PRAGMA_OPTIMIZE
@@ -105,21 +106,21 @@ namespace Nestopia
 
 	Input::Buffer::int_type Input::Buffer::underflow()
 	{
-		NST_ASSERT( pos <= data.Size() );
-		return pos < data.Size() ? data[pos] : traits_type::eof();
+		NST_ASSERT( pos <= size );
+		return pos < size ? data[pos] : traits_type::eof();
 	}
 
 	Input::Buffer::int_type Input::Buffer::uflow()
 	{	
-		NST_ASSERT( pos <= data.Size() );
-		return pos < data.Size() ? data[pos++] : traits_type::eof();
+		NST_ASSERT( pos <= size );
+		return pos < size ? data[pos++] : traits_type::eof();
 	}
 
 	std::streamsize Input::Buffer::xsgetn(char* output,std::streamsize count)
 	{
-		NST_ASSERT( pos <= data.Size() );
+		NST_ASSERT( pos <= size );
 
-		if (pos + count <= data.Size())
+		if (pos + count <= size)
 		{
 			std::memcpy( output, data + pos, count );
 			pos += count;
@@ -148,19 +149,19 @@ namespace Nestopia
 		}
 		else if (dir == std::ios::end)
 		{
-			offset += (long) data.Size();
+			offset += (long) size;
 		}
 
 		pos = offset;
 
-		NST_ASSERT( pos <= data.Size() );
+		NST_ASSERT( pos <= size );
 
 		return offset;
 	}
 
 	std::streampos Input::Buffer::seekpos(std::streampos offset,std::ios::openmode mode)
 	{
-		NST_ASSERT( (mode == std::ios::in) && (int(offset) >= 0 && uint(offset) <= data.Size()) );
+		NST_ASSERT( (mode == std::ios::in) && (int(offset) >= 0 && uint(offset) <= size) );
 		pos = offset;
 		return offset;
 	}
@@ -171,8 +172,9 @@ namespace Nestopia
 
 	void Input::Buffer::Clear()
 	{
-		delete [] static_cast<char*>(data);
-		data.Reset();
+		delete [] data;
+		data = NULL;
+		size = 0;
 		pos = 0;
 	}
   
@@ -198,14 +200,6 @@ namespace Nestopia
 	Input& Input::operator = (Collection::Buffer& input)
 	{
 		buffer = input;
-		return *this;
-	}
-
-	Input& Input::operator = (Output& output)
-	{
-		Collection::Buffer tmp;
-		output.Export( tmp );
-		buffer = tmp;
 		return *this;
 	}
 
@@ -360,14 +354,6 @@ namespace Nestopia
 	Output& Output::operator = (Collection::Buffer& input)
 	{
 		buffer = input;
-		return *this;
-	}
-
-	Output& Output::operator = (Input& input)
-	{
-		Collection::Buffer tmp;
-		input.Export( tmp );
-		buffer = tmp;
 		return *this;
 	}
 }

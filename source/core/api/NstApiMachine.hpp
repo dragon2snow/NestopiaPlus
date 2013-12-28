@@ -77,7 +77,6 @@ namespace Nes
 			Mode GetMode() const;
 			Mode GetDesiredMode() const;
 			Result SetMode (Mode);
-			ulong GetFrame() const;
 	
 			enum Compression
 			{

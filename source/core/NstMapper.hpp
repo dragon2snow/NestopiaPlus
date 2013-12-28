@@ -93,12 +93,14 @@ namespace Nes
 
 			enum
 			{
-				EXT_SUPER24IN1   = 256,
-				EXT_MARIO1MALEE2 = 257,
-				EXT_NOVELDIAMOND = 258,
-				EXT_8237         = 259,
-				EXT_WS           = 260,
-				NUM_EXT_MAPPERS  = 5
+				EXT_SUPER24IN1 = 256,
+				EXT_MARIO1MALEE2,
+				EXT_NOVELDIAMOND,
+				EXT_8237,
+				EXT_WS,
+				EXT_DREAMTECH01,
+				EXT_H2288,
+				NUM_EXT_MAPPERS = 7
 			};
 
 			static cstring GetBoard(uint);
@@ -330,6 +332,7 @@ namespace Nes
 				MMC3_22 = 254,
 				MMC3_23 = EXT_SUPER24IN1,
 				MMC3_24 = EXT_8237,
+				MMC3_25 = EXT_H2288,
 
 				MMC5_00 = 5,
 

@@ -98,7 +98,7 @@ namespace Nestopia
 
 		settings.bios = cfg["files fds bios"];
 
-		if (!settings.bios.FileExist())
+		if (settings.bios.Empty())
 		{
 			settings.bios.File() = "disksys.rom";
 

@@ -36,15 +36,9 @@ namespace Nes
 	
 		Mapper74::Mapper74(Context& c)
 		: 
-		Mmc3 (c,WRAM_8K|CRAM_2K), 
-		GetChrType 
-		(
-         	c.pRomCrc == 0x37AE04A8 ? GetChrType3 : // Sugoro Quest - Dice no Senshitachi
-         	c.pRomCrc == 0xEAE675EA ? GetChrType2 : // Dai-2-Ji - Super Robot Taisen
-		                              GetChrType1	// rest of 512k PRG-ROM carts
-		) 
-		{
-		}
+		Mmc3       (c,WRAM_8K|CRAM_2K), 
+		GetChrType (c.pRomCrc == 0xEAE675EA ? GetChrType2 : GetChrType1) // Dai-2-Ji - Super Robot Taisen
+		{}
 	
 		void Mapper74::SubReset(bool hard)
 		{
@@ -64,12 +58,7 @@ namespace Nes
 		{
 			return bank == 0;
 		}
-	
-		uint Mapper74::GetChrType3(const uint bank)
-		{
-			return bank >= 128;
-		}
-	
+
 		void Mapper74::SwapChr(const uint address,const uint bank) const
 		{
 			chr.Source( GetChrType( bank ) ).SwapBank<NES_1K>( address, bank ); 

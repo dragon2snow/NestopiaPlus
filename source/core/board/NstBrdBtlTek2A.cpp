@@ -35,66 +35,37 @@ namespace Nes
             #ifdef NST_PRAGMA_OPTIMIZE
             #pragma optimize("s", on)
             #endif
-		
-			uint BtlTek2A::GetDefaultDipSwitch(dword pRomCrc)
-			{
-				switch (pRomCrc)
-				{
-             		case 0x734B8FD2UL: // Shin Samurai Spirits 2
-					case 0xA242E696UL: // Power Rangers 3
-					case 0xB8B2596AUL: // Power Rangers 4
-		
-						return DIPSWITCH_MIRROR;
-				}
-		
-				return 0;
-			}
-		
-			BtlTek2A::Regs::Regs()
-			{
-				Reset();
-			}
-		
-			BtlTek2A::Banks::Banks()
-			{
-				Reset();
-			}
-		
+
 			BtlTek2A::BtlTek2A(Context& c,const DefaultDipSwitch d)
 			: 
 			Mapper    (c,WRAM_NONE),
-			irq       (c.cpu,c.ppu,0,Clock::A12<Irq>::IRQ_DELAY),
-			dipswitch 
-			(
-             	d == DEFAULT_DIPSWITCH_DETECT ? GetDefaultDipSwitch(c.pRomCrc) : 
-             	d == DEFAULT_DIPSWITCH_EXT_MIRRORING ? DIPSWITCH_MIRROR : 0
-			)
+			hack      (c.pRomCrc == 0xCE4BA157UL || c.pRomCrc == 0xC0E02729UL), // 42-in-1 & Super Mario World
+			irq       (c.cpu,c.ppu),
+			dipswitch (d == DEFAULT_DIPSWITCH_EXT_MIRRORING ? DIPSWITCH_MIRROR : 0)
 			{}
 		
-			void BtlTek2A::Regs::Reset()
+			void BtlTek2A::Regs::Reset(const ibool hack)
 			{
 				mul[0] = 0;
 				mul[1] = 0;
-				tmp = 0;
-				banking = 0;
-				mirroring = 0;
-				name = 0;
+				tmp = 0;				 
+				ctrl[0] = (hack ? 0xFF : 0x00);
+				ctrl[1] = 0;
+				ctrl[2] = 0;
+				ctrl[3] = 0;
 			}
 		
-			void BtlTek2A::Banks::Reset()
+			void BtlTek2A::Banks::Reset(const ibool hack)
 			{
 				for (uint i=0; i < 4; ++i)
-					prg[i] = 0;
+					prg[i] = (hack ? 0x3F : 0);
 		
 				for (uint i=0; i < 8; ++i)
 					chr[i] = 0;
 		
 				for (uint i=0; i < 4; ++i)
-					name[i] = 0;
-		
-				secondary[0] = 0xFFFFU;
-				secondary[1] = 0x0000U;
-		
+					nmt[i] = 0;
+
 				prg6 = NULL;
 			}
 		
@@ -111,9 +82,9 @@ namespace Nes
 				}
 			}
 		
-			void BtlTek2A::SubReset(const bool hard)
+			void BtlTek2A::SubReset(const bool)
 			{
-				irq.Reset( hard, hard ? false : irq.IsLineEnabled() );
+				irq.Reset( true, false );
 
 				for (uint i=0x5000U; i < 0x5800U; i += 0x4)
 					Map( i, &BtlTek2A::Peek_5000 );
@@ -152,15 +123,13 @@ namespace Nes
 					Map( 0xD003U + i, &BtlTek2A::Poke_D003 );
 				}
 		
-				if (hard)
-				{
-					regs.Reset();
-					banks.Reset();			
-				}
-				
+				regs.Reset( hack );
+				banks.Reset( hack );			
+
 				UpdatePrg();
+				UpdateExChr();
 				UpdateChr();
-				UpdateName();
+				UpdateNmt();
 			}
 		
 			void BtlTek2A::LoadState(State::Loader& state)
@@ -171,34 +140,36 @@ namespace Nes
 					{
      	 				case NES_STATE_CHUNK_ID('R','E','G','\0'):
 						{
-							const State::Loader::Data<38> data( state );
+							const State::Loader::Data<35> data( state );
 		
-							regs.banking       = data[0];
-							regs.mirroring     = data[1];
-							regs.name	       = data[2];
-							regs.mul[0]	       = data[3];
-							regs.mul[1]	       = data[4];
-							regs.tmp		   = data[5];
-							banks.prg[0]	   = data[6];
-							banks.prg[1]	   = data[7];
-							banks.prg[2]	   = data[8];
-							banks.prg[3]	   = data[9];
-							banks.chr[0]	   = data[10] | (data[11] << 8);
-							banks.chr[1]	   = data[12] | (data[13] << 8);
-							banks.chr[2]	   = data[14] | (data[15] << 8);
-							banks.chr[3]	   = data[16] | (data[17] << 8);
-							banks.chr[4]	   = data[18] | (data[19] << 8);
-							banks.chr[5]	   = data[20] | (data[21] << 8);
-							banks.chr[6]	   = data[22] | (data[23] << 8);
-							banks.chr[7]	   = data[24] | (data[25] << 8);
-							banks.name[0]	   = data[26] | (data[27] << 8);
-							banks.name[1]	   = data[28] | (data[29] << 8);
-							banks.name[2]	   = data[30] | (data[31] << 8);
-							banks.name[3]	   = data[32] | (data[33] << 8);
-							banks.secondary[0] = data[34] | (data[35] << 8);
-							banks.secondary[1] = data[36] | (data[37] << 8);
+							regs.ctrl[0] = data[0];
+							regs.ctrl[1] = data[1];
+							regs.ctrl[2] = data[2];
+							regs.ctrl[3] = data[3];
+							regs.mul[0]	 = data[4];
+							regs.mul[1]	 = data[5];
+							regs.tmp	 = data[6];
+							banks.prg[0] = data[7];
+							banks.prg[1] = data[8];
+							banks.prg[2] = data[9];
+							banks.prg[3] = data[10];
+							banks.chr[0] = data[11] | (data[12] << 8);
+							banks.chr[1] = data[13] | (data[14] << 8);
+							banks.chr[2] = data[15] | (data[16] << 8);
+							banks.chr[3] = data[17] | (data[18] << 8);
+							banks.chr[4] = data[19] | (data[20] << 8);
+							banks.chr[5] = data[21] | (data[22] << 8);
+							banks.chr[6] = data[23] | (data[24] << 8);
+							banks.chr[7] = data[25] | (data[26] << 8);
+							banks.nmt[0] = data[27] | (data[28] << 8);
+							banks.nmt[1] = data[29] | (data[30] << 8);
+							banks.nmt[2] = data[31] | (data[32] << 8);
+							banks.nmt[3] = data[33] | (data[34] << 8);
 		
 							UpdatePrg();
+							UpdateExChr();
+							UpdateChr();
+							UpdateNmt();
 		
 							break;
 						}
@@ -228,11 +199,12 @@ namespace Nes
 			void BtlTek2A::SaveState(State::Saver& state) const
 			{
 				{
-					const u8 data[38] =
+					const u8 data[35] =
 					{						
-						regs.banking,
-						regs.mirroring,
-						regs.name,
+						regs.ctrl[0],
+						regs.ctrl[1],
+						regs.ctrl[2],
+						regs.ctrl[3],
 						regs.mul[0],
 						regs.mul[1],
 						regs.tmp,
@@ -256,18 +228,14 @@ namespace Nes
 						banks.chr[6] >> 8,
 						banks.chr[7] & 0xFF,
 						banks.chr[7] >> 8,
-						banks.name[0] & 0xFF,
-						banks.name[0] >> 8,
-						banks.name[1] & 0xFF,
-						banks.name[1] >> 8,
-						banks.name[2] & 0xFF,
-						banks.name[2] >> 8,
-						banks.name[3] & 0xFF,
-						banks.name[3] >> 8,
-						banks.secondary[0] & 0xFF,
-						banks.secondary[0] >> 8,
-						banks.secondary[1] & 0xFF,
-						banks.secondary[1] >> 8
+						banks.nmt[0] & 0xFF,
+						banks.nmt[0] >> 8,
+						banks.nmt[1] & 0xFF,
+						banks.nmt[1] >> 8,
+						banks.nmt[2] & 0xFF,
+						banks.nmt[2] >> 8,
+						banks.nmt[3] & 0xFF,
+						banks.nmt[3] >> 8
 					};
 		
 					state.Begin('R','E','G','\0').Write( data ).End();
@@ -278,7 +246,7 @@ namespace Nes
 					{
 						irq.unit.enabled != 0,
 						irq.unit.mode,
-						irq.unit.prescaler,
+						irq.unit.prescaler & 0xFF,
 						irq.unit.count,
 						irq.unit.flip
 					};
@@ -396,12 +364,14 @@ namespace Nes
 		
 			NES_PEEK(BtlTek2A,6000) 
 			{ 
+				NST_VERIFY( banks.prg6 );
 				return banks.prg6 ? banks.prg6[address - 0x6000U] : (address >> 8); 
 			}
 		
 			NES_POKE(BtlTek2A,8000) 
 			{
 				address &= 0x3;
+				data &= 0x3F;
 		
 				if (banks.prg[address] != data)
 				{
@@ -437,24 +407,24 @@ namespace Nes
 			NES_POKE(BtlTek2A,B000) 
 			{ 
 				address &= 0x3;
-				data |= banks.name[address] & 0xFF00U;
+				data |= banks.nmt[address] & 0xFF00U;
 		
-				if (banks.name[address] != data)
+				if (banks.nmt[address] != data)
 				{
-					banks.name[address] = data;
-					UpdateName(); 
+					banks.nmt[address] = data;
+					UpdateNmt(); 
 				}
 			}
 		
 			NES_POKE(BtlTek2A,B004) 
 			{ 
 				address &= 0x3;
-				data = (data << 8) | (banks.name[address] & 0x00FFU); 
+				data = (data << 8) | (banks.nmt[address] & 0x00FFU); 
 				
-				if (banks.name[address] != data)
+				if (banks.nmt[address] != data)
 				{
-					banks.name[address] = data;
-					UpdateName(); 
+					banks.nmt[address] = data;
+					UpdateNmt(); 
 				}
 			}
 		
@@ -538,111 +508,145 @@ namespace Nes
 		
 			NES_POKE(BtlTek2A,D000) 
 			{
-				if (regs.banking != data)
+				if (regs.ctrl[0] != data)
 				{
-					regs.banking = data;
+					regs.ctrl[0] = data;
 					UpdatePrg();
+					UpdateExChr();
 					UpdateChr();
-					UpdateName();
+					UpdateNmt();
 				}
 			}
 		  
 			NES_POKE(BtlTek2A,D001) 
 			{
-				data &= Regs::CTRL1_MIRRORING;
-		
-				if (regs.mirroring != data)
+				if (regs.ctrl[1] != data)
 				{
-					regs.mirroring = data;
-					UpdateName();
+					regs.ctrl[1] = data;
+					UpdateNmt();
 				}
 			}
 		
 			NES_POKE(BtlTek2A,D002) 
 			{
-				if (regs.name != data)
+				if (regs.ctrl[2] != data)
 				{
-					regs.name = data;
-					UpdateName();
+					regs.ctrl[2] = data;
+					UpdateNmt();
 				}
 			}
 		
 			NES_POKE(BtlTek2A,D003) 
 			{
-				if (data & Regs::CTRL3_NO_SECONDARY)
+				if (regs.ctrl[3] != data)
 				{
-					banks.secondary[0] = 0xFFFFU;
-					banks.secondary[1] = 0x0000U;
+					regs.ctrl[3] = data;
+					UpdatePrg();
+					UpdateExChr();
+					UpdateChr();
 				}
-				else
-				{
-					banks.secondary[0] = 0x00FFU;
-					banks.secondary[1] = (data & Regs::CTRL3_SECONDARY) << 8;
-				}
-		
-				UpdateChr();
-				UpdateName();
 			}
 		
 			void BtlTek2A::UpdatePrg()
 			{
-				banks.prg6 = NULL;
-		
-				uint prg3 = banks.prg[3];
-		
-				switch (regs.banking & Regs::CTRL0_PRG_MODE)
+				const uint exPrg = (regs.ctrl[3] & Regs::CTRL3_EX_PRG) << 5;
+
+				if (!(regs.ctrl[0] & Regs::CTRL0_PRG6_ENABLE))
 				{
-					case Regs::CTRL0_PRG_SWAP_32K:
+					banks.prg6 = NULL;
+				}
+				else
+				{
+					uint bank = banks.prg[3] | exPrg;
+
+					switch (regs.ctrl[0] & Regs::CTRL0_PRG_MODE)
+					{
+						case Regs::CTRL0_PRG_SWAP_32K:	bank = (bank << 2) | 0x3; break;
+						case Regs::CTRL0_PRG_SWAP_16K:	bank = (bank << 1) | 0x1; break;
+						case Regs::CTRL0_PRG_SWAP_8K_R: bank = banks.Unscramble( banks.prg[3] ) | exPrg; break;
+					}
+
+					banks.prg6 = prg.Source().Mem( bank );
+				}
+
+				if (!hack)
+				{
+					const uint last = exPrg | ((regs.ctrl[0] & Regs::CTRL0_PRG_NOT_LAST) ? banks.prg[3] : 0x3F);
+
+					switch (regs.ctrl[0] & Regs::CTRL0_PRG_MODE)
+					{
+						case Regs::CTRL0_PRG_SWAP_32K:
+					
+							prg.SwapBank<NES_32K,0x0000U>( last );
+							break;
+					
+						case Regs::CTRL0_PRG_SWAP_16K:
 				
-						if (regs.banking & Regs::CTRL0_PRG6_ENABLE)
-							banks.prg6 = prg.Source().Mem( (prg3 << 2) | 0x3 );
-		
-						prg.SwapBank<NES_32K,0x0000U>( (regs.banking & Regs::CTRL0_PRG_NOT_LAST) ? prg3 : 0x7F );
-						break;
+							prg.SwapBanks<NES_16K,0x0000U>( banks.prg[1] | exPrg, last );
+							break;
+								
+						case Regs::CTRL0_PRG_SWAP_8K:
 				
-					case Regs::CTRL0_PRG_SWAP_16K:
-		
-						if (regs.banking & Regs::CTRL0_PRG6_ENABLE)
-							banks.prg6 = prg.Source().Mem( (prg3 << 1) | 0x1 );
-		
-						prg.SwapBanks<NES_16K,0x0000U>
-						( 
-					    	banks.prg[1], 
-							(regs.banking & Regs::CTRL0_PRG_NOT_LAST) ? prg3 : 0x7F 
-						);
-						break;
-		
-					case Regs::CTRL0_PRG_SWAP_8K_R:
-		
-						prg3 = banks.Unscramble( prg3 );
-		
-					case Regs::CTRL0_PRG_SWAP_8K:
-		
-						if (regs.banking & Regs::CTRL0_PRG6_ENABLE)
-							banks.prg6 = prg.Source().Mem( prg3 );
-			
-						prg.SwapBanks<NES_8K,0x0000U>
-						( 
-            			   	banks.prg[0],
-							banks.prg[1],
-							banks.prg[2],
-							(regs.banking & Regs::CTRL0_PRG_NOT_LAST) ? prg3 : 0x7F
-						);
-						break;
+							prg.SwapBanks<NES_8K,0x0000U>
+							( 
+            				   	banks.prg[0] | exPrg,
+								banks.prg[1] | exPrg,
+								banks.prg[2] | exPrg,
+								last
+							);
+							break;
+
+						case Regs::CTRL0_PRG_SWAP_8K_R:
+
+							prg.SwapBanks<NES_8K,0x0000U>
+							( 
+						     	banks.Unscramble( banks.prg[0] ) | exPrg,
+								banks.Unscramble( banks.prg[1] ) | exPrg,
+								banks.Unscramble( banks.prg[2] ) | exPrg,
+								((regs.ctrl[0] & Regs::CTRL0_PRG_NOT_LAST) ? banks.Unscramble( banks.prg[3] ) : 0x3F) | exPrg
+							);
+							break;     					
+					}
+				}
+				else
+				{
+					prg.SwapBanks<NES_8K,0x0000U>
+					( 
+     					exPrg | ((regs.ctrl[0] & Regs::CTRL0_PRG_MODE) == Regs::CTRL0_PRG_SWAP_16K ? ((banks.prg[0] & 0x1F) << 1) | 0x0 : banks.prg[0]),
+						exPrg | ((regs.ctrl[0] & Regs::CTRL0_PRG_MODE) == Regs::CTRL0_PRG_SWAP_16K ? ((banks.prg[0] & 0x1F) << 1) | 0x1 : banks.prg[1]),
+						exPrg | ((regs.ctrl[0] & Regs::CTRL0_PRG_MODE) == Regs::CTRL0_PRG_SWAP_16K ? ((banks.prg[2] & 0x1F) << 1) | 0x0 : banks.prg[2]),
+						exPrg | ((regs.ctrl[0] & Regs::CTRL0_PRG_MODE) == Regs::CTRL0_PRG_SWAP_16K ? ((banks.prg[2] & 0x1F) << 1) | 0x1 : (regs.ctrl[0] & (Regs::CTRL0_PRG_MODE|Regs::CTRL0_PRG_NOT_LAST)) != Regs::CTRL0_PRG_SWAP_8K ? banks.prg[3] : 0x3F)
+					);
 				}
 			}
-		
+
+			void BtlTek2A::UpdateExChr()
+			{
+				if (regs.ctrl[3] & Regs::CTRL3_NO_EX_CHR)
+				{
+					banks.exChr.mask = 0xFFFFU;
+					banks.exChr.bank = 0x0000U;
+				}
+				else
+				{
+					const uint mode = (regs.ctrl[0] & Regs::CTRL0_CHR_MODE) >> 3;
+
+					banks.exChr.mask = 0x00FFU >> (mode ^ 0x3);
+					banks.exChr.bank = ((regs.ctrl[3] & Regs::CTRL3_EX_CHR_0) | ((regs.ctrl[3] & Regs::CTRL3_EX_CHR_1) >> 2)) << (mode + 5);
+				}
+			}
+
 			void BtlTek2A::UpdateChr() const
 			{
 				ppu.Update();
 		
-				switch (regs.banking & Regs::CTRL0_CHR_MODE)
+				switch (regs.ctrl[0] & Regs::CTRL0_CHR_MODE)
 				{
 					case Regs::CTRL0_CHR_SWAP_8K:
 				
 						chr.SwapBank<NES_8K,0x0000U>
 						( 
-					     	(banks.chr[0] & banks.secondary[0]) | banks.secondary[1] 
+					     	(banks.chr[0] & banks.exChr.mask) | banks.exChr.bank 
 						);
 						break;
 				
@@ -650,8 +654,8 @@ namespace Nes
 				
 						chr.SwapBanks<NES_4K,0x0000U>
 						( 
-					     	(banks.chr[0] & banks.secondary[0]) | banks.secondary[1],
-							(banks.chr[4] & banks.secondary[0]) | banks.secondary[1]
+					     	(banks.chr[0] & banks.exChr.mask) | banks.exChr.bank,
+							(banks.chr[4] & banks.exChr.mask) | banks.exChr.bank
 						);
 						break;
 				
@@ -659,10 +663,10 @@ namespace Nes
 				
 						chr.SwapBanks<NES_2K,0x0000U>
 						( 
-					     	(banks.chr[0] & banks.secondary[0]) | banks.secondary[1],
-							(banks.chr[2] & banks.secondary[0]) | banks.secondary[1],
-							(banks.chr[4] & banks.secondary[0]) | banks.secondary[1],
-							(banks.chr[6] & banks.secondary[0]) | banks.secondary[1]
+					     	(banks.chr[0] & banks.exChr.mask) | banks.exChr.bank,
+							(banks.chr[2] & banks.exChr.mask) | banks.exChr.bank,
+							(banks.chr[4] & banks.exChr.mask) | banks.exChr.bank,
+							(banks.chr[6] & banks.exChr.mask) | banks.exChr.bank
 						);
 						break;
 				
@@ -670,43 +674,31 @@ namespace Nes
 				
 						chr.SwapBanks<NES_1K,0x0000U>
 						( 
-					     	(banks.chr[0] & banks.secondary[0]) | banks.secondary[1], 
-							(banks.chr[1] & banks.secondary[0]) | banks.secondary[1],
-							(banks.chr[2] & banks.secondary[0]) | banks.secondary[1],
-							(banks.chr[3] & banks.secondary[0]) | banks.secondary[1]
+					     	(banks.chr[0] & banks.exChr.mask) | banks.exChr.bank, 
+							(banks.chr[1] & banks.exChr.mask) | banks.exChr.bank,
+							(banks.chr[2] & banks.exChr.mask) | banks.exChr.bank,
+							(banks.chr[3] & banks.exChr.mask) | banks.exChr.bank
 						);
 		
 						chr.SwapBanks<NES_1K,0x1000U>
 						( 
-					       	(banks.chr[4] & banks.secondary[0]) | banks.secondary[1], 
-							(banks.chr[5] & banks.secondary[0]) | banks.secondary[1],
-							(banks.chr[6] & banks.secondary[0]) | banks.secondary[1],
-							(banks.chr[7] & banks.secondary[0]) | banks.secondary[1]
+					       	(banks.chr[4] & banks.exChr.mask) | banks.exChr.bank, 
+							(banks.chr[5] & banks.exChr.mask) | banks.exChr.bank,
+							(banks.chr[6] & banks.exChr.mask) | banks.exChr.bank,
+							(banks.chr[7] & banks.exChr.mask) | banks.exChr.bank
 						);
 						break;
 				}
 			}
 		
-			void BtlTek2A::UpdateName() const
-			{
-				ppu.Update();
-		
-				if ((regs.banking & Regs::CTRL0_CHR_NAMETABLES) && (dipswitch & 0x1))
+			void BtlTek2A::UpdateNmt() const
+			{		
+				if ((regs.ctrl[0] & Regs::CTRL0_NMT_CHR) && (dipswitch & 0x1))
 				{
+					ppu.Update();
+
 					for (uint i=0; i < 4; ++i)
-					{
-						const uint selection = 
-						(
-					       	(regs.banking & Regs::CTRL0_CHR_ROM_NAMETABLES) || 
-							((banks.name[i] ^ regs.name) & Regs::CTRL2_NAME_USE_RAM)
-						);
-		
-						nmt.Source(selection).SwapBank<NES_1K>
-						( 
-					    	i * 0x0400, 
-							(banks.name[i] & banks.secondary[0]) | banks.secondary[1]
-						);
-					}
+						nmt.Source( (regs.ctrl[0] & Regs::CTRL0_NMT_CHR_ROM) || ((banks.nmt[i] ^ regs.ctrl[2]) & Regs::CTRL2_NMT_USE_RAM) ).SwapBank<NES_1K>( i * 0x0400, banks.nmt[i] );
 				}
 				else
 				{
@@ -718,7 +710,7 @@ namespace Nes
 						Ppu::NMT_ONE
 					};
 		
-					ppu.SetMirroring( lut[regs.mirroring] );
+					ppu.SetMirroring( lut[regs.ctrl[1] & Regs::CTRL1_MIRRORING] );
 				}
 			}
 

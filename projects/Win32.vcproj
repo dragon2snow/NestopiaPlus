@@ -55,7 +55,7 @@
 				SuppressStartupBanner="TRUE"
 				AdditionalLibraryDirectories="..\lib"
 				IgnoreDefaultLibraryNames="libc"
-				DelayLoadDLLs="kailleraclient.dll"
+				DelayLoadDLLs="kailleraclient.dll;unrar.dll"
 				GenerateDebugInformation="TRUE"
 				ProgramDatabaseFile=""
 				GenerateMapFile="FALSE"
@@ -134,7 +134,7 @@
 				SuppressStartupBanner="TRUE"
 				AdditionalLibraryDirectories="..\lib"
 				IgnoreDefaultLibraryNames="libc"
-				DelayLoadDLLs="kailleraclient.dll"
+				DelayLoadDLLs="kailleraclient.dll;unrar.dll"
 				GenerateDebugInformation="FALSE"
 				GenerateMapFile="FALSE"
 				SubSystem="2"
@@ -266,6 +266,9 @@
 				</File>
 				<File
 					RelativePath="..\source\win32\resource\ImageDatabase.zip">
+				</File>
+				<File
+					RelativePath="..\source\win32\resource\nestopia.manifest">
 				</File>
 			</Filter>
 			<Filter
@@ -475,9 +478,6 @@
 			</File>
 			<File
 				RelativePath="..\source\win32\NstObjectPointer.hpp">
-			</File>
-			<File
-				RelativePath="..\source\win32\NstObjectRaw.hpp">
 			</File>
 			<File
 				RelativePath="..\source\win32\NstObjectReference.hpp">
@@ -839,6 +839,12 @@
 			Name="IO"
 			Filter="">
 			<File
+				RelativePath="..\source\win32\NstIoArchive.cpp">
+			</File>
+			<File
+				RelativePath="..\source\win32\NstIoArchive.hpp">
+			</File>
+			<File
 				RelativePath="..\source\win32\NstIoFile.cpp">
 			</File>
 			<File
@@ -879,12 +885,6 @@
 			</File>
 			<File
 				RelativePath="..\source\win32\NstIoWave.hpp">
-			</File>
-			<File
-				RelativePath="..\source\win32\NstIoZip.cpp">
-			</File>
-			<File
-				RelativePath="..\source\win32\NstIoZip.hpp">
 			</File>
 		</Filter>
 		<Filter

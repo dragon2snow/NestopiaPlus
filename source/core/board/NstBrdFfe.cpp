@@ -56,7 +56,7 @@ namespace Nes
 		
 			Ffe::Ffe(Context& c,const Type t)
 			: 
-			Mapper (c,t == F4_XXX ? CRAM_32K|CROM_NONE : 0), 
+			Mapper (c,t == F4_XXX ? CRAM_32K : 0), 
 			irq    (t == F3_XXX ? NULL : new Clock::M2<Irq>(c.cpu,GetIrqBase(c.pRomCrc))),
 			type   (t)
 			{
@@ -78,6 +78,9 @@ namespace Nes
 		
 			void Ffe::SubReset(const bool hard)
 			{
+				if (hard)
+					mode = 0;
+
 				Map( 0x42FEU, &Ffe::Poke_42FE );
 				Map( 0x42FFU, &Ffe::Poke_42FF );
 		
@@ -133,17 +136,29 @@ namespace Nes
 			{
 				while (const dword chunk = state.Begin())
 				{
-					if (chunk == NES_STATE_CHUNK_ID('I','R','Q','\0'))
+					switch (chunk)
 					{
-						NST_VERIFY( irq );
-		
-						if (irq)
-						{
-							const State::Loader::Data<3> data( state );
-		
-							irq->unit.enabled = data[0] & 0x1;
-							irq->unit.count = data[1] | (data[2] << 8);
-						}
+						case NES_STATE_CHUNK_ID('R','E','G','\0'):
+
+							NST_VERIFY( type == F4_XXX );
+
+							if (type == F4_XXX)
+								mode = state.Read8() & 0x1;
+
+							break;
+
+						case NES_STATE_CHUNK_ID('I','R','Q','\0'):
+
+							NST_VERIFY( irq );
+
+							if (irq)
+							{
+								const State::Loader::Data<3> data( state );
+
+								irq->unit.enabled = data[0] & 0x1;
+								irq->unit.count = data[1] | (data[2] << 8);
+							}
+							break;
 					}
 		
 					state.End();
@@ -152,11 +167,14 @@ namespace Nes
 		
 			void Ffe::SaveState(State::Saver& state) const
 			{
+				if (type == F4_XXX)
+					state.Begin('R','E','G','\0').Write8( mode ).End();
+
 				if (irq)
 				{
 					const u8 data[3] =
 					{
-						irq->unit.enabled != 0,
+						irq->unit.enabled != false,
 						irq->unit.count & 0xFF,
 						irq->unit.count >> 8
 					};
@@ -183,6 +201,7 @@ namespace Nes
 		
 			NES_POKE(Ffe,42FE)  
 			{
+				mode = (data >> 7) ^ 0x1;
 				ppu.SetMirroring( (data & 0x10) ? Ppu::NMT_ONE : Ppu::NMT_ZERO );
 			}
 		
@@ -222,10 +241,16 @@ namespace Nes
 			NES_POKE(Ffe,Prg_F4) 
 			{
 				ppu.Update();
-				prg.SwapBank<NES_16K,0x0000U>( (data & 0x3C) >> 2 );
-				chr.SwapBank<NES_8K,0x0000U>( data & 0x03 );
+
+				if (mode || chr.Source(0).IsWritable())
+				{
+					prg.SwapBank<NES_16K,0x0000U>( data >> 2 );
+					data &= 0x3;
+				}
+
+				chr.Source( mode ).SwapBank<NES_8K,0x0000U>( data );
 			}
-		
+
 			void Ffe::VSync()
 			{
 				if (irq)

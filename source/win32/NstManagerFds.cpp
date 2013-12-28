@@ -30,7 +30,6 @@
 #include "NstDialogFds.hpp"
 #include "NstManagerEmulator.hpp"
 #include "NstManagerFds.hpp"
-#include "../core/api/NstApiFds.hpp"
 
 namespace Nestopia
 {
@@ -106,6 +105,11 @@ namespace Nestopia
 
 	struct Fds::Callbacks
 	{
+		static void NST_CALLBACK OnDiskChange(Nes::Fds::UserData user,Nes::Fds::Event event,uint disk,uint side)
+		{
+			static_cast<Fds*>(user)->OnDiskChange( event, disk, side );
+		}
+
 		static void NST_CALLBACK OnDiskAccessNumLock(Nes::Fds::UserData,bool on)
 		{
 			System::Keyboard::ToggleIndicator( System::Keyboard::NUM_LOCK, on );
@@ -131,6 +135,7 @@ namespace Nestopia
 	:
 	emulator ( e ),
 	menu     ( m ),
+	master   ( FALSE ),
 	dialog   ( new Window::Fds(e,cfg,paths) ) 
 	{
 		static const Window::Menu::CmdHandler::Entry<Fds> commands[] =
@@ -156,6 +161,8 @@ namespace Nestopia
 			{ IDM_MACHINE_FDS_OPTIONS,				&Fds::OnCmdOptions    }
 		};
 
+		Nes::Fds::diskChangeCallback.Set( Callbacks::OnDiskChange, this );
+
 		m.Commands().Add( this, commands );
 		emulator.Events().Add( this, &Fds::OnEmuEvent );
 
@@ -166,7 +173,9 @@ namespace Nestopia
 
 	Fds::~Fds()
 	{
+		Nes::Fds::diskChangeCallback.Set( NULL, NULL );
 		Nes::Fds::diskAccessLampCallback.Set( NULL, NULL );
+		
 		emulator.Events().Remove( this );
 	}
 
@@ -187,63 +196,34 @@ namespace Nestopia
 		);
 	}
 
-	uint Fds::CurrentDisk() const
+	void Fds::OnDiskChange(const Nes::Fds::Event event,uint disk,const uint side) const
 	{
-		const Nes::Fds fds( emulator );
+		const ibool inserted = (event == Nes::Fds::DISK_INSERT);
 
-		if (fds.IsAnyDiskInserted())
-			return fds.GetCurrentDisk() * 2 + fds.GetCurrentDiskSide();
+		disk = disk * 2 + side;
 
-		return NO_DISK;
+		menu[IDM_MACHINE_FDS_INSERT_DISK_1_SIDE_A + disk].Check( inserted );
+		menu[IDM_MACHINE_FDS_CHANGE_SIDE].Enable( inserted && master );
+		menu[IDM_MACHINE_FDS_EJECT_DISK].Enable( inserted && master );
+
+		Io::Screen() << Resource::String( inserted ? (IDS_SCREEN_DISK_1_SIDE_A_INSERTED + disk) : (IDS_SCREEN_DISK_1_EJECTED + disk / 2) );
 	}
 
 	void Fds::OnCmdInsertDisk(uint disk)
 	{
-		NST_ASSERT( emulator.Is(Nes::Machine::DISK) );
+		disk -= IDM_MACHINE_FDS_INSERT_DISK_1_SIDE_A;
 
-		const uint prev = CurrentDisk();
-
-		if (prev != disk - IDM_MACHINE_FDS_INSERT_DISK_1_SIDE_A)
-		{
-			if (prev == NO_DISK)
-			{
-				menu[IDM_MACHINE_FDS_CHANGE_SIDE].Enable();
-				menu[IDM_MACHINE_FDS_EJECT_DISK].Enable();
-			}
-			else
-			{
-				menu[IDM_MACHINE_FDS_INSERT_DISK_1_SIDE_A + prev].Uncheck();
-			}
-
-			menu[disk].Check();
-
-			disk -= IDM_MACHINE_FDS_INSERT_DISK_1_SIDE_A;
-
-			if (Nes::Fds(emulator).InsertDisk( disk / 2, disk % 2 ) == Nes::RESULT_OK)
-				Io::Screen() << Resource::String( IDS_SCREEN_DISK_1_SIDE_A_INSERTED + disk );
-		}
+		Nes::Fds(emulator).InsertDisk( disk / 2, disk % 2 );
 	}
 
 	void Fds::OnCmdChangeSide(uint)
 	{
-		const Nes::Fds fds( emulator );
-
-		if (fds.IsAnyDiskInserted())
-			OnCmdInsertDisk( IDM_MACHINE_FDS_INSERT_DISK_1_SIDE_A + fds.GetCurrentDisk() * 2U + (fds.GetCurrentDiskSide() ^ 1U) );
+		Nes::Fds(emulator).ChangeSide();
 	}
 
 	void Fds::OnCmdEjectDisk(uint) 
 	{
-		NST_ASSERT( emulator.Is(Nes::Machine::DISK) && CurrentDisk() != NO_DISK );
-
-		const uint disk = CurrentDisk();
-
-		menu[IDM_MACHINE_FDS_INSERT_DISK_1_SIDE_A + disk].Uncheck();
-		menu[IDM_MACHINE_FDS_CHANGE_SIDE].Disable();
-		menu[IDM_MACHINE_FDS_EJECT_DISK].Disable();
-
-		if (Nes::Fds(emulator).EjectDisk() == Nes::RESULT_OK)
-			Io::Screen() << Resource::String( IDS_SCREEN_DISK_1_EJECTED + (disk / 2) );
+		Nes::Fds(emulator).EjectDisk();
 	} 
 
 	void Fds::OnCmdOptions(uint) 
@@ -261,13 +241,7 @@ namespace Nestopia
 				
 				if (emulator.Is(Nes::Machine::DISK))
 				{
-					const ibool master = (event == Emulator::EVENT_LOAD || emulator.GetPlayer() == 1);
-
-					if (master)
-					{
-						menu[IDM_MACHINE_FDS_CHANGE_SIDE].Enable();
-						menu[IDM_MACHINE_FDS_EJECT_DISK].Enable();
-					}
+					master = (event == Emulator::EVENT_LOAD || emulator.GetPlayer() == 1);
 		
 					const Window::Menu::Item subMenu( menu[IDM_POS_MACHINE][IDM_POS_MACHINE_FDS][IDM_POS_MACHINE_FDS_INSERTDISK] );
 		
@@ -291,8 +265,6 @@ namespace Nestopia
 							menu[IDM_MACHINE_FDS_INSERT_DISK_1_SIDE_A + i].Disable();
 					}
 		
-					menu[IDM_MACHINE_FDS_INSERT_DISK_1_SIDE_A].Check();
-		
 					fds.InsertDisk( 0, 0 );
 				}
 				break;
@@ -302,8 +274,6 @@ namespace Nestopia
 		
 				menu[IDM_POS_MACHINE][IDM_POS_MACHINE_FDS][IDM_POS_MACHINE_FDS_INSERTDISK].Clear();
 				menu[IDM_POS_MACHINE][IDM_POS_MACHINE_FDS][IDM_POS_MACHINE_FDS_INSERTDISK].Disable();
-				menu[IDM_MACHINE_FDS_CHANGE_SIDE].Disable();
-				menu[IDM_MACHINE_FDS_EJECT_DISK].Disable();
 				break;
 
 			case Emulator::EVENT_NETPLAY_MODE_ON:

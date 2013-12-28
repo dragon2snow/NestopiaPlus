@@ -28,7 +28,6 @@
 #pragma once
 
 #include <iostream>
-#include "NstObjectRaw.hpp"
 #include "NstCollectionVector.hpp"
 
 namespace Nestopia
@@ -52,7 +51,6 @@ namespace Nestopia
 
 				Input& operator = (const File&);
 				Input& operator = (Collection::Buffer&); // invalidates input vector
-				Input& operator = (Output&); // invalidates output stream
 
 			private:
 
@@ -78,35 +76,19 @@ namespace Nestopia
 					void Initialize (Collection::Buffer&);
 
 					uint pos;
-					Object::Raw data;
+					char* data;
+					uint size;
 
 					int_type underflow();
 					int_type uflow();
 					std::streamsize xsgetn(char*,std::streamsize); 
 					std::streampos seekoff(std::streamoff,std::ios::seekdir,std::ios::openmode);
 					std::streampos seekpos(std::streampos,std::ios::openmode);
-
-				public:
-
-					const Object::Raw& GetData() const
-					{
-						return data;
-					}
 				};
 
 				Buffer buffer;
 
 			public:
-
-				const Object::Raw GetData()
-				{
-					return buffer.GetData();
-				}
-
-				const Object::ConstRaw GetData() const
-				{
-					return buffer.GetData();
-				}
 
 				void Export(Collection::Buffer& vector)
 				{
@@ -125,7 +107,6 @@ namespace Nestopia
 
 				Output& operator = (const File&);
 				Output& operator = (Collection::Buffer&); // invalidates input vector
-				Output& operator = (Input&); // invalidates input stream
 
 			private:
 
@@ -155,33 +136,11 @@ namespace Nestopia
 	  
 					uint pos;
 					Collection::Buffer vector;
-
-				public:
-
-					Collection::Buffer& GetData()
-					{
-						return vector;
-					}
-
-					const Collection::Buffer& GetData() const
-					{
-						return vector;
-					}
 				};
 
 				Buffer buffer;
 
 			public:
-
-				const Object::Raw GetData()
-				{
-					return buffer.GetData();
-				}
-
-				const Object::ConstRaw GetData() const
-				{
-					return buffer.GetData();
-				}
 
 				void Export(Collection::Buffer& vector)
 				{

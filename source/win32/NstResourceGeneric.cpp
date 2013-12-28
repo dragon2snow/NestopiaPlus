@@ -30,7 +30,8 @@ namespace Nestopia
 {
 	ibool Resource::Generic::Load(const uint id,cstring type)
 	{
-		data.Reset();
+		data = NULL;
+		size = 0;
 
 		if (HINSTANCE const hInstance = ::GetModuleHandle( NULL ))
 		{
@@ -50,9 +51,11 @@ namespace Nestopia
 				{
 					if (const void* const mem = ::LockResource( hGlobal ))
 					{
-						if (const uint size = ::SizeofResource( hInstance, hResource ))
+						size = ::SizeofResource( hInstance, hResource );
+
+						if (size)
 						{
-							data.Set( mem, size );
+							data = mem;
 							return TRUE;
 						}
 					}

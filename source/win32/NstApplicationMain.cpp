@@ -28,6 +28,8 @@
 #include "NstWindowMenu.hpp"
 #include "NstApplicationMain.hpp"
 
+#include "NstIoArchive.hpp"
+
 namespace Nestopia
 {
 	using Application::Main;

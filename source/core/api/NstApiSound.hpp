@@ -97,6 +97,7 @@ namespace Nes
 	
 			enum Channel
 			{
+				NO_CHANNELS      = 0x00,
 				CHANNEL_SQUARE1  = 0x01,
 				CHANNEL_SQUARE2  = 0x02,
 				CHANNEL_TRIANGLE = 0x04,

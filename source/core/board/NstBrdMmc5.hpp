@@ -203,7 +203,6 @@ namespace Nes
 				bool ClockSpliter();
 
 				inline void Update();
-				inline bool IsRendering() const;
 
 				template<uint>
 				inline uint FetchByte(uint) const;

@@ -1877,7 +1877,7 @@ namespace Nes
 			interrupt.EndFrame( frameClock );
 		}
 	
-		void Cpu::DoIRQ(const uint line,const Cycle cycle) throw()
+		void Cpu::DoIRQ(const uint line,const Cycle cycle)
 		{
 			NST_VERIFY( interrupt.source & line );
 	
@@ -1891,7 +1891,7 @@ namespace Nes
 			}
 		}
 	
-		void Cpu::DoNMI(const Cycle cycle) throw()
+		void Cpu::DoNMI(const Cycle cycle)
 		{
 			if (interrupt.nmiClock == NES_CYCLE_MAX)
 			{
@@ -1903,22 +1903,25 @@ namespace Nes
 	
 		void Cpu::Clock()
 		{
-			const Cycle apuClock = apu.Clock( cycles.count );
+			Cycle clock = apu.Clock( cycles.count );
 	
 			if (const uint vector = interrupt.Clock( cycles.count ))
 				DoISR( vector );
-	
-			cycles.round = NST_MIN
-			(
-		       	NST_MIN( apuClock, interrupt.irqClock ),
-				NST_MIN( frameClock, interrupt.nmiClock )
-			);
+
+			if (clock > interrupt.irqClock)
+				clock = interrupt.irqClock;
+
+			if (clock > interrupt.nmiClock)
+				clock = interrupt.nmiClock;
+
+			if (clock > frameClock)
+				clock = frameClock;
+
+			cycles.round = clock;
 		}
 
 		void Cpu::Run0()
 		{				   
-			const Cycle retire = frameClock;
-	
 			do
 			{
 				do 
@@ -1929,12 +1932,11 @@ namespace Nes
 	
 				Clock();
 			}
-			while (cycles.count < retire);
+			while (cycles.count < frameClock);
 		}
 	
 		void Cpu::Run1()
 		{
-			const Cycle retire = frameClock;
 			const Hook hook( hooks[0] );
 	
 			do
@@ -1948,7 +1950,7 @@ namespace Nes
 	
 				Clock();
 			}
-			while (cycles.count < retire);
+			while (cycles.count < frameClock);
 		}
 	
 		void Cpu::Run2()

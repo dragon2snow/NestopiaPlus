@@ -44,14 +44,14 @@ namespace Nes
 
 			void SubReset(bool);   
 			void SubSave(State::Saver&) const;
-			void SubLoad(State::Loader&);
-			
+			void SubLoad(State::Loader&);			
 			void UpdatePrg();
+			void UpdateChr() const;
 
 			NES_DECL_POKE( 6000 )
 			NES_DECL_POKE( 6001 )
 
-			uint exReg;
+			uint exRegs[2];
 		};
 	}
 }

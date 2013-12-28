@@ -28,7 +28,6 @@
 #include "NstWindowMenu.hpp"
 #include "NstDialogCheats.hpp"
 #include "NstManagerCheats.hpp"
-#include "../core/api/NstApiGameGenie.hpp"
 
 namespace Nestopia
 {
@@ -38,7 +37,7 @@ namespace Nestopia
 	:
 	emulator ( e ),
 	menu     ( m ),
-	dialog   ( new Window::Cheats(cfg,paths) )
+	dialog   ( new Window::Cheats(e,cfg,paths) )
 	{
 		m.Commands().Add( IDM_OPTIONS_CHEATS, this, &Cheats::OnCmdOptions );
 		emulator.Events().Add( this, &Cheats::OnEmuEvent );
@@ -71,16 +70,16 @@ namespace Nestopia
 
 	void Cheats::UpdateCodes() const
 	{
-		Nes::GameGenie genie( emulator );
+		Nes::Cheats cheats( emulator );
 
-		genie.ClearCodes();
+		cheats.ClearCodes();
 
 		for (uint type=0; type < Window::Cheats::NUM_CODE_TYPES; ++type)
 		{
 			for (uint i=0, n=dialog->GetNumCodes( type ); i < n; ++i)
 			{
 				if (dialog->IsCodeEnabled( type, i ))
-					genie.AddCode( dialog->GetCode( type, i ) );
+					cheats.SetCode( dialog->GetCode( type, i ) );
 			}
 		}
 	}
@@ -90,6 +89,8 @@ namespace Nestopia
 		switch (event)
 		{
      		case Emulator::EVENT_UNLOAD:
+
+				dialog->ResetRamSearch();
 
 				if (dialog->ClearTemporaryCodes())
 					UpdateCodes();

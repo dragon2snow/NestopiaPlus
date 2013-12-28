@@ -39,10 +39,17 @@
 
 namespace Nes
 {
+	namespace Core
+	{
+		class Rewinder;
+	}
+
 	namespace Api
 	{
 		class Movie : public Base
 		{
+			friend class Core::Rewinder;
+
 			struct StateCaller;
 
 		public:
@@ -56,29 +63,51 @@ namespace Nes
 				APPEND
 			};
 
-			Result Play   (std::istream&);
-			Result Record (std::ostream&,How=CLEAN);
-			void   Stop   ();
-			void   Eject  ();
-	
+			enum CallbackMode
+			{
+				DISABLE_CALLBACK,
+				ENABLE_CALLBACK
+			};
+
+			Result Play(std::istream&,CallbackMode=ENABLE_CALLBACK);
+			Result Record(std::ostream&,How=CLEAN,CallbackMode=ENABLE_CALLBACK);
+			
+			void Stop();
+			void Eject();
+			void Cut();
+
 			bool IsPlaying() const;
 			bool IsRecording() const;
+			bool IsInserted() const;
 			bool IsStopped() const;
 
 			enum State
 			{
-				RECORDING = 1,
-				PLAYING,
-				STOPPED,
-				ERR_CORRUPT_FILE,
+				ERR_CORRUPT_FILE = -4,
 				ERR_OUT_OF_MEMORY,
 				ERR_UNSUPPORTED_IMAGE,
-				ERR_GENERIC
+				ERR_GENERIC,
+				STOPPED_PLAYING = 1,
+				STOPPED_RECORDING,
+				RECORDING,
+				PLAYING
 			};
 
 			typedef void (NST_CALLBACK *StateCallback) (UserData,State);
 
 			static StateCaller stateCallback;
+
+		private:
+
+			Result Play   (std::istream&,CallbackMode,bool,const void*);
+			Result Record (std::ostream&,How,CallbackMode,const void*);
+
+			void Stop  (const void*);
+			void Eject (const void*);
+
+			bool IsPlaying   (const void*) const;
+			bool IsRecording (const void*) const;
+			bool IsStopped   (const void*) const;
 		};
 
 		struct Movie::StateCaller : Core::UserCallback<Movie::StateCallback>

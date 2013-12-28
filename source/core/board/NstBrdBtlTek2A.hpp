@@ -48,7 +48,6 @@ namespace Nes
 		
 				enum DefaultDipSwitch
 				{
-					DEFAULT_DIPSWITCH_DETECT,
 					DEFAULT_DIPSWITCH_OFF,
 					DEFAULT_DIPSWITCH_EXT_MIRRORING
 				};
@@ -62,13 +61,12 @@ namespace Nes
 					DIPSWITCH_MIRROR = b00000001,
 					DIPSWITCH_GAME   = b11000000
 				};
-		
-				static uint GetDefaultDipSwitch(dword);
-		
+
 				void SubReset(bool);
 				void UpdatePrg();
 				void UpdateChr() const;
-				void UpdateName() const;
+				void UpdateExChr();
+				void UpdateNmt() const;
 				void VSync();
 		
 				NES_DECL_PEEK( 5000 )
@@ -92,32 +90,32 @@ namespace Nes
 						   
 				struct Regs
 				{
-					Regs();
-		
+					void Reset(const ibool);
+
 					enum
 					{
-						CTRL0_PRG_MODE           = b00000011,
-						CTRL0_PRG_SWAP_32K       = b00000000,
-						CTRL0_PRG_SWAP_16K       = b00000001,
-						CTRL0_PRG_SWAP_8K        = b00000010,
-						CTRL0_PRG_SWAP_8K_R      = b00000011,
-						CTRL0_PRG_NOT_LAST       = b00000100,
-						CTRL0_CHR_MODE           = b00011000,
-						CTRL0_CHR_SWAP_8K        = b00000000,
-						CTRL0_CHR_SWAP_4K        = b00001000,
-						CTRL0_CHR_SWAP_2K        = b00010000,
-						CTRL0_CHR_SWAP_1K        = b00011000,
-						CTRL0_CHR_NAMETABLES     = b00100000,
-						CTRL0_CHR_ROM_NAMETABLES = b01000000,
-						CTRL0_PRG6_ENABLE        = b10000000,
-						CTRL1_MIRRORING          = b00000011,
-						CTRL2_NAME_USE_RAM       = b10000000,
-						CTRL3_NO_SECONDARY       = b00100000,
-						CTRL3_SECONDARY          = b00011111
+						CTRL0_PRG_MODE      = b00000011,
+						CTRL0_PRG_SWAP_32K  = b00000000,
+						CTRL0_PRG_SWAP_16K  = b00000001,
+						CTRL0_PRG_SWAP_8K   = b00000010,
+						CTRL0_PRG_SWAP_8K_R = b00000011,
+						CTRL0_PRG_NOT_LAST  = b00000100,
+						CTRL0_CHR_MODE      = b00011000,
+						CTRL0_CHR_SWAP_8K   = b00000000,
+						CTRL0_CHR_SWAP_4K   = b00001000,
+						CTRL0_CHR_SWAP_2K   = b00010000,
+						CTRL0_CHR_SWAP_1K   = b00011000,
+						CTRL0_NMT_CHR       = b00100000,
+						CTRL0_NMT_CHR_ROM   = b01000000,
+						CTRL0_PRG6_ENABLE   = b10000000,
+						CTRL1_MIRRORING     = b00000011,
+						CTRL2_NMT_USE_RAM   = b10000000,
+						CTRL3_NO_EX_CHR     = b00100000,
+						CTRL3_EX_CHR_0      = b00000001,
+						CTRL3_EX_CHR_1      = b00011000,
+						CTRL3_EX_PRG        = b00000110
 					};
-		
-					void Reset();
-		
+				
 					NES_DECL_PEEK( 5001 )
 					NES_DECL_PEEK( 5800 )
 					NES_DECL_POKE( 5800 )
@@ -128,24 +126,25 @@ namespace Nes
 		
 					uint mul[2];
 					uint tmp;
-					uint banking;
-					uint mirroring;
-					uint name;
+					uint ctrl[4];
 				};
 		
 				struct Banks
 				{
-					Banks();
-		
-					void Reset();
-		
+					void Reset(const ibool);
+
 					static uint Unscramble(uint);
+
+					struct ExChr
+					{
+						uint mask;
+						uint bank;
+					};
 		
 					uint prg[4];
 					uint chr[8];
-					uint name[4];
-					uint secondary[2];
-		
+					uint nmt[4];
+					ExChr exChr;		
 					const u8* prg6;
 				};
 		
@@ -185,6 +184,7 @@ namespace Nes
 		
 				Regs regs;
 				Banks banks;
+				const ibool hack;
 				Clock::A12<Irq> irq;
 				uint dipswitch;
 				

@@ -228,7 +228,7 @@ namespace Nestopia
 		path.Extension() = "ns1";
 		path.Back() = (char) ('1' + index);
 		
-		paths.Save( slots[index], Paths::File::SLOTS, path );
+		paths.Save( slots[index], slots[index].Size(), Paths::File::SLOTS, path );
 	}
 
 	void SaveStates::ImportSlots()
@@ -286,7 +286,7 @@ namespace Nestopia
 		{
 			Collection::Buffer buffer;
 
-			if (emulator.SaveState( buffer, paths.UseStateCompression() ) && paths.Save( buffer, Paths::File::STATE, path ))
+			if (emulator.SaveState( buffer, paths.UseStateCompression() ) && paths.Save( buffer, buffer.Size(), Paths::File::STATE, path ))
 			{
 				Io::Screen() << Resource::String(IDS_SCREEN_SAVE_STATE_TO) 
 					         << " \"" 
@@ -338,7 +338,7 @@ namespace Nestopia
 				if 
 				(
 			       	emulator.SaveState( buffer, paths.UseStateCompression(), Emulator::STICKY ) &&
-					paths.Save( buffer, Paths::File::STATE, autoSaver->GetStateFile(), Paths::STICKY, IDS_EMU_ERR_SAVE_STATE ) &&
+					paths.Save( buffer, buffer.Size(), Paths::File::STATE, autoSaver->GetStateFile(), Paths::STICKY, IDS_EMU_ERR_SAVE_STATE ) &&
 					autoSaver->ShouldNotify()
 				)
 				{

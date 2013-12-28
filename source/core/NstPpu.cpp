@@ -301,16 +301,16 @@ namespace Nes
 		{
 			logged = 0;
 	
-			for (uint i=0x2000U; i < 0x4000U; )
+			for (uint i=0x2000U; i < 0x4000U; i += 0x8)
 			{
-				cpu.Map( i++ ).Set( this, &Ppu::Peek_2xxx, &Ppu::Poke_2000 );
-				cpu.Map( i++ ).Set( this, &Ppu::Peek_2xxx, &Ppu::Poke_2001 );
-				cpu.Map( i++ ).Set( this, &Ppu::Peek_2002, &Ppu::Poke_2xxx );
-				cpu.Map( i++ ).Set( this, &Ppu::Peek_2xxx, &Ppu::Poke_2003 );
-				cpu.Map( i++ ).Set( this, &Ppu::Peek_2004, &Ppu::Poke_2004 );
-				cpu.Map( i++ ).Set( this, &Ppu::Peek_2xxx, &Ppu::Poke_2005 );
-				cpu.Map( i++ ).Set( this, &Ppu::Peek_2xxx, &Ppu::Poke_2006 );
-				cpu.Map( i++ ).Set( this, &Ppu::Peek_2007, &Ppu::Poke_2007 );
+				cpu.Map( i+0 ).Set( this, &Ppu::Peek_2xxx, &Ppu::Poke_2000 );
+				cpu.Map( i+1 ).Set( this, &Ppu::Peek_2xxx, &Ppu::Poke_2001 );
+				cpu.Map( i+2 ).Set( this, &Ppu::Peek_2002, &Ppu::Poke_2xxx );
+				cpu.Map( i+3 ).Set( this, &Ppu::Peek_2xxx, &Ppu::Poke_2003 );
+				cpu.Map( i+4 ).Set( this, &Ppu::Peek_2004, &Ppu::Poke_2004 );
+				cpu.Map( i+5 ).Set( this, &Ppu::Peek_2xxx, &Ppu::Poke_2005 );
+				cpu.Map( i+6 ).Set( this, &Ppu::Peek_2xxx, &Ppu::Poke_2006 );
+				cpu.Map( i+7 ).Set( this, &Ppu::Peek_2007, &Ppu::Poke_2007 );
 			}
 	
 			cpu.Map( 0x4014U ).Set( this, &Ppu::Peek_4014, &Ppu::Poke_4014 );
@@ -336,11 +336,13 @@ namespace Nes
 
 				stage = WARM_UP_FRAMES;
 				phase = &Ppu::WarmUp;
+				regs.status = 0;
 			}
 			else
 			{
 				stage = 0;
-				phase = &Ppu::VBlank;
+				phase = &Ppu::HDummy;
+				regs.status = Regs::STATUS_VBLANK;
 			}
 	
 			if (chrMem.Source().Empty())
@@ -367,7 +369,7 @@ namespace Nes
 	
 			regs.ctrl0 = 0;
 			regs.ctrl1 = 0;
-			regs.status = 0;
+			regs.frame = 0;
 	
 			scroll.address = 0;
 			scroll.toggle = 0;
@@ -431,7 +433,7 @@ namespace Nes
 			state.Begin('N','M','T','\0').Compress( nameTable.ram ).End();
 
 			if (cpu.GetMode() == MODE_NTSC)
-				state.Begin('F','R','M','\0').Write8( cycles.frame == (CC_FRAME_0_NTSC * MC_DIV_NTSC) ).End();
+				state.Begin('F','R','M','\0').Write8( (regs.frame & Regs::FRAME_ODD) != 0 ).End();
 		}
 	
 		void Ppu::LoadState(State::Loader& state)
@@ -455,12 +457,9 @@ namespace Nes
 						io.buffer      = data[9];
 						io.latch       = data[10];
 
-						scanline = SCANLINE_VBLANK;
-
-						if (regs.status & Regs::STATUS_VBLANK)
-							phase = &Ppu::HDummy;
-						else
-							phase = &Ppu::VBlank;
+						phase = &Ppu::HDummy;
+						stage = 0;
+						regs.status |= Regs::STATUS_VBLANK;
 
 						UpdateStates();
 						break;
@@ -484,7 +483,7 @@ namespace Nes
 					case NES_STATE_CHUNK_ID('F','R','M','\0'):
 					
 						if (cpu.GetMode() == MODE_NTSC)
-							cycles.frame = (state.Read8() & 0x1) ? (CC_FRAME_0_NTSC * MC_DIV_NTSC) : (CC_FRAME_1_NTSC * MC_DIV_NTSC);
+							regs.frame = (state.Read8() & 0x1) ? Regs::FRAME_ODD : 0;
 
 						break;
 				}
@@ -492,7 +491,7 @@ namespace Nes
 				state.End();
 			}
 		}
-	
+	  
 		void Ppu::EnableCpuSynchronization()
 		{
 			cpu.AddHook( Hook(this,&Ppu::Hook_Synchronize) );
@@ -566,20 +565,14 @@ namespace Nes
 				cycles.one   = MC_DIV_NTSC * 1;
 				cycles.four  = MC_DIV_NTSC * 4;
 				cycles.eight = MC_DIV_NTSC * 8;
-				cycles.seven = MC_DIV_NTSC * 7;
-				cycles.rest  = MC_DIV_NTSC * 6;
-				cycles.frame = MC_DIV_NTSC * CC_FRAME_0_NTSC;
-				cycles.dead  = MC_DIV_NTSC * 6;
+				cycles.six   = MC_DIV_NTSC * 6;
 			}
 			else
 			{
 				cycles.one   = MC_DIV_PAL * 1;
 				cycles.four  = MC_DIV_PAL * 4;
 				cycles.eight = MC_DIV_PAL * 8;
-				cycles.seven = MC_DIV_PAL * 7;
-				cycles.rest  = MC_DIV_PAL * 6;
-				cycles.frame = MC_DIV_PAL * CC_FRAME_PAL;
-				cycles.dead  = MC_DIV_PAL * 6;
+				cycles.six   = MC_DIV_PAL * 6;
 			}
 		}
 	
@@ -590,7 +583,12 @@ namespace Nes
 	
 		void Ppu::BeginFrame(const bool render)
 		{
-			NST_ASSERT( (cpu.GetMode() == MODE_NTSC) == (cycles.one == MC_DIV_NTSC) );
+			NST_ASSERT
+			( 
+     			scanline == SCANLINE_VBLANK &&
+     			(phase == &Ppu::HDummy || phase == &Ppu::WarmUp) &&
+		     	(cpu.GetMode() == MODE_NTSC) == (cycles.one == MC_DIV_NTSC)				
+			);
 
 			if (render)
 			{
@@ -603,47 +601,28 @@ namespace Nes
 				output.pixels = &Output::dummy;
 				output.next = 0;
 			}
-	
+
+			Cycle frame;
+
 			if (cpu.GetMode() == MODE_NTSC)
 			{
+				if (regs.frame & Regs::FRAME_ODD)
+					regs.frame |= Regs::FRAME_DEAD_CC;
+				
 				cycles.count = MC_DIV_NTSC * CC_VINT_NTSC;
-	
-				if (phase != &Ppu::WarmUp || stage <= 1)
-				{
-					if (cycles.frame == MC_DIV_NTSC * CC_FRAME_0_NTSC)
-					{
-						cycles.frame = MC_DIV_NTSC * CC_FRAME_1_NTSC;
-						cycles.dead = MC_DIV_NTSC * 5;
-					}
-					else
-					{
-						cycles.frame = MC_DIV_NTSC * CC_FRAME_0_NTSC;
-						cycles.dead = MC_DIV_NTSC * 6;
-					}
-				}
+
+				if (phase != &Ppu::WarmUp || stage < WARM_UP_FRAMES)
+					frame = MC_DIV_NTSC * CC_FRAME_0_NTSC;
 				else
-				{
-					cycles.frame = MC_DIV_NTSC * (SCANLINES_VSYNC_NTSC - 20) * CC_HSYNC;
-				}
+					frame = MC_DIV_NTSC * (CC_FRAME_0_NTSC - CC_VINT_NTSC);
 			}
 			else
 			{
 				cycles.count = MC_DIV_PAL * CC_VINT_PAL;
+				frame = MC_DIV_PAL * CC_FRAME_PAL;
 			}
-	
-			cpu.SetupFrame( cycles.frame );
-	
-			if (phase == &Ppu::VBlank)
-			{
-				phase = &Ppu::HDummy;
-	
-				regs.status |= Regs::STATUS_VBLANK;
-				scanline = SCANLINE_VBLANK;
-				oam.address = 0x00;
-	
-				if (regs.ctrl0 & Regs::CTRL0_NMI)
-					cpu.DoNMI( 0 );
-			}
+
+			cpu.SetupFrame( frame );
 		}
 	
 		NES_HOOK(Ppu,Null)
@@ -672,11 +651,9 @@ namespace Nes
 	
 		void Ppu::EndFrame()
 		{
-			const Cycle elapsed = cycles.frame;
-
-			if (cycles.count < elapsed)
+			if (cycles.count != NES_CYCLE_MAX)
 			{
-				cycles.round = elapsed;
+				cycles.round = NES_CYCLE_MAX;
 
             #ifdef NST_TAILCALL_OPTIMIZE
 				(*this.*phase)();
@@ -685,14 +662,8 @@ namespace Nes
 				{
 					(*this.*phase)();
 				}
-				while (cycles.count < elapsed);
+				while (cycles.count != NES_CYCLE_MAX);
             #endif
-			}
-
-			if (cycles.spriteOverflow != NES_CYCLE_MAX)
-			{
-				cycles.spriteOverflow = NES_CYCLE_MAX;
-				regs.status |= Regs::STATUS_SP_OVERFLOW;
 			}
 		}
 	
@@ -860,8 +831,8 @@ namespace Nes
 	
 		NES_POKE(Ppu,2000)
 		{
-			UpdateLatency();
-	
+			Update();
+
 			io.latch = data;
 	
 			scroll.latch &= (Scroll::NAME ^ 0x7FFFU);
@@ -892,17 +863,17 @@ namespace Nes
 		NES_PEEK(Ppu,2002)
 		{
 			Update();
-	
-			register uint status = regs.status;
+
+			register uint status = regs.status & 0xFF;
 			regs.status &= (Regs::STATUS_VBLANK ^ 0xFF);
-	
+
 			scroll.toggle = 0;
-	
+
 			if (cycles.spriteOverflow < cpu.GetMasterClockCycles())
 				status |= Regs::STATUS_SP_OVERFLOW;
-	
+
 			io.latch = (io.latch & Regs::STATUS_LATCH) | status;
-	
+
 			return io.latch;
 		}
 	
@@ -1640,36 +1611,66 @@ namespace Nes
 
 				oam.clip = (regs.ctrl1 & Regs::CTRL1_SP_NO_CLIPPING) ? ~0U : 0U;			
 				tiles.clip = (regs.ctrl1 & Regs::CTRL1_BG_NO_CLIPPING) ? ~0U : 0U;
-				cycles.count += cycles.dead;			
-				cycles.dead = cycles.rest;
 
-				NST_PPU_NEXT_PHASE( HActive0 );
+				if (!(regs.ctrl1 & regs.frame))
+				{
+					cycles.count += cycles.six;
+					NST_PPU_NEXT_PHASE( HActive0 );
+				}
+				else
+				{
+					cycles.count += MC_DIV_NTSC * 5;			
+					regs.frame &= Regs::FRAME_ODD;
+					cpu.SetupFrame( MC_DIV_NTSC * CC_FRAME_1_NTSC );
+					NST_PPU_NEXT_PHASE( HActive0 );
+				}
 			}
 			else
 			{
 				output.index = ~0U;
-				cycles.count = cycles.frame;
-	
-				NST_PPU_NEXT_PHASE( VBlank );
+				cycles.count = cpu.GetMasterClockFrameCycles() - cycles.one;
+				NST_PPU_NEXT_PHASE( VBlankIn );
 			}
 		}
-	
+
+		void Ppu::VBlankIn()
+		{
+			regs.status |= Regs::STATUS_VBLANKING;
+			cycles.count += cycles.one;
+			NST_PPU_NEXT_PHASE( VBlank );
+		}
+
 		void Ppu::VBlank()
 		{
-			NST_ASSERT( cycles.count == cycles.frame && scanline != SCANLINE_VBLANK && oam.address < Oam::SIZE );
+			NST_ASSERT( scanline != SCANLINE_VBLANK && oam.address < Oam::SIZE );
 	
-			// if landing here, the CPU's frame cycle count overflowed
-	
-			regs.status |= Regs::STATUS_VBLANK;
-			cycles.count = NES_CYCLE_MAX;
-			phase = &Ppu::HDummy;
+			NST_VERIFY_MSG( regs.status & Regs::STATUS_VBLANKING, "Ppu $2002/VBlank conflict!" );
+
+			regs.status = (regs.status & 0xFF) | ((regs.status >> 1) & Regs::STATUS_VBLANK);
+			regs.frame = (regs.frame & Regs::FRAME_ODD) ^ Regs::FRAME_ODD;
+			
 			scanline = SCANLINE_VBLANK;
 			oam.address = 0x00;
-			
-			if (regs.ctrl0 & Regs::CTRL0_NMI)
-				cpu.DoNMI( cycles.frame );
+
+			if (cycles.spriteOverflow != NES_CYCLE_MAX)
+			{
+				cycles.spriteOverflow = NES_CYCLE_MAX;
+				regs.status |= Regs::STATUS_SP_OVERFLOW;
+			}
+
+			cycles.count += cycles.one * 2;
+			NST_PPU_NEXT_PHASE( VBlankOut );
 		}
-	
+
+		void Ppu::VBlankOut()
+		{
+			cycles.count = NES_CYCLE_MAX;
+			phase = &Ppu::HDummy;
+
+			if (regs.ctrl0 & regs.status & Regs::CTRL0_NMI)
+				cpu.DoNMI( cpu.GetMasterClockFrameCycles() );
+		}
+
 		void Ppu::HDummy()
 		{
 			NST_ASSERT( scanline == SCANLINE_VBLANK );
@@ -1755,12 +1756,17 @@ namespace Nes
 	
 		void Ppu::WarmUp()
 		{
-			NST_ASSERT( stage );
+			NST_ASSERT( stage && phase == &Ppu::WarmUp );
 	
 			cycles.count = NES_CYCLE_MAX;
+			regs.frame = (regs.frame & Regs::FRAME_ODD) ^ Regs::FRAME_ODD;
 	
 			if (!--stage)
-				phase = &Ppu::VBlank;
+			{
+				regs.status |= Regs::STATUS_VBLANK;
+				oam.address = 0x00;
+				phase = &Ppu::HDummy;
+			}
 		}
 	
         #ifdef NST_PRAGMA_OPTIMIZE

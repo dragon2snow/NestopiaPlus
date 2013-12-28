@@ -27,7 +27,7 @@
 #include "NstResourceFile.hpp"
 #include "NstIoStream.hpp"
 #include "NstIoFile.hpp"
-#include "NstIoZip.hpp"
+#include "NstIoArchive.hpp"
 #include "NstDialogLauncher.hpp"
 #include "NstManagerEmulator.hpp"
 #include "NstManagerLauncher.hpp"
@@ -45,8 +45,11 @@ namespace Nestopia
 	{
 		state[FITS] = TRUE;
 		state[AVAILABLE] = TRUE;
+
 		window.Messages().Hooks().Add( WM_DISPLAYCHANGE, this, &Launcher::OnDisplayChange );
 		m.Commands().Add( IDM_FILE_LAUNCHER, this, &Launcher::OnMenu );
+
+		Application::Instance::Events::Add( this, &Launcher::OnAppEvent );
 		emulator.Events().Add( this, &Launcher::OnEmuEvent );
 	}
 
@@ -59,7 +62,7 @@ namespace Nestopia
 	{
 		Collection::Buffer buffer;
 
-		if (Resource::File( IDR_IMAGEDATABASE1, "ImageDatabase" ).Uncompress( buffer ))
+		if (Resource::File( IDR_IMAGEDATABASE, "ImageDatabase" ).Uncompress( buffer ))
 		{
 			Io::Stream::Input stream( buffer );
 			Nes::Cartridge( emulator ).GetDatabase().Load( stream );
@@ -107,6 +110,17 @@ namespace Nestopia
 				state[AVAILABLE] = (event == Emulator::EVENT_NETPLAY_MODE_OFF);
 				Update();
 				break;			
+		}
+	}
+
+	void Launcher::OnAppEvent(Application::Instance::Event event,const void*)
+	{
+		switch (event)
+		{
+			case Application::Instance::EVENT_FULLSCREEN:
+
+				dialog->Close();
+				break;
 		}
 	}
 }

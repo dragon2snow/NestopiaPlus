@@ -187,8 +187,8 @@ namespace Nestopia
 
 	void Sound::Recorder::OnMenuStop(uint)
 	{
+		recording = FALSE;
 		UpdateMenu();
-
 		Io::Screen() << Resource::String(IDS_SCREEN_SOUND_RECORDER_STOP);
 	}
 

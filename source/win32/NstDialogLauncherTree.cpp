@@ -37,14 +37,14 @@ namespace Nestopia
 
 		ctrl.SetImageList( imageList );
 
-		ctrl.Add( "All Files"  );
-		ctrl.Add( "NES Files"  );
-		ctrl.Add( "UNIF Files" );
-		ctrl.Add( "FDS Files"  );
-		ctrl.Add( "NSF Files"  );
-		ctrl.Add( "IPS Files"  );
-		ctrl.Add( "NSP Files"  );
-		ctrl.Add( "ZIP Files"  );
+		ctrl.Add( "All Files"     );
+		ctrl.Add( "NES Files"     );
+		ctrl.Add( "UNIF Files"    );
+		ctrl.Add( "FDS Files"     );
+		ctrl.Add( "NSF Files"     );
+		ctrl.Add( "IPS Files"     );
+		ctrl.Add( "NSP Files"     );
+		ctrl.Add( "Archive Files" );
 
 		ctrl[0].Select();
 	}
@@ -68,7 +68,7 @@ namespace Nestopia
 			case 4: return List::Files::Entry::NSF;
 			case 5: return List::Files::Entry::IPS;
 			case 6: return List::Files::Entry::NSP;
-			case 7: return List::Files::Entry::ZIP;
+			case 7: return List::Files::Entry::ARCHIVE;
 		}
 
 		return List::Files::Entry::ALL;

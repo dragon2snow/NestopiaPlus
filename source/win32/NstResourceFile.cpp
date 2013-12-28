@@ -23,21 +23,21 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 
 #include "NstCollectionVector.hpp"
-#include "NstIoZip.hpp"
+#include "NstIoArchive.hpp"
 #include "NstResourceFile.hpp"
 
 namespace Nestopia
 {
 	uint Resource::File::Uncompress(Collection::Buffer& buffer) const
 	{
-		if (GetData().Size())
+		if (GetSize())
 		{
-			const Io::Zip zip( GetData() );
+			const Io::Archive archive( GetData(), GetSize() );
 
-			if (zip.NumFiles())
+			if (archive.NumFiles())
 			{
-				buffer.Resize( zip[0].UncompressedSize() );
-				return zip[0].Uncompress( buffer );
+				buffer.Resize( archive[0].Size() );
+				return archive[0].Uncompress( buffer );
 			}
 		}
 

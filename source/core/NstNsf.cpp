@@ -263,7 +263,7 @@ namespace Nes
 			return type;
 		}
 	
-		Result Nsf::Reset(bool,bool)
+		void Nsf::Reset(bool)
 		{	
 			cpu.Map( 0x38F0U ).Set( this, &Nsf::Peek_38F0, &Nsf::Poke_Nop );
 			cpu.Map( 0x38F1U ).Set( this, &Nsf::Peek_38F1, &Nsf::Poke_Nop );
@@ -364,8 +364,6 @@ namespace Nes
 			routine.reset = Routine::RESET;
 
 			SetMode( cpu.GetMode() );
-
-			return RESULT_OK;
 		}
 	
 		Result Nsf::SelectSong(const uint song)

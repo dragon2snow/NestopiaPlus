@@ -28,6 +28,8 @@
 #pragma once
 
 #include "NstWindowDialog.hpp"
+#include "NstManagerEmulator.hpp"
+#include "../core/api/NstApiCheats.hpp"
 
 namespace Nestopia
 {
@@ -45,8 +47,10 @@ namespace Nestopia
 		{
 		public:
 
-			Cheats(const Configuration&,const Managers::Paths&);
+			Cheats(Managers::Emulator&,const Configuration&,const Managers::Paths&);
 			~Cheats();
+
+			typedef Nes::Cheats::Code Mem;
 
 			void Save(Configuration&) const;
 			void Save(Io::Nsp::Context&) const;
@@ -82,10 +86,10 @@ namespace Nestopia
 				List(CodeDialog&,const Managers::Paths&);
 				~List();
 
-				ibool Add(ulong,Generic::Stream);
-				void  Load(const Io::Nsp::Context&);
-				void  Import(String::Generic=String::Generic());
-				void  InitDialog(Dialog&,uint);
+				void Add(const Mem&,Generic::Stream);
+				void Load(const Io::Nsp::Context&);
+				void Import(String::Generic=String::Generic());
+				void InitDialog(Dialog&,uint);
 
 			private:
 
@@ -101,18 +105,14 @@ namespace Nestopia
 
 				struct Code
 				{
-					explicit Code(ulong);
+					explicit Code(const Mem&);
 
 					void CheckDesc();
+					inline bool operator == (uint) const;
 
-					const ulong packed;
 					ibool enabled;
+					Mem mem;
 					String::Heap desc;
-
-					operator ulong () const
-					{
-						return packed;
-					}
 				};
 						   
 				struct Codes : Collection::Vector<Code>
@@ -124,7 +124,7 @@ namespace Nestopia
 					void Save(Configuration&) const;
 					uint Save(Io::Nsp::Context&) const;
 					void Clear();
-					ibool Add(ulong);
+					Code& Add(const Mem&);
 				};
 
 				class ListView : public Control::ListView
@@ -186,14 +186,9 @@ namespace Nestopia
 					return codes.Size();
 				}
 
-				ulong operator [] (uint i) const
+				const Code& operator [] (uint i) const
 				{
-					return codes[i].packed;
-				}
-
-				ibool IsEnabled(uint i) const
-				{
-					return codes[i].enabled;
+					return codes[i];
 				}
 
 				HWND GetHandle() const
@@ -202,21 +197,56 @@ namespace Nestopia
 				}
 			};
 
-			ibool OnInitMainDialog  (Param&);
-			ibool OnInitCodeDialog  (Param&);
-			ibool OnClose           (Param&);
-			ibool OnDropFiles       (Param&);
-			ibool OnCodeCmdSubmit	(Param&);
-			ibool OnCodeCmdCancel	(Param&);
-			ibool OnCodeCmdValidate (Param&);
+			struct Searcher
+			{
+				Searcher();
 
-			ibool GetPackedEncodedCode (ulong&) const;
-			ibool GetPackedDecodedCode (ulong&) const;
+				enum
+				{
+					NO_FILTER = 0xFFFF
+				};
+
+				ibool hex;
+				u16 filter;
+				u8 a;
+				u8 b;
+				u8 ram[Nes::Cheats::RAM_SIZE];
+			};
+
+			void AddSearchEntry(Control::ListView,uint) const;
+			void UpdateSearchList() const;
+			void UpdateHexView(ibool);
+			void UpdateInput() const;
+
+			void OnCodeItemChanged (const NMHDR&);
+
+			ibool OnInitMainDialog    (Param&);
+			ibool OnInitCodeDialog    (Param&);
+			ibool OnDestroyCodeDialog (Param&);
+			ibool OnClose             (Param&);
+			ibool OnDropFiles         (Param&);
+			ibool OnCodeCmdReset      (Param&);
+			ibool OnCodeCmdHex        (Param&);
+			ibool OnCodeCmdSubmit	  (Param&);
+			ibool OnCodeCmdCancel	  (Param&);
+			ibool OnCodeCmdValidate   (Param&);
+			ibool OnCodeCmdType       (Param&);
+			ibool OnCodeSearchType    (Param&);
+
+			uint  GetSearchValue (uint) const;
+			void  SetSearchValue (uint,uint) const;
+			ibool GetRawCode     (Mem&) const;
+			void  SetRawCode     (const Mem&) const;
+			ibool GetGenieCode   (Mem&) const;
+			ibool GetRockyCode   (Mem&) const;
 
 			Dialog mainDialog;
 			CodeDialog codeDialog;
 			List staticList;
 			List tempList;
+			Managers::Emulator& emulator;
+			Searcher searcher;
+			Control::NotificationHandler searcherNotificationHandler;
 
 		public:
 
@@ -232,6 +262,12 @@ namespace Nestopia
 				NUM_CODE_TYPES
 			};
 
+			void ResetRamSearch()
+			{
+				searcher.filter = Searcher::NO_FILTER;
+				searcher.a = searcher.b = 0x00;
+			}
+
 			uint GetNumCodes(uint type) const
 			{
 				return (type ? tempList : staticList).Size();
@@ -239,12 +275,12 @@ namespace Nestopia
 
 			ibool IsCodeEnabled(uint type,uint i) const
 			{
-				return (type ? tempList : staticList).IsEnabled(i);
+				return (type ? tempList : staticList)[i].enabled;
 			}
 
-			ulong GetCode(uint type,uint i) const
+			const Mem& GetCode(uint type,uint i) const
 			{
-				return (type ? tempList : staticList)[i];
+				return (type ? tempList : staticList)[i].mem;
 			}
 		};
 	}

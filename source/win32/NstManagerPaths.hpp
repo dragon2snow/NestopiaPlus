@@ -29,7 +29,6 @@
 
 #include "resource/resource.h"
 #include "NstObjectHeap.hpp"
-#include "NstObjectRaw.hpp"
 #include "NstCollectionBitSet.hpp"
 #include "NstCollectionVector.hpp"
 #include "NstManagerEmulator.hpp"
@@ -39,7 +38,7 @@ namespace Nestopia
 	namespace Io
 	{
 		class File;
-		class Zip;
+		class Archive;
 	}
 
 	namespace Window
@@ -101,6 +100,8 @@ namespace Nestopia
 					FILEID_NST     = 0x1A54534E,
 					FILEID_NSV     = 0x1A56534E,
 					FILEID_ZIP     = 0x04034B50,
+					FILEID_RAR     = 0x21726152,
+					FILEID_7Z      = 0xAFBC7A37,
 					FILEID_FDS_RAW = 0x494E2A01,
 					FILEID_WAV     = 0x46464952
 				};
@@ -165,7 +166,8 @@ namespace Nestopia
 
 			ibool Save
 			(
-       			const Object::ConstRaw&,
+       			const void*,
+				uint,
 				File::Type,
 				String::Generic=String::Generic(),
 				Alert=NOISY,
@@ -209,7 +211,7 @@ namespace Nestopia
 
 			static File::Type LoadFromArchive
 			(
-		     	const Io::Zip&,
+		     	const Io::Archive&,
 				Path&,
 				File::Data*,
 				const String::Generic&,

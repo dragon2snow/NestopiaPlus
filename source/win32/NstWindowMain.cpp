@@ -368,13 +368,14 @@ namespace Nestopia
 
 						emulator.Execute( video->GetOutput(), sound->GetOutput(), input->GetOutput() );
 						input->RefreshCursor();					
-						frameClock->SynchronizeGame( !video->IsVSyncEnabled() || emulator.IsSpeedAlternating() );
+						frameClock->GameSynchronize( !video->IsVSyncEnabled() );
 						video->PresentScreen();
 					}
 					else
 					{
+						NST_ASSERT( emulator.Is(Nes::Machine::SOUND) );
 						emulator.Execute( NULL, sound->GetOutput(), NULL );
-						frameClock->SynchronizeSound(); 
+						frameClock->SoundSynchronize();
 					}			
 				}		
 				else

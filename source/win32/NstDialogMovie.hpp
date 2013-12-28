@@ -42,11 +42,13 @@ namespace Nestopia
 
 			typedef String::Path<false> MovieFile;
 
-			void SetMovieFile(const MovieFile&);
+			ibool SetMovieFile(const MovieFile&);
 
 		private:
 
 			struct Handlers;
+
+			void FixFile();
 
 			ibool OnInitDialog (Param&);
 			ibool OnCmdBrowse  (Param&);
@@ -68,6 +70,11 @@ namespace Nestopia
 			const MovieFile& GetMovieFile() const
 			{
 				return movieFile;
+			}
+
+			void ClearMovieFile()
+			{
+				movieFile.Clear();
 			}
 		};
 	}

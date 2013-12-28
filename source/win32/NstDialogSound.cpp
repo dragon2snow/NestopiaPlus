@@ -34,16 +34,6 @@ namespace Nestopia
 {
 	using namespace Window;
 
-	NST_COMPILE_ASSERT
-	(
-		0x1U << Sound::CHANNEL_SQUARE1  == Nes::Sound::CHANNEL_SQUARE1 &&
-		0x1U << Sound::CHANNEL_SQUARE2  == Nes::Sound::CHANNEL_SQUARE2 &&
-		0x1U << Sound::CHANNEL_TRIANGLE == Nes::Sound::CHANNEL_TRIANGLE &&
-		0x1U << Sound::CHANNEL_NOISE    == Nes::Sound::CHANNEL_NOISE &&
-		0x1U << Sound::CHANNEL_DPCM     == Nes::Sound::CHANNEL_DPCM &&
-		0x1U << Sound::CHANNEL_EXTERNAL == Nes::Sound::CHANNEL_EXTERNAL
-	);
-
 	Sound::Settings::Settings()
 	:
 	enabled  ( FALSE ),
@@ -54,7 +44,17 @@ namespace Nestopia
 	latency  ( DEFAULT_LATENCY ),
 	stereo   ( DEFAULT_MONO ),
 	pitch    ( FALSE )
-	{}
+	{
+		NST_COMPILE_ASSERT
+		(
+			0x1U << Sound::CHANNEL_SQUARE1  == Nes::Sound::CHANNEL_SQUARE1 &&
+			0x1U << Sound::CHANNEL_SQUARE2  == Nes::Sound::CHANNEL_SQUARE2 &&
+			0x1U << Sound::CHANNEL_TRIANGLE == Nes::Sound::CHANNEL_TRIANGLE &&
+			0x1U << Sound::CHANNEL_NOISE    == Nes::Sound::CHANNEL_NOISE &&
+			0x1U << Sound::CHANNEL_DPCM     == Nes::Sound::CHANNEL_DPCM &&
+			0x1U << Sound::CHANNEL_EXTERNAL == Nes::Sound::CHANNEL_EXTERNAL
+		);
+	}
 
 	const Sound::ChannelLut Sound::channelLut[] =
 	{
@@ -415,6 +415,20 @@ namespace Nestopia
 		if (param.Button().IsClicked())
 		{
 			dialog.Edit(IDC_SOUND_CAPTURE_FILE) >> waveFile;
+
+			if (waveFile.File().Size())
+			{
+				if (waveFile.Directory().Empty())
+					waveFile.Directory() = paths.GetDefaultDirectory( Managers::Paths::File::WAVE );
+
+				if (waveFile.Extension().Empty())
+					waveFile.Extension() = "wav";
+			}
+			else
+			{
+				waveFile.Clear();
+			}
+
 			dialog.Close();
 		}
 

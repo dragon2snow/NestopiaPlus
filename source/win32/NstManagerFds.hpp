@@ -27,6 +27,8 @@
 
 #pragma once
 
+#include "../core/api/NstApiFds.hpp"
+
 namespace Nestopia
 {
 	namespace Window
@@ -49,22 +51,19 @@ namespace Nestopia
 
 			struct Callbacks;
 
-			enum
-			{
-				NO_DISK = INT_MAX
-			};
-
 			void UpdateSettings() const;
-			uint CurrentDisk() const;
+
+			void OnDiskChange (Nes::Fds::Event,uint,uint) const;
 
 			void OnCmdInsertDisk (uint);
 			void OnCmdChangeSide (uint);
 			void OnCmdEjectDisk	 (uint);
 			void OnCmdOptions	 (uint);
 
-			void OnEmuEvent(Emulator::Event);
+			void OnEmuEvent (Emulator::Event);
 
 			Emulator& emulator;
+			ibool master;
 			const Window::Menu& menu;
 			Object::Heap<Window::Fds> dialog;
 		};

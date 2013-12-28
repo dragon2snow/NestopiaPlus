@@ -43,7 +43,6 @@ namespace Nes
 
 			static uint GetChrType1(const uint);
 			static uint GetChrType2(const uint);
-			static uint GetChrType3(const uint);
 
 			void SubReset(bool);   
 			void UpdateChr() const;

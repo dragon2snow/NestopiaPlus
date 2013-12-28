@@ -47,6 +47,7 @@ namespace Nes
 			void MachineReset(bool);
 			void EndFrame();
 			void Stop();
+			void Cut();
 
 		private:
 
@@ -71,16 +72,16 @@ namespace Nes
 
 			ibool good;
 			dword frame;
+			ibool cut;
 			Port port[2];
 			State::Saver state;
-			const ulong streamPos;
 
 		public:
 
 			Recorder(StdStream stream)
-			: good(true), frame(0), state(stream,true), streamPos(state.GetStream().GetPos()) {}
+			: good(true), frame(0), cut(false), state(stream,true) {}
 
-			bool operator == (StdStream stream)
+			bool operator == (StdStream stream) const
 			{
 				return state.GetStream().GetStdStream() == stream;
 			}
@@ -94,7 +95,6 @@ namespace Nes
 			bool BeginFrame(dword,Api::Emulator&,LoadCallback,ResetCallback);
 			inline uint ReadPort(uint);
 			void EndFrame();
-			void Stop();
 
 		private:
 
@@ -124,16 +124,19 @@ namespace Nes
 			Frame frame;
 			Port port[2];
 			State::Loader state;
-			const ulong streamPos;
 
 		public:
 
 			Player(StdStream stream)
-			: state(stream), streamPos(state.GetStream().GetPos()) {}
+			: state(stream) {}
 
-			bool operator == (StdStream stream)
+			bool operator == (StdStream stream) const
 			{
 				return state.GetStream().GetStdStream() == stream;
+			}
+
+			void Stop()
+			{
 			}
 		};
 
@@ -150,11 +153,12 @@ namespace Nes
 
 		Movie::Movie(Cpu& c,dword crc)
 		:			
-		cpu      (c),
-		status   (STOPPED),
-		player   (NULL),
-		recorder (NULL),
-		prgCrc   (crc)
+		cpu            (c),
+		status         (STOPPED),
+		player         (NULL),
+		recorder       (NULL),
+		prgCrc         (crc),
+		callbackEnable (false)
 		{
 		}
 
@@ -174,12 +178,14 @@ namespace Nes
 			recorder = NULL;
 		}
 
-		Result Movie::Record(StdStream const stream,const bool end)
+		Result Movie::Record(StdStream const stream,const bool end,const bool callback)
 		{
 			NST_ASSERT( stream );
 
 			if (status != PLAYING)
 			{
+				callbackEnable = callback;
+
 				if (player)
 				{
 					Close();
@@ -214,7 +220,8 @@ namespace Nes
 				status = RECORDING;
 				SaveCpuPorts();
 
-				Api::Movie::stateCallback( Api::Movie::RECORDING );
+				if (callbackEnable)
+					Api::Movie::stateCallback( Api::Movie::RECORDING );
 
 				return RESULT_OK;
 			}
@@ -222,12 +229,14 @@ namespace Nes
 			return RESULT_ERR_NOT_READY;
 		}
 	
-		Result Movie::Play(StdStream const stream)
+		Result Movie::Play(StdStream const stream,const bool callback)
 		{
 			NST_ASSERT( stream );
 
 			if (status != RECORDING)
 			{
+				callbackEnable = callback;
+
 				if (recorder)
 				{
 					Close();
@@ -262,7 +271,8 @@ namespace Nes
 				status = PLAYING;
 				SaveCpuPorts();
 
-				Api::Movie::stateCallback( Api::Movie::PLAYING );
+				if (callbackEnable)
+					Api::Movie::stateCallback( Api::Movie::PLAYING );
 
 				return RESULT_OK;
 			}
@@ -298,7 +308,7 @@ namespace Nes
 					{
 						result = r;
 					}
-					catch (std::bad_alloc&)
+					catch (const std::bad_alloc&)
 					{
 						result = RESULT_ERR_OUT_OF_MEMORY;
 					}
@@ -307,8 +317,8 @@ namespace Nes
 						result = RESULT_ERR_GENERIC;
 					}
 
-					if (NES_SUCCEEDED(result))
-						Api::Movie::stateCallback( Api::Movie::STOPPED ); 
+					if (NES_SUCCEEDED(result) && callbackEnable)
+						Api::Movie::stateCallback( recorder ? Api::Movie::STOPPED_RECORDING : Api::Movie::STOPPED_PLAYING ); 
 				}
 			}
 
@@ -347,7 +357,8 @@ namespace Nes
 					break;
 			}
 
-			Api::Movie::stateCallback( state );
+			if (callbackEnable)
+				Api::Movie::stateCallback( state );
 			
 			return false;
 		}
@@ -355,6 +366,12 @@ namespace Nes
 		void Movie::Stop()
 		{
 			Stop( RESULT_OK );
+		}
+
+		void Movie::Cut()
+		{
+			if (status == RECORDING)
+				recorder->Cut();
 		}
 
 		bool Movie::BeginFrame
@@ -384,7 +401,7 @@ namespace Nes
 			{
 				return Stop( result );
 			}
-			catch (std::bad_alloc&)
+			catch (const std::bad_alloc&)
 			{
 				return Stop( RESULT_ERR_OUT_OF_MEMORY );
 			}
@@ -413,7 +430,7 @@ namespace Nes
 			{
 				return Stop( result );
 			}
-			catch (std::bad_alloc&)
+			catch (const std::bad_alloc&)
 			{
 				return Stop( RESULT_ERR_OUT_OF_MEMORY );
 			}
@@ -439,7 +456,7 @@ namespace Nes
 					{
 						return Stop( result );
 					}
-					catch (std::bad_alloc&)
+					catch (const std::bad_alloc&)
 					{
 						return Stop( RESULT_ERR_OUT_OF_MEMORY );
 					}
@@ -501,7 +518,7 @@ namespace Nes
 				0,0,0,0,0,0,0
 			};
 
-			state.GetStream().SetPos( streamPos );
+			cut = false;
 
 			if (end && 0 < (end = state.GetStream().Length()))
 			{
@@ -530,8 +547,12 @@ namespace Nes
 
 			if (frame && frame != ~dword(0))
 				state.Begin('W','A','I','\0').Write32( frame ).End();
+		}
 
-			state.GetStream().SetPos( streamPos );
+		void Movie::Recorder::Cut()
+		{
+			Stop();
+			cut = true;
 		}
 
 		void Movie::Recorder::MachineReset(const bool hard)
@@ -562,8 +583,6 @@ namespace Nes
 				port[i].output.Clear();
 			}
 
-			state.GetStream().SetPos( streamPos );
-
 			if (state.GetStream().Read32() != NES_STATE_CHUNK_ID('N','S','V',0x1A))
 				throw RESULT_ERR_INVALID_FILE;
 
@@ -574,7 +593,7 @@ namespace Nes
 
 			if 
 			(
-				crc && crc != prgCrc &&
+				crc && prgCrc && crc != prgCrc &&
 				Api::User::questionCallback( Api::User::QUESTION_NSV_PRG_CRC_FAIL_CONTINUE ) == Api::User::ANSWER_NO
 			)
 			    throw RESULT_ERR_INVALID_CRC;
@@ -582,11 +601,6 @@ namespace Nes
 			state.GetStream().Seek( 7 );
 
 			good = true;
-		}
-
-		void Movie::Player::Stop()
-		{
-			state.GetStream().SetPos( streamPos );
 		}
 
 		bool Movie::Player::Port::Load(State::Loader& state)
@@ -734,8 +748,10 @@ namespace Nes
 			for (uint i=0; i < 2; ++i)
 				port[i].input.Clear();
 
-			if (frame == emuFrame)
+			if (frame == emuFrame && !cut)
 				return;
+
+			cut = false;
 			
 			Flush();
 
@@ -812,7 +828,7 @@ namespace Nes
 					{
 						frame.reset = ~dword(0);
 						
-						const Result result = (emulator.*reseter)( state.Read8() & 0x1, false );
+						const Result result = (emulator.*reseter)( state.Read8() & 0x1 );
 
 						if (NES_SUCCEEDED(result))
 						{

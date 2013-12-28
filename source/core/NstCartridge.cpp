@@ -116,8 +116,6 @@ namespace Nes
 	
 		Cartridge::~Cartridge()
 		{
-			SaveBattery();
-	
 			VsSystem::Destroy( vs );
 			Mapper::Destroy( mapper );
 		}
@@ -482,10 +480,8 @@ namespace Nes
 			}
 		}
 
-		Result Cartridge::Reset(const bool hard,const bool flush)
+		void Cartridge::Reset(const bool hard)
 		{
-			const Result result = flush ? SaveBattery() : RESULT_OK;
-	
 			if (hard && !info.battery)
 				ResetWRam();
 
@@ -494,8 +490,6 @@ namespace Nes
 	
 			if (vs)
 				vs->Reset( hard );
-	
-			return result;
 		}
 	
 		void Cartridge::SaveState(State::Saver& state) const
@@ -566,7 +560,7 @@ namespace Nes
 			}
 		}
 	
-		Result Cartridge::SaveBattery()
+		Result Cartridge::SaveBattery() const
 		{
 			if (info.battery && wRam.Size())
 			{
@@ -585,7 +579,7 @@ namespace Nes
 						batteryCrc = crc;
 						Api::User::fileIoCallback( Api::User::FILE_SAVE_BATTERY, vector );
 					}
-					catch (const std::bad_alloc&)
+					catch (...)
 					{
 						return RESULT_WARN_BATTERY_NOT_SAVED;
 					}

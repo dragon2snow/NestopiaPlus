@@ -78,7 +78,7 @@ namespace Nestopia
 		{
 			return ids;
 		}
-		catch (std::bad_alloc&)
+		catch (const std::bad_alloc&)
 		{
 			return IDS_ERR_OUT_OF_MEMORY;
 		}
@@ -110,7 +110,7 @@ namespace Nestopia
 		{
 			return i;
 		}
-		catch (std::bad_alloc&)
+		catch (const std::bad_alloc&)
 		{
 			return IDS_ERR_OUT_OF_MEMORY;
 		}

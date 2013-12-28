@@ -741,11 +741,10 @@ namespace Nestopia
 	{
 		switch (event)
 		{
-			case Emulator::EVENT_SPEED:
-			{
-				direct2d.UpdateFrameRate( emulator.GetSpeed(), emulator.SyncFrameRate() );
-				break;
-			}
+			case Emulator::EVENT_BASE_SPEED:
+			
+				direct2d.UpdateFrameRate( emulator.GetBaseSpeed(), emulator.SyncFrameRate() );
+				break;			
 
 			case Emulator::EVENT_NSF_NEXT:
 			case Emulator::EVENT_NSF_PREV:

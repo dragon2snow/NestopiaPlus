@@ -46,25 +46,19 @@ namespace Nes
 			void SubLoad(State::Loader&);
 			void SubReset(bool);
 
+			void UpdateChr() const;
 			void UpdatePrg();
 
-			NES_DECL_POKE( 5000 )
 			NES_DECL_PEEK( 5000 )
+			NES_DECL_POKE( 5000 )
 			NES_DECL_POKE( 5001 )
 			NES_DECL_POKE( 8000 )
 			NES_DECL_POKE( 8001	)
 			NES_DECL_POKE( 8003	)
 
-			enum
-			{
-				SWAP_32        = b00100000,
-				SWAP_NO_EXBANK = b10000000
-			};
-
-			ibool useExBank;
-			uint latch;
-			uint exBankMode;
-			uint exBanks[2];
+			uint exCtrl;
+			uint exMode;
+			uint exLast;
 			ibool hack;
 		};
 	}

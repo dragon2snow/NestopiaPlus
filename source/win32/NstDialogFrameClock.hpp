@@ -53,25 +53,33 @@ namespace Nestopia
 				MAX_FRAME_SKIPS = 16,
 				DEFAULT_SPEED = 60,
 				DEFAULT_ALT_SPEED = 180,
+				DEFAULT_REWIND_SPEED = DEFAULT_SPEED,
 				DEFAULT_FRAME_SKIPS = 8
 			};
 
 			struct Settings
 			{
-				ibool autoFrameSkip;
-				ibool vsync;
-				ibool useDefaultSpeed;
-				ibool pfCounter;
-				uint speed;
-				uint altSpeed;
-				uint maxFrameSkips;
+				bool autoFrameSkip;
+				bool vsync;
+				bool rewinder;
+				bool useDefaultSpeed;
+				bool useDefaultRewindSpeed;
+				bool noRewindSound;
+				bool pfCounter;
+				uchar speed;
+				uchar altSpeed;
+				uchar rewindSpeed;
+				uchar maxFrameSkips;
 			};
+
+			void UpdateRewinderEnable() const;
 
 			ibool OnInitDialog      (Param&);
 			ibool OnDestroy         (Param&);
 			ibool OnHScroll         (Param&);
 			ibool OnCmdRefresh      (Param&);
 			ibool OnCmdDefaultSpeed (Param&);
+			ibool OnCmdRewinder		(Param&);
 			ibool OnCmdDefault      (Param&);
 			ibool OnCmdOk           (Param&);
 
@@ -90,19 +98,34 @@ namespace Nestopia
 				return settings.pfCounter;
 			}
 
-			ibool UseAutoFrameSkip() const
+			bool UseAutoFrameSkip() const
 			{
 				return settings.autoFrameSkip;
 			}
 
-			ibool UseVSync() const
+			bool UseVSync() const
 			{
 				return settings.vsync;
 			}
 
-			ibool UseDefaultSpeed() const
+			bool UseRewinder() const
+			{
+				return settings.rewinder;
+			}
+
+			bool UseDefaultSpeed() const
 			{
 				return settings.useDefaultSpeed;
+			}
+
+			bool UseDefaultRewindSpeed() const
+			{
+				return settings.useDefaultRewindSpeed;
+			}
+
+			bool NoRewindSound() const
+			{
+				return settings.noRewindSound;
 			}
 
 			uint GetSpeed() const
@@ -113,6 +136,11 @@ namespace Nestopia
 			uint GetAltSpeed() const
 			{
 				return settings.altSpeed;
+			}
+
+			uint GetRewindSpeed() const
+			{
+				return settings.rewindSpeed;
 			}
 
 			uint GetMaxFrameSkips() const

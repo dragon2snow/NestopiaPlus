@@ -28,9 +28,9 @@
 
 namespace Nestopia
 {
-	void Window::Control::Edit::Select(const ibool state) const
+	void Window::Control::Edit::SetNumberOnly(const ibool numOnly) const
 	{
-		control.Send( EM_SETSEL, state ? 0 : -1, state ? -1 : 0 );
+		control.ModifyStyle( ES_NUMBER, numOnly );
 	}
 
 	void Window::Control::Edit::Limit(const uint length) const

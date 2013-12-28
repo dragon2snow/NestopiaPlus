@@ -51,18 +51,20 @@ namespace Nestopia
 		Close();
 	}
 
-	void File::Open(const String::Generic name,const uint mode)
+	void File::Open(const String::Generic n,const uint mode)
 	{
 		NST_ASSERT( (mode & (WRITE|READ)) && ((mode & WRITE) || !(mode & EMPTY)) );
 
 		Close();
 
-		if (name.Empty())
+		if (n.Empty())
 			throw ERR_NOT_FOUND;
+
+		name = n;
 
 		handle = ::CreateFile
 		( 
-       		name.IsNullTerminated() ? static_cast<cstring>(name) : static_cast<cstring>(String::Path<true>(name)), 
+       		n.IsNullTerminated() ? static_cast<cstring>(name) : static_cast<cstring>(String::Path<true>(name)), 
 			(
 				((mode & READ)  ? GENERIC_READ  : 0) | 
 				((mode & WRITE) ? GENERIC_WRITE : 0)
@@ -108,6 +110,8 @@ namespace Nestopia
 
 	void File::Close()
 	{
+		name.Clear();
+
 		if (IsOpen())
 		{
 			::CloseHandle( handle );
@@ -139,6 +143,23 @@ namespace Nestopia
 			if (!::ReadFile( handle, data, size, &read, NULL ) || read != size)
 				throw ERR_READ;
 		}
+	}
+
+	uint File::ReadSome(void* const data,uint size) const
+	{
+		NST_ASSERT( IsOpen() && bool(data) >= bool(size) );
+
+		if (size)
+		{
+			DWORD read;
+
+			if (!::ReadFile( handle, data, size, &read, NULL ))
+				throw ERR_READ;
+
+			return read;
+		}
+
+		return 0;
 	}
 
 	void File::Peek(void* const data,const uint size) const
@@ -214,6 +235,19 @@ namespace Nestopia
 		{
 			const DWORD result = ::GetFileAttributes( path );
 			return (result != INVALID_FILE_ATTRIBUTES) && !(result & FILE_ATTRIBUTE_DIRECTORY);
+		}
+
+		return FALSE;
+	}
+
+	ibool File::FileProtected(cstring const path)
+	{
+		NST_ASSERT( path );
+
+		if (*path)
+		{
+			const DWORD result = ::GetFileAttributes( path );
+			return (result != INVALID_FILE_ATTRIBUTES) && (result & FILE_ATTRIBUTE_READONLY);
 		}
 
 		return FALSE;

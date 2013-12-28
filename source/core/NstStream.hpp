@@ -74,7 +74,7 @@ namespace Nes
 					Read( data, N );
 				}
 
-				StdStream GetStdStream()
+				StdStream GetStdStream() const
 				{
 					return stream;
 				}
@@ -101,7 +101,7 @@ namespace Nes
 				ulong GetPos();
 				ulong Length();
 
-				StdStream GetStdStream()
+				StdStream GetStdStream() const
 				{
 					return stream;
 				}

@@ -29,9 +29,9 @@
 #include "NstWindowUser.hpp"
 #include "NstDialogCheats.hpp"
 #include "NstManagerPaths.hpp"
+#include "NstApplicationInstance.hpp"
 #include "NstApplicationConfiguration.hpp"
 #include "NstIoNsp.hpp"
-#include "../core/api/NstApiGameGenie.hpp"
 #include <CommCtrl.h>
 
 namespace Nestopia
@@ -40,16 +40,24 @@ namespace Nestopia
 
 	NST_COMPILE_ASSERT
 	(
-		IDC_GAMEGENIE_STATIC_CODES  == IDC_GAMEGENIE_TEMP_CODES - 1 &&
-		IDC_GAMEGENIE_STATIC_ADD    == IDC_GAMEGENIE_TEMP_ADD - 1 &&
-		IDC_GAMEGENIE_STATIC_REMOVE == IDC_GAMEGENIE_TEMP_REMOVE - 1 &&   
-		IDC_GAMEGENIE_STATIC_IMPORT == IDC_GAMEGENIE_TEMP_IMPORT - 1 &&  
-		IDC_GAMEGENIE_STATIC_EXPORT == IDC_GAMEGENIE_TEMP_EXPORT - 1 &&   
-		IDC_GAMEGENIE_STATIC_CLEAR  == IDC_GAMEGENIE_TEMP_CLEAR - 1    
+		IDC_CHEATS_STATIC_CODES  == IDC_CHEATS_TEMP_CODES  - 1 &&
+		IDC_CHEATS_STATIC_ADD    == IDC_CHEATS_TEMP_ADD    - 1 &&
+		IDC_CHEATS_STATIC_REMOVE == IDC_CHEATS_TEMP_REMOVE - 1 &&   
+		IDC_CHEATS_STATIC_IMPORT == IDC_CHEATS_TEMP_IMPORT - 1 &&  
+		IDC_CHEATS_STATIC_EXPORT == IDC_CHEATS_TEMP_EXPORT - 1 &&   
+		IDC_CHEATS_STATIC_CLEAR  == IDC_CHEATS_TEMP_CLEAR  - 1    
 	);
 
-	Cheats::List::Code::Code(ulong p)
-	: packed(p), enabled(TRUE) {}
+	Cheats::List::Code::Code(const Mem& m)
+	: mem(m) {}
+
+	Cheats::Searcher::Searcher()
+	: hex(FALSE), filter(NO_FILTER), a(0x00), b(0x00) {}
+
+	inline bool Cheats::List::Code::operator == (uint address) const
+	{
+		return mem.address == address;
+	}
 
 	void Cheats::List::Code::CheckDesc()
 	{
@@ -72,58 +80,105 @@ namespace Nestopia
 
 		Collection::Vector<Code>::Clear();
 	}
-
+									  
 	void Cheats::List::Codes::Load(const Configuration& cfg)
 	{
-		String::Stack<32> index("gamegenie ");
+		String::Stack<32> index("cheat ");
 
-		for (;;)
+		for (uint count=1; ; ++count)
 		{
-			index(10) = Size() + 1;
-			const String::Heap& string = cfg[index];
+			index(6) = count;
+			cstring const string = cfg[index];
 
-			if (string.Empty() || string.Size() == MAX_CODES)
+			if (!*string || Size() == MAX_CODES)
 				break;
 
-			ulong packed;
+			char state[4];
+			state[0] = '\0';
 
-			if (NES_SUCCEEDED(Nes::GameGenie::Decode( string, packed )) && Add( packed ))
+			char desc[256];
+			desc[0] = '\0';
+
+			Mem mem;
+
+			if ((*string >= 'A' && *string <= 'Z') || (*string >= 'a' && *string <= 'z'))
 			{
-				Code& code = Back();
+				char characters[9];
+				characters[0] = '\0';
 
-				code.enabled = 
-				(
-					string.Size() >= 6 + 3 && string[6] == ' ' ? string( 7, 2 ) == "on" :
-		     		string.Size() >= 8 + 3 && string[8] == ' ' && string( 9, 2 ) == "on"
-				);
+				if (std::sscanf( string, "%8s %3s %255[^\0]", characters, state, desc ) < 1 || NES_FAILED(Nes::Cheats::GameGenieDecode( characters, mem )))
+					continue;
+			}
+			else
+			{
+				int address=INT_MAX, value=INT_MAX, compare=INT_MAX;
+				int count = std::sscanf( string, "%x %x %x %3s %255[^\0]", &address, &value, &compare, state, desc );
 
-				if (string.Back() == '\"')
+				if (count > 2 && compare >= 0x00 && compare <= 0xFF)
 				{
-					code.desc = string.AfterFirstOf( '\"' );
-					code.desc.Shrink();
-					code.desc.Trim();
+					mem.useCompare = true;
+					mem.compare = (u8) compare;
 				}
+				else if (count == 2)
+				{
+					mem.useCompare = false;
+					mem.compare = 0x00;
+					count = std::sscanf( string, "%*s %*s %3s %255[^\0]", state, desc );
+				}
+				else
+				{
+					continue;
+				}
+				
+				if (address < 0x0000 || address > 0xFFFF || value < 0x00 || value > 0xFF)
+					continue;
+
+				mem.address = (u16) address;
+				mem.value = (u8) value;
+			}
+
+			Code& code = Add( mem );
+
+			code.enabled = 
+			(
+		     	(state[0] != 'O' && state[0] != 'o') || 
+				(state[1] != 'F' && state[1] != 'f') || 
+				(state[2] != 'F' && state[2] != 'f') || 
+				(state[3] != '\0')
+			);
+				
+			const uint length = std::strlen( desc );
+
+			if (length > 2 && desc[0] == '\"' && desc[length-1] == '\"')
+			{
+				code.desc.Assign( desc+1, length-2 );
+				code.desc.Trim();
 			}
 		}
 	}
 
 	void Cheats::List::Codes::Save(Configuration& cfg) const
 	{
-		String::Stack<32> index("gamegenie ");
+		String::Stack<32> index("cheat ");
 
 		for (ConstIterator it=Begin(); it != End(); ++it)
 		{
-			index(10) = (uint) (1 + it - Begin());
+			index(6) = (uint) (1 + it - Begin());
 			String::Heap& string = cfg[index].GetString();
 
-			char characters[9];
-			Nes::GameGenie::Encode( it->packed, characters );
+			string.Reserve( 2+4 + 1 + 2+2 + 1 + 2+2 + 4 + 1+1 + it->desc.Size() );
 
-			string.Reserve( 8 + 5 + 2 + it->desc.Size() );
-			string << cstring(characters) << (it->enabled ? " on " : " off ");
+			string << String::Hex( (u16) it->mem.address )
+				   << ' '
+				   << String::Hex( (u8) it->mem.value );
+
+		   if (it->mem.useCompare)
+			   string << ' ' << String::Hex( (u8) it->mem.compare );
+
+			string << (it->enabled ? " on" : " off");
 
 			if (it->desc.Size())
-				string << '\"' << it->desc << '\"';
+				string << " \"" << it->desc << '\"';
 		}
 	}
 
@@ -134,35 +189,41 @@ namespace Nestopia
 
 		for (ConstIterator it=Begin(); it != End(); ++it)
 		{
-			if (std::find( context.cheats.begin(), context.cheats.begin() + oldSize, it->packed ) == context.cheats.begin() + oldSize)
+			if (std::find( context.cheats.begin(), context.cheats.begin() + oldSize, it->mem.address ) == context.cheats.begin() + oldSize)
 			{
 				context.cheats.push_back( Io::Nsp::Context::Cheat() );
 				Io::Nsp::Context::Cheat& cheat = context.cheats.back();
 
-				cheat.code = it->packed;
+				cheat.address = it->mem.address;
+				cheat.value = it->mem.value;
+				cheat.compare = it->mem.compare;
+				cheat.useCompare = it->mem.useCompare;
 				cheat.enabled = it->enabled;
 				cheat.desc = it->desc;
 			}
 		}
-
+  
 		return context.cheats.size() - oldSize;
 	}
 
-	ibool Cheats::List::Codes::Add(ulong packed)
+	Cheats::List::Code& Cheats::List::Codes::Add(const Mem& mem)
 	{
 		NST_ASSERT( Size() < MAX_CODES );
 
-		if (!Find( packed ))
+		if (Code* const code = Find( mem.address ))
 		{
-			PushBack( Code(packed) );
-			return TRUE;
+			code->mem = mem;
+			return *code;
 		}
-
-		return FALSE;
+		else
+		{
+			PushBack( Code(mem) );
+			return Back();
+		}
 	}
   
 	Cheats::List::ListView::ListView(List* const list,Dialog& parent,const uint index)
-	: notificationHandler( IDC_GAMEGENIE_STATIC_CODES + index, parent.Messages() )
+	: notificationHandler( IDC_CHEATS_STATIC_CODES + index, parent.Messages() )
 	{
 		NST_ASSERT( index <= 1 );
 
@@ -179,18 +240,18 @@ namespace Nestopia
 		static const MsgHandler::Entry<List> commands[2][5] =
 		{
 			{
-				{ IDC_GAMEGENIE_STATIC_ADD,    &List::OnCmdAdd    },
-				{ IDC_GAMEGENIE_STATIC_REMOVE, &List::OnCmdRemove },
-				{ IDC_GAMEGENIE_STATIC_EXPORT, &List::OnCmdExport },
-				{ IDC_GAMEGENIE_STATIC_IMPORT, &List::OnCmdImport },
-				{ IDC_GAMEGENIE_STATIC_CLEAR,  &List::OnCmdClear  }
+				{ IDC_CHEATS_STATIC_ADD,    &List::OnCmdAdd    },
+				{ IDC_CHEATS_STATIC_REMOVE, &List::OnCmdRemove },
+				{ IDC_CHEATS_STATIC_EXPORT, &List::OnCmdExport },
+				{ IDC_CHEATS_STATIC_IMPORT, &List::OnCmdImport },
+				{ IDC_CHEATS_STATIC_CLEAR,  &List::OnCmdClear  }
 			},
 			{
-				{ IDC_GAMEGENIE_TEMP_ADD,    &List::OnCmdAdd    },
-				{ IDC_GAMEGENIE_TEMP_REMOVE, &List::OnCmdRemove },
-				{ IDC_GAMEGENIE_TEMP_EXPORT, &List::OnCmdExport },
-				{ IDC_GAMEGENIE_TEMP_IMPORT, &List::OnCmdImport },
-				{ IDC_GAMEGENIE_TEMP_CLEAR,  &List::OnCmdClear  }
+				{ IDC_CHEATS_TEMP_ADD,    &List::OnCmdAdd    },
+				{ IDC_CHEATS_TEMP_REMOVE, &List::OnCmdRemove },
+				{ IDC_CHEATS_TEMP_EXPORT, &List::OnCmdExport },
+				{ IDC_CHEATS_TEMP_IMPORT, &List::OnCmdImport },
+				{ IDC_CHEATS_TEMP_CLEAR,  &List::OnCmdClear  }
 			}
 		};
 
@@ -219,17 +280,35 @@ namespace Nestopia
 	{
 		NST_ASSERT( listView && listView->GetHandle() );
 
-		uint a,v,c; bool u;
-		Nes::GameGenie::Unpack( code.packed, a, v, c, u );
-
-		const String::Hex address( (u16) a );
-		const String::Hex value( (u8) v );
-		const String::Stack<8> compare( u ? String::Hex( (u8) c ) : "-" );
+		const String::Hex address( (u16) code.mem.address );
+		const String::Hex value( (u8) code.mem.value );
+		const String::Stack<8> compare( code.mem.useCompare ? String::Hex( (u8) code.mem.compare ) : "-" );
 
 		char characters[8+1];
-		Nes::GameGenie::Encode( code.packed, characters );
 
-		const int index = listView->Add( cstring(characters), listView->Size(), code.enabled );
+		if (code.mem.address >= 0x8000U)
+		{
+			Nes::Cheats::GameGenieEncode( code.mem, characters );
+		}
+		else
+		{
+			characters[0] = '-';
+			characters[1] = '\0';
+		}
+
+		int index = listView->Size();
+
+		while (index--)
+		{
+			if ((*listView)[index].Data() == code.mem.address)
+			{
+				(*listView)[index].Check( code.enabled );
+				break;
+			}
+		}
+
+		if (index == -1)
+			index = listView->Add( cstring(characters), code.mem.address, code.enabled );
 
 		cstring const table[] =
 		{
@@ -242,20 +321,14 @@ namespace Nestopia
 		listView->Columns().Align();
 	}
 
-	ibool Cheats::List::Add(ulong packed,const Generic::Stream stream)
+	void Cheats::List::Add(const Mem& mem,const Generic::Stream desc)
 	{
-		if (codes.Add( packed ))
-		{
-			Code& code = codes.Back();
+		Code& code = codes.Add( mem );
 
-			stream >> code.desc;
-			code.CheckDesc();
+		desc >> code.desc;
+		code.CheckDesc();
 
-			AddToDialog( code );			
-			return TRUE;
-		}
-
-		return FALSE;
+		AddToDialog( code );			
 	}
 
 	void Cheats::List::Load(const Io::Nsp::Context& context)
@@ -265,17 +338,14 @@ namespace Nestopia
 			if (codes.Size() == MAX_CODES)
 				break;
 
-			if (codes.Add( it->code ))
-			{
-				Code& code = codes.Back();
+			Code& code = codes.Add( Mem(it->address,it->value,it->compare,it->useCompare) );
 
-				code.enabled = it->enabled;
-				code.desc = it->desc;
-				code.CheckDesc();
+			code.enabled = it->enabled;
+			code.desc = it->desc;
+			code.CheckDesc();
 
-				if (listView && listView->GetHandle())
-					AddToDialog( code );
-			}
+			if (listView && listView->GetHandle())
+				AddToDialog( code );
 		}
 	}
 
@@ -308,13 +378,13 @@ namespace Nestopia
 		if (listView == NULL)
 			listView = new ListView( this, parent, index );
 
-		listView->Init( parent.ListView(index + IDC_GAMEGENIE_STATIC_CODES) );
+		listView->Init( parent.ListView(index + IDC_CHEATS_STATIC_CODES) );
 
-		listView->controls[ ADD	   ] = parent.Control( index + IDC_GAMEGENIE_STATIC_ADD    );
-		listView->controls[ REMOVE ] = parent.Control( index + IDC_GAMEGENIE_STATIC_REMOVE );
-		listView->controls[ IMPORT ] = parent.Control( index + IDC_GAMEGENIE_STATIC_IMPORT );
-		listView->controls[ EXPORT ] = parent.Control( index + IDC_GAMEGENIE_STATIC_EXPORT );
-		listView->controls[ CLEAR  ] = parent.Control( index + IDC_GAMEGENIE_STATIC_CLEAR  );
+		listView->controls[ ADD	   ] = parent.Control( index + IDC_CHEATS_STATIC_ADD    );
+		listView->controls[ REMOVE ] = parent.Control( index + IDC_CHEATS_STATIC_REMOVE );
+		listView->controls[ IMPORT ] = parent.Control( index + IDC_CHEATS_STATIC_IMPORT );
+		listView->controls[ EXPORT ] = parent.Control( index + IDC_CHEATS_STATIC_EXPORT );
+		listView->controls[ CLEAR  ] = parent.Control( index + IDC_CHEATS_STATIC_CLEAR  );
 
 		NST_COMPILE_ASSERT
 		(
@@ -340,8 +410,7 @@ namespace Nestopia
 			listView->controls[ EXPORT ].Disable();
 		}
 
-		listView->Columns().Align();
-		
+		listView->Columns().Align();		
 		listView->controls[REMOVE].Disable();
 	}
 
@@ -370,10 +439,20 @@ namespace Nestopia
 		if ((nm.uOldState ^ nm.uNewState) & LVIS_SELECTED)
 			listView->controls[REMOVE].Enable( nm.uNewState & LVIS_SELECTED );
 
-		// As documented on MSDN the image index for the checked box is 2 (unchecked is 1)
-
 		if ((nm.uOldState ^ nm.uNewState) & LVIS_STATEIMAGEMASK)
-			codes[nm.lParam].enabled = (nm.uNewState & LVIS_STATEIMAGEMASK) == INDEXTOSTATEIMAGEMASK( 2 );
+		{
+			const uint address = nm.lParam;
+
+			for (Codes::Iterator it=codes.Begin(), end=codes.End(); it != end; ++it)
+			{
+				if (it->mem.address == address)
+				{
+					// As documented on MSDN the image index for the checked box is 2 (unchecked is 1)
+					it->enabled = ((nm.uNewState & LVIS_STATEIMAGEMASK) == INDEXTOSTATEIMAGEMASK( 2 ));
+					break;
+				}
+			}
+		}			
 	}
 
 	void Cheats::List::OnInsertItem(const NMHDR&)
@@ -387,10 +466,17 @@ namespace Nestopia
 
 	void Cheats::List::OnDeleteItem(const NMHDR& nmhdr)
 	{
-		Code* const code = codes + reinterpret_cast<const NMLISTVIEW&>(nmhdr).lParam;
+		const uint address = reinterpret_cast<const NMLISTVIEW&>(nmhdr).lParam;
 
-		code->desc.Heap::~Heap();
-		codes.Erase( code );
+		for (Codes::Iterator it=codes.Begin(), end=codes.End(); it != end; ++it)
+		{
+			if (it->mem.address == address)
+			{
+				it->desc.Heap::~Heap();
+				codes.Erase( it );
+				break;
+			}
+		}
 
 		if (codes.Empty())
 		{
@@ -434,7 +520,7 @@ namespace Nestopia
 			{
 				Io::Nsp::Context context;
 
-				if (Io::File::FileExist( fileName ) && User::Confirm( IDS_GAMEGENIE_EXPORTEXISTING ))
+				if (Io::File::FileExist( fileName ) && User::Confirm( IDS_CHEATS_EXPORTEXISTING ))
 				{
 					try
 					{
@@ -444,7 +530,7 @@ namespace Nestopia
 					}
 					catch (...)
 					{
-						User::Warn( IDS_GAMEGENIE_EXPORTEXISTING_ERROR );
+						User::Warn( IDS_CHEATS_EXPORTEXISTING_ERROR );
 						context.Reset();
 					}
 				}
@@ -489,7 +575,7 @@ namespace Nestopia
 
 	template<typename T,typename U,typename V>
 	inline Cheats::CodeDialog::CodeDialog(T* instance,const U& messages,const V& commands)
-	: Dialog( IDD_GAMEGENIE_ADDCODE, instance, messages, commands ), listView(NULL) {}
+	: Dialog( IDD_CHEATS_ADDCODE, instance, messages, commands ), listView(NULL) {}
 
 	inline void Cheats::CodeDialog::Open(HWND hWnd)
 	{
@@ -517,29 +603,51 @@ namespace Nestopia
 	};
 
 	const MsgHandler::Entry<Cheats> Cheats::Handlers::codeMessages[] =
-	{
-		{ WM_INITDIALOG, &Cheats::OnInitCodeDialog }
+	{												
+		{ WM_INITDIALOG, &Cheats::OnInitCodeDialog    },
+		{ WM_DESTROY,    &Cheats::OnDestroyCodeDialog }
 	};
 
 	const MsgHandler::Entry<Cheats> Cheats::Handlers::commands[] =
 	{
-		{ IDC_GAMEGENIE_CLOSE, &Cheats::OnClose }
+		{ IDC_CHEATS_OK, &Cheats::OnClose }
 	};
 
 	const MsgHandler::Entry<Cheats> Cheats::Handlers::codeCommands[] =
 	{
-		{ IDC_GAMEGENIE_ADDCODE_SUBMIT,   &Cheats::OnCodeCmdSubmit   },
-		{ IDC_GAMEGENIE_ADDCODE_CANCEL,   &Cheats::OnCodeCmdCancel   },
-		{ IDC_GAMEGENIE_ADDCODE_VALIDATE, &Cheats::OnCodeCmdValidate }
+		{ IDC_CHEATS_ADDCODE_SUBMIT,             &Cheats::OnCodeCmdSubmit   },
+		{ IDC_CHEATS_ADDCODE_CANCEL,             &Cheats::OnCodeCmdCancel   },
+		{ IDC_CHEATS_ADDCODE_VALIDATE,           &Cheats::OnCodeCmdValidate },
+		{ IDC_CHEATS_ADDCODE_USE_HEX,            &Cheats::OnCodeCmdHex      },
+		{ IDC_CHEATS_ADDCODE_USE_RAW,            &Cheats::OnCodeCmdType     },
+		{ IDC_CHEATS_ADDCODE_USE_GENIE,          &Cheats::OnCodeCmdType     },
+		{ IDC_CHEATS_ADDCODE_USE_ROCKY,          &Cheats::OnCodeCmdType     },
+		{ IDC_CHEATS_ADDCODE_SEARCH_NONE,		 &Cheats::OnCodeSearchType  }, 
+		{ IDC_CHEATS_ADDCODE_SEARCH_R0_A_R1_B,	 &Cheats::OnCodeSearchType  }, 
+		{ IDC_CHEATS_ADDCODE_SEARCH_R0_A_R0R1_B, &Cheats::OnCodeSearchType  },
+		{ IDC_CHEATS_ADDCODE_SEARCH_R0R1_B,		 &Cheats::OnCodeSearchType  },
+		{ IDC_CHEATS_ADDCODE_SEARCH_R0_L_R1,	 &Cheats::OnCodeSearchType  }, 
+		{ IDC_CHEATS_ADDCODE_SEARCH_R0_G_R1,	 &Cheats::OnCodeSearchType  }, 
+		{ IDC_CHEATS_ADDCODE_SEARCH_R0_N_R1,	 &Cheats::OnCodeSearchType  },
+		{ IDC_CHEATS_ADDCODE_SEARCH_RESET,  	 &Cheats::OnCodeCmdReset    } 
 	};
 
-	Cheats::Cheats(const Configuration& cfg,const Managers::Paths& paths)
+	Cheats::Cheats(Managers::Emulator& e,const Configuration& cfg,const Managers::Paths& paths)
 	: 
-	mainDialog    ( IDD_GAMEGENIE, this, Handlers::messages, Handlers::commands ),
-	codeDialog    ( this, Handlers::codeMessages, Handlers::codeCommands ),
-	staticList    ( codeDialog, paths ),
-	tempList      ( codeDialog, paths )
+	mainDialog                  ( IDD_CHEATS, this, Handlers::messages, Handlers::commands ),
+	codeDialog                  ( this, Handlers::codeMessages, Handlers::codeCommands ),
+	staticList                  ( codeDialog, paths ),
+	tempList                    ( codeDialog, paths ),
+	emulator                    ( e ),
+	searcherNotificationHandler ( IDC_CHEATS_ADDCODE_SEARCH_LIST, codeDialog.Messages() )
 	{
+		static const Control::NotificationHandler::Entry<Cheats> notifications[] =
+		{
+			{ LVN_ITEMCHANGED, &Cheats::OnCodeItemChanged }
+		};
+
+		searcherNotificationHandler.Add( this, notifications );
+
 		staticList.Load( cfg );
 	}
 
@@ -601,56 +709,439 @@ namespace Nestopia
 
 	ibool Cheats::OnInitCodeDialog(Param&)
 	{
-		codeDialog.Edit( IDC_GAMEGENIE_ADDCODE_CHARACTERS ).Limit( 8 );
-		codeDialog.Edit( IDC_GAMEGENIE_ADDCODE_ADDRESS    ).Limit( 4 );
-		codeDialog.Edit( IDC_GAMEGENIE_ADDCODE_VALUE      ).Limit( 2 );
-		codeDialog.Edit( IDC_GAMEGENIE_ADDCODE_COMPARE    ).Limit( 2 );
-		codeDialog.Edit( IDC_GAMEGENIE_ADDCODE_DESC       ).Limit( 256 );
+		codeDialog.Edit( IDC_CHEATS_ADDCODE_ADDRESS ).Limit( 4   );
+		codeDialog.Edit( IDC_CHEATS_ADDCODE_DESC    ).Limit( 256 );
+		codeDialog.Edit( IDC_CHEATS_ADDCODE_GENIE   ).Limit( 8   );
+		codeDialog.Edit( IDC_CHEATS_ADDCODE_ROCKY   ).Limit( 8   );
 
-		codeDialog.RadioButton( IDC_GAMEGENIE_ADDCODE_ENCODED ).Check( TRUE  );
-		codeDialog.RadioButton( IDC_GAMEGENIE_ADDCODE_DECODED ).Check( FALSE );
+		codeDialog.RadioButton( IDC_CHEATS_ADDCODE_USE_RAW   ).Check( TRUE  );
+		codeDialog.RadioButton( IDC_CHEATS_ADDCODE_USE_GENIE ).Check( FALSE );
+		codeDialog.RadioButton( IDC_CHEATS_ADDCODE_USE_ROCKY ).Check( FALSE );
+		
+		UpdateInput();
+
+		if (emulator.Is(Nes::Machine::GAME,Nes::Machine::ON))
+		{
+			Control::ListView listView( codeDialog.ListView(IDC_CHEATS_ADDCODE_SEARCH_LIST) );
+
+			listView.StyleEx() = LVS_EX_FULLROWSELECT;
+
+			static const cstring columns[] =
+			{
+				"Index","R0","R1"
+			};
+
+			listView.Columns().Set( columns );
+
+			if (searcher.filter == Searcher::NO_FILTER)
+			{
+				searcher.filter = IDC_CHEATS_ADDCODE_SEARCH_NONE;
+				std::memcpy( searcher.ram, Nes::Cheats(emulator).GetRam(), Nes::Cheats::RAM_SIZE );
+
+				codeDialog.Control( IDC_CHEATS_ADDCODE_SEARCH_RESET ).Disable();
+			}
+			else if (std::memcmp( searcher.ram, Nes::Cheats(emulator).GetRam(), Nes::Cheats::RAM_SIZE ) == 0)
+			{
+				codeDialog.Control( IDC_CHEATS_ADDCODE_SEARCH_RESET ).Disable();
+			}
+
+			codeDialog.RadioButton( searcher.filter ).Check();
+		}
+		else
+		{
+			NST_COMPILE_ASSERT
+			(
+				IDC_CHEATS_ADDCODE_SEARCH_B			  - IDC_CHEATS_ADDCODE_SEARCH_A == 1 &&
+				IDC_CHEATS_ADDCODE_SEARCH_LIST		  - IDC_CHEATS_ADDCODE_SEARCH_A == 2 &&
+				IDC_CHEATS_ADDCODE_SEARCH_NONE		  - IDC_CHEATS_ADDCODE_SEARCH_A == 3 &&
+				IDC_CHEATS_ADDCODE_SEARCH_R0_A_R1_B	  - IDC_CHEATS_ADDCODE_SEARCH_A == 4 &&
+				IDC_CHEATS_ADDCODE_SEARCH_R0_A_R0R1_B - IDC_CHEATS_ADDCODE_SEARCH_A == 5 &&
+				IDC_CHEATS_ADDCODE_SEARCH_R0R1_B	  - IDC_CHEATS_ADDCODE_SEARCH_A == 6 &&
+				IDC_CHEATS_ADDCODE_SEARCH_R0_L_R1	  - IDC_CHEATS_ADDCODE_SEARCH_A == 7 &&
+				IDC_CHEATS_ADDCODE_SEARCH_R0_G_R1	  - IDC_CHEATS_ADDCODE_SEARCH_A == 8 &&
+				IDC_CHEATS_ADDCODE_SEARCH_R0_N_R1	  - IDC_CHEATS_ADDCODE_SEARCH_A == 9 &&
+				IDC_CHEATS_ADDCODE_SEARCH_RESET		  - IDC_CHEATS_ADDCODE_SEARCH_A == 10
+			);
+
+			for (uint i=IDC_CHEATS_ADDCODE_SEARCH_A; i <= IDC_CHEATS_ADDCODE_SEARCH_RESET; ++i)
+				codeDialog.Control( i ).Disable();
+		}
+
+		codeDialog.CheckBox( IDC_CHEATS_ADDCODE_USE_HEX ).Check( searcher.hex );		
+		UpdateHexView( FALSE );
 
 		return TRUE;
 	}
 
-	ibool Cheats::GetPackedEncodedCode(ulong& packed) const
+	void Cheats::OnCodeItemChanged(const NMHDR& nmhdr)
 	{
-		String::Smart<16> string;
+		const NMLISTVIEW& nm = reinterpret_cast<const NMLISTVIEW&>(nmhdr);
 
-		codeDialog.Edit( IDC_GAMEGENIE_ADDCODE_CHARACTERS ) >> string;
-		return NES_SUCCEEDED(Nes::GameGenie::Decode( string, packed ));
+		if ((nm.uNewState & LVIS_SELECTED) > (nm.uOldState & LVIS_SELECTED))
+		{
+			codeDialog.Edit( IDC_CHEATS_ADDCODE_ADDRESS ) << String::Hex( (u16) nm.lParam, true );
+
+			if (codeDialog.RadioButton( IDC_CHEATS_ADDCODE_USE_RAW ).IsUnchecked())
+			{
+				codeDialog.RadioButton( IDC_CHEATS_ADDCODE_USE_RAW   ).Check( TRUE  );
+				codeDialog.RadioButton( IDC_CHEATS_ADDCODE_USE_GENIE ).Check( FALSE );
+				codeDialog.RadioButton( IDC_CHEATS_ADDCODE_USE_ROCKY ).Check( FALSE );
+				UpdateInput();
+			}
+		}
 	}
 
-	ibool Cheats::GetPackedDecodedCode(ulong& packed) const
+	void Cheats::AddSearchEntry(Control::ListView list,const uint address) const
+	{
+		const int index = list.Add( String::Hex( (u16) address, true ), address );
+
+		if (searcher.hex)
+		{
+			list[index].Text(1) << String::Hex( (u8) searcher.ram[address], true );
+			list[index].Text(2) << String::Hex( (u8) Nes::Cheats(emulator).GetRam()[address], true );
+		}
+		else
+		{
+			list[index].Text(1) << (String::Stack<16>() << searcher.ram[address]);
+			list[index].Text(2) << (String::Stack<16>() << Nes::Cheats(emulator).GetRam()[address]);
+		}
+	}
+
+	void Cheats::UpdateHexView(ibool changed)
+	{
+		Mem mem;
+
+		if (changed)
+		{
+			changed = GetRawCode( mem );
+
+			if (emulator.Is( Nes::Machine::GAME, Nes::Machine::ON ))
+			{
+				searcher.a = (u8) GetSearchValue( IDC_CHEATS_ADDCODE_SEARCH_A );
+				searcher.b = (u8) GetSearchValue( IDC_CHEATS_ADDCODE_SEARCH_B );
+			}
+
+			searcher.hex = codeDialog.CheckBox( IDC_CHEATS_ADDCODE_USE_HEX ).IsChecked();
+		}
+
+		const uint digits = searcher.hex ? 2 : 3;
+
+		codeDialog.Edit( IDC_CHEATS_ADDCODE_VALUE   ).Limit( digits );
+		codeDialog.Edit( IDC_CHEATS_ADDCODE_COMPARE ).Limit( digits );
+		codeDialog.Edit( IDC_CHEATS_ADDCODE_VALUE   ).SetNumberOnly( digits == 3 );
+		codeDialog.Edit( IDC_CHEATS_ADDCODE_COMPARE ).SetNumberOnly( digits == 3 );
+
+		if (changed)
+		{
+			SetRawCode( mem );
+		}
+		else
+		{
+			codeDialog.Edit( IDC_CHEATS_ADDCODE_VALUE ).Clear();
+			codeDialog.Edit( IDC_CHEATS_ADDCODE_COMPARE ).Clear();
+		}
+
+		if (emulator.Is( Nes::Machine::GAME, Nes::Machine::ON ))
+		{
+			codeDialog.Edit( IDC_CHEATS_ADDCODE_SEARCH_A ).Limit( digits );
+			codeDialog.Edit( IDC_CHEATS_ADDCODE_SEARCH_B ).Limit( digits );
+			codeDialog.Edit( IDC_CHEATS_ADDCODE_SEARCH_A ).SetNumberOnly( digits == 3 );
+			codeDialog.Edit( IDC_CHEATS_ADDCODE_SEARCH_B ).SetNumberOnly( digits == 3 );
+
+			SetSearchValue( IDC_CHEATS_ADDCODE_SEARCH_A, searcher.a );
+			SetSearchValue( IDC_CHEATS_ADDCODE_SEARCH_B, searcher.b );
+
+			UpdateSearchList();
+		}
+	}
+
+	void Cheats::UpdateInput() const
+	{
+		const ibool raw = codeDialog.RadioButton( IDC_CHEATS_ADDCODE_USE_RAW ).IsChecked();
+		const ibool genie = !raw && codeDialog.RadioButton( IDC_CHEATS_ADDCODE_USE_GENIE ).IsChecked();
+		const ibool rocky = !raw && !genie;
+
+		codeDialog.Control( IDC_CHEATS_ADDCODE_VALUE   ).Enable( raw   );
+		codeDialog.Control( IDC_CHEATS_ADDCODE_COMPARE ).Enable( raw   );
+		codeDialog.Control( IDC_CHEATS_ADDCODE_ADDRESS ).Enable( raw   );
+		codeDialog.Control( IDC_CHEATS_ADDCODE_GENIE   ).Enable( genie );
+		codeDialog.Control( IDC_CHEATS_ADDCODE_ROCKY   ).Enable( rocky );
+	}
+
+	void Cheats::UpdateSearchList() const
+	{
+		Application::Instance::Waiter wait;
+
+		Control::ListView list( codeDialog.ListView(IDC_CHEATS_ADDCODE_SEARCH_LIST) );
+		
+		const u8 values[] =
+		{
+			(u8) GetSearchValue( IDC_CHEATS_ADDCODE_SEARCH_A ),
+			(u8) GetSearchValue( IDC_CHEATS_ADDCODE_SEARCH_B )
+		};
+
+		list.Clear();
+		list.Reserve( Nes::Cheats::RAM_SIZE );
+
+		Nes::Cheats::Ram ram = Nes::Cheats(emulator).GetRam();
+
+		switch (searcher.filter)
+		{
+			case IDC_CHEATS_ADDCODE_SEARCH_NONE:
+
+				for (uint i=0; i < Nes::Cheats::RAM_SIZE; ++i)
+					AddSearchEntry( list, i );
+
+				break;
+
+			case IDC_CHEATS_ADDCODE_SEARCH_R0_N_R1:
+
+				for (uint i=0; i < Nes::Cheats::RAM_SIZE; ++i)
+				{
+					if (searcher.ram[i] != ram[i])
+						AddSearchEntry( list, i );
+				}
+				break;
+
+			case IDC_CHEATS_ADDCODE_SEARCH_R0_L_R1:	 
+
+				for (uint i=0; i < Nes::Cheats::RAM_SIZE; ++i)
+				{
+					if (searcher.ram[i] < ram[i])
+						AddSearchEntry( list, i );
+				}
+				break;
+
+			case IDC_CHEATS_ADDCODE_SEARCH_R0_G_R1:	 
+
+				for (uint i=0; i < Nes::Cheats::RAM_SIZE; ++i)
+				{
+					if (searcher.ram[i] > ram[i])
+						AddSearchEntry( list, i );
+				}
+				break;
+
+			case IDC_CHEATS_ADDCODE_SEARCH_R0_A_R1_B:
+
+				for (uint i=0; i < Nes::Cheats::RAM_SIZE; ++i)
+				{
+					if (searcher.ram[i] == values[0] && ram[i] == values[1])
+						AddSearchEntry( list, i );
+				}
+				break;
+
+			case IDC_CHEATS_ADDCODE_SEARCH_R0_A_R0R1_B:
+
+				for (uint i=0; i < Nes::Cheats::RAM_SIZE; ++i)
+				{
+					if (searcher.ram[i] == values[0] && ((searcher.ram[i] - ram[i]) & 0xFF) == values[1])
+						AddSearchEntry( list, i );
+				}
+				break;
+
+			case IDC_CHEATS_ADDCODE_SEARCH_R0R1_B:	 
+
+				for (uint i=0; i < Nes::Cheats::RAM_SIZE; ++i)
+				{
+					if (((searcher.ram[i] - ram[i]) & 0xFF) == values[1])
+						AddSearchEntry( list, i );
+				}
+				break;
+		}
+
+		list.Columns().Align();
+	}
+
+	ibool Cheats::GetRawCode(Mem& mem) const
 	{
 		String::Smart<16> string;
 
-		uint address, value, compare = 0;
+		if (!(codeDialog.Edit( IDC_CHEATS_ADDCODE_ADDRESS ) >> string))
+			return FALSE;
+		
+		string(0) << "0x";
 
-		if (codeDialog.Edit( IDC_GAMEGENIE_ADDCODE_ADDRESS ) >> string)
+		uint value;
+
+		if (!(string >> value))
+			return FALSE;
+		
+		mem.address = (u16) value;
+
+		if (searcher.hex)
 		{
+			if (!(codeDialog.Edit( IDC_CHEATS_ADDCODE_VALUE ) >> string))
+				return FALSE;
+			
 			string(0) << "0x";
 
-			if (string >> address && codeDialog.Edit( IDC_GAMEGENIE_ADDCODE_VALUE ) >> string)
+			if (!(string >> value))
+				return FALSE;
+			
+			mem.value = (u8) value;
+
+			if (codeDialog.Edit( IDC_CHEATS_ADDCODE_COMPARE ) >> string)
 			{
 				string(0) << "0x";
 
-				if (string >> value)
-				{
-					if (codeDialog.Edit( IDC_GAMEGENIE_ADDCODE_COMPARE ) >> string)
-					{
-						string(0) << "0x";
+				if (!(string >> value))
+					return FALSE;
 
-						if (!(string >> compare))
-							return FALSE;
-					}
+				mem.compare = (u8) value;
+				mem.useCompare = true;
+			}
+			else
+			{
+				mem.compare = 0x00;
+				mem.useCompare = false;
+			}
+		}
+		else
+		{
+			if (!(codeDialog.Edit( IDC_CHEATS_ADDCODE_VALUE ) >> value) || value > 0xFF)
+				return FALSE;
 
-					return NES_SUCCEEDED(Nes::GameGenie::Pack( address, value, compare, string.Size() > 2, packed ));
-				}
+			mem.value = (u8) value;
+
+			if (codeDialog.Edit( IDC_CHEATS_ADDCODE_COMPARE ) >> value)
+			{
+				if (value > 0xFF)
+					return FALSE;
+
+				mem.compare = (u8) value;
+				mem.useCompare = true;
+			}
+			else
+			{
+				mem.compare = 0x00;
+				mem.useCompare = false;
 			}
 		}
 
-		return FALSE;
+		return TRUE;
+	}
+  
+	void Cheats::SetRawCode(const Mem& mem) const
+	{
+		codeDialog.Edit( IDC_CHEATS_ADDCODE_ADDRESS ) << String::Hex( (u16) mem.address, true );
+
+		if (searcher.hex)
+			codeDialog.Edit( IDC_CHEATS_ADDCODE_VALUE ) << String::Hex( (u8) mem.value, true );
+		else
+			codeDialog.Edit( IDC_CHEATS_ADDCODE_VALUE ) << (uint) mem.value;
+
+		if (!mem.useCompare)
+		{
+			codeDialog.Edit( IDC_CHEATS_ADDCODE_COMPARE ).Clear();
+		}
+		else if (searcher.hex)
+		{
+			codeDialog.Edit( IDC_CHEATS_ADDCODE_COMPARE ) << String::Hex( (u8) mem.compare, true );
+		}
+		else
+		{
+			codeDialog.Edit( IDC_CHEATS_ADDCODE_COMPARE ) << (uint) mem.compare;
+		}
+	}
+
+	ibool Cheats::GetGenieCode(Mem& mem) const
+	{
+		String::Smart<16> string;
+
+		codeDialog.Edit( IDC_CHEATS_ADDCODE_GENIE ) >> string;
+		return NES_SUCCEEDED(Nes::Cheats::GameGenieDecode( string, mem ));
+	}
+
+	ibool Cheats::GetRockyCode(Mem& mem) const
+	{
+		String::Smart<16> string;
+
+		codeDialog.Edit( IDC_CHEATS_ADDCODE_ROCKY ) >> string;
+		return NES_SUCCEEDED(Nes::Cheats::ProActionRockyDecode( string, mem ));
+	}
+
+	uint Cheats::GetSearchValue(const uint id) const
+	{
+		uint value = 0;
+
+		if (searcher.hex)
+		{
+			String::Smart<16> string;
+
+			if (codeDialog.Edit( id ) >> string)
+			{
+				string(0) << "0x";
+
+				if (!(string >> value))
+					value = 0;
+			}
+		}
+		else
+		{
+			if (!(codeDialog.Edit( id ) >> value) || value > 0xFF)
+				value = 0;
+		}
+
+		return value;
+	}
+
+	void Cheats::SetSearchValue(const uint id,const uint value) const
+	{
+		if (searcher.hex)
+			codeDialog.Edit( id ) << String::Hex( (u8) value, true );
+		else
+			codeDialog.Edit( id ) << (uint) value;
+	}
+
+	ibool Cheats::OnCodeCmdReset(Param& param)
+	{
+		if (param.Button().IsClicked())
+		{
+			codeDialog.Control( IDC_CHEATS_ADDCODE_SEARCH_RESET ).Disable();
+			std::memcpy( searcher.ram, Nes::Cheats(emulator).GetRam(), Nes::Cheats::RAM_SIZE );
+			UpdateSearchList();
+		}
+
+		return TRUE;
+	}
+
+	ibool Cheats::OnCodeCmdType(Param& param)
+	{
+		if (param.Button().IsClicked())
+		{
+			const uint cmd = param.Button().GetId();
+
+			codeDialog.RadioButton( IDC_CHEATS_ADDCODE_USE_RAW   ).Check( cmd == IDC_CHEATS_ADDCODE_USE_RAW   );
+			codeDialog.RadioButton( IDC_CHEATS_ADDCODE_USE_GENIE ).Check( cmd == IDC_CHEATS_ADDCODE_USE_GENIE );
+			codeDialog.RadioButton( IDC_CHEATS_ADDCODE_USE_ROCKY ).Check( cmd == IDC_CHEATS_ADDCODE_USE_ROCKY );
+
+			UpdateInput();
+		}
+
+		return TRUE;
+	}
+
+	ibool Cheats::OnCodeSearchType(Param& param)
+	{
+		if (param.Button().IsClicked())
+		{
+			const uint cmd = searcher.filter = (u16) param.Button().GetId();
+
+			for (uint i=IDC_CHEATS_ADDCODE_SEARCH_NONE; i <= IDC_CHEATS_ADDCODE_SEARCH_R0_N_R1; ++i)
+				codeDialog.RadioButton( i ).Check( cmd == i );
+
+			UpdateSearchList();
+		}
+
+		return TRUE;
+	}
+
+	ibool Cheats::OnCodeCmdHex(Param& param)
+	{
+		if (param.Button().IsClicked())
+			UpdateHexView( TRUE );
+
+		return TRUE;
 	}
 
 	ibool Cheats::OnCodeCmdCancel(Param& param)  
@@ -665,38 +1156,59 @@ namespace Nestopia
 	{
 		if (param.Button().IsClicked())
 		{
-			cstring result = "INVALID";
+			uint id;
+			Mem mem;
 
-			ulong packed;
-
-			if (codeDialog.RadioButton( IDC_GAMEGENIE_ADDCODE_ENCODED ).IsChecked())
+			if (codeDialog.RadioButton( IDC_CHEATS_ADDCODE_USE_RAW).IsChecked())
 			{
-				if (GetPackedEncodedCode( packed ))
-				{
-					uint address, value, compare; bool useCompare;
-					Nes::GameGenie::Unpack( packed, address, value, compare, useCompare );
-
-					codeDialog.Edit( IDC_GAMEGENIE_ADDCODE_ADDRESS ) << String::Hex( u16(address), true );
-					codeDialog.Edit( IDC_GAMEGENIE_ADDCODE_VALUE   ) << String::Hex( u8(value), true );
-					codeDialog.Edit( IDC_GAMEGENIE_ADDCODE_COMPARE ) << (useCompare ? String::Hex( u8(compare), true ) : "");
-
-					result = "VALID";
-				}
+				id = GetRawCode( mem ) ? IDC_CHEATS_ADDCODE_USE_RAW : 0;
+			}
+			else if (codeDialog.RadioButton( IDC_CHEATS_ADDCODE_USE_GENIE ).IsChecked())
+			{
+				id = GetGenieCode( mem ) ? IDC_CHEATS_ADDCODE_USE_GENIE : 0;
 			}
 			else
 			{
-				if (GetPackedDecodedCode( packed ))
+				id = GetRockyCode( mem ) ? IDC_CHEATS_ADDCODE_USE_ROCKY : 0;
+			}
+
+			if (id)
+			{
+				if (id != IDC_CHEATS_ADDCODE_USE_RAW)
 				{
-					char characters[9];
-					Nes::GameGenie::Encode( packed, characters );
+					SetRawCode( mem );
+				}
 
-					codeDialog.Edit( IDC_GAMEGENIE_ADDCODE_CHARACTERS ) << cstring(characters);
+				if (id != IDC_CHEATS_ADDCODE_USE_GENIE)
+				{
+					if (mem.address >= 0x8000U)
+					{
+						char characters[9];
+						Nes::Cheats::GameGenieEncode( mem, characters );
+						codeDialog.Edit( IDC_CHEATS_ADDCODE_GENIE ) << cstring(characters);
+					}
+					else
+					{
+						codeDialog.Edit( IDC_CHEATS_ADDCODE_GENIE ).Clear();
+					}
+				}
 
-					result = "VALID";
+				if (id != IDC_CHEATS_ADDCODE_USE_ROCKY)
+				{
+					if (mem.address >= 0x8000U && mem.useCompare)
+					{
+						char characters[9];
+						Nes::Cheats::ProActionRockyEncode( mem, characters );
+						codeDialog.Edit( IDC_CHEATS_ADDCODE_ROCKY ) << cstring(characters);
+					}
+					else
+					{
+						codeDialog.Edit( IDC_CHEATS_ADDCODE_ROCKY ).Clear();
+					}
 				}
 			}
 
-			codeDialog.Edit( IDC_GAMEGENIE_ADDCODE_RESULT ) << result;
+			codeDialog.Edit( IDC_CHEATS_ADDCODE_RESULT ) << (id ? "VALID" : "INVALID");
 		}
 
 		return TRUE;
@@ -707,27 +1219,41 @@ namespace Nestopia
 		if (param.Button().IsClicked())
 		{
 			ibool result;
-			ulong packed;
+			Mem mem;
 
-			if (codeDialog.RadioButton( IDC_GAMEGENIE_ADDCODE_ENCODED ).IsChecked())
-				result = GetPackedEncodedCode( packed );
+			if (codeDialog.RadioButton( IDC_CHEATS_ADDCODE_USE_RAW ).IsChecked())
+			{
+				result = GetRawCode( mem );
+			}
+			else if (codeDialog.RadioButton( IDC_CHEATS_ADDCODE_USE_GENIE ).IsChecked())
+			{
+				result = GetGenieCode( mem );
+			}
 			else
-				result = GetPackedDecodedCode( packed );
+			{
+				result = GetRockyCode( mem );
+			}
 
 			if (result)
 			{
 				List& list = codeDialog.GetListView() == staticList.GetHandle() ? staticList : tempList;
 
-				if (list.Add( packed, codeDialog.Edit(IDC_GAMEGENIE_ADDCODE_DESC).Text() ))
-					codeDialog.Close();
-				else
-					User::Warn( IDS_GAMEGENIE_DUPLICATE_CODE, IDS_GAMEGENIE );
+				list.Add( mem, codeDialog.Edit(IDC_CHEATS_ADDCODE_DESC).Text() );
+				codeDialog.Close();
 			}
 			else
 			{
-				User::Warn( IDS_GAMEGENIE_INVALID_CODE, IDS_GAMEGENIE );
+				User::Warn( IDS_CHEATS_INVALID_CODE, IDS_CHEATS );
 			}
 		}
+
+		return TRUE;
+	}
+
+	ibool Cheats::OnDestroyCodeDialog(Param&)
+	{
+		searcher.a = (u8) GetSearchValue( IDC_CHEATS_ADDCODE_SEARCH_A );
+		searcher.b = (u8) GetSearchValue( IDC_CHEATS_ADDCODE_SEARCH_B );
 
 		return TRUE;
 	}

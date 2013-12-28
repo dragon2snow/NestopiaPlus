@@ -67,6 +67,9 @@ namespace Nestopia
 			void  Redraw() const;
 			ibool Activate(ibool=TRUE) const;
 			void  CopyData(const void*,uint,uint=0,HWND=NULL) const;
+			void  SetStyle(long) const;
+			void  SetStyle(long,long) const;
+			void  ModifyStyle(long,ibool) const;
 			void  Destroy();
 
 			LONG_PTR Send(uint) const;
@@ -202,11 +205,9 @@ namespace Nestopia
 				return GetWindowRect().Size();
 			}
 
-			template<typename T>
-			void SetStyle(T style,T exStyle) const
+			LONG_PTR GetStyle() const
 			{
-				::SetWindowLongPtr( hWnd, GWL_STYLE, style );
-				::SetWindowLongPtr( hWnd, GWL_EXSTYLE, exStyle );
+				return ::GetWindowLongPtr( hWnd, GWL_STYLE );
 			}
 
 			template<typename Param1,typename Param2>

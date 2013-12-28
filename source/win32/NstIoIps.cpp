@@ -35,14 +35,9 @@ namespace Nestopia
 			delete [] it->data;
 	}
 
-	void Ips::Create(SourceData source,SourceData target,PatchData& patch)
+	void Ips::Create(const void* const source,const void* const target,const uint length,PatchData& patch)
 	{
-		NST_ASSERT
-		( 
-	     	source.Size() && 
-			source.Size() == target.Size() && 
-			source.Size() <= MAX_LENGTH 
-		);
+		NST_ASSERT( length && length <= MAX_LENGTH );
 
 		struct Stream
 		{
@@ -79,14 +74,13 @@ namespace Nestopia
 			}
 		};
 
-		patch.Reserve( source.Size() );
+		patch.Reserve( length );
 
 		Stream::Write3( patch, DATA_ID1 );
 		Stream::Write2( patch, DATA_ID2 );
 
-		const u8* src = source;
-		const u8* dst = target;
-		const uint length = source.Size();
+		const u8* src = static_cast<const u8*>(source);
+		const u8* dst = static_cast<const u8*>(target);
 
 		for (uint i=0; i < length; )
 		{
@@ -172,7 +166,7 @@ namespace Nestopia
 		Stream::Write3( patch, DATA_EOF );
 	}
 
-	void Ips::Parse(SourceData source)
+	void Ips::Parse(const void* const source,const uint size)
 	{
 		class Stream
 		{
@@ -187,10 +181,10 @@ namespace Nestopia
 
 		public:
 
-			Stream(const SourceData& source)
+			Stream(const void* source,uint size)
 			: 
 			data (static_cast<const u8*>(source)),
-			end  (static_cast<const u8*>(source) + source.Size())
+			end  (static_cast<const u8*>(source) + size)
 			{}
 
 			const u8* Read(const uint length)
@@ -235,12 +229,12 @@ namespace Nestopia
 			}
 		};
 
-		if (source.Empty())
+		if (!size)
 			throw ERR_EMPTY;
 
 		blocks.Clear();
 
-		Stream stream( source );
+		Stream stream( source, size );
 
 		if (stream.Read3() != DATA_ID1 || stream.Read2() != DATA_ID2)
 			throw ERR_CORRUPT;
@@ -277,23 +271,23 @@ namespace Nestopia
 			throw ERR_EMPTY;
 	}
 
-	void Ips::Patch(TargetData target) const
+	void Ips::Patch(void* const target,const uint size) const
 	{
-		NST_ASSERT( target.Size() );
+		NST_ASSERT( target && size );
 
-		Object::Backup backup( target, target.Size() );
+		Object::Backup backup( target, size );
 		Blocks::ConstIterator const end = blocks.End();
 
 		for (Blocks::ConstIterator it = blocks.Begin(); it != end; ++it)
 		{
 			NST_ASSERT( it->length );
 
-			if (it->offset + it->length <= target.Size())
+			if (it->offset + it->length <= size)
 			{
 				if (it->fill == UINT_MAX)
-					std::memcpy( target + it->offset, it->data, it->length );
+					std::memcpy( static_cast<u8*>(target) + it->offset, it->data, it->length );
 				else
-					std::memset( target + it->offset, it->fill, it->length );
+					std::memset( static_cast<u8*>(target) + it->offset, it->fill, it->length );
 			}
 			else
 			{

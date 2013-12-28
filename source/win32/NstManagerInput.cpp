@@ -770,11 +770,11 @@ namespace Nestopia
     #pragma optimize("t", on)
     #endif
 
-	void Input::Poll()
+	void Input::ForcePoll()
 	{
-		typedef Window::Input::Settings Settings;
-		directInput.Poll( DirectX::DirectInput::POLL_OPTIMIZED );
-		emulator.EnableAlternativeSpeed( dialog->GetSettings().GetKeys(Settings::EMULATION_KEYS)[Settings::EMULATION_KEY_ALT_SPEED].GetState() );
+		directInput.Poll();
+		emulator.ToggleSpeed( dialog->GetSettings().GetKeys(Window::Input::Settings::EMULATION_KEYS)[Window::Input::Settings::EMULATION_KEY_ALT_SPEED].GetState() );
+		emulator.ToggleRewind( dialog->GetSettings().GetKeys(Window::Input::Settings::EMULATION_KEYS)[Window::Input::Settings::EMULATION_KEY_REWIND].GetState() );
 	}
 
 	inline void Input::AutoPoll()
@@ -782,7 +782,7 @@ namespace Nestopia
 		if (!polled)
 		{
 			polled = TRUE;
-			Poll();
+			ForcePoll();
 		}
 	}
 

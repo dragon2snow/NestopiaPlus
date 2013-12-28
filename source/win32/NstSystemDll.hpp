@@ -36,17 +36,9 @@ namespace Nestopia
 	{
 		class Dll : Sealed
 		{
-		protected:
-
-			~Dll();
-
-			void Close();
-
-		private:
-
 			HMODULE hModule;
 
-		protected:
+		public:
 
 			explicit Dll(cstring file)
 			: hModule(::LoadLibrary(file)) 
@@ -54,7 +46,15 @@ namespace Nestopia
 				NST_ASSERT( file && *file );
 			}
 
-		public:
+			~Dll();
+
+			void Close();
+
+			FARPROC operator () (cstring name) const
+			{
+				NST_ASSERT( name && *name );
+				return ::GetProcAddress( hModule, name );
+			}
 
 			ibool IsSupported() const
 			{

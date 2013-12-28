@@ -201,7 +201,8 @@ namespace Nestopia
 
 			void PresentScreen()
 			{
-				direct2d.PresentScreen();
+				if (!direct2d.PresentScreen())
+					RepairScreen();
 			}
 		};
 	}

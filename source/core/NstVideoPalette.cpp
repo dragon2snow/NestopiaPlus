@@ -184,7 +184,7 @@ namespace Nes
 					{
 						custom = new u8 [64][3];
 					}
-					catch (std::bad_alloc&)
+					catch (const std::bad_alloc&)
 					{
 						return RESULT_ERR_OUT_OF_MEMORY;
 					}
@@ -213,7 +213,7 @@ namespace Nes
 					{
 						custom = new u8 [64][3];
 					}
-					catch (std::bad_alloc&)
+					catch (const std::bad_alloc&)
 					{
 						return RESULT_ERR_OUT_OF_MEMORY;
 					}

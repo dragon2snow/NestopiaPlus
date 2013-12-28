@@ -52,29 +52,35 @@ namespace Nestopia
 				SCAN_NEXT
 			};
 
+			void ResetJoysticks();
 			void ResetKeys();
 			int  ScanKeys();
-			uint GetScanAxes() const;
 
-			ibool OnInitDialog         (Param&);
-			ibool OnDestroy            (Param&);
-			ibool OnCmdDblClk          (Param&);
-			ibool OnCmdDevice          (Param&);
-			ibool OnCmdSet             (Param&);
-			ibool OnCmdSetAll          (Param&);
-			ibool OnCmdClear           (Param&);
-			ibool OnCmdClearAll        (Param&);
-			ibool OnCmdDefaultCategory (Param&);
-			ibool OnCmdAutoFireDefault (Param&);
-			ibool OnCmdDefault         (Param&);
-			ibool OnCmdOk              (Param&);
-			ibool OnScanInitDialog     (Param&);
-			ibool OnScanKeyDown        (Param&);
-			ibool OnScanTimer          (Param&);
-			ibool OnScanDestroy        (Param&);
+			ibool OnInitDialog          (Param&);
+			ibool OnDestroy             (Param&);
+			ibool OnHScroll			    (Param&);
+			ibool OnCmdDblClk           (Param&);
+			ibool OnCmdDevice           (Param&);
+			ibool OnCmdSet              (Param&);
+			ibool OnCmdSetAll           (Param&);
+			ibool OnCmdClear            (Param&);
+			ibool OnCmdClearAll         (Param&);
+			ibool OnCmdJoystickAxis     (Param&);
+			ibool OnCmdDefaultCategory  (Param&);
+			ibool OnCmdAutoFireDefault  (Param&);
+			ibool OnCmdJoysticks        (Param&);
+			ibool OnCmdJoystickEnable   (Param&);
+			ibool OnCmdDefault          (Param&);
+			ibool OnCmdJoysticksDefault (Param&);
+			ibool OnCmdOk               (Param&);
+			ibool OnScanInitDialog      (Param&);
+			ibool OnScanKeyDown         (Param&);
+			ibool OnScanTimer           (Param&);
+			ibool OnScanDestroy         (Param&);
 
-			void UpdateKeyMap   (uint);
-			void UpdateKeyNames (uint);		
+			void UpdateKeyMap    (uint) const;
+			void UpdateKeyNames  (uint) const;
+			void UpdateJoysticks (uint) const;
 
 			ibool UpdateInputScanner (HWND);
 
@@ -218,6 +224,7 @@ namespace Nestopia
 
 					EMULATION_KEYS = POKKUNMOGURAA_KEYS + POKKUNMOGURAA_NUM_KEYS,
 					EMULATION_KEY_ALT_SPEED = 0,
+					EMULATION_KEY_REWIND,
 					EMULATION_KEY_INSERT_COIN_1, 
 					EMULATION_KEY_INSERT_COIN_2,
 					EMULATION_NUM_KEYS,
@@ -344,9 +351,7 @@ namespace Nestopia
 					OFFSET_COUNT = NUM_TYPES + 1,
 					ALT = 0x100,
 					SHIFT = 0x200,
-					CTRL = 0x400,
-					AXIS_IGNORE_R = 0x1,
-					AXIS_IGNORE_SLIDER = 0x2
+					CTRL = 0x400
 				};
 
 				ibool Map(uint,const Key&);
@@ -357,7 +362,6 @@ namespace Nestopia
 
 				Key keys[NUM_KEYS];
 				uint autoFireSpeed;
-				uint axisIgnore;
 
 				static const Type types[OFFSET_COUNT];
 				static const Mapping map[NUM_KEYS];
@@ -414,7 +418,7 @@ namespace Nestopia
 				enum 
 				{
 					ID = 666,
-					RATE = 100,
+					RATE = 50,
 					CLOCK = 1000,
 					START = 5000,
 					SECOND = 1000

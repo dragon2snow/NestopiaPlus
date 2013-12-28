@@ -84,6 +84,7 @@ namespace Nes
 		
 				Clock::M2<Irq>* const irq;
 				const Type type;
+				uint mode;
 			};
 		}
 	}

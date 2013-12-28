@@ -123,7 +123,9 @@ namespace Nes
 			{"MARIO1-MALEE2",          Mapper::EXT_MARIO1MALEE2},
 			{"NOVELDIAMOND9999999IN1", Mapper::EXT_NOVELDIAMOND},
 			{"8237",                   Mapper::EXT_8237},
-			{"WS",                     Mapper::EXT_WS}
+			{"WS",                     Mapper::EXT_WS},
+			{"DREAMTECH01",            Mapper::EXT_DREAMTECH01},
+			{"H2288",                  Mapper::EXT_H2288}
 		};
 	
 		bool Unif::Board::operator < (cstring const s) const

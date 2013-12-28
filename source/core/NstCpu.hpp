@@ -94,8 +94,8 @@ namespace Nes
 			void BeginFrame(Sound::Output* const);
 			void EndFrame();
 
-			void DoNMI(Cycle) throw();
-			void DoIRQ(uint,Cycle) throw();
+			void DoNMI(Cycle);
+			void DoIRQ(uint,Cycle);
 
 			uint Peek(uint);
 			void Poke(uint,uint);
@@ -584,6 +584,14 @@ namespace Nes
 			SystemRam GetSystemRam() const
 			{
 				return ram.mem;
+			}
+
+			void PatchSystemRam(u16 address,u8 data,u8 compare,bool useCompare)
+			{
+				address &= RAM_SIZE-1;
+
+				if (!useCompare || ram.mem[address] == compare)
+					ram.mem[address] = data;
 			}
 
 			void ClearSystemRam()

@@ -76,7 +76,13 @@ namespace Nes
 			static Result Load(Context&);
 			static void Unload(Image*&);
 
-			virtual Result Reset(bool,bool) = 0;
+			virtual void Reset(bool) = 0;
+
+			virtual Result Flush() const
+			{ 
+				return RESULT_OK; 
+			}
+
 			virtual void VSync() {}
 
 			virtual void LoadState(State::Loader&) {}

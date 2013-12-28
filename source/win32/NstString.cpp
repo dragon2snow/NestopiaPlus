@@ -454,18 +454,12 @@ namespace Nestopia
 
 	uint Private::ExtensionId(cstring const NST_RESTRICT string) throw()
 	{
-		uint last = string[3];
+		uint id = 0;
 
-		if (last == '>' || last == ' ')
-			last = 0;
+		for (uint i=0; i < 4 && string[i] && string[i] != '>' && string[i] != ' '; ++i)
+			id |= lowerCases[ (uchar) string[i] ] << (8 * i);
 
-		return 
-		(
-			( lowerCases[ (uchar) string[0] ] <<  0 ) | 
-			( lowerCases[ (uchar) string[1] ] <<  8 ) | 
-			( lowerCases[ (uchar) string[2] ] << 16 ) |
-			( lowerCases[ last              ] << 24 )
-		);
+		return id;
 	}
 
 	ibool Private::FileExist(cstring const string)

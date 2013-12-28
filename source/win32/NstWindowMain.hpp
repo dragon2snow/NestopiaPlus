@@ -35,6 +35,8 @@
 #include "NstManagerInput.hpp"
 #include "NstManagerFrameClock.hpp"
 
+#include "NstIoStream.hpp"
+
 namespace Nestopia
 {
 	namespace Window

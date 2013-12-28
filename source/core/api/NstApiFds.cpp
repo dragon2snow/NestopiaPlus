@@ -26,12 +26,14 @@
 #include "NstApiEmulator.hpp"
 #include "NstApiMachine.hpp"
 #include "NstApiFds.hpp"
+#include "NstApiMovie.hpp"
 #include "../NstFds.hpp"
 
 namespace Nes
 {
 	namespace Api
 	{
+		Fds::DiskChange Fds::diskChangeCallback;
 		Fds::Lamp Fds::diskAccessLampCallback;
 
 		bool Fds::IsAnyDiskInserted() const
@@ -44,18 +46,46 @@ namespace Nes
 	
 		Result Fds::InsertDisk(uint disk,uint side)
 		{
-			if (emulator.Is(Machine::DISK))
-				return static_cast<Core::Fds*>(emulator.image)->InsertDisk( disk, side );
-	
-			return RESULT_ERR_NOT_READY;
+			if (emulator.Is(Machine::DISK) && !Nes::Api::Movie(emulator).IsPlaying())
+			{
+				const Result result = static_cast<Core::Fds*>(emulator.image)->InsertDisk( disk, side );
+
+				if (result == RESULT_OK)
+					Nes::Api::Movie(emulator).Cut();
+
+				return result;
+			}
+			else
+			{
+				return RESULT_ERR_NOT_READY;
+			}
 		}
 	
+		Result Fds::ChangeSide()
+		{
+			const int disk = static_cast<const Core::Fds*>(emulator.image)->CurrentDisk();
+
+			if (disk != NO_DISK && !Nes::Api::Movie(emulator).IsPlaying())
+				return InsertDisk( disk, static_cast<const Core::Fds*>(emulator.image)->CurrentDiskSide() == 0 ? 1 : 0 );
+			else
+				return RESULT_ERR_NOT_READY;
+		}
+
 		Result Fds::EjectDisk()
 		{
-			if (emulator.Is(Machine::DISK))
-				return static_cast<Core::Fds*>(emulator.image)->EjectDisk();
-	
-			return RESULT_ERR_NOT_READY;
+			if (emulator.Is(Machine::DISK) && !Nes::Api::Movie(emulator).IsPlaying())
+			{
+				const Result result = static_cast<Core::Fds*>(emulator.image)->EjectDisk();
+
+				if (result == RESULT_OK)
+					Nes::Api::Movie(emulator).Cut();
+
+				return result;
+			}
+			else
+			{
+				return RESULT_ERR_NOT_READY;
+			}
 		}
 	
 		Result Fds::SetBIOS(std::istream* const stream)

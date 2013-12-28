@@ -52,7 +52,7 @@ namespace Nes
 
 			typedef Api::Cartridge::Info Info;
 
-			Result Reset(bool,bool);
+			void Reset(bool);
 
 			void LoadState(State::Loader&);
 			void SaveState(State::Saver&) const;
@@ -74,7 +74,7 @@ namespace Nes
 			void ResetWRam();
 
 			void LoadBattery();
-			Result SaveBattery();
+			Result SaveBattery() const;
 
 			Mapper* mapper;
 			VsSystem* vs;
@@ -83,9 +83,14 @@ namespace Nes
 			LinearMemory wRam;
 			Info info;
 			ibool wRamAuto;
-			dword batteryCrc;
+			mutable dword batteryCrc;
 
 		public:
+
+			Result Flush() const
+			{
+				return SaveBattery();
+			}
 
 			const Info& GetInfo() const
 			{ 

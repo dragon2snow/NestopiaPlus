@@ -62,6 +62,27 @@ namespace Nestopia
 		return string.Size();
 	}
 
+	void Generic::SetStyle(long style) const
+	{
+		::SetWindowLongPtr( hWnd, GWL_STYLE, style );
+		::SetWindowPos( hWnd, NULL, 0, 0, 0, 0, SWP_NOSIZE|SWP_NOMOVE|SWP_NOZORDER|SWP_NOACTIVATE );
+	}
+
+	void Generic::SetStyle(long style,long exStyle) const
+	{
+		::SetWindowLongPtr( hWnd, GWL_STYLE, style );
+		::SetWindowLongPtr( hWnd, GWL_EXSTYLE, exStyle );
+		::SetWindowPos( hWnd, NULL, 0, 0, 0, 0, SWP_NOSIZE|SWP_NOMOVE|SWP_NOZORDER|SWP_NOACTIVATE );
+	}
+
+	void Generic::ModifyStyle(long flag,ibool on) const
+	{
+		const long style = GetStyle();
+
+		if ((style & flag) != (on ? flag : 0))
+			SetStyle( (style & ~flag) | (on ? flag : 0) );
+	}
+
 	void Generic::Maximize() const
 	{
 		::SendMessage( hWnd, WM_SYSCOMMAND, SC_MAXIMIZE, 0 );

@@ -29,7 +29,6 @@
 
 #include "resource/resource.h"
 #include "NstString.hpp"
-#include "NstObjectRaw.hpp"
 
 namespace Nestopia
 {
@@ -87,10 +86,11 @@ namespace Nestopia
 			void Flush() const;
 			uint Size() const;
 
-			void Write (const void*,uint) const;
-			void Read  (void*,uint) const;
-			void Peek  (void*,uint) const;
-			void Peek  (uint,void*,uint) const;
+			void Write    (const void*,uint) const;
+			void Read     (void*,uint) const;
+			uint ReadSome (void*,uint) const;
+			void Peek     (void*,uint) const;
+			void Peek     (uint,void*,uint) const;
 
 		private:
 
@@ -133,7 +133,8 @@ namespace Nestopia
 				StreamProxy(const File& f)
 				: file(f) {}
 
-				const StreamProxy& operator << (const Object::ConstRaw& buffer) const
+				template<typename T>
+				const StreamProxy& operator << (const T& buffer) const
 				{
 					file.Write( buffer, buffer.Size() );
 					return *this;
@@ -171,12 +172,18 @@ namespace Nestopia
 			};
 
 			void* handle;
+			String::Path<false> name;
 
 		public:
 
 			ibool IsOpen() const
 			{
 				return handle != reinterpret_cast<void*>(-1);
+			}
+
+			const String::Path<false>& GetName() const
+			{
+				return name;
 			}
 
 			template<typename T>
@@ -234,9 +241,10 @@ namespace Nestopia
 				Seek( BEGIN );
 			}
 
-			static ibool FileExist (cstring);
-			static ibool DirExist  (cstring);
-			static ibool Delete    (cstring);
+			static ibool FileExist     (cstring);
+			static ibool DirExist      (cstring);
+			static ibool Delete        (cstring);
+			static ibool FileProtected (cstring);
 		};
 	}
 }

@@ -28,7 +28,6 @@
 #pragma once
 
 #include "resource/resource.h"
-#include "NstObjectRaw.hpp"
 #include "NstCollectionVector.hpp"
 
 namespace Nestopia
@@ -50,14 +49,12 @@ namespace Nestopia
 				ERR_EMPTY = IDS_FILE_ERR_EMPTY
 			};
 
-			typedef const Object::Raw TargetData;
-			typedef const Object::ConstRaw SourceData;
 			typedef Collection::Vector<u8> PatchData;
 
-			static void Create(SourceData,SourceData,PatchData&);
+			static void Create(const void*,const void*,uint,PatchData&);
 
-			void Parse (SourceData);
-			void Patch (TargetData) const;
+			void Parse (const void*,uint);
+			void Patch (void*,uint) const;
 
 		private:
 

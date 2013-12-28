@@ -107,7 +107,7 @@ namespace Nes
 				{
 					return result;
 				}
-				catch (std::bad_alloc&)
+				catch (const std::bad_alloc&)
 				{
 					return RESULT_ERR_OUT_OF_MEMORY;
 				}
@@ -137,7 +137,7 @@ namespace Nes
 			{
 				return result;
 			}
-			catch (std::bad_alloc&)
+			catch (const std::bad_alloc&)
 			{
 				return RESULT_ERR_OUT_OF_MEMORY;
 			}
@@ -313,6 +313,7 @@ namespace Nes
 	
 		Fds::~Fds()
 		{
+			EjectDisk();
 			disks.sides.Save();
 		}
 
@@ -346,7 +347,7 @@ namespace Nes
 			drive.notify = false;
 		}
 
-		Result Fds::Reset(const bool hard,bool)
+		void Fds::Reset(const bool hard)
 		{
 			irq.Reset(true,true);
 			regs.Reset();
@@ -384,8 +385,6 @@ namespace Nes
 			cpu.Map( 0xE000U, 0xFFFFU ).Set( &Bios::instance, &Bios::Instance::Peek_Rom, &Bios::Instance::Poke_Nop );
 		
 			Log() << "Fds: reset" NST_LINEBREAK "Fds: " << NumDisks() << " disk(s) present" NST_LINEBREAK;
-
-			return RESULT_OK;
 		}
 	
 		void Fds::Sound::Envelope::Reset()
@@ -466,9 +465,17 @@ namespace Nes
 
 				if (disks.current != disk)
 				{
+					const uint prev = disks.current;
+
 					disks.current = disk;
 					disks.data = NULL;
 					disks.mounting = Disks::MOUNTING;
+
+					if (prev != Disks::EJECTED)
+						Api::Fds::diskChangeCallback( Api::Fds::DISK_EJECT, prev / 2, prev % 2 );
+
+					Api::Fds::diskChangeCallback( Api::Fds::DISK_INSERT, disk / 2, disk % 2 );
+
 					return RESULT_OK;
 				}
 			
@@ -482,9 +489,14 @@ namespace Nes
 		{
 			if (disks.current != Disks::EJECTED)
 			{
+				const uint prev = disks.current;
+
 				disks.current = Disks::EJECTED;
 				disks.data = NULL;
 				disks.mounting = 0;
+
+				Api::Fds::diskChangeCallback( Api::Fds::DISK_EJECT, prev / 2, prev % 2 );
+
 				return RESULT_OK;
 			}
 
@@ -557,20 +569,19 @@ namespace Nes
 
 						if (data[1] & 0x1)
 						{
-							if (data[2] >= disks.sides.count)
+							if (NES_FAILED(InsertDisk( data[2] / 2, data[2] % 2 )))
 								throw RESULT_ERR_CORRUPT_FILE;
 
-							disks.current = data[2];
 							disks.mounting = data[3];
 							disks.data = disks.mounting ? NULL : disks.sides.data[disks.current];
 						}
-						else
+						else 
 						{
-							disks.current = Disks::EJECTED;
+							EjectDisk();
+
 							disks.mounting = 0;
 							disks.data = NULL;
 						}
-
 						break;
 					}
 

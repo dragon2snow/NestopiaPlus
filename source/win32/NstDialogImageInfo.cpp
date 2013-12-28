@@ -36,16 +36,21 @@ namespace Nestopia
 	struct ImageInfo::Handlers
 	{
 		static const MsgHandler::Entry<ImageInfo> messages[];
+		static const MsgHandler::Entry<ImageInfo> commands[];
 	};
 
 	const MsgHandler::Entry<ImageInfo> ImageInfo::Handlers::messages[] =
 	{
-		{ WM_INITDIALOG, &ImageInfo::OnInitDialog },
-		{ WM_ACTIVATE,   &ImageInfo::OnActivate   }
+		{ WM_INITDIALOG, &ImageInfo::OnInitDialog }
+	};
+
+	const MsgHandler::Entry<ImageInfo> ImageInfo::Handlers::commands[] =
+	{
+		{ IDC_ROM_INFO_OK, &ImageInfo::OnCmdOk }
 	};
 
 	ImageInfo::ImageInfo(Managers::Emulator& e)
-	: dialog(IDD_IMAGEINFO,this,Handlers::messages), emulator(e)
+	: dialog(IDD_IMAGEINFO,this,Handlers::messages,Handlers::commands), emulator(e)
 	{
 		dialog.Open();
 	}
@@ -206,14 +211,11 @@ namespace Nestopia
 		return TRUE;
 	}
 
-	ibool ImageInfo::OnActivate(Param&)
+	ibool ImageInfo::OnCmdOk(Param& param)
 	{
-		// text is initially selected when dialog starts and unselecting it in WM_INITDIALOG
-		// doesn't seem to work so do it here once.
+		if (param.Button().IsClicked())
+			dialog.Close();
 
-		dialog.Edit( IDC_ROM_INFO_EDIT ).Select( FALSE );
-		dialog.Messages().Remove( WM_ACTIVATE, this, &ImageInfo::OnActivate );
-
-		return FALSE;
+		return TRUE;
 	}
 }

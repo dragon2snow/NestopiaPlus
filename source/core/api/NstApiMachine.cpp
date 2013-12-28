@@ -25,7 +25,8 @@
 #include "../NstCore.hpp"
 #include "NstApiEmulator.hpp"
 #include "NstApiMachine.hpp"
-#include "../NstMovie.hpp"
+#include "NstApiMovie.hpp"
+#include "NstApiRewinder.hpp"
 #include "../NstCartridge.hpp"
 #include "../NstImage.hpp"
 
@@ -165,7 +166,7 @@ namespace Nes
 	
 		Result Machine::Reset(const bool hard)
 		{
-			if ((emulator.state & ON) && (!emulator.movie || !emulator.movie->IsPlaying()))
+			if ((emulator.state & ON) && !Api::Movie(emulator).IsPlaying())
 			{
 				Result result = emulator.Reset( hard );
 	
@@ -205,15 +206,13 @@ namespace Nes
 			return RESULT_NOP;
 		}
 
-		ulong Machine::GetFrame() const
-		{
-			return emulator.frame;
-		}
-	
 		Result Machine::LoadState(std::istream& stream)
 		{
-			if (!emulator.movie || emulator.movie->IsStopped())
+			if (Api::Movie(emulator).IsStopped())
+			{
+				Api::Rewinder(emulator).Reset();
 				return emulator.LoadState( &stream );
+			}
 
 			return RESULT_ERR_NOT_READY;
 		}

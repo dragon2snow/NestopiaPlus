@@ -29,7 +29,7 @@
 
 #include "NstWindowUser.hpp"
 #include "NstIoFile.hpp"
-#include "NstIoZip.hpp"
+#include "NstIoArchive.hpp"
 #include "NstSystemThread.hpp"
 #include "NstApplicationInstance.hpp"
 #include "NstIoLog.hpp"
@@ -96,7 +96,7 @@ namespace Nestopia
 		};
 
 		const Include include;
-		uint zipped;
+		uint compressed;
 		Path path;
 		Strings strings;
 		Entries entries;
@@ -128,7 +128,7 @@ namespace Nestopia
 		Type  ParseNsf();
 		Type  ParseIps();
 		Type  ParseNsp();
-		Type  ParseZip();
+		Type  ParseArchive();
 		void  AddEntry(const Entry&);
 
 		Buffer buffer;
@@ -165,14 +165,16 @@ namespace Nestopia
 			{
 				switch (extension)
 				{
-					case NST_FOURCC('n','e','s','\0') : return include[Include::NES] ? &Inserter::ParseNes : NULL;
-					case NST_FOURCC('u','n','f','\0') :
-					case NST_FOURCC('u','n','i', 'f') : return include[Include::UNF] ? &Inserter::ParseUnf : NULL;
-					case NST_FOURCC('f','d','s','\0') : return include[Include::FDS] ? &Inserter::ParseFds : NULL;
-					case NST_FOURCC('n','s','f','\0') : return include[Include::NSF] ? &Inserter::ParseNsf : NULL;
-					case NST_FOURCC('i','p','s','\0') : return include[Include::IPS] ? &Inserter::ParseIps : NULL;
-					case NST_FOURCC('n','s','p','\0') : return include[Include::NSP] ? &Inserter::ParseNsp : NULL;
-					case NST_FOURCC('z','i','p','\0') : return include[Include::ZIP] ? &Inserter::ParseZip : NULL;
+					case NST_FOURCC('n','e','s','\0'): return include[Include::NES] ? &Inserter::ParseNes : NULL;
+					case NST_FOURCC('u','n','f','\0'):
+					case NST_FOURCC('u','n','i', 'f'): return include[Include::UNF] ? &Inserter::ParseUnf : NULL;
+					case NST_FOURCC('f','d','s','\0'): return include[Include::FDS] ? &Inserter::ParseFds : NULL;
+					case NST_FOURCC('n','s','f','\0'): return include[Include::NSF] ? &Inserter::ParseNsf : NULL;
+					case NST_FOURCC('i','p','s','\0'): return include[Include::IPS] ? &Inserter::ParseIps : NULL;
+					case NST_FOURCC('n','s','p','\0'): return include[Include::NSP] ? &Inserter::ParseNsp : NULL;
+					case NST_FOURCC('z','i','p','\0'):
+					case NST_FOURCC('r','a','r','\0'):
+					case NST_FOURCC('7','z','\0','\0'): return include[Include::ARCHIVE] ? &Inserter::ParseArchive : NULL;
 				}
 			}
 		}
@@ -210,7 +212,7 @@ namespace Nestopia
 		if (entries.Size() == Header::MAX_ENTRIES)
 			return FALSE;
 
-		zipped = 0;
+		compressed = 0;
 		path.string = fileName;
 		strings = saveStrings;
 
@@ -258,7 +260,7 @@ namespace Nestopia
 			if (dialog)
 				dialog.Control( IDC_LAUNCHER_FILESEARCH_FILE ).Text() << path.string;
 
-			zipped = 0;
+			compressed = 0;
 			buffer.Clear();
 
 			try
@@ -353,7 +355,7 @@ namespace Nestopia
 				if (header.reserved1 | header.reserved2)
 					std::memset( buffer + 7, 0x00, sizeof(Header) - 7 );
 
-				Entry entry( Entry::NES | zipped );
+				Entry entry( Entry::NES | compressed );
 
 				entry.pRom = header.num16kPRomBanks * 16;
 				entry.cRom = header.num8kCRomBanks * 8;
@@ -394,7 +396,7 @@ namespace Nestopia
 		{
 			if (IsFileUnique())
 			{
-				Entry entry( Entry::UNF | zipped );
+				Entry entry( Entry::UNF | compressed );
 
 				cstring const end = buffer.End() - 8;
 				uint pRom = 0, cRom = 0;
@@ -507,7 +509,7 @@ namespace Nestopia
 		{
 			if (IsFileUnique())
 			{
-				Entry entry( Entry::FDS | zipped );
+				Entry entry( Entry::FDS | compressed );
 
 				entry.pRom = (u16) ((buffer.Size() - (hasHeader ? 16 : 0)) / NES_1K);
 				entry.wRam = 32;
@@ -554,7 +556,7 @@ namespace Nestopia
 
 				Header& header = reinterpret_cast<Header&>( buffer.Front() );
 
-				Entry entry( Entry::NSF | zipped );
+				Entry entry( Entry::NSF | compressed );
 
 				entry.pRom = (u16) ((buffer.Size() - sizeof(Header)) / NES_1K);
 
@@ -593,7 +595,7 @@ namespace Nestopia
 		{
 			if (IsFileUnique())
 			{
-				Entry entry( Entry::IPS | zipped );
+				Entry entry( Entry::IPS | compressed );
 				AddEntry( entry );
 
 				return TYPE_PROCESSED;
@@ -609,7 +611,7 @@ namespace Nestopia
 		{
 			if (IsFileUnique())
 			{
-				Entry entry( Entry::NSP | zipped );
+				Entry entry( Entry::NSP | compressed );
 				AddEntry( entry );
 
 				return TYPE_PROCESSED;
@@ -619,9 +621,9 @@ namespace Nestopia
 		return TYPE_INVALID;
 	}
 
-	Launcher::List::Files::Inserter::Type Launcher::List::Files::Inserter::ParseZip() 
+	Launcher::List::Files::Inserter::Type Launcher::List::Files::Inserter::ParseArchive() 
 	{ 
-		zipped = Entry::ZIP;
+		compressed = Entry::ARCHIVE;
 
 		Io::File file;
 
@@ -634,24 +636,24 @@ namespace Nestopia
 			return TYPE_PROCESSED;
 		}
 
-		const Io::Zip zip( file );
+		const Io::Archive archive( file );
 		const uint length = path.string.Size();
 
-		for (uint i=0; i < zip.NumFiles(); ++i)
+		for (uint i=0; i < archive.NumFiles(); ++i)
 		{
-			NST_VERIFY( zip[i].GetName().Size() );
+			NST_VERIFY( archive[i].GetName().Size() );
 
 			// will look like: "archive.zip <image.nes>"
-			path.string << " <" << zip[i].GetName();
+			path.string << " <" << archive[i].GetName();
 
 			Parser const parser = GetParser();
 
-			if (parser && parser != &Inserter::ParseZip)
+			if (parser && parser != &Inserter::ParseArchive)
 			{
 				path.string << '>';
-				buffer.Resize( zip[i].UncompressedSize() );
+				buffer.Resize( archive[i].Size() );
 
-				if (zip[i].Uncompress( buffer ))
+				if (archive[i].Uncompress( buffer ))
 					(*this.*parser)();
 			}
 
@@ -663,7 +665,7 @@ namespace Nestopia
 
 	Launcher::List::Files::Inserter::Type Launcher::List::Files::Inserter::ParseAny() 
 	{
-		const ibool notUnzipped = buffer.Empty();
+		const ibool notCompressed = buffer.Empty();
 
 		if 
 		(
@@ -672,9 +674,9 @@ namespace Nestopia
 			(!include[Include::FDS] || ParseFds() == TYPE_INVALID) &&
 			(!include[Include::NSF] || ParseNsf() == TYPE_INVALID) &&
 			(!include[Include::IPS] || ParseIps() == TYPE_INVALID) &&
-			( include[Include::ZIP] && notUnzipped)
+			( include[Include::ARCHIVE] && notCompressed)
 		)
-			ParseZip();
+			ParseArchive();
 
 		return TYPE_PROCESSED;
 	}

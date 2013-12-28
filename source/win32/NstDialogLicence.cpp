@@ -53,7 +53,7 @@ namespace Nestopia
 	{
 		const Resource::File file( IDR_LICENCE, "Licence" );
 
-		if (file.GetData().Size())
+		if (file.GetSize())
 			dialog.Control( IDC_LICENCE_EDIT ).Text() << static_cast<cstring>( file.GetData() );
 
 		return TRUE;

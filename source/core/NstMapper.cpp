@@ -47,6 +47,8 @@
 #include "board/NstBrdNovelDiamond.hpp"
 #include "board/NstBrd8237.hpp"
 #include "board/NstBrdWs.hpp"
+#include "board/NstBrdDreamTech01.hpp"
+#include "board/NstBrdH2288.hpp"
 #include "mapper/NstMapper000.hpp"
 #include "mapper/NstMapper001.hpp"
 #include "mapper/NstMapper002.hpp"
@@ -144,6 +146,7 @@
 #include "mapper/NstMapper140.hpp"
 #include "mapper/NstMapper142.hpp"
 #include "mapper/NstMapper144.hpp"
+#include "mapper/NstMapper148.hpp"
 #include "mapper/NstMapper151.hpp"
 #include "mapper/NstMapper152.hpp"
 #include "mapper/NstMapper153.hpp"
@@ -158,8 +161,10 @@
 #include "mapper/NstMapper180.hpp"
 #include "mapper/NstMapper181.hpp"
 #include "mapper/NstMapper182.hpp"
+#include "mapper/NstMapper183.hpp"
 #include "mapper/NstMapper184.hpp"
 #include "mapper/NstMapper185.hpp"
+#include "mapper/NstMapper186.hpp"
 #include "mapper/NstMapper187.hpp"
 #include "mapper/NstMapper188.hpp"
 #include "mapper/NstMapper189.hpp"
@@ -180,6 +185,7 @@
 #include "mapper/NstMapper212.hpp"
 #include "mapper/NstMapper213.hpp"
 #include "mapper/NstMapper215.hpp"
+#include "mapper/NstMapper216.hpp"
 #include "mapper/NstMapper217.hpp"
 #include "mapper/NstMapper222.hpp"
 #include "mapper/NstMapper225.hpp"
@@ -402,7 +408,7 @@ namespace Nes
 			{ "",					              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 145	
 			{ "",					              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 146	
 			{ "",					              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 147	
-			{ "",					              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 148	
+			{ "MMC3 TAIWAN (alt)",	              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 148	
 			{ "",					              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 149	
 			{ "",					              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 150	
 			{ "KONAMI VS-SYSTEM",                 Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 151			 
@@ -437,10 +443,10 @@ namespace Nes
 			{ "NICHIBUTSU",	                      Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 180			 
 			{ "HACKER INT.TYPE2",	              Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 181			 
 			{ "SUPER DONKEY KONG",                Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 182			 
-			{ "",					              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 183	
+			{ "BTL SUIKAN PIPE",		          Setup::PRG_012X_8K,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 183	
 			{ "SUNSOFT 74HC161/32",	              Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 184			 
 			{ "CROM WRITE-ENABLE",    		      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 185			 
-			{ "",					              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 186	
+			{ "STUDY BOX",   		              Setup::PRG_0101_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 186
 			{ "STREET FIGHTER ZERO 2 97",	      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 187			 
 			{ "BANDAI KARAOKE STUDIO",            Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 188			 
 			{ "SF2 YOKO VERSION",                 Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 189			 
@@ -470,7 +476,7 @@ namespace Nes
 			{ "9999999-IN-1",		              Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 213
 			{ "",					              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 214
 			{ "M-E3",				              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 215
-			{ "",					              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 216
+			{ "MAGIC JEWELRY 2",	              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 216
 			{ "BMC SPC009",   		              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 217
 			{ "",					              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 218
 			{ "",					              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 219
@@ -514,7 +520,9 @@ namespace Nes
 			{ "SUPER 24-IN-1",					  Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // Ext. 257
 			{ "BMC NOVELDIAMOND (9999999-IN-1)",  Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // Ext. 258
 			{ "UNL 8237",                         Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // Ext. 259
-			{ "BMC WS",                           Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }  // Ext. 260
+			{ "BMC WS",                           Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // Ext. 260
+			{ "DREAMTECH-01",                     Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // Ext. 261
+			{ "H2288",                            Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }  // Ext. 262
 		};
 
 		Mapper* Mapper::Create(Context& context)
@@ -620,6 +628,7 @@ namespace Nes
 				case 140: mapper = new Mapper140 ( context ); break;
 				case 142: mapper = new Mapper142 ( context ); break;
 				case 144: mapper = new Mapper144 ( context ); break;
+				case 148: mapper = new Mapper148 ( context ); break;
 				case 151: mapper = new Mapper151 ( context ); break;
 				case 152: mapper = new Mapper152 ( context ); break;
 				case 153: mapper = new Mapper153 ( context ); break;
@@ -634,8 +643,10 @@ namespace Nes
 				case 180: mapper = new Mapper180 ( context ); break;
 				case 181: mapper = new Mapper181 ( context ); break;
 				case 182: mapper = new Mapper182 ( context ); break;
+				case 183: mapper = new Mapper183 ( context ); break;
 				case 184: mapper = new Mapper184 ( context ); break;
 				case 185: mapper = new Mapper185 ( context ); break;
+				case 186: mapper = new Mapper186 ( context ); break;
 				case 187: mapper = new Mapper187 ( context ); break;
 				case 188: mapper = new Mapper188 ( context ); break;
 				case 189: mapper = new Mapper189 ( context ); break;
@@ -656,6 +667,7 @@ namespace Nes
 				case 212: mapper = new Mapper212 ( context ); break;
 				case 213: mapper = new Mapper213 ( context ); break;
 				case 215: mapper = new Mapper215 ( context ); break;
+				case 216: mapper = new Mapper216 ( context ); break;
 				case 217: mapper = new Mapper217 ( context ); break;
 				case 222: mapper = new Mapper222 ( context ); break;
 				case 225: mapper = new Mapper225 ( context ); break;
@@ -688,6 +700,8 @@ namespace Nes
 				case EXT_NOVELDIAMOND: mapper = new Boards::NovelDiamond ( context ); break;
 				case EXT_8237:         mapper = new Boards::Unl8237      ( context ); break;
 				case EXT_WS:           mapper = new Boards::Ws           ( context ); break;
+				case EXT_DREAMTECH01:  mapper = new Boards::DreamTech01  ( context ); break;
+				case EXT_H2288:        mapper = new Boards::H2288        ( context ); break;
 			
 				default: throw RESULT_ERR_UNSUPPORTED_MAPPER;
 			}
@@ -933,7 +947,7 @@ namespace Nes
 
 		dword Mapper::GetStateName() const
 		{
-			NST_COMPILE_ASSERT( NUM_EXT_MAPPERS == 5 );
+			NST_COMPILE_ASSERT( NUM_EXT_MAPPERS == 7 );
 
 			if (id <= 255)
 			{
@@ -946,6 +960,8 @@ namespace Nes
 				case EXT_NOVELDIAMOND: return NES_STATE_CHUNK_ID('N','O','V','\0');
 				case EXT_8237:         return NES_STATE_CHUNK_ID('8','2','3','\0');
 				case EXT_WS:           return NES_STATE_CHUNK_ID('W','S','4','\0');
+				case EXT_DREAMTECH01:  return NES_STATE_CHUNK_ID('D','0','1','\0');
+				case EXT_H2288:        return NES_STATE_CHUNK_ID('H','2','2','\0');
 			}
 			
 			return NES_STATE_CHUNK_ID('X','X','X','\0');
@@ -998,6 +1014,7 @@ namespace Nes
 				case MMC3_22:
 				case MMC3_23:
 				case MMC3_24:
+				case MMC3_25:
 
 					static_cast<const Boards::Mmc3*>(this)->SaveState( State::Saver::Subset(state,'M','M','3','\0').Ref() );
 					break;
@@ -1151,6 +1168,7 @@ namespace Nes
 							case MMC3_22:
 							case MMC3_23:
 							case MMC3_24:
+							case MMC3_25:
 
 								static_cast<Boards::Mmc3*>(this)->LoadState( State::Loader::Subset(state).Ref() );
 								break;

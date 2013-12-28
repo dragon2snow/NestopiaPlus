@@ -135,8 +135,7 @@ namespace Nes
 					{
 						case NES_STATE_CHUNK_ID('R','E','G','\0'):
 						{
-							u8 data[12];
-							state.Read( data );
+							const State::Loader::Data<12> data( state );
 		
 							regs.ctrl0 = data[0];
 							regs.ctrl1 = data[1];

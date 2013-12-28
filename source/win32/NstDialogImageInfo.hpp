@@ -44,7 +44,7 @@ namespace Nestopia
 			struct Handlers;
 
 			ibool OnInitDialog (Param&);
-			ibool OnActivate   (Param&);
+			ibool OnCmdOk      (Param&);
 
 			Dialog dialog;
 			Managers::Emulator& emulator;

@@ -39,6 +39,11 @@
 #include "NstDialogNetplay.hpp"
 #include "NstManagerNetplay.hpp"
 #include "../kaillera/kailleraclient.h"
+#include <Shlwapi.h>
+
+#ifndef WM_THEMECHANGED
+#define WM_THEMECHANGED WM_NULL
+#endif
 
 namespace Nestopia
 {
@@ -181,6 +186,8 @@ namespace Nestopia
 		ibool ResetWindow() const;
 		void  Initialize();
 		void  Start();
+		void  DisableVisualStyles();
+		void  RestoreVisualStyles();
 		void  StartNetwork(System::Thread::Interrupt);
 
 		void OnMenuStart      (uint);
@@ -204,6 +211,7 @@ namespace Nestopia
 		System::Thread thread;
 		Window::MsgHandler::Callback enableCallback;
 		Network network;
+		DWORD visualStyles;
 		
 		static Kaillera* instance;
 
@@ -762,10 +770,10 @@ namespace Nestopia
 		Window::Custom& w
 	)
 	: 
-	Dll        ( "kailleraclient.dll" ), 
-	emulator   ( e ),
-	menu       ( m ), 
-	window     ( w )
+	Dll      ( "kailleraclient.dll" ), 
+	emulator ( e ),
+	menu     ( m ), 
+	window   ( w )
 	{
 		NST_ASSERT( instance == NULL );
 
@@ -871,6 +879,81 @@ namespace Nestopia
 		::kailleraSetInfos( &info );
 	}
 
+	void Netplay::Kaillera::DisableVisualStyles()
+	{
+		// Kaillera doesn't seem to like XP Visual Styles
+
+		struct ComCtl32
+		{
+			static bool IsVersion6()
+			{
+				Nestopia::System::Dll comctl32("comctl32.dll");
+
+				if (comctl32.IsSupported())
+				{
+					if (DLLGETVERSIONPROC getVersion = (DLLGETVERSIONPROC) comctl32("DllGetVersion"))
+					{
+						DLLVERSIONINFO info;
+						info.cbSize = sizeof(info);
+
+						return getVersion( &info ) == NOERROR && info.dwMajorVersion >= 6;
+					}
+				}
+
+				return false;
+			}
+		};
+
+		visualStyles = 0;
+								   
+		static const bool isVersion6 = ComCtl32::IsVersion6();
+
+		if (isVersion6)
+		{
+			System::Dll uxtheme("uxtheme.dll");
+
+			if (uxtheme.IsSupported())
+			{
+				typedef DWORD (STDAPICALLTYPE* GetProperty)();
+				typedef void (STDAPICALLTYPE* SetProperty)(DWORD);
+
+				if (GetProperty getProperty = (GetProperty) uxtheme("GetThemeAppProperties"))
+				{
+					visualStyles = getProperty();
+
+					if (visualStyles)
+					{
+						if (SetProperty setProperty = (SetProperty) uxtheme("SetThemeAppProperties"))
+						{
+							setProperty( 0 );
+							::SendMessage( Application::Instance::GetMainWindow(), WM_THEMECHANGED, 0, 0 );
+						}
+					}
+				}
+			}
+		}
+	}
+
+	void Netplay::Kaillera::RestoreVisualStyles()
+	{
+		if (visualStyles)
+		{
+			System::Dll uxtheme("uxtheme.dll");
+
+			if (uxtheme.IsSupported())
+			{
+				typedef void (STDAPICALLTYPE* SetProperty)(DWORD);
+
+				if (SetProperty setProperty = (SetProperty) uxtheme("SetThemeAppProperties"))
+				{
+					setProperty( visualStyles );
+					visualStyles = 0;
+					::SendMessage( Application::Instance::GetMainWindow(), WM_THEMECHANGED, 0, 0 );
+				}
+			}
+		}
+	}
+
 	void Netplay::Kaillera::StartNetwork(System::Thread::Interrupt interrupt)
 	{
 		if (interrupt.Demanding())
@@ -881,6 +964,7 @@ namespace Nestopia
 
 	void Netplay::Kaillera::Start()
 	{
+		DisableVisualStyles();
 		Initialize();
 		thread.Create( this, &Kaillera::StartNetwork, window, System::Thread::START );
 	}
@@ -901,6 +985,8 @@ namespace Nestopia
 		network.input.Release();
 		window.Messages().Remove( this );		
 		emulator.EndNetplayMode();
+		RestoreVisualStyles();
+
 		return TRUE;
 	}
 

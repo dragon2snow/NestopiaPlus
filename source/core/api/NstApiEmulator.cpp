@@ -35,10 +35,11 @@
 #include "../input/NstInpDevice.hpp"
 #include "../input/NstInpPad.hpp"
 #include "../NstCartridge.hpp"
-#include "../NstGameGenie.hpp"
+#include "../NstCheats.hpp"
 #include "../NstNsf.hpp"
 #include "../NstIoAdapter.hpp"
 #include "../NstMovie.hpp"
+#include "../NstRewinder.hpp"
 #include "../NstImageDatabase.hpp"
   
 namespace Nes
@@ -60,7 +61,9 @@ namespace Nes
 		renderer      (*new Core::Video::Renderer),
 		palette       (*new Core::Video::Palette),
 		ppu           (cpu),
-		gameGenie     (*new Core::GameGenie(cpu)),
+		rewinder      (NULL),
+		rewinderSound (true),
+		cheats        (NULL),
 		imageDatabase (NULL)
 		{
 			ppu.SetScreen( renderer.GetScreen() );
@@ -69,11 +72,11 @@ namespace Nes
 	
 		Emulator::~Emulator()
 		{
-			Core::Movie::Destroy( movie );
-			Core::Image::Unload( image );
-	
+			Unload();
+
+			delete rewinder;
 			delete imageDatabase;
-			delete &gameGenie;
+			delete cheats;
 			delete &renderer;
 			delete &palette;
 			delete expPort;
@@ -83,7 +86,12 @@ namespace Nes
 	
 			delete extPort;
 		}
-	
+
+		bool Emulator::GoodSaveTime() const
+		{
+			return image && (!movie || rewinder);
+		}
+
 		Result Emulator::Load(Core::StdStream stream,uint type)
 		{
 			NST_ASSERT( image == NULL );
@@ -107,8 +115,11 @@ namespace Nes
 
 			frame = 0;
 
-			NST_ASSERT( image != NULL );
-			Core::Image::Unload( image );
+			if (image)
+			{
+				image->Flush();
+				Core::Image::Unload( image );
+			}
 		}
 
 		Result Emulator::PowerOn()
@@ -118,15 +129,19 @@ namespace Nes
 	
 		void Emulator::PowerOff()
 		{
-			if (movie && movie->IsPlaying())
-				movie->Stop();
-
 			frame = 0;
+
+			if (rewinder)
+				rewinder->Reset();
+
 			ppu.ClearScreen();
 			cpu.GetApu().ClearBuffers();
+
+			if (GoodSaveTime())
+				image->Flush();
 		}
 	
-		Result Emulator::Reset(const bool hard,const bool flush)
+		Result Emulator::Reset(const bool hard)
 		{
 			frame = 0;
 
@@ -136,6 +151,9 @@ namespace Nes
 	
 				if (!(state & Machine::SOUND))
 				{
+					if (rewinder && rewinder->InBadState())
+						rewinder->Reset();
+
 					InitializeInputDevices();
 	
 					cpu.Map( 0x4016U ).Set( this, &Emulator::Peek_4016, &Emulator::Poke_4016 );
@@ -146,28 +164,31 @@ namespace Nes
 	
 					ppu.Reset( hard );
 					
-					const Result result = image ? image->Reset( hard, flush ) : RESULT_OK;
+					if (image)
+						image->Reset( hard );
 					
 					cpu.Reset( hard );
-					gameGenie.Reset();
+
+					if (cheats)
+						cheats->Reset();
 	
 					if (movie && !movie->MachineReset( hard ))
 						Core::Movie::Destroy( movie );
 
-					return result;
+					return GoodSaveTime() ? image->Flush() : RESULT_OK;
 				}
 				else
 				{
-					const Result result = image->Reset( true, flush );
+					image->Reset( true );
 					cpu.Reset( true );
-					return result;
+					return RESULT_OK;
 				}
 			}
 			catch (Result result)
 			{
 				return result;
 			}
-			catch (std::bad_alloc&)
+			catch (const std::bad_alloc&)
 			{
 				return RESULT_ERR_OUT_OF_MEMORY;
 			}
@@ -179,6 +200,9 @@ namespace Nes
 	
 		void Emulator::SetMode(const Core::Mode mode)
 		{
+			if (rewinder)
+				rewinder->Reset();
+
 			cpu.SetMode( mode );
 			ppu.SetMode( mode );
 	
@@ -239,7 +263,7 @@ namespace Nes
 				{
 					return result;
 				}
-				catch (std::bad_alloc&)
+				catch (const std::bad_alloc&)
 				{
 					return RESULT_ERR_OUT_OF_MEMORY;
 				}
@@ -276,7 +300,7 @@ namespace Nes
 
 							if 
 							(
-							    checkCrc &&
+    							checkCrc && !(state & Machine::DISK) &&
 						       	crc && crc != image->GetPrgCrc() &&
 								Api::User::questionCallback( Api::User::QUESTION_NST_PRG_CRC_FAIL_CONTINUE ) == Api::User::ANSWER_NO
 							)
@@ -373,7 +397,7 @@ namespace Nes
 			{
 				return result;
 			}
-			catch (std::bad_alloc&)
+			catch (const std::bad_alloc&)
 			{
 				return RESULT_ERR_OUT_OF_MEMORY;
 			}
@@ -386,8 +410,21 @@ namespace Nes
         #ifdef NST_PRAGMA_OPTIMIZE
         #pragma optimize("", on)
         #endif
-	
+
 		Result Emulator::Execute
+		(
+        	Core::Video::Output* const video,
+			Core::Sound::Output* const sound,
+			Core::Input::Controllers* const input
+		)		
+		{
+			if (rewinder == NULL || (state & Machine::SOUND))
+				return ExecuteFrame( video, sound, input );
+			else
+				return rewinder->Execute( video, sound, input );
+		}
+
+		Result Emulator::ExecuteFrame
 		(
         	Core::Video::Output* const video,
 			Core::Sound::Output* const sound,
@@ -409,7 +446,11 @@ namespace Nes
 						extPort->BeginFrame( input );
 						expPort->BeginFrame( input );
 	
-						ppu.BeginFrame( video != NULL );
+						ppu.BeginFrame( video != NULL || ppu.GetScreen() != renderer.GetScreen() );
+
+						if (cheats)
+							cheats->BeginFrame();
+
 						cpu.BeginFrame( sound );
 						cpu.ExecuteFrame();
 						ppu.EndFrame();

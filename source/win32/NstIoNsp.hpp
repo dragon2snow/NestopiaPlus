@@ -61,13 +61,16 @@ namespace Nestopia
 				{
 					typedef String::Heap Desc;
 
-					ulong code;
+					u16 address;
+					u8 value;
+					u8 compare;
+					bool useCompare;
+					bool enabled;
 					Desc desc;
-					ibool enabled;
 
-					ibool operator == (ulong c) const
+					ibool operator == (u16 a) const
 					{
-						return code == c;
+						return address == a;
 					}
 				};
 
@@ -109,7 +112,10 @@ namespace Nestopia
 				static ibool ParseFile (cstring,cstring (&)[2][2],Context::Path&);
 				static ibool ParsePort (cstring,cstring (&)[2][2],uint&);
 				static ibool ParseMode (cstring,cstring (&)[2][2],uint&);
+				static ibool ParseGenie (cstring,cstring (&)[2][2],Context::Cheats&,bool=false);
 				static ibool ParseCheat (cstring,cstring (&)[2][2],Context::Cheats&);
+
+				static void Skip(cstring&,cstring);
 
 				static cstring const controllerNames[];
 			};

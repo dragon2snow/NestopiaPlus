@@ -23,7 +23,7 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 
 #include "NstIoNsp.hpp"
-#include "../core/api/NstApiGameGenie.hpp"
+#include "../core/api/NstApiCheats.hpp"
 #include "../core/api/NstApiMachine.hpp"
 
 namespace Nestopia
@@ -109,7 +109,7 @@ namespace Nestopia
 		);
 
 		output << "//\r\n"
-				  "// Generated Nestopia Script File. Version 1.20\r\n"
+				  "// Generated Nestopia Script File. Version 1.22\r\n"
 				  "//\r\n"
 				  "// Syntax:\r\n"
 				  "//\r\n"
@@ -123,9 +123,11 @@ namespace Nestopia
 				  "//                 keyboard,oekakidstablet,hypershot,crazyclimber,mahjong,\r\n"
 				  "//                 excitingboxing,toprider,pokkunmoguraa>\r\n"
 				  "//\r\n"
-				  "//  -GENIE / -CHEAT <code> <on,off> <description> (last is optional)\r\n"
+				  "//  -GENIE <code> <on,off> (description)\r\n"
+				  "//  -CHEAT <address> <value> (compare value) <on,off> (description)\r\n"
 				  "//\r\n"
-				  "// only one command per line is allowed.\r\n"
+				  "// The values in parenthesis are optional.\r\n"
+				  "// Only one argument per line is allowed.\r\n"
 				  "//\r\n"
 				  "// Example:\r\n"
 				  "//\r\n"
@@ -133,7 +135,7 @@ namespace Nestopia
 				  "//  -MODE ntsc\r\n"
 				  "//  -PORT1 pad1\r\n"
 				  "//  -PORT2 unconnected\r\n"
-				  "//  -CHEAT SXIOPO on infinite plumbers\r\n"
+				  "//  -GENIE SXIOPO on infinite plumbers\r\n"
 				  "//\r\n\r\n";
 				  
 		if (context.image.Size())
@@ -159,16 +161,29 @@ namespace Nestopia
 
 		for (Context::Cheats::const_iterator it(context.cheats.begin()); it != context.cheats.end(); ++it)
 		{
-			char characters[9];
+			output << "-CHEAT " 
+				   << String::Hex( (u16) it->address )
+				   << ' '
+				   << String::Hex( (u8) it->value );
 
-			if (NES_SUCCEEDED(Nes::GameGenie::Encode( it->code, characters )))
+			if (it->useCompare)
+				output << ' ' << String::Hex( (u8) it->compare );
+				   
+		    output << (it->enabled ? " on" : " off");
+
+			if (it->desc.Size())
 			{
-				output << "-GENIE " 
-					   << cstring(characters)
-					   << (it->enabled ? " on " : " off ")
-					   << it->desc
-					   << "\r\n";
+				output << ' ' << it->desc;
 			}
+			else if (it->address >= 0x8000U)
+			{
+				char characters[9];
+
+				if (NES_SUCCEEDED(Nes::Cheats::GameGenieEncode( Nes::Cheats::Code(it->address,it->value,it->compare,it->useCompare), characters )))
+					output << " (" << cstring(characters) << ')';
+			}
+
+			output << "\r\n";
 		}
 	}
 
@@ -291,6 +306,19 @@ namespace Nestopia
 		return String::Compare( type, values[0], values[1] - values[0] ) == 0;
 	}
 
+	void File::Skip(cstring& in,cstring const end)
+	{
+		cstring it = in;
+
+		while (it < end && *it != ' ')
+			++it;
+
+		while (it < end && *it == ' ')
+			++it;
+
+		in = it;
+	}
+
 	ibool File::ParseFile(cstring const type,cstring (&values)[2][2],Context::Path& file)
 	{
 		if (Match( type, values[0] ))
@@ -347,9 +375,9 @@ namespace Nestopia
 		return FALSE;
 	}
 
-	ibool File::ParseCheat(cstring const type,cstring (&values)[2][2],Context::Cheats& cheats)
+	ibool File::ParseGenie(cstring const type,cstring (&values)[2][2],Context::Cheats& cheats,const bool shortcut)
 	{
-		if (Match( type, values[0] ))
+		if (shortcut || Match( type, values[0] ))
 		{
 			cheats.push_back( Context::Cheat() );
 			Context::Cheat& cheat = cheats.back();
@@ -357,14 +385,19 @@ namespace Nestopia
 			cstring it = values[1][0];
 			cstring const end = values[1][1];
 
-			if (NES_FAILED(Nes::GameGenie::Decode( it, cheat.code )))
-				throw ERR_SYNTAX;
+			{
+				Nes::Cheats::Code code;
 
-			while (it < end && *it != ' ')
-				++it;
+				if (NES_FAILED(Nes::Cheats::GameGenieDecode( it, code )))
+					throw ERR_SYNTAX;
 
-			while (it < end && *it == ' ')
-				++it;
+				cheat.address = code.address;
+				cheat.value = code.value;
+				cheat.compare = code.compare;
+				cheat.useCompare = code.useCompare;
+			}
+
+			Skip( it, end );
 
 			cheat.enabled =	!
 			(
@@ -373,14 +406,77 @@ namespace Nestopia
 				(it[2] == 'F' || it[2] == 'f')
 			);
 
-			while (it < end && *it != ' ')
-				++it;
-
-			while (it < end  && *it == ' ')
-				++it;
+			Skip( it, end );
 
 			if (it < end)
 				cheat.desc.Assign( it, end - it );
+
+			return TRUE;
+		}
+
+		return FALSE;
+	}
+
+	ibool File::ParseCheat(cstring const type,cstring (&values)[2][2],Context::Cheats& cheats)
+	{
+		if (Match( type, values[0] ))
+		{
+			{
+				const int first = values[1][0][0];
+
+				if ((first >= 'a' && first <= 'z') || (first >= 'A' && first <= 'Z'))
+					return ParseGenie( type, values, cheats, true );
+			}
+
+			const String::Heap string( values[1][0], values[1][1] - values[1][0] );
+
+			cheats.push_back( Context::Cheat() );
+			Context::Cheat& cheat = cheats.back();
+
+			char state[4];
+			state[0] = '\0';
+
+			char desc[256];
+			desc[0] = '\0';
+
+			int address=INT_MAX, value=INT_MAX, compare=INT_MAX;
+			int count = std::sscanf( string, "%x %x %x %3s %255[^\0]", &address, &value, &compare, state, desc );
+
+			if (count > 2 && compare >= 0x00 && compare <= 0xFF)
+			{
+				cheat.useCompare = true;
+				cheat.compare = (u8) compare;
+			}
+			else if (count == 2)
+			{
+				cheat.useCompare = false;
+				cheat.compare = 0x00;
+				count = std::sscanf( string, "%*s %*s %3s %255[^\0]", state, desc );
+			}
+			else
+			{
+				throw ERR_SYNTAX;
+			}
+				
+			if (address < 0x0000 || address > 0xFFFF || value < 0x00 || value > 0xFF)
+				throw ERR_SYNTAX;
+
+			cheat.address = (u16) address;
+			cheat.value = (u8) value;
+			
+			cheat.enabled = 
+			(
+			   	(state[0] != 'o' && state[0] != 'O') || 
+				(state[1] != 'f' && state[1] != 'F') || 
+				(state[2] != 'f' && state[2] != 'F') || 
+				(state[3] != '\0')
+			);
+		
+			if (*desc)
+			{
+				cheat.desc = (cstring) desc;
+				cheat.desc.Trim();
+			}
 
 			return TRUE;
 		}
@@ -402,7 +498,7 @@ namespace Nestopia
 				if 
 				(
 					!ParseCheat( "CHEAT ",  values, context.cheats         ) &&
-					!ParseCheat( "GENIE ",  values, context.cheats         ) &&
+					!ParseGenie( "GENIE ",  values, context.cheats         ) &&
 					!ParsePort( "PORT1 ",   values, context.controllers[0] ) &&
 					!ParsePort( "PORT2 ",   values, context.controllers[1] ) &&
 					!ParsePort( "PORT3 ",   values, context.controllers[2] ) &&

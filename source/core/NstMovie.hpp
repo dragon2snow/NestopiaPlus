@@ -37,7 +37,7 @@ namespace Nes
 		{
 			typedef Result (Api::Emulator::*LoadCallback)(StdStream,bool);
 			typedef Result (Api::Emulator::*SaveCallback)(StdStream,bool);
-			typedef Result (Api::Emulator::*ResetCallback)(bool,bool);
+			typedef Result (Api::Emulator::*ResetCallback)(bool);
 
 			Movie(Cpu&,dword);
 			~Movie();
@@ -47,9 +47,10 @@ namespace Nes
 			static NST_NO_INLINE Movie* Create(Cpu&,dword);
 			static NST_NO_INLINE void Destroy(Movie*&);
 
-			Result Play(StdStream);
-			Result Record(StdStream,bool);
+			Result Play(StdStream,bool);
+			Result Record(StdStream,bool,bool);
 			void   Stop();
+			void   Cut();
 
 			bool BeginFrame(dword,Api::Emulator&,SaveCallback,LoadCallback,ResetCallback);
 			bool MachineReset(bool);
@@ -92,6 +93,7 @@ namespace Nes
 			Status status;
 			Player* player;
 			Recorder* recorder;
+			ibool callbackEnable;
 			const dword prgCrc;
 
 		public:

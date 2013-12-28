@@ -50,26 +50,26 @@ namespace Nestopia
 			explicit DirectInput(HWND);
 			~DirectInput();
 
-			enum 
-			{			
-				MAX_JOYSTICKS = 32
-			};
-
 			enum
 			{
-				AXIS_X        = 0x001,
-				AXIS_Y        = 0x002,
-				AXIS_Z        = 0x004,
-				AXIS_RX       = 0x008,
-				AXIS_RY       = 0x010,
-				AXIS_RZ       = 0x020,
-				AXIS_SLIDER_0 = 0x040,
-				AXIS_SLIDER_1 = 0x080,
-				AXIS_POV_0	  = 0x100,
-				AXIS_POV_1	  = 0x200,
-				AXIS_POV_2	  = 0x400,
-				AXIS_POV_3	  = 0x800,
-				AXIS_ALL      = 0xFFF
+				MAX_JOYSTICKS     = 32,
+				NUM_KEYBOARD_KEYS = 256,
+				AXIS_X            = 0x001,
+				AXIS_Y            = 0x002,
+				AXIS_Z            = 0x004,
+				AXIS_RX           = 0x008,
+				AXIS_RY           = 0x010,
+				AXIS_RZ           = 0x020,
+				AXIS_SLIDER_0     = 0x040,
+				AXIS_SLIDER_1     = 0x080,
+				AXIS_POV_0	      = 0x100,
+				AXIS_POV_1	      = 0x200,
+				AXIS_POV_2	      = 0x400,
+				AXIS_POV_3	      = 0x800,
+				AXIS_ALL          = 0xFFF,
+				DEADZONE_MAX      = 100,
+				DEFAULT_AXES      = AXIS_X|AXIS_Y|AXIS_Z|AXIS_RX|AXIS_RY|AXIS_RZ|AXIS_POV_0|AXIS_POV_1|AXIS_POV_2|AXIS_POV_3,
+				DEFAULT_DEADZONE  = 50
 			};
 
 			enum ScanResult
@@ -79,23 +79,18 @@ namespace Nestopia
 				SCAN_GOOD_KEY
 			};
 
-			enum PollChoice
-			{
-				POLL_OPTIMIZED,
-				POLL_ALLDEVICES
-			};
-
 			class Key;
 			typedef String::Stack<64> KeyName;
 
-			void Poll(PollChoice=POLL_ALLDEVICES);
-			void Acquire(ibool=FALSE);
+			void Acquire();
 			void Unacquire();
 			void Optimize(const Key*,uint);
 			ibool MapKey(Key&,cstring,const System::Guid* = NULL,uint=0) const;
-
-			ScanResult ScanKey(Key&,uint=AXIS_ALL) const;
 			KeyName GetKeyName(const Key&) const;
+
+			void BeginScanMode(HWND);
+			ScanResult ScanKey(Key&);
+			void EndScanMode();
 
 			class Key
 			{
@@ -176,41 +171,45 @@ namespace Nestopia
 
 				enum 
 				{
-					MAX_KEYS = 256,
+					MAX_KEYS = NUM_KEYBOARD_KEYS,
 					COOPERATIVE_FLAGS = DISCL_FOREGROUND|DISCL_NONEXCLUSIVE|DISCL_NOWINKEY
 				};
 
-				NST_NO_INLINE void Acquire(ibool=FALSE);
-				NST_FORCE_INLINE void Poll(ibool=FALSE);
+				NST_NO_INLINE void Acquire();
 				void Unacquire();
 
 				ibool Map(Key&,uint) const;
-				ScanResult Scan(Key&) const;
+				ibool Scan(u8 (&)[MAX_KEYS]);
+				ScanResult Scan(Key&);
 				void SetCooperativeLevel(HWND,DWORD=COOPERATIVE_FLAGS) const;
 				ibool IsAssigned(const Key&) const;
 				cstring GetName(const Key&) const;
-
-				inline void Enable(ibool=TRUE);
+				inline void Use(ibool);
+				inline ibool InUse() const;
 
 			private:
 
 				static IDirectInputDevice8& Create(IDirectInput8&);
-				static ibool MustPoll(IDirectInputDevice8&);
 
 				void Clear();
 
 				typedef Object::Heap<BYTE,MAX_KEYS> Buffer;
 
-				ibool enabled;
+				ibool inUse;
 				IDirectInputDevice8& com;
-				const ibool mustPoll;
 				Buffer buffer;
 
 			public:
 
-				const BYTE* GetBuffer() const
+				const u8* GetBuffer() const
 				{
 					return buffer;
+				}
+
+				void Poll()
+				{
+					if (inUse && (FAILED(com.Poll()) || FAILED(com.GetDeviceState( Buffer::SIZE, buffer ))))
+						Acquire();
 				}
 			};
 
@@ -218,7 +217,7 @@ namespace Nestopia
 			{
 			public:
 
-				Joystick(Base&,const GUID&);
+				Joystick(Base&,const DIDEVICEINSTANCE&);
 				~Joystick();
 
 				enum
@@ -235,16 +234,16 @@ namespace Nestopia
 					ERR_API
 				};
 
-				NST_NO_INLINE void Acquire(ibool=FALSE);
-				NST_FORCE_INLINE void Poll(ibool=FALSE);
+				NST_NO_INLINE void Acquire();
 				void Unacquire();
 
 				ibool Map(Key&,cstring) const;
-				ibool Scan(Key&,uint) const;
+				ibool Scan(Key&);
 				ibool IsAssigned(const Key&) const;
+				ibool SetAxisDeadZone(uint);
 				cstring GetName(const Key&) const;
-
-				inline void Enable(ibool=TRUE);
+				inline void Use(ibool);
+				inline ibool InUse() const;
 
 			private:
 
@@ -268,15 +267,14 @@ namespace Nestopia
 					enum
 					{
 						AXIS_MIN_RANGE = -1000,
-						AXIS_MAX_RANGE = +1000,
-						AXIS_DEADZONE  = 5000
+						AXIS_MAX_RANGE = +1000
 					};
 
 					static BOOL CALLBACK EnumObjectsProc(LPCDIDEVICEOBJECTINSTANCE,LPVOID);
 
 				public:
 
-					Caps(IDirectInputDevice8&,const GUID&);
+					Caps(IDirectInputDevice8&,const DIDEVICEINSTANCE&);
 
 					enum
 					{
@@ -284,15 +282,18 @@ namespace Nestopia
 						NUM_BUTTONS = 32
 					};
 
-					ibool mustPoll;
 					uint axes;
 					const System::Guid guid;
+					const String::Heap name;
 				};
 
 				ibool enabled;
+				ibool inUse;
 				IDirectInputDevice8& com;
 				const Caps caps;
 				Object::Pod<DIJOYSTATE> state;
+				uint deadZone;
+				uint axes;
 
 				enum 
 				{
@@ -307,6 +308,56 @@ namespace Nestopia
 				const System::Guid& GetGuid() const
 				{
 					return caps.guid;
+				}
+
+				const String::Heap& GetName() const
+				{
+					return caps.name;
+				}
+
+				uint GetAxisDeadZone() const
+				{
+					return deadZone;
+				}
+
+				uint GetAvailableAxes() const
+				{
+					return caps.axes;
+				}
+
+				uint GetScannerAxes() const
+				{
+					return axes;
+				}
+
+				void Enable(ibool enable)
+				{
+					enabled = enable;
+				}
+
+				ibool IsEnabled() const
+				{
+					return enabled;
+				}
+
+				void SetScannerAxes(uint flags)
+				{
+					NST_ASSERT( flags <= AXIS_ALL );
+					axes = flags;
+				}
+
+				void SetScannerAxes(uint flags,ibool on)
+				{
+					NST_ASSERT( flags <= AXIS_ALL );
+					axes = (on ? axes | flags : axes & ~flags);
+				}
+
+				void Poll()
+				{
+					HRESULT hResult;
+
+					if (inUse && (FAILED(hResult=com.Poll()) || FAILED(hResult=com.GetDeviceState( sizeof(state), &state ))))
+						OnError( hResult );
 				}
 			};
 
@@ -329,26 +380,9 @@ namespace Nestopia
 
 		public:
 
-			enum
+			ibool ScanKeyboard(u8 (&buffer)[256])
 			{
-				NUM_KEYBOARD_KEYS = Keyboard::MAX_KEYS
-			};
-
-			void BeginScanMode(HWND hWnd)
-			{
-				keyboard.SetCooperativeLevel( hWnd, DISCL_FOREGROUND|DISCL_EXCLUSIVE );
-				Acquire( TRUE );
-			}
-
-			void EndScanMode()
-			{
-				Unacquire();
-				keyboard.SetCooperativeLevel( base.hWnd );
-			}
-
-			const BYTE* GetKeyboardBuffer() const
-			{
-				return keyboard.GetBuffer();
+				return keyboard.Scan( buffer );
 			}
 
 			ibool MapKeyboard(Key& key,uint code) const
@@ -362,16 +396,83 @@ namespace Nestopia
 				return joysticks.Size();
 			}
 
+			ibool IsJoystickEnabled(uint index) const
+			{
+				NST_ASSERT( index < joysticks.Size() );
+				return joysticks[index]->IsEnabled();
+			}
+
+			void EnableJoystick(uint index,ibool enable)
+			{
+				NST_ASSERT( index < joysticks.Size() );
+				joysticks[index]->Enable( enable );
+			}
+
 			const System::Guid& GetJoystickGuid(uint index) const
 			{
 				NST_ASSERT( index < joysticks.Size() );
 				return joysticks[index]->GetGuid();
 			}
 
-			ibool IsAnyPressed(uint axes=AXIS_ALL) const
+			const String::Heap& GetJoystickName(uint index) const
+			{
+				NST_ASSERT( index < joysticks.Size() );
+				return joysticks[index]->GetName();
+			}
+
+			ibool SetAxisDeadZone(uint index,uint deadZone)
+			{
+				NST_ASSERT( index < joysticks.Size() );
+				return joysticks[index]->SetAxisDeadZone( deadZone );
+			}
+
+			uint GetAxisDeadZone(uint index) const
+			{
+				NST_ASSERT( index < joysticks.Size() );
+				return joysticks[index]->GetAxisDeadZone();
+			}
+
+			uint GetAvailableAxes(uint index) const
+			{
+				NST_ASSERT( index < joysticks.Size() );
+				return joysticks[index]->GetAvailableAxes();
+			}
+
+			void SetScannerAxes(uint index,uint axes)
+			{
+				NST_ASSERT( index < joysticks.Size() );
+				return joysticks[index]->SetScannerAxes( axes );
+			}
+
+			void SetScannerAxes(uint index,uint axes,ibool state)
+			{
+				NST_ASSERT( index < joysticks.Size() );
+				return joysticks[index]->SetScannerAxes( axes, state );
+			}
+
+			uint GetScannerAxes(uint index) const
+			{
+				NST_ASSERT( index < joysticks.Size() );
+				return joysticks[index]->GetScannerAxes();
+			}
+
+			const u8* GetKeyboardBuffer() const
+			{
+				return keyboard.GetBuffer();
+			}
+
+			ibool IsAnyPressed()
 			{
 				Key key;
-				return ScanKey( key, axes ) != SCAN_NO_KEY;
+				return ScanKey( key ) != SCAN_NO_KEY;
+			}
+
+			void Poll()
+			{
+				keyboard.Poll();
+
+				for (Joysticks::Iterator it=joysticks.Begin(), end=joysticks.End(); it != end; ++it)
+					(*it)->Poll();
 			}
 		};
 	}

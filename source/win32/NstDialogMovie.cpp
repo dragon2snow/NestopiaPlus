@@ -56,12 +56,28 @@ namespace Nestopia
 	{
 	}
 
-	void Movie::SetMovieFile(const MovieFile& file)
+	void Movie::FixFile()
 	{
-		movieFile = file;
+		if (movieFile.File().Size())
+		{
+			if (movieFile.Directory().Empty())
+				movieFile.Directory() = paths.GetDefaultDirectory( Managers::Paths::File::MOVIE );
 
-		if (movieFile.Size() && movieFile.Extension().Empty())
-			movieFile.Extension() = "nsv";
+			if (movieFile.Extension().Empty())
+				movieFile.Extension() = "nsv";
+		}
+		else
+		{
+			movieFile.Clear();
+		}
+	}
+
+	ibool Movie::SetMovieFile(const MovieFile& file)
+	{
+		const MovieFile old( movieFile );
+		movieFile = file;
+		FixFile();
+		return movieFile != old;
 	}
 
 	ibool Movie::OnInitDialog(Param&)
@@ -92,10 +108,7 @@ namespace Nestopia
 		if (param.Button().IsClicked())
 		{
 			dialog.Edit(IDC_MOVIE_FILE) >> movieFile;
-
-			if (movieFile.Size() && movieFile.Extension().Empty())
-				movieFile.Extension() = "nsv";
-
+			FixFile();
 			dialog.Close();
 		}
 

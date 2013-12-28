@@ -49,16 +49,6 @@ namespace Nestopia
 
 			enum
 			{
-				CHANNEL_SQUARE1, 
-				CHANNEL_SQUARE2, 
-				CHANNEL_TRIANGLE,
-				CHANNEL_NOISE,   
-				CHANNEL_DPCM,    
-				CHANNEL_EXTERNAL
-			};
-
-			enum
-			{
 				VOLUME_MAX = DirectX::DirectSound::VOLUME_MAX,
 				LATENCY_MAX = DirectX::DirectSound::LATENCY_MAX
 			};
@@ -73,6 +63,16 @@ namespace Nestopia
 			};
 
 		private:
+
+			enum
+			{
+				CHANNEL_SQUARE1, 
+				CHANNEL_SQUARE2, 
+				CHANNEL_TRIANGLE,
+				CHANNEL_NOISE,   
+				CHANNEL_DPCM,    
+				CHANNEL_EXTERNAL
+			};
 
 			struct Handlers;
 

@@ -38,7 +38,7 @@ namespace Nes
 		public:
 
 			Mapper90(Context& c)
-			: BtlTek2A(c,DEFAULT_DIPSWITCH_DETECT) {}
+			: BtlTek2A(c,DEFAULT_DIPSWITCH_OFF) {}
 		};
 	}
 }

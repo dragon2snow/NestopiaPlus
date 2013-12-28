@@ -394,12 +394,12 @@ namespace Nes
 						(banks.chrB[0] >> 8) | ((banks.chrB[1] >> 8) << 2) | ((banks.chrB[2] >> 8) << 4) | ((banks.chrB[3] >> 8) << 6),
 						(banks.chrHigh >> 6) | (banks.lastChr != Banks::LAST_CHR_A ? 0x80 : 0x00),
 						filler.tile,
-						filler.attribute & 0x3,
+						(filler.attribute & 0x3) | ((spliter.tile >> 2) & 0xF8),
 						exRam.tile,
 						spliter.ctrl,
 						spliter.yStart,
 						spliter.chrBank >> 12,
-						spliter.tile,
+						spliter.tile & 0x1F,
 						spliter.x,
 						spliter.y
 					};
@@ -459,7 +459,7 @@ namespace Nes
 							spliter.ctrl = data[26];
 							spliter.yStart = NST_MIN(data[27],239);
 							spliter.chrBank = data[28] << 12;
-							spliter.tile = data[29];
+							spliter.tile = (data[29] & 0x1F) | ((data[24] & 0xF8) << 2);
 							spliter.x = data[30] & 0x1F;
 							spliter.y = NST_MIN(data[31],239);
 
@@ -477,6 +477,8 @@ namespace Nes
 						case NES_STATE_CHUNK_ID('I','R','Q','\0'):
 						{
 							const State::Loader::Data<2> data( state );
+
+							NST_VERIFY( !(data[0] & Irq::FRAME) );
 
 							irq.state = data[0] & (Irq::HIT|Irq::ENABLED); 
 							irq.target = data[1];
@@ -655,7 +657,7 @@ namespace Nes
 				if (ppu.IsEnabled())
 				{
 					++irq.count;
-					irq.state &= Irq::ENABLED;
+					irq.state = (irq.state & Irq::ENABLED) | Irq::FRAME;
 					cpu.ClearIRQ();
 				}
 
@@ -679,7 +681,7 @@ namespace Nes
 						if (++irq.count == irq.target && irq.target)
 							irq.state |= Irq::HIT;
 
-						if (irq.state == Irq::SIGNAL_HIT)
+						if ((irq.state & Irq::SIGNAL_HIT) == Irq::SIGNAL_HIT)
 							cpu.DoIRQ( Cpu::IRQ_EXT, flow.cycles );
 					}
 
@@ -694,6 +696,7 @@ namespace Nes
 					{
 						irq.count = 0U-2U;
 						flow.cycles = NES_CYCLE_MAX;
+						irq.state &= (Irq::ENABLED|Irq::HIT);
 
 						ppu.Update();
 
@@ -708,11 +711,6 @@ namespace Nes
 						break;
 					}
 				}
-			}
-
-			inline bool Mmc5::IsRendering() const
-			{
-				return flow.scanline - 1U < 239U && ppu.IsEnabled();
 			}
 		
 			inline void Mmc5::Update()
@@ -1195,6 +1193,7 @@ namespace Nes
 				if (!(data & Regs::PPU_CTRL1_ENABLED))
 				{
 					irq.count = 0U-2U;
+					irq.state &= (Irq::HIT|Irq::ENABLED);
 					banks.fetchMode = Banks::FETCH_MODE_NONE;
 					spliter.inside = false;
 				}
@@ -1511,27 +1510,30 @@ namespace Nes
 			{
 				Update();
 
-				uint status = irq.state & Irq::HIT;
-				irq.state &= Irq::ENABLED;
-
-				if (IsRendering())
-					status |= Irq::FRAME;
+				const uint status = irq.state & (Irq::FRAME|Irq::HIT);
+				irq.state &= (Irq::FRAME|Irq::ENABLED);
 
 				cpu.ClearIRQ();
 
 				return status;
 			}
-	
+
 			NES_POKE(Mmc5,5204) 
 			{ 
 				Update();
 
-				irq.state = (data & 0x80) ? (irq.state | Irq::ENABLED) : (irq.state & Irq::HIT);
+				if (data & 0x80)
+				{
+					irq.state |= Irq::ENABLED;
 
-				if (irq.state == Irq::SIGNAL_HIT)
-					cpu.DoIRQ();
+					if (irq.state & Irq::HIT)
+						cpu.DoIRQ();
+				}
 				else
+				{
+					irq.state &= (Irq::HIT|Irq::FRAME);
 					cpu.ClearIRQ();
+				}
 			}
 	
 			NES_PEEK(Mmc5::Sound,5205) 
@@ -1571,9 +1573,9 @@ namespace Nes
 						ppu.Update();
 						Update();
 
-						NST_VERIFY( IsRendering() );
+						NST_VERIFY( irq.state & Irq::FRAME );
 
-						if (!IsRendering())
+						if (!(irq.state & Irq::FRAME))
 							data = 0;
 
 					case Regs::EXRAM_MODE_CPU_RAM:

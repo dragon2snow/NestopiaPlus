@@ -36,6 +36,7 @@
 #include "../core/api/NstApiCartridge.hpp"
 #include "../core/api/NstApiNsf.hpp"
 #include "../core/api/NstApiMovie.hpp"
+#include "../core/api/NstApiRewinder.hpp"
 
 namespace Nestopia
 {
@@ -80,7 +81,7 @@ namespace Nestopia
 		{
 			NST_ASSERT( user );
 
-			const Emulator& emulator = *static_cast<const Emulator*>(user);
+			Emulator& emulator = *static_cast<Emulator*>(user);
 
 			switch (type)
 			{
@@ -91,12 +92,12 @@ namespace Nestopia
 			
 				case Nes::User::FILE_SAVE_BATTERY: 
 			
-					emulator.SaveCartridgeData( Object::ConstRaw(&data.front(),data.size()) ); 
+					emulator.SaveCartridgeData( &data.front(), data.size() ); 
 					break;
 			
 				case Nes::User::FILE_SAVE_FDS:
 			
-					emulator.SaveDiskData( Object::ConstRaw(&data.front(),data.size()) ); 
+					emulator.SaveDiskData( &data.front(), data.size() ); 
 					break;
 			}
 		}
@@ -115,6 +116,16 @@ namespace Nestopia
 					Io::Screen() << static_cast<cstring>( data );
 					break;
 			}
+		}
+
+		static void NST_CALLBACK Rewind(Nes::Rewinder::UserData user,Nes::Rewinder::State state)
+		{
+			static_cast<Emulator*>(user)->events
+			( 
+       			state == Nes::Rewinder::PREPARING ? EVENT_REWINDING_PREPARE :
+				state == Nes::Rewinder::REWINDING ? EVENT_REWINDING_START : 
+			                                        EVENT_REWINDING_STOP 
+			);
 		}
 	};
 
@@ -151,7 +162,16 @@ namespace Nestopia
 	: save(DISKIMAGE_SAVE_TO_IMAGE) {}
 
 	inline Emulator::Settings::Timing::Timing()
-	: speed(DEFAULT_SPEED), sync(FALSE), speedAlternating(FALSE), altSpeed(180) {}
+	: 
+	speed     (DEFAULT_SPEED), 
+	baseSpeed (DEFAULT_SPEED), 
+	sync      (false), 
+	speeding  (false), 
+	rewinding (false)
+	{}
+
+	inline Emulator::Settings::Settings()
+	: askSave(FALSE) {}
 
 	void Emulator::Settings::Reset()
 	{
@@ -159,12 +179,14 @@ namespace Nestopia
 		paths.image.Clear();
 		paths.save.Clear();
 		fds.original.Destroy();
+		askSave = FALSE;
 	}
 
 	inline Emulator::State::State()
 	:
 	running     (FALSE), 
-	paused      (FALSE), 
+	paused      (FALSE),
+	frame       (0),
 	activator   (this,&State::NoActivator),
 	inactivator (this,&State::NoInactivator)
 	{}
@@ -187,6 +209,7 @@ namespace Nestopia
 		Nes::User::inputCallback.Set( &Callbacks::DoInput, NULL );
 		Nes::User::questionCallback.Set( &Callbacks::Confirm, NULL );
 		Nes::User::fileIoCallback.Set( &Callbacks::DoFileIO, this );
+		Nes::Rewinder::stateCallback.Set( &Callbacks::Rewind, this );
 	}
 
 	Emulator::~Emulator()
@@ -221,10 +244,6 @@ namespace Nestopia
 		Resume();
 	}
 
-    #ifdef NST_PRAGMA_OPTIMIZE
-    #pragma optimize("t", on)
-    #endif
-
 	ibool Emulator::Pause(const ibool pause)
 	{
 		if (bool(state.paused) != bool(pause))
@@ -243,39 +262,89 @@ namespace Nestopia
 		return FALSE;
 	}
 
-	void Emulator::SetSpeed(const uint speed,const ibool sync)
+    #ifdef NST_PRAGMA_OPTIMIZE
+    #pragma optimize("t", on)
+    #endif
+
+	ibool Emulator::UsesBaseSpeed() const
 	{
-		if (settings.timing.speed != speed || bool(settings.timing.sync) != bool(sync))
+		return 
+		(
+       		(settings.timing.speeding|settings.timing.rewinding) == 0 || 
+			(settings.timing.speed == DEFAULT_SPEED)
+		);
+	}
+
+	uint Emulator::GetBaseSpeed()
+	{
+		if (settings.timing.baseSpeed != DEFAULT_SPEED)
 		{
-			settings.timing.speed = speed;
-			settings.timing.sync = sync;
-			events( EVENT_SPEED );
+			return settings.timing.baseSpeed;
+		}
+		else if (Nes::Machine(*this).GetMode() == Nes::Machine::NTSC)
+		{
+			return Nes::FPS_NTSC;
+		}
+		else
+		{
+			return Nes::FPS_PAL;
 		}
 	}
 
 	uint Emulator::GetSpeed()
 	{
-		if (settings.timing.speed != DEFAULT_SPEED)
-			return settings.timing.speed;
-
-		return Is( Nes::Machine::NTSC ) ? Nes::FPS_NTSC : Nes::FPS_PAL;
+		return UsesBaseSpeed() ? GetBaseSpeed() : settings.timing.speed;
 	}
 
-	void Emulator::EnableAlternativeSpeed(const ibool enable)
+    #ifdef NST_PRAGMA_OPTIMIZE
+    #pragma optimize("", on)
+    #endif
+
+	void Emulator::ResetSpeed(const uint baseSpeed,const ibool sync)
 	{
-		if (bool(settings.timing.speedAlternating) != bool(enable) && !netplay)
+		settings.timing.speed = DEFAULT_SPEED;
+		settings.timing.baseSpeed = (uchar) baseSpeed;
+		settings.timing.speeding = false;
+		settings.timing.sync = sync;
+		settings.timing.rewinding = false;
+
+		events( EVENT_BASE_SPEED );
+		events( EVENT_SPEED );
+	}
+
+	void Emulator::SetSpeed(const uint speed)
+	{
+		if (settings.timing.speed != speed)
 		{
-			settings.timing.speedAlternating = bool(enable);
-			events( EVENT_ALT_SPEED );
+			settings.timing.speed = speed;
+			events( EVENT_SPEED );
 		}
 	}
 
-	ibool Emulator::IsDiskImage(const Object::ConstRaw& data) const
+	void Emulator::ToggleSpeed(const ibool speeding)
 	{
-		return data.Size() >= 4 && 
+		if (bool(settings.timing.speeding) != bool(speeding) && !netplay)
+		{
+			settings.timing.speeding = bool(speeding);
+			events( speeding ? EVENT_SPEEDING_ON : EVENT_SPEEDING_OFF );
+		}
+	}
+
+	void Emulator::ToggleRewind(const ibool rewinding)
+	{
+		if (bool(settings.timing.rewinding) != bool(rewinding) && !netplay)
+		{
+			settings.timing.rewinding = bool(rewinding);
+			events( rewinding ? EVENT_REWINDING_ON : EVENT_REWINDING_OFF );
+		}
+	}
+
+	ibool Emulator::IsDiskImage(const Collection::Buffer& buffer) const
+	{
+		return buffer.Size() >= 4 && 
 		(
-			*static_cast<const u32*>(data) == 0x1A534446 ||
-			*static_cast<const u32*>(data) == 0x494E2A01
+			*reinterpret_cast<const u32*>(buffer.Begin()) == 0x1A534446U ||
+			*reinterpret_cast<const u32*>(buffer.Begin()) == 0x494E2A01U
 		);
 	}
 
@@ -326,9 +395,9 @@ namespace Nestopia
 		}
 	}
 
-	void Emulator::SaveCartridgeData(const Object::ConstRaw& data) const
+	void Emulator::SaveCartridgeData(const void* const data,const uint size)
 	{
-		NST_ASSERT( data.Size() );
+		NST_ASSERT( data && size );
 
 		if (settings.cartridge.writeProtect)
 		{
@@ -336,14 +405,19 @@ namespace Nestopia
 		}
 		else if (settings.paths.save.Size())
 		{
-			try
+			if (!settings.askSave || Window::User::Confirm( IDS_EMU_MOVIE_SAVE_BATTERY ))
 			{
-				Io::File( settings.paths.save, Io::File::DUMP ).Stream() << data;
+				try
+				{
+					Io::File( settings.paths.save, Io::File::DUMP ).Write( data, size );
+				}
+				catch (Io::File::Exception)
+				{
+					Window::User::Warn( IDS_CARTRIDGE_SAVE_FAILED );
+					return;
+				}
+
 				Io::Log() << "Emulator: cartridge save data was saved to \"" << settings.paths.save << "\"\r\n";
-			}
-			catch (Io::File::Exception)
-			{
-				Window::User::Warn( IDS_CARTRIDGE_SAVE_FAILED );
 			}
 		}
 		else
@@ -352,11 +426,11 @@ namespace Nestopia
 		}
 	}
 
-	void Emulator::LoadDiskData(const Object::Raw& fdsData)
+	void Emulator::LoadDiskData(Collection::Buffer& data)
 	{
-		NST_ASSERT( fdsData.Size() );
+		NST_ASSERT( data.Size() );
 
-		settings.fds.original.Assign( fdsData, fdsData.Size() );
+		settings.fds.original = data;
 
 		switch (settings.fds.save)
 		{
@@ -370,14 +444,16 @@ namespace Nestopia
 					try
 					{
 						Io::File( settings.paths.save, Io::File::COLLECT ).Stream() >> patchData;
-						ips.Parse( patchData );
-						ips.Patch( fdsData );
-						Io::Log() << "Emulator: patched image with IPS disk data file \"" << settings.paths.save << "\"\r\n";
+						ips.Parse( patchData, patchData.Size() );
+						ips.Patch( data, data.Size() );
 					}
 					catch (...)
 					{
 						Window::User::Warn( IDS_FDS_IPSDATALOAD_FAILED );
+						return;
 					}
+
+					Io::Log() << "Emulator: patched image with IPS disk data file \"" << settings.paths.save << "\"\r\n";
 				}
 				else if (settings.paths.save.Size())
 				{
@@ -394,10 +470,13 @@ namespace Nestopia
 		}
 	}
 
-	void Emulator::SaveDiskData(const Object::ConstRaw& fdsData) const
+	void Emulator::SaveDiskData(const void* const data,const uint size)
 	{
-		NST_ASSERT( fdsData.Size() );
+		NST_ASSERT( data && size );
 
+		if (settings.askSave && !Window::User::Confirm( IDS_EMU_MOVIE_SAVE_FDS ))
+			return;
+		
 		switch (settings.fds.save)
 		{
 			case DISKIMAGE_SAVE_TO_IMAGE:
@@ -406,13 +485,15 @@ namespace Nestopia
 				{
 					try
 					{
-						Io::File( settings.paths.image, Io::File::DUMP ).Stream() << fdsData;
-						Io::Log() << "Emulator: updated disk image file \"" << settings.paths.image << "\"\r\n";
+						Io::File( settings.paths.image, Io::File::DUMP ).Write( data, size );
 					}
 					catch (Io::File::Exception)
 					{
 						Window::User::Warn( IDS_FDS_SAVE_FAILED );
+						break;
 					}
+
+					Io::Log() << "Emulator: updated disk image file \"" << settings.paths.image << "\"\r\n";
 				}
 				else
 				{
@@ -421,36 +502,37 @@ namespace Nestopia
 				break;
 		
 			case DISKIMAGE_SAVE_TO_IPS:
-		
+
 				if (settings.paths.save.Size())
 				{
-					NST_ASSERT
-					( 
-						settings.fds.original.Size() == fdsData.Size() &&
-						std::memcmp( settings.fds.original, fdsData, fdsData.Size() )
-					);
+					NST_ASSERT( settings.fds.original.Size() == size );
 
-					Io::Ips::PatchData patchData;
-
-					try
+					if (std::memcmp( settings.fds.original, data, size ))
 					{
-						Io::Ips::Create( settings.fds.original, fdsData, patchData );
-						Io::File( settings.paths.save, Io::File::DUMP ).Stream() << patchData;
+						Io::Ips::PatchData patchData;
+
+						try
+						{
+							Io::Ips::Create( settings.fds.original, data, size, patchData );
+							Io::File( settings.paths.save, Io::File::DUMP ).Stream() << patchData;
+						}
+						catch (...)
+						{
+							Window::User::Warn( IDS_FDS_IPSDATASAVE_FAILED );
+							break;
+						}
+
 						Io::Log() << "Emulator: saved IPS disk data to \"" << settings.paths.save << "\"\r\n";
 					}
-					catch (...)
-					{
-						Window::User::Warn( IDS_FDS_IPSDATASAVE_FAILED );
-					}
 
-					return;
+					break;
 				}
-
-			case DISKIMAGE_SAVE_DISABLED:
+		
+			case DISKIMAGE_SAVE_DISABLED:		
 
 				Io::Log() << "Emulator: changes made to the disk image was not saved..\r\n";
 				break;
-		}
+		}		
 	}
 
 	ibool Emulator::Load
@@ -461,6 +543,8 @@ namespace Nestopia
 		const ibool warn
 	)
 	{
+		Application::Instance::Waiter wait;
+
 		Unload();
 
 		Io::Log() << "Emulator: loading \"" << context.image << "\"\r\n";
@@ -556,6 +640,7 @@ namespace Nestopia
 			if (Is(Nes::Machine::ON))
 			{
 				Unpause();
+				state.frame = 0;
 				Nes::Machine(*this).Power( FALSE );
 				events( netplay ? EVENT_NETPLAY_POWER_OFF : EVENT_POWER_OFF );
 			}
@@ -664,6 +749,7 @@ namespace Nestopia
 				case Nes::RESULT_ERR_INVALID_FILE:             msg = IDS_FILE_ERR_INVALID;                 break;  
 				case Nes::RESULT_ERR_OUT_OF_MEMORY:			   msg = IDS_ERR_OUT_OF_MEMORY;                break;
 				case Nes::RESULT_ERR_UNSUPPORTED_FILE_VERSION: msg = IDS_EMU_ERR_UNSUPPORTED_FILE_VERSION; break;
+				case Nes::RESULT_ERR_NOT_READY:				   msg = IDS_EMU_ERR_LOADSTATE_DISABLED;       break;
 				default:								       msg = IDS_EMU_ERR_GENERIC;                  break;
 			}
   
@@ -723,6 +809,7 @@ namespace Nestopia
 				if (Is(Nes::Machine::ON))
 				{
 					Unpause();
+					state.frame = 0;
 					Nes::Machine(*this).Power( FALSE );
 					events( netplay ? EVENT_NETPLAY_POWER_OFF : EVENT_POWER_OFF );
 					return TRUE;
@@ -733,7 +820,7 @@ namespace Nestopia
 		return FALSE;
 	}
 
-	ibool Emulator::Reset(const ibool state)
+	ibool Emulator::Reset(const ibool hard)
 	{
 		Stop();
 
@@ -741,11 +828,12 @@ namespace Nestopia
 		{
 			Unpause();
 		
-			const Nes::Result result = Nes::Machine(*this).Reset( state );
+			state.frame = 0;
+			const Nes::Result result = Nes::Machine(*this).Reset( hard );
 
 			if (NES_SUCCEEDED(result))
 			{
-				events( state ? EVENT_RESET_HARD : EVENT_RESET_SOFT );
+				events( hard ? EVENT_RESET_HARD : EVENT_RESET_SOFT );
 				Resume();
 				return TRUE;
 			}
@@ -793,6 +881,7 @@ namespace Nestopia
 			if (netplay)
 				netplay.callback( input );
 
+			++state.frame;
 			const Nes::Result result = Nes::Emulator::Execute( video, sound, input );
 
 			if (Is(Nes::Machine::ON))
@@ -823,8 +912,11 @@ namespace Nestopia
 		{
 			events( mode == Nes::Machine::NTSC ? EVENT_MODE_NTSC : EVENT_MODE_PAL );
 
-			if (settings.timing.speed == DEFAULT_SPEED)
+			if (settings.timing.baseSpeed == DEFAULT_SPEED)
+			{
+				events( EVENT_BASE_SPEED );
 				events( EVENT_SPEED );
+			}
 
 			return TRUE;
 		}

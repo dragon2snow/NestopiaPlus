@@ -262,7 +262,7 @@ namespace Nes
 					default: return RESULT_ERR_INVALID_PARAM;
 				}
 			}
-			catch (std::bad_alloc&)
+			catch (const std::bad_alloc&)
 			{
 				return RESULT_ERR_OUT_OF_MEMORY;
 			}

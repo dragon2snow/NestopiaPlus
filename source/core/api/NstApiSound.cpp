@@ -25,6 +25,8 @@
 #include "../NstCore.hpp"
 #include "NstApiSound.hpp"
 #include "NstApiEmulator.hpp"
+#include "NstApiMovie.hpp"
+#include "../NstRewinder.hpp"
 
 namespace Nes
 {
@@ -39,6 +41,16 @@ namespace Nes
 
 	namespace Api
 	{
+		NST_COMPILE_ASSERT
+		(
+	       	Sound::CHANNEL_SQUARE1  == Core::Apu::CHANNEL_SQUARE1  &&
+			Sound::CHANNEL_SQUARE2  == Core::Apu::CHANNEL_SQUARE2  &&
+			Sound::CHANNEL_TRIANGLE == Core::Apu::CHANNEL_TRIANGLE &&
+			Sound::CHANNEL_NOISE    == Core::Apu::CHANNEL_NOISE    &&
+			Sound::CHANNEL_DPCM     == Core::Apu::CHANNEL_DMC      &&
+			Sound::CHANNEL_EXTERNAL == Core::Apu::CHANNEL_EXTERNAL 
+		);
+
 		Result Sound::SetSampleRate(ulong rate)
 		{
 			return emulator.cpu.GetApu().SetSampleRate( rate );
@@ -101,7 +113,10 @@ namespace Nes
 	
 		uint Sound::GetLatency() const
 		{
-			return emulator.cpu.GetApu().GetLatency();
+			if (!emulator.rewinder || !emulator.rewinder->IsSoundRewinding())
+				return emulator.cpu.GetApu().GetLatency();
+			else
+				return emulator.rewinder->GetSoundLatency();
 		}
 	
 		void Sound::EmptyBuffer()

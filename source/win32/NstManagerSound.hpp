@@ -56,7 +56,6 @@ namespace Nestopia
 			void OnEmuEvent(Emulator::Event);
 			void Disable(cstring=NULL);
 			void UpdateSettings();
-			uint GetSpeed() const;
 			uint GetLatency() const;
 
 			struct Callbacks;

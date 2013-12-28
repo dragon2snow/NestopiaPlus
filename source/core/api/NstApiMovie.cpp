@@ -40,106 +40,170 @@ namespace Nes
 	{
 		Movie::StateCaller Movie::stateCallback;
 
-		bool Movie::IsPlaying() const
+		bool Movie::IsPlaying(const void* internal) const
 		{
-			return emulator.movie && emulator.movie->IsPlaying();
+			return !internal && emulator.movie && emulator.movie->IsPlaying();
 		}
 
-		bool Movie::IsRecording() const
+		bool Movie::IsRecording(const void* internal) const
 		{
-			return emulator.movie && emulator.movie->IsRecording(); 
+			return !internal && emulator.movie && emulator.movie->IsRecording(); 
 		}
 
-		bool Movie::IsStopped() const
+		bool Movie::IsStopped(const void* internal) const
 		{
-			return !emulator.movie || emulator.movie->IsStopped();
+			return internal || !emulator.movie || emulator.movie->IsStopped();
 		}
 
-		Result Movie::Play(std::istream& stream)
+		Result Movie::Play(std::istream& stream,CallbackMode mode,bool reset,const void* internal)
 		{
-			if (emulator.Is( Machine::GAME ))
+			NST_COMPILE_ASSERT( ENABLE_CALLBACK == 1 && DISABLE_CALLBACK == 0 );
+
+			if (!internal && emulator.Is( Machine::GAME ))
 			{
+				Result result;
+
 				try
 				{
 					if (emulator.movie == NULL)
-						emulator.movie = Core::Movie::Create( emulator.cpu, emulator.image->GetPrgCrc() );
+					{
+						emulator.movie = Core::Movie::Create
+						( 
+					     	emulator.cpu, 
+							emulator.Is(Machine::CARTRIDGE) ? emulator.image->GetPrgCrc() : 0 
+						);
+					}
 
-					Result result = emulator.movie->Play( &stream );
-
-					if (NES_SUCCEEDED(result) && result != RESULT_NOP && emulator.Is( Machine::ON ))
-						result = emulator.Reset( true );
-
-					if (NES_FAILED(result))
-						Eject();
-
-					return result;
+					result = emulator.movie->Play( &stream, mode );
 				}
-				catch (Result result)
+				catch (Result r)
 				{
-					Eject();
-					return result;
+					result = r;
 				}
-				catch (std::bad_alloc&)
+				catch (const std::bad_alloc&)
 				{
-					Eject();
-					return RESULT_ERR_OUT_OF_MEMORY;
+					result = RESULT_ERR_OUT_OF_MEMORY;
 				}
 				catch (...)
 				{
-					Eject();
-					return RESULT_ERR_GENERIC;
+					result = RESULT_ERR_GENERIC;
 				}
+
+				if (NES_SUCCEEDED(result))
+				{
+					if (result != RESULT_NOP && emulator.Is( Machine::ON ))
+					{
+						if (reset)
+							emulator.Reset( true );
+						else
+							emulator.frame = 0;
+					}
+				}
+				else
+				{
+					Eject();
+				}
+
+				return result;
 			}
 			
 			return RESULT_ERR_NOT_READY;
 		}
 	
-		Result Movie::Record(std::ostream& stream,How how)
+		Result Movie::Record(std::ostream& stream,How how,CallbackMode mode,const void* internal)
 		{
-			if (emulator.Is( Machine::GAME ))
+			NST_COMPILE_ASSERT( CLEAN == 0 && APPEND == 1 && ENABLE_CALLBACK == 1 && DISABLE_CALLBACK == 0 );
+
+			if (!internal && emulator.Is( Machine::GAME ))
 			{
+				Result result;
+
 				try
 				{
 					if (emulator.movie == NULL)
 						emulator.movie = Core::Movie::Create( emulator.cpu, emulator.image->GetPrgCrc() );
 
-					const Result result = emulator.movie->Record( &stream, how == APPEND );
-
-					if (NES_FAILED(result))
-						Eject();
-
-					return result;
+					result = emulator.movie->Record( &stream, how, mode );
 				}
-				catch (Result result)
+				catch (Result r)
 				{
-					Eject();
-					return result;
+					result = r;
 				}
-				catch (std::bad_alloc&)
+				catch (const std::bad_alloc&)
 				{
-					Eject();
-					return RESULT_ERR_OUT_OF_MEMORY;
+					result = RESULT_ERR_OUT_OF_MEMORY;
 				}
 				catch (...)
 				{
-					Eject();
-					return RESULT_ERR_GENERIC;
+					result = RESULT_ERR_GENERIC;
 				}
+
+				if (NES_FAILED(result))
+					Eject();
+
+				return result;
 			}
 			
 			return RESULT_ERR_NOT_READY;
 		}
 	
+		void Movie::Stop(const void* internal)
+		{
+			if (!internal && emulator.movie)
+				emulator.movie->Stop();
+		}
+
+		void Movie::Eject(const void* internal)
+		{
+			if (!internal)
+				Core::Movie::Destroy( emulator.movie );
+		}
+
+		Result Movie::Play(std::istream& stream,CallbackMode mode)
+		{
+			return Play( stream, mode, true, emulator.rewinder );
+		}
+
+		Result Movie::Record(std::ostream& stream,How how,CallbackMode mode)
+		{
+			return Record( stream, how, mode, emulator.rewinder );
+		}
+
 		void Movie::Stop()
 		{
-			if (emulator.movie)
-				emulator.movie->Stop();
+			Stop( emulator.rewinder );
 		}
 
 		void Movie::Eject()
 		{
-			Core::Movie::Destroy( emulator.movie );
+			Eject( emulator.rewinder );
 		}
+
+		void Movie::Cut()
+		{
+			if (emulator.movie && !emulator.rewinder)
+				emulator.movie->Cut();
+		}
+	
+		bool Movie::IsPlaying() const
+		{
+			return IsPlaying( emulator.rewinder );
+		}
+
+		bool Movie::IsRecording() const
+		{
+			return IsRecording( emulator.rewinder );
+		}
+
+		bool Movie::IsInserted() const
+		{
+			return !emulator.rewinder && emulator.movie;
+		}
+
+		bool Movie::IsStopped() const
+		{
+			return IsStopped( emulator.rewinder );
+		}		
 	}
 }
 

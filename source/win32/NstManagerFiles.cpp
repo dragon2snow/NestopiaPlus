@@ -27,6 +27,7 @@
 #include "NstIoLog.hpp"
 #include "NstIoIps.hpp"
 #include "NstIoNsp.hpp"
+#include "NstIoFile.hpp"
 #include "NstResourceString.hpp"
 #include "NstWindowUser.hpp"
 #include "NstWindowParam.hpp"
@@ -188,7 +189,7 @@ namespace Nestopia
 
 				try
 				{
-					ips.Parse( file.data );
+					ips.Parse( file.data, file.data.Size() );
 				}
 				catch (Io::Ips::Exception id)
 				{
@@ -267,7 +268,7 @@ namespace Nestopia
 			if (context.ips.Empty())
 				context.ips = paths.GetIpsPath( context.image, file.type );
 
-			if (context.ips.Size())
+			if (Io::File::FileExist( context.ips ))
 			{
 				Paths::File input;
 
@@ -275,7 +276,7 @@ namespace Nestopia
 				{
 					try
 					{
-						ips.Parse( input.data );
+						ips.Parse( input.data, input.data.Size() );
 					}
 					catch (...)
 					{
@@ -294,7 +295,7 @@ namespace Nestopia
 		{
 			try
 			{
-				ips.Patch( file.data );
+				ips.Patch( file.data, file.data.Size() );
 				Io::Log() << "Emulator: patched \"" << context.image << "\" with \"" << context.ips << "\"\r\n";
 			}
 			catch (...)
@@ -411,7 +412,7 @@ namespace Nestopia
 				return;
 			}
 
-			paths.Save( output, Paths::File::SCRIPT );
+			paths.Save( output, output.Size(), Paths::File::SCRIPT );
 		}
 	}
 

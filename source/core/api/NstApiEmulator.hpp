@@ -62,8 +62,10 @@ namespace Nes
 
 		class Image;
 		class GameGenie;
+		class Cheats;
 		class ImageDatabase;
 		class Movie;
+		class Rewinder;
 	}
 
 	namespace Api
@@ -92,23 +94,33 @@ namespace Nes
 			friend class Fds;
 			friend class Nsf;
 			friend class Movie;
+			friend class Cheats;
 			friend class GameGenie;
 			friend class DipSwitches;
+			friend class Rewinder;
 	
 			enum
 			{
 				OPEN_BUS = 0x40
 			};
-	
+
+			Result ExecuteFrame
+			(
+				Core::Video::Output*,
+				Core::Sound::Output*,
+				Core::Input::Controllers*
+			);
+
 			Result Load (Core::StdStream,uint);
 			void   Unload ();
 			Result PowerOn ();
 			void   PowerOff ();
-			Result Reset (bool,bool=true);
+			Result Reset (bool);
 			void   SetMode (Core::Mode);
 			Result LoadState (Core::StdStream,bool=true);
 			Result SaveState (Core::StdStream,bool);
 			void   InitializeInputDevices () const;
+			bool   GoodSaveTime() const;
 	
 			NES_DECL_POKE( 4016 )
 			NES_DECL_PEEK( 4016 )
@@ -125,7 +137,9 @@ namespace Nes
 			Core::Video::Palette& palette;
 			Core::Cpu cpu;
 			Core::Ppu ppu;
-			Core::GameGenie& gameGenie;
+			Core::Rewinder* rewinder;
+			ibool rewinderSound;
+			Core::Cheats* cheats;
 			Core::ImageDatabase* imageDatabase;
 	
 			uint Is(uint what) const
