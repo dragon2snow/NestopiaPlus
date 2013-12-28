@@ -33,16 +33,27 @@ namespace Nes
 {
 	namespace Core
 	{
+		namespace Sound
+		{
+			class Player;
+		}
+
 		class Mapper3 : public Mapper
 		{
 		public:
 
-			Mapper3(Context& c)
-			: Mapper(c) {}
+			Mapper3(Context&);
+			~Mapper3();
 
 		private:
 
+			Sound::Player* DetectSound(dword,Cpu&);
+
 			void SubReset(bool);
+
+			NES_DECL_POKE( 6000 )
+
+			Sound::Player* const sound;
 		};
 	}
 }

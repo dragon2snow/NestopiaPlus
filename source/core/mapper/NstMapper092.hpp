@@ -33,19 +33,12 @@ namespace Nes
 {
 	namespace Core
 	{
-		class Mapper92 : public Mapper
+		class Mapper92 : public Boards::Jaleco
 		{
 		public:
 
 			Mapper92(Context& c)
-			: Mapper(c) {}
-
-		private:
-
-			void SubReset(bool);
-
-			NES_DECL_POKE( 8000 )
-			NES_DECL_POKE( 9000 )
+			: Jaleco(c,TYPE_1) {}
 		};
 	}
 }

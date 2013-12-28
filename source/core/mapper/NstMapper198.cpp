@@ -24,24 +24,37 @@
 
 #include "../NstMapper.hpp"
 #include "../board/NstBrdMmc3.hpp"
-#include "../board/NstBrdTaiwanMmc3.hpp"
+#include "../board/NstBrdMmc3China.hpp"
 #include "NstMapper198.hpp"
 		 
 namespace Nes
 {
 	namespace Core
 	{
-		uint Mapper198::GetChrSource(uint) const
-		{
-			return 0;
-		}
-
 		void Mapper198::UpdatePrg()
 		{
 			if (banks.prg[0] >= 0x50)
 				banks.prg[0] &= 0x4F;
 
-			TaiwanMmc3::UpdatePrg();
+			Mmc3China::UpdatePrg();
+		}
+
+		void Mapper198::UpdateChr() const
+		{
+			if (!chr.Source().IsWritable())
+			{
+				ppu.Update();
+
+				const uint swap = regs.ctrl0 & Regs::CTRL0_XOR_CHR;
+
+				chr.SwapBank<SIZE_4K,0x0000U>( banks.chr[swap ? 2 : 0] ); 
+				chr.SwapBanks<SIZE_2K,0x1000U>( banks.chr[swap ? 0 : 2], banks.chr[swap ? 1 : 3] ); 
+			}
+		}
+
+		uint Mapper198::GetChrSource(uint) const
+		{
+			return 0;
 		}
 	}
 }

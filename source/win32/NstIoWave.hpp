@@ -50,39 +50,46 @@ namespace Nestopia
 		{
 		public:
 
-			Wave();
+			enum Mode
+			{
+				MODE_READ = MMIO_ALLOCBUF|MMIO_READ,
+				MODE_WRITE = MMIO_ALLOCBUF|MMIO_READWRITE|MMIO_CREATE|MMIO_EXCLUSIVE
+			};
+
+			Wave(Mode);
 			~Wave();
 
 			enum Exception
 			{
 				ERR_OPEN = IDS_WAVE_ERR_OPEN,
 				ERR_WRITE = IDS_WAVE_ERR_WRITE,
+				ERR_READ = IDS_WAVE_ERR_READ,
 				ERR_FINALIZE = IDS_WAVE_ERR_FINALIZE
 			};
 
-			void Open(const GenericString,const WAVEFORMATEX&);
+			uint Open(const GenericString,WAVEFORMATEX&);
+			uint Open(const void*,uint,WAVEFORMATEX&);
 			void Write(const void*,uint);
+			void Read(void*);
 			void Close();
 
 		private:
 
-			enum
-			{
-				OPEN_FLAGS = MMIO_ALLOCBUF|MMIO_READWRITE|MMIO_CREATE|MMIO_EXCLUSIVE
-			};
-
+			uint Open(WAVEFORMATEX&);
 			void Abort();
 
-			void CreateChunk(MMCKINFO&,FOURCC,uint=0) const;
+			void CreateChunk(MMCKINFO&,FOURCC,uint,uint,uint) const;
 			void AscendChunk(MMCKINFO&) const;
+			void DescendChunk(MMCKINFO&,const MMCKINFO*,uint) const;
 
-			template<typename T> 
-			void WriteChunk(const T&,int=sizeof(T)) const;
+			template<typename T> void WriteChunk(const T&,int) const;
+			template<typename T> void ReadChunk(T&,int) const;
 
 			HMMIO handle;
+			const Mode mode;
 			MMCKINFO chunkRiff;
 			MMCKINFO chunkData;
-			MMIOINFO output;
+			MMIOINFO info;
 			Path fileName;
 
 		public:

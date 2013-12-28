@@ -46,28 +46,10 @@ namespace Nes
 	
 			return false;
 		}
-	
-		bool Mapper4::IsIrqRevB(dword crc)
-		{
-			if (IsMmc6( crc ))
-			{
-				return true;
-			}
-			else switch (crc)
-			{
-				case 0x8635FED1UL: // Mickey Mouse 3 - Yume Fuusen
-				case 0x877DBA77UL: // My Life My Love - Boku no Yume - Watashi no Negai
-				case 0x24205A7BUL: // -||-
-				case 0x95649977UL: // Kid Klown
-					return true;
-			}
-	
-			return false;
-		}
 
 		Mapper4::Mapper4(Context& c)
 		: 
-		Mmc3 (c,WRAM_8K,IsIrqRevB(c.pRomCrc)), 
+		Mmc3 (c,WRAM_8K,true), 
 		mmc6 (IsMmc6(c.pRomCrc)) 
 		{}
 	

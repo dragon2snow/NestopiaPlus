@@ -33,26 +33,12 @@ namespace Nes
 {
 	namespace Core
 	{
-		class Mapper86 : public Mapper
+		class Mapper86 : public Boards::Jaleco
 		{
 		public:
 
-			Mapper86(Context&);
-			~Mapper86();
-
-		private:
-
-			class Sound;
-
-			static bool HasSoundChip(dword);
-
-			void SubReset(bool);
-			void SubSave(State::Saver&) const;
-			void SubLoad(State::Loader&);
-
-			NES_DECL_POKE( 6000 )
-
-			Sound* const sound;
+			Mapper86(Context& c)
+			: Jaleco(c,TYPE_2) {}
 		};
 	}
 }

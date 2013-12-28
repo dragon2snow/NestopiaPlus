@@ -23,6 +23,7 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 
 #include "../NstMapper.hpp"
+#include "../NstSoundPlayer.hpp"
 #include "NstMapper003.hpp"
 
 namespace Nes
@@ -32,14 +33,51 @@ namespace Nes
         #ifdef NST_PRAGMA_OPTIMIZE
         #pragma optimize("s", on)
         #endif
-	
+
+		Sound::Player* Mapper3::DetectSound(dword crc,Cpu& cpu)
+		{
+			if (crc == 0xF8DA2506UL)
+			{
+				return Sound::Player::Create
+				(
+					cpu,
+					Sound::Loader::AEROBICS_STUDIO,
+					Sound::Loader::AEROBICS_STUDIO_SAMPLES
+				);
+			}
+
+			return NULL;
+		}
+
+		Mapper3::Mapper3(Context& c)
+		: 
+		Mapper (c), 
+		sound  (DetectSound(c.pRomCrc,c.cpu))
+		{}
+
+		Mapper3::~Mapper3()
+		{
+			delete sound;
+		}
+
 		void Mapper3::SubReset(bool)
 		{
+			if (sound)
+				Map( 0x6000U, &Mapper3::Poke_6000 );			
+
 			Map( 0x8000U, 0xFFFFU, CHR_SWAP_8K );
 		}
 	
         #ifdef NST_PRAGMA_OPTIMIZE
         #pragma optimize("", on)
         #endif
+
+		NES_POKE(Mapper3,6000)
+		{
+			NST_ASSERT( sound );
+
+			if ((data & 0x40) == 0x00)
+				sound->Play( data & 0x0F );
+		}
 	}
 }

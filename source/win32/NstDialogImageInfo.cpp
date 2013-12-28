@@ -97,10 +97,10 @@ namespace Nestopia
 					 << "\r\ncrc:         " << HexString( (u32) info.crc );
 
 				if (info.name.size())
-					 text << "\r\nName:        " << info.name.c_str();
+					 (text << "\r\nName:        ").Import( info.name.c_str() );
 
 				if (info.maker.size())
-					text << "\r\nMaker:       " << info.maker.c_str();
+					(text << "\r\nMaker:       ").Import( info.maker.c_str() );
 
 			    text << "\r\nRegion:      " << mode
 					 << "\r\nChips/Board: " << info.board.c_str();
@@ -154,7 +154,7 @@ namespace Nestopia
 
 				text << "File:        "	    << emulator.GetImagePath()
 					 << "\r\nDisks:       " << fds.GetNumDisks()
-					 << "\r\nFile Header: " << State::Get(fds.HasHeader());
+					 << "\r\nFile Header: " << State::Get( fds.HasHeader() );
 
 				break;
 			}
@@ -173,13 +173,13 @@ namespace Nestopia
 				text << "File:           " << emulator.GetImagePath();
 
 				if (*nsf.GetName())
-					text << "\r\nName:           " << nsf.GetName();
+					(text << "\r\nName:           ").Import( nsf.GetName() );
 
 				if (*nsf.GetArtist())
-					text << "\r\nArtist:         " << nsf.GetArtist();
+					(text << "\r\nArtist:         ").Import( nsf.GetArtist() );
 
 				if (*nsf.GetMaker())
-					text << "\r\nMaker:          " << nsf.GetMaker();
+					(text << "\r\nMaker:          ").Import( nsf.GetMaker() );
 
 				text << "\r\nRegion:         " << mode
 					 << "\r\nSongs:          " << nsf.GetNumSongs()

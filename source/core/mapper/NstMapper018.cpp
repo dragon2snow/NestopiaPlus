@@ -24,6 +24,7 @@
 
 #include "../NstMapper.hpp"
 #include "../NstClock.hpp"
+#include "../NstSoundPlayer.hpp"
 #include "NstMapper018.hpp"
 		 
 namespace Nes
@@ -33,6 +34,50 @@ namespace Nes
         #ifdef NST_PRAGMA_OPTIMIZE
         #pragma optimize("s", on)
         #endif
+
+		Sound::Player* Mapper18::DetectSound(dword crc,Cpu& cpu)
+		{
+			switch (crc)
+			{
+				case 0x3C361B36UL:
+					
+					return Sound::Player::Create
+					(
+						cpu,
+						Sound::Loader::TERAO_NO_DOSUKOI_OOZUMOU,
+						Sound::Loader::TERAO_NO_DOSUKOI_OOZUMOU_SAMPLES
+					);
+
+				case 0xC2222BB1UL:
+
+					return Sound::Player::Create
+					(
+						cpu,
+						Sound::Loader::MOE_PRO_90_KANDOU_HEN,
+						Sound::Loader::MOE_PRO_90_KANDOU_HEN_SAMPLES
+					);
+
+				case 0x035CC54BUL:
+
+					return Sound::Player::Create
+					(
+						cpu,
+						Sound::Loader::MOE_PRO_SAIKYOU_HEN,
+						Sound::Loader::MOE_PRO_SAIKYOU_HEN_SAMPLES
+					);
+
+				case 0x142F7F3FUL:
+
+					return Sound::Player::Create
+					(
+						cpu,
+						Sound::Loader::SHIN_MOERO_PRO_YAKYUU,
+						Sound::Loader::SHIN_MOERO_PRO_YAKYUU_SAMPLES
+					);
+			}
+
+			return NULL;
+		}
 
 		void Mapper18::Irq::Reset(const bool hard)
 		{
@@ -45,10 +90,20 @@ namespace Nes
 		}
 
 		Mapper18::Mapper18(Context& c)
-		: Mapper(c), irq(c.cpu) {}
+		: 
+		Mapper (c), 
+		irq    (c.cpu),
+		sound  (DetectSound(c.pRomCrc,c.cpu))
+		{}
+
+		Mapper18::~Mapper18()
+		{
+			delete sound;
+		}
 
 		void Mapper18::SubReset(const bool hard)
 		{
+			reg = 0;
 			irq.Reset( hard, hard ? false : irq.IsLineEnabled() );
 
 			for (uint i=0x0000U; i < 0x1000U; i += 0x4)
@@ -82,11 +137,17 @@ namespace Nes
 				Map( 0xF000U + i, &Mapper18::Poke_F000 );
 				Map( 0xF001U + i, &Mapper18::Poke_F001 );
 				Map( 0xF002U + i, &Mapper18::Poke_F002 );
+
+				if (sound)
+					Map( 0xF003U + i, &Mapper18::Poke_F003 );
 			}
 		}
 	
 		void Mapper18::SubLoad(State::Loader& state)
 		{
+			if (sound)
+				sound->Stop();
+
 			while (const dword chunk = state.Begin())
 			{
 				if (chunk == NES_STATE_CHUNK_ID('I','R','Q','\0'))
@@ -102,6 +163,11 @@ namespace Nes
 
 					irq.unit.latch = data[1] | (data[2] << 8);
 					irq.unit.count = data[3] | (data[4] << 8);
+				}
+				else if (chunk == NES_STATE_CHUNK_ID('R','E','G','\0'))
+				{
+					NST_VERIFY( sound );
+					reg = state.Read8();
 				}
 
 				state.End();
@@ -126,6 +192,9 @@ namespace Nes
 			};
 
 			state.Begin('I','R','Q','\0').Write( data ).End();
+
+			if (sound)
+				state.Begin('R','E','G','\0').Write8( reg ).End();
 		}
 	
         #ifdef NST_PRAGMA_OPTIMIZE
@@ -221,6 +290,17 @@ namespace Nes
 		    	(data & 0x3) == 1 ? Ppu::NMT_VERTICAL :
                                		Ppu::NMT_ZERO
 			);
+		}
+
+		NES_POKE(Mapper18,F003)
+		{
+			NST_ASSERT( sound );
+
+			uint tmp = reg;
+			reg = data;
+
+			if ((data & 0x2) < (tmp & 0x2) && (data & 0x1D) == (tmp & 0x1D))
+				sound->Play( data >> 2 & 0x1F );
 		}
 
 		ibool Mapper18::Irq::Signal()

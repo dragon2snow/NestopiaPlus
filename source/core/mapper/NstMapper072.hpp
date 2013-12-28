@@ -33,25 +33,12 @@ namespace Nes
 {
 	namespace Core
 	{
-		class Mapper72 : public Mapper
+		class Mapper72 : public Boards::Jaleco
 		{
 		public:
 
 			Mapper72(Context& c)
-			: Mapper(c) {}
-
-		private:
-
-			void SubReset(bool);
-
-			enum
-			{
-				SWAP_PROM   = b10000000,
-				SWAP_CROM   = b01000000,
-				SELECT_BANK = b00001111
-			};
-
-			NES_DECL_POKE( Prg )
+			: Jaleco(c,TYPE_0) {}
 		};
 	}
 }

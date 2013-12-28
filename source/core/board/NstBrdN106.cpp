@@ -45,7 +45,6 @@ namespace Nes
 					ibool Signal();
 	
 					uint count;
-					ibool enabled;
 				};
 	
 				Clock::M2<Irq> irq;
@@ -115,10 +114,7 @@ namespace Nes
 			void N106::Chips::Irq::Reset(const bool hard)
 			{
 				if (hard)
-				{
 					count = 0;
-					enabled = false;
-				}
 			}
 	
 			void N106::SubReset(const bool hard)
@@ -230,8 +226,7 @@ namespace Nes
 								if (chips)
 								{
 									const State::Loader::Data<3> data( state );
-									chips->irq.unit.enabled = data[0] & 0x1;
-									chips->irq.unit.count = data[1] | ((data[2] & 0x7F) << 8);
+									chips->irq.unit.count = data[1] | ((data[2] & 0x7F) << 8) | ((data[0] & 0x1) << 15);
 								}
 								break;
 						
@@ -259,9 +254,9 @@ namespace Nes
 				{
 					const u8 data[3] =
 					{
-						chips->irq.unit.enabled != 0,
-						chips->irq.unit.count & 0xFF,
-						chips->irq.unit.count >> 8
+						chips->irq.unit.count >> 15,
+						chips->irq.unit.count >> 0 & 0xFF,
+						chips->irq.unit.count >> 8 & 0x7F
 					};
 
 					state.Begin('I','R','Q','\0').Write( data ).End();
@@ -278,13 +273,7 @@ namespace Nes
 	
 			ibool N106::Chips::Irq::Signal()
 			{
-				if (!enabled || ++count < 0x8000U)
-					return false;
-				
-				count = 0x7FFFU;
-				enabled = false;
-				
-				return true;
+				return (count - 0x8000U < 0x7FFFU) && (++count == 0xFFFFU);
 			}
 	
 			inline bool N106::Sound::BaseChannel::CanOutput() const
@@ -478,14 +467,13 @@ namespace Nes
 			NES_PEEK(N106,5800) 
 			{ 
 				chips->irq.Update();
-				return (chips->irq.unit.count >> 8) & 0x7F; 
+				return chips->irq.unit.count >> 8; 
 			}
 	
 			NES_POKE(N106,5800) 
 			{
 				chips->irq.Update();
-				chips->irq.unit.count = (chips->irq.unit.count & 0x00FFU) | ((data & 0x7F) << 8);
-				chips->irq.unit.enabled = data & 0x80;
+				chips->irq.unit.count = (chips->irq.unit.count & 0x00FFU) | (data << 8);
 				chips->irq.ClearIRQ();
 			}
 	

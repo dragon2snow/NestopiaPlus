@@ -37,8 +37,7 @@ namespace Nes
 		{
 		public:
 
-			Mapper215(Context& c)
-			: Mmc3(c,WRAM_NONE) {}
+			Mapper215(Context&);
 
 		private:
 
@@ -63,6 +62,7 @@ namespace Nes
 			NES_DECL_POKE( E001 )
 
 			uint exRegs[4];
+			const ibool patch;
 		};
 	}
 }

@@ -45,7 +45,8 @@ namespace Nestopia
 				DIR_STATE,
 				DIR_SCRIPT,
 				DIR_IPS,
-				DIR_SCREENSHOT
+				DIR_SCREENSHOT,
+				DIR_SAMPLES
 			};
 
 			enum ScreenShotFormat
@@ -57,7 +58,7 @@ namespace Nestopia
 
 			enum
 			{
-				NUM_DIRS = DIR_SCREENSHOT + 1,
+				NUM_DIRS = DIR_SAMPLES + 1,
 				NUM_SCREENSHOTS = SCREENSHOT_BMP + 1
 			};
 

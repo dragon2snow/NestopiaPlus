@@ -34,6 +34,12 @@ namespace Nes
         #pragma optimize("s", on)
         #endif
 	
+		Mapper215::Mapper215(Context& c)
+		: 
+		Mmc3  (c,WRAM_NONE),
+		patch (c.pRomCrc == 0x7374EF2DUL) // Boogerman
+		{}
+
 		void Mapper215::SubReset(const bool hard)
 		{
 			exRegs[0] = 0x00;
@@ -46,6 +52,13 @@ namespace Nes
 			Map( 0x5000U, &Mapper215::Poke_5000 );
 			Map( 0x5001U, &Mapper215::Poke_5001 );
 			Map( 0x5007U, &Mapper215::Poke_5007 );
+
+			if (patch)
+			{
+				Map( 0x6000U, &Mapper215::Poke_5000 );
+				Map( 0x6001U, &Mapper215::Poke_5001 );
+				Map( 0x6007U, &Mapper215::Poke_5007 );
+			}
 
 			for (uint i=0x0000U; i < 0x2000U; i += 0x2)
 			{
@@ -103,15 +116,23 @@ namespace Nes
 
 		void Mapper215::UpdatePrg()
 		{
-			const uint i = (regs.ctrl0 & Regs::CTRL0_XOR_PRG) >> 5;
+			if (exRegs[0] & 0x80)
+			{
+				const uint bank = (exRegs[0] & 0x0F) | (exRegs[1] & 0x10);
+				prg.SwapBanks<SIZE_16K,0x0000U>( bank, bank );
+			}
+			else
+			{
+				const uint i = (regs.ctrl0 & Regs::CTRL0_XOR_PRG) >> 5;
 
-			prg.SwapBanks<SIZE_8K,0x0000U>
-			( 
-		       	GetPrgBank( banks.prg[i]   ), 
-				GetPrgBank( banks.prg[1]   ), 
-				GetPrgBank( banks.prg[i^2] ), 
-				GetPrgBank( banks.prg[3]   )
-			);
+				prg.SwapBanks<SIZE_8K,0x0000U>
+				( 
+					GetPrgBank( banks.prg[i]   ), 
+					GetPrgBank( banks.prg[1]   ), 
+					GetPrgBank( banks.prg[i^2] ), 
+					GetPrgBank( banks.prg[3]   )
+				);
+			}
 		}
 
 		uint Mapper215::GetChrBank(const uint bank) const
@@ -149,16 +170,10 @@ namespace Nes
 
 		NES_POKE(Mapper215,5000)
 		{
-			exRegs[0] = data;
-
-			if (data & 0x80)
+			if (exRegs[0] != data)
 			{
-				data = (data & 0x0F) | (exRegs[1] & 0x10);
-				prg.SwapBanks<SIZE_16K,0x0000U>( data, data );
-			}
-			else
-			{
-				UpdatePrg();
+				exRegs[0] = data;
+				Mapper215::UpdatePrg();
 			}
 		}
 
@@ -167,7 +182,7 @@ namespace Nes
 			if (exRegs[1] != data)
 			{
 				exRegs[1] = data;
-				UpdateChr();
+				Mapper215::UpdateChr();
 			}
 		}
 
@@ -176,7 +191,8 @@ namespace Nes
 			exRegs[2] = data;
 
 			regs.ctrl0 = 0;
-			UpdatePrg();
+			Mapper215::UpdatePrg();
+			Mapper215::UpdateChr();
 		}
 
 		NES_POKE(Mapper215,8000)

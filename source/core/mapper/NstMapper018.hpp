@@ -33,13 +33,21 @@ namespace Nes
 {
 	namespace Core
 	{
+		namespace Sound
+		{
+			class Player;
+		}
+
 		class Mapper18 : public Mapper
 		{
 		public:
 
 			Mapper18(Context&);
+			~Mapper18();
 
 		private:
+
+			static Sound::Player* DetectSound(dword,Cpu&);
 
 			void SubReset(bool);
 			void SubSave(State::Saver&) const;
@@ -78,6 +86,7 @@ namespace Nes
 			NES_DECL_POKE( F000 )
 			NES_DECL_POKE( F001 )
 			NES_DECL_POKE( F002 )
+			NES_DECL_POKE( F003 )
 
             struct Irq
 			{
@@ -90,6 +99,8 @@ namespace Nes
 			};
 
 			Clock::M2<Irq> irq;
+			uint reg;
+			Sound::Player* const sound;
 		};
 	}
 }

@@ -92,15 +92,29 @@ namespace Nes
 
 				enum Type
 				{
-					MOERO_PRO_YAKYUU = 1
+					MOERO_PRO_YAKYUU = 1,
+					MOERO_PRO_YAKYUU_88,
+					MOERO_PRO_TENNIS,
+					TERAO_NO_DOSUKOI_OOZUMOU,
+					MOE_PRO_90_KANDOU_HEN,
+					MOE_PRO_SAIKYOU_HEN,
+					SHIN_MOERO_PRO_YAKYUU,
+					AEROBICS_STUDIO
 				};
 
 				enum
 				{
-					MOERO_PRO_YAKYUU_SAMPLES = 16
+					MOERO_PRO_YAKYUU_SAMPLES = 16,
+					MOERO_PRO_YAKYUU_88_SAMPLES = 20,
+					MOERO_PRO_TENNIS_SAMPLES = 19,
+					TERAO_NO_DOSUKOI_OOZUMOU_SAMPLES = 6,
+					MOE_PRO_90_KANDOU_HEN_SAMPLES = 20,
+					MOE_PRO_SAIKYOU_HEN_SAMPLES = 20,
+					SHIN_MOERO_PRO_YAKYUU_SAMPLES = 20,
+					AEROBICS_STUDIO_SAMPLES = 8
 				};
 
-				virtual Result Load(uint,const u8*,dword,dword) = 0;
+				virtual Result Load(uint,const void*,dword,bool,uint,dword) = 0;
 
 				typedef void (NST_CALLBACK *LoadCallback) (void*,Type,Loader&);
 

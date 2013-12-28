@@ -33,16 +33,17 @@ namespace Nes
 {
 	namespace Core
 	{
-		class Mapper198 : public Boards::TaiwanMmc3
+		class Mapper198 : public Boards::Mmc3China
 		{
 		public:
 
 			Mapper198(Context& c)
-			: TaiwanMmc3(c) {}
+			: Mmc3China(c) {}
 
 		private:
 
 			void UpdatePrg();
+			void UpdateChr() const;
 			uint GetChrSource(uint) const;
 		};
 	}

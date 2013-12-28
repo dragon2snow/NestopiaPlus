@@ -32,12 +32,17 @@ namespace Nes
 	{
 		namespace Boards
 		{
-			Jy::CartSwitches::CartSwitches(uint d)
-			: data(d) {}
-
             #ifdef NST_PRAGMA_OPTIMIZE
             #pragma optimize("s", on)
             #endif
+
+			Jy::CartSwitches::CartSwitches(uint d,bool l)
+			: data(d), ppuLatched(l) {}
+
+			inline ibool Jy::CartSwitches::IsPpuLatched() const
+			{
+				return ppuLatched;
+			}
 
 			Jy::Irq::A12::A12(Irq& irq)
 			: base(irq)	{}
@@ -57,11 +62,11 @@ namespace Nes
             #pragma warning( pop )
             #endif
 
-			Jy::Jy(Context& c,const DefaultDipSwitch d)
+			Jy::Jy(Context& c,const DefaultDipSwitch d,bool l)
 			: 
 			Mapper       (c,WRAM_NONE),
 			irq          (c.cpu,c.ppu),
-			cartSwitches (d)
+			cartSwitches (d,l)
 			{}
 		
 			void Jy::Regs::Reset()
@@ -87,6 +92,9 @@ namespace Nes
 					nmt[i] = 0x00;
 
 				prg6 = NULL;
+				
+				chrLatch[0] = 0;
+				chrLatch[1] = 4;
 			}
 		
 			void Jy::Irq::A12::Reset(bool)
@@ -155,6 +163,12 @@ namespace Nes
 
 				ppu.SetBgHook( Hook(this,&Jy::Hook_PpuBg) );
 				ppu.SetSpHook( Hook(this,&Jy::Hook_PpuSp) );
+			
+				if (cartSwitches.IsPpuLatched())
+				{
+					chr.SetAccessor( 0, this, &Jy::Access_Chr_0000 );
+					chr.SetAccessor( 1, this, &Jy::Access_Chr_1000 );
+				}
 
 				UpdatePrg();
 				UpdateExChr();
@@ -207,6 +221,20 @@ namespace Nes
 
 								break;
 							}
+
+							case NES_STATE_CHUNK_ID('L','A','T','\0'):
+							
+								NST_VERIFY( cartSwitches.IsPpuLatched() );
+
+								if (cartSwitches.IsPpuLatched())
+								{
+									banks.chrLatch[0] = state.Read8();
+									banks.chrLatch[1] = banks.chrLatch[0] >> 3 & 0x7;
+									banks.chrLatch[0] &= 0x7;
+									
+									UpdateChr();
+								}
+								break;							
 
 					     	case NES_STATE_CHUNK_ID('I','R','Q','\0'):
 							{
@@ -276,6 +304,9 @@ namespace Nes
 		
 					state.Begin('R','E','G','\0').Write( data ).End();
 				}
+
+				if (cartSwitches.IsPpuLatched())
+					state.Begin('L','A','T','\0').Write8( banks.chrLatch[0] | banks.chrLatch[1] << 3 ).End();
 
 				{
 					const u8 data[5] =
@@ -454,6 +485,38 @@ namespace Nes
 						}
 					}
 				}
+			}
+
+			NES_ACCESSOR(Jy,Chr_0000)
+			{
+				const uint data = chr.Peek( address );
+				address &= 0xFF8;
+
+				if (address == 0xFD8 || address == 0xFE8)
+				{
+					banks.chrLatch[0] = address >> 4 & 0x2; 
+
+					if ((regs.ctrl[0] & Regs::CTRL0_CHR_MODE) == Regs::CTRL0_CHR_SWAP_4K)
+						UpdateChrLatch();
+				}
+
+				return data;
+			}
+
+			NES_ACCESSOR(Jy,Chr_1000)
+			{
+				const uint data = chr.Peek( address );	
+				address &= 0xFF8;
+
+				if (address == 0xFD8 || address == 0xFE8)
+				{
+					banks.chrLatch[1] = address >> 4 & (0x2|0x4); 
+
+					if ((regs.ctrl[0] & Regs::CTRL0_CHR_MODE) == Regs::CTRL0_CHR_SWAP_4K)
+						UpdateChrLatch();
+				}
+
+				return data;
 			}
 
 			NES_PEEK(Jy,5000) 
@@ -748,13 +811,9 @@ namespace Nes
 				
 					case Regs::CTRL0_CHR_SWAP_4K:
 				
-						chr.SwapBanks<SIZE_4K,0x0000U>
-						( 
-					     	(banks.chr[0] & banks.exChr.mask) | banks.exChr.bank,
-							(banks.chr[4] & banks.exChr.mask) | banks.exChr.bank
-						);
+						UpdateChrLatch();
 						break;
-				
+
 					case Regs::CTRL0_CHR_SWAP_2K:
 				
 						chr.SwapBanks<SIZE_2K,0x0000U>
@@ -787,6 +846,17 @@ namespace Nes
 				}
 			}
 		
+			void Jy::UpdateChrLatch() const
+			{
+				NST_ASSERT( (regs.ctrl[0] & Regs::CTRL0_CHR_MODE) == Regs::CTRL0_CHR_SWAP_4K );
+
+				chr.SwapBanks<SIZE_4K,0x0000U>
+				( 
+					(banks.chr[banks.chrLatch[0]] & banks.exChr.mask) | banks.exChr.bank,
+					(banks.chr[banks.chrLatch[1]] & banks.exChr.mask) | banks.exChr.bank
+				);
+			}
+
 			void Jy::UpdateNmt() const
 			{		
 				if ((regs.ctrl[0] >> 5 & cartSwitches.GetSetting() & 0x1) | (cartSwitches.GetSetting() & 0x2))

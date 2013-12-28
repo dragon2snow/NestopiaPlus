@@ -37,16 +37,15 @@
 #include "board/NstBrdN118.hpp"
 #include "board/NstBrdFme7.hpp"
 #include "board/NstBrdBandai.hpp"
+#include "board/NstBrdJaleco.hpp"
 #include "board/NstBrdTaitoTc.hpp"
 #include "board/NstBrdTaitoX.hpp"
 #include "board/NstBrdColorDreams.hpp"
 #include "board/NstBrdJy.hpp"
 #include "board/NstBrdFfe.hpp"
-#include "board/NstBrdTaiwanMmc3.hpp"
+#include "board/NstBrdMmc3China.hpp"
 #include "board/NstBrdS8259.hpp"
-#include "board/NstBrdMario1Malee2.hpp"
 #include "board/NstBrdSuper24In1.hpp"
-#include "board/NstBrdNovelDiamond.hpp"
 #include "board/NstBrd8157.hpp"
 #include "board/NstBrd8237.hpp"
 #include "board/NstBrdWs.hpp"
@@ -58,6 +57,9 @@
 #include "board/NstBrdStreetHeroes.hpp"
 #include "board/NstBrdT262.hpp"
 #include "board/NstBrdFk23C.hpp"
+#include "board/NstBrd6035052.hpp"
+#include "board/NstBrdA65AS.hpp"
+#include "board/NstBrdEdu2000.hpp"
 #include "mapper/NstMapper000.hpp"
 #include "mapper/NstMapper001.hpp"
 #include "mapper/NstMapper002.hpp"
@@ -102,6 +104,8 @@
 #include "mapper/NstMapper051.hpp"
 #include "mapper/NstMapper052.hpp"
 #include "mapper/NstMapper053.hpp"
+#include "mapper/NstMapper054.hpp"
+#include "mapper/NstMapper055.hpp"
 #include "mapper/NstMapper056.hpp"
 #include "mapper/NstMapper057.hpp"
 #include "mapper/NstMapper058.hpp"
@@ -153,6 +157,7 @@
 #include "mapper/NstMapper117.hpp"
 #include "mapper/NstMapper118.hpp"
 #include "mapper/NstMapper119.hpp"
+#include "mapper/NstMapper132.hpp"
 #include "mapper/NstMapper133.hpp"
 #include "mapper/NstMapper137.hpp"
 #include "mapper/NstMapper138.hpp"
@@ -175,7 +180,6 @@
 #include "mapper/NstMapper155.hpp"
 #include "mapper/NstMapper156.hpp"
 #include "mapper/NstMapper157.hpp"
-#include "mapper/NstMapper158.hpp"
 #include "mapper/NstMapper163.hpp"
 #include "mapper/NstMapper164.hpp"
 #include "mapper/NstMapper165.hpp"
@@ -194,7 +198,9 @@
 #include "mapper/NstMapper192.hpp"
 #include "mapper/NstMapper193.hpp"
 #include "mapper/NstMapper194.hpp"
+#include "mapper/NstMapper195.hpp"
 #include "mapper/NstMapper198.hpp"
+#include "mapper/NstMapper199.hpp"
 #include "mapper/NstMapper200.hpp"
 #include "mapper/NstMapper201.hpp"
 #include "mapper/NstMapper202.hpp"
@@ -298,7 +304,7 @@ namespace Nes
 			{ "MMC2",				                        Setup::PRG_0XXX_24K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 009
 			{ "MMC4",				                        Setup::PRG_01XX_16K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 010
 			{ "COLOR DREAMS",                               Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 011
-			{ "BTL DBZ5",                                   Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 012
+			{ "BTL REX DBZ5",                               Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 012
 			{ "CPROM",			                            Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 013
 			{ "",					                        Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 014
 			{ "BMC CONTRA 100-IN-1",	                    Setup::PRG_0123_32K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 015
@@ -340,8 +346,8 @@ namespace Nes
 			{ "BMC BALL GAMES 11-IN-1",                     Setup::PRG_0123_32K, Setup::NMT_HORIZONTAL, Setup::NMT_HORIZONTAL }, // 051
 			{ "BMC MARIO PARTY 7-IN-1",                     Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 052
 			{ "BMC SUPERVISION 16-IN-1",                    Setup::PRG_DEFAULT,  Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 053
-			{ "",					                        Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 054
-			{ "",					                        Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 055
+			{ "BMC NOVELDIAMOND 9999999-IN-1",              Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 054
+			{ "BTL MARIO1-MALEE2",                          Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 055
 			{ "BTL SMB3",			                        Setup::PRG_012X_8K,  Setup::NMT_HORIZONTAL, Setup::NMT_HORIZONTAL }, // 056
 			{ "BMC GK-54/GK-L01A/GK-L02A",                  Setup::PRG_0101_16K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 057
 			{ "BMC STUDY & GAME 32-IN-1 / GK-192",          Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 058
@@ -360,7 +366,7 @@ namespace Nes
 			{ "CAMERICA", 	                                Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 071
 			{ "JALECO",			                            Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 072
 			{ "KONAMI VRC3(UN-ROM)",                        Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 073
-			{ "MMC3 TAIWAN +XRAM.4K +CRAM.8/4/2K",          Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 074
+			{ "MMC3 CHINA +XRAM.4K +CRAM.2K",               Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 074
 			{ "JALECO SS8805 / KONAMI VRC1",                Setup::PRG_012X_8K,  Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 075
 			{ "NAMCOT 108 +MB74LS32",                       Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 076
 			{ "IREM",				                        Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 077
@@ -404,7 +410,7 @@ namespace Nes
 			{ "CARTSAINT",                                  Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 115
 			{ "SOMERI TEAM (MMC1+MMC3+VRC2)",               Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 116	
 			{ "FUTUREMEDIA",	                            Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 117			 
-			{ "TLSROM / TKSROM",                            Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 118			 
+			{ "TLSROM / TKSROM / TENGEN RAMBO1 (alt)",      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 118			 
 			{ "TQROM",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 119			 
 			{ "",					                        Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 120	
 			{ "",					                        Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 121	
@@ -418,7 +424,7 @@ namespace Nes
 			{ "",					                        Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 129	
 			{ "",					                        Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 130	
 			{ "",					                        Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 131	
-			{ "",					                        Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 132	
+			{ "22211",				                        Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 132	
 			{ "SA72008",        	                        Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 133
 			{ "",                                           Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 134	
 			{ "",       			      	                Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 135	
@@ -444,14 +450,14 @@ namespace Nes
 			{ "MMC1A",                	                    Setup::PRG_DEFAULT,  Setup::NMT_ZERO,       Setup::NMT_ZERO       }, // 155
 			{ "BUZZ AND WALDOG",                            Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 156
 			{ "BANDAI +BARCODE",			                Setup::PRG_01XX_16K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 157			 
-			{ "TENGEN RAMBO1 (alt)",                        Setup::PRG_DEFAULT,  Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 158			 
+			{ "",					                        Setup::PRG_DEFAULT,  Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 158
 			{ "",					                        Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 159	
 			{ "",           		                        Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 160
 			{ "",					                        Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 161	
 			{ "",					                        Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 162	
-			{ "HARVEST MOON",                               Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 163	
-			{ "BTL FFV/PMR/DD/SHNT",                        Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 164	
-			{ "BTL SHENGHUO HUIZHANG 2",                    Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 165
+			{ "NANJING",                                    Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 163	
+			{ "WAIXING / MARS PRODUCTION",                  Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 164	
+			{ "WAIXING SHENGHUO HUIZHANG 2",                Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 165
 			{ "",                                           Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 166	
 			{ "SUBOR / SUPOR",                              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 167	
 			{ "",					                        Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 168	
@@ -468,7 +474,7 @@ namespace Nes
 			{ "",					                        Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 179	
 			{ "HVC-UNROM-02",                               Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 180
 			{ "CNROM +CHR.DISABLE (alt)",                   Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 181
-			{ "BTL SUPER DONKEY KONG",                      Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 182			 
+			{ "HOSENKAN ELECTRONICS SDK",                   Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 182
 			{ "BTL SHUI GUAN PIPE",		                    Setup::PRG_012X_8K,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 183	
 			{ "SUNSOFT1(CN-ROM)",	                        Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 184			 
 			{ "CNROM +CHR.DISABLE",                         Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 185
@@ -477,15 +483,15 @@ namespace Nes
 			{ "BANDAI KARAOKE STUDIO",                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 188			 
 			{ "YOKOSOFT / TXC",                             Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 189
 			{ "",					                        Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 190	
-			{ "MMC3 TAIWAN +XRAM.4K +CRAM.2K",              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 191
-			{ "MMC3 TAIWAN +XRAM.4K +CRAM.4K",              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 192	
+			{ "MMC3 CHINA +XRAM.4K +CRAM.2K",               Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 191
+			{ "WAIXING MMC3 +XRAM.4K +CRAM.4K",             Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 192	
 			{ "MEGA SOFT (NTDEC)",                          Setup::PRG_0XXX_24K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 193
-			{ "MMC3 TAIWAN +XRAM.4K +CRAM.2K (alt)",        Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 194
-			{ "",					                        Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 195	
+			{ "MMC3 CHINA +XRAM.4K +CRAM.2K (alt)",         Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 194
+			{ "WAIXING MMC3 +XRAM.4K +CRAM.4K (alt)",       Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 195
 			{ "",					                        Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 196	
 			{ "",					                        Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 197	
-			{ "MMC3 TAIWAN +XRAM.4K",                       Setup::PRG_01XX_16K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 198
-			{ "",					                        Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 199	
+			{ "MMC3 CHINA +XRAM.4K",                        Setup::PRG_01XX_16K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 198
+			{ "WAIXING MMC3 +XRAM.4K +CRAM.8K",             Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 199	
 			{ "BMC 1200/36-IN-1",		                    Setup::PRG_0101_16K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 200	
 			{ "BMC 21/8-IN-1",	     	                    Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 201	
 			{ "BMC 150-IN-1",			                    Setup::PRG_01XX_16K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 202	
@@ -527,7 +533,7 @@ namespace Nes
 			{ "",					                        Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 238
 			{ "",					                        Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 239
 			{ "SUPERTONE / C&E",	                        Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 240
-			{ "EDU",				                        Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 241
+			{ "MXMDHTWO / TXC",		                        Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 241
 			{ "WAIXING ZHAN SHI",                           Setup::PRG_0123_32K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 242
 			{ "SACHEN 74LS374N",			                Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 243
 			{ "C&E DECATHLON",   	                        Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 244
@@ -543,19 +549,20 @@ namespace Nes
 			{ "BTL PIKACHU Y2K",	                        Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 254
 			{ "BMC 110/115-IN-1",                           Setup::PRG_0123_32K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 255
 			{ "BMC SUPER 24-IN-1",				            Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // Ext. 256
-			{ "BTL MARIO1-MALEE2",                          Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // Ext. 257
-			{ "BMC NOVELDIAMOND 9999999-IN-1",              Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // Ext. 258
-			{ "BMC 8157",                                   Setup::PRG_0101_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // Ext. 259
-			{ "8237",                                       Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // Ext. 260
-			{ "WS",                                         Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // Ext. 261
-			{ "DREAMTECH-01",                               Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // Ext. 262
-			{ "H2288",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // Ext. 263
-			{ "CC21",                                       Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // Ext. 264
-			{ "KOF97",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // Ext. 265
-			{ "BMC 64-IN-1 NO REPEAT",                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // Ext. 266
-			{ "SHERO",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // Ext. 267
-			{ "BMC T-262",                                  Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // Ext. 268
-			{ "BMC FK23C",                                  Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }  // Ext. 269
+			{ "BMC 8157",                                   Setup::PRG_0101_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // Ext. 257
+			{ "8237",                                       Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // Ext. 258
+			{ "WS",                                         Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // Ext. 259
+			{ "DREAMTECH-01",                               Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // Ext. 260
+			{ "H2288",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // Ext. 261
+			{ "CC21",                                       Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // Ext. 262
+			{ "KOF97",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // Ext. 263
+			{ "BMC 64-IN-1 NO REPEAT",                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // Ext. 264
+			{ "SHERO",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // Ext. 265
+			{ "BMC T-262",                                  Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // Ext. 266
+			{ "BMC FK23C",                                  Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // Ext. 267
+			{ "603-5052",									Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // Ext. 268
+			{ "A65AS",										Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // Ext. 269
+			{ "EDU2000",									Setup::PRG_DEFAULT,  Setup::NMT_ZERO,       Setup::NMT_ZERO	      }  // Ext. 270
 		};										  
 
 		Mapper* Mapper::Create(Context& context)
@@ -606,6 +613,8 @@ namespace Nes
 				case  51: return new Mapper51  ( context );
 				case  52: return new Mapper52  ( context );
 				case  53: return new Mapper53  ( context );
+				case  54: return new Mapper54  ( context );
+				case  55: return new Mapper55  ( context );
 				case  56: return new Mapper56  ( context );
 				case  57: return new Mapper57  ( context );
 				case  58: return new Mapper58  ( context );
@@ -657,6 +666,7 @@ namespace Nes
 				case 117: return new Mapper117 ( context );
 				case 118: return new Mapper118 ( context );
 				case 119: return new Mapper119 ( context );
+				case 132: return new Mapper132 ( context );
 				case 133: return new Mapper133 ( context );
 				case 137: return new Mapper137 ( context );
 				case 138: return new Mapper138 ( context );
@@ -679,7 +689,6 @@ namespace Nes
 				case 155: return new Mapper155 ( context );
 				case 156: return new Mapper156 ( context );
 				case 157: return new Mapper157 ( context );
-				case 158: return new Mapper158 ( context );
 				case 163: return new Mapper163 ( context );
 				case 164: return new Mapper164 ( context );
 				case 165: return new Mapper165 ( context );
@@ -698,7 +707,9 @@ namespace Nes
 				case 192: return new Mapper192 ( context );
 				case 193: return new Mapper193 ( context );
 				case 194: return new Mapper194 ( context );
+				case 195: return new Mapper195 ( context );
 				case 198: return new Mapper198 ( context );
+				case 199: return new Mapper199 ( context );
 				case 200: return new Mapper200 ( context );
 				case 201: return new Mapper201 ( context );
 				case 202: return new Mapper202 ( context );
@@ -744,8 +755,6 @@ namespace Nes
 				case 255: return new Mapper255 ( context );
 			
 				case EXT_SUPER24IN1:   return new Boards::Super24In1   ( context );
-				case EXT_MARIO1MALEE2: return new Boards::Mario1Malee2 ( context );
-				case EXT_NOVELDIAMOND: return new Boards::NovelDiamond ( context );
 				case EXT_8157:         return new Boards::Unl8157      ( context );
 				case EXT_8237:         return new Boards::Unl8237      ( context );
 				case EXT_WS:           return new Boards::Ws           ( context );
@@ -757,6 +766,9 @@ namespace Nes
 				case EXT_STREETHEROES: return new Boards::StreetHeroes ( context );
 				case EXT_T262:         return new Boards::T262         ( context );
 				case EXT_FK23C:        return new Boards::Fk23C        ( context );
+				case EXT_6035052:      return new Boards::Unl6035052   ( context );
+				case EXT_A65AS:		   return new Boards::A65AS		   ( context );
+				case EXT_EDU2000:	   return new Boards::Edu2000	   ( context );
 			
 				default: throw RESULT_ERR_UNSUPPORTED_MAPPER;
 			}
@@ -1023,26 +1035,25 @@ namespace Nes
 				NST_COMPILE_ASSERT
 				(
 					EXT_SUPER24IN1   == 256	&&
-					EXT_MARIO1MALEE2 == 257	&&
-					EXT_NOVELDIAMOND == 258	&&
-					EXT_8157         == 259	&&
-					EXT_8237         == 260	&&
-					EXT_WS           == 261	&&
-					EXT_DREAMTECH01  == 262	&&
-					EXT_H2288        == 263	&&
-					EXT_CC21         == 264 &&
-					EXT_KOF97        == 265 &&
-					EXT_64IN1NR      == 266	&&
-					EXT_STREETHEROES == 267 &&
-					EXT_T262         == 268 &&
-					EXT_FK23C        == 269
+					EXT_8157         == 257	&&
+					EXT_8237         == 258	&&
+					EXT_WS           == 259	&&
+					EXT_DREAMTECH01  == 260	&&
+					EXT_H2288        == 261	&&
+					EXT_CC21         == 262 &&
+					EXT_KOF97        == 263 &&
+					EXT_64IN1NR      == 264	&&
+					EXT_STREETHEROES == 265 &&
+					EXT_T262         == 266 &&
+					EXT_FK23C        == 267	&&
+					EXT_6035052      == 268	&&
+					EXT_A65AS        == 269	&&
+					EXT_EDU2000      == 270
 				);
 
 				static const dword chunks[] =
 				{
 					NES_STATE_CHUNK_ID('S','2','4','\0'),
-					NES_STATE_CHUNK_ID('M','M','2','\0'),
-					NES_STATE_CHUNK_ID('N','O','V','\0'),
 					NES_STATE_CHUNK_ID('8','1','5','\0'),
 					NES_STATE_CHUNK_ID('8','2','3','\0'),
 					NES_STATE_CHUNK_ID('W','S','4','\0'),
@@ -1053,7 +1064,10 @@ namespace Nes
 					NES_STATE_CHUNK_ID('6','4','N','\0'),
 					NES_STATE_CHUNK_ID('S','H','R','\0'),
 					NES_STATE_CHUNK_ID('T','2','6','\0'),
-					NES_STATE_CHUNK_ID('F','K','2','\0')
+					NES_STATE_CHUNK_ID('F','K','2','\0'),
+					NES_STATE_CHUNK_ID('6','0','3','\0'),
+					NES_STATE_CHUNK_ID('A','6','5','\0'),
+					NES_STATE_CHUNK_ID('E','D','U','\0')
 				};
 
 				NST_COMPILE_ASSERT( NUM_EXT_MAPPERS == NST_COUNT(chunks) );

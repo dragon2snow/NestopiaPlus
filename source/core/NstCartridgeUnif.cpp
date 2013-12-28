@@ -109,10 +109,14 @@ namespace Nes
 			{"1992BALLGAMES11IN1",     51},
 			{"MARIO7IN1",              52},
 			{"SUPERVISION16IN1",       53},
+			{"NOVELDIAMOND9999999IN1", 54},
+			{"MARIO1-MALEE2",          55},
 			{"STUDYGAME32IN1",         58},
 			{"RESET4IN1",              60},
+			{"D1038",                  60},
 			{"GNROM",                  66}, 
 			{"TEK90",                  90},
+			{"22211",                  132}, 	
 			{"SA-72008",               133},
 			{"SACHEN-8259D",           137},
 			{"SACHEN-8259B",           138},
@@ -131,8 +135,6 @@ namespace Nes
 			{"70IN1",                  236},
 			{"70IN1B",                 236},
 			{"SUPER24IN1SC03",         Mapper::EXT_SUPER24IN1},
-			{"MARIO1-MALEE2",          Mapper::EXT_MARIO1MALEE2},
-			{"NOVELDIAMOND9999999IN1", Mapper::EXT_NOVELDIAMOND},
 			{"8157",                   Mapper::EXT_8157},
 			{"8237",                   Mapper::EXT_8237},
 			{"WS",                     Mapper::EXT_WS},
@@ -143,7 +145,10 @@ namespace Nes
 			{"64IN1NOREPEAT",          Mapper::EXT_64IN1NR},
 			{"SHERO",                  Mapper::EXT_STREETHEROES},
 			{"T-262",                  Mapper::EXT_T262},
-			{"FK23C",                  Mapper::EXT_FK23C}
+			{"FK23C",                  Mapper::EXT_FK23C},
+			{"603-5052",               Mapper::EXT_6035052},
+			{"A65AS",				   Mapper::EXT_A65AS},
+			{"EDU2000",                Mapper::EXT_EDU2000}
 		};
 	
 		bool Cartridge::Unif::Board::operator < (const Board& board) const

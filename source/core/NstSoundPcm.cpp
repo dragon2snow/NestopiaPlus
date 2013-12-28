@@ -47,12 +47,12 @@ namespace Nes
 				cpu.GetApu().ReleaseChannel();
 			}
 		
-			Result Pcm::CanDo(const u8* data,dword length,dword rate)
+			Result Pcm::CanDo(const void* data,dword length,uint bits,dword rate)
 			{
-				if (data == NULL || length == 0 || rate == 0)
+				if (data == NULL || length == 0 || bits == 0 || rate == 0)
 					return RESULT_ERR_INVALID_PARAM;
 		
-				if (rate < 8000U || rate > 96000UL)
+				if ((bits != 8 && bits != 16) || (rate < 8000U || rate > 96000UL))
 					return RESULT_ERR_UNSUPPORTED;
 		
 				return RESULT_OK;
@@ -72,9 +72,9 @@ namespace Nes
             #pragma optimize("", on)
             #endif
 		
-			void Pcm::Play(const u8* w,dword l,dword r)
+			void Pcm::Play(const i16* w,dword l,dword r)
 			{
-				NST_ASSERT( NES_SUCCEEDED(CanDo(w,l,r)) );
+				NST_ASSERT( NES_SUCCEEDED(CanDo(w,l,16,r)) );
 				
 				wave.data = w;
 				wave.length = l;
@@ -93,7 +93,7 @@ namespace Nes
 					if (i < wave.length)
 					{
 						pos += wave.rate;
-    					return Sample((wave.data[i] + (wave.data[i] > 0x80)) << 8) - 32768L;
+						return wave.data[i];
 					}
 		
 					wave.data = NULL;

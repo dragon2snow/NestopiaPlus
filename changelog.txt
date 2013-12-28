@@ -1,4 +1,61 @@
 ----------------------------------------------------------------
+1.30
+----------------------------------------------------------------
+
+Shell:
+
+ Changes:
+
+  - Updated 7zxa.dll.
+
+ Fixes:
+
+  - NSF text info is now displayed in the proper ANSI code page.
+
+Core:
+
+ Additions:
+
+  - Bandai Karaoke Studio michrophone support through keyboard.
+  - Sound sample support for:
+
+     "Family Trainer - Aerobics Studio" -> "ftaerobi"
+     "Moe Pro! '90 - Kandou Hen" -> "moepro90"
+     "Moe Pro! - Saikyou Hen" -> "mpsaikyo"
+     "Moero!! Pro Tennis" -> "mptennis"
+     "Moero!! Pro Yakyuu" -> "moepro"
+     "Moero!! Pro Yakyuu '88 - Ketteiban" -> "moepro88" 
+     "Shin Moero!! Pro Yakyuu" -> "smoepro"
+     "Terao no Dosukoi Oozumou" -> "terao"
+
+    Info from Hap and Pongbashi.    
+  - Mapper 132. Info from Ca4He3.
+  - Unif Boards "UNL-603-5052", "A65AS" and "EDU2000". Info from Ca4He3.
+  - Mouse support for "Educational Computer 2000". Info from Ca4He3.
+
+ Changes:
+
+  - Board/Chip names. Info from Pongbashi.
+  - Moved the following games to new mappers:
+
+     "Crystalis (ch)" -> mapper 195
+     "Captain Tsubasa Vol 2 - Super Striker (ch)" -> mapper 195
+     "Dragon Ball Z 2 - Gekishin Freeza! (ch)" -> mapper 199
+     "Dragon Ball Z Gaiden - Saiya Jin Zetsumetsu Keikaku (ch)" -> mapper 199
+     "San Guo Zhi 2 (ch)" -> mapper 199
+
+ Fixes:
+
+  - More accurate PAL APU DMC rates. Info from Blargg.
+  - Mapper 4. Now defaulting to MMC3B IRQ hardware. Fixes "Star Trek - 25th Anniversary".
+  - Mapper 19. Fixes "Final Lap".
+  - Mapper 60, menu select for "TN 95-in-1" and "Super 35-in-1" via soft reset. Info from Ca4He3.
+  - Mapper 163. Fixes "Kou Dai Bao Shi - Hong (ch)" and "Kou Dai Bao Shi - Lan (ch)".
+  - Mapper 198, CHR banking. Fixes "Super Fighter III". Info from Ca4He3.
+  - Mapper 209, CHR 4K PPU latch mode. Fixes "Power Rangers" and others. Info from Ca4He3.
+  - Database entries.
+
+----------------------------------------------------------------
 1.29
 ----------------------------------------------------------------
 

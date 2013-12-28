@@ -38,15 +38,9 @@ namespace Nestopia
 			const void* data;
 			uint size;
 
-			ibool LoadData(uint,tstring);
-
 		protected:
 
-			template<size_t N>
-			ibool Load(uint id,const tchar (&type)[N])
-			{
-				return LoadData( id, type );
-			}
+			ibool Load(uint,tstring);
 
 		public:
 

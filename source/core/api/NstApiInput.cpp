@@ -35,6 +35,7 @@
 #include "../input/NstInpLightGun.hpp"
 #include "../input/NstInpPaddle.hpp"
 #include "../input/NstInpPowerPad.hpp"
+#include "../input/NstInpMouse.hpp"
 #include "../input/NstInpFamilyTrainer.hpp"
 #include "../input/NstInpFamilyKeyboard.hpp"
 #include "../input/NstInpSuborKeyboard.hpp"
@@ -65,6 +66,7 @@ namespace Nes
 			Controllers::PollCaller1< Controllers::Zapper            > Controllers::Zapper::callback;
 			Controllers::PollCaller1< Controllers::Paddle            > Controllers::Paddle::callback;
 			Controllers::PollCaller1< Controllers::PowerPad          > Controllers::PowerPad::callback;
+			Controllers::PollCaller1< Controllers::Mouse             > Controllers::Mouse::callback;
 			Controllers::PollCaller1< Controllers::FamilyTrainer     > Controllers::FamilyTrainer::callback;
 			Controllers::PollCaller3< Controllers::FamilyKeyboard    > Controllers::FamilyKeyboard::callback;
 			Controllers::PollCaller3< Controllers::SuborKeyboard     > Controllers::SuborKeyboard::callback;
@@ -78,6 +80,7 @@ namespace Nes
 			Controllers::PollCaller1< Controllers::TopRider          > Controllers::TopRider::callback;
 			Controllers::PollCaller2< Controllers::PokkunMoguraa     > Controllers::PokkunMoguraa::callback;
 			Controllers::PollCaller1< Controllers::PartyTap          > Controllers::PartyTap::callback;
+			Controllers::PollCaller1< Controllers::KaraokeStudio     > Controllers::KaraokeStudio::callback;
 
 			Controllers::PowerPad::PowerPad()
 			{ 
@@ -154,7 +157,12 @@ namespace Nes
 								
 								device = new Core::Input::PowerPad;
 								break;
-	
+
+							case MOUSE:    
+
+								device = new Core::Input::Mouse;
+								break;
+
 							default: return RESULT_ERR_INVALID_PARAM;
 						}
 	

@@ -51,11 +51,12 @@ namespace Nes
 				void UpdatePrg();
 				void UpdateChr() const;
 
-				NES_DECL_POKE( 5FF0 )
-				NES_DECL_POKE( 8000 )
+				NES_DECL_POKE( 5001 )
+				NES_DECL_POKE( Prg  )
 
 				u8 exRegs[8];
 				uint unromChr;
+				uint dipSwitch;
 			};
 		}
 	}

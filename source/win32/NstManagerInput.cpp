@@ -39,8 +39,10 @@ namespace Nestopia
 {
 	using namespace Managers;
 
-	struct Input::Callbacks
+	class Input::Callbacks
 	{
+	public:
+
 		typedef Nes::Input::UserData UserData;
 		typedef Nes::Input::Controllers Controllers;
 		typedef Window::Input::Settings Settings;
@@ -50,6 +52,7 @@ namespace Nestopia
 		static bool NST_CALLBACK PollZapper            (UserData,Controllers::Zapper&);
 		static bool NST_CALLBACK PollPaddle            (UserData,Controllers::Paddle&);
 		static bool NST_CALLBACK PollPowerPad          (UserData,Controllers::PowerPad&);
+		static bool NST_CALLBACK PollMouse             (UserData,Controllers::Mouse&);
 		static bool NST_CALLBACK PollOekaKidsTablet    (UserData,Controllers::OekaKidsTablet&);
 		static bool NST_CALLBACK PollHyperShot         (UserData,Controllers::HyperShot&);
 		static bool NST_CALLBACK PollCrazyClimber      (UserData,Controllers::CrazyClimber&);
@@ -63,6 +66,11 @@ namespace Nestopia
 		static bool NST_CALLBACK PollPokkunMoguraa     (UserData,Controllers::PokkunMoguraa&,uint);
 		static bool NST_CALLBACK PollPartyTap          (UserData,Controllers::PartyTap&);
 		static bool NST_CALLBACK PollVsSystem          (UserData,Controllers::VsSystem&);
+		static bool NST_CALLBACK PollKaraokeStudio     (UserData,Controllers::KaraokeStudio&);
+
+	private:
+
+		static bool PollCursor(UserData,uint&,uint&,uint&);
 	};
 
 	const Resource::Cursor Input::Cursor::gun( IDC_CURSOR_GUN  );
@@ -111,7 +119,8 @@ namespace Nestopia
 		else if 
 		(
 			emulator.IsControllerConnected( Nes::Input::PADDLE ) || 
-			emulator.IsControllerConnected( Nes::Input::OEKAKIDSTABLET )
+			emulator.IsControllerConnected( Nes::Input::OEKAKIDSTABLET ) ||
+			emulator.IsControllerConnected( Nes::Input::MOUSE )
 		)
 		{
 			hCursor = NULL;
@@ -587,6 +596,7 @@ namespace Nestopia
 			{ IDM_MACHINE_INPUT_PORT1_ZAPPER,			 &Input::OnCmdMachinePort				  },
 			{ IDM_MACHINE_INPUT_PORT1_PADDLE,			 &Input::OnCmdMachinePort				  },
 			{ IDM_MACHINE_INPUT_PORT1_POWERPAD,			 &Input::OnCmdMachinePort				  },
+			{ IDM_MACHINE_INPUT_PORT1_MOUSE,			 &Input::OnCmdMachinePort				  },
 			{ IDM_MACHINE_INPUT_PORT2_UNCONNECTED,		 &Input::OnCmdMachinePort				  },
 			{ IDM_MACHINE_INPUT_PORT2_PAD1,				 &Input::OnCmdMachinePort				  },
 			{ IDM_MACHINE_INPUT_PORT2_PAD2,				 &Input::OnCmdMachinePort				  },
@@ -595,6 +605,7 @@ namespace Nestopia
 			{ IDM_MACHINE_INPUT_PORT2_ZAPPER,			 &Input::OnCmdMachinePort				  },
 			{ IDM_MACHINE_INPUT_PORT2_PADDLE,			 &Input::OnCmdMachinePort				  },
 			{ IDM_MACHINE_INPUT_PORT2_POWERPAD,			 &Input::OnCmdMachinePort				  },
+			{ IDM_MACHINE_INPUT_PORT2_MOUSE,			 &Input::OnCmdMachinePort				  },
 			{ IDM_MACHINE_INPUT_PORT3_UNCONNECTED,		 &Input::OnCmdMachinePort				  },
 			{ IDM_MACHINE_INPUT_PORT3_PAD1,				 &Input::OnCmdMachinePort				  },
 			{ IDM_MACHINE_INPUT_PORT3_PAD2,				 &Input::OnCmdMachinePort				  },
@@ -649,6 +660,7 @@ namespace Nestopia
 		Controllers::Zapper::callback.Set            ( &Callbacks::PollZapper,            &rects );
 		Controllers::Paddle::callback.Set            ( &Callbacks::PollPaddle,            &rects );
 		Controllers::PowerPad::callback.Set          ( &Callbacks::PollPowerPad,          this   );
+		Controllers::Mouse::callback.Set             ( &Callbacks::PollMouse,             &rects );
 		Controllers::OekaKidsTablet::callback.Set    ( &Callbacks::PollOekaKidsTablet,    &rects );
 		Controllers::HyperShot::callback.Set         ( &Callbacks::PollHyperShot,         this   );
 		Controllers::FamilyTrainer::callback.Set     ( &Callbacks::PollFamilyTrainer,     this   );
@@ -662,6 +674,7 @@ namespace Nestopia
 		Controllers::PokkunMoguraa::callback.Set     ( &Callbacks::PollPokkunMoguraa,     this   );
 		Controllers::PartyTap::callback.Set          ( &Callbacks::PollPartyTap,          this   );
 		Controllers::VsSystem::callback.Set          ( &Callbacks::PollVsSystem,          this   );
+		Controllers::KaraokeStudio::callback.Set     ( &Callbacks::PollKaraokeStudio,     this   );
 
 		menu[IDM_MACHINE_INPUT_AUTOSELECT].Check( cfg["machine autoselect controllers"] != Application::Configuration::NO );	
 
@@ -690,6 +703,7 @@ namespace Nestopia
 						     if (type == _T( "zapper"   )) { controller = Nes::Input::ZAPPER;   break; }
 						else if (type == _T( "paddle"   )) { controller = Nes::Input::PADDLE;   break; }
 						else if (type == _T( "powerpad" )) { controller = Nes::Input::POWERPAD; break; }
+						else if (type == _T( "mouse"    )) { controller = Nes::Input::MOUSE;    break; }
 
 					case 2:
 					case 3:
@@ -753,6 +767,7 @@ namespace Nestopia
 					case Nes::Input::ZAPPER:            type = _T( "zapper"            ); break;
 					case Nes::Input::PADDLE:            type = _T( "paddle"            ); break;
 					case Nes::Input::POWERPAD:          type = _T( "powerpad"          ); break;
+					case Nes::Input::MOUSE:             type = _T( "mouse"             ); break;
 					case Nes::Input::FAMILYTRAINER:     type = _T( "familytrainer"     ); break;
 					case Nes::Input::FAMILYKEYBOARD:    type = _T( "familykeyboard"    ); break;
 					case Nes::Input::SUBORKEYBOARD:     type = _T( "suborkeyboard"     ); break;
@@ -939,10 +954,12 @@ namespace Nestopia
 				menu[ IDM_MACHINE_INPUT_PORT1_ZAPPER	  ].Enable( state );
 				menu[ IDM_MACHINE_INPUT_PORT1_PADDLE	  ].Enable( state );
 				menu[ IDM_MACHINE_INPUT_PORT1_POWERPAD	  ].Enable( state );
+				menu[ IDM_MACHINE_INPUT_PORT1_MOUSE  	  ].Enable( state );
 				menu[ IDM_MACHINE_INPUT_PORT2_UNCONNECTED ].Enable( state );
 				menu[ IDM_MACHINE_INPUT_PORT2_ZAPPER	  ].Enable( state );
 				menu[ IDM_MACHINE_INPUT_PORT2_PADDLE	  ].Enable( state );
 				menu[ IDM_MACHINE_INPUT_PORT2_POWERPAD	  ].Enable( state );
+				menu[ IDM_MACHINE_INPUT_PORT2_MOUSE  	  ].Enable( state );
 				menu[ IDM_MACHINE_INPUT_PORT3_UNCONNECTED ].Enable( state );
 				menu[ IDM_MACHINE_INPUT_PORT4_UNCONNECTED ].Enable( state );
 				break;
@@ -974,6 +991,7 @@ namespace Nestopia
 			{ 0, Nes::Input::ZAPPER		       },
 			{ 0, Nes::Input::PADDLE		       },
 			{ 0, Nes::Input::POWERPAD	       },
+			{ 0, Nes::Input::MOUSE  	       },
 			{ 1, Nes::Input::UNCONNECTED       },
 			{ 1, Nes::Input::PAD1		       },
 			{ 1, Nes::Input::PAD2		       },
@@ -982,6 +1000,7 @@ namespace Nestopia
 			{ 1, Nes::Input::ZAPPER		       },
 			{ 1, Nes::Input::PADDLE		       },
 			{ 1, Nes::Input::POWERPAD	       },
+			{ 1, Nes::Input::MOUSE  	       },
 			{ 2, Nes::Input::UNCONNECTED       },
 			{ 2, Nes::Input::PAD1		       },
 			{ 2, Nes::Input::PAD2		       },
@@ -1032,10 +1051,11 @@ namespace Nestopia
 			case Nes::Input::ZAPPER:   id = IDM_MACHINE_INPUT_PORT1_ZAPPER;      break;
 			case Nes::Input::PADDLE:   id = IDM_MACHINE_INPUT_PORT1_PADDLE;      break;
 			case Nes::Input::POWERPAD: id = IDM_MACHINE_INPUT_PORT1_POWERPAD;    break;
+			case Nes::Input::MOUSE:    id = IDM_MACHINE_INPUT_PORT1_MOUSE;       break;
 			default:				   id = IDM_MACHINE_INPUT_PORT1_UNCONNECTED; break;
 		}
 
-		param.menu[id].Check( IDM_MACHINE_INPUT_PORT1_UNCONNECTED, IDM_MACHINE_INPUT_PORT1_POWERPAD );		
+		param.menu[id].Check( IDM_MACHINE_INPUT_PORT1_UNCONNECTED, IDM_MACHINE_INPUT_PORT1_MOUSE );		
 	}
 
 	void Input::OnMenuPort2(Window::Menu::PopupHandler::Param& param)
@@ -1051,10 +1071,11 @@ namespace Nestopia
 			case Nes::Input::ZAPPER:   id = IDM_MACHINE_INPUT_PORT2_ZAPPER;      break;     
 			case Nes::Input::PADDLE:   id = IDM_MACHINE_INPUT_PORT2_PADDLE;      break;     
 			case Nes::Input::POWERPAD: id = IDM_MACHINE_INPUT_PORT2_POWERPAD;    break;     
+			case Nes::Input::MOUSE:    id = IDM_MACHINE_INPUT_PORT2_MOUSE;       break;     
 			default:	               id = IDM_MACHINE_INPUT_PORT2_UNCONNECTED; break;
 		}
 		
-		param.menu[id].Check( IDM_MACHINE_INPUT_PORT2_UNCONNECTED, IDM_MACHINE_INPUT_PORT2_POWERPAD );		
+		param.menu[id].Check( IDM_MACHINE_INPUT_PORT2_UNCONNECTED, IDM_MACHINE_INPUT_PORT2_MOUSE );		
 	}
 
 	void Input::OnMenuPort3(Window::Menu::PopupHandler::Param& param)
@@ -1269,7 +1290,7 @@ namespace Nestopia
 		return true;
 	}
 
-	bool NST_CALLBACK Input::Callbacks::PollOekaKidsTablet(UserData data,Controllers::OekaKidsTablet& tablet)
+	bool Input::Callbacks::PollCursor(UserData data,uint& x,uint& y,uint& button)
 	{
 		POINT mouse;
 		::GetCursorPos( &mouse );
@@ -1282,16 +1303,26 @@ namespace Nestopia
 			Window::Rect input;
 			static_cast<const Rects*>(data)->getInput( input );
 
-			tablet.x = uint(input.left) + (uint(mouse.x) - uint(output.left)) * (uint(input.Width())-1) / uint(output.Width());
-			tablet.y = uint(input.top) + (uint(mouse.y) - uint(output.top)) * (uint(input.Height())-1) / uint(output.Height());
-			tablet.button = ::GetAsyncKeyState( Cursor::primaryButtonId ) & 0x8000U;
+			x = uint(input.left) + (uint(mouse.x) - uint(output.left)) * (uint(input.Width())-1) / uint(output.Width());
+			y = uint(input.top) + (uint(mouse.y) - uint(output.top)) * (uint(input.Height())-1) / uint(output.Height());
+			button = ::GetAsyncKeyState( Cursor::primaryButtonId ) & 0x8000U;
 		}
 		else
 		{
-			tablet.button = 0;
+			button = 0;
 		}
 
 		return true;
+	}
+
+	bool NST_CALLBACK Input::Callbacks::PollMouse(UserData data,Controllers::Mouse& mouse)
+	{
+		return PollCursor( data, mouse.x, mouse.y, mouse.button );
+	}
+
+	bool NST_CALLBACK Input::Callbacks::PollOekaKidsTablet(UserData data,Controllers::OekaKidsTablet& tablet)
+	{
+		return PollCursor( data, tablet.x, tablet.y, tablet.button );
 	}
 
 	bool NST_CALLBACK Input::Callbacks::PollHyperShot(UserData data,Controllers::HyperShot& hyperShot)
@@ -1961,6 +1992,23 @@ namespace Nestopia
 		keys[ Settings::EMULATION_KEY_INSERT_COIN_2 ].GetState( buttons, Controllers::VsSystem::COIN_2 );
 
 		vsSystem.insertCoin = buttons;
+
+		return true;
+	}
+
+	bool NST_CALLBACK Input::Callbacks::PollKaraokeStudio(UserData data,Controllers::KaraokeStudio& karaokeStudio)
+	{
+		static_cast<Input*>(data)->AutoPoll();
+
+		const Key* const NST_RESTRICT keys = static_cast<const Input*>(data)->dialog->GetSettings().GetKeys(Settings::KARAOKESTUDIO_KEYS);
+
+		uint buttons = 0;
+
+		keys[ Settings::KARAOKESTUDIO_MIC ].GetState( buttons, Controllers::KaraokeStudio::MIC );
+		keys[ Settings::KARAOKESTUDIO_A   ].GetState( buttons, Controllers::KaraokeStudio::A   );
+		keys[ Settings::KARAOKESTUDIO_B   ].GetState( buttons, Controllers::KaraokeStudio::B   );
+
+		karaokeStudio.buttons = buttons;
 
 		return true;
 	}

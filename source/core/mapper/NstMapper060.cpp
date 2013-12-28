@@ -33,55 +33,65 @@ namespace Nes
         #pragma optimize("s", on)
         #endif
 	
+		Mapper60::Mapper60(Context& c)
+		: 
+		Mapper (c),
+		rt4in1 (c.pRomCrc == 0xF9C484A0UL) // Reset-triggered 4-in-1
+		{}
+
 		void Mapper60::SubReset(const bool hard)
 		{
-			if (pRomCrc == 0xF9C484A0UL)
+			latch = 0;
+
+			if (hard)
+				menu = 0;
+			else
+				menu = (menu + 1) & 0x3;
+
+			if (rt4in1)
 			{
-				// Reset-triggered 4-in-1
-	
-				if (hard)
-					game = 0;
-				else
-					game = (game + 1) & 0x3;
-	
-				chr.SwapBank<SIZE_8K,0x0000U>( game );
-				prg.SwapBanks<SIZE_16K,0x0000U>( game, game );
+				chr.SwapBank<SIZE_8K,0x0000U>( menu );
+				prg.SwapBanks<SIZE_16K,0x0000U>( menu, menu );
 			}
 			else
 			{
-				if (hard)
-					prg.SwapBank<SIZE_16K,0x4000U>( 1 );
-
-				Map( 0x8000U, 0xFFFFU, &Mapper60::Poke_Prg );			
+				Map( 0x8000U, 0xFFFFU, &Mapper60::Peek_Prg, &Mapper60::Poke_Prg );			
+				NES_CALL_POKE(Mapper60,Prg,0x8000U,0x00);
 			}
 		}
 	
 		void Mapper60::SubLoad(State::Loader& state)
 		{
-			if (pRomCrc == 0xF9C484A0UL)
+			while (const dword chunk = state.Begin())
 			{
-				while (const dword chunk = state.Begin())
+				if (chunk == NES_STATE_CHUNK_ID('R','E','G','\0'))
 				{
-					if (chunk == NES_STATE_CHUNK_ID('R','E','G','\0'))
-						game = state.Read8() & 0x3;
-	
-					state.End();
+					latch = state.Read8();
+					menu = latch & 0x3;
+					latch = latch << 1 & 0x100;
 				}
+	
+				state.End();
 			}
 		}
 	
 		void Mapper60::SubSave(State::Saver& state) const
 		{
-			if (pRomCrc == 0xF9C484A0UL)
-				state.Begin('R','E','G','\0').Write8( game ).End();
+			state.Begin('R','E','G','\0').Write8( latch >> 1 | menu ).End();
 		}
 	
         #ifdef NST_PRAGMA_OPTIMIZE
         #pragma optimize("", on)
         #endif
 	
+		NES_PEEK(Mapper60,Prg)
+		{
+			return !latch ? prg.Peek( address - 0x8000U ) : menu;
+		}
+
 		NES_POKE(Mapper60,Prg) 
 		{
+			latch = address & 0x100;
 			ppu.SetMirroring( (address & 0x8) ? Ppu::NMT_HORIZONTAL : Ppu::NMT_VERTICAL );
 	
 			if (address & 0x80)

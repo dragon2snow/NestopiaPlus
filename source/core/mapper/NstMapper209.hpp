@@ -38,7 +38,7 @@ namespace Nes
 		public:
 
 			Mapper209(Context& c)
-			: Jy(c,DEFAULT_DIP_NMT_CONTROLLED) {}
+			: Jy(c,DEFAULT_DIP_NMT_CONTROLLED,true) {}
 		};
 	}
 }

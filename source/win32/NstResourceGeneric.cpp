@@ -28,7 +28,7 @@
 
 namespace Nestopia
 {
-	ibool Resource::Generic::LoadData(const uint id,tstring const type)
+	ibool Resource::Generic::Load(const uint id,tstring const type)
 	{
 		data = NULL;
 		size = 0;

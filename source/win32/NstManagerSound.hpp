@@ -39,11 +39,13 @@ namespace Nestopia
 
 	namespace Managers
 	{
+		class Preferences;
+
 		class Sound
 		{
 		public:
 
-			Sound(Window::Custom&,Window::Menu&,Emulator&,const Paths&,const Configuration&);
+			Sound(Window::Custom&,Window::Menu&,Emulator&,const Paths&,const Preferences&,const Configuration&);
 			~Sound();
 
 			void StartEmulation() const;
@@ -63,6 +65,8 @@ namespace Nestopia
 
 			Nes::Sound::Output* emuOutput;
 			Emulator& emulator;
+			const Paths& paths;
+			const Preferences& preferences;
 			Nes::Sound::Output output;
 			DirectX::DirectSound directSound;
 			Object::Heap<Window::Sound> dialog;

@@ -86,7 +86,7 @@ namespace Nestopia
 			void ForcePoll();
 			inline void AutoPoll();
 
-			struct Callbacks;
+			class Callbacks;
 
 			struct Rects
 			{

@@ -109,7 +109,7 @@ namespace Nestopia
 		};
 
 		if (cstring name = Info::GoodName( emulator.GetName() ))
-			text = name;
+			text.Import( name );
 		else
 			text = "noname";
 
@@ -119,10 +119,10 @@ namespace Nestopia
 		cstring const maker = Info::GoodName( emulator.GetMaker() );
 
 		if (artist)
-			text << "\r\n" << artist;
+			(text << "\r\n").Import( artist );
 
 		if (maker)
-			text << "\r\n" << maker;
+			(text << "\r\n").Import( maker );
 
 		if (const uint chips = emulator.GetChips())
 		{

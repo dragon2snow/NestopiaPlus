@@ -1224,6 +1224,7 @@ namespace Nestopia
 			void Defrag();
 			void Destroy();
 			void Erase(uint,uint);
+			void Import(cstring);
 
 		private:
 

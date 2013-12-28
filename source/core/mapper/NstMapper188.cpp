@@ -24,7 +24,8 @@
 
 #include "../NstMapper.hpp"
 #include "NstMapper188.hpp"
-		  
+#include "../api/NstApiInput.hpp"
+
 namespace Nes
 {
 	namespace Core
@@ -38,7 +39,7 @@ namespace Nes
 			if (hard)
 				prg.SwapBank<SIZE_16K,0x4000U>(7);
 
-			Map( 0x6000U, 0x7FFFU, &Mapper188::Peek_Dev );
+			Map( 0x6000U, 0x7FFFU, &Mapper188::Peek_Mic );
 			Map( 0x8000U, 0xFFFFU, &Mapper188::Poke_Prg );
 		}
 	
@@ -46,6 +47,14 @@ namespace Nes
         #pragma optimize("", on)
         #endif
 	
+		void Mapper188::BeginFrame(Input::Controllers* input)
+		{
+			if (input && Input::Controllers::KaraokeStudio::callback( input->karaokeStudio )) 
+				mic = input->karaokeStudio.buttons & 0x7 ^ 0x3;
+			else
+				mic = 0x3;
+		}
+		
 		NES_POKE(Mapper188,Prg)
 		{
 			prg.SwapBank<SIZE_16K,0x0000U>
@@ -54,9 +63,9 @@ namespace Nes
 			);
 		}
 	
-		NES_PEEK(Mapper188,Dev)
+		NES_PEEK(Mapper188,Mic)
 		{
-			return 0x3;
+			return mic;
 		}
 	}
 }

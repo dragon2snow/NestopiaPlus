@@ -33,6 +33,11 @@ namespace Nes
 {
 	namespace Core
 	{
+		namespace Input
+		{
+			class Controllers;
+		}
+
 		class Mapper188 : public Mapper
 		{
 		public:
@@ -40,12 +45,16 @@ namespace Nes
 			Mapper188(Context& c)
 			: Mapper(c,WRAM_NONE) {}
 
+			void BeginFrame(Input::Controllers*);
+
 		private:
 
 			void SubReset(bool);
 
 			NES_DECL_POKE( Prg )
-			NES_DECL_PEEK( Dev )
+			NES_DECL_PEEK( Mic )
+
+			uint mic;
 		};
 	}
 }

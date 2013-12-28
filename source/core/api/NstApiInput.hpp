@@ -45,7 +45,7 @@ namespace Nes
 			enum
 			{
 				NUM_PADS = 4,
-				NUM_CONTROLLERS = 19
+				NUM_CONTROLLERS = 20
 			};
 
 			class Controllers
@@ -155,6 +155,20 @@ namespace Nes
 					typedef bool (NST_CALLBACK *PollCallback) (void*,PowerPad&);
 
 					static PollCaller1<PowerPad> callback;
+				};
+
+				struct Mouse
+				{
+					uint x;
+					uint y;
+					uint button;
+
+					Mouse()
+					: x(0), y(0), button(0) {}
+
+					typedef bool (NST_CALLBACK *PollCallback) (void*,Mouse&);
+
+					static PollCaller1<Mouse> callback;
 				};
 
 				struct FamilyTrainer
@@ -451,10 +465,30 @@ namespace Nes
 					static PollCaller1<PartyTap> callback;
 				};
 
+				struct KaraokeStudio
+				{
+					enum
+					{
+						A   = 0x1,
+						B   = 0x2,
+						MIC = 0x4
+					};
+
+					uint buttons;
+
+					KaraokeStudio()
+					: buttons(0) {}
+
+					typedef bool (NST_CALLBACK *PollCallback) (void*,KaraokeStudio&);
+
+					static PollCaller1<KaraokeStudio> callback;
+				};
+
 				Pad pad[NUM_PADS];
 				Zapper zapper;
 				Paddle paddle;
 				PowerPad powerPad;
+				Mouse mouse;
 				FamilyTrainer familyTrainer;
 				FamilyKeyboard familyKeyboard;
 				SuborKeyboard suborKeyboard;
@@ -468,6 +502,7 @@ namespace Nes
 				TopRider topRider;
 				PokkunMoguraa pokkunMoguraa;
 				PartyTap partyTap;
+				KaraokeStudio karaokeStudio;
 			};
 		}
 	}
@@ -497,6 +532,7 @@ namespace Nes
 				ZAPPER,     
 				PADDLE,     
 				POWERPAD,
+				MOUSE,
 				FAMILYTRAINER,
 				FAMILYKEYBOARD,
 				SUBORKEYBOARD,

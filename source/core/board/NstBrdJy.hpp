@@ -49,7 +49,7 @@ namespace Nes
 					DEFAULT_DIP_NMT_ON
 				};
 		
-				Jy(Context&,DefaultDipSwitch);
+				Jy(Context&,DefaultDipSwitch,bool=false);
 				
 			private:
 		
@@ -57,9 +57,10 @@ namespace Nes
 				{
 				public:
 
-					CartSwitches(uint);
+					CartSwitches(uint,bool);
 
 					inline uint GetSetting() const;
+					inline ibool IsPpuLatched() const;
 
 				private:
 
@@ -71,6 +72,7 @@ namespace Nes
 					bool SetValue(uint,uint);
 
 					uint data;
+					const ibool ppuLatched;
 				};
 
 				enum
@@ -84,6 +86,7 @@ namespace Nes
 				void BaseLoad(State::Loader&,dword);
 				void UpdatePrg();
 				void UpdateChr() const;
+				void UpdateChrLatch() const;
 				void UpdateExChr();
 				void UpdateNmt() const;
 				Device QueryDevice(DeviceType);
@@ -91,6 +94,9 @@ namespace Nes
 	
 				NES_DECL_HOOK( PpuBg )
 				NES_DECL_HOOK( PpuSp )
+
+				NES_DECL_ACCESSOR( Chr_0000 )
+				NES_DECL_ACCESSOR( Chr_1000 )
 
 				NES_DECL_PEEK( 5000 )
 				NES_DECL_PEEK( 6000 )
@@ -169,6 +175,7 @@ namespace Nes
 					uint nmt[4];
 					ExChr exChr;		
 					const u8* prg6;
+					uint chrLatch[2];
 				};
 		
 				struct Irq

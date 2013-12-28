@@ -512,7 +512,7 @@ namespace Nes
 					Ppu::NMT_ONE
 				};
 	
-				ppu.SetMirroring( lut[(data >> 2) & 0x3] );
+				ppu.SetMirroring( lut[data >> 2 & 0x3] );
 			}
 	
 			NES_POKE(Vrc6,F000) 

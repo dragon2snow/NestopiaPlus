@@ -65,6 +65,25 @@ namespace Nestopia
 			return ::PathCompactPathExW( to, from, maxLength + 1, 0 );
 		}
 
+		template<>
+		void Heap<char>::Import(cstring from)
+		{
+			*this = from;
+		}
+
+		template<>
+		void Heap<wchar_t>::Import(cstring src)
+		{
+			const int n = ::MultiByteToWideChar( CP_ACP, 0, src, -1, NULL, 0 );
+
+			if (n > 1)
+			{
+				const uint l = length;
+				Resize( l + n-1 );
+       			::MultiByteToWideChar( CP_ACP, 0, src, -1, string + l, n );
+			}
+		}
+
 		bool Base::Trim(char* string)
 		{
 			return ::StrTrimA( string, " " );

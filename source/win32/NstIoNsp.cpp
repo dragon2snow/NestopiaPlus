@@ -40,19 +40,20 @@ namespace Nestopia
 		Nes::Input::ZAPPER		      ==  5 &&
 		Nes::Input::PADDLE		      ==  6 &&
 		Nes::Input::POWERPAD	      ==  7 &&
-		Nes::Input::FAMILYTRAINER     ==  8 &&
-		Nes::Input::FAMILYKEYBOARD    ==  9 &&
-		Nes::Input::SUBORKEYBOARD     == 10 &&
-		Nes::Input::DOREMIKKOKEYBOARD == 11 &&
-		Nes::Input::OEKAKIDSTABLET    == 12 &&
-		Nes::Input::HYPERSHOT	      == 13 &&
-		Nes::Input::CRAZYCLIMBER      == 14 &&
-		Nes::Input::MAHJONG		      == 15 &&
-		Nes::Input::EXCITINGBOXING    == 16 &&
-		Nes::Input::TOPRIDER	      == 17 &&
-		Nes::Input::POKKUNMOGURAA     == 18 &&
-		Nes::Input::PARTYTAP          == 19 &&
-		Nes::Input::NUM_CONTROLLERS   == 19
+		Nes::Input::MOUSE	          ==  8 &&
+		Nes::Input::FAMILYTRAINER     ==  9 &&
+		Nes::Input::FAMILYKEYBOARD    == 10 &&
+		Nes::Input::SUBORKEYBOARD     == 11 &&
+		Nes::Input::DOREMIKKOKEYBOARD == 12 &&
+		Nes::Input::OEKAKIDSTABLET    == 13 &&
+		Nes::Input::HYPERSHOT	      == 14 &&
+		Nes::Input::CRAZYCLIMBER      == 15 &&
+		Nes::Input::MAHJONG		      == 16 &&
+		Nes::Input::EXCITINGBOXING    == 17 &&
+		Nes::Input::TOPRIDER	      == 18 &&
+		Nes::Input::POKKUNMOGURAA     == 19 &&
+		Nes::Input::PARTYTAP          == 20 &&
+		Nes::Input::NUM_CONTROLLERS   == 20
 	);
 
 	using Io::Nsp::Context;
@@ -98,6 +99,7 @@ namespace Nestopia
 		_T( "zapper"			),
 		_T( "paddle"			),
 		_T( "powerpad"			),
+		_T( "mouse"				),
 		_T( "familytrainer" 	),
 		_T( "familykeyboard"	),
 		_T( "suborkeyboard"	    ),
@@ -114,7 +116,7 @@ namespace Nestopia
 
 	void File::Save(Output& output,const Context& context) const
 	{
-		NST_COMPILE_ASSERT( Context::NUM_CONTROLLER_PORTS == 5 && Context::NUM_CONTROLLERS == 19 );
+		NST_COMPILE_ASSERT( Context::NUM_CONTROLLER_PORTS == 5 && Context::NUM_CONTROLLERS == 20 );
 
 		output << "//\r\n"
        			  "// Generated Nestopia Script File. Version " << Application::Instance::GetVersion() << "\r\n"
@@ -129,10 +131,10 @@ namespace Nestopia
 				  "//  -IPS <filename>\r\n"
 				  "//  -PALETTE <filename>\r\n"
 				  "//  -MODE <ntsc/pal>\r\n"
-				  "//  -PORT1..PORT5 <unconnected,pad1,pad2,pad3,pad4,zapper,paddle,powerpad,familytrainer,\r\n"
-				  "//                 familykeyboard,suborkeyboard,doremikkokeyboard,oekakidstablet,\r\n"
-				  "//                 hypershot,crazyclimber,mahjong,excitingboxing,toprider,\r\n"
-				  "//                 pokkunmoguraa,partytap>\r\n"
+				  "//  -PORT1..PORT5 <unconnected,pad1,pad2,pad3,pad4,zapper,paddle,powerpad,mouse,\r\n"
+				  "//                 familytrainer,familykeyboard,suborkeyboard,doremikkokeyboard,\r\n"
+				  "//                 oekakidstablet,hypershot,crazyclimber,mahjong,excitingboxing,\r\n"
+				  "//                 toprider,pokkunmoguraa,partytap>\r\n"
 				  "//\r\n"
 				  "//  -GENIE <code> <on,off> (description)\r\n"
 				  "//  -CHEAT <address> <value> (compare value) <on,off> (description)\r\n"

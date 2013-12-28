@@ -72,16 +72,15 @@ namespace Nes
 
 		NES_POKE(Mapper163,5000)
 		{
+			ppu.Update();
 			regs[address >> 9 & 0x1] = data;	
 			prg.SwapBank<SIZE_32K,0x0000U>( (regs[0] & 0xF) | (regs[1] << 4 & 0x30) );
-			
-			ppu.Update();
 			chr.SwapBank<SIZE_4K,0x0000U>(0);
 		}
 
 		NES_HOOK(Mapper163,Ppu)
 		{
-			if ((regs[0] & 0x80) && ppu.GetScanline() == 127)
+			if ((regs[0] & 0x80) && ppu.GetScanline() == 127 && ppu.IsEnabled())
 				chr.SwapBank<SIZE_4K,0x0000U>(1);
 		}
 	}

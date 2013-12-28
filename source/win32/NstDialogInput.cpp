@@ -86,6 +86,7 @@ namespace Nestopia
 		{ EXCITINGBOXING_KEYS, _T( "Exciting Boxing" ) },
 		{ POKKUNMOGURAA_KEYS,  _T( "Pokkun Moguraa"  ) },
 		{ PARTYTAP_KEYS,       _T( "Party Tap"       ) },
+		{ KARAOKESTUDIO_KEYS,  _T( "Karaoke Studio"  ) },
 		{ EMULATION_KEYS,      _T( "Emulation"	     ) },
 		{ FILE_KEYS,           _T( "File"			 ) },
 		{ MACHINE_KEYS,        _T( "Machine"	     ) },
@@ -225,6 +226,10 @@ namespace Nestopia
 		{ PARTYTAP_KEYS + PARTYTAP_UNIT_4, DIK_R, _T( "Unit 4" ), "input partytap 4" },
 		{ PARTYTAP_KEYS + PARTYTAP_UNIT_5, DIK_T, _T( "Unit 5" ), "input partytap 5" },
 		{ PARTYTAP_KEYS + PARTYTAP_UNIT_6, DIK_Y, _T( "Unit 6" ), "input partytap 6" },
+
+		{ KARAOKESTUDIO_KEYS + KARAOKESTUDIO_MIC, DIK_G, _T( "Mic" ), "input karaokestudio mic" },
+		{ KARAOKESTUDIO_KEYS + KARAOKESTUDIO_A,   DIK_H, _T( "A"   ), "input karaokestudio a"   },
+		{ KARAOKESTUDIO_KEYS + KARAOKESTUDIO_B,   DIK_J, _T( "B"   ), "input karaokestudio b"   },
 
 		{ EMULATION_KEYS + EMULATION_KEY_ALT_SPEED,       DIK_TAB,  _T( "Alternative Speed" ), "input emulation alternative speed" },
 		{ EMULATION_KEYS + EMULATION_KEY_REWIND,          DIK_BACK, _T( "Rewind"            ), "input emulation rewind"            },

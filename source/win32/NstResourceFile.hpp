@@ -44,8 +44,7 @@ namespace Nestopia
 				return Uncompress( &buffer, 1 );
 			}
 
-			template<size_t N>
-			File(uint id,const tchar (&type)[N])
+			File(uint id,tstring type)
 			{
 				Load( id, type );
 			}

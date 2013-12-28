@@ -43,9 +43,9 @@ namespace Nes
 				~Pcm();
 
 				void Reset();
-				void Play(const u8*,dword,dword);
+				void Play(const i16*,dword,dword);
 
-				static Result CanDo(const u8*,dword,dword);
+				static Result CanDo(const void*,dword,uint,dword);
 
 				Cpu& cpu;
 
@@ -56,7 +56,7 @@ namespace Nes
 
 				struct Wave
 				{
-					const u8* data;
+					const i16* data;
 					dword length;
 					dword rate;
 				};
@@ -65,7 +65,7 @@ namespace Nes
 				qword pos;
 				dword rate;
 
-			protected:
+			public:
 
 				void Stop()
 				{

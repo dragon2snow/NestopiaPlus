@@ -135,6 +135,7 @@ namespace Nestopia
 			Path GetIpsPath(const Path&,File::Type) const;
 			Path GetSavePath(const Path&,File::Type) const;
 			Path GetScreenShotPath() const;
+			const Path& GetSamplesPath() const;
 
 			ibool SaveSlotExportingEnabled() const;
 			ibool SaveSlotImportingEnabled() const;

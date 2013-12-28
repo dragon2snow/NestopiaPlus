@@ -32,6 +32,7 @@
 #include "NstCartridgeInes.hpp"
 #include "NstCartridgeUnif.hpp"
 #include "NstMapper.hpp"
+#include "mapper/NstMapper188.hpp"
 #include "vssystem/NstVsSystem.hpp"
 #include "NstPrpTurboFile.hpp"
 #include "NstPrpDataRecorder.hpp"
@@ -350,6 +351,15 @@ namespace Nes
 
 					info.controllers[0] = Api::Input::PAD1;
 					info.controllers[1] = Api::Input::PAD2;
+					info.controllers[2] = Api::Input::UNCONNECTED;
+					info.controllers[3] = Api::Input::UNCONNECTED;
+					info.controllers[4] = Api::Input::SUBORKEYBOARD;
+					break;
+
+				case 0xE9A7FE9EUL: // Educational Computer 2000
+
+					info.controllers[0] = Api::Input::PAD1;
+					info.controllers[1] = Api::Input::MOUSE;
 					info.controllers[2] = Api::Input::UNCONNECTED;
 					info.controllers[3] = Api::Input::UNCONNECTED;
 					info.controllers[4] = Api::Input::SUBORKEYBOARD;
@@ -788,6 +798,9 @@ namespace Nes
 	
 		void Cartridge::BeginFrame(const Api::Input& input,Input::Controllers* controllers)
 		{
+			if (mapper->GetID() == 188)
+				static_cast<Mapper188*>(mapper)->BeginFrame( controllers );
+
 			if (vs)
 				vs->BeginFrame( input, controllers );
 		}

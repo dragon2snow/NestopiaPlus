@@ -46,10 +46,9 @@ namespace Nestopia
 
 	const MsgHandler::Entry<About> About::Handlers::commands[] =
 	{
-		{ IDC_ABOUT_GNU,  &About::OnCmdClick },
-		{ IDC_ABOUT_URL1, &About::OnCmdClick },
-		{ IDC_ABOUT_URL2, &About::OnCmdClick },
-		{ IDC_ABOUT_OK,   &About::OnCmdOk    }
+		{ IDC_ABOUT_GNU, &About::OnCmdClick },
+		{ IDC_ABOUT_URL, &About::OnCmdClick },
+		{ IDC_ABOUT_OK,  &About::OnCmdOk    }
 	};
 
 	About::About()
@@ -66,9 +65,8 @@ namespace Nestopia
 	{
 		HCURSOR const hCursor =
 		(
-			param.Cursor().IsInside( IDC_ABOUT_GNU  ) ||
-			param.Cursor().IsInside( IDC_ABOUT_URL1 ) ||
-			param.Cursor().IsInside( IDC_ABOUT_URL2 )
+			param.Cursor().IsInside( IDC_ABOUT_GNU ) ||
+			param.Cursor().IsInside( IDC_ABOUT_URL )
 		) 
 			? Resource::Cursor::GetUpArrow() : Resource::Cursor::GetArrow();
 

@@ -34,8 +34,9 @@ namespace Nestopia
 		IDC_PATHS_BATTERY_BROWSE     == IDC_PATHS_IMAGE_BROWSE + 1 &&
 		IDC_PATHS_NSP_BROWSE         == IDC_PATHS_IMAGE_BROWSE + 2 &&
 		IDC_PATHS_NST_BROWSE         == IDC_PATHS_IMAGE_BROWSE + 3 &&
-		IDC_PATHS_IPS_BROWSE         == IDC_PATHS_IMAGE_BROWSE + 4 &&
-		IDC_PATHS_SCREENSHOTS_BROWSE == IDC_PATHS_IMAGE_BROWSE + 5
+		IDC_PATHS_SAMPLES_BROWSE     == IDC_PATHS_IMAGE_BROWSE + 4 &&
+		IDC_PATHS_IPS_BROWSE         == IDC_PATHS_IMAGE_BROWSE + 5 &&
+		IDC_PATHS_SCREENSHOTS_BROWSE == IDC_PATHS_IMAGE_BROWSE + 6
 	);
 
 	NST_COMPILE_ASSERT
@@ -43,8 +44,9 @@ namespace Nestopia
 		IDC_PATHS_BATTERY     == IDC_PATHS_IMAGE + 1 &&
 		IDC_PATHS_NSP         == IDC_PATHS_IMAGE + 2 &&
 		IDC_PATHS_NST         == IDC_PATHS_IMAGE + 3 &&
-		IDC_PATHS_IPS         == IDC_PATHS_IMAGE + 4 &&
-		IDC_PATHS_SCREENSHOTS == IDC_PATHS_IMAGE + 5
+		IDC_PATHS_SAMPLES     == IDC_PATHS_IMAGE + 4 &&
+		IDC_PATHS_IPS         == IDC_PATHS_IMAGE + 5 &&
+		IDC_PATHS_SCREENSHOTS == IDC_PATHS_IMAGE + 6
 	);
 
 	using namespace Window;
@@ -69,6 +71,7 @@ namespace Nestopia
 		{ DIR_SAVE,       IDC_PATHS_BATTERY,	 "files path save"       },
 		{ DIR_STATE,	  IDC_PATHS_NST,	     "files path state"      },
 		{ DIR_SCRIPT,	  IDC_PATHS_NSP,		 "files path script"     },
+		{ DIR_SAMPLES,	  IDC_PATHS_SAMPLES,	 "files path samples"    },
 		{ DIR_IPS,		  IDC_PATHS_IPS,		 "files path ips"		 },
 		{ DIR_SCREENSHOT, IDC_PATHS_SCREENSHOTS, "files path screenshot" }	
 	};
@@ -107,10 +110,11 @@ namespace Nestopia
 	{
 		{ IDC_PATHS_IMAGE_BROWSE,       &Paths::OnCmdBrowse  },
 		{ IDC_PATHS_BATTERY_BROWSE,     &Paths::OnCmdBrowse  },
-		{ IDC_PATHS_NSP_BROWSE,         &Paths::OnCmdBrowse  },
 		{ IDC_PATHS_NST_BROWSE,         &Paths::OnCmdBrowse  },
-		{ IDC_PATHS_SCREENSHOTS_BROWSE, &Paths::OnCmdBrowse  },
+		{ IDC_PATHS_NSP_BROWSE,         &Paths::OnCmdBrowse  },
+		{ IDC_PATHS_SAMPLES_BROWSE,     &Paths::OnCmdBrowse  },
 		{ IDC_PATHS_IPS_BROWSE,         &Paths::OnCmdBrowse  },
+		{ IDC_PATHS_SCREENSHOTS_BROWSE, &Paths::OnCmdBrowse  },
 		{ IDC_PATHS_DEFAULT,            &Paths::OnCmdDefault },
 		{ IDC_PATHS_OK,                 &Paths::OnCmdOk      }
 	};
@@ -122,8 +126,9 @@ namespace Nestopia
 
 		CreateFolder( settings.dirs[ DIR_SAVE       ][ DEFAULT ], _T( "save\\"        ) );
 		CreateFolder( settings.dirs[ DIR_STATE      ][ DEFAULT ], _T( "states\\"      ) );
-		CreateFolder( settings.dirs[ DIR_IPS        ][ DEFAULT ], _T( "ips\\"         ) );
 		CreateFolder( settings.dirs[ DIR_SCRIPT     ][ DEFAULT ], _T( "scripts\\"     ) );
+		CreateFolder( settings.dirs[ DIR_SAMPLES    ][ DEFAULT ], _T( "samples\\"     ) );
+		CreateFolder( settings.dirs[ DIR_IPS        ][ DEFAULT ], _T( "ips\\"         ) );
 		CreateFolder( settings.dirs[ DIR_SCREENSHOT ][ DEFAULT ], _T( "screenshots\\" ) );
 
 		for (uint i=0; i < NUM_DIRS; ++i)

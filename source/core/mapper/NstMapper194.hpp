@@ -33,12 +33,12 @@ namespace Nes
 {
 	namespace Core
 	{
-		class Mapper194 : public Boards::TaiwanMmc3
+		class Mapper194 : public Boards::Mmc3China
 		{
 		public:
 
 			Mapper194(Context& c)
-			: TaiwanMmc3(c,CRAM_2K) {}
+			: Mmc3China(c,CRAM_2K) {}
 
 		private:
 

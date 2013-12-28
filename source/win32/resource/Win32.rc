@@ -45,13 +45,6 @@ IDR_IMAGEDATABASE       IMAGEDATABASE           "ImageDatabase.zip"
 
 /////////////////////////////////////////////////////////////////////////////
 //
-// MOEPROSAMPLES
-//
-
-IDR_MOEPROSAMPLES       MOEPROSAMPLES           "MoeProSamples.zip"
-
-/////////////////////////////////////////////////////////////////////////////
-//
 // Icon
 //
 
@@ -122,7 +115,7 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 154
         TOPMARGIN, 7
-        BOTTOMMARGIN, 155
+        BOTTOMMARGIN, 133
     END
 
     IDD_USERINPUT, DIALOG
@@ -178,7 +171,7 @@ BEGIN
         LEFTMARGIN, 6
         RIGHTMARGIN, 300
         TOPMARGIN, 7
-        BOTTOMMARGIN, 303
+        BOTTOMMARGIN, 336
     END
 
     IDD_NETPLAY, DIALOG
@@ -421,21 +414,19 @@ END
 // Dialog
 //
 
-IDD_ABOUT DIALOGEX 0, 0, 161, 162
+IDD_ABOUT DIALOGEX 0, 0, 161, 140
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "About"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    GROUPBOX        "",IDC_STATIC,7,7,147,148
+    GROUPBOX        "",IDC_STATIC,7,7,147,126
     LTEXT           "Nestopia x.xx",IDC_ABOUT_NAMEVERSION,57,15,47,13
-    ICON            IDI_APP,IDC_ABOUT_ICON,70,28,20,20
+    ICON            IDI_APP,IDC_ABOUT_ICON,70,28,21,20
     CTEXT           "Copyright (C) 2003-2006 Martin Freij\nunder the terms and conditions of the\nGNU General Public License.",IDC_STATIC,14,48,133,28
     CTEXT           "http://www.gnu.org",IDC_ABOUT_GNU,45,73,71,11,SS_NOTIFY
-    LTEXT           "Home",IDC_STATIC,70,86,20,10
-    CTEXT           "http://nestopia.sourceforge.net",IDC_ABOUT_URL2,29,94,106,12,SS_NOTIFY
-    LTEXT           "Project",IDC_STATIC,68,107,24,10
-    CTEXT           "http://sourceforge.net/projects/nestopia",IDC_ABOUT_URL1,13,115,133,12,SS_NOTIFY
-    DEFPUSHBUTTON   "OK",IDC_ABOUT_OK,62,135,37,13
+    LTEXT           "Home",IDC_STATIC,70,88,20,10
+    CTEXT           "http://nestopia.sourceforge.net",IDC_ABOUT_URL,29,96,106,12,SS_NOTIFY
+    DEFPUSHBUTTON   "OK",IDC_ABOUT_OK,61,113,37,13
 END
 
 IDD_USERINPUT DIALOGEX 0, 0, 222, 130
@@ -624,12 +615,12 @@ BEGIN
     CONTROL         "Famicom Style",IDC_PREFERENCES_STYLE_FAMICOM,"Button",BS_AUTORADIOBUTTON,288,68,61,10
 END
 
-IDD_PATHS DIALOGEX 0, 0, 308, 310
+IDD_PATHS DIALOGEX 0, 0, 308, 343
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Paths"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    DEFPUSHBUTTON   "OK",IDC_PATHS_OK,251,289,49,14,WS_GROUP
+    DEFPUSHBUTTON   "OK",IDC_PATHS_OK,251,322,49,14,WS_GROUP
     GROUPBOX        "Images",IDC_STATIC,6,7,294,41,BS_LEFT | WS_GROUP
     EDITTEXT        IDC_PATHS_IMAGE,13,17,235,13,ES_AUTOHSCROLL
     PUSHBUTTON      "Browse..",IDC_PATHS_IMAGE_BROWSE,257,17,36,13
@@ -646,22 +637,25 @@ BEGIN
     CONTROL         "Auto export slot files",IDC_PATHS_NST_AUTO_EXPORT,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,100,124,80,10
     CONTROL         "Use internal compression",IDC_PATHS_NST_COMPRESS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,189,124,93,10
-    GROUPBOX        "Scripts",IDC_STATIC,6,146,294,41,BS_LEFT | WS_GROUP
-    EDITTEXT        IDC_PATHS_NSP,13,158,235,13,ES_AUTOHSCROLL
-    PUSHBUTTON      "Browse..",IDC_PATHS_NSP_BROWSE,256,158,37,13
-    CONTROL         "Last visited",IDC_PATHS_NSP_LAST,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,13,173,52,12
-    GROUPBOX        "IPS Files",IDC_STATIC,6,195,294,41,BS_LEFT | WS_GROUP
-    EDITTEXT        IDC_PATHS_IPS,13,208,235,13,ES_AUTOHSCROLL
-    PUSHBUTTON      "Browse..",IDC_PATHS_IPS_BROWSE,256,208,37,13
-    CONTROL         "Auto patch",IDC_PATHS_IPS_AUTO_APPLY,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,13,223,51,10
-    GROUPBOX        "Screenshots",IDC_STATIC,6,241,294,41,BS_LEFT | WS_GROUP
-    EDITTEXT        IDC_PATHS_SCREENSHOTS,13,255,235,13,ES_AUTOHSCROLL
-    PUSHBUTTON      "Browse..",IDC_PATHS_SCREENSHOTS_BROWSE,256,255,37,13
-    LTEXT           "Save as",IDC_STATIC,13,271,26,8
-    CONTROL         "PNG",IDC_PATHS_SCREENSHOTS_PNG,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,44,270,27,10
-    CONTROL         "JPEG",IDC_PATHS_SCREENSHOTS_JPEG,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,79,270,31,10
-    CONTROL         "BMP",IDC_PATHS_SCREENSHOTS_BMP,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,117,270,28,10
-    PUSHBUTTON      "Default",IDC_PATHS_DEFAULT,193,289,49,14
+    GROUPBOX        "Scripts",IDC_STATIC,6,142,294,41,BS_LEFT | WS_GROUP
+    EDITTEXT        IDC_PATHS_NSP,13,154,235,13,ES_AUTOHSCROLL
+    PUSHBUTTON      "Browse..",IDC_PATHS_NSP_BROWSE,256,154,37,13
+    CONTROL         "Last visited",IDC_PATHS_NSP_LAST,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,13,169,52,12
+    GROUPBOX        "IPS Files",IDC_STATIC,6,228,294,41,BS_LEFT | WS_GROUP
+    EDITTEXT        IDC_PATHS_IPS,13,241,235,13,ES_AUTOHSCROLL
+    PUSHBUTTON      "Browse..",IDC_PATHS_IPS_BROWSE,256,241,37,13
+    CONTROL         "Auto patch",IDC_PATHS_IPS_AUTO_APPLY,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,13,256,51,10
+    GROUPBOX        "Screenshots",IDC_STATIC,6,274,294,41,BS_LEFT | WS_GROUP
+    EDITTEXT        IDC_PATHS_SCREENSHOTS,13,288,235,13,ES_AUTOHSCROLL
+    PUSHBUTTON      "Browse..",IDC_PATHS_SCREENSHOTS_BROWSE,256,288,37,13
+    LTEXT           "Save as",IDC_STATIC,13,304,26,8
+    CONTROL         "PNG",IDC_PATHS_SCREENSHOTS_PNG,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,44,303,27,10
+    CONTROL         "JPEG",IDC_PATHS_SCREENSHOTS_JPEG,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,79,303,31,10
+    CONTROL         "BMP",IDC_PATHS_SCREENSHOTS_BMP,"Button",BS_AUTORADIOBUTTON | WS_TABSTOP,117,303,28,10
+    PUSHBUTTON      "Default",IDC_PATHS_DEFAULT,193,322,49,14
+    GROUPBOX        "Sound Samples",IDC_STATIC,6,187,294,35,BS_LEFT | WS_GROUP
+    EDITTEXT        IDC_PATHS_SAMPLES,13,199,235,13,ES_AUTOHSCROLL
+    PUSHBUTTON      "Browse..",IDC_PATHS_SAMPLES_BROWSE,256,199,37,13
 END
 
 IDD_NETPLAY DIALOGEX 0, 0, 327, 182
@@ -1466,6 +1460,7 @@ BEGIN
                 MENUITEM "Light &Gun",                  IDM_MACHINE_INPUT_PORT1_ZAPPER
                 MENUITEM "&Arkanoid Paddle",            IDM_MACHINE_INPUT_PORT1_PADDLE
                 MENUITEM "&Power Pad",                  IDM_MACHINE_INPUT_PORT1_POWERPAD
+                MENUITEM "&Mouse",                      IDM_MACHINE_INPUT_PORT1_MOUSE
             END
             POPUP "Port &2"
             BEGIN
@@ -1477,6 +1472,7 @@ BEGIN
                 MENUITEM "Light &Gun",                  IDM_MACHINE_INPUT_PORT2_ZAPPER
                 MENUITEM "&Arkanoid Paddle",            IDM_MACHINE_INPUT_PORT2_PADDLE
                 MENUITEM "&Power Pad",                  IDM_MACHINE_INPUT_PORT2_POWERPAD
+                MENUITEM "&Mouse",                      IDM_MACHINE_INPUT_PORT2_MOUSE
             END
             POPUP "Port &3"
             BEGIN
@@ -1645,8 +1641,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 0,1,2,9
- PRODUCTVERSION 0,1,2,9
+ FILEVERSION 0,1,3,0
+ PRODUCTVERSION 0,1,3,0
  FILEFLAGSMASK 0x17L
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1661,12 +1657,12 @@ BEGIN
     BEGIN
         BLOCK "040904b0"
         BEGIN
-            VALUE "FileDescription", "Nestopia - NES/Famicom emulator"
-            VALUE "FileVersion", "1.29"
+            VALUE "FileDescription", "Nestopia - NES/Famicom Emulator"
+            VALUE "FileVersion", "1.30"
             VALUE "LegalCopyright", "Copyright (C) Martin Freij 2003-2006"
             VALUE "OriginalFilename", "Nestopia.exe"
             VALUE "ProductName", "Nestopia"
-            VALUE "ProductVersion", "1.29"
+            VALUE "ProductVersion", "1.30"
         END
     END
     BLOCK "VarFileInfo"
@@ -1921,6 +1917,7 @@ BEGIN
     IDS_SCREENSHOT_UNSUPPORTED_FORMAT "Unsupported bitmap format!"
     IDS_WAVE_ERR_OPEN       "Couldn't open WAVE file!"
     IDS_WAVE_ERR_WRITE      "Couldn't write to WAVE file!"
+    IDS_WAVE_ERR_READ       "Couldn't read from WAVE file!"
     IDS_WAVE_ERR_FINALIZE   "Couldn't finalize WAVE file!"
     IDS_WAVE_WARN_FILE_BIG  "Just a reminder, the wave file currently being recorded has become pretty big!"
     IDS_KAILLERA_ERR_GENERIC "An unexpected Kaillera netplay error occured!"
@@ -1931,11 +1928,11 @@ BEGIN
     IDS_MENU_5X             "&5X"
     IDS_MENU_6X             "&6X"
     IDS_MENU_7X             "&7X"
-    IDS_MENU_8X             "&8X"
 END
 
 STRINGTABLE 
 BEGIN
+    IDS_MENU_8X             "&8X"
     IDS_MENU_9X             "&9X"
     IDS_NONE                "None"
     IDS_VIDEO_FILTER_SCANLINES "Scanlines"
@@ -1951,11 +1948,11 @@ BEGIN
     IDS_EMU_MOVIE_SAVE_TAPE "Do you want to update the tape file?"
     IDS_EMU_MOVIE_SAVE_EEPROM "Do you want to update the EEPROM file?"
     IDS_SCREEN_TAPE_RECORDING "Recording to tape.."
-    IDS_SCREEN_TAPE_PLAYING "Playing tape.."
 END
 
 STRINGTABLE 
 BEGIN
+    IDS_SCREEN_TAPE_PLAYING "Playing tape.."
     IDS_SCREEN_TAPE_STOPPED "Tape stopped.."
     IDS_AVI_WRITE_ERR       "AVI conversion error!"
     IDS_AVI_WRITE_INFO      "AVI conversion will now begin. This may take several minutes. Press ESC at any time to abort."
@@ -1968,6 +1965,9 @@ BEGIN
     IDS_CFG_ERR_LOAD        "Configuration file load error! Applying default settings..."
     IDS_CFG_ERR_SAVE        "Couldn't save the configuration!"
     IDS_LAUNCHERFILE_ERR_SAVE "Couldn't save the launcher database!"
+    IDS_EMU_NO_SAMPLES      "Sample package file not found. Some game sounds will be missing."
+    IDS_EMU_ERR_LOAD_SAMPLES 
+                            "Sample package file loading failed. Some game sounds will be missing."
 END
 
 #endif    // English (U.S.) resources

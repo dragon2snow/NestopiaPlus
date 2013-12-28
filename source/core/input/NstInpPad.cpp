@@ -135,8 +135,6 @@ namespace Nes
 				}
 				else
 				{
-				//	NST_DEBUG_MSG("Pad::Peek() input stuck!");
-
 					if (input)
 						Poll();
 

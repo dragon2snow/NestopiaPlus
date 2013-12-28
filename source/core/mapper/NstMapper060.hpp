@@ -37,8 +37,7 @@ namespace Nes
 		{
 		public:
 
-			Mapper60(Context& c)
-			: Mapper(c), game(0), pRomCrc(c.pRomCrc) {}
+			Mapper60(Context&);
 
 		private:
 
@@ -46,10 +45,12 @@ namespace Nes
 			void SubSave(State::Saver&) const;
 			void SubLoad(State::Loader&);
 
+			NES_DECL_PEEK( Prg )
 			NES_DECL_POKE( Prg )
 
-			ibool game;
-			const dword pRomCrc;
+			uint latch;
+			uint menu;
+			const ibool rt4in1;
 		};
 	}
 }

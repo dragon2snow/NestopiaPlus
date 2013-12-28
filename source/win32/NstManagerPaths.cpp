@@ -407,6 +407,11 @@ namespace Nestopia
 		return ips;
 	}
 
+	const Path& Paths::GetSamplesPath() const
+	{
+		return dialog->GetDirectory( Window::Paths::DIR_SAMPLES );
+	}
+
 	Paths::File::Type Paths::Load
 	(
        	File& file,

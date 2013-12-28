@@ -44,7 +44,8 @@ namespace Nestopia
 		Emulator& e
 	)
 	: 
-	recording ( FALSE ), 
+	recording ( FALSE ),
+	file      ( Io::Wave::MODE_WRITE ),
 	dialog    ( d ),
 	menu      ( m ),
 	emulator  ( e )

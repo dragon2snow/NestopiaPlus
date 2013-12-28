@@ -591,6 +591,22 @@
 				>
 			</File>
 			<File
+				RelativePath="..\source\core\mapper\NstMapper054.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\mapper\NstMapper054.hpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\mapper\NstMapper055.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\mapper\NstMapper055.hpp"
+				>
+			</File>
+			<File
 				RelativePath="..\source\core\mapper\NstMapper056.cpp"
 				>
 			</File>
@@ -699,10 +715,6 @@
 				>
 			</File>
 			<File
-				RelativePath="..\source\core\mapper\NstMapper072.cpp"
-				>
-			</File>
-			<File
 				RelativePath="..\source\core\mapper\NstMapper072.hpp"
 				>
 			</File>
@@ -712,10 +724,6 @@
 			</File>
 			<File
 				RelativePath="..\source\core\mapper\NstMapper073.hpp"
-				>
-			</File>
-			<File
-				RelativePath="..\source\core\mapper\NstMapper074.cpp"
 				>
 			</File>
 			<File
@@ -787,10 +795,6 @@
 				>
 			</File>
 			<File
-				RelativePath="..\source\core\mapper\NstMapper086.cpp"
-				>
-			</File>
-			<File
 				RelativePath="..\source\core\mapper\NstMapper086.hpp"
 				>
 			</File>
@@ -824,10 +828,6 @@
 			</File>
 			<File
 				RelativePath="..\source\core\mapper\NstMapper091.hpp"
-				>
-			</File>
-			<File
-				RelativePath="..\source\core\mapper\NstMapper092.cpp"
 				>
 			</File>
 			<File
@@ -968,6 +968,14 @@
 			</File>
 			<File
 				RelativePath="..\source\core\mapper\NstMapper119.hpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\mapper\NstMapper132.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\mapper\NstMapper132.hpp"
 				>
 			</File>
 			<File
@@ -1115,10 +1123,6 @@
 				>
 			</File>
 			<File
-				RelativePath="..\source\core\mapper\NstMapper158.hpp"
-				>
-			</File>
-			<File
 				RelativePath="..\source\core\mapper\NstMapper163.cpp"
 				>
 			</File>
@@ -1251,11 +1255,23 @@
 				>
 			</File>
 			<File
+				RelativePath="..\source\core\mapper\NstMapper195.hpp"
+				>
+			</File>
+			<File
 				RelativePath="..\source\core\mapper\NstMapper198.cpp"
 				>
 			</File>
 			<File
 				RelativePath="..\source\core\mapper\NstMapper198.hpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\mapper\NstMapper199.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\mapper\NstMapper199.hpp"
 				>
 			</File>
 			<File
@@ -1627,6 +1643,14 @@
 			Name="Board"
 			>
 			<File
+				RelativePath="..\source\core\board\NstBrd6035052.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\board\NstBrd6035052.hpp"
+				>
+			</File>
+			<File
 				RelativePath="..\source\core\board\NstBrd64in1Nr.cpp"
 				>
 			</File>
@@ -1648,6 +1672,14 @@
 			</File>
 			<File
 				RelativePath="..\source\core\board\NstBrd8237.hpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\board\NstBrdA65AS.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\board\NstBrdA65AS.hpp"
 				>
 			</File>
 			<File
@@ -1683,6 +1715,14 @@
 				>
 			</File>
 			<File
+				RelativePath="..\source\core\board\NstBrdEdu2000.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\board\NstBrdEdu2000.hpp"
+				>
+			</File>
+			<File
 				RelativePath="..\source\core\board\NstBrdFfe.cpp"
 				>
 			</File>
@@ -1715,6 +1755,14 @@
 				>
 			</File>
 			<File
+				RelativePath="..\source\core\board\NstBrdJaleco.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\board\NstBrdJaleco.hpp"
+				>
+			</File>
+			<File
 				RelativePath="..\source\core\board\NstBrdJy.cpp"
 				>
 			</File>
@@ -1728,14 +1776,6 @@
 			</File>
 			<File
 				RelativePath="..\source\core\board\NstBrdKof97.hpp"
-				>
-			</File>
-			<File
-				RelativePath="..\source\core\board\NstBrdMario1Malee2.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\source\core\board\NstBrdMario1Malee2.hpp"
 				>
 			</File>
 			<File
@@ -1763,6 +1803,14 @@
 				>
 			</File>
 			<File
+				RelativePath="..\source\core\board\NstBrdMmc3China.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\board\NstBrdMmc3China.hpp"
+				>
+			</File>
+			<File
 				RelativePath="..\source\core\board\NstBrdMmc5.cpp"
 				>
 			</File>
@@ -1784,14 +1832,6 @@
 			</File>
 			<File
 				RelativePath="..\source\core\board\NstBrdN118.hpp"
-				>
-			</File>
-			<File
-				RelativePath="..\source\core\board\NstBrdNovelDiamond.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\source\core\board\NstBrdNovelDiamond.hpp"
 				>
 			</File>
 			<File
@@ -1840,14 +1880,6 @@
 			</File>
 			<File
 				RelativePath="..\source\core\board\NstBrdTaitoX.hpp"
-				>
-			</File>
-			<File
-				RelativePath="..\source\core\board\NstBrdTaiwanMmc3.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\source\core\board\NstBrdTaiwanMmc3.hpp"
 				>
 			</File>
 			<File
@@ -1960,6 +1992,14 @@
 			</File>
 			<File
 				RelativePath="..\source\core\input\NstInpMahjong.hpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\input\NstInpMouse.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\input\NstInpMouse.hpp"
 				>
 			</File>
 			<File
@@ -2313,6 +2353,14 @@
 		</File>
 		<File
 			RelativePath="..\source\core\NstSoundPcm.hpp"
+			>
+		</File>
+		<File
+			RelativePath="..\source\core\NstSoundPlayer.cpp"
+			>
+		</File>
+		<File
+			RelativePath="..\source\core\NstSoundPlayer.hpp"
 			>
 		</File>
 		<File

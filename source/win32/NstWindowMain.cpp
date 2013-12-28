@@ -89,7 +89,7 @@ namespace Nestopia
 	emulator    ( e ),
 	menu        ( m ),
 	video       ( window, m, e, paths, cfg ),
-	sound       ( window, m, e, paths, cfg ),
+	sound       ( window, m, e, paths, p, cfg ),
 	input       ( window, m, e, cfg, Managers::Input::Screening(this,&Main::OnReturnInputScreen), Managers::Input::Screening(this,&Main::OnReturnOutputScreen) ),
 	frameClock  ( m, e, cfg )
 	{
@@ -605,12 +605,12 @@ namespace Nestopia
 				{
 					case Nes::Machine::CARTRIDGE: 
 			
-						name = Nes::Cartridge(emulator).GetInfo()->name.c_str(); 
+						name.Import( Nes::Cartridge(emulator).GetInfo()->name.c_str() ); 
 						break;
 			
 					case Nes::Machine::SOUND:
-			
-						name = Nes::Nsf(emulator).GetName(); 
+
+						name.Import( Nes::Nsf(emulator).GetName() );
 						break;
 				}
 

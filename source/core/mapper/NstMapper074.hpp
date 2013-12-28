@@ -33,26 +33,19 @@ namespace Nes
 {
 	namespace Core
 	{
-		class Mapper74 : public Boards::TaiwanMmc3
+		class Mapper74 : public Boards::Mmc3China
 		{
 		public:
 
-			Mapper74(Context&);
+			Mapper74(Context& c)
+			: Mmc3China(c,CRAM_2K) {}
 
 		private:
 
-			static uint GetType(dword);
-
-			void SubReset(bool);
-			void SubLoad(State::Loader&);
-			void SubSave(State::Saver&) const;
-			void UpdateChr() const;
-			uint GetChrSource(uint) const;
-
-			NES_DECL_POKE( 8001 )
-
-			uint exChr[2];
-			const uint type;
+			uint GetChrSource(uint bank) const
+			{
+				return bank - 8U <= 1U;
+			}
 		};
 	}
 }
