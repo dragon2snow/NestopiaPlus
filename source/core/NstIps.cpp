@@ -46,7 +46,7 @@ PDXRESULT IPS::Load(PDXFILE& ImageFile,PDXFILE& IpsFile)
 		0x50,0x41,0x54,0x43,0x48
 	};
 
-	if (memcmp( block, patch, sizeof(patch) ))
+	if (memcmp( block, patch, sizeof(U8) * 5 ))
 		return PDX_FAILURE;
 
 	while (!IpsFile.Eof())
@@ -61,7 +61,7 @@ PDXRESULT IPS::Load(PDXFILE& ImageFile,PDXFILE& IpsFile)
 			0x45,0x4F,0x46
 		};
 
-		if (!memcmp( block, eof, sizeof(eof) ))
+		if (!memcmp( block, eof, sizeof(U8) * 3 ))
 			return PDX_OK;
 
 		const ULONG offset = 

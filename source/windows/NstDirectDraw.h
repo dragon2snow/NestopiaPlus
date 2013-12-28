@@ -44,27 +44,33 @@ public:
 
 	enum
 	{
-		NES_WIDTH            = NES::IO::GFX::WIDTH,
-		NES_HEIGHT           = NES::IO::GFX::HEIGHT,
-		NES_WIDTH_2          = NES_WIDTH * 2,
-		NES_HEIGHT_2         = NES_HEIGHT * 2,
-		PALETTE_LENGTH       = NES::IO::GFX::PALETTE_LENGTH,
-		PIXEL_BUFFER_LENGTH  = NES_WIDTH * NES_HEIGHT,
-		EFFECT_BUFFER_LENGTH = NES_WIDTH * NES_HEIGHT,
-		CONV_BUFFER_LENGTH   = NES_WIDTH_2 * NES_HEIGHT_2
+		NES_WIDTH                = NES::IO::GFX::WIDTH,
+		NES_HEIGHT               = NES::IO::GFX::HEIGHT,
+		NES_WIDTH_2              = NES_WIDTH * 2,
+		NES_HEIGHT_2             = NES_HEIGHT * 2,
+		PALETTE_LENGTH           = NES::IO::GFX::PALETTE_LENGTH,
+		PIXEL_BUFFER_LENGTH      = NES_WIDTH * NES_HEIGHT,
+		REAL_PIXEL_BUFFER_LENGTH = NES_WIDTH * (NES_HEIGHT+1),
+		EFFECT_BUFFER_LENGTH     = NES_WIDTH * NES_HEIGHT,
+		CONV_BUFFER_LENGTH       = NES_WIDTH_2 * NES_HEIGHT_2
 	};
 
-	VOID Present();
-	VOID Repaint();
-	BOOL DoVSync();
+	BOOL Present();
+	PDX_NO_INLINE VOID Repaint();
+
+	NES::IO::GFX* GetFormat();
 
 	PDXRESULT Lock(NES::IO::GFX&);
-	PDXRESULT Unlock();
-	PDXRESULT EnableGDI(const BOOL);
-	PDXRESULT TryClearScreen();
+	PDXRESULT Unlock() throw(const CHAR*);
 
+	BOOL DoVSync();
+	VOID Wait();
+
+	PDX_NO_INLINE VOID EnableGDI(const BOOL) throw(const CHAR*);
+	PDX_NO_INLINE VOID UpdateScreenRect(const RECT&,const BOOL=FALSE);
+
+	BOOL TryClearScreen();
 	BOOL UpdateRefresh(const BOOL,const UINT);
-	VOID UpdateScreenRect(const RECT&,const BOOL=FALSE);
 
 	BOOL IsGDI()      const;
 	BOOL IsReady()    const;
@@ -81,29 +87,37 @@ public:
 	
 	UINT GetScaleFactor() const;
 	
+	const RECT& GetNesRect() const;
 	const RECT& GetScreenRect() const;
-	const RECT& GetNesRect()    const;
 	
 	UINT GetDisplayWidth()  const;
 	UINT GetDisplayHeight() const;
+	UINT GetDisplayBPP()    const;
 
-	BOOL CanRenderWindowed() const;
+	BOOL CanRenderWindowed()   const;
+	BOOL Is8BitModeSupported() const;
+	BOOL CanFlipNoVSync()      const;
 
 	const DDSURFACEDESC2& GetNesDesc() const;
 
 protected:
 
-	DIRECTDRAW();
+	DIRECTDRAW();				 
 	~DIRECTDRAW();
 
-	PDX_NO_INLINE PDXRESULT Initialize(HWND);
-	PDX_NO_INLINE PDXRESULT Destroy();
-	PDX_NO_INLINE PDXRESULT SwitchToFullScreen(const UINT,const UINT,const UINT,const RECT* const=NULL);
-	PDX_NO_INLINE PDXRESULT SwitchToWindowed(const RECT&);
-	PDX_NO_INLINE PDXRESULT Create(const GUID&);
-	PDX_NO_INLINE PDXRESULT ValidateSurface(LPDIRECTDRAWSURFACE7) const;
+	PDX_NO_INLINE VOID Initialize(HWND) throw(const CHAR*);
+	PDX_NO_INLINE VOID Destroy();
+	PDX_NO_INLINE VOID SwitchToFullScreen(const UINT,const UINT,const UINT,const RECT&) throw(const CHAR*);
+	PDX_NO_INLINE VOID SwitchToWindowed(const RECT&,const BOOL=FALSE) throw(const CHAR*);
+	PDX_NO_INLINE BOOL Create(const GUID&,const BOOL=FALSE) throw(const CHAR*);
+	PDX_NO_INLINE VOID CreateClipper() throw(const CHAR*);
 
-	PDXRESULT DrawNesBuffer();
+	const DDCAPS& GetHalCaps() const;
+	const DDCAPS& GetHelCaps() const;
+
+	DWORD GetMonitorFrequency() const;
+
+	VOID DrawNesBuffer();
 
 	enum SCREENEFFECT
 	{
@@ -116,11 +130,9 @@ protected:
 	};
 
 	VOID ReleaseBuffers();
+	BOOL LockNesBuffer(DDSURFACEDESC2&) throw(const CHAR*);
 
-	PDXRESULT LockNesBuffer(DDSURFACEDESC2&);
-	PDXRESULT UnlockNesBuffer();
-
-	PDX_NO_INLINE PDXRESULT SetScreenParameters(const SCREENEFFECT,const BOOL,const RECT&);
+	PDX_NO_INLINE VOID SetScreenParameters(const SCREENEFFECT,const BOOL,const RECT&,const RECT* const=NULL);
 
 	LPDIRECTDRAWSURFACE7 GetNesBuffer() const;
 
@@ -128,41 +140,37 @@ protected:
 
 private:
 
-	PDXRESULT Error(const CHAR* const);
-
 	static HRESULT CALLBACK EnumDisplayModes(LPDDSURFACEDESC2,LPVOID);
 	static BOOL WINAPI EnumAdapters(LPGUID,LPSTR,LPSTR,LPVOID,HMONITOR);
 
-	VOID UpdatePalette(const U8* const);
+	PDX_NO_INLINE BOOL Validate(const HRESULT=DD_OK);
+	PDX_NO_INLINE VOID UpdatePalette(const U8* const);
+	PDX_NO_INLINE VOID CreateScreenBuffers() throw(const CHAR*);
+	PDX_NO_INLINE VOID CreateNesBuffer() throw(const CHAR*);
 
-	PDX_NO_INLINE PDXRESULT GetCaps();
-	PDX_NO_INLINE PDXRESULT CreateScreenBuffers();
-	PDX_NO_INLINE PDXRESULT CreateNesBuffer();
-	PDX_NO_INLINE PDXRESULT CreateClipper();
-
-	PDXRESULT ClearSurface(LPDIRECTDRAWSURFACE7);
+	VOID UpdateNesBuffer();
+	VOID ClearSurface(LPDIRECTDRAWSURFACE7,const DWORD=0);
+	VOID DrawWindowText();
 	
-	PDX_NO_INLINE PDXRESULT GetSurfaceDesc(LPDIRECTDRAWSURFACE7,DDSURFACEDESC2&);
-
 	typedef VOID (*F2XAI)(U8*,U32,U8*,U8*,U32,INT,INT);
 
-	template<class T> PDX_NO_INLINE VOID BltNesScreen(T* const,const LONG);
 	template<class T> VOID BltNesScreenAligned(T* const);
+	template<class T> PDX_NO_INLINE VOID BltNesScreen(T* const,const LONG);
+	PDX_NO_INLINE VOID BltNesScreen(U8*,const LONG);
 	template<class T> PDX_NO_INLINE VOID BltNesScreenUnaligned(T*,const LONG);
 	template<class T> PDX_NO_INLINE VOID BltNesScreenScanLines1(T*,const LONG);
 	template<class T> PDX_NO_INLINE VOID BltNesScreenScanLinesFactor(T*,const LONG);
 	template<class T> PDX_NO_INLINE VOID BltNesScreen2xSaI(F2XAI,T*,const LONG);
 	template<class T> PDX_NO_INLINE VOID BltNesScreenTV(T*,const LONG);
 
-	VOID DrawWindowText();
-
-	DDCAPS caps;
+	DDCAPS HelCaps;
+	DDCAPS HalCaps;
 
 	LPDIRECTDRAW7 device;
 	LPDIRECTDRAWSURFACE7 FrontBuffer;
 	LPDIRECTDRAWSURFACE7 BackBuffer;
 	LPDIRECTDRAWSURFACE7 NesBuffer;
-	LPDIRECTDRAWCLIPPER clipper;	
+	LPDIRECTDRAWCLIPPER clipper;
 
 	SCREENEFFECT ScreenEffect;
 
@@ -182,7 +190,6 @@ private:
 	BOOL  Use2xSaI;
 	BOOL  Use2xSaI565;
 	BOOL  IsNesBuffer2xSaI;
-	BOOL  DDError;
 	
 	DDSURFACEDESC2 FrontDesc;
 	DDSURFACEDESC2 BackDesc;
@@ -273,33 +280,29 @@ protected:
 
 private:
 
+	BOOL CheckReady() const;
+
 	DISPLAYMODE DisplayMode;
-
-	U32 palette[NES::IO::GFX::PALETTE_LENGTH][3];
-
-	NES::IO::GFX::PIXEL PixelBuffer[PIXEL_BUFFER_LENGTH];
-
-	U16 EffectBuffer[EFFECT_BUFFER_LENGTH];
-	U16 ConvBuffer[CONV_BUFFER_LENGTH];
 
 	GUID guid;
 
-	struct DATA
-	{
-		DATA()
-		: 
-		effect (SCREENEFFECT_NONE),
-		vram   (FALSE)
-		{
-			SetRect( &rect, 0, 0, 0, 0 );
-		}
+	NES::IO::GFX format;
 
-		SCREENEFFECT effect;
-		BOOL vram;
-		RECT rect;	
+	struct PIXELDATA
+	{
+		PIXELDATA();
+
+		PDX_NO_INLINE VOID Reset();
+
+		U32 palette[NES::IO::GFX::PALETTE_LENGTH][3];
+
+		NES::IO::GFX::PIXEL buffer[PIXEL_BUFFER_LENGTH];
+
+		U16 effect[EFFECT_BUFFER_LENGTH];
+		U16 conv[CONV_BUFFER_LENGTH];
 	};
 
-	DATA data;
+	PIXELDATA* const PixelData;
 };
 
 #include "NstDirectDraw.inl"

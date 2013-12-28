@@ -35,11 +35,23 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT GAMEGENIEMANAGER::Create(CONFIGFILE* const)
+GAMEGENIEMANAGER::GAMEGENIEMANAGER()
+: 
+MANAGER (IDD_GAMEGENIE),
+hDlg    (NULL),
+hList	(NULL)
+{}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+VOID GAMEGENIEMANAGER::Create(CONFIGFILE* const)
 {
+	PDX_ASSERT(!hDlg && !hList);
+
 	hDlg = NULL;
 	hList = NULL;
-	return PDX_OK;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -328,7 +340,7 @@ VOID GAMEGENIEMANAGER::CreateCodeDialog()
 {
 	DialogBoxParam
 	( 
-     	application.GetInstance(), 
+     	GetModuleHandle(NULL), 
 		MAKEINTRESOURCE(IDD_GAMEGENIE_ADDCODE), 
 		hDlg, 
 		StaticCodeDialogProc,
@@ -491,7 +503,7 @@ BOOL GAMEGENIEMANAGER::NesIsEnabled(const ULONG packed) const
 	context.op     = NES::IO::GAMEGENIE::GETSTATE;
 	context.packed = packed;
 
-	nes->GetGameGenieContext( context );
+	nes.GetGameGenieContext( context );
 
 	return context.state == NES::IO::GAMEGENIE::ENABLE ? TRUE : FALSE;
 }
@@ -507,7 +519,7 @@ PDXRESULT GAMEGENIEMANAGER::NesEncode(const ULONG packed,PDXSTRING& characters) 
 	context.op     = NES::IO::GAMEGENIE::ENCODE;
 	context.packed = packed;
 	
-	PDX_TRY(nes->GetGameGenieContext( context ));
+	PDX_TRY(nes.GetGameGenieContext( context ));
 
 	characters = context.characters;
 
@@ -525,7 +537,7 @@ PDXRESULT GAMEGENIEMANAGER::NesDecode(const CHAR* const characters,ULONG& packed
 	context.op         = NES::IO::GAMEGENIE::DECODE;
 	context.characters = characters;
 	
-	PDX_TRY(nes->GetGameGenieContext( context ));
+	PDX_TRY(nes.GetGameGenieContext( context ));
 	
 	packed = context.packed;
 	
@@ -546,7 +558,7 @@ PDXRESULT GAMEGENIEMANAGER::NesPack(const UINT address,const UINT value,const UI
 	context.compare    = compare;
 	context.UseCompare = UseCompare;
 	
-	PDX_TRY(nes->GetGameGenieContext( context ));
+	PDX_TRY(nes.GetGameGenieContext( context ));
 
 	packed = context.packed;
 	
@@ -564,7 +576,7 @@ PDXRESULT GAMEGENIEMANAGER::NesUnpack(const ULONG packed,UINT& address,UINT& val
 	context.op     = NES::IO::GAMEGENIE::UNPACK;
 	context.packed = packed;
 	
-	PDX_TRY(nes->GetGameGenieContext( context ));
+	PDX_TRY(nes.GetGameGenieContext( context ));
 
 	address    = context.address;
 	value      = context.value;
@@ -586,7 +598,7 @@ PDXRESULT GAMEGENIEMANAGER::NesEnable(const ULONG packed,const NES::IO::GAMEGENI
 	context.packed = packed;
 	context.state  = state;
 
-	return nes->SetGameGenieContext( context );
+	return nes.SetGameGenieContext( context );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -601,7 +613,7 @@ PDXRESULT GAMEGENIEMANAGER::NesSet(const ULONG packed,const NES::IO::GAMEGENIE::
 	context.packed = packed;
 	context.state  = state;
 	
-	return nes->SetGameGenieContext( context );
+	return nes.SetGameGenieContext( context );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -614,7 +626,7 @@ PDXRESULT GAMEGENIEMANAGER::NesDestroy()
 	
 	context.op = NES::IO::GAMEGENIE::DESTROYALL;
 	
-	return nes->SetGameGenieContext( context );
+	return nes.SetGameGenieContext( context );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -772,7 +784,7 @@ VOID GAMEGENIEMANAGER::ImportCodes()
 	PDXMemZero( ofn );
 
 	ofn.lStructSize     = sizeof(ofn);
-	ofn.hwndOwner       = NULL;
+	ofn.hwndOwner       = hWnd;
 	ofn.nFilterIndex    = 1;
 	ofn.lpstrInitialDir	= application.GetFileManager().GetNspPath().String();
 	ofn.lpstrFile       = name.Begin();

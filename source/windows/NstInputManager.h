@@ -40,9 +40,17 @@ class INPUTMANAGER : public DIRECTINPUT, public MANAGER
 {
 public:
 
-	INPUTMANAGER(const INT);
+	INPUTMANAGER();
 
-	PDXRESULT Poll();
+	VOID Create  (CONFIGFILE* const);
+	VOID Destroy (CONFIGFILE* const);
+
+	VOID Poll();
+
+	VOID Poll( NES::IO::INPUT::PAD&, const UINT );
+	VOID Poll( NES::IO::INPUT::POWERPAD& );
+	VOID Poll( NES::IO::INPUT::VS&       );
+	VOID Poll( NES::IO::INPUT::FAMILYKEYBOARD&, const UINT, const UINT );
 
 	BOOL OnMouseMove(POINT&);
 
@@ -55,29 +63,15 @@ public:
 	inline NES::IO::INPUT* GetFormat()
 	{ return &format; }
 
-	PDXRESULT PollFamilyKeyboard
-	(
-     	NES::IO::INPUT::FAMILYKEYBOARD* const,
-		const UINT,
-		const UINT
-	);
-
 private:
 
-	VOID PollPad(const UINT,const UINT);
-	VOID PollArcade();
-	VOID PollPowerPad();
-
-	PDXRESULT Create  (CONFIGFILE* const);
-	PDXRESULT Destroy (CONFIGFILE* const);
-
-	VOID PollJoysticks();
 	VOID Reset();
 	VOID Clear();
 	VOID UpdateDialog();
 	VOID UpdateJoystickDevices();
 	VOID UpdateDlgButtonTexts();
-	
+	BOOL PollJoysticks();
+
 	ULONG IsButtonPressed(const ULONG) const;
 	ULONG IsJoystickButtonPressed(ULONG) const;
 
@@ -144,9 +138,11 @@ private:
 		KEY_GENERAL_INSERT_COIN_1,    
 		KEY_GENERAL_INSERT_COIN_2,
 		KEY_GENERAL_TOGGLE_FPS,
+		KEY_GENERAL_SAVE_SLOT,
+		KEY_GENERAL_LOAD_SLOT,
 		NUM_GENERAL_KEYS
 	};
-  
+
 	static const CHAR* Key2Text(DWORD);
 	static DWORD Text2Key(const PDXSTRING&);
 
@@ -156,67 +152,32 @@ private:
 	{
 		struct CATEGORY
 		{
-			struct KEY
-			{
-				KEY()
-				:
-				key    (0),
-				device (NULL)
-				{}
-
-				VOID Reset()
-				{
-					key = 0;
-					device = NULL;
-				}
-
-				DWORD key;
-				LPDIRECTINPUTDEVICE8 device;
-			};
-
-			typedef PDXARRAY<KEY> KEYS;
-
+			typedef PDXARRAY<DWORD> KEYS;
 			KEYS keys;
 		};
 
 		CATEGORY category[NUM_CATEGORIES];
 	};
 
-	struct ACTIVEJOYSTICK
-	{
-		ACTIVEJOYSTICK()
-		:
-		device (NULL),
-		active (FALSE)
-		{
-			PDXMemZero( state );
-		}
-
-		BOOL operator == (const LPDIRECTINPUTDEVICE8 d) const
-		{ return device == d; }
-
-		BOOL active;
-		LPDIRECTINPUTDEVICE8 device;
-		DIJOYSTATE state;
-	};
-
-	typedef PDXARRAY<ACTIVEJOYSTICK> ACTIVEJOYSTICKS;
-
 	HWND hDlg;
-
 	UINT SelectDevice;
 	UINT SelectKey;
+
 	BOOL SpeedThrottleKeyDown;
 	UINT SpeedThrottle;
 
-	ACTIVEJOYSTICKS ActiveJoysticks;
+	BOOL LoadSlotKeyDown;
+	UINT LoadSlot;
+
+	BOOL SaveSlotKeyDown;
+	UINT SaveSlot;
 
 	MAP map;
 	NES::IO::INPUT format;
 
 	UINT AutoFireStep;
 
-	const UINT MenuHeight;
+	static const UINT MenuHeight;
 };
 
 #endif

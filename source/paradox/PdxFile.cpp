@@ -9,7 +9,7 @@
 // Paradox Library is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
-// (at your option) any later version.
+// (at your option) any later version.								
 // 
 // Paradox Library is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -240,9 +240,39 @@ TSIZE PDXFILE::Seek(const POSITION t,const LONG p)
         #endif
 	}
 
-	Reserve(pos);
+	if (pos > buffer.Size())
+	{
+		if (mode == INPUT)
+		{
+			pos = buffer.Size();
+		}
+		else
+		{
+			Reserve(pos);
+		}
+	}
 
 	return old;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+//
+//////////////////////////////////////////////////////////////////////////////////////////////
+
+PDXRESULT PDXFILE::ChangeName(const CHAR* const newname)
+{
+	if (newname && strlen(newname) && (mode == OUTPUT || mode == APPEND))
+	{
+		name = newname;
+
+		filename.Clear();
+		filepath.Clear();
+		fileextension.Clear();
+
+		return PDX_OK;
+	}
+
+	return PDX_FAILURE;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -345,7 +375,7 @@ PDXRESULT PDXFILE::ReadBuffer()
 	{
 		TSIZE size;
 
-		if (!GetFileSize(file,size))
+		if (!GetFileSize(file,size) || !size)
 		{
 			fclose(file);
 			return PDX_FAILURE;

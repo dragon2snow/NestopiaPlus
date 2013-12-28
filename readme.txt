@@ -1,5 +1,5 @@
 -----------------------------------------------------------------------------
-Nestopia 1.04 - NES/Famicom emulator
+Nestopia 1.05 - NES/Famicom emulator
 -----------------------------------------------------------------------------
 
 Nestopia is Copyright 2003 by Martin Freij
@@ -7,7 +7,7 @@ under the terms and conditions of the
 GNU General Public License. 
 http://www.gnu.org
 
-Homepage: http://nestopia.znes.org/
+Homepage: http://nestopia.znes.org/ (currently down)
 Project:  http://sourceforge.net/projects/nestopia/
 Mail:     martin-freij at home.se
 
@@ -31,8 +31,8 @@ Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 About the Emulator
 -----------------------------------------------------------------------------
 
-Written in C++, compiled with Intel Compiler 7.1 and made to be as accurate 
-as possible. All The different components are synchronized "as needed" on a 
+Written in C++, compiled with Intel Compiler and made to be as accurate as 
+possible. All The different components are synchronized "as needed" on a 
 clock cycle level, basically meaning that the PPU and pAPU update themselves 
 only if an instruction is going to change the way the PPU render pixels or 
 the pAPU generates sound or else they simply just wait until the end of the 
@@ -56,16 +56,27 @@ fail. If you're interested in porting Nestopia to another platform feel free
 to contact me and I'll try to help out.
 
 -----------------------------------------------------------------------------
-Minimum System Requirements
+System Requirements
 -----------------------------------------------------------------------------
+
+Minimum:
+--------
 	
 Processor: Pentium MMX or comparable AMD
 Ram:       32MB
 Video:     DirectDraw 7 compatible graphic card
-Audio:     DirectSound 8.1 compatible sound card
 OS:        Windows 98/Me/NT/2000/XP or greater
 Software:  DirectX 8.1 or greater
 
+Recommended:
+------------
+
+Processor: Pentium 4 or comparable AMD
+Ram:       128MB
+Video:     Direct3D compatible graphic card
+Audio:     DirectSound 8.1 compatible sound card
+OS:        Windows XP or greater
+Software:  DirectX 9 or greater
 
 Note: If you have GdiPlus from Microsoft installed (comes with XP) you'll be 
       able to save screenshots in png, jpg, bmp and tif format.
@@ -144,7 +155,8 @@ ZIP  - If Nestopia finds more than one valid file in the archive you may choose
 NST  - Nestopia Save State File. Aside from loading and saving via files there 
        are also nine slots accessable by the numerical keys. Remember to hold in 
        SHIFT if you want to load a state. Push '0' to save into the next slot in 
-       incrementing order and Shift + '0' to load from the last saved slot.
+       incrementing order and Shift + '0' to load from the last saved slot. You
+       can also assign the afformentioned commands to any other keys.
 
 NSV  - Nestopia Movie File. Available commands are located in the menu. One note,
        if you don't rewind the tape the next time you record anything (assuming 
@@ -158,10 +170,10 @@ Fully or Partially Supported Mappers
 1,2,3,4,5,6,7,8,9,10,11,13,15,16,17,18,19,21,22,23,24,25,26,32,33,
 34,40,41,42,43,44,45,46,47,48,49,50,51,52,57,58,60,61,62,64,65,66,
 67,68,69,70,71,72,73,74,75,76,77,78,79,80,82,83,85,86,87,88,89,90,
-91,92,93,94,95,96,97,99,100,101,105,112,113,114,115,117,118,119,122,
-133,140,144,151,152,153,154,155,156,157,160,180,181,182,183,184,185,
-187,188,189,222,225,226,227,228,229,230,231,232,233,234,235,236,237,
-240,241,242,243,244,245,246,248,249,250,255 = a total of 133
+91,92,93,94,95,96,97,99,100,101,105,107,112,113,114,115,117,118,119,
+122,133,134,135,140,144,151,152,153,154,155,156,157,160,180,181,182,
+183,184,185,187,188,189,198,222,225,226,227,228,229,230,231,232,233,
+234,235,236,237,240,241,242,243,244,245,246,248,249,250,255 = a total of 137
 
 -----------------------------------------------------------------------------
 Supported Sound Chips
@@ -212,6 +224,40 @@ Super Mario Bros
 Tengen Tetris
 TKO Boxing
 Top Gun
+
+-----------------------------------------------------------------------------
+Performance issue
+-----------------------------------------------------------------------------
+
+As stated earlier, Nestopia can be slow on low-end computers so here are some
+suggestions on what you can do to speed things up.
+
+- Enable auto frame-skip and uncheck the vsync button.
+
+- Keep the menu hidden when you're in fullscreen mode. Having it visible 
+  forces Nestopia to co-operate with GDI which adds extra overhead.
+
+- Set the display mode to 320*240 8 bit.
+
+- Disable graphic filtering.
+
+- Off-screen surfaces in video memory is usually faster than having them in 
+  system memory but it may produce undesired image filtering when a surface 
+  blit require the image to be scaled. There's no way to control this under 
+  DirectDraw 7 so the default setting for Nestopia is system memory, but you 
+  can try video memory and see if it helps.
+
+- Enable "high priority" in the preferences dialog.
+
+- Don't enable the support for more than eight simultaneous sprites visible at 
+  the screen. It probably won't make any difference though but I thought I'd 
+  mention it since it may require the PPU to do some extra work.
+
+- Raise the sound volume to max. Using a different volume forces DirectSound to 
+  perform a few more calculations for each sample it process.
+
+- Try a lower sample rate and bit length, 22.05 kHz and 8 bit may be a good 
+  choice here. If you're desperate, turn off sound completely.
 
 -----------------------------------------------------------------------------
 Credits and Thanks

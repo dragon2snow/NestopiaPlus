@@ -345,8 +345,10 @@ namespace IO
 		struct PAD
 		{
 			inline PAD()
-			: buttons(0) 
+			: device(NULL), buttons(0) 
 			{}
+
+			VOID Poll(const UINT);
 
 			enum
 			{
@@ -372,6 +374,7 @@ namespace IO
 				INDEX_RIGHT  = 7
 			};
 
+			VOID* device;
 			UINT buttons;
 		};
 
@@ -397,16 +400,21 @@ namespace IO
 		struct POWERPAD
 		{
 			POWERPAD()
+			: device(NULL)
 			{ 
 				PDXMemZero( SideA, NUM_SIDE_A_BUTTONS ); 
 				PDXMemZero( SideB, NUM_SIDE_B_BUTTONS ); 
 			}
+
+			VOID Poll();
 
 			enum 
 			{
 				NUM_SIDE_A_BUTTONS = 12,
 				NUM_SIDE_B_BUTTONS = 8
 			};
+
+			VOID* device;
 
 			U8 SideA[NUM_SIDE_A_BUTTONS];
 			U8 SideB[NUM_SIDE_B_BUTTONS];
@@ -417,7 +425,7 @@ namespace IO
 			FAMILYKEYBOARD() : device(NULL)
 			{ PDXMemZero( parts, NUM_PARTS ); }
 
-			PDXRESULT Poll(const UINT,const UINT);
+			VOID Poll(const UINT,const UINT);
 
 			enum 
 			{
@@ -432,7 +440,9 @@ namespace IO
 		struct VS
 		{
 			inline VS()
-			: InsertCoin(0) {}
+			: InsertCoin(0), device(NULL) {}
+
+			VOID Poll();
 
 			enum
 			{
@@ -440,6 +450,7 @@ namespace IO
 				COIN_2 = b01000000
 			};
 
+			VOID* device;
 			UINT InsertCoin;
 		};
 
@@ -649,11 +660,13 @@ namespace IO
 			CONTEXT()
 			: 
 			DisableWarnings     ( FALSE ), 
-			WriteProtectBattery ( FALSE )
+			WriteProtectBattery ( FALSE ),
+			UseRomDatabase      ( TRUE  )
 			{}
 
 			BOOL DisableWarnings;
 			BOOL WriteProtectBattery;
+			BOOL UseRomDatabase;
 		};
 	}
 
@@ -716,7 +729,6 @@ namespace IO
 // global callback functions which have to be implemented for the specific target platform
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT MsgError    (const CHAR* const);
 PDXRESULT MsgWarning  (const CHAR* const);
 BOOL      MsgQuestion (const CHAR* const,const CHAR* const);
 BOOL      MsgInput    (const CHAR* const,const CHAR* const,PDXSTRING&);

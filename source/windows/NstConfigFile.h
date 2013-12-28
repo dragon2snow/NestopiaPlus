@@ -43,11 +43,14 @@ public:
 	PDXRESULT Load(const PDXSTRING&);
 	PDXRESULT Save(const PDXSTRING&);
 
-	PDXSTRING& operator [] (const CHAR* const);
-	PDXSTRING& operator [] (const PDXSTRING&);
+	template<class T> PDXSTRING& operator [] (const T& command)
+	{ return tree[command]; }
 
 	static const CHAR* FromGUID(const GUID&);
 	static GUID ToGUID(const CHAR* const);
+
+	const PDXSTRING& FileName() const
+	{ return file.Name(); }
 
 private:
 
@@ -56,11 +59,6 @@ private:
 
 	VOID ParseOptions(PDXSTRING* const);
 	VOID WriteCommentHeader();
-//	VOID WriteCommentVideo();
-//	VOID WriteCommentSound();
-//	VOID WriteCommentFiles();
-//	VOID WriteCommentInput();
-//	VOID WriteCommentPreferences();
 
 private:
 

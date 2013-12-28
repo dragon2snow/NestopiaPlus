@@ -22,23 +22,8 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "../paradox/PdxFile.h"
-#include "resource/resource.h"
 #include "NstApplication.h"
-#include "NstSoundManager.h"
-#include "NstInputManager.h"
-#include "NstFileManager.h"
-#include "NstFdsManager.h"
-#include "NstSaveStateManager.h"
-#include "NstMovieManager.h"
-#include "NstGameGenieManager.h"
-#include "NstVsDipSwitchManager.h"
-#include "NstPreferences.h"
-#include "NstLogFileManager.h"
-#include "NstRomInfo.h"
-#include "NstHelpManager.h"
-#include "NstUserInputManager.h"
-#include "NstConfigFile.h"
+#include <new>
 #include <WindowsX.h>
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -146,6 +131,13 @@ PDX_COMPILE_ASSERT
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
+#define NST_MENUSTATE(x) ((x) ? MF_ENABLED : MF_GRAYED)
+#define NST_WINDOWSTYLE	 (WS_OVERLAPPED|WS_CAPTION|WS_SYSMENU|WS_MINIMIZEBOX|WS_MAXIMIZEBOX|WS_THICKFRAME)
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
 PDXSTRING APPLICATION::ScreenMsg;
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -154,9 +146,6 @@ PDXSTRING APPLICATION::ScreenMsg;
 
 NES_NAMESPACE_BEGIN
 
-	PDXRESULT MsgError(const CHAR* const text) 
-    { return application.OnError( text ); }
-
 	PDXRESULT MsgWarning(const CHAR* const text) 
 	{ return application.OnWarning( text ); }
 	
@@ -164,10 +153,10 @@ NES_NAMESPACE_BEGIN
 	{ return application.OnQuestion( text, head ); }
 
 	VOID MsgOutput(const CHAR* const text)
-	{ application.StartScreenMsg( text, 1500 ); }
-
+	{ application.StartScreenMsg( 1500, text ); }
+			 
 	VOID LogOutput(const CHAR* const text)
-	{ LOGFILEMANAGER::LogOutput( text ); }
+	{ LOGFILEMANAGER::Output( text ); }
 
 	BOOL MsgInput(const CHAR* const title,const CHAR* const msg,PDXSTRING& input)
 	{ return application.OnUserInput( title, msg, input ); }
@@ -178,131 +167,30 @@ NES_NAMESPACE_END
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#define NST_MENUSTATE(x) ((x) ? MF_ENABLED : MF_GRAYED)
-#define NST_WINDOWSTYLE	(WS_OVERLAPPED|WS_CAPTION|WS_SYSMENU|WS_MINIMIZEBOX|WS_MAXIMIZEBOX|WS_THICKFRAME)
-
-////////////////////////////////////////////////////////////////////////////////////////
-// constructor
-////////////////////////////////////////////////////////////////////////////////////////
-
-APPLICATION::APPLICATION()
-: 
-hWnd                 (NULL),
-hInstance            (NULL),
-hMenu                (NULL),
-hCursor              (NULL),
-active               (FALSE),
-ready                (FALSE),
-locked               (FALSE),
-error                (FALSE),
-UseZapper            (FALSE),
-windowed             (TRUE),
-InBackground         (FALSE),
-ScreenInvisible      (FALSE),
-AutoSelectController (TRUE),
-AcceleratorEnabled   (TRUE),
-NesMode              (NES::MODE_AUTO),
-hMenuFullscreenBrush (NULL),
-TimerManager         (new TIMERMANAGER       ( IDD_TIMING      )),
-GraphicManager       (new GRAPHICMANAGER     ( IDD_GRAPHICS    )),
-SoundManager         (new SOUNDMANAGER       ( IDD_SOUND       )),
-InputManager         (new INPUTMANAGER       ( IDD_INPUT       )),
-FileManager          (new FILEMANAGER        ( IDD_PATHS       )),
-FdsManager           (new FDSMANAGER         ( IDD_FDS         )),
-preferences          (new PREFERENCES        ( IDD_PREFERENCES )),
-RomInfo              (new ROMINFO            ( IDD_ROM_INFO    )),
-VsDipSwitchManager   (new VSDIPSWITCHMANAGER ( IDD_DIPSWITCHES )),
-GameGenieManager     (new GAMEGENIEMANAGER   ( IDD_GAMEGENIE   )),
-SaveStateManager     (new SAVESTATEMANAGER   ( IDD_AUTO_SAVE   )),
-MovieManager         (new MOVIEMANAGER       ( IDD_MOVIE       )),
-LogFileManager       (new LOGFILEMANAGER     ( IDD_LOGFILE     )),
-HelpManager          (new HELPMANAGER),
-UserInputManager     (new USERINPUTMANAGER),
-hMenuWindowBrush     (NULL)
-{}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-APPLICATION::~APPLICATION()
+HWND APPLICATION::Init(HINSTANCE hInstance)
 {
-	if (hWnd)
-		OnExit();
-
-	delete TimerManager;
-	delete GraphicManager;
-	delete SoundManager;
-	delete InputManager;
-	delete FileManager;
-	delete FdsManager;
-	delete GameGenieManager;
-	delete MovieManager;
-	delete SaveStateManager;
-	delete VsDipSwitchManager;
-	delete preferences;
-	delete LogFileManager;
-	delete RomInfo;
-	delete HelpManager;
-	delete UserInputManager;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID APPLICATION::LogOutput(const CHAR* const msg) const
-{ 
-	return LOGFILEMANAGER::LogOutput(msg); 
-}
-
-VOID APPLICATION::LogSeparator() const
-{
-	return LOGFILEMANAGER::LogSeparator(); 
-}
-
-BOOL APPLICATION::OnUserInput(const CHAR* const title,const CHAR* const text,PDXSTRING& input)
-{
-	return UserInputManager ? UserInputManager->Start( title, text, input ) : FALSE;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-// creator
-////////////////////////////////////////////////////////////////////////////////////////
-
-#define NST_INIT_F(t,f) if (!t || PDX_FAILED(t->Init( hWnd, hInstance, &nes, f ))) return PDX_FAILURE
-#define NST_INIT(t)     if (!t || PDX_FAILED(t->Init( hWnd, hInstance, &nes    ))) return PDX_FAILURE
-#define NST_INIT_S(t)   if (!t || PDX_FAILED(t->Init( hWnd, hInstance          ))) return PDX_FAILURE
-
-PDXRESULT APPLICATION::Init(HINSTANCE h,const CHAR* const RomImage,const INT iCmdShow)
-{
-	PDX_ASSERT(!hWnd);
-
-	active = FALSE;
-	hInstance = h;
-	hCursor = LoadCursor(NULL,IDC_ARROW);
-
 	{
 		WNDCLASSEX wndcls;
 		PDXMemZero( wndcls );
 
 		wndcls.cbSize        = sizeof(wndcls);
-		wndcls.style         = CS_OWNDC;
+		wndcls.style         = CS_OWNDC|CS_HREDRAW|CS_VREDRAW;
 		wndcls.lpfnWndProc	 = WndProc;
 		wndcls.hInstance     = hInstance;
 		wndcls.hIcon         = LoadIcon(hInstance,MAKEINTRESOURCE(IDI_GEEK_1));
-		wndcls.hCursor       = hCursor;
+		wndcls.hCursor       = LoadCursor(NULL,IDC_ARROW);
 		wndcls.hbrBackground = HBRUSH(GetStockObject(NULL_BRUSH));
-		wndcls.lpszClassName = TEXT("Nestopia");
+		wndcls.lpszClassName = TEXT("Nestopia Window");
 		wndcls.hIconSm       = LoadIcon(hInstance,MAKEINTRESOURCE(IDI_GEEK_2));
 
 		if (!RegisterClassEx(&wndcls))
-			return OnError("RegisterClassEx() failed!");
+			return NULL;
 	}
 
-	hWnd = CreateWindow
+	HWND const hWnd = CreateWindowEx
 	(
-		TEXT("Nestopia"),
+		0,
+		TEXT("Nestopia Window"),
 		TEXT("Nestopia"),
 		NST_WINDOWSTYLE,
 		CW_USEDEFAULT,
@@ -315,47 +203,76 @@ PDXRESULT APPLICATION::Init(HINSTANCE h,const CHAR* const RomImage,const INT iCm
 		NULL
 	);
 
+	return hWnd;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+// constructor
+////////////////////////////////////////////////////////////////////////////////////////
+
+APPLICATION::APPLICATION(HINSTANCE hInstance,const CHAR* const RomImage,const INT iCmdShow)
+: 
+hWnd                 (Init(hInstance)),
+hMenu                (NULL),
+hCursor              (LoadCursor(NULL,IDC_ARROW)),
+hAccel               (LoadAccelerators(hInstance,MAKEINTRESOURCE(IDR_ACCELERATOR))),
+active               (FALSE),
+ready                (FALSE),
+UseZapper            (FALSE),
+windowed             (TRUE),
+InBackground         (FALSE),
+ExitSuccess          (FALSE),
+AutoSelectController (FALSE),
+AcceleratorEnabled   (bool(hAccel)),
+FrameSkips           (0),
+NesMode              (NES::MODE_AUTO)
+{
 	if (!hWnd)
-		return PDX_FAILURE;
+		throw ("Failed to create window!");
+
+	SelectPort[0] = IDM_MACHINE_PORT1_PAD1;
+	SelectPort[1] = IDM_MACHINE_PORT2_PAD2;
+	SelectPort[2] = IDM_MACHINE_PORT3_UNCONNECTED;
+	SelectPort[3] = IDM_MACHINE_PORT4_UNCONNECTED;
+	SelectPort[4] = IDM_MACHINE_EXPANSION_UNCONNECTED;
+	
+	SetRect( &rcScreen, 0, 0, 256, 224 );	
+	rcWindow = rcClient = rcScreen = rcDefWindow = rcDefClient = rcRestoreWindow = rcScreen;
+
 
 	{
-		CfgFileName.Clear();
-
-		{
-			CHAR PathExe[NST_MAX_PATH];
-			PathExe[0] = '\0';
-
-			if (GetModuleFileName( NULL, PathExe, NST_MAX_PATH-1 ))
-			{
-				CfgFileName = PathExe;
-				CfgFileName.ReplaceFileExtension( "cfg" );
-			}
-		}
-
 		CONFIGFILE file;
-		CONFIGFILE* ConfigFile = NULL;
-
-		if (PDX_SUCCEEDED(file.Load(CfgFileName)))
+		CONFIGFILE* ConfigFile;
+	
+		if (InitConfigFile( file, CFG_LOAD ))
+		{
+			log.Output("APPLICATION: loading settings from: ",file.FileName());
 			ConfigFile = &file;
+		}
+		else
+		{
+			log.Output("APPLICATION: configuration file not present, default settings will be used.");
+			ConfigFile = NULL;
+		}
 
 		{
 			UINT factor = 1;
-
+	
 			if (ConfigFile)
 			{
 				const PDXSTRING& string = file["window size"];
-
+	
      				 if (string == "1x") factor = 0;
 				else if (string == "3x") factor = 2;
 				else if (string == "4x") factor = 3;
 			}
-
+	
 			RECT rect;
 			SetRect( &rect, 0, 0, 0, 0 );
-
+	
 			GetWindowRect( GetDesktopWindow(), &rect );
 			GetWindowRect( hWnd, &rcWindow );
-
+	
 			OnWindowSize
 			( 
 				factor, 
@@ -363,101 +280,274 @@ PDXRESULT APPLICATION::Init(HINSTANCE h,const CHAR* const RomImage,const INT iCm
 				PDX_MAX(rect.bottom - rect.top,224) 
 			);
 		}
-
-		NST_INIT_F ( TimerManager,     ConfigFile );
-		NST_INIT_F ( FileManager,      ConfigFile );
-		NST_INIT_F ( GraphicManager,   ConfigFile );
-		NST_INIT_F ( SoundManager,     ConfigFile );
-		NST_INIT_F ( InputManager,     ConfigFile );
-		NST_INIT_F ( FdsManager,       ConfigFile );
-		NST_INIT_F ( preferences,      ConfigFile );
-		NST_INIT_S ( HelpManager                  );
-		NST_INIT   ( GameGenieManager             );
-		NST_INIT   ( SaveStateManager             );
-		NST_INIT   ( MovieManager                 );
-		NST_INIT   ( VsDipSwitchManager           );
-		NST_INIT   ( LogFileManager               );
-		NST_INIT   ( RomInfo                      );
-		NST_INIT   ( UserInputManager             );
+	
+		TimerManager.Create       ( ConfigFile );
+		FileManager.Create        ( ConfigFile );
+		GraphicManager.Create     ( ConfigFile );
+		SoundManager.Create       ( ConfigFile );
+		InputManager.Create       ( ConfigFile );
+		FdsManager.Create         ( ConfigFile );
+		preferences.Create        ( ConfigFile );
+		GameGenieManager.Create   ( ConfigFile );
+		SaveStateManager.Create   ( ConfigFile );
+		MovieManager.Create       ( ConfigFile );
+		VsDipSwitchManager.Create ( ConfigFile );
+		log.Create                ( ConfigFile );
+		RomInfo.Create            ( ConfigFile );
+		UserInputManager.Create   ( ConfigFile );
 	}
-
+	
 	UpdateRecentFiles();
-
+	
 	if (RomImage && strlen( RomImage ))
 	{
-		FileManager->AddRecentFile( RomImage );
-		FileManager->Load( 0, preferences->EmulateImmediately() );
+		FileManager.AddRecentFile( RomImage );
+		FileManager.Load( 0, preferences.EmulateImmediately() );
 	}
-
-	hMenuFullscreenBrush = CreateSolidBrush( RGB(0x70,0x75,0xC0) );
-
-	SelectPort[0] = IDM_MACHINE_PORT1_PAD1;
-	SelectPort[1] = IDM_MACHINE_PORT2_PAD2;
-	SelectPort[2] = IDM_MACHINE_PORT3_UNCONNECTED;
-	SelectPort[3] = IDM_MACHINE_PORT4_UNCONNECTED;
-	SelectPort[4] = IDM_MACHINE_EXPANSION_UNCONNECTED;
-
-	AutoSelectController = FALSE;
+	
 	OnAutoSelectController();
-
 	UpdateWindowItems();
-
-	PDX_TRY(GraphicManager->SwitchToWindowed( rcScreen ));
-
-	if (preferences->StartUpFullScreen())
+	GraphicManager.SwitchToWindowed( rcScreen );
+	
+	if (preferences.StartUpFullScreen())
 	{
-		PDX_TRY(SwitchScreen());
+		SwitchScreen();
 	}
 	else
 	{
 		ShowWindow( hWnd, iCmdShow );
 	}
-
+	
 	active = ready = TRUE;
-
-	return PDX_OK;
 }
 
-#undef NST_INIT_F
-#undef NST_INIT_S
-#undef NST_INIT
+////////////////////////////////////////////////////////////////////////////////////////
+// destructor
+////////////////////////////////////////////////////////////////////////////////////////
+
+APPLICATION::~APPLICATION()
+{
+	active = ready = FALSE;
+
+	SaveStateManager.Flush();
+	nes.Power( FALSE );
+	
+	{
+		CONFIGFILE file;
+		CONFIGFILE* ConfigFile = NULL;
+
+		if (ExitSuccess)
+		{
+			ConfigFile = &file;
+
+			const UINT factor = GetAspectRatio();
+
+			if (factor != UINT_MAX)
+			{
+				switch (factor)
+				{				
+	     			case 0: file["window size"] = "1x"; break;
+	     			case 1: file["window size"] = "2x"; break;
+	     			case 2: file["window size"] = "3x"; break;
+	       			case 3: file["window size"] = "4x"; break;
+				}
+			}
+		}
+
+		TimerManager.Destroy     ( ConfigFile );
+		FileManager.Destroy      ( ConfigFile );
+		GraphicManager.Destroy   ( ConfigFile );
+		SoundManager.Destroy     ( ConfigFile );
+		InputManager.Destroy     ( ConfigFile );
+		FdsManager.Destroy       ( ConfigFile );
+		GameGenieManager.Destroy ( ConfigFile );
+		preferences.Destroy      ( ConfigFile );
+
+		if (ConfigFile)
+			InitConfigFile( file, CFG_SAVE );
+	}
+
+	if (hAccel)
+		DestroyAcceleratorTable( hAccel );
+
+	if (hMenu)
+	{
+		DestroyMenu( hMenu );
+		hMenu = NULL;
+	}
+
+	if (hWnd)
+		DestroyWindow( hWnd );
+
+	log.Close( !ExitSuccess || preferences.LogFileEnabled() );
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT APPLICATION::OnError(const CHAR* const text)
+BOOL APPLICATION::InitConfigFile(CONFIGFILE& file,const CFG_OP op)
 {
-	if (!error)
+	PDXSTRING filename;
+
+	if (PDX_SUCCEEDED(FILEMANAGER::GetExeFileName(filename)))
 	{
-		error = TRUE;
-		active = ready = FALSE;
+		filename.ReplaceFileExtension( "cfg" );
 
-		SoundManager->Stop();
-		
-		if (!windowed)
-		{	
-			if (GraphicManager->GetDevice())
-			{
-				GraphicManager->GetDevice()->RestoreDisplayMode();
-				windowed = TRUE;
-			}
-		}
-
-		ShowCursor( TRUE );
-
-		if (!windowed) GraphicManager->EnableGDI( TRUE );
-		MessageBox( hWnd, text, "Nestopia Error!", MB_OK|MB_ICONERROR );
-		if (!windowed) GraphicManager->EnableGDI( FALSE );
-
-		if (hWnd)
+		switch (op)
 		{
-			DestroyWindow( hWnd );
-			hWnd = NULL;
+     		case CFG_LOAD: if (PDX_SUCCEEDED(file.Load(filename))) return TRUE; break;
+			case CFG_SAVE: if (PDX_SUCCEEDED(file.Save(filename))) return TRUE; break;
 		}
 	}
 
-	return PDX_FAILURE;
+	return FALSE;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+// main loop
+////////////////////////////////////////////////////////////////////////////////////////
+
+INT APPLICATION::Run()
+{
+	PDX_ASSERT(hWnd);
+
+	MSG msg;	
+	msg.message = WM_NULL;
+	PeekMessage( &msg, NULL, 0, 0, PM_NOREMOVE );
+
+	while (msg.message != WM_QUIT)
+	{
+		if ((active ? PeekMessage(&msg,NULL,0,0,PM_REMOVE) : GetMessage(&msg,NULL,0,0)))
+		{
+			if (!AcceleratorEnabled || !TranslateAccelerator( hWnd, hAccel, &msg ))
+			{
+				TranslateMessage( &msg );
+				DispatchMessage( &msg );
+			}
+		}
+		else if (active && ready)
+		{
+			ExecuteFrame();
+		}
+	}
+
+	ExitSuccess = TRUE;
+
+	return INT(msg.wParam);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+VOID APPLICATION::ExecuteFrame()
+{
+	const BOOL WindowVisible = !IsIconic( hWnd );
+	const BOOL IsRunning = nes.IsOn() && !nes.IsPaused();
+
+	if (IsRunning && nes.IsImage())
+	{
+		if (!FrameSkips)
+		{
+			const BOOL ScreenNotCleared = WindowVisible && !GraphicManager.TryClearScreen();
+
+			InputManager.Poll();
+
+			if (ScreenNotCleared)
+				GraphicManager.ClearScreen();
+
+			if (WindowVisible)
+			{
+				nes.Execute
+				(
+					GraphicManager.GetFormat(),
+					SoundManager.GetFormat(),
+					InputManager.GetFormat()
+				);
+
+				if (ScreenMsg.Length())
+					OutputScreenMsg();
+
+				FrameSkips = TimerManager.SynchRefreshRate( TRUE, InBackground, TRUE );
+				GraphicManager.Present();
+			}
+			else
+			{
+				nes.Execute
+				(
+					NULL,
+					SoundManager.GetFormat(),
+					InputManager.GetFormat()
+				);
+
+				FrameSkips = TimerManager.SynchRefreshRate( FALSE, TRUE, TRUE );
+			}
+		}
+		else
+		{
+			--FrameSkips;
+
+			InputManager.Poll();
+
+			nes.Execute
+			(
+				NULL,
+				SoundManager.GetFormat(),
+				InputManager.GetFormat()
+			);
+		}
+	}
+	else if (IsRunning && nes.IsNsf())
+	{
+		if (WindowVisible)
+			GraphicManager.ClearScreen();
+
+		nes.Execute
+		(
+			NULL,
+			SoundManager.GetFormat(),
+			NULL
+		);
+
+		if (WindowVisible)
+		{
+			if (nes.IsNsf())
+				OutputNsfInfo();
+
+			if (ScreenMsg.Length())
+				OutputScreenMsg();
+
+			TimerManager.SynchRefreshRate( TRUE, InBackground, FALSE );
+			GraphicManager.Present();
+			GraphicManager.Wait();
+		}
+		else
+		{
+			TimerManager.SynchRefreshRate( FALSE, TRUE, FALSE );
+		}
+	}
+	else
+	{
+		if (WindowVisible)
+		{
+			GraphicManager.ClearScreen();
+
+			if (ScreenMsg.Length())
+				OutputScreenMsg();
+
+			GraphicManager.Repaint();
+		}
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+BOOL APPLICATION::OnUserInput(const CHAR* const title,const CHAR* const text,PDXSTRING& input)
+{
+	return UserInputManager.Start( title, text, input );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -466,22 +556,10 @@ PDXRESULT APPLICATION::OnError(const CHAR* const text)
 
 PDXRESULT APPLICATION::OnWarning(const CHAR* const text)
 {
-	if (!error)
-	{
-		const BOOL yourcardsuck = !windowed && !GraphicManager->CanRenderWindowed();
-
-		if (yourcardsuck)
-			SwitchScreen();
-
-		GraphicManager->EnableGDI( TRUE );
-		MessageBox( hWnd, text, "Nestopia Warning!", MB_OK|MB_ICONWARNING );
-		GraphicManager->EnableGDI( FALSE );
-
-		if (yourcardsuck)
-			SwitchScreen();
-
-		TimerManager->Reset();
-	}
+	SoundManager.Clear();
+	GraphicManager.EnableGDI( TRUE );
+	MessageBox( hWnd, text, "Nestopia Warning!", MB_OK|MB_ICONWARNING );
+	GraphicManager.EnableGDI( FALSE );
 
 	return PDX_FAILURE;
 }
@@ -492,55 +570,12 @@ PDXRESULT APPLICATION::OnWarning(const CHAR* const text)
 
 BOOL APPLICATION::OnQuestion(const CHAR* const head,const CHAR* const text)
 {
-	if (!error)
-	{
-		const BOOL yourcardsuck = !windowed && !GraphicManager->CanRenderWindowed();
+	SoundManager.Clear();
+	GraphicManager.EnableGDI( TRUE );
+	const BOOL yep = (MessageBox( hWnd, text, head, MB_YESNO|MB_ICONQUESTION ) == IDYES);		
+	GraphicManager.EnableGDI( FALSE );
 
-		if (yourcardsuck)
-			SwitchScreen();
-
-		ShowCursor( TRUE );
-
-		GraphicManager->EnableGDI( TRUE );		
-		const BOOL yep = MessageBox( hWnd, text, head, MB_YESNO|MB_ICONQUESTION ) == IDYES;		
-		GraphicManager->EnableGDI( FALSE );
-
-		if (yourcardsuck)
-			SwitchScreen();
-
-		if (!windowed && hMenu)
-			while (ShowCursor( TRUE ) >= 0);
-
-		TimerManager->Reset();
-
-		return yep;
-	}
-
-	return FALSE;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-PDXRESULT APPLICATION::BeginDialogMode()
-{
-	if (!windowed && hMenu)
-		ShowCursor( TRUE );
-
-	return GraphicManager->BeginDialogMode(); 
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-PDXRESULT APPLICATION::EndDialogMode()
-{
-	if (!windowed && hMenu)
-		while (ShowCursor( FALSE ) >= 0);
-
-	return GraphicManager->EndDialogMode(); 
+	return yep;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -643,6 +678,12 @@ LRESULT APPLICATION::MsgProc(const HWND hWnd,const UINT uMsg,const WPARAM wParam
 			OnInactive(TRUE);
 			UpdateDynamicMenuItems();
 			return 0;
+
+		case WM_NCLBUTTONDOWN:
+		case WM_NCRBUTTONDOWN:
+			
+			SoundManager.Clear();
+			break;
   
 		case WM_ACTIVATEAPP:
 
@@ -663,15 +704,10 @@ LRESULT APPLICATION::MsgProc(const HWND hWnd,const UINT uMsg,const WPARAM wParam
 				case PBT_APMRESUMESUSPEND: OnActive(); return 0;
 			}
 			break;
-
+		
 		case WM_CLOSE:
 
 			OnCloseWindow();
-			return 0;
-
-		case WM_DESTROY:
-
-			PostQuitMessage(0); 
 			return 0;
 	}
 
@@ -688,62 +724,62 @@ BOOL APPLICATION::OnCommand(const WPARAM wParam)
 
 	switch (idm)
 	{
-		case IDM_FILE_OPEN:                       OnOpen( FILE_ALL );                     return TRUE;
-		case IDM_FILE_CLOSE:                      OnClose();                              return TRUE;
-		case IDM_FILE_LOAD_SCRIPT:                OnLoadScript();                         return TRUE;
-		case IDM_FILE_SAVE_SCRIPT:                OnSaveScript();                         return TRUE;
-		case IDM_FILE_LOAD_STATE:                 OnLoadState();                          return TRUE;
-		case IDM_FILE_SAVE_STATE:                 OnSaveState();                          return TRUE;
-		case IDM_FILE_QUIT:			              OnCloseWindow();                        return TRUE;
-		case IDM_FILE_SAVE_SCREENSHOT:            GraphicManager->SaveScreenShot();       return TRUE;
-		case IDM_FILE_RECORD_SOUND_FILE:		  
-		case IDM_FILE_RECORD_SOUND_START:		  
-		case IDM_FILE_RECORD_SOUND_STOP:		  
-		case IDM_FILE_RECORD_SOUND_RESET:         OnSoundRecorder( idm );                 return TRUE;
-		case IDM_FILE_MOVIE_FILE:                 MovieManager->StartDialog();            return TRUE;
-		case IDM_FILE_MOVIE_PLAY:                 MovieManager->Play();                   return TRUE;
-		case IDM_FILE_MOVIE_RECORD:               MovieManager->Record();                 return TRUE;
-		case IDM_FILE_MOVIE_STOP:                 MovieManager->Stop();                   return TRUE;
-		case IDM_FILE_MOVIE_REWIND:               MovieManager->Rewind();                 return TRUE;
-		case IDM_FILE_MOVIE_FORWARD:              MovieManager->Forward();                return TRUE;
-		case IDM_MACHINE_POWER_ON:		          OnPower( TRUE  );                       return TRUE;
-		case IDM_MACHINE_POWER_OFF:               OnPower( FALSE );                       return TRUE;
-		case IDM_MACHINE_RESET_SOFT:              OnReset( FALSE );                       return TRUE;
-		case IDM_MACHINE_RESET_HARD:              OnReset( TRUE  );                       return TRUE;
-		case IDM_MACHINE_AUTOSELECTCONTROLLER:    OnAutoSelectController();               return TRUE;                                
+		case IDM_FILE_OPEN:                       OnOpen( FILE_ALL );                 return TRUE;
+		case IDM_FILE_CLOSE:                      OnClose();                          return TRUE;
+		case IDM_FILE_LOAD_NSP:                   OnLoadNsp();                        return TRUE;
+		case IDM_FILE_LOAD_NST:                   OnLoadState();                      return TRUE;
+		case IDM_FILE_SAVE_NSP:                   OnSaveNsp();                        return TRUE;
+		case IDM_FILE_SAVE_NST:                   OnSaveState();                      return TRUE;
+		case IDM_FILE_QUIT:			              OnCloseWindow();                    return TRUE;
+		case IDM_FILE_SAVE_SCREENSHOT:            OnSaveScreenShot();                 return TRUE;
+		case IDM_FILE_SOUND_CAPTURE_FILE:		  
+		case IDM_FILE_SOUND_CAPTURE_RECORD:		  
+		case IDM_FILE_SOUND_CAPTURE_STOP:		  
+		case IDM_FILE_SOUND_CAPTURE_RESET:        OnSoundRecorder( idm );             return TRUE;
+		case IDM_FILE_MOVIE_FILE:                 MovieManager.StartDialog();         return TRUE;
+		case IDM_FILE_MOVIE_PLAY:                 MovieManager.Play();                return TRUE;
+		case IDM_FILE_MOVIE_RECORD:               MovieManager.Record();              return TRUE;
+		case IDM_FILE_MOVIE_STOP:                 MovieManager.Stop();                return TRUE;
+		case IDM_FILE_MOVIE_REWIND:               MovieManager.Rewind();              return TRUE;
+		case IDM_FILE_MOVIE_FORWARD:              MovieManager.Forward();             return TRUE;
+		case IDM_MACHINE_POWER_ON:		          OnPower( TRUE  );                   return TRUE;
+		case IDM_MACHINE_POWER_OFF:               OnPower( FALSE );                   return TRUE;
+		case IDM_MACHINE_RESET_SOFT:              OnReset( FALSE );                   return TRUE;
+		case IDM_MACHINE_RESET_HARD:              OnReset( TRUE  );                   return TRUE;
+		case IDM_MACHINE_AUTOSELECTCONTROLLER:    OnAutoSelectController();           return TRUE;                                
 		case IDM_MACHINE_MODE_AUTO:                                    
 		case IDM_MACHINE_MODE_NTSC:		  
-		case IDM_MACHINE_MODE_PAL:	              OnMode( idm );                          return TRUE;
-		case IDM_MACHINE_PAUSE:	                  OnPause();                              return TRUE;
-		case IDM_FDS_EJECT_DISK:                  OnFdsEjectDisk();                       return TRUE;
+		case IDM_MACHINE_MODE_PAL:	              OnMode( idm );                      return TRUE;
+		case IDM_MACHINE_PAUSE:	                  OnPause();                          return TRUE;
+		case IDM_FDS_EJECT_DISK:                  OnFdsEjectDisk();                   return TRUE;
 		case IDM_FDS_SIDE_A:                      
-		case IDM_FDS_SIDE_B:                      OnFdsSide( idm );                       return TRUE;
-		case IDM_FDS_OPTIONS:                     FdsManager->StartDialog();;             return TRUE;
-		case IDM_NSF_PLAY:                        OnNsfCommand( NES::IO::NSF::PLAY );     return TRUE;
-		case IDM_NSF_STOP:                        OnNsfCommand( NES::IO::NSF::STOP );     return TRUE;
-		case IDM_NSF_NEXT:                        OnNsfCommand( NES::IO::NSF::NEXT );     return TRUE;
-		case IDM_NSF_PREV:                        OnNsfCommand( NES::IO::NSF::PREV );     return TRUE;
-		case IDM_VIEW_ROM_INFO:                   RomInfo->StartDialog();                 return TRUE;
-		case IDM_VIEW_LOGFILE:                    LogFileManager->StartDialog();          return TRUE;
-		case IDM_VIEW_SWITCH_SCREEN:              SwitchScreen();                         return TRUE;
-		case IDM_VIEW_WINDOWSIZE_MAX:             OnWindowSize( UINT_MAX );               return TRUE;
-		case IDM_VIEW_WINDOWSIZE_1X:              OnWindowSize( 0 );                      return TRUE;
-		case IDM_VIEW_WINDOWSIZE_2X:              OnWindowSize( 1 );                      return TRUE;
-		case IDM_VIEW_WINDOWSIZE_4X:              OnWindowSize( 2 );                      return TRUE;
-		case IDM_VIEW_WINDOWSIZE_8X:              OnWindowSize( 3 );                      return TRUE;
-		case IDM_VIEW_HIDE_MENU:                  OnHideMenu();                           return TRUE;
-		case IDM_OPTIONS_PREFERENCES:             preferences        ->StartDialog();     return TRUE;
-		case IDM_OPTIONS_VIDEO:                   GraphicManager     ->StartDialog();     return TRUE;
-		case IDM_OPTIONS_SOUND:                   SoundManager       ->StartDialog();     return TRUE;
-		case IDM_OPTIONS_INPUT:                   InputManager       ->StartDialog();     return TRUE;
-		case IDM_OPTIONS_TIMING:                  TimerManager       ->StartDialog();     return TRUE;
-		case IDM_OPTIONS_PATHS:                   FileManager        ->StartDialog();     return TRUE;
-		case IDM_OPTIONS_GAME_GENIE:              GameGenieManager   ->StartDialog();     return TRUE;
-		case IDM_OPTIONS_AUTO_SAVE:               SaveStateManager   ->StartDialog();     return TRUE;
-		case IDM_OPTIONS_DIP_SWITCHES:            VsDipSwitchManager ->StartDialog();     return TRUE;
-		case IDM_HELP_ABOUT:                      HelpManager->StartAboutDialog();        return TRUE;
-		case IDM_HELP_LICENCE:                    HelpManager->StartLicenceDialog();      return TRUE;
-		case ID_TOGGLE_MENU:               		  OnRightMouseButtonDown();               return TRUE;
+		case IDM_FDS_SIDE_B:                      OnFdsSide( idm );                   return TRUE;
+		case IDM_FDS_OPTIONS:                     FdsManager.StartDialog();           return TRUE;
+		case IDM_NSF_PLAY:                        OnNsfCommand( NES::IO::NSF::PLAY ); return TRUE;
+		case IDM_NSF_STOP:                        OnNsfCommand( NES::IO::NSF::STOP ); return TRUE;
+		case IDM_NSF_NEXT:                        OnNsfCommand( NES::IO::NSF::NEXT ); return TRUE;
+		case IDM_NSF_PREV:                        OnNsfCommand( NES::IO::NSF::PREV ); return TRUE;
+		case IDM_VIEW_ROM_INFO:                   RomInfo.StartDialog();              return TRUE;
+		case IDM_VIEW_LOGFILE:                    log.StartDialog();                  return TRUE;
+		case IDM_VIEW_SWITCH_SCREEN:              SwitchScreen();                     return TRUE;
+		case IDM_VIEW_WINDOWSIZE_MAX:             OnWindowSize( UINT_MAX );           return TRUE;
+		case IDM_VIEW_WINDOWSIZE_1X:              OnWindowSize( 0 );                  return TRUE;
+		case IDM_VIEW_WINDOWSIZE_2X:              OnWindowSize( 1 );                  return TRUE;
+		case IDM_VIEW_WINDOWSIZE_4X:              OnWindowSize( 2 );                  return TRUE;
+		case IDM_VIEW_WINDOWSIZE_8X:              OnWindowSize( 3 );                  return TRUE;
+		case IDM_VIEW_HIDE_MENU:                  OnHideMenu();                       return TRUE;
+		case IDM_OPTIONS_PREFERENCES:             preferences.StartDialog();          return TRUE;
+		case IDM_OPTIONS_VIDEO:                   GraphicManager.StartDialog();       return TRUE;
+		case IDM_OPTIONS_SOUND:                   SoundManager.StartDialog();         return TRUE;
+		case IDM_OPTIONS_INPUT:                   InputManager.StartDialog();         return TRUE;
+		case IDM_OPTIONS_TIMING:                  TimerManager.StartDialog();         return TRUE;
+		case IDM_OPTIONS_PATHS:                   FileManager.StartDialog();          return TRUE;
+		case IDM_OPTIONS_GAME_GENIE:              GameGenieManager.StartDialog();     return TRUE;
+		case IDM_OPTIONS_AUTO_SAVE:               SaveStateManager.StartDialog();     return TRUE;
+		case IDM_OPTIONS_DIP_SWITCHES:            VsDipSwitchManager.StartDialog();   return TRUE;
+		case IDM_HELP_ABOUT:                      
+		case IDM_HELP_LICENCE:                    OnHelp( idm );                      return TRUE;
+		case IDM_TOGGLE_MENU:              		  OnRightMouseButtonDown();           return TRUE;
 	}
 
 	if (idm >= IDM_MACHINE_PORT1_UNCONNECTED && idm <= IDM_MACHINE_EXPANSION_FAMILYBASICKEYBOARD)
@@ -836,20 +872,11 @@ VOID APPLICATION::OnPort(const UINT wParam)
 		}
 		else
 		{
-			AcceleratorEnabled = TRUE;
+			AcceleratorEnabled = bool(hAccel);
 			UseZapper = nes.IsAnyControllerConnected(NES::CONTROLLER_ZAPPER);
 		}
 
-		if (UseZapper)
-		{
-			hCursor = LoadCursor(NULL,IDC_CROSS);
-		}
-		else
-		{
-			hCursor = (windowed || !hMenu) ? LoadCursor(NULL,IDC_ARROW) : NULL; 
-		}
-
-		SetCursor( hCursor );
+		RefreshCursor();
 	}
 }														 
 
@@ -887,35 +914,21 @@ VOID CALLBACK APPLICATION::OnScreenMsgEnd(HWND hWnd,UINT,UINT_PTR,DWORD)
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-VOID APPLICATION::StartScreenMsg(const CHAR* const msg,const UINT duration)
-{
-	ScreenMsg = msg;
-	SetTimer( hWnd, TIMER_ID_SCREEN_MSG, duration, OnScreenMsgEnd );
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
 BOOL APPLICATION::OnSysCommand(const WPARAM wParam)
 {
-	if (windowed)
-	{
-		SoundManager->Clear();
-		TimerManager->Reset();
-	}
-	else
+	SoundManager.Clear();
+
+	if (!windowed)
 	{
 		switch (wParam)
 		{
      		case SC_MOVE:
        		case SC_SIZE:
-     		case SC_MAXIMIZE:
 			case SC_MONITORPOWER:
 				return TRUE;
 		}
 	}
-
+  
 	return FALSE;
 }
 
@@ -929,16 +942,41 @@ VOID APPLICATION::OnPause()
 	{
 		nes.Pause( FALSE );
 		CheckMenuItem( GetMenu(), IDM_MACHINE_PAUSE, MF_UNCHECKED );
-		StartScreenMsg( "Resumed..", 1000 );
+		StartScreenMsg( 1000, "Resumed.." );
 		OutputScreenMsg();
 	}
 	else
 	{
 		nes.Pause( TRUE );
-		SoundManager->Clear();
+		SoundManager.Clear();
 		CheckMenuItem( GetMenu(), IDM_MACHINE_PAUSE, MF_CHECKED );
-		StartScreenMsg( "Paused..", 1000 );
+		StartScreenMsg( 1000, "Paused.." );
 		OutputScreenMsg();
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+VOID APPLICATION::RefreshCursor(const BOOL force)
+{
+	if (!force && UseZapper && nes.IsOn() && nes.IsCartridge())
+	{
+		hCursor = LoadCursor( NULL, IDC_CROSS );
+		SetCursor( hCursor );
+		while (ShowCursor( TRUE ) <= -1);
+	}
+	else if (force || windowed || !hMenu)
+	{
+		hCursor = LoadCursor( NULL, IDC_ARROW );
+		SetCursor( hCursor );
+		while (ShowCursor( TRUE ) <= -1);
+	}
+	else
+	{
+		while (ShowCursor( FALSE ) >= 0);
+		SetCursor( NULL );
 	}
 }
 
@@ -972,7 +1010,22 @@ VOID APPLICATION::OnNsfCommand(const NES::IO::NSF::OP op)
 
 VOID APPLICATION::OnExitSizeMove()
 {
-	GraphicManager->UpdateScreenRect( rcScreen, TRUE );
+	GraphicManager.UpdateScreenRect( rcScreen, TRUE );
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+VOID APPLICATION::OnHelp(const UINT wParam)
+{
+	SoundManager.Clear();
+
+	switch (wParam)
+	{
+     	case IDM_HELP_ABOUT:   HelpManager.StartAboutDialog();
+     	case IDM_HELP_LICENCE: HelpManager.StartLicenceDialog();
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -981,12 +1034,14 @@ VOID APPLICATION::OnExitSizeMove()
 
 VOID APPLICATION::OnActive()
 {
-	InputManager->AcquireDevices();
-	SoundManager->Start();
-	TimerManager->Reset();
+	if (active = ready)
+		active = GraphicManager.OnFocus(TRUE);
+	
+	if (!hMenu)
+		DrawMenuBar(hWnd);
 
 	InBackground = FALSE;
-	active = ready;
+	SoundManager.Start();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -997,10 +1052,11 @@ VOID APPLICATION::OnInactive(const BOOL force)
 {
 	InBackground = TRUE;
 
-	if (force || (!preferences->RunInBackground() && !(nes.IsNsf() && nes.IsOn() && preferences->RunNsfInBackground())))
+	if (force || (!preferences.RunInBackground() && !(nes.IsNsf() && nes.IsOn() && preferences.RunNsfInBackground())))
 	{
 		active = FALSE;
-		SoundManager->Stop();
+		SoundManager.Stop();
+		GraphicManager.OnFocus(FALSE);
 	}
 }
 
@@ -1010,27 +1066,29 @@ VOID APPLICATION::OnInactive(const BOOL force)
 
 VOID APPLICATION::OnOpen(const FILETYPE FileType,const INT recent)
 {
-	const bool WasPAL = nes.IsPAL();
+	SoundManager.Clear();
+	SaveStateManager.Flush();
 
+	const BOOL WasPAL = nes.IsPAL();
 	PDXRESULT result = PDX_FAILURE;
 
 	switch (FileType)
 	{
-       	case FILE_ALL: result = FileManager->Load    ( recent, preferences->EmulateImmediately() ); break;
-		case FILE_NSP: result = FileManager->LoadNSP ( recent, preferences->EmulateImmediately() ); break;
-		default: return;
+   		case FILE_ALL: result = FileManager.Load    ( recent, preferences.EmulateImmediately() ); break;
+   		case FILE_NSP: result = FileManager.LoadNSP ( recent, preferences.EmulateImmediately() ); break;
+   		default: return;
 	}
 
 	if (PDX_SUCCEEDED(result))
 	{
-		const bool IsPAL = nes.IsPAL();
+		const BOOL IsPAL = nes.IsPAL();
 
 		if (NesMode == NES::MODE_AUTO)
 		{
-			TimerManager->EnablePAL( IsPAL );
-			GraphicManager->UpdateDirectDraw();
+			TimerManager.EnablePAL( IsPAL );
+			GraphicManager.UpdateDirectDraw();
 
-			if (windowed)
+			if (bool(IsPAL) != bool(WasPAL) && windowed)
 			{
 				const UINT factor = GetAspectRatio();
 
@@ -1042,30 +1100,37 @@ VOID APPLICATION::OnOpen(const FILETYPE FileType,const INT recent)
 		if (AutoSelectController)
 			UpdateControllerPorts();
 
-		{
-    		PDXSTRING string;
-
-    		string  = "Loaded \"";
-     		string += FileManager->GetRecentFile().GetFileName();
-
-    		if (WasPAL != IsPAL) string += (IsPAL ? "\" PAL selected" : "NTSC selected");
-     		else                 string += "\"..";
-
-			StartScreenMsg( string.String(), 1500 );
-		}
+		StartScreenMsg
+		(
+		    1500,
+		    "Loaded ",
+			FileManager.GetRecentFile().GetFileName(),
+			", ",
+			(IsPAL ? "PAL" : "NTSC")
+		);
 
 		const PDXSTRING* const name = nes.GetMovieFileName();
 
 		if (name)
-			MovieManager->SetFile( *name );
+			MovieManager.SetFile( *name );
 	}
 
 	UpdateWindowItems();
 
-	if (FileManager->UpdatedRecentFiles())
+	if (FileManager.UpdatedRecentFiles())
 		UpdateRecentFiles();
 
 	DrawMenuBar( hWnd );
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+VOID APPLICATION::OnSaveScreenShot()
+{
+	SoundManager.Clear();
+	GraphicManager.SaveScreenShot();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -1129,7 +1194,7 @@ VOID APPLICATION::UpdateControllerPorts()
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-VOID APPLICATION::OnLoadScript()
+VOID APPLICATION::OnLoadNsp()
 {
 	OnOpen(FILE_NSP);
 	UpdateFdsMenu();
@@ -1139,9 +1204,10 @@ VOID APPLICATION::OnLoadScript()
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-VOID APPLICATION::OnSaveScript()
+VOID APPLICATION::OnSaveNsp()
 {
-	FileManager->SaveNSP();
+	SoundManager.Clear();
+	FileManager.SaveNSP();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -1150,7 +1216,8 @@ VOID APPLICATION::OnSaveScript()
 
 VOID APPLICATION::OnLoadState()
 {
-	FileManager->LoadNST();
+	SoundManager.Clear();
+	FileManager.LoadNST();
 	UpdateFdsMenu();
 }
 
@@ -1160,7 +1227,8 @@ VOID APPLICATION::OnLoadState()
 
 VOID APPLICATION::OnSaveState()
 {
-	FileManager->SaveNST();
+	SoundManager.Clear();
+	FileManager.SaveNST();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -1171,10 +1239,10 @@ VOID APPLICATION::OnSoundRecorder(const UINT wParam)
 {
 	switch (wParam)
 	{
-     	case IDM_FILE_RECORD_SOUND_FILE:  SoundManager->StartSoundRecordDialog(); break;
-     	case IDM_FILE_RECORD_SOUND_START: SoundManager->StartSoundRecording();    break;
-     	case IDM_FILE_RECORD_SOUND_STOP:  SoundManager->StopSoundRecording();     break;
-     	case IDM_FILE_RECORD_SOUND_RESET: SoundManager->ResetSoundRecording();    break;
+     	case IDM_FILE_SOUND_CAPTURE_FILE:   SoundManager.StartSoundRecordDialog(); break;
+     	case IDM_FILE_SOUND_CAPTURE_RECORD: SoundManager.StartSoundRecording();    break;
+     	case IDM_FILE_SOUND_CAPTURE_STOP:   SoundManager.StopSoundRecording();     break;
+     	case IDM_FILE_SOUND_CAPTURE_RESET:  SoundManager.ResetSoundRecording();    break;
 	}
 	
 	UpdateSoundRecorderMenu();
@@ -1335,14 +1403,23 @@ VOID APPLICATION::UpdateWindowItems()
 
 	PDXSTRING name("Nestopia");
 
-	if (nes.IsOn())
+	const BOOL IsOn        = nes.IsOn();
+	const BOOL IsImage     = nes.IsImage();
+	const BOOL IsImageOn   = IsOn && IsImage;
+	const BOOL IsNsf       = nes.IsNsf();
+	const BOOL IsNsfOn     = IsOn && IsNsf;
+	const BOOL IsLoaded    = IsImage || IsNsf;
+	const BOOL IsLoadedOn  = IsOn && IsLoaded;
+	const BOOL IsCartridge = nes.IsCartridge();
+
+	if (IsOn)
 	{
-		if (nes.IsCartridge())
+		if (IsCartridge)
 		{
 			if (info && info->name != "unknown")
 				name = info->name;
 		}
-		else if (nes.IsNsf())
+		else if (IsNsf)
 		{
 			NES::IO::NSF::CONTEXT context;
 			nes.GetNsfContext( context );
@@ -1351,31 +1428,27 @@ VOID APPLICATION::UpdateWindowItems()
 	}
 
 	UpdateNsf();
-
-	const BOOL IsLoaded = nes.IsImage() || nes.IsNsf();
-
-	ResetSaveSlots( nes.IsOn() && nes.IsImage() );
-
+	ResetSaveSlots( IsImageOn );
 	SetWindowText( hWnd, name.String() ); 
 
-	const BOOL ExportBitmaps = GraphicManager->CanExportBitmaps();
+	const BOOL ExportBitmaps = GraphicManager.CanExportBitmaps();
 
-	EnableMenuItem( hMenu, IDM_FILE_CLOSE,           NST_MENUSTATE( IsLoaded                                      ) );
-	EnableMenuItem( hMenu, IDM_FILE_LOAD_STATE,      NST_MENUSTATE( nes.IsOn() && nes.IsImage()                   ) );
-	EnableMenuItem( hMenu, IDM_FILE_SAVE_STATE,      NST_MENUSTATE( nes.IsOn() && nes.IsImage()                   ) );
-	EnableMenuItem( hMenu, IDM_FILE_SAVE_SCRIPT,     NST_MENUSTATE( nes.IsImage()                                 ) );
-	EnableMenuItem( hMenu, IDM_FILE_SAVE_SCREENSHOT, NST_MENUSTATE( nes.IsOn() && nes.IsImage() && ExportBitmaps  ) );
-	EnableMenuItem( hMenu, IDM_MACHINE_RESET_SOFT,   NST_MENUSTATE( nes.IsOn()                                    ) );
-	EnableMenuItem( hMenu, IDM_MACHINE_RESET_HARD,   NST_MENUSTATE( nes.IsOn()                                    ) );
-	EnableMenuItem( hMenu, IDM_MACHINE_POWER_ON,     NST_MENUSTATE( nes.IsOff() && IsLoaded                       ) );
-	EnableMenuItem( hMenu, IDM_MACHINE_POWER_OFF,    NST_MENUSTATE( nes.IsOn()                                    ) );
-	EnableMenuItem( hMenu, IDM_MACHINE_PAUSE,        NST_MENUSTATE( nes.IsOn() && IsLoaded                        ) );
-	EnableMenuItem( hMenu, IDM_NSF_PLAY,             NST_MENUSTATE( nes.IsOn() && nes.IsNsf()                     ) );
-	EnableMenuItem( hMenu, IDM_NSF_STOP,             NST_MENUSTATE( nes.IsOn() && nes.IsNsf()                     ) );
-	EnableMenuItem( hMenu, IDM_NSF_PREV,             NST_MENUSTATE( nes.IsOn() && nes.IsNsf()                     ) );
-	EnableMenuItem( hMenu, IDM_NSF_NEXT,             NST_MENUSTATE( nes.IsOn() && nes.IsNsf()                     ) );
-	EnableMenuItem( hMenu, IDM_VIEW_ROM_INFO,        NST_MENUSTATE( nes.IsCartridge()                             ) );
-	EnableMenuItem( hMenu, IDM_OPTIONS_DIP_SWITCHES, NST_MENUSTATE( nes.GetNumVsSystemDipSwitches()               ) );
+	EnableMenuItem( hMenu, IDM_FILE_CLOSE,           NST_MENUSTATE( IsLoaded                        ) );
+	EnableMenuItem( hMenu, IDM_FILE_LOAD_NST,        NST_MENUSTATE( IsImageOn                       ) );
+	EnableMenuItem( hMenu, IDM_FILE_SAVE_NST,        NST_MENUSTATE( IsImageOn                       ) );
+	EnableMenuItem( hMenu, IDM_FILE_SAVE_NSP,        NST_MENUSTATE( IsImage                         ) );
+	EnableMenuItem( hMenu, IDM_FILE_SAVE_SCREENSHOT, NST_MENUSTATE( IsImageOn && ExportBitmaps      ) );
+	EnableMenuItem( hMenu, IDM_MACHINE_RESET_SOFT,   NST_MENUSTATE( IsOn                            ) );
+	EnableMenuItem( hMenu, IDM_MACHINE_RESET_HARD,   NST_MENUSTATE( IsOn                            ) );
+	EnableMenuItem( hMenu, IDM_MACHINE_POWER_ON,     NST_MENUSTATE( !IsOn && IsLoaded               ) );
+	EnableMenuItem( hMenu, IDM_MACHINE_POWER_OFF,    NST_MENUSTATE( IsOn                            ) );
+	EnableMenuItem( hMenu, IDM_MACHINE_PAUSE,        NST_MENUSTATE( IsLoadedOn                      ) );
+	EnableMenuItem( hMenu, IDM_NSF_PLAY,             NST_MENUSTATE( IsNsfOn                         ) );
+	EnableMenuItem( hMenu, IDM_NSF_STOP,             NST_MENUSTATE( IsNsfOn                         ) );
+	EnableMenuItem( hMenu, IDM_NSF_PREV,             NST_MENUSTATE( IsNsfOn                         ) );
+	EnableMenuItem( hMenu, IDM_NSF_NEXT,             NST_MENUSTATE( IsNsfOn                         ) );
+	EnableMenuItem( hMenu, IDM_VIEW_ROM_INFO,        NST_MENUSTATE( nes.IsCartridge()               ) );
+	EnableMenuItem( hMenu, IDM_OPTIONS_DIP_SWITCHES, NST_MENUSTATE( nes.GetNumVsSystemDipSwitches() ) );
 
 	CheckMenuItem( hMenu, IDM_MACHINE_PAUSE, nes.IsPaused() ? MF_CHECKED : MF_UNCHECKED );
 
@@ -1383,13 +1456,13 @@ VOID APPLICATION::UpdateWindowItems()
 		HMENU hSubMenu;
 		
 		hSubMenu = GetSubMenu( hMenu, 0 );
-		EnableMenuItem( hSubMenu, 6,  MF_BYPOSITION | NST_MENUSTATE( nes.IsOn() && nes.IsImage()   ) );
-		EnableMenuItem( hSubMenu, 7,  MF_BYPOSITION | NST_MENUSTATE( nes.IsOn() && nes.IsImage()   ) );
-		EnableMenuItem( hSubMenu, 13, MF_BYPOSITION | NST_MENUSTATE( FileManager->NumRecentFiles() ) );
+		EnableMenuItem( hSubMenu, 6,  MF_BYPOSITION | NST_MENUSTATE( IsImageOn                     ) );
+		EnableMenuItem( hSubMenu, 7,  MF_BYPOSITION | NST_MENUSTATE( IsImageOn                     ) );
+		EnableMenuItem( hSubMenu, 13, MF_BYPOSITION | NST_MENUSTATE( FileManager.NumRecentFiles() ) );
 		
 		hSubMenu = GetSubMenu( hMenu, 1 );
-		EnableMenuItem( hSubMenu, 0, MF_BYPOSITION | NST_MENUSTATE( nes.IsOn() || (nes.IsOff() && IsLoaded) ) );
-		EnableMenuItem( hSubMenu, 1, MF_BYPOSITION | NST_MENUSTATE( nes.IsOn() ) );
+		EnableMenuItem( hSubMenu, 0, MF_BYPOSITION | NST_MENUSTATE( IsOn || (IsLoaded && !IsOn) ) );
+		EnableMenuItem( hSubMenu, 1, MF_BYPOSITION | NST_MENUSTATE( IsOn                        ) );
 	}
   
 	UpdateSoundRecorderMenu();
@@ -1404,16 +1477,15 @@ VOID APPLICATION::UpdateSoundRecorderMenu()
 {
 	const BOOL yeah = 
 	(
-     	SoundManager->IsSoundRecordingFilePresent() && 
-		nes.IsOn() && 
-		(nes.IsImage() || nes.IsNsf())
+     	SoundManager.IsSoundRecordingFilePresent() && 
+		nes.IsOn() && (nes.IsImage() || nes.IsNsf())
 	);
 
 	HMENU hMenu = GetMenu();
 
-	EnableMenuItem( hMenu, IDM_FILE_RECORD_SOUND_START, NST_MENUSTATE( yeah && !SoundManager->IsSoundRecorderRecording() ) );
-	EnableMenuItem( hMenu, IDM_FILE_RECORD_SOUND_STOP,  NST_MENUSTATE( yeah &&  SoundManager->IsSoundRecorderRecording() ) );
-	EnableMenuItem( hMenu, IDM_FILE_RECORD_SOUND_RESET, NST_MENUSTATE( yeah ) );
+	EnableMenuItem( hMenu, IDM_FILE_SOUND_CAPTURE_RECORD, NST_MENUSTATE( yeah && !SoundManager.IsSoundRecorderRecording() ) );
+	EnableMenuItem( hMenu, IDM_FILE_SOUND_CAPTURE_STOP,   NST_MENUSTATE( yeah &&  SoundManager.IsSoundRecorderRecording() ) );
+	EnableMenuItem( hMenu, IDM_FILE_SOUND_CAPTURE_RESET,  NST_MENUSTATE( yeah ) );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -1424,11 +1496,11 @@ VOID APPLICATION::UpdateMovieMenu()
 {
 	HMENU hMenu = GetMenu();
 
-	EnableMenuItem( hMenu, IDM_FILE_MOVIE_STOP,	   NST_MENUSTATE( MovieManager->CanStop()    ) );
-	EnableMenuItem( hMenu, IDM_FILE_MOVIE_PLAY,    NST_MENUSTATE( MovieManager->CanPlay()    ) );
-	EnableMenuItem( hMenu, IDM_FILE_MOVIE_RECORD,  NST_MENUSTATE( MovieManager->CanRecord()  ) );
-	EnableMenuItem( hMenu, IDM_FILE_MOVIE_REWIND,  NST_MENUSTATE( MovieManager->CanRewind()  ) );
-	EnableMenuItem( hMenu, IDM_FILE_MOVIE_FORWARD, NST_MENUSTATE( MovieManager->CanForward() ) );
+	EnableMenuItem( hMenu, IDM_FILE_MOVIE_STOP,	   NST_MENUSTATE( MovieManager.CanStop()    ) );
+	EnableMenuItem( hMenu, IDM_FILE_MOVIE_PLAY,    NST_MENUSTATE( MovieManager.CanPlay()    ) );
+	EnableMenuItem( hMenu, IDM_FILE_MOVIE_RECORD,  NST_MENUSTATE( MovieManager.CanRecord()  ) );
+	EnableMenuItem( hMenu, IDM_FILE_MOVIE_REWIND,  NST_MENUSTATE( MovieManager.CanRewind()  ) );
+	EnableMenuItem( hMenu, IDM_FILE_MOVIE_FORWARD, NST_MENUSTATE( MovieManager.CanForward() ) );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -1475,23 +1547,21 @@ VOID APPLICATION::UpdateNsf()
 
 VOID APPLICATION::OnClose()
 {
+	SoundManager.Stop();
+
 	nes.Unload();
 
-	GameGenieManager->ClearAllCodes();
-	GraphicManager->ClearNesScreen();
-	SoundManager->Stop();
-
+	SaveStateManager.Flush();
+	GameGenieManager.ClearAllCodes();
+	GraphicManager.ClearNesScreen();
 	UpdateWindowItems();
 
-	{
-    	PDXSTRING string;
-
-    	string  = "Closed \"";
-    	string += FileManager->GetRecentFile().GetFileName();
-    	string += "\"..";
-
-    	StartScreenMsg( string.String(), 1500 );
-	}
+	StartScreenMsg
+	(
+	    1500,
+	    "Closed ",
+		FileManager.GetRecentFile().GetFileName()
+	);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -1500,15 +1570,15 @@ VOID APPLICATION::OnClose()
 
 VOID APPLICATION::OnCloseWindow()
 {
-	if (preferences->PowerOffOnClose() && nes.IsOn())
+	if (preferences.PowerOffOnClose() && nes.IsOn())
 	{
-		if (!preferences->ConfirmExit() || OnQuestion("Detach Rom Image","Absolutely sure?"))
+		if (!preferences.ConfirmExit() || OnQuestion("Detach Image File","Absolutely sure?"))
 			OnPower( FALSE );
 	}
 	else
 	{
-		if (!preferences->ConfirmExit() || OnQuestion("Exit Nestopia","Absolutely sure?"))
-			OnExit();
+		if (!preferences.ConfirmExit() || OnQuestion("Exit Nestopia","Absolutely sure?"))
+			PostQuitMessage(0);
 	}
 }
 
@@ -1530,28 +1600,19 @@ VOID APPLICATION::OnPower(const BOOL state)
 {
 	if (bool(nes.IsOn()) != bool(state))
 	{
+		SoundManager.Clear();
 		nes.Power( state );
-
 		UpdateWindowItems();
 
-		if (state) 
-		{
-			SoundManager->Start();
-		}
-		else
-		{
-			SoundManager->Stop();
-			GraphicManager->ClearNesScreen();
-		}
+		if (!state) 
+			GraphicManager.ClearNesScreen();
 
-		{
-			PDXSTRING string;
-
-			string = "Power ";
-			string += (state ? "On.." : "Off..");
-
-			StartScreenMsg( string.String(), 1500 );
-		}
+		StartScreenMsg
+		(
+		    1500,
+		    "Power ",
+			(state ? "On.." : "Off..")
+		);
 	}
 }
 
@@ -1561,14 +1622,16 @@ VOID APPLICATION::OnPower(const BOOL state)
 
 VOID APPLICATION::OnReset(const BOOL state)
 {
+	SoundManager.Clear();
 	nes.Reset( state );
 
-	PDXSTRING string;
+	StartScreenMsg
+	(
+	    1500,
+	    (state ? "Hard" : "Soft"),
+		" reset.."
+	);
 
-	string  = (state ? "Hard" : "Soft");
-	string += " reset..";
-
-	StartScreenMsg( string.String(), 1500 );
 	UpdateFdsMenu();
 }
 
@@ -1590,10 +1653,10 @@ VOID APPLICATION::OnMode(const UINT NewIdm)
 	if (NesMode != NewMode)
 	{
 		nes.SetMode( NewMode );
-		GraphicManager->UpdateDirectDraw();
+		GraphicManager.UpdateDirectDraw();
 
 		const BOOL IsPAL = nes.IsPAL();
-		TimerManager->EnablePAL( IsPAL );
+		TimerManager.EnablePAL( IsPAL );
 
 		if (windowed)
 		{
@@ -1609,7 +1672,7 @@ VOID APPLICATION::OnMode(const UINT NewIdm)
 		{
        		case NES::MODE_AUTO: OldIdm = IDM_MACHINE_MODE_AUTO; break;
      		case NES::MODE_NTSC: OldIdm = IDM_MACHINE_MODE_NTSC; break;
-     		default:             OldIdm = IDM_MACHINE_MODE_PAL;  break;
+    		default:             OldIdm = IDM_MACHINE_MODE_PAL;  break;
 		}
 
 		NesMode = NewMode;
@@ -1618,14 +1681,12 @@ VOID APPLICATION::OnMode(const UINT NewIdm)
 		CheckMenuItem( hMenu, OldIdm, MF_UNCHECKED );
 		CheckMenuItem( hMenu, NewIdm, MF_CHECKED   );
 
-		{
-			PDXSTRING string;
-
-			string  = "Switched to ";
-			string += (IsPAL ? "PAL.." : "NTSC..");
-
-			StartScreenMsg( string.String(), 1500 );
-		}
+		StartScreenMsg
+		(
+		    1500,
+			"Switched to ",
+			(IsPAL ? "PAL.." : "NTSC..")
+		);
 	}
 }
 
@@ -1639,10 +1700,13 @@ VOID APPLICATION::OnPaint()
     	PAINTSTRUCT ps;
     	BeginPaint( hWnd, &ps );
     	EndPaint( hWnd, &ps );
+
+		if ((ps.rcPaint.right - ps.rcPaint.left) <= 0 || (ps.rcPaint.bottom - ps.rcPaint.top) <= 0)
+			return;
 	}
 
-	if (GraphicManager->IsReady())
-		GraphicManager->Repaint();
+	if (GraphicManager.IsReady())
+		GraphicManager.Repaint();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -1653,12 +1717,13 @@ VOID APPLICATION::OnMouseMove(const LPARAM lParam)
 {
 	if (nes.IsAnyControllerConnected( NES::CONTROLLER_PADDLE ))
 	{
-		POINT point;
+		POINT point =
+		{
+			GET_X_LPARAM( lParam ),
+			GET_Y_LPARAM( lParam )
+		};
 
-		point.x = GET_X_LPARAM( lParam );
-		point.y = GET_Y_LPARAM( lParam );
-
-		InputManager->OnMouseButtonDown( point );
+		InputManager.OnMouseButtonDown( point );
 	}
 }
 
@@ -1670,12 +1735,13 @@ VOID APPLICATION::OnLeftMouseButtonDown(const LPARAM lParam)
 {
 	if (nes.IsAnyControllerConnected( NES::CONTROLLER_ZAPPER, NES::CONTROLLER_PADDLE ))
 	{
-		POINT point;
+		POINT point =
+		{
+			GET_X_LPARAM( lParam ),
+			GET_Y_LPARAM( lParam )
+		};
 
-		point.x = GET_X_LPARAM( lParam );
-		point.y = GET_Y_LPARAM( lParam );
-
-		InputManager->OnMouseButtonDown( point );
+		InputManager.OnMouseButtonDown( point );
 	}
 }
 
@@ -1686,7 +1752,7 @@ VOID APPLICATION::OnLeftMouseButtonDown(const LPARAM lParam)
 VOID APPLICATION::OnLeftMouseButtonUp()
 {															  
 	if (nes.IsAnyControllerConnected( NES::CONTROLLER_ZAPPER, NES::CONTROLLER_PADDLE ))
-		InputManager->OnMouseButtonUp();
+		InputManager.OnMouseButtonUp();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -1699,8 +1765,6 @@ VOID APPLICATION::OnRightMouseButtonDown()
 	{
 		if (hMenu) OnShowMenu();
 		else       OnHideMenu();
-
-		SetCursor( hCursor );
 	}
 }
 
@@ -1712,18 +1776,13 @@ VOID APPLICATION::OnShowMenu()
 {
 	PDX_ASSERT( !windowed && bool(hMenu) != bool(::GetMenu(hWnd)) );
 
-	if (hMenu && GraphicManager->CanRenderWindowed())
+	if (hMenu)
 	{
 		LockWindowUpdate( hWnd );
-
-		GraphicManager->EnableGDI( TRUE );
-		
+		GraphicManager.EnableGDI( TRUE );
 		SetMenu( hWnd, hMenu );
 		hMenu = NULL;	
-		
-		hCursor = LoadCursor( NULL, UseZapper ? IDC_CROSS : IDC_ARROW);
-		ShowCursor( TRUE );		
-		
+		RefreshCursor();
 		LockWindowUpdate( NULL );
 	}
 }
@@ -1739,17 +1798,10 @@ VOID APPLICATION::OnHideMenu()
 	if (!hMenu)
 	{
 		LockWindowUpdate( hWnd );
-
-		GraphicManager->EnableGDI( FALSE );
-		
+		GraphicManager.EnableGDI( FALSE );
 		hMenu = ::GetMenu( hWnd );
 		SetMenu( hWnd, NULL );	
-
-		hCursor = UseZapper ? LoadCursor( NULL, IDC_CROSS ) : NULL;
-
-		if (hCursor) ShowCursor( TRUE );
-		else while (ShowCursor( FALSE ) >= 0);
-
+		RefreshCursor();
 		LockWindowUpdate( NULL );
 	}
 }
@@ -1772,7 +1824,7 @@ VOID APPLICATION::OnMove(const LPARAM lParam)
 		);
 
 		UpdateWindowRect( rcWindow, rcScreen );
-		GraphicManager->UpdateScreenRect( rcScreen );
+		GraphicManager.UpdateScreenRect( rcScreen );
 	}
 }
 
@@ -1789,11 +1841,8 @@ VOID APPLICATION::OnSize(const LPARAM lParam)
 		rcClient.right  = SHORT(LOWORD(lParam));
 		rcClient.bottom = SHORT(HIWORD(lParam));
 
-		UpdateWindowRect( rcWindow, rcScreen );
-		GraphicManager->UpdateScreenRect( rcScreen );
-
-		ScreenInvisible = !(rcScreen.right - rcScreen.left) || !(rcScreen.bottom - rcScreen.top);
-		TimerManager->Reset();
+   		UpdateWindowRect( rcWindow, rcScreen );
+   		GraphicManager.UpdateScreenRect( rcScreen );
 	}
 }
 
@@ -1815,73 +1864,6 @@ VOID APPLICATION::OnActivate(const WPARAM wParam)
 
 			OnActive();
 			return;
-	}
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID APPLICATION::OnExit()
-{
-	nes.Power( FALSE );
-
-	active = ready = FALSE;
-
-	KillTimer( hWnd, TIMER_ID_SCREEN_MSG );
-
-	{
-		CONFIGFILE file;
-		CONFIGFILE* ConfigFile = NULL;
-
-		if (CfgFileName.Size())
-		{
-			ConfigFile = &file;
-
-			const UINT factor = GetAspectRatio();
-
-			if (factor != UINT_MAX)
-			{
-				switch (factor)
-				{				
-       				case 0: file["window size"] = "1x"; break;
-					case 1: file["window size"] = "2x"; break;
-					case 2: file["window size"] = "3x"; break;
-					case 3: file["window size"] = "4x"; break;
-				}
-			}
-		}
-
-		if ( TimerManager     ) TimerManager->Close     ( ConfigFile                    );
-		if ( FileManager      ) FileManager->Close      ( ConfigFile                    );
-		if ( GraphicManager   ) GraphicManager->Close   ( ConfigFile                    );
-		if ( SoundManager     ) SoundManager->Close     ( ConfigFile                    );
-		if ( InputManager     ) InputManager->Close     ( ConfigFile                    );
-		if ( FdsManager       )	FdsManager->Close       ( ConfigFile                    );
-		if ( GameGenieManager ) GameGenieManager->Close ( ConfigFile                    );
-		if ( preferences      ) preferences->Close      ( ConfigFile                    );
-		if ( LogFileManager   )	LogFileManager->Close   ( preferences->LogFileEnabled() );
-
-		if (ConfigFile)
-			file.Save( CfgFileName );
-	}
-
-	if (hMenuFullscreenBrush)
-	{
-		DeleteObject( hMenuFullscreenBrush );
-		hMenuFullscreenBrush = NULL;
-	}
-
-	if (hMenu)
-	{
-		DestroyMenu( hMenu );
-		hMenu = NULL;
-	}
-
-	if (hWnd)
-	{
-		DestroyWindow( hWnd );
-		hWnd = NULL;
 	}
 }
 
@@ -1993,7 +1975,7 @@ UINT APPLICATION::GetAspectRatio() const
 	{
 		return 2;
 	}
-	else if (width < GraphicManager->GetDisplayWidth() && height < GraphicManager->GetDisplayHeight())
+	else if (width < GraphicManager.GetDisplayWidth() && height < GraphicManager.GetDisplayHeight())
 	{
 		return 3;
 	}
@@ -2009,8 +1991,8 @@ VOID APPLICATION::OnWindowSize(const UINT factor,UINT width,UINT height)
 {
 	if (!width || !height)
 	{
-		width = GraphicManager->GetDisplayWidth();
-		height = GraphicManager->GetDisplayHeight();
+		width = GraphicManager.GetDisplayWidth();
+		height = GraphicManager.GetDisplayHeight();
 	}
 
 	HMENU hMenu = GetMenu();
@@ -2028,8 +2010,8 @@ VOID APPLICATION::OnWindowSize(const UINT factor,UINT width,UINT height)
 		     	&rcDefClient, 
 				0, 
 				0,
-				GraphicManager->GetNesRect().right - GraphicManager->GetNesRect().left, 
-				GraphicManager->GetNesRect().bottom - GraphicManager->GetNesRect().top 
+				GraphicManager.GetNesRect().right - GraphicManager.GetNesRect().left, 
+				GraphicManager.GetNesRect().bottom - GraphicManager.GetNesRect().top 
 			);
 
 			UpdateWindowSizes( width, height );
@@ -2061,21 +2043,20 @@ VOID APPLICATION::OnWindowSize(const UINT factor,UINT width,UINT height)
 				}
 			}
 
-			GraphicManager->UpdateScreenRect( rcScreen, TRUE );
-			InvalidateRect( hWnd, NULL, FALSE ); 
+			GraphicManager.UpdateScreenRect( rcScreen, TRUE );
 		}
 	}
 	else
 	{
-		GraphicManager->SetScreenSize
+		GraphicManager.SetScreenSize
 		(
        		factor == UINT_MAX ? GRAPHICMANAGER::SCREEN_STRETCHED : GRAPHICMANAGER::SCREENTYPE(factor)		    
 		);
 
 		UpdateWindowSizes
 		( 
-			GraphicManager->GetDisplayWidth(), 
-			GraphicManager->GetDisplayHeight()
+			GraphicManager.GetDisplayWidth(), 
+			GraphicManager.GetDisplayHeight()
 		);
 	}
 }
@@ -2096,152 +2077,46 @@ VOID APPLICATION::ResetSaveSlots(const BOOL enabled)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
-// main loop
-////////////////////////////////////////////////////////////////////////////////////////
-
-INT APPLICATION::Loop()
-{
-	PDX_ASSERT(hWnd && !locked);
-
-	HACCEL hAccel = LoadAccelerators( hInstance, MAKEINTRESOURCE(IDR_ACCELERATOR) );
-
-	MSG msg;	
-	msg.message = WM_NULL;
-	PeekMessage( &msg, NULL, 0, 0, PM_NOREMOVE );
-
-	TimerManager->Reset();
-
-	while (msg.message != WM_QUIT)
-	{
-		if ((active ? PeekMessage(&msg,NULL,0,0,PM_REMOVE) : GetMessage(&msg,NULL,0,0)))
-		{
-			if (!AcceleratorEnabled || !hAccel || !TranslateAccelerator( hWnd, hAccel, &msg ))
-			{
-				TranslateMessage( &msg );
-				DispatchMessage( &msg );
-			}
-		}
-		else if (active && ready)
-		{
-			ExecuteFrame();
-		}
-	}
-
-	if (hAccel)
-		DestroyAcceleratorTable( hAccel );
-
-	return INT(msg.wParam);
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID APPLICATION::ExecuteFrame()
-{
-	PDXRESULT result = PDX_OK;
-
-	if (nes.IsImage())
-	{
-		result = GraphicManager->TryClearScreen();
-
-		InputManager->Poll();
-
-		if (PDX_FAILED(result))
-			GraphicManager->ClearScreen();
-
-		result = nes.Execute
-		(
-			ScreenInvisible ? NULL : GraphicManager->GetFormat(),
-			SoundManager->GetFormat(),
-			InputManager->GetFormat()
-		);
-	}
-	else
-	{
-		GraphicManager->ClearScreen();
-
-		result = nes.Execute
-		(
-			NULL,
-			SoundManager->GetFormat(),
-			NULL
-		);
-
-		if (nes.IsNsf())
-			OutputNsfInfo();
-	}
-
-	if (ScreenMsg.Length())
-		OutputScreenMsg();
-
-	if (PDX_SUCCEEDED(result))
-	{
-		INT SkipFrames = TimerManager->SynchRefreshRate( InBackground );
-
-		if (!ScreenInvisible)
-			GraphicManager->Present();
-
-		while (--SkipFrames >= 0)
-			nes.Execute( NULL, SoundManager->GetFormat(), NULL );
-	}
-	else
-	{
-		GraphicManager->Repaint();
-		TimerManager->Reset();
-	}
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
 // switch to full screen / window
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT APPLICATION::SwitchScreen()
+VOID APPLICATION::SwitchScreen()
 {
-	PDX_ASSERT(hWnd && ready);
+	PDX_ASSERT(hWnd);
 
 	active = ready = FALSE;
-	
-	PDX_TRY(SoundManager->Stop());
+
+	SoundManager.Clear();
 
 	if (windowed)
 	{
-		PDX_TRY(PushWindow());
-		PDX_TRY(GraphicManager->SwitchToFullScreen());
+		PushWindow();
+		GraphicManager.SwitchToFullScreen();
 
-		UpdateWindowSizes( GraphicManager->GetDisplayWidth(), GraphicManager->GetDisplayHeight() );
+		UpdateWindowSizes( GraphicManager.GetDisplayWidth(), GraphicManager.GetDisplayHeight() );
 
-		if (!preferences->HideMenuInFullScreen())
+		if (!preferences.HideMenuInFullScreen())
 			OnRightMouseButtonDown();
 	}
 	else
 	{
-		PDX_TRY(GraphicManager->SwitchToWindowed( rcScreen ));
-		PDX_TRY(PopWindow());
+		GraphicManager.SwitchToWindowed( rcScreen );
+		PopWindow();
 	}
 
-	PDX_TRY(SoundManager->Start());
-
 	if (windowed)
-		InvalidateRect( NULL, NULL, TRUE );
-
-	if (windowed || GraphicManager->CanRenderWindowed())
 		DrawMenuBar( hWnd );
 
-	Sleep(500);
-
-	TimerManager->Reset();
+	InvalidateRect( NULL, NULL, FALSE );
 
 	active = ready = TRUE;
-
-	return PDX_OK;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // save the window size and style
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT APPLICATION::PushWindow()
+VOID APPLICATION::PushWindow()
 {
 	PDX_ASSERT(hWnd);
 
@@ -2255,43 +2130,20 @@ PDXRESULT APPLICATION::PushWindow()
 	ChangeMenuText( IDM_VIEW_SWITCH_SCREEN, "&Window\tAlt+Return" );	
 	EnableMenuItem( GetMenu(), IDM_VIEW_HIDE_MENU, MF_ENABLED );
 
-	{
-		MENUINFO info;
-		PDXMemZero( info );
-
-		info.cbSize = sizeof(info);
-		info.fMask  = MIM_BACKGROUND;
-
-		GetMenuInfo( GetMenu(), &info );
-
-		hMenuWindowBrush = info.hbrBack;
-
-		info.fMask   = MIM_BACKGROUND | MIM_APPLYTOSUBMENUS;
-		info.hbrBack = hMenuFullscreenBrush;
-
-		SetMenuInfo( GetMenu(), &info );
-	}
-
 	if (!hMenu)
 	{
 		hMenu = ::GetMenu( hWnd );
 		SetMenu( hWnd, NULL );
 	}
 
-	hCursor = UseZapper ? LoadCursor( NULL, IDC_CROSS ) : NULL; 
-	SetCursor( hCursor );
-
-	if (hCursor) ShowCursor( TRUE );
-	else while (ShowCursor( FALSE ) >= 0);
-
-	return PDX_OK;
+	RefreshCursor();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // restore the window size and style
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT APPLICATION::PopWindow()
+VOID APPLICATION::PopWindow()
 {
 	PDX_ASSERT(hWnd);
 
@@ -2300,20 +2152,7 @@ PDXRESULT APPLICATION::PopWindow()
 	ChangeMenuText( IDM_VIEW_SWITCH_SCREEN, "&Fullscreen\tCtrl+Shift+F" );
 	EnableMenuItem( GetMenu(), IDM_VIEW_HIDE_MENU, MF_GRAYED );
 
-	{
-		MENUINFO info;
-		PDXMemZero( info );
-
-		info.cbSize  = sizeof(info);
-		info.fMask   = MIM_BACKGROUND | MIM_APPLYTOSUBMENUS;
-		info.hbrBack = hMenuWindowBrush;
-
-		SetMenuInfo( GetMenu(), &info );
-	}
-
-	hCursor = LoadCursor( NULL, UseZapper ? IDC_CROSS : IDC_ARROW ); 
-	SetCursor( hCursor );
-	ShowCursor( TRUE );
+	RefreshCursor( TRUE );
 
 	SetWindowLong( hWnd, GWL_STYLE, NST_WINDOWSTYLE );
 	SetWindowLong( hWnd, GWL_EXSTYLE, 0 );
@@ -2335,9 +2174,7 @@ PDXRESULT APPLICATION::PopWindow()
 		SWP_SHOWWINDOW
 	);
 
-	UpdateWindowSizes( GraphicManager->GetDisplayWidth(), GraphicManager->GetDisplayHeight() );
-
-	return PDX_OK;
+	UpdateWindowSizes( GraphicManager.GetDisplayWidth(), GraphicManager.GetDisplayHeight() );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -2346,9 +2183,9 @@ PDXRESULT APPLICATION::PopWindow()
 
 VOID APPLICATION::OutputScreenMsg()
 {
-	const UINT height = windowed ? GraphicManager->GetNesDesc().dwHeight - (PDX_MAX(1,GraphicManager->GetScaleFactor()) * 16) : GraphicManager->GetDisplayHeight();
-	GraphicManager->Print( ScreenMsg.String(), 2, height - 16, RGB(0x20,0x20,0xA0), ScreenMsg.Length() );
-	GraphicManager->Print( ScreenMsg.String(), 1, height - 17, RGB(0xFF,0x20,0x20), ScreenMsg.Length() );
+	const UINT height = windowed ? GraphicManager.GetNesDesc().dwHeight - (PDX_MAX(1,GraphicManager.GetScaleFactor()) * 16) : GraphicManager.GetDisplayHeight();
+	GraphicManager.Print( ScreenMsg.String(), 2, height - 16, RGB(0x20,0x20,0xA0), ScreenMsg.Length() );
+	GraphicManager.Print( ScreenMsg.String(), 1, height - 17, RGB(0xFF,0x20,0x20), ScreenMsg.Length() );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -2361,27 +2198,27 @@ VOID APPLICATION::OutputNsfInfo()
 
 	if (NsfInfo.name.Length())
 	{
-		GraphicManager->Print( NsfInfo.name.String(), 2, height - 0, RGB(0x20,0x60,0x20), NsfInfo.name.Length() );
-		GraphicManager->Print( NsfInfo.name.String(), 1, height - 1, RGB(0x20,0xFF,0x20), NsfInfo.name.Length() );
+		GraphicManager.Print( NsfInfo.name.String(), 2, height - 0, RGB(0x20,0x60,0x20), NsfInfo.name.Length() );
+		GraphicManager.Print( NsfInfo.name.String(), 1, height - 1, RGB(0x20,0xFF,0x20), NsfInfo.name.Length() );
 		height += 12;
 	}
 
 	if (NsfInfo.artist.Length())
 	{
-		GraphicManager->Print( NsfInfo.artist.String(), 2, height - 0, RGB(0x20,0x60,0x20), NsfInfo.artist.Length() );
-		GraphicManager->Print( NsfInfo.artist.String(), 1, height - 1, RGB(0x20,0xFF,0x20), NsfInfo.artist.Length() );
+		GraphicManager.Print( NsfInfo.artist.String(), 2, height - 0, RGB(0x20,0x60,0x20), NsfInfo.artist.Length() );
+		GraphicManager.Print( NsfInfo.artist.String(), 1, height - 1, RGB(0x20,0xFF,0x20), NsfInfo.artist.Length() );
 		height += 12;
 	}
 
 	if (NsfInfo.copyright.Length())
 	{
-		GraphicManager->Print( NsfInfo.copyright.String(), 2, height - 0, RGB(0x20,0x60,0x20), NsfInfo.copyright.Length() );
-		GraphicManager->Print( NsfInfo.copyright.String(), 1, height - 1, RGB(0x20,0xFF,0x20), NsfInfo.copyright.Length() );
+		GraphicManager.Print( NsfInfo.copyright.String(), 2, height - 0, RGB(0x20,0x60,0x20), NsfInfo.copyright.Length() );
+		GraphicManager.Print( NsfInfo.copyright.String(), 1, height - 1, RGB(0x20,0xFF,0x20), NsfInfo.copyright.Length() );
 		height += 12;
 	}
 
-	GraphicManager->Print( NsfInfo.song.String(), 2, height - 0, RGB(0x20,0x60,0x20), NsfInfo.song.Length() );
-	GraphicManager->Print( NsfInfo.song.String(), 1, height - 1, RGB(0x20,0xFF,0x20), NsfInfo.song.Length() );
+	GraphicManager.Print( NsfInfo.song.String(), 2, height - 0, RGB(0x20,0x60,0x20), NsfInfo.song.Length() );
+	GraphicManager.Print( NsfInfo.song.String(), 1, height - 1, RGB(0x20,0xFF,0x20), NsfInfo.song.Length() );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -2394,18 +2231,24 @@ VOID APPLICATION::OnLoadStateSlot(const UINT idm)
 
 	const UINT slot = idm - IDM_FILE_QUICK_LOAD_STATE_SLOT_LAST;
 
-	if (PDX_SUCCEEDED(SaveStateManager->LoadState( slot )))
+	if (PDX_SUCCEEDED(SaveStateManager.LoadState( slot )))
 	{
-		string  = "Loaded from slot ";
-		string += (slot ? slot : SaveStateManager->GetLastSlot());
-		string += "..";
+		StartScreenMsg
+		(
+		    1000,
+		    "Loaded from slot ",
+			(slot ? slot : SaveStateManager.GetLastSlot()),
+			".."
+		);
 	}
 	else
 	{
-		string  = "Failed to load from slot..";
+		StartScreenMsg
+		(
+			1000,
+			"Failed to load from slot.."
+		);
 	}
-
-	StartScreenMsg( string.String(), 1000 );
 
 	UpdateFdsMenu();
 }
@@ -2418,18 +2261,24 @@ VOID APPLICATION::OnSaveStateSlot(const UINT idm)
 {
 	PDXSTRING string;
 
-	if (PDX_SUCCEEDED(SaveStateManager->SaveState( idm - IDM_FILE_QUICK_SAVE_STATE_SLOT_NEXT )))
+	if (PDX_SUCCEEDED(SaveStateManager.SaveState( idm - IDM_FILE_QUICK_SAVE_STATE_SLOT_NEXT )))
 	{
-		string  = "Saved to slot ";
-		string += SaveStateManager->GetLastSlot();
-		string += "..";
+		StartScreenMsg
+		(
+		    1000,
+		    "Saved to slot ",
+			SaveStateManager.GetLastSlot(),
+			".."
+		);
 	}
 	else
 	{
-		string = "Failed to save to slot..";
+		StartScreenMsg
+		(
+			1000,
+			"Failed to save to slot.."
+		);
 	}
-
-	StartScreenMsg( string.String(), 1000 );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -2447,13 +2296,13 @@ VOID APPLICATION::UpdateRecentFiles()
 
 	PDXSTRING MenuItemName;
 
-	const UINT NumFiles = PDX_MIN( 10, FileManager->NumRecentFiles() );
+	const UINT NumFiles = PDX_MIN( 10, FileManager.NumRecentFiles() );
 
 	for (UINT i=0; i < NumFiles; ++i)
 	{
 		MenuItemName  = i;
 		MenuItemName += " ";
-		MenuItemName += FileManager->GetRecentFile(i);
+		MenuItemName += FileManager.GetRecentFile(i);
 
 		AppendMenu( hSubMenu, MF_BYPOSITION, IDM_FILE_RECENT_0 + i,  MenuItemName.String() );
 	}

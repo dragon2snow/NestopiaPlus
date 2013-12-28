@@ -39,12 +39,10 @@ public:
 
 	HELPMANAGER();
 
-	PDXRESULT Init(HWND,HINSTANCE);
-
-	VOID StartAboutDialog() 
+	inline VOID StartAboutDialog() 
 	{ about.StartDialog(); }
 
-	VOID StartLicenceDialog()
+	inline VOID StartLicenceDialog()
 	{ licence.StartDialog(); }
 
 private:

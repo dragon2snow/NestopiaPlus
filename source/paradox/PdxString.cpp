@@ -184,6 +184,7 @@ VOID PDXSTRING::Validate()
 			if (buffer[i] == '\0')
 			{
 				buffer.Resize(i+1);
+				buffer.Defrag();
 				return;
 			}
 		}
@@ -194,6 +195,7 @@ VOID PDXSTRING::Validate()
 	}
 
 	buffer.Back() = '\0';
+	buffer.Defrag();
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////

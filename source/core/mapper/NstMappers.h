@@ -142,17 +142,35 @@ protected:
 	typedef CHIP<n8k,8>  VRAM;
 	typedef CHIP<n4k,4>  CIRAM;
 
-	CPU& cpu;
-	APU& apu;
-	PPU& ppu;
+private:
+
+	const TSIZE StateSize1;
+	VOID* const StateChunk1;
+	const TSIZE StateSize2;
+	VOID* const StateChunk2;
+
+	const UINT wRamInitSize;
+
+public:
+
+	UINT id;
+	const UINT pRomCrc;
+	const UINT cRomCrc;
+
+protected:
+
+	BOOL IsCRam;
+	BOOL HardReset;
 
 	PROM pRom;
 	CROM cRom;
 
 	PDXARRAY<U8> wRam;	
 
-	BOOL IsCRam;
-	BOOL HardReset;
+	CPU& cpu;
+	APU& apu;
+	PPU& ppu;
+
 	LONG IrqCount;
 	UINT IrqLatch;
 	UINT IrqTmp;
@@ -168,10 +186,6 @@ private:
 public:
 
 	MIRRORING mirroring;
-
-	UINT id;
-	const UINT pRomCrc;
-	const UINT cRomCrc;
 
 private:
 
@@ -220,13 +234,6 @@ private:
 
 	PDXRESULT LoadStateChunks(PDXFILE&);
 	PDXRESULT SaveStateChunks(PDXFILE&) const;
-
-	const TSIZE StateSize1;
-	VOID* const StateChunk1;
-	const TSIZE StateSize2;
-	VOID* const StateChunk2;
-
-	const UINT wRamInitSize;
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////

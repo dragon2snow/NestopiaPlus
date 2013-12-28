@@ -932,21 +932,27 @@ union PDXWORD
 //////////////////////////////////////////////////////////////////////////////////////////////
 
 template<class T>
-static inline VOID PDXMemZero(T& t)
+static VOID PDXMemZero(T& t)
 { 
 	memset( &t, 0x00, sizeof(t) ); 
 }
 
 template<class T>
-static inline VOID PDXMemZero(T* const t,const TSIZE length)
+static VOID PDXMemZero(T* const t,const TSIZE length)
 {
 	memset( t, 0x00, sizeof(*t) * length); 
 }
 
 template<class T> 
-static inline VOID PDXMemCopy(T& dst,const T& src)
+static VOID PDXMemCopy(T& dst,const T& src)
 {
-	memcpy( &dst, &src, sizeof(dst) );
+	memcpy( &dst, &src, sizeof(T) );
+}
+
+template<class T>
+static BOOL PDXMemCompare(const T& a,const T& b)
+{
+	return !memcmp( &a, &b, sizeof(T) );
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////

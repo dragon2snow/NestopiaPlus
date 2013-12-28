@@ -38,20 +38,6 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXSTRING& CONFIGFILE::operator [] (const CHAR* const command)
-{
-	return tree[command];
-}
-
-PDXSTRING& CONFIGFILE::operator [] (const PDXSTRING& command)
-{
-	return tree[command];
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
 const CHAR* CONFIGFILE::FromGUID(const GUID& guid)
 {
 	static CHAR buffer[36+1];
@@ -186,7 +172,7 @@ PDXRESULT CONFIGFILE::Save(const PDXSTRING& filename)
 		string << (*i).First();
 		string << " = ";
 		string << (*i).Second();
-		string << "\n";
+		string << "\r\n";
 	}
 
 	file.Write( string.Begin(), string.End() - 1 );
@@ -261,208 +247,12 @@ VOID CONFIGFILE::WriteCommentHeader()
 	(
      	"/////////////////////////////////////////////////////////////////////////////\r\n"
        	"//\r\n"
-     	"// Nestopia Configuration File. version 1.04\r\n"
+     	"// Nestopia Configuration File. version 1.05\r\n"
      	"//\r\n"
 		"/////////////////////////////////////////////////////////////////////////////\r\n"
 		"\r\n"
 	);
 
-	file.Write( string.Begin(), string.End() - 1 );
+	file.Write( string.Begin(), string.End() );
 }
 
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-/*
-VOID CONFIGFILE::WriteCommentVideo()
-{
-	const PDXSTRING string
-	(
-     	"\r\n"
-		"/////////////////////////////////////////////////////////////////////////////\r\n"
-	    "//\r\n"
-	    "// Video Options\r\n"
-		"// -------------\r\n"
-	    "//\r\n"
-	    "// video device <guid>\r\n"
-	    "//\r\n"
-	    "// fullscreen width <width>\r\n"
-		"// fullscreen height <height>\r\n"
-		"// fullscreen bpp <16,32>\r\n"
-	    "//\r\n"
-	    "// timing <vsync,frameskip>\r\n"
-	    "//\r\n"
-	    "// offscreen buffer <sysmem,vidmem>\r\n"
-	    "//\r\n"
-	    "// graphic filter <none,scanlines,2xsai,super2xsai,supereagle>\r\n"
-	    "//\r\n"
-		"// palette <internal,emulated,custom>\r\n"
-	    "// palette file <file>\r\n"
-	    "//\r\n"
-	    "// infinite sprites <yes,no>\r\n"
-	    "//\r\n"
-	    "// ntsc rect left <left>\r\n"
-		"// ntsc rect top <top>\r\n"
-		"// ntsc rect right <right>\r\n"
-		"// ntsc rect bottom <bottom>\r\n"
-		"//\r\n"
-	    "// pal rect left <left>\r\n"
-		"// pal rect top <top>\r\n"
-	    "// pal rect right <right>\r\n"
-	    "// pal rect bottom <bottom>\r\n"
-	    "//\r\n"
-	    "// brightness <0..255>\r\n"
-	    "// saturation <0..255>\r\n"
-	    "// hue <0..255>\r\n"
-	    "//\r\n"
-		"/////////////////////////////////////////////////////////////////////////////\r\n"
-		"\r\n"
-	);
-
-	file.Write( string.Begin(), string.End() - 1 );
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID CONFIGFILE::WriteCommentSound()
-{
-	const PDXSTRING string
-	(
-     	"\r\n"
-		"/////////////////////////////////////////////////////////////////////////////\r\n"
-     	"//\r\n"
-	    "// Sound options\r\n"
-		"// -------------\r\n"
-	    "//\r\n"
-	    "// sound device <guid>\r\n"
-	    "//\r\n"
-	    "// sample rate <11025,22050,44100,48000,96000,192000>\r\n"
-	    "// sample bits <8,16>\r\n"
-	    "//\r\n"
-	    "// sound enable <yes,no>\r\n"
-	    "// sound buffers <1..10>\r\n"
-	    "// sound volume <0..100>\r\n"
-	    "//\r\n"
-	    "// apu square 1 enable <yes,no>\r\n"
-	    "// apu square 2 enable <yes,no>\r\n"
-	    "// apu triangle enable <yes,no>\r\n"
-	    "// apu noise enable <yes,no>\r\n"
-	    "// apu dmc enable <yes,no>\r\n"
-	    "// apu external enable <yes,no>\r\n"
-	    "//\r\n"
-		"/////////////////////////////////////////////////////////////////////////////\r\n"
-		"\r\n"
-	);
-
-	file.Write( string.Begin(), string.End() - 1 );
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID CONFIGFILE::WriteCommentFiles()
-{
-	const PDXSTRING string
-	(
-     	"\r\n"
-		"/////////////////////////////////////////////////////////////////////////////\r\n"
-	    "//\r\n"
-	    "// File Options\r\n"
-		"// ------------\r\n"
-	    "//\r\n"
-	    "// image file path <path>\r\n"
-	    "// battery file path <path>\r\n"
-	    "// state file path <path>\r\n"
-	    "// ips file path <path>\r\n"
-	    "// nsp file path <path>\r\n"
-	    "//\r\n"
-	    "// last image file path <path>\r\n"
-	    "// last state file path <path>\r\n"
-	    "// last nsp file path <path>\r\n"
-	    "//\r\n"
-	    "// use last image file path <yes,no>\r\n"
-	    "// use last state file path <yes,no>\r\n"
-	    "// use last nsp file path <yes,no>\r\n"
-	    "//\r\n"
-	    "// battery in image file path <yes,no>\r\n"
-	    "// ips in image file path <yes,no>\r\n"
-	    "// nsp in image file path <yes,no>\r\n"
-	    "//\r\n"
-	    "// auto apply ips <yes,no>\r\n"
-	    "// auto apply nsp <yes,no>\r\n"
-	    "//\r\n"
-	    "// fds bios <file>\r\n"
-	    "//\r\n"
-	    "// write protect battery <yes,no>\r\n"
-	    "// write protect fds <yes,no>\r\n"
-	    "//\r\n"
-	    "// recent file 1..10 <file>\r\n"
-	    "//\r\n"
-		"/////////////////////////////////////////////////////////////////////////////\r\n"
-		"\r\n"
-	);
-
-	file.Write( string.Begin(), string.End() - 1 );
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID CONFIGFILE::WriteCommentInput()
-{
-	const PDXSTRING string
-	(
-     	"\r\n"
-		"/////////////////////////////////////////////////////////////////////////////\r\n"
-	    "//\r\n"
-	    "// Input Options\r\n"
-		"// -------------\r\n"
-	    "//\r\n"
-		"// joystick device 0..x <guid>\r\n"
-		"// input pad1..pad4 <output key> <input key>\r\n"
-		"// input powerpad <output key> <input key>\r\n"
-		"// input general <output key> <input key>\r\n"
-	    "//\r\n"
-		"/////////////////////////////////////////////////////////////////////////////\r\n"
-		"\r\n"
-	);
-
-	file.Write( string.Begin(), string.End() - 1 );
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID CONFIGFILE::WriteCommentPreferences()
-{
-	const PDXSTRING string
-	(
-	    "\r\n"
-		"/////////////////////////////////////////////////////////////////////////////\r\n"
-	    "//\r\n"
-	    "// Preferences\r\n"
-		"// -----------\r\n"
-	    "//\r\n"
-	    "// emulate at once <yes,no>\r\n"
-	    "// run in background <yes,no>\r\n"
-	    "// nsf in background <yes,no>\r\n"
-	    "// priority <high,default>\r\n"
-	    "// startup <window,fullscreen>\r\n"
-	    "// warnings <yes,no>\r\n"
-	    "// power off on exit <yes,no>\r\n"
-	    "// hide menu in fullscreen <yes,no>\r\n"
-	    "// confirm exit <yes,no>\r\n"
-	    "// save logfile <yes,no>\r\n"
-	    "//\r\n"
-		"/////////////////////////////////////////////////////////////////////////////\r\n"
-		"\r\n"
-	);
-
-	file.Write( string.Begin(), string.End() - 1 );
-}
-*/

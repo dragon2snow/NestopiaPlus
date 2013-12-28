@@ -32,18 +32,29 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT FDSMANAGER::Create(CONFIGFILE* const ConfigFile)
+FDSMANAGER::FDSMANAGER() 
+: 
+MANAGER      (IDD_FDS),
+WriteProtect (FALSE)
+{}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+VOID FDSMANAGER::Create(CONFIGFILE* const ConfigFile)
 {
 	if (ConfigFile)
 	{
 		CONFIGFILE& file = *ConfigFile;
 
 		bios = file["files fds bios"];
+		WriteProtect = (file["files write protect fds"] == "yes");
 
-		if (bios.IsEmpty() || GetFileAttributes(bios.String()) == INVALID_FILE_ATTRIBUTES)
-			Reset();
+		PDXFILE BiosFile;
 
-		WriteProtect = (file["files write protect fds"] == "yes" ? TRUE : FALSE);
+		if (bios.IsEmpty() || PDX_FAILED(BiosFile.Open(bios,PDXFILE::INPUT)))
+			SearchBios();
 	}
 	else
 	{
@@ -51,25 +62,21 @@ PDXRESULT FDSMANAGER::Create(CONFIGFILE* const ConfigFile)
 	}
 
 	SubmitBios();
-	
-	return PDX_OK;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT FDSMANAGER::Destroy(CONFIGFILE* const ConfigFile)
+VOID FDSMANAGER::Destroy(CONFIGFILE* const ConfigFile)
 {
 	if (ConfigFile)
 	{
 		CONFIGFILE& file = *ConfigFile;
 
-		file["files write protect fds"] = (WriteProtect ? "yes" : "no");
 		file["files fds bios"] = bios;
+		file["files write protect fds"] = (WriteProtect ? "yes" : "no");
 	}
-
-	return PDX_OK;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -79,41 +86,39 @@ PDXRESULT FDSMANAGER::Destroy(CONFIGFILE* const ConfigFile)
 VOID FDSMANAGER::Reset()
 {
 	WriteProtect = FALSE;
+	SearchBios();
+}
 
-	bios.Clear();
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
 
-	{
-		PDXSTRING path;
-		path.Buffer().Resize( NST_MAX_PATH );
-
-		if (GetModuleFileName( NULL, path.Begin(), NST_MAX_PATH-1 ))
-		{
-			bios  = path.GetFilePath();
-			bios += "disksys.rom";
-		}
-	}
+BOOL FDSMANAGER::SearchBios()
+{
+	if (PDX_SUCCEEDED(FILEMANAGER::GetExeFilePath(bios)))
+		bios << "disksys.rom";
 
 	PDXFILE file;
 
 	if (bios.IsEmpty() || PDX_FAILED(file.Open(bios,PDXFILE::INPUT)))
 	{
-		bios.Buffer().Resize( NST_MAX_PATH );
+		if (PDX_SUCCEEDED(FILEMANAGER::GetCurrentPath(bios)))
+			bios << "disksys.rom";
 
-		if (GetCurrentDirectory( NST_MAX_PATH-1, bios.Begin() ))
+		if (bios.IsEmpty() || PDX_FAILED(file.Open(bios,PDXFILE::INPUT)))
 		{
-			bios.Validate();
-			bios += "\\disksys.rom";
+			bios  = application.GetFileManager().GetRomPath();
+			bios +=	"disksys.rom";
 
-			if (PDX_SUCCEEDED(file.Open(bios,PDXFILE::INPUT)))
-				return;
+			if (PDX_FAILED(file.Open(bios,PDXFILE::INPUT)))
+			{
+				bios.Clear();
+				return FALSE;
+			}
 		}
-
-		bios  = application.GetFileManager().GetRomPath();
-		bios +=	"disksys.rom";
-
-		if (PDX_FAILED(file.Open(bios,PDXFILE::INPUT)))
-			bios.Clear();
 	}
+
+	return TRUE;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -124,7 +129,7 @@ VOID FDSMANAGER::SubmitBios(const BOOL SkipBios)
 {
 	NES::IO::FDS::CONTEXT context;
 
-	if (PDX_SUCCEEDED(nes->GetFdsContext( context )))
+	if (PDX_SUCCEEDED(nes.GetFdsContext( context )))
 	{
 		PDXFILE file( PDXFILE::INPUT );
 
@@ -155,7 +160,7 @@ VOID FDSMANAGER::SubmitBios(const BOOL SkipBios)
 
 		context.WriteProtected = WriteProtect;
 
-		nes->SetFdsContext( context );
+		nes.SetFdsContext( context );
 	}
 }
 
@@ -178,7 +183,7 @@ VOID FDSMANAGER::UpdateSettings(HWND hDlg)
 	const PDXSTRING old( bios );
 	bios.Buffer().Resize( NST_MAX_PATH );
 	GetDlgItemText( hDlg, IDC_FDS_BIOS, bios.Begin(), NST_MAX_PATH );	
-	WriteProtect = IsDlgButtonChecked(hDlg, IDC_FDS_WRITE_PROTECT ) == BST_CHECKED ? TRUE : FALSE;
+	WriteProtect = (IsDlgButtonChecked(hDlg, IDC_FDS_WRITE_PROTECT ) == BST_CHECKED);
 	bios.Validate();
 	SubmitBios( old == bios );
 }

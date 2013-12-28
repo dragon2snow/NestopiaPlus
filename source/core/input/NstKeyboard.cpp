@@ -75,8 +75,11 @@ VOID FAMILYBASIC::Poke_4016(const UINT data)
 
 UINT FAMILYBASIC::Peek_4017()
 {
-	if (input && PDX_SUCCEEDED(input->FamilyKeyboard.Poll( scan, mode )))
+	if (input)
+	{
+		input->FamilyKeyboard.Poll( scan, mode );
 		return input->FamilyKeyboard.parts[scan] ^ 0x1E;
+	}
 
 	return 0xFF;
 }

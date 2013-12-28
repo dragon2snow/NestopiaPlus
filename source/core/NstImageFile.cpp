@@ -33,7 +33,7 @@
 
 NES_NAMESPACE_BEGIN
 
-PDXMAP<IMAGEFILE::IMAGE,U32> IMAGEFILE::database;
+PDXMAP<IMAGEFILE::IMAGE,IMAGEFILE::KEY> IMAGEFILE::database;
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -81,12 +81,13 @@ VOID IMAGEFILE::ImportDatabase()
 		const DBCHUNK* const chunk = PDX_CAST(const DBCHUNK*,iterator);
 		iterator += sizeof(DBCHUNK);
 
-		IMAGE& image = database[chunk->pRomCrc];
+		IMAGE& image = database[KEY(chunk->crc,chunk->pRomCrc)];
 
 		if (chunk->copyright < copyright.Size())
 			image.copyright  = copyright[chunk->copyright];
 
 		image.name        = name;
+		image.crc         = chunk->crc;
 		image.pRomCrc     = chunk->pRomCrc;
 		image.pRomSize    = chunk->pRomSize;
 		image.cRomSize    = chunk->cRomSize;

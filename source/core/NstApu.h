@@ -77,6 +77,8 @@ public:
 		
 		CHANNEL();
 
+		virtual ~CHANNEL() {}
+
 		virtual BOOL IsActive() const
 		{ return enabled && LengthCounter; }
 
@@ -89,6 +91,9 @@ public:
 
 		VOID SetContext(const ULONG,const BOOL,const BOOL);
 
+		inline VOID ClearAmp()
+		{ amp = 0; }
+
 	protected:
 
 		virtual VOID UpdateContext() {}
@@ -96,15 +101,15 @@ public:
 		PDXRESULT SaveState(PDXFILE&) const;
 		PDXRESULT LoadState(PDXFILE&);
 
-		UINT  active;
-		UINT  enabled;
-		UINT  LengthCounter;
-		LONG  frequency;
-		LONG  timer;
-		LONG  amp;
-		UINT  pal;
-		ULONG rate;
 		BOOL  emulate;
+		UINT  pal;
+		UINT  enabled;
+		UINT  active;
+		UINT  LengthCounter;
+		LONG  timer;
+		LONG  frequency;
+		ULONG rate;
+		LONG  amp;
 
 		static const UCHAR LengthTable[32];
 
@@ -155,10 +160,14 @@ private:
 	NES_DECL_PEEK( 4xxx );
 
 	LONG Sample();
-	VOID Synchronize();
-	VOID Synchronize(const ULONG);
-	VOID UpdatePhase();
+	LONG SampleAll();
 
+	VOID Synchronize();
+	VOID SynchronizeON    (const ULONG);
+	VOID SynchronizeAllON (const ULONG);
+	VOID SynchronizeOFF   (const ULONG);
+	
+	PDX_NO_INLINE VOID UpdatePhase();
 	PDX_NO_INLINE VOID UpdateBuffer(const TSIZE);
 
 	typedef PDXARRAY<CHANNEL* const> EXTCHANNELS;
@@ -588,6 +597,8 @@ private:
 	UINT pal;
 
 	IO::SFX* stream;
+
+	VOID (APU::*SynchronizePtr)(const ULONG);
 
 	SQUARE      square1;
 	SQUARE      square2;

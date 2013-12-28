@@ -187,10 +187,10 @@ public:
 		PDX_COMPILE_ASSERT(SWAP_SIZE >= BANK_SIZE);
 		PDX_COMPILE_ASSERT(SWAP_SIZE % BANK_SIZE == 0);
 
-		const UINT offset = address / BANK_SIZE;
+		U8** const PDX_RESTRICT map = pages + (address / BANK_SIZE);
 
 		for (UINT i=0; i < (SWAP_SIZE / BANK_SIZE); ++i)
-			pages[offset+i] = chunk + (i * BANK_SIZE);
+			map[i] = chunk + (i * BANK_SIZE);
 	}
 
 	template<ULONG SWAP_SIZE,ULONG SWAP_ADDRESS> 
@@ -206,8 +206,10 @@ public:
 			LENGTH = SWAP_SIZE / BANK_SIZE
 		};
 
+		U8** const PDX_RESTRICT map = pages + OFFSET;
+
 		for (UINT i=0; i < LENGTH; ++i)
-			pages[OFFSET+i] = chunk + (i * BANK_SIZE);
+			map[i] = chunk + (i * BANK_SIZE);
 	}
 
 	PDXRESULT SaveState(PDXFILE&,const BOOL=TRUE) const;
@@ -219,10 +221,10 @@ private:
 
 	PDX_COMPILE_ASSERT(NUM_PAGES <= 32);
 
-	U8* pages[NUM_PAGES];
-	U8* ram;
 	UINT size;
+	U8* ram;
 	UINT mask;
+	U8* pages[NUM_PAGES];
 	BOOL internal;
 };
 

@@ -37,8 +37,10 @@ class PREFERENCES : public MANAGER
 {
 public:
 
-	PREFERENCES(const INT a)
-	: MANAGER(a) {}
+	PREFERENCES();
+
+	VOID Create  (CONFIGFILE* const);
+	VOID Destroy (CONFIGFILE* const);
 
 	inline BOOL HighPriority()         const { return highpriority;       }
 	inline BOOL EmulateImmediately()   const { return emulateimmediately; }
@@ -51,35 +53,15 @@ public:
 	inline BOOL LogFileEnabled()       const { return uselogfile;         }
 	inline BOOL NoWarnings()           const { return nowarnings;         }
 	inline BOOL ShowWarnings()         const { return !nowarnings;        }
+	inline BOOL UseDatabase()          const { return usedatabase;        }
 
 private:
-
-	PDXRESULT Create  (CONFIGFILE* const);
-	PDXRESULT Destroy (CONFIGFILE* const);
 
 	BOOL DialogProc(HWND,UINT,WPARAM,LPARAM);
 
 	VOID Reset();
 	VOID UpdateDialog(HWND);
 	VOID SetContext(HWND=NULL);
-
-   #pragma pack(push,1)
-
-	struct HEADER
-	{
-		U8 emulateimmediately : 1;
-		U8 backgroundnsf      : 1;
-		U8 background         : 1;
-		U8 fullscreen         : 1;
-		U8 nowarnings         : 1;
-		U8 closepoweroff      : 1;
-		U8 hidemenu           : 1;
-		U8 confirmexit        : 1;
-		U8 logfile            : 1;
-		U8 highpriority       : 1;
-	};
-
-   #pragma pack(pop)
 
 	BOOL emulateimmediately;
 	BOOL background;
@@ -91,6 +73,7 @@ private:
 	BOOL confirmexit;
 	BOOL uselogfile;
 	BOOL highpriority;
+	BOOL usedatabase;
 
 	INT DefPriority;
 };

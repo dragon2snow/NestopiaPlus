@@ -46,6 +46,7 @@ count      (0)
 
 VOID PADDLE::Poll()
 {
+	polled = TRUE;
 	count = 0;
 	state = 0;
 	fire = 0;
@@ -75,6 +76,9 @@ VOID PADDLE::Poll()
 
 UINT PADDLE::Peek_4016()
 {
+	if (!polled)
+		PADDLE::Poll();
+		 
 	return fire;
 }
 
@@ -84,8 +88,12 @@ UINT PADDLE::Peek_4016()
 
 UINT PADDLE::Peek_4017()
 {
+	if (!polled)
+		PADDLE::Poll();
+
 	const UINT data = ((state >> count) & 0x1) << 1;
 	count = PDX_MIN(count+1,STREAM_LENGTH);
+
 	return data;
 }
 

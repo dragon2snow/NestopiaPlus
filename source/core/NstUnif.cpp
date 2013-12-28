@@ -37,59 +37,61 @@ NES_NAMESPACE_BEGIN
 
 UNIF::UNIF()
 {	
-	boards[ "SNROM"    ] = 1;  // MMC1
-	boards[ "SKROM"    ] = 1;
-	boards[ "SAROM"    ] = 1;
-	boards[ "SBROM"    ] = 1;
-	boards[ "SCEOROM"  ] = 1;
-	boards[ "SC1ROM"   ] = 1;
-	boards[ "SEROM"    ] = 1;
-	boards[ "SFROM"    ] = 1;
-	boards[ "SGROM"    ] = 1;
-	boards[ "SHROM"    ] = 1;
-	boards[ "SJROM"    ] = 1;
-	boards[ "SLROM"    ] = 1;
-	boards[ "SLRROM"   ] = 1;
-	boards[ "SN1-ROM"  ] = 1;
-	boards[ "SOROM"    ] = 1;
-	boards[ "SVROM"    ] = 1;
-	boards[ "SUROM"    ] = 1;
-	boards[ "PNROM"    ] = 9;  // MMC2	
-	boards[ "51555"    ] = 4;  // MMC3/MMC6
-	boards[ "DRROM"    ] = 4;
-	boards[ "EKROM"    ] = 4;
-	boards[ "SL1ROM"   ] = 4;
-	boards[ "SL2ROM"   ] = 4;
-	boards[ "SL3ROM"   ] = 4;
-	boards[ "TEROM"    ] = 4;
-	boards[ "TFROM"    ] = 4;
-	boards[ "TGROM"    ] = 4;
-	boards[ "TKROM"    ] = 4;
-	boards[ "TLROM"    ] = 4;
-	boards[ "TQROM"    ] = 4;
-	boards[ "TSROM"    ] = 4;
-	boards[ "TVROM"    ] = 4;
-	boards[ "TL1ROM"   ] = 4;
-	boards[ "TLSROM"   ] = 4;
-	boards[ "B4"       ] = 4;
-	boards[ "HKROM"    ] = 4;	
-	boards[ "ELROM"    ] = 5;  // MMC5
-	boards[ "ETROM"    ] = 5;
-	boards[ "EWROM"    ] = 5;	
-	boards[ "351258"   ] = 2;  // UNROM
-	boards[ "351298"   ] = 2;
-	boards[ "351908"   ] = 2;
-	boards[ "UNROM"    ] = 2;	
-	boards[ "NROM"     ] = 0;  // NROM
-	boards[ "NROM-128" ] = 0;
-	boards[ "NROM-256" ] = 0;
-	boards[ "RROM"     ] = 0;
-	boards[ "RROM-128" ] = 0;	
-	boards[ "GNROM"    ] = 66; // GNROM	
-	boards[ "AOROM"    ] = 7;  // AOROM	
-	boards[ "BNROM"    ] = 34; // BNROM	
-	boards[ "CNROM"    ] = 3;  // CNROM	
-	boards[ "CPROM"    ] = 13; // CPROM
+	boards[ "SNROM"           ] = 1;  // MMC1
+	boards[ "SKROM"           ] = 1;
+	boards[ "SAROM"           ] = 1;
+	boards[ "SBROM"           ] = 1;
+	boards[ "SCEOROM"         ] = 1;
+	boards[ "SC1ROM"          ] = 1;
+	boards[ "SEROM"           ] = 1;
+	boards[ "SFROM"           ] = 1;
+	boards[ "SGROM"           ] = 1;
+	boards[ "SHROM"           ] = 1;
+	boards[ "SJROM"           ] = 1;
+	boards[ "SLROM"           ] = 1;
+	boards[ "SLRROM"          ] = 1;
+	boards[ "SN1-ROM"         ] = 1;
+	boards[ "SOROM"           ] = 1;
+	boards[ "SVROM"           ] = 1;
+	boards[ "SUROM"           ] = 1;
+	boards[ "PNROM"           ] = 9;  // MMC2	
+	boards[ "51555"           ] = 4;  // MMC3/MMC6
+	boards[ "DRROM"           ] = 4;
+	boards[ "EKROM"           ] = 4;
+	boards[ "SL1ROM"          ] = 4;
+	boards[ "SL2ROM"          ] = 4;
+	boards[ "SL3ROM"          ] = 4;
+	boards[ "TEROM"           ] = 4;
+	boards[ "TFROM"           ] = 4;
+	boards[ "TGROM"           ] = 4;
+	boards[ "TKROM"           ] = 4;
+	boards[ "TLROM"           ] = 4;
+	boards[ "TQROM"           ] = 4;
+	boards[ "TSROM"           ] = 4;
+	boards[ "TVROM"           ] = 4;
+	boards[ "TL1ROM"          ] = 4;
+	boards[ "TLSROM"          ] = 4;
+	boards[ "B4"              ] = 4;
+	boards[ "HKROM"           ] = 4;	
+	boards[ "ELROM"           ] = 5;  // MMC5
+	boards[ "ETROM"           ] = 5;
+	boards[ "EWROM"           ] = 5;	
+	boards[ "351258"          ] = 2;  // UNROM
+	boards[ "351298"          ] = 2;
+	boards[ "351908"          ] = 2;
+	boards[ "UNROM"           ] = 2;	
+	boards[ "NROM"            ] = 0;  // NROM
+	boards[ "NROM-128"        ] = 0;
+	boards[ "NROM-256"        ] = 0;
+	boards[ "RROM"            ] = 0;
+	boards[ "RROM-128"        ] = 0;	
+	boards[ "GNROM"           ] = 66; // GNROM	
+	boards[ "AOROM"           ] = 7;  // AOROM	
+	boards[ "BNROM"           ] = 34; // BNROM	
+	boards[ "CNROM"           ] = 3;  // CNROM	
+	boards[ "CPROM"           ] = 13; // CPROM
+	boards[ "Sachen-74LS374N" ] = 134;
+	boards[ "Sachen-8259A"    ] = 135;
 
 	PDXSTRING number;
 
@@ -433,6 +435,8 @@ PDXRESULT UNIF::Import(CARTRIDGE* const cartridge,PDXFILE& file,const IO::GENERA
 				break;
 			}
 
+			UINT extra = 0;
+
 			if 
 			(
 		     	!memcmp( cartridge->info.board.String(), "NES-", 4 ) || 
@@ -444,6 +448,7 @@ PDXRESULT UNIF::Import(CARTRIDGE* const cartridge,PDXFILE& file,const IO::GENERA
 			{
 				const PDXSTRING tmp(cartridge->info.board);
 				cartridge->info.board = tmp.At(4);
+				extra += 4;
 			}
 
 			BOARDS::CONSTITERATOR iterator( boards.Find(cartridge->info.board.Begin()) );
@@ -456,7 +461,7 @@ PDXRESULT UNIF::Import(CARTRIDGE* const cartridge,PDXFILE& file,const IO::GENERA
 			log += cartridge->info.board;			
 			LogOutput( log.String() );
 
-			length = cartridge->info.board.Length() + 1;
+			length = cartridge->info.board.Length() + extra + 1;
 		}
 		else if ((!memcmp(chunk.id,"MIRR",4)))
 		{
@@ -567,13 +572,14 @@ PDXRESULT UNIF::Import(CARTRIDGE* const cartridge,PDXFILE& file,const IO::GENERA
 	if (!success)
 		return MsgWarning("Corrupt file!");
 
-	cartridge->info.crc     = PDXCRC32::Compute( file.Begin(), file.Size() );
+	cartridge->info.crc     = PDXCRC32::Compute( file.At(16), file.Size() - 16 );
 	cartridge->info.pRomCrc = PDXCRC32::Compute( cartridge->pRom.Begin(), cartridge->pRom.Size() );
 	cartridge->info.cRomCrc = PDXCRC32::Compute( cartridge->cRom.Begin(), cartridge->cRom.Size() );
 
    #ifdef NES_USE_ROM_DATABASE
 
-	CheckDatabase( cartridge, file, context );
+	if (context.UseRomDatabase)
+		CheckDatabase( cartridge, file, context );
 
    #endif
 
@@ -583,7 +589,7 @@ PDXRESULT UNIF::Import(CARTRIDGE* const cartridge,PDXFILE& file,const IO::GENERA
 
 		msg << "Couldn't find the corresponding mapper to the board: \"";
 		msg << cartridge->info.board;
-		msg << "\". You may specify which mapper this cartridge use by entering the appropriate number in the field.";
+		msg << "\". You may specify which mapper this cartridge uses by entering the appropriate number in the field.";
 
 		PDXSTRING choice;
 
@@ -626,7 +632,7 @@ PDXRESULT UNIF::CheckDatabase(CARTRIDGE* const cartridge,PDXFILE& file,const IO:
 	if (database.IsEmpty())
 		ImportDatabase();
 
-	PDXMAP<IMAGE,U32>::CONSTITERATOR iterator( database.Find(cartridge->info.pRomCrc) );
+	PDXMAP<IMAGE,KEY>::CONSTITERATOR iterator(database.Find(KEY(cartridge->info.crc,cartridge->info.pRomCrc)) );
 
 	if (iterator != database.End())
 	{

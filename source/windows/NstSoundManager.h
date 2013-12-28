@@ -31,7 +31,6 @@
 #include "NstManager.h"
 
 class WAVEFILE;
-class PDXFILE;
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -41,42 +40,51 @@ class SOUNDMANAGER : public DIRECTSOUND, public MANAGER
 {
 public:
 
-	SOUNDMANAGER(const INT);
+	SOUNDMANAGER();
 
-	PDXRESULT Clear();
+	VOID Create  (CONFIGFILE* const);
+	VOID Destroy (CONFIGFILE* const);
+
 	PDXRESULT Lock(NES::IO::SFX&);
-	PDXRESULT Unlock();	
-	PDXRESULT SetRefreshRate(const BOOL,const UINT);
+	PDXRESULT Unlock();
+
+	VOID SetRefreshRate(const BOOL,const UINT);	
+	VOID Stop();
+	VOID Start();
+	
+	PDXRESULT Clear();
 
 	inline NES::IO::SFX* GetFormat()
 	{ return &format; }
 
-	inline VOID StartSoundRecordDialog() { SoundRecorder.StartDialog(); }
-	inline VOID ResetSoundRecording()	 { SoundRecorder.Reset();       }
-	inline VOID StartSoundRecording()    { SoundRecorder.Start();       }
-	inline VOID StopSoundRecording()     { SoundRecorder.Stop();        }
+	VOID StartSoundRecordDialog() 
+	{ 
+		Clear();
+		SoundRecorder.StartDialog(); 
+	}
+
+	inline VOID ResetSoundRecording() { SoundRecorder.Reset(); }
+	inline VOID StartSoundRecording() { SoundRecorder.Start(); }
+	inline VOID StopSoundRecording()  { SoundRecorder.Stop();  }
 
 	inline BOOL IsSoundRecorderRecording()    const { return SoundRecorder.IsRecording(); }
 	inline BOOL IsSoundRecordingFilePresent() const { return SoundRecorder.FilePresent(); }
 
 private:
 
-	PDXRESULT Create  (CONFIGFILE* const);
-	PDXRESULT Destroy (CONFIGFILE* const);
-
 	PDXRESULT CreateDevice(GUID);
-
-	VOID SetSampleRate(const DWORD=44100);
-	VOID SetSampleBits(const UINT=16);
 
 	BOOL DialogProc(HWND,UINT,WPARAM,LPARAM);
 
-	VOID Reset();
-	VOID OnEnable(HWND);
-	VOID UpdateDialog(HWND);
-	VOID UpdateRefreshRate();
-	
-	PDXRESULT UpdateDirectSound(const GUID* const=NULL);
+	PDX_NO_INLINE VOID Reset();
+	PDX_NO_INLINE VOID Disable();
+	PDX_NO_INLINE VOID OnEnable(HWND);
+	PDX_NO_INLINE VOID UpdateDialog(HWND);
+	PDX_NO_INLINE VOID UpdateDirectSound(const GUID* const=NULL);
+	PDX_NO_INLINE VOID SetSampleRate(const DWORD=44100);
+	PDX_NO_INLINE VOID SetSampleBits(const UINT=16);
+
+	VOID UpdateRefreshRate();	
 
 	BOOL enabled;
 	UINT SelectedAdapter;
@@ -86,7 +94,6 @@ private:
 	INT  SelectedVolume;
 	UINT RefreshRate;
 	BOOL IsPAL;
-	BOOL ChangedSampleParameters;
 
 	NES::IO::SFX format;
 	NES::IO::SFX::CONTEXT context;

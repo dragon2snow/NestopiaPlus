@@ -48,10 +48,13 @@ status     (0)
 
 VOID ZAPPER::Poll()
 {
+	polled = TRUE;
+
 	if (input)
 	{
 		x = input->zapper.x;
 		y = input->zapper.y;
+
 		status = input->zapper.fire ? (FIRE|READ) : READ;
 	}
 }
@@ -78,8 +81,11 @@ UINT ZAPPER::Peek_4017()
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-inline UINT ZAPPER::Read() const
+UINT ZAPPER::Read()
 {
+	if (!polled)
+		ZAPPER::Poll();
+
 	UINT state = status;
 
 	if (gfx)

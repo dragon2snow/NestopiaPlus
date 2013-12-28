@@ -43,22 +43,18 @@ public:
 	enum {NO_FILE=0};
 	enum {NO_DIALOG=INT_MAX};
 
-	MANAGER(const INT=NO_DIALOG);
-	virtual ~MANAGER() {}
-
-	PDXRESULT Init(HWND,HINSTANCE,NES::MACHINE* const=NULL,CONFIGFILE* const=NULL);
-	PDXRESULT Close(CONFIGFILE* const);
+	virtual VOID Create  (CONFIGFILE* const) {}
+	virtual VOID Destroy (CONFIGFILE* const) {}
 
 	VOID StartDialog();
 
 protected:
 
-	virtual PDXRESULT Create  (CONFIGFILE* const) { return PDX_OK; }
-	virtual PDXRESULT Destroy (CONFIGFILE* const) { return PDX_OK; }
+	MANAGER(const INT=NO_DIALOG);
+	virtual ~MANAGER() {}
 
-	HWND hWnd;
-	HINSTANCE hInstance;
-	NES::MACHINE* nes;
+	HWND const hWnd;
+	NES::MACHINE& nes;
 
 private:
 

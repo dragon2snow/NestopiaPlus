@@ -196,9 +196,11 @@ VOID MAP<SIZE>::SetPort(const UINT address,OBJECT* object,READER reader,WRITER w
 {
 	PDX_ASSERT(object && reader && writer && address < SIZE);
 
-	map[address].object = PDX_CAST_REF( PORT::OBJECT*,object );
-	map[address].reader = PDX_CAST_REF( PORT::READER,reader  ); 
-	map[address].writer = PDX_CAST_REF( PORT::WRITER,writer  );
+	PORT* const PDX_RESTRICT port = map + address;
+
+	port->object = PDX_CAST_REF( PORT::OBJECT*,object );
+	port->reader = PDX_CAST_REF( PORT::READER,reader  ); 
+	port->writer = PDX_CAST_REF( PORT::WRITER,writer  );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -210,11 +212,13 @@ VOID MAP<SIZE>::SetPort(const UINT first,const UINT last,OBJECT* object,READER r
 {
 	PDX_ASSERT((first <= last) && (last < SIZE) && object && reader && writer);
 
+	PORT* const PDX_RESTRICT ports = map;
+
 	for (ULONG address=first; address <= last; ++address)
 	{
-		map[address].object = PDX_CAST_REF( PORT::OBJECT*,object );
-		map[address].reader = PDX_CAST_REF( PORT::READER,reader  ); 
-		map[address].writer = PDX_CAST_REF( PORT::WRITER,writer  );
+		ports[address].object = PDX_CAST_REF( PORT::OBJECT*,object );
+		ports[address].reader = PDX_CAST_REF( PORT::READER,reader  ); 
+		ports[address].writer = PDX_CAST_REF( PORT::WRITER,writer  );
 	}
 }
 

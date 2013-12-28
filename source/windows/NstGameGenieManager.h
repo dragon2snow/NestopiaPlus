@@ -38,8 +38,9 @@ class GAMEGENIEMANAGER : public MANAGER
 {
 public:
 
-	GAMEGENIEMANAGER(const INT id)
-	: MANAGER(id) {}
+	GAMEGENIEMANAGER();
+
+	VOID Create(CONFIGFILE* const);
 
 	PDXRESULT ClearAllCodes();
 	PDXRESULT AddCode(const PDXSTRING&,const BOOL=TRUE,const PDXSTRING* const=NULL);
@@ -49,8 +50,6 @@ public:
 	{ return codes.Size(); }
 
 private:
-
-	PDXRESULT Create(CONFIGFILE* const);
 
 	struct CODE
 	{

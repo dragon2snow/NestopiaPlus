@@ -39,23 +39,35 @@ class DIRECTSOUND
 {
 public:
 
-	PDXRESULT Stop();
-	PDXRESULT Start();
-
 	VOID EnablePAL(const BOOL);
+
+  #ifdef NST_SYNCHRONIZE_SOUND
+
+	BOOL UpdateRefresh();
+
+  #endif
+
+	VOID Halt()
+	{
+		if (secondary)
+			secondary->Stop();
+	}
 
 protected:
 
 	DIRECTSOUND();
 	~DIRECTSOUND();
 
-	PDXRESULT Clear();
+	VOID Initialize(HWND);
+	VOID Destroy();
+
+	PDX_NO_INLINE PDXRESULT Create(const GUID&);
+	PDX_NO_INLINE PDXRESULT SetFormat(const DWORD,const DWORD,const UINT,const BOOL,const UINT,const BOOL);
+	
+	PDXRESULT Start();
+	PDXRESULT Stop(NES::IO::SFX&);
 	PDXRESULT Lock(NES::IO::SFX&);
-	PDXRESULT Unlock();	
-	PDXRESULT Initialize(HWND);
-	PDXRESULT Destroy();
-	PDXRESULT Create(const GUID&);
-	PDXRESULT SetFormat(const DWORD,const DWORD,const UINT,const BOOL,const UINT,const BOOL);
+	PDXRESULT Unlock();
 
 	inline const WAVEFORMATEX& GetWaveFormat() const
 	{ return WaveFormat; }
@@ -68,6 +80,9 @@ protected:
 
 	inline TSIZE GetDSoundBufferSize() const
 	{ return locked.size; }
+
+	inline LPDIRECTSOUNDBUFFER8 GetBuffer()
+	{ return secondary; }
 
 	VOID SetVolume(const LONG);
 
@@ -97,15 +112,14 @@ protected:
 
 private:
 
-	static PDXRESULT Error(const CHAR* const);
+	PDXRESULT OnError(const CHAR* const);
 
 	static BOOL CALLBACK EnumAdapters(LPGUID,LPCSTR,LPCSTR,LPVOID);
 
-	PDXRESULT UnlockSecondary();
-	PDXRESULT LockSecondary(const DWORD,const DWORD);
-	PDXRESULT ClearBuffer();
-	PDXRESULT RestoreBuffer(BOOL* const=NULL);
-	PDXRESULT CreateBuffer(const UINT,const UINT,const BOOL,const BOOL);
+	PDXRESULT Lock(const DWORD,const DWORD);
+	VOID ClearBuffer();
+	
+	PDX_NO_INLINE PDXRESULT CreateBuffer(const UINT,const UINT,const BOOL,const BOOL);
 
 	struct LOCKED
 	{
@@ -118,10 +132,12 @@ private:
 	WAVEFORMATEX WaveFormat;   
 	LOCKED locked;
 	
-	DWORD NotifyOffset;
 	DWORD NotifySize;
 	DWORD BufferSize;
 	DWORD LastOffset;
+	DWORD LastPos;
+	DWORD TimerRate;
+	LONG  LastSample;
 
 	struct DATA
 	{

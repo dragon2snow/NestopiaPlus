@@ -98,9 +98,9 @@ VOID VSDIPSWITCHMANAGER::InitDialog(HWND hDlg)
 		HWND hCmd = GetDlgItem( hDlg, IDC_DIPSWITCHES_1 + i );
 		HWND hTxt = GetDlgItem( hDlg, IDC_DIPSWITCHES_1_TEXT + i );
 
-		if (nes->GetNumVsSystemDipSwitches() > i)
+		if (nes.GetNumVsSystemDipSwitches() > i)
 		{
-			nes->GetVsSystemDipSwitch( i, context );
+			nes.GetVsSystemDipSwitch( i, context );
 
 			SetWindowText( hTxt, context.name.String() );
 
@@ -125,9 +125,9 @@ VOID VSDIPSWITCHMANAGER::CloseDialog(HWND hDlg)
 {
 	NES::IO::DIPSWITCH::CONTEXT context;
 
-	for (UINT i=0; i < nes->GetNumVsSystemDipSwitches(); ++i)
+	for (UINT i=0; i < nes.GetNumVsSystemDipSwitches(); ++i)
 	{
 		context.index = ComboBox_GetCurSel( GetDlgItem( hDlg, IDC_DIPSWITCHES_1 + i ) );
-		nes->SetVsSystemDipSwitch( i, context );
+		nes.SetVsSystemDipSwitch( i, context );
 	}
 }

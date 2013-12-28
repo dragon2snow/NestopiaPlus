@@ -64,27 +64,39 @@ PDXRESULT NES::IO::SFX::Clear()
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-SOUNDMANAGER::SOUNDMANAGER(const INT id)
+SOUNDMANAGER::SOUNDMANAGER()
 : 
-MANAGER     (id), 
-RefreshRate (60),
-IsPAL       (FALSE)
-{}
+MANAGER            (IDD_SOUND), 
+enabled            (FALSE),
+SelectedAdapter    (0),
+SelectedSampleRate (0),
+SelectedSampleBits (0),
+SelectedLatency    (3),
+SelectedVolume     (DSBVOLUME_MAX),
+RefreshRate        (60),
+IsPAL              (FALSE)
+{
+	format.device = PDX_CAST(VOID*,this);
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT SOUNDMANAGER::Create(CONFIGFILE* const ConfigFile)
+VOID SOUNDMANAGER::Create(CONFIGFILE* const ConfigFile)
 {	
-	PDX_TRY(DIRECTSOUND::Initialize( MANAGER::hWnd ));
-	PDX_TRY(SoundRecorder.Init( MANAGER::hWnd, MANAGER::hInstance ));
+	DIRECTSOUND::Initialize( MANAGER::hWnd );
 
-	nes->GetAudioContext( context );
-	format.device = PDX_CAST(VOID*,this);
-	SelectedAdapter = 0;
+	nes.GetAudioContext( context );
 
-	if (ConfigFile)
+	GUID guid;
+	GUID* pGuid = NULL;
+
+	if (adapters.IsEmpty())
+	{
+		Disable();
+	}
+	else if (ConfigFile)
 	{
 		CONFIGFILE& file = *ConfigFile;
 
@@ -105,27 +117,40 @@ PDXRESULT SOUNDMANAGER::Create(CONFIGFILE* const ConfigFile)
 		string = &file[ "sound buffers" ]; SelectedLatency = string->Length() ? string->ToUlong() : 3;
 		string = &file[ "sound volume"  ]; volume          = string->Length() ? string->ToUlong() : 100;
 
-		SelectedLatency = PDX_MIN(SelectedLatency,9);
+		SelectedLatency = PDX_MIN(SelectedLatency,10);
 		SelectedVolume = LONG(PDX_MIN(volume,100) * 100) + DSBVOLUME_MIN;
 
-		const GUID guid(CONFIGFILE::ToGUID(file["sound device"].String()));
-		UpdateDirectSound( &guid );
+		guid = CONFIGFILE::ToGUID( file["sound device"].String() );
+		pGuid = &guid;
 	}
 	else
 	{
 		Reset();
 	}
 
-	return PDX_OK;
+	UpdateDirectSound( pGuid );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT SOUNDMANAGER::Destroy(CONFIGFILE* const ConfigFile)
+VOID SOUNDMANAGER::Disable()
 {
-	SoundRecorder.Stop( FALSE );
+	enabled = FALSE;
+	context.enabled = FALSE;
+	SelectedAdapter = 0;
+	SoundRecorder.Close();
+	nes.SetAudioContext( context );
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+VOID SOUNDMANAGER::Destroy(CONFIGFILE* const ConfigFile)
+{
+	SoundRecorder.Close();
 
 	if (ConfigFile)
 	{
@@ -154,68 +179,56 @@ PDXRESULT SOUNDMANAGER::Destroy(CONFIGFILE* const ConfigFile)
 		file[ "sound apu external" ] = (context.external ? "on" : "off");
 	}
 
-	return DIRECTSOUND::Destroy();
+	enabled = FALSE;
+
+	DIRECTSOUND::Destroy();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT SOUNDMANAGER::CreateDevice(GUID guid)
+VOID SOUNDMANAGER::Stop()
 {
-	if (adapters.IsEmpty())
-		return application.OnError("Found no sound card!");
-
-	BOOL found = FALSE;
-
-	for (UINT i=0; i < adapters.Size(); ++i)
+	if (enabled)
 	{
-		if (!memcmp(&guid,&adapters[i].guid,sizeof(guid)))
-		{
-			if (PDX_SUCCEEDED(DIRECTSOUND::Create(guid)))
-			{
-				found = TRUE;
-				SelectedAdapter = i;
-			}
-			break;
-		}
+		nes.ResetAudioBuffer();
+
+		if (PDX_FAILED(DIRECTSOUND::Stop(format)))
+			Disable();
 	}
+}
 
-	if (!found)
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+VOID SOUNDMANAGER::Start()
+{
+	if (enabled)
 	{
-		PDXMemZero( guid );
+		nes.ResetAudioBuffer();
 
-		for (UINT i=0; i < adapters.Size(); ++i)
-		{
-			if (!memcmp(&guid,&adapters[i].guid,sizeof(guid)))
-			{
-				if (PDX_SUCCEEDED(DIRECTSOUND::Create(guid)))
-				{
-					found = TRUE;
-					SelectedAdapter = i;
-				}
-				break;
-			}
-		}
+		if (PDX_FAILED(DIRECTSOUND::Start()))
+			Disable();
 	}
+}
 
-	if (!found)
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+PDXRESULT SOUNDMANAGER::Clear()
+{
+	if (enabled)
 	{
-		for (UINT i=0; i < adapters.Size(); ++i)
+		nes.ResetAudioBuffer();
+
+		if (PDX_FAILED(DIRECTSOUND::Stop(format)) || PDX_FAILED(DIRECTSOUND::Start()))
 		{
-			if (PDX_SUCCEEDED(DIRECTSOUND::Create(adapters[i].guid)))
-			{
-				found = TRUE;
-				SelectedAdapter = i;
-				break;
-			}
+			Disable();
+			return PDX_FAILURE;
 		}
-	}
-
-	if (!found)
-	{
-		DIRECTSOUND::Destroy();
-		return PDX_FAILURE;
 	}
 
 	return PDX_OK;
@@ -225,16 +238,69 @@ PDXRESULT SOUNDMANAGER::CreateDevice(GUID guid)
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
+PDXRESULT SOUNDMANAGER::CreateDevice(GUID guid)
+{
+	for (UINT i=0; i < adapters.Size(); ++i)
+	{
+		if (PDXMemCompare(guid,adapters[i].guid))
+		{
+			if (PDX_SUCCEEDED(DIRECTSOUND::Create(guid)))
+			{
+				SelectedAdapter = i;
+				return PDX_OK;
+			}
+			break;
+		}
+	}
+
+	PDXMemZero( guid );
+
+	for (UINT i=0; i < adapters.Size(); ++i)
+	{
+		if (PDXMemCompare(guid,adapters[i].guid))
+		{
+			if (PDX_SUCCEEDED(DIRECTSOUND::Create(guid)))
+			{
+				SelectedAdapter = i;
+				return PDX_OK;
+			}
+			break;
+		}
+	}
+
+	for (UINT i=0; i < adapters.Size(); ++i)
+	{
+		if (PDX_SUCCEEDED(DIRECTSOUND::Create(adapters[i].guid)))
+		{
+			SelectedAdapter = i;
+			return PDX_OK;
+		}
+	}
+
+	DIRECTSOUND::Destroy();
+
+	return PDX_FAILURE;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
 VOID SOUNDMANAGER::SetSampleRate(const DWORD rate)
 {
-	const PDXARRAY<DWORD>& rates = adapters[SelectedAdapter].SampleRates;
-	
-	const DWORD* pos;
+	SelectedSampleRate = 0;
 
-	if ((pos = PDX::Find( rates.Begin(), rates.End(), rate )) == rates.End())
-		pos = PDX::Find( rates.Begin(), rates.End(), 44100 );
+	if (SelectedAdapter < adapters.Size())
+	{
+		const PDXARRAY<DWORD>& rates = adapters[SelectedAdapter].SampleRates;
 
-	SelectedSampleRate = (pos != rates.End() ? pos - rates.Begin() : 0);
+		const DWORD* pos;
+
+		if ((pos = PDX::Find( rates.Begin(), rates.End(), rate )) == rates.End())
+			pos = PDX::Find( rates.Begin(), rates.End(), 44100 );
+
+		SelectedSampleRate = (pos != rates.End() ? pos - rates.Begin() : 0);
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -243,10 +309,15 @@ VOID SOUNDMANAGER::SetSampleRate(const DWORD rate)
 
 VOID SOUNDMANAGER::SetSampleBits(const UINT bits)
 {
-	switch (bits)
+	SelectedSampleBits = 0;
+
+	if (SelectedAdapter < adapters.Size())
 	{
-     	case 8:  SelectedSampleBits = adapters[SelectedAdapter].SampleBits8  ? 8 : 16; return;
-     	default: SelectedSampleBits = adapters[SelectedAdapter].SampleBits16 ? 16 : 8; return;
+		switch (bits)
+		{
+     		case 8:  SelectedSampleBits = adapters[SelectedAdapter].SampleBits8  ? 8 : 16; return;
+       		default: SelectedSampleBits = adapters[SelectedAdapter].SampleBits16 ? 16 : 8; return;
+		}
 	}
 }
 
@@ -256,6 +327,8 @@ VOID SOUNDMANAGER::SetSampleBits(const UINT bits)
 
 VOID SOUNDMANAGER::Reset()
 {
+	enabled = bool(adapters.Size());
+
 	SelectedAdapter = 0;
 	SelectedLatency = 3;
 	SelectedVolume = DSBVOLUME_MAX;
@@ -271,20 +344,7 @@ VOID SOUNDMANAGER::Reset()
 	SetSampleRate();
 	SetSampleBits();
 
-	GUID guid;
-	PDXMemZero( guid );
-	
-	if (PDX_SUCCEEDED(UpdateDirectSound( &guid )))
-		SoundRecorder.SetWaveFormat( GetWaveFormat() );
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-PDXRESULT SOUNDMANAGER::Clear()
-{
-	return DIRECTSOUND::Clear();
+	SoundRecorder.Close();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -293,7 +353,20 @@ PDXRESULT SOUNDMANAGER::Clear()
 
 PDXRESULT SOUNDMANAGER::Lock(NES::IO::SFX& sfx)
 {
-	return DIRECTSOUND::Lock(sfx);
+	if (enabled)
+	{
+		const PDXRESULT result = DIRECTSOUND::Lock(sfx);
+
+		switch (result)
+		{
+     		case PDX_OK: return PDX_OK;
+     		case PDX_BUSY: return PDX_BUSY;
+		}
+
+		Disable();
+	}
+
+	return PDX_FAILURE;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -302,41 +375,46 @@ PDXRESULT SOUNDMANAGER::Lock(NES::IO::SFX& sfx)
 
 PDXRESULT SOUNDMANAGER::Unlock()
 {
-	if (SoundRecorder.IsRecording())
+	if (enabled)
 	{
-		PDXRESULT r1 = SoundRecorder.Write( GetDSoundBuffer(), GetDSoundBufferSize() );
-		PDXRESULT r2 = DIRECTSOUND::Unlock();
-
-		if (PDX_SUCCEEDED(r2))
+		if (SoundRecorder.IsRecording())
 		{
-			SoundRecorder.NotifySize();
-		}
-		else
-		{
-			SoundRecorder.Close();
+			const PDXRESULT recorded = SoundRecorder.Write( GetDSoundBuffer(), GetDSoundBufferSize() );
+
+			if (PDX_SUCCEEDED(DIRECTSOUND::Unlock()))
+			{
+				if (PDX_SUCCEEDED(recorded))
+					SoundRecorder.NotifySize();
+
+				return PDX_OK;
+			}
+
+			Disable();
+
+			return PDX_FAILURE;
 		}
 
-		return r2;
+		if (PDX_SUCCEEDED(DIRECTSOUND::Unlock()))
+			return PDX_OK;
+
+		Disable();
 	}
 
-	return DIRECTSOUND::Unlock();
+	return PDX_FAILURE;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT SOUNDMANAGER::SetRefreshRate(const BOOL pal,const UINT rate)
+VOID SOUNDMANAGER::SetRefreshRate(const BOOL pal,const UINT rate)
 {
 	if ((RefreshRate != rate || bool(IsPAL) != bool(pal)) && SelectedAdapter < adapters.Size())
 	{
 		IsPAL = pal;
 		RefreshRate = rate;
-		
-		return UpdateDirectSound();
+		UpdateDirectSound();
 	}
-
-	return PDX_OK;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -349,7 +427,7 @@ VOID SOUNDMANAGER::UpdateRefreshRate()
 	{
 		const DOUBLE SampleRate = DOUBLE(adapters[SelectedAdapter].SampleRates[SelectedSampleRate]);
 		context.SampleRate = ULONG(SampleRate / (DOUBLE(RefreshRate) / (IsPAL ? 50.0 : 60.0)));
-		nes->SetAudioContext( context );
+		nes.SetAudioContext( context );
 	}
 }
 
@@ -363,7 +441,7 @@ BOOL SOUNDMANAGER::DialogProc(HWND hDlg,UINT uMsg,WPARAM wParam,LPARAM)
 	{
     	case WM_INITDIALOG:
 
-			SoundRecorder.Stop( FALSE );
+			SoundRecorder.Close();
 			UpdateDialog( hDlg );
      		return TRUE;
 
@@ -404,12 +482,12 @@ BOOL SOUNDMANAGER::DialogProc(HWND hDlg,UINT uMsg,WPARAM wParam,LPARAM)
 				case IDC_SOUND_8_BIT:  SelectedSampleBits = 8;  return TRUE;
 				case IDC_SOUND_16_BIT: SelectedSampleBits = 16; return TRUE;
 
-				case IDC_SOUND_SQUARE1:  context.square1  = IsDlgButtonChecked( hDlg, IDC_SOUND_SQUARE1  ) == BST_CHECKED; return TRUE;
-				case IDC_SOUND_SQUARE2:  context.square2  = IsDlgButtonChecked( hDlg, IDC_SOUND_SQUARE2  ) == BST_CHECKED; return TRUE;
-				case IDC_SOUND_TRIANGLE: context.triangle = IsDlgButtonChecked( hDlg, IDC_SOUND_TRIANGLE ) == BST_CHECKED; return TRUE;
-				case IDC_SOUND_NOISE:    context.noise    = IsDlgButtonChecked( hDlg, IDC_SOUND_NOISE    ) == BST_CHECKED; return TRUE;
-				case IDC_SOUND_DPCM:     context.dpcm     = IsDlgButtonChecked( hDlg, IDC_SOUND_DPCM     ) == BST_CHECKED; return TRUE;
-				case IDC_SOUND_EXTERNAL: context.external = IsDlgButtonChecked( hDlg, IDC_SOUND_EXTERNAL ) == BST_CHECKED; return TRUE;
+				case IDC_SOUND_SQUARE1:  context.square1  = (IsDlgButtonChecked( hDlg, IDC_SOUND_SQUARE1  ) == BST_CHECKED); return TRUE;
+				case IDC_SOUND_SQUARE2:  context.square2  = (IsDlgButtonChecked( hDlg, IDC_SOUND_SQUARE2  ) == BST_CHECKED); return TRUE;
+				case IDC_SOUND_TRIANGLE: context.triangle = (IsDlgButtonChecked( hDlg, IDC_SOUND_TRIANGLE ) == BST_CHECKED); return TRUE;
+				case IDC_SOUND_NOISE:    context.noise    = (IsDlgButtonChecked( hDlg, IDC_SOUND_NOISE    ) == BST_CHECKED); return TRUE;
+				case IDC_SOUND_DPCM:     context.dpcm     = (IsDlgButtonChecked( hDlg, IDC_SOUND_DPCM     ) == BST_CHECKED); return TRUE;
+				case IDC_SOUND_EXTERNAL: context.external = (IsDlgButtonChecked( hDlg, IDC_SOUND_EXTERNAL ) == BST_CHECKED); return TRUE;
 
 				case IDC_SOUND_DEFAULT:
 
@@ -459,7 +537,8 @@ BOOL SOUNDMANAGER::DialogProc(HWND hDlg,UINT uMsg,WPARAM wParam,LPARAM)
 
 		case WM_DESTROY:
 
-       		return UpdateDirectSound();
+       		UpdateDirectSound();
+			return TRUE;
 	}
 
 	return FALSE;
@@ -490,18 +569,21 @@ VOID SOUNDMANAGER::OnEnable(HWND hDlg)
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT SOUNDMANAGER::UpdateDirectSound(const GUID* const guid)
+VOID SOUNDMANAGER::UpdateDirectSound(const GUID* const guid)
 {
 	context.enabled = enabled;
 
 	const BOOL NeedVolume = (SelectedVolume != DSBVOLUME_MAX);
 
-	if (enabled)
+	if (enabled && SelectedAdapter < adapters.Size())
 	{
 		const UINT prev = SelectedAdapter;
 
 		if (PDX_FAILED(CreateDevice(guid ? *guid : adapters[SelectedAdapter].guid)))
-			goto hell;
+		{
+			Disable();
+			return;
+		}
 
 		const ADAPTER& adapter = adapters[SelectedAdapter];
 
@@ -514,7 +596,10 @@ PDXRESULT SOUNDMANAGER::UpdateDirectSound(const GUID* const guid)
 		context.SampleBits = SelectedSampleBits;
 
 		if (PDX_FAILED(SetFormat(adapter.SampleRates[SelectedSampleRate],context.SampleBits,SelectedLatency,IsPAL,RefreshRate,NeedVolume)))
-			goto hell;
+		{
+			Disable();
+			return;
+		}
 	}
 	else
 	{
@@ -529,17 +614,7 @@ PDXRESULT SOUNDMANAGER::UpdateDirectSound(const GUID* const guid)
 		SetVolume(SelectedVolume);
 	
 	SoundRecorder.SetWaveFormat( GetWaveFormat() );
-
-	return PDX_OK;
-
-hell:
-
-	enabled = FALSE;
-	context.enabled = FALSE;
-	nes->SetAudioContext( context );
-	DIRECTSOUND::Destroy();
-
-	return PDX_FAILURE;
+	nes.SetAudioContext( context );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -548,9 +623,12 @@ hell:
 
 VOID SOUNDMANAGER::UpdateDialog(HWND hDlg)
 {
-	if (!adapters.Size())
+	if (SelectedAdapter >= adapters.Size())
+		SelectedAdapter = 0;
+
+	if (adapters.IsEmpty())
 	{
-		CheckDlgButton(hDlg,IDC_SOUND_ENABLE,FALSE);
+		CheckDlgButton(hDlg,IDC_SOUND_ENABLE,BST_UNCHECKED);
 		EnableWindow(GetDlgItem(hDlg,IDC_SOUND_ENABLE),FALSE);
 		OnEnable(hDlg);
 		return;
@@ -690,10 +768,12 @@ VOID SOUNDMANAGER::SOUNDRECORDER::NotifySize()
 		}
 		else
 		{
-			PDXSTRING msg(NextSize / NST_1MB);
-			msg += " MB written to wave file..";
-
-			application.StartScreenMsg( msg.String(), 1500 );
+			application.StartScreenMsg
+			( 
+     			1500,
+			    (NextSize / NST_1MB),
+     			" MB written to wave file.." 
+			);
 		}
 
 		while (NextSize < WrittenBytes)
@@ -714,6 +794,8 @@ PDXRESULT SOUNDMANAGER::SOUNDRECORDER::Write(const VOID* const data,const TSIZE 
 		WrittenBytes += size;
 		return PDX_OK;
 	}
+
+	Close();
 
 	return PDX_FAILURE;
 }
@@ -756,12 +838,12 @@ VOID SOUNDMANAGER::SOUNDRECORDER::Start(const BOOL msg)
 			}
 			
 			if (msg)
-				application.StartScreenMsg( "Sound recording started..", 1500 );
+				application.StartScreenMsg( 1500, "Sound recording started.." );
 		}
 		else
 		{
 			if (msg)
-				application.StartScreenMsg( "Sound recording resumed..", 1500 );
+				application.StartScreenMsg( 1500, "Sound recording resumed.." );
 		}
 
 		recording = TRUE;
@@ -779,7 +861,7 @@ VOID SOUNDMANAGER::SOUNDRECORDER::Stop(const BOOL msg)
 		recording = FALSE;
 
 		if (msg)
-			application.StartScreenMsg( "Sound recording stopped..", 1500 );
+			application.StartScreenMsg( 1500, "Sound recording stopped.." );
 	}
 }
 
@@ -803,7 +885,7 @@ VOID SOUNDMANAGER::SOUNDRECORDER::Reset(const BOOL msg)
 	}
 
 	if (msg)
-		application.StartScreenMsg( "Sound recording reset..", 1500 );
+		application.StartScreenMsg( 1500, "Sound recording reset.." );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -819,14 +901,14 @@ VOID SOUNDMANAGER::SOUNDRECORDER::OnBrowse(HWND hDlg)
 	OPENFILENAME ofn;
 	PDXMemZero( ofn );
 
-	ofn.lStructSize     = sizeof(ofn);
-	ofn.hwndOwner       = hWnd;
-	ofn.lpstrFilter     = "Wave Files (*.wav)\0*.wav\0All Files (*.*)\0*.*\0";
-	ofn.nFilterIndex    = 1;
-	ofn.lpstrFile       = file.Begin();
-	ofn.lpstrTitle      = "Choose Wave File";
-	ofn.nMaxFile        = NST_MAX_PATH;
-	ofn.Flags           = OFN_HIDEREADONLY | OFN_PATHMUSTEXIST;
+	ofn.lStructSize  = sizeof(ofn);
+	ofn.hwndOwner    = hWnd;
+	ofn.lpstrFilter  = "Wave Files (*.wav)\0*.wav\0All Files (*.*)\0*.*\0";
+	ofn.nFilterIndex = 1;
+	ofn.lpstrFile    = file.Begin();
+	ofn.lpstrTitle   = "Choose Wave File";
+	ofn.nMaxFile     = NST_MAX_PATH;
+	ofn.Flags        = OFN_HIDEREADONLY | OFN_PATHMUSTEXIST;
 
 	if (GetSaveFileName(&ofn))
 	{
@@ -835,7 +917,7 @@ VOID SOUNDMANAGER::SOUNDRECORDER::OnBrowse(HWND hDlg)
 		if (file.Length() && file.GetFileExtension().IsEmpty())
 			file += ".wav";
 
-		SetDlgItemText( hDlg, IDC_SOUND_RECORD_FILE, file.String() );
+		SetDlgItemText( hDlg, IDC_SOUND_CAPTURE_FILE, file.String() );
 	}
 }
 
@@ -845,7 +927,7 @@ VOID SOUNDMANAGER::SOUNDRECORDER::OnBrowse(HWND hDlg)
 
 VOID SOUNDMANAGER::SOUNDRECORDER::OnClear(HWND hDlg)
 {
-	SetDlgItemText( hDlg, IDC_SOUND_RECORD_FILE, "" );
+	SetDlgItemText( hDlg, IDC_SOUND_CAPTURE_FILE, "" );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -857,7 +939,7 @@ VOID SOUNDMANAGER::SOUNDRECORDER::OnOk(HWND hDlg)
 	PDXSTRING name;
 	
 	name.Buffer().Resize( NST_MAX_PATH );	
-	GetDlgItemText( hDlg, IDC_SOUND_RECORD_FILE, name.Begin(), NST_MAX_PATH );
+	GetDlgItemText( hDlg, IDC_SOUND_CAPTURE_FILE, name.Begin(), NST_MAX_PATH );
 	
 	name.Validate();
 	
@@ -881,17 +963,17 @@ BOOL SOUNDMANAGER::SOUNDRECORDER::DialogProc(HWND hDlg,UINT uMsg,WPARAM wParam,L
 	{
      	case WM_INITDIALOG:
 
-			SetDlgItemText( hDlg, IDC_SOUND_RECORD_FILE, file.String() );
+			SetDlgItemText( hDlg, IDC_SOUND_CAPTURE_FILE, file.String() );
 			return TRUE;
 
 		case WM_COMMAND:
 
 			switch (LOWORD(wParam))
 			{
-     			case IDC_SOUND_RECORD_BROWSE: OnBrowse( hDlg );     return TRUE;
-				case IDC_SOUND_RECORD_CLEAR:  OnClear( hDlg );      return TRUE;
-    			case IDC_SOUND_RECORD_OK:	  OnOk( hDlg );
-	       		case IDC_SOUND_RECORD_CANCEL: EndDialog( hDlg, 0 ); return TRUE;
+     			case IDC_SOUND_CAPTURE_BROWSE: OnBrowse( hDlg );     return TRUE;
+				case IDC_SOUND_CAPTURE_CLEAR:  OnClear( hDlg );      return TRUE;
+    			case IDC_SOUND_CAPTURE_OK:	  OnOk( hDlg );
+	       		case IDC_SOUND_CAPTURE_CANCEL: EndDialog( hDlg, 0 ); return TRUE;
 			}
 			return FALSE;
 

@@ -22,10 +22,19 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
+inline NES::IO::GFX* DIRECTDRAW::GetFormat()
+{ 
+	return &format; 
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
 inline UINT DIRECTDRAW::GetPixel(const UINT x,const UINT y) const
 {
 	PDX_ASSERT(((y * NES_WIDTH) + x) < (NES_WIDTH * NES_HEIGHT));		
-	return PixelBuffer[(y * NES_WIDTH) + x];
+	return PixelData->buffer[(y * NES_WIDTH) + x];
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -34,12 +43,8 @@ inline UINT DIRECTDRAW::GetPixel(const UINT x,const UINT y) const
 
 inline VOID DIRECTDRAW::ClearScreen()
 { 
+	PDX_ASSERT(ready && bool(ready) == CheckReady());
 	ClearSurface( windowed ? NesBuffer : BackBuffer ); 
-}
-
-inline VOID DIRECTDRAW::ClearNesScreen()
-{ 
-	ClearSurface( NesBuffer ); 
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -69,6 +74,16 @@ inline const DDSURFACEDESC2& DIRECTDRAW::GetNesDesc() const
 	return NesDesc; 
 }
 
+inline const DDCAPS& DIRECTDRAW::GetHalCaps() const
+{
+	return HalCaps;
+}
+
+inline const DDCAPS& DIRECTDRAW::GetHelCaps() const
+{
+	return HelCaps;
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////
 //
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -91,6 +106,7 @@ inline const RECT& DIRECTDRAW::GetNesRect()    const { return NesRect;    }
 
 inline UINT DIRECTDRAW::GetDisplayWidth()  const { return DisplayMode.width;  }
 inline UINT DIRECTDRAW::GetDisplayHeight() const { return DisplayMode.height; }
+inline UINT DIRECTDRAW::GetDisplayBPP()    const { return DisplayMode.bpp;    }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -98,5 +114,29 @@ inline UINT DIRECTDRAW::GetDisplayHeight() const { return DisplayMode.height; }
 
 inline BOOL DIRECTDRAW::CanRenderWindowed() const
 { 
-	return bool(caps.dwCaps2 & DDCAPS2_CANRENDERWINDOWED); 
+	return 
+	(
+    	(HalCaps.dwCaps2 & DDCAPS2_CANRENDERWINDOWED) ||
+		(HelCaps.dwCaps2 & DDCAPS2_CANRENDERWINDOWED)
+	); 
 }
+
+inline BOOL DIRECTDRAW::Is8BitModeSupported() const
+{
+	return 
+	(
+     	((HalCaps.dwPalCaps & DDPCAPS_8BIT) || (HelCaps.dwPalCaps & DDPCAPS_8BIT)) &&
+		((HalCaps.dwPalCaps & DDPCAPS_ALLOW256) || (HelCaps.dwPalCaps & DDPCAPS_ALLOW256))
+	);
+}
+
+inline BOOL DIRECTDRAW::CanFlipNoVSync() const
+{
+	return 
+	(
+     	(HalCaps.dwCaps2 & DDCAPS2_FLIPNOVSYNC) || 
+		(HelCaps.dwCaps2 & DDCAPS2_FLIPNOVSYNC)
+	);
+}
+
+

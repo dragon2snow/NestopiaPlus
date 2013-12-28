@@ -338,6 +338,8 @@ VOID VSSYSTEM::SetContext(IO::INPUT* const input)
 
 	if (input)
 	{
+		input->vs.Poll();
+
 		flags[0] |= input->vs.InsertCoin & COIN;
 
 		if (RemapButtons)

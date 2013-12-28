@@ -27,23 +27,14 @@ inline HWND APPLICATION::GetHWnd() const
 	return hWnd; 
 }
 
-inline HINSTANCE APPLICATION::GetInstance() const
-{ 
-	return hInstance; 
-}
-
 inline HMENU APPLICATION::GetMenu() const
 { 
 	return hMenu ? hMenu : ::GetMenu(hWnd); 
 }
 
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-inline VOID APPLICATION::ResetTimer()
+inline NES::MACHINE& APPLICATION::GetNes()
 {
-	TimerManager->Reset();
+	return nes;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -58,23 +49,15 @@ inline BOOL APPLICATION::IsMenuSet()  const { return hMenu == NULL; }
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-inline const RECT& APPLICATION::NesRect() const
-{ 
-	return nes.IsPAL() ? GraphicManager->GetRectNTSC() : GraphicManager->GetRectPAL(); 
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-inline SAVESTATEMANAGER& APPLICATION::GetSaveStateManager() { return *SaveStateManager;   }
-inline FILEMANAGER&      APPLICATION::GetFileManager()      { return *FileManager;        }
-inline GAMEGENIEMANAGER& APPLICATION::GetGameGenieManager() { return *GameGenieManager;   }
-inline GRAPHICMANAGER&   APPLICATION::GetGraphicManager()   { return *GraphicManager;     }
-inline PREFERENCES&      APPLICATION::GetPreferences()      { return *preferences;        }
-inline MOVIEMANAGER&     APPLICATION::GetMovieManager()     { return *MovieManager;       }
-inline SOUNDMANAGER&     APPLICATION::GetSoundManager()     { return *SoundManager;       }
-inline TIMERMANAGER&     APPLICATION::GetTimerManager()     { return *TimerManager;       }
+inline SAVESTATEMANAGER& APPLICATION::GetSaveStateManager() { return SaveStateManager;   }
+inline FILEMANAGER&      APPLICATION::GetFileManager()      { return FileManager;        }
+inline GAMEGENIEMANAGER& APPLICATION::GetGameGenieManager() { return GameGenieManager;   }
+inline GRAPHICMANAGER&   APPLICATION::GetGraphicManager()   { return GraphicManager;     }
+inline PREFERENCES&      APPLICATION::GetPreferences()      { return preferences;        }
+inline MOVIEMANAGER&     APPLICATION::GetMovieManager()     { return MovieManager;       }
+inline SOUNDMANAGER&     APPLICATION::GetSoundManager()     { return SoundManager;       }
+inline TIMERMANAGER&     APPLICATION::GetTimerManager()     { return TimerManager;       }
+inline LOGFILEMANAGER&   APPLICATION::LogFile()             { return log;                }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -83,4 +66,45 @@ inline TIMERMANAGER&     APPLICATION::GetTimerManager()     { return *TimerManag
 inline NES::MODE APPLICATION::GetNesMode() const
 { 
 	return NesMode; 
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+template<class T> 
+VOID APPLICATION::StartScreenMsg(const UINT duration,const T& t)
+{
+	ScreenMsg = t;
+	SetTimer( hWnd, TIMER_ID_SCREEN_MSG, duration, OnScreenMsgEnd );
+}
+
+template<class T,class U> 
+VOID APPLICATION::StartScreenMsg(const UINT duration,const T& t,const U& u)
+{
+	ScreenMsg  = t;
+	ScreenMsg += u;
+
+	SetTimer( hWnd, TIMER_ID_SCREEN_MSG, duration, OnScreenMsgEnd );
+}
+
+template<class T,class U,class V> 
+VOID APPLICATION::StartScreenMsg(const UINT duration,const T& t,const U& u,const V& v)
+{
+	ScreenMsg  = t;
+	ScreenMsg += u;
+	ScreenMsg += v;
+
+	SetTimer( hWnd, TIMER_ID_SCREEN_MSG, duration, OnScreenMsgEnd );
+}
+
+template<class T,class U,class V,class W> 
+VOID APPLICATION::StartScreenMsg(const UINT duration,const T& t,const U& u,const V& v,const W& w)
+{
+	ScreenMsg  = t;
+	ScreenMsg += u;
+	ScreenMsg += v;
+	ScreenMsg += w;
+
+	SetTimer( hWnd, TIMER_ID_SCREEN_MSG, duration, OnScreenMsgEnd );
 }

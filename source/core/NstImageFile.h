@@ -54,10 +54,26 @@ protected:
 	
    #pragma pack(push,1)
 
+	struct KEY
+	{
+		inline KEY(const U32 c=0,const U32 p=0)
+		: crc(c), pRomCrc(p) {}
+
+		inline BOOL operator == (const KEY& key) const
+		{ return crc == key.crc && pRomCrc == key.pRomCrc; }
+
+		inline BOOL operator < (const KEY& key) const
+		{ return (crc != key.crc) ? crc < key.crc : pRomCrc < key.pRomCrc; }
+
+		U32 crc;
+		U32 pRomCrc;
+	};
+
 	struct IMAGE
 	{
 		PDXSTRING name;
 		PDXSTRING copyright;
+		U32       crc;
 		U32       pRomCrc;
 		U8        pRomSize;
 		U8        cRomSize;
@@ -80,6 +96,7 @@ protected:
 	struct DBCHUNK
 	{
 		U8    copyright;
+		U32   crc;
 		U32   pRomCrc;
 		U8    pRomSize;
 		U8    cRomSize;
@@ -101,7 +118,7 @@ protected:
 
    #pragma pack(pop)
 
-	static PDXMAP<IMAGE,U32> database;
+	static PDXMAP<IMAGE,KEY> database;
 
   #endif
 };

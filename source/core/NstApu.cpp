@@ -131,7 +131,7 @@ inline VOID APU::BUFFER::Write(const LONG sample)
 // Flush the sound buffer
 ////////////////////////////////////////////////////////////////////////////////////////
 
-TSIZE APU::BUFFER::Flush(IO::SFX* const stream)
+TSIZE APU::BUFFER::Flush(IO::SFX* const PDX_RESTRICT stream)
 {
 	PDX_ASSERT(stream && stream->samples && stream->length <= NES_APU_BUFFER_SIZE);
 
@@ -147,15 +147,17 @@ TSIZE APU::BUFFER::Flush(IO::SFX* const stream)
 
 	if (Bit16)
 	{
+		I16* const PDX_RESTRICT samples = PDX_CAST(I16*,stream->samples);
+
 		if (NewStart > NES_APU_BUFFER_SIZE)
 		{
 			const TSIZE chunk = NES_APU_BUFFER_SIZE - start;
-			memcpy( stream->samples, output + start, sizeof(I16) * chunk );
-			memcpy( PDX_CAST(I16*,stream->samples) + chunk, output, sizeof(I16) * (NewStart - NES_APU_BUFFER_SIZE) );
+			memcpy( samples, output + start, sizeof(I16) * chunk );
+			memcpy( samples + chunk, output, sizeof(I16) * (NewStart - NES_APU_BUFFER_SIZE) );
 		}
 		else
 		{
-			memcpy( stream->samples, output + start, sizeof(I16) * stream->length );
+			memcpy( samples, output + start, sizeof(I16) * stream->length );
 		}
 	}
 	else
@@ -174,8 +176,8 @@ TSIZE APU::BUFFER::Flush(IO::SFX* const stream)
 
 VOID APU::BUFFER::Flush8(IO::SFX* const stream,const TSIZE NewStart)
 {
-	U8* overhere = PDX_CAST(U8*,stream->samples);
-	const I16* const from = output + start;
+	U8* PDX_RESTRICT overhere = PDX_CAST(U8*,stream->samples);
+	const I16* const PDX_RESTRICT from = output + start;
 
 	if (NewStart > NES_APU_BUFFER_SIZE)
 	{
@@ -204,13 +206,14 @@ VOID APU::BUFFER::Flush8(IO::SFX* const stream,const TSIZE NewStart)
 
 APU::APU(CPU& c) 
 :
-square1  (0),
-square2  (1),
-noise    (dmc),
-triangle (dmc),
-dmc      (c),
-cpu      (c),
-pal      (FALSE)
+square1        (0),
+square2        (1),
+noise          (dmc),
+triangle       (dmc),
+dmc            (c),
+cpu            (c),
+pal            (FALSE),
+SynchronizePtr (SynchronizeOFF)
 {}
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -219,7 +222,7 @@ pal      (FALSE)
 
 VOID APU::SetMode(const MODE mode)
 {
-	const BOOL IsPAL = (mode == MODE_PAL ? TRUE : FALSE);
+	const BOOL IsPAL = (mode == MODE_PAL);
 
 	if (bool(pal) != bool(IsPAL))
 	{
@@ -282,6 +285,7 @@ VOID APU::Reset()
 	}
 
 	stream = NULL;
+	SynchronizePtr = SynchronizeOFF;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -319,7 +323,20 @@ inline LONG APU::Sample()
 	sample += noise.Sample();
 	sample += dmc.Sample();
 
-	for (INT i=ExtChannels.Size() - 1; i >= 0; --i)
+	return sample;
+}
+
+inline LONG APU::SampleAll()
+{
+	LONG sample;
+
+	sample  = square1.Sample();
+	sample += square2.Sample();
+	sample += triangle.Sample();
+	sample += noise.Sample();
+	sample += dmc.Sample();
+
+	for (INT i=ExtChannels.Size()-1; i >= 0; --i)
 		sample += ExtChannels[i]->Sample();
 
 	return sample;
@@ -331,42 +348,70 @@ inline LONG APU::Sample()
 
 VOID APU::Synchronize()
 {
-	Synchronize
-	(
-     	PDX_MIN
-		(
-	    	cpu.GetCycles<CPU::CYCLE_MASTER>(),
-			cpu.GetFrameCycles<CPU::CYCLE_MASTER>()
-		)
-	);
+	const ULONG count = cpu.GetCycles<CPU::CYCLE_MASTER>();
+	const ULONG frame = cpu.GetFrameCycles<CPU::CYCLE_MASTER>();
+	(*this.*SynchronizePtr)(PDX_MIN(count,frame));
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // synchronize the APU with the input cycle count
 ////////////////////////////////////////////////////////////////////////////////////////
 
-VOID APU::Synchronize(const ULONG current)
+VOID APU::SynchronizeON(const ULONG current)
 {
 	const LONG count = current - cycles.elapsed;
 	cycles.elapsed = current;
 
-	if (emulation.enabled && stream)
+	for 
+	(
+     	cycles.RateCounter += count; 
+     	cycles.RateCounter > 0; 
+		cycles.RateCounter -= cycles.rate, 
+		cycles.FrameCounter -= cycles.rate
+	)
 	{
-		for (cycles.RateCounter += count; cycles.RateCounter > 0; cycles.RateCounter -= cycles.rate, cycles.FrameCounter -= cycles.rate)
-		{
-			if (cycles.FrameCounter <= 0)
-				UpdatePhase();
+		if (cycles.FrameCounter <= 0)
+			UpdatePhase();
 
-			buffer.Write( Sample() );
-		}
+		buffer.Write( Sample() );
 	}
-	else
+}
+
+VOID APU::SynchronizeAllON(const ULONG current)
+{
+	const LONG count = current - cycles.elapsed;
+	cycles.elapsed = current;
+
+	for 
+	(
+     	cycles.RateCounter += count; 
+     	cycles.RateCounter > 0; 
+		cycles.RateCounter -= cycles.rate, 
+		cycles.FrameCounter -= cycles.rate
+	)
 	{
-		for (cycles.RateCounter += count; cycles.RateCounter > 0; cycles.RateCounter -= cycles.rate, cycles.FrameCounter -= cycles.rate)
-		{
-			if (cycles.FrameCounter <= 0)
-				UpdatePhase();
-		}
+		if (cycles.FrameCounter <= 0)
+			UpdatePhase();
+
+		buffer.Write( SampleAll() );
+	}
+}
+
+VOID APU::SynchronizeOFF(const ULONG current)
+{
+	const LONG count = current - cycles.elapsed;
+	cycles.elapsed = current;
+
+	for 
+	(
+     	cycles.RateCounter += count; 
+    	cycles.RateCounter > 0; 
+		cycles.RateCounter -= cycles.rate, 
+		cycles.FrameCounter -= cycles.rate
+	)
+	{
+		if (cycles.FrameCounter <= 0)
+			UpdatePhase();
 	}
 }
 
@@ -476,14 +521,15 @@ UINT APU::Peek_4015()
 { 
 	Synchronize();
 
-	return
-	(
-     	(square1.IsActive()  ? 0x01 : 0x00) |
-		(square2.IsActive()  ? 0x02 : 0x00) |
-		(triangle.IsActive() ? 0x04 : 0x00) |
-		(noise.IsActive()    ? 0x08 : 0x00) |
-		(dmc.IsEnabled()     ? 0x10 : 0x00)
-	);
+	UINT data = 0x00;
+
+	if ( square1.IsActive()  ) data  = 0x01;
+	if ( square2.IsActive()  ) data |= 0x02;
+	if ( triangle.IsActive() ) data |= 0x04;
+	if ( noise.IsActive()    ) data |= 0x08;
+	if ( dmc.IsEnabled()     ) data |= 0x10;
+
+	return data;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -564,6 +610,13 @@ VOID APU::SetContext(const IO::SFX::CONTEXT& context)
 
 	for (UINT i=0; i < ExtChannels.Size(); ++i)
 		ExtChannels[i]->SetContext( cycles.rate, pal, emulation.external );
+
+	SynchronizePtr = 
+	(
+     	(stream && emulation.enabled) ? 
+		(ExtChannels.Size() ? SynchronizeAllON : SynchronizeON) : 
+     	(SynchronizeOFF)
+	);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -573,7 +626,7 @@ VOID APU::SetContext(const IO::SFX::CONTEXT& context)
 VOID APU::UpdateBuffer(const TSIZE length)
 {
 	for (TSIZE i=0; i < length; ++i)
-		buffer.Write(Sample());
+		buffer.Write( SampleAll() );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -583,6 +636,13 @@ VOID APU::UpdateBuffer(const TSIZE length)
 VOID APU::BeginFrame(IO::SFX* const s)
 {
 	stream = s;
+
+	SynchronizePtr = 
+	(
+     	(s && emulation.enabled) ? 
+		(ExtChannels.Size() ? SynchronizeAllON : SynchronizeON) : 
+     	(SynchronizeOFF)
+	);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -592,13 +652,13 @@ VOID APU::BeginFrame(IO::SFX* const s)
 VOID APU::EndFrame()
 {
 	const ULONG frame = cpu.GetFrameCycles<CPU::CYCLE_MASTER>();
-	Synchronize(frame);
+	(*this.*SynchronizePtr)(frame);
 
 	cycles.elapsed = 0;
 	cycles.FrameInit = (cycles.FrameInit + frame) % cycles.QuarterFrame;
 	cycles.FrameCounter = cycles.QuarterFrame - cycles.FrameInit;
 
-	if (emulation.enabled && stream)
+	if (stream && emulation.enabled)
 	{
 		if (PDX_SUCCEEDED(stream->Lock()))
 		{
@@ -621,8 +681,14 @@ VOID APU::EndFrame()
 
 VOID APU::ClearBuffers()
 {
-	if (stream)
-		stream->Clear();
+	square1  .ClearAmp();
+	square2  .ClearAmp();
+	triangle .ClearAmp();
+	noise    .ClearAmp();
+	dmc      .ClearAmp();
+
+	for (UINT i=0; i < ExtChannels.Size(); ++i)
+		ExtChannels[i]->ClearAmp();
 
 	buffer.Reset( emulation.SampleBits );
 }
@@ -933,7 +999,7 @@ LONG APU::SQUARE::Sample()
 	}
 	else
 	{
-		amp -= (amp >> 7);
+		amp -= (amp >> 6);
 	}
 
 	return amp;
@@ -1354,7 +1420,7 @@ LONG APU::NOISE::Sample()
 	}
 	else
 	{
-		amp -= (amp >> 7);
+		amp -= (amp >> 6);
 	}
 
 	return (amp * 13) >> 4;

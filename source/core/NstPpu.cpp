@@ -93,7 +93,7 @@ VOID PPU::Reset(const BOOL hard)
 	SpTmpBufferSize   = 0;
 	SpBufferSize      = 0;
 	screen            = NULL;
-	process           = NULL;
+	process           = processes;
 	output.index      = 0;
 	output.clipping   = 0xFF;
 	output.monochrome = 0xFF;
@@ -257,7 +257,7 @@ VOID PPU::SetMirroring(const MIRRORING type)
 
 VOID PPU::SetMode(const MODE mode)
 {
-	pal = (mode == MODE_PAL ? TRUE : FALSE);
+	pal = (mode == MODE_PAL);
 	cycles.SetMode(pal,EvenFrame);
 }
 
@@ -276,7 +276,7 @@ VOID PPU::SetContext(const IO::GFX::CONTEXT& context)
 
 VOID PPU::GetContext(IO::GFX::CONTEXT& context) const
 {
-	context.InfiniteSprites = (MaxSprites == 64 ? TRUE : FALSE);
+	context.InfiniteSprites = (MaxSprites == 64);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -647,9 +647,6 @@ VOID PPU::EndVBlank()
 
 	SpTmpBufferSize = 0;
 	SpBufferSize = 0;
-
-	if (screen && PDX_FAILED(screen->Lock()))	
-		screen = NULL;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -747,7 +744,7 @@ VOID PPU::FetchBgName()
 
 	if (ctrl1 & CTRL1_BG_ENABLED)
 	{
-		U8* const pixels = BgBuffer.pixels + (BgBuffer.index ^ 8);
+		U8* const PDX_RESTRICT pixels = BgBuffer.pixels + (BgBuffer.index ^ 8);
 
 		const UINT pattern =
 		(
@@ -921,7 +918,7 @@ VOID PPU::EvaluateSp()
 {
 	if (ctrl1 & CTRL1_SP_ENABLED)
 	{
-		const U8* const sprite = SpRam + SpIndex;
+		const U8* const PDX_RESTRICT sprite = SpRam + SpIndex;
 
 		INT y = ScanLine - sprite[SP_Y];
 
@@ -1037,7 +1034,7 @@ VOID PPU::FetchSpPattern1()
 					{0x0,0x8,0x2,0xA,0x4,0xC,0x6,0xE}
 				};
 
-				const UCHAR* const order = shifter[(SpTmp.attribute & SP_X_FLIP) ? 1 : 0];
+				const UCHAR* const PDX_RESTRICT order = shifter[(SpTmp.attribute & SP_X_FLIP) ? 1 : 0];
 
 				for (UINT i=0; i < 8; ++i)
 					sp.pixels[i] = (pattern >> order[i]) & 0x3;
@@ -1203,6 +1200,9 @@ VOID PPU::EndHDummy()
 {
 	if (EvenFrame)
 		cycles.count += cycles.rest;
+
+	if (screen && PDX_FAILED(screen->Lock()))	
+		screen = NULL;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -1256,8 +1256,6 @@ VOID PPU::Poke(UINT address,const UINT data)
 
 VOID PPU::Log(const CHAR* const msg,const UINT which)
 {
-	PDX_DEBUG_BREAK_MSG( msg );
-
 	if (!logged[which])
 	{
 		logged[which] = true;

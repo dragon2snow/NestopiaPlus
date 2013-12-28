@@ -26,24 +26,68 @@
 #include "NstInputManager.h"
 #include "NstApplication.h"
 #include "../paradox/PdxFile.h"
+#include "../paradox/PdxSet.h"
 #include <WindowsX.h>
 
 #define NST_USE_JOYSTICK 0x80000000UL
+
+const UINT INPUTMANAGER::MenuHeight = GetSystemMetrics(SM_CYMENU);
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT NES::IO::INPUT::FAMILYKEYBOARD::Poll(const UINT part,const UINT mode)
+VOID NES::IO::INPUT::PAD::Poll(const UINT index) 
+{ PDX_CAST(INPUTMANAGER*,device)->Poll(*this,index); }
+
+VOID NES::IO::INPUT::POWERPAD::Poll() 
+{ PDX_CAST(INPUTMANAGER*,device)->Poll(*this); }
+
+VOID NES::IO::INPUT::VS::Poll() 
+{ PDX_CAST(INPUTMANAGER*,device)->Poll(*this); }
+
+VOID NES::IO::INPUT::FAMILYKEYBOARD::Poll(const UINT part,const UINT mode)
+{ PDX_CAST(INPUTMANAGER*,device)->Poll(*this,part,mode); }
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+INPUTMANAGER::INPUTMANAGER()
+: 
+MANAGER              (IDD_INPUT), 
+hDlg                 (NULL),
+AutoFireStep         (0),
+SelectDevice         (0),
+SelectKey            (0),
+SpeedThrottle        (0),
+SpeedThrottleKeyDown (FALSE),
+SaveSlot             (0),
+SaveSlotKeyDown      (FALSE),
+LoadSlot             (0),
+LoadSlotKeyDown      (FALSE)
 {
-	return device ? PDX_CAST(INPUTMANAGER*,device)->PollFamilyKeyboard(this,part,mode) : PDX_FAILURE;
+	format.pad[0].device =
+	format.pad[1].device =
+	format.pad[2].device =
+	format.pad[3].device =
+	format.PowerPad.device =
+	format.vs.device =
+	format.FamilyKeyboard.device = PDX_CAST(VOID*,this);
+
+	map.category[ CATEGORY_PAD1     ].keys.Resize( NUM_PAD_KEYS      );
+	map.category[ CATEGORY_PAD2     ].keys.Resize( NUM_PAD_KEYS      );
+	map.category[ CATEGORY_PAD3     ].keys.Resize( NUM_PAD_KEYS      );
+	map.category[ CATEGORY_PAD4     ].keys.Resize( NUM_PAD_KEYS      );
+	map.category[ CATEGORY_POWERPAD ].keys.Resize( NUM_POWERPAD_KEYS );
+	map.category[ CATEGORY_GENERAL  ].keys.Resize( NUM_GENERAL_KEYS  );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT INPUTMANAGER::PollFamilyKeyboard(NES::IO::INPUT::FAMILYKEYBOARD* const nes,const UINT part,const UINT mode)
+VOID INPUTMANAGER::Poll(NES::IO::INPUT::FAMILYKEYBOARD& family,const UINT part,const UINT mode)
 {
 	PDX_ASSERT(part < NES::IO::INPUT::FAMILYKEYBOARD::NUM_PARTS && mode < NES::IO::INPUT::FAMILYKEYBOARD::NUM_MODES);
 
@@ -91,9 +135,9 @@ PDXRESULT INPUTMANAGER::PollFamilyKeyboard(NES::IO::INPUT::FAMILYKEYBOARD* const
 
     #undef NST_2
 
-	const BYTE* const buffer = GetKeyboardBuffer();
+	const BYTE* const PDX_RESTRICT buffer = GetKeyboardBuffer();
 
-	UINT& key = nes->parts[part];
+	UINT& key = family.parts[part];
 	key = 0x00;
 
 	for (UINT i=0; i < 4; ++i)
@@ -106,8 +150,65 @@ PDXRESULT INPUTMANAGER::PollFamilyKeyboard(NES::IO::INPUT::FAMILYKEYBOARD* const
 
 		key |= pushed >> ( 7 - ( i + 1 ) );
 	}
+}
 
-	return PDX_OK;
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+VOID INPUTMANAGER::Poll(NES::IO::INPUT::PAD& pad,const UINT index)
+{
+	PDX_ASSERT(index <= CATEGORY_PAD4);
+
+	const MAP::CATEGORY::KEYS& keys = map.category[index].keys;
+
+	UINT buttons = 0;
+
+	if (IsButtonPressed( keys[ KEY_UP     ] )) buttons  = NES::IO::INPUT::PAD::UP;
+	if (IsButtonPressed( keys[ KEY_RIGHT  ] )) buttons |= NES::IO::INPUT::PAD::RIGHT;
+	if (IsButtonPressed( keys[ KEY_DOWN   ] )) buttons |= NES::IO::INPUT::PAD::DOWN;
+	if (IsButtonPressed( keys[ KEY_LEFT   ] )) buttons |= NES::IO::INPUT::PAD::LEFT;
+	if (IsButtonPressed( keys[ KEY_SELECT ] )) buttons |= NES::IO::INPUT::PAD::SELECT;
+	if (IsButtonPressed( keys[ KEY_START  ] )) buttons |= NES::IO::INPUT::PAD::START;
+	if (IsButtonPressed( keys[ KEY_A      ] )) buttons |= NES::IO::INPUT::PAD::A;
+	if (IsButtonPressed( keys[ KEY_B      ] )) buttons |= NES::IO::INPUT::PAD::B;
+
+	if (++AutoFireStep >= 3)
+	{
+		if (AutoFireStep == 6)
+			AutoFireStep = 0;
+
+		if (IsButtonPressed( keys[ KEY_AUTOFIRE_A ] )) buttons |= NES::IO::INPUT::PAD::A;
+		if (IsButtonPressed( keys[ KEY_AUTOFIRE_B ] )) buttons |= NES::IO::INPUT::PAD::B;
+	}
+
+	pad.buttons = buttons;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+VOID INPUTMANAGER::Poll(NES::IO::INPUT::VS& vs)
+{
+	vs.InsertCoin = 
+	(
+     	( IsButtonPressed( map.category[ CATEGORY_GENERAL ].keys[ KEY_GENERAL_INSERT_COIN_1 ] ) ? NES::IO::INPUT::VS::COIN_1 : 0 ) |
+     	( IsButtonPressed( map.category[ CATEGORY_GENERAL ].keys[ KEY_GENERAL_INSERT_COIN_2 ] ) ? NES::IO::INPUT::VS::COIN_2 : 0 )
+	);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+VOID INPUTMANAGER::Poll(NES::IO::INPUT::POWERPAD& PowerPad)
+{
+	for (UINT i=0; i < NUM_POWERPAD_SIDE_A_KEYS; ++i)
+		PowerPad.SideA[i] = IsButtonPressed(map.category[CATEGORY_POWERPAD].keys[i]);
+
+	for (UINT i=0; i < NUM_POWERPAD_SIDE_B_KEYS; ++i)
+		PowerPad.SideB[i] = IsButtonPressed(map.category[CATEGORY_POWERPAD].keys[NUM_POWERPAD_SIDE_A_KEYS + i]);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -118,8 +219,7 @@ ULONG INPUTMANAGER::IsJoystickButtonPressed(ULONG key) const
 {
 	PDX_ASSERT(!(key & NST_USE_JOYSTICK));
 
-	const UINT index = key / 64;
-	const DIJOYSTATE& state = ActiveJoysticks[index].state;
+	const DIJOYSTATE& state = joysticks[key / 64].state;
 
 	key %= 64;
 
@@ -165,62 +265,13 @@ ULONG INPUTMANAGER::IsJoystickButtonPressed(ULONG key) const
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-ULONG INPUTMANAGER::IsButtonPressed(const ULONG key) const
+inline ULONG INPUTMANAGER::IsButtonPressed(const ULONG key) const
 {
-	if (key & NST_USE_JOYSTICK)
-	{
-		return IsJoystickButtonPressed(key & ~NST_USE_JOYSTICK);
-	}
-	else
-	{
-		return GetKeyboardBuffer()[key] & 0x80;
-	}
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID INPUTMANAGER::PollPad(const UINT pad,const UINT index)
-{
-	PDX_ASSERT(pad < 4);
-	PDX_ASSERT(index <= CATEGORY_PAD4);
-
-	const MAP::CATEGORY::KEYS& keys = map.category[index].keys;
-
-	UINT buttons = 0;
-
-	if (IsButtonPressed( keys[ KEY_UP     ].key )) buttons |= NES::IO::INPUT::PAD::UP;
-	if (IsButtonPressed( keys[ KEY_RIGHT  ].key )) buttons |= NES::IO::INPUT::PAD::RIGHT;
-	if (IsButtonPressed( keys[ KEY_DOWN   ].key )) buttons |= NES::IO::INPUT::PAD::DOWN;
-	if (IsButtonPressed( keys[ KEY_LEFT   ].key )) buttons |= NES::IO::INPUT::PAD::LEFT;
-	if (IsButtonPressed( keys[ KEY_SELECT ].key )) buttons |= NES::IO::INPUT::PAD::SELECT;
-	if (IsButtonPressed( keys[ KEY_START  ].key )) buttons |= NES::IO::INPUT::PAD::START;
-	if (IsButtonPressed( keys[ KEY_A      ].key )) buttons |= NES::IO::INPUT::PAD::A;
-	if (IsButtonPressed( keys[ KEY_B      ].key )) buttons |= NES::IO::INPUT::PAD::B;
-
-	if (++AutoFireStep >= 3)
-	{
-		if (AutoFireStep == 6)
-			AutoFireStep = 0;
-
-		if (IsButtonPressed( keys[ KEY_AUTOFIRE_A ].key )) buttons |= NES::IO::INPUT::PAD::A;
-		if (IsButtonPressed( keys[ KEY_AUTOFIRE_B ].key )) buttons |= NES::IO::INPUT::PAD::B;
-	}
-
-	format.pad[pad].buttons = buttons;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID INPUTMANAGER::PollArcade()
-{
-	format.vs.InsertCoin = 
+	return 
 	(
-     	( IsButtonPressed( map.category[ CATEGORY_GENERAL ].keys[ KEY_GENERAL_INSERT_COIN_1 ].key ) ? NES::IO::INPUT::VS::COIN_1 : 0 ) |
-     	( IsButtonPressed( map.category[ CATEGORY_GENERAL ].keys[ KEY_GENERAL_INSERT_COIN_2 ].key ) ? NES::IO::INPUT::VS::COIN_2 : 0 )
+	    (key & NST_USE_JOYSTICK) ?
+		IsJoystickButtonPressed(key & ~NST_USE_JOYSTICK) :
+	    GetKeyboardBuffer()[key] & 0x80
 	);
 }
 
@@ -228,50 +279,12 @@ VOID INPUTMANAGER::PollArcade()
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-VOID INPUTMANAGER::PollPowerPad()
-{
-	for (UINT i=0; i < NUM_POWERPAD_SIDE_A_KEYS; ++i)
-		format.PowerPad.SideA[i] = IsButtonPressed(map.category[CATEGORY_POWERPAD].keys[i].key);
-
-	for (UINT i=0; i < NUM_POWERPAD_SIDE_B_KEYS; ++i)
-		format.PowerPad.SideB[i] = IsButtonPressed(map.category[CATEGORY_POWERPAD].keys[NUM_POWERPAD_SIDE_A_KEYS + i].key);
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-INPUTMANAGER::INPUTMANAGER(const INT id)
-: 
-MANAGER              (id), 
-hDlg                 (NULL),
-AutoFireStep         (0),
-SelectDevice         (0),
-SelectKey            (0),
-SpeedThrottle        (0),
-SpeedThrottleKeyDown (FALSE),
-MenuHeight           (GetSystemMetrics(SM_CYMENU))
-{
-	map.category[ CATEGORY_PAD1     ].keys.Resize( NUM_PAD_KEYS      );
-	map.category[ CATEGORY_PAD2     ].keys.Resize( NUM_PAD_KEYS      );
-	map.category[ CATEGORY_PAD3     ].keys.Resize( NUM_PAD_KEYS      );
-	map.category[ CATEGORY_PAD4     ].keys.Resize( NUM_PAD_KEYS      );
-	map.category[ CATEGORY_POWERPAD ].keys.Resize( NUM_POWERPAD_KEYS );
-	map.category[ CATEGORY_GENERAL  ].keys.Resize( NUM_GENERAL_KEYS  );
-
-	format.FamilyKeyboard.device = PDX_CAST(VOID*,this);
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-PDXRESULT INPUTMANAGER::Create(CONFIGFILE* const ConfigFile)
+VOID INPUTMANAGER::Create(CONFIGFILE* const ConfigFile)
 {
 	SelectDevice = 0;
 	SelectKey = 0;
 
-	PDX_TRY(DIRECTINPUT::Initialize( MANAGER::hWnd ));
+	DIRECTINPUT::Initialize( MANAGER::hWnd );
 
 	Reset();
 
@@ -294,18 +307,8 @@ PDXRESULT INPUTMANAGER::Create(CONFIGFILE* const ConfigFile)
 				if (input.IsEmpty())
 					break;
 	
-				indices.InsertBack(UINT_MAX);
-
-				const GUID guid(CONFIGFILE::ToGUID(input.String()));
-	
-				for (UINT j=0; j < joysticks.Size(); ++j)
-				{
-					if (!memcmp(&guid,&joysticks[j].guid,sizeof(guid)))
-					{
-						indices.Back() = j;
-						break;
-					}
-				}
+				const JOYSTICK* const it(PDX::Find(joysticks.Begin(),joysticks.End(),CONFIGFILE::ToGUID(input.String())));
+				indices.InsertBack( (it != joysticks.End()) ? UINT(it - joysticks.Begin()) : UINT_MAX );
 			}
 		}
 	
@@ -317,8 +320,6 @@ PDXRESULT INPUTMANAGER::Create(CONFIGFILE* const ConfigFile)
 
 				if (text.Length())
 				{
-					MAP::CATEGORY::KEY& mapping = map.category[i].keys[j];
-
 					const ULONG key = Text2Key(text);
 
 					if (key & NST_USE_JOYSTICK)
@@ -328,34 +329,26 @@ PDXRESULT INPUTMANAGER::Create(CONFIGFILE* const ConfigFile)
 						if (indices.Size() <= index || indices[index] == UINT_MAX)
 							continue;
 
-						mapping.device = joysticks[indices[index]].device;
-						mapping.key = ((key & ~NST_USE_JOYSTICK) % 64) + (indices[index] * 64) | NST_USE_JOYSTICK;
+						if (PDX_FAILED(joysticks[indices[index]].Create(GetDevice(),DIRECTINPUT::hWnd)))
+							continue;
+
+						map.category[i].keys[j] = ((key & ~NST_USE_JOYSTICK) % 64) + (indices[index] * 64) | NST_USE_JOYSTICK;
 					}
 					else
 					{
-						mapping.device = GetDevice(0);
-						mapping.key = key;
+						map.category[i].keys[j] = key;
 					}
 				}
 			}
 		}
 	}
-
-	ActiveJoysticks.Resize( joysticks.Size() );
-
-	for (UINT i=0; i < joysticks.Size(); ++i)
-		ActiveJoysticks[i].device = joysticks[i].device;
-
-	UpdateJoystickDevices();
-
-	return PDX_OK;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT INPUTMANAGER::Destroy(CONFIGFILE* const ConfigFile)
+VOID INPUTMANAGER::Destroy(CONFIGFILE* const ConfigFile)
 {
 	if (ConfigFile)
 	{
@@ -367,23 +360,23 @@ PDXRESULT INPUTMANAGER::Destroy(CONFIGFILE* const ConfigFile)
 			DIDEVICEINSTANCE info;
 			DIRECTX::InitStruct(info);
 
-			for (UINT i=0; i < ActiveJoysticks.Size(); ++i)
+			for (UINT i=0; i < joysticks.Size(); ++i)
 			{
-				if (ActiveJoysticks[i].active && ActiveJoysticks[i].device->GetDeviceInfo( &info ) == DI_OK)
+				if (joysticks[i].device)
 				{
 					string.Resize(13);
 					string << i;
-					file[string] = CONFIGFILE::FromGUID(info.guidInstance);
+					file[string] = CONFIGFILE::FromGUID(joysticks[i].guid);
 				}
 			}
 		}
 
 		for (UINT i=0; i < NUM_CATEGORIES; ++i)
 			for (UINT j=0; j < map.category[i].keys.Size(); ++j)
-				file[Map2Text(i,j)] = Key2Text(map.category[i].keys[j].key);
+				file[Map2Text(i,j)] = Key2Text(map.category[i].keys[j]);
 	}
 
-	return DIRECTINPUT::Destroy();
+	DIRECTINPUT::Destroy();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -394,66 +387,70 @@ VOID INPUTMANAGER::Reset()
 {
 	for (UINT i=0; i < NUM_CATEGORIES; ++i)
 		for (TSIZE j=0; j < map.category[i].keys.Size(); ++j)
-			map.category[i].keys[j].Reset();
+			map.category[i].keys[j] = 0;
 
-	map.category[ CATEGORY_PAD1 ].keys[ KEY_UP         ].key = DIK_UP;
-	map.category[ CATEGORY_PAD1 ].keys[ KEY_RIGHT      ].key = DIK_RIGHT;
-	map.category[ CATEGORY_PAD1 ].keys[ KEY_DOWN       ].key = DIK_DOWN;
-	map.category[ CATEGORY_PAD1 ].keys[ KEY_LEFT       ].key = DIK_LEFT;
-	map.category[ CATEGORY_PAD1 ].keys[ KEY_SELECT     ].key = DIK_RSHIFT;
-	map.category[ CATEGORY_PAD1 ].keys[ KEY_START      ].key = DIK_RETURN;
-	map.category[ CATEGORY_PAD1 ].keys[ KEY_A          ].key = DIK_PERIOD;
-	map.category[ CATEGORY_PAD1 ].keys[ KEY_B          ].key = DIK_COMMA;
-	map.category[ CATEGORY_PAD1 ].keys[ KEY_AUTOFIRE_A ].key = DIK_L;
-	map.category[ CATEGORY_PAD1 ].keys[ KEY_AUTOFIRE_B ].key = DIK_K;
-																
-	map.category[ CATEGORY_PAD2 ].keys[ KEY_UP         ].key = DIK_F;
-	map.category[ CATEGORY_PAD2 ].keys[ KEY_RIGHT      ].key = DIK_B;
-	map.category[ CATEGORY_PAD2 ].keys[ KEY_DOWN       ].key = DIK_V;
-	map.category[ CATEGORY_PAD2 ].keys[ KEY_LEFT       ].key = DIK_C;
-	map.category[ CATEGORY_PAD2 ].keys[ KEY_SELECT     ].key = DIK_A;
-	map.category[ CATEGORY_PAD2 ].keys[ KEY_START      ].key = DIK_S;
-	map.category[ CATEGORY_PAD2 ].keys[ KEY_A          ].key = DIK_X;
-	map.category[ CATEGORY_PAD2 ].keys[ KEY_B          ].key = DIK_Z;
-	map.category[ CATEGORY_PAD2 ].keys[ KEY_AUTOFIRE_A ].key = DIK_W;
-	map.category[ CATEGORY_PAD2 ].keys[ KEY_AUTOFIRE_B ].key = DIK_Q;
+	map.category[ CATEGORY_PAD1 ].keys[ KEY_UP         ] = DIK_UP;
+	map.category[ CATEGORY_PAD1 ].keys[ KEY_RIGHT      ] = DIK_RIGHT;
+	map.category[ CATEGORY_PAD1 ].keys[ KEY_DOWN       ] = DIK_DOWN;
+	map.category[ CATEGORY_PAD1 ].keys[ KEY_LEFT       ] = DIK_LEFT;
+	map.category[ CATEGORY_PAD1 ].keys[ KEY_SELECT     ] = DIK_RSHIFT;
+	map.category[ CATEGORY_PAD1 ].keys[ KEY_START      ] = DIK_RETURN;
+	map.category[ CATEGORY_PAD1 ].keys[ KEY_A          ] = DIK_PERIOD;
+	map.category[ CATEGORY_PAD1 ].keys[ KEY_B          ] = DIK_COMMA;
+	map.category[ CATEGORY_PAD1 ].keys[ KEY_AUTOFIRE_A ] = DIK_L;
+	map.category[ CATEGORY_PAD1 ].keys[ KEY_AUTOFIRE_B ] = DIK_K;
+															
+	map.category[ CATEGORY_PAD2 ].keys[ KEY_UP         ] = DIK_F;
+	map.category[ CATEGORY_PAD2 ].keys[ KEY_RIGHT      ] = DIK_B;
+	map.category[ CATEGORY_PAD2 ].keys[ KEY_DOWN       ] = DIK_V;
+	map.category[ CATEGORY_PAD2 ].keys[ KEY_LEFT       ] = DIK_C;
+	map.category[ CATEGORY_PAD2 ].keys[ KEY_SELECT     ] = DIK_A;
+	map.category[ CATEGORY_PAD2 ].keys[ KEY_START      ] = DIK_S;
+	map.category[ CATEGORY_PAD2 ].keys[ KEY_A          ] = DIK_X;
+	map.category[ CATEGORY_PAD2 ].keys[ KEY_B          ] = DIK_Z;
+	map.category[ CATEGORY_PAD2 ].keys[ KEY_AUTOFIRE_A ] = DIK_W;
+	map.category[ CATEGORY_PAD2 ].keys[ KEY_AUTOFIRE_B ] = DIK_Q;
 
-	map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_A_1  ].key = DIK_Q;
-	map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_A_2  ].key = DIK_W;
-	map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_A_3  ].key = DIK_E;
-	map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_A_4  ].key = DIK_R;
-	map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_A_5  ].key = DIK_A;
-	map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_A_6  ].key = DIK_S;
-	map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_A_7  ].key = DIK_D;
-	map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_A_8  ].key = DIK_F;
-	map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_A_9  ].key = DIK_Z;
-	map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_A_10 ].key = DIK_X;
-	map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_A_11 ].key = DIK_C;
-	map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_A_12 ].key = DIK_V;
-	map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_B_3  ].key = DIK_Y;
-	map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_B_2  ].key = DIK_U;
-	map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_B_8  ].key = DIK_G;
-	map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_B_7  ].key = DIK_H;
-	map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_B_6  ].key = DIK_J;
-	map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_B_5  ].key = DIK_K;
-	map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_B_11 ].key = DIK_N;
-	map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_B_10 ].key = DIK_M;
+	map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_A_1  ] = DIK_Q;
+	map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_A_2  ] = DIK_W;
+	map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_A_3  ] = DIK_E;
+	map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_A_4  ] = DIK_R;
+	map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_A_5  ] = DIK_A;
+	map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_A_6  ] = DIK_S;
+	map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_A_7  ] = DIK_D;
+	map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_A_8  ] = DIK_F;
+	map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_A_9  ] = DIK_Z;
+	map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_A_10 ] = DIK_X;
+	map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_A_11 ] = DIK_C;
+	map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_A_12 ] = DIK_V;
+	map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_B_3  ] = DIK_Y;
+	map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_B_2  ] = DIK_U;
+	map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_B_8  ] = DIK_G;
+	map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_B_7  ] = DIK_H;
+	map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_B_6  ] = DIK_J;
+	map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_B_5  ] = DIK_K;
+	map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_B_11 ] = DIK_N;
+	map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_B_10 ] = DIK_M;
 
-	map.category[ CATEGORY_GENERAL ].keys[ KEY_GENERAL_INSERT_COIN_1 ].key = DIK_F2;    
-	map.category[ CATEGORY_GENERAL ].keys[ KEY_GENERAL_INSERT_COIN_2 ].key = DIK_F3;    
-	map.category[ CATEGORY_GENERAL ].keys[ KEY_GENERAL_TOGGLE_FPS    ].key = DIK_F5;    
+	map.category[ CATEGORY_GENERAL ].keys[ KEY_GENERAL_INSERT_COIN_1 ] = DIK_F2;    
+	map.category[ CATEGORY_GENERAL ].keys[ KEY_GENERAL_INSERT_COIN_2 ] = DIK_F3;    
+	map.category[ CATEGORY_GENERAL ].keys[ KEY_GENERAL_TOGGLE_FPS    ] = DIK_F5;    
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT INPUTMANAGER::Poll()
+VOID INPUTMANAGER::Poll()
 {
-	PollKeyboard();
-	PollJoysticks();
+	const BOOL polled = PollKeyboard();
 
-	if (IsButtonPressed(map.category[CATEGORY_GENERAL].keys[KEY_GENERAL_TOGGLE_FPS].key))
+	if (!PollJoysticks() && !polled)
+		return;
+
+	const MAP::CATEGORY::KEYS& keys = map.category[CATEGORY_GENERAL].keys;
+
+	if (IsButtonPressed(keys[KEY_GENERAL_TOGGLE_FPS]))
 	{
 		if (!SpeedThrottleKeyDown)
 		{
@@ -461,63 +458,72 @@ PDXRESULT INPUTMANAGER::Poll()
 			application.GetTimerManager().EnableCustomFPS( SpeedThrottle );
 			SpeedThrottle ^= 1;
 		}
+		return;
 	}
-	else
+
+	SpeedThrottleKeyDown = FALSE;
+
+	if (nes.IsOn() && nes.IsImage())
 	{
-		SpeedThrottleKeyDown = FALSE;
-	}
-	
-	if (nes->ConnectedController(4) != NES::CONTROLLER_KEYBOARD)
-	{
-		for (UINT i=0; i < 4; ++i)
+		if (IsButtonPressed(keys[KEY_GENERAL_SAVE_SLOT]))
 		{
-			switch (nes->ConnectedController(i))
+			if (!SaveSlotKeyDown)
 			{
-    			case NES::CONTROLLER_PAD1: PollPad( i, 0 ); continue;
-       			case NES::CONTROLLER_PAD2: PollPad( i, 1 ); continue;
-       			case NES::CONTROLLER_PAD3: PollPad( i, 2 ); continue;
-    			case NES::CONTROLLER_PAD4: PollPad( i, 3 ); continue;
+				SaveSlotKeyDown = TRUE;
+				application.OnSaveStateSlot(IDM_FILE_QUICK_SAVE_STATE_SLOT_NEXT);
+				SaveSlot ^= 1;
 			}
+			return;
 		}
 
-		if (nes->IsAnyControllerConnected(NES::CONTROLLER_POWERPAD))
-			PollPowerPad();
+		SaveSlotKeyDown = FALSE;
 
-		if (nes->IsVs())
-			PollArcade();
+		if (IsButtonPressed(keys[KEY_GENERAL_LOAD_SLOT]))
+		{
+			if (!LoadSlotKeyDown)
+			{
+				LoadSlotKeyDown = TRUE;
+				application.OnLoadStateSlot(IDM_FILE_QUICK_LOAD_STATE_SLOT_LAST);
+				LoadSlot ^= 1;
+			}
+			return;
+		}
+
+		LoadSlotKeyDown = FALSE;
 	}
-  
-	return PDX_OK;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-VOID INPUTMANAGER::PollJoysticks()
+BOOL INPUTMANAGER::PollJoysticks()
 {
-	const UINT NumDevices = ActiveJoysticks.Size();
+	BOOL active = FALSE;
+
+	const UINT NumDevices = joysticks.Size();
 
 	for (UINT i=0; i < NumDevices; ++i)
 	{
-		if (ActiveJoysticks[i].active && ActiveJoysticks[i].device)
-		{
-			if (FAILED(ActiveJoysticks[i].device->Poll()))
-			{
-				while (ActiveJoysticks[i].device->Acquire() == DIERR_INPUTLOST)
-					Sleep(100);
+		JOYSTICK& joy = joysticks[i];
 
-				if (FAILED(ActiveJoysticks[i].device->Poll()))
+		if (joy.device)
+		{
+			if (joy.device->Poll() == DI_OK)
+			{
+				if (joy.device->GetDeviceState(sizeof(DIJOYSTATE),PDX_CAST(LPVOID,&joy.state)) == DI_OK)
 				{
-					PDXMemZero( ActiveJoysticks[i].state );
+					active = TRUE;
 					continue;
 				}
 			}
 
-			if (FAILED(ActiveJoysticks[i].device->GetDeviceState( sizeof(DIJOYSTATE), PDX_CAST(LPVOID,&ActiveJoysticks[i].state) )))
-				PDXMemZero( ActiveJoysticks[i].state );
+			Acquire(joy.device);
+			PDXMemZero(joy.state);
 		}
 	}
+
+	return active;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -541,7 +547,7 @@ BOOL INPUTMANAGER::OnMouseMove(POINT& point)
 			point.y += MenuHeight;
 	}
 
-	const RECT& rcNes = application.NesRect();
+	const RECT& rcNes = application.GetGraphicManager().GetNesRect();
 
 	const UINT width  = rcNes.right - rcNes.left;
 	const UINT height = rcNes.bottom - rcNes.top;
@@ -573,7 +579,6 @@ BOOL CALLBACK INPUTMANAGER::StaticKeyPressDialogProc(HWND hDlg,UINT uMsg,WPARAM,
 		
 			PDX_ASSERT( !im );
 			im = PDX_CAST(INPUTMANAGER*,lParam);
-
 			SetTimer( hDlg, 666, 100, NULL );
 			SetWindowPos( hDlg, HWND_TOP, 0, 0, 0, 0, SWP_HIDEWINDOW );
 			return TRUE;
@@ -612,22 +617,16 @@ BOOL CALLBACK INPUTMANAGER::StaticKeyPressDialogProc(HWND hDlg,UINT uMsg,WPARAM,
 						return TRUE;
 				}
 
-				im->map.category[ im->SelectDevice ].keys[ im->SelectKey ].key = key;				
-				im->map.category[ im->SelectDevice ].keys[ im->SelectKey ].device = NULL;				
+				im->map.category[im->SelectDevice].keys[im->SelectKey] = key;				
 			}
 			else
 			{
-				LPDIRECTINPUTDEVICE8 device;
 				UINT index;
 
-				if (index = im->ScanJoystick( key, device ))
+				if (im->ScanJoystick(key,index))
 				{
-					key |= NST_USE_JOYSTICK;
-					
-					const DWORD KeyValue = key + (64 * (index-1));
-
-					im->map.category[ im->SelectDevice ].keys[ im->SelectKey ].key = KeyValue;
-					im->map.category[ im->SelectDevice ].keys[ im->SelectKey ].device = device;
+					key += (64 * index) | NST_USE_JOYSTICK;
+					im->map.category[im->SelectDevice].keys[im->SelectKey] = key;
 				}
 			}
 
@@ -667,6 +666,11 @@ BOOL INPUTMANAGER::DialogProc(HWND h,UINT uMsg,WPARAM wParam,LPARAM)
 
 			hDlg = h;
 			SelectKey = 0;
+
+			for (UINT i=0; i < joysticks.Size(); ++i)
+				joysticks[i].Create( GetDevice(), DIRECTINPUT::hWnd );
+
+			SetCooperativeLevel(DISCL_NONEXCLUSIVE|DISCL_BACKGROUND);
 			UpdateDialog();
     		return TRUE;
 
@@ -705,9 +709,8 @@ BOOL INPUTMANAGER::DialogProc(HWND h,UINT uMsg,WPARAM wParam,LPARAM)
 						ListBox_SetCurSel( hItem, SelectKey );
 
 						ScanInput();
-						UpdateJoystickDevices();
 
-						const DWORD key = map.category[SelectDevice].keys[SelectKey].key;
+						const DWORD key = map.category[SelectDevice].keys[SelectKey];
 
 						do 
 						{	
@@ -747,6 +750,7 @@ BOOL INPUTMANAGER::DialogProc(HWND h,UINT uMsg,WPARAM wParam,LPARAM)
 		case WM_DESTROY:
 
 			UpdateJoystickDevices();
+			SetCooperativeLevel(DISCL_NONEXCLUSIVE|DISCL_FOREGROUND);
 			hDlg = NULL;
 			return TRUE;
 	}
@@ -806,16 +810,16 @@ VOID INPUTMANAGER::UpdateDlgButtonTexts()
 			ListBox_InsertString( hKeys, KEY_AUTOFIRE_A, "Auto-Fire A" );
 			ListBox_InsertString( hKeys, KEY_AUTOFIRE_B, "Auto-Fire B" );
 
-			ListBox_InsertString( hMap, KEY_A,          Key2Text( map.category[ SelectDevice ].keys[ KEY_A          ].key ) );
-			ListBox_InsertString( hMap, KEY_B,          Key2Text( map.category[ SelectDevice ].keys[ KEY_B          ].key ) );
-			ListBox_InsertString( hMap, KEY_SELECT,     Key2Text( map.category[ SelectDevice ].keys[ KEY_SELECT     ].key ) );
-			ListBox_InsertString( hMap, KEY_START,      Key2Text( map.category[ SelectDevice ].keys[ KEY_START      ].key ) );
-			ListBox_InsertString( hMap, KEY_UP,         Key2Text( map.category[ SelectDevice ].keys[ KEY_UP         ].key ) );
-			ListBox_InsertString( hMap, KEY_DOWN,       Key2Text( map.category[ SelectDevice ].keys[ KEY_DOWN       ].key ) );
-			ListBox_InsertString( hMap, KEY_LEFT,       Key2Text( map.category[ SelectDevice ].keys[ KEY_LEFT       ].key ) );
-			ListBox_InsertString( hMap, KEY_RIGHT,      Key2Text( map.category[ SelectDevice ].keys[ KEY_RIGHT      ].key ) );
-			ListBox_InsertString( hMap, KEY_AUTOFIRE_A, Key2Text( map.category[ SelectDevice ].keys[ KEY_AUTOFIRE_A ].key ) );
-			ListBox_InsertString( hMap, KEY_AUTOFIRE_B, Key2Text( map.category[ SelectDevice ].keys[ KEY_AUTOFIRE_B ].key ) );
+			ListBox_InsertString( hMap, KEY_A,          Key2Text( map.category[ SelectDevice ].keys[ KEY_A          ] ) );
+			ListBox_InsertString( hMap, KEY_B,          Key2Text( map.category[ SelectDevice ].keys[ KEY_B          ] ) );
+			ListBox_InsertString( hMap, KEY_SELECT,     Key2Text( map.category[ SelectDevice ].keys[ KEY_SELECT     ] ) );
+			ListBox_InsertString( hMap, KEY_START,      Key2Text( map.category[ SelectDevice ].keys[ KEY_START      ] ) );
+			ListBox_InsertString( hMap, KEY_UP,         Key2Text( map.category[ SelectDevice ].keys[ KEY_UP         ] ) );
+			ListBox_InsertString( hMap, KEY_DOWN,       Key2Text( map.category[ SelectDevice ].keys[ KEY_DOWN       ] ) );
+			ListBox_InsertString( hMap, KEY_LEFT,       Key2Text( map.category[ SelectDevice ].keys[ KEY_LEFT       ] ) );
+			ListBox_InsertString( hMap, KEY_RIGHT,      Key2Text( map.category[ SelectDevice ].keys[ KEY_RIGHT      ] ) );
+			ListBox_InsertString( hMap, KEY_AUTOFIRE_A, Key2Text( map.category[ SelectDevice ].keys[ KEY_AUTOFIRE_A ] ) );
+			ListBox_InsertString( hMap, KEY_AUTOFIRE_B, Key2Text( map.category[ SelectDevice ].keys[ KEY_AUTOFIRE_B ] ) );
 			break;
 
 		case CATEGORY_POWERPAD:
@@ -841,26 +845,26 @@ VOID INPUTMANAGER::UpdateDlgButtonTexts()
 			ListBox_AddString( hKeys, "Side B - 11" );
 			ListBox_AddString( hKeys, "Side B - 10" );
 
-			ListBox_AddString( hMap, Key2Text( map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_A_1  ].key ) );
-			ListBox_AddString( hMap, Key2Text( map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_A_2  ].key ) );
-			ListBox_AddString( hMap, Key2Text( map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_A_3  ].key ) );
-			ListBox_AddString( hMap, Key2Text( map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_A_4  ].key ) );
-			ListBox_AddString( hMap, Key2Text( map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_A_5  ].key ) );
-			ListBox_AddString( hMap, Key2Text( map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_A_6  ].key ) );
-			ListBox_AddString( hMap, Key2Text( map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_A_7  ].key ) );
-			ListBox_AddString( hMap, Key2Text( map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_A_8  ].key ) );
-			ListBox_AddString( hMap, Key2Text( map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_A_9  ].key ) );
-			ListBox_AddString( hMap, Key2Text( map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_A_10 ].key ) );
-			ListBox_AddString( hMap, Key2Text( map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_A_11 ].key ) );
-			ListBox_AddString( hMap, Key2Text( map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_A_12 ].key ) );
-			ListBox_AddString( hMap, Key2Text( map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_B_3  ].key ) );
-			ListBox_AddString( hMap, Key2Text( map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_B_2  ].key ) );
-			ListBox_AddString( hMap, Key2Text( map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_B_8  ].key ) );
-			ListBox_AddString( hMap, Key2Text( map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_B_7  ].key ) );
-			ListBox_AddString( hMap, Key2Text( map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_B_6  ].key ) );
-			ListBox_AddString( hMap, Key2Text( map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_B_5  ].key ) );
-			ListBox_AddString( hMap, Key2Text( map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_B_11 ].key ) );
-			ListBox_AddString( hMap, Key2Text( map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_B_10 ].key ) );
+			ListBox_AddString( hMap, Key2Text( map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_A_1  ] ) );
+			ListBox_AddString( hMap, Key2Text( map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_A_2  ] ) );
+			ListBox_AddString( hMap, Key2Text( map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_A_3  ] ) );
+			ListBox_AddString( hMap, Key2Text( map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_A_4  ] ) );
+			ListBox_AddString( hMap, Key2Text( map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_A_5  ] ) );
+			ListBox_AddString( hMap, Key2Text( map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_A_6  ] ) );
+			ListBox_AddString( hMap, Key2Text( map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_A_7  ] ) );
+			ListBox_AddString( hMap, Key2Text( map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_A_8  ] ) );
+			ListBox_AddString( hMap, Key2Text( map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_A_9  ] ) );
+			ListBox_AddString( hMap, Key2Text( map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_A_10 ] ) );
+			ListBox_AddString( hMap, Key2Text( map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_A_11 ] ) );
+			ListBox_AddString( hMap, Key2Text( map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_A_12 ] ) );
+			ListBox_AddString( hMap, Key2Text( map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_B_3  ] ) );
+			ListBox_AddString( hMap, Key2Text( map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_B_2  ] ) );
+			ListBox_AddString( hMap, Key2Text( map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_B_8  ] ) );
+			ListBox_AddString( hMap, Key2Text( map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_B_7  ] ) );
+			ListBox_AddString( hMap, Key2Text( map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_B_6  ] ) );
+			ListBox_AddString( hMap, Key2Text( map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_B_5  ] ) );
+			ListBox_AddString( hMap, Key2Text( map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_B_11 ] ) );
+			ListBox_AddString( hMap, Key2Text( map.category[ CATEGORY_POWERPAD ].keys[ KEY_POWERPAD_SIDE_B_10 ] ) );
 			break;
 
        	case CATEGORY_GENERAL:
@@ -868,10 +872,14 @@ VOID INPUTMANAGER::UpdateDlgButtonTexts()
 			ListBox_AddString( hKeys, "Insert Coin (slot 1)" );
 			ListBox_AddString( hKeys, "Insert Coin (slot 2)" );
 			ListBox_AddString( hKeys, "Speed Throttle"       );
+			ListBox_AddString( hKeys, "Save To Next Slot"    );
+			ListBox_AddString( hKeys, "Load From Last Slot"  );
 
-			ListBox_AddString( hMap, Key2Text( map.category[ CATEGORY_GENERAL ].keys[ KEY_GENERAL_INSERT_COIN_1 ].key ) );
-			ListBox_AddString( hMap, Key2Text( map.category[ CATEGORY_GENERAL ].keys[ KEY_GENERAL_INSERT_COIN_2 ].key ) );
-			ListBox_AddString( hMap, Key2Text( map.category[ CATEGORY_GENERAL ].keys[ KEY_GENERAL_TOGGLE_FPS    ].key ) );
+			ListBox_AddString( hMap, Key2Text( map.category[ CATEGORY_GENERAL ].keys[ KEY_GENERAL_INSERT_COIN_1 ] ) );
+			ListBox_AddString( hMap, Key2Text( map.category[ CATEGORY_GENERAL ].keys[ KEY_GENERAL_INSERT_COIN_2 ] ) );
+			ListBox_AddString( hMap, Key2Text( map.category[ CATEGORY_GENERAL ].keys[ KEY_GENERAL_TOGGLE_FPS    ] ) );
+			ListBox_AddString( hMap, Key2Text( map.category[ CATEGORY_GENERAL ].keys[ KEY_GENERAL_SAVE_SLOT     ] ) );
+			ListBox_AddString( hMap, Key2Text( map.category[ CATEGORY_GENERAL ].keys[ KEY_GENERAL_LOAD_SLOT     ] ) );
 			break;
 	}
 
@@ -885,10 +893,7 @@ VOID INPUTMANAGER::UpdateDlgButtonTexts()
 VOID INPUTMANAGER::Clear()
 {
 	for (TSIZE i=0; i < map.category[ SelectDevice ].keys.Size(); ++i)
-	{
-		map.category[ SelectDevice ].keys[ i ].key = 0;
-		map.category[ SelectDevice ].keys[ i ].device = NULL;
-	}
+		map.category[ SelectDevice ].keys[ i ] = 0;
 
 	UpdateDlgButtonTexts();
 }
@@ -904,7 +909,7 @@ VOID INPUTMANAGER::ScanInput()
 	
 	DialogBoxParam
 	( 
-    	application.GetInstance(), 
+    	GetModuleHandle(NULL), 
 		MAKEINTRESOURCE(IDD_INPUT_KEYPRESS), 
 		hDlg, 
 		StaticKeyPressDialogProc,
@@ -920,23 +925,40 @@ VOID INPUTMANAGER::ScanInput()
 
 VOID INPUTMANAGER::UpdateJoystickDevices()
 {
-	for (UINT i=0; i < ActiveJoysticks.Size(); ++i)
-		ActiveJoysticks[i].active = FALSE;
+	for (UINT i=0; i < joysticks.Size(); ++i)
+		joysticks[i].state.lX = 0;
+
+	typedef PDXSET<const LPDIRECTINPUTDEVICE8> ACTIVEDEVICES;
+
+	ACTIVEDEVICES ActiveDevices;
 
 	for (UINT i=0; i < NUM_CATEGORIES; ++i)
 	{
-		for (TSIZE j=0; j < map.category[i].keys.Size(); ++j)
+		for (UINT j=0; j < map.category[i].keys.Size(); ++j)
 		{
-			LPDIRECTINPUTDEVICE8 device = map.category[i].keys[j].device;
+			const DWORD key = map.category[i].keys[j];
 
-			if (device && device != GetDevice(0))
+			if (key & NST_USE_JOYSTICK)
 			{
-				ACTIVEJOYSTICK* const joy = PDX::Find( ActiveJoysticks.Begin(), ActiveJoysticks.End(), device );
+				const LPDIRECTINPUTDEVICE8 device = joysticks[(key & ~NST_USE_JOYSTICK) / 64].device;
 
-				if (joy)
-					joy->active = TRUE;
+				if (ActiveDevices.Find(device) == ActiveDevices.End())
+				{
+					ActiveDevices.Insert(device);
+
+					JOYSTICK* const joy = PDX::Find(joysticks.Begin(),joysticks.End(),device);
+
+					if (joy != joysticks.End())
+						joy->state.lX = LONG_MAX;
+				}
 			}
 		}
+	}
+
+	for (UINT i=0; i < joysticks.Size(); ++i)
+	{
+		if (joysticks[i].state.lX != LONG_MAX)
+			joysticks[i].Release();
 	}
 }
 
@@ -1020,9 +1042,11 @@ const CHAR* INPUTMANAGER::Map2Text(const UINT category,const UINT key)
 
 				switch (key)
 				{
-					case KEY_GENERAL_INSERT_COIN_1: button = "insert coin 1";  break;
-					case KEY_GENERAL_INSERT_COIN_2: button = "insert coin 2";  break;
-					case KEY_GENERAL_TOGGLE_FPS:    button = "speed throttle"; break;
+					case KEY_GENERAL_INSERT_COIN_1: button = "insert coin 1";       break;
+					case KEY_GENERAL_INSERT_COIN_2: button = "insert coin 2";       break;
+					case KEY_GENERAL_TOGGLE_FPS:    button = "speed throttle";      break;
+					case KEY_GENERAL_SAVE_SLOT:     button = "save to next slot";   break;
+					case KEY_GENERAL_LOAD_SLOT:     button = "load from last slot"; break;
 					default: return NULL;
 				}
 				break;

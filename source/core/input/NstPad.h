@@ -39,8 +39,8 @@ public:
 
 	PAD(const UINT,const UINT);
 
-	VOID Poll();
 	VOID Reset();
+	VOID Poll();
 	UINT Peek_4016();
 	UINT Peek_4017();
 	VOID Poke_4016(const UINT);
@@ -61,6 +61,8 @@ public:
 	}
 
 private:
+
+	UINT Read();
 
 	enum
 	{

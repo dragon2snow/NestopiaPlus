@@ -832,18 +832,18 @@ private:
 
 	CPU_MAP map;
 
-	UINT      cache;
-	UINT      pal;
-	ULONG     cycles;	
-	LONG      FrameCounter;
-	LONG      DmcCounter;
-	UINT      DmcLengthCounter;
-	UINT      IntLow;
-	UINT      IntEn;
-	EVENTS	  events;
-	ULONG     FrameCycles;
-	UINT      status;
-	BOOL      jammed;
+	UINT   cache;
+	UINT   pal;
+	ULONG  cycles;	
+	LONG   FrameCounter;
+	LONG   DmcCounter;
+	UINT   DmcLengthCounter;
+	UINT   IntLow;
+	UINT   IntEn;
+	EVENTS events;
+	ULONG  FrameCycles;
+	UINT   status;
+	BOOL   jammed;
 
 	U8 ram[RAM_SIZE];
 

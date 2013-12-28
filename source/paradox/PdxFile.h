@@ -60,6 +60,7 @@ public:
 	PDXRESULT Open();
 	PDXRESULT Close();
 	PDXRESULT Flush();
+	PDXRESULT ChangeName(const CHAR* const);
 
 	PDXRESULT Open(const PDXSTRING& s,const MODE m)
 	{ return Open(s.String(),m); }

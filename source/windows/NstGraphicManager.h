@@ -41,7 +41,11 @@ class GRAPHICMANAGER : public DIRECTDRAW, public MANAGER
 {
 public:
 
-	GRAPHICMANAGER(const INT);
+	GRAPHICMANAGER();
+	~GRAPHICMANAGER();
+
+	VOID Create  (CONFIGFILE* const);
+	VOID Destroy (CONFIGFILE* const);
 
 	enum SCREENTYPE
 	{
@@ -52,65 +56,54 @@ public:
 		SCREEN_STRETCHED
 	};
 
-	PDXRESULT SwitchToFullScreen();
-	PDXRESULT SwitchToWindowed(const RECT&);
-	PDXRESULT BeginDialogMode();
-	PDXRESULT EndDialogMode();
-	PDXRESULT SaveScreenShot();
-	PDXRESULT LoadPalette(const PDXSTRING&);
-	PDXRESULT SetScreenSize(const SCREENTYPE);
+	VOID SwitchToWindowed(const RECT&);
 
-	VOID UpdateDirectDraw();
+	PDX_NO_INLINE BOOL OnFocus(const BOOL);
+	PDX_NO_INLINE VOID SwitchToFullScreen();
+	PDX_NO_INLINE VOID BeginDialogMode();
+	PDX_NO_INLINE VOID EndDialogMode();
+	PDX_NO_INLINE VOID LoadPalette(const PDXSTRING&);
+	PDX_NO_INLINE VOID SetScreenSize(const SCREENTYPE);
+	PDX_NO_INLINE VOID UpdateDirectDraw();
 
-	inline UINT GetSelectedDisplayWidth()  const { return adapters[SelectedAdapter].DisplayModes[ModeIndices[SelectedMode]].width;  }
-	inline UINT GetSelectedDisplayHeight() const { return adapters[SelectedAdapter].DisplayModes[ModeIndices[SelectedMode]].height; }
+	PDX_NO_INLINE PDXRESULT SaveScreenShot();
 
-	inline BOOL CanExportBitmaps() const
-	{ return GdiPlusAvailable; }
+	BOOL CanExportBitmaps() const;
+	BOOL IsCustomPalette()  const;
 
-	inline NES::IO::GFX* GetFormat()
-	{ return &format; }
-
-	inline const RECT& GetRectNTSC() const { return ntsc; }
-	inline const RECT& GetRectPAL()  const { return pal;  }
-
-	inline BOOL IsCustomPalette() const
-	{ return SelectedPalette == IDC_GRAPHICS_PALETTE_CUSTOM; }
-
-	inline const PDXSTRING& GetPaletteFile() const
-	{ return PaletteFile; }
+	const PDXSTRING& GetPaletteFile() const;
 
 private:
 
-	PDXRESULT CreateDevice(GUID);
-
-	BOOL ValidScreenRect(const RECT&) const;
-	VOID SetScreenSize(const SCREENTYPE,RECT&) const;
-
-	PDXRESULT Create  (CONFIGFILE* const);
-	PDXRESULT Destroy (CONFIGFILE* const);
+	PDX_NO_INLINE VOID CreateDevice(GUID) throw(const CHAR*);	
+	PDX_NO_INLINE VOID ResetBpp() throw(const CHAR*);
+	PDX_NO_INLINE VOID EnableBpp() throw(const CHAR*);
+	PDX_NO_INLINE VOID SetScreenSize(const SCREENTYPE,RECT&) const;
+	PDX_NO_INLINE VOID SetScreenSize(const SCREENTYPE,RECT&,const UINT,const UINT) const;
 
 	PDXRESULT ExportBitmap(const PDXSTRING&);
 
 	BOOL DialogProc(HWND,UINT,WPARAM,LPARAM);
 
-	VOID Reset();
-	VOID ResetBpp();
-	VOID EnableBpp();
-	VOID UpdateDialog();
-	VOID UpdateDevice();
-	VOID UpdateMode();
-	VOID UpdateBpp();
+	PDX_NO_INLINE VOID Reset();
+	PDX_NO_INLINE VOID UpdateDialog();
+	PDX_NO_INLINE VOID UpdateDevice();
+	PDX_NO_INLINE VOID UpdateMode();
+	PDX_NO_INLINE VOID UpdateBpp();
+	PDX_NO_INLINE VOID UpdateNesScreen(const WPARAM);
+	PDX_NO_INLINE VOID UpdatePalette();
+	PDX_NO_INLINE BOOL ImportPalette();
+	PDX_NO_INLINE VOID ResetColors();
+	PDX_NO_INLINE BOOL InitModes(const UINT,const UINT,const UINT);
+
 	VOID UpdateOffScreen();
-	VOID UpdateNesScreen(const WPARAM);
 	VOID UpdateEmulation();
 	VOID UpdateColors();
 	VOID UpdateEffects();
-	VOID UpdatePalette();
 	VOID BrowsePalette();
-	BOOL ImportPalette();
 	VOID ClearPalette();
-	VOID ResetColors();
+	
+	PDX_NO_INLINE VOID CheckModeBounds() const throw(const CHAR*);
 
 	HWND hDlg;
 
@@ -122,26 +115,28 @@ private:
 	UINT SelectedPalette;	
 	SCREENTYPE SelectedFactor;
 
+	BOOL Support8Bpp;
 	BOOL Support16Bpp;
 	BOOL Support32Bpp;
-	BOOL SupportSRam;
 
-	RECT ntsc;
-	RECT pal;
+	RECT rcNtsc;
+	RECT rcPal;
 
 	PDXSTRING PaletteFile;
 	
 	enum {PALETTE_LENGTH = 64 * 3};
 
-	U8 palette[PALETTE_LENGTH];
-
-	NES::IO::GFX format;
 	NES::IO::GFX::CONTEXT context;
 	
 	PDXARRAY<UINT> ModeIndices;
 
-	BOOL GdiPlusAvailable;
-	BOOL ShouldBeFullscreen;
+	U8* const palette;
+
+	static BOOL HasGDIPlus();
+
+	static const BOOL GdiPlusAvailable;
 };
+
+#include "NstGraphicManager.inl"
 
 #endif

@@ -83,9 +83,9 @@ BEGIN
     LTEXT           "Mode",IDC_STATIC,14,40,25,8
     COMBOBOX        IDC_GRAPHICS_MODE,41,37,94,68,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP,0,HIDC_GRAPHICS_MODE
-    RADIOBUTTON     "16 bit",IDC_GRAPHICS_16_BIT,44,58,34,10,WS_DISABLED | 
+    RADIOBUTTON     "16 bit",IDC_GRAPHICS_16_BIT,61,58,34,10,WS_DISABLED | 
                     WS_TABSTOP
-    RADIOBUTTON     "32 bit",IDC_GRAPHICS_32_BIT,87,58,34,10,WS_DISABLED | 
+    RADIOBUTTON     "32 bit",IDC_GRAPHICS_32_BIT,106,58,34,10,WS_DISABLED | 
                     WS_TABSTOP
     GROUPBOX        "NTSC Screen",IDC_STATIC,152,7,117,67
     LTEXT           "Left",IDC_STATIC,294,31,14,8
@@ -145,6 +145,8 @@ BEGIN
     RADIOBUTTON     "Video Memory",IDC_GRAPHICS_VRAM,120,210,57,10,
                     WS_TABSTOP
     PUSHBUTTON      "Default",IDC_GRAPHICS_DEFAULT,281,210,58,19
+    RADIOBUTTON     "8 bit",IDC_GRAPHICS_8_BIT,17,58,30,10,WS_DISABLED | 
+                    WS_TABSTOP
 END
 
 IDD_PATHS DIALOGEX 0, 0, 308, 289
@@ -155,43 +157,49 @@ FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     DEFPUSHBUTTON   "OK",IDC_PATHS_OK,263,264,37,18,WS_GROUP
     GROUPBOX        "Image Files",IDC_STATIC,6,7,249,45,BS_LEFT | WS_GROUP
-    EDITTEXT        IDC_PATHS_ROM_IMAGES,13,18,235,13,ES_AUTOHSCROLL
-    CONTROL         "Last visited",IDC_PATHS_ROM_IMAGES_LAST,"Button",
+    EDITTEXT        IDC_PATHS_IMAGE,13,18,235,13,ES_AUTOHSCROLL
+    CONTROL         "Last visited",IDC_PATHS_IMAGE_LAST,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,13,35,52,12
-    PUSHBUTTON      "Browse",IDC_PATHS_ROM_IMAGES_BROWSE,264,14,36,18
+    PUSHBUTTON      "Browse",IDC_PATHS_IMAGE_BROWSE,264,14,36,18
     GROUPBOX        "Save Ram Files",IDC_STATIC,6,57,249,44,BS_LEFT | 
                     WS_GROUP
-    EDITTEXT        IDC_PATHS_SAVE_RAM,13,68,236,13,ES_AUTOHSCROLL
+    EDITTEXT        IDC_PATHS_BATTERY,13,68,236,13,ES_AUTOHSCROLL
     CONTROL         "Look in image file directory first",
-                    IDC_PATHS_SAVE_RAM_ROM,"Button",BS_AUTOCHECKBOX | 
+                    IDC_PATHS_BATTERY_IN_IMAGE,"Button",BS_AUTOCHECKBOX | 
                     WS_TABSTOP,13,86,115,12
-    CONTROL         "Keep them write-protected",
-                    IDC_PATHS_DISABLE_SAVERAM_WRITE,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,143,88,101,10
-    PUSHBUTTON      "Browse",IDC_PATHS_SAVE_RAM_BROWSE,263,64,37,18
+    CONTROL         "Keep them write-protected",IDC_PATHS_BATTERY_PROTECT,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,143,88,101,10
+    PUSHBUTTON      "Browse",IDC_PATHS_BATTERY_BROWSE,263,64,37,18
     GROUPBOX        "Save States",IDC_STATIC,6,159,250,44,BS_LEFT | WS_GROUP
-    EDITTEXT        IDC_PATHS_SAVE_STATES,13,170,237,13,ES_AUTOHSCROLL
-    CONTROL         "Last visited",IDC_PATHS_SAVE_STATES_LAST,"Button",
+    EDITTEXT        IDC_PATHS_NST,13,170,237,13,ES_AUTOHSCROLL
+    CONTROL         "Last visited",IDC_PATHS_NST_LAST,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,13,186,52,12
-    PUSHBUTTON      "Browse",IDC_PATHS_SAVE_STATES_BROWSE,263,166,37,18
+    PUSHBUTTON      "Browse",IDC_PATHS_NST_BROWSE,263,166,37,18
     PUSHBUTTON      "Default",IDC_PATHS_DEFAULT,165,264,42,18
     PUSHBUTTON      "Cancel",IDC_PATHS_CANCEL,213,264,42,18
     CONTROL         "Auto apply",IDC_PATHS_IPS_AUTO_APPLY,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,136,240,51,10
     GROUPBOX        "IPS Files",IDC_STATIC,6,210,250,44,BS_LEFT | WS_GROUP
     EDITTEXT        IDC_PATHS_IPS,13,221,237,13,ES_AUTOHSCROLL
-    CONTROL         "Look in image file directory first",IDC_PATHS_IPS_ROM,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,13,238,115,12
+    CONTROL         "Look in image file directory first",
+                    IDC_PATHS_IPS_IN_IMAGE,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,13,238,115,12
     PUSHBUTTON      "Browse",IDC_PATHS_IPS_BROWSE,263,218,37,18
     CONTROL         "Auto apply",IDC_PATHS_NSP_AUTO_APPLY,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,189,140,51,10
     GROUPBOX        "NSP Files",IDC_STATIC,6,109,250,44,BS_LEFT | WS_GROUP
-    CONTROL         "Look in image file directory first",IDC_PATHS_NSP_ROM,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,67,139,115,12
+    CONTROL         "Look in image file directory first",
+                    IDC_PATHS_NSP_IN_IMAGE,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,67,139,115,12
     PUSHBUTTON      "Browse",IDC_PATHS_NSP_BROWSE,263,117,37,18
     EDITTEXT        IDC_PATHS_NSP,13,122,237,13,ES_AUTOHSCROLL
     CONTROL         "Last visited",IDC_PATHS_NSP_LAST,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,13,138,52,12
+    CONTROL         "Auto apply",IDC_PATHS_NST_AUTO_APPLY,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,190,187,51,10
+    CONTROL         "Look in image file directory first",
+                    IDC_PATHS_NST_IN_IMAGE,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,68,186,115,12
 END
 
 IDD_SOUND DIALOGEX 0, 0, 273, 163
@@ -246,7 +254,7 @@ STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION |
 CAPTION "About"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    CTEXT           "Nestopia 1.04 \n\nCopyright (c) 2003 Martin Freij\nunder the terms and conditions of the\nGNU General Public License.",
+    CTEXT           "Nestopia 1.05 \n\nCopyright (c) 2003 Martin Freij\nunder the terms and conditions of the\nGNU General Public License.",
                     IDC_STATIC,14,22,133,42
     GROUPBOX        "",IDC_STATIC,7,7,147,124
     CTEXT           "http://sourceforge.net/projects/nestopia",
@@ -394,14 +402,14 @@ BEGIN
                     WS_GROUP
 END
 
-IDD_PREFERENCES DIALOGEX 0, 0, 227, 233
+IDD_PREFERENCES DIALOGEX 0, 0, 227, 251
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | 
     WS_SYSMENU
 CAPTION "Preferences"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    DEFPUSHBUTTON   "OK",IDC_PREFERENCES_OK,170,212,50,14
-    GROUPBOX        "",IDC_STATIC,7,7,213,198
+    DEFPUSHBUTTON   "OK",IDC_PREFERENCES_OK,170,230,50,14
+    GROUPBOX        "",IDC_STATIC,7,7,213,212
     CONTROL         "Begin emulation as soon as an image file has been loaded",
                     IDC_PREFERENCES_BEGIN_EMULATION,"Button",BS_AUTOCHECKBOX | 
                     WS_TABSTOP,14,19,198,11
@@ -422,7 +430,7 @@ BEGIN
                     18
     CONTROL         "Confirm on exit",IDC_PREFERENCES_CONFIRM_EXIT,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,14,166,66,12
-    PUSHBUTTON      "Default",IDC_PREFERENCES_DEFAULT,59,212,50,14
+    PUSHBUTTON      "Default",IDC_PREFERENCES_DEFAULT,59,230,50,14
     CONTROL         "Always play NSF files in background",
                     IDC_PREFERENCES_NSF_IN_BACKGROUND,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,14,53,129,11
@@ -430,7 +438,9 @@ BEGIN
                     BS_AUTOCHECKBOX | WS_TABSTOP,14,184,54,12
     CONTROL         "High Priority",IDC_PREFERENCES_HIGH_PRIORITY,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,14,70,53,12
-    PUSHBUTTON      "Cancel",IDC_PREFERENCES_CANCEL,115,212,50,14
+    PUSHBUTTON      "Cancel",IDC_PREFERENCES_CANCEL,115,230,50,14
+    CONTROL         "Enable rom database",IDC_PREFERENCES_USE_ROM_DATABASE,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,201,83,12
 END
 
 IDD_AUTO_SAVE DIALOGEX 0, 0, 251, 161
@@ -481,12 +491,12 @@ STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION |
 CAPTION "Sound Recording Options"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    DEFPUSHBUTTON   "OK",IDC_SOUND_RECORD_OK,193,44,50,14
-    PUSHBUTTON      "Cancel",IDC_SOUND_RECORD_CANCEL,135,44,50,14
+    DEFPUSHBUTTON   "OK",IDC_SOUND_CAPTURE_OK,193,44,50,14
+    PUSHBUTTON      "Cancel",IDC_SOUND_CAPTURE_CANCEL,135,44,50,14
     GROUPBOX        "File",IDC_STATIC,7,7,237,30
-    EDITTEXT        IDC_SOUND_RECORD_FILE,14,17,147,13,ES_AUTOHSCROLL
-    PUSHBUTTON      "Clear",IDC_SOUND_RECORD_CLEAR,167,18,34,13
-    PUSHBUTTON      "Browse",IDC_SOUND_RECORD_BROWSE,205,18,34,13
+    EDITTEXT        IDC_SOUND_CAPTURE_FILE,14,17,147,13,ES_AUTOHSCROLL
+    PUSHBUTTON      "Clear",IDC_SOUND_CAPTURE_CLEAR,167,18,34,13
+    PUSHBUTTON      "Browse",IDC_SOUND_CAPTURE_BROWSE,205,18,34,13
 END
 
 IDD_MOVIE DIALOGEX 0, 0, 251, 65
@@ -666,7 +676,7 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 220
         TOPMARGIN, 7
-        BOTTOMMARGIN, 226
+        BOTTOMMARGIN, 244
     END
 
     IDD_AUTO_SAVE, DIALOG
@@ -773,13 +783,13 @@ BEGIN
         MENUITEM SEPARATOR
         POPUP "&Load.."
         BEGIN
-            MENUITEM "&Game Config\tCtrl+Shift+W",  IDM_FILE_LOAD_SCRIPT
-            MENUITEM "S&tate\tCtrl+Shift+E",        IDM_FILE_LOAD_STATE
+            MENUITEM "&Game Config\tCtrl+Shift+W",  IDM_FILE_LOAD_NSP
+            MENUITEM "S&tate\tCtrl+Shift+E",        IDM_FILE_LOAD_NST
         END
         POPUP "&Save.."
         BEGIN
-            MENUITEM "&Game Config\tCtrl+Shift+S",  IDM_FILE_SAVE_SCRIPT
-            MENUITEM "S&tate\tCtrl+Shift+D",        IDM_FILE_SAVE_STATE
+            MENUITEM "&Game Config\tCtrl+Shift+S",  IDM_FILE_SAVE_NSP
+            MENUITEM "S&tate\tCtrl+Shift+D",        IDM_FILE_SAVE_NST
         END
         MENUITEM SEPARATOR
         POPUP "Quick Lo&ad State"
@@ -833,13 +843,13 @@ BEGIN
         , GRAYED
         POPUP "So&und Recorder"
         BEGIN
-            MENUITEM "&File..",                     IDM_FILE_RECORD_SOUND_FILE
+            MENUITEM "&File..",                     IDM_FILE_SOUND_CAPTURE_FILE
 
-            MENUITEM "&Record",                     IDM_FILE_RECORD_SOUND_START
+            MENUITEM "&Record",                     IDM_FILE_SOUND_CAPTURE_RECORD
 
-            MENUITEM "S&top",                       IDM_FILE_RECORD_SOUND_STOP
+            MENUITEM "S&top",                       IDM_FILE_SOUND_CAPTURE_STOP
 
-            MENUITEM "&Reset",                      IDM_FILE_RECORD_SOUND_RESET
+            MENUITEM "&Reset",                      IDM_FILE_SOUND_CAPTURE_RESET
 
         END
         POPUP "&Movie Player"
@@ -1026,9 +1036,9 @@ END
 
 IDR_ACCELERATOR ACCELERATORS 
 BEGIN
-    "W",            IDM_FILE_LOAD_SCRIPT,   VIRTKEY, SHIFT, CONTROL, 
+    "W",            IDM_FILE_LOAD_NSP,      VIRTKEY, SHIFT, CONTROL, 
                                                     NOINVERT
-    "E",            IDM_FILE_LOAD_STATE,    VIRTKEY, SHIFT, CONTROL, 
+    "E",            IDM_FILE_LOAD_NST,      VIRTKEY, SHIFT, CONTROL, 
                                                     NOINVERT
     "O",            IDM_FILE_OPEN,          VIRTKEY, SHIFT, CONTROL, 
                                                     NOINVERT
@@ -1064,9 +1074,9 @@ BEGIN
     "0",            IDM_FILE_QUICK_SAVE_STATE_SLOT_NEXT, VIRTKEY, NOINVERT
     "X",            IDM_FILE_QUIT,          VIRTKEY, ALT, NOINVERT
     "E",            IDM_FILE_SAVE_SCREENSHOT, VIRTKEY, ALT, NOINVERT
-    "S",            IDM_FILE_SAVE_SCRIPT,   VIRTKEY, SHIFT, CONTROL, 
+    "S",            IDM_FILE_SAVE_NSP,      VIRTKEY, SHIFT, CONTROL, 
                                                     NOINVERT
-    "D",            IDM_FILE_SAVE_STATE,    VIRTKEY, SHIFT, CONTROL, 
+    "D",            IDM_FILE_SAVE_NST,      VIRTKEY, SHIFT, CONTROL, 
                                                     NOINVERT
     "P",            IDM_MACHINE_PAUSE,      VIRTKEY, SHIFT, NOINVERT
     "F",            IDM_MACHINE_POWER_OFF,  VIRTKEY, SHIFT, NOINVERT
@@ -1078,7 +1088,7 @@ BEGIN
     VK_LEFT,        IDM_NSF_PREV,           VIRTKEY, SHIFT, NOINVERT
     VK_DOWN,        IDM_NSF_STOP,           VIRTKEY, SHIFT, NOINVERT
     VK_RETURN,      IDM_VIEW_SWITCH_SCREEN, VIRTKEY, ALT, NOINVERT
-    VK_ESCAPE,      ID_TOGGLE_MENU,         VIRTKEY, NOINVERT
+    VK_ESCAPE,      IDM_TOGGLE_MENU,        VIRTKEY, NOINVERT
 END
 
 

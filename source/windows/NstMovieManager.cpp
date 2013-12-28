@@ -39,12 +39,12 @@ VOID MOVIEMANAGER::Load(PDXSTRING& name)
 			name += ".nsv";
 
 		file = name;
-		nes->LoadMovie( file );
+		nes.LoadMovie( file );
 	}
 	else
 	{
 		file.Clear();
-		nes->CloseMovie();
+		nes.CloseMovie();
 	}
 }
 
@@ -52,11 +52,11 @@ VOID MOVIEMANAGER::Load(PDXSTRING& name)
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 														 
-VOID MOVIEMANAGER::Play()    { if (nes->CanPlayMovie())    nes->PlayMovie();    } 
-VOID MOVIEMANAGER::Stop()    { if (nes->CanStopMovie())    nes->StopMovie();    }
-VOID MOVIEMANAGER::Record()  { if (nes->CanRecordMovie())  nes->RecordMovie();  }
-VOID MOVIEMANAGER::Rewind()  { if (nes->CanRewindMovie())  nes->RewindMovie();  }
-VOID MOVIEMANAGER::Forward() { if (nes->CanForwardMovie()) nes->ForwardMovie(); }
+VOID MOVIEMANAGER::Play()    { if (nes.CanPlayMovie())    nes.PlayMovie();    } 
+VOID MOVIEMANAGER::Stop()    { if (nes.CanStopMovie())    nes.StopMovie();    }
+VOID MOVIEMANAGER::Record()  { if (nes.CanRecordMovie())  nes.RecordMovie();  }
+VOID MOVIEMANAGER::Rewind()  { if (nes.CanRewindMovie())  nes.RewindMovie();  }
+VOID MOVIEMANAGER::Forward() { if (nes.CanForwardMovie()) nes.ForwardMovie(); }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //

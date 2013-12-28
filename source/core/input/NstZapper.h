@@ -40,6 +40,7 @@ public:
 	ZAPPER(const UINT,PPU* const);
 
 	VOID Poll();
+
 	UINT Peek_4016();
 	UINT Peek_4017();
 
@@ -51,7 +52,7 @@ public:
 
 private:
 
-	UINT Read() const;
+	UINT Read();
 
 	enum
 	{

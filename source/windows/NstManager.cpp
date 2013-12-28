@@ -29,38 +29,12 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-MANAGER::MANAGER(const INT did)
+MANAGER::MANAGER(const INT id)
 : 
-nes       (NULL), 
-hWnd      (NULL),
-hInstance (NULL),
-DialogID  (did)
+hWnd     (application.GetHWnd()),
+nes      (application.GetNes()), 
+DialogID (id)
 {}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-PDXRESULT MANAGER::Init(HWND w,HINSTANCE i,NES::MACHINE* const n,CONFIGFILE* const ConfigFile)
-{
-	hWnd = w;
-	hInstance = i;
-	nes = n;
-	return Create( ConfigFile );
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-PDXRESULT MANAGER::Close(CONFIGFILE* const ConfigFile)
-{
-	hWnd = NULL;
-	hInstance = NULL;
-	PDXRESULT result = Destroy( ConfigFile );
-	nes = NULL;
-	return result;
-}
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -72,7 +46,7 @@ VOID MANAGER::StartDialog()
 
 	DialogBoxParam
 	(
-	    application.GetInstance(),
+		GetModuleHandle(NULL),
 		MAKEINTRESOURCE(DialogID),
 		hWnd,
 		StaticDialogProc,
@@ -94,7 +68,8 @@ BOOL CALLBACK MANAGER::StaticDialogProc(HWND hDlg,UINT uMsg,WPARAM wParam,LPARAM
 	{
 		PDX_ASSERT( !manager );
 		manager = PDX_CAST(MANAGER*,lParam);
-		application.BeginDialogMode();
+		application.GetSoundManager().Clear();
+		application.GetGraphicManager().BeginDialogMode();
 		GotIt = TRUE;
 	}
 
@@ -104,7 +79,7 @@ BOOL CALLBACK MANAGER::StaticDialogProc(HWND hDlg,UINT uMsg,WPARAM wParam,LPARAM
 	if (uMsg == WM_DESTROY)
 	{
 		manager = NULL;
-		application.EndDialogMode();
+		application.GetGraphicManager().EndDialogMode();
 		GotIt = TRUE;
 	}
 

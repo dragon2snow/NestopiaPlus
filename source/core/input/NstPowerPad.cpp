@@ -45,6 +45,7 @@ VOID POWERPAD::Reset()
 	strobe = 0;
 	state[0] = 0;
 	state[1] = 0;
+	polled = FALSE;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -53,11 +54,15 @@ VOID POWERPAD::Reset()
 
 VOID POWERPAD::Poll()
 {
+	polled = TRUE;
+
 	state[0] = 0;
 	state[1] = 0;
 
 	if (input)
 	{
+		input->PowerPad.Poll();
+
 		static const U8 bits[2][IO::INPUT::POWERPAD::NUM_SIDE_A_BUTTONS] =
 		{
 			{0x02,0x01,0x00,0x00,0x04,0x10,0x80,0x00,0x08,0x20,0x40,0x00},
@@ -106,6 +111,9 @@ UINT POWERPAD::Peek_4016()
 
 UINT POWERPAD::Read()
 {
+	if (!polled)
+		POWERPAD::Poll();
+
 	const UINT data = 
 	(
      	((count < 8) ? ((state[0] >> count) & 0x1) << 3 : 0x80) |

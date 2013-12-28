@@ -303,7 +303,7 @@ private:
 		UINT index;
 		UINT clipping;
 		UINT monochrome;
-		IO::GFX::PIXEL* pixels;
+		IO::GFX::PIXEL* PDX_RESTRICT pixels;
 	};
 
 	OUTPUT output;

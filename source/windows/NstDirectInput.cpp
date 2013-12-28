@@ -32,6 +32,36 @@
 // Constructor
 ////////////////////////////////////////////////////////////////////////////////////////
 
+DIRECTINPUT::JOYSTICK::JOYSTICK()
+: 
+device     (NULL), 
+NumButtons (0), 
+NumPOVs    (0),
+axes       (0) 
+{
+	PDXMemZero( state );
+	PDXMemZero( guid );
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+// Release
+////////////////////////////////////////////////////////////////////////////////////////
+
+VOID DIRECTINPUT::JOYSTICK::Release()
+{
+	if (device)
+	{
+		device->Unacquire();
+		DIRECTX::Release(device,TRUE);
+	}
+
+	PDXMemZero( state );
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+// Constructor
+////////////////////////////////////////////////////////////////////////////////////////
+
 DIRECTINPUT::DIRECTINPUT()
 : 
 hWnd     (NULL),
@@ -51,27 +81,12 @@ DIRECTINPUT::~DIRECTINPUT()
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-PDXRESULT DIRECTINPUT::Error(const CHAR* const msg)
-{
-	PDXSTRING string("DIRECTINPUT: ");
-	string << msg;
-
-	application.LogOutput( string.String() );
-	application.OnError( msg );
-
-	return PDX_FAILURE;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
 // Destroyer, release all devices
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT DIRECTINPUT::Destroy()
+VOID DIRECTINPUT::Destroy()
 {
-	joysticks.Destroy();
+	joysticks.Clear();
 
 	if (keyboard)
 	{
@@ -80,93 +95,67 @@ PDXRESULT DIRECTINPUT::Destroy()
 	}
 
 	DIRECTX::Release(device,TRUE);
-
-	return PDX_OK;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT DIRECTINPUT::Initialize(HWND h)
+VOID DIRECTINPUT::Initialize(HWND h)
 {
-	PDX_ASSERT(h && !device);
+	PDX_ASSERT(h && !device && !keyboard && joysticks.IsEmpty());
 
 	hWnd = h;
 
-	application.LogOutput("DIRECTINPUT: Initializing");
+	application.LogFile().Output("DIRECTINPUT: initializing");
 
-	if (FAILED(DirectInput8Create(application.GetInstance(),DIRECTINPUT_VERSION,IID_IDirectInput8,PDX_CAST(LPVOID*,&device),NULL)))
-		return Error("DirectInput8Create() failed!");
+	if (FAILED(DirectInput8Create(GetModuleHandle(NULL),DIRECTINPUT_VERSION,IID_IDirectInput8,PDX_CAST(LPVOID*,&device),NULL)) || !device)
+		throw ("DirectInput8Create() failed!");
 
-	if (FAILED(device->EnumDevices(DI8DEVCLASS_GAMECTRL,EnumJoysticks,PDX_CAST(LPVOID,this),DIEDFL_ATTACHEDONLY)))
-		return Error("IDirectInput8::EnumDevices() failed!");
-
-	PDX_TRY(SetUpKeyboard());
-	PDX_TRY(SetCooperativeLevel(DISCL_BACKGROUND));
-
-	AcquireDevices();
-
+	if (device->EnumDevices(DI8DEVCLASS_GAMECTRL,EnumJoysticks,PDX_CAST(LPVOID,this),DIEDFL_ATTACHEDONLY) == DI_OK)
 	{
-		PDXSTRING log;
-		
-		log  = "DIRECTINPUT: found ";
-		log += joysticks.Size();
-		log += " attached joystick(s)";
-
-		application.LogOutput( log.String() );
+		application.LogFile().Output
+		( 
+			"DIRECTINPUT: found ",
+			joysticks.Size(),
+			" attached joystick(s)"
+		);
+	}
+	else
+	{
+		application.LogFile().Output
+		(
+	     	"IDirectInput8::EnumDevices() failed! No joysticks can be used!"
+		);
 	}
 
-	return PDX_OK;
+	if (FAILED(device->CreateDevice( GUID_SysKeyboard, &keyboard, NULL )) || !keyboard)
+		throw ("IDirectInput8::CreateDevice() failed!");
+
+	if (FAILED(keyboard->SetDataFormat( &c_dfDIKeyboard )))
+		throw ("IDirectInputDevice8::SetDataFormat() failed!");
+
+	if (FAILED(keyboard->SetCooperativeLevel( hWnd, DISCL_FOREGROUND|DISCL_NONEXCLUSIVE )))
+		throw ("IDirectInputDevice8::SetCooperativeLevel() failed!");
+
+	keyboard->Acquire();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT DIRECTINPUT::SetUpKeyboard()
+VOID DIRECTINPUT::Acquire(LPDIRECTINPUTDEVICE8 input)
 {
-	if (device)
+	PDX_ASSERT(input);
+
+	if (input->Acquire() == DIERR_INPUTLOST)
 	{
-		DIRECTX::Release(keyboard);
+		Sleep(50);
 
-		if (FAILED(device->CreateDevice( GUID_SysKeyboard, &keyboard, NULL )))
-			return Error("IDirectInput8::CreateDevice() failed!");
-
-		if (FAILED(keyboard->SetDataFormat( &c_dfDIKeyboard )))
-			return Error("IDirectInputDevice8::SetDataFormat() failed!");
-
-		return PDX_OK;
+		for (ULONG i=0; input->Acquire() == DIERR_INPUTLOST && i < 0xFFFFUL; ++i)
+			Sleep(20);
 	}
-
-	return PDX_FAILURE;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-UINT DIRECTINPUT::GetDeviceIndex(const LPDIRECTINPUTDEVICE8 device) const
-{
-	if (device == keyboard)
-		return 0;
-
-	for (UINT i=0; i < joysticks.Size(); ++i)
-	{
-		if (device == joysticks[i].device)
-			return (i+1);
-	}
-
-	return UINT_MAX;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-LPDIRECTINPUTDEVICE8 DIRECTINPUT::GetDevice(UINT index)
-{
-	return (!index) ? keyboard : (--index < joysticks.Size() ? joysticks[index].device : NULL);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -175,18 +164,45 @@ LPDIRECTINPUTDEVICE8 DIRECTINPUT::GetDevice(UINT index)
 
 VOID DIRECTINPUT::AcquireDevices()
 {
-	if (keyboard)
-	{
-		while (keyboard->Acquire() == DIERR_INPUTLOST)
-			Sleep(100);
+	PDX_ASSERT(keyboard);
 
-		for (UINT i=0; i < joysticks.Size(); ++i)
+	Acquire(keyboard);
+
+	for (UINT i=0; i < joysticks.Size(); ++i)
+	{
+		if (joysticks[i].device)
+			Acquire(joysticks[i].device);
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+VOID DIRECTINPUT::SetCooperativeLevel(DWORD flags)
+{
+	PDX_ASSERT(keyboard);
+
+	flags &= ~DISCL_EXCLUSIVE;
+	flags |= DISCL_NONEXCLUSIVE;
+
+	keyboard->Unacquire();
+
+	if (FAILED(keyboard->SetCooperativeLevel( hWnd, flags )))
+		throw ("IDirectInputDevice8::SetCooperativeLevel() failed!");
+
+	keyboard->Acquire();
+
+	for (UINT i=0; i < joysticks.Size(); ++i)
+	{
+		if (joysticks[i].device)
 		{
-			if (joysticks[i].device)
-			{
-				while (joysticks[i].device->Acquire() == DIERR_INPUTLOST)
-					Sleep(100);
-			}
+			joysticks[i].device->Unacquire();
+
+			if (FAILED(joysticks[i].device->SetCooperativeLevel( hWnd, flags )))
+				throw ("IDirectInputDevice8::SetCooperativeLevel() failed!");
+
+			joysticks[i].device->Acquire();
 		}
 	}
 }
@@ -195,48 +211,18 @@ VOID DIRECTINPUT::AcquireDevices()
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT DIRECTINPUT::SetCooperativeLevel(DWORD flags)
+BOOL DIRECTINPUT::PollKeyboard()
 {
-	if (keyboard)
+	PDX_ASSERT(keyboard);
+
+	if (FAILED(keyboard->GetDeviceState( sizeof(KeyboardBuffer), PDX_CAST(LPVOID,KeyboardBuffer) )))
 	{
-		flags |= DISCL_NONEXCLUSIVE;
-
-		if (FAILED(keyboard->SetCooperativeLevel(hWnd,flags)))
-			return Error("IDirectInputDevice8::SetCooperativeLevel() failed!");
-
-		for (UINT i=0; i < joysticks.Size(); ++i)
-		{
-			if (!joysticks[i].device)
-				return PDX_FAILURE;
-
-			if (FAILED(joysticks[i].device->SetCooperativeLevel(hWnd,flags)))
-				return Error("IDirectInputDevice8::SetCooperativeLevel() failed!");
-		}
-
-		return PDX_OK;
-	}
-
-	return PDX_FAILURE;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID DIRECTINPUT::PollKeyboard()
-{
-	if (keyboard)
-	{
+		Acquire( keyboard );
 		PDXMemZero( KeyboardBuffer, KEYBOARD_BUFFER_SIZE );
-
-		if (FAILED(keyboard->GetDeviceState( sizeof(KeyboardBuffer), PDX_CAST(LPVOID,KeyboardBuffer) )))
-		{
-			while (keyboard->Acquire() == DIERR_INPUTLOST)
-				Sleep(100);
-
-			keyboard->GetDeviceState( sizeof(KeyboardBuffer), PDX_CAST(LPVOID,KeyboardBuffer) );
-		}
+		return FALSE;
 	}
+
+	return TRUE;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -245,28 +231,26 @@ VOID DIRECTINPUT::PollKeyboard()
 
 BOOL DIRECTINPUT::ScanKeyboard(DWORD& key)
 {
-	if (keyboard)
-	{
-		PDXMemZero( KeyboardBuffer, KEYBOARD_BUFFER_SIZE );
+	PDX_ASSERT(keyboard);
 
-		if (FAILED(keyboard->GetDeviceState( sizeof(KeyboardBuffer), PDX_CAST(LPVOID,KeyboardBuffer) )))
+	key = 0;
+
+	PDXMemZero( KeyboardBuffer, KEYBOARD_BUFFER_SIZE );
+
+	if (FAILED(keyboard->GetDeviceState( sizeof(KeyboardBuffer), PDX_CAST(LPVOID,KeyboardBuffer) )))
+	{
+		Acquire(keyboard);
+	}
+	else
+	{
+		for (UINT i=0; i < KEYBOARD_BUFFER_SIZE; ++i)
 		{
-			while (keyboard->Acquire() == DIERR_INPUTLOST)
-				Sleep(100);
-		}
-		else
-		{
-			for (UINT i=0; i < KEYBOARD_BUFFER_SIZE; ++i)
+			if (KeyboardBuffer[i] & 0x80)
 			{
-				if (KeyboardBuffer[i] & 0x80)
-				{
-					key = i;
-					return TRUE;
-				}
+				key = i;
+				return TRUE;
 			}
 		}
-
-		key = 0;
 	}
 
 	return FALSE;
@@ -276,66 +260,168 @@ BOOL DIRECTINPUT::ScanKeyboard(DWORD& key)
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-UINT DIRECTINPUT::ScanJoystick(DWORD& button,LPDIRECTINPUTDEVICE8& device)
+BOOL DIRECTINPUT::ScanJoystick(DWORD& button,UINT& index)
 {
-	DIJOYSTATE state;
-
-	for (UINT i=0; i < joysticks.Size(); ++i)
+	for (index=0; index < joysticks.Size(); ++index)
 	{
-		device = joysticks[i].device;
+		JOYSTICK& joy = joysticks[index];
 
-		if (!device)
+		if (!joy.device)
 			continue;
 
-		if (FAILED(device->Poll()))
+		if (FAILED(joy.device->Poll()))
 		{
-			while (device->Acquire() == DIERR_INPUTLOST)
-				Sleep(100);
-
-			if (FAILED(device->Poll()))
-				continue;
+			Acquire(joy.device);
+			continue;
 		}
 
-		if (FAILED(device->GetDeviceState(sizeof(DIJOYSTATE),PDX_CAST(LPVOID,&state))))
+		if (FAILED(joy.device->GetDeviceState(sizeof(DIJOYSTATE),PDX_CAST(LPVOID,&joy.state))))
 			continue;
 
-		const UINT index = i + 1;
-
-		for (UINT j=0; j < joysticks[i].NumButtons; ++j)
+		for (UINT i=0; i < joy.NumButtons; ++i)
 		{
-			if (state.rgbButtons[j])
+			if (joy.state.rgbButtons[i])
 			{
-				button = j;
-				return index;
+				button = i;
+				return TRUE;
 			}
 		}
 
-		const UINT axes = joysticks[i].axes;
+		const UINT axes = joy.axes;
 
-		if ( state.lX           && (axes & 0x01) ) { button = 32 + (state.lX           > 0 ? 1 : 0); return index; }
-		if ( state.lY           && (axes & 0x02) ) { button = 34 + (state.lY           > 0 ? 1 : 0); return index; }
-		if ( state.lZ           && (axes & 0x04) ) { button = 36 + (state.lZ           > 0 ? 1 : 0); return index; }
-		if ( state.lRx          && (axes & 0x08) ) { button = 38 + (state.lRx          > 0 ? 1 : 0); return index; }
-		if ( state.lRy          && (axes & 0x10) ) { button = 40 + (state.lRy          > 0 ? 1 : 0); return index; }
-		if ( state.lRz          && (axes & 0x20) ) { button = 42 + (state.lRz          > 0 ? 1 : 0); return index; }
-		if ( state.rglSlider[0] && (axes & 0x40) ) { button = 44 + (state.rglSlider[0] > 0 ? 1 : 0); return index; }
-		if ( state.rglSlider[1] && (axes & 0x80) ) { button = 46 + (state.rglSlider[1] > 0 ? 1 : 0); return index; }
+		if ( joy.state.lX           && (axes & 0x01) ) { button = 32 + (joy.state.lX           > 0 ? 1 : 0); return TRUE; }
+		if ( joy.state.lY           && (axes & 0x02) ) { button = 34 + (joy.state.lY           > 0 ? 1 : 0); return TRUE; }
+		if ( joy.state.lZ           && (axes & 0x04) ) { button = 36 + (joy.state.lZ           > 0 ? 1 : 0); return TRUE; }
+		if ( joy.state.lRx          && (axes & 0x08) ) { button = 38 + (joy.state.lRx          > 0 ? 1 : 0); return TRUE; }
+		if ( joy.state.lRy          && (axes & 0x10) ) { button = 40 + (joy.state.lRy          > 0 ? 1 : 0); return TRUE; }
+		if ( joy.state.lRz          && (axes & 0x20) ) { button = 42 + (joy.state.lRz          > 0 ? 1 : 0); return TRUE; }
+		if ( joy.state.rglSlider[0] && (axes & 0x40) ) { button = 44 + (joy.state.rglSlider[0] > 0 ? 1 : 0); return TRUE; }
+		if ( joy.state.rglSlider[1] && (axes & 0x80) ) { button = 46 + (joy.state.rglSlider[1] > 0 ? 1 : 0); return TRUE; }
 
-		for (UINT j=0; j < joysticks[i].NumPOVs; ++j)
+		for (UINT i=0; i < joy.NumPOVs; ++i)
 		{
-			const DWORD pov = state.rgdwPOV[j];
+			const DWORD pov = joy.state.rgdwPOV[i];
 
-			if ( ( pov & 0xFFFF ) != 0xFFFFU && ( pov >= 31500U || pov <=  4500U ) ) { button = 48 + (j * 4); return index; } // up
-			if ( ( pov & 0xFFFF ) != 0xFFFFU && ( pov >=  4500U && pov <= 13500U ) ) { button = 49 + (j * 4); return index; } // right
-			if ( ( pov & 0xFFFF ) != 0xFFFFU && ( pov >= 13500U && pov <= 22500U ) ) { button = 50 + (j * 4); return index; } // down
-			if ( ( pov & 0xFFFF ) != 0xFFFFU && ( pov >= 22500U && pov <= 31500U ) ) { button = 51 + (j * 4); return index; } // left
+			if ( ( pov & 0xFFFF ) != 0xFFFFU && ( pov >= 31500U || pov <=  4500U ) ) { button = 48 + (i * 4); return TRUE; } // up
+			if ( ( pov & 0xFFFF ) != 0xFFFFU && ( pov >=  4500U && pov <= 13500U ) ) { button = 49 + (i * 4); return TRUE; } // right
+			if ( ( pov & 0xFFFF ) != 0xFFFFU && ( pov >= 13500U && pov <= 22500U ) ) { button = 50 + (i * 4); return TRUE; } // down
+			if ( ( pov & 0xFFFF ) != 0xFFFFU && ( pov >= 22500U && pov <= 31500U ) ) { button = 51 + (i * 4); return TRUE; } // left
 		}
 	}
 
-	device = NULL;
 	button = 0;
+	index = 0;
 
-	return 0;
+	return FALSE;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+PDXRESULT DIRECTINPUT::JOYSTICK::Create(LPDIRECTINPUT8 dinput,HWND hWnd,const GUID* const inguid)
+{
+	if (device)
+		return PDX_OK;
+
+	PDXMemZero( state );
+
+	PDX_ASSERT(dinput && hWnd);
+
+	if (!dinput || !hWnd)
+		return PDX_FAILURE;
+
+	if (inguid)
+		guid = *inguid;
+
+	if (FAILED(dinput->CreateDevice( guid, &device, NULL )) || !device)
+		return PDX_FAILURE;
+
+	if (FAILED(device->SetDataFormat( &c_dfDIJoystick )))
+	{
+		DIRECTX::Release(device,TRUE);
+		return PDX_FAILURE;
+	}
+
+	if (FAILED(device->SetCooperativeLevel( hWnd, DISCL_NONEXCLUSIVE|DISCL_FOREGROUND )))
+	{
+		DIRECTX::Release(device,TRUE);
+		return PDX_FAILURE;
+	}
+
+	{
+		DIDEVCAPS caps;
+		DIRECTX::InitStruct( caps );
+
+		if (FAILED(device->GetCapabilities( &caps )))
+		{
+     		DIRECTX::Release(device,TRUE);
+     		return PDX_FAILURE;
+		}
+
+		NumButtons = PDX_MIN(32,caps.dwButtons);
+		NumPOVs = PDX_MIN(4,caps.dwPOVs);
+	}
+
+	static const LONG offsets[8] =
+	{
+		DIJOFS_X,
+		DIJOFS_Y,
+		DIJOFS_Z,
+		DIJOFS_RX,
+		DIJOFS_RY,
+		DIJOFS_RZ,
+		DIJOFS_SLIDER(0),
+		DIJOFS_SLIDER(1)
+	};
+
+	{
+		DIPROPRANGE range;
+		PDXMemZero( range );
+
+		range.diph.dwSize = sizeof(range);
+		range.diph.dwHeaderSize = sizeof(range.diph);
+		range.diph.dwHow = DIPH_BYOFFSET;
+		range.lMin = -1000;
+		range.lMax = +1000;
+
+		for (UINT i=0; i < 8; ++i)
+		{
+			range.diph.dwObj = offsets[i];
+
+			if (SUCCEEDED(device->SetProperty( DIPROP_RANGE, &range.diph )))
+				axes |= (1U << i);
+		}
+	}
+
+	{
+		DIPROPDWORD prop;
+		PDXMemZero( prop );
+
+		prop.diph.dwSize = sizeof(prop);
+		prop.diph.dwHeaderSize = sizeof(prop.diph);
+		prop.diph.dwHow = DIPH_BYOFFSET;
+		prop.dwData = 2500;
+
+		for (UINT i=0; i < 8; ++i)
+		{
+			if (axes & (1U << i))
+			{
+				prop.diph.dwObj = offsets[i];
+				device->SetProperty( DIPROP_DEADZONE, &prop.diph );
+			}
+		}
+
+		prop.diph.dwObj = 0;
+		prop.diph.dwHow = DIPH_DEVICE;
+		prop.dwData = DIPROPAXISMODE_ABS;
+
+		device->SetProperty( DIPROP_AXISMODE, &prop.diph );
+	}
+
+	device->Acquire();
+
+	return PDX_OK;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -348,95 +434,17 @@ BOOL CALLBACK DIRECTINPUT::EnumJoysticks(LPCDIDEVICEINSTANCE instance,LPVOID con
 		return DIENUM_STOP;
 
 	DIRECTINPUT& DirectInput = *PDX_CAST(DIRECTINPUT*,context);
+	PDX_ASSERT(DirectInput.device);
 
 	DirectInput.joysticks.Grow();
 
-	JOYSTICK& joystick = DirectInput.joysticks.Back();
-
-	PDX_ASSERT(DirectInput.device);
-
-	if (FAILED(DirectInput.device->CreateDevice( instance->guidInstance, &joystick.device, NULL )))
-		goto hell;
-
-	if (FAILED(joystick.device->SetDataFormat( &c_dfDIJoystick )))
-		goto hell;
-
+	if (PDX_FAILED(DirectInput.joysticks.Back().Create( DirectInput.device, DirectInput.hWnd, &instance->guidInstance )))
 	{
-		DIDEVCAPS caps;
-		DIRECTX::InitStruct( caps );
-
-		if (FAILED(joystick.device->GetCapabilities( &caps )))
-			goto hell;
-
-		joystick.NumButtons = PDX_MIN(32,caps.dwButtons);
-		joystick.NumPOVs    = PDX_MIN(4,caps.dwPOVs);
+		DirectInput.joysticks.EraseBack();
+		return DIENUM_CONTINUE;
 	}
 
-	{
-		static const LONG offsets[8] =
-		{
-			DIJOFS_X,
-			DIJOFS_Y,
-			DIJOFS_Z,
-			DIJOFS_RX,
-			DIJOFS_RY,
-			DIJOFS_RZ,
-			DIJOFS_SLIDER(0),
-			DIJOFS_SLIDER(1)
-		};
-
-		{
-			DIPROPRANGE range;
-			PDXMemZero( range );
-
-			range.diph.dwSize       = sizeof(range);
-			range.diph.dwHeaderSize = sizeof(range.diph);
-			range.diph.dwHow        = DIPH_BYOFFSET;
-			range.lMin              = -1000;
-			range.lMax              = +1000;
-
-			for (UINT i=0; i < 8; ++i)
-			{
-				range.diph.dwObj = offsets[i];
-
-				if (SUCCEEDED(joystick.device->SetProperty( DIPROP_RANGE, &range.diph )))
-					joystick.axes |= (1U << i);
-			}
-		}
-
-		{
-			DIPROPDWORD prop;
-			PDXMemZero( prop );
-
-			prop.diph.dwSize       = sizeof(prop);
-			prop.diph.dwHeaderSize = sizeof(prop.diph);
-			prop.diph.dwHow        = DIPH_BYOFFSET;
-			prop.dwData            = 2500;
-
-			for (UINT i=0; i < 8; ++i)
-			{
-				if (joystick.axes & (1U << i))
-				{
-					prop.diph.dwObj = offsets[i];
-					joystick.device->SetProperty( DIPROP_DEADZONE, &prop.diph );
-				}
-			}
-
-			prop.diph.dwObj = 0;
-			prop.diph.dwHow = DIPH_DEVICE;
-			prop.dwData     = DIPROPAXISMODE_ABS;
-
-			joystick.device->SetProperty( DIPROP_AXISMODE, &prop.diph );
-		}
-	}
-
-	PDXMemCopy( joystick.guid, instance->guidInstance );
-
-	return DIENUM_CONTINUE;
-
-hell:
-
-	DirectInput.joysticks.EraseBack();
+	DirectInput.joysticks.Back().Release();
 
 	return DIENUM_CONTINUE;
 }

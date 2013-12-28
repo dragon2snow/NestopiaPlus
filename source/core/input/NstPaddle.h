@@ -40,6 +40,7 @@ public:
 	PADDLE(const UINT);
 
 	VOID Poll();
+
 	UINT Peek_4016();
 	UINT Peek_4017();
 

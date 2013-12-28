@@ -37,10 +37,14 @@ class USERINPUTMANAGER : public MANAGER
 {
 public:
 
-	USERINPUTMANAGER()
-	: MANAGER(IDD_USERINPUT) {}
+	USERINPUTMANAGER();
 
-	BOOL Start(const CHAR* const,const CHAR* const,PDXSTRING&);
+	PDX_NO_INLINE BOOL Start
+	(
+     	const CHAR* const,
+		const CHAR* const,
+		PDXSTRING&
+	);
 
 private:
 

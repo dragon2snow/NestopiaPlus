@@ -104,6 +104,7 @@
 #include "NstMapper100.h"
 #include "NstMapper101.h"
 #include "NstMapper105.h"
+#include "NstMapper107.h"
 #include "NstMapper112.h"
 #include "NstMapper113.h"
 #include "NstMapper114.h"
@@ -113,6 +114,8 @@
 #include "NstMapper119.h"
 #include "NstMapper122.h"
 #include "NstMapper133.h"
+#include "NstMapper134.h"
+#include "NstMapper135.h"
 #include "NstMapper140.h"
 #include "NstMapper144.h"
 #include "NstMapper151.h"
@@ -132,6 +135,7 @@
 #include "NstMapper187.h"
 #include "NstMapper188.h"
 #include "NstMapper189.h"
+#include "NstMapper198.h"
 #include "NstMapper222.h"
 #include "NstMapper225.h"
 #include "NstMapper226.h"
@@ -254,6 +258,7 @@ MAPPER* MAPPER::New(CONTEXT& context)
 		NES_CASE_( 100 );
 		NES_CASE_( 101 );
 		NES_CASE_( 105 );
+		NES_CASE_( 107 );
 		NES_CASE_( 112 );
 		NES_CASE_( 113 );
 		NES_CASE_( 114 );
@@ -263,6 +268,8 @@ MAPPER* MAPPER::New(CONTEXT& context)
 		NES_CASE_( 119 );
 		NES_CASE_( 122 );
 		NES_CASE_( 133 );
+		NES_CASE_( 134 );
+		NES_CASE_( 135 );
 		NES_CASE_( 140 );
 		NES_CASE_( 144 );
 		NES_CASE_( 151 );
@@ -282,6 +289,7 @@ MAPPER* MAPPER::New(CONTEXT& context)
 		NES_CASE_( 187 );
 		NES_CASE_( 188 );
 		NES_CASE_( 189 );
+		NES_CASE_( 198 );
 		NES_CASE_( 222 );
 		NES_CASE_( 225 );
 		NES_CASE_( 226 );

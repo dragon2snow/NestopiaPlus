@@ -1,0 +1,165 @@
+----------------------------------------------------------------
+1.05
+----------------------------------------------------------------
+
+Corrected the CRC database searcher (several games had the wrong name displayed in the title bar)
+
+Fixed a bug that made the user defined paths not to be saved properly.
+
+Changed so that images with support for both PAL and NTSC will prioritize NTSC and not PAL as in earlier versions when "auto mode" is selected.
+
+Added mapper 107 ("Magic Dragon")
+
+Added mapper 134 ("Olympiq IQ")
+
+Added mapper 135 ("Super Pang")
+
+Added mapper 198 (chinese version of "Destiny of an Emperor")
+
+Fixed a bug in the UNIF loader that caused all files having a board name beginning with NES-,UNL-,HVC-,BTL- or BMC- to be parsed wrongly.
+
+Fixed a bug that caused the application to hang and/or crash when Alt-Tabbing.
+
+Removed most of the sound clicks and pops heard when the audio gets disabled (menu entering, window moving etc).
+
+Made so that all the save slots automatically gets imported/exported to/from files using <name>.ns1 through ns9 on load/close. It's ON by default.
+
+Fixed a PPU bug that could cause the application to crash when loading up a game in the middle of an NSF tune.
+
+Fixed the frame rate timer. In previous versions it had the potential to cause serious lagging.
+
+Fixed the fullscreen mode cursor, sometimes it could get visible/invisible when it really shouldn't.
+
+Changed to using C++ exceptions, way better error handling now.
+
+Added the option to add custom keys to the "save to next slot" and "load from last slot" commands.
+
+Added 8bit graphic mode. filters are not supported for this one.
+
+Improved the TV-mode graphic filter and removed all visual artifacts in the marginals.
+
+Added an option in the preferences dialog to disable the use of the ROM database.
+
+Added more logfile info.
+
+----------------------------------------------------------------
+1.04
+----------------------------------------------------------------
+
+Added a TV-mode graphic filter.
+
+Moved the timing options into a separate dialog and added some more features. Speed throttling can now be toggled by F5 (default).
+
+Did some further improvements to the sound quality.
+
+Fixed mapper 64, "Skull & Crossbones" and "Klax" are now playable, thanks to Xodnizel for his findings on this insane mapper.
+
+Fixed mapper 70, "Kamen Rider Kurabu" and "Space Shadow" are now playable.
+
+Fixed mapper 83, "Garou Densetsu 2 (Fatal Fury)" and "World Heroes 2" are now playable.
+
+Added mapper 133 ("Jovial Race")
+
+Fixed mapper 232, "Maxi 15" is now playable.
+
+Fixed mapper 244, now "Decathlon (Asia)" suffers from less glitches.
+
+Changed the configuration file, now it's text based and more hacker friendly.
+
+Changed the shortcut key for fullscreen/window mode switch to ALT+RETURN.
+
+In addition to the right mouse button ESCAPE now also toggles the menu in fullscreen mode.
+
+Fixed a bug that prevented new battery-ram files from being created.
+
+Cleaned up a few things in the DirectSound manager. Hopefully this fixes the sound problems a few people have had.
+
+Added many new file CRC's to the internal database. Thanks to [yang] for the assembling.
+
+Now Nestopia remembers the last selected screen/window size.
+
+Optimized the scanline graphic filter renderer.
+
+Added some more logfile output messages.
+
+----------------------------------------------------------------
+1.03
+----------------------------------------------------------------
+
+Added 2xSaI, Super 2xSaI and Super Eagle graphic filters.
+
+Added support for all the graphic filters in window mode.
+
+Added game configuration file support.
+
+Improved sound quality.
+
+Added some more file CRC's to the zapper-auto-detector.
+
+Added an option to map all keys in one go.
+
+Added an option in the preferences dialog to force the application's thread to be in high priority mode.
+
+Corrected an entry in the pAPU's length counter LUT.
+
+Changed the square channel's default frequency limit. This fixes the sound in "Mega Man 2" and possibly a few other games.
+
+Fixed a bug that caused some save states not to load correctly.
+
+Lowered the output volume on the FDS sound chip.
+
+Fixed mapper 78, "Holy Diver" and "Uchuusen - Cosmo Carrier" are now playable.
+
+Fixed a frame IRQ counter bug, now "Akagawa no Yuurei Ressha" and "Dragon Warrior" among others work as they should.
+
+Fixed a bug which sometimes caused the user defined IPS path to be ignored.
+
+Rewrote a few parts in the movie player/recorder. Should be more stable now.
+
+Cleaned up a few thing in the GUI.
+
+----------------------------------------------------------------
+1.02 
+----------------------------------------------------------------
+
+Added UNIF support.
+
+Fixed a bug in the Game Genie decoder, now eight-character codes works correctly.
+
+Added support for more axis buttons (sliders, pov etc). Havn't tested them tough as I don't have that kind of joystick, can anyone confirm they work?
+
+Fixed so that Nestopia will recognise the Twin Famicom BIOS ROM.
+
+Added adjustable dipswitches for "Nintendo World Championship" (mapper 105), now you can control and display the timer.
+
+Fixed mapper 91 (IRQ counter thing), now all mapper 91 games shows the correct graphic.
+
+Fixed mapper 187, now "Street Fighter Zero 2 '97" works.
+
+Fixed a bug in the Sunsoft FME-07 sound core.
+
+Did some cleanup in the application error handling routines - no more page-faults on known errors.
+
+No more distortion in screen when enabling/disabling the menu in fullscreen mode (LockWindowUpdate() to the rescue).
+
+Fixed a bug which sometimes caused the window, when coming out of fullscreen, to be maximized and stretched to the size of the desktop.
+
+Fixed a bug that caused the switching from window to fullscreen with the same display mode to fail.
+
+Fixed a bug in the PDXSTRING class, nothing that affected previous versions of Nestopia though.
+
+Lowered the system requirements to Pentium MMX, users with processors that lacks the CMOV instruction can now run Nestopia.
+
+Added some menu options to control the size of the window/screen (works both in window and fullscreen mode).
+
+----------------------------------------------------------------
+1.01 
+----------------------------------------------------------------
+
+Fixed a bug that caused the application to exit with the "DirectSoundCreate8() failed" message.
+
+----------------------------------------------------------------
+1.00 
+----------------------------------------------------------------
+
+Initial release.

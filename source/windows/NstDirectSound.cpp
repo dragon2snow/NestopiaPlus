@@ -28,69 +28,18 @@
 #pragma comment(lib,"dsound")
 
 ////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-BOOL CALLBACK DIRECTSOUND::EnumAdapters(LPGUID guid,LPCSTR desc,LPCSTR,LPVOID context)
-{
-	LPDIRECTSOUND8 device;
-
-	if (FAILED(DirectSoundCreate8(guid,&device,NULL)))
-		return TRUE;
-
-	DSCAPS caps;
-	DIRECTX::InitStruct(caps);
-
-	if (FAILED(device->GetCaps(&caps)))
-	{
-		device->Release();
-		return TRUE;
-	}
-
-	device->Release();
-
-	if (!(caps.dwFlags & DSCAPS_SECONDARY16BIT) && !((caps.dwFlags & DSCAPS_SECONDARY8BIT)))
-		 return TRUE;
-
-	PDX_CAST(ADAPTERS*,context)->Grow();
-	ADAPTER& adapter = PDX_CAST(ADAPTERS*,context)->Back();
-
-	if (guid) adapter.guid = *guid;
-	else PDXMemZero( guid );
-
-	adapter.name = desc;
-
-	if (adapter.name.IsEmpty())
-		adapter.name = "unknown";
-
-	adapter.SampleBits8 = bool(caps.dwFlags & DSCAPS_SECONDARY8BIT);
-	adapter.SampleBits16 = bool(caps.dwFlags & DSCAPS_SECONDARY16BIT);
-
-	const UINT rates[6] = {11025,22050,44100,48000,96000,192000};
-
-	for (UINT i=0; i < 6; ++i)
-	{
-		if (rates[i] <= caps.dwMaxSecondarySampleRate && rates[i] >= caps.dwMinSecondarySampleRate)
-			adapter.SampleRates.InsertBack( rates[i] );
-	}
-
-	if (!adapter.SampleRates.Size())
-		PDX_CAST(ADAPTERS*,context)->EraseBack();
-
-	return TRUE;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
 // constructor
 ////////////////////////////////////////////////////////////////////////////////////////
 
 DIRECTSOUND::DIRECTSOUND()
 :
-hWnd         (NULL),
-device       (NULL),
-secondary    (NULL),
-NotifyOffset (0),
-LastOffset   (0)
+hWnd       (NULL),
+device     (NULL),
+secondary  (NULL),
+LastOffset (0),
+TimerRate  (44100 / 60),
+LastPos    (0),
+LastSample (0)
 {
 	locked.data = NULL;
 	locked.size = 0;
@@ -109,36 +58,185 @@ DIRECTSOUND::~DIRECTSOUND()
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
+// destroyer
+////////////////////////////////////////////////////////////////////////////////////////
+
+VOID DIRECTSOUND::Destroy()
+{
+	if (secondary)
+	{
+		secondary->Stop();
+		DIRECTX::Release(secondary,TRUE);
+	}
+
+	DIRECTX::Release(device,TRUE);
+	PDXMemZero( guid );
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT DIRECTSOUND::Error(const CHAR* const msg)
+PDXRESULT DIRECTSOUND::OnError(const CHAR* const msg)
 {
-	PDXSTRING string("DIRECTSOUND: ");
-	string << msg;
+	for (UINT i=0; i < adapters.Size(); ++i)
+	{
+		if (PDXMemCompare(guid,adapters[i].guid))
+		{
+			adapters.Erase( adapters.At(i) );
+			break;
+		}
+	}
 
-	application.LogOutput( string.String() );
-	application.OnError( msg );
+	Destroy();
 
+	PDXSTRING m(msg);
+	m += " Sound will be disabled for this device!";
+
+	application.LogFile().Output("DIRECTSOUND: ",m);
+	application.OnWarning(m.String());
+	
 	return PDX_FAILURE;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+BOOL CALLBACK DIRECTSOUND::EnumAdapters(LPGUID guid,LPCSTR desc,LPCSTR,LPVOID context)
+{
+	LPDIRECTSOUND8 device = NULL;
+
+	application.LogFile().Output
+	(
+       	"DIRECTSOUND: enumerating device, guid: ",
+		(guid ? CONFIGFILE::FromGUID(*guid) : "default"),
+		", name: ",
+		(desc ? desc : "unknown") 
+	);
+
+	if (FAILED(DirectSoundCreate8(guid,&device,NULL)) || !device)
+	{
+		application.LogFile().Output
+		(
+	     	"DIRECTSOUND: DirectSoundCreate8() on this device failed, continuing enumeration.."
+		);
+		return TRUE;
+	}
+
+	DSCAPS caps;
+	DIRECTX::InitStruct(caps);
+
+	if (FAILED(device->GetCaps(&caps)))
+	{
+		application.LogFile().Output
+		(
+       		"DIRECTSOUND: IDirectSound8::GetCaps() on this device failed, continuing enumeration.."
+		);		
+		device->Release();		
+		return TRUE;
+	}
+
+	device->Release();
+
+	if (!(caps.dwFlags & (DSCAPS_SECONDARY16BIT|DSCAPS_SECONDARY8BIT)))
+	{
+		application.LogFile().Output
+		(
+	     	"DIRECTSOUND: this device lacks both 8 and 16 bit sample support and can't be"
+			"used, continuing enumeration.."
+		);
+		return TRUE;
+	}
+
+	PDX_CAST(ADAPTERS*,context)->Grow();
+	ADAPTER& adapter = PDX_CAST(ADAPTERS*,context)->Back();
+
+	if (guid) PDXMemCopy( adapter.guid, *guid );
+	else      PDXMemZero( adapter.guid        );
+
+	adapter.name = desc;
+
+	if (adapter.name.IsEmpty())
+		adapter.name = "unknown";
+
+	adapter.SampleBits8 = bool(caps.dwFlags & DSCAPS_SECONDARY8BIT);
+	adapter.SampleBits16 = bool(caps.dwFlags & DSCAPS_SECONDARY16BIT);
+
+	application.LogFile().Output
+	(
+	    adapter.SampleBits8 ?
+		"DIRECTSOUND: 8 bit samples are supported by this device" :
+		"DIRECTSOUND: 8 bit samples are NOT supported by this device"
+	);
+
+	application.LogFile().Output
+	(
+		adapter.SampleBits16 ?
+		"DIRECTSOUND: 16 bit samples are supported by this device" :
+		"DIRECTSOUND: 16 bit samples are NOT supported by this device"
+	);
+
+	const UINT rates[5] = {11025,22050,44100,48000,96000};
+
+	for (UINT i=0; i < 5; ++i)
+	{
+		if (rates[i] <= caps.dwMaxSecondarySampleRate && rates[i] >= caps.dwMinSecondarySampleRate)
+		{
+			adapter.SampleRates.InsertBack( rates[i] );
+
+			application.LogFile().Output
+			(
+     			"DIRECTSOUND: sample rate ",
+				rates[i],
+				" is supported by this device"
+			);
+		}
+		else
+		{
+			application.LogFile().Output
+			(
+     			"DIRECTSOUND: sample rate ",
+				rates[i],
+				" is NOT supported by this device"
+			);
+		}
+	}
+
+	if (adapter.SampleRates.IsEmpty())
+	{
+		PDX_CAST(ADAPTERS*,context)->EraseBack();
+		
+		application.LogFile().Output
+		(
+		    "DIRECTSOUND: No valid sample rate was found for this device, continuing enumeration.."
+		);
+	}
+
+	return TRUE;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // initializer
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT DIRECTSOUND::Initialize(HWND h)
+VOID DIRECTSOUND::Initialize(HWND h)
 {
 	PDX_ASSERT(adapters.IsEmpty() && h);
 	
 	hWnd = h;
 
-	application.LogOutput("DIRECTSOUND: Initializing");
+	if (!hWnd || adapters.Size())
+		throw ("Internal error in DIRECTSOUND::Initialize()!");
 
-	if (FAILED(DirectSoundEnumerate(EnumAdapters,PDX_CAST(LPVOID,&adapters))))
-		return Error("DirectSoundEnumerate() failed!");
+	if (FAILED(DirectSoundEnumerate(EnumAdapters,PDX_CAST(LPVOID,&adapters))) || adapters.IsEmpty())
+	{
+		application.LogFile().Output("DIRECTSOUND: sound enumeration failed or no adapters was found, retrying with default..");
+		EnumAdapters(NULL,"Primary Sound Driver","",PDX_CAST(LPVOID,&adapters));
 
-	return PDX_OK;
+		if (adapters.IsEmpty())
+			OnError("No sound device could be found!");
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -149,33 +247,26 @@ PDXRESULT DIRECTSOUND::Create(const GUID& g)
 {
 	PDX_ASSERT(hWnd);
 
-	if (device && !memcmp( &guid, &g, sizeof(guid) ))
+	if (device && PDXMemCompare(guid,g))
 		return PDX_OK;
 
-	PDX_TRY(Destroy());
-
+	Destroy();
 	guid = g;
 
 	if (FAILED(DirectSoundCreate8(&guid,&device,NULL)))
-	{
-		Destroy();
-		return PDX_FAILURE;
-	}
+		return OnError("DirectSoundCreate8() failed!");
 
-	{
-		PDXSTRING string("DIRECTSOUND: creating device - guid: ");
-		string << CONFIGFILE::FromGUID( guid );
-
-		application.LogOutput( string.String() );
-	}
+	application.LogFile().Output
+	( 
+     	"DIRECTSOUND: creating device - guid: ",
+		CONFIGFILE::FromGUID(guid)
+	);
 
 	if (FAILED(device->SetCooperativeLevel(hWnd,DSSCL_PRIORITY)))
-	{
-		Destroy();
-		return PDX_FAILURE;
-	}
+		return OnError("IDirectSound8::SetCooperativeLevel() failed!");
 
 	LastOffset = 0;
+	LastPos = 0;
 
 	return PDX_OK;
 }
@@ -188,27 +279,32 @@ PDXRESULT DIRECTSOUND::CreateBuffer(const UINT latency,const UINT rate,const BOO
 {
 	PDX_ASSERT(latency && latency <= 10);
 
-	NotifySize  = DWORD(DOUBLE(WaveFormat.nSamplesPerSec * latency * WaveFormat.nBlockAlign) / 60.0 * (DOUBLE(rate) / (pal ? 50.0 : 60.0)));
+	const DOUBLE multiplier = DOUBLE(rate) / (pal ? 50.0 : 60.0);
+
+	TimerRate   = DWORD(DOUBLE(WaveFormat.nSamplesPerSec / 60.0) * multiplier);
+	NotifySize  = DWORD(DOUBLE(WaveFormat.nSamplesPerSec * latency * WaveFormat.nBlockAlign) / 60.0 * multiplier);
 	NotifySize -= NotifySize % WaveFormat.nBlockAlign;
 	BufferSize  = NotifySize * 2;
 	LastOffset  = 0;
 
-	{
-		PDXSTRING log;
+	application.LogFile().Output
+	(
+       	"DIRECTSOUND: creating ",
+    	BufferSize,
+     	" byte sound buffer"
+	);
 
-		log  = "DIRECTSOUND: creating ";
-		log += BufferSize;
-		log += " byte sound buffer";
-		application.LogOutput( log.String() );
+	application.LogFile().Output
+	(
+     	"DIRECTSOUND: sample rate - ",
+     	WaveFormat.nSamplesPerSec
+	);
 
-		log  = "DIRECTSOUND: sample rate - ";
-		log += WaveFormat.nSamplesPerSec;
-		application.LogOutput( log.String() );
-
-		log  = "DIRECTSOUND: sample bits - ";
-		log += WaveFormat.wBitsPerSample;
-		application.LogOutput( log.String() );
-	}
+	application.LogFile().Output
+	(
+    	"DIRECTSOUND: sample bits - ",
+     	WaveFormat.wBitsPerSample
+	);
 
 	DSBUFFERDESC desc;
 	DIRECTX::InitStruct(desc);
@@ -224,26 +320,30 @@ PDXRESULT DIRECTSOUND::CreateBuffer(const UINT latency,const UINT rate,const BOO
 	if (secondary)
 	{
 		secondary->Stop();
-		secondary->Release();
+		DIRECTX::Release(secondary,TRUE);
 	}
 
-	LPDIRECTSOUNDBUFFER oldfart;
+	LPDIRECTSOUNDBUFFER oldfart = NULL;
 
-	if (FAILED(device->CreateSoundBuffer(&desc,&oldfart,NULL)))
-		return Error("IDirectSound8::CreateSoundBuffer() failed!");
+	if (FAILED(device->CreateSoundBuffer(&desc,&oldfart,NULL)) || !oldfart)
+		return OnError("IDirectSound8::CreateSoundBuffer() failed!");
 
-	if (FAILED(oldfart->QueryInterface(IID_IDirectSoundBuffer8,PDX_CAST_PTR(LPVOID,secondary))))
+	if (FAILED(oldfart->QueryInterface(IID_IDirectSoundBuffer8,PDX_CAST_PTR(LPVOID,secondary))) || !secondary)
 	{
 		oldfart->Release();
-		return Error("IDirectSoundBuffer::QueryInterface() failed!");
+		return OnError("IDirectSoundBuffer::QueryInterface() failed!");
 	}
 
 	oldfart->Release();
 
-	PDX_TRY(ClearBuffer());
+	ClearBuffer();
+
+	LastOffset = 0;
+	LastPos = 0;
+	LastSample = 0;
 
 	if (FAILED(secondary->Play(0,0,DSBPLAY_LOOPING)))
-		return Error("IDirectSoundBuffer8::Play() failed!");
+		return OnError("IDirectSoundBuffer8::Play() failed!");
 
 	return PDX_OK;
 }
@@ -264,44 +364,31 @@ VOID DIRECTSOUND::SetVolume(const LONG volume)
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT DIRECTSOUND::RestoreBuffer(BOOL* const restored)
+PDXRESULT DIRECTSOUND::Lock(const DWORD offset,const DWORD size)
 {
-	DWORD status;
+	PDX_ASSERT(secondary);
 
-	if (FAILED(secondary->GetStatus(&status)))
-		return Error("IDirectSoundBuffer8::GetStatus() failed!");
-
-	if (status & DSBSTATUS_BUFFERLOST)
-	{
-		while (secondary->Restore() == DSERR_BUFFERLOST)
-			Sleep(10);
-
-		if (restored)
-			*restored = TRUE;
-	}
-	else 
-	{
-		if (restored)
-			*restored = FALSE;
-	}
-
-	return PDX_OK;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-PDXRESULT DIRECTSOUND::LockSecondary(const DWORD offset,const DWORD size)
-{
 	VOID* skip1;
 	DWORD skip2;
 
-	if (FAILED(secondary->Lock(offset,size,&locked.data,&locked.size,&skip1,&skip2,0)))
-		return Error("IDirectSoundBuffer8::Lock() failed!");
+	HRESULT hResult;
 
-	if (skip1)
-		return Error("Bogus error in IDirectSoundBuffer8::Lock(), call the ghostbusters!");
+	if (FAILED(hResult=secondary->Lock(offset,size,&locked.data,&locked.size,&skip1,&skip2,0)))
+	{
+		if (hResult == DSERR_BUFFERLOST)
+		{
+			Sleep(50);
+
+			for (ULONG i=0; secondary->Restore() == DSERR_BUFFERLOST && i < 0xFFFFUL; ++i)
+				Sleep(50);
+		}
+
+		if (FAILED(secondary->Lock(offset,size,&locked.data,&locked.size,&skip1,&skip2,0)))
+			return OnError("IDirectSoundBuffer8::Lock() failed!");
+	}
+
+	if (locked.size != size)
+		return OnError("Driver error in IDirectSoundBuffer8::Lock()!");
 
 	return PDX_OK;
 }
@@ -310,10 +397,22 @@ PDXRESULT DIRECTSOUND::LockSecondary(const DWORD offset,const DWORD size)
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT DIRECTSOUND::UnlockSecondary()
+PDXRESULT DIRECTSOUND::Unlock()
 {
+	PDX_ASSERT(secondary);
+
+	LastSample = 0;
+
+	if (locked.size)
+	{
+		if (WaveFormat.wBitsPerSample == 16)
+			LastSample = PDX_CAST(const I16*,locked.data)[(locked.size >> 1)-1];
+		else
+			LastSample = PDX_CAST(const U8*,locked.data)[(locked.size >> 0)-1];
+	}
+
 	if (FAILED(secondary->Unlock(locked.data,locked.size,NULL,0)))
-		return Error("IDirectSoundBuffer8::Unlock() failed!");
+		return OnError("IDirectSoundBuffer8::Unlock() failed!");
 
 	return PDX_OK;
 }
@@ -322,16 +421,69 @@ PDXRESULT DIRECTSOUND::UnlockSecondary()
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT DIRECTSOUND::ClearBuffer()
+#ifdef NST_SYNCHRONIZE_SOUND
+
+BOOL DIRECTSOUND::UpdateRefresh()
 {
-	PDX_TRY(RestoreBuffer());
-	PDX_TRY(LockSecondary(0,BufferSize));
+	if (secondary)
+	{
+		DWORD status = 0;
 
-	memset( locked.data, WaveFormat.wBitsPerSample == 8 ? 0x80 : 0x00, locked.size );
+		if (secondary->GetStatus(&status) == DS_OK && (status & DSBSTATUS_PLAYING))
+		{
+			DWORD CurrentPos;
 
-	PDX_TRY(UnlockSecondary());
+			for (;;)
+			{
+				if (secondary->GetCurrentPosition(&CurrentPos,NULL) != DS_OK)
+					return FALSE;
 
-	return PDX_OK;
+				const DWORD offset = CurrentPos + (LastPos < CurrentPos ? 0 : BufferSize);
+
+				if ((offset - LastPos) >= TimerRate)
+				{
+					LastPos += TimerRate;
+
+					if (LastPos + TimerRate < offset)
+					{
+						LastPos = CurrentPos;
+					}
+					else if (LastPos >= BufferSize)
+					{
+						LastPos -= BufferSize;
+					}
+
+					return TRUE;
+				}
+			}
+		}
+	}
+
+	return FALSE;
+}
+
+#endif
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+VOID DIRECTSOUND::ClearBuffer()
+{
+	PDX_ASSERT(secondary);
+
+	LPVOID ptr[2];
+	DWORD size[2];
+
+	if (secondary->Lock(0,0,&ptr[0],&size[0],&ptr[1],&size[1],DSBLOCK_ENTIREBUFFER) == DS_OK)
+	{
+		const INT silence = (WaveFormat.wBitsPerSample == 8 ? 0x80 : 0x00);
+		
+		memset( ptr[0], silence, sizeof(BYTE) * size[0] );
+		memset( ptr[1], silence, sizeof(BYTE) * size[1] );
+		
+		secondary->Unlock(ptr[0],size[0],ptr[1],size[1]);
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -370,6 +522,21 @@ PDXRESULT DIRECTSOUND::SetFormat(const DWORD SampleRate,const DWORD SampleBits,c
 	WaveFormat.nBlockAlign     = WaveFormat.wBitsPerSample / 8;
 	WaveFormat.nAvgBytesPerSec = WaveFormat.nSamplesPerSec * WaveFormat.nBlockAlign;
 
+	{
+		DSBUFFERDESC desc;
+		DIRECTX::InitStruct(desc);
+
+		desc.dwFlags = DSBCAPS_PRIMARYBUFFER;
+
+		LPDIRECTSOUNDBUFFER primary = NULL;
+
+		if (device->CreateSoundBuffer(&desc,&primary,NULL) == DS_OK && primary)
+		{
+			primary->SetFormat(&WaveFormat);
+			primary->Release();
+		}
+	}
+
 	return CreateBuffer(latency,fps,pal,volume);
 }
 
@@ -379,15 +546,15 @@ PDXRESULT DIRECTSOUND::SetFormat(const DWORD SampleRate,const DWORD SampleBits,c
 
 PDXRESULT DIRECTSOUND::Lock(NES::IO::SFX& SoundOut)
 {
+	PDX_ASSERT( secondary );
+
 	if (!secondary)
 		return PDX_BUSY;
-
-	PDX_TRY(RestoreBuffer());
 
 	DWORD WritePos;
 
 	if (FAILED(secondary->GetCurrentPosition(NULL,&WritePos)))
-		return Error("IDirectSoundBuffer8::GetCurrentPosition() failed!");
+		return OnError("IDirectSoundBuffer8::GetCurrentPosition() failed!");
 
 	const DWORD offset = (WritePos >= NotifySize) ? NotifySize : 0;
 
@@ -397,7 +564,7 @@ PDXRESULT DIRECTSOUND::Lock(NES::IO::SFX& SoundOut)
 	const DWORD NewOffset = LastOffset;
 	LastOffset = offset;
 
-	PDX_TRY(LockSecondary(NewOffset,NotifySize));
+	PDX_TRY(Lock(NewOffset,NotifySize));
 
 	SoundOut.samples = PDX_CAST(VOID*,locked.data);
 	SoundOut.length  = locked.size;
@@ -409,22 +576,99 @@ PDXRESULT DIRECTSOUND::Lock(NES::IO::SFX& SoundOut)
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
-// destroyer
-////////////////////////////////////////////////////////////////////////////////////////
-
-PDXRESULT DIRECTSOUND::Unlock()
-{
-	return UnlockSecondary();
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT DIRECTSOUND::Stop()
+PDXRESULT DIRECTSOUND::Stop(NES::IO::SFX& SoundOut)
 {
-	if (!secondary || FAILED(secondary->Stop()) || PDX_FAILED(ClearBuffer()))
-		return PDX_FAILURE;
+	if (!secondary)
+		return PDX_OK;
+
+	DWORD status = 0;
+
+	const BOOL fade =
+	(
+    	LastSample && 
+		data.latency <= 4 &&
+     	secondary->GetStatus(&status) == DS_OK && 
+		(status & DSBSTATUS_PLAYING)
+	);
+
+	if (fade)
+	{
+		for (;;)
+		{
+			const PDXRESULT result = Lock(SoundOut);
+
+			if (result == PDX_BUSY)
+				continue;
+
+			if (PDX_FAILED(result))
+				return PDX_FAILURE;
+
+			break;
+		}
+
+		if (WaveFormat.wBitsPerSample == 16)
+		{
+			const LONG fade = LONG(ceil(FLOAT(LastSample) / FLOAT(SoundOut.length)));
+			I16* const output = (I16*) SoundOut.samples;
+			
+			UINT p=0;
+
+			if (LastSample < 0) for (LONG i=LastSample; p < SoundOut.length && i < 0; ++p, i -= fade) output[p] = i;
+			else                for (LONG i=LastSample; p < SoundOut.length && i > 0; ++p, i -= fade) output[p] = i;
+
+			memset( output + p, 0x00, sizeof(I16) * (SoundOut.length - p) );
+		}
+		else
+		{
+			LastSample = PDX_CLAMP(LastSample,0x00,0xFF);
+
+			const UINT fade = UINT(ceil(FLOAT(LastSample) / FLOAT(SoundOut.length)));
+			U8* const output = (U8*) SoundOut.samples;
+
+			UINT p=0;
+
+			if (LastSample < 0x80) for (LONG i=LastSample; p < SoundOut.length && i < 0x80; ++p, i += fade) output[p] = i;
+			else                   for (LONG i=LastSample; p < SoundOut.length && i > 0x80; ++p, i -= fade) output[p] = i;
+
+			memset( output + p, 0x80, sizeof(U8) * (SoundOut.length - p) );
+		}
+
+		Unlock();
+
+		for (UINT i=0; i < 2; ++i)
+		{
+			for (;;)
+			{
+				const PDXRESULT result = Lock(SoundOut);
+
+				if (result == PDX_BUSY)
+					continue;
+
+				if (PDX_FAILED(result))
+					return PDX_FAILURE;
+
+				break;
+			}	
+
+			if (WaveFormat.wBitsPerSample == 16) memset( SoundOut.samples, 0x00, SoundOut.length * sizeof(I16) );
+			else                                 memset( SoundOut.samples, 0x80, SoundOut.length * sizeof(U8)  );
+
+			Unlock();
+		}
+	}
+
+	LastSample = 0;
+	LastOffset = 0;
+	LastPos = 0;
+
+	secondary->Stop();
+	secondary->SetCurrentPosition(0);
+
+	if (!fade)
+		ClearBuffer();
 
 	return PDX_OK;
 }
@@ -435,35 +679,5 @@ PDXRESULT DIRECTSOUND::Stop()
 
 PDXRESULT DIRECTSOUND::Start()
 {
-	return (!secondary || FAILED(secondary->Play(0,0,DSBPLAY_LOOPING))) ? PDX_FAILURE : PDX_OK;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-PDXRESULT DIRECTSOUND::Clear()
-{
-	if (PDX_FAILED(Stop()) || PDX_FAILED(Start()))
-		return PDX_FAILURE;
-
-	return PDX_OK;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-// destroyer
-////////////////////////////////////////////////////////////////////////////////////////
-
-PDXRESULT DIRECTSOUND::Destroy()
-{
-	if (secondary)
-	{
-		secondary->Stop();
-		DIRECTX::Release(secondary,TRUE);
-	}
-
-	DIRECTX::Release(device,TRUE);
-	PDXMemZero( guid );
-
-	return PDX_OK;
+	return (!secondary || secondary->Play(0,0,DSBPLAY_LOOPING) == DS_OK) ? PDX_OK : PDX_FAILURE;
 }

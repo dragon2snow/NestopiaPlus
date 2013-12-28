@@ -779,17 +779,25 @@ BOOL MACHINE::IsMovieRewinded()  const { return !(on && (cartridge || fds) && mo
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT MACHINE::Pause(const BOOL state)
+VOID MACHINE::ResetAudioBuffer()
 {
-	paused = state;
-	return PDX_OK;
+	apu.ClearBuffers();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT MACHINE::Power(const BOOL state)
+VOID MACHINE::Pause(const BOOL state)
+{
+	paused = state;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+VOID MACHINE::Power(const BOOL state)
 {
 	if (state)
 	{
@@ -808,15 +816,13 @@ PDXRESULT MACHINE::Power(const BOOL state)
 			on = FALSE;
 		}
 	}
-
-	return PDX_OK;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT MACHINE::Execute(IO::GFX* const gfx,IO::SFX* const sfx,IO::INPUT* const input)
+VOID MACHINE::Execute(IO::GFX* const gfx,IO::SFX* const sfx,IO::INPUT* input)
 {
 	if (on && !paused)
 	{
@@ -833,25 +839,39 @@ PDXRESULT MACHINE::Execute(IO::GFX* const gfx,IO::SFX* const sfx,IO::INPUT* cons
 				gfx->palette = palette.GetData();
 			}
 
-			if (VsSystem)
-				VsSystem->SetContext( input );
+			const BOOL MoviePlay = movie && movie->IsPlaying();
+
+			if (MoviePlay)
+				input = NULL;
 
 			for (UINT i=0; i < 4; ++i)
-			{
-				controller[i]->SetContext( input, gfx ); 
-				controller[i]->Poll();
-			}
+				controller[i]->BeginFrame( input, gfx ); 
 
 			if (expansion)
-			{
-				expansion->SetContext( input, gfx );
-				expansion->Poll();
-			}
+				expansion->BeginFrame( input, gfx );
 
-			if (movie)
+			if (MoviePlay)
 			{
 				if (PDX_FAILED(movie->ExecuteFrame()))
 					CloseMovie();
+			}
+			else if (movie && movie->IsRecording())
+			{
+				for (UINT i=0; i < 4; ++i)
+					controller[i]->Poll();
+
+				if (PDX_FAILED(movie->ExecuteFrame()))
+					CloseMovie();
+
+				if (VsSystem)
+					VsSystem->SetContext( input );
+			}
+			else if (VsSystem)
+			{
+				for (UINT i=0; i < 4; ++i)
+					controller[i]->Poll();
+
+				VsSystem->SetContext( input );
 			}
 
 			ppu.BeginFrame( gfx );
@@ -867,12 +887,14 @@ PDXRESULT MACHINE::Execute(IO::GFX* const gfx,IO::SFX* const sfx,IO::INPUT* cons
 			{
 				fds->VSync();
 			}
+
+			for (UINT i=0; i < 4; ++i)
+				controller[i]->EndFrame(); 
+
+			if (expansion)
+				expansion->EndFrame();
 		}
-
-		return PDX_OK;
 	}
-
-	return PDX_FAILURE;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -1023,7 +1045,7 @@ VOID MACHINE::InitializeControllers()
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT MACHINE::Reset(const BOOL hard)
+VOID MACHINE::Reset(const BOOL hard)
 {
 	if (on)
 	{
@@ -1096,8 +1118,6 @@ PDXRESULT MACHINE::Reset(const BOOL hard)
 			LogOutput( log.String() );
 		}
 	}
-
-	return PDX_OK;
 }
 
 NES_NAMESPACE_END

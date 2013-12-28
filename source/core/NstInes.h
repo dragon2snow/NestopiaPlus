@@ -86,7 +86,7 @@ private:
 
    #ifdef NES_USE_ROM_DATABASE
 
-	PDXRESULT CheckDatabase
+	VOID CheckDatabase
 	(
     	CARTRIDGE* const,
 		PDXFILE&,

@@ -37,13 +37,58 @@ class LOGFILEMANAGER : public MANAGER
 {
 public:
 
-	LOGFILEMANAGER(const INT id)
-	: MANAGER(id) {}
+	LOGFILEMANAGER()
+	: MANAGER(IDD_LOGFILE) {}
 
 	VOID Close(const BOOL);
 
 	static VOID LogSeparator();
-	static VOID LogOutput(const CHAR* const);
+
+	template<class T> 
+	static PDX_NO_INLINE VOID Output(const T& m1)
+	{
+		LogString << m1;
+		LogString << "\r\n";
+
+		if (LogString.Length() >= 0x100000UL)
+			LogString.Clear();
+	}
+
+	template<class T,class U> 
+	static PDX_NO_INLINE VOID Output(const T& m1,const U& m2)
+	{
+		LogString << m1;
+		LogString << m2;
+		LogString << "\r\n";
+
+		if (LogString.Length() >= 0x100000UL)
+			LogString.Clear();
+	}
+
+	template<class T,class U,class V> 
+	static PDX_NO_INLINE VOID Output(const T& m1,const U& m2,const V& m3)
+	{
+		LogString << m1;
+		LogString << m2;
+		LogString << m3;
+		LogString << "\r\n";
+
+		if (LogString.Length() >= 0x100000UL)
+			LogString.Clear();
+	}
+
+	template<class T,class U,class V,class W> 
+	static PDX_NO_INLINE VOID Output(const T& m1,const U& m2,const V& m3,const W& m4)
+	{
+		LogString << m1;
+		LogString << m2;
+		LogString << m3;
+		LogString << m4;
+		LogString << "\r\n";
+
+		if (LogString.Length() >= 0x100000UL)
+			LogString.Clear();
+	}
 
 private:
 

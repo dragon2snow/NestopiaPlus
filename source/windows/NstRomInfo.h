@@ -37,8 +37,8 @@ class ROMINFO : public MANAGER
 {
 public:
 
-	ROMINFO(const INT id)
-	: MANAGER(id) {}
+	ROMINFO()
+	: MANAGER(IDD_ROM_INFO) {}
 
 private:
 

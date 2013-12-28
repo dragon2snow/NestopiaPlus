@@ -41,7 +41,7 @@ BOOL ROMINFO::DialogProc(HWND hDlg,UINT uMsg,WPARAM,LPARAM)
 	{
      	case WM_INITDIALOG:
 		{
-			const NES::IO::CARTRIDGE::INFO* const info = nes->GetCartridgeInfo();
+			const NES::IO::CARTRIDGE::INFO* const info = nes.GetCartridgeInfo();
 
 			if (!info)
 				return TRUE;

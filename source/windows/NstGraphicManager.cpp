@@ -35,152 +35,171 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-GRAPHICMANAGER::GRAPHICMANAGER(const INT id)
-: 
-MANAGER            (id), 
-ShouldBeFullscreen (FALSE), 
-GdiPlusAvailable   (FALSE)
+BOOL GRAPHICMANAGER::HasGDIPlus()
 {
-	format.device = PDX_CAST(VOID*,PDX_STATIC_CAST(DIRECTDRAW*,this));
-
 	HMODULE hDLL = LoadLibrary("GdiPlus.dll");
 
 	if (hDLL)
 	{
-		GdiPlusAvailable = TRUE;
 		FreeLibrary( hDLL );
+		return TRUE;
 	}
+
+	return FALSE;
+}
+
+const BOOL GRAPHICMANAGER::GdiPlusAvailable = GRAPHICMANAGER::HasGDIPlus();
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+GRAPHICMANAGER::GRAPHICMANAGER()
+: 
+MANAGER           (IDD_GRAPHICS), 
+hDlg              (NULL),
+SelectedAdapter   (0),
+SelectedMode      (0),
+SelectedBpp       (IDC_GRAPHICS_16_BIT),
+SelectedOffScreen (IDC_GRAPHICS_SRAM),
+SelectedEffect    (0),
+SelectedPalette   (IDC_GRAPHICS_PALETTE_INTERNAL),
+SelectedFactor	  (SCREEN_FACTOR_4X),
+Support8Bpp       (FALSE),
+Support16Bpp      (FALSE),
+Support32Bpp      (FALSE),
+palette           (new U8[PALETTE_LENGTH])
+{
+	SetRect( &rcNtsc, 0, 8, 255, 231 );
+	SetRect( &rcPal,  0, 0, 255, 239 );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT GRAPHICMANAGER::Create(CONFIGFILE* const ConfigFile)
+GRAPHICMANAGER::~GRAPHICMANAGER()
 {
-	PDX_TRY(DIRECTDRAW::Initialize( MANAGER::hWnd ));
+	delete [] palette;
+}
 
-	if (adapters.IsEmpty() || adapters.Front().DisplayModes.IsEmpty())
-		return application.OnError("Found no valid graphic adapter!?");
-	
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+VOID GRAPHICMANAGER::Create(CONFIGFILE* const ConfigFile)
+{
+	SelectedAdapter = 0;
+
+	DIRECTDRAW::Initialize( MANAGER::hWnd );
+
 	if (ConfigFile)
 	{
 		CONFIGFILE& file = *ConfigFile;
-	
-		const GUID guid(CONFIGFILE::ToGUID(file["video device"].String()));
-	
-		if (PDX_FAILED(CreateDevice( guid )))
-			return PDX_FAILURE;
-	
-		SelectedBpp       = (file[ "video fullscreen bpp"           ] == "32"  ? IDC_GRAPHICS_32_BIT : IDC_GRAPHICS_16_BIT);
-		SelectedOffScreen = (file[ "video offscreen buffer in vram" ] == "yes" ? IDC_GRAPHICS_VRAM : IDC_GRAPHICS_SRAM);	
-	
-		EnableBpp();
-	
+
+		CreateDevice( CONFIGFILE::ToGUID( file["video device"].String() ) );
+
 		{
-			const UINT width  = file[ "video fullscreen width"  ].ToUlong();
-			const UINT height = file[ "video fullscreen height" ].ToUlong();
-			const UINT bpp    = (SelectedBpp == IDC_GRAPHICS_32_BIT ? 32 : 16);
-	
-			BOOL found = FALSE;
-			ModeIndices.Clear();
-	
-			const ADAPTER& adapter = adapters[SelectedAdapter];
-	
-			for (UINT i=0; i < adapter.DisplayModes.Size(); ++i)
-			{
-				const DISPLAYMODE& mode = adapter.DisplayModes[i];
-	
-				if (mode.bpp == bpp)
-				{
-					if (mode.width == width && mode.height == height)
-					{
-						found = TRUE;
-						SelectedMode = ModeIndices.Size();
-					}
-	
-					ModeIndices.InsertBack(i);
-				}
-			}
-	
-			if (ModeIndices.IsEmpty())
-				ModeIndices.InsertBack(0);
-	
-			if (!found)
-			{
-				SelectedMode = 0;
-				ResetBpp();
-			}
+			const PDXSTRING& bpp = file["video fullscreen bpp"];
+
+			SelectedBpp =
+			(
+				bpp == "8"  ? IDC_GRAPHICS_8_BIT  :
+     			bpp == "32" ? IDC_GRAPHICS_32_BIT :
+     			IDC_GRAPHICS_16_BIT
+			);
 		}
-		 
+
+		EnableBpp();
+
+		SelectedOffScreen = (file[ "video offscreen buffer in vram" ] == "yes" ? IDC_GRAPHICS_VRAM : IDC_GRAPHICS_SRAM);	
+
+		{
+			const UINT width = file[ "video fullscreen width" ].ToUlong();
+			const UINT height = file[ "video fullscreen height" ].ToUlong();
+
+			const UINT bpp = 
+			(
+		     	SelectedBpp == IDC_GRAPHICS_32_BIT ? 32 : 
+     			SelectedBpp == IDC_GRAPHICS_16_BIT ? 16 :
+				8
+			);
+
+			if (!InitModes(width,height,bpp))
+				ResetBpp();
+		}
+
 		{
 			const PDXSTRING& filter = file["video filter"];
-	
+
 			SelectedEffect =
 			(
-         		filter == "scanlines"   ? 1 :
-       			filter == "tv"          ? 2 :
-        		filter == "2xsai"       ? 3 :
-         		filter == "super 2xsai" ? 4 :
-           		filter == "super eagle" ? 5 :
-			                              0
+	     		filter == "scanlines"   ? 1 :
+	     		filter == "tv"          ? 2 :
+	    		filter == "2xsai"       ? 3 :
+	 			filter == "super 2xsai" ? 4 :
+	 			filter == "super eagle" ? 5 :
+	 			0
 			);
+
+			if (SelectedBpp == IDC_GRAPHICS_8_BIT)
+				SelectedEffect = 0;
 		}
 
 		{
 			const PDXSTRING& factor = file["video screen"];
-	
+
 			SelectedFactor =
 			(
-         		factor == "1x"        ? SCREEN_FACTOR_1X :
-       			factor == "2x"        ? SCREEN_FACTOR_2X :
-        		factor == "3x"        ? SCREEN_FACTOR_3X :
-         		factor == "stretched" ? SCREEN_STRETCHED :
-			                            SCREEN_FACTOR_4X
+				factor == "1x"        ? SCREEN_FACTOR_1X :
+	     		factor == "2x"        ? SCREEN_FACTOR_2X :
+    	   		factor == "3x"        ? SCREEN_FACTOR_3X :
+	  			factor == "stretched" ? SCREEN_STRETCHED :
+    			SCREEN_FACTOR_4X
 			);
 		}
 
 		{
 			const PDXSTRING& palette = file["video palette"];
-	
+
 			SelectedPalette =
 			(
-         		palette == "emulated" ? IDC_GRAPHICS_PALETTE_EMULATED :
-        		palette == "custom"   ? IDC_GRAPHICS_PALETTE_CUSTOM   :
-			                            IDC_GRAPHICS_PALETTE_INTERNAL
+				palette == "emulated" ? IDC_GRAPHICS_PALETTE_EMULATED :
+	 			palette == "custom"   ? IDC_GRAPHICS_PALETTE_CUSTOM   :
+	   			IDC_GRAPHICS_PALETTE_INTERNAL
 			);
 		}
-	
+
 		context.InfiniteSprites = (file[ "video infinite sprites" ] == "yes" ? TRUE : FALSE);
-		
+
 		const PDXSTRING* string;
 
-		string = &file[ "video ntsc left"   ]; ntsc.left   = string->Length() ? string->ToUlong() : 0;
-		string = &file[ "video ntsc top"    ]; ntsc.top    = string->Length() ? string->ToUlong() : 8;
-		string = &file[ "video ntsc right"  ]; ntsc.right  = string->Length() ? string->ToUlong() : 255;
-		string = &file[ "video ntsc bottom" ]; ntsc.bottom = string->Length() ? string->ToUlong() : 231;
-		string = &file[ "video pal left"    ]; pal.left    = string->Length() ? string->ToUlong() : 0;
-		string = &file[ "video pal top"     ]; pal.top     = string->Length() ? string->ToUlong() : 0;
-		string = &file[ "video pal right"   ]; pal.right   = string->Length() ? string->ToUlong() : 255;
-		string = &file[ "video pal bottom"  ]; pal.bottom  = string->Length() ? string->ToUlong() : 239;
+		string = &file[ "video ntsc left"   ]; rcNtsc.left   = string->Length() ? string->ToUlong() : 0;
+		string = &file[ "video ntsc top"    ]; rcNtsc.top    = string->Length() ? string->ToUlong() : 8;
+		string = &file[ "video ntsc right"  ]; rcNtsc.right  = string->Length() ? string->ToUlong() : 255;
+		string = &file[ "video ntsc bottom" ]; rcNtsc.bottom = string->Length() ? string->ToUlong() : 231;
+		string = &file[ "video pal left"    ]; rcPal.left    = string->Length() ? string->ToUlong() : 0;
+		string = &file[ "video pal top"     ]; rcPal.top     = string->Length() ? string->ToUlong() : 0;
+		string = &file[ "video pal right"   ]; rcPal.right   = string->Length() ? string->ToUlong() : 255;
+		string = &file[ "video pal bottom"  ]; rcPal.bottom  = string->Length() ? string->ToUlong() : 239;
 
-		ntsc.left   = PDX_CLAMP( ntsc.left,   0,         255 );
-		ntsc.top    = PDX_CLAMP( ntsc.top,    0,         239 );
-		ntsc.right  = PDX_CLAMP( ntsc.right,  ntsc.left, 255 );
-		ntsc.bottom = PDX_CLAMP( ntsc.bottom, ntsc.top,  239 );
-		pal.left    = PDX_CLAMP( pal.left,    0,         255 );
-		pal.top     = PDX_CLAMP( pal.top,     0,         239 );
-		pal.right   = PDX_CLAMP( pal.right,   pal.left,  255 );
-		pal.bottom  = PDX_CLAMP( pal.bottom,  pal.top,   239 );
-	
+		rcNtsc.left   = PDX_CLAMP( rcNtsc.left,   0,             255 );
+		rcNtsc.top    = PDX_CLAMP( rcNtsc.top,    0,             239 );
+		rcNtsc.right  = PDX_CLAMP( rcNtsc.right,  rcNtsc.left+1, 255 );
+		rcNtsc.bottom = PDX_CLAMP( rcNtsc.bottom, rcNtsc.top+1,  239 );
+		rcPal.left    = PDX_CLAMP( rcPal.left,    0,             255 );
+		rcPal.top     = PDX_CLAMP( rcPal.top,     0,             239 );
+		rcPal.right   = PDX_CLAMP( rcPal.right,   rcPal.left+1,  255 );
+		rcPal.bottom  = PDX_CLAMP( rcPal.bottom,  rcPal.top+1,   239 );
+
 		string = &file[ "video color brightness" ]; context.brightness = string->Length() ? string->ToUlong() : 128;
 		string = &file[ "video color saturation" ]; context.saturation = string->Length() ? string->ToUlong() : 128;
 		string = &file[ "video color hue"        ]; context.hue        = string->Length() ? string->ToUlong() : 128;
-		
+
 		context.brightness = PDX_MIN(context.brightness,255);
 		context.saturation = PDX_MIN(context.saturation,255);
 		context.hue        = PDX_MIN(context.hue,255);
-	
+
 		PaletteFile = file["video palette file"];
 	}
 	else
@@ -189,24 +208,22 @@ PDXRESULT GRAPHICMANAGER::Create(CONFIGFILE* const ConfigFile)
 	}
 
 	UpdateDirectDraw();
-
-	return PDX_OK;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT GRAPHICMANAGER::CreateDevice(GUID guid)
+VOID GRAPHICMANAGER::CreateDevice(GUID guid)
 {
 	for (UINT i=0; i < adapters.Size(); ++i)
 	{
-		if (!memcmp(&guid,&adapters[i].guid,sizeof(guid)))
+		if (PDXMemCompare(guid,adapters[i].guid))
 		{
-			if (PDX_SUCCEEDED(DIRECTDRAW::Create(guid)))
+			if (DIRECTDRAW::Create(guid))
 			{
 				SelectedAdapter = i;
-				return PDX_OK;
+				return;
 			}
 			break;
 		}
@@ -216,46 +233,59 @@ PDXRESULT GRAPHICMANAGER::CreateDevice(GUID guid)
 
 	for (UINT i=0; i < adapters.Size(); ++i)
 	{
-		if (!memcmp(&guid,&adapters[i].guid,sizeof(guid)))
+		if (PDXMemCompare(guid,adapters[i].guid))
 		{
-			if (PDX_SUCCEEDED(DIRECTDRAW::Create(guid)))
+			if (DIRECTDRAW::Create(guid))
 			{
 				SelectedAdapter = i;
-				return PDX_OK;
+				return;
 			}
 			break;
 		}
 	}
 
-	if (PDX_SUCCEEDED(DIRECTDRAW::Create(adapters[0].guid)))
+	if (adapters.Size() && DIRECTDRAW::Create(adapters.Front().guid))
 	{
 		SelectedAdapter = 0;
-		return PDX_OK;
+		return;
 	}
 
-	return application.OnError("DirectDrawCreateEx() failed!");
+	throw ("No valid graphic device found!");
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT GRAPHICMANAGER::Destroy(CONFIGFILE* const ConfigFile)
+VOID GRAPHICMANAGER::Destroy(CONFIGFILE* const ConfigFile)
 {
 	if (ConfigFile)
 	{
 		CONFIGFILE& file = *ConfigFile;
 	
+		BOOL WroteMode = FALSE;
+
 		if (adapters.Size() > SelectedAdapter)
 		{
-			file[ "video device"            ] = CONFIGFILE::FromGUID( adapters[SelectedAdapter].guid );
-			file[ "video fullscreen width"  ] = adapters[SelectedAdapter].DisplayModes[ModeIndices[SelectedMode]].width;
-			file[ "video fullscreen height" ] = adapters[SelectedAdapter].DisplayModes[ModeIndices[SelectedMode]].height;
-			file[ "video fullscreen bpp"    ] = adapters[SelectedAdapter].DisplayModes[ModeIndices[SelectedMode]].bpp;
+			const ADAPTER& adapter = adapters[SelectedAdapter];
+
+			file[ "video device" ] = CONFIGFILE::FromGUID( adapter.guid );
+
+			if (SelectedMode < ModeIndices.Size() && ModeIndices[SelectedMode] < adapter.DisplayModes.Size())
+			{
+				file[ "video fullscreen width"  ] = adapters[SelectedAdapter].DisplayModes[ModeIndices[SelectedMode]].width;
+				file[ "video fullscreen height" ] = adapters[SelectedAdapter].DisplayModes[ModeIndices[SelectedMode]].height;
+				file[ "video fullscreen bpp"    ] = adapters[SelectedAdapter].DisplayModes[ModeIndices[SelectedMode]].bpp;
+				WroteMode = TRUE;
+			}
 		}
 		else
 		{
-			file[ "video device"            ];
+			file[ "video device" ];
+		}
+		
+		if (!WroteMode)
+		{
 			file[ "video fullscreen width"  ];
 			file[ "video fullscreen height" ];
 			file[ "video fullscreen bpp"    ];
@@ -295,27 +325,100 @@ PDXRESULT GRAPHICMANAGER::Destroy(CONFIGFILE* const ConfigFile)
 		
 		file[ "video palette file"     ] = PaletteFile;	
 		file[ "video infinite sprites" ] = (context.InfiniteSprites ? "yes" : "no");	
-		file[ "video ntsc left"        ] = ntsc.left;
-		file[ "video ntsc top"         ] = ntsc.top;
-		file[ "video ntsc right"       ] = ntsc.right;
-		file[ "video ntsc bottom"      ] = ntsc.bottom;	
-		file[ "video pal left"         ] = pal.left;
-		file[ "video pal top"          ] = pal.top;
-		file[ "video pal right"        ] = pal.right;
-		file[ "video pal bottom"       ] = pal.bottom;	
+		file[ "video ntsc left"        ] = rcNtsc.left;
+		file[ "video ntsc top"         ] = rcNtsc.top;
+		file[ "video ntsc right"       ] = rcNtsc.right;
+		file[ "video ntsc bottom"      ] = rcNtsc.bottom;	
+		file[ "video pal left"         ] = rcPal.left;
+		file[ "video pal top"          ] = rcPal.top;
+		file[ "video pal right"        ] = rcPal.right;
+		file[ "video pal bottom"       ] = rcPal.bottom;	
 		file[ "video color brightness" ] = context.brightness;
 		file[ "video color saturation" ] = context.saturation;
 		file[ "video color hue"        ] = context.hue;
 	}
 
-	return DIRECTDRAW::Destroy();
+	DIRECTDRAW::Destroy();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT GRAPHICMANAGER::LoadPalette(const PDXSTRING& name)
+BOOL GRAPHICMANAGER::InitModes(const UINT width,const UINT height,const UINT bpp)
+{
+	if (SelectedAdapter >= adapters.Size())
+		return FALSE;
+
+	ModeIndices.Clear();
+
+	BOOL found = FALSE;
+
+	const ADAPTER& adapter = adapters[SelectedAdapter];
+
+	for (UINT i=0; i < adapter.DisplayModes.Size(); ++i)
+	{
+		const DISPLAYMODE& mode = adapter.DisplayModes[i];
+
+		if (mode.bpp == bpp)
+		{
+			if (mode.width == width && mode.height == height)
+			{
+				found = TRUE;
+				SelectedMode = ModeIndices.Size();
+			}
+
+			ModeIndices.InsertBack(i);
+		}
+	}
+
+	return found;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+BOOL GRAPHICMANAGER::OnFocus(const BOOL active)
+{
+	LPDIRECTDRAW7 device = GetDevice();
+
+	if (!device)
+		return TRUE;
+	
+	HRESULT hResult;
+
+	if (FAILED(hResult=device->TestCooperativeLevel()))
+	{
+		switch (hResult)
+		{
+	 		case DDERR_EXCLUSIVEMODEALREADYSET:
+	   		case DDERR_NOEXCLUSIVEMODE:
+	   			return FALSE;
+
+	 		case DDERR_WRONGMODE:
+			{
+				if (active && IsWindowed())
+				{
+					DIRECTDRAW::Create( adapters[SelectedAdapter].guid, TRUE );
+					DIRECTDRAW::SwitchToWindowed( DIRECTDRAW::GetScreenRect(), TRUE );
+					return TRUE;
+				}
+			}
+		}
+	}
+
+	if (active)
+		device->RestoreAllSurfaces();
+	
+	return TRUE;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+VOID GRAPHICMANAGER::LoadPalette(const PDXSTRING& name)
 {
 	{
 		const PDXSTRING tmp(name);
@@ -324,17 +427,15 @@ PDXRESULT GRAPHICMANAGER::LoadPalette(const PDXSTRING& name)
 		if (!ImportPalette())
 		{
 			PaletteFile = name;
-			return PDX_FAILURE;
+			return;
 		}
 	}
 
 	SelectedPalette = IDC_GRAPHICS_PALETTE_CUSTOM;
 
-	nes->GetGraphicContext( context );
+	nes.GetGraphicContext( context );
 	context.palette = palette;
-	nes->SetGraphicContext( context );
-
-	return PDX_OK;
+	nes.SetGraphicContext( context );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -343,19 +444,10 @@ PDXRESULT GRAPHICMANAGER::LoadPalette(const PDXSTRING& name)
 
 VOID GRAPHICMANAGER::Reset()
 {
-	{
-		GUID guid;
-		PDXMemZero( guid );
+	GUID guid;
+	PDXMemZero( guid );
+	CreateDevice( guid );
 
-		if (PDX_FAILED(CreateDevice( guid )))
-			return;
-	}
-
-	SelectedMode = 0;
-
-	if (ModeIndices.IsEmpty())
-		ModeIndices.InsertBack(0);
-	
 	ResetBpp();
 
 	SelectedOffScreen = IDC_GRAPHICS_SRAM;
@@ -363,19 +455,12 @@ VOID GRAPHICMANAGER::Reset()
 	SelectedEffect = 0;
 	SelectedFactor = SCREEN_FACTOR_4X;
 
-	SetRect( &ntsc, 0, 8, 255, 231 );
-	SetRect( &pal,  0, 0, 255, 239 );
-
-	SetScreenParameters
-	(
-		DIRECTDRAW::SCREENEFFECT_NONE,
-		SelectedOffScreen == IDC_GRAPHICS_VRAM ? TRUE : FALSE,
-		nes->IsPAL() ? pal : ntsc
-	);
+	SetRect( &rcNtsc, 0, 8, 255, 231 );
+	SetRect( &rcPal,  0, 0, 255, 239 );
 
 	PaletteFile.Clear();
 
-	nes->GetGraphicContext( context );
+	nes.GetGraphicContext( context );
 	
 	context.palette         = NULL;
 	context.InfiniteSprites = FALSE;
@@ -384,7 +469,7 @@ VOID GRAPHICMANAGER::Reset()
 	context.hue             = 128;
 	context.PaletteMode     = NES::IO::GFX::PALETTE_EMULATED;
 	
-	nes->SetGraphicContext( context );
+	nes.SetGraphicContext( context );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -393,13 +478,44 @@ VOID GRAPHICMANAGER::Reset()
 
 VOID GRAPHICMANAGER::ResetBpp()
 {
+	PDX_ASSERT(SelectedAdapter < adapters.Size());
+
+	if (SelectedAdapter >= adapters.Size())
+		throw ("Internal error in GRAPHICMANAGER::ResetBPP()!");
+
 	EnableBpp();
 
-	switch (adapters[SelectedAdapter].DisplayModes[0].bpp)
+	SelectedMode = 0;
+	ModeIndices.Clear();
+
+	UINT DesiredBpp;
+
+	if (Support16Bpp)
 	{
-     	case 16: SelectedBpp = IDC_GRAPHICS_16_BIT; break;
-     	case 32: SelectedBpp = IDC_GRAPHICS_32_BIT; break;
+		DesiredBpp = 16;
+		SelectedBpp = IDC_GRAPHICS_16_BIT;
 	}
+	else if (Support8Bpp)
+	{
+		DesiredBpp = 8;
+		SelectedBpp = IDC_GRAPHICS_8_BIT;
+	}
+	else
+	{
+		DesiredBpp = 32;
+		SelectedBpp = IDC_GRAPHICS_32_BIT;
+	}
+
+	const ADAPTER& adapter = adapters[SelectedAdapter];
+
+	for (UINT i=0; i < adapter.DisplayModes.Size(); ++i)
+	{
+		if (adapter.DisplayModes[i].bpp == DesiredBpp)
+			ModeIndices.InsertBack(i);
+	}
+
+	if (ModeIndices.IsEmpty())
+		throw ("Couldn't find any valid display mode!");
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -408,88 +524,74 @@ VOID GRAPHICMANAGER::ResetBpp()
 
 VOID GRAPHICMANAGER::EnableBpp()
 {
-	const DISPLAYMODES& modes = adapters[SelectedAdapter].DisplayModes;
+	PDX_ASSERT(SelectedAdapter < adapters.Size());
 
+	Support8Bpp = FALSE;
 	Support16Bpp = FALSE;
-
-	for (UINT i=0; i < modes.Size(); ++i)
-	{
-		if (modes[i].bpp == 16)
-		{
-			Support16Bpp = TRUE;
-			break;
-		}
-	}
-
 	Support32Bpp = FALSE;
 
+	if (SelectedAdapter >= adapters.Size())
+		throw ("Internal error in GRAPHICMANAGER::EnableBPP()!");
+
+	const DISPLAYMODES& modes = adapters[SelectedAdapter].DisplayModes;
+
 	for (UINT i=0; i < modes.Size(); ++i)
 	{
-		if (modes[i].bpp == 32)
+		switch (modes[i].bpp)
 		{
-			Support32Bpp = TRUE;
-			break;
+     		case 8:  Support8Bpp  = TRUE; continue;
+			case 16: Support16Bpp = TRUE; continue;
+			case 32: Support32Bpp = TRUE; continue;
 		}
 	}
+
+	if (!Is8BitModeSupported())
+		Support8Bpp = FALSE;
+
+	if (!Support8Bpp && !Support16Bpp && !Support32Bpp)
+		throw ("Couldn't find a valid display mode!");
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT GRAPHICMANAGER::BeginDialogMode()
+VOID GRAPHICMANAGER::BeginDialogMode()
 {
-	application.ResetTimer();
-
 	if (!IsWindowed())
 	{
-		if (CanRenderWindowed())
-		{
-			const DISPLAYMODE& mode = adapters[SelectedAdapter].DisplayModes[ModeIndices[SelectedMode]];
+		CheckModeBounds();
+		const DISPLAYMODE& mode = adapters[SelectedAdapter].DisplayModes[ModeIndices[SelectedMode]];
 
-			if (mode.width < 640 || mode.height < 480)
-				PDX_TRY(DIRECTDRAW::SwitchToFullScreen(640,480,16));
-		}
-		else
+		if (mode.width < 640 || mode.height < 480)
 		{
 			RECT rect;
-			SetRect( &rect, 0, 0, 256, 224 );
-			PDX_TRY(DIRECTDRAW::SwitchToWindowed(rect));
-			ShouldBeFullscreen = TRUE;
+			SetScreenSize( SelectedFactor, rect, 640, 480 );
+			DIRECTDRAW::SwitchToFullScreen( 640, 480, 16, rect );
 		}
 
-		return DIRECTDRAW::EnableGDI( TRUE );
+		DIRECTDRAW::EnableGDI( TRUE );
 	}
-
-	return PDX_OK;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT GRAPHICMANAGER::EndDialogMode()
+VOID GRAPHICMANAGER::EndDialogMode()
 {
-	application.ResetTimer();
-
-	if (!IsWindowed() || ShouldBeFullscreen)
+	if (!IsWindowed())
 	{
-		ShouldBeFullscreen = FALSE;
-
+		CheckModeBounds();
 		const DISPLAYMODE& mode = adapters[SelectedAdapter].DisplayModes[ModeIndices[SelectedMode]];
 
 		RECT rect;
 		SetScreenSize( SelectedFactor, rect );
-
-		PDX_TRY(DIRECTDRAW::SwitchToFullScreen( mode.width, mode.height, mode.bpp, &rect ));
-		PDX_TRY(DIRECTDRAW::EnableGDI( FALSE ));
+		DIRECTDRAW::SwitchToFullScreen( mode.width, mode.height, mode.bpp, rect );
+		DIRECTDRAW::EnableGDI( FALSE );
 
 		application.UpdateWindowSizes( mode.width, mode.height );
-
-		format.PaletteChanged = TRUE;
 	}
-
-	return PDX_OK;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -519,6 +621,7 @@ BOOL GRAPHICMANAGER::DialogProc(HWND h,UINT uMsg,WPARAM wParam,LPARAM)
 						ResetBpp();
 						UpdateMode();
 						UpdateBpp();
+						UpdateEffects();
 					}	     	     
 					return TRUE;
 
@@ -529,6 +632,7 @@ BOOL GRAPHICMANAGER::DialogProc(HWND h,UINT uMsg,WPARAM wParam,LPARAM)
 					
 					return TRUE;
 
+				case IDC_GRAPHICS_8_BIT:
 				case IDC_GRAPHICS_16_BIT:
 				case IDC_GRAPHICS_32_BIT:
 
@@ -537,6 +641,7 @@ BOOL GRAPHICMANAGER::DialogProc(HWND h,UINT uMsg,WPARAM wParam,LPARAM)
 						SelectedBpp = LOWORD(wParam);
 						UpdateMode();
 						UpdateBpp();
+						UpdateEffects();
 					}
 					return TRUE;
 
@@ -571,7 +676,7 @@ BOOL GRAPHICMANAGER::DialogProc(HWND h,UINT uMsg,WPARAM wParam,LPARAM)
 
 				case IDC_GRAPHICS_INFINITE_SPRITES:
 
-					context.InfiniteSprites = IsDlgButtonChecked(hDlg,IDC_GRAPHICS_INFINITE_SPRITES) == BST_CHECKED ? TRUE : FALSE;
+					context.InfiniteSprites = (IsDlgButtonChecked(hDlg,IDC_GRAPHICS_INFINITE_SPRITES) == BST_CHECKED);
 					return TRUE;
 
 				case IDC_GRAPHICS_PALETTE_EMULATED:
@@ -631,10 +736,9 @@ BOOL GRAPHICMANAGER::DialogProc(HWND h,UINT uMsg,WPARAM wParam,LPARAM)
 
 		case WM_DESTROY:
 
+			CreateDevice(adapters[SelectedAdapter].guid);
+			UpdateDirectDraw();
 			hDlg = NULL;
-
-			if (PDX_SUCCEEDED(CreateDevice(adapters[SelectedAdapter].guid)))
-				UpdateDirectDraw();
 
 			return TRUE;
 	}
@@ -659,11 +763,23 @@ VOID GRAPHICMANAGER::UpdateDirectDraw()
 		case 5: effect = DIRECTDRAW::SCREENEFFECT_SUPER_EAGLE; break;
 	}
 
+	PDX_ASSERT(SelectedEffect == 0 || SelectedBpp != IDC_GRAPHICS_8_BIT);
+
+	RECT sRect;
+	RECT* pRect = NULL;
+
+	if (!IsWindowed() && !hDlg)
+	{
+		SetScreenSize( SelectedFactor, sRect );
+		pRect = &sRect;
+	}
+
 	SetScreenParameters
 	(
 	    effect,
 		SelectedOffScreen == IDC_GRAPHICS_VRAM ? TRUE : FALSE,
-		nes->IsPAL() ? pal : ntsc
+		nes.IsPAL() ? rcPal : rcNtsc,
+		pRect
 	);
 
 	context.palette = NULL;
@@ -690,7 +806,7 @@ VOID GRAPHICMANAGER::UpdateDirectDraw()
 			break;
 	}
 
-	nes->SetGraphicContext( context );
+	nes.SetGraphicContext( context );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -715,6 +831,7 @@ VOID GRAPHICMANAGER::UpdateDevice()
 
 VOID GRAPHICMANAGER::UpdateBpp()
 {
+	SendMessage( GetDlgItem( hDlg, IDC_GRAPHICS_8_BIT  ), BM_SETCHECK, BST_UNCHECKED, 0 );
 	SendMessage( GetDlgItem( hDlg, IDC_GRAPHICS_16_BIT ), BM_SETCHECK, BST_UNCHECKED, 0 );
 	SendMessage( GetDlgItem( hDlg, IDC_GRAPHICS_32_BIT ), BM_SETCHECK, BST_UNCHECKED, 0 );
 	SendMessage( GetDlgItem( hDlg, SelectedBpp         ), BM_SETCHECK, BST_CHECKED,   0 );
@@ -746,15 +863,20 @@ VOID GRAPHICMANAGER::UpdateMode()
 
 	const DISPLAYMODES& modes = adapters[SelectedAdapter].DisplayModes;
 
-	const UINT bpp = (SelectedBpp == IDC_GRAPHICS_16_BIT) ? 16 : 32;
+	const UINT bpp = 
+	(
+     	SelectedBpp == IDC_GRAPHICS_32_BIT ? 32 : 
+	    SelectedBpp == IDC_GRAPHICS_16_BIT ? 16 :
+       	8
+	);
 
 	for (UINT i=0; i < modes.Size(); ++i)
 	{
 		if (modes[i].bpp == bpp)
 		{
-			string.Set( modes[i].width );
-			string.Append( "x" );
-			string.Append( modes[i].height );
+			string  = modes[i].width;
+			string += "x";
+			string += modes[i].height;
 
 			ModeIndices.InsertBack( i );
 			ComboBox_AddString( item, string. Begin() );
@@ -763,6 +885,8 @@ VOID GRAPHICMANAGER::UpdateMode()
 
 	if (ModeIndices.Size() <= SelectedMode)
 		SelectedMode = 0;
+
+	PDX_ASSERT(ModeIndices.Size());
 
 	ComboBox_SetCurSel( item, SelectedMode );
 }
@@ -862,14 +986,14 @@ VOID GRAPHICMANAGER::UpdateNesScreen(const WPARAM wParam)
 		
 		switch (LOWORD(wParam))
 		{
-     		case IDC_GRAPHICS_NTSC_LEFT:   ntsc.left   = value = PDX_MIN( value, 255 ); break;
-			case IDC_GRAPHICS_NTSC_TOP:	   ntsc.top    = value = PDX_MIN( value, 239 ); break;
-     		case IDC_GRAPHICS_NTSC_RIGHT:  ntsc.right  = value = PDX_MAX( ntsc.left, PDX_MIN( value, 255 ) ); break;
-       		case IDC_GRAPHICS_NTSC_BOTTOM: ntsc.bottom = value = PDX_MAX( ntsc.top,  PDX_MIN( value, 239 ) ); break;
-     		case IDC_GRAPHICS_PAL_LEFT:	   pal.left    = value = PDX_MIN( value, 255 ); break;
-     		case IDC_GRAPHICS_PAL_TOP:	   pal.top     = value = PDX_MIN( value, 239 ); break;
-     		case IDC_GRAPHICS_PAL_RIGHT:   pal.right   = value = PDX_MAX( pal.left, PDX_MIN( value, 255 ) ); break;
-     		case IDC_GRAPHICS_PAL_BOTTOM:  pal.bottom  = value = PDX_MAX( pal.top,  PDX_MIN( value, 239 ) ); break;
+     		case IDC_GRAPHICS_NTSC_LEFT:   rcNtsc.left   = value = PDX_MIN( value, 255 ); break;
+			case IDC_GRAPHICS_NTSC_TOP:	   rcNtsc.top    = value = PDX_MIN( value, 239 ); break;
+     		case IDC_GRAPHICS_NTSC_RIGHT:  rcNtsc.right  = value = PDX_MAX( rcNtsc.left, PDX_MIN( value, 255 ) ); break;
+       		case IDC_GRAPHICS_NTSC_BOTTOM: rcNtsc.bottom = value = PDX_MAX( rcNtsc.top,  PDX_MIN( value, 239 ) ); break;
+     		case IDC_GRAPHICS_PAL_LEFT:	   rcPal.left    = value = PDX_MIN( value, 255 ); break;
+     		case IDC_GRAPHICS_PAL_TOP:	   rcPal.top     = value = PDX_MIN( value, 239 ); break;
+     		case IDC_GRAPHICS_PAL_RIGHT:   rcPal.right   = value = PDX_MAX( rcPal.left, PDX_MIN( value, 255 ) ); break;
+     		case IDC_GRAPHICS_PAL_BOTTOM:  rcPal.bottom  = value = PDX_MAX( rcPal.top,  PDX_MIN( value, 239 ) ); break;
 		}
 
 		SetDlgItemInt( hDlg, LOWORD(wParam), value, FALSE );
@@ -884,6 +1008,7 @@ VOID GRAPHICMANAGER::UpdateDialog()
 {
 	UpdateDevice();
 
+	EnableWindow( GetDlgItem( hDlg, IDC_GRAPHICS_8_BIT ),  Support8Bpp  );
 	EnableWindow( GetDlgItem( hDlg, IDC_GRAPHICS_16_BIT ), Support16Bpp );
 	EnableWindow( GetDlgItem( hDlg, IDC_GRAPHICS_32_BIT ), Support32Bpp );
 
@@ -897,15 +1022,15 @@ VOID GRAPHICMANAGER::UpdateDialog()
 	SendMessage( GetDlgItem( hDlg, IDC_GRAPHICS_PAL_RIGHT  ), EM_LIMITTEXT, 3, 0 );
 	SendMessage( GetDlgItem( hDlg, IDC_GRAPHICS_PAL_BOTTOM ), EM_LIMITTEXT, 3, 0 );
 
-	SetDlgItemInt( hDlg, IDC_GRAPHICS_NTSC_LEFT,   ntsc.left,   FALSE );
-	SetDlgItemInt( hDlg, IDC_GRAPHICS_NTSC_TOP,    ntsc.top,    FALSE );
-	SetDlgItemInt( hDlg, IDC_GRAPHICS_NTSC_RIGHT,  ntsc.right,  FALSE );
-	SetDlgItemInt( hDlg, IDC_GRAPHICS_NTSC_BOTTOM, ntsc.bottom, FALSE );
+	SetDlgItemInt( hDlg, IDC_GRAPHICS_NTSC_LEFT,   rcNtsc.left,   FALSE );
+	SetDlgItemInt( hDlg, IDC_GRAPHICS_NTSC_TOP,    rcNtsc.top,    FALSE );
+	SetDlgItemInt( hDlg, IDC_GRAPHICS_NTSC_RIGHT,  rcNtsc.right,  FALSE );
+	SetDlgItemInt( hDlg, IDC_GRAPHICS_NTSC_BOTTOM, rcNtsc.bottom, FALSE );
 
-	SetDlgItemInt( hDlg, IDC_GRAPHICS_PAL_LEFT,   pal.left,   FALSE );
-	SetDlgItemInt( hDlg, IDC_GRAPHICS_PAL_TOP,    pal.top,    FALSE );
-	SetDlgItemInt( hDlg, IDC_GRAPHICS_PAL_RIGHT,  pal.right,  FALSE );
-	SetDlgItemInt( hDlg, IDC_GRAPHICS_PAL_BOTTOM, pal.bottom, FALSE );
+	SetDlgItemInt( hDlg, IDC_GRAPHICS_PAL_LEFT,   rcPal.left,   FALSE );
+	SetDlgItemInt( hDlg, IDC_GRAPHICS_PAL_TOP,    rcPal.top,    FALSE );
+	SetDlgItemInt( hDlg, IDC_GRAPHICS_PAL_RIGHT,  rcPal.right,  FALSE );
+	SetDlgItemInt( hDlg, IDC_GRAPHICS_PAL_BOTTOM, rcPal.bottom, FALSE );
 
 	SendMessage( GetDlgItem(hDlg,IDC_GRAPHICS_COLORS_BRIGHTNESS), TBM_SETRANGE, WPARAM(FALSE), LPARAM(MAKELONG(0,255)) );
 	SendMessage( GetDlgItem(hDlg,IDC_GRAPHICS_COLORS_SATURATION), TBM_SETRANGE, WPARAM(FALSE), LPARAM(MAKELONG(0,255)) );
@@ -938,10 +1063,10 @@ VOID GRAPHICMANAGER::BrowsePalette()
 	ofn.nFilterIndex = 1;
 	ofn.lpstrFile    = name;
 	ofn.lpstrTitle   = "Import Palette";
-	ofn.nMaxFile     = NST_MAX_PATH;
+	ofn.nMaxFile     = NST_MAX_PATH-1;
 	ofn.Flags        = OFN_FILEMUSTEXIST|OFN_PATHMUSTEXIST;
 
-	if (GetOpenFileName(&ofn))
+	if (GetOpenFileName(&ofn) && name && strlen(name))
 		PaletteFile = name;
 
 	SetDlgItemText( hDlg, IDC_GRAPHICS_PALETTE_PATH, PaletteFile.Begin() );
@@ -976,13 +1101,23 @@ VOID GRAPHICMANAGER::UpdateEffects()
 	HWND hItem = GetDlgItem( hDlg, IDC_GRAPHICS_EFFECTS );
 
 	ComboBox_ResetContent( hItem );
+	ComboBox_AddString( hItem, "None" );
 
-	ComboBox_AddString( hItem, "None"         );
-	ComboBox_AddString( hItem, "Scanlines"    );
-	ComboBox_AddString( hItem, "TV-Mode"      );
-	ComboBox_AddString( hItem, "2xSaI"        );
-	ComboBox_AddString( hItem, "Super 2xSaI"  );
-	ComboBox_AddString( hItem, "Super Eagle"  );
+	CheckModeBounds();
+
+	if (adapters[SelectedAdapter].DisplayModes[ModeIndices[SelectedMode]].bpp > 8)
+	{
+		ComboBox_AddString( hItem, "Scanlines"    );
+		ComboBox_AddString( hItem, "TV-Mode"      );
+		ComboBox_AddString( hItem, "2xSaI"        );
+		ComboBox_AddString( hItem, "Super 2xSaI"  );
+		ComboBox_AddString( hItem, "Super Eagle"  );
+	}
+	else
+	{
+		SelectedEffect = 0;
+	}
+
 	ComboBox_SetCurSel( hItem, SelectedEffect );
 }
 
@@ -990,59 +1125,53 @@ VOID GRAPHICMANAGER::UpdateEffects()
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT GRAPHICMANAGER::SwitchToWindowed(const RECT& rect)
+VOID GRAPHICMANAGER::CheckModeBounds() const
 {
-	PDX_TRY(DIRECTDRAW::SwitchToWindowed( rect ));
-	format.PaletteChanged = TRUE;
-	return PDX_OK;
+	const BOOL InBound = 
+	(
+		SelectedAdapter < adapters.Size() &&
+		SelectedMode < ModeIndices.Size() &&
+		ModeIndices[SelectedMode] < adapters[SelectedAdapter].DisplayModes.Size()
+	);
+
+	if (!InBound)
+		throw ("Internal error in GRAPHICMANAGER::BeginDialogMode()!");
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT GRAPHICMANAGER::SwitchToFullScreen()
+VOID GRAPHICMANAGER::SwitchToWindowed(const RECT& rect)
+{
+	DIRECTDRAW::SwitchToWindowed( rect );
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+VOID GRAPHICMANAGER::SwitchToFullScreen()
 {
 	RECT rect;
 	SetScreenSize( SelectedFactor, rect );
 
+	CheckModeBounds();
 	const DISPLAYMODE& mode = adapters[SelectedAdapter].DisplayModes[ModeIndices[SelectedMode]];
-	PDX_TRY(DIRECTDRAW::SwitchToFullScreen( mode.width, mode.height, mode.bpp, &rect ));
-	
-	format.PaletteChanged = TRUE;	
-	
-	return PDX_OK;
+
+	DIRECTDRAW::SwitchToFullScreen( mode.width, mode.height, mode.bpp, rect );	
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-BOOL GRAPHICMANAGER::ValidScreenRect(const RECT& rect) const
-{
-	for (UINT i=0; i < 5; ++i)
-	{
-		RECT valid;
-		SetScreenSize( SCREENTYPE(i), valid );
-
-		if (!memcmp(&rect,&valid,sizeof(rect)))
-			return TRUE;
-	}
-
-	return FALSE;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-PDXRESULT GRAPHICMANAGER::SetScreenSize(const SCREENTYPE type)
+VOID GRAPHICMANAGER::SetScreenSize(const SCREENTYPE type)
 {
 	RECT rect;
 	SelectedFactor = type;
 	SetScreenSize( type, rect );
 	UpdateScreenRect( rect );
-	return PDX_OK;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -1051,8 +1180,24 @@ PDXRESULT GRAPHICMANAGER::SetScreenSize(const SCREENTYPE type)
 
 VOID GRAPHICMANAGER::SetScreenSize(const SCREENTYPE type,RECT& rect) const
 {
-	const UINT width  = adapters[SelectedAdapter].DisplayModes[ModeIndices[SelectedMode]].width;
-	const UINT height = adapters[SelectedAdapter].DisplayModes[ModeIndices[SelectedMode]].height;
+	CheckModeBounds();
+
+	SetScreenSize
+	( 
+     	type, 
+		rect, 
+		adapters[SelectedAdapter].DisplayModes[ModeIndices[SelectedMode]].width,
+		adapters[SelectedAdapter].DisplayModes[ModeIndices[SelectedMode]].height
+	);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+VOID GRAPHICMANAGER::SetScreenSize(const SCREENTYPE type,RECT& rect,const UINT width,const UINT height) const
+{
+	CheckModeBounds();
 
 	if (type == SCREEN_STRETCHED)
 	{
@@ -1067,8 +1212,10 @@ VOID GRAPHICMANAGER::SetScreenSize(const SCREENTYPE type,RECT& rect) const
 	}
 	else
 	{
-		UINT x = GetNesRect().right - GetNesRect().left;
-		UINT y = GetNesRect().bottom - GetNesRect().top;
+		const RECT& NesRect = (nes.IsPAL() ? rcPal : rcNtsc);
+
+		UINT x = (NesRect.right+1) - NesRect.left;
+		UINT y = (NesRect.bottom+1) - NesRect.top;
 
 		const UINT factor = UINT(type);
 

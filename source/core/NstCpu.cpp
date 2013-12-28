@@ -373,8 +373,8 @@ inline UINT CPU::wZpg()
 
 inline UINT CPU::rZpgX() 
 { 
-    UINT data = XD + CPU_READ_PCB();
-	data = CPU_READ_ZPG_BYTE(data & 0xFF);  
+    UINT data = (XD + CPU_READ_PCB()) & 0xFF;
+	data = CPU_READ_ZPG_BYTE(data);  
 
 	CPU_EAT_CYCLES(4);
 
@@ -394,10 +394,10 @@ inline UINT CPU::rwZpgX(UINT& address)
 
 inline UINT CPU::wZpgX() 
 { 
-	const UINT data = XD + CPU_READ_PCB();
+	const UINT data = (XD + CPU_READ_PCB()) & 0xFF;
 	CPU_EAT_CYCLES(4);
 
-	return data & 0xFF;
+	return data;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -406,8 +406,8 @@ inline UINT CPU::wZpgX()
 
 inline UINT CPU::rZpgY() 
 { 
-    UINT data = YD + CPU_READ_PCB();
-	data = CPU_READ_ZPG_BYTE(data & 0xFF);  
+    UINT data = (YD + CPU_READ_PCB()) & 0xFF;
+	data = CPU_READ_ZPG_BYTE(data);  
 
 	CPU_EAT_CYCLES(4);
 
@@ -427,10 +427,10 @@ inline UINT CPU::rwZpgY(UINT& address)
 
 inline UINT CPU::wZpgY() 
 { 
-	const UINT data = YD + CPU_READ_PCB();
+	const UINT data = (YD + CPU_READ_PCB()) & 0xFF;
 	CPU_EAT_CYCLES(4);
 
-	return data & 0xFF;
+	return data;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////

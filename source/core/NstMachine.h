@@ -56,10 +56,10 @@ public:
 	MACHINE();
 	~MACHINE();
 
-	PDXRESULT Power(const BOOL);
-	PDXRESULT Reset(const BOOL);
-	PDXRESULT Pause(const BOOL);
-	PDXRESULT Execute(IO::GFX* const,IO::SFX* const,IO::INPUT* const);
+	VOID Power(const BOOL);
+	VOID Reset(const BOOL);
+	VOID Pause(const BOOL);
+	VOID Execute(IO::GFX* const,IO::SFX* const,IO::INPUT*);
 
 	PDXRESULT LoadRom  (PDXFILE&,const PDXSTRING* const);
 	PDXRESULT LoadINES (PDXFILE&,const PDXSTRING* const);
@@ -121,6 +121,8 @@ public:
 
 	const IO::CARTRIDGE::INFO* GetCartridgeInfo() const;
 
+	VOID ResetAudioBuffer();
+
 	UINT GetNumVsSystemDipSwitches() const;
 	PDXRESULT GetVsSystemDipSwitch(const UINT,IO::DIPSWITCH::CONTEXT&) const;
 	PDXRESULT SetVsSystemDipSwitch(const UINT,const IO::DIPSWITCH::CONTEXT&);
@@ -146,19 +148,26 @@ public:
 	public:
 
 		CONTROLLER(const UINT n,PPU* const p=NULL)
-		: port(n), ppu(p), strobe(0) { Reset(); }
+		: port(n), polled(FALSE), ppu(p), strobe(0) { Reset(); }
 
 		virtual ~CONTROLLER() {}
 
-		inline VOID SetContext(IO::INPUT* const i,const IO::GFX* const g)
+		inline VOID BeginFrame(IO::INPUT* const i,const IO::GFX* const g)
 		{
 			input = i;
 			gfx = g;
 		}
 
+		inline VOID EndFrame()
+		{ 
+			polled = FALSE; 
+		}
+
 		virtual VOID Initialize(const ULONG) {}
 		virtual VOID Poll() {}
-		virtual VOID Reset() {}
+		
+		virtual VOID Reset() 
+		{ polled = FALSE; }
 
 		virtual UINT Peek_4016() { return 0x00; }
 		virtual UINT Peek_4017() { return 0x00; }
@@ -182,12 +191,14 @@ public:
 			return reset;
 		}
 
-		UINT strobe;
+		const IO::GFX* gfx;
+		PPU* const ppu;
 
 		const UINT port;
 		IO::INPUT* input;
-		const IO::GFX* gfx;
-		PPU* const ppu;
+
+		BOOL polled;
+		UINT strobe;
 	};
 
 private:
@@ -199,9 +210,6 @@ private:
 	NES_DECL_POKE( 4017 );					    
 	NES_DECL_PEEK( 4017 );
 
-	CPU  cpu;
-	APU& apu;
-	PPU  ppu;
 	CARTRIDGE* cartridge;
 	CONTROLLER* controller[4];
 	CONTROLLER* expansion;
@@ -215,6 +223,9 @@ private:
 	MODE mode;
 	IO::GENERAL::CONTEXT GeneralContext;
 	MOVIE* movie;
+	APU& apu;
+	CPU cpu;
+	PPU ppu;
 };
 
 #include "NstMachine.inl"

@@ -37,8 +37,8 @@ class VSDIPSWITCHMANAGER : public MANAGER
 {
 public:
 
-	VSDIPSWITCHMANAGER(const INT id)
-	: MANAGER(id) {}
+	VSDIPSWITCHMANAGER()
+	: MANAGER(IDD_DIPSWITCHES) {}
 
 private:
 

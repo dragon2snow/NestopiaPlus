@@ -66,13 +66,22 @@ PDXRESULT INES::Import(CARTRIDGE* const cartridge,PDXFILE& file,const IO::GENERA
 	if (!file.Read( cartridge->cRom.Begin(), cartridge->cRom.End() ))
 		return MsgWarning( "INES file is corrupt!" );
 
-	cartridge->info.crc     = PDXCRC32::Compute( file.At(16), file.Size() - 16 );
-	cartridge->info.pRomCrc = PDXCRC32::Compute( cartridge->pRom.Begin(), cartridge->pRom.Size() );
-	cartridge->info.cRomCrc = PDXCRC32::Compute( cartridge->cRom.Begin(), cartridge->cRom.Size() );
+	cartridge->info.name       = "unknown";
+	cartridge->info.copyright  = "unknown";
+	cartridge->info.crc        = PDXCRC32::Compute( file.At(16), file.Size() - 16 );
+	cartridge->info.pRomCrc    = PDXCRC32::Compute( cartridge->pRom.Begin(), cartridge->pRom.Size() );
+	cartridge->info.cRomCrc    = PDXCRC32::Compute( cartridge->cRom.Begin(), cartridge->cRom.Size() );
+	cartridge->info.condition  = IO::CARTRIDGE::GOOD;
+	cartridge->info.translated = IO::CARTRIDGE::UNKNOWN;
+	cartridge->info.hacked     = IO::CARTRIDGE::UNKNOWN;
+	cartridge->info.licensed   = IO::CARTRIDGE::UNKNOWN;
+	cartridge->info.bootleg    = IO::CARTRIDGE::UNKNOWN;
+	cartridge->info.board      = MAPPER::boards[cartridge->info.mapper];
 
   #ifdef NES_USE_ROM_DATABASE
 
-	PDX_TRY(CheckDatabase( cartridge, file, context ));
+	if (context.UseRomDatabase)
+		CheckDatabase( cartridge, file, context );
 
   #endif
 
@@ -134,12 +143,12 @@ VOID INES::MessWithTheHeader(CARTRIDGE* const cartridge,HEADER& header)
 
 #ifdef NES_USE_ROM_DATABASE
 
-PDXRESULT INES::CheckDatabase(CARTRIDGE* const cartridge,PDXFILE& file,const IO::GENERAL::CONTEXT& context)
+VOID INES::CheckDatabase(CARTRIDGE* const cartridge,PDXFILE& file,const IO::GENERAL::CONTEXT& context)
 {
 	if (database.IsEmpty())
 		ImportDatabase();
 
-	PDXMAP<IMAGE,U32>::CONSTITERATOR iterator( database.Find(cartridge->info.pRomCrc) );
+	PDXMAP<IMAGE,KEY>::CONSTITERATOR iterator(database.Find(KEY(cartridge->info.crc,cartridge->info.pRomCrc)));
 
 	PDXSTRING log("INES: ");
 
@@ -174,10 +183,10 @@ PDXRESULT INES::CheckDatabase(CARTRIDGE* const cartridge,PDXFILE& file,const IO:
 			cartridge->info.mapper = image.mapper;
 		}
 
-		if      (image.vs)  cartridge->info.system = SYSTEM_VS;
-		else if (image.p10) cartridge->info.system = SYSTEM_PC10;
-		else if (image.pal) cartridge->info.system = SYSTEM_PAL;
-		else                cartridge->info.system = SYSTEM_NTSC;
+		if      (image.vs)                 cartridge->info.system = SYSTEM_VS;
+		else if (image.p10)                cartridge->info.system = SYSTEM_PC10;
+		else if (image.pal && !image.ntsc) cartridge->info.system = SYSTEM_PAL;
+		else                               cartridge->info.system = SYSTEM_NTSC;
 
 		if (cartridge->info.mirroring != image.mirroring)
 			cartridge->info.mirroring = MIRRORING(image.mirroring);
@@ -231,14 +240,14 @@ PDXRESULT INES::CheckDatabase(CARTRIDGE* const cartridge,PDXFILE& file,const IO:
 			log += (cartridge->info.cRom / 1024);
 			log += "k";
 			LogOutput( log.String() );
-
+  
 			if (!DisableWarning)
 			{
 				DisableWarning = TRUE;
 				cartridge->info.condition = IO::CARTRIDGE::BAD;
 				MsgWarning( "Wrong CHR-ROM size! Image may not run properly!" );
 			}
-
+  
 			if (cartridge->cRom.Size() > cartridge->info.cRom)
 			{
 				cartridge->cRom.Resize( cartridge->info.cRom );
@@ -267,20 +276,6 @@ PDXRESULT INES::CheckDatabase(CARTRIDGE* const cartridge,PDXFILE& file,const IO:
 		cartridge->info.licensed   = ( image.unlicensed  ? IO::CARTRIDGE::NO  : IO::CARTRIDGE::YES );
 		cartridge->info.bootleg    = ( image.bootleg     ? IO::CARTRIDGE::YES : IO::CARTRIDGE::NO  );
 	}
-	else
-	{
-		cartridge->info.name       = "unknown";
-		cartridge->info.copyright  = "unknown";
-		cartridge->info.condition  = IO::CARTRIDGE::GOOD;
-		cartridge->info.translated = IO::CARTRIDGE::UNKNOWN;
-		cartridge->info.hacked     = IO::CARTRIDGE::UNKNOWN;
-		cartridge->info.licensed   = IO::CARTRIDGE::UNKNOWN;
-		cartridge->info.bootleg    = IO::CARTRIDGE::UNKNOWN;
-	}
-
-	cartridge->info.board = MAPPER::boards[cartridge->info.mapper];
-
-	return PDX_OK;
 }
 
 #endif

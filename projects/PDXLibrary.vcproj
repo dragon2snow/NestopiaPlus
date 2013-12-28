@@ -20,48 +20,51 @@
 			ATLMinimizesCRunTimeLibraryUsage="FALSE">
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalOptions="/Qinline_debug_info"
+				AdditionalOptions="/Qrcd"
 				Optimization="0"
 				GlobalOptimizations="FALSE"
+				EnableIntrinsicFunctions="TRUE"
 				FavorSizeOrSpeed="0"
 				OptimizeForProcessor="2"
 				OptimizeForWindowsApplication="FALSE"
-				AdditionalIncludeDirectories=""
+				AdditionalIncludeDirectories="..\lib/"
 				PreprocessorDefinitions="WIN32;_DEBUG;_USE_INTEL_COMPILER;WIN32_LEAN_AND_MEAN;VC_EXTRALEAN;NOMINMAX;_M_IX86;_LIB"
-				StringPooling="FALSE"
+				StringPooling="TRUE"
 				MinimalRebuild="FALSE"
-				ExceptionHandling="FALSE"
+				ExceptionHandling="TRUE"
 				BasicRuntimeChecks="0"
 				RuntimeLibrary="5"
-				BufferSecurityCheck="FALSE"
+				BufferSecurityCheck="TRUE"
 				EnableFunctionLevelLinking="TRUE"
 				ForceConformanceInForLoopScope="TRUE"
 				UsePrecompiledHeader="2"
-				PrecompiledHeaderFile="Debug/Sputnik.pch"
+				AssemblerOutput="0"
 				AssemblerListingLocation=".\Debug/"
 				ObjectFile=".\Debug/"
-				ProgramDataBaseFileName=".\Debug/"
 				WarningLevel="3"
 				SuppressStartupBanner="TRUE"
 				DebugInformationFormat="3"
+				CallingConvention="1"
 				ShowIncludes="FALSE">
 				<IntelOptions
 					Optimization="0"
 					GlobalOptimizations="0"
+					EnableIntrinsicFunctions="1"
 					FavorSizeOrSpeed="0"
 					OptimizeForProcessor="3"
 					OptimizeForWindowsApplication="0"
-					StringPooling="0"
+					StringPooling="1"
 					MinimalRebuild="0"
-					ExceptionHandling="0"
+					ExceptionHandling="1"
 					BasicRuntimeChecks="0"
 					RuntimeLibrary="5"
-					BufferSecurityCheck="0"
+					BufferSecurityCheck="1"
 					EnableFunctionLevelLinking="1"
+					DisableFunctionSplitting="0"
 					ForceConformanceInForLoopScope="1"
 					RecognizeRestrictKeyword="1"
-					AllOptions="/c  /Zi /nologo /W3 /Od /G7 /D &quot;WIN32&quot; /D &quot;_DEBUG&quot; /D &quot;_USE_INTEL_COMPILER&quot; /D &quot;WIN32_LEAN_AND_MEAN&quot; /D &quot;VC_EXTRALEAN&quot; /D &quot;NOMINMAX&quot; /D &quot;_M_IX86&quot; /D &quot;_LIB&quot; /FD /MLd /Gy /Zc:forScope /Qrestrict /YX&quot;StdAfx.h&quot; /Fp&quot;Debug/Sputnik.pch&quot; /Fo&quot;.\Debug/&quot; /Fd&quot;.\Debug/&quot; /Gd /TP /Qinline_debug_info"
-					MSOriginalAdditionalOptions="/Qinline_debug_info"/>
+					AllOptions="/c  /I &quot;..\lib/&quot; /Zi /nologo /W3 /Od /Oi /G7 /D &quot;WIN32&quot; /D &quot;_DEBUG&quot; /D &quot;_USE_INTEL_COMPILER&quot; /D &quot;WIN32_LEAN_AND_MEAN&quot; /D &quot;VC_EXTRALEAN&quot; /D &quot;NOMINMAX&quot; /D &quot;_M_IX86&quot; /D &quot;_LIB&quot; /GF /FD /EHsc /MLd /GS /Gy /Zc:forScope /Qrestrict /YX&quot;StdAfx.h&quot; /Fp&quot;.\Debug/PDXLibraryDebug.pch&quot; /Fo&quot;.\Debug/&quot; /Fd&quot;.\Debug/vc70.pdb&quot; /Gr /TP /Qrcd"
+					MSOriginalAdditionalOptions="/Qrcd"/>
 			</Tool>
 			<Tool
 				Name="VCCustomBuildTool"/>
@@ -107,7 +110,7 @@
 			WholeProgramOptimization="TRUE">
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalOptions="/Qwn1"
+				AdditionalOptions="/Qwn1 /Qrcd"
 				Optimization="2"
 				GlobalOptimizations="TRUE"
 				InlineFunctionExpansion="2"
@@ -117,7 +120,7 @@
 				OptimizeForWindowsApplication="TRUE"
 				AdditionalIncludeDirectories="..\lib/"
 				PreprocessorDefinitions="WIN32,NDEBUG;_USE_INTEL_COMPILER;WIN32_LEAN_AND_MEAN;VC_EXTRALEAN;NOMINMAX;_M_IX86;_LIB"
-				ExceptionHandling="FALSE"
+				ExceptionHandling="TRUE"
 				RuntimeLibrary="4"
 				BufferSecurityCheck="FALSE"
 				EnableFunctionLevelLinking="TRUE"
@@ -127,9 +130,10 @@
 				AssemblerOutput="0"
 				AssemblerListingLocation=".\Release/"
 				ObjectFile=".\Release/"
-				ProgramDataBaseFileName=".\Release/"
 				WarningLevel="3"
-				SuppressStartupBanner="TRUE">
+				SuppressStartupBanner="TRUE"
+				DebugInformationFormat="0"
+				CallingConvention="1">
 				<IntelOptions
 					WholeProgramOptimization="1"
 					AssemblyOutput="3"
@@ -145,16 +149,16 @@
 					OptimizeForWindowsApplication="1"
 					UseProcExt="4"
 					RequireProcExt="2"
-					Parallelization="1"
+					Parallelization="0"
 					StringPooling="1"
-					ExceptionHandling="0"
+					ExceptionHandling="1"
 					RuntimeLibrary="4"
 					BufferSecurityCheck="0"
 					EnableFunctionLevelLinking="1"
 					ForceConformanceInForLoopScope="1"
 					RecognizeRestrictKeyword="1"
-					AllOptions="/c  /GL /I &quot;..\lib/&quot; /nologo /W3 /O3 /Og /Ob2 /Oi /Ot /Oy /G7 /GA /QaxW /QxM /Qparallel /D &quot;WIN32&quot; /D &quot;NDEBUG&quot; /D &quot;_USE_INTEL_COMPILER&quot; /D &quot;WIN32_LEAN_AND_MEAN&quot; /D &quot;VC_EXTRALEAN&quot; /D &quot;NOMINMAX&quot; /D &quot;_M_IX86&quot; /D &quot;_LIB&quot; /GF /FD /ML /Gy /Zc:forScope /Qrestrict /YX&quot;StdAfx.h&quot; /Fp&quot;.\Release/PDXLibrary.pch&quot; /Fo&quot;.\Release/&quot; /Fd&quot;.\Release/&quot; /Gd /TP /Qwn1"
-					MSOriginalAdditionalOptions="/Qwn1"/>
+					AllOptions="/c  /GL /I &quot;..\lib/&quot; /nologo /W3 /O3 /Og /Ob2 /Oi /Ot /Oy /G7 /GA /QaxW /QxM /D &quot;WIN32&quot; /D &quot;NDEBUG&quot; /D &quot;_USE_INTEL_COMPILER&quot; /D &quot;WIN32_LEAN_AND_MEAN&quot; /D &quot;VC_EXTRALEAN&quot; /D &quot;NOMINMAX&quot; /D &quot;_M_IX86&quot; /D &quot;_LIB&quot; /GF /FD /EHsc /ML /Gy /Zc:forScope /Qrestrict /YX&quot;StdAfx.h&quot; /Fp&quot;.\Release/PDXLibrary.pch&quot; /Fo&quot;.\Release/&quot; /Fd&quot;.\Release/vc70.pdb&quot; /Gr /TP /Qwn1 /Qrcd"
+					MSOriginalAdditionalOptions="/Qwn1 /Qrcd"/>
 			</Tool>
 			<Tool
 				Name="VCCustomBuildTool"/>
@@ -234,6 +238,8 @@
 			RelativePath="..\source\paradox\PdxQuickSort.h"/>
 		<File
 			RelativePath="..\source\paradox\PdxSet.h"/>
+		<File
+			RelativePath="..\source\paradox\PdxSingleton.h"/>
 		<File
 			RelativePath="..\source\paradox\PdxString.cpp"/>
 		<File

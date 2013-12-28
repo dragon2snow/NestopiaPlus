@@ -38,14 +38,21 @@ class SAVESTATEMANAGER : public MANAGER
 {
 public:
 
-	SAVESTATEMANAGER(const INT id) 
-	: MANAGER(id) {}
+	SAVESTATEMANAGER();
 
 	~SAVESTATEMANAGER()
 	{ Destroy(NULL); }
 
-	PDXRESULT LoadState(UINT);
-	PDXRESULT SaveState(UINT);
+	VOID Create  (CONFIGFILE* const);
+	VOID Destroy (CONFIGFILE* const);
+
+	PDX_NO_INLINE PDXRESULT LoadState(UINT);
+	PDX_NO_INLINE PDXRESULT SaveState(UINT);
+
+	PDX_NO_INLINE PDXRESULT SetImport(UINT,const PDXSTRING&);
+	PDX_NO_INLINE PDXRESULT SetExport(UINT,const PDXSTRING&);
+
+	PDX_NO_INLINE VOID Flush();
 
 	BOOL IsValidSlot(const UINT index) const
 	{ return slots[IndexToSlot(index)].valid; }
@@ -55,8 +62,6 @@ public:
 
 	inline PDXFILE& GetFile(const UINT index)
 	{ return slots[IndexToSlot(index)].file; }
-
-	PDXRESULT SetFile(UINT index,PDXFILE&);
 
 	enum
 	{
@@ -77,9 +82,6 @@ private:
 		return index;
 	}
 
-	PDXRESULT Create  (CONFIGFILE* const);
-	PDXRESULT Destroy (CONFIGFILE* const);
-
 	VOID UpdateDialog(HWND);
 	VOID UpdateDialogTime(HWND,const WPARAM);
 	VOID UpdateSettings(HWND);
@@ -94,8 +96,15 @@ private:
 
 	struct SLOT
 	{
+		SLOT()
+		:
+		valid    (FALSE),
+		external (FALSE)
+		{}
+
 		PDXFILE file;
 		BOOL valid;
+		BOOL external;
 	};
 
 	UINT LastSlot;
@@ -103,6 +112,13 @@ private:
 
 	struct AUTOSAVE
 	{
+		AUTOSAVE()
+		:
+		enabled (FALSE),
+		msg     (FALSE),
+		time    (0)
+		{}
+
 		BOOL enabled;
 		PDXSTRING name;
 		BOOL msg;

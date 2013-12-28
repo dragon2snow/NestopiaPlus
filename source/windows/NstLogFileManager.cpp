@@ -30,6 +30,7 @@
 #include "../paradox/PdxFile.h"
 #include "resource/resource.h"
 #include "NstLogFileManager.h"
+#include "NstFileManager.h"
 
 PDXSTRING LOGFILEMANAGER::LogString;
 
@@ -42,20 +43,7 @@ VOID LOGFILEMANAGER::LogSeparator()
 	LogString << "-----------------------------------------------------------------------------------------------------\r\n";
 }
 
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID LOGFILEMANAGER::LogOutput(const CHAR* const text)
-{
-	LogString << text;
-	LogString << "\r\n";
-
-	if (LogString.Length() >= 0x100000UL)
-		LogString.Clear();
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
@@ -63,20 +51,16 @@ VOID LOGFILEMANAGER::Close(const BOOL WriteToFile)
 {
 	if (WriteToFile && LogString.Length())
 	{
-		CHAR PathExe[1024];
-		PathExe[0] = '\0';
+		PDXSTRING name;
 
-		if (GetModuleFileName( NULL, PathExe, 1024-1 ))
+		if (PDX_SUCCEEDED(FILEMANAGER::GetExeFileName(name)))
 		{
-			PDXSTRING name( PathExe );
+			name.ReplaceFileExtension("log");
 
-			if (name.ReplaceFileExtension( "log" ))
-			{
-				PDXFILE file( name, PDXFILE::OUTPUT );
+			PDXFILE file(name,PDXFILE::OUTPUT);
 
-				if (file.IsOpen())
-					file.Text() << LogString;
-			}
+			if (file.IsOpen())
+				file.Text() << LogString;
 		}
 	}
 

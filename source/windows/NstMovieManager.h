@@ -38,8 +38,8 @@ class MOVIEMANAGER : public MANAGER
 {
 public:
 
-	MOVIEMANAGER(const INT id) 
-	: MANAGER(id) {}
+	MOVIEMANAGER() 
+	: MANAGER(IDD_MOVIE) {}
 
 	VOID Load(PDXSTRING&);
 
@@ -52,11 +52,11 @@ public:
 	VOID SetFile(const PDXSTRING& name)
 	{ file = name; }
 
-	inline BOOL CanStop()    const { return nes->CanStopMovie();    }
-	inline BOOL CanPlay()    const { return nes->CanPlayMovie();    }
-	inline BOOL CanRecord()  const { return nes->CanRecordMovie();  }
-	inline BOOL CanRewind()  const { return nes->CanRewindMovie();  }
-	inline BOOL CanForward() const { return nes->CanForwardMovie(); }
+	inline BOOL CanStop()    const { return nes.CanStopMovie();    }
+	inline BOOL CanPlay()    const { return nes.CanPlayMovie();    }
+	inline BOOL CanRecord()  const { return nes.CanRecordMovie();  }
+	inline BOOL CanRewind()  const { return nes.CanRewindMovie();  }
+	inline BOOL CanForward() const { return nes.CanForwardMovie(); }
 
 private:
 

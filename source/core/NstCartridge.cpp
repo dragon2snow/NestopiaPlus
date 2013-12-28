@@ -107,7 +107,15 @@ PDXRESULT CARTRIDGE::Load(PDXFILE& ImageFile,const PDXSTRING* const save,CPU& cp
 	context.mirroring    = info.mirroring;
 
 	if (!(mapper = MAPPER::New(context)))
-		return MsgWarning("Unsupported mapper!");
+	{
+		PDXSTRING msg;
+		
+		msg  = "Mapper ";
+		msg += info.mapper;
+		msg += " is not supported!";
+		
+		return MsgWarning(msg.String());
+	}
 
 	return PDX_OK;
 }
@@ -127,8 +135,19 @@ VOID CARTRIDGE::DetectMirroring()
        		case 118:
 
 		    	info.mirroring = MIRROR_HORIZONTAL;
-				LogOutput( "CARTRIDGE: horizontal mirroring forced" );
+				LogOutput("CARTRIDGE: forcing horizontal mirroring");
+				return;
 		}
+	}
+
+	switch (info.pRomCrc)
+	{
+       	case 0x8BBE9BECUL: // Mach Rider (E)
+		case 0xCE27FA04UL: // Mach Rider (U)
+
+			info.mirroring = MIRROR_VERTICAL;
+			LogOutput("CARTRIDGE: forcing vertical mirroring");
+			return;
 	}
 }
 

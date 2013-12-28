@@ -38,17 +38,17 @@ class FDSMANAGER : public MANAGER
 {
 public:
 
-	FDSMANAGER(const INT id) 
-	: MANAGER(id) {}
+	FDSMANAGER();
 
-	~FDSMANAGER() {}
+	VOID Create  (CONFIGFILE* const);
+	VOID Destroy (CONFIGFILE* const);
 
 private:
 
-	PDXRESULT Create  (CONFIGFILE* const);
-	PDXRESULT Destroy (CONFIGFILE* const);
-
 	BOOL DialogProc(HWND,UINT,WPARAM,LPARAM);
+
+	PDX_NO_INLINE BOOL SearchBios();
+	PDX_NO_INLINE VOID SubmitBios(const BOOL=FALSE);
 
 	VOID Reset();
 	VOID UpdateSettings (HWND);
@@ -56,8 +56,6 @@ private:
 	VOID OnBrowse       (HWND);
 	VOID OnClear        (HWND);
 	
-	VOID SubmitBios(const BOOL=FALSE);
-
 	BOOL WriteProtect;
 	PDXSTRING bios;
 };

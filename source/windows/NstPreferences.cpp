@@ -35,7 +35,19 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT PREFERENCES::Create(CONFIGFILE* const ConfigFile)
+PREFERENCES::PREFERENCES()
+: 
+MANAGER     (IDD_PREFERENCES),
+DefPriority (THREAD_PRIORITY_NORMAL)
+{
+	Reset();
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+VOID PREFERENCES::Create(CONFIGFILE* const ConfigFile)
 {
 	if (ConfigFile)
 	{
@@ -51,6 +63,7 @@ PDXRESULT PREFERENCES::Create(CONFIGFILE* const ConfigFile)
 		hidemenu           = ( file[ "preferences hide menu in fullscreen" ] == "yes" ? TRUE : FALSE );
 		confirmexit        = ( file[ "preferences confirm exit"            ] == "no"  ? FALSE : TRUE );
 		uselogfile         = ( file[ "preferences save logfile"            ] == "yes" ? TRUE : FALSE );
+		usedatabase        = ( file[ "preferences use rom database"        ] == "no"  ? FALSE : TRUE );
 	}
 	else
 	{
@@ -61,15 +74,13 @@ PDXRESULT PREFERENCES::Create(CONFIGFILE* const ConfigFile)
 		DefPriority = THREAD_PRIORITY_NORMAL;
 
 	SetContext();
-
-	return PDX_OK;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT PREFERENCES::Destroy(CONFIGFILE* const ConfigFile)
+VOID PREFERENCES::Destroy(CONFIGFILE* const ConfigFile)
 {
 	if (ConfigFile)
 	{
@@ -85,9 +96,8 @@ PDXRESULT PREFERENCES::Destroy(CONFIGFILE* const ConfigFile)
 		file[ "preferences hide menu in fullscreen" ] = ( hidemenu           ? "yes" : "no" );
 		file[ "preferences confirm exit"            ] = ( confirmexit        ? "yes" : "no" );
 		file[ "preferences save logfile"            ] = ( uselogfile         ? "yes" : "no" );
+		file[ "preferences use rom database"        ] = ( usedatabase        ? "yes" : "no" );
 	}
-
-	return PDX_OK;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -106,6 +116,7 @@ VOID PREFERENCES::Reset()
 	confirmexit        = TRUE;
 	uselogfile         = FALSE;
 	highpriority       = FALSE;
+	usedatabase        = TRUE;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -124,6 +135,7 @@ VOID PREFERENCES::UpdateDialog(HWND hDlg)
 	CheckDlgButton( hDlg, IDC_PREFERENCES_HIDE_MENU_FULLSCREEN, hidemenu           ? BST_CHECKED : BST_UNCHECKED );	
 	CheckDlgButton( hDlg, IDC_PREFERENCES_CONFIRM_EXIT,         confirmexit        ? BST_CHECKED : BST_UNCHECKED );	
 	CheckDlgButton( hDlg, IDC_PREFERENCES_LOGFILE,              uselogfile         ? BST_CHECKED : BST_UNCHECKED );	
+	CheckDlgButton( hDlg, IDC_PREFERENCES_USE_ROM_DATABASE,     usedatabase        ? BST_CHECKED : BST_UNCHECKED );	
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -134,24 +146,26 @@ VOID PREFERENCES::SetContext(HWND hDlg)
 {
 	if (hDlg)
 	{
-		emulateimmediately = IsDlgButtonChecked( hDlg, IDC_PREFERENCES_BEGIN_EMULATION      ) == BST_CHECKED ? TRUE : FALSE;	
-		background         = IsDlgButtonChecked( hDlg, IDC_PREFERENCES_RUN_IN_BACKGROUND    ) == BST_CHECKED ? TRUE : FALSE;	
-		backgroundnsf      = IsDlgButtonChecked( hDlg, IDC_PREFERENCES_NSF_IN_BACKGROUND    ) == BST_CHECKED ? TRUE : FALSE;	
-		highpriority       = IsDlgButtonChecked( hDlg, IDC_PREFERENCES_HIGH_PRIORITY        ) == BST_CHECKED ? TRUE : FALSE;	
-		fullscreen         = IsDlgButtonChecked( hDlg, IDC_PREFERENCES_STARTUP_FULLSCREEN   ) == BST_CHECKED ? TRUE : FALSE;	
-		nowarnings         = IsDlgButtonChecked( hDlg, IDC_PREFERENCES_DISABLE_ROM_WARNINGS ) == BST_CHECKED ? TRUE : FALSE;
-		closepoweroff      = IsDlgButtonChecked( hDlg, IDC_PREFERENCES_CLOSE_POWER_OFF      ) == BST_CHECKED ? TRUE : FALSE;
-		hidemenu           = IsDlgButtonChecked( hDlg, IDC_PREFERENCES_HIDE_MENU_FULLSCREEN ) == BST_CHECKED ? TRUE : FALSE;
-		confirmexit        = IsDlgButtonChecked( hDlg, IDC_PREFERENCES_CONFIRM_EXIT         ) == BST_CHECKED ? TRUE : FALSE;
-		uselogfile         = IsDlgButtonChecked( hDlg, IDC_PREFERENCES_LOGFILE              ) == BST_CHECKED ? TRUE : FALSE;
+		emulateimmediately = (IsDlgButtonChecked( hDlg, IDC_PREFERENCES_BEGIN_EMULATION      ) == BST_CHECKED);	
+		background         = (IsDlgButtonChecked( hDlg, IDC_PREFERENCES_RUN_IN_BACKGROUND    ) == BST_CHECKED);	
+		backgroundnsf      = (IsDlgButtonChecked( hDlg, IDC_PREFERENCES_NSF_IN_BACKGROUND    ) == BST_CHECKED);	
+		highpriority       = (IsDlgButtonChecked( hDlg, IDC_PREFERENCES_HIGH_PRIORITY        ) == BST_CHECKED);	
+		fullscreen         = (IsDlgButtonChecked( hDlg, IDC_PREFERENCES_STARTUP_FULLSCREEN   ) == BST_CHECKED);	
+		nowarnings         = (IsDlgButtonChecked( hDlg, IDC_PREFERENCES_DISABLE_ROM_WARNINGS ) == BST_CHECKED);
+		closepoweroff      = (IsDlgButtonChecked( hDlg, IDC_PREFERENCES_CLOSE_POWER_OFF      ) == BST_CHECKED);
+		hidemenu           = (IsDlgButtonChecked( hDlg, IDC_PREFERENCES_HIDE_MENU_FULLSCREEN ) == BST_CHECKED);
+		confirmexit        = (IsDlgButtonChecked( hDlg, IDC_PREFERENCES_CONFIRM_EXIT         ) == BST_CHECKED);
+		uselogfile         = (IsDlgButtonChecked( hDlg, IDC_PREFERENCES_LOGFILE              ) == BST_CHECKED);
+		usedatabase        = (IsDlgButtonChecked( hDlg, IDC_PREFERENCES_USE_ROM_DATABASE     ) == BST_CHECKED);
 	}
 
 	SetThreadPriority( GetCurrentThread(), highpriority ? THREAD_PRIORITY_HIGHEST : DefPriority );
 
 	NES::IO::GENERAL::CONTEXT context;
-	nes->GetGeneralContext( context );
+	nes.GetGeneralContext( context );	
 	context.DisableWarnings = nowarnings;
-	nes->SetGeneralContext( context );
+	context.UseRomDatabase = usedatabase;	
+	nes.SetGeneralContext( context );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
