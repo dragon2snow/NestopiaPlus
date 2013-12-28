@@ -1,0 +1,89 @@
+######################################################################
+#  2xSaI Utility v0.7        Copyright (c) Derek Liauw Kie Fa, 1999  #
+#  Comments, Suggestions, Questions, Bugs etc.: derek-liauw@usa.net  #
+#  http://members.xoom.com/derek_liauw/                              #
+#  This program is free for non-commercial use.                      #
+######################################################################
+
+
+Disclaimer
+==========
+Use this program at your own risk. This program was not intended to do
+anything malicious, but I am not responsible for any damage or loss
+that may arise by the use of this program.
+
+
+What does this program do?
+==========================
+This program demonstrates my 2xSaI, Super2xSaI, SuperEagle and Scale2xSaI
+engines. They take PCX or BMP files as input process it using one of the
+engines and output it as a PCX or BMP file.
+
+
+Okay, now what do the engines do?
+=================================
+These engines create enhanced scaled graphics for old arcade and console
+games based on the original lower resolution ones. They make it possible to
+experience truly higher resolution graphics [and not the blocky 'high-res'
+images we all know]. The engines created for use in emulators and are usually
+usually implemented as filters for the final image rendered by the emulator,
+but it should also be possible to prefilter sprites and tiles with them.
+
+
+How big are the scaled images?
+==============================
+2xSaI, SuperEagle and Super2xSaI scale the dimensions of the image
+by a factor of 2 [area is 2*2 = 4 times larger]. Scale2xSaI scales the
+image to an arbitrary LARGER size. Smaller also works, but will look like
+crap in most situations since it was not written for that purpose.
+
+
+How do the engines work?
+========================
+For some general principles check out Dirk Stevens' explanation on how
+his graphics enhancing Eagle engine works [http://www.retrofx.com/].
+Right now there's no short answer to how my engines work, but if you're
+good at analyzing source code, it's available freely available for
+non-commercial use. Things to look out for in the source: bilinear filtering
+and Wu lines/anti-aliasing.
+
+
+What language were the engines programmed in?
+=============================================
+All engines are coded in C [but compiled as C++]. There are also MMX assembly
+versions of the 2xSaI and SuperEagle engines. 
+
+
+Some programs using one or more of the engines
+==============================================
+ZSNES
+Snes9x (Windows and DOS versions)
+SNeESE
+and others.
+
+Quick demo
+==========
+Execute test.bat. It will create 4 files out1.bmp through out4.bmp. Each is a
+scaled image based on test.bmp. Now view the results in your favorite graphics
+viewing program.
+
+
+Using the utility
+=================
+Usage: 2xSaI <input.bmp> <output.bmp> -e <Enginenumber> -size <width> <height>
+<input.bmp> and <output.bmp> must be the first two parameters!
+       <input.bmp> must be an 8 or 24 bit PCX/BMP file.
+       <ouput.bmp> will be a 24 bit PCX/BMP file.
+
+Enginenumbers:
+       1: 2xSaI [default]
+       2: SuperEagle
+       3: Super2xSaI
+       4: Scale2xSaI
+
+width and height
+       Size of destination Bitmap. Used by Scale2xSaI
+       Default size 640x480
+
+
+

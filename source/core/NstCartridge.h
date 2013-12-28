@@ -76,8 +76,10 @@ private:
 
 	VOID DetectVS();
 	VOID DetectMirroring();
+	VOID DetectEncryption();
 	VOID DetectBattery();
 	VOID DetectControllers();
+	VOID DetectWRam();
 	VOID LoadBatteryRam();
 	VOID SaveBatteryRam() const;
 

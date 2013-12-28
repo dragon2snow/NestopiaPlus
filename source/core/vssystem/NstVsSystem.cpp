@@ -243,6 +243,7 @@ VOID VSSYSTEM::UpdateDipSwitches(const UINT start,const UINT end)
 
 		flags[0] |= ( ( dip.settings[dip.index].Second() & DIPSWITCH_4016_MASK ) << DIPSWITCH_4016_SHIFT );
 		flags[1] |= ( ( dip.settings[dip.index].Second() & DIPSWITCH_4017_MASK ) << DIPSWITCH_4017_SHIFT );
+
 	}
 }
 
@@ -342,10 +343,11 @@ VOID VSSYSTEM::BeginFrame(IO::INPUT* const input)
 
 		if (RemapButtons)
 		{
-			UINT src[2];
-
-			src[0] = input->pad[FirstPad ^ 0].buttons;
-			src[1] = input->pad[FirstPad ^ 1].buttons;
+			const UINT src[2] =
+			{
+				input->pad[FirstPad ^ 0].buttons,
+				input->pad[FirstPad ^ 1].buttons
+			};
 
 			for (UINT i=0; i < 2; ++i)
 			{
@@ -368,6 +370,7 @@ VOID VSSYSTEM::BeginFrame(IO::INPUT* const input)
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
+#define NES_SWAP_PADS()              context.SwapPads = TRUE;
 #define NES_SWAP_BUTTON(b0,b1)       PDX::Swap(context.ButtonMap[b0],context.ButtonMap[b1]);
 #define NES_MAP_COLOR(index)         context.ColorMapIndex = (index);
 #define NES_CRACK_PPU(security)      context.CopyProtectionPPU = TRUE; context.SecurityPPU = (security);
@@ -424,7 +427,7 @@ VSSYSTEM* VSSYSTEM::New(CPU& cpu,PPU& ppu,const ULONG pRomCrc)
 	context.cpu = &cpu;
 	context.ppu = &ppu;
 
-	// Credits to the MAME people for the dipswitch discoveries and descriptions.
+	// Credits to the MAME people for the dipswitch info.
 
 	switch (pRomCrc)
 	{
@@ -887,6 +890,7 @@ VSSYSTEM* VSSYSTEM::New(CPU& cpu,PPU& ppu,const ULONG pRomCrc)
 			NES_DIPVALUE    ( "Off",                0x00    )
 			NES_DIPVALUE    ( "On",                 0x80    )
 			NES_DIPEND      (                               )
+			NES_SWAP_PADS   (                               )
 			NES_SWAP_BUTTON ( START, SELECT                 )
 			NES_MAP_COLOR   ( 3                             )
 
@@ -918,7 +922,8 @@ VSSYSTEM* VSSYSTEM::New(CPU& cpu,PPU& ppu,const ULONG pRomCrc)
 			NES_DIPVALUE    ( "Long",                 0x00    )
 			NES_DIPVALUE    ( "Short",                0x40    )
 			NES_DIPEND	    (                                 )
-			NES_SWAP_BUTTON ( START, SELECT                   )
+            NES_SWAP_PADS   (                                 )
+            NES_SWAP_BUTTON ( START, SELECT                   )
 			NES_MAP_COLOR   ( 3                               )
 
 			goto hell;
@@ -1058,6 +1063,7 @@ VSSYSTEM* VSSYSTEM::New(CPU& cpu,PPU& ppu,const ULONG pRomCrc)
 			NES_DIPVALUE    ( "Very Hard",           0x60    )
 		    NES_DIPEND	    (                                )
 			NES_SWAP_BUTTON ( START, SELECT                  )
+			NES_SWAP_PADS   (                                )
 			NES_MAP_COLOR   ( 2                              )
 
 			goto hell;
@@ -1247,6 +1253,7 @@ VSSYSTEM* VSSYSTEM::New(CPU& cpu,PPU& ppu,const ULONG pRomCrc)
 			NES_DIPVALUE  ( "Easy",                    0x00    )
 			NES_DIPVALUE  ( "Hard",                    0x80    )
 			NES_DIPEND	  (                                    )
+			NES_SWAP_PADS (                                    )
 			NES_MAP_COLOR ( 1                                  )
 
 			goto hell;

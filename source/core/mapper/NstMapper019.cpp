@@ -392,7 +392,7 @@ VOID MAPPER19::IrqSync(const UINT delta)
 	{
 		IrqCount = 0x7FFF;
 		SetIrqEnable(FALSE);
-		cpu.TryIRQ();
+		cpu.DoIRQ();
 	}
 }
 

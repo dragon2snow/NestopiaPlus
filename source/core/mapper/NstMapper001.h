@@ -67,6 +67,8 @@ private:
 		DATA_RESET    = b10000000
 	};
 
+	BOOL n512k;
+
 	UINT  registers[4];
 	UINT  banks[4];
 	UINT  latch;

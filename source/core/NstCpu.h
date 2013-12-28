@@ -40,7 +40,7 @@ NES_NAMESPACE_BEGIN
 
 class CPU
 {
-private:
+public:
 
 	enum
 	{
@@ -53,6 +53,8 @@ private:
 		RAM_SIZE       = 0x800,
 		STACK_OFFSET   = 0x100
 	};
+
+private:
 
 	class EVENT
 	{
@@ -108,13 +110,12 @@ public:
   
 	enum
 	{
-		IRQ_TMP   = b00000001,
 		IRQ_FRAME = b01000000,
 		IRQ_EXT   = b00000010,
 		IRQ_EXT_1 = b00000010,
 		IRQ_EXT_2 = b00001000,
 		IRQ_DMC   = b10000000,
-		IRQ_ANY   = b11001011,
+		IRQ_ANY   = b11001010,
 		NMI       = b00000100
 	};
 
@@ -163,7 +164,6 @@ public:
 	VOID DoNMI(const ULONG);
 	VOID DoIRQ(const UINT=IRQ_EXT);
 	VOID ClearIRQ(const UINT=IRQ_EXT);
-	VOID TryIRQ();
 	VOID SetLine(const UINT=IRQ_EXT,const BOOL=TRUE);
 	BOOL IsLine(const UINT=IRQ_EXT) const;
 	BOOL IsIRQ(const UINT=IRQ_EXT) const;

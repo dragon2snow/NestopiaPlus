@@ -193,6 +193,9 @@
 #define IDM_FILE_LAUNCHER               345
 #define IDM_LAUNCHER_CLEAR_ALL          349
 #define IDM_LAUNCHER_FIND               351
+#define IDM_NETPLAY_DISCONNECT          359
+#define IDM_FILE_NETPLAY                361
+#define IDM_NETPLAY_CHATWINDOW          365
 #define IDS_APP_CREATEWINDOW_FAILED     604
 #define IDS_APP_DETACH_IMAGE            605
 #define IDS_APP_EXIT                    606
@@ -265,12 +268,14 @@
 #define IDS_APP_UNHANDLED_ERROR         673
 #define IDS_LAUNCHER_UNSUPPORTED_RES    674
 #define IDS_MACHINE_CONFIRM_RESET       675
-#define IDS_MACHINE_CONFORM_POWER_OFF   676
 #define IDS_MACHINE_CONFIRM_POWER_OFF   676
 #define IDS_MACHINE_CONFIRM_DETACH_IMAGE 677
 #define IDS_MACHINE_RESET               678
 #define IDS_MACHINE_POWER_OFF           679
 #define IDS_MACHINE_DETACH_IMAGE        680
+#define IDS_NETPLAY_INIT_ERROR          681
+#define IDS_NETPLAY_NO_GAMELIST         682
+#define IDS_NETPLAY_KAILLERA_ERROR      683
 #define IDC_SOUND_DEVICE                1001
 #define IDC_SOUND_SAMPLE_RATE           1002
 #define IDC_SOUND_ENABLE                1003
@@ -503,14 +508,27 @@
 #define IDC_LAUNCHER_COLUMNSELECT_DEFAULT 2926
 #define IDC_LAUNCHER_COLUMNSELECT_REMOVE 2927
 #define IDC_LAUNCHER_COLUMNSELECT_ADD   2928
+#define IDC_NETPLAY_START_KAILLERA      2929
+#define IDR_NETPLAY_MENU                2930
+#define IDC_NETPLAY_GAMELIST            2930
+#define IDD_NETPLAY                     2931
+#define IDC_NETPLAY_ADD                 2931
+#define IDC_NETPLAY_REMOVE              2932
+#define IDD_CHAT                        2932
+#define IDC_NETPLAY_CANCEL              2933
+#define IDC_NETPLAY_CLEAR_ALL           2934
+#define IDC_NETPLAY_DEFAULT             2936
+#define IDC_CHAT                        2936
+#define IDC_NETPLAY_DATABASENAMES       2938
+#define IDC_NETPLAY_PLAY_FULLSCREEN     2939
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        2930
-#define _APS_NEXT_COMMAND_VALUE         356
-#define _APS_NEXT_CONTROL_VALUE         2929
+#define _APS_NEXT_RESOURCE_VALUE        2933
+#define _APS_NEXT_COMMAND_VALUE         366
+#define _APS_NEXT_CONTROL_VALUE         2939
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

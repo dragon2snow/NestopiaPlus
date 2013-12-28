@@ -609,7 +609,11 @@ inline VOID CPU::Branch(const UINT taken)
 
 inline VOID CPU::sMem(const UINT address,const UINT data)
 {
-	CPU_EAT_CYCLES(1);
+	// Note the reversed order of write execution and cycle eating.
+	// The swapped order is more technically correct but it gave me 
+	// problems with PPU timing.
+
+	CPU_EAT_CYCLES(1); 
 	CPU_WRITE_BYTE(address,data);
 }
 
@@ -1099,18 +1103,14 @@ VOID CPU::Reset(const BOOL hard)
 	{
 		srand(UINT(time(NULL)));
 
-   		// maybe a little over the top but some games 
-   		// actually read from it unmodified so make
-		// sure the ram contains garbage.
-
 		for (UINT i=0; i < RAM_SIZE; ++i)
-			ram[i] = rand();
+			ram[i] = (rand() & 0x1) ? 0xFF : 0x00;
 
 		AD = XD = YD = 0;
 		SPD = 0xFF;
 		FND = FCD = FVD = FZD = 0;
 	}
-
+  
 	FID = 1;
 	FDD = 0;
 	PCD = CPU_READ_WORD(RESET_VECTOR);
@@ -1269,10 +1269,7 @@ VOID CPU::HandlePendingInterrupts()
 	else if (IntLow & IRQ_ANY)
 	{		
 		if ((!FID || (IntState & I_DELAY_ON)) && !(IntState & I_DELAY_OFF))
-		{
-			IntLow &= ~IRQ_TMP;
 			DoISR();
-		}
 	}
 }
 

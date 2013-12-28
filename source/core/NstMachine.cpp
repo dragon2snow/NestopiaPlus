@@ -1058,12 +1058,6 @@ VOID MACHINE::Reset(const BOOL hard)
 				VsSystem->Reset( hard );
 
 			GameGenie->Reset();
-
-			if (cartridge && cartridge->GetInfo().pRomCrc == 0x885ACC2BUL)
-			{
-				// bad dump of SMB1, but I'm willing to help..
-				cpu.ClearRAM();
-			}
 		}
 
 		if (mode == MODE_AUTO)

@@ -244,7 +244,7 @@ BEGIN
                     SS_NOTIFY
     LTEXT           "Home",IDC_STATIC,70,86,20,10
     LTEXT           "Project",IDC_STATIC,68,107,24,10
-    LTEXT           "Nestopia 1.08",IDC_STATIC,57,15,47,13
+    LTEXT           "Nestopia 1.09",IDC_STATIC,57,15,47,13
     ICON            IDI_PROGRAM,IDC_STATIC,70,28,20,20
 END
 
@@ -370,16 +370,17 @@ BEGIN
     PUSHBUTTON      "Cancel",IDC_DIPSWITCHES_CANCEL,135,159,50,14
 END
 
-IDD_COMPRESSED_FILE DIALOGEX 0, 0, 176, 150
+IDD_COMPRESSED_FILE DIALOGEX 0, 0, 210, 155
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | 
     WS_SYSMENU
 CAPTION "Choose File"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    DEFPUSHBUTTON   "Open",IDC_COMPRESSED_FILE_OK,119,129,50,14
-    LISTBOX         IDC_COMPRESSED_FILE_LIST,7,7,162,114,
-                    LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
-    PUSHBUTTON      "Cancel",IDC_COMPRESSED_FILE_CANCEL,64,129,50,14,
+    DEFPUSHBUTTON   "Open",IDC_COMPRESSED_FILE_OK,153,134,50,14
+    LISTBOX         IDC_COMPRESSED_FILE_LIST,7,7,196,114,
+                    LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_HSCROLL | 
+                    WS_TABSTOP
+    PUSHBUTTON      "Cancel",IDC_COMPRESSED_FILE_CANCEL,92,134,50,14,
                     WS_GROUP
 END
 
@@ -672,7 +673,7 @@ BEGIN
                     IDC_LAUNCHER_PATHS_ALLFILES,"Button",BS_AUTOCHECKBOX | 
                     WS_TABSTOP,14,167,124,10
     GROUPBOX        "",IDC_STATIC,7,160,145,36
-    CONTROL         "Eliminate dublicate files",
+    CONTROL         "Eliminate duplicate files",
                     IDC_LAUNCHER_PATHS_UNIQUEFILES,"Button",BS_AUTOCHECKBOX | 
                     WS_TABSTOP,14,179,90,10
 END
@@ -699,6 +700,40 @@ BEGIN
     PUSHBUTTON      "Change",IDC_LAUNCHER_COLORS_FG_CHANGE,60,20,38,12
     GROUPBOX        "Background Color",IDC_STATIC,7,45,110,34
     PUSHBUTTON      "Change",IDC_LAUNCHER_COLORS_BG_CHANGE,60,58,38,12
+END
+
+IDD_NETPLAY DIALOGEX 0, 0, 272, 183
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | 
+    WS_SYSMENU
+CAPTION "Netplay"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "Start Kaillera",IDC_NETPLAY_START_KAILLERA,208,156,57,
+                    20
+    PUSHBUTTON      "Cancel",IDC_NETPLAY_CANCEL,148,156,50,20
+    LISTBOX         IDC_NETPLAY_GAMELIST,14,19,184,103,LBS_SORT | 
+                    LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_HSCROLL | 
+                    WS_TABSTOP,WS_EX_ACCEPTFILES
+    GROUPBOX        "Game List",IDC_STATIC,7,7,258,139
+    PUSHBUTTON      "Add",IDC_NETPLAY_ADD,214,20,43,16
+    PUSHBUTTON      "Remove",IDC_NETPLAY_REMOVE,214,43,43,16
+    PUSHBUTTON      "Clear All",IDC_NETPLAY_CLEAR_ALL,213,70,43,16
+    PUSHBUTTON      "Default",IDC_NETPLAY_DEFAULT,87,156,50,20
+    CONTROL         "Submit Database Names",IDC_NETPLAY_DATABASENAMES,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,14,129,92,10
+    CONTROL         "Play in Fullscreen",IDC_NETPLAY_PLAY_FULLSCREEN,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,113,129,70,10
+END
+
+IDD_CHAT DIALOGEX 0, 0, 323, 27
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | 
+    WS_SYSMENU
+EXSTYLE WS_EX_TOOLWINDOW
+CAPTION "Chat"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    CONTROL         "",IDC_CHAT,"RichEdit20A",ES_AUTOHSCROLL | ES_WANTRETURN | 
+                    WS_BORDER | WS_TABSTOP,7,7,309,13
 END
 
 
@@ -793,9 +828,9 @@ BEGIN
     IDD_COMPRESSED_FILE, DIALOG
     BEGIN
         LEFTMARGIN, 7
-        RIGHTMARGIN, 169
+        RIGHTMARGIN, 203
         TOPMARGIN, 7
-        BOTTOMMARGIN, 143
+        BOTTOMMARGIN, 148
     END
 
     IDD_PREFERENCES, DIALOG
@@ -925,6 +960,22 @@ BEGIN
         TOPMARGIN, 7
         BOTTOMMARGIN, 101
     END
+
+    IDD_NETPLAY, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 265
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 176
+    END
+
+    IDD_CHAT, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 316
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 20
+    END
 END
 #endif    // APSTUDIO_INVOKED
 
@@ -1013,6 +1064,8 @@ BEGIN
             MENUITEM "&Next\t0",                    IDM_FILE_QUICK_SAVE_STATE_SLOT_NEXT
             , GRAYED
         END
+        MENUITEM SEPARATOR
+        MENUITEM "&Netplay..",                  IDM_FILE_NETPLAY
         MENUITEM SEPARATOR
         MENUITEM "Save Scr&eenshot\tAlt+E",     IDM_FILE_SAVE_SCREENSHOT
         , GRAYED
@@ -1199,7 +1252,7 @@ BEGIN
         END
         POPUP "S&how"
         BEGIN
-            MENUITEM "&Menu\tEsc / R.Mouse",        IDM_VIEW_MENU, GRAYED
+            MENUITEM "&Menu\tEsc / R.Mouse",        IDM_VIEW_MENU
             MENUITEM "Status &Bar\tAlt+B",          IDM_VIEW_STATUSBAR
             MENUITEM "On &Top\tAlt+T",              IDM_VIEW_ON_TOP
             MENUITEM "&FPS\tAlt+F",                 IDM_VIEW_FPS
@@ -1276,6 +1329,15 @@ BEGIN
     END
 END
 
+IDR_NETPLAY_MENU MENU 
+BEGIN
+    POPUP "&Netplay"
+    BEGIN
+        MENUITEM "&Chat Window\tAlt+C",         IDM_NETPLAY_CHATWINDOW
+        MENUITEM "&Disconnect\tAlt+D",          IDM_NETPLAY_DISCONNECT
+    END
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -1334,6 +1396,8 @@ BEGIN
     "D",            IDM_MACHINE_POWER_ON,   VIRTKEY, SHIFT, NOINVERT
     "T",            IDM_MACHINE_RESET_HARD, VIRTKEY, SHIFT, NOINVERT
     "R",            IDM_MACHINE_RESET_SOFT, VIRTKEY, SHIFT, NOINVERT
+    "C",            IDM_NETPLAY_CHATWINDOW, VIRTKEY, ALT, NOINVERT
+    "D",            IDM_NETPLAY_DISCONNECT, VIRTKEY, ALT, NOINVERT
     VK_RIGHT,       IDM_NSF_NEXT,           VIRTKEY, SHIFT, NOINVERT
     VK_UP,          IDM_NSF_PLAY,           VIRTKEY, SHIFT, NOINVERT
     VK_LEFT,        IDM_NSF_PREV,           VIRTKEY, SHIFT, NOINVERT
@@ -1371,8 +1435,8 @@ IDR_ROMDATABASE1        ROMDATABASE             "RomDatabase.dat"
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 0,1,0,8
- PRODUCTVERSION 0,1,0,8
+ FILEVERSION 0,1,0,9
+ PRODUCTVERSION 0,1,0,9
  FILEFLAGSMASK 0x17L
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1388,11 +1452,11 @@ BEGIN
         BLOCK "040904b0"
         BEGIN
             VALUE "FileDescription", "NES / Famicom emulator"
-            VALUE "FileVersion", "1.08"
+            VALUE "FileVersion", "1.09"
             VALUE "LegalCopyright", "Copyright (C) Martin Freij 2003"
             VALUE "OriginalFilename", "Nestopia.exe"
             VALUE "ProductName", "Nestopia"
-            VALUE "ProductVersion", "1.08"
+            VALUE "ProductVersion", "1.09"
         END
     END
     BLOCK "VarFileInfo"
@@ -1526,6 +1590,10 @@ BEGIN
     IDS_MACHINE_RESET       "Reset Machine"
     IDS_MACHINE_POWER_OFF   "Power Off Machine"
     IDS_MACHINE_DETACH_IMAGE "Detach Image File"
+    IDS_NETPLAY_INIT_ERROR  "An error occured during netplay initialization!"
+    IDS_NETPLAY_NO_GAMELIST "Game list couldn't be assembled!"
+    IDS_NETPLAY_KAILLERA_ERROR 
+                            "An unknown error occured in kailleraclient.dll!"
 END
 
 #endif    // English (U.S.) resources

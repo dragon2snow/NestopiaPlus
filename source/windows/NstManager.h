@@ -48,7 +48,7 @@ public:
 	virtual VOID Create  (CONFIGFILE* const) {}
 	virtual VOID Destroy (CONFIGFILE* const) {}
 
-	VOID StartDialog(HWND=NULL);
+	INT_PTR StartDialog(HWND=NULL);
 
 	static TSIZE GetDlgItemText(HWND,const INT,PDXSTRING&,const INT=MAX_PATH);
 

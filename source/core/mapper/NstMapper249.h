@@ -43,10 +43,13 @@ public:
 private:
 
 	VOID Reset();
-	VOID UpdatePRom();
-	VOID UpdateCRom();
+
+	static UINT Unscramble1(const UINT);
+	static UINT Unscramble2(const UINT);
 
 	NES_DECL_POKE(5000);
+	NES_DECL_POKE(8000);
+	NES_DECL_POKE(8001);
 
 	UINT reg;
 };

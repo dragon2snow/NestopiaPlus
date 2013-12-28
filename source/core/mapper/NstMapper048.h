@@ -33,31 +33,12 @@ NES_NAMESPACE_BEGIN
 // mapper 48
 ////////////////////////////////////////////////////////////////////////////////////////
 
-class MAPPER48 : public MAPPER
+class MAPPER48 : public MAPPER33
 {
 public:
 
 	MAPPER48(CONTEXT& c)
-	: MAPPER(c,&DoMirroring,&DoMirroring+1) {}
-
-private:
-
-	VOID Reset();
-	VOID IrqSync();
-
-	NES_DECL_POKE( 8000 );
-	NES_DECL_POKE( 8001 );
-	NES_DECL_POKE( 8002 );
-	NES_DECL_POKE( 8003 );
-	NES_DECL_POKE( A000 );
-	NES_DECL_POKE( A001 );
-	NES_DECL_POKE( A002 );
-	NES_DECL_POKE( A003 );
-	NES_DECL_POKE( C000 );
-	NES_DECL_POKE( C001 );
-	NES_DECL_POKE( E000 );
-
-	BOOL DoMirroring;
+	: MAPPER33(c) {}
 };
 
 NES_NAMESPACE_END

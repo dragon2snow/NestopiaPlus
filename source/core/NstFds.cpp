@@ -291,12 +291,10 @@ VOID FDS::Reset(const BOOL)
 {
 	LogReset();
 
-	IrqCycles   = 0;
+	IrqCycles   = LONG_MAX;
 	IrqLatch.d  = 0;
-	IrqCount    = 0;
-	IrqEnabled  = 0;
 	IrqOnce     = 0;
-	IrqWait     = 0;
+	IrqWait     = LONG_MAX;
 	ctrl        = 0;
 	pos         = 0;
 	DiskEnabled = 0;
@@ -344,6 +342,19 @@ PDXRESULT FDS::SaveState(PDXFILE& file)
 {
 	file.Write( wRam, wRam + n32k );
 
+	// adjusted for compatibility
+
+	const BOOL IrqWaitEn = (IrqWait != LONG_MAX);
+	const BOOL IrqEnabled = (IrqCycles != LONG_MAX);
+
+	LONG IrqCount = 0;
+
+	if (IrqEnabled)
+	{
+		IrqCount = (IrqCycles - cpu.GetCycles<CPU::CYCLE_MASTER>());
+		IrqCount = (cpu.IsPAL() ? NES_PAL_TO_CPU(IrqCount) : NES_NTSC_TO_CPU(IrqCount));
+	}
+
 	file << U16( offset              );
 	file << U16( last                );
 	file <<  U8( ctrl                );
@@ -355,8 +366,8 @@ PDXRESULT FDS::SaveState(PDXFILE& file)
 	file <<  U8( IrqEnabled ? 1 : 0  );
 	file <<  U8( IrqOnce ? 1 : 0     );
 	file << I32( IrqCount            );
-	file << I32( IrqWait             );
-	file << I32( IrqCycles           );
+	file << I32( IrqWaitEn ? 1 : 0   );
+	file << I32( 0                   );
 
 	return sound.SaveState( file );
 }
@@ -372,6 +383,10 @@ PDXRESULT FDS::LoadState(PDXFILE& file)
 
 	file.Read( wRam, wRam + n32k );
 
+	// adjusted for compatibility
+
+	BOOL IrqEnabled;
+
 	offset      = file.Read<U16> ();
 	last        = file.Read<U16> ();
 	ctrl        = file.Read<U8>  ();
@@ -381,10 +396,38 @@ PDXRESULT FDS::LoadState(PDXFILE& file)
 	InsertWait  = file.Read<U16> ();
 	IrqLatch.d  = file.Read<U16> ();
 	IrqEnabled  = file.Read<U8>  ();
-	IrqOnce     = file.Read<U8>  ();
-	IrqCount    = file.Read<I32> ();
-	IrqWait     = file.Read<I32> ();
+	IrqOnce     = file.Read<U8>  ();	
 	IrqCycles   = file.Read<I32> ();
+	
+	if (IrqEnabled)
+	{
+		IrqCycles = cpu.GetCycles<CPU::CYCLE_MASTER>() + 
+		(
+			cpu.IsPAL() ? NES_CPU_TO_PAL(IrqCycles) :
+                     	  NES_CPU_TO_NTSC(IrqCycles)
+		);
+	}
+	else
+	{
+		IrqCycles = LONG_MAX;
+	}
+	
+	IrqWait = file.Read<I32>();
+	
+	if (IrqWait)
+	{
+		IrqWait = cpu.GetCycles<CPU::CYCLE_MASTER>() + 
+		(
+			cpu.IsPAL() ? NES_CPU_TO_PAL(IRQ_WAIT_LONG) :
+                		  NES_CPU_TO_NTSC(IRQ_WAIT_LONG)
+		);
+	}
+	else
+	{
+		IrqWait = LONG_MAX;
+	}
+
+	file.Read<I32>();
 
 	return sound.LoadState( file );
 }
@@ -393,7 +436,7 @@ PDXRESULT FDS::LoadState(PDXFILE& file)
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-NES_PEEK(FDS,Nop)  { return cpu.GetCache();        }
+NES_PEEK(FDS,Nop)  { return cpu.GetCache();         }
 NES_POKE(FDS,Nop)  {                                }
 NES_PEEK(FDS,wRam) { return wRam[address - 0x6000]; }
 NES_POKE(FDS,wRam) { wRam[address - 0x6000] = data; }
@@ -426,10 +469,21 @@ NES_POKE(FDS,4021)
 NES_POKE(FDS,4022) 
 { 
 	cpu.ClearIRQ(CPU::IRQ_EXT_1); 
-	
-	IrqCount   = IrqLatch.d; 
-	IrqEnabled = (data & IRQ_ENABLE) ? TRUE : FALSE;
-	IrqOnce    = (data & IRQ_ALWAYS) ? FALSE : TRUE;
+
+	IrqOnce = !(data & IRQ_ALWAYS);
+
+	if (data & IRQ_ENABLE)
+	{
+		IrqCycles = cpu.GetCycles<CPU::CYCLE_MASTER>() + 
+		(
+	       	cpu.IsPAL() ? NES_CPU_TO_PAL(IrqLatch.d+1) : 
+		                  NES_CPU_TO_NTSC(IrqLatch.d+1)
+		);
+	}
+	else
+	{
+		IrqCycles = LONG_MAX;
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -472,7 +526,12 @@ NES_POKE(FDS,4025)
 	{
 		if ((ctrl & CTRL_DRIVE_READY) && !(data & CTRL_CRC) && !(data & CTRL_DRIVE_READY))
 		{
-			IrqWait = IRQ_WAIT_LONG;
+			IrqWait = cpu.GetCycles<CPU::CYCLE_MASTER>() + 
+			(
+				cpu.IsPAL() ? NES_CPU_TO_PAL(IRQ_WAIT_LONG) :
+                  			  NES_CPU_TO_NTSC(IRQ_WAIT_LONG)
+			);
+
 			pos = (pos >= 2) ? pos-2 : 0;
 		}
 
@@ -481,7 +540,11 @@ NES_POKE(FDS,4025)
 
 		if (data & (CTRL_DRIVE_READY|CTRL_TRANSFER_RESET))
 		{
-			IrqWait = IRQ_WAIT_LONG;
+			IrqWait = cpu.GetCycles<CPU::CYCLE_MASTER>() + 
+			(
+				cpu.IsPAL() ? NES_CPU_TO_PAL(IRQ_WAIT_LONG) :
+                  			  NES_CPU_TO_NTSC(IRQ_WAIT_LONG)
+			);
 
 			if (data & CTRL_TRANSFER_RESET)
 				pos = 0;
@@ -523,7 +586,12 @@ NES_PEEK(FDS,4031)
 
 		if (ctrl & CTRL_MOTOR)
 		{
-			IrqWait = IRQ_WAIT_SHORT;
+			IrqWait = cpu.GetCycles<CPU::CYCLE_MASTER>() + 
+			(
+     			cpu.IsPAL() ? NES_CPU_TO_PAL(IRQ_WAIT_SHORT) :
+			                  NES_CPU_TO_NTSC(IRQ_WAIT_SHORT)
+			);
+
 			pos = PDX_MIN(pos+1,65000U);
 		}
 
@@ -570,25 +638,41 @@ NES_PEEK(FDS,4033)
 
 VOID FDS::IrqSync()
 {
-	if (IrqWait > 0 || IrqEnabled)
+	const ULONG CpuCycles = cpu.GetCycles<CPU::CYCLE_MASTER>();
+
+	if (IrqCycles <= CpuCycles)
 	{
-		const ULONG CpuCycles = cpu.GetCycles<CPU::CYCLE_MASTER>();
-		const ULONG delta = (CpuCycles - IrqCycles) / (cpu.IsPAL() ? NES_CPU_PAL_FIXED : NES_CPU_NTSC_FIXED);
+		if (IrqOnce)
+			IrqCycles = LONG_MAX;
+		else
+			IrqCycles = CpuCycles + (cpu.IsPAL() ? NES_CPU_TO_PAL(IrqLatch.d+1) : NES_CPU_TO_NTSC(IrqLatch.d+1));
 
-		if (IrqCount && IrqEnabled && (IrqCount -= delta) <= 0)
-		{
-			if (IrqOnce)
-				IrqEnabled = FALSE;
-
-			IrqCount = IrqLatch.d;
-			cpu.DoIRQ(CPU::IRQ_EXT_1);
-		}
-  
-		if (IrqWait > 0 && (IrqWait -= delta) <= 0 && (ctrl & CTRL_DISK_IRQ_ENABLED))
-			cpu.DoIRQ(CPU::IRQ_EXT_2);
-
-		IrqCycles = CpuCycles;
+		cpu.DoIRQ(CPU::IRQ_EXT_1);
 	}
+
+	if (IrqWait <= CpuCycles)
+	{
+		IrqWait = LONG_MAX;
+
+		if (ctrl & CTRL_DISK_IRQ_ENABLED)
+			cpu.DoIRQ(CPU::IRQ_EXT_2);
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+VOID FDS::VSync()
+{
+	if (IrqCycles != LONG_MAX)
+		IrqCycles -= cpu.GetFrameCycles<CPU::CYCLE_MASTER>();
+
+	if (IrqWait != LONG_MAX)
+		IrqWait -= cpu.GetFrameCycles<CPU::CYCLE_MASTER>();
+
+	if (InsertWait < 180)
+		++InsertWait;
 }
 
 NES_NAMESPACE_END

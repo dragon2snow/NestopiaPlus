@@ -232,7 +232,7 @@
 			<File
 				RelativePath="..\source\NstZipFile.h"/>
 			<Filter
-				Name="zlib"
+				Name="zlib_unzip"
 				Filter="">
 				<File
 					RelativePath="..\source\zlib\ioapi.h"/>
@@ -252,28 +252,7 @@
 			Name="Windows"
 			Filter="">
 			<File
-				RelativePath="..\source\windows\NstApplication.cpp">
-				<FileConfiguration
-					Name="Debug|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						AdditionalOptions="">
-						<IntelOptions
-							AllOptions="/c  /I &quot;.\source\paradox&quot; /Zi /nologo /W3 /Od /Oi /G7 /D &quot;WIN32&quot; /D &quot;_DEBUG&quot; /D &quot;_WINDOWS&quot; /D &quot;_USE_INTEL_COMPILER&quot; /D &quot;_M_IX86&quot; /GF /FD /EHsc /RTC1 /MLd /GS /Zc:forScope /Qrestrict /YX&quot;StdAfx.h&quot; /Fp&quot;Debug/Nestopia.pch&quot; /Fo&quot;Debug/&quot; /Fd&quot;Debug/vc70.pdb&quot; /Gr /TP"
-							MSOriginalAdditionalOptions=""/>
-					</Tool>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32">
-					<Tool
-						Name="VCCLCompilerTool"
-						AdditionalOptions="">
-						<IntelOptions
-							AllOptions="/c /Qwn1 /GL /I &quot;.\source\paradox&quot; /nologo /W3 /O3 /Og /Ob2 /Oi /Ot /Oy /G7 /GA /QaxW /QxM /D &quot;WIN32&quot; /D &quot;NDEBUG&quot; /D &quot;_USE_INTEL_COMPILER&quot; /D &quot;_WINDOWS&quot; /D &quot;_M_IX86&quot; /GF /FD /EHsc /ML /Gy /Zc:forScope /Qrestrict /YX&quot;StdAfx.h&quot; /Fp&quot;Release/Nestopia.pch&quot; /Fo&quot;Release/&quot; /Fd&quot;Release/vc70.pdb&quot; /Gr /TP"
-							MSOriginalAdditionalOptions=""/>
-					</Tool>
-				</FileConfiguration>
-			</File>
+				RelativePath="..\source\windows\NstApplication.cpp"/>
 			<File
 				RelativePath="..\source\windows\NstApplication.h"/>
 			<File
@@ -290,6 +269,10 @@
 				RelativePath="..\source\windows\NstException.cpp"/>
 			<File
 				RelativePath="..\source\windows\NstException.h"/>
+			<File
+				RelativePath="..\source\windows\NstMenu.cpp"/>
+			<File
+				RelativePath="..\source\windows\NstMenu.h"/>
 			<File
 				RelativePath="..\source\windows\NstStatusBar.cpp"/>
 			<File
@@ -464,7 +447,7 @@
 					RelativePath="..\source\windows\NstLauncherPaths.h"/>
 			</Filter>
 			<Filter
-				Name="Dialogs"
+				Name="Managers"
 				Filter="">
 				<File
 					RelativePath="..\source\windows\NstFdsManager.cpp"/>
@@ -507,6 +490,10 @@
 				<File
 					RelativePath="..\source\windows\NstMovieManager.h"/>
 				<File
+					RelativePath="..\source\windows\NstNetplayManager.cpp"/>
+				<File
+					RelativePath="..\source\windows\NstNetplayManager.h"/>
+				<File
 					RelativePath="..\source\windows\NstPreferences.cpp"/>
 				<File
 					RelativePath="..\source\windows\NstPreferences.h"/>
@@ -543,6 +530,28 @@
 				RelativePath="..\source\2xsai\2xSai.cpp"/>
 			<File
 				RelativePath="..\source\2xsai\2xSai.h"/>
+		</Filter>
+		<Filter
+			Name="kaillera"
+			Filter="">
+			<File
+				RelativePath="..\source\kaillera\kailleraclient.h"/>
+			<File
+				RelativePath="..\source\windows\NstChatWindow.cpp"/>
+			<File
+				RelativePath="..\source\windows\NstChatWindow.h"/>
+			<File
+				RelativePath="..\source\NstKaillera.cpp"/>
+			<File
+				RelativePath="..\source\NstKaillera.h"/>
+		</Filter>
+		<Filter
+			Name="Scale2x"
+			Filter="">
+			<File
+				RelativePath="..\source\scale2x\scale2x.h"/>
+			<File
+				RelativePath="..\source\scale2x\scale3x.h"/>
 		</Filter>
 		<File
 			RelativePath="..\source\nestopia.cpp"/>

@@ -130,9 +130,7 @@ private:
 	UINT InsertWait;
 
 	PDXWORD IrqLatch;
-	BOOL    IrqEnabled;
 	BOOL    IrqOnce;
-	LONG    IrqCount;
 	LONG    IrqWait;
 	LONG    IrqCycles;
 
@@ -177,18 +175,6 @@ inline VOID FDS::SetWriteProtection(const BOOL state)
 inline BOOL FDS::IsWriteProtected()
 { 
 	return WriteProtect; 
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-inline VOID FDS::VSync()
-{
-	IrqCycles = cpu.GetCycles<CPU::CYCLE_MASTER>();
-
-	if (InsertWait < 180)
-		++InsertWait;
 }
 
 NES_NAMESPACE_END

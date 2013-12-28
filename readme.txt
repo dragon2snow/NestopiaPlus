@@ -1,5 +1,5 @@
 -----------------------------------------------------------------------------
-Nestopia 1.08 - NES/Famicom emulator
+Nestopia 1.09 - NES/Famicom emulator
 -----------------------------------------------------------------------------
 
 Nestopia is Copyright 2003 by Martin Freij
@@ -283,6 +283,8 @@ Nestopia.exe "<file>"
 -launcher search files unf            : <yes,no>
 -launcher search files zip            : <yes,no>
 -launcher search no dublicate files   : <yes,no>
+-netplay in fullscreen                : <yes,no>
+-netplay use database names           : <yes,no>
 -preferences allow multiple instances : <yes,no>
 -preferences auto priority control    : <yes,no>
 -preferences confirm exit             : <yes,no>
@@ -337,7 +339,7 @@ Nestopia.exe "<file>"
 -video screen                         : <1x,2x,3x,stretched>
 -video unlimited sprites              : <yes,no>
 -view show fps                        : <yes,no>
--view show fullscreen menu            : <yes,no>
+-view show menu                       : <yes,no>
 -view show on top                     : <yes,no>
 -view show status bar                 : <yes,no>
 -window size                          : <1x,2x,3x,4x>
@@ -356,13 +358,14 @@ after first run).
 Fully or Partially Supported Mappers
 -----------------------------------------------------------------------------
 
-1,2,3,4,5,6,7,8,9,10,11,13,15,16,17,18,19,21,22,23,24,25,26,32,33,
-34,40,41,42,43,44,45,46,47,48,49,50,51,52,57,58,60,61,62,64,65,66,
-67,68,69,70,71,72,73,74,75,76,77,78,79,80,82,83,85,86,87,88,89,90,
-91,92,93,94,95,96,97,99,100,101,105,107,112,113,114,115,117,118,119,
-122,133,134,135,140,144,151,152,153,154,155,156,157,160,180,181,182,
-183,184,185,187,188,189,198,222,225,226,227,228,229,230,231,232,233,
-234,235,236,237,240,241,242,243,244,245,246,248,249,250,255 = a total of 137
+1,2,3,4,5,6,7,8,9,10,11,12,13,15,16,17,18,19,21,22,23,24,25,26,32,
+33,34,40,41,42,43,44,45,46,47,48,49,50,51,52,57,58,60,61,62,64,65,
+66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,82,83,85,86,87,88,89,
+90,91,92,93,94,95,96,97,99,100,101,105,107,112,113,114,115,117,118,
+119,122,133,134,135,140,144,151,152,153,154,155,156,157,160,180,181,
+182,183,184,185,187,188,189,198,200,201,202,222,225,226,227,228,229,
+230,231,232,233,234,235,236,237,240,241,242,243,244,245,246,248,249,
+250,252,254,255 = a total of 143
 
 -----------------------------------------------------------------------------
 Supported Sound Chips
@@ -456,13 +459,17 @@ suggestions on what you can do to speed things up.
 
 - Disable the FPS counter.
 
+- Enable auto thread priority control.
+
 -----------------------------------------------------------------------------
 Credits and Thanks
 -----------------------------------------------------------------------------
 
+Andrea Mazzoleni          - Scale2x/Scale3x graphic filters
 Brad Taylor               - PPU and pAPU technical documents
 Chris Covell              - demos, test roms and general info
-Derek Liauw Kie Fa.       - 2xSaI engine
+Christophe Thibault       - Kaillera client API
+Derek Liauw Kie Fa.       - 2xSaI graphic filters
 [yang]                    - rom database 
 FireBug                   - mapper documents
 Gilles Vollant            - ZIP file loading routines 
@@ -486,9 +493,8 @@ Memblers                  - nesdev.parodius.com, simply the best resource
 Tennessee Carmel-Veilleux - UNIF format inventor
 Quietust                  - various info
 
-Also a big thanks to the authors of NNNesterJ and FCEUltra for a good reference 
+Also a big thanks to the authors of NNNesterJ, FCEUltra and VirtuaNES for a good reference 
 on the more exotic mappers. And lastly, credits to the authors of the VS.NES part 
-in MAME for all the dipswitch settings and explanations, thanks to them you can 
-now control the appearence of that retarded bear in Ice Climber!
+in MAME for all the dipswitch info.
 
 <eof>

@@ -145,11 +145,13 @@ NES_POKE(MAPPER85,F000)
 	}
 
 	SetIrqEnable( IrqState & 0x2 );
+	cpu.ClearIRQ();
 }
 
 NES_POKE(MAPPER85,F008) 
 { 
 	SetIrqEnable( IrqState );
+	cpu.ClearIRQ();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -165,7 +167,7 @@ VOID MAPPER85::IrqSync(const UINT delta)
 		if (++IrqCount >= 0xFF)
 		{
 			IrqCount = IrqLatch;
-			cpu.TryIRQ();
+			cpu.DoIRQ();
 		}
 	}
 }

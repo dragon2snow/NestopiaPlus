@@ -33,12 +33,12 @@ NES_NAMESPACE_BEGIN
 // mapper 245
 ////////////////////////////////////////////////////////////////////////////////////////
 
-class MAPPER245 : public MAPPER
+class MAPPER245 : public MAPPER4
 {
 public:
 
 	MAPPER245(CONTEXT& c)
-	: MAPPER(c,&command,&command+1) {}
+	: MAPPER4(c,regs,regs+3) {}
 
 private:
 
@@ -47,7 +47,7 @@ private:
 	NES_DECL_POKE( 8000 );
 	NES_DECL_POKE( 8001	);
 
-	UINT command;
+	UINT regs[3];
 };
 
 NES_NAMESPACE_END

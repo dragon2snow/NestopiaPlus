@@ -90,7 +90,7 @@ VOID MAPPER45::UpdateCRom()
 	ppu.Update();
 
 	const UINT r1 = (regs[2] & 0x8) ? (1 << ((regs[2] & 0x7) + 1)) - 1 : 0;
-	const UINT r2 = regs[0] | ((regs[2] & 0x10) << 4);
+	const UINT r2 = regs[0] | ((regs[2] & 0xF0) << 4);
 
 	if (command & SWAP_CROM_BANKS)
 	{

@@ -201,13 +201,13 @@ VOID MAPPER83::IrqSync(const UINT delta)
 {
 	if (IrqCount <= 113)
 	{
-		SetIrqEnable( FALSE );
-		cpu.TryIRQ();
+		if (IrqCount <= 99)
+			SetIrqEnable( FALSE );
+		else
+			cpu.DoIRQ();
 	}
-	else
-	{
-		IrqCount -= delta;
-	}
+
+	IrqCount -= delta;
 }
 
 NES_NAMESPACE_END

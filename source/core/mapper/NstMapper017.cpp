@@ -33,7 +33,26 @@ NES_NAMESPACE_BEGIN
 
 VOID MAPPER17::Reset()
 {
-	EnableIrqSync(IRQSYNC_PPU);
+	EnableIrqSync(IRQSYNC_COUNT);
+
+	switch (pRomCrc)
+	{
+		case 0x57BAF095UL: // Doki! Doki! Yuuenchi
+		case 0xE64138ECUL: // Dragon Ball Z 2 - Gekishin Freeza!!
+		case 0xC7A4583EUL: // Dragon Ball Z 3 - Ressen Jinzou Ningen
+		case 0xCB7E529DUL: // SD Gundam Gaiden - Knight Gundam Monogatari 2 - Hikari no Kishi
+		case 0x8F3F8B1FUL: // Spartan X2
+		case 0xA3047263UL: // -||-
+		case 0xC529C604UL: // -||-
+
+			IrqNum = 0x10000UL;
+			break;
+
+		default:
+
+			IrqNum = 0xD000UL;
+			break;
+	}
 
 	cpu.SetPort( 0x42FE, this, Peek_Nop, Poke_42FE );
 	cpu.SetPort( 0x42FF, this, Peek_Nop, Poke_42FF );
@@ -80,6 +99,7 @@ NES_POKE(MAPPER17,42FF)
 NES_POKE(MAPPER17,4501)  
 { 
 	SetIrqEnable(data & 0x1);
+	cpu.ClearIRQ();
 }
 
 NES_POKE(MAPPER17,4502)  
@@ -91,6 +111,7 @@ NES_POKE(MAPPER17,4503)
 { 
 	IrqCount = (IrqCount & 0x00FF) | (data << 8); 
 	SetIrqEnable(TRUE);
+	cpu.ClearIRQ();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -119,15 +140,13 @@ NES_POKE(MAPPER17,4517) { ppu.Update(); cRom.SwapBanks<n1k,0x1C00>( data ); }
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-VOID MAPPER17::IrqSync()
+VOID MAPPER17::IrqSync(const UINT delta)
 {
-	IrqCount += 4;
-
-	if (IrqCount >= 0x10000UL)
+	if ((IrqCount += delta) >= IrqNum)
 	{
 		IrqCount = 0;
 		SetIrqEnable(FALSE);
-		cpu.TryIRQ();
+		cpu.DoIRQ();
 	}
 }
 

@@ -29,9 +29,8 @@
 
 #define application APPLICATION::GetSingleton()
 
-#define NST_WM_CMDLINE 1
-#define NST_WM_LAUNCHER_FILE 2
-#define NST_WM_LAUNCHER_ZIPPED_FILE 3
+#define NST_WM_OPEN_FILE 1
+#define NST_WM_OPEN_ZIPPED_FILE 2
 
 #define NST_CLASS_NAME "Nestopia Window"
 #define NST_WINDOW_NAME "Nestopia"
@@ -43,6 +42,11 @@
 #include "../paradox/PdxSingleton.h"
 #include "../NstNes.h"
 #include "NstStatusBar.h"
+#include "NstMenu.h"
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
 
 class TIMERMANAGER;
 class GRAPHICMANAGER;
@@ -61,6 +65,40 @@ class HELPMANAGER;
 class USERINPUTMANAGER;
 class CONFIGFILE;
 class LAUNCHER;
+class NETPLAYMANAGER;
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+#define NST_IDM_POS_FILE                 0
+#define NST_IDM_POS_FILE_LOAD            3
+#define NST_IDM_POS_FILE_SAVE            4
+#define NST_IDM_POS_FILE_QUICKLOADSTATE	 6
+#define NST_IDM_POS_FILE_QUICKSAVESTATE	 7
+#define NST_IDM_POS_FILE_SAVE_SCREENSHOT 11
+#define NST_IDM_POS_FILE_SOUND_RECORDER  12
+#define NST_IDM_POS_FILE_MOVIE_PLAYER    13
+#define NST_IDM_POS_FILE_RECENT          17
+#define NST_IDM_POS_MACHINE              1
+#define NST_IDM_POS_MACHINE_POWER        0
+#define NST_IDM_POS_MACHINE_RESET        1
+#define NST_IDM_POS_MACHINE_PORT_1	     5
+#define NST_IDM_POS_MACHINE_PORT_2	     6
+#define NST_IDM_POS_MACHINE_PORT_3	     7
+#define NST_IDM_POS_MACHINE_PORT_4	     8
+#define NST_IDM_POS_MACHINE_PORT_5	     9
+#define NST_IDM_POS_MACHINE_MODE         11
+#define NST_IDM_POS_MACHINE_OPTIONS	     13
+#define NST_IDM_POS_FDS                  2
+#define NST_IDM_POS_FDS_INSERTDISK       0
+#define NST_IDM_POS_FDS_EJECTDISK        1
+#define NST_IDM_POS_FDS_DISKSIDE         2
+#define NST_IDM_POS_FDS_SEPARATOR        3
+#define NST_IDM_POS_FDS_OPTIONS          4
+#define NST_IDM_POS_VIEW                 4
+#define NST_IDM_POS_VIEW_SCREENSIZE      3
+#define NST_IDM_POS_VIEW_SHOW            4
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // window class
@@ -75,15 +113,16 @@ public:
 
 	INT Run();
 
-	HWND  GetHWnd() const;
-	HMENU GetMenu() const;
+	HWND GetHWnd() const;
 	HINSTANCE GetInstance() const;
+	HACCEL GetHAccel() const;
 
-	BOOL IsActive()   const;
-	BOOL IsWindowed() const;
-	BOOL IsMenuSet()  const;
-	BOOL IsRunning()  const;
-	BOOL IsPassive()  const;
+	BOOL IsActive()     const;
+	BOOL IsWindowed()   const;
+	BOOL IsMenuSet()    const;
+	BOOL IsRunning()    const;
+	BOOL IsPassive()    const;
+	BOOL HasStatusBar() const;
 						
 	NES::MACHINE& GetNes();
 
@@ -99,13 +138,15 @@ public:
 	PREFERENCES&      GetPreferences       ();
 	MOVIEMANAGER&     GetMovieManager      ();
 	TIMERMANAGER&     GetTimerManager      ();
-	STATUSBAR&        GetStatusBar         ();
 	LAUNCHER&         GetLauncher          ();
+	NETPLAYMANAGER&   GetNetplayManager    ();
+	NSTMENU           GetMenu              ();
 
 	NES::MODE GetNesMode() const;
 
 	PDX_NO_INLINE VOID OnLoadStateSlot (const UINT);
 	PDX_NO_INLINE VOID OnSaveStateSlot (const UINT);
+	PDX_NO_INLINE VOID OnToggleMenu();
 
 	enum
 	{
@@ -125,6 +166,23 @@ public:
 	template<class T,class U,class V,class W> 
 	VOID StartScreenMsg(const UINT,const T&,const U&,const V&,const W&);
 
+	template<class T,class U,class V,class W,class X> 
+	VOID StartScreenMsg(const UINT,const T&,const U&,const V&,const W&,const X&);
+
+	template<class T,class U,class V,class W,class X,class Y> 
+	VOID StartScreenMsg(const UINT,const T&,const U&,const V&,const W&,const X&,const Y&);
+
+	VOID ExecuteImage();
+
+	LRESULT MsgProc(const HWND,const UINT,const WPARAM,const LPARAM);
+
+	NSTMENU SwitchMenu(NSTMENU);
+
+	PDX_NO_INLINE VOID OnReset(const BOOL);
+	PDX_NO_INLINE VOID OnFdsInsertDisk(const UINT);
+	PDX_NO_INLINE VOID OnFdsEjectDisk();
+	PDX_NO_INLINE VOID OnFdsSide(const UINT);
+
 private:
 
 	enum FILETYPE
@@ -136,11 +194,8 @@ private:
 	};
 
 	static LRESULT CALLBACK WndProc(HWND,UINT,WPARAM,LPARAM);
-	LRESULT MsgProc(const HWND,const UINT,const WPARAM,const LPARAM);
 
-	VOID ExecuteImage();
 	PDX_NO_INLINE VOID ExecuteNsf();
-
 	PDX_NO_INLINE VOID SwitchScreen();
 	PDX_NO_INLINE VOID PushWindow();
 	PDX_NO_INLINE VOID PopWindow();
@@ -151,7 +206,6 @@ private:
 	PDX_NO_INLINE VOID DisplayMsg();
 	PDX_NO_INLINE VOID OutputNsfInfo();
 	PDX_NO_INLINE VOID DisplayFPS(BOOL=TRUE);
-	PDX_NO_INLINE BOOL ChangeMenuText(const ULONG,CHAR* const) const;
 	PDX_NO_INLINE VOID SetScreenMsg(const UINT,const BOOL);
 	
 	enum CFG_OP
@@ -168,10 +222,6 @@ private:
 	VOID UpdateNsf();
 	VOID ResetSaveSlots(const BOOL=FALSE);
 	VOID GetScreenRect(RECT&) const;
-	
-	BOOL IsChecked(const UINT) const;
-
-	INT GetMenuHeight() const;
 
 	PDX_NO_INLINE VOID OnOpen(const FILETYPE,const VOID* const=NULL);
 	PDX_NO_INLINE VOID OnPort(const UINT);
@@ -181,12 +231,10 @@ private:
 	PDX_NO_INLINE VOID OnInactive(const BOOL=FALSE);
 	PDX_NO_INLINE BOOL OnCommand(const WPARAM);
 	PDX_NO_INLINE VOID OnPower(const BOOL);
-	PDX_NO_INLINE VOID OnReset(const BOOL);
 	PDX_NO_INLINE UINT GetAspectRatio() const;
 	PDX_NO_INLINE VOID OnNsfCommand(const NES::IO::NSF::OP);
 	PDX_NO_INLINE VOID OnWindowSize(const UINT,const BOOL=FALSE);
 	PDX_NO_INLINE VOID OnToggleStatusBar();
-	PDX_NO_INLINE VOID OnToggleMenu();
 	PDX_NO_INLINE VOID OnToggleFPS();
 	PDX_NO_INLINE VOID OnHideMenu();
 	PDX_NO_INLINE VOID OnShowMenu();
@@ -202,6 +250,7 @@ private:
 	VOID OnSaveNsp();
 	VOID OnLoadState();
 	VOID OnSaveState();
+	VOID OnNetplay();
 	VOID OnSoundRecorder(const UINT);
 	BOOL OnSysCommand(const WPARAM);
 	VOID OnMouseMove(const LPARAM);
@@ -214,9 +263,6 @@ private:
 	VOID OnClose();
 	VOID OnCloseWindow();
 	VOID OnSaveScreenShot();
-	VOID OnFdsInsertDisk(const UINT);
-	VOID OnFdsEjectDisk();
-	VOID OnFdsSide(const UINT);
 	VOID OnPause();
 	VOID OnHelp(const UINT);
 
@@ -229,7 +275,7 @@ private:
 	BOOL windowed;
 	BOOL AutoSelectController;
 	
-	HMENU        hMenu;
+	NSTMENU      menu;
 	HCURSOR      hCursor;
 	HACCEL const hAccel;
 	BOOL         UseZapper;
@@ -263,6 +309,7 @@ private:
 	HELPMANAGER*        HelpManager;
 	USERINPUTMANAGER*   UserInputManager;
 	LAUNCHER*           launcher;
+	NETPLAYMANAGER*     NetplayManager;
 
 	PDXSTRING ScreenMsg;
 

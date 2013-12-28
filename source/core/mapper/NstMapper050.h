@@ -45,7 +45,7 @@ public:
 private:
 
 	VOID Reset();       
-	VOID Synch();
+	VOID hSync();
 
 	NES_DECL_PEEK( wRom );
 	NES_DECL_POKE( 4020 );

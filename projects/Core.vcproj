@@ -269,6 +269,10 @@
 			<File
 				RelativePath="..\source\core\mapper\NstMapper011.h"/>
 			<File
+				RelativePath="..\source\core\mapper\NstMapper012.cpp"/>
+			<File
+				RelativePath="..\source\core\mapper\NstMapper012.h"/>
+			<File
 				RelativePath="..\source\core\mapper\NstMapper013.cpp"/>
 			<File
 				RelativePath="..\source\core\mapper\NstMapper013.h"/>
@@ -360,8 +364,6 @@
 				RelativePath="..\source\core\mapper\NstMapper047.cpp"/>
 			<File
 				RelativePath="..\source\core\mapper\NstMapper047.h"/>
-			<File
-				RelativePath="..\source\core\mapper\NstMapper048.cpp"/>
 			<File
 				RelativePath="..\source\core\mapper\NstMapper048.h"/>
 			<File
@@ -671,6 +673,18 @@
 			<File
 				RelativePath="..\source\core\mapper\NstMapper198.h"/>
 			<File
+				RelativePath="..\source\core\mapper\NstMapper200.cpp"/>
+			<File
+				RelativePath="..\source\core\mapper\NstMapper200.h"/>
+			<File
+				RelativePath="..\source\core\mapper\NstMapper201.cpp"/>
+			<File
+				RelativePath="..\source\core\mapper\NstMapper201.h"/>
+			<File
+				RelativePath="..\source\core\mapper\NstMapper202.cpp"/>
+			<File
+				RelativePath="..\source\core\mapper\NstMapper202.h"/>
+			<File
 				RelativePath="..\source\core\mapper\NstMapper222.cpp"/>
 			<File
 				RelativePath="..\source\core\mapper\NstMapper222.h"/>
@@ -766,6 +780,14 @@
 				RelativePath="..\source\core\mapper\NstMapper250.cpp"/>
 			<File
 				RelativePath="..\source\core\mapper\NstMapper250.h"/>
+			<File
+				RelativePath="..\source\core\mapper\NstMapper252.cpp"/>
+			<File
+				RelativePath="..\source\core\mapper\NstMapper252.h"/>
+			<File
+				RelativePath="..\source\core\mapper\NstMapper254.cpp"/>
+			<File
+				RelativePath="..\source\core\mapper\NstMapper254.h"/>
 			<File
 				RelativePath="..\source\core\mapper\NstMapper255.cpp"/>
 			<File

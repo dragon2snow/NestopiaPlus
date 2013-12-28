@@ -39,32 +39,32 @@ VOID MAPPER65::Reset()
 	{
      	case 0xE30B7F64UL: // Kaiketsu Yanchamaru 3
 
-			type = 1;
-			cpu.SetPort( 0x9001, this, Peek_9000, Poke_9001 );
+			cpu.SetPort( 0x9001, this, Peek_pRom, Poke_9001   );
+			cpu.SetPort( 0x9005, this, Peek_pRom, Poke_9005_1 );
+			cpu.SetPort( 0x9006, this, Peek_pRom, Poke_9006_1 );
 			break;
 
 		default:
 
-			type = 0;
-			cpu.SetPort( 0x9000, this, Peek_9000, Poke_9000 );
-			cpu.SetPort( 0x9003, this, Peek_9000, Poke_9003 );
-			cpu.SetPort( 0x9004, this, Peek_9000, Poke_9004 );
+			cpu.SetPort( 0x9000, this, Peek_pRom, Poke_9000   );
+			cpu.SetPort( 0x9003, this, Peek_pRom, Poke_9003   );
+			cpu.SetPort( 0x9004, this, Peek_pRom, Poke_9004   );
+			cpu.SetPort( 0x9005, this, Peek_pRom, Poke_9005_0 );
+			cpu.SetPort( 0x9006, this, Peek_pRom, Poke_9006_0 );
 			break;
 	}
 
-	cpu.SetPort( 0x8000, this, Peek_8000, Poke_8000 );
-	cpu.SetPort( 0x9005, this, Peek_9000, Poke_9005 );
-	cpu.SetPort( 0x9006, this, Peek_9000, Poke_9006 );
-	cpu.SetPort( 0xB000, this, Peek_B000, Poke_B000 );
-	cpu.SetPort( 0xB001, this, Peek_B000, Poke_B001 );
-	cpu.SetPort( 0xB002, this, Peek_B000, Poke_B002 );
-	cpu.SetPort( 0xB003, this, Peek_B000, Poke_B003 );
-	cpu.SetPort( 0xB004, this, Peek_B000, Poke_B004 );
-	cpu.SetPort( 0xB005, this, Peek_B000, Poke_B005 );
-	cpu.SetPort( 0xB006, this, Peek_B000, Poke_B006 );
-	cpu.SetPort( 0xB007, this, Peek_B000, Poke_B007 );
-	cpu.SetPort( 0xA000, this, Peek_A000, Poke_A000 );
-	cpu.SetPort( 0xC000, this, Peek_C000, Poke_C000 );
+	cpu.SetPort( 0x8000, this, Peek_pRom, Poke_8000 );
+	cpu.SetPort( 0xB000, this, Peek_pRom, Poke_B000 );
+	cpu.SetPort( 0xB001, this, Peek_pRom, Poke_B001 );
+	cpu.SetPort( 0xB002, this, Peek_pRom, Poke_B002 );
+	cpu.SetPort( 0xB003, this, Peek_pRom, Poke_B003 );
+	cpu.SetPort( 0xB004, this, Peek_pRom, Poke_B004 );
+	cpu.SetPort( 0xB005, this, Peek_pRom, Poke_B005 );
+	cpu.SetPort( 0xB006, this, Peek_pRom, Poke_B006 );
+	cpu.SetPort( 0xB007, this, Peek_pRom, Poke_B007 );
+	cpu.SetPort( 0xA000, this, Peek_pRom, Poke_A000 );
+	cpu.SetPort( 0xC000, this, Peek_pRom, Poke_C000 );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -92,7 +92,7 @@ NES_POKE(MAPPER65,9000)
 
 NES_POKE(MAPPER65,9001) 
 { 
-	ppu.SetMirroring( (data & 0x80) ? MIRROR_VERTICAL : MIRROR_HORIZONTAL ); 
+	ppu.SetMirroring( (data & 0x80) ? MIRROR_HORIZONTAL : MIRROR_VERTICAL ); 
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -102,6 +102,7 @@ NES_POKE(MAPPER65,9001)
 NES_POKE(MAPPER65,9003) 
 { 
 	SetIrqEnable( data & 0x80 );
+	cpu.ClearIRQ();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -117,33 +118,30 @@ NES_POKE(MAPPER65,9004)
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-NES_POKE(MAPPER65,9005) 
+NES_POKE(MAPPER65,9005_0) 
 {
-	if (type)
-	{
-		SetIrqEnable(data);
-		IrqCount = data << 1;
-	}
-	else
-	{
-		IrqLatch = (IrqLatch & 0x00FF) || (data << 8);
-	}
+	IrqLatch = (IrqLatch & 0x00FF) | (data << 8);
+}
+
+NES_POKE(MAPPER65,9005_1) 
+{
+	SetIrqEnable(data);
+	cpu.ClearIRQ();
+	IrqCount = (data << 1) & 0xFF;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-NES_POKE(MAPPER65,9006) 
+NES_POKE(MAPPER65,9006_0) 
 {
-	if (type)
-	{
-		SetIrqEnable(TRUE);
-	}
-	else
-	{
-		IrqLatch = (IrqLatch & 0xFF00) | (data << 0);
-	}
+	IrqLatch = (IrqLatch & 0xFF00) | data;
+}
+
+NES_POKE(MAPPER65,9006_1) 
+{
+	SetIrqEnable(TRUE);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -175,13 +173,8 @@ VOID MAPPER65::IrqSync(const UINT delta)
 	if ((IrqCount -= delta) <= -4)
 	{
 		SetIrqEnable(FALSE);
-
-		if (!type)
-			IrqCount = 0xFFFF;
-
-		cpu.TryIRQ();
+		cpu.DoIRQ();
 	}
 }
 
 NES_NAMESPACE_END
-

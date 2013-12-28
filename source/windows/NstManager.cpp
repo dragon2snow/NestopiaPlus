@@ -53,11 +53,11 @@ DialogID (id)
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-VOID MANAGER::StartDialog(HWND hParent)
+INT_PTR MANAGER::StartDialog(HWND hParent)
 {
 	PDX_ASSERT( (hWnd || hParent) && DialogID != INT_MAX );
 
-	DialogBoxParam
+	return DialogBoxParam
 	(
     	UTILITIES::GetInstance(),
 		MAKEINTRESOURCE(DialogID),

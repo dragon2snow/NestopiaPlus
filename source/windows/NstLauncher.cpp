@@ -1284,7 +1284,7 @@ VOID LAUNCHER::OnRun()
 		first.Resize( (end - 1) - first.Begin() );
 		PDX_ASSERT(first.Length());
 
-		cds.dwData = NST_WM_LAUNCHER_ZIPPED_FILE;
+		cds.dwData = NST_WM_OPEN_ZIPPED_FILE;
 		cds.lpData = PDX_CAST(PVOID,&pair);
 		cds.cbData = sizeof(pair);
 	}
@@ -1293,7 +1293,7 @@ VOID LAUNCHER::OnRun()
 		filename.Reserve( length );
 		filename << entry.path << entry.file;
 
-		cds.dwData = NST_WM_LAUNCHER_FILE;
+		cds.dwData = NST_WM_OPEN_FILE;
 		cds.lpData = PDX_CAST(PVOID,filename.Begin());
 		cds.cbData = filename.End() + 1 - filename.Begin();
 	}

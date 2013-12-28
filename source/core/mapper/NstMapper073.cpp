@@ -79,11 +79,15 @@ VOID MAPPER73::IrqSync(const UINT delta)
 {
 	IrqCount += delta;
 
-	if (IrqCount >= 0xFFFFU)
+	if (IrqCount >= 0xFFFFUL + 0xFF)
 	{
-		IrqCount &= 0xFFFFU;
+		IrqCount = 0xFFFFU;
 		SetIrqEnable(FALSE);
-		cpu.TryIRQ();
+	}
+	else if (IrqCount >= 0xFFFFUL)
+	{
+		IrqCount = 0xFFFFUL + 0xFF;
+		cpu.DoIRQ();
 	}
 }
 

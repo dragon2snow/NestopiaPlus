@@ -41,6 +41,8 @@ VOID MAPPER34::Reset()
 	cpu.SetPort( 0xA000, 0xBFFF, this, Peek_A000, Poke_7FFD );
 	cpu.SetPort( 0xC000, 0xDFFF, this, Peek_C000, Poke_7FFD );
 	cpu.SetPort( 0xE000, 0xFFFF, this, Peek_E000, Poke_7FFD );
+
+	pRom.SwapBanks<n32k,0x0000>(0);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////

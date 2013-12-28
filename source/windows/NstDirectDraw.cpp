@@ -33,6 +33,8 @@
 #include <Windows.h>
 #include "../paradox/PdxQuickSort.h"
 #include "../2xSai/2xSai.h"
+#include "../scale2x/scale2x.h"
+#include "../scale2x/scale3x.h"
 #include "NstException.h"
 #include "NstUtilities.h"
 #include "NstLogFileManager.h"
@@ -129,8 +131,8 @@ PixelData        (NULL)
 {
 	PixelData = new PIXELDATA;
 
-	DisplayMode.width = GetSystemMetrics( SM_CXSCREEN );
-	DisplayMode.height = GetSystemMetrics( SM_CYSCREEN );
+	DisplayMode.width = ::GetSystemMetrics( SM_CXSCREEN );
+	DisplayMode.height = ::GetSystemMetrics( SM_CYSCREEN );
 
 	::SetRect( &rcNes,    0, 8, 256, 232 );
 	::SetRect( &rcScreen, 0, 0, 256, 224 );
@@ -625,8 +627,8 @@ VOID DIRECTDRAW::CreateNesBuffer()
 				if ((rcNes.right-rcNes.left) * 2 <= width && (rcNes.bottom-rcNes.top) * 2 <= height)
 				{
 					++ScaleFactor;
-					desc.dwWidth      *= 2;
-					desc.dwHeight     *= 2;
+					desc.dwWidth    *= 2;
+					desc.dwHeight   *= 2;
 					rcNesBlt.top    *= 2;			
 					rcNesBlt.right  *= 2;
 					rcNesBlt.bottom *= 2;
@@ -636,14 +638,27 @@ VOID DIRECTDRAW::CreateNesBuffer()
 			}
   
 			case SCREENEFFECT_TV:
+			case SCREENEFFECT_SCALE2X:
 			{
-				ScaleFactor        = 1;
-				desc.dwWidth      *= 2;
-				desc.dwHeight     *= 2;
+				ScaleFactor      = 1;
+				desc.dwWidth    *= 2;
+				desc.dwHeight   *= 2;
 				rcNesBlt.top    *= 2;			
 				rcNesBlt.right  *= 2;
 				rcNesBlt.bottom *= 2;
 				rcNesBlt.left   *= 2;
+				break;
+			}
+
+			case SCREENEFFECT_SCALE3X:
+			{
+				ScaleFactor      = 2;
+				desc.dwWidth    *= 3;
+				desc.dwHeight   *= 3;
+				rcNesBlt.top    *= 3;			
+				rcNesBlt.right  *= 3;
+				rcNesBlt.bottom *= 3;
+				rcNesBlt.left   *= 3;
 				break;
 			}
 
@@ -715,6 +730,8 @@ VOID DIRECTDRAW::CreateNesBuffer()
     			case SCREENEFFECT_2XSAI:	   log += "2xSaI";       break;
       			case SCREENEFFECT_SUPER_2XSAI: log += "Super 2xSaI"; break;
       			case SCREENEFFECT_SUPER_EAGLE: log += "Super Eagle"; break;
+				case SCREENEFFECT_SCALE2X:     log += "Scale2x";     break;
+				case SCREENEFFECT_SCALE3X:     log += "Scale3x";     break;
 				default:					   log += "none";        break;
 			}
 
@@ -1029,6 +1046,10 @@ INT DIRECTDRAW::EnableGDI(const BOOL state)
 	{
 		if (!GDIMode++)
 		{
+          #ifdef _DEBUG
+			LOGFILE::Output("---------------GDI ON-------------");
+          #endif
+
 			if (FrontBuffer->IsLost() == DDERR_SURFACELOST)
 			{
 				device->RestoreAllSurfaces();
@@ -1044,6 +1065,10 @@ INT DIRECTDRAW::EnableGDI(const BOOL state)
 	{
 		if (GDIMode && !--GDIMode)
 		{
+          #ifdef _DEBUG
+			LOGFILE::Output("---------------GDI OFF-------------");
+          #endif
+
 			if (FrontBuffer->IsLost() == DDERR_SURFACELOST)
 			{
 				device->RestoreAllSurfaces();
@@ -1287,7 +1312,7 @@ VOID DIRECTDRAW::BltNesScreen(U8* PDX_RESTRICT dst,const LONG pitch)
 ////////////////////////////////////////////////////////////////////////////////////////
 
 template<class T> 
-VOID DIRECTDRAW::BltNesScreen(T* PDX_RESTRICT const dst,const LONG pitch)
+VOID DIRECTDRAW::BltNesScreen(T* const dst,const LONG pitch)
 {
 	if (Use2xSaI)
 	{
@@ -1307,6 +1332,20 @@ VOID DIRECTDRAW::BltNesScreen(T* PDX_RESTRICT const dst,const LONG pitch)
 			case 1:  BltNesScreenScanLines1( dst, pitch );      break;
 			default: BltNesScreenScanLinesFactor( dst, pitch ); break;
 		}
+	}
+	else if (ScreenEffect == SCREENEFFECT_SCALE2X)
+	{
+		if (sizeof(T) == sizeof(scale2x_uint16))
+			BltNesScreenScale2x16( PDX_CAST(scale2x_uint16*,dst), pitch );
+		else
+			BltNesScreenScale2x32( PDX_CAST(scale2x_uint32*,dst), pitch );
+	}
+	else if (ScreenEffect == SCREENEFFECT_SCALE3X)
+	{
+		if (sizeof(T) == sizeof(scale3x_uint16))
+			BltNesScreenScale3x16( PDX_CAST(scale3x_uint16*,dst), pitch );
+		else
+			BltNesScreenScale3x32( PDX_CAST(scale3x_uint32*,dst), pitch );
 	}
 	else if (ScreenEffect == SCREENEFFECT_TV)
 	{
@@ -1371,6 +1410,188 @@ VOID DIRECTDRAW::BltNesScreenUnaligned(T* PDX_RESTRICT dst,const LONG pitch)
 		dst += pitch;
 		src += NES_WIDTH;
 	}
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+VOID DIRECTDRAW::BltNesScreenScale2x16(scale2x_uint16* PDX_RESTRICT dst,const LONG pitch)
+{
+	PDX_ASSERT( NesDesc.dwWidth == NES_WIDTH_2 && NesDesc.dwHeight == NES_HEIGHT_2 );
+
+	const NES::IO::GFX::PIXEL* PDX_RESTRICT src = PixelData->buffer;
+	
+	scale2x_uint16* effect[3] = 
+	{
+		PDX_CAST(scale2x_uint16*,PixelData->effect) + (NES_WIDTH * 0),
+		PDX_CAST(scale2x_uint16*,PixelData->effect) + (NES_WIDTH * 1),
+		PDX_CAST(scale2x_uint16*,PixelData->effect) + (NES_WIDTH * 2)
+	};
+
+	const U32 (*const PDX_RESTRICT palette)[3] = PixelData->palette;
+
+	for (UINT i=0; i < NES_WIDTH_2; ++i)
+		effect[0][i] = scale2x_uint16(palette[src[i]][0] + palette[src[i]][1] + palette[src[i]][2]);
+
+	src += NES_WIDTH_2;
+	scale2x_16_def( dst, dst + pitch, effect[0], effect[0], effect[1], NES_WIDTH );
+	dst += pitch + pitch;
+
+	for (UINT y=0; y < (NES_HEIGHT-2); ++y)
+	{
+		for (UINT i=0; i < NES_WIDTH; ++i)
+			effect[2][i] = scale2x_uint16(palette[src[i]][0] + palette[src[i]][1] + palette[src[i]][2]);
+
+		src += NES_WIDTH;
+		scale2x_16_def( dst, dst + pitch, effect[0], effect[1], effect[2], NES_WIDTH );		
+		dst += pitch + pitch;
+
+		scale2x_uint16* const tmp = effect[0];
+		effect[0] = effect[1];
+		effect[1] = effect[2];
+		effect[2] = tmp;
+	}
+
+	scale2x_16_def( dst, dst + pitch, effect[0], effect[1], effect[1], NES_WIDTH );
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+VOID DIRECTDRAW::BltNesScreenScale2x32(scale2x_uint32* PDX_RESTRICT dst,const LONG pitch)
+{
+	PDX_ASSERT( NesDesc.dwWidth == NES_WIDTH_2 && NesDesc.dwHeight == NES_HEIGHT_2 );
+
+	const NES::IO::GFX::PIXEL* PDX_RESTRICT src = PixelData->buffer;
+	
+	scale2x_uint32* effect[3] = 
+	{
+		PDX_CAST(scale2x_uint32*,PixelData->effect) + (NES_WIDTH * 0),
+		PDX_CAST(scale2x_uint32*,PixelData->effect) + (NES_WIDTH * 1),
+		PDX_CAST(scale2x_uint32*,PixelData->effect) + (NES_WIDTH * 2)
+	};
+
+	const U32 (*const PDX_RESTRICT palette)[3] = PixelData->palette;
+
+	for (UINT i=0; i < NES_WIDTH_2; ++i)
+		effect[0][i] = scale2x_uint32(palette[src[i]][0] + palette[src[i]][1] + palette[src[i]][2]);
+
+	src += NES_WIDTH_2;
+	scale2x_32_def( dst, dst + pitch, effect[0], effect[0], effect[1], NES_WIDTH );
+	dst += pitch + pitch;
+
+	for (UINT y=0; y < (NES_HEIGHT-2); ++y)
+	{
+		for (UINT i=0; i < NES_WIDTH; ++i)
+			effect[2][i] = scale2x_uint32(palette[src[i]][0] + palette[src[i]][1] + palette[src[i]][2]);
+
+		src += NES_WIDTH;
+		scale2x_32_def( dst, dst + pitch, effect[0], effect[1], effect[2], NES_WIDTH );		
+		dst += pitch + pitch;
+
+		scale2x_uint32* const tmp = effect[0];
+		effect[0] = effect[1];
+		effect[1] = effect[2];
+		effect[2] = tmp;
+	}
+
+	scale2x_32_def( dst, dst + pitch, effect[0], effect[1], effect[1], NES_WIDTH );
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+VOID DIRECTDRAW::BltNesScreenScale3x16(scale3x_uint16* PDX_RESTRICT dst,const LONG pitch)
+{
+	PDX_ASSERT( NesDesc.dwWidth == (NES_WIDTH * 3) && NesDesc.dwHeight == (NES_HEIGHT * 3) );
+
+	const NES::IO::GFX::PIXEL* PDX_RESTRICT src = PixelData->buffer;
+
+	scale3x_uint16* effect[3] = 
+	{
+		PDX_CAST(scale3x_uint16*,PixelData->effect) + (NES_WIDTH * 0),
+		PDX_CAST(scale3x_uint16*,PixelData->effect) + (NES_WIDTH * 1),
+		PDX_CAST(scale3x_uint16*,PixelData->effect) + (NES_WIDTH * 2)
+	};
+
+	const U32 (*const PDX_RESTRICT palette)[3] = PixelData->palette;
+
+	for (UINT i=0; i < NES_WIDTH_2; ++i)
+		effect[0][i] = scale3x_uint16(palette[src[i]][0] + palette[src[i]][1] + palette[src[i]][2]);
+
+	const LONG pitch2 = pitch + pitch;
+	const LONG pitch3 = pitch2 + pitch;
+
+	src += NES_WIDTH_2;
+	scale3x_16_def( dst, dst + pitch, dst + pitch2, effect[0], effect[0], effect[1], NES_WIDTH );
+	dst += pitch3;
+
+	for (UINT y=0; y < (NES_HEIGHT-2); ++y)
+	{
+		for (UINT i=0; i < NES_WIDTH; ++i)
+			effect[2][i] = scale3x_uint16(palette[src[i]][0] + palette[src[i]][1] + palette[src[i]][2]);
+
+		src += NES_WIDTH;
+		scale3x_16_def( dst, dst + pitch, dst + pitch2, effect[0], effect[1], effect[2], NES_WIDTH );		
+		dst += pitch3;
+
+		scale3x_uint16* const tmp = effect[0];
+		effect[0] = effect[1];
+		effect[1] = effect[2];
+		effect[2] = tmp;
+	}
+
+	scale3x_16_def( dst, dst + pitch, dst + pitch3, effect[0], effect[1], effect[1], NES_WIDTH );
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+VOID DIRECTDRAW::BltNesScreenScale3x32(scale3x_uint32* PDX_RESTRICT dst,const LONG pitch)
+{
+	PDX_ASSERT( NesDesc.dwWidth == (NES_WIDTH * 3) && NesDesc.dwHeight == (NES_HEIGHT * 3) );
+
+	const NES::IO::GFX::PIXEL* PDX_RESTRICT src = PixelData->buffer;
+
+	scale3x_uint32* effect[3] = 
+	{
+		PDX_CAST(scale3x_uint32*,PixelData->effect) + (NES_WIDTH * 0),
+		PDX_CAST(scale3x_uint32*,PixelData->effect) + (NES_WIDTH * 1),
+		PDX_CAST(scale3x_uint32*,PixelData->effect) + (NES_WIDTH * 2)
+	};
+
+	const U32 (*const PDX_RESTRICT palette)[3] = PixelData->palette;
+
+	for (UINT i=0; i < NES_WIDTH_2; ++i)
+		effect[0][i] = scale2x_uint32(palette[src[i]][0] + palette[src[i]][1] + palette[src[i]][2]);
+
+	const LONG pitch2 = pitch + pitch;
+	const LONG pitch3 = pitch2 + pitch;
+
+	src += NES_WIDTH_2;
+	scale3x_32_def( dst, dst + pitch, dst + pitch2, effect[0], effect[0], effect[1], NES_WIDTH );
+	dst += pitch3;
+
+	for (UINT y=0; y < (NES_HEIGHT-2); ++y)
+	{
+		for (UINT i=0; i < NES_WIDTH; ++i)
+			effect[2][i] = scale3x_uint32(palette[src[i]][0] + palette[src[i]][1] + palette[src[i]][2]);
+
+		src += NES_WIDTH;
+		scale3x_32_def( dst, dst + pitch, dst + pitch2, effect[0], effect[1], effect[2], NES_WIDTH );		
+		dst += pitch3;
+
+		scale3x_uint32* const tmp = effect[0];
+		effect[0] = effect[1];
+		effect[1] = effect[2];
+		effect[2] = tmp;
+	}
+
+	scale3x_32_def( dst, dst + pitch, dst + pitch2, effect[0], effect[1], effect[1], NES_WIDTH );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////

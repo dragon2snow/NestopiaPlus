@@ -54,6 +54,7 @@
 #include "NstApplication.h"
 #include "NstCmdLine.h"
 #include "NstLauncher.h"
+#include "NstNetplayManager.h"
 
 #define NST_DELETE(x) delete x; x=NULL
 
@@ -162,8 +163,8 @@ PDX_COMPILE_ASSERT
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#define NST_MENUSTATE(x) ((x) ? MF_ENABLED : MF_GRAYED)
-#define NST_WINDOWSTYLE  (WS_OVERLAPPED|WS_CAPTION|WS_SYSMENU|WS_MINIMIZEBOX|WS_MAXIMIZEBOX|WS_THICKFRAME)
+#define NST_WINDOWSTYLE    (WS_OVERLAPPED|WS_CAPTION|WS_SYSMENU|WS_MINIMIZEBOX|WS_MAXIMIZEBOX|WS_THICKFRAME)
+#define NST_WINDOWSTYLE_EX (WS_EX_ACCEPTFILES|WS_EX_CLIENTEDGE)
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // constructor
@@ -173,9 +174,9 @@ APPLICATION::APPLICATION(HINSTANCE h,const CHAR* const CmdLine,const INT iCmdSho
 : 
 hInstance            (h),
 hWnd                 (NULL),
-hMenu                (NULL),
 ThreadPriority       (THREAD_PRIORITY_NORMAL),
 hCursor              (::LoadCursor(NULL,IDC_ARROW)),
+menu                 (::LoadMenu(h,MAKEINTRESOURCE(IDR_MENU))),
 hAccel               (::LoadAccelerators(h,MAKEINTRESOURCE(IDR_ACCELERATOR))),
 active               (FALSE),
 UseZapper            (FALSE),
@@ -202,7 +203,8 @@ log					 (NULL),
 RomInfo				 (NULL),
 HelpManager			 (NULL),
 UserInputManager	 (NULL),
-launcher             (NULL)
+launcher             (NULL),
+NetplayManager       (NULL)
 {
 	::InitCommonControls();
 
@@ -212,12 +214,12 @@ launcher             (NULL)
 
 		wndcls.cbSize        = sizeof(wndcls);
 		wndcls.style         = CS_OWNDC|CS_HREDRAW|CS_VREDRAW;
-		wndcls.lpfnWndProc	 = WndProc;
+		wndcls.lpfnWndProc   = WndProc;
 		wndcls.hInstance     = hInstance;
-		wndcls.hIcon         = ::LoadIcon(hInstance,MAKEINTRESOURCE(IDI_PROGRAM));
 		wndcls.hCursor       = ::LoadCursor(NULL,IDC_ARROW);
 		wndcls.hbrBackground = HBRUSH(::GetStockObject(NULL_BRUSH));
 		wndcls.lpszClassName = NST_CLASS_NAME;
+		wndcls.hIcon         = 
 		wndcls.hIconSm       = ::LoadIcon(hInstance,MAKEINTRESOURCE(IDI_WINDOW));
 
 		if (!RegisterClassEx(&wndcls))
@@ -227,11 +229,18 @@ launcher             (NULL)
 	{
 		RECT rect;
 		::SetRect( &rect, 0, 0, 256*2, 224*2 );
-		::AdjustWindowRect( &rect, NST_WINDOWSTYLE, TRUE );
+		
+		::AdjustWindowRectEx
+		( 
+	       	&rect, 
+			NST_WINDOWSTYLE, 
+			TRUE,
+			NST_WINDOWSTYLE_EX
+		);
 
 		hWnd = CreateWindowEx
 		(
-			WS_EX_ACCEPTFILES,
+	     	NST_WINDOWSTYLE_EX,
 			NST_CLASS_NAME,
 			NST_WINDOW_NAME,
 			NST_WINDOWSTYLE,
@@ -240,7 +249,7 @@ launcher             (NULL)
 			rect.right - rect.left,
 			rect.bottom - rect.top,
 			0,
-			::LoadMenu(hInstance,MAKEINTRESOURCE(IDR_MENU)),
+			menu,
 			hInstance,
 			NULL
 		);
@@ -266,6 +275,7 @@ launcher             (NULL)
 	HelpManager        = new HELPMANAGER;
 	UserInputManager   = new USERINPUTMANAGER;
 	launcher           = new LAUNCHER;
+	NetplayManager     = new NETPLAYMANAGER;
 
 	AcceleratorEnabled = bool(hAccel);
 
@@ -302,12 +312,12 @@ launcher             (NULL)
 
 		{
 			UINT factor = 1;
-			UINT MenuCheck = MF_CHECKED;
-			UINT BarCheck = MF_CHECKED;
-			UINT OnTopCheck = MF_UNCHECKED;
-			UINT SpritesCheck = MF_UNCHECKED;
-			UINT NsfInBackgroundCheck = MF_CHECKED;
-	
+			BOOL MenuCheck = TRUE;
+			BOOL BarCheck = TRUE;
+			BOOL OnTopCheck = FALSE;
+			BOOL SpritesCheck = FALSE;
+			BOOL NsfInBackgroundCheck = TRUE;
+
 			if (ConfigFile)
 			{
 				const PDXSTRING& string = file["window size"];
@@ -316,42 +326,36 @@ launcher             (NULL)
 				else if (string == "3x") factor = 2;
 				else if (string == "4x") factor = 3;
 
-				if ( file[ "view show status bar"          ] == "no"  ) BarCheck = MF_UNCHECKED;
+				if ( file[ "view show status bar"          ] == "no"  ) BarCheck = FALSE;
 				if ( file[ "view show fps"                 ] == "yes" ) ShowFPS = TRUE;
-				if ( file[ "view show fullscreen menu"     ] == "no"  ) MenuCheck = MF_UNCHECKED;
-				if ( file[ "view show on top"              ] == "yes" ) OnTopCheck = MF_CHECKED;
-				if ( file[ "video unlimited sprites"       ] == "yes" ) SpritesCheck = MF_CHECKED;
-				if ( file[ "preferences nsf in background" ] == "no"  ) NsfInBackgroundCheck = MF_UNCHECKED;
+				if ( file[ "view show menu"                ] == "no"  ) MenuCheck = FALSE;
+				if ( file[ "view show on top"              ] == "yes" ) OnTopCheck = TRUE;
+				if ( file[ "video unlimited sprites"       ] == "yes" ) SpritesCheck = TRUE;
+				if ( file[ "preferences nsf in background" ] == "no"  ) NsfInBackgroundCheck = FALSE;
 			}
 
 			{
 				NES::IO::GFX::CONTEXT context;
 				nes.GetGraphicContext( context );
-				context.InfiniteSprites = (SpritesCheck == MF_CHECKED);
+				context.InfiniteSprites = SpritesCheck;
 				nes.SetGraphicContext( context );
 			}
 
-			if (BarCheck == MF_CHECKED)
+			if (BarCheck)
 				StatusBar->Create( hInstance, hWnd );
 
-			{
-				HMENU hMenu = GetMenu();
+			menu.Check( IDM_MACHINE_OPTIONS_UNLIMITEDSPRITES, SpritesCheck );
+			menu.Check( IDM_NSF_OPTIONS_PLAYINBACKGROUND, NsfInBackgroundCheck );
+			menu.Check( IDM_VIEW_STATUSBAR, BarCheck );
+			menu.Check( IDM_VIEW_MENU, MenuCheck );
+			menu.Check( IDM_VIEW_ON_TOP, OnTopCheck );
+			menu.Check( IDM_VIEW_FPS, ShowFPS );
 
-				const UINT ShowFPSCheck = (ShowFPS ? MF_CHECKED : MF_UNCHECKED);
+			menu.Enable( IDM_VIEW_FPS, BarCheck );
+			menu.Enable( IDM_FILE_NETPLAY, NetplayManager->IsSupported() );
 
-				::CheckMenuItem( hMenu, IDM_MACHINE_OPTIONS_UNLIMITEDSPRITES, SpritesCheck         );
-				::CheckMenuItem( hMenu, IDM_NSF_OPTIONS_PLAYINBACKGROUND,     NsfInBackgroundCheck );
-				::CheckMenuItem( hMenu, IDM_VIEW_STATUSBAR,                   BarCheck             );
-				::CheckMenuItem( hMenu, IDM_VIEW_MENU,                        MenuCheck            );
-				::CheckMenuItem( hMenu, IDM_VIEW_ON_TOP,                      OnTopCheck           );
-				::CheckMenuItem( hMenu, IDM_VIEW_FPS,                         ShowFPSCheck         );
-
-				::EnableMenuItem( hMenu, IDM_VIEW_MENU, MF_GRAYED );
-				::EnableMenuItem( hMenu, IDM_VIEW_FPS, (BarCheck == MF_CHECKED ? MF_ENABLED : MF_GRAYED) );
-				
-				if (ShowFPS) 
-					ShowFPS = (BarCheck == MF_CHECKED);
-			}
+			if (ShowFPS) 
+				ShowFPS = BarCheck;
 
 			UpdateWindowSizes
 			( 
@@ -376,6 +380,7 @@ launcher             (NULL)
 		preferences->Create        ( ConfigFile );
 		GameGenieManager->Create   ( ConfigFile );
 		SaveStateManager->Create   ( ConfigFile );
+		NetplayManager->Create     ( ConfigFile );
 		MovieManager->Create       ( ConfigFile );
 		VsDipSwitchManager->Create ( ConfigFile );
 		log->Create                ( ConfigFile );
@@ -429,12 +434,12 @@ APPLICATION::~APPLICATION()
 				}
 			}
 
-			file[ "view show on top"              ] = ( IsChecked( IDM_VIEW_ON_TOP                      ) ? "yes" : "no" );
-			file[ "view show fullscreen menu"     ] = ( IsChecked( IDM_VIEW_MENU                        ) ? "yes" : "no" );
-			file[ "view show status bar"          ] = ( IsChecked( IDM_VIEW_STATUSBAR                   ) ? "yes" : "no" );
-			file[ "view show fps"                 ] = ( IsChecked( IDM_VIEW_FPS                         ) ? "yes" : "no" );
-			file[ "video unlimited sprites"       ] = ( IsChecked( IDM_MACHINE_OPTIONS_UNLIMITEDSPRITES ) ? "yes" : "no" );
-			file[ "preferences nsf in background" ] = ( IsChecked( IDM_NSF_OPTIONS_PLAYINBACKGROUND     ) ? "yes" : "no" );
+			file[ "view show on top"              ] = ( menu.IsChecked( IDM_VIEW_ON_TOP                      ) ? "yes" : "no" );
+			file[ "view show menu"                ] = ( menu.IsChecked( IDM_VIEW_MENU                        ) ? "yes" : "no" );
+			file[ "view show status bar"          ] = ( menu.IsChecked( IDM_VIEW_STATUSBAR                   ) ? "yes" : "no" );
+			file[ "view show fps"                 ] = ( menu.IsChecked( IDM_VIEW_FPS                         ) ? "yes" : "no" );
+			file[ "video unlimited sprites"       ] = ( menu.IsChecked( IDM_MACHINE_OPTIONS_UNLIMITEDSPRITES ) ? "yes" : "no" );
+			file[ "preferences nsf in background" ] = ( menu.IsChecked( IDM_NSF_OPTIONS_PLAYINBACKGROUND     ) ? "yes" : "no" );
 		}
 
 		if ( TimerManager     ) TimerManager->Destroy     ( ConfigFile );
@@ -444,6 +449,7 @@ APPLICATION::~APPLICATION()
 		if ( InputManager     ) InputManager->Destroy     ( ConfigFile );
 		if ( FdsManager       ) FdsManager->Destroy       ( ConfigFile );
 		if ( GameGenieManager ) GameGenieManager->Destroy ( ConfigFile );
+		if ( NetplayManager   ) NetplayManager->Destroy   ( ConfigFile );
 		if ( preferences      ) preferences->Destroy      ( ConfigFile );
 		if ( launcher         ) launcher->Destroy         ( ConfigFile );
 
@@ -454,11 +460,8 @@ APPLICATION::~APPLICATION()
 	if (log)
 		log->Close( !ExitSuccess || preferences->SaveLogFile() );
 
-	if (hMenu)
-	{
-		::DestroyMenu( hMenu );
-		hMenu = NULL;
-	}
+	if (!hWnd || !::GetMenu( hWnd ))
+		menu.Destroy();
 
 	if (hWnd)
 	{
@@ -466,6 +469,7 @@ APPLICATION::~APPLICATION()
 		hWnd = NULL;
 	}
 
+	NST_DELETE( NetplayManager     );
 	NST_DELETE( launcher           );
 	NST_DELETE( StatusBar          );
 	NST_DELETE( TimerManager       );
@@ -582,17 +586,23 @@ VOID APPLICATION::ExecuteImage()
 {
 	PDX_ASSERT( nes.IsImage() );		
 
+	NES::IO::INPUT* input;
+
 	const BOOL GfxOut = GraphicManager->TestCooperativeLevel() && WindowVisible;
 
 	for (UINT i=TimerManager->NumFrameSkips(); i; --i)
 	{
 		InputManager->Poll();			
+		input = InputManager->GetFormat();
+
+		if (NetplayManager->IsConnected())
+			NetplayManager->Update( *input );
 
 		nes.Execute
 		( 
 			NULL, 
 			SoundManager->GetFormat(), 
-			InputManager->GetFormat() 
+			input
 		);
 	}
 
@@ -602,6 +612,10 @@ VOID APPLICATION::ExecuteImage()
 		cleared = GraphicManager->ClearScreen( FALSE );
 
 	InputManager->Poll();
+	input = InputManager->GetFormat();
+
+	if (NetplayManager->IsConnected())
+		NetplayManager->Update( *input );
 
 	if (GfxOut)
 	{
@@ -612,7 +626,7 @@ VOID APPLICATION::ExecuteImage()
 		( 
 			GraphicManager->GetFormat(), 
 			SoundManager->GetFormat(), 
-			InputManager->GetFormat() 
+			input 
 		);
 
 		if (ScreenMsg.Length() && !windowed)
@@ -630,7 +644,7 @@ VOID APPLICATION::ExecuteImage()
 		( 
 			NULL, 
 			SoundManager->GetFormat(), 
-			InputManager->GetFormat() 
+			input 
 		);
 
 		TimerManager->Synchronize( FALSE, FALSE );
@@ -658,7 +672,7 @@ VOID APPLICATION::ExecuteNsf()
 ////////////////////////////////////////////////////////////////////////////////////////
 //
 ////////////////////////////////////////////////////////////////////////////////////////
-
+													 
 VOID APPLICATION::SetThreadPriority(INT priority)
 {
 	if (preferences->PriorityControl())
@@ -831,6 +845,7 @@ BOOL APPLICATION::OnCommand(const WPARAM wParam)
 		case IDM_FILE_LOAD_NST:                    OnLoadState();                      return TRUE;
 		case IDM_FILE_SAVE_NSP:                    OnSaveNsp();                        return TRUE;
 		case IDM_FILE_SAVE_NST:                    OnSaveState();                      return TRUE;
+		case IDM_FILE_NETPLAY:                     OnNetplay();                        return TRUE;
 		case IDM_FILE_LAUNCHER:                    OnLauncher();                       return TRUE;
 		case IDM_FILE_QUIT:			               OnCloseWindow();                    return TRUE;
 		case IDM_FILE_SAVE_SCREENSHOT:             OnSaveScreenShot();                 return TRUE;
@@ -967,11 +982,8 @@ VOID APPLICATION::OnPort(const UINT wParam)
 
 	if (port)
 	{
-		HMENU hMenu = GetMenu();
-
-		::CheckMenuItem( hMenu, *port, MF_UNCHECKED );
-		*port = wParam;
-		::CheckMenuItem( hMenu, *port, MF_CHECKED );
+		menu.Uncheck( *port );
+		menu.Check( *port = wParam );
 
 		if (nes.IsAnyControllerConnected(NES::CONTROLLER_KEYBOARD))
 		{
@@ -996,18 +1008,8 @@ VOID APPLICATION::OnPort(const UINT wParam)
 
 VOID APPLICATION::OnAutoSelectController()
 {
-	HMENU hMenu = GetMenu();
-
-	if (AutoSelectController)
-	{
-		AutoSelectController = FALSE;
-		::CheckMenuItem( hMenu, IDM_MACHINE_AUTOSELECTCONTROLLER, MF_UNCHECKED );
-	}
-	else
-	{
-		AutoSelectController = TRUE;
-		::CheckMenuItem( hMenu, IDM_MACHINE_AUTOSELECTCONTROLLER, MF_CHECKED );
-	}
+	AutoSelectController = !AutoSelectController;
+	menu.Check( IDM_MACHINE_AUTOSELECTCONTROLLER, AutoSelectController );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -1124,8 +1126,7 @@ BOOL APPLICATION::OnCopyData(const LPARAM lParam)
 
 		switch (cds.dwData)
 		{
-	     	case NST_WM_CMDLINE:
-			case NST_WM_LAUNCHER_FILE:
+			case NST_WM_OPEN_FILE:
      		
 				if (cds.cbData && cds.lpData)
 				{
@@ -1139,7 +1140,7 @@ BOOL APPLICATION::OnCopyData(const LPARAM lParam)
 				}
 				return TRUE;
 
-			case NST_WM_LAUNCHER_ZIPPED_FILE:
+			case NST_WM_OPEN_ZIPPED_FILE:
 
 				if (cds.cbData == sizeof(PDXPAIR<PDXSTRING,PDXSTRING>) && cds.lpData)
 					OnOpen( FILE_ZIPPED, cds.lpData );
@@ -1178,23 +1179,17 @@ VOID APPLICATION::OnDropFiles(WPARAM wParam)
 
 VOID APPLICATION::OnPause()
 {
-	HMENU hMenu = GetMenu();
+	const BOOL pause = !nes.IsPaused();
+	nes.Pause( pause );
 
-	if (nes.IsPaused())
-	{
-		nes.Pause( FALSE );
-		::CheckMenuItem( hMenu, IDM_MACHINE_PAUSE, MF_UNCHECKED );	
-		StartScreenMsg( 1500, "Resumed.." );
-	}
-	else
+	if (pause)
 	{
 		SoundManager->Clear();
-		nes.Pause( TRUE );
-		::CheckMenuItem( hMenu, IDM_MACHINE_PAUSE, MF_CHECKED );	
-		StartScreenMsg( 1500, "Paused.." );
 		OnPaint();
 	}
 
+	menu.Check( IDM_MACHINE_PAUSE, pause );
+	StartScreenMsg( 1500, pause ? "Paused.." : "Resumed.." );
 	SetThreadPriority( GetDesiredPriority() );
 }
 
@@ -1204,21 +1199,14 @@ VOID APPLICATION::OnPause()
 
 VOID APPLICATION::OnUnlimitedSprites()
 {
-	const BOOL enable = !IsChecked( IDM_MACHINE_OPTIONS_UNLIMITEDSPRITES );
-
-	::CheckMenuItem
-	( 
-       	GetMenu(), 
-		IDM_MACHINE_OPTIONS_UNLIMITEDSPRITES,
-		enable ? MF_CHECKED : MF_UNCHECKED
-	);	
-
 	NES::IO::GFX::CONTEXT context;
 	nes.GetGraphicContext( context );
-	context.InfiniteSprites = enable;
-	nes.SetGraphicContext( context );
 
-	StartScreenMsg( 1500, "Unlimited sprites ", enable ? "enabled.." : "disabled.." );
+	context.InfiniteSprites = menu.IsUnchecked( IDM_MACHINE_OPTIONS_UNLIMITEDSPRITES );
+	menu.Check( IDM_MACHINE_OPTIONS_UNLIMITEDSPRITES, context.InfiniteSprites );
+
+	StartScreenMsg( 1500, "Unlimited sprites ", context.InfiniteSprites ? "enabled.." : "disabled.." );
+	nes.SetGraphicContext( context );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -1227,12 +1215,7 @@ VOID APPLICATION::OnUnlimitedSprites()
 
 VOID APPLICATION::OnNsfInBackground()
 {
-	::CheckMenuItem
-	( 
-     	GetMenu(), 
-		IDM_NSF_OPTIONS_PLAYINBACKGROUND, 
-		IsChecked( IDM_NSF_OPTIONS_PLAYINBACKGROUND ) ? MF_UNCHECKED : MF_CHECKED 
-	);	
+	menu.ToggleCheck( IDM_NSF_OPTIONS_PLAYINBACKGROUND );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -1241,13 +1224,13 @@ VOID APPLICATION::OnNsfInBackground()
 
 VOID APPLICATION::RefreshCursor(const BOOL force)
 {
-	if (!force && UseZapper && nes.IsOn() && nes.IsCartridge())
+	if (!force && UseZapper && nes.IsOn() && nes.IsImage())
 	{
 		hCursor = ::LoadCursor( NULL, IDC_CROSS );
 		::SetCursor( hCursor );
 		while (::ShowCursor( TRUE ) <= -1);
 	}
-	else if (force || windowed || !hMenu)
+	else if (force || windowed || ::GetMenu( hWnd ))
 	{
 		hCursor = ::LoadCursor( NULL, IDC_ARROW );
 		::SetCursor( hCursor );
@@ -1304,8 +1287,8 @@ VOID APPLICATION::OnHelp(const UINT wParam)
 
 VOID APPLICATION::OnActive()
 {
-	SetThreadPriority( GetDesiredPriority() );
 	active = TRUE;
+	SetThreadPriority( GetDesiredPriority() );
 	InBackground = FALSE;
 	InputManager->AcquireDevices();
 	TimerManager->Update();
@@ -1321,7 +1304,7 @@ VOID APPLICATION::OnInactive(const BOOL force)
 	InBackground = TRUE;
 	SoundManager->Clear();
 
-	if (force || (!preferences->RunInBackground() && !(nes.IsNsf() && nes.IsOn() && IsChecked(IDM_NSF_OPTIONS_PLAYINBACKGROUND))))
+	if (force || (!preferences->RunInBackground() && !(nes.IsNsf() && nes.IsOn() && menu.IsChecked( IDM_NSF_OPTIONS_PLAYINBACKGROUND ))))
 	{
 		active = FALSE;
 		SoundManager->Stop();
@@ -1331,7 +1314,7 @@ VOID APPLICATION::OnInactive(const BOOL force)
 	}
 	else
 	{
-		SetThreadPriority( (IsRunning() ? THREAD_PRIORITY_ABOVE_NORMAL : THREAD_PRIORITY_NORMAL) );
+		SetThreadPriority( IsRunning() ? THREAD_PRIORITY_ABOVE_NORMAL : THREAD_PRIORITY_NORMAL );
 	}
 }
 
@@ -1460,18 +1443,21 @@ VOID APPLICATION::OnOpen(const FILETYPE FileType,const VOID* const param)
 
 VOID APPLICATION::OnLauncher()
 {
-	if (!windowed && hMenu)
+	const BOOL EnableMenu = !windowed && !::GetMenu( hWnd );
+
+	if (EnableMenu)
 		GraphicManager->EnableGDI( TRUE );
 
 	launcher->Open();
   
-	if (!windowed && hMenu)
+	if (EnableMenu)
 	{
 		::LockWindowUpdate( hWnd );
-		::CheckMenuItem( hMenu, IDM_VIEW_MENU, MF_CHECKED );
-		::SetMenu( hWnd, hMenu );
-		hMenu = NULL;	
+		
+		menu.Check( IDM_VIEW_MENU );
+		menu.Attach( hWnd );
 		RefreshCursor();
+
 		::LockWindowUpdate( NULL );
 	}
 }
@@ -1588,6 +1574,20 @@ VOID APPLICATION::OnSaveState()
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
+VOID APPLICATION::OnNetplay()
+{
+	if (launcher->IsEnabled())
+		launcher->Close();
+
+	menu.Disable( IDM_FILE_NETPLAY );	
+	NetplayManager->Start();	
+	menu.Enable( IDM_FILE_NETPLAY );
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
 VOID APPLICATION::OnSoundRecorder(const UINT wParam)
 {
 	switch (wParam)
@@ -1680,68 +1680,49 @@ VOID APPLICATION::OnFdsSide(const UINT wParam)
 
 VOID APPLICATION::UpdateFdsMenu()
 {
-	HMENU hMenu = GetMenu();
+	menu.Disable( IDM_FDS_EJECT_DISK );
+	menu.Disable( IDM_FDS_SIDE_A     );
+	menu.Disable( IDM_FDS_SIDE_B     );
+	
+	NSTMENU SubMenu( menu.GetSub( NST_IDM_POS_FDS ) );
+	SubMenu.GetSub(NST_IDM_POS_FDS_INSERTDISK).Clear();
 
-	::EnableMenuItem( hMenu, IDM_FDS_EJECT_DISK, MF_GRAYED );
-	::EnableMenuItem( hMenu, IDM_FDS_SIDE_A, MF_GRAYED );
-	::EnableMenuItem( hMenu, IDM_FDS_SIDE_B, MF_GRAYED );
+	SubMenu.Enable( NST_IDM_POS_FDS_INSERTDISK, FALSE, NSTMENU::POS );
+	SubMenu.Enable( NST_IDM_POS_FDS_DISKSIDE, FALSE, NSTMENU::POS );
 
-	HMENU hSubMenu;
-	hSubMenu = ::GetSubMenu( hMenu,  2 );
-	hSubMenu = ::GetSubMenu( hSubMenu, 0 );
+	if (!nes.IsFds())
+		return;
 
-	while (::GetMenuItemCount( hSubMenu ))
-		::DeleteMenu( hSubMenu, 0, MF_BYPOSITION );
+	NES::IO::FDS::CONTEXT context;
 
-	hSubMenu = ::GetSubMenu( hMenu, 2 );
+	if (PDX_FAILED(nes.GetFdsContext( context )))
+		return;
+	
+	SubMenu.Enable( NST_IDM_POS_FDS_DISKSIDE, TRUE, NSTMENU::POS );
+	menu.Enable( IDM_FDS_SIDE_A, context.CurrentSide != 0 );
+	menu.Enable( IDM_FDS_SIDE_B, context.CurrentSide != 1 );
 
-	::EnableMenuItem( hSubMenu, 0, MF_BYPOSITION | MF_GRAYED );
-	::EnableMenuItem( hSubMenu, 2, MF_BYPOSITION | MF_GRAYED );
-
-	if (nes.IsFds())
+	if (!context.DiskInserted || context.NumDisks > 1)
 	{
-		NES::IO::FDS::CONTEXT context;
+		SubMenu.Enable( NST_IDM_POS_FDS_INSERTDISK, TRUE, NSTMENU::POS );
+		SubMenu = SubMenu.GetSub( NST_IDM_POS_FDS_INSERTDISK );
 
-		if (PDX_SUCCEEDED(nes.GetFdsContext( context )))
+		PDXSTRING disk( "&" );
+
+		const UINT NumDisks = PDX_MIN(16,context.NumDisks);
+
+		for (UINT i=0; i < NumDisks; ++i)
 		{
-			::EnableMenuItem( hSubMenu, 2, MF_BYPOSITION | MF_ENABLED );
-			
-			::EnableMenuItem( hMenu, IDM_FDS_SIDE_A, context.CurrentSide == 0 ? MF_GRAYED : MF_ENABLED );
-			::EnableMenuItem( hMenu, IDM_FDS_SIDE_B, context.CurrentSide == 1 ? MF_GRAYED : MF_ENABLED );
+			disk.Resize(1);
+			disk << (i+1);
 
-			if (!context.DiskInserted || context.NumDisks > 1)
-			{
-				::EnableMenuItem( hSubMenu, 0, MF_BYPOSITION | MF_ENABLED );
-
-				PDXSTRING name;
-
-				hSubMenu = ::GetSubMenu( hSubMenu, 0 );
-
-				const UINT NumDisks = PDX_MIN( 16, context.NumDisks );
-
-				for (UINT i=0; i < NumDisks; ++i)
-				{
-					::AppendMenu
-					( 
-				     	hSubMenu, 
-						MF_BYPOSITION, 
-						IDM_FDS_INSERT_DISK_1 + i, 
-						( name = (i+1) ).String()
-					);
-
-					::EnableMenuItem
-					( 
-				     	hSubMenu, 
-						IDM_FDS_INSERT_DISK_1 + i, 
-						(context.CurrentDisk == i && context.DiskInserted) ? MF_GRAYED : MF_ENABLED
-					);
-				}
-			}
-			
-			if (context.DiskInserted)
-				::EnableMenuItem( hMenu, IDM_FDS_EJECT_DISK, MF_ENABLED );
-  		}
+			SubMenu.Insert( IDM_FDS_INSERT_DISK_1 + i, disk.String() );
+			SubMenu.Enable( IDM_FDS_INSERT_DISK_1 + i, context.CurrentDisk != i || !context.DiskInserted );
+		}
 	}
+
+	if (context.DiskInserted)
+		menu.Enable( IDM_FDS_EJECT_DISK, TRUE );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -1750,8 +1731,6 @@ VOID APPLICATION::UpdateFdsMenu()
 
 VOID APPLICATION::UpdateWindowItems()
 {
-	HMENU hMenu = GetMenu();
-
 	const NES::IO::CARTRIDGE::INFO* const info = nes.GetCartridgeInfo();
 
 	PDXSTRING name( NST_WINDOW_NAME );
@@ -1786,38 +1765,39 @@ VOID APPLICATION::UpdateWindowItems()
 
 	const BOOL ExportBitmaps = GraphicManager->CanExportBitmaps();
 
-	::EnableMenuItem( hMenu, IDM_FILE_CLOSE,                  NST_MENUSTATE( IsLoaded                        ) );
-	::EnableMenuItem( hMenu, IDM_FILE_LOAD_NST,               NST_MENUSTATE( IsImageOn                       ) );
-	::EnableMenuItem( hMenu, IDM_FILE_SAVE_NST,               NST_MENUSTATE( IsImageOn                       ) );
-	::EnableMenuItem( hMenu, IDM_FILE_SAVE_NSP,               NST_MENUSTATE( IsImage                         ) );
-	::EnableMenuItem( hMenu, IDM_FILE_SAVE_SCREENSHOT,        NST_MENUSTATE( IsImageOn && ExportBitmaps      ) );
-	::EnableMenuItem( hMenu, IDM_MACHINE_RESET_SOFT,          NST_MENUSTATE( IsOn                            ) );
-	::EnableMenuItem( hMenu, IDM_MACHINE_RESET_HARD,          NST_MENUSTATE( IsOn                            ) );
-	::EnableMenuItem( hMenu, IDM_MACHINE_POWER_ON,            NST_MENUSTATE( !IsOn && IsLoaded               ) );
-	::EnableMenuItem( hMenu, IDM_MACHINE_POWER_OFF,           NST_MENUSTATE( IsOn                            ) );
-	::EnableMenuItem( hMenu, IDM_MACHINE_PAUSE,               NST_MENUSTATE( IsLoadedOn                      ) );
-	::EnableMenuItem( hMenu, IDM_NSF_PLAY,                    NST_MENUSTATE( IsNsfOn                         ) );
-	::EnableMenuItem( hMenu, IDM_NSF_STOP,                    NST_MENUSTATE( IsNsfOn                         ) );
-	::EnableMenuItem( hMenu, IDM_NSF_PREV,                    NST_MENUSTATE( IsNsfOn                         ) );
-	::EnableMenuItem( hMenu, IDM_NSF_NEXT,                    NST_MENUSTATE( IsNsfOn                         ) );
-	::EnableMenuItem( hMenu, IDM_VIEW_ROM_INFO,               NST_MENUSTATE( nes.IsCartridge()               ) );
-	::EnableMenuItem( hMenu, IDM_MACHINE_OPTIONS_DIPSWITCHES, NST_MENUSTATE( nes.GetNumVsSystemDipSwitches() ) );
+	menu.Enable( IDM_FILE_CLOSE,                  IsLoaded                        );
+	menu.Enable( IDM_FILE_LOAD_NST,               IsImageOn                       );
+	menu.Enable( IDM_FILE_SAVE_NST,               IsImageOn                       );
+	menu.Enable( IDM_FILE_SAVE_NSP,               IsImage                         );
+	menu.Enable( IDM_FILE_SAVE_SCREENSHOT,        IsImageOn && ExportBitmaps      );
+	menu.Enable( IDM_MACHINE_RESET_SOFT,          IsOn                            );
+	menu.Enable( IDM_MACHINE_RESET_HARD,          IsOn                            );
+	menu.Enable( IDM_MACHINE_POWER_ON,            !IsOn && IsLoaded               );
+	menu.Enable( IDM_MACHINE_POWER_OFF,           IsOn                            );
+	menu.Enable( IDM_MACHINE_PAUSE,               IsLoadedOn                      );
+	menu.Enable( IDM_NSF_PLAY,                    IsNsfOn                         );
+	menu.Enable( IDM_NSF_STOP,                    IsNsfOn                         );
+	menu.Enable( IDM_NSF_PREV,                    IsNsfOn                         );
+	menu.Enable( IDM_NSF_NEXT,                    IsNsfOn                         );
+	menu.Enable( IDM_VIEW_ROM_INFO,               nes.IsCartridge()               );
+	menu.Enable( IDM_MACHINE_OPTIONS_DIPSWITCHES, nes.GetNumVsSystemDipSwitches() );
 
-	::CheckMenuItem( hMenu, IDM_MACHINE_PAUSE, nes.IsPaused() ? MF_CHECKED : MF_UNCHECKED );
+	menu.Check( IDM_MACHINE_PAUSE, nes.IsPaused() );
 
 	{
-		HMENU hSubMenu;
-		
-		hSubMenu = ::GetSubMenu( hMenu, 0 );
-		::EnableMenuItem( hSubMenu, 6,  MF_BYPOSITION | NST_MENUSTATE( IsImageOn                     ) );
-		::EnableMenuItem( hSubMenu, 7,  MF_BYPOSITION | NST_MENUSTATE( IsImageOn                     ) );
-		::EnableMenuItem( hSubMenu, 15, MF_BYPOSITION | NST_MENUSTATE( FileManager->NumRecentFiles() ) );
-		
-		hSubMenu = ::GetSubMenu( hMenu, 1 );
-		::EnableMenuItem( hSubMenu, 0, MF_BYPOSITION | NST_MENUSTATE( IsOn || (IsLoaded && !IsOn) ) );
-		::EnableMenuItem( hSubMenu, 1, MF_BYPOSITION | NST_MENUSTATE( IsOn                        ) );
+		NSTMENU SubMenu;
+
+		SubMenu = menu.GetSub( NST_IDM_POS_FILE );
+		SubMenu.Enable( NST_IDM_POS_FILE_SAVE, IsImage, NSTMENU::POS );
+		SubMenu.Enable( NST_IDM_POS_FILE_QUICKLOADSTATE, IsImageOn, NSTMENU::POS );
+		SubMenu.Enable( NST_IDM_POS_FILE_QUICKSAVESTATE, IsImageOn, NSTMENU::POS );
+		SubMenu.Enable( NST_IDM_POS_FILE_RECENT, FileManager->NumRecentFiles(), NSTMENU::POS );
+
+		SubMenu = menu.GetSub( NST_IDM_POS_MACHINE );
+		SubMenu.Enable( NST_IDM_POS_MACHINE_POWER, IsOn || (IsLoaded && !IsOn), NSTMENU::POS );
+		SubMenu.Enable( NST_IDM_POS_MACHINE_RESET, IsOn, NSTMENU::POS );
 	}
-  
+
 	UpdateSoundRecorderMenu();
 	UpdateFdsMenu();
 }
@@ -1834,11 +1814,9 @@ VOID APPLICATION::UpdateSoundRecorderMenu()
 		nes.IsOn() && (nes.IsImage() || nes.IsNsf())
 	);
 
-	HMENU hMenu = GetMenu();
-
-	::EnableMenuItem( hMenu, IDM_FILE_SOUND_CAPTURE_RECORD, NST_MENUSTATE( yeah && !SoundManager->IsSoundRecorderRecording() ) );
-	::EnableMenuItem( hMenu, IDM_FILE_SOUND_CAPTURE_STOP,   NST_MENUSTATE( yeah &&  SoundManager->IsSoundRecorderRecording() ) );
-	::EnableMenuItem( hMenu, IDM_FILE_SOUND_CAPTURE_RESET,  NST_MENUSTATE( yeah ) );
+	menu.Enable( IDM_FILE_SOUND_CAPTURE_RECORD, yeah && !SoundManager->IsSoundRecorderRecording() );
+	menu.Enable( IDM_FILE_SOUND_CAPTURE_STOP,   yeah &&  SoundManager->IsSoundRecorderRecording() );
+	menu.Enable( IDM_FILE_SOUND_CAPTURE_RESET,  yeah );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -1847,13 +1825,11 @@ VOID APPLICATION::UpdateSoundRecorderMenu()
 
 VOID APPLICATION::UpdateMovieMenu()
 {
-	HMENU hMenu = GetMenu();
-
-	::EnableMenuItem( hMenu, IDM_FILE_MOVIE_STOP,	 NST_MENUSTATE( MovieManager->CanStop()    ) );
-	::EnableMenuItem( hMenu, IDM_FILE_MOVIE_PLAY,    NST_MENUSTATE( MovieManager->CanPlay()    ) );
-	::EnableMenuItem( hMenu, IDM_FILE_MOVIE_RECORD,  NST_MENUSTATE( MovieManager->CanRecord()  ) );
-	::EnableMenuItem( hMenu, IDM_FILE_MOVIE_REWIND,  NST_MENUSTATE( MovieManager->CanRewind()  ) );
-	::EnableMenuItem( hMenu, IDM_FILE_MOVIE_FORWARD, NST_MENUSTATE( MovieManager->CanForward() ) );
+	menu.Enable( IDM_FILE_MOVIE_STOP,	 MovieManager->CanStop()    );
+	menu.Enable( IDM_FILE_MOVIE_PLAY,    MovieManager->CanPlay()    );
+	menu.Enable( IDM_FILE_MOVIE_RECORD,  MovieManager->CanRecord()  );
+	menu.Enable( IDM_FILE_MOVIE_REWIND,  MovieManager->CanRewind()  );
+	menu.Enable( IDM_FILE_MOVIE_FORWARD, MovieManager->CanForward() );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -1892,6 +1868,9 @@ VOID APPLICATION::UpdateNsf()
 
 VOID APPLICATION::OnClose()
 {
+	if (menu.IsDisabled(IDM_FILE_CLOSE))
+		return;
+
 	SoundManager->Stop();
 
 	if (preferences->ConfirmReset() && nes.IsOn())
@@ -1978,7 +1957,7 @@ VOID APPLICATION::OnReset(const BOOL state)
 	SoundManager->Clear();
 	nes.Reset( state );
 	StartScreenMsg( 1500, (state ? "Hard" : "Soft"), " reset.." );
-	::CheckMenuItem( GetMenu(), IDM_MACHINE_PAUSE, nes.IsPaused() ? MF_CHECKED : MF_UNCHECKED );
+	menu.Check( IDM_MACHINE_PAUSE, nes.IsPaused() );
 	UpdateFdsMenu();
 }
 
@@ -2024,11 +2003,8 @@ VOID APPLICATION::OnMode(const UINT NewIdm)
 
 		NesMode = NewMode;
 
-		{
-			HMENU hMenu = GetMenu();
-			::CheckMenuItem( hMenu, OldIdm, MF_UNCHECKED );
-			::CheckMenuItem( hMenu, NewIdm, MF_CHECKED   );
-		}
+		menu.Uncheck( OldIdm );
+		menu.Check( NewIdm );
 
 		StartScreenMsg( 1500, "Switched to ", (IsPAL ? "PAL.." : "NTSC..") );
 	}
@@ -2138,11 +2114,8 @@ VOID APPLICATION::OnLeftMouseButtonUp()
 
 VOID APPLICATION::OnToggleMenu()
 {
-	if (!windowed)
-	{
-		if (hMenu) OnShowMenu();
-		else       OnHideMenu();
-	}
+	if (::GetMenu( hWnd )) OnHideMenu();
+	else                   OnShowMenu();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -2151,25 +2124,46 @@ VOID APPLICATION::OnToggleMenu()
 
 VOID APPLICATION::OnShowMenu()
 {
-	PDX_ASSERT( !windowed && bool(hMenu) != bool(::GetMenu(hWnd)) );
-
-	if (hMenu)
+	if (!::GetMenu( hWnd ))
 	{
 		::SetFocus( hWnd );
-		::LockWindowUpdate( hWnd );
-		
-		GraphicManager->EnableGDI( TRUE );
-		
-		::CheckMenuItem( hMenu, IDM_VIEW_MENU, MF_CHECKED );
-		::SetMenu( hWnd, hMenu );
-		
-		hMenu = NULL;	
-		RefreshCursor();
 
-		if (launcher->IsEnabled())
-			launcher->Activate();
+		menu.Check( IDM_VIEW_MENU );
 
-		::LockWindowUpdate( NULL );
+		if (windowed)
+		{
+			const BOOL zoomed = ::IsZoomed( hWnd );
+
+			menu.Attach( hWnd );
+
+			::SetWindowPos
+			( 
+				hWnd, 
+				NULL, 
+				0, 
+				0, 
+				rcWindow.right - rcWindow.left, 
+				(rcWindow.bottom - rcWindow.top) + menu.GetHeight( hWnd ), 
+				SWP_NOMOVE|SWP_NOZORDER 
+			);
+
+			if (zoomed)
+				::ShowWindow( hWnd, SW_MAXIMIZE );
+		}
+		else
+		{
+			::LockWindowUpdate( hWnd );
+
+			GraphicManager->EnableGDI( TRUE );
+
+			menu.Attach( hWnd );
+			RefreshCursor();
+
+			if (launcher->IsEnabled())
+				launcher->Activate();
+
+			::LockWindowUpdate( NULL );
+		}
 	}
 }
 
@@ -2179,27 +2173,62 @@ VOID APPLICATION::OnShowMenu()
 
 VOID APPLICATION::OnHideMenu()
 {
-	PDX_ASSERT( !windowed && bool(hMenu) != bool(::GetMenu(hWnd)) );
-
-	if (!hMenu)
+	if (::GetMenu( hWnd ))
 	{
 		::SetFocus( hWnd );
 
-		if (launcher->IsEnabled())
-			launcher->Inactivate();
+		menu.Uncheck( IDM_VIEW_MENU );
 
-		::LockWindowUpdate( hWnd );
+		if (windowed)
+		{
+			const BOOL zoomed = ::IsZoomed( hWnd );
+			const INT height = menu.GetHeight( hWnd );
+			
+			menu.Detach( hWnd );
 
-		hMenu = ::GetMenu( hWnd );
-		
-		::CheckMenuItem( hMenu, IDM_VIEW_MENU, MF_UNCHECKED );
-		::SetMenu( hWnd, NULL );	
-		
-		RefreshCursor();
+			::SetWindowPos
+			( 
+				hWnd, 
+				NULL, 
+				0, 
+				0, 
+				rcWindow.right - rcWindow.left, 
+				(rcWindow.bottom - rcWindow.top) - height, 
+				SWP_NOMOVE|SWP_NOZORDER 
+			);
 
-		::LockWindowUpdate( NULL );
-		GraphicManager->EnableGDI( FALSE );
+			if (zoomed)
+				::ShowWindow( hWnd, SW_MAXIMIZE );
+		}
+		else
+		{
+			if (launcher->IsEnabled())
+				launcher->Inactivate();
+
+			::LockWindowUpdate( hWnd );
+
+			menu.Detach( hWnd );
+			RefreshCursor();
+
+			::LockWindowUpdate( NULL );
+			GraphicManager->EnableGDI( FALSE );
+		}
 	}
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+NSTMENU APPLICATION::SwitchMenu(NSTMENU NewMenu)
+{
+	NSTMENU OldMenu( menu );
+	menu = NewMenu;
+
+	if (::GetMenu( hWnd ) == OldMenu)
+		::SetMenu( hWnd, HMENU(NewMenu) );
+
+	return OldMenu;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -2210,24 +2239,23 @@ VOID APPLICATION::OnToggleStatusBar()
 {
 	if (windowed)
 	{
-		HMENU hMenu = GetMenu();
+		ShowFPS = !StatusBar->IsEnabled();
+
+		menu.Check( IDM_VIEW_STATUSBAR, ShowFPS );
+		menu.Enable( IDM_VIEW_FPS, ShowFPS );
+
 		INT bottom;
 
-		if (StatusBar->IsEnabled())
+		if (ShowFPS)
 		{
-			bottom = rcWindow.bottom - StatusBar->GetHeight();
-			StatusBar->Destroy();
-			::CheckMenuItem( hMenu, IDM_VIEW_STATUSBAR, MF_UNCHECKED );
-			::EnableMenuItem( hMenu, IDM_VIEW_FPS, MF_GRAYED );
-			ShowFPS = FALSE;
+			ShowFPS = menu.IsChecked( IDM_VIEW_FPS );
+			StatusBar->Create( hInstance, hWnd );
+			bottom = rcWindow.bottom + StatusBar->GetHeight();
 		}
 		else
 		{
-			StatusBar->Create( hInstance, hWnd );
-			bottom = rcWindow.bottom + StatusBar->GetHeight();
-			::CheckMenuItem( hMenu, IDM_VIEW_STATUSBAR, MF_CHECKED );
-			::EnableMenuItem( hMenu, IDM_VIEW_FPS, MF_ENABLED );
-			ShowFPS = IsChecked( IDM_VIEW_FPS );
+			bottom = rcWindow.bottom - StatusBar->GetHeight();
+			StatusBar->Destroy();
 		}
 
 		const BOOL zoomed = ::IsZoomed( hWnd );
@@ -2254,19 +2282,10 @@ VOID APPLICATION::OnToggleStatusBar()
 
 VOID APPLICATION::OnToggleFPS()
 {
-	HMENU hMenu = GetMenu();
+	ShowFPS = !menu.ToggleCheck( IDM_VIEW_FPS );
 
-	if (IsChecked( IDM_VIEW_FPS ))
-	{
-		ShowFPS = FALSE;
+	if (!ShowFPS)
 		StatusBar->DisplayFPS( FALSE );
-		::CheckMenuItem( hMenu, IDM_VIEW_FPS, MF_UNCHECKED );
-	}
-	else
-	{
-		ShowFPS = TRUE;
-		::CheckMenuItem( hMenu, IDM_VIEW_FPS, MF_CHECKED );
-	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -2277,41 +2296,9 @@ VOID APPLICATION::OnTop()
 {
 	if (windowed)
 	{
-		HWND hZPos;
-
-		HMENU hMenu = GetMenu();
-
-		if (::GetMenuState( hMenu, IDM_VIEW_ON_TOP, MF_BYCOMMAND) & MF_CHECKED)
-		{
-			::CheckMenuItem( hMenu, IDM_VIEW_ON_TOP, MF_UNCHECKED );
-			hZPos = HWND_NOTOPMOST;
-		}
-		else
-		{
-			::CheckMenuItem( hMenu, IDM_VIEW_ON_TOP, MF_CHECKED );
-			hZPos = HWND_TOPMOST;
-		}
-
+		HWND hZPos = menu.ToggleCheck( IDM_VIEW_ON_TOP ) ? HWND_NOTOPMOST : HWND_TOPMOST;
 		::SetWindowPos( hWnd, hZPos, 0, 0, 0, 0, SWP_NOMOVE|SWP_NOSIZE );
 	}
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-INT APPLICATION::GetMenuHeight() const
-{
-	if (!hMenu)
-	{
-		MENUBARINFO mbi;
-		mbi.cbSize = sizeof(mbi);
-
-		if (::GetMenuBarInfo( hWnd, OBJID_MENU, 0, &mbi))
-			return (mbi.rcBar.bottom - mbi.rcBar.top);
-	}
-
-	return 0;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -2360,15 +2347,6 @@ VOID APPLICATION::OnSizeMove(const LPARAM lParam)
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-BOOL APPLICATION::IsChecked(const UINT idm) const
-{
-	return GetMenuState( GetMenu(), idm, MF_BYCOMMAND ) & MF_CHECKED;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
 VOID APPLICATION::OnActivate(const WPARAM wParam)
 {
 	WindowVisible = !HIWORD(wParam);
@@ -2394,39 +2372,18 @@ VOID APPLICATION::OnActivate(const WPARAM wParam)
 
 VOID APPLICATION::UpdateWindowSizes(const UINT width,const UINT height)
 {
-	HMENU hMenu = GetMenu();
+	NSTMENU SubMenu( menu.GetSub(NST_IDM_POS_VIEW).GetSub(NST_IDM_POS_VIEW_SCREENSIZE) );
 
-	HMENU hSubMenu;
-	hSubMenu = ::GetSubMenu( hMenu, 4 );
-	hSubMenu = ::GetSubMenu( hSubMenu, 3 );
+	SubMenu.Clear();
+	SubMenu.Insert( IDM_VIEW_WINDOWSIZE_MAX, "&Max\tAlt+M" );
 
-	while (::GetMenuItemCount( hSubMenu ))
-		::DeleteMenu( hSubMenu, 0, MF_BYPOSITION );
-
-	::AppendMenu
-	( 
-		::GetSubMenu( ::GetSubMenu( hMenu, 4 ), 3 ),
-		MF_BYPOSITION, 
-		IDM_VIEW_WINDOWSIZE_MAX, 
-		"&Max\tAlt+M"
-	);
-
-	PDXSTRING MenuText( "&" );
+	PDXSTRING item( "&" );
 
 	for (UINT j=0,i=1,x=NES::IO::GFX::WIDTH,y=NES::IO::GFX::HEIGHT; x <= width && y <= height && j < 4; ++j, i *= 2, x *= 2, y *= 2) 
 	{
-		MenuText.Resize(1);
-		MenuText << i;
-		MenuText << "X\tAlt+";
-		MenuText << (j+1);
-
-		::AppendMenu
-		( 
-			::GetSubMenu( ::GetSubMenu( hMenu, 4 ), 3 ),
-			MF_BYPOSITION, 
-			IDM_VIEW_WINDOWSIZE_1X + j, 
-			MenuText.String()
-		);
+		item.Resize(1);
+		item << i << "X\tAlt+" << (j+1);
+		SubMenu.Insert( IDM_VIEW_WINDOWSIZE_1X + j, item.String() );
 	}
 }
 
@@ -2480,7 +2437,7 @@ VOID APPLICATION::OnWindowSize(const UINT factor,const BOOL UpdateZOrder)
 				::SetWindowPos
 				( 
 			     	hWnd, 
-					(IsChecked(IDM_VIEW_ON_TOP) ? HWND_TOPMOST : HWND_NOTOPMOST), 
+					(menu.IsChecked(IDM_VIEW_ON_TOP) ? HWND_TOPMOST : HWND_NOTOPMOST), 
 					0,0,0,0,
 					SWP_NOMOVE|SWP_NOSIZE 
 				);
@@ -2495,13 +2452,20 @@ VOID APPLICATION::OnWindowSize(const UINT factor,const BOOL UpdateZOrder)
 			INT y = GraphicManager->GetNesRect().bottom - GraphicManager->GetNesRect().top;
 
 			RECT rcExtra = {0,0,x,y};
-			::AdjustWindowRect( &rcExtra, NST_WINDOWSTYLE, (hMenu ? FALSE : TRUE) );
+
+			::AdjustWindowRectEx
+			( 
+		       	&rcExtra, 
+				NST_WINDOWSTYLE, 
+				::GetMenu( hWnd ) != NULL,
+				NST_WINDOWSTYLE_EX
+			);
 
 			rcExtra.right = (rcExtra.right - rcExtra.left) - x;
 			rcExtra.bottom = (rcExtra.bottom - rcExtra.top) - y;
 
-			const INT width = GetSystemMetrics( SM_CXFULLSCREEN );
-			const INT height = GetSystemMetrics( SM_CYFULLSCREEN );
+			const INT width = ::GetSystemMetrics( SM_CXFULLSCREEN );
+			const INT height = ::GetSystemMetrics( SM_CYFULLSCREEN );
 
 			for (UINT i=0; i < factor; ++i)
 			{
@@ -2521,15 +2485,15 @@ VOID APPLICATION::OnWindowSize(const UINT factor,const BOOL UpdateZOrder)
 			if (UpdateZOrder)
 			{
 				flags = SWP_NOMOVE;
-				hZPos = (IsChecked(IDM_VIEW_ON_TOP) ? HWND_TOPMOST : HWND_NOTOPMOST);
+				hZPos = (menu.IsChecked( IDM_VIEW_ON_TOP ) ? HWND_TOPMOST : HWND_NOTOPMOST);
 			}
 
 			::SetWindowPos( hWnd, hZPos, 0, 0, x, y, flags );
 
-			if (!hMenu)
+			if (::GetMenu( hWnd ))
 			{
-				const INT MenuHeight = GetMenuHeight();
-				const INT MenuMetric = GetSystemMetrics( SM_CYMENU );
+				const INT MenuHeight = menu.GetHeight( hWnd );
+				const INT MenuMetric = ::GetSystemMetrics( SM_CYMENU );
 
 				if (MenuHeight > MenuMetric)
 					::SetWindowPos( hWnd, hZPos, 0, 0, x, y + (MenuHeight - MenuMetric), flags );
@@ -2551,13 +2515,11 @@ VOID APPLICATION::OnWindowSize(const UINT factor,const BOOL UpdateZOrder)
 
 VOID APPLICATION::ResetSaveSlots(const BOOL enabled)
 {
-	HMENU hMenu = GetMenu();
-
 	for (UINT i=IDM_FILE_QUICK_LOAD_STATE_SLOT_LAST; i <= IDM_FILE_QUICK_LOAD_STATE_SLOT_9; ++i)
-		::EnableMenuItem( hMenu, i, enabled ? MF_ENABLED : MF_GRAYED );
+		menu.Enable( i, enabled );
 
 	for (UINT i=IDM_FILE_QUICK_SAVE_STATE_SLOT_NEXT; i <= IDM_FILE_QUICK_SAVE_STATE_SLOT_9; ++i)
-		::EnableMenuItem( hMenu, i, enabled ? MF_ENABLED : MF_GRAYED );
+		menu.Enable( i, enabled );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -2578,7 +2540,7 @@ VOID APPLICATION::SwitchScreen()
 		PushWindow();
 		GraphicManager->SwitchToFullScreen();
 
-		if (IsChecked(IDM_VIEW_MENU))
+		if (menu.IsChecked( IDM_VIEW_MENU ) || nes.IsOff())
 			OnShowMenu();
 	}
 	else
@@ -2607,26 +2569,21 @@ VOID APPLICATION::PushWindow()
 	::GetClientRect( hWnd, &rcDesktopClient );
 
 	windowed = FALSE;
-
-	if (!hMenu)
-	{
-		hMenu = ::GetMenu( hWnd );
-		::SetMenu( hWnd, NULL );
-	}
+	menu.Detach( hWnd );
 
 	StatusBar->Destroy();
 
 	::SetWindowLong( hWnd, GWL_STYLE, WS_POPUP|WS_VISIBLE );
+	::SetWindowLong( hWnd, GWL_EXSTYLE, 0 );
 	::SetWindowPos( hWnd, HWND_TOPMOST, 0,0,0,0, SWP_NOMOVE|SWP_NOSIZE|SWP_FRAMECHANGED );
 
-	ChangeMenuText( IDM_VIEW_SWITCH_SCREEN, "&Window\tAlt+Enter" );	
+	menu.SetText( IDM_VIEW_SWITCH_SCREEN, "&Window\tAlt+Enter" );
 
-	::EnableMenuItem( hMenu, IDM_VIEW_MENU,      MF_ENABLED );
-	::EnableMenuItem( hMenu, IDM_VIEW_STATUSBAR, MF_GRAYED  );
-	::EnableMenuItem( hMenu, IDM_VIEW_ON_TOP,    MF_GRAYED  );
-	::EnableMenuItem( hMenu, IDM_VIEW_FPS,       MF_ENABLED );
+	menu.Enable( IDM_VIEW_STATUSBAR, FALSE );
+	menu.Enable( IDM_VIEW_ON_TOP,    FALSE );
+	menu.Enable( IDM_VIEW_FPS,       TRUE  );
 
-	ShowFPS = IsChecked( IDM_VIEW_FPS );
+	ShowFPS = menu.IsChecked( IDM_VIEW_FPS );
 
 	RefreshCursor();
 }
@@ -2637,43 +2594,36 @@ VOID APPLICATION::PushWindow()
 
 VOID APPLICATION::PopWindow()
 {
-	if (hMenu)
-		::SetMenu( hWnd, hMenu );
+	if (menu.IsChecked( IDM_VIEW_MENU ))
+		menu.Attach( hWnd );
 	else
-		hMenu = ::GetMenu( hWnd );
+		menu.Detach( hWnd );
 
 	windowed = TRUE;
 
-	ChangeMenuText( IDM_VIEW_SWITCH_SCREEN, "&Fullscreen\tAlt+Enter" );
+	menu.SetText( IDM_VIEW_SWITCH_SCREEN, "&Fullscreen\tAlt+Enter" );
 
-	::EnableMenuItem( hMenu, IDM_VIEW_MENU,      MF_GRAYED  );
-	::EnableMenuItem( hMenu, IDM_VIEW_STATUSBAR, MF_ENABLED );
-	::EnableMenuItem( hMenu, IDM_VIEW_ON_TOP,    MF_ENABLED );
+	menu.Enable( IDM_VIEW_STATUSBAR, TRUE  );
+	menu.Enable( IDM_VIEW_ON_TOP,    TRUE  );
 
 	RefreshCursor();
 
 	::SetWindowLong( hWnd, GWL_STYLE, NST_WINDOWSTYLE );
+	::SetWindowLong( hWnd, GWL_EXSTYLE, NST_WINDOWSTYLE_EX );
 
-	if (IsChecked( IDM_VIEW_STATUSBAR ))
+	ShowFPS = menu.IsChecked( IDM_VIEW_STATUSBAR );
+	menu.Enable( IDM_VIEW_FPS, ShowFPS );
+
+	if (ShowFPS)
 	{
+		ShowFPS = menu.IsChecked( IDM_VIEW_FPS );
 		StatusBar->Create( hInstance, hWnd );
-		::EnableMenuItem( hMenu, IDM_VIEW_FPS, MF_ENABLED );
-		ShowFPS = IsChecked( IDM_VIEW_FPS );
 	}
-	else
-	{
-		::EnableMenuItem( hMenu, IDM_VIEW_FPS, MF_GRAYED );
-		ShowFPS = FALSE;
-	}
-
-	hMenu = NULL;
-
-	Sleep( 60 );
 
 	::SetWindowPos
 	(
 		hWnd,
-		(IsChecked(IDM_VIEW_ON_TOP) ? HWND_TOPMOST : HWND_NOTOPMOST),
+		(menu.IsChecked(IDM_VIEW_ON_TOP) ? HWND_TOPMOST : HWND_NOTOPMOST),
 		rcDesktop.left,
 		rcDesktop.top,
 		rcDesktop.right - rcDesktop.left,
@@ -2682,6 +2632,7 @@ VOID APPLICATION::PopWindow()
 	);
 
 	::InvalidateRect( NULL, NULL, FALSE );
+	::Sleep( 500 );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -2750,41 +2701,18 @@ VOID APPLICATION::OnSaveStateSlot(const UINT idm)
 
 VOID APPLICATION::UpdateRecentFiles()
 {
-	HMENU hSubMenu;
-	hSubMenu = ::GetSubMenu( GetMenu(),  0 );
-	hSubMenu = ::GetSubMenu( hSubMenu,  15 );
+	NSTMENU SubMenu( menu.GetSub(NST_IDM_POS_FILE).GetSub(NST_IDM_POS_FILE_RECENT) );
 
-	while (::GetMenuItemCount( hSubMenu ))
-		::DeleteMenu( hSubMenu, 0, MF_BYPOSITION );
+	SubMenu.Clear();
 
-	PDXSTRING MenuItemName;
+	PDXSTRING item;
 
-	const UINT NumFiles = PDX_MIN( 10, FileManager->NumRecentFiles() );
+	const UINT NumItems = PDX_MIN(10,FileManager->NumRecentFiles());
 
-	for (UINT i=0; i < NumFiles; ++i)
+	for (UINT i=0; i < NumItems; ++i)
 	{
-		MenuItemName  = i;
-		MenuItemName += " ";
-		MenuItemName += FileManager->GetRecentFile(i);
-
-		::AppendMenu( hSubMenu, MF_BYPOSITION, IDM_FILE_RECENT_0 + i,  MenuItemName.String() );
+		item = i;
+		item << " " << FileManager->GetRecentFile(i);
+		SubMenu.Insert( IDM_FILE_RECENT_0 + i, item.String() );
 	}
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-BOOL APPLICATION::ChangeMenuText(const ULONG id,CHAR* const string) const
-{
-	PDX_ASSERT(string);
-
-	MENUITEMINFO info;
-	PDXMemZero( info );
-
-	info.cbSize     = sizeof(info);
-	info.fMask      = MIIM_STRING;
-	info.dwTypeData	= string;
-
-	return ::SetMenuItemInfo( GetMenu(), id, FALSE, &info );
 }

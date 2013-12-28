@@ -27,9 +27,9 @@ inline HWND APPLICATION::GetHWnd() const
 	return hWnd; 
 }
 
-inline HMENU APPLICATION::GetMenu() const
-{ 
-	return hMenu ? hMenu : ::GetMenu(hWnd); 
+inline HACCEL APPLICATION::GetHAccel() const
+{
+	return hAccel;
 }
 
 inline NES::MACHINE& APPLICATION::GetNes()
@@ -60,9 +60,16 @@ inline BOOL APPLICATION::IsPassive() const
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-inline BOOL APPLICATION::IsActive()   const { return active;        }
-inline BOOL APPLICATION::IsWindowed() const { return windowed;      }
-inline BOOL APPLICATION::IsMenuSet()  const { return hMenu == NULL; }
+inline BOOL APPLICATION::IsActive()   const { return active;   }
+inline BOOL APPLICATION::IsWindowed() const { return windowed; }
+inline BOOL APPLICATION::IsMenuSet()  const { return ::GetMenu( hWnd ) != NULL; }
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+inline BOOL APPLICATION::HasStatusBar() const
+{ return StatusBar->IsEnabled(); }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -78,6 +85,8 @@ inline SOUNDMANAGER&     APPLICATION::GetSoundManager     () { return *SoundMana
 inline TIMERMANAGER&     APPLICATION::GetTimerManager     () { return *TimerManager;       }
 inline USERINPUTMANAGER& APPLICATION::GetUserInputManager () { return *UserInputManager;   }
 inline LAUNCHER&         APPLICATION::GetLauncher         () { return *launcher;           }
+inline NETPLAYMANAGER&   APPLICATION::GetNetplayManager   () { return *NetplayManager;     }
+inline NSTMENU           APPLICATION::GetMenu             () { return menu;                }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -124,5 +133,23 @@ VOID APPLICATION::StartScreenMsg(const UINT duration,const T& t,const U& u,const
 	const BOOL PrevMsg = bool(ScreenMsg.Length());
 	ScreenMsg = t; 
 	ScreenMsg << u << v << w;
+	SetScreenMsg( duration, PrevMsg );
+}
+
+template<class T,class U,class V,class W,class X> 
+VOID APPLICATION::StartScreenMsg(const UINT duration,const T& t,const U& u,const V& v,const W& w,const X& x)
+{
+	const BOOL PrevMsg = bool(ScreenMsg.Length());
+	ScreenMsg = t; 
+	ScreenMsg << u << v << w << x;
+	SetScreenMsg( duration, PrevMsg );
+}
+
+template<class T,class U,class V,class W,class X,class Y> 
+VOID APPLICATION::StartScreenMsg(const UINT duration,const T& t,const U& u,const V& v,const W& w,const X& x,const Y& y)
+{
+	const BOOL PrevMsg = bool(ScreenMsg.Length());
+	ScreenMsg = t; 
+	ScreenMsg << u << v << w << x << y;
 	SetScreenMsg( duration, PrevMsg );
 }

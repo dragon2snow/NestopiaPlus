@@ -138,6 +138,8 @@ VOID GRAPHICMANAGER::Create(CONFIGFILE* const ConfigFile)
 	    		filter == "2xsai"       ? 3 :
 	 			filter == "super 2xsai" ? 4 :
 	 			filter == "super eagle" ? 5 :
+       			filter == "scale2x"     ? 6 :
+     			filter == "scale3x"     ? 7 :
 	 			0
 			);
 
@@ -301,6 +303,8 @@ VOID GRAPHICMANAGER::Destroy(CONFIGFILE* const ConfigFile)
 			case 3:  file[ "video filter" ] = "2xsai";       break;
 			case 4:  file[ "video filter" ] = "super 2xsai"; break;
 			case 5:  file[ "video filter" ] = "super eagle"; break;
+			case 6:  file[ "video filter" ] = "scale2x";     break;
+			case 7:  file[ "video filter" ] = "scale3x";     break;
 			default: file[ "video filter" ] = "none";        break;
 		}
 
@@ -757,6 +761,8 @@ VOID GRAPHICMANAGER::UpdateDirectDraw()
 		case 3: effect = DIRECTDRAW::SCREENEFFECT_2XSAI;       break;
 		case 4: effect = DIRECTDRAW::SCREENEFFECT_SUPER_2XSAI; break;
 		case 5: effect = DIRECTDRAW::SCREENEFFECT_SUPER_EAGLE; break;
+		case 6: effect = DIRECTDRAW::SCREENEFFECT_SCALE2X;     break;
+		case 7: effect = DIRECTDRAW::SCREENEFFECT_SCALE3X;     break;
 	}
 
 	PDX_ASSERT(SelectedEffect == 0 || SelectedBpp != IDC_GRAPHICS_8_BIT);
@@ -777,6 +783,18 @@ VOID GRAPHICMANAGER::UpdateDirectDraw()
 		nes.IsPAL() ? rcPal : rcNtsc,
 		pRect
 	);
+
+	{
+		const UINT brightness = context.brightness;
+		const UINT saturation = context.saturation;
+		const UINT hue        = context.hue;
+
+		nes.GetGraphicContext( context );
+
+		context.brightness = brightness;
+		context.saturation = saturation;
+		context.hue = hue;
+	}
 
 	context.palette = NULL;
 
@@ -1096,6 +1114,8 @@ VOID GRAPHICMANAGER::UpdateEffects()
 		ComboBox_AddString( hItem, "2xSaI"        );
 		ComboBox_AddString( hItem, "Super 2xSaI"  );
 		ComboBox_AddString( hItem, "Super Eagle"  );
+		ComboBox_AddString( hItem, "Scale2x"      );
+		ComboBox_AddString( hItem, "Scale3x"      );
 	}
 	else
 	{

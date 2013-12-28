@@ -126,7 +126,9 @@ protected:
 		SCREENEFFECT_TV,
 		SCREENEFFECT_2XSAI,
 		SCREENEFFECT_SUPER_2XSAI,
-		SCREENEFFECT_SUPER_EAGLE
+		SCREENEFFECT_SUPER_EAGLE,
+		SCREENEFFECT_SCALE2X,
+		SCREENEFFECT_SCALE3X
 	};
 
 	VOID ReleaseBuffers();
@@ -161,6 +163,10 @@ private:
 	template<class T> PDX_NO_INLINE VOID BltNesScreenScanLines1(T*,const LONG);
 	template<class T> PDX_NO_INLINE VOID BltNesScreenScanLinesFactor(T*,const LONG);
 	template<class T> PDX_NO_INLINE VOID BltNesScreen2xSaI(F2XAI,T*,const LONG);
+	PDX_NO_INLINE VOID BltNesScreenScale2x16(USHORT*,const LONG);
+	PDX_NO_INLINE VOID BltNesScreenScale3x16(USHORT*,const LONG);
+	PDX_NO_INLINE VOID BltNesScreenScale2x32(UINT*,const LONG);
+	PDX_NO_INLINE VOID BltNesScreenScale3x32(UINT*,const LONG);
 	template<class T> PDX_NO_INLINE VOID BltNesScreenTV(T*,const LONG);
 
 	DDCAPS HelCaps;

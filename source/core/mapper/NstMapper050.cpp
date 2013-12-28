@@ -33,7 +33,7 @@ NES_NAMESPACE_BEGIN
 
 MAPPER50::~MAPPER50()
 {
-	cpu.RemoveEvent( this );
+	cpu.RemoveEvent( hSync );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -42,8 +42,8 @@ MAPPER50::~MAPPER50()
 
 VOID MAPPER50::Reset()
 {
-	cpu.RemoveEvent( this );
-	cpu.SetEvent( this, Synch );
+	cpu.RemoveEvent( hSync );
+	cpu.SetEvent( this, hSync );
 
 	for (UINT i=0x4020; i < 0x6000; ++i)
 	{
@@ -98,18 +98,22 @@ NES_POKE(MAPPER50,4020)
 NES_POKE(MAPPER50,4120) 
 {
 	SetIrqEnable( data & 0x1 );
+	cpu.ClearIRQ();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-VOID MAPPER50::Synch()
+VOID MAPPER50::hSync()
 {
-	ppu.Update();
+	if (IsIrqEnabled())
+	{
+		ppu.Update();
 
-	if (ppu.GetScanLine() == 20)
-		cpu.TryIRQ();
+		if (ppu.GetScanline() == 20)
+			cpu.DoIRQ();
+	}
 }
 
 NES_NAMESPACE_END

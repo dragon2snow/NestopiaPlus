@@ -109,7 +109,7 @@ VOID MAPPER40::IrqSync(const UINT delta)
 	if ((IrqCount += delta) >= 0x1000)
 	{
 		SetIrqEnable(FALSE);
-		cpu.TryIRQ();
+		cpu.DoIRQ();
 	}
 }
 

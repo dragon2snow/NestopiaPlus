@@ -54,7 +54,7 @@ VOID MAPPER64::Reset()
 	IrqMode = 0;
 	IrqNext = 0;
 	command = 0;
-	ScanLine = 0;
+	scanline = 0;
 
 	for (UINT i=0; i < 8; ++i)
 	{
@@ -134,6 +134,8 @@ NES_POKE(MAPPER64,A000)
 
 NES_POKE(MAPPER64,C000) 
 { 
+	ppu.Update();
+
 	IrqLatch = data; 
 
 	if (mode)
@@ -145,7 +147,9 @@ NES_POKE(MAPPER64,C000)
 ////////////////////////////////////////////////////////////////////////////////////////
 
 NES_POKE(MAPPER64,C001) 
-{ 
+{
+	ppu.Update();
+
 	mode = 1;
 	IrqNext = 0;
 	IrqCount = IrqLatch;
@@ -158,6 +162,8 @@ NES_POKE(MAPPER64,C001)
 
 NES_POKE(MAPPER64,E000) 
 {
+	ppu.Update();
+
 	cpu.ClearIRQ();
 	IrqOn = FALSE; 
 
@@ -171,6 +177,8 @@ NES_POKE(MAPPER64,E000)
 
 NES_POKE(MAPPER64,E001) 
 { 
+	ppu.Update();
+
 	IrqOn = TRUE;  
 
 	if (mode)
@@ -195,17 +203,17 @@ VOID MAPPER64::IrqSync(const UINT delta)
 	}
 	else
 	{
-		if (ScanLine < 21 && ppu.IsBgEnabled() || ppu.IsSpEnabled())
+		if (scanline < 21 && ppu.IsEnabled())
 		{
 			const ULONG cycles = cpu.GetCycles<CPU::CYCLE_MASTER>();
 
 			if (cycles >= ((NES_PPU_MCC_HSYNC_NTSC * 21UL)))
 			{
-				ScanLine = 21;
+				scanline = 21;
 			}
 			else if (cycles >= ((NES_PPU_MCC_HSYNC_NTSC * 20UL) + NES_PPU_TO_NTSC(52)))
 			{
-				ScanLine = 21;
+				scanline = 21;
 
 				if (!IrqCount && IrqOn)
 				{
@@ -224,13 +232,10 @@ VOID MAPPER64::IrqSync(const UINT delta)
 
 VOID MAPPER64::IrqSync()
 {
-	if (!IrqMode)
-	{
-		if (IrqCount >= 0 && --IrqCount < 0 && IrqOn)
-		{
-			mode = 1;
-			cpu.DoIRQ();
-		}
+	if (!IrqMode && IrqCount >= 0 && --IrqCount < 0 && IrqOn)
+	{									 
+		mode = 1;
+		cpu.DoIRQ();
 	}
 }
 
@@ -240,7 +245,7 @@ VOID MAPPER64::IrqSync()
 
 VOID MAPPER64::EndFrame()
 {
-	ScanLine = 0;
+	scanline = 0;
 }
 
 NES_NAMESPACE_END

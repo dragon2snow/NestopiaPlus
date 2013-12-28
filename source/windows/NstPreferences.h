@@ -57,6 +57,29 @@ public:
 	inline BOOL UseDatabase()            const { return usedatabase;        }
 	inline BOOL AllowMultipleInstances() const { return multipleinstances;  }
 	
+    #define NST_SET(func,state) BOOL Set##func(const BOOL NewState) \
+	{									  	     				    \
+		const BOOL OldState = state;							    \
+		state = NewState;										    \
+		return OldState;										    \
+	}
+
+	NST_SET( PriorityControl,        prioritycontrol    )   
+	NST_SET( EmulateImmediately,     emulateimmediately )
+	NST_SET( RunInBackground,        background         )
+	NST_SET( StartUpFullScreen,      fullscreen		    )
+	NST_SET( PowerOffOnClose,        closepoweroff      )     
+	NST_SET( ConfirmExit,		     confirmexit        )       
+	NST_SET( ConfirmReset,           confirmreset       )      
+	NST_SET( SaveSettings,           savesettings	    )
+	NST_SET( SaveLauncher,           savelauncher	    )
+	NST_SET( SaveLogFile,            savelogfile	    )
+	NST_SET( NoWarnings,             nowarnings		    )
+	NST_SET( UseDatabase,            usedatabase	    )
+	NST_SET( AllowMultipleInstances, multipleinstances  )
+
+    #undef NST_SETGET
+
 	inline INT GetDefaultPriority() const
 	{ return DefaultPriority; }
 

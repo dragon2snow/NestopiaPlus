@@ -62,7 +62,9 @@ private:
 	NES_DECL_POKE( 4516 );
 	NES_DECL_POKE( 4517 );
 
-	VOID IrqSync();
+	VOID IrqSync(const UINT);
+
+	ULONG IrqNum;
 };
 
 NES_NAMESPACE_END

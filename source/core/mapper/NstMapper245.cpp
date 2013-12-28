@@ -23,6 +23,7 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 
 #include "NstMappers.h"
+#include "NstMapper004.h"
 #include "NstMapper245.h"
 	  
 NES_NAMESPACE_BEGIN
@@ -33,8 +34,30 @@ NES_NAMESPACE_BEGIN
 
 VOID MAPPER245::Reset()
 {
-	cpu.SetPort( 0x8000, this, Peek_8000, Poke_8000 );
-	cpu.SetPort( 0x8001, this, Peek_8000, Poke_8001 );
+	EnableIrqSync(IRQSYNC_PPU);
+
+	for (ULONG i=0x8000; i <= 0xFFFF; ++i)
+	{
+		switch (i & 0xF7FF)
+		{
+    		case 0x8000: cpu.SetPort( i, this, Peek_pRom, Poke_8000 ); continue;
+			case 0x8001: cpu.SetPort( i, this, Peek_pRom, Poke_8001 ); continue;
+			case 0xA000: cpu.SetPort( i, this, Peek_pRom, Poke_A000 ); continue;
+			case 0xC000: cpu.SetPort( i, this, Peek_pRom, Poke_C000 ); continue;
+			case 0xC001: cpu.SetPort( i, this, Peek_pRom, Poke_C001 ); continue;
+			case 0xE000: cpu.SetPort( i, this, Peek_pRom, Poke_E000 ); continue;
+			case 0xE001: cpu.SetPort( i, this, Peek_pRom, Poke_E001 ); continue;
+			default:     cpu.SetPort( i, this, Peek_pRom, Poke_Nop  ); continue;
+		}
+	}
+
+	command = 0;
+	latched = FALSE;
+	IrqReset = 0;
+
+	regs[0] = 0;
+	regs[1] = 0;
+	regs[2] = 1;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -54,11 +77,28 @@ NES_POKE(MAPPER245,8001)
 {
 	apu.Update();
 
-	switch (command & 0x7)
+	switch (command)
 	{
-    	case 0x6: pRom.SwapBanks<n8k,0x0000>(data); return;
-		case 0x7: pRom.SwapBanks<n8k,0x2000>(data); return;
+       	case 0x0:
+
+			regs[0] = (data & 0x2) << 5;
+			pRom.SwapBanks<n8k,0x4000>( 0x3E | regs[0] );
+			pRom.SwapBanks<n8k,0x6000>( 0x3F | regs[0] ); 
+			break;
+
+     	case 0x6: 
+			
+			regs[1] = data; 
+			break;
+
+       	case 0x7: 
+			
+			regs[2] = data; 
+			break;
 	}
+
+	pRom.SwapBanks<n8k,0x0000>( regs[0] | regs[1] );
+	pRom.SwapBanks<n8k,0x2000>( regs[0] | regs[2] );
 }
 
 NES_NAMESPACE_END

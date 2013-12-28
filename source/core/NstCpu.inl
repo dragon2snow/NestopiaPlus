@@ -56,11 +56,6 @@ inline VOID CPU::ClearIRQ(const UINT line)
 	IntLow &= ~line;
 }
 
-inline VOID CPU::TryIRQ()
-{
-	IntLow |= IRQ_TMP;
-}
-
 inline VOID CPU::SetLine(const UINT line,const BOOL state)
 {
 	if (state)

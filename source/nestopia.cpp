@@ -105,7 +105,7 @@ BOOL TooManyInstances(CHAR* const CmdLine)
 							
 							COPYDATASTRUCT cds;
 
-							cds.dwData = NST_WM_CMDLINE;
+							cds.dwData = NST_WM_OPEN_FILE;
 							cds.lpData = PDX_CAST(PVOID,begin);
 							cds.cbData = end + 1 - begin;
 
@@ -135,7 +135,9 @@ INT WINAPI WinMain(HINSTANCE hInstance,HINSTANCE,LPSTR CmdLine,INT iCmdShow)
 
 	INT ExitCode = EXIT_FAILURE;
 
+   #ifndef _DEBUG
 	try
+   #endif
 	{
         #ifdef _DEBUG
 		_CrtSetDbgFlag( _CrtSetDbgFlag(_CRTDBG_REPORT_FLAG) | _CRTDBG_LEAK_CHECK_DF );
@@ -148,6 +150,7 @@ INT WINAPI WinMain(HINSTANCE hInstance,HINSTANCE,LPSTR CmdLine,INT iCmdShow)
 			ExitCode = app.Run();
 		}		
 	}
+   #ifndef _DEBUG
 	catch (EXCEPTION)
 	{
 		::MessageBox
@@ -178,7 +181,7 @@ INT WINAPI WinMain(HINSTANCE hInstance,HINSTANCE,LPSTR CmdLine,INT iCmdShow)
 			MB_OK|MB_ICONERROR 
 		);
 	}
+   #endif
 
 	return ExitCode;
 }
-

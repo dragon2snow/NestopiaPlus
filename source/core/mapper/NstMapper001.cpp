@@ -38,6 +38,34 @@ VOID MAPPER1::Reset()
 	if (!cRom.Size())
 		EnableCartridgeCRam();
 
+	if (pRom.Size() == NES_CART_512K)
+	{
+		n512k = TRUE;
+	}
+	else
+	{
+		switch (pRomCrc)
+		{
+     		case 0x41413B06UL: // Dragon Warrior 4
+			case 0x2E91EB15UL: // -||-
+			case 0xFC2B6281UL: // -||-
+			case 0x030AB0B2UL: // -||-
+			case 0xAB43AA55UL: // -||-
+			case 0x506E259DUL: // -||-
+			case 0x0794F2A5UL: // Dragon Quest 4
+			case 0xB4CAFFFBUL: // -||-
+			case 0xAC413EB0UL: // -||-
+     		
+				n512k = TRUE;
+				break;
+
+			default: 
+				
+				n512k = FALSE;
+				break;
+		}
+	}
+
 	cpu.SetPort( 0x6000, 0x7FFF, this, Peek_wRam, Poke_wRam );
 	cpu.SetPort( 0x8000, 0x9FFF, this, Peek_8000, Poke_pRom );
 	cpu.SetPort( 0xA000, 0xBFFF, this, Peek_A000, Poke_pRom );
@@ -51,8 +79,8 @@ VOID MAPPER1::Reset()
 
 	banks[0] = 0;
 	banks[1] = 1;
-	banks[2] = (pRom.Size() == NES_CART_512K) ? (0x20 - 2) : (pRom.NumBanks<n8k>() - 2);
-	banks[3] = (pRom.Size() == NES_CART_512K) ? (0x20 - 1) : (pRom.NumBanks<n8k>() - 1);
+	banks[2] = n512k ? (0x20 - 2) : (pRom.NumBanks<n8k>() - 2);
+	banks[3] = n512k ? (0x20 - 1) : (pRom.NumBanks<n8k>() - 1);
 
 	latch = 0;
 	count = 0;
@@ -182,7 +210,7 @@ VOID MAPPER1::ProcessRegister0()
 
 VOID MAPPER1::ProcessRegister1()
 {
-	if (pRom.Size() == NES_CART_512K && IsCRam)
+	if (n512k && IsCRam)
 	{
 		base = (registers[1] & 0x10) << 1;
 		SetBanks();
@@ -226,7 +254,7 @@ VOID MAPPER1::ProcessRegister3()
 		}
 		else
 		{
-			if (pRom.Size() < NES_CART_512K)
+			if (!n512k)
 			{
 				banks[0] = 0;
 				banks[1] = 1;
@@ -240,7 +268,7 @@ VOID MAPPER1::ProcessRegister3()
 		banks[0] = bank + 0;
 		banks[1] = bank + 1;
 
-		if (pRom.Size() < NES_CART_512K)
+		if (!n512k)
 		{
 			banks[2] = bank + 2;
 			banks[3] = bank + 3;

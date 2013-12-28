@@ -74,6 +74,8 @@ NES_POKE(MAPPER67,B800) { ppu.Update(); cRom.SwapBanks<n2k,0x1800>(data); }
 
 NES_POKE(MAPPER67,C800)
 {
+	cpu.ClearIRQ();
+
 	if (FlipFlop ^= 1) IrqCount = (IrqCount & 0x00FF) | (data << 8);
 	else               IrqCount = (IrqCount & 0xFF00) | (data << 0);
 }
@@ -86,6 +88,7 @@ NES_POKE(MAPPER67,D800)
 {
 	FlipFlop = 0;
 	SetIrqEnable(data & 0x10);
+	cpu.ClearIRQ();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -129,13 +132,11 @@ NES_POKE(MAPPER67,F800)
 
 VOID MAPPER67::IrqSync(const UINT delta)
 {
-	IrqCount -= delta;
-
-	if (IrqCount <= 0)
+	if ((IrqCount -= delta) <= 0)
 	{
 		SetIrqEnable(FALSE);
 		IrqCount = 0xFFFF;
-		cpu.TryIRQ();
+		cpu.DoIRQ();
 	}
 }
 

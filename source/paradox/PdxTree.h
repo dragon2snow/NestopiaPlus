@@ -1008,7 +1008,3 @@ _NODE PDXTREE<DATA>::Get(_NODE node,const INPUT& key)
 #include "PdxTree.inl"
 
 #endif
-
-
-
-

@@ -69,6 +69,15 @@ public:
 	template<class OBJECT,class READER,class WRITER>
 	VOID SetPort(const UINT,const UINT,OBJECT*,READER,WRITER);
 
+	enum HOOK
+	{
+		HOOK_RENDERER,
+		HOOK_HSYNC
+	};
+
+	template<class OBJECT,class MEMBER>
+	VOID AddHook(OBJECT,MEMBER,HOOK);
+
 	ULONG GetCycles() const;
 
 	PORT& GetPort(const UINT);
@@ -77,11 +86,14 @@ public:
 	UINT Peek(UINT);
 	VOID Poke(UINT,const UINT);
 
-	INT GetScanLine() const;
-	UINT GetVRamAddress() const;
+	INT  GetScanline()         const;
+	UINT GetVRamAddress()      const;
+	BOOL IsBgEnabled()         const;
+	BOOL IsSpEnabled()         const;
+	BOOL IsEnabled()           const;
+	UINT GetBgPatternAddress() const;
 
-	BOOL IsBgEnabled() const;
-	BOOL IsSpEnabled() const;
+	U8* GetCiRam(const UINT=0x00);
 
 	NES_DECL_PEEK( cRam   );
 	NES_DECL_POKE( cRam   );
@@ -99,6 +111,7 @@ private:
 
 	enum
 	{
+		MAX_SPRITES = 32,
 		MARGIN = 8
 	};
 
@@ -119,6 +132,7 @@ private:
 		CTRL1_SP_NO_CLIPPING = b00000100,
 		CTRL1_BG_ENABLED     = b00001000,
 		CTRL1_SP_ENABLED     = b00010000,
+		CTRL1_BG_SP_ENABLED  = CTRL1_BG_ENABLED|CTRL1_SP_ENABLED,
 		CTRL1_BG_COLOR       = b11100000,
 		CTRL1_BG_COLOR_R     = b00100000,
 		CTRL1_BG_COLOR_G     = b01000000,
@@ -179,6 +193,7 @@ private:
 	VOID UpdateLazy();
 	VOID WritePalRam(const UINT);
 
+	PDX_NO_INLINE VOID DoDma(UINT);
 	PDX_NO_INLINE VOID SkipLine();
 
 	VOID NextTile();
@@ -238,17 +253,11 @@ private:
 
 	struct PPUCYCLES
 	{
-		enum 
-		{
-			WARM_UP = 0,
-			READY   = 1
-		};
+		PPUCYCLES();
 
-		VOID Reset   (const BOOL,const BOOL=TRUE);
-		VOID SetMode (const BOOL,const BOOL=TRUE);
+		enum {WARM_UP = 2};
 
 		UINT WarmUp;
-
 		ULONG vint;
 		ULONG frame;
 		ULONG fetch;
@@ -270,14 +279,98 @@ private:
 	UINT EvenFrame;
 	UINT OamAddress;
 	UINT OamLatch;
-	UINT DmaLatch;
 	UINT ctrl0;
-	UINT ctrl1;
 	UINT latch;
 	UINT vRamLatch;
 	BOOL FlipFlop;
 	UINT ReadLatch;
 	UINT AddressIncrease;
+
+	struct HOOKS
+	{
+		VOID Reset()
+		{
+			renderer.Reset();
+			hSync.Reset();
+		}
+
+		struct OBJECT {};
+
+		class RENDERER
+		{
+		public:
+
+			RENDERER()
+			: object(NULL), member(NULL) {}
+
+			typedef VOID (OBJECT::*MEMBER)(U8* const);
+
+			inline VOID Execute(U8* const data)
+			{ return (*object.*member)( data ); }
+
+			template<class A,class B> VOID Set(A a,B b)
+			{
+				PDX_ASSERT( a && b );
+				object = PDX_CAST_REF( OBJECT*, a );
+				member = PDX_CAST_REF( MEMBER,  b ); 
+			}
+
+			inline operator BOOL() const
+			{ return object != NULL; }
+
+			VOID Reset()
+			{
+				object = NULL;
+				member = NULL;
+			}
+
+		private:
+
+			OBJECT* object;
+			MEMBER member;
+		};
+
+		class HSYNC
+		{
+		public:
+
+			HSYNC()
+			: object(NULL), member(NULL) {}
+
+			typedef VOID (OBJECT::*MEMBER)();
+
+			inline VOID Execute()
+			{ return (*object.*member)(); }
+
+			template<class A,class B> VOID Set(A a,B b)
+			{
+				PDX_ASSERT( a && b );
+				object = PDX_CAST_REF( OBJECT*, a );
+				member = PDX_CAST_REF( MEMBER,  b ); 
+			}
+
+			inline operator BOOL() const
+			{ return object != NULL; }
+
+			VOID Reset()
+			{
+				object = NULL;
+				member = NULL;
+			}
+
+		private:
+
+			OBJECT* object;
+			MEMBER member;
+		};
+
+		HSYNC hSync;
+		RENDERER renderer;
+	};
+
+	HOOKS hooks;
+
+	UINT ctrl1;
 
 	PPU_MAP vRam;
 
@@ -287,11 +380,9 @@ private:
 	const PROCESS* phase;
 
 	UINT PhaseCount;
-
-	BOOL enabled;
 	UINT vRamAddress;
 	UINT SpIndex;
-	INT  ScanLine;
+	INT  scanline;
 	UINT SpHeight;
 	UINT MaxSprites;
 	UINT SpTmpBufferSize;
@@ -319,8 +410,20 @@ private:
 		UINT index;
 		UINT offset;
 		UINT name;
-		UINT attribute;
-		UINT pattern[2];
+
+		union
+		{
+			struct  
+			{
+				U8 attribute;
+				U8 pattern[2];
+			};
+
+			struct  
+			{
+				U32 cache;
+			};
+		};
 
 		union
 		{
@@ -331,15 +434,22 @@ private:
 
 	struct SP
 	{
-		INT  x;
-		U8*  palette;
-		BOOL behind;
-		UINT zero;
+		U8* palette;
+		SHORT x;
+		UCHAR behind;
+		UCHAR zero;
 		U8 pixels[8];
 	};
 
+	struct BGCACHE
+	{
+		U32 cache;
+		U32* pixels;
+	};
+
+	BGCACHE BgCache;
+	
 	BG BgBuffer;
-	SP SpBuffer[64];
 
 	union		
 	{
@@ -355,16 +465,18 @@ private:
 		};
 	};
 
+	SP SpBuffer[MAX_SPRITES];
+
 	struct SPTMP
 	{
-		UINT address;
-		UINT pattern;
-		UINT x;
-		UINT attribute;
-		UINT index;
+		USHORT address;
+		USHORT x;
+		UCHAR pattern;
+		UCHAR attribute;
+		UCHAR index;
 	};
 
-	SPTMP SpTmpBuffer[64];
+	SPTMP SpTmpBuffer[MAX_SPRITES];
 	
 	U8 SpRam[256];
 	U8 cRam[n8k];
@@ -385,7 +497,7 @@ private:
 		U16 vRamAddress;
 		U16 vRamLatch;
 		U16 OamAddress;
-		U8  DmaLatch;
+		U8  reserved;
 		U8  latch;
 		U8  ReadLatch;
 		U8  xFine : 3;

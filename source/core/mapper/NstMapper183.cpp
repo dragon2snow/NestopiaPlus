@@ -138,7 +138,7 @@ NES_POKE(MAPPER183,9800)
 
 NES_POKE(MAPPER183,F000) { IrqCount = (IrqCount & 0xFF00) | (data << 0); }
 NES_POKE(MAPPER183,F004) { IrqCount = (IrqCount & 0x00FF) | (data << 8); }
-NES_POKE(MAPPER183,F008) { SetIrqEnable(data & 0x2); }
+NES_POKE(MAPPER183,F008) { SetIrqEnable(data & 0x2); cpu.ClearIRQ(); }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -149,7 +149,7 @@ VOID MAPPER183::IrqSync(const UINT delta)
 	if ((IrqCount -= delta) <= 0)
 	{
 		IrqCount = 0;
-		cpu.TryIRQ();
+		cpu.DoIRQ();
 	}
 }
 

@@ -166,6 +166,12 @@ public:
 		return size / SIZE;
 	}
 
+	template<UINT SIZE> 
+	inline UINT LastBank() const
+	{
+		return (size / SIZE) - 1;
+	}
+
 	template<ULONG SWAP_SIZE,ULONG SWAP_ADDRESS> 
 	inline VOID SwapBanks(const UINT bank)
 	{

@@ -74,7 +74,7 @@ VOID PREFERENCES::Create(CONFIGFILE* const ConfigFile)
 
 		emulateimmediately = ( file[ "preferences emulate at once"          ] == "no"  ? FALSE : TRUE );
 		background         = ( file[ "preferences run in background"        ] == "yes" ? TRUE : FALSE );
-		prioritycontrol    = ( file[ "preferences auto priority control"    ] == "no"  ? FALSE : TRUE );
+		prioritycontrol    = ( file[ "preferences auto priority control"    ] == "yes" ? TRUE : FALSE );
 		fullscreen         = ( file[ "preferences fullscreen on start"      ] == "yes" ? TRUE : FALSE );
 		nowarnings         = ( file[ "preferences warnings"                 ] == "no"  ? TRUE : FALSE );
 		closepoweroff      = ( file[ "preferences power off on exit"        ] == "yes" ? TRUE : FALSE );

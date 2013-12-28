@@ -294,7 +294,7 @@ VOID NSF::ResetLog()
 	}
 
 	log << (pRom.Size() / 1024);
-	log << (BankSwitched ? "k bankswitchable PRG-ROM present" : "k not bankswitchable PRG-ROM present");
+	log << (BankSwitched ? "k bankswitchable PRG-ROM present" : "k non-bankswitchable PRG-ROM present");
 	LogOutput( log );
 
 	log.Resize( 5 );

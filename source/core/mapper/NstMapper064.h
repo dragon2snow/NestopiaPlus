@@ -59,7 +59,7 @@ private:
 	UINT regs[2][8];
 	UINT command;
 	UINT mode;
-	UINT ScanLine;
+	UINT scanline;
 	BOOL IrqOn;
 	UINT IrqMode;
 	UINT IrqNext;

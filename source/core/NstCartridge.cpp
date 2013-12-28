@@ -85,8 +85,10 @@ PDXRESULT CARTRIDGE::Load
 	if (info.system != SYSTEM_VS)
 		DetectVS();
 
+	DetectEncryption();
 	DetectControllers();
 	DetectMirroring();
+	DetectWRam();
 
 	if (!info.battery)
 		DetectBattery();
@@ -156,6 +158,55 @@ VOID CARTRIDGE::DetectMirroring()
 			info.mirroring = MIRROR_VERTICAL;
 			LogOutput("CARTRIDGE: forcing vertical mirroring");
 			return;
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+VOID CARTRIDGE::DetectWRam()
+{
+	if (info.mapper == 5)
+	{
+		switch (info.pRomCrc)
+		{
+			case 0x2B548D75UL: // Bandit Kings of Ancient China
+			case 0xF4024666UL: // -||-
+			case 0x68C2B3E0UL: // -||-
+			case 0xF4CD4998UL: // Dai Koukai Jidai
+			case 0x30310DF1UL: // -||-
+			case 0x8FA95456UL: // Ishin no Arashi
+			case 0x98C8E090UL: // Nobunaga no Yabou - Sengoku Gunyuu Den
+			case 0x8E9A5E2FUL: // L'Empereur
+			case 0x57E3218BUL: // -||-
+			case 0x2F50BD38UL: // -||-			 
+			case 0xB56958D1UL: // Nobunaga's Ambition 2
+			case 0x7A6033F9UL: // -||-			 
+			case 0xE6C28C5FUL: // Suikoden - Tenmei no Chikai
+			case 0xCD35E2E9UL: // Uncharted Waters
+			case 0x8F9BE3C8UL: // -||-
+		
+				wRam.Resize(0x08000UL);
+				LogOutput( "CARTRIDGE: adjusting WRAM size to 32k" );
+				break;
+		
+			case 0xF4120E58UL: // Aoki Ookami to Shiroki Mejika - Genchou Hishi
+			case 0x286613D8UL: // Nobunaga no Yabou - Bushou Fuuun Roku
+			case 0x11EAAD26UL: // Romance of the Three Kingdoms 2
+			case 0xFCFD72DCUL: // -||-
+			case 0x95BA5733UL: // Sangokushi 2
+		
+				wRam.Resize(0x10000UL);
+				LogOutput( "CARTRIDGE: adjusting WRAM size to 64k" );
+				break;
+		
+			default:
+							 
+				wRam.Resize(0x04000UL);
+				LogOutput( "CARTRIDGE: adjusting WRAM size to 16k" );
+				break;
+		}
 	}
 }
 
@@ -317,7 +368,7 @@ VOID CARTRIDGE::DetectVS()
 		case 0x8A6A9848UL: // -||-
 		case 0x46914E3EUL: // Soccer
 		case 0x70433F2CUL: // Battle City
-		case 0x8D15A6E6UL: // bad .nes
+		case 0x8D15A6E6UL: // -||-
 		case 0xD99A2087UL: // Gradius
 		case 0x1E438D52UL: // Goonies
 		case 0xFF5135A3UL: // Hogan's Alley
@@ -341,6 +392,32 @@ VOID CARTRIDGE::DetectVS()
 
 			info.system = SYSTEM_VS;
 			break;
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+VOID CARTRIDGE::DetectEncryption()
+{
+	switch (info.pRomCrc)
+	{
+    	case 0xA80A2185UL: // Pikachu Y2K
+		case 0x4BBA5080UL: // Ai Senshi Nicol
+		case 0x0A4CF093UL: // Shui Hu Zhuan
+		case 0x7F25140EUL: // San Shi Liu Ji
+		case 0xAA34D5D5UL: // Duo Bao Xiao Ying Hao - Guang Ming yu An Hei Chuan Shuo
+		case 0xDF6773D0UL: // Yu Zhou Zhan Jiang - Space General
+		case 0x82A879B7UL: // Yong Zhe Dou E Long - Dragon Quest 5
+		case 0x260D32E0UL: // Yong Zhe Dou E Long - Dragon Quest 7
+		case 0x5E09D30FUL: // Yin He Shi Dai
+		case 0xB68266C9UL: // Dragon Quest
+		case 0x03D6B055UL: // Dong Fang de Chuan Shuo - The Hyrule Fantasy
+		case 0x746E2815UL: // San Guo Zhi
+
+			MsgWarning("The game is encrypted and will not run properly.");
+			LogOutput( "CARTRIDGE: game is encrypted!" );
 	}
 }
 

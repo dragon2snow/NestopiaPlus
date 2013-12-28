@@ -39,7 +39,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#define NES_MASTER_CLOCK_FIXED 7
+#define NES_MASTER_CLOCK_FIXED         7
 #define NES_MASTER_CLOCK_MULTIPLIER    6
 #define NES_CPU_MASTER_CLOCK_DIV_NTSC 12
 #define NES_PPU_MASTER_CLOCK_DIV_NTSC  4
@@ -73,7 +73,7 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 
 #define NES_PI  3.1415926535897932384626433832795
-#define NES_DEG 0.017453292519943295769236907684886
+#define NES_DEG 0.0174532925199432957692369076848
 
 #define NES_FPS_NTSC 60
 #define NES_FPS_PAL  50

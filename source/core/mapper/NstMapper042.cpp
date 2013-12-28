@@ -130,6 +130,7 @@ NES_POKE(MAPPER42,E001)
 
 NES_POKE(MAPPER42,E002) 
 { 
+	cpu.ClearIRQ();
 	SetIrqEnable(data & 0x2);
 
 	if (!(data & 0x2))
@@ -151,10 +152,15 @@ NES_PEEK(MAPPER42,ExRom)
 
 VOID MAPPER42::IrqSync(const UINT delta)
 {
-	if ((IrqCount += delta) >= 24576)
+	IrqCount += delta;
+
+	if (IrqCount >= 24590)
 	{
 		SetIrqEnable(FALSE);
-		cpu.TryIRQ();
+	}
+	else if (IrqCount >= 24576)
+	{
+		cpu.DoIRQ();
 	}
 }
 

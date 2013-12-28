@@ -46,14 +46,6 @@ public:
 
 private:
 
-	enum
-	{
-		ENABLE_IRQ       = b10000000,
-		IRQSTATUS_HIT    = b10000000,
-		IRQSTATUS_VBLANK = b01000000,
-		SWITCH_PROM      = b10000000
-	};
-
 	enum PMODE
 	{
 		PMODE_32K,
@@ -73,9 +65,9 @@ private:
 	enum GMODE
 	{
 		GMODE_SPLIT,
-		GMODE_SPLIT_EXGFX,
+		GMODE_EXGFX,
 		GMODE_EXRAM,
-		GMODE_EXRAM_WRITEPROTECT
+		GMODE_EXRAM_WP
 	};
 
 	enum SMODE
@@ -86,19 +78,23 @@ private:
 
 	enum
 	{
-		NO_WRAM = 8
+		SWITCH_PROM = b10000000
 	};
 
 	VOID Reset();
+	VOID hSync();
+	
+	BOOL DoSplit       (U8* const);
+	VOID DoFillExGfx   (U8* const);
+	VOID DoFillNormal  (U8* const);
+	VOID DoExGfx       (U8* const);
+	VOID DoNormal      (U8* const);
+	VOID PpuLatch      (U8* const);
 
-	VOID BankSwitchPRom(const UINT,const UINT);
-	VOID BankSwitchWRam(const UINT,UINT);
-	VOID RefreshCRomBanks(const SMODE);
+	template<UINT A,UINT B>
+	VOID xRamSwapBanks();
 
-	VOID IrqSync();
-
-	NES_DECL_PEEK( 5204 );
-	NES_DECL_PEEK( 5C00 );
+	VOID UpdateCRom(CROM&,const UINT* const) const;
 
 	NES_DECL_POKE( 5100 );
 	NES_DECL_POKE( 5101 );
@@ -129,7 +125,9 @@ private:
 	NES_DECL_POKE( 5201 );
 	NES_DECL_POKE( 5202 );
 	NES_DECL_POKE( 5203 );
+	NES_DECL_PEEK( 5204 );
 	NES_DECL_POKE( 5204 );
+	NES_DECL_PEEK( 5C00 );
 	NES_DECL_POKE( 5C00 );
 	NES_DECL_PEEK( 6000 );
 	NES_DECL_POKE( 6000 );
@@ -141,42 +139,86 @@ private:
 	NES_DECL_POKE( C000 );
 	NES_DECL_PEEK( E000 );
 
-	NES_DECL_PEEK( vRam_Name );
-	NES_DECL_POKE( vRam_Name );
-	NES_DECL_PEEK( vRam_Attr );
+	template<UINT PAGE> VOID xRamSwapBanks(UINT);
+	template<UINT PAGE> VOID pRomSwapBanks(UINT);
 
-	CHIP<n4k,4> vNameRam;
-
-	U8* const Name1;
-	U8* const Name2;
-	U8* const ExRam;
-	U8* const FillRam;
+	CROM vBgRom;
+	
+	U8* vNameRam;
+	UINT vNameMode[4];
 
 	GMODE gMode;
 	PMODE pMode;
 	CMODE cMode;
 
-	struct PBANK
+	struct FILL
 	{
-		U8* data;
-		UINT wRamBank;
+		enum {MODE=3};
+
+		UINT character;
+		UINT attribute;
 	};
 
-	PBANK pBanks[8];
+	FILL fill;
 
-	UINT LastCRomSwap;
+	struct XRAM
+	{
+		typedef UINT (*BANKFIX)(const UINT);
 
-	PDXWORD wRamLatch;
-	BOOL wRamWriteEnable;
-	UINT value[2];
+		static UINT BankFix16 (const UINT bank) { return bank > 3 ? 8 : 0;    }
+		static UINT BankFix32 (const UINT bank) { return bank > 3 ? 1 : 0;    }
+		static UINT BankFix64 (const UINT bank) { return bank > 3 ? 8 : bank; }
 
+		PDXWORD latch;
+		UINT write;
+		UINT enable;
+		BANKFIX BankFix;
+	};
+
+	XRAM xRam;
+
+	U8* pBanks[1+4];
 	UINT cBanks[2][8];
 
-	UINT SplitCtrl;
-	UINT SplitBank;
+	struct SPLIT
+	{
+		enum
+		{
+			ENABLE = b10000000,
+			RIGHT  = b01000000,
+			POS    = b00011111,
+			Y      = b00000111,
+			SCROLL = b11111000
+		};
 
-	UINT IrqLine;
-	UINT IrqStatus;
+		UINT ctrl;
+		UINT scroll;
+		UINT offset;
+		UINT address;
+		UINT x;
+		UINT y;
+	};
+
+	SPLIT split;
+
+	struct IRQ
+	{
+		enum
+		{
+			ENABLE        = b10000000,
+			STATUS_HIT    = b10000000,
+			STATUS_ACTIVE = b01000000,
+			SIGNAL        = STATUS_HIT|STATUS_ACTIVE
+		};
+
+		UINT line;
+		UINT status;
+		UINT clear;
+		UINT scanline;
+		UINT enable;
+	};
+
+	IRQ irq;
 
 	SNDMMC5 sound;
 };

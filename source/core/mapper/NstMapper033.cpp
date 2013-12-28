@@ -120,7 +120,7 @@ VOID MAPPER33::IrqSync()
 	if (++IrqCount == 0x100)
 	{
 		SetIrqEnable(FALSE);
-		cpu.TryIRQ();
+		cpu.DoIRQ();
 	}
 }
 

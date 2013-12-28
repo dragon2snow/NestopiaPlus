@@ -35,6 +35,7 @@
 #include "NstMapper009.h"
 #include "NstMapper010.h"
 #include "NstMapper011.h"
+#include "NstMapper012.h"
 #include "NstMapper013.h"
 #include "NstMapper015.h"
 #include "NstMapper016.h"
@@ -136,6 +137,9 @@
 #include "NstMapper188.h"
 #include "NstMapper189.h"
 #include "NstMapper198.h"
+#include "NstMapper200.h"
+#include "NstMapper201.h"
+#include "NstMapper202.h"
 #include "NstMapper222.h"
 #include "NstMapper225.h"
 #include "NstMapper226.h"
@@ -160,6 +164,8 @@
 #include "NstMapper248.h"
 #include "NstMapper249.h"
 #include "NstMapper250.h"
+#include "NstMapper252.h"
+#include "NstMapper254.h"
 #include "NstMapper255.h"
 #include "../../paradox/PdxCrc32.h"
 
@@ -189,6 +195,7 @@ MAPPER* MAPPER::New(CONTEXT& context)
 		NES_CASE_(   9 );
 		NES_CASE_(  10 );
 		NES_CASE_(  11 );
+		NES_CASE_(  12 );
 		NES_CASE_(  13 );
 		NES_CASE_(  15 );
 		NES_CASE_(  16 );
@@ -290,6 +297,9 @@ MAPPER* MAPPER::New(CONTEXT& context)
 		NES_CASE_( 188 );
 		NES_CASE_( 189 );
 		NES_CASE_( 198 );
+		NES_CASE_( 200 );
+		NES_CASE_( 201 );
+		NES_CASE_( 202 );
 		NES_CASE_( 222 );
 		NES_CASE_( 225 );
 		NES_CASE_( 226 );
@@ -314,6 +324,8 @@ MAPPER* MAPPER::New(CONTEXT& context)
 		NES_CASE_( 248 );
 		NES_CASE_( 249 );
 		NES_CASE_( 250 );
+		NES_CASE_( 252 );
+		NES_CASE_( 254 );
 		NES_CASE_( 255 );
 	}
 
@@ -1054,7 +1066,7 @@ const CHAR* MAPPER::boards[256] =
 	"20-IN-1",			               // 061
 	"700-IN-1",			               // 062
 	"HELLO KITTY 255-IN-1",            // 063
-	"TENGEN RAMBO-1 ",	               // 064
+	"TENGEN RAMBO 1 ",	               // 064
 	"IREM H-3001",		               // 065
 	"GNROM",                           // 066
 	"SUNSOFT #3",		               // 067

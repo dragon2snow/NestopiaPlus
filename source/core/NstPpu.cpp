@@ -29,6 +29,8 @@
 
 NES_NAMESPACE_BEGIN
 
+#define NES_WARMUP_CYCLES (ULONG_MAX-1)
+
 ////////////////////////////////////////////////////////////////////////////////////////
 // constructor
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -38,10 +40,26 @@ PPU::PPU(CPU& c)
 CiRam       (n4k),
 cpu         (c),
 pal         (FALSE),
-GarbageLine (NULL)
+GarbageLine (NULL),
+MaxSprites  (8)
 {
 	GarbageLine = new IO::GFX::PIXEL[MARGIN + IO::GFX::WIDTH];
 }
+
+////////////////////////////////////////////////////////////////////////////////////////
+// constructor
+////////////////////////////////////////////////////////////////////////////////////////
+
+PPU::PPUCYCLES::PPUCYCLES()
+:
+WarmUp (WARM_UP),
+fetch  (NES_PPU_MCC_FETCH_NTSC),
+pixel  (NES_PPU_MCC_PIXEL_NTSC),
+delay  (NES_PPU_MCC_PIXEL_NTSC * 3),
+frame  (NES_PPU_MCC_FRAME_0_NTSC),
+vint   (NES_PPU_MCC_VINT_NTSC),
+count  (ULONG_MAX)
+{}
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // destructor
@@ -71,39 +89,40 @@ VOID PPU::Reset(const BOOL hard)
 		PDXMemZero( cRam,   n8k );
 		PDXMemZero( SpRam,  256 );
 		PDXMemZero( PalRam,	 32 );
+
+		ReadLatch = 0;
+		EvenFrame = 1^1;
 	}
 
-	cycles.SetMode(pal);
-	cycles.WarmUp = hard ? PPUCYCLES::WARM_UP : PPUCYCLES::READY;
+	cycles.count = NES_WARMUP_CYCLES;
+	cycles.WarmUp = PPUCYCLES::WARM_UP;
 
 	ctrl0             = 0;
 	ctrl1             = 0;
 	status            = 0;	
-	enabled           = FALSE;
 	CanSkipLine       = FALSE;
 	vRamAddress       = 0x2000;
 	vRamLatch         = 0x2000;
 	OamAddress        = 0x0000;
-	OamLatch          = 0x00;
-	DmaLatch          = 0x20;
+	OamLatch          = 0;
 	latch             = 0;
-	ReadLatch         = 0;
 	xFine             = 0;
 	FlipFlop          = 0;
 	SpIndex           = 0;
-	MaxSprites        = 8;
-	EvenFrame         = 1^1;
-	ScanLine          = SCANLINE_VBLANK;
+	scanline          = SCANLINE_VBLANK;
 	SpTmpBufferSize   = 0;
 	SpBufferSize      = 0;
 	screen            = NULL;
 	process           = processes;
+
+	UpdateTmpVariables();
+
 	output.clipping   = 0xFF;
 	output.monochrome = 0xFF;
 	output.pixels     = NULL;
 	output.ClipOffset = NULL;
 
-	UpdateTmpVariables();
+	hooks.Reset();
 
 	// Default to horizontal mirroring
 
@@ -136,9 +155,10 @@ VOID PPU::Reset(const BOOL hard)
 
 	cpu.SetPort( 0x4014, this, Peek_4014, Poke_4014 );
 
-	PDXMemZero( SpBuffer,    64 );
-	PDXMemZero( SpTmpBuffer, 64 );
-	PDXMemZero( BgBuffer        );
+	PDXMemZero( BgBuffer );
+
+	BgCache.cache = 0;
+	BgCache.pixels = BgBuffer.u32Pixels;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -147,56 +167,12 @@ VOID PPU::Reset(const BOOL hard)
 
 VOID PPU::UpdateTmpVariables()
 {
-	enabled          = ctrl1 & (CTRL1_BG_ENABLED | CTRL1_SP_ENABLED);
 	AddressIncrease  = (ctrl0 & CTRL0_INC32) ? 32 : 1;
 	SpHeight         = (ctrl0 & CTRL0_SP8X16) ? 16 : 8;
 	BgPatternAddress = (ctrl0 & CTRL0_BG_OFFSET) ? 0x1000 : 0x0000;
 	SpPatternAddress = (ctrl0 & CTRL0_SP_OFFSET) ? 0x1000 : 0x0000;
 	emphasis         = ((ctrl1 & CTRL1_BG_COLOR) >> CTRL1_BG_COLOR_SHIFT) * 64;
 	monochrome       = (ctrl1 & CTRL1_MONOCHROME) ? 0xF0 : 0xFF;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID PPU::PPUCYCLES::Reset(const BOOL pal,const BOOL EvenFrame)
-{
-	SetMode( pal, EvenFrame );
-
-	if (WarmUp == READY)
-	{
-		count = 0;
-	}
-	else
-	{
-		++WarmUp;
-		count = ULONG_MAX;
-	}
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID PPU::PPUCYCLES::SetMode(const BOOL pal,const BOOL EvenFrame)
-{
-	if (pal)
-	{
-		fetch = NES_PPU_MCC_FETCH_PAL;
-		pixel = NES_PPU_MCC_PIXEL_PAL;
-		delay = NES_PPU_MCC_PIXEL_PAL * 3;
-		frame = EvenFrame ? NES_PPU_MCC_FRAME_0_PAL : NES_PPU_MCC_FRAME_1_PAL;
-		vint  = NES_PPU_MCC_VINT_PAL;
-	}
-	else
-	{
-		fetch = NES_PPU_MCC_FETCH_NTSC;
-		pixel = NES_PPU_MCC_PIXEL_NTSC;
-		delay = NES_PPU_MCC_PIXEL_NTSC * 3;
-		frame = EvenFrame ? NES_PPU_MCC_FRAME_0_NTSC : NES_PPU_MCC_FRAME_1_NTSC;
-		vint  = NES_PPU_MCC_VINT_NTSC;
-	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -263,8 +239,22 @@ VOID PPU::SetMirroring(const MIRRORING type)
 
 VOID PPU::SetMode(const MODE mode)
 {
-	pal = (mode == MODE_PAL);
-	cycles.SetMode(pal,EvenFrame);
+	if (pal = (mode == MODE_PAL))
+	{
+		cycles.fetch = NES_PPU_MCC_FETCH_PAL;
+		cycles.pixel = NES_PPU_MCC_PIXEL_PAL;
+		cycles.delay = NES_PPU_MCC_PIXEL_PAL * 3;
+		cycles.frame = EvenFrame ? NES_PPU_MCC_FRAME_0_PAL : NES_PPU_MCC_FRAME_1_PAL;
+		cycles.vint  = NES_PPU_MCC_VINT_PAL;
+	}
+	else
+	{
+		cycles.fetch = NES_PPU_MCC_FETCH_NTSC;
+		cycles.pixel = NES_PPU_MCC_PIXEL_NTSC;
+		cycles.delay = NES_PPU_MCC_PIXEL_NTSC * 3;
+		cycles.frame = EvenFrame ? NES_PPU_MCC_FRAME_0_NTSC : NES_PPU_MCC_FRAME_1_NTSC;
+		cycles.vint  = NES_PPU_MCC_VINT_NTSC;
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -273,7 +263,7 @@ VOID PPU::SetMode(const MODE mode)
 
 VOID PPU::SetContext(const IO::GFX::CONTEXT& context)
 {
-	MaxSprites = context.InfiniteSprites ? 64 : 8;
+	MaxSprites = context.InfiniteSprites ? MAX_SPRITES : 8;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -282,7 +272,7 @@ VOID PPU::SetContext(const IO::GFX::CONTEXT& context)
 
 VOID PPU::GetContext(IO::GFX::CONTEXT& context) const
 {
-	context.InfiniteSprites = (MaxSprites == 64);
+	context.InfiniteSprites = (MaxSprites == MAX_SPRITES);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -303,7 +293,9 @@ NES_POKE(PPU,2000)
 	vRamLatch &= ~VRAM_NAME;
 	vRamLatch |= (data & CTRL0_NAME_OFFSET) << 10;
 
-	if ((data & CTRL0_NMI) > (ctrl0 & CTRL0_NMI) && (status & STATUS_VBLANK))
+	PDX_COMPILE_ASSERT( CTRL0_NMI == 0x80 && STATUS_VBLANK == 0x80 );
+
+	if ((data & status & CTRL0_NMI) > ctrl0)
 		cpu.DoNMI( cpu.GetCycles<CPU::CYCLE_MASTER>() );
 
 	ctrl0 = data;
@@ -317,16 +309,14 @@ NES_POKE(PPU,2001)
 {
 	UpdateLazy();
 
-	enabled    = data & (CTRL1_BG_ENABLED | CTRL1_SP_ENABLED);
-	emphasis   = ((data & CTRL1_BG_COLOR) >> CTRL1_BG_COLOR_SHIFT) * IO::GFX::PALETTE_CHUNK;
+	emphasis = ((data & CTRL1_BG_COLOR) >> CTRL1_BG_COLOR_SHIFT) * IO::GFX::PALETTE_CHUNK;
 	monochrome = (data & CTRL1_MONOCHROME) ? 0xF0 : 0xFF;
 
 	if ((data & CTRL1_BG_ENABLED) < (ctrl1 & CTRL1_BG_ENABLED))
 	{
-		BgBuffer.name =
-		BgBuffer.attribute =
-		BgBuffer.pattern[0] =
-		BgBuffer.pattern[1] =
+		BgCache.cache =
+		BgBuffer.name = 
+		BgBuffer.cache =
 		BgBuffer.u32Pixels[0] =
 		BgBuffer.u32Pixels[1] =
 		BgBuffer.u32Pixels[2] =
@@ -360,7 +350,7 @@ NES_POKE(PPU,2003)
 	Update();
 
 	OamAddress = latch = data;
-	OamLatch = latch & 0x7;
+	OamLatch = data & 0x7;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -373,8 +363,15 @@ NES_POKE(PPU,2004)
 
 	latch = data;
 
-	if (OamAddress >= 0x8 || OamLatch < 0x8)
-		SpRam[OamAddress] = data;
+	if (OamLatch >= 0x8)
+	{
+		if (OamAddress >= 0x8)
+			SpRam[OamAddress] = data;
+	}
+	else
+	{
+		SpRam[OamLatch] = data;
+	}
 
 	OamLatch = (OamLatch + 1) & 0xFF;
 	OamAddress = (OamAddress + 1) & 0xFF;
@@ -544,10 +541,43 @@ NES_PEEK(PPU,2xxx)
 
 NES_POKE(PPU,4014)
 {
-	ULONG target = cpu.GetCycles<CPU::CYCLE_MASTER>();
-	UINT offset = data << 8;
+	Update();
 
+	const UINT offset = data << 8;
+
+	const BOOL SafeDma =
+	(
+	    (offset <= (CPU::RAM_SIZE - NES_CPU_PPU_DMA_TRANSFERS)) &&
+		!OamAddress &&
+		(cycles.count <= cycles.vint || !(ctrl1 & CTRL1_BG_SP_ENABLED))
+	);
+
+	if (SafeDma)
+	{
+		memcpy( SpRam, cpu.Ram() + offset, sizeof(U8) * NES_CPU_PPU_DMA_TRANSFERS ); 
+		latch = SpRam[0xFF];
+	}
+	else
+	{
+		DoDma( offset );
+	}
+
+	cpu.AdvanceCycles
+	( 
+     	pal ? (NES_CPU_MCC_PPU_DMA_PAL * NES_CPU_PPU_DMA_TRANSFERS) : 
+	          (NES_CPU_MCC_PPU_DMA_NTSC * NES_CPU_PPU_DMA_TRANSFERS)
+	);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+VOID PPU::DoDma(UINT offset)
+{
 	const UINT length = offset + NES_CPU_PPU_DMA_TRANSFERS;
+
+	ULONG target = cpu.GetCycles<CPU::CYCLE_MASTER>();
 	const ULONG cycle = (pal ? NES_CPU_MCC_PPU_DMA_PAL : NES_CPU_MCC_PPU_DMA_NTSC);
 
 	do
@@ -562,19 +592,20 @@ NES_POKE(PPU,4014)
 
 		latch = cpu.Peek(offset);
 
-		if (OamAddress >= 0x8 || OamLatch < 0x8)
-			SpRam[OamAddress] = latch;
+		if (OamLatch >= 0x8)
+		{
+			if (OamAddress >= 0x8)
+				SpRam[OamAddress] = latch;
+		}
+		else
+		{
+			SpRam[OamLatch] = latch;
+		}
 
 		OamLatch = (OamLatch + 1) & 0xFF;
 		OamAddress = (OamAddress + 1) & 0xFF;
 	}
 	while (++offset < length);
-
-	cpu.AdvanceCycles
-	( 
-     	pal ? (NES_CPU_MCC_PPU_DMA_PAL * NES_CPU_PPU_DMA_TRANSFERS) : 
-	          (NES_CPU_MCC_PPU_DMA_NTSC * NES_CPU_PPU_DMA_TRANSFERS)
-	);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -622,16 +653,28 @@ VOID PPU::BeginFrame(IO::GFX* const gfx)
 	process = processes;
 	CanSkipLine = FALSE;
 
-	if (gfx && PDX_FAILED(gfx->Lock()))
-		screen = NULL;
+	if (cycles.WarmUp)
+	{
+		--cycles.WarmUp;
+		PDX_ASSERT( cycles.count == NES_WARMUP_CYCLES );
+	}
+	else
+	{
+		if (cycles.count != ULONG_MAX)
+			vBlankBegin();
 
-	if (cycles.count != ULONG_MAX)
-		vBlankBegin();
+		cycles.count = cycles.vint;
+	}
 
-	cycles.Reset( pal, EvenFrame ^= 1 );
-	cycles.count = cycles.vint;
+	EvenFrame ^= 1;
+
+	if (pal) cycles.frame = (EvenFrame ? NES_PPU_MCC_FRAME_0_PAL : NES_PPU_MCC_FRAME_1_PAL);
+	else     cycles.frame = (EvenFrame ? NES_PPU_MCC_FRAME_0_NTSC : NES_PPU_MCC_FRAME_1_NTSC);
 
 	cpu.SetupFrame( cycles.frame );
+
+	if (gfx && PDX_FAILED(gfx->Lock()))
+		screen = NULL;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -661,11 +704,16 @@ VOID PPU::vBlankBegin()
 	cycles.count = ULONG_MAX;
 
 	OamLatch = 0x00;
-	ScanLine = SCANLINE_VBLANK;
+	OamAddress = 0x0000;
+
+	scanline = SCANLINE_VBLANK;
 	status |= STATUS_VBLANK;
 
 	if (ctrl0 & CTRL0_NMI)
 		cpu.DoNMI( 0 );
+
+	if (hooks.hSync)
+		hooks.hSync.Execute();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -695,7 +743,7 @@ VOID PPU::hDummyEnd()
 	SpBufferSize = 0;
 	SpIndex = 0;
 
-	if (enabled)
+	if (ctrl1 & CTRL1_BG_SP_ENABLED)
 		vRamAddress = vRamLatch;
 }
 
@@ -745,7 +793,7 @@ VOID PPU::hBlankEnd()
 
 	status &= ~STATUS_SP_OVERFLOW;	
 
-	if (++ScanLine < 240)
+	if (++scanline < 240)
 	{
 		SpTmpBufferSize = 0;
 
@@ -753,13 +801,13 @@ VOID PPU::hBlankEnd()
 		process = phase = processes + PHASE_HACTIVE;
 
 		if (screen)
-			output.pixels = screen->pixels + (ScanLine * IO::GFX::WIDTH);
+			output.pixels = screen->pixels + (scanline * IO::GFX::WIDTH);
 		else
 			output.pixels = GarbageLine;
 
 		output.ClipOffset = output.pixels + 8;
 
-		if (ScanLine || EvenFrame)
+		if (scanline || EvenFrame)
 			cycles.count += cycles.rest;
 	}
 	else
@@ -774,7 +822,7 @@ VOID PPU::hBlankEnd()
 
 VOID PPU::NextTile()
 {
-	if (enabled)
+	if (ctrl1 & CTRL1_BG_SP_ENABLED)
 	{
     	if ((vRamAddress & VRAM_X_TILE) == VRAM_X_TILE)
     		vRamAddress ^= (VRAM_X_TILE|VRAM_NAME_LOW);
@@ -789,7 +837,10 @@ VOID PPU::NextTile()
 
 VOID PPU::NextLine()
 {
-	if (enabled)
+	if (hooks.hSync)
+		hooks.hSync.Execute();
+
+	if (ctrl1 & CTRL1_BG_SP_ENABLED)
 	{
 		vRamAddress = 
 		(
@@ -823,7 +874,7 @@ VOID PPU::SkipLine()
 
 	status &= ~STATUS_SP_OVERFLOW;	
 
-	if (enabled)
+	if (ctrl1 & CTRL1_BG_SP_ENABLED)
 	{
 		// Simulate sprite and background pattern fetches for
 		// any IRQ generating hardware depending on them
@@ -832,7 +883,7 @@ VOID PPU::SkipLine()
 		vRam[SpPatternAddress];
 	}
 
-	if (++ScanLine < 240)
+	if (++scanline < 240)
 	{
 		PhaseCount = 1;
 		process = processes + PHASE_HACTIVE_END;
@@ -852,7 +903,7 @@ VOID PPU::FetchGarbageName()
 {
 	cycles.count += cycles.fetch;
 
-	if (enabled)
+	if (ctrl1 & CTRL1_BG_SP_ENABLED)
 		vRam[0x2000 + (vRamAddress & 0x0FFF)];
 }
 
@@ -864,7 +915,7 @@ VOID PPU::FetchGarbageAttribute()
 {
 	cycles.count += cycles.fetch;
 
-	if (enabled)
+	if (ctrl1 & CTRL1_BG_SP_ENABLED)
 		vRam[0x23C0 + (vRamAddress & 0x0C00) + ((((vRamAddress & VRAM_Y_TILE) >> 5) & 0x1C) << 1) + ((vRamAddress & VRAM_X_TILE) >> 2)];
 }
 
@@ -876,7 +927,7 @@ VOID PPU::FetchGarbagePattern0()
 {
 	cycles.count += cycles.fetch;
 
-	if (enabled)
+	if (ctrl1 & CTRL1_BG_SP_ENABLED)
 		vRam[(BgPatternAddress + (BgBuffer.name << 4) + (vRamAddress >> 12)) & 0x1FFF];
 }
 
@@ -891,7 +942,7 @@ VOID PPU::FetchGarbagePattern1()
 	if (--PhaseCount)
 		process = phase;
 
-	if (enabled)
+	if (ctrl1 & CTRL1_BG_SP_ENABLED)
 		vRam[(BgPatternAddress + (BgBuffer.name << 4) + (vRamAddress >> 12) + 0x8) & 0x1FFF];
 }
 
@@ -901,7 +952,7 @@ VOID PPU::FetchGarbagePattern1()
 
 VOID PPU::FetchBgName()
 {
-	if (enabled)
+	if (ctrl1 & CTRL1_BG_SP_ENABLED)
 	{
 		const UINT name = vRam[0x2000 + (vRamAddress & 0x0FFF)];
 
@@ -909,31 +960,49 @@ VOID PPU::FetchBgName()
 		{
 			BgBuffer.name = name;
 
-			const UINT pattern =
-			(
-				((BgBuffer.pattern[0] & b01010101) << 0) |
-				((BgBuffer.pattern[0] & b10101010) << 7) |
-				((BgBuffer.pattern[1] & b01010101) << 1) |
-				((BgBuffer.pattern[1] & b10101010) << 8) 
-			);
+			U32* const PDX_RESTRICT pixels = BgBuffer.u32Pixels + BgBuffer.offset;
 
-			U8* const PDX_RESTRICT pixels = BgBuffer.pixels + BgBuffer.offset;
-
-			pixels[0] = ( (pattern >> 0xE) & 0x3 ) + BgBuffer.attribute;
-			pixels[1] = ( (pattern >> 0x6) & 0x3 ) + BgBuffer.attribute;
-			pixels[2] = ( (pattern >> 0xC) & 0x3 ) + BgBuffer.attribute;
-			pixels[3] = ( (pattern >> 0x4) & 0x3 ) + BgBuffer.attribute;
-			pixels[4] = ( (pattern >> 0xA) & 0x3 ) + BgBuffer.attribute;
-			pixels[5] = ( (pattern >> 0x2) & 0x3 ) + BgBuffer.attribute;
-			pixels[6] = ( (pattern >> 0x8) & 0x3 ) + BgBuffer.attribute;
-			pixels[7] = ( (pattern >> 0x0) & 0x3 ) + BgBuffer.attribute;
-			
-			if (output.pixels >= output.ClipOffset || (ctrl1 & CTRL1_BG_NO_CLIPPING))
+			if (BgCache.cache == BgBuffer.cache)
 			{
-				output.clipping = 0xFF;
-				output.monochrome = monochrome;
+				if (BgCache.pixels != pixels)
+					memcpy( pixels, BgCache.pixels, sizeof(U32) * 2 );
 			}
 			else
+			{
+				BgCache.cache = BgBuffer.cache;
+				BgCache.pixels = pixels;
+
+				const UINT pattern[2] =
+				{
+					( ( BgBuffer.pattern[0] >> 1 ) & b01010101 ) | 
+					( ( BgBuffer.pattern[1]      ) & b10101010 ),
+					( ( BgBuffer.pattern[0]      ) & b01010101 ) | 
+					( ( BgBuffer.pattern[1] << 1 ) & b10101010 )
+				};
+
+				const UINT attribute = BgBuffer.attribute;
+
+				pixels[0] = 
+				(
+			    	( ( ( ( pattern[0] >> 6 )       ) + attribute )       ) |
+	    			( ( ( ( pattern[0] >> 4 ) & 0x3 ) + attribute ) << 16 ) |
+	    			( ( ( ( pattern[1] >> 6 )       ) + attribute ) <<  8 ) |
+	    			( ( ( ( pattern[1] >> 4 ) & 0x3 ) + attribute ) << 24 )
+				);
+				
+				pixels[1] = 
+				(
+    				( ( ( ( pattern[0] >> 2 ) & 0x3 ) + attribute )       ) |
+    				( ( ( ( pattern[0]      ) & 0x3 ) + attribute ) << 16 ) |
+    				( ( ( ( pattern[1] >> 2 ) & 0x3 ) + attribute ) <<  8 ) |
+    				( ( ( ( pattern[1]      ) & 0x3 ) + attribute )	<< 24 )
+				);
+			}
+
+			output.clipping = 0xFF;
+			output.monochrome = monochrome;
+
+			if (output.pixels < output.ClipOffset && !(ctrl1 & CTRL1_BG_NO_CLIPPING))
 			{
 				output.clipping = 0x00;
 				output.monochrome = 0xFF;
@@ -941,7 +1010,7 @@ VOID PPU::FetchBgName()
 		}
 	}
 
-	BgBuffer.offset ^= 8;
+	BgBuffer.offset ^= 2;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -950,7 +1019,7 @@ VOID PPU::FetchBgName()
 
 VOID PPU::FetchBgAttribute()
 {
-	if (enabled)
+	if (ctrl1 & CTRL1_BG_SP_ENABLED)
 	{
 		const UINT xTile = (vRamAddress & VRAM_X_TILE) >> 0;
 		const UINT yTile = (vRamAddress & VRAM_Y_TILE) >> 5;
@@ -970,7 +1039,7 @@ VOID PPU::FetchBgAttribute()
 
 VOID PPU::FetchBgPattern0()
 {
-	if (enabled)
+	if (ctrl1 & CTRL1_BG_SP_ENABLED)
 	{
 		const UINT value = vRam[(BgPatternAddress + (BgBuffer.name << 4) + (vRamAddress >> 12)) & 0x1FFF];
 
@@ -985,13 +1054,16 @@ VOID PPU::FetchBgPattern0()
 
 VOID PPU::FetchBgPattern1()
 {
-	if (enabled)
+	if (ctrl1 & CTRL1_BG_SP_ENABLED)
 	{
 		const UINT value = vRam[(BgPatternAddress + (BgBuffer.name << 4) + (vRamAddress >> 12) + 0x8) & 0x1FFF];
 
 		if (ctrl1 & CTRL1_BG_ENABLED)
 			BgBuffer.pattern[1] = value;
 	}
+	
+	if (hooks.renderer)
+		hooks.renderer.Execute( PDX_CAST(U8*,&BgBuffer.cache) );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -1003,7 +1075,7 @@ VOID PPU::PrefetchBg0Name()
 	cycles.count += cycles.fetch; 
 	BgBuffer.offset = 0;
 
-	if (enabled)
+	if (ctrl1 & CTRL1_BG_SP_ENABLED)
 	{
 		const UINT name = vRam[0x2000 + (vRamAddress & 0x0FFF)];
 
@@ -1061,7 +1133,7 @@ VOID PPU::FetchSpPattern0()
 {
 	cycles.count += cycles.fetch;
 
-	if (enabled)
+	if (ctrl1 & CTRL1_BG_SP_ENABLED)
 	{
 		if (SpBufferSize < SpTmpBufferSize)
 		{
@@ -1096,7 +1168,7 @@ VOID PPU::FetchSpPattern1()
 	if (--PhaseCount)
 		process = phase;
 
-	if (enabled)
+	if (ctrl1 & CTRL1_BG_SP_ENABLED)
 	{
 		if (SpBufferSize < SpTmpBufferSize)
 		{
@@ -1157,30 +1229,32 @@ VOID PPU::RenderPixel()
 
 	if (ctrl1 & CTRL1_SP_ENABLED)
 	{
-		const SP* const PDX_RESTRICT end = SpBuffer + SpBufferSize;
-	
+		const SP* const end = SpBuffer + SpBufferSize;
+
 		for (SP* PDX_RESTRICT sp = SpBuffer; sp != end; ++sp)
 		{
-			if (--sp->x <= 0 && sp->x >= -7)
+			const INT x = --sp->x;
+
+			if (x > 0 || x < -7)
+				continue;
+
+			const UINT SpPixel = sp->pixels[-x];
+	
+			if (SpPixel)
 			{
-				const UINT SpPixel = sp->pixels[-sp->x];
-	
-				if (SpPixel)
-				{
-					// first two bits of sp->zero and sp->behind are masked if true
-					// (for avoiding additional branches with lazy evaluation)
-	
-					if (sp->zero & BgPixel)
-						status |= STATUS_SP_ZERO_HIT;
-	
-					if (!(sp->behind & BgPixel))
-						pixel = sp->palette[SpPixel];
-	
-					while (++sp != end)
-						--sp->x;
-	
-					break;
-				}
+				// first two bits of sp->zero and sp->behind are masked if true
+				// (for avoiding additional branches with lazy evaluation)
+			
+				if (sp->zero & BgPixel)
+					status |= STATUS_SP_ZERO_HIT;
+			
+				if (!(sp->behind & BgPixel))
+					pixel = sp->palette[SpPixel];
+	            
+				while (++sp != end)
+					--sp->x;
+
+				break;
 			}
 		}
 	}
@@ -1196,7 +1270,7 @@ VOID PPU::EvaluateSp()
 {
 	const U8* const PDX_RESTRICT sprite = SpRam + SpIndex;
 
-	LONG y = ScanLine - sprite[SP_Y];
+	LONG y = scanline - sprite[SP_Y];
 
 	if (y >= 0 && y < SpHeight && sprite[SP_Y] < 240)
 	{
@@ -1298,7 +1372,6 @@ PDXRESULT PPU::LoadState(PDXFILE& file)
 		vRamAddress  = header.vRamAddress;
 		vRamLatch    = header.vRamLatch;
 		OamAddress   = header.OamAddress;
-		DmaLatch     = header.DmaLatch;
 		latch        = header.latch;
 		ReadLatch    = header.ReadLatch;
 		xFine        = header.xFine;
@@ -1333,7 +1406,7 @@ PDXRESULT PPU::SaveState(PDXFILE& file) const
 		header.vRamAddress  = vRamAddress;
 		header.vRamLatch    = vRamLatch;
 		header.OamAddress   = OamAddress;
-		header.DmaLatch     = DmaLatch;
+		header.reserved     = 0;
 		header.latch        = latch;
 		header.ReadLatch    = ReadLatch;
 		header.xFine        = xFine;

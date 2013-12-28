@@ -141,7 +141,7 @@ NES_POKE(MAPPER69,A000)
 
 		case 0xC:
 		{
-			const UCHAR select[4][4] =
+			static const UCHAR select[4][4] =
 			{
 				{0,1,0,1},
 				{0,0,1,1},
@@ -162,9 +162,9 @@ NES_POKE(MAPPER69,A000)
 			return;
 		}
 
-		case 0xD: SetIrqEnable(data); return;
-		case 0xE: IrqCount = (IrqCount & 0xFF00) | (data << 0); return;
-		case 0xF: IrqCount = (IrqCount & 0x00FF) | (data << 8); return;
+		case 0xD: cpu.ClearIRQ(); SetIrqEnable(data); return;
+		case 0xE: cpu.ClearIRQ(); IrqCount = (IrqCount & 0xFF00) | (data << 0); return;
+		case 0xF: cpu.ClearIRQ(); IrqCount = (IrqCount & 0x00FF) | (data << 8); return;
 	}
 }
 
@@ -187,7 +187,7 @@ VOID MAPPER69::IrqSync(const UINT delta)
 	{
 		IrqCount = 0xFFFF;
 		SetIrqEnable(FALSE);
-		cpu.TryIRQ();
+		cpu.DoIRQ();
 	}
 }
 

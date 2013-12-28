@@ -93,8 +93,9 @@ NES_POKE(MAPPER182,C000)
 
 NES_POKE(MAPPER182,E003)
 {
+	cpu.ClearIRQ();
 	IrqCount = data;
-	SetIrqEnable(TRUE);
+	SetIrqEnable(data);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -107,7 +108,7 @@ VOID MAPPER182::IrqSync()
 	{
 		IrqCount = 0;
 		SetIrqEnable(FALSE);
-		cpu.TryIRQ();
+		cpu.DoIRQ();
 	}
 }
 
