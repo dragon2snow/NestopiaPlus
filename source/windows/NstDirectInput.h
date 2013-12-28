@@ -44,23 +44,22 @@ public:
 	~DIRECTINPUT();
 
 	VOID Poll();
+	VOID AcquireDevices();
+	VOID UnacquireDevices();
 
 protected:
 
-	enum {KEYBOARD_BUFFER_SIZE=256};
-
-	static VOID PDX_NO_INLINE Acquire(LPDIRECTINPUTDEVICE8);
+	enum {KEYBOARD_BUFFER_LENGTH = 256};
+	enum {KEYBOARD_BUFFER_SIZE = sizeof(BYTE) * KEYBOARD_BUFFER_LENGTH};
 
 	PDX_NO_INLINE VOID Initialize(HWND) throw(const CHAR*);
-	PDX_NO_INLINE VOID SetCooperativeLevel(DWORD) throw(const CHAR*);
 	PDX_NO_INLINE VOID Destroy();
-
-	VOID AcquireDevices();
 	
 	inline const BYTE* GetKeyboardBuffer() const 
 	{ return KeyboardBuffer; }
 
-	BOOL PollKeyboard();
+	VOID PollKeyboard();
+	VOID PollJoysticks();
 	BOOL ScanKeyboard(DWORD&);
 	BOOL ScanJoystick(DWORD&,UINT&);
 
@@ -112,7 +111,7 @@ protected:
 
 private:
 
-	BYTE KeyboardBuffer[KEYBOARD_BUFFER_SIZE];
+	BYTE KeyboardBuffer[KEYBOARD_BUFFER_LENGTH];
 };
  
 #endif

@@ -59,7 +59,7 @@ public:
 	VOID Power(const BOOL);
 	VOID Reset(const BOOL);
 	VOID Pause(const BOOL);
-	VOID Execute(IO::GFX* const,IO::SFX* const,IO::INPUT*);
+	VOID Execute(IO::GFX* const,IO::SFX* const,IO::INPUT* const);
 
 	PDXRESULT LoadRom  (PDXFILE&,const PDXSTRING* const);
 	PDXRESULT LoadINES (PDXFILE&,const PDXSTRING* const);
@@ -148,7 +148,7 @@ public:
 	public:
 
 		CONTROLLER(const UINT n,PPU* const p=NULL)
-		: port(n), polled(FALSE), ppu(p), strobe(0) { Reset(); }
+		: port(n), ppu(p), strobe(0) { Reset(); }
 
 		virtual ~CONTROLLER() {}
 
@@ -158,16 +158,9 @@ public:
 			gfx = g;
 		}
 
-		inline VOID EndFrame()
-		{ 
-			polled = FALSE; 
-		}
-
 		virtual VOID Initialize(const ULONG) {}
-		virtual VOID Poll() {}
-		
-		virtual VOID Reset() 
-		{ polled = FALSE; }
+		virtual VOID Poll() {}		
+		virtual VOID Reset() {}
 
 		virtual UINT Peek_4016() { return 0x00; }
 		virtual UINT Peek_4017() { return 0x00; }
@@ -197,7 +190,6 @@ public:
 		const UINT port;
 		IO::INPUT* input;
 
-		BOOL polled;
 		UINT strobe;
 	};
 

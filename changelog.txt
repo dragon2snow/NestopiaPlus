@@ -1,4 +1,22 @@
 ----------------------------------------------------------------
+1.06
+----------------------------------------------------------------
+
+Fixed the input bug that sneaked up in v1.05. IDirectInputDevice8::Poll() was the cause. I forgot it could return DI_NOEFFECT which is not the same as DI_OK. The bug affected devices that didn't need manual polling.
+
+Fixed a bug that caused all soundcards without support for hardware-mixed secondary buffers to not work.
+
+Did some small optimizations in the PPU core.
+
+Changed so that state slots are flushed to files (if enabled) every time the user saves instead of only during load/close.
+
+Modified the path dialog. Two check mark buttons now control the auto loading and saving of state slots.
+
+Less sound stutter when toggling the menu in fullscreen.
+
+Tweaked the render queue and put a limit on how many frames behind the GPU can be. This is to prevent sudden jerks and input lag.
+
+----------------------------------------------------------------
 1.05
 ----------------------------------------------------------------
 

@@ -114,22 +114,25 @@ public:
 		delete [] map;
 	}
 
-	inline UINT operator [] (const UINT address) const
+	inline UINT operator [] (const UINT address)
 	{
 		PDX_ASSERT(address < SIZE);
-		return (*map[address].object.*map[address].reader)(address);
+		PORT& port = map[address];
+		return (*port.object.*port.reader)(address);
 	}
 
-	inline UINT Peek(const UINT address) const
+	inline UINT Peek(const UINT address)
 	{
 		PDX_ASSERT(address < SIZE);
-		return (*map[address].object.*map[address].reader)(address);
+		PORT& port = map[address];
+		return (*port.object.*port.reader)(address);
 	}
 
-	inline VOID Poke(const UINT address,const UINT data) const
+	inline VOID Poke(const UINT address,const UINT data)
 	{
 		PDX_ASSERT(address < SIZE);
-		(*map[address].object.*map[address].writer)(address,data);
+		PORT& port = map[address];
+		(*port.object.*port.writer)(address,data);
 	}
 
 	template<class TYPE>

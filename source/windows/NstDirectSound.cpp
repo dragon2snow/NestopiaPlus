@@ -139,16 +139,6 @@ BOOL CALLBACK DIRECTSOUND::EnumAdapters(LPGUID guid,LPCSTR desc,LPCSTR,LPVOID co
 
 	device->Release();
 
-	if (!(caps.dwFlags & (DSCAPS_SECONDARY16BIT|DSCAPS_SECONDARY8BIT)))
-	{
-		application.LogFile().Output
-		(
-	     	"DIRECTSOUND: this device lacks both 8 and 16 bit sample support and can't be"
-			"used, continuing enumeration.."
-		);
-		return TRUE;
-	}
-
 	PDX_CAST(ADAPTERS*,context)->Grow();
 	ADAPTER& adapter = PDX_CAST(ADAPTERS*,context)->Back();
 
@@ -160,58 +150,11 @@ BOOL CALLBACK DIRECTSOUND::EnumAdapters(LPGUID guid,LPCSTR desc,LPCSTR,LPVOID co
 	if (adapter.name.IsEmpty())
 		adapter.name = "unknown";
 
-	adapter.SampleBits8 = bool(caps.dwFlags & DSCAPS_SECONDARY8BIT);
-	adapter.SampleBits16 = bool(caps.dwFlags & DSCAPS_SECONDARY16BIT);
-
-	application.LogFile().Output
-	(
-	    adapter.SampleBits8 ?
-		"DIRECTSOUND: 8 bit samples are supported by this device" :
-		"DIRECTSOUND: 8 bit samples are NOT supported by this device"
-	);
-
-	application.LogFile().Output
-	(
-		adapter.SampleBits16 ?
-		"DIRECTSOUND: 16 bit samples are supported by this device" :
-		"DIRECTSOUND: 16 bit samples are NOT supported by this device"
-	);
-
-	const UINT rates[5] = {11025,22050,44100,48000,96000};
-
-	for (UINT i=0; i < 5; ++i)
-	{
-		if (rates[i] <= caps.dwMaxSecondarySampleRate && rates[i] >= caps.dwMinSecondarySampleRate)
-		{
-			adapter.SampleRates.InsertBack( rates[i] );
-
-			application.LogFile().Output
-			(
-     			"DIRECTSOUND: sample rate ",
-				rates[i],
-				" is supported by this device"
-			);
-		}
-		else
-		{
-			application.LogFile().Output
-			(
-     			"DIRECTSOUND: sample rate ",
-				rates[i],
-				" is NOT supported by this device"
-			);
-		}
-	}
-
-	if (adapter.SampleRates.IsEmpty())
-	{
-		PDX_CAST(ADAPTERS*,context)->EraseBack();
-		
-		application.LogFile().Output
-		(
-		    "DIRECTSOUND: No valid sample rate was found for this device, continuing enumeration.."
-		);
-	}
+	adapter.SampleRates.InsertBack( 11025 );
+	adapter.SampleRates.InsertBack( 22050 );
+	adapter.SampleRates.InsertBack( 44100 );
+	adapter.SampleRates.InsertBack( 48000 );
+	adapter.SampleRates.InsertBack( 96000 );
 
 	return TRUE;
 }
@@ -233,10 +176,10 @@ VOID DIRECTSOUND::Initialize(HWND h)
 	{
 		application.LogFile().Output("DIRECTSOUND: sound enumeration failed or no adapters was found, retrying with default..");
 		EnumAdapters(NULL,"Primary Sound Driver","",PDX_CAST(LPVOID,&adapters));
-
-		if (adapters.IsEmpty())
-			OnError("No sound device could be found!");
 	}
+
+	if (adapters.IsEmpty())
+		OnError("No sound device could be found!");
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -375,13 +318,8 @@ PDXRESULT DIRECTSOUND::Lock(const DWORD offset,const DWORD size)
 
 	if (FAILED(hResult=secondary->Lock(offset,size,&locked.data,&locked.size,&skip1,&skip2,0)))
 	{
-		if (hResult == DSERR_BUFFERLOST)
-		{
-			Sleep(50);
-
-			for (ULONG i=0; secondary->Restore() == DSERR_BUFFERLOST && i < 0xFFFFUL; ++i)
-				Sleep(50);
-		}
+		if (hResult == DSERR_BUFFERLOST && secondary->Restore() == DSERR_BUFFERLOST)
+			return PDX_FAILURE;
 
 		if (FAILED(secondary->Lock(offset,size,&locked.data,&locked.size,&skip1,&skip2,0)))
 			return OnError("IDirectSoundBuffer8::Lock() failed!");
@@ -429,13 +367,13 @@ BOOL DIRECTSOUND::UpdateRefresh()
 	{
 		DWORD status = 0;
 
-		if (secondary->GetStatus(&status) == DS_OK && (status & DSBSTATUS_PLAYING))
+		if (SUCCEEDED(secondary->GetStatus(&status)) && (status & DSBSTATUS_PLAYING))
 		{
 			DWORD CurrentPos;
 
 			for (;;)
 			{
-				if (secondary->GetCurrentPosition(&CurrentPos,NULL) != DS_OK)
+				if (FAILED(secondary->GetCurrentPosition(&CurrentPos,NULL)))
 					return FALSE;
 
 				const DWORD offset = CurrentPos + (LastPos < CurrentPos ? 0 : BufferSize);
@@ -475,7 +413,7 @@ VOID DIRECTSOUND::ClearBuffer()
 	LPVOID ptr[2];
 	DWORD size[2];
 
-	if (secondary->Lock(0,0,&ptr[0],&size[0],&ptr[1],&size[1],DSBLOCK_ENTIREBUFFER) == DS_OK)
+	if (SUCCEEDED(secondary->Lock(0,0,&ptr[0],&size[0],&ptr[1],&size[1],DSBLOCK_ENTIREBUFFER)))
 	{
 		const INT silence = (WaveFormat.wBitsPerSample == 8 ? 0x80 : 0x00);
 		
@@ -519,7 +457,7 @@ PDXRESULT DIRECTSOUND::SetFormat(const DWORD SampleRate,const DWORD SampleBits,c
 	WaveFormat.nChannels       = 1; 
 	WaveFormat.nSamplesPerSec  = SampleRate; 
 	WaveFormat.wBitsPerSample  = SampleBits; 
-	WaveFormat.nBlockAlign     = WaveFormat.wBitsPerSample / 8;
+	WaveFormat.nBlockAlign     = WaveFormat.wBitsPerSample / 8 * WaveFormat.nChannels;
 	WaveFormat.nAvgBytesPerSec = WaveFormat.nSamplesPerSec * WaveFormat.nBlockAlign;
 
 	{
@@ -530,7 +468,7 @@ PDXRESULT DIRECTSOUND::SetFormat(const DWORD SampleRate,const DWORD SampleBits,c
 
 		LPDIRECTSOUNDBUFFER primary = NULL;
 
-		if (device->CreateSoundBuffer(&desc,&primary,NULL) == DS_OK && primary)
+		if (SUCCEEDED(device->CreateSoundBuffer(&desc,&primary,NULL)) && primary)
 		{
 			primary->SetFormat(&WaveFormat);
 			primary->Release();
@@ -590,7 +528,7 @@ PDXRESULT DIRECTSOUND::Stop(NES::IO::SFX& SoundOut)
 	(
     	LastSample && 
 		data.latency <= 4 &&
-     	secondary->GetStatus(&status) == DS_OK && 
+     	SUCCEEDED(secondary->GetStatus(&status)) &&
 		(status & DSBSTATUS_PLAYING)
 	);
 
@@ -679,5 +617,5 @@ PDXRESULT DIRECTSOUND::Stop(NES::IO::SFX& SoundOut)
 
 PDXRESULT DIRECTSOUND::Start()
 {
-	return (!secondary || secondary->Play(0,0,DSBPLAY_LOOPING) == DS_OK) ? PDX_OK : PDX_FAILURE;
+	return (!secondary || SUCCEEDED(secondary->Play(0,0,DSBPLAY_LOOPING))) ? PDX_OK : PDX_FAILURE;
 }

@@ -24,6 +24,7 @@
 
 #include <Windows.h>
 #include "../paradox/PdxString.h"
+#include "../paradox/PdxMap.h"
 #include "resource/resource.h"
 #include "NstApplication.h"
 #include "NstSaveStateManager.h"
@@ -41,8 +42,10 @@
 
 SAVESTATEMANAGER::SAVESTATEMANAGER() 
 : 
-MANAGER  (IDD_AUTO_SAVE),
-LastSlot (0)
+MANAGER    (IDD_AUTO_SAVE),
+LastSlot   (0),
+ImportFile (FALSE),
+ExportFile (FALSE)
 {}
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -58,14 +61,15 @@ VOID SAVESTATEMANAGER::Create(CONFIGFILE* const)
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-VOID SAVESTATEMANAGER::Destroy(CONFIGFILE* const)
+BOOL SAVESTATEMANAGER::IsActive() const
 {
-	for (UINT i=0; i < MAX_SLOTS; ++i)
-	{
-		slots[i].file.Abort();
-		slots[i].valid = FALSE;
-		slots[i].external = FALSE;
-	}
+	return
+	(
+     	nes.IsOn() && 
+     	nes.IsImage() &&
+    	!nes.IsPaused() && 
+    	application.IsActive()
+	);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -74,23 +78,12 @@ VOID SAVESTATEMANAGER::Destroy(CONFIGFILE* const)
 
 VOID SAVESTATEMANAGER::Reset()
 {
-	LastSlot = MAX_SLOTS - 1;
-
-	PDXSTRING name("x");
+	LastSlot = 0;
 
 	for (UINT i=0; i < MAX_SLOTS; ++i)
-	{
-		name.Resize(1);
-		name += (i+1);
+		slots[i].Reset();
 
-		slots[i].file.Open( name, PDXFILE::OUTPUT );
-		slots[i].valid = FALSE;
-		slots[i].external = FALSE;
-	}
-
-	AutoSave.name.Clear();
-	AutoSave.file.Abort();
-
+	AutoSave.filename.Clear();
 	AutoSave.enabled = FALSE;
 	AutoSave.time = NST_TO_MILLI(1);
 	AutoSave.msg = TRUE;
@@ -100,31 +93,58 @@ VOID SAVESTATEMANAGER::Reset()
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-VOID SAVESTATEMANAGER::Flush()
+VOID SAVESTATEMANAGER::SetFileName(const UINT index,const PDXSTRING& filename)
+{ 
+	slots[IndexToSlot(index)].filename = filename; 
+
+	LastSlot = 0;
+
+	if (ImportFile)
+	{
+		PDXMAP<UINT,U64> tree;
+
+		for (UINT i=0; i < MAX_SLOTS; ++i)
+		{
+			if (slots[i].filename.Length())
+			{
+				WIN32_FILE_ATTRIBUTE_DATA attribute;
+
+				if (GetFileAttributesEx(slots[i].filename.String(),GetFileExInfoStandard,PDX_CAST(LPVOID,&attribute)))
+					tree[PDX_CAST_REF(const U64,attribute.ftLastWriteTime.dwLowDateTime)] = i;
+			}
+		}
+
+		if (tree.Size())
+			LastSlot = (*tree.Last()).Second();
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+VOID SAVESTATEMANAGER::CacheSlots()
 {
-	PDXSTRING name("x");
+	PDXFILE file;
 
 	for (UINT i=0; i < MAX_SLOTS; ++i)
 	{
-		if (slots[i].external && slots[i].valid && slots[i].file.IsOpen() && slots[i].file.Name().Length() && PDX_SUCCEEDED(slots[i].file.Flush()))
+		if
+		(
+			slots[i].filename.Length() &&
+			PDX_SUCCEEDED(file.Open(slots[i].filename,PDXFILE::INPUT)) &&
+			file.Size()
+		)
 		{
+			slots[i].data = file.Buffer();
+
 			application.LogFile().Output
-			( 
-   				"SAVESTATE: slot ",
-   				(i+1),
-   				" was exported to file: ",
-   				slots[i].file.Name()
+			(
+     			"SAVESTATE: imported ",
+				slots[i].filename,
+				" to slot ",
+				(i+1)
 			);
-
-			slots[i].valid = FALSE;
-			slots[i].external = FALSE;
-
-			slots[i].file.Abort();
-
-			name.Resize(1);
-			name += (i+1);
-
-			slots[i].file.Open( name, PDXFILE::OUTPUT );
 		}
 	}
 }
@@ -133,63 +153,43 @@ VOID SAVESTATEMANAGER::Flush()
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT SAVESTATEMANAGER::SetExport(UINT index,const PDXSTRING& name)
+VOID SAVESTATEMANAGER::FlushSlots() const
 {
-	index = IndexToSlot( index );
+	PDXFILE file;
 
-	if (slots[index].file.IsOpen())
-		slots[index].file.Abort();
-
-	slots[index].valid = FALSE;
-
-	if (PDX_SUCCEEDED(slots[index].file.Open( name, PDXFILE::OUTPUT )))
+	for (UINT i=0; i < MAX_SLOTS; ++i)
 	{
-		slots[index].external = TRUE;
-		return PDX_OK;
-	}
-
-	slots[index].external = FALSE;
-	slots[index].file.Open( PDXSTRING("x") + (index+1) );
-
-	return PDX_FAILURE;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-PDXRESULT SAVESTATEMANAGER::SetImport(UINT index,const PDXSTRING& name)
-{
-	index = IndexToSlot( index );
-
-	if (slots[index].file.IsOpen())
-		slots[index].file.Abort();
-
-	if (PDX_SUCCEEDED(slots[index].file.Open( name, PDXFILE::APPEND )) && slots[index].file.Size())
-	{
-		slots[index].file.Seek( PDXFILE::BEGIN );
-
-		slots[index].valid = TRUE;
-		slots[index].external = TRUE;
-
-		application.LogFile().Output
+		if
 		(
-     		"SAVESTATE: slot ",
-     		(index+1),
-     		" was imported from file: ",
-     		slots[index].file.Name()
-		);
+			slots[i].data.Size() &&
+			slots[i].filename.Length() &&
+			PDX_SUCCEEDED(file.Open(slots[i].filename,PDXFILE::OUTPUT))
+		)
+		{
+		    file.Write(slots[i].data.Begin(),slots[i].data.End());
 
-		return PDX_OK;
+			if (PDX_SUCCEEDED(file.Close()))
+			{
+				application.LogFile().Output
+				(
+					"SAVESTATE: exported slot ",
+					(i+1),
+					" to ",
+					slots[i].filename
+				);
+			}
+			else
+			{
+				application.LogFile().Output
+				(
+					"SAVESTATE: failed to export slot ",
+					(i+1),
+					" to ",
+					slots[i].filename
+				);
+			}
+		}
 	}
-
-	slots[index].valid = FALSE;
-	slots[index].external = FALSE;
-
-	slots[index].file.Abort();
-	slots[index].file.Open( PDXSTRING("x") + (index+1), PDXFILE::OUTPUT );
-
-	return PDX_FAILURE;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -198,18 +198,49 @@ PDXRESULT SAVESTATEMANAGER::SetImport(UINT index,const PDXSTRING& name)
 
 PDXRESULT SAVESTATEMANAGER::LoadState(UINT index)
 {
+	if (!IsActive())
+		return PDX_FAILURE;
+
 	index = IndexToSlot( index );
-	slots[index].file.Seek( PDXFILE::BEGIN );
+	SLOT& slot = slots[index];
 
-	PDXRESULT result = PDX_FAILURE;
+	PDXFILE file;
 
-	if (slots[index].valid)
+	if (slot.data.Size())
 	{
-		result = nes.LoadNST( slots[index].file );
-		slots[index].valid = PDX_SUCCEEDED(result);
+		file.Hook(slot.data,PDXFILE::INPUT);
+		const PDXRESULT result = nes.LoadNST(file);
+		file.UnHook();
+		return result;
 	}
 
-	return result;
+	if (!ImportFile || !slot.filename.Length())
+		return PDX_FAILURE;
+
+	if (PDX_SUCCEEDED(file.Open(slot.filename,PDXFILE::INPUT)) && PDX_SUCCEEDED(nes.LoadNST(file)))
+	{
+		slot.data = file.Buffer();
+
+		application.LogFile().Output
+		(
+			"SAVESTATE: imported ",
+			slot.filename,
+			" to slot ",
+			index
+		);
+
+		return PDX_OK;
+	}
+
+	application.LogFile().Output
+	(
+		"SAVESTATE: failed to import ",
+		slot.filename,
+		" to slot ",
+		index
+	);
+
+	return PDX_FAILURE;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -219,6 +250,9 @@ PDXRESULT SAVESTATEMANAGER::LoadState(UINT index)
 PDXRESULT SAVESTATEMANAGER::SaveState(UINT index)
 {
 	PDX_ASSERT( index <= MAX_SLOTS );
+
+	if (!IsActive())
+		return PDX_FAILURE;
 
 	if (index == NEXT_SLOT)
 	{
@@ -230,12 +264,54 @@ PDXRESULT SAVESTATEMANAGER::SaveState(UINT index)
 		LastSlot = index - 1;
 	}
 
-	slots[LastSlot].file.Seek( PDXFILE::BEGIN, 0 );
-	
-	const PDXRESULT result = nes.SaveNST( slots[LastSlot].file );
-	slots[LastSlot].valid = PDX_SUCCEEDED(result);
+	SLOT& slot = slots[LastSlot];
 
-	return result;
+	PDXFILE file("x",PDXFILE::OUTPUT);
+
+	if (PDX_FAILED(nes.SaveNST(file)))
+	{
+		file.Abort();
+
+		application.LogFile().Output
+		(
+			"SAVESTATE: failed to save to slot ",
+			LastSlot
+		);
+
+		return PDX_FAILURE;
+	}
+
+	slot.data = file.Buffer();
+
+	if (ExportFile && slot.filename.Length())
+	{
+		file.ChangeName(slot.filename.String());
+
+		if (PDX_FAILED(file.Close()))
+		{
+			application.LogFile().Output
+			(
+				"SAVESTATE: exported slot ",
+				LastSlot,
+				" to ",
+				slot.filename
+			);
+		}
+		else
+		{
+			application.LogFile().Output
+			(
+				"SAVESTATE: failed to export slot ",
+				LastSlot,
+				" to ",
+				slot.filename
+			);
+		}
+	}
+
+	file.Abort();
+
+	return PDX_OK;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -253,48 +329,42 @@ VOID CALLBACK SAVESTATEMANAGER::OnAutoSaveProc(HWND,UINT,UINT_PTR,DWORD)
 
 VOID SAVESTATEMANAGER::OnAutoSave()
 {
-	if (nes.IsOn() && !nes.IsPaused() && application.IsActive())
+	if (IsActive())
 	{
-		AutoSave.file.Open( AutoSave.name, PDXFILE::OUTPUT );
-	
-		if (PDX_SUCCEEDED(nes.SaveNST( AutoSave.file )))
-		{
-			if (AutoSave.name.Length())
-			{
-				if (PDX_SUCCEEDED(AutoSave.file.Close()))
-				{
-					if (AutoSave.msg)
-						application.StartScreenMsg( 1000, "Auto-Saved to file.." );
-				}
-				else
-				{
-					slots[0].file.Seek( PDXFILE::BEGIN, 0 );
-					slots[0].file.Buffer() = AutoSave.file.Buffer();
-					slots[0].valid = TRUE;
-	
-					if (AutoSave.msg)
-						application.StartScreenMsg( 1000, "Auto-Save to file failed, wrote to slot 1 instead.." );
-				}
-			}
-			else
-			{
-				slots[0].file.Seek( PDXFILE::BEGIN );
-				slots[0].file.Buffer() = AutoSave.file.Buffer();
-				slots[0].valid = TRUE;
+		UINT NoFile;
 
+		if (NoFile = AutoSave.filename.Length())
+		{
+			PDXFILE file( AutoSave.filename, PDXFILE::OUTPUT );
+
+			if (file.IsOpen() && PDX_SUCCEEDED( nes.SaveNST(file) ) && PDX_SUCCEEDED( file.Close() ))
+			{
 				if (AutoSave.msg)
-					application.StartScreenMsg( 1000, "Auto-Saved to slot 1..." );
+					application.StartScreenMsg( 1000, "Auto-Saved to file.." );
+
+				return;
+			}
+
+			file.Abort();
+		}
+
+		if (PDX_SUCCEEDED(SaveState(1)))
+		{
+			if (AutoSave.msg)
+			{
+				if (NoFile)
+					application.StartScreenMsg( 1000, "Auto-Save to file failed, wrote to slot 1 instead.." );
+				else
+					application.StartScreenMsg( 1000, "Auto-Saved to slot 1.." );
 			}
 		}
 		else
 		{
 			if (AutoSave.msg)
-				application.StartScreenMsg( 1000, "Auto-Save failed..." );
+				application.StartScreenMsg( 1000, "Auto-Save failed.." );
 		}
-	
-		AutoSave.file.Abort();
 	}
-	
+
 	UpdateAutoSaveTimer();
 }
 
@@ -326,7 +396,7 @@ VOID SAVESTATEMANAGER::UpdateAutoSaveTimer()
 
 VOID SAVESTATEMANAGER::UpdateDialog(HWND hDlg)
 {
-	SetDlgItemText( hDlg, IDC_AUTOSAVE_FILE, AutoSave.name.String() );	
+	SetDlgItemText( hDlg, IDC_AUTOSAVE_FILE, AutoSave.filename.String() );	
 	SetDlgItemInt( hDlg, IDC_AUTOSAVE_TIME, NST_FROM_MILLI(AutoSave.time), FALSE );	
 	CheckDlgButton( hDlg, IDC_AUTOSAVE_ENABLED, AutoSave.enabled );
 	CheckDlgButton( hDlg, IDC_AUTOSAVE_ENABLE_MSG, AutoSave.msg );
@@ -362,16 +432,16 @@ VOID SAVESTATEMANAGER::UpdateSettings(HWND hDlg)
 	if (AutoSave.time < NST_TO_MILLI(1))
 		AutoSave.time = NST_TO_MILLI(1);
 
-	AutoSave.name.Clear();
+	AutoSave.filename.Clear();
 
     CHAR buffer[NST_MAX_PATH];
 
-	if (GetDlgItemText( hDlg, IDC_AUTOSAVE_FILE, buffer, NST_MAX_PATH ))
+	if (GetDlgItemText( hDlg, IDC_AUTOSAVE_FILE, buffer, NST_MAX_PATH-1 ))
 	{
-		AutoSave.name = buffer;
+		AutoSave.filename = buffer;
 
-		if (AutoSave.name.Length() && AutoSave.name.GetFileExtension().IsEmpty())
-			AutoSave.name.Append( ".nst" );
+		if (AutoSave.filename.Length() && AutoSave.filename.GetFileExtension().IsEmpty())
+			AutoSave.filename.Append( ".nst" );
 	}
 }
 
@@ -381,9 +451,9 @@ VOID SAVESTATEMANAGER::UpdateSettings(HWND hDlg)
 
 VOID SAVESTATEMANAGER::OnBrowse(HWND hDlg)
 {
-	PDXSTRING file;
-	file.Buffer().Resize( NST_MAX_PATH );
-	file.Buffer().Front() = '\0';
+	PDXSTRING filename;
+	filename.Buffer().Resize( NST_MAX_PATH );
+	filename.Buffer().Front() = '\0';
 
 	OPENFILENAME ofn;
 	PDXMemZero( ofn );
@@ -393,19 +463,19 @@ VOID SAVESTATEMANAGER::OnBrowse(HWND hDlg)
 	ofn.lpstrFilter     = "NES State (*.nst)\0*.nst\0All Files (*.*)\0*.*\0";
 	ofn.nFilterIndex    = 1;
 	ofn.lpstrInitialDir	= application.GetFileManager().GetNstPath().String();
-	ofn.lpstrFile       = file.Begin();
+	ofn.lpstrFile       = filename.Begin();
 	ofn.lpstrTitle      = "Save State File";
 	ofn.nMaxFile        = NST_MAX_PATH;
 	ofn.Flags           = OFN_HIDEREADONLY | OFN_PATHMUSTEXIST;
 
 	if (GetSaveFileName(&ofn))
 	{
-		file.Validate();
+		filename.Validate();
 
-		if (file.Length() && file.GetFileExtension().IsEmpty())
-			file.Append( ".nst" );
+		if (filename.Length() && filename.GetFileExtension().IsEmpty())
+			filename.Append( ".nst" );
 
-		SetDlgItemText( hDlg, IDC_AUTOSAVE_FILE, file.String() );
+		SetDlgItemText( hDlg, IDC_AUTOSAVE_FILE, filename.String() );
 	}
 }
 

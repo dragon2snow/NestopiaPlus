@@ -149,13 +149,13 @@ BEGIN
                     WS_TABSTOP
 END
 
-IDD_PATHS DIALOGEX 0, 0, 308, 289
+IDD_PATHS DIALOGEX 0, 0, 308, 299
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | 
     WS_SYSMENU
 CAPTION "Paths"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    DEFPUSHBUTTON   "OK",IDC_PATHS_OK,263,264,37,18,WS_GROUP
+    DEFPUSHBUTTON   "OK",IDC_PATHS_OK,263,274,37,18,WS_GROUP
     GROUPBOX        "Image Files",IDC_STATIC,6,7,249,45,BS_LEFT | WS_GROUP
     EDITTEXT        IDC_PATHS_IMAGE,13,18,235,13,ES_AUTOHSCROLL
     CONTROL         "Last visited",IDC_PATHS_IMAGE_LAST,"Button",
@@ -166,25 +166,25 @@ BEGIN
     EDITTEXT        IDC_PATHS_BATTERY,13,68,236,13,ES_AUTOHSCROLL
     CONTROL         "Look in image file directory first",
                     IDC_PATHS_BATTERY_IN_IMAGE,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,13,86,115,12
+                    WS_TABSTOP,13,87,115,12
     CONTROL         "Keep them write-protected",IDC_PATHS_BATTERY_PROTECT,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,143,88,101,10
     PUSHBUTTON      "Browse",IDC_PATHS_BATTERY_BROWSE,263,64,37,18
-    GROUPBOX        "Save States",IDC_STATIC,6,159,250,44,BS_LEFT | WS_GROUP
+    GROUPBOX        "Save States",IDC_STATIC,6,159,250,59,BS_LEFT | WS_GROUP
     EDITTEXT        IDC_PATHS_NST,13,170,237,13,ES_AUTOHSCROLL
     CONTROL         "Last visited",IDC_PATHS_NST_LAST,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,13,186,52,12
     PUSHBUTTON      "Browse",IDC_PATHS_NST_BROWSE,263,166,37,18
-    PUSHBUTTON      "Default",IDC_PATHS_DEFAULT,165,264,42,18
-    PUSHBUTTON      "Cancel",IDC_PATHS_CANCEL,213,264,42,18
+    PUSHBUTTON      "Default",IDC_PATHS_DEFAULT,165,274,42,18
+    PUSHBUTTON      "Cancel",IDC_PATHS_CANCEL,213,274,42,18
     CONTROL         "Auto apply",IDC_PATHS_IPS_AUTO_APPLY,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,136,240,51,10
-    GROUPBOX        "IPS Files",IDC_STATIC,6,210,250,44,BS_LEFT | WS_GROUP
-    EDITTEXT        IDC_PATHS_IPS,13,221,237,13,ES_AUTOHSCROLL
+                    BS_AUTOCHECKBOX | WS_TABSTOP,136,252,51,10
+    GROUPBOX        "IPS Files",IDC_STATIC,6,222,250,44,BS_LEFT | WS_GROUP
+    EDITTEXT        IDC_PATHS_IPS,13,233,237,13,ES_AUTOHSCROLL
     CONTROL         "Look in image file directory first",
                     IDC_PATHS_IPS_IN_IMAGE,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,13,238,115,12
-    PUSHBUTTON      "Browse",IDC_PATHS_IPS_BROWSE,263,218,37,18
+                    WS_TABSTOP,13,250,115,12
+    PUSHBUTTON      "Browse",IDC_PATHS_IPS_BROWSE,263,230,37,18
     CONTROL         "Auto apply",IDC_PATHS_NSP_AUTO_APPLY,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,189,140,51,10
     GROUPBOX        "NSP Files",IDC_STATIC,6,109,250,44,BS_LEFT | WS_GROUP
@@ -194,12 +194,14 @@ BEGIN
     PUSHBUTTON      "Browse",IDC_PATHS_NSP_BROWSE,263,117,37,18
     EDITTEXT        IDC_PATHS_NSP,13,122,237,13,ES_AUTOHSCROLL
     CONTROL         "Last visited",IDC_PATHS_NSP_LAST,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,13,138,52,12
-    CONTROL         "Auto apply",IDC_PATHS_NST_AUTO_APPLY,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,190,187,51,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,13,139,52,12
+    CONTROL         "Auto import slot files",IDC_PATHS_NST_AUTO_IMPORT,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,13,203,81,10
     CONTROL         "Look in image file directory first",
                     IDC_PATHS_NST_IN_IMAGE,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,68,186,115,12
+                    WS_TABSTOP,67,186,115,12
+    CONTROL         "Auto export slot files",IDC_PATHS_NST_AUTO_EXPORT,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,103,203,83,10
 END
 
 IDD_SOUND DIALOGEX 0, 0, 273, 163
@@ -254,7 +256,7 @@ STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION |
 CAPTION "About"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    CTEXT           "Nestopia 1.05 \n\nCopyright (c) 2003 Martin Freij\nunder the terms and conditions of the\nGNU General Public License.",
+    CTEXT           "Nestopia 1.06 \n\nCopyright (c) 2003 Martin Freij\nunder the terms and conditions of the\nGNU General Public License.",
                     IDC_STATIC,14,22,133,42
     GROUPBOX        "",IDC_STATIC,7,7,147,124
     CTEXT           "http://sourceforge.net/projects/nestopia",
@@ -596,7 +598,7 @@ BEGIN
         LEFTMARGIN, 6
         RIGHTMARGIN, 300
         TOPMARGIN, 7
-        BOTTOMMARGIN, 282
+        BOTTOMMARGIN, 292
     END
 
     IDD_SOUND, DIALOG

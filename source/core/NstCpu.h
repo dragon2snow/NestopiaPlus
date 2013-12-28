@@ -169,6 +169,8 @@ public:
 
 	VOID ClearRAM();
 
+	const U8* Ram() const;
+
 	UINT Peek(const UINT);
 	VOID Poke(const UINT,const UINT);
 

@@ -30,6 +30,7 @@
 #include <WindowsX.h>
 
 #define NST_USE_JOYSTICK 0x80000000UL
+#define NST_JOY_TO_INDEX(x) (((x) & ~NST_USE_JOYSTICK) / 64)
 
 const UINT INPUTMANAGER::MenuHeight = GetSystemMetrics(SM_CYMENU);
 
@@ -37,17 +38,10 @@ const UINT INPUTMANAGER::MenuHeight = GetSystemMetrics(SM_CYMENU);
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-VOID NES::IO::INPUT::PAD::Poll(const UINT index) 
-{ PDX_CAST(INPUTMANAGER*,device)->Poll(*this,index); }
-
-VOID NES::IO::INPUT::POWERPAD::Poll() 
-{ PDX_CAST(INPUTMANAGER*,device)->Poll(*this); }
-
-VOID NES::IO::INPUT::VS::Poll() 
-{ PDX_CAST(INPUTMANAGER*,device)->Poll(*this); }
-
 VOID NES::IO::INPUT::FAMILYKEYBOARD::Poll(const UINT part,const UINT mode)
-{ PDX_CAST(INPUTMANAGER*,device)->Poll(*this,part,mode); }
+{ 
+	PDX_CAST(INPUTMANAGER*,device)->PollFamilyKeyboard(*this,part,mode); 
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -67,12 +61,6 @@ SaveSlotKeyDown      (FALSE),
 LoadSlot             (0),
 LoadSlotKeyDown      (FALSE)
 {
-	format.pad[0].device =
-	format.pad[1].device =
-	format.pad[2].device =
-	format.pad[3].device =
-	format.PowerPad.device =
-	format.vs.device =
 	format.FamilyKeyboard.device = PDX_CAST(VOID*,this);
 
 	map.category[ CATEGORY_PAD1     ].keys.Resize( NUM_PAD_KEYS      );
@@ -87,7 +75,7 @@ LoadSlotKeyDown      (FALSE)
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-VOID INPUTMANAGER::Poll(NES::IO::INPUT::FAMILYKEYBOARD& family,const UINT part,const UINT mode)
+VOID INPUTMANAGER::PollFamilyKeyboard(NES::IO::INPUT::FAMILYKEYBOARD& family,const UINT part,const UINT mode)
 {
 	PDX_ASSERT(part < NES::IO::INPUT::FAMILYKEYBOARD::NUM_PARTS && mode < NES::IO::INPUT::FAMILYKEYBOARD::NUM_MODES);
 
@@ -156,8 +144,9 @@ VOID INPUTMANAGER::Poll(NES::IO::INPUT::FAMILYKEYBOARD& family,const UINT part,c
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-VOID INPUTMANAGER::Poll(NES::IO::INPUT::PAD& pad,const UINT index)
+VOID INPUTMANAGER::PollPad(const UINT pad,const UINT index)
 {
+	PDX_ASSERT(pad < 4);
 	PDX_ASSERT(index <= CATEGORY_PAD4);
 
 	const MAP::CATEGORY::KEYS& keys = map.category[index].keys;
@@ -182,19 +171,19 @@ VOID INPUTMANAGER::Poll(NES::IO::INPUT::PAD& pad,const UINT index)
 		if (IsButtonPressed( keys[ KEY_AUTOFIRE_B ] )) buttons |= NES::IO::INPUT::PAD::B;
 	}
 
-	pad.buttons = buttons;
+	format.pad[pad].buttons = buttons;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-VOID INPUTMANAGER::Poll(NES::IO::INPUT::VS& vs)
+VOID INPUTMANAGER::PollArcade()
 {
-	vs.InsertCoin = 
+	format.vs.InsertCoin = 
 	(
-     	( IsButtonPressed( map.category[ CATEGORY_GENERAL ].keys[ KEY_GENERAL_INSERT_COIN_1 ] ) ? NES::IO::INPUT::VS::COIN_1 : 0 ) |
-     	( IsButtonPressed( map.category[ CATEGORY_GENERAL ].keys[ KEY_GENERAL_INSERT_COIN_2 ] ) ? NES::IO::INPUT::VS::COIN_2 : 0 )
+		( IsButtonPressed( map.category[ CATEGORY_GENERAL ].keys[ KEY_GENERAL_INSERT_COIN_1 ] ) ? NES::IO::INPUT::VS::COIN_1 : 0 ) |
+		( IsButtonPressed( map.category[ CATEGORY_GENERAL ].keys[ KEY_GENERAL_INSERT_COIN_2 ] ) ? NES::IO::INPUT::VS::COIN_2 : 0 )
 	);
 }
 
@@ -202,13 +191,13 @@ VOID INPUTMANAGER::Poll(NES::IO::INPUT::VS& vs)
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-VOID INPUTMANAGER::Poll(NES::IO::INPUT::POWERPAD& PowerPad)
+VOID INPUTMANAGER::PollPowerPad()
 {
 	for (UINT i=0; i < NUM_POWERPAD_SIDE_A_KEYS; ++i)
-		PowerPad.SideA[i] = IsButtonPressed(map.category[CATEGORY_POWERPAD].keys[i]);
+		format.PowerPad.SideA[i] = IsButtonPressed(map.category[CATEGORY_POWERPAD].keys[i]);
 
 	for (UINT i=0; i < NUM_POWERPAD_SIDE_B_KEYS; ++i)
-		PowerPad.SideB[i] = IsButtonPressed(map.category[CATEGORY_POWERPAD].keys[NUM_POWERPAD_SIDE_A_KEYS + i]);
+		format.PowerPad.SideB[i] = IsButtonPressed(map.category[CATEGORY_POWERPAD].keys[NUM_POWERPAD_SIDE_A_KEYS + i]);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -271,7 +260,7 @@ inline ULONG INPUTMANAGER::IsButtonPressed(const ULONG key) const
 	(
 	    (key & NST_USE_JOYSTICK) ?
 		IsJoystickButtonPressed(key & ~NST_USE_JOYSTICK) :
-	    GetKeyboardBuffer()[key] & 0x80
+	    (GetKeyboardBuffer()[key] & 0x80)
 	);
 }
 
@@ -308,7 +297,7 @@ VOID INPUTMANAGER::Create(CONFIGFILE* const ConfigFile)
 					break;
 	
 				const JOYSTICK* const it(PDX::Find(joysticks.Begin(),joysticks.End(),CONFIGFILE::ToGUID(input.String())));
-				indices.InsertBack( (it != joysticks.End()) ? UINT(it - joysticks.Begin()) : UINT_MAX );
+				indices.InsertBack( (it != joysticks.End() ? UINT(it - joysticks.Begin()) : UINT_MAX) );
 			}
 		}
 	
@@ -324,7 +313,7 @@ VOID INPUTMANAGER::Create(CONFIGFILE* const ConfigFile)
 
 					if (key & NST_USE_JOYSTICK)
 					{
-						const UINT index = (key & ~NST_USE_JOYSTICK) / 64;
+						const UINT index = NST_JOY_TO_INDEX(key);
 
 						if (indices.Size() <= index || indices[index] == UINT_MAX)
 							continue;
@@ -443,10 +432,28 @@ VOID INPUTMANAGER::Reset()
 
 VOID INPUTMANAGER::Poll()
 {
-	const BOOL polled = PollKeyboard();
+	PollKeyboard();
+	PollJoysticks();
 
-	if (!PollJoysticks() && !polled)
-		return;
+	if (nes.ConnectedController(4) != NES::CONTROLLER_KEYBOARD)
+	{
+		for (UINT i=0; i < 4; ++i)
+		{
+			switch (nes.ConnectedController(i))
+			{
+	       		case NES::CONTROLLER_PAD1: PollPad( i, 0 ); continue;
+	       		case NES::CONTROLLER_PAD2: PollPad( i, 1 ); continue;
+	       		case NES::CONTROLLER_PAD3: PollPad( i, 2 ); continue;
+	       		case NES::CONTROLLER_PAD4: PollPad( i, 3 ); continue;
+			}
+		}
+
+		if (nes.IsAnyControllerConnected(NES::CONTROLLER_POWERPAD))
+			PollPowerPad();
+
+		if (nes.IsVs())
+			PollArcade();
+	}
 
 	const MAP::CATEGORY::KEYS& keys = map.category[CATEGORY_GENERAL].keys;
 
@@ -458,10 +465,11 @@ VOID INPUTMANAGER::Poll()
 			application.GetTimerManager().EnableCustomFPS( SpeedThrottle );
 			SpeedThrottle ^= 1;
 		}
-		return;
 	}
-
-	SpeedThrottleKeyDown = FALSE;
+	else
+	{
+		SpeedThrottleKeyDown = FALSE;
+	}
 
 	if (nes.IsOn() && nes.IsImage())
 	{
@@ -473,10 +481,11 @@ VOID INPUTMANAGER::Poll()
 				application.OnSaveStateSlot(IDM_FILE_QUICK_SAVE_STATE_SLOT_NEXT);
 				SaveSlot ^= 1;
 			}
-			return;
 		}
-
-		SaveSlotKeyDown = FALSE;
+		else
+		{
+			SaveSlotKeyDown = FALSE;
+		}
 
 		if (IsButtonPressed(keys[KEY_GENERAL_LOAD_SLOT]))
 		{
@@ -486,44 +495,12 @@ VOID INPUTMANAGER::Poll()
 				application.OnLoadStateSlot(IDM_FILE_QUICK_LOAD_STATE_SLOT_LAST);
 				LoadSlot ^= 1;
 			}
-			return;
 		}
-
-		LoadSlotKeyDown = FALSE;
-	}
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-BOOL INPUTMANAGER::PollJoysticks()
-{
-	BOOL active = FALSE;
-
-	const UINT NumDevices = joysticks.Size();
-
-	for (UINT i=0; i < NumDevices; ++i)
-	{
-		JOYSTICK& joy = joysticks[i];
-
-		if (joy.device)
+		else
 		{
-			if (joy.device->Poll() == DI_OK)
-			{
-				if (joy.device->GetDeviceState(sizeof(DIJOYSTATE),PDX_CAST(LPVOID,&joy.state)) == DI_OK)
-				{
-					active = TRUE;
-					continue;
-				}
-			}
-
-			Acquire(joy.device);
-			PDXMemZero(joy.state);
+			LoadSlotKeyDown = FALSE;
 		}
 	}
-
-	return active;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -579,6 +556,8 @@ BOOL CALLBACK INPUTMANAGER::StaticKeyPressDialogProc(HWND hDlg,UINT uMsg,WPARAM,
 		
 			PDX_ASSERT( !im );
 			im = PDX_CAST(INPUTMANAGER*,lParam);
+			PDX_ASSERT( im );
+			im->AcquireDevices();
 			SetTimer( hDlg, 666, 100, NULL );
 			SetWindowPos( hDlg, HWND_TOP, 0, 0, 0, 0, SWP_HIDEWINDOW );
 			return TRUE;
@@ -670,7 +649,6 @@ BOOL INPUTMANAGER::DialogProc(HWND h,UINT uMsg,WPARAM wParam,LPARAM)
 			for (UINT i=0; i < joysticks.Size(); ++i)
 				joysticks[i].Create( GetDevice(), DIRECTINPUT::hWnd );
 
-			SetCooperativeLevel(DISCL_NONEXCLUSIVE|DISCL_BACKGROUND);
 			UpdateDialog();
     		return TRUE;
 
@@ -750,7 +728,6 @@ BOOL INPUTMANAGER::DialogProc(HWND h,UINT uMsg,WPARAM wParam,LPARAM)
 		case WM_DESTROY:
 
 			UpdateJoystickDevices();
-			SetCooperativeLevel(DISCL_NONEXCLUSIVE|DISCL_FOREGROUND);
 			hDlg = NULL;
 			return TRUE;
 	}
@@ -774,7 +751,6 @@ VOID INPUTMANAGER::UpdateDialog()
 	ListBox_AddString( hDevice, "Pad 4"     );
 	ListBox_AddString( hDevice, "Power Pad" );
 	ListBox_AddString( hDevice, "General"   );
-
 	ListBox_SetCurSel( hDevice, SelectDevice );
 
 	UpdateDlgButtonTexts();
@@ -928,10 +904,6 @@ VOID INPUTMANAGER::UpdateJoystickDevices()
 	for (UINT i=0; i < joysticks.Size(); ++i)
 		joysticks[i].state.lX = 0;
 
-	typedef PDXSET<const LPDIRECTINPUTDEVICE8> ACTIVEDEVICES;
-
-	ACTIVEDEVICES ActiveDevices;
-
 	for (UINT i=0; i < NUM_CATEGORIES; ++i)
 	{
 		for (UINT j=0; j < map.category[i].keys.Size(); ++j)
@@ -939,25 +911,15 @@ VOID INPUTMANAGER::UpdateJoystickDevices()
 			const DWORD key = map.category[i].keys[j];
 
 			if (key & NST_USE_JOYSTICK)
-			{
-				const LPDIRECTINPUTDEVICE8 device = joysticks[(key & ~NST_USE_JOYSTICK) / 64].device;
-
-				if (ActiveDevices.Find(device) == ActiveDevices.End())
-				{
-					ActiveDevices.Insert(device);
-
-					JOYSTICK* const joy = PDX::Find(joysticks.Begin(),joysticks.End(),device);
-
-					if (joy != joysticks.End())
-						joy->state.lX = LONG_MAX;
-				}
-			}
+				joysticks[NST_JOY_TO_INDEX(key)].state.lX = LONG_MAX;
 		}
 	}
 
 	for (UINT i=0; i < joysticks.Size(); ++i)
 	{
-		if (joysticks[i].state.lX != LONG_MAX)
+		if (joysticks[i].state.lX == LONG_MAX)
+			joysticks[i].state.lX = 0;
+		else
 			joysticks[i].Release();
 	}
 }

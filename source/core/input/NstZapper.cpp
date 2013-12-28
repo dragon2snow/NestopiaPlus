@@ -48,8 +48,6 @@ status     (0)
 
 VOID ZAPPER::Poll()
 {
-	polled = TRUE;
-
 	if (input)
 	{
 		x = input->zapper.x;
@@ -83,15 +81,11 @@ UINT ZAPPER::Peek_4017()
 
 UINT ZAPPER::Read()
 {
-	if (!polled)
-		ZAPPER::Poll();
-
 	UINT state = status;
 
 	if (gfx)
 	{
 		PDX_ASSERT(ppu);
-
 		ppu->Update();
 
 		const UINT pixel = gfx->GetPixel(x,y);

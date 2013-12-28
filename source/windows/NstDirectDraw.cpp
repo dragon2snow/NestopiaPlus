@@ -112,6 +112,7 @@ Use2xSaI         (FALSE),
 Use2xSaI565      (FALSE),
 ScreenEffect     (SCREENEFFECT_NONE),
 IsNesBuffer2xSaI (FALSE),
+FrameLatency     (0),
 PixelData        (new PIXELDATA)
 {
 	SetRect( &NesRect,    0, 8, 256, 232 );
@@ -827,7 +828,7 @@ DWORD DIRECTDRAW::GetMonitorFrequency() const
 	{
 		DWORD frequency = 0;
 
-		if (device->GetMonitorFrequency(&frequency) == DD_OK && frequency > 1 && frequency < 512)
+		if (SUCCEEDED(device->GetMonitorFrequency(&frequency)) && frequency > 1 && frequency < 512)
 			return frequency;
 	}
 
@@ -835,7 +836,7 @@ DWORD DIRECTDRAW::GetMonitorFrequency() const
 		DDSURFACEDESC2 desc;
 		DIRECTX::InitStruct(desc);
 
-		if (device->GetDisplayMode(&desc) == DD_OK && desc.dwRefreshRate > 1 && desc.dwRefreshRate < 512)
+		if (SUCCEEDED(device->GetDisplayMode(&desc)) && desc.dwRefreshRate > 1 && desc.dwRefreshRate < 512)
 			return desc.dwRefreshRate;
 	}
 
@@ -1755,6 +1756,8 @@ VOID DIRECTDRAW::Repaint()
 	{
 		UpdateNesBuffer();
 
+		while (FrontBuffer->GetBltStatus(DDGBS_ISBLTDONE) == DDERR_WASSTILLDRAWING);
+
 		if (FAILED(hResult=FrontBuffer->Blt(&ScreenRect,NesBuffer,&NesBltRect,DDBLT_WAIT,NULL)) && Validate(hResult))
 			FrontBuffer->Blt(&ScreenRect,NesBuffer,&NesBltRect,DDBLT_WAIT,NULL);
 	}
@@ -1765,11 +1768,11 @@ VOID DIRECTDRAW::Repaint()
 		if (FAILED(hResult=BackBuffer->Blt(&ScreenRect,NesBuffer,&NesBltRect,DDBLT_WAIT,NULL)) && Validate(hResult))
 			BackBuffer->Blt(&ScreenRect,NesBuffer,&NesBltRect,DDBLT_WAIT,NULL);
 
+		while (FrontBuffer->GetBltStatus(DDGBS_ISBLTDONE) == DDERR_WASSTILLDRAWING);
+
 		if (FAILED(hResult=FrontBuffer->Blt(NULL,BackBuffer,NULL,DDBLT_WAIT,NULL) && Validate(hResult)))
 			FrontBuffer->Blt(NULL,BackBuffer,NULL,DDBLT_WAIT,NULL);
 	}
-
-	Wait();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -1783,11 +1786,19 @@ BOOL DIRECTDRAW::Present()
 	if ((ScreenRect.right-ScreenRect.left) <= 0 || (ScreenRect.bottom-ScreenRect.top) <= 0)
 		return TRUE;
 
+	DWORD flags = DDBLT_WAIT|DDBLT_ASYNC;
+
+	if (FrameLatency++ == MAX_FRAME_LATENCY)
+	{
+		FrameLatency = 0;
+		flags = DDBLT_WAIT;
+	}
+
 	HRESULT hResult;
 
 	if (windowed)
 	{
-		if (FAILED(FrontBuffer->Blt(&ScreenRect,NesBuffer,&NesBltRect,DDBLT_WAIT|DDBLT_ASYNC,NULL)))
+		if (FAILED(FrontBuffer->Blt(&ScreenRect,NesBuffer,&NesBltRect,flags,NULL)))
 			if (FAILED(hResult=FrontBuffer->Blt(&ScreenRect,NesBuffer,&NesBltRect,DDBLT_WAIT,NULL)))
 				if (!Validate(hResult) || FAILED(FrontBuffer->Blt(&ScreenRect,NesBuffer,&NesBltRect,DDBLT_WAIT,NULL)))
 					return FALSE;
@@ -1796,13 +1807,16 @@ BOOL DIRECTDRAW::Present()
 	{
 		if (GDIMode || DontFlip)
 		{
-			if (FAILED(FrontBuffer->Blt(NULL,BackBuffer,NULL,DDBLT_WAIT|DDBLT_ASYNC,NULL)))
+			if (FAILED(FrontBuffer->Blt(NULL,BackBuffer,NULL,flags,NULL)))
 				if (FAILED(hResult=FrontBuffer->Blt(NULL,BackBuffer,NULL,DDBLT_WAIT,NULL)))
 					if (!Validate(hResult) || FAILED(FrontBuffer->Blt(NULL,BackBuffer,NULL,DDBLT_WAIT,NULL)))
        					return FALSE;
 		}
 		else
 		{
+			if (flags == DDBLT_WAIT)
+				while (FrontBuffer->GetFlipStatus(DDGFS_ISFLIPDONE) == DDERR_WASSTILLDRAWING);
+
 			if (FAILED(hResult=FrontBuffer->Flip(NULL,FlipFlags)))
 				if (!Validate(hResult) || FAILED(FrontBuffer->Flip(NULL,DDFLIP_WAIT)))
 					return FALSE;

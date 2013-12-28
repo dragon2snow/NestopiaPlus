@@ -345,10 +345,8 @@ namespace IO
 		struct PAD
 		{
 			inline PAD()
-			: device(NULL), buttons(0) 
+			: buttons(0) 
 			{}
-
-			VOID Poll(const UINT);
 
 			enum
 			{
@@ -374,7 +372,6 @@ namespace IO
 				INDEX_RIGHT  = 7
 			};
 
-			VOID* device;
 			UINT buttons;
 		};
 
@@ -400,21 +397,16 @@ namespace IO
 		struct POWERPAD
 		{
 			POWERPAD()
-			: device(NULL)
 			{ 
 				PDXMemZero( SideA, NUM_SIDE_A_BUTTONS ); 
 				PDXMemZero( SideB, NUM_SIDE_B_BUTTONS ); 
 			}
-
-			VOID Poll();
 
 			enum 
 			{
 				NUM_SIDE_A_BUTTONS = 12,
 				NUM_SIDE_B_BUTTONS = 8
 			};
-
-			VOID* device;
 
 			U8 SideA[NUM_SIDE_A_BUTTONS];
 			U8 SideB[NUM_SIDE_B_BUTTONS];
@@ -440,9 +432,7 @@ namespace IO
 		struct VS
 		{
 			inline VS()
-			: InsertCoin(0), device(NULL) {}
-
-			VOID Poll();
+			: InsertCoin(0) {}
 
 			enum
 			{
@@ -450,7 +440,6 @@ namespace IO
 				COIN_2 = b01000000
 			};
 
-			VOID* device;
 			UINT InsertCoin;
 		};
 

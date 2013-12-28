@@ -94,10 +94,10 @@ VOID PPU::Reset(const BOOL hard)
 	SpBufferSize      = 0;
 	screen            = NULL;
 	process           = processes;
-	output.index      = 0;
 	output.clipping   = 0xFF;
 	output.monochrome = 0xFF;
 	output.pixels     = NULL;
+	output.ClipOffset = NULL;
 
 	UpdateTmpVariables();
 
@@ -584,27 +584,44 @@ NES_POKE(PPU,4014)
 		const UINT offset = data << 8;
 		const UINT length = offset + 256;
 
-		UINT byte;
-
-		for (UINT i=offset; i < length; ++i)
+		if (offset < 0x2000)
 		{
-			byte = cpu.Peek(i);
+			const U8* const PDX_RESTRICT ram = cpu.Ram();			
+			UINT i = offset;
 
-			if (OamLatch >= 0x8)
+			for (; i < length; ++i, OamLatch = (OamLatch+1) & 0xFF, OamAddress = (OamAddress+1) & 0xFF)
 			{
-				if (OamAddress >= 0x8)
-					SpRam[OamAddress] = byte;
-			}
-			else
-			{
-				SpRam[OamLatch] = byte;
+				if (OamLatch >= 0x8)
+				{
+					if (OamAddress >= 0x8)
+						SpRam[OamAddress] = ram[i & 0x7FF];
+				}
+				else
+				{
+					SpRam[OamLatch] = ram[i & 0x7FF];
+				}
 			}
 
-			OamLatch = (OamLatch + 1) & 0xFF;
-			OamAddress = (OamAddress + 1) & 0xFF;
+			latch = ram[(i-1) & 0x7FF];
+		}
+		else
+		{
+			for (UINT i=offset; i < length; ++i, OamLatch = (OamLatch+1) & 0xFF, OamAddress = (OamAddress+1) & 0xFF)
+			{
+				latch = cpu.Peek(i);
+
+				if (OamLatch >= 0x8)
+				{
+					if (OamAddress >= 0x8)
+						SpRam[OamAddress] = latch;
+				}
+				else
+				{
+					SpRam[OamLatch] = latch;
+				}
+			}
 		}
 
-		latch = byte;
 		cpu.AdvanceCycles( pal ? NES_PPU_MCC_SPRITE_DMA_PAL : NES_PPU_MCC_SPRITE_DMA_NTSC );
 	}
 	else
@@ -763,7 +780,7 @@ VOID PPU::FetchBgName()
 		pixels[6] = ( (pattern >> 0x8) & 0x3 ) + BgBuffer.attribute;
 		pixels[7] = ( (pattern >> 0x0) & 0x3 ) + BgBuffer.attribute;
 
-		if (output.index >= 8 || (ctrl1 & CTRL1_BG_NO_CLIPPING))
+		if (output.pixels >= output.ClipOffset || (ctrl1 & CTRL1_BG_NO_CLIPPING))
 		{
 			output.clipping = 0xFF;
 			output.monochrome = monochrome;
@@ -871,43 +888,37 @@ VOID PPU::RenderPixel()
 {
 	cycles.count += cycles.pixel;
 
-	const UINT pixel = BgBuffer.pixels[(BgBuffer.index++ + xFine) & 0xF] & output.clipping;
+	const UINT BgPixel = BgBuffer.pixels[(BgBuffer.index++ + xFine) & 0xF] & output.clipping;
+	UINT pixel = BgPalRam[BgPixel];
 
-	for (UINT i=0; i < SpBufferSize; ++i)
+	const SP* const PDX_RESTRICT end = SpBuffer + SpBufferSize;
+
+	for (SP* PDX_RESTRICT sp = SpBuffer; sp != end; ++sp)
 	{
-		SP& sp = SpBuffer[i];
-
-		if (--sp.x <= 0 && sp.x >= -7)
+		if (--sp->x <= 0 && sp->x >= -7)
 		{
-			const UINT SpPixel = sp.pixels[-sp.x];
+			const UINT SpPixel = sp->pixels[-sp->x];
 
 			if (SpPixel)
 			{
-				const UINT BgPixel = pixel & 0x3;
+				// first two bits of sp->zero and sp->behind are masked if true
+				// (for avoiding additional branches with lazy evaluation)
 
-				if (sp.zero && BgPixel)
+				if (sp->zero & BgPixel) 
 					status |= STATUS_SP_ZERO_HIT;
 
-				output.pixels[output.index++] = emphasis + 
-				(
-			     	output.monochrome &
-					(
-				    	(sp.front || !BgPixel) ? sp.palette[SpPixel] : BgPalRam[pixel]
-					)
-				);
-				
-				for (++i; i < SpBufferSize; ++i)
-					--SpBuffer[i].x;
+				if (!(sp->behind & BgPixel))
+					pixel = sp->palette[SpPixel];
 
-				return;
+				while (++sp != end)
+					--sp->x;
+
+				break;
 			}
 		}
 	}
 
-	output.pixels[output.index++] = emphasis +
-	(
-    	output.monochrome & BgPalRam[pixel]
-	);
+	*output.pixels++ = emphasis + (output.monochrome & pixel);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -920,7 +931,7 @@ VOID PPU::EvaluateSp()
 	{
 		const U8* const PDX_RESTRICT sprite = SpRam + SpIndex;
 
-		INT y = ScanLine - sprite[SP_Y];
+		LONG y = ScanLine - sprite[SP_Y];
 
 		if (y >= 0 && y < SpHeight && sprite[SP_Y] < 240)
 		{
@@ -979,14 +990,14 @@ VOID PPU::FetchSpPattern0()
 
 			do
 			{
-				SPTMP& SpTmp = SpTmpBuffer[index++];
+				SPTMP& SpTmp = SpTmpBuffer[index];
 
 				if (SpHeight == 8)
 					SpTmp.address += SpPatternAddress;
 
 				SpTmp.pattern = vRam[SpTmp.address];
 			}
-			while (MaxSprites > 8 && index >= 8 && index < SpTmpBufferSize);
+			while (MaxSprites > 8 && ++index >= 8 && index < SpTmpBufferSize);
 		}
 		else
 		{
@@ -1015,8 +1026,8 @@ VOID PPU::FetchSpPattern1()
 
 				sp.x       = SpTmp.x;
 				sp.palette = SpPalRam + ((SpTmp.attribute & SP_COLOR) << 2);
-				sp.front   = !(SpTmp.attribute & SP_BEHIND);
-				sp.zero    = !SpTmp.index;
+				sp.behind  = ((SpTmp.attribute & SP_BEHIND) ? b11 : b00);
+				sp.zero    = (SpTmp.index ? b00 : b11);
 
 				const UINT pattern1 = vRam[SpTmp.address + 8];
 
@@ -1040,7 +1051,7 @@ VOID PPU::FetchSpPattern1()
 					sp.pixels[i] = (pattern >> order[i]) & 0x3;
 
 				if (sp.x < (8+1) && !(ctrl1 & CTRL1_SP_NO_CLIPPING))
-					PDXMemZero( sp.pixels, (8+1) - sp.x );
+					memset( sp.pixels, 0x00, sizeof(U8) * ((8+1) - sp.x) );
 			}
 			while (MaxSprites > 8 && SpBufferSize >= 8 && SpBufferSize < SpTmpBufferSize);
 		}
@@ -1060,17 +1071,18 @@ VOID PPU::BeginHActive()
 	PDX_ASSERT(SpIndex == 0);
 
 	SpTmpBufferSize = 0;
-	output.index = 0;
 
 	++ScanLine;
 
 	if (screen)
 	{
 		output.pixels = screen->pixels + (ScanLine * IO::GFX::WIDTH);
+		output.ClipOffset = output.pixels + 8;
 	}
 	else
 	{
 		output.pixels = GarbageLine;
+		output.ClipOffset = GarbageLine + 8;
 
 		if (status & STATUS_SP_ZERO_HIT)
 		{

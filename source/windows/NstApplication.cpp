@@ -328,8 +328,6 @@ NesMode              (NES::MODE_AUTO)
 APPLICATION::~APPLICATION()
 {
 	active = ready = FALSE;
-
-	SaveStateManager.Flush();
 	nes.Power( FALSE );
 	
 	{
@@ -458,14 +456,14 @@ VOID APPLICATION::ExecuteFrame()
 				GraphicManager.ClearScreen();
 
 			if (WindowVisible)
-			{
+			{	
 				nes.Execute
 				(
 					GraphicManager.GetFormat(),
 					SoundManager.GetFormat(),
 					InputManager.GetFormat()
 				);
-
+	
 				if (ScreenMsg.Length())
 					OutputScreenMsg();
 
@@ -520,7 +518,6 @@ VOID APPLICATION::ExecuteFrame()
 
 			TimerManager.SynchRefreshRate( TRUE, InBackground, FALSE );
 			GraphicManager.Present();
-			GraphicManager.Wait();
 		}
 		else
 		{
@@ -1023,8 +1020,8 @@ VOID APPLICATION::OnHelp(const UINT wParam)
 
 	switch (wParam)
 	{
-     	case IDM_HELP_ABOUT:   HelpManager.StartAboutDialog();
-     	case IDM_HELP_LICENCE: HelpManager.StartLicenceDialog();
+     	case IDM_HELP_ABOUT:   HelpManager.StartAboutDialog();   break;
+     	case IDM_HELP_LICENCE: HelpManager.StartLicenceDialog(); break;
 	}
 }
 
@@ -1037,6 +1034,8 @@ VOID APPLICATION::OnActive()
 	if (active = ready)
 		active = GraphicManager.OnFocus(TRUE);
 	
+	InputManager.AcquireDevices();
+
 	if (!hMenu)
 		DrawMenuBar(hWnd);
 
@@ -1057,6 +1056,7 @@ VOID APPLICATION::OnInactive(const BOOL force)
 		active = FALSE;
 		SoundManager.Stop();
 		GraphicManager.OnFocus(FALSE);
+		InputManager.UnacquireDevices();
 	}
 }
 
@@ -1067,7 +1067,6 @@ VOID APPLICATION::OnInactive(const BOOL force)
 VOID APPLICATION::OnOpen(const FILETYPE FileType,const INT recent)
 {
 	SoundManager.Clear();
-	SaveStateManager.Flush();
 
 	const BOOL WasPAL = nes.IsPAL();
 	PDXRESULT result = PDX_FAILURE;
@@ -1081,6 +1080,8 @@ VOID APPLICATION::OnOpen(const FILETYPE FileType,const INT recent)
 
 	if (PDX_SUCCEEDED(result))
 	{
+		GraphicManager.ClearNesScreen();
+
 		const BOOL IsPAL = nes.IsPAL();
 
 		if (NesMode == NES::MODE_AUTO)
@@ -1113,6 +1114,10 @@ VOID APPLICATION::OnOpen(const FILETYPE FileType,const INT recent)
 
 		if (name)
 			MovieManager.SetFile( *name );
+	}
+	else if (nes.IsOff())
+	{
+		GraphicManager.ClearNesScreen();
 	}
 
 	UpdateWindowItems();
@@ -1551,7 +1556,6 @@ VOID APPLICATION::OnClose()
 
 	nes.Unload();
 
-	SaveStateManager.Flush();
 	GameGenieManager.ClearAllCodes();
 	GraphicManager.ClearNesScreen();
 	UpdateWindowItems();
@@ -1632,6 +1636,7 @@ VOID APPLICATION::OnReset(const BOOL state)
 		" reset.."
 	);
 
+	CheckMenuItem( GetMenu(), IDM_MACHINE_PAUSE, nes.IsPaused() ? MF_CHECKED : MF_UNCHECKED );
 	UpdateFdsMenu();
 }
 
@@ -2088,7 +2093,7 @@ VOID APPLICATION::SwitchScreen()
 
 	SoundManager.Clear();
 
-	if (windowed)
+	if (windowed)					
 	{
 		PushWindow();
 		GraphicManager.SwitchToFullScreen();

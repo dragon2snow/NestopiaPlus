@@ -579,6 +579,9 @@ private:
 
 		VOID Write(const LONG);		
 	
+		inline BOOL Is16Bit() const
+		{ return Bit16; }
+
 	private:
 
 		PDX_NO_INLINE VOID Flush8(IO::SFX* const,const TSIZE);

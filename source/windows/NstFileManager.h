@@ -83,7 +83,7 @@ private:
 	PDX_NO_INLINE PDXRESULT LoadNesFile (PDXFILE&,const BOOL);
 	
 	PDX_NO_INLINE PDXRESULT ApplyRom (const PDXSTRING&,PDXFILE&,PDXSTRING&);
-	PDX_NO_INLINE PDXRESULT ApplyNps (const PDXSTRING&,NES::IO::NSP::CONTEXT&,BOOL&) const;
+	PDX_NO_INLINE PDXRESULT ApplyNsp (const PDXSTRING&,NES::IO::NSP::CONTEXT&,BOOL&) const;
 	PDX_NO_INLINE PDXRESULT ApplyIps (PDXFILE&,PDXSTRING&,BOOL&);
 	PDX_NO_INLINE PDXRESULT ApplyNst (PDXFILE&,PDXSTRING&,BOOL&) const;
 	
@@ -153,7 +153,8 @@ private:
 	PDXSTRING NstPathLast;
 	BOOL      UseNstPathRom;
 	BOOL      UseNstPathLast;
-	BOOL      AutoApplyNst;
+	BOOL      AutoImportNst;
+	BOOL      AutoExportNst;
 	PDXSTRING IpsPath;
 	BOOL      UseIpsPathRom;
 	BOOL      AutoApplyIps;

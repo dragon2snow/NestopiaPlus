@@ -106,34 +106,6 @@ NES_NAMESPACE_BEGIN
 #define FDD flags.d.d
 
 ////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-const ULONG CPU::CycleTable[2][8] =
-{
-	{
-		NES_CPU_TO_NTSC(1),
-		NES_CPU_TO_NTSC(2),
-		NES_CPU_TO_NTSC(3),
-		NES_CPU_TO_NTSC(4),
-		NES_CPU_TO_NTSC(5),
-		NES_CPU_TO_NTSC(6),
-		NES_CPU_TO_NTSC(7),
-		NES_CPU_TO_NTSC(8)
-	},
-	{
-		NES_CPU_TO_PAL(1),
-		NES_CPU_TO_PAL(2),
-		NES_CPU_TO_PAL(3),
-		NES_CPU_TO_PAL(4),
-		NES_CPU_TO_PAL(5),
-		NES_CPU_TO_PAL(6),
-		NES_CPU_TO_PAL(7),
-		NES_CPU_TO_PAL(8)
-	}
-};
-
-////////////////////////////////////////////////////////////////////////////////////////
 // helper macros
 ////////////////////////////////////////////////////////////////////////////////////////
 
@@ -163,6 +135,34 @@ const ULONG CPU::CycleTable[2][8] =
 #define CPU_READ_PCB()       (cache = map[PCD++])
 #define CPU_READ_PCW()       ((cache = map[PCD]) + ((cache = map[(++PCD)++]) << 8))
 #define CPU_EAT_CYCLES(n)    cycles += CycleTable[pal][(n)-1]
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+const ULONG CPU::CycleTable[2][8] =
+{
+	{
+		NES_CPU_TO_NTSC(1),
+		NES_CPU_TO_NTSC(2),
+		NES_CPU_TO_NTSC(3),
+		NES_CPU_TO_NTSC(4),
+		NES_CPU_TO_NTSC(5),
+		NES_CPU_TO_NTSC(6),
+		NES_CPU_TO_NTSC(7),
+		NES_CPU_TO_NTSC(8)
+	},
+	{
+		NES_CPU_TO_PAL(1),
+		NES_CPU_TO_PAL(2),
+		NES_CPU_TO_PAL(3),
+		NES_CPU_TO_PAL(4),
+		NES_CPU_TO_PAL(5),
+		NES_CPU_TO_PAL(6),
+		NES_CPU_TO_PAL(7),
+		NES_CPU_TO_PAL(8)
+	}
+};
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // opcode function pointer table

@@ -480,7 +480,6 @@ UINT TIMERMANAGER::SynchRefreshRate(const BOOL visible,const BOOL InBackground,I
 			if (SkipFrames > MAX_FRAME_SKIPS)
 			{
 				pfLast = pfCurrent;
-				application.GetGraphicManager().Wait();
 				return (SkipFrames >= FRAME_SKIPS_TIMEOUT) ? 0 : MaxFrameSkips;
 			}
 
@@ -537,7 +536,6 @@ UINT TIMERMANAGER::SynchRefreshRate(const BOOL visible,const BOOL InBackground,I
 			if (SkipFrames > MAX_FRAME_SKIPS)
 			{
 				dbLast = dbCurrent;
-				application.GetGraphicManager().Wait();		
 				return (SkipFrames >= FRAME_SKIPS_TIMEOUT) ? 0 : MaxFrameSkips;
 			}
 

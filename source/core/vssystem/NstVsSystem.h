@@ -121,7 +121,7 @@ public:
 	VSSYSTEM(CONTEXT&);
 
 	PDX_NO_INLINE VOID Reset(const BOOL);
-	PDX_NO_INLINE VOID SetContext(IO::INPUT* const);
+	PDX_NO_INLINE VOID BeginFrame(IO::INPUT* const);
 
 	static VSSYSTEM* New(CPU&,PPU&,const ULONG);
 

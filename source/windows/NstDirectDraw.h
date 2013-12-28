@@ -64,7 +64,6 @@ public:
 	PDXRESULT Unlock() throw(const CHAR*);
 
 	BOOL DoVSync();
-	VOID Wait();
 
 	PDX_NO_INLINE VOID EnableGDI(const BOOL) throw(const CHAR*);
 	PDX_NO_INLINE VOID UpdateScreenRect(const RECT&,const BOOL=FALSE);
@@ -148,6 +147,7 @@ private:
 	PDX_NO_INLINE VOID CreateScreenBuffers() throw(const CHAR*);
 	PDX_NO_INLINE VOID CreateNesBuffer() throw(const CHAR*);
 
+	VOID Wait();
 	VOID UpdateNesBuffer();
 	VOID ClearSurface(LPDIRECTDRAWSURFACE7,const DWORD=0);
 	VOID DrawWindowText();
@@ -190,6 +190,7 @@ private:
 	BOOL  Use2xSaI;
 	BOOL  Use2xSaI565;
 	BOOL  IsNesBuffer2xSaI;
+	UINT  FrameLatency;
 	
 	DDSURFACEDESC2 FrontDesc;
 	DDSURFACEDESC2 BackDesc;
@@ -279,6 +280,8 @@ protected:
 	ADAPTERS adapters;
 
 private:
+
+	enum {MAX_FRAME_LATENCY = 3};
 
 	BOOL CheckReady() const;
 

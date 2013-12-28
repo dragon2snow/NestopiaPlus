@@ -68,7 +68,7 @@ hWnd     (NULL),
 device   (NULL),
 keyboard (NULL)
 {
-	PDXMemZero( KeyboardBuffer, KEYBOARD_BUFFER_SIZE );
+	PDXMemZero( KeyboardBuffer, KEYBOARD_BUFFER_LENGTH );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -112,7 +112,7 @@ VOID DIRECTINPUT::Initialize(HWND h)
 	if (FAILED(DirectInput8Create(GetModuleHandle(NULL),DIRECTINPUT_VERSION,IID_IDirectInput8,PDX_CAST(LPVOID*,&device),NULL)) || !device)
 		throw ("DirectInput8Create() failed!");
 
-	if (device->EnumDevices(DI8DEVCLASS_GAMECTRL,EnumJoysticks,PDX_CAST(LPVOID,this),DIEDFL_ATTACHEDONLY) == DI_OK)
+	if (SUCCEEDED(device->EnumDevices(DI8DEVCLASS_GAMECTRL,EnumJoysticks,PDX_CAST(LPVOID,this),DIEDFL_ATTACHEDONLY)))
 	{
 		application.LogFile().Output
 		( 
@@ -135,27 +135,10 @@ VOID DIRECTINPUT::Initialize(HWND h)
 	if (FAILED(keyboard->SetDataFormat( &c_dfDIKeyboard )))
 		throw ("IDirectInputDevice8::SetDataFormat() failed!");
 
-	if (FAILED(keyboard->SetCooperativeLevel( hWnd, DISCL_FOREGROUND|DISCL_NONEXCLUSIVE )))
+	if (FAILED(keyboard->SetCooperativeLevel( hWnd, DISCL_BACKGROUND|DISCL_NONEXCLUSIVE )))
 		throw ("IDirectInputDevice8::SetCooperativeLevel() failed!");
 
 	keyboard->Acquire();
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID DIRECTINPUT::Acquire(LPDIRECTINPUTDEVICE8 input)
-{
-	PDX_ASSERT(input);
-
-	if (input->Acquire() == DIERR_INPUTLOST)
-	{
-		Sleep(50);
-
-		for (ULONG i=0; input->Acquire() == DIERR_INPUTLOST && i < 0xFFFFUL; ++i)
-			Sleep(20);
-	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -164,14 +147,13 @@ VOID DIRECTINPUT::Acquire(LPDIRECTINPUTDEVICE8 input)
 
 VOID DIRECTINPUT::AcquireDevices()
 {
-	PDX_ASSERT(keyboard);
-
-	Acquire(keyboard);
+	if (keyboard)
+		keyboard->Acquire();
 
 	for (UINT i=0; i < joysticks.Size(); ++i)
 	{
 		if (joysticks[i].device)
-			Acquire(joysticks[i].device);
+			joysticks[i].device->Acquire();
 	}
 }
 
@@ -179,50 +161,58 @@ VOID DIRECTINPUT::AcquireDevices()
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-VOID DIRECTINPUT::SetCooperativeLevel(DWORD flags)
+VOID DIRECTINPUT::UnacquireDevices()
 {
-	PDX_ASSERT(keyboard);
-
-	flags &= ~DISCL_EXCLUSIVE;
-	flags |= DISCL_NONEXCLUSIVE;
-
-	keyboard->Unacquire();
-
-	if (FAILED(keyboard->SetCooperativeLevel( hWnd, flags )))
-		throw ("IDirectInputDevice8::SetCooperativeLevel() failed!");
-
-	keyboard->Acquire();
+	if (keyboard)
+		keyboard->Unacquire();
 
 	for (UINT i=0; i < joysticks.Size(); ++i)
 	{
 		if (joysticks[i].device)
-		{
 			joysticks[i].device->Unacquire();
+	}
+}
 
-			if (FAILED(joysticks[i].device->SetCooperativeLevel( hWnd, flags )))
-				throw ("IDirectInputDevice8::SetCooperativeLevel() failed!");
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
 
-			joysticks[i].device->Acquire();
+VOID DIRECTINPUT::PollKeyboard()
+{
+	PDX_ASSERT(keyboard);
+
+	keyboard->Poll();
+
+	if (FAILED(keyboard->GetDeviceState( KEYBOARD_BUFFER_SIZE, PDX_CAST(LPVOID,KeyboardBuffer) )))
+	{
+		// better luck next time
+		keyboard->Acquire();
+		PDXMemZero( KeyboardBuffer, KEYBOARD_BUFFER_LENGTH );
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+VOID DIRECTINPUT::PollJoysticks()
+{
+	const JOYSTICK* const end = joysticks.End();
+
+	for (JOYSTICK* PDX_RESTRICT joy = joysticks.Begin(); joy != end; ++joy)
+	{
+		if (joy->device)
+		{
+			joy->device->Poll();
+
+			if (FAILED(joy->device->GetDeviceState(sizeof(DIJOYSTATE),PDX_CAST(LPVOID,&joy->state))))
+			{
+				// better luck next time
+				joy->device->Acquire();
+				PDXMemZero(joy->state);
+			}
 		}
 	}
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-BOOL DIRECTINPUT::PollKeyboard()
-{
-	PDX_ASSERT(keyboard);
-
-	if (FAILED(keyboard->GetDeviceState( sizeof(KeyboardBuffer), PDX_CAST(LPVOID,KeyboardBuffer) )))
-	{
-		Acquire( keyboard );
-		PDXMemZero( KeyboardBuffer, KEYBOARD_BUFFER_SIZE );
-		return FALSE;
-	}
-
-	return TRUE;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -235,15 +225,14 @@ BOOL DIRECTINPUT::ScanKeyboard(DWORD& key)
 
 	key = 0;
 
-	PDXMemZero( KeyboardBuffer, KEYBOARD_BUFFER_SIZE );
+	keyboard->Acquire();
+	keyboard->Poll();
 
-	if (FAILED(keyboard->GetDeviceState( sizeof(KeyboardBuffer), PDX_CAST(LPVOID,KeyboardBuffer) )))
+	PDXMemZero( KeyboardBuffer, KEYBOARD_BUFFER_LENGTH );
+
+	if (SUCCEEDED(keyboard->GetDeviceState( sizeof(KeyboardBuffer), PDX_CAST(LPVOID,KeyboardBuffer) )))
 	{
-		Acquire(keyboard);
-	}
-	else
-	{
-		for (UINT i=0; i < KEYBOARD_BUFFER_SIZE; ++i)
+		for (UINT i=0; i < KEYBOARD_BUFFER_LENGTH; ++i)
 		{
 			if (KeyboardBuffer[i] & 0x80)
 			{
@@ -269,11 +258,8 @@ BOOL DIRECTINPUT::ScanJoystick(DWORD& button,UINT& index)
 		if (!joy.device)
 			continue;
 
-		if (FAILED(joy.device->Poll()))
-		{
-			Acquire(joy.device);
-			continue;
-		}
+		joy.device->Acquire();
+		joy.device->Poll();
 
 		if (FAILED(joy.device->GetDeviceState(sizeof(DIJOYSTATE),PDX_CAST(LPVOID,&joy.state))))
 			continue;
@@ -335,17 +321,33 @@ PDXRESULT DIRECTINPUT::JOYSTICK::Create(LPDIRECTINPUT8 dinput,HWND hWnd,const GU
 		guid = *inguid;
 
 	if (FAILED(dinput->CreateDevice( guid, &device, NULL )) || !device)
+	{
+		application.LogFile().Output
+		(
+	     	"DIRECTINPUT: IDirectInputDevice8::CreateDevice() failed, skipping one input device.."
+		);
 		return PDX_FAILURE;
+	}
 
 	if (FAILED(device->SetDataFormat( &c_dfDIJoystick )))
 	{
 		DIRECTX::Release(device,TRUE);
+
+		application.LogFile().Output
+		(
+			"DIRECTINPUT: IDirectInputDevice8::SetDataFormat() failed, skipping one input device.."
+		);
 		return PDX_FAILURE;
 	}
 
-	if (FAILED(device->SetCooperativeLevel( hWnd, DISCL_NONEXCLUSIVE|DISCL_FOREGROUND )))
+	if (FAILED(device->SetCooperativeLevel( hWnd, DISCL_NONEXCLUSIVE|DISCL_BACKGROUND )))
 	{
 		DIRECTX::Release(device,TRUE);
+
+		application.LogFile().Output
+		(
+			"DIRECTINPUT: IDirectInputDevice8::SetCooperativeLevel() failed, skipping one input device.."
+		);
 		return PDX_FAILURE;
 	}
 
@@ -356,6 +358,11 @@ PDXRESULT DIRECTINPUT::JOYSTICK::Create(LPDIRECTINPUT8 dinput,HWND hWnd,const GU
 		if (FAILED(device->GetCapabilities( &caps )))
 		{
      		DIRECTX::Release(device,TRUE);
+
+			application.LogFile().Output
+			(
+				"DIRECTINPUT: IDirectInputDevice8::GetCapabilities() failed, skipping one input device.."
+			);
      		return PDX_FAILURE;
 		}
 
@@ -431,7 +438,7 @@ PDXRESULT DIRECTINPUT::JOYSTICK::Create(LPDIRECTINPUT8 dinput,HWND hWnd,const GU
 BOOL CALLBACK DIRECTINPUT::EnumJoysticks(LPCDIDEVICEINSTANCE instance,LPVOID context)
 {
 	if (!instance || !context)
-		return DIENUM_STOP;
+		return DIENUM_CONTINUE;
 
 	DIRECTINPUT& DirectInput = *PDX_CAST(DIRECTINPUT*,context);
 	PDX_ASSERT(DirectInput.device);

@@ -40,28 +40,32 @@ public:
 
 	SAVESTATEMANAGER();
 
-	~SAVESTATEMANAGER()
-	{ Destroy(NULL); }
+	VOID Create(CONFIGFILE* const);
+	VOID Reset();
+	
+	VOID EnableFileExport(const BOOL export) 
+	{ 
+		if (ExportFile = export)
+			FlushSlots();
+	}
 
-	VOID Create  (CONFIGFILE* const);
-	VOID Destroy (CONFIGFILE* const);
+	VOID EnableFileImport(const BOOL import) 
+	{ 
+		if (ImportFile = import)
+			CacheSlots();
+	}
 
+	PDX_NO_INLINE VOID SetFileName(const UINT,const PDXSTRING&);
+	PDX_NO_INLINE VOID CacheSlots();
+	PDX_NO_INLINE VOID FlushSlots() const;
 	PDX_NO_INLINE PDXRESULT LoadState(UINT);
 	PDX_NO_INLINE PDXRESULT SaveState(UINT);
-
-	PDX_NO_INLINE PDXRESULT SetImport(UINT,const PDXSTRING&);
-	PDX_NO_INLINE PDXRESULT SetExport(UINT,const PDXSTRING&);
-
-	PDX_NO_INLINE VOID Flush();
-
-	BOOL IsValidSlot(const UINT index) const
-	{ return slots[IndexToSlot(index)].valid; }
 
 	inline UINT GetLastSlot() const
 	{ return LastSlot + 1; }
 
-	inline PDXFILE& GetFile(const UINT index)
-	{ return slots[IndexToSlot(index)].file; }
+	inline const PDXSTRING& GetSlotFile(const UINT index) const
+	{ return slots[IndexToSlot(index)].filename; }
 
 	enum
 	{
@@ -82,6 +86,7 @@ private:
 		return index;
 	}
 
+	BOOL IsActive() const;
 	VOID UpdateDialog(HWND);
 	VOID UpdateDialogTime(HWND,const WPARAM);
 	VOID UpdateSettings(HWND);
@@ -90,23 +95,23 @@ private:
 	BOOL DialogProc(HWND,UINT,WPARAM,LPARAM);
 	VOID OnBrowse(HWND);
 	VOID OnClear(HWND);
-	VOID Reset();
 
 	static VOID CALLBACK OnAutoSaveProc(HWND,UINT,UINT_PTR,DWORD);
 
 	struct SLOT
 	{
-		SLOT()
-		:
-		valid    (FALSE),
-		external (FALSE)
-		{}
+		VOID Reset()
+		{
+			filename.Clear();
+			data.Clear();
+		}
 
-		PDXFILE file;
-		BOOL valid;
-		BOOL external;
+		PDXSTRING filename;
+		PDXARRAY<CHAR> data;
 	};
 
+	BOOL ImportFile;
+	BOOL ExportFile;
 	UINT LastSlot;
 	SLOT slots[MAX_SLOTS];
 
@@ -120,10 +125,9 @@ private:
 		{}
 
 		BOOL enabled;
-		PDXSTRING name;
+		PDXSTRING filename;
 		BOOL msg;
 		ULONG time;
-		PDXFILE file;
 	};
 
 	AUTOSAVE AutoSave;

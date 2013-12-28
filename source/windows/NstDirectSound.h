@@ -89,19 +89,12 @@ protected:
 	struct ADAPTER
 	{
 		ADAPTER()
-		:
-		SampleBits16 (FALSE),
-		SampleBits8  (FALSE)
-		{
-			memset( &guid, 0x00, sizeof(guid) );			
-		}
+		{ memset( &guid, 0x00, sizeof(guid) ); }
 
 		typedef PDXARRAY<DWORD> SAMPLERATES;
 
 		GUID guid;
 		PDXSTRING name;
-		BOOL SampleBits16;
-		BOOL SampleBits8;
 		SAMPLERATES SampleRates;
 	};
 

@@ -46,13 +46,8 @@ public:
 	VOID Destroy (CONFIGFILE* const);
 
 	VOID Poll();
-
-	VOID Poll( NES::IO::INPUT::PAD&, const UINT );
-	VOID Poll( NES::IO::INPUT::POWERPAD& );
-	VOID Poll( NES::IO::INPUT::VS&       );
-	VOID Poll( NES::IO::INPUT::FAMILYKEYBOARD&, const UINT, const UINT );
-
 	BOOL OnMouseMove(POINT&);
+	VOID PollFamilyKeyboard(NES::IO::INPUT::FAMILYKEYBOARD&,const UINT,const UINT);
 
 	inline VOID OnMouseButtonDown(POINT& point)
 	{ format.paddle.fire = format.zapper.fire = OnMouseMove(point); }
@@ -65,12 +60,15 @@ public:
 
 private:
 
+	VOID PollPad(const UINT,const UINT);
+	VOID PollArcade();
+	VOID PollPowerPad();
+
 	VOID Reset();
 	VOID Clear();
 	VOID UpdateDialog();
 	VOID UpdateJoystickDevices();
 	VOID UpdateDlgButtonTexts();
-	BOOL PollJoysticks();
 
 	ULONG IsButtonPressed(const ULONG) const;
 	ULONG IsJoystickButtonPressed(ULONG) const;

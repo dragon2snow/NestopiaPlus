@@ -1,4 +1,9 @@
 Microsoft Visual Studio Solution File, Format Version 8.00
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Core", "Core.vcproj", "{D1A6D493-1CC0-479C-831D-B36149D816FD}"
+	ProjectSection(ProjectDependencies) = postProject
+		{EC0BCE90-0BAF-4B12-AC2F-1945AAAAF784} = {EC0BCE90-0BAF-4B12-AC2F-1945AAAAF784}
+	EndProjectSection
+EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Nestopia", "Nestopia.vcproj", "{B3762362-474F-46BD-B8B4-E137BB9E237D}"
 	ProjectSection(ProjectDependencies) = postProject
 		{EC0BCE90-0BAF-4B12-AC2F-1945AAAAF784} = {EC0BCE90-0BAF-4B12-AC2F-1945AAAAF784}
@@ -9,17 +14,14 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PDXLibrary", "PDXLibrary.vc
 	ProjectSection(ProjectDependencies) = postProject
 	EndProjectSection
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Core", "Core.vcproj", "{D1A6D493-1CC0-479C-831D-B36149D816FD}"
-	ProjectSection(ProjectDependencies) = postProject
-		{EC0BCE90-0BAF-4B12-AC2F-1945AAAAF784} = {EC0BCE90-0BAF-4B12-AC2F-1945AAAAF784}
-	EndProjectSection
-EndProject
 Global
 	GlobalSection(SolutionConfiguration) = preSolution
 		Debug = Debug
 		Release = Release
 	EndGlobalSection
 	GlobalSection(ProjectConfiguration) = postSolution
+		{D1A6D493-1CC0-479C-831D-B36149D816FD}.Debug.ActiveCfg = Debug|Win32
+		{D1A6D493-1CC0-479C-831D-B36149D816FD}.Release.ActiveCfg = Release|Win32
 		{B3762362-474F-46BD-B8B4-E137BB9E237D}.Debug.ActiveCfg = Debug|Win32
 		{B3762362-474F-46BD-B8B4-E137BB9E237D}.Debug.Build.0 = Debug|Win32
 		{B3762362-474F-46BD-B8B4-E137BB9E237D}.Release.ActiveCfg = Release|Win32
@@ -27,8 +29,7 @@ Global
 		{EC0BCE90-0BAF-4B12-AC2F-1945AAAAF784}.Debug.ActiveCfg = Debug|Win32
 		{EC0BCE90-0BAF-4B12-AC2F-1945AAAAF784}.Debug.Build.0 = Debug|Win32
 		{EC0BCE90-0BAF-4B12-AC2F-1945AAAAF784}.Release.ActiveCfg = Release|Win32
-		{D1A6D493-1CC0-479C-831D-B36149D816FD}.Debug.ActiveCfg = Debug|Win32
-		{D1A6D493-1CC0-479C-831D-B36149D816FD}.Release.ActiveCfg = Release|Win32
+		{EC0BCE90-0BAF-4B12-AC2F-1945AAAAF784}.Release.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 	EndGlobalSection

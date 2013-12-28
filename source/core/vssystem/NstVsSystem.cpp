@@ -332,14 +332,12 @@ NES_POKE(VSSYSTEM,4020)
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-VOID VSSYSTEM::SetContext(IO::INPUT* const input)
+VOID VSSYSTEM::BeginFrame(IO::INPUT* const input)
 {
 	flags[0] &= ~COIN;
 
 	if (input)
 	{
-		input->vs.Poll();
-
 		flags[0] |= input->vs.InsertCoin & COIN;
 
 		if (RemapButtons)

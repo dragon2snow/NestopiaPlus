@@ -300,10 +300,10 @@ private:
 
 	struct OUTPUT
 	{
-		UINT index;
 		UINT clipping;
 		UINT monochrome;
 		IO::GFX::PIXEL* PDX_RESTRICT pixels;
+		const IO::GFX::PIXEL* ClipOffset;
 	};
 
 	OUTPUT output;
@@ -322,8 +322,8 @@ private:
 	{
 		INT  x;
 		U8*  palette;
-		BOOL front;
-		BOOL zero;
+		BOOL behind;
+		UINT zero;
 		U8 pixels[8];
 	};
 

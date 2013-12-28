@@ -52,7 +52,6 @@ VOID PAD::Reset()
 	strobe = 0;
 	state  = 0;
 	count  = 0;
-	polled = FALSE;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -61,12 +60,9 @@ VOID PAD::Reset()
 
 VOID PAD::Poll()
 {
-	polled = TRUE;
-
 	if (input)
 	{
-		input->pad[port].Poll(VirtualPort);
-		state = input->pad[port].buttons;
+		state = input->pad[VirtualPort].buttons;
 
 		if ((state & (UP|DOWN)) == (UP|DOWN))
 			state &= ~DOWN;
@@ -86,21 +82,17 @@ VOID PAD::Poll()
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-UINT PAD::Peek_4016() { return !(port & 0x1) ? Read() : 0x00; }
-UINT PAD::Peek_4017() { return  (port & 0x1) ? Read() : 0x00; }
+UINT PAD::Peek_4016() { return (port & 0x1) ? 0x00 : Read(); }
+UINT PAD::Peek_4017() { return (port & 0x1) ? Read() : 0x00; }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-UINT PAD::Read()
+inline UINT PAD::Read()
 {
-	if (!polled)
-		PAD::Poll();
-
 	const UINT data = (state >> count) & 0x1;
 	count = PDX_MIN(count+1,STREAM_LENGTH);
-
 	return data;
 }
 

@@ -207,8 +207,6 @@ VOID SOUNDMANAGER::Start()
 {
 	if (enabled)
 	{
-		nes.ResetAudioBuffer();
-
 		if (PDX_FAILED(DIRECTSOUND::Start()))
 			Disable();
 	}
@@ -230,7 +228,7 @@ PDXRESULT SOUNDMANAGER::Clear()
 			return PDX_FAILURE;
 		}
 	}
-
+  
 	return PDX_OK;
 }
 
@@ -293,13 +291,13 @@ VOID SOUNDMANAGER::SetSampleRate(const DWORD rate)
 	if (SelectedAdapter < adapters.Size())
 	{
 		const PDXARRAY<DWORD>& rates = adapters[SelectedAdapter].SampleRates;
-
 		const DWORD* pos;
 
 		if ((pos = PDX::Find( rates.Begin(), rates.End(), rate )) == rates.End())
 			pos = PDX::Find( rates.Begin(), rates.End(), 44100 );
 
-		SelectedSampleRate = (pos != rates.End() ? pos - rates.Begin() : 0);
+		if (pos != rates.End())
+			SelectedSampleRate = pos - rates.Begin();
 	}
 }
 
@@ -309,16 +307,7 @@ VOID SOUNDMANAGER::SetSampleRate(const DWORD rate)
 
 VOID SOUNDMANAGER::SetSampleBits(const UINT bits)
 {
-	SelectedSampleBits = 0;
-
-	if (SelectedAdapter < adapters.Size())
-	{
-		switch (bits)
-		{
-     		case 8:  SelectedSampleBits = adapters[SelectedAdapter].SampleBits8  ? 8 : 16; return;
-       		default: SelectedSampleBits = adapters[SelectedAdapter].SampleBits16 ? 16 : 8; return;
-		}
-	}
+	SelectedSampleBits = (bits == 8 ? 8 : 16);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -664,15 +653,6 @@ VOID SOUNDMANAGER::UpdateDialog(HWND hDlg)
 	}
 
 	{
-		const BOOL Has8 = adapters[SelectedAdapter].SampleBits8;
-		const BOOL Has16 = adapters[SelectedAdapter].SampleBits16;
-
-		EnableWindow( GetDlgItem(hDlg,IDC_SOUND_8_BIT), Has8 );
-		EnableWindow( GetDlgItem(hDlg,IDC_SOUND_16_BIT), Has16 );
-
-		if (!Has8 && SelectedSampleBits == 8) SelectedSampleBits = 16;
-		else if (!Has16 && SelectedSampleBits == 16) SelectedSampleBits = 8;
-
 		const INT button = (SelectedSampleBits == 16) ? IDC_SOUND_16_BIT : IDC_SOUND_8_BIT;
 		CheckRadioButton( hDlg, IDC_SOUND_8_BIT, IDC_SOUND_16_BIT, button );
 	}

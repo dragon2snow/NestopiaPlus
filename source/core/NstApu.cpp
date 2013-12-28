@@ -73,14 +73,14 @@ VOID APU::CYCLES::Reset(const UINT TargetRate,const BOOL pal)
 
 	if (pal)
 	{
-		rate         = NES_MASTER_CLOCK_HZ_PAL / TargetRate;
+		rate         = ULONG(ceil(DOUBLE(NES_MASTER_CLOCK_HZ_PAL) / DOUBLE(TargetRate)));
 		FrameInit    =-NES_CPU_PAL_FIXED * RESET_CYCLES;
 		FrameCounter = NES_CPU_PAL_FIXED * RESET_CYCLES;
 		QuarterFrame = NES_MASTER_CC_QUARTER_FRAME_PAL;
 	}
 	else
 	{
-		rate         = NES_MASTER_CLOCK_HZ_NTSC / TargetRate;
+		rate         = ULONG(ceil(DOUBLE(NES_MASTER_CLOCK_HZ_NTSC) / DOUBLE(TargetRate)));
 		FrameInit    =-NES_CPU_NTSC_FIXED * RESET_CYCLES;
 		FrameCounter = NES_CPU_NTSC_FIXED * RESET_CYCLES;
 		QuarterFrame = NES_MASTER_CC_QUARTER_FRAME_NTSC;
@@ -140,10 +140,8 @@ TSIZE APU::BUFFER::Flush(IO::SFX* const PDX_RESTRICT stream)
 	if (available < 0)
 		available = pos + (NES_APU_BUFFER_SIZE - start);
 
-	if (available < stream->length)
-		return stream->length - available;
-
-	const TSIZE NewStart = start + stream->length;
+	const ULONG length = PDX_MIN(available,stream->length);
+	const TSIZE NewStart = start + length;
 
 	if (Bit16)
 	{
@@ -157,7 +155,7 @@ TSIZE APU::BUFFER::Flush(IO::SFX* const PDX_RESTRICT stream)
 		}
 		else
 		{
-			memcpy( samples, output + start, sizeof(I16) * stream->length );
+			memcpy( samples, output + start, sizeof(I16) * length );
 		}
 	}
 	else
@@ -167,7 +165,7 @@ TSIZE APU::BUFFER::Flush(IO::SFX* const PDX_RESTRICT stream)
 
 	start = NewStart & NES_APU_BUFFER_MASK;
 
-	return 0;
+	return length;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -623,10 +621,35 @@ VOID APU::SetContext(const IO::SFX::CONTEXT& context)
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-VOID APU::UpdateBuffer(const TSIZE length)
+VOID APU::UpdateBuffer(const TSIZE offset)
 {
-	for (TSIZE i=0; i < length; ++i)
-		buffer.Write( SampleAll() );
+	PDX_ASSERT(stream && stream->length && offset < stream->length);
+
+	if (buffer.Is16Bit())
+	{
+		I16* PDX_RESTRICT samples = PDX_CAST(I16*,stream->samples) + offset;
+		const I16* const end = PDX_CAST(I16*,stream->samples) + stream->length;
+
+		do
+		{
+			const LONG sample = SampleAll();
+			*samples = PDX_CLAMP(sample,I16_MIN,I16_MAX);
+		}
+		while (++samples != end);
+	}
+	else
+	{
+		U8* PDX_RESTRICT samples = PDX_CAST(U8*,stream->samples) + offset;
+		const U8* const end = PDX_CAST(U8*,stream->samples) + stream->length;
+
+		do
+		{
+			LONG sample = SampleAll();
+			sample = PDX_CLAMP(sample,I16_MIN,I16_MAX);
+			*samples = NES_APU_BUFFER_TO_8(sample);
+		}
+		while (++samples != end);
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -658,20 +681,14 @@ VOID APU::EndFrame()
 	cycles.FrameInit = (cycles.FrameInit + frame) % cycles.QuarterFrame;
 	cycles.FrameCounter = cycles.QuarterFrame - cycles.FrameInit;
 
-	if (stream && emulation.enabled)
+	if (stream && emulation.enabled && PDX_SUCCEEDED(stream->Lock()))
 	{
-		if (PDX_SUCCEEDED(stream->Lock()))
-		{
-			const TSIZE more = buffer.Flush( stream );
+		const TSIZE written = buffer.Flush( stream );
 
-			if (more)
-			{
-				UpdateBuffer( more );
-				buffer.Flush( stream );
-			}
-  
-			stream->Unlock();
-		}
+		if (written < stream->length)
+			UpdateBuffer( written );
+
+		stream->Unlock();
 	}
 }
 

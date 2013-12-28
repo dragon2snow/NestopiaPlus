@@ -134,7 +134,8 @@ UseSavePathRom      (TRUE),
 DisableSaveRamWrite	(FALSE),
 UseNstPathRom		(TRUE),
 UseNstPathLast		(TRUE),
-AutoApplyNst		(TRUE),
+AutoImportNst		(TRUE),
+AutoExportNst       (TRUE),
 UseIpsPathRom		(TRUE),
 AutoApplyIps		(FALSE),
 UseNspPathRom		(TRUE),
@@ -190,7 +191,8 @@ VOID FILEMANAGER::Create(CONFIGFILE* const ConfigFile)
 		DisableSaveRamWrite	= (file[ "files write protect battery"        ] == "yes" ? TRUE : FALSE);
 		AutoApplyIps        = (file[ "files auto apply ips"               ] == "yes" ? TRUE : FALSE);
 		AutoApplyNsp        = (file[ "files auto apply nsp"               ] == "no"  ? FALSE : TRUE);
-		AutoApplyNst        = (file[ "files auto apply nst"               ] == "no"  ? FALSE : TRUE);
+		AutoImportNst       = (file[ "files auto import nst"              ] == "no"  ? FALSE : TRUE);
+		AutoExportNst       = (file[ "files auto export nst"              ] == "no"  ? FALSE : TRUE);
 
 		const PDXSTRING* string;
 
@@ -209,6 +211,9 @@ VOID FILEMANAGER::Create(CONFIGFILE* const ConfigFile)
 	{
 		Reset();
 	}
+
+	application.GetSaveStateManager().EnableFileImport( AutoImportNst );
+	application.GetSaveStateManager().EnableFileExport( AutoExportNst );
 
 	UpdateContext();
 }
@@ -241,7 +246,8 @@ VOID FILEMANAGER::Destroy(CONFIGFILE* const ConfigFile)
 		file[ "files write protect battery"        ] = (DisableSaveRamWrite ? "yes" : "no");
 		file[ "files auto apply ips"               ] = (AutoApplyIps        ? "yes" : "no");
 		file[ "files auto apply nsp"               ] = (AutoApplyNsp        ? "yes" : "no");
-		file[ "files auto apply nst"               ] = (AutoApplyNst        ? "yes" : "no");
+		file[ "files auto import nst"              ] = (AutoImportNst       ? "yes" : "no");
+		file[ "files auto export nst"              ] = (AutoExportNst       ? "yes" : "no");
 
 		if (RecentFiles.Size() > 0) file[ "files recent 0" ] = RecentFiles[0];
 		if (RecentFiles.Size() > 1) file[ "files recent 1" ] = RecentFiles[1];
@@ -284,6 +290,8 @@ VOID FILEMANAGER::Reset()
 	UseNspPathRom       = TRUE;
 	UseNspPathLast      = TRUE;
 	AutoApplyNsp        = TRUE;
+	AutoImportNst       = TRUE;
+	AutoExportNst       = TRUE;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -364,10 +372,14 @@ VOID FILEMANAGER::UpdateSettings()
 	UseNstPathRom       = IsDlgButtonChecked( hDlg, IDC_PATHS_NST_IN_IMAGE          ) == BST_CHECKED; 
 	UseIpsPathRom       = IsDlgButtonChecked( hDlg, IDC_PATHS_IPS_IN_IMAGE          ) == BST_CHECKED; 
 	AutoApplyIps        = IsDlgButtonChecked( hDlg, IDC_PATHS_IPS_AUTO_APPLY        ) == BST_CHECKED; 
-	AutoApplyNst        = IsDlgButtonChecked( hDlg, IDC_PATHS_NST_AUTO_APPLY        ) == BST_CHECKED; 
+	AutoImportNst       = IsDlgButtonChecked( hDlg, IDC_PATHS_NST_AUTO_IMPORT       ) == BST_CHECKED; 
+	AutoExportNst       = IsDlgButtonChecked( hDlg, IDC_PATHS_NST_AUTO_EXPORT       ) == BST_CHECKED; 
 	AutoApplyNsp        = IsDlgButtonChecked( hDlg, IDC_PATHS_NSP_AUTO_APPLY        ) == BST_CHECKED; 
 	UseNspPathLast      = IsDlgButtonChecked( hDlg, IDC_PATHS_NSP_LAST              ) == BST_CHECKED; 
 	UseNstPathLast      = IsDlgButtonChecked( hDlg, IDC_PATHS_NST_LAST              ) == BST_CHECKED; 
+
+	application.GetSaveStateManager().EnableFileImport( AutoImportNst );
+	application.GetSaveStateManager().EnableFileExport( AutoExportNst );
 
 	if (!UseRomPathLast || RomPathLast.IsEmpty() || GetFileAttributes( RomPathLast.String() ) == INVALID_FILE_ATTRIBUTES)
 		RomPathLast = RomPath;
@@ -538,7 +550,8 @@ VOID FILEMANAGER::UpdateDialog()
 	CheckDlgButton( hDlg, IDC_PATHS_BATTERY_IN_IMAGE,      UseSavePathRom      );
 	CheckDlgButton( hDlg, IDC_PATHS_NST_LAST,              UseNstPathLast      );
 	CheckDlgButton( hDlg, IDC_PATHS_NST_IN_IMAGE,          UseNstPathRom       );
-	CheckDlgButton( hDlg, IDC_PATHS_NST_AUTO_APPLY,        AutoApplyNst        );
+	CheckDlgButton( hDlg, IDC_PATHS_NST_AUTO_IMPORT,       AutoImportNst       );
+	CheckDlgButton( hDlg, IDC_PATHS_NST_AUTO_EXPORT,       AutoExportNst       );
 	CheckDlgButton( hDlg, IDC_PATHS_BATTERY_PROTECT,       DisableSaveRamWrite );
 	CheckDlgButton( hDlg, IDC_PATHS_IPS_IN_IMAGE,          UseIpsPathRom       );
 	CheckDlgButton( hDlg, IDC_PATHS_IPS_AUTO_APPLY,        AutoApplyIps        );
@@ -738,13 +751,9 @@ PDXRESULT FILEMANAGER::LoadNST()
 		if (file.Readable(sizeof(U32)))
 		{
 			if (file.Peek<U32>() == NES_MAGIC_NST)
-			{
 				result = LoadNesFile( file, TRUE );
-			}
 			else
-			{
 				result = application.OnWarning("Not a state file!");
-			}
 		}
 		else
 		{
@@ -784,6 +793,8 @@ PDXRESULT FILEMANAGER::LoadNesFile(PDXFILE& file,const BOOL power)
 			LastImageFile.Clear();
 			LastIpsFile.Clear();
 			LastSaveFile.Clear();
+
+			application.GetSaveStateManager().Reset();
 	}
 
 	BOOL ShowWarnings = TRUE;
@@ -794,7 +805,7 @@ PDXRESULT FILEMANAGER::LoadNesFile(PDXFILE& file,const BOOL power)
 		case NES_MAGIC_UNIF:
 		case NES_MAGIC_FDS:
 		{
-			NspLoaded = PDX_SUCCEEDED(ApplyNps( file.Name(), NspContext, ShowWarnings ));
+			NspLoaded = PDX_SUCCEEDED(ApplyNsp( file.Name(), NspContext, ShowWarnings ));
 
 			if (magic != NES_MAGIC_UNIF)
 				ApplyIps( file, NspContext.IpsFile, ShowWarnings );
@@ -807,16 +818,13 @@ PDXRESULT FILEMANAGER::LoadNesFile(PDXFILE& file,const BOOL power)
 				save = &NspContext.SaveFile;
 			}
 
-			if (AutoApplyNst)
 			{
 				PDXSTRING SlotFile;
 
 				for (UINT i=1; i < SAVESTATEMANAGER::MAX_SLOTS+1; ++i)
 				{
-					if (FindSlt( i, file.Name(), SlotFile ))
-						application.GetSaveStateManager().SetImport( i, SlotFile );
-					else
-						application.GetSaveStateManager().SetExport( i, SlotFile );
+					FindSlt( i, file.Name(), SlotFile );
+					application.GetSaveStateManager().SetFileName( i, SlotFile );
 				}
 			}
 
@@ -848,6 +856,16 @@ PDXRESULT FILEMANAGER::LoadNesFile(PDXFILE& file,const BOOL power)
 			{
 				ApplySav( file.Name(), SaveName );
 				save = &SaveName;
+			}
+
+			{
+				PDXSTRING SlotFile;
+
+				for (UINT i=1; i < SAVESTATEMANAGER::MAX_SLOTS+1; ++i)
+				{
+					FindSlt( i, ImageFile.Name(), SlotFile );
+					application.GetSaveStateManager().SetFileName( i, SlotFile );
+				}
 			}
 
 			if (PDX_FAILED(nes.LoadRom( ImageFile, save )))
@@ -965,9 +983,18 @@ PDXRESULT FILEMANAGER::LoadNesFile(PDXFILE& file,const BOOL power)
 			PDXFILE SlotFile;
 			
 			if (PDX_SUCCEEDED(ApplyNst( SlotFile, NspContext.StateSlots[i], ShowWarnings )))
-				application.GetSaveStateManager().SetImport( i+1, SlotFile.Name() );
+			{
+				application.GetSaveStateManager().SetFileName( i+1, SlotFile.Name() );
+			}
+			else
+			{
+				PDXSTRING SlotName;
+				FindSlt( i+1, LastImageFile, SlotName );
+				application.GetSaveStateManager().SetFileName( i+1, SlotName );
+			}
 		}
-
+  
+		application.GetSaveStateManager().CacheSlots();
 		application.GetGameGenieManager().ClearAllCodes();
 
 		for (UINT i=0; i < NspContext.GenieCodes.Size(); ++i)
@@ -1054,7 +1081,7 @@ PDXRESULT FILEMANAGER::ApplyRom(const PDXSTRING& AnyFileName,PDXFILE& ImageFile,
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT FILEMANAGER::ApplyNps(const PDXSTRING& ImageName,NES::IO::NSP::CONTEXT& context,BOOL& ShowWarning) const
+PDXRESULT FILEMANAGER::ApplyNsp(const PDXSTRING& ImageName,NES::IO::NSP::CONTEXT& context,BOOL& ShowWarning) const
 {
 	PDXSTRING NspName;
 
@@ -1334,7 +1361,7 @@ BOOL FILEMANAGER::FindSlt(const UINT index,const PDXSTRING& ImageName,PDXSTRING&
 
 	SlotName.ReplaceFilePath( UseNstPathLast ? NstPathLast : NstPath );
 
-	if (PDX_SUCCEEDED(SlotFile.Open( SlotName, PDXFILE::INPUT )))
+	if (PDX_SUCCEEDED(SlotFile.Open( SlotName, PDXFILE::INPUT )) && SlotFile.Size())
 		return TRUE;
 
 	return FALSE;
@@ -1530,33 +1557,15 @@ PDXRESULT FILEMANAGER::SaveNSP()
 		if (nes.GetCartridgeInfo()->battery)
 			context.SaveFile = LastSaveFile;
 
-		for (UINT i=0; i < SAVESTATEMANAGER::MAX_SLOTS; ++i)
 		{
-			if (application.GetSaveStateManager().IsValidSlot(i+1))
+			PDXFILE file;
+
+			for (UINT i=0; i < SAVESTATEMANAGER::MAX_SLOTS; ++i)
 			{
-				static const CHAR* const ext[9] = 
-				{ "ns1","ns2","ns3","ns4","ns5","ns6","ns7","ns8","ns9" };
+				const PDXSTRING& SlotFile = application.GetSaveStateManager().GetSlotFile(i+1);
 
-				context.StateSlots[i]  = GetNstPath();
-				context.StateSlots[i] += context.ImageFile.GetFileName();
-				context.StateSlots[i].ReplaceFileExtension( ext[i] );
-
-				PDXFILE file( context.StateSlots[i], PDXFILE::OUTPUT );
-
-				if (file.IsOpen())
-				{
-					PDXFILE& SlotFile = application.GetSaveStateManager().GetFile(i+1);
-
-					if (SlotFile.Size())
-					{
-						file.Write( SlotFile.Begin(), SlotFile.End() );
-
-						if (PDX_SUCCEEDED(file.Close()))
-							continue;
-					}
-				}
-
-				context.StateSlots[i].Clear();
+				if (SlotFile.Length() && PDX_SUCCEEDED(file.Open(SlotFile,PDXFILE::INPUT) && file.Size()))
+					context.StateSlots[i] = SlotFile;
 			}
 		}
 
