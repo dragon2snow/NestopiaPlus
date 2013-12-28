@@ -206,6 +206,7 @@ namespace Nes
 			}
 
 			info.crc = crc;
+			info.condition = Api::Cartridge::YES;
 
 			const dword pRom = database->pRomSize( handle );
 			NST_VERIFY( pRom );

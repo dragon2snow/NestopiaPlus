@@ -33,6 +33,12 @@ namespace Nes
         #pragma optimize("s", on)
         #endif
 		
+		Mapper53::Mapper53(Context& c)
+		: 
+		Mapper      (c,WRAM_NONE|CROM_NONE),
+		eepromFirst (c.pRomCrc == 0x7E449555UL) 
+		{}
+
 		void Mapper53::SubReset(const bool hard)
 		{
 			if (hard)
@@ -78,8 +84,16 @@ namespace Nes
 		{
 			const uint r = (regs[0] & 0xF) << 3;
 	
-			wrk.SwapBank<SIZE_8K,0x0000U>( (r << 1) | 0xF );
-			prg.SwapBanks<SIZE_16K,0x0000U>( (regs[0] & 0x10) ? (r | (regs[1] & 0x7)) : 0x80, (regs[0] & 0x10) ? (r | 0x7) : 0x81 );
+			wrk.SwapBank<SIZE_8K,0x0000U>
+			( 
+		     	((r << 1) | 0xF) + (eepromFirst ? 0x4 : 0x0) 
+			);
+
+			prg.SwapBanks<SIZE_16K,0x0000U>
+			( 
+		     	(regs[0] & 0x10) ? (r | (regs[1] & 0x7)) + (eepromFirst ? 0x2 : 0x0) : eepromFirst ? 0x00 : 0x80, 
+				(regs[0] & 0x10) ? (r | (0xFF    & 0x7)) + (eepromFirst ? 0x2 : 0x0) : eepromFirst ? 0x01 : 0x81 
+			);
 		}
 
 		NES_POKE(Mapper53,6000)

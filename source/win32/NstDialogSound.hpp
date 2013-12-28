@@ -42,79 +42,64 @@ namespace Nestopia
 
 		public:
 
-			Sound(const Adapters&,const Managers::Paths&,const Configuration&);
+			Sound(Managers::Emulator&,const Adapters&,const Managers::Paths&,const Configuration&);
 			~Sound();
 
 			void Save(Configuration&) const;
-
-			enum
-			{
-				VOLUME_MAX = DirectX::DirectSound::VOLUME_MAX,
-				LATENCY_MAX = DirectX::DirectSound::LATENCY_MAX
-			};
-
-			enum
-			{
-				DEFAULT_BITS = 16,
-				DEFAULT_RATE = 44100,
-				DEFAULT_LATENCY = 2,
-				DEFAULT_VOLUME = VOLUME_MAX,
-				DEFAULT_MONO = 0
-			};
+			uint GetVolume(uint) const;
 
 		private:
 
 			enum
 			{
-				CHANNEL_SQUARE1, 
-				CHANNEL_SQUARE2, 
-				CHANNEL_TRIANGLE,
-				CHANNEL_NOISE,   
-				CHANNEL_DPCM,    
-				CHANNEL_EXTERNAL
+				DEFAULT_BITS = 16,
+				DEFAULT_RATE = 44100,
+				LATENCY_MAX = DirectX::DirectSound::LATENCY_MAX,
+				DEFAULT_LATENCY = 2,
+				VOLUME_MAX = 100,
+				DEFAULT_VOLUME = Nes::Sound::DEFAULT_VOLUME,
+				DEFAULT_MONO = 0,
+				NUM_CHANNELS = 12
 			};
 
 			struct Handlers;
 
 			struct Settings
 			{
-				Settings();
-
-				ibool enabled;
 				uint adapter;
-				uint volume;
-				uint rate;
-				uint bits;
 				uint latency;
-				ibool stereo;
-				ibool pitch;
-				Collection::BitSet channels;
+				u8 volumes[NUM_CHANNELS];
 			};
 
 			uint GetDefaultAdapter() const;
+			void ResetVolumeSliders();
 
-			ibool OnInitDialog (Param&);
-			ibool OnDestroy    (Param&);
-			ibool OnCmdEnable  (Param&);
-			ibool OnCmdBits    (Param&);
-			ibool OnCmdOutput  (Param&);
-			ibool OnCmdDefault (Param&);
-			ibool OnCmdOk      (Param&);
+			ibool OnInitDialog      (Param&);
+			ibool OnVScroll         (Param&);
+			ibool OnDestroy         (Param&);
+			ibool OnCmdDevice       (Param&);
+			ibool OnCmdBits         (Param&);
+			ibool OnCmdOutput       (Param&);
+			ibool OnCmdResetSliders (Param&);
+			ibool OnCmdDefault      (Param&);
+			ibool OnCmdOk           (Param&);
 
 			void Enable(ibool);
 
 			const Adapters& adapters;
+			Nes::Sound nes;
 			Settings settings;
 			Dialog dialog;
 
 			struct ChannelLut
 			{
 				cstring cfg;
-				ushort ctrl;
-				ushort index;
+				ushort ctrlSlider;
+				ushort ctrlValue;
+				ushort channel;
 			};
 
-			static const ChannelLut channelLut[];
+			static const ChannelLut channelLut[NUM_CHANNELS];
 
 		public:
 
@@ -169,47 +154,17 @@ namespace Nestopia
 
 			ibool IsSoundEnabled() const
 			{
-				return settings.enabled;
+				return settings.adapter != UINT_MAX && nes.IsAudible();
 			}
-
+  
 			uint GetAdapter() const
 			{
 				return settings.adapter;
 			}
 
-			uint GetVolume() const
-			{
-				return settings.volume;
-			}
-
-			uint GetRate() const
-			{
-				return settings.rate;
-			}
-
-			uint GetBits() const
-			{
-				return settings.bits;
-			}
-
 			uint GetLatency() const
 			{
 				return settings.latency;
-			}
-
-			uint GetChannels() const
-			{
-				return settings.channels.Word();
-			}
-
-			ibool IsStereo() const
-			{
-				return settings.stereo;
-			}
-
-			ibool IsPitchAdjust() const
-			{
-				return settings.pitch;
 			}
 		};
 	}

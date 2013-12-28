@@ -71,6 +71,8 @@ namespace Nestopia
 
 		for (count += IDM_FILE_RECENT_DIR_1; count <= IDM_FILE_RECENT_DIR_5; ++count)
 			menu[count].Remove();
+
+		menu[IDM_FILE_RECENT_DIR_LOCK].Check( cfg["files recent dir locked"] == Configuration::YES );
 	}
 
 	RecentDirs::~RecentDirs()
@@ -88,6 +90,8 @@ namespace Nestopia
 			index.Back() = (char) ('1' + i);
 			cfg[index].Quote() = dir(3);
 		}
+
+		cfg["files recent dir locked"].YesNo() = menu[IDM_FILE_RECENT_DIR_LOCK].IsChecked();
 	}
 
 	void RecentDirs::OnMenu(uint cmd)

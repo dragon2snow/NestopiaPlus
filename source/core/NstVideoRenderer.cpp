@@ -71,18 +71,6 @@ namespace Nes
 				{0x98,0xD8,0xFF}, {0xA4,0xA4,0xA4}, {0x00,0x00,0x00}, {0x00,0x00,0x00}
 			};
 
-			const double Renderer::Palette::emphasis[8][3] =
-			{
-				{1.00,1.00,1.00},
-				{1.00,0.80,0.81},
-				{0.78,0.94,0.66},
-				{0.79,0.77,0.63},
-				{0.82,0.83,1.12},
-				{0.81,0.71,0.87},
-				{0.68,0.79,0.79},
-				{0.70,0.70,0.70}
-			};
-
             #ifdef NST_PRAGMA_OPTIMIZE
             #pragma optimize("s", on)
             #endif
@@ -260,6 +248,18 @@ namespace Nes
 		
 						ToRGB( h, s, v, rgb[0], rgb[1], rgb[2] );
 		
+						static const double emphasis[8][3] =
+						{
+							{1.00,1.00,1.00},
+							{1.00,0.80,0.81},
+							{0.78,0.94,0.66},
+							{0.79,0.77,0.63},
+							{0.82,0.83,1.12},
+							{0.81,0.71,0.87},
+							{0.68,0.79,0.79},
+							{0.70,0.70,0.70}
+						};
+
 						rgb[0] *= emphasis[i][0];
 						rgb[1] *= emphasis[i][1]; 
 						rgb[2] *= emphasis[i][2]; 
@@ -276,64 +276,107 @@ namespace Nes
 				const double saturation = s / 128.0;
 				const double brightness = (b - 128) / 256.0;
 				hue = HUE_OFFSET + (hue - 128) / 4;
-					
-				for (uint index=0; index < 8; ++index)
+				
+				const double matrix[6] =
 				{
-					for (uint level=0; level < 4; ++level)
+					std::sin( (int(decoder.axes[0].angle) - hue) * NST_DEG ) * decoder.axes[0].gain * 2, 
+					std::cos( (int(decoder.axes[0].angle) - hue) * NST_DEG ) * decoder.axes[0].gain * 2,
+					std::sin( (int(decoder.axes[1].angle) - hue) * NST_DEG ) * decoder.axes[1].gain * 2, 
+					std::cos( (int(decoder.axes[1].angle) - hue) * NST_DEG ) * decoder.axes[1].gain * 2, 
+					std::sin( (int(decoder.axes[2].angle) - hue) * NST_DEG ) * decoder.axes[2].gain * 2, 
+					std::cos( (int(decoder.axes[2].angle) - hue) * NST_DEG ) * decoder.axes[2].gain * 2
+				};
+
+				for (uint n=0; n < PALETTE; ++n)
+				{
+					static const double levels[2][4] =
 					{
-						for (uint phase=0; phase < 16; ++phase)
+						{-0.12, 0.00, 0.31, 0.72 },
+						{ 0.40, 0.68, 1.00, 1.00 }
+					};
+
+					double level[2] =
+					{
+						levels[0][n >> 4 & 3],
+						levels[1][n >> 4 & 3]
+					};
+
+					const int color = n & 0x0F;
+
+					if (color == 0x00)
+					{
+						level[0] = level[1];
+					}
+					else if (color == 0x0D)
+					{
+						level[1] = level[0];
+					}
+					else if (color > 0x0D)
+					{
+						level[1] = level[0] = 0.0;
+					}
+
+					double y = (level[1] + level[0]) * 0.5;
+					double s = (level[1] - level[0]) * 0.5;
+					double h = NST_PI / 12 * (color * 2 - 7);
+
+					double i = std::sin( h ) * s;
+					double q = std::cos( h ) * s;
+
+					const uint tint = n >> 6 & 7;
+
+					if (tint && color <= 0x0D)
+					{
+						const double attenMul = 0.79399;
+						const double attenSub = 0.0782838;
+
+						if (tint == 7)
 						{
-							double y=0.0, u=0.0, v=0.0;
-
-							if (phase-1U < 12)
+							y = y * (attenMul * 1.13) - (attenSub * 1.13);
+						}
+						else
+						{
+							static const uchar tints[8] = {0,6,10,8,2,4,0,0};
+							
+							const double angle = NST_PI / 12 * (tints[tint] * 2 - 7);							
+							
+							s = level[1] * (0.5 - attenMul * 0.5) + attenSub * 0.5;							
+							y -= s * 0.5;
+							
+							if (tint >= 3 && tint != 4)
 							{
-								static const double chroma[4] = 
-								{ 
-									0.26, 0.33, 0.34, 0.14
-								};
-
-								const double angle = ((int(phase) - 3) * (360/12) + hue) * NST_DEG;
-
-								v = std::sin( angle ) * chroma[level]; 
-								u = std::cos( angle ) * chroma[level]; 
-
-								if (decoder.boostYellow)
-								{								 
-									const double yellowness = v - u; 
-
-									if (yellowness > 0.0) 
-									{ 
-										v = v + yellowness * (level / 4.0); 
-										u = u - yellowness * (level / 4.0); 
-									} 
-								}
-
-								v *= saturation; 
-								u *= saturation; 
+								s *= 0.6;
+								y -= s;
 							}
 
-							if (phase < 14)
-							{
-								static const double luma[3][4] = 
-								{
-									{ 0.39, 0.67, 1.00, 1.00 },
-									{ 0.14, 0.34, 0.66, 0.86 },
-									{-0.12, 0.00, 0.31, 0.72 }
-								};
-
-								y = luma[phase == 0 ? 0 : phase < 13 ? 1 : 2][level];
-							}
-
-							const double rgb[3] =
-							{
-								(y + std::sin( decoder.axes[0].angle * NST_DEG ) * decoder.axes[0].gain * 2 * v + std::cos( decoder.axes[0].angle * NST_DEG ) * decoder.axes[0].gain * 2 * u) * emphasis[index][0] + brightness, 
-								(y + std::sin( decoder.axes[1].angle * NST_DEG ) * decoder.axes[1].gain * 2 * v + std::cos( decoder.axes[1].angle * NST_DEG ) * decoder.axes[1].gain * 2 * u) * emphasis[index][1] + brightness, 
-								(y + std::sin( decoder.axes[2].angle * NST_DEG ) * decoder.axes[2].gain * 2 * v + std::cos( decoder.axes[2].angle * NST_DEG ) * decoder.axes[2].gain * 2 * u) * emphasis[index][2] + brightness
-							};
-
-							ToPAL( rgb, palette[(index * 64) + (level * 16) + phase] );
+							i += std::sin( angle ) * s;
+							q += std::cos( angle ) * s;
 						}
 					}
+  
+					if (decoder.boostYellow)
+					{								 
+						const double yellowness = i - q; 
+
+						if (yellowness > 0.0) 
+						{ 
+							i = i + yellowness * ((n >> 4 & 3) / 4.0); 
+							q = q - yellowness * ((n >> 4 & 3) / 4.0); 
+						} 
+					}
+
+					i *= saturation;
+					q *= saturation;
+					y += brightness;
+
+					const double rgb[3] =
+					{
+						y + matrix[0] * i + matrix[1] * q,
+						y + matrix[2] * i + matrix[3] * q, 
+						y + matrix[4] * i + matrix[5] * q
+					};
+
+					ToPAL( rgb, palette[n] );
 				}
 			}
 
@@ -393,10 +436,14 @@ namespace Nes
 
 			Renderer::State::State()
 			: 
-			update     (UPDATE_PALETTE), 
-			brightness (DEFAULT_BRIGHTNESS), 
-			saturation (DEFAULT_SATURATION), 
-			hue        (DEFAULT_HUE) 
+			update       (UPDATE_PALETTE), 
+			brightness   (DEFAULT_BRIGHTNESS), 
+			saturation   (DEFAULT_SATURATION), 
+			hue          (DEFAULT_HUE),
+			contrast     (DEFAULT_CONTRAST),
+			sharpness    (DEFAULT_SHARPNESS),
+			scanlines    (0),
+			fieldMerging (0)
 			{}
 
             Renderer::Renderer()
@@ -420,6 +467,7 @@ namespace Nes
 						state.mask.r == renderState.bits.mask.r &&
 						state.mask.g == renderState.bits.mask.g &&
 						state.mask.b == renderState.bits.mask.b &&
+						state.scanlines == renderState.scanlines &&
 						(filter->bpp != 8 || static_cast<const FilterNone*>(filter)->paletteOffset == renderState.paletteOffset)
 					)
 						return RESULT_NOP;
@@ -432,17 +480,16 @@ namespace Nes
 				{
      				case RenderState::FILTER_NONE:
 
-						if (FilterNone::Check( renderState ))
-							filter = new (std::nothrow) FilterNone( renderState );
-
-						break;
-
-					case RenderState::FILTER_SCANLINES_BRIGHT:
-					case RenderState::FILTER_SCANLINES_DARK:
-
-						if (FilterScanlines::Check( renderState ))
-							filter = new (std::nothrow) FilterScanlines( renderState );
-
+						if (renderState.scanlines)
+						{
+							if (FilterScanlines::Check( renderState ))
+								filter = new (std::nothrow) FilterScanlines( renderState );
+						}
+						else
+						{
+							if (FilterNone::Check( renderState ))
+								filter = new (std::nothrow) FilterNone( renderState );
+						}
 						break;
 
                 #ifndef NST_NO_2XSAI
@@ -481,35 +528,27 @@ namespace Nes
                 #ifndef NST_NO_NTSCVIDEO
 
 					case RenderState::FILTER_NTSC:
-					case RenderState::FILTER_NTSC_SCANLINES_BRIGHT:
-					case RenderState::FILTER_NTSC_SCANLINES_DARK:
-					{
-						const uint scanlines = 
-						(
-					    	renderState.filter == RenderState::FILTER_NTSC_SCANLINES_BRIGHT ? 1 : 
-							renderState.filter == RenderState::FILTER_NTSC_SCANLINES_DARK ? 2 : 0
-						);
-
+					
 						if (FilterNtsc<32>::Check( renderState ))
 						{
-							filter = new (std::nothrow) FilterNtsc<32>( renderState, scanlines, state.brightness, state.saturation, state.hue, palette.GetDecoder() );
+							filter = new (std::nothrow) FilterNtsc<32>( renderState, state.brightness, state.saturation, state.hue, state.contrast, state.sharpness, state.fieldMerging, palette.GetDecoder() );
 						}
 						else if (FilterNtsc<16>::Check( renderState ))
 						{
-							filter = new (std::nothrow) FilterNtsc<16>( renderState, scanlines, state.brightness, state.saturation, state.hue, palette.GetDecoder() );
+							filter = new (std::nothrow) FilterNtsc<16>( renderState, state.brightness, state.saturation, state.hue, state.contrast, state.sharpness, state.fieldMerging, palette.GetDecoder() );
 						}
 						else if (FilterNtsc<15>::Check( renderState ))
 						{
-							filter = new (std::nothrow) FilterNtsc<15>( renderState, scanlines, state.brightness, state.saturation, state.hue, palette.GetDecoder() );
+							filter = new (std::nothrow) FilterNtsc<15>( renderState, state.brightness, state.saturation, state.hue, state.contrast, state.sharpness, state.fieldMerging, palette.GetDecoder() );
 						}
 						break;
-					}
 
                 #endif
 				}
 				
 				if (filter)
 				{
+					state.scanlines = renderState.scanlines;
 					state.filter = renderState.filter;
 					state.width = renderState.width;
 					state.height = renderState.height;
@@ -535,6 +574,7 @@ namespace Nes
 					output.filter = state.filter;
 					output.width = state.width;
 					output.height = state.height;
+					output.scanlines = state.scanlines;
 					output.bits.count = filter->bpp;
 
 					if (output.bits.count == 8)
@@ -552,6 +592,30 @@ namespace Nes
 				}
 		
 				return RESULT_ERR_NOT_READY;
+			}
+
+			void Renderer::EnableFieldMerging(bool fieldMerging)
+			{
+				const bool old = state.fieldMerging;
+				state.fieldMerging &= State::FIELD_MERGING_PAL;
+
+				if (fieldMerging)
+					state.fieldMerging |= State::FIELD_MERGING_USER;
+
+				if (state.filter == RenderState::FILTER_NTSC && bool(state.fieldMerging) != old)
+					state.update |= State::UPDATE_FILTER;
+			}
+
+			void Renderer::SetMode(Mode mode)
+			{
+				const bool old = state.fieldMerging;
+				state.fieldMerging &= State::FIELD_MERGING_USER;
+
+				if (mode == MODE_PAL)
+					state.fieldMerging |= State::FIELD_MERGING_PAL;
+
+				if (state.filter == RenderState::FILTER_NTSC && bool(state.fieldMerging) != old)
+					state.update |= State::UPDATE_FILTER;
 			}
 
 			Result Renderer::SetLevel(u8& type,u8 value)
@@ -653,7 +717,7 @@ namespace Nes
             #pragma optimize("", on)
             #endif
 
-			void Renderer::Blit(Output& output)
+			void Renderer::Blit(Output& output,uint burstPhase)
 			{
 				if (filter)
 				{
@@ -665,7 +729,7 @@ namespace Nes
 						NST_ASSERT( output.pixels && output.pitch );
 
 						if (ulong(std::labs( output.pitch )) >= filter->bpp * (WIDTH / 8U))
-							filter->Blit( input, output );
+							filter->Blit( input, output, burstPhase );
 
 						Output::unlockCallback( output );
 					}

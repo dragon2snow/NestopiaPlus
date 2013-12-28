@@ -58,7 +58,7 @@ namespace Nes
 			void Reset(bool);
 			void LoadState(State::Loader&);
 			void SaveState(State::Saver&) const;
-			void BeginFrame(Input::Controllers*);
+			void BeginFrame(const Api::Input&,Input::Controllers*);
 			void VSync();
 			
 			Mode GetMode() const;

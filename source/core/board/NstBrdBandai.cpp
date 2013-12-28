@@ -624,6 +624,7 @@ namespace Nes
 						case 0xEEC199D4UL: // -||-
 						case 0x7B1730A9UL: // -||-
 						case 0x1D6F27F7UL: // -||-
+						case 0x1582FEE0UL: // -||- redump
 						case 0x09499F4DUL: // Dragon Ball Z 3 - Ressen Jinzou Ningen
 						case 0xBD064C82UL: // -||-
 						case 0xC196AC58UL: // -||-

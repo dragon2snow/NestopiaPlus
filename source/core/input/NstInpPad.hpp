@@ -43,7 +43,6 @@ namespace Nes
 
 			private:
 
-				void Initialize(dword);
 				void BeginFrame(Controllers*);
 				void Reset();
 				void Poll();
@@ -55,7 +54,6 @@ namespace Nes
 				uint strobe;
 				uint stream;
 				uint state;
-				ibool swapSelectStart;
 
 				static uint mic;
 			};

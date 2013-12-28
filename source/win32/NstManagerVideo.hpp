@@ -93,11 +93,10 @@ namespace Nestopia
 			void  ToggleFps(ibool);
 			void  UpdateScreen();
 			void  UpdateMenuScreenSizes(const Point) const;
+			void  UpdateFieldMergingState() const;
 			void  ResetScreenRect(uint);
 			uint  CalculateWindowScale() const;
 			ibool IsWindowMatched() const;
-			Rect  GetNesRect() const;
-			Rect  GetNesRect(Nes::Machine::Mode) const;
 			
 			NST_NO_INLINE void RepairScreen();
 

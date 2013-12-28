@@ -68,7 +68,8 @@ namespace Nes
 				return
 				(
 					(state.bits.count == 16 || state.bits.count == 32) &&
-					(state.width == WIDTH*2 && state.height == HEIGHT*2)
+					(state.width == WIDTH*2 && state.height == HEIGHT*2) &&
+					(state.scanlines == 0)
 				);
 			}
 
@@ -591,7 +592,7 @@ namespace Nes
 				}
 			}
 
-			void Renderer::Filter2xSaI::Blit(const Input& input,const Output& output)
+			void Renderer::Filter2xSaI::Blit(const Input& input,const Output& output,uint)
 			{
 				switch (bpp)
 				{

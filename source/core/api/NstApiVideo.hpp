@@ -55,7 +55,7 @@ namespace Nes
 				{
 					WIDTH = 256,
 					HEIGHT = 240,
-					NTSC_WIDTH = 680,
+					NTSC_WIDTH = 602,
 					NTSC_HEIGHT = 480
 				};
 
@@ -111,12 +111,19 @@ namespace Nes
 	
 			uint GetBrightness() const;
 			uint GetSaturation() const;
+			uint GetContrast() const;
+			uint GetSharpness() const;
 			uint GetHue() const;
 	
 			Result SetBrightness(uint);
 			Result SetSaturation(uint);
+			Result SetContrast(uint);
+			Result SetSharpness(uint);
 			Result SetHue(uint);
-	
+			
+			void EnableFieldMerging(bool);
+			bool IsFieldMergingEnabled() const;
+
 			Result Blit(Output&);
 
 			enum DecoderPreset
@@ -213,34 +220,38 @@ namespace Nes
 				ushort width;
 				ushort height;
 
+				enum Scanlines
+				{
+					SCANLINES_NONE = 0,
+					SCANLINES_MAX = 100
+				};
+
+				uint scanlines;
+
 				enum Filter
 				{
-					FILTER_SCANLINES_BRIGHT = 1,
-					FILTER_SCANLINES_DARK,
+					FILTER_NONE
                 #ifndef NST_NO_NTSCVIDEO
-					FILTER_NTSC,
-					FILTER_NTSC_SCANLINES_BRIGHT,
-					FILTER_NTSC_SCANLINES_DARK,
+					,FILTER_NTSC
                 #endif
                 #ifndef NST_NO_2XSAI
-					FILTER_2XSAI,
-					FILTER_SUPER_2XSAI,
-					FILTER_SUPER_EAGLE,
+					,FILTER_2XSAI
+					,FILTER_SUPER_2XSAI
+					,FILTER_SUPER_EAGLE
                 #endif
                 #ifndef NST_NO_SCALE2X
-					FILTER_SCALE2X,
-					FILTER_SCALE3X,
+					,FILTER_SCALE2X
+					,FILTER_SCALE3X
                 #endif
                 #ifndef NST_NO_HQ2X
-					FILTER_HQ2X,
-					FILTER_HQ3X,
+					,FILTER_HQ2X
+					,FILTER_HQ3X
                 #endif
-					FILTER_NONE = 0
 				};
 
 				enum Scale
 				{
-					SCALE_SCANLINES = 2,
+					SCALE_NONE_SCANLINES = 2,
                 #ifndef NST_NO_2XSAI
 					SCALE_2XSAI = 2,
 					SCALE_SUPER_2XSAI = 2,

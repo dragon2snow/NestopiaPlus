@@ -174,11 +174,12 @@ namespace Nes
         #pragma optimize("s", on)
         #endif
 	
-		Apu::Context::Sample::Sample()
-		: bits(16), rate(44100U) {}
-	
 		Apu::Context::Context()
-		: enabled(ALL_CHANNELS), stereo(false), speed(0), transpose(false) {}
+		: bits(16), rate(44100U), stereo(false), speed(0), transpose(false), audible(true) 
+		{
+			for (uint i=0; i < MAX_CHANNELS; ++i)
+				volumes[i] = DEFAULT_VOLUME;
+		}
 	
 		Apu::Cycles::Cycles()
 		{
@@ -233,7 +234,15 @@ namespace Nes
 			dmcClock = Dmc::GetResetFrequency( mode );
 			frameCounter = frame[mode];
 		}
+
+		void Apu::DcBlocker::Reset()
+		{
+			next = prev = acc = 0;
+		}
 	
+		Apu::Dmc::Dmc()
+		: outputVolume(0), linSample(0), curSample(0) {}
+
 		Apu::Apu(Cpu* const c) 
 		:
 		stream     (NULL),
@@ -273,7 +282,8 @@ namespace Nes
 			cpu.Map( 0x4015U ).Set( this, &Apu::Peek_4015, &Apu::Poke_4015 );
 
 			cycles.Reset( mode );
-			buffer.Reset( context.sample.bits );	
+			dcBlocker.Reset();
+			buffer.Reset( context.bits );	
 
 			if (hard)
 				ctrl = STATUS_FRAME_IRQ_ENABLE;
@@ -281,10 +291,10 @@ namespace Nes
 			if (ctrl == STATUS_FRAME_IRQ_ENABLE)
 				cycles.frameIrqClock = cycles.frameCounter - (mode == MODE_NTSC ? Cpu::MC_DIV_NTSC * 1 : Cpu::MC_DIV_PAL * 1);
 
-			square[0].Square::Reset();
-			square[1].Square::Reset();
-			triangle.Triangle::Reset();
-			noise.Noise::Reset();
+			square[0].Reset();
+			square[1].Reset();
+			triangle.Reset();
+			noise.Reset();
 			dmc.Reset( cpu );
 	
 			if (extChannel)
@@ -302,7 +312,7 @@ namespace Nes
 			Cycle rate, fixed;
 			CalculateOscillatorClock( rate, fixed );
 	
-			extChannel->SetContext( rate, fixed, mode, context.enabled & CHANNEL_EXTERNAL );
+			extChannel->SetContext( rate, fixed, mode, context.volumes );
 		}
 	
 		void Apu::SetMode(const Mode m)
@@ -319,26 +329,15 @@ namespace Nes
 			return buffer.Latency();
 		}
 
-		Result Apu::EnableChannels(uint channels)
-		{
-			if (context.enabled == channels)
-				return RESULT_NOP;
-	
-			context.enabled = channels;
-			UpdateSettings();
-	
-			return RESULT_OK;
-		}
-	
 		Result Apu::SetSampleRate(const dword rate)
 		{
-			if (context.sample.rate == rate)
+			if (context.rate == rate)
 				return RESULT_NOP;
 	
 			if (!rate)
 				return RESULT_ERR_INVALID_PARAM;
 	
-			context.sample.rate = rate;
+			context.rate = rate;
 			UpdateSettings();
 	
 			return RESULT_OK;
@@ -346,16 +345,54 @@ namespace Nes
 	
 		Result Apu::SetSampleBits(const uint bits)
 		{
-			if (context.sample.bits == bits)
+			if (context.bits == bits)
 				return RESULT_NOP;
 	
 			if (bits != 8 && bits != 16)
 				return RESULT_ERR_UNSUPPORTED;
 	
-			context.sample.bits = bits;
+			context.bits = bits;
 			UpdateSettings();
 	
 			return RESULT_OK;
+		}
+
+		Result Apu::SetVolume(const uint channels,const uint volume)
+		{
+			if (volume > 100)
+				return RESULT_ERR_INVALID_PARAM;
+
+			bool updated = false;
+
+			for (uint i=0; i < MAX_CHANNELS; ++i)
+			{
+				if (channels & (1U << i))
+				{
+					if (context.volumes[i] != volume)
+					{
+						context.volumes[i] = volume;
+						updated = true;
+					}
+				}
+			}
+
+			if (!updated)
+				return RESULT_NOP;
+			
+			UpdateSettings();
+
+			return RESULT_OK;
+		}
+
+		uint Apu::GetVolume(const uint channel) const
+		{
+			for (uint i=0; i < MAX_CHANNELS; ++i)
+			{
+				if (channel & (1U << i))
+					return context.volumes[i];
+			}
+
+			return 0;
 		}
 
 		Result Apu::SetSpeed(const uint speed)
@@ -392,7 +429,7 @@ namespace Nes
 	
 		void Apu::CalculateOscillatorClock(Cycle& rate,Cycle& fixed) const
 		{
-			dword sampleRate = context.sample.rate;
+			dword sampleRate = context.rate;
 			uint i = 0;
 
 			if (mode == MODE_NTSC)
@@ -419,20 +456,35 @@ namespace Nes
 
 		void Apu::UpdateSettings()
 		{
-			cycles.Update( context.sample.rate, context.speed, mode );
-			buffer.Reset( context.sample.bits );
+			cycles.Update( context.rate, context.speed, mode );
+			dcBlocker.Reset();
+			buffer.Reset( context.bits );
 
 			Cycle rate, fixed;
 			CalculateOscillatorClock( rate, fixed );
-	
-			square[0].SetContext ( rate, fixed, mode, context.enabled & CHANNEL_SQUARE1  );
-			square[1].SetContext ( rate, fixed, mode, context.enabled & CHANNEL_SQUARE2  );
-			triangle.SetContext  ( rate, fixed, mode, context.enabled & CHANNEL_TRIANGLE );
-			noise.SetContext     ( rate, fixed, mode, context.enabled & CHANNEL_NOISE    );
-			dmc.SetContext       (              mode, context.enabled & CHANNEL_DMC      );
-	
+
+			square[0].SetContext ( rate, fixed, (context.volumes[ CHANNEL_SQUARE1  ] * OUTPUT_MUL + DEFAULT_VOLUME/2) / DEFAULT_VOLUME       );
+			square[1].SetContext ( rate, fixed, (context.volumes[ CHANNEL_SQUARE2  ] * OUTPUT_MUL + DEFAULT_VOLUME/2) / DEFAULT_VOLUME       );
+			triangle.SetContext  ( rate, fixed, (context.volumes[ CHANNEL_TRIANGLE ] * OUTPUT_MUL + DEFAULT_VOLUME/2) / DEFAULT_VOLUME       );
+			noise.SetContext     ( rate, fixed, (context.volumes[ CHANNEL_NOISE    ] * OUTPUT_MUL + DEFAULT_VOLUME/2) / DEFAULT_VOLUME, mode );
+			dmc.SetContext       (              (context.volumes[ CHANNEL_DPCM     ] * OUTPUT_MUL + DEFAULT_VOLUME/2) / DEFAULT_VOLUME, mode );
+
+			context.audible = 
+			(
+				context.volumes[ CHANNEL_SQUARE1  ] |
+				context.volumes[ CHANNEL_SQUARE2  ] |
+				context.volumes[ CHANNEL_TRIANGLE ] |
+				context.volumes[ CHANNEL_NOISE    ] |
+				context.volumes[ CHANNEL_DPCM     ]
+			);
+
 			if (extChannel)
-				extChannel->SetContext( rate, fixed, mode, context.enabled & CHANNEL_EXTERNAL );
+			{
+				extChannel->SetContext( rate, fixed, mode, context.volumes );
+				
+				if (extChannel->GetOutputVolume())
+					context.audible = true;
+			}
 	
 			BeginFrame( stream );
 		}
@@ -445,7 +497,7 @@ namespace Nes
 		{
 			stream = s;
 	
-			if (stream && context.enabled)
+			if (stream && context.audible)
 				updater = &Apu::SyncOn;
 			else
 				updater = &Apu::SyncOff;
@@ -468,12 +520,12 @@ namespace Nes
 
 		void Apu::EndFrame()
 		{
-			if (stream && context.enabled && Sound::Output::lockCallback( *stream ))
+			if (stream && context.audible && Sound::Output::lockCallback( *stream ))
 			{
 				Sound::Buffer::Block block( stream->length );
 				buffer >> block;
 
-				if (context.sample.bits == 16)
+				if (context.bits == 16)
 				{
 					if (context.stereo)
 					{
@@ -539,15 +591,20 @@ namespace Nes
 	
 			cycles.dmcClock -= frame;
 		}
-	
+		
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("s", on)
+        #endif
+
+		inline void Apu::Oscillator::ClearAmp()
+		{
+			amp = 0;
+		}
+
 		inline void Apu::Dmc::ClearAmp()
 		{
 			linSample = curSample = 0;
 		}
-	
-        #ifdef NST_PRAGMA_OPTIMIZE
-        #pragma optimize("s", on)
-        #endif
 
 		void Apu::ClearBuffers()
 		{
@@ -556,75 +613,78 @@ namespace Nes
 			triangle.ClearAmp();
 			noise.ClearAmp();
 			dmc.ClearAmp();
-	
-			if (extChannel)
-				extChannel->ClearAmp();
-	
-			buffer.Reset( context.sample.bits, false );
+
+			dcBlocker.Reset();
+			buffer.Reset( context.bits, false );
 		}
 		
 		Apu::Channel::Channel()
 		: 
-		emulate (true), 
-		mode    (MODE_NTSC), 
-		fixed   (1), 
-		active  (0),
-		rate    (1),
-		amp     (0)
+		mode         (MODE_NTSC), 
+		fixed        (1), 
+		active       (false),
+		rate         (1),
+		outputVolume (DEFAULT_VOLUME)
 		{}
 	
 		Apu::Oscillator::Oscillator()
 		:
+		active    (false),
 		timer     (0),
-		frequency (1)
+		rate      (1),
+		frequency (1),
+		amp       (0),
+		fixed     (1)
 		{}
 
 		void Apu::Channel::Reset()
 		{
 			active = false;
-			amp = 0;
 		}
 
 		void Apu::Oscillator::Reset()
 		{
-			Channel::Reset();
-
+			active = false;
 			timer = RESET_CYCLES * fixed;
 			frequency = fixed;
+			amp = 0;
 		}
 	
-		void Apu::Channel::SetContext(const Cycle r,const Cycle f,const Mode m,const bool e)
+		void Apu::Channel::SetContext(const Cycle r,const Cycle f,const Mode m,const u8 (&volumes)[MAX_CHANNELS])
 		{
 			const uint old = fixed;
 			
 			fixed = f;
 			rate = r;
 			mode = m;
-			emulate = e;
 	
-			if (!emulate)
-				active = false;
-	
-			UpdateContext( old );
+			UpdateContext( old, volumes );
 		}
 
-		void Apu::Oscillator::UpdateContext(uint old)
+		void Apu::Oscillator::SetContext(dword r,uint f)
 		{
-			frequency = (frequency / old) * fixed;
-			timer = (timer / old) * fixed;
+			frequency = (frequency / fixed) * f;
+			timer = (timer / fixed) * f;
+			fixed = f;
+			rate = r;
 		}
 
-		void Apu::Dmc::SetContext(const Mode m,const bool e)
+		void Apu::Dmc::SetContext(uint v,Mode m)
 		{
 			mode = m;
-			emulate = e;
-	
-			if (!emulate)
-			{
+
+			if (outputVolume)
+				linSample /= outputVolume;
+
+			if (outputVolume)
+				curSample /= outputVolume;
+
+			linSample *= v;
+			curSample *= v;
+			outputVolume = v;
+
+			if (!v)
 				active = false;
-				linSample = curSample = 0;
-				dcRemover.Reset();
-			}
 		}
 	
 		void Apu::Square::Reset()
@@ -632,7 +692,8 @@ namespace Nes
 			Oscillator::Reset();
 	
 			step = 0;
-			duty = 2;
+			duty = 0;
+			frequency = fixed * 2;
 	
 			envelope.Reset();
 			lengthCounter.Reset();
@@ -674,7 +735,7 @@ namespace Nes
 	
 		void Apu::Dmc::Reset(Cpu& cpu)
 		{
-			active            = 0;
+			active            = false;
 			frequency         = GetResetFrequency( mode );
 			curSample         = 0;
 			linSample         = 0;
@@ -689,8 +750,6 @@ namespace Nes
 			dma.address       = 0xC000U;
 			dma.buffer        = 0x00;
 	
-			dcRemover.Reset();
-	
 			cpu.SetLine( Cpu::IRQ_DMC, false );
 		}
 
@@ -698,22 +757,13 @@ namespace Nes
         #pragma optimize("", on)
         #endif
 
-		Apu::Sample Apu::DcRemover::Remove(Sample sample)
+		Apu::Sample Apu::DcBlocker::Apply(Sample sample)
 		{
-			sample -= old;
-			old += sample;
-			acc += sample + (acc > 0 ? -1 : acc < 0 ? +1 : 0);
-			return acc;	
-		}
-
-		Apu::Sample Apu::DcRemover::Damp(const Sample sample)
-		{
-			ulong damp = std::labs(sample);
-
-			if (damp > 0x3F)
-				damp = 0x3F;
-
-			return sample - (sample >= 0 ? +Sample(damp) : -Sample(damp));
+			acc  -= prev;
+			prev  = sign_shl(sample,15);
+			acc  += prev - next * POLE;
+			next  = sign_shr(acc,15);
+			return next;
 		}
 
 		void Apu::Envelope::Clock()
@@ -733,7 +783,7 @@ namespace Nes
 			}
 
 			if (!disabled)
-				output = volume * OUTPUT_MUL;
+				output = volume * outputVolume;
 
 			count = rate;
 		}
@@ -743,7 +793,7 @@ namespace Nes
 			rate = (data & DECAY_RATE) + 1;
 			disabled = data & DECAY_DISABLE;
 			loop = data & DECAY_LOOP;
-			output = (disabled ? (data & DECAY_RATE) : volume) * OUTPUT_MUL;
+			output = (disabled ? (data & DECAY_RATE) : volume) * outputVolume;
 		}
 
 		Cycle Apu::Clock(const Cycle elapsed)
@@ -801,18 +851,19 @@ namespace Nes
 	
 		inline bool Apu::Square::CanOutput() const
 		{ 
-			return lengthCounter.GetCount() && envelope.Volume() && validFrequency && emulate; 
+			return lengthCounter.GetCount() && envelope.Volume() && validFrequency; 
 		}
 
-		void Apu::Square::UpdateContext(uint old)
+		void Apu::Square::SetContext(dword rate,uint fixed,uint volume)
 		{
-			Oscillator::UpdateContext( old );
+			Oscillator::SetContext( rate, fixed );
+			envelope.SetOutputVolume( volume );
 			active = CanOutput();
 		}
 
 		bool Apu::Square::UpdateFrequency()
 		{
-			frequency = (waveLength + 1) * fixed;
+			frequency = (waveLength + 1) * fixed * 2;
 	
 			if (waveLength >= MIN_FRQ)
 			{
@@ -822,7 +873,7 @@ namespace Nes
 				if ((sweepFrq & (0x1UL << CARRY)) || sweepFrq <= MAX_FRQ)
 				{
 					validFrequency = true;
-					return lengthCounter.GetCount() && envelope.Volume() && emulate;
+					return lengthCounter.GetCount() && envelope.Volume();
 				}
 			}
 	
@@ -835,9 +886,7 @@ namespace Nes
 		{
 			envelope.Write( data );
 			active = CanOutput();
-	
-			static const uchar lut[4] = {2,4,8,12};
-			duty = lut[data >> REG0_DUTY_SHIFT];
+			duty = data >> REG0_DUTY_SHIFT;
 		}
 	
 		NST_FORCE_INLINE void Apu::Square::WriteReg1(const uint data)
@@ -919,12 +968,13 @@ namespace Nes
 	
 		inline bool Apu::Triangle::CanOutput() const
 		{
-			return lengthCounter.GetCount() && linearCounter && waveLength >= MIN_FRQ && emulate;
+			return lengthCounter.GetCount() && linearCounter && waveLength >= MIN_FRQ && outputVolume;
 		}
 	
-		void Apu::Triangle::UpdateContext(uint old)
+		void Apu::Triangle::SetContext(dword rate,uint fixed,uint volume)
 		{
-			Oscillator::UpdateContext( old );
+			Oscillator::SetContext( rate, fixed );
+			outputVolume = volume;
 			active = CanOutput();
 		}
 
@@ -980,12 +1030,14 @@ namespace Nes
 	
 		inline bool Apu::Noise::CanOutput() const
 		{
-			return lengthCounter.GetCount() && envelope.Volume() && emulate;
+			return lengthCounter.GetCount() && envelope.Volume();
 		}
 	
-		void Apu::Noise::UpdateContext(uint old)
+		void Apu::Noise::SetContext(dword rate,uint fixed,uint volume,Mode m)
 		{
-			Oscillator::UpdateContext( old );
+			Oscillator::SetContext( rate, fixed );
+			mode = m;
+			envelope.SetOutputVolume( volume );
 			active = CanOutput();
 		}
 
@@ -1022,227 +1074,178 @@ namespace Nes
 			if (!envelope.Loop() && lengthCounter.Clock())
 				active = false;
 		}
-	
-		inline dword Apu::Oscillator::DivideSum(dword sum) const
-		{ 
-			return (sum + (rate / 2)) / rate; 
-		}
 
-		Apu::Sample Apu::Square::GetSample()
+		dword Apu::Square::GetSample()
 		{
 			NST_VERIFY( bool(active) == CanOutput() && timer >= 0 );
-	
+
+			dword sum = timer;
+			timer -= iword(rate);
+
 			if (active)
 			{
-				Sample sum;
-	
-				if (Cycle(timer) >= rate)
+				static const u8 duties[4][8] =
 				{
-					timer -= long(rate);
-					amp = sum = envelope.Volume(); 
-	
-					if (step >= duty)
-						sum = -sum;
+					{0x1F,0x00,0x1F,0x1F,0x1F,0x1F,0x1F,0x1F},
+					{0x1F,0x00,0x00,0x1F,0x1F,0x1F,0x1F,0x1F},
+					{0x1F,0x00,0x00,0x00,0x00,0x1F,0x1F,0x1F},
+					{0x00,0x1F,0x1F,0x00,0x00,0x00,0x00,0x00}
+				};
+
+				if (timer >= 0)
+				{
+					amp = dword(envelope.Volume()) >> duties[duty][step];
 				}
 				else
 				{
-					sum = timer;
-					timer -= long(rate);
-	
-					if (step >= duty)
-						sum = -sum;
-	
+					sum >>= duties[duty][step];
+
 					do 
-					{	
-						long weight = frequency;
-						timer += weight;
-	
-						if (timer > 0)
-							weight -= timer;
-	
-						step = (step + 1) & 0xF;
-	
-						if (step >= duty)
-							weight = -weight;
-	
-						sum += weight;
+					{										  
+						sum += NST_MIN(dword(-timer),frequency) >> duties[duty][step = (step + 1) & 0x7];
+						timer += iword(frequency);
 					} 
 					while (timer < 0);
-	
-					NST_VERIFY( ulong(std::labs(sum)) <= (ULONG_MAX / NST_MAX(1UL,envelope.Volume())) );
-					amp = DivideSum( envelope.Volume() * ulong(std::labs(sum)) );
+
+					NST_VERIFY( !envelope.Volume() || sum <= ULONG_MAX / envelope.Volume() + rate/2 );
+					amp = (sum * envelope.Volume() + rate/2) / rate;
 				}
-	
-				if (duty == 12)
-				{
-					// waveform is negated on
-					// duty-period type #3 
-	
-					sum = -sum;
-				}
-	
-				if (sum < 0)
-					amp = -amp;
 			}
 			else
 			{
-				timer -= long(rate);
-	
-				if (timer < 0)
+				while (timer < 0)
 				{
-					const uint count = ulong(long(frequency) - timer - 1) / frequency;
-					step = (step + count) & 0xF;
-					timer += long(count * frequency);
+					step = (step + 1) & 0x7;
+					timer += iword(frequency);
 				}
-	
-				if (amp)
-					amp = DcRemover::Damp( amp );
+
+				if (amp < OUTPUT_DECAY)
+				{
+					return 0;
+				}
+				else
+				{
+					amp -= OUTPUT_DECAY;
+				}
 			}
-	
+
 			return amp;
 		}
-	
-		NST_FORCE_INLINE Apu::Sample Apu::Triangle::GetSample()
+
+		NST_FORCE_INLINE dword Apu::Triangle::GetSample()
 		{
 			NST_VERIFY( bool(active) == CanOutput() && timer >= 0 );
-	
+
 			if (active)
 			{
 				uint pos = step;
-	
+
 				if (pos & 0x10)
 					pos ^= 0x1F;
-	
-				ulong sum;
-	
-				if (Cycle(timer) >= rate)
+
+				dword sum = timer;
+				timer -= iword(rate);
+
+				if (timer >= 0)
 				{
-					sum = VOLUME * pos;
-					timer -= long(rate);
+					amp = pos * outputVolume * 3;
 				}
 				else
 				{
-					sum = ulong(timer) * pos;
-					timer -= long(rate);
-	
+					sum *= pos;
+
 					do 
-					{		
-						timer += long(frequency);
-	
-						step = (step + 1) & 0x1F;
-	
-						ulong weight = frequency;
-	
-						if (timer > 0)
-							weight -= timer;
-	
-						pos = step;
-	
+					{
+						pos = step = (step + 1) & 0x1F;
+
 						if (pos & 0x10)
 							pos ^= 0x1F;
-	
-						sum += weight * pos;
+
+						sum += NST_MIN(dword(-timer),frequency) * pos;
+						timer += iword(frequency);
 					} 
 					while (timer < 0);
-	
-					NST_VERIFY( sum <= (ULONG_MAX / VOLUME) );
-					sum = DivideSum( sum * VOLUME );
+
+					NST_VERIFY( !outputVolume || sum <= ULONG_MAX / outputVolume + rate/2 );
+					amp = (sum * outputVolume + rate/2) / rate * 3;
 				}
-	
-				NST_VERIFY( sum <= (ULONG_MAX >> FINE_VOLUME_SHIFT) );
-	
-				sum = (sum * FINE_VOLUME_MUL) >> FINE_VOLUME_SHIFT;
-				amp = Sample( sum ) - DC_OFFSET;
 			}
-			else if (amp)
+			else if (amp < OUTPUT_DECAY)
 			{
-				amp = DcRemover::Damp( amp );
-			}
-	
-			return amp;
-		}
-	
-		NST_FORCE_INLINE Apu::Sample Apu::Noise::GetSample()
-		{
-			NST_VERIFY( bool(active) == CanOutput() && timer >= 0 );
-	
-			Sample amp;
-			Sample sum;
-	
-			if (Cycle(timer) >= rate)
-			{
-				timer -= long(rate);
-	
-				if (!active)
-					return 0;
-	
-				amp = sum = envelope.Volume();
-	
-				if (!(bits & 0x4000U))
-					sum = -sum;
+				return 0;
 			}
 			else
 			{
-				sum = timer;
-				timer -= long(rate);
-	
-				if (!(bits & 0x4000U))
-					sum = -sum;
-	
-				do 
-				{	
-					long weight = frequency;
-					timer += weight;
-	
-					if (timer > 0)
-						weight -= timer;
-	
-					const uint tmp = bits;
-					bits <<= 1;
-	
-					if (!(bits & 0x4000U))
-						weight = -weight;
-	
-					bits |= (((tmp >> 14) ^ (tmp >> shifter)) & 0x1);
-					sum += weight;
-				} 
-				while (timer < 0);
-	
-				if (!active)
-					return 0;
-	
-				NST_VERIFY( ulong(std::labs(sum)) <= (ULONG_MAX / NST_MAX(1UL,envelope.Volume())) );
-				amp = DivideSum( envelope.Volume() * ulong(std::labs(sum)) );
+				amp -= OUTPUT_DECAY;
+				step &= STEP_CHECK;
 			}
-	
-			NST_VERIFY( ulong(amp) <= (ULONG_MAX >> FINE_VOLUME_SHIFT) );
-			amp = (ulong(amp) * FINE_VOLUME_MUL) >> FINE_VOLUME_SHIFT;
-	
-			if (sum < 0)
-				amp = -amp;
-	
+			
 			return amp;
 		}
-	
-		NST_FORCE_INLINE Apu::Sample Apu::Dmc::GetSample()
-		{ 
+
+		NST_FORCE_INLINE dword Apu::Noise::GetSample()
+		{
+			NST_VERIFY( bool(active) == CanOutput() && timer >= 0 );
+
+			dword sum = timer;
+			timer -= iword(rate);
+
+			if (timer >= 0)
+			{
+				if (!active || (bits & 0x4000U)) 
+					return 0;
+				else
+					return envelope.Volume() * 2;
+			}
+			else
+			{
+				if (bits & 0x4000U)
+					sum = 0;
+
+				do 
+				{
+					bits = (bits << 1) | (((bits >> 14) ^ (bits >> shifter)) & 0x1);										
+
+					if (!(bits & 0x4000U))
+						sum += NST_MIN(dword(-timer),frequency);
+
+					timer += iword(frequency);
+				} 
+				while (timer < 0);
+
+				if (active)
+				{
+					NST_VERIFY( !envelope.Volume() || sum <= ULONG_MAX / envelope.Volume() + rate/2 );
+     				return (sum * envelope.Volume() + rate/2) / rate * 2;
+				}
+				else
+				{
+					return 0;
+				}
+			}
+		}
+
+		NST_FORCE_INLINE dword Apu::Dmc::GetSample()
+		{ 		
 			if (curSample != linSample)
 			{
-				if (curSample + INTERPOLATION_STEP - linSample <= INTERPOLATION_STEP * 2)
+				const uint step = outputVolume * INP_STEP;
+
+				if (curSample + step - linSample <= step*2)
 				{
 					linSample = curSample;
 				}
 				else if (curSample > linSample)
 				{					
-					linSample += INTERPOLATION_STEP;
+					linSample += step;
 				}
 				else			
 				{
-					linSample -= INTERPOLATION_STEP;
+					linSample -= step;
 				}
 			}
 
-			return dcRemover.Filter( linSample ); 
+			return linSample; 
 		}
 
 		inline uint Apu::Dmc::CheckSample() const
@@ -1293,16 +1296,14 @@ namespace Nes
 			if (next <= 0x7F)
 			{
 				out.dac = next;
-				curSample = (ulong(next) * OUTPUT_MUL * FINE_VOLUME_MUL) >> FINE_VOLUME_SHIFT;
+				curSample = next * outputVolume;
 			}
 		}
 	
 		NST_FORCE_INLINE void Apu::Dmc::WriteReg1(const uint data)
 		{
 			out.dac = data & 0x7F;
-
-			if (emulate)
-				curSample = (ulong(out.dac) * OUTPUT_MUL * FINE_VOLUME_MUL) >> FINE_VOLUME_SHIFT;
+			curSample = out.dac * outputVolume;
 		}
 	
 		NST_FORCE_INLINE void Apu::Dmc::WriteReg2(const uint data)
@@ -1335,7 +1336,7 @@ namespace Nes
 			// fetch next sample from the DMA unit 
 			// and start a new output sequence
 	
-			active = emulate;
+			active = outputVolume;
 			dma.buffered = false;
 			out.buffer = dma.buffer;
 	
@@ -1427,22 +1428,21 @@ namespace Nes
 				cycles.frameIrqClock += Cycles::frame[mode] - cpu.GetMasterClockCycle(2);
 			}
 		}
-	
+
 		Apu::Sample Apu::GetSample()
 		{
-			const Sample sample =
-			(
-				square[0].Square::GetSample() +
-				square[1].Square::GetSample() +
-				triangle.Triangle::GetSample() +
-				noise.Noise::GetSample() +
-				dmc.GetSample() + 
-				(extChannel ? extChannel->GetSample() : 0L)
-			);
+			dword dac[2];
 
-			return (sample <= 32767L) ? (sample >= -32768L) ? sample : -32768L : 32767L;
+			const Sample sample = dcBlocker.Apply
+			(
+   				(0 != (dac[0] = square[0].GetSample() + square[1].GetSample()) ? dword(NLN_SQ_0) / (dword(NLN_SQ_1) / dac[0] + NLN_SQ_2) : 0) +
+   				(0 != (dac[1] = triangle.GetSample() + noise.GetSample() + dmc.GetSample()) ? dword(NLN_TND_0) / (dword(NLN_TND_1) / dac[1] + NLN_TND_2) : 0)
+			) + (extChannel ? extChannel->GetSample() : 0);
+
+			NST_VERIFY( sample >= OUTPUT_MIN && sample <= OUTPUT_MAX );
+			return (sample <= OUTPUT_MAX) ? (sample >= OUTPUT_MIN) ? sample : OUTPUT_MIN : OUTPUT_MAX;
 		}
-	
+
 		void Apu::SyncOn(const Cycle target)
 		{
 			while (cycles.rateCounter < target)
@@ -1725,10 +1725,18 @@ namespace Nes
 		}
 	
         #ifdef NST_PRAGMA_OPTIMIZE
-        #pragma optimize("", on)
         #pragma optimize("s", on)
         #endif
 	
+		void Apu::Envelope::SetOutputVolume(uint v)
+		{
+			if (outputVolume)
+				output /= outputVolume;
+
+			output *= v;
+			outputVolume = v;
+		}
+
 		void Apu::SaveState(State::Saver& state)
 		{
 			Clock( cpu.GetMasterClockCycles() );
@@ -1855,14 +1863,14 @@ namespace Nes
 			rate     = (data[2] & SAVE_2_DECAY_RATE) + 1;
 			disabled = data[2] & SAVE_2_DECAY_DISABLE;
 			loop     = data[2] & SAVE_2_DECAY_LOOP;
-			output   = (disabled ? (data[2] & SAVE_2_DECAY_RATE) : volume) * OUTPUT_MUL;
+			output   = (disabled ? (data[2] & SAVE_2_DECAY_RATE) : volume) * outputVolume;
 		}
 
 		void Apu::LengthCounter::LoadState(State::Loader& state)
 		{
 			const uint data = state.Read8();
-			enabled = data != 0xFF;
-			count = enabled ? data : 0;
+			enabled = (data != 0xFF);
+			count = (enabled ? data : 0);
 		}
 
 		void Apu::LengthCounter::SaveState(State::Saver& state) const
@@ -1877,7 +1885,7 @@ namespace Nes
 				u8 data[4];
 
 				data[0] = waveLength & 0xFF;
-				data[1] = (waveLength >> 8) | (duty << 3);			
+				data[1] = (waveLength >> 8) | (duty ? duty << (2+3) : 2U << 3); // for version compatibility
 				data[2] = (sweepCount - 1) << 4;
 
 				if (sweepRate)
@@ -1910,14 +1918,15 @@ namespace Nes
 
 						waveLength = data[0] | ((data[1] & SAVE_1_WAVELENGTH_HIGH) << 8);
 						
+						// for version compatibility
 						switch (data[1] & SAVE_1_DUTY)
 						{
-							case 4U  << 3: duty = 4;  break;
-							case 8U  << 3: duty = 8;  break;
-							case 12U << 3: duty = 12; break;
-							default:       duty = 2;  break;
+							case 4U  << 3: duty = 1; break;
+							case 8U  << 3: duty = 2; break;
+							case 12U << 3: duty = 3; break;
+							default:       duty = 0; break;
 						}
-
+  
 						if (data[2] & SAVE_2_SWEEP_ENABLE)
 							sweepRate = (data[2] & SAVE_2_SWEEP_RATE) + 1;
 						else
@@ -1995,7 +2004,7 @@ namespace Nes
 			}
 
 			timer = 0;
-			step = 0x7;
+			step = 0;
 			active = CanOutput();
 		}
 	
@@ -2121,15 +2130,8 @@ namespace Nes
 						out.buffer        = data[10];
 						out.dac           = data[11] & SAVE_11_DAC;
 
-						dcRemover.Reset();
-
-						active = dma.buffered && emulate;
-
-						if (emulate)
-							linSample = curSample = (ulong(out.dac) * OUTPUT_MUL * FINE_VOLUME_MUL) >> FINE_VOLUME_SHIFT;
-						else 
-							linSample = curSample = 0;
-
+						linSample = curSample = out.dac * outputVolume;
+						active = dma.buffered && outputVolume;
 						break;
 					}
 				}

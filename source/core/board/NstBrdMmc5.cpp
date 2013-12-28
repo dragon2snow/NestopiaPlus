@@ -253,7 +253,7 @@ namespace Nes
 				frequency = 0;
 				timer = 0;
 				step = 0;
-				duty = 2;
+				duty = 0;
 
 				lengthCounter.Reset();
 				envelope.Reset();
@@ -264,7 +264,6 @@ namespace Nes
 				sample = 0;
 				enabled = false;
 				amp = 0;
-				dcRemover.Reset();
 			}
 
 			void Mmc5::Sound::Reset()
@@ -288,6 +287,7 @@ namespace Nes
 					square[i].Reset();
 
 				pcm.Reset();
+				dcBlocker.Reset();
 				cpu.GetApu().SetExternalClock(0);
 			}
 
@@ -358,13 +358,17 @@ namespace Nes
 			void Mmc5::Sound::Square::UpdateContext(const uint fixed)
 			{
 				active = CanOutput();
-				frequency = (waveLength + 1) * fixed;
+				frequency = (waveLength + 1) * fixed * 2;
 			}
 
-			void Mmc5::Sound::UpdateContext(uint)
+			void Mmc5::Sound::UpdateContext(uint,const u8 (&volumes)[MAX_CHANNELS])
 			{
+				outputVolume = volumes[Apu::CHANNEL_MMC5];
+
 				for (uint i=0; i < NUM_SQUARES; ++i)
 					square[i].UpdateContext( fixed );
+
+				dcBlocker.Reset();
 			}
 
 			void Mmc5::BaseSave(State::Saver& state) const
@@ -571,7 +575,7 @@ namespace Nes
 					{
 						waveLength & 0xFF,
 						waveLength >> 8,
-						duty == 4 ? 1 : duty == 8 ? 2 : duty == 12 ? 3 : 0 
+						duty
 					};
 
 					state.Begin('R','E','G','\0').Write( data ).End();
@@ -588,13 +592,10 @@ namespace Nes
 					switch (chunk)
 					{
 						case NES_STATE_CHUNK_ID('R','E','G','\0'):
-						{
+						
 							waveLength = state.Read16() & 0x7FF;
-
-							static const uchar lut[4] = {2,4,8,12};
-							duty = lut[state.Read8() & 0x3];
+							duty = state.Read8() & 0x3;
 							break;
-						}
 			
 						case NES_STATE_CHUNK_ID('L','E','N','\0'): 
 			
@@ -612,7 +613,7 @@ namespace Nes
 			
 				step = 0;
 				timer = 0;
-				frequency = (waveLength + 1) * fixed;
+				frequency = (waveLength + 1) * fixed * 2;
 				active = CanOutput();
 			}
 
@@ -628,8 +629,6 @@ namespace Nes
 				enabled = data & 0x1;
 				amp = (data >> 8) * VOLUME;
 				sample = enabled ? amp : 0;
-
-				dcRemover.Reset();
 			}
 
             #ifdef NST_PRAGMA_OPTIMIZE
@@ -1218,16 +1217,14 @@ namespace Nes
 			NST_FORCE_INLINE void Mmc5::Sound::Square::WriteReg0(const uint data)
 			{
 				envelope.Write( data );
-
-				static const uchar lut[4] = {2,4,8,12};
-				duty = lut[data >> DUTY_SHIFT];
+				duty = data >> DUTY_SHIFT;
 			}
 
 			NST_FORCE_INLINE void Mmc5::Sound::Square::WriteReg1(const uint data,const uint fixed)
 			{
 				waveLength &= uint(REG2_WAVELENGTH_HIGH) << 8;
 				waveLength |= data;
-				frequency = (waveLength + 1) * fixed;
+				frequency = (waveLength + 1) * fixed * 2;
 
 				active = CanOutput();
 			}
@@ -1241,7 +1238,7 @@ namespace Nes
 
 				waveLength &= REG1_WAVELENGTH_LOW;
 				waveLength |= (data & REG2_WAVELENGTH_HIGH) << 8;
-				frequency = (waveLength + 1) * fixed;
+				frequency = (waveLength + 1) * fixed * 2;
 
 				active = CanOutput();
 			}
@@ -1652,70 +1649,64 @@ namespace Nes
 				return (banks.security & Banks::READABLE_C) ? prg[2][address - 0xC000U] : (address >> 8);
 			}
 	
-			NST_FORCE_INLINE Mmc5::Sound::Sample Mmc5::Sound::Square::GetSample(const Cycle rate)
+			NST_FORCE_INLINE dword Mmc5::Sound::Square::GetSample(const Cycle rate)
 			{
 				NST_VERIFY( bool(active) == CanOutput() && timer >= 0 );
 
 				if (active)
 				{
-					Sample amp;
-					Sample sum;
+					dword sum = timer;
+					timer -= iword(rate);
 
-					if (Cycle(timer) >= rate)
+					static const u8 duties[4][8] =
 					{
-						timer -= idword(rate);
-						amp = sum = envelope.Volume(); 
+						{0x1F,0x00,0x1F,0x1F,0x1F,0x1F,0x1F,0x1F},
+						{0x1F,0x00,0x00,0x1F,0x1F,0x1F,0x1F,0x1F},
+						{0x1F,0x00,0x00,0x00,0x00,0x1F,0x1F,0x1F},
+						{0x00,0x1F,0x1F,0x00,0x00,0x00,0x00,0x00}
+					};
 
-						if (step >= duty)
-							sum = -sum;
+					if (timer >= 0)
+					{
+						return dword(envelope.Volume()) >> duties[duty][step];
 					}
 					else
 					{
-						sum = timer;
-						timer -= idword(rate);
-
-						if (step >= duty)
-							sum = -sum;
+						sum >>= duties[duty][step];
 
 						do 
-						{	
-							idword weight = frequency;
-							timer += weight;
-
-							if (timer > 0)
-								weight -= timer;
-
-							step = (step + 1) & 0xF;
-
-							if (step >= duty)
-								weight = -weight;
-
-							sum += weight;
+						{										  
+							sum += NST_MIN(dword(-timer),frequency) >> duties[duty][step = (step + 1) & 0x7];
+							timer += iword(frequency);
 						} 
 						while (timer < 0);
 
-						amp = ((envelope.Volume() * ulong(std::labs(sum))) + (rate / 2)) / rate;
+						return (sum * envelope.Volume() + rate/2) / rate;
 					}
-
-					return (sum < 0 ? -amp : amp);
 				}
-
-				return 0;
+				else
+				{
+					return 0;
+				}
 			}
 
 			Mmc5::Sound::Sample Mmc5::Sound::GetSample()
 			{
-				Sample sample = 0;
-
-				if (emulate)
+				if (outputVolume)
 				{
+					dword sample = 0;
+
 					for (uint i=0; i < NUM_SQUARES; ++i)
 						sample += square[i].GetSample( rate );
 
 					sample += pcm.GetSample();
-				}
 
-				return sample;
+					return dcBlocker.Apply( sample * 2 * outputVolume / DEFAULT_VOLUME );
+				}
+				else
+				{
+					return 0;
+				}
 			}
 
 			NST_FORCE_INLINE void Mmc5::Sound::Square::ClockQuarter()

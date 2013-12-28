@@ -204,6 +204,8 @@ namespace Nes
 	
 			if (image)
 				image->SetMode( mode );
+
+			renderer.SetMode( mode );
 		}
 	
 		void Emulator::InitializeInputDevices() const
@@ -434,7 +436,7 @@ namespace Nes
 					if (!(state & Machine::SOUND))
 					{
 						if (state & Machine::CARTRIDGE)
-							static_cast<Core::Cartridge*>(image)->BeginFrame( input );
+							static_cast<Core::Cartridge*>(image)->BeginFrame( Api::Input(*this), input );
 
 						if (movie && !movie->BeginFrame( frame, *this, &Emulator::SaveState, &Emulator::LoadState, &Emulator::Reset ))
 							Core::Movie::Destroy( movie );
@@ -452,7 +454,7 @@ namespace Nes
 						ppu.EndFrame();
 
 						if (video)
-							renderer.Blit( *video );
+							renderer.Blit( *video, ppu.GetBurstPhase() );
 
 						cpu.EndFrame();
 
@@ -466,7 +468,7 @@ namespace Nes
 					}
 					else
 					{
-						static_cast<Core::Nsf*>(image)->BeginFrame( NULL );
+						static_cast<Core::Nsf*>(image)->BeginFrame();
 						
 						cpu.BeginFrame( sound );
 						cpu.ExecuteFrame();

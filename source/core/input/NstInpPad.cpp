@@ -38,9 +38,7 @@ namespace Nes
             #endif		
 
 			Pad::Pad(uint i)
-			: 
-			Device          (Type(uint(Api::Input::PAD1) + i)),
-			swapSelectStart (false)
+			: Device(Type(uint(Api::Input::PAD1) + i))
 			{
 				NST_ASSERT( i < 4 );
 
@@ -60,52 +58,7 @@ namespace Nes
 				stream = 0xFF;
 				state = 0;
 			}
-		
-			void Pad::Initialize(const dword pRomCrc)
-			{
-				switch (pRomCrc)
-				{
-					case 0x135ADF7CUL: // RBI Baseball
-					case 0xED588F00UL: // Duck Hunt
-					case 0x16D3F469UL: // Ninja Jajamaru Kun (J)
-					case 0x8850924BUL: // Tetris
-					case 0x8C0C2DF5UL: // Top Gun
-					case 0x70901B25UL: // Slalom
-					case 0xCF36261EUL: // Sky Kid
-					case 0xE1AA8214UL: // Star Luster
-					case 0xD5D7EAC4UL: // Dr. Mario
-					case 0x737DD1BFUL: // Super Mario Bros	
-					case 0x4BF3972DUL: // -||-
-					case 0x8B60CC58UL: // -||-
-					case 0x8192C804UL: // -||-
-					case 0xEC461DB9UL: // Pinball
-					case 0xE528F651UL: // Pinball (alt)
-					case 0x0B65A917UL: // Mach Rider
-					case 0x8A6A9848UL: // -||-
-					case 0x70433F2CUL: // Battle City
-					case 0x8D15A6E6UL: // bad .nes
-					case 0xD99A2087UL: // Gradius
-     	 			case 0xFFBEF374UL: // Castlevania
-					case 0xE2C0A2BEUL: // Platoon
-					case 0xCBE85490UL: // Excitebike
-					case 0x29155E0CUL: // Excitebike (alt)
-					case 0x07138C06UL: // Clu Clu Land
-					case 0x43A357EFUL: // Ice Climber
-					case 0x46914E3EUL: // Soccer
-					case 0xF9D3B0A3UL: // Super Xevious
-					case 0x66BB838FUL: // -||-
-					case 0xCA85E56DUL: // Mighty Bomb Jack
-				
-						swapSelectStart = true;
-						break;
-		
-					default:
-		
-						swapSelectStart = false;
-						break;
-				}
-			}
-		
+
 			void Pad::SaveState(State::Saver& state,const uchar id) const
 			{
 				const u8 data[2] = 
@@ -149,12 +102,6 @@ namespace Nes
 				{
 					mic |= pad.mic;
 					register uint buttons = pad.buttons;
-
-					if (swapSelectStart)
-					{
-						const uint tmp = (buttons ^ (buttons >> 1)) & 0x4;
-						buttons ^= tmp | (tmp << 1);
-					}
 
 					enum
 					{

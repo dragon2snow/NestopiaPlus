@@ -71,10 +71,10 @@ namespace Nes
 			{
 				NST_ASSERT( block.length );
 		
-				idword delta = pos - start;
+				iword delta = pos - start;
 		
 				if (delta < 0)
-					delta += (idword) SIZE;
+					delta += (iword) SIZE;
 		
 				block.data = output;
 				block.start = start;

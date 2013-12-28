@@ -104,7 +104,7 @@ namespace Nes
 			protected:
 
 				void Reset();
-				void UpdateContext(uint);
+				void UpdateContext(uint,const u8 (&w)[MAX_CHANNELS]);
 				Sample GetSample();
 				Cycle Clock();
 
@@ -238,7 +238,6 @@ namespace Nes
 				{
 					enum 
 					{
-						DC = 0x20,
 						SIZE = 0x40
 					};
 		
@@ -246,7 +245,7 @@ namespace Nes
 					uint length;
 					dword pos;
 					uint volume;
-					i8 table[SIZE];
+					u8 table[SIZE];
 				};
 		
 				Cpu& cpu;
@@ -256,7 +255,9 @@ namespace Nes
 				Modulator modulator;
 		
 				uint volume;
+				dword amp;
 				uint status;
+				Apu::DcBlocker dcBlocker;
 		
 				static const u8 volumes[4];
 

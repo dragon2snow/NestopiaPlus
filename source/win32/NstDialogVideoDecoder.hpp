@@ -39,7 +39,7 @@ namespace Nestopia
 		{
 		public:
 
-			VideoDecoder(Nes::Video);
+			VideoDecoder(Nes::Video,ibool);
 			~VideoDecoder();
 
 		private:
@@ -59,6 +59,7 @@ namespace Nestopia
 
 			Dialog dialog;
 			Nes::Video nes;
+			const ibool usingNtscFilter;
 			Nes::Video::Decoder final;
 		};
 	}

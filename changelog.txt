@@ -1,4 +1,52 @@
 ----------------------------------------------------------------
+1.28
+----------------------------------------------------------------
+
+Windows:
+
+ Additions:
+  
+  - Sound volume level sliders.
+  - More NTSC video filter options.
+  - Scanline darkening level sliders.
+
+ Changes:
+  
+  - Pressing the ALT-key when the menu is hidden should no longer
+    cause "hickups" during play.
+  - Recent files/directories menu lock state is now saved on exit.
+
+ Fixes:
+
+  - Window placement bug.
+
+Emulator:
+
+ Additions:
+
+  - Non-linear APU sound output.
+  - Mapper 116 for "AV-Girl Fighting".
+  - Mapper 163 and 167. Info from tpu.
+  - Database entries.
+
+ Changes:
+
+  - Update to version 0.1.7 of Blargg's NTSC composite video filter.
+  - Fine-tuned the volume levels of the external sound chips.
+  - More accurate SUNSOFT5B sound chip emulation.
+  - Moved "Shanghai" to mapper 93.
+  - Patch for "Dragon Ball Z II - Gekishin Freeza!! (redump)" to 
+    use the proper EEPROM type.
+  - 'No Sprite Limit' option should now be more responsive to games 
+    that make heavy use of OAM cycling.
+
+ Fixes:
+
+  - Mapper 45, 53, 74, 90, 93, 164 and 165.
+  - Dip-switch and input fixes for some VS.System games.
+  - Database entries.
+
+----------------------------------------------------------------
 1.27
 ----------------------------------------------------------------
 

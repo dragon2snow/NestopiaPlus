@@ -58,9 +58,9 @@ namespace Nes
 					Sound::Reset();
 				}
 
-				void UpdateContext(uint v)
+				void UpdateContext(uint v,const u8 (&w)[MAX_CHANNELS])
 				{
-					Sound::UpdateContext( v );
+					Sound::UpdateContext( v, w );
 				}
 
 				Apu::Sample GetSample()
@@ -89,9 +89,9 @@ namespace Nes
 					Sound::Reset();
 				}
 
-				void UpdateContext(uint v)
+				void UpdateContext(uint v,const u8 (&w)[MAX_CHANNELS])
 				{
-					Sound::UpdateContext( v );
+					Sound::UpdateContext( v, w );
 				}
 
 				Apu::Sample GetSample()
@@ -117,9 +117,9 @@ namespace Nes
 					Sound::Reset();
 				}
 
-				void UpdateContext(uint v)
+				void UpdateContext(uint v,const u8 (&w)[MAX_CHANNELS])
 				{
-					Sound::UpdateContext( v );
+					Sound::UpdateContext( v, w );
 				}
 
 				Apu::Sample GetSample()
@@ -140,9 +140,9 @@ namespace Nes
 					Sound::Reset();
 				}
 
-				void UpdateContext(uint v)
+				void UpdateContext(uint v,const u8 (&w)[MAX_CHANNELS])
 				{
-					Sound::UpdateContext( v );
+					Sound::UpdateContext( v, w );
 				}
 
 				Apu::Sample GetSample()
@@ -163,9 +163,9 @@ namespace Nes
 					Sound::Reset();
 				}
 
-				void UpdateContext(uint v)
+				void UpdateContext(uint v,const u8 (&w)[MAX_CHANNELS])
 				{
-					Sound::UpdateContext( v );
+					Sound::UpdateContext( v, w );
 				}
 
 				Apu::Sample GetSample()
@@ -174,11 +174,11 @@ namespace Nes
 				}
 			};
 
-			class Fme07 : public Boards::Fme07::Sound
+			class S5B : public Boards::Fme7::Sound
 			{
 			public:
 
-				Fme07(Cpu& c)
+				S5B(Cpu& c)
 				: Sound(c,false) {}
 
 				void Reset()
@@ -186,9 +186,9 @@ namespace Nes
 					Sound::Reset();
 				}
 
-				void UpdateContext(uint v)
+				void UpdateContext(uint v,const u8 (&w)[MAX_CHANNELS])
 				{
-					Sound::UpdateContext( v );
+					Sound::UpdateContext( v, w );
 				}
 
 				Apu::Sample GetSample()
@@ -198,7 +198,7 @@ namespace Nes
 			};
 
 			void Reset();
-			void UpdateContext(uint);
+			void UpdateContext(uint,const u8 (&w)[MAX_CHANNELS]);
 			Sample GetSample();
 			Cycle Clock();
 
@@ -214,30 +214,30 @@ namespace Nes
 			Vrc6* const vrc6;
 			Vrc7* const vrc7;
 			Fds* const fds;
-			Fme07* const fme07;
+			S5B* const s5b;
 			N106* const n106;
 		};
 
 		Nsf::Chips::Chips(const uint types,Cpu& cpu)
 		:
-		apu   ( cpu.GetApu() ),
-		mmc5  ( ( types & CHIP_MMC5  ) ? new Mmc5  (cpu) : NULL ),
-		vrc6  ( ( types & CHIP_VRC6  ) ? new Vrc6  (cpu) : NULL ),
-		vrc7  ( ( types & CHIP_VRC7  ) ? new Vrc7  (cpu) : NULL ),
-		fds   ( ( types & CHIP_FDS   ) ? new Fds   (cpu) : NULL ),
-		fme07 ( ( types & CHIP_FME07 ) ? new Fme07 (cpu) : NULL ),
-		n106  ( ( types & CHIP_N106  ) ? new N106  (cpu) : NULL )
+		apu  ( cpu.GetApu() ),
+		mmc5 ( ( types & CHIP_MMC5 ) ? new Mmc5  (cpu) : NULL ),
+		vrc6 ( ( types & CHIP_VRC6 ) ? new Vrc6  (cpu) : NULL ),
+		vrc7 ( ( types & CHIP_VRC7 ) ? new Vrc7  (cpu) : NULL ),
+		fds  ( ( types & CHIP_FDS  ) ? new Fds   (cpu) : NULL ),
+		s5b  ( ( types & CHIP_S5B  ) ? new S5B   (cpu) : NULL ),
+		n106 ( ( types & CHIP_N106 ) ? new N106  (cpu) : NULL )
 		{
 			Log log;
 
-			if (types & (CHIP_MMC5|CHIP_VRC6|CHIP_VRC7|CHIP_FDS|CHIP_FME07|CHIP_N106))
+			if (types & (CHIP_MMC5|CHIP_VRC6|CHIP_VRC7|CHIP_FDS|CHIP_S5B|CHIP_N106))
 			{
-				if ( mmc5  ) log << "Nsf: MMC5 sound chip present" NST_LINEBREAK;
-				if ( vrc6  ) log << "Nsf: VRC6 sound chip present" NST_LINEBREAK;
-				if ( vrc7  ) log << "Nsf: VRC7 sound chip present" NST_LINEBREAK;
-				if ( fds   ) log << "Nsf: FDS sound chip present" NST_LINEBREAK;
-				if ( fme07 ) log << "Nsf: FME-07 sound chip present" NST_LINEBREAK;
-				if ( n106  ) log << "Nsf: N106 sound chip present" NST_LINEBREAK;
+				if ( mmc5 ) log << "Nsf: MMC5 sound chip present" NST_LINEBREAK;
+				if ( vrc6 ) log << "Nsf: VRC6 sound chip present" NST_LINEBREAK;
+				if ( vrc7 ) log << "Nsf: VRC7 sound chip present" NST_LINEBREAK;
+				if ( fds  ) log << "Nsf: FDS sound chip present" NST_LINEBREAK;
+				if ( s5b  ) log << "Nsf: Sunsoft5B sound chip present" NST_LINEBREAK;
+				if ( n106 ) log << "Nsf: N106 sound chip present" NST_LINEBREAK;
 			}
 
 			apu.HookChannel( this );
@@ -248,7 +248,7 @@ namespace Nes
 			apu.ReleaseChannel();
 
 			delete n106;
-			delete fme07;
+			delete s5b;
 			delete fds;
 			delete vrc6;
 			delete vrc7;
@@ -259,24 +259,24 @@ namespace Nes
 		{
 			clock[2] = clock[1] = clock[0] = NES_CYCLE_MAX;
 
-			if ( mmc5  ) mmc5->Reset(); 				
-			if ( vrc6  ) vrc6->Reset();
-			if ( vrc7  ) vrc7->Reset();  
-			if ( fds   ) fds->Reset(); 
-			if ( fme07 ) fme07->Reset();
-			if ( n106  ) n106->Reset();
+			if ( mmc5 ) mmc5->Reset(); 				
+			if ( vrc6 ) vrc6->Reset();
+			if ( vrc7 ) vrc7->Reset();  
+			if ( fds  ) fds->Reset(); 
+			if ( s5b  ) s5b->Reset();
+			if ( n106 ) n106->Reset();
 		}
 		
-		void Nsf::Chips::UpdateContext(uint v)
+		void Nsf::Chips::UpdateContext(uint v,const u8 (&w)[MAX_CHANNELS])
 		{
 			clock[2] = clock[1] = clock[0] = NES_CYCLE_MAX;
 
-			if ( mmc5  ) mmc5->SetContext( rate, fixed, mode, emulate ); 				
-			if ( vrc6  ) vrc6->SetContext( rate, fixed, mode, emulate );
-			if ( vrc7  ) vrc7->SetContext( rate, fixed, mode, emulate );  
-			if ( fds   ) fds->SetContext( rate, fixed, mode, emulate ); 
-			if ( fme07 ) fme07->SetContext( rate, fixed, mode, emulate );
-			if ( n106  ) n106->SetContext( rate, fixed, mode, emulate );
+			if ( mmc5 ) mmc5->SetContext( rate, fixed, mode, w ); 				
+			if ( vrc6 ) vrc6->SetContext( rate, fixed, mode, w );
+			if ( vrc7 ) vrc7->SetContext( rate, fixed, mode, w );  
+			if ( fds  ) fds->SetContext( rate, fixed, mode, w ); 
+			if ( s5b  ) s5b->SetContext( rate, fixed, mode, w );
+			if ( n106 ) n106->SetContext( rate, fixed, mode, w );
 		}
 		
 		Cycle Nsf::Chips::Clock()
@@ -304,12 +304,12 @@ namespace Nes
 		{
 			return
 			(
-				(mmc5  ? mmc5->GetSample()  : 0) +
-				(vrc6  ? vrc6->GetSample()  : 0) + 
-				(vrc7  ? vrc7->GetSample()  : 0) + 
-				(fds   ? fds->GetSample()   : 0) +  
-				(fme07 ? fme07->GetSample() : 0) +
-				(n106  ? n106->GetSample()  : 0)
+				(mmc5 ? mmc5->GetSample() : 0) +
+				(vrc6 ? vrc6->GetSample() : 0) + 
+				(vrc7 ? vrc7->GetSample() : 0) + 
+				(fds  ? fds->GetSample()  : 0) +  
+				(s5b  ? s5b->GetSample()  : 0) +
+				(n106 ? n106->GetSample() : 0)
 			);
 		}
 		
@@ -417,7 +417,7 @@ namespace Nes
 				stream.Read( prg.Source().Mem() + offset, length );
 			}
 	
-			if (type & (CHIP_VRC6|CHIP_VRC7|CHIP_FDS|CHIP_MMC5|CHIP_N106|CHIP_FME07))
+			if (type & (CHIP_VRC6|CHIP_VRC7|CHIP_FDS|CHIP_MMC5|CHIP_N106|CHIP_S5B))
 				chips = new Chips (type,cpu);
 			else
 				Log() << "Nsf: no external sound chip present" NST_LINEBREAK;
@@ -456,12 +456,12 @@ namespace Nes
 
 			if (chips)
 			{
-				if ( chips->vrc6  ) type |= CHIP_VRC6;
-				if ( chips->vrc7  ) type |= CHIP_VRC7;
-				if ( chips->fds   ) type |= CHIP_FDS;
-				if ( chips->mmc5  ) type |= CHIP_MMC5;
-				if ( chips->n106  ) type |= CHIP_N106;
-				if ( chips->fme07 ) type |= CHIP_FME07;
+				if ( chips->vrc6 ) type |= CHIP_VRC6;
+				if ( chips->vrc7 ) type |= CHIP_VRC7;
+				if ( chips->fds  ) type |= CHIP_FDS;
+				if ( chips->mmc5 ) type |= CHIP_MMC5;
+				if ( chips->n106 ) type |= CHIP_N106;
+				if ( chips->s5b  ) type |= CHIP_S5B;
 			}								
 
 			return type;
@@ -563,10 +563,10 @@ namespace Nes
 				cpu.Map( 0xF800U ).Set( &Nsf::Poke_N106_F8 );
 			}
 
-			if (chips && chips->fme07)
+			if (chips && chips->s5b)
 			{
-				cpu.Map( 0xC000U ).Set( &Nsf::Poke_Fme07_C );
-				cpu.Map( 0xE000U ).Set( &Nsf::Poke_Fme07_E );
+				cpu.Map( 0xC000U ).Set( &Nsf::Poke_S5B_C );
+				cpu.Map( 0xE000U ).Set( &Nsf::Poke_S5B_E );
 			}
 
 			cpu.Map( 0xFFFAU ).Set( &Nsf::Peek_FFFA );
@@ -673,7 +673,7 @@ namespace Nes
         #pragma optimize("", on)
         #endif
 
-		void Nsf::BeginFrame(Input::Controllers*)
+		void Nsf::BeginFrame()
 		{
 			routine.jmp = (routine.playing ? 0xFA : 0xFD);
 
@@ -875,8 +875,8 @@ namespace Nes
 		NES_POKE(Nsf,Vrc7_9010) { chips->vrc7->WriteReg0( data ); }
 		NES_POKE(Nsf,Vrc7_9030) { chips->vrc7->WriteReg1( data ); }
 
-		NES_POKE(Nsf,Fme07_C) { chips->fme07->Poke_C000( data ); }
-		NES_POKE(Nsf,Fme07_E) { chips->fme07->Poke_E000( data ); }
+		NES_POKE(Nsf,S5B_C) { chips->s5b->Poke_C000( data ); }
+		NES_POKE(Nsf,S5B_E) { chips->s5b->Poke_E000( data ); }
 
 		NES_PEEK(Nsf,N106_48) { return chips->n106->Peek_4800(); }
 		NES_POKE(Nsf,N106_48) { chips->n106->Poke_4800( data );  }

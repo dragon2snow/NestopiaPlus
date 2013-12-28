@@ -134,6 +134,7 @@ namespace Nestopia
 			void OnReturnInputScreen(Rect&);
 			void OnReturnOutputScreen(Rect&);
 
+			ibool OnSysKeyDown        (Param&);
 			ibool OnCommand           (Param&);
 			ibool OnEnable            (Param&);
 			ibool OnEnterSizeMoveMenu (Param&);       

@@ -121,7 +121,7 @@ namespace Nes
 					BlitUnaligned<T>( input, output );
 			}
 
-			void Renderer::FilterNone::Blit(const Input& input,const Output& output)
+			void Renderer::FilterNone::Blit(const Input& input,const Output& output,uint)
 			{
 				switch (bpp)
 				{

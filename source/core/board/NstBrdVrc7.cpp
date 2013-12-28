@@ -319,8 +319,9 @@ namespace Nes
 				pitchPhase = ampPhase = 0;
 			}
 
-			void Vrc7::Sound::UpdateContext(uint)
+			void Vrc7::Sound::UpdateContext(uint,const u8 (&volumes)[MAX_CHANNELS])
 			{
+				outputVolume = volumes[Apu::CHANNEL_VRC7];
 				ResetClock();
 
 				for (uint i=0; i < NUM_OPLL_CHANNELS; ++i)
@@ -371,7 +372,7 @@ namespace Nes
 
 			void Vrc7::Sound::LoadState(State::Loader& state)
 			{
-				UpdateContext(0);
+//				UpdateContext(0);
 
 				while (dword chunk = state.Begin())
 				{
@@ -972,7 +973,7 @@ namespace Nes
 
 			Vrc7::Sound::Sample Vrc7::Sound::GetSample()
 			{
-				if (emulate)
+				if (outputVolume)
 				{
 					while (samplePhase < sampleRate)
 					{
@@ -996,7 +997,7 @@ namespace Nes
 
 					samplePhase -= sampleRate;
 
-					return sign_shl( (prevSample * long(samplePhase) + nextSample * long(CLOCK_RATE - samplePhase)) / long(CLOCK_RATE), 3 );
+					return sign_shl( (prevSample * iword(samplePhase) + nextSample * iword(CLOCK_RATE - samplePhase)) / iword(CLOCK_RATE), 3 ) * iword(outputVolume) / DEFAULT_VOLUME;
 				}
 				else
 				{

@@ -98,6 +98,8 @@ namespace Nes
 				{
 					ClearRegisters();
 					UpdatePrg();
+					UpdateChr();
+					UpdateMirroring();
 				}
 			}
 		
@@ -216,7 +218,7 @@ namespace Nes
 		
 			NES_POKE(Mmc1,Prg)
 			{
-				const idword time = cpu.GetAutoClockCycles();
+				const iword time = cpu.GetAutoClockCycles();
 		
 				if ((time - serial.time) >= 2)
 				{				
@@ -321,7 +323,7 @@ namespace Nes
 		
 			void Mmc1::VSync() 
 			{
-				serial.time -= (idword) cpu.GetAutoClockFrameCycles();
+				serial.time -= (iword) cpu.GetAutoClockFrameCycles();
 
 				if (serial.time < -2)
 					serial.time = -2;

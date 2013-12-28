@@ -100,6 +100,7 @@ namespace Nes
 				square[0].Reset();
 				square[1].Reset();
 				saw.Reset();
+				dcBlocker.Reset();
 			}
 	
 			void Vrc6::SubReset(const bool hard)
@@ -159,11 +160,14 @@ namespace Nes
 				frequency = ((waveLength + 1UL) << FRQ_SHIFT) * fixed;
 			}
 	
-			void Vrc6::Sound::UpdateContext(uint)
+			void Vrc6::Sound::UpdateContext(uint,const u8 (&volumes)[MAX_CHANNELS])
 			{
+				outputVolume = volumes[Apu::CHANNEL_VRC6];
+
 				square[0].UpdateContext( fixed );
 				square[1].UpdateContext( fixed );
 				saw.UpdateContext( fixed );
+				dcBlocker.Reset();
 			}
 	
 			void Vrc6::BaseLoad(State::Loader& state,const dword id)
@@ -404,116 +408,98 @@ namespace Nes
 			NES_POKE(Vrc6,B001) { sound.WriteSawReg1    (    data ); }
 			NES_POKE(Vrc6,B002) { sound.WriteSawReg2    (    data ); }
 	
-			NST_FORCE_INLINE Vrc6::Sound::Sample Vrc6::Sound::Square::GetSample(const Cycle rate)
+			NST_FORCE_INLINE dword Vrc6::Sound::Square::GetSample(const Cycle rate)
 			{
 				NST_VERIFY( bool(active) == CanOutput() && timer >= 0 );
-	
+
 				if (active)
 				{
-					Sample sum;
-					Sample amp;
-	
-					if (Cycle(timer) >= rate)
+					dword sum = timer;
+					timer -= iword(rate);
+					
+					if (timer >= 0)
 					{
-						timer -= idword(rate);
-						amp = sum = volume; 
-	
-						if (step >= duty)
-							sum = -sum;
+						return step < duty ? volume : 0;
 					}
 					else
 					{
-						sum = timer;
-						timer -= idword(rate);
-	
 						if (step >= duty)
-							sum = -sum;
-	
+							sum = 0;
+
 						do 
 						{	
-							idword weight = frequency;
-							timer += weight;
-	
-							if (timer > 0)
-								weight -= timer;
-	
 							step = (step + 1) & 0xF;
-	
-							if (step >= duty)
-								weight = -weight;
-	
-							sum += weight;
+
+							if (step < duty)
+								sum += NST_MIN(dword(-timer),frequency);
+
+							timer += iword(frequency);
 						} 
 						while (timer < 0);
-	
-						amp = ((volume * ulong(std::labs(sum))) + (rate / 2)) / rate;
+
+						return (sum * volume + (rate/2)) / rate;
 					}
-	
-					return (sum < 0 ? -amp : amp);
 				}
-	
+
 				return 0;
 			}
 	
-			NST_FORCE_INLINE Vrc6::Sound::Sample Vrc6::Sound::Saw::GetSample(const Cycle rate)
+			NST_FORCE_INLINE dword Vrc6::Sound::Saw::GetSample(const Cycle rate)
 			{
 				NST_VERIFY( bool(active) == CanOutput() && timer >= 0 );
 	
 				if (active)
 				{
-					dword sum;
-	
-					if (Cycle(timer) >= rate)
+					dword sum = timer;
+					timer -= iword(rate);
+
+					if (timer >= 0)
 					{
-						timer -= idword(rate);
-						sum = VOLUME * amp;
+						return (amp >> 3) * VOLUME;
 					}
 					else
 					{
-						sum = dword(timer) * amp;
-						timer -= idword(rate);
-	
+						sum *= amp;
+
 						do
 						{
-							timer += idword(frequency);
-							dword weight = frequency;
-	
-							if (timer > 0)
-								weight -= timer;
-	
-							if (++step > 0x6)
+							if (++step >= 0x7)
 							{
 								step = 0;
 								amp = 0;
 							}
-	
-							amp += phase;
-							sum += weight * amp;
+
+							amp = (amp + phase) & 0xFF;
+							sum += NST_MIN(dword(-timer),frequency) * amp;
+							
+							timer += iword(frequency);
 						}
 						while (timer < 0);
-	
-						sum = ((VOLUME * sum) + (rate / 2)) / rate;
+
+						return ((sum >> 3) * VOLUME + (rate / 2)) / rate;
 					}
-	
-					return Sample(sum) - Sample((phase * 0x6UL * VOLUME) / 2);
 				}
-	
+
 				return 0;
 			}
 	
 			Vrc6::Sound::Sample Vrc6::Sound::GetSample()
-			{
-				Sample sample = 0;
-	
-				if (emulate)
+			{	
+				if (outputVolume)
 				{
+					dword sample = 0;
+
 					for (uint i=0; i < 2; ++i)
 						sample += square[i].GetSample( rate );
 	
 					sample += saw.GetSample( rate );
+
+					return dcBlocker.Apply( sample * outputVolume / DEFAULT_VOLUME );
 				}
-	
-				return sample;
+				else
+				{
+					return 0;
+				}
 			}
 			
 			NES_POKE(Vrc6,B003) 

@@ -55,7 +55,7 @@ namespace Nes
 				protected:
 
 					void Reset();
-					void UpdateContext(uint);
+					void UpdateContext(uint,const u8 (&w)[MAX_CHANNELS]);
 					Sample GetSample();
 
 				private:

@@ -71,11 +71,12 @@ namespace Nestopia
 		{ IDC_VIDEO_DECODER_CANCEL,       &VideoDecoder::OnCmdCancel      }
 	};
 
-	VideoDecoder::VideoDecoder(Nes::Video e)
+	VideoDecoder::VideoDecoder(Nes::Video e,ibool ntsc)
 	: 
-	dialog (IDD_VIDEO_DECODER,this,Handlers::messages,Handlers::commands), 
-	nes    (e),
-	final  (e.GetDecoder())
+	dialog          (IDD_VIDEO_DECODER,this,Handlers::messages,Handlers::commands), 
+	nes             (e),
+	usingNtscFilter (ntsc),
+	final           (e.GetDecoder())
 	{
 		dialog.Open();
 	}
@@ -93,20 +94,8 @@ namespace Nestopia
 			dialog.Edit( IDC_VIDEO_DECODER_RY_GAIN+i ).Limit( 5 );
 		}
 
-		{
-			Nes::Video::RenderState state;
-			nes.GetRenderState( state );
-
-			const ibool enable = 
-			(
-     			state.filter != Nes::Video::RenderState::FILTER_NTSC &&
-    			state.filter != Nes::Video::RenderState::FILTER_NTSC_SCANLINES_BRIGHT &&
-				state.filter != Nes::Video::RenderState::FILTER_NTSC_SCANLINES_DARK
-			);
-
-			dialog.Control( IDC_VIDEO_DECODER_BOOST_YELLOW ).Enable( enable );
-			dialog.Control( IDC_VIDEO_DECODER_ALTERNATIVE ).Enable( enable );
-		}
+		dialog.Control( IDC_VIDEO_DECODER_BOOST_YELLOW ).Enable( !usingNtscFilter );
+		dialog.Control( IDC_VIDEO_DECODER_ALTERNATIVE ).Enable( !usingNtscFilter );
 
 		Update();
 

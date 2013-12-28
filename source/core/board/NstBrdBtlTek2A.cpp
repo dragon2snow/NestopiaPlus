@@ -32,12 +32,12 @@ namespace Nes
 	{
 		namespace Boards
 		{
+			BtlTek2A::CartSwitches::CartSwitches(uint d)
+			: data(d) {}
+
             #ifdef NST_PRAGMA_OPTIMIZE
             #pragma optimize("s", on)
             #endif
-
-			BtlTek2A::CartSwitches::CartSwitches(uint d)
-			: data(d) {}
 
 			BtlTek2A::BtlTek2A(Context& c,const DefaultDipSwitch d)
 			: 
@@ -89,6 +89,9 @@ namespace Nes
 			{
 				irq.Reset( true, false );
 
+				ppu.SetBgHook( Hook(this,&BtlTek2A::Hook_PpuBg) );
+				ppu.SetSpHook( Hook(this,&BtlTek2A::Hook_PpuSp) );
+ 
 				for (uint i=0x5000U; i < 0x5800U; i += 0x4)
 					Map( i, &BtlTek2A::Peek_5000 );
 		
@@ -193,7 +196,7 @@ namespace Nes
 								irq.unit.flip      = data[4];
 
 								irq.unit.scale = (irq.unit.mode & Irq::MODE_SCALE_3BIT) ? 0x7 : 0xFF;					
-								irq.EnableLine( irq.unit.IsEnabled() );
+								irq.EnableLine( irq.unit.IsEnabled(Irq::MODE_PPU_A12) );
 
 								break;
 							}
@@ -347,34 +350,30 @@ namespace Nes
 				return data;
 			}
 
-			inline ibool BtlTek2A::Irq::Signal()
+			ibool BtlTek2A::Irq::IsEnabled() const
 			{
-				NST_ASSERT
+				return enabled &&
 				( 
-					enabled && (mode & MODE_SOURCE) == MODE_PPU_A12 &&
-					(
-						(mode & MODE_COUNT_ENABLE) == MODE_COUNT_DOWN ||
-						(mode & MODE_COUNT_ENABLE) == MODE_COUNT_UP
-					)
+					(mode & MODE_COUNT_ENABLE) == MODE_COUNT_DOWN || 
+					(mode & MODE_COUNT_ENABLE) == MODE_COUNT_UP
 				);
+			}
+
+			ibool BtlTek2A::Irq::IsEnabled(uint checkMode) const
+			{
+				return IsEnabled() && (mode & MODE_SOURCE) == checkMode;
+			}
+
+			ibool BtlTek2A::Irq::Signal()
+			{
+				NST_ASSERT( IsEnabled() );
 		
 				if (mode & MODE_COUNT_DOWN)
 					return (--prescaler & scale) == scale && (count-- & 0xFF) == 0x00;
 				else
 					return (++prescaler & scale) == 0x00 && (++count & 0xFF) == 0x00;
 			}
-		
-			ibool BtlTek2A::Irq::IsEnabled() const
-			{
-				const bool counting = enabled &&
-				( 
-					(mode & MODE_COUNT_ENABLE) == MODE_COUNT_DOWN || 
-					(mode & MODE_COUNT_ENABLE) == MODE_COUNT_UP
-				);
-		
-				return counting && (mode & MODE_SOURCE) == MODE_PPU_A12;
-			}
-		
+				
 			uint BtlTek2A::Banks::Unscramble(const uint bank)
 			{
 				return
@@ -388,6 +387,36 @@ namespace Nes
 				);
 			}
 		
+			NES_HOOK(BtlTek2A,PpuBg)
+			{
+				if (irq.unit.IsEnabled(Irq::MODE_PPU_READ) && ppu.IsEnabled())
+				{
+					for (uint i=0, hit=false; i < (32*4) * 2; i += 2)
+					{
+						if (irq.unit.Signal() && !hit)
+						{
+							hit = true;
+							cpu.DoIRQ( Cpu::IRQ_EXT, cpu.GetMasterClockCycles() + ppu.GetOneCycle() * i );
+						}
+					}
+				}
+			}
+
+			NES_HOOK(BtlTek2A,PpuSp)
+			{
+				if (irq.unit.IsEnabled(Irq::MODE_PPU_READ) && ppu.IsEnabled())
+				{
+					for (uint i=0, hit=false; i < (8*4+2*4+2) * 2; i += 2)
+					{
+						if (irq.unit.Signal() && !hit)
+						{
+							hit = true;
+							cpu.DoIRQ( Cpu::IRQ_EXT, cpu.GetMasterClockCycles() + ppu.GetOneCycle() * i );
+						}
+					}
+				}
+			}
+
 			NES_PEEK(BtlTek2A,5000) 
 			{ 
 				return (cartSwitches.GetSetting() & DIPSWITCH_GAME) | ((address >> 8) & ~uint(DIPSWITCH_GAME)); 
@@ -480,7 +509,7 @@ namespace Nes
 					if (!data)
 						cpu.ClearIRQ();
 		
-					irq.EnableLine( irq.unit.IsEnabled() );
+					irq.EnableLine( irq.unit.IsEnabled(Irq::MODE_PPU_A12) );
 				}
 			}
 		
@@ -495,13 +524,13 @@ namespace Nes
 						(data & Irq::MODE_SCALE_ADJUST) == 0 &&
 						(
              	 			(data & Irq::MODE_SOURCE) == Irq::MODE_PPU_A12 ||
-             	 			(data & Irq::MODE_SOURCE) == Irq::MODE_CPU_WRITE
+             	 			(data & Irq::MODE_SOURCE) == Irq::MODE_PPU_READ
 						)
 					);
 		
 					irq.unit.mode = data;
 					irq.unit.scale = (data & Irq::MODE_SCALE_3BIT) ? 0x7 : 0xFF;
-					irq.EnableLine( irq.unit.IsEnabled() );
+					irq.EnableLine( irq.unit.IsEnabled(Irq::MODE_PPU_A12) );
 				}
 			}
 		
@@ -513,7 +542,7 @@ namespace Nes
 		
 					irq.unit.enabled = false;
 					cpu.ClearIRQ();
-					irq.EnableLine( irq.unit.IsEnabled() );
+					irq.EnableLine( irq.unit.IsEnabled(Irq::MODE_PPU_A12) );
 				}
 			}
 		
@@ -524,7 +553,7 @@ namespace Nes
 					irq.Update();
 		
 					irq.unit.enabled = true;
-					irq.EnableLine( irq.unit.IsEnabled() );
+					irq.EnableLine( irq.unit.IsEnabled(Irq::MODE_PPU_A12) );
 				}
 			}
 		

@@ -288,6 +288,7 @@ namespace Nes
 		: cpu(c), output(screen), bgHook(this,&Ppu::Hook_Null), spHook(this,&Ppu::Hook_Null)
 		{
 			oam.limit = oam.buffer + Oam::STD_LINE_SPRITES;
+			SetMode( cpu.GetMode() );
 		}
 
         #ifdef _MSC_VER
@@ -297,7 +298,7 @@ namespace Nes
 		Ppu::~Ppu()
 		{
 		}
-	
+
 		void Ppu::Reset(const bool hard)
 		{
 			logged = 0;
@@ -337,12 +338,24 @@ namespace Nes
 
 				stage = WARM_UP_FRAMES;
 				phase = &Ppu::WarmUp;
+
+				regs.ctrl0 = 0;
+				regs.ctrl1 = 0;
+				regs.frame = 0;
 				regs.status = 0;
+				
+				scroll.address = 0;
+				scroll.toggle = 0;
+				scroll.latch = 0;
+				scroll.xFine = 0;
+
+				output.burstPhase = 0;
 			}
 			else
 			{
 				stage = 0;
 				phase = &Ppu::HDummy;
+				
 				regs.status = Regs::STATUS_VBLANK;
 			}
 	
@@ -361,22 +374,12 @@ namespace Nes
 			chrMem.ResetAccessors();
 			nmtMem.ResetAccessors();
 	
-			SetMode( cpu.GetMode() );
 			cycles.count = NES_CYCLE_MAX;
 			cycles.spriteOverflow = NES_CYCLE_MAX;
 	
 			io.address = 0;
 			io.pattern = 0;
-	
-			regs.ctrl0 = 0;
-			regs.ctrl1 = 0;
-			regs.frame = 0;
-	
-			scroll.address = 0;
-			scroll.toggle = 0;
-			scroll.latch = 0;
-			scroll.xFine = 0;
-	
+			
 			scanline = SCANLINE_VBLANK;
 	
 			tiles.pattern[0] = 0;
@@ -434,11 +437,13 @@ namespace Nes
 			state.Begin('N','M','T','\0').Compress( nameTable.ram ).End();
 
 			if (cpu.GetMode() == MODE_NTSC)
-				state.Begin('F','R','M','\0').Write8( (regs.frame & Regs::FRAME_ODD) != 0 ).End();
+				state.Begin('F','R','M','\0').Write8( (regs.frame & Regs::FRAME_ODD) == 0 ).End();
 		}
 	
 		void Ppu::LoadState(State::Loader& state)
 		{
+			output.burstPhase = 0;
+
 			while (const dword chunk = state.Begin())
 			{
 				switch (chunk)
@@ -484,7 +489,7 @@ namespace Nes
 					case NES_STATE_CHUNK_ID('F','R','M','\0'):
 					
 						if (cpu.GetMode() == MODE_NTSC)
-							regs.frame = (state.Read8() & 0x1) ? Regs::FRAME_ODD : 0;
+							regs.frame = (state.Read8() & 0x1) ? 0 : Regs::FRAME_ODD;
 
 						break;
 				}
@@ -561,6 +566,9 @@ namespace Nes
 
 		void Ppu::SetMode(const Mode mode)
 		{
+			regs.frame = 0;
+			output.burstPhase = 0;
+
 			if (mode == MODE_NTSC)
 			{
 				cycles.one   = MC_DIV_NTSC * 1;
@@ -606,9 +614,7 @@ namespace Nes
 
 			if (cpu.GetMode() == MODE_NTSC)
 			{
-				if (regs.frame & Regs::FRAME_ODD)
-					regs.frame |= Regs::FRAME_DEAD_CC;
-				
+				regs.frame ^= Regs::FRAME_ODD;
 				cycles.count = MC_DIV_NTSC * CC_VINT_NTSC;
 
 				if (phase != &Ppu::WarmUp || stage < WARM_UP_FRAMES)
@@ -618,6 +624,8 @@ namespace Nes
 			}
 			else
 			{
+				NST_ASSERT( regs.frame == 0 && output.burstPhase == 0 );
+
 				cycles.count = MC_DIV_PAL * CC_VINT_PAL;
 				frame = MC_DIV_PAL * CC_FRAME_PAL;
 			}
@@ -1609,22 +1617,30 @@ namespace Nes
 			}
 			else if (++scanline != 240)
 			{
-				if (scanline == 0)
-					output.index = 0;
+				cycles.count += cycles.six;
 
 				oam.clip = (regs.ctrl1 & Regs::CTRL1_SP_NO_CLIPPING) ? ~0U : 0U;			
 				tiles.clip = (regs.ctrl1 & Regs::CTRL1_BG_NO_CLIPPING) ? ~0U : 0U;
 
-				if (!(regs.ctrl1 & regs.frame))
+				if (scanline != 0)
 				{
-					cycles.count += cycles.six;
 					NST_PPU_NEXT_PHASE( HActive0 );
 				}
 				else
 				{
-					cycles.count += MC_DIV_NTSC * 5;			
-					regs.frame &= Regs::FRAME_ODD;
-					cpu.SetupFrame( MC_DIV_NTSC * CC_FRAME_1_NTSC );
+					output.index = 0;
+
+					if (regs.ctrl1 & regs.frame)
+					{
+						output.burstPhase = (output.burstPhase + 2) % 3;
+						cycles.count -= cycles.one;			
+						cpu.SetupFrame( MC_DIV_NTSC * CC_FRAME_1_NTSC );
+					}
+					else if (cpu.GetMode() == MODE_NTSC)
+					{
+						output.burstPhase = (output.burstPhase + 1) % 3;
+					}
+					
 					NST_PPU_NEXT_PHASE( HActive0 );
 				}
 			}
@@ -1650,8 +1666,6 @@ namespace Nes
 			NST_VERIFY_MSG( regs.status & Regs::STATUS_VBLANKING, "Ppu $2002/VBlank conflict!" );
 
 			regs.status = (regs.status & 0xFF) | ((regs.status >> 1) & Regs::STATUS_VBLANK);
-			regs.frame = (regs.frame & Regs::FRAME_ODD) ^ Regs::FRAME_ODD;
-			
 			scanline = SCANLINE_VBLANK;
 			oam.address = 0x00;
 
@@ -1762,7 +1776,6 @@ namespace Nes
 			NST_ASSERT( stage && phase == &Ppu::WarmUp );
 	
 			cycles.count = NES_CYCLE_MAX;
-			regs.frame = (regs.frame & Regs::FRAME_ODD) ^ Regs::FRAME_ODD;
 	
 			if (!--stage)
 			{

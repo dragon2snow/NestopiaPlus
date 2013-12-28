@@ -49,7 +49,7 @@ namespace Nestopia
 
 		struct Paths
 		{
-			Paths();
+			Paths(HINSTANCE);
 
 			Path path;
 		};
@@ -86,14 +86,14 @@ namespace Nestopia
 	Instance::Global Instance::global;
 	Instance::Events::Callbacks Instance::Events::callbacks;
 
-	Instance::Global::Paths::Paths()
+	Instance::Global::Paths::Paths(HINSTANCE const hInstance)
 	{
 		uint length;
 
 		do 
 		{
 			path.Reserve( path.Capacity() + 255 );
-			length = ::GetModuleFileName( NULL, path.Ptr(), path.Capacity() );
+			length = ::GetModuleFileName( hInstance, path.Ptr(), path.Capacity() );
 		} 
 		while (length == path.Capacity());
 
@@ -223,6 +223,7 @@ namespace Nestopia
 	Instance::Global::Global()
 	: 
 	hInstance ( ::GetModuleHandle(NULL) ),
+	paths     ( hInstance ),
 	hooks     ( hInstance ),
 	version   ( paths.path.Ptr() ),
 	iconStyle ( ICONSTYLE_NES )

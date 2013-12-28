@@ -135,13 +135,13 @@
 #include "mapper/NstMapper099.hpp"
 #include "mapper/NstMapper100.hpp"
 #include "mapper/NstMapper101.hpp"
-#include "mapper/NstMapper102.hpp"
 #include "mapper/NstMapper105.hpp"
 #include "mapper/NstMapper107.hpp"
 #include "mapper/NstMapper112.hpp"
 #include "mapper/NstMapper113.hpp"
 #include "mapper/NstMapper114.hpp"
 #include "mapper/NstMapper115.hpp"
+#include "mapper/NstMapper116.hpp"
 #include "mapper/NstMapper117.hpp"
 #include "mapper/NstMapper118.hpp"
 #include "mapper/NstMapper119.hpp"
@@ -169,8 +169,10 @@
 #include "mapper/NstMapper157.hpp"
 #include "mapper/NstMapper158.hpp"
 #include "mapper/NstMapper160.hpp"
+#include "mapper/NstMapper163.hpp"
 #include "mapper/NstMapper164.hpp"
 #include "mapper/NstMapper165.hpp"
+#include "mapper/NstMapper167.hpp"
 #include "mapper/NstMapper180.hpp"
 #include "mapper/NstMapper181.hpp"
 #include "mapper/NstMapper182.hpp"
@@ -337,13 +339,13 @@ namespace Nes
 			{ "BMC RESET-TRIGGERED 4-IN-1",       Setup::PRG_DEFAULT,  Setup::NMT_HORIZONTAL, Setup::NMT_HORIZONTAL }, // 060
 			{ "BMC 20-IN-1",		              Setup::PRG_01XX_16K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 061
 			{ "BMC 700-IN-1",		              Setup::PRG_0123_32K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 062
-			{ "HELLO KITTY 255-IN-1",             Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 063
+			{ "",                                 Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 063
 			{ "TENGEN RAMBO-1",	                  Setup::PRG_DEFAULT,  Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 064
 			{ "IREM H-3001",		              Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 065
 			{ "GNROM",                            Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 066
-			{ "SUNSOFT #3",		                  Setup::PRG_01XX_16K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 067
-			{ "SUNSOFT #4",		                  Setup::PRG_01XX_16K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 068
-			{ "SUNSOFT FME-07",	                  Setup::PRG_01XX_16K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 069
+			{ "SUNSOFT3",		                  Setup::PRG_01XX_16K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 067
+			{ "SUNSOFT4",		                  Setup::PRG_01XX_16K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 068
+			{ "FME-7 / SUNSOFT5A / SUNSOFT5B",    Setup::PRG_01XX_16K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 069
 			{ "BANDAI 74161/32",                  Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 070
 			{ "CAMERICA", 	                      Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 071
 			{ "JALECO",			                  Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 072
@@ -363,11 +365,11 @@ namespace Nes
 			{ "JALECO",			                  Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 086
 			{ "KONAMI 74HC161/32",                Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 087
 			{ "NAMCO 118",		                  Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 088
-			{ "SUNSOFT",			              Setup::PRG_01XX_16K, Setup::NMT_ZERO,       Setup::NMT_ZERO       }, // 089
+			{ "SUNSOFT2",			              Setup::PRG_01XX_16K, Setup::NMT_ZERO,       Setup::NMT_ZERO       }, // 089
 			{ "BTL-TEK2A",   		              Setup::PRG_DEFAULT,  Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 090
 			{ "PC-HK-SF3",					      Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 091
 			{ "JALECO (early)",	                  Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 092
-			{ "SUNSOFT 74HC161/32",		          Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 093
+			{ "SUNSOFT1 / SUNSOFT2(UN-ROM)",      Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 093
 			{ "CAPCOM 74HC161/32",                Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 094
 			{ "DRAGON BUSTER (MMC3)",             Setup::PRG_01XX_16K, Setup::NMT_ZERO,       Setup::NMT_ZERO       }, // 095
 			{ "BANDAI 74HC161/32",			      Setup::PRG_0123_32K, Setup::NMT_ZERO,       Setup::NMT_ZERO       }, // 096
@@ -376,7 +378,7 @@ namespace Nes
 			{ "VS SYSTEM 8KB CHR SWITCH",         Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 099			 
 			{ "MMC3 HACK",	                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 100			 
 			{ "JALECO 74HC161/32",		          Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 101			 
-			{ "SUNSOFT 3-R",		              Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 102	
+			{ "",           		              Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 102	
 			{ "",					              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 103	
 			{ "",					              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 104	
 			{ "NES-EVENT",		                  Setup::PRG_DEFAULT,  Setup::NMT_ZERO,       Setup::NMT_ZERO       }, // 105			 
@@ -390,7 +392,7 @@ namespace Nes
 			{ "MB-91",			                  Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 113			 
 			{ "THE LION KING",	                  Setup::PRG_01XX_16K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 114			 
 			{ "YUU YUU HAKUSHO FINAL",            Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 115			 
-			{ "",					              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 116	
+			{ "MMC1+MMC3+VRC2",		              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 116	
 			{ "PC-FUTURE",		                  Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 117			 
 			{ "TLSROM / TKSROM (MMC3)",	          Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 118			 
 			{ "TQROM (MMC3)",                     Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 119			 
@@ -437,11 +439,11 @@ namespace Nes
 			{ "PC-ALADDIN",		                  Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 160			 
 			{ "",					              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 161	
 			{ "",					              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 162	
-			{ "",					              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 163	
+			{ "HARVEST MOON",		              Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 163	
 			{ "FINAL FANTASY V",	              Setup::PRG_XXXX_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 164	
 			{ "FIRE EMBLEM",		              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 165			 
 			{ "",                                 Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 166	
-			{ "",                                 Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 167	
+			{ "SUBOR COMPUTER V4.0",              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 167	
 			{ "",					              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 168	
 			{ "",					              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 169	
 			{ "",	       			              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 170	
@@ -458,7 +460,7 @@ namespace Nes
 			{ "HACKER INT.TYPE2",	              Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 181			 
 			{ "SUPER DONKEY KONG",                Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 182			 
 			{ "BTL SUIKAN PIPE",		          Setup::PRG_012X_8K,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 183	
-			{ "SUNSOFT 74HC161/32",	              Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 184			 
+			{ "SUNSOFT1(CN-ROM)",	              Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 184			 
 			{ "CROM WRITE-ENABLE",    		      Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 185			 
 			{ "STUDY BOX",   		              Setup::PRG_0101_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 186
 			{ "STREET FIGHTER ZERO 2 97",	      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 187			 
@@ -526,7 +528,7 @@ namespace Nes
 			{ "WAIXING",			              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 249
 			{ "TIME DIVER AVENGER (MMC3)",        Setup::PRG_DEFAULT,  Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 250
 			{ "SUPER 8-IN-1 FIGHTING",            Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 251
-			{ "", 				                  Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 252
+			{ "SAN GUO ZHI",	                  Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 252
 			{ "",					              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 253
 			{ "PIKACHU Y2K",		              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 254
 			{ "BMC (110-IN-1)",                   Setup::PRG_0123_32K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 255
@@ -628,13 +630,13 @@ namespace Nes
 				case  99: return new Mapper99  ( context );
 				case 100: return new Mapper100 ( context );
 				case 101: return new Mapper101 ( context );
-				case 102: return new Mapper102 ( context );
 				case 105: return new Mapper105 ( context );
 				case 107: return new Mapper107 ( context );
 				case 112: return new Mapper112 ( context );
 				case 113: return new Mapper113 ( context );
 				case 114: return new Mapper114 ( context );
 				case 115: return new Mapper115 ( context );
+				case 116: return new Mapper116 ( context );
 				case 117: return new Mapper117 ( context );
 				case 118: return new Mapper118 ( context );
 				case 119: return new Mapper119 ( context );
@@ -662,8 +664,10 @@ namespace Nes
 				case 157: return new Mapper157 ( context );
 				case 158: return new Mapper158 ( context );
 				case 160: return new Mapper160 ( context );
+				case 163: return new Mapper163 ( context );
 				case 164: return new Mapper164 ( context );
 				case 165: return new Mapper165 ( context );
+				case 167: return new Mapper167 ( context );
 				case 180: return new Mapper180 ( context );
 				case 181: return new Mapper181 ( context );
 				case 182: return new Mapper182 ( context );
@@ -706,6 +710,7 @@ namespace Nes
 				case 233: return new Mapper233 ( context );
 				case 234: return new Mapper234 ( context );
 				case 235: return new Mapper235 ( context );
+//				case 236: return new Mapper236 ( context );
 				case 240: return new Mapper240 ( context );
 				case 241: return new Mapper241 ( context );
 				case 242: return new Mapper242 ( context );

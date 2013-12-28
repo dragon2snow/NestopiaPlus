@@ -60,17 +60,17 @@ namespace Nes
 
 			enum Chip
 			{
-				CHIP_VRC6  = 0x01,
-				CHIP_VRC7  = 0x02,
-				CHIP_FDS   = 0x04,
-				CHIP_MMC5  = 0x08,
-				CHIP_N106  = 0x10,
-				CHIP_FME07 = 0x20
+				CHIP_VRC6 = 0x01,
+				CHIP_VRC7 = 0x02,
+				CHIP_FDS  = 0x04,
+				CHIP_MMC5 = 0x08,
+				CHIP_N106 = 0x10,
+				CHIP_S5B  = 0x20
 			};
 
 			void SetMode(Mode);
 			Mode GetMode() const;
-			void BeginFrame(Input::Controllers*);
+			void BeginFrame();
 			uint GetChips() const;
 
 		private:
@@ -168,8 +168,8 @@ namespace Nes
 			NES_DECL_POKE( N106_48 )
 			NES_DECL_POKE( N106_F8 )
 
-			NES_DECL_POKE( Fme07_C )
-			NES_DECL_POKE( Fme07_E )
+			NES_DECL_POKE( S5B_C )
+			NES_DECL_POKE( S5B_E )
 
 			NES_DECL_PEEK( FFFA )
 			NES_DECL_PEEK( FFFB )

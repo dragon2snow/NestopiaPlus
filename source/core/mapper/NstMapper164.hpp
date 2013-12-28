@@ -38,11 +38,18 @@ namespace Nes
 		public:
 
 			Mapper164(Context& c)
-			: Mapper(c,WRAM_8K) {}
+			: Mapper(c,WRAM_8K|CRAM_8K) {}
 
 		private:
 
 			void SubReset(bool);
+			void SubSave(State::Saver&) const;
+			void SubLoad(State::Loader&);
+			void UpdatePrg();
+
+			NES_DECL_POKE( 5000 )
+
+			u16 regs[2];
 		};
 	}
 }

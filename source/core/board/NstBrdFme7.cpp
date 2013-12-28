@@ -38,7 +38,7 @@ namespace Nes
             #pragma optimize("s", on)
             #endif
 		
-			class Fme07::BarcodeWorld : public BarcodeReader
+			class Fme7::BarcodeWorld : public BarcodeReader
 			{
 				bool SubTransfer(cstring,uint,u8*);
 
@@ -84,26 +84,42 @@ namespace Nes
 				}
 			};
 
-			const u16 Fme07::Sound::Square::voltages[16] = 
+			const u16 Fme7::Sound::levels[32] = 
 			{
-				// 16 levels, 3dB per step
-				46,65,92,130,183,259,366,517,730,1031,1457,2057,2906,4105,5799,8191
+				// 32 levels, 1.5dB per step
+				0,89,106,127,152,181,216,257,306,364,433,515,613,729,867,1031,1226,1458,
+				1733,2060,2449,2911,3460,4113,4889,5811,6907,8209,9757,11597,13784,16383
 			};
 
-			Fme07::Sound::Sound(Cpu& cpu,bool hook)
-			: apu(cpu.GetApu()), hooked(hook)
+			Fme7::Sound::Sound(Cpu& cpu,bool hook)
+			: apu(cpu.GetApu()), active(false), hooked(hook)
 			{
 				if (hook)
 					apu.HookChannel( this );
 			}
-		
-			Fme07::Sound::~Sound()
+
+			Fme7::Sound::Envelope::Envelope()
+			{
+				Reset(1);
+			}
+
+			Fme7::Sound::Noise::Noise()
+			{
+				Reset(1);
+			}
+
+			Fme7::Sound::Square::Square()
+			{
+				Reset(1);
+			}
+
+			Fme7::Sound::~Sound()
 			{
 				if (hooked)
 					apu.ReleaseChannel();
 			}
 	
-			Fme07::Fme07(Context& c)
+			Fme7::Fme7(Context& c)
 			: 
 			Mapper       (c,WRAM_8K),
 			irq          (c.cpu),
@@ -111,12 +127,12 @@ namespace Nes
 			barcodeWorld (c.pRomCrc == 0x67898319UL ? new BarcodeWorld : NULL)
 			{}
 		
-			Fme07::~Fme07()
+			Fme7::~Fme7()
 			{
 				delete barcodeWorld;
 			}
 
-			Fme07::Device Fme07::QueryDevice(DeviceType type)
+			Fme7::Device Fme7::QueryDevice(DeviceType type)
 			{
 				if (type == DEVICE_BARCODE_READER && barcodeWorld)
 					return barcodeWorld;
@@ -124,7 +140,7 @@ namespace Nes
 					return Mapper::QueryDevice( type );
 			}
 
-			void Fme07::Irq::Reset(const bool hard)
+			void Fme7::Irq::Reset(const bool hard)
 			{
 				if (hard)
 				{
@@ -132,27 +148,53 @@ namespace Nes
 					count = 0;
 				}
 			}
-
-			void Fme07::Sound::Square::Reset(const uint fixed)
-			{
-				enabled = false;
-				active = false;
-				waveLength = 0;
-				frequency = (1UL << FRQ_SHIFT) * fixed;
-				timer = 0;
-				voltage = 46;
-				dc = 0;
-			}
 	
-			void Fme07::Sound::Reset()
+			void Fme7::Sound::Envelope::Reset(const uint fixed)
+			{
+				holding = false;
+				hold = 0;
+				alternate = 0;
+				attack = 0;
+				timer = 0;
+				length = 0;
+				count = 0;
+				volume = 0;
+				UpdateFrequency( fixed );
+			}
+
+			void Fme7::Sound::Noise::Reset(const uint fixed)
+			{
+				timer = 0;
+				length = 0;
+				rng = 1;
+				dc = 0;
+				UpdateFrequency( fixed );
+			}
+
+			void Fme7::Sound::Square::Reset(const uint fixed)
+			{
+				timer = 0;
+				status = 0;
+				ctrl = 0;
+				volume = 0;
+				dc = 0;
+				length = 0;
+				UpdateFrequency( fixed );
+			}
+
+			void Fme7::Sound::Reset()
 			{
 				regSelect = 0x0;
+				envelope.Reset( fixed );
 	
 				for (uint i=0; i < NUM_SQUARES; ++i)
 					squares[i].Reset( fixed );
+
+				noise.Reset( fixed );
+				dcBlocker.Reset();
 			}
 	
-			void Fme07::SubReset(const bool hard)
+			void Fme7::SubReset(const bool hard)
 			{
 				if (hard)
 					command = 0x0;
@@ -164,31 +206,43 @@ namespace Nes
 
 				Map( WRK_PEEK );		
 				Map( WRK_POKE_BUS );		
-				Map( 0x8000U, 0x9FFFU, &Fme07::Poke_8000 );
-				Map( 0xA000U, 0xBFFFU, &Fme07::Poke_A000 );
-				Map( 0xC000U, 0xDFFFU, &Fme07::Poke_C000 );
-				Map( 0xE000U, 0xFFFFU, &Fme07::Poke_E000 );
-			}
-		
-			void Fme07::Sound::Square::UpdateContext(const uint fixed)
-			{
-				UpdateFrequency( fixed );
-				timer = 0;
-				dc = 0;
+				Map( 0x8000U, 0x9FFFU, &Fme7::Poke_8000 );
+				Map( 0xA000U, 0xBFFFU, &Fme7::Poke_A000 );
+				Map( 0xC000U, 0xDFFFU, &Fme7::Poke_C000 );
+				Map( 0xE000U, 0xFFFFU, &Fme7::Poke_E000 );
 			}
 
-			void Fme07::Sound::UpdateContext(uint)
+			void Fme7::Sound::Envelope::UpdateContext(const uint fixed)
 			{
+				timer = 0;
+				UpdateFrequency( fixed );
+			}
+
+			void Fme7::Sound::Noise::UpdateContext(const uint fixed)
+			{
+				timer = 0;
+				UpdateFrequency( fixed );
+			}
+
+			void Fme7::Sound::Square::UpdateContext(const uint fixed)
+			{
+				timer = 0;
+				UpdateFrequency( fixed );
+			}
+
+			void Fme7::Sound::UpdateContext(uint,const u8 (&volumes)[MAX_CHANNELS])
+			{
+				outputVolume = volumes[Apu::CHANNEL_S5B] * 94 / DEFAULT_VOLUME;
+				envelope.UpdateContext( fixed );
+
 				for (uint i=0; i < NUM_SQUARES; ++i)
 					squares[i].UpdateContext( fixed );
+
+				noise.UpdateContext( fixed );
+				dcBlocker.Reset();
 			}
 
-			inline bool Fme07::Sound::Square::CanOutput() const
-			{
-				return enabled && waveLength;
-			}
-
-			void Fme07::BaseLoad(State::Loader& state,const dword id)
+			void Fme7::BaseLoad(State::Loader& state,const dword id)
 			{
 				NST_ASSERT( id == NES_STATE_CHUNK_ID('F','M','7','\0') );
 
@@ -232,7 +286,7 @@ namespace Nes
 				}
 			}
 		
-			void Fme07::BaseSave(State::Saver& state) const
+			void Fme7::BaseSave(State::Saver& state) const
 			{
 				state.Begin('F','M','7','\0');
 				state.Begin('R','E','G','\0').Write8( command ).End();
@@ -256,16 +310,18 @@ namespace Nes
 				state.End();
 			}
 				
-			void Fme07::Sound::SaveState(State::Saver& state) const
+			void Fme7::Sound::SaveState(State::Saver& state) const
 			{
 				state.Begin('R','E','G','\0').Write8( regSelect ).End();
 
+				envelope.SaveState( State::Saver::Subset(state,'E','N','V','\0').Ref() );
+				noise.SaveState( State::Saver::Subset(state,'N','O','I','\0').Ref() );
 				squares[0].SaveState( State::Saver::Subset(state,'S','Q','0','\0').Ref() );
 				squares[1].SaveState( State::Saver::Subset(state,'S','Q','1','\0').Ref() );
 				squares[2].SaveState( State::Saver::Subset(state,'S','Q','2','\0').Ref() );
 			}
 				
-			void Fme07::Sound::LoadState(State::Loader& state)
+			void Fme7::Sound::LoadState(State::Loader& state)
 			{
 				while (const dword chunk = state.Begin())
 				{
@@ -274,6 +330,16 @@ namespace Nes
      					case NES_STATE_CHUNK_ID('R','E','G','\0'):
 
 							regSelect = state.Read8();
+							break;
+
+						case NES_STATE_CHUNK_ID('E','N','V','\0'):
+
+							envelope.LoadState( State::Loader::Subset(state).Ref(), fixed );
+							break;
+
+						case NES_STATE_CHUNK_ID('N','O','I','\0'):
+
+							noise.LoadState( State::Loader::Subset(state).Ref(), fixed );
 							break;
 
 						case NES_STATE_CHUNK_ID('S','Q','0','\0'):
@@ -294,34 +360,82 @@ namespace Nes
 
 					state.End();
 				}
-
-				active = CanOutput();
 			}
 
-			void Fme07::Sound::Square::SaveState(State::Saver& state) const
+			void Fme7::Sound::Envelope::SaveState(State::Saver& state) const
 			{
-				uint volume = 0;
-
-				for (uint i=0; i < NST_COUNT(voltages); ++i)
+				const u8 data[4] =
 				{
-					if (voltage == voltages[i])
-					{
-						volume = i;
-						break;
-					}
-				}
-
-				const u8 data[3] =
-				{
-					(enabled != 0) | (volume << 1),
-					waveLength & 0xFF,
-					waveLength >> 8,
+					(holding   ? 0x1 : 0x0) | 
+					(hold      ? 0x2 : 0x1) | 
+					(alternate ? 0x4 : 0x0) | 
+					(attack    ? 0x8 : 0x0),
+					count,
+					length & 0xFF,
+					length >> 8
 				};
 
 				state.Begin('R','E','G','\0').Write( data ).End();
 			}
 
-			void Fme07::Sound::Square::LoadState(State::Loader& state,const uint fixed)
+			void Fme7::Sound::Noise::SaveState(State::Saver& state) const
+			{
+				state.Begin('R','E','G','\0').Write8( length ).End();
+			}
+
+			void Fme7::Sound::Square::SaveState(State::Saver& state) const
+			{
+				const u8 data[3] =
+				{
+					((status & 0x1) ^ 0x1) | (ctrl << 1),
+					length & 0xFF,
+					(length >> 8) | ((status & 0x8) << 1),
+				};
+
+				state.Begin('R','E','G','\0').Write( data ).End();
+			}
+
+			void Fme7::Sound::Envelope::LoadState(State::Loader& state,const uint fixed)
+			{
+				while (const dword chunk = state.Begin())
+				{
+					if (chunk == NES_STATE_CHUNK_ID('R','E','G','\0'))
+					{
+						const State::Loader::Data<4> data( state );
+
+						holding = data[0] & 0x1;
+						hold = data[0] & 0x2;
+						alternate = data[0] & 0x4;
+						attack = (data[0] & 0x8) ? 0x1F : 0x00;
+						count = data[1] & 0x1F;
+						length = data[2] | ((data[3] & 0xF) << 8);
+						volume = levels[count ^ attack];
+
+						UpdateContext( fixed );
+					}
+
+					state.End();
+				}
+			}
+
+			void Fme7::Sound::Noise::LoadState(State::Loader& state,const uint fixed)
+			{
+				while (const dword chunk = state.Begin())
+				{
+					if (chunk == NES_STATE_CHUNK_ID('R','E','G','\0'))
+					{
+						length = state.Read8() & 0x1F;
+						dc = 0;
+						rng = 1;
+
+						UpdateContext( fixed );
+					}
+
+					state.End();
+				}
+			}
+
+			void Fme7::Sound::Square::LoadState(State::Loader& state,const uint fixed)
 			{
 				while (const dword chunk = state.Begin())
 				{
@@ -329,19 +443,20 @@ namespace Nes
 					{
 						const State::Loader::Data<3> data( state );
 
-						enabled = data[0] & 0x1;
-						voltage = voltages[(data[0] >> 1) & 0xF];
-						waveLength = data[1] | ((data[2] & 0xF) << 8);
+						status = ((data[0] & 0x1) ^ 0x1) | ((data[2] >> 1) & 0x8);
+						ctrl = (data[0] >> 1) & 0x1F;
+						length = data[1] | ((data[2] & 0xF) << 8);
+						volume = levels[(ctrl & 0xF) ? (ctrl & 0xF) * 2 + 1 : 0];
+						dc = (status & 0x1) ? ~0UL : 0UL;
 
 						UpdateContext( fixed );
-						active = CanOutput();
 					}
 
 					state.End();
 				}
 			}
 
-			bool Fme07::BarcodeWorld::SubTransfer(cstring const string,const uint length,u8* NST_RESTRICT stream)
+			bool Fme7::BarcodeWorld::SubTransfer(cstring const string,const uint length,u8* NST_RESTRICT stream)
 			{
 				NST_COMPILE_ASSERT( MAX_DATA_LENGTH >= 191 );
 
@@ -391,22 +506,22 @@ namespace Nes
             #pragma optimize("", on)
             #endif
 
-			NES_POKE(Fme07::BarcodeWorld,4017)
+			NES_POKE(Fme7::BarcodeWorld,4017)
 			{
 				p4017.Poke( address, data );
 			}
 
-			NES_PEEK(Fme07::BarcodeWorld,4017)
+			NES_PEEK(Fme7::BarcodeWorld,4017)
 			{
 				return (IsTransferring() ? Fetch() : 0x00) | p4017.Peek( address );
 			}
 
-			NES_POKE(Fme07,8000) 
+			NES_POKE(Fme7,8000) 
 			{ 
 				command = data;
 			}
 		
-			NES_POKE(Fme07,A000) 
+			NES_POKE(Fme7,A000) 
 			{ 
 				switch (const uint bank = (command & 0xF))
 				{
@@ -475,52 +590,101 @@ namespace Nes
 				}
 			}
 		
-			NES_POKE(Fme07,C000) 
+			NES_POKE(Fme7,C000) 
 			{ 
 				sound.Poke_C000( data ); 
 			}
 
-			void Fme07::Sound::Square::UpdateFrequency(const uint fixed)
+			void Fme7::Sound::Square::UpdateFrequency(const uint fixed)
 			{
-				frequency = ((dword(waveLength) + 1) << FRQ_SHIFT) * fixed;
+				const iword prev = frequency;
+				frequency = NST_MAX(length,1) * 16 * fixed;
+				timer = NST_MAX(timer + iword(frequency) - prev,0);
 			}
 						
-			void Fme07::Sound::Square::WriteReg0(const uint data,const uint fixed)
+			void Fme7::Sound::Square::WriteReg0(const uint data,const uint fixed)
 			{
-				waveLength &= uint(REG1_WAVELENGTH_HIGH) << 8;
-				waveLength |= data;
-				UpdateFrequency( fixed );	
-				active = CanOutput();
+				length = (length & 0x0F00) | data;
+				UpdateFrequency( fixed );
 			}
 		
-			void Fme07::Sound::Square::WriteReg1(const uint data,const uint fixed)
+			void Fme7::Sound::Square::WriteReg1(const uint data,const uint fixed)
 			{
-				waveLength &= REG0_WAVELENGTH_LOW;
-				waveLength |= (data & REG1_WAVELENGTH_HIGH) << 8;
-				UpdateFrequency( fixed );	
-				active = CanOutput();
+				length = (length & 0x00FF) | ((data & 0xF) << 8);
+				UpdateFrequency( fixed );
 			}
 		
-			void Fme07::Sound::Square::WriteReg2(const uint data)
+			void Fme7::Sound::Square::WriteReg2(const uint data)
 			{
-				enabled = (data & REG2_DISABLE) ^ REG2_DISABLE;
-				active = CanOutput();
+				status = data & (0x1|0x8);
+
+				if (status & 0x1)
+					dc = ~0UL;
 			}
 		
-			inline void Fme07::Sound::Square::WriteReg3(const uint data)
+			void Fme7::Sound::Square::WriteReg3(const uint data)
 			{
-				NST_COMPILE_ASSERT( Apu::OUTPUT_MUL == 256 );
-				voltage = voltages[data & REG3_VOLTAGE];
+				ctrl = data & 0x1F;
+				volume = levels[(ctrl & 0xF) ? (ctrl & 0xF) * 2 + 1 : 0];
 			}
 		
-			bool Fme07::Sound::CanOutput() const
+			void Fme7::Sound::Envelope::UpdateFrequency(const uint fixed)
 			{
-				return emulate && (squares[0].IsActive() | squares[1].IsActive() | squares[2].IsActive());
+				const iword prev = frequency;
+				frequency = NST_MAX(length*16,1*8) * fixed;
+				timer = NST_MAX(timer + iword(frequency) - prev,0);
 			}
 
-			void Fme07::Sound::Poke_E000(const uint data)
+			void Fme7::Sound::Envelope::WriteReg0(const uint data,const uint fixed)
+			{
+				length = (length & 0xFF00) | data;
+				UpdateFrequency( fixed );
+			}
+
+			void Fme7::Sound::Envelope::WriteReg1(const uint data,const uint fixed)
+			{
+				length = (length & 0x00FF) | (data << 8);
+				UpdateFrequency( fixed );
+			}
+
+			void Fme7::Sound::Envelope::WriteReg2(const uint data)
+			{
+				holding = false;
+				attack = (data & 0x04) ? 0x1F : 0x00;
+
+				if (data & 0x8)
+				{
+					hold = data & 0x1;
+					alternate = data & 0x2;
+				}
+				else
+				{
+					hold = 1;
+					alternate = attack;
+				}
+
+				timer = frequency;
+				count = 0x1F;
+				volume = levels[count ^ attack];
+			}
+
+			void Fme7::Sound::Noise::UpdateFrequency(const uint fixed)
+			{
+				const iword prev = frequency;
+				frequency = NST_MAX(length,1) * 16 * fixed;
+				timer = NST_MAX(timer + iword(frequency) - prev,0);
+			}
+
+			void Fme7::Sound::Noise::WriteReg(const uint data,const uint fixed)
+			{
+				length = data & 0x1F;
+				UpdateFrequency( fixed );
+			}
+
+			void Fme7::Sound::Poke_E000(const uint data)
 			{ 
-				apu.Update(); 
+				apu.Update();
+				active = true;
 		
 				switch (regSelect & 0xF)
 				{
@@ -538,6 +702,11 @@ namespace Nes
 						squares[regSelect >> 1].WriteReg1( data, fixed );
 						break;
 				
+					case 0x6:
+
+						noise.WriteReg( data, fixed );
+						break;
+
 					case 0x7: 
 				
 						for (uint i=0; i < NUM_SQUARES; ++i)
@@ -551,85 +720,148 @@ namespace Nes
 				
 						squares[regSelect - 0x8].WriteReg3( data );
 						break;
+
+					case 0xB:
+
+						envelope.WriteReg0( data, fixed );
+						break;
+
+					case 0xC:
+
+						envelope.WriteReg1( data, fixed );
+						break;
+
+					case 0xD:
+					
+						envelope.WriteReg2( data );
+						break;
 				}
-		
-				active = CanOutput();
 			}
 		
-			NES_POKE(Fme07,E000) 
+			NES_POKE(Fme7,E000) 
 			{
 				sound.Poke_E000( data ); 
 			}
 
-			ibool Fme07::Irq::Signal()
+			ibool Fme7::Irq::Signal()
 			{
 				count = (count - 1) & 0xFFFFU;
 				return count < enabled;
 			}
 		
-			NST_FORCE_INLINE Fme07::Sound::Sample Fme07::Sound::Square::GetSample(const Cycle rate)
+			NST_FORCE_INLINE dword Fme7::Sound::Envelope::Clock(const Cycle rate)
 			{
-				if (active)
+				if (!holding)
 				{
-					Sample sum;
-					Sample amp;
+					timer -= iword(rate);
 
-					if (Cycle(timer) >= rate)
+					if (timer < 0)
 					{
-						timer -= idword(rate);
-						amp = sum = voltage;
-
-						if (!dc)
-							sum = -sum;
-					}
-					else
-					{
-						sum = timer;
-						timer -= idword(rate);
-
-						if (!dc)
-							sum = -sum;
-
 						do 
-						{		
-							idword weight = frequency;
-							timer += weight;
-
-							if (timer > 0)
-								weight -= timer;
-
-							dc ^= 0x1;
-
-							if (!dc)
-								weight = -weight;
-
-							sum += weight;
+						{
+							--count;
+							timer += iword(frequency);
 						} 
 						while (timer < 0);
 
-						amp = ((voltage * ulong(std::labs(sum))) + (rate / 2)) / rate; 
+						if (count > 0x1F)
+						{
+							if (hold)
+							{
+								if (alternate)
+									attack ^= 0x1F;
+
+								holding = true;
+								count = 0x00;
+							}
+							else
+							{
+								if (alternate && (count & 0x20))
+									attack ^= 0x1F;
+
+								count = 0x1F;
+							}
+						}
+
+						volume = levels[count ^ attack];
+					}
+				}
+
+				return volume;
+			}
+
+			NST_FORCE_INLINE dword Fme7::Sound::Noise::Clock(const Cycle rate)
+			{
+				for (timer -= iword(rate); timer < 0; timer += iword(frequency))
+				{
+					if ((rng + 1) & 0x2) dc = ~dc;
+					if ((rng + 0) & 0x1) rng ^= 0x24000UL;
+
+					rng >>= 1;
+				}
+
+				return dc;
+			}
+
+			NST_FORCE_INLINE dword Fme7::Sound::Square::GetSample(const Cycle rate,const uint envelope,const uint noise)
+			{
+				dword sum = timer;
+				timer -= iword(rate);
+
+				const uint out = (ctrl & 0x10) ? envelope : volume;
+
+				if (((noise|status) & 0x8) && out)
+				{
+					if (timer >= 0)
+					{
+						return out & dc;
+					}
+					else
+					{
+						sum &= dc;
+
+						do 
+						{
+							dc ^= (status & 0x1) - 1UL;
+							sum += NST_MIN(dword(-timer),frequency) & dc;
+							timer += iword(frequency);
+						} 
+						while (timer < 0);
+
+						NST_VERIFY( sum <= ULONG_MAX / out + rate/2 );
+						return (sum * out + rate/2) / rate;
+					}
+				}
+				else
+				{
+					while (timer < 0)
+					{
+						dc ^= (status & 0x1) - 1UL;
+						timer += iword(frequency);
 					}
 
-					return (sum < 0 ? -amp : amp);
+					return 0;
 				}
-
-				return 0;
 			}
 
-			Fme07::Sound::Sample Fme07::Sound::GetSample()
+			Fme7::Sound::Sample Fme7::Sound::GetSample()
 			{
-				Sample sample = 0;
-
-				if (active)
+				if (active && outputVolume)
 				{
-					for (uint i=0; i < NUM_SQUARES; ++i)
-						sample += squares[i].GetSample( rate );
-				}
+					dword sample = 0;
 
-				return sample;
+					for (dword i=0, e=envelope.Clock( rate ), n=noise.Clock( rate ); i < NUM_SQUARES; ++i)
+						sample += squares[i].GetSample( rate, e, n );
+
+					return dcBlocker.Apply( sample * outputVolume / DEFAULT_VOLUME );
+				}
+				else
+				{
+					return 0;
+				}
 			}
 
-			void Fme07::VSync()
+			void Fme7::VSync()
 			{
 				irq.VSync();
 			}

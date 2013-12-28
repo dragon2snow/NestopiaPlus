@@ -112,7 +112,7 @@ namespace Nestopia
 	emulator    ( e ),
 	menu        ( m ),
 	directSound ( window ),
-	dialog      ( new Window::Sound(directSound.GetAdapters(),paths,cfg) ),
+	dialog      ( new Window::Sound(e,directSound.GetAdapters(),paths,cfg) ),
 	recorder    ( new Recorder(m,dialog->GetRecorder(),e) )
 	{
 		m.Commands().Add( IDM_OPTIONS_SOUND, this, &Sound::OnMenuOptionsSound );
@@ -139,6 +139,7 @@ namespace Nestopia
 	{
 		switch (event)
 		{
+    		case Emulator::EVENT_POWER_ON:
     		case Emulator::EVENT_SPEED:
 
 				if (emuOutput)
@@ -162,11 +163,11 @@ namespace Nestopia
 			case Emulator::EVENT_REWINDING_STOP:
 
 				directSound.StopStream();
-
-				Nes::Sound(emulator).EnableChannels
+				
+				Nes::Sound(emulator).SetVolume
 				( 
-					event == Emulator::EVENT_REWINDING_PREPARE ? dialog->GetChannels() & ~uint(Nes::Sound::CHANNEL_DPCM) :
-					                                             dialog->GetChannels()
+			     	Nes::Sound::CHANNEL_DPCM, 
+					event == Emulator::EVENT_REWINDING_PREPARE ? 0 : dialog->GetVolume(Nes::Sound::CHANNEL_DPCM) 
 				);
 				break;
 
@@ -195,30 +196,22 @@ namespace Nestopia
 
 		if (dialog->IsSoundEnabled())
 		{
+			Nes::Sound nesSound( emulator );
+
 			errMsg = directSound.Update
 			(
    				dialog->GetAdapter(),
-				dialog->GetRate(),
-				dialog->GetBits(),
-				dialog->IsStereo() ? DirectX::DirectSound::STEREO : DirectX::DirectSound::MONO,
+				nesSound.GetSampleRate(),
+				nesSound.GetSampleBits(),
+				nesSound.GetSpeaker() == Nes::Sound::SPEAKER_STEREO ? DirectX::DirectSound::STEREO : DirectX::DirectSound::MONO,
 				emulator.GetSpeed(),
-				GetLatency(),
-				dialog->GetVolume()
+				GetLatency()
 			);
 
 			if (errMsg == NULL)
 			{
 				emuOutput = &output;
-
-				Nes::Sound nes( emulator );
-
-				nes.SetSampleBits( dialog->GetBits() );
-				nes.SetSampleRate( dialog->GetRate() );
-				nes.SetSpeed( emulator.GetSpeed() );
-				nes.SetAutoTranspose( dialog->IsPitchAdjust() );
-				nes.EnableChannels( dialog->GetChannels() );
-				nes.SetSpeaker( dialog->IsStereo() ? Nes::Sound::SPEAKER_STEREO : Nes::Sound::SPEAKER_MONO );
-
+				nesSound.SetSpeed( emulator.GetSpeed() );
 				recorder->Enable( directSound.GetWaveFormat() );
 				return;
 			}
@@ -234,7 +227,7 @@ namespace Nestopia
 	void Sound::Disable(tstring const errMsg)
 	{
 		emuOutput = NULL;
-		Nes::Sound( emulator ).EnableChannels( Nes::Sound::NO_CHANNELS );
+		Nes::Sound( emulator ).SetVolume( Nes::Sound::ALL_CHANNELS, 0 );
 		recorder->Disable();
 
 		if (errMsg)

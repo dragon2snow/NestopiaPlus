@@ -108,6 +108,8 @@ namespace Nes
 	
 				for (uint i=0; i < NUM_CHANNELS; ++i)
 					channels[i].Reset();
+
+				dcBlocker.Reset();
 			}
 	
 			void N106::Chips::Irq::Reset(const bool hard)
@@ -180,8 +182,8 @@ namespace Nes
 	
 							for (uint i=0; i < NST_COUNT(exRam); ++i)
 							{
-								wave[i*2+0] = int(uint(exRam[i] & 0xF) << 2) - 32;
-								wave[i*2+1] = int(uint(exRam[i] >>  4) << 2) - 32;
+								wave[i*2+0] = (exRam[i] & 0xF) << 2;
+								wave[i*2+1] = (exRam[i] >>  4) << 2;
 							}
 	
 							for (uint i=64; i < NST_COUNT(exRam); i += 8)
@@ -323,11 +325,11 @@ namespace Nes
 				volume = (data & REG_VOLUME) * VOLUME;
 			}
 	
-			inline N106::Sound::Sample N106::Sound::BaseChannel::GetSample
+			inline dword N106::Sound::BaseChannel::GetSample
 			(
 	         	const Cycle rate,
 				const Cycle factor,
-				const i8 (&wave)[0x100]
+				const u8 (&wave)[0x100]
 			)
 			{
 				NST_VERIFY( bool(active) == CanOutput() );
@@ -337,32 +339,40 @@ namespace Nes
 					phase = (phase + (timer + rate) / factor * frequency) % waveLength;
 					timer = (timer + rate) % factor;
 	
-					return wave[(waveOffset + (phase >> PHASE_SHIFT)) & 0xFF] * int(volume);
+					return wave[(waveOffset + (phase >> PHASE_SHIFT)) & 0xFF] * volume;
 				}
 	
 				return 0;
 			}
 	
 			N106::Sound::Sample N106::Sound::GetSample()
-			{
-				Sample sample = 0;
-	
-				if (emulate)
+			{	
+				if (outputVolume)
 				{
+					dword sample = 0;
+
 					for (BaseChannel* channel = channels+startChannel; channel != channels+NUM_CHANNELS; ++channel)
 						sample += channel->GetSample( rate, frequency, wave );
+
+					return dcBlocker.Apply( sample * outputVolume / DEFAULT_VOLUME );
 				}
-	
-				return sample;
+				else
+				{
+					return 0;
+				}
 			}
 	
-			void N106::Sound::UpdateContext(uint)
+			void N106::Sound::UpdateContext(uint,const u8 (&volumes)[MAX_CHANNELS])
 			{
+				outputVolume = volumes[Apu::CHANNEL_N106] * 68 / DEFAULT_VOLUME;
+
 				rate =
 				(
      				(u64(mode == MODE_NTSC ? Cpu::MC_NTSC : Cpu::MC_PAL) * (1UL << SPEED_SHIFT)) /
 					(apu.GetSampleRate() * 45UL * (mode == MODE_NTSC ? Cpu::CLK_NTSC_DIV : Cpu::CLK_PAL_DIV))
 				);
+
+				dcBlocker.Reset();
 			}
 	
 			inline void N106::Sound::SetChannelState(uint data)
@@ -387,8 +397,8 @@ namespace Nes
 			inline void N106::Sound::WriteWave(const uint data)
 			{
 				const uint index = exAddress << 1;
-				wave[index+0] = int(uint(data & 0xF) << 2) - 32;
-				wave[index+1] = int(uint(data >>  4) << 2) - 32;
+				wave[index+0] = (data & 0xF) << 2;
+				wave[index+1] = (data >>  4) << 2;
 			}
 				
 			uint N106::Sound::Peek_4800()

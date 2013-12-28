@@ -185,12 +185,12 @@ namespace Nestopia
 
 				if (const uint chips = nsf.GetChips())
 				{
-					if ( chips & Nes::Nsf::CHIP_MMC5  ) text << " MMC5";
-					if ( chips & Nes::Nsf::CHIP_VRC6  ) text << " VRC6";
-					if ( chips & Nes::Nsf::CHIP_VRC7  ) text << " VRC7";
-					if ( chips & Nes::Nsf::CHIP_N106  ) text << " N106";
-					if ( chips & Nes::Nsf::CHIP_FME07 ) text << " FME-07";
-					if ( chips & Nes::Nsf::CHIP_FDS   )	text << " FDS";
+					if ( chips & Nes::Nsf::CHIP_MMC5 ) text << " MMC5";
+					if ( chips & Nes::Nsf::CHIP_VRC6 ) text << " VRC6";
+					if ( chips & Nes::Nsf::CHIP_VRC7 ) text << " VRC7";
+					if ( chips & Nes::Nsf::CHIP_N106 ) text << " N106";
+					if ( chips & Nes::Nsf::CHIP_S5B  ) text << " Sunsoft5B";
+					if ( chips & Nes::Nsf::CHIP_FDS  ) text << " FDS";
 				}
 				else
 				{

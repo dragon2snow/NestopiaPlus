@@ -41,8 +41,6 @@ namespace Nes
 
 		private:
 
-			static uint GetCRomFlag(dword);
-
 			void SubReset(bool);
 			void SubSave(State::Saver&) const;
 			void SubLoad(State::Loader&);			

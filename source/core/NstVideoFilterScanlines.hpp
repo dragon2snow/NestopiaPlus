@@ -47,10 +47,12 @@ namespace Nes
 				NST_FORCE_INLINE void BlitType(const Input&,const Output&) const;
 
 				const ibool scale;
-				const uint darken;
-				const dword zeroLow;
+				const uint scanlines;
+				const dword gMask;
+				const dword rbMask;
+				const uint rgbShift;
 
-				void Blit(const Input&,const Output&);
+				void Blit(const Input&,const Output&,uint);
 
 			public:
 

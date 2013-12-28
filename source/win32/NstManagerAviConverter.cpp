@@ -315,9 +315,9 @@ namespace Nestopia
 
 		WaveFormat waveFormat( emulator );
 		SoundInfo soundInfo( waveFormat );
-		const Stream sound( Nes::Sound(emulator).GetEnabledChannels() ? &avi : NULL, soundInfo );
+		const Stream sound( Nes::Sound(emulator).IsAudible() ? &avi : NULL, soundInfo );
 
-		if (Nes::Sound(emulator).GetEnabledChannels())
+		if (Nes::Sound(emulator).IsAudible())
 		{
 			if (!sound)
 				return IDS_AVI_WRITE_ERR;

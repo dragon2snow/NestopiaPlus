@@ -298,7 +298,8 @@ namespace Nes
 				case 0xF8DA2506UL: // Aerobics Studio (J)
 				case 0x8C8FA83BUL: // Athletic World (J)
 				case 0xCA26A0F1UL: // Dai Undoukai (J)
-				case 0x28068B8CUL: // Fuuun Takeshi Jou 2 (J)
+				case 0xEE11FE78UL: // Fuuun! Takeshi Shiro 2 (J)
+				case 0x28068B8CUL: // Fuuun! Takeshi Jou 2 (J) bad
 				case 0x7E704A14UL: // Jogging Race (J)
 				case 0x10BB8F9AUL: // Manhattan Police (J)
 				case 0xAD3DF455UL: // Meiro Dai Sakusen (J)
@@ -496,6 +497,7 @@ namespace Nes
 				case 0x29155E0CUL: // Excitebike (alt)
 				case 0x07138C06UL: // Clu Clu Land
 				case 0x43A357EFUL: // Ice Climber
+				case 0xD4EB5923UL: // -||-
 				case 0x737DD1BFUL: // Super Mario Bros	
 				case 0x4BF3972DUL: // -||-
 				case 0x8B60CC58UL: // -||-
@@ -661,6 +663,8 @@ namespace Nes
 
 						if (vs)
 							vs->LoadState( State::Loader::Subset(state).Ref() );
+						
+						break;
 
 					case NES_STATE_CHUNK_ID('T','B','F','\0'): 
 
@@ -765,15 +769,18 @@ namespace Nes
         #pragma optimize("", on)
         #endif
 	
-		void Cartridge::BeginFrame(Input::Controllers* const input)
+		void Cartridge::BeginFrame(const Api::Input& input,Input::Controllers* controllers)
 		{
 			if (vs)
-				vs->BeginFrame( input );
+				vs->BeginFrame( input, controllers );
 		}
 	
 		void Cartridge::VSync()
 		{
 			mapper->VSync();
+
+			if (vs)
+				vs->VSync();
 
 			if (dataRecorder)
 				dataRecorder->VSync();

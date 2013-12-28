@@ -98,7 +98,6 @@ namespace Nes
 
 			virtual void LoadState(State::Loader&) {}
 			virtual void SaveState(State::Saver&) const {}
-			virtual void BeginFrame(Input::Controllers*) {}
 			virtual	uint GetDesiredController(uint) const;
 
 			virtual Mode GetMode() const = 0;

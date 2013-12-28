@@ -78,7 +78,7 @@ namespace Nestopia
 		}
 		else
 		{
-			throw Application::Exception(_T("::Direct3DCreate9() failed! Upgrade to DirectX 9.0c or better!"));
+			throw Application::Exception(_T("::Direct3DCreate9() failed! Upgrade to DirectX 9.0c or newer!"));
 		}
 	}
 
@@ -494,6 +494,8 @@ namespace Nestopia
 		fonts.Destroy( TRUE );
 		com.Release();
 
+		NST_VERIFY( !!Rect::Client(presentation.hDeviceWindow) );
+
 		uint buffers = presentation.BackBufferCount = timing.tripleBuffering ? 2 : 1;
 		DWORD flags = D3DCREATE_PUREDEVICE|D3DCREATE_HARDWARE_VERTEXPROCESSING;
 
@@ -639,21 +641,27 @@ namespace Nestopia
 		}
 	}
 
-	DWORD Direct2D::Device::GetDesiredPresentationInterval() const
+	uint Direct2D::Device::GetRefreshRate() const
 	{
-		uint rate;
-
 		if (presentation.Windowed)
 		{
 			D3DDISPLAYMODE mode;
-			rate = GetDisplayMode( mode ) ? mode.RefreshRate : 0;
+			return GetDisplayMode( mode ) ? mode.RefreshRate : 0;
 		}
 		else
 		{
-			rate = presentation.FullScreen_RefreshRateInHz;
+			return presentation.FullScreen_RefreshRateInHz;
 		}
+	}
 
-		return GetDesiredPresentationInterval( rate );
+	ibool Direct2D::Device::IsIdealFrameRate() const
+	{
+		return GetRefreshRate() % timing.frameRate == 0;
+	}
+
+	DWORD Direct2D::Device::GetDesiredPresentationInterval() const
+	{
+		return GetDesiredPresentationInterval( GetRefreshRate() );
 	}
 
 	HRESULT Direct2D::Device::Reset()
@@ -947,28 +955,28 @@ namespace Nestopia
     #pragma optimize("t", on)
     #endif
 
-	void Direct2D::VertexBuffer::Update(const Rect& picture,const Rect& clip,const float scale)
+	void Direct2D::VertexBuffer::Update(const Rect& picture,const float clip[4],const float scale)
 	{
-		NST_ASSERT( picture.Width() > 0 && picture.Height() > 0 && clip.Width() > 0 && clip.Height() > 0 );
+		NST_ASSERT( picture.Width() > 0 && picture.Height() > 0 && clip[2]-clip[0] > 0 && clip[3]-clip[1] > 0 );
 
 		rect = picture;
 
 		vertices[0].x = picture.left - 0.5f;  
 		vertices[0].y = picture.top - 0.5f;   
-		vertices[0].u = clip.left / scale;    
-		vertices[0].v = clip.top / scale;     
+		vertices[0].u = clip[0] / scale;    
+		vertices[0].v = clip[1] / scale;     
 		vertices[1].x = picture.left - 0.5f;  
 		vertices[1].y = picture.bottom - 0.5f;
-		vertices[1].u = clip.left / scale;    
-		vertices[1].v = clip.bottom / scale;  
+		vertices[1].u = clip[0] / scale;    
+		vertices[1].v = clip[3] / scale;  
 		vertices[2].x = picture.right - 0.5f; 
 		vertices[2].y = picture.top - 0.5f;   
-		vertices[2].u = clip.right / scale;   
-		vertices[2].v = clip.top / scale;     
+		vertices[2].u = clip[2] / scale;   
+		vertices[2].v = clip[1] / scale;     
 		vertices[3].x = picture.right - 0.5f; 
 		vertices[3].y = picture.bottom - 0.5f;
-		vertices[3].u = clip.right / scale;   
-		vertices[3].v = clip.bottom / scale;  
+		vertices[3].u = clip[2] / scale;   
+		vertices[3].v = clip[3] / scale;  
 	}
 
     #ifdef NST_PRAGMA_OPTIMIZE
@@ -1292,7 +1300,7 @@ namespace Nestopia
 		}
 	}
 
-	void Direct2D::UpdateWindowView(const Point& screen,const Rect& clipping,const Adapter::Filter filter,const ibool useVidMem)
+	void Direct2D::UpdateWindowView(const Point& screen,const float clipping[4],const Adapter::Filter filter,const ibool useVidMem)
 	{
 		const Point picture( Rect::Picture( device.GetPresentation().hDeviceWindow ).Size() );
 
@@ -1322,7 +1330,7 @@ namespace Nestopia
 		}
 	}
 
-	void Direct2D::UpdateFullscreenView(const Rect& picture,const Point& screen,const Rect& clipping,const Adapter::Filter filter,const ibool useVidMem)
+	void Direct2D::UpdateFullscreenView(const Rect& picture,const Point& screen,const float clipping[4],const Adapter::Filter filter,const ibool useVidMem)
 	{
 		NST_ASSERT( picture.Width() && picture.Height() );
 

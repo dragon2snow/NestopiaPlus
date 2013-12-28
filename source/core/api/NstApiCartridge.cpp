@@ -60,7 +60,7 @@ namespace Nes
 			controllers[2] = Input::UNCONNECTED;
 			controllers[3] = Input::UNCONNECTED;
 			controllers[4] = Input::UNCONNECTED;
-			condition      = YES;
+			condition      = UNKNOWN;
 		}
 	
 		Cartridge::Database Cartridge::GetDatabase()

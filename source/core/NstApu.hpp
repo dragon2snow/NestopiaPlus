@@ -51,24 +51,33 @@ namespace Nes
 			Apu(Cpu*);
 			~Apu();
 
-			typedef idword Sample;
+			typedef iword Sample;
 
-				enum 
-				{
-					CHANNEL_SQUARE1  = 0x01,
-					CHANNEL_SQUARE2  = 0x02,
-					CHANNEL_TRIANGLE = 0x04,
-					CHANNEL_NOISE    = 0x08,
-					CHANNEL_DMC      = 0x10,
-					CHANNEL_EXTERNAL = 0x20,
-					ALL_CHANNELS     = 0x3F
-				};
+			enum 
+			{
+				CHANNEL_SQUARE1, 
+				CHANNEL_SQUARE2, 
+				CHANNEL_TRIANGLE,
+				CHANNEL_NOISE,   
+				CHANNEL_DPCM,    
+				CHANNEL_FDS,     
+				CHANNEL_MMC5,    
+				CHANNEL_VRC6,    
+				CHANNEL_VRC7,    
+				CHANNEL_N106,    
+				CHANNEL_S5B,     
+				MAX_CHANNELS     
+			};
 
 			enum
 			{
 				FRAME_CLOCK_NTSC = 14915,
 				FRAME_CLOCK_PAL  = 16626,
-				OUTPUT_MUL       = 256
+				OUTPUT_MIN       =-32768L,
+				OUTPUT_MAX       = 32767L,
+				OUTPUT_MUL       = 256,
+				OUTPUT_DECAY     = OUTPUT_MUL / 4 - 1,
+				DEFAULT_VOLUME   = 85
 			};
 
 			void   Reset(bool);
@@ -79,40 +88,46 @@ namespace Nes
 			void   EndFrame();
 			void   Poke_4017(uint);
 			uint   GetLatency() const;
-			Result EnableChannels(uint);
 			Result SetSampleRate(dword);
 			Result SetSampleBits(uint);
 			Result SetSpeed(uint);
+			Result SetVolume(uint,uint);
+			uint   GetVolume(uint) const;
 			void   SetAutoTranspose(bool);
 			void   EnableStereo(bool);
 
 			inline void Update();
 
-			class NST_NO_VTABLE Channel
+			class Channel
 			{
 			public:
 
 				typedef Apu::Sample Sample;
 
+				enum
+				{
+					MAX_CHANNELS = Apu::MAX_CHANNELS,
+					DEFAULT_VOLUME = Apu::DEFAULT_VOLUME
+				};
+
 				virtual void Reset() = 0;
 				virtual Sample GetSample() = 0;
-
-				void SetContext(Cycle,Cycle,Mode,bool);
+				
+				void SetContext(Cycle,Cycle,Mode,const u8 (&)[MAX_CHANNELS]);
 
 			protected:
 
 				Channel();
 
-				ibool emulate;
 				Mode mode;
 				uint fixed;
 				ibool active;
 				Cycle rate;
-				Sample amp;
+				uint outputVolume;
 
 			private:
 
-				virtual void UpdateContext(uint) {}
+				virtual void UpdateContext(uint,const u8 (&)[MAX_CHANNELS]) = 0;
 
 			public:
 
@@ -121,15 +136,30 @@ namespace Nes
 					return 0; 
 				}
 
-				void ClearAmp()
-				{ 
-					amp = 0; 
+				uint GetOutputVolume() const
+				{
+					return outputVolume;
 				}
 			};
 
 			void HookChannel(Channel*);
 			void SaveState(State::Saver&);
 			void LoadState(State::Loader&);
+
+			struct DcBlocker
+			{
+				void Reset();
+				Sample Apply(Sample);
+
+				enum 
+				{
+					POLE = 3 // ~0.9999
+				}; 
+
+				iword prev;
+				iword next;
+				iword acc;
+			};
 
 			class LengthCounter
 			{
@@ -193,16 +223,12 @@ namespace Nes
 			public:
 
 				void Reset();
-
-				Envelope() 
-				{ 
-					Reset(); 
-				}
+				void SetOutputVolume(uint);
+				void LoadState(State::Loader&);
+				void SaveState(State::Saver&) const;
 
 				void Clock();		
 				void Write(uint);
-				void LoadState(State::Loader&);
-				void SaveState(State::Saver&) const;
 
 			private:
 
@@ -225,21 +251,28 @@ namespace Nes
 				};
 
 				ibool reset;
-				uint count;
-				uint rate;
+				uint  count;
+				uint  rate;
 				ibool loop;
-				uint volume;
+				uint  volume;
 				ibool disabled;
-				ulong output;
+				dword output;
+				uint  outputVolume;
 
 			public:
+
+				Envelope() 
+				: outputVolume(OUTPUT_MUL)
+				{ 
+					Reset(); 
+				}
 
 				uint Loop() const
 				{ 
 					return loop; 
 				}
 
-				ulong Volume() const
+				dword Volume() const
 				{
 					return output; 
 				}
@@ -248,33 +281,6 @@ namespace Nes
 				{
 					reset = true; 
 				}
-			};
-
-			class DcRemover
-			{
-			private:
-
-				Sample Remove(Sample);
-
-				Sample acc;
-				Sample old;
-
-			public:
-
-				DcRemover()
-				: acc(0), old(0) {}
-
-				void Reset()
-				{ 
-					old = acc = 0; 
-				}
-
-				Sample Filter(Sample sample)
-				{ 
-					return (acc | sample) ? Remove( sample ) : 0L; 
-				}
-
-				static Sample Damp(Sample);
 			};
 
 		private:
@@ -308,6 +314,19 @@ namespace Nes
 				STATUS_SEQUENCE_5_STEP  = b10000000,
 				STATUS_FRAME_IRQ_ENABLE = 0,
 				STATUS_BITS             = STATUS_NO_FRAME_IRQ|STATUS_SEQUENCE_5_STEP
+			};
+
+			enum
+			{
+				NLN_VOL   = 192,
+				NLN_SQ_F  = 900,
+				NLN_SQ_0  = 9552UL * OUTPUT_MUL * NLN_VOL * (NLN_SQ_F/100),
+				NLN_SQ_1  = 8128UL * OUTPUT_MUL * NLN_SQ_F,
+				NLN_SQ_2  = NLN_SQ_F * 100UL,
+				NLN_TND_F = 500,
+				NLN_TND_0 = 16367UL * OUTPUT_MUL * NLN_VOL * (NLN_TND_F/100),
+				NLN_TND_1 = 24329UL * OUTPUT_MUL * NLN_TND_F,
+				NLN_TND_2 = NLN_TND_F * 100UL
 			};
 
 			NES_DECL_POKE( 4000 )
@@ -353,11 +372,6 @@ namespace Nes
 				void Update(dword,uint,Mode);
 				void Reset(Mode);
 
-				enum
-				{
-					DEF_FIXED = 1U << 12
-				};
-
 				uint  fixed;
 				Cycle rate;
 				Cycle rateCounter;
@@ -372,20 +386,25 @@ namespace Nes
 				static const Cycle frameClocks[2][2][4];
 			};
 
-			class NST_NO_VTABLE Oscillator : public Channel
+			class Oscillator
 			{
 			protected:
-
-				void UpdateContext(uint);
 
 				Oscillator();
 
 				void Reset();
+				void SetContext(Cycle,Cycle);
 
-				idword timer;
+				ibool active;
+				iword timer;
+				Cycle rate;
 				Cycle frequency;
+				dword amp;
+				uint fixed;
 
-				inline dword DivideSum(dword) const;
+			public:
+
+				inline void ClearAmp();
 			};
 
 			class Square : public Oscillator
@@ -393,6 +412,7 @@ namespace Nes
 			public:
 
 				void Reset();
+				void SetContext(dword,uint,uint);
 
 				NST_FORCE_INLINE void WriteReg0(uint);
 				NST_FORCE_INLINE void WriteReg1(uint);
@@ -400,8 +420,7 @@ namespace Nes
 				NST_FORCE_INLINE void WriteReg3(uint,bool);
 				
 				inline void Toggle(uint);
-
-				Sample GetSample();
+				dword GetSample();
 
 				void ClockEnvelope();
 				void ClockSweep(uint);
@@ -414,14 +433,12 @@ namespace Nes
 			private:
 
 				inline bool CanOutput() const;
-				void UpdateContext(uint);
 				bool UpdateFrequency();
 
 				enum
 				{
 					MIN_FRQ = 0x008,
-					MAX_FRQ = 0x7FF,
-					DC_OFFSET = OUTPUT_MUL
+					MAX_FRQ = 0x7FF
 				};
 
 				enum
@@ -467,13 +484,13 @@ namespace Nes
 			public:
 
 				void Reset();
+				void SetContext(dword,uint,uint);
 
 				NST_FORCE_INLINE void WriteReg0(uint);
 				NST_FORCE_INLINE void WriteReg2(uint);
 				NST_FORCE_INLINE void WriteReg3(uint,bool);
 				NST_FORCE_INLINE void Toggle(uint);
-
-				NST_FORCE_INLINE Sample GetSample();
+				NST_FORCE_INLINE dword GetSample();
 
 				void ClockLinearCounter();
 				void ClockLengthCounter();
@@ -485,16 +502,14 @@ namespace Nes
 
 			private:
 
-				void UpdateContext(uint);
 				inline bool CanOutput() const;
 
 				enum
 				{
 					MIN_FRQ = 2 + 1,
-					VOLUME = OUTPUT_MUL * 2,
-					FINE_VOLUME_MUL = 21,
-					FINE_VOLUME_SHIFT = 4,
-					DC_OFFSET = int((((7UL * VOLUME) + (VOLUME / 2)) * FINE_VOLUME_MUL) >> FINE_VOLUME_SHIFT)
+					STEP_CHECK = 0x00, // >= 0x1F is technically correct but will produce clicks/pops
+					STATUS_COUNTING = 0,
+					STATUS_RELOAD
 				};
 
 				enum
@@ -503,12 +518,6 @@ namespace Nes
 					REG0_LINEAR_COUNTER_START = b10000000,
 					REG2_WAVE_LENGTH_LOW      = b11111111,
 					REG3_WAVE_LENGTH_HIGH     = b00000111
-				};
-
-				enum	
-				{
-					STATUS_COUNTING,
-					STATUS_RELOAD
 				};
 
 				enum
@@ -525,6 +534,7 @@ namespace Nes
 				uint linearCtrl;
 				uint linearCounter;
 				uint waveLength;
+				uint outputVolume;
 				LengthCounter lengthCounter;
 			};
 
@@ -533,13 +543,13 @@ namespace Nes
 			public:
 
 				void Reset();
+				void SetContext(dword,uint,uint,Mode);
 
 				NST_FORCE_INLINE void WriteReg0(uint);
 				NST_FORCE_INLINE void WriteReg2(uint);
 				NST_FORCE_INLINE void WriteReg3(uint,bool);
 				NST_FORCE_INLINE void Toggle(uint);
-
-				NST_FORCE_INLINE Sample GetSample();
+				NST_FORCE_INLINE dword GetSample();
 
 				void ClockEnvelope();
 				void ClockLengthCounter();
@@ -551,14 +561,11 @@ namespace Nes
 
 			private:
 
-				void UpdateContext(uint);
   				inline bool CanOutput() const;
 
 				enum
 				{
-					PULSE = 2,
-					FINE_VOLUME_MUL = 13,
-					FINE_VOLUME_SHIFT = 4
+					PULSE = 2
 				};
 
 				enum
@@ -575,6 +582,7 @@ namespace Nes
 
 				uint bits;
 				uint shifter;
+				Mode mode;
 				LengthCounter lengthCounter;
 				Envelope envelope;
 
@@ -585,21 +593,20 @@ namespace Nes
 			{
 			public:
 
+				Dmc();
+
 				void Reset(Cpu&);
+				void SetContext(uint,Mode);
 				NST_FORCE_INLINE void Toggle(uint,Cpu&);
 
 				NST_FORCE_INLINE void WriteReg0(uint,Cpu&);
 				NST_FORCE_INLINE void WriteReg1(uint);
 				NST_FORCE_INLINE void WriteReg2(uint);
 				NST_FORCE_INLINE void WriteReg3(uint);
-
+				NST_FORCE_INLINE dword GetSample();
 				NST_FORCE_INLINE uint Clock(Cpu&);
 
 				inline uint CheckSample() const;
-				inline Sample GetSample();
-
-				void SetContext(Mode,bool);
-
 				inline void ClearAmp();
 				inline uint SetSample(uint);
 				inline Cycle GetFrequency() const;
@@ -617,13 +624,11 @@ namespace Nes
 
 				enum
 				{
-					DMA_CYCLES         = 4,
-					REG0_FREQUENCY     = b00001111,
-					REG0_LOOP          = b01000000,
-					REG0_IRQ_ENABLE    = b10000000,
-					INTERPOLATION_STEP = 8 * OUTPUT_MUL,
-					FINE_VOLUME_MUL    = 13,
-					FINE_VOLUME_SHIFT  = 4
+					DMA_CYCLES      = 4,
+					REG0_FREQUENCY  = b00001111,
+					REG0_LOOP       = b01000000,
+					REG0_IRQ_ENABLE = b10000000,
+					INP_STEP        = 8
 				};
 
 				enum
@@ -670,7 +675,7 @@ namespace Nes
 				Dma dma;
 				uint curSample;
 				uint linSample;
-				DcRemover dcRemover;
+				uint outputVolume;
 
 				static const Cycle lut[2][16];
 			};
@@ -679,19 +684,13 @@ namespace Nes
 			{
 				Context();
 
-				struct Sample
-				{
-					Sample();
-
-					uint bits;
-					dword rate;
-				};
-
-				Sample sample;
-				u8 enabled;
+				dword rate;
+				u8 bits;
 				u8 speed;
 				bool transpose;
 				bool stereo;
+				bool audible;
+				u8 volumes[MAX_CHANNELS];
 			};
 
 			Sound::Output* stream;
@@ -705,24 +704,20 @@ namespace Nes
 			Noise noise;
 			Dmc dmc;
 			Channel* extChannel;
+			DcBlocker dcBlocker;
 			Sound::Buffer& buffer;
 			Context context;
 
 		public:
 
-			uint GetEnabledChannels() const
-			{
-				return context.enabled;
-			}
-
 			dword GetSampleRate() const
 			{
-				return context.sample.rate;
+				return context.rate;
 			}
 
 			uint GetSampleBits() const
 			{
-				return context.sample.bits;
+				return context.bits;
 			}
 
 			uint GetSpeed() const
@@ -738,6 +733,11 @@ namespace Nes
 			bool InStereo() const
 			{
 				return context.stereo;
+			}
+
+			bool IsAudible() const
+			{
+				return context.audible;
 			}
 
 			void ReleaseChannel()

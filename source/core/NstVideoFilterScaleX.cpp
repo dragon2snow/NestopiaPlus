@@ -50,7 +50,7 @@ namespace Nes
 			
 			bool Renderer::FilterScaleX::Check(const RenderState& state)
 			{
-				return (state.bits.count == 16 || state.bits.count == 32) &&
+				return (state.bits.count == 16 || state.bits.count == 32) && (state.scanlines == 0) &&
 				(
    					(state.filter == RenderState::FILTER_SCALE2X && state.width == WIDTH*2 && state.height == HEIGHT*2) ||
 					(state.filter == RenderState::FILTER_SCALE3X && state.width == WIDTH*3 && state.height == HEIGHT*3)
@@ -264,7 +264,7 @@ namespace Nes
 				}
 			}
 
-			void Renderer::FilterScaleX::Blit(const Input& input,const Output& output)
+			void Renderer::FilterScaleX::Blit(const Input& input,const Output& output,uint)
 			{
 				switch (bpp)
 				{

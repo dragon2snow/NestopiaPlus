@@ -56,7 +56,7 @@ namespace Nes
 				const dword lsb1;
 				const RenderState::Filter type;
 
-				void Blit(const Input&,const Output&);
+				void Blit(const Input&,const Output&,uint);
 
 			public:
 

@@ -41,14 +41,23 @@ namespace Nes
 
 		private:
 
-			static uint GetChrType1(const uint);
-			static uint GetChrType2(const uint);
+			static uint GetChrType1(uint);
+			static uint GetChrType2(uint);
+			static uint GetChrType3(uint);
+			static uint GetChrType4(uint);
 
 			void SubReset(bool);   
+			void SubSave(State::Saver&) const;
+			void SubLoad(State::Loader&);
 			void UpdateChr() const;
 			void SwapChr(uint,uint) const;
 
-			uint (*const GetChrType)(const uint);
+			uint (*const GetChrType)(uint);
+
+			NES_DECL_PEEK( Ram )
+			NES_DECL_POKE( Ram )
+
+			u8 ram[0x1000];
 		};
 	}
 }

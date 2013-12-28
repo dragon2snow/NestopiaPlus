@@ -87,7 +87,10 @@ namespace Nes
 				void UpdateNmt() const;
 				Device QueryDevice(DeviceType);
 				void VSync();
-		
+	
+				NES_DECL_HOOK( PpuBg )
+				NES_DECL_HOOK( PpuSp )
+
 				NES_DECL_PEEK( 5000 )
 				NES_DECL_PEEK( 6000 )
 				NES_DECL_POKE( 8000 )
@@ -171,7 +174,8 @@ namespace Nes
 				{
 					void Reset(bool);
 					ibool IsEnabled() const;
-					inline ibool Signal();
+					ibool IsEnabled(uint) const;
+					ibool Signal();
 		
 					enum
 					{

@@ -129,16 +129,22 @@ namespace Nes
 	
 			enum Channel
 			{
-				NO_CHANNELS      = 0x00,
-				CHANNEL_SQUARE1  = 0x01,
-				CHANNEL_SQUARE2  = 0x02,
-				CHANNEL_TRIANGLE = 0x04,
-				CHANNEL_NOISE    = 0x08,
-				CHANNEL_DPCM     = 0x10,
-				CHANNEL_EXTERNAL = 0x20,
-				ALL_CHANNELS     = 0x3F
+				CHANNEL_SQUARE1  = 0x001,
+				CHANNEL_SQUARE2  = 0x002,
+				CHANNEL_TRIANGLE = 0x004,
+				CHANNEL_NOISE    = 0x008,
+				CHANNEL_DPCM     = 0x010,
+				CHANNEL_FDS      = 0x020,
+				CHANNEL_MMC5     = 0x040,
+				CHANNEL_VRC6     = 0x080,
+				CHANNEL_VRC7     = 0x100,
+				CHANNEL_N106     = 0x200,
+				CHANNEL_S5B      = 0x400,
+				APU_CHANNELS     = CHANNEL_SQUARE1|CHANNEL_SQUARE2|CHANNEL_TRIANGLE|CHANNEL_NOISE|CHANNEL_DPCM,
+				EXT_CHANNELS     = CHANNEL_FDS|CHANNEL_MMC5|CHANNEL_VRC6|CHANNEL_VRC7|CHANNEL_N106|CHANNEL_S5B,
+				ALL_CHANNELS     = APU_CHANNELS|EXT_CHANNELS
 			};
-	
+
 			enum Speaker
 			{
 				SPEAKER_MONO,
@@ -147,21 +153,24 @@ namespace Nes
 
 			enum
 			{
-				DEFAULT_SPEED,
+				DEFAULT_VOLUME = 85,
+				MAX_VOLUME = 100,
+				DEFAULT_SPEED = 0,
 				MIN_SPEED = 30,
 				MAX_SPEED = 240
 			};
 	
-			Result  EnableChannels(uint);
 			Result  SetSampleRate(ulong);
 			Result  SetSampleBits(uint);
+			Result  SetVolume(uint,uint);
 			Result  SetSpeed(uint);
 			void    SetAutoTranspose(bool);
 			void    SetSpeaker(Speaker);
 			bool    IsAutoTransposing() const;
-			uint    GetEnabledChannels() const;
+			bool    IsAudible() const;
 			ulong   GetSampleRate() const;
 			uint    GetSampleBits() const;
+			uint    GetVolume(uint) const;
 			uint    GetSpeed() const;
 			uint    GetLatency() const;
 			Speaker	GetSpeaker() const;

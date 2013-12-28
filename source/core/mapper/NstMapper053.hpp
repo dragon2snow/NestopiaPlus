@@ -37,8 +37,7 @@ namespace Nes
 		{
 		public:
 
-			Mapper53(Context& c)
-			: Mapper(c,WRAM_NONE|CROM_NONE) {}
+			Mapper53(Context&);
 
 		private:
 
@@ -51,6 +50,7 @@ namespace Nes
 			NES_DECL_POKE( 8000 )
 
 			uint regs[2];
+			const ibool eepromFirst;
 		};
 	}
 }

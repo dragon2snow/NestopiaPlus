@@ -56,7 +56,7 @@ namespace Nes
 				protected:
 
 					void Reset();
-					void UpdateContext(Cycle);
+					void UpdateContext(Cycle,const u8 (&w)[MAX_CHANNELS]);
 					Sample GetSample();
 
 				private:
@@ -83,7 +83,7 @@ namespace Nes
 	
 						void Reset();
 	
-						inline Sample GetSample(Cycle,Cycle,const i8 (&)[0x100]);
+						inline dword GetSample(Cycle,Cycle,const u8 (&)[0x100]);
 	
 						inline void SetFrequency  (uint);
 						inline void SetWaveLength (uint);
@@ -119,10 +119,12 @@ namespace Nes
 					uint exIncrease;
 					uint startChannel;
 	
-					i8 wave[0x100];
+					u8 wave[0x100];
 					u8 exRam[0x80];
 	
-					BaseChannel channels[NUM_CHANNELS];
+					BaseChannel channels[NUM_CHANNELS];					
+					
+					Apu::DcBlocker dcBlocker;
 					
 					const ibool hooked;
 				};

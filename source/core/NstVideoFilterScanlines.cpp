@@ -39,10 +39,12 @@ namespace Nes
 
 			Renderer::FilterScanlines::FilterScanlines(const RenderState& state)
 			: 
-			Filter  (state),
-			scale   (state.width != WIDTH),
-			darken  (state.filter == Api::Video::RenderState::FILTER_SCANLINES_DARK ? 2 : 1),
-			zeroLow (~(((darken==2 ? 3UL : 1UL) << format.left[0]) | ((darken==2 ? 3UL : 1UL) << format.left[1]) | ((darken==2 ? 3UL : 1UL) << format.left[2])))
+			Filter    ( state ),
+			scale     ( state.width != WIDTH ),
+			scanlines ( (100-state.scanlines) * (state.bits.count == 32 ? 256 : 32) / 100 ),
+			gMask     ( state.bits.mask.g ),
+			rbMask    ( state.bits.mask.r|state.bits.mask.b ),
+			rgbShift  ( state.bits.count == 32 ? 8 : 5 )
 			{
 			}
 
@@ -52,7 +54,8 @@ namespace Nes
 				(
 					(state.bits.count == 16 || state.bits.count == 32) &&
 					(state.width == WIDTH || state.width == WIDTH*2) &&
-					(state.height == HEIGHT || state.height == HEIGHT*2)
+					(state.height == HEIGHT || state.height == HEIGHT*2) &&
+					(state.scanlines <= 100)
 				);
 			}
 
@@ -80,9 +83,9 @@ namespace Nes
 
 					dst = reinterpret_cast<T*>(reinterpret_cast<u8*>(dst) + pitch);
 
-					for (uint x=0; x < WIDTH; ++x)
+					for (uint x=0, s=scanlines, h=rgbShift, g=gMask, rb=rbMask; x < WIDTH; ++x)
 					{
-						dst[x*2+0] = p = (input.palette[src[x]] & zeroLow) >> darken;
+						dst[x*2+0] = p = (s * (input.palette[src[x]] & g) >> h & g) | (s * (input.palette[src[x]] & rb) >> h & rb);
 						dst[x*2+1] = p;
 					}
 
@@ -107,8 +110,8 @@ namespace Nes
 					dst = reinterpret_cast<T*>(reinterpret_cast<u8*>(dst) + pitch);
 					src += WIDTH;
 
-					for (uint x=0; x < WIDTH; ++x)
-						dst[x] = (input.palette[src[x]] & zeroLow) >> darken;
+					for (uint x=0, s=scanlines, h=rgbShift, g=gMask, rb=rbMask; x < WIDTH; ++x)
+						dst[x] = (s * (input.palette[src[x]] & g) >> h & g) | (s * (input.palette[src[x]] & rb) >> h & rb);
 
 					dst = reinterpret_cast<T*>(reinterpret_cast<u8*>(dst) + pitch);
 					src += WIDTH;
@@ -124,7 +127,7 @@ namespace Nes
 					Blit1x<T>( input, output );
 			}
 
-			void Renderer::FilterScanlines::Blit(const Input& input,const Output& output)
+			void Renderer::FilterScanlines::Blit(const Input& input,const Output& output,uint)
 			{
 				switch (bpp)
 				{

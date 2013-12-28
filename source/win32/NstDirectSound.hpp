@@ -62,11 +62,10 @@ namespace Nestopia
 
 			enum
 			{
-				VOLUME_MAX = 100,
 				LATENCY_MAX = 10
 			};
 
-			tstring Update(uint,uint,uint,Channels,uint,uint,uint);
+			tstring Update(uint,uint,uint,Channels,uint,uint);
 			tstring UpdateSpeed(uint,uint);
 			void    Destroy();
 
@@ -81,7 +80,7 @@ namespace Nestopia
 				Buffer();
 				~Buffer();
 
-				tstring Update(IDirectSound8&,ibool,uint,uint,Channels,uint,uint,uint);
+				tstring Update(IDirectSound8&,ibool,uint,uint,Channels,uint,uint);
 				tstring UpdateSpeed(IDirectSound8&,ibool,uint,uint);
 				void    StartStream();
 				ibool   LockStream(void*&,uint&);
@@ -92,7 +91,6 @@ namespace Nestopia
 				static uint CalculateSize(uint,uint,uint,uint);
 
 				tstring Create(IDirectSound8&,ibool);
-				void UpdateVolume() const;
 
 				enum
 				{
@@ -107,7 +105,6 @@ namespace Nestopia
 					Settings();
 
 					uint size;
-					uint volume;
 				};
 
 				ComInterface<IDirectSoundBuffer8> com;

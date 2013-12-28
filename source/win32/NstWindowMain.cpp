@@ -94,6 +94,7 @@ namespace Nestopia
 	{
 		static const MsgHandler::Entry<Main> messages[] =
 		{
+			{ WM_SYSKEYDOWN,                                &Main::OnSysKeyDown        },
 			{ WM_SYSCOMMAND,                                &Main::OnSysCommand        },
 			{ WM_ENTERSIZEMOVE,                             &Main::OnEnterSizeMoveMenu },
 			{ WM_ENTERMENULOOP,                             &Main::OnEnterSizeMoveMenu },
@@ -146,7 +147,7 @@ namespace Nestopia
 			);
 
 			if (winpos)
-				window.Set( rect );
+				window.SetNormalWindowRect( rect );
 		}
  
 		if (preferences[Managers::Preferences::START_IN_FULLSCREEN])
@@ -168,7 +169,8 @@ namespace Nestopia
 		cfg[ "view show on top"      ].YesNo() = menu[IDM_VIEW_ON_TOP].IsChecked();
 		cfg[ "view show window menu" ].YesNo() = (IsWindowed() ? menu.IsVisible() : state.menu);
 
-		const Rect rect( video.IsFullscreen() ? state.rect : window.GetNormalWindowRect() );
+		Rect rect( video.IsFullscreen() ? state.rect : window.GetNormalWindowRect() );
+		rect.Position() += Point(rect.left < 0 ? -rect.left : 0, rect.top < 0 ? -rect.top : 0 );
 
 		if (preferences[Managers::Preferences::SAVE_WINDOWPOS])
 		{
@@ -380,6 +382,11 @@ namespace Nestopia
 		return preferences[Managers::Preferences::RUN_IN_BACKGROUND];
 	}
 
+	ibool Main::OnSysKeyDown(Window::Param& param)
+	{
+		return (param.wParam == VK_MENU && !menu.IsVisible());
+	}
+
 	ibool Main::OnSysCommand(Param& param) 
 	{
 		switch (param.wParam & 0xFFF0)
@@ -538,21 +545,14 @@ namespace Nestopia
 			menu[ IDM_VIEW_ON_TOP ].Enable();
 			menu[ IDM_VIEW_SWITCH_SCREEN ].Text() << Resource::String(IDS_MENU_FULLSCREEN);
 
-			HWND const zOrder =	menu[IDM_VIEW_ON_TOP].IsChecked() ? HWND_TOPMOST : HWND_NOTOPMOST;
-
 			if (state.menu)
 				menu.Show();
 
 			if (state.maximized)
-			{
 				window.Maximize();
-				window.SetNormalWindowRect( state.rect );
-				window.Reorder( zOrder, SWP_FRAMECHANGED|SWP_SHOWWINDOW );
-			}
-			else
-			{
-				window.Set( state.rect, zOrder, SWP_FRAMECHANGED|SWP_SHOWWINDOW );
-			}
+
+			window.SetNormalWindowRect( state.rect );
+			window.Reorder( menu[IDM_VIEW_ON_TOP].IsChecked() ? HWND_TOPMOST : HWND_NOTOPMOST );
 
 			Application::Instance::ShowChildWindows();
 

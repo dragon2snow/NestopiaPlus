@@ -74,18 +74,12 @@ namespace Nes
 
 		void Mapper165::SwapChrLo() const
 		{
-			chr.Source( banks.chr[selector[0]] == 0 ).SwapBank<SIZE_4K,0x0000U>
-			( 
-       			banks.chr[selector[0]] ? banks.chr[selector[0]] >> 1 : 0
-			);
+			chr.Source( banks.chr[selector[0]] == 0 ).SwapBank<SIZE_4K,0x0000U>( banks.chr[selector[0]] >> 1 );
 		}
 
 		void Mapper165::SwapChrHi() const
 		{
-			chr.Source( banks.chr[selector[1]] == 0 ).SwapBank<SIZE_4K,0x1000U>
-			( 
-				banks.chr[selector[1]] ? banks.chr[selector[1]] >> 2 : 0
-			);
+			chr.Source( banks.chr[selector[1]] == 0 ).SwapBank<SIZE_4K,0x1000U>( banks.chr[selector[1]] >> 2 );
 		}
 
 		void Mapper165::UpdateChr() const
@@ -101,7 +95,7 @@ namespace Nes
 
 			switch (address & 0xFF8)
 			{
-				case 0xFD8: selector[0] = 0; break;
+				case 0xFD0: selector[0] = 0; break;
 				case 0xFE8: selector[0] = 1; break;
 				default: return data;
 			}
@@ -117,7 +111,7 @@ namespace Nes
 
 			switch (address & 0xFF8)
 			{
-				case 0xFD8: selector[1] = 2; break;
+				case 0xFD0: selector[1] = 2; break;
 				case 0xFE8: selector[1] = 4; break;
 				default: return data;
 			}

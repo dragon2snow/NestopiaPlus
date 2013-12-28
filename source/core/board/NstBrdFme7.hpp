@@ -22,8 +22,8 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#ifndef NST_BOARDS_FME07_H
-#define NST_BOARDS_FME07_H
+#ifndef NST_BOARDS_FME7_H
+#define NST_BOARDS_FME7_H
 
 #ifdef NST_PRAGMA_ONCE_SUPPORT
 #pragma once
@@ -35,7 +35,7 @@ namespace Nes
 	{
 		namespace Boards
 		{
-			class NST_NO_VTABLE Fme07 : public Mapper
+			class NST_NO_VTABLE Fme7 : public Mapper
 			{
 			public:
 
@@ -54,7 +54,7 @@ namespace Nes
 				protected:
 
 					void Reset();
-					void UpdateContext(uint);
+					void UpdateContext(uint,const u8 (&)[MAX_CHANNELS]);
 					Sample GetSample();
 
 				private:
@@ -64,68 +64,105 @@ namespace Nes
 						NUM_SQUARES = 3
 					};
 
-					bool CanOutput() const;
-		
+					class Envelope
+					{
+					public:
+
+						Envelope();
+
+						void Reset(uint);
+						void UpdateContext(uint);
+						void SaveState(State::Saver&) const;
+						void LoadState(State::Loader&,uint);
+
+						void WriteReg0(uint,uint);
+						void WriteReg1(uint,uint);
+						void WriteReg2(uint);
+
+						NST_FORCE_INLINE dword Clock(Cycle);
+
+					private:
+
+						void UpdateFrequency(uint);
+
+						u8    holding;
+						u8    hold;
+						u8    alternate;
+						u8    attack;
+						iword timer;
+						dword frequency;
+						uint  count;
+						uint  volume;
+						uint  length;
+					};
+
+					class Noise
+					{
+					public:
+
+						Noise();
+
+						void Reset(uint);
+						void UpdateContext(uint);
+						void SaveState(State::Saver&) const;
+						void LoadState(State::Loader&,uint);
+
+						void WriteReg(uint,uint);
+
+						NST_FORCE_INLINE dword Clock(Cycle);
+
+					private:
+
+						void UpdateFrequency(uint);
+
+						iword timer;
+						dword frequency;
+						dword rng;
+						dword dc;
+						uint length;
+					};
+
 					class Square
 					{
 					public:
 		
+						Square();
+
 						void Reset(uint);
 						void UpdateContext(uint);
+						void SaveState(State::Saver&) const;
+						void LoadState(State::Loader&,uint);
 		
 						void WriteReg0(uint,uint);
 						void WriteReg1(uint,uint);
 						void WriteReg2(uint);
-						inline void WriteReg3(uint);
+						void WriteReg3(uint);
 		
-						NST_FORCE_INLINE Sample GetSample(Cycle);
-		
-						void SaveState(State::Saver&) const;
-						void LoadState(State::Loader&,uint);
+						NST_FORCE_INLINE dword GetSample(Cycle,uint,uint);
 		
 					private:
 		
 						void UpdateFrequency(uint);
-		
-						inline bool CanOutput() const;
-		
-						enum
-						{
-							REG0_WAVELENGTH_LOW  = b11111111,
-							REG1_WAVELENGTH_HIGH = b00001111,
-							REG2_DISABLE         = b00000001,
-							REG3_VOLTAGE         = b00001111,
-							REG3_ENVELOPE        = b00010000
-						};
-		
-						enum 
-						{
-							FRQ_SHIFT = 4,
-							MAX_WAVELENGTH = REG0_WAVELENGTH_LOW | (uint(REG1_WAVELENGTH_HIGH) << 8)
-						};
-		
-						ibool  enabled;
-						ibool  active;
-						uint   waveLength;
-						Cycle  frequency;
-						idword timer;
-						int    voltage;
-						uint   dc;
-		
-						static const u16 voltages[16]; 
 
-					public:
-		
-						ibool IsActive() const
-						{ 
-							return active; 
-						}
+						iword timer;
+						dword frequency;
+						uint  status;
+						uint  ctrl;
+						uint  volume;
+						dword dc;
+						uint  length;
 					};
 		
 					Apu& apu;
 					uint regSelect;
+					ibool active;
+					Envelope envelope;
+					Noise noise;
 					Square squares[NUM_SQUARES];
+					Apu::DcBlocker dcBlocker;
 					const ibool hooked;
+
+					static const u16 levels[32]; 
 
 				public:
 
@@ -137,8 +174,8 @@ namespace Nes
 		
 			protected:
 		
-				Fme07(Context&);
-				~Fme07();
+				Fme7(Context&);
+				~Fme7();
 		
 			private:
 		

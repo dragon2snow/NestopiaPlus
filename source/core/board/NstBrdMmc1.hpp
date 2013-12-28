@@ -77,7 +77,7 @@ namespace Nes
 		
 					uint buffer;
 					uint shifter;
-					idword time;
+					iword time;
 				};
 				
 				Serial serial;

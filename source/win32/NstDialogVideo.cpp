@@ -22,7 +22,6 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include <cstring>
 #include <algorithm>
 #include "NstIoFile.hpp"
 #include "NstIoLog.hpp"
@@ -122,12 +121,6 @@ namespace Nestopia
 	Video::Settings::Settings()
 	: fullscreenScale(SCREEN_MATCHED) {}
 
-	Video::Filter::Filter()
-	: bilinear(false)
-	{
-		std::memset( attributes, 0, sizeof(attributes) );
-	}
-
 	Video::Video
 	(
 		Managers::Emulator& emulator,
@@ -138,7 +131,7 @@ namespace Nestopia
 	: 
 	adapters ( a ),
 	nes      ( emulator ),
-	dialog   ( IDD_VIDEO, this,Handlers::messages, Handlers::commands ),
+	dialog   ( IDD_VIDEO, this, Handlers::messages, Handlers::commands ),
 	paths    ( p )
 	{
 		settings.adapter = std::find
@@ -178,89 +171,13 @@ namespace Nestopia
 			}
 		}
 
-		settings.filter = settings.filters + FILTER_NONE;
-
-		if (settings.adapter->maxScreenSize >= NST_MAX(NES_HEIGHT*2,NES_WIDTH*2))
-		{
-			const GenericString type( cfg["video filter"] );
-
-			if (type == _T("scanlines"))
-			{
-				settings.filter = settings.filters + FILTER_SCANLINES;
-			}
-			else if (type == _T("ntsc"))
-			{
-				if (settings.adapter->maxScreenSize >= NST_MAX(NTSC_HEIGHT,NTSC_WIDTH))
-					settings.filter = settings.filters + FILTER_NTSC;
-			}
-			else if (type == _T("2xsai"))
-			{
-				settings.filter = settings.filters + FILTER_2XSAI;
-			}
-			else if (type == _T("scalex"))
-			{
-				settings.filter = settings.filters + FILTER_SCALEX;
-			}
-			else if (type == _T("hqx"))
-			{
-				settings.filter = settings.filters + FILTER_HQX;
-			}
-		}
-
-		for (uint i=0; i < NUM_FILTERS; ++i)
-		{
-			static cstring const lut[] =
-			{
-				"video filter none bilinear",
-				"video filter scanlines bilinear",
-				"video filter ntsc bilinear",
-				"video filter 2xsai bilinear",
-				"video filter scalex bilinear",
-				"video filter hqx bilinear"
-			};
-
-			if (cfg[lut[i]] == Configuration::YES)
-				settings.filters[i].bilinear = true;
-		}
-
-		{
-			GenericString value;
-
-			settings.filters[FILTER_SCANLINES].attributes[0] = (uchar)
-			(
-	         	(value=cfg["video filter scanlines type"]) == _T("dark") ? Filter::SCANLINES_DARK : 
-				                                                           Filter::SCANLINES_BRIGHT
-			);
-			
-			settings.filters[FILTER_NTSC].attributes[0] = (uchar) 
-			(
-	           	(value=cfg["video filter ntsc scanlines"]) == _T("dark")   ? Filter::SCANLINES_DARK : 
-				(value)                                    == _T("bright") ? Filter::SCANLINES_BRIGHT : 
-				                                                             Filter::SCANLINES_NONE
-			);
-		
-			settings.filters[FILTER_NTSC].attributes[1] = (uchar) 
-			(
-	         	cfg["video filter ntsc widescreen"] == Configuration::YES
-			);
-		
-			settings.filters[FILTER_2XSAI].attributes[0] = (uchar) 
-			(
-		     	(value=cfg["video filter 2xsai type"]) == _T("super 2xsai") ? Filter::TYPE_SUPER2XSAI : 
-				(value)                                == _T("super eagle") ? Filter::TYPE_SUPEREAGLE :
-				                                                              Filter::TYPE_2XSAI
-			);
-			
-			settings.filters[FILTER_SCALEX].attributes[0] = (uchar) 
-			(
-       			(value=cfg["video filter scalex scale"]) == _T("3") ? Filter::TYPE_SCALE3X : Filter::TYPE_SCALE2X
-			);
-
-			settings.filters[FILTER_HQX].attributes[0] = (uchar) 
-			(
-     			(value=cfg["video filter hqx scale"]) == _T("3") ? Filter::TYPE_HQ3X : Filter::TYPE_HQ2X
-			);
-		}
+		settings.filter = settings.filters + Filter::Load
+		( 
+	       	cfg, 
+			settings.filters, 
+			settings.adapter->maxScreenSize, 
+			settings.adapter->filters & Adapter::FILTER_BILINEAR
+		);
 
 		{
 			const GenericString type( cfg["video texture location"] );
@@ -298,9 +215,9 @@ namespace Nestopia
 		{
 			uint color;
 
-			if ((color = cfg[ "video color brightness" ].Default( 128U )) <= 255) Nes::Video(nes).SetBrightness( color );
-			if ((color = cfg[ "video color saturation" ].Default( 128U )) <= 255) Nes::Video(nes).SetSaturation( color );
-			if ((color = cfg[ "video color hue"        ].Default( 128U )) <= 255) Nes::Video(nes).SetHue( color );
+			if (255 >= (color = cfg[ "video color brightness" ].Default( 128U ))) Nes::Video(nes).SetBrightness( color );
+			if (255 >= (color = cfg[ "video color saturation" ].Default( 128U ))) Nes::Video(nes).SetSaturation( color );
+			if (255 >= (color = cfg[ "video color hue"        ].Default( 128U ))) Nes::Video(nes).SetHue( color );
 		}
 
 		{
@@ -366,6 +283,8 @@ namespace Nestopia
 		}
 
 		settings.autoHz = (cfg["video auto display frequency"] == Configuration::YES);
+
+		UpdateNtscFilter();
 	}
 
 	Video::~Video()
@@ -395,68 +314,11 @@ namespace Nestopia
 				value << "stretched";
 		}
 
-		{
-			static tstring const names[] =
-			{
-				_T( "none"      ),            
-				_T( "scanlines" ),
-				_T( "ntsc"      ),
-				_T( "2xsai"     ),           
-				_T( "scalex"    ),         
-				_T( "hqx"	    )
-			};
-
-			cfg[ "video filter" ] = names[settings.filter - settings.filters];
-		}
-
-		for (uint i=0; i < NUM_FILTERS; ++i)
-		{
-			static cstring const lut[] =
-			{
-				"video filter none bilinear",
-				"video filter scanlines bilinear",
-				"video filter ntsc bilinear",
-				"video filter 2xsai bilinear",
-				"video filter scalex bilinear",
-				"video filter hqx bilinear"
-			};
-
-			cfg[lut[i]].YesNo() = settings.filters[i].bilinear;
-		}
-
-		cfg["video filter scanlines type"] = 
-		(
-	     	settings.filters[FILTER_SCANLINES].attributes[0] == Filter::SCANLINES_DARK ? _T("dark") : 
-			                                                                             _T("bright")
-		);
-
-		cfg["video filter ntsc scanlines"] =
-		(
-     		settings.filters[FILTER_NTSC].attributes[0] == Filter::SCANLINES_DARK   ? _T("dark") :
-			settings.filters[FILTER_NTSC].attributes[0] == Filter::SCANLINES_BRIGHT ? _T("bright") :
-			                                                                          _T("none")
-		);
-		
-		cfg["video filter ntsc widescreen"].YesNo() =
-		(
-       		settings.filters[FILTER_NTSC].attributes[1]
-		);
-
-		cfg["video filter 2xsai type"] =
-		(
-     		settings.filters[FILTER_2XSAI].attributes[0] == Filter::TYPE_SUPER2XSAI ? _T("super 2xsai")	:
-			settings.filters[FILTER_2XSAI].attributes[0] == Filter::TYPE_SUPEREAGLE ? _T("super eagle") :
-																					  _T("2xsai")
-		);
-
-		cfg["video filter scalex scale"] =
-		(
-     		settings.filters[FILTER_SCALEX].attributes[0] == Filter::TYPE_SCALE3X ? _T("3") : _T("2") 
-		);
-
-		cfg["video filter hqx scale"] =
-		(
-     		settings.filters[FILTER_HQX].attributes[0] == Filter::TYPE_HQ3X ? _T("3") : _T("2")
+		Filter::Save
+		( 
+			cfg, 
+			settings.filters, 
+			(Filter::Type) (settings.filter - settings.filters) 
 		);
 
 		{
@@ -545,15 +407,21 @@ namespace Nestopia
 		}
 	}
 
+	void Video::UpdateNtscFilter() const
+	{
+		Nes::Video(nes).SetContrast( (uint(settings.filters[Filter::TYPE_NTSC].attributes[Filter::ATR_CONTRAST] - Filter::ATR_CONTRAST_MIN) * 255 + (Filter::ATR_CONTRAST_MAX-Filter::ATR_CONTRAST_MIN)/2) / (Filter::ATR_CONTRAST_MAX-Filter::ATR_CONTRAST_MIN) );
+		Nes::Video(nes).SetSharpness( (uint(settings.filters[Filter::TYPE_NTSC].attributes[Filter::ATR_SHARPNESS] - Filter::ATR_SHARPNESS_MIN) * 255 + (Filter::ATR_SHARPNESS_MAX-Filter::ATR_SHARPNESS_MIN)/2) / (Filter::ATR_SHARPNESS_MAX-Filter::ATR_SHARPNESS_MIN) );
+	}
+
     #ifdef NST_PRAGMA_OPTIMIZE
     #pragma optimize("t", on)
     #endif
 
-	const Rect Video::GetNesRect(const Nes::Machine::Mode mode) const
+	const Rect Video::GetNesRect() const
 	{
-		const Rect& rect = (mode == Nes::Machine::NTSC ? settings.rects.ntsc : settings.rects.pal);
+		const Rect& rect = (Nes::Machine(nes).GetMode() == Nes::Machine::NTSC ? settings.rects.ntsc : settings.rects.pal);
 
-		if (settings.filter != settings.filters + FILTER_NTSC)
+		if (settings.filter != settings.filters + Filter::TYPE_NTSC)
 		{
 			return rect;
 		}
@@ -561,15 +429,19 @@ namespace Nestopia
 		{
 			Rect tmp( rect );
 
-			if (tmp.right == NES_WIDTH)
-				tmp.right = NES_WIDTH-1;
+			if (tmp.left < 1)
+				tmp.left = 1;
 
-			if (settings.filters[FILTER_NTSC].attributes[1])
+			if (settings.filters[Filter::TYPE_NTSC].attributes[Filter::ATR_NO_WIDESCREEN])
 			{
-				tmp.left   = (long) (tmp.left   * NTSC_WIDTH  / double(NES_WIDTH-1) + 0.5); 
-				tmp.top    = (long) (tmp.top    * NTSC_HEIGHT / double(NES_HEIGHT)  + 0.5); 
-				tmp.right  = (long) (tmp.right  * NTSC_WIDTH  / double(NES_WIDTH-1) + 0.5); 
-				tmp.bottom = (long) (tmp.bottom * NTSC_HEIGHT / double(NES_HEIGHT)  + 0.5); 
+				tmp.right += 2;
+			}
+			else
+			{
+				tmp.left   = (tmp.left   * NTSC_WIDTH  + NES_WIDTH  / 2) / NES_WIDTH; 
+				tmp.top    = (tmp.top    * NTSC_HEIGHT + NES_HEIGHT / 2) / NES_HEIGHT; 
+				tmp.right  = (tmp.right  * NTSC_WIDTH  + NES_WIDTH  / 2) / NES_WIDTH; 
+				tmp.bottom = (tmp.bottom * NTSC_HEIGHT + NES_HEIGHT / 2) / NES_HEIGHT; 
 			}
 
 			return tmp;
@@ -580,75 +452,79 @@ namespace Nestopia
     #pragma optimize("", on)
     #endif
 
-	void Video::GetRenderState(Nes::Video::RenderState& state,Rect& rect,const Window::Generic window) const
+	void Video::GetRenderState(Nes::Video::RenderState& state,float rect[4],const Window::Generic window) const
 	{
 		typedef Nes::Video::RenderState State;
 
-		rect = (Nes::Machine(nes).GetMode() == Nes::Machine::NTSC ? settings.rects.ntsc : settings.rects.pal);
+		{
+			const Rect& nesRect = (Nes::Machine(nes).GetMode() == Nes::Machine::NTSC ? settings.rects.ntsc : settings.rects.pal);
+
+			rect[0] = (float) nesRect.left;
+			rect[1] = (float) nesRect.top;
+			rect[2] = (float) nesRect.right;
+			rect[3] = (float) nesRect.bottom;
+		}
 
 		state.width = NES_WIDTH;
 		state.height = NES_HEIGHT;
+		state.scanlines = 0;
 
 		uint scale = 1;
 
 		switch (settings.filter - settings.filters)
 		{
-			case FILTER_SCANLINES:
+			case Filter::TYPE_SCANLINES:
 				
-				NST_ASSERT( settings.adapter->maxScreenSize >= NST_MAX(NES_WIDTH*2,NES_HEIGHT*2) );
+				NST_ASSERT( settings.adapter->maxScreenSize >= Filter::MAX_2X_SIZE );
+
+				state.filter = State::FILTER_NONE;
+				state.scanlines = settings.filters[Filter::TYPE_SCANLINES].attributes[Filter::ATR_SCANLINES];
 
 				// if target screen height is at least twice the size of
 				// the original NES rectangle double the NES's too
 
-				if (Rect::Picture(window).Height() >= rect.Height() * 2)
+				if (state.scanlines && Rect::Picture(window).Height() >= (rect[3]-rect[1]) * 2)
 					scale = 2;
 
-				if (settings.filters[FILTER_SCANLINES].attributes[0] == Filter::SCANLINES_BRIGHT)
-					state.filter = State::FILTER_SCANLINES_BRIGHT;
-				else
-					state.filter = State::FILTER_SCANLINES_DARK;
 				break;
 
-			case FILTER_NTSC:
-			
-				if (rect.right == NES_WIDTH)
-					--rect.right;
+			case Filter::TYPE_NTSC:
 
-				rect.left   = (long) (rect.left   * NTSC_WIDTH  / double(NES_WIDTH-1) + 0.5); 
-				rect.top    = (long) (rect.top    * NTSC_HEIGHT / double(NES_HEIGHT)  + 0.5); 
-				rect.right  = (long) (rect.right  * NTSC_WIDTH  / double(NES_WIDTH-1) + 0.5); 
-				rect.bottom = (long) (rect.bottom * NTSC_HEIGHT / double(NES_HEIGHT)  + 0.5); 
+				NST_ASSERT( settings.adapter->maxScreenSize >= Filter::MAX_NTSC_SIZE );
+
+				if (rect[0] < 1)
+					rect[0] = 1;
+
+				rect[0] *= float( NTSC_WIDTH  ) / NES_WIDTH; 
+				rect[1] *= float( NTSC_HEIGHT ) / NES_HEIGHT; 
+				rect[2] *= float( NTSC_WIDTH  ) / NES_WIDTH; 
+				rect[3] *= float( NTSC_HEIGHT ) / NES_HEIGHT; 
 
 				state.width = NTSC_WIDTH;
 				state.height = NTSC_HEIGHT;
-
-				switch (settings.filters[FILTER_NTSC].attributes[0])
-				{
-					case Filter::SCANLINES_BRIGHT: state.filter = State::FILTER_NTSC_SCANLINES_BRIGHT; break;
-					case Filter::SCANLINES_DARK:   state.filter = State::FILTER_NTSC_SCANLINES_DARK;   break;
-					default:                       state.filter = State::FILTER_NTSC;				   break;
-				}
+				state.filter = State::FILTER_NTSC;
+				state.scanlines = settings.filters[Filter::TYPE_NTSC].attributes[Filter::ATR_SCANLINES];
 				break;
 
-			case FILTER_2XSAI:
+			case Filter::TYPE_2XSAI:
 
-				NST_ASSERT( settings.adapter->maxScreenSize >= NST_MAX(NES_WIDTH*2,NES_HEIGHT*2) );
+				NST_ASSERT( settings.adapter->maxScreenSize >= Filter::MAX_2X_SIZE );
 
 				scale = 2;
 
-				switch (settings.filters[FILTER_2XSAI].attributes[0])
+				switch (settings.filters[Filter::TYPE_2XSAI].attributes[Filter::ATR_TYPE])
 				{
-					case Filter::TYPE_SUPER2XSAI: state.filter = State::FILTER_SUPER_2XSAI; break;
-					case Filter::TYPE_SUPEREAGLE: state.filter = State::FILTER_SUPER_EAGLE; break;
-					default:                      state.filter = State::FILTER_2XSAI;		break;
+					case Filter::ATR_SUPER2XSAI: state.filter = State::FILTER_SUPER_2XSAI; break;
+					case Filter::ATR_SUPEREAGLE: state.filter = State::FILTER_SUPER_EAGLE; break;
+					default:                     state.filter = State::FILTER_2XSAI;		break;
 				}
 				break;
 
-			case FILTER_SCALEX:
+			case Filter::TYPE_SCALEX:
 
-				NST_ASSERT( settings.adapter->maxScreenSize >= NST_MAX(NES_WIDTH*2,NES_HEIGHT*2) );
+				NST_ASSERT( settings.adapter->maxScreenSize >= Filter::MAX_2X_SIZE );
 
-				if (settings.filters[FILTER_SCALEX].attributes[0] == Filter::TYPE_SCALE3X && settings.adapter->maxScreenSize >= NST_MAX(NES_WIDTH*3,NES_HEIGHT*3))
+				if (settings.filters[Filter::TYPE_SCALEX].attributes[Filter::ATR_TYPE] == Filter::ATR_SCALE3X && settings.adapter->maxScreenSize >= Filter::MAX_3X_SIZE)
 				{
 					scale = 3;
 					state.filter = State::FILTER_SCALE3X;
@@ -660,11 +536,11 @@ namespace Nestopia
 				}
 				break;
 
-			case FILTER_HQX:
+			case Filter::TYPE_HQX:
 
-				NST_ASSERT( settings.adapter->maxScreenSize >= NST_MAX(NES_WIDTH*2,NES_HEIGHT*2) );
+				NST_ASSERT( settings.adapter->maxScreenSize >= Filter::MAX_2X_SIZE );
 
-				if (settings.filters[FILTER_HQX].attributes[0] == Filter::TYPE_HQ3X && settings.adapter->maxScreenSize >= NST_MAX(NES_WIDTH*3,NES_HEIGHT*3))
+				if (settings.filters[Filter::TYPE_HQX].attributes[Filter::ATR_TYPE] == Filter::ATR_HQ3X && settings.adapter->maxScreenSize >= Filter::MAX_3X_SIZE)
 				{
 					scale = 3;
 					state.filter = State::FILTER_HQ3X;
@@ -684,7 +560,9 @@ namespace Nestopia
 
 		state.width = (ushort) (state.width * scale);
 		state.height = (ushort) (state.height * scale);
-		rect = rect * scale;
+
+		for (uint i=0; i < 4; ++i)
+			rect[i] *= scale;
 	}
 
 	void Video::LoadGamePalette(const Path& path)
@@ -736,7 +614,7 @@ namespace Nestopia
 
 	uint Video::GetFullscreenScaleMethod() const
 	{
-		return settings.filter == settings.filters+FILTER_NTSC ? settings.filters[FILTER_NTSC].attributes[1] ? 2 : 1 : 0;
+		return settings.filter == settings.filters+Filter::TYPE_NTSC ? settings.filters[Filter::TYPE_NTSC].attributes[Filter::ATR_NO_WIDESCREEN] ? 1 : 2 : 0;
 	}
 
 	void Video::UpdateFullscreenScaleMethod(uint prev)
@@ -748,7 +626,7 @@ namespace Nestopia
 	ibool Video::PutTextureInVideoMemory() const
 	{
 		if (settings.texMem == Settings::TEXMEM_AUTO)
-			return (settings.filter != settings.filters + FILTER_HQX);
+			return (settings.filter != settings.filters + Filter::TYPE_HQX);
 		else 
 			return (settings.texMem == Settings::TEXMEM_VIDMEM);
 	}
@@ -876,7 +754,7 @@ namespace Nestopia
 		if (param.ComboBox().SelectionChanged())
 		{
 			const uint method = GetFullscreenScaleMethod();
-			settings.filter = settings.filters + (FilterType) (Control::ComboBox::Value) dialog.ComboBox( IDC_GRAPHICS_EFFECTS ).Selection().Data();
+			settings.filter = settings.filters + (Filter::Type) (Control::ComboBox::Value) dialog.ComboBox( IDC_GRAPHICS_EFFECTS ).Selection().Data();
 			UpdateFullscreenScaleMethod( method );
 
 			UpdatePalette();
@@ -890,32 +768,30 @@ namespace Nestopia
 	{
 		if (param.Button().IsClicked())
 		{
-			const MsgHandler::Entry<Video> messages[] =
-			{
-				{ WM_INITDIALOG, &Video::OnInitFilterDialog }
-			};
-
-			const MsgHandler::Entry<Video> commands[] =
-			{
-				{ IDC_VIDEO_FILTER_OK,      &Video::OnCmdFilterOk      },
-				{ IDC_VIDEO_FILTER_DEFAULT, &Video::OnCmdFilterDefault },
-				{ IDC_VIDEO_FILTER_CANCEL,  &Video::OnCmdFilterCancel  }
-			};
-
-			static const ushort idd[] = 
-			{
-				IDD_VIDEO_FILTER_NONE,
-				IDD_VIDEO_FILTER_SCANLINES,
-				IDD_VIDEO_FILTER_NTSC,
-				IDD_VIDEO_FILTER_2XSAI,
-				IDD_VIDEO_FILTER_SCALEX,
-				IDD_VIDEO_FILTER_HQX
-			};
-
 			const uint method = GetFullscreenScaleMethod();
-			Dialog( idd[settings.filter-settings.filters], this, messages, commands ).Open();
-			UpdateFullscreenScaleMethod( method );
+			
+			{
+				static const ushort idd[] = 
+				{
+					IDD_VIDEO_FILTER_NONE,
+					IDD_VIDEO_FILTER_SCANLINES,
+					IDD_VIDEO_FILTER_NTSC,
+					IDD_VIDEO_FILTER_2XSAI,
+					IDD_VIDEO_FILTER_SCALEX,
+					IDD_VIDEO_FILTER_HQX
+				};
 
+				VideoFilters filterDialog
+				( 
+			       	idd[settings.filter-settings.filters], 
+					*settings.filter, 
+					settings.adapter->maxScreenSize,
+					settings.adapter->filters & Adapter::FILTER_BILINEAR
+				);
+			}
+			
+			UpdateNtscFilter();
+			UpdateFullscreenScaleMethod( method );
 			UpdateScreen( param.hWnd );
 		}
 
@@ -943,10 +819,10 @@ namespace Nestopia
 
 			Nes::Video(nes).GetPalette().SetMode
 			( 
-				cmd == IDC_GRAPHICS_PALETTE_YUV      ? Nes::Video::Palette::MODE_YUV :
-				cmd == IDC_GRAPHICS_PALETTE_RGB      ? Nes::Video::Palette::MODE_RGB :
-				cmd == IDC_GRAPHICS_PALETTE_CUSTOM   ? Nes::Video::Palette::MODE_CUSTOM :
-				                                       GetDesiredPaletteMode()
+				cmd == IDC_GRAPHICS_PALETTE_YUV    ? Nes::Video::Palette::MODE_YUV :
+				cmd == IDC_GRAPHICS_PALETTE_RGB    ? Nes::Video::Palette::MODE_RGB :
+				cmd == IDC_GRAPHICS_PALETTE_CUSTOM ? Nes::Video::Palette::MODE_CUSTOM :
+				                                     GetDesiredPaletteMode()
 			);
 
 			UpdatePalette();
@@ -972,7 +848,7 @@ namespace Nestopia
 	{
 		if (param.Button().IsClicked())
 		{
-			VideoDecoder videoDecoder( nes );
+			VideoDecoder videoDecoder( nes, settings.filter == settings.filters + Filter::TYPE_NTSC );
 			UpdateScreen( param.hWnd );
 		}
 
@@ -1068,17 +944,9 @@ namespace Nestopia
 
 			settings.adapter = adapters.begin();
 			settings.mode = GetDefaultMode();
-			settings.filter = settings.filters + FILTER_NONE;
 
-			for (uint i=0; i < NUM_FILTERS; ++i)
-				settings.filters[i].bilinear = false;
-
-			settings.filters[ FILTER_SCANLINES ].attributes[0] = Filter::SCANLINES_BRIGHT;
-			settings.filters[ FILTER_NTSC      ].attributes[0] = Filter::SCANLINES_NONE;
-			settings.filters[ FILTER_NTSC      ].attributes[1] = false;
-			settings.filters[ FILTER_2XSAI     ].attributes[0] = Filter::TYPE_2XSAI;
-			settings.filters[ FILTER_SCALEX    ].attributes[0] = Filter::TYPE_SCALE2X;
-			settings.filters[ FILTER_HQX       ].attributes[0] = Filter::TYPE_HQ2X;
+			settings.filter = settings.filters + Filter::TYPE_NONE;
+			settings.filter->Reset();
 
 			UpdateDevice( *settings.mode );
 
@@ -1127,211 +995,6 @@ namespace Nestopia
 			ValidateRects();
 
 			dialog.Close();
-		}
-
-		return TRUE;
-	}
-
-	ibool Video::OnInitFilterDialog(Param& param)
-	{
-		Control::CheckBox(param.hWnd,IDC_VIDEO_FILTER_BILINEAR).Check( settings.filter->bilinear );
-
-		if (!(settings.adapter->filters & Adapter::FILTER_BILINEAR))
-			Control::CheckBox(param.hWnd,IDC_VIDEO_FILTER_BILINEAR).Disable();
-
-		uint idc;
-
-		switch (settings.filter - settings.filters)
-		{
-			case FILTER_SCANLINES:
-
-				if (settings.filter->attributes[0] == Filter::SCANLINES_DARK)
-					idc = IDC_VIDEO_FILTER_SCANLINES_TYPE_DARK;
-				else
-					idc = IDC_VIDEO_FILTER_SCANLINES_TYPE_BRIGHT;
-
-				Control::RadioButton(param.hWnd,idc).Check();
-				break;
-
-			case FILTER_NTSC:
-
-				Control::CheckBox(param.hWnd,IDC_VIDEO_FILTER_NTSC_WIDESCREEN).Check( settings.filter->attributes[1] );
-
-				switch (settings.filter->attributes[0])
-				{
-					case Filter::SCANLINES_BRIGHT: idc = IDC_VIDEO_FILTER_NTSC_SCANLINES_BRIGHT; break;
-					case Filter::SCANLINES_DARK:   idc = IDC_VIDEO_FILTER_NTSC_SCANLINES_DARK;   break;
-					default:                       idc = IDC_VIDEO_FILTER_NTSC_SCANLINES_NONE;   break;
-				}
-
-				Control::RadioButton(param.hWnd,idc).Check();
-				break;
-
-			case FILTER_2XSAI:
-
-				switch (settings.filter->attributes[0])
-				{
-					case Filter::TYPE_SUPER2XSAI: idc = IDC_VIDEO_FILTER_2XSAI_TYPE_SUPER2XSAI; break;
-					case Filter::TYPE_SUPEREAGLE: idc = IDC_VIDEO_FILTER_2XSAI_TYPE_SUPEREAGLE; break;
-					default:                      idc = IDC_VIDEO_FILTER_2XSAI_TYPE_2XSAI;      break;
-				}
-
-				Control::RadioButton(param.hWnd,idc).Check();
-				break;
-
-			case FILTER_SCALEX:
-
-				if (settings.filter->attributes[0] == Filter::TYPE_SCALE3X)
-					idc = IDC_VIDEO_FILTER_SCALEX_3X;
-				else
-					idc = IDC_VIDEO_FILTER_SCALEX_2X;
-
-				Control::RadioButton(param.hWnd,idc).Check();
-
-				if (settings.adapter->maxScreenSize < NST_MAX(NES_HEIGHT*3,NES_WIDTH*3))
-				{
-					Control::RadioButton(param.hWnd,IDC_VIDEO_FILTER_SCALEX_2X).Disable();
-					Control::RadioButton(param.hWnd,IDC_VIDEO_FILTER_SCALEX_3X).Disable();
-				}
-				break;
-
-			case FILTER_HQX:
-
-				if (settings.filter->attributes[0] == Filter::TYPE_HQ3X)
-					idc = IDC_VIDEO_FILTER_HQX_SCALING_3X;
-				else
-					idc = IDC_VIDEO_FILTER_HQX_SCALING_2X;
-
-				Control::RadioButton(param.hWnd,idc).Check();
-
-				if (settings.adapter->maxScreenSize < NST_MAX(NES_HEIGHT*3,NES_WIDTH*3))
-				{
-					Control::RadioButton(param.hWnd,IDC_VIDEO_FILTER_HQX_SCALING_2X).Disable();
-					Control::RadioButton(param.hWnd,IDC_VIDEO_FILTER_HQX_SCALING_3X).Disable();
-				}
-				break;
-		}
-
-		return TRUE;
-	}
-
-	ibool Video::OnCmdFilterDefault(Param& param)
-	{
-		if (param.Button().IsClicked())
-		{
-			Control::CheckBox(param.hWnd,IDC_VIDEO_FILTER_BILINEAR).Uncheck();
-
-			switch (settings.filter-settings.filters)
-			{
-				case FILTER_SCANLINES:
-
-					Control::RadioButton(param.hWnd,IDC_VIDEO_FILTER_SCANLINES_TYPE_BRIGHT).Check();
-					break;
-
-				case FILTER_NTSC:
-
-					Control::CheckBox(param.hWnd,IDC_VIDEO_FILTER_NTSC_WIDESCREEN).Uncheck();
-					Control::RadioButton(param.hWnd,IDC_VIDEO_FILTER_NTSC_SCANLINES_NONE).Check();
-					break;
-
-				case FILTER_2XSAI:
-
-					Control::RadioButton(param.hWnd,IDC_VIDEO_FILTER_2XSAI_TYPE_2XSAI).Check();
-					break;
-
-				case FILTER_SCALEX:
-
-					Control::RadioButton(param.hWnd,IDC_VIDEO_FILTER_SCALEX_2X).Check();
-					Control::RadioButton(param.hWnd,IDC_VIDEO_FILTER_SCALEX_3X).Uncheck();
-					break;
-
-				case FILTER_HQX:
-
-					Control::RadioButton(param.hWnd,IDC_VIDEO_FILTER_HQX_SCALING_2X).Check();
-					Control::RadioButton(param.hWnd,IDC_VIDEO_FILTER_HQX_SCALING_3X).Uncheck();
-					break;
-			}
-		}
-
-		return TRUE;
-	}
-
-	ibool Video::OnCmdFilterCancel(Param& param)
-	{
-		if (param.Button().IsClicked())
-			::EndDialog( param.hWnd, 0 );
-
-		return TRUE;
-	}
-
-	ibool Video::OnCmdFilterOk(Param& param)
-	{
-		if (param.Button().IsClicked())
-		{
-			settings.filter->bilinear = Control::CheckBox(param.hWnd,IDC_VIDEO_FILTER_BILINEAR).IsChecked();
-		
-			switch (settings.filter-settings.filters)
-			{
-				case FILTER_SCANLINES:
-
-				    if (Control::RadioButton(param.hWnd,IDC_VIDEO_FILTER_SCANLINES_TYPE_DARK).IsChecked())
-						settings.filter->attributes[0] = Filter::SCANLINES_DARK;
-					else
-						settings.filter->attributes[0] = Filter::SCANLINES_BRIGHT;
-					break;
-
-				case FILTER_NTSC:
-
-					settings.filter->attributes[1] = (bool) Control::CheckBox(param.hWnd,IDC_VIDEO_FILTER_NTSC_WIDESCREEN).IsChecked();
-
-					if (Control::RadioButton(param.hWnd,IDC_VIDEO_FILTER_NTSC_SCANLINES_BRIGHT).IsChecked())
-					{
-						settings.filter->attributes[0] = Filter::SCANLINES_BRIGHT;
-					}
-					else if (Control::RadioButton(param.hWnd,IDC_VIDEO_FILTER_NTSC_SCANLINES_DARK).IsChecked())
-					{
-						settings.filter->attributes[0] = Filter::SCANLINES_DARK;
-					}
-					else
-					{
-						settings.filter->attributes[0] = Filter::SCANLINES_NONE;
-					}
-					break;
-
-				case FILTER_2XSAI:
-
-					if (Control::RadioButton(param.hWnd,IDC_VIDEO_FILTER_2XSAI_TYPE_SUPER2XSAI).IsChecked())
-					{
-						settings.filter->attributes[0] = Filter::TYPE_SUPER2XSAI;
-					}
-					else if (Control::RadioButton(param.hWnd,IDC_VIDEO_FILTER_2XSAI_TYPE_SUPEREAGLE).IsChecked())
-					{
-						settings.filter->attributes[0] = Filter::TYPE_SUPEREAGLE;
-					}
-					else
-					{
-						settings.filter->attributes[0] = Filter::TYPE_2XSAI;
-					}
-					break;
-
-				case FILTER_SCALEX:
-
-					if (Control::RadioButton(param.hWnd,IDC_VIDEO_FILTER_SCALEX_3X).IsChecked())
-						settings.filter->attributes[0] = Filter::TYPE_SCALE3X;
-					else
-						settings.filter->attributes[0] = Filter::TYPE_SCALE2X;
-					break;
-
-				case FILTER_HQX:
-
-					if (Control::RadioButton(param.hWnd,IDC_VIDEO_FILTER_HQX_SCALING_3X).IsChecked())
-						settings.filter->attributes[0] = Filter::TYPE_HQ3X;
-					else
-						settings.filter->attributes[0] = Filter::TYPE_HQ2X;
-					break;
-			}
-
-			::EndDialog( param.hWnd, 0 );
 		}
 
 		return TRUE;
@@ -1417,30 +1080,30 @@ namespace Nestopia
 		const Control::ComboBox comboBox( dialog.ComboBox(IDC_GRAPHICS_EFFECTS) );
 		comboBox.Clear();
 
-		comboBox.Add( Resource::String(IDS_VIDEO_FILTER_NONE) ).Data() = FILTER_NONE;
+		comboBox.Add( Resource::String(IDS_NONE) ).Data() = Filter::TYPE_NONE;
 
-		if (settings.adapter->maxScreenSize >= NST_MAX(NES_WIDTH*2,NES_HEIGHT*2))
+		if (settings.adapter->maxScreenSize >= Filter::MAX_2X_SIZE)
 		{
-			comboBox.Add( Resource::String(IDS_VIDEO_FILTER_SCANLINES) ).Data() = FILTER_SCANLINES;
+			comboBox.Add( Resource::String(IDS_VIDEO_FILTER_SCANLINES) ).Data() = Filter::TYPE_SCANLINES;
 
-			if (settings.adapter->maxScreenSize >= NST_MAX(NTSC_WIDTH,NTSC_HEIGHT))
-				comboBox.Add( Resource::String(IDS_VIDEO_FILTER_NTSC) ).Data() = FILTER_NTSC;
+			if (settings.adapter->maxScreenSize >= Filter::MAX_NTSC_SIZE)
+				comboBox.Add( Resource::String(IDS_VIDEO_FILTER_NTSC) ).Data() = Filter::TYPE_NTSC;
 
-			comboBox.Add( Resource::String(IDS_VIDEO_FILTER_2XSAI) ).Data() = FILTER_2XSAI;
-			comboBox.Add( Resource::String(IDS_VIDEO_FILTER_SCALEX) ).Data() = FILTER_SCALEX;
-			comboBox.Add( Resource::String(IDS_VIDEO_FILTER_HQX) ).Data() = FILTER_HQX;
+			comboBox.Add( Resource::String(IDS_VIDEO_FILTER_2XSAI) ).Data() = Filter::TYPE_2XSAI;
+			comboBox.Add( Resource::String(IDS_VIDEO_FILTER_SCALEX) ).Data() = Filter::TYPE_SCALEX;
+			comboBox.Add( Resource::String(IDS_VIDEO_FILTER_HQX) ).Data() = Filter::TYPE_HQX;
 		}
 
 		for (uint i=0, size=comboBox.Size(); i < size; ++i)
 		{
-			if (settings.filter-settings.filters == (FilterType) (Control::ComboBox::Value) comboBox[i].Data())
+			if (settings.filter-settings.filters == (Filter::Type) (Control::ComboBox::Value) comboBox[i].Data())
 			{
 				comboBox[i].Select();
 				return;
 			}
 		}
 
-		settings.filter = settings.filters + FILTER_NONE;
+		settings.filter = settings.filters + Filter::TYPE_NONE;
 		comboBox[0].Select();
 	}
 
@@ -1486,7 +1149,7 @@ namespace Nestopia
 		const ibool enable = 
 		(
        		settings.lockedPalette.Empty() &&
-	     	settings.filter != settings.filters + FILTER_NTSC
+			settings.filter != settings.filters + Filter::TYPE_NTSC
 		);
 
 		for (uint i=IDC_GRAPHICS_PALETTE_AUTO; i <= IDC_GRAPHICS_PALETTE_EDITOR; ++i)

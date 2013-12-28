@@ -91,8 +91,7 @@ namespace Nestopia
 		const uint bits,
 		const Channels channels,
 		const uint speed,
-		const uint latency,
-		const uint volume
+		const uint latency
 	)
 	{
 		NST_ASSERT( deviceId < adapters.size() );
@@ -122,7 +121,7 @@ namespace Nestopia
 			}
 		}
 
-		return buffer.Update( *device, settings.priority, rate, bits, channels, speed, latency, volume );
+		return buffer.Update( *device, settings.priority, rate, bits, channels, speed, latency );
 	}
 
 	tstring DirectSound::UpdateSpeed(const uint speed,const uint latency)
@@ -132,7 +131,7 @@ namespace Nestopia
 	}
 
 	DirectSound::Buffer::Settings::Settings()
-	: size(0), volume(VOLUME_MAX) {}
+	: size(0) {}
 
 	DirectSound::Buffer::Buffer()
 	: writeOffset(0)
@@ -186,9 +185,6 @@ namespace Nestopia
 		desc.dwBufferBytes = settings.size * 2;
 		desc.lpwfxFormat = &waveFormat;
 
-		if (settings.volume != VOLUME_MAX)
-			desc.dwFlags |= DSBCAPS_CTRLVOLUME;
-
 		{
 			ComInterface<IDirectSoundBuffer> oldie;
 
@@ -198,9 +194,6 @@ namespace Nestopia
 			if (FAILED(oldie->QueryInterface( IID_IDirectSoundBuffer8, reinterpret_cast<void**>(&com) )))
 				return _T("IDirectSoundBuffer::QueryInterface() failed!");
 		}
-
-		if (settings.volume != VOLUME_MAX)
-			UpdateVolume();
 
 		return NULL;
 	}
@@ -215,20 +208,6 @@ namespace Nestopia
 		return size;
 	}
 
-	void DirectSound::Buffer::UpdateVolume() const
-	{
-		NST_ASSERT( com && settings.volume != VOLUME_MAX );
-
-		long volume;
-
-		if (settings.volume)
-			volume = (long) ((DSBVOLUME_MAX-DSBVOLUME_MIN) * (((settings.volume / 100.0) * (1.3-1.0) + 1.0) / 1.3) + DSBVOLUME_MIN);
-		else
-			volume = DSBVOLUME_MIN;
-
-		com->SetVolume( volume );
-	}
-
 	tstring DirectSound::Buffer::Update
 	(
 		IDirectSound8& device,
@@ -237,8 +216,7 @@ namespace Nestopia
 		const uint bits,		
 		const Channels channels,
 		const uint speed,
-		const uint latency,
-		const uint volume
+		const uint latency
 	)
 	{	
 		const uint size = CalculateSize( rate, bits / 8 * channels, speed, latency );
@@ -251,17 +229,7 @@ namespace Nestopia
      		waveFormat.nChannels == channels &&
 			settings.size == size
 		)
-		{
-			if (settings.volume == volume)
-				return NULL;
-
-			if (settings.volume != VOLUME_MAX && volume != VOLUME_MAX)
-			{
-				settings.volume = volume;
-				UpdateVolume();
-				return NULL;
-			}
-		}
+			return NULL;
 
 		waveFormat.nSamplesPerSec = rate; 
 		waveFormat.wBitsPerSample = (WORD) bits; 
@@ -270,7 +238,6 @@ namespace Nestopia
 		waveFormat.nAvgBytesPerSec = waveFormat.nSamplesPerSec * waveFormat.nBlockAlign;
 
 		settings.size = size;
-		settings.volume = volume;
 
 		return Create( device, priority );
 	}

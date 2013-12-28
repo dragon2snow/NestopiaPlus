@@ -99,8 +99,12 @@
  #define NST_NO_INLINE __attribute__ ((noinline))
  #endif
 
- #ifndef NST_RESTRICT
- #define NST_RESTRICT __restrict__
+ #if (__GNUC__ >= 2) && (__GNUC_MINOR__ >= 91)
+ 
+  #ifndef NST_RESTRICT
+  #define NST_RESTRICT __restrict__
+  #endif
+
  #endif
 
  #ifndef NST_TAILCALL_OPTIMIZE

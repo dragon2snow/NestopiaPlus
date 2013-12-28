@@ -46,7 +46,7 @@ namespace Nes
 				template<typename T>
 				NST_FORCE_INLINE void BlitType(const Input&,const Output&) const;
 
-				void Blit(const Input&,const Output&);
+				void Blit(const Input&,const Output&,uint);
 
 			public:
 

@@ -437,13 +437,12 @@ namespace Nes
 			envelopes.units[VOLUME].Reset();
 			envelopes.units[SWEEP].Reset();
 	
-			for (uint i=0; i < Wave::SIZE; ++i)
-				wave.table[i] = Wave::DC;
-
+			std::memset( wave.table, 0, Wave::SIZE );
 			std::memset( modulator.table, 0x00, Modulator::SIZE );
 	
 			status = 0;
 			volume = volumes[0];
+			amp = 0;
 		}
 	
 		void Fds::Sound::Reset()
@@ -464,13 +463,18 @@ namespace Nes
 			cpu.Map( 0x4092U ).Set( this, &Fds::Sound::Peek_4092, &Fds::Sound::Poke_Nop  );
 	
 			ResetChannel();
+			dcBlocker.Reset();
 	
 			cpu.GetApu().SetExternalClock( 0 );
 		}
 
-		void Fds::Sound::UpdateContext(uint)
+		void Fds::Sound::UpdateContext(uint,const u8 (&volumes)[MAX_CHANNELS])
 		{
 			NST_VERIFY( fixed <= 0xFFFFU && rate <= 0x7FFFFUL );
+			
+			outputVolume = volumes[Apu::CHANNEL_FDS] * 69 / DEFAULT_VOLUME;
+			amp = 0;
+			dcBlocker.Reset();
 			active = CanOutput();
 		}
 
@@ -735,12 +739,7 @@ namespace Nes
 					state.Begin('R','E','G','\0').Write( data ).End();
 				}
 				{
-					u8 data[Wave::SIZE];
-
-					for (uint i=0; i < Wave::SIZE; ++i)
-						data[i] = Wave::DC - wave.table[i];
-
-					state.Begin('W','A','V','\0').Compress( data ).End();
+					state.Begin('W','A','V','\0').Compress( wave.table ).End();
 				}
 			}			
 			state.End();
@@ -816,15 +815,13 @@ namespace Nes
 								}
 					
 								case NES_STATE_CHUNK_ID('W','A','V','\0'):
-								{
-									u8 data[Wave::SIZE];
-									state.Uncompress( data );
+								
+									state.Uncompress( wave.table );
 					
 									for (uint i=0; i < Wave::SIZE; ++i)
-										wave.table[i] = Wave::DC - int(data[i] & 0x3F);
+										wave.table[i] &= 0x3F;
 					
 									break;
-								}
 							}
 
 							state.End();
@@ -1108,7 +1105,7 @@ namespace Nes
 	
 		NES_PEEK(Fds::Sound,4040) 
 		{
-			return uint(Wave::DC - wave.table[address & 0x3F]) | OPEN_BUS; 
+			return wave.table[address & 0x3F] | OPEN_BUS; 
 		}
 	
 		NES_POKE(Fds::Sound,4040) 
@@ -1118,7 +1115,7 @@ namespace Nes
 			if (wave.writing)
 			{
 				cpu.GetApu().Update(); 
-				wave.table[address & 0x3F] = Wave::DC - int(data & 0x3F);
+				wave.table[address & 0x3F] = data & 0x3F;
 			}
 		}
 	
@@ -1142,7 +1139,7 @@ namespace Nes
 	
 		bool Fds::Sound::CanOutput() const
 		{
-			return (status & STATUS_OUTPUT_ENABLED) && wave.length && !wave.writing && emulate;
+			return (status & STATUS_OUTPUT_ENABLED) && wave.length && !wave.writing && outputVolume;
 		}
 
 		NES_POKE(Fds::Sound,4082) 
@@ -1328,7 +1325,7 @@ namespace Nes
 				}
 			}
 
-			Sample sample = 0;
+			dword sample = 0;
 	
 			if (active)
 			{
@@ -1344,12 +1341,12 @@ namespace Nes
 				if (wave.pos < pos)
 					wave.volume = envelopes.units[VOLUME].Output();
 	
-				sample = Sample(wave.volume) * Sample(volume) * wave.table[(wave.pos / cpu.GetApu().GetSampleRate()) & 0x3F] / 30;
+				sample = wave.volume * volume * wave.table[(wave.pos / cpu.GetApu().GetSampleRate()) & 0x3F] / 30;
 			} 
 	
 			amp = (amp * 2 + sample) / 3;
 
-			return amp;
+			return dcBlocker.Apply( amp * outputVolume / DEFAULT_VOLUME );
 		}
 
 		ibool Fds::Irq::Signal()

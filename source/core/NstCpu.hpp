@@ -53,8 +53,8 @@ namespace Nes
 				CLK_PAL      = 35468950UL,
 				CLK_PAL_DIV  = 8,
 				MC_MUL       = 6,
-				MC_NTSC      = ulong(CLK_NTSC) * MC_MUL,
-				MC_PAL       = ulong(CLK_PAL) * MC_MUL,
+				MC_NTSC      = dword(CLK_NTSC) * MC_MUL,
+				MC_PAL       = dword(CLK_PAL) * MC_MUL,
 				MC_DIV_NTSC  = 12,
 				MC_DIV_PAL   = 16,
 				RESET_CYCLES = 7

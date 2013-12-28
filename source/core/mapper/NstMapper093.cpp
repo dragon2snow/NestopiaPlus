@@ -32,14 +32,19 @@ namespace Nes
         #ifdef NST_PRAGMA_OPTIMIZE
         #pragma optimize("s", on)
         #endif
-	
+
 		void Mapper93::SubReset(bool)
 		{
-			Map( 0x6000U, PRG_SWAP_16K );
+			Map( 0x8000U, 0xFFFFU, &Mapper93::Poke_Prg );
 		}
 	
         #ifdef NST_PRAGMA_OPTIMIZE
         #pragma optimize("", on)
         #endif
+
+		NES_POKE(Mapper93,Prg)
+		{
+			prg.SwapBank<SIZE_16K,0x0000U>( data >> 4 );
+		}
 	}
 }

@@ -61,7 +61,7 @@ namespace Nes
 			wave.data = NULL;
 		}
 
-		void SoundWave::UpdateContext(uint)
+		void SoundWave::UpdateContext(uint,const u8 (&)[MAX_CHANNELS])
 		{
 			wave.data = NULL;
 		}

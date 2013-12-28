@@ -43,6 +43,8 @@ namespace Nes
 		private:
 
 			void SubReset(bool);
+
+			NES_DECL_POKE( Prg )
 		};
 	}
 }

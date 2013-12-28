@@ -52,7 +52,7 @@ namespace Nes
 				protected:
 
 					void Reset();
-					void UpdateContext(uint);
+					void UpdateContext(uint,const u8 (&w)[MAX_CHANNELS]);
 					Cycle Clock();
 					Sample GetSample();
 
@@ -87,7 +87,7 @@ namespace Nes
 
 						void Reset();		
 								
-						NST_FORCE_INLINE Sample GetSample(Cycle);
+						NST_FORCE_INLINE dword GetSample(Cycle);
 			
 						NST_FORCE_INLINE void WriteReg0(uint);
 						NST_FORCE_INLINE void WriteReg1(uint,uint);
@@ -114,12 +114,12 @@ namespace Nes
 							DUTY_SHIFT           = 6
 						};
 			
-						uint waveLength;
+						uint  waveLength;
 						ibool active;
 						Cycle frequency;
-						idword timer;
-						uint step;
-						uint duty;
+						iword timer;
+						uint  step;
+						uint  duty;
 			
 						Apu::LengthCounter lengthCounter;
 						Apu::Envelope envelope;
@@ -158,13 +158,11 @@ namespace Nes
 						Sample sample;
 						Sample amp;
 			
-						Apu::DcRemover dcRemover;
-			
 					public:
 			
 						Sample GetSample()
 						{ 
-							return dcRemover.Filter( sample ); 
+							return sample; 
 						}
 					};
 			
@@ -173,6 +171,7 @@ namespace Nes
 					uint halfClock;
 					Square square[NUM_SQUARES];
 					Pcm pcm;
+					Apu::DcBlocker dcBlocker;
 					const ibool hooked;
 				};
 

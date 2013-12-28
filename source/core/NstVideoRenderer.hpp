@@ -56,23 +56,28 @@ namespace Nes
 				{
 					WIDTH = 256,
 					HEIGHT = 240,
-					PIXELS = ulong(WIDTH) * HEIGHT,
+					PIXELS = dword(WIDTH) * HEIGHT,
 					PALETTE = 64 * 8,
 					DEFAULT_HUE = 128,
 					DEFAULT_BRIGHTNESS = 128,
 					DEFAULT_SATURATION = 128,
+					DEFAULT_CONTRAST = 128,
+					DEFAULT_SHARPNESS = 128,
 					DEFAULT_PALETTE = PALETTE_YUV
 				};
 
 				Result SetState(const RenderState&);
 				Result GetState(RenderState&) const;
-				void Blit(Output&);
+				void Blit(Output&,uint=1);
 
+				void SetMode(Mode);
 				Result SetDecoder(const Decoder&);
 
 				Result SetPaletteType(PaletteType);
 				Result LoadCustomPalette(const u8 (*)[3]);
 				void   ResetCustomPalette();
+
+				void EnableFieldMerging(bool);
 
 				typedef u8 PaletteEntries[PALETTE][3];
 				typedef u16 Screen[PIXELS];
@@ -103,7 +108,7 @@ namespace Nes
 
 					enum
 					{
-						HUE_OFFSET = -15 + 33
+						HUE_OFFSET = 33
 					};
 
 					struct Custom
@@ -123,7 +128,6 @@ namespace Nes
 					Decoder decoder;
 					u8 palette[64*8][3];
 
-					static const double emphasis[8][3];
 					static const u8 rgbPalette[64][3];
 
 				public:
@@ -174,12 +178,20 @@ namespace Nes
 						dword right[3];
 					};
 
+				protected:
+
+					template<uint BITS>
+					struct OutPixel
+					{
+						typedef u16 Type;
+					};
+
 				public:
 
 					Filter(const RenderState&);
 					virtual ~Filter() {}
 
-					virtual void Blit(const Input&,const Output&) = 0;
+					virtual void Blit(const Input&,const Output&,uint) = 0;
 					virtual void Transform(const u8 (&)[PALETTE][3],u32 (&)[PALETTE]) const;
 					virtual bool CanTransform() const { return true; }
 
@@ -194,7 +206,9 @@ namespace Nes
 					enum
 					{
 						UPDATE_PALETTE = 0x1,
-						UPDATE_FILTER = 0x2
+						UPDATE_FILTER = 0x2,
+						FIELD_MERGING_USER = 0x1,
+						FIELD_MERGING_PAL = 0x2
 					};
 
 					RenderState::Filter filter;
@@ -204,6 +218,10 @@ namespace Nes
 					u8 brightness;
 					u8 saturation;
 					u8 hue;
+					u8 contrast;
+					u8 sharpness;
+					u8 scanlines;
+					u8 fieldMerging;
 					RenderState::Bits::Mask mask;
 				};
 
@@ -230,6 +248,16 @@ namespace Nes
 					return SetLevel( state.hue, hue );
 				}
 
+				Result SetContrast(u8 contrast)
+				{
+					return SetLevel( state.contrast, contrast );
+				}
+
+				Result SetSharpness(u8 sharpness)
+				{
+					return SetLevel( state.sharpness, sharpness );
+				}
+
 				uint GetBrightness() const
 				{
 					return state.brightness;
@@ -243,6 +271,21 @@ namespace Nes
 				uint GetHue() const
 				{
 					return state.hue;
+				}
+
+				uint GetContrast() const
+				{
+					return state.contrast;
+				}
+
+				uint GetSharpness() const
+				{
+					return state.sharpness;
+				}
+
+				bool IsFieldMergingEnabled() const
+				{
+					return state.fieldMerging & State::FIELD_MERGING_USER;
 				}
 
 				PaletteType GetPaletteType() const
@@ -264,6 +307,12 @@ namespace Nes
 				{
 					return filter != NULL;
 				}
+			};
+
+			template<>
+			struct Renderer::Filter::OutPixel<32U>
+			{
+				typedef u32 Type;
 			};
 		}
 	}

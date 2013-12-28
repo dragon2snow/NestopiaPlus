@@ -128,12 +128,12 @@ namespace Nestopia
 		{
 			text << (maker || artist ? ", " : "\r\n");
 
-			if ( chips & Nes::Nsf::CHIP_MMC5  ) text << "MMC5 ";
-			if ( chips & Nes::Nsf::CHIP_FDS   )	text << "FDS ";
-			if ( chips & Nes::Nsf::CHIP_VRC6  )	text << "VRC6 ";
-			if ( chips & Nes::Nsf::CHIP_VRC7  )	text << "VRC7 ";
-			if ( chips & Nes::Nsf::CHIP_N106  )	text << "N106 ";
-			if ( chips & Nes::Nsf::CHIP_FME07 )	text << "FME-07 ";
+			if ( chips & Nes::Nsf::CHIP_MMC5 ) text << "MMC5 ";
+			if ( chips & Nes::Nsf::CHIP_FDS  )	text << "FDS ";
+			if ( chips & Nes::Nsf::CHIP_VRC6 )	text << "VRC6 ";
+			if ( chips & Nes::Nsf::CHIP_VRC7 )	text << "VRC7 ";
+			if ( chips & Nes::Nsf::CHIP_N106 )	text << "N106 ";
+			if ( chips & Nes::Nsf::CHIP_S5B  )	text << "Sunsoft5B ";
 
 			text << ((chips & (chips-1)) ? "chips" : "chip");
 		}
@@ -264,7 +264,7 @@ namespace Nestopia
 		cfg[ "machine no sprite limit" ].YesNo() = Nes::Video(emulator).AreUnlimSpritesEnabled();
 
 		{
-			const uint scale = Point(GetNesRect()).ScaleToFit( client, Point::SCALE_NEAREST );
+			const uint scale = Point(dialog->GetNesRect()).ScaleToFit( client, Point::SCALE_NEAREST );
 
 			cfg["view size window"] = (scale <= 8 ? scale + 1 : 1);
 		}
@@ -294,7 +294,7 @@ namespace Nestopia
 
 	void Video::OnCmdOptionsVideo(uint)
 	{
-		const Rect old( GetNesRect() );
+		const Rect old( dialog->GetNesRect() );
 
 		dialog->Open();
 
@@ -303,7 +303,7 @@ namespace Nestopia
   
 		if (IsWindowed() || !SwitchFullscreen( dialog->GetMode() ))
 		{
-			if (old != GetNesRect())
+			if (old != dialog->GetNesRect())
 			{
 				UpdateMenuScreenSizes( GetDisplayMode() );
 
@@ -419,7 +419,7 @@ namespace Nestopia
 
 	uint Video::CalculateWindowScale() const
 	{
-		return Point(GetNesRect().Size()).ScaleToFit( Rect::Picture(window), Point::SCALE_NEAREST );
+		return Point(dialog->GetNesRect().Size()).ScaleToFit( Rect::Picture(window), Point::SCALE_NEAREST );
 	}
   
 	void Video::OnMenuScreenSizes(Window::Menu::PopupHandler::Param& param)
@@ -472,7 +472,7 @@ namespace Nestopia
 	ibool Video::IsWindowMatched() const
 	{
 		const Rect::Picture output( window );
-		const Rect input( GetNesRect() );
+		const Rect input( dialog->GetNesRect() );
 
 		return (output.Width() % input.Width()) == 0 && (output.Height() % input.Height()) == 0;
 	}
@@ -496,7 +496,7 @@ namespace Nestopia
 			if (!window.Restored())
 				window.Restore();
 
-			Point size( GetNesRect() );
+			Point size( dialog->GetNesRect() );
 			size.ScaleToFit( GetDisplayMode(), Point::SCALE_BELOW, scale );
 			window.Resize( size + (Rect::Window(window).Size() - Rect::Picture(window).Size()) );
 
@@ -510,7 +510,7 @@ namespace Nestopia
 		for (uint i=IDM_VIEW_WINDOWSIZE_1X; i < IDM_VIEW_WINDOWSIZE_MAX; ++i)
 			menu[i].Remove();
 
-		const Point original( GetNesRect() );
+		const Point original( dialog->GetNesRect() );
 		Point nes( original );
 
 		if (IsFullscreen())
@@ -751,19 +751,9 @@ namespace Nestopia
 		}
 	}
 
-	Video::Rect Video::GetNesRect(const Nes::Machine::Mode mode) const
-	{
-		return dialog->GetNesRect( mode );
-	}
-
-	Video::Rect Video::GetNesRect() const
-	{
-		return GetNesRect( Nes::Machine(emulator).GetMode() );
-	}
-
 	const Video::Rect& Video::GetInputRect() const
 	{
-		return dialog->GetInputRect( Nes::Machine(emulator).GetMode() );
+		return dialog->GetInputRect();
 	}
   
 	void Video::UpdateScreen()
@@ -780,7 +770,7 @@ namespace Nestopia
 			direct2d.GetBitMask( renderState.bits.mask.r, renderState.bits.mask.g, renderState.bits.mask.b );
 			NST_ASSERT( renderState.bits.mask.r && renderState.bits.mask.g && renderState.bits.mask.b );
 		
-			Rect nesScreen;
+			float nesScreen[4];
 			dialog->GetRenderState( renderState, nesScreen, window );
 			NST_ASSERT( direct2d.GetAdapter().maxScreenSize >= NST_MAX(renderState.width,renderState.height) );
 
@@ -807,7 +797,7 @@ namespace Nestopia
 				}
 				else // scale up and center to screen
 				{	
-					Point nesPoint( GetNesRect() );
+					Point nesPoint( dialog->GetNesRect() );
 					dialog->SetFullscreenScale( nesPoint.ScaleToFit( screen + (screen / SCALE_TOLERANCE), Point::SCALE_BELOW, dialog->GetFullscreenScale() ) );
 					picture = nesPoint;
 					picture.Center() = screen.Center();
@@ -834,11 +824,18 @@ namespace Nestopia
 					dialog->PutTextureInVideoMemory()
 				);
 			}
+
+			UpdateFieldMergingState();
 		}
 		else if (IsWindowed())
 		{
 			direct2d.UpdateWindowView();
 		}
+	}
+
+	void Video::UpdateFieldMergingState() const
+	{
+		Nes::Video(emulator).EnableFieldMerging( dialog->EnableFieldMerging() || (dialog->UseAutoFieldMerging() && !direct2d.IsIdealFrameRate()) );
 	}
 
 	void Video::ToggleFps(const ibool enable)
@@ -898,6 +895,8 @@ namespace Nestopia
 					emulator.SyncFrameRate(), 
 					emulator.UseTripleBuffering() 
 				);
+
+				UpdateFieldMergingState();
 				break;			
 
 			case Emulator::EVENT_NSF_NEXT:

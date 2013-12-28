@@ -625,6 +625,14 @@
 					RelativePath="..\source\win32\NstDialogVideoDecoder.hpp"
 					>
 				</File>
+				<File
+					RelativePath="..\source\win32\NstDialogVideoFilters.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\source\win32\NstDialogVideoFilters.hpp"
+					>
+				</File>
 			</Filter>
 			<Filter
 				Name="Controls"

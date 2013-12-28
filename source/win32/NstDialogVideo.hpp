@@ -29,6 +29,7 @@
 
 #include "NstWindowRect.hpp"
 #include "NstWindowDialog.hpp"
+#include "NstDialogVideoFilters.hpp"
 #include "NstDirect2D.hpp"
 #include "../core/api/NstApiVideo.hpp"
 
@@ -67,8 +68,8 @@ namespace Nestopia
 			void SavePalette(Path&) const;
 			void UpdatePaletteMode() const;
 
-			void GetRenderState(Nes::Video::RenderState&,Rect&,const Window::Generic) const;
-			const Rect GetNesRect(const Nes::Machine::Mode) const;
+			void GetRenderState(Nes::Video::RenderState&,float[4],const Window::Generic) const;
+			const Rect GetNesRect() const;
 			ibool PutTextureInVideoMemory() const;
 			Modes::const_iterator GetDialogMode() const;
 
@@ -78,6 +79,7 @@ namespace Nestopia
 
 			uint GetFullscreenScaleMethod() const;
 			void UpdateFullscreenScaleMethod(uint);
+			void UpdateNtscFilter() const;
 			Nes::Video::Palette::Mode GetDesiredPaletteMode() const;
 
 			enum
@@ -88,38 +90,7 @@ namespace Nestopia
 				PAL_CLIP_BOTTOM = NES_HEIGHT - 0
 			};
 
-			enum FilterType
-			{
-				FILTER_NONE,
-				FILTER_SCANLINES,
-				FILTER_NTSC,
-				FILTER_2XSAI,
-				FILTER_SCALEX,
-				FILTER_HQX,
-				NUM_FILTERS
-			};
-
-			struct Filter
-			{
-				Filter();
-
-				enum
-				{
-					SCANLINES_NONE = 0,
-					SCANLINES_BRIGHT,
-					SCANLINES_DARK,
-					TYPE_2XSAI = 0,
-					TYPE_SUPER2XSAI,
-					TYPE_SUPEREAGLE,
-					TYPE_SCALE2X = 2,
-					TYPE_SCALE3X = 3,
-					TYPE_HQ2X = 2,
-					TYPE_HQ3X = 3
-				};
-
-				uchar attributes[3];
-				bool bilinear;
-			};
+			typedef VideoFilters Filter;
 
 			struct Settings
 			{
@@ -141,8 +112,8 @@ namespace Nestopia
 				Adapters::const_iterator adapter;
 				TexMem texMem;
 				Modes::const_iterator mode;
-				Filter* filter;
-				Filter filters[NUM_FILTERS];
+				Filter::Settings* filter;
+				Filter::Settings filters[Filter::NUM_TYPES];
 				Rects rects;
 				uint fullscreenScale;
 				Path palette;
@@ -154,7 +125,6 @@ namespace Nestopia
 
 			ibool OnInitDialog        (Param&);
 			ibool OnHScroll           (Param&);
-			ibool OnInitFilterDialog  (Param&);
 			ibool OnCmdDevice         (Param&);
 			ibool OnCmdMode           (Param&);
 			ibool OnCmdFilter         (Param&);
@@ -171,9 +141,6 @@ namespace Nestopia
 			ibool OnCmdAutoHz         (Param&);
 			ibool OnCmdDefault        (Param&);
 			ibool OnCmdOk             (Param&);
-			ibool OnCmdFilterDefault  (Param&);
-			ibool OnCmdFilterCancel   (Param&);
-			ibool OnCmdFilterOk       (Param&);
 
 			void UpdateDevice(Mode);
 			void UpdateResolutions(Mode);
@@ -205,9 +172,9 @@ namespace Nestopia
 				dialog.Open();
 			}
 
-			const Rect& GetInputRect(const Nes::Machine::Mode mode) const
+			const Rect& GetInputRect() const
 			{
-				return (mode == Nes::Machine::NTSC ? settings.rects.ntsc : settings.rects.pal);														
+				return (Nes::Machine(nes).GetMode() == Nes::Machine::NTSC ? settings.rects.ntsc : settings.rects.pal);														
 			}
   
 			Modes::const_iterator GetMode() const
@@ -222,7 +189,7 @@ namespace Nestopia
 
 			Adapter::Filter GetDirect2dFilter() const
 			{
-				if (settings.filter->bilinear && (settings.adapter->filters & Adapter::FILTER_BILINEAR))
+				if (settings.filter->attributes[Filter::ATR_BILINEAR] && (settings.adapter->filters & Adapter::FILTER_BILINEAR))
 					return Adapter::FILTER_BILINEAR;
 				else
 					return Adapter::FILTER_NONE;
@@ -241,6 +208,16 @@ namespace Nestopia
 			ibool UseAutoFrequency() const
 			{
 				return settings.autoHz;
+			}
+
+			ibool UseAutoFieldMerging() const
+			{
+				return settings.filters[Filter::TYPE_NTSC].attributes[Filter::ATR_FIELDMERGING] == Filter::ATR_FIELDMERGING_AUTO;
+			}
+
+			ibool EnableFieldMerging() const
+			{
+				return settings.filters[Filter::TYPE_NTSC].attributes[Filter::ATR_FIELDMERGING] == Filter::ATR_FIELDMERGING_ON;
 			}
 		};
 	}

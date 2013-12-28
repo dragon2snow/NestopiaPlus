@@ -61,7 +61,7 @@ namespace Nes
 				protected:
 
 					void Reset();
-					void UpdateContext(uint);
+					void UpdateContext(uint,const u8 (&w)[MAX_CHANNELS]);
 					Sample GetSample();
 
 				private:
@@ -72,12 +72,12 @@ namespace Nes
 		
 						void Reset();
 		
-						ibool  enabled;
-						uint   waveLength;
-						ibool  active;
-						idword timer;
-						Cycle  frequency;
-						uint   step;
+						ibool enabled;
+						uint  waveLength;
+						ibool active;
+						iword timer;
+						Cycle frequency;
+						uint  step;
 					};
 		
 					class Square : BaseChannel
@@ -88,7 +88,7 @@ namespace Nes
 		
 						void Reset();
 		
-						NST_FORCE_INLINE Sample GetSample(Cycle);		
+						NST_FORCE_INLINE dword GetSample(Cycle);		
 						NST_FORCE_INLINE void WriteReg0(uint);
 						NST_FORCE_INLINE void WriteReg1(uint,uint);
 						NST_FORCE_INLINE void WriteReg2(uint,uint);
@@ -104,7 +104,7 @@ namespace Nes
 		
 						enum
 						{
-							VOLUME = Apu::OUTPUT_MUL,
+							VOLUME = Apu::OUTPUT_MUL * 2,
 							MIN_FRQ = 0x04
 						};
 		
@@ -132,7 +132,7 @@ namespace Nes
 		
 						void Reset();
 		
-						NST_FORCE_INLINE Sample GetSample(Cycle);
+						NST_FORCE_INLINE dword GetSample(Cycle);
 						NST_FORCE_INLINE void WriteReg0(uint);
 						NST_FORCE_INLINE void WriteReg1(uint,uint);
 						NST_FORCE_INLINE void WriteReg2(uint,uint);
@@ -148,7 +148,7 @@ namespace Nes
 		
 						enum
 						{
-							VOLUME = Apu::OUTPUT_MUL / 5,
+							VOLUME = Apu::OUTPUT_MUL * 2,
 							MIN_FRQ = 0x4,
 							FRQ_SHIFT = 1
 						};
@@ -168,6 +168,7 @@ namespace Nes
 					Apu& apu;
 					Square square[2];
 					Saw saw;
+					Apu::DcBlocker dcBlocker;
 					const ibool hooked;
 				};
 		

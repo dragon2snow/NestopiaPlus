@@ -76,6 +76,8 @@ namespace Nestopia
 
 		for (count += IDM_FILE_RECENT_1; count <= IDM_FILE_RECENT_9; ++count)
 			menu[count].Remove();
+
+		menu[IDM_FILE_RECENT_LOCK].Check( cfg["files recent locked"] == Configuration::YES );
 	}
 
 	RecentFiles::~RecentFiles()
@@ -93,6 +95,8 @@ namespace Nestopia
 			index.Back() = (char) ('1' + i);
 			cfg[index].Quote() = file(3);
 		}
+
+		cfg["files recent locked"].YesNo() = menu[IDM_FILE_RECENT_LOCK].IsChecked();
 	}
 
 	void RecentFiles::OnMenu(uint cmd)

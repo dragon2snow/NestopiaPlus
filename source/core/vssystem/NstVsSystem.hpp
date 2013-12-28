@@ -86,6 +86,7 @@ namespace Nes
 				uint GetValue(uint) const;
 				bool SetValue(uint,uint);
 
+				uint coinTimer;
 				Dip* const table;
 				const uint size;
 				uint regs[2];
@@ -113,10 +114,8 @@ namespace Nes
 			NES_DECL_PEEK( 2007 )
 			NES_DECL_POKE( 2007 )
 			NES_DECL_PEEK( 4016 )
-			NES_DECL_PEEK( 4016_Swap )
 			NES_DECL_POKE( 4016 )
 			NES_DECL_PEEK( 4017 )
-			NES_DECL_PEEK( 4017_Swap )
 			NES_DECL_POKE( 4017 )
 			NES_DECL_PEEK( 4020 )
 			NES_DECL_POKE( 4020 )
@@ -128,7 +127,42 @@ namespace Nes
 
 		private:
 
+			class InputMapper
+			{
+				typedef Input::Controllers::Pad Pad;
+
+				virtual void Fix(Pad (&)[4],const uint (&)[2]) const = 0;
+
+				void* userData;
+				Pad::PollCallback userCallback;
+
+				struct Type1;
+				struct Type2;
+				struct Type3;
+				struct Type4;
+				struct Type5;
+
+			public:
+
+				enum Type
+				{
+					TYPE_NONE,
+					TYPE_1,
+					TYPE_2,
+					TYPE_3,
+					TYPE_4,
+					TYPE_5
+				};
+
+				static InputMapper* Create(Type);
+				virtual ~InputMapper() {}
+
+				void Begin(const Api::Input,Input::Controllers*);
+				void End() const;
+			};
+
 			const u8* const securityColor;
+			InputMapper* const inputMapper;
 
 			Io::Port p2007;
 			Io::Port p4016;
@@ -137,16 +171,24 @@ namespace Nes
 			uint coin;
 			VsDipSwitches dips;
 			const uint securityPpu;
-			const ibool swapPorts;
 			Io::Port p2002;
 
 			static const u8 colorMaps[4][64];
 
 		public:
 
-			void BeginFrame(Input::Controllers* input)
+			void BeginFrame(const Api::Input& input,Input::Controllers* controllers)
 			{
-				dips.BeginFrame( input );
+				dips.BeginFrame( controllers );
+
+				if (inputMapper)
+					inputMapper->Begin( input, controllers );
+			}
+
+			void VSync() const
+			{
+				if (inputMapper)
+					inputMapper->End();
 			}
 
 			DipSwitches& GetDipSwiches()

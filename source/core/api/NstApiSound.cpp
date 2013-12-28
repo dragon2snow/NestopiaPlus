@@ -44,12 +44,11 @@ namespace Nes
 	{
 		NST_COMPILE_ASSERT
 		(
-	       	Sound::CHANNEL_SQUARE1  == Core::Apu::CHANNEL_SQUARE1  &&
-			Sound::CHANNEL_SQUARE2  == Core::Apu::CHANNEL_SQUARE2  &&
-			Sound::CHANNEL_TRIANGLE == Core::Apu::CHANNEL_TRIANGLE &&
-			Sound::CHANNEL_NOISE    == Core::Apu::CHANNEL_NOISE    &&
-			Sound::CHANNEL_DPCM     == Core::Apu::CHANNEL_DMC      &&
-			Sound::CHANNEL_EXTERNAL == Core::Apu::CHANNEL_EXTERNAL 
+	       	Sound::CHANNEL_SQUARE1  == 1U << Core::Apu::CHANNEL_SQUARE1  &&
+			Sound::CHANNEL_SQUARE2  == 1U << Core::Apu::CHANNEL_SQUARE2  &&
+			Sound::CHANNEL_TRIANGLE == 1U << Core::Apu::CHANNEL_TRIANGLE &&
+			Sound::CHANNEL_NOISE    == 1U << Core::Apu::CHANNEL_NOISE    &&
+			Sound::CHANNEL_DPCM     == 1U << Core::Apu::CHANNEL_DPCM
 		);
 
 		Result Sound::SetSampleRate(ulong rate)
@@ -60,6 +59,11 @@ namespace Nes
 		Result Sound::SetSampleBits(uint bits)
 		{
 			return emulator.cpu.GetApu().SetSampleBits( bits );
+		}
+
+		Result Sound::SetVolume(uint channels,uint volume)
+		{
+			return emulator.cpu.GetApu().SetVolume( channels, volume );
 		}
 
 		Result Sound::SetSpeed(uint speed)
@@ -76,17 +80,7 @@ namespace Nes
 		{
 			return emulator.cpu.GetApu().EnableStereo( speaker == SPEAKER_STEREO );
 		}
-	
-		Result Sound::EnableChannels(uint channels)
-		{
-			return emulator.cpu.GetApu().EnableChannels( channels );
-		}
-	
-		uint Sound::GetEnabledChannels() const
-		{
-			return emulator.cpu.GetApu().GetEnabledChannels();
-		}
-	
+
 		ulong Sound::GetSampleRate() const
 		{
 			return emulator.cpu.GetApu().GetSampleRate();
@@ -97,11 +91,21 @@ namespace Nes
 			return emulator.cpu.GetApu().GetSampleBits();
 		}
 
+		uint Sound::GetVolume(uint channel) const
+		{
+			return emulator.cpu.GetApu().GetVolume( channel );
+		}
+
 		uint Sound::GetSpeed() const
 		{
 			return emulator.cpu.GetApu().GetSpeed();
 		}
 	
+		bool Sound::IsAudible() const
+		{
+			return emulator.cpu.GetApu().IsAudible();
+		}
+
 		bool Sound::IsAutoTransposing() const
 		{
 			return emulator.cpu.GetApu().IsAutoTransposing();

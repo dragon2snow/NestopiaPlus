@@ -33,12 +33,12 @@ namespace Nes
 {
 	namespace Core
 	{
-		class Mapper69 : public Boards::Fme07
+		class Mapper69 : public Boards::Fme7
 		{
 		public:
 
 			Mapper69(Context& c)
-			: Fme07(c) {}
+			: Fme7(c) {}
 		};
 	}
 }

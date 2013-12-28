@@ -89,6 +89,16 @@ namespace Nes
 			return emulator.renderer.GetHue();
 		}
 	
+		uint Video::GetContrast() const
+		{
+			return emulator.renderer.GetContrast();
+		}
+
+		uint Video::GetSharpness() const
+		{
+			return emulator.renderer.GetSharpness();
+		}
+
 		Result Video::SetBrightness(uint value)
 		{
 			return emulator.renderer.SetBrightness( value );
@@ -104,6 +114,26 @@ namespace Nes
 			return emulator.renderer.SetHue( value );
 		}
 		
+		Result Video::SetContrast(uint value)
+		{
+			return emulator.renderer.SetContrast( value );
+		}
+
+		Result Video::SetSharpness(uint value)
+		{
+			return emulator.renderer.SetSharpness( value );
+		}
+
+		void Video::EnableFieldMerging(bool state)
+		{
+			emulator.renderer.EnableFieldMerging( state );
+		}
+
+		bool Video::IsFieldMergingEnabled() const
+		{
+			return emulator.renderer.IsFieldMergingEnabled();
+		}
+
 		Result Video::SetRenderState(const RenderState& state)
 		{
 			emulator.ppu.EnableEmphasis( state.bits.count != 8 );
@@ -119,7 +149,7 @@ namespace Nes
 		{
 			if (emulator.renderer.IsReady())
 			{
-				emulator.renderer.Blit( output );
+				emulator.renderer.Blit( output, emulator.ppu.GetBurstPhase() );
 				return RESULT_OK;
 			}
 
@@ -146,7 +176,7 @@ namespace Nes
 					axes[0].angle = 90;
 					axes[0].gain  = 0.570f;
 					axes[1].angle = 236;
-					axes[1].gain  = 0.353f;
+					axes[1].gain  = 0.348f;
 					axes[2].angle = 0;
 					axes[2].gain  = 1.015f;
 					boostYellow   = true;
@@ -157,7 +187,7 @@ namespace Nes
 					axes[0].angle = 90;
 					axes[0].gain  = 0.570f;
 					axes[1].angle = 236;
-					axes[1].gain  = 0.353f;
+					axes[1].gain  = 0.348f;
 					axes[2].angle = 0;
 					axes[2].gain  = 1.015f;
 					boostYellow   = false;

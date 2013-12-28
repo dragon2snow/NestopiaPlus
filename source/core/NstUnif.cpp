@@ -644,6 +644,9 @@ namespace Nes
 			if (!handle)
 				return;
 	
+			if (info.condition == Api::Cartridge::UNKNOWN)
+				info.condition = Api::Cartridge::YES;
+
 			info.mapper = database->Mapper( handle );
 	
 			switch (database->GetSystem( handle ))

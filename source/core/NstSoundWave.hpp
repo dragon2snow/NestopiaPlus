@@ -49,7 +49,7 @@ namespace Nes
 
 		private:
 
-			void UpdateContext(uint);
+			void UpdateContext(uint,const u8 (&)[MAX_CHANNELS]);
 			Sample GetSample();
 
 			struct Wave

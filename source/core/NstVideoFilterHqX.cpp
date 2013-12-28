@@ -92,7 +92,7 @@ namespace Nes
 			
 			bool Renderer::FilterHqX::Check(const RenderState& state)
 			{
-				return
+				return (state.scanlines == 0) &&
 				(
 			     	(state.bits.count == 16 && state.bits.mask.b == 0x001FU && ((state.bits.mask.g == 0x07E0U && state.bits.mask.r == 0xF800U) || (state.bits.mask.g == 0x03E0U && state.bits.mask.r == 0x7C00U))) ||
 					(state.bits.count == 32 && state.bits.mask.r == 0xFF0000UL && state.bits.mask.g == 0x00FF00UL && state.bits.mask.b == 0x0000FFUL)
@@ -6506,7 +6506,7 @@ namespace Nes
 				}
 			}
 
-			void Renderer::FilterHqX::Blit(const Input& input,const Output& output)
+			void Renderer::FilterHqX::Blit(const Input& input,const Output& output,uint)
 			{
 				switch (bpp)
 				{

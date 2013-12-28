@@ -123,6 +123,11 @@ namespace Nestopia
 			Control::TreeView    TreeView    (uint id) const { return Control::TreeView    ( hWnd, id ); }
 			Control::Slider      Slider      (uint id) const { return Control::Slider      ( hWnd, id ); }
 
+			uint GetId() const
+			{
+				return id;
+			}
+
 			MsgHandler& Commands() 
 			{ 
 				return cmdHandler; 

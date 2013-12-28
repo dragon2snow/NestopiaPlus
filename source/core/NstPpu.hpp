@@ -55,7 +55,7 @@ namespace Nes
 			{
 				WIDTH = 256,
 				HEIGHT = 240,
-				SCREEN = ulong(WIDTH) * HEIGHT
+				SCREEN = dword(WIDTH) * HEIGHT
 			};
 
 			typedef u16 (&Screen)[SCREEN];
@@ -312,8 +312,7 @@ namespace Nes
 
 				enum
 				{
-					FRAME_ODD     = 0x100,
-					FRAME_DEAD_CC = CTRL1_BG_ENABLED
+					FRAME_ODD = CTRL1_BG_ENABLED|CTRL1_SP_ENABLED
 				};
 
 				uint ctrl0;
@@ -391,6 +390,7 @@ namespace Nes
 				uint next;
 				uint emphasisMask;
 				u16 (*screen)[SCREEN];
+				uint burstPhase;
 
 				static u16 dummy[4];
 			};
@@ -416,7 +416,7 @@ namespace Nes
 					NUM_SPRITES = SIZE / 4,
 					OFFSET_TO_0_1 = b11111000,
 					STD_LINE_SPRITES = 8,
-					MAX_LINE_SPRITES = 16,
+					MAX_LINE_SPRITES = 32,
 					DMA_CYCLES = 512 + 1,
 					GARBAGE = 0xFF
 				};
@@ -518,6 +518,11 @@ namespace Nes
 			bool IsActive() const
 			{
 				return io.enabled && scanline < HEIGHT;
+			}
+
+			int GetScanline() const
+			{
+				return scanline;
 			}
 
 			uint GetCtrl0(uint flags) const
@@ -635,6 +640,11 @@ namespace Nes
 			bool IsShortFrame() const
 			{
 				return regs.ctrl1 & regs.frame;
+			}
+
+			uint GetBurstPhase() const
+			{
+				return output.burstPhase;
 			}
 		};
 	}

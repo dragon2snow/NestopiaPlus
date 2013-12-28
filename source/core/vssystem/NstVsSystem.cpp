@@ -213,6 +213,7 @@ namespace Nes
 
 		inline void VsSystem::VsDipSwitches::Reset()
 		{
+			coinTimer = 0;
 			regs[0] &= ~uint(COIN);
 		}
 
@@ -274,10 +275,18 @@ namespace Nes
 
 		void VsSystem::VsDipSwitches::BeginFrame(Input::Controllers* const input)
 		{
-			regs[0] &= ~uint(COIN);
-
-			if (input && Input::Controllers::VsSystem::callback( input->vsSystem ))
-				regs[0] |= input->vsSystem.insertCoin & COIN;
+			if (!coinTimer)
+			{
+				if (input && Input::Controllers::VsSystem::callback( input->vsSystem ) && (input->vsSystem.insertCoin & COIN))
+				{
+					regs[0] |= input->vsSystem.insertCoin & COIN;
+					coinTimer = 20;
+				}
+			}
+			else if (--coinTimer == 15)
+			{
+				regs[0] &= ~uint(COIN);
+			}
 		}				  
 
 		struct VsSystem::Context
@@ -288,7 +297,7 @@ namespace Nes
 			Ppu& ppu;
 			uint securityColor;
 			uint securityPpu;
-			ibool swapPorts;
+			InputMapper::Type inputMapper;
 
 			Context(Cpu& c,Ppu& p)
 			: 
@@ -298,7 +307,7 @@ namespace Nes
 			ppu           (p),
 			securityColor (UINT_MAX),
 			securityPpu   (0),
-			swapPorts     (false)
+			inputMapper   (InputMapper::TYPE_NONE)
 			{}
 
 			void SetDips(uint n)
@@ -333,7 +342,7 @@ namespace Nes
 
 			try
 			{
-				// Credits to the MAME people for the DIP switch info.
+				// Credit to the MAME devs for the following DIP switch info.
 			
 				switch (pRomCrc)
 				{
@@ -342,37 +351,39 @@ namespace Nes
 				
 						context.SetDips(7);
 						context.dips[0]    = Dip::Value( "Coinage",            4, 0 );
-						context.dips[0][0] = Dip::Value( "1 Coins / 1 Credit", 0x00 );
-						context.dips[0][1] = Dip::Value( "1 Coins / 2 Credit", 0x01 );
+						context.dips[0][0] = Dip::Value( "1 Coin / 1 Credit",  0x00 );
+						context.dips[0][1] = Dip::Value( "1 Coin / 2 Credits", 0x01 );
 						context.dips[0][2] = Dip::Value( "2 Coins / 1 Credit", 0x02 );
 						context.dips[0][3] = Dip::Value( "3 Coins / 1 Credit", 0x03 );
-						context.dips[1]    = Dip::Value( "unknown",            2, 0 );
+						context.dips[1]    = Dip::Value( "Unknown",            2, 0 );
 						context.dips[1][0] = Dip::Value( "Off",                0x00 );
 						context.dips[1][1] = Dip::Value( "On",                 0x04 );
-						context.dips[2]    = Dip::Value( "unknown",            2, 0 );
+						context.dips[2]    = Dip::Value( "Unknown",            2, 0 );
 						context.dips[2][0] = Dip::Value( "Off",                0x00 );
 						context.dips[2][1] = Dip::Value( "On",                 0x08 );
-						context.dips[3]    = Dip::Value( "unknown",            2, 0 );
+						context.dips[3]    = Dip::Value( "Unknown",            2, 0 );
 						context.dips[3][0] = Dip::Value( "Off",                0x00 );
 						context.dips[3][1] = Dip::Value( "On",                 0x10 );
 						context.dips[4]    = Dip::Value( "Palette Color",      2, 1 );
 						context.dips[4][0] = Dip::Value( "Black",              0x00 );
 						context.dips[4][1] = Dip::Value( "White",              0x20 );
-						context.dips[5]    = Dip::Value( "unknown",            2, 0 );
+						context.dips[5]    = Dip::Value( "Unknown",            2, 0 );
 						context.dips[5][0] = Dip::Value( "Off",                0x00 );
 						context.dips[5][1] = Dip::Value( "On",                 0x40 );
-						context.dips[6]    = Dip::Value( "unknown",            2, 0 );
+						context.dips[6]    = Dip::Value( "Unknown",            2, 0 );
 						context.dips[6][0] = Dip::Value( "Off",                0x00 );
 						context.dips[6][1] = Dip::Value( "On",                 0x80 );
 					
+						context.inputMapper = InputMapper::TYPE_1;
+
 						return new VsTkoBoxing( context );
 			
 					case 0x135ADF7CUL: // RBI Baseball
 				
 						context.SetDips(4);
 						context.dips[0]    = Dip::Value( "Coinage",                4, 0 );
-						context.dips[0][0] = Dip::Value( "1 Coins / 1 Credit",     0x00 );
-						context.dips[0][1] = Dip::Value( "1 Coins / 2 Credit",     0x01 );
+						context.dips[0][0] = Dip::Value( "1 Coin / 1 Credit",      0x00 );
+						context.dips[0][1] = Dip::Value( "1 Coin / 2 Credits",     0x01 );
 						context.dips[0][2] = Dip::Value( "2 Coins / 1 Credit",     0x02 );
 						context.dips[0][3] = Dip::Value( "3 Coins / 1 Credit",     0x03 );
 						context.dips[1]    = Dip::Value( "Max. 1p/in, 2p/in, Min", 4, 1 );
@@ -391,6 +402,7 @@ namespace Nes
 						context.dips[3][4] = Dip::Value( "Wrong 4",                0xC0 );
 			
 						context.securityColor = 2;
+						context.inputMapper = InputMapper::TYPE_2;
 				
 						return new VsRbiBaseball( context );
 				
@@ -398,9 +410,9 @@ namespace Nes
 					
 						context.SetDips(4);
 				     	context.dips[0]    = Dip::Value( "Coinage",             8, 0 );
-						context.dips[0][0] = Dip::Value( "1 Coins / 1 Credit",  0x00 );
-						context.dips[0][1] = Dip::Value( "1 Coins / 2 Credit",  0x04 );
-						context.dips[0][2] = Dip::Value( "1 Coins / 3 Credit",  0x02 );
+						context.dips[0][0] = Dip::Value( "1 Coin / 1 Credit",   0x00 );
+						context.dips[0][1] = Dip::Value( "1 Coin / 2 Credits",  0x04 );
+						context.dips[0][2] = Dip::Value( "1 Coin / 3 Credits",  0x02 );
 						context.dips[0][3] = Dip::Value( "2 Coins / 1 Credit",  0x06 );
 						context.dips[0][4] = Dip::Value( "3 Coins / 1 Credit",  0x01 );
 						context.dips[0][5] = Dip::Value( "4 Coins / 1 Credit",  0x05 );
@@ -426,10 +438,10 @@ namespace Nes
 				     
 						context.SetDips(5);
 				    	context.dips[0]    = Dip::Value( "Coinage",             8, 0 );
-						context.dips[0][0] = Dip::Value( "1 Coins / 1 Credit",  0x00 );
-						context.dips[0][1] = Dip::Value( "1 Coins / 2 Credit",  0x04 );
-						context.dips[0][2] = Dip::Value( "1 Coins / 3 Credit",  0x02 );
-						context.dips[0][3] = Dip::Value( "1 Coins / 4 Credit",  0x06 );
+						context.dips[0][0] = Dip::Value( "1 Coin / 1 Credit",   0x00 );
+						context.dips[0][1] = Dip::Value( "1 Coin / 2 Credits",  0x04 );
+						context.dips[0][2] = Dip::Value( "1 Coin / 3 Credits",  0x02 );
+						context.dips[0][3] = Dip::Value( "1 Coin / 4 Credits",  0x06 );
 						context.dips[0][4] = Dip::Value( "2 Coins / 1 Credit",  0x01 );
 						context.dips[0][5] = Dip::Value( "3 Coins / 1 Credit",  0x05 );
 						context.dips[0][6] = Dip::Value( "4 Coins / 1 Credit",  0x03 );
@@ -438,10 +450,10 @@ namespace Nes
 						context.dips[1][0] = Dip::Value( "3",                   0x00 );
 						context.dips[1][1] = Dip::Value( "4",                   0x10 );
 						context.dips[1][2] = Dip::Value( "5",                   0x08 );
-						context.dips[2]    = Dip::Value( "unknown",             2, 0 );
+						context.dips[2]    = Dip::Value( "Unknown",             2, 0 );
 						context.dips[2][0] = Dip::Value( "Off",                 0x00 );
 						context.dips[2][1] = Dip::Value( "On",                  0x20 );
-						context.dips[3]    = Dip::Value( "unknown",             2, 0 );
+						context.dips[3]    = Dip::Value( "Unknown",             2, 0 );
 						context.dips[3][0] = Dip::Value( "Off",                 0x00 );
 						context.dips[3][1] = Dip::Value( "On",                  0x40 );
 						context.dips[4]    = Dip::Value( "Demo Sounds",         2, 1 );
@@ -449,43 +461,44 @@ namespace Nes
 						context.dips[4][1] = Dip::Value( "On",                  0x80 );
 			
 						context.securityPpu = 0x1B;			
+						context.inputMapper = InputMapper::TYPE_3;
 						break;
 				
 				 	case 0x8850924BUL: // Tetris
 				
 						context.SetDips(6);
 				    	context.dips[0]    = Dip::Value( "Coinage",            4, 0 );
-						context.dips[0][0] = Dip::Value( "1 Coins / 1 Credit", 0x00 );
-						context.dips[0][1] = Dip::Value( "1 Coins / 2 Credit", 0x02 );
+						context.dips[0][0] = Dip::Value( "1 Coin / 1 Credit",  0x00 );
+						context.dips[0][1] = Dip::Value( "1 Coin / 2 Credits", 0x02 );
 						context.dips[0][2] = Dip::Value( "2 Coins / 1 Credit", 0x01 );
 						context.dips[0][3] = Dip::Value( "3 Coins / 1 Credit", 0x03 );
-						context.dips[1]    = Dip::Value( "unknown",            2, 0 );
+						context.dips[1]    = Dip::Value( "Unknown",            2, 0 );
 						context.dips[1][0] = Dip::Value( "Off",                0x00 );
 						context.dips[1][1] = Dip::Value( "On",                 0x04 );
-						context.dips[2]    = Dip::Value( "unknown",            2, 0 );
+						context.dips[2]    = Dip::Value( "Unknown",            2, 0 );
 						context.dips[2][0] = Dip::Value( "Off",                0x00 );
 						context.dips[2][1] = Dip::Value( "On",                 0x08 );
-						context.dips[3]    = Dip::Value( "unknown",            2, 0 );
+						context.dips[3]    = Dip::Value( "Unknown",            2, 0 );
 						context.dips[3][0] = Dip::Value( "Off",                0x00 );
 						context.dips[3][1] = Dip::Value( "On",                 0x10 );
 						context.dips[4]    = Dip::Value( "Palette Color",      3, 2 );
 						context.dips[4][0] = Dip::Value( "Black",              0x40 );
 						context.dips[4][1] = Dip::Value( "Green",              0x20 );
 						context.dips[4][2] = Dip::Value( "Grey",               0x60 );
-						context.dips[5]    = Dip::Value( "unknown",            2, 0 );
+						context.dips[5]    = Dip::Value( "Unknown",            2, 0 );
 						context.dips[5][0] = Dip::Value( "Off",                0x00 );
 						context.dips[5][1] = Dip::Value( "On",                 0x80 );
 				
-						context.swapPorts = true;
+						context.inputMapper = InputMapper::TYPE_2;
 						break;
 				
 				 	case 0x8C0C2DF5UL: // Top Gun
 				
 						context.SetDips(5);
 				     	context.dips[0]    = Dip::Value( "Coinage",             8, 0 );
-						context.dips[0][0] = Dip::Value( "1 Coins / 1 Credit",  0x00 );
-						context.dips[0][1] = Dip::Value( "1 Coins / 2 Credit",  0x04 );
-						context.dips[0][2] = Dip::Value( "1 Coins / 3 Credit",  0x02 );
+						context.dips[0][0] = Dip::Value( "1 Coin / 1 Credit",   0x00 );
+						context.dips[0][1] = Dip::Value( "1 Coin / 2 Credits",  0x04 );
+						context.dips[0][2] = Dip::Value( "1 Coin / 3 Credits",  0x02 );
 						context.dips[0][3] = Dip::Value( "2 Coins / 1 Credit",  0x06 );
 						context.dips[0][4] = Dip::Value( "3 Coins / 1 Credit",  0x01 );
 						context.dips[0][5] = Dip::Value( "4 Coins / 1 Credit",  0x05 );
@@ -507,15 +520,16 @@ namespace Nes
 						context.dips[4][1] = Dip::Value( "On",                  0x80 );
 			
 						context.securityPpu = 0x1B;				
+						context.inputMapper = InputMapper::TYPE_1;
 						break;
 				
 				 	case 0x70901B25UL: // Slalom
 				
 						context.SetDips(5);
 				   		context.dips[0]    = Dip::Value( "Coinage",             8, 0 );
-						context.dips[0][0] = Dip::Value( "1 Coins / 1 Credit",  0x00 );
-						context.dips[0][1] = Dip::Value( "1 Coins / 2 Credit",  0x04 );
-						context.dips[0][2] = Dip::Value( "1 Coins / 3 Credit",  0x02 );
+						context.dips[0][0] = Dip::Value( "1 Coin / 1 Credit",   0x00 );
+						context.dips[0][1] = Dip::Value( "1 Coin / 2 Credits",  0x04 );
+						context.dips[0][2] = Dip::Value( "1 Coin / 3 Credits",  0x02 );
 						context.dips[0][3] = Dip::Value( "2 Coins / 1 Credit",  0x06 );
 						context.dips[0][4] = Dip::Value( "3 Coins / 1 Credit",  0x01 );
 						context.dips[0][5] = Dip::Value( "4 Coins / 1 Credit",  0x05 );
@@ -537,23 +551,24 @@ namespace Nes
 						context.dips[4][1] = Dip::Value( "On",                  0x80 );
 			
 						context.securityColor = 1;				
+						context.inputMapper = InputMapper::TYPE_1;
 						break;
 				
-				 	case 0xCF36261EUL: // Sky Kid
+				 	case 0xCF36261EUL: // Super Sky Kid
 				
 						context.SetDips(5);
-				     	context.dips[0]    = Dip::Value( "unknown",            2, 0 );
+				     	context.dips[0]    = Dip::Value( "Unknown",            2, 0 );
 						context.dips[0][0] = Dip::Value( "Off",                0x00 );
 						context.dips[0][1] = Dip::Value( "On",                 0x01 );
-						context.dips[1]    = Dip::Value( "unknown",            2, 0 );
+						context.dips[1]    = Dip::Value( "Unknown",            2, 0 );
 						context.dips[1][0] = Dip::Value( "Off",                0x00 );
 						context.dips[1][1] = Dip::Value( "On",                 0x02 );
 						context.dips[2]    = Dip::Value( "Lives",              2, 0 );
 						context.dips[2][0] = Dip::Value( "2",                  0x00 );
 						context.dips[2][1] = Dip::Value( "3",                  0x04 );
 						context.dips[3]    = Dip::Value( "Coinage",            4, 0 );
-						context.dips[3][0] = Dip::Value( "1 Coins / 1 Credit", 0x00 );
-						context.dips[3][1] = Dip::Value( "1 Coins / 2 Credit", 0x08 );
+						context.dips[3][0] = Dip::Value( "1 Coin / 1 Credit",  0x00 );
+						context.dips[3][1] = Dip::Value( "1 Coin / 2 Credits", 0x08 );
 						context.dips[3][2] = Dip::Value( "2 Coins / 1 Credit", 0x10 );
 						context.dips[3][3] = Dip::Value( "3 Coins / 1 Credit", 0x18 );
 						context.dips[4]    = Dip::Value( "Color Palette",      5, 0 );
@@ -563,33 +578,35 @@ namespace Nes
 						context.dips[4][3] = Dip::Value( "Wrong 3",            0x80 );
 						context.dips[4][4] = Dip::Value( "Wrong 4",            0xC0 );
 				
+						context.inputMapper = InputMapper::TYPE_3;
 						break;
 				
 				   	case 0xE1AA8214UL: // Star Luster
 				
 						context.SetDips(6);
 				     	context.dips[0]    = Dip::Value( "Coinage",            4, 0 );
-						context.dips[0][0] = Dip::Value( "1 Coins / 1 Credit", 0x00 );
-						context.dips[0][1] = Dip::Value( "1 Coins / 2 Credit", 0x02 );
+						context.dips[0][0] = Dip::Value( "1 Coin / 1 Credit",  0x00 );
+						context.dips[0][1] = Dip::Value( "1 Coin / 2 Credits", 0x02 );
 						context.dips[0][2] = Dip::Value( "2 Coins / 1 Credit", 0x01 );
 						context.dips[0][3] = Dip::Value( "3 Coins / 1 Credit", 0x03 );
-						context.dips[1]    = Dip::Value( "unknown",            2, 0 );
+						context.dips[1]    = Dip::Value( "Unknown",            2, 0 );
 						context.dips[1][0] = Dip::Value( "Off",                0x00 );
 						context.dips[1][1] = Dip::Value( "On",                 0x04 );
-						context.dips[2]    = Dip::Value( "unknown",            2, 0 );
+						context.dips[2]    = Dip::Value( "Unknown",            2, 0 );
 						context.dips[2][0] = Dip::Value( "Off",                0x00 );
 						context.dips[2][1] = Dip::Value( "On",                 0x08 );
-						context.dips[3]    = Dip::Value( "unknown",            2, 0 );
+						context.dips[3]    = Dip::Value( "Unknown",            2, 0 );
 						context.dips[3][0] = Dip::Value( "Off",                0x00 );
 						context.dips[3][1] = Dip::Value( "On",                 0x10 );
 						context.dips[4]    = Dip::Value( "Palette Color",      3, 0 );
 						context.dips[4][0] = Dip::Value( "Black",              0x40 );
 						context.dips[4][1] = Dip::Value( "Green",              0x20 );
 						context.dips[4][2] = Dip::Value( "Grey",               0x60 );
-						context.dips[5]    = Dip::Value( "unknown",            2, 0 );
+						context.dips[5]    = Dip::Value( "Unknown",            2, 0 );
 						context.dips[5][0] = Dip::Value( "Off",                0x00 );
 						context.dips[5][1] = Dip::Value( "On",                 0x80 );
 				
+						context.inputMapper = InputMapper::TYPE_1;
 						break;
 				
 				 	case 0xD5D7EAC4UL: // Dr. Mario
@@ -618,15 +635,16 @@ namespace Nes
 						context.dips[4][1] = Dip::Value( "On",                        0x80 );
 			
 						context.securityColor = 2;
+						context.inputMapper = InputMapper::TYPE_2;
 						break;
 				
 				 	case 0xFFBEF374UL: // Castlevania
 				
 						context.SetDips(4);
 				 		context.dips[0]    = Dip::Value( "Coinage",            8, 0 );
-						context.dips[0][0] = Dip::Value( "1 Coins / 1 Credit", 0x00 );
-						context.dips[0][1] = Dip::Value( "1 Coins / 2 Credit", 0x04 );
-						context.dips[0][2] = Dip::Value( "1 Coins / 3 Credit", 0x02 );
+						context.dips[0][0] = Dip::Value( "1 Coin / 1 Credit",  0x00 );
+						context.dips[0][1] = Dip::Value( "1 Coin / 2 Credits", 0x04 );
+						context.dips[0][2] = Dip::Value( "1 Coin / 3 Credits", 0x02 );
 						context.dips[0][3] = Dip::Value( "2 Coins / 1 Credit", 0x06 );
 						context.dips[0][4] = Dip::Value( "3 Coins / 1 Credit", 0x01 );
 						context.dips[0][5] = Dip::Value( "4 Coins / 1 Credit", 0x05 );
@@ -645,31 +663,31 @@ namespace Nes
 						context.dips[3][1] = Dip::Value( "Hard",               0x40 );
 			
 						context.securityColor = 1;
-						context.swapPorts = true;
+						context.inputMapper = InputMapper::TYPE_1;
 						break;
 				
 				   	case 0xE2C0A2BEUL: // Platoon
 				
 						context.SetDips(6);
-				    	context.dips[0]    = Dip::Value( "unknown",            2, 0 );
+				    	context.dips[0]    = Dip::Value( "Unknown",            2, 0 );
 						context.dips[0][0] = Dip::Value( "Off",                0x00 );
 						context.dips[0][1] = Dip::Value( "On",                 0x01 );
-						context.dips[1]    = Dip::Value( "unknown",            2, 0 );
+						context.dips[1]    = Dip::Value( "Unknown",            2, 0 );
 						context.dips[1][0] = Dip::Value( "Off",                0x00 );
 						context.dips[1][1] = Dip::Value( "On",                 0x02 );
 						context.dips[2]    = Dip::Value( "Demo Sounds",        2, 1 );
 						context.dips[2][0] = Dip::Value( "Off",                0x00 );
 						context.dips[2][1] = Dip::Value( "On",                 0x04 );
-						context.dips[3]    = Dip::Value( "unknown",            2, 0 );
+						context.dips[3]    = Dip::Value( "Unknown",            2, 0 );
 						context.dips[3][0] = Dip::Value( "Off",                0x00 );
 						context.dips[3][1] = Dip::Value( "On",                 0x08 );
-						context.dips[4]    = Dip::Value( "unknown",            2, 0 );
+						context.dips[4]    = Dip::Value( "Unknown",            2, 0 );
 						context.dips[4][0] = Dip::Value( "Off",                0x00 );
 						context.dips[4][1] = Dip::Value( "On",                 0x10 );
 						context.dips[5]    = Dip::Value( "Coinage",            8, 0 );
-						context.dips[5][0] = Dip::Value( "1 Coins / 1 Credit", 0x00 );
-						context.dips[5][1] = Dip::Value( "1 Coins / 2 Credit", 0x20 );
-						context.dips[5][2] = Dip::Value( "1 Coins / 3 Credit", 0x40 );
+						context.dips[5][0] = Dip::Value( "1 Coin / 1 Credit",  0x00 );
+						context.dips[5][1] = Dip::Value( "1 Coin / 2 Credits", 0x20 );
+						context.dips[5][2] = Dip::Value( "1 Coin / 3 Credits", 0x40 );
 						context.dips[5][3] = Dip::Value( "2 Coins / 1 Credit", 0x60 );
 						context.dips[5][4] = Dip::Value( "3 Coins / 1 Credit", 0x80 );
 						context.dips[5][5] = Dip::Value( "4 Coins / 1 Credit", 0xA0 );
@@ -677,7 +695,7 @@ namespace Nes
 						context.dips[5][7] = Dip::Value( "Free Play",	       0xE0 );
 			
 						context.securityColor = 0;
-						context.swapPorts = true;
+						context.inputMapper = InputMapper::TYPE_1;
 						break;
 				
 					case 0xCBE85490UL: // Excitebike
@@ -685,10 +703,10 @@ namespace Nes
 				
 						context.SetDips(4);
 				    	context.dips[0]    = Dip::Value( "Coinage",                  8, 0 );
-						context.dips[0][0] = Dip::Value( "1 Coins / 1 Credit",       0x00 );
-						context.dips[0][1] = Dip::Value( "1 Coins / 2 Credit",       0x04 );
-						context.dips[0][2] = Dip::Value( "1 Coins / 3 Credit",       0x02 );
-						context.dips[0][3] = Dip::Value( "1 Coins / 4 Credit",       0x06 );
+						context.dips[0][0] = Dip::Value( "1 Coin / 1 Credit",        0x00 );
+						context.dips[0][1] = Dip::Value( "1 Coin / 2 Credits",       0x04 );
+						context.dips[0][2] = Dip::Value( "1 Coin / 3 Credits",       0x02 );
+						context.dips[0][3] = Dip::Value( "1 Coin / 4 Credits",       0x06 );
 						context.dips[0][4] = Dip::Value( "2 Coins / 1 Credit",       0x01 );
 						context.dips[0][5] = Dip::Value( "3 Coins / 1 Credit",       0x05 );
 						context.dips[0][6] = Dip::Value( "4 Coins / 1 Credit",       0x03 );
@@ -706,25 +724,25 @@ namespace Nes
 						context.dips[3][1] = Dip::Value( "Hard",                     0x40 );
 			
 						context.securityColor = (pRomCrc == 0x29155E0CUL ? 3 : 2);
-						context.swapPorts = true;
+						context.inputMapper = InputMapper::TYPE_1;
 						break;
 				
 					case 0x07138C06UL: // Clu Clu Land
 				
 						context.SetDips(5);
 				     	context.dips[0]    = Dip::Value( "Coinage",            8, 0 );
-						context.dips[0][0] = Dip::Value( "1 Coins / 1 Credit", 0x00 );
-						context.dips[0][1] = Dip::Value( "1 Coins / 2 Credit", 0x04 );
-						context.dips[0][2] = Dip::Value( "1 Coins / 3 Credit", 0x02 );
-						context.dips[0][3] = Dip::Value( "1 Coins / 4 Credit", 0x06 );
+						context.dips[0][0] = Dip::Value( "1 Coin / 1 Credit",  0x00 );
+						context.dips[0][1] = Dip::Value( "1 Coin / 2 Credits", 0x04 );
+						context.dips[0][2] = Dip::Value( "1 Coin / 3 Credits", 0x02 );
+						context.dips[0][3] = Dip::Value( "1 Coin / 4 Credits", 0x06 );
 						context.dips[0][4] = Dip::Value( "2 Coins / 1 Credit", 0x01 );
 						context.dips[0][5] = Dip::Value( "3 Coins / 1 Credit", 0x05 );
 						context.dips[0][6] = Dip::Value( "4 Coins / 1 Credit", 0x03 );
 						context.dips[0][7] = Dip::Value( "Free Play",	       0x07 );
-						context.dips[1]    = Dip::Value( "unknown",            2, 0 );
+						context.dips[1]    = Dip::Value( "Unknown",            2, 0 );
 						context.dips[1][0] = Dip::Value( "Off",                0x00 );
 						context.dips[1][1] = Dip::Value( "On",                 0x08 );
-						context.dips[2]    = Dip::Value( "unknown",            2, 0 );
+						context.dips[2]    = Dip::Value( "Unknown",            2, 0 );
 						context.dips[2][0] = Dip::Value( "Off",                0x00 );
 						context.dips[2][1] = Dip::Value( "On",                 0x10 );
 						context.dips[3]    = Dip::Value( "Lives",              4, 1 );
@@ -732,22 +750,23 @@ namespace Nes
 						context.dips[3][1] = Dip::Value( "3",	               0x00 );
 						context.dips[3][2] = Dip::Value( "4",                  0x40 );
 						context.dips[3][3] = Dip::Value( "5",                  0x20 );
-						context.dips[4]    = Dip::Value( "unknown",            2, 0 );
+						context.dips[4]    = Dip::Value( "Unknown",            2, 0 );
 						context.dips[4][0] = Dip::Value( "Off",                0x00 );
 						context.dips[4][1] = Dip::Value( "On",                 0x80 );
 			
 						context.securityColor = 3;
-						context.swapPorts = true;
+						context.inputMapper = InputMapper::TYPE_2;
 						break;
 				
 					case 0x43A357EFUL: // Ice Climber
+					case 0xD4EB5923UL:
 				
 						context.SetDips(4);
 				      	context.dips[0]    = Dip::Value( "Coinage",              8, 0 );
-						context.dips[0][0] = Dip::Value( "1 Coins / 1 Credit",   0x00 );
-						context.dips[0][1] = Dip::Value( "1 Coins / 2 Credit",   0x04 );
-						context.dips[0][2] = Dip::Value( "1 Coins / 3 Credit",   0x02 );
-						context.dips[0][3] = Dip::Value( "1 Coins / 4 Credit",   0x06 );
+						context.dips[0][0] = Dip::Value( "1 Coin / 1 Credit",    0x00 );
+						context.dips[0][1] = Dip::Value( "1 Coin / 2 Credits",   0x04 );
+						context.dips[0][2] = Dip::Value( "1 Coin / 3 Credits",   0x02 );
+						context.dips[0][3] = Dip::Value( "1 Coin / 4 Credits",   0x06 );
 						context.dips[0][4] = Dip::Value( "2 Coins / 1 Credit",   0x01 );
 						context.dips[0][5] = Dip::Value( "3 Coins / 1 Credit",   0x05 );
 						context.dips[0][6] = Dip::Value( "4 Coins / 1 Credit",   0x03 );
@@ -765,7 +784,12 @@ namespace Nes
 						context.dips[3][1] = Dip::Value( "Short",                0x40 );
 			
 						context.securityColor = 3;
-						context.swapPorts = true;
+				
+						if (pRomCrc == 0x43A357EFUL)
+							context.inputMapper = InputMapper::TYPE_2;
+						else
+							context.inputMapper = InputMapper::TYPE_4;
+
 						break;
 				
 					case 0x737DD1BFUL: // Super Mario Bros	
@@ -775,11 +799,11 @@ namespace Nes
 				
 						context.SetDips(5);
 						context.dips[0]    = Dip::Value( "Coinage",            8, 0 );
-						context.dips[0][0] = Dip::Value( "1 Coins / 1 Credit", 0x00 );
-						context.dips[0][1] = Dip::Value( "1 Coins / 2 Credit", 0x06 );
-						context.dips[0][2] = Dip::Value( "1 Coins / 3 Credit", 0x01 );
-						context.dips[0][3] = Dip::Value( "1 Coins / 4 Credit", 0x05 );
-						context.dips[0][4] = Dip::Value( "1 Coins / 5 Credit", 0x03 );
+						context.dips[0][0] = Dip::Value( "1 Coin / 1 Credit",  0x00 );
+						context.dips[0][1] = Dip::Value( "1 Coin / 2 Credits", 0x06 );
+						context.dips[0][2] = Dip::Value( "1 Coin / 3 Credits", 0x01 );
+						context.dips[0][3] = Dip::Value( "1 Coin / 4 Credits", 0x05 );
+						context.dips[0][4] = Dip::Value( "1 Coin / 5 Credits", 0x03 );
 						context.dips[0][5] = Dip::Value( "2 Coins / 1 Credit", 0x04 );
 						context.dips[0][6] = Dip::Value( "3 Coins / 1 Credit", 0x02 );
 						context.dips[0][7] = Dip::Value( "Free Play",	       0x07 );
@@ -799,6 +823,7 @@ namespace Nes
 						context.dips[4][1] = Dip::Value( "4",	               0x00 );
 			
 						context.securityColor = 3;
+						context.inputMapper = InputMapper::TYPE_1;
 						break;
 				
 					case 0xEC461DB9UL: // Pinball
@@ -806,18 +831,18 @@ namespace Nes
 				
 						context.SetDips(5);
 						context.dips[0]    = Dip::Value( "Coinage",            8, 0 );
-						context.dips[0][0] = Dip::Value( "1 Coins / 1 Credit", 0x01 );
-						context.dips[0][1] = Dip::Value( "1 Coins / 2 Credit", 0x06 );
-						context.dips[0][2] = Dip::Value( "1 Coins / 3 Credit", 0x02 );
-						context.dips[0][3] = Dip::Value( "1 Coins / 4 Credit", 0x04 );
+						context.dips[0][0] = Dip::Value( "1 Coin / 1 Credit",  0x01 );
+						context.dips[0][1] = Dip::Value( "1 Coin / 2 Credits", 0x06 );
+						context.dips[0][2] = Dip::Value( "1 Coin / 3 Credits", 0x02 );
+						context.dips[0][3] = Dip::Value( "1 Coin / 4 Credits", 0x04 );
 						context.dips[0][4] = Dip::Value( "2 Coins / 1 Credit", 0x05 );
 						context.dips[0][5] = Dip::Value( "3 Coins / 1 Credit", 0x03 );
 						context.dips[0][6] = Dip::Value( "4 Coins / 1 Credit", 0x07 );
 						context.dips[0][7] = Dip::Value( "Free Play",          0x00 );
-						context.dips[1]    = Dip::Value( "unknown",            2, 0 );
+						context.dips[1]    = Dip::Value( "Unknown",            2, 0 );
 						context.dips[1][0] = Dip::Value( "Off",                0x00 );
 						context.dips[1][1] = Dip::Value( "On",                 0x08 );
-						context.dips[2]    = Dip::Value( "unknown",            2, 0 );
+						context.dips[2]    = Dip::Value( "Unknown",            2, 0 );
 						context.dips[2][0] = Dip::Value( "Off",                0x00 );
 						context.dips[2][1] = Dip::Value( "On",                 0x10 );
 						context.dips[3]    = Dip::Value( "Balls",              4, 1 );
@@ -828,65 +853,104 @@ namespace Nes
 						context.dips[4]    = Dip::Value( "Ball Speed",         2, 0 );
 						context.dips[4][0] = Dip::Value( "Normal",             0x00 );
 						context.dips[4][1] = Dip::Value( "Fast",               0x80 );
-			
-						context.securityColor = (pRomCrc == 0xEC461DB9UL ? 0 : 3);
+
+						if (pRomCrc == 0xEC461DB9UL)
+						{
+							context.securityColor = 0;
+							context.inputMapper = InputMapper::TYPE_1;
+						}
+						else
+						{
+							context.inputMapper = InputMapper::TYPE_5;
+						}
 						break;
-				
+
+					case 0xAE8063EFUL: // Mach Rider - Fighting Course
+
+						context.SetDips(5);
+						context.dips[0]    = Dip::Value( "Coinage",            8, 0 );
+						context.dips[0][0] = Dip::Value( "1 Coin / 1 Credit",  0x00 );
+						context.dips[0][1] = Dip::Value( "1 Coin / 2 Credits", 0x04 );
+						context.dips[0][2] = Dip::Value( "1 Coin / 3 Credits", 0x02 );
+						context.dips[0][3] = Dip::Value( "1 Coin / 4 Credits", 0x06 );
+						context.dips[0][4] = Dip::Value( "2 Coins / 1 Credit", 0x01 );
+						context.dips[0][5] = Dip::Value( "3 Coins / 1 Credit", 0x05 );
+						context.dips[0][6] = Dip::Value( "4 Coins / 1 Credit", 0x03 );
+						context.dips[0][7] = Dip::Value( "Free Play",	       0x07 );
+						context.dips[1]    = Dip::Value( "Km 1st Race",		   2, 0 );
+						context.dips[1][0] = Dip::Value( "12",                 0x00 );
+						context.dips[1][1] = Dip::Value( "15",	               0x10 );
+						context.dips[2]    = Dip::Value( "Unknown",            2, 0 );
+						context.dips[2][0] = Dip::Value( "Off",                0x00 );
+						context.dips[2][1] = Dip::Value( "On",                 0x20 );
+						context.dips[3]    = Dip::Value( "Unknown",            2, 0 );
+						context.dips[3][0] = Dip::Value( "Off",                0x00 );
+						context.dips[3][1] = Dip::Value( "On",                 0x40 );
+						context.dips[4]    = Dip::Value( "Unknown",            2, 0 );
+						context.dips[4][0] = Dip::Value( "Off",                0x00 );
+						context.dips[4][1] = Dip::Value( "On",                 0x80 );
+
+						context.securityColor = 0;
+						context.inputMapper = InputMapper::TYPE_1;
+						break;
+
 					case 0x0B65A917UL: // Mach Rider
-					case 0x8A6A9848UL:
+					case 0x8A6A9848UL: //
 				
 						context.SetDips(5);
-						context.dips[0]    = Dip::Value( "Coinage",             8, 0 );
-						context.dips[0][0] = Dip::Value( "1 Coins / 1 Credits", 0x00 );
-						context.dips[0][1] = Dip::Value( "1 Coins / 2 Credits", 0x04 );
-						context.dips[0][2] = Dip::Value( "1 Coins / 3 Credits", 0x02 );
-						context.dips[0][3] = Dip::Value( "1 Coins / 4 Credits", 0x06 );
-						context.dips[0][4] = Dip::Value( "2 Coins / 1 Credits", 0x01 );
-						context.dips[0][5] = Dip::Value( "3 Coins / 1 Credits", 0x05 );
-						context.dips[0][6] = Dip::Value( "4 Coins / 1 Credits", 0x03 );
-						context.dips[0][7] = Dip::Value( "Free Play",	        0x07 );
-						context.dips[1]    = Dip::Value( "Time",				4, 0 );
-						context.dips[1][0] = Dip::Value( "280",             	0x00 );
-						context.dips[1][1] = Dip::Value( "250",	                0x10 );
-						context.dips[1][2] = Dip::Value( "220",	                0x08 );
-						context.dips[1][3] = Dip::Value( "200",	                0x18 );
-						context.dips[2]    = Dip::Value( "unknown",             2, 0 );
-						context.dips[2][0] = Dip::Value( "Off",                 0x00 );
-						context.dips[2][1] = Dip::Value( "On",                  0x20 );
-						context.dips[3]    = Dip::Value( "unknown",             2, 0 );
-						context.dips[3][0] = Dip::Value( "Off",                 0x00 );
-						context.dips[3][1] = Dip::Value( "On",                  0x40 );
-						context.dips[4]    = Dip::Value( "unknown",             2, 0 );
-						context.dips[4][0] = Dip::Value( "Off",                 0x00 );
-						context.dips[4][1] = Dip::Value( "On",                  0x80 );
+						context.dips[0]    = Dip::Value( "Coinage",            8, 0 );
+						context.dips[0][0] = Dip::Value( "1 Coin / 1 Credit",  0x00 );
+						context.dips[0][1] = Dip::Value( "1 Coin / 2 Credits", 0x04 );
+						context.dips[0][2] = Dip::Value( "1 Coin / 3 Credits", 0x02 );
+						context.dips[0][3] = Dip::Value( "1 Coin / 4 Credits", 0x06 );
+						context.dips[0][4] = Dip::Value( "2 Coins / 1 Credit", 0x01 );
+						context.dips[0][5] = Dip::Value( "3 Coins / 1 Credit", 0x05 );
+						context.dips[0][6] = Dip::Value( "4 Coins / 1 Credit", 0x03 );
+						context.dips[0][7] = Dip::Value( "Free Play",	       0x07 );
+						context.dips[1]    = Dip::Value( "Time",			   4, 0 );
+						context.dips[1][0] = Dip::Value( "280",                0x00 );
+						context.dips[1][1] = Dip::Value( "250",	               0x10 );
+						context.dips[1][2] = Dip::Value( "220",	               0x08 );
+						context.dips[1][3] = Dip::Value( "200",	               0x18 );
+						context.dips[2]    = Dip::Value( "Unknown",            2, 0 );
+						context.dips[2][0] = Dip::Value( "Off",                0x00 );
+						context.dips[2][1] = Dip::Value( "On",                 0x20 );
+						context.dips[3]    = Dip::Value( "Unknown",            2, 0 );
+						context.dips[3][0] = Dip::Value( "Off",                0x00 );
+						context.dips[3][1] = Dip::Value( "On",                 0x40 );
+						context.dips[4]    = Dip::Value( "Unknown",            2, 0 );
+						context.dips[4][0] = Dip::Value( "Off",                0x00 );
+						context.dips[4][1] = Dip::Value( "On",                 0x80 );
 			
 						context.securityColor = 1;
+						context.inputMapper = InputMapper::TYPE_1;
 						break;
 				
 					case 0x46914E3EUL: // Soccer
 				
 						context.SetDips(3);
-						context.dips[0]    = Dip::Value( "Coinage",             8, 0 );
-						context.dips[0][0] = Dip::Value( "1 Coins / 1 Credits", 0x00 );
-						context.dips[0][1] = Dip::Value( "1 Coins / 2 Credits", 0x04 );
-						context.dips[0][2] = Dip::Value( "1 Coins / 3 Credits", 0x02 );
-						context.dips[0][3] = Dip::Value( "1 Coins / 4 Credits", 0x06 );
-						context.dips[0][4] = Dip::Value( "2 Coins / 1 Credits", 0x01 );
-						context.dips[0][5] = Dip::Value( "3 Coins / 1 Credits", 0x05 );
-						context.dips[0][6] = Dip::Value( "4 Coins / 1 Credits", 0x03 );
-						context.dips[0][7] = Dip::Value( "Free Play",	        0x07 );
-						context.dips[1]    = Dip::Value( "Points Timer",        4, 2 );
-						context.dips[1][0] = Dip::Value( "600 Pts",             0x00 );
-						context.dips[1][1] = Dip::Value( "800 Pts",             0x10 );
-						context.dips[1][2] = Dip::Value( "1000 Pts",            0x08 );
-						context.dips[1][3] = Dip::Value( "1200 Pts",            0x18 );
-						context.dips[2]    = Dip::Value( "Difficulty",          4, 1 );
-						context.dips[2][0] = Dip::Value( "Easy",                0x00 );
-						context.dips[2][1] = Dip::Value( "Normal",              0x40 );
-						context.dips[2][2] = Dip::Value( "Hard",                0x20 );
-						context.dips[2][3] = Dip::Value( "Very Hard",           0x60 );
+						context.dips[0]    = Dip::Value( "Coinage",            8, 0 );
+						context.dips[0][0] = Dip::Value( "1 Coin / 1 Credit",  0x00 );
+						context.dips[0][1] = Dip::Value( "1 Coin / 2 Credits", 0x04 );
+						context.dips[0][2] = Dip::Value( "1 Coin / 3 Credits", 0x02 );
+						context.dips[0][3] = Dip::Value( "1 Coin / 4 Credits", 0x06 );
+						context.dips[0][4] = Dip::Value( "2 Coins / 1 Credit", 0x01 );
+						context.dips[0][5] = Dip::Value( "3 Coins / 1 Credit", 0x05 );
+						context.dips[0][6] = Dip::Value( "4 Coins / 1 Credit", 0x03 );
+						context.dips[0][7] = Dip::Value( "Free Play",	       0x07 );
+						context.dips[1]    = Dip::Value( "Points Timer",       4, 2 );
+						context.dips[1][0] = Dip::Value( "600 Pts",            0x00 );
+						context.dips[1][1] = Dip::Value( "800 Pts",            0x10 );
+						context.dips[1][2] = Dip::Value( "1000 Pts",           0x08 );
+						context.dips[1][3] = Dip::Value( "1200 Pts",           0x18 );
+						context.dips[2]    = Dip::Value( "Difficulty",         4, 1 );
+						context.dips[2][0] = Dip::Value( "Easy",               0x00 );
+						context.dips[2][1] = Dip::Value( "Normal",             0x40 );
+						context.dips[2][2] = Dip::Value( "Hard",               0x20 );
+						context.dips[2][3] = Dip::Value( "Very Hard",          0x60 );
 																			  
 						context.securityColor = 2;
+						context.inputMapper = InputMapper::TYPE_2;
 						break;
 				
 					case 0x70433F2CUL: // Battle City
@@ -902,13 +966,13 @@ namespace Nes
 						context.dips[2]    = Dip::Value( "Demo Sounds",           2, 1 );
 						context.dips[2][0] = Dip::Value( "Off",                   0x00 );
 						context.dips[2][1] = Dip::Value( "On",                    0x04 );
-						context.dips[3]    = Dip::Value( "unknown",               2, 0 );
+						context.dips[3]    = Dip::Value( "Unknown",               2, 0 );
 						context.dips[3][0] = Dip::Value( "Off",                   0x00 );
 						context.dips[3][1] = Dip::Value( "On",                    0x08 );
-						context.dips[4]    = Dip::Value( "unknown",               2, 0 );
+						context.dips[4]    = Dip::Value( "Unknown",               2, 0 );
 						context.dips[4][0] = Dip::Value( "Off",                   0x00 );
 						context.dips[4][1] = Dip::Value( "On",                    0x10 );
-						context.dips[5]    = Dip::Value( "unknown",               2, 0 );
+						context.dips[5]    = Dip::Value( "Unknown",               2, 0 );
 						context.dips[5][0] = Dip::Value( "Off",                   0x00 );
 						context.dips[5][1] = Dip::Value( "On",                    0x20 );
 						context.dips[6]    = Dip::Value( "Color Palette",         4, 0 );
@@ -918,131 +982,213 @@ namespace Nes
 						context.dips[6][3] = Dip::Value( "Wrong 3",               0xC0 );
 			
 						context.securityColor = 2;
+						context.inputMapper = InputMapper::TYPE_2;
 						break;
 				
 					case 0xD99A2087UL: // Gradius
 				
 						context.SetDips(5);
-						context.dips[0]    = Dip::Value( "Coinage",             8, 0 );
-						context.dips[0][0] = Dip::Value( "1 Coins / 1 Credits", 0x00 );
-						context.dips[0][1] = Dip::Value( "1 Coins / 2 Credits", 0x04 );
-						context.dips[0][2] = Dip::Value( "1 Coins / 3 Credits", 0x02 );
-						context.dips[0][3] = Dip::Value( "2 Coins / 1 Credits", 0x06 );
-						context.dips[0][4] = Dip::Value( "3 Coins / 1 Credits", 0x01 );
-						context.dips[0][5] = Dip::Value( "4 Coins / 1 Credits", 0x05 );
-						context.dips[0][6] = Dip::Value( "5 Coins / 1 Credits", 0x03 );
-						context.dips[0][7] = Dip::Value( "Free Play",           0x07 );
-						context.dips[1]    = Dip::Value( "Lives",               2, 0 );
-						context.dips[1][0] = Dip::Value( "3",                   0x08 );
-						context.dips[1][1] = Dip::Value( "4",                   0x00 );
-						context.dips[2]    = Dip::Value( "Bonus",               4, 0 );
-						context.dips[2][0] = Dip::Value( "100k",                0x00 );
-						context.dips[2][1] = Dip::Value( "200k",	            0x20 );
-						context.dips[2][2] = Dip::Value( "300k",	            0x10 );
-						context.dips[2][3] = Dip::Value( "400k",	            0x30 );
-						context.dips[3]    = Dip::Value( "Difficulty",          2, 0 );
-						context.dips[3][0] = Dip::Value( "Normal",              0x00 );
-						context.dips[3][1] = Dip::Value( "Hard",                0x40 );
-						context.dips[4]    = Dip::Value( "Demo Sounds",         2, 1 );
-						context.dips[4][0] = Dip::Value( "Off",                 0x00 );
-						context.dips[4][1] = Dip::Value( "On",                  0x80 );
+						context.dips[0]    = Dip::Value( "Coinage",            8, 0 );
+						context.dips[0][0] = Dip::Value( "1 Coin / 1 Credit",  0x00 );
+						context.dips[0][1] = Dip::Value( "1 Coin / 2 Credits", 0x04 );
+						context.dips[0][2] = Dip::Value( "1 Coin / 3 Credits", 0x02 );
+						context.dips[0][3] = Dip::Value( "2 Coins / 1 Credit", 0x06 );
+						context.dips[0][4] = Dip::Value( "3 Coins / 1 Credit", 0x01 );
+						context.dips[0][5] = Dip::Value( "4 Coins / 1 Credit", 0x05 );
+						context.dips[0][6] = Dip::Value( "5 Coins / 1 Credit", 0x03 );
+						context.dips[0][7] = Dip::Value( "Free Play",          0x07 );
+						context.dips[1]    = Dip::Value( "Lives",              2, 0 );
+						context.dips[1][0] = Dip::Value( "3",                  0x08 );
+						context.dips[1][1] = Dip::Value( "4",                  0x00 );
+						context.dips[2]    = Dip::Value( "Bonus",              4, 0 );
+						context.dips[2][0] = Dip::Value( "100k",               0x00 );
+						context.dips[2][1] = Dip::Value( "200k",	           0x20 );
+						context.dips[2][2] = Dip::Value( "300k",	           0x10 );
+						context.dips[2][3] = Dip::Value( "400k",	           0x30 );
+						context.dips[3]    = Dip::Value( "Difficulty",         2, 0 );
+						context.dips[3][0] = Dip::Value( "Normal",             0x00 );
+						context.dips[3][1] = Dip::Value( "Hard",               0x40 );
+						context.dips[4]    = Dip::Value( "Demo Sounds",        2, 1 );
+						context.dips[4][0] = Dip::Value( "Off",                0x00 );
+						context.dips[4][1] = Dip::Value( "On",                 0x80 );
 			
 						context.securityColor = 0;
+						context.inputMapper = InputMapper::TYPE_2;
 						break;
 				
 					case 0x1E438D52UL: // Goonies
 				
 						context.SetDips(6);
-						context.dips[0]    = Dip::Value( "Coinage",             8, 0 );
-						context.dips[0][0] = Dip::Value( "1 Coins / 1 Credits", 0x00 );
-						context.dips[0][1] = Dip::Value( "1 Coins / 2 Credits", 0x04 );
-						context.dips[0][2] = Dip::Value( "1 Coins / 3 Credits", 0x02 );
-						context.dips[0][3] = Dip::Value( "2 Coins / 1 Credits", 0x06 );
-						context.dips[0][4] = Dip::Value( "3 Coins / 1 Credits", 0x01 );
-						context.dips[0][5] = Dip::Value( "4 Coins / 1 Credits", 0x05 );
-						context.dips[0][6] = Dip::Value( "5 Coins / 1 Credits", 0x03 );
-						context.dips[0][7] = Dip::Value( "Free Play",	        0x07 );
-						context.dips[1]    = Dip::Value( "Lives",               2, 0 );
-						context.dips[1][0] = Dip::Value( "3",                   0x00 );
-						context.dips[1][1] = Dip::Value( "2",                   0x08 );
-						context.dips[2]    = Dip::Value( "unknown",             2, 0 );
-						context.dips[2][0] = Dip::Value( "Off",                 0x00 );
-						context.dips[2][1] = Dip::Value( "On",                  0x10 );
-						context.dips[3]    = Dip::Value( "unknown",             2, 0 );
-						context.dips[3][0] = Dip::Value( "Off",                 0x00 );
-						context.dips[3][1] = Dip::Value( "On",                  0x20 );
-						context.dips[4]    = Dip::Value( "Timer",               2, 0 );
-						context.dips[4][0] = Dip::Value( "Normal",              0x00 );
-						context.dips[4][1] = Dip::Value( "Fast",                0x40 );
-						context.dips[5]    = Dip::Value( "Demo Sounds",         2, 1 );
-						context.dips[5][0] = Dip::Value( "Off",                 0x00 );
-						context.dips[5][1] = Dip::Value( "On",                  0x80 );
+						context.dips[0]    = Dip::Value( "Coinage",            8, 0 );
+						context.dips[0][0] = Dip::Value( "1 Coin / 1 Credit",  0x00 );
+						context.dips[0][1] = Dip::Value( "1 Coin / 2 Credits", 0x04 );
+						context.dips[0][2] = Dip::Value( "1 Coin / 3 Credits", 0x02 );
+						context.dips[0][3] = Dip::Value( "2 Coins / 1 Credit", 0x06 );
+						context.dips[0][4] = Dip::Value( "3 Coins / 1 Credit", 0x01 );
+						context.dips[0][5] = Dip::Value( "4 Coins / 1 Credit", 0x05 );
+						context.dips[0][6] = Dip::Value( "5 Coins / 1 Credit", 0x03 );
+						context.dips[0][7] = Dip::Value( "Free Play",	       0x07 );
+						context.dips[1]    = Dip::Value( "Lives",              2, 0 );
+						context.dips[1][0] = Dip::Value( "3",                  0x00 );
+						context.dips[1][1] = Dip::Value( "2",                  0x08 );
+						context.dips[2]    = Dip::Value( "Unknown",            2, 0 );
+						context.dips[2][0] = Dip::Value( "Off",                0x00 );
+						context.dips[2][1] = Dip::Value( "On",                 0x10 );
+						context.dips[3]    = Dip::Value( "Unknown",            2, 0 );
+						context.dips[3][0] = Dip::Value( "Off",                0x00 );
+						context.dips[3][1] = Dip::Value( "On",                 0x20 );
+						context.dips[4]    = Dip::Value( "Timer",              2, 0 );
+						context.dips[4][0] = Dip::Value( "Normal",             0x00 );
+						context.dips[4][1] = Dip::Value( "Fast",               0x40 );
+						context.dips[5]    = Dip::Value( "Demo Sounds",        2, 1 );
+						context.dips[5][0] = Dip::Value( "Off",                0x00 );
+						context.dips[5][1] = Dip::Value( "On",                 0x80 );
 			
 						context.securityColor = 2;
+						context.inputMapper = InputMapper::TYPE_1;
 						break;
 				
 					case 0xFF5135A3UL: // Hogan's Alley
 				
 						context.SetDips(4);
-						context.dips[0]    = Dip::Value( "Coinage",             8, 4 );
-						context.dips[0][0] = Dip::Value( "5 Coins / 1 Credits", 0x03 );
-						context.dips[0][1] = Dip::Value( "4 Coins / 1 Credits", 0x05 );
-						context.dips[0][2] = Dip::Value( "3 Coins / 1 Credits", 0x01 );
-						context.dips[0][3] = Dip::Value( "2 Coins / 1 Credits", 0x06 );
-						context.dips[0][4] = Dip::Value( "1 Coins / 1 Credits", 0x00 );
-						context.dips[0][5] = Dip::Value( "1 Coins / 2 Credits", 0x04 );
-						context.dips[0][6] = Dip::Value( "1 Coins / 3 Credits", 0x02 );
-						context.dips[0][7] = Dip::Value( "Free Play",	        0x07 );
-						context.dips[1]    = Dip::Value( "Difficulty",          4, 1 );
-						context.dips[1][0] = Dip::Value( "Easy",                0x00 );
-						context.dips[1][1] = Dip::Value( "Normal",              0x08 );
-						context.dips[1][2] = Dip::Value( "Hard",                0x10 );
-						context.dips[1][3] = Dip::Value( "Very Hard",           0x18 );
-						context.dips[2]    = Dip::Value( "Misses per Game",     2, 1 );
-						context.dips[2][0] = Dip::Value( "3",                   0x00 );
-						context.dips[2][1] = Dip::Value( "5",                   0x20 );
-						context.dips[3]    = Dip::Value( "Bonus Life",          4, 0 );
-						context.dips[3][0] = Dip::Value( "30000",               0x00 );
-						context.dips[3][1] = Dip::Value( "50000",	            0x40 );
-						context.dips[3][2] = Dip::Value( "80000",	            0x80 );
-						context.dips[3][3] = Dip::Value( "100000",	            0xC0 );
+						context.dips[0]    = Dip::Value( "Coinage",            8, 0 );
+						context.dips[0][0] = Dip::Value( "1 Coin / 1 Credit",  0x00 );
+						context.dips[0][1] = Dip::Value( "1 Coin / 2 Credits", 0x04 );
+						context.dips[0][2] = Dip::Value( "1 Coin / 3 Credits", 0x02 );
+						context.dips[0][3] = Dip::Value( "2 Coins / 1 Credit", 0x06 );
+						context.dips[0][4] = Dip::Value( "3 Coins / 1 Credit", 0x01 );
+						context.dips[0][5] = Dip::Value( "4 Coins / 1 Credit", 0x05 );
+						context.dips[0][6] = Dip::Value( "5 Coins / 1 Credit", 0x03 );
+						context.dips[0][7] = Dip::Value( "Free Play",	       0x07 );
+						context.dips[1]    = Dip::Value( "Difficulty",         4, 1 );
+						context.dips[1][0] = Dip::Value( "Easy",               0x00 );
+						context.dips[1][1] = Dip::Value( "Normal",             0x08 );
+						context.dips[1][2] = Dip::Value( "Hard",               0x10 );
+						context.dips[1][3] = Dip::Value( "Very Hard",          0x18 );
+						context.dips[2]    = Dip::Value( "Misses per Game",    2, 1 );
+						context.dips[2][0] = Dip::Value( "3",                  0x00 );
+						context.dips[2][1] = Dip::Value( "5",                  0x20 );
+						context.dips[3]    = Dip::Value( "Bonus Life",         4, 0 );
+						context.dips[3][0] = Dip::Value( "30000",              0x00 );
+						context.dips[3][1] = Dip::Value( "50000",	           0x40 );
+						context.dips[3][2] = Dip::Value( "80000",	           0x80 );
+						context.dips[3][3] = Dip::Value( "100000",	           0xC0 );
 			
 						context.securityColor = 0;				
 						break;
 				
 					case 0x17AE56BEUL: // Freedom Force
 
+						context.SetDips(6);
+						context.dips[0]    = Dip::Value( "Coinage",            8, 0 );
+						context.dips[0][0] = Dip::Value( "1 Coin / 1 Credit",  0x00 );
+						context.dips[0][1] = Dip::Value( "1 Coin / 2 Credits", 0x04 );
+						context.dips[0][2] = Dip::Value( "1 Coin / 3 Credits", 0x02 );
+						context.dips[0][3] = Dip::Value( "2 Coins / 1 Credit", 0x06 );
+						context.dips[0][4] = Dip::Value( "3 Coins / 1 Credit", 0x01 );
+						context.dips[0][5] = Dip::Value( "4 Coins / 1 Credit", 0x05 );
+						context.dips[0][6] = Dip::Value( "5 Coins / 1 Credit", 0x03 );
+						context.dips[0][7] = Dip::Value( "Free Play",	       0x07 );
+						context.dips[1]    = Dip::Value( "Unknown",            2, 0 );
+						context.dips[1][0] = Dip::Value( "Off",                0x00 );
+						context.dips[1][1] = Dip::Value( "On",                 0x08 );
+						context.dips[2]    = Dip::Value( "Unknown",            2, 0 );
+						context.dips[2][0] = Dip::Value( "Off",                0x00 );
+						context.dips[2][1] = Dip::Value( "On",                 0x10 );
+						context.dips[3]    = Dip::Value( "Unknown",            2, 0 );
+						context.dips[3][0] = Dip::Value( "Off",                0x00 );
+						context.dips[3][1] = Dip::Value( "On",                 0x20 );
+						context.dips[4]    = Dip::Value( "Unknown",            2, 0 );
+						context.dips[4][0] = Dip::Value( "Off",                0x00 );
+						context.dips[4][1] = Dip::Value( "On",                 0x40 );
+						context.dips[5]    = Dip::Value( "Unknown",            2, 0 );
+						context.dips[5][0] = Dip::Value( "Off",                0x00 );
+						context.dips[5][1] = Dip::Value( "On",                 0x80 );
+
 						context.securityColor = 0;
 						break;
 				
+					case 0xC99EC059UL: // Raid on Bungeling Bay
+
+						context.SetDips(6);
+						context.dips[0]    = Dip::Value( "Coinage",            8, 0 );
+						context.dips[0][0] = Dip::Value( "1 Coin / 1 Credit",  0x00 );
+						context.dips[0][1] = Dip::Value( "1 Coin / 2 Credits", 0x04 );
+						context.dips[0][2] = Dip::Value( "1 Coin / 3 Credits", 0x02 );
+						context.dips[0][3] = Dip::Value( "1 Coin / 4 Credits", 0x06 );
+						context.dips[0][4] = Dip::Value( "2 Coins / 1 Credit", 0x01 );
+						context.dips[0][5] = Dip::Value( "3 Coins / 1 Credit", 0x05 );
+						context.dips[0][6] = Dip::Value( "4 Coins / 1 Credit", 0x03 );
+						context.dips[0][7] = Dip::Value( "Free Play",	       0x07 );
+						context.dips[1]    = Dip::Value( "Lives",              2, 0 );
+						context.dips[1][0] = Dip::Value( "2",                  0x00 );
+						context.dips[1][1] = Dip::Value( "3",                  0x08 );
+						context.dips[2]    = Dip::Value( "Unknown",            2, 0 );
+						context.dips[2][0] = Dip::Value( "Off",                0x00 );
+						context.dips[2][1] = Dip::Value( "On",                 0x10 );
+						context.dips[3]    = Dip::Value( "Unknown",            2, 0 );
+						context.dips[3][0] = Dip::Value( "Off",                0x00 );
+						context.dips[3][1] = Dip::Value( "On",                 0x20 );
+						context.dips[4]    = Dip::Value( "Unknown",            2, 0 );
+						context.dips[4][0] = Dip::Value( "Off",                0x00 );
+						context.dips[4][1] = Dip::Value( "On",                 0x40 );
+						context.dips[5]    = Dip::Value( "Unknown",            2, 0 );
+						context.dips[5][0] = Dip::Value( "Off",                0x00 );
+						context.dips[5][1] = Dip::Value( "On",                 0x80 );
+
+						context.securityColor = 1;
+						context.inputMapper = InputMapper::TYPE_4;
+						break;
+
 					case 0xF9D3B0A3UL: // Super Xevious
 					case 0x66BB838FUL: // Super Xevious
-				
-						context.SetDips(8);
-			
-						for (uint i=0; i < 8; ++i)
-						{
-							context.dips[i]	   = Dip::Value( "unknown", 2, 0    );
-							context.dips[i][0] = Dip::Value( "off",     0x00    );
-							context.dips[i][1] = Dip::Value( "on",      1U << i );
-						}
+					case 0x9924980AUL: // Super Xevious
+
+						context.SetDips(6);
+						context.dips[0]    = Dip::Value( "Unknown",            2, 0 );
+						context.dips[0][0] = Dip::Value( "Off",                0x00 );
+						context.dips[0][1] = Dip::Value( "On",                 0x01 );
+						context.dips[1]    = Dip::Value( "Unknown",            2, 0 );
+						context.dips[1][0] = Dip::Value( "Off",                0x00 );
+						context.dips[1][1] = Dip::Value( "On",                 0x02 );
+						context.dips[2]    = Dip::Value( "Unknown",            2, 0 );
+						context.dips[2][0] = Dip::Value( "Off",                0x00 );
+						context.dips[2][1] = Dip::Value( "On",                 0x04 );
+						context.dips[3]    = Dip::Value( "Unknown",            2, 0 );
+						context.dips[3][0] = Dip::Value( "Off",                0x00 );
+						context.dips[3][1] = Dip::Value( "On",                 0x08 );
+						context.dips[4]    = Dip::Value( "Coinage",            4, 0 );
+						context.dips[4][0] = Dip::Value( "1 Coin / 1 Credit",  0x00 );
+						context.dips[4][1] = Dip::Value( "1 Coin / 2 Credits", 0x10 );
+						context.dips[4][2] = Dip::Value( "2 Coins / 1 Credit", 0x20 );
+						context.dips[4][3] = Dip::Value( "3 Coins / 1 Credit", 0x30 );
+						context.dips[5]    = Dip::Value( "Color Palette",      4, 0 );
+						context.dips[5][0] = Dip::Value( "Normal",             0x00 );
+						context.dips[5][1] = Dip::Value( "Wrong 1",            0x40 );
+						context.dips[5][2] = Dip::Value( "Wrong 2",            0x80 );
+						context.dips[5][3] = Dip::Value( "Wrong 3",            0xC0 );
 				
 						context.securityColor = 0;
+						context.inputMapper = InputMapper::TYPE_1;
 
 						return new VsSuperXevious( context );
 				
-					case 0xCC2C4B5DUL: // Golf
+					case 0xCC2C4B5DUL: // Golf (J)
 					case 0x86167220UL: // Lady Golf
-				
+
+						context.securityColor = 1;				
+
+					case 0xA93A5AEEUL: // Golf
+
 						context.SetDips(5);
 				     	context.dips[0]    = Dip::Value( "Coinage",                 8, 0 );
-						context.dips[0][0] = Dip::Value( "1 Coins / 1 Credits",     0x01 );
-						context.dips[0][1] = Dip::Value( "1 Coins / 2 Credits",     0x06 );
-						context.dips[0][2] = Dip::Value( "1 Coins / 3 Credits",     0x02 );
-						context.dips[0][3] = Dip::Value( "1 Coins / 4 Credits",     0x04 );
-						context.dips[0][4] = Dip::Value( "2 Coins / 1 Credits",     0x05 );
-						context.dips[0][5] = Dip::Value( "3 Coins / 1 Credits",     0x03 );
-						context.dips[0][6] = Dip::Value( "4 Coins / 1 Credits",     0x07 );
+						context.dips[0][0] = Dip::Value( "1 Coin / 1 Credit",       0x01 );
+						context.dips[0][1] = Dip::Value( "1 Coin / 2 Credits",      0x06 );
+						context.dips[0][2] = Dip::Value( "1 Coin / 3 Credits",      0x02 );
+						context.dips[0][3] = Dip::Value( "1 Coin / 4 Credits",      0x04 );
+						context.dips[0][4] = Dip::Value( "2 Coins / 1 Credit",      0x05 );
+						context.dips[0][5] = Dip::Value( "3 Coins / 1 Credit",      0x03 );
+						context.dips[0][6] = Dip::Value( "4 Coins / 1 Credit",      0x07 );
 						context.dips[0][7] = Dip::Value( "Free Play",	            0x00 );
 						context.dips[1]    = Dip::Value( "Hole Size",               2, 0 );
 						context.dips[1][0] = Dip::Value( "Large",                   0x00 );
@@ -1059,40 +1205,38 @@ namespace Nes
 						context.dips[4][0] = Dip::Value( "Easy",                    0x00 );
 						context.dips[4][1] = Dip::Value( "Hard",                    0x80 );
 			
-						context.securityColor = 1;				
-						context.swapPorts = true;
-						break;
-				
-					case 0xB90497AAUL: // Tennis
-				
-						context.SetDips(6);
-				    	context.dips[0]    = Dip::Value( "Difficulty Vs. Computer", 4, 1 );
-						context.dips[0][0] = Dip::Value( "Easy",                    0x00 );
-						context.dips[0][1] = Dip::Value( "Normal",                  0x02 );
-						context.dips[0][2] = Dip::Value( "Hard",                    0x01 );
-						context.dips[0][3] = Dip::Value( "Very Hard",               0x03 );
-						context.dips[1]    = Dip::Value( "Difficulty Vs. Player",   4, 1 );
-						context.dips[1][0] = Dip::Value( "Easy",                    0x00 );
-						context.dips[1][1] = Dip::Value( "Normal",                  0x08 );
-						context.dips[1][2] = Dip::Value( "Hard",                    0x04 );
-						context.dips[1][3] = Dip::Value( "Very Hard",               0x0C );
-						context.dips[2]    = Dip::Value( "Racket Size",             2, 0 );
-						context.dips[2][0] = Dip::Value( "Large",                   0x00 );
-						context.dips[2][1] = Dip::Value( "Small",                   0x10 );
-						context.dips[3]    = Dip::Value( "Extra Score",             2, 0 );
-						context.dips[3][0] = Dip::Value( "1 Set",                   0x00 );
-						context.dips[3][1] = Dip::Value( "1 Game",                  0x20 );
-						context.dips[4]    = Dip::Value( "Court Color",             2, 0 );
-						context.dips[4][0] = Dip::Value( "Green",                   0x00 );
-						context.dips[4][1] = Dip::Value( "Blue",                    0x40 );
-						context.dips[5]    = Dip::Value( "Copyright",               2, 0 );
-						context.dips[5][0] = Dip::Value( "Japan",                   0x00 );
-						context.dips[5][1] = Dip::Value( "USA",                     0x80 );
+						context.inputMapper = InputMapper::TYPE_2;
 						break;
 
 					case 0xCA85E56DUL: // Mighty Bomb Jack
 
+						context.SetDips(5);
+						context.dips[0]    = Dip::Value( "Coinage",            8, 0 );
+						context.dips[0][0] = Dip::Value( "1 Coin / 1 Credit",  0x00 );
+						context.dips[0][1] = Dip::Value( "1 Coin / 2 Credits", 0x04 );
+						context.dips[0][2] = Dip::Value( "1 Coin / 3 Credits", 0x02 );
+						context.dips[0][3] = Dip::Value( "1 Coin / 4 Credits", 0x06 );
+						context.dips[0][4] = Dip::Value( "2 Coins / 1 Credit", 0x01 );
+						context.dips[0][5] = Dip::Value( "3 Coins / 1 Credit", 0x05 );
+						context.dips[0][6] = Dip::Value( "4 Coins / 1 Credit", 0x03 );
+						context.dips[0][7] = Dip::Value( "5 Coins / 1 Credit", 0x07 );
+						context.dips[1]    = Dip::Value( "Lives",              2, 0 );
+						context.dips[1][0] = Dip::Value( "2",                  0x10 );
+						context.dips[1][1] = Dip::Value( "3",                  0x00 );
+						context.dips[1][2] = Dip::Value( "4",                  0x08 );
+						context.dips[1][3] = Dip::Value( "5",                  0x18 );
+						context.dips[2]    = Dip::Value( "Unknown",            2, 0 );
+						context.dips[2][0] = Dip::Value( "Off",                0x00 );
+						context.dips[2][1] = Dip::Value( "On",                 0x20 );
+						context.dips[3]    = Dip::Value( "Unknown",            2, 0 );
+						context.dips[3][0] = Dip::Value( "Off",                0x00 );
+						context.dips[3][1] = Dip::Value( "On",                 0x40 );
+						context.dips[4]    = Dip::Value( "Unknown",            2, 0 );
+						context.dips[4][0] = Dip::Value( "Off",                0x00 );
+						context.dips[4][1] = Dip::Value( "On",                 0x80 );
+
 						context.securityPpu = 0x3D;
+						context.inputMapper = InputMapper::TYPE_1;
 						break;
 				}
 			
@@ -1102,9 +1246,9 @@ namespace Nes
 
 					for (uint i=0; i < 8; ++i)
 					{
-						context.dips[i]	   = Dip::Value( "unknown", 2, 0    );
-						context.dips[i][0] = Dip::Value( "off",     0x00    );
-						context.dips[i][1] = Dip::Value( "on",      1U << i );
+						context.dips[i]	   = Dip::Value( "Unknown", 2, 0    );
+						context.dips[i][0] = Dip::Value( "Off",     0x00    );
+						context.dips[i][1] = Dip::Value( "On",      1U << i );
 					}
 				}
 			}
@@ -1123,27 +1267,139 @@ namespace Nes
 			vs = NULL;
 		}
 
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("", on)
+        #endif
+
+		struct VsSystem::InputMapper::Type1 : InputMapper
+		{
+			void Fix(Pad (&pads)[4],const uint (&ports)[2]) const
+			{
+				const uint p[2] = { ports[0] < 4 ? pads[ports[0]].buttons : 0, ports[1] < 4 ? pads[ports[1]].buttons : 0 };
+
+				for (uint i=2; i--; )
+				{
+					if (ports[i] < 4)
+						pads[ports[i]].buttons = (p[i] & ~uint(Pad::SELECT|Pad::START)) | ((p[i] & Pad::SELECT) << 1) | ((p[i] & Pad::START) >> 1);
+				}
+			}
+		};
+
+		struct VsSystem::InputMapper::Type2 : InputMapper
+		{
+			void Fix(Pad (&pads)[4],const uint (&ports)[2]) const
+			{
+				const uint p[2] = { ports[0] < 4 ? pads[ports[0]].buttons : 0, ports[1] < 4 ? pads[ports[1]].buttons : 0 };
+
+				for (uint i=2; i--; )
+				{
+					if (ports[i] < 4)
+						pads[ports[i]].buttons = (p[i^1] & ~uint(Pad::SELECT|Pad::START)) | ((p[i^0] & Pad::SELECT) << 1) | ((p[i^0] & Pad::START) >> 1);
+				}
+			}
+		};
+
+		struct VsSystem::InputMapper::Type3 : InputMapper
+		{
+			void Fix(Pad (&pads)[4],const uint (&ports)[2]) const
+			{
+				const uint p[2] = { ports[0] < 4 ? pads[ports[0]].buttons : 0, ports[1] < 4 ? pads[ports[1]].buttons : 0 };
+
+				if (ports[1] < 4)
+					pads[ports[1]].buttons = p[0] & ~uint(Pad::SELECT|Pad::START);
+
+				if (ports[0] < 4)
+					pads[ports[0]].buttons = (p[1] & ~uint(Pad::SELECT|Pad::START)) | ((p[0] & Pad::START) >> 1) | (p[1] & Pad::START);
+			}
+		};
+
+		struct VsSystem::InputMapper::Type4 : InputMapper
+		{
+			void Fix(Pad (&pads)[4],const uint (&ports)[2]) const
+			{
+				const uint p[2] = { ports[0] < 4 ? pads[ports[0]].buttons : 0, ports[1] < 4 ? pads[ports[1]].buttons : 0 };
+
+				for (uint i=2; i--; )
+				{
+					if (ports[i] < 4)
+						pads[ports[i]].buttons = (p[i^1] & ~uint(Pad::SELECT|Pad::START)) | (((p[i^0] & Pad::SELECT) ^ Pad::SELECT) << 1) | ((p[i^0] & Pad::START) >> 1);
+				}
+			}
+		};
+
+		struct VsSystem::InputMapper::Type5 : InputMapper
+		{
+			void Fix(Pad (&pads)[4],const uint (&ports)[2]) const
+			{
+				const uint p[2] = { ports[0] < 4 ? pads[ports[0]].buttons : 0, ports[1] < 4 ? pads[ports[1]].buttons : 0 };
+
+				if (ports[1] < 4)
+					pads[ports[1]].buttons = (p[1] & ~uint(Pad::A|Pad::SELECT|Pad::START)) | ((p[0] & Pad::B) >> 1) | ((p[1] & Pad::SELECT) << 1) | ((p[1] & Pad::START) >> 1);
+
+				if (ports[0] < 4)
+					pads[ports[0]].buttons = (p[0] & ~uint(Pad::B|Pad::SELECT|Pad::START)) | ((p[1] & Pad::A) << 1) | ((p[0] & Pad::SELECT) << 1) | ((p[0] & Pad::START) >> 1);
+			}
+		};
+
+		void VsSystem::InputMapper::Begin(const Api::Input input,Input::Controllers* const controllers)
+		{
+			Input::Controllers::Pad::callback.Get( userCallback, userData );
+
+			if (controllers)
+			{
+				uint ports[2];
+
+				for (uint i=0; i < 2; ++i)
+				{
+					ports[i] = input.GetConnectedController(i) - Api::Input::PAD1;
+
+					if (ports[i] < 4)
+						Input::Controllers::Pad::callback( controllers->pad[ports[i]], ports[i] );						
+				}
+
+				Input::Controllers::Pad::callback.Set( NULL, NULL );
+
+				Fix( controllers->pad, ports );
+			}
+		}
+
+		void VsSystem::InputMapper::End() const
+		{
+			Input::Controllers::Pad::callback.Set( userCallback, userData );
+		}
+
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("s", on)
+        #endif
+
+		VsSystem::InputMapper* VsSystem::InputMapper::Create(Type type)
+		{
+			switch (type)
+			{
+				case TYPE_1: return new Type1;
+				case TYPE_2: return new Type2;
+				case TYPE_3: return new Type3;
+				case TYPE_4: return new Type4;
+				case TYPE_5: return new Type5;
+			}
+
+			return NULL;
+		}
+
 		VsSystem::VsSystem(Context& context)
 		: 
 		cpu           (context.cpu), 
 		ppu           (context.ppu), 
 		securityColor (context.securityColor < 4 ? colorMaps[context.securityColor] : NULL),
+		inputMapper   (InputMapper::Create( context.inputMapper )),
 		dips          (context.dips,context.numDips),
-		securityPpu   (context.securityPpu),
-		swapPorts     (context.swapPorts)
+		securityPpu   (context.securityPpu)
 		{
-			if (securityColor)
-				Log::Flush( "VsSystem: scrambled color table present" NST_LINEBREAK );
-	
-			if (securityPpu)
-				Log::Flush( "VsSystem: ppu security check present" NST_LINEBREAK );
-
-			if (swapPorts)
-				Log::Flush( "VsSystem: controller I/O ports swapped" NST_LINEBREAK );
 		}
 
 		VsSystem::~VsSystem()
 		{
+			delete inputMapper;
 		}
 
 		void VsSystem::Reset(bool)
@@ -1178,9 +1434,11 @@ namespace Nes
 			p4016 = cpu.Map( 0x4016U );
 			p4017 = cpu.Map( 0x4017U );
 	
-			cpu.Map( 0x4016U ).Set( this, swapPorts ? &VsSystem::Peek_4016_Swap : &VsSystem::Peek_4016, &VsSystem::Poke_4016 );
-			cpu.Map( 0x4017U ).Set( this, swapPorts ? &VsSystem::Peek_4017_Swap : &VsSystem::Peek_4017, &VsSystem::Poke_4017 );
-			
+			cpu.Map( 0x4016U ).Set( this, &VsSystem::Peek_4016, &VsSystem::Poke_4016 );
+			cpu.Map( 0x4017U ).Set( this, &VsSystem::Peek_4017, &VsSystem::Poke_4017 );
+
+			cpu.Map( 0x4020U ).Set( this, &VsSystem::Peek_4020, &VsSystem::Poke_4020 );
+
 			cpu.Map( 0x5000U, 0x5FFFU ).Set( this, &VsSystem::Peek_Nop, &VsSystem::Poke_Nop );
 	
 			Reset();
@@ -1251,11 +1509,6 @@ namespace Nes
 			return (p4016.Peek( 0x4016 ) & ~uint(STATUS_4016_MASK)) | dips.Reg(0);
 		}
 
-		NES_PEEK(VsSystem,4016_Swap)
-		{
-			return (p4017.Peek( 0x4017 ) & ~uint(STATUS_4016_MASK)) | dips.Reg(0);
-		}
-
 		NES_POKE(VsSystem,4016)
 		{
 			p4016.Poke( address, data );
@@ -1264,11 +1517,6 @@ namespace Nes
 		NES_PEEK(VsSystem,4017)
 		{
 			return (p4017.Peek( 0x4017 ) & ~uint(STATUS_4017_MASK)) | dips.Reg(1);
-		}
-
-		NES_PEEK(VsSystem,4017_Swap)
-		{
-			return (p4016.Peek( 0x4016 ) & ~uint(STATUS_4017_MASK)) | dips.Reg(1);
 		}
 
 		NES_POKE(VsSystem,4017)

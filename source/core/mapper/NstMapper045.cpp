@@ -91,6 +91,10 @@ namespace Nes
 				Mapper45::UpdatePrg();
 				Mapper45::UpdateChr();
 			}
+			else
+			{
+				wrk[0][address - 0x6000U] = data;
+			}
 		}
 	
 		void Mapper45::UpdatePrg()

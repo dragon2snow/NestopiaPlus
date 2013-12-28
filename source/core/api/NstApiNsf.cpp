@@ -66,12 +66,12 @@ namespace Nes
 			{
 				NST_COMPILE_ASSERT
 				(
-					CHIP_VRC6  == Core::Nsf::CHIP_VRC6  &&
-					CHIP_VRC7  == Core::Nsf::CHIP_VRC7  &&
-					CHIP_FDS   == Core::Nsf::CHIP_FDS   &&
-					CHIP_MMC5  == Core::Nsf::CHIP_MMC5  &&
-					CHIP_N106  == Core::Nsf::CHIP_N106  &&
-					CHIP_FME07 == Core::Nsf::CHIP_FME07
+					CHIP_VRC6 == Core::Nsf::CHIP_VRC6  &&
+					CHIP_VRC7 == Core::Nsf::CHIP_VRC7  &&
+					CHIP_FDS  == Core::Nsf::CHIP_FDS   &&
+					CHIP_MMC5 == Core::Nsf::CHIP_MMC5  &&
+					CHIP_N106 == Core::Nsf::CHIP_N106  &&
+					CHIP_S5B  == Core::Nsf::CHIP_S5B
 				);
 	
 				return (Chip) static_cast<const Core::Nsf*>(emulator.image)->GetChips();

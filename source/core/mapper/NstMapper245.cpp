@@ -33,22 +33,9 @@ namespace Nes
         #ifdef NST_PRAGMA_OPTIMIZE
         #pragma optimize("s", on)
         #endif
-	
-		uint Mapper245::GetCRomFlag(dword crc)
-		{
-			switch (crc)
-			{
-           		case 0xD3A269DCUL: // Dragon Quest II (J)
-         		case 0x9767DC74UL: // Ying Lie Qun Xia Zhuan
-	
-					return CROM_NONE;
-			}
-	
-			return 0;
-		}
-	
+
 		Mapper245::Mapper245(Context& c)
-		: Mmc3(c,WRAM_8K | GetCRomFlag(c.pRomCrc)) {}
+		: Mmc3(c,WRAM_8K | (c.pRomCrc == 0xD3A269DCUL ? CROM_NONE : 0)) {} // Dragon Quest II (J)
 	
 		void Mapper245::SubReset(const bool hard)
 		{

@@ -35,21 +35,71 @@ namespace Nes
 	
 		void Mapper164::SubReset(bool)
 		{
-			for (uint i=0x5000U; i < 0x6000U; ++i)
-			{
-				if (!(i & 0x300))
-					Map( i, PRG_SWAP_32K );
-			}
+			for (uint i=0x5000U; i < 0x6000U; i += 0x400)
+				Map( i + 0x00, i + 0x1FF, &Mapper164::Poke_5000 );
 
-			for (uint i=0xD000U; i < 0xE000U; ++i)
+			regs[0] = 0xFF;
+			regs[1] = 0x00;
+
+			NES_CALL_POKE(Mapper164,5000,0x5000U,0x00);
+		}
+
+		void Mapper164::SubSave(State::Saver& state) const
+		{
+			const u8 data[2] = { regs[0], regs[1] };
+			state.Begin('R','E','G','\0').Write( data ).End();
+		}
+
+		void Mapper164::SubLoad(State::Loader& state)
+		{
+			while (const dword chunk = state.Begin())
 			{
-				if (!(i & 0x300))
-					Map( i, PRG_SWAP_32K );
+				if (chunk == NES_STATE_CHUNK_ID('R','E','G','\0'))
+				{
+					const State::Loader::Data<2> data( state );
+
+					regs[0] = data[0];
+					regs[1] = data[1];
+				}
+
+				state.End();
 			}
 		}
-	
+
         #ifdef NST_PRAGMA_OPTIMIZE
         #pragma optimize("", on)
         #endif
+
+		NES_POKE(Mapper164,5000)
+		{
+			address = (address >> 8) & 0x1;
+
+			if (regs[address] != data)
+			{
+				regs[address] = data;				
+				data = (regs[1] & 0x1) << 5;
+			
+				switch ((regs[0] >> 4) & 0x7)
+				{
+					case 0:
+					case 2:
+					case 4:
+					case 6:
+			
+						prg.SwapBanks<SIZE_16K,0x0000U>( data + (regs[0] & 0xF) + ((regs[0] & 0x20) >> 1), data + 0x1F );
+						break;
+			
+					case 5:
+			
+						prg.SwapBank<SIZE_32K,0x0000U>( (data >> 1) + (regs[0] & 0xF) );
+						break;
+			
+					case 7:
+			
+						prg.SwapBanks<SIZE_16K,0x0000U>( data + (regs[0] & 0xF) + ((regs[0] & 0x8) << 1), data + 0x1F );
+						break;
+				}
+			}
+		}
 	}
 }

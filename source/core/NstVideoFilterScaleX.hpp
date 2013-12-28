@@ -64,7 +64,7 @@ namespace Nes
 
 				const RenderState::Filter type;
 
-				void Blit(const Input&,const Output&);
+				void Blit(const Input&,const Output&,uint);
 
 			public:
 

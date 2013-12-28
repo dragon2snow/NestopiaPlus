@@ -65,6 +65,7 @@ namespace Nes
 	typedef Core::Sized::Type<sizeof(int) >= 4 ?  7 :  9>::i32 idword;
 
 	typedef udword dword;
+	typedef idword iword;
 
 	enum
 	{

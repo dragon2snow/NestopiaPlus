@@ -125,8 +125,8 @@ namespace Nestopia
 			ibool SwitchFullscreen(const Adapter::Modes::const_iterator);
 			ibool SwitchWindowed();
 			void  UpdateWindowView();
-			void  UpdateWindowView(const Point&,const Rect&,Adapter::Filter,ibool);
-			void  UpdateFullscreenView(const Rect&,const Point&,const Rect&,Adapter::Filter,ibool);
+			void  UpdateWindowView(const Point&,const float[4],Adapter::Filter,ibool);
+			void  UpdateFullscreenView(const Rect&,const Point&,const float[4],Adapter::Filter,ibool);
 			void  UpdateFrameRate(uint,ibool,ibool);
 			void  EnableDialogBoxMode(ibool);
 			ibool Reset();
@@ -190,6 +190,7 @@ namespace Nestopia
 				ibool CanSwitchFullscreen(const Mode&) const;
 				ibool CanToggleDialogBoxMode(bool) const;
 				ibool ResetFrameRate(uint,bool,bool,const Base&);
+				ibool IsIdealFrameRate() const;
 				uint  GetMaxMessageLength() const;
 
 				void SwitchFullscreen(const Mode&);
@@ -207,6 +208,7 @@ namespace Nestopia
 
 				void  Prepare() const;
 				void  LogDisplaySwitch() const;
+				uint  GetRefreshRate() const;
 				uint  GetDesiredPresentationRate(const Mode&) const;
 				DWORD GetDesiredPresentationInterval(uint) const;
 				DWORD GetDesiredPresentationInterval() const;
@@ -393,7 +395,7 @@ namespace Nestopia
 					FVF = D3DFVF_XYZRHW|D3DFVF_TEX1
 				};
 
-				void Update(const Rect&,const Rect&,float);
+				void Update(const Rect&,const float[4],float);
 				HRESULT Validate(IDirect3DDevice9&,ibool=TRUE);
 				inline void Invalidate();
 
@@ -624,6 +626,11 @@ namespace Nestopia
 			const Point GetFullscreenDisplayMode() const
 			{
 				return Point( device.GetPresentation().BackBufferWidth, device.GetPresentation().BackBufferHeight );
+			}
+
+			ibool IsIdealFrameRate() const
+			{
+				return device.IsIdealFrameRate();
 			}
 		};
 	}

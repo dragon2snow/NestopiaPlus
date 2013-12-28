@@ -61,12 +61,12 @@ namespace Nes
 	
 			enum Chip
 			{
-				CHIP_VRC6  = 0x01,
-				CHIP_VRC7  = 0x02,
-				CHIP_FDS   = 0x04,
-				CHIP_MMC5  = 0x08,
-				CHIP_N106  = 0x10,
-				CHIP_FME07 = 0x20
+				CHIP_VRC6 = 0x01,
+				CHIP_VRC7 = 0x02,
+				CHIP_FDS  = 0x04,
+				CHIP_MMC5 = 0x08,
+				CHIP_N106 = 0x10,
+				CHIP_S5B  = 0x20
 			};
 	
 			const char* GetName         () const;
