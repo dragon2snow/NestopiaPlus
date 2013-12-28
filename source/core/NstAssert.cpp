@@ -24,7 +24,7 @@
 
 #if defined(_DEBUG) && defined(_WIN32)
 
-#include <cstdio>
+#include <cstdio>	
 #include <cstring>
 #include <cstdlib>
 #include <new>

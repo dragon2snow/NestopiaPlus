@@ -54,7 +54,6 @@
  #define NST_FASTCALL __fastcall
 
  #define NST_SIGN_SHIFT
- #define NST_UNSIGNED_NEG
 
 #endif
 

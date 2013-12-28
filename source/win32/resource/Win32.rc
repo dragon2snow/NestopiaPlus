@@ -508,7 +508,7 @@ BEGIN
     CONTROL         "Allow multiple application instances",
                     IDC_PREFERENCES_MULTIPLE_INSTANCES,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,14,129,128,12
-    GROUPBOX        "Save on Exit",IDC_STATIC,161,125,195,37
+    GROUPBOX        "Save on Exit",IDC_STATIC,161,125,195,51
     ICON            IDI_NES,IDC_STATIC,169,23,20,20
     ICON            IDI_UNF,IDC_STATIC,205,23,20,20
     ICON            IDI_FDS,IDC_STATIC,243,22,20,20
@@ -538,6 +538,8 @@ BEGIN
                     211,91,36,13
     PUSHBUTTON      "Change..",IDC_PREFERENCES_MENUCOLOR_DESKTOP_CHANGE,311,
                     91,36,13
+    CONTROL         "Window Position",IDC_PREFERENCES_SAVE_WINDOWPOS,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,170,157,70,12
 END
 
 IDD_PATHS DIALOGEX 0, 0, 308, 313
@@ -780,6 +782,10 @@ BEGIN
     LTEXT           "Slow",IDC_STATIC,91,254,15,8
     CTEXT           "Auto-Fire",IDC_STATIC,117,269,33,8
     PUSHBUTTON      "Default",IDC_INPUT_AUTOFIRE_DEFAULT,156,268,29,9
+    CONTROL         "Ignore R-axes",IDC_INPUT_IGNORE_R,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,14,253,59,9
+    CONTROL         "Ignore Slider",IDC_INPUT_IGNORE_SLIDER,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,14,265,54,9
 END
 
 IDD_VIDEO DIALOGEX 0, 0, 412, 193

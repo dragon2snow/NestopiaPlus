@@ -332,8 +332,8 @@ namespace Nes
 				std::memset( nameTable.ram, NameTable::GARBAGE, NameTable::SIZE );
 	
 				io.latch = 0;
-				io.buffer = 0;
-	
+				io.buffer = 0;	
+
 				stage = WARM_UP_FRAMES;
 				phase = &Ppu::WarmUp;
 			}
@@ -412,7 +412,7 @@ namespace Nes
 				{
 					regs.ctrl0,
 					regs.ctrl1,
-					regs.status | (cycles.spriteOverflow != NES_CYCLE_MAX ? Regs::STATUS_SP_OVERFLOW : 0),
+					regs.status,
 					scroll.address & 0xFF,
 					scroll.address >> 8,
 					scroll.latch & 0xFF,
@@ -455,7 +455,6 @@ namespace Nes
 						io.buffer      = data[9];
 						io.latch       = data[10];
 
-						cycles.spriteOverflow = NES_CYCLE_MAX;
 						scanline = SCANLINE_VBLANK;
 
 						if (regs.status & Regs::STATUS_VBLANK)
@@ -609,15 +608,22 @@ namespace Nes
 			{
 				cycles.count = MC_DIV_NTSC * CC_VINT_NTSC;
 	
-				if (cycles.frame == MC_DIV_NTSC * CC_FRAME_0_NTSC)
+				if (phase != &Ppu::WarmUp || stage <= 1)
 				{
-					cycles.frame = MC_DIV_NTSC * CC_FRAME_1_NTSC;
-					cycles.dead = MC_DIV_NTSC * 5;
+					if (cycles.frame == MC_DIV_NTSC * CC_FRAME_0_NTSC)
+					{
+						cycles.frame = MC_DIV_NTSC * CC_FRAME_1_NTSC;
+						cycles.dead = MC_DIV_NTSC * 5;
+					}
+					else
+					{
+						cycles.frame = MC_DIV_NTSC * CC_FRAME_0_NTSC;
+						cycles.dead = MC_DIV_NTSC * 6;
+					}
 				}
 				else
 				{
-					cycles.frame = MC_DIV_NTSC * CC_FRAME_0_NTSC;
-					cycles.dead = MC_DIV_NTSC * 6;
+					cycles.frame = MC_DIV_NTSC * (SCANLINES_VSYNC_NTSC - 20) * CC_HSYNC;
 				}
 			}
 			else
@@ -681,6 +687,12 @@ namespace Nes
 				}
 				while (cycles.count < elapsed);
             #endif
+			}
+
+			if (cycles.spriteOverflow != NES_CYCLE_MAX)
+			{
+				cycles.spriteOverflow = NES_CYCLE_MAX;
+				regs.status |= Regs::STATUS_SP_OVERFLOW;
 			}
 		}
 	
@@ -836,6 +848,15 @@ namespace Nes
 		{
 			return !io.enabled || scanline >= 240;
 		}
+
+		inline void Ppu::UpdateScrollAddress(const uint newAddress)
+		{
+			const uint oldAddress = scroll.address;
+			scroll.address = newAddress;
+
+			if (io.a12.InUse() && (newAddress & 0x1000) > (oldAddress & 0x1000))
+				io.a12.Toggle( cpu.GetMasterClockCycles() );
+		}
 	
 		NES_POKE(Ppu,2000)
 		{
@@ -980,11 +1001,8 @@ namespace Nes
 			{
 				scroll.latch &= (Scroll::LOW ^ 0x7FFFU);
 				scroll.latch |= data;
-				const uint tmp = scroll.address;
-				scroll.address = scroll.latch;
-	
-				if (io.a12.InUse() && IsDead() && (scroll.address & 0x1000) > (tmp & 0x1000))
-					io.a12.Toggle( cpu.GetMasterClockCycles() );
+
+				UpdateScrollAddress( scroll.latch );
 			}
 		}
 	
@@ -993,10 +1011,10 @@ namespace Nes
 			UpdateLatency();
 	
 			io.latch = data;
-	
 			address = scroll.address;
-			scroll.address = (scroll.address + scroll.increase) & 0x7FFF;
-	
+
+			UpdateScrollAddress( (scroll.address + scroll.increase) & 0x7FFF );
+
 			if ((address & 0x3F00) == 0x3F00)
 			{
 				address &= 0x1F;
@@ -1023,7 +1041,8 @@ namespace Nes
 			Update();
 
 			address = scroll.address & 0x3FFF;
-			scroll.address = (scroll.address + scroll.increase) & 0x7FFF;
+			
+			UpdateScrollAddress( (scroll.address + scroll.increase) & 0x7FFF );
 
 			if ((address & 0x3F00) != 0x3F00)
 				io.latch = io.buffer;
@@ -1657,7 +1676,6 @@ namespace Nes
 	
 			regs.status = 0;
 			scanline = SCANLINE_HDUMMY;
-			cycles.spriteOverflow = NES_CYCLE_MAX;
 			cycles.count += cycles.four;
 	
 			NST_PPU_NEXT_PHASE( HDummyBg );

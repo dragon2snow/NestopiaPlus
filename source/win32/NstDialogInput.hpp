@@ -54,6 +54,7 @@ namespace Nestopia
 
 			void ResetKeys();
 			int  ScanKeys();
+			uint GetScanAxes() const;
 
 			ibool OnInitDialog         (Param&);
 			ibool OnDestroy            (Param&);
@@ -343,7 +344,9 @@ namespace Nestopia
 					OFFSET_COUNT = NUM_TYPES + 1,
 					ALT = 0x100,
 					SHIFT = 0x200,
-					CTRL = 0x400
+					CTRL = 0x400,
+					AXIS_IGNORE_R = 0x1,
+					AXIS_IGNORE_SLIDER = 0x2
 				};
 
 				ibool Map(uint,const Key&);
@@ -354,6 +357,7 @@ namespace Nestopia
 
 				Key keys[NUM_KEYS];
 				uint autoFireSpeed;
+				uint axisIgnore;
 
 				static const Type types[OFFSET_COUNT];
 				static const Mapping map[NUM_KEYS];

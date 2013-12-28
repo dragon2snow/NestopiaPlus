@@ -158,7 +158,7 @@ namespace Nestopia
 		for (Items::Iterator it(items.Begin()); it != items.End(); ++it)
 		{
 			if (notify && !it->key.referenced)
-				Io::Log() << "Configuration: warning, invalid/unused parameter: \"" << it->key << "\"\r\n";
+				Io::Log() << "Configuration: warning, unused/invalid parameter: \"" << it->key << "\"\r\n";
 
 			it->key.Command::~Command();
 			it->value.Heap::~Heap();

@@ -55,6 +55,23 @@ namespace Nestopia
 				MAX_JOYSTICKS = 32
 			};
 
+			enum
+			{
+				AXIS_X        = 0x001,
+				AXIS_Y        = 0x002,
+				AXIS_Z        = 0x004,
+				AXIS_RX       = 0x008,
+				AXIS_RY       = 0x010,
+				AXIS_RZ       = 0x020,
+				AXIS_SLIDER_0 = 0x040,
+				AXIS_SLIDER_1 = 0x080,
+				AXIS_POV_0	  = 0x100,
+				AXIS_POV_1	  = 0x200,
+				AXIS_POV_2	  = 0x400,
+				AXIS_POV_3	  = 0x800,
+				AXIS_ALL      = 0xFFF
+			};
+
 			enum ScanResult
 			{
 				SCAN_INVALID_KEY = -1,
@@ -73,11 +90,11 @@ namespace Nestopia
 
 			void Poll(PollChoice=POLL_ALLDEVICES);
 			void Acquire(ibool=FALSE);
-			void Unacquire() const;
+			void Unacquire();
 			void Optimize(const Key*,uint);
 			ibool MapKey(Key&,cstring,const System::Guid* = NULL,uint=0) const;
 
-			ScanResult ScanKey(Key&) const;
+			ScanResult ScanKey(Key&,uint=AXIS_ALL) const;
 			KeyName GetKeyName(const Key&) const;
 
 			class Key
@@ -100,7 +117,7 @@ namespace Nestopia
 					DWORD vKey;
 				};
 
-				uint (*code)(const void*) throw();
+				uint (*code)(const void* const) throw();
 
 			public:
 
@@ -137,31 +154,24 @@ namespace Nestopia
 
 		private:
 
-			typedef ComInterface<IDirectInputDevice8> Device;
-
-			class Manager : public ComInterface<IDirectInput8>
+			class Base
 			{
+				static IDirectInput8& Create();
+
 			public:
 
-				explicit Manager(HWND);
+				Base(HWND);
+				~Base();
 
-			private:
-
+				IDirectInput8& com;
 				HWND const hWnd;
-
-			public:
-
-				HWND Window() const
-				{
-					return hWnd;
-				}
 			};
 
-			class Keyboard : Device
+			class Keyboard
 			{
 			public:
-
-				explicit Keyboard(const Manager&);
+				
+				Keyboard(Base&);
 				~Keyboard();
 
 				enum 
@@ -170,60 +180,45 @@ namespace Nestopia
 					COOPERATIVE_FLAGS = DISCL_FOREGROUND|DISCL_NONEXCLUSIVE|DISCL_NOWINKEY
 				};
 
-				void Acquire(ibool=FALSE);
+				NST_NO_INLINE void Acquire(ibool=FALSE);
+				NST_FORCE_INLINE void Poll(ibool=FALSE);
+				void Unacquire();
+
 				ibool Map(Key&,uint) const;
 				ScanResult Scan(Key&) const;
 				void SetCooperativeLevel(HWND,DWORD=COOPERATIVE_FLAGS) const;
 				ibool IsAssigned(const Key&) const;
 				cstring GetName(const Key&) const;
 
+				inline void Enable(ibool=TRUE);
+
 			private:
+
+				static IDirectInputDevice8& Create(IDirectInput8&);
+				static ibool MustPoll(IDirectInputDevice8&);
 
 				void Clear();
 
 				typedef Object::Heap<BYTE,MAX_KEYS> Buffer;
 
 				ibool enabled;
-				ibool mustPoll;
+				IDirectInputDevice8& com;
+				const ibool mustPoll;
 				Buffer buffer;
 
 			public:
-
-				void Unacquire() const
-				{
-					pointer->Unacquire();
-				}
 
 				const BYTE* GetBuffer() const
 				{
 					return buffer;
 				}
-
-				void Enable(ibool enable=TRUE)
-				{
-					enabled = enable;
-				}
-
-				void Poll(ibool force=FALSE)
-				{
-					if (enabled | force)
-					{	
-						if (mustPoll)
-							pointer->Poll();
-
-						if (SUCCEEDED(pointer->GetDeviceState( Buffer::SIZE, buffer )))
-							return;
-
-						Acquire();
-					}
-				}
 			};
 
-			class Joystick : Device
+			class Joystick
 			{
 			public:
 
-				Joystick(const Manager&,const GUID&);
+				Joystick(Base&,const GUID&);
 				~Joystick();
 
 				enum
@@ -240,108 +235,78 @@ namespace Nestopia
 					ERR_API
 				};
 
-				void Acquire(ibool=FALSE);
+				NST_NO_INLINE void Acquire(ibool=FALSE);
+				NST_FORCE_INLINE void Poll(ibool=FALSE);
+				void Unacquire();
+
 				ibool Map(Key&,cstring) const;
-				ibool Scan(Key&) const;
+				ibool Scan(Key&,uint) const;
 				ibool IsAssigned(const Key&) const;
 				cstring GetName(const Key&) const;
 
+				inline void Enable(ibool=TRUE);
+
 			private:
 
-				static Device Create(const Manager&,const GUID&);
+				static IDirectInputDevice8& Create(Base&,const GUID&);
 
 				NST_NO_INLINE void OnError(HRESULT);
 				void Clear();
 
-				enum 
-				{
-					TABLE_KEYS = 32,
-					AXIS_MIN_RANGE = -32768,
-					AXIS_MAX_RANGE = +32767,
-					AXIS_DEADZONE = 5000
-				};
-
 				class Caps
 				{
-				public:
+					struct Context
+					{
+						Caps& caps;
+						IDirectInputDevice8& com;
+						uint numButtons;
 
-					Caps(const Device&,const GUID&);
+						Context(Caps& c,IDirectInputDevice8& d)
+						: caps(c), com(d), numButtons(0) {}
+					};
 
 					enum
 					{
-						AXIS_X        = 0x001,
-						AXIS_Y        = 0x002,
-						AXIS_Z        = 0x004,
-						AXIS_RX       = 0x008,
-						AXIS_RY       = 0x010,
-						AXIS_RZ       = 0x020,
-						AXIS_SLIDER_0 = 0x040,
-						AXIS_SLIDER_1 = 0x080,
-						AXIS_POV_0	  = 0x100,
-						AXIS_POV_1	  = 0x200,
-						AXIS_POV_2	  = 0x400,
-						AXIS_POV_3	  = 0x800,
-						NUM_POVS      = 4,
-						NUM_BUTTONS   = 32
+						AXIS_MIN_RANGE = -1000,
+						AXIS_MAX_RANGE = +1000,
+						AXIS_DEADZONE  = 5000
+					};
+
+					static BOOL CALLBACK EnumObjectsProc(LPCDIDEVICEOBJECTINSTANCE,LPVOID);
+
+				public:
+
+					Caps(IDirectInputDevice8&,const GUID&);
+
+					enum
+					{
+						NUM_POVS    = 4,
+						NUM_BUTTONS = 32
 					};
 
 					ibool mustPoll;
+					uint axes;
 					const System::Guid guid;
-					ushort numButtons;
-					ushort axis;
-
-				private:
-
-					static BOOL CALLBACK EnumDeviceObjectsProc(LPCDIDEVICEOBJECTINSTANCE,LPVOID);
 				};
 
 				ibool enabled;
-				Object::Pod<DIJOYSTATE> state;
+				IDirectInputDevice8& com;
 				const Caps caps;
+				Object::Pod<DIJOYSTATE> state;
+
+				enum 
+				{
+					TABLE_KEYS = 32
+				};
 
 				struct Lookup;
 				static const Lookup table[TABLE_KEYS];
 
 			public:
 
-				const System::Guid& Guid() const
+				const System::Guid& GetGuid() const
 				{
 					return caps.guid;
-				}
-
-				void Unacquire() const
-				{
-					pointer->Unacquire();
-				}
-
-				void Enable(ibool enable=TRUE)
-				{
-					enabled = enable;
-				}
-
-				void Poll(ibool force=FALSE)
-				{
-					if (enabled | force)
-					{
-						HRESULT hResult;
-
-						if (caps.mustPoll)
-						{
-							hResult = pointer->Poll();
-
-							if (FAILED(hResult))
-								goto hell;
-						}
-
-						hResult = pointer->GetDeviceState( sizeof(state), &state );
-
-						if (SUCCEEDED(hResult))
-							return;
-
-					hell:
-
-						OnError( hResult );
-					}
 				}
 			};
 
@@ -349,16 +314,16 @@ namespace Nestopia
 
 			static BOOL CALLBACK EnumJoysticks(LPCDIDEVICEINSTANCE,LPVOID);
 
-			static uint KeyDown     (const void*) throw(); 
-			static uint KeyNegDir   (const void*) throw();
-			static uint KeyPosDir   (const void*) throw();        
-			static uint KeyPovUp    (const void*) throw();
-			static uint KeyPovRight (const void*) throw();
-			static uint KeyPovDown  (const void*) throw();
-			static uint KeyPovLeft  (const void*) throw();
-			static uint KeyNone     (const void*) throw(); 
+			static uint KeyDown     (const void* const) throw(); 
+			static uint KeyNegDir   (const void* const) throw();
+			static uint KeyPosDir   (const void* const) throw();        
+			static uint KeyPovUp    (const void* const) throw();
+			static uint KeyPovRight (const void* const) throw();
+			static uint KeyPovDown  (const void* const) throw();
+			static uint KeyPovLeft  (const void* const) throw();
+			static uint KeyNone     (const void* const) throw(); 
 
-			Manager manager;
+			Base base;
 			Keyboard keyboard;
 			Joysticks joysticks;
 
@@ -375,10 +340,10 @@ namespace Nestopia
 				Acquire( TRUE );
 			}
 
-			void EndScanMode() const
+			void EndScanMode()
 			{
 				Unacquire();
-				keyboard.SetCooperativeLevel( manager.Window() );
+				keyboard.SetCooperativeLevel( base.hWnd );
 			}
 
 			const BYTE* GetKeyboardBuffer() const
@@ -400,13 +365,13 @@ namespace Nestopia
 			const System::Guid& GetJoystickGuid(uint index) const
 			{
 				NST_ASSERT( index < joysticks.Size() );
-				return joysticks[index]->Guid();
+				return joysticks[index]->GetGuid();
 			}
 
-			ibool IsAnyPressed() const
+			ibool IsAnyPressed(uint axes=AXIS_ALL) const
 			{
 				Key key;
-				return ScanKey( key ) != SCAN_NO_KEY;
+				return ScanKey( key, axes ) != SCAN_NO_KEY;
 			}
 		};
 	}

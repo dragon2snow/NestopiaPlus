@@ -21,6 +21,11 @@
 				Name="VCCLCompilerTool"
 				AdditionalOptions="/vmb"
 				Optimization="0"
+				GlobalOptimizations="FALSE"
+				InlineFunctionExpansion="0"
+				EnableIntrinsicFunctions="TRUE"
+				FavorSizeOrSpeed="0"
+				OmitFramePointers="FALSE"
 				OptimizeForProcessor="3"
 				OptimizeForWindowsApplication="FALSE"
 				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_M_IX86;NST_PRAGMA_ONCE_SUPPORT"
@@ -101,6 +106,8 @@
 				OptimizeForWindowsApplication="FALSE"
 				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_M_IX86;NST_PRAGMA_ONCE_SUPPORT"
 				StringPooling="TRUE"
+				BasicRuntimeChecks="0"
+				SmallerTypeCheck="FALSE"
 				RuntimeLibrary="0"
 				BufferSecurityCheck="FALSE"
 				EnableFunctionLevelLinking="TRUE"
@@ -133,7 +140,7 @@
 				SubSystem="2"
 				OptimizeReferences="2"
 				EnableCOMDATFolding="2"
-				OptimizeForWindows98="0"
+				OptimizeForWindows98="1"
 				SupportUnloadOfDelayLoadedDLL="TRUE"
 				TargetMachine="1"/>
 			<Tool
@@ -439,15 +446,6 @@
 				</File>
 				<File
 					RelativePath="..\source\win32\NstDirectInput.hpp">
-				</File>
-				<File
-					RelativePath="..\source\win32\NstDirectInputJoystick.cpp">
-				</File>
-				<File
-					RelativePath="..\source\win32\NstDirectInputKey.cpp">
-				</File>
-				<File
-					RelativePath="..\source\win32\NstDirectInputKeyboard.cpp">
 				</File>
 				<File
 					RelativePath="..\source\win32\NstDirectSound.cpp">

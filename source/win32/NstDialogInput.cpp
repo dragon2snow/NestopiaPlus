@@ -266,7 +266,7 @@ namespace Nestopia
 	};
 
 	Input::Settings::Settings()
-	: autoFireSpeed(AUTOFIRE_DEFAULT_SPEED) {}
+	: autoFireSpeed(AUTOFIRE_DEFAULT_SPEED), axisIgnore(0) {}
 
 	inline uint Input::Settings::Mapping::Code() const
 	{
@@ -392,9 +392,15 @@ namespace Nestopia
 	{
 		settings.Clear();
 		settings.autoFireSpeed = cfg["input autofire speed"].Default( (uint) Settings::AUTOFIRE_DEFAULT_SPEED );
-
+		
 		if (settings.autoFireSpeed > Settings::AUTOFIRE_MAX_SPEED) 
 			settings.autoFireSpeed = Settings::AUTOFIRE_DEFAULT_SPEED;
+
+		if (cfg["input ignore rotation axis"] == Configuration::YES)
+			settings.axisIgnore |= Settings::AXIS_IGNORE_R;
+
+		if (cfg["input ignore slider axis"] == Configuration::YES)
+			settings.axisIgnore |= Settings::AXIS_IGNORE_SLIDER;
 
 		System::Guid joyGuids[DirectX::DirectInput::MAX_JOYSTICKS];
 		uint maxGuids = 0;
@@ -450,6 +456,9 @@ namespace Nestopia
 	{
 		cfg["input autofire speed"] = settings.autoFireSpeed;
 
+		cfg[ "input ignore rotation axis" ].YesNo() = (settings.axisIgnore & Settings::AXIS_IGNORE_R);
+		cfg[ "input ignore slider axis"   ].YesNo() = (settings.axisIgnore & Settings::AXIS_IGNORE_SLIDER);
+
 		{
 			String::Stack<16> deviceIndex( "input device xx" );
 
@@ -485,6 +494,9 @@ namespace Nestopia
 
 		dialog.Slider( IDC_INPUT_AUTOFIRE_SLIDER ).SetRange( 0, Settings::AUTOFIRE_MAX_SPEED );
 		dialog.Slider( IDC_INPUT_AUTOFIRE_SLIDER ).Position() = settings.autoFireSpeed;
+
+		dialog.CheckBox( IDC_INPUT_IGNORE_R ).Check( settings.axisIgnore & Settings::AXIS_IGNORE_R );
+		dialog.CheckBox( IDC_INPUT_IGNORE_SLIDER ).Check( settings.axisIgnore & Settings::AXIS_IGNORE_SLIDER );
 
 		UpdateKeyNames( 0 );
 		UpdateKeyMap( 0 );
@@ -632,6 +644,9 @@ namespace Nestopia
 			settings.Reset( directInput );
 
 			UpdateKeyMap( dialog.ListBox(IDC_INPUT_DEVICES).Selection().GetIndex() );
+
+			dialog.CheckBox( IDC_INPUT_IGNORE_R ).Uncheck();
+			dialog.CheckBox( IDC_INPUT_IGNORE_SLIDER ).Uncheck();
 		}
 
 		return TRUE;
@@ -648,6 +663,14 @@ namespace Nestopia
 	ibool Input::OnDestroy(Param&) 
 	{
 		settings.autoFireSpeed = dialog.Slider( IDC_INPUT_AUTOFIRE_SLIDER ).Position();
+		settings.axisIgnore = 0;
+
+		if (dialog.CheckBox( IDC_INPUT_IGNORE_R ).IsChecked())
+			settings.axisIgnore |= Settings::AXIS_IGNORE_R;
+
+		if (dialog.CheckBox( IDC_INPUT_IGNORE_SLIDER ).IsChecked())
+			settings.axisIgnore |= Settings::AXIS_IGNORE_SLIDER;
+
 		return TRUE;
 	}
 
@@ -664,11 +687,24 @@ namespace Nestopia
 		return Dialog( IDD_INPUT_KEYPRESS, this, messages ).Open();
 	}
 
+	uint Input::GetScanAxes() const
+	{
+		uint axes = DirectX::DirectInput::AXIS_ALL;
+
+		if (dialog.CheckBox( IDC_INPUT_IGNORE_R ).IsChecked())
+			axes &= ~uint(DirectX::DirectInput::AXIS_RX|DirectX::DirectInput::AXIS_RY|DirectX::DirectInput::AXIS_RZ);
+
+		if (dialog.CheckBox( IDC_INPUT_IGNORE_SLIDER ).IsChecked())
+			axes &= ~uint(DirectX::DirectInput::AXIS_SLIDER_0|DirectX::DirectInput::AXIS_SLIDER_1);
+
+		return axes;
+	}
+
 	ibool Input::OnScanInitDialog(Param& param)
 	{
 		directInput.BeginScanMode( param.hWnd );
 
-		if (directInput.Poll(), directInput.IsAnyPressed())
+		if (directInput.Poll(), directInput.IsAnyPressed( GetScanAxes() ))
 		{
 			User::Warn( IDS_DIALOG_INPUT_MUST_RELEASE_KEY, IDS_TITLE_ERROR );
 			::EndDialog( param.hWnd, SCAN_ABORT );
@@ -831,11 +867,13 @@ namespace Nestopia
 	{
 		Settings::Key key;
 
-		switch (directInput.ScanKey( key ))
+		const uint axes = GetScanAxes();
+
+		switch (directInput.ScanKey( key, axes ))
 		{
 			case DirectX::DirectInput::SCAN_GOOD_KEY: 
 		
-				for (directInput.Poll(); directInput.IsAnyPressed(); directInput.Poll());
+				for (directInput.Poll(); directInput.IsAnyPressed( axes ); directInput.Poll());
 		
 				if (MapSelectedKey( key ))
 				{

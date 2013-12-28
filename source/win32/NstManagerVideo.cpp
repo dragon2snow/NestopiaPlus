@@ -216,6 +216,12 @@ namespace Nestopia
 
 		if (cfg["view show fps"] == Configuration::YES)
 			menu[IDM_VIEW_FPS].Check();
+
+		if (cfg["machine no sprite limit"] == Application::Configuration::YES)
+		{
+			menu[IDM_MACHINE_OPTIONS_UNLIMITEDSPRITES].Check();
+			Nes::Video(emulator).EnableUnlimSprites( TRUE );
+		}
 	}
 
 	Video::~Video()
@@ -233,6 +239,7 @@ namespace Nestopia
 	{
 		cfg[ "view show status bar" ].YesNo() = menu[IDM_VIEW_STATUSBAR].IsChecked();
 		cfg[ "view show fps" ].YesNo() = menu[IDM_VIEW_FPS].IsChecked();
+		cfg[ "machine no sprite limit" ].YesNo() = menu[IDM_MACHINE_OPTIONS_UNLIMITEDSPRITES].IsChecked();
 
 		dialog->Save( cfg );
 	}

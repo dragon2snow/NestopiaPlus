@@ -62,6 +62,7 @@ namespace Nestopia
 				CONFIRM_RESET,
 				SAVE_CHEATS,
 				SAVE_NETPLAY_GAMELIST,
+				SAVE_WINDOWPOS,
 				NUM_SETTINGS
 			};
 

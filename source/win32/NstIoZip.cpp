@@ -449,7 +449,7 @@ namespace Nestopia
 	: 
 	dialog ( IDD_COMPRESSED_FILE, this, Handlers::messages, Handlers::commands ), 
 	files  ( f ),
-	filter ( e , c)
+	filter ( e, c )
 	{
 		NST_ASSERT( bool(e) >= bool(c) );
 	}
@@ -487,16 +487,9 @@ namespace Nestopia
 				listBox.Add( it->GetName() ).Data() = it - files.begin();
 		}
 
-		const uint size = listBox.Size();
+		NST_VERIFY( listBox.Size() );
 
-		if (size > 1)
-		{
-			listBox[0].Select();
-		}
-		else
-		{
-			dialog.Close( size ? (filter.count ? listBox[0].Data() : 0) : NO_FILES );
-		}
+		listBox[0].Select();
 
 		return TRUE;
 	}
@@ -515,11 +508,36 @@ namespace Nestopia
 
 	uint Zip::UserSelect() const
 	{
-		return Gui( files ).Open();
+		return files.size() > 1 ? Gui( files ).Open() : files.size() ? 0 : NO_FILES;
 	}
 
-	uint Zip::UserSelect(const String::Generic* filter,const uint count) const
+	uint Zip::UserSelect(const String::Generic* const filter,const uint count) const
 	{
-		return Gui( files, filter, count ).Open();
+		if (filter && count)
+		{
+			uint match = 0;
+
+			for (Items::const_iterator it(files.begin()); it != files.end(); ++it)
+			{
+				const String::Generic extension( it->GetName().Extension() );
+
+				for (uint i=0; i < count; ++i)
+				{
+					if (filter[i] == extension)
+					{
+						if (match)
+							return Gui( files, filter, count ).Open();
+						else
+							match = it - files.begin() + 1;
+					}
+				}
+			}
+
+			return match ? match-1 : NO_FILES;
+		}
+		else
+		{
+			return UserSelect();
+		}		
 	}
 }

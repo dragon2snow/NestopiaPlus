@@ -48,6 +48,7 @@ namespace Nestopia
 		Preferences::CONFIRM_RESET		      == Window::Preferences::CONFIRM_RESET &&
 		Preferences::SAVE_CHEATS              == Window::Preferences::SAVE_CHEATS &&
 		Preferences::SAVE_NETPLAY_GAMELIST    == Window::Preferences::SAVE_NETPLAY_GAMELIST &&
+		Preferences::SAVE_WINDOWPOS           == Window::Preferences::SAVE_WINDOWPOS &&
 		Preferences::NUM_SETTINGS			  == Window::Preferences::NUM_SETTINGS			
 	);
 

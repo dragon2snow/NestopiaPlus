@@ -203,7 +203,8 @@ namespace Nestopia
 			SAVE_LAUNCHER            == IDC_PREFERENCES_SAVE_LAUNCHER         - IDC_PREFERENCES_STARTUP_FULLSCREEN &&
 			CONFIRM_RESET            == IDC_PREFERENCES_CONFIRM_RESET         - IDC_PREFERENCES_STARTUP_FULLSCREEN &&
 			SAVE_CHEATS              == IDC_PREFERENCES_SAVE_CHEATCODES       - IDC_PREFERENCES_STARTUP_FULLSCREEN &&
-			SAVE_NETPLAY_GAMELIST    == IDC_PREFERENCES_SAVE_NETPLAY_GAMELIST - IDC_PREFERENCES_STARTUP_FULLSCREEN
+			SAVE_NETPLAY_GAMELIST    == IDC_PREFERENCES_SAVE_NETPLAY_GAMELIST - IDC_PREFERENCES_STARTUP_FULLSCREEN &&
+			SAVE_WINDOWPOS           == IDC_PREFERENCES_SAVE_WINDOWPOS        - IDC_PREFERENCES_STARTUP_FULLSCREEN
 		);
 
 		NST_COMPILE_ASSERT
@@ -228,6 +229,7 @@ namespace Nestopia
 		settings[ SAVE_LAUNCHER            ] = ( cfg[ "preferences save launcher files"      ] != Configuration::NO  ); 
 		settings[ SAVE_CHEATS              ] = ( cfg[ "preferences save cheats"              ] != Configuration::NO  ); 
 		settings[ SAVE_NETPLAY_GAMELIST    ] = ( cfg[ "preferences save netplay list"        ] != Configuration::NO  ); 
+		settings[ SAVE_WINDOWPOS           ] = ( cfg[ "preferences save window"              ] == Configuration::YES ); 
 
 		settings.menuLookDesktop.enabled    = ( cfg[ "preferences default desktop menu color"    ] == Configuration::NO );
 		settings.menuLookFullscreen.enabled = ( cfg[ "preferences default fullscreen menu color" ] == Configuration::NO );
@@ -281,6 +283,7 @@ namespace Nestopia
 		cfg[ "preferences save launcher files"      ].YesNo() = settings[ SAVE_LAUNCHER            ];
 		cfg[ "preferences save cheats"              ].YesNo() = settings[ SAVE_CHEATS              ];
 		cfg[ "preferences save netplay list"        ].YesNo() = settings[ SAVE_NETPLAY_GAMELIST    ];
+		cfg[ "preferences save window"              ].YesNo() = settings[ SAVE_WINDOWPOS           ];
 
 		cfg[ "preferences default desktop menu color"    ].YesNo() = !settings.menuLookDesktop.enabled;
 		cfg[ "preferences default fullscreen menu color" ].YesNo() = !settings.menuLookFullscreen.enabled;
@@ -425,6 +428,7 @@ namespace Nestopia
 		dialog.CheckBox( IDC_PREFERENCES_SAVE_LAUNCHER         ).Check( TRUE  );
 		dialog.CheckBox( IDC_PREFERENCES_SAVE_CHEATCODES       ).Check( TRUE  );
 		dialog.CheckBox( IDC_PREFERENCES_SAVE_NETPLAY_GAMELIST ).Check( TRUE  );
+		dialog.CheckBox( IDC_PREFERENCES_SAVE_WINDOWPOS        ).Check( FALSE );
 
 		dialog.ComboBox( IDC_PREFERENCES_PRIORITY )[ PRIORITY_NORMAL ].Select();
 

@@ -273,12 +273,12 @@ namespace Nes
 
 			cycles.Reset( mode );
 			buffer.Reset( context.sample.bits );	
-	
+
 			if (hard)
 				ctrl = STATUS_FRAME_IRQ_ENABLE;
 
 			if (ctrl == STATUS_FRAME_IRQ_ENABLE)
-				cycles.frameIrqClock = Cycles::frame[mode] - cpu.GetMasterClockCycle(1);
+				cycles.frameIrqClock = cycles.frameCounter - (mode == MODE_NTSC ? Cpu::MC_DIV_NTSC * 1 : Cpu::MC_DIV_PAL * 1);
 
 			square[0].Square::Reset();
 			square[1].Square::Reset();
@@ -781,7 +781,7 @@ namespace Nes
 				active = false;
 		}
 	
-		NST_FORCE_INLINE void Apu::Dmc::Toggle(const uint enable,Cpu& cpu,const uint ctrl)
+		NST_FORCE_INLINE void Apu::Dmc::Toggle(const uint enable,Cpu& cpu)
 		{
 			cpu.ClearIRQ( Cpu::IRQ_DMC );
 	
@@ -795,7 +795,7 @@ namespace Nes
 				dma.address = loadedAddress;
 	
 				if (!dma.buffered)
-					DoDMA( cpu, ctrl );
+					DoDMA( cpu );
 			}
 		}
 	
@@ -1235,7 +1235,7 @@ namespace Nes
 			return dcRemover.Filter( sample ); 
 		}
 	
-		void Apu::Dmc::DoDMA(Cpu& cpu,const uint ctrl)
+		void Apu::Dmc::DoDMA(Cpu& cpu)
 		{
 			NST_VERIFY( !dma.buffered );
 	
@@ -1257,9 +1257,8 @@ namespace Nes
 				dma.address = loadedAddress;
 				dma.lengthCounter = loadedLengthCount;
 			}
-			else if ((ctrl & STATUS_GEN_IRQ) && cpu.IsLine(Cpu::IRQ_DMC))
+			else if (cpu.IsLine(Cpu::IRQ_DMC))
 			{
-				// trigger IRQ if 4010.7 and 4017.6 are set
 				cpu.DoIRQ( Cpu::IRQ_DMC );
 			}
 		}
@@ -1307,7 +1306,7 @@ namespace Nes
 			loadedLengthCount = (data << 4) + 1;
 		}
 	
-		NST_FORCE_INLINE uint Apu::Dmc::Clock(Cpu& cpu,const uint ctrl)
+		NST_FORCE_INLINE uint Apu::Dmc::Clock(Cpu& cpu)
 		{
 			const uint old = sample;
 	
@@ -1332,7 +1331,7 @@ namespace Nes
 			out.buffer = dma.buffer;
 	
 			if (dma.lengthCounter)
-				DoDMA( cpu, ctrl );
+				DoDMA( cpu );
 	
 			NST_VERIFY( !(dma.lengthCounter && !dma.buffered) );
 	
@@ -1386,7 +1385,7 @@ namespace Nes
 	
 			do 
 			{		
-				uint sample = dmc.Clock( cpu, ctrl );
+				uint sample = dmc.Clock( cpu );
 	
 				if (sample != dmc.CheckSample())
 				{
@@ -1605,11 +1604,11 @@ namespace Nes
 		{
 			Update();
 	
-			square[0].Toggle ( data & ENABLE_SQUARE1        );
-			square[1].Toggle ( data & ENABLE_SQUARE2        );	
-			triangle.Toggle  ( data & ENABLE_TRIANGLE       );
-			noise.Toggle     ( data & ENABLE_NOISE          );
-			dmc.Toggle       ( data & ENABLE_DMC, cpu, ctrl );
+			square[0].Toggle ( data & ENABLE_SQUARE1  );
+			square[1].Toggle ( data & ENABLE_SQUARE2  );	
+			triangle.Toggle  ( data & ENABLE_TRIANGLE );
+			noise.Toggle     ( data & ENABLE_NOISE    );
+			dmc.Toggle       ( data & ENABLE_DMC, cpu );
 		}
 	
 		NES_PEEK(Apu,4015)
@@ -1740,18 +1739,7 @@ namespace Nes
 			{
 				u8 data[4];
 
-				if (ctrl == STATUS_FRAME_IRQ_ENABLE)
-				{
-					data[0] = SAVE_0_FRAME_IRQ;
-				}
-				else if (ctrl & STATUS_SEQUENCE_5_STEP)
-				{
-					data[0] = SAVE_0_STEPS_5;
-				}
-				else
-				{
-					data[0] = 0;
-				}
+				data[0] = ctrl;
 
 				NST_VERIFY( (cycles.frameCounter / cycles.fixed) >= cpu.GetMasterClockCycles() );
 
@@ -1785,18 +1773,7 @@ namespace Nes
 					{
 						const State::Loader::Data<4> data( state );
 
-						if (data[0] == SAVE_0_FRAME_IRQ)
-						{
-							ctrl = STATUS_FRAME_IRQ_ENABLE;
-						}
-						else 
-						{
-							ctrl = STATUS_NO_FRAME_IRQ;
-
-							if (data[0] & SAVE_0_STEPS_5)
-								ctrl |= STATUS_SEQUENCE_5_STEP;
-						}
-
+						ctrl = data[0] & STATUS_BITS;
 						cycles.rateCounter = cpu.GetMasterClockCycles() * cycles.fixed;
 
 						cycles.frameCounter = cycles.fixed *
@@ -1808,7 +1785,7 @@ namespace Nes
 							)
 						);
 
-						cycles.frameDivider = data[3] & SAVE_3_FRAME_DIV;
+						cycles.frameDivider = data[3] & 0x3;
 
 						if (ctrl == STATUS_FRAME_IRQ_ENABLE)
 						{

@@ -1,4 +1,21 @@
 ----------------------------------------------------------------
+1.21
+----------------------------------------------------------------
+
+- Adjusted PPU cold reset timing, fixes Time Lord.
+- Removed $4017.7 check for DMC IRQ, fixes Silent Service and Time Lord.
+- Added an option for preserving the window size and position after exit.
+- Added A12 hook for $2007(R/W).
+- Added a newer version of ZLib.
+- Fixed a window focus bug.
+- Fixed a window size on startup bug.
+- Fixed two minor APU save/load state bugs.
+- Fixed a minor PPU sprite overflow bug.
+- Corrected a VS palette entry, VS.Goonies looks better now.
+- Options in the machine section in the menu are now saved on exit.
+- Improved compatibility with DirectInput devices.
+
+----------------------------------------------------------------
 1.20
 ----------------------------------------------------------------
 

@@ -103,6 +103,8 @@
 				PreprocessorDefinitions="WIN32;NDEBUG;_LIB;_WINDOWS;_M_IX86;NST_PRAGMA_ONCE_SUPPORT"
 				StringPooling="TRUE"
 				ExceptionHandling="TRUE"
+				BasicRuntimeChecks="0"
+				SmallerTypeCheck="FALSE"
 				RuntimeLibrary="0"
 				BufferSecurityCheck="FALSE"
 				EnableFunctionLevelLinking="TRUE"

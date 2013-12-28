@@ -225,6 +225,7 @@ namespace Nes
 			inline bool IsDead() const;
 			inline uint FetchName() const;
 			inline uint FetchAttribute() const;
+			inline void UpdateScrollAddress(uint);
 
 			void UpdateLatency();
 			void UpdateStates();

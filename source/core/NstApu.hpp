@@ -299,13 +299,6 @@ namespace Nes
 				STATUS_BITS             = STATUS_NO_FRAME_IRQ|STATUS_SEQUENCE_5_STEP
 			};
 
-			enum
-			{
-				SAVE_0_FRAME_IRQ = b0000001,
-				SAVE_0_STEPS_5   = b0000010,
-				SAVE_3_FRAME_DIV = b0000011
-			};
-
 			NES_DECL_POKE( 4000 )
 			NES_DECL_POKE( 4001 )
 			NES_DECL_POKE( 4002 )
@@ -565,8 +558,8 @@ namespace Nes
 
 				enum
 				{
-					SAVE_WAVELENGTH  = b00001111,
-					SAVE_93BIT_MODE  = 0x0010000
+					SAVE_WAVELENGTH = b00001111,
+					SAVE_93BIT_MODE = b00010000
 				};
 
 				uint bits;
@@ -582,14 +575,14 @@ namespace Nes
 			public:
 
 				void Reset(Cpu&);
-				NST_FORCE_INLINE void Toggle(uint,Cpu&,uint);
+				NST_FORCE_INLINE void Toggle(uint,Cpu&);
 
 				NST_FORCE_INLINE void WriteReg0(uint,Cpu&);
 				NST_FORCE_INLINE void WriteReg1(uint);
 				NST_FORCE_INLINE void WriteReg2(uint);
 				NST_FORCE_INLINE void WriteReg3(uint);
 
-				NST_FORCE_INLINE uint Clock(Cpu&,uint);
+				NST_FORCE_INLINE uint Clock(Cpu&);
 
 				inline uint CheckSample() const;
 				inline Sample GetSample();
@@ -610,12 +603,11 @@ namespace Nes
 
 				inline void Output();
 				void OutputBuffer();
-				void DoDMA(Cpu&,uint);
+				void DoDMA(Cpu&);
 
 				enum
 				{
 					DMA_CYCLES        = 4,
-					STATUS_GEN_IRQ    = STATUS_NO_FRAME_IRQ,
 					REG0_FREQUENCY    = b00001111,
 					REG0_LOOP         = b01000000,
 					REG0_IRQ_ENABLE   = b10000000,

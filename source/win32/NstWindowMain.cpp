@@ -172,6 +172,14 @@ namespace Nestopia
 		menu[IDM_VIEW_SWITCH_SCREEN].Text() << Resource::String(IDS_MENU_FULLSCREEN);
 
 		{
+			const String::Heap& type = cfg["machine region"];
+
+			menu[ IDM_MACHINE_SYSTEM_AUTO ].Check( type != "pal" && type != "ntsc" );
+			menu[ IDM_MACHINE_SYSTEM_NTSC ].Check( type == "ntsc" );
+			menu[ IDM_MACHINE_SYSTEM_PAL  ].Check( type == "pal" );
+		}
+
+		{
 			const String::Heap& type = cfg["view size fullscreen"];
 
 			video->SetFullscreenScale
@@ -189,6 +197,32 @@ namespace Nestopia
 			);
 		}
 
+		ibool winpos = preferences[Managers::Preferences::SAVE_WINDOWPOS];
+
+		if (winpos)
+		{
+			const Rect rect
+			(
+     			cfg[ "view window left"   ],
+				cfg[ "view window top"    ],
+				cfg[ "view window right"  ],
+				cfg[ "view window bottom" ]
+			);
+
+			const Point mode( Managers::Video::GetDisplayMode() );
+
+			winpos = 
+			(
+		    	rect.left < rect.right && rect.top < rect.bottom &&
+				rect.left < mode.x && rect.top < mode.y &&
+				rect.Width() < mode.x * 2 && rect.Height() < mode.y * 2
+			);
+
+			if (winpos)
+				window.Set( rect );
+		}
+ 
+		if (!winpos)
 		{
 			const String::Heap& type = cfg["view size window"];
 
@@ -223,8 +257,12 @@ namespace Nestopia
 
 	void Main::Save(Configuration& cfg) const
 	{
-		cfg[ "view show on top"      ].YesNo() = menu[IDM_VIEW_ON_TOP].IsChecked();
-		cfg[ "view show window menu" ].YesNo() = IsWindowMenuEnabled();
+		cfg[ "view show on top"        ].YesNo() = menu[IDM_VIEW_ON_TOP].IsChecked();
+		cfg[ "view show window menu"   ].YesNo() = IsWindowMenuEnabled();
+
+		cfg[ "machine region" ] = menu[IDM_MACHINE_SYSTEM_AUTO].IsChecked() ? "auto" :
+                       		      menu[IDM_MACHINE_SYSTEM_NTSC].IsChecked() ? "ntsc" : 
+		                                                                      "pal";
 
 		{
 			String::Heap& value = cfg["view size window"].GetString();
@@ -234,7 +272,7 @@ namespace Nestopia
 			Point baseSize( video->GetNesScreen() );
 			baseSize += Point::NonClient( WIN_STYLE, WIN_EXSTYLE, IsWindowMenuEnabled() );
 
-			switch (baseSize.ScaleToFit( video->IsFullscreen() ? state.rect : Rect::Window(window), Point::SCALE_NEAREST ))
+			switch (baseSize.ScaleToFit( video->IsFullscreen() ? state.rect : window.GetNormalWindowRect(), Point::SCALE_NEAREST ))
 			{
 				case 1:  value = '2'; break;
 				case 2:  value = '3'; break;
@@ -246,6 +284,16 @@ namespace Nestopia
 				case 8:  value = '9'; break;
 				default: value = '1'; break;
 			}
+		}
+
+		if (preferences[Managers::Preferences::SAVE_WINDOWPOS])
+		{
+			Rect rect( video->IsFullscreen() ? state.rect : window.GetNormalWindowRect() );
+
+			cfg[ "view window left"   ] = rect.left;
+			cfg[ "view window top"    ] = rect.top;
+			cfg[ "view window right"  ] = rect.right;
+			cfg[ "view window bottom" ] = rect.bottom;
 		}
 
 		{

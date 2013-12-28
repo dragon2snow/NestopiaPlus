@@ -376,13 +376,64 @@ namespace Nestopia
 		Controllers::PokkunMoguraa::callback.Set  ( &Callbacks::PollPokkunMoguraa,  this   );
 		Controllers::VsSystem::callback.Set       ( &Callbacks::PollVsSystem,       this   );
 
-		menu[IDM_MACHINE_INPUT_AUTOSELECT].Check();
+		menu[IDM_MACHINE_INPUT_AUTOSELECT].Check( cfg["machine autoselect controllers"] != Application::Configuration::NO );	
 
-		OnEmuEvent( Emulator::EVENT_PORT1_CONTROLLER );
-		OnEmuEvent( Emulator::EVENT_PORT2_CONTROLLER );
-		OnEmuEvent( Emulator::EVENT_PORT3_CONTROLLER );
-		OnEmuEvent( Emulator::EVENT_PORT4_CONTROLLER );
-		OnEmuEvent( Emulator::EVENT_PORT5_CONTROLLER );
+		{
+			NST_COMPILE_ASSERT
+			(
+     			Emulator::EVENT_PORT2_CONTROLLER - Emulator::EVENT_PORT1_CONTROLLER == 1 &&
+				Emulator::EVENT_PORT3_CONTROLLER - Emulator::EVENT_PORT1_CONTROLLER == 2 &&
+				Emulator::EVENT_PORT4_CONTROLLER - Emulator::EVENT_PORT1_CONTROLLER == 3
+			);
+
+			String::Stack<16> string("machine port #");
+
+			for (uint i=0; i < 5; ++i)
+			{
+				string[13] = (char)('1' + i);
+				const String::Heap& type = cfg[string];
+
+				Nes::Input::Type controller = Nes::Input::UNCONNECTED;
+
+				switch (i)
+				{
+					case 0:
+					case 1:
+
+						     if ( type == "zapper"   ) { controller = Nes::Input::ZAPPER;   break; }
+						else if ( type == "paddle"   ) { controller = Nes::Input::PADDLE;   break; }
+						else if ( type == "powerpad" ) { controller = Nes::Input::POWERPAD; break; }
+
+					case 2:
+					case 3:
+
+     						 if ( type == "pad1"        ) controller = Nes::Input::PAD1;
+						else if ( type == "pad2"        ) controller = Nes::Input::PAD2;
+						else if ( type == "pad3"        ) controller = Nes::Input::PAD3;
+						else if ( type == "pad4"        ) controller = Nes::Input::PAD4;
+						else if ( type == "unconnected" ) controller = Nes::Input::UNCONNECTED;
+						else if ( i == 0                ) controller = Nes::Input::PAD1;
+						else if ( i == 1                ) controller = Nes::Input::PAD2;
+
+						break;
+
+					case 4:
+
+       						 if ( type == "paddle"         ) controller = Nes::Input::PADDLE;
+       					else if ( type == "keyboard"       ) controller = Nes::Input::KEYBOARD;
+						else if ( type == "oekakidstablet" ) controller = Nes::Input::OEKAKIDSTABLET;
+						else if ( type == "hypershot"      ) controller = Nes::Input::HYPERSHOT;
+						else if ( type == "crazyclimber"   ) controller = Nes::Input::CRAZYCLIMBER;
+						else if ( type == "mahjong"        ) controller = Nes::Input::MAHJONG;
+						else if ( type == "excitingboxing" ) controller = Nes::Input::EXCITINGBOXING;
+						else if ( type == "toprider"       ) controller = Nes::Input::TOPRIDER;
+						else if ( type == "pokkunmoguraa"  ) controller = Nes::Input::POKKUNMOGURAA;
+				}
+
+				emulator.ConnectController( i, controller );
+				OnEmuEvent( (Emulator::Event) (Emulator::EVENT_PORT1_CONTROLLER + i) );
+			}
+		}
 
 		UpdateSettings();
 	}
@@ -394,6 +445,40 @@ namespace Nestopia
 
 	void Input::Save(Configuration& cfg) const
 	{
+		cfg["machine autoselect controllers"].YesNo() = menu[IDM_MACHINE_INPUT_AUTOSELECT].IsChecked();
+
+		{
+			String::Stack<16> string("machine port #");
+
+			for (uint i=0; i < 5; ++i)
+			{
+				cstring type;
+
+				switch (Nes::Input(emulator).GetConnectedController( i ))
+				{
+    				case Nes::Input::PAD1:           type = "pad1";           break;
+					case Nes::Input::PAD2:           type = "pad2";           break;
+					case Nes::Input::PAD3:           type = "pad3";           break;
+					case Nes::Input::PAD4:           type = "pad4";           break;
+					case Nes::Input::ZAPPER:         type = "zapper";         break;
+					case Nes::Input::PADDLE:         type = "paddle";         break;
+					case Nes::Input::POWERPAD:       type = "powerpad";       break;
+					case Nes::Input::KEYBOARD:       type = "keyboard";       break;
+					case Nes::Input::OEKAKIDSTABLET: type = "oekakidstablet"; break;
+					case Nes::Input::HYPERSHOT:      type = "hypershot";      break;
+					case Nes::Input::CRAZYCLIMBER:   type = "crazyclimber";   break;
+					case Nes::Input::MAHJONG:        type = "mahjong";        break;
+					case Nes::Input::EXCITINGBOXING: type = "excitingboxing"; break;
+					case Nes::Input::TOPRIDER:       type = "toprider";       break;
+					case Nes::Input::POKKUNMOGURAA:  type = "pokkunmoguraa";  break;
+					default:                         type = "unconnected";    break;
+				}
+
+				string[13] = (char)('1' + i);
+				cfg[string] = type;
+			}
+		}
+
 		dialog->Save( cfg );
 	}
 
