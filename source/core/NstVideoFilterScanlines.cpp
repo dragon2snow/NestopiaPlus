@@ -66,7 +66,7 @@ namespace Nes
 			template<typename T>
 			NST_FORCE_INLINE void Renderer::FilterScanlines::Blit2x(const Input& input,const Output& output) const
 			{
-				const u16* NST_RESTRICT src = input.screen;
+				const u16* NST_RESTRICT src = input.pixels;
 				T* NST_RESTRICT dst = static_cast<T*>(output.pixels);
 
 				const long pitch = output.pitch;
@@ -97,7 +97,7 @@ namespace Nes
 			template<typename T>
 			NST_FORCE_INLINE void Renderer::FilterScanlines::Blit1x(const Input& input,const Output& output) const
 			{
-				const u16* NST_RESTRICT src = input.screen;
+				const u16* NST_RESTRICT src = input.pixels;
 				T* NST_RESTRICT dst = static_cast<T*>(output.pixels);
 
 				const long pitch = output.pitch;

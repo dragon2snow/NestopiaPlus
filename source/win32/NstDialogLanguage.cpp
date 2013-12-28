@@ -27,80 +27,87 @@
 
 namespace Nestopia
 {
-	using namespace Window;
-
-	struct Language::Handlers
+	namespace Window
 	{
-		static const MsgHandler::Entry<Language> messages[];
-		static const MsgHandler::Entry<Language> commands[];
-	};
-
-	const MsgHandler::Entry<Language> Language::Handlers::messages[] =
-	{
-		{ WM_INITDIALOG, &Language::OnInitDialog }
-	};
-
-	const MsgHandler::Entry<Language> Language::Handlers::commands[] =
-	{
-		{ IDC_LANGUAGE_OK,     &Language::OnCmdOk     },
-		{ IDC_LANGUAGE_CANCEL, &Language::OnCmdCancel }
-	};
-
-	Language::Language()
-	: dialog(IDD_LANGUAGE,this,Handlers::messages,Handlers::commands)
-	{
-	}
-
-	ibool Language::OnInitDialog(Param&)
-	{
-		resources.clear();
-		Application::Instance::EnumerateResources( resources );
-
-		const Window::Control::ListBox listBox( dialog.ListBox(IDC_LANGUAGE_LIST) );
-
-		Path name;
-
-		for (Application::Instance::ResourcePaths::const_iterator it(resources.begin()), end(resources.end()); it != end; ++it)
+		struct Language::Handlers
 		{
-			name = it->File();
-			name.Extension().Clear();
-			::CharUpperBuff( name.Ptr(), 1 );
+			static const MsgHandler::Entry<Language> messages[];
+			static const MsgHandler::Entry<Language> commands[];
+		};
 
-			const uint index = listBox.Add( name.Ptr() ).GetIndex();
-			listBox[index].Data() = (it - resources.begin());
+		const MsgHandler::Entry<Language> Language::Handlers::messages[] =
+		{
+			{ WM_INITDIALOG, &Language::OnInitDialog }
+		};
 
-			if (*it == Application::Instance::GetResourcePath())
-				listBox[index].Select();
+		const MsgHandler::Entry<Language> Language::Handlers::commands[] =
+		{
+			{ IDOK, &Language::OnCmdOk },
+			{ IDC_LANGUAGE_LIST, &Language::OnDblClk }
+		};
+
+		Language::Language()
+		: dialog(IDD_LANGUAGE,this,Handlers::messages,Handlers::commands)
+		{
 		}
 
-		return true;
-	}
-
-	ibool Language::OnCmdOk(Param& param)
-	{
-		if (param.Button().IsClicked())
+		ibool Language::OnInitDialog(Param&)
 		{
-			const Window::Control::ListBox listBox( dialog.ListBox(IDC_LANGUAGE_LIST) );
+			paths.clear();
+			Application::Instance::GetLanguage().EnumerateResources( paths );
+
+			const Control::ListBox listBox( dialog.ListBox(IDC_LANGUAGE_LIST) );
+
+			Path name;
+
+			for (Paths::const_iterator it(paths.begin()), end(paths.end()); it != end; ++it)
+			{
+				name = it->File();
+				name.Extension().Clear();
+				::CharUpperBuff( name.Ptr(), 1 );
+
+				const uint index = listBox.Add( name.Ptr() ).GetIndex();
+				listBox[index].Data() = (it - paths.begin());
+
+				if (*it == Application::Instance::GetLanguage().GetResourcePath())
+					listBox[index].Select();
+			}
+
+			return true;
+		}
+
+		void Language::CloseOk()
+		{
+			const Control::ListBox listBox( dialog.ListBox(IDC_LANGUAGE_LIST) );
 
 			if (listBox.AnySelection())
 			{
 				const uint index = listBox.Selection().Data();
 
-				if (resources[index] != Application::Instance::GetResourcePath())
-					newResource = resources[index];
+				if (paths[index] != Application::Instance::GetLanguage().GetResourcePath())
+					newPath = paths[index];
 			}
 
 			dialog.Close();
 		}
 
-		return true;
-	}
+		ibool Language::OnCmdOk(Param& param)
+		{
+			if (param.Button().Clicked())
+				CloseOk();
 
-	ibool Language::OnCmdCancel(Param& param)
-	{
-		if (param.Button().IsClicked())
-			dialog.Close();
+			return true;
+		}
 
-		return true;
+		ibool Language::OnDblClk(Param& param)
+		{
+			if (HIWORD(param.wParam) == LBN_DBLCLK)
+			{
+				CloseOk();
+				return true;
+			}
+
+			return false;
+		}
 	}
 }

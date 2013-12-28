@@ -56,7 +56,8 @@ namespace Nes
 
 		public:
 
-			User(Emulator& e)
+			template<typename T>
+			User(T& e)
 			: Base(e) {}
 
 			enum Question
@@ -78,7 +79,8 @@ namespace Nes
 				EVENT_DISPLAY_TIMER,
 				EVENT_TAPE_PLAYING,
 				EVENT_TAPE_RECORDING,
-				EVENT_TAPE_STOPPED
+				EVENT_TAPE_STOPPED,
+				EVENT_NONSTANDARD_DISK
 			};
 
 			enum File

@@ -27,149 +27,125 @@
 
 namespace Nestopia
 {
-	NST_COMPILE_ASSERT
-	(
-		IDC_DIPSWITCHES_2 == IDC_DIPSWITCHES_1 + 1 &&
-		IDC_DIPSWITCHES_3 == IDC_DIPSWITCHES_1 + 2 &&
-		IDC_DIPSWITCHES_4 == IDC_DIPSWITCHES_1 + 3 &&
-		IDC_DIPSWITCHES_5 == IDC_DIPSWITCHES_1 + 4 &&
-		IDC_DIPSWITCHES_6 == IDC_DIPSWITCHES_1 + 5 &&
-		IDC_DIPSWITCHES_7 == IDC_DIPSWITCHES_1 + 6 &&
-		IDC_DIPSWITCHES_8 == IDC_DIPSWITCHES_1 + 7 &&
-
-		IDC_DIPSWITCHES_2_TEXT == IDC_DIPSWITCHES_1_TEXT + 1 &&
-		IDC_DIPSWITCHES_3_TEXT == IDC_DIPSWITCHES_1_TEXT + 2 &&
-		IDC_DIPSWITCHES_4_TEXT == IDC_DIPSWITCHES_1_TEXT + 3 &&
-		IDC_DIPSWITCHES_5_TEXT == IDC_DIPSWITCHES_1_TEXT + 4 &&
-		IDC_DIPSWITCHES_6_TEXT == IDC_DIPSWITCHES_1_TEXT + 5 &&
-		IDC_DIPSWITCHES_7_TEXT == IDC_DIPSWITCHES_1_TEXT + 6 &&
-		IDC_DIPSWITCHES_8_TEXT == IDC_DIPSWITCHES_1_TEXT + 7
-	);
-
-	using namespace Window;
-
-	struct DipSwitches::Handlers
+	namespace Window
 	{
-		static const MsgHandler::Entry<DipSwitches> messages[];
-		static const MsgHandler::Entry<DipSwitches> commands[];
-	};
+		NST_COMPILE_ASSERT
+		(
+			IDC_DIPSWITCHES_2 == IDC_DIPSWITCHES_1 + 1 &&
+			IDC_DIPSWITCHES_3 == IDC_DIPSWITCHES_1 + 2 &&
+			IDC_DIPSWITCHES_4 == IDC_DIPSWITCHES_1 + 3 &&
+			IDC_DIPSWITCHES_5 == IDC_DIPSWITCHES_1 + 4 &&
+			IDC_DIPSWITCHES_6 == IDC_DIPSWITCHES_1 + 5 &&
+			IDC_DIPSWITCHES_7 == IDC_DIPSWITCHES_1 + 6 &&
+			IDC_DIPSWITCHES_8 == IDC_DIPSWITCHES_1 + 7 &&
 
-	const MsgHandler::Entry<DipSwitches> DipSwitches::Handlers::messages[] =
-	{
-		{ WM_INITDIALOG, &DipSwitches::OnInitDialog }
-	};
+			IDC_DIPSWITCHES_2_TEXT == IDC_DIPSWITCHES_1_TEXT + 1 &&
+			IDC_DIPSWITCHES_3_TEXT == IDC_DIPSWITCHES_1_TEXT + 2 &&
+			IDC_DIPSWITCHES_4_TEXT == IDC_DIPSWITCHES_1_TEXT + 3 &&
+			IDC_DIPSWITCHES_5_TEXT == IDC_DIPSWITCHES_1_TEXT + 4 &&
+			IDC_DIPSWITCHES_6_TEXT == IDC_DIPSWITCHES_1_TEXT + 5 &&
+			IDC_DIPSWITCHES_7_TEXT == IDC_DIPSWITCHES_1_TEXT + 6 &&
+			IDC_DIPSWITCHES_8_TEXT == IDC_DIPSWITCHES_1_TEXT + 7
+		);
 
-	const MsgHandler::Entry<DipSwitches> DipSwitches::Handlers::commands[] =
-	{
-		{ IDC_DIPSWITCHES_OK,     &DipSwitches::OnCmdOk     },
-		{ IDC_DIPSWITCHES_CANCEL, &DipSwitches::OnCmdCancel }
-	};
-
-	DipSwitches::DipSwitches(Managers::Emulator& emulator)
-	:
-	dialog      (IDD_DIPSWITCHES,this,Handlers::messages,Handlers::commands),
-	dipSwitches (Nes::DipSwitches(emulator))
-	{
-	}
-
-	#ifdef IDC_DIPSWITCHES_9
-	#error Must update dipswitch dialog fields!
-	#endif
-
-	ibool DipSwitches::OnInitDialog(Param&)
-	{
-		NST_ASSERT( dipSwitches.NumDips() <= MAX_DIPS );
-
-		Point erase;
-		HeapString valueName;
-
-		for (uint i=0; i < MAX_DIPS; ++i)
+		struct DipSwitches::Handlers
 		{
-			const Control::ComboBox valueField( dialog.ComboBox(IDC_DIPSWITCHES_1 + i) );
-			const Control::Generic textField( dialog.Control(IDC_DIPSWITCHES_1_TEXT + i) );
+			static const MsgHandler::Entry<DipSwitches> messages[];
+			static const MsgHandler::Entry<DipSwitches> commands[];
+		};
 
-			if (i < dipSwitches.NumDips())
+		const MsgHandler::Entry<DipSwitches> DipSwitches::Handlers::messages[] =
+		{
+			{ WM_INITDIALOG, &DipSwitches::OnInitDialog }
+		};
+
+		const MsgHandler::Entry<DipSwitches> DipSwitches::Handlers::commands[] =
+		{
+			{ IDOK, &DipSwitches::OnCmdOk }
+		};
+
+		DipSwitches::DipSwitches(Managers::Emulator& emulator)
+		:
+		dialog      (IDD_DIPSWITCHES,this,Handlers::messages,Handlers::commands),
+		dipSwitches (Nes::DipSwitches(emulator))
+		{
+		}
+
+		#ifdef IDC_DIPSWITCHES_9
+		#error Must update dipswitch dialog fields!
+		#endif
+
+		ibool DipSwitches::OnInitDialog(Param&)
+		{
+			NST_ASSERT( dipSwitches.NumDips() <= MAX_DIPS );
+
+			Point delta;
+
+			for (uint i=0; i < MAX_DIPS; ++i)
 			{
-				textField.Text() << (HeapString() << dipSwitches.GetDipName(i) << ':').Ptr();
+				Control::ComboBox valueField( dialog.ComboBox(IDC_DIPSWITCHES_1 + i) );
+				Control::Generic textField( dialog.Control(IDC_DIPSWITCHES_1_TEXT + i) );
 
-				for (uint j=0, n=dipSwitches.NumValues(i); j < n; ++j)
+				if (i < dipSwitches.NumDips())
 				{
-					valueName = dipSwitches.GetValueName(i,j);
-					valueField.Add( valueName.Ptr() );
+					textField.Text() << (HeapString() << dipSwitches.GetDipName(i) << ':').Ptr();
+
+					for (uint j=0, n=dipSwitches.NumValues(i); j < n; ++j)
+						valueField.Add( HeapString(dipSwitches.GetValueName(i,j)).Ptr() );
+
+					valueField[dipSwitches.GetValue(i)].Select();
 				}
+				else
+				{
+					if (i == dipSwitches.NumDips())
+						delta.y = valueField.GetWindow().Coordinates().top;
 
-				valueField[dipSwitches.GetValue(i)].Select();
+					if (i == MAX_DIPS-1)
+						delta.y = valueField.GetWindow().Coordinates().bottom - delta.y;
+
+					textField.GetWindow().Destroy();
+					valueField.GetWindow().Destroy();
+				}
 			}
-			else
+
+			for (uint i=IDC_DIPSWITCHES_1_TEXT, n=IDC_DIPSWITCHES_1_TEXT+dipSwitches.NumDips(); i < n; ++i)
 			{
-				if (i == dipSwitches.NumDips())
-					erase.y = valueField.GetWindow().GetRectangle().top;
+				Control::Generic textField( dialog.Control(i) );
 
-				if (i == MAX_DIPS-1)
-					erase.y = valueField.GetWindow().GetRectangle().bottom - erase.y;
+				Rect rect( textField.GetWindow().Coordinates() );
+				rect.right = rect.left + textField.GetMaxTextSize().x;
 
-				textField.GetWindow().Destroy();
-				valueField.GetWindow().Destroy();
+				if (delta.x < rect.right)
+					delta.x = rect.right;
+
+				textField.GetWindow().Size() = rect.Size();
 			}
+
+			delta.x = dialog.ComboBox(IDC_DIPSWITCHES_1).GetWindow().Coordinates().left - delta.x + 12;
+
+			for (uint i=IDC_DIPSWITCHES_1, n=IDC_DIPSWITCHES_1+dipSwitches.NumDips(); i < n; ++i)
+				dialog.Control(i).GetWindow().Position() -= Point(delta.x,0);
+
+			dialog.Control(IDC_DIPSWITCHES_GROUP).GetWindow().Size() -= delta;
+			dialog.Control(IDOK).GetWindow().Position() -= delta;
+			dialog.Control(IDCANCEL).GetWindow().Position() -= delta;
+
+			dialog.Size() -= delta;
+
+			return true;
 		}
 
-		Point p;
-
-		for (uint i=IDC_DIPSWITCHES_1_TEXT, n=IDC_DIPSWITCHES_1_TEXT+dipSwitches.NumDips(); i < n; ++i)
+		ibool DipSwitches::OnCmdOk(Param& param)
 		{
-			const Control::Generic textField( dialog.Control(i) );
-			p = Point(textField.GetMaxTextSize().x,textField.GetWindow().GetSize().y);
+			if (param.Button().Clicked())
+			{
+				for (uint i=0, n=dipSwitches.NumDips(); i < n; ++i)
+					dipSwitches.SetValue( i, dialog.ComboBox( IDC_DIPSWITCHES_1 + i ).Selection().GetIndex() );
 
-			if (erase.x < p.x)
-				erase.x = p.x;
+				dialog.Close();
+			}
 
-			textField.GetWindow().Resize( p );
+			return true;
 		}
-
-		p = dialog.ComboBox(IDC_DIPSWITCHES_1).GetWindow().GetRectangle().Position();
-		::ScreenToClient( dialog, &p );
-		erase.x = p.x - (erase.x + 12);
-
-		for (uint i=IDC_DIPSWITCHES_1, n=IDC_DIPSWITCHES_1+dipSwitches.NumDips(); i < n; ++i)
-		{
-			p = dialog.Control(i).GetWindow().GetPosition();
-			p.x -= erase.x;
-			::ScreenToClient( dialog, &p );
-			dialog.Control(i).GetWindow().Move( p );
-		}
-
-		p = dialog.Control(IDC_DIPSWITCHES_OK).GetWindow().GetPosition() - erase;
-		::ScreenToClient( dialog, &p );
-		dialog.Control(IDC_DIPSWITCHES_OK).GetWindow().Move( p );
-
-		p = dialog.Control(IDC_DIPSWITCHES_CANCEL).GetWindow().GetPosition() - erase;
-		::ScreenToClient( dialog, &p );
-		dialog.Control(IDC_DIPSWITCHES_CANCEL).GetWindow().Move( p );
-
-		dialog.Control(IDC_DIPSWITCHES_GROUP).GetWindow().Resize( dialog.Control(IDC_DIPSWITCHES_GROUP).GetWindow().GetSize() - erase );
-		dialog.Resize( dialog.GetSize() - erase );
-
-		return true;
-	}
-
-	ibool DipSwitches::OnCmdOk(Param& param)
-	{
-		if (param.Button().IsClicked())
-		{
-			for (uint i=0, n=dipSwitches.NumDips(); i < n; ++i)
-				dipSwitches.SetValue( i, dialog.ComboBox( IDC_DIPSWITCHES_1 + i ).Selection().GetIndex() );
-
-			dialog.Close();
-		}
-
-		return true;
-	}
-
-	ibool DipSwitches::OnCmdCancel(Param& param)
-	{
-		if (param.Button().IsClicked())
-			dialog.Close();
-
-		return true;
 	}
 }

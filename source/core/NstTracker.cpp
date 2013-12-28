@@ -23,12 +23,11 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 
 #include <new>
-#include "NstCore.hpp"
-#include "api/NstApiEmulator.hpp"
-#include "api/NstApiMachine.hpp"
+#include "NstMachine.hpp"
 #include "NstTrackerMovie.hpp"
 #include "NstTrackerRewinder.hpp"
 #include "NstImage.hpp"
+#include "api/NstApiMachine.hpp"
 
 namespace Nes
 {
@@ -92,7 +91,7 @@ namespace Nes
 				rewinder->EnableSound( enable );
 		}
 
-		Result Tracker::RewinderEnable(Api::Emulator* emulator)
+		Result Tracker::RewinderEnable(Machine* emulator)
 		{
 			if (bool(rewinder) == bool(emulator))
 				return RESULT_NOP;
@@ -105,9 +104,9 @@ namespace Nes
 				rewinder = new Rewinder
 				(
 					*emulator,
-					&Api::Emulator::ExecuteFrame,
-					&Api::Emulator::LoadState,
-					&Api::Emulator::SaveState,
+					&Machine::ExecuteFrame,
+					&Machine::LoadState,
+					&Machine::SaveState,
 					emulator->cpu,
 					emulator->ppu,
 					rewinderSound
@@ -122,7 +121,7 @@ namespace Nes
 			return RESULT_OK;
 		}
 
-		Result Tracker::MoviePlay(Api::Emulator& emulator,StdStream stream,bool mode)
+		Result Tracker::MoviePlay(Machine& emulator,StdStream stream,bool mode)
 		{
 			if (!rewinder && emulator.Is(Api::Machine::GAME))
 			{
@@ -135,9 +134,9 @@ namespace Nes
 						movie = new Movie
 						(
 							emulator,
-							&Api::Emulator::Reset,
-							&Api::Emulator::LoadState,
-							&Api::Emulator::SaveState,
+							&Machine::Reset,
+							&Machine::LoadState,
+							&Machine::SaveState,
 							emulator.cpu,
 							emulator.Is(Api::Machine::CARTRIDGE) ? emulator.image->GetPrgCrc() : 0
 						);
@@ -174,7 +173,7 @@ namespace Nes
 			return RESULT_ERR_NOT_READY;
 		}
 
-		Result Tracker::MovieRecord(Api::Emulator& emulator,StdStream stream,bool how,bool mode)
+		Result Tracker::MovieRecord(Machine& emulator,StdStream stream,bool how,bool mode)
 		{
 			if (!rewinder && emulator.Is(Api::Machine::GAME))
 			{
@@ -187,9 +186,9 @@ namespace Nes
 						movie = new Movie
 						(
 							emulator,
-							&Api::Emulator::Reset,
-							&Api::Emulator::LoadState,
-							&Api::Emulator::SaveState,
+							&Machine::Reset,
+							&Machine::LoadState,
+							&Machine::SaveState,
 							emulator.cpu,
 							emulator.image->GetPrgCrc()
 						);
@@ -286,7 +285,7 @@ namespace Nes
 
 		Result Tracker::Execute
 		(
-			Api::Emulator& emulator,
+			Machine& emulator,
 			Video::Output* const video,
 			Sound::Output* const sound,
 			Input::Controllers* const input

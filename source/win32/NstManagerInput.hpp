@@ -67,9 +67,9 @@ namespace Nestopia
 
 		private:
 
+			void PollKeys() const;
 			void UpdateDevices();
 			void UpdateSettings();
-			void UpdateJoystickKeys(ibool);
 			void OnEmuEvent(Emulator::Event);
 			void OnMenuKeyboard(Window::Menu::PopupHandler::Param&);
 			void OnMenuPort1(Window::Menu::PopupHandler::Param&);
@@ -81,10 +81,6 @@ namespace Nestopia
 			void OnCmdMachinePort(uint);
 			void OnCmdMachineKeyboardPaste(uint);
 			void OnCmdOptionsInput(uint);
-			ibool OnTimerJoystick();
-
-			void ForcePoll();
-			inline void AutoPoll();
 
 			class Callbacks;
 
@@ -118,72 +114,81 @@ namespace Nestopia
 					WHEEL_SCALE = 56
 				};
 
-				static inline DWORD NextTime();
+				ibool OnNop            (Window::Param&);
+				ibool OnSetCursor      (Window::Param&);
+				ibool OnMouseMove      (Window::Param&);
+				ibool OnLButtonDown    (Window::Param&);
+				ibool OnRButtonDown    (Window::Param&);
+				ibool OnRButtonDownNop (Window::Param&);
+				ibool OnButtonUp       (Window::Param&);
+				ibool OnWheel          (Window::Param&);
 
-				inline void Refresh();
-				inline void UpdateTime();
-
-				ibool OnNop               (Window::Param&);
-				ibool OnSetCursor         (Window::Param&);
-				ibool OnMouseMove         (Window::Param&);
-				ibool OnLButtonDown       (Window::Param&);
-				ibool OnRButtonDown       (Window::Param&);
-				ibool OnButtonUp          (Window::Param&);
-				ibool OnWheel             (Window::Param&);
-				void  OnEnterSizeMoveMenu (Window::Param&);
-				void  OnExitSizeMoveMenu  (Window::Param&);
-
-				HCURSOR hCurrent;
 				HCURSOR hCursor;
-				LPARAM pos;
-				int wheel;
-				ibool autoHide;
+				HCURSOR hCurrent;
 				DWORD deadline;
-				ibool inNonClient;
 				Window::Custom& window;
+				int wheel;
 
 				static const Resource::Cursor gun;
 
 			public:
 
+				ibool MustAutoHide() const
+				{
+					return deadline != DWORD(~0UL) && deadline <= ::GetTickCount();
+				}
+
 				static const uint primaryButtonId;
 				static const uint secondaryButtonId;
-
-				ibool AutoHidingEnabled() const
-				{
-					return autoHide;
-				}
 			};
 
-			struct JoystickKey : DirectX::DirectInput::Key
+			class CmdKeys
 			{
-				uint cmd;
-
-				JoystickKey(const Key& k,uint c)
-				: Key(k), cmd(c) {}
-			};
-
-			class JoystickKeys : Collection::Vector<JoystickKey>
-			{
-				uint OnTimer();
-
-				enum
-				{
-					POLL_RAPID = 200,
-					POLL_REST = 1000
-				};
-
-				Window::Custom& window;
-				DirectX::DirectInput& directInput;
-				uint clock;
+				typedef DirectX::DirectInput::Key Key;
 
 			public:
 
-				JoystickKeys(Window::Custom&,DirectX::DirectInput&);
+				CmdKeys(Window::Custom&,DirectX::DirectInput&);
 
-				void Clear();
-				void Add(const DirectX::DirectInput::Key&,uint);
-				void Update();
+				void BeginAdd();
+				void Add(const Key&,uint);
+				void EndAdd();
+				void Acquire();
+				void Unacquire();
+
+				inline ibool Poll() const;
+
+			private:
+
+				inline bool CanPoll() const;
+
+				ibool ForcePoll() const;
+				void  Update();
+				uint  OnTimer();
+				void  OnFocus(Window::Param&);
+
+				enum
+				{
+					POLL_RAPID    = 50,
+					POLL_REST     = 1000,
+					CLOCK_DEFAULT = 1,
+					CLOCK_STOP    = 0
+				};
+
+				struct CmdKey : Key
+				{
+					CmdKey(const Key&,uint);
+
+					uint cmd;
+				};
+
+				typedef Collection::Vector<CmdKey> Keys;
+
+				ibool acquired;
+				Keys keys;
+				uint clock;
+				const Window::Custom& window;
+				DirectX::DirectInput& directInput;
 			};
 
 			class ClipBoard : String::Heap<wchar_t>
@@ -235,13 +240,13 @@ namespace Nestopia
 			Rects rects;
 			Window::Menu& menu;
 			Emulator& emulator;
-			ibool polled;
+			uint timeStamp;
 			AutoFire autoFire;
 			Cursor cursor;
 			Nes::Input::Controllers nesControllers;
 			DirectX::DirectInput directInput;
 			Object::Heap<Window::Input> dialog;
-			JoystickKeys joystickKeys;
+			CmdKeys cmdKeys;
 			ClipBoard clipBoard;
 
 		public:
@@ -249,17 +254,17 @@ namespace Nestopia
 			Nes::Input::Controllers* GetOutput()
 			{
 				autoFire.Step();
-				polled ^= true;
-
-				if (polled)
-					ForcePoll();
-
 				return &nesControllers;
 			}
 
-			void RefreshCursor()
+			void Poll()
 			{
-				if (cursor.AutoHidingEnabled())
+				timeStamp = ::timeGetTime();
+
+				if (directInput.Poll())
+					PollKeys();
+
+				if (cursor.MustAutoHide())
 					cursor.AutoHide();
 			}
 		};

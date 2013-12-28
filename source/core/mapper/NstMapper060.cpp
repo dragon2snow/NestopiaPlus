@@ -36,7 +36,7 @@ namespace Nes
 		Mapper60::Mapper60(Context& c)
 		:
 		Mapper (c),
-		rt4in1 (c.pRomCrc == 0xF9C484A0UL) // Reset-triggered 4-in-1
+		rt4in1 (c.prgCrc == 0xF9C484A0UL) // Reset-triggered 4-in-1
 		{}
 
 		void Mapper60::SubReset(const bool hard)

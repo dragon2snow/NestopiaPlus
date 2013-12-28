@@ -42,18 +42,17 @@ namespace Nes
 			Unif
 			(
 				StdStream,
-				LinearMemory&,
-				LinearMemory&,
-				LinearMemory&,
+				Ram&,
+				Ram&,
+				Ram&,
 				Api::Cartridge::Info&,
-				const ImageDatabase*,
-				Result&
+				const ImageDatabase*
 			);
 
 		private:
 
-			void Import(Result&);
-			Result CopyRom();
+			void Import();
+			void CopyRom();
 			bool NewChunk(bool&);
 
 			ulong ReadName       ();
@@ -96,20 +95,22 @@ namespace Nes
 			Stream::In stream;
 			Log log;
 
-			LinearMemory& pRom;
-			LinearMemory& cRom;
-			LinearMemory& wRam;
+			Ram& prg;
+			Ram& chr;
+			Ram& wrk;
 
 			Api::Cartridge::Info& info;
 
 			const ImageDatabase* const database;
+
+			Result result;
 
 			struct Rom
 			{
 				Rom();
 
 				dword crc;
-				LinearMemory rom;
+				Ram rom;
 
 				static const char id[16];
 			};
@@ -126,6 +127,13 @@ namespace Nes
 
 			static bool sorted;
 			static Board boards[];
+
+		public:
+
+			Result GetResult() const
+			{
+				return result;
+			}
 		};
 	}
 }

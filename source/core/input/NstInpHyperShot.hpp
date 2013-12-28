@@ -39,19 +39,17 @@ namespace Nes
 			{
 			public:
 
-				HyperShot();
+				HyperShot(const Cpu&);
 
 			private:
 
 				void Reset();
-				void BeginFrame(Controllers*);
 				void Poke(uint);
 				uint Peek(uint);
 				void LoadState(State::Loader&,dword);
 				void SaveState(State::Saver&,uchar) const;
 
 				uint strobe;
-				uint stream;
 				uint state;
 			};
 		}

@@ -37,9 +37,9 @@ namespace Nes
 		{
 			if (hard)
 			{
-				pRomOffset = 0x0000U;
+				prgOffset = 0x0000U;
 
-				if (pRomCrc == 0xC0FED437UL) // Major League
+				if (prgCrc == 0xC0FED437UL) // Major League
 					ppu.SetMirroring( Ppu::NMT_ZERO );
 			}
 
@@ -65,7 +65,7 @@ namespace Nes
 			while (const dword chunk = state.Begin())
 			{
 				if (chunk == NES_STATE_CHUNK_ID('R','E','G','\0'))
-					pRomOffset = (state.Read8() & 0x2) << 13;
+					prgOffset = (state.Read8() & 0x2) << 13;
 
 				state.End();
 			}
@@ -73,7 +73,7 @@ namespace Nes
 
 		void Mapper32::SubSave(State::Saver& state) const
 		{
-			state.Begin('R','E','G','\0').Write8( pRomOffset >> 13 ).End();
+			state.Begin('R','E','G','\0').Write8( prgOffset >> 13 ).End();
 		}
 
 		#ifdef NST_PRAGMA_OPTIMIZE
@@ -82,13 +82,13 @@ namespace Nes
 
 		NES_POKE(Mapper32,8000)
 		{
-			prg.SwapBank<SIZE_8K>( pRomOffset, data );
+			prg.SwapBank<SIZE_8K>( prgOffset, data );
 		}
 
 		NES_POKE(Mapper32,9000)
 		{
 			ppu.SetMirroring( (data & 0x1) ? Ppu::NMT_HORIZONTAL : Ppu::NMT_VERTICAL );
-			pRomOffset = (data & 0x2) << 13;
+			prgOffset = (data & 0x2) << 13;
 		}
 
 		NES_POKE(Mapper32,B006)
@@ -96,7 +96,7 @@ namespace Nes
 			ppu.Update();
 			chr.SwapBank<SIZE_1K,0x1800U>(data);
 
-			if (pRomCrc == 0xC0FED437UL && (data & 0x40)) // Major League
+			if (prgCrc == 0xC0FED437UL && (data & 0x40)) // Major League
 			{
 				const uchar mirroring[4] = {0,0,0,1};
 				ppu.SetMirroring( mirroring );
@@ -108,7 +108,7 @@ namespace Nes
 			ppu.Update();
 			chr.SwapBank<SIZE_1K,0x1C00U>(data);
 
-			if (pRomCrc == 0xC0FED437UL && (data & 0x40)) // Major League
+			if (prgCrc == 0xC0FED437UL && (data & 0x40)) // Major League
 				ppu.SetMirroring( Ppu::NMT_ZERO );
 		}
 	}

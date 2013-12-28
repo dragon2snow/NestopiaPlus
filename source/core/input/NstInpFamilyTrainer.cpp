@@ -35,8 +35,8 @@ namespace Nes
 			#pragma optimize("s", on)
 			#endif
 
-			FamilyTrainer::FamilyTrainer()
-			: Device(Api::Input::FAMILYTRAINER)
+			FamilyTrainer::FamilyTrainer(const Cpu& c)
+			: Device(c,Api::Input::FAMILYTRAINER)
 			{
 				FamilyTrainer::Reset();
 			}
@@ -44,6 +44,7 @@ namespace Nes
 			void FamilyTrainer::Reset()
 			{
 				output = 0;
+				state = ~0U;
 			}
 
 			void FamilyTrainer::SaveState(State::Saver& state,const uchar id) const
@@ -60,12 +61,6 @@ namespace Nes
 			#ifdef NST_PRAGMA_OPTIMIZE
 			#pragma optimize("", on)
 			#endif
-
-			void FamilyTrainer::BeginFrame(Controllers* i)
-			{
-				input = i;
-				state = ~0U;
-			}
 
 			void FamilyTrainer::Poll()
 			{

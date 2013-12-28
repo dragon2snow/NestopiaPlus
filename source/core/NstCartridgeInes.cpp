@@ -40,20 +40,21 @@ namespace Nes
 		Cartridge::Ines::Ines
 		(
 			StdStream s,
-			LinearMemory& p,
-			LinearMemory& c,
-			LinearMemory& w,
+			Ram& p,
+			Ram& c,
+			Ram& w,
 			Api::Cartridge::Info& i,
-			const ImageDatabase* const d,
-			Result& r
+			const ImageDatabase* const d
 		)
 		:
-		result   (r),
+		result   (RESULT_OK),
 		stream   (s),
-		pRom     (p),
-		cRom     (c),
-		wRam     (w),
+		prg      (p),
+		chr      (c),
+		wrk      (w),
 		info     (i),
+		prgSkip  (0),
+		chrSkip  (0),
 		database (d)
 		{
 			info.Clear();
@@ -67,40 +68,50 @@ namespace Nes
 			{
 				Header header;
 
-				header.num16kPRomBanks = stream.Read8();
-				header.num8kCRomBanks = stream.Read8();
+				header.num16kPrgBanks = stream.Read8();
+				header.num8kChrBanks = stream.Read8();
 				header.flags = stream.Read16();
-				header.num8kWRamBanks = stream.Read8();
+				header.num8kWrkBanks = stream.Read8();
 				header.pal = stream.Read8() & Header::PAL_BIT;
 				stream.Read( header.reserved, Header::RESERVED_LENGTH );
 
 				MessWithTheHeader( header );
 			}
 
-			info.crc = Checksum::Crc32::Compute( stream );
-
-			if (database && database->Enabled())
+			if (database)
 				TryDatabase();
 
-			if (!info.pRom || stream.Length() < info.pRom)
+			if (!info.pRom)
 				throw RESULT_ERR_CORRUPT_FILE;
 
-			wRam.Set( info.wRam ? info.wRam : info.trained ? SIZE_8K : 0 );
+			if (!info.wRam && (info.battery || info.trained))
+				info.wRam = SIZE_8K;
+
+			wrk.Set( info.wRam );
+			wrk.Fill( 0x00 );
 
 			if (info.trained)
-				stream.Read( wRam.Mem(TRAINER_OFFSET), TRAINER_LENGTH );
+			{
+				stream.Read( wrk.Mem(TRAINER_OFFSET), TRAINER_LENGTH );
+				info.crc = Checksum::Crc32::Compute( wrk.Mem(TRAINER_OFFSET), TRAINER_LENGTH );
+			}
 
-			pRom.Set( info.pRom );
-			stream.Read( pRom.Mem(), info.pRom );
+			prg.Set( info.pRom );
+			stream.Read( prg.Mem(), info.pRom );
 
-			info.pRomCrc = Checksum::Crc32::Compute( pRom.Mem(), info.pRom );
+			if (prgSkip)
+				stream.Seek( prgSkip );
 
-			cRom.Set( info.cRom );
+			info.pRomCrc = Checksum::Crc32::Compute( prg.Mem(), info.pRom );
+			info.crc = info.crc ? Checksum::Crc32::Compute( prg.Mem(), info.pRom, info.crc ) : info.pRomCrc;
+
+			chr.Set( info.cRom );
 
 			if (info.cRom)
 			{
-				stream.Read( cRom.Mem(), info.cRom );
-				info.cRomCrc = Checksum::Crc32::Compute( cRom.Mem(), info.cRom );
+				stream.Read( chr.Mem(), info.cRom );
+				info.cRomCrc = Checksum::Crc32::Compute( chr.Mem(), info.cRom );
+				info.crc = Checksum::Crc32::Compute( chr.Mem(), info.cRom, info.crc );
 			}
 		}
 
@@ -111,7 +122,7 @@ namespace Nes
 				if (header.reserved[i])
 				{
 					header.flags &= 0x00FFU;
-					header.num8kWRamBanks = 0;
+					header.num8kWrkBanks = 0;
 					header.pal = false;
 					result = RESULT_WARN_BAD_FILE_HEADER;
 					log << "Ines: warning, header might be dirty!" NST_LINEBREAK;
@@ -141,7 +152,12 @@ namespace Nes
 				((header.flags & FLAGS_MAPPER_HI) >> 8)
 			);
 
-			log << "Ines: mapper " << info.mapper << " set" NST_LINEBREAK;
+			log << "Ines: mapper " << info.mapper << " set";
+
+			if (info.mapper == VS_MAPPER && !(header.flags & FLAGS_VS))
+				log << ", forcing VS-System";
+
+			log << NST_LINEBREAK;
 
 			info.trained = bool(header.flags & FLAGS_TRAINER);
 
@@ -161,6 +177,10 @@ namespace Nes
 				info.system = Api::Cartridge::SYSTEM_VS;
 				log << "Ines: VS-System set" NST_LINEBREAK;
 			}
+			else if (info.mapper == VS_MAPPER)
+			{
+				info.system = Api::Cartridge::SYSTEM_VS;
+			}
 			else if (header.pal)
 			{
 				info.system = Api::Cartridge::SYSTEM_PAL;
@@ -170,9 +190,9 @@ namespace Nes
 				info.system = Api::Cartridge::SYSTEM_NTSC;
 			}
 
-			info.pRom = SIZE_16K * header.num16kPRomBanks;
-			info.cRom = SIZE_8K * header.num8kCRomBanks;
-			info.wRam = SIZE_8K * header.num8kWRamBanks;
+			info.pRom = SIZE_16K * header.num16kPrgBanks;
+			info.cRom = SIZE_8K * header.num8kChrBanks;
+			info.wRam = SIZE_8K * header.num8kWrkBanks;
 
 			log << "Ines: " << (info.pRom / SIZE_1K) << "k PRG-ROM set" NST_LINEBREAK
                    "Ines: " << (info.cRom / SIZE_1K) << "k CHR-ROM set" NST_LINEBREAK
@@ -181,154 +201,159 @@ namespace Nes
 
 		void Cartridge::Ines::TryDatabase()
 		{
-			NST_ASSERT( database && database->Enabled() );
+			NST_ASSERT( database );
 
-			dword crc = info.crc;
-			ImageDatabase::Handle handle = database->GetHandle( info.crc );
+			ImageDatabase::Handle handle;
+
+			ulong length = stream.Length();
+			length = length - (length % TRAINER_LENGTH);
+			handle = database->GetHandle( Checksum::Crc32::Compute(stream,length) );
 
 			if (!handle)
 			{
-				if (stream.Length() >= info.pRom + info.cRom)
-				{
-					crc = Checksum::Crc32::Compute( stream, info.pRom + info.cRom );
-
-					if (crc)
-						handle = database->GetHandle( crc );
-				}
+				if (length > info.pRom + info.cRom)
+					handle = database->GetHandle( Checksum::Crc32::Compute(stream,info.pRom+info.cRom) );
 
 				if (!handle)
 				{
-					if (info.pRom == 0) // hack
+					if (info.pRom == 0 && database->Enabled()) // hack
 						info.pRom = SIZE_16K * 256;
 
 					return;
 				}
 			}
 
-			info.crc = crc;
-			info.condition = Api::Cartridge::YES;
+			if (database->IsBad(handle) || (!database->Enabled() && database->MustFix(handle)))
+			{
+				info.condition = Api::Cartridge::NO;
 
-			const dword pRom = database->pRomSize( handle );
-			NST_VERIFY( pRom );
+				if (result == RESULT_OK)
+					result = RESULT_WARN_BAD_DUMP;
+			}
 
-			if (!pRom)
+			NST_VERIFY( database->PrgSize(handle) );
+
+			if (!database->Enabled() || !database->PrgSize(handle))
 				return;
+
+			if (!database->IsBad(handle))
+				info.condition = Api::Cartridge::YES;
+
+			prgSkip = database->PrgSkip(handle);
+			chrSkip = database->ChrSkip(handle);
+
+			if (result == RESULT_OK)
+			{
+				if
+				(
+					(info.pRom != database->PrgSize(handle)+prgSkip && (info.pRom != database->PrgSize(handle) || database->ChrSize(handle))) ||
+					(info.cRom != database->ChrSize(handle)+chrSkip && (info.cRom != database->ChrSize(handle)))
+				)
+					result = RESULT_WARN_INCORRECT_FILE_HEADER;
+			}
 
 			static const char title[] = "Ines Database: warning, ";
 
-			const uint trainer = database->HasTrainer( handle ) ? TRAINER_LENGTH : 0;
-
-			if (info.pRom != pRom)
+			if (info.pRom != database->PrgSize(handle))
 			{
-				const ulong total = trainer + pRom;
+				const dword pRom = info.pRom;
+				info.pRom = database->PrgSize(handle);
 
-				log << title;
-
-				if (info.pRom > pRom || stream.Length() >= total)
-				{
-					log << "changed PRG-ROM size: "
-						<< (info.pRom / SIZE_1K)
-						<< "k to: "
-						<< (pRom / SIZE_1K)
-						<< "k" NST_LINEBREAK;
-
-					info.pRom = pRom;
-				}
-				else
-				{
-					log << "wanted to change PRG-ROM size: "
-						<< (info.pRom / SIZE_1K)
-						<< "k to: "
-						<< (pRom / SIZE_1K)
-						<< "k but couldn't" NST_LINEBREAK;
-				}
-
-				info.condition = Api::Cartridge::NO;
-
-				if (result == RESULT_OK)
-					result = RESULT_WARN_BAD_PROM;
+				log << title
+					<< "changed PRG-ROM size: "
+					<< (pRom / SIZE_1K)
+					<< "k to: "
+					<< (info.pRom / SIZE_1K)
+					<< "k" NST_LINEBREAK;
 			}
 
-			const dword cRom = database->cRomSize( handle );
-
-			if (info.cRom != cRom)
+			if (info.cRom != database->ChrSize(handle))
 			{
-				const ulong total = trainer + info.pRom + cRom;
+				const dword cRom = info.cRom;
+				info.cRom = database->ChrSize(handle);
 
 				log << title;
 
-				if (info.cRom > cRom || stream.Length() >= total)
+				if (chrSkip == SIZE_8K && info.cRom+chrSkip == cRom && database->GetSystem(handle) == Api::Cartridge::SYSTEM_PC10)
+				{
+					log << "ignored last 8k CHR-ROM" NST_LINEBREAK;
+				}
+				else
 				{
 					log << "changed CHR-ROM size: "
-						<< (info.cRom / SIZE_1K)
-						<< "k to: "
 						<< (cRom / SIZE_1K)
+						<< "k to: "
+						<< (info.cRom / SIZE_1K)
 						<< "k" NST_LINEBREAK;
-
-					info.cRom = cRom;
 				}
-				else
-				{
-					log << "wanted to change CHR-ROM size: "
-						<< (info.cRom / SIZE_1K)
-						<< "k to: "
-						<< (cRom / SIZE_1K)
-						<< "k but couldn't" NST_LINEBREAK;
-				}
-
-				info.condition = Api::Cartridge::NO;
-
-				if (result == RESULT_OK)
-					result = RESULT_WARN_BAD_CROM;
 			}
 
-			const dword wRam = database->wRamSize( handle );
-
-			if (info.wRam != wRam)
+			if (info.wRam < database->WrkSize(handle) || info.wRam > NST_MAX(1,database->WrkSize(handle)))
 			{
+				const dword wRam = info.wRam;
+				info.wRam = database->WrkSize(handle);
+
+				if (result == RESULT_OK && NST_MAX(1,wRam) != NST_MAX(1,info.wRam))
+					result = RESULT_WARN_INCORRECT_FILE_HEADER;
+
 				log << title
 					<< "changed WRAM size: "
-					<< (info.wRam / SIZE_1K)
-					<< "k to: "
 					<< (wRam / SIZE_1K)
+					<< "k to: "
+					<< (info.wRam / SIZE_1K)
 					<< "k" NST_LINEBREAK;
-
-				info.wRam = wRam;
 			}
 
-			const uint mapper = database->Mapper( handle );
-
-			if (info.mapper != mapper)
+			if (info.mapper != database->Mapper(handle))
 			{
+				const uint mapper = info.mapper;
+				info.mapper = database->Mapper(handle);
+
+				if (result == RESULT_OK)
+					result = RESULT_WARN_INCORRECT_FILE_HEADER;
+
 				log << title
 					<< "changed mapper "
-					<< info.mapper
-					<< " to "
 					<< mapper
+					<< " to "
+					<< info.mapper
 					<< NST_LINEBREAK;
-
-				info.mapper = mapper;
 			}
 
-			const bool battery = database->HasBattery( handle );
-
-			if (bool(info.battery) != battery)
+			if (bool(info.battery) != bool(database->HasBattery(handle)))
 			{
-				info.battery = battery;
-				log << title << (battery ? "enabled battery-backed RAM" NST_LINEBREAK : "ignored battery-backed RAM" NST_LINEBREAK);
+				if (result == RESULT_OK)
+					result = RESULT_WARN_INCORRECT_FILE_HEADER;
+
+				info.battery = bool(database->HasBattery(handle));
+				log << title << (info.battery ? "enabled battery-backed RAM" NST_LINEBREAK : "ignored battery-backed RAM" NST_LINEBREAK);
 			}
 
-			const Api::Cartridge::Mirroring mirroring = database->GetMirroring( handle );
-
-			if (info.mirroring != mirroring)
+			if (info.mirroring != database->GetMirroring(handle))
 			{
+				const Api::Cartridge::Mirroring mirroring = info.mirroring;
+				info.mirroring = database->GetMirroring(handle);
+
+				if (result == RESULT_OK)
+				{
+					switch (info.mirroring)
+					{
+						case Api::Cartridge::MIRROR_HORIZONTAL:
+						case Api::Cartridge::MIRROR_VERTICAL:
+						case Api::Cartridge::MIRROR_FOURSCREEN:
+
+							result = RESULT_WARN_INCORRECT_FILE_HEADER;
+							break;
+					}
+				}
+
 				NST_COMPILE_ASSERT
 				(
 					Api::Cartridge::MIRROR_HORIZONTAL < 6 &&
-					Api::Cartridge::MIRROR_VERTICAL < 6 &&
+					Api::Cartridge::MIRROR_VERTICAL   < 6 &&
 					Api::Cartridge::MIRROR_FOURSCREEN < 6 &&
-					Api::Cartridge::MIRROR_ZERO < 6 &&
-					Api::Cartridge::MIRROR_ONE < 6 &&
+					Api::Cartridge::MIRROR_ZERO       < 6 &&
+					Api::Cartridge::MIRROR_ONE        < 6 &&
 					Api::Cartridge::MIRROR_CONTROLLED < 6
 				);
 
@@ -343,21 +368,56 @@ namespace Nes
 
 				log << title
 					<< "changed "
-					<< types[info.mirroring]
-					<< " to "
 					<< types[mirroring]
+					<< " to "
+					<< types[info.mirroring]
 					<< NST_LINEBREAK;
-
-				info.mirroring = mirroring;
 			}
 
-			if (bool(info.trained) != bool(trainer))
+			if (bool(info.trained) != bool(database->HasTrainer(handle)))
 			{
-				info.trained = bool(trainer);
-				log << title << (trainer ? "enabled trainer" NST_LINEBREAK : "ignored trainer" NST_LINEBREAK);
+				if (result == RESULT_OK)
+					result = RESULT_WARN_INCORRECT_FILE_HEADER;
+
+				info.trained = bool(database->HasTrainer(handle));
+				log << title << (info.trained ? "enabled trainer" NST_LINEBREAK : "ignored trainer" NST_LINEBREAK);
 			}
 
-			info.system = database->GetSystem( handle );
+			if (info.system != database->GetSystem(handle))
+			{
+				const Api::Cartridge::System system = info.system;
+				info.system = database->GetSystem(handle);
+
+				if (result == RESULT_OK)
+				{
+					if (system != Api::Cartridge::SYSTEM_NTSC || (info.system != Api::Cartridge::SYSTEM_NTSC_PAL && info.system != Api::Cartridge::SYSTEM_PC10))
+						result = RESULT_WARN_INCORRECT_FILE_HEADER;
+				}
+
+				NST_COMPILE_ASSERT
+				(
+					Api::Cartridge::SYSTEM_NTSC     < 5 &&
+					Api::Cartridge::SYSTEM_PAL      < 5 &&
+					Api::Cartridge::SYSTEM_NTSC_PAL < 5 &&
+					Api::Cartridge::SYSTEM_VS       < 5 &&
+					Api::Cartridge::SYSTEM_PC10     < 5
+				);
+
+				cstring types[5];
+
+				types[ Api::Cartridge::SYSTEM_NTSC     ] = "NTSC";
+				types[ Api::Cartridge::SYSTEM_PAL      ] = "PAL";
+				types[ Api::Cartridge::SYSTEM_NTSC_PAL ] = "NTSC/PAL";
+				types[ Api::Cartridge::SYSTEM_VS       ] = "VS-System";
+				types[ Api::Cartridge::SYSTEM_PC10     ] = "Playchoice 10";
+
+				log << title
+					<< "changed "
+					<< types[system]
+					<< " to "
+					<< types[info.system]
+					<< NST_LINEBREAK;
+			}
 		}
 	}
 }

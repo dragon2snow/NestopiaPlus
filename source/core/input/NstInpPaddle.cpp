@@ -35,8 +35,8 @@ namespace Nes
 			#pragma optimize("s", on)
 			#endif
 
-			Paddle::Paddle(bool p)
-			: Device(Api::Input::PADDLE), expPort(p)
+			Paddle::Paddle(const Cpu& c,bool p)
+			: Device(c,Api::Input::PADDLE), expPort(p)
 			{
 				Paddle::Reset();
 			}
@@ -45,6 +45,8 @@ namespace Nes
 			{
 				stream[1] = stream[0] = 0;
 				shifter = 1;
+				x = 0;
+				button = 0;
 			}
 
 			void Paddle::SaveState(State::Saver& state,const uchar id) const
@@ -61,13 +63,6 @@ namespace Nes
 			#ifdef NST_PRAGMA_OPTIMIZE
 			#pragma optimize("", on)
 			#endif
-
-			void Paddle::BeginFrame(Controllers* i)
-			{
-				input = i;
-				x = 0;
-				button = 0;
-			}
 
 			uint Paddle::Peek(uint port)
 			{
@@ -92,7 +87,7 @@ namespace Nes
 			void Paddle::Poke(uint data)
 			{
 				const uint prev = shifter;
-				shifter = (data & 0x1) ^ 0x1;
+				shifter = ~data & 0x1;
 
 				if (prev < shifter)
 				{

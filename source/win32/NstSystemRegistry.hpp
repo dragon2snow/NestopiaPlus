@@ -33,7 +33,7 @@ namespace Nestopia
 {
 	namespace System
 	{
-		class Registry : Sealed
+		class Registry
 		{
 		public:
 

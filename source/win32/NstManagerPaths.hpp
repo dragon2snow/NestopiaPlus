@@ -30,7 +30,6 @@
 #include "language/resource.h"
 #include "NstObjectHeap.hpp"
 #include "NstCollectionBitSet.hpp"
-#include "NstCollectionVector.hpp"
 #include "NstManagerEmulator.hpp"
 
 namespace Nestopia

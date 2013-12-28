@@ -73,8 +73,8 @@ namespace Nestopia
 				: text(t), title(i), response(r), dialog(IDD_USER_INPUT)
 				{
 					dialog.Messages().Add( WM_INITDIALOG, this, &InputDialog::OnInitDialog );
-					dialog.Commands().Add( IDC_USER_INPUT_OK, this, &InputDialog::OnCmdOk );
-					dialog.Commands().Add( IDC_USER_INPUT_ABORT, this, &InputDialog::OnCmdAbort );
+					dialog.Commands().Add( IDOK, this, &InputDialog::OnCmdOk );
+					dialog.Commands().Add( IDABORT, this, &InputDialog::OnCmdAbort );
 				}
 
 				INT_PTR Open()
@@ -83,101 +83,75 @@ namespace Nestopia
 				}
 			};
 
-			enum
+			static int Present(tstring const text,tstring const title,const uint flags)
 			{
-				FLAGS = MB_TOPMOST|MB_SETFOREGROUND
-			};
-
-			void Fail(const uint textId,uint titleId)
-			{
-				Fail( Resource::String(textId), titleId );
-			}
-
-			void Fail(tstring const text,uint titleId)
-			{
-				if (titleId == 0)
-					titleId = IDS_TITLE_ERROR;
-
-				::MessageBox
+				return ::MessageBox
 				(
 					Application::Instance::GetActiveWindow(),
 					text,
-					Resource::String( titleId ),
-					FLAGS|MB_OK|MB_ICONERROR
+					title,
+					MB_TOPMOST|MB_SETFOREGROUND|flags
 				);
 			}
 
-			void Warn(const uint textId,uint titleId)
+			void Fail(tstring const text,tstring const title)
 			{
-				Warn( Resource::String(textId), titleId );
+				Present( text, title && *title ? title : _T("Nestopia Error"), MB_OK|MB_ICONERROR );
 			}
 
-			void Warn(tstring const text,uint titleId)
+			void Fail(tstring const text,const uint titleId)
 			{
-				if (titleId == 0)
-					titleId = IDS_TITLE_WARNING;
-
-				::MessageBox
-				(
-					Application::Instance::GetActiveWindow(),
-					text,
-					Resource::String( titleId ),
-					FLAGS|MB_OK|MB_ICONWARNING
-				);
+				Fail( text, Resource::String(titleId ? titleId : IDS_TITLE_ERROR).Ptr() );
 			}
 
-			void Inform(uint textId,uint titleId)
+			void Fail(const uint textId,const uint titleId)
 			{
-				Inform( Resource::String(textId), titleId );
+				Fail( Resource::String(textId).Ptr(), titleId );
 			}
 
-			void Inform(tstring const text,uint titleId)
+			void Warn(tstring const text,tstring const title)
 			{
-				if (titleId == 0)
-					titleId = IDS_TITLE_NESTOPIA;
-
-				::MessageBox
-				(
-					Application::Instance::GetActiveWindow(),
-					text,
-					Resource::String( titleId ),
-					FLAGS|MB_OK|MB_ICONINFORMATION
-				);
+				Present( text, title && *title ? title : _T("Nestopia Warning"), MB_OK|MB_ICONWARNING );
 			}
 
-			ibool Confirm(uint textId,uint titleId)
+			void Warn(tstring const text,const uint titleId)
+			{
+				Warn( text, Resource::String(titleId ? titleId : IDS_TITLE_WARNING).Ptr() );
+			}
+
+			void Warn(const uint textId,const uint titleId)
+			{
+				Warn( Resource::String(textId).Ptr(), titleId );
+			}
+
+			void Inform(tstring const text,tstring const title)
+			{
+				Present( text, title && *title ? title : _T("Nestopia"), MB_OK|MB_ICONINFORMATION );
+			}
+
+			void Inform(tstring const text,const uint titleId)
+			{
+				Inform( text, Resource::String(titleId ? titleId : IDS_TITLE_NESTOPIA).Ptr() );
+			}
+
+			void Inform(const uint textId,const uint titleId)
+			{
+				Inform( Resource::String(textId).Ptr(), titleId );
+			}
+
+			ibool Confirm(tstring const text,tstring const title)
+			{
+				return Present( text, title && *title ? title : _T("Nestopia"), MB_YESNO|MB_ICONQUESTION ) == IDYES;
+			}
+
+			ibool Confirm(tstring const text,const uint titleId)
+			{
+				return Confirm( text, Resource::String(titleId ? titleId : IDS_TITLE_NESTOPIA).Ptr() );
+			}
+
+			ibool Confirm(const uint textId,const uint titleId)
 			{
 				return Confirm( Resource::String(textId), titleId );
-			}
-
-			ibool Confirm(tstring const text,uint titleId)
-			{
-				if (titleId == 0)
-					titleId = IDS_TITLE_NESTOPIA;
-
-				const int ret = ::MessageBox
-				(
-					Application::Instance::GetActiveWindow(),
-					text,
-					Resource::String( titleId ),
-					FLAGS|MB_YESNO|MB_ICONQUESTION
-				);
-
-				return ret == IDYES;
-			}
-
-			ibool Issue(const Type type,const uint textId,const uint titleId)
-			{
-				NST_ASSERT( type == FAIL || type == WARN || type == INFORM || type == CONFIRM );
-
-				switch (type)
-				{
-					case FAIL:   Fail   ( textId, titleId ); return true;
-					case WARN:   Warn   ( textId, titleId ); return true;
-					case INFORM: Inform ( textId, titleId ); return true;
-				}
-
-				return Confirm( textId, titleId );
 			}
 
 			ibool Input (HeapString& response,tstring const text,tstring const title)

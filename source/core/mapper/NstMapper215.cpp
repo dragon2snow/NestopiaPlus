@@ -37,7 +37,7 @@ namespace Nes
 		Mapper215::Mapper215(Context& c)
 		:
 		Mmc3  (c,WRAM_NONE),
-		patch (c.pRomCrc == 0x7374EF2DUL) // Boogerman
+		patch (c.prgCrc == 0x7374EF2DUL) // Boogerman
 		{}
 
 		void Mapper215::SubReset(const bool hard)

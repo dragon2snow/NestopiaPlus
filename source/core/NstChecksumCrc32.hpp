@@ -43,12 +43,9 @@ namespace Nes
 		{
 			namespace Crc32
 			{
-				dword Iterate(const void*,ulong,dword);
-				dword Iterate(Stream::In&,ulong,dword);
-
-				dword Compute(const void*,ulong);
-				dword Compute(Stream::In&);
-				dword Compute(Stream::In&,ulong);
+				dword Compute(const void*,ulong,dword=0);
+				dword Compute(Stream::In&,dword=0);
+				dword Compute(Stream::In&,ulong,dword=0);
 			}
 		}
 	}

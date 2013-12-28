@@ -34,7 +34,7 @@ namespace Nestopia
 {
 	namespace Resource
 	{
-		class Icon : Sealed
+		class Icon
 		{
 			HICON const handle;
 

@@ -28,6 +28,7 @@
 #pragma once
 
 #include "NstCtrlStandard.hpp"
+#include "NstString.hpp"
 
 namespace Nestopia
 {
@@ -143,7 +144,7 @@ namespace Nestopia
 					void  Select(ibool=true) const;
 					void  Show() const;
 					void  Check(ibool=true) const;
-					ibool IsChecked() const;
+					ibool Checked() const;
 
 					uint GetIndex() const
 					{

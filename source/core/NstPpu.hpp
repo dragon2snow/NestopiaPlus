@@ -33,7 +33,8 @@
 #include "NstIoAccessor.hpp"
 #include "NstIoLine.hpp"
 #include "NstHook.hpp"
-#include "NstChip.hpp"
+#include "NstMemory.hpp"
+#include "NstVideoScreen.hpp"
 
 namespace Nes
 {
@@ -51,17 +52,7 @@ namespace Nes
 		{
 		public:
 
-			enum
-			{
-				WIDTH = 256,
-				HEIGHT = 240,
-				SCREEN = dword(WIDTH) * HEIGHT
-			};
-
-			typedef u16 (&Screen)[SCREEN];
-
-			Ppu(Cpu&,Screen);
-			~Ppu();
+			Ppu(Cpu&);
 
 			enum Mirroring
 			{
@@ -106,16 +97,26 @@ namespace Nes
 			};
 
 			void Reset(bool=false);
+			void ClearScreen();
+			void BeginFrame(ibool);
+			void Update();
+			void EndFrame();
+
 			void SetMode(Mode);
 			void SetMirroring(uint);
 			void SetMirroring(const uchar (&)[4]);
 			void SetYuvMap(const u8*,bool);
-			void BeginFrame(bool);
-			void EndFrame();
-			void Update();
+			void SetBgHook(const Hook&);
+			void SetSpHook(const Hook&);
+
 			void EnableCpuSynchronization();
+
 			void LoadState(State::Loader&);
 			void SaveState(State::Saver&) const;
+
+			void  EnableUnlimSprites(ibool);
+			ibool AreUnlimSpritesEnabled() const;
+			void  EnableEmphasis(ibool);
 
 			class ChrMem : public Memory<SIZE_8K,SIZE_1K,2>
 			{
@@ -123,7 +124,7 @@ namespace Nes
 
 				NES_DECL_ACCESSOR( Pattern )
 
-				inline uint FetchPattern(uint) const;
+				NST_FORCE_INLINE uint FetchPattern(uint) const;
 
 				Io::Accessor accessors[2];
 
@@ -162,8 +163,8 @@ namespace Nes
 				NES_DECL_ACCESSOR( Name_2800 )
 				NES_DECL_ACCESSOR( Name_2C00 )
 
-				inline uint FetchName(uint) const;
-				inline uint FetchAttribute(uint) const;
+				NST_FORCE_INLINE uint FetchName(uint) const;
+				NST_FORCE_INLINE uint FetchAttribute(uint) const;
 
 				Io::Accessor accessors[4][2];
 
@@ -210,14 +211,14 @@ namespace Nes
 
 		private:
 
+			typedef void (Ppu::*Phase)();
+
 			enum
 			{
 				WARM_UP_FRAMES = 2,
 				SCANLINE_HDUMMY = -1,
 				SCANLINE_VBLANK = 255
 			};
-
-			typedef void (Ppu::*Phase)();
 
 			NES_DECL_POKE( 2000 )
 			NES_DECL_PEEK( 2002 )
@@ -234,18 +235,19 @@ namespace Nes
 			NES_DECL_PEEK( 4014 )
 			NES_DECL_POKE( 4014 )
 
-			NES_DECL_HOOK( Synchronize )
-			NES_DECL_HOOK( Null )
+			NES_DECL_HOOK( Sync )
+			NES_DECL_HOOK( Nop )
 
 			inline bool IsDead() const;
-			inline uint FetchName() const;
-			inline uint FetchAttribute() const;
 			inline void UpdateScrollAddress(uint);
 
+			NST_FORCE_INLINE uint FetchName() const;
+			NST_FORCE_INLINE uint FetchAttribute() const;
+			NST_FORCE_INLINE void EvaluateSprites();
+
 			void UpdateStates();
-			void EvaluateSpritesAndRenderPixel();
 			void LoadSprite();
-			void RenderPixel();
+			NST_FORCE_INLINE void RenderPixel();
 
 			void WarmUp();
 			void VBlankIn();
@@ -371,7 +373,7 @@ namespace Nes
 
 			struct Tiles
 			{
-				void Load();
+				NST_FORCE_INLINE void Load();
 
 				u8 pattern[2];
 				u8 attribute;
@@ -391,17 +393,15 @@ namespace Nes
 
 			struct Output
 			{
-				Output(Screen);
-
-				void ClearScreen();
+				Output(Video::Screen::Pixels&);
 
 				uint index;
 				uint emphasis;
 				uint coloring;
-				u16* pixels;
+				u16* target;
 				uint next;
 				uint emphasisMask;
-				u16 (*screen)[SCREEN];
+				u16* pixels;
 				uint burstPhase;
 
 				static u16 dummy[4];
@@ -515,6 +515,7 @@ namespace Nes
 			Oam oam;
 			NameTable nameTable;
 			u8 yuvMap[Palette::COLORS];
+			Video::Screen screen;
 
 			static void LogMsg(cstring,uint,uint);
 
@@ -532,7 +533,7 @@ namespace Nes
 
 			bool IsActive() const
 			{
-				return io.enabled && scanline < HEIGHT;
+				return io.enabled && scanline < Video::Screen::HEIGHT;
 			}
 
 			int GetScanline() const
@@ -548,26 +549,6 @@ namespace Nes
 			uint GetCtrl1(uint flags) const
 			{
 				return regs.ctrl1 & flags;
-			}
-
-			void SetBgHook(const Hook& hook)
-			{
-				bgHook = hook;
-			}
-
-			void SetSpHook(const Hook& hook)
-			{
-				spHook = hook;
-			}
-
-			void RemoveBgHook()
-			{
-				bgHook = Hook( this, &Ppu::Hook_Null );
-			}
-
-			void RemoveSpHook()
-			{
-				spHook = Hook( this, &Ppu::Hook_Null );
 			}
 
 			template<typename A,typename B>
@@ -586,26 +567,26 @@ namespace Nes
 				return io.a12.InUse();
 			}
 
-			void SetScreen(Screen screen)
+			Video::Screen& GetScreen()
 			{
-				output.screen = &screen;
+				return screen;
 			}
 
-			Screen GetScreen() const
+			u16* GetOutputPixels()
 			{
-				return *output.screen;
+				return output.pixels;
 			}
 
-			uint GetPixel(dword i) const
+			void SetOutputPixels(u16* pixels)
 			{
-				NST_ASSERT( i < SCREEN );
-				return (*output.screen)[i];
+				NST_ASSERT( pixels );
+				output.pixels = pixels;
 			}
 
 			uint GetYuvPixel(uint i) const
 			{
-				NST_ASSERT( i < SCREEN );
-				return yuvMap[(*output.screen)[i] & 0x3F];
+				NST_ASSERT( i < Video::Screen::PIXELS );
+				return yuvMap[output.pixels[i] & 0x3F];
 			}
 
 			uint GetPixelCycles() const
@@ -623,26 +604,6 @@ namespace Nes
 				return nmtMem;
 			}
 
-			void EnableUnlimSprites(bool state)
-			{
-				oam.limit = oam.buffer + (state ? Oam::MAX_LINE_SPRITES : Oam::STD_LINE_SPRITES);
-			}
-
-			bool AreUnlimSpritesEnabled() const
-			{
-				return oam.limit == (oam.buffer + Oam::MAX_LINE_SPRITES);
-			}
-
-			void EnableEmphasis(bool enable)
-			{
-				output.emphasisMask = (enable ? Regs::CTRL1_BG_COLOR : 0);
-			}
-
-			Cycle GetCycles() const
-			{
-				return cycles.count;
-			}
-
 			Cycle GetOneCycle() const
 			{
 				return cycles.one;
@@ -653,12 +614,7 @@ namespace Nes
 				return scroll.address;
 			}
 
-			void ClearScreen()
-			{
-				output.ClearScreen();
-			}
-
-			bool IsShortFrame() const
+			ibool IsShortFrame() const
 			{
 				return regs.ctrl1 & regs.frame;
 			}

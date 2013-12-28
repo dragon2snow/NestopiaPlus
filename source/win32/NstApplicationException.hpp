@@ -27,7 +27,6 @@
 
 #pragma once
 
-#include <cstdlib>
 #include "NstMain.hpp"
 
 namespace Nestopia
@@ -36,56 +35,23 @@ namespace Nestopia
 	{
 		class Exception
 		{
-		public:
-
-			enum Type
-			{
-				CRITICAL,
-				WARNING,
-				UNSTABLE
-			};
-
-			enum Place
-			{
-				PRESENT,
-				FINAL
-			};
-
-			enum ExitCode
-			{
-				QUIT_SUCCESS = EXIT_SUCCESS,
-				QUIT_FAILURE = EXIT_FAILURE
-			};
-
-			void Issue(Place=PRESENT) const;
-			tstring GetMessageText() const;
-
-		private:
-
-			class Message;
-
-			enum
-			{
-				NO_ID = INT_MAX,
-				MAX_MSG_LENGTH = 1024
-			};
-
-			const uint msgId;
 			tstring const msg;
-			const Type type;
+			const uint id;
 
 		public:
 
-			explicit Exception(uint i,Type t=CRITICAL)
-			: msgId(i), msg(NULL), type(t) {}
+			Exception(tstring string)
+			: msg(string), id(0) {}
 
-			explicit Exception(tstring m,Type t=CRITICAL)
-			: msgId(NO_ID), msg(m), type(t) {}
+			Exception(uint i=0)
+			: msg(NULL), id(i) {}
 
-			Type GetType() const
+			tstring GetMsg() const
 			{
-				return type;
+				return msg;
 			}
+
+			int Issue() const;
 		};
 	}
 }

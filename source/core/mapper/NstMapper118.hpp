@@ -38,7 +38,7 @@ namespace Nes
 		public:
 
 			Mapper118(Context& c)
-			: Mmc3(c) {}
+			: Mmc3(c,WRAM_AUTO,REV_A) {}
 
 		private:
 

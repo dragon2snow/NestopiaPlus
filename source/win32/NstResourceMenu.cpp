@@ -22,46 +22,47 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstApplicationInstance.hpp"
 #include "NstResourceMenu.hpp"
+#include "NstApplicationLanguage.hpp"
 
 namespace Nestopia
 {
-	using Resource::Menu;
-
-	Menu::Menu(const uint id)
-	: handle(::LoadMenu(Application::Instance::GetResourceHandle(),MAKEINTRESOURCE(id)))
+	namespace Resource
 	{
-		if (handle)
-			Instance::Events::Add( this, &Menu::OnAppEvent );
-	}
-
-	void Menu::RemoveFrom(HWND const hWnd) const
-	{
-		NST_ASSERT( handle );
-
-		if (hWnd && handle == ::GetMenu( hWnd ))
-			::SetMenu( hWnd, NULL );
-	}
-
-	Menu::~Menu()
-	{
-		if (handle)
+		Menu::Menu(const uint id)
+		: handle(::LoadMenu(Application::Instance::GetLanguage().GetResourceHandle(),MAKEINTRESOURCE(id)))
 		{
-			Instance::Events::Remove( this );
-
-			RemoveFrom( Instance::GetMainWindow() );
-
-			for (uint i=Instance::NumChildWindows(); i--; )
-				RemoveFrom( Instance::GetChildWindow( i ) );
-
-			::DestroyMenu( handle );
+			if (handle)
+				Instance::Events::Add( this, &Menu::OnAppEvent );
 		}
-	}
 
-	void Menu::OnAppEvent(Instance::Event event,const void* param)
-	{
-		if (event == Instance::EVENT_WINDOW_DESTROY && handle)
-			RemoveFrom( static_cast<const Instance::Events::WindowDestroyParam*>(param)->hWnd );
+		void Menu::RemoveFrom(HWND const hWnd) const
+		{
+			NST_ASSERT( handle );
+
+			if (hWnd && handle == ::GetMenu( hWnd ))
+				::SetMenu( hWnd, NULL );
+		}
+
+		Menu::~Menu()
+		{
+			if (handle)
+			{
+				Instance::Events::Remove( this );
+
+				RemoveFrom( Instance::GetMainWindow() );
+
+				for (uint i=Instance::NumChildWindows(); i--; )
+					RemoveFrom( Instance::GetChildWindow( i ) );
+
+				::DestroyMenu( handle );
+			}
+		}
+
+		void Menu::OnAppEvent(Instance::Event event,const void* param)
+		{
+			if (event == Instance::EVENT_WINDOW_DESTROY && handle)
+				RemoveFrom( static_cast<const Instance::Events::WindowDestroyParam*>(param)->hWnd );
+		}
 	}
 }

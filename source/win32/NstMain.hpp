@@ -30,12 +30,6 @@
 #include "../core/NstTypes.hpp"
 #include <tchar.h>
 
-#ifdef UNICODE
-#include <cwchar>
-#elif defined(_MBCS)
-#error Multibyte characters not supported!
-#endif
-
 #ifdef _MSC_VER
 
  #ifdef __INTEL_COMPILER
@@ -146,22 +140,24 @@ namespace Nestopia
 	typedef const wchar_t* wstring;
 	typedef const TCHAR* tstring;
 
-	namespace Application
-	{
-		class Configuration;
-	}
-
 	namespace Collection
 	{
 		template<typename> class Vector;
 		typedef Vector<char> Buffer;
 	}
 
+	namespace Application
+	{
+		class Configuration;
+	}
+
 	namespace Managers
 	{
-		class Emulator;
-		class Paths;
+		using Application::Configuration;
+	}
 
+	namespace Window
+	{
 		using Application::Configuration;
 	}
 
@@ -185,17 +181,6 @@ namespace Nestopia
 	template<> struct ConstParam< uint   > { typedef const uint   Type; };
 	template<> struct ConstParam< long   > { typedef const long   Type; };
 	template<> struct ConstParam< ulong  > { typedef const ulong  Type; };
-
-	class Sealed
-	{
-		Sealed(const Sealed&) {}
-		void operator = (const Sealed&) {}
-
-	protected:
-
-		Sealed() {}
-		~Sealed() {}
-	};
 
 	enum
 	{

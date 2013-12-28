@@ -36,3 +36,10 @@ Custom     ( owner, msgArray ),
 cmdHandler ( owner, cmdArray ),
 id         ( i )
 {}
+
+template<typename Owner,typename Msg>
+Dialog::Dialog(uint i,uint mid,Owner* owner,Msg msg)
+:
+Custom ( mid, owner, msg ),
+id     ( i )
+{}

@@ -36,9 +36,6 @@ namespace Nes
 {
 	namespace Core
 	{
-		class Cpu;
-		class Ppu;
-
 		namespace Clock
 		{
 			template<typename Unit,uint Divider=1U>
@@ -62,7 +59,7 @@ namespace Nes
 				void Reset(bool,bool);
 				void VSync();
 
-			private:
+			protected:
 
 				NES_DECL_HOOK( Signaled )
 
@@ -206,7 +203,7 @@ namespace Nes
 						ppu.DisconnectA12();
 				}
 
-				bool IsLineEnabled() const
+				ibool IsLineEnabled() const
 				{
 					return ppu.IsA12Connected();
 				}

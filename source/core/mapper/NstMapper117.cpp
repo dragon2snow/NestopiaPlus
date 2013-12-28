@@ -51,21 +51,22 @@ namespace Nes
 		{
 			irq.Reset( true, true );
 
-			Map( 0x8000U, PRG_SWAP_8K_0 );
-			Map( 0x8001U, PRG_SWAP_8K_1 );
-			Map( 0x8002U, PRG_SWAP_8K_2 );
-			Map( 0x8003U, PRG_SWAP_8K_3 );
-			Map( 0xA000U, CHR_SWAP_1K_0 );
-			Map( 0xA001U, CHR_SWAP_1K_1 );
-			Map( 0xA002U, CHR_SWAP_1K_2 );
-			Map( 0xA003U, CHR_SWAP_1K_3 );
-			Map( 0xA004U, CHR_SWAP_1K_4 );
-			Map( 0xA005U, CHR_SWAP_1K_5 );
-			Map( 0xA006U, CHR_SWAP_1K_6 );
-			Map( 0xA007U, CHR_SWAP_1K_7 );
+			Map( 0x8000U, PRG_SWAP_8K_0         );
+			Map( 0x8001U, PRG_SWAP_8K_1         );
+			Map( 0x8002U, PRG_SWAP_8K_2         );
+			Map( 0x8003U, PRG_SWAP_8K_3         );
+			Map( 0xA000U, CHR_SWAP_1K_0         );
+			Map( 0xA001U, CHR_SWAP_1K_1         );
+			Map( 0xA002U, CHR_SWAP_1K_2         );
+			Map( 0xA003U, CHR_SWAP_1K_3         );
+			Map( 0xA004U, CHR_SWAP_1K_4         );
+			Map( 0xA005U, CHR_SWAP_1K_5         );
+			Map( 0xA006U, CHR_SWAP_1K_6         );
+			Map( 0xA007U, CHR_SWAP_1K_7         );
 			Map( 0xC001U, &Mapper117::Poke_C001 );
 			Map( 0xC002U, &Mapper117::Poke_C002 );
 			Map( 0xC003U, &Mapper117::Poke_C003 );
+			Map( 0xD000U, NMT_SWAP_HV           );
 			Map( 0xE000U, &Mapper117::Poke_E000 );
 		}
 

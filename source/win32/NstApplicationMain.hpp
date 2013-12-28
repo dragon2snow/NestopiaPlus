@@ -27,12 +27,11 @@
 
 #pragma once
 
-#include "NstObjectHeap.hpp"
 #include "NstApplicationInstance.hpp"
 #include "NstManagerEmulator.hpp"
 #include "NstManagerLogfile.hpp"
-#include "NstManagerPreferences.hpp"
 #include "NstManagerPaths.hpp"
+#include "NstManagerPreferences.hpp"
 #include "NstManagerLauncher.hpp"
 #include "NstManagerMachine.hpp"
 #include "NstManagerNetplay.hpp"
@@ -72,23 +71,23 @@ namespace Nestopia
 			void Exit();
 
 			ibool FirstUnloadOnExit();
-			ibool IsOkToExit() const;
+			ibool OkToExit() const;
 
 			ibool OnWinClose           (Window::Param&);
 			ibool OnWinQueryEndSession (Window::Param&);
 
 			void OnCmdFileExit(uint);
 
-			Instance instance;
 			Managers::Emulator emulator;
+			Instance instance;
 			Window::Menu menu;
 			const Managers::Preferences preferences;
 			const Managers::Logfile logfile;
 			const Managers::Language language;
 			const Managers::Paths paths;
+			Window::Main window;
 			const Managers::RecentFiles recentFiles;
 			const Managers::RecentDirs recentDirs;
-			Window::Main window;
 			const Managers::Machine machine;
 			const Managers::Netplay netplay;
 			const Managers::Launcher launcher;

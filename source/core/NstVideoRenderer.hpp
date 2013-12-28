@@ -29,6 +29,9 @@
 #pragma once
 #endif
 
+#include "api/NstApiVideo.hpp"
+#include "NstVideoScreen.hpp"
+
 namespace Nes
 {
 	namespace Core
@@ -39,6 +42,7 @@ namespace Nes
 			{
 				typedef Api::Video::RenderState RenderState;
 				typedef Api::Video::Decoder Decoder;
+				typedef Screen Input;
 
 			public:
 
@@ -58,36 +62,34 @@ namespace Nes
 
 				enum
 				{
-					WIDTH = 256,
-					HEIGHT = 240,
-					PIXELS = dword(WIDTH) * HEIGHT,
-					PALETTE = 64 * 8,
+					WIDTH = Input::WIDTH,
+					HEIGHT = Input::HEIGHT,
+					PIXELS = Input::PIXELS,
+					PALETTE = Input::PALETTE,
 					DEFAULT_PALETTE = PALETTE_YUV
 				};
 
 				Result SetState(const RenderState&);
 				Result GetState(RenderState&) const;
 				Result SetHue(int);
-				void Blit(Output&,uint=1);
+				void Blit(Output&,Input&,uint=1);
 
 				void SetMode(Mode);
 				Result SetDecoder(const Decoder&);
 
 				Result SetPaletteType(PaletteType);
-				Result LoadCustomPalette(const u8 (*)[3]);
+				Result LoadCustomPalette(const u8 (*)[3],bool);
 				void   ResetCustomPalette();
 
 				void EnableFieldMerging(bool);
 
 				typedef u8 PaletteEntries[PALETTE][3];
-				typedef u16 Screen[PIXELS];
 
 				const PaletteEntries& GetPalette();
 
 			private:
 
-				void UpdateFilter();
-				Result SetLevel(i8&,int);
+				void UpdateFilter(Input&);
 
 				class Palette
 				{
@@ -97,7 +99,8 @@ namespace Nes
 					~Palette();
 
 					Result SetType(PaletteType);
-					Result LoadCustom(const u8 (*)[3]);
+					Result LoadCustom(const u8 (*)[3],bool);
+					uint   SaveCustom(u8 (*)[3],bool) const;
 					bool   ResetCustom();
 					void   Update(int,int,int,int);
 					Result SetDecoder(const Decoder&);
@@ -108,7 +111,13 @@ namespace Nes
 
 					struct Custom
 					{
+						inline Custom();
+						inline ~Custom();
+
+						bool EnableEmphasis(bool);
+
 						u8 palette[64][3];
+						u8 (*emphasis)[64][3];
 					};
 
 					void Generate(int,int,int,int);
@@ -137,12 +146,11 @@ namespace Nes
 					{
 						return decoder;
 					}
-				};
 
-				struct Input
-				{
-					u16 screen[PIXELS];
-					u32 palette[PALETTE];
+					bool HasCustomEmphasis() const
+					{
+						return custom && custom->emphasis;
+					}
 				};
 
 				class FilterNone;
@@ -189,7 +197,6 @@ namespace Nes
 
 					virtual void Blit(const Input&,const Output&,uint) = 0;
 					virtual void Transform(const u8 (&)[PALETTE][3],u32 (&)[PALETTE]) const;
-					virtual bool CanTransform() const { return true; }
 
 					const uint bpp;
 					const Format format;
@@ -203,6 +210,7 @@ namespace Nes
 					{
 						UPDATE_PALETTE = 0x1,
 						UPDATE_FILTER = 0x2,
+						UPDATE_NTSC = 0x4,
 						FIELD_MERGING_USER = 0x1,
 						FIELD_MERGING_PAL = 0x2
 					};
@@ -225,9 +233,10 @@ namespace Nes
 					RenderState::Bits::Mask mask;
 				};
 
+				Result SetLevel(i8&,int,uint=State::UPDATE_PALETTE|State::UPDATE_FILTER);
+
 				Filter* filter;
 				State state;
-				Input input;
 				Palette palette;
 				Decoder decoder;
 
@@ -250,27 +259,27 @@ namespace Nes
 
 				Result SetSharpness(int sharpness)
 				{
-					return SetLevel( state.sharpness, sharpness );
+					return SetLevel( state.sharpness, sharpness, State::UPDATE_NTSC );
 				}
 
 				Result SetColorResolution(int resolution)
 				{
-					return SetLevel( state.resolution, resolution );
+					return SetLevel( state.resolution, resolution, State::UPDATE_NTSC );
 				}
 
 				Result SetColorBleed(int bleed)
 				{
-					return SetLevel( state.bleed, bleed );
+					return SetLevel( state.bleed, bleed, State::UPDATE_NTSC );
 				}
 
 				Result SetColorArtifacts(int artifacts)
 				{
-					return SetLevel( state.artifacts, artifacts );
+					return SetLevel( state.artifacts, artifacts, State::UPDATE_NTSC );
 				}
 
 				Result SetColorFringing(int fringing)
 				{
-					return SetLevel( state.fringing, fringing );
+					return SetLevel( state.fringing, fringing, State::UPDATE_NTSC );
 				}
 
 				int GetBrightness() const
@@ -328,14 +337,19 @@ namespace Nes
 					return palette.GetType();
 				}
 
+				bool HasCustomPaletteEmphasis() const
+				{
+					return palette.HasCustomEmphasis();
+				}
+
+				uint SaveCustomPalette(u8 (*colors)[3],bool emphasis) const
+				{
+					return palette.SaveCustom( colors, emphasis );
+				}
+
 				const Decoder& GetDecoder() const
 				{
 					return palette.GetDecoder();
-				}
-
-				Screen& GetScreen()
-				{
-					return input.screen;
 				}
 
 				bool IsReady() const

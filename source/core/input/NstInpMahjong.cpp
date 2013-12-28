@@ -35,8 +35,8 @@ namespace Nes
 			#pragma optimize("s", on)
 			#endif
 
-			Mahjong::Mahjong()
-			: Device(Api::Input::MAHJONG)
+			Mahjong::Mahjong(const Cpu& c)
+			: Device(c,Api::Input::MAHJONG)
 			{
 				Mahjong::Reset();
 			}
@@ -59,10 +59,15 @@ namespace Nes
 			{
 				data &= PART;
 
-				if (data && input && Controllers::Mahjong::callback( input->mahjong, data ))
+				if (data && input)
+				{
+					Controllers::Mahjong::callback( input->mahjong, data );
 					stream = input->mahjong.buttons << 1;
+				}
 				else
+				{
 					stream = 0;
+				}
 			}
 
 			uint Mahjong::Peek(uint port)

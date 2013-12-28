@@ -34,7 +34,7 @@ namespace Nestopia
 {
 	namespace Resource
 	{
-		class Bitmap : Sealed
+		class Bitmap
 		{
 			HBITMAP const handle;
 

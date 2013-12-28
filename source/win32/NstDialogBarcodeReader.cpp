@@ -27,78 +27,79 @@
 
 namespace Nestopia
 {
-	using namespace Window;
-
-	struct BarcodeReader::Handlers
+	namespace Window
 	{
-		static const MsgHandler::Entry<BarcodeReader> messages[];
-		static const MsgHandler::Entry<BarcodeReader> commands[];
-	};
-
-	const MsgHandler::Entry<BarcodeReader> BarcodeReader::Handlers::messages[] =
-	{
-		{ WM_INITDIALOG, &BarcodeReader::OnInitDialog }
-	};
-
-	const MsgHandler::Entry<BarcodeReader> BarcodeReader::Handlers::commands[] =
-	{
-		{ IDC_BARCODE_TRANSFER, &BarcodeReader::OnCmdTransfer },
-		{ IDC_BARCODE_RANDOM,   &BarcodeReader::OnCmdRandom   },
-		{ IDC_BARCODE_DIGITS,   &BarcodeReader::OnCmdDigits   }
-	};
-
-	BarcodeReader::BarcodeReader(Managers::Emulator& emulator,String::Heap<char>& string)
-	:
-	dialog        (IDD_BARCODE,this,Handlers::messages,Handlers::commands),
-	barcodeReader (emulator),
-	code          (string)
-	{
-	}
-
-	ibool BarcodeReader::OnInitDialog(Param&)
-	{
-		Control::Edit edit( dialog.Edit(IDC_BARCODE_DIGITS) );
-
-		edit.Limit( Nes::BarcodeReader::MAX_DIGITS );
-
-		if (code.Length())
-			edit << code.Ptr();
-
-		return true;
-	}
-
-	ibool BarcodeReader::OnCmdDigits(Param& param)
-	{
-		if (param.Edit().Changed())
+		struct BarcodeReader::Handlers
 		{
-			dialog.Edit( IDC_BARCODE_DIGITS ) >> code;
-			dialog.Control( IDC_BARCODE_TRANSFER ).Enable( barcodeReader.IsDigitsSupported( code.Length() ) );
+			static const MsgHandler::Entry<BarcodeReader> messages[];
+			static const MsgHandler::Entry<BarcodeReader> commands[];
+		};
+
+		const MsgHandler::Entry<BarcodeReader> BarcodeReader::Handlers::messages[] =
+		{
+			{ WM_INITDIALOG, &BarcodeReader::OnInitDialog }
+		};
+
+		const MsgHandler::Entry<BarcodeReader> BarcodeReader::Handlers::commands[] =
+		{
+			{ IDC_BARCODE_TRANSFER, &BarcodeReader::OnCmdTransfer },
+			{ IDC_BARCODE_RANDOM,   &BarcodeReader::OnCmdRandom   },
+			{ IDC_BARCODE_DIGITS,   &BarcodeReader::OnCmdDigits   }
+		};
+
+		BarcodeReader::BarcodeReader(Managers::Emulator& emulator,String::Heap<char>& string)
+		:
+		dialog        (IDD_BARCODE,this,Handlers::messages,Handlers::commands),
+		barcodeReader (emulator),
+		code          (string)
+		{
 		}
 
-		return true;
-	}
-
-	ibool BarcodeReader::OnCmdRandom(Param& param)
-	{
-		if (param.Button().IsClicked())
+		ibool BarcodeReader::OnInitDialog(Param&)
 		{
-			char string[Nes::BarcodeReader::MAX_DIGITS+1];
+			Control::Edit edit( dialog.Edit(IDC_BARCODE_DIGITS) );
 
-			if (barcodeReader.Randomize( string ))
-				dialog.Edit( IDC_BARCODE_DIGITS ) << string;
+			edit.Limit( Nes::BarcodeReader::MAX_DIGITS );
+
+			if (code.Length())
+				edit << code.Ptr();
+
+			return true;
 		}
 
-		return true;
-	}
-
-	ibool BarcodeReader::OnCmdTransfer(Param& param)
-	{
-		if (param.Button().IsClicked())
+		ibool BarcodeReader::OnCmdDigits(Param& param)
 		{
-			barcodeReader.Transfer( code.Ptr(), code.Length() );
-			dialog.Close();
+			if (param.Edit().Changed())
+			{
+				dialog.Edit( IDC_BARCODE_DIGITS ) >> code;
+				dialog.Control( IDC_BARCODE_TRANSFER ).Enable( barcodeReader.IsDigitsSupported( code.Length() ) );
+			}
+
+			return true;
 		}
 
-		return true;
+		ibool BarcodeReader::OnCmdRandom(Param& param)
+		{
+			if (param.Button().Clicked())
+			{
+				char string[Nes::BarcodeReader::MAX_DIGITS+1];
+
+				if (barcodeReader.Randomize( string ))
+					dialog.Edit( IDC_BARCODE_DIGITS ) << string;
+			}
+
+			return true;
+		}
+
+		ibool BarcodeReader::OnCmdTransfer(Param& param)
+		{
+			if (param.Button().Clicked())
+			{
+				barcodeReader.Transfer( code.Ptr(), code.Length() );
+				dialog.Close();
+			}
+
+			return true;
+		}
 	}
 }

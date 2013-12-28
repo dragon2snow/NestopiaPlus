@@ -26,73 +26,74 @@
 
 namespace Nestopia
 {
-	using System::Guid;
-
-	Guid::Guid(const GenericString& string)
+	namespace System
 	{
-		FromString( string );
-	}
-
-	Guid::Name Guid::GetString() const
-	{
-		return
-		(
-			Name() << HexString( ( u32 ) Data1,    true ) << '-'
-                   << HexString( ( u16 ) Data2,    true ) << '-'
-                   << HexString( ( u16 ) Data3,    true ) << '-'
-                   << HexString( ( u8  ) Data4[0], true )
-                   << HexString( ( u8  ) Data4[1], true ) << '-'
-                   << HexString( ( u8  ) Data4[2], true )
-                   << HexString( ( u8  ) Data4[3], true )
-                   << HexString( ( u8  ) Data4[4], true )
-                   << HexString( ( u8  ) Data4[5], true )
-                   << HexString( ( u8  ) Data4[6], true )
-                   << HexString( ( u8  ) Data4[7], true )
-		);
-	}
-
-	ulong Guid::ConvertData(const GenericString slice)
-	{
-		uint value;
-
-		if (!((String::Stack<2+8>(_T("0x")) << slice) >> value))
-			throw ERR_INVALID_STRING;
-
-		return value;
-	}
-
-	void Guid::FromString(const GenericString text)
-	{
-		if (text.Length() == STRING_LENGTH)
+		Guid::Guid(const GenericString& string)
 		{
-			try
+			FromString( string );
+		}
+
+		Guid::Name Guid::GetString() const
+		{
+			return
+			(
+				Name() << HexString( ( u32 ) Data1,    true ) << '-'
+                       << HexString( ( u16 ) Data2,    true ) << '-'
+                       << HexString( ( u16 ) Data3,    true ) << '-'
+                       << HexString( ( u8  ) Data4[0], true )
+                       << HexString( ( u8  ) Data4[1], true ) << '-'
+                       << HexString( ( u8  ) Data4[2], true )
+                       << HexString( ( u8  ) Data4[3], true )
+                       << HexString( ( u8  ) Data4[4], true )
+                       << HexString( ( u8  ) Data4[5], true )
+                       << HexString( ( u8  ) Data4[6], true )
+                       << HexString( ( u8  ) Data4[7], true )
+			);
+		}
+
+		ulong Guid::ConvertData(const GenericString slice)
+		{
+			uint value;
+
+			if (!((String::Stack<2+8>(_T("0x")) << slice) >> value))
+				throw ERR_INVALID_STRING;
+
+			return value;
+		}
+
+		void Guid::FromString(const GenericString text)
+		{
+			if (text.Length() == STRING_LENGTH)
 			{
-				if
-				(
-					text[8] != '-' ||
-					text[13] != '-' ||
-					text[18] != '-' ||
-					text[23] != '-'
-				)
-					throw ERR_INVALID_STRING;
+				try
+				{
+					if
+					(
+						text[8] != '-' ||
+						text[13] != '-' ||
+						text[18] != '-' ||
+						text[23] != '-'
+					)
+						throw ERR_INVALID_STRING;
 
-				Data1    = ( u32 ) ConvertData( text(  0, 8 ) );
-				Data2    = ( u16 ) ConvertData( text(  9, 4 ) );
-				Data3    = ( u16 ) ConvertData( text( 14, 4 ) );
-				Data4[0] = ( u8  ) ConvertData( text( 19, 2 ) );
-				Data4[1] = ( u8  ) ConvertData( text( 21, 2 ) );
+					Data1    = ( u32 ) ConvertData( text(  0, 8 ) );
+					Data2    = ( u16 ) ConvertData( text(  9, 4 ) );
+					Data3    = ( u16 ) ConvertData( text( 14, 4 ) );
+					Data4[0] = ( u8  ) ConvertData( text( 19, 2 ) );
+					Data4[1] = ( u8  ) ConvertData( text( 21, 2 ) );
 
-				for (uint i=2; i < 8; ++i)
-					Data4[i] = ConvertData( text( 20 + i * 2, 2 ) );
+					for (uint i=2; i < 8; ++i)
+						Data4[i] = ConvertData( text( 20 + i * 2, 2 ) );
+				}
+				catch (Exception)
+				{
+					Clear();
+				}
 			}
-			catch (Exception)
+			else
 			{
 				Clear();
 			}
-		}
-		else
-		{
-			Clear();
 		}
 	}
 }

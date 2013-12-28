@@ -26,24 +26,34 @@
 
 namespace Nestopia
 {
-	using Io::Log;
-
-	inline Log::Callbacker::Callbacker()
-	: data(NULL), code(NULL) {}
-
-	Log::Callbacker Log::callbacker;
-
-	void Log::Flush()
+	namespace Io
 	{
-		if (callbacker.code)
-			callbacker.code( callbacker.data, Ptr(), Length() );
+		struct Log::Callbacker
+		{
+			void* data;
+			void (NST_CALL *code)(void*,tstring,uint);
+		};
 
-		Clear();
-	}
+		Log::Callbacker Log::callbacker = {NULL,NULL};
 
-	Log::~Log()
-	{
-		if (callbacker.code)
-			callbacker.code( callbacker.data, Ptr(), Length() );
+		void Log::SetCallback(void* data,void (NST_CALL* code)(void*,tstring,uint))
+		{
+			NST_ASSERT( bool(data) == bool(code) );
+
+			callbacker.code = code;
+			callbacker.data = data;
+		}
+
+		void Log::UnsetCallback()
+		{
+			callbacker.code = NULL;
+			callbacker.data = NULL;
+		}
+
+		Log::~Log()
+		{
+			if (callbacker.code)
+				callbacker.code( callbacker.data, Ptr(), Length() );
+		}
 	}
 }

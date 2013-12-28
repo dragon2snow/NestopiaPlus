@@ -44,9 +44,9 @@ namespace Nes
 				Mmc3::SubReset( hard );
 
 				if (hard)
-					std::memset( ram, 0, sizeof(ram) );
+					std::memset( exRam, 0, sizeof(exRam) );
 
-				Map( 0x5000U, 0x5FFFU, &Mmc3China::Peek_Ram, &Mmc3China::Poke_Ram );
+				Map( 0x5000U, 0x5FFFU, &Mmc3China::Peek_ExRam, &Mmc3China::Poke_ExRam );
 				Map( WRK_PEEK_POKE );
 
 				for (uint i=0x0000U; i < 0x2000U; i += 0x2)
@@ -62,7 +62,7 @@ namespace Nes
 					while (const dword chunk = state.Begin())
 					{
 						if (chunk == NES_STATE_CHUNK_ID('R','A','M','\0'))
-							state.Uncompress( ram );
+							state.Uncompress( exRam );
 
 						state.End();
 					}
@@ -71,7 +71,7 @@ namespace Nes
 
 			void Mmc3China::BaseSave(State::Saver& state) const
 			{
-				state.Begin('T','M','3','\0').Begin('R','A','M','\0').Compress( ram ).End().End();
+				state.Begin('T','M','3','\0').Begin('R','A','M','\0').Compress( exRam ).End().End();
 			}
 
 			#ifdef NST_PRAGMA_OPTIMIZE
@@ -112,14 +112,14 @@ namespace Nes
 				ppu.SetMirroring( nmt[data & 0x3] );
 			}
 
-			NES_PEEK(Mmc3China,Ram)
+			NES_PEEK(Mmc3China,ExRam)
 			{
-				return ram[address-0x5000];
+				return exRam[address-0x5000];
 			}
 
-			NES_POKE(Mmc3China,Ram)
+			NES_POKE(Mmc3China,ExRam)
 			{
-				ram[address-0x5000] = data;
+				exRam[address-0x5000] = data;
 			}
 		}
 	}

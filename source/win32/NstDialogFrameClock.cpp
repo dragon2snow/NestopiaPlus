@@ -29,267 +29,253 @@
 
 namespace Nestopia
 {
-	using namespace Window;
-
-	struct FrameClock::Handlers
+	namespace Window
 	{
-		static const MsgHandler::Entry<FrameClock> messages[];
-		static const MsgHandler::Entry<FrameClock> commands[];
-	};
-
-	const MsgHandler::Entry<FrameClock> FrameClock::Handlers::messages[] =
-	{
-		{ WM_INITDIALOG, &FrameClock::OnInitDialog },
-		{ WM_HSCROLL,    &FrameClock::OnHScroll    }
-	};
-
-	const MsgHandler::Entry<FrameClock> FrameClock::Handlers::commands[] =
-	{
-		{ IDC_TIMING_SYNC_REFRESH,           &FrameClock::OnCmdRefresh      },
-		{ IDC_TIMING_AUTO_FRAME_SKIP,        &FrameClock::OnCmdRefresh      },
-		{ IDC_TIMING_REWINDER,               &FrameClock::OnCmdRewinder     },
-		{ IDC_TIMING_DEFAULT_SPEED,          &FrameClock::OnCmdDefaultSpeed },
-		{ IDC_TIMING_REWINDER_DEFAULT_SPEED, &FrameClock::OnCmdRewinder     },
-		{ IDC_TIMING_DEFAULT,                &FrameClock::OnCmdDefault      },
-		{ IDC_TIMING_CANCEL,                 &FrameClock::OnCmdCancel       },
-		{ IDC_TIMING_OK,                     &FrameClock::OnCmdOk           }
-	};
-
-	FrameClock::FrameClock(const Configuration& cfg)
-	: dialog(IDD_TIMING,this,Handlers::messages,Handlers::commands)
-	{
-		settings.autoFrameSkip         = ( cfg[ "timer auto frame skip"      ] == Configuration::YES );
-		settings.vsync                 = ( cfg[ "timer vsync"                ] != Configuration::NO  );
-		settings.tripleBuffering       = ( cfg[ "timer triple buffering"     ] == Configuration::YES );
-		settings.rewinder              = ( cfg[ "timer rewinder"             ] == Configuration::YES );
-		settings.useDefaultSpeed       = ( cfg[ "timer default speed"        ] != Configuration::NO  );
-		settings.useDefaultRewindSpeed = ( cfg[ "timer default rewind speed" ] != Configuration::NO  );
-		settings.noRewindSound         = ( cfg[ "timer no rewind sound"      ] == Configuration::YES );
-		settings.pfCounter             = ( cfg[ "timer performance counter"  ] != Configuration::NO  );
-
-		settings.speed = cfg[ "timer speed" ];
-		settings.altSpeed = cfg[ "timer alternative speed" ];
-		settings.rewindSpeed = cfg[ "timer rewind speed" ];
-		settings.maxFrameSkips = cfg[ "timer max frame skips" ];
-
-		if (!System::Timer::HasPerformanceCounter())
-			settings.pfCounter = false;
-
-		settings.maxFrameSkips =
-		(
-			settings.maxFrameSkips ? NST_CLAMP(settings.maxFrameSkips,MIN_FRAME_SKIPS,MAX_FRAME_SKIPS) :
-                                     DEFAULT_FRAME_SKIPS
-		);
-
-		settings.speed =
-		(
-			settings.speed ? NST_CLAMP(settings.speed,MIN_SPEED,MAX_SPEED) :
-                             DEFAULT_SPEED
-		);
-
-		settings.altSpeed =
-		(
-			settings.altSpeed ? NST_CLAMP(settings.altSpeed,MIN_SPEED,MAX_SPEED) :
-								DEFAULT_ALT_SPEED
-		);
-
-		settings.rewindSpeed =
-		(
-			settings.rewindSpeed ? NST_CLAMP(settings.rewindSpeed,MIN_SPEED,MAX_SPEED) :
-                                   DEFAULT_REWIND_SPEED
-		);
-	}
-
-	void FrameClock::Save(Configuration& cfg) const
-	{
-		cfg[ "timer speed"                ] = (uint) settings.speed;
-		cfg[ "timer alternative speed"    ] = (uint) settings.altSpeed;
-		cfg[ "timer rewind speed"         ] = (uint) settings.rewindSpeed;
-		cfg[ "timer max frame skips"      ] = (uint) settings.maxFrameSkips;
-		cfg[ "timer auto frame skip"      ].YesNo() = settings.autoFrameSkip;
-		cfg[ "timer vsync"                ].YesNo() = settings.vsync;
-		cfg[ "timer triple buffering"     ].YesNo() = settings.tripleBuffering;
-		cfg[ "timer rewinder"             ].YesNo() = settings.rewinder;
-		cfg[ "timer default speed"        ].YesNo() = settings.useDefaultSpeed;
-		cfg[ "timer default rewind speed" ].YesNo() = settings.useDefaultRewindSpeed;
-		cfg[ "timer no rewind sound"      ].YesNo() = settings.noRewindSound;
-		cfg[ "timer performance counter"  ].YesNo() = settings.pfCounter;
-	}
-
-	void FrameClock::UpdateRewinderEnable() const
-	{
-		const ibool enabled = dialog.CheckBox( IDC_TIMING_REWINDER ).IsChecked();
-		const ibool defaultSpeed = dialog.CheckBox( IDC_TIMING_REWINDER_DEFAULT_SPEED ).IsChecked();
-
-		dialog.Control( IDC_TIMING_REWINDER_DEFAULT_SPEED ).Enable( enabled );
-		dialog.Control( IDC_TIMING_REWINDER_NOSOUND       ).Enable( enabled );
-		dialog.Control( IDC_TIMING_REWINDER_SPEED         ).Enable( enabled && !defaultSpeed );
-		dialog.Control( IDC_TIMING_REWINDER_SPEED_NUM     ).Enable( enabled && !defaultSpeed );
-	}
-
-	ibool FrameClock::OnInitDialog(Param&)
-	{
-		dialog.Slider      ( IDC_TIMING_SPEED                  ).SetRange     ( MIN_SPEED, MAX_SPEED                   );
-		dialog.Slider      ( IDC_TIMING_SPEED                  ).Position() = ( settings.speed                         );
-		dialog.Slider      ( IDC_TIMING_ALT_SPEED              ).SetRange     ( MIN_SPEED, MAX_SPEED                   );
-		dialog.Slider      ( IDC_TIMING_ALT_SPEED              ).Position() = ( settings.altSpeed                      );
-		dialog.Slider      ( IDC_TIMING_REWINDER_SPEED         ).SetRange     ( MIN_SPEED, MAX_SPEED                   );
-		dialog.Slider      ( IDC_TIMING_REWINDER_SPEED         ).Position() = ( settings.rewindSpeed                   );
-		dialog.Slider      ( IDC_TIMING_FRAME_SKIPS            ).SetRange     ( MIN_FRAME_SKIPS, MAX_FRAME_SKIPS       );
-		dialog.Slider      ( IDC_TIMING_FRAME_SKIPS            ).Position() = ( settings.maxFrameSkips                 );
-		dialog.RadioButton ( IDC_TIMING_SYNC_REFRESH           ).Check        ( !settings.autoFrameSkip                );
-		dialog.RadioButton ( IDC_TIMING_AUTO_FRAME_SKIP        ).Check        ( settings.autoFrameSkip                 );
-		dialog.CheckBox    ( IDC_TIMING_VSYNC                  ).Check        ( settings.vsync                         );
-		dialog.CheckBox    ( IDC_TIMING_TRIPLE_BUFFERING       ).Check        ( settings.tripleBuffering               );
-		dialog.CheckBox    ( IDC_TIMING_REWINDER               ).Check        ( settings.rewinder                      );
-		dialog.CheckBox    ( IDC_TIMING_DEFAULT_SPEED          ).Check        ( settings.useDefaultSpeed               );
-		dialog.CheckBox    ( IDC_TIMING_REWINDER_DEFAULT_SPEED ).Check        ( settings.useDefaultRewindSpeed         );
-		dialog.CheckBox    ( IDC_TIMING_REWINDER_NOSOUND       ).Check        ( settings.noRewindSound                 );
-		dialog.CheckBox    ( IDC_TIMING_PFC                    ).Check        ( settings.pfCounter                     );
-		dialog.Control     ( IDC_TIMING_PFC                    ).Enable       ( System::Timer::HasPerformanceCounter() );
-		dialog.Control     ( IDC_TIMING_FRAME_SKIPS            ).Enable       ( settings.autoFrameSkip                 );
-		dialog.Control     ( IDC_TIMING_FRAME_SKIPS_TEXT       ).Enable       ( settings.autoFrameSkip                 );
-		dialog.Control     ( IDC_TIMING_FRAME_SKIPS_NUM        ).Enable       ( settings.autoFrameSkip                 );
-		dialog.Control     ( IDC_TIMING_SPEED                  ).Enable       ( !settings.useDefaultSpeed              );
-		dialog.Control     ( IDC_TIMING_SPEED_NUM              ).Enable       ( !settings.useDefaultSpeed              );
-
-		dialog.Edit( IDC_TIMING_SPEED_NUM          ) << settings.speed;
-		dialog.Edit( IDC_TIMING_ALT_SPEED_NUM      ) << settings.altSpeed;
-		dialog.Edit( IDC_TIMING_REWINDER_SPEED_NUM ) << settings.rewindSpeed;
-		dialog.Edit( IDC_TIMING_FRAME_SKIPS_NUM    ) << settings.maxFrameSkips;
-
-		UpdateRewinderEnable();
-
-		return true;
-	}
-
-	ibool FrameClock::OnHScroll(Param& param)
-	{
-		uint id;
-
-		if (param.Slider().IsControl( IDC_TIMING_SPEED ))
+		struct FrameClock::Handlers
 		{
-			id = IDC_TIMING_SPEED_NUM;
+			static const MsgHandler::Entry<FrameClock> messages[];
+			static const MsgHandler::Entry<FrameClock> commands[];
+		};
+
+		const MsgHandler::Entry<FrameClock> FrameClock::Handlers::messages[] =
+		{
+			{ WM_INITDIALOG, &FrameClock::OnInitDialog },
+			{ WM_HSCROLL,    &FrameClock::OnHScroll    }
+		};
+
+		const MsgHandler::Entry<FrameClock> FrameClock::Handlers::commands[] =
+		{
+			{ IDC_TIMING_SYNC_REFRESH,           &FrameClock::OnCmdRefresh      },
+			{ IDC_TIMING_AUTO_FRAME_SKIP,        &FrameClock::OnCmdRefresh      },
+			{ IDC_TIMING_REWINDER,               &FrameClock::OnCmdRewinder     },
+			{ IDC_TIMING_DEFAULT_SPEED,          &FrameClock::OnCmdDefaultSpeed },
+			{ IDC_TIMING_REWINDER_DEFAULT_SPEED, &FrameClock::OnCmdRewinder     },
+			{ IDC_TIMING_DEFAULT,                &FrameClock::OnCmdDefault      },
+			{ IDOK,                              &FrameClock::OnCmdOk           }
+		};
+
+		FrameClock::FrameClock(const Configuration& cfg)
+		: dialog(IDD_TIMING,this,Handlers::messages,Handlers::commands)
+		{
+			settings.autoFrameSkip         = ( cfg[ "timer auto frame skip"      ] == Configuration::YES );
+			settings.vsync                 = ( cfg[ "timer vsync"                ] != Configuration::NO  );
+			settings.tripleBuffering       = ( cfg[ "timer triple buffering"     ] == Configuration::YES );
+			settings.rewinder              = ( cfg[ "timer rewinder"             ] == Configuration::YES );
+			settings.useDefaultSpeed       = ( cfg[ "timer default speed"        ] != Configuration::NO  );
+			settings.useDefaultRewindSpeed = ( cfg[ "timer default rewind speed" ] != Configuration::NO  );
+			settings.noRewindSound         = ( cfg[ "timer no rewind sound"      ] == Configuration::YES );
+			settings.pfCounter             = ( cfg[ "timer performance counter"  ] == Configuration::YES );
+
+			settings.speed = cfg[ "timer speed" ];
+			settings.altSpeed = cfg[ "timer alternative speed" ];
+			settings.rewindSpeed = cfg[ "timer rewind speed" ];
+			settings.maxFrameSkips = cfg[ "timer max frame skips" ];
+
+			if (!System::Timer::HasPerformanceCounter())
+				settings.pfCounter = false;
+
+			settings.maxFrameSkips =
+			(
+				settings.maxFrameSkips ? NST_CLAMP(settings.maxFrameSkips,MIN_FRAME_SKIPS,MAX_FRAME_SKIPS) :
+                                         DEFAULT_FRAME_SKIPS
+			);
+
+			settings.speed =
+			(
+				settings.speed ? NST_CLAMP(settings.speed,MIN_SPEED,MAX_SPEED) :
+                                 DEFAULT_SPEED
+			);
+
+			settings.altSpeed =
+			(
+				settings.altSpeed ? NST_CLAMP(settings.altSpeed,MIN_SPEED,MAX_SPEED) :
+									DEFAULT_ALT_SPEED
+			);
+
+			settings.rewindSpeed =
+			(
+				settings.rewindSpeed ? NST_CLAMP(settings.rewindSpeed,MIN_SPEED,MAX_SPEED) :
+                                       DEFAULT_REWIND_SPEED
+			);
 		}
-		else if (param.Slider().IsControl( IDC_TIMING_ALT_SPEED ))
+
+		void FrameClock::Save(Configuration& cfg) const
 		{
-			id = IDC_TIMING_ALT_SPEED_NUM;
+			cfg[ "timer speed"                ] = (uint) settings.speed;
+			cfg[ "timer alternative speed"    ] = (uint) settings.altSpeed;
+			cfg[ "timer rewind speed"         ] = (uint) settings.rewindSpeed;
+			cfg[ "timer max frame skips"      ] = (uint) settings.maxFrameSkips;
+			cfg[ "timer auto frame skip"      ].YesNo() = settings.autoFrameSkip;
+			cfg[ "timer vsync"                ].YesNo() = settings.vsync;
+			cfg[ "timer triple buffering"     ].YesNo() = settings.tripleBuffering;
+			cfg[ "timer rewinder"             ].YesNo() = settings.rewinder;
+			cfg[ "timer default speed"        ].YesNo() = settings.useDefaultSpeed;
+			cfg[ "timer default rewind speed" ].YesNo() = settings.useDefaultRewindSpeed;
+			cfg[ "timer no rewind sound"      ].YesNo() = settings.noRewindSound;
+			cfg[ "timer performance counter"  ].YesNo() = settings.pfCounter;
 		}
-		else if (param.Slider().IsControl( IDC_TIMING_REWINDER_SPEED ))
+
+		void FrameClock::UpdateRewinderEnable() const
 		{
-			id = IDC_TIMING_REWINDER_SPEED_NUM;
+			const ibool enabled = dialog.CheckBox( IDC_TIMING_REWINDER ).Checked();
+			const ibool defaultSpeed = dialog.CheckBox( IDC_TIMING_REWINDER_DEFAULT_SPEED ).Checked();
+
+			dialog.Control( IDC_TIMING_REWINDER_DEFAULT_SPEED ).Enable( enabled );
+			dialog.Control( IDC_TIMING_REWINDER_NOSOUND       ).Enable( enabled );
+			dialog.Control( IDC_TIMING_REWINDER_SPEED         ).Enable( enabled && !defaultSpeed );
+			dialog.Control( IDC_TIMING_REWINDER_SPEED_NUM     ).Enable( enabled && !defaultSpeed );
 		}
-		else if (param.Slider().IsControl( IDC_TIMING_FRAME_SKIPS ))
+
+		ibool FrameClock::OnInitDialog(Param&)
 		{
-			id = IDC_TIMING_FRAME_SKIPS_NUM;
-		}
-		else
-		{
+			dialog.Slider      ( IDC_TIMING_SPEED                  ).SetRange     ( MIN_SPEED, MAX_SPEED                   );
+			dialog.Slider      ( IDC_TIMING_SPEED                  ).Position() = ( settings.speed                         );
+			dialog.Slider      ( IDC_TIMING_ALT_SPEED              ).SetRange     ( MIN_SPEED, MAX_SPEED                   );
+			dialog.Slider      ( IDC_TIMING_ALT_SPEED              ).Position() = ( settings.altSpeed                      );
+			dialog.Slider      ( IDC_TIMING_REWINDER_SPEED         ).SetRange     ( MIN_SPEED, MAX_SPEED                   );
+			dialog.Slider      ( IDC_TIMING_REWINDER_SPEED         ).Position() = ( settings.rewindSpeed                   );
+			dialog.Slider      ( IDC_TIMING_FRAME_SKIPS            ).SetRange     ( MIN_FRAME_SKIPS, MAX_FRAME_SKIPS       );
+			dialog.Slider      ( IDC_TIMING_FRAME_SKIPS            ).Position() = ( settings.maxFrameSkips                 );
+			dialog.RadioButton ( IDC_TIMING_SYNC_REFRESH           ).Check        ( !settings.autoFrameSkip                );
+			dialog.RadioButton ( IDC_TIMING_AUTO_FRAME_SKIP        ).Check        ( settings.autoFrameSkip                 );
+			dialog.CheckBox    ( IDC_TIMING_VSYNC                  ).Check        ( settings.vsync                         );
+			dialog.CheckBox    ( IDC_TIMING_TRIPLE_BUFFERING       ).Check        ( settings.tripleBuffering               );
+			dialog.CheckBox    ( IDC_TIMING_REWINDER               ).Check        ( settings.rewinder                      );
+			dialog.CheckBox    ( IDC_TIMING_DEFAULT_SPEED          ).Check        ( settings.useDefaultSpeed               );
+			dialog.CheckBox    ( IDC_TIMING_REWINDER_DEFAULT_SPEED ).Check        ( settings.useDefaultRewindSpeed         );
+			dialog.CheckBox    ( IDC_TIMING_REWINDER_NOSOUND       ).Check        ( settings.noRewindSound                 );
+			dialog.CheckBox    ( IDC_TIMING_PFC                    ).Check        ( settings.pfCounter                     );
+			dialog.Control     ( IDC_TIMING_PFC                    ).Enable       ( System::Timer::HasPerformanceCounter() );
+			dialog.Control     ( IDC_TIMING_FRAME_SKIPS            ).Enable       ( settings.autoFrameSkip                 );
+			dialog.Control     ( IDC_TIMING_FRAME_SKIPS_TEXT       ).Enable       ( settings.autoFrameSkip                 );
+			dialog.Control     ( IDC_TIMING_FRAME_SKIPS_NUM        ).Enable       ( settings.autoFrameSkip                 );
+			dialog.Control     ( IDC_TIMING_SPEED                  ).Enable       ( !settings.useDefaultSpeed              );
+			dialog.Control     ( IDC_TIMING_SPEED_NUM              ).Enable       ( !settings.useDefaultSpeed              );
+
+			dialog.Edit( IDC_TIMING_SPEED_NUM          ) << settings.speed;
+			dialog.Edit( IDC_TIMING_ALT_SPEED_NUM      ) << settings.altSpeed;
+			dialog.Edit( IDC_TIMING_REWINDER_SPEED_NUM ) << settings.rewindSpeed;
+			dialog.Edit( IDC_TIMING_FRAME_SKIPS_NUM    ) << settings.maxFrameSkips;
+
+			UpdateRewinderEnable();
+
 			return true;
 		}
 
-		dialog.Edit( id ) << param.Slider().Scroll();
-
-		return true;
-	}
-
-	ibool FrameClock::OnCmdRefresh(Param& param)
-	{
-		if (param.Button().IsClicked())
+		ibool FrameClock::OnHScroll(Param& param)
 		{
-			const ibool autoFrameSkip = (param.Button().GetId() == IDC_TIMING_AUTO_FRAME_SKIP);
+			NST_COMPILE_ASSERT
+			(
+				IDC_TIMING_SPEED == IDC_TIMING_SPEED_NUM-1 &&
+				IDC_TIMING_FRAME_SKIPS == IDC_TIMING_FRAME_SKIPS_NUM-1 &&
+				IDC_TIMING_ALT_SPEED == IDC_TIMING_ALT_SPEED_NUM-1 &&
+				IDC_TIMING_REWINDER_SPEED == IDC_TIMING_REWINDER_SPEED_NUM-1
+			);
 
-			dialog.Control( IDC_TIMING_FRAME_SKIPS      ).Enable( autoFrameSkip );
-			dialog.Control( IDC_TIMING_FRAME_SKIPS_TEXT ).Enable( autoFrameSkip );
-			dialog.Control( IDC_TIMING_FRAME_SKIPS_NUM  ).Enable( autoFrameSkip );
+			switch (const uint id = param.Slider().GetId())
+			{
+				case IDC_TIMING_SPEED:
+				case IDC_TIMING_ALT_SPEED:
+				case IDC_TIMING_REWINDER_SPEED:
+				case IDC_TIMING_FRAME_SKIPS:
+
+					dialog.Edit( id+1 ) << param.Slider().Scroll();
+					break;
+			}
+
+			return true;
 		}
 
-		return true;
-	}
-
-	ibool FrameClock::OnCmdDefaultSpeed(Param& param)
-	{
-		if (param.Button().IsClicked())
+		ibool FrameClock::OnCmdRefresh(Param& param)
 		{
-			const ibool speed = dialog.CheckBox( IDC_TIMING_DEFAULT_SPEED ).IsUnchecked();
+			if (param.Button().Clicked())
+			{
+				const ibool autoFrameSkip = (param.Button().GetId() == IDC_TIMING_AUTO_FRAME_SKIP);
 
-			dialog.Control( IDC_TIMING_SPEED     ).Enable( speed );
-			dialog.Control( IDC_TIMING_SPEED_NUM ).Enable( speed );
+				dialog.Control( IDC_TIMING_FRAME_SKIPS      ).Enable( autoFrameSkip );
+				dialog.Control( IDC_TIMING_FRAME_SKIPS_TEXT ).Enable( autoFrameSkip );
+				dialog.Control( IDC_TIMING_FRAME_SKIPS_NUM  ).Enable( autoFrameSkip );
+			}
+
+			return true;
 		}
 
-		return true;
-	}
-
-	ibool FrameClock::OnCmdRewinder(Param& param)
-	{
-		if (param.Button().IsClicked())
-			UpdateRewinderEnable();
-
-		return true;
-	}
-
-	ibool FrameClock::OnCmdDefault(Param& param)
-	{
-		if (param.Button().IsClicked())
+		ibool FrameClock::OnCmdDefaultSpeed(Param& param)
 		{
-			dialog.Slider      ( IDC_TIMING_SPEED                  ).Position() = DEFAULT_SPEED;
-			dialog.Slider      ( IDC_TIMING_ALT_SPEED              ).Position() = DEFAULT_ALT_SPEED;
-			dialog.Slider      ( IDC_TIMING_REWINDER_SPEED         ).Position() = DEFAULT_REWIND_SPEED;
-			dialog.Slider      ( IDC_TIMING_FRAME_SKIPS            ).Position() = DEFAULT_FRAME_SKIPS;
-			dialog.RadioButton ( IDC_TIMING_SYNC_REFRESH           ).Check  ( true  );
-			dialog.RadioButton ( IDC_TIMING_AUTO_FRAME_SKIP        ).Check  ( false );
-			dialog.CheckBox    ( IDC_TIMING_VSYNC                  ).Check  ( true  );
-			dialog.CheckBox    ( IDC_TIMING_TRIPLE_BUFFERING       ).Check  ( false );
-			dialog.CheckBox    ( IDC_TIMING_DEFAULT_SPEED          ).Check  ( true  );
-			dialog.CheckBox    ( IDC_TIMING_REWINDER               ).Check  ( false );
-			dialog.CheckBox    ( IDC_TIMING_REWINDER_DEFAULT_SPEED ).Check  ( true  );
-			dialog.CheckBox    ( IDC_TIMING_REWINDER_NOSOUND       ).Check  ( false );
-			dialog.CheckBox    ( IDC_TIMING_PFC                    ).Check  ( System::Timer::HasPerformanceCounter() );
-			dialog.Control     ( IDC_TIMING_PFC                    ).Enable ( System::Timer::HasPerformanceCounter() );
-			dialog.Control     ( IDC_TIMING_FRAME_SKIPS            ).Enable ( false );
-			dialog.Control     ( IDC_TIMING_FRAME_SKIPS_TEXT       ).Enable ( false );
-			dialog.Control     ( IDC_TIMING_FRAME_SKIPS_NUM        ).Enable ( false );
-			dialog.Control     ( IDC_TIMING_SPEED                  ).Enable ( false );
-			dialog.Control     ( IDC_TIMING_SPEED_NUM              ).Enable ( false );
-			dialog.Edit        ( IDC_TIMING_SPEED_NUM              ) << (uint) DEFAULT_SPEED;
-			dialog.Edit        ( IDC_TIMING_ALT_SPEED_NUM          ) << (uint) DEFAULT_ALT_SPEED;
-			dialog.Edit        ( IDC_TIMING_REWINDER_SPEED_NUM     ) << (uint) DEFAULT_REWIND_SPEED;
-			dialog.Edit        ( IDC_TIMING_FRAME_SKIPS_NUM        ) << (uint) DEFAULT_FRAME_SKIPS;
+			if (param.Button().Clicked())
+			{
+				const ibool speed = dialog.CheckBox( IDC_TIMING_DEFAULT_SPEED ).Unchecked();
 
-			UpdateRewinderEnable();
+				dialog.Control( IDC_TIMING_SPEED     ).Enable( speed );
+				dialog.Control( IDC_TIMING_SPEED_NUM ).Enable( speed );
+			}
+
+			return true;
 		}
 
-		return true;
-	}
-
-	ibool FrameClock::OnCmdOk(Param& param)
-	{
-		if (param.Button().IsClicked())
+		ibool FrameClock::OnCmdRewinder(Param& param)
 		{
-			settings.autoFrameSkip         = dialog.RadioButton ( IDC_TIMING_AUTO_FRAME_SKIP        ).IsChecked();
-			settings.vsync                 = dialog.CheckBox    ( IDC_TIMING_VSYNC                  ).IsChecked();
-			settings.tripleBuffering       = dialog.CheckBox    ( IDC_TIMING_TRIPLE_BUFFERING       ).IsChecked();
-			settings.rewinder              = dialog.CheckBox    ( IDC_TIMING_REWINDER               ).IsChecked();
-			settings.useDefaultSpeed       = dialog.CheckBox    ( IDC_TIMING_DEFAULT_SPEED          ).IsChecked();
-			settings.useDefaultRewindSpeed = dialog.CheckBox    ( IDC_TIMING_REWINDER_DEFAULT_SPEED ).IsChecked();
-			settings.noRewindSound         = dialog.CheckBox    ( IDC_TIMING_REWINDER_NOSOUND       ).IsChecked();
-			settings.pfCounter             = dialog.CheckBox    ( IDC_TIMING_PFC                    ).IsChecked();
-			settings.speed                 = dialog.Slider      ( IDC_TIMING_SPEED                  ).Position();
-			settings.altSpeed              = dialog.Slider      ( IDC_TIMING_ALT_SPEED              ).Position();
-			settings.rewindSpeed           = dialog.Slider      ( IDC_TIMING_REWINDER_SPEED         ).Position();
-			settings.maxFrameSkips         = dialog.Slider      ( IDC_TIMING_FRAME_SKIPS            ).Position();
+			if (param.Button().Clicked())
+				UpdateRewinderEnable();
 
-			dialog.Close();
+			return true;
 		}
 
-		return true;
-	}
+		ibool FrameClock::OnCmdDefault(Param& param)
+		{
+			if (param.Button().Clicked())
+			{
+				dialog.Slider      ( IDC_TIMING_SPEED                  ).Position() = DEFAULT_SPEED;
+				dialog.Slider      ( IDC_TIMING_ALT_SPEED              ).Position() = DEFAULT_ALT_SPEED;
+				dialog.Slider      ( IDC_TIMING_REWINDER_SPEED         ).Position() = DEFAULT_REWIND_SPEED;
+				dialog.Slider      ( IDC_TIMING_FRAME_SKIPS            ).Position() = DEFAULT_FRAME_SKIPS;
+				dialog.RadioButton ( IDC_TIMING_SYNC_REFRESH           ).Check  ( true  );
+				dialog.RadioButton ( IDC_TIMING_AUTO_FRAME_SKIP        ).Check  ( false );
+				dialog.CheckBox    ( IDC_TIMING_VSYNC                  ).Check  ( true  );
+				dialog.CheckBox    ( IDC_TIMING_TRIPLE_BUFFERING       ).Check  ( false );
+				dialog.CheckBox    ( IDC_TIMING_DEFAULT_SPEED          ).Check  ( true  );
+				dialog.CheckBox    ( IDC_TIMING_REWINDER               ).Check  ( false );
+				dialog.CheckBox    ( IDC_TIMING_REWINDER_DEFAULT_SPEED ).Check  ( true  );
+				dialog.CheckBox    ( IDC_TIMING_REWINDER_NOSOUND       ).Check  ( false );
+				dialog.CheckBox    ( IDC_TIMING_PFC                    ).Check  ( false );
+				dialog.Control     ( IDC_TIMING_PFC                    ).Enable ( System::Timer::HasPerformanceCounter() );
+				dialog.Control     ( IDC_TIMING_FRAME_SKIPS            ).Enable ( false );
+				dialog.Control     ( IDC_TIMING_FRAME_SKIPS_TEXT       ).Enable ( false );
+				dialog.Control     ( IDC_TIMING_FRAME_SKIPS_NUM        ).Enable ( false );
+				dialog.Control     ( IDC_TIMING_SPEED                  ).Enable ( false );
+				dialog.Control     ( IDC_TIMING_SPEED_NUM              ).Enable ( false );
+				dialog.Edit        ( IDC_TIMING_SPEED_NUM              ) << (uint) DEFAULT_SPEED;
+				dialog.Edit        ( IDC_TIMING_ALT_SPEED_NUM          ) << (uint) DEFAULT_ALT_SPEED;
+				dialog.Edit        ( IDC_TIMING_REWINDER_SPEED_NUM     ) << (uint) DEFAULT_REWIND_SPEED;
+				dialog.Edit        ( IDC_TIMING_FRAME_SKIPS_NUM        ) << (uint) DEFAULT_FRAME_SKIPS;
 
-	ibool FrameClock::OnCmdCancel(Param& param)
-	{
-		if (param.Button().IsClicked())
-			dialog.Close();
+				UpdateRewinderEnable();
+			}
 
-		return true;
+			return true;
+		}
+
+		ibool FrameClock::OnCmdOk(Param& param)
+		{
+			if (param.Button().Clicked())
+			{
+				settings.autoFrameSkip         = dialog.RadioButton ( IDC_TIMING_AUTO_FRAME_SKIP        ).Checked();
+				settings.vsync                 = dialog.CheckBox    ( IDC_TIMING_VSYNC                  ).Checked();
+				settings.tripleBuffering       = dialog.CheckBox    ( IDC_TIMING_TRIPLE_BUFFERING       ).Checked();
+				settings.rewinder              = dialog.CheckBox    ( IDC_TIMING_REWINDER               ).Checked();
+				settings.useDefaultSpeed       = dialog.CheckBox    ( IDC_TIMING_DEFAULT_SPEED          ).Checked();
+				settings.useDefaultRewindSpeed = dialog.CheckBox    ( IDC_TIMING_REWINDER_DEFAULT_SPEED ).Checked();
+				settings.noRewindSound         = dialog.CheckBox    ( IDC_TIMING_REWINDER_NOSOUND       ).Checked();
+				settings.pfCounter             = dialog.CheckBox    ( IDC_TIMING_PFC                    ).Checked();
+				settings.speed                 = dialog.Slider      ( IDC_TIMING_SPEED                  ).Position();
+				settings.altSpeed              = dialog.Slider      ( IDC_TIMING_ALT_SPEED              ).Position();
+				settings.rewindSpeed           = dialog.Slider      ( IDC_TIMING_REWINDER_SPEED         ).Position();
+				settings.maxFrameSkips         = dialog.Slider      ( IDC_TIMING_FRAME_SKIPS            ).Position();
+
+				dialog.Close();
+			}
+
+			return true;
+		}
 	}
 }

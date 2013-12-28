@@ -81,7 +81,7 @@ namespace Nes
 			template<typename T>
 			static T Cast(T t)
 			{
-				return static_cast<T>(static_cast<U>(t));
+				return T(U(t));
 			}
 		};
 
@@ -93,14 +93,14 @@ namespace Nes
 			template<typename T>
 			static T Cast(T t)
 			{
-				return t | ((t & (1UL << SIGN_SHIFT)) ? ~T(0) << SIGN_SHIFT : T(0));
+				return t | ((t & (1UL << SIGN_SHIFT)) ? T(~0UL) << SIGN_SHIFT : T(0));
 			}
 		};
 
 		template<typename U,typename T>
 		inline T sign_cast(const T t)
 		{
-			enum {SUPPORTED = T(U(-1)) == ~T(0) };
+			enum {SUPPORTED = T(U(-1L)) == T(~0UL) };
 			return SignCaster<U,SUPPORTED>::Cast( t );
 		}
 	}

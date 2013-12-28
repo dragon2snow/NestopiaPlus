@@ -51,7 +51,8 @@ namespace Nes
 		{
 		public:
 
-			Cartridge(Emulator& e)
+			template<typename T>
+			Cartridge(T& e)
 			: Base(e) {}
 
 			enum Mirroring
@@ -95,32 +96,31 @@ namespace Nes
 
 				typedef const void* Entry;
 
-				Result Load(std::istream&);
-				void   Unload();
-				Result Enable(bool=true);
-				bool   IsEnabled() const;
-				bool   IsLoaded() const;
-				Entry  FindEntry(ulong) const;
-				Entry  FindEntry(const void*,ulong,ulong=0) const;
+				Result Load(std::istream&) throw();
+				void   Unload() throw();
+				Result Enable(bool=true) throw();
+				bool   IsEnabled() const throw();
+				bool   IsLoaded() const throw();
+				Entry  FindEntry(ulong) const throw();
+				Entry  FindEntry(const void*,ulong) const throw();
 
-				System    GetSystem    (Entry) const;
-				Mirroring GetMirroring (Entry) const;
-				ulong     GetCrc       (Entry) const;
-				ulong     GetPRomCrc   (Entry) const;
-				ulong     GetPRomSize  (Entry) const;
-				ulong     GetCRomSize  (Entry) const;
-				ulong     GetWRamSize  (Entry) const;
-				uint      GetMapper    (Entry) const;
-				bool      HasBattery   (Entry) const;
-				bool      HasTrainer   (Entry) const;
-				bool      IsBad        (Entry) const;
+				System    GetSystem    (Entry) const throw();
+				Mirroring GetMirroring (Entry) const throw();
+				ulong     GetCrc       (Entry) const throw();
+				ulong     GetPRomSize  (Entry) const throw();
+				ulong     GetCRomSize  (Entry) const throw();
+				ulong     GetWRamSize  (Entry) const throw();
+				uint      GetMapper    (Entry) const throw();
+				bool      HasBattery   (Entry) const throw();
+				bool      HasTrainer   (Entry) const throw();
+				bool      IsBad        (Entry) const throw();
 			};
 
-			Database GetDatabase();
+			Database GetDatabase() throw();
 
 			struct Info
 			{
-				void Clear();
+				void Clear() throw();
 
 				std::string name;
 				std::string maker;
@@ -141,7 +141,7 @@ namespace Nes
 				State       condition;
 			};
 
-			const Info* GetInfo() const;
+			const Info* GetInfo() const throw();
 		};
 	}
 }

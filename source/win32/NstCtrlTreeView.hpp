@@ -28,6 +28,7 @@
 #pragma once
 
 #include "NstCtrlStandard.hpp"
+#include "NstString.hpp"
 
 namespace Nestopia
 {

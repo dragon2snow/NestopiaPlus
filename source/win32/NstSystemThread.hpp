@@ -27,153 +27,48 @@
 
 #pragma once
 
-#include "NstWindowCustom.hpp"
+#include "NstObjectDelegate.hpp"
+#include <Windows.h>
 
 namespace Nestopia
 {
-	namespace Application
-	{
-		class Exception;
-	}
-
 	namespace System
 	{
 		class Thread
 		{
-			enum Command
-			{
-				NONE,
-				SUSPEND,
-				TERMINATE
-			};
+			HANDLE hEnter;
+			HANDLE hExit;
+			HANDLE hAbort;
 
 		public:
 
 			Thread();
 			~Thread();
 
-			void Suspend();
-			void Resume();
-			void Destroy();
-
-			enum Startup
-			{
-				DONT_START,
-				START
-			};
-
-			class Interrupt
+			class Terminator
 			{
 				friend class Thread;
 
-			public:
+				HANDLE const hAbort;
 
-				void Acknowledge() const;
-
-			private:
-
-				typedef Object::Delegate<void,Interrupt> Callback;
-
-				inline explicit Interrupt(Thread&);
-
-				inline uint Execute(Callback) const;
-
-				uint ExitSuccess() const;
-				uint ExitFailure(const Application::Exception&) const;
-
-				const Thread& thread;
+				inline Terminator(HANDLE=NULL);
 
 			public:
 
-				ibool None() const
+				operator bool () const
 				{
-					return thread.command == NONE;
-				}
-
-				ibool Demanding() const
-				{
-					return thread.command != NONE;
-				}
-
-				ibool DemandingSuspension() const
-				{
-					return thread.command == SUSPEND;
-				}
-
-				ibool DemandingTermination() const
-				{
-					return thread.command == TERMINATE;
+					return ::WaitForSingleObject( hAbort, 0 ) == WAIT_OBJECT_0;
 				}
 			};
 
-		private:
+			typedef Object::Delegate<void,Terminator> Callback;
 
-			typedef Interrupt::Callback Callback;
+			void Start(const Callback&,int=0);
+			void Stop();
 
-			void Create(const Callback&,Window::Custom&,Startup,uint);
-			void Unhook();
-
-			class Event
+			ibool Idle() const
 			{
-				HANDLE const handle;
-
-			public:
-
-				Event();
-				inline ~Event();
-				inline void Wait() const;
-				inline void Release() const;
-				inline ibool IsSignaled() const;
-			};
-
-			struct Initializer;
-
-			enum OnMsgType
-			{
-				ON_EXIT_SUCCESS,
-				ON_EXIT_EXCEPTION,
-				ON_EXIT_MESSAGE
-			};
-
-			enum
-			{
-				WM_NST_THREAD_EXIT = WM_APP + 54
-			};
-
-			ibool OnExit(Window::Param&);
-
-			static void Close(HANDLE&);
-			static uint NST_STDCALL Starter(void*);
-
-			volatile Command command;
-			Event synchronizer;
-			Event suspender;
-			HANDLE handle;
-			uint id;
-			Window::Custom* window;
-
-		public:
-
-			template<typename Data,typename Code> void Create
-			(
-				Data* data,
-				Code code,
-				Window::Custom& window,
-				const Startup startup,
-				uint stack=0
-			)
-			{
-				Create( Callback(data,code), window, startup, stack );
-			}
-
-			ibool IsIdle() const
-			{
-				return handle == NULL || command != NONE;
-			}
-
-			HANDLE GetHandle() const
-			{
-				return handle;
+				return hEnter == NULL;
 			}
 		};
 	}

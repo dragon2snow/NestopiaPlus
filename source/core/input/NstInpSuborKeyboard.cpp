@@ -35,8 +35,8 @@ namespace Nes
 			#pragma optimize("s", on)
 			#endif
 
-			SuborKeyboard::SuborKeyboard()
-			: Device(Api::Input::SUBORKEYBOARD)
+			SuborKeyboard::SuborKeyboard(const Cpu& c)
+			: Device(c,Api::Input::SUBORKEYBOARD)
 			{
 				SuborKeyboard::Reset();
 			}
@@ -92,8 +92,9 @@ namespace Nes
 				{
 					return 0x00;
 				}
-				else if (input && scan < 10 && Controllers::SuborKeyboard::callback( input->suborKeyboard, scan, mode ))
+				else if (input && scan < 10)
 				{
+					Controllers::SuborKeyboard::callback( input->suborKeyboard, scan, mode );
 					return ~input->suborKeyboard.parts[scan] & 0x1E;
 				}
 				else

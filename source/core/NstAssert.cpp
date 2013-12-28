@@ -44,6 +44,10 @@
 #endif
 #endif
 
+#ifdef NST_PRAGMA_OPTIMIZE
+#pragma optimize("s", on)
+#endif
+
 namespace Nes
 {
 	namespace Assertion
@@ -151,8 +155,18 @@ namespace Nes
 	}
 }
 
+#ifdef NST_PRAGMA_OPTIMIZE
+#pragma optimize("", on)
+#endif
+
 #ifdef _MSC_VER
 #pragma warning( pop )
+#endif
+
+#else
+
+#if defined(NDEBUG) && defined(_MSC_VER) && defined(__MSVC_RUNTIME_CHECKS)
+#error turn off RTCx compiler options!
 #endif
 
 #endif

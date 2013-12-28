@@ -65,14 +65,14 @@ namespace Nes
 			uint GetValue(uint dip) const
 			{
 				NST_ASSERT( dip == 0 );
-				return wrk.Source().IsWritable() ? 0 : 1;
+				return wrk.Source().Writable() ? 0 : 1;
 			}
 
 			bool SetValue(uint dip,uint value)
 			{
 				NST_ASSERT( dip == 0 && value < 2 );
 
-				if (bool(wrk.Source().IsWritable()) != !value)
+				if (bool(wrk.Source().Writable()) != !value)
 				{
 					wrk.Source().SetSecurity( true, !value );
 					return true;
@@ -88,7 +88,7 @@ namespace Nes
 
 			void Flush(bool power) const
 			{
-				if (wrk.Source().IsWritable() && !power)
+				if (wrk.Source().Writable() && !power)
 				{
 					wrk.Source().Fill( 0x00 );
 					Log::Flush( "Mapper0: battery-switch OFF, discarding data!" NST_LINEBREAK );
@@ -115,8 +115,8 @@ namespace Nes
 
 		Mapper0::Mapper0(Context& c)
 		:
-		Mapper     (c,CartSwitch::IsBasic(c.pRomCrc) ? WRAM_8K : 0),
-		cartSwitch (CartSwitch::IsBasic(c.pRomCrc) ? new CartSwitch(wrk) : NULL)
+		Mapper     (c,CartSwitch::IsBasic(c.prgCrc) ? WRAM_8K : 0),
+		cartSwitch (CartSwitch::IsBasic(c.prgCrc) ? new CartSwitch(wrk) : NULL)
 		{}
 
 		Mapper0::~Mapper0()

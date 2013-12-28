@@ -26,6 +26,9 @@
 
 namespace Nestopia
 {
-	Resource::Icon::Icon(const uint id)
-	: handle(::LoadIcon(::GetModuleHandle(NULL),MAKEINTRESOURCE(id))) {}
+	namespace Resource
+	{
+		Icon::Icon(const uint id)
+		: handle(::LoadIcon(::GetModuleHandle(NULL),MAKEINTRESOURCE(id))) {}
+	}
 }

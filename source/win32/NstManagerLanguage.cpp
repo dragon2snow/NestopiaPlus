@@ -22,7 +22,6 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstApplicationInstance.hpp"
 #include "NstApplicationException.hpp"
 #include "NstResourceVersion.hpp"
 #include "NstIoLog.hpp"
@@ -34,55 +33,56 @@
 
 namespace Nestopia
 {
-	using namespace Managers;
-
-	Language::Language(Emulator& e,Window::Menu& m)
-	: menu(m), emulator(e)
+	namespace Managers
 	{
-		m.Commands().Add( IDM_OPTIONS_LANGUAGE, this, &Language::OnCmd );
-		emulator.Events().Add( this, &Language::OnEmuEvent );
-
-		const Resource::Version version( Application::Instance::GetResourcePath().Ptr(), Resource::Version::PRODUCT );
-
-		if (version != Application::Instance::GetVersion() && !Window::User::Confirm( IDS_INCOMPATIBLE_RESOURCE ))
-			throw Application::Exception::QUIT_SUCCESS;
-
-		Io::Log() << "Language: loaded \""
-                  << Application::Instance::GetResourcePath().File()
-                  << "\" version "
-                  << version
-                  << '.'
-                  << Resource::Version( Application::Instance::GetResourcePath().Ptr(), Resource::Version::FILE )
-                  << "\r\n";
-	}
-
-	Language::~Language()
-	{
-		emulator.Events().Remove( this );
-	}
-
-	void Language::OnCmd(uint)
-	{
-		const Path newResource( Window::Language().Open() );
-
-		if (newResource.Length())
+		Language::Language(Emulator& e,Window::Menu& m)
+		: menu(m), emulator(e)
 		{
-			Application::Instance::UpdateResource( newResource.Ptr() );
+			m.Commands().Add( IDM_OPTIONS_LANGUAGE, this, &Language::OnCmd );
+			emulator.Events().Add( this, &Language::OnEmuEvent );
 
-			if (Window::User::Confirm( IDS_LANGUAGE_UPDATE ))
-				Window::Generic(Application::Instance::GetMainWindow()).Close();
+			const Resource::Version version( Application::Instance::GetLanguage().GetResourcePath().Ptr(), Resource::Version::PRODUCT );
+
+			if (version != Application::Instance::GetVersion() && !Window::User::Confirm( IDS_INCOMPATIBLE_RESOURCE ))
+				throw Application::Exception();
+
+			Io::Log() << "Language: loaded \""
+                      << Application::Instance::GetLanguage().GetResourcePath().File()
+                      << "\" version "
+                      << version
+                      << '.'
+                      << Resource::Version( Application::Instance::GetLanguage().GetResourcePath().Ptr(), Resource::Version::FILE )
+                      << "\r\n";
 		}
-	}
 
-	void Language::OnEmuEvent(const Emulator::Event event)
-	{
-		switch (event)
+		Language::~Language()
 		{
-			case Emulator::EVENT_NETPLAY_MODE_ON:
-			case Emulator::EVENT_NETPLAY_MODE_OFF:
+			emulator.Events().Remove( this );
+		}
 
-				menu[IDM_OPTIONS_LANGUAGE].Enable( event == Emulator::EVENT_NETPLAY_MODE_OFF );
-				break;
+		void Language::OnCmd(uint)
+		{
+			const Path newPath( Window::Language().Open() );
+
+			if (newPath.Length())
+			{
+				Application::Instance::GetLanguage().UpdateResource( newPath.Ptr() );
+
+				if (Window::User::Confirm( IDS_LANGUAGE_UPDATE ))
+					Application::Instance::GetMainWindow().Close();
+			}
+		}
+
+		void Language::OnEmuEvent(const Emulator::Event event)
+		{
+			switch (event)
+			{
+				case Emulator::EVENT_NETPLAY_MODE_ON:
+				case Emulator::EVENT_NETPLAY_MODE_OFF:
+
+					menu[IDM_OPTIONS_LANGUAGE].Enable( event == Emulator::EVENT_NETPLAY_MODE_OFF );
+					break;
+			}
 		}
 	}
 }

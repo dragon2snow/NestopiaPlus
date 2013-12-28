@@ -22,347 +22,386 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstObjectPod.hpp"
-#include "NstResourceIcon.hpp"
-#include "NstApplicationException.hpp"
-#include "NstApplicationInstance.hpp"
+#include "NstString.hpp"
 #include "NstWindowGeneric.hpp"
 #include <WindowsX.h>
 
 namespace Nestopia
 {
-	using namespace Window;
-
-	Generic::LockDraw::LockDraw(HWND const handle)
-	: hWnd(handle)
+	namespace Window
 	{
-		NST_ASSERT( handle );
-		SetWindowRedraw( handle, false );
-	}
-
-	Generic::LockDraw::~LockDraw()
-	{
-		SetWindowRedraw( hWnd, true );
-		::InvalidateRect( hWnd, NULL, false );
-	}
-
-	uint Generic::Stream::operator >> (ulong& value) const
-	{
-		String::Stack<16,tchar> string;
-		string.ShrinkTo( ::GetWindowText( hWnd, string.Ptr(), 16+1 ) );
-		string >> value;
-		return string.Length();
-	}
-
-	uint Generic::Stream::operator >> (long& value) const
-	{
-		String::Stack<16,tchar> string;
-		string.ShrinkTo( ::GetWindowText( hWnd, string.Ptr(), 16+1 ) );
-		string >> value;
-		return string.Length();
-	}
-
-	void Generic::SetStyle(long style) const
-	{
-		::SetWindowLongPtr( hWnd, GWL_STYLE, style );
-		::SetWindowPos( hWnd, NULL, 0, 0, 0, 0, SWP_NOSIZE|SWP_NOMOVE|SWP_NOZORDER|SWP_NOACTIVATE );
-	}
-
-	void Generic::SetStyle(long style,long exStyle) const
-	{
-		::SetWindowLongPtr( hWnd, GWL_STYLE, style );
-		::SetWindowLongPtr( hWnd, GWL_EXSTYLE, exStyle );
-		::SetWindowPos( hWnd, NULL, 0, 0, 0, 0, SWP_NOSIZE|SWP_NOMOVE|SWP_NOZORDER|SWP_NOACTIVATE );
-	}
-
-	void Generic::ModifyStyle(long flag,ibool on) const
-	{
-		const long style = GetStyle();
-
-		if ((style & flag) != (on ? flag : 0))
-			SetStyle( (style & ~flag) | (on ? flag : 0) );
-	}
-
-	void Generic::Maximize() const
-	{
-		::SendMessage( hWnd, WM_SYSCOMMAND, SC_MAXIMIZE, 0 );
-	}
-
-	void Generic::Minimize() const
-	{
-		::SendMessage( hWnd, WM_SYSCOMMAND, SC_MINIMIZE, 0 );
-	}
-
-	void Generic::Restore() const
-	{
-		::SendMessage( hWnd, WM_SYSCOMMAND, SC_RESTORE, 0 );
-	}
-
-	ibool Generic::Activate(const ibool sameThread) const
-	{
-		if (IsEnabled())
+		Rect Generic::GetPlacement() const
 		{
-			if (Minimized())
+			WINDOWPLACEMENT placement;
+
+			placement.length = sizeof(placement);
+
+			if (::GetWindowPlacement( hWnd, &placement ))
+				return placement.rcNormalPosition;
+
+			return 0;
+		}
+
+		void Generic::SetPlacement(const Rect& rect) const
+		{
+			WINDOWPLACEMENT placement;
+
+			placement.length = sizeof(placement);
+
+			if (::GetWindowPlacement( hWnd, &placement ))
 			{
-				if (sameThread)
-					Send( WM_SYSCOMMAND, SC_RESTORE, 0 );
-				else
-					Post( WM_SYSCOMMAND, SC_RESTORE, 0 );
+				placement.length = sizeof(placement);
+				placement.rcNormalPosition = rect;
+				::SetWindowPlacement( hWnd, &placement );
 			}
+		}
+
+		Point Generic::SizeProxy::Coordinates() const
+		{
+			return Rect::Window(hWnd).Size();
+		}
+
+		void Generic::SizeProxy::Set(const Point& p) const
+		{
+			::SetWindowPos
+			(
+				hWnd,
+				NULL,
+				0,
+				0,
+				p.x,
+				p.y,
+				SWP_NOMOVE|SWP_NOZORDER|SWP_NOACTIVATE
+			);
+		}
+
+		void Generic::SizeProxy::operator = (const Point& p) const
+		{
+			Set( p );
+		}
+
+		void Generic::SizeProxy::operator += (const Point& p) const
+		{
+			Set( Coordinates() + p );
+		}
+
+		void Generic::SizeProxy::operator -= (const Point& p) const
+		{
+			Set( Coordinates() - p );
+		}
+
+		Point Generic::PositionProxy::Coordinates() const
+		{
+			return Rect::Window(hWnd).Position();
+		}
+
+		void Generic::PositionProxy::Set(Point p) const
+		{
+			if (HWND const hParent = ::GetParent( hWnd ))
+				p.ClientTransform( hParent );
+
+			::SetWindowPos
+			(
+				hWnd,
+				NULL,
+				p.x,
+				p.y,
+				0,
+				0,
+				SWP_NOSIZE|SWP_NOZORDER|SWP_NOACTIVATE
+			);
+		}
+
+		void Generic::PositionProxy::operator = (const Point& p) const
+		{
+			Set( p );
+		}
+
+		void Generic::PositionProxy::operator += (const Point& p) const
+		{
+			Set( Coordinates() + p );
+		}
+
+		void Generic::PositionProxy::operator -= (const Point& p) const
+		{
+			Set( Coordinates() - p );
+		}
+
+		Generic::StyleProxy::operator long () const
+		{
+			return ::GetWindowLong( hWnd, ex ? GWL_EXSTYLE : GWL_STYLE ) & flags;
+		}
+
+		void Generic::StyleProxy::operator = (bool on) const
+		{
+			const long style = ::GetWindowLong( hWnd, ex ? GWL_EXSTYLE : GWL_STYLE );
+
+			if ((style & flags) != (on ? flags : 0))
+			{
+				::SetWindowLong( hWnd, ex ? GWL_EXSTYLE : GWL_STYLE, (style & ~flags) | (on ? flags : 0) );
+				::SetWindowPos( hWnd, NULL, 0, 0, 0, 0, SWP_NOSIZE|SWP_NOMOVE|SWP_NOZORDER|SWP_NOACTIVATE|SWP_FRAMECHANGED );
+			}
+		}
+
+		void Generic::Post(uint msg) const
+		{
+			Post( msg, 0, 0 );
+		}
+
+		LONG_PTR Generic::Send(uint msg) const
+		{
+			return Send( msg, 0, 0 );
+		}
+
+		void Generic::SendCommand(uint id) const
+		{
+			Send( WM_COMMAND, id, 0 );
+		}
+
+		void Generic::PostCommand(uint id) const
+		{
+			Post( WM_COMMAND, id, 0 );
+		}
+
+		ibool Generic::Enabled() const
+		{
+			return ::IsWindowEnabled( hWnd );
+		}
+
+		ibool Generic::Active() const
+		{
+			return hWnd && hWnd == ::GetActiveWindow();
+		}
+
+		ibool Generic::Focused() const
+		{
+			return hWnd && hWnd == ::GetFocus();
+		}
+
+		ibool Generic::Enable(ibool enable) const
+		{
+			return ::EnableWindow( hWnd, enable );
+		}
+
+		void Generic::Show(ibool show) const
+		{
+			::ShowWindow( hWnd, show ? SW_SHOW : SW_HIDE );
+		}
+
+		void Generic::Maximize() const
+		{
+			if (SameThread())
+				Send( WM_SYSCOMMAND, SC_MAXIMIZE, 0 );
 			else
+				Post( WM_SYSCOMMAND, SC_MAXIMIZE, 0 );
+		}
+
+		void Generic::Minimize() const
+		{
+			if (SameThread())
+				Send( WM_SYSCOMMAND, SC_MINIMIZE, 0 );
+			else
+				Post( WM_SYSCOMMAND, SC_MINIMIZE, 0 );
+		}
+
+		void Generic::Restore() const
+		{
+			if (SameThread())
+				Send( WM_SYSCOMMAND, SC_RESTORE, 0 );
+			else
+				Post( WM_SYSCOMMAND, SC_RESTORE, 0 );
+		}
+
+		ibool Generic::Maximized() const
+		{
+			return ::IsZoomed( hWnd );
+		}
+
+		ibool Generic::Minimized() const
+		{
+			return ::IsIconic( hWnd );
+		}
+
+		ibool Generic::Restored() const
+		{
+			return !::IsZoomed( hWnd ) && !::IsIconic( hWnd );
+		}
+
+		ibool Generic::SameThread() const
+		{
+			return ::GetCurrentThreadId() == ::GetWindowThreadProcessId( hWnd, NULL );
+		}
+
+		void Generic::MakeTopMost(ibool topMost) const
+		{
+			::SetWindowPos
+			(
+				hWnd,
+				topMost ? HWND_TOPMOST : HWND_NOTOPMOST,
+				0,
+				0,
+				0,
+				0,
+				SWP_NOSIZE|SWP_NOMOVE|SWP_NOACTIVATE
+			);
+		}
+
+		void Generic::MakeWindowed(long style,long exStyle) const
+		{
+			::SetWindowLongPtr( hWnd, GWL_STYLE, style );
+			::SetWindowLongPtr( hWnd, GWL_EXSTYLE, exStyle );
+			::SetWindowPos( hWnd, NULL, 0, 0, 0, 0, SWP_NOMOVE|SWP_NOSIZE|SWP_NOZORDER|SWP_FRAMECHANGED );
+		}
+
+		void Generic::MakeFullscreen() const
+		{
+			::SetWindowLongPtr( hWnd, GWL_STYLE, WS_POPUP|WS_VISIBLE );
+			::SetWindowLongPtr( hWnd, GWL_EXSTYLE, 0 );
+
+			::SetWindowPos
+			(
+				hWnd,
+				NULL,
+				0,
+				0,
+				::GetSystemMetrics( SM_CXSCREEN ),
+				::GetSystemMetrics( SM_CYSCREEN ),
+				SWP_NOZORDER|SWP_FRAMECHANGED
+			);
+		}
+
+		ibool Generic::Activate() const
+		{
+			if (::IsWindowEnabled( hWnd ))
 			{
-				::SetForegroundWindow( hWnd );
+				if (::IsIconic( hWnd ))
+					Restore();
+				else
+					::SetForegroundWindow( hWnd );
+
+				return true;
 			}
 
-			return true;
+			return false;
 		}
 
-		return false;
-	}
-
-	void Generic::ValidateRect() const
-	{
-		::ValidateRect( hWnd, NULL );
-	}
-
-	void Generic::InvalidateRect() const
-	{
-		::InvalidateRect( hWnd, NULL, false );
-	}
-
-	void Generic::Close() const
-	{
-		::PostMessage( hWnd, WM_CLOSE, 0, 0 );
-	}
-
-	void Generic::Invalidate(const ibool erase) const
-	{
-		::InvalidateRect( hWnd, NULL, erase );
-	}
-
-	void Generic::Destroy()
-	{
-		if (hWnd)
+		void Generic::Redraw(ibool redraw) const
 		{
-			::DestroyWindow( hWnd );
-			hWnd = NULL;
+			if (redraw)
+				::InvalidateRect( hWnd, NULL, true );
+			else
+				::ValidateRect( hWnd, NULL );
 		}
-	}
 
-	void Generic::Redraw() const
-	{
-		::InvalidateRect( hWnd, NULL, false );
-	}
+		Generic Generic::Parent() const
+		{
+			return ::GetParent( hWnd );
+		}
 
-	void Generic::Set(const Rect& rect,HWND const zOrder,const DWORD flags) const
-	{
-		Set( rect.Position(), rect.Size(), zOrder, flags );
-	}
+		void Generic::Close() const
+		{
+			if (hWnd)
+			{
+				if (SameThread())
+					Send( WM_SYSCOMMAND, SC_CLOSE, 0 );
+				else
+					Post( WM_SYSCOMMAND, SC_CLOSE, 0 );
+			}
+		}
 
-	void Generic::Set(const Rect& rect,const DWORD flags) const
-	{
-		Set( rect.Position(), rect.Size(), NULL, flags|SWP_NOZORDER );
-	}
+		ibool Generic::Destroy()
+		{
+			NST_VERIFY( !hWnd || ::IsWindow( hWnd ) );
 
-	void Generic::Set(const Point& pos,const Point& size,HWND const zOrder,DWORD flags) const
-	{
-		::SetWindowPos
-		(
-			hWnd,
-			zOrder,
-			pos.x,
-			pos.y,
-			size.x,
-			size.y,
-			flags
-		);
-	}
+			if (hWnd)
+			{
+				ibool result = ::DestroyWindow( hWnd );
+				hWnd = NULL;
+				return result;
+			}
 
-	void Generic::Resize(const Point& size,const DWORD flags) const
-	{
-		::SetWindowPos
-		(
-			hWnd,
-			NULL,
-			0,
-			0,
-			size.x,
-			size.y,
-			flags|SWP_NOMOVE|SWP_NOZORDER
-		);
-	}
+			return false;
+		}
 
-	void Generic::Move(const Point& pos,const DWORD flags) const
-	{
-		::SetWindowPos
-		(
-			hWnd,
-			NULL,
-			pos.x,
-			pos.y,
-			0,
-			0,
-			flags|SWP_NOSIZE|SWP_NOZORDER
-		);
-	}
+		Generic Generic::Find(tstring className)
+		{
+			return className ? ::FindWindow( className, NULL ) : NULL;
+		}
 
-	void Generic::Reorder(HWND const zOrder,const DWORD flags) const
-	{
-		::SetWindowPos
-		(
-			hWnd,
-			zOrder,
-			0,
-			0,
-			0,
-			0,
-			flags|SWP_NOSIZE|SWP_NOMOVE
-		);
-	}
+		int Generic::Stream::GetTextLength(const char*) const
+		{
+			return ::GetWindowTextLengthA( hWnd );
+		}
 
-	void Generic::Magnify(const Point& size) const
-	{
-		Resize( GetNormalWindowRect().Size() + size, SWP_FRAMECHANGED );
-	}
+		int Generic::Stream::GetTextLength(const wchar_t*) const
+		{
+			return ::GetWindowTextLengthW( hWnd );
+		}
 
-	void Generic::Shrink(const Point& size) const
-	{
-		const Point current( GetNormalWindowRect() );
+		int Generic::Stream::GetText(char* string,uint maxLength) const
+		{
+			return ::GetWindowTextA( hWnd, string, maxLength + 1 );
+		}
 
-		if (current >= size)
-			Resize( current - size, SWP_FRAMECHANGED );
-	}
+		int Generic::Stream::GetText(wchar_t* string,uint maxLength) const
+		{
+			return ::GetWindowTextW( hWnd, string, maxLength + 1 );
+		}
 
-	ibool Generic::IsChild(HWND const hChild) const
-	{
-		return hChild && hWnd && hChild != hWnd && ::IsChild( hWnd, hChild );
-	}
+		void Generic::Stream::operator << (const char* string) const
+		{
+			NST_ASSERT( string );
+			::SetWindowTextA( hWnd, string );
+		}
 
-	LONG_PTR Generic::Send(const uint uMsg) const
-	{
-		return ::SendMessage( hWnd, uMsg, 0, 0 );
-	}
+		void Generic::Stream::operator << (const wchar_t* string) const
+		{
+			NST_ASSERT( string );
+			::SetWindowTextW( hWnd, string );
+		}
 
-	LONG_PTR Generic::SendCommand(const uint id) const
-	{
-		return ::SendMessage( hWnd, WM_COMMAND, id, 0 );
-	}
+		void Generic::Stream::operator << (int value) const
+		{
+			operator << (ValueString(value).Ptr());
+		}
 
-	void Generic::Post(const uint uMsg) const
-	{
-		::PostMessage( hWnd, uMsg, 0, 0 );
-	}
+		void Generic::Stream::operator << (uint value) const
+		{
+			operator << (ValueString(value).Ptr());
+		}
 
-	void Generic::PostCommand(const uint id) const
-	{
-		::PostMessage( hWnd, WM_COMMAND, id, 0 );
-	}
+		uint Generic::Stream::operator >> (ulong& value) const
+		{
+			String::Stack<16,tchar> string;
+			string.ShrinkTo( ::GetWindowText( hWnd, string.Ptr(), 16+1 ) );
+			string >> value;
+			return string.Length();
+		}
 
-	void Generic::Register
-	(
-		tstring const className,
-		const uint classStyle,
-		WNDPROC const wndProc,
-		HCURSOR const hCursor,
-		HBRUSH const hBrush,
-		HICON const hIcon
-	)
-	{
-		NST_ASSERT( className && *className );
+		uint Generic::Stream::operator >> (long& value) const
+		{
+			String::Stack<16,tchar> string;
+			string.ShrinkTo( ::GetWindowText( hWnd, string.Ptr(), 16+1 ) );
+			string >> value;
+			return string.Length();
+		}
 
-		Object::Pod<WNDCLASSEX> winClass;
+		void Generic::Stream::Clear() const
+		{
+			::SetWindowText( hWnd, _T("") );
+		}
 
-		winClass.cbSize        = sizeof(winClass);
-		winClass.style         = classStyle;
-		winClass.lpfnWndProc   = wndProc;
-		winClass.hInstance     = ::GetModuleHandle(NULL);
-		winClass.hCursor       = hCursor;
-		winClass.hbrBackground = hBrush;
-		winClass.lpszClassName = className;
-		winClass.hIcon         =
-		winClass.hIconSm       = hIcon;
+		Generic::LockDraw::LockDraw(HWND h)
+		: hWnd(h)
+		{
+			NST_ASSERT( hWnd );
+			SetWindowRedraw( hWnd, false );
+		}
 
-		if (!RegisterClassEx( &winClass ))
-			throw Application::Exception(_T("RegisterClassEx() failed!"));
-	}
-
-	void Generic::Unregister(tstring className)
-	{
-		NST_ASSERT( className && *className );
-
-		::UnregisterClass( className, ::GetModuleHandle(NULL) );
-	}
-
-	Generic Generic::Create
-	(
-		const DWORD exStyle,
-		tstring const className,
-		tstring const windowName,
-		const DWORD style,
-		const uint x,
-		const uint y,
-		const uint width,
-		const uint height,
-		HWND const hParent,
-		HMENU const hMenu,
-		void* const param
-	)
-	{
-		NST_ASSERT( className && *className );
-
-		HWND const hWnd = CreateWindowEx
-		(
-			exStyle,
-			className,
-			windowName,
-			style,
-			x,
-			y,
-			width,
-			height,
-			hParent,
-			hMenu,
-			::GetModuleHandle(NULL),
-			param
-		);
-
-		if (!hWnd)
-			throw Application::Exception(_T("CreateWindowEx() failed!"));
-
-		return hWnd;
-	}
-
-	Rect Generic::GetNormalWindowRect() const
-	{
-		WINDOWPLACEMENT winPlacement;
-
-		winPlacement.length = sizeof(winPlacement);
-
-		if (::GetWindowPlacement( hWnd, &winPlacement ))
-			return winPlacement.rcNormalPosition;
-
-		return 0;
-	}
-
-	void Generic::SetNormalWindowRect(const Rect& rect) const
-	{
-		WINDOWPLACEMENT winPlacement;
-
-		winPlacement.length = sizeof(winPlacement);
-		winPlacement.rcNormalPosition = rect;
-
-		::SetWindowPlacement( hWnd, &winPlacement );
-	}
-
-	void Generic::SetIcon(const uint id,const uint type) const
-	{
-		Send( WM_SETICON, type, (HICON) Resource::Icon(id) );
-	}
-
-	ibool Generic::IsCursorInsideClientArea() const
-	{
-		Point pos;
-		::GetCursorPos( &pos );
-		return Rect::Screen( hWnd ).IsInside( pos );
+		Generic::LockDraw::~LockDraw()
+		{
+			SetWindowRedraw( hWnd, true );
+			::InvalidateRect( hWnd, NULL, false );
+		}
 	}
 }

@@ -28,6 +28,7 @@
 #pragma once
 
 #include <set>
+#include <vector>
 #include "NstWindowRect.hpp"
 #include "NstDirectX.hpp"
 
@@ -126,8 +127,8 @@ namespace Nestopia
 			ibool SwitchFullscreen(const Adapter::Modes::const_iterator);
 			ibool SwitchWindowed();
 			void  UpdateWindowView();
-			void  UpdateWindowView(const Point&,const float[4],Adapter::Filter,ibool);
-			void  UpdateFullscreenView(const Rect&,const Point&,const float[4],Adapter::Filter,ibool);
+			void  UpdateWindowView(const Point&,const float[4],int,Adapter::Filter,ibool);
+			void  UpdateFullscreenView(const Rect&,const Point&,const float[4],int,Adapter::Filter,ibool);
 			void  UpdateFrameRate(uint,ibool,ibool);
 			void  EnableDialogBoxMode(ibool);
 			ibool Reset();
@@ -142,6 +143,11 @@ namespace Nestopia
 			ScreenShotResult SaveScreenShot(tstring,uint) const;
 
 		private:
+
+			enum
+			{
+				TSL_PATCHES = 32
+			};
 
 			void InvalidateObjects();
 			void ValidateObjects();
@@ -191,15 +197,15 @@ namespace Nestopia
 				ibool CanSwitchFullscreen(const Mode&) const;
 				ibool CanToggleDialogBoxMode(bool) const;
 				ibool ResetFrameRate(uint,bool,bool,const Base&);
-				ibool IsIdealFrameRate() const;
+				ibool IdealFrameRate() const;
 				uint  GetMaxMessageLength() const;
 
 				void SwitchFullscreen(const Mode&);
 				void SwitchWindowed();
 
-				HRESULT RenderScreen(uint) const;
+				HRESULT RenderScreen(uint,uint,uint) const;
 				HRESULT ResetWindowClient(const Point&,HRESULT);
-				HRESULT ToggleDialogBoxMode(ibool);
+				HRESULT ToggleDialogBoxMode();
 				HRESULT Repair(HRESULT);
 				HRESULT Reset();
 
@@ -247,7 +253,7 @@ namespace Nestopia
 						void Create(const Device&);
 						void Destroy();
 						void Update(const GenericString&);
-						uint GetWidth() const;
+						uint Width() const;
 						void OnReset() const;
 						void OnLost() const;
 
@@ -305,7 +311,7 @@ namespace Nestopia
 						nfo.Clear();
 					}
 
-					uint GetWidth() const
+					uint Width() const
 					{
 						return width;
 					}
@@ -313,6 +319,7 @@ namespace Nestopia
 
 				uint ordinal;
 				ComInterface<IDirect3DDevice9> com;
+				ComInterface<IDirect3DQuery9> query;
 				Timing timing;
 				Fonts fonts;
 				u16 intervalTwo;
@@ -327,6 +334,11 @@ namespace Nestopia
 					return ordinal;
 				}
 
+				ibool CanSync() const
+				{
+					return query != NULL;
+				}
+
 				HRESULT ClearScreen() const
 				{
 					return com->Clear( 0, NULL, D3DCLEAR_TARGET, 0, 1.f, 0 );
@@ -335,6 +347,19 @@ namespace Nestopia
 				HRESULT PresentScreen() const
 				{
 					return com->Present( NULL, NULL, NULL, NULL );
+				}
+
+				HRESULT PresentSyncedScreen() const
+				{
+					NST_ASSERT( query != NULL );
+
+					query->Issue( D3DISSUE_END );
+
+					const HRESULT hResult = com->Present( NULL, NULL, NULL, NULL );
+
+					while (query->GetData( NULL, 0, D3DGETDATA_FLUSH ) == S_FALSE);
+
+					return hResult;
 				}
 
 				const D3DPRESENT_PARAMETERS& GetPresentation() const
@@ -377,12 +402,12 @@ namespace Nestopia
 					timing.autoHz = enable;
 				}
 
-				ibool IsThrottleRequired() const
+				ibool ThrottleRequired(uint speed) const
 				{
 					return
 					(
-						(presentation.PresentationInterval == D3DPRESENT_INTERVAL_IMMEDIATE) ||
-						(presentation.PresentationInterval == D3DPRESENT_INTERVAL_ONE && presentation.FullScreen_RefreshRateInHz != timing.frameRate)
+						presentation.PresentationInterval == D3DPRESENT_INTERVAL_IMMEDIATE ||
+						speed != timing.frameRate
 					);
 				}
 			};
@@ -391,23 +416,21 @@ namespace Nestopia
 			{
 			public:
 
+				VertexBuffer();
+				~VertexBuffer();
+
 				enum
 				{
 					FVF = D3DFVF_XYZRHW|D3DFVF_TEX1
 				};
 
-				void Update(const Rect&,const float[4],float);
+				void Update(const Rect&,const float[4],float,uint,int);
 				HRESULT Validate(IDirect3DDevice9&,ibool=true);
-				inline void Invalidate();
+				void Invalidate();
 
 			private:
 
-				enum
-				{
-					NUM_VERTICES = 4
-				};
-
-			#pragma pack(push,1)
+				#pragma pack(push,1)
 
 				struct Vertex
 				{
@@ -416,19 +439,49 @@ namespace Nestopia
 					float x,y,z,rhw,u,v;
 				};
 
-			#pragma pack(pop)
+				#pragma pack(pop)
 
 				NST_COMPILE_ASSERT( sizeof(Vertex) == 24 );
 
 				ComInterface<IDirect3DVertexBuffer9> com;
 				Rect rect;
-				Vertex vertices[NUM_VERTICES];
+				std::vector<Vertex> vertices;
 
 			public:
 
 				const Rect& GetRect() const
 				{
 					return rect;
+				}
+
+				uint NumVertices() const
+				{
+					return vertices.size();
+				}
+			};
+
+			class IndexBuffer
+			{
+			public:
+
+				inline IndexBuffer();
+				~IndexBuffer();
+
+				void Update(uint);
+				HRESULT Validate(IDirect3DDevice9&,ibool=true);
+				void Invalidate();
+
+			private:
+
+				uint strips;
+				uint patches;
+				ComInterface<IDirect3DIndexBuffer9> com;
+
+			public:
+
+				uint NumStrips() const
+				{
+					return strips;
 				}
 			};
 
@@ -474,6 +527,14 @@ namespace Nestopia
 					return hResult;
 				}
 
+				void PreventAheadRendering() const
+				{
+					D3DLOCKED_RECT locked;
+
+					if (com != NULL && SUCCEEDED(com->LockRect( 0, &locked, NULL, D3DLOCK_NOSYSLOCK )))
+						com->UnlockRect( 0 );
+				}
+
 				void Unlock() const
 				{
 					com->UnlockRect( 0 );
@@ -493,24 +554,25 @@ namespace Nestopia
 			Base base;
 			Device device;
 			VertexBuffer vertexBuffer;
+			IndexBuffer indexBuffer;
 			Texture texture;
 			HRESULT lastResult;
 
 		public:
 
-			ibool IsValidScreen() const
+			ibool ValidScreen() const
 			{
 				return SUCCEEDED(lastResult);
 			}
 
-			ibool IsWindowed() const
+			ibool Windowed() const
 			{
 				return device.GetPresentation().Windowed;
 			}
 
-			ibool IsThrottleRequired() const
+			ibool ThrottleRequired(uint speed) const
 			{
-				return device.IsThrottleRequired() || FAILED(lastResult);
+				return device.ThrottleRequired( speed ) || FAILED(lastResult);
 			}
 
 			const Adapters& GetAdapters() const
@@ -568,14 +630,27 @@ namespace Nestopia
 			void RenderScreen(uint state)
 			{
 				if (SUCCEEDED(lastResult))
-					lastResult = device.RenderScreen( state );
+					lastResult = device.RenderScreen( state, indexBuffer.NumStrips(), vertexBuffer.NumVertices() );
 			}
 
-			ibool PresentScreen()
+			ibool PresentScreen(ibool noSync)
 			{
 				if (SUCCEEDED(lastResult))
 				{
-					lastResult = device.PresentScreen();
+					if (noSync)
+					{
+						lastResult = device.PresentScreen();
+					}
+					else if (device.CanSync())
+					{
+						lastResult = device.PresentSyncedScreen();
+					}
+					else
+					{
+						texture.PreventAheadRendering();
+						lastResult = device.PresentScreen();
+					}
+
 					return SUCCEEDED(lastResult);
 				}
 				else
@@ -629,9 +704,14 @@ namespace Nestopia
 				return Point( device.GetPresentation().BackBufferWidth, device.GetPresentation().BackBufferHeight );
 			}
 
-			ibool IsIdealFrameRate() const
+			ibool IdealFrameRate() const
 			{
-				return device.IsIdealFrameRate();
+				return device.IdealFrameRate();
+			}
+
+			ibool DialogBoxMode() const
+			{
+				return device.GetPresentation().Flags & D3DPRESENTFLAG_LOCKABLE_BACKBUFFER;
 			}
 		};
 	}

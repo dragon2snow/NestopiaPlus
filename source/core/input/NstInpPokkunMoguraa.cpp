@@ -35,8 +35,8 @@ namespace Nes
 			#pragma optimize("s", on)
 			#endif
 
-			PokkunMoguraa::PokkunMoguraa()
-			: Device(Api::Input::POKKUNMOGURAA)
+			PokkunMoguraa::PokkunMoguraa(const Cpu& c)
+			: Device(c,Api::Input::POKKUNMOGURAA)
 			{
 				PokkunMoguraa::Reset();
 			}
@@ -57,10 +57,15 @@ namespace Nes
 
 			void PokkunMoguraa::Poke(const uint data)
 			{
-				if (input && Controllers::PokkunMoguraa::callback( input->pokkunMoguraa, ~data & 0x7 ))
+				if (input)
+				{
+					Controllers::PokkunMoguraa::callback( input->pokkunMoguraa, ~data & 0x7 );
 					state = ~input->pokkunMoguraa.buttons & 0x1E;
+				}
 				else
+				{
 					state = 0x1E;
+				}
 			}
 
 			uint PokkunMoguraa::Peek(const uint port)

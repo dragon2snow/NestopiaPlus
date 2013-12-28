@@ -34,7 +34,7 @@ namespace Nestopia
 {
 	namespace Application
 	{
-		class Configuration : Sealed
+		class Configuration
 		{
 		public:
 
@@ -205,14 +205,14 @@ namespace Nestopia
 
 			void Parse(tstring,uint);
 
-			enum Exception
+			enum Error
 			{
 				ERR_PARSING
 			};
 
 			enum
 			{
-				HINTED_SIZE = 414
+				HINTED_SIZE = 415
 			};
 
 			struct Command : String::Heap<char>

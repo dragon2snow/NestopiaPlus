@@ -93,7 +93,7 @@ namespace Nes
 		:
 		Mapper (c),
 		irq    (c.cpu),
-		sound  (DetectSound(c.pRomCrc,c.cpu))
+		sound  (DetectSound(c.prgCrc,c.cpu))
 		{}
 
 		Mapper18::~Mapper18()

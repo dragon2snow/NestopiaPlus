@@ -44,20 +44,23 @@ namespace Nes
 				template<u32 R,u32 G,u32 B> static dword Interpolate2(dword,dword,dword);
 				template<u32 R,u32 G,u32 B> static dword Interpolate3(dword,dword);
 				template<u32 R,u32 G,u32 B> static dword Interpolate4(dword,dword,dword);
-				static inline dword Interpolate5(dword,dword);
+				template<u32 R,u32 G,u32 B> static dword Interpolate5(dword,dword);
 				template<u32 R,u32 G,u32 B> static dword Interpolate6(dword,dword,dword);
 				template<u32 R,u32 G,u32 B> static dword Interpolate7(dword,dword,dword);
+				template<u32 R,u32 G,u32 B> static dword Interpolate8(dword,dword);
 				template<u32 R,u32 G,u32 B> static dword Interpolate9(dword,dword,dword);
 				template<u32 R,u32 G,u32 B> static dword Interpolate10(dword,dword,dword);
 
-				bool Diff(uint,uint) const;
-				static bool DiffYuv(dword,dword);
+				inline dword Diff(uint,uint) const;
 
 				template<typename T,u32 R,u32 G,u32 B>
-				NST_FORCE_INLINE void Blit2xRgb(const Input&,const Output&) const;
+				void Blit2xRgb(const Input&,const Output&) const;
 
 				template<typename T,u32 R,u32 G,u32 B>
-				NST_FORCE_INLINE void Blit3xRgb(const Input&,const Output&) const;
+				void Blit3xRgb(const Input&,const Output&) const;
+
+				template<typename T,u32 R,u32 G,u32 B>
+				void Blit4xRgb(const Input&,const Output&) const;
 
 				template<typename T>
 				NST_FORCE_INLINE void Blit2x(const Input&,const Output&) const;
@@ -66,18 +69,27 @@ namespace Nes
 				NST_FORCE_INLINE void Blit3x(const Input&,const Output&) const;
 
 				template<typename T>
+				NST_FORCE_INLINE void Blit4x(const Input&,const Output&) const;
+
+				template<typename T>
 				NST_FORCE_INLINE void BlitType(const Input&,const Output&) const;
 
-				template<typename>
+				template<typename T>
 				struct Buffer;
 
 				struct Lut
 				{
-					Lut(bool,const uint (&)[3]);
+					Lut(bool,const uint (&)[3],u32* = NULL);
 					~Lut();
 
+					enum
+					{
+						YUV_OFFSET = (0x440UL << 21) + (0x207UL << 11) + 0x407UL,
+						YUV_MASK   = (0x380UL << 21) + (0x1F0UL << 11) + 0x3F0UL
+					};
+
 					u32 yuv[0x10000UL];
-					u32* NST_RESTRICT const rgb;
+					const u32* const NST_RESTRICT rgb;
 				};
 
 				const Lut lut;

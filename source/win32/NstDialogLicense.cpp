@@ -29,56 +29,43 @@
 
 namespace Nestopia
 {
-	using namespace Window;
-
-	struct License::Handlers
+	namespace Window
 	{
-		static const MsgHandler::Entry<License> messages[];
-		static const MsgHandler::Entry<License> commands[];
-	};
-
-	const MsgHandler::Entry<License> License::Handlers::messages[] =
-	{
-		{ WM_INITDIALOG,     &License::OnInitDialog     },
-		{ WM_CTLCOLORSTATIC, &License::OnCtlColorStatic }
-	};
-
-	const MsgHandler::Entry<License> License::Handlers::commands[] =
-	{
-		{ IDC_LICENSE_OK, &License::OnCmdOk }
-	};
-
-	License::License()
-	: dialog(IDD_LICENSE,this,Handlers::messages,Handlers::commands) {}
-
-	ibool License::OnInitDialog(Param&)
-	{
-		Collection::Buffer buffer;
-
-		if (Resource::File( IDR_LICENSE, _T("License") ).Uncompress( buffer ))
+		struct License::Handlers
 		{
-			buffer.PushBack('\0');
-			dialog.Control( IDC_LICENSE_EDIT ).Text() << buffer.Ptr();
+			static const MsgHandler::Entry<License> messages[];
+		};
+
+		const MsgHandler::Entry<License> License::Handlers::messages[] =
+		{
+			{ WM_INITDIALOG,     &License::OnInitDialog     },
+			{ WM_CTLCOLORSTATIC, &License::OnCtlColorStatic }
+		};
+
+		License::License()
+		: dialog(IDD_LICENSE,this,Handlers::messages) {}
+
+		ibool License::OnInitDialog(Param&)
+		{
+			Collection::Buffer buffer;
+
+			if (Resource::File( IDR_LICENSE, _T("License") ).Uncompress( buffer ))
+			{
+				buffer.PushBack('\0');
+				dialog.Control( IDC_LICENSE_EDIT ).Text() << buffer.Ptr();
+			}
+
+			return true;
 		}
 
-		return true;
-	}
+		ibool License::OnCtlColorStatic(Param& param)
+		{
+			NST_COMPILE_ASSERT( sizeof(ibool) == sizeof(BOOL) );
 
-	ibool License::OnCtlColorStatic(Param& param)
-	{
-		NST_COMPILE_ASSERT( sizeof(ibool) == sizeof(BOOL) );
-
-		if (reinterpret_cast<HWND>(param.lParam) == ::GetDlgItem( param.hWnd, IDC_LICENSE_EDIT ))
-			return reinterpret_cast<ibool>(::GetSysColorBrush( COLOR_WINDOW ));
-		else
-			return false;
-	}
-
-	ibool License::OnCmdOk(Param& param)
-	{
-		if (param.Button().IsClicked())
-			dialog.Close();
-
-		return true;
+			if (reinterpret_cast<HWND>(param.lParam) == ::GetDlgItem( param.hWnd, IDC_LICENSE_EDIT ))
+				return reinterpret_cast<ibool>(::GetSysColorBrush( COLOR_WINDOW ));
+			else
+				return false;
+		}
 	}
 }

@@ -31,13 +31,10 @@
 
 namespace Nes
 {
-	namespace Api
-	{
-		class Emulator;
-	}
-
 	namespace Core
 	{
+		class Machine;
+
 		namespace Video
 		{
 			class Output;
@@ -68,21 +65,21 @@ namespace Nes
 			~Tracker();
 
 			void   Reset(bool);
-			Result Execute(Api::Emulator&,Video::Output*,Sound::Output*,Input::Controllers*);
+			Result Execute(Machine&,Video::Output*,Sound::Output*,Input::Controllers*);
 			void   Flush();
 			void   Unload();
 			uint   GetSoundLatency(const Apu&) const;
 			bool   IsLocked() const;
 
-			Result RewinderEnable(Api::Emulator*);
+			Result RewinderEnable(Machine*);
 			void   RewinderEnableSound(bool);
 			void   RewinderReset() const;
 			Result RewinderStart() const;
 			Result RewinderStop() const;
 			bool   IsRewinding() const;
 
-			Result MoviePlay(Api::Emulator&,StdStream,bool);
-			Result MovieRecord(Api::Emulator&,StdStream,bool,bool);
+			Result MoviePlay(Machine&,StdStream,bool);
+			Result MovieRecord(Machine&,StdStream,bool,bool);
 			void   MovieStop();
 			void   MovieCut();
 			void   MovieEject();

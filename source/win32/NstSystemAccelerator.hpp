@@ -27,7 +27,6 @@
 
 #pragma once
 
-#include "NstMain.hpp"
 #include "NstString.hpp"
 #include <Windows.h>
 
@@ -35,7 +34,7 @@ namespace Nestopia
 {
 	namespace System
 	{
-		class Accelerator : Sealed
+		class Accelerator
 		{
 		public:
 
@@ -69,7 +68,7 @@ namespace Nestopia
 					::DestroyAcceleratorTable( handle );
 			}
 
-			ibool IsEnabled() const
+			ibool Enabled() const
 			{
 				return handle != NULL;
 			}

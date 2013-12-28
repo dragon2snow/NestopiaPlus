@@ -36,6 +36,8 @@ namespace Nestopia
 
 	namespace Managers
 	{
+		class Paths;
+
 		class Files
 		{
 		public:

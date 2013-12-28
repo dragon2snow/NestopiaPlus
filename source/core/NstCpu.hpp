@@ -44,7 +44,6 @@ namespace Nes
 		public:
 
 			Cpu();
-			~Cpu();
 
 			enum
 			{
@@ -486,7 +485,6 @@ namespace Nes
 			};
 
 			uint pc;
-			IoMap& map;
 			Cycles cycles;
 			uint a;
 			uint x;
@@ -499,9 +497,10 @@ namespace Nes
 			Hooks hooks;
 			ibool jammed;
 			Mode mode;
-			qword ticks;
 			Linker linker;
+			qword ticks;
 			Apu apu;
+			IoMap map;
 
 			static void (Cpu::*const opcodes[NUM_OPCODES])();
 			static dword logged;
@@ -609,6 +608,11 @@ namespace Nes
 			{
 				NST_ASSERT( cpuCycle && cpuCycle <= 8 );
 				return cycles.clock[cpuCycle-1];
+			}
+
+			uint GetFrameTime() const
+			{
+				return cycles.count * (MC_DIV_NTSC*1000UL) / (mode == MODE_NTSC ? MC_NTSC : MC_PAL);
 			}
 
 			SystemRam GetSystemRam() const

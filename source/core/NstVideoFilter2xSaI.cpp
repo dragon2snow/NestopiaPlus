@@ -94,7 +94,7 @@ namespace Nes
 			template<typename T>
 			NST_FORCE_INLINE void Renderer::Filter2xSaI::Blit2xSaI(const Input& input,const Output& output) const
 			{
-				const u16* NST_RESTRICT src = input.screen;
+				const u16* NST_RESTRICT src = input.pixels;
 				const long pitch = output.pitch;
 
 				T* NST_RESTRICT dst[2] =
@@ -271,7 +271,7 @@ namespace Nes
 			template<typename T>
 			NST_FORCE_INLINE void Renderer::Filter2xSaI::BlitSuper2xSaI(const Input& input,const Output& output) const
 			{
-				const u16* NST_RESTRICT src = input.screen;
+				const u16* NST_RESTRICT src = input.pixels;
 				const long pitch = output.pitch;
 
 				T* NST_RESTRICT dst[2] =
@@ -425,7 +425,7 @@ namespace Nes
 			template<typename T>
 			NST_FORCE_INLINE void Renderer::Filter2xSaI::BlitSuperEagle(const Input& input,const Output& output) const
 			{
-				const u16* NST_RESTRICT src = input.screen;
+				const u16* NST_RESTRICT src = input.pixels;
 				const long pitch = output.pitch;
 
 				T* NST_RESTRICT dst[2] =

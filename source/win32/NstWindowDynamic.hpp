@@ -28,6 +28,7 @@
 #pragma once
 
 #include "NstWindowCustom.hpp"
+#include "NstString.hpp"
 
 namespace Nestopia
 {

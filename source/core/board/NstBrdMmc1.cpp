@@ -35,38 +35,10 @@ namespace Nes
 			#pragma optimize("s", on)
 			#endif
 
-			bool Mmc1::IsSoRom(const dword pRomCrc)
-			{
-				switch (pRomCrc)
-				{
-					case 0xFB69743AUL: // Aoki Ookami to Shiroki Mejika - Genghis Khan
-					case 0x067BD24CUL: // -||-
-					case 0xB8747ABFUL: // Best Play Pro Yakyuu Special
-					case 0xE3C2C174UL: // -||-
-					case 0xF7D51D87UL: // -||-
-					case 0x2225C20FUL: // Genghis Khan
-					case 0x0BF7EEDBUL: // -||-
-					case 0x29449BA9UL: // Nobunaga no Yabou - Zenkoku Han
-					case 0x2B11E0B0UL: // -||-
-					case 0x4642DDA6UL: // Nobunaga's Ambition
-					case 0x82358E61UL: // -||-
-					case 0xA564AB26UL: // -||-
-					case 0x3B92853DUL: // -||-
-					case 0xC6182024UL: // Romance of the Three Kingdoms
-					case 0x90388D1BUL: // -||-
-					case 0x7F93FB41UL: // -||-
-					case 0xABBF7217UL: // Sangokushi
-					case 0x1028FC27UL: // -||-
-						return true;
-				}
-
-				return false;
-			}
-
-			Mmc1::Mmc1(Context& c)
+			Mmc1::Mmc1(Context& c,uint settings,Revision rev)
 			:
-			Mapper (c,IsSoRom(c.pRomCrc) ? WRAM_16K : WRAM_8K),
-			soRom  (IsSoRom(c.pRomCrc))
+			Mapper   (c,settings),
+			revision (rev)
 			{
 			}
 
@@ -78,17 +50,24 @@ namespace Nes
 				regs[CTRL] = CTRL_RESET;
 				regs[CHR0] = 0;
 				regs[CHR1] = 0;
-				regs[PRG0] = 0;
+				regs[PRG0] = (revision == REV_1C ? PRG0_WRAM_DISABLED : 0);
 			}
 
 			void Mmc1::SubReset(const bool hard)
 			{
-				Map
-				(
-					0x6000U, 0x7FFFU,
-					soRom ? &Mmc1::Peek_wRam_SoRom : &Mmc1::Peek_wRam,
-					soRom ? &Mmc1::Poke_wRam_SoRom : &Mmc1::Poke_wRam
-				);
+				if (wrk.HasRam())
+				{
+					if (revision == REV_1A && wrk.RamSize() != SIZE_16K)
+					{
+						Map( WRK_PEEK_POKE );
+					}
+					else Map
+					(
+						0x6000U, 0x7FFFU,
+						wrk.RamSize() == SIZE_16K ? revision == REV_1A ? &Mmc1::Peek_wRam_SoRom_1a : &Mmc1::Peek_wRam_SoRom : &Mmc1::Peek_wRam,
+						wrk.RamSize() == SIZE_16K ? revision == REV_1A ? &Mmc1::Poke_wRam_SoRom_1a : &Mmc1::Poke_wRam_SoRom : &Mmc1::Poke_wRam
+					);
+				}
 
 				Map( 0x8000U, 0xFFFFU, &Mmc1::Poke_Prg );
 
@@ -289,21 +268,31 @@ namespace Nes
 					wrk[0][address - 0x6000U] = data;
 			}
 
+			NES_PEEK(Mmc1,wRam_SoRom_1a)
+			{
+				if (regs[CTRL] & CTRL_CHR_SWAP_4K)
+					address -= (regs[CHR0] & 0x10) ? 0x4000 : 0x6000;
+				else
+					address -= (regs[CHR0] & 0x08) ? 0x4000 : 0x6000;
+
+				return wrk[0][address];
+			}
+
 			NES_PEEK(Mmc1,wRam_SoRom)
 			{
 				NST_VERIFY( IsWRamEnabled() );
 
-				if (IsWRamEnabled())
-				{
-					if (regs[CTRL] & CTRL_CHR_SWAP_4K)
-						address -= (regs[CHR0] & 0x10) ? 0x4000 : 0x6000;
-					else
-						address -= (regs[CHR0] & 0x08) ? 0x4000 : 0x6000;
+				return IsWRamEnabled() ? NES_CALL_PEEK(Mmc1,wRam_SoRom_1a,address) : address >> 8;
+			}
 
-					return wrk[0][address];
-				}
+			NES_POKE(Mmc1,wRam_SoRom_1a)
+			{
+				if (regs[CTRL] & CTRL_CHR_SWAP_4K)
+					address -= (regs[CHR0] & 0x10) ? 0x4000 : 0x6000;
+				else
+					address -= (regs[CHR0] & 0x08) ? 0x4000 : 0x6000;
 
-				return address >> 8;
+				wrk[0][address] = data;
 			}
 
 			NES_POKE(Mmc1,wRam_SoRom)
@@ -311,14 +300,7 @@ namespace Nes
 				NST_VERIFY( IsWRamEnabled() );
 
 				if (IsWRamEnabled())
-				{
-					if (regs[CTRL] & CTRL_CHR_SWAP_4K)
-						address -= (regs[CHR0] & 0x10) ? 0x4000 : 0x6000;
-					else
-						address -= (regs[CHR0] & 0x08) ? 0x4000 : 0x6000;
-
-					wrk[0][address] = data;
-				}
+					NES_CALL_POKE(Mmc1,wRam_SoRom_1a,address,data);
 			}
 
 			void Mmc1::VSync()

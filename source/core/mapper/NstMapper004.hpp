@@ -41,6 +41,7 @@ namespace Nes
 
 		private:
 
+			static Revision GetRevision(dword);
 			static bool IsMmc6(dword);
 
 			void SubReset(bool);

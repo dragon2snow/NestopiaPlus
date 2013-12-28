@@ -44,7 +44,8 @@ namespace Nes
 		{
 		public:
 
-			Nsf(Emulator& e)
+			template<typename T>
+			Nsf(T& e)
 			: Base(e) {}
 
 			enum
@@ -69,26 +70,26 @@ namespace Nes
 				CHIP_S5B  = 0x20
 			};
 
-			const char* GetName         () const;
-			const char* GetArtist       () const;
-			const char* GetMaker        () const;
-			TuneMode    GetMode         () const;
-			uint        GetInitAddress  () const;
-			uint        GetLoadAddress  () const;
-			uint        GetPlayAddress  () const;
-			uint        GetNumSongs     () const;
-			int         GetCurrentSong  () const;
-			int         GetStartingSong () const;
+			const char* GetName         () const throw();
+			const char* GetArtist       () const throw();
+			const char* GetMaker        () const throw();
+			TuneMode    GetMode         () const throw();
+			uint        GetInitAddress  () const throw();
+			uint        GetLoadAddress  () const throw();
+			uint        GetPlayAddress  () const throw();
+			uint        GetNumSongs     () const throw();
+			int         GetCurrentSong  () const throw();
+			int         GetStartingSong () const throw();
 
-			uint GetChips() const;
-			bool IsPlaying() const;
-			bool UsesBankSwitching() const;
+			uint GetChips() const throw();
+			bool IsPlaying() const throw();
+			bool UsesBankSwitching() const throw();
 
-			Result SelectSong(uint);
-			Result SelectNextSong();
-			Result SelectPrevSong();
-			Result PlaySong();
-			Result StopSong();
+			Result SelectSong(uint) throw();
+			Result SelectNextSong() throw();
+			Result SelectPrevSong() throw();
+			Result PlaySong() throw();
+			Result StopSong() throw();
 		};
 	}
 }

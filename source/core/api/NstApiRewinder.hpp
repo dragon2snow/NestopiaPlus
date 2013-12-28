@@ -46,7 +46,8 @@ namespace Nes
 
 		public:
 
-			Rewinder(Emulator& e)
+			template<typename T>
+			Rewinder(T& e)
 			: Base(e) {}
 
 			enum Direction
@@ -55,15 +56,15 @@ namespace Nes
 				BACKWARD
 			};
 
-			Result Enable(bool=true);
-			bool IsEnabled() const;
-			void Reset();
+			Result Enable(bool=true) throw();
+			bool IsEnabled() const throw();
+			void Reset() throw();
 
-			void EnableSound(bool=true);
-			bool IsSoundEnabled() const;
+			void EnableSound(bool=true) throw();
+			bool IsSoundEnabled() const throw();
 
-			Result SetDirection(Direction);
-			Direction GetDirection() const;
+			Result SetDirection(Direction) throw();
+			Direction GetDirection() const throw();
 
 			enum State
 			{

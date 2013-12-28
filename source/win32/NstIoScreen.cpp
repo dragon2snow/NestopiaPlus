@@ -26,13 +26,17 @@
 
 namespace Nestopia
 {
-	using Io::Screen;
-
-	Screen::Callback Screen::callback;
-
-	Screen::~Screen()
+	namespace Io
 	{
-		if (callback)
-			callback( GenericString(Ptr(),Length()) );
+		Screen::Callback Screen::callback;
+
+		Screen::Screen(uint t)
+		: time(t) {}
+
+		Screen::~Screen()
+		{
+			if (callback)
+				callback( GenericString(Ptr(),Length()), time );
+		}
 	}
 }

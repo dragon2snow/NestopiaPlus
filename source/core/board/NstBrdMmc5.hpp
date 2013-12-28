@@ -177,19 +177,18 @@ namespace Nes
 
 			protected:
 
-				Mmc5(Context&);
+				Mmc5(Context&,uint=WRAM_AUTO);
 
 				void SubReset(bool);
 
 			private:
-
-				static uint DetectWRam(dword,dword);
 
 				void VBlank();
 				void HDummy();
 				void HActive0();
 				void HActiveX();
 				void VSync();
+
 				void BaseSave(State::Saver&) const;
 				void BaseLoad(State::Loader&,dword);
 
@@ -445,8 +444,8 @@ namespace Nes
 				ExRam exRam;
 				Sound sound;
 
-				static const Io::Accessor::Type<Mmc5>::Definition chrMethods[8];
-				static const Io::Accessor::Type<Mmc5>::Definition nmtMethods[8][4][2];
+				static NES_ACCESSOR_TYPE(Mmc5,const chrMethods[8]);
+				static NES_ACCESSOR_TYPE(Mmc5,const nmtMethods[8][4][2]);
 			};
 		}
 	}

@@ -23,36 +23,38 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 
 #include "NstResourceGeneric.hpp"
-#include "NstString.hpp"
 #include <Windows.h>
 
 namespace Nestopia
 {
-	ibool Resource::Generic::Load(const uint id,tstring const type)
+	namespace Resource
 	{
-		data = NULL;
-		size = 0;
-
-		if (HINSTANCE const hInstance = ::GetModuleHandle( NULL ))
+		ibool Generic::Load(const uint id,tstring const type)
 		{
-			if (HRSRC const hResource = ::FindResource( hInstance, MAKEINTRESOURCE(id), type ))
-			{
-				if (HGLOBAL const hGlobal = ::LoadResource( hInstance, hResource ))
-				{
-					if (const void* const mem = ::LockResource( hGlobal ))
-					{
-						size = ::SizeofResource( hInstance, hResource );
+			data = NULL;
+			size = 0;
 
-						if (size)
+			if (HINSTANCE const hInstance = ::GetModuleHandle( NULL ))
+			{
+				if (HRSRC const hResource = ::FindResource( hInstance, MAKEINTRESOURCE(id), type ))
+				{
+					if (HGLOBAL const hGlobal = ::LoadResource( hInstance, hResource ))
+					{
+						if (const void* const mem = ::LockResource( hGlobal ))
 						{
-							data = mem;
-							return true;
+							size = ::SizeofResource( hInstance, hResource );
+
+							if (size)
+							{
+								data = mem;
+								return true;
+							}
 						}
 					}
 				}
 			}
-		}
 
-		return false;
+			return false;
+		}
 	}
 }

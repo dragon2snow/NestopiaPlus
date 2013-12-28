@@ -28,7 +28,9 @@
 #pragma once
 
 #include "NstObjectPod.hpp"
+#include "NstObjectDelegate.hpp"
 #include "NstWindowGeneric.hpp"
+#include "NstString.hpp"
 #include <CommDlg.h>
 
 namespace Nestopia
@@ -56,19 +58,16 @@ namespace Nestopia
 
 		private:
 
-			struct Handlers;
-
 			typedef Object::Delegate2<void,GenericString,uint> Callback;
 
 			void Open(const Callback&,uint);
 
-			ibool OnMsg (Param&);
-			void OnDestroy (Param&);
+			ibool OnMsg(Param&);
 
 			enum {BUFFER_SIZE = 512-1};
 
-			const Custom& parent;
-			Generic window;
+			Window::Generic window;
+			const Window::Custom& parent;
 			Object::Pod<FINDREPLACE> findReplace;
 			Callback callback;
 

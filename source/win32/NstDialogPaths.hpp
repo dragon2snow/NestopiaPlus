@@ -107,7 +107,6 @@ namespace Nestopia
 			ibool OnCmdLastVisited (Param&);
 			ibool OnCmdDefault     (Param&);
 			ibool OnCmdOk          (Param&);
-			ibool OnCmdCancel      (Param&);
 
 			Settings settings;
 			Dialog dialog;

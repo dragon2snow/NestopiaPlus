@@ -27,86 +27,96 @@
 
 namespace Nestopia
 {
-	using namespace Window;
-
-	struct Finder::Handlers
+	namespace Window
 	{
-		static const MsgHandler::Entry<Finder> messages[];
-		static const MsgHandler::HookEntry<Finder> hooks[];
-	};
-
-	const MsgHandler::Entry<Finder> Finder::Handlers::messages[] =
-	{
-		{ ::RegisterWindowMessage(FINDMSGSTRING), &Finder::OnMsg }
-	};
-
-	const MsgHandler::HookEntry<Finder> Finder::Handlers::hooks[] =
-	{
-		{ WM_DESTROY, &Finder::OnDestroy }
-	};
-
-	Finder::Finder(Custom& p)
-	: parent( p )
-	{
-		p.Messages().Add( this, Handlers::messages, Handlers::hooks );
-		findReplace.lStructSize = sizeof(findReplace);
-		findReplace.lpstrFindWhat = NULL;
-		findReplace.wFindWhatLen = BUFFER_SIZE;
-	}
-
-	void Finder::Close()
-	{
-		if (window)
+		Finder::Finder(Custom& p)
+		: parent(p)
 		{
-			Dialog::UnregisterModeless( window );
-			window.Destroy();
-		}
-	}
-
-	Finder::~Finder()
-	{
-		Close();
-
-		delete [] findReplace.lpstrFindWhat;
-		findReplace.lpstrFindWhat = NULL;
-	}
-
-	void Finder::Open(const Callback& c,const uint flags)
-	{
-		if (Handlers::messages[0].key && window == NULL)
-		{
-			callback = c;
-
-			if (findReplace.lpstrFindWhat == NULL)
+			struct Hook
 			{
-				findReplace.lpstrFindWhat = new tchar [BUFFER_SIZE+1];
-				findReplace.lpstrFindWhat[0] = '\0';
+				static UINT_PTR CALLBACK FRProc(HWND hWnd,UINT uMsg,WPARAM,LPARAM lParam)
+				{
+					switch (uMsg)
+					{
+						case WM_INITDIALOG:
+						{
+							Generic& window = *reinterpret_cast<Generic*>(reinterpret_cast<FINDREPLACE*>(lParam)->lCustData);
+							window = hWnd;
+							::SetWindowLongPtr( hWnd, GWL_USERDATA, reinterpret_cast<LPARAM>(&window) );
+							Dialog::RegisterModeless( hWnd );
+							return true;
+						}
+
+						case WM_DESTROY:
+
+							*reinterpret_cast<Generic*>(::GetWindowLongPtr( hWnd, GWL_USERDATA )) = NULL;
+							Dialog::UnregisterModeless( hWnd );
+							return false;
+					}
+
+					return false;
+				}
+			};
+
+			if (const uint id = ::RegisterWindowMessage(FINDMSGSTRING))
+			{
+				p.Messages().Add( id, this, &Finder::OnMsg );
+
+				findReplace.lStructSize = sizeof(findReplace);
+				findReplace.lpstrFindWhat = NULL;
+				findReplace.wFindWhatLen = BUFFER_SIZE;
+				findReplace.lCustData = reinterpret_cast<LPARAM>(&window);
+				findReplace.lpfnHook = Hook::FRProc;
 			}
-
-			findReplace.Flags = flags & (DOWN|WHOLEWORD|MATCHCASE);
-			findReplace.hwndOwner = parent;
-
-			if (window = ::FindText( &findReplace ))
-				Dialog::RegisterModeless( window );
 		}
-	}
 
-	void Finder::OnDestroy(Param&)
-	{
-		Close();
-	}
+		void Finder::Close()
+		{
+			if (window)
+				window.Destroy();
+		}
 
-	ibool Finder::OnMsg(Param&)
-	{
-		if (findReplace.Flags & FR_DIALOGTERM)
+		Finder::~Finder()
 		{
 			Close();
-		}
-		else if (findReplace.Flags & FR_FINDNEXT)
-		{
-			callback( findReplace.lpstrFindWhat, findReplace.Flags & (FR_WHOLEWORD|FR_MATCHCASE|FR_DOWN) );
+
+			delete [] findReplace.lpstrFindWhat;
+			findReplace.lpstrFindWhat = NULL;
 		}
 
-		return true;
+		void Finder::Open(const Callback& c,const uint flags)
+		{
+			NST_VERIFY( findReplace.lStructSize );
+
+			if (window == NULL && findReplace.lStructSize)
+			{
+				callback = c;
+
+				if (findReplace.lpstrFindWhat == NULL)
+				{
+					findReplace.lpstrFindWhat = new tchar [BUFFER_SIZE+1];
+					findReplace.lpstrFindWhat[0] = '\0';
+				}
+
+				findReplace.Flags = (flags & (DOWN|WHOLEWORD|MATCHCASE)) | FR_ENABLEHOOK;
+				findReplace.hwndOwner = parent;
+
+				::FindText( &findReplace );
+			}
+		}
+
+		ibool Finder::OnMsg(Param&)
+		{
+			if (findReplace.Flags & FR_DIALOGTERM)
+			{
+				Close();
+			}
+			else if (findReplace.Flags & FR_FINDNEXT)
+			{
+				callback( findReplace.lpstrFindWhat, findReplace.Flags & (FR_WHOLEWORD|FR_MATCHCASE|FR_DOWN) );
+			}
+
+			return true;
+		}
 	}
 }

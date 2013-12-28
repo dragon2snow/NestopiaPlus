@@ -832,11 +832,7 @@ namespace Nes
 							(banks.chr[0] & banks.exChr.mask) | banks.exChr.bank,
 							(banks.chr[1] & banks.exChr.mask) | banks.exChr.bank,
 							(banks.chr[2] & banks.exChr.mask) | banks.exChr.bank,
-							(banks.chr[3] & banks.exChr.mask) | banks.exChr.bank
-						);
-
-						chr.SwapBanks<SIZE_1K,0x1000U>
-						(
+							(banks.chr[3] & banks.exChr.mask) | banks.exChr.bank,
 							(banks.chr[4] & banks.exChr.mask) | banks.exChr.bank,
 							(banks.chr[5] & banks.exChr.mask) | banks.exChr.bank,
 							(banks.chr[6] & banks.exChr.mask) | banks.exChr.bank,

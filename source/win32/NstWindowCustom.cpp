@@ -27,58 +27,62 @@
 
 namespace Nestopia
 {
-	using Window::Custom;
-
-	Custom::Timers Custom::timers;
-
-	void Custom::StartTimer(const TimerCallback timer,const uint duration) const
+	namespace Window
 	{
-		NST_ASSERT( hWnd );
+		Custom::Timer::Timer(const TimerCallback& t)
+		: TimerCallback(t) {}
 
-		uint id;
+		Custom::Timers Custom::timers;
 
-		for (id=0; id < timers.Size() && timers[id] != timer; ++id);
-
-		if (timers.Size() == id)
-			timers.PushBack( timer );
-
-		timers[id].active = true;
-
-		if (!::SetTimer( hWnd, id, duration, &TimerProc ))
-			throw Application::Exception(_T("SetTimer() failed!"));
-	}
-
-	ibool Custom::StopTimer(const TimerCallback timer) const
-	{
-		for (uint id=0; id < timers.Size(); ++id)
+		void Custom::StartTimer(const TimerCallback timer,const uint duration) const
 		{
-			if (timers[id] == timer && timers[id].active)
-			{
-				timers[id].active = false;
-				::KillTimer( hWnd, id );
-				return true;
-			}
+			NST_ASSERT( hWnd );
+
+			uint id;
+
+			for (id=0; id < timers.Size() && timers[id] != timer; ++id);
+
+			if (timers.Size() == id)
+				timers.PushBack( timer );
+
+			timers[id].active = true;
+
+			if (!::SetTimer( hWnd, id, duration, &TimerProc ))
+				throw Application::Exception(_T("SetTimer() failed!"));
 		}
 
-		return false;
-	}
-
-	void CALLBACK Custom::TimerProc(HWND hWnd,uint,UINT_PTR id,DWORD)
-	{
-		NST_ASSERT( id < timers.Size() );
-
-		const uint next = timers[id]();
-
-		if (timers[id].active)
+		ibool Custom::StopTimer(const TimerCallback timer) const
 		{
-			if (next == 0)
+			for (uint id=0; id < timers.Size(); ++id)
 			{
-				timers[id].active = false;
-				::KillTimer( hWnd, id );
+				if (timers[id] == timer && timers[id].active)
+				{
+					timers[id].active = false;
+					::KillTimer( hWnd, id );
+					return true;
+				}
 			}
-			else if (next != 1)
+
+			return false;
+		}
+
+		void CALLBACK Custom::TimerProc(HWND hWnd,uint,UINT_PTR id,DWORD)
+		{
+			NST_ASSERT( id < timers.Size() );
+
+			const uint next = timers[id]();
+
+			if (timers[id].active)
 			{
-				::SetTimer( hWnd, id, next, &TimerProc );
+				if (next == 0)
+				{
+					timers[id].active = false;
+					::KillTimer( hWnd, id );
+				}
+				else if (next != 1)
+				{
+					::SetTimer( hWnd, id, next, &TimerProc );
+				}
 			}
 		}
 	}

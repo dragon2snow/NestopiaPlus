@@ -41,7 +41,7 @@ namespace Nes
 		: time(0), showTime(true) {}
 
 		Mapper105::Mapper105(Context& c)
-		: Mmc1(c)
+		: Mmc1(c,WRAM_8K)
 		{
 			std::strcpy( text, "Time Left: " );
 		}

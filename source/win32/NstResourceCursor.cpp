@@ -26,24 +26,25 @@
 
 namespace Nestopia
 {
-	using Resource::Cursor;
-
-	HCURSOR Cursor::LoadHand()
+	namespace Resource
 	{
-		HCURSOR const hHand = ::LoadCursor( NULL, IDC_HAND );
-		return hHand ? hHand : ::LoadCursor( NULL, IDC_UPARROW );
-	}
+		HCURSOR Cursor::LoadHand()
+		{
+			HCURSOR const hHand = ::LoadCursor( NULL, IDC_HAND );
+			return hHand ? hHand : ::LoadCursor( NULL, IDC_UPARROW );
+		}
 
-	HCURSOR const Cursor::hArrow = ::LoadCursor( NULL, IDC_ARROW );
-	HCURSOR const Cursor::hWait  = ::LoadCursor( NULL, IDC_WAIT  );
-	HCURSOR const Cursor::hHand  = Cursor::LoadHand();
+		HCURSOR const Cursor::hArrow = ::LoadCursor( NULL, IDC_ARROW );
+		HCURSOR const Cursor::hWait  = ::LoadCursor( NULL, IDC_WAIT  );
+		HCURSOR const Cursor::hHand  = Cursor::LoadHand();
 
-	Cursor::Cursor(const uint id)
-	: handle(::LoadCursor(::GetModuleHandle(NULL),MAKEINTRESOURCE(id))) {}
+		Cursor::Cursor(const uint id)
+		: handle(::LoadCursor(::GetModuleHandle(NULL),MAKEINTRESOURCE(id))) {}
 
-	Cursor::~Cursor()
-	{
-		if (handle)
-			::DestroyCursor( handle );
+		Cursor::~Cursor()
+		{
+			if (handle)
+				::DestroyCursor( handle );
+		}
 	}
 }

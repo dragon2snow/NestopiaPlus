@@ -28,86 +28,78 @@
 
 namespace Nestopia
 {
-	using namespace Window;
-
-	struct Movie::Handlers
+	namespace Window
 	{
-		static const MsgHandler::Entry<Movie> messages[];
-		static const MsgHandler::Entry<Movie> commands[];
-	};
-
-	const MsgHandler::Entry<Movie> Movie::Handlers::messages[] =
-	{
-		{ WM_INITDIALOG, &Movie::OnInitDialog }
-	};
-
-	const MsgHandler::Entry<Movie> Movie::Handlers::commands[] =
-	{
-		{ IDC_MOVIE_CLEAR,  &Movie::OnCmdClear  },
-		{ IDC_MOVIE_BROWSE, &Movie::OnCmdBrowse },
-		{ IDC_MOVIE_OK,     &Movie::OnCmdOk     },
-		{ IDC_MOVIE_CANCEL, &Movie::OnCmdCancel }
-	};
-
-	Movie::Movie(const Managers::Paths& p)
-	: dialog(IDD_MOVIE,this,Handlers::messages,Handlers::commands), paths(p) {}
-
-	Movie::~Movie()
-	{
-	}
-
-	ibool Movie::SetMovieFile(const Path& file)
-	{
-		const Path old( movieFile );
-		movieFile = file;
-		paths.FixFile( Managers::Paths::File::MOVIE, movieFile );
-		return movieFile != old;
-	}
-
-	ibool Movie::OnInitDialog(Param&)
-	{
-		dialog.Edit(IDC_MOVIE_FILE) << movieFile.Ptr();
-
-		return true;
-	}
-
-	ibool Movie::OnCmdClear(Param& param)
-	{
-		if (param.Button().IsClicked())
-			dialog.Edit(IDC_MOVIE_FILE).Clear();
-
-		return true;
-	}
-
-	ibool Movie::OnCmdBrowse(Param& param)
-	{
-		if (param.Button().IsClicked())
+		struct Movie::Handlers
 		{
-			Path tmp;
-			dialog.Edit(IDC_MOVIE_FILE).Text() >> tmp;
-			dialog.Edit(IDC_MOVIE_FILE).Try() << paths.BrowseSave( Managers::Paths::File::MOVIE, Managers::Paths::SUGGEST, tmp ).Ptr();
+			static const MsgHandler::Entry<Movie> messages[];
+			static const MsgHandler::Entry<Movie> commands[];
+		};
+
+		const MsgHandler::Entry<Movie> Movie::Handlers::messages[] =
+		{
+			{ WM_INITDIALOG, &Movie::OnInitDialog }
+		};
+
+		const MsgHandler::Entry<Movie> Movie::Handlers::commands[] =
+		{
+			{ IDC_MOVIE_CLEAR,  &Movie::OnCmdClear  },
+			{ IDC_MOVIE_BROWSE, &Movie::OnCmdBrowse },
+			{ IDOK,             &Movie::OnCmdOk     }
+		};
+
+		Movie::Movie(const Managers::Paths& p)
+		: dialog(IDD_MOVIE,this,Handlers::messages,Handlers::commands), paths(p) {}
+
+		Movie::~Movie()
+		{
 		}
 
-		return true;
-	}
-
-	ibool Movie::OnCmdOk(Param& param)
-	{
-		if (param.Button().IsClicked())
+		ibool Movie::SetMovieFile(const Path& file)
 		{
-			dialog.Edit(IDC_MOVIE_FILE) >> movieFile;
+			const Path old( movieFile );
+			movieFile = file;
 			paths.FixFile( Managers::Paths::File::MOVIE, movieFile );
-			dialog.Close();
+			return movieFile != old;
 		}
 
-		return true;
-	}
+		ibool Movie::OnInitDialog(Param&)
+		{
+			dialog.Edit(IDC_MOVIE_FILE) << movieFile.Ptr();
 
-	ibool Movie::OnCmdCancel(Param& param)
-	{
-		if (param.Button().IsClicked())
-			dialog.Close();
+			return true;
+		}
 
-		return true;
+		ibool Movie::OnCmdClear(Param& param)
+		{
+			if (param.Button().Clicked())
+				dialog.Edit(IDC_MOVIE_FILE).Clear();
+
+			return true;
+		}
+
+		ibool Movie::OnCmdBrowse(Param& param)
+		{
+			if (param.Button().Clicked())
+			{
+				Path tmp;
+				dialog.Edit(IDC_MOVIE_FILE).Text() >> tmp;
+				dialog.Edit(IDC_MOVIE_FILE).Try() << paths.BrowseSave( Managers::Paths::File::MOVIE, Managers::Paths::SUGGEST, tmp ).Ptr();
+			}
+
+			return true;
+		}
+
+		ibool Movie::OnCmdOk(Param& param)
+		{
+			if (param.Button().Clicked())
+			{
+				dialog.Edit(IDC_MOVIE_FILE) >> movieFile;
+				paths.FixFile( Managers::Paths::File::MOVIE, movieFile );
+				dialog.Close();
+			}
+
+			return true;
+		}
 	}
 }

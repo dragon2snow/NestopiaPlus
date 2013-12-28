@@ -52,10 +52,6 @@ namespace Nes
 
 		private:
 
-			#ifdef _MSC_VER
-			#pragma pack(push,1)
-			#endif
-
 			struct Entry
 			{
 				enum
@@ -68,14 +64,16 @@ namespace Nes
 					FLAGS_BATTERY   = 0x080,
 					FLAGS_TRAINER   = 0x100,
 					FLAGS_BAD       = 0x200,
+					FLAGS_FIX       = 0x400,
 					FLAGS_MIRRORING_SHIFT = 4
 				};
 
 				u32 crc;
-				u32 pRomCrc;
-				u8 pRomSize;
-				u8 cRomSize;
-				u8 wRamSize;
+				u8 prgSize;
+				u8 prgSkip;
+				u8 chrSize;
+				u8 chrSkip;
+				u8 wrkSize;
 				u8 mapper;
 				u16 flags;
 
@@ -85,15 +83,11 @@ namespace Nes
 				}
 			};
 
-			#ifdef _MSC_VER
-			#pragma pack(pop)
-			#endif
-
 			typedef const Entry* Ref;
 
 			ibool enabled;
 			dword numEntries;
-			Entry* entries;
+			Ref entries;
 
 		public:
 
@@ -113,14 +107,16 @@ namespace Nes
 			}
 
 			dword Crc        (Handle h) const { return static_cast<Ref>(h)->crc;                          }
-			dword pRomCrc    (Handle h) const { return static_cast<Ref>(h)->pRomCrc;                      }
-			dword pRomSize   (Handle h) const { return static_cast<Ref>(h)->pRomSize * SIZE_16K;          }
-			dword cRomSize   (Handle h) const { return static_cast<Ref>(h)->cRomSize * SIZE_8K;           }
-			dword wRamSize   (Handle h) const { return static_cast<Ref>(h)->wRamSize * SIZE_8K;           }
+			dword PrgSize    (Handle h) const { return static_cast<Ref>(h)->prgSize * SIZE_16K;           }
+			dword PrgSkip    (Handle h) const { return static_cast<Ref>(h)->prgSkip * SIZE_16K;           }
+			dword ChrSize    (Handle h) const { return static_cast<Ref>(h)->chrSize * SIZE_8K;            }
+			dword ChrSkip    (Handle h) const { return static_cast<Ref>(h)->chrSkip * SIZE_8K;            }
+			dword WrkSize    (Handle h) const { return static_cast<Ref>(h)->wrkSize * SIZE_8K;            }
 			uint  Mapper     (Handle h) const { return static_cast<Ref>(h)->mapper;                       }
 			ibool HasBattery (Handle h) const { return static_cast<Ref>(h)->flags & Entry::FLAGS_BATTERY; }
 			ibool HasTrainer (Handle h) const { return static_cast<Ref>(h)->flags & Entry::FLAGS_TRAINER; }
 			ibool IsBad      (Handle h) const { return static_cast<Ref>(h)->flags & Entry::FLAGS_BAD;     }
+			ibool MustFix    (Handle h) const { return static_cast<Ref>(h)->flags & Entry::FLAGS_FIX;     }
 		};
 	}
 }

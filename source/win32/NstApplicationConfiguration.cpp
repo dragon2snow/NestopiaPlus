@@ -24,7 +24,7 @@
 
 #include "NstIoFile.hpp"
 #include "NstIoLog.hpp"
-#include "NstApplicationException.hpp"
+#include "NstWindowUser.hpp"
 #include "NstApplicationInstance.hpp"
 
 #ifdef __INTEL_COMPILER
@@ -33,367 +33,360 @@
 
 namespace Nestopia
 {
-	using Application::Configuration;
-
-	void Configuration::Value::YesNoProxy::operator = (ibool i)
+	namespace Application
 	{
-		string.Assign( i ? "yes" : "no", i ? 3 : 2 );
-	}
-
-	void Configuration::Value::OnOffProxy::operator = (ibool i)
-	{
-		string.Assign( i ? "on" : "off", i ? 2 : 3 );
-	}
-
-	void Configuration::Value::QuoteProxy::operator = (const GenericString& input)
-	{
-		string.Clear();
-		string.Reserve( 2 + input.Length() );
-		string << '\"' << input << '\"';
-	}
-
-	bool Configuration::ConstValue::operator == (State state) const
-	{
-		NST_ASSERT( state < 4 );
-
-		static const tchar yesNoOnOff[4][4] =
+		void Configuration::Value::YesNoProxy::operator = (ibool i)
 		{
-			_T("yes"), _T("no"), _T("on"), _T("off")
-		};
-
-		return GenericString::operator == (yesNoOnOff[state]);
-	}
-
-	Configuration::Configuration()
-	: save(false)
-	{
-		items.Reserve( HINTED_SIZE );
-
-		try
-		{
-			{
-				HeapString buffer;
-
-				try
-				{
-					Io::File( Instance::GetExePath(_T("nestopia.cfg")), Io::File::COLLECT ).ReadText( buffer );
-				}
-				catch (Io::File::Exception id)
-				{
-					if (id != Io::File::ERR_NOT_FOUND)
-						Application::Exception( IDS_CFG_ERR_LOAD, Application::Exception::WARNING ).Issue();
-
-					buffer.Clear();
-				}
-
-				if (buffer.Length())
-				{
-					try
-					{
-						Parse( buffer.Ptr(), buffer.Length() );
-					}
-					catch (Exception)
-					{
-						Reset( false );
-						Application::Exception( IDS_CFG_WARN_CORRUPT, Application::Exception::WARNING ).Issue();
-					}
-				}
-			}
-
-			if (tstring ptr = ::GetCommandLine())
-			{
-				for (uint quote=0; (*ptr > ' ') || (*ptr && quote); ++ptr)
-				{
-					if (*ptr == '\"')
-						quote ^= 1;
-				}
-
-				while (*ptr && *ptr <= ' ')
-					++ptr;
-
-				if (*ptr)
-				{
-					if (*ptr != '-')
-					{
-						tstring const offset = ptr;
-
-						for (uint quote=0; (*ptr > ' ') || (*ptr && quote); ++ptr)
-						{
-							if (*ptr == '\"')
-								quote ^= 1;
-						}
-
-						startupFile.Assign( offset, ptr - offset );
-						startupFile.Remove( '\"' );
-						startupFile.Trim();
-
-						// Win98/ME/2k fix
-						if (startupFile.Length())
-							startupFile = Instance::GetLongPath( startupFile.Ptr() );
-					}
-
-					if (const uint length = _tcslen(ptr))
-					{
-						try
-						{
-							Parse( ptr, length );
-						}
-						catch (Exception)
-						{
-							Application::Exception( IDS_CMDLINE_ERR, Application::Exception::WARNING ).Issue();
-						}
-					}
-				}
-			}
+			string.Assign( i ? "yes" : "no", i ? 3 : 2 );
 		}
-		catch (...)
+
+		void Configuration::Value::OnOffProxy::operator = (ibool i)
 		{
-			Reset( false );
-			Application::Exception( _T("Configuration::Load() error!"), Application::Exception::UNSTABLE ).Issue();
+			string.Assign( i ? "on" : "off", i ? 2 : 3 );
 		}
-	}
 
-	Configuration::~Configuration()
-	{
-		if (save)
+		void Configuration::Value::QuoteProxy::operator = (const GenericString& input)
 		{
-			static const char header1[] =
-			(
-				"/////////////////////////////////////////////////////////////////////////////\r\n"
-				"//\r\n"
-				"// Nestopia Configuration File. Version "
-			);
+			string.Clear();
+			string.Reserve( 2 + input.Length() );
+			string << '\"' << input << '\"';
+		}
 
-			static const char header2[] =
-			(
-				"\r\n"
-				"//\r\n"
-				"/////////////////////////////////////////////////////////////////////////////\r\n"
-				"\r\n"
-			);
+		bool Configuration::ConstValue::operator == (State state) const
+		{
+			NST_ASSERT( state < 4 );
 
-			HeapString buffer;
-			buffer << header1 << Instance::GetVersion() << header2;
+			static const tchar yesNoOnOff[4][4] =
+			{
+				_T("yes"), _T("no"), _T("on"), _T("off")
+			};
 
-			for (Items::ConstIterator it=items.Begin(), end=items.End(); it != end; ++it)
-				buffer << '-' << it->key << " : " << it->value << "\r\n";
+			return GenericString::operator == (yesNoOnOff[state]);
+		}
+
+		Configuration::Configuration()
+		: save(false)
+		{
+			items.Reserve( HINTED_SIZE );
 
 			try
 			{
-				Io::File( Instance::GetExePath(_T("nestopia.cfg")), Io::File::DUMP ).WriteText( buffer.Ptr(), buffer.Length() );
-			}
-			catch (Io::File::Exception)
-			{
-				Application::Exception( IDS_CFG_ERR_SAVE, Application::Exception::WARNING ).Issue();
-			}
-		}
-
-		Reset( false );
-	}
-
-	void Configuration::Reset(const ibool notify)
-	{
-		for (Items::Iterator it(items.Begin()); it != items.End(); ++it)
-		{
-			if (notify && !it->key.referenced)
-				Io::Log() << "Configuration: warning, unused/invalid parameter: \"" << it->key << "\"\r\n";
-
-			it->key.Command::~Command();
-			it->value.Heap::~Heap();
-		}
-
-		items.Destroy();
-	}
-
-	#ifdef NST_PRAGMA_OPTIMIZE
-	#pragma optimize("t", on)
-	#endif
-
-	void Configuration::Parse(tstring string,uint length)
-	{
-		class CommandLine
-		{
-			class Stream : public HeapString
-			{
-			public:
-
-				Stream(const tchar* NST_RESTRICT src,const uint length)
 				{
-					if (length)
+					HeapString buffer;
+
+					try
 					{
-						Reserve( length * 2 );
+						Io::File( Instance::GetExePath(_T("nestopia.cfg")), Io::File::COLLECT ).ReadText( buffer );
+					}
+					catch (Io::File::Exception id)
+					{
+						if (id != Io::File::ERR_NOT_FOUND)
+							Window::User::Warn( _T("Configuration file load error! Default settings will be used!") );
 
-						Type* dst = Ptr();
-						const Type* const end = src + length;
+						buffer.Clear();
+					}
 
-						do
+					if (buffer.Length())
+					{
+						try
 						{
-							const Type ch = *src++;
-
-							if (ch > 31)
-							{
-								*dst++ = ch;
-							}
-							else if (ch == '\n')
-							{
-								*dst++ = '\r';
-								*dst++ = '\n';
-							}
-							else if (ch == '\t')
-							{
-								*dst++ = ' ';
-							}
+							Parse( buffer.Ptr(), buffer.Length() );
 						}
-						while (src != end);
-
-						ShrinkTo( dst - Ptr() );
+						catch (Error)
+						{
+							Reset( false );
+							Window::User::Warn( _T("Corrupt configuration file! Default settings will be used!") );
+						}
 					}
 				}
 
-				const Nestopia::String::Heap<char> operator () (tstring begin,tstring end) const
+				if (tstring ptr = ::GetCommandLine())
 				{
-					return Nestopia::String::Heap<Type>::operator () (begin-Ptr(),end-begin);
+					for (uint quote=0; (*ptr > ' ') || (*ptr && quote); ++ptr)
+					{
+						if (*ptr == '\"')
+							quote ^= 1;
+					}
+
+					while (*ptr && *ptr <= ' ')
+						++ptr;
+
+					if (*ptr)
+					{
+						if (*ptr != '-')
+						{
+							tstring const offset = ptr;
+
+							for (uint quote=0; (*ptr > ' ') || (*ptr && quote); ++ptr)
+							{
+								if (*ptr == '\"')
+									quote ^= 1;
+							}
+
+							startupFile.Assign( offset, ptr - offset );
+							startupFile.Remove( '\"' );
+							startupFile.Trim();
+
+							// Win98/ME/2k fix
+							if (startupFile.Length())
+								startupFile = Instance::GetLongPath( startupFile.Ptr() );
+						}
+
+						if (const uint length = _tcslen(ptr))
+						{
+							try
+							{
+								Parse( ptr, length );
+							}
+							catch (Error)
+							{
+								Window::User::Warn( _T("Command line parser error!") );
+							}
+						}
+					}
+				}
+			}
+			catch (...)
+			{
+				Reset( false );
+				Window::User::Fail( _T("Generic configuration loading error!") );
+			}
+		}
+
+		Configuration::~Configuration()
+		{
+			if (save)
+			{
+				static const char header1[] =
+				(
+					"/////////////////////////////////////////////////////////////////////////////\r\n"
+					"//\r\n"
+					"// Nestopia Configuration File. Version "
+				);
+
+				static const char header2[] =
+				(
+					"\r\n"
+					"//\r\n"
+					"/////////////////////////////////////////////////////////////////////////////\r\n"
+					"\r\n"
+				);
+
+				HeapString buffer;
+				buffer << header1 << Instance::GetVersion() << header2;
+
+				for (Items::ConstIterator it=items.Begin(), end=items.End(); it != end; ++it)
+					buffer << '-' << it->key << " : " << it->value << "\r\n";
+
+				try
+				{
+					Io::File( Instance::GetExePath(_T("nestopia.cfg")), Io::File::DUMP ).WriteText( buffer.Ptr(), buffer.Length() );
+				}
+				catch (Io::File::Exception)
+				{
+					Window::User::Warn( _T("Couldn't save the configuration!") );
+				}
+			}
+
+			Reset( false );
+		}
+
+		void Configuration::Reset(const ibool notify)
+		{
+			for (Items::Iterator it(items.Begin()); it != items.End(); ++it)
+			{
+				if (notify && !it->key.referenced)
+					Io::Log() << "Configuration: warning, unused/invalid parameter: \"" << it->key << "\"\r\n";
+
+				it->key.Command::~Command();
+				it->value.Heap::~Heap();
+			}
+
+			items.Destroy();
+		}
+
+		void Configuration::Parse(tstring string,uint length)
+		{
+			class CommandLine
+			{
+				class Stream : public HeapString
+				{
+				public:
+
+					Stream(const tchar* NST_RESTRICT src,const uint length)
+					{
+						if (length)
+						{
+							Reserve( length * 2 );
+
+							Type* dst = Ptr();
+							const Type* const end = src + length;
+
+							do
+							{
+								const Type ch = *src++;
+
+								if (ch > 31)
+								{
+									*dst++ = ch;
+								}
+								else if (ch == '\n')
+								{
+									*dst++ = '\r';
+									*dst++ = '\n';
+								}
+								else if (ch == '\t')
+								{
+									*dst++ = ' ';
+								}
+							}
+							while (src != end);
+
+							ShrinkTo( dst - Ptr() );
+						}
+					}
+
+					const String::Heap<char> operator () (tstring begin,tstring end) const
+					{
+						return String::Heap<Type>::operator () (begin-Ptr(),end-begin);
+					}
+				};
+
+				const Stream stream;
+				tstring it;
+
+				void Skip(int ch)
+				{
+					while (*it == ch)
+						++it;
+				}
+
+				void Parse(tstring (&range)[2],int breaker)
+				{
+					for (range[0] = it; *it != breaker; ++it)
+						if (!*it) throw ERR_PARSING;
+
+					for (range[1] = it++; range[1][-1] == ' '; --range[1]);
+				}
+
+				ibool ParseQuoted(tstring (&range)[2])
+				{
+					if (*it == '\"')
+					{
+						++it;
+						Skip(' ');
+						Parse( range, '\"' );
+
+						return true;
+					}
+
+					return false;
+				}
+
+				void Parse(tstring (&range)[2])
+				{
+					if (!ParseQuoted( range ))
+					{
+						range[0] = it;
+
+						while (*it && *it != '\r' && *it != '-' && (it[0] != '/' || it[1] != '/'))
+						{
+							if (*it++ == '\"')
+							{
+								Skip(' ');
+
+								while (*it != '\"')
+									if (!*it++) throw ERR_PARSING;
+
+								range[1] = ++it;
+								return;
+							}
+						}
+
+						range[1] = it;
+
+						while (range[1] != range[0] && range[1][-1] == ' ')
+							--range[1];
+					}
+				}
+
+			public:
+
+				CommandLine(tstring string,uint length)
+				: stream(string,length), it(stream.Ptr()) {}
+
+				void operator >> (Items& items)
+				{
+					NST_ASSERT( *(it-1) == '-' );
+
+					tstring ranges[2][2];
+
+					Skip(' ');
+					Parse( ranges[0], ':' );
+					Skip(' ');
+					Parse( ranges[1] );
+
+					if (ranges[0][0] == ranges[0][1])
+						throw ERR_PARSING;
+
+					if (ranges[1][0] != ranges[1][1])
+						items( stream(ranges[0][0],ranges[0][1]) ).Assign( ranges[1][0], ranges[1][1] - ranges[1][0] );
+				}
+
+				operator ibool ()
+				{
+					for (;;)
+					{
+						if (*it == '\r')
+						{
+							it += 2;
+						}
+						else if (it[0] == '/' && it[1] == '/')
+						{
+							for (it += 2; *it && *it != '\r'; ++it);
+						}
+						else if (*it == ' ')
+						{
+							++it;
+						}
+						else
+						{
+							break;
+						}
+					}
+
+					if (*it == '-')
+					{
+						++it;
+						return true;
+					}
+
+					if (*it)
+						throw ERR_PARSING;
+
+					return false;
 				}
 			};
 
-			const Stream stream;
-			tstring it;
-
-			void Skip(int ch)
-			{
-				while (*it == ch)
-					++it;
-			}
-
-			void Parse(tstring (&range)[2],int breaker)
-			{
-				for (range[0] = it; *it != breaker; ++it)
-					if (!*it) throw ERR_PARSING;
-
-				for (range[1] = it++; range[1][-1] == ' '; --range[1]);
-			}
-
-			ibool ParseQuoted(tstring (&range)[2])
-			{
-				if (*it == '\"')
-				{
-					++it;
-					Skip(' ');
-					Parse( range, '\"' );
-
-					return true;
-				}
-
-				return false;
-			}
-
-			void Parse(tstring (&range)[2])
-			{
-				if (!ParseQuoted( range ))
-				{
-					range[0] = it;
-
-					while (*it && *it != '\r' && *it != '-' && (it[0] != '/' || it[1] != '/'))
-					{
-						if (*it++ == '\"')
-						{
-							Skip(' ');
-
-							while (*it != '\"')
-								if (!*it++) throw ERR_PARSING;
-
-							range[1] = ++it;
-							return;
-						}
-					}
-
-					range[1] = it;
-
-					while (range[1] != range[0] && range[1][-1] == ' ')
-						--range[1];
-				}
-			}
-
-		public:
-
-			CommandLine(tstring string,uint length)
-			: stream(string,length), it(stream.Ptr()) {}
-
-			void operator >> (Items& items)
-			{
-				NST_ASSERT( *(it-1) == '-' );
-
-				tstring ranges[2][2];
-
-				Skip(' ');
-				Parse( ranges[0], ':' );
-				Skip(' ');
-				Parse( ranges[1] );
-
-				if (ranges[0][0] == ranges[0][1])
-					throw ERR_PARSING;
-
-				if (ranges[1][0] != ranges[1][1])
-					items( stream(ranges[0][0],ranges[0][1]) ).Assign( ranges[1][0], ranges[1][1] - ranges[1][0] );
-			}
-
-			operator ibool ()
-			{
-				for (;;)
-				{
-					if (*it == '\r')
-					{
-						it += 2;
-					}
-					else if (it[0] == '/' && it[1] == '/')
-					{
-						for (it += 2; *it && *it != '\r'; ++it);
-					}
-					else if (*it == ' ')
-					{
-						++it;
-					}
-					else
-					{
-						break;
-					}
-				}
-
-				if (*it == '-')
-				{
-					++it;
-					return true;
-				}
-
-				if (*it)
-					throw ERR_PARSING;
-
-				return false;
-			}
-		};
-
-		for (CommandLine stream(string,length); stream; stream >> items);
-	}
-
-	Configuration::Value Configuration::operator [] (const String::Generic<char> name)
-	{
-		return items( name );
-	}
-
-	const Configuration::ConstValue Configuration::operator [] (const String::Generic<char> name) const
-	{
-		GenericString match;
-
-		if (const Items::Entry* entry = items.Find( name ))
-		{
-			entry->key.referenced = true;
-			match = entry->value;
+			for (CommandLine stream(string,length); stream; stream >> items);
 		}
 
-		return match;
-	}
+		Configuration::Value Configuration::operator [] (const String::Generic<char> name)
+		{
+			return items( name );
+		}
 
-	#ifdef NST_PRAGMA_OPTIMIZE
-	#pragma optimize("", on)
-	#endif
+		const Configuration::ConstValue Configuration::operator [] (const String::Generic<char> name) const
+		{
+			GenericString match;
+
+			if (const Items::Entry* entry = items.Find( name ))
+			{
+				entry->key.referenced = true;
+				match = entry->value;
+			}
+
+			return match;
+		}
+	}
 }

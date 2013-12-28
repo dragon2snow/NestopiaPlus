@@ -46,7 +46,7 @@ namespace Nestopia
 {
 	namespace Io
 	{
-		class Wave : Sealed
+		class Wave
 		{
 		public:
 

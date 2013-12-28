@@ -34,41 +34,42 @@
 
 namespace Nestopia
 {
-	using Resource::Version;
-
-	Version::Version(tstring const path,const VersionType versiontype)
+	namespace Resource
 	{
-		NST_ASSERT( path );
-
-		char buffer[] = "xx.xx";
-
-		if (uint size = ::GetFileVersionInfoSize( path, 0 ))
+		Version::Version(tstring const path,const VersionType versiontype)
 		{
-			Object::Heap<void> data( size );
+			NST_ASSERT( path );
 
-			if (::GetFileVersionInfo( path, 0, size, data ))
+			char buffer[] = "xx.xx";
+
+			if (uint size = ::GetFileVersionInfoSize( path, 0 ))
 			{
-				tchar type[] = _T("\\");
-				void* ptr;
+				Object::Heap<void> data( size );
 
-				if (::VerQueryValue( data, type, &ptr, &size ) && size == sizeof(info))
+				if (::GetFileVersionInfo( path, 0, size, data ))
 				{
-					info = *static_cast<const VS_FIXEDFILEINFO*>(ptr);
+					tchar type[] = _T("\\");
+					void* ptr;
 
-					char* string = buffer;
+					if (::VerQueryValue( data, type, &ptr, &size ) && size == sizeof(info))
+					{
+						info = *static_cast<const VS_FIXEDFILEINFO*>(ptr);
 
-					if (HIWORD(info.dwFileVersionMS))
-						*string++ = '0' + HIWORD(versiontype == PRODUCT ? info.dwProductVersionMS : info.dwFileVersionMS);
+						char* string = buffer;
 
-					string[0] = '0' + LOWORD(versiontype == PRODUCT ? info.dwProductVersionMS : info.dwFileVersionMS);
-					string[1] = '.';
-					string[2] = '0' + HIWORD(versiontype == PRODUCT ? info.dwProductVersionLS : info.dwFileVersionLS);
-					string[3] = '0' + LOWORD(versiontype == PRODUCT ? info.dwProductVersionLS : info.dwFileVersionLS);
-					string[4] = '\0';
+						if (HIWORD(info.dwFileVersionMS))
+							*string++ = '0' + HIWORD(versiontype == PRODUCT ? info.dwProductVersionMS : info.dwFileVersionMS);
+
+						string[0] = '0' + LOWORD(versiontype == PRODUCT ? info.dwProductVersionMS : info.dwFileVersionMS);
+						string[1] = '.';
+						string[2] = '0' + HIWORD(versiontype == PRODUCT ? info.dwProductVersionLS : info.dwFileVersionLS);
+						string[3] = '0' + LOWORD(versiontype == PRODUCT ? info.dwProductVersionLS : info.dwFileVersionLS);
+						string[4] = '\0';
+					}
 				}
 			}
-		}
 
-		String::Heap<char>::operator = (buffer);
+			String::Heap<char>::operator = (buffer);
+		}
 	}
 }

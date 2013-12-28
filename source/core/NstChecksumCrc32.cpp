@@ -106,7 +106,7 @@ namespace Nes
 					return (crc >> 8) ^ lut[(crc & 0xFF) ^ data];
 				}
 
-				dword Iterate(const void* const mem,const ulong size,dword crc)
+				static dword Iterate(const void* const mem,const ulong size,dword crc)
 				{
 					if (mem && size)
 					{
@@ -123,7 +123,7 @@ namespace Nes
 					return crc;
 				}
 
-				dword Iterate(Stream::In& in,ulong length,dword crc)
+				static dword Iterate(Stream::In& in,ulong length,dword crc)
 				{
 					if (length)
 					{
@@ -142,19 +142,19 @@ namespace Nes
 					return crc;
 				}
 
-				dword Compute(const void* mem,ulong size)
+				dword Compute(const void* mem,ulong size,dword crc)
 				{
-					return Iterate( mem, size, 0xFFFFFFFFUL ) ^ 0xFFFFFFFFUL;
+					return Iterate( mem, size, crc^0xFFFFFFFFUL ) ^ 0xFFFFFFFFUL;
 				}
 
-				dword Compute(Stream::In& stream,ulong length)
+				dword Compute(Stream::In& stream,ulong length,dword crc)
 				{
-					return Iterate( stream, length, 0xFFFFFFFFUL ) ^ 0xFFFFFFFFUL;
+					return Iterate( stream, length, crc^0xFFFFFFFFUL ) ^ 0xFFFFFFFFUL;
 				}
 
-				dword Compute(Stream::In& stream)
+				dword Compute(Stream::In& stream,dword crc)
 				{
-					return Compute( stream, stream.Length() );
+					return Compute( stream, stream.Length(), crc );
 				}
 			}
 		}

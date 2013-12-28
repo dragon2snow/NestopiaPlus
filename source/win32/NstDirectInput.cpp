@@ -30,682 +30,929 @@
 #include "NstApplicationException.hpp"
 #include "NstApplicationInstance.hpp"
 #include "NstSystemKeyboard.hpp"
-#include "NstWindowStruct.hpp"
 #include "NstDirectInput.hpp"
 #include "NstIoScreen.hpp"
 #include "NstIoLog.hpp"
+#include <process.h>
 
 namespace Nestopia
 {
-	using DirectX::DirectInput;
-
-	HeapString DirectInput::Keyboard::keyNames[MAX_KEYS];
-
-	struct DirectInput::Joystick::Lookup
+	namespace DirectX
 	{
-		uint (*code)(const void* const) throw();
-		ushort offset;
-		ushort axis;
-		tstring name;
-	};
+		HeapString DirectInput::Keyboard::keyNames[MAX_KEYS];
 
-	const DirectInput::Joystick::Lookup DirectInput::Joystick::table[TABLE_KEYS] =
-	{
-		{ KeyPosDir,   DIJOFS_Y,         AXIS_Y,        _T("+y")   },
-		{ KeyPosDir,   DIJOFS_X,         AXIS_X,        _T("+x")   },
-		{ KeyNegDir,   DIJOFS_Y,         AXIS_Y,        _T("-y")   },
-		{ KeyNegDir,   DIJOFS_X,         AXIS_X,        _T("-x")   },
-		{ KeyPosDir,   DIJOFS_Z,         AXIS_Z,        _T("+z")   },
-		{ KeyNegDir,   DIJOFS_Z,         AXIS_Z,        _T("-z")   },
-		{ KeyPosDir,   DIJOFS_RY,        AXIS_RY,       _T("+ry")  },
-		{ KeyPosDir,   DIJOFS_RX,        AXIS_RX,       _T("+rx")  },
-		{ KeyPosDir,   DIJOFS_RY,        AXIS_RY,       _T("-ry")  },
-		{ KeyNegDir,   DIJOFS_RX,        AXIS_RX,       _T("-rx")  },
-		{ KeyPosDir,   DIJOFS_RZ,        AXIS_RZ,       _T("+rz")  },
-		{ KeyNegDir,   DIJOFS_RZ,        AXIS_RZ,       _T("-rz")  },
-		{ KeyNegDir,   DIJOFS_SLIDER(0), AXIS_SLIDER_0, _T("-s0")  },
-		{ KeyPosDir,   DIJOFS_SLIDER(0), AXIS_SLIDER_0, _T("+s0")  },
-		{ KeyNegDir,   DIJOFS_SLIDER(1), AXIS_SLIDER_1, _T("-s1")  },
-		{ KeyPosDir,   DIJOFS_SLIDER(1), AXIS_SLIDER_1, _T("+s1")  },
-		{ KeyPovUp,    DIJOFS_POV(0),    AXIS_POV_0,    _T("-p0y") },
-		{ KeyPovRight, DIJOFS_POV(0),    AXIS_POV_0,    _T("+p0x") },
-		{ KeyPovDown,  DIJOFS_POV(0),    AXIS_POV_0,    _T("+p0y") },
-		{ KeyPovLeft,  DIJOFS_POV(0),    AXIS_POV_0,    _T("-p0x") },
-		{ KeyPovUp,    DIJOFS_POV(1),    AXIS_POV_1,    _T("-p1y") },
-		{ KeyPovRight, DIJOFS_POV(1),    AXIS_POV_1,    _T("+p1x") },
-		{ KeyPovDown,  DIJOFS_POV(1),    AXIS_POV_1,    _T("+p1y") },
-		{ KeyPovLeft,  DIJOFS_POV(1),    AXIS_POV_1,    _T("-p1x") },
-		{ KeyPovUp,    DIJOFS_POV(2),    AXIS_POV_2,    _T("-p2y") },
-		{ KeyPovRight, DIJOFS_POV(2),    AXIS_POV_2,    _T("+p2x") },
-		{ KeyPovDown,  DIJOFS_POV(2),    AXIS_POV_2,    _T("+p2y") },
-		{ KeyPovLeft,  DIJOFS_POV(2),    AXIS_POV_2,    _T("-p2x") },
-		{ KeyPovUp,    DIJOFS_POV(3),    AXIS_POV_3,    _T("-p3y") },
-		{ KeyPovRight, DIJOFS_POV(3),    AXIS_POV_3,    _T("+p3x") },
-		{ KeyPovDown,  DIJOFS_POV(3),    AXIS_POV_3,    _T("+p3y") },
-		{ KeyPovLeft,  DIJOFS_POV(3),    AXIS_POV_3,    _T("-p3x") }
-	};
-
-	IDirectInput8& DirectInput::Base::Create()
-	{
-		Io::Log() << "DirectInput: initializing..\r\n";
-
-		IDirectInput8* com;
-
-		if (FAILED(::DirectInput8Create( ::GetModuleHandle(NULL), DIRECTINPUT_VERSION, IID_IDirectInput8, reinterpret_cast<void**>(&com), NULL )))
-			throw Application::Exception(_T("DirectInput8Create() failed!"));
-
-		return *com;
-	}
-
-	DirectInput::Base::Base(HWND const h)
-	: com(Create()), hWnd(h) {}
-
-	DirectInput::Base::~Base()
-	{
-		com.Release();
-	}
-
-	DirectInput::DirectInput(HWND const hWnd)
-	: base(hWnd), keyboard(base)
-	{
-		Io::Log logfile;
-
-		if (SUCCEEDED(base.com.EnumDevices( DI8DEVCLASS_GAMECTRL, EnumJoysticks, this, DIEDFL_ATTACHEDONLY )))
-			logfile << "DirectInput: found " << joysticks.Size() << " attached joystick(s)\r\n";
-		else
-			logfile << "DirectInput: IDirectInput8::EnumDevices() failed! No joysticks can be used!\r\n";
-	}
-
-	DirectInput::~DirectInput()
-	{
-		for (uint i=joysticks.Size(); i; )
-			joysticks[--i].Joystick::~Joystick();
-	}
-
-	BOOL CALLBACK DirectInput::EnumJoysticks(LPCDIDEVICEINSTANCE instance,LPVOID context)
-	{
-		if (instance)
+		struct DirectInput::Joystick::Lookup
 		{
-			DirectInput& directInput = *static_cast<DirectInput*>(context);
+			uint (*code)(const void* const);
+			ushort offset;
+			ushort axis;
+			tstring name;
+		};
 
-			if (directInput.joysticks.Size() == MAX_JOYSTICKS)
-			{
-				Io::Log() << "DirectInput: warning, device count limit reached, stopping enumeration..\r\n";
-				return DIENUM_STOP;
-			}
+		const DirectInput::Joystick::Lookup DirectInput::Joystick::table[TABLE_KEYS] =
+		{
+			{ KeyPosDir,   DIJOFS_Y,         AXIS_Y,        _T("+y")   },
+			{ KeyPosDir,   DIJOFS_X,         AXIS_X,        _T("+x")   },
+			{ KeyNegDir,   DIJOFS_Y,         AXIS_Y,        _T("-y")   },
+			{ KeyNegDir,   DIJOFS_X,         AXIS_X,        _T("-x")   },
+			{ KeyPosDir,   DIJOFS_Z,         AXIS_Z,        _T("+z")   },
+			{ KeyNegDir,   DIJOFS_Z,         AXIS_Z,        _T("-z")   },
+			{ KeyPosDir,   DIJOFS_RY,        AXIS_RY,       _T("+ry")  },
+			{ KeyPosDir,   DIJOFS_RX,        AXIS_RX,       _T("+rx")  },
+			{ KeyPosDir,   DIJOFS_RY,        AXIS_RY,       _T("-ry")  },
+			{ KeyNegDir,   DIJOFS_RX,        AXIS_RX,       _T("-rx")  },
+			{ KeyPosDir,   DIJOFS_RZ,        AXIS_RZ,       _T("+rz")  },
+			{ KeyNegDir,   DIJOFS_RZ,        AXIS_RZ,       _T("-rz")  },
+			{ KeyNegDir,   DIJOFS_SLIDER(0), AXIS_SLIDER_0, _T("-s0")  },
+			{ KeyPosDir,   DIJOFS_SLIDER(0), AXIS_SLIDER_0, _T("+s0")  },
+			{ KeyNegDir,   DIJOFS_SLIDER(1), AXIS_SLIDER_1, _T("-s1")  },
+			{ KeyPosDir,   DIJOFS_SLIDER(1), AXIS_SLIDER_1, _T("+s1")  },
+			{ KeyPovUp,    DIJOFS_POV(0),    AXIS_POV_0,    _T("-p0y") },
+			{ KeyPovRight, DIJOFS_POV(0),    AXIS_POV_0,    _T("+p0x") },
+			{ KeyPovDown,  DIJOFS_POV(0),    AXIS_POV_0,    _T("+p0y") },
+			{ KeyPovLeft,  DIJOFS_POV(0),    AXIS_POV_0,    _T("-p0x") },
+			{ KeyPovUp,    DIJOFS_POV(1),    AXIS_POV_1,    _T("-p1y") },
+			{ KeyPovRight, DIJOFS_POV(1),    AXIS_POV_1,    _T("+p1x") },
+			{ KeyPovDown,  DIJOFS_POV(1),    AXIS_POV_1,    _T("+p1y") },
+			{ KeyPovLeft,  DIJOFS_POV(1),    AXIS_POV_1,    _T("-p1x") },
+			{ KeyPovUp,    DIJOFS_POV(2),    AXIS_POV_2,    _T("-p2y") },
+			{ KeyPovRight, DIJOFS_POV(2),    AXIS_POV_2,    _T("+p2x") },
+			{ KeyPovDown,  DIJOFS_POV(2),    AXIS_POV_2,    _T("+p2y") },
+			{ KeyPovLeft,  DIJOFS_POV(2),    AXIS_POV_2,    _T("-p2x") },
+			{ KeyPovUp,    DIJOFS_POV(3),    AXIS_POV_3,    _T("-p3y") },
+			{ KeyPovRight, DIJOFS_POV(3),    AXIS_POV_3,    _T("+p3x") },
+			{ KeyPovDown,  DIJOFS_POV(3),    AXIS_POV_3,    _T("+p3y") },
+			{ KeyPovLeft,  DIJOFS_POV(3),    AXIS_POV_3,    _T("-p3x") }
+		};
 
-			Io::Log() << "DirectInput: enumerating device - name: "
-                      << (*instance->tszProductName ? instance->tszProductName : _T("unknown"))
-                      << ", GUID: "
-                      << System::Guid( instance->guidInstance ).GetString()
-                      << "\r\n";
+		#ifdef NST_PRAGMA_OPTIMIZE
+		#pragma optimize("t", on)
+		#endif
 
-			directInput.joysticks.Grow();
-
-			try
-			{
-				new (&directInput.joysticks.Back()) Joystick( directInput.base, *instance );
-			}
-			catch (Joystick::Exception)
-			{
-				directInput.joysticks.Shrink();
-				Io::Log() << "DirectInput: warning, bogus device, continuing enumeration..\r\n";
-			}
+		inline ibool DirectInput::Notifier::Running() const
+		{
+			return events[EVENT_INPUT] != NULL;
 		}
 
-		return DIENUM_CONTINUE;
-	}
-
-	inline ibool DirectInput::Keyboard::InUse() const
-	{
-		return inUse;
-	}
-
-	inline ibool DirectInput::Joystick::InUse() const
-	{
-		return inUse;
-	}
-
-	void DirectInput::Joystick::Calibrator::Reset(DIJOYSTATE& state)
-	{
-		must = false;
-
-		lX = state.lX;
-		lY = state.lY;
-		lZ = state.lZ;
-		lRx = state.lRx;
-		lRy = state.lRy;
-		lRz = state.lRz;
-	}
-
-	void DirectInput::Joystick::Acquire()
-	{
-		if (SUCCEEDED(com.Acquire()) && calibrator.Must())
+		inline ibool DirectInput::Notifier::Update(uint timeCheck)
 		{
-			if (SUCCEEDED(com.Poll()) && SUCCEEDED(com.GetDeviceState( sizeof(state), &state )))
-				calibrator.Reset( state );
+			return events[EVENT_INPUT] && timeInput <= timeCheck ? timeInput=UINT_MAX, true : false;
 		}
 
-		Clear();
-	}
-
-	void DirectInput::Joystick::Unacquire()
-	{
-		Clear();
-		com.Unacquire();
-	}
-
-	void DirectInput::Keyboard::Acquire()
-	{
-		Clear();
-		com.Acquire();
-	}
-
-	void DirectInput::Keyboard::Unacquire()
-	{
-		Clear();
-		com.Unacquire();
-	}
-
-	void DirectInput::Acquire()
-	{
-		if (keyboard.InUse())
-			keyboard.Acquire();
-
-		for (Joysticks::Iterator it=joysticks.Begin(), end=joysticks.End(); it != end; ++it)
+		inline ibool DirectInput::Notifier::Signaling() const
 		{
-			if (it->InUse())
-				it->Acquire();
-		}
-	}
-
-	void DirectInput::Unacquire()
-	{
-		keyboard.Unacquire();
-
-		for (Joysticks::Iterator it=joysticks.Begin(), end=joysticks.End(); it != end; ++it)
-			it->Unacquire();
-	}
-
-	void DirectInput::BeginScanMode(HWND const hWnd)
-	{
-		keyboard.SetCooperativeLevel( hWnd, DISCL_FOREGROUND|DISCL_EXCLUSIVE );
-		keyboard.Acquire();
-
-		for (Joysticks::Iterator it=joysticks.Begin(), end=joysticks.End(); it != end; ++it)
-			it->Acquire();
-	}
-
-	void DirectInput::EndScanMode()
-	{
-		Unacquire();
-		keyboard.SetCooperativeLevel( base.hWnd );
-	}
-
-	inline void DirectInput::Keyboard::Use(ibool on)
-	{
-		inUse = on;
-	}
-
-	inline void DirectInput::Joystick::Use(ibool on)
-	{
-		inUse = on;
-	}
-
-	void DirectInput::Optimize(const Key* keys,const uint count)
-	{
-		keyboard.Use( false );
-
-		for (Joysticks::Iterator it=joysticks.Begin(), end=joysticks.End(); it != end; ++it)
-			it->Use( false );
-
-		for (const Key* const end = keys + count; keys != end; ++keys)
-		{
-			if (keyboard.IsAssigned( *keys ))
-			{
-				keyboard.Use( true );
-			}
-			else for (Joysticks::Iterator it=joysticks.Begin(), end=joysticks.End(); it != end; ++it)
-			{
-				if (it->IsAssigned( *keys ))
-				{
-					it->Use( true );
-					break;
-				}
-			}
-		}
-	}
-
-	DirectInput::ScanResult DirectInput::ScanKey(Key& key,const ScanMode scanMode)
-	{
-		const ScanResult scan = (scanMode == SCAN_MODE_ALL ? keyboard.Scan( key ) : SCAN_NO_KEY);
-
-		if (scan != SCAN_GOOD_KEY)
-		{
-			if (scan == SCAN_NO_KEY)
-			{
-				for (Joysticks::Iterator it=joysticks.Begin(), end=joysticks.End(); it != end; ++it)
-				{
-					if (it->Scan( key ))
-						return SCAN_GOOD_KEY;
-				}
-			}
-
-			key.Unmap();
+			return signal;
 		}
 
-		return scan;
-	}
-
-	ibool DirectInput::MapKey(Key& key,tstring const name,const System::Guid* const guids,const uint numGuids) const
-	{
-		key.Unmap();
-
-		if
-		(
-			name && *name &&
-			(name[0] != '.' || name[1] != '.' || name[2] != '.' || name[3] != '\0')
-		)
+		inline void DirectInput::Notifier::Reset()
 		{
-			if
-			(
-				(name[0] == '(') &&
-				(name[1] == 'j' || name[1] == 'J') &&
-				(name[2] == 'o' || name[2] == 'O') &&
-				(name[3] == 'y' || name[3] == 'Y') &&
-				(name[4] == ' ') &&
-				(name[5] >= '0' && name[5] <= '9') &&
-				(
-					(name[6] == ')' && name[7] == ' ') ||
-					(name[6] >= '0' && name[6] <= '9' && name[7] == ')' && name[8] == ' ')
-				)
-			)
-			{
-				uint index = name[5] - '0';
-
-				if (name[6] != ')')
-					index = (index * 10) + (name[6] - '0');
-
-				if (index < NST_MIN(MAX_JOYSTICKS,numGuids))
-				{
-					const System::Guid& guid = guids[index];
-
-					for (Joysticks::ConstIterator it=joysticks.Begin(), end=joysticks.End(); it != end; ++it)
-					{
-						if (it->GetGuid() == guid)
-							return it->Map( key, name + (name[7] == ' ' ? 8 : 9) );
-					}
-				}
-			}
-			else
-			{
-				return keyboard.Map( key, name );
-			}
+			timeInput = 0;
 		}
 
-		return false;
-	}
-
-	const HeapString DirectInput::GetKeyName(const Key& key) const
-	{
-		if (key.IsAssigned())
+		inline uint DirectInput::Notifier::Flush()
 		{
-			if (keyboard.IsAssigned( key ))
-			{
-				return keyboard.GetName( key );
-			}
-			else
-			{
-				for (uint i=0, n=joysticks.Size(); i < n; ++i)
-				{
-					if (joysticks[i].IsAssigned( key ))
-						return HeapString(_T("(joy ")) << i << _T(") ") << joysticks[i].GetName( key );
-				}
-
-				HeapString name;
-
-				if (key.vKey & FCONTROL)
-					name << System::Keyboard::GetName( VK_CONTROL ) << '+';
-
-				if (key.vKey & FALT)
-					name << System::Keyboard::GetName( VK_MENU ) << '+';
-
-				if (key.vKey & FSHIFT)
-					name << System::Keyboard::GetName( VK_SHIFT ) << '+';
-
-				name << System::Keyboard::GetName( key.vKey >> 8 );
-
-				return name;
-			}
+			uint tmp = signaled;
+			signaled = 0;
+			return tmp;
 		}
 
-		return _T("...");
-	}
-
-	IDirectInputDevice8& DirectInput::Keyboard::Create(IDirectInput8& base)
-	{
-		IDirectInputDevice8* com;
-
-		if (FAILED(base.CreateDevice( GUID_SysKeyboard, &com, NULL )))
-			throw Application::Exception(_T("IDirectInput8::CreateDevice() failed!"));
-
-		if (FAILED(com->SetDataFormat( &c_dfDIKeyboard )))
-			throw Application::Exception(_T("IDirectInputDevice8::SetDataFormat() failed!"));
-
-		return *com;
-	}
-
-	BOOL CALLBACK DirectInput::Keyboard::EnumObjects(LPCDIDEVICEOBJECTINSTANCE obj,LPVOID)
-	{
-		NST_VERIFY( obj->dwOfs < MAX_KEYS && *obj->tszName );
-
-		if (obj->dwOfs < MAX_KEYS && *obj->tszName)
+		inline ibool DirectInput::Device::Signaling() const
 		{
-			HeapString& string = keyNames[obj->dwOfs];
-			string = obj->tszName;
-
-			::CharUpperBuff( string.Ptr(), 1 );
-
-			if (string.Length() > 1)
-				::CharLowerBuff( string.Ptr() + 1, string.Length() - 1 );
+			return notifier.Signaling();
 		}
 
-		return DIENUM_CONTINUE;
-	}
-
-	DirectInput::Keyboard::Keyboard(Base& base)
-	: inUse(true), com(Create(base.com))
-	{
-		for (uint i=0; i < MAX_KEYS; ++i)
-			keyNames[i] << i;
-
-		com.EnumObjects( EnumObjects, NULL, DIDFT_BUTTON );
-
-		try
+		inline void DirectInput::Device::Reset()
 		{
-			SetCooperativeLevel( base.hWnd );
-			Clear();
+			notifier.Reset();
 		}
-		catch (...)
+
+		inline ibool DirectInput::Device::Update(uint timeStamp)
+		{
+			return notifier.Update( timeStamp );
+		}
+
+		inline void DirectInput::Device::StaticPoll() const
+		{
+			if (mustPoll)
+				com.Poll();
+		}
+
+		inline ibool DirectInput::Device::Poll()
+		{
+			return notifier.Update() ? StaticPoll(), true : false;
+		}
+
+		inline uint DirectInput::Device::Flush()
+		{
+			return notifier.Flush();
+		}
+
+		NST_FORCE_INLINE void DirectInput::Keyboard::Update(uint timeStamp)
+		{
+			if (Device::Update( timeStamp ))
+				GetState();
+		}
+
+		NST_FORCE_INLINE uint DirectInput::Keyboard::Poll()
+		{
+			if (Device::Poll())
+				GetState();
+
+			return Device::Flush();
+		}
+
+		inline void DirectInput::Joystick::Calibrator::Fix(DIJOYSTATE& state) const
+		{
+			state.lX -= lX;
+			state.lY -= lY;
+			state.lZ -= lZ;
+			state.lRx -= lRx;
+			state.lRy -= lRy;
+			state.lRz -= lRz;
+		}
+
+		NST_FORCE_INLINE void DirectInput::Joystick::Update(uint timeStamp)
+		{
+			if (Device::Update( timeStamp ))
+				GetState();
+		}
+
+		NST_FORCE_INLINE uint DirectInput::Joystick::Poll()
+		{
+			if (Device::Poll())
+				GetState();
+
+			return Device::Flush();
+		}
+
+		void DirectInput::Update(const uint timeStamp)
+		{
+			keyboard.Update( timeStamp );
+
+			for (Joysticks::Iterator it=joysticks.Begin(), end=joysticks.End(); it != end; ++it)
+				it->Update( timeStamp );
+		}
+
+		ibool DirectInput::Poll()
+		{
+			uint signaled = keyboard.Poll();
+
+			for (Joysticks::Iterator it=joysticks.Begin(), end=joysticks.End(); it != end; ++it)
+				signaled |= it->Poll();
+
+			return signaled;
+		}
+
+		void DirectInput::StaticPoll()
+		{
+			for (Joysticks::Iterator it=joysticks.Begin(), end=joysticks.End(); it != end; ++it)
+				it->StaticPoll();
+		}
+
+		#ifdef NST_PRAGMA_OPTIMIZE
+		#pragma optimize("", on)
+		#endif
+
+		DirectInput::Base::Base(HWND const h)
+		: com(Create()), hWnd(h) {}
+
+		DirectInput::Base::~Base()
 		{
 			com.Release();
-			throw;
-		}
-	}
-
-	DirectInput::Keyboard::~Keyboard()
-	{
-		com.Unacquire();
-		com.Release();
-	}
-
-	void DirectInput::Keyboard::SetCooperativeLevel(HWND const hWnd,const DWORD flags) const
-	{
-		if (FAILED(com.SetCooperativeLevel( hWnd, flags )))
-			throw Application::Exception(_T("IDirectInputDevice8::SetCooperativeLevel() failed!"));
-	}
-
-	ibool DirectInput::Keyboard::Map(Key& key,tstring name) const
-	{
-		for (uint i=0; i < MAX_KEYS; ++i)
-		{
-			if (keyNames[i] == name)
-				return Map( key, i );
 		}
 
-		return false;
-	}
-
-	ibool DirectInput::Keyboard::Map(Key& key,const uint code) const
-	{
-		if (code && code <= 0xFF && code != DIK_LWIN)
+		IDirectInput8& DirectInput::Base::Create()
 		{
-			key.data = buffer + code;
-			key.code = KeyDown;
-			return true;
+			Io::Log() << "DirectInput: initializing..\r\n";
+
+			IDirectInput8* com;
+
+			if (FAILED(::DirectInput8Create( ::GetModuleHandle(NULL), DIRECTINPUT_VERSION, IID_IDirectInput8, reinterpret_cast<void**>(&com), NULL )))
+				throw Application::Exception(_T("DirectInput8Create() failed!"));
+
+			return *com;
 		}
 
-		return false;
-	}
-
-	ibool DirectInput::Keyboard::Scan(u8 (&data)[MAX_KEYS])
-	{
-		std::memset( data, 0, MAX_KEYS );
-
-		if (SUCCEEDED(com.Poll()) && SUCCEEDED(com.GetDeviceState( MAX_KEYS, data )))
-			return true;
-		else
-			Acquire();
-
-		return false;
-	}
-
-	DirectInput::ScanResult DirectInput::Keyboard::Scan(Key& key)
-	{
-		u8 data[MAX_KEYS];
-
-		if (Scan( data ))
+		DirectInput::DirectInput(HWND const hWnd)
+		: base(hWnd), keyboard(base)
 		{
-			NST_COMPILE_ASSERT( MAX_KEYS % 4 == 0 );
+			Io::Log logfile;
 
-			for (uint i=0; i < MAX_KEYS; i += 4)
+			if (SUCCEEDED(base.com.EnumDevices( DI8DEVCLASS_GAMECTRL, EnumJoysticks, this, DIEDFL_ATTACHEDONLY )))
+				logfile << "DirectInput: found " << joysticks.Size() << " attached joystick(s)\r\n";
+			else
+				logfile << "DirectInput: IDirectInput8::EnumDevices() failed! No joysticks can be used!\r\n";
+		}
+
+		DirectInput::~DirectInput()
+		{
+			for (uint i=joysticks.Size(); i; )
+				joysticks[--i].Joystick::~Joystick();
+		}
+
+		BOOL CALLBACK DirectInput::EnumJoysticks(LPCDIDEVICEINSTANCE instance,LPVOID context)
+		{
+			if (instance)
 			{
-				if (const u32 mask = (*reinterpret_cast<u32*>(data+i) & 0x80808080U))
-				{
-					switch (const uint dik = (i + ((mask & 0x80U) ? 0 : (mask & 0x8000U) ? 1 : (mask & 0x800000U) ? 2 : 3)))
-					{
-						case DIK_CAPITAL:
-						case DIK_NUMLOCK:
-						case DIK_SCROLL:
-						case DIK_KANA:
-						case DIK_KANJI:
-							continue;
+				DirectInput& directInput = *static_cast<DirectInput*>(context);
 
-						default:
-							return Map( key, dik ) ? SCAN_GOOD_KEY : SCAN_INVALID_KEY;
-					}
+				if (directInput.joysticks.Size() == MAX_JOYSTICKS)
+				{
+					Io::Log() << "DirectInput: warning, device count limit reached, stopping enumeration..\r\n";
+					return DIENUM_STOP;
 				}
+
+				Io::Log() << "DirectInput: enumerating device - name: "
+                          << (*instance->tszProductName ? instance->tszProductName : _T("unknown"))
+                          << ", GUID: "
+                          << System::Guid( instance->guidInstance ).GetString()
+                          << "\r\n";
+
+				directInput.joysticks.Grow();
+
+				try
+				{
+					new (&directInput.joysticks.Back()) Joystick( directInput.base, *instance );
+				}
+				catch (Joystick::Exception)
+				{
+					directInput.joysticks.Shrink();
+					Io::Log() << "DirectInput: warning, bogus device, continuing enumeration..\r\n";
+				}
+			}
+
+			return DIENUM_CONTINUE;
+		}
+
+		void DirectInput::Acquire()
+		{
+			keyboard.Acquire();
+
+			for (Joysticks::Iterator it=joysticks.Begin(), end=joysticks.End(); it != end; ++it)
+				it->Acquire();
+		}
+
+		void DirectInput::Unacquire()
+		{
+			keyboard.Unacquire();
+
+			for (Joysticks::Iterator it=joysticks.Begin(), end=joysticks.End(); it != end; ++it)
+				it->Unacquire();
+		}
+
+		void DirectInput::BeginScanMode(HWND hWnd) const
+		{
+			keyboard.BeginScanMode( hWnd );
+
+			for (Joysticks::ConstIterator it=joysticks.Begin(), end=joysticks.End(); it != end; ++it)
+				it->BeginScanMode();
+		}
+
+		void DirectInput::EndScanMode() const
+		{
+			keyboard.EndScanMode();
+
+			for (Joysticks::ConstIterator it=joysticks.Begin(), end=joysticks.End(); it != end; ++it)
+				it->EndScanMode();
+		}
+
+		void DirectInput::Build(const Key* const keys,const uint commands,const uint count)
+		{
+			const Key* key = NULL;
+
+			for (const Key *it=keys, *end=keys+count; it != end; ++it)
+			{
+				if (keyboard.Assigned( *it ))
+					key = it;
+			}
+
+			keyboard.Enable( key != NULL, key != NULL && key >= keys+commands );
+
+			for (Joysticks::Iterator it=joysticks.Begin(), end=joysticks.End(); it != end; ++it)
+			{
+				key = NULL;
+
+				for (const Key *jt=keys, *jend=keys+count; jt != jend; ++jt)
+				{
+					if (it->Assigned( *jt ))
+						key = jt;
+				}
+
+				it->Enable( key != NULL, key != NULL && key >= keys+commands );
 			}
 		}
 
-		return SCAN_NO_KEY;
-	}
+		DirectInput::ScanResult DirectInput::ScanKey(Key& key,const ScanMode scanMode) const
+		{
+			const ScanResult scan = (scanMode == SCAN_MODE_ALL ? keyboard.Scan( key ) : SCAN_NO_KEY);
 
-	ibool DirectInput::Keyboard::IsAssigned(const Key& key) const
-	{
-		return key.data >= buffer && key.data < (buffer + Buffer::SIZE);
-	}
+			if (scan != SCAN_GOOD_KEY)
+			{
+				if (scan == SCAN_NO_KEY)
+				{
+					for (Joysticks::ConstIterator it=joysticks.Begin(), end=joysticks.End(); it != end; ++it)
+					{
+						if (it->Scan( key ))
+							return SCAN_GOOD_KEY;
+					}
+				}
 
-	tstring DirectInput::Keyboard::GetName(const Key& key) const
-	{
-		NST_VERIFY( IsAssigned(key) );
-		return keyNames[key.data - buffer].Ptr();
-	}
+				key.Unmap();
+			}
 
-	void DirectInput::Keyboard::Clear()
-	{
-		std::memset( buffer, 0, Buffer::SIZE );
-	}
+			return scan;
+		}
 
-	DirectInput::Joystick::Caps::Caps(IDirectInputDevice8& com,const DIDEVICEINSTANCE& instance)
-	: axes(0), guid(instance.guidInstance), name(*instance.tszProductName ? instance.tszProductName : _T("unknown"))
-	{
-		try
+		ibool DirectInput::MapKey(Key& key,tstring const name,const System::Guid* const guids,const uint numGuids) const
+		{
+			key.Unmap();
+
+			if
+			(
+				name && *name &&
+				(name[0] != '.' || name[1] != '.' || name[2] != '.' || name[3] != '\0')
+			)
+			{
+				if
+				(
+					(name[0] == '(') &&
+					(name[1] == 'j' || name[1] == 'J') &&
+					(name[2] == 'o' || name[2] == 'O') &&
+					(name[3] == 'y' || name[3] == 'Y') &&
+					(name[4] == ' ') &&
+					(name[5] >= '0' && name[5] <= '9') &&
+					(
+						(name[6] == ')' && name[7] == ' ') ||
+						(name[6] >= '0' && name[6] <= '9' && name[7] == ')' && name[8] == ' ')
+					)
+				)
+				{
+					uint index = name[5] - '0';
+
+					if (name[6] != ')')
+						index = (index * 10) + (name[6] - '0');
+
+					if (index < NST_MIN(MAX_JOYSTICKS,numGuids))
+					{
+						const System::Guid& guid = guids[index];
+
+						for (Joysticks::ConstIterator it=joysticks.Begin(), end=joysticks.End(); it != end; ++it)
+						{
+							if (it->GetGuid() == guid)
+								return it->Map( key, name + (name[7] == ' ' ? 8 : 9) );
+						}
+					}
+				}
+				else
+				{
+					return keyboard.Map( key, name );
+				}
+			}
+
+			return false;
+		}
+
+		const HeapString DirectInput::GetKeyName(const Key& key) const
+		{
+			if (key.Assigned())
+			{
+				if (keyboard.Assigned( key ))
+				{
+					return keyboard.GetName( key );
+				}
+				else
+				{
+					for (uint i=0, n=joysticks.Size(); i < n; ++i)
+					{
+						if (joysticks[i].Assigned( key ))
+							return HeapString(_T("(joy ")) << i << _T(") ") << joysticks[i].GetName( key );
+					}
+
+					HeapString name;
+
+					if (key.vKey & FCONTROL)
+						name << System::Keyboard::GetName( VK_CONTROL ) << '+';
+
+					if (key.vKey & FALT)
+						name << System::Keyboard::GetName( VK_MENU ) << '+';
+
+					if (key.vKey & FSHIFT)
+						name << System::Keyboard::GetName( VK_SHIFT ) << '+';
+
+					name << System::Keyboard::GetName( key.vKey >> 8 );
+
+					return name;
+				}
+			}
+
+			return _T("...");
+		}
+
+		DirectInput::Device::Device(IDirectInputDevice8& c)
+		: com(c), mustPoll(true) {}
+
+		DirectInput::Device::~Device()
+		{
+			com.Unacquire();
+			com.SetEventNotification( NULL );
+			com.Release();
+		}
+
+		void DirectInput::Device::Enable(ibool enable,ibool signaling)
+		{
+			com.Unacquire();
+
+			if (enable)
+			{
+				mustPoll = (com.SetEventNotification( notifier.Start(signaling) ) == DI_POLLEDDEVICE);
+			}
+			else
+			{
+				notifier.Stop();
+				com.SetEventNotification( NULL );
+			}
+		}
+
+		ibool DirectInput::Device::Acquire(void* const data,const uint size)
+		{
+			return notifier.Running() && SUCCEEDED(com.Acquire()) && (!mustPoll || SUCCEEDED(com.Poll())) && SUCCEEDED(com.GetDeviceState( size, data ));
+		}
+
+		void DirectInput::Device::Unacquire()
+		{
+			com.Unacquire();
+		}
+
+		DirectInput::Keyboard::Keyboard(Base& base)
+		: Device(Create(base.com)), hWnd(base.hWnd)
+		{
+			for (uint i=0; i < MAX_KEYS; ++i)
+				keyNames[i] << i;
+
+			com.EnumObjects( EnumObjects, NULL, DIDFT_BUTTON );
+			SetCooperativeLevel( base.hWnd, COOPERATIVE_FLAGS );
+			Clear();
+		}
+
+		DirectInput::Keyboard::~Keyboard()
+		{
+		}
+
+		IDirectInputDevice8& DirectInput::Keyboard::Create(IDirectInput8& base)
+		{
+			IDirectInputDevice8* com;
+
+			if (FAILED(base.CreateDevice( GUID_SysKeyboard, &com, NULL )))
+				throw Application::Exception(_T("IDirectInput8::CreateDevice() failed!"));
+
+			if (FAILED(com->SetDataFormat( &c_dfDIKeyboard )))
+			{
+				com->Release();
+				throw Application::Exception(_T("IDirectInputDevice8::SetDataFormat() failed!"));
+			}
+
+			return *com;
+		}
+
+		BOOL CALLBACK DirectInput::Keyboard::EnumObjects(LPCDIDEVICEOBJECTINSTANCE obj,LPVOID)
+		{
+			NST_VERIFY( obj->dwOfs < MAX_KEYS && *obj->tszName );
+
+			if (obj->dwOfs < MAX_KEYS && *obj->tszName)
+			{
+				HeapString& string = keyNames[obj->dwOfs];
+				string = obj->tszName;
+
+				::CharUpperBuff( string.Ptr(), 1 );
+
+				if (string.Length() > 1)
+					::CharLowerBuff( string.Ptr() + 1, string.Length() - 1 );
+			}
+
+			return DIENUM_CONTINUE;
+		}
+
+		void DirectInput::Keyboard::SetCooperativeLevel(HWND const hWnd,const DWORD flags) const
+		{
+			if (FAILED(com.SetCooperativeLevel( hWnd, flags )))
+				throw Application::Exception(_T("IDirectInputDevice8::SetCooperativeLevel() failed!"));
+		}
+
+		ibool DirectInput::Keyboard::Map(Key& key,tstring name) const
+		{
+			for (uint i=0; i < MAX_KEYS; ++i)
+			{
+				if (keyNames[i] == name)
+					return Map( key, i );
+			}
+
+			return false;
+		}
+
+		ibool DirectInput::Keyboard::Map(Key& key,const uint code) const
+		{
+			if (code && code <= 0xFF && code != DIK_LWIN)
+			{
+				key.data = buffer + code;
+				key.code = KeyDown;
+				return true;
+			}
+
+			return false;
+		}
+
+		void DirectInput::Keyboard::BeginScanMode(HWND hWndScan) const
+		{
+			com.Unacquire();
+			SetCooperativeLevel( hWndScan, SCAN_COOPERATIVE_FLAGS );
+			com.Acquire();
+		}
+
+		void DirectInput::Keyboard::EndScanMode() const
+		{
+			com.Unacquire();
+			SetCooperativeLevel( hWnd, COOPERATIVE_FLAGS );
+		}
+
+		ibool DirectInput::Keyboard::Scan(u8 (&data)[MAX_KEYS]) const
+		{
+			if (SUCCEEDED(com.Poll()) && SUCCEEDED(com.GetDeviceState( MAX_KEYS, data )))
+				return true;
+
+			std::memset( data, 0, MAX_KEYS );
+
+			return false;
+		}
+
+		DirectInput::ScanResult DirectInput::Keyboard::Scan(Key& key) const
+		{
+			u8 data[MAX_KEYS];
+
+			if (Scan( data ))
+			{
+				NST_COMPILE_ASSERT( MAX_KEYS % 4 == 0 );
+
+				for (uint i=0; i < MAX_KEYS; i += 4)
+				{
+					if (const u32 mask = (*reinterpret_cast<u32*>(data+i) & 0x80808080U))
+					{
+						switch (const uint dik = (i + ((mask & 0x80U) ? 0 : (mask & 0x8000U) ? 1 : (mask & 0x800000U) ? 2 : 3)))
+						{
+							case DIK_CAPITAL:
+							case DIK_NUMLOCK:
+							case DIK_SCROLL:
+							case DIK_KANA:
+							case DIK_KANJI:
+								continue;
+
+							default:
+								return Map( key, dik ) ? SCAN_GOOD_KEY : SCAN_INVALID_KEY;
+						}
+					}
+				}
+			}
+
+			return SCAN_NO_KEY;
+		}
+
+		void DirectInput::Keyboard::OnError(const HRESULT hResult)
+		{
+			NST_ASSERT( FAILED(hResult) );
+
+			Reset();
+
+			switch (hResult)
+			{
+				case DIERR_INPUTLOST:
+				case DIERR_NOTACQUIRED:
+
+					if (::GetActiveWindow() == hWnd)
+					{
+						Acquire();
+						break;
+					}
+
+				default:
+
+					Clear();
+					break;
+			}
+		}
+
+		ibool DirectInput::Keyboard::Assigned(const Key& key) const
+		{
+			return key.data >= buffer && key.data < (buffer + Buffer::SIZE);
+		}
+
+		tstring DirectInput::Keyboard::GetName(const Key& key) const
+		{
+			NST_VERIFY( Assigned(key) );
+			return keyNames[key.data - buffer].Ptr();
+		}
+
+		void DirectInput::Keyboard::Clear()
+		{
+			std::memset( buffer, 0, Buffer::SIZE );
+		}
+
+		void DirectInput::Keyboard::Acquire()
+		{
+			if (!Device::Acquire( buffer, Buffer::SIZE ))
+				Clear();
+		}
+
+		void DirectInput::Keyboard::Unacquire()
+		{
+			Device::Unacquire();
+			Clear();
+		}
+
+		#ifdef NST_PRAGMA_OPTIMIZE
+		#pragma optimize("t", on)
+		#endif
+
+		void DirectInput::Keyboard::GetState()
+		{
+			HRESULT hResult = com.GetDeviceState( Buffer::SIZE, buffer );
+
+			if (FAILED(hResult))
+				OnError( hResult );
+		}
+
+		#ifdef NST_PRAGMA_OPTIMIZE
+		#pragma optimize("", on)
+		#endif
+
+		DirectInput::Joystick::Joystick(Base& base,const DIDEVICEINSTANCE& instance)
+		:
+		Device      (Create(base,instance.guidInstance)),
+		caps        (com,instance),
+		scanEnabled (true),
+		deadZone    (UINT_MAX),
+		axes        (DEFAULT_AXES)
+		{
+			SetAxisDeadZone( DEFAULT_DEADZONE );
+
+			if (SUCCEEDED(com.Acquire()))
+			{
+				if (SUCCEEDED(com.Poll()))
+					com.GetDeviceState( sizeof(state), &state );
+
+				com.Unacquire();
+			}
+		}
+
+		DirectInput::Joystick::~Joystick()
+		{
+		}
+
+		DirectInput::Joystick::Calibrator::Calibrator()
+		:
+		lX   (0),
+		lY   (0),
+		lZ   (0),
+		lRx  (0),
+		lRy  (0),
+		lRz  (0),
+		must (true)
+		{}
+
+		DirectInput::Joystick::Caps::Context::Context(Caps& c,IDirectInputDevice8& d)
+		: caps(c), com(d), numButtons(0) {}
+
+		DirectInput::Joystick::Caps::Caps(IDirectInputDevice8& com,const DIDEVICEINSTANCE& instance)
+		: axes(0), guid(instance.guidInstance), name(*instance.tszProductName ? instance.tszProductName : _T("unknown"))
 		{
 			Context context( *this, com );
 
 			if (FAILED(com.EnumObjects( EnumObjectsProc, &context, DIDFT_ALL )) || !(context.numButtons|axes))
 				throw ERR_API;
 		}
-		catch (...)
+
+		IDirectInputDevice8& DirectInput::Joystick::Create(Base& base,const GUID& guid)
 		{
-			com.Release();
-			throw;
-		}
-	}
+			IDirectInputDevice8* com;
 
-	IDirectInputDevice8& DirectInput::Joystick::Create(Base& base,const GUID& guid)
-	{
-		IDirectInputDevice8* com;
+			if (FAILED(base.com.CreateDevice( guid, &com, NULL )))
+				throw ERR_API;
 
-		if (FAILED(base.com.CreateDevice( guid, &com, NULL )))
-			throw ERR_API;
-
-		if
-		(
-			FAILED(com->SetDataFormat( &c_dfDIJoystick )) ||
-			FAILED(com->SetCooperativeLevel( base.hWnd, DISCL_BACKGROUND|DISCL_NONEXCLUSIVE ))
-		)
-		{
-			com->Release();
-			throw ERR_API;
-		}
-
-		return *com;
-	}
-
-	DirectInput::Joystick::Calibrator::Calibrator()
-	:
-	must (true),
-	lX   (0),
-	lY   (0),
-	lZ   (0),
-	lRx  (0),
-	lRy  (0),
-	lRz  (0)
-	{}
-
-	DirectInput::Joystick::Joystick(Base& base,const DIDEVICEINSTANCE& instance)
-	:
-	enabled   (true),
-	inUse     (true),
-	com       (Create(base,instance.guidInstance)),
-	caps      (com,instance),
-	deadZone  (UINT_MAX),
-	axes      (DEFAULT_AXES)
-	{
-		SetAxisDeadZone( DEFAULT_DEADZONE );
-
-		if (SUCCEEDED(com.Acquire()))
-		{
-			if (SUCCEEDED(com.Poll()))
-				com.GetDeviceState( sizeof(state), &state );
-
-			com.Unacquire();
-		}
-	}
-
-	DirectInput::Joystick::~Joystick()
-	{
-		com.Unacquire();
-		com.Release();
-	}
-
-	BOOL CALLBACK DirectInput::Joystick::Caps::EnumObjectsProc(LPCDIDEVICEOBJECTINSTANCE info,LPVOID ref)
-	{
-		Context& context = *static_cast<Context*>(ref);
-
-		if (info->guidType == GUID_Button)
-		{
-			++context.numButtons;
-		}
-		else
-		{
-			uint flag;
-
-                 if ( info->guidType == GUID_XAxis  ) flag = AXIS_X;
-			else if ( info->guidType == GUID_YAxis  ) flag = AXIS_Y;
-			else if ( info->guidType == GUID_ZAxis  ) flag = AXIS_Z;
-			else if ( info->guidType == GUID_RxAxis ) flag = AXIS_RX;
-			else if ( info->guidType == GUID_RyAxis ) flag = AXIS_RY;
-			else if ( info->guidType == GUID_RzAxis ) flag = AXIS_RZ;
-			else if ( info->guidType == GUID_POV    )
+			if
+			(
+				FAILED(com->SetDataFormat( &c_dfDIJoystick )) ||
+				FAILED(com->SetCooperativeLevel( base.hWnd, DISCL_BACKGROUND|DISCL_NONEXCLUSIVE ))
+			)
 			{
-				if (context.caps.axes & AXIS_POV_3)
-				{
-					return DIENUM_CONTINUE;
-				}
-				else if (context.caps.axes & AXIS_POV_2)
-				{
-					flag = AXIS_POV_3;
-				}
-				else if (context.caps.axes & AXIS_POV_1)
-				{
-					flag = AXIS_POV_2;
-				}
-				else if (context.caps.axes & AXIS_POV_0)
-				{
-					flag = AXIS_POV_1;
-				}
-				else
-				{
-					flag = AXIS_POV_0;
-				}
+				com->Release();
+				throw ERR_API;
 			}
-			else if ( info->guidType == GUID_Slider )
+
+			return *com;
+		}
+
+		BOOL CALLBACK DirectInput::Joystick::Caps::EnumObjectsProc(LPCDIDEVICEOBJECTINSTANCE info,LPVOID ref)
+		{
+			Context& context = *static_cast<Context*>(ref);
+
+			if (info->guidType == GUID_Button)
 			{
-				if (context.caps.axes & AXIS_SLIDER_1)
-				{
-					return DIENUM_CONTINUE;
-				}
-				else if (context.caps.axes & AXIS_SLIDER_0)
-				{
-					flag = AXIS_SLIDER_1;
-				}
-				else
-				{
-					flag = AXIS_SLIDER_0;
-				}
+				++context.numButtons;
 			}
 			else
 			{
-				return DIENUM_CONTINUE;
-			}
+				uint flag;
 
-			if (info->dwType & DIDFT_AXIS)
-			{
-				Object::Pod<DIPROPRANGE> diprg;
-
-				diprg.diph.dwSize       = sizeof(diprg);
-				diprg.diph.dwHeaderSize = sizeof(diprg.diph);
-				diprg.diph.dwHow        = DIPH_BYID;
-				diprg.diph.dwObj        = info->dwType;
-				diprg.lMin              = AXIS_MIN_RANGE;
-				diprg.lMax              = AXIS_MAX_RANGE;
-
-				if (FAILED(context.com.SetProperty( DIPROP_RANGE, &diprg.diph )))
+                     if ( info->guidType == GUID_XAxis  ) flag = AXIS_X;
+				else if ( info->guidType == GUID_YAxis  ) flag = AXIS_Y;
+				else if ( info->guidType == GUID_ZAxis  ) flag = AXIS_Z;
+				else if ( info->guidType == GUID_RxAxis ) flag = AXIS_RX;
+				else if ( info->guidType == GUID_RyAxis ) flag = AXIS_RY;
+				else if ( info->guidType == GUID_RzAxis ) flag = AXIS_RZ;
+				else if ( info->guidType == GUID_POV    )
 				{
-					if (FAILED(context.com.GetProperty( DIPROP_RANGE, &diprg.diph )) || diprg.lMin >= 0 || diprg.lMax <= 0)
+					if (context.caps.axes & AXIS_POV_3)
 					{
-						Io::Log() << "DirectInput: warning, SetProperty(DIPROP_RANGE) failed, skipping axis..\r\n";
 						return DIENUM_CONTINUE;
 					}
+					else if (context.caps.axes & AXIS_POV_2)
+					{
+						flag = AXIS_POV_3;
+					}
+					else if (context.caps.axes & AXIS_POV_1)
+					{
+						flag = AXIS_POV_2;
+					}
+					else if (context.caps.axes & AXIS_POV_0)
+					{
+						flag = AXIS_POV_1;
+					}
+					else
+					{
+						flag = AXIS_POV_0;
+					}
 				}
+				else if ( info->guidType == GUID_Slider )
+				{
+					if (context.caps.axes & AXIS_SLIDER_1)
+					{
+						return DIENUM_CONTINUE;
+					}
+					else if (context.caps.axes & AXIS_SLIDER_0)
+					{
+						flag = AXIS_SLIDER_1;
+					}
+					else
+					{
+						flag = AXIS_SLIDER_0;
+					}
+				}
+				else
+				{
+					return DIENUM_CONTINUE;
+				}
+
+				if (info->dwType & DIDFT_AXIS)
+				{
+					Object::Pod<DIPROPRANGE> diprg;
+
+					diprg.diph.dwSize       = sizeof(diprg);
+					diprg.diph.dwHeaderSize = sizeof(diprg.diph);
+					diprg.diph.dwHow        = DIPH_BYID;
+					diprg.diph.dwObj        = info->dwType;
+					diprg.lMin              = AXIS_MIN_RANGE;
+					diprg.lMax              = AXIS_MAX_RANGE;
+
+					if (FAILED(context.com.SetProperty( DIPROP_RANGE, &diprg.diph )))
+					{
+						if (FAILED(context.com.GetProperty( DIPROP_RANGE, &diprg.diph )) || diprg.lMin >= 0 || diprg.lMax <= 0)
+						{
+							Io::Log() << "DirectInput: warning, SetProperty(DIPROP_RANGE) failed, skipping axis..\r\n";
+							return DIENUM_CONTINUE;
+						}
+					}
+				}
+
+				context.caps.axes |= flag;
 			}
 
-			context.caps.axes |= flag;
+			return DIENUM_CONTINUE;
 		}
 
-		return DIENUM_CONTINUE;
-	}
-
-	ibool DirectInput::Joystick::Scan(Key& key)
-	{
-		NST_COMPILE_ASSERT( SUCCEEDED(DI_NOEFFECT) );
-
-		Clear();
-
-		if (enabled)
+		ibool DirectInput::Joystick::SetAxisDeadZone(const uint value)
 		{
-			HRESULT hResult;
+			NST_ASSERT( value <= DEADZONE_MAX );
 
-			if (SUCCEEDED(hResult=com.Poll()) && SUCCEEDED(hResult=com.GetDeviceState( sizeof(state), &state )))
+			if (deadZone != value)
 			{
+				deadZone = value;
+
+				Object::Pod<DIPROPDWORD> diprd;
+
+				diprd.diph.dwSize       = sizeof(diprd);
+				diprd.diph.dwHeaderSize = sizeof(diprd.diph);
+				diprd.diph.dwHow        = DIPH_DEVICE;
+				diprd.dwData            = value * 100;
+
+				com.SetProperty( DIPROP_DEADZONE, &diprd.diph );
+				return true;
+			}
+
+			return false;
+		}
+
+		void DirectInput::Joystick::Clear()
+		{
+			state.Clear();
+			state.rgdwPOV[3] = state.rgdwPOV[2] = state.rgdwPOV[1] = state.rgdwPOV[0] = DWORD(~0UL);
+		}
+
+		void DirectInput::Joystick::Acquire()
+		{
+			if (Device::Acquire( &state, sizeof(state) ))
+				calibrator.Reset( state );
+			else
+				Clear();
+		}
+
+		void DirectInput::Joystick::Unacquire()
+		{
+			Device::Unacquire();
+			Clear();
+		}
+
+		#ifdef NST_PRAGMA_OPTIMIZE
+		#pragma optimize("t", on)
+		#endif
+
+		void DirectInput::Joystick::GetState()
+		{
+			HRESULT hResult = com.GetDeviceState( sizeof(state), &state );
+
+			if (SUCCEEDED(hResult))
 				calibrator.Fix( state );
+			else
+				OnError( hResult );
+		}
+
+		void DirectInput::Joystick::StaticPoll()
+		{
+			if (Device::Signaling())
+			{
+				Device::StaticPoll();
+
+				if (SUCCEEDED(com.GetDeviceState( sizeof(state), &state )))
+				{
+					calibrator.Fix( state );
+				}
+				else
+				{
+					com.Acquire();
+					Clear();
+				}
+			}
+		}
+
+		#ifdef NST_PRAGMA_OPTIMIZE
+		#pragma optimize("", on)
+		#endif
+
+		void DirectInput::Joystick::Calibrator::Reset(DIJOYSTATE& state)
+		{
+			if (must)
+			{
+				must = false;
+
+				lX = state.lX;
+				lY = state.lY;
+				lZ = state.lZ;
+				lRx = state.lRx;
+				lRy = state.lRy;
+				lRz = state.lRz;
+			}
+
+			Fix( state );
+		}
+
+		void DirectInput::Joystick::BeginScanMode() const
+		{
+			com.Acquire();
+		}
+
+		void DirectInput::Joystick::EndScanMode() const
+		{
+			com.Unacquire();
+		}
+
+		ibool DirectInput::Joystick::Scan(Key& key) const
+		{
+			DIJOYSTATE tmp;
+
+			if (scanEnabled && SUCCEEDED(com.Poll()) && SUCCEEDED(com.GetDeviceState( sizeof(tmp), &tmp )))
+			{
+				calibrator.Reset( tmp );
 
 				for (uint i=0; i < Caps::NUM_BUTTONS; ++i)
 				{
-					if (state.rgbButtons[i] & 0x80)
+					if (tmp.rgbButtons[i] & 0x80)
 					{
 						key.data = state.rgbButtons + i;
 						key.code = KeyDown;
@@ -717,356 +964,428 @@ namespace Nestopia
 				{
 					if (caps.axes & axes & table[i].axis)
 					{
-						key.data = reinterpret_cast<const BYTE*>(&state) + table[i].offset;
+						key.data = reinterpret_cast<const BYTE*>(&tmp) + table[i].offset;
 						key.code = table[i].code;
 
 						if (key.GetState())
-							return true;
-					}
-				}
-			}
-			else if (hResult == DIERR_INPUTLOST || hResult == DIERR_NOTACQUIRED)
-			{
-				Acquire();
-			}
-		}
-
-		return false;
-	}
-
-	ibool DirectInput::Joystick::Map(Key& key,tstring const name) const
-	{
-		if (*name)
-		{
-			if (name[0] >= '0' && name[0] <= '9')
-			{
-				uint index = name[0] - '0';
-
-				if (name[1] >= '0' && name[1] <= '9')
-					index = (index * 10) + (name[1] - '0');
-
-				if (index < Caps::NUM_BUTTONS)
-				{
-					key.data = state.rgbButtons + index;
-					key.code = KeyDown;
-					return true;
-				}
-			}
-			else
-			{
-				const GenericString axis( name );
-
-				for (uint i=TABLE_KEYS; i; )
-				{
-					if (caps.axes & table[--i].axis)
-					{
-						if (axis == table[i].name)
 						{
 							key.data = reinterpret_cast<const BYTE*>(&state) + table[i].offset;
-							key.code = table[i].code;
 							return true;
 						}
 					}
 				}
 			}
-		}
 
-		return false;
-	}
-
-	ibool DirectInput::Joystick::IsAssigned(const Key& key) const
-	{
-		return
-		(
-			key.data >= reinterpret_cast<const BYTE*>(&state) &&
-			key.data <  reinterpret_cast<const BYTE*>(&state) + sizeof(state)
-		);
-	}
-
-	tstring DirectInput::Joystick::GetName(const Key& key) const
-	{
-		NST_VERIFY( IsAssigned(key) );
-
-		if (key.code == KeyDown)
-		{
-			static tchar button[] = _T("xx");
-
-			const uint index = key.data - state.rgbButtons;
-			button[0] = (tchar) (index < 10 ? '0' + index : '0' + index / 10);
-			button[1] = (tchar) (index < 10 ? '\0'        : '0' + index % 10);
-
-			return button;
-		}
-
-		for (const Lookup* it = table; ; ++it)
-		{
-			if (key.data == reinterpret_cast<const BYTE*>(&state) + it->offset && key.code == it->code)
-				return it->name;
-		}
-	}
-
-	void DirectInput::Joystick::Clear()
-	{
-		state.Clear();
-		state.rgdwPOV[3] = state.rgdwPOV[2] = state.rgdwPOV[1] = state.rgdwPOV[0] = ~DWORD(0);
-	}
-
-	ibool DirectInput::Joystick::SetAxisDeadZone(const uint value)
-	{
-		NST_ASSERT( value <= DEADZONE_MAX );
-
-		if (deadZone != value)
-		{
-			deadZone = value;
-
-			Object::Pod<DIPROPDWORD> diprd;
-
-			diprd.diph.dwSize       = sizeof(diprd);
-			diprd.diph.dwHeaderSize = sizeof(diprd.diph);
-			diprd.diph.dwHow        = DIPH_DEVICE;
-			diprd.dwData            = value * 100;
-
-			com.SetProperty( DIPROP_DEADZONE, &diprd.diph );
-			return true;
-		}
-
-		return false;
-	}
-
-	void DirectInput::Joystick::OnError(const HRESULT hResult)
-	{
-		NST_ASSERT( FAILED(hResult) );
-
-		switch (hResult)
-		{
-			case DIERR_INPUTLOST:
-			case DIERR_NOTACQUIRED:
-
-				Acquire();
-				break;
-
-			case DIERR_UNPLUGGED:
-
-				inUse = false;
-				Clear();
-				Io::Screen() << _T("Error! Joystick unplugged!");
-				break;
-		}
-	}
-
-	#ifdef NST_PRAGMA_OPTIMIZE
-	#pragma optimize("t", on)
-	#endif
-
-	uint DirectInput::KeyDown(const void* const data) throw()
-	{
-		return 0U - (uint(*static_cast<const BYTE*>(data)) >> 7);
-	}
-
-	uint DirectInput::KeyPosDir(const void* const data) throw()
-	{
-	#ifdef NST_SIGN_SHIFT
-		return (uint) (-*static_cast<const long*>(data) >> (sizeof(long) * CHAR_BIT - 1));
-	#else
-		return (*static_cast<const long*>(data) > 0) ? ~0U : 0U;
-	#endif
-	}
-
-	uint DirectInput::KeyNegDir(const void* const data) throw()
-	{
-	#ifdef NST_SIGN_SHIFT
-		return (uint) (*static_cast<const long*>(data) >> (sizeof(long) * CHAR_BIT - 1));
-	#else
-		return (*static_cast<const long*>(data) < 0) ? ~0U : 0U;
-	#endif
-	}
-
-	uint DirectInput::KeyPovUp(const void* const data) throw()
-	{
-		const DWORD pov = *static_cast<const DWORD*>(data);
-
-		return
-		(
-			(pov & Joystick::POV_CENTER) != Joystick::POV_CENTER &&
-			(pov >= Joystick::POV_UPLEFT || pov <= Joystick::POV_UPRIGHT)
-		)   ? ~0U : 0U;
-	}
-
-	uint DirectInput::KeyPovRight(const void* const data) throw()
-	{
-		const DWORD pov = *static_cast<const DWORD*>(data);
-
-		return
-		(
-			(pov & Joystick::POV_CENTER) != Joystick::POV_CENTER &&
-			(pov >= Joystick::POV_UPRIGHT && pov <= Joystick::POV_DOWNRIGHT)
-		)   ? ~0U : 0U;
-	}
-
-	uint DirectInput::KeyPovDown(const void* const data) throw()
-	{
-		const DWORD pov = *static_cast<const DWORD*>(data);
-
-		return
-		(
-			(pov & Joystick::POV_CENTER) != Joystick::POV_CENTER &&
-			(pov >= Joystick::POV_DOWNRIGHT && pov <= Joystick::POV_DOWNLEFT)
-		)   ? ~0U : 0U;
-	}
-
-	uint DirectInput::KeyPovLeft(const void* const data) throw()
-	{
-		const DWORD pov = *static_cast<const DWORD*>(data);
-
-		return
-		(
-			(pov & Joystick::POV_CENTER) != Joystick::POV_CENTER &&
-			(pov >= Joystick::POV_DOWNLEFT && pov <= Joystick::POV_UPLEFT)
-		)   ? ~0U : 0U;
-	}
-
-	uint DirectInput::KeyNone(const void* const) throw()
-	{
-		return 0U;
-	}
-
-	ibool DirectInput::Key::GetToggle(ibool& prev) const
-	{
-		if (GetState())
-		{
-			if (!prev)
-			{
-				prev = true;
-				return true;
-			}
-		}
-		else
-		{
-			prev = false;
-		}
-
-		return false;
-	}
-
-	#ifdef NST_PRAGMA_OPTIMIZE
-	#pragma optimize("", on)
-	#endif
-
-	ibool DirectInput::Key::MapVirtKey(const uint code,const uint vk1,const uint vk2,const uint vk3)
-	{
-		Unmap();
-
-		if (!code || code > 0xFF)
 			return false;
-
-		vKey = code << 8;
-
-		if (vk1 == VK_MENU || vk2 == VK_MENU || vk3 == VK_MENU)
-			vKey |= FALT;
-
-		if (vk1 == VK_SHIFT || vk2 == VK_SHIFT || vk3 == VK_SHIFT)
-			vKey |= FSHIFT;
-
-		if (vk1 == VK_CONTROL || vk2 == VK_CONTROL || vk3 == VK_CONTROL)
-			vKey |= FCONTROL;
-
-		// forbidden keys:
-		//
-		// ALT+F4
-		// ALT+F6
-		// ALT+TAB
-		// ALT+SPACE
-		// ALT+ESC
-		// CTRL+F4
-		// CTRL+ESC
-		// CTRL+ALT+DELETE
-		// LWIN
-
-		switch (code)
-		{
-			case VK_F4:
-
-				if (vKey & FCONTROL)
-					return false;
-
-			case VK_F6:
-			case VK_TAB:
-			case VK_SPACE:
-
-				if (vKey & FALT)
-					return false;
-
-				break;
-
-			case VK_ESCAPE:
-
-				if (vKey & (FCONTROL|FALT))
-					return false;
-
-				break;
-
-			case VK_DELETE:
-
-				if ((vKey & (FCONTROL|FALT)) == (FCONTROL|FALT))
-					return false;
-
-				break;
-
-			case VK_LWIN:
-				return false;
 		}
 
-		return true;
-	}
-
-	ibool DirectInput::Key::MapVirtKey(GenericString name)
-	{
-		Unmap();
-
-		if (name.Empty())
-			return false;
-
-		const GenericString vkNames[3] =
+		ibool DirectInput::Joystick::Map(Key& key,tstring const name) const
 		{
-			System::Keyboard::GetName( VK_CONTROL ),
-			System::Keyboard::GetName( VK_MENU ),
-			System::Keyboard::GetName( VK_SHIFT )
-		};
-
-		uint vk[3] = {0,0,0};
-
-		for (uint i=0; i < 3; ++i)
-		{
-			for (uint j=0; j < 3; ++j)
+			if (*name)
 			{
-				if (!vk[j] && name.Length() > vkNames[j].Length() && name(0,vkNames[j].Length()) == vkNames[j] && name[vkNames[j].Length()] == '+')
+				if (name[0] >= '0' && name[0] <= '9')
 				{
-					vk[j] = (j==0 ? VK_CONTROL : j==1 ? VK_MENU : VK_SHIFT);
-					name = name( vkNames[j].Length() + 1 );
-					break;
+					uint index = name[0] - '0';
+
+					if (name[1] >= '0' && name[1] <= '9')
+						index = (index * 10) + (name[1] - '0');
+
+					if (index < Caps::NUM_BUTTONS)
+					{
+						key.data = state.rgbButtons + index;
+						key.code = KeyDown;
+						return true;
+					}
+				}
+				else
+				{
+					const GenericString axis( name );
+
+					for (uint i=TABLE_KEYS; i; )
+					{
+						if (caps.axes & table[--i].axis)
+						{
+							if (axis == table[i].name)
+							{
+								key.data = reinterpret_cast<const BYTE*>(&state) + table[i].offset;
+								key.code = table[i].code;
+								return true;
+							}
+						}
+					}
 				}
 			}
+
+			return false;
 		}
 
-		return MapVirtKey( System::Keyboard::GetKey( name ), vk[0], vk[1], vk[2] );
-	}
-
-	ibool DirectInput::Key::IsVirtKey() const
-	{
-		return (code == KeyNone && data);
-	}
-
-	ibool DirectInput::Key::GetVirtKey(ACCEL& accel) const
-	{
-		if (code == KeyNone && data)
+		ibool DirectInput::Joystick::Assigned(const Key& key) const
 		{
-			accel.fVirt = (BYTE) ((vKey & 0xFF) | FVIRTKEY);
-			accel.key = (WORD) (vKey >> 8);
+			return
+			(
+				key.data >= reinterpret_cast<const BYTE*>(&state) &&
+				key.data <  reinterpret_cast<const BYTE*>(&state) + sizeof(state)
+			);
+		}
+
+		tstring DirectInput::Joystick::GetName(const Key& key) const
+		{
+			NST_VERIFY( Assigned(key) );
+
+			if (key.code == KeyDown)
+			{
+				static tchar button[] = _T("xx");
+
+				const uint index = key.data - state.rgbButtons;
+				button[0] = index < 10 ? '0' + index : '0' + index / 10;
+				button[1] = index < 10 ? '\0'        : '0' + index % 10;
+
+				return button;
+			}
+
+			for (const Lookup* it = table; ; ++it)
+			{
+				if (key.data == reinterpret_cast<const BYTE*>(&state) + it->offset && key.code == it->code)
+					return it->name;
+			}
+		}
+
+		void DirectInput::Joystick::OnError(const HRESULT hResult)
+		{
+			NST_ASSERT( FAILED(hResult) );
+
+			Reset();
+
+			switch (hResult)
+			{
+				case DIERR_INPUTLOST:
+				case DIERR_NOTACQUIRED:
+
+					Acquire();
+					break;
+
+				case DIERR_UNPLUGGED:
+
+					Enable( false, false );
+					Clear();
+					Io::Screen() << _T("Error! Joystick unplugged!");
+					break;
+
+				default:
+
+					Clear();
+					break;
+			}
+		}
+
+		DirectInput::Notifier::Notifier()
+		: timeInput(0), signal(0), signaled(0)
+		{
+			for (uint i=0; i < 3; ++i)
+				events[i] = NULL;
+		}
+
+		DirectInput::Notifier::~Notifier()
+		{
+			Stop();
+		}
+
+		HANDLE DirectInput::Notifier::Start(const bool signaling)
+		{
+			if (events[EVENT_INPUT] == NULL)
+			{
+				struct Thread
+				{
+					static void NST_CDECL Run(void* data)
+					{
+						static_cast<Notifier*>(data)->Run();
+					}
+				};
+
+				try
+				{
+					for (uint i=0; i < 3; ++i)
+					{
+						if (NULL == (events[i] = ::CreateEvent( NULL, false, false, NULL )))
+							throw Application::Exception(_T("::CreateEvent() failed!"));
+					}
+
+					if (!::_beginthread( Thread::Run, 0, this ))
+						throw Application::Exception(_T("::_beginthread() failed!"));
+				}
+				catch (...)
+				{
+					if (HANDLE const handle = events[EVENT_INPUT])
+					{
+						events[EVENT_INPUT] = NULL;
+						CloseHandle( handle );
+					}
+
+					throw;
+				}
+
+				::WaitForSingleObject( events[EVENT_ENTER], INFINITE );
+			}
+
+			timeInput = 0;
+			signal = signaling;
+			signaled = signaling;
+
+			return events[EVENT_INPUT];
+		}
+
+		void DirectInput::Notifier::Stop()
+		{
+			for (uint i=0; i < 3; ++i)
+			{
+				if (events[i])
+				{
+					if (i == EVENT_INPUT)
+					{
+						::ResetEvent( events[EVENT_ENTER] );
+						::SetEvent( events[EVENT_STOP] );
+						::WaitForSingleObject( events[EVENT_ENTER], INFINITE );
+					}
+
+					::CloseHandle( events[i] );
+					events[i] = NULL;
+				}
+			}
+
+			timeInput = 0;
+			signaled = 0;
+		}
+
+		#ifdef NST_PRAGMA_OPTIMIZE
+		#pragma optimize("t", on)
+		#endif
+
+		void DirectInput::Notifier::Run()
+		{
+			NST_ASSERT( events[EVENT_INPUT] && events[EVENT_STOP] && events[EVENT_ENTER] );
+
+			::SetThreadPriority( ::GetCurrentThread(), THREAD_PRIORITY_HIGHEST );
+			::SetEvent( events[EVENT_ENTER] );
+
+			while (::WaitForMultipleObjects( 2, events, false, INFINITE ) == WAIT_OBJECT_0)
+			{
+				timeInput = ::timeGetTime();
+				signaled = signal;
+			}
+
+			::SetEvent( events[EVENT_ENTER] );
+		}
+
+		uint DirectInput::KeyDown(const void* const data)
+		{
+			return 0U - (uint(*static_cast<const BYTE*>(data)) >> 7);
+		}
+
+		uint DirectInput::KeyPosDir(const void* const data)
+		{
+		#ifdef NST_SIGN_SHIFT
+			return (uint) (-*static_cast<const long*>(data) >> (sizeof(long) * CHAR_BIT - 1));
+		#else
+			return (*static_cast<const long*>(data) > 0) ? ~0U : 0U;
+		#endif
+		}
+
+		uint DirectInput::KeyNegDir(const void* const data)
+		{
+		#ifdef NST_SIGN_SHIFT
+			return (uint) (*static_cast<const long*>(data) >> (sizeof(long) * CHAR_BIT - 1));
+		#else
+			return (*static_cast<const long*>(data) < 0) ? ~0U : 0U;
+		#endif
+		}
+
+		uint DirectInput::KeyPovUp(const void* const data)
+		{
+			const DWORD pov = *static_cast<const DWORD*>(data);
+
+			return
+			(
+				(pov & Joystick::POV_CENTER) != Joystick::POV_CENTER &&
+				(pov >= Joystick::POV_UPLEFT || pov <= Joystick::POV_UPRIGHT)
+			)   ? ~0U : 0U;
+		}
+
+		uint DirectInput::KeyPovRight(const void* const data)
+		{
+			const DWORD pov = *static_cast<const DWORD*>(data);
+
+			return
+			(
+				(pov & Joystick::POV_CENTER) != Joystick::POV_CENTER &&
+				(pov >= Joystick::POV_UPRIGHT && pov <= Joystick::POV_DOWNRIGHT)
+			)   ? ~0U : 0U;
+		}
+
+		uint DirectInput::KeyPovDown(const void* const data)
+		{
+			const DWORD pov = *static_cast<const DWORD*>(data);
+
+			return
+			(
+				(pov & Joystick::POV_CENTER) != Joystick::POV_CENTER &&
+				(pov >= Joystick::POV_DOWNRIGHT && pov <= Joystick::POV_DOWNLEFT)
+			)   ? ~0U : 0U;
+		}
+
+		uint DirectInput::KeyPovLeft(const void* const data)
+		{
+			const DWORD pov = *static_cast<const DWORD*>(data);
+
+			return
+			(
+				(pov & Joystick::POV_CENTER) != Joystick::POV_CENTER &&
+				(pov >= Joystick::POV_DOWNLEFT && pov <= Joystick::POV_UPLEFT)
+			)   ? ~0U : 0U;
+		}
+
+		uint DirectInput::KeyNone(const void* const)
+		{
+			return 0U;
+		}
+
+		ibool DirectInput::Key::GetToggle(ibool& prev) const
+		{
+			if (GetState())
+			{
+				if (!prev)
+				{
+					prev = true;
+					return true;
+				}
+			}
+			else
+			{
+				prev = false;
+			}
+
+			return false;
+		}
+
+		#ifdef NST_PRAGMA_OPTIMIZE
+		#pragma optimize("", on)
+		#endif
+
+		ibool DirectInput::Key::MapVirtualKey(const uint code,const uint vk1,const uint vk2,const uint vk3)
+		{
+			Unmap();
+
+			if (!code || code > 0xFF)
+				return false;
+
+			vKey = code << 8;
+
+			if (vk1 == VK_MENU || vk2 == VK_MENU || vk3 == VK_MENU)
+				vKey |= FALT;
+
+			if (vk1 == VK_SHIFT || vk2 == VK_SHIFT || vk3 == VK_SHIFT)
+				vKey |= FSHIFT;
+
+			if (vk1 == VK_CONTROL || vk2 == VK_CONTROL || vk3 == VK_CONTROL)
+				vKey |= FCONTROL;
+
+			// forbidden keys:
+			//
+			// ALT+F4
+			// ALT+F6
+			// ALT+TAB
+			// ALT+SPACE
+			// ALT+ESC
+			// CTRL+F4
+			// CTRL+ESC
+			// CTRL+ALT+DELETE
+			// LWIN
+
+			switch (code)
+			{
+				case VK_F4:
+
+					if (vKey & FCONTROL)
+						return false;
+
+				case VK_F6:
+				case VK_TAB:
+				case VK_SPACE:
+
+					if (vKey & FALT)
+						return false;
+
+					break;
+
+				case VK_ESCAPE:
+
+					if (vKey & (FCONTROL|FALT))
+						return false;
+
+					break;
+
+				case VK_DELETE:
+
+					if ((vKey & (FCONTROL|FALT)) == (FCONTROL|FALT))
+						return false;
+
+					break;
+
+				case VK_LWIN:
+					return false;
+			}
+
 			return true;
 		}
 
-		accel.fVirt = 0;
-		accel.key = 0;
-		return false;
+		ibool DirectInput::Key::MapVirtualKey(GenericString name)
+		{
+			Unmap();
+
+			if (name.Empty())
+				return false;
+
+			const GenericString vkNames[3] =
+			{
+				System::Keyboard::GetName( VK_CONTROL ),
+				System::Keyboard::GetName( VK_MENU ),
+				System::Keyboard::GetName( VK_SHIFT )
+			};
+
+			uint vk[3] = {0,0,0};
+
+			for (uint i=0; i < 3; ++i)
+			{
+				for (uint j=0; j < 3; ++j)
+				{
+					if (!vk[j] && name.Length() > vkNames[j].Length() && name(0,vkNames[j].Length()) == vkNames[j] && name[vkNames[j].Length()] == '+')
+					{
+						vk[j] = (j==0 ? VK_CONTROL : j==1 ? VK_MENU : VK_SHIFT);
+						name = name( vkNames[j].Length() + 1 );
+						break;
+					}
+				}
+			}
+
+			return MapVirtualKey( System::Keyboard::GetKey( name ), vk[0], vk[1], vk[2] );
+		}
+
+		ibool DirectInput::Key::IsVirtualKey() const
+		{
+			return (code == KeyNone && data);
+		}
+
+		ibool DirectInput::Key::GetVirtualKey(ACCEL& accel) const
+		{
+			if (code == KeyNone && data)
+			{
+				accel.fVirt = (vKey & 0xFF) | FVIRTKEY;
+				accel.key = vKey >> 8;
+				return true;
+			}
+
+			accel.fVirt = 0;
+			accel.key = 0;
+			return false;
+		}
 	}
 }

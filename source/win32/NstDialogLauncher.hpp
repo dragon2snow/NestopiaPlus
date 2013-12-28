@@ -32,7 +32,6 @@
 #include "NstWindowMenu.hpp"
 #include "NstWindowStatusBar.hpp"
 #include "NstWindowDialog.hpp"
-#include "NstWindowParam.hpp"
 #include "NstDialogFind.hpp"
 #include "../core/api/NstApiCartridge.hpp"
 #include <CommCtrl.h>
@@ -47,6 +46,11 @@ namespace Nestopia
 	namespace Io
 	{
 		class File;
+	}
+
+	namespace Managers
+	{
+		class Paths;
 	}
 
 	namespace Window
@@ -79,6 +83,7 @@ namespace Nestopia
 			ibool OnDropFiles  (Param&);
 			ibool OnSize       (Param&);
 			ibool OnCmdEnter   (Param&);
+			ibool OnClose      (Param&);
 			ibool OnDestroy    (Param&);
 
 			void OnCmdFileRun                   (uint=0);
@@ -127,7 +132,7 @@ namespace Nestopia
 				void  Sort(uint=0);
 				ibool CanRefresh() const;
 				void  Refresh();
-				void  Insert(const Window::Param&);
+				void  Insert(const Param&);
 				void  SetColors(uint,uint,Updater=DONT_REPAINT) const;
 				void  OnGetDisplayInfo(LPARAM);
 
@@ -184,7 +189,6 @@ namespace Nestopia
 					ibool OnCmdAdd     (Param&);
 					ibool OnCmdRemove  (Param&);
 					ibool OnCmdClear   (Param&);
-					ibool OnCmdCancel  (Param&);
 					ibool OnCmdOk      (Param&);
 
 					void OnKeyDown     (const NMHDR&);
@@ -320,6 +324,13 @@ namespace Nestopia
 							SYSTEM_NTSC_PAL
 						};
 
+						enum Condition
+						{
+							CONDITION_UNKNOWN,
+							CONDITION_BAD,
+							CONDITION_OK
+						};
+
 						tstring GetName(const Strings&,const Nes::Cartridge::Database*) const;
 						uint GetSystem() const;
 						uint GetMirroring(const Nes::Cartridge::Database*) const;
@@ -347,7 +358,7 @@ namespace Nestopia
 							FLAGS_NTSC_PAL = 0x40|0x80
 						};
 
-					#pragma pack(push,1)
+						#pragma pack(push,1)
 
 						struct Bits
 						{
@@ -359,7 +370,7 @@ namespace Nestopia
 							u8 ntsc      : 1;
 						};
 
-					#pragma pack(pop)
+						#pragma pack(pop)
 
 						NST_COMPILE_ASSERT( sizeof(Bits) == 1 );
 
@@ -460,6 +471,11 @@ namespace Nestopia
 						{
 							return dBaseEntry && db ? db->GetMapper( dBaseEntry ) : mapper;
 						}
+
+						Condition GetCondition(const Nes::Cartridge::Database* db) const
+						{
+							return dBaseEntry && db ? db->IsBad( dBaseEntry ) ? CONDITION_BAD : CONDITION_OK : CONDITION_UNKNOWN;
+						}
 					};
 
 					typedef Collection::Vector<Entry> Entries;
@@ -476,7 +492,7 @@ namespace Nestopia
 						GARBAGE_THRESHOLD = 127
 					};
 
-               #pragma pack(push,1)
+					#pragma pack(push,1)
 
 					struct Header
 					{
@@ -496,7 +512,7 @@ namespace Nestopia
 						u32 flags;
 					};
 
-               #pragma pack(pop)
+					#pragma pack(pop)
 
 					NST_COMPILE_ASSERT( sizeof(Header) == 24 );
 
@@ -552,11 +568,12 @@ namespace Nestopia
 						TYPE_BATTERY,
 						TYPE_TRAINER,
 						TYPE_MIRRORING,
+						TYPE_CONDITION,
 						TYPE_NAME,
 						TYPE_MAKER,
 						TYPE_FOLDER,
 						NUM_TYPES,
-						NUM_DEFAULT_SELECTED_TYPES = 9,
+						NUM_DEFAULT_SELECTED_TYPES = 10,
 						NUM_DEFAULT_AVAILABLE_TYPES = NUM_TYPES - NUM_DEFAULT_SELECTED_TYPES
 					};
 
@@ -578,7 +595,6 @@ namespace Nestopia
 					ibool OnCmdRemove    (Param&);
 					ibool OnCmdDefault   (Param&);
 					ibool OnCmdOk        (Param&);
-					ibool OnCmdCancel    (Param&);
 
 					typedef Collection::Vector<uchar> Types;
 
@@ -704,7 +720,7 @@ namespace Nestopia
 				ibool ToggleDatabase()
 				{
 					useImageDatabase = (useImageDatabase ? NULL : &imageDatabase);
-					ctrl.Repaint();
+					ctrl.Redraw();
 					return useImageDatabase != NULL;
 				}
 
@@ -811,14 +827,15 @@ namespace Nestopia
 					const Rect rect;
 				};
 
-				void Paint(const Type&) const;
+				void UpdateColor(const Type&) const;
+				void UpdateColors() const;
 				void ChangeColor(COLORREF&);
 
-				ibool OnPaint               (Param&);
+				ibool OnInitDialog          (Param&);
+				ibool OnEraseBkgnd          (Param&);
 				ibool OnCmdChangeBackground (Param&);
 				ibool OnCmdChangeForeground (Param&);
 				ibool OnCmdDefault          (Param&);
-				ibool OnCmdOk               (Param&);
 
 				Type background;
 				Type foreground;

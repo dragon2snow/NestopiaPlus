@@ -36,9 +36,9 @@ namespace Nes
 			#pragma optimize("s", on)
 			#endif
 
-			uint Ffe::GetIrqBase(dword pRomCrc)
+			uint Ffe::GetIrqBase(dword prgCrc)
 			{
-				switch (pRomCrc)
+				switch (prgCrc)
 				{
 					case 0x57BAF095UL: // Doki! Doki! Yuuenchi
 					case 0xE64138ECUL: // Dragon Ball Z 2 - Gekishin Freeza!!
@@ -57,7 +57,7 @@ namespace Nes
 			Ffe::Ffe(Context& c,const Type t)
 			:
 			Mapper (c,t == F4_XXX ? CRAM_32K : 0),
-			irq    (t == F3_XXX ? NULL : new Clock::M2<Irq>(c.cpu,GetIrqBase(c.pRomCrc))),
+			irq    (t == F3_XXX ? NULL : new Clock::M2<Irq>(c.cpu,GetIrqBase(c.prgCrc))),
 			type   (t)
 			{
 			}
@@ -251,7 +251,7 @@ namespace Nes
 			{
 				ppu.Update();
 
-				if (mode || chr.Source(0).IsWritable())
+				if (mode || chr.Source(0).Writable())
 				{
 					prg.SwapBank<SIZE_16K,0x0000U>( data >> 2 );
 					data &= 0x3;

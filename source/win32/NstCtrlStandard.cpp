@@ -25,111 +25,116 @@
 #include "NstWindowCustom.hpp"
 #include "NstWindowParam.hpp"
 #include "NstCtrlStandard.hpp"
+#include "NstString.hpp"
 
 namespace Nestopia
 {
-	ibool Window::Control::Generic::IsFixedFont() const
+	namespace Window
 	{
-		ibool fixed = false;
-
-		if (HFONT const hFontNew = reinterpret_cast<HFONT>(control.Send( WM_GETFONT )))
+		namespace Control
 		{
-			if (HDC const hdc = ::GetDC( control ))
+			ibool Generic::FixedFont() const
 			{
-				if (HFONT const hFontOld = reinterpret_cast<HFONT>(::SelectObject( hdc, hFontNew )))
+				ibool fixed = false;
+
+				if (HFONT const hFontNew = reinterpret_cast<HFONT>(control.Send( WM_GETFONT )))
 				{
-					TEXTMETRIC tm;
-
-					if (::GetTextMetrics( hdc, &tm ) && !(tm.tmPitchAndFamily & TMPF_FIXED_PITCH))
-						fixed = true;
-
-					::SelectObject( hdc, hFontOld );
-				}
-
-				::ReleaseDC( control, hdc );
-			}
-		}
-
-		return fixed;
-	}
-
-	Window::Point Window::Control::Generic::GetMaxTextSize() const
-	{
-		Point size;
-
-		if (HFONT const hFontNew = reinterpret_cast<HFONT>(control.Send( WM_GETFONT )))
-		{
-			if (HDC const hdc = ::GetDC( control ))
-			{
-				if (HFONT const hFontOld = reinterpret_cast<HFONT>(::SelectObject( hdc, hFontNew )))
-				{
-					TEXTMETRIC tm;
-
-					if (::GetTextMetrics( hdc, &tm ))
+					if (HDC const hdc = ::GetDC( control ))
 					{
-						const uint width = control.GetWindowRect().Width();
-
-						HeapString text;
-						control.Text() >> text;
-
-						for (tstring s=text.Ptr(), n=s; *s; s=n, ++n)
+						if (HFONT const hFontOld = reinterpret_cast<HFONT>(::SelectObject( hdc, hFontNew )))
 						{
-							while (*n && *n != '\n')
-								++n;
+							TEXTMETRIC tm;
 
-							SIZE tsize;
+							if (::GetTextMetrics( hdc, &tm ) && !(tm.tmPitchAndFamily & TMPF_FIXED_PITCH))
+								fixed = true;
 
-							if (::GetTextExtentExPoint( hdc, s, n-s, width, NULL, NULL, &tsize ))
-								size.x = NST_MAX(size.x,tsize.cx);
-
-							size.y += tm.tmHeight;
+							::SelectObject( hdc, hFontOld );
 						}
 
-						if (size.x)
-							size.x += 4*4;
-
-						if (size.y)
-							size.y += 4*2;
+						::ReleaseDC( control, hdc );
 					}
-
-					::SelectObject( hdc, hFontOld );
 				}
 
-				::ReleaseDC( control, hdc );
+				return fixed;
 			}
-		}
 
-		return size;
-	}
+			Point Generic::GetMaxTextSize() const
+			{
+				Point size;
 
-	using Window::Control::NotificationHandler;
+				if (HFONT const hFontNew = reinterpret_cast<HFONT>(control.Send( WM_GETFONT )))
+				{
+					if (HDC const hdc = ::GetDC( control ))
+					{
+						if (HFONT const hFontOld = reinterpret_cast<HFONT>(::SelectObject( hdc, hFontNew )))
+						{
+							TEXTMETRIC tm;
 
-	NotificationHandler::NotificationHandler(const uint id,Window::MsgHandler& m)
-	: control(id), msgHandler(m)
-	{
-		Initialize();
-	}
+							if (::GetTextMetrics( hdc, &tm ))
+							{
+								const uint width = control.Coordinates().Width();
 
-	NotificationHandler::~NotificationHandler()
-	{
-		msgHandler.Hooks().Remove( this );
-	}
+								HeapString text;
+								control.Text() >> text;
 
-	void NotificationHandler::Initialize()
-	{
-		msgHandler.Hooks().Add( WM_NOTIFY, this, &NotificationHandler::OnNotify );
-	}
+								for (tstring s=text.Ptr(), n=s; *s; s=n, ++n)
+								{
+									while (*n && *n != '\n')
+										++n;
 
-	void NotificationHandler::OnNotify(Window::Param& param)
-	{
-		NST_ASSERT( param.lParam );
+									SIZE tsize;
 
-		const NMHDR& nmhdr = *reinterpret_cast<const NMHDR*>(param.lParam);
+									if (::GetTextExtentExPoint( hdc, s, n-s, width, NULL, NULL, &tsize ))
+										size.x = NST_MAX(size.x,tsize.cx);
 
-		if (control == nmhdr.idFrom)
-		{
-			if (const Items::Entry* const entry = items.Find( nmhdr.code ))
-				entry->value( nmhdr );
+									size.y += tm.tmHeight;
+								}
+
+								if (size.x)
+									size.x += 4*4;
+
+								if (size.y)
+									size.y += 4*2;
+							}
+
+							::SelectObject( hdc, hFontOld );
+						}
+
+						::ReleaseDC( control, hdc );
+					}
+				}
+
+				return size;
+			}
+
+			NotificationHandler::NotificationHandler(const uint id,MsgHandler& m)
+			: control(id), msgHandler(m)
+			{
+				Initialize();
+			}
+
+			NotificationHandler::~NotificationHandler()
+			{
+				msgHandler.Hooks().Remove( this );
+			}
+
+			void NotificationHandler::Initialize()
+			{
+				msgHandler.Hooks().Add( WM_NOTIFY, this, &NotificationHandler::OnNotify );
+			}
+
+			void NotificationHandler::OnNotify(Param& param)
+			{
+				NST_ASSERT( param.lParam );
+
+				const NMHDR& nmhdr = *reinterpret_cast<const NMHDR*>(param.lParam);
+
+				if (control == nmhdr.idFrom)
+				{
+					if (const Items::Entry* const entry = items.Find( nmhdr.code ))
+						entry->value( nmhdr );
+				}
+			}
 		}
 	}
 }

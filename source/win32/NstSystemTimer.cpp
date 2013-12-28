@@ -26,7 +26,6 @@
 #pragma comment(lib,"winmm")
 #endif
 
-#include "NstApplicationException.hpp"
 #include "NstSystemTimer.hpp"
 #include <Windows.h>
 
@@ -43,127 +42,133 @@
 
 namespace Nestopia
 {
-	using System::Timer;
-
-	const Timer::Settings Timer::settings;
-
-	Timer::Settings::Settings()
-	: period(0)
+	namespace System
 	{
-		if (!::QueryPerformanceFrequency( reinterpret_cast<LARGE_INTEGER*>(&pfFrequency) ))
-			pfFrequency = 0;
+		const Timer::Settings Timer::settings;
 
-		if (::timeBeginPeriod( 1 ) != TIMERR_NOCANDO)
+		Timer::Settings::Settings()
+		: period(0)
 		{
-			period = 1;
-		}
-		else
-		{
-			TIMECAPS caps;
+			if (!::QueryPerformanceFrequency( reinterpret_cast<LARGE_INTEGER*>(&pfFrequency) ))
+				pfFrequency = 0;
 
-			if
-			(
-				::timeGetDevCaps( &caps, sizeof(caps) ) == TIMERR_NOERROR &&
-				caps.wPeriodMin &&
-				::timeBeginPeriod( caps.wPeriodMin ) != TIMERR_NOCANDO
-			)
-				period = caps.wPeriodMin;
-		}
-	}
-
-	Timer::Settings::~Settings()
-	{
-		if (period)
-			::timeEndPeriod( period );
-	}
-
-	Timer::Timer(const Type desired)
-	{
-		Reset( desired );
-	}
-
-	ibool Timer::Reset(const Type desired)
-	{
-		threshold = THRESHOLD;
-		giveup = 0;
-
-		if
-		(
-			desired == PERFORMANCE &&
-			HasPerformanceCounter() &&
-			::QueryPerformanceCounter( reinterpret_cast<LARGE_INTEGER*>(&start) )
-		)
-		{
-			type = PERFORMANCE;
-		}
-		else
-		{
-			type = MULTIMEDIA;
-			start = ::timeGetTime();
-		}
-
-		return type == desired;
-	}
-
-	#ifdef NST_PRAGMA_OPTIMIZE
-	#pragma optimize("t", on)
-	#endif
-
-	Timer::Value Timer::Elapsed() const
-	{
-		if (type == PERFORMANCE)
-		{
-			Value time;
-
-			if (::QueryPerformanceCounter( reinterpret_cast<LARGE_INTEGER*>(&time) ))
-				return time - start;
-			else
-				return 0;
-		}
-		else
-		{
-			return ::timeGetTime() - DWORD(start);
-		}
-	}
-
-	void Timer::Wait(Value current,const Value target)
-	{
-		uint milliSecs;
-
-		{
-			const Value duration( target - current );
-
-			if (type == PERFORMANCE)
-				milliSecs = (uint) (duration * 1000U / settings.pfFrequency);
-			else
-				milliSecs = (uint) (duration);
-		}
-
-		if (milliSecs > settings.period + threshold)
-		{
-			::Sleep( milliSecs - threshold );
-			current = Elapsed();
-
-			if (current > target)
+			if (::timeBeginPeriod( 1 ) != TIMERR_NOCANDO)
 			{
-				threshold += giveup;
-				giveup ^= 1;
+				period = 1;
+			}
+			else
+			{
+				TIMECAPS caps;
+
+				if
+				(
+					::timeGetDevCaps( &caps, sizeof(caps) ) == TIMERR_NOERROR &&
+					caps.wPeriodMin &&
+					::timeBeginPeriod( caps.wPeriodMin ) != TIMERR_NOCANDO
+				)
+					period = caps.wPeriodMin;
 			}
 		}
 
-		if (type == PERFORMANCE)
+		Timer::Settings::~Settings()
 		{
-			while (current < target && ::QueryPerformanceCounter( reinterpret_cast<LARGE_INTEGER*>(&current) ))
-				current -= start;
+			if (period)
+				::timeEndPeriod( period );
 		}
-		else
-		{
-			while (current < target && (current = ::timeGetTime()) != 0)
-				current -= start;
-		}
-	}
 
-	#ifdef NST_PRAGMA_OPTIMIZE
-	#pragma optimize("", on)
-	#endif
+		Timer::Timer(const Type desired)
+		{
+			Reset( desired );
+		}
+
+		ibool Timer::Reset(const Type desired)
+		{
+			threshold = THRESHOLD;
+			giveup = 0;
+
+			if
+			(
+				desired == PERFORMANCE &&
+				settings.pfFrequency &&
+				::QueryPerformanceCounter( reinterpret_cast<LARGE_INTEGER*>(&start) )
+			)
+			{
+				frequency = settings.pfFrequency;
+				checkPoint = settings.pfFrequency * CHECKPOINT;
+				type = PERFORMANCE;
+			}
+			else
+			{
+				start = ::timeGetTime();
+				frequency = 1000;
+				checkPoint = 1000 * CHECKPOINT;
+				type = MULTIMEDIA;
+			}
+
+			return type == desired;
+		}
+
+		#ifdef NST_PRAGMA_OPTIMIZE
+		#pragma optimize("t", on)
+		#endif
+
+		Timer::Value Timer::Elapsed() const
+		{
+			if (type == PERFORMANCE)
+			{
+				Value current;
+
+				if (::QueryPerformanceCounter( reinterpret_cast<LARGE_INTEGER*>(&current) ))
+					return current - start;
+				else
+					return 0;
+			}
+			else
+			{
+				return ::timeGetTime() - uint(start);
+			}
+		}
+
+		Timer::Value Timer::Wait(Value current,const Value target)
+		{
+			NST_ASSERT( target >= current );
+
+			const uint milliSecs = (target - current) * 1000 / frequency;
+
+			if (milliSecs > settings.period + threshold)
+			{
+				::Sleep( milliSecs - threshold );
+				current = Elapsed();
+
+				if (current > target)
+				{
+					threshold += giveup;
+					giveup ^= 1;
+				}
+			}
+
+			if (threshold > THRESHOLD && checkPoint < target)
+			{
+				--threshold;
+				checkPoint = target + frequency * CHECKPOINT;
+			}
+
+			if (type == PERFORMANCE)
+			{
+				while (current < target && ::QueryPerformanceCounter( reinterpret_cast<LARGE_INTEGER*>(&current) ))
+					current -= start;
+			}
+			else
+			{
+				while (uint(current) < uint(target))
+					current = ::timeGetTime() - uint(start);
+			}
+
+			return current;
+		}
+
+		#ifdef NST_PRAGMA_OPTIMIZE
+		#pragma optimize("", on)
+		#endif
+	}
 }

@@ -27,74 +27,66 @@
 
 namespace Nestopia
 {
-	using Window::Logfile;
-
-	struct Logfile::Handlers
+	namespace Window
 	{
-		static const MsgHandler::Entry<Logfile> messages[];
-		static const MsgHandler::Entry<Logfile> commands[];
-	};
-
-	const Window::MsgHandler::Entry<Logfile> Logfile::Handlers::messages[] =
-	{
-		{ WM_INITDIALOG,     &Logfile::OnInitDialog     },
-		{ WM_CTLCOLORSTATIC, &Logfile::OnCtlColorStatic }
-	};
-
-	const Window::MsgHandler::Entry<Logfile> Logfile::Handlers::commands[] =
-	{
-		{ IDC_LOGFILE_CLEAR, &Logfile::OnCmdClear },
-		{ IDC_LOGFILE_OK,    &Logfile::OnCmdOk    }
-	};
-
-	Logfile::Logfile()
-	: dialog(IDD_LOGFILE,this,Handlers::messages,Handlers::commands) {}
-
-	ibool Logfile::Open(tstring const string)
-	{
-		clear = false;
-
-		if (*string)
+		struct Logfile::Handlers
 		{
-			text = string;
-			dialog.Open();
+			static const MsgHandler::Entry<Logfile> messages[];
+			static const MsgHandler::Entry<Logfile> commands[];
+		};
+
+		const MsgHandler::Entry<Logfile> Logfile::Handlers::messages[] =
+		{
+			{ WM_INITDIALOG,     &Logfile::OnInitDialog     },
+			{ WM_CTLCOLORSTATIC, &Logfile::OnCtlColorStatic }
+		};
+
+		const MsgHandler::Entry<Logfile> Logfile::Handlers::commands[] =
+		{
+			{ IDC_LOGFILE_CLEAR, &Logfile::OnCmdClear }
+		};
+
+		Logfile::Logfile()
+		: dialog(IDD_LOGFILE,this,Handlers::messages,Handlers::commands) {}
+
+		ibool Logfile::Open(tstring const string)
+		{
+			clear = false;
+
+			if (*string)
+			{
+				text = string;
+				dialog.Open();
+			}
+
+			return clear;
 		}
 
-		return clear;
-	}
-
-	ibool Logfile::OnInitDialog(Window::Param&)
-	{
-		dialog.Edit( IDC_LOGFILE_EDIT ) << text;
-		return true;
-	}
-
-	ibool Logfile::OnCtlColorStatic(Window::Param& param)
-	{
-		NST_COMPILE_ASSERT( sizeof(ibool) == sizeof(BOOL) );
-
-		if (reinterpret_cast<HWND>(param.lParam) == ::GetDlgItem( param.hWnd, IDC_LOGFILE_EDIT ))
-			return reinterpret_cast<ibool>(::GetSysColorBrush( COLOR_WINDOW ));
-		else
-			return false;
-	}
-
-	ibool Logfile::OnCmdClear(Window::Param& param)
-	{
-		if (param.Button().IsClicked())
+		ibool Logfile::OnInitDialog(Param&)
 		{
-			dialog.Edit( IDC_LOGFILE_EDIT ).Clear();
-			clear = true;
+			dialog.Edit( IDC_LOGFILE_EDIT ) << text;
+			return true;
 		}
 
-		return true;
-	}
+		ibool Logfile::OnCtlColorStatic(Param& param)
+		{
+			NST_COMPILE_ASSERT( sizeof(ibool) == sizeof(BOOL) );
 
-	ibool Logfile::OnCmdOk(Window::Param& param)
-	{
-		if (param.Button().IsClicked())
-			dialog.Close();
+			if (reinterpret_cast<HWND>(param.lParam) == ::GetDlgItem( param.hWnd, IDC_LOGFILE_EDIT ))
+				return reinterpret_cast<ibool>(::GetSysColorBrush( COLOR_WINDOW ));
+			else
+				return false;
+		}
 
-		return true;
+		ibool Logfile::OnCmdClear(Param& param)
+		{
+			if (param.Button().Clicked())
+			{
+				dialog.Edit( IDC_LOGFILE_EDIT ).Clear();
+				clear = true;
+			}
+
+			return true;
+		}
 	}
 }

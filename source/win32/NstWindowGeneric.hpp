@@ -28,7 +28,6 @@
 #pragma once
 
 #include "NstWindowRect.hpp"
-#include "NstString.hpp"
 
 namespace Nestopia
 {
@@ -42,73 +41,8 @@ namespace Nestopia
 
 		public:
 
-			ibool IsChild(HWND) const;
-			void  Magnify(const Point&) const;
-			void  Shrink(const Point&) const;
-			void  Set(const Point&,const Point&,HWND,DWORD) const;
-			void  Set(const Rect&,HWND,DWORD) const;
-			void  Set(const Rect&,DWORD=0) const;
-			void  SetNormalWindowRect(const Rect&) const;
-			void  SetIcon(uint,uint=ICON_SMALL) const;
-			void  Resize(const Point&,DWORD=0) const;
-			void  Move(const Point&,DWORD=0) const;
-			void  Reorder(HWND,DWORD=0) const;
-			Rect  GetNormalWindowRect() const;
-			ibool IsCursorInsideClientArea() const;
-			void  Maximize() const;
-			void  Minimize() const;
-			void  Restore() const;
-			void  ValidateRect() const;
-			void  InvalidateRect() const;
-			void  Post(uint) const;
-			void  PostCommand(uint) const;
-			void  Close() const;
-			void  Invalidate(ibool=true) const;
-			void  Redraw() const;
-			ibool Activate(ibool=true) const;
-			void  SetStyle(long) const;
-			void  SetStyle(long,long) const;
-			void  ModifyStyle(long,ibool) const;
-			void  Destroy();
-
-			LONG_PTR Send(uint) const;
-			LONG_PTR SendCommand(uint) const;
-
-			static void Register
-			(
-				tstring,
-				uint,
-				WNDPROC,
-				HCURSOR,
-				HBRUSH,
-				HICON
-			);
-
-			static void Unregister(tstring);
-
-			static Generic Create
-			(
-				DWORD,
-				tstring,
-				tstring,
-				DWORD,
-				uint,
-				uint,
-				uint,
-				uint,
-				HWND,
-				HMENU,
-				void* = NULL
-			);
-
 			Generic(HWND h=NULL)
 			: hWnd(h) {}
-
-			explicit Generic(tstring className)
-			: hWnd(::FindWindow( className, NULL ))
-			{
-				NST_ASSERT( className && *className );
-			}
 
 			Generic& operator = (HWND h)
 			{
@@ -121,175 +55,181 @@ namespace Nestopia
 				return hWnd;
 			}
 
-			ibool Enable(ibool state=true) const
+		private:
+
+			class SizeProxy
 			{
-				return ::EnableWindow( hWnd, state );
+				HWND const hWnd;
+
+				void Set(const Point&) const;
+
+			public:
+
+				SizeProxy(HWND h)
+				: hWnd(h) {}
+
+				void operator  = (const Point&) const;
+				void operator += (const Point&) const;
+				void operator -= (const Point&) const;
+
+				Point Coordinates() const;
+
+				operator Point () const
+				{
+					return Coordinates();
+				}
+			};
+
+			class PositionProxy
+			{
+				HWND const hWnd;
+
+				void Set(Point) const;
+
+			public:
+
+				PositionProxy(HWND h)
+				: hWnd(h) {}
+
+				void operator  = (const Point&) const;
+				void operator += (const Point&) const;
+				void operator -= (const Point&) const;
+
+				Point Coordinates() const;
+
+				operator Point () const
+				{
+					return Coordinates();
+				}
+			};
+
+			class StyleProxy
+			{
+				HWND const hWnd;
+				const ibool ex;
+				const long flags;
+
+			public:
+
+				StyleProxy(HWND h,ibool e,long f)
+				: hWnd(h), ex(e), flags(f) {}
+
+				void operator = (bool) const;
+				operator long () const;
+			};
+
+		public:
+
+			Rect::Window Coordinates() const
+			{
+				return hWnd;
 			}
 
-			ibool Disable() const
+			Point::Client ClientCoordinates() const
 			{
-				return Enable( false );
+				return hWnd;
 			}
 
-			ibool IsEnabled() const
+			Point::Picture PictureCoordinates() const
 			{
-				return ::IsWindowEnabled( hWnd );
+				return hWnd;
 			}
 
-			ibool IsDisabled() const
+			Point::NonClient NonClientCoordinates() const
 			{
-				return !IsEnabled();
+				return hWnd;
 			}
 
-			ibool Maximized() const
+			SizeProxy Size() const
 			{
-				return ::IsZoomed( hWnd );
+				return hWnd;
 			}
 
-			ibool Minimized() const
+			PositionProxy Position() const
 			{
-				return ::IsIconic( hWnd );
+				return hWnd;
 			}
 
-			ibool Restored() const
+			StyleProxy Style(long flags) const
 			{
-				return !Maximized() && !Minimized();
+				return StyleProxy( hWnd, false, flags );
 			}
 
-			ibool IsForeground() const
+			StyleProxy ExStyle(long flags) const
 			{
-				return hWnd && hWnd == ::GetForegroundWindow();
+				return StyleProxy( hWnd, true, flags );
 			}
 
-			ibool HasMenu() const
+			void Maximize() const;
+			void Minimize() const;
+			void Restore() const;
+
+			ibool Enabled() const;
+			ibool Active() const;
+			ibool Focused() const;
+			ibool Maximized() const;
+			ibool Minimized() const;
+			ibool Restored() const;
+
+			Rect GetPlacement() const;
+			void SetPlacement(const Rect&) const;
+
+			ibool SameThread() const;
+
+			ibool Enable(ibool=true) const;
+			void  Show(ibool=true) const;
+			ibool Activate() const;
+			void  Redraw(ibool=true) const;
+			void  Close() const;
+			ibool Destroy();
+
+			void MakeTopMost(ibool=true) const;
+			void MakeWindowed(long,long) const;
+			void MakeFullscreen() const;
+
+			Generic Parent() const;
+
+			LONG_PTR Send(uint) const;
+			void     Post(uint) const;
+
+			void SendCommand(uint) const;
+			void PostCommand(uint) const;
+
+			template<typename T,typename U>
+			LONG_PTR Send(uint msg,T t,U u) const
 			{
-				return ::GetMenu( hWnd ) != NULL;
+				NST_COMPILE_ASSERT( sizeof(t) <= sizeof(WPARAM) && sizeof(u) <= sizeof(LPARAM) );
+				return ::SendMessage( hWnd, msg, (WPARAM) t, (LPARAM) u );
 			}
 
-			Generic GetParent() const
+			template<typename T,typename U>
+			void Post(uint msg,T t,U u) const
 			{
-				return Generic( ::GetParent( hWnd ) );
+				NST_COMPILE_ASSERT( sizeof(T) <= sizeof(WPARAM) && sizeof(U) <= sizeof(LPARAM) );
+				::PostMessage( hWnd, msg, (WPARAM) t, (LPARAM) u );
 			}
 
-			void Show(int cmdShow) const
-			{
-				::ShowWindow( hWnd, cmdShow );
-			}
-
-			Rect GetWindowRect() const
-			{
-				return Rect::Window( hWnd );
-			}
-
-			Rect GetClientRect() const
-			{
-				return Rect::Client( hWnd );
-			}
-
-			Rect GetScreenRect() const
-			{
-				return Rect::Screen( hWnd );
-			}
-
-			Rect GetRectangle() const
-			{
-				return GetWindowRect();
-			}
-
-			Point GetPosition() const
-			{
-				return GetWindowRect().Position();
-			}
-
-			Point GetSize() const
-			{
-				return GetWindowRect().Size();
-			}
-
-			LONG_PTR GetStyle() const
-			{
-				return ::GetWindowLongPtr( hWnd, GWL_STYLE );
-			}
-
-			template<typename Param1,typename Param2>
-			LONG_PTR Send(uint uMsg,Param1 param1,Param2 param2) const
-			{
-				return ::SendMessage
-				(
-					hWnd,
-					uMsg,
-					(WPARAM) param1,
-					(LPARAM) param2
-				);
-			}
-
-			template<typename Param1,typename Param2>
-			void Post(uint uMsg,Param1 param1,Param2 param2) const
-			{
-				::PostMessage
-				(
-					hWnd,
-					uMsg,
-					(WPARAM) param1,
-					(LPARAM) param2
-				);
-			}
-
-			ibool IsParent(HWND hChild) const
-			{
-				return ::IsChild( hWnd, hChild );
-			}
+			static Generic Find(tstring);
 
 			class Stream
 			{
 				HWND const hWnd;
 
-				int GetTextLength(const char*) const
-				{
-					return ::GetWindowTextLengthA( hWnd );
-				}
+				int GetTextLength(const char*) const;
+				int GetTextLength(const wchar_t*) const;
 
-				int GetTextLength(const wchar_t*) const
-				{
-					return ::GetWindowTextLengthW( hWnd );
-				}
-
-				int GetText(char* string,uint maxLength) const
-				{
-					return ::GetWindowTextA( hWnd, string, maxLength + 1 );
-				}
-
-				int GetText(wchar_t* string,uint maxLength) const
-				{
-					return ::GetWindowTextW( hWnd, string, maxLength + 1 );
-				}
+				int GetText(char*,uint) const;
+				int GetText(wchar_t*,uint) const;
 
 			public:
 
-				Stream(Generic w)
-				: hWnd(w.hWnd) {}
+				Stream(Generic g)
+				: hWnd(g.hWnd) {}
 
-				void operator << (const char* string) const
-				{
-					NST_ASSERT( string );
-					::SetWindowTextA( hWnd, string );
-				}
-
-				void operator << (const wchar_t* string) const
-				{
-					NST_ASSERT( string );
-					::SetWindowTextW( hWnd, string );
-				}
-
-				void operator << (int value) const
-				{
-					operator << (ValueString(value).Ptr());
-				}
-
-				void operator << (uint value) const
-				{
-					operator << (ValueString(value).Ptr());
-				}
+				void operator << (const char*) const;
+				void operator << (const wchar_t*) const;
+				void operator << (int) const;
+				void operator << (uint) const;
 
 				template<typename T>
 				uint operator >> (T&) const;
@@ -304,10 +244,7 @@ namespace Nestopia
 				uint operator >> ( int&    i ) const { long  t; const uint r = operator >> (t); i = ( int    ) t; return r; }
 				uint operator >> ( uint&   i ) const { ulong t; const uint r = operator >> (t); i = ( uint   ) t; return r; }
 
-				void Clear() const
-				{
-					::SetWindowText( hWnd, _T("") );
-				}
+				void Clear() const;
 			};
 
 			Stream Text() const

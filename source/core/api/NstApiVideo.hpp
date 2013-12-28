@@ -97,7 +97,8 @@ namespace Nes
 		{
 		public:
 
-			Video(Emulator& e)
+			template<typename T>
+			Video(T& e)
 			: Base(e) {}
 
 			typedef Core::Video::Output Output;
@@ -143,33 +144,33 @@ namespace Nes
 				MAX_HUE                         =  +45
 			};
 
-			void EnableUnlimSprites(bool);
-			bool AreUnlimSpritesEnabled() const;
+			void EnableUnlimSprites(bool) throw();
+			bool AreUnlimSpritesEnabled() const throw();
 
-			int GetBrightness() const;
-			int GetSaturation() const;
-			int GetContrast() const;
-			int GetSharpness() const;
-			int GetColorResolution() const;
-			int GetColorBleed() const;
-			int GetColorArtifacts() const;
-			int GetColorFringing() const;
-			int GetHue() const;
+			int GetBrightness() const throw();
+			int GetSaturation() const throw();
+			int GetContrast() const throw();
+			int GetSharpness() const throw();
+			int GetColorResolution() const throw();
+			int GetColorBleed() const throw();
+			int GetColorArtifacts() const throw();
+			int GetColorFringing() const throw();
+			int GetHue() const throw();
 
-			Result SetBrightness(int);
-			Result SetSaturation(int);
-			Result SetContrast(int);
-			Result SetSharpness(int);
-			Result SetColorResolution(int);
-			Result SetColorBleed(int);
-			Result SetColorArtifacts(int);
-			Result SetColorFringing(int);
-			Result SetHue(int);
+			Result SetBrightness(int) throw();
+			Result SetSaturation(int) throw();
+			Result SetContrast(int) throw();
+			Result SetSharpness(int) throw();
+			Result SetColorResolution(int) throw();
+			Result SetColorBleed(int) throw();
+			Result SetColorArtifacts(int) throw();
+			Result SetColorFringing(int) throw();
+			Result SetHue(int) throw();
 
-			void EnableFieldMerging(bool);
-			bool IsFieldMergingEnabled() const;
+			void EnableFieldMerging(bool) throw();
+			bool IsFieldMergingEnabled() const throw();
 
-			Result Blit(Output&);
+			Result Blit(Output&) throw();
 
 			enum DecoderPreset
 			{
@@ -181,9 +182,9 @@ namespace Nes
 			struct Decoder
 			{
 				Decoder() {}
-				Decoder(DecoderPreset);
+				Decoder(DecoderPreset) throw();
 
-				bool operator == (const Decoder&) const;
+				bool operator == (const Decoder&) const throw();
 
 				enum
 				{
@@ -203,8 +204,8 @@ namespace Nes
 				bool boostYellow;
 			};
 
-			Result SetDecoder(const Decoder&);
-			const Decoder& GetDecoder() const;
+			Result SetDecoder(const Decoder&) throw();
+			const Decoder& GetDecoder() const throw();
 
 			class Palette;
 			friend class Palette;
@@ -224,7 +225,14 @@ namespace Nes
 
 				enum
 				{
-					NUM_ENTRIES = 64
+					NUM_ENTRIES = 64,
+					NUM_ENTRIES_EXT = 512
+				};
+
+				enum CustomType
+				{
+					STD_PALETTE = NUM_ENTRIES,
+					EXT_PALETTE = NUM_ENTRIES_EXT
 				};
 
 				enum Mode
@@ -236,12 +244,14 @@ namespace Nes
 
 				typedef const u8 (*Colors)[3];
 
-				inline Mode   GetMode() const;
-				inline Mode   GetDefaultMode() const;
-				inline Result SetCustom(Colors);
-				inline void   ResetCustom();
-				inline Colors GetColors() const;
-				inline Result SetMode(Mode);
+				inline Mode       GetMode() const throw();
+				inline Mode       GetDefaultMode() const throw();
+				inline Result     SetCustom(Colors,CustomType=STD_PALETTE) throw();
+				inline uint       GetCustom(u8 (*)[3],CustomType) const throw();
+				inline void       ResetCustom() throw();
+				inline CustomType GetCustomType() const throw();
+				inline Colors     GetColors() const throw();
+				inline Result     SetMode(Mode) throw();
 
 				typedef void (NST_CALLBACK *UpdateCallback) (UserData,Colors);
 
@@ -252,8 +262,10 @@ namespace Nes
 
 			Palette::Mode GetPaletteMode() const;
 			Palette::Mode GetDefaultPaletteMode() const;
-			Result SetCustomPalette(Palette::Colors);
+			Result SetCustomPalette(Palette::Colors,Palette::CustomType);
+			uint GetCustomPalette(u8 (*)[3],Palette::CustomType) const;
 			void ResetCustomPalette();
+			Palette::CustomType GetCustomPaletteType() const;
 			Palette::Colors GetPaletteColors() const;
 			Result SetPaletteMode(Palette::Mode);
 
@@ -308,6 +320,7 @@ namespace Nes
 				#ifndef NST_NO_HQ2X
 					,FILTER_HQ2X
 					,FILTER_HQ3X
+					,FILTER_HQ4X
 				#endif
 				};
 
@@ -333,36 +346,46 @@ namespace Nes
 				Filter filter;
 			};
 
-			Result SetRenderState(const RenderState&);
-			Result GetRenderState(RenderState&) const;
+			Result SetRenderState(const RenderState&) throw();
+			Result GetRenderState(RenderState&) const throw();
 		};
 
-		inline Video::Palette::Mode Video::Palette::GetMode() const
+		inline Video::Palette::Mode Video::Palette::GetMode() const throw()
 		{
 			return video.GetPaletteMode();
 		}
 
-		inline Video::Palette::Mode Video::Palette::GetDefaultMode() const
+		inline Video::Palette::Mode Video::Palette::GetDefaultMode() const throw()
 		{
 			return video.GetDefaultPaletteMode();
 		}
 
-		inline Result Video::Palette::SetCustom(Colors colors)
+		inline Result Video::Palette::SetCustom(Colors colors,CustomType type) throw()
 		{
-			return video.SetCustomPalette( colors );
+			return video.SetCustomPalette( colors, type );
 		}
 
-		inline void Video::Palette::ResetCustom()
+		inline uint Video::Palette::GetCustom(u8 (*colors)[3],CustomType type) const throw()
+		{
+			return video.GetCustomPalette( colors, type );
+		}
+
+		inline void Video::Palette::ResetCustom() throw()
 		{
 			video.ResetCustomPalette();
 		}
 
-		inline Video::Palette::Colors Video::Palette::GetColors() const
+		inline Video::Palette::CustomType Video::Palette::GetCustomType() const throw()
+		{
+			return video.GetCustomPaletteType();
+		}
+
+		inline Video::Palette::Colors Video::Palette::GetColors() const throw()
 		{
 			return video.GetPaletteColors();
 		}
 
-		inline Result Video::Palette::SetMode(Mode mode)
+		inline Result Video::Palette::SetMode(Mode mode) throw()
 		{
 			return video.SetPaletteMode( mode );
 		}

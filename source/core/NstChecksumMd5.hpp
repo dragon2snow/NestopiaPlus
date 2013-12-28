@@ -50,9 +50,14 @@ namespace Nes
 						u32 block[4];
 					};
 
-					Key()
+					void Reset()
 					{
 						std::memset( digest, 0, sizeof(digest) );
+					}
+
+					Key()
+					{
+						Reset();
 					}
 
 					bool operator == (const Key& k) const

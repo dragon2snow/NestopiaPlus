@@ -54,19 +54,20 @@ namespace Nes
 
 		public:
 
-			TapeRecorder(Emulator& e)
+			template<typename T>
+			TapeRecorder(T& e)
 			: Base(e) {}
 
-			bool IsStopped() const;
-			bool IsRecording() const;
-			bool IsPlaying() const;
-			bool CanPlay() const;
+			bool IsStopped() const throw();
+			bool IsRecording() const throw();
+			bool IsPlaying() const throw();
+			bool CanPlay() const throw();
 
-			Result Play();
-			Result Record();
-			void Stop();
+			Result Play() throw();
+			Result Record() throw();
+			void Stop() throw();
 
-			bool IsConnected() const
+			bool IsConnected() const throw()
 			{
 				return Query() != NULL;
 			}

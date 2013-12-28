@@ -33,6 +33,7 @@
 #include "NstCpu.hpp"
 #include "NstClock.hpp"
 #include "NstChecksumMd5.hpp"
+#include "api/NstApiFds.hpp"
 
 namespace Nes
 {
@@ -54,18 +55,14 @@ namespace Nes
 			void VSync();
 			uint GetDesiredController(uint) const;
 
+			Result GetDiskData(uint,Api::Fds::DiskData&);
+
 			void LoadState(State::Loader&);
 			void SaveState(State::Saver&) const;
 
 			class Bios
 			{
 				friend class Fds;
-
-			#ifndef NDEBUG
-
-				Bios() {}
-
-			#endif
 
 				struct Instance
 				{
@@ -266,44 +263,26 @@ namespace Nes
 
 		private:
 
+			Result Flush(bool,bool) const;
+
 			NES_DECL_PEEK( Nop  )
 			NES_DECL_POKE( Nop  )
-			NES_DECL_POKE( 4020 )
-			NES_DECL_POKE( 4021 )
-			NES_DECL_POKE( 4022 )
 			NES_DECL_POKE( 4023 )
-			NES_DECL_POKE( 4024 )
 			NES_DECL_POKE( 4025 )
 			NES_DECL_POKE( 4026 )
-			NES_DECL_PEEK( 4030 )
 			NES_DECL_PEEK( 4031 )
-			NES_DECL_PEEK( 4032 )
 			NES_DECL_PEEK( 4033 )
 
 			enum
 			{
-				OPEN_BUS = 0x40
+				SIDE_SIZE            = 65500U,
+				MAX_SIDE_SIZE        = 68000U,
+				CTRL1_NMT_HORIZONTAL = 0x08,
+				OPEN_BUS             = 0x40
 			};
 
 			class Disks
 			{
-			public:
-
-				enum
-				{
-					SIDE_SIZE = 65500U,
-					EJECTED   = 0xFFF,
-					MOUNTING  = 120
-				};
-
-			private:
-
-				enum
-				{
-					HEADER_SIZE = 16,
-					HEADER_RESERVED = HEADER_SIZE - (4 + 1)
-				};
-
 				struct Sides
 				{
 					void Save() const;
@@ -316,6 +295,12 @@ namespace Nes
 					Checksum::Md5::Key checksum;
 				};
 
+				enum
+				{
+					HEADER_SIZE = 16,
+					HEADER_RESERVED = HEADER_SIZE - (4 + 1)
+				};
+
 				static const Sides Create(StdStream);
 
 			public:
@@ -323,58 +308,16 @@ namespace Nes
 				Disks(StdStream);
 				~Disks();
 
-				u8* data;
+				enum
+				{
+					EJECTED  = 0xFFF,
+					MOUNTING = 180
+				};
+
 				uint current;
 				uint mounting;
+				ibool writeProtected;
 				const Sides sides;
-			};
-
-			struct Regs
-			{
-				void Reset();
-
-				enum
-				{
-					CTRL0_DISK_ENABLED = 0x01
-				};
-
-				enum
-				{
-					CTRL1_MOTOR                = 0x01,
-					CTRL1_TRANSFER_RESET       = 0x02,
-					CTRL1_READ_MODE            = 0x04,
-					CTRL1_MIRRORING_HORIZONTAL = 0x08,
-					CTRL1_CRC                  = 0x10,
-					CTRL1_DRIVE_READY          = 0x40,
-					CTRL1_DISK_IRQ_ENABLED     = 0x80
-				};
-
-				enum
-				{
-					STATUS_DISK_EJECTED    = 0x01,
-					STATUS_DRIVE_NOT_READY = 0x02,
-					STATUS_DISK_PROTECTED  = 0x04,
-					STATUS_LATCH           = 0x40
-				};
-
-				uint ctrl0;
-				uint ctrl1;
-				uint data;
-			};
-
-			struct Io
-			{
-				void Reset();
-
-				enum
-				{
-					BATTERY_CHARGED = 0x80
-				};
-
-				uint pos;
-				uint skip;
-				uint port;
-				uint led;
 			};
 
 			struct Ram
@@ -387,60 +330,156 @@ namespace Nes
 				u8 mem[SIZE_32K];
 			};
 
-			struct Irq
+			struct Unit
 			{
+				Unit();
+
 				void Reset(bool);
 				ibool Signal();
 
 				enum
 				{
-					CTRL_REPEAT  = 0x1,
-					CTRL_ENABLED = 0x2
+					STATUS_PENDING_IRQ = 0x1,
+					STATUS_TRANSFERED  = 0x2
 				};
 
-				enum Flag
+				struct Timer
 				{
-					PENDING_CTRL  = 0x1,
-					PENDING_DRIVE = 0x2
+					Timer();
+
+					void Reset();
+					void Advance(uint&);
+
+					inline ibool Clock();
+
+					enum
+					{
+						CTRL_REPEAT  = 0x1,
+						CTRL_ENABLED = 0x2
+					};
+
+					uint ctrl;
+					uint count;
+					uint latch;
 				};
 
 				struct Drive
 				{
+					Drive();
+
+					static Result Analyze(const u8*,Api::Fds::DiskData&);
+
+					void  Reset();
+					void  Mount(u8*,ibool);
+					ibool Advance(uint&);
+
+					inline ibool Clock();
+
+					NST_FORCE_INLINE void Write(uint);
+
 					enum
 					{
-						FAST = 150,
-						SLOW = 255
+						CLK_HEAD = 96400U,
+
+						BYTES_GAP_INIT = CLK_HEAD/8UL * 398 / 1000,
+						BYTES_GAP_NEXT = CLK_HEAD/8UL * 10  / 1000,
+
+						CLK_BYTE = dword(Cpu::MC_NTSC) / (CLK_HEAD/8UL * Cpu::CLK_NTSC_DIV * Cpu::MC_DIV_NTSC),
+
+						CLK_MOTOR  = CLK_HEAD/8UL * 100 * CLK_BYTE / 1000,
+						CLK_REWIND = CLK_HEAD/8UL * 135 * CLK_BYTE / 1000,
+
+						CTRL_ON        = 0x01,
+						CTRL_STOP      = 0x02,
+						CTRL_READ_MODE = 0x04,
+						CTRL_CRC       = 0x10,
+						CTRL_IO_MODE   = 0x40,
+						CTRL_GEN_IRQ   = 0x80,
+
+						STATUS_EJECTED   = 0x01,
+						STATUS_UNREADY   = 0x02,
+						STATUS_PROTECTED = 0x04,
+
+						BLOCK_VOLUME = 1,
+						BLOCK_COUNT,
+						BLOCK_HEADER,
+						BLOCK_DATA,
+
+						LENGTH_HEADER  = 15,
+						LENGTH_VOLUME  = 55,
+						LENGTH_COUNT   = 1,
+						LENGTH_UNKNOWN = 0xFFFFU
 					};
 
-					uint count;
-					uint notify;
+					dword count;
+					dword headPos;
+					uint dataPos;
+					uint gap;
+					u8* io;
+					uint ctrl;
+					uint length;
+					uint in;
+					uint out;
+					uint status;
+					mutable ibool dirty;
 				};
 
-				uint ctrl;
-				uint count;
-				uint latch;
-				uint status;
+				Timer timer;
 				Drive drive;
+				uint status;
 			};
 
-			struct IrqClock : Clock::M2<Irq>
+			class Adapter : Clock::M2<Unit>
 			{
-				IrqClock(Cpu&);
-
+				NES_DECL_PEEK( Nop  )
+				NES_DECL_POKE( Nop  )
 				NES_DECL_POKE( 4020 )
 				NES_DECL_POKE( 4021 )
 				NES_DECL_POKE( 4022 )
+				NES_DECL_POKE( 4024 )
 				NES_DECL_PEEK( 4030 )
-				NES_DECL_POKE( Nop  )
-				NES_DECL_PEEK( Nop  )
+				NES_DECL_PEEK( 4032 )
 
-				void Clear(Irq::Flag);
+			public:
+
+				Adapter(Cpu&);
+
+				void Reset(u8*,ibool=false);
+
+				NST_FORCE_INLINE void Write(uint);
+				NST_FORCE_INLINE uint Read();
+
+				void LoadState(State::Loader&,dword);
+				void SaveState(State::Saver&) const;
+
+				inline void  Mount(u8*,ibool=false);
+				inline void  WriteProtect();
+				inline ibool Dirty() const;
+				inline uint  Activity() const;
+
+				using Clock::M2<Unit>::VSync;
 			};
 
-			Regs regs;
-			Io io;
+			struct Io
+			{
+				Io();
+
+				void Reset();
+
+				enum
+				{
+					CTRL0_DISK_ENABLED = 0x01,
+					BATTERY_CHARGED    = 0x80
+				};
+
+				uint ctrl;
+				uint port;
+				mutable uint led;
+			};
+
 			Disks disks;
-			IrqClock irq;
+			Adapter adapter;
+			Io io;
 			Cpu& cpu;
 			Ppu& ppu;
 			Ram ram;
@@ -481,6 +520,11 @@ namespace Nes
 			dword GetPrgCrc() const
 			{
 				return disks.sides.crc;
+			}
+
+			bool CanChangeDiskSide() const
+			{
+				return disks.current != Disks::EJECTED && (disks.current % 2 || disks.current+1 < disks.sides.count);
 			}
 
 			bool HasHeader() const

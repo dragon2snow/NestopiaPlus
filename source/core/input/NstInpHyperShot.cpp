@@ -35,8 +35,8 @@ namespace Nes
 			#pragma optimize("s", on)
 			#endif
 
-			HyperShot::HyperShot()
-			: Device(Api::Input::HYPERSHOT)
+			HyperShot::HyperShot(const Cpu& c)
+			: Device(c,Api::Input::HYPERSHOT)
 			{
 				HyperShot::Reset();
 			}
@@ -44,7 +44,7 @@ namespace Nes
 			void HyperShot::Reset()
 			{
 				strobe = 0;
-				stream = 0;
+				state = 0;
 			}
 
 			void HyperShot::SaveState(State::Saver& state,const uchar id) const
@@ -62,35 +62,23 @@ namespace Nes
 			#pragma optimize("", on)
 			#endif
 
-			void HyperShot::BeginFrame(Controllers* i)
-			{
-				input = i;
-				state = 0;
-			}
-
 			void HyperShot::Poke(const uint data)
 			{
 				const uint prev = strobe;
 				strobe = data & 0x1;
 
-				if (prev > strobe)
+				if (prev > strobe && input)
 				{
-					if (input)
-					{
-						Controllers::HyperShot& hyperShot = input->hyperShot;
-						input = NULL;
-
-						if (Controllers::HyperShot::callback( hyperShot ))
-							state = hyperShot.buttons & b00011110;
-					}
-
-					stream = state;
+					input->hyperShot.timeStamp = GetTimeStamp();
+					Controllers::HyperShot::callback( input->hyperShot );
+					state = input->hyperShot.buttons & 0x1E;
+					input = NULL;
 				}
 			}
 
 			uint HyperShot::Peek(const uint port)
 			{
-				return port ? stream : 0;
+				return port ? state : 0;
 			}
 		}
 	}

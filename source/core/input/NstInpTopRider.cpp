@@ -35,16 +35,17 @@ namespace Nes
 			#pragma optimize("s", on)
 			#endif
 
-			TopRider::TopRider()
-			: Device(Api::Input::TOPRIDER)
+			TopRider::TopRider(const Cpu& c)
+			: Device(c,Api::Input::TOPRIDER)
 			{
 				TopRider::Reset();
 			}
 
 			void TopRider::Reset()
 			{
+				stream[1] = stream[0] = state[1] = state[0] = 0;
+				strobe = 0;
 				pos = accel = brake = buttons = 0;
-				stream[1] = stream[0] = 0;
 			}
 
 			void TopRider::SaveState(State::Saver& state,const uchar id) const
@@ -58,8 +59,10 @@ namespace Nes
 
 			void TopRider::BeginFrame(Controllers* const input)
 			{
-				if (input && Controllers::TopRider::callback( input->topRider ))
+				if (input)
 				{
+					Controllers::TopRider::callback( input->topRider );
+
 					uint data = input->topRider.buttons;
 
 					if ((data & STEERING) == STEERING)
@@ -96,17 +99,7 @@ namespace Nes
 						(( data & SELECT ) << 3) |
 						(( data & START  ) << 1)
 					);
-				}
-				else
-				{
-					pos = accel = brake = buttons = 0;
-				}
-			}
 
-			void TopRider::Poke(uint data)
-			{
-				if (data & 0x1)
-				{
 					data = 0;
 
 					if (pos > 0)
@@ -122,7 +115,8 @@ namespace Nes
 						else if (pos < -DEADZONE_MIN) data = (0x00 | 0x100);
 					}
 
-					stream[0] = data | ((buttons & 0x01) << (4+7))  | ((buttons & 0x80) << (4-1));
+					state[0] = data | ((buttons & 0x01) << (4+7))  | ((buttons & 0x80) << (4-1));
+
 					data = 0;
 
 					if (accel > 8 || brake < 8)
@@ -133,14 +127,31 @@ namespace Nes
 					}
 					else
 					{
-						stream[0] |= 0x200;
+						state[0] |= 0x200;
 
                              if (brake > DEADZONE_MAX) data = 0x10;
 						else if (brake > DEADZONE_MID) data = 0x20;
 						else if (brake > DEADZONE_MIN) data = 0x40;
 					}
 
-					stream[1] = data | ((buttons & 0x30) << (3+2));
+					state[1] = data | ((buttons & 0x30) << (3+2));
+				}
+				else
+				{
+					pos = accel = brake = buttons = 0;
+					state[1] = state[0] = 0;
+				}
+			}
+
+			void TopRider::Poke(uint data)
+			{
+				const uint prev = strobe;
+				strobe = data & 0x1;
+
+				if (prev > strobe)
+				{
+					stream[0] = state[0];
+					stream[1] = state[1];
 				}
 			}
 

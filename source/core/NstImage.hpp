@@ -93,7 +93,7 @@ namespace Nes
 
 			virtual void Reset(bool) = 0;
 
-			virtual Result Flush(bool) const
+			virtual Result Flush(bool,bool) const
 			{
 				return RESULT_OK;
 			}

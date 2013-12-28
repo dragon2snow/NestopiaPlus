@@ -395,10 +395,6 @@
 				>
 			</File>
 			<File
-				RelativePath="..\source\win32\NstWindowStruct.hpp"
-				>
-			</File>
-			<File
 				RelativePath="..\source\win32\NstWindowUser.cpp"
 				>
 			</File>
@@ -958,38 +954,6 @@
 				RelativePath="..\source\win32\NstManagerVideo.hpp"
 				>
 			</File>
-			<Filter
-				Name="DirectX"
-				>
-				<File
-					RelativePath="..\source\win32\NstDirect2D.cpp"
-					>
-				</File>
-				<File
-					RelativePath="..\source\win32\NstDirect2D.hpp"
-					>
-				</File>
-				<File
-					RelativePath="..\source\win32\NstDirectInput.cpp"
-					>
-				</File>
-				<File
-					RelativePath="..\source\win32\NstDirectInput.hpp"
-					>
-				</File>
-				<File
-					RelativePath="..\source\win32\NstDirectSound.cpp"
-					>
-				</File>
-				<File
-					RelativePath="..\source\win32\NstDirectSound.hpp"
-					>
-				</File>
-				<File
-					RelativePath="..\source\win32\NstDirectX.hpp"
-					>
-				</File>
-			</Filter>
 		</Filter>
 		<Filter
 			Name="IO"
@@ -1076,10 +1040,6 @@
 			</File>
 			<File
 				RelativePath="..\source\win32\NstObjectPod.hpp"
-				>
-			</File>
-			<File
-				RelativePath="..\source\win32\NstObjectPointer.hpp"
 				>
 			</File>
 		</Filter>
@@ -1229,16 +1189,16 @@
 			<Filter
 				Name="Cursors"
 				>
-				<File
-					RelativePath="..\source\win32\resource\gun.cur"
-					>
-				</File>
 			</Filter>
 			<Filter
 				Name="Files"
 				>
 				<File
 					RelativePath="..\source\win32\resource\copying.zip"
+					>
+				</File>
+				<File
+					RelativePath="..\source\win32\resource\gun.cur"
 					>
 				</File>
 				<File
@@ -1324,6 +1284,38 @@
 			</File>
 			<File
 				RelativePath="..\source\win32\NstString.hpp"
+				>
+			</File>
+		</Filter>
+		<Filter
+			Name="DirectX"
+			>
+			<File
+				RelativePath="..\source\win32\NstDirect2D.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\win32\NstDirect2D.hpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\win32\NstDirectInput.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\win32\NstDirectInput.hpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\win32\NstDirectSound.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\win32\NstDirectSound.hpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\win32\NstDirectX.hpp"
 				>
 			</File>
 		</Filter>

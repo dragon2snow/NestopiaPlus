@@ -41,12 +41,11 @@ namespace Nes
 			{
 			public:
 
-				LightGun(Ppu&);
+				LightGun(const Cpu&,Ppu&);
 
 			private:
 
 				void Reset();
-				void BeginFrame(Controllers*);
 				void Initialize(dword);
 				uint Poll();
 				void Poke(uint);

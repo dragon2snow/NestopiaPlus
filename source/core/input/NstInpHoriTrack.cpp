@@ -35,8 +35,8 @@ namespace Nes
 			#pragma optimize("s", on)
 			#endif
 
-			HoriTrack::HoriTrack()
-			: Device(Api::Input::HORITRACK)
+			HoriTrack::HoriTrack(const Cpu& c)
+			: Device(c,Api::Input::HORITRACK)
 			{
 				HoriTrack::Reset();
 			}
@@ -65,12 +65,6 @@ namespace Nes
 			#ifdef NST_PRAGMA_OPTIMIZE
 			#pragma optimize("", on)
 			#endif
-
-			void HoriTrack::BeginFrame(Controllers* i)
-			{
-				input = i;
-				state = 0xFF00U|CONNECTED;
-			}
 
 			uint HoriTrack::Peek(uint port)
 			{

@@ -25,7 +25,6 @@
 #include "NstLog.hpp"
 #include "NstSignedArithmetic.hpp"
 #include "NstState.hpp"
-#include "NstChip.hpp"
 #include "NstHook.hpp"
 #include "NstCpu.hpp"
 #include "api/NstApiUser.hpp"
@@ -36,7 +35,7 @@ namespace Nes
 	{
 		dword Cpu::logged = 0;
 
-		void (Cpu::* const Cpu::opcodes[NUM_OPCODES])() =
+		void (Cpu::*const Cpu::opcodes[NUM_OPCODES])() =
 		{
 			&Cpu::op0x00, &Cpu::op0x01, &Cpu::op0x02, &Cpu::op0x03,
 			&Cpu::op0x04, &Cpu::op0x05, &Cpu::op0x06, &Cpu::op0x07,
@@ -164,10 +163,10 @@ namespace Nes
 
 		Cpu::Cpu()
 		:
-		map        (*new IoMap( this, &Cpu::Peek_Overflow, &Cpu::Poke_Overflow )),
-		frameClock (0),
-		mode       (MODE_NTSC),
-		apu        (this)
+		frameClock ( 0 ),
+		mode       ( MODE_NTSC ),
+		apu        ( this ),
+		map        ( this, &Cpu::Peek_Overflow, &Cpu::Poke_Overflow )
 		{
 			Boot();
 		}
@@ -181,11 +180,6 @@ namespace Nes
 		{
 			for (uint i=0; i < 8; ++i)
 				clock[i] = (i+1) * MC_DIV_NTSC;
-		}
-
-		Cpu::~Cpu()
-		{
-			delete &map;
 		}
 
 		void Cpu::Boot()
@@ -635,7 +629,10 @@ namespace Nes
 		{
 			if (cycle >= nmiClock)
 			{
+				NST_VERIFY( irqClock == NES_CYCLE_MAX );
+
 				nmiClock = NES_CYCLE_MAX;
+				irqClock = NES_CYCLE_MAX;
 				return NMI_VECTOR;
 			}
 			else if (cycle >= irqClock)
@@ -2013,7 +2010,7 @@ namespace Nes
 
 			interrupt.low |= line;
 
-			if (!flags.i && interrupt.irqClock == NES_CYCLE_MAX)
+			if (!(flags.i | Cycle(interrupt.irqClock+1)))
 			{
 				// give some time for the falling edge
 				interrupt.irqClock = cycle + cycles.clock[1];

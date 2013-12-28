@@ -1,4 +1,71 @@
 ----------------------------------------------------------------
+1.33
+----------------------------------------------------------------
+
+Shell:
+
+ Additions:
+
+  - Adjustable screen curvature.
+  - Auto scale option for Hqx and ScaleX video filters.
+  - Auto color settings option for NTSC filter.
+  - 'Condition' column in launcher.
+  - Hex and current entry view in palette editor.
+  - Fast way to supply a missing FDS BIOS file on disk image loading.
+  - 'Default' button in FDS dialog.
+  - More FDS info in log file and image info dialog.
+
+ Changes:
+
+  - Reduced input latency and improved overall frame flow by rearranging 
+    wait loops and making use of Direct3D9 query events (or dummy texture 
+    locks if unsupported) to force CPU/GPU sync on each frame.
+  - Improved emu input granularity with use of DirectInput8 event notification.
+    Fixes "BMX Simulator" in "Quattro Sports".
+  - Reclaim of ::Sleep() time on timed intervals in frame timer.
+  - Warning message now issued whenever the database corrects a nes file with bad header.
+  - Filelist controls now accept double clicks.
+  - Pressing ESC now closes most dialogs.
+  - No menu check marks when disk is ejected.
+  - WMM timer now used by default because of QPF/QPC unsafety on dual-core CPUs.
+  - Refactoring.
+
+ Fixes:
+
+  - Wrong HSB values in palette editor.
+  - Speed throttle bug when vsync was enabled.
+  - Incorrect window size on startup after a previous exit with a PAL sized window.
+  - Auto cursor hiding (didn't always work).
+
+Core:
+
+ Additions:
+
+  - Hq4x video filter.
+  - Support for extended 512*3 byte palettes (for emphasis colors).
+  - FDS screen text for disk reads/writes.
+  - Database entries.
+
+ Changes:
+
+  - Better RGB to YUV conversion for VS System.
+  - Better VS System detection strategy.
+  - VS DIP switch descriptions for "Battle City", "RBI Baseball", "Super Sky Kid" 
+    and "Super Xevious".
+  - Rewinder optimizations. Faster but more memory consuming.
+  - More accurate FDS disk drive emulation. Fixes "Aspic-Majaou no Noroi",
+    "Hao Kun no Fushigina Tabi" and possibly others.
+  - Switched to Blargg's snes_ntsc in order to make it work with custom palettes.
+  - Refactoring and optimizations.
+
+ Fixes:
+
+  - Mapper 117. Fixes "La Bi Xiao Xin". Info from tpu.
+  - Change side bug for single sided FDS disks.
+  - Game Genie decoder bug when using certain compare values.
+  - Database entries.
+
+----------------------------------------------------------------
 1.32
 ----------------------------------------------------------------
 

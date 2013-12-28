@@ -39,11 +39,10 @@ namespace Nes
 			{
 			public:
 
-				OekaKidsTablet();
+				OekaKidsTablet(const Cpu&);
 
 			private:
 
-				void BeginFrame(Controllers*);
 				void Reset();
 				void Poke(uint);
 				uint Peek(uint);

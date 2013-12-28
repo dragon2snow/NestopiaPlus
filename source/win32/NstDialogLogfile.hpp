@@ -48,7 +48,6 @@ namespace Nestopia
 			ibool OnInitDialog     (Param&);
 			ibool OnCtlColorStatic (Param&);
 			ibool OnCmdClear       (Param&);
-			ibool OnCmdOk          (Param&);
 
 			tstring text;
 			ibool clear;

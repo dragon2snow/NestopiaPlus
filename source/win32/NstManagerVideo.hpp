@@ -27,6 +27,7 @@
 
 #pragma once
 
+#include "NstWindowMenu.hpp"
 #include "NstWindowStatusBar.hpp"
 #include "NstObjectHeap.hpp"
 #include "NstDirect2d.hpp"
@@ -42,6 +43,8 @@ namespace Nestopia
 
 	namespace Managers
 	{
+		class Paths;
+
 		class Video
 		{
 			typedef DirectX::Direct2D::Adapter::Modes::const_iterator Mode;
@@ -98,7 +101,7 @@ namespace Nestopia
 			void  ResetScreenRect(uint);
 			uint  CalculateWindowScale() const;
 			uint  CalculateFullscreenScale() const;
-			ibool IsWindowMatched() const;
+			ibool WindowMatched() const;
 
 			NST_NO_INLINE void RepairScreen();
 
@@ -121,7 +124,7 @@ namespace Nestopia
 			void OnAppEvent (Instance::Event,const void*);
 			void OnMenuScreenSizes  (Window::Menu::PopupHandler::Param&);
 			void OnMenuUnlimSprites (Window::Menu::PopupHandler::Param&);
-			void OnScreenText (const GenericString&);
+			void OnScreenText (const GenericString&,uint);
 			uint OnTimerFps();
 			uint OnTimerText();
 
@@ -167,33 +170,30 @@ namespace Nestopia
 
 			Nes::Video::Output* GetOutput()
 			{
-				return direct2d.IsValidScreen() ? &nesOutput : NULL;
+				return direct2d.ValidScreen() ? &nesOutput : NULL;
 			}
 
-			ibool IsWindowed() const
+			ibool Windowed() const
 			{
-				return direct2d.IsWindowed();
+				return direct2d.Windowed();
 			}
 
-			ibool IsFullscreen() const
+			ibool Fullscreen() const
 			{
-				return !IsWindowed();
+				return !Windowed();
 			}
 
-			ibool IsThrottleRequired() const
+			ibool ThrottleRequired(uint speed) const
 			{
-				return direct2d.IsThrottleRequired();
+				return direct2d.ThrottleRequired( speed );
 			}
 
 			const Rect GetScreenRect() const
 			{
 				Rect rect( direct2d.GetScreenRect() );
 
-				if (direct2d.IsWindowed())
-				{
-					::ClientToScreen( window, reinterpret_cast<POINT*>( &rect.left  ) );
-					::ClientToScreen( window, reinterpret_cast<POINT*>( &rect.right ) );
-				}
+				if (direct2d.Windowed())
+					rect.ScreenTransform( window );
 
 				return rect;
 			}
@@ -204,9 +204,9 @@ namespace Nestopia
 					RepairScreen();
 			}
 
-			void PresentScreen()
+			void PresentScreen(ibool noSync=true)
 			{
-				if (!direct2d.PresentScreen())
+				if (!direct2d.PresentScreen( noSync ))
 					RepairScreen();
 			}
 		};

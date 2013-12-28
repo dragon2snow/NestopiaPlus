@@ -35,10 +35,11 @@ namespace Nes
 	{
 		class Mapper5 : public Boards::Mmc5
 		{
+			static uint GetWrkSize(const Context&);
+
 		public:
 
-			Mapper5(Context& c)
-			: Mmc5(c) {}
+			Mapper5(Context&);
 		};
 	}
 }

@@ -22,11 +22,14 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "../NstCore.hpp"
-#include "NstApiEmulator.hpp"
+#include "../NstMachine.hpp"
+#include "../NstFds.hpp"
 #include "NstApiMachine.hpp"
 #include "NstApiFds.hpp"
-#include "../NstFds.hpp"
+
+#ifdef NST_PRAGMA_OPTIMIZE
+#pragma optimize("s", on)
+#endif
 
 namespace Nes
 {
@@ -35,7 +38,30 @@ namespace Nes
 		Fds::DiskChange Fds::diskChangeCallback;
 		Fds::Lamp Fds::diskAccessLampCallback;
 
-		bool Fds::IsAnyDiskInserted() const
+		Fds::DiskData::File::File()
+		:
+		id      (0),
+		index   (0),
+		address (0),
+		type    (TYPE_UNKNOWN)
+		{
+			for (uint i=0; i < 9; ++i)
+				name[i] = '\0';
+		}
+
+		Fds::DiskData::DiskData()
+		{
+		}
+
+		Result Fds::GetDiskData(uint side,DiskData& data)
+		{
+			if (emulator.Is(Machine::DISK))
+				return static_cast<Core::Fds*>(emulator.image)->GetDiskData( side, data );
+
+			return RESULT_ERR_NOT_READY;
+		}
+
+		bool Fds::IsAnyDiskInserted() const throw()
 		{
 			if (emulator.Is(Machine::DISK))
 				return static_cast<const Core::Fds*>(emulator.image)->IsAnyDiskInserted();
@@ -43,7 +69,7 @@ namespace Nes
 			return false;
 		}
 
-		Result Fds::InsertDisk(uint disk,uint side)
+		Result Fds::InsertDisk(uint disk,uint side) throw()
 		{
 			if (emulator.Is(Machine::DISK) && !emulator.tracker.IsLocked())
 			{
@@ -58,7 +84,7 @@ namespace Nes
 			return RESULT_ERR_NOT_READY;
 		}
 
-		Result Fds::ChangeSide()
+		Result Fds::ChangeSide() throw()
 		{
 			const int disk = GetCurrentDisk();
 
@@ -68,7 +94,7 @@ namespace Nes
 			return RESULT_ERR_NOT_READY;
 		}
 
-		Result Fds::EjectDisk()
+		Result Fds::EjectDisk() throw()
 		{
 			if (emulator.Is(Machine::DISK) && !emulator.tracker.IsLocked())
 			{
@@ -83,17 +109,22 @@ namespace Nes
 			return RESULT_ERR_NOT_READY;
 		}
 
-		Result Fds::SetBIOS(std::istream* const stream)
+		Result Fds::SetBIOS(std::istream* const stream) throw()
 		{
 			return Core::Fds::Bios::Set( stream );
 		}
 
-		Result Fds::GetBIOS(std::ostream& stream) const
+		Result Fds::GetBIOS(std::ostream& stream) const throw()
 		{
 			return Core::Fds::Bios::Get( &stream );
 		}
 
-		uint Fds::GetNumDisks() const
+		bool Fds::HasBIOS() const throw()
+		{
+			return Core::Fds::Bios::IsLoaded();
+		}
+
+		uint Fds::GetNumDisks() const throw()
 		{
 			if (emulator.Is(Machine::DISK))
 				return static_cast<const Core::Fds*>(emulator.image)->NumDisks();
@@ -101,7 +132,7 @@ namespace Nes
 			return 0;
 		}
 
-		uint Fds::GetNumSides() const
+		uint Fds::GetNumSides() const throw()
 		{
 			if (emulator.Is(Machine::DISK))
 				return static_cast<const Core::Fds*>(emulator.image)->NumSides();
@@ -109,7 +140,7 @@ namespace Nes
 			return 0;
 		}
 
-		int Fds::GetCurrentDisk() const
+		int Fds::GetCurrentDisk() const throw()
 		{
 			if (emulator.Is(Machine::DISK))
 				return static_cast<const Core::Fds*>(emulator.image)->CurrentDisk();
@@ -117,7 +148,7 @@ namespace Nes
 			return NO_DISK;
 		}
 
-		int Fds::GetCurrentDiskSide() const
+		int Fds::GetCurrentDiskSide() const throw()
 		{
 			if (emulator.Is(Machine::DISK))
 				return static_cast<const Core::Fds*>(emulator.image)->CurrentDiskSide();
@@ -125,9 +156,21 @@ namespace Nes
 			return NO_DISK;
 		}
 
-		bool Fds::HasHeader() const
+		bool Fds::CanChangeDiskSide() const throw()
+		{
+			if (emulator.Is(Machine::DISK))
+				return static_cast<const Core::Fds*>(emulator.image)->CanChangeDiskSide();
+
+			return false;
+		}
+
+		bool Fds::HasHeader() const throw()
 		{
 			return emulator.Is(Machine::DISK) && static_cast<const Core::Fds*>(emulator.image)->HasHeader();
 		}
 	}
 }
+
+#ifdef NST_PRAGMA_OPTIMIZE
+#pragma optimize("", on)
+#endif

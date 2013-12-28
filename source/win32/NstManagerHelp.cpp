@@ -22,8 +22,6 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstObjectHeap.hpp"
-#include "NstIoFile.hpp"
 #include "NstWindowMenu.hpp"
 #include "NstDialogAbout.hpp"
 #include "NstDialogLicense.hpp"
@@ -33,64 +31,65 @@
 
 namespace Nestopia
 {
-	using namespace Managers;
-
-	Help::Help(Emulator& e,Window::Menu& m)
-	: emulator(e), menu(m)
+	namespace Managers
 	{
-		static const Window::Menu::CmdHandler::Entry<Help> commands[] =
+		Help::Help(Emulator& e,Window::Menu& m)
+		: emulator(e), menu(m)
 		{
-			{ IDM_HELP_HELP,    &Help::OnCmdHelp    },
-			{ IDM_HELP_ABOUT,   &Help::OnCmdAbout   },
-			{ IDM_HELP_LICENSE, &Help::OnCmdLicense }
-		};
-
-		m.Commands().Add( this, commands );
-		emulator.Events().Add( this, &Help::OnEmuEvent );
-
-		m[IDM_HELP_HELP].Enable( Application::Instance::GetExePath(_T("readme.html")).FileExists() );
-	}
-
-	Help::~Help()
-	{
-		emulator.Events().Remove( this );
-	}
-
-	void Help::OnCmdHelp(uint)
-	{
-		::ShellExecute
-		(
-			NULL,
-			_T("open"),
-			Application::Instance::GetExePath(_T("readme.html")).Ptr(),
-			NULL,
-			NULL,
-			SW_SHOWNORMAL
-		);
-	}
-
-	void Help::OnCmdAbout(uint)
-	{
-		Window::About().Open();
-	}
-
-	void Help::OnCmdLicense(uint)
-	{
-		Window::License().Open();
-	}
-
-	void Help::OnEmuEvent(Emulator::Event event)
-	{
-		switch (event)
-		{
-			case Emulator::EVENT_NETPLAY_MODE_ON:
-			case Emulator::EVENT_NETPLAY_MODE_OFF:
+			static const Window::Menu::CmdHandler::Entry<Help> commands[] =
 			{
-				const ibool state = (event == Emulator::EVENT_NETPLAY_MODE_OFF);
+				{ IDM_HELP_HELP,    &Help::OnCmdHelp    },
+				{ IDM_HELP_ABOUT,   &Help::OnCmdAbout   },
+				{ IDM_HELP_LICENSE, &Help::OnCmdLicense }
+			};
 
-				menu[IDM_HELP_ABOUT].Enable( state );
-				menu[IDM_HELP_LICENSE].Enable( state );
-				break;
+			m.Commands().Add( this, commands );
+			emulator.Events().Add( this, &Help::OnEmuEvent );
+
+			m[IDM_HELP_HELP].Enable( Application::Instance::GetExePath(_T("readme.html")).FileExists() );
+		}
+
+		Help::~Help()
+		{
+			emulator.Events().Remove( this );
+		}
+
+		void Help::OnCmdHelp(uint)
+		{
+			::ShellExecute
+			(
+				NULL,
+				_T("open"),
+				Application::Instance::GetExePath(_T("readme.html")).Ptr(),
+				NULL,
+				NULL,
+				SW_SHOWNORMAL
+			);
+		}
+
+		void Help::OnCmdAbout(uint)
+		{
+			Window::About().Open();
+		}
+
+		void Help::OnCmdLicense(uint)
+		{
+			Window::License().Open();
+		}
+
+		void Help::OnEmuEvent(Emulator::Event event)
+		{
+			switch (event)
+			{
+				case Emulator::EVENT_NETPLAY_MODE_ON:
+				case Emulator::EVENT_NETPLAY_MODE_OFF:
+				{
+					const ibool state = (event == Emulator::EVENT_NETPLAY_MODE_OFF);
+
+					menu[IDM_HELP_ABOUT].Enable( state );
+					menu[IDM_HELP_LICENSE].Enable( state );
+					break;
+				}
 			}
 		}
 	}

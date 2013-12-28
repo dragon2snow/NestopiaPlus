@@ -36,7 +36,7 @@ namespace Nes
 		Mapper58::Mapper58(Context& c)
 		:
 		Mapper    (c),
-		studyGame ((c.pRomCrc == 0xABB2F974UL) || (c.pRomCrc == 0x6A24FA34UL)) // Study and Game 32-in-1
+		studyGame ((c.prgCrc == 0xABB2F974UL) || (c.prgCrc == 0x6A24FA34UL)) // Study and Game 32-in-1
 		{}
 
 		void Mapper58::SubReset(bool)

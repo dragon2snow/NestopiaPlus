@@ -47,15 +47,16 @@ namespace Nestopia
 
 			explicit Timer(Type=PERFORMANCE);
 
-			ibool Reset(Type);
+			ibool Reset(Type=PERFORMANCE);
 			Value Elapsed() const;
-			void  Wait(Value,Value);
+			Value Wait(Value,Value);
 
 		private:
 
 			enum
 			{
-				THRESHOLD = 1
+				THRESHOLD = 1,
+				CHECKPOINT = 60
 			};
 
 			struct Settings
@@ -68,6 +69,8 @@ namespace Nestopia
 			};
 
 			Value start;
+			Value frequency;
+			Value checkPoint;
 			Type type;
 			uint threshold;
 			uint giveup;
@@ -88,7 +91,7 @@ namespace Nestopia
 
 			Value GetFrequency() const
 			{
-				return type == PERFORMANCE ? settings.pfFrequency : Value(1000);
+				return frequency;
 			}
 		};
 	}

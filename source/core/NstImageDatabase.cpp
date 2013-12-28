@@ -72,22 +72,22 @@ namespace Nes
 				if (!numEntries)
 					throw RESULT_ERR_CORRUPT_FILE;
 
-				entries = new Entry [numEntries];
+				Entry* NST_RESTRICT it = new Entry [numEntries];
+				entries = it;
 
-				for (uint i=0; i < numEntries; ++i)
+				for (Ref const end = it + numEntries; it != end; ++it)
 				{
-					u8 data[14];
+					u8 data[12];
 					stream.Read( data );
 
-					Entry& entry = entries[i];
-
-					entry.crc      = data[0] | (data[1] << 8) | (data[2] << 16) | (data[3] << 24);
-					entry.pRomCrc  = data[4] | (data[5] << 8) | (data[6] << 16) | (data[7] << 24);
-					entry.pRomSize = data[8];
-					entry.cRomSize = data[9];
-					entry.wRamSize = data[10];
-					entry.mapper   = data[11];
-					entry.flags    = data[12] | (data[13] << 8);
+					it->crc     = data[0] | (data[1] << 8) | (data[2] << 16) | (data[3] << 24);
+					it->prgSize = data[4];
+					it->prgSkip = data[5];
+					it->chrSize = data[6];
+					it->chrSkip = data[7];
+					it->wrkSize = data[8];
+					it->mapper  = data[9];
+					it->flags   = data[10] | (data[11] << 8);
 				}
 
 				return RESULT_OK;
@@ -113,16 +113,15 @@ namespace Nes
 		void ImageDatabase::Unload()
 		{
 			numEntries = 0;
-
 			delete [] entries;
 			entries = NULL;
 		}
 
 		ImageDatabase::Handle ImageDatabase::GetHandle(const dword crc) const
 		{
-			if (const Entry* entry = entries)
+			if (Ref entry = entries)
 			{
-				const Entry* const end = entry + numEntries;
+				Ref const end = entry + numEntries;
 				entry = std::lower_bound( entry, end, crc );
 
 				if (entry != end && entry->crc == crc)

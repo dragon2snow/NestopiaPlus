@@ -38,11 +38,7 @@ namespace Nes
 		public:
 
 			Mapper155(Context& c)
-			: Mmc1(c) {}
-
-		private:
-
-			void SubReset(bool);
+			: Mmc1(c,WRAM_8K,REV_1A) {}
 		};
 	}
 }

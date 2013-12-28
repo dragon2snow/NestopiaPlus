@@ -42,13 +42,28 @@
 #endif
 
 #ifdef _MSC_VER
-#define NES_IO_CALL __fastcall
+
+ #define NES_IO_CALL __fastcall
+
+ #if defined(NST_PROFILER) && defined(NST_X86)
+ inline void __stdcall GetCpuTicks(unsigned __int64* ticks)
+ {
+     __asm
+     {
+         cpuid
+         rdtsc
+         mov esi, ticks
+         mov DWORD PTR [esi+0], eax
+         mov DWORD PTR [esi+4], edx
+     }
+ }
+ #endif
 /*
 #elif defined(__GNUC__) && defined(__i386__)
-#define NES_IO_CALL __attribute__((regparm(3)))
+ #define NES_IO_CALL __attribute__((regparm(3)))
 */
 #else
-#define NES_IO_CALL
+ #define NES_IO_CALL
 #endif
 
 #define NST_PI  3.1415926535897932384626433832795
@@ -93,31 +108,32 @@ namespace Nes
 
 	enum Result
 	{
-		RESULT_ERR_INVALID_MAPPER             = -15,
-		RESULT_ERR_MISSING_BIOS               = -14,
-		RESULT_ERR_UNSUPPORTED_SOUND_CHIP     = -13,
-		RESULT_ERR_UNSUPPORTED_GAME           = -12,
-		RESULT_ERR_UNSUPPORTED_MAPPER         = -11,
-		RESULT_ERR_UNSUPPORTED_VSSYSTEM       = -10,
-		RESULT_ERR_UNSUPPORTED_FILE_VERSION   = -9,
-		RESULT_ERR_UNSUPPORTED                = -8,
-		RESULT_ERR_INVALID_CRC                = -7,
-		RESULT_ERR_CORRUPT_FILE               = -6,
-		RESULT_ERR_INVALID_FILE               = -5,
-		RESULT_ERR_INVALID_PARAM              = -4,
-		RESULT_ERR_NOT_READY                  = -3,
-		RESULT_ERR_OUT_OF_MEMORY              = -2,
-		RESULT_ERR_GENERIC                    = -1,
-		RESULT_OK                             =  0,
-		RESULT_NOP                            = +1,
-		RESULT_WARN_UNSUPPORTED               = +2,
-		RESULT_WARN_BAD_DUMP                  = +3,
-		RESULT_WARN_BAD_PROM                  = +4,
-		RESULT_WARN_BAD_CROM                  = +5,
-		RESULT_WARN_BAD_FILE_HEADER           = +6,
-		RESULT_WARN_BATTERY_NOT_SAVED         = +7,
-		RESULT_WARN_BATTERY_NOT_LOADED        = +8,
-		RESULT_WARN_ENCRYPTED_ROM             = +9
+		RESULT_ERR_INVALID_MAPPER           = -15,
+		RESULT_ERR_MISSING_BIOS             = -14,
+		RESULT_ERR_UNSUPPORTED_SOUND_CHIP   = -13,
+		RESULT_ERR_UNSUPPORTED_GAME         = -12,
+		RESULT_ERR_UNSUPPORTED_MAPPER       = -11,
+		RESULT_ERR_UNSUPPORTED_VSSYSTEM     = -10,
+		RESULT_ERR_UNSUPPORTED_FILE_VERSION =  -9,
+		RESULT_ERR_UNSUPPORTED              =  -8,
+		RESULT_ERR_INVALID_CRC              =  -7,
+		RESULT_ERR_CORRUPT_FILE             =  -6,
+		RESULT_ERR_INVALID_FILE             =  -5,
+		RESULT_ERR_INVALID_PARAM            =  -4,
+		RESULT_ERR_NOT_READY                =  -3,
+		RESULT_ERR_OUT_OF_MEMORY            =  -2,
+		RESULT_ERR_GENERIC                  =  -1,
+		RESULT_OK                           =   0,
+		RESULT_NOP                          =  +1,
+		RESULT_WARN_UNSUPPORTED             =  +2,
+		RESULT_WARN_BAD_DUMP                =  +3,
+		RESULT_WARN_BAD_PROM                =  +4,
+		RESULT_WARN_BAD_CROM                =  +5,
+		RESULT_WARN_BAD_FILE_HEADER         =  +6,
+		RESULT_WARN_BATTERY_NOT_SAVED       =  +7,
+		RESULT_WARN_BATTERY_NOT_LOADED      =  +8,
+		RESULT_WARN_ENCRYPTED_ROM           =  +9,
+		RESULT_WARN_INCORRECT_FILE_HEADER   = +10
 	};
 }
 

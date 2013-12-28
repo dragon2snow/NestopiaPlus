@@ -34,18 +34,16 @@
 #endif
 
 #include "../NstCore.hpp"
-#include "../NstCpu.hpp"
-#include "../NstPpu.hpp"
-#include "../NstTracker.hpp"
 
 namespace Nes
 {
 	namespace Core
 	{
+		class Machine;
+
 		namespace Video
 		{
 			class Output;
-			class Renderer;
 		}
 
 		namespace Sound
@@ -55,14 +53,8 @@ namespace Nes
 
 		namespace Input
 		{
-			class Device;
-			class Adapter;
 			class Controllers;
 		}
-
-		class Image;
-		class Cheats;
-		class ImageDatabase;
 	}
 
 	namespace Api
@@ -74,87 +66,22 @@ namespace Nes
 			Emulator();
 			~Emulator();
 
-		private:
-
-			friend class Machine;
-			friend class Video;
-			friend class Sound;
-			friend class Input;
-			friend class Cartridge;
-			friend class Fds;
-			friend class Nsf;
-			friend class Movie;
-			friend class Cheats;
-			friend class DipSwitches;
-			friend class BarcodeReader;
-			friend class TapeRecorder;
-			friend class Rewinder;
-			friend class Core::Tracker;
-
-			enum
-			{
-				OPEN_BUS = 0x40
-			};
-
-			enum ColorMode
-			{
-				COLORMODE_YUV,
-				COLORMODE_RGB,
-				COLORMODE_CUSTOM
-			};
-
-			Result ExecuteFrame
+			Result Execute
 			(
 				Core::Video::Output*,
 				Core::Sound::Output*,
 				Core::Input::Controllers*
-			);
+			)   throw();
 
-			Result Load (Core::StdStream,uint);
-			void   Unload ();
-			Result PowerOn ();
-			void   PowerOff ();
-			Result Reset (bool);
-			void   SetMode (Core::Mode);
-			Result LoadState (Core::StdStream,bool=true);
-			Result SaveState (Core::StdStream,bool);
-			void   InitializeInputDevices () const;
-			Result UpdateColorMode ();
-			Result UpdateColorMode (ColorMode);
-			bool   GoodSaveTime () const;
+		private:
 
-			NES_DECL_POKE( 4016 )
-			NES_DECL_PEEK( 4016 )
-			NES_DECL_POKE( 4017 )
-			NES_DECL_PEEK( 4017 )
-
-			uint state;
-			ulong frame;
-			Core::Input::Adapter* extPort;
-			Core::Input::Device* expPort;
-			Core::Image* image;
-			Core::Tracker tracker;
-			Core::Video::Renderer& renderer;
-			Core::Cpu cpu;
-			Core::Ppu ppu;
-			Core::Cheats* cheats;
-			Core::ImageDatabase* imageDatabase;
-
-			uint Is(uint what) const
-			{
-				return state & what;
-			}
+			Core::Machine& machine;
 
 		public:
 
-			Result Execute
-			(
-				Core::Video::Output* video,
-				Core::Sound::Output* sound,
-				Core::Input::Controllers* input
-			)
+			operator Core::Machine& ()
 			{
-				return tracker.Execute( *this, video, sound, input );
+				return machine;
 			}
 		};
 	}

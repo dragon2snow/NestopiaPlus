@@ -54,7 +54,8 @@ namespace Nes
 
 		public:
 
-			BarcodeReader(Emulator& e)
+			template<typename T>
+			BarcodeReader(T& e)
 			: Base(e) {}
 
 			enum
@@ -63,9 +64,9 @@ namespace Nes
 				MAX_DIGITS = 13
 			};
 
-			bool IsDigitsSupported(uint) const;
-			uint Randomize(char (&)[MAX_DIGITS+1]) const;
-			Result Transfer(const char*,uint);
+			bool IsDigitsSupported(uint) const throw();
+			uint Randomize(char (&)[MAX_DIGITS+1]) const throw();
+			Result Transfer(const char*,uint) throw();
 
 			bool IsConnected() const
 			{

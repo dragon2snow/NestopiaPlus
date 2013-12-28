@@ -29,7 +29,6 @@
 
 #include "NstObjectHeap.hpp"
 #include "NstWindowMenu.hpp"
-#include "NstManagerEmulator.hpp"
 
 namespace Nestopia
 {
@@ -40,11 +39,13 @@ namespace Nestopia
 
 	namespace Managers
 	{
+		class Paths;
+
 		class TapeRecorder
 		{
 		public:
 
-			TapeRecorder(Emulator&,const Configuration&,Window::Menu&,const Managers::Paths&);
+			TapeRecorder(Emulator&,const Configuration&,Window::Menu&,const Paths&);
 			~TapeRecorder();
 
 			void Save(Configuration&) const;

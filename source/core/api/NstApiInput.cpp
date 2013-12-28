@@ -25,9 +25,7 @@
 #include <cstring>
 #include <new>
 #include <algorithm>
-#include "../NstCore.hpp"
-#include "NstApiEmulator.hpp"
-#include "NstApiMachine.hpp"
+#include "../NstMachine.hpp"
 #include "../NstCartridge.hpp"
 #include "../input/NstInpDevice.hpp"
 #include "../input/NstInpAdapter.hpp"
@@ -53,6 +51,7 @@
 #include "../NstMapper.hpp"
 #include "../NstClock.hpp"
 #include "../board/NstBrdBandai.hpp"
+#include "NstApiMachine.hpp"
 
 #ifdef NST_PRAGMA_OPTIMIZE
 #pragma optimize("s", on)
@@ -86,29 +85,30 @@ namespace Nes
 			Controllers::PollCaller1< Controllers::PartyTap          > Controllers::PartyTap::callback;
 			Controllers::PollCaller1< Controllers::KaraokeStudio     > Controllers::KaraokeStudio::callback;
 
-			Controllers::PowerPad::PowerPad()
+			Controllers::PowerPad::PowerPad() throw()
+			: timeStamp(0)
 			{
 				std::fill( sideA, sideA + NUM_SIDE_A_BUTTONS, false );
 				std::fill( sideB, sideB + NUM_SIDE_B_BUTTONS, false );
 			}
 
-			Controllers::FamilyTrainer::FamilyTrainer()
+			Controllers::FamilyTrainer::FamilyTrainer() throw()
 			{
 				std::fill( sideA, sideA + NUM_SIDE_A_BUTTONS, false );
 				std::fill( sideB, sideB + NUM_SIDE_B_BUTTONS, false );
 			}
 
-			Controllers::FamilyKeyboard::FamilyKeyboard()
+			Controllers::FamilyKeyboard::FamilyKeyboard() throw()
 			{
 				std::memset( parts, 0x00, sizeof(parts) );
 			}
 
-			Controllers::SuborKeyboard::SuborKeyboard()
+			Controllers::SuborKeyboard::SuborKeyboard() throw()
 			{
 				std::memset( parts, 0x00, sizeof(parts) );
 			}
 
-			Controllers::Controllers()
+			Controllers::Controllers() throw()
 			{
 			}
 		}
@@ -116,7 +116,7 @@ namespace Nes
 
 	namespace Api
 	{
-		Result Input::ConnectController(const uint port,const Type type)
+		Result Input::ConnectController(const uint port,const Type type) throw()
 		{
 			Core::Input::Device* old = NULL;
 
@@ -136,7 +136,7 @@ namespace Nes
 						{
 							case UNCONNECTED:
 
-								device = new Core::Input::Device;
+								device = new Core::Input::Device( emulator.cpu );
 								break;
 
 							case PAD1:
@@ -144,27 +144,27 @@ namespace Nes
 							case PAD3:
 							case PAD4:
 
-								device = new Core::Input::Pad( uint(type) - PAD1 );
+								device = new Core::Input::Pad(  emulator.cpu, uint(type) - PAD1 );
 								break;
 
 							case ZAPPER:
 
-								device = new Core::Input::LightGun( emulator.ppu );
+								device = new Core::Input::LightGun( emulator.cpu, emulator.ppu );
 								break;
 
 							case PADDLE:
 
-								device = new Core::Input::Paddle( false );
+								device = new Core::Input::Paddle( emulator.cpu, false );
 								break;
 
 							case POWERPAD:
 
-								device = new Core::Input::PowerPad;
+								device = new Core::Input::PowerPad( emulator.cpu );
 								break;
 
 							case MOUSE:
 
-								device = new Core::Input::Mouse;
+								device = new Core::Input::Mouse( emulator.cpu );
 								break;
 
 							default: return RESULT_ERR_INVALID_PARAM;
@@ -202,7 +202,7 @@ namespace Nes
 									}
 									else
 									{
-										old = emulator.extPort->Connect( port, new Core::Input::Device );
+										old = emulator.extPort->Connect( port, new Core::Input::Device( emulator.cpu ) );
 									}
 									break;
 
@@ -211,7 +211,7 @@ namespace Nes
 								case PAD3:
 								case PAD4:
 
-									old = emulator.extPort->Connect( port, new Core::Input::Pad( uint(type) - PAD1 ) );
+									old = emulator.extPort->Connect( port, new Core::Input::Pad( emulator.cpu, uint(type) - PAD1 ) );
 									break;
 
 								default: return RESULT_ERR_INVALID_PARAM;
@@ -232,8 +232,8 @@ namespace Nes
 								{
 									Core::Input::Device* const devices[2] =
 									{
-										new (std::nothrow) Core::Input::Device,
-										new (std::nothrow) Core::Input::Pad( uint(type) - PAD1 )
+										new (std::nothrow) Core::Input::Device( emulator.cpu ),
+										new (std::nothrow) Core::Input::Pad( emulator.cpu, uint(type) - PAD1 )
 									};
 
 									Core::Input::Adapter* adapter;
@@ -279,22 +279,22 @@ namespace Nes
 
 						switch (type)
 						{
-							case UNCONNECTED:       emulator.expPort = new Core::Input::Device;            break;
-							case PADDLE:            emulator.expPort = new Core::Input::Paddle( true );    break;
-							case FAMILYTRAINER:     emulator.expPort = new Core::Input::FamilyTrainer;     break;
-							case FAMILYKEYBOARD:    emulator.expPort = new Core::Input::FamilyKeyboard;    break;
-							case SUBORKEYBOARD:     emulator.expPort = new Core::Input::SuborKeyboard;     break;
-							case DOREMIKKOKEYBOARD: emulator.expPort = new Core::Input::DoremikkoKeyboard; break;
-							case HORITRACK:         emulator.expPort = new Core::Input::HoriTrack;         break;
-							case PACHINKO:          emulator.expPort = new Core::Input::Pachinko;          break;
-							case OEKAKIDSTABLET:    emulator.expPort = new Core::Input::OekaKidsTablet;    break;
-							case HYPERSHOT:         emulator.expPort = new Core::Input::HyperShot;         break;
-							case CRAZYCLIMBER:      emulator.expPort = new Core::Input::CrazyClimber;      break;
-							case MAHJONG:           emulator.expPort = new Core::Input::Mahjong;           break;
-							case EXCITINGBOXING:    emulator.expPort = new Core::Input::ExcitingBoxing;    break;
-							case TOPRIDER:          emulator.expPort = new Core::Input::TopRider;          break;
-							case POKKUNMOGURAA:     emulator.expPort = new Core::Input::PokkunMoguraa;     break;
-							case PARTYTAP:          emulator.expPort = new Core::Input::PartyTap;          break;
+							case UNCONNECTED:       emulator.expPort = new Core::Input::Device( emulator.cpu );            break;
+							case PADDLE:            emulator.expPort = new Core::Input::Paddle( emulator.cpu, true );      break;
+							case FAMILYTRAINER:     emulator.expPort = new Core::Input::FamilyTrainer( emulator.cpu );     break;
+							case FAMILYKEYBOARD:    emulator.expPort = new Core::Input::FamilyKeyboard( emulator.cpu );    break;
+							case SUBORKEYBOARD:     emulator.expPort = new Core::Input::SuborKeyboard( emulator.cpu );     break;
+							case DOREMIKKOKEYBOARD: emulator.expPort = new Core::Input::DoremikkoKeyboard( emulator.cpu ); break;
+							case HORITRACK:         emulator.expPort = new Core::Input::HoriTrack( emulator.cpu );         break;
+							case PACHINKO:          emulator.expPort = new Core::Input::Pachinko( emulator.cpu );          break;
+							case OEKAKIDSTABLET:    emulator.expPort = new Core::Input::OekaKidsTablet( emulator.cpu );    break;
+							case HYPERSHOT:         emulator.expPort = new Core::Input::HyperShot( emulator.cpu );         break;
+							case CRAZYCLIMBER:      emulator.expPort = new Core::Input::CrazyClimber( emulator.cpu );      break;
+							case MAHJONG:           emulator.expPort = new Core::Input::Mahjong( emulator.cpu );           break;
+							case EXCITINGBOXING:    emulator.expPort = new Core::Input::ExcitingBoxing( emulator.cpu );    break;
+							case TOPRIDER:          emulator.expPort = new Core::Input::TopRider( emulator.cpu );          break;
+							case POKKUNMOGURAA:     emulator.expPort = new Core::Input::PokkunMoguraa( emulator.cpu );     break;
+							case PARTYTAP:          emulator.expPort = new Core::Input::PartyTap( emulator.cpu );          break;
 							default: return RESULT_ERR_INVALID_PARAM;
 						}
 						break;
@@ -313,7 +313,7 @@ namespace Nes
 			return RESULT_OK;
 		}
 
-		Result Input::AutoSelectController(uint port)
+		Result Input::AutoSelectController(uint port) throw()
 		{
 			if (port >= NUM_PORTS)
 				return RESULT_ERR_INVALID_PARAM;
@@ -334,7 +334,7 @@ namespace Nes
 			return ConnectController( port, type );
 		}
 
-		Input::Type Input::GetConnectedController(uint port) const
+		Input::Type Input::GetConnectedController(uint port) const throw()
 		{
 			if (port == EXPANSION_PORT)
 				return emulator.expPort->GetType();
@@ -345,7 +345,7 @@ namespace Nes
 			return UNCONNECTED;
 		}
 
-		bool Input::IsAnyControllerConnected(Type type) const
+		bool Input::IsAnyControllerConnected(Type type) const throw()
 		{
 			if (emulator.expPort->GetType() == type)
 				return true;
@@ -359,7 +359,7 @@ namespace Nes
 			return false;
 		}
 
-		bool Input::IsAnyControllerConnected(Type p0,Type p1) const
+		bool Input::IsAnyControllerConnected(Type p0,Type p1) const throw()
 		{
 			return
 			(
@@ -368,7 +368,7 @@ namespace Nes
 			);
 		}
 
-		bool Input::IsAnyControllerConnected(Type p0,Type p1,Type p2) const
+		bool Input::IsAnyControllerConnected(Type p0,Type p1,Type p2) const throw()
 		{
 			return
 			(
@@ -378,7 +378,7 @@ namespace Nes
 			);
 		}
 
-		bool Input::IsAnyControllerConnected(Type p0,Type p1,Type p2,Type p3) const
+		bool Input::IsAnyControllerConnected(Type p0,Type p1,Type p2,Type p3) const throw()
 		{
 			return
 			(

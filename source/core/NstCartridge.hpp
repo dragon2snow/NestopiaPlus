@@ -29,7 +29,7 @@
 #pragma once
 #endif
 
-#include "NstMemory.hpp"
+#include "NstRam.hpp"
 #include "NstImage.hpp"
 #include "api/NstApiCartridge.hpp"
 #include "NstChecksumMd5.hpp"
@@ -70,7 +70,7 @@ namespace Nes
 			ExternalDevice QueryExternalDevice(ExternalDeviceType);
 			PpuType QueryPpu(bool);
 
-			static const void* SearchDatabase(const ImageDatabase&,const void*,ulong,ulong);
+			static const void* SearchDatabase(const ImageDatabase&,const u8*,ulong);
 
 		private:
 
@@ -79,34 +79,34 @@ namespace Nes
 
 			void Destroy();
 			void DetectControllers();
-			void DetectVS();
 			void DetectTurboFile(Context&);
 			bool DetectEncryption() const;
 			void DetectBadChr();
-
-			bool InitInfo(const ImageDatabase*);
 			void ResetWRam();
 
 			void LoadBattery();
 			Result SaveBattery(bool) const;
 
+			Result Flush(bool,bool) const;
+
+			struct Wrk : Ram
+			{
+				Wrk();
+
+				ibool autoSized;
+				mutable Checksum::Md5::Key batteryCheckSum;
+			};
+
 			Mapper* mapper;
 			VsSystem* vs;
 			Peripherals::TurboFile* turboFile;
 			Peripherals::DataRecorder* dataRecorder;
-			LinearMemory pRom;
-			LinearMemory cRom;
-			LinearMemory wRam;
+			Ram prg;
+			Ram chr;
+			Wrk wrk;
 			Info info;
-			ibool wRamAuto;
-			mutable Checksum::Md5::Key batteryCheckSum;
 
 		public:
-
-			Result Flush(bool power) const
-			{
-				return SaveBattery( power );
-			}
 
 			const Info& GetInfo() const
 			{

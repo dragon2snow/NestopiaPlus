@@ -39,7 +39,7 @@ namespace Nes
 			{
 			public:
 
-				Mahjong();
+				Mahjong(const Cpu&);
 
 			private:
 

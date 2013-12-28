@@ -151,6 +151,29 @@ namespace Nes
 			#pragma optimize("s", on)
 			#endif
 
+			inline Renderer::Palette::Custom::Custom()
+			: emphasis(NULL) {}
+
+			inline Renderer::Palette::Custom::~Custom()
+			{
+				delete [] emphasis;
+			}
+
+			bool Renderer::Palette::Custom::EnableEmphasis(bool enable)
+			{
+				if (!enable)
+				{
+					delete [] emphasis;
+					emphasis = NULL;
+				}
+				else if (!emphasis)
+				{
+					emphasis = new (std::nothrow) u8 [7][64][3];
+				}
+
+				return bool(emphasis) == enable;
+			}
+
 			Renderer::Palette::Palette()
 			: type(PALETTE_YUV), custom(NULL)
 			{
@@ -241,23 +264,42 @@ namespace Nes
 					dst[i] = (src[i] >= 1.0 ? 255 : src[i] <= 0.0 ? 0 : src[i] * 255.0 + 0.5);
 			}
 
-			Result Renderer::Palette::LoadCustom(const u8 (*colors)[3])
+			Result Renderer::Palette::LoadCustom(const u8 (*colors)[3],const bool emphasis)
 			{
 				if (!colors)
 					return RESULT_ERR_INVALID_PARAM;
 
-				if (!custom && NULL == (custom = new (std::nothrow) Custom))
+				if ((custom == NULL && NULL == (custom = new (std::nothrow) Custom)) || !custom->EnableEmphasis( emphasis ))
 					return RESULT_ERR_OUT_OF_MEMORY;
 
 				std::memcpy( custom->palette, colors, 64*3 );
 
+				if (emphasis)
+					std::memcpy( custom->emphasis, colors + 64, 7*64*3 );
+
 				return RESULT_OK;
+			}
+
+			uint Renderer::Palette::SaveCustom(u8 (*colors)[3],const bool emphasis) const
+			{
+				if (!colors)
+					return 0;
+
+				std::memcpy( colors, custom ? custom->palette : pc10Palette, 64*3 );
+
+				if (!emphasis || !custom || !custom->emphasis)
+					return 64;
+
+				std::memcpy( colors + 64, custom->emphasis, 7*64*3 );
+
+				return 7*64;
 			}
 
 			bool Renderer::Palette::ResetCustom()
 			{
 				if (custom)
 				{
+					custom->EnableEmphasis( false );
 					std::memcpy( custom->palette, pc10Palette, 64*3 );
 					return true;
 				}
@@ -291,7 +333,7 @@ namespace Nes
 				const double saturation = (s + 100) / 100.0;
 				const double contrast = (c + 100) / 100.0;
 
-				const u8 (*const from)[3] =
+				const u8 (*from)[3] =
 				(
 					type == PALETTE_CUSTOM ? custom->palette :
 					type == PALETTE_VS1    ? vsPalette[0] :
@@ -305,6 +347,9 @@ namespace Nes
 
 				for (uint i=0; i < 8; ++i)
 				{
+					if (i && type == PALETTE_CUSTOM && custom->emphasis)
+						from = custom->emphasis[i-1];
+
 					for (uint j=0; j < 64; ++j)
 					{
 						double rgb[3] =
@@ -333,33 +378,38 @@ namespace Nes
 
 						ToRGB( h, s, v, rgb[0], rgb[1], rgb[2] );
 
-						if (type == PALETTE_CUSTOM)
+						if (i)
 						{
-							static const double emphasis[8][3] =
+							if (type == PALETTE_CUSTOM)
 							{
-								{1.00,1.00,1.00},
-								{1.00,0.80,0.81},
-								{0.78,0.94,0.66},
-								{0.79,0.77,0.63},
-								{0.82,0.83,1.12},
-								{0.81,0.71,0.87},
-								{0.68,0.79,0.79},
-								{0.70,0.70,0.70}
-							};
+								if (!custom->emphasis)
+								{
+									static const double emphasis[7][3] =
+									{
+										{1.00,0.80,0.81},
+										{0.78,0.94,0.66},
+										{0.79,0.77,0.63},
+										{0.82,0.83,1.12},
+										{0.81,0.71,0.87},
+										{0.68,0.79,0.79},
+										{0.70,0.70,0.70}
+									};
 
-							rgb[0] *= emphasis[i][0];
-							rgb[1] *= emphasis[i][1];
-							rgb[2] *= emphasis[i][2];
-						}
-						else switch (i)
-						{
-							case 1: rgb[0] = 0xFF;                   break;
-							case 2: rgb[1] = 0xFF;                   break;
-							case 3: rgb[1] = rgb[0] = 0xFF;          break;
-							case 4: rgb[2] = 0xFF;                   break;
-							case 5: rgb[2] = rgb[0] = 0xFF;          break;
-							case 6: rgb[2] = rgb[1] = 0xFF;          break;
-							case 7: rgb[2] = rgb[1] = rgb[0] = 0xFF; break;
+									rgb[0] *= emphasis[i-1][0];
+									rgb[1] *= emphasis[i-1][1];
+									rgb[2] *= emphasis[i-1][2];
+								}
+							}
+							else switch (i)
+							{
+								case 1: rgb[0] = 0xFF;                   break;
+								case 2: rgb[1] = 0xFF;                   break;
+								case 3: rgb[1] = rgb[0] = 0xFF;          break;
+								case 4: rgb[2] = 0xFF;                   break;
+								case 5: rgb[2] = rgb[0] = 0xFF;          break;
+								case 6: rgb[2] = rgb[1] = 0xFF;          break;
+								case 7: rgb[2] = rgb[1] = rgb[0] = 0xFF; break;
+							}
 						}
 
 						ToPAL( rgb, palette[(i * 64) + j] );
@@ -622,6 +672,7 @@ namespace Nes
 
 					case RenderState::FILTER_HQ2X:
 					case RenderState::FILTER_HQ3X:
+					case RenderState::FILTER_HQ4X:
 
 						if (FilterHqX::Check( renderState ))
 							filter = new (std::nothrow) FilterHqX( renderState );
@@ -636,17 +687,12 @@ namespace Nes
 						const FilterNtscState ntscState
 						(
 							renderState,
-							state.brightness,
-							state.saturation,
-							state.hue,
-							state.contrast,
 							state.sharpness,
 							state.resolution,
 							state.bleed,
 							state.artifacts,
 							state.fringing,
-							state.fieldMerging,
-							palette.GetDecoder()
+							state.fieldMerging
 						);
 
 						if (FilterNtsc<32>::Check( renderState ))
@@ -674,11 +720,7 @@ namespace Nes
 					state.width = renderState.width;
 					state.height = renderState.height;
 					state.mask = renderState.bits.mask;
-
-					if (filter->CanTransform())
-						state.update |= State::UPDATE_FILTER;
-					else
-						state.update &= ~u8(State::UPDATE_FILTER);
+					state.update = State::UPDATE_FILTER | (state.update & ~u8(State::UPDATE_NTSC));
 
 					return RESULT_OK;
 				}
@@ -723,8 +765,8 @@ namespace Nes
 				if (fieldMerging)
 					state.fieldMerging |= State::FIELD_MERGING_USER;
 
-				if (state.filter == RenderState::FILTER_NTSC && bool(state.fieldMerging) != old)
-					state.update |= State::UPDATE_FILTER;
+				if (bool(state.fieldMerging) != old)
+					state.update |= State::UPDATE_NTSC;
 			}
 
 			void Renderer::SetMode(Mode mode)
@@ -735,25 +777,25 @@ namespace Nes
 				if (mode == MODE_PAL)
 					state.fieldMerging |= State::FIELD_MERGING_PAL;
 
-				if (state.filter == RenderState::FILTER_NTSC && bool(state.fieldMerging) != old)
-					state.update |= State::UPDATE_FILTER;
+				if (bool(state.fieldMerging) != old)
+					state.update |= State::UPDATE_NTSC;
 			}
 
-			Result Renderer::SetHue(int h)
+			Result Renderer::SetHue(int hue)
 			{
-				if (h < -45 || h > 45)
+				if (hue < -45 || hue > 45)
 					return RESULT_ERR_INVALID_PARAM;
 
-				if (state.hue == h)
+				if (state.hue == hue)
 					return RESULT_NOP;
 
-				state.hue = h;
+				state.hue = hue;
 				state.update |= State::UPDATE_PALETTE|State::UPDATE_FILTER;
 
 				return RESULT_OK;
 			}
 
-			Result Renderer::SetLevel(i8& type,int value)
+			Result Renderer::SetLevel(i8& type,int value,uint update)
 			{
 				if (value < -100 || value > 100)
 					return RESULT_ERR_INVALID_PARAM;
@@ -762,7 +804,7 @@ namespace Nes
 					return RESULT_NOP;
 
 				type = value;
-				state.update |= State::UPDATE_PALETTE|State::UPDATE_FILTER;
+				state.update |= update;
 
 				return RESULT_OK;
 			}
@@ -771,7 +813,7 @@ namespace Nes
 			{
 				const Result result = palette.SetDecoder( decoder );
 
-				if (result == RESULT_OK && (palette.GetType() == PALETTE_YUV || state.filter == RenderState::FILTER_NTSC))
+				if (result == RESULT_OK && palette.GetType() == PALETTE_YUV)
 					state.update |= State::UPDATE_PALETTE|State::UPDATE_FILTER;
 
 				return result;
@@ -782,27 +824,17 @@ namespace Nes
 				const Result result = palette.SetType( type );
 
 				if (result == RESULT_OK)
-				{
-					state.update |= State::UPDATE_PALETTE;
-
-					if (filter && filter->CanTransform())
-						state.update |= State::UPDATE_FILTER;
-				}
+					state.update |= State::UPDATE_PALETTE|State::UPDATE_FILTER;
 
 				return result;
 			}
 
-			Result Renderer::LoadCustomPalette(const u8 (*colors)[3])
+			Result Renderer::LoadCustomPalette(const u8 (*colors)[3],const bool emphasis)
 			{
-				const Result result = palette.LoadCustom( colors );
+				const Result result = palette.LoadCustom( colors, emphasis );
 
 				if (result == RESULT_OK && palette.GetType() == PALETTE_CUSTOM)
-				{
-					state.update |= State::UPDATE_PALETTE;
-
-					if (filter && filter->CanTransform())
-						state.update |= State::UPDATE_FILTER;
-				}
+					state.update |= State::UPDATE_PALETTE|State::UPDATE_FILTER;
 
 				return result;
 			}
@@ -810,12 +842,7 @@ namespace Nes
 			void Renderer::ResetCustomPalette()
 			{
 				if (palette.ResetCustom() && palette.GetType() == PALETTE_CUSTOM)
-				{
-					state.update |= State::UPDATE_PALETTE;
-
-					if (filter && filter->CanTransform())
-						state.update |= State::UPDATE_FILTER;
-				}
+					state.update |= State::UPDATE_PALETTE|State::UPDATE_FILTER;
 			}
 
 			const Renderer::PaletteEntries& Renderer::GetPalette()
@@ -829,9 +856,27 @@ namespace Nes
 				return palette.Get();
 			}
 
-			void Renderer::UpdateFilter()
+			void Renderer::UpdateFilter(Input& input)
 			{
-				if (filter->CanTransform())
+				if (state.update & State::UPDATE_NTSC)
+				{
+					if (state.filter == RenderState::FILTER_NTSC)
+					{
+						RenderState renderState;
+						GetState( renderState );
+
+						delete filter;
+						filter = NULL;
+
+						SetState( renderState );
+					}
+					else
+					{
+						state.update &= ~u8(State::UPDATE_NTSC);
+					}
+				}
+
+				if (state.update & State::UPDATE_FILTER)
 				{
 					state.update &= ~u8(State::UPDATE_FILTER);
 
@@ -839,28 +884,18 @@ namespace Nes
 					filter->Transform( entries, input.palette );
 					Api::Video::Palette::updateCallback( entries );
 				}
-				else
-				{
-					RenderState renderState;
-					GetState( renderState );
-
-					delete filter;
-					filter = NULL;
-
-					SetState( renderState );
-				}
 			}
 
 			#ifdef NST_PRAGMA_OPTIMIZE
 			#pragma optimize("", on)
 			#endif
 
-			void Renderer::Blit(Output& output,uint burstPhase)
+			void Renderer::Blit(Output& output,Input& input,uint burstPhase)
 			{
 				if (filter)
 				{
-					if (state.update & State::UPDATE_FILTER)
-						UpdateFilter();
+					if (state.update)
+						UpdateFilter( input );
 
 					if (Output::lockCallback( output ))
 					{

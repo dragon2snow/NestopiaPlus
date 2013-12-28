@@ -27,13 +27,14 @@
 
 #pragma once
 
-#include "NstWindowCustom.hpp"
 #include "NstCollectionBitSet.hpp"
 
 namespace Nestopia
 {
 	namespace Window
 	{
+		struct Param;
+		class Custom;
 		class Launcher;
 	}
 

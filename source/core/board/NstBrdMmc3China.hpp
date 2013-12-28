@@ -52,11 +52,11 @@ namespace Nes
 
 				virtual uint GetChrSource(uint) const = 0;
 
-				NES_DECL_PEEK( Ram  )
-				NES_DECL_POKE( Ram  )
-				NES_DECL_POKE( A000 )
+				NES_DECL_PEEK( ExRam )
+				NES_DECL_POKE( ExRam )
+				NES_DECL_POKE( A000  )
 
-				u8 ram[0x1000];
+				u8 exRam[0x1000];
 			};
 		}
 	}

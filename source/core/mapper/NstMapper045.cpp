@@ -37,7 +37,7 @@ namespace Nes
 		Mapper45::Mapper45(Context& c)
 		:
 		Mmc3 (c,WRAM_8K),
-		mask (c.pRomCrc == 0xB8FB3383 ? 0xFF : 0x00) // Famicon Yarou Vol.5 (7-in-1)
+		mask (c.prgCrc == 0xB8FB3383 ? 0xFF : 0x00) // Famicon Yarou Vol.5 (7-in-1)
 		{}
 
 		void Mapper45::SubReset(const bool hard)
@@ -119,7 +119,7 @@ namespace Nes
 
 		void Mapper45::UpdateChr() const
 		{
-			if (chr.Source().IsWritable())
+			if (chr.Source().Writable())
 				return;
 
 			ppu.Update();

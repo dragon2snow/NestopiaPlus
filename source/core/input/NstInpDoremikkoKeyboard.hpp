@@ -39,7 +39,7 @@ namespace Nes
 			{
 			public:
 
-				DoremikkoKeyboard();
+				DoremikkoKeyboard(const Cpu&);
 
 			private:
 

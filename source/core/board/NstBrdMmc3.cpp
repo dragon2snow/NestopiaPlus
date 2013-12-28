@@ -38,8 +38,8 @@ namespace Nes
 			Mmc3::Irq::Irq(Cpu& cpu,Ppu& ppu,IrqDelay delay,bool persistant)
 			: Clock::A12<BaseIrq>(cpu,ppu,SIGNAL_DURATION,delay,persistant) {}
 
-			Mmc3::Mmc3(Context& c,const uint settings,const bool persistantIrq)
-			: Mapper(c,settings), irq(c.cpu,c.ppu,Irq::NO_IRQ_DELAY,persistantIrq)
+			Mmc3::Mmc3(Context& c,const uint settings,const Revision revision)
+			: Mapper(c,settings), irq(c.cpu,c.ppu,Irq::NO_IRQ_DELAY,revision != REV_A)
 			{
 			}
 

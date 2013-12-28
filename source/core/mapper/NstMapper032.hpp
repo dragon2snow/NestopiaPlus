@@ -38,7 +38,7 @@ namespace Nes
 		public:
 
 			Mapper32(Context& c)
-			: Mapper(c), pRomCrc(c.pRomCrc) {}
+			: Mapper(c), prgCrc(c.prgCrc) {}
 
 		private:
 
@@ -51,8 +51,8 @@ namespace Nes
 			NES_DECL_POKE( B006 )
 			NES_DECL_POKE( B007 )
 
-			uint pRomOffset;
-			const dword pRomCrc;
+			uint prgOffset;
+			const dword prgCrc;
 		};
 	}
 }

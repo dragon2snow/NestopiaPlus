@@ -27,13 +27,19 @@
 
 namespace Nestopia
 {
-	void Window::Control::CheckBox::Check(const ibool state) const
+	namespace Window
 	{
-		control.Send( BM_SETCHECK, state ? BST_CHECKED : BST_UNCHECKED, 0 );
-	}
+		namespace Control
+		{
+			void CheckBox::Check(const ibool state) const
+			{
+				control.Send( BM_SETCHECK, state ? BST_CHECKED : BST_UNCHECKED, 0 );
+			}
 
-	ibool Window::Control::CheckBox::IsChecked() const
-	{
-		return control.Send( BM_GETCHECK, 0, 0 ) == BST_CHECKED;
+			ibool CheckBox::Checked() const
+			{
+				return control.Send( BM_GETCHECK, 0, 0 ) == BST_CHECKED;
+			}
+		}
 	}
 }

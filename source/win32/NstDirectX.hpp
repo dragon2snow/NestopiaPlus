@@ -27,8 +27,6 @@
 
 #pragma once
 
-#include <vector>
-#include "NstObjectPointer.hpp"
 #include "NstSystemGuid.hpp"
 
 namespace Nestopia
@@ -46,96 +44,59 @@ namespace Nestopia
 		};
 
 		template<typename T>
-		class ComInterface : public Object::Pointer<T>
+		class ComInterface
 		{
+			T* com;
+
 		public:
 
-			ulong Release();
-
-			T* operator = (T*);
-
-			ComInterface() {}
-
-			explicit ComInterface(T* p)
-			: Object::Pointer<T>(p)
-			{
-				if (p)
-					p->AddRef();
-			}
-
-			ComInterface(const ComInterface& ref)
-			: Object::Pointer<T>(ref.pointer)
-			{
-				if (ref.pointer)
-					ref.pointer->AddRef();
-			}
+			ComInterface()
+			: com(NULL) {}
 
 			~ComInterface()
 			{
-				if (this->pointer)
-					this->pointer->Release();
+				if (com)
+					com->Release();
 			}
 
-			operator T* () const
+			ulong Release()
 			{
-				return this->pointer;
+				if (T* const p = com)
+				{
+					com = NULL;
+					return p->Release();
+				}
+
+				return 0;
 			}
 
-			T* operator = (const ComInterface& ref)
+			bool operator == (const T* p) const
 			{
-				return *this = ref.pointer;
+				return com == p;
 			}
 
-			ibool operator == (const T* p) const
+			bool operator != (const T* p) const
 			{
-				return this->pointer == p;
+				return com != p;
 			}
 
-			ibool operator != (const T* p) const
+			T* operator * () const
 			{
-				return this->pointer != p;
+				return com;
+			}
+
+			T* operator -> () const
+			{
+				NST_ASSERT( com );
+				return com;
 			}
 
 			T** operator & ()
 			{
-				NST_ASSERT( !this->pointer );
-				return &this->pointer;
-			}
-
-			bool operator ! () const
-			{
-				return !this->pointer;
+				NST_VERIFY( !com );
+				return &com;
 			}
 		};
-
-		template<typename T>
-		T* ComInterface<T>::operator = (T* p)
-		{
-			if (this->pointer != p)
-			{
-				if (this->pointer)
-					this->pointer->Release();
-
-				if (p)
-					p->AddRef();
-
-				this->pointer = p;
-			}
-
-			return p;
-		}
-
-		template<typename T>
-		ulong ComInterface<T>::Release()
-		{
-			if (T* const tmp = this->pointer)
-			{
-				this->pointer = NULL;
-				return tmp->Release();
-			}
-
-			return 0;
-		}
 	}
 }
 

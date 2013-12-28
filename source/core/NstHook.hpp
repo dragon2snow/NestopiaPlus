@@ -37,12 +37,10 @@ namespace Nes
 
 		class Hook
 		{
-			class Generic {};
+			class Component {};
+			typedef void (Component::*Function)();
 
-			typedef Generic* Component;
-			typedef void (Generic::*Function)();
-
-			Component component;
+			Component* component;
 			Function function;
 
 		public:
@@ -50,8 +48,8 @@ namespace Nes
 			template<typename T>
 			Hook(T* c,void (T::*t)())
 			:
-			component ( reinterpret_cast<Component>(c) ),
-			function  ( reinterpret_cast<Function>(t)  )
+			component ( reinterpret_cast<Component*>(c) ),
+			function  ( reinterpret_cast<Function>(t) )
 			{
 				NST_COMPILE_ASSERT( sizeof(function) == sizeof(t) );
 			}

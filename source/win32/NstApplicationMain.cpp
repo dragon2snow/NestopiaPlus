@@ -24,155 +24,154 @@
 
 #include "NstWindowUser.hpp"
 #include "NstWindowParam.hpp"
-#include "NstWindowDialog.hpp"
-#include "NstWindowMenu.hpp"
 #include "NstApplicationMain.hpp"
 
 namespace Nestopia
 {
-	using Application::Main;
-
-	Main::Main(const int cmdShow)
-	:
-	menu          ( IDR_MENU ),
-	preferences   ( emulator, instance.GetConfiguration(), menu ),
-	logfile       ( emulator, menu, preferences ),
-	language      ( emulator, menu ),
-	paths         ( emulator, instance.GetConfiguration(), menu ),
-	recentFiles   ( emulator, instance.GetConfiguration(), menu ),
-	recentDirs    ( emulator, instance.GetConfiguration(), menu ),
-	window        ( emulator, instance.GetConfiguration(), menu, paths, preferences, cmdShow ),
-	machine       ( emulator, instance.GetConfiguration(), menu, preferences ),
-	netplay       ( emulator, instance.GetConfiguration(), menu, paths, window.Get() ),
-	launcher      ( emulator, instance.GetConfiguration(), menu, paths, window.Get() ),
-	fds           ( emulator, instance.GetConfiguration(), menu, paths ),
-	tapeRecorder  ( emulator, instance.GetConfiguration(), menu, paths ),
-	dipSwitches   ( emulator, menu ),
-	barcodeReader ( emulator, menu ),
-	nsf           ( emulator, instance.GetConfiguration(), menu ),
-	movie         ( emulator, menu, paths ),
-	cheats        ( emulator, instance.GetConfiguration(), menu, paths ),
-	saveStates    ( emulator, instance.GetConfiguration(), menu, paths, window ),
-	imageInfo     ( emulator, menu ),
-	help          ( emulator, menu ),
-	inesHeader    ( emulator, menu, paths ),
-	files         ( emulator, menu, paths, preferences, movie, tapeRecorder, cheats, saveStates, window )
+	namespace Application
 	{
-		static const Window::MsgHandler::Entry<Main> messages[] =
+		Main::Main(const int cmdShow)
+		:
+		menu          ( IDR_MENU ),
+		preferences   ( emulator, instance.GetConfiguration(), menu ),
+		logfile       ( emulator, menu, preferences ),
+		language      ( emulator, menu ),
+		paths         ( emulator, instance.GetConfiguration(), menu ),
+		window        ( emulator, instance.GetConfiguration(), menu, paths, preferences, cmdShow ),
+		recentFiles   ( emulator, instance.GetConfiguration(), menu ),
+		recentDirs    ( emulator, instance.GetConfiguration(), menu ),
+		machine       ( emulator, instance.GetConfiguration(), menu, preferences ),
+		netplay       ( emulator, instance.GetConfiguration(), menu, paths, window.Get() ),
+		launcher      ( emulator, instance.GetConfiguration(), menu, paths, window.Get() ),
+		fds           ( emulator, instance.GetConfiguration(), menu, paths ),
+		tapeRecorder  ( emulator, instance.GetConfiguration(), menu, paths ),
+		dipSwitches   ( emulator, menu ),
+		barcodeReader ( emulator, menu ),
+		nsf           ( emulator, instance.GetConfiguration(), menu ),
+		movie         ( emulator, menu, paths ),
+		cheats        ( emulator, instance.GetConfiguration(), menu, paths ),
+		saveStates    ( emulator, instance.GetConfiguration(), menu, paths, window ),
+		imageInfo     ( emulator, menu ),
+		help          ( emulator, menu ),
+		inesHeader    ( emulator, menu, paths ),
+		files         ( emulator, menu, paths, preferences, movie, tapeRecorder, cheats, saveStates, window )
 		{
-			{ WM_CLOSE,           &Main::OnWinClose           },
-			{ WM_QUERYENDSESSION, &Main::OnWinQueryEndSession }
-		};
+			static const Window::MsgHandler::Entry<Main> messages[] =
+			{
+				{ WM_CLOSE,           &Main::OnWinClose           },
+				{ WM_QUERYENDSESSION, &Main::OnWinQueryEndSession }
+			};
 
-		window.Get().Messages().Add( this, messages );
-		menu.Commands().Add( IDM_FILE_QUIT, this, &Main::OnCmdFileExit );
+			window.Get().Messages().Add( this, messages );
+			menu.Commands().Add( IDM_FILE_QUIT, this, &Main::OnCmdFileExit );
 
-		instance.GetConfiguration().Reset();
-		emulator.Initialize();
+			instance.GetConfiguration().Reset();
+			emulator.Initialize();
 
-		if (instance.GetConfiguration().GetStartupFile().Length())
-			Instance::Launch( instance.GetConfiguration().GetStartupFile().Ptr() );
-	}
+			if (instance.GetConfiguration().GetStartupFile().Length())
+				window.Get().Send( Instance::WM_NST_LAUNCH, 0, instance.GetConfiguration().GetStartupFile().Ptr() );
+		}
 
-	Main::~Main()
-	{
-		emulator.Unload();
-	}
-
-	void Main::Save()
-	{
-		Configuration& cfg = instance.GetConfiguration();
-
-		preferences.Save  ( cfg );
-		recentFiles.Save  ( cfg );
-		recentDirs.Save   ( cfg );
-		paths.Save        ( cfg );
-		launcher.Save     ( cfg, preferences[Managers::Preferences::SAVE_LAUNCHERSIZE], preferences[Managers::Preferences::SAVE_LAUNCHER] );
-		netplay.Save      ( cfg, preferences[Managers::Preferences::SAVE_NETPLAY_GAMELIST] );
-		fds.Save          ( cfg );
-		tapeRecorder.Save ( cfg );
-		nsf.Save          ( cfg );
-		window.Save       ( cfg );
-		machine.Save      ( cfg );
-
-		if (preferences[Managers::Preferences::SAVE_CHEATS])
-			cheats.Save( cfg );
-
-		if (preferences[Managers::Preferences::SAVE_SETTINGS])
-			cfg.EnableSaving();
-
-		instance.Save();
-	}
-
-	int Main::Run()
-	{
-		int exitCode = window.Run();
-		emulator.Unload();
-
-		if (exitCode == EXIT_SUCCESS)
-			Save();
-
-		return exitCode;
-	}
-
-	ibool Main::FirstUnloadOnExit()
-	{
-		return
-		(
-			preferences[Managers::Preferences::FIRST_UNLOAD_ON_EXIT] &&
-			emulator.Is(Nes::Machine::IMAGE)
-		);
-	}
-
-	ibool Main::IsOkToExit() const
-	{
-		return
-		(
-			!preferences[Managers::Preferences::CONFIRM_EXIT] ||
-			Window::User::Confirm( IDS_ARE_YOU_SURE, IDS_TITLE_EXIT )
-		);
-	}
-
-	void Main::Exit()
-	{
-		if (!netplay.Close())
+		Main::~Main()
 		{
-			if (FirstUnloadOnExit())
-			{
-				window.Get().SendCommand( IDM_FILE_CLOSE );
-			}
-			else if (IsOkToExit())
-			{
-				emulator.Unload();
+			emulator.Unload();
+		}
 
-				if (menu[IDM_MACHINE_SYSTEM_AUTO].IsChecked())
-					emulator.SetMode( Nes::Machine::NTSC );
+		void Main::Save()
+		{
+			Configuration& cfg = instance.GetConfiguration();
 
-				::PostQuitMessage( EXIT_SUCCESS );
+			preferences.Save  ( cfg );
+			recentFiles.Save  ( cfg );
+			recentDirs.Save   ( cfg );
+			paths.Save        ( cfg );
+			launcher.Save     ( cfg, preferences[Managers::Preferences::SAVE_LAUNCHERSIZE], preferences[Managers::Preferences::SAVE_LAUNCHER] );
+			netplay.Save      ( cfg, preferences[Managers::Preferences::SAVE_NETPLAY_GAMELIST] );
+			fds.Save          ( cfg );
+			tapeRecorder.Save ( cfg );
+			nsf.Save          ( cfg );
+			window.Save       ( cfg );
+			machine.Save      ( cfg );
+
+			if (preferences[Managers::Preferences::SAVE_CHEATS])
+				cheats.Save( cfg );
+
+			if (preferences[Managers::Preferences::SAVE_SETTINGS])
+				cfg.EnableSaving();
+
+			instance.Save();
+		}
+
+		int Main::Run()
+		{
+			int exitCode = window.Run();
+			emulator.Unload();
+
+			if (exitCode == EXIT_SUCCESS)
+				Save();
+
+			return exitCode;
+		}
+
+		ibool Main::FirstUnloadOnExit()
+		{
+			return
+			(
+				preferences[Managers::Preferences::FIRST_UNLOAD_ON_EXIT] &&
+				emulator.Is(Nes::Machine::IMAGE)
+			);
+		}
+
+		ibool Main::OkToExit() const
+		{
+			return
+			(
+				!preferences[Managers::Preferences::CONFIRM_EXIT] ||
+				Window::User::Confirm( IDS_ARE_YOU_SURE, IDS_TITLE_EXIT )
+			);
+		}
+
+		void Main::Exit()
+		{
+			if (!netplay.Close())
+			{
+				if (FirstUnloadOnExit())
+				{
+					window.Get().SendCommand( IDM_FILE_CLOSE );
+				}
+				else if (OkToExit())
+				{
+					emulator.Unload();
+
+					if (menu[IDM_MACHINE_SYSTEM_AUTO].Checked())
+						emulator.SetMode( Nes::Machine::NTSC );
+
+					::PostQuitMessage( EXIT_SUCCESS );
+				}
 			}
 		}
-	}
 
-	ibool Main::OnWinClose(Window::Param&)
-	{
-		Exit();
-		return true;
-	}
+		ibool Main::OnWinClose(Window::Param&)
+		{
+			Exit();
+			return true;
+		}
 
-	ibool Main::OnWinQueryEndSession(Window::Param& param)
-	{
-		netplay.Close();
+		ibool Main::OnWinQueryEndSession(Window::Param& param)
+		{
+			netplay.Close();
 
-		if (emulator.Is(Nes::Machine::IMAGE))
-			window.Get().SendCommand( IDM_FILE_CLOSE );
+			if (emulator.Is(Nes::Machine::IMAGE))
+				window.Get().SendCommand( IDM_FILE_CLOSE );
 
-		param.lParam = !emulator.Is(Nes::Machine::IMAGE);
-		return true;
-	}
+			param.lParam = !emulator.Is(Nes::Machine::IMAGE);
+			return true;
+		}
 
-	void Main::OnCmdFileExit(uint)
-	{
-		Exit();
-		Application::Instance::Post( Application::Instance::WM_NST_COMMAND_RESUME );
+		void Main::OnCmdFileExit(uint)
+		{
+			Exit();
+			Instance::GetMainWindow().Post( Instance::WM_NST_COMMAND_RESUME );
+		}
 	}
 }

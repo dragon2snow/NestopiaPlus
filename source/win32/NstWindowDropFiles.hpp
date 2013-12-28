@@ -28,6 +28,7 @@
 #pragma once
 
 #include "NstString.hpp"
+#include <Windows.h>
 #include <ShellAPI.h>
 
 namespace Nestopia
@@ -49,7 +50,7 @@ namespace Nestopia
 			uint Size() const;
 			Path operator [] (uint) const;
 
-			bool IsInside(HWND) const;
+			bool Inside(HWND) const;
 		};
 	}
 }

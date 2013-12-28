@@ -39,12 +39,11 @@ namespace Nes
 			{
 			public:
 
-				Paddle(bool);
+				Paddle(const Cpu&,bool);
 
 			private:
 
 				void Reset();
-				void BeginFrame(Controllers*);
 				uint Peek(uint);
 				void Poke(uint);
 				void LoadState(State::Loader&,dword);

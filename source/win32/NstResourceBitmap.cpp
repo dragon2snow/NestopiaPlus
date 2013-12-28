@@ -22,21 +22,24 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstResourceBitmap.hpp"
 #include "NstApplicationException.hpp"
+#include "NstResourceBitmap.hpp"
 
 namespace Nestopia
 {
-	Resource::Bitmap::Bitmap(const uint id)
-	: handle(::LoadBitmap(::GetModuleHandle(NULL),MAKEINTRESOURCE(id)))
+	namespace Resource
 	{
-		if (!handle)
-			throw Application::Exception(_T("LoadBitmap() failed!"));
-	}
+		Bitmap::Bitmap(const uint id)
+		: handle(::LoadBitmap(::GetModuleHandle(NULL),MAKEINTRESOURCE(id)))
+		{
+			if (!handle)
+				throw Application::Exception(_T("LoadBitmap() failed!"));
+		}
 
-	Resource::Bitmap::~Bitmap ()
-	{
-		if (handle)
-			::DeleteObject( handle );
+		Bitmap::~Bitmap ()
+		{
+			if (handle)
+				::DeleteObject( handle );
+		}
 	}
 }

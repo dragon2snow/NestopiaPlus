@@ -175,14 +175,14 @@ namespace Nes
 		#endif
 
 		Apu::Context::Context()
-		: bits(16), rate(44100U), stereo(false), speed(0), transpose(false), audible(true)
+		: rate(44100U), bits(16), speed(0), transpose(false), stereo(false), audible(true)
 		{
 			for (uint i=0; i < MAX_CHANNELS; ++i)
 				volumes[i] = DEFAULT_VOLUME;
 		}
 
 		Apu::Cycles::Cycles()
-		: frameCounter(0), rateCounter(0), extCounter(NES_CYCLE_MAX), fixed(1)
+		: fixed(1), rateCounter(0), frameCounter(0), extCounter(NES_CYCLE_MAX)
 		{
 			Update( 44100U, 0, MODE_NTSC );
 			Reset( MODE_NTSC );
@@ -254,7 +254,7 @@ namespace Nes
 		}
 
 		Apu::Dmc::Dmc()
-		: outputVolume(0), linSample(0), curSample(0) {}
+		: curSample(0), linSample(0), outputVolume(0) {}
 
 		Apu::Apu(Cpu* const c)
 		:
@@ -809,17 +809,6 @@ namespace Nes
 			output = (disabled ? (data & DECAY_RATE) : volume) * outputVolume;
 		}
 
-		Cycle Apu::Clock(const Cycle elapsed)
-		{
-			while (cycles.frameIrqClock <= elapsed)
-				ClockFrameIRQ();
-
-			if (cycles.dmcClock <= elapsed)
-				ClockDmc( elapsed );
-
-			return NST_MIN(cycles.frameIrqClock,cycles.dmcClock);
-		}
-
 		inline void Apu::Square::Toggle(const uint state)
 		{
 			lengthCounter.Enable( state );
@@ -867,10 +856,10 @@ namespace Nes
 			return lengthCounter.GetCount() && envelope.Volume() && validFrequency;
 		}
 
-		void Apu::Square::SetContext(dword rate,uint fixed,uint volume)
+		void Apu::Square::SetContext(dword r,uint f,uint v)
 		{
-			Oscillator::SetContext( rate, fixed );
-			envelope.SetOutputVolume( volume );
+			Oscillator::SetContext( r, f );
+			envelope.SetOutputVolume( v );
 			active = CanOutput();
 		}
 
@@ -984,10 +973,10 @@ namespace Nes
 			return lengthCounter.GetCount() && linearCounter && waveLength >= MIN_FRQ && outputVolume;
 		}
 
-		void Apu::Triangle::SetContext(dword rate,uint fixed,uint volume)
+		void Apu::Triangle::SetContext(dword r,uint f,uint v)
 		{
-			Oscillator::SetContext( rate, fixed );
-			outputVolume = volume;
+			Oscillator::SetContext( r, f );
+			outputVolume = v;
 			active = CanOutput();
 		}
 
@@ -1046,11 +1035,11 @@ namespace Nes
 			return lengthCounter.GetCount() && envelope.Volume();
 		}
 
-		void Apu::Noise::SetContext(dword rate,uint fixed,uint volume,Mode m)
+		void Apu::Noise::SetContext(dword r,uint f,uint v,Mode m)
 		{
-			Oscillator::SetContext( rate, fixed );
+			Oscillator::SetContext( r, f );
 			mode = m;
-			envelope.SetOutputVolume( volume );
+			envelope.SetOutputVolume( v );
 			active = CanOutput();
 		}
 
@@ -1097,7 +1086,7 @@ namespace Nes
 
 			if (active)
 			{
-				static const u8 duties[4][8] =
+				static const u8 steps[4][8] =
 				{
 					{0x1F,0x00,0x1F,0x1F,0x1F,0x1F,0x1F,0x1F},
 					{0x1F,0x00,0x00,0x1F,0x1F,0x1F,0x1F,0x1F},
@@ -1107,15 +1096,15 @@ namespace Nes
 
 				if (timer >= 0)
 				{
-					amp = dword(envelope.Volume()) >> duties[duty][step];
+					amp = dword(envelope.Volume()) >> steps[duty][step];
 				}
 				else
 				{
-					sum >>= duties[duty][step];
+					sum >>= steps[duty][step];
 
 					do
 					{
-						sum += NST_MIN(dword(-timer),frequency) >> duties[duty][step = (step + 1) & 0x7];
+						sum += NST_MIN(dword(-timer),frequency) >> steps[duty][step = (step + 1) & 0x7];
 						timer += iword(frequency);
 					}
 					while (timer < 0);
@@ -1151,30 +1140,26 @@ namespace Nes
 
 			if (active)
 			{
-				uint pos = step;
-
-				if (pos & 0x10)
-					pos ^= 0x1F;
+				static const u8 steps[32] =
+				{
+					0x0,0x1,0x2,0x3,0x4,0x5,0x6,0x7,0x8,0x9,0xA,0xB,0xC,0xD,0xE,0xF,
+					0xF,0xE,0xD,0xC,0xB,0xA,0x9,0x8,0x7,0x6,0x5,0x4,0x3,0x2,0x1,0x0
+				};
 
 				dword sum = timer;
 				timer -= iword(rate);
 
 				if (timer >= 0)
 				{
-					amp = pos * outputVolume * 3;
+					amp = steps[step] * outputVolume * 3;
 				}
 				else
 				{
-					sum *= pos;
+					sum *= steps[step];
 
 					do
 					{
-						pos = step = (step + 1) & 0x1F;
-
-						if (pos & 0x10)
-							pos ^= 0x1F;
-
-						sum += NST_MIN(dword(-timer),frequency) * pos;
+						sum += NST_MIN(dword(-timer),frequency) * steps[step = (step + 1) & 0x1F];
 						timer += iword(frequency);
 					}
 					while (timer < 0);
@@ -1203,39 +1188,40 @@ namespace Nes
 			dword sum = timer;
 			timer -= iword(rate);
 
-			if (timer >= 0)
+			if (active)
 			{
-				if (!active || (bits & 0x4000U))
-					return 0;
-				else
-					return envelope.Volume() * 2;
-			}
-			else
-			{
-				if (bits & 0x4000U)
-					sum = 0;
-
-				do
+				if (timer >= 0)
 				{
-					bits = (bits << 1) | (((bits >> 14) ^ (bits >> shifter)) & 0x1);
-
 					if (!(bits & 0x4000U))
-						sum += NST_MIN(dword(-timer),frequency);
-
-					timer += iword(frequency);
+						return envelope.Volume() * 2;
 				}
-				while (timer < 0);
-
-				if (active)
+				else
 				{
+					if (bits & 0x4000U)
+						sum = 0;
+
+					do
+					{
+						bits = (bits << 1) | (((bits >> 14) ^ (bits >> shifter)) & 0x1);
+
+						if (!(bits & 0x4000U))
+							sum += NST_MIN(dword(-timer),frequency);
+
+						timer += iword(frequency);
+					}
+					while (timer < 0);
+
 					NST_VERIFY( !envelope.Volume() || sum <= ULONG_MAX / envelope.Volume() + rate/2 );
 					return (sum * envelope.Volume() + rate/2) / rate * 2;
 				}
-				else
-				{
-					return 0;
-				}
 			}
+			else while (timer < 0)
+			{
+				bits = (bits << 1) | (((bits >> 14) ^ (bits >> shifter)) & 0x1);
+				timer += iword(frequency);
+			}
+
+			return 0;
 		}
 
 		NST_FORCE_INLINE dword Apu::Dmc::GetSample()
@@ -1625,15 +1611,16 @@ namespace Nes
 			while (cycles.frameIrqClock <= cpu.GetMasterClockCycles())
 				ClockFrameIRQ();
 
-			uint data = cpu.GetIRQ() & (Cpu::IRQ_FRAME|Cpu::IRQ_DMC);
+			const uint data = (cpu.GetIRQ() & (Cpu::IRQ_FRAME|Cpu::IRQ_DMC)) |
+			(
+				( square[0].GetLengthCounter() ? ENABLE_SQUARE1  : 0 ) |
+				( square[1].GetLengthCounter() ? ENABLE_SQUARE2  : 0 ) |
+				( triangle.GetLengthCounter()  ? ENABLE_TRIANGLE : 0 ) |
+				( noise.GetLengthCounter()     ? ENABLE_NOISE    : 0 ) |
+				( dmc.GetLengthCounter()       ? ENABLE_DMC      : 0 )
+			);
 
 			cpu.ClearIRQ( Cpu::IRQ_FRAME );
-
-			if ( square[0].GetLengthCounter() ) data |= ENABLE_SQUARE1;
-			if ( square[1].GetLengthCounter() ) data |= ENABLE_SQUARE2;
-			if ( triangle.GetLengthCounter()  ) data |= ENABLE_TRIANGLE;
-			if ( noise.GetLengthCounter()     ) data |= ENABLE_NOISE;
-			if ( dmc.GetLengthCounter()       ) data |= ENABLE_DMC;
 
 			return data;
 		}

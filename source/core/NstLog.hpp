@@ -81,14 +81,6 @@ namespace Nes
 			static void Flush(cstring,dword);
 
 			template<size_t N>
-			Log& operator << (const char (&c)[N])
-			{
-				NST_COMPILE_ASSERT( N );
-				Append( c, N-1 );
-				return *this;
-			}
-
-			template<size_t N>
 			static void Flush(const char (&c)[N])
 			{
 				NST_COMPILE_ASSERT( N );

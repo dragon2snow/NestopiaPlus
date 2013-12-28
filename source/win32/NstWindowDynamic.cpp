@@ -22,158 +22,168 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
+#include "NstObjectPod.hpp"
 #include "NstApplicationException.hpp"
 #include "NstWindowParam.hpp"
 #include "NstWindowDynamic.hpp"
 
 namespace Nestopia
 {
-	using namespace Window;
-
-	Dynamic::Instances Dynamic::instances;
-
-	Dynamic::Dynamic()
+	namespace Window
 	{
-		Initialize();
-	}
+		Dynamic::Instances Dynamic::instances;
 
-	Dynamic::~Dynamic()
-	{
-		Destroy();
-	}
-
-	void Dynamic::Initialize()
-	{
-		Messages().Add( WM_NCDESTROY, this, &Dynamic::OnNcDestroy );
-	}
-
-	void Dynamic::Create(Context& create)
-	{
-		Generic::Register
-		(
-			create.className,
-			create.classStyle,
-			WndProcCreate,
-			create.hCursor,
-			create.hBackground,
-			create.hIcon
-		);
-
-		className = create.className;
-
-		Generic::Create
-		(
-			create.exStyle,
-			create.className,
-			create.windowName,
-			create.winStyle,
-			create.x,
-			create.y,
-			create.width,
-			create.height,
-			create.hParent,
-			create.hMenu,
-			this
-		);
-
-		if (hWnd == NULL)
-			throw Application::Exception(_T("CreateWindowEx() failed!"));
-	}
-
-	void Dynamic::Destroy()
-	{
-		Custom::Destroy();
-
-		if (className.Length())
+		Dynamic::Dynamic()
 		{
-			Unregister( className.Ptr() );
-			className.Clear();
-		}
-	}
-
-	void Dynamic::OnCreate(HWND const handle)
-	{
-		NST_ASSERT( handle && !hWnd );
-
-		hWnd = handle;
-		instances.PushBack( this );
-
-		const LONG_PTR ptr = reinterpret_cast<LONG_PTR>( instances.Size() == 1 ? WndProcSingle : WndProcMulti );
-
-		if (!::SetWindowLongPtr( hWnd, GWLP_WNDPROC, ptr ))
-			throw Application::Exception(_T("SetWindowLongPtr() failed!"));
-	}
-
-	ibool Dynamic::OnNcDestroy(Param&)
-	{
-		NST_ASSERT( hWnd );
-
-		Instances::Iterator instance;
-
-		for (instance = instances.Ptr(); (*instance)->hWnd != hWnd; ++instance);
-
-		instances.Erase( instance );
-		hWnd = NULL;
-
-		return false;
-	}
-
-	#ifdef NST_PRAGMA_OPTIMIZE
-	#pragma optimize("t", on)
-	#endif
-
-	LRESULT CALLBACK Dynamic::WndProcSingle(HWND hWnd,uint uMsg,WPARAM wParam,LPARAM lParam)
-	{
-		if (const MsgHandler::Item* const item = instances.Front()->msgHandler( uMsg ))
-		{
-			Param param = {wParam,lParam,0,hWnd};
-
-			if (item->value( param ))
-				return param.lResult;
+			Initialize();
 		}
 
-		return ::DefWindowProc( hWnd, uMsg, wParam, lParam );
-	}
-
-	LRESULT CALLBACK Dynamic::WndProcMulti(HWND hWnd,uint uMsg,WPARAM wParam,LPARAM lParam)
-	{
-		Instances::ConstIterator instance;
-
-		for (instance = instances.Ptr(); (*instance)->hWnd != hWnd; ++instance);
-
-		if (const MsgHandler::Item* const item = (*instance)->msgHandler( uMsg ))
+		Dynamic::~Dynamic()
 		{
-			Param param = {wParam,lParam,0,hWnd};
-
-			if (item->value( param ))
-				return param.lResult;
+			Destroy();
 		}
 
-		return ::DefWindowProc( hWnd, uMsg, wParam, lParam );
-	}
-
-	#ifdef NST_PRAGMA_OPTIMIZE
-	#pragma optimize("", on)
-	#endif
-
-	LRESULT CALLBACK Dynamic::WndProcCreate(HWND hWnd,uint uMsg,WPARAM wParam,LPARAM lParam)
-	{
-		if (uMsg == WM_CREATE && lParam)
+		void Dynamic::Initialize()
 		{
-			if (Dynamic* const instance = static_cast<Dynamic*>(reinterpret_cast<CREATESTRUCT*>(lParam)->lpCreateParams))
+			Messages().Add( WM_NCDESTROY, this, &Dynamic::OnNcDestroy );
+		}
+
+		void Dynamic::Create(Context& create)
+		{
+			NST_ASSERT( create.className && *create.className );
+
+			Object::Pod<WNDCLASSEX> winClass;
+
+			winClass.cbSize        = sizeof(winClass);
+			winClass.style         = create.classStyle;
+			winClass.lpfnWndProc   = WndProcCreate;
+			winClass.hInstance     = ::GetModuleHandle(NULL);
+			winClass.hCursor       = create.hCursor;
+			winClass.hbrBackground = create.hBackground;
+			winClass.lpszClassName = create.className;
+			winClass.hIcon         =
+			winClass.hIconSm       = create.hIcon;
+
+			if (!RegisterClassEx( &winClass ))
+				throw Application::Exception(_T("RegisterClassEx() failed!"));
+
+			className = create.className;
+
+			CreateWindowEx
+			(
+				create.exStyle,
+				create.className,
+				create.windowName,
+				create.winStyle,
+				create.x,
+				create.y,
+				create.width,
+				create.height,
+				create.hParent,
+				create.hMenu,
+				::GetModuleHandle(NULL),
+				this
+			);
+
+			if (!hWnd)
+				throw Application::Exception(_T("CreateWindowEx() failed!"));
+		}
+
+		void Dynamic::Destroy()
+		{
+			Custom::Destroy();
+
+			if (className.Length())
 			{
-				instance->OnCreate( hWnd );
-
-				if (const MsgHandler::Item* const item = instance->msgHandler( uMsg ))
-				{
-					Param param = {wParam,lParam,0,hWnd};
-
-					if (item->value( param ))
-						return param.lResult;
-				}
+				UnregisterClass( className.Ptr(), ::GetModuleHandle(NULL) );
+				className.Clear();
 			}
 		}
 
-		return ::DefWindowProc( hWnd, uMsg, wParam, lParam );
+		void Dynamic::OnCreate(HWND const handle)
+		{
+			NST_ASSERT( handle && !hWnd );
+
+			hWnd = handle;
+			instances.PushBack( this );
+
+			const LONG_PTR ptr = reinterpret_cast<LONG_PTR>( instances.Size() == 1 ? WndProcSingle : WndProcMulti );
+
+			if (!::SetWindowLongPtr( hWnd, GWLP_WNDPROC, ptr ))
+				throw Application::Exception( _T("SetWindowLongPtr() failed!") );
+		}
+
+		ibool Dynamic::OnNcDestroy(Param&)
+		{
+			NST_ASSERT( hWnd );
+
+			Instances::Iterator instance;
+
+			for (instance = instances.Ptr(); (*instance)->hWnd != hWnd; ++instance);
+
+			instances.Erase( instance );
+			hWnd = NULL;
+
+			return false;
+		}
+
+		#ifdef NST_PRAGMA_OPTIMIZE
+		#pragma optimize("t", on)
+		#endif
+
+		LRESULT CALLBACK Dynamic::WndProcSingle(HWND hWnd,uint uMsg,WPARAM wParam,LPARAM lParam)
+		{
+			if (const MsgHandler::Item* const item = instances.Front()->msgHandler( uMsg ))
+			{
+				Param param = {wParam,lParam,0,hWnd};
+
+				if (item->value( param ))
+					return param.lResult;
+			}
+
+			return ::DefWindowProc( hWnd, uMsg, wParam, lParam );
+		}
+
+		LRESULT CALLBACK Dynamic::WndProcMulti(HWND hWnd,uint uMsg,WPARAM wParam,LPARAM lParam)
+		{
+			Instances::ConstIterator instance;
+
+			for (instance = instances.Ptr(); (*instance)->hWnd != hWnd; ++instance);
+
+			if (const MsgHandler::Item* const item = (*instance)->msgHandler( uMsg ))
+			{
+				Param param = {wParam,lParam,0,hWnd};
+
+				if (item->value( param ))
+					return param.lResult;
+			}
+
+			return ::DefWindowProc( hWnd, uMsg, wParam, lParam );
+		}
+
+		#ifdef NST_PRAGMA_OPTIMIZE
+		#pragma optimize("", on)
+		#endif
+
+		LRESULT CALLBACK Dynamic::WndProcCreate(HWND hWnd,uint uMsg,WPARAM wParam,LPARAM lParam)
+		{
+			if (uMsg == WM_CREATE && lParam)
+			{
+				if (Dynamic* const instance = static_cast<Dynamic*>(reinterpret_cast<CREATESTRUCT*>(lParam)->lpCreateParams))
+				{
+					instance->OnCreate( hWnd );
+
+					if (const MsgHandler::Item* const item = instance->msgHandler( uMsg ))
+					{
+						Param param = {wParam,lParam,0,hWnd};
+
+						if (item->value( param ))
+							return param.lResult;
+					}
+				}
+			}
+
+			return ::DefWindowProc( hWnd, uMsg, wParam, lParam );
+		}
 	}
 }

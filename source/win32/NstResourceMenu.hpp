@@ -33,7 +33,7 @@ namespace Nestopia
 {
 	namespace Resource
 	{
-		class Menu : Sealed
+		class Menu
 		{
 			typedef Application::Instance Instance;
 

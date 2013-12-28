@@ -27,16 +27,28 @@
 
 #ifdef _MSC_VER
 
-#ifdef NDEBUG
-#pragma comment(lib,"emucore")
+ #ifdef _MBCS
+ #error Multibyte characters are not supported!
+ #endif
+
+ #ifdef NDEBUG
+
+  #pragma comment(lib,"emucore")
+
+  #ifdef __MSVC_RUNTIME_CHECKS
+  #error turn off RTCx compiler options!
+  #endif
+
  #else
+
   #pragma comment(lib,"emucoredebug")
   #define CRTDBG_MAP_ALLOC
   #include <crtdbg.h>
+
  #endif
 
  #if _MSC_VER >= 1400
-  #pragma comment(linker,"\"/manifestdependency:type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='X86' publicKeyToken='6595b64144ccf1df' language='*'\"")
+ #pragma comment(linker,"\"/manifestdependency:type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='X86' publicKeyToken='6595b64144ccf1df' language='*'\"")
  #endif
 
 #endif
@@ -53,23 +65,16 @@ int WINAPI WinMain(HINSTANCE,HINSTANCE,char*,int cmdShow)
 	}
 	catch (const Nestopia::Application::Exception& exception)
 	{
-		exception.Issue( Nestopia::Application::Exception::FINAL );
-		return EXIT_FAILURE;
+		return exception.Issue();
 	}
 	catch (const std::bad_alloc&)
 	{
-		Nestopia::Application::Exception( IDS_ERR_OUT_OF_MEMORY ).Issue( Nestopia::Application::Exception::FINAL );
-		return EXIT_FAILURE;
-	}
-	catch (Nestopia::Application::Exception::ExitCode exitcode)
-	{
-		return exitcode;
+		return Nestopia::Application::Exception( IDS_ERR_OUT_OF_MEMORY ).Issue();
 	}
 #ifdef NDEBUG
 	catch (...)
 	{
-		Nestopia::Application::Exception( IDS_ERR_GENERIC ).Issue( Nestopia::Application::Exception::FINAL );
-		return EXIT_FAILURE;
+		return Nestopia::Application::Exception( IDS_ERR_GENERIC ).Issue();
 	}
 #endif
 }

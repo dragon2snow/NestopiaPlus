@@ -22,10 +22,9 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "../NstCore.hpp"
+#include "../NstMachine.hpp"
 #include "../NstDipSwitches.hpp"
 #include "../NstImage.hpp"
-#include "NstApiEmulator.hpp"
 #include "NstApiDipSwitches.hpp"
 
 #ifdef NST_PRAGMA_OPTIMIZE
@@ -47,7 +46,7 @@ namespace Nes
 			return NULL;
 		}
 
-		uint DipSwitches::NumDips() const
+		uint DipSwitches::NumDips() const throw()
 		{
 			if (Core::DipSwitches* const dipSwitches = Query())
 				return dipSwitches->NumDips();
@@ -55,7 +54,7 @@ namespace Nes
 			return 0;
 		}
 
-		uint DipSwitches::NumValues(uint dip) const
+		uint DipSwitches::NumValues(uint dip) const throw()
 		{
 			if (Core::DipSwitches* const dipSwitches = Query())
 			{
@@ -66,7 +65,7 @@ namespace Nes
 			return 0;
 		}
 
-		const char* DipSwitches::GetDipName(uint dip) const
+		const char* DipSwitches::GetDipName(uint dip) const throw()
 		{
 			if (Core::DipSwitches* const dipSwitches = Query())
 			{
@@ -77,7 +76,7 @@ namespace Nes
 			return NULL;
 		}
 
-		const char* DipSwitches::GetValueName(uint dip,uint value) const
+		const char* DipSwitches::GetValueName(uint dip,uint value) const throw()
 		{
 			if (Core::DipSwitches* const dipSwitches = Query())
 			{
@@ -89,7 +88,7 @@ namespace Nes
 			return NULL;
 		}
 
-		int DipSwitches::GetValue(uint dip) const
+		int DipSwitches::GetValue(uint dip) const throw()
 		{
 			if (Core::DipSwitches* const dipSwitches = Query())
 			{
@@ -100,7 +99,7 @@ namespace Nes
 			return INVALID;
 		}
 
-		Result DipSwitches::SetValue(uint dip,uint value)
+		Result DipSwitches::SetValue(uint dip,uint value) throw()
 		{
 			if (Core::DipSwitches* const dipSwitches = Query())
 			{

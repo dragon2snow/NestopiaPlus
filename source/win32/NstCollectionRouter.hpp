@@ -35,7 +35,7 @@ namespace Nestopia
 	namespace Collection
 	{
 		template<typename Output,typename Input,typename Key=uint>
-		class Router : Sealed
+		class Router
 		{
 			typedef typename ConstParam<Key>::Type KeyParam;
 

@@ -49,23 +49,23 @@ namespace Nes
 				Cpu& cpu;
 				Ppu& ppu;
 
-				LinearMemory& pRom;
-				LinearMemory& cRom;
-				LinearMemory& wRam;
+				Ram& prg;
+				Ram& chr;
+				Ram& wrk;
 
 				const Ppu::Mirroring mirroring;
 				const ibool battery;
-				const dword pRomCrc;
-				ibool wRamAuto;
+				const dword prgCrc;
+				ibool wrkAuto;
 
 				Context
 				(
 					uint i,
 					Cpu& c,
 					Ppu& p,
-					LinearMemory& pr,
-					LinearMemory& cr,
-					LinearMemory& wr,
+					Ram& pr,
+					Ram& cr,
+					Ram& wr,
 					Ppu::Mirroring m,
 					ibool b,
 					dword cc
@@ -74,13 +74,13 @@ namespace Nes
 				id        (i),
 				cpu       (c),
 				ppu       (p),
-				pRom      (pr),
-				cRom      (cr),
-				wRam      (wr),
+				prg       (pr),
+				chr       (cr),
+				wrk       (wr),
 				mirroring (m),
 				battery   (b),
-				pRomCrc   (cc),
-				wRamAuto  (false)
+				prgCrc    (cc),
+				wrkAuto   (false)
 				{}
 			};
 
@@ -137,10 +137,8 @@ namespace Nes
 				WRAM_40K      = 0x0006,
 				WRAM_64K      = 0x0008,
 				WRAM_NONE     = 0x0040,
-				WRAM_RESTRICT = 0x0080,
 				WRAM_SIZES    = WRAM_8K|WRAM_16K|WRAM_32K|WRAM_40K|WRAM_64K,
 				WRAM_SETTINGS = 0x00FF,
-				CRAM_NONE     = 0x0000,
 				CRAM_1K       = 0x0100,
 				CRAM_2K       = 0x0200,
 				CRAM_4K       = 0x0400,
@@ -205,7 +203,7 @@ namespace Nes
 				NOP_PEEK_POKE
 			};
 
-			Mapper(Context&,uint=WRAM_AUTO|CRAM_NONE);
+			Mapper(Context&,uint=WRAM_AUTO);
 			virtual ~Mapper();
 
 			typedef Memory<SIZE_32K,SIZE_8K,2> Prg;
@@ -233,6 +231,12 @@ namespace Nes
 			Wrk wrk;
 			const u16 id;
 			const u8 mirroring;
+
+		private:
+
+			const u8 noStartingFrameIrq;
+
+		protected:
 
 			template<typename T>
 			void Map(uint first,uint last,T t) const
@@ -304,8 +308,6 @@ namespace Nes
 
 			NES_DECL_PEEK( Nop )
 			NES_DECL_POKE( Nop )
-
-			const u8 noStartingFrameIrq;
 
 			static bool CheckNoStartingFrameIrq(dword);
 			dword GetStateName() const;

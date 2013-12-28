@@ -23,6 +23,7 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 
 #include "NstWindowParam.hpp"
+#include "NstWindowRect.hpp"
 #include "NstWindowDropFiles.hpp"
 
 namespace Nestopia
@@ -55,12 +56,11 @@ namespace Nestopia
 			return file;
 		}
 
-		bool DropFiles::IsInside(HWND const hChild) const
+		bool DropFiles::Inside(HWND const hChild) const
 		{
 			Point point;
 			::DragQueryPoint( hDrop, &point );
-			::ClientToScreen( hWnd, &point );
-			return Rect::Window( hChild ).IsInside( point );
+			return Rect::Window(hChild).Inside( point.ScreenTransform(hWnd) );
 		}
 	}
 }

@@ -35,8 +35,8 @@ namespace Nes
 			#pragma optimize("s", on)
 			#endif
 
-			Pachinko::Pachinko()
-			: Device(Api::Input::PACHINKO)
+			Pachinko::Pachinko(const Cpu& c)
+			: Device(c,Api::Input::PACHINKO)
 			{
 				Pachinko::Reset();
 			}
@@ -65,12 +65,6 @@ namespace Nes
 			#ifdef NST_PRAGMA_OPTIMIZE
 			#pragma optimize("", on)
 			#endif
-
-			void Pachinko::BeginFrame(Controllers* i)
-			{
-				input = i;
-				state = 0xFF0000U;
-			}
 
 			uint Pachinko::Peek(uint port)
 			{

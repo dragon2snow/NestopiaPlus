@@ -1,6 +1,6 @@
 //{{NO_DEPENDENCIES}}
 // Microsoft Visual C++ generated include file.
-// Used by Win32.rc
+// Used by win32.rc
 //
 #define IDR_LICENSE                     104
 #define IDR_IMAGEDATABASE               105
@@ -26,7 +26,7 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
-#define _APS_NEXT_RESOURCE_VALUE        3060
+#define _APS_NEXT_RESOURCE_VALUE        3061
 #define _APS_NEXT_COMMAND_VALUE         4106
 #define _APS_NEXT_CONTROL_VALUE         5163
 #define _APS_NEXT_SYMED_VALUE           101

@@ -37,8 +37,8 @@ namespace Nes
 			#pragma optimize("s", on)
 			#endif
 
-			Pad::Pad(uint i)
-			: Device(Type(uint(Api::Input::PAD1) + i))
+			Pad::Pad(const Cpu& c,uint i)
+			: Device(c,Type(uint(Api::Input::PAD1) + i))
 			{
 				NST_ASSERT( i < 4 );
 
@@ -57,6 +57,7 @@ namespace Nes
 				strobe = 0;
 				stream = 0xFF;
 				state = 0;
+				mic = 0;
 			}
 
 			void Pad::SaveState(State::Saver& state,const uchar id) const
@@ -87,40 +88,41 @@ namespace Nes
 			void Pad::BeginFrame(Controllers* i)
 			{
 				input = i;
-				state = 0;
 				mic = 0;
 			}
 
 			void Pad::Poll()
 			{
-				NST_ASSERT( input );
-
-				Controllers::Pad& pad = input->pad[type - Api::Input::PAD1];
-				input = NULL;
-
-				if (Controllers::Pad::callback( pad, type - Api::Input::PAD1 ))
+				if (input)
 				{
-					mic |= pad.mic;
-					uint buttons = pad.buttons;
+					Controllers::Pad& pad = input->pad[type - Api::Input::PAD1];
+					pad.timeStamp = GetTimeStamp();
 
-					enum
+					if (Controllers::Pad::callback( pad, type - Api::Input::PAD1 ))
 					{
-						UP    = Controllers::Pad::UP,
-						RIGHT = Controllers::Pad::RIGHT,
-						DOWN  = Controllers::Pad::DOWN,
-						LEFT  = Controllers::Pad::LEFT
-					};
+						uint buttons = pad.buttons;
 
-					if (!pad.allowSimulAxes)
-					{
-						if ((buttons & (UP|DOWN)) == (UP|DOWN))
-							buttons &= (UP|DOWN) ^ 0xFF;
+						enum
+						{
+							UP    = Controllers::Pad::UP,
+							RIGHT = Controllers::Pad::RIGHT,
+							DOWN  = Controllers::Pad::DOWN,
+							LEFT  = Controllers::Pad::LEFT
+						};
 
-						if ((buttons & (LEFT|RIGHT)) == (LEFT|RIGHT))
-							buttons &= (LEFT|RIGHT) ^ 0xFF;
+						if (!pad.allowSimulAxes)
+						{
+							if ((buttons & (UP|DOWN)) == (UP|DOWN))
+								buttons &= (UP|DOWN) ^ 0xFF;
+
+							if ((buttons & (LEFT|RIGHT)) == (LEFT|RIGHT))
+								buttons &= (LEFT|RIGHT) ^ 0xFF;
+						}
+
+						state = buttons;
 					}
 
-					state = buttons;
+					mic |= pad.mic;
 				}
 			}
 
@@ -135,9 +137,7 @@ namespace Nes
 				}
 				else
 				{
-					if (input)
-						Poll();
-
+					Poll();
 					return state & 0x1;
 				}
 			}
@@ -149,9 +149,7 @@ namespace Nes
 
 				if (prev > strobe)
 				{
-					if (input)
-						Poll();
-
+					Poll();
 					stream = state ^ 0xFF;
 				}
 			}

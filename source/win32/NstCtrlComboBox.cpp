@@ -28,44 +28,48 @@
 
 namespace Nestopia
 {
-	NST_COMPILE_ASSERT( CB_ERR < 0 && CB_ERRSPACE < 0 );
-
-	using Window::Control::ComboBox;
-
-	ComboBox::Item::DataProxy::operator ComboBox::Value () const
+	namespace Window
 	{
-		return ComboBox_GetItemData( item.control, item.index );
-	}
+		namespace Control
+		{
+			NST_COMPILE_ASSERT( CB_ERR < 0 && CB_ERRSPACE < 0 );
 
-	void ComboBox::Item::DataProxy::operator = (Value data) const
-	{
-		ComboBox_SetItemData( item.control, item.index, data );
-	}
+			ComboBox::Item::DataProxy::operator ComboBox::Value () const
+			{
+				return ComboBox_GetItemData( item.control, item.index );
+			}
 
-	void ComboBox::Item::Select() const
-	{
-		ComboBox_SetCurSel( control, index );
-	}
+			void ComboBox::Item::DataProxy::operator = (Value data) const
+			{
+				ComboBox_SetItemData( item.control, item.index, data );
+			}
 
-	ComboBox::Item ComboBox::Add(tstring name) const
-	{
-		NST_ASSERT( name );
-		return Item( control, ComboBox_AddString( control, name ) );
-	}
+			void ComboBox::Item::Select() const
+			{
+				ComboBox_SetCurSel( control, index );
+			}
 
-	uint ComboBox::Size() const
-	{
-		const int size = ComboBox_GetCount( control );
-		return NST_MAX(size,0);
-	}
+			ComboBox::Item ComboBox::Add(tstring name) const
+			{
+				NST_ASSERT( name );
+				return Item( control, ComboBox_AddString( control, name ) );
+			}
 
-	void ComboBox::Clear() const
-	{
-		ComboBox_ResetContent( control );
-	}
+			uint ComboBox::Size() const
+			{
+				const int size = ComboBox_GetCount( control );
+				return NST_MAX(size,0);
+			}
 
-	ComboBox::Item ComboBox::Selection() const
-	{
-		return Item( control, ComboBox_GetCurSel( control ) );
+			void ComboBox::Clear() const
+			{
+				ComboBox_ResetContent( control );
+			}
+
+			ComboBox::Item ComboBox::Selection() const
+			{
+				return Item( control, ComboBox_GetCurSel( control ) );
+			}
+		}
 	}
 }

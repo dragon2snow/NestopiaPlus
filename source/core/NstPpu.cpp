@@ -266,26 +266,16 @@ namespace Nes
 
 		#endif
 
-		Ppu::Output::Output(Screen s)
-		:
-		emphasisMask (Regs::CTRL1_BG_COLOR),
-		screen       (&s)
-		{
-		}
-
-		void Ppu::Output::ClearScreen()
-		{
-			NST_ASSERT( screen );
-			std::memset( screen, 0, sizeof(u16) * SCREEN );
-		}
+		Ppu::Output::Output(Video::Screen::Pixels& p)
+		: emphasisMask(Regs::CTRL1_BG_COLOR), pixels(p) {}
 
 		#ifdef _MSC_VER
 		#pragma warning( push )
 		#pragma warning( disable : 4355 )
 		#endif
 
-		Ppu::Ppu(Cpu& c,Screen screen)
-		: cpu(c), output(screen), bgHook(this,&Ppu::Hook_Null), spHook(this,&Ppu::Hook_Null)
+		Ppu::Ppu(Cpu& c)
+		: cpu(c), output(screen.pixels), bgHook(this,&Ppu::Hook_Nop), spHook(this,&Ppu::Hook_Nop)
 		{
 			oam.limit = oam.buffer + Oam::STD_LINE_SPRITES;
 			SetMode( cpu.GetMode() );
@@ -294,10 +284,6 @@ namespace Nes
 		#ifdef _MSC_VER
 		#pragma warning( pop )
 		#endif
-
-		Ppu::~Ppu()
-		{
-		}
 
 		void Ppu::Reset(const bool hard)
 		{
@@ -392,14 +378,46 @@ namespace Nes
 			oam.address = 0;
 			oam.visible = oam.output;
 			oam.evaluated = oam.buffer;
+			oam.loaded = oam.buffer;
 
 			UpdateStates();
 
 			output.index = 0;
-			output.ClearScreen();
 
-			RemoveBgHook();
-			RemoveSpHook();
+			bgHook = Hook( this, &Ppu::Hook_Nop );
+			spHook = Hook( this, &Ppu::Hook_Nop );
+
+			screen.Clear();
+		}
+
+		void Ppu::SetBgHook(const Hook& hook)
+		{
+			bgHook = hook;
+		}
+
+		void Ppu::SetSpHook(const Hook& hook)
+		{
+			spHook = hook;
+		}
+
+		void Ppu::EnableUnlimSprites(ibool state)
+		{
+			oam.limit = oam.buffer + (state ? Oam::MAX_LINE_SPRITES : Oam::STD_LINE_SPRITES);
+		}
+
+		ibool Ppu::AreUnlimSpritesEnabled() const
+		{
+			return oam.limit == (oam.buffer + Oam::MAX_LINE_SPRITES);
+		}
+
+		void Ppu::EnableEmphasis(ibool enable)
+		{
+			output.emphasisMask = (enable ? Regs::CTRL1_BG_COLOR : 0);
+		}
+
+		void Ppu::ClearScreen()
+		{
+			screen.Clear();
 		}
 
 		void Ppu::UpdateStates()
@@ -513,7 +531,7 @@ namespace Nes
 
 		void Ppu::EnableCpuSynchronization()
 		{
-			cpu.AddHook( Hook(this,&Ppu::Hook_Synchronize) );
+			cpu.AddHook( Hook(this,&Ppu::Hook_Sync) );
 		}
 
 		void Ppu::ChrMem::ResetAccessors()
@@ -598,13 +616,15 @@ namespace Nes
 			}
 		}
 
-		void Ppu::SetYuvMap(const u8* const map,const bool transform)
+		void Ppu::SetYuvMap(const u8* const NST_RESTRICT map,const bool transform)
 		{
 			if (map && transform)
 			{
 				for (uint i=0; i < Palette::COLORS; ++i)
 				{
-					palette.map[i] = map[i] < 0x40 ? map[i] : i;
+					NST_ASSERT( map[i] <= 0x3F );
+
+					palette.map[i] = map[i];
 					yuvMap[i] = i;
 				}
 			}
@@ -612,8 +632,10 @@ namespace Nes
 			{
 				for (uint i=0; i < Palette::COLORS; ++i)
 				{
+					NST_ASSERT( map == NULL || map[i] <= 0x3F );
+
 					palette.map[i] = i;
-					yuvMap[i] = map && map[i] < 0x40 ? map[i] : i;
+					yuvMap[i] = map ? map[i] : i;
 				}
 			}
 		}
@@ -622,7 +644,7 @@ namespace Nes
 		#pragma optimize("", on)
 		#endif
 
-		void Ppu::BeginFrame(const bool render)
+		void Ppu::BeginFrame(const ibool render)
 		{
 			NST_ASSERT
 			(
@@ -631,15 +653,14 @@ namespace Nes
 				(cpu.GetMode() == MODE_NTSC) == (cycles.one == MC_DIV_NTSC)
 			);
 
-			if (render)
+			if (render || output.pixels != screen.pixels)
 			{
-				NST_ASSERT( output.screen );
-				output.pixels = *output.screen;
+				output.target = output.pixels;
 				output.next = sizeof(u16);
 			}
 			else
 			{
-				output.pixels = Output::dummy;
+				output.target = Output::dummy;
 				output.next = 0;
 			}
 
@@ -650,7 +671,7 @@ namespace Nes
 				regs.frame ^= Regs::FRAME_ODD;
 				cycles.count = MC_DIV_NTSC * CC_VINT_NTSC;
 
-				if (phase != &Ppu::WarmUp || stage < WARM_UP_FRAMES)
+				if (phase != &Ppu::WarmUp)
 					frame = MC_DIV_NTSC * CC_FRAME_0_NTSC;
 				else
 					frame = MC_DIV_NTSC * (CC_FRAME_0_NTSC - CC_VINT_NTSC);
@@ -666,11 +687,11 @@ namespace Nes
 			cpu.SetupFrame( frame );
 		}
 
-		NES_HOOK(Ppu,Null)
+		NES_HOOK(Ppu,Nop)
 		{
 		}
 
-		NES_HOOK(Ppu,Synchronize)
+		NES_HOOK(Ppu,Sync)
 		{
 			const Cycle elapsed = cpu.GetMasterClockCycles();
 
@@ -804,19 +825,19 @@ namespace Nes
 			return (*this)[3][address];
 		}
 
-		inline uint Ppu::ChrMem::FetchPattern(uint address) const
+		NST_FORCE_INLINE uint Ppu::ChrMem::FetchPattern(uint address) const
 		{
 			address &= 0x1FFF;
 			return accessors[address >> 12].Fetch( address );
 		}
 
-		inline uint Ppu::NmtMem::FetchName(const uint address) const
+		NST_FORCE_INLINE uint Ppu::NmtMem::FetchName(const uint address) const
 		{
 			const uint offset = address & (Scroll::Y_TILE|Scroll::X_TILE);
 			return accessors[(address & Scroll::NAME) >> 10][(offset + 0x40) >> 10].Fetch( offset );
 		}
 
-		inline uint Ppu::NmtMem::FetchAttribute(const uint address) const
+		NST_FORCE_INLINE uint Ppu::NmtMem::FetchAttribute(const uint address) const
 		{
 			return accessors[(address & Scroll::NAME) >> 10][1].Fetch
 			(
@@ -826,12 +847,12 @@ namespace Nes
 			);
 		}
 
-		inline uint Ppu::FetchName() const
+		NST_FORCE_INLINE uint Ppu::FetchName() const
 		{
 			return scroll.pattern | (nmtMem.FetchName( io.address ) << 4) | (scroll.address >> 12);
 		}
 
-		inline uint Ppu::FetchAttribute() const
+		NST_FORCE_INLINE uint Ppu::FetchAttribute() const
 		{
 			return (nmtMem.FetchAttribute( io.address ) >> ((scroll.address & 0x02) | ((scroll.address & 0x40) >> 4))) & 0x3;
 		}
@@ -913,9 +934,9 @@ namespace Nes
 			NST_VERIFY( IsDead() );
 
 			io.latch = data = IsDead() ? data : Oam::GARBAGE;
-			u8& value = oam.ram[oam.address];
+			u8* const NST_RESTRICT value = oam.ram + oam.address;
 			oam.address = (oam.address + 1) & 0xFF;
-			value = data;
+			*value = data;
 		}
 
 		NES_PEEK(Ppu,2004)
@@ -1002,7 +1023,7 @@ namespace Nes
 		{
 			Update();
 
-			NST_VERIFY( IsDead()  );
+			NST_VERIFY( IsDead() );
 
 			io.latch = data;
 			address = scroll.address;
@@ -1040,15 +1061,8 @@ namespace Nes
 
 			UpdateScrollAddress( (scroll.address + scroll.increase) & 0x7FFF );
 
-			if ((address & 0x3F00) != 0x3F00)
-				io.latch = io.buffer;
-			else
-				io.latch = palette.ram[address & 0x1F] & output.coloring;
-
-			if (address >= 0x2000)
-				io.buffer = nmtMem.FetchName( address );
-			else
-				io.buffer = chrMem.FetchPattern( address );
+			io.latch = ((address & 0x3F00) != 0x3F00 ? io.buffer : palette.ram[address & 0x1F] & output.coloring);
+			io.buffer = (address >= 0x2000 ? nmtMem.FetchName( address ) : chrMem.FetchPattern( address ));
 
 			return io.latch;
 		}
@@ -1069,6 +1083,8 @@ namespace Nes
 
 			NST_ASSERT( oam.address < Oam::SIZE );
 			NST_VERIFY( IsDead() );
+
+			cpu.StealCycles( cpu.GetMasterClockCycle(1) * Oam::DMA_CYCLES );
 
 			if (IsDead())
 			{
@@ -1101,8 +1117,6 @@ namespace Nes
 
 				LogMsg("Ppu: garbage DMA transfer!" NST_LINEBREAK,1UL << 0);
 			}
-
-			cpu.StealCycles( cpu.GetMasterClockCycle(1) * Oam::DMA_CYCLES );
 		}
 
 		NES_PEEK(Ppu,4014)
@@ -1138,7 +1152,7 @@ namespace Nes
 			}
 		}
 
-		void Ppu::EvaluateSpritesAndRenderPixel()
+		NST_FORCE_INLINE void Ppu::EvaluateSprites()
 		{
 			NST_ASSERT( scanline >= 0 && scanline <= 239 && oam.address < Oam::SIZE );
 
@@ -1147,74 +1161,64 @@ namespace Nes
 			if (io.enabled)
 			{
 				const uint height = ((regs.ctrl0 & Regs::CTRL0_SP8X16) >> 2) + 8;
-				const uint line = scanline;
 
-				uint i = 0;
-
-				for (;;)
+				for (uint i=0;;)
 				{
-					const u8* const NST_RESTRICT obj = oam.ram + i + (i <= 4 ? (oam.address & Oam::OFFSET_TO_0_1) : 0);
+					const u8* const NST_RESTRICT obj = oam.ram + i + (oam.address & (i <= 4 ? Oam::OFFSET_TO_0_1 : 0));
 					i += 4;
 
-					uint y = line - obj[0];
+					uint y = uint(scanline) - obj[0];
 
 					if (y >= height)
 					{
 						if (i == Oam::SIZE)
-						{
-							RenderPixel();
-							return;
-						}
+							break;
 					}
 					else
 					{
-						if (obj[2] & Oam::Y_FLIP)
-							y ^= 0xF;
+						Oam::Buffer* const NST_RESTRICT eval = oam.evaluated;
 
-						oam.evaluated->comparitor = y;
+						eval->comparitor = y ^ ((obj[2] & Oam::Y_FLIP) ? 0xF : 0x0);
 
-						oam.evaluated->attribute =
+						eval->attribute =
 						(
 							(i == 4) |
 							((obj[2] & Oam::COLOR) << 2) |
 							(obj[2] & (Oam::BEHIND|Oam::X_FLIP))
 						);
 
-						oam.evaluated->tile = obj[1];
-						oam.evaluated->x = obj[3];
+						eval->tile = obj[1];
+						eval->x = obj[3];
 
 						++oam.evaluated;
 
 						if (i == Oam::SIZE)
-						{
-							RenderPixel();
-							return;
-						}
+							break;
 
 						if (oam.evaluated == oam.limit)
-							break;
-					}
-				}
+						{
+							if (cycles.spriteOverflow == NES_CYCLE_MAX)
+							{
+								do
+								{
+									if (uint(scanline) - oam.ram[i] >= height)
+									{
+										i = ((i + 4) & 0x1FC) + ((i + 1) & 0x03);
+									}
+									else
+									{
+										cycles.spriteOverflow = cycles.count + cycles.one * (45 + i/4 * 2);
+										break;
+									}
+								}
+								while (i < Oam::SIZE);
+							}
 
-				if (cycles.spriteOverflow == NES_CYCLE_MAX)
-				{
-					do
-					{
-						if (line - oam.ram[i] >= height)
-						{
-							i = ((i + 4) & 0x1FC) + ((i + 1) & 0x03);
-						}
-						else
-						{
-							cycles.spriteOverflow = cycles.count + cycles.one * (45 + i/4 * 2);
 							break;
 						}
 					}
-					while (i < Oam::SIZE);
 				}
 			}
-
-			RenderPixel();
 		}
 
 		void Ppu::LoadSprite()
@@ -1280,7 +1284,7 @@ namespace Nes
 			++oam.loaded;
 		}
 
-		void Ppu::Tiles::Load()
+		NST_FORCE_INLINE void Ppu::Tiles::Load()
 		{
 			const u32 tmp[] =
 			{
@@ -1290,14 +1294,14 @@ namespace Nes
 				chrAttLut[1][(reverseLut[pattern[1]] >>  4) | (attribute << 4)].block
 			};
 
-			u32* const NST_RESTRICT dst = block + index;
-			index ^= 2;
+			u32* const NST_RESTRICT dst = reinterpret_cast<u32*>(pixels + index);
+			index ^= 8;
 
 			dst[0] = tmp[0];
 			dst[1] = tmp[1];
 		}
 
-		void Ppu::RenderPixel()
+		NST_FORCE_INLINE void Ppu::RenderPixel()
 		{
 			register uint pixel = 0;
 
@@ -1337,25 +1341,31 @@ namespace Nes
 			}
 
 			++output.index;
-			u16* const NST_RESTRICT screen = output.pixels;
-			output.pixels = reinterpret_cast<u16*>(reinterpret_cast<u8*>(output.pixels) + output.next);
-			*screen = output.emphasis + (output.coloring & palette.map[palette.ram[pixel]]);
+			u16* const NST_RESTRICT target = output.target;
+			output.target = reinterpret_cast<u16*>(reinterpret_cast<u8*>(output.target) + output.next);
+			*target = output.emphasis + (output.coloring & palette.map[palette.ram[pixel]]);
 		}
 
 		void Ppu::HActive0()
 		{
+			tiles.Load();
+
 			if (io.enabled)
 				io.address = scroll.address;
 
-			tiles.Load();
-
-			if (stage != 8)
-				RenderPixel();
-			else
-				EvaluateSpritesAndRenderPixel();
+			RenderPixel();
 
 			cycles.count += cycles.one;
-			NST_PPU_NEXT_PHASE( HActive1 );
+
+			if (stage != 8)
+			{
+				NST_PPU_NEXT_PHASE( HActive1 );
+			}
+			else
+			{
+				EvaluateSprites();
+				NST_PPU_NEXT_PHASE( HActive1 );
+			}
 		}
 
 		void Ppu::HActive1()
@@ -1544,10 +1554,10 @@ namespace Nes
 
 		void Ppu::HBlankBg0()
 		{
+			tiles.Load();
+
 			if (io.enabled)
 				io.address = scroll.address;
-
-			tiles.Load();
 
 			cycles.count += cycles.one;
 			NST_PPU_NEXT_PHASE( HBlankBg1 );
@@ -1627,7 +1637,7 @@ namespace Nes
 				cycles.count += cycles.one;
 				NST_PPU_NEXT_PHASE( HBlankBg0 );
 			}
-			else if (++scanline != 240)
+			else if (scanline++ != 239)
 			{
 				cycles.count += cycles.six;
 

@@ -22,150 +22,44 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include <new>
-#include <cstring>
-#include "language/resource.h"
-#include "NstApplicationInstance.hpp"
+#include <cstdlib>
+#include "NstString.hpp"
+#include "NstResourceString.hpp"
+#include "NstWindowUser.hpp"
 #include "NstApplicationException.hpp"
 
 namespace Nestopia
 {
-	using Application::Exception;
-
-	class Exception::Message
+	namespace Application
 	{
-		Message()
-		: id(0), allocated(false), next(NULL) {}
-
-		Message(uint i,tstring const backup)
-		: id(i), string(backup), allocated(false), next(NULL)
+		int Exception::Issue() const
 		{
-			if (Application::Instance::IsResourceLoaded())
+			try
 			{
-				tchar buffer[MAX_MSG_LENGTH];
-
-				if (uint length = ::LoadString( Application::Instance::GetResourceHandle(), i, buffer, MAX_MSG_LENGTH-1 ))
+				if (msg)
 				{
-					if (tchar* const block = new (std::nothrow) tchar [++length])
-					{
-						string = block;
-						allocated = true;
-						std::memcpy( block, buffer, length * sizeof(tchar) );
-					}
+					Window::User::Fail( msg );
+				}
+				else if (id)
+				{
+					const HeapString& string = Resource::String( id );
+
+					if (string.Length())
+						Window::User::Fail( string.Ptr() );
+					else
+						throw;
+				}
+				else
+				{
+					return EXIT_SUCCESS;
 				}
 			}
-		}
-
-		~Message()
-		{
-			delete next;
-
-			if (allocated)
-				delete [] string;
-		}
-
-		const uint id;
-		tstring string;
-		ibool allocated;
-		Message* next;
-
-		static Message list;
-
-	public:
-
-		static tstring GetString(const uint,tstring);
-	};
-
-	Exception::Message Exception::Message::list;
-
-	tstring Exception::Message::GetString(const uint id,tstring const backup)
-	{
-		Message* node = &list;
-
-		while (node->next)
-		{
-			node = node->next;
-
-			if (node->id == id)
-				return node->string;
-		}
-
-		node->next = new Message( id, backup );
-
-		return node->next->string;
-	}
-
-	tstring Exception::GetMessageText() const
-	{
-		if (msg && *msg)
-			return msg;
-
-		if (type == CRITICAL)
-		{
-			return Message::GetString
-			(
-				msgId != NO_ID ? msgId : IDS_ERR_GENERIC,
-				_T("Unhandled error! Call the Ghostbusters!")
-			);
-		}
-
-		tstring warning = _T("Unknown warning, just click OK to continue.");
-
-		if (msgId != NO_ID)
-			warning = Message::GetString( msgId, warning );
-
-		return warning;
-	}
-
-	void Exception::Issue(const Place final) const
-	{
-		if (final && type == UNSTABLE)
-			return;
-
-		tstring message = GetMessageText();
-
-		uint flags;
-		tchar buffer[MAX_MSG_LENGTH * 2 + 8];
-
-		switch (type)
-		{
-			case WARNING:
-
-				flags = MB_OK|MB_ICONWARNING|MB_SETFOREGROUND|MB_TOPMOST;
-				break;
-
-			case UNSTABLE:
+			catch (...)
 			{
-				flags = MB_YESNO|MB_ICONWARNING|MB_SETFOREGROUND|MB_TOPMOST;
-
-				tstring const unstable = Message::GetString
-				(
-					IDS_UNSTABLE, _T("application is unstable! Sure you want to continue?")
-				);
-
-				::_tcscpy( buffer, message );
-				::_tcscat( buffer, _T("\r\n\r\n") );
-				::_tcscat( buffer, unstable );
-
-				message = buffer;
-				break;
+				Window::User::Fail( _T("Unhandled error! Call the Ghostbusters!") );
 			}
 
-			default:
-
-				flags = MB_OK|MB_ICONERROR|MB_SETFOREGROUND|MB_TOPMOST;
-				break;
+			return EXIT_FAILURE;
 		}
-
-		tstring const caption = Message::GetString
-		(
-			type == CRITICAL ? IDS_TITLE_ERROR : IDS_TITLE_WARNING,
-			type == CRITICAL ? _T("Nestopia Error") : _T("Nestopia Warning")
-		);
-
-		const int result = ::MessageBox( ::GetActiveWindow(), message, caption, flags );
-
-		if (!final && (type == CRITICAL || (type == UNSTABLE && result == IDNO)))
-			throw QUIT_FAILURE;
 	}
 }

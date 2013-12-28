@@ -46,7 +46,6 @@ namespace Nestopia
 			ibool OnInitDialog (Param&);
 			ibool OnSetCursor  (Param&);
 			ibool OnCmdClick   (Param&);
-			ibool OnCmdOk      (Param&);
 
 			Dialog dialog;
 

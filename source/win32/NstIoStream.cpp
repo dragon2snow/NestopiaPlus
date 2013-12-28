@@ -27,323 +27,322 @@
 
 namespace Nestopia
 {
-	using Io::Stream::Input;
-	using Io::Stream::Output;
-	using Io::File;
-
-	Input::Buffer::Buffer()
-	: pos(0)
+	namespace Io
 	{
-		Initialize();
-	}
+		Stream::Input::Buffer::Buffer()
+		: pos(0)
+		{
+			Initialize();
+		}
 
-	Input::Buffer::Buffer(const File& file)
-	{
-		Initialize();
-		Initialize( file );
-	}
+		Stream::Input::Buffer::Buffer(const File& file)
+		{
+			Initialize();
+			Initialize( file );
+		}
 
-	Input::Buffer::Buffer(Collection::Buffer& buffer)
-	{
-		Initialize();
-		Initialize( buffer );
-	}
+		Stream::Input::Buffer::Buffer(Collection::Buffer& buffer)
+		{
+			Initialize();
+			Initialize( buffer );
+		}
 
-	inline void Input::Buffer::operator = (const File& file)
-	{
-		Clear();
-		Initialize( file );
-	}
+		inline void Stream::Input::Buffer::operator = (const File& file)
+		{
+			Clear();
+			Initialize( file );
+		}
 
-	inline void Input::Buffer::operator = (Collection::Buffer& buffer)
-	{
-		Clear();
-		Initialize( buffer );
-	}
+		inline void Stream::Input::Buffer::operator = (Collection::Buffer& buffer)
+		{
+			Clear();
+			Initialize( buffer );
+		}
 
-	void Input::Buffer::Initialize()
-	{
-		setg( NULL, NULL, NULL );
-	}
+		void Stream::Input::Buffer::Initialize()
+		{
+			setg( NULL, NULL, NULL );
+		}
 
-	void Input::Buffer::Initialize(Collection::Buffer& buffer)
-	{
-		pos = 0;
-		vector.Import( buffer );
-	}
-
-	void Input::Buffer::Initialize(const File& file)
-	{
-		try
+		void Stream::Input::Buffer::Initialize(Collection::Buffer& buffer)
 		{
 			pos = 0;
-			vector.Resize( file.Size() );
-			file.Peek( 0, vector.Ptr(), vector.Size() );
+			vector.Import( buffer );
 		}
-		catch (File::Exception)
+
+		void Stream::Input::Buffer::Initialize(const File& file)
 		{
-			// I/O failure
+			try
+			{
+				pos = 0;
+				vector.Resize( file.Size() );
+				file.Peek( 0, vector.Ptr(), vector.Size() );
+			}
+			catch (File::Exception)
+			{
+				// I/O failure
+			}
 		}
-	}
 
-	void Input::Buffer::Export(Collection::Buffer& buffer)
-	{
-		pos = 0;
-		buffer.Import( vector );
-	}
-
-	#ifdef NST_PRAGMA_OPTIMIZE
-	#pragma optimize("t", on)
-	#endif
-
-	Input::Buffer::int_type Input::Buffer::underflow()
-	{
-		NST_ASSERT( pos <= vector.Size() );
-		return pos < vector.Size() ? vector[pos] : traits_type::eof();
-	}
-
-	Input::Buffer::int_type Input::Buffer::uflow()
-	{
-		NST_ASSERT( pos <= vector.Size() );
-		return pos < vector.Size() ? vector[pos++] : traits_type::eof();
-	}
-
-	std::streamsize Input::Buffer::xsgetn(char* output,std::streamsize count)
-	{
-		NST_ASSERT( pos <= vector.Size() );
-
-		if (pos + count <= vector.Size())
+		void Stream::Input::Buffer::Export(Collection::Buffer& buffer)
 		{
-			std::memcpy( output, vector.Ptr() + pos, count );
+			pos = 0;
+			buffer.Import( vector );
+		}
+
+		#ifdef NST_PRAGMA_OPTIMIZE
+		#pragma optimize("t", on)
+		#endif
+
+		Stream::Input::Buffer::int_type Stream::Input::Buffer::underflow()
+		{
+			NST_ASSERT( pos <= vector.Size() );
+			return pos < vector.Size() ? vector[pos] : traits_type::eof();
+		}
+
+		Stream::Input::Buffer::int_type Stream::Input::Buffer::uflow()
+		{
+			NST_ASSERT( pos <= vector.Size() );
+			return pos < vector.Size() ? vector[pos++] : traits_type::eof();
+		}
+
+		std::streamsize Stream::Input::Buffer::xsgetn(char* output,std::streamsize count)
+		{
+			NST_ASSERT( pos <= vector.Size() );
+
+			if (pos + count <= vector.Size())
+			{
+				std::memcpy( output, vector.Ptr() + pos, count );
+				pos += count;
+				return count;
+			}
+
+			return 0;
+		}
+
+		std::streampos Stream::Input::Buffer::seekoff
+		(
+			std::streamoff offset,
+			std::ios::seekdir dir,
+			std::ios::openmode mode
+		)
+		{
+			NST_ASSERT
+			(
+				(mode == std::ios::in) &&
+				(dir == std::ios::beg || dir == std::ios::cur || dir == std::ios::end)
+			);
+
+			if (dir == std::ios::cur)
+			{
+				offset += (long) pos;
+			}
+			else if (dir == std::ios::end)
+			{
+				offset += (long) vector.Size();
+			}
+
+			pos = offset;
+
+			NST_ASSERT( pos <= vector.Size() );
+
+			return offset;
+		}
+
+		std::streampos Stream::Input::Buffer::seekpos(std::streampos offset,std::ios::openmode mode)
+		{
+			NST_ASSERT( (mode == std::ios::in) && (int(offset) >= 0 && uint(offset) <= vector.Size()) );
+			pos = offset;
+			return offset;
+		}
+
+		#ifdef NST_PRAGMA_OPTIMIZE
+		#pragma optimize("", on)
+		#endif
+
+		void Stream::Input::Buffer::Clear()
+		{
+			pos = 0;
+			vector.Destroy();
+		}
+
+		Stream::Input::Input()
+		: std::istream(&buffer) {}
+
+		Stream::Input::Input(const File& file)
+		: std::istream(&buffer), buffer(file) {}
+
+		Stream::Input::Input(Collection::Buffer& input)
+		: std::istream(&buffer), buffer(input) {}
+
+		Stream::Input::~Input()
+		{
+		}
+
+		Stream::Input& Stream::Input::operator = (const File& file)
+		{
+			buffer = file;
+			return *this;
+		}
+
+		Stream::Input& Stream::Input::operator = (Collection::Buffer& input)
+		{
+			buffer = input;
+			return *this;
+		}
+
+		Stream::Output::Buffer::Buffer()
+		: pos(0)
+		{
+			Initialize();
+		}
+
+		Stream::Output::Buffer::Buffer(const File& file)
+		{
+			Initialize();
+			Initialize( file );
+		}
+
+		Stream::Output::Buffer::Buffer(Collection::Buffer& buffer)
+		{
+			Initialize();
+			Initialize( buffer );
+		}
+
+		inline void Stream::Output::Buffer::operator = (const File& file)
+		{
+			Initialize( file );
+		}
+
+		inline void Stream::Output::Buffer::operator = (Collection::Buffer& buffer)
+		{
+			Initialize( buffer );
+		}
+
+		void Stream::Output::Buffer::Initialize()
+		{
+			setp( NULL, NULL );
+		}
+
+		void Stream::Output::Buffer::Initialize(Collection::Buffer& buffer)
+		{
+			pos = 0;
+			vector.Import( buffer );
+		}
+
+		void Stream::Output::Buffer::Initialize(const File& file)
+		{
+			try
+			{
+				pos = 0;
+				vector.Resize( file.Size() );
+				file.Peek( 0, vector.Ptr(), vector.Size() );
+			}
+			catch (File::Exception)
+			{
+				vector.Clear();
+			}
+		}
+
+		void Stream::Output::Buffer::Export(Collection::Buffer& input)
+		{
+			vector.ShrinkTo( pos );
+			pos = 0;
+			input.Import( vector );
+		}
+
+		#ifdef NST_PRAGMA_OPTIMIZE
+		#pragma optimize("t", on)
+		#endif
+
+		Stream::Output::Buffer::int_type Stream::Output::Buffer::overflow(int_type c)
+		{
+			if (c != traits_type::eof())
+			{
+				vector.PushBack( char(c) );
+				c = traits_type::not_eof(c);
+			}
+
+			return c;
+		}
+
+		std::streamsize Stream::Output::Buffer::xsputn(const char* data,std::streamsize count)
+		{
+			if (pos + count > vector.Size())
+			{
+				vector.Reserve( (pos + count) * 2 );
+				vector.ShrinkTo( pos + count );
+			}
+
+			std::memcpy( vector.Ptr() + pos, data, count );
 			pos += count;
+
 			return count;
 		}
 
-		return 0;
-	}
-
-	std::streampos Input::Buffer::seekoff
-	(
-		std::streamoff offset,
-		std::ios::seekdir dir,
-		std::ios::openmode mode
-	)
-	{
-		NST_ASSERT
+		std::streampos Stream::Output::Buffer::seekoff
 		(
-			(mode == std::ios::in) &&
-			(dir == std::ios::beg || dir == std::ios::cur || dir == std::ios::end)
-		);
-
-		if (dir == std::ios::cur)
+			std::streamoff offset,
+			std::ios::seekdir dir,
+			std::ios::openmode mode
+		)
 		{
-			offset += (long) pos;
-		}
-		else if (dir == std::ios::end)
-		{
-			offset += (long) vector.Size();
-		}
+			NST_ASSERT
+			(
+				(mode == std::ios::out) &&
+				(dir == std::ios::beg || dir == std::ios::cur || dir == std::ios::end)
+			);
 
-		pos = offset;
+			if (dir == std::ios::cur)
+			{
+				offset += (long) pos;
+			}
+			else if (dir == std::ios::end)
+			{
+				offset += (long) vector.Size();
+			}
 
-		NST_ASSERT( pos <= vector.Size() );
+			pos = offset;
 
-		return offset;
-	}
+			NST_ASSERT( pos <= vector.Size() );
 
-	std::streampos Input::Buffer::seekpos(std::streampos offset,std::ios::openmode mode)
-	{
-		NST_ASSERT( (mode == std::ios::in) && (int(offset) >= 0 && uint(offset) <= vector.Size()) );
-		pos = offset;
-		return offset;
-	}
-
-	#ifdef NST_PRAGMA_OPTIMIZE
-	#pragma optimize("", on)
-	#endif
-
-	void Input::Buffer::Clear()
-	{
-		pos = 0;
-		vector.Destroy();
-	}
-
-	Input::Input()
-	: std::istream(&buffer) {}
-
-	Input::Input(const File& file)
-	: std::istream(&buffer), buffer(file) {}
-
-	Input::Input(Collection::Buffer& input)
-	: std::istream(&buffer), buffer(input) {}
-
-	Input::~Input()
-	{
-	}
-
-	Input& Input::operator = (const File& file)
-	{
-		buffer = file;
-		return *this;
-	}
-
-	Input& Input::operator = (Collection::Buffer& input)
-	{
-		buffer = input;
-		return *this;
-	}
-
-	Output::Buffer::Buffer()
-	: pos(0)
-	{
-		Initialize();
-	}
-
-	Output::Buffer::Buffer(const File& file)
-	{
-		Initialize();
-		Initialize( file );
-	}
-
-	Output::Buffer::Buffer(Collection::Buffer& buffer)
-	{
-		Initialize();
-		Initialize( buffer );
-	}
-
-	inline void Output::Buffer::operator = (const File& file)
-	{
-		Initialize( file );
-	}
-
-	inline void Output::Buffer::operator = (Collection::Buffer& buffer)
-	{
-		Initialize( buffer );
-	}
-
-	void Output::Buffer::Initialize()
-	{
-		setp( NULL, NULL );
-	}
-
-	void Output::Buffer::Initialize(Collection::Buffer& buffer)
-	{
-		pos = 0;
-		vector.Import( buffer );
-	}
-
-	void Output::Buffer::Initialize(const File& file)
-	{
-		try
-		{
-			pos = 0;
-			vector.Resize( file.Size() );
-			file.Peek( 0, vector.Ptr(), vector.Size() );
-		}
-		catch (File::Exception)
-		{
-			vector.Clear();
-		}
-	}
-
-	void Output::Buffer::Export(Collection::Buffer& input)
-	{
-		vector.ShrinkTo( pos );
-		pos = 0;
-		input.Import( vector );
-	}
-
-	#ifdef NST_PRAGMA_OPTIMIZE
-	#pragma optimize("t", on)
-	#endif
-
-	Output::Buffer::int_type Output::Buffer::overflow(int_type c)
-	{
-		if (c != traits_type::eof())
-		{
-			vector.PushBack( char(c) );
-			c = traits_type::not_eof(c);
+			return pos;
 		}
 
-		return c;
-	}
-
-	std::streamsize Output::Buffer::xsputn(const char* data,std::streamsize count)
-	{
-		if (pos + count > vector.Size())
+		std::streampos Stream::Output::Buffer::seekpos(std::streampos p,std::ios::openmode mode)
 		{
-			vector.Reserve( (pos + count) * 2 );
-			vector.ShrinkTo( pos + count );
+			NST_ASSERT( (mode == std::ios::out) && (int(p) >= 0 && uint(p) <= vector.Size()) );
+			pos = p;
+			return p;
 		}
 
-		std::memcpy( vector.Ptr() + pos, data, count );
-		pos += count;
+		#ifdef NST_PRAGMA_OPTIMIZE
+		#pragma optimize("", on)
+		#endif
 
-		return count;
-	}
+		Stream::Output::Output()
+		: std::ostream(&buffer) {}
 
-	std::streampos Output::Buffer::seekoff
-	(
-		std::streamoff offset,
-		std::ios::seekdir dir,
-		std::ios::openmode mode
-	)
-	{
-		NST_ASSERT
-		(
-			(mode == std::ios::out) &&
-			(dir == std::ios::beg || dir == std::ios::cur || dir == std::ios::end)
-		);
+		Stream::Output::Output(Collection::Buffer& vector)
+		: std::ostream(&buffer), buffer(vector) {}
 
-		if (dir == std::ios::cur)
+		Stream::Output::Output(const File& file)
+		: std::ostream(&buffer), buffer(file) {}
+
+		Stream::Output::~Output()
 		{
-			offset += (long) pos;
-		}
-		else if (dir == std::ios::end)
-		{
-			offset += (long) vector.Size();
 		}
 
-		pos = offset;
+		Stream::Output& Stream::Output::operator = (const File& file)
+		{
+			buffer = file;
+			return *this;
+		}
 
-		NST_ASSERT( pos <= vector.Size() );
-
-		return pos;
-	}
-
-	std::streampos Output::Buffer::seekpos(std::streampos p,std::ios::openmode mode)
-	{
-		NST_ASSERT( (mode == std::ios::out) && (int(p) >= 0 && uint(p) <= vector.Size()) );
-		pos = p;
-		return p;
-	}
-
-	#ifdef NST_PRAGMA_OPTIMIZE
-	#pragma optimize("", on)
-	#endif
-
-	Output::Output()
-	: std::ostream(&buffer) {}
-
-	Output::Output(Collection::Buffer& vector)
-	: std::ostream(&buffer), buffer(vector) {}
-
-	Output::Output(const File& file)
-	: std::ostream(&buffer), buffer(file) {}
-
-	Output::~Output()
-	{
-	}
-
-	Output& Output::operator = (const File& file)
-	{
-		buffer = file;
-		return *this;
-	}
-
-	Output& Output::operator = (Collection::Buffer& input)
-	{
-		buffer = input;
-		return *this;
+		Stream::Output& Stream::Output::operator = (Collection::Buffer& input)
+		{
+			buffer = input;
+			return *this;
+		}
 	}
 }

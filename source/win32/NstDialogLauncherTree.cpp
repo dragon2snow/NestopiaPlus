@@ -28,59 +28,60 @@
 
 namespace Nestopia
 {
-	using namespace Window;
-
-	Launcher::Tree::Tree()
-	:
-	imageList (16,16,IDB_LAUNCHERTREE_OPEN,IDB_LAUNCHERTREE_CLOSED),
-	selection (0)
-	{}
-
-	void Launcher::Tree::operator = (const Control::TreeView& treeCtrl)
+	namespace Window
 	{
-		ctrl = treeCtrl;
+		Launcher::Tree::Tree()
+		:
+		selection (0),
+		imageList (16,16,IDB_LAUNCHERTREE_OPEN,IDB_LAUNCHERTREE_CLOSED)
+		{}
 
-		ctrl.SetImageList( imageList );
-
-		ctrl.Add( Resource::String( IDS_LAUNCHER_SECTION_ALL     ) );
-		ctrl.Add( Resource::String( IDS_LAUNCHER_SECTION_NES     ) );
-		ctrl.Add( Resource::String( IDS_LAUNCHER_SECTION_UNIF    ) );
-		ctrl.Add( Resource::String( IDS_LAUNCHER_SECTION_FDS     ) );
-		ctrl.Add( Resource::String( IDS_LAUNCHER_SECTION_NSF     ) );
-		ctrl.Add( Resource::String( IDS_LAUNCHER_SECTION_IPS     ) );
-		ctrl.Add( Resource::String( IDS_LAUNCHER_SECTION_NSP     ) );
-		ctrl.Add( Resource::String( IDS_LAUNCHER_SECTION_ARCHIVE ) );
-
-		ctrl[selection].Select();
-	}
-
-	void Launcher::Tree::Close()
-	{
-		selection = ctrl.Selection().GetIndex();
-	}
-
-	void Launcher::Tree::SetColors(const uint bg,const uint fg,const Updater repaint) const
-	{
-		ctrl.SetBackgroundColor( bg );
-		ctrl.SetTextColor( fg );
-
-		if (repaint)
-			ctrl.Repaint();
-	}
-
-	uint Launcher::Tree::GetType(HTREEITEM const hItem) const
-	{
-		switch (ctrl.GetIndex( hItem ))
+		void Launcher::Tree::operator = (const Control::TreeView& treeCtrl)
 		{
-			case 1: return List::Files::Entry::NES;
-			case 2: return List::Files::Entry::UNF;
-			case 3: return List::Files::Entry::FDS;
-			case 4: return List::Files::Entry::NSF;
-			case 5: return List::Files::Entry::IPS;
-			case 6: return List::Files::Entry::NSP;
-			case 7: return List::Files::Entry::ARCHIVE;
+			ctrl = treeCtrl;
+
+			ctrl.SetImageList( imageList );
+
+			ctrl.Add( Resource::String( IDS_LAUNCHER_SECTION_ALL     ) );
+			ctrl.Add( Resource::String( IDS_LAUNCHER_SECTION_NES     ) );
+			ctrl.Add( Resource::String( IDS_LAUNCHER_SECTION_UNIF    ) );
+			ctrl.Add( Resource::String( IDS_LAUNCHER_SECTION_FDS     ) );
+			ctrl.Add( Resource::String( IDS_LAUNCHER_SECTION_NSF     ) );
+			ctrl.Add( Resource::String( IDS_LAUNCHER_SECTION_IPS     ) );
+			ctrl.Add( Resource::String( IDS_LAUNCHER_SECTION_NSP     ) );
+			ctrl.Add( Resource::String( IDS_LAUNCHER_SECTION_ARCHIVE ) );
+
+			ctrl[selection].Select();
 		}
 
-		return List::Files::Entry::ALL;
+		void Launcher::Tree::Close()
+		{
+			selection = ctrl.Selection().GetIndex();
+		}
+
+		void Launcher::Tree::SetColors(const uint bg,const uint fg,const Updater redraw) const
+		{
+			ctrl.SetBackgroundColor( bg );
+			ctrl.SetTextColor( fg );
+
+			if (redraw)
+				ctrl.Redraw();
+		}
+
+		uint Launcher::Tree::GetType(HTREEITEM const hItem) const
+		{
+			switch (ctrl.GetIndex( hItem ))
+			{
+				case 1: return List::Files::Entry::NES;
+				case 2: return List::Files::Entry::UNF;
+				case 3: return List::Files::Entry::FDS;
+				case 4: return List::Files::Entry::NSF;
+				case 5: return List::Files::Entry::IPS;
+				case 6: return List::Files::Entry::NSP;
+				case 7: return List::Files::Entry::ARCHIVE;
+			}
+
+			return List::Files::Entry::ALL;
+		}
 	}
 }

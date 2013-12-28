@@ -83,7 +83,6 @@ namespace Nes
 			void   Reset(bool);
 			void   ClearBuffers();
 			void   SetMode(Mode);
-			Cycle  Clock(Cycle);
 			void   BeginFrame(Sound::Output*);
 			void   EndFrame();
 			void   Poke_4017(uint);
@@ -358,7 +357,7 @@ namespace Nes
 
 			Cycle ClockOscillators();
 			void ClockDmc(Cycle);
-			void ClockFrameIRQ();
+			NST_NO_INLINE void ClockFrameIRQ();
 
 			template<typename T>
 			void UpdateBuffer(T);
@@ -748,6 +747,17 @@ namespace Nes
 			{
 				NST_ASSERT( extChannel );
 				cycles.extCounter = clock;
+			}
+
+			Cycle Clock(const Cycle elapsed)
+			{
+				while (cycles.frameIrqClock <= elapsed)
+					ClockFrameIRQ();
+
+				if (cycles.dmcClock <= elapsed)
+					ClockDmc( elapsed );
+
+				return NST_MIN(cycles.frameIrqClock,cycles.dmcClock);
 			}
 		};
 	}

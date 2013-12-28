@@ -31,6 +31,12 @@
 
 namespace Nestopia
 {
+	namespace Managers
+	{
+		class Paths;
+		class Emulator;
+	}
+
 	namespace Window
 	{
 		class Netplay
@@ -105,7 +111,6 @@ namespace Nestopia
 			ibool OnRemove     (Param&);
 			ibool OnClear      (Param&);
 			ibool OnDefault    (Param&);
-			ibool OnCancel     (Param&);
 			ibool OnLaunch     (Param&);
 			ibool OnFullscreen (Param&);
 			ibool OnDropFiles  (Param&);

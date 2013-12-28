@@ -22,143 +22,144 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
+#include "NstApplicationException.hpp"
 #include "NstObjectPod.hpp"
 #include "NstCollectionVector.hpp"
-#include "NstApplicationException.hpp"
 #include "NstSystemKeyboard.hpp"
 #include "NstSystemAccelerator.hpp"
 
 namespace Nestopia
 {
-	using System::Accelerator;
-
-	struct Accelerator::CopyTable
+	namespace System
 	{
-		enum { STACK_SIZE = 96 };
-
-		uint size;
-		ACCEL stack[STACK_SIZE];
-		Collection::Vector<ACCEL> heap;
-	};
-
-	void Accelerator::Clear()
-	{
-		if (handle)
+		struct Accelerator::CopyTable
 		{
-			::DestroyAcceleratorTable( handle );
-			handle = NULL;
-		}
-	}
+			enum { STACK_SIZE = 96 };
 
-	uint Accelerator::Size() const
-	{
-		if (handle)
+			uint size;
+			ACCEL stack[STACK_SIZE];
+			Collection::Vector<ACCEL> heap;
+		};
+
+		void Accelerator::Clear()
 		{
-			int size = ::CopyAcceleratorTable( handle, NULL, 0 );
-
-			if (size > 0)
-				return size;
-		}
-
-		return 0;
-	}
-
-	ibool Accelerator::Get(Entries& entries) const
-	{
-		entries.Resize( Size() );
-
-		if (entries.Size())
-		{
-			if (::CopyAcceleratorTable( handle, entries.Ptr(), entries.Size() ) != (int) entries.Size())
-				throw Application::Exception(_T("CopyAcceleratorTable() failed!"));
-
-			return true;
-		}
-
-		return false;
-	}
-
-	void Accelerator::Set(const ACCEL* const entries,const uint size)
-	{
-		NST_ASSERT( bool(entries) >= bool(size) );
-
-		Clear();
-
-		if (size)
-		{
-			Collection::Vector<ACCEL> actualEntries( size );
-			uint actualSize = 0;
-
-			for (uint i=0; i < size; ++i)
+			if (handle)
 			{
-				if (entries[i].fVirt && entries[i].key && entries[i].cmd)
-					actualEntries[actualSize++] = entries[i];
+				::DestroyAcceleratorTable( handle );
+				handle = NULL;
+			}
+		}
+
+		uint Accelerator::Size() const
+		{
+			if (handle)
+			{
+				int size = ::CopyAcceleratorTable( handle, NULL, 0 );
+
+				if (size > 0)
+					return size;
 			}
 
-			if (actualSize && (handle = ::CreateAcceleratorTable( actualEntries.Ptr(), actualSize )) == 0)
-				throw Application::Exception(_T("CreateAcceleratorTable() failed!"));
-		}
-	}
-
-	const HeapString Accelerator::GetKeyName(const ACCEL& accel)
-	{
-		HeapString name;
-
-		if (accel.fVirt & FCONTROL)
-			name << System::Keyboard::GetName( VK_CONTROL ) << '+';
-
-		if (accel.fVirt & FALT)
-			name << System::Keyboard::GetName( VK_MENU ) << '+';
-
-		if (accel.fVirt & FSHIFT)
-			name << System::Keyboard::GetName( VK_SHIFT ) << '+';
-
-		name << System::Keyboard::GetName( accel.key );
-
-		return name;
-	}
-
-	ACCEL* Accelerator::Copy(CopyTable& table) const
-	{
-		if (handle && (table.size = Size()) != 0)
-		{
-			ACCEL* ptr;
-
-			if (table.size < CopyTable::STACK_SIZE)
-			{
-				ptr = table.stack;
-			}
-			else
-			{
-				table.heap.Resize( table.size + 1 );
-				ptr = table.heap.Ptr();
-			}
-
-			if (table.size == (uint) ::CopyAcceleratorTable( handle, ptr, table.size ))
-				return ptr;
+			return 0;
 		}
 
-		return NULL;
-	}
-
-	ACCEL Accelerator::operator [] (const uint cmd) const
-	{
-		Object::Pod<ACCEL> entry;
-
-		CopyTable table;
-
-		if (const ACCEL* it = Copy( table ))
+		ibool Accelerator::Get(Entries& entries) const
 		{
-			for (const ACCEL* const end = it + table.size; it != end; ++it)
+			entries.Resize( Size() );
+
+			if (entries.Size())
 			{
-				if (cmd == it->cmd)
+				if (::CopyAcceleratorTable( handle, entries.Ptr(), entries.Size() ) != (int) entries.Size())
+					throw Application::Exception(_T("CopyAcceleratorTable() failed!"));
+
+				return true;
+			}
+
+			return false;
+		}
+
+		void Accelerator::Set(const ACCEL* const entries,const uint size)
+		{
+			NST_ASSERT( bool(entries) >= bool(size) );
+
+			Clear();
+
+			if (size)
+			{
+				Collection::Vector<ACCEL> actualEntries( size );
+				uint actualSize = 0;
+
+				for (uint i=0; i < size; ++i)
 				{
-					static_cast<ACCEL&>(entry) = *it;
-					break;
+					if (entries[i].fVirt && entries[i].key && entries[i].cmd)
+						actualEntries[actualSize++] = entries[i];
+				}
+
+				if (actualSize && (handle = ::CreateAcceleratorTable( actualEntries.Ptr(), actualSize )) == 0)
+					throw Application::Exception(_T("CreateAcceleratorTable() failed!"));
+			}
+		}
+
+		const HeapString Accelerator::GetKeyName(const ACCEL& accel)
+		{
+			HeapString name;
+
+			if (accel.fVirt & FCONTROL)
+				name << Keyboard::GetName( VK_CONTROL ) << '+';
+
+			if (accel.fVirt & FALT)
+				name << Keyboard::GetName( VK_MENU ) << '+';
+
+			if (accel.fVirt & FSHIFT)
+				name << Keyboard::GetName( VK_SHIFT ) << '+';
+
+			name << Keyboard::GetName( accel.key );
+
+			return name;
+		}
+
+		ACCEL* Accelerator::Copy(CopyTable& table) const
+		{
+			if (handle && (table.size = Size()) != 0)
+			{
+				ACCEL* ptr;
+
+				if (table.size < CopyTable::STACK_SIZE)
+				{
+					ptr = table.stack;
+				}
+				else
+				{
+					table.heap.Resize( table.size + 1 );
+					ptr = table.heap.Ptr();
+				}
+
+				if (table.size == (uint) ::CopyAcceleratorTable( handle, ptr, table.size ))
+					return ptr;
+			}
+
+			return NULL;
+		}
+
+		ACCEL Accelerator::operator [] (const uint cmd) const
+		{
+			Object::Pod<ACCEL> entry;
+
+			CopyTable table;
+
+			if (const ACCEL* it = Copy( table ))
+			{
+				for (const ACCEL* const end = it + table.size; it != end; ++it)
+				{
+					if (cmd == it->cmd)
+					{
+						static_cast<ACCEL&>(entry) = *it;
+						break;
+					}
 				}
 			}
-		}
 
-		return entry;
+			return entry;
+		}
 	}
 }

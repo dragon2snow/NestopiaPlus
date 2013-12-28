@@ -35,7 +35,7 @@ namespace Nes
 		#endif
 
 		Mapper245::Mapper245(Context& c)
-		: Mmc3(c,WRAM_8K | (c.pRomCrc == 0xD3A269DCUL ? CROM_NONE : 0)) {} // Dragon Quest II (J)
+		: Mmc3(c,WRAM_8K | (c.prgCrc == 0xD3A269DCUL ? CROM_NONE : 0)) {} // Dragon Quest II (J)
 
 		void Mapper245::SubReset(const bool hard)
 		{
@@ -88,7 +88,7 @@ namespace Nes
 
 		void Mapper245::UpdateChr() const
 		{
-			if (!chr.Source().IsWritable())
+			if (!chr.Source().Writable())
 				Mmc3::UpdateChr();
 		}
 

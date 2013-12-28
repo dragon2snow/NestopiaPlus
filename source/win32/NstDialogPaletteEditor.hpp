@@ -28,8 +28,6 @@
 #pragma once
 
 #include "NstWindowDialog.hpp"
-#include "NstWindowParam.hpp"
-#include "NstManagerPaths.hpp"
 #include "NstManagerEmulator.hpp"
 
 namespace Nestopia
@@ -68,10 +66,11 @@ namespace Nestopia
 				void Restore(Nes::Video) const;
 
 				Nes::Video::Palette::Mode mode;
+				Nes::Video::Palette::CustomType customType;
 				uint brightness;
 				uint saturation;
 				uint hue;
-				u8 palette[64][3];
+				u8 palette[8*64][3];
 			};
 
 			class History
@@ -101,16 +100,17 @@ namespace Nestopia
 
 			void UpdateMode(ibool=false);
 			void UpdateColor();
+			void UpdateColors();
 
 			ibool OnInitDialog  (Param&);
-			ibool OnPaint       (Param&);
+			ibool OnEraseBkgnd  (Param&);
 			ibool OnLButtonDown (Param&);
 			ibool OnHScroll     (Param&);
+			ibool OnCmdHex      (Param&);
 			ibool OnCmdUndo     (Param&);
 			ibool OnCmdRedo     (Param&);
 			ibool OnCmdReset    (Param&);
 			ibool OnCmdSave     (Param&);
-			ibool OnCmdCancel   (Param&);
 			ibool OnCmdMode     (Param&);
 
 			Dialog dialog;
@@ -121,6 +121,8 @@ namespace Nestopia
 			ibool sliderDragging;
 			History history;
 			const Settings settings;
+
+			static ibool showHex;
 
 		public:
 

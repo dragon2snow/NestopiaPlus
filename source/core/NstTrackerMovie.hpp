@@ -35,13 +35,13 @@ namespace Nes
 	{
 		class Tracker::Movie
 		{
-			typedef Result (Api::Emulator::*EmuLoadState)(StdStream,bool);
-			typedef Result (Api::Emulator::*EmuSaveState)(StdStream,bool);
-			typedef Result (Api::Emulator::*EmuReset)(bool);
+			typedef Result (Machine::*EmuLoadState)(StdStream,bool);
+			typedef Result (Machine::*EmuSaveState)(StdStream,bool,bool);
+			typedef Result (Machine::*EmuReset)(bool);
 
 		public:
 
-			Movie(Api::Emulator&,EmuReset,EmuLoadState,EmuSaveState,Cpu&,dword);
+			Movie(Machine&,EmuReset,EmuLoadState,EmuSaveState,Cpu&,dword);
 			~Movie();
 
 			Result Play(StdStream,bool);
@@ -90,7 +90,7 @@ namespace Nes
 			Status status;
 			Player* player;
 			Recorder* recorder;
-			Api::Emulator& emulator;
+			Machine& emulator;
 			const EmuSaveState emuSaveState;
 			const EmuLoadState emuLoadState;
 			const EmuReset emuReset;

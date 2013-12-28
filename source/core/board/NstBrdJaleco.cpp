@@ -78,7 +78,7 @@ namespace Nes
 			:
 			Mapper    (c),
 			prgOffset (t == TYPE_1 ? 0x4000U : 0x0000U),
-			sound     (DetectSound(c.pRomCrc,c.cpu)),
+			sound     (DetectSound(c.prgCrc,c.cpu)),
 			type      (t)
 			{
 			}

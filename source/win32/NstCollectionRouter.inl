@@ -156,7 +156,7 @@ void Router<Output,Input,Key>::Remove(const void* const data)
 				callback.template CodePtr<Hook>() == &Hook::Invoke &&
 				callback.template DataPtr<Hook>()->main.VoidPtr() == data
 			)
-				callback.template DataPtr<Hook>()->main.Reset();
+				callback.template DataPtr<Hook>()->main.Unset();
 
 			++i;
 		}

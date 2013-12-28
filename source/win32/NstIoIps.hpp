@@ -34,7 +34,7 @@ namespace Nestopia
 {
 	namespace Io
 	{
-		class Ips : Sealed
+		class Ips
 		{
 		public:
 

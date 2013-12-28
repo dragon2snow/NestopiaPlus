@@ -117,18 +117,6 @@ namespace Nes
 					NST_ASSERT( first <= last && last < SIZE );
 					return Ports( ports + first, ports + last + 1 );
 				}
-
-				void Poke(Address address,Data data)
-				{
-					NST_ASSERT( address < SIZE + OVERFLOW_SIZE );
-					ports[address].Poke( address, data );
-				}
-
-				Data Peek(Address address) const
-				{
-					NST_ASSERT( address < SIZE + OVERFLOW_SIZE );
-					return ports[address].Peek( address );
-				}
 			};
 		}
 	}

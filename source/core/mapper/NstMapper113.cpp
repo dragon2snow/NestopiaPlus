@@ -36,7 +36,7 @@ namespace Nes
 		Mapper113::Mapper113(Context& c)
 		:
 		Mapper  (c,WRAM_NONE),
-		hes6in1 (c.pRomCrc == 0xA75AEDE5UL) // HES 6-in-1
+		hes6in1 (c.prgCrc == 0xA75AEDE5UL) // HES 6-in-1
 		{}
 
 		void Mapper113::SubReset(const bool)

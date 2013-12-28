@@ -41,16 +41,48 @@ namespace Nes
 				case 0xBEB88304UL: // Startropics (U)
 				case 0xAC74DD5CUL: // Startropics (E)
 				case 0x80FB117EUL: // Startropics 2 - Zoda's Revenge (U)
+
 					return true;
 			}
 
 			return false;
 		}
 
+		Mapper4::Revision Mapper4::GetRevision(dword crc)
+		{
+			switch (crc)
+			{
+				case 0xAF5AD5AFUL: // 8 Eyes (J)
+				case 0xCB475567UL: // 8 Eyes (U)
+				case 0xDE182C88UL: // Bad Dudes (U)
+				case 0x4076E7A6UL: // Batman (E)
+				case 0x5A3E41D8UL: // Batman (U)
+				case 0x5CEB1256UL: // Indiana Jones & Temple of Doom (U)
+				case 0x4CDCAF6BUL: // Legacy of the Wizard (U)
+				case 0x15BE6E58UL: // Mappy-Land (J)
+				case 0x6D9BA342UL: // Mappy-Land (U)
+				case 0x99344ACDUL: // Rampage (U)
+				case 0x78784CBFUL: // River City Ransom (U)
+				case 0x2706B3A1UL: // Robocop (E)
+				case 0xC382120CUL: // Robocop (J)
+				case 0x468DB9A0UL: // Robocop (U)
+				case 0x066F5A83UL: // Rock'n Ball (U)
+				case 0x08AF16A0UL: // Super Mario Bros 2 (E)
+				case 0x07854B3FUL: // Super Mario Bros 2 (U)
+				case 0xEBB9DF3DUL: // Super Spike V'Ball (E)
+				case 0x1E598A14UL: // Super Spike V'Ball (U)
+				case 0x163E86C0UL: // To the Earth (U)
+
+					return REV_A;
+			}
+
+			return REV_B_C;
+		}
+
 		Mapper4::Mapper4(Context& c)
 		:
-		Mmc3 (c,WRAM_8K,true),
-		mmc6 (IsMmc6(c.pRomCrc))
+		Mmc3 (c,WRAM_8K,GetRevision(c.prgCrc)),
+		mmc6 (IsMmc6(c.prgCrc))
 		{}
 
 		void Mapper4::SubReset(const bool hard)
@@ -66,12 +98,6 @@ namespace Nes
 
 				for (uint i=0xA001U; i < 0xC000U; i += 0x2)
 					Map( i, &Mapper4::Poke_Mmc6_A001 );
-			}
-
-			if (mirroring == Ppu::NMT_FOURSCREEN)
-			{
-				for (uint i=0xA000U; i < 0xC000U; i += 0x2)
-					Map( i, NOP_POKE );
 			}
 		}
 

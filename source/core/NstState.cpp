@@ -35,10 +35,6 @@
 
 #include "NstState.hpp"
 
-#ifdef NST_PRAGMA_OPTIMIZE
-#pragma optimize("s", on)
-#endif
-
 namespace Nes
 {
 	namespace Core
@@ -51,9 +47,14 @@ namespace Nes
 				ZLIB_COMPRESSION
 			};
 
-			Saver::Saver(StdStream p,bool c)
-			: stream(p), chunks(1), useCompression(c)
+			#ifdef NST_PRAGMA_OPTIMIZE
+			#pragma optimize("s", on)
+			#endif
+
+			Saver::Saver(StdStream p,bool c,bool i)
+			: stream(p), chunks(CHUNK_RESERVE), useCompression(c), internal(i)
 			{
+				chunks.SetTo(1);
 				chunks[0] = 0;
 			}
 
@@ -61,6 +62,10 @@ namespace Nes
 			{
 				NST_VERIFY( chunks.Size() == 1 );
 			}
+
+			#ifdef NST_PRAGMA_OPTIMIZE
+			#pragma optimize("", on)
+			#endif
 
 			Saver& Saver::Begin(dword id)
 			{
@@ -136,6 +141,10 @@ namespace Nes
 				return *this;
 			}
 
+			#ifdef NST_PRAGMA_OPTIMIZE
+			#pragma optimize("s", on)
+			#endif
+
 			Loader::Loader(StdStream p)
 			: stream(p)
 			{
@@ -144,6 +153,10 @@ namespace Nes
 			Loader::~Loader()
 			{
 			}
+
+			#ifdef NST_PRAGMA_OPTIMIZE
+			#pragma optimize("", on)
+			#endif
 
 			void Loader::DigIn()
 			{
@@ -241,7 +254,3 @@ namespace Nes
 		}
 	}
 }
-
-#ifdef NST_PRAGMA_OPTIMIZE
-#pragma optimize("", on)
-#endif

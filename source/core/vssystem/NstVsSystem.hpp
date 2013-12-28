@@ -43,7 +43,7 @@ namespace Nes
 		{
 		public:
 
-			static VsSystem* Create(Cpu&,Ppu&,dword);
+			static VsSystem* Create(Cpu&,Ppu&,dword,bool);
 			static void Destroy(VsSystem*&);
 
 			enum PpuType

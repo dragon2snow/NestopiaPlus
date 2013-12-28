@@ -22,27 +22,30 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstCollectionVector.hpp"
 #include "NstIoArchive.hpp"
+#include "NstCollectionVector.hpp"
 #include "NstResourceFile.hpp"
 
 namespace Nestopia
 {
-	uint Resource::File::Uncompress(Collection::Buffer* buffers,uint count) const
+	namespace Resource
 	{
-		uint size = 0;
-
-		if (GetSize())
+		uint File::Uncompress(Collection::Buffer* buffers,uint count) const
 		{
-			const Io::Archive archive( GetData(), GetSize() );
+			uint size = 0;
 
-			for (uint i=0, n=NST_MIN(count,archive.NumFiles()); i < n; ++i)
+			if (GetSize())
 			{
-				buffers[i].Resize( archive[i].Size() );
-				size += archive[i].Uncompress( buffers[i].Ptr() );
-			}
-		}
+				const Io::Archive archive( GetData(), GetSize() );
 
-		return size;
+				for (uint i=0, n=NST_MIN(count,archive.NumFiles()); i < n; ++i)
+				{
+					buffers[i].Resize( archive[i].Size() );
+					size += archive[i].Uncompress( buffers[i].Ptr() );
+				}
+			}
+
+			return size;
+		}
 	}
 }

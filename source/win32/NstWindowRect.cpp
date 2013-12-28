@@ -26,41 +26,20 @@
 
 namespace Nestopia
 {
-	Window::Rect::Screen::Screen(HWND const hWnd)
+	namespace Window
 	{
-		::GetClientRect( hWnd, this );
-		::ClientToScreen( hWnd, reinterpret_cast<POINT*>( &left  ) );
-		::ClientToScreen( hWnd, reinterpret_cast<POINT*>( &right ) );
-	}
-
-	Window::Rect::Window::Window(HWND const hWnd)
-	{
-		::GetWindowRect( hWnd, this );
-	}
-
-	Window::Rect::Client::Client(HWND const hWnd)
-	{
-		::GetClientRect( hWnd, this );
-	}
-
-	Window::Rect::Picture::Picture(HWND const hWnd,const Space space)
-	{
-		::GetClientRect( hWnd, this );
-
-		for (HWND hChild = ::GetTopWindow(hWnd); hChild; hChild = ::GetNextWindow(hChild,GW_HWNDNEXT))
+		Rect& Rect::ClientTransform(HWND hWnd)
 		{
-			RECT rChild;
-			::GetClientRect( hChild, &rChild );
-			bottom -= rChild.bottom - rChild.top;
+			::ScreenToClient( hWnd, reinterpret_cast<POINT*>( &left  ) );
+			::ScreenToClient( hWnd, reinterpret_cast<POINT*>( &right ) );
+			return *this;
 		}
 
-		if (bottom < 0)
-			bottom = 0;
-
-		if (space == SCREEN)
+		Rect& Rect::ScreenTransform(HWND hWnd)
 		{
 			::ClientToScreen( hWnd, reinterpret_cast<POINT*>( &left  ) );
 			::ClientToScreen( hWnd, reinterpret_cast<POINT*>( &right ) );
+			return *this;
 		}
 	}
 }

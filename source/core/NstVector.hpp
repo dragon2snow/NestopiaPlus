@@ -29,22 +29,30 @@
 #pragma once
 #endif
 
-#include <cstdlib>
 #include <cstring>
 
 namespace Nes
 {
 	namespace Core
 	{
-		template<typename T>
-		class Vector
+		class BaseVector
 		{
-			void Allocate(dword);
-			void Reallocate(dword);
+		protected:
 
+			static void* Allocate(dword);
+			static void* Reallocate(void*,dword);
+			static void  Free(void*);
+		};
+
+		template<typename T>
+		class Vector : BaseVector
+		{
 			T* data;
 			dword size;
 			dword capacity;
+
+			void MakeRoom(dword);
+			void MakeMoreRoom(dword);
 
 		public:
 
@@ -53,7 +61,6 @@ namespace Nes
 			Vector();
 			explicit Vector(dword);
 			Vector(const Vector&);
-			~Vector();
 
 			void operator << (const T&);
 			bool operator == (const Vector&) const;
@@ -66,6 +73,13 @@ namespace Nes
 			void Erase(T*,dword=1);
 			void Destroy();
 			void Defrag();
+
+			static void Swap(Vector&,Vector&);
+
+			~Vector()
+			{
+				BaseVector::Free( data );
+			}
 
 			void operator = (const Vector& vector)
 			{
@@ -98,6 +112,11 @@ namespace Nes
 				return size;
 			}
 
+			dword Capacity() const
+			{
+				return capacity;
+			}
+
 			T& Front() const
 			{
 				NST_ASSERT( size );
@@ -116,6 +135,12 @@ namespace Nes
 				return data[--size];
 			}
 
+			void SetTo(dword count)
+			{
+				NST_ASSERT( count <= capacity );
+				size = count;
+			}
+
 			void Clear()
 			{
 				size = 0;
@@ -128,76 +153,55 @@ namespace Nes
 
 		template<typename T>
 		Vector<T>::Vector(const dword count)
-		: data(count ? static_cast<T*>(std::malloc(count * sizeof(T))) : NULL), size(count), capacity(count)
+		: data(static_cast<T*>(BaseVector::Allocate(count * sizeof(T)))), size(count), capacity(count)
 		{
-			if (count && data == NULL)
-				throw RESULT_ERR_OUT_OF_MEMORY;
 		}
 
 		template<typename T>
 		Vector<T>::Vector(const Vector<T>& v)
-		: data(v.size ? static_cast<T*>(std::malloc(v.size * sizeof(T))) : NULL), size(v.size), capacity(v.size)
+		: data(static_cast<T*>(BaseVector::Allocate(v.size * sizeof(T)))), size(v.size), capacity(v.size)
 		{
-			if (data)
-			{
-				std::memcpy( data, v.data, capacity * sizeof(T) );
-			}
-			else if (capacity)
-			{
-				throw RESULT_ERR_OUT_OF_MEMORY;
-			}
+			std::memcpy( data, v.data, v.size * sizeof(T) );
 		}
 
 		template<typename T>
-		Vector<T>::~Vector()
+		void Vector<T>::MakeRoom(const dword count)
 		{
-			std::free( data );
-		}
-
-		template<typename T>
-		void Vector<T>::Allocate(const dword count)
-		{
-			std::free( data );
+			void* const tmp = data;
 			data = NULL;
-
-			if (0 < (capacity = count) && NULL == (data = static_cast<T*>(std::malloc( capacity * sizeof(T) ))))
-				throw RESULT_ERR_OUT_OF_MEMORY;
+			BaseVector::Free( tmp );
+			data = static_cast<T*>(BaseVector::Allocate( (capacity=count) * sizeof(T) ));
 		}
 
 		template<typename T>
-		void Vector<T>::Reallocate(const dword count)
+		void Vector<T>::MakeMoreRoom(const dword count)
 		{
-			capacity = count;
-
-			if (void* const tmp = (data ? std::realloc( data, capacity * sizeof(T) ) : std::malloc( capacity * sizeof(T) )))
-				data = static_cast<T*>(tmp);
-			else
-				throw RESULT_ERR_OUT_OF_MEMORY;
+			data = static_cast<T*>(BaseVector::Reallocate( data, (capacity=count) * sizeof(T) ));
 		}
 
 		template<typename T>
 		void Vector<T>::operator << (const T& value)
 		{
 			if (size == capacity)
-				Reallocate( (size + 1) * 2 );
+				MakeMoreRoom( capacity = (size + 1) * 2 );
 
 			data[size++] = value;
 		}
 
 		template<typename T>
-		void Vector<T>::Assign(const T* const inData,const dword inSize)
+		void Vector<T>::Assign(const T* const NST_RESTRICT inData,const dword inSize)
 		{
 			if (capacity < inSize)
-				Allocate( inSize );
+				MakeRoom( inSize );
 
 			std::memcpy( data, inData, (size=inSize) * sizeof(T) );
 		}
 
 		template<typename T>
-		void Vector<T>::Append(const T* const inData,const dword inSize)
+		void Vector<T>::Append(const T* const NST_RESTRICT inData,const dword inSize)
 		{
 			if (capacity < size + inSize)
-				Reallocate( (size * 2) + inSize );
+				MakeMoreRoom( (size * 2) + inSize );
 
 			void* const tmp = data + size;
 			size += inSize;
@@ -219,7 +223,7 @@ namespace Nes
 		void Vector<T>::Reserve(dword count)
 		{
 			if (capacity < count)
-				Reallocate( count );
+				MakeMoreRoom( count );
 		}
 
 		template<typename T>
@@ -240,7 +244,7 @@ namespace Nes
 		void Vector<T>::Defrag()
 		{
 			if (size < capacity)
-				Reallocate( size );
+				MakeMoreRoom( size );
 		}
 
 		template<typename T>
@@ -252,13 +256,27 @@ namespace Nes
 		template<typename T>
 		void Vector<T>::Destroy()
 		{
-			if (T* const tmp = data)
+			if (void* const tmp = data)
 			{
 				data = NULL;
 				size = 0;
 				capacity = 0;
-				std::free( tmp );
+				BaseVector::Free( tmp );
 			}
+		}
+
+		template<typename T>
+		void Vector<T>::Swap(Vector& a,Vector& b)
+		{
+			T* t = a.data;
+			a.data = b.data;
+			b.data = t;
+			dword u = a.size;
+			a.size = b.size;
+			b.size = u;
+			u = a.capacity;
+			a.capacity = b.capacity;
+			b.capacity = u;
 		}
 	}
 }

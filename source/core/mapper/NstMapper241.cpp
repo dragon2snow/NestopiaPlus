@@ -36,7 +36,7 @@ namespace Nes
 		Mapper241::Mapper241(Context& c)
 		:
 		Mapper (c,CROM_NONE),
-		edu    (c.pRomCrc == 0xD5D6EAC4UL) // Edu (Asia)
+		edu    (c.prgCrc == 0xD5D6EAC4UL) // Edu (Asia)
 		{
 		}
 

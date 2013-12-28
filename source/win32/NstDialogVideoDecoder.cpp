@@ -22,95 +22,140 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
+#include "NstApplicationInstance.hpp"
+#include "NstWindowParam.hpp"
+#include "NstManagerEmulator.hpp"
 #include "NstDialogVideoDecoder.hpp"
 
 namespace Nestopia
 {
-	NST_COMPILE_ASSERT
-	(
-		IDC_VIDEO_DECODER_GY_VALUE == IDC_VIDEO_DECODER_RY_VALUE + 1 &&
-		IDC_VIDEO_DECODER_BY_VALUE == IDC_VIDEO_DECODER_RY_VALUE + 2
-	);
-
-	NST_COMPILE_ASSERT
-	(
-		IDC_VIDEO_DECODER_GY_NUM == IDC_VIDEO_DECODER_RY_NUM + 1 &&
-		IDC_VIDEO_DECODER_BY_NUM == IDC_VIDEO_DECODER_RY_NUM + 2
-	);
-
-	NST_COMPILE_ASSERT
-	(
-		IDC_VIDEO_DECODER_GY_GAIN == IDC_VIDEO_DECODER_RY_GAIN + 1 &&
-		IDC_VIDEO_DECODER_BY_GAIN == IDC_VIDEO_DECODER_RY_GAIN + 2
-	);
-
-	using namespace Window;
-
-	struct VideoDecoder::Handlers
+	namespace Window
 	{
-		static const MsgHandler::Entry<VideoDecoder> messages[];
-		static const MsgHandler::Entry<VideoDecoder> commands[];
-	};
+		NST_COMPILE_ASSERT
+		(
+			IDC_VIDEO_DECODER_GY_VALUE == IDC_VIDEO_DECODER_RY_VALUE + 1 &&
+			IDC_VIDEO_DECODER_BY_VALUE == IDC_VIDEO_DECODER_RY_VALUE + 2
+		);
 
-	const MsgHandler::Entry<VideoDecoder> VideoDecoder::Handlers::messages[] =
-	{
-		{ WM_INITDIALOG,  &VideoDecoder::OnInitDialog },
-		{ WM_HSCROLL,     &VideoDecoder::OnHScroll    }
-	};
+		NST_COMPILE_ASSERT
+		(
+			IDC_VIDEO_DECODER_GY_NUM == IDC_VIDEO_DECODER_RY_NUM + 1 &&
+			IDC_VIDEO_DECODER_BY_NUM == IDC_VIDEO_DECODER_RY_NUM + 2
+		);
 
-	const MsgHandler::Entry<VideoDecoder> VideoDecoder::Handlers::commands[] =
-	{
-		{ IDC_VIDEO_DECODER_RY_GAIN,      &VideoDecoder::OnCmdGain        },
-		{ IDC_VIDEO_DECODER_GY_GAIN,      &VideoDecoder::OnCmdGain        },
-		{ IDC_VIDEO_DECODER_BY_GAIN,      &VideoDecoder::OnCmdGain        },
-		{ IDC_VIDEO_DECODER_BOOST_YELLOW, &VideoDecoder::OnCmdBoostYellow },
-		{ IDC_VIDEO_DECODER_CANONICAL ,   &VideoDecoder::OnCmdPreset      },
-		{ IDC_VIDEO_DECODER_CONSUMER,     &VideoDecoder::OnCmdPreset      },
-		{ IDC_VIDEO_DECODER_ALTERNATIVE,  &VideoDecoder::OnCmdPreset      },
-		{ IDC_VIDEO_DECODER_OK,           &VideoDecoder::OnCmdOk          },
-		{ IDC_VIDEO_DECODER_CANCEL,       &VideoDecoder::OnCmdCancel      }
-	};
+		NST_COMPILE_ASSERT
+		(
+			IDC_VIDEO_DECODER_GY_GAIN == IDC_VIDEO_DECODER_RY_GAIN + 1 &&
+			IDC_VIDEO_DECODER_BY_GAIN == IDC_VIDEO_DECODER_RY_GAIN + 2
+		);
 
-	VideoDecoder::VideoDecoder(Nes::Video e,ibool ntsc)
-	:
-	dialog          (IDD_VIDEO_DECODER,this,Handlers::messages,Handlers::commands),
-	nes             (e),
-	usingNtscFilter (ntsc),
-	final           (e.GetDecoder())
-	{
-	}
-
-	VideoDecoder::~VideoDecoder()
-	{
-		nes.SetDecoder( final );
-	}
-
-	ibool VideoDecoder::OnInitDialog(Param&)
-	{
-		for (uint i=0; i < 3; ++i)
+		cstring const VideoDecoder::cfgAxes[3][2] =
 		{
-			dialog.Slider( IDC_VIDEO_DECODER_RY_VALUE+i ).SetRange( 0, 60 );
-			dialog.Edit( IDC_VIDEO_DECODER_RY_GAIN+i ).Limit( 5 );
+			{ "video decoder ry angle", "video decoder ry gain" },
+			{ "video decoder rg angle", "video decoder rg gain" },
+			{ "video decoder rb angle", "video decoder rb gain" }
+		};
+
+		struct VideoDecoder::Handlers
+		{
+			static const MsgHandler::Entry<VideoDecoder> messages[];
+			static const MsgHandler::Entry<VideoDecoder> commands[];
+		};
+
+		const MsgHandler::Entry<VideoDecoder> VideoDecoder::Handlers::messages[] =
+		{
+			{ WM_INITDIALOG,  &VideoDecoder::OnInitDialog },
+			{ WM_HSCROLL,     &VideoDecoder::OnHScroll    }
+		};
+
+		const MsgHandler::Entry<VideoDecoder> VideoDecoder::Handlers::commands[] =
+		{
+			{ IDC_VIDEO_DECODER_RY_GAIN,      &VideoDecoder::OnCmdGain        },
+			{ IDC_VIDEO_DECODER_GY_GAIN,      &VideoDecoder::OnCmdGain        },
+			{ IDC_VIDEO_DECODER_BY_GAIN,      &VideoDecoder::OnCmdGain        },
+			{ IDC_VIDEO_DECODER_BOOST_YELLOW, &VideoDecoder::OnCmdBoostYellow },
+			{ IDC_VIDEO_DECODER_CANONICAL ,   &VideoDecoder::OnCmdPreset      },
+			{ IDC_VIDEO_DECODER_CONSUMER,     &VideoDecoder::OnCmdPreset      },
+			{ IDC_VIDEO_DECODER_ALTERNATIVE,  &VideoDecoder::OnCmdPreset      },
+			{ IDOK,                           &VideoDecoder::OnCmdOk          }
+		};
+
+		VideoDecoder::VideoDecoder(Nes::Video e)
+		:
+		dialog (IDD_VIDEO_DECODER,this,Handlers::messages,Handlers::commands),
+		nes    (e),
+		final  (e.GetDecoder())
+		{
 		}
 
-		dialog.Control( IDC_VIDEO_DECODER_BOOST_YELLOW ).Enable( !usingNtscFilter );
-		dialog.Control( IDC_VIDEO_DECODER_ALTERNATIVE ).Enable( !usingNtscFilter );
-
-		Update();
-
-		return true;
-	}
-
-	ibool VideoDecoder::OnHScroll(Param& param)
-	{
-		for (uint i=0; i < 3; ++i)
+		VideoDecoder::~VideoDecoder()
 		{
-			if (param.Slider().IsControl( IDC_VIDEO_DECODER_RY_VALUE+i ))
+			nes.SetDecoder( final );
+		}
+
+		void VideoDecoder::Load(const Configuration& cfg,Nes::Video nes)
+		{
+			Nes::Video::Decoder decoder( Nes::Video::DECODER_CANONICAL );
+
+			GenericString string;
+
+			for (uint i=0; i < 3; ++i)
+			{
+				string = cfg[cfgAxes[i][0]];
+
+				if (string.Length())
+					string >> decoder.axes[i].angle;
+
+				string = cfg[cfgAxes[i][1]];
+
+				if (string.Length())
+				{
+					decoder.axes[i].gain = std::atof( String::Heap<char>(string).Ptr() );
+					decoder.axes[i].gain = NST_CLAMP(decoder.axes[i].gain,0.0f,2.0f);
+				}
+			}
+
+			decoder.boostYellow = (cfg["video decoder yellow boost"] == Configuration::YES);
+
+			nes.SetDecoder( decoder );
+		}
+
+		void VideoDecoder::Save(Configuration& cfg,const Nes::Video nes)
+		{
+			const Nes::Video::Decoder& decoder = nes.GetDecoder();
+
+			for (uint i=0; i < 3; ++i)
+			{
+				cfg[cfgAxes[i][0]] = decoder.axes[i].angle;
+				cfg[cfgAxes[i][1]] = RealString( decoder.axes[i].gain, 3, true );
+			}
+
+			cfg["video decoder yellow boost"].YesNo() = decoder.boostYellow;
+		}
+
+		ibool VideoDecoder::OnInitDialog(Param&)
+		{
+			for (uint i=0; i < 3; ++i)
+			{
+				dialog.Slider( IDC_VIDEO_DECODER_RY_VALUE+i ).SetRange( 0, 60 );
+				dialog.Edit( IDC_VIDEO_DECODER_RY_GAIN+i ).Limit( 5 );
+			}
+
+			Update();
+
+			return true;
+		}
+
+		ibool VideoDecoder::OnHScroll(Param& param)
+		{
+			const uint i = param.Slider().GetId() - IDC_VIDEO_DECODER_RY_VALUE;
+
+			if (i < 3)
 			{
 				Nes::Api::Video::Decoder decoder( nes.GetDecoder() );
 
 				static const ushort offsets[3] = {60, 200, 330};
-				uint angle = dialog.Slider( IDC_VIDEO_DECODER_RY_VALUE+i ).Position() + offsets[i];
+				uint angle = param.Slider().Scroll() + offsets[i];
 
 				if (angle >= 360)
 					angle -= 360;
@@ -120,119 +165,100 @@ namespace Nestopia
 					decoder.axes[i].angle = angle;
 					nes.SetDecoder( decoder );
 					dialog.Edit( IDC_VIDEO_DECODER_RY_NUM+i ) << angle;
-					Redraw();
+					Application::Instance::GetMainWindow().Redraw();
+				}
+			}
+
+			return true;
+		}
+
+		ibool VideoDecoder::OnCmdGain(Param& param)
+		{
+			if (param.Edit().Changed())
+			{
+				String::Heap<char> string;
+				dialog.Edit( param.Edit().GetId() ) >> string;
+
+				float gain = std::atof( string.Ptr() );
+				gain = NST_CLAMP(gain,0.0f,2.0f);
+
+				Nes::Api::Video::Decoder decoder( nes.GetDecoder() );
+				decoder.axes[param.Edit().GetId() - IDC_VIDEO_DECODER_RY_GAIN].gain = gain;
+
+				if (nes.SetDecoder( decoder ) != Nes::RESULT_NOP)
+					Application::Instance::GetMainWindow().Redraw();
+			}
+
+			return true;
+		}
+
+		ibool VideoDecoder::OnCmdBoostYellow(Param& param)
+		{
+			if (param.Button().Clicked())
+			{
+				Nes::Api::Video::Decoder decoder( nes.GetDecoder() );
+				decoder.boostYellow = dialog.CheckBox(IDC_VIDEO_DECODER_BOOST_YELLOW).Checked();
+				nes.SetDecoder( decoder );
+				Application::Instance::GetMainWindow().Redraw();
+			}
+
+			return true;
+		}
+
+		ibool VideoDecoder::OnCmdPreset(Param& param)
+		{
+			if (param.Button().Clicked())
+			{
+				Nes::Api::Video::DecoderPreset preset;
+
+				switch (param.Button().GetId())
+				{
+					case IDC_VIDEO_DECODER_CONSUMER:    preset = Nes::Api::Video::DECODER_CONSUMER;    break;
+					case IDC_VIDEO_DECODER_ALTERNATIVE: preset = Nes::Api::Video::DECODER_ALTERNATIVE; break;
+					default:                            preset = Nes::Api::Video::DECODER_CANONICAL;   break;
 				}
 
-				return true;
+				nes.SetDecoder( preset );
+				Update();
+				Application::Instance::GetMainWindow().Redraw();
 			}
+
+			return true;
 		}
 
-		return true;
-	}
-
-	ibool VideoDecoder::OnCmdGain(Param& param)
-	{
-		if (param.Edit().Changed())
+		ibool VideoDecoder::OnCmdOk(Param& param)
 		{
-			String::Heap<char> string;
-			dialog.Edit( param.Edit().GetId() ) >> string;
-
-			float gain = std::atof( string.Ptr() );
-			gain = NST_CLAMP(gain,0.0f,2.0f);
-
-			Nes::Api::Video::Decoder decoder( nes.GetDecoder() );
-			decoder.axes[param.Edit().GetId() - IDC_VIDEO_DECODER_RY_GAIN].gain = gain;
-
-			if (nes.SetDecoder( decoder ) != Nes::RESULT_NOP)
-				Redraw();
-		}
-
-		return true;
-	}
-
-	ibool VideoDecoder::OnCmdBoostYellow(Param& param)
-	{
-		if (param.Button().IsClicked())
-		{
-			Nes::Api::Video::Decoder decoder( nes.GetDecoder() );
-			decoder.boostYellow = dialog.CheckBox(IDC_VIDEO_DECODER_BOOST_YELLOW).IsChecked();
-			nes.SetDecoder( decoder );
-			Redraw();
-		}
-
-		return true;
-	}
-
-	ibool VideoDecoder::OnCmdPreset(Param& param)
-	{
-		if (param.Button().IsClicked())
-		{
-			Nes::Api::Video::DecoderPreset preset;
-
-			switch (param.Button().GetId())
+			if (param.Button().Clicked())
 			{
-				case IDC_VIDEO_DECODER_CONSUMER:    preset = Nes::Api::Video::DECODER_CONSUMER;    break;
-				case IDC_VIDEO_DECODER_ALTERNATIVE: preset = Nes::Api::Video::DECODER_ALTERNATIVE; break;
-				default:                            preset = Nes::Api::Video::DECODER_CANONICAL;   break;
+				final = nes.GetDecoder();
+				dialog.Close();
 			}
 
-			nes.SetDecoder( preset );
-			Update();
-			Redraw();
+			return true;
 		}
 
-		return true;
-	}
-
-	ibool VideoDecoder::OnCmdCancel(Param& param)
-	{
-		if (param.Button().IsClicked())
-			dialog.Close();
-
-		return true;
-	}
-
-	ibool VideoDecoder::OnCmdOk(Param& param)
-	{
-		if (param.Button().IsClicked())
+		void VideoDecoder::Update() const
 		{
-			final = nes.GetDecoder();
-			dialog.Close();
+			Nes::Api::Video::Decoder decoder( nes.GetDecoder() );
+
+			for (uint i=0; i < 3; ++i)
+			{
+				int angle = decoder.axes[i].angle;
+
+				dialog.Edit( IDC_VIDEO_DECODER_RY_NUM+i ) << uint(angle);
+				static const short offsets[3] = {60, 200, 330};
+
+				angle -= offsets[i];
+
+				if (angle < 0)
+					angle += 360;
+
+				dialog.Slider( IDC_VIDEO_DECODER_RY_VALUE+i ).Position() = uint(angle);
+				dialog.Edit( IDC_VIDEO_DECODER_RY_GAIN+i ).Text() << RealString( decoder.axes[i].gain, 3, true ).Ptr();
+			}
+
+			dialog.CheckBox( IDC_VIDEO_DECODER_BOOST_YELLOW ).Check( decoder.boostYellow );
 		}
-
-		return true;
-	}
-
-	void VideoDecoder::Update() const
-	{
-		Nes::Api::Video::Decoder decoder( nes.GetDecoder() );
-
-		for (uint i=0; i < 3; ++i)
-		{
-			int angle = decoder.axes[i].angle;
-
-			dialog.Edit( IDC_VIDEO_DECODER_RY_NUM+i ) << uint(angle);
-			static const short offsets[3] = {60, 200, 330};
-
-			angle -= offsets[i];
-
-			if (angle < 0)
-				angle += 360;
-
-			dialog.Slider( IDC_VIDEO_DECODER_RY_VALUE+i ).Position() = uint(angle);
-
-			tchar buffer[32];
-			::_stprintf( buffer, _T("%.3f"), decoder.axes[i].gain );
-
-			dialog.Edit( IDC_VIDEO_DECODER_RY_GAIN+i ).Text() << buffer;
-		}
-
-		dialog.CheckBox( IDC_VIDEO_DECODER_BOOST_YELLOW ).Check( decoder.boostYellow );
-	}
-
-	void VideoDecoder::Redraw() const
-	{
-		::RedrawWindow( ::GetParent(::GetParent( dialog )), NULL, NULL, RDW_INVALIDATE );
 	}
 }
 

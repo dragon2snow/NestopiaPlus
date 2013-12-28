@@ -28,86 +28,78 @@
 
 namespace Nestopia
 {
-	using namespace Window;
-
-	AutoSaver::Settings::Settings()
-	: interval(1), notify(true) {}
-
-	struct AutoSaver::Handlers
+	namespace Window
 	{
-		static const MsgHandler::Entry<AutoSaver> messages[];
-		static const MsgHandler::Entry<AutoSaver> commands[];
-	};
+		AutoSaver::Settings::Settings()
+		: interval(1), notify(true) {}
 
-	const MsgHandler::Entry<AutoSaver> AutoSaver::Handlers::messages[] =
-	{
-		{ WM_INITDIALOG, &AutoSaver::OnInitDialog }
-	};
-
-	const MsgHandler::Entry<AutoSaver> AutoSaver::Handlers::commands[] =
-	{
-		{ IDC_AUTOSAVE_CLEAR,  &AutoSaver::OnCmdClear  },
-		{ IDC_AUTOSAVE_BROWSE, &AutoSaver::OnCmdBrowse },
-		{ IDC_AUTOSAVE_OK,     &AutoSaver::OnCmdOk     },
-		{ IDC_AUTOSAVE_CANCEL, &AutoSaver::OnCmdCancel }
-	};
-
-	AutoSaver::AutoSaver(const Managers::Paths& p)
-	: dialog(IDD_AUTOSAVER,this,Handlers::messages,Handlers::commands), paths(p) {}
-
-	AutoSaver::~AutoSaver()
-	{
-	}
-
-	ibool AutoSaver::OnInitDialog(Param&)
-	{
-		dialog.Edit(IDC_AUTOSAVE_FILE) << settings.stateFile.Ptr();
-		dialog.Edit(IDC_AUTOSAVE_TIME).Limit(2);
-		dialog.Edit(IDC_AUTOSAVE_TIME) << settings.interval;
-		dialog.CheckBox(IDC_AUTOSAVE_ENABLE_MSG).Check( settings.notify );
-
-		return true;
-	}
-
-	ibool AutoSaver::OnCmdClear(Param& param)
-	{
-		if (param.Button().IsClicked())
-			dialog.Edit(IDC_AUTOSAVE_FILE).Clear();
-
-		return true;
-	}
-
-	ibool AutoSaver::OnCmdBrowse(Param& param)
-	{
-		if (param.Button().IsClicked())
+		struct AutoSaver::Handlers
 		{
-			Path tmp;
-			dialog.Edit(IDC_AUTOSAVE_FILE) >> tmp;
-			dialog.Edit(IDC_AUTOSAVE_FILE).Try() << paths.BrowseSave( Managers::Paths::File::STATE, Managers::Paths::SUGGEST, tmp ).Ptr();
+			static const MsgHandler::Entry<AutoSaver> messages[];
+			static const MsgHandler::Entry<AutoSaver> commands[];
+		};
+
+		const MsgHandler::Entry<AutoSaver> AutoSaver::Handlers::messages[] =
+		{
+			{ WM_INITDIALOG, &AutoSaver::OnInitDialog }
+		};
+
+		const MsgHandler::Entry<AutoSaver> AutoSaver::Handlers::commands[] =
+		{
+			{ IDC_AUTOSAVE_CLEAR,  &AutoSaver::OnCmdClear  },
+			{ IDC_AUTOSAVE_BROWSE, &AutoSaver::OnCmdBrowse },
+			{ IDOK,                &AutoSaver::OnCmdOk     }
+		};
+
+		AutoSaver::AutoSaver(const Managers::Paths& p)
+		: dialog(IDD_AUTOSAVER,this,Handlers::messages,Handlers::commands), paths(p) {}
+
+		AutoSaver::~AutoSaver()
+		{
 		}
 
-		return true;
-	}
-
-	ibool AutoSaver::OnCmdOk(Param& param)
-	{
-		if (param.Button().IsClicked())
+		ibool AutoSaver::OnInitDialog(Param&)
 		{
-			dialog.Edit(IDC_AUTOSAVE_FILE) >> settings.stateFile;
-			dialog.Edit(IDC_AUTOSAVE_TIME) >> settings.interval;
-			settings.notify = dialog.CheckBox(IDC_AUTOSAVE_ENABLE_MSG).IsChecked();
-			paths.FixFile( Managers::Paths::File::STATE, settings.stateFile );
-			dialog.Close();
+			dialog.Edit(IDC_AUTOSAVE_FILE) << settings.stateFile.Ptr();
+			dialog.Edit(IDC_AUTOSAVE_TIME).Limit(2);
+			dialog.Edit(IDC_AUTOSAVE_TIME) << settings.interval;
+			dialog.CheckBox(IDC_AUTOSAVE_ENABLE_MSG).Check( settings.notify );
+
+			return true;
 		}
 
-		return true;
-	}
+		ibool AutoSaver::OnCmdClear(Param& param)
+		{
+			if (param.Button().Clicked())
+				dialog.Edit(IDC_AUTOSAVE_FILE).Clear();
 
-	ibool AutoSaver::OnCmdCancel(Param& param)
-	{
-		if (param.Button().IsClicked())
-			dialog.Close();
+			return true;
+		}
 
-		return true;
+		ibool AutoSaver::OnCmdBrowse(Param& param)
+		{
+			if (param.Button().Clicked())
+			{
+				Path tmp;
+				dialog.Edit(IDC_AUTOSAVE_FILE) >> tmp;
+				dialog.Edit(IDC_AUTOSAVE_FILE).Try() << paths.BrowseSave( Managers::Paths::File::STATE, Managers::Paths::SUGGEST, tmp ).Ptr();
+			}
+
+			return true;
+		}
+
+		ibool AutoSaver::OnCmdOk(Param& param)
+		{
+			if (param.Button().Clicked())
+			{
+				dialog.Edit(IDC_AUTOSAVE_FILE) >> settings.stateFile;
+				dialog.Edit(IDC_AUTOSAVE_TIME) >> settings.interval;
+				settings.notify = dialog.CheckBox(IDC_AUTOSAVE_ENABLE_MSG).Checked();
+				paths.FixFile( Managers::Paths::File::STATE, settings.stateFile );
+				dialog.Close();
+			}
+
+			return true;
+		}
 	}
 }

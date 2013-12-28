@@ -37,11 +37,9 @@ namespace Nestopia
 		{
 		public:
 
-			explicit ImageInfo(Managers::Emulator&);
+			ImageInfo(Managers::Emulator&);
 
 		private:
-
-			struct Handlers;
 
 			ibool OnInitDialog (Param&);
 			ibool OnCmdOk      (Param&);

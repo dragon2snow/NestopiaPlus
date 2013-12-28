@@ -124,7 +124,7 @@ namespace Nes
 			Mapper       (c,WRAM_8K),
 			irq          (c.cpu),
 			sound        (c.cpu),
-			barcodeWorld (c.pRomCrc == 0x67898319UL ? new BarcodeWorld : NULL)
+			barcodeWorld (c.prgCrc == 0x67898319UL ? new BarcodeWorld : NULL)
 			{}
 
 			Fme7::~Fme7()
@@ -387,7 +387,7 @@ namespace Nes
 			{
 				const u8 data[3] =
 				{
-					((status & 0x1) ^ 0x1) | (ctrl << 1),
+					(~status & 0x1) | (ctrl << 1),
 					length & 0xFF,
 					(length >> 8) | ((status & 0x8) << 1),
 				};
@@ -443,7 +443,7 @@ namespace Nes
 					{
 						const State::Loader::Data<3> data( state );
 
-						status = ((data[0] & 0x1) ^ 0x1) | ((data[2] >> 1) & 0x8);
+						status = (~data[0] & 0x1) | ((data[2] >> 1) & 0x8);
 						ctrl = (data[0] >> 1) & 0x1F;
 						length = data[1] | ((data[2] & 0xF) << 8);
 						volume = levels[(ctrl & 0xF) ? (ctrl & 0xF) * 2 + 1 : 0];

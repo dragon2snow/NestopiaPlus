@@ -22,9 +22,12 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "../NstCore.hpp"
+#include "../NstMachine.hpp"
 #include "NstApiSound.hpp"
-#include "NstApiEmulator.hpp"
+
+#ifdef NST_PRAGMA_OPTIMIZE
+#pragma optimize("s", on)
+#endif
 
 namespace Nes
 {
@@ -49,79 +52,84 @@ namespace Nes
 			Sound::CHANNEL_DPCM     == 1U << Core::Apu::CHANNEL_DPCM
 		);
 
-		Result Sound::SetSampleRate(ulong rate)
+		Result Sound::SetSampleRate(ulong rate) throw()
 		{
 			return emulator.cpu.GetApu().SetSampleRate( rate );
 		}
 
-		Result Sound::SetSampleBits(uint bits)
+		Result Sound::SetSampleBits(uint bits) throw()
 		{
 			return emulator.cpu.GetApu().SetSampleBits( bits );
 		}
 
-		Result Sound::SetVolume(uint channels,uint volume)
+		Result Sound::SetVolume(uint channels,uint volume) throw()
 		{
 			return emulator.cpu.GetApu().SetVolume( channels, volume );
 		}
 
-		Result Sound::SetSpeed(uint speed)
+		Result Sound::SetSpeed(uint speed) throw()
 		{
 			return emulator.cpu.GetApu().SetSpeed( speed );
 		}
 
-		void Sound::SetAutoTranspose(bool enable)
+		void Sound::SetAutoTranspose(bool enable) throw()
 		{
 			emulator.cpu.GetApu().SetAutoTranspose( enable );
 		}
 
-		void Sound::SetSpeaker(Speaker speaker)
+		void Sound::SetSpeaker(Speaker speaker) throw()
 		{
 			return emulator.cpu.GetApu().EnableStereo( speaker == SPEAKER_STEREO );
 		}
 
-		ulong Sound::GetSampleRate() const
+		ulong Sound::GetSampleRate() const throw()
 		{
 			return emulator.cpu.GetApu().GetSampleRate();
 		}
 
-		uint Sound::GetSampleBits() const
+		uint Sound::GetSampleBits() const throw()
 		{
 			return emulator.cpu.GetApu().GetSampleBits();
 		}
 
-		uint Sound::GetVolume(uint channel) const
+		uint Sound::GetVolume(uint channel) const throw()
 		{
 			return emulator.cpu.GetApu().GetVolume( channel );
 		}
 
-		uint Sound::GetSpeed() const
+		uint Sound::GetSpeed() const throw()
 		{
 			return emulator.cpu.GetApu().GetSpeed();
 		}
 
-		bool Sound::IsAudible() const
+		bool Sound::IsAudible() const throw()
 		{
 			return emulator.cpu.GetApu().IsAudible();
 		}
 
-		bool Sound::IsAutoTransposing() const
+		bool Sound::IsAutoTransposing() const throw()
 		{
 			return emulator.cpu.GetApu().IsAutoTransposing();
 		}
 
-		Sound::Speaker Sound::GetSpeaker() const
+		Sound::Speaker Sound::GetSpeaker() const throw()
 		{
 			return emulator.cpu.GetApu().InStereo() ? SPEAKER_STEREO : SPEAKER_MONO;
 		}
 
-		uint Sound::GetLatency() const
+		uint Sound::GetLatency() const throw()
 		{
 			return emulator.tracker.GetSoundLatency( emulator.cpu.GetApu() );
 		}
 
-		void Sound::EmptyBuffer()
+		void Sound::EmptyBuffer() throw()
 		{
 			return emulator.cpu.GetApu().ClearBuffers();
 		}
 	}
 }
+
+#ifdef NST_PRAGMA_OPTIMIZE
+#pragma optimize("", on)
+#endif
+

@@ -39,12 +39,11 @@ namespace Nes
 			{
 			public:
 
-				PowerPad();
+				PowerPad(const Cpu&);
 
 			private:
 
 				void Reset();
-				void BeginFrame(Controllers*);
 				void Poke(uint);
 				uint Peek(uint);
 				void LoadState(State::Loader&,dword);

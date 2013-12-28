@@ -28,7 +28,6 @@
 #pragma once
 
 #include "NstWindowDialog.hpp"
-#include "NstManagerEmulator.hpp"
 #include "../core/api/NstApiCheats.hpp"
 
 namespace Nestopia
@@ -88,7 +87,7 @@ namespace Nestopia
 
 				void Add(const Mem&,Generic::Stream);
 				void Load(const Io::Nsp::Context&);
-				void Import(GenericString =GenericString());
+				void Import(GenericString=GenericString());
 				void InitDialog(Dialog&,uint);
 
 			private:
@@ -223,12 +222,10 @@ namespace Nestopia
 			ibool OnInitMainDialog    (Param&);
 			ibool OnInitCodeDialog    (Param&);
 			ibool OnDestroyCodeDialog (Param&);
-			ibool OnClose             (Param&);
 			ibool OnDropFiles         (Param&);
 			ibool OnCodeCmdReset      (Param&);
 			ibool OnCodeCmdHex        (Param&);
 			ibool OnCodeCmdSubmit     (Param&);
-			ibool OnCodeCmdCancel     (Param&);
 			ibool OnCodeCmdValidate   (Param&);
 			ibool OnCodeCmdType       (Param&);
 			ibool OnCodeSearchType    (Param&);
@@ -273,7 +270,7 @@ namespace Nestopia
 				return (type ? tempList : staticList).Size();
 			}
 
-			ibool IsCodeEnabled(uint type,uint i) const
+			ibool CodeEnabled(uint type,uint i) const
 			{
 				return (type ? tempList : staticList)[i].enabled;
 			}

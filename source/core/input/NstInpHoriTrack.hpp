@@ -39,7 +39,7 @@ namespace Nes
 			{
 			public:
 
-				HoriTrack();
+				HoriTrack(const Cpu&);
 
 			private:
 
@@ -50,7 +50,6 @@ namespace Nes
 					CONNECTED = 0x080000UL
 				};
 
-				void BeginFrame(Controllers*);
 				void Reset();
 				void Poke(uint);
 				uint Peek(uint);

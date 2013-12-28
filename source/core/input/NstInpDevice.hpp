@@ -36,6 +36,8 @@ namespace Nes
 {
 	namespace Core
 	{
+		class Cpu;
+
 		namespace Input
 		{
 			class Device
@@ -46,11 +48,14 @@ namespace Nes
 
 				const Type type;
 				Controllers* input;
+				const Cpu& cpu;
 
 			public:
 
-				Device(Type t=Api::Input::UNCONNECTED)
-				: type(t), input(NULL) {}
+				Device(const Cpu& c,Type t=Api::Input::UNCONNECTED)
+				: type(t), input(NULL), cpu(c) {}
+
+				uint GetTimeStamp() const;
 
 				virtual ~Device() {}
 

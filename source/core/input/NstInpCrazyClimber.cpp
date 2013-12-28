@@ -35,8 +35,8 @@ namespace Nes
 			#pragma optimize("s", on)
 			#endif
 
-			CrazyClimber::CrazyClimber()
-			: Device(Api::Input::CRAZYCLIMBER)
+			CrazyClimber::CrazyClimber(const Cpu& c)
+			: Device(c,Api::Input::CRAZYCLIMBER)
 			{
 				CrazyClimber::Reset();
 			}
@@ -44,7 +44,8 @@ namespace Nes
 			void CrazyClimber::Reset()
 			{
 				shifter = 1;
-				stream[RIGHT] = stream[LEFT] = 0x00;
+				stream[RIGHT] = stream[LEFT] = 0;
+				state[RIGHT] = state[LEFT] = 0;
 			}
 
 			void CrazyClimber::SaveState(State::Saver& state,const uchar id) const
@@ -62,12 +63,6 @@ namespace Nes
 			#pragma optimize("", on)
 			#endif
 
-			void CrazyClimber::BeginFrame(Controllers* i)
-			{
-				input = i;
-				state[RIGHT] = state[LEFT] = 0;
-			}
-
 			uint CrazyClimber::Peek(const uint port)
 			{
 				NST_ASSERT( port <= 1 );
@@ -79,14 +74,14 @@ namespace Nes
 			void CrazyClimber::Poke(const uint data)
 			{
 				const uint prev = shifter;
-				shifter = (data & 0x1) ^ 0x1;
+				shifter = ~data & 0x1;
 
 				if (prev < shifter)
 				{
 					if (input)
 					{
 						Controllers::CrazyClimber& crazy = input->crazyClimber;
-						input = NULL;
+						crazy.timeStamp = GetTimeStamp();
 
 						if (Controllers::CrazyClimber::callback( crazy ))
 						{

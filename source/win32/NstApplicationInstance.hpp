@@ -27,10 +27,9 @@
 
 #pragma once
 
-#include <vector>
 #include "NstObjectDelegate.hpp"
 #include "NstApplicationConfiguration.hpp"
-#include <Windows.h>
+#include "NstWindowGeneric.hpp"
 
 namespace Nestopia
 {
@@ -45,27 +44,21 @@ namespace Nestopia
 
 			void Save();
 
-			typedef std::vector<Path> ResourcePaths;
-
-			static ibool IsResourceLoaded();
-			static HMODULE GetResourceHandle();
-			static const Path& GetResourcePath();
-			static void UpdateResource(tstring);
-			static void EnumerateResources(ResourcePaths&);
-
 			static const Path& GetExePath();
 			static const Path GetExePath(const GenericString);
 			static const Path GetLongPath(tstring);
-			static const Path GetTmpPath(GenericString = GenericString());
+			static const Path GetTmpPath(GenericString=GenericString());
 			static const String::Generic<char> GetVersion();
 
-			static HWND GetActiveWindow();
 			static uint NumChildWindows();
 			static void ShowChildWindows(uint=true);
-			static HWND GetChildWindow(uint);
-			static HWND GetMainWindow();
-			static void Post(uint);
-			static void Launch(tstring,uint=0);
+			static Window::Generic GetChildWindow(uint=0);
+			static Window::Generic GetMainWindow();
+			static Window::Generic GetActiveWindow();
+
+			class Language;
+
+			static Language& GetLanguage();
 
 			enum IconStyle
 			{
@@ -92,7 +85,7 @@ namespace Nestopia
 				EVENT_DESKTOP
 			};
 
-			class Events : Sealed
+			class Events
 			{
 			public:
 

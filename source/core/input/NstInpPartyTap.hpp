@@ -39,13 +39,11 @@ namespace Nes
 			{
 			public:
 
-				PartyTap();
+				PartyTap(const Cpu&);
 
 			private:
 
 				void Reset();
-				void BeginFrame(Controllers*);
-				void Poll();
 				void Poke(uint);
 				uint Peek(uint);
 				void SaveState(State::Saver&,uchar) const;

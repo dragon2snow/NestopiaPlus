@@ -39,13 +39,11 @@ namespace Nes
 			{
 			public:
 
-				CrazyClimber();
+				CrazyClimber(const Cpu&);
 
 			private:
 
 				void Reset();
-				void BeginFrame(Controllers*);
-				void Poll();
 				void Poke(uint);
 				uint Peek(uint);
 				void LoadState(State::Loader&,dword);

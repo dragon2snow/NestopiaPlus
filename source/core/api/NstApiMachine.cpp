@@ -22,24 +22,23 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "../NstCore.hpp"
-#include "NstApiEmulator.hpp"
+#include "../NstMachine.hpp"
+#include "../NstCartridge.hpp"
+#include "../NstImage.hpp"
 #include "NstApiMachine.hpp"
 #include "NstApiMovie.hpp"
 #include "NstApiRewinder.hpp"
-#include "../NstCartridge.hpp"
-#include "../NstImage.hpp"
 
 namespace Nes
 {
 	namespace Api
 	{
-		uint Machine::Is(uint what) const
+		uint Machine::Is(uint what) const throw()
 		{
 			return emulator.state & what;
 		}
 
-		uint Machine::Is(uint what,uint that) const
+		uint Machine::Is(uint what,uint that) const throw()
 		{
 			return (emulator.state & what) && (emulator.state & that);
 		}
@@ -97,27 +96,27 @@ namespace Nes
 			return result;
 		}
 
-		Result Machine::Load(std::istream& stream)
+		Result Machine::Load(std::istream& stream) throw()
 		{
 			return Load( stream, Core::Image::UNKNOWN );
 		}
 
-		Result Machine::LoadCartridge(std::istream& stream)
+		Result Machine::LoadCartridge(std::istream& stream) throw()
 		{
 			return Load( stream, Core::Image::CARTRIDGE );
 		}
 
-		Result Machine::LoadDisk(std::istream& stream)
+		Result Machine::LoadDisk(std::istream& stream) throw()
 		{
 			return Load( stream, Core::Image::DISK );
 		}
 
-		Result Machine::LoadSound(std::istream& stream)
+		Result Machine::LoadSound(std::istream& stream) throw()
 		{
 			return Load( stream, Core::Image::SOUND );
 		}
 
-		Result Machine::Unload()
+		Result Machine::Unload() throw()
 		{
 			if (emulator.state & IMAGE)
 			{
@@ -135,7 +134,7 @@ namespace Nes
 			return RESULT_NOP;
 		}
 
-		Result Machine::Power(const bool on)
+		Result Machine::Power(const bool on) throw()
 		{
 			if (on)
 			{
@@ -169,7 +168,7 @@ namespace Nes
 			return RESULT_NOP;
 		}
 
-		Result Machine::Reset(const bool hard)
+		Result Machine::Reset(const bool hard) throw()
 		{
 			if ((emulator.state & ON) && !emulator.tracker.IsLocked())
 			{
@@ -184,17 +183,17 @@ namespace Nes
 			return RESULT_ERR_NOT_READY;
 		}
 
-		Machine::Mode Machine::GetMode() const
+		Machine::Mode Machine::GetMode() const throw()
 		{
 			return (Mode) (emulator.state & (NTSC|PAL));
 		}
 
-		Machine::Mode Machine::GetDesiredMode() const
+		Machine::Mode Machine::GetDesiredMode() const throw()
 		{
 			return (!emulator.image || emulator.image->GetMode() == Core::MODE_NTSC) ? NTSC : PAL;
 		}
 
-		Result Machine::SetMode(Mode mode)
+		Result Machine::SetMode(Mode mode) throw()
 		{
 			if (mode != NTSC && mode != PAL)
 				return RESULT_ERR_INVALID_PARAM;
@@ -211,7 +210,7 @@ namespace Nes
 			return RESULT_NOP;
 		}
 
-		Result Machine::LoadState(std::istream& stream)
+		Result Machine::LoadState(std::istream& stream) throw()
 		{
 			if (!emulator.tracker.MovieIsInserted() && !emulator.tracker.IsRewinding())
 			{
@@ -222,9 +221,9 @@ namespace Nes
 			return RESULT_ERR_NOT_READY;
 		}
 
-		Result Machine::SaveState(std::ostream& stream,Compression compression) const
+		Result Machine::SaveState(std::ostream& stream,Compression compression) const throw()
 		{
-			return emulator.SaveState( &stream, compression != NO_COMPRESSION );
+			return emulator.SaveState( &stream, compression != NO_COMPRESSION, false );
 		}
 
 		#ifdef NST_PRAGMA_OPTIMIZE

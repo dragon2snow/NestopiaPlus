@@ -34,7 +34,7 @@ namespace Nestopia
 {
 	namespace Io
 	{
-		class File : Sealed
+		class File
 		{
 		public:
 

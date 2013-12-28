@@ -23,256 +23,103 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 
 #include <process.h>
-#include "language/resource.h"
 #include "NstApplicationException.hpp"
-#include "NstWindowParam.hpp"
-#include "NstWindowUser.hpp"
 #include "NstSystemThread.hpp"
 
 namespace Nestopia
 {
-	using System::Thread;
-
-	struct Thread::Initializer
+	namespace System
 	{
-		Thread& thread;
-		const Callback callback;
+		Thread::Thread()
+		: hEnter(NULL), hExit(NULL), hAbort(NULL) {}
 
-		Initializer(Thread& t,const Callback& c)
-		: thread(t), callback(c) {}
-	};
-
-	Thread::Event::Event()
-	: handle(::CreateEvent(NULL,false,false,NULL))
-	{
-		if (handle == NULL)
-			throw Application::Exception(_T("::CreateEvent() failed!"));
-	}
-
-	inline Thread::Event::~Event()
-	{
-		::CloseHandle( handle );
-	}
-
-	inline void Thread::Event::Wait() const
-	{
-		::WaitForSingleObject( handle, INFINITE );
-	}
-
-	inline ibool Thread::Event::IsSignaled() const
-	{
-		return ::WaitForSingleObject( handle, 0 ) == WAIT_OBJECT_0;
-	}
-
-	inline void Thread::Event::Release() const
-	{
-		::SetEvent( handle );
-	}
-
-	Thread::Thread()
-	: command(NONE), handle(NULL), window(NULL) {}
-
-	Thread::~Thread()
-	{
-		Destroy();
-	}
-
-	void Thread::Create(const Callback& callback,Window::Custom& w,const Startup startup,uint stack)
-	{
-		NST_VERIFY( window == NULL );
-
-		if (window)
-			return;
-
-		window = &w;
-		window->Messages().Set( WM_NST_THREAD_EXIT, this, &Thread::OnExit );
-		command = SUSPEND;
-
-		Initializer initializer( *this, callback );
-		handle = reinterpret_cast<HANDLE>(::_beginthreadex( NULL, stack, Starter, &initializer, 0, &id ));
-
-		if (handle == NULL)
-			throw Application::Exception(_T("::_beginthreadex() failed!"));
-
-		synchronizer.Wait();
-
-		if (startup == START)
-			Resume();
-	}
-
-	void Thread::Close(HANDLE& handle)
-	{
-		for (uint i=10; i; --i)
+		Thread::~Thread()
 		{
-			DWORD exitCode;
+			Stop();
+		}
 
-			if (!::GetExitCodeThread( handle, &exitCode ))
+		inline Thread::Terminator::Terminator(HANDLE handle)
+		: hAbort(handle) {}
+
+		void Thread::Start(const Callback& callback,const int priority)
+		{
+			Stop();
+
+			if
+			(
+				NULL == (hEnter = ::CreateEvent( NULL, false, false, NULL )) ||
+				NULL == (hExit  = ::CreateEvent( NULL, false, false, NULL )) ||
+				NULL == (hAbort = ::CreateEvent( NULL, false, false, NULL ))
+			)
+				throw Application::Exception(_T("::CreateEvent() failed!"));
+
+			class Entry
 			{
-				NST_DEBUG_MSG("GetExitCodeThread() failed!");
-				break;
-			}
-			else if (exitCode != STILL_ACTIVE)
+				const Callback callback;
+				const int priority;
+				HANDLE const hEnter;
+				HANDLE const hExit;
+				const Terminator terminator;
+
+			public:
+
+				Entry(const Callback& c,int p,HANDLE e,HANDLE x,Terminator t)
+				: callback(c), priority(p), hEnter(e), hExit(x), terminator(t) {}
+
+				static void NST_CDECL Run(void* data)
+				{
+					const Entry local( *static_cast<Entry*>(data) );
+
+					NST_ASSERT( local.hEnter && local.hExit );
+
+					if (local.priority)
+						::SetThreadPriority( ::GetCurrentThread(), local.priority );
+
+					::SetEvent( local.hEnter );
+
+					try
+					{
+						local.callback( local.terminator );
+					}
+					catch (...)
+					{
+					}
+
+					::SetEvent( local.hExit );
+				}
+			};
+
+			Entry entry( callback, priority, hEnter, hExit, Terminator(hAbort) );
+
+			if (!::_beginthread( Entry::Run, 0, &entry ))
+				throw Application::Exception(_T("::_beginthread() failed!"));
+
+			::WaitForSingleObject( hEnter, INFINITE );
+		}
+
+		void Thread::Stop()
+		{
+			if (hAbort)
+				::SetEvent( hAbort );
+
+			if (HANDLE const handle = hExit)
 			{
-				NST_VERIFY( exitCode == EXIT_SUCCESS || exitCode == EXIT_FAILURE );
-				break;
+				hExit = NULL;
+				::WaitForSingleObject( handle, INFINITE );
+				::CloseHandle( handle );
 			}
-			else
+
+			if (HANDLE const handle = hAbort)
 			{
-				::Sleep( 100 );
+				hAbort = NULL;
+				::CloseHandle( hAbort );
+			}
+
+			if (HANDLE const handle = hEnter)
+			{
+				hEnter = NULL;
+				::CloseHandle( handle );
 			}
 		}
-
-		NST_ASSERT( handle );
-
-		::CloseHandle( handle );
-		handle = NULL;
-	}
-
-	void Thread::Unhook()
-	{
-		if (window)
-		{
-			window->Messages().Remove( this );
-			window = NULL;
-		}
-	}
-
-	void Thread::Destroy()
-	{
-		if (handle)
-		{
-			const ibool suspended = (command == SUSPEND);
-			command = TERMINATE;
-
-			if (suspended)
-				suspender.Release();
-
-			::WaitForSingleObject( handle, INFINITE );
-			Close( handle );
-		}
-
-		Unhook();
-	}
-
-	void Thread::Suspend()
-	{
-		NST_VERIFY( id != ::GetCurrentThreadId() && !synchronizer.IsSignaled() );
-
-		if (handle && command == NONE)
-		{
-			command = SUSPEND;
-			synchronizer.Wait();
-		}
-	}
-
-	void Thread::Resume()
-	{
-		NST_VERIFY( id != ::GetCurrentThreadId() && !synchronizer.IsSignaled() );
-
-		if (command == SUSPEND)
-		{
-			NST_VERIFY( handle );
-
-			command = NONE;
-			suspender.Release();
-		}
-	}
-
-	ibool Thread::OnExit(Window::Param& param)
-	{
-		// A NULL handle means that the master thread has
-		// already destroyed this thread
-
-		if (handle)
-			Close( handle );
-
-		Unhook();
-
-		switch (LOWORD(param.wParam))
-		{
-			case ON_EXIT_EXCEPTION:
-
-				throw Application::Exception
-				(
-					reinterpret_cast<tstring>(param.lParam),
-					static_cast<Application::Exception::Type>(HIWORD(param.wParam))
-				);
-
-			case ON_EXIT_MESSAGE:
-
-				Window::User::Issue
-				(
-					static_cast<Window::User::Type>(HIWORD(param.wParam)),
-					LOWORD(param.lParam),
-					HIWORD(param.lParam)
-				);
-		}
-
-		return true;
-	}
-
-	inline Thread::Interrupt::Interrupt(Thread& input)
-	: thread(input) {}
-
-	uint Thread::Interrupt::ExitSuccess() const
-	{
-		thread.window->Post
-		(
-			WM_NST_THREAD_EXIT,
-			ON_EXIT_SUCCESS,
-			0
-		);
-
-		return EXIT_SUCCESS;
-	}
-
-	uint Thread::Interrupt::ExitFailure(const Application::Exception& exception) const
-	{
-		thread.window->Post
-		(
-			WM_NST_THREAD_EXIT,
-			MAKELONG(ON_EXIT_EXCEPTION,exception.GetType()),
-			exception.GetMessageText()
-		);
-
-		return EXIT_FAILURE;
-	}
-
-	inline uint Thread::Interrupt::Execute(const Callback execute) const
-	{
-		try
-		{
-			execute( *this );
-		}
-		catch (const Application::Exception& exception)
-		{
-			return ExitFailure( exception );
-		}
-		catch (...)
-		{
-			return ExitFailure( Application::Exception(IDS_ERR_GENERIC) );
-		}
-
-		return ExitSuccess();
-	}
-
-	void Thread::Interrupt::Acknowledge() const
-	{
-		NST_ASSERT( thread.id == ::GetCurrentThreadId() );
-		NST_VERIFY( thread.handle && thread.command != NONE );
-
-		if (thread.command == SUSPEND)
-		{
-			thread.synchronizer.Release();
-			thread.suspender.Wait();
-		}
-	}
-
-	uint NST_STDCALL Thread::Starter(void* data)
-	{
-		return Interrupt( static_cast<Initializer*>(data)->thread ).Execute
-		(
-			static_cast<const Initializer*>(data)->callback
-		);
 	}
 }

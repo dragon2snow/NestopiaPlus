@@ -35,6 +35,17 @@
 #include "NstCollectionVector.hpp"
 #include <dinput.h>
 
+#ifdef _MSC_VER
+#pragma warning( push )
+#pragma warning( disable : 4201 )
+#endif
+
+#include <MMSystem.h>
+
+#ifdef _MSC_VER
+#pragma warning( pop )
+#endif
+
 namespace Nestopia
 {
 	namespace DirectX
@@ -46,7 +57,7 @@ namespace Nestopia
 
 		public:
 
-			explicit DirectInput(HWND);
+			DirectInput(HWND);
 			~DirectInput();
 
 			enum
@@ -86,15 +97,18 @@ namespace Nestopia
 
 			class Key;
 
-			void Acquire();
-			void Unacquire();
-			void Optimize(const Key*,uint);
+			void  Acquire();
+			void  Unacquire();
+			void  Update(uint=UINT_MAX-1);
+			ibool Poll();
+			void  StaticPoll();
+			void  Build(const Key*,uint,uint);
 			ibool MapKey(Key&,tstring,const System::Guid* = NULL,uint=0) const;
 			const HeapString GetKeyName(const Key&) const;
 
-			void BeginScanMode(HWND);
-			ScanResult ScanKey(Key&,ScanMode=SCAN_MODE_ALL);
-			void EndScanMode();
+			void BeginScanMode(HWND) const;
+			ScanResult ScanKey(Key&,ScanMode=SCAN_MODE_ALL) const;
+			void EndScanMode() const;
 
 			class Key
 			{
@@ -104,10 +118,10 @@ namespace Nestopia
 
 			public:
 
-				ibool MapVirtKey(uint,uint,uint,uint);
-				ibool MapVirtKey(GenericString);
-				ibool GetVirtKey(ACCEL&) const;
-				ibool IsVirtKey() const;
+				ibool MapVirtualKey(uint,uint,uint,uint);
+				ibool MapVirtualKey(GenericString);
+				ibool GetVirtualKey(ACCEL&) const;
+				ibool IsVirtualKey() const;
 				ibool GetToggle(ibool&) const;
 
 			private:
@@ -118,7 +132,7 @@ namespace Nestopia
 					DWORD vKey;
 				};
 
-				uint (*code)(const void* const) throw();
+				uint (*code)(const void* const);
 
 			public:
 
@@ -136,7 +150,7 @@ namespace Nestopia
 					code = KeyNone;
 				}
 
-				ibool IsAssigned() const
+				ibool Assigned() const
 				{
 					return data != NULL;
 				}
@@ -168,7 +182,67 @@ namespace Nestopia
 				HWND const hWnd;
 			};
 
-			class Keyboard
+			class Notifier
+			{
+				void Run();
+
+				enum
+				{
+					EVENT_INPUT,
+					EVENT_STOP,
+					EVENT_ENTER
+				};
+
+				HANDLE events[3];
+				volatile uint timeInput;
+				uint signal;
+				volatile uint signaled;
+
+			public:
+
+				Notifier();
+				~Notifier();
+
+				HANDLE Start(bool);
+				void   Stop();
+
+				inline ibool Running() const;
+				inline ibool Update(uint=UINT_MAX-1);
+				inline uint  Flush();
+				inline void  Reset();
+				inline ibool Signaling() const;
+			};
+
+			class Device
+			{
+			public:
+
+				void Enable(ibool,ibool);
+
+			protected:
+
+				Device(IDirectInputDevice8&);
+				~Device();
+
+				ibool Acquire(void*,uint);
+				void  Unacquire();
+
+				inline ibool Update(uint);
+				inline ibool Poll();
+				inline uint  Flush();
+				inline void  Reset();
+				inline void  StaticPoll() const;
+				inline ibool Signaling() const;
+
+				IDirectInputDevice8& com;
+
+			private:
+
+				ibool mustPoll;
+				Notifier notifier;
+			};
+
+			class Keyboard : public Device
 			{
 			public:
 
@@ -178,34 +252,46 @@ namespace Nestopia
 				enum
 				{
 					MAX_KEYS = NUM_KEYBOARD_KEYS,
-					COOPERATIVE_FLAGS = DISCL_FOREGROUND|DISCL_NONEXCLUSIVE|DISCL_NOWINKEY
 				};
 
-				NST_NO_INLINE void Acquire();
+				void Acquire();
 				void Unacquire();
+
+				NST_FORCE_INLINE void Update(uint);
+				NST_FORCE_INLINE uint Poll();
 
 				ibool Map(Key&,tstring) const;
 				ibool Map(Key&,uint) const;
-				ibool Scan(u8 (&)[MAX_KEYS]);
-				ScanResult Scan(Key&);
-				void SetCooperativeLevel(HWND,DWORD=COOPERATIVE_FLAGS) const;
-				ibool IsAssigned(const Key&) const;
+
+				void BeginScanMode(HWND) const;
+				ibool Scan(u8 (&)[MAX_KEYS]) const;
+				ScanResult Scan(Key&) const;
+				void EndScanMode() const;
+
+				ibool Assigned(const Key&) const;
 				tstring GetName(const Key&) const;
-				inline void Use(ibool);
-				inline ibool InUse() const;
 
 			private:
+
+				enum
+				{
+					COOPERATIVE_FLAGS = DISCL_FOREGROUND|DISCL_NONEXCLUSIVE|DISCL_NOWINKEY,
+					SCAN_COOPERATIVE_FLAGS = DISCL_BACKGROUND|DISCL_NONEXCLUSIVE
+				};
 
 				static BOOL CALLBACK EnumObjects(LPCDIDEVICEOBJECTINSTANCE,LPVOID);
 				static IDirectInputDevice8& Create(IDirectInput8&);
 
+				void SetCooperativeLevel(HWND,DWORD) const;
 				void Clear();
+				void GetState();
+
+				NST_NO_INLINE void OnError(HRESULT);
 
 				typedef Object::Heap<BYTE,MAX_KEYS> Buffer;
 
-				ibool inUse;
-				IDirectInputDevice8& com;
 				Buffer buffer;
+				HWND const hWnd;
 
 				static HeapString keyNames[MAX_KEYS];
 
@@ -215,15 +301,9 @@ namespace Nestopia
 				{
 					return buffer;
 				}
-
-				void Poll()
-				{
-					if (inUse && (FAILED(com.Poll()) || FAILED(com.GetDeviceState( Buffer::SIZE, buffer ))))
-						Acquire();
-				}
 			};
 
-			class Joystick
+			class Joystick : public Device
 			{
 			public:
 
@@ -244,34 +324,41 @@ namespace Nestopia
 					ERR_API
 				};
 
-				NST_NO_INLINE void Acquire();
+				void Acquire();
 				void Unacquire();
+				void StaticPoll();
+
+				NST_FORCE_INLINE void Update(uint);
+				NST_FORCE_INLINE uint Poll();
 
 				ibool Map(Key&,tstring) const;
-				ibool Scan(Key&);
-				ibool IsAssigned(const Key&) const;
+
+				void BeginScanMode() const;
+				ibool Scan(Key&) const;
+				void EndScanMode() const;
+
+				ibool Assigned(const Key&) const;
 				ibool SetAxisDeadZone(uint);
 				tstring GetName(const Key&) const;
-				inline void Use(ibool);
-				inline ibool InUse() const;
 
 			private:
 
 				static IDirectInputDevice8& Create(Base&,const GUID&);
 
-				NST_NO_INLINE void OnError(HRESULT);
 				void Clear();
+				void GetState();
+
+				NST_NO_INLINE void OnError(HRESULT);
 
 				class Caps
 				{
 					struct Context
 					{
+						Context(Caps&,IDirectInputDevice8&);
+
 						Caps& caps;
 						IDirectInputDevice8& com;
 						uint numButtons;
-
-						Context(Caps& c,IDirectInputDevice8& d)
-						: caps(c), com(d), numButtons(0) {}
 					};
 
 					enum
@@ -299,46 +386,27 @@ namespace Nestopia
 
 				class Calibrator
 				{
-				public:
-
-					Calibrator();
-
-					void Reset(DIJOYSTATE&);
-
-				private:
-
-					ibool must;
 					long lX;
 					long lY;
 					long lZ;
 					long lRx;
 					long lRy;
 					long lRz;
+					ibool must;
 
 				public:
 
-					ibool Must() const
-					{
-						return must;
-					}
+					Calibrator();
 
-					void Fix(DIJOYSTATE& state) const
-					{
-						state.lX -= lX;
-						state.lY -= lY;
-						state.lZ -= lZ;
-						state.lRx -= lRx;
-						state.lRy -= lRy;
-						state.lRz -= lRz;
-					}
+					void Reset(DIJOYSTATE&);
+
+					inline void Fix(DIJOYSTATE&) const;
 				};
 
-				ibool enabled;
-				ibool inUse;
-				IDirectInputDevice8& com;
 				const Caps caps;
 				Object::Pod<DIJOYSTATE> state;
-				Calibrator calibrator;
+				mutable Calibrator calibrator;
+				ibool scanEnabled;
 				uint deadZone;
 				uint axes;
 
@@ -377,14 +445,14 @@ namespace Nestopia
 					return axes;
 				}
 
-				void Enable(ibool enable)
+				void ScanEnable(ibool enable)
 				{
-					enabled = enable;
+					scanEnabled = enable;
 				}
 
-				ibool IsEnabled() const
+				ibool ScanEnabled() const
 				{
-					return enabled;
+					return scanEnabled;
 				}
 
 				void SetScannerAxes(uint flags)
@@ -398,44 +466,26 @@ namespace Nestopia
 					NST_ASSERT( flags <= AXIS_ALL );
 					axes = (on ? axes | flags : axes & ~flags);
 				}
-
-				void Poll()
-				{
-					if (inUse)
-					{
-						HRESULT hResult;
-
-						if (SUCCEEDED(hResult=com.Poll()) && SUCCEEDED(hResult=com.GetDeviceState( sizeof(state), &state )))
-							calibrator.Fix( state );
-						else
-							OnError( hResult );
-					}
-				}
 			};
 
 			typedef Collection::Vector<Joystick> Joysticks;
 
 			static BOOL CALLBACK EnumJoysticks(LPCDIDEVICEINSTANCE,LPVOID);
 
-			static uint KeyDown     (const void* const) throw();
-			static uint KeyNegDir   (const void* const) throw();
-			static uint KeyPosDir   (const void* const) throw();
-			static uint KeyPovUp    (const void* const) throw();
-			static uint KeyPovRight (const void* const) throw();
-			static uint KeyPovDown  (const void* const) throw();
-			static uint KeyPovLeft  (const void* const) throw();
-			static uint KeyNone     (const void* const) throw();
+			static uint KeyDown     (const void* const);
+			static uint KeyNegDir   (const void* const);
+			static uint KeyPosDir   (const void* const);
+			static uint KeyPovUp    (const void* const);
+			static uint KeyPovRight (const void* const);
+			static uint KeyPovDown  (const void* const);
+			static uint KeyPovLeft  (const void* const);
+			static uint KeyNone     (const void* const);
 
 			Base base;
 			Keyboard keyboard;
 			Joysticks joysticks;
 
 		public:
-
-			ibool ScanKeyboard(u8 (&buffer)[Keyboard::MAX_KEYS])
-			{
-				return keyboard.Scan( buffer );
-			}
 
 			ibool MapKeyboard(Key& key,uint code) const
 			{
@@ -448,16 +498,16 @@ namespace Nestopia
 				return joysticks.Size();
 			}
 
-			ibool IsJoystickEnabled(uint index) const
+			ibool JoystickScanEnabled(uint index) const
 			{
 				NST_ASSERT( index < joysticks.Size() );
-				return joysticks[index].IsEnabled();
+				return joysticks[index].ScanEnabled();
 			}
 
-			void EnableJoystick(uint index,ibool enable)
+			void ScanEnableJoystick(uint index,ibool enable)
 			{
 				NST_ASSERT( index < joysticks.Size() );
-				joysticks[index].Enable( enable );
+				joysticks[index].ScanEnable( enable );
 			}
 
 			const System::Guid& GetJoystickGuid(uint index) const
@@ -513,22 +563,10 @@ namespace Nestopia
 				return keyboard.GetBuffer();
 			}
 
-			ibool IsAnyPressed()
+			ibool AnyPressed() const
 			{
 				Key key;
 				return ScanKey( key ) != SCAN_NO_KEY;
-			}
-
-			void PollJoysticks()
-			{
-				for (Joysticks::Iterator it=joysticks.Begin(), end=joysticks.End(); it != end; ++it)
-					it->Poll();
-			}
-
-			void Poll()
-			{
-				keyboard.Poll();
-				PollJoysticks();
 			}
 		};
 	}

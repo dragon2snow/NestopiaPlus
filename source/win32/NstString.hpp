@@ -30,6 +30,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <cwchar>
+#include <cmath>
 #include "NstMain.hpp"
 
 namespace Nestopia
@@ -53,7 +54,8 @@ namespace Nestopia
 
 			enum
 			{
-				MAX_INT_LENGTH = 12
+				MAX_INT_LENGTH = 12,
+				MAX_FLT_LENGTH = 24
 			};
 
 			template<typename T> static T* Remove(T*,T);
@@ -63,6 +65,9 @@ namespace Nestopia
 
 			template<typename T> static T* FromUnsigned(T (&)[MAX_INT_LENGTH],u32);
 			template<typename T> static T* FromSigned(T (&)[MAX_INT_LENGTH],i32);
+
+			static uint FromDouble(char (&)[MAX_FLT_LENGTH],double,uint);
+			static uint FromDouble(wchar_t (&)[MAX_FLT_LENGTH],double,uint);
 
 			template<typename T> static void AssignSigned(T&,i32);
 			template<typename T> static void AssignUnsigned(T&,u32);
@@ -161,49 +166,49 @@ namespace Nestopia
 			}
 
 			template<typename T,typename U>
-			static bool IsEqual(const T& t,const U& u)
+			static bool Equal(const T& t,const U& u)
 			{
 				return t.Length() == u.Length() && !Compare( t.Ptr(), t.Length(), u.Ptr(), u.Length() );
 			}
 
 			template<typename T,typename U>
-			static bool IsEqual(const T& t,const U*& u)
+			static bool Equal(const T& t,const U*& u)
 			{
 				return !Compare( t.Ptr(), t.Length(), u, -1 );
 			}
 
 			template<typename T,typename U>
-			static bool IsEqual(const T& t,const U* const& u)
+			static bool Equal(const T& t,const U* const& u)
 			{
 				return !Compare( t.Ptr(), t.Length(), u, -1 );
 			}
 
 			template<typename T,typename U,size_t N>
-			static bool IsEqual(const T& t,const U (&u)[N])
+			static bool Equal(const T& t,const U (&u)[N])
 			{
 				return !Compare( t.Ptr(), t.Length(), u, -1 );
 			}
 
 			template<typename T,typename U>
-			static bool IsCaseEqual(const T& t,const U& u)
+			static bool CaseEqual(const T& t,const U& u)
 			{
 				return t.Length() == u.Length() && !CompareCase( t.Ptr(), t.Length(), u.Ptr(), u.Length() );
 			}
 
 			template<typename T,typename U>
-			static bool IsCaseEqual(const T& t,const U*& u)
+			static bool CaseEqual(const T& t,const U*& u)
 			{
 				return !CompareCase( t.Ptr(), t.Length(), u, -1 );
 			}
 
 			template<typename T,typename U>
-			static bool IsCaseEqual(const T& t,const U* const& u)
+			static bool CaseEqual(const T& t,const U* const& u)
 			{
 				return !CompareCase( t.Ptr(), t.Length(), u, -1 );
 			}
 
 			template<typename T,typename U,size_t N>
-			static bool IsCaseEqual(const T& t,const U (&u)[N])
+			static bool CaseEqual(const T& t,const U (&u)[N])
 			{
 				return !CompareCase( t.Ptr(), t.Length(), u, -1 );
 			}
@@ -518,7 +523,7 @@ namespace Nestopia
 				return string[length-1];
 			}
 
-			bool IsNullTerminated() const
+			bool NullTerminated() const
 			{
 				return string[length] == '\0';
 			}
@@ -551,13 +556,13 @@ namespace Nestopia
 			}
 
 			template<typename U>
-			bool IsEqual(const U& t) const
+			bool Equal(const U& t) const
 			{
-				return Base::IsCaseEqual( *this, t );
+				return Base::CaseEqual( *this, t );
 			}
 
-			template<typename U> bool operator == (const U& t) const { return  Base::IsEqual( *this, t );      }
-			template<typename U> bool operator != (const U& t) const { return !Base::IsEqual( *this, t );      }
+			template<typename U> bool operator == (const U& t) const { return  Base::Equal( *this, t );      }
+			template<typename U> bool operator != (const U& t) const { return !Base::Equal( *this, t );      }
 			template<typename U> bool operator <  (const U& t) const { return  Base::Compare( *this, t ) <  0; }
 			template<typename U> bool operator <= (const U& t) const { return  Base::Compare( *this, t ) <= 0; }
 			template<typename U> bool operator >  (const U& t) const { return  Base::Compare( *this, t ) >  0; }
@@ -831,13 +836,13 @@ namespace Nestopia
 			}
 
 			template<typename U>
-			bool IsEqual(const U& t) const
+			bool Equal(const U& t) const
 			{
-				return Base::IsCaseEqual( *this, t );
+				return Base::CaseEqual( *this, t );
 			}
 
-			template<typename U> bool operator == (const U& t) const { return  Base::IsEqual( *this, t );      }
-			template<typename U> bool operator != (const U& t) const { return !Base::IsEqual( *this, t );      }
+			template<typename U> bool operator == (const U& t) const { return  Base::Equal( *this, t );      }
+			template<typename U> bool operator != (const U& t) const { return !Base::Equal( *this, t );      }
 			template<typename U> bool operator <  (const U& t) const { return  Base::Compare( *this, t ) <  0; }
 			template<typename U> bool operator <= (const U& t) const { return  Base::Compare( *this, t ) <= 0; }
 			template<typename U> bool operator >  (const U& t) const { return  Base::Compare( *this, t ) >  0; }
@@ -845,7 +850,7 @@ namespace Nestopia
 		};
 
 		template<typename T> template<typename U>
-		void Sub<T>::Assign(const U* NST_RESTRICT const t,const uint n)
+		void Sub<T>::Assign(const U* const NST_RESTRICT t,const uint n)
 		{
 			const uint l = length;
 			length = n;
@@ -1108,13 +1113,13 @@ namespace Nestopia
 			}
 
 			template<typename U>
-			bool IsEqual(const U& t) const
+			bool Equal(const U& t) const
 			{
-				return Base::IsCaseEqual( *this, t );
+				return Base::CaseEqual( *this, t );
 			}
 
-			template<typename U> bool operator == (const U& t) const { return  Base::IsEqual( *this, t );      }
-			template<typename U> bool operator != (const U& t) const { return !Base::IsEqual( *this, t );      }
+			template<typename U> bool operator == (const U& t) const { return  Base::Equal( *this, t );      }
+			template<typename U> bool operator != (const U& t) const { return !Base::Equal( *this, t );      }
 			template<typename U> bool operator <  (const U& t) const { return  Base::Compare( *this, t ) <  0; }
 			template<typename U> bool operator <= (const U& t) const { return  Base::Compare( *this, t ) <= 0; }
 			template<typename U> bool operator >  (const U& t) const { return  Base::Compare( *this, t ) >  0; }
@@ -1122,7 +1127,7 @@ namespace Nestopia
 		};
 
 		template<uint N,typename T> template<typename U>
-		void Stack<N,T>::Assign(const U* NST_RESTRICT const t)
+		void Stack<N,T>::Assign(const U* const NST_RESTRICT t)
 		{
 			NST_ASSERT( Base::Length(t) <= MAX_LENGTH );
 
@@ -1140,7 +1145,7 @@ namespace Nestopia
 		}
 
 		template<uint N,typename T> template<typename U>
-		void Stack<N,T>::Assign(const U* NST_RESTRICT const t,const uint n)
+		void Stack<N,T>::Assign(const U* const NST_RESTRICT t,const uint n)
 		{
 			NST_ASSERT( t && n <= MAX_LENGTH );
 
@@ -1150,7 +1155,7 @@ namespace Nestopia
 		}
 
 		template<uint N,typename T> template<typename U>
-		void Stack<N,T>::Append(const U* NST_RESTRICT const t)
+		void Stack<N,T>::Append(const U* const NST_RESTRICT t)
 		{
 			NST_ASSERT( length + Base::Length(t) <= MAX_LENGTH );
 
@@ -1168,7 +1173,7 @@ namespace Nestopia
 		}
 
 		template<uint N,typename T> template<typename U>
-		void Stack<N,T>::Append(const U* NST_RESTRICT const t,const uint n)
+		void Stack<N,T>::Append(const U* const NST_RESTRICT t,const uint n)
 		{
 			NST_ASSERT( t && length + n <= MAX_LENGTH );
 
@@ -1189,7 +1194,7 @@ namespace Nestopia
 		}
 
 		template<uint N,typename T> template<typename U>
-		void Stack<N,T>::Insert(const uint pos,const U* NST_RESTRICT const t,const uint n)
+		void Stack<N,T>::Insert(const uint pos,const U* const NST_RESTRICT t,const uint n)
 		{
 			NST_ASSERT( length + n <= MAX_LENGTH );
 
@@ -1239,7 +1244,7 @@ namespace Nestopia
 			static Type empty[4];
 
 			template<typename U>
-			void Copy(const U* NST_RESTRICT const t,const uint n)
+			void Copy(const U* const NST_RESTRICT t,const uint n)
 			{
 				NST_ASSERT( t );
 				Base::Copy( string, t, n );
@@ -1481,8 +1486,8 @@ namespace Nestopia
 				return SubString( *this, first, length - first );
 			}
 
-			template<typename U> bool operator == (const U& t) const { return  Base::IsEqual( *this, t );      }
-			template<typename U> bool operator != (const U& t) const { return !Base::IsEqual( *this, t );      }
+			template<typename U> bool operator == (const U& t) const { return  Base::Equal( *this, t );      }
+			template<typename U> bool operator != (const U& t) const { return !Base::Equal( *this, t );      }
 			template<typename U> bool operator <  (const U& t) const { return  Base::Compare( *this, t ) <  0; }
 			template<typename U> bool operator <= (const U& t) const { return  Base::Compare( *this, t ) <= 0; }
 			template<typename U> bool operator >  (const U& t) const { return  Base::Compare( *this, t ) >  0; }
@@ -1493,7 +1498,7 @@ namespace Nestopia
 		typename Heap<T>::Type Heap<T>::empty[4] = {'\0','\0','\0','\0'};
 
 		template<typename T> template<typename U>
-		void Heap<T>::Init(const U* NST_RESTRICT const t,const uint n)
+		void Heap<T>::Init(const U* const NST_RESTRICT t,const uint n)
 		{
 			NST_ASSERT( t && !*empty );
 
@@ -1583,7 +1588,7 @@ namespace Nestopia
 		}
 
 		template<typename T> template<typename U>
-		void Heap<T>::Insert(const uint pos,const U* NST_RESTRICT const t,const uint n)
+		void Heap<T>::Insert(const uint pos,const U* const NST_RESTRICT t,const uint n)
 		{
 			if (n)
 			{
@@ -1973,7 +1978,7 @@ namespace Nestopia
 		}
 
 		template<typename T>
-		uint Path<T>::ExtensionId(const T* NST_RESTRICT const string,uint length)
+		uint Path<T>::ExtensionId(const T* const NST_RESTRICT string,uint length)
 		{
 			uint id = 0;
 
@@ -2212,12 +2217,54 @@ namespace Nestopia
 		{
 			Convert( i, 2+2 );
 		}
+
+		template<typename T=tchar>
+		class Real : Base
+		{
+		public:
+
+			typedef T Type;
+
+			enum
+			{
+				TYPE_SIZE = sizeof(Type)
+			};
+
+			Real(double,uint=1,bool=false);
+
+		private:
+
+			static bool Fraction(double v)
+			{
+				return std::modf( v, &v );
+			}
+
+			Type buffer[24];
+			const uint length;
+
+		public:
+
+			const Type* Ptr() const
+			{
+				return buffer;
+			}
+
+			uint Length() const
+			{
+				return length;
+			}
+		};
+
+		template<typename T>
+		Real<T>::Real(double v,uint d,bool p)
+		: length( Base::FromDouble( buffer, v, p || (d > 1 && Fraction(v)) ? d : 1 )) {}
 	}
 
 	typedef String::Heap<tchar>         HeapString;
 	typedef String::Generic<tchar>      GenericString;
 	typedef String::Generic<tchar,true> ValueString;
 	typedef String::Hex<tchar>          HexString;
+	typedef String::Real<tchar>         RealString;
 	typedef String::Path<tchar>         Path;
 }
 

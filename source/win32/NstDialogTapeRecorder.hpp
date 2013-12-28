@@ -53,7 +53,6 @@ namespace Nestopia
 			ibool OnCmdBrowse       (Param&);
 			ibool OnCmdClear        (Param&);
 			ibool OnCmdOk           (Param&);
-			ibool OnCmdCancel       (Param&);
 
 			struct Settings
 			{

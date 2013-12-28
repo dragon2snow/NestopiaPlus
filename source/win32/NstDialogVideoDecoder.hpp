@@ -28,8 +28,6 @@
 #pragma once
 
 #include "NstWindowDialog.hpp"
-#include "NstWindowParam.hpp"
-#include "NstManagerEmulator.hpp"
 
 namespace Nestopia
 {
@@ -39,15 +37,17 @@ namespace Nestopia
 		{
 		public:
 
-			VideoDecoder(Nes::Video,ibool);
+			VideoDecoder(Nes::Video);
 			~VideoDecoder();
+
+			static void Load(const Configuration&,Nes::Video);
+			static void Save(Configuration&,const Nes::Video);
 
 		private:
 
 			struct Handlers;
 
 			void Update() const;
-			void Redraw() const;
 
 			ibool OnInitDialog     (Param&);
 			ibool OnHScroll        (Param&);
@@ -55,12 +55,12 @@ namespace Nestopia
 			ibool OnCmdBoostYellow (Param&);
 			ibool OnCmdPreset      (Param&);
 			ibool OnCmdOk          (Param&);
-			ibool OnCmdCancel      (Param&);
 
 			Dialog dialog;
 			Nes::Video nes;
-			const ibool usingNtscFilter;
 			Nes::Video::Decoder final;
+
+			static cstring const cfgAxes[3][2];
 
 		public:
 

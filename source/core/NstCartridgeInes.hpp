@@ -42,15 +42,19 @@ namespace Nes
 			Ines
 			(
 				StdStream,
-				LinearMemory&,
-				LinearMemory&,
-				LinearMemory&,
+				Ram&,
+				Ram&,
+				Ram&,
 				Api::Cartridge::Info&,
-				const ImageDatabase*,
-				Result&
+				const ImageDatabase*
 			);
 
 		private:
+
+			enum
+			{
+				VS_MAPPER = 99
+			};
 
 			enum
 			{
@@ -78,10 +82,10 @@ namespace Nes
 					LENGTH = 6 + RESERVED_LENGTH
 				};
 
-				uint num16kPRomBanks;
-				uint num8kCRomBanks;
+				uint num16kPrgBanks;
+				uint num8kChrBanks;
 				uint flags;
-				uint num8kWRamBanks;
+				uint num8kWrkBanks;
 				ibool pal;
 				u8 reserved[RESERVED_LENGTH];
 			};
@@ -95,18 +99,28 @@ namespace Nes
 			void MessWithTheHeader(Header&);
 			void TryDatabase();
 
-			Result& result;
+			Result result;
 
 			Stream::In stream;
 			Log log;
 
-			LinearMemory& pRom;
-			LinearMemory& cRom;
-			LinearMemory& wRam;
+			Ram& prg;
+			Ram& chr;
+			Ram& wrk;
 
 			Api::Cartridge::Info& info;
 
+			dword prgSkip;
+			dword chrSkip;
+
 			const ImageDatabase* const database;
+
+		public:
+
+			Result GetResult() const
+			{
+				return result;
+			}
 		};
 	}
 }

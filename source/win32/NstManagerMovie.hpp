@@ -28,6 +28,7 @@
 #pragma once
 
 #include <fstream>
+#include "NstObjectHeap.hpp"
 #include "NstWindowMenu.hpp"
 
 namespace Nestopia
@@ -47,6 +48,8 @@ namespace Nestopia
 
 	namespace Managers
 	{
+		class Paths;
+
 		class Movie
 		{
 		public:

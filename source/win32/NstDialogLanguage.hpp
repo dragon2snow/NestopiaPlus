@@ -28,7 +28,7 @@
 #pragma once
 
 #include "NstWindowDialog.hpp"
-#include "NstApplicationInstance.hpp"
+#include "NstApplicationLanguage.hpp"
 
 namespace Nestopia
 {
@@ -44,20 +44,24 @@ namespace Nestopia
 
 			struct Handlers;
 
+			void CloseOk();
+
 			ibool OnInitDialog (Param&);
 			ibool OnCmdOk      (Param&);
-			ibool OnCmdCancel  (Param&);
+			ibool OnDblClk     (Param&);
+
+			typedef Application::Instance::Language::Paths Paths;
 
 			Dialog dialog;
-			Application::Instance::ResourcePaths resources;
-			Path newResource;
+			Paths paths;
+			Path newPath;
 
 		public:
 
 			const Path& Open()
 			{
 				dialog.Open();
-				return newResource;
+				return newPath;
 			}
 		};
 	}

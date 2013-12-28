@@ -31,73 +31,65 @@
 
 namespace Nestopia
 {
-	using namespace Window;
-
-	struct About::Handlers
+	namespace Window
 	{
-		static const MsgHandler::Entry<About> messages[];
-		static const MsgHandler::Entry<About> commands[];
-	};
-
-	const MsgHandler::Entry<About> About::Handlers::messages[] =
-	{
-		{ WM_INITDIALOG, &About::OnInitDialog },
-		{ WM_SETCURSOR,  &About::OnSetCursor  }
-	};
-
-	const MsgHandler::Entry<About> About::Handlers::commands[] =
-	{
-		{ IDC_ABOUT_URL,  &About::OnCmdClick },
-		{ IDC_ABOUT_MAIL, &About::OnCmdClick },
-		{ IDC_ABOUT_OK,   &About::OnCmdOk    }
-	};
-
-	About::About()
-	: dialog(IDD_ABOUT,this,Handlers::messages,Handlers::commands) {}
-
-	ibool About::OnInitDialog(Param&)
-	{
-		dialog.SetItemIcon( IDC_ABOUT_ICON, Application::Instance::GetIconStyle() == Application::Instance::ICONSTYLE_NES ? IDI_APP : IDI_APP_J );
-		dialog.Control( IDC_ABOUT_NAMEVERSION ).Text() << (String::Heap<char>() << "Nestopia v" << Application::Instance::GetVersion()).Ptr();
-		return true;
-	}
-
-	ibool About::OnSetCursor(Param& param)
-	{
-		HCURSOR hCursor;
-
-		if (param.Cursor().IsInside( IDC_ABOUT_URL ) || param.Cursor().IsInside( IDC_ABOUT_MAIL ))
-			hCursor = Resource::Cursor::GetHand();
-		else
-			hCursor = Resource::Cursor::GetArrow();
-
-		::SetCursor( hCursor );
-		::SetWindowLongPtr( dialog, DWLP_MSGRESULT, true );
-
-		return true;
-	}
-
-	ibool About::OnCmdClick(Param& param)
-	{
-		if (param.Button().IsClicked())
+		struct About::Handlers
 		{
-			HeapString cmd;
+			static const MsgHandler::Entry<About> messages[];
+			static const MsgHandler::Entry<About> commands[];
+		};
 
-			if (dialog.Control( param.Button().GetId() ).Text() >> cmd)
-			{
-				cmd.Insert( 0, param.Button().GetId() == IDC_ABOUT_MAIL ? _T("mailto:") : _T("http://") );
-				::ShellExecute( NULL, _T("open"), cmd.Ptr(), NULL, NULL, SW_SHOWNORMAL );
-			}
+		const MsgHandler::Entry<About> About::Handlers::messages[] =
+		{
+			{ WM_INITDIALOG, &About::OnInitDialog },
+			{ WM_SETCURSOR,  &About::OnSetCursor  }
+		};
+
+		const MsgHandler::Entry<About> About::Handlers::commands[] =
+		{
+			{ IDC_ABOUT_URL,  &About::OnCmdClick },
+			{ IDC_ABOUT_MAIL, &About::OnCmdClick }
+		};
+
+		About::About()
+		: dialog(IDD_ABOUT,this,Handlers::messages,Handlers::commands) {}
+
+		ibool About::OnInitDialog(Param&)
+		{
+			dialog.SetItemIcon( IDC_ABOUT_ICON, Application::Instance::GetIconStyle() == Application::Instance::ICONSTYLE_NES ? IDI_APP : IDI_APP_J );
+			dialog.Control( IDC_ABOUT_NAMEVERSION ).Text() << (String::Heap<char>() << "Nestopia v" << Application::Instance::GetVersion()).Ptr();
+			return true;
 		}
 
-		return true;
-	}
+		ibool About::OnSetCursor(Param& param)
+		{
+			HCURSOR hCursor;
 
-	ibool About::OnCmdOk(Param& param)
-	{
-		if (param.Button().IsClicked())
-			dialog.Close();
+			if (param.Cursor().Inside( IDC_ABOUT_URL ) || param.Cursor().Inside( IDC_ABOUT_MAIL ))
+				hCursor = Resource::Cursor::GetHand();
+			else
+				hCursor = Resource::Cursor::GetArrow();
 
-		return true;
+			::SetCursor( hCursor );
+			::SetWindowLongPtr( dialog, DWLP_MSGRESULT, true );
+
+			return true;
+		}
+
+		ibool About::OnCmdClick(Param& param)
+		{
+			if (param.Button().Clicked())
+			{
+				HeapString cmd;
+
+				if (dialog.Control( param.Button().GetId() ).Text() >> cmd)
+				{
+					cmd.Insert( 0, param.Button().GetId() == IDC_ABOUT_MAIL ? _T("mailto:") : _T("http://") );
+					::ShellExecute( NULL, _T("open"), cmd.Ptr(), NULL, NULL, SW_SHOWNORMAL );
+				}
+			}
+
+			return true;
+		}
 	}
 }

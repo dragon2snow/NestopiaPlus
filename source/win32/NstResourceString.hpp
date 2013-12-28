@@ -33,7 +33,7 @@ namespace Nestopia
 {
 	namespace Resource
 	{
-		class String : public Nestopia::HeapString
+		class String : public HeapString
 		{
 			enum
 			{

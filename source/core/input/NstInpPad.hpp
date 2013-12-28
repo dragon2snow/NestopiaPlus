@@ -39,7 +39,7 @@ namespace Nes
 			{
 			public:
 
-				Pad(uint);
+				Pad(const Cpu&,uint);
 
 			private:
 

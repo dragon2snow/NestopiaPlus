@@ -27,7 +27,6 @@
 
 #pragma once
 
-#include "NstWindowRect.hpp"
 #include "NstWindowDialog.hpp"
 #include "NstDialogVideoFilters.hpp"
 #include "NstDirect2D.hpp"
@@ -48,15 +47,17 @@ namespace Nestopia
 
 			enum
 			{
-				NES_WIDTH        = Nes::Video::Output::WIDTH,
-				NES_HEIGHT       = Nes::Video::Output::HEIGHT,
-				NTSC_WIDTH       = Nes::Video::Output::NTSC_WIDTH,
-				NTSC_HEIGHT      = Nes::Video::Output::NTSC_HEIGHT,
-				DEFAULT_WIDTH    = 640,
-				DEFAULT_HEIGHT   = 480,
-				DEFAULT_BPP      = 16,
-				SCREEN_MATCHED   = 8,
-				SCREEN_STRETCHED = 255
+				NES_WIDTH            = Nes::Video::Output::WIDTH,
+				NES_HEIGHT           = Nes::Video::Output::HEIGHT,
+				NTSC_WIDTH           = Nes::Video::Output::NTSC_WIDTH,
+				NTSC_HEIGHT          = Nes::Video::Output::NTSC_HEIGHT,
+				DEFAULT_WIDTH        = 640,
+				DEFAULT_HEIGHT       = 480,
+				DEFAULT_BPP          = 16,
+				SCREEN_MATCHED       = 8,
+				SCREEN_STRETCHED     = 255,
+				MIN_SCREEN_CURVATURE = -10,
+				MAX_SCREEN_CURVATURE = +10
 			};
 
 			Video(Managers::Emulator&,const Adapters&,const Managers::Paths&,const Configuration&);
@@ -66,9 +67,8 @@ namespace Nestopia
 			void LoadGamePalette(const Path&);
 			void UnloadGamePalette();
 			void SavePalette(Path&) const;
-			void UpdatePaletteMode() const;
-			void GetRenderState(Nes::Video::RenderState&,float[4],const Window::Generic) const;
-			ibool PutTextureInVideoMemory() const;
+			void UpdateAutoModes() const;
+			void GetRenderState(Nes::Video::RenderState&,float[4],const Point) const;
 			Modes::const_iterator GetDialogMode() const;
 
 		private:
@@ -109,7 +109,6 @@ namespace Nestopia
 
 				enum TexMem
 				{
-					TEXMEM_AUTO,
 					TEXMEM_VIDMEM,
 					TEXMEM_SYSMEM
 				};
@@ -123,6 +122,7 @@ namespace Nestopia
 				Path palette;
 				Path lockedPalette;
 				Nes::Video::Palette::Mode lockedMode;
+				int screenCurvature;
 				u8 fullscreenScale;
 				bool autoPalette;
 				bool autoHz;
@@ -146,7 +146,6 @@ namespace Nestopia
 			ibool OnCmdPalEditor      (Param&);
 			ibool OnCmdDefault        (Param&);
 			ibool OnCmdOk             (Param&);
-			ibool OnCmdCancel         (Param&);
 			ibool OnDestroy           (Param&);
 
 			void UpdateDevice(Mode);
@@ -154,6 +153,7 @@ namespace Nestopia
 			void UpdateFilters();
 			void UpdateRects(const Rect&,const Rect&) const;
 			void UpdateColors() const;
+			void UpdateScreenCurvature() const;
 			void UpdatePalette() const;
 			void ImportPalette(Path&,Managers::Paths::Alert);
 			void ValidateRects();
@@ -162,8 +162,6 @@ namespace Nestopia
 			void ResetColors();
 
 			Modes::const_iterator GetDefaultMode() const;
-
-			static void UpdateScreen(HWND);
 
 			Settings settings;
 			const Adapters& adapters;
@@ -195,7 +193,7 @@ namespace Nestopia
 				return settings.tvAspect;
 			}
 
-			bool IsTvAspect() const
+			bool TvAspect() const
 			{
 				return settings.tvAspect;
 			}
@@ -216,6 +214,11 @@ namespace Nestopia
 					return Adapter::FILTER_BILINEAR;
 				else
 					return Adapter::FILTER_NONE;
+			}
+
+			int GetScreenCurvature() const
+			{
+				return settings.screenCurvature;
 			}
 
 			uint GetFullscreenScale() const
@@ -241,6 +244,11 @@ namespace Nestopia
 			ibool EnableFieldMerging() const
 			{
 				return settings.filters[Filter::TYPE_NTSC].attributes[Filter::ATR_FIELDMERGING] == Filter::ATR_FIELDMERGING_ON;
+			}
+
+			ibool PutTextureInVideoMemory() const
+			{
+				return settings.texMem == Settings::TEXMEM_VIDMEM;
 			}
 
 			const Rect& GetNesRect() const

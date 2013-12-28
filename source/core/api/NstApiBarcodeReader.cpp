@@ -22,9 +22,9 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
+#include <cstdlib>
 #include <ctime>
-#include "../NstCore.hpp"
-#include "NstApiEmulator.hpp"
+#include "../NstMachine.hpp"
 #include "../NstImage.hpp"
 #include "../NstPrpBarcodeReader.hpp"
 #include "NstApiBarcodeReader.hpp"
@@ -48,7 +48,7 @@ namespace Nes
 			return NULL;
 		}
 
-		uint BarcodeReader::Randomize(char (&string)[MAX_DIGITS+1]) const
+		uint BarcodeReader::Randomize(char (&string)[MAX_DIGITS+1]) const throw()
 		{
 			uint digits = 0;
 
@@ -87,7 +87,7 @@ namespace Nes
 			return digits;
 		}
 
-		bool BarcodeReader::IsDigitsSupported(uint count) const
+		bool BarcodeReader::IsDigitsSupported(uint count) const throw()
 		{
 			if (Core::Peripherals::BarcodeReader* const barcodeReader = Query())
 				return barcodeReader->IsDigitsSupported( count );
@@ -95,7 +95,7 @@ namespace Nes
 			return false;
 		}
 
-		Result BarcodeReader::Transfer(const char* string,uint length)
+		Result BarcodeReader::Transfer(const char* string,uint length) throw()
 		{
 			if (Core::Peripherals::BarcodeReader* const barcodeReader = Query())
 				return barcodeReader->Transfer( string, length ) ? RESULT_OK : RESULT_ERR_INVALID_PARAM;

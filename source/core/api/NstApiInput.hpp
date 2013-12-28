@@ -79,7 +79,7 @@ namespace Nes
 
 			public:
 
-				Controllers();
+				Controllers() throw();
 
 				struct Pad
 				{
@@ -102,10 +102,11 @@ namespace Nes
 
 					uint buttons;
 					uint mic;
+					uint timeStamp;
 					bool allowSimulAxes;
 
 					Pad()
-					: buttons(0), mic(0), allowSimulAxes(false) {}
+					: buttons(0), mic(0), timeStamp(0), allowSimulAxes(false) {}
 
 					typedef bool (NST_CALLBACK *PollCallback) (void*,Pad&,uint);
 
@@ -141,7 +142,7 @@ namespace Nes
 
 				struct PowerPad
 				{
-					PowerPad();
+					PowerPad() throw();
 
 					enum
 					{
@@ -151,6 +152,7 @@ namespace Nes
 
 					bool sideA[NUM_SIDE_A_BUTTONS];
 					bool sideB[NUM_SIDE_B_BUTTONS];
+					uint timeStamp;
 
 					typedef bool (NST_CALLBACK *PollCallback) (void*,PowerPad&);
 
@@ -173,7 +175,7 @@ namespace Nes
 
 				struct FamilyTrainer
 				{
-					FamilyTrainer();
+					FamilyTrainer() throw();
 
 					enum
 					{
@@ -191,7 +193,7 @@ namespace Nes
 
 				struct FamilyKeyboard
 				{
-					FamilyKeyboard();
+					FamilyKeyboard() throw();
 
 					enum
 					{
@@ -208,7 +210,7 @@ namespace Nes
 
 				struct SuborKeyboard
 				{
-					SuborKeyboard();
+					SuborKeyboard() throw();
 
 					enum
 					{
@@ -361,9 +363,10 @@ namespace Nes
 					};
 
 					uint buttons;
+					uint timeStamp;
 
 					HyperShot()
-					: buttons(0) {}
+					: buttons(0), timeStamp(0) {}
 
 					typedef bool (NST_CALLBACK *PollCallback) (void*,HyperShot&);
 
@@ -382,9 +385,10 @@ namespace Nes
 
 					uint left;
 					uint right;
+					uint timeStamp;
 
 					CrazyClimber()
-					: left(0), right(0) {}
+					: left(0), right(0), timeStamp(0) {}
 
 					typedef bool (NST_CALLBACK *PollCallback) (void*,CrazyClimber&);
 
@@ -520,9 +524,10 @@ namespace Nes
 					};
 
 					uint units;
+					uint timeStamp;
 
 					PartyTap()
-					: units(0) {}
+					: units(0), timeStamp(0) {}
 
 					typedef bool (NST_CALLBACK *PollCallback) (void*,PartyTap&);
 
@@ -579,7 +584,8 @@ namespace Nes
 		{
 		public:
 
-			Input(Emulator& e)
+			template<typename T>
+			Input(T& e)
 			: Base(e) {}
 
 			enum
@@ -627,15 +633,15 @@ namespace Nes
 
 			typedef Core::Input::Controllers Controllers;
 
-			Result AutoSelectController(uint);
+			Result AutoSelectController(uint) throw();
 
-			Result ConnectController(uint,Type);
-			Type GetConnectedController(uint) const;
+			Result ConnectController(uint,Type) throw();
+			Type GetConnectedController(uint) const throw();
 
-			bool IsAnyControllerConnected(Type) const;
-			bool IsAnyControllerConnected(Type,Type) const;
-			bool IsAnyControllerConnected(Type,Type,Type) const;
-			bool IsAnyControllerConnected(Type,Type,Type,Type) const;
+			bool IsAnyControllerConnected(Type) const throw();
+			bool IsAnyControllerConnected(Type,Type) const throw();
+			bool IsAnyControllerConnected(Type,Type,Type) const throw();
+			bool IsAnyControllerConnected(Type,Type,Type,Type) const throw();
 		};
 	}
 }

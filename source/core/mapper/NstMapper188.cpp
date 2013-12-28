@@ -49,10 +49,15 @@ namespace Nes
 
 		void Mapper188::BeginFrame(Input::Controllers* input)
 		{
-			if (input && Input::Controllers::KaraokeStudio::callback( input->karaokeStudio ))
+			if (input)
+			{
+				Input::Controllers::KaraokeStudio::callback( input->karaokeStudio );
 				mic = input->karaokeStudio.buttons & 0x7 ^ 0x3;
+			}
 			else
+			{
 				mic = 0x3;
+			}
 		}
 
 		NES_POKE(Mapper188,Prg)

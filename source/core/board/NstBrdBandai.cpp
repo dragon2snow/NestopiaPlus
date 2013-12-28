@@ -114,10 +114,6 @@ namespace Nes
 				}
 			};
 
-			#ifdef NST_PRAGMA_OPTIMIZE
-			#pragma optimize("s", on)
-			#endif
-
 			template<uint N>
 			Bandai::E24C0X<N>::E24C0X()
 			{
@@ -209,10 +205,6 @@ namespace Nes
 				}
 			}
 
-			#ifdef NST_PRAGMA_OPTIMIZE
-			#pragma optimize("", on)
-			#endif
-
 			template<>
 			void Bandai::E24C0X<128>::Start()
 			{
@@ -240,7 +232,7 @@ namespace Nes
 			template<>
 			void Bandai::E24C0X<128>::Rise(const uint bit)
 			{
-				NST_ASSERT( bit == 1 || bit == 0 );
+				NST_ASSERT( bit <= 1 );
 
 				switch (mode)
 				{
@@ -343,7 +335,7 @@ namespace Nes
 			template<>
 			void Bandai::E24C0X<256>::Rise(const uint bit)
 			{
-				NST_ASSERT( bit == 1 || bit == 0 );
+				NST_ASSERT( bit <= 1 );
 
 				switch (mode)
 				{
@@ -647,8 +639,8 @@ namespace Nes
 			Mapper (c,t == TYPE_B ? WRAM_AUTO : WRAM_NONE),
 			irq    (c.cpu),
 			datach (t == TYPE_C ? new DatachJointSystem(c.cpu) : NULL),
-			e24C01 (HasEEPROM( 128, t, c.pRomCrc ) ? new E24C0X<128> : NULL),
-			e24C02 (HasEEPROM( 256, t, c.pRomCrc ) ? new E24C0X<256> : NULL),
+			e24C01 (HasEEPROM( 128, t, c.prgCrc ) ? new E24C0X<128> : NULL),
+			e24C02 (HasEEPROM( 256, t, c.prgCrc ) ? new E24C0X<256> : NULL),
 			type   (t)
 			{
 				if (e24C01 || e24C02)
@@ -1051,7 +1043,7 @@ namespace Nes
 
 			NES_POKE(Bandai,8000_C)
 			{
-				if (!chr.Source().IsWritable())
+				if (!chr.Source().Writable())
 					chr.SwapBank<SIZE_1K>( (address & 0x7) << 10, data );
 
 				e24C01->SetScl( (data << 2) & 0x20 );

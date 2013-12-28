@@ -35,7 +35,7 @@ namespace Nestopia
 		{
 		public:
 
-			InesHeader(Emulator&,Window::Menu&,const Managers::Paths&);
+			InesHeader(Emulator&,Window::Menu&,const Paths&);
 			~InesHeader();
 
 		private:
@@ -45,7 +45,7 @@ namespace Nestopia
 
 			Emulator& emulator;
 			const Window::Menu& menu;
-			const Managers::Paths& paths;
+			const Paths& paths;
 		};
 	}
 }

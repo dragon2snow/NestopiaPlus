@@ -39,12 +39,10 @@ namespace Nes
 
 			class Line
 			{
-				class Generic {};
+				class Component {};
+				typedef void (NES_IO_CALL Component::*Toggler)(Cycle);
 
-				typedef Generic* Component;
-				typedef void (NES_IO_CALL Generic::*Toggler)(Cycle);
-
-				Component component;
+				Component* component;
 				Toggler toggler;
 
 			public:
@@ -54,8 +52,8 @@ namespace Nes
 				template<typename T>
 				Line(T* c,void (NES_IO_CALL T::*t)(Cycle))
 				:
-				component ( reinterpret_cast<Component>(c) ),
-				toggler   ( reinterpret_cast<Toggler>(t)   )
+				component ( reinterpret_cast<Component*>(c) ),
+				toggler   ( reinterpret_cast<Toggler>(t) )
 				{
 					NST_COMPILE_ASSERT( sizeof(toggler) == sizeof(t) );
 				}
@@ -65,7 +63,7 @@ namespace Nes
 				{
 					NST_COMPILE_ASSERT( sizeof(toggler) == sizeof(t) );
 
-					component = reinterpret_cast<Component>(c);
+					component = reinterpret_cast<Component*>(c);
 					toggler   = reinterpret_cast<Toggler>(t);
 				}
 

@@ -39,7 +39,14 @@ namespace Nes
 			{
 			protected:
 
-				Mmc1(Context&);
+				enum Revision
+				{
+					REV_1A,
+					REV_1B,
+					REV_1C
+				};
+
+				Mmc1(Context&,uint=WRAM_AUTO,Revision=REV_1B);
 
 				void SubReset(bool);
 				void UpdatePrg();
@@ -59,13 +66,14 @@ namespace Nes
 
 				void ClearRegisters();
 
-				static inline bool IsSoRom(dword);
 				inline bool IsWRamEnabled() const;
 
 				NES_DECL_PEEK( wRam )
 				NES_DECL_POKE( wRam )
 				NES_DECL_PEEK( wRam_SoRom )
 				NES_DECL_POKE( wRam_SoRom )
+				NES_DECL_PEEK( wRam_SoRom_1a )
+				NES_DECL_POKE( wRam_SoRom_1a )
 				NES_DECL_POKE( Prg )
 
 				struct Serial
@@ -109,7 +117,7 @@ namespace Nes
 
 			private:
 
-				const ibool soRom;
+				const Revision revision;
 			};
 		}
 	}

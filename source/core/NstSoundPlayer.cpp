@@ -28,21 +28,21 @@
 #include "NstCpu.hpp"
 #include "NstSoundPlayer.hpp"
 
+#ifdef NST_PRAGMA_OPTIMIZE
+#pragma optimize("s", on)
+#endif
+
 namespace Nes
 {
 	namespace Core
 	{
 		namespace Sound
 		{
-			#ifdef NST_PRAGMA_OPTIMIZE
-			#pragma optimize("s", on)
-			#endif
-
 			class Player::SampleLoader : public Loader
 			{
 				Slots& slots;
 
-				Result Load(uint slot,const void* input,dword length,bool stereo,uint bits,dword rate)
+				Result Load(uint slot,const void* input,dword length,bool stereo,uint bits,dword rate) throw()
 				{
 					Result result;
 					i16* data;
@@ -141,10 +141,10 @@ namespace Nes
 
 				return NULL;
 			}
-
-			#ifdef NST_PRAGMA_OPTIMIZE
-			#pragma optimize("", on)
-			#endif
 		}
 	}
 }
+
+#ifdef NST_PRAGMA_OPTIMIZE
+#pragma optimize("", on)
+#endif

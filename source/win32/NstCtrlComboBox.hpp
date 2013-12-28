@@ -73,7 +73,7 @@ namespace Nestopia
 						return index;
 					}
 
-					ibool IsValid() const
+					ibool Valid() const
 					{
 						return index >= 0;
 					}

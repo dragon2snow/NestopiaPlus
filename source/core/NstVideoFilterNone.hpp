@@ -44,7 +44,7 @@ namespace Nes
 				NST_FORCE_INLINE void BlitUnaligned(const Input&,const Output&) const;
 
 				template<typename T>
-				NST_FORCE_INLINE void BlitType(const Input&,const Output&) const;
+				void BlitType(const Input&,const Output&) const;
 
 				void Blit(const Input&,const Output&,uint);
 

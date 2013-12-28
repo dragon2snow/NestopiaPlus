@@ -39,7 +39,7 @@ namespace Nes
 			{
 			public:
 
-				SuborKeyboard();
+				SuborKeyboard(const Cpu&);
 
 			private:
 

@@ -52,7 +52,7 @@ namespace Nes
 		Mapper3::Mapper3(Context& c)
 		:
 		Mapper (c),
-		sound  (DetectSound(c.pRomCrc,c.cpu))
+		sound  (DetectSound(c.prgCrc,c.cpu))
 		{}
 
 		Mapper3::~Mapper3()

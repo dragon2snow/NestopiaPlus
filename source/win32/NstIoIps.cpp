@@ -27,271 +27,272 @@
 
 namespace Nestopia
 {
-	using Io::Ips;
-
-	Ips::Blocks::~Blocks()
+	namespace Io
 	{
-		for (Iterator it=Begin(); it != End(); ++it)
-			delete [] it->data;
-	}
-
-	void Ips::Create(const void* const source,const void* const target,const uint length,PatchData& patch)
-	{
-		NST_ASSERT( length && length <= MAX_LENGTH );
-
-		struct Stream
+		Ips::Blocks::~Blocks()
 		{
-			static void Write(PatchData& patch,const u8* data,uint length)
-			{
-				NST_ASSERT( length && length <= 0xFFFF );
-				patch.Append( data, length );
-			}
+			for (Iterator it=Begin(); it != End(); ++it)
+				delete [] it->data;
+		}
 
-			static void Write3(PatchData& patch,const uint value)
-			{
-				const uint pos = patch.Size();
-
-				patch.Grow( 3 );
-
-				patch[pos+0] = (value >> 16 );
-				patch[pos+1] = (value >>  8 ) & 0xFF;
-				patch[pos+2] = (value >>  0 ) & 0xFF;
-			}
-
-			static void Write2(PatchData& patch,const uint value)
-			{
-				const uint pos = patch.Size();
-
-				patch.Grow( 2 );
-
-				patch[pos+0] = (value >> 8);
-				patch[pos+1] = (value >> 0) & 0xFF;
-			}
-
-			static void Write1(PatchData& patch,const uint value)
-			{
-				patch.PushBack( (u8) value );
-			}
-		};
-
-		patch.Reserve( length );
-
-		Stream::Write3( patch, DATA_ID1 );
-		Stream::Write2( patch, DATA_ID2 );
-
-		const u8* src = static_cast<const u8*>(source);
-		const u8* dst = static_cast<const u8*>(target);
-
-		for (uint i=0; i < length; )
+		void Ips::Create(const void* const source,const void* const target,const uint length,PatchData& patch)
 		{
-			if (src[i] == dst[i])
+			NST_ASSERT( length && length <= MAX_LENGTH );
+
+			struct Stream
 			{
-				++i;
-				continue;
-			}
+				static void Write(PatchData& patch,const u8* data,uint length)
+				{
+					NST_ASSERT( length && length <= 0xFFFF );
+					patch.Append( data, length );
+				}
 
-			uint j = i++;
+				static void Write3(PatchData& patch,const uint value)
+				{
+					const uint pos = patch.Size();
 
-			for (uint k=0; i < length; ++i)
+					patch.Grow( 3 );
+
+					patch[pos+0] = (value >> 16 );
+					patch[pos+1] = (value >>  8 ) & 0xFF;
+					patch[pos+2] = (value >>  0 ) & 0xFF;
+				}
+
+				static void Write2(PatchData& patch,const uint value)
+				{
+					const uint pos = patch.Size();
+
+					patch.Grow( 2 );
+
+					patch[pos+0] = (value >> 8);
+					patch[pos+1] = (value >> 0) & 0xFF;
+				}
+
+				static void Write1(PatchData& patch,const uint value)
+				{
+					patch.PushBack( (u8) value );
+				}
+			};
+
+			patch.Reserve( length );
+
+			Stream::Write3( patch, DATA_ID1 );
+			Stream::Write2( patch, DATA_ID2 );
+
+			const u8* src = static_cast<const u8*>(source);
+			const u8* dst = static_cast<const u8*>(target);
+
+			for (uint i=0; i < length; )
 			{
-				if (src[i] != dst[i])
+				if (src[i] == dst[i])
 				{
-					k = 0;
+					++i;
+					continue;
 				}
-				else if (k++ == MIN_EQUAL)
+
+				uint j = i++;
+
+				for (uint k=0; i < length; ++i)
 				{
-					i -= MIN_EQUAL;
-					break;
-				}
-			}
-
-			do
-			{
-				if (j == DATA_EOF)
-					--j;
-
-				Stream::Write3( patch, j );
-
-				u8 c = dst[j];
-
-				uint k = j;
-				const uint stop = NST_MIN(j + MAX_BLOCK,i);
-
-				while (++k != stop && c == dst[k]);
-
-				if (k - j >= MIN_BEG_RUN)
-				{
-					Stream::Write2( patch, 0     );
-					Stream::Write2( patch, k - j );
-					Stream::Write1( patch, c     );
-				}
-				else
-				{
-					uint l = k;
-
-					if (k + 1 < stop)
+					if (src[i] != dst[i])
 					{
-						c = dst[k];
+						k = 0;
+					}
+					else if (k++ == MIN_EQUAL)
+					{
+						i -= MIN_EQUAL;
+						break;
+					}
+				}
 
-						for (l=k++; k < stop; ++k)
+				do
+				{
+					if (j == DATA_EOF)
+						--j;
+
+					Stream::Write3( patch, j );
+
+					u8 c = dst[j];
+
+					uint k = j;
+					const uint stop = NST_MIN(j + MAX_BLOCK,i);
+
+					while (++k != stop && c == dst[k]);
+
+					if (k - j >= MIN_BEG_RUN)
+					{
+						Stream::Write2( patch, 0     );
+						Stream::Write2( patch, k - j );
+						Stream::Write1( patch, c     );
+					}
+					else
+					{
+						uint l = k;
+
+						if (k + 1 < stop)
 						{
-							if (c != dst[k])
+							c = dst[k];
+
+							for (l=k++; k < stop; ++k)
 							{
-								c = dst[k];
-								l = k;
-							}
-							else if (k - l == MIN_MID_RUN)
-							{
-								k = l;
-								break;
+								if (c != dst[k])
+								{
+									c = dst[k];
+									l = k;
+								}
+								else if (k - l == MIN_MID_RUN)
+								{
+									k = l;
+									break;
+								}
 							}
 						}
+
+						if (k == stop && k - l >= MIN_END_RUN)
+							k = l;
+
+						if (k == DATA_EOF)
+							++k;
+
+						Stream::Write2( patch, k - j  );
+						Stream::Write( patch, dst + j, k - j );
 					}
 
-					if (k == stop && k - l >= MIN_END_RUN)
-						k = l;
+					j = k;
+				}
+				while (j != i);
+			}
 
-					if (k == DATA_EOF)
-						++k;
+			Stream::Write3( patch, DATA_EOF );
+		}
 
-					Stream::Write2( patch, k - j  );
-					Stream::Write( patch, dst + j, k - j );
+		void Ips::Parse(const void* const source,const uint size)
+		{
+			class Stream
+			{
+				const u8* data;
+				const u8* const end;
+
+				void Check(const uint length) const
+				{
+					if (data + length > end)
+						throw ERR_CORRUPT;
 				}
 
-				j = k;
-			}
-			while (j != i);
-		}
+			public:
 
-		Stream::Write3( patch, DATA_EOF );
-	}
+				Stream(const void* source,uint size)
+				:
+				data (static_cast<const u8*>(source)),
+				end  (static_cast<const u8*>(source) + size)
+				{}
 
-	void Ips::Parse(const void* const source,const uint size)
-	{
-		class Stream
-		{
-			const u8* data;
-			const u8* const end;
+				const u8* Read(const uint length)
+				{
+					Check( length );
 
-			void Check(const uint length) const
-			{
-				if (data + length > end)
-					throw ERR_CORRUPT;
-			}
+					const u8* ptr = data;
+					data += length;
 
-		public:
+					return ptr;
+				}
 
-			Stream(const void* source,uint size)
-			:
-			data (static_cast<const u8*>(source)),
-			end  (static_cast<const u8*>(source) + size)
-			{}
+				uint Read1()
+				{
+					Check( 1 );
+					return *data++;
+				}
 
-			const u8* Read(const uint length)
-			{
-				Check( length );
+				uint Read2()
+				{
+					Check( 2 );
 
-				const u8* ptr = data;
-				data += length;
+					const uint value = (data[0] << 8) | data[1];
+					data += 2;
 
-				return ptr;
-			}
+					return value;
+				}
 
-			uint Read1()
-			{
-				Check( 1 );
-				return *data++;
-			}
+				uint Read3()
+				{
+					Check( 3 );
 
-			uint Read2()
-			{
-				Check( 2 );
+					const uint value = (data[0] << 16) | (data[1] << 8) | data[2];
+					data += 3;
 
-				const uint value = (data[0] << 8) | data[1];
-				data += 2;
+					return value;
+				}
 
-				return value;
-			}
+				operator ibool () const
+				{
+					return data != end;
+				}
+			};
 
-			uint Read3()
-			{
-				Check( 3 );
+			if (!size)
+				throw ERR_EMPTY;
 
-				const uint value = (data[0] << 16) | (data[1] << 8) | data[2];
-				data += 3;
+			blocks.Clear();
 
-				return value;
-			}
+			Stream stream( source, size );
 
-			operator ibool () const
-			{
-				return data != end;
-			}
-		};
-
-		if (!size)
-			throw ERR_EMPTY;
-
-		blocks.Clear();
-
-		Stream stream( source, size );
-
-		if (stream.Read3() != DATA_ID1 || stream.Read2() != DATA_ID2)
-			throw ERR_CORRUPT;
-
-		Block block;
-
-		while (stream)
-		{
-			block.offset = stream.Read3();
-
-			if (block.offset == DATA_EOF)
-				break;
-
-			if ((block.length = stream.Read2()) != 0)
-			{
-				block.fill = UINT_MAX;
-				const u8* const data = stream.Read( block.length );
-				std::memcpy( block.data = new u8 [block.length], data, block.length );
-			}
-			else if ((block.length = stream.Read2()) != 0)
-			{
-				block.fill = stream.Read1();
-				block.data = NULL;
-			}
-			else
-			{
+			if (stream.Read3() != DATA_ID1 || stream.Read2() != DATA_ID2)
 				throw ERR_CORRUPT;
-			}
 
-			blocks.PushBack( block );
-		}
+			Block block;
 
-		if (blocks.Empty())
-			throw ERR_EMPTY;
-	}
-
-	void Ips::Patch(void* const target,const uint size) const
-	{
-		NST_ASSERT( target && size );
-
-		Object::Backup backup( target, size );
-
-		for (Blocks::ConstIterator it=blocks.Begin(), end=blocks.End(); it != end; ++it)
-		{
-			NST_ASSERT( it->length );
-
-			if (it->offset + it->length <= size)
+			while (stream)
 			{
-				if (it->fill == UINT_MAX)
-					std::memcpy( static_cast<u8*>(target) + it->offset, it->data, it->length );
+				block.offset = stream.Read3();
+
+				if (block.offset == DATA_EOF)
+					break;
+
+				if ((block.length = stream.Read2()) != 0)
+				{
+					block.fill = UINT_MAX;
+					const u8* const data = stream.Read( block.length );
+					std::memcpy( block.data = new u8 [block.length], data, block.length );
+				}
+				else if ((block.length = stream.Read2()) != 0)
+				{
+					block.fill = stream.Read1();
+					block.data = NULL;
+				}
 				else
-					std::memset( static_cast<u8*>(target) + it->offset, it->fill, it->length );
+				{
+					throw ERR_CORRUPT;
+				}
+
+				blocks.PushBack( block );
 			}
-			else
+
+			if (blocks.Empty())
+				throw ERR_EMPTY;
+		}
+
+		void Ips::Patch(void* const target,const uint size) const
+		{
+			NST_ASSERT( target && size );
+
+			Object::Backup backup( target, size );
+
+			for (Blocks::ConstIterator it=blocks.Begin(), end=blocks.End(); it != end; ++it)
 			{
-				backup.Restore();
-				throw ERR_CORRUPT;
+				NST_ASSERT( it->length );
+
+				if (it->offset + it->length <= size)
+				{
+					if (it->fill == UINT_MAX)
+						std::memcpy( static_cast<u8*>(target) + it->offset, it->data, it->length );
+					else
+						std::memset( static_cast<u8*>(target) + it->offset, it->fill, it->length );
+				}
+				else
+				{
+					backup.Restore();
+					throw ERR_CORRUPT;
+				}
 			}
 		}
 	}

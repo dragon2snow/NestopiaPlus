@@ -35,8 +35,8 @@ namespace Nes
 			#pragma optimize("s", on)
 			#endif
 
-			ExcitingBoxing::ExcitingBoxing()
-			: Device(Api::Input::EXCITINGBOXING)
+			ExcitingBoxing::ExcitingBoxing(const Cpu& c)
+			: Device(c,Api::Input::EXCITINGBOXING)
 			{
 				ExcitingBoxing::Reset();
 			}
@@ -57,10 +57,15 @@ namespace Nes
 
 			void ExcitingBoxing::Poke(const uint data)
 			{
-				if (input && Controllers::ExcitingBoxing::callback( input->excitingBoxing, data & 0x2 ))
+				if (input)
+				{
+					Controllers::ExcitingBoxing::callback( input->excitingBoxing, data & 0x2 );
 					state = ~input->excitingBoxing.buttons & 0x1E;
+				}
 				else
+				{
 					state = 0x1E;
+				}
 			}
 
 			uint ExcitingBoxing::Peek(const uint port)

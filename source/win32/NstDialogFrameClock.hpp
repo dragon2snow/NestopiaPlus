@@ -81,7 +81,6 @@ namespace Nestopia
 			ibool OnCmdDefaultSpeed (Param&);
 			ibool OnCmdRewinder     (Param&);
 			ibool OnCmdDefault      (Param&);
-			ibool OnCmdCancel       (Param&);
 			ibool OnCmdOk           (Param&);
 
 			Settings settings;

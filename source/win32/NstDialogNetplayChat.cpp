@@ -23,64 +23,64 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 
 #include "NstWindowParam.hpp"
-#include "NstWindowMenu.hpp"
 #include "NstDialogNetPlay.hpp"
 
 namespace Nestopia
 {
-	using namespace Window;
-
-	struct Netplay::Chat::Handlers
+	namespace Window
 	{
-		static const MsgHandler::Entry<Chat> messages[];
-	};
-
-	const MsgHandler::Entry<Netplay::Chat> Netplay::Chat::Handlers::messages[] =
-	{
-		{ WM_INITDIALOG, &Chat::OnInit    },
-		{ WM_COMMAND,    &Chat::OnCommand }
-	};
-
-	Netplay::Chat::Chat(Callback c)
-	:
-	dialog   ( IDD_CHAT, this, Handlers::messages ),
-	callback ( c )
-	{}
-
-	void Netplay::Chat::Open()
-	{
-		dialog.Open( Dialog::MODELESS );
-	}
-
-	void Netplay::Chat::Close()
-	{
-		dialog.Close();
-		text.Destroy();
-	}
-
-	ibool Netplay::Chat::OnInit(Param&)
-	{
-		dialog.Edit(IDC_CHAT_EDIT).Limit(255);
-		return true;
-	}
-
-	ibool Netplay::Chat::OnCommand(Param& param)
-	{
-		if (param.wParam == 1 && param.lParam == 0)
+		struct Netplay::Chat::Handlers
 		{
-			const Control::Edit edit( dialog.Edit(IDC_CHAT_EDIT) );
+			static const MsgHandler::Entry<Chat> messages[];
+		};
 
-			if (edit.Text() >> text)
-			{
-				text.Trim();
+		const MsgHandler::Entry<Netplay::Chat> Netplay::Chat::Handlers::messages[] =
+		{
+			{ WM_INITDIALOG, &Chat::OnInit    },
+			{ WM_COMMAND,    &Chat::OnCommand }
+		};
 
-				if (text.Length())
-					callback( text.Ptr() );
+		Netplay::Chat::Chat(Callback c)
+		:
+		dialog   ( IDD_CHAT, this, Handlers::messages ),
+		callback ( c )
+		{}
 
-				edit.Text().Clear();
-			}
+		void Netplay::Chat::Open()
+		{
+			dialog.Open( Dialog::MODELESS );
 		}
 
-		return false;
+		void Netplay::Chat::Close()
+		{
+			dialog.Close();
+			text.Destroy();
+		}
+
+		ibool Netplay::Chat::OnInit(Param&)
+		{
+			dialog.Edit(IDC_CHAT_EDIT).Limit(255);
+			return true;
+		}
+
+		ibool Netplay::Chat::OnCommand(Param& param)
+		{
+			if (param.wParam == 1 && param.lParam == 0)
+			{
+				const Control::Edit edit( dialog.Edit(IDC_CHAT_EDIT) );
+
+				if (edit.Text() >> text)
+				{
+					text.Trim();
+
+					if (text.Length())
+						callback( text.Ptr() );
+
+					edit.Text().Clear();
+				}
+			}
+
+			return false;
+		}
 	}
 }

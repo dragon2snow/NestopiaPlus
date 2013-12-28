@@ -28,13 +28,19 @@
 
 namespace Nestopia
 {
-	void Window::Control::Edit::SetNumberOnly(const ibool numOnly) const
+	namespace Window
 	{
-		control.ModifyStyle( ES_NUMBER, numOnly );
-	}
+		namespace Control
+		{
+			void Edit::SetNumberOnly(const ibool numOnly) const
+			{
+				control.Style(ES_NUMBER) = numOnly;
+			}
 
-	void Window::Control::Edit::Limit(const uint length) const
-	{
-		control.Send( EM_SETLIMITTEXT, length, 0 );
+			void Edit::Limit(const uint length) const
+			{
+				control.Send( EM_SETLIMITTEXT, length, 0 );
+			}
+		}
 	}
 }

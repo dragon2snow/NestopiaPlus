@@ -267,7 +267,7 @@ namespace Nes
 			if ( n106 ) n106->Reset();
 		}
 
-		void Nsf::Chips::UpdateContext(uint v,const u8 (&w)[MAX_CHANNELS])
+		void Nsf::Chips::UpdateContext(uint,const u8 (&w)[MAX_CHANNELS])
 		{
 			clock[2] = clock[1] = clock[0] = NES_CYCLE_MAX;
 

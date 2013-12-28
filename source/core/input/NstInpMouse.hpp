@@ -39,11 +39,10 @@ namespace Nes
 			{
 			public:
 
-				Mouse();
+				Mouse(const Cpu&);
 
 			private:
 
-				void BeginFrame(Controllers*);
 				void Reset();
 				void Poke(uint);
 				uint Peek(uint);
@@ -52,6 +51,7 @@ namespace Nes
 
 				uint strobe;
 				uint stream;
+				uint state;
 				uint x;
 				uint y;
 			};

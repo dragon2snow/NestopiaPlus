@@ -31,7 +31,9 @@
 
 #include <cmath>
 #include "NstFpuPrecision.hpp"
-#include "../nes_ntsc/nes_ntsc.h"
+#include "../snes_ntsc/snes_ntsc.h"
+
+#define SNES_NTSC_IN_FORMAT( n ) (ntsc_rgb_t*) (ktable + n * (snes_ntsc_entry_size / 2 * sizeof (ntsc_rgb_t)))
 
 #ifdef _MSC_VER
 #pragma warning( push )
@@ -47,46 +49,31 @@ namespace Nes
 			struct FilterNtscState
 			{
 				const Api::Video::RenderState& renderState;
-				const i8 brightness;
-				const i8 saturation;
-				const i8 hue;
-				const i8 contrast;
 				const i8 sharpness;
 				const i8 resolution;
 				const i8 bleed;
 				const i8 artifacts;
 				const i8 fringing;
 				const bool fieldMerging;
-				const Api::Video::Decoder& decoder;
 
 				FilterNtscState
 				(
 					const Api::Video::RenderState& r,
-					i8 b,
 					i8 s,
-					i8 h,
-					i8 c,
-					i8 p,
 					i8 e,
-					i8 l,
+					i8 b,
 					i8 a,
 					i8 f,
-					bool m,
-					const Api::Video::Decoder& d
+					bool m
 				)
 				:
 				renderState  (r),
-				brightness   (b),
-				saturation   (s),
-				hue          (h),
-				contrast     (c),
-				sharpness    (p),
+				sharpness    (s),
 				resolution   (e),
-				bleed        (l),
+				bleed        (b),
 				artifacts    (a),
 				fringing     (f),
-				fieldMerging (m),
-				decoder      (d)
+				fieldMerging (m)
 				{}
 			};
 
@@ -106,13 +93,9 @@ namespace Nes
 				};
 
 				void Blit(const Input&,const Output&,uint);
+				void Transform(const u8 (&)[PALETTE][3],u32 (&)[PALETTE]) const;
 
-				bool CanTransform() const
-				{
-					return false;
-				}
-
-				struct Lut : nes_ntsc_emph_t
+				struct Lut : snes_ntsc_t
 				{
 					const uint noFieldMerging;
 
@@ -121,22 +104,12 @@ namespace Nes
 					{
 						FpuPrecision precision;
 
-						const float matrix[6] =
-						{
-							std::sin( state.decoder.axes[0].angle * NST_DEG ) * state.decoder.axes[0].gain * 2,
-							std::cos( state.decoder.axes[0].angle * NST_DEG ) * state.decoder.axes[0].gain * 2,
-							std::sin( state.decoder.axes[1].angle * NST_DEG ) * state.decoder.axes[1].gain * 2,
-							std::cos( state.decoder.axes[1].angle * NST_DEG ) * state.decoder.axes[1].gain * 2,
-							std::sin( state.decoder.axes[2].angle * NST_DEG ) * state.decoder.axes[2].gain * 2,
-							std::cos( state.decoder.axes[2].angle * NST_DEG ) * state.decoder.axes[2].gain * 2
-						};
+						snes_ntsc_setup_t setup;
 
-						nes_ntsc_setup_t setup;
-
-						setup.hue = (33 + state.hue) / 180.0;
-						setup.saturation = state.saturation / 100.0;
-						setup.contrast = state.contrast / 100.0;
-						setup.brightness = state.brightness / 100.0;
+						setup.hue = 0.0;
+						setup.saturation = 0.0;
+						setup.contrast = 0.0;
+						setup.brightness = 0.0;
 						setup.sharpness = state.sharpness / 100.0;
 						setup.gamma = 0.0;
 						setup.resolution = state.resolution / 100.0;
@@ -145,10 +118,10 @@ namespace Nes
 						setup.bleed = state.bleed / 100.0;
 						setup.hue_warping = 0.0;
 						setup.merge_fields = state.fieldMerging;
-						setup.decoder_matrix = matrix;
-						setup.palette_out = NULL;
+						setup.decoder_matrix = NULL;
+						setup.bsnes_colortbl = NULL;
 
-						::nes_ntsc_init_emph( this, &setup );
+						::snes_ntsc_init( this, &setup );
 					}
 				};
 
@@ -187,6 +160,20 @@ namespace Nes
 			}
 
 			template<uint BITS>
+			void Renderer::FilterNtsc<BITS>::Transform(const u8 (&src)[PALETTE][3],u32 (&dst)[PALETTE]) const
+			{
+				for (uint i=0; i < PALETTE; ++i)
+				{
+					dst[i] =
+					(
+						((src[i][0] >> 4) << 10) |
+						((src[i][1] >> 3) <<  5) |
+						((src[i][2] >> 4) <<  1)
+					);
+				}
+			}
+
+			template<uint BITS>
 			void Renderer::FilterNtsc<BITS>::Blit(const Input& input,const Output& output,uint phase)
 			{
 				NST_ASSERT( phase < 3 );
@@ -195,7 +182,7 @@ namespace Nes
 
 				Pixel buffer[NTSC_WIDTH];
 
-				const u16* NST_RESTRICT src = input.screen;
+				const u16* NST_RESTRICT src = input.pixels;
 				Pixel* NST_RESTRICT dst = static_cast<Pixel*>(output.pixels);
 				const long pad = output.pitch - NTSC_WIDTH * sizeof(Pixel);
 
@@ -203,42 +190,42 @@ namespace Nes
 
 				for (uint y=0; y < HEIGHT; ++y)
 				{
-					NES_NTSC_BEGIN_ROW( &lut, phase, 0xF, 0xF, *src++ );
+					SNES_NTSC_LORES_ROW( &lut, phase, 0, 0, input.palette[*src++] );
 
 					Pixel* NST_RESTRICT cache = buffer;
 
 					for (uint x=0; x < NTSC_WIDTH/7-1; ++x)
 					{
-						NES_NTSC_COLOR_IN( 0, src[0] );
-						NES_NTSC_RGB_OUT( 0, dst[0]=cache[0], BPP );
-						NES_NTSC_RGB_OUT( 1, dst[1]=cache[1], BPP );
+						SNES_NTSC_PIXEL_IN( 0, input.palette[src[0]] );
+						SNES_NTSC_LORES_OUT( 0, dst[0]=cache[0], BPP );
+						SNES_NTSC_LORES_OUT( 1, dst[1]=cache[1], BPP );
 
-						NES_NTSC_COLOR_IN( 1, src[1] );
-						NES_NTSC_RGB_OUT( 2, dst[2]=cache[2], BPP );
-						NES_NTSC_RGB_OUT( 3, dst[3]=cache[3], BPP );
+						SNES_NTSC_PIXEL_IN( 1, input.palette[src[1]] );
+						SNES_NTSC_LORES_OUT( 2, dst[2]=cache[2], BPP );
+						SNES_NTSC_LORES_OUT( 3, dst[3]=cache[3], BPP );
 
-						NES_NTSC_COLOR_IN( 2, src[2] );
-						NES_NTSC_RGB_OUT( 4, dst[4]=cache[4], BPP );
-						NES_NTSC_RGB_OUT( 5, dst[5]=cache[5], BPP );
-						NES_NTSC_RGB_OUT( 6, dst[6]=cache[6], BPP );
+						SNES_NTSC_PIXEL_IN( 2, input.palette[src[2]] );
+						SNES_NTSC_LORES_OUT( 4, dst[4]=cache[4], BPP );
+						SNES_NTSC_LORES_OUT( 5, dst[5]=cache[5], BPP );
+						SNES_NTSC_LORES_OUT( 6, dst[6]=cache[6], BPP );
 
 						src += 3;
 						dst += 7;
 						cache += 7;
 					}
 
-					NES_NTSC_COLOR_IN( 0, 0xF );
-					NES_NTSC_RGB_OUT( 0, dst[0]=cache[0], BPP );
-					NES_NTSC_RGB_OUT( 1, dst[1]=cache[1], BPP );
+					SNES_NTSC_PIXEL_IN( 0, 0 );
+					SNES_NTSC_LORES_OUT( 0, dst[0]=cache[0], BPP );
+					SNES_NTSC_LORES_OUT( 1, dst[1]=cache[1], BPP );
 
-					NES_NTSC_COLOR_IN( 1, 0xF );
-					NES_NTSC_RGB_OUT( 2, dst[2]=cache[2], BPP );
-					NES_NTSC_RGB_OUT( 3, dst[3]=cache[3], BPP );
+					SNES_NTSC_PIXEL_IN( 1, 0 );
+					SNES_NTSC_LORES_OUT( 2, dst[2]=cache[2], BPP );
+					SNES_NTSC_LORES_OUT( 3, dst[3]=cache[3], BPP );
 
-					NES_NTSC_COLOR_IN( 2, 0xF );
-					NES_NTSC_RGB_OUT( 4, dst[4]=cache[4], BPP );
-					NES_NTSC_RGB_OUT( 5, dst[5]=cache[5], BPP );
-					NES_NTSC_RGB_OUT( 6, dst[6]=cache[6], BPP );
+					SNES_NTSC_PIXEL_IN( 2, 0 );
+					SNES_NTSC_LORES_OUT( 4, dst[4]=cache[4], BPP );
+					SNES_NTSC_LORES_OUT( 5, dst[5]=cache[5], BPP );
+					SNES_NTSC_LORES_OUT( 6, dst[6]=cache[6], BPP );
 
 					dst = reinterpret_cast<Pixel*>(reinterpret_cast<u8*>(dst) + pad + 7 * sizeof(Pixel));
 					cache = buffer;
@@ -259,4 +246,3 @@ namespace Nes
 #endif
 
 #endif
-

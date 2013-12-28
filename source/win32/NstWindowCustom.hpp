@@ -36,7 +36,6 @@ namespace Nestopia
 	{
 		struct Param;
 		typedef Collection::Router<ibool,Param&,uint> MsgHandler;
-		typedef Application::Configuration Configuration;
 
 		class Custom : public Generic
 		{
@@ -50,14 +49,17 @@ namespace Nestopia
 			Custom(Owner* owner,MsgArray& array)
 			: msgHandler( owner, array ) {}
 
+			template<typename Owner,typename Msg>
+			Custom(uint mid,Owner* owner,Msg msg)
+			: msgHandler( mid, owner, msg ) {}
+
 		private:
 
 			typedef Object::Delegate<ibool> TimerCallback;
 
 			struct Timer : TimerCallback
 			{
-				Timer(const TimerCallback& t)
-				: TimerCallback(t) {}
+				Timer(const TimerCallback&);
 
 				ibool active;
 			};

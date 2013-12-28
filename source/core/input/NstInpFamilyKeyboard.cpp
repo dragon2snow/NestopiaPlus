@@ -35,8 +35,8 @@ namespace Nes
 			#pragma optimize("s", on)
 			#endif
 
-			FamilyKeyboard::FamilyKeyboard()
-			: Device(Api::Input::FAMILYKEYBOARD)
+			FamilyKeyboard::FamilyKeyboard(const Cpu& c)
+			: Device(c,Api::Input::FAMILYKEYBOARD)
 			{
 				FamilyKeyboard::Reset();
 			}
@@ -92,8 +92,9 @@ namespace Nes
 				{
 					return 0x00;
 				}
-				else if (input && scan < 9 && Controllers::FamilyKeyboard::callback( input->familyKeyboard, scan, mode ))
+				else if (input && scan < 9)
 				{
+					Controllers::FamilyKeyboard::callback( input->familyKeyboard, scan, mode );
 					return ~input->familyKeyboard.parts[scan] & 0x1E;
 				}
 				else

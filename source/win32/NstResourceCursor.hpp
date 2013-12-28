@@ -34,7 +34,7 @@ namespace Nestopia
 {
 	namespace Resource
 	{
-		class Cursor : Sealed
+		class Cursor
 		{
 			HCURSOR const handle;
 

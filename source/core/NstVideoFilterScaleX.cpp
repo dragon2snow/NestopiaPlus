@@ -218,7 +218,7 @@ namespace Nes
 			template<typename T>
 			NST_FORCE_INLINE void Renderer::FilterScaleX::Blit2x(const Input& input,const Output& output) const
 			{
-				const u16* src = input.screen;
+				const u16* src = input.pixels;
 				T* dst = static_cast<T*>(output.pixels);
 				const long pad = output.pitch - long(sizeof(T) * WIDTH*2);
 
@@ -233,7 +233,7 @@ namespace Nes
 			template<typename T>
 			NST_FORCE_INLINE void Renderer::FilterScaleX::Blit3x(const Input& input,const Output& output) const
 			{
-				const u16* src = input.screen;
+				const u16* src = input.pixels;
 				T* dst = static_cast<T*>(output.pixels);
 				const long pad = output.pitch - long(sizeof(T) * WIDTH*3);
 

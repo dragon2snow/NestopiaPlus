@@ -28,20 +28,24 @@
 
 namespace Nestopia
 {
-	using Window::Control::Slider;
-
-	Slider::PositionProxy::operator int () const
+	namespace Window
 	{
-		return control.Send( TBM_GETPOS, 0, 0 );
-	}
+		namespace Control
+		{
+			Slider::PositionProxy::operator int () const
+			{
+				return control.Send( TBM_GETPOS, 0, 0 );
+			}
 
-	void Slider::PositionProxy::operator = (const int pos) const
-	{
-		control.Send( TBM_SETPOS, true, pos );
-	}
+			void Slider::PositionProxy::operator = (const int pos) const
+			{
+				control.Send( TBM_SETPOS, true, pos );
+			}
 
-	void Slider::SetRange(const int minimum,const int maximum) const
-	{
-		control.Send( TBM_SETRANGE, false, MAKELONG(minimum,maximum) );
+			void Slider::SetRange(const int minimum,const int maximum) const
+			{
+				control.Send( TBM_SETRANGE, false, MAKELONG(minimum,maximum) );
+			}
+		}
 	}
 }

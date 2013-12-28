@@ -28,111 +28,115 @@
 
 namespace Nestopia
 {
-	NST_COMPILE_ASSERT( LB_ERR < 0 && LB_ERRSPACE < 0 );
-
-	using Window::Control::ListBox;
-
-	ListBox::Item::DataProxy::operator ULONG_PTR () const
+	namespace Window
 	{
-		return ListBox_GetItemData( item.control, item.index );
-	}
-
-	void ListBox::Item::DataProxy::operator = (const ULONG_PTR data) const
-	{
-		ListBox_SetItemData( item.control, item.index, data );
-	}
-
-	void ListBox::Item::TextProxy::operator << (tstring const string) const
-	{
-		NST_ASSERT( string );
-
-		const int selection = ListBox_GetCurSel( item.control );
-
-		ListBox_DeleteString( item.control, item.index );
-		ListBox_InsertString( item.control, item.index, string );
-
-		if (selection != LB_ERR)
-			ListBox_SetCurSel( item.control, selection );
-	}
-
-	void ListBox::Item::Select() const
-	{
-		ListBox_SetCurSel( control, index );
-	}
-
-	void ListBox::Item::Remove() const
-	{
-		ListBox_DeleteString( control, index );
-	}
-
-	ListBox::Item ListBox::Selection() const
-	{
-		return Item( control, ListBox_GetCurSel( control ) );
-	}
-
-	ibool ListBox::AnySelection() const
-	{
-		return ListBox_GetCurSel( control ) != LB_ERR;
-	}
-
-	ListBox::Item ListBox::Add(tstring const text) const
-	{
-		NST_ASSERT( text );
-		return Item( control, ListBox_AddString( control, text ) );
-	}
-
-	ListBox::Item ListBox::Insert(const uint index,tstring const text) const
-	{
-		NST_ASSERT( text );
-		return Item( control, ListBox_InsertString( control, index, text ) );
-	}
-
-	uint ListBox::Size() const
-	{
-		const int size = ListBox_GetCount( control );
-		return NST_MAX(size,0);
-	}
-
-	void ListBox::Reserve(const uint capacity) const
-	{
-		if (capacity < Size())
-			control.Send( LB_INITSTORAGE, capacity, 0 );
-	}
-
-	void ListBox::Clear() const
-	{
-		ListBox_ResetContent( control );
-	}
-
-	ListBox::HScrollBar::HScrollBar(HWND h)
-	: width(0), hWnd(h), hDC(h ? ::GetDC(h) : NULL)
-	{
-		NST_VERIFY( hWnd );
-	}
-
-	void ListBox::HScrollBar::Update(tstring string,uint length)
-	{
-		NST_ASSERT( string || !length );
-
-		SIZE size;
-
-		if (hDC && ::GetTextExtentPoint32( hDC, string, length, &size ) && width < size.cx)
-			width = size.cx;
-	}
-
-	ListBox::HScrollBar::~HScrollBar()
-	{
-		if (hDC)
+		namespace Control
 		{
-			::ReleaseDC( hWnd, hDC );
+			NST_COMPILE_ASSERT( LB_ERR < 0 && LB_ERRSPACE < 0 );
 
-			if (width)
+			ListBox::Item::DataProxy::operator ULONG_PTR () const
 			{
-				RECT rect;
-				::GetClientRect( hWnd, &rect );
+				return ListBox_GetItemData( item.control, item.index );
+			}
 
-				if (width > rect.right)
-					ListBox_SetHorizontalExtent( hWnd, width );
+			void ListBox::Item::DataProxy::operator = (const ULONG_PTR data) const
+			{
+				ListBox_SetItemData( item.control, item.index, data );
+			}
+
+			void ListBox::Item::TextProxy::operator << (tstring const string) const
+			{
+				NST_ASSERT( string );
+
+				const int selection = ListBox_GetCurSel( item.control );
+
+				ListBox_DeleteString( item.control, item.index );
+				ListBox_InsertString( item.control, item.index, string );
+
+				if (selection != LB_ERR)
+					ListBox_SetCurSel( item.control, selection );
+			}
+
+			void ListBox::Item::Select() const
+			{
+				ListBox_SetCurSel( control, index );
+			}
+
+			void ListBox::Item::Remove() const
+			{
+				ListBox_DeleteString( control, index );
+			}
+
+			ListBox::Item ListBox::Selection() const
+			{
+				return Item( control, ListBox_GetCurSel( control ) );
+			}
+
+			ibool ListBox::AnySelection() const
+			{
+				return ListBox_GetCurSel( control ) != LB_ERR;
+			}
+
+			ListBox::Item ListBox::Add(tstring const text) const
+			{
+				NST_ASSERT( text );
+				return Item( control, ListBox_AddString( control, text ) );
+			}
+
+			ListBox::Item ListBox::Insert(const uint index,tstring const text) const
+			{
+				NST_ASSERT( text );
+				return Item( control, ListBox_InsertString( control, index, text ) );
+			}
+
+			uint ListBox::Size() const
+			{
+				const int size = ListBox_GetCount( control );
+				return NST_MAX(size,0);
+			}
+
+			void ListBox::Reserve(const uint capacity) const
+			{
+				if (capacity < Size())
+					control.Send( LB_INITSTORAGE, capacity, 0 );
+			}
+
+			void ListBox::Clear() const
+			{
+				ListBox_ResetContent( control );
+			}
+
+			ListBox::HScrollBar::HScrollBar(HWND h)
+			: width(0), hWnd(h), hDC(h ? ::GetDC(h) : NULL)
+			{
+				NST_VERIFY( hWnd );
+			}
+
+			void ListBox::HScrollBar::Update(tstring string,uint length)
+			{
+				NST_ASSERT( string || !length );
+
+				SIZE size;
+
+				if (hDC && ::GetTextExtentPoint32( hDC, string, length, &size ) && width < size.cx)
+					width = size.cx;
+			}
+
+			ListBox::HScrollBar::~HScrollBar()
+			{
+				if (hDC)
+				{
+					::ReleaseDC( hWnd, hDC );
+
+					if (width)
+					{
+						RECT rect;
+						::GetClientRect( hWnd, &rect );
+
+						if (width > rect.right)
+							ListBox_SetHorizontalExtent( hWnd, width );
+					}
+				}
 			}
 		}
 	}

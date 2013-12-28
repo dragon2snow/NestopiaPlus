@@ -22,25 +22,29 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstApplicationInstance.hpp"
+#include "NstApplicationLanguage.hpp"
 #include "NstResourceGeneric.hpp"
 #include "NstResourceString.hpp"
 
 namespace Nestopia
 {
-	Resource::String::String(uint id)
+	namespace Resource
 	{
-		HINSTANCE const hInstance = Application::Instance::GetResourceHandle();
-
-		uint length;
-
-		do
+		String::String(const uint id)
 		{
-			Reserve( Capacity() + BLOCK_SIZE );
-			length = ::LoadString( hInstance, id, Ptr(), Capacity() + 1 );
-		}
-		while (length == Capacity());
+			if (HINSTANCE const hInstance = Application::Instance::GetLanguage().GetResourceHandle())
+			{
+				uint length;
 
-		ShrinkTo( length );
+				do
+				{
+					Reserve( Capacity() + BLOCK_SIZE );
+					length = ::LoadString( hInstance, id, Ptr(), Capacity() + 1 );
+				}
+				while (length == Capacity());
+
+				ShrinkTo( length );
+			}
+		}
 	}
 }

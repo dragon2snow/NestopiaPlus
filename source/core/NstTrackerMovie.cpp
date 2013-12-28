@@ -24,10 +24,10 @@
 
 #include <new>
 #include "NstState.hpp"
-#include "api/NstApiEmulator.hpp"
+#include "NstMachine.hpp"
+#include "NstTrackerMovie.hpp"
 #include "api/NstApiMovie.hpp"
 #include "api/NstApiUser.hpp"
-#include "NstTrackerMovie.hpp"
 
 namespace Nes
 {
@@ -42,7 +42,7 @@ namespace Nes
 		public:
 
 			void Start(ulong,dword);
-			void BeginFrame(dword,Api::Emulator&,EmuSaveState);
+			void BeginFrame(dword,Machine&,EmuSaveState);
 			uint WritePort(uint,uint);
 			void Reset(bool);
 			void EndFrame();
@@ -79,7 +79,7 @@ namespace Nes
 		public:
 
 			Recorder(StdStream stream)
-			: good(true), frame(0), cut(false), state(stream,true) {}
+			: good(true), frame(0), cut(false), state(stream,true,true) {}
 
 			bool operator == (StdStream stream) const
 			{
@@ -92,7 +92,7 @@ namespace Nes
 		public:
 
 			void Start(dword);
-			bool BeginFrame(dword,Api::Emulator&,EmuLoadState,EmuReset);
+			bool BeginFrame(dword,Machine&,EmuLoadState,EmuReset);
 			inline uint ReadPort(uint);
 			void EndFrame();
 
@@ -140,18 +140,18 @@ namespace Nes
 			}
 		};
 
-		Tracker::Movie::Movie(Api::Emulator& e,EmuReset r,EmuLoadState l,EmuSaveState s,Cpu& c,dword crc)
+		Tracker::Movie::Movie(Machine& e,EmuReset r,EmuLoadState l,EmuSaveState s,Cpu& c,dword crc)
 		:
 		cpu            (c),
 		status         (STOPPED),
 		player         (NULL),
 		recorder       (NULL),
 		emulator       (e),
-		emuLoadState   (l),
 		emuSaveState   (s),
+		emuLoadState   (l),
 		emuReset       (r),
-		prgCrc         (crc),
-		callbackEnable (false)
+		callbackEnable (false),
+		prgCrc         (crc)
 		{
 		}
 
@@ -367,6 +367,10 @@ namespace Nes
 				recorder->Cut();
 		}
 
+		#ifdef NST_PRAGMA_OPTIMIZE
+		#pragma optimize("", on)
+		#endif
+
 		bool Tracker::Movie::BeginFrame(const dword frame)
 		{
 			try
@@ -426,6 +430,10 @@ namespace Nes
 			}
 		}
 
+		#ifdef NST_PRAGMA_OPTIMIZE
+		#pragma optimize("s", on)
+		#endif
+
 		bool Tracker::Movie::Reset(const bool hard)
 		{
 			if (status != STOPPED)
@@ -466,6 +474,10 @@ namespace Nes
 			ports[1] = cpu.Link( 0x4017, Cpu::LEVEL_HIGHEST, this, recording ? &Movie::Peek_4017_Record : &Movie::Peek_4017_Play, &Movie::Poke_4017 );
 		}
 
+		#ifdef NST_PRAGMA_OPTIMIZE
+		#pragma optimize("", on)
+		#endif
+
 		NST_FORCE_INLINE void Tracker::Movie::Recorder::Port::Flush(State::Saver& state,const uint index)
 		{
 			Unlock();
@@ -484,6 +496,10 @@ namespace Nes
 				port[i].Flush( state, i );
 		}
 
+		#ifdef NST_PRAGMA_OPTIMIZE
+		#pragma optimize("s", on)
+		#endif
+
 		void Tracker::Movie::Recorder::Start(ulong end,const dword prgCrc)
 		{
 			static const u8 header[5] =
@@ -500,7 +516,7 @@ namespace Nes
 
 			if (end && 0 < (end = state.GetStream().Length()))
 			{
-				frame = ~dword(0);
+				frame = dword(~0UL);
 
 				if (end >= sizeof(header) + 4 + sizeof(reserved))
 					state.GetStream().Seek( end );
@@ -523,7 +539,7 @@ namespace Nes
 
 			Flush();
 
-			if (frame && frame != ~dword(0))
+			if (frame && frame != dword(~0UL))
 				state.Begin('W','A','I','\0').Write32( frame ).End();
 		}
 
@@ -538,7 +554,7 @@ namespace Nes
 			if (frame)
 			{
 				Flush();
-				state.Begin('R','E','S','\0').Write32( frame != ~dword(0) ? frame : 0 ).Write8( hard ).End();
+				state.Begin('R','E','S','\0').Write32( frame != dword(~0UL) ? frame : 0 ).Write8( hard ).End();
 				frame = 0;
 			}
 		}
@@ -548,9 +564,9 @@ namespace Nes
 			good = false;
 
 			frame.port = 0;
-			frame.clip = ~dword(0);
-			frame.reset = ~dword(0);
-			frame.wait = ~dword(0);
+			frame.clip = dword(~0UL);
+			frame.reset = dword(~0UL);
+			frame.wait = dword(~0UL);
 
 			for (uint i=0; i < 2; ++i)
 			{
@@ -580,6 +596,10 @@ namespace Nes
 
 			good = true;
 		}
+
+		#ifdef NST_PRAGMA_OPTIMIZE
+		#pragma optimize("", on)
+		#endif
 
 		bool Tracker::Movie::Player::Port::Load(State::Loader& state)
 		{
@@ -719,9 +739,9 @@ namespace Nes
 			}
 		}
 
-		void Tracker::Movie::Recorder::BeginFrame(const dword emuFrame,Api::Emulator& emulator,EmuSaveState emuSaveState)
+		void Tracker::Movie::Recorder::BeginFrame(const dword emuFrame,Machine& emulator,EmuSaveState emuSaveState)
 		{
-			NST_VERIFY( frame <= emuFrame || frame == ~dword(0) );
+			NST_VERIFY( frame <= emuFrame || frame == dword(~0UL) );
 
 			for (uint i=0; i < 2; ++i)
 				port[i].input.Clear();
@@ -735,9 +755,9 @@ namespace Nes
 
 			if (emuFrame)
 			{
-				state.Begin('C','L','P','\0').Write32( frame != ~dword(0) ? frame : 0 );
+				state.Begin('C','L','P','\0').Write32( frame != dword(~0UL) ? frame : 0 );
 
-				const Result result = (emulator.*emuSaveState)( state.GetStream().GetStdStream(), true );
+				const Result result = (emulator.*emuSaveState)( state.GetStream().GetStdStream(), true, true );
 
 				if (NES_FAILED(result))
 					throw result;
@@ -755,7 +775,7 @@ namespace Nes
 		bool Tracker::Movie::Player::BeginFrame
 		(
 			const dword emuFrame,
-			Api::Emulator& emulator,
+			Machine& emulator,
 			EmuLoadState emuLoadState,
 			EmuReset emuReset
 		)
@@ -777,11 +797,11 @@ namespace Nes
 						break;
 					}
 				}
-				else if (frame.clip != ~dword(0))
+				else if (frame.clip != dword(~0UL))
 				{
 					if (frame.clip <= emuFrame)
 					{
-						frame.clip = ~dword(0);
+						frame.clip = dword(~0UL);
 
 						const Result result = (emulator.*emuLoadState)( state.GetStream().GetStdStream(), false );
 
@@ -800,11 +820,11 @@ namespace Nes
 						break;
 					}
 				}
-				else if (frame.reset != ~dword(0))
+				else if (frame.reset != dword(~0UL))
 				{
 					if (frame.reset <= emuFrame)
 					{
-						frame.reset = ~dword(0);
+						frame.reset = dword(~0UL);
 
 						const Result result = (emulator.*emuReset)( state.Read8() & 0x1 );
 
@@ -823,11 +843,11 @@ namespace Nes
 						break;
 					}
 				}
-				else if (frame.wait != ~dword(0))
+				else if (frame.wait != dword(~0UL))
 				{
 					if (frame.wait <= emuFrame)
 					{
-						frame.wait = ~dword(0);
+						frame.wait = dword(~0UL);
 
 						state.DigOut();
 						state.End();
@@ -913,10 +933,6 @@ namespace Nes
 				throw RESULT_ERR_CORRUPT_FILE;
 			}
 		}
-
-		#ifdef NST_PRAGMA_OPTIMIZE
-		#pragma optimize("", on)
-		#endif
 
 		uint Tracker::Movie::Recorder::WritePort(const uint index,const uint data)
 		{

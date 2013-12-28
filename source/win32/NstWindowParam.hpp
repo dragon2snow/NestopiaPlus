@@ -28,7 +28,8 @@
 #pragma once
 
 #include <cstdlib>
-#include "NstWindowGeneric.hpp"
+#include "NstMain.hpp"
+#include <Windows.h>
 
 namespace Nestopia
 {
@@ -52,7 +53,7 @@ namespace Nestopia
 
 			public:
 
-				ibool IsClicked() const
+				ibool Clicked() const
 				{
 					return HIWORD(wParam) == BN_CLICKED;
 				}
@@ -152,9 +153,9 @@ namespace Nestopia
 
 				uint Scroll() const;
 
-				ibool IsControl(uint id) const
+				uint GetId() const
 				{
-					return reinterpret_cast<HWND>(param.lParam) == ::GetDlgItem( param.hWnd, id );
+					return ::GetDlgCtrlID( reinterpret_cast<HWND>(param.lParam) );
 				}
 
 				ibool Released() const
@@ -174,7 +175,7 @@ namespace Nestopia
 
 			public:
 
-				ibool IsInside(uint id) const
+				ibool Inside(uint id) const
 				{
 					return reinterpret_cast<HWND>(param.wParam) == ::GetDlgItem( param.hWnd, id );
 				}
@@ -191,24 +192,24 @@ namespace Nestopia
 
 			public:
 
-				ibool IsLeaving() const
+				ibool Leaving() const
 				{
 					return LOWORD(param.wParam) == WA_INACTIVE;
 				}
 
-				ibool IsEntering() const
+				ibool Entering() const
 				{
-					return !IsLeaving();
+					return !Leaving();
 				}
 
-				ibool IsInsideApplication() const
+				ibool InsideApplication() const
 				{
 					return param.lParam && ::IsChild( param.hWnd, reinterpret_cast<HWND>(param.lParam) );
 				}
 
-				ibool IsOutsideApplication() const
+				ibool OutsideApplication() const
 				{
-					return !IsInsideApplication();
+					return !InsideApplication();
 				}
 
 				ibool Minimized() const
@@ -224,7 +225,6 @@ namespace Nestopia
 			SliderParam    Slider()    const { return SliderParam    ( *this  ); }
 			CursorParam    Cursor()    const { return CursorParam    ( *this  ); }
 			ActivatorParam Activator() const { return ActivatorParam ( *this  ); }
-			Generic        Window()    const { return Generic        ( hWnd   ); }
 		};
 	}
 }

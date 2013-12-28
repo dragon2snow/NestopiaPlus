@@ -47,7 +47,8 @@ namespace Nes
 
 		public:
 
-			Movie(Emulator& e)
+			template<typename T>
+			Movie(T& e)
 			: Base(e) {}
 
 			enum How
@@ -62,17 +63,17 @@ namespace Nes
 				ENABLE_CALLBACK
 			};
 
-			Result Play(std::istream&,CallbackMode=ENABLE_CALLBACK);
-			Result Record(std::ostream&,How=CLEAN,CallbackMode=ENABLE_CALLBACK);
+			Result Play(std::istream&,CallbackMode=ENABLE_CALLBACK) throw();
+			Result Record(std::ostream&,How=CLEAN,CallbackMode=ENABLE_CALLBACK) throw();
 
-			void Stop();
-			void Eject();
-			void Cut();
+			void Stop() throw();
+			void Eject() throw();
+			void Cut() throw();
 
-			bool IsPlaying() const;
-			bool IsRecording() const;
-			bool IsInserted() const;
-			bool IsStopped() const;
+			bool IsPlaying() const throw();
+			bool IsRecording() const throw();
+			bool IsInserted() const throw();
+			bool IsStopped() const throw();
 
 			enum State
 			{

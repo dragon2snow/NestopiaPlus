@@ -48,9 +48,9 @@ namespace Nes
 			#pragma optimize("s", on)
 			#endif
 
-			LightGun::LightGun(Ppu& p)
+			LightGun::LightGun(const Cpu& c,Ppu& p)
 			:
-			Device (Api::Input::ZAPPER),
+			Device (c,Api::Input::ZAPPER),
 			patch  (PATCH_NORMAL),
 			ppu    (p)
 			{
@@ -61,11 +61,13 @@ namespace Nes
 			{
 				shifter = 1;
 				stream = 0x10;
+				pos = ~0U;
+				fire = 0;
 			}
 
-			void LightGun::Initialize(const dword pRomCrc)
+			void LightGun::Initialize(const dword prgCrc)
 			{
-				switch (pRomCrc)
+				switch (prgCrc)
 				{
 					case 0xED588F00UL: // VS.Duck Hunt
 					case 0xFF5135A3UL: // VS.Hogan's Alley
@@ -110,13 +112,6 @@ namespace Nes
 			#pragma optimize("", on)
 			#endif
 
-			void LightGun::BeginFrame(Controllers* i)
-			{
-				input = i;
-				pos = ~0U;
-				fire = 0;
-			}
-
 			uint LightGun::Poll()
 			{
 				if (input)
@@ -128,12 +123,12 @@ namespace Nes
 					{
 						fire = (zapper.fire ? patch == PATCH_NORMAL ? 0x10 : 0x80 : 0x00);
 
-						if (zapper.y < Ppu::HEIGHT && zapper.x < Ppu::WIDTH)
-							pos = zapper.y * Ppu::WIDTH + zapper.x;
+						if (zapper.y < Video::Screen::HEIGHT && zapper.x < Video::Screen::WIDTH)
+							pos = zapper.y * Video::Screen::WIDTH + zapper.x;
 					}
 				}
 
-				if (pos < Ppu::WIDTH * Ppu::HEIGHT)
+				if (pos < Video::Screen::WIDTH * Video::Screen::HEIGHT)
 				{
 					ppu.Update();
 
@@ -151,7 +146,8 @@ namespace Nes
 				if (patch == PATCH_VS)
 				{
 					shifter = ~data & 0x1;
-					stream = 0x10 | fire | (Poll() >= 0x40 ? 0x40 : 0x00);
+					stream  = (Poll() >= 0x40 ? 0x40 : 0x00);
+					stream |= 0x10 | fire;
 				}
 			}
 
@@ -159,7 +155,8 @@ namespace Nes
 			{
 				if (patch == PATCH_NORMAL)
 				{
-					return fire | (Poll() >= 0x40 ? 0x0 : 0x8);
+					uint data = (Poll() >= 0x40 ? 0x0 : 0x8);
+					return data | fire;
 				}
 				else
 				{

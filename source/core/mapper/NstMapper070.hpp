@@ -45,7 +45,7 @@ namespace Nes
 
 			NES_DECL_PEEK( SpaceShadow )
 			NES_DECL_POKE( SpaceShadow )
-			NES_DECL_POKE( pRom )
+			NES_DECL_POKE( Prg )
 
 			Io::Port p4016;
 			const ibool useGun;

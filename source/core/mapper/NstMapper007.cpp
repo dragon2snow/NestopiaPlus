@@ -33,7 +33,7 @@ namespace Nes
 		#pragma optimize("s", on)
 		#endif
 
-		void Mapper7::SubReset(const bool hard)
+		void Mapper7::SubReset(bool)
 		{
 			Map( 0x8000U, 0xFFFFU, &Mapper7::Poke_Prg );
 		}

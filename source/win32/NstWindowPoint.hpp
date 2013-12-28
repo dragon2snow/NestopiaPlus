@@ -36,6 +36,15 @@ namespace Nestopia
 	{
 		struct Point : POINT
 		{
+			enum Scaling
+			{
+				SCALE_BELOW,
+				SCALE_ABOVE,
+				SCALE_NEAREST
+			};
+
+			uint ScaleToFit(uint,uint,Scaling,uint=UINT_MAX);
+
 			Point(int v=0)
 			{
 				x = v;
@@ -128,21 +137,36 @@ namespace Nestopia
 				return Point( x / 2, y / 2 );
 			}
 
-			enum Scaling
-			{
-				SCALE_BELOW,
-				SCALE_ABOVE,
-				SCALE_NEAREST
-			};
-
-			uint ScaleToFit(uint,uint,Scaling,uint=UINT_MAX);
-
 			uint ScaleToFit(const Point& p,Scaling s,uint f=UINT_MAX)
 			{
 				return ScaleToFit( p.x, p.y, s, f );
 			}
 
+			Point& ClientTransform(HWND hWnd)
+			{
+				::ScreenToClient( hWnd, this );
+				return *this;
+			}
+
+			Point& ScreenTransform(HWND hWnd)
+			{
+				::ClientToScreen( hWnd, this );
+				return *this;
+			}
+
+			struct Client;
+			struct Picture;
 			struct NonClient;
+		};
+
+		struct Point::Client : Point
+		{
+			Client(HWND);
+		};
+
+		struct Point::Picture : Point
+		{
+			Picture(HWND);
 		};
 
 		struct Point::NonClient : Point

@@ -34,7 +34,7 @@ namespace Nestopia
 {
 	namespace Object
 	{
-		class Backup : Sealed
+		class Backup
 		{
 			const uint size;
 			void* const data;

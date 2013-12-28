@@ -26,327 +26,329 @@
 #pragma comment(lib,"dsound")
 #endif
 
-#include "NstDirectSound.hpp"
-#include "NstApplicationException.hpp"
-#include "NstWindowStruct.hpp"
 #include "NstIoLog.hpp"
+#include "NstDirectSound.hpp"
 
 namespace Nestopia
 {
-	using DirectX::DirectSound;
-
-	DirectSound::Settings::Settings(HWND h)
-	: hWnd(h), deviceId(0), priority(false) {}
-
-	DirectSound::DirectSound(HWND const hWnd)
-	: settings( hWnd )
+	namespace DirectX
 	{
-		Io::Log() << "DirectSound: initializing..\r\n";
+		DirectSound::Settings::Settings(HWND h)
+		: hWnd(h), deviceId(0), priority(false) {}
 
-		if (FAILED(::DirectSoundEnumerate( EnumAdapter, &adapters )) || adapters.empty())
-			EnumAdapter( NULL, _T("Primary Sound Driver"), NULL, &adapters );
-	}
-
-	DirectSound::~DirectSound()
-	{
-		Destroy();
-	}
-
-	void DirectSound::Destroy()
-	{
-		buffer.Release();
-		device.Release();
-	}
-
-	BOOL CALLBACK DirectSound::EnumAdapter(LPGUID guid,LPCTSTR desc,LPCTSTR,LPVOID context)
-	{
-		Io::Log() << "DirectSound: enumerating device - name: "
-                  << (desc && *desc ? desc : _T("unknown"))
-                  << ", GUID: "
-                  << (guid ? System::Guid( *guid ).GetString() : _T("unspecified"))
-                  << "\r\n";
-
-		ComInterface<IDirectSound8> device;
-
-		if (SUCCEEDED(::DirectSoundCreate8( guid, &device, NULL )))
+		DirectSound::DirectSound(HWND const hWnd)
+		: settings( hWnd )
 		{
-			static_cast<Adapters*>(context)->resize( static_cast<Adapters*>(context)->size() + 1 );
-			Adapter& adapter = static_cast<Adapters*>(context)->back();
+			Io::Log() << "DirectSound: initializing..\r\n";
 
-			if (guid)
-				adapter.guid = *guid;
-
-			adapter.name = desc;
-		}
-		else
-		{
-			Io::Log() << "DirectSound: DirectSoundCreate8() failed on this device, continuing enumeration..\r\n";
+			if (FAILED(::DirectSoundEnumerate( EnumAdapter, &adapters )) || adapters.empty())
+				EnumAdapter( NULL, _T("Primary Sound Driver"), NULL, &adapters );
 		}
 
-		return true;
-	}
-
-	tstring DirectSound::Update
-	(
-		const uint deviceId,
-		const uint rate,
-		const uint bits,
-		const Channels channels,
-		const uint speed,
-		const uint latency
-	)
-	{
-		NST_ASSERT( deviceId < adapters.size() );
-
-		if (settings.deviceId != deviceId || device == NULL)
+		DirectSound::~DirectSound()
 		{
-			settings.deviceId = deviceId;
-
 			Destroy();
+		}
 
-			if (FAILED(::DirectSoundCreate8( &adapters[deviceId].guid, &device, NULL )))
-				return _T("::DirectSoundCreate8() failed!");
+		void DirectSound::Destroy()
+		{
+			buffer.Release();
+			device.Release();
+		}
 
-			Io::Log() << "DirectSound: creating device #" << deviceId << "\r\n";
+		BOOL CALLBACK DirectSound::EnumAdapter(LPGUID guid,LPCTSTR desc,LPCTSTR,LPVOID context)
+		{
+			Io::Log() << "DirectSound: enumerating device - name: "
+                      << (desc && *desc ? desc : _T("unknown"))
+                      << ", GUID: "
+                      << (guid ? System::Guid( *guid ).GetString() : _T("unspecified"))
+                      << "\r\n";
 
-			settings.priority = SUCCEEDED(device->SetCooperativeLevel( settings.hWnd, DSSCL_PRIORITY ));
+			ComInterface<IDirectSound8> device;
 
-			if (!settings.priority)
+			if (SUCCEEDED(::DirectSoundCreate8( guid, &device, NULL )))
 			{
-				Io::Log() << "DirectSound: warning, IDirectSound8::SetCooperativeLevel( DSSCL_PRIORITY ) failed! Retrying with DSSCL_NORMAL..\r\n";
+				static_cast<Adapters*>(context)->resize( static_cast<Adapters*>(context)->size() + 1 );
+				Adapter& adapter = static_cast<Adapters*>(context)->back();
 
-				if (FAILED(device->SetCooperativeLevel( settings.hWnd, DSSCL_NORMAL )))
+				if (guid)
+					adapter.guid = *guid;
+
+				adapter.name = desc;
+			}
+			else
+			{
+				Io::Log() << "DirectSound: DirectSoundCreate8() failed on this device, continuing enumeration..\r\n";
+			}
+
+			return true;
+		}
+
+		tstring DirectSound::Update
+		(
+			const uint deviceId,
+			const uint rate,
+			const uint bits,
+			const Channels channels,
+			const uint speed,
+			const uint latency
+		)
+		{
+			NST_ASSERT( deviceId < adapters.size() );
+
+			if (settings.deviceId != deviceId || device == NULL)
+			{
+				settings.deviceId = deviceId;
+
+				Destroy();
+
+				if (FAILED(::DirectSoundCreate8( &adapters[deviceId].guid, &device, NULL )))
+					return _T("::DirectSoundCreate8() failed!");
+
+				Io::Log() << "DirectSound: creating device #" << deviceId << "\r\n";
+
+				settings.priority = SUCCEEDED(device->SetCooperativeLevel( settings.hWnd, DSSCL_PRIORITY ));
+
+				if (!settings.priority)
 				{
-					device.Release();
-					return _T("IDirectSound8::SetCooperativeLevel() failed!");
+					Io::Log() << "DirectSound: warning, IDirectSound8::SetCooperativeLevel( DSSCL_PRIORITY ) failed! Retrying with DSSCL_NORMAL..\r\n";
+
+					if (FAILED(device->SetCooperativeLevel( settings.hWnd, DSSCL_NORMAL )))
+					{
+						device.Release();
+						return _T("IDirectSound8::SetCooperativeLevel() failed!");
+					}
 				}
+			}
+
+			if (tstring errMsg = buffer.Update( **device, settings.priority, rate, bits, channels, speed, latency ))
+			{
+				Destroy();
+				return errMsg;
+			}
+
+			return NULL;
+		}
+
+		tstring DirectSound::UpdateSpeed(const uint speed,const uint latency)
+		{
+			return buffer.UpdateSpeed( **device, settings.priority, speed, latency );
+		}
+
+		DirectSound::Buffer::Settings::Settings()
+		: size(0) {}
+
+		DirectSound::Buffer::Buffer()
+		: writeOffset(0)
+		{
+			waveFormat.wFormatTag = WAVE_FORMAT_PCM;
+		}
+
+		DirectSound::Buffer::~Buffer()
+		{
+			Release();
+		}
+
+		void DirectSound::Buffer::Release()
+		{
+			if (com != NULL)
+			{
+				com->Stop();
+				com.Release();
 			}
 		}
 
-		return buffer.Update( *device, settings.priority, rate, bits, channels, speed, latency );
-	}
-
-	tstring DirectSound::UpdateSpeed(const uint speed,const uint latency)
-	{
-		NST_ASSERT( device != NULL );
-		return buffer.UpdateSpeed( *device, settings.priority, speed, latency );
-	}
-
-	DirectSound::Buffer::Settings::Settings()
-	: size(0) {}
-
-	DirectSound::Buffer::Buffer()
-	: writeOffset(0)
-	{
-		waveFormat.wFormatTag = WAVE_FORMAT_PCM;
-	}
-
-	DirectSound::Buffer::~Buffer()
-	{
-		Release();
-	}
-
-	void DirectSound::Buffer::Release()
-	{
-		if (com)
+		tstring DirectSound::Buffer::Create(IDirectSound8& device,const ibool priority)
 		{
-			com->Stop();
-			com.Release();
-		}
-	}
+			Release();
 
-	tstring DirectSound::Buffer::Create(IDirectSound8& device,const ibool priority)
-	{
-		Release();
+			Object::Pod<DSBUFFERDESC> desc;
 
-		Window::Struct<DSBUFFERDESC> desc;
+			desc.dwSize = sizeof(desc);
+			desc.dwFlags = DSBCAPS_PRIMARYBUFFER;
+			desc.lpwfxFormat = NULL;
 
-		desc.dwFlags = DSBCAPS_PRIMARYBUFFER;
-		desc.lpwfxFormat = NULL;
-
-		if (priority)
-		{
-			ComInterface<IDirectSoundBuffer> primary;
-
-			if (FAILED(device.CreateSoundBuffer( &desc, &primary, NULL )) || FAILED(primary->SetFormat( &waveFormat )))
+			if (priority)
 			{
-				static bool logged = false;
+				ComInterface<IDirectSoundBuffer> primary;
 
-				if (logged == false)
+				if (FAILED(device.CreateSoundBuffer( &desc, &primary, NULL )) || FAILED(primary->SetFormat( &waveFormat )))
 				{
-					logged = true;
-					Io::Log() << "DirectSound: warning, couldn't set the sample format for the primary sound buffer!\r\n";
+					static bool logged = false;
+
+					if (logged == false)
+					{
+						logged = true;
+						Io::Log() << "DirectSound: warning, couldn't set the sample format for the primary sound buffer!\r\n";
+					}
 				}
 			}
-		}
 
-		NST_ASSERT( settings.size % waveFormat.nBlockAlign == 0 );
+			NST_ASSERT( settings.size % waveFormat.nBlockAlign == 0 );
 
-		desc.Clear();
-		desc.dwFlags = DSBCAPS_LOCSOFTWARE|DSBCAPS_GETCURRENTPOSITION2|DSBCAPS_GLOBALFOCUS;
-		desc.dwBufferBytes = settings.size * 2;
-		desc.lpwfxFormat = &waveFormat;
+			desc.Clear();
+			desc.dwSize = sizeof(desc);
+			desc.dwFlags = DSBCAPS_LOCSOFTWARE|DSBCAPS_GETCURRENTPOSITION2|DSBCAPS_GLOBALFOCUS;
+			desc.dwBufferBytes = settings.size * 2;
+			desc.lpwfxFormat = &waveFormat;
 
-		{
 			ComInterface<IDirectSoundBuffer> oldie;
 
 			if (FAILED(device.CreateSoundBuffer( &desc, &oldie, NULL )))
-				return _T("IDirectSound8::CreateSoundBuffer() failed!");
+				return _T("IDirectSound8::CreateSoundBuffer() failed! Sound will be disabled!");
 
 			if (FAILED(oldie->QueryInterface( IID_IDirectSoundBuffer8, reinterpret_cast<void**>(&com) )))
-				return _T("IDirectSoundBuffer::QueryInterface() failed!");
+				return _T("IDirectSoundBuffer::QueryInterface() failed! Sound will be disabled!");
+
+			return NULL;
 		}
 
-		return NULL;
-	}
-
-	uint DirectSound::Buffer::CalculateSize(uint rate,uint block,uint speed,uint latency)
-	{
-		uint size = rate * block * latency / speed;
-
-		if (size % block)
-			size += block - size % block;
-
-		return size;
-	}
-
-	tstring DirectSound::Buffer::Update
-	(
-		IDirectSound8& device,
-		const ibool priority,
-		const uint rate,
-		const uint bits,
-		const Channels channels,
-		const uint speed,
-		const uint latency
-	)
-	{
-		const uint size = CalculateSize( rate, bits / 8 * channels, speed, latency );
-
-		if
-		(
-			com &&
-			waveFormat.nSamplesPerSec == rate &&
-			waveFormat.wBitsPerSample == bits &&
-			waveFormat.nChannels == channels &&
-			settings.size == size
-		)
-			return NULL;
-
-		waveFormat.nSamplesPerSec = rate;
-		waveFormat.wBitsPerSample = (WORD) bits;
-		waveFormat.nChannels = (WORD) channels;
-		waveFormat.nBlockAlign = (WORD) (waveFormat.wBitsPerSample / 8 * waveFormat.nChannels);
-		waveFormat.nAvgBytesPerSec = waveFormat.nSamplesPerSec * waveFormat.nBlockAlign;
-
-		settings.size = size;
-
-		return Create( device, priority );
-	}
-
-	tstring DirectSound::Buffer::UpdateSpeed
-	(
-		IDirectSound8& device,
-		const ibool priority,
-		const uint speed,
-		const uint latency
-	)
-	{
-		const uint size = CalculateSize( waveFormat.nSamplesPerSec, waveFormat.nBlockAlign, speed, latency );
-
-		if (com == NULL || settings.size != size)
+		uint DirectSound::Buffer::CalculateSize(uint rate,uint block,uint speed,uint latency)
 		{
+			uint size = rate * block * latency / speed;
+
+			if (size % block)
+				size += block - size % block;
+
+			return size;
+		}
+
+		tstring DirectSound::Buffer::Update
+		(
+			IDirectSound8& device,
+			const ibool priority,
+			const uint rate,
+			const uint bits,
+			const Channels channels,
+			const uint speed,
+			const uint latency
+		)
+		{
+			const uint size = CalculateSize( rate, bits / 8 * channels, speed, latency );
+
+			if
+			(
+				com != NULL &&
+				waveFormat.nSamplesPerSec == rate &&
+				waveFormat.wBitsPerSample == bits &&
+				waveFormat.nChannels == channels &&
+				settings.size == size
+			)
+				return NULL;
+
+			waveFormat.nSamplesPerSec = rate;
+			waveFormat.wBitsPerSample = bits;
+			waveFormat.nChannels = channels;
+			waveFormat.nBlockAlign = waveFormat.wBitsPerSample / 8 * waveFormat.nChannels;
+			waveFormat.nAvgBytesPerSec = waveFormat.nSamplesPerSec * waveFormat.nBlockAlign;
+
 			settings.size = size;
+
 			return Create( device, priority );
 		}
 
-		return NULL;
-	}
-
-	void DirectSound::Buffer::StartStream()
-	{
-		if (com)
+		tstring DirectSound::Buffer::UpdateSpeed
+		(
+			IDirectSound8& device,
+			const ibool priority,
+			const uint speed,
+			const uint latency
+		)
 		{
-			DWORD status;
+			const uint size = CalculateSize( waveFormat.nSamplesPerSec, waveFormat.nBlockAlign, speed, latency );
 
-			if (FAILED(com->GetStatus( &status )))
+			if (com == NULL || settings.size != size)
 			{
-				com.Release();
-				return;
+				settings.size = size;
+				return Create( device, priority );
 			}
 
-			if ((status & (DSBSTATUS_BUFFERLOST|DSBSTATUS_LOOPING|DSBSTATUS_PLAYING)) == (DSBSTATUS_LOOPING|DSBSTATUS_PLAYING))
-				return;
+			return NULL;
+		}
 
-			if (status & DSBSTATUS_PLAYING)
-				com->Stop();
-
-			if (status & DSBSTATUS_BUFFERLOST)
+		void DirectSound::Buffer::StartStream()
+		{
+			if (com != NULL)
 			{
-				const HRESULT hResult = com->Restore();
+				DWORD status;
 
-				if (FAILED(hResult))
+				if (FAILED(com->GetStatus( &status )))
 				{
-					if (hResult != DSERR_BUFFERLOST)
-						com.Release();
-
+					com.Release();
 					return;
+				}
+
+				if ((status & (DSBSTATUS_BUFFERLOST|DSBSTATUS_LOOPING|DSBSTATUS_PLAYING)) == (DSBSTATUS_LOOPING|DSBSTATUS_PLAYING))
+					return;
+
+				if (status & DSBSTATUS_PLAYING)
+					com->Stop();
+
+				if (status & DSBSTATUS_BUFFERLOST)
+				{
+					const HRESULT hResult = com->Restore();
+
+					if (FAILED(hResult))
+					{
+						if (hResult != DSERR_BUFFERLOST)
+							com.Release();
+
+						return;
+					}
+				}
+
+				void* data;
+				DWORD size;
+
+				if (SUCCEEDED(com->Lock( 0, 0, &data, &size, NULL, NULL, DSBLOCK_ENTIREBUFFER )))
+				{
+					std::memset( data, waveFormat.wBitsPerSample == 16 ? DC_OFFSET_16 : DC_OFFSET_8, size );
+					com->Unlock( data, size, NULL, 0 );
+				}
+
+				writeOffset = 0;
+				const HRESULT hResult = com->Play( 0, 0, DSBPLAY_LOOPING );
+
+				if (FAILED(hResult) && hResult != DSERR_BUFFERLOST)
+					com.Release();
+			}
+		}
+
+		#ifdef NST_PRAGMA_OPTIMIZE
+		#pragma optimize("t", on)
+		#endif
+
+		ibool DirectSound::Buffer::LockStream(void*& data,uint& size)
+		{
+			DWORD pos;
+			HRESULT hResult = com->GetCurrentPosition( NULL, &pos );
+
+			if (SUCCEEDED(hResult))
+			{
+				if (uint(pos >= settings.size) == writeOffset)
+					return false;
+
+				hResult = com->Lock( writeOffset ? settings.size : 0, settings.size, &data, &pos, NULL, NULL, 0 );
+
+				if (SUCCEEDED(hResult) && pos == settings.size)
+				{
+					NST_ASSERT( pos % waveFormat.nBlockAlign == 0 );
+
+					size = pos / waveFormat.nBlockAlign;
+					writeOffset ^= 1;
+
+					return true;
 				}
 			}
 
-			void* data;
-			DWORD size;
+			com->Stop();
+			NST_DEBUG_MSG("DirectSound::Buffer::Lock() failed!");
 
-			if (SUCCEEDED(com->Lock( 0, 0, &data, &size, NULL, NULL, DSBLOCK_ENTIREBUFFER )))
-			{
-				std::memset( data, waveFormat.wBitsPerSample == 16 ? DC_OFFSET_16 : DC_OFFSET_8, size );
-				com->Unlock( data, size, NULL, 0 );
-			}
-
-			writeOffset = 0;
-			const HRESULT hResult = com->Play( 0, 0, DSBPLAY_LOOPING );
-
-			if (FAILED(hResult) && hResult != DSERR_BUFFERLOST)
-				com.Release();
-		}
-	}
-
-	#ifdef NST_PRAGMA_OPTIMIZE
-	#pragma optimize("t", on)
-	#endif
-
-	ibool DirectSound::Buffer::LockStream(void*& data,uint& size)
-	{
-		NST_ASSERT( com != NULL );
-
-		DWORD pos;
-		HRESULT hResult = com->GetCurrentPosition( NULL, &pos );
-
-		if (SUCCEEDED(hResult))
-		{
-			if (uint(pos >= settings.size) == writeOffset)
-				return false;
-
-			hResult = com->Lock( writeOffset ? settings.size : 0, settings.size, &data, &pos, NULL, NULL, 0 );
-
-			if (SUCCEEDED(hResult) && pos == settings.size)
-			{
-				NST_ASSERT( pos % waveFormat.nBlockAlign == 0 );
-
-				size = pos / waveFormat.nBlockAlign;
-				writeOffset ^= 1;
-
-				return true;
-			}
+			return false;
 		}
 
-		com->Stop();
-		NST_DEBUG_MSG("DirectSound::Buffer::Lock() failed!");
-
-		return false;
+		#ifdef NST_PRAGMA_OPTIMIZE
+		#pragma optimize("", on)
+		#endif
 	}
-
-	#ifdef NST_PRAGMA_OPTIMIZE
-	#pragma optimize("", on)
-	#endif
 }

@@ -77,7 +77,7 @@ namespace Nestopia
 
 			static uint Import(const Path&,Collection::Buffer&);
 			static uint Export(const Path&,const Collection::Buffer&);
-			static ibool IsBad(const Header&,ulong);
+			static ibool Bad(const Header&,ulong);
 
 			ibool Save(Header&) const;
 			void UpdateOriginal() const;
@@ -86,7 +86,6 @@ namespace Nestopia
 			ibool OnInitDialog  (Param&);
 			ibool OnCmdOriginal (Param&);
 			ibool OnCmdDetect   (Param&);
-			ibool OnCmdCancel   (Param&);
 			ibool OnCmdSave     (Param&);
 
 			Dialog dialog;

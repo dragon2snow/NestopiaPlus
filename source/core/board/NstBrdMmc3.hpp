@@ -113,7 +113,13 @@ namespace Nes
 
 			protected:
 
-				Mmc3(Context&,uint=WRAM_AUTO|CRAM_NONE,bool=false);
+				enum Revision
+				{
+					REV_B_C,
+					REV_A
+				};
+
+				Mmc3(Context&,uint=WRAM_AUTO,Revision=REV_B_C);
 
 				void SubReset(bool);
 

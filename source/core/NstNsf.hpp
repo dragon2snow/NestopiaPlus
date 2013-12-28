@@ -29,7 +29,6 @@
 #pragma once
 #endif
 
-#include "NstChip.hpp"
 #include "NstImage.hpp"
 
 namespace Nes

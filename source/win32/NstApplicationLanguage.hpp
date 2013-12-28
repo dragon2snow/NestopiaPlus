@@ -29,20 +29,21 @@
 
 #include <vector>
 #include "NstSystemDll.hpp"
+#include "NstApplicationInstance.hpp"
 
 namespace Nestopia
 {
 	namespace Application
 	{
-		class Language
+		class Instance::Language
 		{
 		public:
 
-			Language(const Configuration&);
+			void Load(const Configuration&);
+			void Save(Configuration&) const;
 
 			typedef std::vector<Path> Paths;
 
-			void Save(Configuration&) const;
 			void UpdateResource(tstring);
 			void EnumerateResources(Paths&) const;
 

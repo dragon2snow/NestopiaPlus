@@ -23,17 +23,20 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 
 #include <new>
-#include "../NstCore.hpp"
-#include "NstApiEmulator.hpp"
+#include "../NstMachine.hpp"
+#include "../NstCheats.hpp"
 #include "NstApiCheats.hpp"
 #include "NstApiMachine.hpp"
-#include "../NstCheats.hpp"
+
+#ifdef NST_PRAGMA_OPTIMIZE
+#pragma optimize("s", on)
+#endif
 
 namespace Nes
 {
 	namespace Api
 	{
-		Result NST_CALL Cheats::GameGenieEncode(const Code& code,char (&characters)[9])
+		Result NST_CALL Cheats::GameGenieEncode(const Code& code,char (&characters)[9]) throw()
 		{
 			if (code.address < 0x8000U)
 				return RESULT_ERR_INVALID_PARAM;
@@ -47,7 +50,7 @@ namespace Nes
 				((code.address >>  0) & (0x1|0x2|0x4)) | ((code.address >> 8) & 0x8),
 				((code.address >>  8) & (0x1|0x2|0x4)) | ((code.useCompare ? code.compare : code.value) & 0x8),
 				(code.useCompare ? (((code.compare >> 0) & (0x1|0x2|0x4)) | ((code.compare >> 4) & 0x8)) : 0),
-				(code.useCompare ? (((code.compare >> 5) & (0x1|0x2|0x4)) | ((code.value   >> 0) & 0x8)) : 0)
+				(code.useCompare ? (((code.compare >> 4) & (0x1|0x2|0x4)) | ((code.value   >> 0) & 0x8)) : 0)
 			};
 
 			uint i = code.useCompare ? 8 : 6;
@@ -69,7 +72,7 @@ namespace Nes
 			return RESULT_OK;
 		}
 
-		Result NST_CALL Cheats::GameGenieDecode(const char* const characters,Code& code)
+		Result NST_CALL Cheats::GameGenieDecode(const char* const characters,Code& code) throw()
 		{
 			if (characters == NULL)
 				return RESULT_ERR_INVALID_PARAM;
@@ -162,7 +165,7 @@ namespace Nes
 			return RESULT_OK;
 		}
 
-		Result NST_CALL Cheats::ProActionRockyEncode(const Code& code,char (&characters)[9])
+		Result NST_CALL Cheats::ProActionRockyEncode(const Code& code,char (&characters)[9]) throw()
 		{
 			if (code.address < 0x8000U || !code.useCompare)
 				return RESULT_ERR_INVALID_PARAM;
@@ -198,7 +201,7 @@ namespace Nes
 			return RESULT_OK;
 		}
 
-		Result NST_CALL Cheats::ProActionRockyDecode(const char* const characters,Code& code)
+		Result NST_CALL Cheats::ProActionRockyDecode(const char* const characters,Code& code) throw()
 		{
 			if (characters == NULL)
 				return RESULT_ERR_INVALID_PARAM;
@@ -255,7 +258,7 @@ namespace Nes
 			return RESULT_OK;
 		}
 
-		Result Cheats::SetCode(const Code& code)
+		Result Cheats::SetCode(const Code& code) throw()
 		{
 			try
 			{
@@ -281,7 +284,7 @@ namespace Nes
 			}
 		}
 
-		Result Cheats::DeleteCode(const dword index)
+		Result Cheats::DeleteCode(const dword index) throw()
 		{
 			if (emulator.cheats)
 			{
@@ -298,12 +301,12 @@ namespace Nes
 			}
 		}
 
-		dword Cheats::NumCodes() const
+		dword Cheats::NumCodes() const throw()
 		{
 			return emulator.cheats ? emulator.cheats->NumCodes() : 0;
 		}
 
-		Result Cheats::GetCode(dword index,Code& code) const
+		Result Cheats::GetCode(dword index,Code& code) const throw()
 		{
 			if (emulator.cheats)
 				return emulator.cheats->GetCode( index, &code.address, &code.value, &code.compare, &code.useCompare );
@@ -311,7 +314,7 @@ namespace Nes
 				return RESULT_ERR_INVALID_PARAM;
 		}
 
-		Result Cheats::GetCode(dword index,u16* address,u8* value,u8* compare,bool* useCompare) const
+		Result Cheats::GetCode(dword index,u16* address,u8* value,u8* compare,bool* useCompare) const throw()
 		{
 			if (emulator.cheats)
 				return emulator.cheats->GetCode( index, address, value, compare, useCompare );
@@ -319,7 +322,7 @@ namespace Nes
 				return RESULT_ERR_INVALID_PARAM;
 		}
 
-		Result Cheats::ClearCodes()
+		Result Cheats::ClearCodes() throw()
 		{
 			if (emulator.cheats)
 			{
@@ -334,9 +337,14 @@ namespace Nes
 			}
 		}
 
-		Cheats::Ram Cheats::GetRam() const
+		Cheats::Ram Cheats::GetRam() const throw()
 		{
 			return emulator.cpu.GetSystemRam();
 		}
 	}
 }
+
+#ifdef NST_PRAGMA_OPTIMIZE
+#pragma optimize("", on)
+#endif
+

@@ -47,6 +47,6 @@ namespace Nes
 			NES_DECL_POKE( Prg )
 		};
 	}
-};
+}
 
 #endif

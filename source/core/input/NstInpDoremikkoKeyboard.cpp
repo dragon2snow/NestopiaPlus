@@ -35,8 +35,8 @@ namespace Nes
 			#pragma optimize("s", on)
 			#endif
 
-			DoremikkoKeyboard::DoremikkoKeyboard()
-			: Device(Api::Input::DOREMIKKOKEYBOARD)
+			DoremikkoKeyboard::DoremikkoKeyboard(const Cpu& c)
+			: Device(c,Api::Input::DOREMIKKOKEYBOARD)
 			{
 				DoremikkoKeyboard::Reset();
 			}
@@ -81,8 +81,11 @@ namespace Nes
 					port = mode;
 					mode ^= 1;
 
-					if (input && Controllers::DoremikkoKeyboard::callback( input->doremikkoKeyboard, part, port ))
+					if (input)
+					{
+						Controllers::DoremikkoKeyboard::callback( input->doremikkoKeyboard, part, port );
 						return input->doremikkoKeyboard.keys & 0x1E;
+					}
 				}
 
 				return 0;

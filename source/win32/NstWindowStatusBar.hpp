@@ -33,6 +33,8 @@ namespace Nestopia
 {
 	namespace Window
 	{
+		class Custom;
+
 		class StatusBar
 		{
 		public:
@@ -42,7 +44,7 @@ namespace Nestopia
 
 			void Enable(ibool=true,ibool=true);
 			void Show() const;
-			uint GetHeight() const;
+			uint Height() const;
 			uint GetMaxMessageLength() const;
 
 			enum
@@ -82,12 +84,7 @@ namespace Nestopia
 
 		public:
 
-			Generic GetWindow() const
-			{
-				return window;
-			}
-
-			ibool IsEnabled() const
+			ibool Enabled() const
 			{
 				return window != NULL;
 			}
@@ -95,12 +92,6 @@ namespace Nestopia
 			void Disable()
 			{
 				Enable( false );
-			}
-
-			ibool Toggle()
-			{
-				Enable( !IsEnabled() );
-				return IsEnabled();
 			}
 
 			class Stream

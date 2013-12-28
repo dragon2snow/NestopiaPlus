@@ -43,6 +43,8 @@ namespace Nes
 {
 	namespace Core
 	{
+		class Machine;
+
 		template<typename T>
 		class UserCallback
 		{
@@ -77,18 +79,6 @@ namespace Nes
 
 	namespace Api
 	{
-		class Emulator;
-		class Machine;
-		class Video;
-		class Sound;
-		class Input;
-		class User;
-		class Cartridge;
-		class Fds;
-		class Nsf;
-		class Movie;
-		class DipSwitches;
-
 		class Base
 		{
 		public:
@@ -97,9 +87,9 @@ namespace Nes
 
 		protected:
 
-			Emulator& emulator;
+			Core::Machine& emulator;
 
-			Base(Emulator& e)
+			Base(Core::Machine& e)
 			: emulator(e) {}
 		};
 	}

@@ -36,7 +36,7 @@ namespace Nes
 		Mapper53::Mapper53(Context& c)
 		:
 		Mapper      (c,WRAM_NONE|CROM_NONE),
-		eepromFirst (c.pRomCrc == 0x7E449555UL)
+		eepromFirst (c.prgCrc == 0x7E449555UL)
 		{}
 
 		void Mapper53::SubReset(const bool hard)

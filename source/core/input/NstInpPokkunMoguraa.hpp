@@ -39,7 +39,7 @@ namespace Nes
 			{
 			public:
 
-				PokkunMoguraa();
+				PokkunMoguraa(const Cpu&);
 
 			private:
 

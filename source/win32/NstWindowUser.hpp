@@ -46,14 +46,17 @@ namespace Nestopia
 
 			void  Fail    (uint,uint=0);
 			void  Fail    (tstring,uint=0);
+			void  Fail    (tstring,tstring);
 			void  Warn    (uint,uint=0);
 			void  Warn    (tstring,uint=0);
+			void  Warn    (tstring,tstring);
 			void  Inform  (uint,uint=0);
 			void  Inform  (tstring,uint=0);
+			void  Inform  (tstring,tstring);
 			ibool Confirm (uint,uint=0);
 			ibool Confirm (tstring,uint=0);
-			ibool Issue   (Type,uint,uint=0);
-			ibool Input   (HeapString&,tstring,tstring=0);
+			ibool Confirm (tstring,tstring);
+			ibool Input   (HeapString&,tstring,tstring=NULL);
 		}
 	}
 }

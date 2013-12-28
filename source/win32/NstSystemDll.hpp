@@ -34,7 +34,7 @@ namespace Nestopia
 {
 	namespace System
 	{
-		class Dll : Sealed
+		class Dll
 		{
 		public:
 
@@ -70,7 +70,7 @@ namespace Nestopia
 				}
 			}
 
-			bool IsLoaded() const
+			bool Loaded() const
 			{
 				return hModule != NULL;
 			}

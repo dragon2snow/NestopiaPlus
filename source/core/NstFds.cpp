@@ -29,10 +29,8 @@
 #include "NstState.hpp"
 #include "NstPpu.hpp"
 #include "NstFds.hpp"
-#include "api/NstApiFds.hpp"
 #include "api/NstApiUser.hpp"
 #include "api/NstApiInput.hpp"
-#include "NstSignedArithmetic.hpp"
 
 namespace Nes
 {
@@ -255,6 +253,54 @@ namespace Nes
 			sides.crc = Checksum::Crc32::Compute( sides.data, sides.count * SIDE_SIZE );
 			sides.checksum = Checksum::Md5::Compute( sides.data, sides.count * SIDE_SIZE );
 
+			Log log;
+
+			for (uint i=0, n=sides.count; i < n; ++i)
+			{
+				Api::Fds::DiskData data;
+
+				if (NES_SUCCEEDED(Unit::Drive::Analyze( sides.data[i], data )))
+				{
+					dword size = 0;
+
+					for (Api::Fds::DiskData::Files::const_iterator it(data.files.begin()), end(data.files.end()); it != end; ++it)
+						size += it->data.size();
+
+					log << "Fds: Disk "
+						<< (1+i/2)
+						<< (i % 2 ? " Side B: " : " Side A: ")
+						<< (size / 1024)
+						<< "k in "
+						<< data.files.size()
+						<< " files";
+
+					if (const uint size = data.raw.size())
+						log << ", " << size << "b trailing data";
+
+					log << ".." NST_LINEBREAK;
+
+					for (Api::Fds::DiskData::Files::const_iterator it(data.files.begin()), end(data.files.end()); it != end; ++it)
+					{
+						size += it->data.size();
+
+						log << "Fds: file: \"" << it->name
+							<< "\", id: "      << it->id
+							<< ", size: "      << it->data.size()
+							<< ", index: "     << it->index
+							<< ", address: "   << Log::Hex( (u16) it->address )
+							<< ", type: "
+							<<
+							(
+								it->type == Api::Fds::DiskData::File::TYPE_PRG ? "PRG" :
+								it->type == Api::Fds::DiskData::File::TYPE_CHR ? "CHR" :
+								it->type == Api::Fds::DiskData::File::TYPE_NMT ? "NMT" :
+                                                                                 "unknown"
+							)
+							<< NST_LINEBREAK;
+					}
+				}
+			}
+
 			return sides;
 		}
 
@@ -291,15 +337,12 @@ namespace Nes
 			}
 		}
 
-		Fds::IrqClock::IrqClock(Cpu& cpu)
-		: Clock::M2<Irq>(cpu) {}
-
 		Fds::Disks::Disks(StdStream stream)
 		:
-		data     (NULL),
-		current  (EJECTED),
-		mounting (0),
-		sides    (Create(stream))
+		current        (EJECTED),
+		mounting       (0),
+		writeProtected (false),
+		sides          (Create(stream))
 		{
 		}
 
@@ -309,14 +352,38 @@ namespace Nes
 			delete [] sides.header;
 		}
 
+		Fds::Unit::Timer::Timer()
+		{
+			Reset();
+		}
+
+		Fds::Unit::Drive::Drive()
+		: dirty(false)
+		{
+			Reset();
+		}
+
+		Fds::Unit::Unit()
+		{
+			status = 0;
+		}
+
+		Fds::Adapter::Adapter(Cpu& c)
+		: Clock::M2<Unit>(c) {}
+
+		Fds::Io::Io()
+		{
+			Reset();
+		}
+
 		Fds::Fds(Context& context)
 		:
-		Image (DISK),
-		disks (context.stream),
-		irq   (context.cpu),
-		cpu   (context.cpu),
-		ppu   (context.ppu),
-		sound (context.cpu)
+		Image   (DISK),
+		disks   (context.stream),
+		adapter (context.cpu),
+		cpu     (context.cpu),
+		ppu     (context.ppu),
+		sound   (context.cpu)
 		{
 			if (!Bios::IsLoaded())
 				throw RESULT_ERR_MISSING_BIOS;
@@ -327,7 +394,20 @@ namespace Nes
 		Fds::~Fds()
 		{
 			EjectDisk();
-			disks.sides.Save();
+
+			if (!disks.writeProtected)
+				disks.sides.Save();
+		}
+
+		Result Fds::Flush(bool,bool) const
+		{
+			if (io.led != Api::Fds::MOTOR_OFF)
+			{
+				io.led = Api::Fds::MOTOR_OFF;
+				Api::Fds::diskAccessLampCallback( Api::Fds::MOTOR_OFF );
+			}
+
+			return RESULT_OK;
 		}
 
 		uint Fds::GetDesiredController(const uint port) const
@@ -338,19 +418,10 @@ namespace Nes
 				return Image::GetDesiredController( port );
 		}
 
-		void Fds::Regs::Reset()
-		{
-			ctrl0 = 0;
-			ctrl1 = 0;
-			data = 0;
-		}
-
 		void Fds::Io::Reset()
 		{
-			pos = 0;
-			skip = 0;
+			ctrl = 0;
 			port = 0;
-			led = ~0U;
 		}
 
 		void Fds::Ram::Reset()
@@ -358,54 +429,100 @@ namespace Nes
 			std::memset( mem, 0x00, sizeof(mem) );
 		}
 
-		void Fds::Irq::Reset(bool)
+		void Fds::Unit::Timer::Reset()
 		{
 			ctrl = 0;
 			count = 0;
 			latch = 0;
+		}
+
+		void Fds::Unit::Drive::Reset()
+		{
+			count = 0;
+			headPos = 0;
+			dataPos = 0;
+			gap = 0;
+			io = NULL;
+			ctrl = 0;
+			length = 0;
+			in = 0;
+			out = 0;
+			status = STATUS_EJECTED|STATUS_UNREADY|STATUS_PROTECTED|OPEN_BUS;
+		}
+
+		void Fds::Unit::Reset(bool)
+		{
+			timer.Reset();
+			drive.Reset();
+
 			status = 0;
-			drive.count = 0;
-			drive.notify = false;
+		}
+
+		inline void Fds::Adapter::Mount(u8* io,ibool protect)
+		{
+			unit.drive.Mount( io, protect );
+		}
+
+		inline ibool Fds::Adapter::Dirty() const
+		{
+			ibool dirty = unit.drive.dirty;
+			unit.drive.dirty = false;
+			return dirty;
+		}
+
+		inline uint Fds::Adapter::Activity() const
+		{
+			return unit.drive.count ? (unit.drive.ctrl & Unit::Drive::CTRL_READ_MODE) ? Api::Fds::MOTOR_READ : Api::Fds::MOTOR_WRITE : Api::Fds::MOTOR_OFF;
+		}
+
+		inline void Fds::Adapter::WriteProtect()
+		{
+			unit.drive.status |= Unit::Drive::STATUS_PROTECTED;
+		}
+
+		void Fds::Adapter::Reset(u8* const io,ibool protect)
+		{
+			Clock::M2<Unit>::Reset( true, true );
+
+			unit.drive.Mount( io, protect );
+
+			cpu.Map( 0x4020U ).Set( this, &Adapter::Peek_Nop,  &Adapter::Poke_4020 );
+			cpu.Map( 0x4021U ).Set( this, &Adapter::Peek_Nop,  &Adapter::Poke_4021 );
+			cpu.Map( 0x4022U ).Set( this, &Adapter::Peek_Nop,  &Adapter::Poke_4022 );
+			cpu.Map( 0x4024U ).Set( this, &Adapter::Peek_Nop,  &Adapter::Poke_4024 );
+			cpu.Map( 0x4030U ).Set( this, &Adapter::Peek_4030, &Adapter::Poke_Nop  );
+			cpu.Map( 0x4032U ).Set( this, &Adapter::Peek_4032, &Adapter::Poke_Nop  );
 		}
 
 		void Fds::Reset(const bool hard)
 		{
-			irq.Reset(true,true);
-			regs.Reset();
-			io.Reset();
+			disks.mounting = 0;
+
+			adapter.Reset
+			(
+				disks.current == Disks::EJECTED ? NULL : disks.sides.data[disks.current],
+				disks.writeProtected
+			);
 
 			if (hard)
 			{
-				if (disks.mounting)
-				{
-					disks.mounting = 0;
-					disks.data = disks.sides.data[disks.current];
-				}
-
 				ram.Reset();
-				ppu.GetChrMem().Source().Clear();
+				ppu.GetChrMem().Source().Fill( 0x00 );
 				ppu.GetChrMem().SwapBank<SIZE_8K,0x0000U>( 0 );
 			}
 
 			cpu.ClearIRQ();
 
-			cpu.Map( 0x4020U ).Set( &irq, &Fds::IrqClock::Peek_Nop,  &Fds::IrqClock::Poke_4020 );
-			cpu.Map( 0x4021U ).Set( &irq, &Fds::IrqClock::Peek_Nop,  &Fds::IrqClock::Poke_4021 );
-			cpu.Map( 0x4022U ).Set( &irq, &Fds::IrqClock::Peek_Nop,  &Fds::IrqClock::Poke_4022 );
-			cpu.Map( 0x4030U ).Set( &irq, &Fds::IrqClock::Peek_4030, &Fds::IrqClock::Poke_Nop  );
-
 			cpu.Map( 0x4023U ).Set( this, &Fds::Peek_Nop,  &Fds::Poke_4023 );
-			cpu.Map( 0x4024U ).Set( this, &Fds::Peek_Nop,  &Fds::Poke_4024 );
 			cpu.Map( 0x4025U ).Set( this, &Fds::Peek_Nop,  &Fds::Poke_4025 );
 			cpu.Map( 0x4026U ).Set( this, &Fds::Peek_Nop,  &Fds::Poke_4026 );
 			cpu.Map( 0x4031U ).Set( this, &Fds::Peek_4031, &Fds::Poke_Nop  );
-			cpu.Map( 0x4032U ).Set( this, &Fds::Peek_4032, &Fds::Poke_Nop  );
 			cpu.Map( 0x4033U ).Set( this, &Fds::Peek_4033, &Fds::Poke_Nop  );
 
 			cpu.Map( 0x6000U, 0xDFFFU ).Set( &ram, &Fds::Ram::Peek_Ram, &Fds::Ram::Poke_Ram );
 			cpu.Map( 0xE000U, 0xFFFFU ).Set( &Bios::instance, &Bios::Instance::Peek_Rom, &Bios::Instance::Poke_Nop );
 
-			Log() << "Fds: reset" NST_LINEBREAK "Fds: " << NumDisks() << " disk(s) present" NST_LINEBREAK;
+			Log() << "Fds: reset" NST_LINEBREAK;
 		}
 
 		void Fds::Sound::Envelope::Reset()
@@ -482,29 +599,31 @@ namespace Nes
 		{
 			NST_VERIFY( disks.sides.count );
 
-			disk *= 2;
-
-			if (side < 2 && disk < disks.sides.count)
+			if (side < 2)
 			{
-				disk += side;
+				disk = (disk * 2) + side;
 
-				if (disks.current != disk)
+				if (disk < disks.sides.count)
 				{
-					const uint prev = disks.current;
+					if (disks.current != disk)
+					{
+						const uint prev = disks.current;
 
-					disks.current = disk;
-					disks.data = NULL;
-					disks.mounting = Disks::MOUNTING;
+						disks.current = disk;
+						disks.mounting = Disks::MOUNTING;
 
-					if (prev != Disks::EJECTED)
-						Api::Fds::diskChangeCallback( Api::Fds::DISK_EJECT, prev / 2, prev % 2 );
+						adapter.Mount( NULL );
 
-					Api::Fds::diskChangeCallback( Api::Fds::DISK_INSERT, disk / 2, disk % 2 );
+						if (prev != Disks::EJECTED)
+							Api::Fds::diskChangeCallback( Api::Fds::DISK_EJECT, prev / 2, prev % 2 );
 
-					return RESULT_OK;
+						Api::Fds::diskChangeCallback( Api::Fds::DISK_INSERT, disk / 2, disk % 2 );
+
+						return RESULT_OK;
+					}
+
+					return RESULT_NOP;
 				}
-
-				return RESULT_NOP;
 			}
 
 			return RESULT_ERR_INVALID_PARAM;
@@ -517,8 +636,9 @@ namespace Nes
 				const uint prev = disks.current;
 
 				disks.current = Disks::EJECTED;
-				disks.data = NULL;
 				disks.mounting = 0;
+
+				adapter.Mount( NULL );
 
 				Api::Fds::diskChangeCallback( Api::Fds::DISK_EJECT, prev / 2, prev % 2 );
 
@@ -528,6 +648,154 @@ namespace Nes
 			return RESULT_NOP;
 		}
 
+		void Fds::Unit::Drive::Mount(u8* data,ibool protect)
+		{
+			io = data;
+
+			if (data)
+			{
+				status &= ~uint(STATUS_EJECTED|STATUS_PROTECTED);
+
+				if (protect)
+					status |= STATUS_PROTECTED;
+			}
+			else
+			{
+				count = 0;
+				status |= uint(STATUS_EJECTED|STATUS_PROTECTED|STATUS_UNREADY);
+			}
+		}
+
+		Result Fds::Unit::Drive::Analyze(const u8* NST_RESTRICT src,Api::Fds::DiskData& dst)
+		{
+			try
+			{
+				iword i = SIDE_SIZE;
+
+				for (uint block=~0U, files=0; i; )
+				{
+					const iword prev = block;
+					block = src[0];
+
+					if (block == BLOCK_VOLUME)
+					{
+						i -= LENGTH_VOLUME+1;
+
+						if (i < 0 || prev != ~0U)
+							break;
+
+						src += LENGTH_VOLUME+1;
+					}
+					else if (block == BLOCK_COUNT)
+					{
+						i -= LENGTH_COUNT+1;
+
+						if (i < 0 || prev != BLOCK_VOLUME)
+							break;
+
+						files = src[1];
+						src += LENGTH_COUNT+1;
+					}
+					else if (block == BLOCK_HEADER)
+					{
+						i -= LENGTH_HEADER+1;
+
+						if (i < 0 || (prev != BLOCK_DATA && prev != BLOCK_COUNT) || !files)
+							break;
+
+						dst.files.push_back( Api::Fds::DiskData::File() );
+						Api::Fds::DiskData::File& file = dst.files.back();
+
+						file.index = src[1];
+						file.id = src[2];
+
+						std::memcpy( file.name, src+3, 8 );
+						file.name[9] = '\0';
+
+						for (uint j=8; j--; )
+						{
+							if (file.name[j] == ' ')
+								file.name[j] = '\0';
+						}
+
+						file.address = src[11] | src[12] << 8;
+
+						switch (src[15])
+						{
+							case 0:  file.type = Api::Fds::DiskData::File::TYPE_PRG;     break;
+							case 1:  file.type = Api::Fds::DiskData::File::TYPE_CHR;     break;
+							case 2:  file.type = Api::Fds::DiskData::File::TYPE_NMT;     break;
+							default: file.type = Api::Fds::DiskData::File::TYPE_UNKNOWN; break;
+						}
+
+						file.data.resize( src[13] | src[14] << 8 );
+
+						if (const uint size = file.data.size())
+							std::memset( &file.data.front(), 0x00, size );
+
+						src += LENGTH_HEADER+1;
+					}
+					else if (block == BLOCK_DATA)
+					{
+						if (prev != BLOCK_HEADER)
+							break;
+
+						Api::Fds::DiskData::Data& data = dst.files.back().data;
+						const iword size = data.size();
+
+						i -= size+1;
+
+						if (i < 0)
+							break;
+
+						++src;
+
+						if (size)
+						{
+							std::memcpy( &data.front(), src, size );
+							src += size;
+						}
+
+						NST_ASSERT( files );
+
+						if (!--files)
+							break;
+					}
+					else
+					{
+						break;
+					}
+				}
+
+				for (iword j=i; j-- > 0; )
+				{
+					if (src[j])
+					{
+						dst.raw.assign( src, src+j+1 );
+						break;
+					}
+				}
+
+				return i >= 0 ? RESULT_OK : RESULT_WARN_BAD_DUMP;
+			}
+			catch (std::bad_alloc&)
+			{
+				return RESULT_ERR_OUT_OF_MEMORY;
+			}
+			catch (...)
+			{
+				return RESULT_ERR_GENERIC;
+			}
+		}
+
+		Result Fds::GetDiskData(uint side,Api::Fds::DiskData& data)
+		{
+			if (side < disks.sides.count)
+				return Unit::Drive::Analyze( disks.sides.data[side], data );
+
+			return RESULT_ERR_INVALID_PARAM;
+		}
+
 		inline bool Fds::Sound::CanModulate() const
 		{
 			return modulator.length && !modulator.writing;
@@ -535,43 +803,18 @@ namespace Nes
 
 		void Fds::LoadState(State::Loader& state)
 		{
+			uint saveDisks[3] = {~0U,~0U,~0U};
+
 			while (const dword chunk = state.Begin())
 			{
 				switch (chunk)
 				{
-					case NES_STATE_CHUNK_ID('R','E','G','\0'):
+					case NES_STATE_CHUNK_ID('I','O','\0','\0'):
 					{
-						const State::Loader::Data<7> data( state );
+						const State::Loader::Data<4> data( state );
 
-						regs.ctrl0 = data[0];
-						regs.ctrl1 = data[1];
-						regs.data = data[2];
-						io.port = data[3];
-						io.pos = data[4] | (data[5] << 8);
-						io.skip = data[6] & 0x3;
-
-						if (io.pos > 65000U)
-							io.pos = 65000U;
-
-						ppu.SetMirroring( (regs.ctrl1 & Regs::CTRL1_MIRRORING_HORIZONTAL) ? Ppu::NMT_HORIZONTAL : Ppu::NMT_VERTICAL );
-						break;
-					}
-
-					case NES_STATE_CHUNK_ID('I','R','Q','\0'):
-					{
-						const State::Loader::Data<7> data( state );
-
-						irq.unit.ctrl = data[0];
-						irq.unit.status = data[1] & (Irq::PENDING_CTRL|Irq::PENDING_DRIVE);
-						irq.unit.latch = data[2] | (data[3] << 8);
-						irq.unit.count = data[4] | (data[5] << 8);
-						irq.unit.drive.count = data[6];
-
-						if (irq.unit.status)
-							cpu.DoIRQ();
-						else
-							cpu.ClearIRQ();
-
+						io.ctrl = data[0];
+						io.port = data[1];
 						break;
 					}
 
@@ -585,6 +828,12 @@ namespace Nes
 						state.Uncompress( ppu.GetChrMem().Source().Mem(), SIZE_8K );
 						break;
 
+					case NES_STATE_CHUNK_ID('I','R','Q','\0'):
+					case NES_STATE_CHUNK_ID('D','R','V','\0'):
+
+						adapter.LoadState( state, chunk );
+						break;
+
 					case NES_STATE_CHUNK_ID('D','S','K','\0'):
 					{
 						const State::Loader::Data<4> data( state );
@@ -592,21 +841,9 @@ namespace Nes
 						if (data[0] != disks.sides.count)
 							throw RESULT_ERR_INVALID_FILE;
 
-						if (data[1] & 0x1)
-						{
-							if (NES_FAILED(InsertDisk( data[2] / 2, data[2] % 2 )))
-								throw RESULT_ERR_CORRUPT_FILE;
-
-							disks.mounting = data[3];
-							disks.data = disks.mounting ? NULL : disks.sides.data[disks.current];
-						}
-						else
-						{
-							EjectDisk();
-
-							disks.mounting = 0;
-							disks.data = NULL;
-						}
+						saveDisks[0] = data[1];
+						saveDisks[1] = data[2];
+						saveDisks[2] = data[3];
 						break;
 					}
 
@@ -622,9 +859,9 @@ namespace Nes
 							if (chunk == NES_STATE_CHUNK_ID('D','0' + (i / 2),'A' + (i % 2),'\0'))
 							{
 								u8* const data = disks.sides.data[i];
-								state.Uncompress( data, Disks::SIDE_SIZE );
+								state.Uncompress( data, SIDE_SIZE );
 
-								for (uint j=0; j < Disks::SIDE_SIZE; ++j)
+								for (uint j=0; j < SIDE_SIZE; ++j)
 									data[j] = ~data[j];
 
 								break;
@@ -636,55 +873,56 @@ namespace Nes
 				state.End();
 			}
 
-			io.led = ~0U;
-			irq.unit.drive.notify = regs.ctrl1 & Regs::CTRL1_DISK_IRQ_ENABLED;
+			disks.mounting = 0;
+
+			if (saveDisks[0] != ~0U)
+			{
+				disks.writeProtected = saveDisks[0] & 0x2;
+
+				if (saveDisks[0] & 0x1)
+				{
+					if (NES_FAILED(InsertDisk( saveDisks[1] / 2, saveDisks[1] % 2 )))
+						throw RESULT_ERR_CORRUPT_FILE;
+
+					disks.mounting = saveDisks[2];
+				}
+				else
+				{
+					EjectDisk();
+				}
+			}
+
+			adapter.Mount
+			(
+				disks.current != Disks::EJECTED && !disks.mounting ? disks.sides.data[disks.current] : NULL,
+				disks.writeProtected
+			);
 		}
 
 		void Fds::SaveState(State::Saver& state) const
 		{
 			{
-				const u8 data[7] =
+				const u8 data[4] =
 				{
-					regs.ctrl0,
-					regs.ctrl1,
-					regs.data,
+					io.ctrl,
 					io.port,
-					io.pos & 0xFF,
-					io.pos >> 8,
-					io.skip
+					0,
+					0
 				};
 
-				state.Begin('R','E','G','\0').Write( data ).End();
+				state.Begin('I','O','\0','\0').Write( data ).End();
 			}
 
-			{
-				const u8 data[7] =
-				{
-					irq.unit.ctrl,
-					irq.unit.status,
-					irq.unit.latch & 0xFF,
-					irq.unit.latch >> 8,
-					irq.unit.count & 0xFF,
-					irq.unit.count >> 8,
-					irq.unit.drive.count
-				};
+			adapter.SaveState( state );
 
-				state.Begin('I','R','Q','\0').Write( data ).End();
-			}
-
-			{
-				state.Begin('R','A','M','\0').Compress( ram.mem ).End();
-			}
-
-			{
-				state.Begin('C','H','R','\0').Compress( ppu.GetChrMem().Source().Mem(), SIZE_8K ).End();
-			}
+			state.Begin('R','A','M','\0').Compress( ram.mem ).End();
+			state.Begin('C','H','R','\0').Compress( ppu.GetChrMem().Source().Mem(), SIZE_8K ).End();
 
 			{
 				const u8 data[4] =
 				{
 					disks.sides.count,
-					disks.current != Disks::EJECTED,
+					(disks.current != Disks::EJECTED) | (disks.writeProtected ? 0x2 : 0x0),
 					disks.current != Disks::EJECTED ? disks.current : 0xFF,
 					disks.current != Disks::EJECTED ? disks.mounting : 0
 				};
@@ -692,22 +930,114 @@ namespace Nes
 				state.Begin('D','S','K','\0').Write( data ).End();
 			}
 
+			if (adapter.Dirty() || !state.Internal())
 			{
-				u8 dst[Disks::SIDE_SIZE];
+				struct Dst
+				{
+					u8* const NST_RESTRICT mem;
+
+					Dst() : mem(new u8 [SIDE_SIZE]) {}
+					~Dst() { delete [] mem; }
+				};
+
+				Dst dst;
 
 				for (uint i=0; i < disks.sides.count; ++i)
 				{
-					const u8* const src = disks.sides.data[i];
+					const u8* const NST_RESTRICT src = disks.sides.data[i];
 
-					for (uint j=0; j < Disks::SIDE_SIZE; ++j)
-						dst[j] = ~src[j];
+					for (uint j=0; j < SIDE_SIZE; ++j)
+						dst.mem[j] = ~src[j];
 
-					state.Begin('D','0' + (i / 2),'A' + (i % 2),'\0').Compress( dst ).End();
+					state.Begin('D','0' + (i / 2),'A' + (i % 2),'\0').Compress( dst.mem, SIDE_SIZE ).End();
 				}
 			}
 
+			sound.SaveState( State::Saver::Subset(state,'S','N','D','\0').Ref() );
+		}
+
+		void Fds::Adapter::SaveState(State::Saver& state) const
+		{
 			{
-				sound.SaveState( State::Saver::Subset(state,'S','N','D','\0').Ref() );
+				const u8 data[7] =
+				{
+					unit.timer.ctrl,
+					unit.status,
+					unit.timer.latch & 0xFF,
+					unit.timer.latch >> 8,
+					unit.timer.count & 0xFF,
+					unit.timer.count >> 8,
+					0
+				};
+
+				state.Begin('I','R','Q','\0').Write( data ).End();
+			}
+
+			{
+				const uint headPos = NST_MIN(unit.drive.headPos,SIDE_SIZE);
+
+				const u8 data[16] =
+				{
+					unit.drive.ctrl,
+					unit.drive.status,
+					unit.drive.in & 0xFF,
+					unit.drive.out,
+					unit.drive.count ? headPos & 0xFF            : 0,
+					unit.drive.count ? headPos >> 8              : 0,
+					unit.drive.count ? unit.drive.dataPos & 0xFF : 0,
+					unit.drive.count ? unit.drive.dataPos >> 8   : 0,
+					unit.drive.count ? unit.drive.gap & 0xFF     : 0,
+					unit.drive.count ? unit.drive.gap >> 8       : 0,
+					unit.drive.count ? unit.drive.length & 0xFF  : 0,
+					unit.drive.count ? unit.drive.length >> 8    : 0,
+					unit.drive.count >> 0 & 0xFF,
+					unit.drive.count >> 8 & 0xFF,
+					unit.drive.count >> 16,
+					unit.drive.in >> 8
+				};
+
+				state.Begin('D','R','V','\0').Write( data ).End();
+			}
+		}
+
+		void Fds::Adapter::LoadState(State::Loader& state,const dword chunk)
+		{
+			switch (chunk)
+			{
+				case NES_STATE_CHUNK_ID('I','R','Q','\0'):
+				{
+					const State::Loader::Data<7> data( state );
+
+					unit.timer.ctrl = data[0];
+					unit.status = data[1] & (Unit::STATUS_PENDING_IRQ|Unit::STATUS_TRANSFERED);
+					unit.timer.latch = data[2] | data[3] << 8;
+					unit.timer.count = data[4] | data[5] << 8;
+
+					break;
+				}
+
+				case NES_STATE_CHUNK_ID('D','R','V','\0'):
+				{
+					const State::Loader::Data<16> data( state );
+
+					unit.drive.ctrl = data[0];
+					unit.drive.status = (data[1] & (Unit::Drive::STATUS_EJECTED|Unit::Drive::STATUS_UNREADY|Unit::Drive::STATUS_PROTECTED)) | OPEN_BUS;
+					unit.drive.in = data[2] | (data[15] << 8 & 0x100);
+					unit.drive.out = data[3];
+					unit.drive.headPos = data[4] | data[5] << 8;
+					unit.drive.dataPos = data[6] | data[7] << 8;
+					unit.drive.gap = data[8] | data[9] << 8;
+					unit.drive.length = data[10] | data[11] << 8;
+					unit.drive.count = data[12] | data[13] << 8 | data[14] << 16;
+
+					if (unit.drive.dataPos > SIDE_SIZE)
+						unit.drive.dataPos = SIDE_SIZE;
+
+					if (unit.drive.headPos < unit.drive.dataPos)
+						unit.drive.headPos = unit.drive.dataPos;
+
+					break;
+				}
 			}
 		}
 
@@ -922,20 +1252,16 @@ namespace Nes
 			return OPEN_BUS;
 		}
 
-		NES_PEEK(Fds::IrqClock,Nop)
-		{
-			return OPEN_BUS;
-		}
-
 		NES_POKE(Fds,Nop)
 		{
 		}
 
-		NES_POKE(Fds::Bios::Instance,Nop)
+		NES_PEEK(Fds::Adapter,Nop)
 		{
+			return OPEN_BUS;
 		}
 
-		NES_POKE(Fds::IrqClock,Nop)
+		NES_POKE(Fds::Adapter,Nop)
 		{
 		}
 
@@ -954,85 +1280,82 @@ namespace Nes
 			return rom[address - 0xE000U];
 		}
 
-		NES_POKE(Fds::IrqClock,4020)
+		NES_POKE(Fds::Bios::Instance,Nop)
 		{
-			Update();
-			unit.latch = (unit.latch & 0xFF00U) | (data << 0);
 		}
 
-		NES_POKE(Fds::IrqClock,4021)
+		NES_POKE(Fds::Adapter,4020)
 		{
 			Update();
-			unit.latch = (unit.latch & 0x00FFU) | (data << 8);
+			unit.timer.latch = (unit.timer.latch & 0xFF00U) | (data << 0);
 		}
 
-		void Fds::IrqClock::Clear(const Irq::Flag flag)
+		NES_POKE(Fds::Adapter,4021)
 		{
 			Update();
-			unit.status &= ~u8(flag);
+			unit.timer.latch = (unit.timer.latch & 0x00FFU) | (data << 8);
+		}
+
+		NES_POKE(Fds::Adapter,4022)
+		{
+			Update();
+
+			unit.timer.ctrl = data;
+			unit.timer.count = unit.timer.latch;
+			unit.status &= Unit::STATUS_TRANSFERED;
 
 			if (!unit.status)
 				ClearIRQ();
 		}
 
-		NES_POKE(Fds::IrqClock,4022)
-		{
-			Clear( Irq::PENDING_CTRL );
-			unit.ctrl = data;
-			unit.count = unit.latch;
-		}
-
 		NES_POKE(Fds,4023)
 		{
-			regs.ctrl0 = data;
+			io.ctrl = data;
 		}
 
-		NES_POKE(Fds,4024)
+		NES_POKE(Fds::Adapter,4024)
 		{
-			NST_VERIFY( regs.ctrl0 & Regs::CTRL0_DISK_ENABLED );
+			Update();
 
-			if (!(regs.ctrl1 & Regs::CTRL1_READ_MODE) && io.pos < 65000U && disks.data)
+			unit.drive.out = data;
+			unit.status &= Unit::STATUS_PENDING_IRQ;
+
+			if (!unit.status)
+				ClearIRQ();
+		}
+
+		NST_FORCE_INLINE void Fds::Unit::Drive::Write(uint reg)
+		{
+			ctrl = reg;
+
+			if (!(reg & CTRL_ON))
 			{
-				if (io.skip)
-				{
-					--io.skip;
-				}
-				else if (io.pos >= 2)
-				{
-					disks.data[io.pos-2] = data;
-				}
+				count = 0;
+				status |= STATUS_UNREADY;
 			}
+			else if (!(count | (reg & CTRL_STOP)) && io)
+			{
+				count = CLK_MOTOR;
+				headPos = 0;
+			}
+		}
+
+		NST_FORCE_INLINE void Fds::Adapter::Write(uint reg)
+		{
+			Update();
+
+			unit.status &= (reg >> 6 & Unit::STATUS_TRANSFERED) | Unit::STATUS_PENDING_IRQ;
+
+			if (!unit.status)
+				cpu.ClearIRQ();
+
+			unit.drive.Write( reg );
 		}
 
 		NES_POKE(Fds,4025)
 		{
-			irq.Clear( Irq::PENDING_DRIVE );
-
-			irq.unit.drive.notify = data & Regs::CTRL1_DISK_IRQ_ENABLED;
-
-			if (disks.data)
-			{
-				if (!(data & Regs::CTRL1_READ_MODE))
-					io.skip = 2;
-
-				if (data & Regs::CTRL1_TRANSFER_RESET)
-				{
-					io.pos = 0;
-					irq.unit.drive.count = Irq::Drive::SLOW;
-				}
-				else if (data & Regs::CTRL1_DRIVE_READY)
-				{
-					irq.unit.drive.count = Irq::Drive::SLOW;
-				}
-				else if (((regs.ctrl1 & Regs::CTRL1_DRIVE_READY) | (data & Regs::CTRL1_CRC)) == Regs::CTRL1_DRIVE_READY)
-				{
-					io.pos = (io.pos > 2) ? io.pos - 2 : 0;
-					irq.unit.drive.count = Irq::Drive::SLOW;
-				}
-			}
-
-			regs.ctrl1 = data;
-			ppu.SetMirroring( (data & Regs::CTRL1_MIRRORING_HORIZONTAL) ? Ppu::NMT_HORIZONTAL : Ppu::NMT_VERTICAL );
+			adapter.Write( data );
+			ppu.SetMirroring( (data & CTRL1_NMT_HORIZONTAL) ? Ppu::NMT_HORIZONTAL : Ppu::NMT_VERTICAL );
 		}
 
 		NES_POKE(Fds,4026)
@@ -1040,7 +1363,7 @@ namespace Nes
 			io.port = data;
 		}
 
-		NES_PEEK(Fds::IrqClock,4030)
+		NES_PEEK(Fds::Adapter,4030)
 		{
 			Update();
 
@@ -1052,40 +1375,41 @@ namespace Nes
 			return status;
 		}
 
-		NES_PEEK(Fds,4031)
+		NST_FORCE_INLINE uint Fds::Adapter::Read()
 		{
-			NST_VERIFY( regs.ctrl0 & Regs::CTRL0_DISK_ENABLED );
+			Update();
 
-			irq.Clear( Irq::PENDING_DRIVE );
+			unit.status &= Unit::STATUS_PENDING_IRQ;
 
-			if (disks.data)
-			{
-				regs.data = disks.data[io.pos];
+			if (!unit.status)
+				ClearIRQ();
 
-				if (regs.ctrl1 & Regs::CTRL1_MOTOR)
-				{
-					io.pos = NST_MIN(io.pos+1,65000U);
-					irq.unit.drive.count = Irq::Drive::FAST;
-				}
-			}
-
-			return regs.data;
+			return unit.drive.in;
 		}
 
-		NES_PEEK(Fds,4032)
+		NES_PEEK(Fds,4031)
 		{
-			if (disks.data == NULL)
+			const uint data = adapter.Read();
+
+			if (data <= 0xFF)
+				return data;
+
+			if (!disks.writeProtected)
 			{
-				return Regs::STATUS_LATCH|Regs::STATUS_DRIVE_NOT_READY|Regs::STATUS_DISK_EJECTED|Regs::STATUS_DISK_PROTECTED;
+				disks.writeProtected = true;
+				adapter.WriteProtect();
+				Api::User::eventCallback( Api::User::EVENT_NONSTANDARD_DISK );
 			}
-			else if ((regs.ctrl1 & (Regs::CTRL1_MOTOR|Regs::CTRL1_TRANSFER_RESET)) != Regs::CTRL1_MOTOR)
-			{
-				return Regs::STATUS_LATCH|Regs::STATUS_DRIVE_NOT_READY;
-			}
-			else
-			{
-				return Regs::STATUS_LATCH;
-			}
+
+			return data & 0xFF;
+		}
+
+		NES_PEEK(Fds::Adapter,4032)
+		{
+			Update();
+
+			NST_ASSERT( unit.drive.status & OPEN_BUS );
+			return unit.drive.status | (unit.drive.ctrl & Unit::Drive::CTRL_STOP);
 		}
 
 		NES_PEEK(Fds,4033)
@@ -1349,41 +1673,240 @@ namespace Nes
 			return dcBlocker.Apply( amp * outputVolume / DEFAULT_VOLUME );
 		}
 
-		ibool Fds::Irq::Signal()
+		ibool Fds::Unit::Drive::Advance(uint& timer)
 		{
-			if ((ctrl & CTRL_ENABLED) && count && !--count)
-			{
-				if (ctrl & CTRL_REPEAT)
-					count = latch;
-				else
-					ctrl &= CTRL_ENABLED^0xFF;
+			NST_ASSERT( io && !count );
 
-				status |= PENDING_CTRL;
+			if (headPos-1U < MAX_SIDE_SIZE && dataPos < SIDE_SIZE)
+			{
+				NST_VERIFY( !(status & STATUS_UNREADY) );
+
+				++headPos;
+				u8* NST_RESTRICT stream = io + dataPos;
+				count = CLK_BYTE;
+
+				NST_VERIFY( (ctrl & CTRL_READ_MODE) || length != LENGTH_UNKNOWN );
+
+				if (ctrl & CTRL_READ_MODE)
+				{
+					if (!gap)
+					{
+						if (length == LENGTH_UNKNOWN)
+						{
+							// Non-standard file layout which cannot accurately
+							// be emulated within the FDS file format since it
+							// removes the CRC value at the end of each block.
+							// No choice but to fall back on the BIOS.
+
+							in = *stream | 0x100;
+							dataPos += (ctrl & CTRL_CRC) ? -2 : +1;
+						}
+						else if (length-- > 2U)
+						{
+							in = *stream;
+							++dataPos;
+						}
+						else if (length == 1U)
+						{
+							if (*stream <= 4U)
+							{
+								in = 0x91;
+							}
+							else
+							{
+								in = *stream;
+								++dataPos;
+							}
+						}
+						else
+						{
+							if (*stream <= 4U)
+							{
+								in = 0x88;
+								length = 0;
+								gap = BYTES_GAP_NEXT;
+							}
+							else
+							{
+								in = *stream;
+								length = LENGTH_UNKNOWN;
+								++dataPos;
+							}
+						}
+					}
+					else
+					{
+						if (!--gap)
+						{
+							NST_VERIFY( *stream <= 4U );
+
+							switch (stream[0])
+							{
+								case BLOCK_HEADER:
+
+									length = LENGTH_HEADER + 3;
+									break;
+
+								case BLOCK_DATA:
+
+									length = (stream[-2] << 8 | stream[-3]) + 3;
+									NST_VERIFY( length > 3 );
+									break;
+
+								case BLOCK_VOLUME:
+
+									length = LENGTH_VOLUME + 3;
+									break;
+
+								case BLOCK_COUNT:
+
+									length = LENGTH_COUNT + 3;
+									break;
+
+								default:
+
+									gap = 1;
+									break;
+							}
+						}
+
+						if (ctrl & CTRL_IO_MODE)
+							return false;
+
+						NST_VERIFY( !(ctrl & CTRL_GEN_IRQ) );
+
+						in = 0;
+					}
+				}
+				else if (!(status & STATUS_PROTECTED) && length != LENGTH_UNKNOWN)
+				{
+					NST_VERIFY( (ctrl & CTRL_IO_MODE) || !length );
+
+					gap -= (gap > 0);
+
+					const uint data = (ctrl & CTRL_IO_MODE) ? out : 0;
+
+					if (length-- > 3U)
+					{
+						++dataPos;
+						*stream = data;
+					}
+					else if (length == 2U)
+					{
+					}
+					else if (length == 1U)
+					{
+						gap = BYTES_GAP_NEXT;
+					}
+					else
+					{
+						length = 0;
+
+						if (data-1U <= 3U)
+						{
+							NST_VERIFY( ctrl & CTRL_IO_MODE );
+
+							++dataPos;
+							dirty = true;
+
+							switch (*stream=data)
+							{
+								case BLOCK_VOLUME:
+
+									length = LENGTH_VOLUME + 3;
+									break;
+
+								case BLOCK_COUNT:
+
+									length = LENGTH_COUNT + 3;
+									break;
+
+								case BLOCK_HEADER:
+
+									length = LENGTH_HEADER + 3;
+									break;
+
+								case BLOCK_DATA:
+
+									length = (stream[-2] << 8 | stream[-3]) + 3;
+									NST_VERIFY( length > 3 );
+									break;
+
+								NST_UNREACHABLE
+							}
+						}
+					}
+				}
+
+				uint irq = ctrl & CTRL_GEN_IRQ;
+				timer |= irq >> 6;
+				return irq;
+			}
+			else if (headPos)
+			{
+				count = CLK_REWIND;
+				headPos = 0;
+				status |= STATUS_UNREADY;
+			}
+			else if (!(ctrl & CTRL_STOP))
+			{
+				count = CLK_BYTE;
+				headPos = 1;
+				dataPos = 0;
+				length = 0;
+				gap = BYTES_GAP_INIT + BYTES_GAP_NEXT;
+				status &= ~uint(STATUS_UNREADY);
 			}
 
-			if (drive.count && !--drive.count && drive.notify)
-				status |= PENDING_DRIVE;
+			return false;
+		}
 
-			return status;
+		void Fds::Unit::Timer::Advance(uint& timer)
+		{
+			timer |= STATUS_PENDING_IRQ;
+
+			if (ctrl & CTRL_REPEAT)
+				count = latch;
+			else
+				ctrl &= ~uint(CTRL_ENABLED);
+		}
+
+		inline ibool Fds::Unit::Drive::Clock()
+		{
+			return !count || --count;
+		}
+
+		inline ibool Fds::Unit::Timer::Clock()
+		{
+			return !(ctrl & CTRL_ENABLED) || !count || --count;
+		}
+
+		ibool Fds::Unit::Signal()
+		{
+			return
+			(
+				(timer.Clock() ? 0 : (timer.Advance(status), 1)) |
+				(drive.Clock() ? 0 : drive.Advance(status))
+			);
 		}
 
 		void Fds::VSync()
 		{
-			irq.VSync();
+			adapter.VSync();
 
 			if (!disks.mounting)
 			{
-				const ibool led = (irq.unit.drive.count > 0);
+				const uint led = adapter.Activity();
 
-				if (io.led != led)
+				if (io.led != led && (io.led != Api::Fds::MOTOR_WRITE || led != Api::Fds::MOTOR_READ))
 				{
 					io.led = led;
-					Api::Fds::diskAccessLampCallback( led );
+					Api::Fds::diskAccessLampCallback( (Api::Fds::Motor) io.led );
 				}
 			}
 			else if (!--disks.mounting)
 			{
-				disks.data = disks.sides.data[disks.current];
+				adapter.Mount( disks.sides.data[disks.current], disks.writeProtected );
 			}
 		}
 	}

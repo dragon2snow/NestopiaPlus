@@ -22,8 +22,6 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstObjectHeap.hpp"
-#include "NstIoFile.hpp"
 #include "NstWindowMenu.hpp"
 #include "NstManagerEmulator.hpp"
 #include "NstManagerPaths.hpp"
@@ -33,42 +31,43 @@
 
 namespace Nestopia
 {
-	using namespace Managers;
-
-	InesHeader::InesHeader(Emulator& e,Window::Menu& m,const Managers::Paths& p)
-	:
-	emulator ( e ),
-	menu     ( m ),
-	paths    ( p )
+	namespace Managers
 	{
-		static const Window::Menu::CmdHandler::Entry<InesHeader> commands[] =
+		InesHeader::InesHeader(Emulator& e,Window::Menu& m,const Paths& p)
+		:
+		emulator ( e ),
+		menu     ( m ),
+		paths    ( p )
 		{
-			{ IDM_FILE_EDIT_INES_HEADER, &InesHeader::OnCmdEditInesHeader }
-		};
+			static const Window::Menu::CmdHandler::Entry<InesHeader> commands[] =
+			{
+				{ IDM_FILE_EDIT_INES_HEADER, &InesHeader::OnCmdEditInesHeader }
+			};
 
-		m.Commands().Add( this, commands );
-		emulator.Events().Add( this, &InesHeader::OnEmuEvent );
-	}
+			m.Commands().Add( this, commands );
+			emulator.Events().Add( this, &InesHeader::OnEmuEvent );
+		}
 
-	InesHeader::~InesHeader()
-	{
-		emulator.Events().Remove( this );
-	}
-
-	void InesHeader::OnCmdEditInesHeader(uint)
-	{
-		Window::InesHeader( Nes::Cartridge(emulator).GetDatabase(), paths ).Open( paths.BrowseLoad( Managers::Paths::File::INES ) );
-	}
-
-	void InesHeader::OnEmuEvent(Emulator::Event event)
-	{
-		switch (event)
+		InesHeader::~InesHeader()
 		{
-			case Emulator::EVENT_NETPLAY_MODE_ON:
-			case Emulator::EVENT_NETPLAY_MODE_OFF:
+			emulator.Events().Remove( this );
+		}
 
-				menu[IDM_FILE_EDIT_INES_HEADER].Enable( event == Emulator::EVENT_NETPLAY_MODE_OFF );
-				break;
+		void InesHeader::OnCmdEditInesHeader(uint)
+		{
+			Window::InesHeader( Nes::Cartridge(emulator).GetDatabase(), paths ).Open( paths.BrowseLoad( Paths::File::INES ) );
+		}
+
+		void InesHeader::OnEmuEvent(Emulator::Event event)
+		{
+			switch (event)
+			{
+				case Emulator::EVENT_NETPLAY_MODE_ON:
+				case Emulator::EVENT_NETPLAY_MODE_OFF:
+
+					menu[IDM_FILE_EDIT_INES_HEADER].Enable( event == Emulator::EVENT_NETPLAY_MODE_OFF );
+					break;
+			}
 		}
 	}
 }

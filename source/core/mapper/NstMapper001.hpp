@@ -35,10 +35,12 @@ namespace Nes
 	{
 		class Mapper1 : public Boards::Mmc1
 		{
+			static uint GetWrkSize(const Context&);
+			static Revision GetRevision(dword);
+
 		public:
 
-			Mapper1(Context& c)
-			: Mmc1(c) {}
+			Mapper1(Context&);
 		};
 	}
 }

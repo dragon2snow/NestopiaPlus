@@ -35,6 +35,9 @@ namespace Nestopia
 	{
 		struct Rect : RECT
 		{
+			Rect& ClientTransform(HWND);
+			Rect& ScreenTransform(HWND);
+
 			Rect(int v=0)
 			{
 				left = v;
@@ -140,7 +143,7 @@ namespace Nestopia
 				return (&left)[i];
 			}
 
-			ibool IsInside(const Point& p) const
+			ibool Inside(const Point& p) const
 			{
 				return p.x >= left && p.x < right && p.y >= top && p.y < bottom;
 			}
@@ -150,7 +153,7 @@ namespace Nestopia
 				return left <= right && top <= bottom;
 			}
 
-			ibool IsVisible() const
+			ibool Visible() const
 			{
 				return right - left > 0 && bottom - top > 0;
 			}
@@ -159,14 +162,12 @@ namespace Nestopia
 
 			class PosProxy
 			{
-				friend struct Rect;
-
 				Rect& r;
+
+			public:
 
 				PosProxy(Rect& rect)
 				: r(rect) {}
-
-			public:
 
 				PosProxy& operator = (const Point& p)
 				{
@@ -186,15 +187,9 @@ namespace Nestopia
 					return *this;
 				}
 
-				Rect operator + (const Point& p) const
+				Point operator + (const Point& p) const
 				{
-					return Rect
-					(
-						r.left + p.x,
-						r.top + p.y,
-						r.right + p.x,
-						r.bottom + p.y
-					);
+					return Point( r.left + p.x, r.top + p.y );
 				}
 
 				PosProxy& operator -= (const Point& p)
@@ -206,15 +201,9 @@ namespace Nestopia
 					return *this;
 				}
 
-				Rect operator - (const Point& p) const
+				Point operator - (const Point& p) const
 				{
-					return Rect
-					(
-						r.left - p.x,
-						r.top - p.y,
-						r.right - p.x,
-						r.bottom - p.y
-					);
+					return Point( r.left - p.x, r.top - p.y );
 				}
 
 				operator Point () const
@@ -225,14 +214,12 @@ namespace Nestopia
 
 			class WidthHeightProxy
 			{
-				friend struct Rect;
-
 				long* p;
+
+			public:
 
 				WidthHeightProxy(long* point)
 				: p(point) {}
-
-			public:
 
 				WidthHeightProxy& operator = (int xy)
 				{
@@ -248,7 +235,7 @@ namespace Nestopia
 
 				int operator + (int xy) const
 				{
-					return p[2] + xy;
+					return p[2] - p[0] + xy;
 				}
 
 				WidthHeightProxy& operator -= (int xy)
@@ -259,7 +246,7 @@ namespace Nestopia
 
 				int operator - (int xy) const
 				{
-					return p[2] - xy;
+					return p[2] - p[0] - xy;
 				}
 
 				operator int () const
@@ -270,23 +257,21 @@ namespace Nestopia
 
 			class SizeProxy
 			{
-				friend struct Rect;
-
 				Rect& r;
+
+			public:
 
 				SizeProxy(Rect& rect)
 				: r(rect) {}
 
-			public:
-
-				SizeProxy operator = (const Point& p)
+				SizeProxy& operator = (const Point& p)
 				{
 					r.right = r.left + p.x;
 					r.bottom = r.top + p.y;
 					return *this;
 				}
 
-				SizeProxy operator += (const Point& p)
+				SizeProxy& operator += (const Point& p)
 				{
 					r.right += p.x;
 					r.bottom += p.y;
@@ -302,7 +287,7 @@ namespace Nestopia
 					);
 				}
 
-				SizeProxy operator -= (const Point& p)
+				SizeProxy& operator -= (const Point& p)
 				{
 					r.right -= p.x;
 					r.bottom -= p.y;
@@ -330,16 +315,14 @@ namespace Nestopia
 
 			class CenterProxy
 			{
-				friend struct Rect;
-
 				Rect& r;
+
+			public:
 
 				CenterProxy(Rect& rect)
 				: r(rect) {}
 
-			public:
-
-				CenterProxy operator = (const Point& p)
+				CenterProxy& operator = (const Point& p)
 				{
 					const Point size
 					(
@@ -369,7 +352,7 @@ namespace Nestopia
 
 			PosProxy Position()
 			{
-				return PosProxy(*this);
+				return *this;
 			}
 
 			Point Position() const
@@ -379,7 +362,7 @@ namespace Nestopia
 
 			SizeProxy Size()
 			{
-				return SizeProxy(*this);
+				return *this;
 			}
 
 			Point Size() const
@@ -389,7 +372,7 @@ namespace Nestopia
 
 			CenterProxy Center()
 			{
-				return CenterProxy(*this);
+				return *this;
 			}
 
 			Point Center() const
@@ -413,7 +396,7 @@ namespace Nestopia
 
 			WidthHeightProxy Width()
 			{
-				return WidthHeightProxy(&left);
+				return &left;
 			}
 
 			int Width() const
@@ -423,7 +406,7 @@ namespace Nestopia
 
 			WidthHeightProxy Height()
 			{
-				return WidthHeightProxy(&top);
+				return &top;
 			}
 
 			int Height() const
@@ -491,36 +474,15 @@ namespace Nestopia
 				);
 			}
 
-			struct Screen;
 			struct Window;
-			struct Client;
-			struct Picture;
-		};
-
-		struct Rect::Screen : Rect
-		{
-			Screen(HWND);
 		};
 
 		struct Rect::Window : Rect
 		{
-			Window(HWND);
-		};
-
-		struct Rect::Client : Rect
-		{
-			Client(HWND);
-		};
-
-		struct Rect::Picture : Rect
-		{
-			enum Space
+			Window(HWND hWnd)
 			{
-				CLIENT,
-				SCREEN
-			};
-
-			Picture(HWND,Space=CLIENT);
+				::GetWindowRect( hWnd, this );
+			}
 		};
 	}
 }

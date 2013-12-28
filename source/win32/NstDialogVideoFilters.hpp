@@ -28,8 +28,6 @@
 #pragma once
 
 #include "NstWindowDialog.hpp"
-#include "NstWindowParam.hpp"
-#include "NstManagerEmulator.hpp"
 
 namespace Nestopia
 {
@@ -58,42 +56,50 @@ namespace Nestopia
 				ATR_2XSAI = 0,
 				ATR_SUPER2XSAI,
 				ATR_SUPEREAGLE,
-				ATR_SCALE2X = 0,
+				ATR_SCALEAX = 0,
+				ATR_SCALE2X,
 				ATR_SCALE3X,
-				ATR_HQ2X = 0,
-				ATR_HQ3X
+				ATR_HQAX = 0,
+				ATR_HQ2X,
+				ATR_HQ3X,
+				ATR_HQ4X
 			};
 
 			enum
 			{
 				ATR_BILINEAR = 0,
-				ATR_TYPE = 1,
+				ATR_TYPE,
 				ATR_SCANLINES = 1,
-				ATR_RESCALE_PIC = 2,
-				ATR_FIELDMERGING = 3
+				ATR_RESCALE_PIC,
+				ATR_FIELDMERGING,
+				ATR_NO_AUTO_TUNING
 			};
 
 			struct Settings
 			{
 				void Reset(Type);
 
-				i8 attributes[4];
+				i8 attributes[8];
 			};
 
-			VideoFilters(Nes::Video,uint,Settings&,uint,bool);
+			VideoFilters(Nes::Video,uint,Settings&,uint,bool,Nes::Video::Palette::Mode);
 
-			static Type Load(const Configuration&,Settings (&)[NUM_TYPES],Nes::Video,uint,bool);
+			static Type Load(const Configuration&,Settings (&)[NUM_TYPES],Nes::Video,uint,bool,Nes::Video::Palette::Mode);
 			static void Save(Configuration&,const Settings (&)[NUM_TYPES],Nes::Video,Type);
-			static void RedrawWindow();
+
+			static void UpdateAutoModes(const Settings (&)[NUM_TYPES],Nes::Video,Nes::Video::Palette::Mode);
 
 			enum
 			{
 				MAX_2X_SIZE   = NST_MAX(Nes::Video::Output::WIDTH*2,Nes::Video::Output::HEIGHT*2),
 				MAX_3X_SIZE   = NST_MAX(Nes::Video::Output::WIDTH*3,Nes::Video::Output::HEIGHT*3),
+				MAX_4X_SIZE   = NST_MAX(Nes::Video::Output::WIDTH*4,Nes::Video::Output::HEIGHT*4),
 				MAX_NTSC_SIZE = NST_MAX(Nes::Video::Output::NTSC_WIDTH,Nes::Video::Output::NTSC_HEIGHT)
 			};
 
 		private:
+
+			static void ResetAutoModes(Nes::Video,Nes::Video::Palette::Mode);
 
 			struct Handlers;
 
@@ -110,26 +116,28 @@ namespace Nestopia
 				bool restore;
 			};
 
-			ibool OnInitDialog   (Param&);
-			ibool OnDestroy      (Param&);
-			ibool OnHScroll      (Param&);
-			ibool OnCmdOk        (Param&);
-			ibool OnCmdCancel    (Param&);
-			ibool OnCmdDefault   (Param&);
-			ibool OnCmdBilinear  (Param&);
-			ibool OnCmdNtscCable (Param&);
-			ibool OnCmd2xSaI     (Param&);
-			ibool OnCmdScaleX    (Param&);
-			ibool OnCmdHqX       (Param&);
+			ibool OnInitDialog    (Param&);
+			ibool OnDestroy       (Param&);
+			ibool OnHScroll       (Param&);
+			ibool OnCmdOk         (Param&);
+			ibool OnCmdDefault    (Param&);
+			ibool OnCmdBilinear   (Param&);
+			ibool OnCmdNtscTuning (Param&);
+			ibool OnCmdNtscCable  (Param&);
+			ibool OnCmd2xSaI      (Param&);
+			ibool OnCmdScaleX     (Param&);
+			ibool OnCmdHqX        (Param&);
 
 			void UpdateScanlinesSlider() const;
 			void UpdateNtscSliders() const;
 			void UpdateNtscSlider(int,uint) const;
+			void UpdateNtscTuning() const;
 
 			Settings& settings;
 			Backup backup;
 			const uint maxScreenSize;
 			const ibool canDoBilinear;
+			const Nes::Video::Palette::Mode paletteMode;
 			Nes::Video nes;
 			Dialog dialog;
 

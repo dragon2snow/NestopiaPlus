@@ -35,8 +35,8 @@ namespace Nes
 			#pragma optimize("s", on)
 			#endif
 
-			PartyTap::PartyTap()
-			: Device(Api::Input::PARTYTAP)
+			PartyTap::PartyTap(const Cpu& c)
+			: Device(c,Api::Input::PARTYTAP)
 			{
 				PartyTap::Reset();
 			}
@@ -58,25 +58,6 @@ namespace Nes
 			#pragma optimize("", on)
 			#endif
 
-			void PartyTap::BeginFrame(Controllers* i)
-			{
-				input = i;
-				state = 0;
-			}
-
-			void PartyTap::Poll()
-			{
-				NST_ASSERT( input );
-
-				Controllers::PartyTap& partyTap = input->partyTap;
-				input = NULL;
-
-				if (Controllers::PartyTap::callback( partyTap ))
-					state = partyTap.units;
-				else
-					state = 0;
-			}
-
 			void PartyTap::Poke(const uint data)
 			{
 				mode = 0xE0 - ((data & 0x4) << 4);
@@ -87,24 +68,25 @@ namespace Nes
 				if (prev > strobe)
 				{
 					if (input)
-						Poll();
+					{
+						input->partyTap.timeStamp = GetTimeStamp();
+						Controllers::PartyTap::callback( input->partyTap );
+						state = input->partyTap.units;
+					}
 
 					stream = state;
 				}
 			}
 
-			uint PartyTap::Peek(const uint port)
+			uint PartyTap::Peek(uint port)
 			{
 				if (port)
 				{
-					uint data = stream & 0x1C;
+					port = stream & 0x1C;
 					stream = (stream >> 3) | mode;
-					return data;
 				}
-				else
-				{
-					return 0;
-				}
+
+				return port;
 			}
 		}
 	}

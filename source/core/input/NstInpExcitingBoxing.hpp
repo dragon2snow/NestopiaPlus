@@ -39,7 +39,7 @@ namespace Nes
 			{
 			public:
 
-				ExcitingBoxing();
+				ExcitingBoxing(const Cpu&);
 
 			private:
 

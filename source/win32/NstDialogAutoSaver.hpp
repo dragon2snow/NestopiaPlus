@@ -62,7 +62,6 @@ namespace Nestopia
 			ibool OnCmdBrowse  (Param&);
 			ibool OnCmdClear   (Param&);
 			ibool OnCmdOk      (Param&);
-			ibool OnCmdCancel  (Param&);
 
 			Dialog dialog;
 			const Managers::Paths& paths;

@@ -43,7 +43,7 @@ namespace Nes
 					std::memset( regs, 0, sizeof(regs) );
 				}
 
-				if (type == TYPE_D && !chr.Source().IsWritable())
+				if (type == TYPE_D && !chr.Source().Writable())
 					chr.SwapBank<SIZE_4K,0x1000U>( ~0U );
 
 				for (uint i=0x4100U; i < 0x6000U; i += 0x200)
@@ -156,7 +156,7 @@ namespace Nes
 						break;
 				}
 
-				if (!chr.Source().IsWritable())
+				if (!chr.Source().Writable())
 					UpdateChr();
 			}
 		}

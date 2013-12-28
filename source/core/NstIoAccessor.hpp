@@ -39,29 +39,21 @@ namespace Nes
 
 			class Accessor
 			{
-				class Generic {};
+				class Component {};
+				typedef Data (NES_IO_CALL Component::*Function)(Address);
 
-				typedef Generic* Component;
-				typedef Data (NES_IO_CALL Generic::*Function)(Address);
-
-				Component component;
+				Component* component;
 				Function function;
 
 			public:
-
-				template<typename V>
-				struct Type
-				{
-					typedef Data (NES_IO_CALL V::*Definition)(Address);
-				};
 
 				Accessor() {}
 
 				template<typename T>
 				Accessor(T* c,Data (NES_IO_CALL T::*t)(Address))
 				:
-				component ( reinterpret_cast<Component>(c) ),
-				function  ( reinterpret_cast<Function>(t)  )
+				component ( reinterpret_cast<Component*>(c) ),
+				function  ( reinterpret_cast<Function>(t) )
 				{
 					NST_COMPILE_ASSERT( sizeof(function) == sizeof(t) );
 				}
@@ -71,7 +63,7 @@ namespace Nes
 				{
 					NST_COMPILE_ASSERT( sizeof(function) == sizeof(t) );
 
-					component = reinterpret_cast<Component>(c);
+					component = reinterpret_cast<Component*>(c);
 					function  = reinterpret_cast<Function>(t);
 				}
 
@@ -87,6 +79,7 @@ namespace Nes
 			};
 
 			#define NES_DECL_ACCESSOR(a_) Data NES_IO_CALL Access_##a_(Address);
+			#define NES_ACCESSOR_TYPE(o_,n_) Data (NES_IO_CALL o_::*n_)(Address)
 			#define NES_ACCESSOR(o_,a_) Data NES_IO_CALL o_::Access_##a_(Address address)
 
 		#else
@@ -148,6 +141,7 @@ namespace Nes
 				}
 
 			#define NES_ACCESSOR(o_,a_) Data NES_IO_CALL o_::Access_Member_##a_(Address address)
+			#define NES_ACCESSOR_TYPE(o_,n_) Data (NES_IO_CALL *n_)(Address)
 
 		#endif
 		}

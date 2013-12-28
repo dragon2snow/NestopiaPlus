@@ -1,0 +1,42 @@
+snes_ntsc Change Log
+--------------------
+
+snes_ntsc 0.2.1
+---------------
+- Significantly improved NTSC signal processing to give clearer image and
+better sharpness control
+
+- Added parameters for resolution, color bleed, and artifacts
+
+- Added presets for composite video, S-video, RGB, and monochrome
+
+- Halved initialization time
+
+- Added ability to write custom blitters
+
+- Changed interface to blitters significantly, requiring changes to your code.
+They have a simpler interface and don't do any line doubling (use a custom
+blitter for this).
+
+- Added ability to change input and output pixel formats of blitters
+
+- Improved demo with more controls and interpolation and darkening of scanlines
+rather than duplicating them
+
+- Improved documentation
+
+
+snes_ntsc 0.1.1
+---------------
+- Changed snes_ntsc_blit() to rescale image horizontally and do line doubling
+
+- Added hue warping
+
+- Changed input pixel format from 15-bit BGR to 16-bit RGB
+
+- Fixed color speckling in solid areas
+
+
+snes_ntsc 0.1.0
+---------------
+- First release

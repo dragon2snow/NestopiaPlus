@@ -51,7 +51,6 @@ namespace Nestopia
 			};
 
 			ibool OnInitDialog (Param&);
-			ibool OnCmdCancel  (Param&);
 			ibool OnCmdOk      (Param&);
 
 			Dialog dialog;

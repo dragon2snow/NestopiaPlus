@@ -27,262 +27,263 @@
 
 namespace Nestopia
 {
-	using Io::Wave;
-
-	Wave::Wave(Mode m)
-	: handle(NULL), mode(m) {}
-
-	Wave::~Wave()
+	namespace Io
 	{
-		try
+		Wave::Wave(Mode m)
+		: handle(NULL), mode(m) {}
+
+		Wave::~Wave()
+		{
+			try
+			{
+				Close();
+			}
+			catch (Exception)
+			{
+			}
+		}
+
+		void Wave::CreateChunk(MMCKINFO& chunk,FOURCC id,uint size=0,uint type=0,uint flags=0) const
+		{
+			chunk.ckid = id;
+			chunk.cksize = size;
+			chunk.dwDataOffset = 0;
+			chunk.dwFlags = 0;
+			chunk.fccType = type;
+
+			if (::mmioCreateChunk( handle, &chunk, flags ) != MMSYSERR_NOERROR)
+				throw ERR_OPEN;
+		}
+
+		template<typename T>
+		void Wave::WriteChunk(const T& t,const int size=sizeof(T)) const
+		{
+			if (::mmioWrite( handle, reinterpret_cast<const char*>(&t), size ) != size)
+				throw ERR_OPEN;
+		}
+
+		template<typename T>
+		void Wave::ReadChunk(T& t,const int size=sizeof(T)) const
+		{
+			if (::mmioRead( handle, reinterpret_cast<char*>(&t), size ) != size)
+				throw ERR_OPEN;
+		}
+
+		void Wave::AscendChunk(MMCKINFO& chunk) const
+		{
+			if (::mmioAscend( handle, &chunk, 0 ) != MMSYSERR_NOERROR)
+				throw ERR_OPEN;
+		}
+
+		void Wave::DescendChunk(MMCKINFO& chunk,const MMCKINFO* parent=NULL,uint flag=0) const
+		{
+			if (::mmioDescend( handle, &chunk, parent, flag ) != MMSYSERR_NOERROR)
+				throw ERR_OPEN;
+		}
+
+		uint Wave::Open(const void* data,uint size,WAVEFORMATEX& waveFormat)
 		{
 			Close();
-		}
-		catch (Exception)
-		{
-		}
-	}
+			fileName.Clear();
 
-	void Wave::CreateChunk(MMCKINFO& chunk,FOURCC id,uint size=0,uint type=0,uint flags=0) const
-	{
-		chunk.ckid = id;
-		chunk.cksize = size;
-		chunk.dwDataOffset = 0;
-		chunk.dwFlags = 0;
-		chunk.fccType = type;
+			Object::Pod<MMIOINFO> info;
+			info.fccIOProc = FOURCC_MEM;
+			info.pchBuffer = static_cast<HPSTR>(const_cast<void*>(data));
+			info.cchBuffer = size;
 
-		if (::mmioCreateChunk( handle, &chunk, flags ) != MMSYSERR_NOERROR)
-			throw ERR_OPEN;
-	}
-
-	template<typename T>
-	void Wave::WriteChunk(const T& t,const int size=sizeof(T)) const
-	{
-		if (::mmioWrite( handle, reinterpret_cast<const char*>(&t), size ) != size)
-			throw ERR_OPEN;
-	}
-
-	template<typename T>
-	void Wave::ReadChunk(T& t,const int size=sizeof(T)) const
-	{
-		if (::mmioRead( handle, reinterpret_cast<char*>(&t), size ) != size)
-			throw ERR_OPEN;
-	}
-
-	void Wave::AscendChunk(MMCKINFO& chunk) const
-	{
-		if (::mmioAscend( handle, &chunk, 0 ) != MMSYSERR_NOERROR)
-			throw ERR_OPEN;
-	}
-
-	void Wave::DescendChunk(MMCKINFO& chunk,const MMCKINFO* parent=NULL,uint flag=0) const
-	{
-		if (::mmioDescend( handle, &chunk, parent, flag ) != MMSYSERR_NOERROR)
-			throw ERR_OPEN;
-	}
-
-	uint Wave::Open(const void* data,uint size,WAVEFORMATEX& waveFormat)
-	{
-		Close();
-		fileName.Clear();
-
-		Object::Pod<MMIOINFO> info;
-		info.fccIOProc = FOURCC_MEM;
-		info.pchBuffer = static_cast<HPSTR>(const_cast<void*>(data));
-		info.cchBuffer = size;
-
-		if (NULL == (handle=::mmioOpen( NULL, &info, mode )))
-			throw ERR_OPEN;
-
-		return Open( waveFormat );
-	}
-
-	uint Wave::Open(const GenericString name,WAVEFORMATEX& waveFormat)
-	{
-		Close();
-		fileName = name;
-
-		if (NULL == (handle=::mmioOpen( fileName.Ptr(), NULL, mode )))
-			throw ERR_OPEN;
-
-		return Open( waveFormat );
-	}
-
-	uint Wave::Open(WAVEFORMATEX& waveFormat)
-	{
-		NST_COMPILE_ASSERT( sizeof(WAVEFORMATEX) >= sizeof(PCMWAVEFORMAT) );
-
-		try
-		{
-			if (mode == MODE_WRITE)
-			{
-				NST_ASSERT( waveFormat.wFormatTag == WAVE_FORMAT_PCM );
-
-				CreateChunk( chunkRiff, 0, 0, mmioFOURCC('W','A','V','E'), MMIO_CREATERIFF );
-
-				MMCKINFO chunk;
-
-				CreateChunk( chunk, mmioFOURCC('f','m','t',' '), sizeof(PCMWAVEFORMAT) );
-				WriteChunk( waveFormat, sizeof(PCMWAVEFORMAT) );
-				AscendChunk( chunk );
-
-				CreateChunk( chunk, mmioFOURCC('f','a','c','t') );
-				WriteChunk( DWORD(-1) );
-				AscendChunk( chunk );
-
-				CreateChunk( chunkData, mmioFOURCC('d','a','t','a') );
-			}
-			else
-			{
-				DescendChunk( chunkRiff );
-
-				if (chunkRiff.ckid != FOURCC_RIFF || chunkRiff.fccType != mmioFOURCC('W','A','V','E'))
-					throw ERR_OPEN;
-
-				MMCKINFO chunk;
-
-				chunk.ckid = mmioFOURCC('f','m','t',' ');
-				DescendChunk( chunk, &chunkRiff, MMIO_FINDCHUNK );
-
-				if (chunk.cksize != sizeof(PCMWAVEFORMAT))
-					throw ERR_OPEN;
-
-				PCMWAVEFORMAT pcm;
-
-				ReadChunk( pcm );
-
-				if
-				(
-					pcm.wf.wFormatTag != WAVE_FORMAT_PCM ||
-					pcm.wBitsPerSample == 0 ||
-					pcm.wBitsPerSample % 8 ||
-					pcm.wf.nSamplesPerSec == 0 ||
-					pcm.wf.nChannels < 1 || pcm.wf.nChannels > 2 ||
-					pcm.wf.nBlockAlign != pcm.wBitsPerSample / 8 * pcm.wf.nChannels ||
-					pcm.wf.nAvgBytesPerSec != pcm.wf.nSamplesPerSec * pcm.wf.nBlockAlign
-				)
-					throw ERR_OPEN;
-
-				std::memcpy( &waveFormat, &pcm, sizeof(PCMWAVEFORMAT) );
-
-				AscendChunk( chunk );
-
-				if (::mmioSeek( handle, chunkRiff.dwDataOffset + sizeof(FOURCC), SEEK_SET ) == -1)
-					throw ERR_OPEN;
-
-				chunkData.ckid = mmioFOURCC('d','a','t','a');
-				DescendChunk( chunkData, &chunkRiff, MMIO_FINDCHUNK );
-			}
-
-			if (::mmioGetInfo( handle, &info, 0 ) != MMSYSERR_NOERROR)
+			if (NULL == (handle=::mmioOpen( NULL, &info, mode )))
 				throw ERR_OPEN;
 
-			return chunkData.cksize;
+			return Open( waveFormat );
 		}
-		catch (Exception)
+
+		uint Wave::Open(const GenericString name,WAVEFORMATEX& waveFormat)
 		{
-			Abort();
-			throw ERR_OPEN;
+			Close();
+			fileName = name;
+
+			if (NULL == (handle=::mmioOpen( fileName.Ptr(), NULL, mode )))
+				throw ERR_OPEN;
+
+			return Open( waveFormat );
 		}
-	}
 
-	void Wave::Write(const void* const data,const uint length)
-	{
-		NST_ASSERT( handle );
-
-		const char* input = static_cast<const char*>(data);
-		const char* const end = input + length;
-
-		while (input != end)
+		uint Wave::Open(WAVEFORMATEX& waveFormat)
 		{
-			if (info.pchNext == info.pchEndWrite)
+			NST_COMPILE_ASSERT( sizeof(WAVEFORMATEX) >= sizeof(PCMWAVEFORMAT) );
+
+			try
 			{
-				info.dwFlags |= MMIO_DIRTY;
-
-				if (::mmioAdvance( handle, &info, MMIO_WRITE ) != MMSYSERR_NOERROR)
+				if (mode == MODE_WRITE)
 				{
-					Abort();
-					throw ERR_WRITE;
+					NST_ASSERT( waveFormat.wFormatTag == WAVE_FORMAT_PCM );
+
+					CreateChunk( chunkRiff, 0, 0, mmioFOURCC('W','A','V','E'), MMIO_CREATERIFF );
+
+					MMCKINFO chunk;
+
+					CreateChunk( chunk, mmioFOURCC('f','m','t',' '), sizeof(PCMWAVEFORMAT) );
+					WriteChunk( waveFormat, sizeof(PCMWAVEFORMAT) );
+					AscendChunk( chunk );
+
+					CreateChunk( chunk, mmioFOURCC('f','a','c','t') );
+					WriteChunk( DWORD(-1) );
+					AscendChunk( chunk );
+
+					CreateChunk( chunkData, mmioFOURCC('d','a','t','a') );
 				}
-			}
-
-			*info.pchNext++ = *input++;
-		}
-	}
-
-	void Wave::Read(void* const data)
-	{
-		NST_ASSERT( handle && data );
-
-		char* output = static_cast<char*>(data);
-		const char* const end = output + chunkData.cksize;
-
-		while (output != end)
-		{
-			if (info.pchNext == info.pchEndRead)
-			{
-				if (::mmioAdvance( handle, &info, MMIO_READ ) != MMSYSERR_NOERROR || info.pchNext == info.pchEndRead)
+				else
 				{
-					Abort();
-					throw ERR_READ;
+					DescendChunk( chunkRiff );
+
+					if (chunkRiff.ckid != FOURCC_RIFF || chunkRiff.fccType != mmioFOURCC('W','A','V','E'))
+						throw ERR_OPEN;
+
+					MMCKINFO chunk;
+
+					chunk.ckid = mmioFOURCC('f','m','t',' ');
+					DescendChunk( chunk, &chunkRiff, MMIO_FINDCHUNK );
+
+					if (chunk.cksize != sizeof(PCMWAVEFORMAT))
+						throw ERR_OPEN;
+
+					PCMWAVEFORMAT pcm;
+
+					ReadChunk( pcm );
+
+					if
+					(
+						pcm.wf.wFormatTag != WAVE_FORMAT_PCM ||
+						pcm.wBitsPerSample == 0 ||
+						pcm.wBitsPerSample % 8 ||
+						pcm.wf.nSamplesPerSec == 0 ||
+						pcm.wf.nChannels < 1 || pcm.wf.nChannels > 2 ||
+						pcm.wf.nBlockAlign != pcm.wBitsPerSample / 8 * pcm.wf.nChannels ||
+						pcm.wf.nAvgBytesPerSec != pcm.wf.nSamplesPerSec * pcm.wf.nBlockAlign
+					)
+						throw ERR_OPEN;
+
+					std::memcpy( &waveFormat, &pcm, sizeof(PCMWAVEFORMAT) );
+
+					AscendChunk( chunk );
+
+					if (::mmioSeek( handle, chunkRiff.dwDataOffset + sizeof(FOURCC), SEEK_SET ) == -1)
+						throw ERR_OPEN;
+
+					chunkData.ckid = mmioFOURCC('d','a','t','a');
+					DescendChunk( chunkData, &chunkRiff, MMIO_FINDCHUNK );
 				}
+
+				if (::mmioGetInfo( handle, &info, 0 ) != MMSYSERR_NOERROR)
+					throw ERR_OPEN;
+
+				return chunkData.cksize;
 			}
-
-			*output++ = *info.pchNext++;
-		}
-	}
-
-	void Wave::Close()
-	{
-		if (handle)
-		{
-			if (mode == MODE_WRITE)
+			catch (Exception)
 			{
-				try
+				Abort();
+				throw ERR_OPEN;
+			}
+		}
+
+		void Wave::Write(const void* const data,const uint length)
+		{
+			NST_ASSERT( handle );
+
+			const char* input = static_cast<const char*>(data);
+			const char* const end = input + length;
+
+			while (input != end)
+			{
+				if (info.pchNext == info.pchEndWrite)
 				{
 					info.dwFlags |= MMIO_DIRTY;
 
-					if (::mmioSetInfo( handle, &info, 0 ) != MMSYSERR_NOERROR)
-						throw ERR_WRITE;
-
-					AscendChunk( chunkData );
-					AscendChunk( chunkRiff );
-
-					::mmioSeek( handle, 0, SEEK_SET );
-
-					if (::mmioDescend( handle, &chunkRiff, NULL, 0 ) != MMSYSERR_NOERROR)
-						throw ERR_WRITE;
-
-					MMCKINFO chunkFact;
-
-					chunkFact.ckid = mmioFOURCC('f','a','c','t');
-					chunkFact.cksize = 0;
-
-					if (::mmioDescend( handle, &chunkFact, &chunkRiff, MMIO_FINDCHUNK ) == MMSYSERR_NOERROR)
+					if (::mmioAdvance( handle, &info, MMIO_WRITE ) != MMSYSERR_NOERROR)
 					{
-						WriteChunk( DWORD(0) );
-						AscendChunk( chunkFact );
+						Abort();
+						throw ERR_WRITE;
 					}
+				}
 
-					AscendChunk( chunkRiff );
-				}
-				catch (Exception)
-				{
-					Abort();
-					throw ERR_FINALIZE;
-				}
+				*info.pchNext++ = *input++;
 			}
+		}
+
+		void Wave::Read(void* const data)
+		{
+			NST_ASSERT( handle && data );
+
+			char* output = static_cast<char*>(data);
+			const char* const end = output + chunkData.cksize;
+
+			while (output != end)
+			{
+				if (info.pchNext == info.pchEndRead)
+				{
+					if (::mmioAdvance( handle, &info, MMIO_READ ) != MMSYSERR_NOERROR || info.pchNext == info.pchEndRead)
+					{
+						Abort();
+						throw ERR_READ;
+					}
+				}
+
+				*output++ = *info.pchNext++;
+			}
+		}
+
+		void Wave::Close()
+		{
+			if (handle)
+			{
+				if (mode == MODE_WRITE)
+				{
+					try
+					{
+						info.dwFlags |= MMIO_DIRTY;
+
+						if (::mmioSetInfo( handle, &info, 0 ) != MMSYSERR_NOERROR)
+							throw ERR_WRITE;
+
+						AscendChunk( chunkData );
+						AscendChunk( chunkRiff );
+
+						::mmioSeek( handle, 0, SEEK_SET );
+
+						if (::mmioDescend( handle, &chunkRiff, NULL, 0 ) != MMSYSERR_NOERROR)
+							throw ERR_WRITE;
+
+						MMCKINFO chunkFact;
+
+						chunkFact.ckid = mmioFOURCC('f','a','c','t');
+						chunkFact.cksize = 0;
+
+						if (::mmioDescend( handle, &chunkFact, &chunkRiff, MMIO_FINDCHUNK ) == MMSYSERR_NOERROR)
+						{
+							WriteChunk( DWORD(0) );
+							AscendChunk( chunkFact );
+						}
+
+						AscendChunk( chunkRiff );
+					}
+					catch (Exception)
+					{
+						Abort();
+						throw ERR_FINALIZE;
+					}
+				}
+
+				::mmioClose( handle, 0 );
+				handle = NULL;
+			}
+		}
+
+		void Wave::Abort()
+		{
+			NST_ASSERT( handle && fileName.Length() );
 
 			::mmioClose( handle, 0 );
 			handle = NULL;
 		}
-	}
-
-	void Wave::Abort()
-	{
-		NST_ASSERT( handle && fileName.Length() );
-
-		::mmioClose( handle, 0 );
-		handle = NULL;
 	}
 }

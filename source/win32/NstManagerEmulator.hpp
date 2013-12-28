@@ -27,7 +27,6 @@
 
 #pragma once
 
-#include <vector>
 #include "NstCollectionVector.hpp"
 #include "NstObjectDelegate.hpp"
 #include "NstString.hpp"
@@ -142,7 +141,8 @@ namespace Nestopia
 				EVENT_PORT2_CONTROLLER,
 				EVENT_PORT3_CONTROLLER,
 				EVENT_PORT4_CONTROLLER,
-				EVENT_PORT5_CONTROLLER
+				EVENT_PORT5_CONTROLLER,
+				EVENT_QUERY_FDS_BIOS
 			};
 
 			void  Initialize() const;
@@ -161,7 +161,7 @@ namespace Nestopia
 			void  AutoSelectController(uint);
 			void  AutoSelectControllers();
 			void  ConnectController(uint,Nes::Input::Type);
-			ibool IsControllerConnected(Nes::Input::Type);
+			ibool ControllerConnected(Nes::Input::Type);
 			void  PlaySong();
 			void  StopSong();
 			void  SelectNextSong();
@@ -286,10 +286,12 @@ namespace Nestopia
 			void  EnableNetplay(const Netplay::Callback&,uint,uint);
 			void  Unpause();
 
-			void LoadImageData(std::vector<u8>&,Nes::User::File);
-			void SaveImageData(const std::vector<u8>&,Nes::User::File) const;
+			struct CallbackData;
+
+			void LoadImageData(CallbackData&);
+			void SaveImageData(CallbackData&) const;
 			void LoadDiskData(Collection::Buffer&);
-			void SaveDiskData(const std::vector<u8>&) const;
+			void SaveDiskData(CallbackData&) const;
 
 			State state;
 			EventHandler events;
@@ -298,27 +300,27 @@ namespace Nestopia
 
 		public:
 
-			ibool IsRunning() const
+			ibool Running() const
 			{
 				return state.running;
 			}
 
-			ibool IsIdle() const
+			ibool Idle() const
 			{
 				return !state.running;
 			}
 
-			ibool IsPaused() const
+			ibool Paused() const
 			{
 				return state.paused;
 			}
 
-			ibool IsSpeeding() const
+			ibool Speeding() const
 			{
 				return settings.timing.speeding;
 			}
 
-			ibool IsRewinding() const
+			ibool Rewinding() const
 			{
 				return settings.timing.rewinding;
 			}
@@ -358,7 +360,7 @@ namespace Nestopia
 				settings.cartridge.writeProtect = state;
 			}
 
-			ibool IsCartridgeWriteProtected() const
+			ibool CartridgeWriteProtected() const
 			{
 				return settings.cartridge.writeProtect;
 			}
@@ -411,7 +413,7 @@ namespace Nestopia
 			}
 
 			template<typename Data,typename Code>
-			void EnableNetplay(Data* data,Code code,uint player,uint players)
+			void EnableNetplay(Data data,Code code,uint player,uint players)
 			{
 				EnableNetplay( Netplay::Callback(data,code), player, players );
 			}

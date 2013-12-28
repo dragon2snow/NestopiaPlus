@@ -23,12 +23,11 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 
 #include <new>
-#include "../NstCore.hpp"
-#include "NstApiEmulator.hpp"
-#include "NstApiMachine.hpp"
-#include "NstApiCartridge.hpp"
+#include "../NstMachine.hpp"
 #include "../NstCartridge.hpp"
 #include "../NstImageDatabase.hpp"
+#include "NstApiMachine.hpp"
+#include "NstApiCartridge.hpp"
 
 #ifdef NST_PRAGMA_OPTIMIZE
 #pragma optimize("s", on)
@@ -38,7 +37,7 @@ namespace Nes
 {
 	namespace Api
 	{
-		void Cartridge::Info::Clear()
+		void Cartridge::Info::Clear() throw()
 		{
 			name.clear();
 			maker.clear();
@@ -64,17 +63,17 @@ namespace Nes
 			condition      = UNKNOWN;
 		}
 
-		Cartridge::Database Cartridge::GetDatabase()
+		Cartridge::Database Cartridge::GetDatabase() throw()
 		{
 			return Database(emulator.imageDatabase);
 		}
 
-		bool Cartridge::Database::IsLoaded() const
+		bool Cartridge::Database::IsLoaded() const throw()
 		{
 			return imageDatabase != NULL;
 		}
 
-		bool Cartridge::Database::IsEnabled() const
+		bool Cartridge::Database::IsEnabled() const throw()
 		{
 			return imageDatabase && imageDatabase->Enabled();
 		}
@@ -87,18 +86,18 @@ namespace Nes
 			return imageDatabase != NULL;
 		}
 
-		Result Cartridge::Database::Load(std::istream& stream)
+		Result Cartridge::Database::Load(std::istream& stream) throw()
 		{
 			return Create() ? imageDatabase->Load( &stream ) : RESULT_ERR_OUT_OF_MEMORY;
 		}
 
-		void Cartridge::Database::Unload()
+		void Cartridge::Database::Unload() throw()
 		{
 			if (imageDatabase)
 				imageDatabase->Unload();
 		}
 
-		Result Cartridge::Database::Enable(bool state)
+		Result Cartridge::Database::Enable(bool state) throw()
 		{
 			if (Create())
 			{
@@ -114,7 +113,7 @@ namespace Nes
 			return RESULT_ERR_OUT_OF_MEMORY;
 		}
 
-		const Cartridge::Info* Cartridge::GetInfo() const
+		const Cartridge::Info* Cartridge::GetInfo() const throw()
 		{
 			if (emulator.Is(Machine::CARTRIDGE))
 				return &static_cast<const Core::Cartridge*>(emulator.image)->GetInfo();
@@ -122,67 +121,62 @@ namespace Nes
 			return NULL;
 		}
 
-		Cartridge::Database::Entry Cartridge::Database::FindEntry(ulong crc) const
+		Cartridge::Database::Entry Cartridge::Database::FindEntry(ulong crc) const throw()
 		{
 			return imageDatabase ? imageDatabase->GetHandle( crc ) : NULL;
 		}
 
-		Cartridge::Database::Entry Cartridge::Database::FindEntry(const void* data,ulong size,ulong altsize) const
+		Cartridge::Database::Entry Cartridge::Database::FindEntry(const void* data,ulong size) const throw()
 		{
-			return imageDatabase ? Core::Cartridge::SearchDatabase( *imageDatabase, data, size, altsize ) : NULL;
+			return imageDatabase ? Core::Cartridge::SearchDatabase( *imageDatabase, static_cast<const u8*>(data), size ) : NULL;
 		}
 
-		Cartridge::System Cartridge::Database::GetSystem(Entry entry) const
+		Cartridge::System Cartridge::Database::GetSystem(Entry entry) const throw()
 		{
 			return imageDatabase && entry ? imageDatabase->GetSystem( entry ) : SYSTEM_NTSC;
 		}
 
-		Cartridge::Mirroring Cartridge::Database::GetMirroring(Entry entry) const
+		Cartridge::Mirroring Cartridge::Database::GetMirroring(Entry entry) const throw()
 		{
 			return imageDatabase && entry ? imageDatabase->GetMirroring( entry ) : MIRROR_HORIZONTAL;
 		}
 
-		ulong Cartridge::Database::GetCrc(Entry entry) const
+		ulong Cartridge::Database::GetCrc(Entry entry) const throw()
 		{
 			return imageDatabase && entry ? imageDatabase->Crc( entry ) : 0;
 		}
 
-		ulong Cartridge::Database::GetPRomCrc(Entry entry) const
+		ulong Cartridge::Database::GetPRomSize(Entry entry) const throw()
 		{
-			return imageDatabase && entry ? imageDatabase->pRomCrc( entry ) : 0;
+			return imageDatabase && entry ? imageDatabase->PrgSize( entry ) : 0;
 		}
 
-		ulong Cartridge::Database::GetPRomSize(Entry entry) const
+		ulong Cartridge::Database::GetCRomSize(Entry entry) const throw()
 		{
-			return imageDatabase && entry ? imageDatabase->pRomSize( entry ) : 0;
+			return imageDatabase && entry ? imageDatabase->ChrSize( entry ) : 0;
 		}
 
-		ulong Cartridge::Database::GetCRomSize(Entry entry) const
+		ulong Cartridge::Database::GetWRamSize(Entry entry) const throw()
 		{
-			return imageDatabase && entry ? imageDatabase->cRomSize( entry ) : 0;
+			return imageDatabase && entry ? imageDatabase->WrkSize( entry ) : 0;
 		}
 
-		ulong Cartridge::Database::GetWRamSize(Entry entry) const
-		{
-			return imageDatabase && entry ? imageDatabase->wRamSize( entry ) : 0;
-		}
-
-		uint Cartridge::Database::GetMapper(Entry entry) const
+		uint Cartridge::Database::GetMapper(Entry entry) const throw()
 		{
 			return imageDatabase && entry ? imageDatabase->Mapper( entry ) : 0;
 		}
 
-		bool Cartridge::Database::HasBattery(Entry entry) const
+		bool Cartridge::Database::HasBattery(Entry entry) const throw()
 		{
 			return imageDatabase && entry && imageDatabase->HasBattery( entry );
 		}
 
-		bool Cartridge::Database::HasTrainer(Entry entry) const
+		bool Cartridge::Database::HasTrainer(Entry entry) const throw()
 		{
 			return imageDatabase && entry && imageDatabase->HasTrainer( entry );
 		}
 
-		bool Cartridge::Database::IsBad(Entry entry) const
+		bool Cartridge::Database::IsBad(Entry entry) const throw()
 		{
 			return imageDatabase && entry && imageDatabase->IsBad( entry );
 		}

@@ -22,46 +22,46 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstObjectHeap.hpp"
 #include "NstWindowMenu.hpp"
 #include "NstDialogDipSwitches.hpp"
 #include "NstManagerDipSwitches.hpp"
 
 namespace Nestopia
 {
-	using namespace Managers;
-
-	DipSwitches::DipSwitches(Emulator& e,Window::Menu& m)
-	: emulator(e), menu(m)
+	namespace Managers
 	{
-		m.Commands().Add( IDM_MACHINE_EXT_DIPSWITCHES, this, &DipSwitches::OnMenuCmd );
-		emulator.Events().Add( this, &DipSwitches::OnEmuEvent );
-	}
-
-	DipSwitches::~DipSwitches()
-	{
-		emulator.Events().Remove( this );
-	}
-
-	void DipSwitches::OnMenuCmd(uint)
-	{
-		Window::DipSwitches( emulator ).Open();
-	}
-
-	void DipSwitches::OnEmuEvent(Emulator::Event event)
-	{
-		switch (event)
+		DipSwitches::DipSwitches(Emulator& e,Window::Menu& m)
+		: emulator(e), menu(m)
 		{
-			case Emulator::EVENT_INIT:
-			case Emulator::EVENT_LOAD:
-			case Emulator::EVENT_UNLOAD:
+			m.Commands().Add( IDM_MACHINE_EXT_DIPSWITCHES, this, &DipSwitches::OnMenuCmd );
+			emulator.Events().Add( this, &DipSwitches::OnEmuEvent );
+		}
 
-				menu[IDM_MACHINE_EXT_DIPSWITCHES].Enable
-				(
-					event == Emulator::EVENT_LOAD &&
-					Nes::DipSwitches(emulator).NumDips()
-				);
-				break;
+		DipSwitches::~DipSwitches()
+		{
+			emulator.Events().Remove( this );
+		}
+
+		void DipSwitches::OnMenuCmd(uint)
+		{
+			Window::DipSwitches( emulator ).Open();
+		}
+
+		void DipSwitches::OnEmuEvent(Emulator::Event event)
+		{
+			switch (event)
+			{
+				case Emulator::EVENT_INIT:
+				case Emulator::EVENT_LOAD:
+				case Emulator::EVENT_UNLOAD:
+
+					menu[IDM_MACHINE_EXT_DIPSWITCHES].Enable
+					(
+						event == Emulator::EVENT_LOAD &&
+						Nes::DipSwitches(emulator).NumDips()
+					);
+					break;
+			}
 		}
 	}
 }

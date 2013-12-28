@@ -39,7 +39,7 @@ namespace Nestopia
 			{
 			public:
 
-				ibool IsFixedFont() const;
+				ibool FixedFont() const;
 				Point GetMaxTextSize() const;
 
 			protected:
@@ -67,14 +67,14 @@ namespace Nestopia
 					Enable( false );
 				}
 
-				ibool IsEnabled() const
+				ibool Enabled() const
 				{
-					return control.IsEnabled();
+					return control.Enabled();
 				}
 
-				void Repaint() const
+				void Redraw() const
 				{
-					control.Invalidate();
+					control.Redraw();
 				}
 
 				Window::Generic GetWindow() const

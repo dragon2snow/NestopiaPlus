@@ -58,27 +58,27 @@ namespace Nes
 			template<typename T>
 			NST_FORCE_INLINE void Renderer::FilterNone::BlitAligned(const Input& input,const Output& output) const
 			{
-				T* NST_RESTRICT const dst = static_cast<T*>(output.pixels);
+				T* const NST_RESTRICT dst = static_cast<T*>(output.pixels);
 
 				for (uint i=0; i < PIXELS; ++i)
-					dst[i] = input.palette[input.screen[i]];
+					dst[i] = input.palette[input.pixels[i]];
 			}
 
 			template<>
 			NST_FORCE_INLINE void Renderer::FilterNone::BlitAligned<u8>(const Input& input,const Output& output) const
 			{
-				u8* NST_RESTRICT const dst = static_cast<u8*>(output.pixels);
+				u8* const NST_RESTRICT dst = static_cast<u8*>(output.pixels);
 
 				const uint offset = paletteOffset;
 
 				for (uint i=0; i < PIXELS; ++i)
-					dst[i] = offset + input.screen[i];
+					dst[i] = offset + input.pixels[i];
 			}
 
 			template<typename T>
 			NST_FORCE_INLINE void Renderer::FilterNone::BlitUnaligned(const Input& input,const Output& output) const
 			{
-				const u16* NST_RESTRICT src = input.screen;
+				const u16* NST_RESTRICT src = input.pixels;
 				T* NST_RESTRICT dst = static_cast<T*>(output.pixels);
 
 				const long pitch = output.pitch;
@@ -96,7 +96,7 @@ namespace Nes
 			template<>
 			NST_FORCE_INLINE void Renderer::FilterNone::BlitUnaligned<u8>(const Input& input,const Output& output) const
 			{
-				const u16* NST_RESTRICT src = input.screen;
+				const u16* NST_RESTRICT src = input.pixels;
 				u8* NST_RESTRICT dst = static_cast<u8*>(output.pixels);
 
 				const long pitch = output.pitch;

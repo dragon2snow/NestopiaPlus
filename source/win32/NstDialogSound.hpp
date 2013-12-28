@@ -27,12 +27,16 @@
 
 #pragma once
 
-#include "NstCollectionBitSet.hpp"
 #include "NstWindowDialog.hpp"
 #include "NstDirectSound.hpp"
 
 namespace Nestopia
 {
+	namespace Managers
+	{
+		class Paths;
+	}
+
 	namespace Window
 	{
 		class Sound
@@ -82,7 +86,6 @@ namespace Nestopia
 			ibool OnCmdResetSliders (Param&);
 			ibool OnCmdDefault      (Param&);
 			ibool OnCmdOk           (Param&);
-			ibool OnCmdCancel       (Param&);
 
 			const Adapters& adapters;
 			Nes::Sound nes;
@@ -115,7 +118,6 @@ namespace Nestopia
 				ibool OnCmdBrowse  (Param&);
 				ibool OnCmdClear   (Param&);
 				ibool OnCmdOk      (Param&);
-				ibool OnCmdCancel  (Param&);
 
 				Dialog dialog;
 				const Managers::Paths& paths;
@@ -150,7 +152,7 @@ namespace Nestopia
 				return recorder;
 			}
 
-			ibool IsSoundEnabled() const
+			ibool SoundEnabled() const
 			{
 				return settings.adapter != UINT_MAX && nes.IsAudible();
 			}

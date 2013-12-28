@@ -27,7 +27,6 @@
 
 #pragma once
 
-#include "NstObjectHeap.hpp"
 #include "NstManagerEmulator.hpp"
 #include "../core/api/NstApiMovie.hpp"
 

@@ -28,7 +28,6 @@
 #pragma once
 
 #include <vector>
-#include "NstObjectHeap.hpp"
 #include "NstString.hpp"
 
 namespace Nestopia
@@ -53,9 +52,9 @@ namespace Nestopia
 
 			enum
 			{
-				NO_SELECTION  = INT_MAX,
-				NO_FILES      = INT_MAX-1,
-				MAX_ITEM_SIZE = INT_MAX,
+				FIRST_FILE    = 1,
+				NO_FILES      = INT_MAX,
+				MAX_ITEM_SIZE = INT_MAX-1,
 				FILE_ID_ZIP   = 0x04034B50,
 				FILE_ID_7Z    = 0xAFBC7A37,
 				FILE_ID_RAR   = 0x21726152

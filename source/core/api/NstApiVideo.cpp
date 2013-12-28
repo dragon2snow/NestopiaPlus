@@ -22,10 +22,13 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "../NstCore.hpp"
-#include "NstApiEmulator.hpp"
-#include "NstApiVideo.hpp"
+#include "../NstMachine.hpp"
 #include "../NstVideoRenderer.hpp"
+#include "NstApiVideo.hpp"
+
+#ifdef NST_PRAGMA_OPTIMIZE
+#pragma optimize("s", on)
+#endif
 
 namespace Nes
 {
@@ -42,117 +45,117 @@ namespace Nes
 	{
 		Video::Palette::UpdateCaller Video::Palette::updateCallback;
 
-		void Video::EnableUnlimSprites(bool state)
+		void Video::EnableUnlimSprites(bool state) throw()
 		{
 			emulator.ppu.EnableUnlimSprites( state );
 		}
 
-		bool Video::AreUnlimSpritesEnabled() const
+		bool Video::AreUnlimSpritesEnabled() const throw()
 		{
 			return emulator.ppu.AreUnlimSpritesEnabled();
 		}
 
-		int Video::GetBrightness() const
+		int Video::GetBrightness() const throw()
 		{
 			return emulator.renderer.GetBrightness();
 		}
 
-		int Video::GetSaturation() const
+		int Video::GetSaturation() const throw()
 		{
 			return emulator.renderer.GetSaturation();
 		}
 
-		int Video::GetContrast() const
+		int Video::GetContrast() const throw()
 		{
 			return emulator.renderer.GetContrast();
 		}
 
-		int Video::GetSharpness() const
+		int Video::GetSharpness() const throw()
 		{
 			return emulator.renderer.GetSharpness();
 		}
 
-		int Video::GetColorResolution() const
+		int Video::GetColorResolution() const throw()
 		{
 			return emulator.renderer.GetColorResolution();
 		}
 
-		int Video::GetColorBleed() const
+		int Video::GetColorBleed() const throw()
 		{
 			return emulator.renderer.GetColorBleed();
 		}
 
-		int Video::GetColorArtifacts() const
+		int Video::GetColorArtifacts() const throw()
 		{
 			return emulator.renderer.GetColorArtifacts();
 		}
 
-		int Video::GetColorFringing() const
+		int Video::GetColorFringing() const throw()
 		{
 			return emulator.renderer.GetColorFringing();
 		}
 
-		int Video::GetHue() const
+		int Video::GetHue() const throw()
 		{
 			return emulator.renderer.GetHue();
 		}
 
-		Result Video::SetBrightness(int value)
+		Result Video::SetBrightness(int value) throw()
 		{
 			return emulator.renderer.SetBrightness( value );
 		}
 
-		Result Video::SetSaturation(int value)
+		Result Video::SetSaturation(int value) throw()
 		{
 			return emulator.renderer.SetSaturation( value );
 		}
 
-		Result Video::SetContrast(int value)
+		Result Video::SetContrast(int value) throw()
 		{
 			return emulator.renderer.SetContrast( value );
 		}
 
-		Result Video::SetSharpness(int value)
+		Result Video::SetSharpness(int value) throw()
 		{
 			return emulator.renderer.SetSharpness( value );
 		}
 
-		Result Video::SetColorResolution(int value)
+		Result Video::SetColorResolution(int value) throw()
 		{
 			return emulator.renderer.SetColorResolution( value );
 		}
 
-		Result Video::SetColorBleed(int value)
+		Result Video::SetColorBleed(int value) throw()
 		{
 			return emulator.renderer.SetColorBleed( value );
 		}
 
-		Result Video::SetColorArtifacts(int value)
+		Result Video::SetColorArtifacts(int value) throw()
 		{
 			return emulator.renderer.SetColorArtifacts( value );
 		}
 
-		Result Video::SetColorFringing(int value)
+		Result Video::SetColorFringing(int value) throw()
 		{
 			return emulator.renderer.SetColorFringing( value );
 		}
 
-		Result Video::SetHue(int value)
+		Result Video::SetHue(int value) throw()
 		{
 			return emulator.renderer.SetHue( value );
 		}
 
-		void Video::EnableFieldMerging(bool state)
+		void Video::EnableFieldMerging(bool state) throw()
 		{
 			emulator.renderer.EnableFieldMerging( state );
 		}
 
-		bool Video::IsFieldMergingEnabled() const
+		bool Video::IsFieldMergingEnabled() const throw()
 		{
 			return emulator.renderer.IsFieldMergingEnabled();
 		}
 
-		Result Video::SetRenderState(const RenderState& state)
+		Result Video::SetRenderState(const RenderState& state) throw()
 		{
 			emulator.ppu.EnableEmphasis( state.bits.count != 8 );
 			const Result result = emulator.renderer.SetState( state );
@@ -163,23 +166,23 @@ namespace Nes
 			return result;
 		}
 
-		Result Video::GetRenderState(RenderState& state) const
+		Result Video::GetRenderState(RenderState& state) const throw()
 		{
 			return emulator.renderer.GetState( state );
 		}
 
-		Result Video::Blit(Output& output)
+		Result Video::Blit(Output& output) throw()
 		{
 			if (emulator.renderer.IsReady())
 			{
-				emulator.renderer.Blit( output, emulator.ppu.GetBurstPhase() );
+				emulator.renderer.Blit( output, emulator.ppu.GetScreen(), emulator.ppu.GetBurstPhase() );
 				return RESULT_OK;
 			}
 
 			return RESULT_ERR_NOT_READY;
 		}
 
-		Video::Decoder::Decoder(DecoderPreset preset)
+		Video::Decoder::Decoder(DecoderPreset preset) throw()
 		{
 			switch (preset)
 			{
@@ -218,7 +221,7 @@ namespace Nes
 			}
 		}
 
-		bool Video::Decoder::operator == (const Decoder& decoder) const
+		bool Video::Decoder::operator == (const Decoder& decoder) const throw()
 		{
 			for (uint i=0; i < NUM_AXES; ++i)
 			{
@@ -232,12 +235,12 @@ namespace Nes
 			return true;
 		}
 
-		Result Video::SetDecoder(const Decoder& decoder)
+		Result Video::SetDecoder(const Decoder& decoder) throw()
 		{
 			return emulator.renderer.SetDecoder( decoder );
 		}
 
-		const Video::Decoder& Video::GetDecoder() const
+		const Video::Decoder& Video::GetDecoder() const throw()
 		{
 			return emulator.renderer.GetDecoder();
 		}
@@ -246,9 +249,9 @@ namespace Nes
 		{
 			return emulator.UpdateColorMode
 			(
-				paletteMode == Palette::MODE_RGB    ? Emulator::COLORMODE_RGB :
-				paletteMode == Palette::MODE_CUSTOM ? Emulator::COLORMODE_CUSTOM :
-                                                      Emulator::COLORMODE_YUV
+				paletteMode == Palette::MODE_RGB    ? Core::Machine::COLORMODE_RGB :
+				paletteMode == Palette::MODE_CUSTOM ? Core::Machine::COLORMODE_CUSTOM :
+                                                      Core::Machine::COLORMODE_YUV
 			);
 		}
 
@@ -272,14 +275,24 @@ namespace Nes
 			return Palette::MODE_YUV;
 		}
 
-		Result Video::SetCustomPalette(Palette::Colors colors)
+		Result Video::SetCustomPalette(Palette::Colors colors,Palette::CustomType type)
 		{
-			return emulator.renderer.LoadCustomPalette( colors );
+			return emulator.renderer.LoadCustomPalette( colors, type == Palette::EXT_PALETTE );
+		}
+
+		uint Video::GetCustomPalette(u8 (*colors)[3],Palette::CustomType type) const
+		{
+			return emulator.renderer.SaveCustomPalette( colors, type == Palette::EXT_PALETTE );
 		}
 
 		void Video::ResetCustomPalette()
 		{
 			return emulator.renderer.ResetCustomPalette();
+		}
+
+		Video::Palette::CustomType Video::GetCustomPaletteType() const
+		{
+			return emulator.renderer.HasCustomPaletteEmphasis() ? Palette::EXT_PALETTE : Palette::STD_PALETTE;
 		}
 
 		Video::Palette::Colors Video::GetPaletteColors() const
@@ -288,3 +301,7 @@ namespace Nes
 		}
 	}
 }
+
+#ifdef NST_PRAGMA_OPTIMIZE
+#pragma optimize("", on)
+#endif

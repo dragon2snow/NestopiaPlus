@@ -25,73 +25,14 @@
 #include "NstObjectPod.hpp"
 #include "NstApplicationInstance.hpp"
 #include "NstDialogBrowse.hpp"
-#include <Windows.h>
 #include <CommDlg.h>
 #include <ShlObj.h>
 
 namespace Nestopia
 {
-	using namespace Window;
-
-	const Path Browser::OpenFile(tchar* const filter,const Path dir,const Path ext)
+	namespace Window
 	{
-		for (uint i=0; filter[i]; ++i)
-		{
-			if (filter[i] == '\t')
-				filter[i] = '\0';
-		}
-
-		Path path;
-		path.Reserve( MAX_PATH*2 );
-
-		Object::Pod<OPENFILENAME> ofn;
-
-		ofn.lStructSize     = sizeof(ofn);
-		ofn.hwndOwner       = Application::Instance::GetActiveWindow();
-		ofn.lpstrFile       = path.Ptr();
-		ofn.nMaxFile        = path.Capacity();
-		ofn.lpstrInitialDir = dir.Length() ? dir.Ptr() : _T(".");
-		ofn.Flags           = OFN_EXPLORER|OFN_FILEMUSTEXIST|OFN_HIDEREADONLY;
-
-		if (filter)
-		{
-			ofn.lpstrFilter = filter;
-			ofn.nFilterIndex = 1;
-		}
-
-		if (ext.Length())
-			ofn.lpstrDefExt = ext.Ptr();
-
-		if (::GetOpenFileName( &ofn ))
-			path.Validate();
-		else
-			path.Clear();
-
-		return path;
-	}
-
-	const Path Browser::SaveFile(tchar* const filter,Path initial)
-	{
-		Path path;
-		path.Reserve( MAX_PATH*2 );
-
-		const Path extension( initial.Extension() );
-
-		if (initial.File().Length() && initial.File()[0] != '.')
-			path = initial.File();
-
-		initial.File().Clear();
-
-		Object::Pod<OPENFILENAME> ofn;
-
-		ofn.lStructSize     = sizeof(ofn);
-		ofn.hwndOwner       = Application::Instance::GetActiveWindow();
-		ofn.lpstrFile       = path.Ptr();
-		ofn.nMaxFile        = path.Capacity();
-		ofn.lpstrInitialDir = initial.Length() ? initial.Ptr() : _T(".");
-		ofn.Flags           = OFN_EXPLORER|OFN_PATHMUSTEXIST|OFN_HIDEREADONLY;
-
-		if (filter)
+		const Path Browser::OpenFile(tchar* const filter,const Path dir,const Path ext)
 		{
 			for (uint i=0; filter[i]; ++i)
 			{
@@ -99,52 +40,111 @@ namespace Nestopia
 					filter[i] = '\0';
 			}
 
-			ofn.lpstrFilter = filter;
-			ofn.nFilterIndex = 1;
-		}
+			Path path;
+			path.Reserve( MAX_PATH*2 );
 
-		if (extension.Length())
-			ofn.lpstrDefExt = extension.Ptr();
+			Object::Pod<OPENFILENAME> ofn;
 
-		if (::GetSaveFileName( &ofn ))
-			path.Validate();
-		else
-			path.Clear();
+			ofn.lStructSize     = sizeof(ofn);
+			ofn.hwndOwner       = Application::Instance::GetActiveWindow();
+			ofn.lpstrFile       = path.Ptr();
+			ofn.nMaxFile        = path.Capacity();
+			ofn.lpstrInitialDir = dir.Length() ? dir.Ptr() : _T(".");
+			ofn.Flags           = OFN_EXPLORER|OFN_FILEMUSTEXIST|OFN_HIDEREADONLY;
 
-		return path;
-	}
+			if (filter)
+			{
+				ofn.lpstrFilter = filter;
+				ofn.nFilterIndex = 1;
+			}
 
-	const Path Browser::SelectDirectory()
-	{
-		Path path;
-		path.Reserve( MAX_PATH*2 );
+			if (ext.Length())
+				ofn.lpstrDefExt = ext.Ptr();
 
-		Object::Pod<BROWSEINFO> bi;
-
-		bi.hwndOwner      = Application::Instance::GetActiveWindow();
-		bi.pszDisplayName = path.Ptr();
-		bi.ulFlags        = BIF_RETURNONLYFSDIRS;
-
-		if (LPITEMIDLIST const idl = ::SHBrowseForFolder( &bi ))
-		{
-			if (::SHGetPathFromIDList( idl, path.Ptr() ) && path.Validate())
-				path.MakePretty( true );
+			if (::GetOpenFileName( &ofn ))
+				path.Validate();
 			else
 				path.Clear();
 
-			IMalloc* pMalloc;
-
-			if (SUCCEEDED(::SHGetMalloc( &pMalloc )))
-			{
-				pMalloc->Free( idl );
-				pMalloc->Release();
-			}
+			return path;
 		}
-		else
+
+		const Path Browser::SaveFile(tchar* const filter,Path initial)
 		{
-			path.Clear();
+			Path path;
+			path.Reserve( MAX_PATH*2 );
+
+			const Path extension( initial.Extension() );
+
+			if (initial.File().Length() && initial.File()[0] != '.')
+				path = initial.File();
+
+			initial.File().Clear();
+
+			Object::Pod<OPENFILENAME> ofn;
+
+			ofn.lStructSize     = sizeof(ofn);
+			ofn.hwndOwner       = Application::Instance::GetActiveWindow();
+			ofn.lpstrFile       = path.Ptr();
+			ofn.nMaxFile        = path.Capacity();
+			ofn.lpstrInitialDir = initial.Length() ? initial.Ptr() : _T(".");
+			ofn.Flags           = OFN_EXPLORER|OFN_PATHMUSTEXIST|OFN_HIDEREADONLY;
+
+			if (filter)
+			{
+				for (uint i=0; filter[i]; ++i)
+				{
+					if (filter[i] == '\t')
+						filter[i] = '\0';
+				}
+
+				ofn.lpstrFilter = filter;
+				ofn.nFilterIndex = 1;
+			}
+
+			if (extension.Length())
+				ofn.lpstrDefExt = extension.Ptr();
+
+			if (::GetSaveFileName( &ofn ))
+				path.Validate();
+			else
+				path.Clear();
+
+			return path;
 		}
 
-		return path;
+		const Path Browser::SelectDirectory()
+		{
+			Path path;
+			path.Reserve( MAX_PATH*2 );
+
+			Object::Pod<BROWSEINFO> bi;
+
+			bi.hwndOwner      = Application::Instance::GetActiveWindow();
+			bi.pszDisplayName = path.Ptr();
+			bi.ulFlags        = BIF_RETURNONLYFSDIRS;
+
+			if (LPITEMIDLIST const idl = ::SHBrowseForFolder( &bi ))
+			{
+				if (::SHGetPathFromIDList( idl, path.Ptr() ) && path.Validate())
+					path.MakePretty( true );
+				else
+					path.Clear();
+
+				IMalloc* pMalloc;
+
+				if (SUCCEEDED(::SHGetMalloc( &pMalloc )))
+				{
+					pMalloc->Free( idl );
+					pMalloc->Release();
+				}
+			}
+			else
+			{
+				path.Clear();
+			}
+
+			return path;
+		}
 	}
 }

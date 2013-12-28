@@ -33,7 +33,7 @@ namespace Nestopia
 {
 	namespace Resource
 	{
-		class Generic : Sealed
+		class Generic
 		{
 			const void* data;
 			uint size;

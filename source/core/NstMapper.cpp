@@ -280,12 +280,13 @@ namespace Nes
 				NMT_DEFAULT,
 				NMT_VERTICAL,
 				NMT_HORIZONTAL,
-				NMT_ZERO
+				NMT_ZERO,
+				NMT_FOURSCREEN
 			};
 
 			cstring board;
 			uchar prg : 3;
-			uchar nmt : 2;
+			uchar nmt : 3;
 			uchar nmtd : 2;
 		};
 
@@ -394,7 +395,7 @@ namespace Nes
 			{ "BANDAI 74HC161/32",                          Setup::PRG_0123_32K, Setup::NMT_ZERO,       Setup::NMT_ZERO       }, // 096
 			{ "IREM 74HC161/32",                            Setup::PRG_XX01_16K, Setup::NMT_HORIZONTAL, Setup::NMT_HORIZONTAL }, // 097
 			{ "",                                           Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 098
-			{ "VS-SYSTEM 8K CHR-SWITCH",                    Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 099
+			{ "VS-SYSTEM 8K CHR-SWITCH",                    Setup::PRG_01XX_16K, Setup::NMT_FOURSCREEN, Setup::NMT_FOURSCREEN }, // 099
 			{ "MMC3 (debug/hack)",                          Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 100
 			{ "JALECO 74HC161/32",                          Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 101
 			{ "",                                           Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 102
@@ -501,7 +502,7 @@ namespace Nes
 			{ "BMC 35-IN-1",                                Setup::PRG_0101_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 203
 			{ "BMC 64-IN-1",                                Setup::PRG_0101_16K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 204
 			{ "BMC 15/3-IN-1",                              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 205
-			{ "DEIROM",                                     Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 206
+			{ "DE1ROM",                                     Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 206
 			{ "TAITO X-005 +MIRR",                          Setup::PRG_012X_8K,  Setup::NMT_HORIZONTAL, Setup::NMT_HORIZONTAL }, // 207
 			{ "GOUDER BTL SF4",                             Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 208
 			{ "J.Y.COMPANY +EXT.MIRR.CTRL",                 Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 209
@@ -801,26 +802,26 @@ namespace Nes
 
 		Mapper::Mapper(Context& context,const uint settings)
 		:
-		prg                (context.pRom.Mem(),context.pRom.Size(),true,false),
+		prg                (context.prg.Mem(),context.prg.Size(),true,false),
 		cpu                (context.cpu),
 		ppu                (context.ppu),
 		chr                (context.ppu.GetChrMem()),
 		nmt                (context.ppu.GetNmtMem()),
+		id                 (context.id),
 		mirroring          (context.mirroring),
-		noStartingFrameIrq (CheckNoStartingFrameIrq( context.pRomCrc )),
-		id                 (context.id)
+		noStartingFrameIrq (CheckNoStartingFrameIrq( context.prgCrc ))
 		{
-			const bool cRomDiscarded = (settings & CROM_NONE) && context.cRom.Size();
+			const bool cRomDiscarded = (settings & CROM_NONE) && context.chr.Size();
 
 			if (cRomDiscarded)
-				context.cRom.Destroy();
+				context.chr.Destroy();
 
 			dword cRamSize = (settings & CRAM_SIZES) << 2;
 
-			if (context.cRom.Size())
+			if (context.chr.Size())
 			{
-				chr.Source(0).Set( context.cRom.Mem(), context.cRom.Size(), true, false );
-				chr.Source(1).Set( context.cRom.Mem(), context.cRom.Size(), true, false );
+				chr.Source(0).Set( context.chr.Mem(), context.chr.Size(), true, false );
+				chr.Source(1).Set( context.chr.Mem(), context.chr.Size(), true, false );
 			}
 			else if (cRamSize < SIZE_8K)
 			{
@@ -829,71 +830,68 @@ namespace Nes
 
 			if (cRamSize)
 			{
-				chr.Source( context.cRom.Size() != 0 ).Set( cRamSize, true, true );
+				chr.Source( context.chr.Size() != 0 ).Set( cRamSize, true, true );
 
-				if (context.cRom.Empty())
+				if (context.chr.Empty())
 					chr.Source(1).Set( chr.Source().Mem(), chr.Source().Size(), true, true );
 			}
 
 			if (mirroring == Ppu::NMT_FOURSCREEN)
 				nmt.Source().Set( SIZE_4K, true, true );
 
-			nmt.Source(1).Set( chr.Source().Mem(), chr.Source().Size(), true, context.cRom.Size() == 0 );
+			nmt.Source(1).Set( chr.Source().Mem(), chr.Source().Size(), true, context.chr.Size() == 0 );
 
-			NST_ASSERT( context.wRam.Size() % SIZE_8K == 0 );
+			NST_ASSERT( context.wrk.Size() % SIZE_8K == 0 );
 
-			context.wRamAuto = false;
+			context.wrkAuto = false;
 
 			switch (settings & WRAM_SETTINGS)
 			{
 				case WRAM_AUTO:
 
-					context.wRamAuto = context.wRam.Empty();
+					context.wrkAuto = context.wrk.Empty();
 
-					if (context.wRam.Empty() || (!context.battery && context.wRam.Size() != SIZE_8K))
+					if (context.wrk.Empty() || (!context.battery && context.wrk.Size() != SIZE_8K))
 					{
-						context.wRam.Set( SIZE_8K );
+						context.wrk.Set( SIZE_8K );
 
-						if (context.wRamAuto)
-							std::memset( context.wRam.Mem(), 0x00, SIZE_8K );
+						if (context.wrkAuto)
+							std::memset( context.wrk.Mem(), 0x00, SIZE_8K );
 					}
 					break;
 
 				case WRAM_NONE:
 
-					context.wRam.Destroy();
+					context.wrk.Destroy();
 					break;
 
 				default:
 				{
 					const dword size = (settings & WRAM_SIZES) * SIZE_8K;
-					const dword curr = context.wRam.Size();
+					const dword curr = context.wrk.Size();
 
-					if (curr < size)
+					if (curr != size)
 					{
-						// WRAM size not big enough. Enlarge it.
-						context.wRam.Set( size );
-						std::memset( context.wRam.Mem(curr), 0x00, size - curr );
+						context.wrk.Set( size );
+
+						if (curr < size)
+							std::memset( context.wrk.Mem(curr), 0x00, size - curr );
 					}
-					else if (curr > size && ((settings & WRAM_RESTRICT) || !context.battery))
-					{
-						// WRAM size bigger than it need to be. Shrink it.
-						context.wRam.Set( size );
-					}
+
 					break;
 				}
 			}
 
 			wrk.Source(0).Set
 			(
-				context.wRam.Size() ? context.wRam.Mem() : context.pRom.Mem(),
-				context.wRam.Size() ? context.wRam.Size() : context.pRom.Size(),
+				context.wrk.Size() ? context.wrk.Mem() : context.prg.Mem(),
+				context.wrk.Size() ? context.wrk.Size() : context.prg.Size(),
 				true,
-				context.wRam.Size() != 0
+				context.wrk.Size() != 0
 			);
 
 			wrk.Source(1).Set( prg.Source().Mem(), prg.Source().Size(), true, false );
-			prg.Source(1).Set( wrk.Source().Mem(), wrk.Source().Size(), true, context.wRam.Size() != 0 );
+			prg.Source(1).Set( wrk.Source().Mem(), wrk.Source().Size(), true, context.wrk.Size() != 0 );
 
 			Log log;
 
@@ -909,7 +907,7 @@ namespace Nes
 				log << title << GetBoard( id ) << NST_LINEBREAK;
 
 			log << title << (prg.Source().Size() / SIZE_1K) << "k PRG-ROM" NST_LINEBREAK
-				<< title << (chr.Source().Size() / SIZE_1K) << (context.cRom.Size() ? "k CHR-ROM" NST_LINEBREAK : "k CHR-RAM" NST_LINEBREAK);
+				<< title << (chr.Source().Size() / SIZE_1K) << (context.chr.Size() ? "k CHR-ROM" NST_LINEBREAK : "k CHR-RAM" NST_LINEBREAK);
 
 			if (cRomDiscarded)
 				log << title << "warning, CHR-ROM discarded!" NST_LINEBREAK;
@@ -917,8 +915,8 @@ namespace Nes
 			if (chr.Source(1).Internal())
 				log << title << (chr.Source(1).Size() / SIZE_1K) << "k CHR-RAM" NST_LINEBREAK;
 
-			if (context.wRam.Size())
-				log << title << (context.wRam.Size() / SIZE_1K) << ((settings & WRAM_SIZES) ? "k WRAM" NST_LINEBREAK : "k auto WRAM" NST_LINEBREAK);
+			if (context.wrk.Size())
+				log << title << (context.wrk.Size() / SIZE_1K) << ((settings & WRAM_SIZES) ? "k WRAM" NST_LINEBREAK : "k auto WRAM" NST_LINEBREAK);
 
 			cstring type;
 
@@ -969,7 +967,7 @@ namespace Nes
 				NST_ASSERT( id < NST_COUNT(setup) );
 
 				if (chr.Source(0).Internal() || chr.Source(1).Internal())
-					chr.Source( !chr.Source(0).Internal() ).Clear();
+					chr.Source( !chr.Source(0).Internal() ).Fill( 0x00 );
 
 				{
 					static const uint defPrg[8][4] =
@@ -994,11 +992,12 @@ namespace Nes
 				}
 
 				{
-					static const uchar defNmt[3] =
+					static const uchar defNmt[] =
 					{
 						Ppu::NMT_VERTICAL,
 						Ppu::NMT_HORIZONTAL,
-						Ppu::NMT_ZERO
+						Ppu::NMT_ZERO,
+						Ppu::NMT_FOURSCREEN
 					};
 
 					ppu.SetMirroring
@@ -1144,28 +1143,28 @@ namespace Nes
 
 		NES_POKE(Mapper,Wrk_6)
 		{
-			NST_VERIFY( wrk.IsWritable(0) );
+			NST_VERIFY( wrk.Writable(0) );
 			wrk[0][address - 0x6000U] = data;
 		}
 
 		NES_PEEK(Mapper,Wrk_6)
 		{
-			NST_VERIFY( wrk.IsReadable(0) );
+			NST_VERIFY( wrk.Readable(0) );
 			return wrk[0][address - 0x6000U];
 		}
 
 		NES_POKE(Mapper,Wrk_Bus_6)
 		{
-			NST_VERIFY( wrk.IsWritable(0) );
+			NST_VERIFY( wrk.Writable(0) );
 
-			if (wrk.IsWritable(0))
+			if (wrk.Writable(0))
 				wrk[0][address - 0x6000U] = data;
 		}
 
 		NES_PEEK(Mapper,Wrk_Bus_6)
 		{
-			NST_VERIFY( wrk.IsReadable(0) );
-			return wrk.IsReadable(0) ? wrk[0][address - 0x6000U] : (address >> 8);
+			NST_VERIFY( wrk.Readable(0) );
+			return wrk.Readable(0) ? wrk[0][address - 0x6000U] : (address >> 8);
 		}
 
 		NES_PEEK(Mapper,Prg_8) { return prg[0][address - 0x8000U]; }
@@ -1209,15 +1208,15 @@ namespace Nes
 		NES_POKE(Mapper,Nmt_Hv)
 		{
 			NST_COMPILE_ASSERT( Ppu::NMT_HORIZONTAL == 0 && Ppu::NMT_VERTICAL == 1 );
-			NST_VERIFY( mirroring != Ppu::NMT_FOURSCREEN );
+			NST_VERIFY( mirroring == Ppu::NMT_CONTROLLED || mirroring == Ppu::NMT_VERTICAL || mirroring == Ppu::NMT_HORIZONTAL );
 
-			ppu.SetMirroring( (data & 0x1) ^ 0x1 );
+			ppu.SetMirroring( ~data & 0x1 );
 		}
 
 		NES_POKE(Mapper,Nmt_Vh)
 		{
 			NST_COMPILE_ASSERT( Ppu::NMT_HORIZONTAL == 0 && Ppu::NMT_VERTICAL == 1 );
-			NST_VERIFY( mirroring != Ppu::NMT_FOURSCREEN );
+			NST_VERIFY( mirroring == Ppu::NMT_CONTROLLED || mirroring == Ppu::NMT_VERTICAL || mirroring == Ppu::NMT_HORIZONTAL );
 
 			ppu.SetMirroring( data & 0x1 );
 		}

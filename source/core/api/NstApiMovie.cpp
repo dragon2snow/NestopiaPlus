@@ -22,12 +22,11 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include <new>
 #include "../NstStream.hpp"
-#include "NstApiEmulator.hpp"
+#include "../NstMachine.hpp"
+#include "../NstImage.hpp"
 #include "NstApiMachine.hpp"
 #include "NstApiMovie.hpp"
-#include "../NstImage.hpp"
 
 #ifdef NST_PRAGMA_OPTIMIZE
 #pragma optimize("s", on)
@@ -39,47 +38,47 @@ namespace Nes
 	{
 		Movie::StateCaller Movie::stateCallback;
 
-		Result Movie::Play(std::istream& stream,CallbackMode mode)
+		Result Movie::Play(std::istream& stream,CallbackMode mode) throw()
 		{
 			return emulator.tracker.MoviePlay( emulator, &stream, mode == ENABLE_CALLBACK );
 		}
 
-		Result Movie::Record(std::ostream& stream,How how,CallbackMode mode)
+		Result Movie::Record(std::ostream& stream,How how,CallbackMode mode) throw()
 		{
 			return emulator.tracker.MovieRecord( emulator, &stream, how == APPEND, mode == ENABLE_CALLBACK );
 		}
 
-		void Movie::Stop()
+		void Movie::Stop() throw()
 		{
 			emulator.tracker.MovieStop();
 		}
 
-		void Movie::Eject()
+		void Movie::Eject() throw()
 		{
 			emulator.tracker.MovieEject();
 		}
 
-		void Movie::Cut()
+		void Movie::Cut() throw()
 		{
 			emulator.tracker.MovieCut();
 		}
 
-		bool Movie::IsPlaying() const
+		bool Movie::IsPlaying() const throw()
 		{
 			return emulator.tracker.MovieIsPlaying();
 		}
 
-		bool Movie::IsRecording() const
+		bool Movie::IsRecording() const throw()
 		{
 			return emulator.tracker.MovieIsRecording();
 		}
 
-		bool Movie::IsStopped() const
+		bool Movie::IsStopped() const throw()
 		{
 			return emulator.tracker.MovieIsStopped();
 		}
 
-		bool Movie::IsInserted() const
+		bool Movie::IsInserted() const throw()
 		{
 			return emulator.tracker.MovieIsInserted();
 		}

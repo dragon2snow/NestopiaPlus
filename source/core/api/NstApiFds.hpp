@@ -30,6 +30,7 @@
 #endif
 
 #include <iosfwd>
+#include <vector>
 #include "NstApi.hpp"
 
 #ifdef _MSC_VER
@@ -48,7 +49,8 @@ namespace Nes
 
 		public:
 
-			Fds(Emulator& e)
+			template<typename T>
+			Fds(T& e)
 			: Base(e) {}
 
 			enum
@@ -62,23 +64,66 @@ namespace Nes
 				DISK_EJECT
 			};
 
-			bool IsAnyDiskInserted() const;
+			bool IsAnyDiskInserted() const throw();
 
-			Result InsertDisk(uint,uint);
-			Result ChangeSide();
-			Result EjectDisk();
+			Result InsertDisk(uint,uint) throw();
+			Result ChangeSide() throw();
+			Result EjectDisk() throw();
 
-			Result SetBIOS(std::istream*);
-			Result GetBIOS(std::ostream&) const;
+			Result SetBIOS(std::istream*) throw();
+			Result GetBIOS(std::ostream&) const throw();
+			bool HasBIOS() const throw();
 
-			uint GetNumDisks() const;
-			uint GetNumSides() const;
-			int GetCurrentDisk() const;
-			int GetCurrentDiskSide() const;
-			bool HasHeader() const;
+			uint GetNumDisks() const throw();
+			uint GetNumSides() const throw();
+			int GetCurrentDisk() const throw();
+			int GetCurrentDiskSide() const throw();
+			bool CanChangeDiskSide() const throw();
+			bool HasHeader() const throw();
+
+			struct DiskData
+			{
+				DiskData();
+
+				typedef std::vector<u8> Data;
+
+				struct File
+				{
+					File();
+
+					enum Type
+					{
+						TYPE_UNKNOWN,
+						TYPE_PRG,
+						TYPE_CHR,
+						TYPE_NMT
+					};
+
+					u8 id;
+					u8 index;
+					u16 address;
+					Type type;
+					Data data;
+					char name[9];
+				};
+
+				typedef std::vector<File> Files;
+
+				Files files;
+				Data raw;
+			};
+
+			Result GetDiskData(uint,DiskData&);
+
+			enum Motor
+			{
+				MOTOR_OFF,
+				MOTOR_READ,
+				MOTOR_WRITE
+			};
 
 			typedef void (NST_CALLBACK *DiskChangeCallback)(UserData,Event,uint,uint);
-			typedef void (NST_CALLBACK *DiskAccessLampCallback)(UserData,bool);
+			typedef void (NST_CALLBACK *DiskAccessLampCallback)(UserData,Motor);
 
 			static Lamp diskAccessLampCallback;
 			static DiskChange diskChangeCallback;
@@ -95,10 +140,10 @@ namespace Nes
 
 		struct Fds::Lamp : Core::UserCallback<Fds::DiskAccessLampCallback>
 		{
-			void operator () (bool on) const
+			void operator () (Motor motor) const
 			{
 				if (function)
-					function( userdata, on );
+					function( userdata, motor );
 			}
 		};
 	}

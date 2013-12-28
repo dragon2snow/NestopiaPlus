@@ -26,15 +26,18 @@
 
 namespace Nestopia
 {
-	ibool System::Dll::Load(tstring file)
+	namespace System
 	{
-		NST_ASSERT( file && *file );
+		ibool Dll::Load(tstring file)
+		{
+			NST_ASSERT( file && *file );
 
-		if (hModule)
-			::FreeLibrary( hModule );
+			if (hModule)
+				::FreeLibrary( hModule );
 
-		hModule = ::LoadLibrary( file );
+			hModule = ::LoadLibrary( file );
 
-		return hModule != NULL;
+			return hModule != NULL;
+		}
 	}
 }

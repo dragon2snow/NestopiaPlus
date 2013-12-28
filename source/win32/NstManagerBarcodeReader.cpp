@@ -28,39 +28,40 @@
 
 namespace Nestopia
 {
-	using namespace Managers;
-
-	BarcodeReader::BarcodeReader(Emulator& e,Window::Menu& m)
-	: emulator(e), menu(m)
+	namespace Managers
 	{
-		m.Commands().Add( IDM_MACHINE_EXT_BARCODE, this, &BarcodeReader::OnMenuCmd );
-		emulator.Events().Add( this, &BarcodeReader::OnEmuEvent );
-	}
-
-	BarcodeReader::~BarcodeReader()
-	{
-		emulator.Events().Remove( this );
-	}
-
-	void BarcodeReader::OnMenuCmd(uint)
-	{
-		Window::BarcodeReader( emulator, lastCode ).Open();
-	}
-
-	void BarcodeReader::OnEmuEvent(Emulator::Event event)
-	{
-		switch (event)
+		BarcodeReader::BarcodeReader(Emulator& e,Window::Menu& m)
+		: emulator(e), menu(m)
 		{
-			case Emulator::EVENT_INIT:
-			case Emulator::EVENT_POWER_ON:
-			case Emulator::EVENT_POWER_OFF:
+			m.Commands().Add( IDM_MACHINE_EXT_BARCODE, this, &BarcodeReader::OnMenuCmd );
+			emulator.Events().Add( this, &BarcodeReader::OnEmuEvent );
+		}
 
-				menu[IDM_MACHINE_EXT_BARCODE].Enable
-				(
-					event == Emulator::EVENT_POWER_ON &&
-					Nes::BarcodeReader(emulator).IsConnected()
-				);
-				break;
+		BarcodeReader::~BarcodeReader()
+		{
+			emulator.Events().Remove( this );
+		}
+
+		void BarcodeReader::OnMenuCmd(uint)
+		{
+			Window::BarcodeReader( emulator, lastCode ).Open();
+		}
+
+		void BarcodeReader::OnEmuEvent(Emulator::Event event)
+		{
+			switch (event)
+			{
+				case Emulator::EVENT_INIT:
+				case Emulator::EVENT_POWER_ON:
+				case Emulator::EVENT_POWER_OFF:
+
+					menu[IDM_MACHINE_EXT_BARCODE].Enable
+					(
+						event == Emulator::EVENT_POWER_ON &&
+						Nes::BarcodeReader(emulator).IsConnected()
+					);
+					break;
+			}
 		}
 	}
 }

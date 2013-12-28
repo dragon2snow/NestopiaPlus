@@ -27,17 +27,18 @@
 
 namespace Nestopia
 {
-	using Window::Param;
-
-	uint Param::SliderParam::Scroll() const
+	namespace Window
 	{
-		switch (LOWORD(param.wParam))
+		uint Param::SliderParam::Scroll() const
 		{
-			case SB_THUMBTRACK:
-			case SB_THUMBPOSITION:
-			return HIWORD(param.wParam);
-		}
+			switch (LOWORD(param.wParam))
+			{
+				case SB_THUMBTRACK:
+				case SB_THUMBPOSITION:
+					return HIWORD(param.wParam);
+			}
 
-		return ::SendMessage( reinterpret_cast<HWND>(param.lParam), TBM_GETPOS, 0, 0 );
+			return ::SendMessage( reinterpret_cast<HWND>(param.lParam), TBM_GETPOS, 0, 0 );
+		}
 	}
 }

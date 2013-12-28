@@ -106,7 +106,7 @@ namespace Nes
 		Mapper68::Mapper68(Context& c)
 		:
 		Mapper         (c),
-		doubleCassette (DoubleCassette::Create(c.pRomCrc))
+		doubleCassette (DoubleCassette::Create(c.prgCrc))
 		{}
 
 		Mapper68::~Mapper68()

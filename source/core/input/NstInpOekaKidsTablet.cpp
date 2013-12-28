@@ -35,8 +35,8 @@ namespace Nes
 			#pragma optimize("s", on)
 			#endif
 
-			OekaKidsTablet::OekaKidsTablet()
-			: Device(Api::Input::OEKAKIDSTABLET)
+			OekaKidsTablet::OekaKidsTablet(const Cpu& c)
+			: Device(c,Api::Input::OEKAKIDSTABLET)
 			{
 				OekaKidsTablet::Reset();
 			}
@@ -57,12 +57,6 @@ namespace Nes
 			#ifdef NST_PRAGMA_OPTIMIZE
 			#pragma optimize("", on)
 			#endif
-
-			void OekaKidsTablet::BeginFrame(Controllers* i)
-			{
-				input = i;
-				bits = 0;
-			}
 
 			void OekaKidsTablet::Poke(uint data)
 			{

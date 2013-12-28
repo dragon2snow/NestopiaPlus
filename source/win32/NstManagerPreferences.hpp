@@ -27,7 +27,9 @@
 
 #pragma once
 
+#include "NstApplicationInstance.hpp"
 #include "NstCollectionBitSet.hpp"
+#include "NstObjectHeap.hpp"
 
 namespace Nestopia
 {

@@ -33,7 +33,7 @@ namespace Nestopia
 {
 	namespace Object
 	{
-		template<typename T,uint N=0U> class Heap : Sealed
+		template<typename T,uint N=0U> class Heap
 		{
 			T* const array;
 

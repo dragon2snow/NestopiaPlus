@@ -31,30 +31,11 @@
 
 namespace Nestopia
 {
-	namespace Managers
-	{
-		class Logfile;
-	}
-
 	namespace Io
 	{
-		class Log : HeapString
+		class Log : protected HeapString
 		{
-			friend class Managers::Logfile;
-
-			typedef HeapString Text;
-
-			Log(const Log&);
-			void operator = (const Log&);
-
-			struct Callbacker
-			{
-				inline Callbacker();
-
-				void* data;
-				void (NST_CALL *code)(void*,tstring,uint);
-			};
-
+			struct Callbacker;
 			static Callbacker callbacker;
 
 		public:
@@ -62,12 +43,13 @@ namespace Nestopia
 			Log() {}
 			~Log();
 
-			void Flush();
+			static void SetCallback(void*,void (NST_CALL*)(void*,tstring,uint));
+			static void UnsetCallback();
 
 			template<typename T>
 			Log& operator << (const T& t)
 			{
-				Text::operator << (t);
+				HeapString::operator << (t);
 				return *this;
 			}
 		};

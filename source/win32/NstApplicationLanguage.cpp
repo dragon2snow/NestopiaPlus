@@ -24,98 +24,99 @@
 
 #include <algorithm>
 #include "NstApplicationException.hpp"
-#include "NstApplicationInstance.hpp"
 #include "NstApplicationLanguage.hpp"
 
 namespace Nestopia
 {
-	using Application::Language;
-
-	ibool Language::Resource::Load(tstring const p)
+	namespace Application
 	{
-		if (!Dll::Load( p ))
-			return false;
-
-		path = p;
-
-		return true;
-	}
-
-	Language::Language(const Application::Configuration& cfg)
-	{
-		Load( cfg["language"].Ptr() );
-	}
-
-	void Language::Save(Application::Configuration& cfg) const
-	{
-		if (resource.path.Length())
-			cfg["language"].Quote() = resource.path;
-	}
-
-	void Language::Load(tstring const path)
-	{
-		if (!path || !*path)
+		ibool Instance::Language::Resource::Load(tstring const p)
 		{
-			Paths paths;
-			EnumerateResources( paths );
+			if (!Dll::Load( p ))
+				return false;
 
-			if (paths.empty())
-				throw Exception(_T("Language plugin file missing!"));
+			path = p;
 
-			Paths::const_iterator path(std::find( paths.begin(), paths.end(), Application::Instance::GetExePath(_T("english.nlg")) ));
-
-			if (path == paths.end())
-				path = paths.begin();
-
-			if (!resource.Load( path->Ptr() ))
-				throw Exception(_T("Failed to load language plugin file!"));
+			return true;
 		}
-		else if (!resource.Load( path ))
+
+		void Instance::Language::Load(const Configuration& cfg)
 		{
-			Load( NULL );
+			if (!resource.Loaded())
+				Load( cfg["language"].Ptr() );
 		}
-	}
 
-	void Language::UpdateResource(tstring const update)
-	{
-		NST_ASSERT( update );
-		resource.path = update;
-	}
-
-	void Language::EnumerateResources(Paths& paths) const
-	{
-		struct FileFinder
+		void Instance::Language::Save(Configuration& cfg) const
 		{
-			WIN32_FIND_DATA data;
-			HANDLE const handle;
+			if (resource.path.Length())
+				cfg["language"].Quote() = resource.path;
+		}
 
-			FileFinder(tstring const path)
-			: handle(::FindFirstFile( path, &data )) {}
-
-			~FileFinder()
+		void Instance::Language::Load(tstring const path)
+		{
+			if (!path || !*path)
 			{
-				if (handle != INVALID_HANDLE_VALUE)
-					::FindClose( handle );
+				Paths paths;
+				EnumerateResources( paths );
+
+				if (paths.empty())
+					throw Exception(_T("Language plugin file missing!"));
+
+				Paths::const_iterator path(std::find( paths.begin(), paths.end(), Instance::GetExePath(_T("english.nlg")) ));
+
+				if (path == paths.end())
+					path = paths.begin();
+
+				if (!resource.Load( path->Ptr() ))
+					throw Exception(_T("Failed to load language plugin file!"));
 			}
-		};
-
-		Path path( Application::Instance::GetExePath(_T("language\\*.*")) );
-
-		FileFinder findFile( path.Ptr() );
-
-		if (findFile.handle != INVALID_HANDLE_VALUE)
-		{
-			do
+			else if (!resource.Load( path ))
 			{
-				if (!(findFile.data.dwFileAttributes & (FILE_ATTRIBUTE_HIDDEN|FILE_ATTRIBUTE_SYSTEM|FILE_ATTRIBUTE_DIRECTORY)))
+				Load( NULL );
+			}
+		}
+
+		void Instance::Language::UpdateResource(tstring const update)
+		{
+			NST_ASSERT( update );
+			resource.path = update;
+		}
+
+		void Instance::Language::EnumerateResources(Paths& paths) const
+		{
+			struct FileFinder
+			{
+				WIN32_FIND_DATA data;
+				HANDLE const handle;
+
+				FileFinder(tstring const path)
+				: handle(::FindFirstFile( path, &data )) {}
+
+				~FileFinder()
 				{
-					path.File() = findFile.data.cFileName;
-
-					if (path.Extension() == _T("nlg"))
-						paths.push_back( path );
+					if (handle != INVALID_HANDLE_VALUE)
+						::FindClose( handle );
 				}
+			};
+
+			Path path( Instance::GetExePath(_T("language\\*.*")) );
+
+			FileFinder findFile( path.Ptr() );
+
+			if (findFile.handle != INVALID_HANDLE_VALUE)
+			{
+				do
+				{
+					if (!(findFile.data.dwFileAttributes & (FILE_ATTRIBUTE_HIDDEN|FILE_ATTRIBUTE_SYSTEM|FILE_ATTRIBUTE_DIRECTORY)))
+					{
+						path.File() = findFile.data.cFileName;
+
+						if (path.Extension() == _T("nlg"))
+							paths.push_back( path );
+					}
+				}
+				while (::FindNextFile( findFile.handle, &findFile.data ));
 			}
-			while (::FindNextFile( findFile.handle, &findFile.data ));
 		}
 	}
 }

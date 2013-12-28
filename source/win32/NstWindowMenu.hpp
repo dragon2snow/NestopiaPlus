@@ -45,8 +45,8 @@ namespace Nestopia
 
 			void  Hook(Custom&);
 			void  Unhook();
-			uint  GetHeight() const;
-			ibool IsVisible() const;
+			uint  Height() const;
+			ibool Visible() const;
 			void  Show(ibool=true) const;
 			ibool Toggle() const;
 			void  EnableAccelerator(ibool);
@@ -127,14 +127,14 @@ namespace Nestopia
 				void  Check  (uint,uint,ibool) const;
 				void  Check  (uint,uint) const;
 
-				ibool IsEnabled () const;
-				ibool IsChecked () const;
+				ibool Enabled () const;
+				ibool Checked () const;
 
-				ibool IsDisabled  () const { return !IsEnabled(); }
-				ibool IsUnchecked () const { return !IsChecked(); }
+				ibool Disabled  () const { return !Enabled(); }
+				ibool Unchecked () const { return !Checked(); }
 
-				ibool ToggleCheck()  const { return Check( IsUnchecked() ); }
-				ibool ToggleEnable() const { return Enable( IsDisabled() ); }
+				ibool ToggleCheck()  const { return !Check( Unchecked() ); }
+				ibool ToggleEnable() const { return !Enable( Disabled() ); }
 
 				ibool Disable () const { return Enable (false); }
 				ibool Uncheck () const { return Check  (false); }
@@ -161,7 +161,7 @@ namespace Nestopia
 			public:
 
 				Item(const Custom* w,HMENU h=NULL,uint p=0)
-				: window(w), hMenu(h), pos(p) {}
+				: hMenu(h), pos(p), window(w) {}
 
 				HMENU GetHandle() const
 				{
@@ -303,7 +303,7 @@ namespace Nestopia
 
 			public:
 
-				static ibool TranslateAccelerator(MSG& msg)
+				static ibool TransAccelerator(MSG& msg)
 				{
 					return translator( msg );
 				}
@@ -346,14 +346,9 @@ namespace Nestopia
 				return PopupHandler(*this);
 			}
 
-			static uint GetStandardHeight()
+			static ibool TransAccelerator(MSG& msg)
 			{
-				return ::GetSystemMetrics( SM_CYMENU );
-			}
-
-			static ibool TranslateAccelerator(MSG& msg)
-			{
-				return Instances::TranslateAccelerator( msg );
+				return Instances::TransAccelerator( msg );
 			}
 
 			static void EnableAccelerators(ibool enable)

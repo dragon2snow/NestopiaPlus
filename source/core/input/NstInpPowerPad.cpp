@@ -35,8 +35,8 @@ namespace Nes
 			#pragma optimize("s", on)
 			#endif
 
-			PowerPad::PowerPad()
-			: Device(Api::Input::POWERPAD)
+			PowerPad::PowerPad(const Cpu& c)
+			: Device(c,Api::Input::POWERPAD)
 			{
 				PowerPad::Reset();
 			}
@@ -44,7 +44,7 @@ namespace Nes
 			void PowerPad::Reset()
 			{
 				shifter = 2;
-				stream = (0x55FFUL << 3);
+				state = stream = (0x55FFUL << 3);
 			}
 
 			void PowerPad::SaveState(State::Saver& state,const uchar id) const
@@ -56,7 +56,7 @@ namespace Nes
 			{
 				if (id == NES_STATE_CHUNK_ID('P','P','\0','\0'))
 				{
-					shifter = ((state.Read8() & 0x1) ^ 0x1) << 1;
+					shifter = (~state.Read8() & 0x1) << 1;
 					stream = ((state.Read16() & 0x55FFUL) ^ 0x55FFUL) << 3;
 				}
 			}
@@ -64,12 +64,6 @@ namespace Nes
 			#ifdef NST_PRAGMA_OPTIMIZE
 			#pragma optimize("", on)
 			#endif
-
-			void PowerPad::BeginFrame(Controllers* i)
-			{
-				input = i;
-				state = (0x55FFUL << 3);
-			}
 
 			uint PowerPad::Peek(uint)
 			{
@@ -81,14 +75,14 @@ namespace Nes
 			void PowerPad::Poke(uint data)
 			{
 				const uint prev = shifter;
-				shifter = ((data & 0x1) ^ 0x1) << 1;
+				shifter = (~data & 0x1) << 1;
 
 				if (prev > shifter)
 				{
 					if (input)
 					{
 						Controllers::PowerPad& power = input->powerPad;
-						input = NULL;
+						power.timeStamp = GetTimeStamp();
 
 						if (Controllers::PowerPad::callback( power ))
 						{

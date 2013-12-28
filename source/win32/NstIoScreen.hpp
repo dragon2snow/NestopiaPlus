@@ -32,34 +32,36 @@
 
 namespace Nestopia
 {
-	namespace Managers
-	{
-		class Video;
-	}
-
 	namespace Io
 	{
-		class Screen : HeapString
+		class Screen : protected HeapString
 		{
-			friend class Managers::Video;
-
-			typedef HeapString Text;
-			typedef Object::Delegate<void,const GenericString&> Callback;
-
-			Screen(const Screen&);
-			void operator = (const Screen&);
+			typedef Object::Delegate2<void,const GenericString&,uint> Callback;
 
 			static Callback callback;
 
+			const uint time;
+
 		public:
 
-			Screen() {}
+			Screen(uint=0);
 			~Screen();
+
+			template<typename T,typename U>
+			static void SetCallback(T data,U code)
+			{
+				callback = Callback(data,code);
+			}
+
+			static void UnsetCallback()
+			{
+				callback.Unset();
+			}
 
 			template<typename T>
 			Screen& operator << (const T& t)
 			{
-				Text::operator << (t);
+				HeapString::operator << (t);
 				return *this;
 			}
 		};

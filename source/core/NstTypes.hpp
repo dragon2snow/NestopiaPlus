@@ -89,6 +89,10 @@
    #define NST_RESTRICT __restrict
    #endif
 
+   #ifndef NST_PURE
+   #define NST_PURE __declspec(noalias)
+   #endif
+
   #endif
 
  #endif
@@ -145,6 +149,10 @@
 #define NST_RESTRICT
 #endif
 
+#ifndef NST_PURE
+#define NST_PURE
+#endif
+
 #ifndef NST_CALL
 #define NST_CALL
 #endif
@@ -189,13 +197,13 @@ namespace Nes
 #include "NstInteger.hpp"
 #include "NstAssert.hpp"
 
-#define NES_CYCLE_MAX (~dword(0))
-
 namespace Nes
 {
 	typedef uint Data;
 	typedef uint Address;
 	typedef dword Cycle;
 }
+
+#define NES_CYCLE_MAX Cycle(~0UL)
 
 #endif

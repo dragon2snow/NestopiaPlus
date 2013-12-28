@@ -92,7 +92,7 @@ namespace Nestopia
 				return data ? reinterpret_cast<const Dummy*>(this) : NULL;
 			}
 
-			void Reset()
+			void Unset()
 			{
 				data = NULL;
 				code = NULL;
@@ -185,7 +185,7 @@ namespace Nestopia
 				return data ? reinterpret_cast<const Dummy*>(this) : NULL;
 			}
 
-			void Reset()
+			void Unset()
 			{
 				data = NULL;
 				code = NULL;
@@ -280,7 +280,7 @@ namespace Nestopia
 				return data ? reinterpret_cast<const Dummy*>(this) : NULL;
 			}
 
-			void Reset()
+			void Unset()
 			{
 				data = NULL;
 				code = NULL;

@@ -73,7 +73,6 @@ namespace Nestopia
 			ibool OnCmdJoystickEnable   (Param&);
 			ibool OnCmdDefault          (Param&);
 			ibool OnCmdJoysticksDefault (Param&);
-			ibool OnCmdOk               (Param&);
 
 			void UpdateKeyMap    (uint) const;
 			void UpdateKeyNames  (uint) const;
@@ -259,12 +258,13 @@ namespace Nestopia
 					KARAOKESTUDIO_NUM_KEYS,
 
 					EMULATION_KEYS = KARAOKESTUDIO_KEYS + KARAOKESTUDIO_NUM_KEYS,
-					EMULATION_KEY_ALT_SPEED = 0,
-					EMULATION_KEY_REWIND,
-					EMULATION_KEY_INSERT_COIN_1,
+					EMULATION_KEY_INSERT_COIN_1 = 0,
 					EMULATION_KEY_INSERT_COIN_2,
+					EMULATION_KEY_ALT_SPEED,
+					EMULATION_KEY_REWIND,
 					EMULATION_NUM_KEYS,
 
+					POLLING_KEYS = EMULATION_KEYS + EMULATION_KEY_ALT_SPEED,
 					COMMAND_KEYS = EMULATION_KEYS + EMULATION_NUM_KEYS,
 
 					FILE_KEYS = COMMAND_KEYS,
@@ -358,7 +358,7 @@ namespace Nestopia
 				void Clear();
 				void Clear(uint);
 
-			#pragma pack(push,1)
+				#pragma pack(push,1)
 
 				struct Type
 				{
@@ -379,7 +379,7 @@ namespace Nestopia
 					cstring cfgName;
 				};
 
-			#pragma pack(pop)
+				#pragma pack(pop)
 
 				enum
 				{

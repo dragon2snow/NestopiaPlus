@@ -36,7 +36,7 @@ namespace Nes
 		Mapper78::Mapper78(Context& c)
 		: Mapper(c)
 		{
-			if (c.pRomCrc == 0xBC1197A4UL) // Holy Diver
+			if (c.prgCrc == 0xBC1197A4UL) // Holy Diver
 			{
 				nmt[0] = Ppu::NMT_HORIZONTAL;
 				nmt[1] = Ppu::NMT_VERTICAL;

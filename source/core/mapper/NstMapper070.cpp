@@ -36,12 +36,12 @@ namespace Nes
 		Mapper70::Mapper70(Context& c)
 		:
 		Mapper (c),
-		useGun (c.pRomCrc == 0x0CD00488UL || c.pRomCrc == 0x03B6596CUL)
+		useGun (c.prgCrc == 0x0CD00488UL || c.prgCrc == 0x03B6596CUL)
 		{}
 
 		void Mapper70::SubReset(bool)
 		{
-			Map( 0x6000U, 0xFFFFU, &Mapper70::Poke_pRom );
+			Map( 0x6000U, 0xFFFFU, &Mapper70::Poke_Prg );
 
 			if (useGun)
 			{
@@ -54,7 +54,7 @@ namespace Nes
 		#pragma optimize("", on)
 		#endif
 
-		NES_POKE(Mapper70,pRom)
+		NES_POKE(Mapper70,Prg)
 		{
 			ppu.Update();
 			prg.SwapBank<SIZE_16K,0x0000U>( data >> 4 );

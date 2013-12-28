@@ -29,11 +29,11 @@
 
 #ifdef _MSC_VER
 #pragma warning( push )
-#pragma warning( disable : 4127 4244 )
+#pragma warning( disable : 4127 )
 #endif
 
-#define NES_NTSC_NO_BLITTERS
-#include "../nes_ntsc/nes_ntsc.inl"
+#define SNES_NTSC_NO_BLITTERS
+#include "../snes_ntsc/snes_ntsc.inl"
 
 #ifdef _MSC_VER
 #pragma warning( pop )

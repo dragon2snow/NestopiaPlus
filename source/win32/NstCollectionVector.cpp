@@ -31,159 +31,160 @@
 
 namespace Nestopia
 {
-	using Collection::Private::Base;
-
-	Base::Base(const uint inSize)
-	:
-	data     (inSize ? std::malloc( inSize ) : NULL),
-	capacity (inSize),
-	size     (inSize)
-	{}
-
-	Base::Base(const void* const NST_RESTRICT inData,const uint inSize)
-	:
-	data     (inSize ? std::memcpy( std::malloc( inSize ), inData, inSize ) : NULL),
-	capacity (inSize),
-	size     (inSize)
+	namespace Collection
 	{
-		NST_ASSERT( bool(inData) >= bool(inSize) );
-	}
+		Private::Base::Base(const uint inSize)
+		:
+		data     (inSize ? std::malloc( inSize ) : NULL),
+		capacity (inSize),
+		size     (inSize)
+		{}
 
-	Base::Base(const Base& base)
-	:
-	data     (base.size ? std::memcpy( std::malloc( base.size ), base.data, base.size ) : NULL),
-	capacity (base.size),
-	size     (base.size)
-	{
-	}
-
-	ibool Base::Valid(const void* const it) const
-	{
-		return it >= bytes && it <= bytes + size;
-	}
-
-	ibool Base::InBound(const void* const it) const
-	{
-		return it >= bytes && it < bytes + size;
-	}
-
-	void Base::Assign(const void* const NST_RESTRICT inData,const uint inSize)
-	{
-		size = inSize;
-
-		if (capacity < inSize)
-			data = std::realloc( data, capacity = inSize );
-
-		std::memcpy( data, inData, inSize );
-	}
-
-	void Base::Append(const void* const NST_RESTRICT inData,const uint inSize)
-	{
-		size += inSize;
-
-		if (capacity < size)
-			data = std::realloc( data, capacity = size * 2 );
-
-		std::memcpy( bytes + (size - inSize), inData, inSize );
-	}
-
-	void Base::Insert(void* const offset,const void* const NST_RESTRICT inData,const uint inSize)
-	{
-		NST_ASSERT( Valid(offset) );
-
-		if (inSize)
+		Private::Base::Base(const void* const NST_RESTRICT inData,const uint inSize)
+		:
+		data     (inSize ? std::memcpy( std::malloc( inSize ), inData, inSize ) : NULL),
+		capacity (inSize),
+		size     (inSize)
 		{
-			const uint pos = static_cast<char*>(offset) - bytes;
-			const uint end = size - pos;
+			NST_ASSERT( bool(inData) >= bool(inSize) );
+		}
 
+		Private::Base::Base(const Base& base)
+		:
+		data     (base.size ? std::memcpy( std::malloc( base.size ), base.data, base.size ) : NULL),
+		capacity (base.size),
+		size     (base.size)
+		{
+		}
+
+		ibool Private::Base::Valid(const void* const it) const
+		{
+			return it >= bytes && it <= bytes + size;
+		}
+
+		ibool Private::Base::InBound(const void* const it) const
+		{
+			return it >= bytes && it < bytes + size;
+		}
+
+		void Private::Base::Assign(const void* const NST_RESTRICT inData,const uint inSize)
+		{
+			size = inSize;
+
+			if (capacity < inSize)
+				data = std::realloc( data, capacity = inSize );
+
+			std::memcpy( data, inData, inSize );
+		}
+
+		void Private::Base::Append(const void* const NST_RESTRICT inData,const uint inSize)
+		{
 			size += inSize;
 
-			if (capacity >= size)
-			{
-				std::memmove( static_cast<char*>(offset) + inSize, offset, end );
+			if (capacity < size)
+				data = std::realloc( data, capacity = size * 2 );
 
-				if (inData)
-					std::memcpy( offset, inData, inSize );
+			std::memcpy( bytes + (size - inSize), inData, inSize );
+		}
+
+		void Private::Base::Insert(void* const offset,const void* const NST_RESTRICT inData,const uint inSize)
+		{
+			NST_ASSERT( Valid(offset) );
+
+			if (inSize)
+			{
+				const uint pos = static_cast<char*>(offset) - bytes;
+				const uint end = size - pos;
+
+				size += inSize;
+
+				if (capacity >= size)
+				{
+					std::memmove( static_cast<char*>(offset) + inSize, offset, end );
+
+					if (inData)
+						std::memcpy( offset, inData, inSize );
+				}
+				else
+				{
+					capacity = size * 2;
+
+					void* const NST_RESTRICT next = std::malloc( capacity );
+
+					std::memcpy( next, data, pos );
+
+					if (inData)
+						std::memcpy( static_cast<char*>(next) + pos, inData, inSize );
+
+					std::memcpy( static_cast<char*>(next) + pos + inSize, offset, end );
+
+					void* tmp = data;
+					data = next;
+					std::free( tmp );
+				}
 			}
-			else
+		}
+
+		void Private::Base::Erase(void* const begin,void* const end)
+		{
+			NST_ASSERT( end >= begin && begin >= bytes && end <= bytes + size );
+
+			const uint back = (bytes + size) - static_cast<char*>(end);
+			size -= static_cast<char*>(end) - static_cast<char*>(begin);
+
+			std::memmove( begin, end, back );
+		}
+
+		void Private::Base::Destroy()
+		{
+			if (void* tmp = data)
 			{
-				capacity = size * 2;
-
-				void* const NST_RESTRICT next = std::malloc( capacity );
-
-				std::memcpy( next, data, pos );
-
-				if (inData)
-					std::memcpy( static_cast<char*>(next) + pos, inData, inSize );
-
-				std::memcpy( static_cast<char*>(next) + pos + inSize, offset, end );
-
-				void* tmp = data;
-				data = next;
+				data = NULL;
+				capacity = 0;
+				size = 0;
 				std::free( tmp );
 			}
 		}
-	}
 
-	void Base::Erase(void* const begin,void* const end)
-	{
-		NST_ASSERT( end >= begin && begin >= bytes && end <= bytes + size );
-
-		const uint back = (bytes + size) - static_cast<char*>(end);
-		size -= static_cast<char*>(end) - static_cast<char*>(begin);
-
-		std::memmove( begin, end, back );
-	}
-
-	void Base::Destroy()
-	{
-		if (void* tmp = data)
+		void Private::Base::operator = (const Base& base)
 		{
-			data = NULL;
-			capacity = 0;
-			size = 0;
+			Assign( base.data, base.size );
+		}
+
+		void Private::Base::Reserve(const uint inSize)
+		{
+			if (capacity < inSize)
+				data = std::realloc( data, capacity = inSize );
+		}
+
+		void Private::Base::Resize(const uint inSize)
+		{
+			size = inSize;
+			Reserve( inSize );
+		}
+
+		void Private::Base::Grow(const uint inSize)
+		{
+			Resize( size + inSize );
+		}
+
+		void Private::Base::Defrag()
+		{
+			if (capacity != size)
+				data = std::realloc( data, capacity = size );
+		}
+
+		void Private::Base::Import(Base& base)
+		{
+			void* tmp = data;
+			data = base.data;
+			base.data = NULL;
+			size = base.size;
+			base.size = 0;
+			capacity = base.capacity;
+			base.capacity = 0;
 			std::free( tmp );
 		}
-	}
-
-	void Base::operator = (const Base& base)
-	{
-		Assign( base.data, base.size );
-	}
-
-	void Base::Reserve(const uint inSize)
-	{
-		if (capacity < inSize)
-			data = std::realloc( data, capacity = inSize );
-	}
-
-	void Base::Resize(const uint inSize)
-	{
-		size = inSize;
-		Reserve( inSize );
-	}
-
-	void Base::Grow(const uint inSize)
-	{
-		Resize( size + inSize );
-	}
-
-	void Base::Defrag()
-	{
-		if (capacity != size)
-			data = std::realloc( data, capacity = size );
-	}
-
-	void Base::Import(Base& base)
-	{
-		void* tmp = data;
-		data = base.data;
-		base.data = NULL;
-		size = base.size;
-		base.size = 0;
-		capacity = base.capacity;
-		base.capacity = 0;
-		std::free( tmp );
 	}
 }
 

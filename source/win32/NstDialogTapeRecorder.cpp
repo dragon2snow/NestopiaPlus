@@ -30,111 +30,103 @@
 
 namespace Nestopia
 {
-	using namespace Window;
-
-	struct TapeRecorder::Handlers
+	namespace Window
 	{
-		static const MsgHandler::Entry<TapeRecorder> messages[];
-		static const MsgHandler::Entry<TapeRecorder> commands[];
-	};
+		struct TapeRecorder::Handlers
+		{
+			static const MsgHandler::Entry<TapeRecorder> messages[];
+			static const MsgHandler::Entry<TapeRecorder> commands[];
+		};
 
-	const MsgHandler::Entry<TapeRecorder> TapeRecorder::Handlers::messages[] =
-	{
-		{ WM_INITDIALOG, &TapeRecorder::OnInitDialog }
-	};
+		const MsgHandler::Entry<TapeRecorder> TapeRecorder::Handlers::messages[] =
+		{
+			{ WM_INITDIALOG, &TapeRecorder::OnInitDialog }
+		};
 
-	const MsgHandler::Entry<TapeRecorder> TapeRecorder::Handlers::commands[] =
-	{
-		{ IDC_TAPE_RECORDER_USE_IMAGENAME, &TapeRecorder::OnCmdUseImageName },
-		{ IDC_TAPE_RECORDER_CLEAR,         &TapeRecorder::OnCmdClear        },
-		{ IDC_TAPE_RECORDER_BROWSE,        &TapeRecorder::OnCmdBrowse       },
-		{ IDC_TAPE_RECORDER_OK,            &TapeRecorder::OnCmdOk           },
-		{ IDC_TAPE_RECORDER_CANCEL,        &TapeRecorder::OnCmdCancel       }
-	};
+		const MsgHandler::Entry<TapeRecorder> TapeRecorder::Handlers::commands[] =
+		{
+			{ IDC_TAPE_RECORDER_USE_IMAGENAME, &TapeRecorder::OnCmdUseImageName },
+			{ IDC_TAPE_RECORDER_CLEAR,         &TapeRecorder::OnCmdClear        },
+			{ IDC_TAPE_RECORDER_BROWSE,        &TapeRecorder::OnCmdBrowse       },
+			{ IDOK,                            &TapeRecorder::OnCmdOk           }
+		};
 
-	TapeRecorder::TapeRecorder(const Configuration& cfg,const Managers::Paths& p)
-	: dialog(IDD_TAPE_RECORDER,this,Handlers::messages,Handlers::commands), paths(p)
-	{
-		settings.useImageNaming = (cfg["files use image tape name"] != Configuration::NO);
-		settings.customFile = cfg["files tape"];
-		paths.FixFile( Managers::Paths::File::TAPE, settings.customFile );
-	}
+		TapeRecorder::TapeRecorder(const Configuration& cfg,const Managers::Paths& p)
+		: dialog(IDD_TAPE_RECORDER,this,Handlers::messages,Handlers::commands), paths(p)
+		{
+			settings.useImageNaming = (cfg["files use image tape name"] != Configuration::NO);
+			settings.customFile = cfg["files tape"];
+			paths.FixFile( Managers::Paths::File::TAPE, settings.customFile );
+		}
 
-	TapeRecorder::~TapeRecorder()
-	{
-	}
+		TapeRecorder::~TapeRecorder()
+		{
+		}
 
-	void TapeRecorder::Save(Configuration& cfg) const
-	{
-		cfg["files use image tape name"].YesNo() = settings.useImageNaming;
-		cfg["files tape"].Quote() = settings.customFile;
-	}
+		void TapeRecorder::Save(Configuration& cfg) const
+		{
+			cfg["files use image tape name"].YesNo() = settings.useImageNaming;
+			cfg["files tape"].Quote() = settings.customFile;
+		}
 
-	ibool TapeRecorder::OnInitDialog(Param&)
-	{
-		dialog.CheckBox(IDC_TAPE_RECORDER_USE_IMAGENAME).Check( settings.useImageNaming );
-		dialog.Edit(IDC_TAPE_RECORDER_FILE) << settings.customFile.Ptr();
+		ibool TapeRecorder::OnInitDialog(Param&)
+		{
+			dialog.CheckBox(IDC_TAPE_RECORDER_USE_IMAGENAME).Check( settings.useImageNaming );
+			dialog.Edit(IDC_TAPE_RECORDER_FILE) << settings.customFile.Ptr();
 
-		Update();
-
-		return true;
-	}
-
-	void TapeRecorder::Update() const
-	{
-		const ibool unchecked = !dialog.CheckBox(IDC_TAPE_RECORDER_USE_IMAGENAME).IsChecked();
-
-		dialog.Control( IDC_TAPE_RECORDER_FILE   ).Enable( unchecked );
-		dialog.Control( IDC_TAPE_RECORDER_BROWSE ).Enable( unchecked );
-		dialog.Control( IDC_TAPE_RECORDER_CLEAR  ).Enable( unchecked );
-	}
-
-	ibool TapeRecorder::OnCmdUseImageName(Param& param)
-	{
-		if (param.Button().IsClicked())
 			Update();
 
-		return true;
-	}
-
-	ibool TapeRecorder::OnCmdClear(Param& param)
-	{
-		if (param.Button().IsClicked())
-			dialog.Edit(IDC_TAPE_RECORDER_FILE).Clear();
-
-		return true;
-	}
-
-	ibool TapeRecorder::OnCmdBrowse(Param& param)
-	{
-		if (param.Button().IsClicked())
-		{
-			Path tmp;
-			dialog.Edit(IDC_TAPE_RECORDER_FILE) >> tmp;
-			dialog.Edit(IDC_TAPE_RECORDER_FILE).Try() << paths.BrowseSave( Managers::Paths::File::TAPE, Managers::Paths::SUGGEST, tmp ).Ptr();
+			return true;
 		}
 
-		return true;
-	}
-
-	ibool TapeRecorder::OnCmdOk(Param& param)
-	{
-		if (param.Button().IsClicked())
+		void TapeRecorder::Update() const
 		{
-			settings.useImageNaming = dialog.CheckBox(IDC_TAPE_RECORDER_USE_IMAGENAME).IsChecked();
-			dialog.Edit(IDC_TAPE_RECORDER_FILE) >> settings.customFile;
-			paths.FixFile( Managers::Paths::File::TAPE, settings.customFile );
-			dialog.Close();
+			const ibool unchecked = !dialog.CheckBox(IDC_TAPE_RECORDER_USE_IMAGENAME).Checked();
+
+			dialog.Control( IDC_TAPE_RECORDER_FILE   ).Enable( unchecked );
+			dialog.Control( IDC_TAPE_RECORDER_BROWSE ).Enable( unchecked );
+			dialog.Control( IDC_TAPE_RECORDER_CLEAR  ).Enable( unchecked );
 		}
 
-		return true;
-	}
+		ibool TapeRecorder::OnCmdUseImageName(Param& param)
+		{
+			if (param.Button().Clicked())
+				Update();
 
-	ibool TapeRecorder::OnCmdCancel(Param& param)
-	{
-		if (param.Button().IsClicked())
-			dialog.Close();
+			return true;
+		}
 
-		return true;
+		ibool TapeRecorder::OnCmdClear(Param& param)
+		{
+			if (param.Button().Clicked())
+				dialog.Edit(IDC_TAPE_RECORDER_FILE).Clear();
+
+			return true;
+		}
+
+		ibool TapeRecorder::OnCmdBrowse(Param& param)
+		{
+			if (param.Button().Clicked())
+			{
+				Path tmp;
+				dialog.Edit(IDC_TAPE_RECORDER_FILE) >> tmp;
+				dialog.Edit(IDC_TAPE_RECORDER_FILE).Try() << paths.BrowseSave( Managers::Paths::File::TAPE, Managers::Paths::SUGGEST, tmp ).Ptr();
+			}
+
+			return true;
+		}
+
+		ibool TapeRecorder::OnCmdOk(Param& param)
+		{
+			if (param.Button().Clicked())
+			{
+				settings.useImageNaming = dialog.CheckBox(IDC_TAPE_RECORDER_USE_IMAGENAME).Checked();
+				dialog.Edit(IDC_TAPE_RECORDER_FILE) >> settings.customFile;
+				paths.FixFile( Managers::Paths::File::TAPE, settings.customFile );
+				dialog.Close();
+			}
+
+			return true;
+		}
 	}
 }

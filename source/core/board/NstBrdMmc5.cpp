@@ -71,64 +71,6 @@ namespace Nes
 				b11111111
 			};
 
-			uint Mmc5::DetectWRam(const dword size,const dword pRomCrc)
-			{
-				switch (pRomCrc)
-				{
-					case 0xF4120E58UL: // Aoki Ookami to Shiroki Mejika - Genchou Hishi
-					case 0x286613D8UL: // Nobunaga no Yabou - Bushou Fuuun Roku
-					case 0x11EAAD26UL: // Romance of the Three Kingdoms 2
-					case 0xFCFD72DCUL: // -||-
-					case 0x95BA5733UL: // Sangokushi 2
-
-						return WRAM_32K|WRAM_RESTRICT;
-
-					case 0x2B548D75UL: // Bandit Kings of Ancient China
-					case 0xF4024666UL: // -||-
-					case 0x68C2B3E0UL: // -||-
-					case 0xF4CD4998UL: // Dai Koukai Jidai
-					case 0x30310DF1UL: // -||-
-					case 0x8FA95456UL: // Ishin no Arashi
-					case 0x98C8E090UL: // Nobunaga no Yabou - Sengoku Gunyuu Den
-					case 0x8E9A5E2FUL: // L'Empereur
-					case 0x57E3218BUL: // -||-
-					case 0x2F50BD38UL: // -||-
-					case 0xB56958D1UL: // Nobunaga's Ambition 2
-					case 0x7A6033F9UL: // -||-
-					case 0xE6C28C5FUL: // Suikoden - Tenmei no Chikai
-					case 0xCD35E2E9UL: // Uncharted Waters
-					case 0x8F9BE3C8UL: // -||-
-
-						return WRAM_16K|WRAM_RESTRICT;
-
-					case 0xE7C72DBBUL: // Gemfire
-					case 0x57F33F70UL: // Royal Blood
-					case 0x5D9D9891UL: // Just Breed
-					case 0x664A480EUL: // -||-
-					case 0x339C034CUL: // -||-
-					case 0xE91548D8UL: // Shin 4 Nin Uchi Mahjong
-
-						return WRAM_8K|WRAM_RESTRICT;
-
-					case 0x637E366AUL: // Castlevania 3 (E)
-					case 0x40DBC815UL: // Castlevania 3 (KC)
-					case 0x95CA9EC7UL: // Castlevania 3 (U)
-					case 0x255B129CUL: // Gun Sight
-					case 0x51D2112FUL: // Laser Invasion
-
-						return WRAM_NONE;
-
-					default:
-
-						if ( size > SIZE_40K ) return WRAM_64K|WRAM_RESTRICT;
-						if ( size > SIZE_32K ) return WRAM_40K|WRAM_RESTRICT;
-						if ( size > SIZE_16K ) return WRAM_32K|WRAM_RESTRICT;
-						if ( size > SIZE_8K  ) return WRAM_16K|WRAM_RESTRICT;
-
-						return WRAM_8K|WRAM_RESTRICT;
-				}
-			}
-
 			Mmc5::Sound::Square::Square()
 			{
 				Reset();
@@ -172,9 +114,9 @@ namespace Nes
 			Mmc5::Banks::Banks(uint wrkSize)
 			: wrk(wrkSize) {}
 
-			Mmc5::Mmc5(Context& c)
+			Mmc5::Mmc5(Context& c,uint settings)
 			:
-			Mapper ( c, DetectWRam(c.wRam.Size(),c.pRomCrc) ),
+			Mapper ( c, settings ),
 			banks  ( wrk.Source(0).Size() ),
 			sound  ( c.cpu )
 			{
@@ -342,18 +284,10 @@ namespace Nes
 				UpdateRenderMethod();
 			}
 
-			#ifdef NST_PRAGMA_OPTIMIZE
-			#pragma optimize("", on)
-			#endif
-
 			inline bool Mmc5::Sound::Square::CanOutput() const
 			{
 				return lengthCounter.GetCount() && waveLength >= MIN_FRQ;
 			}
-
-			#ifdef NST_PRAGMA_OPTIMIZE
-			#pragma optimize("s", on)
-			#endif
 
 			void Mmc5::Sound::Square::UpdateContext(const uint fixed)
 			{
@@ -880,8 +814,7 @@ namespace Nes
 
 					case Regs::CHR_MODE_1K:
 
-						chr.SwapBanks<SIZE_1K,0x0000U>( banks.chrA[0], banks.chrA[1], banks.chrA[2], banks.chrA[3] );
-						chr.SwapBanks<SIZE_1K,0x1000U>( banks.chrA[4], banks.chrA[5], banks.chrA[6], banks.chrA[7] );
+						chr.SwapBanks<SIZE_1K,0x0000U>( banks.chrA[0], banks.chrA[1], banks.chrA[2], banks.chrA[3], banks.chrA[4], banks.chrA[5], banks.chrA[6], banks.chrA[7] );
 						break;
 				}
 			}
@@ -907,8 +840,7 @@ namespace Nes
 
 					case Regs::CHR_MODE_1K:
 
-						chr.SwapBanks<SIZE_1K,0x0000U>( banks.chrB[0], banks.chrB[1], banks.chrB[2], banks.chrB[3] );
-						chr.SwapBanks<SIZE_1K,0x1000U>( banks.chrB[0], banks.chrB[1], banks.chrB[2], banks.chrB[3] );
+						chr.SwapBanks<SIZE_1K,0x0000U>( banks.chrB[0], banks.chrB[1], banks.chrB[2], banks.chrB[3], banks.chrB[0], banks.chrB[1], banks.chrB[2], banks.chrB[3] );
 						break;
 				}
 			}
@@ -1088,7 +1020,7 @@ namespace Nes
 				}
 			}
 
-			const Io::Accessor::Type<Mmc5>::Definition Mmc5::nmtMethods[8][4][2] =
+			NES_ACCESSOR_TYPE(Mmc5,const Mmc5::nmtMethods[8][4][2]) =
 			{
 				{   // PPU NT
 					{ &Mmc5::Access_Nt<NT_CIRAM_0>,         &Mmc5::Access_Nt<NT_CIRAM_0>      },
@@ -1140,7 +1072,7 @@ namespace Nes
 				}
 			};
 
-			const Io::Accessor::Type<Mmc5>::Definition Mmc5::chrMethods[8] =
+			NES_ACCESSOR_TYPE(Mmc5,const Mmc5::chrMethods[8]) =
 			{
 				&Mmc5::Access_CRom,         // PPU NT
 				&Mmc5::Access_CRomExt,      // PPU EXT

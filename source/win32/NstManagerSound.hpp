@@ -28,6 +28,7 @@
 #pragma once
 
 #include "NstDirectSound.hpp"
+#include "NstObjectHeap.hpp"
 #include "../core/api/NstApiSound.hpp"
 
 namespace Nestopia
@@ -39,6 +40,7 @@ namespace Nestopia
 
 	namespace Managers
 	{
+		class Paths;
 		class Preferences;
 
 		class Sound

@@ -28,7 +28,6 @@
 #pragma once
 
 #include "NstWindowDynamic.hpp"
-#include "NstWindowMenu.hpp"
 #include "NstManagerVideo.hpp"
 #include "NstManagerSound.hpp"
 #include "NstManagerInput.hpp"
@@ -36,13 +35,6 @@
 
 namespace Nestopia
 {
-	namespace Managers
-	{
-		class Paths;
-		class Preferences;
-		class Emulator;
-	}
-
 	namespace Window
 	{
 		class Main
@@ -93,17 +85,6 @@ namespace Nestopia
 					WS_EX_ACCEPTFILES |
 					WS_EX_CLIENTEDGE
 				),
-
-				FULLSCREEN_STYLE =
-				(
-					WS_POPUP |
-					WS_VISIBLE
-				),
-
-				FULLSCREEN_EXSTYLE =
-				(
-					0
-				)
 			};
 
 			struct State
@@ -119,6 +100,9 @@ namespace Nestopia
 			{
 				MainWindow(const Configuration&,const Menu&);
 			};
+
+			inline ibool Fullscreen() const;
+			inline ibool Windowed() const;
 
 			ibool CanRunInBackground();
 			ibool ToggleMenu();
@@ -158,16 +142,6 @@ namespace Nestopia
 			State state;
 
 			static const tchar windowName[];
-
-			ibool IsFullscreen() const
-			{
-				return video.IsFullscreen();
-			}
-
-			ibool IsWindowed() const
-			{
-				return video.IsWindowed();
-			}
 
 		public:
 

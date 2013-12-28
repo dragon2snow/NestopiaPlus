@@ -37,7 +37,7 @@ namespace Nestopia
 		{
 		public:
 
-			Machine(Emulator&,const Application::Configuration&,Window::Menu&,const Preferences&);
+			Machine(Emulator&,const Configuration&,Window::Menu&,const Preferences&);
 			~Machine();
 
 			void Save(Configuration&) const;

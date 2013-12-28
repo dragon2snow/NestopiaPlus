@@ -114,7 +114,7 @@ namespace Nes
 					AEROBICS_STUDIO_SAMPLES = 8
 				};
 
-				virtual Result Load(uint,const void*,dword,bool,uint,dword) = 0;
+				virtual Result Load(uint,const void*,dword,bool,uint,dword) throw() = 0;
 
 				typedef void (NST_CALLBACK *LoadCallback) (void*,Type,Loader&);
 
@@ -138,7 +138,8 @@ namespace Nes
 		{
 		public:
 
-			Sound(Emulator& e)
+			template<typename T>
+			Sound(T& e)
 			: Base(e) {}
 
 			enum Channel
@@ -174,21 +175,21 @@ namespace Nes
 				MAX_SPEED = 240
 			};
 
-			Result  SetSampleRate(ulong);
-			Result  SetSampleBits(uint);
-			Result  SetVolume(uint,uint);
-			Result  SetSpeed(uint);
-			void    SetAutoTranspose(bool);
-			void    SetSpeaker(Speaker);
-			bool    IsAutoTransposing() const;
-			bool    IsAudible() const;
-			ulong   GetSampleRate() const;
-			uint    GetSampleBits() const;
-			uint    GetVolume(uint) const;
-			uint    GetSpeed() const;
-			uint    GetLatency() const;
-			Speaker GetSpeaker() const;
-			void    EmptyBuffer();
+			Result  SetSampleRate(ulong) throw();
+			Result  SetSampleBits(uint) throw();
+			Result  SetVolume(uint,uint) throw();
+			Result  SetSpeed(uint) throw();
+			void    SetAutoTranspose(bool) throw();
+			void    SetSpeaker(Speaker) throw();
+			bool    IsAutoTransposing() const throw();
+			bool    IsAudible() const throw();
+			ulong   GetSampleRate() const throw();
+			uint    GetSampleBits() const throw();
+			uint    GetVolume(uint) const throw();
+			uint    GetSpeed() const throw();
+			uint    GetLatency() const throw();
+			Speaker GetSpeaker() const throw();
+			void    EmptyBuffer() throw();
 
 			typedef Core::Sound::Output Output;
 			typedef Core::Sound::Loader Loader;

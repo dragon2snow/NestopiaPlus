@@ -23,8 +23,7 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 
 #include <new>
-#include "../NstCore.hpp"
-#include "NstApiEmulator.hpp"
+#include "../NstMachine.hpp"
 #include "NstApiMachine.hpp"
 #include "NstApiRewinder.hpp"
 
@@ -38,7 +37,7 @@ namespace Nes
 	{
 		Rewinder::StateCaller Rewinder::stateCallback;
 
-		Result Rewinder::Enable(bool enable)
+		Result Rewinder::Enable(bool enable) throw()
 		{
 			try
 			{
@@ -58,27 +57,27 @@ namespace Nes
 			}
 		}
 
-		bool Rewinder::IsEnabled() const
+		bool Rewinder::IsEnabled() const throw()
 		{
 			return emulator.tracker.RewinderIsEnabled();
 		}
 
-		bool Rewinder::IsSoundEnabled() const
+		bool Rewinder::IsSoundEnabled() const throw()
 		{
 			return emulator.tracker.RewinderIsSoundEnabled();
 		}
 
-		void Rewinder::EnableSound(bool enable)
+		void Rewinder::EnableSound(bool enable) throw()
 		{
 			emulator.tracker.RewinderEnableSound( enable );
 		}
 
-		Rewinder::Direction Rewinder::GetDirection() const
+		Rewinder::Direction Rewinder::GetDirection() const throw()
 		{
 			return emulator.tracker.IsRewinding() ? BACKWARD : FORWARD;
 		}
 
-		Result Rewinder::SetDirection(Direction dir)
+		Result Rewinder::SetDirection(Direction dir) throw()
 		{
 			if (emulator.Is(Machine::GAME) && emulator.Is(Machine::ON))
 			{
@@ -91,7 +90,7 @@ namespace Nes
 			return RESULT_ERR_NOT_READY;
 		}
 
-		void Rewinder::Reset()
+		void Rewinder::Reset() throw()
 		{
 			if (emulator.Is(Machine::GAME) && emulator.Is(Machine::ON))
 				emulator.tracker.RewinderReset();

@@ -22,15 +22,51 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
+#include <cstdio>
 #include "NstString.hpp"
 #include "NstApplicationInstance.hpp"
-#include <Windows.h>
 #include <Shlwapi.h>
 
 namespace Nestopia
 {
 	namespace String
 	{
+		uint Base::FromDouble(char (&b)[MAX_FLT_LENGTH],double v,uint n)
+		{
+			char f[] = "%.xf";
+			f[2] = '0' + n;
+
+			int l = std::sprintf( b, f, v );
+
+			if (l > 0)
+			{
+				return l;
+			}
+			else
+			{
+				b[0] = '\0';
+				return 0;
+			}
+		}
+
+		uint Base::FromDouble(wchar_t (&b)[MAX_FLT_LENGTH],double v,uint n)
+		{
+			wchar_t f[] = L"%.xf";
+			f[2] = '0' + n;
+
+			int l = std::swprintf( b, f, v );
+
+			if (l > 0)
+			{
+				return l;
+			}
+			else
+			{
+				b[0] = '\0';
+				return 0;
+			}
+		}
+
 		// LOCALE_INVARIANT would be better but is only available in XP or greater
 
 		int Base::Compare(const char* t,int n,const char* u,int m)

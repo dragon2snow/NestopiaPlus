@@ -23,7 +23,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 
 #include <cstring>
-#include <new>
 #include "NstLog.hpp"
 #include "NstChecksumCrc32.hpp"
 #include "NstState.hpp"
@@ -46,66 +45,66 @@ namespace Nes
 		#pragma optimize("s", on)
 		#endif
 
+		Cartridge::Wrk::Wrk()
+		: autoSized(false) {}
+
 		Cartridge::Cartridge(Context& context,Result& result)
 		:
 		Image        (CARTRIDGE),
 		mapper       (NULL),
 		vs           (NULL),
 		turboFile    (NULL),
-		dataRecorder (NULL),
-		wRamAuto     (false)
+		dataRecorder (NULL)
 		{
 			try
 			{
-				result = RESULT_OK;
-
 				switch (Stream::In(context.stream).Peek32())
 				{
-					case 0x1A53454EUL: { Ines ines( context.stream, pRom, cRom, wRam, info, context.database, result ); break; }
-					case 0x46494E55UL: { Unif unif( context.stream, pRom, cRom, wRam, info, context.database, result ); break; }
+					case 0x1A53454EUL: result = Ines( context.stream, prg, chr, wrk, info, context.database ).GetResult(); break;
+					case 0x46494E55UL: result = Unif( context.stream, prg, chr, wrk, info, context.database ).GetResult(); break;
 					default: throw RESULT_ERR_INVALID_FILE;
 				}
 
-				if (info.system != Api::Cartridge::SYSTEM_VS)
-					DetectVS();
-
-				if (context.database && context.database->Enabled())
-					DetectBadChr();
-
 				if (DetectEncryption())
+				{
 					result = RESULT_WARN_ENCRYPTED_ROM;
+				}
+				else if (context.database && context.database->Enabled())
+				{
+					DetectBadChr();
+				}
 
 				DetectControllers();
 				DetectTurboFile( context );
 
-				if (vs == NULL)
-					dataRecorder = new Peripherals::DataRecorder(context.cpu);
-
-				if (!InitInfo( context.database ))
-				{
-					if (result == RESULT_OK)
-						result = RESULT_WARN_BAD_DUMP;
-				}
-
-				ResetWRam();
-
 				if (info.battery)
 					LoadBattery();
 
-				if (info.system == Api::Cartridge::SYSTEM_VS)
-					vs = VsSystem::Create( context.cpu, context.ppu, info.pRomCrc );
+				if (info.board.empty())
+					info.board = Mapper::GetBoard( info.mapper );
 
-				pRom.Arrange( SIZE_16K );
-				cRom.Arrange( SIZE_8K );
+				vs = VsSystem::Create( context.cpu, context.ppu, info.pRomCrc, info.system == Api::Cartridge::SYSTEM_VS );
+
+				if (vs)
+				{
+					info.system = Api::Cartridge::SYSTEM_VS;
+				}
+				else if (info.system != Api::Cartridge::SYSTEM_PC10)
+				{
+					dataRecorder = new Peripherals::DataRecorder(context.cpu);
+				}
+
+				prg.Mirror( SIZE_16K );
+				chr.Mirror( SIZE_8K );
 
 				Mapper::Context settings
 				(
 					info.mapper,
 					context.cpu,
 					context.ppu,
-					pRom,
-					cRom,
-					wRam,
+					prg,
+					chr,
+					wrk,
 					info.mirroring == Api::Cartridge::MIRROR_HORIZONTAL ? Ppu::NMT_HORIZONTAL :
 					info.mirroring == Api::Cartridge::MIRROR_VERTICAL   ? Ppu::NMT_VERTICAL :
 					info.mirroring == Api::Cartridge::MIRROR_FOURSCREEN ? Ppu::NMT_FOURSCREEN :
@@ -118,12 +117,14 @@ namespace Nes
 
 				mapper = Mapper::Create( settings );
 
-				if (wRam.Size())
-				{
-					wRamAuto = settings.wRamAuto;
+				info.wRam = wrk.Size();
 
+				if (wrk.Size())
+				{
 					if (info.battery)
-						batteryCheckSum = Checksum::Md5::Compute( wRam.Mem(), wRam.Size() );
+						wrk.batteryCheckSum = Checksum::Md5::Compute( wrk.Mem(), wrk.Size() );
+					else
+						wrk.autoSized = settings.wrkAuto;
 				}
 			}
 			catch (...)
@@ -146,26 +147,9 @@ namespace Nes
 			Destroy();
 		}
 
-		bool Cartridge::InitInfo(const ImageDatabase* const database)
+		Result Cartridge::Flush(bool power,bool movie) const
 		{
-			if (info.board.empty())
-				info.board = Mapper::GetBoard( info.mapper );
-
-			if (!info.crc || !database)
-				return true;
-
-			ImageDatabase::Handle handle( database->GetHandle( info.crc ) );
-
-			if (!handle)
-				return true;
-
-			if (database->IsBad( handle ))
-			{
-				info.condition = Api::Cartridge::NO;
-				return false;
-			}
-
-			return true;
+			return movie ? RESULT_OK : SaveBattery( power );
 		}
 
 		uint Cartridge::GetDesiredController(uint port) const
@@ -490,71 +474,6 @@ namespace Nes
 			}
 		}
 
-		void Cartridge::DetectVS()
-		{
-			switch (info.pRomCrc)
-			{
-				// UniSystem
-				case 0xEB2DBA63UL: // TKO Boxing
-				case 0x9818F656UL: // -||-
-				case 0x135ADF7CUL: // RBI Baseball
-				case 0xED588F00UL: // Duck Hunt
-				case 0x16D3F469UL: // Ninja Jajamaru Kun (J)
-				case 0x8850924BUL: // Tetris
-				case 0x8C0C2DF5UL: // Top Gun
-				case 0x70901B25UL: // Slalom
-				case 0xCF36261EUL: // Sky Kid
-				case 0xE1AA8214UL: // Star Luster
-				case 0xD5D7EAC4UL: // Dr. Mario
-				case 0xFFBEF374UL: // Castlevania
-				case 0xE2C0A2BEUL: // Platoon
-				case 0xCBE85490UL: // Excitebike
-				case 0x29155E0CUL: // Excitebike (alt)
-				case 0x07138C06UL: // Clu Clu Land
-				case 0x43A357EFUL: // Ice Climber
-				case 0xD4EB5923UL: // -||-
-				case 0x737DD1BFUL: // Super Mario Bros
-				case 0x4BF3972DUL: // -||-
-				case 0x8B60CC58UL: // -||-
-				case 0x8192C804UL: // -||-
-				case 0xEC461DB9UL: // Pinball
-				case 0xE528F651UL: // Pinball (alt)
-				case 0x0B65A917UL: // Mach Rider
-				case 0x8A6A9848UL: // -||-
-				case 0xAE8063EFUL: // -||- (Japan, Fighting Course)
-				case 0x46914E3EUL: // Soccer
-				case 0x70433F2CUL: // Battle City
-				case 0x8D15A6E6UL: // -||-
-				case 0xD99A2087UL: // Gradius
-				case 0x1E438D52UL: // Goonies
-				case 0xFF5135A3UL: // Hogan's Alley
-				case 0x17AE56BEUL: // Freedom Force
-				case 0xF9D3B0A3UL: // Super Xevious
-				case 0x66BB838FUL: // -||-
-				case 0x9924980AUL: // -||-
-				case 0xCC2C4B5DUL: // Golf
-				case 0x86167220UL: // Lady Golf
-				case 0xA93A5AEEUL: // Stroke and Match Golf
-				case 0xC99EC059UL: // Raid on Bungeling Bay
-				case 0xCA85E56DUL: // Mighty Bomb Jack
-
-				// DualSystem
-				case 0xB90497AAUL: // Tennis
-				case 0x008A9C16UL: // Wrecking Crew
-				case 0xAD407F52UL: // Balloon Fight
-				case 0x18A93B7BUL: // Mahjong (J)
-				case 0x13A91937UL: // Baseball
-				case 0xF5DEBF88UL: // -||-
-				case 0xF64D7252UL: // -||-
-				case 0x968A6E9DUL: // -||-
-				case 0xF42DAB14UL: // Ice Climber
-				case 0x7D6B764FUL: // -||-
-
-					info.system = Api::Cartridge::SYSTEM_VS;
-					break;
-			}
-		}
-
 		void Cartridge::DetectTurboFile(Context& context)
 		{
 			NST_ASSERT( turboFile == NULL );
@@ -591,13 +510,13 @@ namespace Nes
 
 		void Cartridge::DetectBadChr()
 		{
-			if (cRom.Size())
+			if (chr.Size())
 			{
 				switch (info.cRomCrc)
 				{
 					case 0x2B58AA2DUL: // Viva! Las Vegas (J)
 
-						cRom[0] = 0xFF;
+						chr[0] = 0xFF;
 						break;
 				}
 			}
@@ -628,19 +547,19 @@ namespace Nes
 
 		void Cartridge::ResetWRam()
 		{
-			NST_ASSERT( (wRam.Size() % SIZE_8K) == 0 );
+			NST_ASSERT( (wrk.Size() % SIZE_8K) == 0 );
 
-			if (wRam.Size())
+			if (wrk.Size())
 			{
-				const uint mask = wRamAuto ? 0xFF : 0x00;
+				const uint mask = wrk.autoSized ? 0xFF : 0x00;
 
 				for (uint i=0x6000U; i < 0x7000U; ++i)
-					wRam[i-0x6000U] = (i >> 8) & mask;
+					wrk[i-0x6000U] = (i >> 8) & mask;
 
 				for (uint i=(info.trained ? 0x7200U : 0x7000U); i < 0x8000U; ++i)
-					wRam[i-0x6000U] = (i >> 8) & mask;
+					wrk[i-0x6000U] = (i >> 8) & mask;
 
-				std::memset( wRam.Mem(0x2000U), 0x00, wRam.Size() - 0x2000U );
+				std::memset( wrk.Mem(0x2000U), 0x00, wrk.Size() - 0x2000U );
 			}
 		}
 
@@ -720,7 +639,7 @@ namespace Nes
 
 		void Cartridge::LoadBattery()
 		{
-			NST_ASSERT( info.battery && batteryCheckSum.IsNull() );
+			NST_ASSERT( info.battery && wrk.batteryCheckSum.IsNull() );
 
 			std::vector<u8> data;
 			Api::User::fileIoCallback( Api::User::FILE_LOAD_BATTERY, data );
@@ -742,14 +661,14 @@ namespace Nes
 						Log::Flush( "Cartridge: warning, save data size is not evenly divisible by 8k!" NST_LINEBREAK );
 				}
 
-				if (wRam.Size() < size)
+				if (wrk.Size() < size)
 				{
 					// Current WRAM size is too small. Resize and do zero-padding.
-					wRam.Set( size + (pad ? SIZE_8K - pad : 0) );
-					std::memset( wRam.Mem(size), 0x00, wRam.Size() - size );
+					wrk.Set( size + (pad ? SIZE_8K - pad : 0) );
+					std::memset( wrk.Mem(size), 0x00, wrk.Size() - size );
 				}
 
-				std::memcpy( wRam.Mem(), &data.front(), size );
+				std::memcpy( wrk.Mem(), &data.front(), size );
 			}
 		}
 
@@ -758,17 +677,17 @@ namespace Nes
 			if (mapper)
 				mapper->Flush( power );
 
-			if (info.battery && wRam.Size())
+			if (info.battery && wrk.Size())
 			{
-				const Checksum::Md5::Key key( Checksum::Md5::Compute( wRam.Mem(), wRam.Size() ) );
+				const Checksum::Md5::Key key( Checksum::Md5::Compute( wrk.Mem(), wrk.Size() ) );
 
-				if (batteryCheckSum != key)
+				if (wrk.batteryCheckSum != key)
 				{
 					try
 					{
-						std::vector<u8> vector( wRam.Mem(), wRam.Mem( wRam.Size() ) );
-						batteryCheckSum = key;
+						std::vector<u8> vector( wrk.Mem(), wrk.Mem() + wrk.Size() );
 						Api::User::fileIoCallback( Api::User::FILE_SAVE_BATTERY, vector );
+						wrk.batteryCheckSum = key;
 					}
 					catch (...)
 					{
@@ -780,18 +699,22 @@ namespace Nes
 			return RESULT_OK;
 		}
 
-		const void* Cartridge::SearchDatabase(const ImageDatabase& database,const void* data,ulong fullsize,const ulong compsize)
+		const void* Cartridge::SearchDatabase(const ImageDatabase& database,const u8* const data,ulong size)
 		{
 			const void* entry = NULL;
 
-			if (data && fullsize > 16)
+			if (data && size > 16+512)
 			{
-				fullsize -= 16;
-				data = static_cast<const void*>(static_cast<const u8*>(data) + 16);
-				entry = database.GetHandle( Checksum::Crc32::Compute( data, fullsize ) );
+				size = (size-16) - (size-16) % 512;
+				entry = database.GetHandle( Checksum::Crc32::Compute( data+16, size ) );
 
-				if (entry == NULL && compsize && compsize < fullsize)
-					entry = database.GetHandle( Checksum::Crc32::Compute( data, compsize ) );
+				if (entry == NULL)
+				{
+					const dword banks = data[4] * SIZE_16K + data[5] * SIZE_8K;
+
+					if (banks && size > banks)
+						entry = database.GetHandle( Checksum::Crc32::Compute( data+16, banks ) );
+				}
 			}
 
 			return entry;

@@ -38,44 +38,44 @@ namespace Nes
 		const u8 VsSystem::colorMaps[4][64] =
 		{
 			{
-				0x35, 0x23, 0x16, 0x22, 0x1C, 0x09, 0xFF, 0x15,
-				0x20, 0x00, 0x27, 0x05, 0x04, 0x27, 0x08, 0x30,
-				0x21, 0xFF, 0xFF, 0x29, 0x3C, 0x32, 0x36, 0x12,
-				0xFF, 0x2B, 0x0F, 0xFF, 0x20, 0x10, 0x24, 0x01,
-				0xFF, 0x31, 0xFF, 0x2A, 0x2C, 0x0C, 0xFF, 0xFF,
-				0xFF, 0x07, 0x34, 0x06, 0x13, 0x02, 0x26, 0x0F,
-				0xFF, 0x19, 0x10, 0x0A, 0x39, 0xFF, 0x37, 0x17,
-				0xFF, 0x11, 0x09, 0xFF, 0x39, 0x25, 0x18, 0xFF
+				0x35, 0x23, 0x16, 0x22, 0x1C, 0x09, 0x2D, 0x15,
+				0x20, 0x00, 0x27, 0x05, 0x04, 0x28, 0x08, 0x20,
+				0x21, 0x27, 0x07, 0x29, 0x3C, 0x32, 0x36, 0x12,
+				0x28, 0x2B, 0x0D, 0x08, 0x10, 0x3D, 0x24, 0x01,
+				0x01, 0x31, 0x33, 0x2A, 0x2C, 0x0C, 0x1B, 0x14,
+				0x0D, 0x07, 0x34, 0x06, 0x13, 0x02, 0x26, 0x0D,
+				0x0D, 0x19, 0x10, 0x0A, 0x39, 0x03, 0x37, 0x17,
+				0x09, 0x11, 0x1A, 0x1D, 0x38, 0x25, 0x18, 0x3A
 			},
 			{
-				0x0F, 0x27, 0x18, 0xFF, 0x3A, 0x25, 0xFF, 0x31,
-				0x16, 0x13, 0x38, 0x34, 0x20, 0x23, 0xFF, 0x0B,
-				0xFF, 0x21, 0x06, 0xFF, 0x1B, 0x29, 0xFF, 0x22,
-				0xFF, 0x24, 0xFF, 0x2B, 0xFF, 0x08, 0xFF, 0x03,
-				0xFF, 0x36, 0x26, 0x33, 0x11, 0xFF, 0x10, 0x02,
-				0x14, 0xFF, 0x00, 0x09, 0x12, 0x0F, 0x37, 0x30,
-				0xFF, 0xFF, 0x2A, 0x17, 0x0C, 0x01, 0x15, 0x19,
-				0xFF, 0x2C, 0x07, 0x37, 0xFF, 0x05, 0x0A, 0x00
+				0x0D, 0x27, 0x18, 0x39, 0x3A, 0x25, 0x1C, 0x31,
+				0x16, 0x13, 0x38, 0x34, 0x20, 0x23, 0x3C, 0x1A,
+				0x09, 0x21, 0x06, 0x10, 0x1B, 0x29, 0x08, 0x22,
+				0x2D, 0x24, 0x01, 0x2B, 0x32, 0x08, 0x0D, 0x03,
+				0x04, 0x36, 0x26, 0x33, 0x11, 0x07, 0x10, 0x02,
+				0x14, 0x28, 0x00, 0x09, 0x12, 0x0D, 0x28, 0x20,
+				0x27, 0x1D, 0x2A, 0x17, 0x0C, 0x01, 0x15, 0x19,
+				0x0D, 0x2C, 0x07, 0x37, 0x35, 0x05, 0x0A, 0x3D
 			},
 			{
-				0x03, 0xFF, 0xFF, 0x10, 0x1A, 0x30, 0x31, 0x09,
-				0x01, 0x0F, 0x36, 0x08, 0x15, 0xFF, 0xFF, 0x31,
-				0x22, 0x1C, 0xFF, 0x12, 0x19, 0x18, 0x17, 0x1B,
-				0x00, 0xFF, 0xFF, 0x02, 0x16, 0x06, 0xFF, 0x35,
-				0x23, 0xFF, 0x0F, 0x37, 0xFF, 0x27, 0x26, 0x30,
-				0x29, 0xFF, 0x21, 0x24, 0x11, 0xFF, 0x0F, 0xFF,
-				0x2C, 0xFF, 0xFF, 0xFF, 0x07, 0x2A, 0x28, 0xFF,
-				0x0A, 0xFF, 0x32, 0x37, 0x13, 0xFF, 0xFF, 0x0C
+				0x14, 0x25, 0x3A, 0x10, 0x1A, 0x20, 0x31, 0x09,
+				0x01, 0x0D, 0x36, 0x08, 0x15, 0x10, 0x27, 0x3C,
+				0x22, 0x1C, 0x05, 0x12, 0x19, 0x18, 0x17, 0x1B,
+				0x00, 0x03, 0x0D, 0x02, 0x16, 0x06, 0x34, 0x35,
+				0x23, 0x09, 0x01, 0x37, 0x1D, 0x27, 0x26, 0x20,
+				0x29, 0x04, 0x21, 0x24, 0x11, 0x3D, 0x0D, 0x07,
+				0x2C, 0x08, 0x39, 0x33, 0x07, 0x2A, 0x28, 0x2D,
+				0x0A, 0x0D, 0x32, 0x38, 0x13, 0x2B, 0x28, 0x0C
 			},
 			{
-				0x18, 0xFF, 0x1C, 0x28, 0xFF, 0xFF, 0x01, 0x17,
-				0x10, 0x0F, 0x2A, 0x0F, 0x36, 0x37, 0x1A, 0xFF,
-				0x25, 0xFF, 0x12, 0xFF, 0x0F, 0xFF, 0xFF, 0x26,
-				0xFF, 0xFF, 0x22, 0x19, 0xFF, 0x0F, 0x3A, 0x21,
-				0x05, 0x0A, 0x07, 0x01, 0x13, 0xFF, 0x00, 0x15,
-				0x0C, 0xFF, 0x11, 0xFF, 0xFF, 0x38, 0xFF, 0xFF,
-				0xFF, 0xFF, 0x08, 0x16, 0xFF, 0xFF, 0x30, 0x3C,
-				0x0F, 0x27, 0xFF, 0x31, 0x29, 0xFF, 0x30, 0x09
+				0x18, 0x03, 0x1C, 0x28, 0x0D, 0x35, 0x01, 0x17,
+				0x10, 0x07, 0x2A, 0x01, 0x36, 0x37, 0x1A, 0x39,
+				0x25, 0x08, 0x12, 0x34, 0x0D, 0x2D, 0x06, 0x26,
+				0x27, 0x1B, 0x22, 0x19, 0x04, 0x0D, 0x3A, 0x21,
+				0x05, 0x0A, 0x07, 0x02, 0x13, 0x14, 0x00, 0x15,
+				0x0C, 0x10, 0x11, 0x09, 0x1D, 0x38, 0x3D, 0x24,
+				0x33, 0x20, 0x08, 0x16, 0x28, 0x2B, 0x20, 0x3C,
+				0x0D, 0x27, 0x23, 0x31, 0x29, 0x32, 0x2C, 0x09
 			}
 		};
 
@@ -273,14 +273,23 @@ namespace Nes
 			return false;
 		}
 
+		#ifdef NST_PRAGMA_OPTIMIZE
+		#pragma optimize("", on)
+		#endif
+
 		void VsSystem::VsDipSwitches::BeginFrame(Input::Controllers* const input)
 		{
 			if (!coinTimer)
 			{
-				if (input && Input::Controllers::VsSystem::callback( input->vsSystem ) && (input->vsSystem.insertCoin & COIN))
+				if (input)
 				{
-					regs[0] |= input->vsSystem.insertCoin & COIN;
-					coinTimer = 20;
+					Input::Controllers::VsSystem::callback( input->vsSystem );
+
+					if (input->vsSystem.insertCoin & COIN)
+					{
+						regs[0] |= input->vsSystem.insertCoin & COIN;
+						coinTimer = 20;
+					}
 				}
 			}
 			else if (--coinTimer == 15)
@@ -288,6 +297,10 @@ namespace Nes
 				regs[0] &= ~uint(COIN);
 			}
 		}
+
+		#ifdef NST_PRAGMA_OPTIMIZE
+		#pragma optimize("s", on)
+		#endif
 
 		struct VsSystem::Context
 		{
@@ -317,14 +330,15 @@ namespace Nes
 			}
 		};
 
-		VsSystem* VsSystem::Create(Cpu& cpu,Ppu& ppu,const dword pRomCrc)
+		VsSystem* VsSystem::Create(Cpu& cpu,Ppu& ppu,const dword prgCrc,const bool forceCreate)
 		{
-			switch (pRomCrc)
+			switch (prgCrc)
 			{
 				// VS. Dual-System Games are unsupported
 
 				case 0xB90497AAUL: // Tennis
 				case 0x2A909613UL: // Tennis (alt)
+				case 0xBC202DB6UL: // Tennis P2
 				case 0x008A9C16UL: // Wrecking Crew P1
 				case 0x30C42B1EUL: // Wrecking Crew P2
 				case 0xAD407F52UL: // Balloon Fight P1
@@ -342,20 +356,26 @@ namespace Nes
 				case 0xF42DAB14UL: // Ice Climber P1
 				case 0x7D6B764FUL: // Ice Climber P2
 
-					Log::Flush( "VsSystem: error, Dual-System games are not supported" NST_LINEBREAK );
-					throw RESULT_ERR_UNSUPPORTED_VSSYSTEM;
+					if (forceCreate)
+					{
+						Log::Flush( "VsSystem: error, Dual-System games are not supported" NST_LINEBREAK );
+						throw RESULT_ERR_UNSUPPORTED_VSSYSTEM;
+					}
+					else
+					{
+						return NULL;
+					}
 			}
 
 			Context context( cpu, ppu );
 
 			try
 			{
-				// Credit to the MAME devs for the following DIP Switch info.
+				// Credit to the MAME devs for much of the DIP switch info.
 
-				switch (pRomCrc)
+				switch (prgCrc)
 				{
 					case 0xEB2DBA63UL: // TKO Boxing
-					case 0x9818F656UL:
 
 						context.SetDips(7);
 						context.dips[0]    = Dip::Value( "Coinage",            4, 0 );
@@ -402,14 +422,13 @@ namespace Nes
 						context.dips[2]    = Dip::Value( "Demo Sounds",            2, 1 );
 						context.dips[2][0] = Dip::Value( "Off",                    0x00 );
 						context.dips[2][1] = Dip::Value( "On",                     0x10 );
-						context.dips[3]    = Dip::Value( "Color Palette",          5, 0 );
-						context.dips[3][0] = Dip::Value( "Normal",                 0x80 );
-						context.dips[3][1] = Dip::Value( "Wrong 1",                0x00 );
-						context.dips[3][2] = Dip::Value( "Wrong 2",                0x40 );
-						context.dips[3][3] = Dip::Value( "Wrong 3",                0x20 );
-						context.dips[3][4] = Dip::Value( "Wrong 4",                0xC0 );
+						context.dips[3]    = Dip::Value( "PPU",                    5, 0 );
+						context.dips[3][0] = Dip::Value( "RP2C03",                 0x20 );
+						context.dips[3][1] = Dip::Value( "RP2C04-0001",            0x00 );
+						context.dips[3][2] = Dip::Value( "RP2C04-0002",            0x40 );
+						context.dips[3][3] = Dip::Value( "RP2C04-0003",            0x80 );
+						context.dips[3][4] = Dip::Value( "RP2C04-0004",            0xC0 );
 
-						context.ppuType = RP2C04_0003;
 						context.inputMapper = InputMapper::TYPE_2;
 
 						return new VsRbiBaseball( context );
@@ -579,12 +598,12 @@ namespace Nes
 						context.dips[3][1] = Dip::Value( "1 Coin / 2 Credits", 0x08 );
 						context.dips[3][2] = Dip::Value( "2 Coins / 1 Credit", 0x10 );
 						context.dips[3][3] = Dip::Value( "3 Coins / 1 Credit", 0x18 );
-						context.dips[4]    = Dip::Value( "Color Palette",      5, 0 );
-						context.dips[4][0] = Dip::Value( "Normal",             0x20 );
-						context.dips[4][1] = Dip::Value( "Wrong 1",            0x00 );
-						context.dips[4][2] = Dip::Value( "Wrong 2",            0x40 );
-						context.dips[4][3] = Dip::Value( "Wrong 3",            0x80 );
-						context.dips[4][4] = Dip::Value( "Wrong 4",            0xC0 );
+						context.dips[4]    = Dip::Value( "PPU",                5, 0 );
+						context.dips[4][0] = Dip::Value( "RP2C03",             0x20 );
+						context.dips[4][1] = Dip::Value( "RP2C04-0001",        0x00 );
+						context.dips[4][2] = Dip::Value( "RP2C04-0002",        0x40 );
+						context.dips[4][3] = Dip::Value( "RP2C04-0003",        0x80 );
+						context.dips[4][4] = Dip::Value( "RP2C04-0004",        0xC0 );
 
 						context.inputMapper = InputMapper::TYPE_3;
 						break;
@@ -647,6 +666,7 @@ namespace Nes
 						break;
 
 					case 0xFFBEF374UL: // Castlevania
+					case 0xBAB3DDB9UL: // -||- bad
 
 						context.SetDips(4);
 						context.dips[0]    = Dip::Value( "Coinage",            8, 0 );
@@ -731,7 +751,7 @@ namespace Nes
 						context.dips[3][0] = Dip::Value( "Normal",                   0x00 );
 						context.dips[3][1] = Dip::Value( "Hard",                     0x40 );
 
-						context.ppuType = (pRomCrc == 0x29155E0CUL ? RP2C04_0004 : RP2C04_0003);
+						context.ppuType = (prgCrc == 0x29155E0CUL ? RP2C04_0004 : RP2C04_0003);
 						context.inputMapper = InputMapper::TYPE_1;
 						break;
 
@@ -767,7 +787,7 @@ namespace Nes
 						break;
 
 					case 0x43A357EFUL: // Ice Climber
-					case 0xD4EB5923UL:
+					case 0xD4EB5923UL: // -||-
 
 						context.SetDips(4);
 						context.dips[0]    = Dip::Value( "Coinage",              8, 0 );
@@ -793,7 +813,7 @@ namespace Nes
 
 						context.ppuType = RP2C04_0004;
 
-						if (pRomCrc == 0x43A357EFUL)
+						if (prgCrc == 0x43A357EFUL)
 							context.inputMapper = InputMapper::TYPE_2;
 						else
 							context.inputMapper = InputMapper::TYPE_4;
@@ -801,9 +821,9 @@ namespace Nes
 						break;
 
 					case 0x737DD1BFUL: // Super Mario Bros
-					case 0x4BF3972DUL:
-					case 0x8B60CC58UL:
-					case 0x8192C804UL:
+					case 0x4BF3972DUL: // -||-
+					case 0x8B60CC58UL: // -||-
+					case 0x8192C804UL: // -||-
 
 						context.SetDips(5);
 						context.dips[0]    = Dip::Value( "Coinage",            8, 0 );
@@ -835,7 +855,7 @@ namespace Nes
 						break;
 
 					case 0xEC461DB9UL: // Pinball
-					case 0xE528F651UL: // Pinball (alt)
+					case 0xE528F651UL: // -||- (alt)
 
 						context.SetDips(5);
 						context.dips[0]    = Dip::Value( "Coinage",            8, 0 );
@@ -862,7 +882,7 @@ namespace Nes
 						context.dips[4][0] = Dip::Value( "Normal",             0x00 );
 						context.dips[4][1] = Dip::Value( "Fast",               0x80 );
 
-						if (pRomCrc == 0xEC461DB9UL)
+						if (prgCrc == 0xEC461DB9UL)
 						{
 							context.ppuType = RP2C04_0001;
 							context.inputMapper = InputMapper::TYPE_1;
@@ -903,7 +923,7 @@ namespace Nes
 						break;
 
 					case 0x0B65A917UL: // Mach Rider
-					case 0x8A6A9848UL: //
+					case 0x8A6A9848UL: // -||-
 
 						context.SetDips(5);
 						context.dips[0]    = Dip::Value( "Coinage",            8, 0 );
@@ -962,7 +982,7 @@ namespace Nes
 						break;
 
 					case 0x70433F2CUL: // Battle City
-					case 0x8D15A6E6UL: // bad .nes
+					case 0x8D15A6E6UL: // -||- bad
 
 						context.SetDips(7);
 						context.dips[0]    = Dip::Value( "Credits for 2 Players", 2, 1 );
@@ -983,13 +1003,13 @@ namespace Nes
 						context.dips[5]    = Dip::Value( "Unknown",               2, 0 );
 						context.dips[5][0] = Dip::Value( "Off",                   0x00 );
 						context.dips[5][1] = Dip::Value( "On",                    0x20 );
-						context.dips[6]    = Dip::Value( "Color Palette",         4, 0 );
-						context.dips[6][0] = Dip::Value( "Normal",                0x80 );
-						context.dips[6][1] = Dip::Value( "Wrong 1",               0x00 );
-						context.dips[6][2] = Dip::Value( "Wrong 2",               0x40 );
-						context.dips[6][3] = Dip::Value( "Wrong 3",               0xC0 );
+						context.dips[6]    = Dip::Value( "PPU",                   4, 0 );
+						context.dips[6][0] = Dip::Value( "RP2C04-0001",           0x00 );
+						context.dips[6][1] = Dip::Value( "RP2C04-0002",           0x40 );
+						context.dips[6][2] = Dip::Value( "RP2C04-0003",           0x80 );
+						context.dips[6][3] = Dip::Value( "RP2C04-0004",           0xC0 );
 
-						context.ppuType = RP2C04_0003;
+						context.ppuType = RP2C04_0001;
 						context.inputMapper = InputMapper::TYPE_2;
 						break;
 
@@ -1149,8 +1169,8 @@ namespace Nes
 						break;
 
 					case 0xF9D3B0A3UL: // Super Xevious
-					case 0x66BB838FUL: // Super Xevious
-					case 0x9924980AUL: // Super Xevious
+					case 0x66BB838FUL: // -||-
+					case 0x9924980AUL: // -||-
 
 						context.SetDips(6);
 						context.dips[0]    = Dip::Value( "Unknown",            2, 0 );
@@ -1170,11 +1190,11 @@ namespace Nes
 						context.dips[4][1] = Dip::Value( "1 Coin / 2 Credits", 0x10 );
 						context.dips[4][2] = Dip::Value( "2 Coins / 1 Credit", 0x20 );
 						context.dips[4][3] = Dip::Value( "3 Coins / 1 Credit", 0x30 );
-						context.dips[5]    = Dip::Value( "Color Palette",      4, 0 );
-						context.dips[5][0] = Dip::Value( "Normal",             0x00 );
-						context.dips[5][1] = Dip::Value( "Wrong 1",            0x40 );
-						context.dips[5][2] = Dip::Value( "Wrong 2",            0x80 );
-						context.dips[5][3] = Dip::Value( "Wrong 3",            0xC0 );
+						context.dips[5]    = Dip::Value( "PPU",                4, 0 );
+						context.dips[5][0] = Dip::Value( "RP2C04-0001",        0x00 );
+						context.dips[5][1] = Dip::Value( "RP2C04-0002",        0x40 );
+						context.dips[5][2] = Dip::Value( "RP2C04-0003",        0x80 );
+						context.dips[5][3] = Dip::Value( "RP2C04-0004",        0xC0 );
 
 						context.ppuType = RP2C04_0001;
 						context.inputMapper = InputMapper::TYPE_1;
@@ -1250,13 +1270,20 @@ namespace Nes
 
 				if (context.dips == NULL)
 				{
-					context.SetDips(8);
-
-					for (uint i=0; i < 8; ++i)
+					if (forceCreate)
 					{
-						context.dips[i]    = Dip::Value( "Unknown", 2, 0    );
-						context.dips[i][0] = Dip::Value( "Off",     0x00    );
-						context.dips[i][1] = Dip::Value( "On",      1U << i );
+						context.SetDips(8);
+
+						for (uint i=0; i < 8; ++i)
+						{
+							context.dips[i]    = Dip::Value( "Unknown", 2, 0    );
+							context.dips[i][0] = Dip::Value( "Off",     0x00    );
+							context.dips[i][1] = Dip::Value( "On",      1U << i );
+						}
+					}
+					else
+					{
+						return NULL;
 					}
 				}
 			}

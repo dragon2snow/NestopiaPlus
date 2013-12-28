@@ -84,15 +84,15 @@ namespace Nestopia
 			class Association;
 
 			ibool OnInitDialog          (Param&);
-			ibool OnPaint               (Param&);
+			ibool OnEraseBkgnd          (Param&);
 			ibool OnCmdDefault          (Param&);
-			ibool OnCmdCancel           (Param&);
 			ibool OnCmdStyle            (Param&);
 			ibool OnCmdMenuColorDefault (Param&);
 			ibool OnCmdMenuColorChange  (Param&);
 			ibool OnCmdOk               (Param&);
 
 			void UpdateIconStyle() const;
+			void UpdateColors() const;
 
 			struct Settings : Collection::BitSet
 			{

@@ -46,16 +46,16 @@ namespace Nestopia
 				: Generic( hWnd, id ) {}
 
 				void Check(ibool=true) const;
-				ibool IsChecked() const;
+				ibool Checked() const;
 
 				void Uncheck() const
 				{
 					Check( false );
 				}
 
-				ibool IsUnchecked() const
+				ibool Unchecked() const
 				{
-					return !IsChecked();
+					return !Checked();
 				}
 			};
 		}

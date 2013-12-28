@@ -35,14 +35,14 @@ namespace Nes
 
 		void Mapper148::SubReset(bool)
 		{
-			Map( 0x8000U, 0xFFFFU, &Mapper148::Poke_pRom );
+			Map( 0x8000U, 0xFFFFU, &Mapper148::Poke_Prg );
 		}
 
 		#ifdef NST_PRAGMA_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
-		NES_POKE(Mapper148,pRom)
+		NES_POKE(Mapper148,Prg)
 		{
 			ppu.Update();
 			prg.SwapBank<SIZE_32K,0x0000U>( data >> 3 & 0x1 );

@@ -39,7 +39,7 @@ namespace Nes
 			{
 			public:
 
-				FamilyKeyboard();
+				FamilyKeyboard(const Cpu&);
 
 			private:
 

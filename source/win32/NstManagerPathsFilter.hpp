@@ -24,15 +24,18 @@
 
 namespace Nestopia
 {
-	class Managers::Paths::Filter : public HeapString
+	namespace Managers
 	{
-		enum
+		class Paths::Filter : public HeapString
 		{
-			MAX_FILE_DIALOG_WIDTH = 53
+			enum
+			{
+				MAX_FILE_DIALOG_WIDTH = 53
+			};
+
+		public:
+
+			explicit Filter(File::Types);
 		};
-
-	public:
-
-		explicit Filter(File::Types);
-	};
+	}
 }

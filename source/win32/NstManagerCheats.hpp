@@ -44,6 +44,8 @@ namespace Nestopia
 
 	namespace Managers
 	{
+		class Paths;
+
 		class Cheats
 		{
 		public:

@@ -50,7 +50,7 @@ namespace Nes
 			{
 			public:
 
-				Saver(StdStream,bool);
+				Saver(StdStream,bool,bool);
 				~Saver();
 
 				Saver& Begin(dword);
@@ -92,15 +92,15 @@ namespace Nes
 
 			private:
 
-			#ifndef NDEBUG
-
-				Saver(const Saver&);
-
-			#endif
-
 				Stream::Out stream;
 				Vector<u32> chunks;
-				const ibool useCompression;
+				const bool useCompression;
+				const bool internal;
+
+				enum
+				{
+					CHUNK_RESERVE = 8
+				};
 
 			public:
 
@@ -129,6 +129,11 @@ namespace Nes
 				const Stream::Out& GetStream() const
 				{
 					return stream;
+				}
+
+				bool Internal() const
+				{
+					return internal;
 				}
 			};
 
@@ -200,12 +205,6 @@ namespace Nes
 				};
 
 			private:
-
-			#ifndef NDEBUG
-
-				Loader(const Loader&);
-
-			#endif
 
 				void CheckRead(dword);
 

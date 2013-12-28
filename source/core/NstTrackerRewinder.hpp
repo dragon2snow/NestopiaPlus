@@ -38,13 +38,13 @@ namespace Nes
 	{
 		class Tracker::Rewinder
 		{
-			typedef Result (Api::Emulator::*EmuExecute)(Video::Output*,Sound::Output*,Input::Controllers*);
-			typedef Result (Api::Emulator::*EmuLoadState)(StdStream,bool);
-			typedef Result (Api::Emulator::*EmuSaveState)(StdStream,bool);
+			typedef Result (Machine::*EmuExecute)(Video::Output*,Sound::Output*,Input::Controllers*);
+			typedef Result (Machine::*EmuSaveState)(StdStream,bool,bool);
+			typedef Result (Machine::*EmuLoadState)(StdStream,bool);
 
 		public:
 
-			Rewinder(Api::Emulator&,EmuExecute,EmuLoadState,EmuSaveState,Cpu&,Ppu&,bool);
+			Rewinder(Machine&,EmuExecute,EmuLoadState,EmuSaveState,Cpu&,Ppu&,bool);
 			~Rewinder();
 
 			Result Start();
@@ -74,7 +74,7 @@ namespace Nes
 					enum
 					{
 						BAD_POS = INT_MAX,
-						MIN_COMPRESSION_SIZE = 32,
+						MIN_COMPRESSION_SIZE = 1024,
 						OPEN_BUS = 0x40
 					};
 
@@ -103,9 +103,9 @@ namespace Nes
 			public:
 
 				void Reset();
-				bool BeginForward(Api::Emulator&,EmuSaveState,EmuLoadState);
+				bool BeginForward(Machine&,EmuSaveState,EmuLoadState);
 				void EndForward();
-				bool BeginBackward(Api::Emulator&,EmuLoadState);
+				bool BeginBackward(Machine&,EmuLoadState);
 				inline void EndBackward();
 
 				inline uint Put(uint);
@@ -113,7 +113,7 @@ namespace Nes
 
 				inline bool CanRewind() const;
 				inline bool ResumeForward();
-				inline bool TurnForward(Api::Emulator&,EmuLoadState);
+				inline bool TurnForward(Machine&,EmuLoadState);
 				inline void Invalidate();
 			};
 
@@ -122,13 +122,14 @@ namespace Nes
 			public:
 
 				ReverseVideo(Ppu&);
+				~ReverseVideo();
 
 				class Mutex;
 
-				void Reset();
+				ibool Begin();
+				void End();
 				void Store();
 				inline void Flush(const Mutex&);
-				inline Ppu::Screen GetScreen() const;
 
 			private:
 
@@ -137,21 +138,22 @@ namespace Nes
 				uint pingpong;
 				uint frame;
 				Ppu& ppu;
-				u16 buffer[NUM_FRAMES][Ppu::WIDTH * Ppu::HEIGHT];
+				Video::Screen::Pixels* buffer;
 			};
 
 			class ReverseSound
 			{
 			public:
 
-				typedef Api::Sound::Output Output;
+				typedef Sound::Output Output;
 
 				ReverseSound(const Apu&,bool);
 				~ReverseSound();
 
 				class Mutex;
 
-				void    Reset();
+				ibool   Begin();
+				void    End();
 				void    Enable(bool);
 				Output* Store();
 				void    Flush(Output*,const Mutex&);
@@ -162,6 +164,7 @@ namespace Nes
 				void ReverseCopy(const Output&);
 
 				void Clear() const;
+				ibool Update();
 
 				bool enabled;
 				bool good;
@@ -189,7 +192,7 @@ namespace Nes
 
 				dword GetLatency() const
 				{
-					return (dword) (input - buffer) * SampleSize();
+					return (input - buffer) * SampleSize();
 				}
 			};
 
@@ -214,7 +217,7 @@ namespace Nes
 			ReverseSound sound;
 			ReverseVideo video;
 
-			Api::Emulator& emulator;
+			Machine& emulator;
 			const EmuExecute emuExecute;
 			const EmuLoadState emuLoadState;
 			const EmuSaveState emuSaveState;

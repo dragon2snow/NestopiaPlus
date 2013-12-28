@@ -27,6 +27,7 @@
 
 #pragma once
 
+#include <vector>
 #include "NstObjectPod.hpp"
 #include "NstDirectX.hpp"
 
@@ -130,24 +131,24 @@ namespace Nestopia
 
 				void UnlockStream(void* data) const
 				{
-					NST_ASSERT( data && com );
+					NST_ASSERT( data && com != NULL );
 					com->Unlock( data, settings.size, NULL, 0 );
 				}
 
-				ibool IsStreaming() const
+				ibool Streaming() const
 				{
 					DWORD status;
 
 					return
 					(
-						com && SUCCEEDED(com->GetStatus( &status )) &&
+						com != NULL && SUCCEEDED(com->GetStatus( &status )) &&
 						(status & (DSBSTATUS_BUFFERLOST|DSBSTATUS_PLAYING|DSBSTATUS_LOOPING)) == (DSBSTATUS_PLAYING|DSBSTATUS_LOOPING)
 					);
 				}
 
 				void StopStream() const
 				{
-					if (com)
+					if (com != NULL)
 						com->Stop();
 				}
 			};
@@ -168,9 +169,9 @@ namespace Nestopia
 
 		public:
 
-			ibool IsStreaming() const
+			ibool Streaming() const
 			{
-				return buffer.IsStreaming();
+				return buffer.Streaming();
 			}
 
 			void StopStream() const

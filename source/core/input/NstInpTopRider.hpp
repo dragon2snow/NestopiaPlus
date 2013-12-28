@@ -39,7 +39,7 @@ namespace Nes
 			{
 			public:
 
-				TopRider();
+				TopRider(const Cpu&);
 
 			private:
 
@@ -69,6 +69,8 @@ namespace Nes
 				};
 
 				uint stream[2];
+				uint state[2];
+				uint strobe;
 				int pos;
 				uint accel;
 				uint brake;

@@ -89,7 +89,7 @@ namespace Nes
 			{
 				ppu.SetMirroring( (address & 0x20) ? Ppu::NMT_HORIZONTAL : Ppu::NMT_VERTICAL );
 
-				if (chr.Source().IsWritable())
+				if (chr.Source().Writable())
 				{
 					banks[0] = (banks[0] & 0x7) | (address << 3 & 0x38);
 					banks[1] = (banks[1] & 0x7) | (address << 3 & 0x38);

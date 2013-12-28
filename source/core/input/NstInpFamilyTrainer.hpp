@@ -39,12 +39,11 @@ namespace Nes
 			{
 			public:
 
-				FamilyTrainer();
+				FamilyTrainer(const Cpu&);
 
 			private:
 
 				void Reset();
-				void BeginFrame(Controllers*);
 				void Poll();
 				void Poke(uint);
 				uint Peek(uint);

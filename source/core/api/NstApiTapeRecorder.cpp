@@ -22,11 +22,10 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "../NstCore.hpp"
+#include "../NstMachine.hpp"
 #include "../NstImage.hpp"
-#include "NstApiEmulator.hpp"
-#include "NstApiMachine.hpp"
 #include "../NstPrpDataRecorder.hpp"
+#include "NstApiMachine.hpp"
 #include "NstApiTapeRecorder.hpp"
 
 #ifdef NST_PRAGMA_OPTIMIZE
@@ -48,7 +47,7 @@ namespace Nes
 			return NULL;
 		}
 
-		bool TapeRecorder::IsStopped() const
+		bool TapeRecorder::IsStopped() const throw()
 		{
 			if (Core::Peripherals::DataRecorder* const dataRecorder = Query())
 				return dataRecorder->IsStopped();
@@ -56,7 +55,7 @@ namespace Nes
 			return true;
 		}
 
-		bool TapeRecorder::IsPlaying() const
+		bool TapeRecorder::IsPlaying() const throw()
 		{
 			if (Core::Peripherals::DataRecorder* const dataRecorder = Query())
 				return dataRecorder->IsPlaying();
@@ -64,7 +63,7 @@ namespace Nes
 			return false;
 		}
 
-		bool TapeRecorder::IsRecording() const
+		bool TapeRecorder::IsRecording() const throw()
 		{
 			if (Core::Peripherals::DataRecorder* const dataRecorder = Query())
 				return dataRecorder->IsRecording();
@@ -72,7 +71,7 @@ namespace Nes
 			return false;
 		}
 
-		bool TapeRecorder::CanPlay() const
+		bool TapeRecorder::CanPlay() const throw()
 		{
 			if (Core::Peripherals::DataRecorder* const dataRecorder = Query())
 				return dataRecorder->CanPlay();
@@ -80,7 +79,7 @@ namespace Nes
 			return false;
 		}
 
-		Result TapeRecorder::Play()
+		Result TapeRecorder::Play() throw()
 		{
 			if (Core::Peripherals::DataRecorder* const dataRecorder = Query())
 				return dataRecorder->Play();
@@ -88,7 +87,7 @@ namespace Nes
 			return RESULT_ERR_NOT_READY;
 		}
 
-		Result TapeRecorder::Record()
+		Result TapeRecorder::Record() throw()
 		{
 			if (Core::Peripherals::DataRecorder* const dataRecorder = Query())
 				return dataRecorder->Record();
@@ -96,7 +95,7 @@ namespace Nes
 			return RESULT_ERR_NOT_READY;
 		}
 
-		void TapeRecorder::Stop()
+		void TapeRecorder::Stop() throw()
 		{
 			if (Core::Peripherals::DataRecorder* const dataRecorder = Query())
 				dataRecorder->Stop();

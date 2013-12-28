@@ -51,7 +51,8 @@ namespace Nes
 
 		public:
 
-			DipSwitches(Emulator& e)
+			template<typename T>
+			DipSwitches(T& e)
 			: Base(e) {}
 
 			enum
@@ -59,14 +60,14 @@ namespace Nes
 				INVALID = -1
 			};
 
-			uint NumDips() const;
-			uint NumValues(uint) const;
+			uint NumDips() const throw();
+			uint NumValues(uint) const throw();
 
-			const char* GetDipName(uint) const;
-			const char* GetValueName(uint,uint) const;
+			const char* GetDipName(uint) const throw();
+			const char* GetValueName(uint,uint) const throw();
 
-			int GetValue(uint) const;
-			Result SetValue(uint,uint);
+			int GetValue(uint) const throw();
+			Result SetValue(uint,uint) throw();
 		};
 	}
 }

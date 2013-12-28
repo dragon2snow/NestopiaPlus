@@ -44,7 +44,8 @@ namespace Nes
 		{
 		public:
 
-			Cheats(Emulator& e)
+			template<typename T>
+			Cheats(T& e)
 			: Base(e) {}
 
 			struct Code
@@ -58,12 +59,12 @@ namespace Nes
 				: address(a), value(v), compare(c), useCompare(u) {}
 			};
 
-			Result SetCode (const Code&);
-			Result GetCode (dword,Code&) const;
-			Result GetCode (dword,u16*,u8*,u8*,bool*) const;
-			Result DeleteCode (dword);
-			dword  NumCodes () const;
-			Result ClearCodes ();
+			Result SetCode (const Code&) throw();
+			Result GetCode (dword,Code&) const throw();
+			Result GetCode (dword,u16*,u8*,u8*,bool*) const throw();
+			Result DeleteCode (dword) throw();
+			dword  NumCodes () const throw();
+			Result ClearCodes () throw();
 
 			enum
 			{
@@ -72,13 +73,13 @@ namespace Nes
 
 			typedef const u8 (&Ram)[RAM_SIZE];
 
-			Ram GetRam() const;
+			Ram GetRam() const throw();
 
-			static Result NST_CALL GameGenieEncode(const Code&,char (&)[9]);
-			static Result NST_CALL GameGenieDecode(const char*,Code&);
+			static Result NST_CALL GameGenieEncode(const Code&,char (&)[9]) throw();
+			static Result NST_CALL GameGenieDecode(const char*,Code&) throw();
 
-			static Result NST_CALL ProActionRockyEncode(const Code&,char (&)[9]);
-			static Result NST_CALL ProActionRockyDecode(const char*,Code&);
+			static Result NST_CALL ProActionRockyEncode(const Code&,char (&)[9]) throw();
+			static Result NST_CALL ProActionRockyDecode(const char*,Code&) throw();
 		};
 	}
 }

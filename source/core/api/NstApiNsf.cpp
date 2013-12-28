@@ -22,11 +22,10 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "../NstCore.hpp"
-#include "NstApiEmulator.hpp"
+#include "../NstMachine.hpp"
+#include "../NstNsf.hpp"
 #include "NstApiMachine.hpp"
 #include "NstApiNsf.hpp"
-#include "../NstNsf.hpp"
 
 #ifdef NST_PRAGMA_OPTIMIZE
 #pragma optimize("s", on)
@@ -36,7 +35,7 @@ namespace Nes
 {
 	namespace Api
 	{
-		const char* Nsf::GetName() const
+		const char* Nsf::GetName() const throw()
 		{
 			if (emulator.Is(Machine::SOUND))
 				return static_cast<const Core::Nsf*>(emulator.image)->GetName();
@@ -44,7 +43,7 @@ namespace Nes
 			return "";
 		}
 
-		const char* Nsf::GetArtist() const
+		const char* Nsf::GetArtist() const throw()
 		{
 			if (emulator.Is(Machine::SOUND))
 				return static_cast<const Core::Nsf*>(emulator.image)->GetArtist();
@@ -52,7 +51,7 @@ namespace Nes
 			return "";
 		}
 
-		const char* Nsf::GetMaker() const
+		const char* Nsf::GetMaker() const throw()
 		{
 			if (emulator.Is(Machine::SOUND))
 				return static_cast<const Core::Nsf*>(emulator.image)->GetMaker();
@@ -60,7 +59,7 @@ namespace Nes
 			return "";
 		}
 
-		uint Nsf::GetChips() const
+		uint Nsf::GetChips() const throw()
 		{
 			if (emulator.Is(Machine::SOUND))
 			{
@@ -80,7 +79,7 @@ namespace Nes
 			return 0;
 		}
 
-		Nsf::TuneMode Nsf::GetMode() const
+		Nsf::TuneMode Nsf::GetMode() const throw()
 		{
 			NST_COMPILE_ASSERT
 			(
@@ -95,7 +94,7 @@ namespace Nes
 			return TUNE_MODE_NTSC;
 		}
 
-		uint Nsf::GetNumSongs() const
+		uint Nsf::GetNumSongs() const throw()
 		{
 			if (emulator.Is(Machine::SOUND))
 				return static_cast<const Core::Nsf*>(emulator.image)->NumSongs();
@@ -103,7 +102,7 @@ namespace Nes
 			return 0;
 		}
 
-		int Nsf::GetCurrentSong() const
+		int Nsf::GetCurrentSong() const throw()
 		{
 			if (emulator.Is(Machine::SOUND))
 				return static_cast<const Core::Nsf*>(emulator.image)->CurrentSong();
@@ -111,7 +110,7 @@ namespace Nes
 			return NO_SONG;
 		}
 
-		int Nsf::GetStartingSong() const
+		int Nsf::GetStartingSong() const throw()
 		{
 			if (emulator.Is(Machine::SOUND))
 				return static_cast<const Core::Nsf*>(emulator.image)->StartingSong();
@@ -119,7 +118,7 @@ namespace Nes
 			return NO_SONG;
 		}
 
-		uint Nsf::GetInitAddress() const
+		uint Nsf::GetInitAddress() const throw()
 		{
 			if (emulator.Is(Machine::SOUND))
 				return static_cast<const Core::Nsf*>(emulator.image)->GetInitAddress();
@@ -127,7 +126,7 @@ namespace Nes
 			return 0x0000;
 		}
 
-		uint Nsf::GetLoadAddress() const
+		uint Nsf::GetLoadAddress() const throw()
 		{
 			if (emulator.Is(Machine::SOUND))
 				return static_cast<const Core::Nsf*>(emulator.image)->GetLoadAddress();
@@ -135,7 +134,7 @@ namespace Nes
 			return 0x0000;
 		}
 
-		uint Nsf::GetPlayAddress() const
+		uint Nsf::GetPlayAddress() const throw()
 		{
 			if (emulator.Is(Machine::SOUND))
 				return static_cast<const Core::Nsf*>(emulator.image)->GetPlayAddress();
@@ -143,7 +142,7 @@ namespace Nes
 			return 0x0000;
 		}
 
-		Result Nsf::SelectSong(uint song)
+		Result Nsf::SelectSong(uint song) throw()
 		{
 			if (emulator.Is(Machine::SOUND))
 				return static_cast<Core::Nsf*>(emulator.image)->SelectSong( song );
@@ -151,7 +150,7 @@ namespace Nes
 			return RESULT_ERR_NOT_READY;
 		}
 
-		Result Nsf::PlaySong()
+		Result Nsf::PlaySong() throw()
 		{
 			if (emulator.Is(Machine::SOUND))
 				return static_cast<Core::Nsf*>(emulator.image)->PlaySong();
@@ -159,7 +158,7 @@ namespace Nes
 			return RESULT_ERR_NOT_READY;
 		}
 
-		Result Nsf::StopSong()
+		Result Nsf::StopSong() throw()
 		{
 			if (emulator.Is(Machine::SOUND))
 				return static_cast<Core::Nsf*>(emulator.image)->StopSong();
@@ -167,7 +166,7 @@ namespace Nes
 			return RESULT_ERR_NOT_READY;
 		}
 
-		Result Nsf::SelectNextSong()
+		Result Nsf::SelectNextSong() throw()
 		{
 			if (emulator.Is(Machine::SOUND))
 			{
@@ -180,7 +179,7 @@ namespace Nes
 			return RESULT_ERR_NOT_READY;
 		}
 
-		Result Nsf::SelectPrevSong()
+		Result Nsf::SelectPrevSong() throw()
 		{
 			if (emulator.Is(Machine::SOUND))
 			{
@@ -193,12 +192,12 @@ namespace Nes
 			return RESULT_ERR_NOT_READY;
 		}
 
-		bool Nsf::IsPlaying() const
+		bool Nsf::IsPlaying() const throw()
 		{
 			return emulator.Is(Machine::SOUND) && static_cast<Core::Nsf*>(emulator.image)->IsPlaying();
 		}
 
-		bool Nsf::UsesBankSwitching() const
+		bool Nsf::UsesBankSwitching() const throw()
 		{
 			return emulator.Is(Machine::SOUND) && static_cast<Core::Nsf*>(emulator.image)->UsesBankSwitching();
 		}

@@ -71,7 +71,7 @@ namespace Nes
 			Map( 0x5000U, &Mapper83::Peek_5000 );
 			Map( 0x5100U, 0x51FF, &Mapper83::Peek_5100, &Mapper83::Poke_5100 );
 
-			if (!wrk.Source().IsWritable())
+			if (!wrk.Source().Writable())
 				Map( 0x6000U, 0x7FFFU, &Mapper83::Peek_6000 );
 
 			for (uint i=0x8000U; i < 0x9000U; i += 0x400)

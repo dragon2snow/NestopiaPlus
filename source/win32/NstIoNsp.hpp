@@ -43,7 +43,7 @@ namespace Nestopia
 	{
 		namespace Nsp
 		{
-			struct Context : private Sealed
+			struct Context
 			{
 				Context();
 				~Context();
@@ -88,7 +88,7 @@ namespace Nestopia
 				Cheats cheats;
 			};
 
-			class File : Sealed
+			class File
 			{
 			public:
 

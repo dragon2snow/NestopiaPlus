@@ -41,6 +41,7 @@ namespace Nestopia
 			~Fds();
 
 			void Save(Configuration&) const;
+			void QueryBiosFile();
 
 			enum Led
 			{
@@ -65,9 +66,9 @@ namespace Nestopia
 
 			ibool OnInitDialog (Param&);
 			ibool OnCmdBrowse  (Param&);
+			ibool OnCmdDefault (Param&);
 			ibool OnCmdClear   (Param&);
 			ibool OnCmdOk      (Param&);
-			ibool OnCmdCancel  (Param&);
 
 			Dialog dialog;
 			Settings settings;

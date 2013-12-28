@@ -187,8 +187,7 @@ namespace Nes
 			{
 				case 0x0:
 
-					chr.SwapBanks<SIZE_1K,0x0000U>( base|vrc2.chr[0], base|vrc2.chr[1], base|vrc2.chr[2], base|vrc2.chr[3] );
-					chr.SwapBanks<SIZE_1K,0x1000U>( base|vrc2.chr[4], base|vrc2.chr[5], base|vrc2.chr[6], base|vrc2.chr[7] );
+					chr.SwapBanks<SIZE_1K,0x0000U>( base|vrc2.chr[0], base|vrc2.chr[1], base|vrc2.chr[2], base|vrc2.chr[3], base|vrc2.chr[4], base|vrc2.chr[5], base|vrc2.chr[6], base|vrc2.chr[7] );
 					break;
 
 				case 0x1:

@@ -54,6 +54,9 @@ namespace Nestopia
 			template<typename Owner,typename MsgArray,typename CmdArray>
 			Dialog(uint,Owner*,MsgArray&,CmdArray&);
 
+			template<typename Owner,typename Msg>
+			Dialog(uint,uint,Owner*,Msg);
+
 			~Dialog();
 
 			enum Type

@@ -39,13 +39,12 @@ namespace Nes
 
 			class Port
 			{
-				class Generic {};
+				class Component {};
 
-				typedef Generic* Component;
-				typedef Data (NES_IO_CALL Generic::*Reader)(Address);
-				typedef void (NES_IO_CALL Generic::*Writer)(Address,Data);
+				typedef Data (NES_IO_CALL Component::*Reader)(Address);
+				typedef void (NES_IO_CALL Component::*Writer)(Address,Data);
 
-				Component component;
+				Component* component;
 				Reader reader;
 				Writer writer;
 
@@ -56,7 +55,7 @@ namespace Nes
 				template<typename T>
 				Port(T* c,Data (NES_IO_CALL T::*r)(Address),void (NES_IO_CALL T::*w)(Address,Data))
 				:
-				component ( reinterpret_cast<Component>(c) ),
+				component ( reinterpret_cast<Component*>(c) ),
 				reader    ( reinterpret_cast<Reader>(r)    ),
 				writer    ( reinterpret_cast<Writer>(w)    )
 				{
@@ -68,7 +67,7 @@ namespace Nes
 				{
 					NST_COMPILE_ASSERT( sizeof(reader) == sizeof(r) && sizeof(writer) == sizeof(w) );
 
-					component = reinterpret_cast<Component>(c);
+					component = reinterpret_cast<Component*>(c);
 					reader    = reinterpret_cast<Reader>(r);
 					writer    = reinterpret_cast<Writer>(w);
 				}

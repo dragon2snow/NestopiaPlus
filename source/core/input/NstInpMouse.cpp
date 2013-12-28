@@ -35,8 +35,8 @@ namespace Nes
 			#pragma optimize("s", on)
 			#endif
 
-			Mouse::Mouse()
-			: Device(Api::Input::MOUSE)
+			Mouse::Mouse(const Cpu& c)
+			: Device(c,Api::Input::MOUSE)
 			{
 				Mouse::Reset();
 			}
@@ -45,6 +45,7 @@ namespace Nes
 			{
 				strobe = 0;
 				stream = 0;
+				state = 0;
 			}
 
 			void Mouse::SaveState(State::Saver& state,const uchar id) const
@@ -72,11 +73,6 @@ namespace Nes
 			#pragma optimize("", on)
 			#endif
 
-			void Mouse::BeginFrame(Controllers* i)
-			{
-				input = i;
-			}
-
 			uint Mouse::Peek(uint)
 			{
 				const uint data = stream;
@@ -91,8 +87,6 @@ namespace Nes
 
 				if (prev > strobe)
 				{
-					data = 0x00;
-
 					if (input)
 					{
 						Controllers::Mouse& mouse = input->mouse;
@@ -100,6 +94,8 @@ namespace Nes
 
 						if (Controllers::Mouse::callback( mouse ))
 						{
+							data = 0x00;
+
 							if (mouse.button)
 								data = 0x01;
 
@@ -129,10 +125,12 @@ namespace Nes
 							{
 								data |= 0x10;
 							}
+
+							state = data ^ 0xFF;
 						}
 					}
 
-					stream = data ^ 0xFF;
+					stream = state;
 				}
 			}
 		}

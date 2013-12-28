@@ -27,53 +27,56 @@
 
 namespace Nestopia
 {
-	class Managers::Sound::Recorder
+	namespace Managers
 	{
-	public:
-
-		Recorder(Window::Menu&,Window::Sound::Recorder&,Emulator&);
-		~Recorder();
-
-		void Enable(const WAVEFORMATEX&);
-		void Disable();
-
-		NST_NO_INLINE void Flush(const Nes::Sound::Output&);
-
-	private:
-
-		void UpdateMenu() const;
-		void Close();
-
-		void OnEmuEvent(Emulator::Event);
-		ibool CanRecord() const;
-
-		void OnCmdFile   (uint);
-		void OnCmdRecord (uint);
-		void OnCmdStop   (uint);
-		void OnCmdRewind (uint);
-
-		enum
+		class Sound::Recorder
 		{
-			ONE_MB = 0x100000,
-			SMALL_SIZE = ONE_MB,
-			BIG_SIZE = ONE_MB * 200
+		public:
+
+			Recorder(Window::Menu&,Window::Sound::Recorder&,Emulator&);
+			~Recorder();
+
+			void Enable(const WAVEFORMATEX&);
+			void Disable();
+
+			NST_NO_INLINE void Flush(const Nes::Sound::Output&);
+
+		private:
+
+			void UpdateMenu() const;
+			void Close();
+
+			void OnEmuEvent(Emulator::Event);
+			ibool CanRecord() const;
+
+			void OnCmdFile   (uint);
+			void OnCmdRecord (uint);
+			void OnCmdStop   (uint);
+			void OnCmdRewind (uint);
+
+			enum
+			{
+				ONE_MB = 0x100000,
+				SMALL_SIZE = ONE_MB,
+				BIG_SIZE = ONE_MB * 200
+			};
+
+			ibool recording;
+			Io::Wave file;
+			uint size;
+			uint nextSmallSizeNotification;
+			uint nextBigSizeNotification;
+			Window::Sound::Recorder& dialog;
+			const Window::Menu& menu;
+			Emulator& emulator;
+			Object::Pod<WAVEFORMATEX> waveFormat;
+
+		public:
+
+			ibool IsRecording() const
+			{
+				return recording;
+			}
 		};
-
-		ibool recording;
-		Io::Wave file;
-		uint size;
-		uint nextSmallSizeNotification;
-		uint nextBigSizeNotification;
-		Window::Sound::Recorder& dialog;
-		const Window::Menu& menu;
-		Emulator& emulator;
-		Object::Pod<WAVEFORMATEX> waveFormat;
-
-	public:
-
-		ibool IsRecording() const
-		{
-			return recording;
-		}
-	};
+	}
 }

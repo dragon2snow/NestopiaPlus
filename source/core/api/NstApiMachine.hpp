@@ -45,7 +45,8 @@ namespace Nes
 		{
 		public:
 
-			Machine(Emulator& e)
+			template<typename T>
+			Machine(T& e)
 			: Base(e) {}
 
 			enum
@@ -66,18 +67,18 @@ namespace Nes
 				PAL  = 0x08
 			};
 
-			Result Load          (std::istream&);
-			Result LoadCartridge (std::istream&);
-			Result LoadDisk      (std::istream&);
-			Result LoadSound     (std::istream&);
-			Result Unload        ();
+			Result Load          (std::istream&) throw();
+			Result LoadCartridge (std::istream&) throw();
+			Result LoadDisk      (std::istream&) throw();
+			Result LoadSound     (std::istream&) throw();
+			Result Unload        () throw();
 
-			Result Power (bool);
-			Result Reset (bool);
+			Result Power (bool) throw();
+			Result Reset (bool) throw();
 
-			Mode GetMode() const;
-			Mode GetDesiredMode() const;
-			Result SetMode (Mode);
+			Mode GetMode() const throw();
+			Mode GetDesiredMode() const throw();
+			Result SetMode (Mode) throw();
 
 			enum Compression
 			{
@@ -85,11 +86,11 @@ namespace Nes
 				USE_COMPRESSION
 			};
 
-			Result LoadState (std::istream&);
-			Result SaveState (std::ostream&,Compression=USE_COMPRESSION) const;
+			Result LoadState (std::istream&) throw();
+			Result SaveState (std::ostream&,Compression=USE_COMPRESSION) const throw();
 
-			uint Is (uint) const;
-			uint Is (uint,uint) const;
+			uint Is (uint) const throw();
+			uint Is (uint,uint) const throw();
 
 		private:
 
