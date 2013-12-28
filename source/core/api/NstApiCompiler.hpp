@@ -28,6 +28,8 @@
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
+// #define NST_BIG_ENDIAN - if targeting big-endian processors
+//
 // #define NST_X86 - if targeting x86 processors. 
 //                   (has no effect if _M_IX86 or _X86_ is already defined)
 //
@@ -73,6 +75,8 @@
 // #define NST_NO_2XSAI - omit 2xSaI, Super 2xSaI and Super Eagle support
 //
 // #define NST_NO_HQ2X - omit hq2x and hq3x support
+//
+// #define NST_NO_NTSCVIDEO - omit ntsc composite video emulation
 //
 // remarks: GCC = GNU Compiler
 //          ICC = Intel C++ Compiler

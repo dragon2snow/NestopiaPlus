@@ -480,7 +480,7 @@ namespace Nestopia
 			settings.system = IDM_MACHINE_SYSTEM_AUTO;
 		}
 
-		settings.noSpriteLimit = instance->menu[IDM_MACHINE_OPTIONS_UNLIMITEDSPRITES].IsChecked();
+		settings.noSpriteLimit = Nes::Video(instance->emulator).AreUnlimSpritesEnabled();
 
 		if (instance->network.player == MASTER)
 		{
@@ -513,8 +513,8 @@ namespace Nestopia
 		{
 			instance->window.PostCommand( settings.system );
 
-			if (bool(settings.noSpriteLimit) != bool(instance->menu[IDM_MACHINE_OPTIONS_UNLIMITEDSPRITES].IsChecked()))
-				instance->window.PostCommand( IDM_MACHINE_OPTIONS_UNLIMITEDSPRITES );
+			if (bool(settings.noSpriteLimit) != bool(Nes::Video(instance->emulator).AreUnlimSpritesEnabled()))
+				Nes::Video(instance->emulator).EnableUnlimSprites( settings.noSpriteLimit );
 		}
 	}
 
@@ -636,7 +636,7 @@ namespace Nestopia
 					);
 
 				    if (bool(settings.noSpriteLimit) != bool(data & PACKET_DATA_NO_SPRITE_LIMIT))
-						instance->window.SendCommand( IDM_MACHINE_OPTIONS_UNLIMITEDSPRITES );
+						Nes::Video(instance->emulator).EnableUnlimSprites( !settings.noSpriteLimit );
 				}
 				break;
 		}

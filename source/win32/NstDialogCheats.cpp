@@ -162,14 +162,9 @@ namespace Nestopia
 
 			state.Validate();
 			code.enabled = (state != _T("off"));
-
-			desc.Validate();
-
-			if (desc.Length() > 2 && desc.Front() == '\"' && desc.Back() == '\"')
-			{
-				code.desc = desc( 1, desc.Length() - 1 );
-				code.desc.Trim();
-			}
+			
+			code.desc = desc.Ptr();
+			code.CheckDesc();
 		}
 	}
 

@@ -79,13 +79,13 @@ namespace Nestopia
 
 		struct BitmapInfo : Object::Pod<BITMAPINFOHEADER>
 		{
-			BitmapInfo(const uint scale)
+			BitmapInfo(const uint width,const uint height)
 			{
-				NST_ASSERT( scale );
+				NST_ASSERT( width && height );
 
 				biSize        = sizeof(BITMAPINFOHEADER);
-				biWidth       = Nes::Video::Output::WIDTH * scale;
-				biHeight      = Nes::Video::Output::HEIGHT * scale;
+				biWidth       = width;
+				biHeight      = height;
 				biPlanes      = 1;
 				biBitCount    = VIDEO_BPP;
 				biCompression = BI_RGB;
@@ -140,12 +140,6 @@ namespace Nestopia
 			operator PAVIFILE() const
 			{
 				return file;
-			}
-
-			uint Size() const
-			{
-//				return ::GetFileSize()
-				return 0;
 			}
 
 			void SetSuccess() const
@@ -288,7 +282,7 @@ namespace Nestopia
 			~Buffer() { operator delete (ptr); }
 		};
 
-		BitmapInfo bitmapInfo( renderState.scale );
+		BitmapInfo bitmapInfo( renderState.width, renderState.height );
 		CompressVars compressVars;
 
 		if (!compressVars.Choose( bitmapInfo ))

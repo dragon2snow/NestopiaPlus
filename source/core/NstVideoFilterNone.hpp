@@ -22,40 +22,40 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#ifndef NST_MANAGER_MACHINE_H
-#define NST_MANAGER_MACHINE_H
+#ifndef NST_VIDEO_FILTER_NONE_H
+#define NST_VIDEO_FILTER_NONE_H
 
+#ifdef NST_PRAGMA_ONCE_SUPPORT
 #pragma once
+#endif
 
-#include "NstWindowMenu.hpp"
-
-namespace Nestopia
+namespace Nes
 {
-	namespace Managers
+	namespace Core
 	{
-		class Machine
+		namespace Video
 		{
-		public:
+			class Renderer::FilterNone : public Renderer::Filter
+			{
+				template<typename T>
+				NST_FORCE_INLINE void BlitAligned(const Input&,const Output&) const;
 
-			Machine(Emulator&,const Application::Configuration&,Window::Menu&,const Preferences&);
-			~Machine();
+				template<typename T>
+				NST_FORCE_INLINE void BlitUnaligned(const Input&,const Output&) const;
 
-			void Save(Configuration&) const;
+				template<typename T>
+				NST_FORCE_INLINE void BlitType(const Input&,const Output&) const;
 
-		private:
+			public:
 
-			void OnMenuSystem (Window::Menu::PopupHandler::Param&);
-			void OnEmuEvent (Emulator::Event);
+				const u8 paletteOffset;
 
-			void OnCmdPower  (uint);
-			void OnCmdReset	 (uint);
-			void OnCmdPause  (uint);
-			void OnCmdSystem (uint);
+				FilterNone(const RenderState&);
 
-			Emulator& emulator;
-			const Window::Menu& menu;
-			const Preferences& preferences;
-		};
+				void Blit(const Input&,const Output&);
+				static bool Check(const RenderState&);
+			};
+		}
 	}
 }
 

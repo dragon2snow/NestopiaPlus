@@ -1059,7 +1059,7 @@ namespace Nes
 			NES_POKE(Bandai,800A)
 			{ 
 				irq.Update();
-				irq.unit.count = irq.unit.latch;			
+				irq.unit.count = irq.unit.latch + 1;			
 				irq.EnableLine( data & 0x1 );
 				irq.ClearIRQ();
 			}
@@ -1095,7 +1095,7 @@ namespace Nes
 			ibool Bandai::Irq::Signal()
 			{
 				count = (count - 1) & 0xFFFFU;
-				return count == 0;
+				return count == 0;//0xFFFF;
 			}
 
 			void Bandai::VSync()

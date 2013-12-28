@@ -167,14 +167,29 @@ namespace Nestopia
 			{
 				settings.filter = FILTER_SCANLINES_DARK;
 			}
+			else if (type == _T("ntsc"))
+			{
+				if (settings.adapter->maxScreenSize >= NST_MAX(NTSC_WIDTH,NTSC_HEIGHT))
+					settings.filter = FILTER_NTSC;
+			}
+			else if (type == _T("ntsc scanlines bright"))
+			{
+				if (settings.adapter->maxScreenSize >= NST_MAX(NTSC_WIDTH,NTSC_HEIGHT))
+					settings.filter = FILTER_NTSC_SCANLINES_BRIGHT;
+			}
+			else if (type == _T("ntsc scanlines dark"))
+			{
+				if (settings.adapter->maxScreenSize >= NST_MAX(NTSC_WIDTH,NTSC_HEIGHT))
+					settings.filter = FILTER_NTSC_SCANLINES_DARK;
+			}
 			else if (type == _T("scale3x"))
 			{
-				if (settings.adapter->maxScreenSize >= NST_MAX(NES_HEIGHT * 4,NES_WIDTH * 4))
+				if (settings.adapter->maxScreenSize >= NST_MAX(NES_HEIGHT * 3,NES_WIDTH * 3))
 					settings.filter = FILTER_SCALE3X;
 			}
 			else if (type == _T("hq3x"))
 			{
-				if (settings.adapter->maxScreenSize >= NST_MAX(NES_HEIGHT * 4,NES_WIDTH * 4))
+				if (settings.adapter->maxScreenSize >= NST_MAX(NES_HEIGHT * 3,NES_WIDTH * 3))
 					settings.filter = FILTER_HQ3X;
 			}
 			else if (settings.adapter->maxScreenSize >= NST_MAX(NES_HEIGHT * 2,NES_WIDTH * 2))
@@ -186,8 +201,8 @@ namespace Nestopia
 					type == _T("super 2xsai" ) ? FILTER_SUPER_2XSAI :
 					type == _T("super eagle" ) ? FILTER_SUPER_EAGLE :
 					type == _T("scale2x"     ) ? FILTER_SCALE2X :
-				    type == _T("hq2x"		) ? FILTER_HQ2X :
-				                                    FILTER_NONE
+				    type == _T("hq2x"		 ) ? FILTER_HQ2X :
+				                                 FILTER_NONE
 				);
 			}
 		}
@@ -271,19 +286,22 @@ namespace Nestopia
 		{
 			static tstring const names[] =
 			{
-				_T( "none"             ),            
-				_T( "bilinear"         ),
-				_T( "scanlines bright" ),
-				_T( "scanlines dark"   ),
-				_T( "tv soft"          ),
-				_T( "tv harsh"         ),
-				_T( "2xsai"            ),           
-				_T( "super 2xsai"      ),
-				_T( "super eagle"      ),     
-				_T( "scale2x"          ),         
-				_T( "scale3x"          ),
-				_T( "hq2x"             ),
-				_T( "hq3x"			  )
+				_T( "none"                  ),            
+				_T( "bilinear"              ),
+				_T( "scanlines bright"      ),
+				_T( "scanlines dark"        ),
+				_T( "ntsc"                  ),
+				_T( "ntsc scanlines bright" ),
+				_T( "ntsc scanlines dark"   ),
+				_T( "tv soft"               ),
+				_T( "tv harsh"              ),
+				_T( "2xsai"                 ),           
+				_T( "super 2xsai"           ),
+				_T( "super eagle"           ),     
+				_T( "scale2x"               ),         
+				_T( "scale3x"               ),
+				_T( "hq2x"                  ),
+				_T( "hq3x"			        )
 			};
 
 			cfg[ "video filter" ] = names[settings.filter];
@@ -906,6 +924,13 @@ namespace Nestopia
 
 		comboBox.Add( Resource::String(IDS_VIDEO_FILTER_SCANLINES_BRIGHT) ).Data() = FILTER_SCANLINES_BRIGHT;
 		comboBox.Add( Resource::String(IDS_VIDEO_FILTER_SCANLINES_DARK) ).Data() = FILTER_SCANLINES_DARK;
+
+		if (settings.adapter->maxScreenSize >= NST_MAX(NTSC_WIDTH,NTSC_HEIGHT))
+		{
+			comboBox.Add( Resource::String(IDS_VIDEO_FILTER_NTSC) ).Data() = FILTER_NTSC;
+			comboBox.Add( Resource::String(IDS_VIDEO_FILTER_NTSC_SCANLINES_BRIGHT) ).Data() = FILTER_NTSC_SCANLINES_BRIGHT;
+			comboBox.Add( Resource::String(IDS_VIDEO_FILTER_NTSC_SCANLINES_DARK) ).Data() = FILTER_NTSC_SCANLINES_DARK;
+		}
 
 		if (settings.adapter->maxScreenSize >= NST_MAX(NES_WIDTH*2,NES_HEIGHT*2))
 		{

@@ -69,9 +69,17 @@ namespace Nestopia
 	IDirect3D9& Direct2D::Base::Create()
 	{
 		if (IDirect3D9* com = ::Direct3DCreate9( D3D_SDK_VERSION ))
+		{
 			return *com;
+		}
+		else if (IDirect3D9* com = ::Direct3DCreate9( D3D9b_SDK_VERSION )) // unofficial, it may work, it may not work
+		{
+			return *com;
+		}
 		else
+		{
 			throw Application::Exception(_T("::Direct3DCreate9() failed! Upgrade to DirectX 9.0c or better!"));
+		}
 	}
 
 	const Direct2D::Adapters Direct2D::Base::EnumerateAdapters(IDirect3D9& d3d)
@@ -949,22 +957,22 @@ namespace Nestopia
 
 		rect = picture;
 
-		vertices[0].x = (float) ( picture.left - 0.5f );
-		vertices[0].y = (float) ( picture.top - 0.5f  );
-		vertices[0].u = (float) ( clip.left / scale   );
-		vertices[0].v = (float) ( clip.top / scale    );
-		vertices[1].x = (float) ( picture.left - 0.5f );
-		vertices[1].y = (float) ( picture.bottom      );
-		vertices[1].u = (float) ( clip.left / scale   );
-		vertices[1].v = (float) ( clip.bottom / scale );
-		vertices[2].x = (float) ( picture.right       );
-		vertices[2].y = (float) ( picture.top - 0.5f  );
-		vertices[2].u = (float) ( clip.right / scale  );
-		vertices[2].v = (float) ( clip.top / scale    );
-		vertices[3].x = (float) ( picture.right       );
-		vertices[3].y = (float) ( picture.bottom      );
-		vertices[3].u = (float) ( clip.right / scale  );
-		vertices[3].v = (float) ( clip.bottom / scale );
+		vertices[0].x = picture.left - 0.5f;  
+		vertices[0].y = picture.top - 0.5f;   
+		vertices[0].u = clip.left / scale;    
+		vertices[0].v = clip.top / scale;     
+		vertices[1].x = picture.left - 0.5f;  
+		vertices[1].y = picture.bottom - 0.5f;
+		vertices[1].u = clip.left / scale;    
+		vertices[1].v = clip.bottom / scale;  
+		vertices[2].x = picture.right - 0.5f; 
+		vertices[2].y = picture.top - 0.5f;   
+		vertices[2].u = clip.right / scale;   
+		vertices[2].v = clip.top / scale;     
+		vertices[3].x = picture.right - 0.5f; 
+		vertices[3].y = picture.bottom - 0.5f;
+		vertices[3].u = clip.right / scale;   
+		vertices[3].v = clip.bottom / scale;  
 	}
 
     #ifdef NST_PRAGMA_OPTIMIZE
@@ -1150,9 +1158,11 @@ namespace Nestopia
 
 		const DWORD type = (filter == Adapter::FILTER_NONE ? D3DTEXF_POINT : D3DTEXF_LINEAR);
 
+		device.SetSamplerState( 0, D3DSAMP_ADDRESSU, D3DTADDRESS_CLAMP );
+		device.SetSamplerState( 0, D3DSAMP_ADDRESSV, D3DTADDRESS_CLAMP );
 		device.SetSamplerState( 0, D3DSAMP_MINFILTER, type );
 		device.SetSamplerState( 0, D3DSAMP_MAGFILTER, type );
-
+										
 		return D3D_OK;
 	}
 

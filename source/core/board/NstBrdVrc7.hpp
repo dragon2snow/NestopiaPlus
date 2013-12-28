@@ -83,8 +83,8 @@ namespace Nes
 						EG_BEGIN       = 1UL << 22
 					};
 
-					static const dword PITCH_RATE = 6.4 * (1UL << 16) / CLOCK_DIV;
-					static const dword AMP_RATE   = 3.7 * (1UL << 16) / CLOCK_DIV;
+					static const dword PITCH_RATE;
+					static const dword AMP_RATE;
   
 					class Tables
 					{

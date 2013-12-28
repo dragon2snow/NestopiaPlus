@@ -189,7 +189,7 @@ namespace Nes
 						banks.chr[5]
 					};
 
-					state.Begin('R','E','G','\0').Write( data ).End().End();
+					state.Begin('R','E','G','\0').Write( data ).End();
 				}
 		
 				irq.unit.SaveState( State::Saver::Subset(state,'I','R','Q','\0').Ref() );

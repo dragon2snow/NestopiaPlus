@@ -292,25 +292,22 @@ namespace Nestopia
 		{
 			if (p || (keyboard[DIK_F12] & 0x80))
 			{
-				if (::IsClipboardFormatAvailable( CF_TEXT ) && ::OpenClipboard( Application::Instance::GetMainWindow() ))
+				if (::IsClipboardFormatAvailable( CF_UNICODETEXT ) && ::OpenClipboard( Application::Instance::GetMainWindow() ))
 				{
-					if (HANDLE const handle = ::GetClipboardData( CF_TEXT ))
+					if (HANDLE const handle = ::GetClipboardData( CF_UNICODETEXT ))
 					{
-						if (cstring const string = (cstring) ::GlobalLock( handle ))
+						if (wstring string = (wstring) ::GlobalLock( handle ))
 						{
-							Heap::operator = (string);
-							::GlobalUnlock( handle );
-
 							pos = 0;
 							releasing = 0;
 							hold = 0;
 							shifted = false;
 
-							char* dst = Ptr();
+							bool kana = false;
 
-							for (cstring src=Ptr(), end=Ptr() + Length(); src != end; ++src)
+							for (wchar_t p; '\0' != (p = *string); ++string)
 							{
-								uchar p = *src;
+								bool mode = false;
 
 								if (p < 32)
 								{
@@ -327,16 +324,125 @@ namespace Nestopia
 									{
 										p = '\\';
 									}
-									else if (type != SUBOR || p > 125)
+									else if (type == SUBOR)
 									{
-										continue;
+										if (p > 125)
+											continue;
+									}
+									else if (p > 0xFF00)
+									{
+										switch (p)
+										{
+											case 0xFF71: p = '1';  break;
+											case 0xFF72: p = '2';  break;
+											case 0xFF73: p = '3';  break;
+											case 0xFF74: p = '4';  break;
+											case 0xFF75: p = '5';  break;
+
+											case 0xFF67: p = '!';  break;
+											case 0xFF68: p = '\"'; break;
+											case 0xFF69: p = '#';  break;
+											case 0xFF6A: p = '$';  break;
+											case 0xFF6B: p = '%';  break;
+
+											case 0xFF6F: p = 'c' | 0x80; break;
+
+											case 0xFF76: p = 'q';  break;
+											case 0xFF77: p = 'w';  break;
+											case 0xFF78: p = 'e';  break;
+											case 0xFF79: p = 'r';  break;
+											case 0xFF7A: p = 't';  break;
+
+											case 0xFF9E: 
+												
+												if (Length())
+													Back() |= 0x100;
+
+												continue;
+
+											case 0xFF9F: 
+
+												if (Length())
+													Back() |= 0x80;
+
+												continue;
+
+											case 0xFF7B: p = 'a';  break;
+											case 0xFF7C: p = 's';  break;
+											case 0xFF7D: p = 'd';  break;
+											case 0xFF7E: p = 'f';  break;
+											case 0xFF7F: p = 'g';  break;
+
+											case 0xFF80: p = 'z';  break;
+											case 0xFF81: p = 'x';  break;
+											case 0xFF82: p = 'c';  break;
+											case 0xFF83: p = 'v';  break;
+											case 0xFF84: p = 'b';  break;
+
+											case 0xFF85: p = '6';  break;
+											case 0xFF86: p = '7';  break;
+											case 0xFF87: p = '8';  break;
+											case 0xFF88: p = '9';  break;
+											case 0xFF89: p = '0';  break;
+
+											case 0xFF8A: p = 'y';  break;
+											case 0xFF8B: p = 'u';  break;
+											case 0xFF8C: p = 'i';  break;
+											case 0xFF8D: p = 'o';  break;
+											case 0xFF8E: p = 'p';  break;
+
+											case 0xFF8F: p = 'h';  break;
+											case 0xFF90: p = 'j';  break;
+											case 0xFF91: p = 'k';  break;
+											case 0xFF92: p = 'l';  break;
+											case 0xFF93: p = ';';  break;
+
+											case 0xFF94: p = 'n';  break;
+											case 0xFF95: p = 'm';  break;
+											case 0xFF96: p = ',';  break;
+
+											case 0xFF6C: p = 'n' | 0x80; break;
+											case 0xFF6D: p = 'm' | 0x80; break;
+											case 0xFF6E: p = '<';        break;
+
+											case 0xFF97: p = '-';  break;
+											case 0xFF98: p = '^';  break;
+											case 0xFF99: p = '\\'; break;
+											case 0xFF9A: p = '@';  break;
+											case 0xFF9B: p = '[';  break;
+
+											case 0xFF9C: p = '.';  break;
+											case 0xFF66: p = '-';  break;
+											case 0xFF9D: p = '\t'; break;
+
+											case 0xFF61: p = ']';        break;
+											case 0xFF62: p = '[' | 0x80; break;
+											case 0xFF63: p = ']' | 0x80; break;
+											
+											default: continue;										
+										}
+
+										mode = true;
+									}
+									else
+									{
+										continue;										
 									}
 								}
 
-								*dst++ = p;
+								if (kana != mode)
+								{
+									kana = mode;
+									Heap::operator << (char(0xFF));
+								}
+
+								Heap::operator << (p);
 							}
 
-							ShrinkTo( dst - Ptr() );
+							if (kana)
+								Heap::operator << (char(0xFF));
+
+							::GlobalUnlock( handle );
 						}
 					}
 
@@ -393,7 +499,7 @@ namespace Nestopia
 		if (!hold)
 		{
 			shifted = false;
-			releasing = 24;
+			releasing = 32;
 
 			if (++pos == Length())
 				Clear();
@@ -1215,28 +1321,28 @@ namespace Nestopia
 			static const u16 asciiMap[Controllers::FamilyKeyboard::NUM_PARTS][Controllers::FamilyKeyboard::NUM_MODES][4] =
 			{
 				{		
-					{ 0, '\r', '[', ']' },
-					{ 0, 0, '\\', 0 }
+					{ 0, '\r', NST_2('[','['|0x80), NST_2(']',']'|0x80) },
+					{ 0xFF, 0, '\\', 0 }
 				},
 				{
 					{ 0, '@', NST_2(':','*'), NST_2(';','+') },
-					{ NST_2(0,'_'), NST_2('/','?'), NST_2('-','='), '^' }
+					{ NST_2('\t','_'), NST_2('/','?'), NST_2('-','='), '^' }
 				},
 				{
-					{ 0, 'o', 'l', 'k' },
-					{ NST_2('.','>'), NST_2(',','<'), 'p', '0' }
+					{ 0, NST_2('o','o'|0x80), 'l', 'k' },
+					{ NST_2('.','>'), NST_2(',','<'), NST_2('p','p'|0x80), '0' }
 				},
 				{
-					{ 0, 'i', 'u', 'j' },
-					{ 'm', 'n', NST_2('9',')'), NST_2('8','(') }
+					{ 0, NST_2('i','i'|0x80), NST_2('u','u'|0x80), 'j' },
+					{ NST_2('m','m'|0x80), NST_2('n','n'|0x80), NST_2('9',')'), NST_2('8','(') }
 				},
 				{
-					{ 0, 'y', 'g', 'h' },
+					{ 0, NST_2('y','y'|0x80), 'g', 'h' },
 					{ 'b', 'v', NST_2('7','\''), NST_2('6','&') }
 				},
 				{
 					{ 0, 't', 'r', 'd' },
-					{ 'f', 'c', NST_2('5','%'), NST_2('4','$') }
+					{ 'f', NST_2('c','c'|0x80), NST_2('5','%'), NST_2('4','$') }
 				},
 				{
 					{ 0, 'w', 's', 'a' },
@@ -1244,7 +1350,7 @@ namespace Nestopia
 				},
 				{
 					{ 0, 0, 'q', 0 },
-					{ 0, 0, NST_2('1','!'), NST_2('2','\"') }
+					{ 0, 0xFE, NST_2('1','!'), NST_2('2','\"') }
 				},
 				{
 					{ 0, 0, 0, 0 },
@@ -1255,7 +1361,15 @@ namespace Nestopia
 			if (input.clipBoard.Shifted() && part == 7 && mode == 1)
 				key = 0x02;
 
-			const uint next = *input.clipBoard;
+			uint next = *input.clipBoard;
+
+			if (next != UINT_MAX && (next & 0x100))
+			{
+				next &= 0xFF;
+
+				if (part == 7 && mode == 1)
+					key |= 0x04;
+			}
 
 			for (uint i=0; i < 4; ++i)
 			{

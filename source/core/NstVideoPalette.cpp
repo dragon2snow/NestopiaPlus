@@ -286,7 +286,7 @@ namespace Nes
 			void Palette::ComputeTV()
 			{
 				NST_ASSERT( type == EMULATE );
-		
+
 				update = false;
 		
 				const double sat = NST_MAX((saturation / 255.0) - 0.267,0.0);

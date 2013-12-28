@@ -116,7 +116,15 @@ namespace Nestopia
 			do
 			{
 				if (::unzGetCurrentFileInfo( handle, &info, path, _MAX_PATH, NULL, 0, NULL, 0 ) == UNZ_OK && info.uncompressed_size && *path)
-					files.push_back( Item(this,path,info.uncompressed_size,i) );
+				{
+                #ifdef UNICODE
+					wchar_t unipath[_MAX_PATH+1];
+					::MultiByteToWideChar( CP_OEMCP, 0, path, -1, unipath, _MAX_PATH );
+					files.push_back( Item(this,unipath,info.uncompressed_size,i) );
+                #else
+					files.push_back( Item(this,Path(path).Ptr(),info.uncompressed_size,i) );
+                #endif
+				}
 			}
 			while (++i < numFiles && ::unzGoToNextFile( handle ) == UNZ_OK);
 
@@ -377,13 +385,26 @@ namespace Nestopia
 		{
 			try
 			{
+            #ifdef UNICODE
+				Object::Pod<RARHeaderDataEx> header;
+            #else
 				Object::Pod<RARHeaderData> header;
-				header.CmtBuf = NULL;
+            #endif
 
+            #ifdef UNICODE
+				for (uint i=0; ::RARReadHeaderEx( handle, &header ) == 0; ++i)
+            #else
 				for (uint i=0; ::RARReadHeader( handle, &header ) == 0; ++i)
+            #endif
 				{
 					if (header.UnpSize && *header.FileName)
+					{
+                    #ifdef UNICODE
+						files.push_back( Item(this,header.FileNameW,header.UnpSize,i) );
+                    #else
 						files.push_back( Item(this,header.FileName,header.UnpSize,i) );
+                    #endif
+					}
 
 					if (::RARProcessFile( handle, RAR_SKIP, NULL, NULL ))
 						break;
@@ -862,7 +883,7 @@ namespace Nestopia
 		{
 			files.reserve( numFiles );
 
-			char path[_MAX_PATH+2];
+			Path path;
 			PROPVARIANT prop;
 
 			for (uint i=0; i < numFiles; ++i)
@@ -878,23 +899,22 @@ namespace Nestopia
 
 				if (FAILED(archive.GetProperty( i, kpidPath, &prop )) || prop.vt != VT_BSTR || prop.bstrVal == NULL)
 					continue;
-					
-				const ibool good = *prop.bstrVal && 1 < ::WideCharToMultiByte
-				(
-					CP_OEMCP, 
-					0, 
-					prop.bstrVal, 
-					-1, 
-					path, 
-					_MAX_PATH+1, 
-					NULL, 
-					NULL
-				);
+
+            #ifdef UNICODE
+				path = prop.bstrVal;
+            #else
+				{
+					char buffer[_MAX_PATH+2];
+
+					if (::WideCharToMultiByte( CP_OEMCP, 0, prop.bstrVal, -1, buffer, _MAX_PATH+1, NULL, NULL ))
+						path = buffer;
+				}
+            #endif
 
 				::VariantClear( reinterpret_cast<VARIANTARG*>(&prop) );
 
-				if (good)
-					files.push_back( Item(this,path,size,i) );
+				if (path.Length())
+					files.push_back( Item(this,path.Ptr(),size,i) );
 			}
 		}
 
@@ -1013,7 +1033,7 @@ namespace Nestopia
 	inline Archive::Item::Item
 	(
 		Codec* const c,
-		cstring const n,
+		tstring const n,
 		const uint s,
 		const uint i
 	)

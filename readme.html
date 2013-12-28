@@ -7,8 +7,8 @@
 			<h1> Nestopia Documentation
 			</h1>
 		</center>
-		<center><em>version 1.24</em></center>
-		<center><em>&nbsp;last&nbsp;updated&nbsp;january 9, 2006</em></center>
+		<center><em>version 1.25</em></center>
+		<center><em>&nbsp;last&nbsp;updated&nbsp;january 19, 2006</em></center>
         <center>
             &nbsp;</center>
         <center>
@@ -179,7 +179,7 @@
             <li>Video Filters</li>
             <li>Real-Time Rewinding</li>
             <li>Cheat Searching</li>
-            <li>Image File Database&nbsp;</li>
+            <li>Database for correcting bad headers</li>
             <li>Game Configuration Files</li>
             <li>File Launcher</li>
             <li>Palette Editor</li>
@@ -214,6 +214,7 @@
 			<tr> <td> 24 </td><td>KONAMI VRC6 A0/A1</td></tr>             
 			<tr> <td> 25 </td><td>KONAMI VRC4 Y</td></tr>	             
 			<tr> <td> 26 </td><td>KONAMI VRC6 A1/A0</td></tr>             
+			<tr> <td> 27 </td><td>KONAMI VRC4 clone?</td></tr>             
 			<tr> <td> 32 </td><td>IREM G-101</td></tr>		             
 			<tr> <td> 33 </td><td>TAITO TC0190/TC0350</td></tr>           
 			<tr> <td> 34 </td><td>NINA-1 / BNROM</td></tr>                
@@ -364,7 +365,7 @@
 			<tr> <td> 254 </td><td>PIKACHU Y2K</td></tr>		             
 			<tr> <td> 255 </td><td>BMC (110-IN-1)</td></tr>               	
 		</table>
-		<p>..that renders a total of <strong>174</strong>.</p>
+		<p>..that renders a total of <strong>175</strong>.</p>
 		<h3>Recognized VS UniSystem Games
 		</h3>
 		<table border="1">
@@ -663,7 +664,7 @@
 		</p>
 		<p>Supported cartridge formats are&nbsp;<strong>.nes</strong> and <strong>.unif</strong>.&nbsp;To 		
 			get beyond&nbsp;the limitation of the&nbsp;<strong>.nes</strong> format&nbsp;Nestopia 
-			maintains an internal game database&nbsp;that will&nbsp;attempt 
+			maintains an internal database&nbsp;that will&nbsp;attempt 
 			to&nbsp;fix&nbsp;incorrect headers&nbsp;as well as provide necessary info for 
 			certain cartridge types. No changes are made to the physical file.&nbsp;This 
 			feature can be&nbsp;disabled&nbsp;in the preferences dialog.</p>
@@ -2541,14 +2542,6 @@
 					</td>
 				</tr>
 				<tr>
-					<td>netplay use database names
-					</td>
-					<td width="292">yes, no
-					</td>
-					<td>yes
-					</td>
-				</tr>
-				<tr>
 					<td>nsf in background
 					</td>
 					<td width="292">yes, no
@@ -3205,7 +3198,7 @@
 			games might depend on this hardware limitation.
 			</li>
 			<li>
-			It's possible&nbsp;that the game database&nbsp;will cause more harm than 
+			It's possible&nbsp;that the image database&nbsp;will cause more harm than 
 			good&nbsp;with some&nbsp;games.&nbsp;If the problem goes away when&nbsp;you 
 			disable the option for auto-correction of faulty images,&nbsp;please send 
 			me&nbsp;a report&nbsp;with the name of the game so I can correct it.
@@ -3260,7 +3253,8 @@
 			<tr>
 				<td width="171">Blargg
 				</td>
-				<td>APU&nbsp;and&nbsp;PPU info&nbsp;
+				<td>
+                    NTSC composite video emulator, APU&nbsp;and&nbsp;PPU info&nbsp;
 				</td>
 			</tr>
 			<tr>

@@ -102,35 +102,18 @@ namespace Nestopia
 			{ WM_ENABLE,		                            &Main::OnEnable            },
 			{ WM_ACTIVATE,		                            &Main::OnActivate          },
 			{ WM_NCLBUTTONDOWN,	                            &Main::OnNclButton         },
-			{ WM_DISPLAYCHANGE,                             &Main::OnDisplayChange     },
 			{ WM_POWERBROADCAST,                            &Main::OnPowerBroadCast    },
 			{ Application::Instance::WM_NST_COMMAND_RESUME, &Main::OnCommandResume     }
 		};
 
 		static const Menu::CmdHandler::Entry<Main> commands[] =
 		{
-			{ IDM_VIEW_WINDOWSIZE_1X,  &Main::OnCmdViewScreenSize   },
-			{ IDM_VIEW_WINDOWSIZE_2X,  &Main::OnCmdViewScreenSize   },
-			{ IDM_VIEW_WINDOWSIZE_3X,  &Main::OnCmdViewScreenSize   },
-			{ IDM_VIEW_WINDOWSIZE_4X,  &Main::OnCmdViewScreenSize   },
-			{ IDM_VIEW_WINDOWSIZE_5X,  &Main::OnCmdViewScreenSize   },
-			{ IDM_VIEW_WINDOWSIZE_6X,  &Main::OnCmdViewScreenSize   },
-			{ IDM_VIEW_WINDOWSIZE_7X,  &Main::OnCmdViewScreenSize   },
-			{ IDM_VIEW_WINDOWSIZE_8X,  &Main::OnCmdViewScreenSize   },
-			{ IDM_VIEW_WINDOWSIZE_9X,  &Main::OnCmdViewScreenSize   },
-			{ IDM_VIEW_WINDOWSIZE_MAX, &Main::OnCmdViewScreenSize   },
-			{ IDM_VIEW_SWITCH_SCREEN,  &Main::OnCmdViewSwitchScreen },
-			{ IDM_VIEW_MENU,     	   &Main::OnCmdViewShowMenu     },
-			{ IDM_VIEW_ON_TOP,		   &Main::OnCmdViewShowOnTop    }
-		};
-
-		static const Menu::PopupHandler::Entry<Main> popups[] =
-		{	  
-			{ Menu::PopupHandler::Pos<IDM_POS_VIEW,IDM_POS_VIEW_SCREENSIZE>::ID, &Main::OnMenuViewScreenSize }
+			{ IDM_VIEW_SWITCH_SCREEN, &Main::OnCmdViewSwitchScreen },
+			{ IDM_VIEW_MENU,     	  &Main::OnCmdViewShowMenu     },
+			{ IDM_VIEW_ON_TOP,		  &Main::OnCmdViewShowOnTop    }
 		};
 
 		m.Commands().Add( this, commands );
-		m.PopupRouter().Add( this, popups );
 		m.Hook( window );
 
 		emulator.Events().Add( this, &Main::OnEmuEvent );
@@ -143,39 +126,7 @@ namespace Nestopia
 		menu[IDM_VIEW_MENU].Check();
 		menu[IDM_VIEW_SWITCH_SCREEN].Text() << Resource::String(IDS_MENU_FULLSCREEN);
 
-		{
-			const GenericString type( cfg["machine region"] );
-			const uint id = (type == _T("ntsc") ? IDM_MACHINE_SYSTEM_NTSC : type == _T("pal") ? IDM_MACHINE_SYSTEM_PAL : IDM_MACHINE_SYSTEM_AUTO);
-
-			menu[id].Check( IDM_MACHINE_SYSTEM_AUTO, IDM_MACHINE_SYSTEM_PAL );
-
-			if (id == IDM_MACHINE_SYSTEM_AUTO)
-				emulator.AutoSetMode();
-			else
-				emulator.SetMode( id == IDM_MACHINE_SYSTEM_NTSC ? Nes::Machine::NTSC : Nes::Machine::PAL );
-		}
-
-		{
-			const GenericString type( cfg["view size fullscreen"] );
-
-			video.SetFullscreenScale
-			(
-				(type == _T( "1"         )) ? 0 :
-     			(type == _T( "2"         )) ? 1 :
-     			(type == _T( "3"         )) ? 2 :
-				(type == _T( "4"         )) ? 3 :
-				(type == _T( "5"         )) ? 4 :
-				(type == _T( "6"         )) ? 5 :
-				(type == _T( "7"         )) ? 6 :
-				(type == _T( "8"         )) ? 7 :
-				(type == _T( "9"         )) ? 8 :
-    			(type == _T( "stretched" )) ? Managers::Video::STRETCHED : 8
-			);
-		}
-
-		ibool winpos = preferences[Managers::Preferences::SAVE_WINDOWPOS];
-
-		if (winpos)
+		if (preferences[Managers::Preferences::SAVE_WINDOWPOS])
 		{
 			const Rect rect
 			(
@@ -187,7 +138,7 @@ namespace Nestopia
 
 			const Point mode( Managers::Video::GetDisplayMode() );
 
-			winpos = 
+			const bool winpos = 
 			(
 		    	rect.left < rect.right && rect.top < rect.bottom &&
 				rect.left < mode.x && rect.top < mode.y &&
@@ -198,25 +149,6 @@ namespace Nestopia
 				window.Set( rect );
 		}
  
-		if (!winpos)
-		{
-			const GenericString type( cfg["view size window"] );
-
-			Resize
-			(
-				(type == _T( "2" )) ? 1 :
-     			(type == _T( "3" )) ? 2 :
-    			(type == _T( "4" )) ? 3 :
-				(type == _T( "5" )) ? 4 :
-				(type == _T( "6" )) ? 5 :
-				(type == _T( "7" )) ? 6 :
-				(type == _T( "8" )) ? 7 :
-				(type == _T( "9" )) ? 8 : 0
-			);
-		}
-
-		UpdateScreenSize( Managers::Video::GetDisplayMode() );
-
 		if (preferences[Managers::Preferences::START_IN_FULLSCREEN])
 			window.PostCommand( IDM_VIEW_SWITCH_SCREEN );
 		else
@@ -234,57 +166,19 @@ namespace Nestopia
 	void Main::Save(Configuration& cfg) const
 	{
 		cfg[ "view show on top"      ].YesNo() = menu[IDM_VIEW_ON_TOP].IsChecked();
-		cfg[ "view show window menu" ].YesNo() = IsWindowMenuEnabled();
+		cfg[ "view show window menu" ].YesNo() = (IsWindowed() ? menu.IsVisible() : state.menu);
 
-		cfg[ "machine region" ] = menu[IDM_MACHINE_SYSTEM_AUTO].IsChecked() ? _T( "auto" ) :
-                       		      menu[IDM_MACHINE_SYSTEM_NTSC].IsChecked() ? _T( "ntsc" ) : 
-		                                                                      _T( "pal"  );
-
-		{
-			// small inaccuracy, status bar and menu row wrapping heights are not added
-
-			Point baseSize( video.GetNesScreen() );
-			baseSize += Point::NonClient( WIN_STYLE, WIN_EXSTYLE, IsWindowMenuEnabled() );
-
-			tstring value;
-
-			switch (baseSize.ScaleToFit( video.IsFullscreen() ? state.rect : window.GetNormalWindowRect(), Point::SCALE_NEAREST ))
-			{
-				case 1:  value = _T( "2" ); break;
-				case 2:  value = _T( "3" ); break;
-				case 3:  value = _T( "4" ); break;
-				case 4:  value = _T( "5" ); break;
-				case 5:  value = _T( "6" ); break;
-				case 6:  value = _T( "7" ); break;
-				case 7:  value = _T( "8" ); break;
-				case 8:  value = _T( "9" ); break;
-				default: value = _T( "1" ); break;
-			}
-
-			cfg["view size window"] = value;
-		}
+		const Rect rect( video.IsFullscreen() ? state.rect : window.GetNormalWindowRect() );
 
 		if (preferences[Managers::Preferences::SAVE_WINDOWPOS])
 		{
-			Rect rect( video.IsFullscreen() ? state.rect : window.GetNormalWindowRect() );
-
 			cfg[ "view window left"   ] = rect.left;
 			cfg[ "view window top"    ] = rect.top;
 			cfg[ "view window right"  ] = rect.right;
 			cfg[ "view window bottom" ] = rect.bottom;
 		}
 
-		{
-			HeapString& value = cfg["view size fullscreen"].GetString();
-			const uint scale = video.GetFullscreenScale();
-
-			if (scale <= 8)
-				value << scale;
-			else
-				value << "stretched";
-		}
-
-		video.Save( cfg );
+		video.Save( cfg, rect );
 		sound.Save( cfg );
 		input.Save( cfg );
 		frameClock.Save( cfg );
@@ -360,7 +254,7 @@ namespace Nestopia
 
 	void Main::OnReturnInputScreen(Rect& rect)
 	{
-		rect = video.GetNesScreen();
+		rect = video.GetInputRect();
 	}
 
 	void Main::OnReturnOutputScreen(Rect& rect)
@@ -441,18 +335,6 @@ namespace Nestopia
 		video.SavePalette( context.palette );
 	}
 
-	void Main::UpdateScreenSize(const Point screen) const
-	{
-		for (uint i=0; i < 9; ++i)
-			menu[IDM_VIEW_WINDOWSIZE_1X + i].Remove();
-
-		const Point original( Managers::Video::NES_WIDTH, Managers::Video::NES_HEIGHT );
-		Point nes( original );
-
-		for (uint i=0; nes.x <= screen.x && nes.y <= screen.y && i < 9; nes = original * (i+2), ++i) 
-			menu.Insert( menu[IDM_VIEW_WINDOWSIZE_MAX], IDM_VIEW_WINDOWSIZE_1X + i, Resource::String(IDS_MENU_1X + i) );
-	}
-
 	ibool Main::ToggleMenu()
 	{
 		ibool visible = menu.IsVisible();
@@ -490,85 +372,12 @@ namespace Nestopia
 		return visible;
 	}
 
-	ibool Main::IsWindowMenuEnabled() const
-	{
-		return IsWindowed() ? menu.IsVisible() : state.menu;
-	}
-
 	ibool Main::CanRunInBackground()
 	{
 		if (emulator.Is(Nes::Machine::SOUND))
 			return menu[IDM_MACHINE_NSF_OPTIONS_PLAYINBACKGROUND].IsChecked();
 
 		return preferences[Managers::Preferences::RUN_IN_BACKGROUND];
-	}
-
-	ibool Main::IsScreenMatched(const Nes::Machine::Mode mode) const
-	{
-		if (IsFullscreen())
-			return video.GetFullscreenScale() != Managers::Video::STRETCHED;
-
-		const Rect::Picture output( window );
-		const Rect& input = video.GetNesScreen( mode );
-
-		return (output.Width() % input.Width()) == 0 && (output.Height() % input.Height()) == 0;
-	}
-
-	uint Main::CalculateScreenScale() const
-	{
-		NST_COMPILE_ASSERT( MAXIMIZE == Managers::Video::STRETCHED );
-
-		if (IsFullscreen())
-			return video.GetFullscreenScale();
-
-		if (window.Maximized())
-			return MAXIMIZE;
-
-		return static_cast<Point>(video.GetNesScreen().Size()).ScaleToFit
-		( 
-     		Rect::Picture( window ), 
-			Point::SCALE_NEAREST 
-		);
-	}
-
-	void Main::Resize(const uint scale)
-	{
-		NST_COMPILE_ASSERT( MAXIMIZE == Managers::Video::STRETCHED );
-
-		if (IsFullscreen())
-		{
-			video.SetFullscreenScale( scale );
-		}
-		else if (scale == MAXIMIZE)
-		{
-			window.Maximize();
-		}
-		else
-		{
-			if (!window.Restored())
-				window.Restore();
-
-			Point winSize( video.GetNesScreen() );
-			winSize.ScaleToFit( Managers::Video::GetDisplayMode(), Point::SCALE_BELOW, scale );
-
-			const ibool menuSet = menu.IsVisible();
-
-			winSize += Point::NonClient( WIN_STYLE, WIN_EXSTYLE, menuSet );
-			winSize.y += Rect::Client( window ).bottom - Rect::Picture( window ).bottom;
-  
-			window.Resize( winSize );
-
-			if (menuSet)
-			{
-				const int extraHeight = menu.GetHeight() - menu.GetStandardHeight();
-
-				if (extraHeight > 0)
-				{
-					winSize.y += extraHeight;
-					window.Resize( winSize );
-				}
-			}
-		}
 	}
 
 	ibool Main::OnSysCommand(Param& param) 
@@ -660,12 +469,6 @@ namespace Nestopia
 	{
 		emulator.Wait();
 		return FALSE;
-	}
-
-	ibool Main::OnDisplayChange(Param& param)
-	{
-		UpdateScreenSize( Point( LOWORD(param.lParam), HIWORD(param.lParam) ) );
-		return TRUE;
 	}
 
 	ibool Main::OnPowerBroadCast(Param& param) 
@@ -769,11 +572,6 @@ namespace Nestopia
 		window.Reorder( previous ? HWND_NOTOPMOST : HWND_TOPMOST );
 	}
 
-	void Main::OnCmdViewScreenSize(uint cmd)
-	{
-		Resize( cmd == IDM_VIEW_WINDOWSIZE_MAX ? MAXIMIZE : cmd - IDM_VIEW_WINDOWSIZE_1X );
-	}
-
 	void Main::OnCmdViewShowMenu(uint) 
 	{
 		const ibool visible = ToggleMenu();
@@ -782,60 +580,10 @@ namespace Nestopia
 			Application::Instance::ShowChildWindows( visible );
 	}
 
-	void Main::OnMenuViewScreenSize(Menu::PopupHandler::Param& param)
-	{		
-		uint scale;
-
-		if (IsFullscreen())
-		{
-			scale = video.GetFullscreenScale();
-		}
-		else if (window.Maximized())
-		{
-			scale = MAXIMIZE;
-		}
-		else if (IsScreenMatched( Nes::Machine(emulator).GetMode() ))
-		{
-			scale = CalculateScreenScale();
-		}
-		else
-		{
-			scale = 0xBEDBABE;
-		}
-
-		ibool check;
-
-		if (scale == MAXIMIZE)
-		{
-			scale = IDM_VIEW_WINDOWSIZE_MAX;
-			check = TRUE;
-		}
-		else if (scale < IDM_VIEW_WINDOWSIZE_MAX-IDM_VIEW_WINDOWSIZE_1X)
-		{
-			scale += IDM_VIEW_WINDOWSIZE_1X;
-			check = TRUE;
-		}
-		else
-		{
-			scale = IDM_VIEW_WINDOWSIZE_1X;
-			check = FALSE;
-		}
-
-		param.menu[scale].Check( IDM_VIEW_WINDOWSIZE_1X, IDM_VIEW_WINDOWSIZE_MAX, check );
-	}
-
 	void Main::OnEmuEvent(Managers::Emulator::Event event)
 	{
 		switch (event)
-		{
-			case Managers::Emulator::EVENT_MODE_NTSC:
-			case Managers::Emulator::EVENT_MODE_PAL:
-			
-				if (IsWindowed() && IsScreenMatched( event == Managers::Emulator::EVENT_MODE_NTSC ? Nes::Machine::PAL : Nes::Machine::NTSC ))
-					Resize( CalculateScreenScale() );
-	
-				break;
-
+		{	  
 			case Managers::Emulator::EVENT_POWER_ON:
 			case Managers::Emulator::EVENT_POWER_OFF:
 

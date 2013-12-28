@@ -141,7 +141,7 @@ namespace Nestopia
 				}
 			};
 
-			class ClipBoard : String::Heap<char>
+			class ClipBoard : String::Heap<wchar_t>
 			{
 				uint pos;
 				u8 releasing;

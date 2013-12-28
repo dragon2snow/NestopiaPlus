@@ -22,40 +22,42 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#ifndef NST_MANAGER_MACHINE_H
-#define NST_MANAGER_MACHINE_H
+#ifndef NST_VIDEO_FILTER_SCANLINES_H
+#define NST_VIDEO_FILTER_SCANLINES_H
 
+#ifdef NST_PRAGMA_ONCE_SUPPORT
 #pragma once
+#endif
 
-#include "NstWindowMenu.hpp"
-
-namespace Nestopia
+namespace Nes
 {
-	namespace Managers
+	namespace Core
 	{
-		class Machine
+		namespace Video
 		{
-		public:
+			class Renderer::FilterScanlines : public Renderer::Filter
+			{
+				template<typename T>
+				NST_FORCE_INLINE void Blit1x(const Input&,const Output&) const;
 
-			Machine(Emulator&,const Application::Configuration&,Window::Menu&,const Preferences&);
-			~Machine();
+				template<typename T>
+				NST_FORCE_INLINE void Blit2x(const Input&,const Output&) const;
 
-			void Save(Configuration&) const;
+				template<typename T>
+				NST_FORCE_INLINE void BlitType(const Input&,const Output&) const;
 
-		private:
+				const ibool scale;
+				const uint darken;
+				const dword zeroLow;
 
-			void OnMenuSystem (Window::Menu::PopupHandler::Param&);
-			void OnEmuEvent (Emulator::Event);
+			public:
 
-			void OnCmdPower  (uint);
-			void OnCmdReset	 (uint);
-			void OnCmdPause  (uint);
-			void OnCmdSystem (uint);
+				FilterScanlines(const RenderState&);
 
-			Emulator& emulator;
-			const Window::Menu& menu;
-			const Preferences& preferences;
-		};
+				void Blit(const Input&,const Output&);
+				static bool Check(const RenderState&);
+			};
+		}
 	}
 }
 

@@ -54,7 +54,9 @@ namespace Nes
 				enum
 				{
 					WIDTH = 256,
-					HEIGHT = 240
+					HEIGHT = 240,
+					NTSC_WIDTH = 640,
+					NTSC_HEIGHT = 480
 				};
 
 				void* pixels;
@@ -172,35 +174,20 @@ namespace Nes
 				};
 	
 				Bits bits;
-				
-				enum
-				{
-					SCALE_NONE = 1,
-					SCALE_TV = 2,
-                   #ifndef NST_NO_2XSAI
-					SCALE_2XSAI = 2,
-					SCALE_SUPER_2XSAI = 2,
-					SCALE_SUPER_EAGLE = 2,
-                   #endif
-                   #ifndef NST_NO_SCALE2X
-					SCALE_SCALE2X = 2,
-					SCALE_SCALE3X = 3,
-                   #endif
-                   #ifndef NST_NO_HQ2X
-					SCALE_HQ2X = 2,
-					SCALE_HQ3X = 3,
-                   #endif
-					SCALE_SCANLINES_MAX = 2
-				};
-	
-				uchar scale;
 				uchar paletteOffset;
-	
+				ushort width;
+				ushort height;
+
 				enum Filter
 				{
 					FILTER_NONE,
 					FILTER_SCANLINES_BRIGHT,
 					FILTER_SCANLINES_DARK,
+                #ifndef NST_NO_NTSCVIDEO
+					FILTER_NTSC,
+					FILTER_NTSC_SCANLINES_BRIGHT,
+					FILTER_NTSC_SCANLINES_DARK,
+                #endif
                 #ifndef NST_NO_2XSAI
 					FILTER_2XSAI,
 					FILTER_SUPER_2XSAI,
@@ -215,6 +202,26 @@ namespace Nes
 					FILTER_HQ3X,
                 #endif
 					FILTER_TV
+				};
+
+				enum Scale
+				{
+					SCALE_NONE = 1,
+					SCALE_SCANLINES = 2,
+                #ifndef NST_NO_2XSAI
+					SCALE_2XSAI = 2,
+					SCALE_SUPER_2XSAI = 2,
+					SCALE_SUPER_EAGLE = 2,
+                #endif
+                #ifndef NST_NO_SCALE2X
+					SCALE_SCALE2X = 2,
+					SCALE_SCALE3X = 3,
+                #endif
+                #ifndef NST_NO_HQ2X
+					SCALE_HQ2X = 2,
+					SCALE_HQ3X = 3,
+                #endif
+					SCALE_TV = 2
 				};
 
 				Filter filter;

@@ -83,7 +83,7 @@ namespace Nestopia
 
 			public:
 
-				inline Item(Codec*,cstring,uint,uint);
+				inline Item(Codec*,tstring,uint,uint);
 
 				uint Uncompress(void*) const;
 

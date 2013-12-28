@@ -63,6 +63,9 @@ namespace Nes
 				{0x21,0x62,0x0E,0x00,0xA1,0xA0,0x44,0x17}  // Electric Guitar 
 			};
 
+			const dword Vrc7::Sound::PITCH_RATE = 6.4 * (1UL << 16) / Vrc7::Sound::CLOCK_DIV;
+			const dword Vrc7::Sound::AMP_RATE   = 3.7 * (1UL << 16) / Vrc7::Sound::CLOCK_DIV;
+
             #ifdef NST_PRAGMA_OPTIMIZE
             #pragma optimize("s", on)
             #endif
@@ -79,7 +82,7 @@ namespace Nes
 
 				for (uint i=1; i < LIN2LOG_SIZE; ++i)
 					lin2log[i] = 128 - 1 - 128 * std::log( double(i) ) / std::log( 128.0 );
-	  
+
 				for (uint i=0; i < 16; ++i)
 				{
 					for (uint j=0; j < 16; ++j)
@@ -106,24 +109,21 @@ namespace Nes
 					}
 				}
 
-				struct Lin2db
-				{
-					static i32 Convert(double d)
-					{
-						if (d)
-						{
-							const i32 value = -(20 * std::log10( d ) / 0.1875);
-
-							if (value < EG_MUTE)
-								return value;
-						}
-
-						return EG_MUTE;
-					}
-				};
-
 				for (uint i=0; i < WAVE_SIZE/4; ++i)
-					wave[0][i] = Lin2db::Convert( std::sin( 2 * NST_PI * i / WAVE_SIZE ) );
+				{
+					uint v = EG_MUTE;
+					const double d = std::sin( 2 * NST_PI * i / WAVE_SIZE );
+
+					if (d)
+					{
+						const i32 m = -(20 * std::log10( d ) / 0.1875);
+
+						if (m < EG_MUTE)
+							v = m;
+					}
+
+					wave[0][i] = v;
+				}
 
 				for (uint i=0; i < WAVE_SIZE/4; ++i)
 					wave[0][WAVE_SIZE/2-1 - i] = wave[0][i];

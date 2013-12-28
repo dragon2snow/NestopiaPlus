@@ -447,6 +447,50 @@ namespace Nestopia
 				);
 			}
 
+			Rect operator * (const long v) const
+			{
+				return Rect
+				(
+				    left * v,
+					top * v,
+					right * v,
+					bottom * v
+				);
+			}
+
+			Rect operator * (const Point& p) const
+			{
+				return Rect
+				(
+				    left * p.x,
+					top * p.y,
+					right * p.x,
+					bottom * p.y
+				);
+			}
+
+			Rect operator / (const long v) const
+			{
+				return Rect
+				(
+				    left / v,
+					top / v,
+					right / v,
+					bottom / v
+				);
+			}
+
+			Rect operator / (const Point& p) const
+			{
+				return Rect
+				(
+				    left / p.x,
+					top / p.y,
+					right / p.x,
+					bottom / p.y
+				);
+			}
+
 			struct Screen;
 			struct Window;
 			struct Client;

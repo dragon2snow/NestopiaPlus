@@ -62,7 +62,7 @@ namespace Nestopia
 			~Main();
 
 			int  Run();
-			void Save(Configuration& cfg) const;
+			void Save(Configuration&) const;
 			uint GetMaxMessageLength() const;
 			void Load(const Io::Nsp::Context&);
 			void Save(Io::Nsp::Context&) const;
@@ -108,7 +108,6 @@ namespace Nestopia
 
 			enum
 			{
-				MAXIMIZE = INT_MAX,
 				FULLSCREEN_RECOVER_TIME = 1500
 			};
 
@@ -126,12 +125,7 @@ namespace Nestopia
 				MainWindow(const Configuration&,const Menu&);
 			};
 
-			void  UpdateScreenSize(Point) const;
-			uint  CalculateScreenScale() const;
-			ibool IsScreenMatched(Nes::Machine::Mode) const;
-			ibool IsWindowMenuEnabled() const;
 			ibool CanRunInBackground();
-			void  Resize(uint);
 			ibool ToggleMenu();
 
 			ibool OnStartEmulation();
@@ -147,16 +141,13 @@ namespace Nestopia
 			ibool OnActivate          (Param&);
 			ibool OnSysCommand        (Param&);
 			ibool OnNclButton         (Param&);
-			ibool OnDisplayChange     (Param&);
 			ibool OnPowerBroadCast    (Param&);
 			ibool OnCommandResume     (Param&);
 
-			void OnCmdViewScreenSize 	(uint);
 			void OnCmdViewSwitchScreen	(uint);
 			void OnCmdViewShowOnTop		(uint);
 			void OnCmdViewShowMenu      (uint);
 
-			void OnMenuViewScreenSize(Menu::PopupHandler::Param&);
 			void OnEmuEvent(Managers::Emulator::Event);
 			void OnAppEvent(Application::Instance::Event,const void*);
 

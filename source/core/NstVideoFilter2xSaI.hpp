@@ -22,40 +22,48 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#ifndef NST_MANAGER_MACHINE_H
-#define NST_MANAGER_MACHINE_H
+#ifndef NST_VIDEO_FILTER_2XSAI_H
+#define NST_VIDEO_FILTER_2XSAI_H
 
+#ifdef NST_PRAGMA_ONCE_SUPPORT
 #pragma once
+#endif
 
-#include "NstWindowMenu.hpp"
-
-namespace Nestopia
+namespace Nes
 {
-	namespace Managers
+	namespace Core
 	{
-		class Machine
+		namespace Video
 		{
-		public:
+			class Renderer::Filter2xSaI: public Renderer::Filter
+			{
+				inline dword Blend(dword,dword) const;
+				inline dword Blend(dword,dword,dword,dword) const;
 
-			Machine(Emulator&,const Application::Configuration&,Window::Menu&,const Preferences&);
-			~Machine();
+				template<typename T>
+				NST_FORCE_INLINE void Blit2xSaI(const Input&,const Output&) const;
 
-			void Save(Configuration&) const;
+				template<typename T>
+				NST_FORCE_INLINE void BlitSuper2xSaI(const Input&,const Output&) const;
 
-		private:
+				template<typename T>
+				NST_FORCE_INLINE void BlitSuperEagle(const Input&,const Output&) const;
 
-			void OnMenuSystem (Window::Menu::PopupHandler::Param&);
-			void OnEmuEvent (Emulator::Event);
+				template<typename T>
+				NST_FORCE_INLINE void BlitType(const Input&,const Output&) const;
 
-			void OnCmdPower  (uint);
-			void OnCmdReset	 (uint);
-			void OnCmdPause  (uint);
-			void OnCmdSystem (uint);
+				const dword lsb0;
+				const dword lsb1;
+				const RenderState::Filter type;
 
-			Emulator& emulator;
-			const Window::Menu& menu;
-			const Preferences& preferences;
-		};
+			public:
+
+				Filter2xSaI(const RenderState&);
+
+				void Blit(const Input&,const Output&);
+				static bool Check(const RenderState&);
+			};
+		}
 	}
 }
 

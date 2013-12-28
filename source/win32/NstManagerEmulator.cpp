@@ -989,9 +989,10 @@ namespace Nestopia
 
 	ibool Emulator::SetMode(const Nes::Machine::Mode mode)
 	{
-		if (Nes::Machine(*this).SetMode( mode ) == Nes::RESULT_OK)
+		if (Nes::Machine(*this).GetMode() != mode)
 		{
 			events( mode == Nes::Machine::NTSC ? EVENT_MODE_NTSC : EVENT_MODE_PAL );
+			Nes::Machine(*this).SetMode( mode );
 
 			if (settings.timing.baseSpeed == DEFAULT_SPEED)
 			{

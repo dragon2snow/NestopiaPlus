@@ -1214,17 +1214,8 @@ namespace Nestopia
 	{ 
 		if (name || !dBaseEntry || !db)
 			return GetName( strings );
-
-		cstring const dbName = db->GetName( dBaseEntry );
-
-		if (*dbName)
-		{
-			static std::map<ULONG_PTR,HeapString> dbNames;
-			HeapString& string = dbNames[reinterpret_cast<ULONG_PTR>(dbName)];
-			return (string.Empty() ? string=dbName : string).Ptr();
-		}
-
-		return _T("-");
+		else
+			return _T("-");
 	}
 
 	uint Launcher::List::Files::Entry::GetSystem() const

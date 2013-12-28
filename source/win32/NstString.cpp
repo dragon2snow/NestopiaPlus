@@ -40,5 +40,15 @@ namespace Nestopia
 		{
 			return ::PathCompactPathExW( to, from, maxLength + 1, 0 );
 		}
+
+		bool Base::Trim(char* string)
+		{
+			return ::StrTrimA( string, " " );
+		}
+
+		bool Base::Trim(wchar_t* string)
+		{
+			return ::StrTrimW( string, L" " );
+		}
 	}
 }

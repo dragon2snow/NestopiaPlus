@@ -26,6 +26,7 @@
 #include "NstIoLog.hpp"
 #include "NstApplicationException.hpp"
 #include "NstApplicationInstance.hpp"
+#include <Shlwapi.h>
 
 #ifdef __INTEL_COMPILER
 #pragma warning( disable : 111 279 )
@@ -71,40 +72,48 @@ namespace Nestopia
 
 		try
 		{
-			HeapString buffer;
-
-			try
 			{
-				Io::File( Instance::GetPath(_T("nestopia.cfg")), Io::File::COLLECT ).ReadText( buffer );
-			}
-			catch (Io::File::Exception)
-			{
-				buffer.Clear();
-			}
-
-			if (buffer.Length())
-			{
-				try
-				{
-					Parse( buffer.Ptr(), buffer.Length() );
-				}
-				catch (Exception)
-				{
-					Reset( FALSE );
-					Application::Exception( IDS_CFG_WARN_CORRUPT, Application::Exception::WARNING ).Issue();
-				}
-			}
-
-			if (const tchar* ptr = ::GetCommandLine())
-			{
-				if (*ptr == '\"')
-				{
-					while (*++ptr && *ptr != '\"');
-					ptr += (*ptr && *ptr == '\"');
-				}
+				HeapString buffer;
 
 				try
 				{
+					Io::File( Instance::GetPath(_T("nestopia.cfg")), Io::File::COLLECT ).ReadText( buffer );
+				}
+				catch (Io::File::Exception)
+				{
+					buffer.Clear();
+				}
+
+				if (buffer.Length())
+				{
+					try
+					{
+						Parse( buffer.Ptr(), buffer.Length() );
+					}
+					catch (Exception)
+					{
+						Reset( FALSE );
+						Application::Exception( IDS_CFG_WARN_CORRUPT, Application::Exception::WARNING ).Issue();
+					}
+				}
+			}
+
+			if (tstring ptr = ::GetCommandLine())
+			{
+				try
+				{
+					if (*ptr == '\"')
+					{
+						if (NULL == (ptr=::StrChr( ptr+1, _T('\"') )))
+							throw ERR_PARSING;
+
+						ptr = ptr + 1;
+					}
+					else if (tstring const tmp = ::StrStrI( ptr, _T(".exe ") ))
+					{
+						ptr = tmp + 5;
+					}
+
 					const GenericString cmdLine( ptr ); 
 					Parse( cmdLine.Ptr(), cmdLine.Length(), &startupFile );
 				}

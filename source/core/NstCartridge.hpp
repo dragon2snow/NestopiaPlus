@@ -68,6 +68,7 @@ namespace Nes
 
 		private:
 
+			void Destroy();
 			void DetectControllers();
 			void DetectVS();
 			void DetectTurboFile(Context&);

@@ -49,8 +49,7 @@ namespace Nes
 		: 
 		enabled    (true),
 		numEntries (0), 
-		entries    (NULL),
-		names      (NULL)
+		entries    (NULL)
 		{
 		}
 	
@@ -68,51 +67,27 @@ namespace Nes
 	
 			try
 			{
-				numEntries = stream.Read16();
-				
-				const dword namesSize = stream.Read32();
+				numEntries = stream.Read32() & 0xFFFF;
 
-				if (!numEntries || !namesSize)
+				if (!numEntries)
 					throw RESULT_ERR_CORRUPT_FILE;
 
 				entries = new Entry [numEntries];
-				names = new char [namesSize];
-
-				for (dword i=0; i < namesSize; ++i)
-				{
-					const uint length = stream.Read8();
-
-					if (length && (i + length) < namesSize)
-					{
-						stream.Read( names + i, length );
-						names[i += length] = '\0';
-					}
-					else
-					{
-						throw RESULT_ERR_CORRUPT_FILE;
-					}
-				}
 
 				for (uint i=0; i < numEntries; ++i)
 				{
-					u8 data[17];
+					u8 data[14];
 					stream.Read( data );
 
 					Entry& entry = entries[i];
 
-					const dword name = data[0] | (data[1] << 8) | (data[2] << 16);
-
-					if (name >= namesSize)
-						throw RESULT_ERR_CORRUPT_FILE;
-
-					entry.name     = names + name;
-					entry.crc      = data[3] | (data[4] << 8) | (data[5] << 16) | (data[6] << 24);
-					entry.pRomCrc  = data[7] | (data[8] << 8) | (data[9] << 16) | (data[10] << 24);
-					entry.pRomSize = data[11];
-					entry.cRomSize = data[12];
-					entry.wRamSize = data[13];
-					entry.mapper   = data[14];
-					entry.flags    = data[15] | (data[16] << 8);
+					entry.crc      = data[0] | (data[1] << 8) | (data[2] << 16) | (data[3] << 24);
+					entry.pRomCrc  = data[4] | (data[5] << 8) | (data[6] << 16) | (data[7] << 24);
+					entry.pRomSize = data[8];
+					entry.cRomSize = data[9];
+					entry.wRamSize = data[10];
+					entry.mapper   = data[11];
+					entry.flags    = data[12] | (data[13] << 8);
 				}
 
 				return RESULT_OK;
@@ -138,9 +113,6 @@ namespace Nes
 		void ImageDatabase::Unload()
 		{
 			numEntries = 0;
-
-			delete [] names;
-			names = NULL;
 
 			delete [] entries;
 			entries = NULL;

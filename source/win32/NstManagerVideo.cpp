@@ -165,16 +165,17 @@ namespace Nestopia
 	statusBar              ( w, STATUSBAR_WIDTH ),
     direct2d               ( w ),
 	dialog                 ( new Window::Video( e, direct2d.GetAdapters(), p, cfg ) ),
-	fullscreenScale        ( 3 ),
+	fullscreenScale        ( SCREEN_MATCHED ),
 	sizingMoving           ( FALSE ),
 	paths                  ( p ),
 	childWindowSwitchCount ( Application::Instance::NumChildWindows() + 1 )
 	{
 		static const Window::MsgHandler::Entry<Video> messages[] =
 		{
-			{ WM_PAINT,        &Video::OnPaint      },
-			{ WM_NCPAINT,      &Video::OnNcPaint    },
-			{ WM_ERASEBKGND,   &Video::OnEraseBkGnd }
+			{ WM_PAINT,          &Video::OnPaint         },
+			{ WM_NCPAINT,        &Video::OnNcPaint       },
+			{ WM_ERASEBKGND,     &Video::OnEraseBkGnd    },
+			{ WM_DISPLAYCHANGE,  &Video::OnDisplayChange }
 		};
 
 		static const Window::MsgHandler::HookEntry<Video> hooks[] =
@@ -185,14 +186,31 @@ namespace Nestopia
 
 		static const Window::Menu::CmdHandler::Entry<Video> commands[] =
 		{
-			{ IDM_OPTIONS_VIDEO,                    &Video::OnMenuOptions          },
-			{ IDM_MACHINE_OPTIONS_UNLIMITEDSPRITES, &Video::OnMenuUnlimitedSprites },
-			{ IDM_FILE_SAVE_SCREENSHOT,             &Video::OnMenuSaveScreenShot   },
-			{ IDM_VIEW_STATUSBAR,	                &Video::OnMenuToggleStatusBar  },
-			{ IDM_VIEW_FPS,                         &Video::OnMenuToggleFps        }
+			{ IDM_OPTIONS_VIDEO,                    &Video::OnCmdOptionsVideo            },
+			{ IDM_MACHINE_OPTIONS_UNLIMITEDSPRITES, &Video::OnCmdMachineUnlimitedSprites },
+			{ IDM_FILE_SAVE_SCREENSHOT,             &Video::OnCmdFileScreenShot          },
+			{ IDM_VIEW_WINDOWSIZE_1X,               &Video::OnCmdViewScreenSize          },
+			{ IDM_VIEW_WINDOWSIZE_2X,               &Video::OnCmdViewScreenSize          },
+			{ IDM_VIEW_WINDOWSIZE_3X,               &Video::OnCmdViewScreenSize          },
+			{ IDM_VIEW_WINDOWSIZE_4X,               &Video::OnCmdViewScreenSize          },
+			{ IDM_VIEW_WINDOWSIZE_5X,               &Video::OnCmdViewScreenSize          },
+			{ IDM_VIEW_WINDOWSIZE_6X,               &Video::OnCmdViewScreenSize          },
+			{ IDM_VIEW_WINDOWSIZE_7X,               &Video::OnCmdViewScreenSize          },
+			{ IDM_VIEW_WINDOWSIZE_8X,               &Video::OnCmdViewScreenSize          },
+			{ IDM_VIEW_WINDOWSIZE_9X,               &Video::OnCmdViewScreenSize          },
+			{ IDM_VIEW_WINDOWSIZE_MAX,              &Video::OnCmdViewScreenSize          },
+			{ IDM_VIEW_STATUSBAR,	                &Video::OnCmdViewStatusBar           },
+			{ IDM_VIEW_FPS,                         &Video::OnCmdViewFps                 }
+		};
+
+		static const Window::Menu::PopupHandler::Entry<Video> popups[] =
+		{	  
+			{ Window::Menu::PopupHandler::Pos<IDM_POS_VIEW,IDM_POS_VIEW_SCREENSIZE>::ID, &Video::OnMenuScreenSizes },
+			{ Window::Menu::PopupHandler::Pos<IDM_POS_MACHINE,IDM_POS_MACHINE_OPTIONS>::ID, &Video::OnMenuUnlimSprites }
 		};
 
 		m.Commands().Add( this, commands );
+		m.PopupRouter().Add( this, popups );
 		w.Messages().Add( this, messages, hooks );
 		emulator.Events().Add( this, &Video::OnEmuEvent );
 		Instance::Events::Add( this, &Video::OnAppEvent );
@@ -219,10 +237,28 @@ namespace Nestopia
 			menu[IDM_VIEW_FPS].Check();
 
 		if (cfg["machine no sprite limit"] == Application::Configuration::YES)
-		{
-			menu[IDM_MACHINE_OPTIONS_UNLIMITEDSPRITES].Check();
 			Nes::Video(emulator).EnableUnlimSprites( TRUE );
+
+		{
+			const GenericString type( cfg["view size fullscreen"] );
+
+			if (type.Length() > 1)
+			{
+				if (type == _T("stretched"))
+					fullscreenScale = SCREEN_STRETCHED;
+			}
+			else if (type.Length() && type[0] >= '1' && type[0] <= '9')
+			{
+				fullscreenScale = type[0] - '1';
+			}
 		}
+
+		{
+			const GenericString type( cfg["view size window"] );			
+			ResetScreenRect( (type.Length() == 1 && type[0] >= '2' && type[0] <= '9') ? type[0] - '1' : 0 );
+		}
+  
+		UpdateMenuScreenSizes( GetDisplayMode() );
 	}
 
 	Video::~Video()
@@ -236,11 +272,26 @@ namespace Nestopia
 		window.StopTimer( this, &Video::OnTimerText );
 	}
 
-	void Video::Save(Configuration& cfg) const
+	void Video::Save(Configuration& cfg,const Rect& client) const
 	{
 		cfg[ "view show status bar" ].YesNo() = menu[IDM_VIEW_STATUSBAR].IsChecked();
 		cfg[ "view show fps" ].YesNo() = menu[IDM_VIEW_FPS].IsChecked();
-		cfg[ "machine no sprite limit" ].YesNo() = menu[IDM_MACHINE_OPTIONS_UNLIMITEDSPRITES].IsChecked();
+		cfg[ "machine no sprite limit" ].YesNo() = Nes::Video(emulator).AreUnlimSpritesEnabled();
+
+		{
+			HeapString& value = cfg["view size fullscreen"].GetString();
+
+			if (fullscreenScale <= 8)
+				value << fullscreenScale;
+			else
+				value << "stretched";
+		}
+
+		{
+			const uint scale = Point(GetNesRect()).ScaleToFit( client, Point::SCALE_NEAREST );
+
+			cfg["view size window"] = (scale <= 8 ? scale + 1 : 1);
+		}
 
 		dialog->Save( cfg );
 	}
@@ -265,109 +316,241 @@ namespace Nestopia
 		return IsFullscreen() ? direct2d.GetMaxMessageLength() : statusBar.IsEnabled() ? statusBar.GetMaxMessageLength() : 0;
 	}
 
-	void Video::OnMenuOptions(uint)
+	void Video::OnCmdOptionsVideo(uint)
 	{
+		const Rect old( GetNesRect() );
+
 		dialog->Open();
 
 		direct2d.EnableAutoFrequency( dialog->UseAutoFrequency() );
 		direct2d.SelectAdapter( dialog->GetAdapter() );
 
-		if (IsFullscreen())
-			SwitchFullscreen( dialog->GetMode() );
-
-		if (emulator.Is(Nes::Machine::ON))
+		if (!IsFullscreen() || !SwitchFullscreen( dialog->GetMode() ))
 		{
-			UpdateScreen();
+			if (old != GetNesRect())
+			{
+				UpdateMenuScreenSizes( GetDisplayMode() );
+
+				if (IsWindowed() && window.Restored())
+				{
+					ResetScreenRect( CalculateWindowScale() );
+				}
+				else if (IsFullscreen() && fullscreenScale != SCREEN_STRETCHED)
+				{
+					fullscreenScale = SCREEN_MATCHED;
+				}
+			}
+
 			window.Redraw();
 		}
+
+		Application::Instance::Post( Application::Instance::WM_NST_COMMAND_RESUME );
 	}
 
-	void Video::OnMenuToggleStatusBar(uint)
+	void Video::OnCmdViewScreenSize(uint id)
 	{
-		NST_ASSERT( IsWindowed() );
-
-		const ibool enable = !statusBar.IsEnabled();
-
-		menu[IDM_VIEW_STATUSBAR].Check( enable );
-		menu[IDM_VIEW_FPS].Enable( enable );
-
-		Point size;
-
-		if (enable)
-		{
-			statusBar.Enable( TRUE, FALSE );
-			size.y = statusBar.GetHeight();
-		}
-		else
-		{
-			size.y = statusBar.GetHeight();
-			statusBar.Disable();
-		}
-
-		if (window.Restored())
-		{
-			if (enable)
-				window.Magnify( size );
-			else
-				window.Shrink( size );
-		}
-		else if (!enable)
-		{			
-			window.Redraw();
-		}
-
-		if (enable)
-			statusBar.Show();
-
-		if (emulator.IsRunning() && emulator.Is(Nes::Machine::GAME) && menu[IDM_VIEW_FPS].IsChecked())
-			ToggleFps( enable );
+		ResetScreenRect( id == IDM_VIEW_WINDOWSIZE_MAX ? SCREEN_STRETCHED : id - IDM_VIEW_WINDOWSIZE_1X );
 	}
 
-	void Video::OnMenuToggleFps(uint)
+	void Video::OnCmdViewStatusBar(uint)
+	{
+		NST_VERIFY( IsWindowed() );
+
+		if (IsWindowed())
+		{
+			const ibool enable = !statusBar.IsEnabled();
+
+			menu[IDM_VIEW_STATUSBAR].Check( enable );
+			menu[IDM_VIEW_FPS].Enable( enable );
+
+			Point size;
+
+			if (enable)
+			{
+				statusBar.Enable( TRUE, FALSE );
+				size.y = statusBar.GetHeight();
+			}
+			else
+			{
+				size.y = statusBar.GetHeight();
+				statusBar.Disable();
+			}
+
+			if (window.Restored())
+			{
+				if (enable)
+					window.Magnify( size );
+				else
+					window.Shrink( size );
+			}
+			else if (!enable)
+			{			
+				window.Redraw();
+			}
+
+			if (enable)
+				statusBar.Show();
+
+			if (emulator.IsRunning() && emulator.Is(Nes::Machine::GAME) && menu[IDM_VIEW_FPS].IsChecked())
+				ToggleFps( enable );
+		}
+	}
+
+	void Video::OnCmdViewFps(uint)
 	{
 		NST_VERIFY( IsFullscreen() || statusBar.IsEnabled() );
 
-		const ibool enable = menu[IDM_VIEW_FPS].ToggleCheck();
+		if (IsFullscreen() || statusBar.IsEnabled())
+		{
+			const ibool enable = menu[IDM_VIEW_FPS].ToggleCheck();
 
-		if (emulator.IsRunning() && emulator.Is(Nes::Machine::GAME))
-			ToggleFps( !enable );
+			if (emulator.IsRunning() && emulator.Is(Nes::Machine::GAME))
+				ToggleFps( !enable );
+		}
 	}
 
-	void Video::OnMenuUnlimitedSprites(uint) 
+	void Video::OnCmdMachineUnlimitedSprites(uint) 
 	{
-		const ibool enable = !menu[IDM_MACHINE_OPTIONS_UNLIMITEDSPRITES].ToggleCheck();
+		const bool enable = !Nes::Video(emulator).AreUnlimSpritesEnabled();
 		Nes::Video(emulator).EnableUnlimSprites( enable );
 		Io::Screen() << Resource::String(enable ? IDS_SCREEN_NOSPRITELIMIT_ON : IDS_SCREEN_NOSPRITELIMIT_OFF );
 		Application::Instance::Post( Application::Instance::WM_NST_COMMAND_RESUME );
 	}
 
-	void Video::OnMenuSaveScreenShot(uint)
+	void Video::OnCmdFileScreenShot(uint)
 	{
-		const Path path( paths.GetScreenShotPath() );
-		Direct2D::ScreenShotResult result;
-
-		result = direct2d.SaveScreenShot( path.Ptr(), path.Extension().Id() );
-
-		if (result == Direct2D::SCREENSHOT_OK)
+		if (emulator.Is(Nes::Machine::GAME,Nes::Machine::ON))
 		{
-			const uint length = GetMaxMessageLength();
+			const Path path( paths.GetScreenShotPath() );
+			const Direct2D::ScreenShotResult result = direct2d.SaveScreenShot( path.Ptr(), path.Extension().Id() );
 
-			if (length > 22)
+			if (result == Direct2D::SCREENSHOT_OK)
 			{
-				Io::Screen() << Resource::String(IDS_SCREEN_SCREENSHOT_SAVED_TO) 
-					         << " \""
-							 << Path::Compact( path, length - 20 ) 
-							 << '\"';
+				const uint length = GetMaxMessageLength();
+
+				if (length > 22)
+				{
+					Io::Screen() << Resource::String(IDS_SCREEN_SCREENSHOT_SAVED_TO) 
+								 << " \""
+								 << Path::Compact( path, length - 20 ) 
+								 << '\"';
+				}
 			}
+			else
+			{
+				Window::User::Fail
+				( 
+					result == Direct2D::SCREENSHOT_UNSUPPORTED ? IDS_SCREENSHOT_UNSUPPORTED_FORMAT : 
+					IDS_SCREENSHOT_SAVE_FAILED 
+				);
+			}
+		}
+	}
+
+	uint Video::CalculateWindowScale() const
+	{
+		return Point(GetNesRect().Size()).ScaleToFit( Rect::Picture(window), Point::SCALE_NEAREST );
+	}
+  
+	void Video::OnMenuScreenSizes(Window::Menu::PopupHandler::Param& param)
+	{		
+		uint scale;
+
+		if (IsFullscreen())
+		{
+			scale = fullscreenScale;
+		}
+		else if (window.Maximized())
+		{
+			scale = SCREEN_STRETCHED;
+		}
+		else if (IsWindowMatched())
+		{
+			scale = CalculateWindowScale();
 		}
 		else
 		{
-			Window::User::Fail
-			( 
-				result == Direct2D::SCREENSHOT_UNSUPPORTED ? IDS_SCREENSHOT_UNSUPPORTED_FORMAT : 
-			                                                 IDS_SCREENSHOT_SAVE_FAILED 
-			);
+			scale = 0xBEDBABE;
 		}
+
+		ibool check;
+
+		if (scale == SCREEN_STRETCHED)
+		{
+			scale = IDM_VIEW_WINDOWSIZE_MAX;
+			check = TRUE;
+		}
+		else if (scale < IDM_VIEW_WINDOWSIZE_MAX-IDM_VIEW_WINDOWSIZE_1X)
+		{
+			scale += IDM_VIEW_WINDOWSIZE_1X;
+			check = TRUE;
+		}
+		else
+		{
+			scale = IDM_VIEW_WINDOWSIZE_1X;
+			check = FALSE;
+		}
+
+		param.menu[scale].Check( IDM_VIEW_WINDOWSIZE_1X, IDM_VIEW_WINDOWSIZE_MAX, check );
+	}
+
+	void Video::OnMenuUnlimSprites(Window::Menu::PopupHandler::Param& param)
+	{
+		param.menu[IDM_MACHINE_OPTIONS_UNLIMITEDSPRITES].Check( Nes::Video(emulator).AreUnlimSpritesEnabled() );
+	}
+
+	ibool Video::IsWindowMatched() const
+	{
+		const Rect::Picture output( window );
+		const Rect input( GetNesRect() );
+
+		return (output.Width() % input.Width()) == 0 && (output.Height() % input.Height()) == 0;
+	}
+
+	void Video::ResetScreenRect(const uint scale)
+	{
+		if (IsFullscreen())
+		{
+			if (fullscreenScale != scale)
+			{
+				fullscreenScale = scale;
+				window.Redraw();
+			}
+		}
+		else if (scale == SCREEN_STRETCHED)
+		{
+			window.Maximize();
+		}
+		else
+		{
+			if (!window.Restored())
+				window.Restore();
+
+			Point size( GetNesRect() );
+			size.ScaleToFit( GetDisplayMode(), Point::SCALE_BELOW, scale );
+			window.Resize( size + (Rect::Window(window).Size() - Rect::Picture(window).Size()) );
+
+			if (size != Rect::Picture(window).Size())
+				window.Resize( size + (Rect::Window(window).Size() - Rect::Picture(window).Size()) );
+		}
+	}
+
+	void Video::UpdateMenuScreenSizes(const Point screen) const
+	{
+		for (uint i=IDM_VIEW_WINDOWSIZE_1X; i < IDM_VIEW_WINDOWSIZE_MAX; ++i)
+			menu[i].Remove();
+
+		const Point original( GetNesRect() );
+		Point nes( original );
+
+		for (uint i=0; nes.x <= screen.x && nes.y <= screen.y && i < (IDM_VIEW_WINDOWSIZE_MAX-IDM_VIEW_WINDOWSIZE_1X); nes = original * (i+2), ++i) 
+			menu.Insert( menu[IDM_VIEW_WINDOWSIZE_MAX], IDM_VIEW_WINDOWSIZE_1X + i, Resource::String(IDS_MENU_1X + i) );
+	}
+
+	ibool Video::OnDisplayChange(Window::Param& param)
+	{
+		UpdateMenuScreenSizes( Point( LOWORD(param.lParam), HIWORD(param.lParam) ) );
+		return TRUE;
 	}
 
     #ifdef NST_PRAGMA_OPTIMIZE
@@ -442,14 +625,6 @@ namespace Nestopia
 		window.Redraw();
 	}
 
-	void Video::SetFullscreenScale(const uint scale)
-	{
-		fullscreenScale = scale;
-
-		if (IsFullscreen())
-			window.Redraw();
-	}
-
 	ibool Video::OnTimerText()
 	{
 		if (IsFullscreen())
@@ -514,13 +689,18 @@ namespace Nestopia
 		}
 	}
 
-	void Video::SwitchFullscreen(Mode mode)
+	ibool Video::SwitchFullscreen(Mode mode)
 	{
 		if (direct2d.SwitchFullscreen( mode ))
 		{
-			SetFullscreenScale( fullscreenScale == STRETCHED ? STRETCHED : 8 );
-			::DrawMenuBar( window );
+			if (fullscreenScale != SCREEN_STRETCHED)
+				fullscreenScale = SCREEN_MATCHED;
+
+			window.Redraw();
+			return TRUE;
 		}
+
+		return FALSE;
 	}
 
 	void Video::SwitchScreen()
@@ -585,22 +765,29 @@ namespace Nestopia
 		}
 	}
 
-	const Video::Rect Video::GetNesScreen() const
+	Video::Rect Video::GetNesRect(const Nes::Machine::Mode mode) const
 	{
-		return emulator.Is(Nes::Machine::NTSC) ? dialog->GetNtscRect() : dialog->GetPalRect();
+		return dialog->GetNesRect( mode );
 	}
 
-	const Video::Rect Video::GetNesScreen(const Nes::Machine::Mode mode) const
+	Video::Rect Video::GetNesRect() const
 	{
-		return (mode == Nes::Machine::NTSC) ? dialog->GetNtscRect() : dialog->GetPalRect();
+		return GetNesRect( Nes::Machine(emulator).GetMode() );
 	}
 
+	const Video::Rect Video::GetInputRect() const
+	{
+		return dialog->GetInputRect( Nes::Machine(emulator).GetMode() );
+	}
+  
 	void Video::UpdateScreen()
 	{
 		NST_ASSERT( emulator.Is(Nes::Machine::ON) );
 
 		if (emulator.Is(Nes::Machine::GAME))
 		{
+			const Rect nesScreen( GetNesRect() );
+
 			typedef Nes::Video::RenderState RenderState;
 			RenderState renderState;
 		
@@ -611,8 +798,10 @@ namespace Nestopia
 			NST_ASSERT( renderState.bits.mask.r && renderState.bits.mask.g && renderState.bits.mask.b );
 		
 			renderState.filter = RenderState::FILTER_NONE;
-			renderState.scale = 1;
-		
+			renderState.width = NES_WIDTH;
+			renderState.height = NES_HEIGHT;		
+			
+			uint scale = RenderState::SCALE_NONE;
 			Direct2D::Adapter::Filter d2dFilter = Direct2D::Adapter::FILTER_NONE;
 		
 			switch (const uint filter = dialog->GetFilter())
@@ -633,7 +822,24 @@ namespace Nestopia
 					// if target screen height is at least twice the size of
 					// the original NES rectangle double the NES's too
 		
-					renderState.scale = (Rect::Picture(window).Height() >= GetNesScreen().Height() * 2 ? 2 : 1);
+					if (Rect::Picture(window).Height() >= nesScreen.Height() * 2)
+						scale = RenderState::SCALE_SCANLINES;
+					
+					break;
+
+				case Window::Video::FILTER_NTSC:
+				case Window::Video::FILTER_NTSC_SCANLINES_BRIGHT:
+				case Window::Video::FILTER_NTSC_SCANLINES_DARK:
+
+					renderState.filter = 
+					(
+				       	filter == Window::Video::FILTER_NTSC                  ? RenderState::FILTER_NTSC : 
+						filter == Window::Video::FILTER_NTSC_SCANLINES_BRIGHT ? RenderState::FILTER_NTSC_SCANLINES_BRIGHT :
+						                                                        RenderState::FILTER_NTSC_SCANLINES_DARK
+					);
+
+					renderState.width = NTSC_WIDTH;
+					renderState.height = NTSC_HEIGHT;
 					break;
 
 				case Window::Video::FILTER_TV_SOFT:
@@ -643,63 +849,65 @@ namespace Nestopia
 				case Window::Video::FILTER_TV_HARSH:
 		
 					renderState.filter = RenderState::FILTER_TV;
-					renderState.scale = RenderState::SCALE_TV;
+					scale = RenderState::SCALE_TV;
 					break;
 		
 				case Window::Video::FILTER_2XSAI:
 		
 					renderState.filter = RenderState::FILTER_2XSAI;
-					renderState.scale = RenderState::SCALE_2XSAI;
+					scale = RenderState::SCALE_2XSAI;
 					break;
 		
 				case Window::Video::FILTER_SUPER_2XSAI:
 		
 					renderState.filter = RenderState::FILTER_SUPER_2XSAI;
-					renderState.scale = RenderState::SCALE_SUPER_2XSAI;
+					scale = RenderState::SCALE_SUPER_2XSAI;
 					break;
 		
 				case Window::Video::FILTER_SUPER_EAGLE:
 		
 					renderState.filter = RenderState::FILTER_SUPER_EAGLE;
-					renderState.scale = RenderState::SCALE_SUPER_EAGLE;
+					scale = RenderState::SCALE_SUPER_EAGLE;
 					break;
 		
 				case Window::Video::FILTER_SCALE2X:
 		
 					renderState.filter = RenderState::FILTER_SCALE2X;
-					renderState.scale = RenderState::SCALE_SCALE2X;
+					scale = RenderState::SCALE_SCALE2X;
 					break;
 		
 				case Window::Video::FILTER_SCALE3X:
 		
 					renderState.filter = RenderState::FILTER_SCALE3X;
-					renderState.scale = RenderState::SCALE_SCALE3X;
+					scale = RenderState::SCALE_SCALE3X;
 					break;
 
 				case Window::Video::FILTER_HQ2X:
 
 					renderState.filter = RenderState::FILTER_HQ2X;
-					renderState.scale = RenderState::SCALE_HQ2X;
+					scale = RenderState::SCALE_HQ2X;
 					break;
 
 				case Window::Video::FILTER_HQ3X:
 
 					renderState.filter = RenderState::FILTER_HQ3X;
-					renderState.scale = RenderState::SCALE_HQ3X;
+					scale = RenderState::SCALE_HQ3X;
 					break;
 			}
 		
-			Nes::Video nes( emulator );
-			nes.SetRenderState( renderState );
+			renderState.width = (ushort) (renderState.width * scale);
+			renderState.height = (ushort) (renderState.height * scale);
 
-			NST_ASSERT( direct2d.GetAdapter().maxScreenSize >= uint(NST_MAX(NES_WIDTH,NES_HEIGHT)) * renderState.scale );
-		
+			NST_ASSERT( direct2d.GetAdapter().maxScreenSize >= NST_MAX(renderState.width,renderState.height) );
+
+			Nes::Video(emulator).SetRenderState( renderState );
+
 			if (IsWindowed())
 			{
 				direct2d.UpdateWindowView
 				( 
-					Point(NES_WIDTH * renderState.scale,NES_HEIGHT * renderState.scale), 
-					GetNesScreen() * renderState.scale,
+					Point(renderState.width,renderState.height),
+				    nesScreen * scale,
 					d2dFilter,
 					dialog->PutTextureInVideoMemory()
 				);
@@ -709,23 +917,23 @@ namespace Nestopia
 				Rect picture;				
 				const Point screen( GetDisplayMode() );
 
-				if (fullscreenScale == STRETCHED)
+				if (fullscreenScale == SCREEN_STRETCHED)
 				{
 					picture = screen;
 				}
 				else // scale up and center to screen
 				{					
-					Point nesScreen( GetNesScreen() );
-					fullscreenScale = nesScreen.ScaleToFit( screen, Point::SCALE_BELOW, fullscreenScale );
-					picture = nesScreen;
+					Point nesPoint( nesScreen );
+					fullscreenScale = nesPoint.ScaleToFit( screen, Point::SCALE_BELOW, fullscreenScale );
+					picture = nesPoint;
 					picture.Center() = screen.Center();
 				}
 
 				direct2d.UpdateFullscreenView
 				( 
 				    picture,
-					Point(NES_WIDTH * renderState.scale,NES_HEIGHT * renderState.scale), 
-					GetNesScreen() * renderState.scale,
+					Point(renderState.width,renderState.height), 
+					nesScreen * scale,
 					d2dFilter,
 					dialog->PutTextureInVideoMemory()
 				);
@@ -815,10 +1023,18 @@ namespace Nestopia
 					menu[IDM_FILE_SAVE_SCREENSHOT].Enable( event == Emulator::EVENT_POWER_ON );				
 
 			case Emulator::EVENT_NETPLAY_POWER_OFF:
-			case Emulator::EVENT_MODE_NTSC:
-			case Emulator::EVENT_MODE_PAL:
 		
 				window.Redraw();
+				break;
+
+			case Emulator::EVENT_MODE_NTSC:
+			case Emulator::EVENT_MODE_PAL:
+
+				if (IsWindowed() && IsWindowMatched())
+					window.PostCommand( IDM_VIEW_WINDOWSIZE_1X + CalculateWindowScale() );
+				else
+					window.Redraw();
+
 				break;
 
 			case Emulator::EVENT_LOAD:

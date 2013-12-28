@@ -24,7 +24,7 @@
 
 #include "NstObjectHeap.hpp"
 #include "NstResourceString.hpp"
-#include "NstWindowMenu.hpp"
+#include "NstWindowMain.hpp"
 #include "NstWindowUser.hpp"
 #include "NstIoScreen.hpp"
 #include "NstManagerEmulator.hpp"
@@ -35,7 +35,7 @@ namespace Nestopia
 {
 	using namespace Managers;
 
-	Machine::Machine(Emulator& e,Window::Menu& m,const Preferences& p)
+	Machine::Machine(Emulator& e,const Application::Configuration& cfg,Window::Menu& m,const Preferences& p)
 	: emulator(e), menu(m), preferences(p)
 	{
 		static const Window::Menu::CmdHandler::Entry<Machine> commands[] =
@@ -49,13 +49,36 @@ namespace Nestopia
 			{ IDM_MACHINE_SYSTEM_PAL,  &Machine::OnCmdSystem  }
 		};
 
+		static const Window::Menu::PopupHandler::Entry<Machine> popups[] =
+		{	  
+			{ Window::Menu::PopupHandler::Pos<IDM_POS_MACHINE,IDM_POS_MACHINE_SYSTEM>::ID, &Machine::OnMenuSystem }
+		};
+
 		m.Commands().Add( this, commands );
+		m.PopupRouter().Add( this, popups );
 		emulator.Events().Add( this, &Machine::OnEmuEvent );
+
+		const GenericString type( cfg["machine region"] );
+		const uint id = (type == _T("ntsc") ? IDM_MACHINE_SYSTEM_NTSC : type == _T("pal") ? IDM_MACHINE_SYSTEM_PAL : IDM_MACHINE_SYSTEM_AUTO);
+
+		menu[id].Check( IDM_MACHINE_SYSTEM_AUTO, IDM_MACHINE_SYSTEM_PAL );
+
+		if (id == IDM_MACHINE_SYSTEM_AUTO)
+			emulator.AutoSetMode();
+		else
+			emulator.SetMode( id == IDM_MACHINE_SYSTEM_NTSC ? Nes::Machine::NTSC : Nes::Machine::PAL );
 	}
 
 	Machine::~Machine()
 	{
 		emulator.Events().Remove( this );
+	}
+
+	void Machine::Save(Configuration& cfg) const
+	{
+		cfg[ "machine region" ] = menu[IDM_MACHINE_SYSTEM_AUTO].IsChecked() ? _T( "auto" ) :
+                     			  emulator.Is(Nes::Machine::NTSC) ?           _T( "ntsc" ) : 
+		                                                                      _T( "pal"  );
 	}
 
 	void Machine::OnCmdPower(uint)
@@ -120,18 +143,16 @@ namespace Nestopia
 		Application::Instance::Post( Application::Instance::WM_NST_COMMAND_RESUME );
 	}
 
+	void Machine::OnMenuSystem(Window::Menu::PopupHandler::Param& param)
+	{
+		if (param.menu[IDM_MACHINE_SYSTEM_AUTO].IsUnchecked())
+			param.menu[emulator.Is(Nes::Machine::NTSC) ? IDM_MACHINE_SYSTEM_NTSC : IDM_MACHINE_SYSTEM_PAL].Check( IDM_MACHINE_SYSTEM_AUTO, IDM_MACHINE_SYSTEM_PAL );
+	}
+
 	void Machine::OnEmuEvent(Emulator::Event event)
 	{
 		switch (event)
 		{
-			case Emulator::EVENT_MODE_NTSC:
-			case Emulator::EVENT_MODE_PAL:
-
-				if (menu[IDM_MACHINE_SYSTEM_AUTO].IsUnchecked())
-					menu[event == Emulator::EVENT_MODE_NTSC ? IDM_MACHINE_SYSTEM_NTSC : IDM_MACHINE_SYSTEM_PAL].Check( IDM_MACHINE_SYSTEM_AUTO, IDM_MACHINE_SYSTEM_PAL );
-
-				break;
-
 			case Emulator::EVENT_PAUSE:
 			case Emulator::EVENT_RESUME:
 
@@ -159,11 +180,6 @@ namespace Nestopia
 				menu[ IDM_MACHINE_RESET_HARD ].Enable( state );
 				break;
 			}
-
-			case Emulator::EVENT_LOAD:
-
-				if (menu[IDM_MACHINE_SYSTEM_AUTO].IsChecked())
-					emulator.AutoSetMode();
 
 			case Emulator::EVENT_UNLOAD:
 

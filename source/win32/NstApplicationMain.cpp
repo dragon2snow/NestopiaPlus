@@ -28,8 +28,6 @@
 #include "NstWindowMenu.hpp"
 #include "NstApplicationMain.hpp"
 
-#include "NstIoArchive.hpp"
-
 namespace Nestopia
 {
 	using Application::Main;
@@ -43,7 +41,7 @@ namespace Nestopia
 	recentFiles   ( emulator, instance.GetConfiguration(), menu ),
 	recentDirs    ( emulator, instance.GetConfiguration(), menu ),
 	window        ( emulator, instance.GetConfiguration(), menu, paths, preferences, cmdShow ),
-	machine       ( emulator, menu, preferences ),
+	machine       ( emulator, instance.GetConfiguration(), menu, preferences ),
 	netplay		  ( emulator, instance.GetConfiguration(), menu, paths, window.Get() ),
 	launcher      ( emulator, instance.GetConfiguration(), menu, paths, window.Get() ),
 	fds			  ( emulator, instance.GetConfiguration(), menu, paths ),
@@ -93,6 +91,7 @@ namespace Nestopia
 		tapeRecorder.Save ( cfg );
 		nsf.Save          ( cfg );
 		window.Save       ( cfg );
+		machine.Save	  ( cfg );
 
 		if (preferences[Managers::Preferences::SAVE_CHEATS])
 			cheats.Save( cfg );

@@ -37,7 +37,6 @@ namespace Nestopia
 {
 	namespace Window
 	{
-		class Menu;
 		class Video;
 	}
 
@@ -57,24 +56,22 @@ namespace Nestopia
 
 			enum 
 			{
-				STRETCHED = INT_MAX,
 				NES_WIDTH = Nes::Video::Output::WIDTH,
-				NES_HEIGHT = Nes::Video::Output::HEIGHT
+				NES_HEIGHT = Nes::Video::Output::HEIGHT,
+				NTSC_WIDTH = Nes::Video::Output::NTSC_WIDTH,
+				NTSC_HEIGHT = Nes::Video::Output::NTSC_HEIGHT
 			};
 
 			void StartEmulation();
 			void StopEmulation();
 			void SwitchScreen();
-			void SetFullscreenScale(uint);
-			void Save(Configuration&) const;
+			void Save(Configuration&,const Rect&) const;
 			uint GetMaxMessageLength() const;
 			void LoadPalette(const Path&);
 			void SavePalette(Path&) const;
+			const Rect GetInputRect() const;
 			
 			static Point GetDisplayMode();
-			
-			const Rect GetNesScreen() const;
-			const Rect GetNesScreen(Nes::Machine::Mode) const;
 
 		private:
 
@@ -82,6 +79,8 @@ namespace Nestopia
 
 			enum
 			{
+				SCREEN_STRETCHED = INT_MAX,
+				SCREEN_MATCHED = 8,
 				DEFAULT_BPP = 16,
 				MIN_DIALOG_WIDTH = 640,
 				MIN_DIALOG_HEIGHT = 480,
@@ -89,28 +88,37 @@ namespace Nestopia
 				SCREEN_TEXT_DURATION = 2250
 			};
 
-			void SwitchFullscreen(Mode);
-			void ToggleFps(ibool);
-			void UpdateScreen();
+			ibool SwitchFullscreen(Mode);
+			void  ToggleFps(ibool);
+			void  UpdateScreen();
+			void  UpdateMenuScreenSizes(const Point) const;
+			void  ResetScreenRect(uint);
+			uint  CalculateWindowScale() const;
+			ibool IsWindowMatched() const;
+			Rect  GetNesRect() const;
+			Rect  GetNesRect(Nes::Machine::Mode) const;
 			
 			NST_NO_INLINE void RepairScreen();
 
 			ibool OnPaint         (Window::Param&);
 			ibool OnNcPaint       (Window::Param&);
 			ibool OnEraseBkGnd    (Window::Param&);     
+			ibool OnDisplayChange (Window::Param&);
 			void  OnEnterSizeMove (Window::Param&);
 			void  OnExitSizeMove  (Window::Param&);
-			
-			void  OnEmuEvent (Emulator::Event);
-			void  OnAppEvent (Instance::Event,const void*);
-			
-			void  OnMenuOptions          (uint);
-			void  OnMenuSaveScreenShot   (uint);
-			void  OnMenuUnlimitedSprites (uint);
-			void  OnMenuToggleStatusBar  (uint);
-			void  OnMenuToggleFps        (uint);
+						
+			void OnCmdFileScreenShot          (uint);
+			void OnCmdMachineUnlimitedSprites (uint);
+			void OnCmdViewScreenSize          (uint);
+			void OnCmdViewFps                 (uint);
+			void OnCmdViewStatusBar           (uint);
+			void OnCmdOptionsVideo            (uint);
 
-			void  OnScreenText(const GenericString&);
+			void OnEmuEvent (Emulator::Event);
+			void OnAppEvent (Instance::Event,const void*);
+			void OnMenuScreenSizes  (Window::Menu::PopupHandler::Param&);
+			void OnMenuUnlimSprites (Window::Menu::PopupHandler::Param&);
+			void OnScreenText (const GenericString&);
 
 			ibool OnTimerFps();
 			ibool OnTimerText();
@@ -176,11 +184,6 @@ namespace Nestopia
 				return direct2d.IsThrottleRequired();
 			}
 
-			uint GetFullscreenScale() const
-			{
-				return fullscreenScale;
-			}
-
 			const Rect GetScreenRect() const
 			{
 				Rect rect( direct2d.GetScreenRect() );
@@ -193,10 +196,10 @@ namespace Nestopia
 
 				return rect;
 			}
-
+  
 			ibool MustClearFrameScreen() const
 			{
-				return IsFullscreen() && fullscreenScale != STRETCHED;
+				return IsFullscreen() && fullscreenScale != SCREEN_STRETCHED;
 			}
 
 			void ClearScreen()

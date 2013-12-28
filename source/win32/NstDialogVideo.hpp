@@ -49,6 +49,9 @@ namespace Nestopia
 			{
 				NES_WIDTH      = Nes::Video::Output::WIDTH,
 				NES_HEIGHT     = Nes::Video::Output::HEIGHT,
+				NTSC_WIDTH	   = Nes::Video::Output::NTSC_WIDTH,
+				NTSC_HEIGHT	   = Nes::Video::Output::NTSC_HEIGHT,
+				NTSC_CLIP	   = 8,
 				DEFAULT_WIDTH  = 640,
 				DEFAULT_HEIGHT = 480,
 				DEFAULT_BPP    = 16
@@ -60,6 +63,9 @@ namespace Nestopia
 				FILTER_BILINEAR,
 				FILTER_SCANLINES_BRIGHT,
 				FILTER_SCANLINES_DARK,
+				FILTER_NTSC,
+				FILTER_NTSC_SCANLINES_BRIGHT,
+				FILTER_NTSC_SCANLINES_DARK,
 				FILTER_TV_SOFT,
 				FILTER_TV_HARSH,
 				FILTER_2XSAI,
@@ -157,6 +163,16 @@ namespace Nestopia
 			Dialog dialog;
 			const Managers::Paths& paths;
 
+			bool UsesNtscFilter() const
+			{
+				return 
+				(
+			     	settings.filter == FILTER_NTSC || 
+					settings.filter == FILTER_NTSC_SCANLINES_BRIGHT ||
+					settings.filter == FILTER_NTSC_SCANLINES_DARK
+				);
+			}
+
 		public:
 
 			void Open()
@@ -164,14 +180,16 @@ namespace Nestopia
 				dialog.Open();
 			}
 
-			const Rect& GetNtscRect() const
+			const Rect GetNesRect(const Nes::Machine::Mode mode) const
 			{
-				return settings.rects.ntsc;
+				const Rect& rect = (mode == Nes::Machine::NTSC ? settings.rects.ntsc : settings.rects.pal);
+				return (UsesNtscFilter() ? rect * Point(NTSC_WIDTH,NTSC_HEIGHT) / Point(NES_WIDTH,NES_HEIGHT) : rect);
 			}
 
-			const Rect& GetPalRect() const
+			const Rect GetInputRect(const Nes::Machine::Mode mode) const
 			{
-				return settings.rects.pal;
+				const Rect& rect = (mode == Nes::Machine::NTSC ? settings.rects.ntsc : settings.rects.pal);														
+				return (UsesNtscFilter() ? Rect(rect.left < NTSC_CLIP ? NTSC_CLIP : rect.left,rect.top,rect.right > NTSC_WIDTH-NTSC_CLIP ? NTSC_WIDTH-NTSC_CLIP : rect.right,rect.bottom) : rect);
 			}
 
 			Filter GetFilter() const

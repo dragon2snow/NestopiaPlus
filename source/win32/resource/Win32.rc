@@ -587,9 +587,7 @@ BEGIN
     PUSHBUTTON      "Add..",IDC_NETPLAY_ADD,269,20,43,16
     PUSHBUTTON      "Remove",IDC_NETPLAY_REMOVE,269,45,43,16
     PUSHBUTTON      "Clear",IDC_NETPLAY_CLEAR,269,70,43,16
-    CONTROL         "Use database names when available",IDC_NETPLAY_DATABASENAMES,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,129,129,10
-    CONTROL         "Play in fullscreen",IDC_NETPLAY_PLAY_FULLSCREEN,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,149,129,69,10
+    CONTROL         "Play in fullscreen",IDC_NETPLAY_PLAY_FULLSCREEN,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,130,69,10
     PUSHBUTTON      "Default",IDC_NETPLAY_DEFAULT,120,159,60,16
     DEFPUSHBUTTON   "Launch Kaillera..",IDC_NETPLAY_LAUNCH,190,159,60,16
     PUSHBUTTON      "Cancel",IDC_NETPLAY_CANCEL,260,159,60,16
@@ -1397,8 +1395,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 0,1,2,4
- PRODUCTVERSION 0,1,2,4
+ FILEVERSION 0,1,2,5
+ PRODUCTVERSION 0,1,2,5
  FILEFLAGSMASK 0x17L
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1414,11 +1412,11 @@ BEGIN
         BLOCK "040904b0"
         BEGIN
             VALUE "FileDescription", "Nestopia - NES / Famicom emulator"
-            VALUE "FileVersion", "1.24"
+            VALUE "FileVersion", "1.25"
             VALUE "LegalCopyright", "Copyright (C) Martin Freij 2003-2006"
             VALUE "OriginalFilename", "Nestopia.exe"
             VALUE "ProductName", "Nestopia"
-            VALUE "ProductVersion", "1.24"
+            VALUE "ProductVersion", "1.25"
         END
     END
     BLOCK "VarFileInfo"
@@ -1724,6 +1722,13 @@ BEGIN
     IDS_SCREEN_NOSPRITELIMIT_OFF "No Sprite Limit: OFF"
     IDS_SCREEN_TEXT_PASTE_1 "Pasting"
     IDS_SCREEN_TEXT_PASTE_2 "characters.."
+    IDS_VIDEO_FILTER_NTSC   "NTSC"
+END
+
+STRINGTABLE 
+BEGIN
+    IDS_VIDEO_FILTER_NTSC_SCANLINES_BRIGHT "NTSC scanlines (bright)"
+    IDS_VIDEO_FILTER_NTSC_SCANLINES_DARK "NTSC scanlines (dark)"
 END
 
 #endif    // English (U.S.) resources

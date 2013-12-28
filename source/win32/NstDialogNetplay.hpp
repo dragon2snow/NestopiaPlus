@@ -71,7 +71,7 @@ namespace Nestopia
 				LAUNCH = 0xB00B
 			};
 
-			struct Games : Collection::Map< Path, HeapString >
+			struct Games : Collection::Set<Path>
 			{
 				Games();
 				~Games();
@@ -96,11 +96,8 @@ namespace Nestopia
 
 			struct Settings
 			{
-				ibool useDatabase;
 				ibool fullscreen;
 			};
-
-			String::Generic<char> GetDatabaseName(const Path&) const;
 
 			void LoadFile();
 			void SaveFile() const;
@@ -113,7 +110,6 @@ namespace Nestopia
 			ibool OnDefault    (Param&);
 			ibool OnCancel     (Param&); 
 			ibool OnLaunch     (Param&);
-			ibool OnDatabase   (Param&);
 			ibool OnFullscreen (Param&);
 			ibool OnDropFiles  (Param&);
 
@@ -148,10 +144,7 @@ namespace Nestopia
 
 			GenericString GetGame(const uint i) const
 			{
-				if (settings.useDatabase && games[i].value.Length())
-					return games[i].value;
-				else
-     				return games[i].key.Target().File();
+   				return games[i].Target().File();
 			}
 
 			tstring GetPath(tstring const game) const
@@ -159,7 +152,7 @@ namespace Nestopia
 				for (uint i=0; i < games.Size(); ++i)
 				{
 					if (GetGame(i) == game)
-						return games[i].key.Ptr();
+						return games[i].Ptr();
 				}
 
 				return NULL;

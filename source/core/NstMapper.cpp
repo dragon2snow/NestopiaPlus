@@ -77,6 +77,7 @@
 #include "mapper/NstMapper024.hpp"
 #include "mapper/NstMapper025.hpp"
 #include "mapper/NstMapper026.hpp"
+#include "mapper/NstMapper027.hpp"
 #include "mapper/NstMapper032.hpp"
 #include "mapper/NstMapper033.hpp"
 #include "mapper/NstMapper034.hpp"
@@ -299,7 +300,7 @@ namespace Nes
 			{ "KONAMI VRC6 A0/A1",                Setup::PRG_01XX_16K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 024
 			{ "KONAMI VRC4 Y",	                  Setup::PRG_01XX_16K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 025
 			{ "KONAMI VRC6 A1/A0",                Setup::PRG_01XX_16K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 026
-			{ "",					              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 027
+			{ "KONAMI VRC4 clone?",	              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 027
 			{ "",					              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 028
 			{ "",					              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 029
 			{ "",					              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 030
@@ -568,6 +569,7 @@ namespace Nes
 				case  24: return new Mapper24  ( context );
 				case  25: return new Mapper25  ( context );
 				case  26: return new Mapper26  ( context );
+				case  27: return new Mapper27  ( context );
 				case  32: return new Mapper32  ( context );
 				case  33: return new Mapper33  ( context );
 				case  34: return new Mapper34  ( context );
@@ -742,6 +744,7 @@ namespace Nes
 			{
 		    	case 0xC428F142UL: // KOF97
 				case 0x0A1969BEUL: // KOF98 (Super HiK 7-in-1)
+				case 0x008D61CCUL: // KOF99
 				case 0xF7968840UL: // Sonic 3D Blast 6
 					return true;
 			}

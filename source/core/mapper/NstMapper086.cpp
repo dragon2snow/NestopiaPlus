@@ -52,6 +52,9 @@ namespace Nes
 			Sound(Cpu& c)
 			: SoundWave(c) {}
 
+			class Loader;
+			friend class Loader;
+
 			enum
 			{
 				NUM_SLOTS = 16
@@ -76,71 +79,70 @@ namespace Nes
 			Slot slots[NUM_SLOTS];
 		};
 
-		Mapper86::Sound* Mapper86::Sound::Create(Cpu& cpu)
-		{
-			class Loader : public Core::Sound::Loader
-			{		
-				Cpu& cpu;
-				Sound* sound;
+		class Mapper86::Sound::Loader : public Core::Sound::Loader
+		{		
+			Cpu& cpu;
+			Sound* sound;
 
-			public:
+		public:
 
-				Loader(Cpu& c)
-				: cpu(c), sound(NULL) {}
+			Loader(Cpu& c)
+			: cpu(c), sound(NULL) {}
 
-				~Loader()
+			~Loader()
+			{
+				delete sound;
+			}
+
+			Sound* Get()
+			{
+				if (Sound* const tmp = sound)
 				{
-					delete sound;
-				}
-
-				Sound* Get()
-				{
-					if (Sound* const tmp = sound)
+					for (uint i=0; i < NUM_SLOTS; ++i)
 					{
-						for (uint i=0; i < NUM_SLOTS; ++i)
+						if (tmp->slots[i].data)
 						{
-							if (tmp->slots[i].data)
-							{
-              					sound = NULL;
-              					return tmp;
-							}
+							sound = NULL;
+							return tmp;
 						}
 					}
-
-					return NULL;
 				}
 
-				Result Load(uint slot,const u8* input,dword length,dword rate)
+				return NULL;
+			}
+
+			Result Load(uint slot,const u8* input,dword length,dword rate)
+			{
+				Result result;
+				u8* data;
+
+				if (slot >= NUM_SLOTS || (sound && sound->slots[slot].data))
 				{
-					Result result;
-					u8* data;
-
-					if (slot >= NUM_SLOTS || (sound && sound->slots[slot].data))
-					{
-						return RESULT_ERR_INVALID_PARAM;
-					}
-					else if (NES_FAILED(result=CanDo( input, length, rate )))
-					{
-						return result;
-					}
-					else if (sound == NULL && NULL == (sound = new (std::nothrow) Sound( cpu )) || NULL == (data = new (std::nothrow) u8 [length]))
-					{
-						return RESULT_ERR_OUT_OF_MEMORY;
-					}
-
-					std::memcpy( data, input, length );
-
-					sound->slots[slot].data = data;
-					sound->slots[slot].length = length;
-					sound->slots[slot].rate = rate;
-
-					return RESULT_OK;
+					return RESULT_ERR_INVALID_PARAM;
 				}
-			};
+				else if (NES_FAILED(result=CanDo( input, length, rate )))
+				{
+					return result;
+				}
+				else if (sound == NULL && NULL == (sound = new (std::nothrow) Sound( cpu )) || NULL == (data = new (std::nothrow) u8 [length]))
+				{
+					return RESULT_ERR_OUT_OF_MEMORY;
+				}
 
+				std::memcpy( data, input, length );
+
+				sound->slots[slot].data = data;
+				sound->slots[slot].length = length;
+				sound->slots[slot].rate = rate;
+
+				return RESULT_OK;
+			}
+		};
+
+		Mapper86::Sound* Mapper86::Sound::Create(Cpu& cpu)
+		{
 			Loader loader( cpu );
 			Core::Sound::Loader::loadCallback( Core::Sound::Loader::MOERO_PRO_YAKYUU, loader );
-
 			return loader.Get();
 		}
 

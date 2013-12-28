@@ -37,150 +37,143 @@ namespace Nes
 		{
 			class Renderer
 			{
+				typedef Api::Video::RenderState RenderState;
+
 			public:
-				
-				Result SetState(const Api::Video::RenderState&);
-				Result GetState(Api::Video::RenderState&) const;
-				void Blit(Output&) const;
 		
-			private:
-		
+				Renderer();
+				~Renderer();
+
 				enum
 				{
 					WIDTH = 256,
 					HEIGHT = 240,
-					WIDTH_1 = WIDTH,
-					WIDTH_2 = WIDTH * 2,
-					WIDTH_3 = WIDTH * 3,
-					HEIGHT_1 = HEIGHT,
-					HEIGHT_2 = HEIGHT * 2,
-					HEIGHT_3 = HEIGHT * 3,
 					PIXELS = ulong(WIDTH) * HEIGHT,
-					PALETTE_ENTRIES = 64 * 8
+					PALETTE = 64 * 8
 				};
+
+				typedef u16 (&Screen)[PIXELS];
+
+				Result SetState(const RenderState&);
+				Result GetState(RenderState&) const;
+				void Blit(Output&) const;
 		
-				inline dword Blend(dword,dword) const;
-				inline dword Blend(dword,dword,dword,dword) const;
+			private:
+					
+				void UpdateColors();
 
-				template<typename T> void BlitFilter(const Output&) const;
-		
-				template<typename T> void BlitAligned     (T* NST_RESTRICT) const;
-				template<typename T> void BlitUnaligned   (const Output&) const;
-				template<typename T> void BlitScanlines1x (const Output&) const;
-				template<typename T> void BlitScanlines2x (const Output&) const;
-				template<typename T> void BlitTV          (const Output&) const;
-
-            #ifndef NST_NO_SCALE2X
-
-				template<typename T> void BlitScale2x (const Output&) const;
-				template<typename T> void BlitScale3x (const Output&) const;
-
-				template<typename T,int PREV,int NEXT> NST_FORCE_INLINE T* Scale2xBorder (T* NST_RESTRICT,const u16* NST_RESTRICT) const;
-				template<typename T,int PREV,int NEXT> NST_FORCE_INLINE T* Scale3xBorder (T* NST_RESTRICT,const u16* NST_RESTRICT) const;
-				template<typename T>                   NST_FORCE_INLINE T* Scale3xCenter (T* NST_RESTRICT,const u16* NST_RESTRICT) const;
-				template<typename T,int PREV,int NEXT> NST_FORCE_INLINE T* Scale2xLine   (T* NST_RESTRICT,const u16* NST_RESTRICT,long) const;
-				template<typename T,int PREV,int NEXT> NST_FORCE_INLINE T* Scale3xLine   (T* NST_RESTRICT,const u16* NST_RESTRICT,long) const;
-
-            #endif
-            #ifndef NST_NO_2XSAI
-
-				template<typename T> void Blit2xSaI       (const Output&) const;
-				template<typename T> void BlitSuper2xSaI  (const Output&) const;
-				template<typename T> void BlitSuperEagle  (const Output&) const;
-
-            #endif
-            #ifndef NST_NO_HQ2X
-
-				struct Hq2x
+				struct Input
 				{
-					Hq2x();
-					~Hq2x();
-
-					void Initialize(uint,const uint (&)[3]);
-					void Uninitialize();
-
-					template<typename>
-					struct Buffer;
-
-					template<u32 R,u32 G,u32 B> static dword Interpolate1(dword,dword);
-					template<u32 R,u32 G,u32 B> static dword Interpolate2(dword,dword,dword);
-					template<u32 R,u32 G,u32 B> static dword Interpolate3(dword,dword);
-					template<u32 R,u32 G,u32 B> static dword Interpolate4(dword,dword,dword);
-					                            static inline dword Interpolate5(dword,dword);
-					template<u32 R,u32 G,u32 B> static dword Interpolate6(dword,dword,dword);
-					template<u32 R,u32 G,u32 B> static dword Interpolate7(dword,dword,dword);
-					template<u32 R,u32 G,u32 B> static dword Interpolate9(dword,dword,dword);
-					template<u32 R,u32 G,u32 B> static dword Interpolate10(dword,dword,dword);
-
-					static bool IsSupported(uint,dword,dword,dword);
-
-					static bool Diff(uint,uint);
-					static bool DiffYuv(dword,dword);
-
-					u32* yuv;
-					u32* rgb;
+					u16 screen[PIXELS];
+					u32 palette[PALETTE];
 				};
 
-				template<typename T> void BlitHq2x(const Output&) const;
-				template<typename T> void BlitHq3x(const Output&) const;
+				class FilterNone;
+				class FilterScanlines;
+				class FilterTV;
 
-				template<typename T,u32 R,u32 G,u32 B> void BlitHq2xRgb(const Output&) const;
-				template<typename T,u32 R,u32 G,u32 B> void BlitHq3xRgb(const Output&) const;
+                #ifndef NST_NO_2XSAI
+				class Filter2xSaI;
+                #endif
 
-				static Hq2x hq2x;
+                #ifndef NST_NO_SCALE2X
+				class FilterScaleX;
+                #endif
 
-            #endif
+                #ifndef NST_NO_HQ2X
+				class FilterHqX;
+                #endif
 
-				void UpdatePalette();
-				void BlitPaletteIndexed(const Output&) const;
+                #ifndef NST_NO_NTSCVIDEO
+				template<uint BITS> class FilterNtsc;
+                #endif
+
+				class NST_NO_VTABLE Filter
+				{
+					struct Format
+					{
+						Format(const RenderState::Bits::Mask&);
+
+						dword left[3];
+						dword right[3];
+					};
+
+				public:
+
+					Filter(const RenderState&);
+					virtual ~Filter() {}
+
+					virtual void Blit(const Input&,const Output&) = 0;
+					virtual void Transform(const u8 (*NST_RESTRICT)[3],u32 (&)[PALETTE]) const;
+
+					const uint bpp;
+					const Format format;
+				};
 
 				struct State
 				{
-					u8 bpp;
-					u8 filter;
-					u8 scale;
-					u8 paletteOffset;
+					State();
+
+					RenderState::Filter filter;
+					ushort width;
+					ushort height;
+					ushort brightness;
+					uchar saturation;
+					uchar hue;
+					RenderState::Bits::Mask mask;
 				};
 
-				struct Format
-				{
-					dword mask[3];
-					dword lsb[2];
-					dword left[3];
-					dword right[3];
-				};
-				 
-				u16 screen[WIDTH * HEIGHT];
-				u32 palette[PALETTE_ENTRIES];
-				Format format;
+				Filter* filter;
+				const u8 (*palette)[3];
 				State state;
-				const u8 (*srcPalette)[3];
-		
+				Input input;
+
 			public:
 		
-				Renderer()
-				: srcPalette(NULL)
+				void SetPalette(const u8 (*p)[3])
 				{
-					state.bpp = 0;
+					NST_ASSERT( p );		
+					palette = p;
+
+					if (filter)
+						filter->Transform( palette, input.palette );
+				}
+				
+				void SetBrightness(uchar brightness)
+				{
+					if (state.brightness != brightness)
+					{
+						state.brightness = brightness;
+						UpdateColors();
+					}
 				}
 
-				void SetPalette(const u8 (*palette)[3])
+				void SetSaturation(uchar saturation)
 				{
-					NST_ASSERT( palette );		
-					srcPalette = palette;
-					UpdatePalette();
+					if (state.saturation != saturation)
+					{
+						state.saturation = saturation;
+						UpdateColors();
+					}
 				}
-		
-				typedef u16 (&Screen)[WIDTH * HEIGHT];
-		
+
+				void SetHue(uchar hue)
+				{
+					if (state.hue != hue)
+					{
+						state.hue = hue;
+						UpdateColors();
+					}
+				}
+
 				Screen GetScreen()
 				{
-					return screen;
+					return input.screen;
 				}
 
 				bool IsReady() const
 				{
-					return state.bpp != 0;
+					return filter != NULL;
 				}
 			};
 		}

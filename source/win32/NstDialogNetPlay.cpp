@@ -58,7 +58,6 @@ namespace Nestopia
 		{ IDC_NETPLAY_DEFAULT,         &Netplay::OnDefault    },
 		{ IDC_NETPLAY_CANCEL,          &Netplay::OnCancel     },
 		{ IDC_NETPLAY_LAUNCH,          &Netplay::OnLaunch     },
-		{ IDC_NETPLAY_DATABASENAMES,   &Netplay::OnDatabase   },
 		{ IDC_NETPLAY_PLAY_FULLSCREEN, &Netplay::OnFullscreen }
 	};
 
@@ -75,11 +74,8 @@ namespace Nestopia
 
 	Netplay::Games::~Games()
 	{
-		for (Iterator it=Begin(); it != End(); ++it)
-		{
-			it->key.Path::~Path();
-			it->value.Heap::~Heap();
-		}
+		for (Iterator it=Begin(), end=End(); it != end; ++it)
+			it->Path::~Path();
 	}
 
 	Netplay::Games::Iterator Netplay::Games::Add(const Path& path)
@@ -97,8 +93,7 @@ namespace Nestopia
 	{
 		state = DIRTY;
 		Iterator const it = At( index );		
-		it->key.Path::~Path();
-		it->value.Heap::~Heap();
+		it->Path::~Path();
 		Array().Erase( it );
 	}
 
@@ -109,7 +104,6 @@ namespace Nestopia
 	paths         ( p ),
 	emulator      ( e )
 	{
-		settings.useDatabase = (cfg[ "netplay use database names" ] != Configuration::NO);
 		settings.fullscreen = (cfg[ "netplay in fullscreen" ] == Configuration::YES);
 	}
 
@@ -119,7 +113,6 @@ namespace Nestopia
 
 	void Netplay::Save(Configuration& cfg,const ibool saveGameList) const
 	{
-		cfg[ "netplay use database names" ].YesNo() = settings.useDatabase;
 		cfg[ "netplay in fullscreen" ].YesNo() = settings.fullscreen;
 
 		if (saveGameList)
@@ -190,7 +183,7 @@ namespace Nestopia
 				HeapString text;
 
 				for (Games::ConstIterator it=games.Begin(), end=games.End(); it != end; ++it)
-					text << it->key << "\r\n";
+					text << *it << "\r\n";
 
 				try
 				{
@@ -212,71 +205,6 @@ namespace Nestopia
 		}
 	}
 
-	String::Generic<char> Netplay::GetDatabaseName(const Path& path) const
-	{
-		NST_VERIFY( Nes::Cartridge(emulator).GetDatabase().IsLoaded() );
-
-		String::Generic<char> string;
-		Collection::Buffer buffer;
-
-		try
-		{
-			Io::File( path, Io::File::COLLECT ).Stream() >> buffer;
-		}
-		catch (Io::File::Exception)
-		{
-			return string;
-		}
-
-    #pragma pack(push,1)
-
-		struct Header
-		{
-			u32 signature;
-			u8  num16kPRomBanks;
-			u8  num8kCRomBanks;
-			u32 skip1;
-			u32 skip2;
-			u16 skip3;
-		};
-
-    #pragma pack(pop)
-
-		NST_COMPILE_ASSERT( sizeof(Header) == 16 );
-
-		if (buffer.Size() >= sizeof(Header))
-		{
-			const Header& header = reinterpret_cast<const Header&>(buffer.Front());
-			const uint size = buffer.Size() - sizeof(Header);
-
-			if (size && header.signature == 0x1A53454EUL)
-			{
-				Nes::Cartridge::Database::Entry entry = Nes::Cartridge(emulator).GetDatabase().FindEntry
-				(
-					Nes::Core::Crc32::Compute( buffer.Ptr() + sizeof(Header), size )
-				);
-
-				if (!entry)
-				{
-					const uint fixed = (header.num16kPRomBanks * Nes::Core::SIZE_16K) + (header.num8kCRomBanks + Nes::Core::SIZE_8K);
-
-					if (fixed && fixed <= size)
-					{
-						entry = Nes::Cartridge(emulator).GetDatabase().FindEntry
-						(
-							Nes::Core::Crc32::Compute( buffer.Ptr() + sizeof(Header), fixed )
-						);
-					}
-				}
-
-				if (entry)
-					string = Nes::Cartridge(emulator).GetDatabase().GetName( entry );
-			}
-		}
-
-		return string;
-	}
-
 	void Netplay::Add(Path path)
 	{
 		enum
@@ -288,8 +216,6 @@ namespace Nestopia
 		{
 			if (Games::Iterator game = games.Add( path ))
 			{
-				game->value = GetDatabaseName( path );
-
 				if (dialog)
 					dialog.ListView( IDC_NETPLAY_GAMELIST ).Add( path.Target().File() );
 			}
@@ -298,7 +224,6 @@ namespace Nestopia
   
 	ibool Netplay::OnInitDialog(Param&)
 	{
-		dialog.CheckBox( IDC_NETPLAY_DATABASENAMES ).Check( settings.useDatabase );
 		dialog.CheckBox( IDC_NETPLAY_PLAY_FULLSCREEN ).Check( settings.fullscreen );
 		dialog.CheckBox( IDC_NETPLAY_REMOVE ).Disable();
 
@@ -312,7 +237,7 @@ namespace Nestopia
 			list.Reserve( games.Size() );
 
 			for (Games::ConstIterator it=games.Begin(), end=games.End(); it != end; ++it)
-				list.Add( it->key.Target().File().Ptr() );
+				list.Add( it->Target().File().Ptr() );
 		}
 
 		dialog.CheckBox( IDC_NETPLAY_CLEAR ).Enable( games.Size() );
@@ -348,10 +273,7 @@ namespace Nestopia
 	ibool Netplay::OnDefault(Param& param)
 	{
 		if (param.Button().IsClicked())
-		{
-			dialog.CheckBox( IDC_NETPLAY_DATABASENAMES ).Check( settings.useDatabase = TRUE );
 			dialog.CheckBox( IDC_NETPLAY_PLAY_FULLSCREEN ).Check( settings.fullscreen = FALSE );
-		}
 
 		return TRUE;
 	}
@@ -368,14 +290,6 @@ namespace Nestopia
 	{
 		if (param.Button().IsClicked())
 			dialog.Close( LAUNCH );
-
-		return TRUE;
-	}
-
-	ibool Netplay::OnDatabase(Param& param)
-	{
-		if (param.Button().IsClicked())
-			settings.useDatabase = dialog.CheckBox( IDC_NETPLAY_DATABASENAMES ).IsChecked();
 
 		return TRUE;
 	}

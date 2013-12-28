@@ -72,6 +72,11 @@ namespace Nestopia
 				MAX_INT_LENGTH = 12
 			};
 
+			template<typename T> static T* Remove(T*,T);
+			
+			static bool Trim(char*);
+			static bool Trim(wchar_t*);
+
 			template<typename T> static T* FromUnsigned(T (&)[MAX_INT_LENGTH],u32);
 			template<typename T> static T* FromSigned(T (&)[MAX_INT_LENGTH],i32);
 
@@ -441,6 +446,22 @@ namespace Nestopia
 			const bool r = ToUnsigned( string.Ptr(), string.Length(), u ); 
 			value = (U) u; 
 			return r;
+		}
+
+		template<typename T>
+		T* Base::Remove(T* string,const T c)
+		{
+			T* p;
+
+			for (p=string; *string; ++string)
+			{
+				if (*string != c)
+					*p++ = *string;
+			}
+
+			*p = '\0';
+
+			return p;
 		}
   
 		template<typename T=tchar,bool I=false>
@@ -1067,6 +1088,17 @@ namespace Nestopia
 				Resize( n );
 			}
   
+			void Remove(const Type c)
+			{
+				length = Base::Remove( string, c ) - string;
+			}
+
+			void Trim()
+			{
+				if (Base::Trim( string ))
+					Validate();
+			}
+
 			Generic<Type> operator () (uint p) const
 			{
 				NST_ASSERT( p <= length );
@@ -1208,8 +1240,6 @@ namespace Nestopia
 			void Defrag();
 			void Destroy();
 			void Erase(uint,uint);
-			uint Remove(Type);
-			uint Trim();			
 
 		private:
 
@@ -1327,6 +1357,17 @@ namespace Nestopia
 			uint Validate()
 			{
 				return length = Base::Length(string);
+			}
+
+			void Remove(const Type c)
+			{
+				length = Base::Remove( string, c ) - string;
+			}
+
+			void Trim()
+			{
+				if (Base::Trim( string ))
+					Validate();
 			}
 
 			uint Length() const
@@ -1615,33 +1656,7 @@ namespace Nestopia
 			length -= n;
 			Base::Move( string + p, string + p + n, (l + 1) - (p + n) );
 		}
-
-		template<typename T>
-		uint Heap<T>::Remove(const Type c)
-		{
-			NST_ASSERT( c != '\0' );
-
-			if (length)
-			{
-				Type* it = string;
-				const Type* next = string;
-				const Type* const end = string + length;
-
-				do
-				{
-					if (*next != c)
-						*it++ = *next;
-				}
-				while (++next != end);
-
-				const uint p = it - string;
-				string[length = p] = '\0';
-				return p;
-			}
-
-			return 0;
-		}
-
+  
 		template<typename T>
 		void Heap<T>::Defrag()
 		{
@@ -1654,29 +1669,6 @@ namespace Nestopia
 				else
 					Free();
 			}
-		}
-
-		template<typename T>
-		uint Heap<T>::Trim()
-		{
-			uint last = FindLastNotOf( ' ', length );
-
-			if (last != length)
-			{
-				if (uint first = FindFirstNotOf( ' ', ++last ))
-				{
-					last -= first;
-					Base::Move( string, string + first, last );
-				}
-			}
-			else
-			{
-				last = 0;
-			}
-
-			string[last] = '\0';
-
-			return last;
 		}
 
 		template<typename T=tchar>

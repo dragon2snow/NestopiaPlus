@@ -55,79 +55,92 @@ namespace Nes
 		wRamAuto     (false),
 		batteryCrc   (0)
 		{
-        	result = RESULT_OK;
-		
-			switch (Stream::In(context.stream).Peek32())
+			try
 			{
-         		case 0x1A53454EUL: { Ines ines( context.stream, pRom, cRom, wRam, info, context.database, result ); break; }
-				case 0x46494E55UL: { Unif unif( context.stream, pRom, cRom, wRam, info, context.database, result ); break; }
-				default: throw RESULT_ERR_INVALID_FILE;
-			}
+				result = RESULT_OK;
+
+				switch (Stream::In(context.stream).Peek32())
+				{
+					case 0x1A53454EUL: { Ines ines( context.stream, pRom, cRom, wRam, info, context.database, result ); break; }
+					case 0x46494E55UL: { Unif unif( context.stream, pRom, cRom, wRam, info, context.database, result ); break; }
+					default: throw RESULT_ERR_INVALID_FILE;
+				}
 		
-			if (info.system != Api::Cartridge::SYSTEM_VS)
-				DetectVS();
-	
-			if (DetectEncryption())
-				result = RESULT_WARN_ENCRYPTED_ROM;
-	
-			DetectControllers();
-			DetectTurboFile( context );
-	
-			if (vs == NULL)
-				dataRecorder = new DataRecorder(context.cpu);
-
-			if (!InitInfo( context.database ))
-			{
-				if (result == RESULT_OK)
-					result = RESULT_WARN_BAD_DUMP;
-			}
-
-			ResetWRam();
-
-			if (info.battery)
-				LoadBattery();
-	
-			if (info.system == Api::Cartridge::SYSTEM_VS)
-				vs = VsSystem::Create( context.cpu, context.ppu, info.pRomCrc );
-	
-			pRom.Arrange( SIZE_16K );
-			cRom.Arrange( SIZE_8K );
-
-			Mapper::Context settings
-			(
-				info.mapper,
-				context.cpu,
-				context.ppu,
-				pRom,
-				cRom,
-				wRam,
-				info.mirroring == Api::Cartridge::MIRROR_HORIZONTAL ? Ppu::NMT_HORIZONTAL :
-       			info.mirroring == Api::Cartridge::MIRROR_VERTICAL   ? Ppu::NMT_VERTICAL :
-     			info.mirroring == Api::Cartridge::MIRROR_FOURSCREEN ? Ppu::NMT_FOURSCREEN :
-      			info.mirroring == Api::Cartridge::MIRROR_ZERO       ? Ppu::NMT_ZERO :
-       			info.mirroring == Api::Cartridge::MIRROR_ONE        ? Ppu::NMT_ONE : 
-			                                                          Ppu::NMT_CONTROLLED,
-				info.battery,
-				info.pRomCrc
-	     	);
-		
-			mapper = Mapper::Create( settings );
-	
-			if (wRam.Size())
-			{
-				wRamAuto = settings.wRamAuto;
-
+				if (info.system != Api::Cartridge::SYSTEM_VS)
+					DetectVS();
+			
+				if (DetectEncryption())
+					result = RESULT_WARN_ENCRYPTED_ROM;
+			
+				DetectControllers();
+				DetectTurboFile( context );
+			
+				if (vs == NULL)
+					dataRecorder = new DataRecorder(context.cpu);
+			
+				if (!InitInfo( context.database ))
+				{
+					if (result == RESULT_OK)
+						result = RESULT_WARN_BAD_DUMP;
+				}
+			
+				ResetWRam();
+			
 				if (info.battery)
-					batteryCrc = Crc32::Compute( wRam.Mem(), wRam.Size() );
+					LoadBattery();
+			
+				if (info.system == Api::Cartridge::SYSTEM_VS)
+					vs = VsSystem::Create( context.cpu, context.ppu, info.pRomCrc );
+			
+				pRom.Arrange( SIZE_16K );
+				cRom.Arrange( SIZE_8K );
+			
+				Mapper::Context settings
+				(
+					info.mapper,
+					context.cpu,
+					context.ppu,
+					pRom,
+					cRom,
+					wRam,
+					info.mirroring == Api::Cartridge::MIRROR_HORIZONTAL ? Ppu::NMT_HORIZONTAL :
+       				info.mirroring == Api::Cartridge::MIRROR_VERTICAL   ? Ppu::NMT_VERTICAL :
+     				info.mirroring == Api::Cartridge::MIRROR_FOURSCREEN ? Ppu::NMT_FOURSCREEN :
+      				info.mirroring == Api::Cartridge::MIRROR_ZERO       ? Ppu::NMT_ZERO :
+       				info.mirroring == Api::Cartridge::MIRROR_ONE        ? Ppu::NMT_ONE : 
+				                                                          Ppu::NMT_CONTROLLED,
+					info.battery,
+					info.pRomCrc
+	     	 	);
+			
+				mapper = Mapper::Create( settings );
+			
+				if (wRam.Size())
+				{
+					wRamAuto = settings.wRamAuto;
+			
+					if (info.battery)
+						batteryCrc = Crc32::Compute( wRam.Mem(), wRam.Size() );
+				}
+			}
+			catch (...)
+			{
+				Destroy();
+				throw;
 			}
 		}
 	
-		Cartridge::~Cartridge()
+		void Cartridge::Destroy()
 		{
 			delete dataRecorder;
 			delete turboFile;
 			VsSystem::Destroy( vs );
 			Mapper::Destroy( mapper );
+		}
+
+		Cartridge::~Cartridge()
+		{
+			Destroy();
 		}
 	
 		bool Cartridge::InitInfo(const ImageDatabase* const database)
@@ -142,10 +155,7 @@ namespace Nes
 	
 			if (!handle)
 				return true;
-	
-			if (info.name.empty())
-				info.name = database->Name( handle );
-	
+
 			if (database->IsBad( handle ))
 			{
 				info.condition = Api::Cartridge::NO;
@@ -628,7 +638,7 @@ namespace Nes
 			if (turboFile)
 				turboFile->SaveState( State::Saver::Subset(state,'T','B','F','\0').Ref() );
 
-			if (dataRecorder)
+			if (dataRecorder && dataRecorder->CanSaveState())
 				dataRecorder->SaveState( State::Saver::Subset(state,'D','R','C','\0').Ref() );
 		}
 	

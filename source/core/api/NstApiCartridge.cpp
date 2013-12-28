@@ -130,11 +130,6 @@ namespace Nes
 		{
 			return imageDatabase ? Core::Cartridge::SearchDatabase( *imageDatabase, data, size, altsize ) : NULL;
 		}
-	
-		const char* Cartridge::Database::GetName(Entry entry) const 
-		{ 
-			return imageDatabase && entry ? imageDatabase->Name( entry ) : NULL;
-		}
 
 		Cartridge::System Cartridge::Database::GetSystem(Entry entry) const 
 		{

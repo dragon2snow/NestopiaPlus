@@ -196,7 +196,7 @@ namespace Nestopia
 		for (uint i=0; ; ++i)
 		{
 			DWORD storedType;
-			tchar storedValue[260+1];
+			tchar storedValue[NST_MAX(_MAX_PATH+1,512)];
 			DWORD storedValueSize = sizeof(storedValue);
 			DWORD storedDataSize = storedData.Size() * sizeof(tchar);
 
@@ -219,7 +219,7 @@ namespace Nestopia
 			(
 				storedType == REG_SZ && 
 				storedDataSize == (storedData.Size() - PAD_TO_CHECK_REAL_LENGTH) * sizeof(tchar) &&
-				std::memcmp( storedData.Ptr(), dataName.Ptr(), storedDataSize * sizeof(tchar) ) == 0
+				std::memcmp( storedData.Ptr(), dataName.Ptr(), storedDataSize ) == 0
 			)
 			{
 				if (storedValueSize)

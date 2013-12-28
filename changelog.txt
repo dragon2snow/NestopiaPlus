@@ -1,4 +1,39 @@
 ----------------------------------------------------------------
+1.25
+----------------------------------------------------------------
+
+Windows:
+
+ Fixes:
+
+  - Configuration file parse error after cheats were saved.
+  - Unquoted executable name on the command line.
+  - Archive filenames using non-ascii characters.
+  - File association bug.
+  - Katakana characters when using the 'clipboard-to-NES-screen' feature.
+  - Slight texel-to-pixel mapping inaccuracy.
+
+Emulator:
+
+ Additions:
+
+  - NTSC composite video emulation. Requires a fast computer. Implementation by 
+    Blargg and NewRisingSun.
+  - Mapper 27.
+
+ Changes:
+
+  - Took out the database names. Too many errors.
+
+ Fixes:
+
+  - Mapper 16 IRQ timing. Fixes SD Gundam Gaiden - Knight Gundam Monogatari 2 - Hikari no Kishi.
+  - King of Fighters 99 (no-frame-IRQ hack).
+  - Save state errors with MMC3 games.
+  - Blitter producing garbage on screen (rare occasions).
+  - Some ISO C++ misstakes.
+
+----------------------------------------------------------------
 1.24
 ----------------------------------------------------------------
 

@@ -92,16 +92,19 @@ namespace Nes
 	
 		Result Video::SetBrightness(uint value)
 		{
+			emulator.renderer.SetBrightness( value );
 			return emulator.palette.SetBrightness( value );
 		}
 	
 		Result Video::SetSaturation(uint value)
 		{
+			emulator.renderer.SetSaturation( value );
 			return emulator.palette.SetSaturation( value );
 		}
 	
 		Result Video::SetHue(uint value)
 		{
+			emulator.renderer.SetHue( value );
 			return emulator.palette.SetHue( value );
 		}
 		
@@ -115,7 +118,7 @@ namespace Nes
 		{
 			return emulator.renderer.GetState( state );
 		}
-	
+
 		Result Video::Blit(Output& output)
 		{
 			if (emulator.palette.NeedUpdate())

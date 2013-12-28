@@ -22,39 +22,58 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#ifndef NST_MANAGER_MACHINE_H
-#define NST_MANAGER_MACHINE_H
+#ifndef NST_MAPPER_27_H
+#define NST_MAPPER_27_H
 
+#ifdef NST_PRAGMA_ONCE_SUPPORT
 #pragma once
+#endif
 
-#include "NstWindowMenu.hpp"
-
-namespace Nestopia
+namespace Nes
 {
-	namespace Managers
+	namespace Core
 	{
-		class Machine
+		class Mapper27 : public Mapper
 		{
 		public:
 
-			Machine(Emulator&,const Application::Configuration&,Window::Menu&,const Preferences&);
-			~Machine();
-
-			void Save(Configuration&) const;
+			Mapper27(Context&);
 
 		private:
 
-			void OnMenuSystem (Window::Menu::PopupHandler::Param&);
-			void OnEmuEvent (Emulator::Event);
+			void SubReset(bool);
+			void SubSave(State::Saver&) const;
+			void SubLoad(State::Loader&);
+			void VSync();
+			
+			template<ushort MASK,uchar BITS,uchar SHIFT>
+			void SwapChr(uint,uint) const;
 
-			void OnCmdPower  (uint);
-			void OnCmdReset	 (uint);
-			void OnCmdPause  (uint);
-			void OnCmdSystem (uint);
+			NES_DECL_POKE( 8  )
+			NES_DECL_POKE( 9  )
+			NES_DECL_POKE( B0 )
+			NES_DECL_POKE( B1 )
+			NES_DECL_POKE( B2 )
+			NES_DECL_POKE( B3 )
+			NES_DECL_POKE( C0 )
+			NES_DECL_POKE( C1 )
+			NES_DECL_POKE( C2 )
+			NES_DECL_POKE( C3 )
+			NES_DECL_POKE( D0 )
+			NES_DECL_POKE( D1 )
+			NES_DECL_POKE( D2 )
+			NES_DECL_POKE( D3 )
+			NES_DECL_POKE( E0 )
+			NES_DECL_POKE( E1 )
+			NES_DECL_POKE( E2 )
+			NES_DECL_POKE( E3 )
+			NES_DECL_POKE( F0 )
+			NES_DECL_POKE( F1 )
+			NES_DECL_POKE( F2 )
+			NES_DECL_POKE( F3 )
 
-			Emulator& emulator;
-			const Window::Menu& menu;
-			const Preferences& preferences;
+			Boards::Vrc4::Irq irq;
+			uint prgSwap;
 		};
 	}
 }

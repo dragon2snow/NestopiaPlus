@@ -78,7 +78,6 @@ namespace Nes
 				u8 wRamSize;
 				u8 mapper;
 				u16 flags;
-				char* name;
 
 				operator u32 () const
 				{ 
@@ -95,7 +94,6 @@ namespace Nes
 			ibool enabled;
 			dword numEntries;
 			Entry* entries;
-			char* names;
 
 		public:
 
@@ -109,11 +107,6 @@ namespace Nes
 				return enabled;
 			}
 
-			cstring Name(Handle h) const 
-			{ 
-				return static_cast<Ref>(h)->name;
-			}
-
 			Api::Cartridge::Mirroring GetMirroring(Handle h) const 
 			{ 
 				return (Api::Cartridge::Mirroring) ((static_cast<Ref>(h)->flags & Entry::FLAGS_MIRRORING) >> Entry::FLAGS_MIRRORING_SHIFT);
@@ -121,9 +114,9 @@ namespace Nes
 
 			dword Crc        (Handle h) const { return static_cast<Ref>(h)->crc;                          }
 			dword pRomCrc    (Handle h) const { return static_cast<Ref>(h)->pRomCrc;                      }
-			dword pRomSize   (Handle h) const { return static_cast<Ref>(h)->pRomSize * SIZE_16K;           }
-			dword cRomSize   (Handle h) const { return static_cast<Ref>(h)->cRomSize * SIZE_8K;            }
-			dword wRamSize   (Handle h) const { return static_cast<Ref>(h)->wRamSize * SIZE_8K;            }	
+			dword pRomSize   (Handle h) const { return static_cast<Ref>(h)->pRomSize * SIZE_16K;          }
+			dword cRomSize   (Handle h) const { return static_cast<Ref>(h)->cRomSize * SIZE_8K;           }
+			dword wRamSize   (Handle h) const { return static_cast<Ref>(h)->wRamSize * SIZE_8K;           }	
 			uint  Mapper     (Handle h) const { return static_cast<Ref>(h)->mapper;                       }
 			ibool HasBattery (Handle h) const { return static_cast<Ref>(h)->flags & Entry::FLAGS_BATTERY; }
 			ibool HasTrainer (Handle h) const { return static_cast<Ref>(h)->flags & Entry::FLAGS_TRAINER; }
