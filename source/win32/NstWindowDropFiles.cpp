@@ -22,50 +22,45 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#ifndef NST_VIDEO_FILTER_2XSAI_H
-#define NST_VIDEO_FILTER_2XSAI_H
+#include "NstWindowParam.hpp"
+#include "NstWindowDropFiles.hpp"
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
-#pragma once
-#endif
-
-namespace Nes
+namespace Nestopia
 {
-	namespace Core
+	namespace Window
 	{
-		namespace Video
+		DropFiles::DropFiles(const Param& param)
+		: hDrop(reinterpret_cast<HDROP>(param.wParam)), hWnd(param.hWnd) {}
+
+		DropFiles::~DropFiles()
 		{
-			class Renderer::Filter2xSaI: public Renderer::Filter
+			::DragFinish( hDrop );
+		}
+
+		uint DropFiles::Size() const
+		{
+			return ::DragQueryFile( hDrop, 0xFFFFFFFF, NULL, 0 );
+		}
+
+		Path DropFiles::operator []	(uint i) const
+		{
+			Path file;
+
+			if (const uint length = ::DragQueryFile( hDrop, i, NULL, 0 ))
 			{
-				inline dword Blend(dword,dword) const;
-				inline dword Blend(dword,dword,dword,dword) const;
+				file.Resize( length );
+				::DragQueryFile( hDrop, i, file.Ptr(), length + 1 );
+			}
 
-				template<typename T>
-				NST_FORCE_INLINE void Blit2xSaI(const Input&,const Output&) const;
+			return file;
+		}
 
-				template<typename T>
-				NST_FORCE_INLINE void BlitSuper2xSaI(const Input&,const Output&) const;
-
-				template<typename T>
-				NST_FORCE_INLINE void BlitSuperEagle(const Input&,const Output&) const;
-
-				template<typename T>
-				NST_FORCE_INLINE void BlitType(const Input&,const Output&) const;
-
-				const dword lsb0;
-				const dword lsb1;
-				const RenderState::Filter type;
-
-				void Blit(const Input&,const Output&);
-
-			public:
-
-				Filter2xSaI(const RenderState&);
-
-				static bool Check(const RenderState&);
-			};
+		bool DropFiles::IsInside(HWND const hChild) const
+		{
+			Point point;
+			::DragQueryPoint( hDrop, &point );
+			::ClientToScreen( hWnd, &point );
+			return Rect::Window( hChild ).IsInside( point );
 		}
 	}
 }
-
-#endif

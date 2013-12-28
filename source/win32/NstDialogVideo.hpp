@@ -49,32 +49,15 @@ namespace Nestopia
 			{
 				NES_WIDTH      = Nes::Video::Output::WIDTH,
 				NES_HEIGHT     = Nes::Video::Output::HEIGHT,
+				NES_CLIP	   = 8,
 				NTSC_WIDTH	   = Nes::Video::Output::NTSC_WIDTH,
 				NTSC_HEIGHT	   = Nes::Video::Output::NTSC_HEIGHT,
 				NTSC_CLIP	   = 8,
 				DEFAULT_WIDTH  = 640,
 				DEFAULT_HEIGHT = 480,
-				DEFAULT_BPP    = 16
-			};
-
-			enum Filter
-			{
-				FILTER_NONE,
-				FILTER_BILINEAR,
-				FILTER_SCANLINES_BRIGHT,
-				FILTER_SCANLINES_DARK,
-				FILTER_NTSC,
-				FILTER_NTSC_SCANLINES_BRIGHT,
-				FILTER_NTSC_SCANLINES_DARK,
-				FILTER_TV_SOFT,
-				FILTER_TV_HARSH,
-				FILTER_2XSAI,
-				FILTER_SUPER_2XSAI,
-				FILTER_SUPER_EAGLE,
-				FILTER_SCALE2X,
-				FILTER_SCALE3X,
-				FILTER_HQ2X,
-				FILTER_HQ3X
+				DEFAULT_BPP    = 16,
+				SCREEN_MATCHED = 8,
+				SCREEN_STRETCHED = INT_MAX
 			};
 
 			Video(Managers::Emulator&,const Adapters&,const Managers::Paths&,const Configuration&);
@@ -85,12 +68,50 @@ namespace Nestopia
 			void UnloadGamePalette();
 			void SavePalette(Path&) const;
 
+			void GetRenderState(Nes::Video::RenderState&,Rect&,Nes::Machine::Mode,const Window::Generic) const;
+			const Rect GetNesRect(const Nes::Machine::Mode) const;
 			ibool PutTextureInVideoMemory() const;
 			Modes::const_iterator GetDialogMode() const;
 
 		private:
 
 			struct Handlers;
+
+			uint GetFullscreenScaleMethod() const;
+			void UpdateFullscreenScaleMethod(uint);
+
+			enum FilterType
+			{
+				FILTER_NONE,
+				FILTER_SCANLINES,
+				FILTER_NTSC,
+				FILTER_2XSAI,
+				FILTER_SCALEX,
+				FILTER_HQX,
+				NUM_FILTERS
+			};
+
+			struct Filter
+			{
+				Filter();
+
+				enum
+				{
+					SCANLINES_NONE = 0,
+					SCANLINES_BRIGHT,
+					SCANLINES_DARK,
+					TYPE_2XSAI = 0,
+					TYPE_SUPER2XSAI,
+					TYPE_SUPEREAGLE,
+					TYPE_SCALE2X = 2,
+					TYPE_SCALE3X = 3,
+					TYPE_HQ2X = 2,
+					TYPE_HQ3X = 3
+				};
+
+				uchar attributes[3];
+				bool bilinear;
+			};
 
 			struct Settings
 			{
@@ -110,46 +131,50 @@ namespace Nestopia
 				};
 
 				Adapters::const_iterator adapter;
-				Filter filter;
 				TexMem texMem;
 				Modes::const_iterator mode;
+				Filter* filter;
+				Filter filters[NUM_FILTERS];
 				Rects rects;
+				uint fullscreenScale;
 				Path palette;
 				Path lockedPalette;
 				Nes::Video::Palette::Mode lockedMode;
 				ibool autoHz;
 			};
 
-			ibool OnInitDialog     (Param&);
-			ibool OnDestroy        (Param&);
-			ibool OnHScroll        (Param&);
-			ibool OnCmdDevice      (Param&);
-			ibool OnCmdMode        (Param&);
-			ibool OnCmdTexMem      (Param&);
-			ibool OnCmdBitDepth    (Param&);
-			ibool OnCmdRam         (Param&);
-			ibool OnCmdColorsReset (Param&);
-			ibool OnCmdPalType     (Param&);
-			ibool OnCmdPalBrowse   (Param&);
-			ibool OnCmdPalClear    (Param&);
-			ibool OnCmdPalEditor   (Param&);
-			ibool OnCmdAutoHz      (Param&);
-			ibool OnCmdDefault     (Param&);
-			ibool OnCmdOk          (Param&);
+			ibool OnInitDialog        (Param&);
+			ibool OnHScroll           (Param&);
+			ibool OnInitFilterDialog  (Param&);
+			ibool OnCmdDevice         (Param&);
+			ibool OnCmdMode           (Param&);
+			ibool OnCmdFilter         (Param&);
+			ibool OnCmdFilterSettings (Param&);
+			ibool OnCmdTexMem         (Param&);
+			ibool OnCmdBitDepth       (Param&);
+			ibool OnCmdRam            (Param&);
+			ibool OnCmdColorsReset    (Param&);
+			ibool OnCmdPalType        (Param&);
+			ibool OnCmdPalBrowse      (Param&);
+			ibool OnCmdPalClear       (Param&);
+			ibool OnCmdPalEditor      (Param&);
+			ibool OnCmdAutoHz         (Param&);
+			ibool OnCmdDefault        (Param&);
+			ibool OnCmdOk             (Param&);
+			ibool OnCmdFilterDefault  (Param&);
+			ibool OnCmdFilterCancel   (Param&);
+			ibool OnCmdFilterOk       (Param&);
 
-			void UpdateColors() const;
-			void UpdateDevice();
-			void UpdateFilters() const;
-			void UpdateBitDepth(uint);
-			void UpdateResolution() const;
+			void UpdateDevice(Mode);
+			void UpdateResolutions(Mode);
+			void UpdateFilters();
 			void UpdateTexMem() const;
-			void UpdateTexMemEnable() const;
 			void UpdateRects() const;
+			void UpdateColors() const;
 			void UpdatePalette() const;
 			void ImportPalette(Path&,Managers::Paths::Alert);
 			void ValidateRects();
 
-			void ResetDevice();
 			void ResetRects();
 			void ResetColors();
 
@@ -163,16 +188,6 @@ namespace Nestopia
 			Dialog dialog;
 			const Managers::Paths& paths;
 
-			bool UsesNtscFilter() const
-			{
-				return 
-				(
-			     	settings.filter == FILTER_NTSC || 
-					settings.filter == FILTER_NTSC_SCANLINES_BRIGHT ||
-					settings.filter == FILTER_NTSC_SCANLINES_DARK
-				);
-			}
-
 		public:
 
 			void Open()
@@ -180,23 +195,11 @@ namespace Nestopia
 				dialog.Open();
 			}
 
-			const Rect GetNesRect(const Nes::Machine::Mode mode) const
+			const Rect& GetInputRect(const Nes::Machine::Mode mode) const
 			{
-				const Rect& rect = (mode == Nes::Machine::NTSC ? settings.rects.ntsc : settings.rects.pal);
-				return (UsesNtscFilter() ? rect * Point(NTSC_WIDTH,NTSC_HEIGHT) / Point(NES_WIDTH,NES_HEIGHT) : rect);
+				return (mode == Nes::Machine::NTSC ? settings.rects.ntsc : settings.rects.pal);														
 			}
-
-			const Rect GetInputRect(const Nes::Machine::Mode mode) const
-			{
-				const Rect& rect = (mode == Nes::Machine::NTSC ? settings.rects.ntsc : settings.rects.pal);														
-				return (UsesNtscFilter() ? Rect(rect.left < NTSC_CLIP ? NTSC_CLIP : rect.left,rect.top,rect.right > NTSC_WIDTH-NTSC_CLIP ? NTSC_WIDTH-NTSC_CLIP : rect.right,rect.bottom) : rect);
-			}
-
-			Filter GetFilter() const
-			{
-				return settings.filter;
-			}
-
+  
 			Modes::const_iterator GetMode() const
 			{
 				return settings.mode;
@@ -205,6 +208,24 @@ namespace Nestopia
 			Adapters::const_iterator GetAdapter() const
 			{
 				return settings.adapter;
+			}
+
+			Adapter::Filter GetDirect2dFilter() const
+			{
+				if (settings.filter->bilinear && (settings.adapter->filters & Adapter::FILTER_BILINEAR))
+					return Adapter::FILTER_BILINEAR;
+				else
+					return Adapter::FILTER_NONE;
+			}
+
+			uint GetFullscreenScale() const
+			{
+				return settings.fullscreenScale;
+			}
+
+			void SetFullscreenScale(uint scale)
+			{
+				settings.fullscreenScale = scale;
 			}
 
 			ibool UseAutoFrequency() const

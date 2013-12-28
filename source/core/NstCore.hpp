@@ -43,8 +43,8 @@
 
 #ifdef _MSC_VER
 #define NES_IO_CALL __fastcall
-#elif defined(__GNUC__)
-#define NES_IO_CALL __attribute__ ((fastcall))
+//#elif defined(__GNUC__)
+//#define NES_IO_CALL __attribute__ ((fastcall)) // seems to be broken in GCC
 #else
 #define NES_IO_CALL
 #endif

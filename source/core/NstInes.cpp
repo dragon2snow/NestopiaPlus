@@ -197,7 +197,12 @@ namespace Nes
 				}
 
 				if (!handle)
+				{
+					if (info.pRom == 0) // hack
+						info.pRom = SIZE_16K * 256;
+
 					return;
+				}
 			}
 
 			info.crc = crc;

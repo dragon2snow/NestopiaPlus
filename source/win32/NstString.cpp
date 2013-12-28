@@ -23,12 +23,36 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 
 #include "NstString.hpp"
+#include "NstApplicationInstance.hpp"
+#include <Windows.h>
 #include <Shlwapi.h>
 
 namespace Nestopia
 {
 	namespace String
 	{
+		// LOCALE_INVARIANT would be better but is only available in XP or greater
+
+		int Base::Compare(const char* t,int n,const char* u,int m)           
+		{
+			return ::CompareStringA( MAKELCID(MAKELANGID(LANG_ENGLISH,SUBLANG_ENGLISH_US),SORT_DEFAULT), NORM_IGNORECASE, t, n, u, m ) - 2;
+		}
+
+		int Base::Compare(const wchar_t* t,int n,const wchar_t* u,int m)           
+		{
+			return ::CompareStringW( MAKELCID(MAKELANGID(LANG_ENGLISH,SUBLANG_ENGLISH_US),SORT_DEFAULT), NORM_IGNORECASE, t, n, u, m ) - 2;
+		}
+
+		int Base::CompareCase(const char* t,int n,const char* u,int m)           
+		{
+			return ::CompareStringA( MAKELCID(MAKELANGID(LANG_ENGLISH,SUBLANG_ENGLISH_US),SORT_DEFAULT), 0, t, n, u, m ) - 2;
+		}
+
+		int Base::CompareCase(const wchar_t* t,int n,const wchar_t* u,int m)           
+		{
+			return ::CompareStringW( MAKELCID(MAKELANGID(LANG_ENGLISH,SUBLANG_ENGLISH_US),SORT_DEFAULT), 0, t, n, u, m ) - 2;
+		}
+
 		template<>
 		ibool Path<char>::Compact(char* to,const char* from,uint maxLength)
 		{

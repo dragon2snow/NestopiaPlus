@@ -166,10 +166,12 @@ namespace Nes
 #if defined(ULLONG_MAX)
 
 	typedef unsigned long long u64;
+    #define NST_NATIVE_U64
 
 #elif defined(_MSC_VER)
 
     typedef unsigned __int64 u64;
+    #define NST_NATIVE_U64
 
 #elif defined(NST_U64_DEFINED)
 

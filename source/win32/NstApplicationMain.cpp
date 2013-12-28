@@ -69,7 +69,7 @@ namespace Nestopia
 		instance.GetConfiguration().Reset();
 
 		if (instance.GetConfiguration().GetStartupFile().Length())
-			Instance::Launch( instance.GetConfiguration().GetStartupFile() );
+			Instance::Launch( instance.GetConfiguration().GetStartupFile().Ptr() );
 	}
 
 	Main::~Main()

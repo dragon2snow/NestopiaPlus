@@ -64,11 +64,12 @@ namespace Nes
 
 				const RenderState::Filter type;
 
+				void Blit(const Input&,const Output&);
+
 			public:
 
 				FilterScaleX(const RenderState&);
 
-				void Blit(const Input&,const Output&);
 				static bool Check(const RenderState&);
 			};
 		}

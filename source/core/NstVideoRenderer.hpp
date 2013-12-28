@@ -44,23 +44,91 @@ namespace Nes
 				Renderer();
 				~Renderer();
 
+				enum PaletteType
+				{
+					PALETTE_INTERNAL,
+					PALETTE_CUSTOM,
+					PALETTE_EMULATE
+				};
+
 				enum
 				{
 					WIDTH = 256,
 					HEIGHT = 240,
 					PIXELS = ulong(WIDTH) * HEIGHT,
-					PALETTE = 64 * 8
+					PALETTE = 64 * 8,
+					DEFAULT_HUE = 128,
+					DEFAULT_BRIGHTNESS = 128,
+					DEFAULT_SATURATION = 128,
+					DEFAULT_PALETTE = PALETTE_INTERNAL
 				};
-
-				typedef u16 (&Screen)[PIXELS];
 
 				Result SetState(const RenderState&);
 				Result GetState(RenderState&) const;
-				void Blit(Output&) const;
-		
+				void Blit(Output&);
+
+				Result SetPaletteType(PaletteType);
+				Result LoadCustomPalette(const u8 (*)[3]);
+				void   ResetCustomPalette();
+
+				typedef u8 PaletteEntries[PALETTE][3];
+				typedef u16 Screen[PIXELS];
+
+				const PaletteEntries& GetPalette();
+
 			private:
-					
-				void UpdateColors();
+
+				void UpdateFilter();
+				Result SetLevel(u8&,u8);
+
+				class Palette
+				{
+				public:
+
+					Palette();
+					~Palette();
+
+					Result SetType(PaletteType);
+					Result LoadCustom(const u8 (*)[3]);
+					bool   ResetCustom();
+					void   Update(uint,uint,uint);
+
+					inline const PaletteEntries& Get() const;
+
+				private:
+
+					enum
+					{
+						HUE_OFFSET = 255,
+						HUE_ROTATION = 360 / 12
+					};
+
+					struct Custom
+					{
+						u8 palette[64][3];
+					};
+
+					void ComputeTV(uint,uint,uint);
+					void ComputeCustom(uint,uint,uint);
+
+					static void ToPAL(const double (&)[3],u8 (&)[3]);
+					static void ToHSV(double,double,double,double&,double&,double&);
+					static void ToRGB(double,double,double,double&,double&,double&);
+
+					PaletteType type;						
+					Custom* custom;
+					u8 palette[64*8][3];
+
+					static const double emphasis[8][3];
+					static const u8 defaultPalette[64][3];
+
+				public:
+
+					PaletteType GetType() const
+					{
+						return type;
+					}
+				};
 
 				struct Input
 				{
@@ -70,7 +138,6 @@ namespace Nes
 
 				class FilterNone;
 				class FilterScanlines;
-				class FilterTV;
 
                 #ifndef NST_NO_2XSAI
 				class Filter2xSaI;
@@ -104,7 +171,8 @@ namespace Nes
 					virtual ~Filter() {}
 
 					virtual void Blit(const Input&,const Output&) = 0;
-					virtual void Transform(const u8 (*NST_RESTRICT)[3],u32 (&)[PALETTE]) const;
+					virtual void Transform(const u8 (&)[PALETTE][3],u32 (&)[PALETTE]) const;
+					virtual bool CanTransform() const { return true; }
 
 					const uint bpp;
 					const Format format;
@@ -114,59 +182,65 @@ namespace Nes
 				{
 					State();
 
+					enum
+					{
+						UPDATE_PALETTE = 0x1,
+						UPDATE_FILTER = 0x2
+					};
+
 					RenderState::Filter filter;
-					ushort width;
-					ushort height;
-					ushort brightness;
-					uchar saturation;
-					uchar hue;
+					u16 width;
+					u16 height;
+					u8 update;
+					u8 brightness;
+					u8 saturation;
+					u8 hue;
 					RenderState::Bits::Mask mask;
 				};
 
 				Filter* filter;
-				const u8 (*palette)[3];
 				State state;
 				Input input;
+				Palette palette;
 
 			public:
-		
-				void SetPalette(const u8 (*p)[3])
-				{
-					NST_ASSERT( p );		
-					palette = p;
 
-					if (filter)
-						filter->Transform( palette, input.palette );
-				}
-				
-				void SetBrightness(uchar brightness)
+				Result SetBrightness(u8 brightness)
 				{
-					if (state.brightness != brightness)
-					{
-						state.brightness = brightness;
-						UpdateColors();
-					}
+					return SetLevel( state.brightness, brightness );
 				}
 
-				void SetSaturation(uchar saturation)
+				Result SetSaturation(u8 saturation)
 				{
-					if (state.saturation != saturation)
-					{
-						state.saturation = saturation;
-						UpdateColors();
-					}
+					return SetLevel( state.saturation, saturation );
 				}
 
-				void SetHue(uchar hue)
+				Result SetHue(u8 hue)
 				{
-					if (state.hue != hue)
-					{
-						state.hue = hue;
-						UpdateColors();
-					}
+					return SetLevel( state.hue, hue );
 				}
 
-				Screen GetScreen()
+				uint GetBrightness() const
+				{
+					return state.brightness;
+				}
+
+				uint GetSaturation() const
+				{
+					return state.saturation;
+				}
+
+				uint GetHue() const
+				{
+					return state.hue;
+				}
+
+				PaletteType GetPaletteType() const
+				{
+					return palette.GetType();
+				}
+  
+				Screen& GetScreen()
 				{
 					return input.screen;
 				}

@@ -38,7 +38,7 @@ namespace Nes
 			Paddle::Paddle(bool p)
 			: Device(Api::Input::PADDLE), expPort(p)
 			{
-				Reset();
+				Paddle::Reset();
 			}
 		
 			void Paddle::Reset()

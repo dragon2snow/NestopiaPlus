@@ -258,17 +258,6 @@ namespace Nestopia
 		::PostMessage( hWnd, WM_COMMAND, id, 0 );
 	}
 
-	void Generic::CopyData(const void* const data,const uint size,const uint id,HWND const hFrom) const
-	{
-		COPYDATASTRUCT cds;
-
-		cds.dwData = id;
-		cds.cbData = size;
-		cds.lpData = const_cast<void*>(data);
-
-		Send( WM_COPYDATA, hFrom, &cds );
-	}
-
 	void Generic::Register
 	(
 		tstring const className,

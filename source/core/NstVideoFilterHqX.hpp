@@ -38,7 +38,7 @@ namespace Nes
 		{
 			class Renderer::FilterHqX : public Renderer::Filter
 			{
-				void Transform(const u8 (*NST_RESTRICT)[3],u32 (&)[PALETTE]) const;
+				void Transform(const u8 (&)[PALETTE][3],u32 (&)[PALETTE]) const;
 
 				template<u32 R,u32 G,u32 B> static dword Interpolate1(dword,dword);
 				template<u32 R,u32 G,u32 B> static dword Interpolate2(dword,dword,dword);
@@ -83,11 +83,12 @@ namespace Nes
 				const Lut lut;
 				const RenderState::Filter type;
 
+				void Blit(const Input&,const Output&);
+
 			public:
 
 				FilterHqX(const RenderState&);
 
-				void Blit(const Input&,const Output&);
 				static bool Check(const RenderState&);
 			};
 		}

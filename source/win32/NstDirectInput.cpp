@@ -164,10 +164,27 @@ namespace Nestopia
 		return inUse;
 	}
 
+	void DirectInput::Joystick::Calibrator::Reset(DIJOYSTATE& state)
+	{
+		must = FALSE;
+
+		lX = state.lX; 
+		lY = state.lY; 
+		lZ = state.lZ; 
+		lRx = state.lRx;
+		lRy = state.lRy;
+		lRz = state.lRz;
+	}
+
 	void DirectInput::Joystick::Acquire()
 	{
+		if (SUCCEEDED(com.Acquire()) && calibrator.Must())
+		{
+			if (SUCCEEDED(com.Poll()) && SUCCEEDED(com.GetDeviceState( sizeof(state), &state )))
+				calibrator.Reset( state );
+		}
+
 		Clear();
-		com.Acquire();
 	}
 
 	void DirectInput::Joystick::Unacquire()
@@ -471,13 +488,23 @@ namespace Nestopia
 
 			for (uint i=0; i < MAX_KEYS; i += 4)
 			{
-				if (const u32 mask = *reinterpret_cast<const u32*>(data+i) & 0x80808080U)
+				if (const u32 mask = (*reinterpret_cast<u32*>(data+i) & 0x80808080U))
 				{
-					i += (mask & 0x80U) ? 0 : (mask & 0x8000U) ? 1 : (mask & 0x800000U) ? 2 : 3;
-					return Map( key, i ) ? SCAN_GOOD_KEY : SCAN_INVALID_KEY;
+					switch (const uint dik = (i + ((mask & 0x80U) ? 0 : (mask & 0x8000U) ? 1 : (mask & 0x800000U) ? 2 : 3)))
+					{
+						case DIK_CAPITAL:
+						case DIK_NUMLOCK:
+						case DIK_SCROLL:
+						case DIK_KANA:
+						case DIK_KANJI:
+							continue;
+
+						default:
+							return Map( key, dik ) ? SCAN_GOOD_KEY : SCAN_INVALID_KEY;
+					}
 				}
 			}
-		}
+		}																				 
 
 		return SCAN_NO_KEY;
 	}
@@ -535,16 +562,35 @@ namespace Nestopia
 		return *com;
 	}
 
+	DirectInput::Joystick::Calibrator::Calibrator()
+	: 
+	must (TRUE),
+	lX   (0),
+	lY	 (0),
+	lZ	 (0),
+	lRx	 (0),
+	lRy	 (0),
+	lRz	 (0)
+	{}
+
 	DirectInput::Joystick::Joystick(Base& base,const DIDEVICEINSTANCE& instance)
 	: 
-	enabled  (TRUE),
-	inUse    (TRUE), 
-	com      (Create(base,instance.guidInstance)), 
-	caps     (com,instance), 
-	deadZone (UINT_MAX), 
-	axes     (DEFAULT_AXES) 
+	enabled   (TRUE),
+	inUse     (TRUE), 
+	com       (Create(base,instance.guidInstance)), 
+	caps      (com,instance), 
+	deadZone  (UINT_MAX), 
+	axes      (DEFAULT_AXES) 
 	{
 		SetAxisDeadZone( DEFAULT_DEADZONE );
+
+		if (SUCCEEDED(com.Acquire()))
+		{
+			if (SUCCEEDED(com.Poll()))
+				com.GetDeviceState( sizeof(state), &state );
+
+			com.Unacquire();
+		}
 	}
 
 	DirectInput::Joystick::~Joystick()
@@ -653,6 +699,8 @@ namespace Nestopia
 
 			if (SUCCEEDED(hResult=com.Poll()) && SUCCEEDED(hResult=com.GetDeviceState( sizeof(state), &state )))
 			{
+				calibrator.Fix( state );
+
 				for (uint i=0; i < Caps::NUM_BUTTONS; ++i)
 				{
 					if (state.rgbButtons[i] & 0x80)

@@ -56,12 +56,13 @@ namespace Nestopia
 			static ibool IsAnyChildWindowVisible();
 			static HWND  GetMainWindow();
 			static void  Post(uint);
-
-			static void Launch(const GenericString,uint=0);
+			static void  Launch(tstring,uint=0);
 
 			enum
 			{
-				WM_NST_COMMAND_RESUME = WM_APP + 55
+				WM_NST_COMMAND_RESUME = WM_APP + 55,
+				WM_NST_LAUNCH = WM_APP + 56,
+				COPYDATA_OPENFILE_ID = 0xDEAF
 			};
 
 			enum Event

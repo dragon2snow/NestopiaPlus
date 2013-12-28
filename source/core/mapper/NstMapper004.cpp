@@ -47,9 +47,25 @@ namespace Nes
 			return false;
 		}
 	
+		bool Mapper4::IsIrqRevB(dword crc)
+		{
+			if (IsMmc6( crc ))
+			{
+				return true;
+			}
+			else switch (crc)
+			{
+				case 0x877DBA77UL: // My Life My Love - Boku no Yume - Watashi no Negai
+				case 0x24205A7BUL: // -||-
+					return true;
+			}
+	
+			return false;
+		}
+
 		Mapper4::Mapper4(Context& c)
 		: 
-		Mmc3 (c,WRAM_8K,IsMmc6(c.pRomCrc)), 
+		Mmc3 (c,WRAM_8K,IsIrqRevB(c.pRomCrc)), 
 		mmc6 (IsMmc6(c.pRomCrc)) 
 		{}
 	

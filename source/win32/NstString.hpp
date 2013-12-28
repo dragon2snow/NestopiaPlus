@@ -27,11 +27,10 @@
 
 #pragma once
 
-#include "NstMain.hpp"
 #include <cstdlib>
 #include <cstring>
 #include <cwchar>
-#include <windows.h>
+#include "NstMain.hpp"
 
 namespace Nestopia
 {
@@ -45,25 +44,10 @@ namespace Nestopia
 			template<typename T> static void AppendSigned(T&,i32);
 			template<typename T> static void AppendUnsigned(T&,u32);
 
-			static int Compare(const char* t,int n,const char* u,int m)           
-			{
-				return ::CompareStringA( LOCALE_INVARIANT, NORM_IGNORECASE, t, n, u, m ) - 2;
-			}
-
-			static int Compare(const wchar_t* t,int n,const wchar_t* u,int m)           
-			{
-				return ::CompareStringW( LOCALE_INVARIANT, NORM_IGNORECASE, t, n, u, m ) - 2;
-			}
-
-			static int CompareCase(const char* t,int n,const char* u,int m)           
-			{
-				return ::CompareStringA( LOCALE_INVARIANT, 0, t, n, u, m ) - 2;
-			}
-
-			static int CompareCase(const wchar_t* t,int n,const wchar_t* u,int m)           
-			{
-				return ::CompareStringW( LOCALE_INVARIANT, 0, t, n, u, m ) - 2;
-			}
+			static int Compare(const char*,int,const char*,int);
+			static int Compare(const wchar_t*,int,const wchar_t*,int);
+			static int CompareCase(const char*,int,const char*,int);
+			static int CompareCase(const wchar_t*,int,const wchar_t*,int);
 
 		protected:
 
@@ -1986,7 +1970,7 @@ namespace Nestopia
 		{
 			uint id = 0;
 
-			if (length >= 3)
+			if (length)
 			{
 				if (length > 4)
 					length = 4;

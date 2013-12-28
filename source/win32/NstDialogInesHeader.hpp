@@ -37,7 +37,7 @@ namespace Nestopia
 		{
 		public:
 
-			InesHeader(const Nes::Api::Cartridge::Database&,const Managers::Paths&);
+			InesHeader(const Nes::Cartridge::Database&,const Managers::Paths&);
 
 			void Open(const Path&);
 
@@ -90,8 +90,8 @@ namespace Nestopia
 			ibool OnCmdSave     (Param&);
 
 			Dialog dialog;
-			const Nes::Api::Cartridge::Database database;
-			Nes::Api::Cartridge::Database::Entry dbEntry;
+			const Nes::Cartridge::Database database;
+			Nes::Cartridge::Database::Entry dbEntry;
 			Header header;
 			ulong imageSize;
 			const Path* path;

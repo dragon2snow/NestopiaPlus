@@ -38,7 +38,7 @@ namespace Nes
 			ExcitingBoxing::ExcitingBoxing()
 			: Device(Api::Input::EXCITINGBOXING)
 			{
-				Reset();
+				ExcitingBoxing::Reset();
 			}
 	
 			void ExcitingBoxing::Reset()

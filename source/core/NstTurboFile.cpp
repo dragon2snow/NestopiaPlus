@@ -25,7 +25,6 @@
 #include <vector>
 #include "NstState.hpp"
 #include "NstCpu.hpp"
-#include "NstCrc32.hpp"
 #include "NstTurboFile.hpp"
 #include "api/NstApiUser.hpp"
    
@@ -48,12 +47,12 @@ namespace Nes
 				std::memcpy( ram, &data.front(), size );
 
 			std::memset( ram + size, 0, SIZE - size );
-			crc = Crc32::Compute( ram, SIZE );
+			checksum = Md5::Compute( ram, SIZE );
 		}
 
 		TurboFile::~TurboFile()
 		{
-			if (crc != Crc32::Compute( ram, SIZE ))
+			if (checksum != Md5::Compute( ram, SIZE ))
 			{
 				try
 				{

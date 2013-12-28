@@ -31,6 +31,7 @@
 #include "NstResourceString.hpp"
 #include "NstWindowUser.hpp"
 #include "NstWindowParam.hpp"
+#include "NstWindowDropFiles.hpp"
 #include "NstWindowMenu.hpp"
 #include "NstWindowMain.hpp"
 #include "NstApplicationInstance.hpp"
@@ -73,8 +74,9 @@ namespace Nestopia
 	{
 		static const Window::MsgHandler::Entry<Files> messages[] =
 		{
-			{ WM_DROPFILES, &Files::OnMsgDropFiles },
-			{ WM_COPYDATA,  &Files::OnMsgCopyData  }
+			{ WM_DROPFILES,                         &Files::OnMsgDropFiles },
+			{ WM_COPYDATA,                          &Files::OnMsgCopyData  },
+			{ Application::Instance::WM_NST_LAUNCH, &Files::OnMsgLaunch    }
 		};
 
 		static const Window::Menu::CmdHandler::Entry<Files> commands[] =
@@ -369,18 +371,40 @@ namespace Nestopia
 
 	ibool Files::OnMsgDropFiles(Window::Param& param)
 	{
-		if (menu[IDM_FILE_OPEN].IsEnabled())
-			Open( param.DropFiles()[0].Ptr() );
+		Window::DropFiles dropFiles( param );
+
+		if (dropFiles.Size() && menu[IDM_FILE_OPEN].IsEnabled())
+			Open( dropFiles[0].Ptr() );
 
 		return TRUE;
 	}
 
 	ibool Files::OnMsgCopyData(Window::Param& param)
 	{
-		if (param.CopyData().FromWindow() == window.Get() || menu[IDM_FILE_OPEN].IsEnabled())
-			Open( static_cast<tstring>(param.CopyData().GetData()), param.CopyData().GetType() );
+		NST_VERIFY( param.lParam );
+
+		if (menu[IDM_FILE_OPEN].IsEnabled() && param.lParam)
+		{
+			const COPYDATASTRUCT& copyData = *reinterpret_cast<COPYDATASTRUCT*>(param.lParam);
+			NST_VERIFY( copyData.dwData == Application::Instance::COPYDATA_OPENFILE_ID );
+
+			if (copyData.dwData == Application::Instance::COPYDATA_OPENFILE_ID)
+			{
+				NST_VERIFY( copyData.lpData && copyData.cbData >= sizeof(tchar) && static_cast<tstring>(copyData.lpData)[copyData.cbData/sizeof(tchar)-1] == '\0' );
+
+				if (copyData.lpData && copyData.cbData >= sizeof(tchar) && static_cast<tstring>(copyData.lpData)[copyData.cbData/sizeof(tchar)-1] == '\0')
+					Open( static_cast<tstring>(copyData.lpData) );
+			}
+		}
 
 		param.lResult = TRUE;
+		return TRUE;
+	}
+
+	ibool Files::OnMsgLaunch(Window::Param& param)
+	{
+		NST_ASSERT( param.lParam );
+		Open( reinterpret_cast<tstring>(param.lParam), param.wParam );
 		return TRUE;
 	}
 

@@ -67,14 +67,14 @@ namespace Nestopia
 		{ IDC_PALETTE_EDITOR_GENERATED, &PaletteEditor::OnCmdMode   }
 	};
 
-	PaletteEditor::Settings::Settings(Nes::Api::Video emulator)
+	PaletteEditor::Settings::Settings(Nes::Video emulator)
 	{
 		mode = emulator.GetPalette().GetMode();
 		brightness = emulator.GetBrightness();
 		saturation = emulator.GetSaturation();
 		hue = emulator.GetHue();
 
-		emulator.GetPalette().SetMode( Nes::Api::Video::Palette::CUSTOM );
+		emulator.GetPalette().SetMode( Nes::Video::Palette::CUSTOM );
 		emulator.SetBrightness( 128 );
 		emulator.SetSaturation( 128 );
 		emulator.SetHue( 128 );
@@ -82,7 +82,7 @@ namespace Nestopia
 		std::memcpy( palette, emulator.GetPalette().GetColors(), 64 * 3 );
 	}
 
-	void PaletteEditor::Settings::Restore(Nes::Api::Video emulator) const
+	void PaletteEditor::Settings::Restore(Nes::Video emulator) const
 	{
 		emulator.GetPalette().SetMode( mode );
 		emulator.SetBrightness( brightness );
@@ -121,7 +121,7 @@ namespace Nestopia
 		return data[pos][0] != STOP;
 	}
 
-	uint PaletteEditor::History::Undo(Nes::Api::Video emulator)
+	uint PaletteEditor::History::Undo(Nes::Video emulator)
 	{
 		NST_ASSERT( CanUndo() );
 
@@ -137,7 +137,7 @@ namespace Nestopia
 		return index / 3;
 	}
 
-	uint PaletteEditor::History::Redo(Nes::Api::Video emulator)
+	uint PaletteEditor::History::Redo(Nes::Video emulator)
 	{
 		NST_ASSERT( CanRedo() );
 
@@ -153,7 +153,7 @@ namespace Nestopia
 		return index / 3;
 	}
 
-	PaletteEditor::PaletteEditor(Nes::Api::Video& e,const Managers::Paths& p,const Path& d)
+	PaletteEditor::PaletteEditor(Nes::Video& e,const Managers::Paths& p,const Path& d)
 	: 
 	dialog         (IDD_PALETTE_EDITOR,this,Handlers::messages,Handlers::commands), 
 	emulator       (e), 
@@ -402,24 +402,24 @@ namespace Nestopia
 
 	void PaletteEditor::UpdateMode(const ibool forceUpdate) const
 	{		
-		Nes::Api::Video::Palette::Mode mode;
+		Nes::Video::Palette::Mode mode;
 
 		if (dialog.RadioButton(IDC_PALETTE_EDITOR_USER).IsChecked())
 		{
-			mode = Nes::Api::Video::Palette::CUSTOM;
+			mode = Nes::Video::Palette::CUSTOM;
 		}
 		else if (dialog.RadioButton(IDC_PALETTE_EDITOR_INTERNAL).IsChecked())
 		{
-			mode = Nes::Api::Video::Palette::INTERNAL;
+			mode = Nes::Video::Palette::INTERNAL;
 		}
 		else
 		{
-			mode = Nes::Api::Video::Palette::EMULATED;
+			mode = Nes::Video::Palette::EMULATED;
 		}
 
 		if (emulator.GetPalette().SetMode( mode ) != Nes::RESULT_NOP || forceUpdate)
 		{
-			const ibool custom = (mode == Nes::Api::Video::Palette::CUSTOM);
+			const ibool custom = (mode == Nes::Video::Palette::CUSTOM);
 
 			for (uint i=0; i < 3; ++i)
 				dialog.Slider( IDC_PALETTE_EDITOR_R_SLIDER+i ).Enable( custom );

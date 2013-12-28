@@ -71,7 +71,7 @@ namespace Nestopia
 		{ IDC_INESHEADER_SAVE,     &InesHeader::OnCmdSave     }
 	};
   
-	InesHeader::InesHeader(const Nes::Api::Cartridge::Database& db,const Managers::Paths& p)
+	InesHeader::InesHeader(const Nes::Cartridge::Database& db,const Managers::Paths& p)
 	: dialog(IDD_INESHEADER,this,Handlers::messages,Handlers::commands), database(db), paths(p) {}
 
 	uint InesHeader::Import(const Path& loadPath,Collection::Buffer& buffer)
@@ -317,16 +317,16 @@ namespace Nestopia
 			dialog.CheckBox( IDC_INESHEADER_BATTERY ).Check( database.HasBattery(dbEntry) );
 			dialog.CheckBox( IDC_INESHEADER_TRAINER ).Check( database.HasTrainer(dbEntry) );
 
-			const Nes::Api::Cartridge::System system = database.GetSystem(dbEntry);
+			const Nes::Cartridge::System system = database.GetSystem(dbEntry);
 
-			dialog.CheckBox( IDC_INESHEADER_VSSYSTEM ).Check( system == Nes::Api::Cartridge::SYSTEM_VS  );
-			dialog.CheckBox( IDC_INESHEADER_PAL      ).Check( system == Nes::Api::Cartridge::SYSTEM_PAL );
+			dialog.CheckBox( IDC_INESHEADER_VSSYSTEM ).Check( system == Nes::Cartridge::SYSTEM_VS  );
+			dialog.CheckBox( IDC_INESHEADER_PAL      ).Check( system == Nes::Cartridge::SYSTEM_PAL );
 
-			const Nes::Api::Cartridge::Mirroring mirroring = database.GetMirroring(dbEntry);
+			const Nes::Cartridge::Mirroring mirroring = database.GetMirroring(dbEntry);
 
-			dialog.RadioButton( IDC_INESHEADER_HORIZONTAL ).Check( mirroring != Nes::Api::Cartridge::MIRROR_VERTICAL && mirroring != Nes::Api::Cartridge::MIRROR_FOURSCREEN );
-			dialog.RadioButton( IDC_INESHEADER_VERTICAL   ).Check( mirroring == Nes::Api::Cartridge::MIRROR_VERTICAL );
-			dialog.RadioButton( IDC_INESHEADER_FOURSCREEN ).Check( mirroring == Nes::Api::Cartridge::MIRROR_FOURSCREEN );
+			dialog.RadioButton( IDC_INESHEADER_HORIZONTAL ).Check( mirroring != Nes::Cartridge::MIRROR_VERTICAL && mirroring != Nes::Cartridge::MIRROR_FOURSCREEN );
+			dialog.RadioButton( IDC_INESHEADER_VERTICAL   ).Check( mirroring == Nes::Cartridge::MIRROR_VERTICAL );
+			dialog.RadioButton( IDC_INESHEADER_FOURSCREEN ).Check( mirroring == Nes::Cartridge::MIRROR_FOURSCREEN );
 
 			for (uint i=IDC_INESHEADER_RESERVED_0; i <= IDC_INESHEADER_RESERVED_7; ++i)
 				dialog.Edit( i ).Text() << "00";

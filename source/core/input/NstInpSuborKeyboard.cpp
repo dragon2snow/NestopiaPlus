@@ -38,7 +38,7 @@ namespace Nes
 			SuborKeyboard::SuborKeyboard() 
 			: Device(Api::Input::SUBORKEYBOARD)
 			{ 
-				Reset();
+				SuborKeyboard::Reset();
 			}
 	
 			void SuborKeyboard::Reset()

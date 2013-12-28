@@ -38,7 +38,7 @@ namespace Nes
 			Mahjong::Mahjong()
 			: Device(Api::Input::MAHJONG)
 			{
-				Reset();
+				Mahjong::Reset();
 			}
 	
 			void Mahjong::Reset()

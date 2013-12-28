@@ -38,7 +38,7 @@ namespace Nes
 			TopRider::TopRider()
 			: Device(Api::Input::TOPRIDER)
 			{
-				Reset();
+				TopRider::Reset();
 			}
 	
 			void TopRider::Reset()

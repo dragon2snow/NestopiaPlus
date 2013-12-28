@@ -133,7 +133,7 @@ namespace Nestopia
 				ON_EXIT_SUCCESS,
 				ON_EXIT_EXCEPTION,
 				ON_EXIT_MESSAGE,
-				WM_NST_THREAD_EXIT = WM_APP + 51
+				WM_NST_THREAD_EXIT = WM_APP + 54
 			};
 
 			ibool OnExit(Window::Param&);

@@ -38,7 +38,7 @@ namespace Nes
 			OekaKidsTablet::OekaKidsTablet()
 			: Device(Api::Input::OEKAKIDSTABLET)
 			{
-				Reset();
+				OekaKidsTablet::Reset();
 			}
 	
 			void OekaKidsTablet::Reset()

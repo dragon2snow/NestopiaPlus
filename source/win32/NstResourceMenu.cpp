@@ -31,6 +31,8 @@ namespace Nestopia
 	Menu::Menu(const uint id)
 	: handle(::LoadMenu(::GetModuleHandle(NULL),MAKEINTRESOURCE(id))) 
 	{
+//		::MessageBoxA(NULL,"after LoadMenu()",handle ? "valid handle" : "invalid handle",MB_OK);
+
 		if (handle)
 			Instance::Events::Add( this, &Menu::OnAppEvent );
 	}

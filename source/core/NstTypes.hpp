@@ -50,10 +50,6 @@
   #pragma inline_depth( 255 )
   #pragma inline_recursion( on ) 
 
-  #if _MSC_VER <= 1300
-  #define NST_PRAGMA_OPTIMIZE_ALIAS
-  #endif
-
   #ifndef NST_FORCE_INLINE
   #define NST_FORCE_INLINE __forceinline
   #endif

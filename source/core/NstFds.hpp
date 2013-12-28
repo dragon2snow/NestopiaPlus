@@ -32,6 +32,7 @@
 #include "NstImage.hpp"
 #include "NstCpu.hpp"
 #include "NstClock.hpp"
+#include "NstMd5.hpp"
 
 namespace Nes
 {
@@ -307,6 +308,7 @@ namespace Nes
 					const u8* header;
 					dword id;
 					dword crc;
+					Md5::Key checksum;
 				};
 
 				static const Sides Create(StdStream);

@@ -26,6 +26,7 @@
 #include "NstIoFile.hpp"
 #include "NstResourceString.hpp"
 #include "NstWindowParam.hpp"
+#include "NstWindowDropFiles.hpp"
 #include "NstWindowUser.hpp"
 #include "NstDialogCheats.hpp"
 #include "NstManagerPaths.hpp"
@@ -689,13 +690,18 @@ namespace Nestopia
 
 	ibool Cheats::OnDropFiles(Param& param)
 	{
-		if (param.DropFiles().IsInside( staticList.GetHandle() ))
+		Window::DropFiles dropFiles( param );
+
+		if (dropFiles.Size())
 		{
-			staticList.Import( param.DropFiles()[0] );
-		}
-		else if (param.DropFiles().IsInside( tempList.GetHandle() ))
-		{
-			tempList.Import( param.DropFiles()[0] );
+			if (dropFiles.IsInside( staticList.GetHandle() ))
+			{
+				staticList.Import( dropFiles[0] );
+			}
+			else if (dropFiles.IsInside( tempList.GetHandle() ))
+			{
+				tempList.Import( dropFiles[0] );
+			}
 		}
 
 		return TRUE;

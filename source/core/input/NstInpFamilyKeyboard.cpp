@@ -38,7 +38,7 @@ namespace Nes
 			FamilyKeyboard::FamilyKeyboard() 
 			: Device(Api::Input::FAMILYKEYBOARD)
 			{ 
-				Reset();
+				FamilyKeyboard::Reset();
 			}
 	
 			void FamilyKeyboard::Reset()

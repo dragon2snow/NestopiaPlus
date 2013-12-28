@@ -146,10 +146,24 @@ namespace Nes
 			return loader.Get();
 		}
 
+		bool Mapper86::HasSoundChip(const dword crc)
+		{
+			switch (crc)
+			{
+				case 0xDB53A88DUL: // Moero Pro Yakyuu
+				case 0x93B9B15CUL: // -||-
+				case 0xE30B210EUL: // -||-
+				case 0xE374C3E7UL: // -||-
+					return true;
+			}
+
+			return false;
+		}
+
 		Mapper86::Mapper86(Context& c)
 		: 
 		Mapper (c,WRAM_NONE),
-		sound  (c.pRomCrc == 0xDB53A88DUL || c.pRomCrc == 0x93B9B15CUL ? Sound::Create(c.cpu) : NULL)
+		sound  (HasSoundChip(c.pRomCrc) ? Sound::Create(c.cpu) : NULL)
 		{
 		}
 

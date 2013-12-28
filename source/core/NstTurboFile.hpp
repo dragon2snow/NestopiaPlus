@@ -29,6 +29,8 @@
 #pragma once
 #endif
 
+#include "NstMd5.hpp"
+
 namespace Nes
 {
 	namespace Core
@@ -78,7 +80,7 @@ namespace Nes
 			uint out;
 
 			u8 ram[SIZE];
-			dword crc;
+			Md5::Key checksum;
 
 			Io::Port p4016;
 			Io::Port p4017;

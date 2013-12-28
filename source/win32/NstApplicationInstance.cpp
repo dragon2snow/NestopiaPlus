@@ -31,8 +31,6 @@
 #include "NstWindowStruct.hpp"
 #include "NstWindowGeneric.hpp"
 #include <CommCtrl.h>
-
-#define _WIN32_DCOM
 #include <ObjBase.h>
 
 #define NST_MENU_CLASS_NAME   _T("#32768") // name for menus as documented on MSDN
@@ -288,10 +286,10 @@ namespace Nestopia
 		return path;
 	}
 
-	void Instance::Launch(const GenericString file,const uint flags)
+	void Instance::Launch(tstring const file,const uint flags)
 	{
-		NST_ASSERT( global.hooks.window && file.Length() && file.IsNullTerminated() );
-		Window::Generic(global.hooks.window).CopyData( file.Ptr(), (file.Length() + 1) * sizeof(tchar), flags, global.hooks.window );
+		NST_ASSERT( global.hooks.window );
+		Window::Generic(global.hooks.window).Send( WM_NST_LAUNCH, flags, file );
 	}
   
 	void Instance::Events::Add(const Callback& callback)
@@ -413,8 +411,16 @@ namespace Nestopia
 				{
 					window.Activate( FALSE );
 
-					if (const uint size = cfg.GetStartupFile().Length())
-						window.CopyData( cfg.GetStartupFile().Ptr(), size + 1 );
+					if (const uint length = cfg.GetStartupFile().Length())
+					{
+						COPYDATASTRUCT cds;
+
+						cds.dwData = COPYDATA_OPENFILE_ID;
+						cds.cbData = (length + 1) * sizeof(tchar);
+						cds.lpData = const_cast<tchar*>(cfg.GetStartupFile().Ptr());
+
+						window.Send( WM_COPYDATA, 0, &cds );
+					}
 				}
 
 				throw Exception::QUIT_SUCCESS;

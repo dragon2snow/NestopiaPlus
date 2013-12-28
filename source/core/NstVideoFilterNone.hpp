@@ -46,13 +46,14 @@ namespace Nes
 				template<typename T>
 				NST_FORCE_INLINE void BlitType(const Input&,const Output&) const;
 
+				void Blit(const Input&,const Output&);
+
 			public:
 
 				const u8 paletteOffset;
 
 				FilterNone(const RenderState&);
 
-				void Blit(const Input&,const Output&);
 				static bool Check(const RenderState&);
 			};
 		}

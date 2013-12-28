@@ -1187,7 +1187,7 @@ namespace Nestopia
 		{
 			uint match = 0;
 
-			for (Items::const_iterator it(files.begin()); it != files.end(); ++it)
+			for (Items::const_iterator it(files.begin()), end(files.end()); it != end; ++it)
 			{
 				const GenericString extension( it->GetName().Extension() );
 
@@ -1199,6 +1199,7 @@ namespace Nestopia
 							return Gui( files, filter, count ).Open();
 						else
 							match = it - files.begin() + 1;
+						break;
 					}
 				}
 			}

@@ -51,14 +51,17 @@ namespace Nes
 		{
 		public:
 
-			Ppu(Cpu&);
-			~Ppu();
-
 			enum
 			{
 				WIDTH = 256,
-				HEIGHT = 240
+				HEIGHT = 240,
+				SCREEN = ulong(WIDTH) * HEIGHT
 			};
+
+			typedef u16 (&Screen)[SCREEN];
+
+			Ppu(Cpu&,Screen);
+			~Ppu();
 
 			enum Mirroring
 			{
@@ -377,7 +380,7 @@ namespace Nes
 
 			struct Output
 			{
-				Output();
+				Output(Screen);
 
 				void ClearScreen();
 
@@ -387,9 +390,9 @@ namespace Nes
 				u16* pixels;
 				uint next;
 				uint emphasisMask;
-				u16* screen;
+				u16 (*screen)[SCREEN];
 
-				static u16 dummy;
+				static u16 dummy[4];
 			};
 
 			struct Palette
@@ -563,20 +566,20 @@ namespace Nes
 				return io.a12.InUse();
 			}
 
-			void SetScreen(u16* screen)
+			void SetScreen(Screen screen)
 			{
-				output.screen = screen;
+				output.screen = &screen;
 			}
 
-			u16* GetScreen() const
+			Screen GetScreen() const
 			{
-				return output.screen;
+				return *output.screen;
 			}
 
 			uint GetPixel(dword i) const
 			{
-				NST_ASSERT( i < WIDTH * HEIGHT );
-				return output.screen[i];
+				NST_ASSERT( i < SCREEN );
+				return (*output.screen)[i];
 			}
 
 			uint GetPixelCycles() const

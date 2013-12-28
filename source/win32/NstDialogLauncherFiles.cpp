@@ -909,6 +909,14 @@ namespace Nestopia
 			Header header;
 			file >> header;
 
+			NST_VERIFY
+			(
+				header.id == Header::ID &&
+				header.version == Header::VERSION &&
+				header.numEntries && header.numEntries <= Header::MAX_ENTRIES &&
+				header.numStrings && header.stringSize
+			);
+
 			if 
 			(
 				header.id != Header::ID ||
@@ -972,6 +980,14 @@ namespace Nestopia
 
 					default: throw ERR_CORRUPT_DATA;
 				}
+
+				NST_VERIFY
+				(
+					entry.file  < header.stringSize &&
+					entry.path  < header.stringSize &&
+					entry.name  < header.stringSize &&
+					entry.maker < header.stringSize
+				);
 
 				if 
 				(
@@ -1099,7 +1115,7 @@ namespace Nestopia
 				}
 				catch (...)
 				{
-					log << "Launcher: warning, couldn't save database to \"launcher.nsd\"!\r\n";
+					User::Warn( IDS_LAUNCHERFILE_ERR_SAVE );
 				}
 			}
 			else if (Io::File::FileExist( fileName.Ptr() ))

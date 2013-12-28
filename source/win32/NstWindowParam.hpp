@@ -217,55 +217,6 @@ namespace Nestopia
 				}
 			};
 
-			class DropFilesParam
-			{
-				friend struct Param;
-
-				const Param& param;
-
-				explicit DropFilesParam(const Param& p)
-				: param(p) {}
-
-			public:
-
-				uint Size() const;
-				ibool IsInside(HWND) const;
-
-				Path operator [] (uint) const;
-			};
-
-			class CopyDataParam
-			{
-				friend struct Param;
-
-				const Param& param;
-
-				explicit CopyDataParam(const Param& p)
-				: param(p) {}
-
-			public:
-
-				DWORD GetType() const
-				{
-					return reinterpret_cast<const COPYDATASTRUCT*>(param.lParam)->dwData;
-				}
-
-				DWORD GetLength() const
-				{
-					return reinterpret_cast<const COPYDATASTRUCT*>(param.lParam)->cbData;
-				}
-
-				const void* GetData() const
-				{
-					return reinterpret_cast<const COPYDATASTRUCT*>(param.lParam)->lpData;
-				}
-
-				Generic FromWindow() const
-				{
-					return reinterpret_cast<HWND>(param.wParam);
-				}
-			};
-
 			ButtonParam    Button()    const { return ButtonParam    ( wParam ); }
 			ListBoxParam   ListBox()   const { return ListBoxParam   ( wParam ); }
 			ComboBoxParam  ComboBox()  const { return ComboBoxParam  ( wParam ); }
@@ -273,8 +224,6 @@ namespace Nestopia
 			SliderParam    Slider()    const { return SliderParam    ( *this  ); }
 			CursorParam    Cursor()    const { return CursorParam    ( *this  ); }
 			ActivatorParam Activator() const { return ActivatorParam ( *this  ); }
-			DropFilesParam DropFiles() const { return DropFilesParam ( *this  ); }
-			CopyDataParam  CopyData()  const { return CopyDataParam  ( *this  ); }
 			Generic        Window()    const { return Generic        ( hWnd   ); }
 		};
 	}

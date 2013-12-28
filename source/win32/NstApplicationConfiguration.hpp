@@ -203,7 +203,7 @@ namespace Nestopia
 				UTF16_BE = 0xFFFE
 			};
 
-			void Parse(tstring,uint,HeapString* = NULL);
+			void Parse(tstring,uint);
 
 			enum Exception
 			{
@@ -212,7 +212,7 @@ namespace Nestopia
 
 			enum
 			{
-				HINTED_SIZE = 350
+				HINTED_SIZE = 360
 			};
 
 			struct Command : String::Heap<char>

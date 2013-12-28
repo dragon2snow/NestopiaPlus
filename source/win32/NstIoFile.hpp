@@ -169,9 +169,9 @@ namespace Nestopia
 
 		public:
 
-			ibool IsOpen() const
+			bool IsOpen() const
 			{
-				return handle != reinterpret_cast<void*>(-1);
+				return handle != NULL;
 			}
 
 			const Path& GetName() const

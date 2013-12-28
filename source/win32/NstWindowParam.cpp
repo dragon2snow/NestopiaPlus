@@ -24,7 +24,6 @@
 
 #include "NstWindowParam.hpp"
 #include <CommCtrl.h>
-#include <ShellAPI.h>
 
 namespace Nestopia
 {
@@ -40,31 +39,5 @@ namespace Nestopia
 		}
 
 		return ::SendMessage( reinterpret_cast<HWND>(param.lParam), TBM_GETPOS, 0, 0 ); 
-	}
-
-	ibool Param::DropFilesParam::IsInside(HWND const hWnd) const
-	{
-		Point point;
-		::DragQueryPoint( reinterpret_cast<HDROP>(param.wParam), &point );
-		::ClientToScreen( param.hWnd, &point );
-		return Rect::Window( hWnd ).IsInside( point );
-	}
-
-	uint Param::DropFilesParam::Size() const
-	{
-		return ::DragQueryFile( reinterpret_cast<HDROP>(param.wParam), 0xFFFFFFFF, NULL, 0 );
-	}
-
-	Path Param::DropFilesParam::operator [] (const uint i) const
-	{		
-		Path file;
-
-		if (const uint length = ::DragQueryFile( reinterpret_cast<HDROP>(param.wParam), i, NULL, 0 ))
-		{
-			file.Resize( length );
-			::DragQueryFile( reinterpret_cast<HDROP>(param.wParam), i, file.Ptr(), length + 1 );
-		}
-
-		return file;
 	}
 }

@@ -97,10 +97,6 @@ namespace Nes
             #pragma optimize("", on)
             #endif
 
-            #ifdef NST_PRAGMA_OPTIMIZE_ALIAS
-            #pragma optimize("w", on)
-            #endif
-	
 			NES_ACCESSOR(Mmc2,Chr_0000)
 			{
 				const uint data = chr.Peek( address );	
@@ -165,10 +161,6 @@ namespace Nes
 				banks[1][1] = data;
 				UpdateChr();
 			}
-
-            #ifdef NST_PRAGMA_OPTIMIZE_ALIAS
-            #pragma optimize("", on)
-            #endif
 		}
 	}
 }

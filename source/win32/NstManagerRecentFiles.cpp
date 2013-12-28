@@ -100,7 +100,7 @@ namespace Nestopia
 		Name file;
 
 		if ((menu[cmd].Text() >> file) > 3)
-			Application::Instance::Launch( file(3) );
+			Application::Instance::Launch( file(3).Ptr() );
 	}
 
 	void RecentFiles::OnLock(uint)

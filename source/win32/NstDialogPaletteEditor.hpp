@@ -40,7 +40,7 @@ namespace Nestopia
 		{
 		public:
 
-			PaletteEditor(Nes::Api::Video&,const Managers::Paths&,const Path&);
+			PaletteEditor(Nes::Video&,const Managers::Paths&,const Path&);
 			~PaletteEditor();
 
 		private:
@@ -63,11 +63,11 @@ namespace Nestopia
 
 			struct Settings
 			{
-				Settings(Nes::Api::Video);
+				Settings(Nes::Video);
 
-				void Restore(Nes::Api::Video) const;
+				void Restore(Nes::Video) const;
 
-				Nes::Api::Video::Palette::Mode mode;
+				Nes::Video::Palette::Mode mode;
 				uint brightness;
 				uint saturation;
 				uint hue;
@@ -84,8 +84,8 @@ namespace Nestopia
 				void  Add(uint,uint);
 				ibool CanUndo() const;
 				ibool CanRedo() const;
-				uint  Undo(Nes::Api::Video);
-				uint  Redo(Nes::Api::Video);
+				uint  Undo(Nes::Video);
+				uint  Redo(Nes::Video);
 
 			private:
 
@@ -115,7 +115,7 @@ namespace Nestopia
 
 			Dialog dialog;
 			uint colorSelect;
-			Nes::Api::Video emulator;
+			Nes::Video emulator;
 			const Managers::Paths& paths;
 			Path path;
 			ibool sliderDragging;

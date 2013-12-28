@@ -38,7 +38,7 @@ namespace Nes
 			PartyTap::PartyTap()
 			: Device(Api::Input::PARTYTAP)
 			{
-				Reset();
+				PartyTap::Reset();
 			}
 	
 			void PartyTap::Reset()

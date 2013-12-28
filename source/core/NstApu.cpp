@@ -236,6 +236,7 @@ namespace Nes
 	
 		Apu::Apu(Cpu* const c) 
 		:
+		stream     (NULL),
 		cpu        (*c),
 		mode       (MODE_NTSC),
 		extChannel (NULL),
@@ -697,10 +698,6 @@ namespace Nes
         #pragma optimize("", on)
         #endif
 
-        #ifdef NST_PRAGMA_OPTIMIZE_ALIAS
-        #pragma optimize("w", on)
-        #endif
-	
 		Apu::Sample Apu::DcRemover::Remove(Sample sample)
 		{
 			sample -= old;

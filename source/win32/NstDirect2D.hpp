@@ -620,6 +620,11 @@ namespace Nestopia
 			{
 				return device.GetMaxMessageLength();
 			}
+
+			const Point GetFullscreenDisplayMode() const
+			{
+				return Point( device.GetPresentation().BackBufferWidth, device.GetPresentation().BackBufferHeight );
+			}
 		};
 	}
 }

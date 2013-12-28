@@ -127,7 +127,7 @@ namespace Nestopia
 				void  Sort(uint=0);
 				ibool CanRefresh() const;
 				void  Refresh();
-				void  Insert(Param::DropFilesParam);
+				void  Insert(const Window::Param&);
 				void  SetColors(uint,uint,Updater=DONT_REPAINT) const;
 				void  OnGetDisplayInfo(LPARAM);
 

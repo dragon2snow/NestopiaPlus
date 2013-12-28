@@ -54,7 +54,7 @@ namespace Nes
 			patch  (PATCH_NORMAL),
 			ppu    (p)
 			{
-				Reset();
+				LightGun::Reset();
 			}
 		
 			void LightGun::Reset()

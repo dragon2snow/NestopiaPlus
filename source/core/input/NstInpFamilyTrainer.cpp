@@ -38,7 +38,7 @@ namespace Nes
 			FamilyTrainer::FamilyTrainer()
 			: Device(Api::Input::FAMILYTRAINER)
 			{ 
-				Reset(); 
+				FamilyTrainer::Reset(); 
 			}
 	
 			void FamilyTrainer::Reset()

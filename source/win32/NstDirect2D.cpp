@@ -740,7 +740,6 @@ namespace Nestopia
 	{
 		com->SetRenderState( D3DRS_CULLMODE, D3DCULL_NONE );
 		com->SetRenderState( D3DRS_LIGHTING, FALSE        );
-		com->SetRenderState( D3DRS_CLIPPING, FALSE        );
 		
 		com->SetTextureStageState( 0, D3DTSS_COLOROP, D3DTOP_SELECTARG1 );
 
@@ -947,10 +946,6 @@ namespace Nestopia
     #pragma optimize("t", on)
     #endif
 
-    #ifdef NST_PRAGMA_OPTIMIZE_ALIAS
-    #pragma optimize("a", on)
-    #endif
-
 	void Direct2D::VertexBuffer::Update(const Rect& picture,const Rect& clip,const float scale)
 	{
 		NST_ASSERT( picture.Width() > 0 && picture.Height() > 0 && clip.Width() > 0 && clip.Height() > 0 );
@@ -991,7 +986,7 @@ namespace Nestopia
 			const HRESULT hResult = device.CreateVertexBuffer
 			(
 				sizeof(Vertex) * NUM_VERTICES,
-				D3DUSAGE_WRITEONLY|D3DUSAGE_DONOTCLIP,
+				D3DUSAGE_WRITEONLY,
 				FVF,
 				D3DPOOL_DEFAULT,
 				&com,

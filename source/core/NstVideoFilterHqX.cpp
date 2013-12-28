@@ -104,7 +104,7 @@ namespace Nes
 				);
 			}
 
-			void Renderer::FilterHqX::Transform(const u8 (* NST_RESTRICT src)[3],u32 (&dst)[PALETTE]) const
+			void Renderer::FilterHqX::Transform(const u8 (&src)[PALETTE][3],u32 (&dst)[PALETTE]) const
 			{
 				uint rgb[2][3];
 

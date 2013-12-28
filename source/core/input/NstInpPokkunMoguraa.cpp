@@ -38,7 +38,7 @@ namespace Nes
 			PokkunMoguraa::PokkunMoguraa()
 			: Device(Api::Input::POKKUNMOGURAA)
 			{
-				Reset();
+				PokkunMoguraa::Reset();
 			}
 	
 			void PokkunMoguraa::Reset()

@@ -50,11 +50,12 @@ namespace Nes
 				const uint darken;
 				const dword zeroLow;
 
+				void Blit(const Input&,const Output&);
+
 			public:
 
 				FilterScanlines(const RenderState&);
 
-				void Blit(const Input&,const Output&);
 				static bool Check(const RenderState&);
 			};
 		}

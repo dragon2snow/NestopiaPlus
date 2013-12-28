@@ -26,6 +26,7 @@
 #include "NstIoLog.hpp"
 #include "NstApplicationInstance.hpp"
 #include "NstWindowParam.hpp"
+#include "NstWindowDropFiles.hpp"
 #include "NstManagerPaths.hpp"
 #include "NstManagerEmulator.hpp"
 #include "NstDialogNetPlay.hpp"
@@ -304,10 +305,12 @@ namespace Nestopia
 
 	ibool Netplay::OnDropFiles(Param& param)
 	{
-		if (param.DropFiles().IsInside( dialog.ListView( IDC_NETPLAY_GAMELIST ).GetWindow() ))
+		DropFiles dropFiles( param );
+
+		if (dropFiles.IsInside( dialog.ListView( IDC_NETPLAY_GAMELIST ).GetWindow() ))
 		{
-			for (uint i=param.DropFiles().Size(); i--; )
-				Add( param.DropFiles()[i] );
+			for (uint i=0, n=dropFiles.Size(); i < n; ++i)
+				Add( dropFiles[i] );
 		}
 
 		return TRUE;

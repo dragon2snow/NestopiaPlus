@@ -42,6 +42,7 @@ namespace Nes
 		private:
 
 			static bool IsMmc6(dword);
+			static bool IsIrqRevB(dword);
 
 			void SubReset(bool);
 			void SubSave(State::Saver&) const;

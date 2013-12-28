@@ -30,6 +30,7 @@
 #endif
 
 #include "NstVector.hpp"
+#include "NstMd5.hpp"
 
 namespace Nes
 {
@@ -90,7 +91,7 @@ namespace Nes
 			uint out;
 			const Io::Port* p4016;
 			ibool loaded;
-			dword crc;
+			Md5::Key checksum;
 
 			static const Cycle clocks[2][2];
 

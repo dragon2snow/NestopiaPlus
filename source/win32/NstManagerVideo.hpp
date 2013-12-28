@@ -69,9 +69,10 @@ namespace Nestopia
 			uint GetMaxMessageLength() const;
 			void LoadPalette(const Path&);
 			void SavePalette(Path&) const;
-			const Rect GetInputRect() const;
+			const Rect& GetInputRect() const;
+			ibool MustClearFrameScreen() const;
 			
-			static Point GetDisplayMode();
+			Point GetDisplayMode() const;
 
 		private:
 
@@ -79,8 +80,8 @@ namespace Nestopia
 
 			enum
 			{
-				SCREEN_STRETCHED = INT_MAX,
 				SCREEN_MATCHED = 8,
+				SCALE_TOLERANCE = 16,
 				DEFAULT_BPP = 16,
 				MIN_DIALOG_WIDTH = 640,
 				MIN_DIALOG_HEIGHT = 480,
@@ -158,7 +159,6 @@ namespace Nestopia
 			Nes::Video::Output nesOutput;
 			Nsf nsf;
 			ibool sizingMoving;
-			uint fullscreenScale;
 			const Paths& paths;
 			const uint childWindowSwitchCount;
 
@@ -197,11 +197,6 @@ namespace Nestopia
 				return rect;
 			}
   
-			ibool MustClearFrameScreen() const
-			{
-				return IsFullscreen() && fullscreenScale != SCREEN_STRETCHED;
-			}
-
 			void ClearScreen()
 			{
 				if (!direct2d.ClearScreen())

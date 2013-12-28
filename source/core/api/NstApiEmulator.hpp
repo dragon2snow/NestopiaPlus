@@ -45,7 +45,6 @@ namespace Nes
 		{
 			class Output;
 			class Renderer;
-			class Palette;
 		}
 
 		namespace Sound
@@ -129,7 +128,7 @@ namespace Nes
 			NES_DECL_PEEK( 4016 )
 			NES_DECL_POKE( 4017 )				    
 			NES_DECL_PEEK( 4017 )
-	
+		
 			uint state;
 			ulong frame;
 			Core::Input::Adapter* extPort;
@@ -137,7 +136,6 @@ namespace Nes
 			Core::Image* image;
 			Core::Movie* movie;
 			Core::Video::Renderer& renderer;
-			Core::Video::Palette& palette;
 			Core::Cpu cpu;
 			Core::Ppu ppu;
 			Core::Rewinder* rewinder;

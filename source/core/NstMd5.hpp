@@ -4,6 +4,9 @@
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
+// Based on: RFC 1321 compliant MD5 implementation
+// Copyright (C) 2001-2003 Christophe Devine
+//
 // This file is part of Nestopia.
 // 
 // Nestopia is free software; you can redistribute it and/or modify
@@ -22,71 +25,53 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstInpDevice.hpp"
-#include "NstInpDoremikkoKeyboard.hpp"
+#ifndef NST_MD5_H
+#define NST_MD5_H
+
+#ifdef NST_PRAGMA_ONCE_SUPPORT
+#pragma once
+#endif
+
+#include <cstring>
 
 namespace Nes
 {
 	namespace Core
 	{
-		namespace Input
+		namespace Md5
 		{
-            #ifdef NST_PRAGMA_OPTIMIZE
-            #pragma optimize("s", on)
-            #endif
-	
-			DoremikkoKeyboard::DoremikkoKeyboard()
-			: Device(Api::Input::DOREMIKKOKEYBOARD)
+			struct Key
 			{
-				DoremikkoKeyboard::Reset();
-			}
-	
-			void DoremikkoKeyboard::Reset()
-			{
-				reg = 0;
-				mode = 0;
-				part = 0;
-			}
-
-			void DoremikkoKeyboard::SaveState(State::Saver& state,const uchar id) const
-			{
-				state.Begin('D','K',id,'\0').End();
-			}
-
-            #ifdef NST_PRAGMA_OPTIMIZE
-            #pragma optimize("", on)
-            #endif
-
-			void DoremikkoKeyboard::Poke(const uint data)
-			{
-				if ((data & 0x2) > (reg & 0x2))
+				union
 				{
-					part = 0;
-					mode = 0;
+					u8 digest[16];
+					u32 block[4];
+				};
+
+				Key()
+				{
+					std::memset( digest, 0, sizeof(digest) );
 				}
 
-				if ((data & 0x1) > (reg & 0x1))
+				bool operator == (const Key& k) const
 				{
-					++part;
-					mode = 0;
+					return std::memcmp( digest, k.digest, sizeof(digest) ) == 0;
 				}
 
-				reg = data;
-			}
-	
-			uint DoremikkoKeyboard::Peek(uint port)
-			{
-				if (port)
+				bool operator != (const Key& k) const
 				{
-					port = mode;
-					mode ^= 1;
-
-					if (input && Controllers::DoremikkoKeyboard::callback( input->doremikkoKeyboard, part, port ))
-						return input->doremikkoKeyboard.keys & 0x1E;
+					return !(*this == k);
 				}
 
-				return 0;
-			}
+				bool IsNull() const
+				{
+					return (block[0] | block[1] | block[2] | block[3]) == 0;
+				}
+			};
+
+			Key Compute(const void*,ulong);
 		}
 	}
 }
+
+#endif

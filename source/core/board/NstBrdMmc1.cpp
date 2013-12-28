@@ -146,10 +146,6 @@ namespace Nes
             #pragma optimize("", on)
             #endif
 
-            #ifdef NST_PRAGMA_OPTIMIZE_ALIAS
-            #pragma optimize("w", on)
-            #endif
-				
 			void Mmc1::UpdatePrg()
 			{
 				const uint base = (prg.Source().Size() < SIZE_512K) ? 0 : (regs[PRG1] & PRG1_256K_BANK);
@@ -330,10 +326,6 @@ namespace Nes
 				if (serial.time < -2)
 					serial.time = -2;
 			}
-
-            #ifdef NST_PRAGMA_OPTIMIZE_ALIAS
-            #pragma optimize("", on)
-            #endif
 		}
 	}
 }

@@ -26,7 +26,6 @@
 #include "NstIoLog.hpp"
 #include "NstApplicationException.hpp"
 #include "NstApplicationInstance.hpp"
-#include <Shlwapi.h>
 
 #ifdef __INTEL_COMPILER
 #pragma warning( disable : 111 279 )
@@ -79,8 +78,11 @@ namespace Nestopia
 				{
 					Io::File( Instance::GetPath(_T("nestopia.cfg")), Io::File::COLLECT ).ReadText( buffer );
 				}
-				catch (Io::File::Exception)
+				catch (Io::File::Exception id)
 				{
+					if (id != Io::File::ERR_NOT_FOUND)
+						Application::Exception( IDS_CFG_ERR_LOAD, Application::Exception::WARNING ).Issue();
+
 					buffer.Clear();
 				}
 
@@ -100,26 +102,62 @@ namespace Nestopia
 
 			if (tstring ptr = ::GetCommandLine())
 			{
-				try
+				for (uint quote=0; (*ptr > ' ') || (*ptr && quote); ++ptr)
 				{
 					if (*ptr == '\"')
-					{
-						if (NULL == (ptr=::StrChr( ptr+1, _T('\"') )))
-							throw ERR_PARSING;
-
-						ptr = ptr + 1;
-					}
-					else if (tstring const tmp = ::StrStrI( ptr, _T(".exe ") ))
-					{
-						ptr = tmp + 5;
-					}
-
-					const GenericString cmdLine( ptr ); 
-					Parse( cmdLine.Ptr(), cmdLine.Length(), &startupFile );
+						quote ^= 1;
 				}
-				catch (Exception)
+
+				while (*ptr && *ptr <= ' ')
+					++ptr;
+
+				if (*ptr)
 				{
-					Application::Exception( IDS_CMDLINE_ERR, Application::Exception::WARNING ).Issue();
+					if (*ptr != '-')
+					{
+						tstring const offset = ptr;
+
+						for (uint quote=0; (*ptr > ' ') || (*ptr && quote); ++ptr)
+						{
+							if (*ptr == '\"')
+								quote ^= 1;
+						}
+
+						startupFile.Assign( offset, ptr - offset );					
+						startupFile.Remove( '\"' );
+						startupFile.Trim();
+
+						if (startupFile.Length())
+						{
+							HeapString buffer;
+							buffer.Reserve( 127 );
+
+							// Win98/ME/2k fix
+							if (DWORD count = ::GetLongPathName( startupFile.Ptr(), buffer.Ptr(), 127+1 ))
+							{
+								if (count > 127+1)
+								{
+									buffer.Reserve( count-1 );
+									count = ::GetLongPathName( startupFile.Ptr(), buffer.Ptr(), count );
+								}
+
+								if (count)
+									startupFile.Assign( buffer.Ptr(), count );
+							}
+						}
+					}
+
+					if (const uint length = _tcslen(ptr))
+					{
+						try
+						{
+							Parse( ptr, length );
+						}
+						catch (Exception)
+						{
+							Application::Exception( IDS_CMDLINE_ERR, Application::Exception::WARNING ).Issue();
+						}
+					}				
 				}
 			}
 		}
@@ -161,7 +199,7 @@ namespace Nestopia
 			}
 			catch (Io::File::Exception)
 			{
-				// I/O failure
+				Application::Exception( IDS_CFG_ERR_SAVE, Application::Exception::WARNING ).Issue();
 			}
 		}
 
@@ -186,7 +224,7 @@ namespace Nestopia
     #pragma optimize("t", on)
     #endif
 
-	void Configuration::Parse(tstring string,uint length,HeapString* file)
+	void Configuration::Parse(tstring string,uint length)
 	{
 		class CommandLine
 		{
@@ -293,19 +331,8 @@ namespace Nestopia
 
 		public:
 
-			CommandLine(tstring string,uint length,HeapString* file)
-			: stream(string,length), it(stream.Ptr()) 
-			{
-				if (file)
-				{
-					Skip(' ');
-
-					tstring range[2];
-
-					if (ParseQuoted( range ) && range[0] != range[1])
-						file->Assign( range[0], range[1] - range[0] );
-				}
-			}
+			CommandLine(tstring string,uint length)
+			: stream(string,length), it(stream.Ptr()) {}
 
 			void operator >> (Items& items)
 			{
@@ -360,7 +387,7 @@ namespace Nestopia
 			}
 		};
 
-		for (CommandLine stream(string,length,file); stream; stream >> items);
+		for (CommandLine stream(string,length); stream; stream >> items);
 	}
 
 	Configuration::Value Configuration::operator [] (const String::Generic<char> name)

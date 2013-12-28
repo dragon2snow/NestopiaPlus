@@ -189,7 +189,7 @@ namespace Nestopia
 
 	ibool Launcher::OnDropFiles(Param& param)
 	{
-		list.Insert( param.DropFiles() );
+		list.Insert( param );
 		return TRUE;
 	}
 
@@ -294,12 +294,7 @@ namespace Nestopia
 	void Launcher::OnCmdFileRun(uint) 
 	{
 		if (const List::Files::Entry* const entry = list.GetSelection())
-		{
-			Application::Instance::Launch
-			(
-				Path( entry->GetPath(list.GetStrings()), entry->GetFile(list.GetStrings()) )
-			);
-		}
+			Application::Instance::Launch( Path(entry->GetPath(list.GetStrings()),entry->GetFile(list.GetStrings())).Ptr() );
 	}
 
 	void Launcher::OnCmdFileRefresh(uint) 

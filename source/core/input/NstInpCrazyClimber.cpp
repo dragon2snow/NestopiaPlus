@@ -38,7 +38,7 @@ namespace Nes
 			CrazyClimber::CrazyClimber()
 			: Device(Api::Input::CRAZYCLIMBER)
 			{
-				Reset();
+				CrazyClimber::Reset();
 			}
 
 			void CrazyClimber::Reset()

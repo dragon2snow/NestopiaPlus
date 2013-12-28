@@ -29,7 +29,6 @@
 #include "NstApiVideo.hpp"
 #include "NstApiMovie.hpp"
 #include "NstApiUser.hpp"
-#include "../NstVideoPalette.hpp"
 #include "../NstVideoRenderer.hpp"
 #include "../NstImage.hpp"
 #include "../input/NstInpDevice.hpp"
@@ -42,6 +41,7 @@
 #include "../NstRewinder.hpp"
 #include "../NstImageDatabase.hpp"
   
+
 namespace Nes
 {
 	namespace Api
@@ -59,15 +59,12 @@ namespace Nes
 		image         (NULL),
 		movie         (NULL),
 		renderer      (*new Core::Video::Renderer),
-		palette       (*new Core::Video::Palette),
-		ppu           (cpu),
+		ppu           (cpu,renderer.GetScreen()),
 		rewinder      (NULL),
 		rewinderSound (true),
 		cheats        (NULL),
 		imageDatabase (NULL)
 		{
-			ppu.SetScreen( renderer.GetScreen() );
-			renderer.SetPalette( palette.GetColors() );
 		}
 	
 		Emulator::~Emulator()
@@ -78,7 +75,6 @@ namespace Nes
 			delete imageDatabase;
 			delete cheats;
 			delete &renderer;
-			delete &palette;
 			delete expPort;
 	
 			for (uint ports=extPort->NumPorts(), i=0; i < ports; ++i)
@@ -456,16 +452,7 @@ namespace Nes
 						ppu.EndFrame();
 
 						if (video)
-						{
-							if (palette.NeedUpdate())
-							{
-								Api::Video::Palette::Colors const colors = palette.GetColors();
-								renderer.SetPalette( colors );
-								Api::Video::Palette::updateCallback( colors );
-							}
-
 							renderer.Blit( *video );
-						}
 
 						cpu.EndFrame();
 

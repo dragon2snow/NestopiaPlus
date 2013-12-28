@@ -200,10 +200,6 @@ namespace Nes
             #pragma optimize("", on)
             #endif
 
-            #ifdef NST_PRAGMA_OPTIMIZE_ALIAS
-            #pragma optimize("w", on)
-            #endif
-		
 			NES_POKE(Mmc3,8000)
 			{
 				const uint diff = regs.ctrl0 ^ data;
@@ -290,10 +286,6 @@ namespace Nes
 			{
 				irq.VSync();
 			}
-		
-            #ifdef NST_PRAGMA_OPTIMIZE_ALIAS
-            #pragma optimize("", on)
-            #endif
 		}
 	}
 }

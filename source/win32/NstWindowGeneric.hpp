@@ -66,7 +66,6 @@ namespace Nestopia
 			void  Invalidate(ibool=TRUE) const;
 			void  Redraw() const;
 			ibool Activate(ibool=TRUE) const;
-			void  CopyData(const void*,uint,uint=0,HWND=NULL) const;
 			void  SetStyle(long) const;
 			void  SetStyle(long,long) const;
 			void  ModifyStyle(long,ibool) const;

@@ -1,4 +1,52 @@
 ----------------------------------------------------------------
+1.26
+----------------------------------------------------------------
+
+Windows:
+
+ Additions:
+ 
+  - Automatic joystick axes recalibration.
+  - More video filter options.
+
+ Changes:
+
+  - ::GetLongPathName() is now used in conjunction with ::GetCommandLine().
+  - Better logic for when and when not to preserve the NES picture scale factor in fullscreen.
+  - Minor aestetic fixes.
+
+ Fixes:
+
+  - Crash on start in 98/ME.
+  - Crash on exit when two or more video devices are present.
+  - Invalid fullscreen view on dual displays.
+  - Parameter change in ::CompareString() for 98/ME/2k compatibility.
+  - Correct LIB linking order for MSLU.
+  - Bug in WM_DROPFILES and WM_COPYDATA handlers.
+  - Certain input keys are now ignored. Fixes some japanese keyboards.
+  - Can now parse unquoted filenames from the command-line.
+
+Emulator:
+
+ Additions:
+
+  - MD5 instead of CRC when checking for modified data.
+  - New image file CRCs for auto detection of controllers.
+  - Database entries.
+
+ Changes:
+
+  - NTSC filter optimizations.
+  - Minor palette modifications.
+  - __attribute__ ((fastcall)) removed. Seems to be broken in GCC.
+
+ Fixes:
+
+  - Some NTSC filter bugs.
+  - Patch for "My Life My Love - Boku no Yume - Watashi no Negai" to use another revision of the MMC3 chip.
+  - NST_ASSERT() macro bug on platforms other than Win32.
+
+----------------------------------------------------------------
 1.25
 ----------------------------------------------------------------
 

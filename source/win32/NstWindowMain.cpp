@@ -136,7 +136,7 @@ namespace Nestopia
 				cfg[ "view window bottom" ]
 			);
 
-			const Point mode( Managers::Video::GetDisplayMode() );
+			const Point mode( video.GetDisplayMode() );
 
 			const bool winpos = 
 			(
@@ -521,7 +521,7 @@ namespace Nestopia
 			menu[ IDM_VIEW_SWITCH_SCREEN ].Text() << Resource::String(IDS_MENU_DESKTOP);
 
 			window.SetStyle( FULLSCREEN_STYLE, FULLSCREEN_EXSTYLE );
-			window.Set( Managers::Video::GetDisplayMode(), SWP_FRAMECHANGED );
+			window.Set( video.GetDisplayMode(), SWP_FRAMECHANGED );
 
 			video.SwitchScreen();
 

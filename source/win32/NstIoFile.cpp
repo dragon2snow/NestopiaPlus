@@ -33,15 +33,14 @@ namespace Nestopia
 	(
 		File::BEGIN == FILE_BEGIN &&
 		File::CURRENT == FILE_CURRENT &&
-		File::END == FILE_END &&
-		LONG_PTR(INVALID_HANDLE_VALUE) == -1
+		File::END == FILE_END
 	);
 
 	File::File()
-	: handle(INVALID_HANDLE_VALUE) {}
+	: handle(NULL) {}
 
 	File::File(const GenericString fileName,const uint mode)
-	: handle(INVALID_HANDLE_VALUE)
+	: handle(NULL)
 	{
 		Open( fileName, mode );
 	}
@@ -53,23 +52,25 @@ namespace Nestopia
 
 	void File::Open(const GenericString n,const uint mode)
 	{
-		NST_ASSERT( (mode & (WRITE|READ)) && ((mode & WRITE) || !(mode & EMPTY)) );
+		NST_ASSERT( (mode & (WRITE|READ)) && ((mode & WRITE) || !(mode & EMPTY)) && (mode & (RANDOM_ACCESS|SEQUENTIAL_ACCESS)) != (RANDOM_ACCESS|SEQUENTIAL_ACCESS) );
 
 		Close();
 
 		if (n.Empty())
 			throw ERR_NOT_FOUND;
 
-		name = n;
-
 		handle = ::CreateFile
 		( 
-       		name.Ptr(), 
+       		(name=n).Ptr(), 
 			(
-				((mode & READ)  ? GENERIC_READ  : 0) | 
-				((mode & WRITE) ? GENERIC_WRITE : 0)
+			    (mode & (READ|WRITE)) == (READ|WRITE) ? (GENERIC_READ|GENERIC_WRITE) :
+				(mode & (READ|WRITE)) == (READ)       ? (GENERIC_READ) :
+				(mode & (READ|WRITE)) == (WRITE)      ? (GENERIC_WRITE) :
+				                                        0
 			),
-			FILE_SHARE_READ,
+			(
+     			(mode & (READ|WRITE)) == (WRITE) ? 0 : FILE_SHARE_READ
+			),
 			NULL,
 			(
 				(mode & (EMPTY|EXISTING)) == (EMPTY)          ? CREATE_ALWAYS :
@@ -78,16 +79,36 @@ namespace Nestopia
 				(mode & (WRITE))							  ? OPEN_ALWAYS :
 		                                                     	OPEN_EXISTING
 			),
-			FILE_ATTRIBUTE_NORMAL |
 			(
-				(mode & RANDOM_ACCESS) ? FILE_FLAG_RANDOM_ACCESS :
-	    	 	(mode & SEQUENTIAL_ACCESS) ? FILE_FLAG_SEQUENTIAL_SCAN : 0
+				((mode & WRITE) ? FILE_ATTRIBUTE_NORMAL : 0) |
+				(
+		     		(mode & (READ|RANDOM_ACCESS))     == (READ|RANDOM_ACCESS)     ? FILE_FLAG_RANDOM_ACCESS :
+		     		(mode & (READ|SEQUENTIAL_ACCESS)) == (READ|SEQUENTIAL_ACCESS) ? FILE_FLAG_SEQUENTIAL_SCAN : 0
+     			)
 			),
 			NULL
 		);
 
-		if (handle == INVALID_HANDLE_VALUE)
+		if (handle && handle != INVALID_HANDLE_VALUE)
 		{
+			if (!(mode & EMPTY))
+			{
+				try
+				{
+					Size();
+				}
+				catch (...)
+				{
+					Close();
+					throw;
+				}
+			}
+		}
+		else 
+		{
+			handle = NULL;
+			name.Clear();
+
 			switch (::GetLastError())
 			{
 				case ERROR_FILE_NOT_FOUND: 
@@ -96,26 +117,16 @@ namespace Nestopia
 				default:                   throw ERR_OPEN;
 			}
 		}
-
-		try
-		{
-			Size();
-		}
-		catch (Exception id)
-		{
-			Close();
-			throw id;
-		}
 	}
 
 	void File::Close()
 	{
 		name.Clear();
 
-		if (IsOpen())
+		if (void* const tmp = handle)
 		{
-			::CloseHandle( handle );
-			handle = INVALID_HANDLE_VALUE;
+			handle = NULL;
+			::CloseHandle( tmp );
 		}
 	}
 
@@ -125,7 +136,7 @@ namespace Nestopia
 
 		if (size)
 		{
-			DWORD written;
+			DWORD written = 0;
 
 			if (!::WriteFile( handle, data, size, &written, NULL ) || written != size)
 				throw ERR_WRITE;
@@ -138,7 +149,7 @@ namespace Nestopia
 
 		if (size)
 		{
-			DWORD read;
+			DWORD read = 0;
 
 			if (!::ReadFile( handle, data, size, &read, NULL ) || read != size)
 				throw ERR_READ;
@@ -151,7 +162,7 @@ namespace Nestopia
 
 		if (size)
 		{
-			DWORD read;
+			DWORD read = 0;
 
 			if (!::ReadFile( handle, data, size, &read, NULL ))
 				throw ERR_READ;

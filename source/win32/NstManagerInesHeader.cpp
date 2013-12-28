@@ -40,7 +40,7 @@ namespace Nestopia
 	emulator ( e ), 
 	menu     ( m ), 
 	paths    ( p ), 
-	dialog   ( new Window::InesHeader( Nes::Api::Cartridge(e).GetDatabase(), p ) )
+	dialog   ( new Window::InesHeader( Nes::Cartridge(e).GetDatabase(), p ) )
 	{
 		static const Window::Menu::CmdHandler::Entry<InesHeader> commands[] =
 		{

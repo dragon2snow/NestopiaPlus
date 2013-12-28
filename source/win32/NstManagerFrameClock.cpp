@@ -91,8 +91,8 @@ namespace Nestopia
 
 	void FrameClock::UpdateRewinderState(ibool force) const
 	{
-		if (NES_SUCCEEDED(Nes::Api::Rewinder(emulator).Enable( force && dialog->UseRewinder() )))
-			Nes::Api::Rewinder(emulator).EnableSound( !dialog->NoRewindSound() );
+		if (NES_SUCCEEDED(Nes::Rewinder(emulator).Enable( force && dialog->UseRewinder() )))
+			Nes::Rewinder(emulator).EnableSound( !dialog->NoRewindSound() );
 	}
 
 	void FrameClock::ResetTimer()
@@ -104,7 +104,7 @@ namespace Nestopia
 
 	void FrameClock::OnEmuEvent(Emulator::Event event)
 	{
-		typedef Nes::Api::Rewinder Rewinder;
+		typedef Nes::Rewinder Rewinder;
 
 		switch (event)
 		{
@@ -179,10 +179,6 @@ namespace Nestopia
 
     #ifdef NST_PRAGMA_OPTIMIZE
     #pragma optimize("t", on)
-    #endif
-
-    #ifdef NST_PRAGMA_OPTIMIZE_ALIAS
-    #pragma optimize("a", on)
     #endif
 
 	void FrameClock::Synchronize(const ibool wait,const uint skip)

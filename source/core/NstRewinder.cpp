@@ -191,12 +191,14 @@ namespace Nes
 			friend class ReverseVideo;
 
 			Ppu& ppu;
-			u16* const screen;
+			Ppu::Screen screen;
 
 		public:
 
-			Mutex(const ReverseVideo& r)
-			: ppu(r.ppu), screen(r.ppu.GetScreen()) {}
+			Mutex(const ReverseVideo& r,Ppu::Screen s)
+			: ppu(r.ppu), screen(s) 
+			{
+			}
 
 			~Mutex()
 			{
@@ -493,7 +495,7 @@ namespace Nes
 				if (NES_SUCCEEDED(movie.Play( stream, Api::Movie::DISABLE_CALLBACK, false, NULL )))
 				{
 					video.Reset();
-					const ReverseVideo::Mutex videoMutex( video );
+					const ReverseVideo::Mutex videoMutex( video, video.GetScreen() );
 
 					sound.Reset();
 					const ReverseSound::Mutex soundMutex;
@@ -535,7 +537,7 @@ namespace Nes
 			{
 				if (movie.IsPlaying( NULL ))
 				{
-					const ReverseVideo::Mutex videoMutex( video );
+					const ReverseVideo::Mutex videoMutex( video, video.GetScreen() );
 					video.Flush( videoMutex );						
 					video.Store();
 

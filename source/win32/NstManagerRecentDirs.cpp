@@ -95,7 +95,7 @@ namespace Nestopia
 		Name dir;
 
 		if ((menu[cmd].Text() >> dir) > 3)
-			Application::Instance::Launch( dir(3) );
+			Application::Instance::Launch( dir(3).Ptr() );
 	}
 
 	void RecentDirs::OnLock(uint)

@@ -44,6 +44,8 @@ namespace Nes
 
 			class Sound;
 
+			static bool HasSoundChip(dword);
+
 			void SubReset(bool);
 			void SubSave(State::Saver&) const;
 			void SubLoad(State::Loader&);

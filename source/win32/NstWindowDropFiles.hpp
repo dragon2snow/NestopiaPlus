@@ -22,49 +22,35 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#ifndef NST_VIDEO_FILTER_2XSAI_H
-#define NST_VIDEO_FILTER_2XSAI_H
+#ifndef NST_WINDOW_DROPFILES_H
+#define NST_WINDOW_DROPFILES_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
 #pragma once
-#endif
 
-namespace Nes
+#include "NstString.hpp"
+#include <ShellAPI.h>
+
+namespace Nestopia
 {
-	namespace Core
+	namespace Window
 	{
-		namespace Video
+		struct Param;
+
+		class DropFiles
 		{
-			class Renderer::Filter2xSaI: public Renderer::Filter
-			{
-				inline dword Blend(dword,dword) const;
-				inline dword Blend(dword,dword,dword,dword) const;
+			HDROP const hDrop;
+			HWND const hWnd;
 
-				template<typename T>
-				NST_FORCE_INLINE void Blit2xSaI(const Input&,const Output&) const;
+		public:
 
-				template<typename T>
-				NST_FORCE_INLINE void BlitSuper2xSaI(const Input&,const Output&) const;
+			DropFiles(const Param&);
+			~DropFiles();
 
-				template<typename T>
-				NST_FORCE_INLINE void BlitSuperEagle(const Input&,const Output&) const;
+			uint Size() const;
+			Path operator [] (uint) const;
 
-				template<typename T>
-				NST_FORCE_INLINE void BlitType(const Input&,const Output&) const;
-
-				const dword lsb0;
-				const dword lsb1;
-				const RenderState::Filter type;
-
-				void Blit(const Input&,const Output&);
-
-			public:
-
-				Filter2xSaI(const RenderState&);
-
-				static bool Check(const RenderState&);
-			};
-		}
+			bool IsInside(HWND) const;
+		};
 	}
 }
 

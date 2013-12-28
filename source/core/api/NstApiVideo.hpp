@@ -42,7 +42,7 @@ namespace Nes
 	{
 		namespace Video
 		{
-			class Palette;
+			class Renderer;
 
 			class Output
 			{
@@ -55,7 +55,7 @@ namespace Nes
 				{
 					WIDTH = 256,
 					HEIGHT = 240,
-					NTSC_WIDTH = 640,
+					NTSC_WIDTH = 680,
 					NTSC_HEIGHT = 480
 				};
 
@@ -125,10 +125,10 @@ namespace Nes
 
 				struct UpdateCaller;
 
-				Core::Video::Palette& palette;
+				Core::Video::Renderer& renderer;
 
-				Palette(Core::Video::Palette& p)
-				: palette(p) {}
+				Palette(Core::Video::Renderer& r)
+				: renderer(r) {}
 
 			public:
 
@@ -180,8 +180,7 @@ namespace Nes
 
 				enum Filter
 				{
-					FILTER_NONE,
-					FILTER_SCANLINES_BRIGHT,
+					FILTER_SCANLINES_BRIGHT = 1,
 					FILTER_SCANLINES_DARK,
                 #ifndef NST_NO_NTSCVIDEO
 					FILTER_NTSC,
@@ -201,12 +200,11 @@ namespace Nes
 					FILTER_HQ2X,
 					FILTER_HQ3X,
                 #endif
-					FILTER_TV
+					FILTER_NONE = 0
 				};
 
 				enum Scale
 				{
-					SCALE_NONE = 1,
 					SCALE_SCANLINES = 2,
                 #ifndef NST_NO_2XSAI
 					SCALE_2XSAI = 2,
@@ -221,7 +219,7 @@ namespace Nes
 					SCALE_HQ2X = 2,
 					SCALE_HQ3X = 3,
                 #endif
-					SCALE_TV = 2
+					SCALE_NONE = 1
 				};
 
 				Filter filter;

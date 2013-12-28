@@ -24,6 +24,7 @@
 
 #include "NstApplicationInstance.hpp"
 #include "NstWindowUser.hpp"
+#include "NstWindowDropFiles.hpp"
 #include "NstDialogFind.hpp"
 #include "NstManagerPaths.hpp"
 #include "NstDialogLauncher.hpp"
@@ -142,8 +143,10 @@ namespace Nestopia
 		strings.Flush();
 	}
 
-	void Launcher::List::Insert(const Param::DropFilesParam dropFiles)
+	void Launcher::List::Insert(const Param& param)
 	{
+		DropFiles dropFiles( param );
+
 		if (dropFiles.IsInside( ctrl.GetHandle() ))
 		{
 			ibool anyInserted = FALSE;

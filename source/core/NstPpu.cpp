@@ -27,7 +27,7 @@
 #include "NstState.hpp"
 #include "NstCpu.hpp"
 #include "NstPpu.hpp"
-
+						 
 namespace Nes
 {
 	namespace Core
@@ -245,7 +245,7 @@ namespace Nes
 		};
 
 		dword Ppu::logged;
-		u16 Ppu::Output::dummy;
+		u16 Ppu::Output::dummy[4];
 
         #ifdef NST_PRAGMA_OPTIMIZE
         #pragma optimize("s", on)
@@ -266,17 +266,17 @@ namespace Nes
 
         #endif
 
-		Ppu::Output::Output()
+		Ppu::Output::Output(Screen s)
 		: 
 		emphasisMask (Regs::CTRL1_BG_COLOR),
-		screen       (NULL) 
+		screen       (&s) 
 		{
 		}
 	
 		void Ppu::Output::ClearScreen()
 		{
 			NST_ASSERT( screen );
-			std::memset( screen, 0, sizeof(u16) * WIDTH * HEIGHT );
+			std::memset( screen, 0, sizeof(u16) * SCREEN );
 		}
 	
         #ifdef _MSC_VER
@@ -284,8 +284,8 @@ namespace Nes
         #pragma warning( disable : 4355 )
         #endif
 
-		Ppu::Ppu(Cpu& c)
-		: cpu(c), bgHook(this,&Ppu::Hook_Null), spHook(this,&Ppu::Hook_Null)
+		Ppu::Ppu(Cpu& c,Screen screen)
+		: cpu(c), output(screen), bgHook(this,&Ppu::Hook_Null), spHook(this,&Ppu::Hook_Null)
 		{
 			oam.limit = oam.buffer + Oam::STD_LINE_SPRITES;
 		}
@@ -581,10 +581,6 @@ namespace Nes
         #pragma optimize("", on)
         #endif
 
-        #ifdef NST_PRAGMA_OPTIMIZE_ALIAS
-        #pragma optimize("w", on)
-        #endif
-	
 		void Ppu::BeginFrame(const bool render)
 		{
 			NST_ASSERT
@@ -597,12 +593,12 @@ namespace Nes
 			if (render)
 			{
 				NST_ASSERT( output.screen );
-				output.pixels = output.screen;
-				output.next = 1;
+				output.pixels = *output.screen;
+				output.next = sizeof(u16);
 			}
 			else
 			{
-				output.pixels = &Output::dummy;
+				output.pixels = Output::dummy;
 				output.next = 0;
 			}
 
@@ -1315,12 +1311,11 @@ namespace Nes
 			{					
 				pixel = scroll.address & 0x1F;
 			}
-	
-			pixel = palette.ram[pixel];
-			u16* const NST_RESTRICT screen = output.pixels;
-			output.pixels += output.next;
+
 			++output.index;
-			*screen = output.emphasis + (output.coloring & pixel);
+			u16* const NST_RESTRICT screen = output.pixels;
+			output.pixels = reinterpret_cast<u16*>(reinterpret_cast<u8*>(output.pixels) + output.next);
+			*screen = output.emphasis + (output.coloring & palette.ram[pixel]);
 		}
 	
 		void Ppu::HActive0()
@@ -1772,9 +1767,5 @@ namespace Nes
 				phase = &Ppu::HDummy;
 			}
 		}
-	
-        #ifdef NST_PRAGMA_OPTIMIZE_ALIAS
-        #pragma optimize("", on)
-        #endif
 	}
 }

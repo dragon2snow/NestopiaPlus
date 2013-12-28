@@ -51,7 +51,7 @@ namespace Nes
 					( Api::Input::PAD4 - Api::Input::PAD1 ) == 3
 				);
 
-				Reset();
+				Pad::Reset();
 			}
 		
 			void Pad::Reset()

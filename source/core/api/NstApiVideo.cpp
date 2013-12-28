@@ -25,7 +25,6 @@
 #include "../NstCore.hpp"
 #include "NstApiEmulator.hpp"
 #include "NstApiVideo.hpp"
-#include "../NstVideoPalette.hpp"
 #include "../NstVideoRenderer.hpp"
 
 namespace Nes
@@ -43,9 +42,9 @@ namespace Nes
 	{
 		NST_COMPILE_ASSERT
 		(
-			Video::Palette::INTERNAL == Core::Video::Palette::INTERNAL &&
-			Video::Palette::CUSTOM   == Core::Video::Palette::CUSTOM   &&
-			Video::Palette::EMULATED == Core::Video::Palette::EMULATE  
+			Video::Palette::INTERNAL == Core::Video::Renderer::PALETTE_INTERNAL &&
+			Video::Palette::CUSTOM   == Core::Video::Renderer::PALETTE_CUSTOM   &&
+			Video::Palette::EMULATED == Core::Video::Renderer::PALETTE_EMULATE  
 		);
 
 		Video::Palette::UpdateCaller Video::Palette::updateCallback;
@@ -62,50 +61,47 @@ namespace Nes
 	
 		uint Video::GetDefaultBrightness() const
 		{
-			return Core::Video::Palette::DEFAULT_BRIGHTNESS;
+			return Core::Video::Renderer::DEFAULT_BRIGHTNESS;
 		}
 	
 		uint Video::GetDefaultSaturation() const
 		{
-			return Core::Video::Palette::DEFAULT_SATURATION;
+			return Core::Video::Renderer::DEFAULT_SATURATION;
 		}
 	
 		uint Video::GetDefaultHue() const
 		{
-			return Core::Video::Palette::DEFAULT_HUE;
+			return Core::Video::Renderer::DEFAULT_HUE;
 		}
 	
 		uint Video::GetBrightness() const
 		{
-			return emulator.palette.GetBrightness();
+			return emulator.renderer.GetBrightness();
 		}
 	
 		uint Video::GetSaturation() const
 		{
-			return emulator.palette.GetSaturation();
+			return emulator.renderer.GetSaturation();
 		}
 	
 		uint Video::GetHue() const
 		{
-			return emulator.palette.GetHue();
+			return emulator.renderer.GetHue();
 		}
 	
 		Result Video::SetBrightness(uint value)
 		{
-			emulator.renderer.SetBrightness( value );
-			return emulator.palette.SetBrightness( value );
+			return emulator.renderer.SetBrightness( value );
 		}
 	
 		Result Video::SetSaturation(uint value)
 		{
-			emulator.renderer.SetSaturation( value );
-			return emulator.palette.SetSaturation( value );
+			return emulator.renderer.SetSaturation( value );
 		}
 	
 		Result Video::SetHue(uint value)
 		{
-			emulator.renderer.SetHue( value );
-			return emulator.palette.SetHue( value );
+			return emulator.renderer.SetHue( value );
 		}
 		
 		Result Video::SetRenderState(const RenderState& state)
@@ -121,13 +117,6 @@ namespace Nes
 
 		Result Video::Blit(Output& output)
 		{
-			if (emulator.palette.NeedUpdate())
-			{
-				Palette::Colors const colors = emulator.palette.GetColors();
-				emulator.renderer.SetPalette( colors );
-				Palette::updateCallback( colors );
-			}
-	
 			if (emulator.renderer.IsReady())
 			{
 				emulator.renderer.Blit( output );
@@ -139,40 +128,40 @@ namespace Nes
 
 		Video::Palette Video::GetPalette() const
 		{
-			return emulator.palette;
+			return emulator.renderer;
 		}
 
 		Result Video::Palette::SetMode(Mode mode)
 		{
 			if (mode == INTERNAL || mode == CUSTOM || mode == EMULATED)
-				return palette.SetType( (Core::Video::Palette::Type) mode );
+				return renderer.SetPaletteType( (Core::Video::Renderer::PaletteType) mode );
 
 			return RESULT_ERR_INVALID_PARAM;
 		}
 
 		Video::Palette::Mode Video::Palette::GetMode() const
 		{
-			return (Mode) palette.GetType();
+			return (Mode) renderer.GetPaletteType();
 		}
 
 		Video::Palette::Mode Video::Palette::GetDefaultMode() const
 		{
-			return (Mode) Core::Video::Palette::DEFAULT_PALETTE_TYPE;
+			return (Mode) Core::Video::Renderer::DEFAULT_PALETTE;
 		}
 
 		Result Video::Palette::SetCustom(Colors colors)
 		{
-			return palette.SetCustomColors( colors );
+			return renderer.LoadCustomPalette( colors );
 		}
 
 		void Video::Palette::ResetCustom()
 		{
-			return palette.ResetCustomColors();
+			return renderer.ResetCustomPalette();
 		}
 
 		Video::Palette::Colors Video::Palette::GetColors() const
 		{
-			return palette.GetColors();
+			return renderer.GetPalette();
 		}
 	}
 }

@@ -52,8 +52,7 @@ namespace Nes
 		vs           (NULL),
 		turboFile    (NULL),
 		dataRecorder (NULL),
-		wRamAuto     (false),
-		batteryCrc   (0)
+		wRamAuto     (false)
 		{
 			try
 			{
@@ -120,7 +119,7 @@ namespace Nes
 					wRamAuto = settings.wRamAuto;
 			
 					if (info.battery)
-						batteryCrc = Crc32::Compute( wRam.Mem(), wRam.Size() );
+						batteryCheckSum = Md5::Compute( wRam.Mem(), wRam.Size() );
 				}
 			}
 			catch (...)
@@ -226,6 +225,7 @@ namespace Nes
 				case 0xD4F018F5UL: // Super Mario Bros / Duck Hunt / Track Meet
 				case 0x163E86C0UL: // To The Earth (U)
 				case 0x389960DBUL: // Wild Gunman (JUE)
+				case 0x0D3CF705UL: // -||- (J)
 				case 0x4A60A644UL: // -||-
 				case 0x1388AEB9UL: // Operation Wolf (U)
 				case 0x42d893E4UL: // -||- (J)
@@ -314,10 +314,12 @@ namespace Nes
 					info.controllers[4] = Api::Input::FAMILYTRAINER;
 					break;
 
+				case 0x868FCD89UL: // Family Basic (Ver 1.0)
 				case 0xF9DEF527UL: // Family Basic (Ver 2.0)
 				case 0xDE34526EUL: // Family Basic (Ver 2.1a)
 				case 0xF050B611UL: // Family Basic (Ver 3)
 				case 0x3AAEED3FUL: // Family Basic (Ver 3) (Alt)
+				case 0xDA03D908UL: // Playbox BASIC (Ver 1.0)
 				case 0x2D6B7E5AUL: // Playbox BASIC
 
 					info.controllers[0] = Api::Input::PAD1;
@@ -685,7 +687,7 @@ namespace Nes
 	
 		void Cartridge::LoadBattery()
 		{
-			NST_ASSERT( info.battery && batteryCrc == 0 );
+			NST_ASSERT( info.battery && batteryCheckSum.IsNull() );
 	
 			std::vector<u8> data;
 			Api::User::fileIoCallback( Api::User::FILE_LOAD_BATTERY, data );
@@ -722,19 +724,14 @@ namespace Nes
 		{
 			if (info.battery && wRam.Size())
 			{
-				const dword crc = Crc32::Compute( wRam.Mem(), wRam.Size() );
-	
-				if (batteryCrc != crc)
+				const Md5::Key key( Md5::Compute( wRam.Mem(), wRam.Size() ) );
+
+				if (batteryCheckSum != key)
 				{
 					try
 					{
-						std::vector<u8> vector
-						( 
-							wRam.Mem(), 
-							wRam.Mem( wRam.Size() )
-						);
-	
-						batteryCrc = crc;
+						std::vector<u8> vector( wRam.Mem(), wRam.Mem( wRam.Size() ) );	
+						batteryCheckSum = key;
 						Api::User::fileIoCallback( Api::User::FILE_SAVE_BATTERY, vector );
 					}
 					catch (...)

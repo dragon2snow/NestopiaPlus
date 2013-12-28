@@ -38,7 +38,7 @@ namespace Nes
 			PowerPad::PowerPad()
 			: Device(Api::Input::POWERPAD)
 			{ 
-				Reset(); 
+				PowerPad::Reset(); 
 			}
 	
 			void PowerPad::Reset()

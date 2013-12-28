@@ -102,7 +102,7 @@
 
   #include <cassert>
   #define NST_DEBUG_MSG(msg_) NST_NOP
-  #define NST_ASSERT_MSG(expr_,msg_) assert( expr_ && msg_ )
+  #define NST_ASSERT_MSG(expr_,msg_) assert( expr_ )
   #define NST_VERIFY_MSG(expr_,msg_) NST_NOP
 
  #endif

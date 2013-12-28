@@ -250,13 +250,14 @@ namespace Nes
 			);
 
 			sides.crc = Crc32::Compute( sides.data, sides.count * SIDE_SIZE );
+			sides.checksum = Md5::Compute( sides.data, sides.count * SIDE_SIZE );
 
 			return sides;
 		}
 
 		void Fds::Disks::Sides::Save() const
 		{
-			if (!count || crc == Crc32::Compute( data, count * SIDE_SIZE ))
+			if (!count || checksum == Md5::Compute( data, count * SIDE_SIZE ))
 				return;
 	
 			try

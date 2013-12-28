@@ -648,7 +648,7 @@ namespace Nestopia
 
 				switch (extensionId)
 				{
-					// raw or text file, need to investigate the file extension
+					// raw or text file, must check the file extension
 		
 					case NST_FOURCC('n','s','p','\0'):  if (types( File::SCRIPT  )) type = File::SCRIPT;  break;
 					case NST_FOURCC('s','a','v','\0'):  if (types( File::BATTERY )) type = File::BATTERY; break;

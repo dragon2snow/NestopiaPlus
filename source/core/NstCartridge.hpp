@@ -32,6 +32,7 @@
 #include "NstMemory.hpp"
 #include "NstImage.hpp"
 #include "api/NstApiCartridge.hpp"
+#include "NstMd5.hpp"
 
 namespace Nes
 {
@@ -89,7 +90,7 @@ namespace Nes
 			LinearMemory wRam;
 			Info info;
 			ibool wRamAuto;
-			mutable dword batteryCrc;
+			mutable Md5::Key batteryCheckSum;
 
 		public:
 

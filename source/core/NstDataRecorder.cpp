@@ -26,7 +26,6 @@
 #include "NstState.hpp"
 #include "NstCpu.hpp"
 #include "NstHook.hpp"
-#include "NstCrc32.hpp"
 #include "NstDataRecorder.hpp"
 #include "api/NstApiUser.hpp"
    
@@ -47,7 +46,7 @@ namespace Nes
 		};
 
 		DataRecorder::DataRecorder(Cpu& c)
-		: cpu(c), cycles(NES_CYCLE_MAX), status(STOPPED), loaded(false), crc(0) {}
+		: cpu(c), cycles(NES_CYCLE_MAX), status(STOPPED), loaded(false) {}
 
 		void DataRecorder::Load()
 		{
@@ -65,7 +64,7 @@ namespace Nes
 
 				stream.Resize( size );
 				std::memcpy( stream.Begin(), &data.front(), size );
-				crc = Crc32::Compute( stream.Begin(), size );
+				checksum = Md5::Compute( stream.Begin(), size );
 			}
 		}
 
@@ -73,7 +72,7 @@ namespace Nes
 		{
 			Stop();
 
-			if (stream.Size() && crc != Crc32::Compute( stream.Begin(), stream.Size() ))
+			if (stream.Size() && checksum != Md5::Compute( stream.Begin(), stream.Size() ))
 			{
 				try
 				{

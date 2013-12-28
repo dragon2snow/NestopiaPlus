@@ -63,6 +63,7 @@ namespace Nestopia
 
 			ibool OnMsgDropFiles (Window::Param&);
 			ibool OnMsgCopyData  (Window::Param&);
+			ibool OnMsgLaunch    (Window::Param&);
 
 			void OnCmdOpen       (uint);
 			void OnCmdClose      (uint);

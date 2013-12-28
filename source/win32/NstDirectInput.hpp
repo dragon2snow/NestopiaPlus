@@ -289,11 +289,48 @@ namespace Nestopia
 					const HeapString name;
 				};
 
+				class Calibrator
+				{
+				public:
+
+					Calibrator();
+
+					void Reset(DIJOYSTATE&);
+
+				private:
+
+					ibool must;
+					long lX; 
+					long lY; 
+					long lZ; 
+					long lRx;
+					long lRy;
+					long lRz;
+
+				public:
+
+					ibool Must() const
+					{
+						return must;
+					}
+
+					void Fix(DIJOYSTATE& state) const
+					{
+						state.lX -= lX;
+						state.lY -= lY;
+						state.lZ -= lZ;
+						state.lRx -= lRx;
+						state.lRy -= lRy;
+						state.lRz -= lRz;
+					}
+				};
+
 				ibool enabled;
 				ibool inUse;
 				IDirectInputDevice8& com;
 				const Caps caps;
 				Object::Pod<DIJOYSTATE> state;
+				Calibrator calibrator;
 				uint deadZone;
 				uint axes;
 
@@ -356,10 +393,15 @@ namespace Nestopia
 
 				void Poll()
 				{
-					HRESULT hResult;
+					if (inUse)
+					{
+						HRESULT hResult;
 
-					if (inUse && (FAILED(hResult=com.Poll()) || FAILED(hResult=com.GetDeviceState( sizeof(state), &state ))))
-						OnError( hResult );
+						if (SUCCEEDED(hResult=com.Poll()) && SUCCEEDED(hResult=com.GetDeviceState( sizeof(state), &state )))
+							calibrator.Fix( state );
+						else
+							OnError( hResult );
+					}
 				}
 			};
 

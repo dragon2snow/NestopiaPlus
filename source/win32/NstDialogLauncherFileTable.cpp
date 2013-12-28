@@ -69,6 +69,8 @@ namespace Nestopia
 
 	ibool Launcher::List::Files::Strings::Import(const Io::File& file,const uint size,const ibool utf16)
 	{
+		NST_VERIFY( size >= 2 );
+
 		if (size >= 2)
 		{
 			if (utf16)

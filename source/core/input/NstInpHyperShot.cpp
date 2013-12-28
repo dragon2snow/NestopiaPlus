@@ -38,7 +38,7 @@ namespace Nes
 			HyperShot::HyperShot()
 			: Device(Api::Input::HYPERSHOT)
 			{
-				Reset();
+				HyperShot::Reset();
 			}
 	
 			void HyperShot::Reset()

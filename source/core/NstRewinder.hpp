@@ -85,6 +85,13 @@ namespace Nes
 				uint frame;
 				Ppu& ppu;
 				u16 buffer[FRAMES][Ppu::WIDTH * Ppu::HEIGHT];
+
+			public:
+
+				Ppu::Screen GetScreen() const
+				{
+					return ppu.GetScreen();
+				}
 			};
 
 			class ReverseSound
