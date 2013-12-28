@@ -108,6 +108,8 @@ namespace Nestopia
 			}
 		};
 
+		text.Clear();
+
 		if (cstring name = Info::GoodName( emulator.GetName() ))
 			text.Import( name );
 		else
