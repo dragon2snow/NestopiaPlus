@@ -41,6 +41,7 @@ namespace Nestopia
 	const MsgHandler::Entry<Launcher> Launcher::Handlers::messages[] =
 	{
 		{ WM_INITDIALOG,  &Launcher::OnInitDialog  },
+		{ WM_DESTROY,     &Launcher::OnDestroy     },
 		{ WM_SIZE,        &Launcher::OnSize        },
 		{ WM_DROPFILES,   &Launcher::OnDropFiles   }
 	};
@@ -129,6 +130,14 @@ namespace Nestopia
 		menu[ IDM_LAUNCHER_VIEW_SHOWDATABASECORRECTED ].Check( list.DatabaseCorrectionEnabled() );
 		menu[ IDM_LAUNCHER_FILE_REFRESH ].Enable( list.CanRefresh() );
 
+		return TRUE;
+	}
+
+	ibool Launcher::OnDestroy(Param&)
+	{
+		tree.Close();
+		list.Close();
+		
 		return TRUE;
 	}
 

@@ -27,11 +27,11 @@
 
 #pragma once
 
-#include "NstCollectionSet.hpp"
+#include <set>
 #include "NstWindowRect.hpp"
 #include "NstDirectX.hpp"
 
-#ifdef _DEBUG
+#ifndef NDEBUG
 #define D3D_DEBUG_INFO
 #endif
 
@@ -51,24 +51,29 @@ namespace Nestopia
 			explicit Direct2D(HWND);
 
 			typedef Window::Rect Rect;
-			typedef Window::Point Point;
+			typedef Window::Point Point;		
 
 			struct Mode
 			{
+				typedef std::set<uchar> Rates; 
+
+				explicit Mode(uint=0,uint=0,uint=0);
+
 				enum
 				{
-					DESIRED_HZ = 60
+					MIN_WIDTH = 256,
+					MIN_HEIGHT = 240,
+					DEFAULT_RATE = 60,
+					MAX_RATE = 120
 				};
 
-				ibool operator == (const Mode&) const;
-				ibool operator <  (const Mode&) const;
+				bool operator == (const Mode&) const;
+				bool operator <  (const Mode&) const;
 
-				uint width, height, bpp, rate;
+				uint width, height, bpp;
+				Rates rates;
 
-				explicit Mode(uint w=0,uint h=0,uint b=0,uint r=0)
-				: width(w), height(h), bpp(b), rate(r) {}
-
-				ibool operator != (const Mode& mode) const
+				bool operator != (const Mode& mode) const
 				{
 					return !(*this == mode);
 				}
@@ -81,7 +86,7 @@ namespace Nestopia
 
 			struct Adapter : BaseAdapter
 			{
-				typedef Collection::Set<Mode> Modes;
+				typedef std::set<Mode> Modes;
 				
 				enum DeviceType
 				{
@@ -95,16 +100,13 @@ namespace Nestopia
 					FILTER_BILINEAR
 				};
 
-				enum
-				{
-					MIN_WIDTH = 256,
-					MIN_HEIGHT = 240
-				};
-
 				uint ordinal;
 				DeviceType deviceType;
 				ulong maxScreenSize;
-				ibool videoMemScreen;
+				bool videoMemScreen;
+				bool intervalTwo;
+				bool intervalThree;
+				bool intervalFour;
 				uint filters;
 				Modes modes;
 			};
@@ -119,13 +121,14 @@ namespace Nestopia
 				RENDER_NFO     = 0x10
 			};
 
-			void  SelectAdapter(uint);
-			ibool SwitchFullscreen(const Mode&);
+			void  SelectAdapter(const Adapters::const_iterator);
+			ibool SwitchFullscreen(const Adapter::Modes::const_iterator);
 			ibool SwitchWindowed();
 			void  UpdateWindowView();
 			void  UpdateWindowView(const Point&,const Rect&,Adapter::Filter,ibool);
 			void  UpdateFullscreenView(const Rect&,const Point&,const Rect&,Adapter::Filter,ibool);
-			void  UpdateFrameRate(uint,ibool);
+			void  UpdateFrameRate(uint,ibool,ibool);
+			void  EnableDialogBoxMode(ibool);
 			ibool Reset();
 
 			enum ScreenShotResult
@@ -138,11 +141,6 @@ namespace Nestopia
 			ScreenShotResult SaveScreenShot(cstring,uint) const;
 
 		private:
-
-			enum
-			{
-				DEFAULT_BACK_BUFFER_COUNT = 2
-			};
 
 			void InvalidateObjects();
 			void ValidateObjects();
@@ -190,13 +188,16 @@ namespace Nestopia
 				void Create(IDirect3D9&,const Adapter&);
 
 				ibool CanSwitchFullscreen(const Mode&) const;
-				ibool CanResetFrameRate(uint,uint);
+				ibool CanToggleDialogBoxMode(bool) const;
+				ibool ResetFrameRate(uint,bool,bool,const Base&);
+				uint  GetMaxMessageLength() const;
 
 				void SwitchFullscreen(const Mode&);
 				void SwitchWindowed();
 
 				HRESULT RenderScreen(uint) const;
 				HRESULT ResetWindowClient(const Point&,HRESULT);
+				HRESULT ToggleDialogBoxMode(ibool);
 				HRESULT Repair(HRESULT);
 				HRESULT Reset();
 
@@ -204,8 +205,10 @@ namespace Nestopia
 				
 			private:
 
-				void Prepare() const;
-				void LogDisplaySwitch() const;
+				void  Prepare() const;
+				void  LogDisplaySwitch() const;
+				uint  GetDesiredPresentationRate(const Mode&) const;
+				DWORD GetDesiredPresentationInterval(uint) const;
 				DWORD GetDesiredPresentationInterval() const;
 				ibool GetDisplayMode(D3DDISPLAYMODE&) const;
 
@@ -213,13 +216,17 @@ namespace Nestopia
 				{
 					Timing();
 
-					ibool vsync;
-					uint frameRate;
+					bool autoHz;
+					bool vsync;
+					bool tripleBuffering;
+					u8   frameRate;
 				};
 
 				class Fonts
 				{
 				public:
+
+					Fonts();
 
 					void Create(const Device&);
 					void Destroy(ibool);
@@ -237,6 +244,7 @@ namespace Nestopia
 						void Create(const Device&);
 						void Destroy();
 						void Update(const String::Generic&);
+						uint GetWidth() const;
 						void OnReset() const;
 						void OnLost() const;
 
@@ -260,6 +268,7 @@ namespace Nestopia
 					Font fps;
 					Font msg;
 					Font nfo;
+					uint width;
 
 				public:
 					
@@ -292,12 +301,20 @@ namespace Nestopia
 					{
 						nfo.Clear();
 					}
+
+					uint GetWidth() const
+					{
+						return width;
+					}
 				};
 
 				uint ordinal;
 				ComInterface<IDirect3DDevice9> com;
 				Timing timing;
 				Fonts fonts;
+				u16 intervalTwo;
+				u16 intervalThree;
+				uint intervalFour;
 				D3DPRESENT_PARAMETERS presentation;
 
 			public:
@@ -350,6 +367,20 @@ namespace Nestopia
 				void ClearNfo()
 				{
 					fonts.ClearNfo();
+				}
+
+				void EnableAutoFrequency(ibool enable)
+				{
+					timing.autoHz = enable;
+				}
+
+				ibool IsThrottleRequired() const
+				{
+					return 
+					(
+				    	(presentation.PresentationInterval == D3DPRESENT_INTERVAL_IMMEDIATE) ||
+						(presentation.PresentationInterval == D3DPRESENT_INTERVAL_ONE && presentation.FullScreen_RefreshRateInHz != timing.frameRate)
+					);
 				}
 			};
 
@@ -474,9 +505,9 @@ namespace Nestopia
 				return device.GetPresentation().Windowed;
 			}
 
-			ibool IsVSyncEnabled() const
+			ibool IsThrottleRequired() const
 			{
-				return device.GetPresentation().PresentationInterval == D3DPRESENT_INTERVAL_ONE && IsValidScreen();
+				return device.IsThrottleRequired() || FAILED(lastResult);
 			}
 
 			const Adapters& GetAdapters() const
@@ -488,7 +519,7 @@ namespace Nestopia
 			{
 				return base.GetAdapter( device.GetOrdinal() );
 			}
-
+  
 			uint GetBitsPerPixel() const
 			{
 				return texture.GetBitsPerPixel();
@@ -578,6 +609,16 @@ namespace Nestopia
 			void ClearNfo()
 			{
 				device.ClearNfo();
+			}
+
+			void EnableAutoFrequency(ibool enable)
+			{
+				device.EnableAutoFrequency( enable );
+			}
+
+			uint GetMaxMessageLength() const
+			{
+				return device.GetMaxMessageLength();
 			}
 		};
 	}

@@ -122,7 +122,7 @@ namespace Nes
 			Pages pages;
 			BaseMemory::Linear sources[NUM_SOURCES];
 	
-        #ifdef _DEBUG
+        #ifndef NDEBUG
 
 			Memory(const Memory&) {}
 			void operator = (const Memory&) {}

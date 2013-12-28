@@ -32,6 +32,7 @@ namespace Nestopia
 	namespace Window
 	{
 		class AutoSaver;
+		class Main;
 	}
 
 	namespace Managers
@@ -40,7 +41,7 @@ namespace Nestopia
 		{
 		public:
 
-			SaveStates(Emulator&,const Configuration&,Window::Menu&,const Paths&,const Window::Custom&);
+			SaveStates(Emulator&,const Configuration&,Window::Menu&,const Paths&,const Window::Main&);
 			~SaveStates();
 
 			void Load(Collection::Buffer&,String::Generic=String::Generic()) const;
@@ -86,7 +87,7 @@ namespace Nestopia
 
 			Emulator& emulator;
 			Window::Menu& menu;
-			const Window::Custom& window;
+			const Window::Main& window;
 			const Paths& paths;
 			uint lastSaveSlot;
 			ibool autoSaveEnabled;

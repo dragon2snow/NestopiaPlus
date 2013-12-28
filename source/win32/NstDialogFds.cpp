@@ -141,16 +141,16 @@ namespace Nestopia
 
 		Managers::Paths::File file;
 
-		if (paths.Load( file, BIOS_FILE_TYPES, settings.bios ))
+		if (paths.Load( file, BIOS_FILE_TYPES, settings.bios, Managers::Paths::QUIETLY ))
 		{
 			Io::Stream::Input stream( file.data );
 
-			if (NES_FAILED(Nes::Fds(emulator).SetBIOS( &stream )))
-			{
-				settings.bios.Clear();
-				User::Fail( IDS_FDS_ERR_INVALIDBIOS );
-			}
+			if (NES_SUCCEEDED(Nes::Fds(emulator).SetBIOS( &stream )))
+				return;
 		}
+
+		settings.bios.Clear();
+		User::Warn( IDS_FDS_ERR_INVALIDBIOS );
 	}
 
 	ibool Fds::OnInitDialog(Param&)

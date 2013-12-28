@@ -130,11 +130,25 @@ namespace Nestopia
     #pragma optimize("t", on)
     #endif
 
+	uint StatusBar::GetMaxMessageLength() const
+	{
+		if (window)
+		{
+			int list[2] = {0,0};
+			window.Send( SB_GETPARTS, 2, list );
+
+			if (list[0] > int(width.character)) 
+				return uint(list[0]) / (width.character - 1);
+		}
+
+		return 0;
+	}
+
 	void StatusBar::Update() const
 	{
 		NST_ASSERT( window && parent );
 
-		int list[2] = {Rect::Client( parent ).Width() - (int) width.first, -1};
+		int list[2] = { Rect::Client( parent ).Width() - (int) width.first, -1 };
 		window.Send( SB_SETPARTS, 2, list );
 	}
 

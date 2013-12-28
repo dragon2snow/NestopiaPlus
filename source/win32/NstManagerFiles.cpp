@@ -32,6 +32,7 @@
 #include "NstWindowUser.hpp"
 #include "NstWindowParam.hpp"
 #include "NstWindowMenu.hpp"
+#include "NstWindowMain.hpp"
 #include "NstApplicationInstance.hpp"
 #include "NstManagerEmulator.hpp"
 #include "NstManagerPreferences.hpp"
@@ -55,7 +56,7 @@ namespace Nestopia
 		Movie& o,			 
 		const Cheats& c,
 		const SaveStates& s,
-		Window::Custom& w
+		Window::Main& w
 	)
 	: 
 	emulator    ( e ),
@@ -81,7 +82,7 @@ namespace Nestopia
 			{ IDM_FILE_SAVE_NSP, &Files::OnCmdSaveScript }
 		};
 
-		w.Messages().Add( this, messages );
+		w.Get().Messages().Add( this, messages );
 		m.Commands().Add( this, commands );
 		emulator.Events().Add( this, &Files::OnEmuEvent );
 	}
@@ -95,7 +96,7 @@ namespace Nestopia
 	{
 		emulator.Wait();
 
-		if (!window.Activate())
+		if (!window.Get().Activate())
 			return;
 
 		if (!types)
@@ -163,7 +164,7 @@ namespace Nestopia
 					if (movie.Load( file.name, Movie::NOISY ) && preferences[Preferences::AUTOSTART_EMULATION])
 					{
 						AutoStart();
-						window.PostCommand( IDM_FILE_MOVIE_PLAY );
+						window.Get().PostCommand( IDM_FILE_MOVIE_PLAY );
 					}
 
 					return;
@@ -368,7 +369,7 @@ namespace Nestopia
 
 	ibool Files::OnMsgCopyData(Window::Param& param)
 	{
-		if (param.CopyData().FromWindow() == window || menu[IDM_FILE_OPEN].IsEnabled())
+		if (param.CopyData().FromWindow() == window.Get() || menu[IDM_FILE_OPEN].IsEnabled())
 			Open( static_cast<cstring>(param.CopyData().GetData()), param.CopyData().GetType() );
 
 		param.lResult = TRUE;
@@ -421,22 +422,40 @@ namespace Nestopia
 		switch (event)
 		{
 			case Emulator::EVENT_LOAD:
-		
+			{
 				menu[ IDM_FILE_CLOSE ].Enable();
 				menu[ IDM_POS_FILE ][ IDM_POS_FILE_SAVE ].Enable( emulator.Is(Nes::Machine::GAME) );
 				menu[ IDM_FILE_SAVE_NSP ].Enable( emulator.Is(Nes::Machine::GAME) );
 
-				Io::Screen() << Resource::String(IDS_SCREEN_LOADED) << " \"" << emulator.GetImagePath().Target() << '\"';
+				const uint length = window.GetMaxMessageLength();
+
+				if (length > 10)
+				{
+					Io::Screen() << Resource::String( IDS_SCREEN_LOADED ) 
+						         << " \"" 
+								 << String::Path<true>::Compact( emulator.GetImagePath().Target(), length - 9 ) 
+								 << '\"';
+				}
 				break;
+			}
 		
 			case Emulator::EVENT_UNLOAD:
-		
+			{
 				menu[ IDM_FILE_CLOSE ].Disable();
 				menu[ IDM_POS_FILE ][ IDM_POS_FILE_SAVE ].Disable();
 				menu[ IDM_FILE_SAVE_NSP ].Disable();
-		
-				Io::Screen() << Resource::String(IDS_SCREEN_UNLOADED) << " \"" << emulator.GetImagePath().Target() << '\"';		
+
+				const uint length = window.GetMaxMessageLength();
+
+				if (length > 12)
+				{
+					Io::Screen() << Resource::String( IDS_SCREEN_UNLOADED ) 
+						         << " \"" 
+								 << String::Path<true>::Compact( emulator.GetImagePath().Target(), length - 11 ) 
+								 << '\"';
+				}				
 				break;
+			}		
 
 			case Emulator::EVENT_NETPLAY_MODE_ON:
 			case Emulator::EVENT_NETPLAY_MODE_OFF:

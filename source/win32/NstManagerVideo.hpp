@@ -30,6 +30,7 @@
 #include "NstWindowStatusBar.hpp"
 #include "NstObjectHeap.hpp"
 #include "NstDirect2d.hpp"
+#include "NstManagerEmulator.hpp"
 #include "../core/api/NstApiNsf.hpp"
 
 namespace Nestopia
@@ -44,9 +45,10 @@ namespace Nestopia
 	{
 		class Video
 		{
+			typedef DirectX::Direct2D::Adapter::Modes::const_iterator Mode;
+
 		public:
 
-			typedef DirectX::Direct2D::Mode Mode;
 			typedef Window::Point Point;
 			typedef Window::Rect Rect;
 
@@ -65,6 +67,7 @@ namespace Nestopia
 			void SwitchScreen();
 			void SetFullscreenScale(uint);
 			void Save(Configuration&) const;
+			uint GetMaxMessageLength() const;
 			
 			static Point GetDisplayMode();
 			
@@ -81,16 +84,17 @@ namespace Nestopia
 				MIN_DIALOG_WIDTH = 640,
 				MIN_DIALOG_HEIGHT = 480,
 				STATUSBAR_WIDTH = 11,
-				SCREEN_TEXT_DURATION = 2000
+				SCREEN_TEXT_DURATION = 2250
 			};
 
-			void SwitchFullscreen(const Mode&);
+			void SwitchFullscreen(Mode);
 			void ToggleFps(ibool);
 			void UpdateScreen();
 			
 			NST_NO_INLINE void RepairScreen();
 
 			ibool OnPaint         (Window::Param&);
+			ibool OnNcPaint       (Window::Param&);
 			ibool OnEraseBkGnd    (Window::Param&);     
 			void  OnEnterSizeMove (Window::Param&);
 			void  OnExitSizeMove  (Window::Param&);
@@ -165,9 +169,9 @@ namespace Nestopia
 				return !IsWindowed();
 			}
 
-			ibool IsVSyncEnabled() const
+			ibool IsThrottleRequired() const
 			{
-				return direct2d.IsVSyncEnabled();
+				return direct2d.IsThrottleRequired();
 			}
 
 			uint GetFullscreenScale() const

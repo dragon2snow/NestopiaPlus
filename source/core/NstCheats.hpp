@@ -72,8 +72,9 @@ namespace Nes
 			struct HiCode : LoCode
 			{
 				HiCode(u16=0,u8=0,u8=0,bool=false);
+				inline HiCode(uint);
 
-				inline bool operator < (uint) const;
+				inline bool operator < (const HiCode&) const;
 
 				Io::Port port;
 			};

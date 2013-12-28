@@ -62,12 +62,11 @@ namespace Nes
 			{
 				return (pos >= start) ? (pos - start) : (SIZE - start) + pos;
 			}
-		
+
             #ifdef NST_PRAGMA_OPTIMIZE
             #pragma optimize("", on)
-            #pragma optimize("a", on)
             #endif
-		
+
 			void Buffer::operator >> (Block& block)
 			{
 				NST_ASSERT( block.length );
@@ -88,10 +87,6 @@ namespace Nes
 				if (start == pos)
 					start = pos = 0;
 			}
-
-            #ifdef NST_PRAGMA_OPTIMIZE
-            #pragma optimize("", on)
-            #endif
 		}
 	}
 }

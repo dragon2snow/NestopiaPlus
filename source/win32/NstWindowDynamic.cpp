@@ -87,7 +87,7 @@ namespace Nestopia
 
 		const LONG_PTR ptr = reinterpret_cast<LONG_PTR>( instances.Size() == 1 ? WndProcSingle : WndProcMulti );
 
-		if (!::SetWindowLongPtr( hWnd, GWL_WNDPROC, ptr ))
+		if (!::SetWindowLongPtr( hWnd, GWLP_WNDPROC, ptr ))
 			throw Application::Exception("SetWindowLongPtr() failed!");
 	}
 

@@ -128,14 +128,9 @@ namespace Nes
 			{"H2288",                  Mapper::EXT_H2288}
 		};
 	
-		bool Unif::Board::operator < (cstring const s) const
+		bool Unif::Board::operator < (const Board& board) const
 		{
-			return std::strcmp( name, s ) < 0;
-		}
-	
-		bool Unif::Board::operator < (const Board& b) const
-		{
-			return (*this) < b.name;
+			return std::strcmp( name, board.name ) < 0;
 		}
 	
 		Unif::Rom::Rom()
@@ -497,9 +492,10 @@ namespace Nes
 	
 				{
 					const Board* begin = boards;
-					const Board* const end = boards + NST_COUNT(boards);
-	
-					begin = std::lower_bound( begin, end, info.board.c_str() );
+					const Board* const end = boards + NST_COUNT(boards);	
+					const Board board = { info.board.c_str(), 0 };
+
+					begin = std::lower_bound( begin, end, board );
 	
 					if (begin != end && info.board == begin->name)
 						info.mapper = begin->mapper;

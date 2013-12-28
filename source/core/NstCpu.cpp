@@ -108,7 +108,7 @@ namespace Nes
 			&Cpu::op0xFC, &Cpu::op0xFD, &Cpu::op0xFE, &Cpu::op0xFF
 		};
 
-        #ifdef NST_PRAGMA_OPTIMIZE
+        #ifdef NST_PRAGMA_OPTIMIZE_ALIAS
         #pragma optimize("a", on)
         #endif
 	
@@ -129,9 +129,12 @@ namespace Nes
 			NST_ASSERT( address < (NES_64K + OVERFLOW_SIZE) );
 			ports[address].Poke( address, data );
 		}
-	
-        #ifdef NST_PRAGMA_OPTIMIZE
+
+        #ifdef NST_PRAGMA_OPTIMIZE_ALIAS
         #pragma optimize("", on)
+        #endif
+
+        #ifdef NST_PRAGMA_OPTIMIZE
         #pragma optimize("s", on)
         #endif
 	
@@ -412,9 +415,12 @@ namespace Nes
 		{
 			TryLogMsg( c, N-1, e );
 		}
-	
+
         #ifdef NST_PRAGMA_OPTIMIZE
         #pragma optimize("", on)
+        #endif
+
+        #ifdef NST_PRAGMA_OPTIMIZE_ALIAS
         #pragma optimize("w", on)
         #endif
 	
@@ -526,7 +532,8 @@ namespace Nes
 			return ram.page.zero[address & 0xFF] | (ram.page.zero[(address+1) & 0xFF] << 8);
 		}
 	
-        #ifdef NST_PRAGMA_OPTIMIZE
+        #ifdef NST_PRAGMA_OPTIMIZE_ALIAS
+        #pragma optimize("", on)
         #pragma optimize("a", on)
         #endif
 	
@@ -544,7 +551,7 @@ namespace Nes
 			return data;
 		}
 	
-        #ifdef NST_PRAGMA_OPTIMIZE
+        #ifdef NST_PRAGMA_OPTIMIZE_ALIAS
         #pragma optimize("", on)
         #pragma optimize("w", on)
         #endif

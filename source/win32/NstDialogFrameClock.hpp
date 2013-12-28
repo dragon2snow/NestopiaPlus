@@ -61,6 +61,7 @@ namespace Nestopia
 			{
 				bool autoFrameSkip;
 				bool vsync;
+				bool tripleBuffering;
 				bool rewinder;
 				bool useDefaultSpeed;
 				bool useDefaultRewindSpeed;
@@ -106,6 +107,11 @@ namespace Nestopia
 			bool UseVSync() const
 			{
 				return settings.vsync;
+			}
+
+			bool UseTrippleBuffering() const
+			{
+				return settings.tripleBuffering;
 			}
 
 			bool UseRewinder() const

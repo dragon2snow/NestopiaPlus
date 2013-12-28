@@ -37,9 +37,9 @@
 
  #else
 
-  #pragma warning( disable : 4355 4511 4512 4800 )
+  #pragma warning( disable : 4355 4511 4512 4800 4996 )
 
-  #ifndef _DEBUG
+  #ifdef NDEBUG
 
    #ifdef NST_SHOW_INLINING
    #pragma warning( default : 4710 4711 )

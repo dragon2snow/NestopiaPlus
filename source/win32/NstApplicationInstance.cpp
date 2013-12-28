@@ -38,6 +38,7 @@
 #define NST_MENU_CLASS_NAME "#32768" // name for menus as documented on MSDN
 #define NST_APP_CLASS_NAME "Nestopia"
 #define NST_STATUS_CLASS_NAME STATUSCLASSNAME
+#define NST_IME_CLASS_NAME "IME"
 #define NST_APP_MUTEX_NAME "Nestopia Mutex"
 
 namespace Nestopia
@@ -125,7 +126,7 @@ namespace Nestopia
 				String::Stack<LENGTH> name;
 				name.ShrinkTo( ::GetClassName( hWnd, name, LENGTH+1 ) );
 
-				if (name.ExactEqual( NST_MENU_CLASS_NAME ) || name.ExactEqual( NST_STATUS_CLASS_NAME ))
+				if (name.ExactEqual( NST_MENU_CLASS_NAME ) || name.ExactEqual( NST_STATUS_CLASS_NAME ) || name.ExactEqual( NST_IME_CLASS_NAME ))
 					return;
 
 				if (window)

@@ -93,12 +93,11 @@ namespace Nestopia
 				if (titleId == 0)
 					titleId = IDS_TITLE_ERROR;
 
-				::ShellMessageBox
+				::MessageBox
 				( 
-					Application::Instance::GetHandle(),
 					Application::Instance::GetActiveWindow(), 
-					MAKEINTRESOURCE( textId ), 
-					MAKEINTRESOURCE( titleId ), 
+					Resource::String( textId ),
+			    	Resource::String( titleId ),
 					FLAGS|MB_OK|MB_ICONERROR
 				);
 			}
@@ -108,12 +107,11 @@ namespace Nestopia
 				if (titleId == 0)
 					titleId = IDS_TITLE_WARNING;
 
-				::ShellMessageBox
+				::MessageBox
 				( 
-					Application::Instance::GetHandle(),
 					Application::Instance::GetActiveWindow(), 
-					MAKEINTRESOURCE( textId ), 
-					MAKEINTRESOURCE( titleId ), 
+					Resource::String( textId ),
+			    	Resource::String( titleId ),
 					FLAGS|MB_OK|MB_ICONWARNING
 				);
 			}
@@ -123,12 +121,11 @@ namespace Nestopia
 				if (titleId == 0)
 					titleId = IDS_TITLE_NESTOPIA;
 
-				::ShellMessageBox
+				::MessageBox
 				( 
-					Application::Instance::GetHandle(),
 					Application::Instance::GetActiveWindow(), 
-					MAKEINTRESOURCE( textId ), 
-					MAKEINTRESOURCE( titleId ), 
+					Resource::String( textId ),
+			    	Resource::String( titleId ),
 					FLAGS|MB_OK|MB_ICONINFORMATION
 				);
 			}
@@ -138,12 +135,11 @@ namespace Nestopia
 				if (titleId == 0)
 					titleId = IDS_TITLE_NESTOPIA;
 
-				const int ret = ::ShellMessageBox
+				const int ret = ::MessageBox
 				( 
-					Application::Instance::GetHandle(),
 					Application::Instance::GetActiveWindow(), 
-					MAKEINTRESOURCE( textId ), 
-					MAKEINTRESOURCE( titleId ), 
+					Resource::String( textId ),
+			    	Resource::String( titleId ),
 					FLAGS|MB_YESNO|MB_ICONQUESTION
 				);
 

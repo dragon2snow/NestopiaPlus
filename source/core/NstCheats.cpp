@@ -51,6 +51,9 @@ namespace Nes
 		Cheats::HiCode::HiCode(u16 a,u8 d,u8 c,bool u)
 		: LoCode(a,d,c,u) {}
 
+		inline Cheats::HiCode::HiCode(uint address)
+		: LoCode(address,0,0,0) {}
+
 		Cheats::Cheats(Cpu& c)
 		: cpu(c) {}
 
@@ -227,16 +230,16 @@ namespace Nes
 				cpu.PatchSystemRam( it->address, it->data, it->compare, it->useCompare );
 		}
 
-		inline bool Cheats::HiCode::operator < (uint target) const
+		inline bool Cheats::HiCode::operator < (const HiCode& code) const
 		{
-			return address < target;
+			return address < code.address;
 		}
-
+  
 		NES_PEEK(Cheats,Wizard)
 		{
 			NST_ASSERT( address >= 0x2000U );
 
-			const HiCode& code = *std::lower_bound( &hiCodes.front(), &hiCodes.back() + 1, address );
+			const HiCode& code = *std::lower_bound( &hiCodes.front(), &hiCodes.back() + 1, HiCode(address) );
 
 			if (code.useCompare)
 			{
@@ -253,7 +256,7 @@ namespace Nes
 		{
 			NST_ASSERT( address >= 0x2000U );
 
-			return std::lower_bound( &hiCodes.front(), &hiCodes.back() + 1, address )->port.Poke( address, data );
+			return std::lower_bound( &hiCodes.front(), &hiCodes.back() + 1, HiCode(address) )->port.Poke( address, data );
 		}
 	}
 }

@@ -96,8 +96,6 @@ namespace Nestopia
 	columns          ( cfg ),
 	style            ( STYLE )
 	{
-		dialog.Messages().Add( WM_DESTROY, this, &List::OnDestroy );
-
 		static const Menu::CmdHandler::Entry<Launcher::List> commands[] =
 		{
 			{ IDM_LAUNCHER_EDIT_FIND,		  &List::OnCmdEditFind         },
@@ -132,6 +130,15 @@ namespace Nestopia
 
 		ctrl.Reserve( files.Count() );
 		ctrl.Columns().Align();
+
+		InvalidateRect( ctrl.GetWindow(), NULL, FALSE );
+	}
+
+	void Launcher::List::Close()
+	{
+		UpdateColumnOrder();
+		columns.Update( order );
+		strings.Flush();
 	}
 
 	void Launcher::List::Insert(const Param::DropFilesParam dropFiles)
@@ -240,15 +247,6 @@ namespace Nestopia
 			ctrl.Reserve( files.Count() );	
 			Redraw();
 		}
-	}
-
-	ibool Launcher::List::OnDestroy(Param&)
-	{
-		UpdateColumnOrder();
-		columns.Update( order );
-		strings.Flush();
-
-		return TRUE;
 	}
 
 	void Launcher::List::OnGetDisplayInfo(LPARAM lParam)

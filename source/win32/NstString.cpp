@@ -24,6 +24,7 @@
 
 #include "NstIoFile.hpp"
 #include <Windows.h>
+#include <Shlwapi.h>
 
 #ifdef NST_PRAGMA_OPTIMIZE
 #pragma optimize("t", on)
@@ -182,7 +183,7 @@ namespace Nestopia
 		return offset - string;
 	}
 
-	uint Private::Copy(char* NST_RESTRICT dst,cstring NST_RESTRICT src) throw()
+	uint Private::Copy(char* NST_RESTRICT dst,const char* NST_RESTRICT src) throw()
 	{
 		cstring const pos = dst + 1;
 		while ((*dst++ = *src++) != 0);
@@ -194,7 +195,7 @@ namespace Nestopia
 		char* NST_RESTRICT dst,
 		const uint size,
 		const uint pos,
-		cstring const NST_RESTRICT src,
+		const char* const NST_RESTRICT src,
 		const uint length
 	)   throw()
 	{
@@ -289,7 +290,7 @@ namespace Nestopia
 
 	namespace
 	{
-		static inline cstring FindFirst(cstring NST_RESTRICT haystack,const uchar first)
+		static inline cstring FindFirst(const char* NST_RESTRICT haystack,const uchar first)
 		{
 			do
 			{
@@ -365,7 +366,7 @@ namespace Nestopia
 		return it;
 	}
 
-	ibool Private::ToUnsigned(cstring NST_RESTRICT string,u32& NST_RESTRICT result) throw()
+	ibool Private::ToUnsigned(const char* NST_RESTRICT string,u32& result) throw()
 	{
 		result = 0;
 
@@ -452,7 +453,7 @@ namespace Nestopia
 		return last;
 	}
 
-	uint Private::ExtensionId(cstring const NST_RESTRICT string) throw()
+	uint Private::ExtensionId(const char* const NST_RESTRICT string) throw()
 	{
 		uint id = 0;
 
@@ -490,7 +491,7 @@ namespace Nestopia
 	size     (length)
 	{}
 
-	Dynamic::Dynamic(const Dynamic& NST_RESTRICT string,char* const stack,const uint minimum)
+	Dynamic::Dynamic(const Dynamic& string,char* const stack,const uint minimum)
 	: 
 	data     (string.size <= minimum ? stack : new char [(string.size + 7) & ~3U]),
 	capacity (NST_MAX(string.size,minimum)),
@@ -499,7 +500,7 @@ namespace Nestopia
 		std::memcpy( data, string.data, (string.size + 4) & ~3U );
 	}
 
-	Dynamic::Dynamic(cstring const NST_RESTRICT string,char* const stack)
+	Dynamic::Dynamic(const char* const NST_RESTRICT string,char* const stack)
 	: size(Length(string))
 	{
 		data = stack;
@@ -508,7 +509,7 @@ namespace Nestopia
 			std::memcpy( data = new char [(size + 7) & ~3U], string, size + 1 );
 	}
 
-	Dynamic::Dynamic(cstring const NST_RESTRICT string,char* const stack,const uint minimum)
+	Dynamic::Dynamic(const char* const NST_RESTRICT string,char* const stack,const uint minimum)
 	: size(Length(string))
 	{
 		if (size < minimum)
@@ -587,19 +588,19 @@ namespace Nestopia
 			Allocate( request, stack );
 	}
 
-	void Dynamic::Assign(cstring const NST_RESTRICT string,const uint length,char* const stack)
+	void Dynamic::Assign(const char* const NST_RESTRICT string,const uint length,char* const stack)
 	{
 		Reset( length, stack );
 		std::memcpy( data, string, (size=length) );
 		data[length] = '\0';
 	}
 
-	void Dynamic::AssignTerminated(cstring const NST_RESTRICT string,char* const stack)
+	void Dynamic::AssignTerminated(const char* const NST_RESTRICT string,char* const stack)
 	{
 		Assign( string, Length(string), stack );
 	}
 
-	void Dynamic::Append(cstring const NST_RESTRICT string,const uint length,char* const stack)
+	void Dynamic::Append(const char* const NST_RESTRICT string,const uint length,char* const stack)
 	{
 		Reserve( size + length, stack );
 		char* const offset = data + size; size += length;
@@ -607,12 +608,12 @@ namespace Nestopia
 		offset[length] = '\0';
 	}
 
-	void Dynamic::AppendTerminated(cstring const NST_RESTRICT string,char* const stack)
+	void Dynamic::AppendTerminated(const char* const NST_RESTRICT string,char* const stack)
 	{
 		Append( string, Length(string), stack );
 	}
 
-	void Dynamic::Insert(const uint pos,cstring const NST_RESTRICT string,const uint length,char* const stack)
+	void Dynamic::Insert(const uint pos,const char* const NST_RESTRICT string,const uint length,char* const stack)
 	{
 		if (length)
 		{
@@ -642,7 +643,7 @@ namespace Nestopia
 		}
 	}
 
-	void Dynamic::Parse(cstring NST_RESTRICT src,const uint length,char* const stack)
+	void Dynamic::Parse(const char* NST_RESTRICT src,const uint length,char* const stack)
 	{
 		if (length)
 		{
@@ -676,7 +677,7 @@ namespace Nestopia
 		}
 	}
 
-	Basic<0U,false>::Basic(const Basic& NST_RESTRICT basic)
+	Basic<0U,false>::Basic(const Basic& basic)
 	: Dynamic(basic.size) 
 	{
 		std::memcpy( data, basic.data, (basic.size + 4) & ~3U );
@@ -689,7 +690,7 @@ namespace Nestopia
 	Basic<0U,false>::Basic(const uint length)
 	: Dynamic(length) {}
 
-	void Basic<0U,false>::operator = (const Basic& NST_RESTRICT basic)
+	void Basic<0U,false>::operator = (const Basic& basic)
 	{
 		Dynamic::Assign( basic.data, basic.size );
 	}
@@ -789,6 +790,28 @@ namespace Nestopia
 
 		*--it = 'x';
 		*--it = '0';
+	}
+
+	template<>
+	Path<true> Path<true>::Compact(Generic path,const uint maxLength)
+	{
+		char buffer[MAX_PATH+2];
+
+		if (path.Size() && path.Size() <= MAX_PATH && ::PathCompactPathEx( buffer, Path<false>(path), NST_MIN(MAX_PATH+1,maxLength+1), 0 ))
+			return (cstring) buffer;
+
+		return path;
+	}
+
+	template<>
+	Path<false> Path<false>::Compact(Generic path,const uint maxLength)
+	{
+		char buffer[MAX_PATH+2];
+
+		if (path.Size() && path.Size() <= MAX_PATH && ::PathCompactPathEx( buffer, Path<false>(path), NST_MIN(MAX_PATH+1,maxLength+1), 0 ))
+			return (cstring) buffer;
+
+		return path;
 	}
 }
 

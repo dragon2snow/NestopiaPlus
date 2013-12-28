@@ -38,7 +38,7 @@
 #ifdef __INTEL_COMPILER
 #pragma warning( disable : 304 373 383 444 810 869 981 1682 1683 )
 #elif defined(_MSC_VER)
-#pragma warning( disable : 4100 4244 4511 4512 4800 )
+#pragma warning( disable : 4100 4244 4511 4512 4800 4996 )
 #endif
 
 #ifdef _MSC_VER

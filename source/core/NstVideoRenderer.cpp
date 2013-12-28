@@ -490,7 +490,7 @@ namespace Nes
 				}
 			}
 		
-            #ifdef NST_PRAGMA_OPTIMIZE
+            #ifdef NST_PRAGMA_OPTIMIZE_ALIAS
             #pragma optimize("w", on)
             #endif
 		
@@ -7773,7 +7773,7 @@ namespace Nes
 
         #endif
 
-            #ifdef NST_PRAGMA_OPTIMIZE
+            #ifdef NST_PRAGMA_OPTIMIZE_ALIAS
             #pragma optimize("", on)
             #endif
 		}

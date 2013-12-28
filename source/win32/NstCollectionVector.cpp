@@ -48,7 +48,7 @@ namespace Nestopia
 		}
 	}
 
-	Base::Base(const Base& NST_RESTRICT base)
+	Base::Base(const Base& base)
 	: data(NULL), capacity(base.size), size(base.size)
 	{
 		if (base.size)

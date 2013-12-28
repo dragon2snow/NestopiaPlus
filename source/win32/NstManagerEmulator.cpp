@@ -163,11 +163,12 @@ namespace Nestopia
 
 	inline Emulator::Settings::Timing::Timing()
 	: 
-	speed     (DEFAULT_SPEED), 
-	baseSpeed (DEFAULT_SPEED), 
-	sync      (false), 
-	speeding  (false), 
-	rewinding (false)
+	speed           (DEFAULT_SPEED), 
+	baseSpeed       (DEFAULT_SPEED), 
+	sync            (false), 
+	tripleBuffering (false),
+	speeding        (false), 
+	rewinding       (false)
 	{}
 
 	inline Emulator::Settings::Settings()
@@ -300,12 +301,13 @@ namespace Nestopia
     #pragma optimize("", on)
     #endif
 
-	void Emulator::ResetSpeed(const uint baseSpeed,const ibool sync)
+	void Emulator::ResetSpeed(const uint baseSpeed,const ibool sync,const ibool tripleBuffering)
 	{
 		settings.timing.speed = DEFAULT_SPEED;
-		settings.timing.baseSpeed = (uchar) baseSpeed;
+		settings.timing.baseSpeed = baseSpeed;
 		settings.timing.speeding = false;
 		settings.timing.sync = sync;
+		settings.timing.tripleBuffering = tripleBuffering;
 		settings.timing.rewinding = false;
 
 		events( EVENT_BASE_SPEED );

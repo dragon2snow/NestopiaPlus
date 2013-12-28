@@ -29,6 +29,11 @@
 
 namespace Nestopia
 {
+	namespace Window
+	{
+		class Main;
+	}
+
 	namespace Managers
 	{
 		class Files
@@ -44,7 +49,7 @@ namespace Nestopia
 				Movie&,			 
 				const Cheats&,
 				const SaveStates&,
-				Window::Custom&
+				Window::Main&
 			);
 
 			~Files();
@@ -72,7 +77,7 @@ namespace Nestopia
 			Movie& movie;				 
 			const Cheats& cheats;			 
 			const SaveStates& saveStates;
-			const Window::Generic window;
+			const Window::Main& window;
 		};
 	}
 }

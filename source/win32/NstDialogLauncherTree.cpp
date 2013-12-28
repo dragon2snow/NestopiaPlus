@@ -29,7 +29,10 @@ namespace Nestopia
 	using namespace Window;
 
 	Launcher::Tree::Tree()
-	: imageList(16,16,IDB_LAUNCHERTREE_OPEN,IDB_LAUNCHERTREE_CLOSED) {}
+	: 
+	imageList (16,16,IDB_LAUNCHERTREE_OPEN,IDB_LAUNCHERTREE_CLOSED),
+	selection (0)
+	{}
 
 	void Launcher::Tree::operator = (const Control::TreeView& treeCtrl)
 	{
@@ -46,7 +49,12 @@ namespace Nestopia
 		ctrl.Add( "NSP Files"     );
 		ctrl.Add( "Archive Files" );
 
-		ctrl[0].Select();
+		ctrl[selection].Select();
+	}
+
+	void Launcher::Tree::Close()
+	{
+		selection = ctrl.Selection().GetIndex();
 	}
 
 	void Launcher::Tree::SetColors(const uint bg,const uint fg,const Updater repaint) const

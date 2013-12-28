@@ -76,7 +76,7 @@ namespace Nestopia
 			? Resource::Cursor::GetUpArrow() : Resource::Cursor::GetArrow();
 
 		::SetCursor( hCursor );
-		::SetWindowLong( dialog, DWL_MSGRESULT, MAKELONG(TRUE,0) );
+		::SetWindowLongPtr( dialog, DWLP_MSGRESULT, TRUE );
 
 		return TRUE;
 	}

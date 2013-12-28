@@ -245,11 +245,12 @@
 #define IDS_VIDEO_FILTER_HQ3X           798
 #define IDS_INESHEADER_INVALID          799
 #define IDS_INESHEADER_UNSAFE           800
-#define IDM_FILE_OPEN                   801
 #define IDS_EMU_MOVIE_SAVE_BATTERY      801
-#define IDM_FILE_CLOSE                  802
+#define IDM_FILE_OPEN                   801
 #define IDS_EMU_MOVIE_SAVE_FDS          802
+#define IDM_FILE_CLOSE                  802
 #define IDM_FILE_LOAD_NSP               803
+#define IDS_DIALOG_VIDEO_INVALID_PALETTE 803
 #define IDM_FILE_LOAD_NST               804
 #define IDM_FILE_SAVE_NSP               805
 #define IDM_FILE_SAVE_NST               806
@@ -499,6 +500,7 @@
 #define IDC_COMPRESSED_FILE_CANCEL      2301
 #define IDC_COMPRESSED_FILE_OK          2302
 #define IDC_ROM_INFO_EDIT               2400
+#define IDC_ROM_INFO_OK                 2401
 #define IDC_DIPSWITCHES_1_TEXT          2500
 #define IDC_DIPSWITCHES_2_TEXT          2501
 #define IDC_DIPSWITCHES_3_TEXT          2502
@@ -550,8 +552,9 @@
 #define IDC_GRAPHICS_PALETTE_PATH       2630
 #define IDC_GRAPHICS_PALETTE_BROWSE     2631
 #define IDC_GRAPHICS_PALETTE_CLEAR      2632
-#define IDC_GRAPHICS_DEFAULT            2633
-#define IDC_GRAPHICS_OK                 2634
+#define IDC_GRAPHICS_AUTO_HZ            2633
+#define IDC_GRAPHICS_DEFAULT            2634
+#define IDC_GRAPHICS_OK                 2635
 #define IDC_CHEATS_STATIC_CODES         2700
 #define IDC_CHEATS_TEMP_CODES           2701
 #define IDC_CHEATS_STATIC_ADD           2702
@@ -637,7 +640,6 @@
 #define IDC_AUTOSAVE_ENABLE_MSG         3005
 #define IDC_AUTOSAVE_CANCEL             3006
 #define IDC_AUTOSAVE_OK                 3007
-#define IDR_RT_MANIFEST1                3007
 #define IDC_SOUND_CAPTURE_FILE          3100
 #define IDC_SOUND_CAPTURE_CLEAR         3101
 #define IDC_SOUND_CAPTURE_BROWSE        3102
@@ -680,6 +682,7 @@
 #define IDC_TIMING_REWINDER_DEFAULT_SPEED 3616
 #define IDC_TIMING_REWINDER_SPEED       3617
 #define IDC_TIMING_REWINDER_SPEED_NUM   3618
+#define IDC_TIMING_TRIPLE_BUFFERING     3619
 #define IDC_LAUNCHER_LIST               3900
 #define IDC_LAUNCHER_COLUMNSELECT_OK    3901
 #define IDC_LAUNCHER_COLUMNSELECT_CANCEL 3902
@@ -744,7 +747,6 @@
 #define IDC_INESHEADER_DETECT           4220
 #define IDC_INESHEADER_CANCEL           4221
 #define IDC_INESHEADER_SAVE             4222
-#define IDC_ROM_INFO_OK                 5062
 
 // Next default values for new objects
 // 
@@ -753,7 +755,7 @@
 #define _APS_NO_MFC                     1
 #define _APS_NEXT_RESOURCE_VALUE        3009
 #define _APS_NEXT_COMMAND_VALUE         4049
-#define _APS_NEXT_CONTROL_VALUE         5067
+#define _APS_NEXT_CONTROL_VALUE         5068
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

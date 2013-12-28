@@ -43,21 +43,38 @@
  #define NST_PRAGMA_ONCE_SUPPORT
  #endif
 
- #ifndef _DEBUG
-  
+ #ifdef NDEBUG
+
   #define NST_PRAGMA_OPTIMIZE
-  #define NST_INLINE_DEPTH
 
   #pragma inline_depth( 255 )
   #pragma inline_recursion( on ) 
+
+  #if _MSC_VER <= 1300
+  #define NST_PRAGMA_OPTIMIZE_ALIAS
+  #endif
 
   #ifndef NST_FORCE_INLINE
   #define NST_FORCE_INLINE __forceinline
   #endif
  
+  #ifndef __INTEL_COMPILER
+  #ifndef NST_TAILCALL_OPTIMIZE
+  #define NST_TAILCALL_OPTIMIZE
+  #endif
+  #endif
+
  #endif
 
- #if (_MSC_VER >= 1300)
+ #ifdef __INTEL_COMPILER 
+ 
+  #ifndef NST_RESTRICT
+  #define NST_RESTRICT restrict
+  #endif
+ 
+ #endif
+
+ #if _MSC_VER >= 1300
 						
   #ifndef NST_NO_INLINE
   #define NST_NO_INLINE __declspec(noinline)
@@ -70,18 +87,12 @@
   #define NST_UNREACHABLE default: __assume(0);
   #define NST_NO_VTABLE __declspec(novtable)
 
- #endif
+  #if _MSC_VER >= 1400
+					  
+   #ifndef NST_RESTRICT
+   #define NST_RESTRICT __restrict
+   #endif
 
- #ifdef __INTEL_COMPILER
-
-  #ifndef NST_RESTRICT
-  #define NST_RESTRICT restrict
-  #endif
- 
- #else
-  
-  #ifndef NST_TAILCALL_OPTIMIZE
-  #define NST_TAILCALL_OPTIMIZE
   #endif
 
  #endif

@@ -254,9 +254,9 @@ namespace Nestopia
 		{
 			NST_COMPILE_ASSERT
 			( 
-		     	ZLIB_FILEFUNC_SEEK_SET == Io::File::Offset::BEGIN && 
-				ZLIB_FILEFUNC_SEEK_CUR == Io::File::Offset::CURRENT && 
-				ZLIB_FILEFUNC_SEEK_END == Io::File::Offset::END 
+		     	ZLIB_FILEFUNC_SEEK_SET == Io::File::BEGIN && 
+				ZLIB_FILEFUNC_SEEK_CUR == Io::File::CURRENT && 
+				ZLIB_FILEFUNC_SEEK_END == Io::File::END 
 			);
 
 			if (file && origin < 3)

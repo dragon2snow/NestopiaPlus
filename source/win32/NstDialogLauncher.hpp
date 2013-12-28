@@ -79,6 +79,7 @@ namespace Nestopia
 			ibool OnDropFiles  (Param&);
 			ibool OnSize       (Param&);
 			ibool OnCmdEnter   (Param&);
+			ibool OnDestroy    (Param&);
 
 			void OnCmdFileRun	            	(uint=0);
 			void OnCmdFileRefresh	            (uint);
@@ -121,6 +122,7 @@ namespace Nestopia
 				};
 
 				void  Add(cstring);
+				void  Close();
 				void  Save(Configuration&,ibool);
 				void  Sort(uint=0);
 				ibool CanRefresh() const;
@@ -718,8 +720,6 @@ namespace Nestopia
 				void OnCmdViewAlignColumns (uint); 
 				void OnCmdOptionsColumns   (uint); 
 
-				ibool OnDestroy(Param&);
-
 				Control::ListView ctrl;
 
 				const Nes::Cartridge::Database imageDatabase;
@@ -736,7 +736,7 @@ namespace Nestopia
 				Columns columns;
 				Strings strings;
 				const Managers::Paths& pathManager;
-
+				
 			public:
 
 				Generic GetWindow() const
@@ -828,10 +828,12 @@ namespace Nestopia
 
 				void SetColors(uint,uint,Updater=DONT_REPAINT) const;
 				uint GetType(HTREEITEM) const;
+				void Close();
 
 			private:
 
 				Control::TreeView ctrl;
+				uint selection;
 				const Control::TreeView::ImageList imageList;
 
 			public:

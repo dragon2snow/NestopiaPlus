@@ -52,11 +52,11 @@ namespace Nestopia
 	nsf			( emulator, instance.GetConfiguration(), menu ),
 	movie		( emulator, menu, paths ),
 	cheats		( emulator, instance.GetConfiguration(), menu, paths ),
-	saveStates	( emulator, instance.GetConfiguration(), menu, paths, window.Get() ),
+	saveStates	( emulator, instance.GetConfiguration(), menu, paths, window ),
 	imageInfo   ( emulator, menu ),
 	help        ( emulator, menu ),
 	inesHeader  ( emulator, menu, paths ),
-	files       ( emulator, menu, paths, preferences, movie, cheats, saveStates, window.Get() )
+	files       ( emulator, menu, paths, preferences, movie, cheats, saveStates, window )
 	{
 		static const Window::MsgHandler::Entry<Main> messages[] =
 		{

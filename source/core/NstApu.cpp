@@ -692,9 +692,12 @@ namespace Nes
 	
 			cpu.SetLine( Cpu::IRQ_DMC, false );
 		}
-	
+
         #ifdef NST_PRAGMA_OPTIMIZE
         #pragma optimize("", on)
+        #endif
+
+        #ifdef NST_PRAGMA_OPTIMIZE_ALIAS
         #pragma optimize("w", on)
         #endif
 	

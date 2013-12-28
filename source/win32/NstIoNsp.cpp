@@ -109,7 +109,7 @@ namespace Nestopia
 		);
 
 		output << "//\r\n"
-				  "// Generated Nestopia Script File. Version 1.22\r\n"
+				  "// Generated Nestopia Script File. Version 1.23\r\n"
 				  "//\r\n"
 				  "// Syntax:\r\n"
 				  "//\r\n"

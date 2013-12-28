@@ -60,6 +60,7 @@ namespace Nestopia
 	{
 		settings.autoFrameSkip         = ( cfg[ "timer auto frame skip"      ] == Configuration::YES );
 		settings.vsync                 = ( cfg[ "timer vsync"                ] != Configuration::NO  );
+		settings.tripleBuffering       = ( cfg[ "timer triple buffering"     ] == Configuration::YES );
 		settings.rewinder              = ( cfg[ "timer rewinder"             ] == Configuration::YES );
 		settings.useDefaultSpeed       = ( cfg[ "timer default speed"        ] != Configuration::NO  );
 		settings.useDefaultRewindSpeed = ( cfg[ "timer default rewind speed" ] != Configuration::NO  );
@@ -107,6 +108,7 @@ namespace Nestopia
 		cfg[ "timer max frame skips"      ] = settings.maxFrameSkips;
 		cfg[ "timer auto frame skip"      ].YesNo() = settings.autoFrameSkip;
 		cfg[ "timer vsync"                ].YesNo() = settings.vsync;
+		cfg[ "timer triple buffering"     ].YesNo() = settings.tripleBuffering;
 		cfg[ "timer rewinder"             ].YesNo() = settings.rewinder;
 		cfg[ "timer default speed"        ].YesNo() = settings.useDefaultSpeed;
 		cfg[ "timer default rewind speed" ].YesNo() = settings.useDefaultRewindSpeed;
@@ -127,28 +129,29 @@ namespace Nestopia
 
 	ibool FrameClock::OnInitDialog(Param&)
 	{
-		dialog.Slider      ( IDC_TIMING_SPEED                  ).SetRange     ( MIN_SPEED, MAX_SPEED                         );
-		dialog.Slider      ( IDC_TIMING_SPEED                  ).Position() = ( settings.speed                               );	
-		dialog.Slider      ( IDC_TIMING_ALT_SPEED              ).SetRange     ( MIN_SPEED, MAX_SPEED                         );
-		dialog.Slider      ( IDC_TIMING_ALT_SPEED              ).Position() = ( settings.altSpeed                            );	
-		dialog.Slider      ( IDC_TIMING_REWINDER_SPEED         ).SetRange     ( MIN_SPEED, MAX_SPEED                         );
-		dialog.Slider      ( IDC_TIMING_REWINDER_SPEED         ).Position() = ( settings.rewindSpeed                         );
-		dialog.Slider      ( IDC_TIMING_FRAME_SKIPS            ).SetRange     ( MIN_FRAME_SKIPS, MAX_FRAME_SKIPS             );
-		dialog.Slider      ( IDC_TIMING_FRAME_SKIPS            ).Position() = ( settings.maxFrameSkips                       );
-		dialog.RadioButton ( IDC_TIMING_SYNC_REFRESH           ).Check        ( !settings.autoFrameSkip                      );
-		dialog.RadioButton ( IDC_TIMING_AUTO_FRAME_SKIP        ).Check        ( settings.autoFrameSkip                       );
-		dialog.CheckBox    ( IDC_TIMING_VSYNC                  ).Check        ( settings.vsync                               );
-		dialog.CheckBox    ( IDC_TIMING_REWINDER               ).Check        ( settings.rewinder                            );
-		dialog.CheckBox    ( IDC_TIMING_DEFAULT_SPEED          ).Check        ( settings.useDefaultSpeed                     );
-		dialog.CheckBox    ( IDC_TIMING_REWINDER_DEFAULT_SPEED ).Check        ( settings.useDefaultRewindSpeed               );
-		dialog.CheckBox    ( IDC_TIMING_REWINDER_NOSOUND       ).Check        ( settings.noRewindSound                       );
-		dialog.CheckBox    ( IDC_TIMING_PFC                    ).Check        ( settings.pfCounter                           );
-		dialog.Control     ( IDC_TIMING_PFC                    ).Enable       ( System::Timer::HasPerformanceCounter()       );
-		dialog.Control     ( IDC_TIMING_FRAME_SKIPS            ).Enable       ( settings.autoFrameSkip                       );
-		dialog.Control     ( IDC_TIMING_FRAME_SKIPS_TEXT       ).Enable       ( settings.autoFrameSkip                       );
-		dialog.Control     ( IDC_TIMING_FRAME_SKIPS_NUM        ).Enable       ( settings.autoFrameSkip                       );
-		dialog.Control     ( IDC_TIMING_SPEED                  ).Enable       ( !settings.useDefaultSpeed                    );
-		dialog.Control     ( IDC_TIMING_SPEED_NUM              ).Enable       ( !settings.useDefaultSpeed                    );
+		dialog.Slider      ( IDC_TIMING_SPEED                  ).SetRange     ( MIN_SPEED, MAX_SPEED                   );
+		dialog.Slider      ( IDC_TIMING_SPEED                  ).Position() = ( settings.speed                         );	
+		dialog.Slider      ( IDC_TIMING_ALT_SPEED              ).SetRange     ( MIN_SPEED, MAX_SPEED                   );
+		dialog.Slider      ( IDC_TIMING_ALT_SPEED              ).Position() = ( settings.altSpeed                      );	
+		dialog.Slider      ( IDC_TIMING_REWINDER_SPEED         ).SetRange     ( MIN_SPEED, MAX_SPEED                   );
+		dialog.Slider      ( IDC_TIMING_REWINDER_SPEED         ).Position() = ( settings.rewindSpeed                   );
+		dialog.Slider      ( IDC_TIMING_FRAME_SKIPS            ).SetRange     ( MIN_FRAME_SKIPS, MAX_FRAME_SKIPS       );
+		dialog.Slider      ( IDC_TIMING_FRAME_SKIPS            ).Position() = ( settings.maxFrameSkips                 );
+		dialog.RadioButton ( IDC_TIMING_SYNC_REFRESH           ).Check        ( !settings.autoFrameSkip                );
+		dialog.RadioButton ( IDC_TIMING_AUTO_FRAME_SKIP        ).Check        ( settings.autoFrameSkip                 );
+		dialog.CheckBox    ( IDC_TIMING_VSYNC                  ).Check        ( settings.vsync                         );
+		dialog.CheckBox    ( IDC_TIMING_TRIPLE_BUFFERING       ).Check        ( settings.tripleBuffering               );
+		dialog.CheckBox    ( IDC_TIMING_REWINDER               ).Check        ( settings.rewinder                      );
+		dialog.CheckBox    ( IDC_TIMING_DEFAULT_SPEED          ).Check        ( settings.useDefaultSpeed               );
+		dialog.CheckBox    ( IDC_TIMING_REWINDER_DEFAULT_SPEED ).Check        ( settings.useDefaultRewindSpeed         );
+		dialog.CheckBox    ( IDC_TIMING_REWINDER_NOSOUND       ).Check        ( settings.noRewindSound                 );
+		dialog.CheckBox    ( IDC_TIMING_PFC                    ).Check        ( settings.pfCounter                     );
+		dialog.Control     ( IDC_TIMING_PFC                    ).Enable       ( System::Timer::HasPerformanceCounter() );
+		dialog.Control     ( IDC_TIMING_FRAME_SKIPS            ).Enable       ( settings.autoFrameSkip                 );
+		dialog.Control     ( IDC_TIMING_FRAME_SKIPS_TEXT       ).Enable       ( settings.autoFrameSkip                 );
+		dialog.Control     ( IDC_TIMING_FRAME_SKIPS_NUM        ).Enable       ( settings.autoFrameSkip                 );
+		dialog.Control     ( IDC_TIMING_SPEED                  ).Enable       ( !settings.useDefaultSpeed              );
+		dialog.Control     ( IDC_TIMING_SPEED_NUM              ).Enable       ( !settings.useDefaultSpeed              );
 
 		dialog.Edit( IDC_TIMING_SPEED_NUM          ) << settings.speed;
 		dialog.Edit( IDC_TIMING_ALT_SPEED_NUM      ) << settings.altSpeed;
@@ -164,6 +167,7 @@ namespace Nestopia
 	{
 		settings.autoFrameSkip         = dialog.RadioButton ( IDC_TIMING_AUTO_FRAME_SKIP        ).IsChecked();
 		settings.vsync                 = dialog.CheckBox    ( IDC_TIMING_VSYNC                  ).IsChecked();
+		settings.tripleBuffering       = dialog.CheckBox    ( IDC_TIMING_TRIPLE_BUFFERING       ).IsChecked();	
 		settings.rewinder              = dialog.CheckBox    ( IDC_TIMING_REWINDER               ).IsChecked();
 		settings.useDefaultSpeed       = dialog.CheckBox    ( IDC_TIMING_DEFAULT_SPEED          ).IsChecked();
 		settings.useDefaultRewindSpeed = dialog.CheckBox    ( IDC_TIMING_REWINDER_DEFAULT_SPEED ).IsChecked();
@@ -270,6 +274,7 @@ namespace Nestopia
 			dialog.RadioButton ( IDC_TIMING_SYNC_REFRESH           ).Check  ( TRUE  );
 			dialog.RadioButton ( IDC_TIMING_AUTO_FRAME_SKIP        ).Check  ( FALSE );
 			dialog.CheckBox    ( IDC_TIMING_VSYNC                  ).Check  ( TRUE  );
+			dialog.CheckBox    ( IDC_TIMING_TRIPLE_BUFFERING       ).Check  ( FALSE );
 			dialog.CheckBox    ( IDC_TIMING_DEFAULT_SPEED          ).Check  ( TRUE  );
 			dialog.CheckBox    ( IDC_TIMING_REWINDER               ).Check  ( FALSE );
 			dialog.CheckBox    ( IDC_TIMING_REWINDER_DEFAULT_SPEED ).Check  ( TRUE  );

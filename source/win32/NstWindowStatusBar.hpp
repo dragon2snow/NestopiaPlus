@@ -43,6 +43,7 @@ namespace Nestopia
 			void Enable(ibool=TRUE,ibool=TRUE);
 			void Show() const;
 			uint GetHeight() const;
+			uint GetMaxMessageLength() const;
 
 			enum 
 			{

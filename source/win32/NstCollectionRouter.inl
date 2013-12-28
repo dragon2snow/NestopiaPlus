@@ -171,7 +171,7 @@ void Router<Output,Input,Key>::RemoveAll(const void* const data)
 }
 
 template<typename Output,typename Input,typename Key>
-void Router<Output,Input,Key>::AddHook(KeyParam key,const Hook::Item& newItem)
+void Router<Output,Input,Key>::AddHook(KeyParam key,typename const Hook::Item& newItem)
 {
 	Hook* hook;
 
@@ -211,7 +211,7 @@ void Router<Output,Input,Key>::AddHook(KeyParam key,const Hook::Item& newItem)
 }
 
 template<typename Output,typename Input,typename Key>
-ibool Router<Output,Input,Key>::RemoveHook(Item* const mainItem,Hook* const hook,Hook::Item* const hookItem)
+ibool Router<Output,Input,Key>::RemoveHook(Item* const mainItem,Hook* const hook,typename Hook::Item* const hookItem)
 {
 	NST_ASSERT( mainItem );
 
@@ -244,7 +244,7 @@ ibool Router<Output,Input,Key>::RemoveHook(Item* const mainItem,Hook* const hook
 }
 
 template<typename Output,typename Input,typename Key>
-void Router<Output,Input,Key>::RemoveHook(KeyParam key,const Hook::Item& item)
+void Router<Output,Input,Key>::RemoveHook(KeyParam key,typename const Hook::Item& item)
 {
 	if (Item* const mainItem = items.Find( key ))
 	{

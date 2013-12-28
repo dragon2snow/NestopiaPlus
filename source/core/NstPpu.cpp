@@ -575,9 +575,12 @@ namespace Nes
 				cycles.six   = MC_DIV_PAL * 6;
 			}
 		}
-	
+
         #ifdef NST_PRAGMA_OPTIMIZE
         #pragma optimize("", on)
+        #endif
+
+        #ifdef NST_PRAGMA_OPTIMIZE_ALIAS
         #pragma optimize("w", on)
         #endif
 	
@@ -892,7 +895,7 @@ namespace Nes
 			NST_VERIFY( IsDead() );
 	
 			io.latch = data = IsDead() ? data : Oam::GARBAGE;
-			u8& NST_RESTRICT value = oam.ram[oam.address];
+			u8& value = oam.ram[oam.address];
 			oam.address = (oam.address + 1) & 0xFF;
 			value = data;
 		}
@@ -1240,17 +1243,17 @@ namespace Nes
 					chrLut[1][pattern[1] >>  4].block
 				};
 	
-				Oam::Output& output = *oam.visible++;
+				Oam::Output* const NST_RESTRICT output = oam.visible++;
 	
-				output.block[0] = block[0];
-				output.block[1] = block[1];
+				output->block[0] = block[0];
+				output->block[1] = block[1];
 
 				const uint attribute = oam.loaded->attribute;
 
-				output.x       = oam.loaded->x;
-				output.palette = Palette::SPRITE_OFFSET + (attribute & (uint(Oam::COLOR) << 2));
-				output.zero    = (attribute & 0x1) ? b11 : b00;
-				output.behind  = (attribute & Oam::BEHIND) ? b11 : b00;	
+				output->x       = oam.loaded->x;
+				output->palette = Palette::SPRITE_OFFSET + (attribute & (uint(Oam::COLOR) << 2));
+				output->zero    = (attribute & 0x1) ? b11 : b00;
+				output->behind  = (attribute & Oam::BEHIND) ? b11 : b00;	
 			}
 	
 			++oam.loaded;
@@ -1313,10 +1316,10 @@ namespace Nes
 			}
 	
 			pixel = palette.ram[pixel];
-			u16& NST_RESTRICT screen = *output.pixels;
+			u16* const NST_RESTRICT screen = output.pixels;
 			output.pixels += output.next;
 			++output.index;
-			screen = output.emphasis + (output.coloring & pixel);
+			*screen = output.emphasis + (output.coloring & pixel);
 		}
 	
 		void Ppu::HActive0()
@@ -1769,7 +1772,7 @@ namespace Nes
 			}
 		}
 	
-        #ifdef NST_PRAGMA_OPTIMIZE
+        #ifdef NST_PRAGMA_OPTIMIZE_ALIAS
         #pragma optimize("", on)
         #endif
 	}

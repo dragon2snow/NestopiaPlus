@@ -22,7 +22,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#if defined(_DEBUG) && defined(_WIN32)
+#if !defined(NDEBUG) && defined(_WIN32)
 
 #include <cstdio>	
 #include <cstring>
@@ -36,6 +36,8 @@
 
 #ifdef __INTEL_COMPILER
 #pragma warning( disable : 981 )
+#elif defined (_MSC_VER)
+#pragma warning( disable : 4996 )
 #endif
 
 namespace Nes
@@ -70,7 +72,7 @@ namespace Nes
 			{
 				::MessageBox
 				(
-					NULL,
+     				::GetActiveWindow(),
 					"Out of memory!",
 					title,
 					MB_OK|MB_ICONERROR|MB_SETFOREGROUND|MB_TOPMOST
@@ -107,7 +109,7 @@ namespace Nes
 
 			int result = MessageBoxEx	         						 
 			(																 
-				NULL,														 
+       			::GetActiveWindow(),														 
 				buffer,                                                       
 				title,										 
 				MB_ABORTRETRYIGNORE|MB_SETFOREGROUND|MB_TOPMOST,
@@ -121,7 +123,7 @@ namespace Nes
 			
 			result = MessageBoxEx	         						 
 			(																 
-				NULL,														 
+    			::GetActiveWindow(),														 
 				"break into the debugger?",                                                       
 				title, 
 				MB_YESNO|MB_SETFOREGROUND|MB_TOPMOST,

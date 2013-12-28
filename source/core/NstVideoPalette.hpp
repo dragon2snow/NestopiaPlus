@@ -60,7 +60,7 @@ namespace Nes
 				~Palette();
 		
 				Result SetType(Type);
-				Result SetCustomColors(Colors NST_RESTRICT);
+				Result SetCustomColors(Colors);
 		
 			private:
 		

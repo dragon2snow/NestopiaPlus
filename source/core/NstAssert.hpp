@@ -26,7 +26,7 @@
 #error Do not include NstAssert.hpp directly!
 #endif
 		 
-#ifdef _DEBUG
+#ifndef NDEBUG
 
  #ifdef _WIN32
 

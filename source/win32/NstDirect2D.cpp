@@ -33,26 +33,24 @@ namespace Nestopia
 {
 	using DirectX::Direct2D;
 
-	ibool Direct2D::Mode::operator == (const Mode& mode) const
+	Direct2D::Mode::Mode(uint w,uint h,uint b)
+	: width(w), height(h), bpp(b) {}
+
+	bool Direct2D::Mode::operator == (const Mode& mode) const
 	{
-		return 
-		(
-			width == mode.width && 
-			height == mode.height && 
-			bpp == mode.bpp
-		);
+		return width == mode.width && height == mode.height && bpp == mode.bpp;
 	}
 
-	ibool Direct2D::Mode::operator < (const Mode& mode) const
+	bool Direct2D::Mode::operator < (const Mode& mode) const
 	{
-		if ( width  < mode.width  ) return TRUE;
-		if ( width  > mode.width  ) return FALSE;
-		if ( height < mode.height ) return TRUE;
-		if ( height > mode.height ) return FALSE;
-		if ( bpp    < mode.bpp    ) return TRUE;
-		if ( bpp    > mode.bpp    ) return FALSE;
+		if ( width  < mode.width  ) return true;
+		if ( width  > mode.width  ) return false;
+		if ( height < mode.height ) return true;
+		if ( height > mode.height ) return false;
+		if ( bpp    < mode.bpp    ) return true;
+		if ( bpp    > mode.bpp    ) return false;
 
-		return FALSE;
+		return false;
 	}
 
 	Direct2D::Base::Base()
@@ -112,24 +110,18 @@ namespace Nestopia
 						if (FAILED(d3d.EnumAdapterModes( ordinal, type, mode, &display )))
 							continue;
 						
-						if (display.Width < Adapter::MIN_WIDTH || display.Height < Adapter::MIN_HEIGHT)
+						if (display.Width < Mode::MIN_WIDTH || display.Height < Mode::MIN_HEIGHT || display.RefreshRate > Mode::MAX_RATE)
 							continue;
 						
-						const Mode entry( display.Width, display.Height, format ? 32 : 16, display.RefreshRate );
-
-						if (Mode* const current = modes.Find( entry ))
-						{
-							if (display.RefreshRate == Mode::DESIRED_HZ)
-								current->rate = Mode::DESIRED_HZ;
-						}
-						else
-						{
-							modes.Insert( entry );
-						}
+						modes.insert(Mode( display.Width, display.Height, format ? 32 : 16 )).first->rates.insert( (uchar) display.RefreshRate );
 					}
 				}
 
-				if (modes.Size())
+				if (modes.empty())
+				{
+					Io::Log() << "Direct3D: found no valid display mode, continuing enumeration..\r\n";
+				}
+				else
 				{
 					D3DCAPS9 caps;
 
@@ -154,21 +146,45 @@ namespace Nestopia
 					adapter.ordinal         = ordinal;
 					adapter.deviceType      = (caps.DeviceType != D3DDEVTYPE_REF ? Adapter::DEVICE_HAL : Adapter::DEVICE_HEL);
 					adapter.maxScreenSize   = NST_MIN(caps.MaxTextureWidth,caps.MaxTextureHeight);
-					adapter.videoMemScreen  = ((caps.Caps2 & D3DCAPS2_DYNAMICTEXTURES) != 0);
-					adapter.modes           = modes;
+					adapter.videoMemScreen  = caps.Caps2 & D3DCAPS2_DYNAMICTEXTURES;
+					adapter.intervalTwo     = caps.PresentationIntervals & D3DPRESENT_INTERVAL_TWO;
+					adapter.intervalThree   = caps.PresentationIntervals & D3DPRESENT_INTERVAL_THREE;
+					adapter.intervalFour    = caps.PresentationIntervals & D3DPRESENT_INTERVAL_FOUR;
 					adapter.filters         = 0;
+					adapter.modes           = modes;
 
 					if ((caps.TextureFilterCaps & (D3DPTFILTERCAPS_MINFLINEAR|D3DPTFILTERCAPS_MAGFLINEAR)) == (D3DPTFILTERCAPS_MINFLINEAR|D3DPTFILTERCAPS_MAGFLINEAR))
 						adapter.filters |= Adapter::FILTER_BILINEAR;
 
-					Io::Log() << "Direct3D: dynamic textures: " << (adapter.videoMemScreen ? "supported\r\n" : "unsupported\r\n")
-							  << "Direct3D: texture bilinear filtering: " << ((adapter.filters & Adapter::FILTER_BILINEAR) ? "supported\r\n" : "unsupported\r\n")
-							  << "Direct3D: max texture dimensions: " << caps.MaxTextureWidth << 'x' << caps.MaxTextureHeight
-						      << "\r\nDirect3D: found " << modes.Size() << " display modes\r\n";
-				}
-				else
-				{
-					Io::Log() << "Direct3D: found no valid display mode, continuing enumeration..\r\n";
+					Io::Log log;
+
+					log << "Direct3D: dynamic textures: " << (adapter.videoMemScreen ? "supported\r\n" : "unsupported\r\n")
+					    << "Direct3D: texture bilinear filtering: " << ((adapter.filters & Adapter::FILTER_BILINEAR) ? "supported\r\n" : "unsupported\r\n")
+					    << "Direct3D: max texture dimensions: " << caps.MaxTextureWidth << 'x' << caps.MaxTextureHeight
+						<< "\r\nDirect3D: vsync on every second refresh: " << (adapter.intervalTwo ? "supported\r\n" : "unsupported\r\n")
+						<< "Direct3D: vsync on every third refresh: " << (adapter.intervalThree ? "supported\r\n" : "unsupported\r\n")
+					    << "Direct3D: found " << modes.size() << " display modes\r\n"
+				     	<< "Direct3D: supported monitor frequencies: ";
+					
+					Mode::Rates rates;
+
+					for (Adapter::Modes::const_iterator it(modes.begin()), end(modes.end()); it != end; ++it)
+						rates.insert( it->rates.begin(), it->rates.end() );
+
+					for (Mode::Rates::const_iterator it(rates.begin()), end(rates.end());; )
+					{
+						log << uint(*it);
+
+						if (++it != end)
+						{
+							log << "hz, ";
+						}
+						else
+						{
+							log << "hz\r\n";
+							break;
+						}
+					}
 				}
 			}
 		}
@@ -231,6 +247,9 @@ namespace Nestopia
     #pragma optimize("", on)
     #endif
 
+	Direct2D::Device::Fonts::Fonts()
+	: width(0) {}
+
 	void Direct2D::Device::Fonts::Font::Create(const Device& device)
 	{
 		uint height;
@@ -278,6 +297,16 @@ namespace Nestopia
 		);
 	}
 
+	uint Direct2D::Device::Fonts::Font::GetWidth() const
+	{
+		TEXTMETRIC metric;
+
+		if (com && SUCCEEDED(com->GetTextMetrics( &metric )))
+			return metric.tmAveCharWidth;
+		else
+			return 0;
+	}
+
 	void Direct2D::Device::Fonts::Font::Destroy()
 	{
 		length = 0;
@@ -314,10 +343,14 @@ namespace Nestopia
 			fps.Create( device );
 			msg.Create( device );
 		}
+
+		width = nfo.GetWidth();
 	}
 
 	void Direct2D::Device::Fonts::Destroy(const ibool newDevice)
 	{
+		width = 0;
+
 		fps.Destroy();
 		msg.Destroy();
 
@@ -408,7 +441,13 @@ namespace Nestopia
     #endif
 
 	Direct2D::Device::Timing::Timing()
-	: vsync(FALSE), frameRate(Mode::DESIRED_HZ) {}
+	: 
+	autoHz          (false),
+	vsync           (false), 
+	tripleBuffering (false),
+	frameRate       (Mode::DEFAULT_RATE) 
+	{
+	}
 
 	Direct2D::Device::Device(HWND const hWnd,const Base& base)
 	{
@@ -417,7 +456,7 @@ namespace Nestopia
 		presentation.BackBufferWidth            = 0;
 		presentation.BackBufferHeight           = 0;
 		presentation.BackBufferFormat           = D3DFMT_UNKNOWN;
-		presentation.BackBufferCount            = DEFAULT_BACK_BUFFER_COUNT;
+		presentation.BackBufferCount            = timing.tripleBuffering ? 2 : 1;
 		presentation.MultiSampleType            = D3DMULTISAMPLE_NONE;
 		presentation.MultiSampleQuality         = 0;
 		presentation.SwapEffect                 = D3DSWAPEFFECT_DISCARD;
@@ -440,11 +479,14 @@ namespace Nestopia
 	void Direct2D::Device::Create(IDirect3D9& d3d,const Adapter& adapter)
 	{
 		ordinal = adapter.ordinal;
+		intervalTwo = adapter.intervalTwo;
+		intervalThree = adapter.intervalThree;
+		intervalFour = adapter.intervalFour;
 
 		fonts.Destroy( TRUE );
 		com.Release();
 
-		uint buffers = presentation.BackBufferCount = DEFAULT_BACK_BUFFER_COUNT;
+		uint buffers = presentation.BackBufferCount = timing.tripleBuffering ? 2 : 1;
 		DWORD flags = D3DCREATE_PUREDEVICE|D3DCREATE_HARDWARE_VERTEXPROCESSING;
 
 		for (;;)
@@ -488,9 +530,6 @@ namespace Nestopia
 			}
 		}
 
-		if (FAILED(com->SetDialogBoxMode( TRUE )))
-			throw Application::Exception("IDirect3DDevice9::SetDialogBoxMode() failed!");
-
 		Prepare();
 		fonts.Create( *this );		
 
@@ -517,25 +556,96 @@ namespace Nestopia
 		return result;
 	}
 
-	DWORD Direct2D::Device::GetDesiredPresentationInterval() const
+	uint Direct2D::Device::GetDesiredPresentationRate(const Mode& mode) const
 	{
-		if (timing.vsync)
+		if (presentation.Windowed)
 		{
-			if (presentation.Windowed)
-			{
-				D3DDISPLAYMODE mode;
+			return 0;
+		}
+		else if (timing.autoHz)
+		{
+			int match = INT_MAX;
+			Mode::Rates::const_iterator close(mode.rates.begin());
 
-				if (GetDisplayMode( mode ) && timing.frameRate == mode.RefreshRate)
-					return D3DPRESENT_INTERVAL_ONE;
-			}
-			else
+			for (Mode::Rates::const_iterator it(mode.rates.end()), begin(mode.rates.begin());; )
 			{
-				if (timing.frameRate == presentation.FullScreen_RefreshRateInHz)
-					return D3DPRESENT_INTERVAL_ONE;
+				--it;
+
+				for (uint i=5; --i; )
+				{
+					int diff = int(timing.frameRate * i) - int(*it);
+
+					if (diff == 0)
+						return *it;
+
+					if (diff < 0)
+						diff = int(*it) - int(timing.frameRate * i);
+
+					if (match > diff)
+					{
+						match = diff;
+						close = it;
+					}
+				}
+
+				if (it == begin)
+					break;
 			}
+
+			return *close;
+		}
+		else for (Mode::Rates::const_iterator it(mode.rates.begin()), end(mode.rates.end()); it != end; ++it)
+		{
+			if (*it == Mode::DEFAULT_RATE)
+				return Mode::DEFAULT_RATE;
 		}
 
-		return D3DPRESENT_INTERVAL_IMMEDIATE;
+		return 0;
+	}
+
+	DWORD Direct2D::Device::GetDesiredPresentationInterval(const uint rate) const
+	{
+		if (!timing.vsync || rate % timing.frameRate)
+		{
+			return D3DPRESENT_INTERVAL_IMMEDIATE;
+		}
+		else if (presentation.Windowed)
+		{
+			return D3DPRESENT_INTERVAL_ONE;
+		}
+		else if (timing.frameRate * 4U == rate && intervalFour)
+		{
+			return D3DPRESENT_INTERVAL_FOUR;
+		}
+		else if (timing.frameRate * 3U == rate && intervalThree)
+		{
+			return D3DPRESENT_INTERVAL_THREE;
+		}
+		else if (timing.frameRate * 2U == rate && intervalTwo)
+		{
+			return D3DPRESENT_INTERVAL_TWO;
+		}
+		else
+		{
+			return D3DPRESENT_INTERVAL_ONE;
+		}
+	}
+
+	DWORD Direct2D::Device::GetDesiredPresentationInterval() const
+	{
+		uint rate;
+
+		if (presentation.Windowed)
+		{
+			D3DDISPLAYMODE mode;
+			rate = GetDisplayMode( mode ) ? mode.RefreshRate : 0;
+		}
+		else
+		{
+			rate = presentation.FullScreen_RefreshRateInHz;
+		}
+
+		return GetDesiredPresentationInterval( rate );
 	}
 
 	HRESULT Direct2D::Device::Reset()
@@ -544,14 +654,18 @@ namespace Nestopia
 
 		const uint oldInterval = presentation.PresentationInterval;
 		presentation.PresentationInterval = GetDesiredPresentationInterval();
-		uint buffers = presentation.BackBufferCount = DEFAULT_BACK_BUFFER_COUNT;
+		uint buffers = presentation.BackBufferCount = timing.tripleBuffering ? 2 : 1;
   
+		if (!(presentation.Flags & D3DPRESENTFLAG_LOCKABLE_BACKBUFFER))
+			com->SetDialogBoxMode( FALSE );
+
 		for (;;)
 		{
 			const HRESULT hResult = com->Reset( &presentation );
 
 			if (SUCCEEDED(hResult))
 			{
+//				Io::Screen() << GetMaxMessageLength();
 				break;
 			}
 			else if (hResult == D3DERR_DEVICELOST)
@@ -569,11 +683,26 @@ namespace Nestopia
 			}
 		}
 
+		if ((presentation.Flags & D3DPRESENTFLAG_LOCKABLE_BACKBUFFER) && FAILED(com->SetDialogBoxMode( TRUE )))
+			throw Application::Exception("IDirect3DDevice9::SetDialogBoxMode() failed!");
+
 		Prepare();
 		fonts.OnReset();
 
 		if (presentation.PresentationInterval != oldInterval)
-			Io::Log() << (presentation.PresentationInterval == D3DPRESENT_INTERVAL_IMMEDIATE ? "Direct3D: disabling VSYNC\r\n" : "Direct3D: enabling VSYNC\r\n");
+		{
+			cstring msg;
+
+			switch (presentation.PresentationInterval)
+			{
+				case D3DPRESENT_INTERVAL_IMMEDIATE:	msg = "Direct3D: disabling VSYNC\r\n";                  break;
+				case D3DPRESENT_INTERVAL_TWO:		msg = "Direct3D: enabling VSYNC on second refresh\r\n"; break;
+				case D3DPRESENT_INTERVAL_THREE:		msg = "Direct3D: enabling VSYNC on third refresh\r\n";  break;
+				default:							msg = "Direct3D: enabling VSYNC\r\n";                   break;
+			}
+
+			Io::Log() << msg;
+		}
 
 		return D3D_OK;
 	}
@@ -610,6 +739,11 @@ namespace Nestopia
 
 		if (FAILED(com->SetFVF( VertexBuffer::FVF )))
 			throw Application::Exception("IDirect3DDevice9::SetFVF() failed!");
+	}
+
+	uint Direct2D::Device::GetMaxMessageLength() const
+	{																				  
+		return fonts.GetWidth() ? (presentation.BackBufferWidth - fonts.GetWidth() * 7) / fonts.GetWidth() : 64;
 	}
 
     #ifdef NST_PRAGMA_OPTIMIZE
@@ -692,6 +826,11 @@ namespace Nestopia
 		throw Application::Exception( msg );
 	}
 
+	ibool Direct2D::Device::CanToggleDialogBoxMode(bool enable) const
+	{
+		return !presentation.Windowed && bool(presentation.Flags & D3DPRESENTFLAG_LOCKABLE_BACKBUFFER) != enable;
+	}
+
 	ibool Direct2D::Device::CanSwitchFullscreen(const Mode& mode) const
 	{
 		return 
@@ -709,14 +848,22 @@ namespace Nestopia
 		presentation.BackBufferWidth = mode.width;
 		presentation.BackBufferHeight = mode.height;
 		presentation.BackBufferFormat = (mode.bpp == 16 ? D3DFMT_R5G6B5 : D3DFMT_X8R8G8B8);
-		presentation.FullScreen_RefreshRateInHz = mode.rate;
-		presentation.Flags = D3DPRESENTFLAG_LOCKABLE_BACKBUFFER; // required for SetDialogBoxMode()
+		presentation.FullScreen_RefreshRateInHz = GetDesiredPresentationRate( mode );
+		presentation.Flags = 0;
 
 		if (FAILED(Reset()))
 			throw Application::Exception("Couldn't switch display mode!");
 
 		fonts.Create( *this );
 		LogDisplaySwitch();
+	}
+
+	HRESULT Direct2D::Device::ToggleDialogBoxMode(ibool enable)
+	{
+		NST_ASSERT( !presentation.Windowed );
+
+		presentation.Flags = (enable ? D3DPRESENTFLAG_LOCKABLE_BACKBUFFER : 0);
+		return Reset();
 	}
 
 	void Direct2D::Device::SwitchWindowed()
@@ -749,19 +896,52 @@ namespace Nestopia
 		return hResult;
 	}
 
-	ibool Direct2D::Device::CanResetFrameRate(const uint frameRate,uint vsync)
+	ibool Direct2D::Device::ResetFrameRate(uint frameRate,bool vsync,bool tripleBuffering,const Base& base)
 	{
-		timing.frameRate = frameRate;
+		timing.frameRate = (u8) frameRate;
 		timing.vsync = vsync;
 
-		return presentation.PresentationInterval != GetDesiredPresentationInterval();
+		if (timing.tripleBuffering != tripleBuffering)
+		{
+			timing.tripleBuffering = tripleBuffering;
+			return TRUE;
+		}
+		else if (presentation.Windowed)
+		{
+			return presentation.PresentationInterval != GetDesiredPresentationInterval();
+		}
+		else
+		{
+			const Mode mode
+			( 
+		     	presentation.BackBufferWidth, 
+				presentation.BackBufferHeight, 
+				presentation.BackBufferFormat == D3DFMT_X8R8G8B8 ? 32 : 16
+			);
+
+			frameRate = GetDesiredPresentationRate( *base.GetAdapter(ordinal).modes.find(mode) );
+
+			if (presentation.FullScreen_RefreshRateInHz != frameRate)
+			{
+				presentation.FullScreen_RefreshRateInHz = frameRate;
+				return TRUE;
+			}
+			else
+			{
+				return presentation.PresentationInterval != GetDesiredPresentationInterval( frameRate );
+			}
+		}
 	}
 
 	Direct2D::VertexBuffer::Vertex::Vertex()
 	: z(0.f), rhw(1.f) {}
 
     #ifdef NST_PRAGMA_OPTIMIZE
-    #pragma optimize("at", on)
+    #pragma optimize("t", on)
+    #endif
+
+    #ifdef NST_PRAGMA_OPTIMIZE_ALIAS
+    #pragma optimize("a", on)
     #endif
 
 	void Direct2D::VertexBuffer::Update(const Rect& picture,const Rect& clip,const float scale)
@@ -958,15 +1138,6 @@ namespace Nestopia
 
 				if (FAILED(device.SetTexture( 0, com )))
 					throw Application::Exception("IDirect3DDevice9::SetTexture() failed!");
-
-				Io::Log() << "Direct3D: creating " 
-					      << desc.Width 
-						  << 'x' 
-						  << desc.Height 
-						  << 'x' 
-						  << bpp
-						  << " NES screen texture in " 
-						  << (desc.Pool == D3DPOOL_DEFAULT ? "video memory\r\n" : "system memory\r\n");
 			}
 			else if (hResult == D3DERR_DEVICELOST) 
 			{	
@@ -1029,22 +1200,22 @@ namespace Nestopia
 		}
 	}
 
-	void Direct2D::SelectAdapter(const uint index)
+	void Direct2D::SelectAdapter(const Adapters::const_iterator adapter)
 	{
-		if (device.GetOrdinal() != base.GetAdapter(index).ordinal)
+		if (device.GetOrdinal() != adapter->ordinal)
 		{
 			InvalidateObjects();
-			device.Create( base, base.GetAdapter(index) );
+			device.Create( base, *adapter );
 			lastResult = NST_E_INVALID_RECT;
 		}
 	}
 
-	ibool Direct2D::SwitchFullscreen(const Mode& mode)
+	ibool Direct2D::SwitchFullscreen(const Adapter::Modes::const_iterator mode)
 	{
-		if (device.CanSwitchFullscreen( mode ))
+		if (device.CanSwitchFullscreen( *mode ))
 		{
 			InvalidateObjects();
-			device.SwitchFullscreen( mode );
+			device.SwitchFullscreen( *mode );
 			lastResult = D3D_OK;
 			ValidateObjects();
 			return TRUE;
@@ -1065,6 +1236,16 @@ namespace Nestopia
 		}
 
 		return FALSE;
+	}
+
+	void Direct2D::EnableDialogBoxMode(const ibool enable)
+	{
+		if (device.CanToggleDialogBoxMode( enable ))
+		{
+			InvalidateObjects();
+			lastResult = device.ToggleDialogBoxMode( enable );
+			ValidateObjects();
+		}
 	}
 
 	ibool Direct2D::Reset()
@@ -1145,9 +1326,9 @@ namespace Nestopia
 		ValidateObjects();
 	}
 
-	void Direct2D::UpdateFrameRate(const uint frameRate,const ibool vsync)
+	void Direct2D::UpdateFrameRate(const uint frameRate,const ibool vsync,const ibool tripleBuffering)
 	{
-		if (device.CanResetFrameRate( frameRate, vsync ))
+		if (device.ResetFrameRate( frameRate, vsync, tripleBuffering, base ))
 		{
 			InvalidateObjects();
 

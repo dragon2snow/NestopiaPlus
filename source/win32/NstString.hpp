@@ -31,16 +31,6 @@
 #include <cstring>
 #include "NstMain.hpp"
 
-// pretty sure MS is wrong and everyone else is right about this one
-
-#ifdef __INTEL_COMPILER
-#define NST_CRAPPY_FRIEND template<typename> 
-#elif defined(_MSC_VER)
-#define NST_CRAPPY_FRIEND
-#else
-#define NST_CRAPPY_FRIEND template<typename>
-#endif
-
 namespace Nestopia
 {
 	namespace String
@@ -53,8 +43,8 @@ namespace Nestopia
 		namespace Private
 		{
 			uint Length (cstring) throw();
-			uint Copy   (char* NST_RESTRICT,cstring NST_RESTRICT) throw();
-			void Insert (char* NST_RESTRICT,uint,uint,cstring NST_RESTRICT,uint) throw();
+			uint Copy   (char* NST_RESTRICT,const char* NST_RESTRICT) throw();
+			void Insert (char* NST_RESTRICT,uint,uint,const char* NST_RESTRICT,uint) throw();
 			void Erase  (char*,uint,uint,uint) throw();
 			uint Remove (char*,uint,int) throw();
 
@@ -68,14 +58,14 @@ namespace Nestopia
 			void MakeLowerCase (char* NST_RESTRICT,uint) throw();
 			void MakeUpperCase (char* NST_RESTRICT,uint) throw();
 
-			ibool ToUnsigned (cstring NST_RESTRICT,u32& NST_RESTRICT) throw();	
+			ibool ToUnsigned (const char* NST_RESTRICT,u32&) throw();	
 			char* FromSigned (char (&)[12],i32) throw();
 			char* FromUnsigned (char (&)[12],u32) throw();
 
 			uint Trim (char*,uint) throw();
 			cstring Find (cstring,cstring,uint) throw();
 
-			uint ExtensionId (cstring NST_RESTRICT) throw();
+			uint ExtensionId (const char* NST_RESTRICT) throw();
 			ibool FileExist (cstring);
 			ibool DirExist (cstring);
 
@@ -427,9 +417,9 @@ namespace Nestopia
 
 		namespace Private
 		{
-			template<typename> class Subset1;
-			template<typename> class Subset2;
-			template<uint,bool> class Base;
+			template<typename T> class Subset1;
+			template<typename T> class Subset2;
+			template<uint N,bool B> class Base;
 
 			class Dynamic
 			{
@@ -438,20 +428,20 @@ namespace Nestopia
 				static char empty[4];
 
 				explicit Dynamic(uint,char* = empty);
-				explicit Dynamic(cstring NST_RESTRICT,char* = empty);
+				explicit Dynamic(const char* NST_RESTRICT,char* = empty);
 				Dynamic(uint,char*,uint);
-				Dynamic(cstring NST_RESTRICT,char*,uint);
-				Dynamic(const Dynamic& NST_RESTRICT,char*,uint);
+				Dynamic(const char* NST_RESTRICT,char*,uint);
+				Dynamic(const Dynamic&,char*,uint);
 
 				void Destroy(char* = empty,uint=0);
 				void Defrag(char* = empty,uint=0);
-				void AssignTerminated(cstring NST_RESTRICT,char* = empty);
-				void AppendTerminated(cstring NST_RESTRICT,char* = empty);
-				void Assign(cstring NST_RESTRICT,uint,char* = empty);
-				void Append(cstring NST_RESTRICT,uint,char* = empty);
-				void Insert(uint,cstring NST_RESTRICT,uint,char* = empty);
+				void AssignTerminated(const char* NST_RESTRICT,char* = empty);
+				void AppendTerminated(const char* NST_RESTRICT,char* = empty);
+				void Assign(const char* NST_RESTRICT,uint,char* = empty);
+				void Append(const char* NST_RESTRICT,uint,char* = empty);
+				void Insert(uint,const char* NST_RESTRICT,uint,char* = empty);
 				void Insert(uint,uint,char* = empty);
-				void Parse(cstring NST_RESTRICT,uint,char* = empty);
+				void Parse(const char* NST_RESTRICT,uint,char* = empty);
 
 				char* data;
 				uint capacity;
@@ -485,8 +475,8 @@ namespace Nestopia
 
 			template<uint N,bool B> class Basic
 			{
-				NST_CRAPPY_FRIEND friend class Subset1;
-				NST_CRAPPY_FRIEND friend class Subset2;
+				template<typename T> friend class Subset1;
+				template<typename T> friend class Subset2;
 
 				NST_COMPILE_ASSERT( N >= 8 );
 
@@ -509,7 +499,7 @@ namespace Nestopia
 				Basic()
 				: size(0), empty('\0') {}
 
-				explicit Basic(const Basic& NST_RESTRICT basic)
+				explicit Basic(const Basic& basic)
 				: size(basic.size)
 				{
 					NST_ASSERT( basic.size <= STACK_CAPACITY );
@@ -517,7 +507,7 @@ namespace Nestopia
 					NST_ASSERT( data[size] == '\0' );
 				}
 
-				explicit Basic(cstring NST_RESTRICT string)
+				explicit Basic(const char* NST_RESTRICT string)
 				{
 					size = Private::Copy( data, string );
 					NST_ASSERT( size <= STACK_CAPACITY );
@@ -528,7 +518,7 @@ namespace Nestopia
 				{
 				}
 
-				void operator = (const Basic& NST_RESTRICT basic)
+				void operator = (const Basic& basic)
 				{
 					NST_ASSERT( basic.size <= STACK_CAPACITY );
 					size = basic.size;
@@ -536,19 +526,19 @@ namespace Nestopia
 					NST_ASSERT( data[size] == '\0' );
 				}
 
-				void AssignTerminated(cstring NST_RESTRICT string)
+				void AssignTerminated(const char* NST_RESTRICT string)
 				{
 					size = Private::Copy( data, string );
 					NST_ASSERT( size <= STACK_CAPACITY );
 				}
 
-				void AppendTerminated(cstring NST_RESTRICT string)
+				void AppendTerminated(const char* NST_RESTRICT string)
 				{
 					size += Private::Copy( data + size, string );
 					NST_ASSERT( size <= STACK_CAPACITY );
 				}
 
-				void Insert(uint pos,cstring NST_RESTRICT string,uint length)
+				void Insert(uint pos,const char* NST_RESTRICT string,uint length)
 				{
 					NST_ASSERT( size + length <= STACK_CAPACITY );
 					uint old = size; size += length;
@@ -557,14 +547,14 @@ namespace Nestopia
 
 			public:
 
-				void Assign(cstring NST_RESTRICT string,uint length)
+				void Assign(const char* NST_RESTRICT string,uint length)
 				{
 					NST_ASSERT( length <= STACK_CAPACITY );
 					std::memcpy( data, string, size=length );
 					data[length] = '\0';
 				}
 
-				void Append(cstring NST_RESTRICT string,uint length)
+				void Append(const char* NST_RESTRICT string,uint length)
 				{
 					NST_ASSERT( size + length <= STACK_CAPACITY );
 					char* offset = data + size; size += length;
@@ -592,14 +582,14 @@ namespace Nestopia
 
 			template<> class Basic<0U,false> : public Dynamic
 			{
-				NST_CRAPPY_FRIEND friend class Subset1;
-				NST_CRAPPY_FRIEND friend class Subset2;
+				template<typename T> friend class Subset1;
+				template<typename T> friend class Subset2;
 
 			protected:
 
 				Basic() {}
 
-				explicit Basic(const Basic& NST_RESTRICT);
+				explicit Basic(const Basic&);
 				explicit Basic(cstring);
 				explicit Basic(uint);
 
@@ -609,7 +599,7 @@ namespace Nestopia
 						delete [] data;
 				}
 
-				void operator = (const Basic& NST_RESTRICT);
+				void operator = (const Basic&);
 
 				void AssignTerminated(cstring);
 				void AppendTerminated(cstring);
@@ -627,8 +617,8 @@ namespace Nestopia
 
 			template<uint N> class Basic<N,true> : public Dynamic
 			{
-				NST_CRAPPY_FRIEND friend class Subset1;
-				NST_CRAPPY_FRIEND friend class Subset2;
+				template<typename T> friend class Subset1;
+				template<typename T> friend class Subset2;
 
 				NST_COMPILE_ASSERT( N >= 8 );
 
@@ -726,8 +716,8 @@ namespace Nestopia
 
 			template<typename T> class Subset2
 			{
-				NST_CRAPPY_FRIEND friend class Base;
-				NST_CRAPPY_FRIEND friend struct Comparer;
+				template<uint N,bool B> friend class Base;
+				template<typename A,bool X> friend struct Comparer;
 
 				friend class Generic;
 				friend class Anything;
@@ -1001,7 +991,7 @@ namespace Nestopia
 				}
 
 				template<typename T> 
-				Base(const T& NST_RESTRICT t)
+				Base(const T& t)
 				: Simple( t.Size() )
 				{
 					std::memcpy( data, static_cast<cstring>(t), size );
@@ -1506,6 +1496,8 @@ namespace Nestopia
 
 			void Set(Generic,Generic,Generic);
 
+			static Path Compact(Generic,uint);
+
 		private:
 
 			uint FindDirectory() const;
@@ -1582,7 +1574,7 @@ namespace Nestopia
 
 			class ExtensionSub : public Private::Subset1<Path>
 			{
-				void Set(cstring NST_RESTRICT,uint);
+				void Set(const char* NST_RESTRICT,uint);
 
 			public:
 
@@ -1897,7 +1889,7 @@ namespace Nestopia
 		}
 
 		template<bool B>
-		void Path<B>::ExtensionSub::Set(cstring NST_RESTRICT input,uint length)
+		void Path<B>::ExtensionSub::Set(const char* NST_RESTRICT input,uint length)
 		{
 			if (*input == '.')
 			{
@@ -1945,7 +1937,5 @@ namespace Nestopia
 		};
 	}
 }
-
-#undef NST_CRAPPY_FRIEND
 
 #endif

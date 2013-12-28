@@ -70,7 +70,6 @@ namespace Nes
 
         #ifdef NST_PRAGMA_OPTIMIZE
         #pragma optimize("", on)
-        #pragma optimize("w", on)
         #endif
 
 		void Mapper165::SwapChrLo() const
@@ -127,9 +126,5 @@ namespace Nes
 
 			return data;
 		}
-
-        #ifdef NST_PRAGMA_OPTIMIZE
-        #pragma optimize("", on)
-        #endif
 	}
 }

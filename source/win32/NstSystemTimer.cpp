@@ -26,7 +26,6 @@
 
 #include "NstApplicationException.hpp"
 #include "NstSystemTimer.hpp"
-#include "NstIoScreen.hpp"
 #include <Windows.h>
 
 #ifdef _MSC_VER

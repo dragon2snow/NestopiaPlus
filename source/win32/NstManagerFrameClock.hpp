@@ -92,8 +92,7 @@ namespace Nestopia
 
 			void GameSynchronize(ibool wait)
 			{
-				if (wait | settings.autoFrameSkip)
-					Synchronize( wait, ~0U );
+   				Synchronize( wait, ~0U );
 			}
 
 			void SoundSynchronize()

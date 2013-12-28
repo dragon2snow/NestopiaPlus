@@ -26,7 +26,6 @@
 #include "NstApplicationException.hpp"
 #include "NstApplicationInstance.hpp"
 #include "NstSystemTimer.hpp"
-#include "NstManagerEmulator.hpp"
 #include "NstWindowMenu.hpp"
 #include "NstManagerPaths.hpp"
 #include "NstResourceString.hpp"
@@ -174,6 +173,7 @@ namespace Nestopia
 		static const Window::MsgHandler::Entry<Video> messages[] =
 		{
 			{ WM_PAINT,        &Video::OnPaint      },
+			{ WM_NCPAINT,      &Video::OnNcPaint    },
 			{ WM_ERASEBKGND,   &Video::OnEraseBkGnd }
 		};
 
@@ -202,6 +202,7 @@ namespace Nestopia
 		Nes::Video::Output::lockCallback.Set( &Callbacks::ScreenLock, &direct2d );
 		Nes::Video::Output::unlockCallback.Set( &Callbacks::ScreenUnlock, &direct2d );
 
+		direct2d.EnableAutoFrequency( dialog->UseAutoFrequency() );
 		direct2d.SelectAdapter( dialog->GetAdapter() );
 
 		if (cfg["view show status bar"] != Configuration::NO)
@@ -249,9 +250,16 @@ namespace Nestopia
 		return Point( ::GetSystemMetrics( SM_CXSCREEN ), ::GetSystemMetrics( SM_CYSCREEN ) );
 	}
 
+	uint Video::GetMaxMessageLength() const
+	{
+		return IsFullscreen() ? direct2d.GetMaxMessageLength() : statusBar.IsEnabled() ? statusBar.GetMaxMessageLength() : 0;
+	}
+
 	void Video::OnMenuOptions(uint)
 	{
 		dialog->Open();
+
+		direct2d.EnableAutoFrequency( dialog->UseAutoFrequency() );
 		direct2d.SelectAdapter( dialog->GetAdapter() );
 
 		if (IsFullscreen())
@@ -331,7 +339,15 @@ namespace Nestopia
 
 		if (result == Direct2D::SCREENSHOT_OK)
 		{
-			Io::Screen() << Resource::String(IDS_SCREEN_SCREENSHOT_SAVED_TO) << " \"" << path << '\"';
+			const uint length = GetMaxMessageLength();
+
+			if (length > 22)
+			{
+				Io::Screen() << Resource::String(IDS_SCREEN_SCREENSHOT_SAVED_TO) 
+					         << " \"" 
+							 << String::Path<true>::Compact( path, length - 20 ) 
+							 << '\"';
+			}
 		}
 		else
 		{
@@ -383,6 +399,19 @@ namespace Nestopia
 		PresentScreen();
 
 		return TRUE;
+	}
+
+	ibool Video::OnNcPaint(Window::Param&)
+	{
+		direct2d.EnableDialogBoxMode
+		(
+	     	!emulator.Is(Nes::Machine::ON) || 
+			emulator.Is(Nes::Machine::SOUND) ||
+			menu.IsVisible() || 
+			Application::Instance::IsAnyChildWindowVisible() 
+		);
+
+		return FALSE;
 	}
 
 	ibool Video::OnEraseBkGnd(Window::Param& param)
@@ -474,7 +503,7 @@ namespace Nestopia
 		}
 	}
 
-	void Video::SwitchFullscreen(const Mode& mode)
+	void Video::SwitchFullscreen(Mode mode)
 	{
 		if (direct2d.SwitchFullscreen( mode ))
 		{
@@ -509,32 +538,37 @@ namespace Nestopia
 
 	void Video::OnAppEvent(Instance::Event event,const void* param)
 	{
-		if (IsFullscreen() && Instance::NumChildWindows() == childWindowSwitchCount)
+		if (IsFullscreen())
 		{
 			switch (event)
 			{
 				case Instance::EVENT_WINDOW_CREATE:
-				{
-					const Instance::Events::WindowCreateParam& info =
-					(
-       					*static_cast<const Instance::Events::WindowCreateParam*>(param)
-					);
-		
-					const Point mode( GetDisplayMode() );
+				
+					if (Instance::NumChildWindows() == childWindowSwitchCount)
+					{
+						const Instance::Events::WindowCreateParam& info =
+						(
+							*static_cast<const Instance::Events::WindowCreateParam*>(param)
+						);
 
-					if 
-					(
-						(mode.x < MIN_DIALOG_WIDTH || mode.y < MIN_DIALOG_HEIGHT) &&
-						(mode.x < int(info.x) || mode.y < int(info.y))
-					)
-						SwitchFullscreen( dialog->GetDialogMode() );
-		
+						const Point mode( GetDisplayMode() );
+
+						if 
+						(
+							(mode.x < MIN_DIALOG_WIDTH || mode.y < MIN_DIALOG_HEIGHT) &&
+							(mode.x < int(info.x) || mode.y < int(info.y))
+						)
+							SwitchFullscreen( dialog->GetDialogMode() );
+					}
+
+					direct2d.EnableDialogBoxMode( TRUE );
 					break;
-				}
 		
 				case Instance::EVENT_WINDOW_DESTROY:
 				
-					SwitchFullscreen( dialog->GetMode() );
+					if (Instance::NumChildWindows() == childWindowSwitchCount)
+						SwitchFullscreen( dialog->GetMode() );
+
 					break;
 			}
 		}
@@ -743,7 +777,12 @@ namespace Nestopia
 		{
 			case Emulator::EVENT_BASE_SPEED:
 			
-				direct2d.UpdateFrameRate( emulator.GetBaseSpeed(), emulator.SyncFrameRate() );
+				direct2d.UpdateFrameRate
+				( 
+			     	emulator.GetBaseSpeed(), 
+					emulator.SyncFrameRate(), 
+					emulator.UseTripleBuffering() 
+				);
 				break;			
 
 			case Emulator::EVENT_NSF_NEXT:

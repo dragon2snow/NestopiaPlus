@@ -25,19 +25,21 @@
 #include "NstApplicationException.hpp"
 #include "NstApplicationMain.hpp"
 
-#ifdef _DEBUG
+#ifdef NDEBUG
+ #pragma comment(lib,"emucore")
+#else
  #define CRTDBG_MAP_ALLOC
  #include <crtdbg.h>
- #ifdef _MSC_VER
  #pragma comment(lib,"emucoredebug")
- #endif
-#elif defined(_MSC_VER)
- #pragma comment(lib,"emucore")
+#endif
+
+#if defined(_MSC_VER) && (_MSC_VER >= 1400)
+#pragma comment(linker,"\"/manifestdependency:type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='X86' publicKeyToken='6595b64144ccf1df' language='*'\"")
 #endif
 
 int WINAPI WinMain(HINSTANCE,HINSTANCE,char* cmdLine,int cmdShow)
 {
-#ifdef _DEBUG
+#ifndef NDEBUG
 	_CrtSetDbgFlag( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
 #endif
 
@@ -59,7 +61,7 @@ int WINAPI WinMain(HINSTANCE,HINSTANCE,char* cmdLine,int cmdShow)
 	{
 		return exitcode;
 	}
-#ifndef _DEBUG
+#ifdef NDEBUG
 	catch (...)
 	{
 		Nestopia::Application::Exception( IDS_ERR_GENERIC ).Issue();

@@ -59,7 +59,7 @@ namespace Nes
 			{
 				friend class Fds;
 
-            #ifdef _DEBUG
+            #ifndef NDEBUG
 
 				Bios() {}
 

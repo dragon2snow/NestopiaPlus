@@ -35,10 +35,15 @@
 #include "NstManagerInput.hpp"
 #include "NstManagerFrameClock.hpp"
 
-#include "NstIoStream.hpp"
-
 namespace Nestopia
 {
+	namespace Managers
+	{
+		class Paths;
+		class Preferences;
+		class Emulator;
+	}
+
 	namespace Window
 	{
 		class Main
@@ -57,8 +62,9 @@ namespace Nestopia
 
 			~Main();
 
-			int Run();
+			int  Run();
 			void Save(Configuration& cfg) const;
+			uint GetMaxMessageLength() const;
 
 		private:
 
@@ -176,6 +182,11 @@ namespace Nestopia
 		public:
 
 			Custom& Get()
+			{
+				return window;
+			}
+
+			const Custom& Get() const
 			{
 				return window;
 			}

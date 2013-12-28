@@ -46,7 +46,7 @@ namespace Nes
 			dword size;
 			dword capacity;
 
-        #ifdef _DEBUG
+        #ifndef NDEBUG
 
 			Vector(const Vector&);
 

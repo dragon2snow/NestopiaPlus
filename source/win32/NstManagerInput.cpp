@@ -824,7 +824,7 @@ namespace Nestopia
 		return true;
 	}
 
-	bool NST_CALLBACK Input::Callbacks::PollZapper(UserData data,Controllers::Zapper& NST_RESTRICT zapper)
+	bool NST_CALLBACK Input::Callbacks::PollZapper(UserData data,Controllers::Zapper& zapper)
 	{
 		POINT mouse;
 		::GetCursorPos( &mouse );
@@ -906,7 +906,7 @@ namespace Nestopia
 		return true;
 	}
 
-	bool NST_CALLBACK Input::Callbacks::PollOekaKidsTablet(UserData data,Controllers::OekaKidsTablet& NST_RESTRICT tablet)
+	bool NST_CALLBACK Input::Callbacks::PollOekaKidsTablet(UserData data,Controllers::OekaKidsTablet& tablet)
 	{
 		POINT mouse;
 		::GetCursorPos( &mouse );

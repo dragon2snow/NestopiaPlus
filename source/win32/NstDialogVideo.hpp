@@ -77,7 +77,7 @@ namespace Nestopia
 			void Save(Configuration&) const;
 
 			ibool PutTextureInVideoMemory() const;
-			const Mode& GetDialogMode() const;
+			Modes::const_iterator GetDialogMode() const;
 
 		private:
 
@@ -93,12 +93,6 @@ namespace Nestopia
 					Rect pal;
 				};
 
-				struct Palette
-				{
-					ibool valid;
-					String::Path<false> file;
-				};
-
 				enum TexMem
 				{
 					TEXMEM_AUTO,
@@ -106,12 +100,13 @@ namespace Nestopia
 					TEXMEM_SYSMEM
 				};
 
-				uint adapter;
+				Adapters::const_iterator adapter;
 				Filter filter;
 				TexMem texMem;
-				uint mode;
+				Modes::const_iterator mode;
 				Rects rects;
-				Palette palette;
+				String::Path<false> palette;
+				ibool autoHz;
 			};
 
 			ibool OnInitDialog     (Param&);
@@ -126,28 +121,27 @@ namespace Nestopia
 			ibool OnCmdPalType     (Param&);
 			ibool OnCmdPalBrowse   (Param&);
 			ibool OnCmdPalClear    (Param&);
+			ibool OnCmdAutoHz      (Param&);
 			ibool OnCmdDefault     (Param&);
 			ibool OnCmdOk          (Param&);
 
 			void UpdateColors() const;
-			void UpdateDevice(Mode);
+			void UpdateDevice();
 			void UpdateFilters() const;
-			uint UpdateBitDepthEnable() const;
-			void UpdateBitDepth(const Mode&);
-			void UpdateResolution(const Mode&);
+			void UpdateBitDepth(uint);
+			void UpdateResolution() const;
 			void UpdateTexMem() const;
 			void UpdateTexMemEnable() const;
 			void UpdateRects() const;
 			void UpdatePalette() const;
-			void ImportPalette();
+			void ImportPalette(Managers::Paths::Alert);
 			void ValidateRects();
 
 			void ResetDevice();
 			void ResetRects();
 			void ResetColors();
 
-			uint GetDefaultAdapter() const;
-			uint GetDefaultMode() const;
+			Modes::const_iterator GetDefaultMode() const;
 
 			static void UpdateScreen(HWND);
 
@@ -179,14 +173,19 @@ namespace Nestopia
 				return settings.filter;
 			}
 
-			const Mode& GetMode() const
+			Modes::const_iterator GetMode() const
 			{
-				return adapters[settings.adapter].modes[settings.mode];
+				return settings.mode;
 			}
 
-			uint GetAdapter() const
+			Adapters::const_iterator GetAdapter() const
 			{
 				return settings.adapter;
+			}
+
+			ibool UseAutoFrequency() const
+			{
+				return settings.autoHz;
 			}
 		};
 	}

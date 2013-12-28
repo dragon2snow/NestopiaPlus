@@ -24,6 +24,8 @@
 
 #include <algorithm>
 #include "NstIoFile.hpp"
+#include "NstIoLog.hpp"
+#include "NstWindowUser.hpp"
 #include "NstResourceString.hpp"
 #include "NstApplicationConfiguration.hpp"
 #include "NstWindowParam.hpp"
@@ -41,12 +43,9 @@ namespace Nestopia
 
 	Video::Settings::Settings()
 	:
-	adapter ( 0 ),
-	filter  ( FILTER_NONE ),
-	texMem  ( TEXMEM_AUTO ),
-	mode    ( 0 )
+	filter ( FILTER_NONE ),
+	texMem ( TEXMEM_AUTO )
 	{
-		palette.valid = FALSE;
 	}
 
 	struct Video::Handlers
@@ -78,6 +77,7 @@ namespace Nestopia
 		{ IDC_GRAPHICS_COLORS_RESET,      &Video::OnCmdColorsReset },
 		{ IDC_GRAPHICS_PALETTE_BROWSE,    &Video::OnCmdPalBrowse   },
 		{ IDC_GRAPHICS_PALETTE_CLEAR,     &Video::OnCmdPalClear    },
+		{ IDC_GRAPHICS_AUTO_HZ,			  &Video::OnCmdAutoHz      },
 		{ IDC_GRAPHICS_DEFAULT,           &Video::OnCmdDefault     },
 		{ IDC_GRAPHICS_OK,                &Video::OnCmdOk          }
 	};
@@ -95,39 +95,28 @@ namespace Nestopia
 	dialog   ( IDD_VIDEO, this,Handlers::messages, Handlers::commands ),
 	paths    ( p )
 	{
-		{
-			const Adapters::const_iterator it
-			(
-				std::find
-				(
-					adapters.begin(),
-					adapters.end(),
-					System::Guid( cfg["video device"] )
-				)
-			);
+		settings.adapter = std::find
+		(
+			adapters.begin(),
+			adapters.end(),
+			System::Guid( cfg["video device"] )
+		);
 
-			if (it != adapters.end())
-				settings.adapter = it - adapters.begin();
-			else
-				settings.adapter = GetDefaultAdapter();
-		}
+		if (settings.adapter == adapters.end())
+			settings.adapter = adapters.begin();
 
-		{
-			Modes::ConstIterator const it = adapters[settings.adapter].modes.Find
-			( 
-				Mode
-				(
-					cfg[ "video fullscreen width"  ],
-					cfg[ "video fullscreen height" ],
-					cfg[ "video fullscreen bpp"    ]
-				)
-			);
+		settings.mode = settings.adapter->modes.find
+   		( 
+   			Mode
+   			(
+     			cfg[ "video fullscreen width"  ],
+       			cfg[ "video fullscreen height" ],
+       			cfg[ "video fullscreen bpp"    ]
+     		)
+		);
 
-			if (it)
-				settings.mode = it - adapters[settings.adapter].modes;
-			else
-				settings.mode = GetDefaultMode();
-		}
+		if (settings.mode == settings.adapter->modes.end())
+			settings.mode = GetDefaultMode();
 
 		{
 			const String::Heap& type = cfg["video filter"];
@@ -136,15 +125,15 @@ namespace Nestopia
 
 			if (type == "bilinear")
 			{
-				if (adapters[settings.adapter].filters & Adapter::FILTER_BILINEAR)
+				if (settings.adapter->filters & Adapter::FILTER_BILINEAR)
 					settings.filter = FILTER_BILINEAR;
 			}
 			else if (type == "tv soft")
 			{
 				if 
 				(
-			    	(adapters[settings.adapter].filters & Adapter::FILTER_BILINEAR) &&
-					(adapters[settings.adapter].maxScreenSize >= NST_MAX(NES_HEIGHT * 2,NES_WIDTH * 2))
+			    	(settings.adapter->filters & Adapter::FILTER_BILINEAR) &&
+					(settings.adapter->maxScreenSize >= NST_MAX(NES_HEIGHT * 2,NES_WIDTH * 2))
 				)
 					settings.filter = FILTER_TV_SOFT;
 			}
@@ -158,15 +147,15 @@ namespace Nestopia
 			}
 			else if (type == "scale3x")
 			{
-				if (adapters[settings.adapter].maxScreenSize >= NST_MAX(NES_HEIGHT * 4,NES_WIDTH * 4))
+				if (settings.adapter->maxScreenSize >= NST_MAX(NES_HEIGHT * 4,NES_WIDTH * 4))
 					settings.filter = FILTER_SCALE3X;
 			}
 			else if (type == "hq3x")
 			{
-				if (adapters[settings.adapter].maxScreenSize >= NST_MAX(NES_HEIGHT * 4,NES_WIDTH * 4))
+				if (settings.adapter->maxScreenSize >= NST_MAX(NES_HEIGHT * 4,NES_WIDTH * 4))
 					settings.filter = FILTER_HQ3X;
 			}
-			else if (adapters[settings.adapter].maxScreenSize >= NST_MAX(NES_HEIGHT * 2,NES_WIDTH * 2))
+			else if (settings.adapter->maxScreenSize >= NST_MAX(NES_HEIGHT * 2,NES_WIDTH * 2))
 			{
 				settings.filter =
 				(
@@ -222,31 +211,23 @@ namespace Nestopia
 			if ((color = cfg[ "video color hue"        ].Default( 128U )) <= 255) nes.SetHue( color );
 		}
 
-		settings.palette.valid = FALSE;
-		settings.palette.file = cfg["video palette file"];
+		settings.palette = cfg["video palette file"];
 
-		if (settings.palette.file.Size())
-			ImportPalette();
+		if (settings.palette.Size())
+			ImportPalette( Managers::Paths::QUIETLY );
 
 		{
 			const String::Heap& type = cfg["video palette"];
 
-			if (type == "internal")
-			{
-				nes.GetPalette().SetMode( Nes::Video::Palette::INTERNAL );
-			}
-			else if (type == "emulated") 
-			{
-				nes.GetPalette().SetMode( Nes::Video::Palette::EMULATED );
-			}
-			else if (type == "custom") 
-			{
-				if (settings.palette.valid)
-					nes.GetPalette().SetMode( Nes::Video::Palette::CUSTOM );
-			}
+			nes.GetPalette().SetMode
+			( 
+		    	type == "emulated" ?                          Nes::Video::Palette::EMULATED :
+				type == "custom" && settings.palette.Size() ? Nes::Video::Palette::CUSTOM :
+				                                              Nes::Video::Palette::INTERNAL
+			);
 		}
 
-		nes.EnableUnlimSprites( cfg["video unlimited sprites"] == Configuration::YES );
+		settings.autoHz = (cfg["video auto display frequency"] == Configuration::YES);
 	}
 
 	Video::~Video()
@@ -255,26 +236,16 @@ namespace Nestopia
 
 	void Video::Save(Configuration& cfg) const
 	{
+		if (settings.adapter != adapters.end())
 		{
-			System::Guid guid;
+			cfg[ "video device" ].Quote() = settings.adapter->guid.GetString();
 
-			if (adapters.size() > settings.adapter)
-				guid = adapters[settings.adapter].guid;
-
-			cfg[ "video device" ].Quote() = guid.GetString();
-		}
-
-		{
-			Mode mode;
-
-			if (adapters.size() > settings.adapter && adapters[settings.adapter].modes.Size() > settings.mode)
-				mode = adapters[settings.adapter].modes[settings.mode];
-			else
-				mode = adapters[settings.adapter].modes[GetDefaultMode()];
-
-			cfg[ "video fullscreen width"  ] = mode.width;
-			cfg[ "video fullscreen height" ] = mode.height;
-			cfg[ "video fullscreen bpp"    ] = mode.bpp;
+			if (settings.mode != settings.adapter->modes.end())
+			{
+				cfg[ "video fullscreen width"  ] = settings.mode->width;
+				cfg[ "video fullscreen height" ] = settings.mode->height;
+				cfg[ "video fullscreen bpp"    ] = settings.mode->bpp;
+			}
 		}
 
 		{
@@ -320,29 +291,35 @@ namespace Nestopia
 			cfg[ "video palette" ] = name;
 		}
 
-		cfg[ "video palette file"      ].Quote() = settings.palette.file;
-		cfg[ "video ntsc left"         ] = settings.rects.ntsc.left;
-		cfg[ "video ntsc top"          ] = settings.rects.ntsc.top;
-		cfg[ "video ntsc right"        ] = settings.rects.ntsc.right - 1;
-		cfg[ "video ntsc bottom"       ] = settings.rects.ntsc.bottom - 1;	
-		cfg[ "video pal left"          ] = settings.rects.pal.left;
-		cfg[ "video pal top"           ] = settings.rects.pal.top;
-		cfg[ "video pal right"         ] = settings.rects.pal.right - 1;
-		cfg[ "video pal bottom"        ] = settings.rects.pal.bottom - 1;	
-		cfg[ "video color brightness"  ] = nes.GetBrightness();
-		cfg[ "video color saturation"  ] = nes.GetSaturation();
-		cfg[ "video color hue"         ] = nes.GetHue();
-		cfg[ "video unlimited sprites" ].YesNo() = nes.AreUnlimSpritesEnabled();
+		cfg[ "video palette file"           ].Quote() = settings.palette;
+		cfg[ "video ntsc left"              ] = settings.rects.ntsc.left;
+		cfg[ "video ntsc top"               ] = settings.rects.ntsc.top;
+		cfg[ "video ntsc right"             ] = settings.rects.ntsc.right - 1;
+		cfg[ "video ntsc bottom"            ] = settings.rects.ntsc.bottom - 1;	
+		cfg[ "video pal left"               ] = settings.rects.pal.left;
+		cfg[ "video pal top"                ] = settings.rects.pal.top;
+		cfg[ "video pal right"              ] = settings.rects.pal.right - 1;
+		cfg[ "video pal bottom"             ] = settings.rects.pal.bottom - 1;	
+		cfg[ "video color brightness"       ] = nes.GetBrightness();
+		cfg[ "video color saturation"       ] = nes.GetSaturation();
+		cfg[ "video color hue"              ] = nes.GetHue();
+		cfg[ "video auto display frequency" ].YesNo() = settings.autoHz;
 	}
 
-	const Video::Mode& Video::GetDialogMode() const
+	Video::Modes::const_iterator Video::GetDialogMode() const
 	{
-		Modes::ConstIterator const it = adapters[settings.adapter].modes.Find
+		Modes::const_iterator it
 		(
-			Mode(DEFAULT_WIDTH,DEFAULT_HEIGHT,adapters[settings.adapter].modes[settings.mode].bpp)
+	    	settings.adapter->modes.find
+     		(
+     			Mode(DEFAULT_WIDTH,DEFAULT_HEIGHT,settings.mode->bpp)
+			)
 		);
 
-		return it ? *it : adapters[settings.adapter].modes[0];
+		if (it == settings.adapter->modes.end())
+			it = settings.adapter->modes.begin();
+
+		return it;
 	}
 
 	ibool Video::PutTextureInVideoMemory() const
@@ -355,7 +332,7 @@ namespace Nestopia
 
 	void Video::ResetDevice()
 	{
-		settings.adapter = GetDefaultAdapter();
+		settings.adapter = adapters.begin();
 		settings.mode = GetDefaultMode();
 	}
 
@@ -387,20 +364,17 @@ namespace Nestopia
 		nes.SetHue        ( nes.GetDefaultHue()        );   
 	}
 
-	uint Video::GetDefaultAdapter() const
+	Video::Modes::const_iterator Video::GetDefaultMode() const
 	{
-		const Adapters::const_iterator it( std::find( adapters.begin(), adapters.end(), System::Guid() ) );
-		return it != adapters.end() ? it - adapters.begin() : 0;
-	}
+		for (uint bpp=16; bpp <= 32; bpp += 16)
+		{
+			const Modes::const_iterator it( settings.adapter->modes.find(Mode(DEFAULT_WIDTH,DEFAULT_HEIGHT,bpp)) );
 
-	uint Video::GetDefaultMode() const
-	{
-		Modes::ConstIterator const it = adapters[settings.adapter].modes.Find
-		(
-			Mode(DEFAULT_WIDTH,DEFAULT_HEIGHT,DEFAULT_BPP)
-		);
+			if (it != settings.adapter->modes.end())
+				return it;
+		}
 
-		return it ? it - adapters[settings.adapter].modes : 0;
+		return settings.adapter->modes.begin();
 	}
 
 	ibool Video::OnInitDialog(Param&)
@@ -409,9 +383,12 @@ namespace Nestopia
 			const Control::ComboBox comboBox( dialog.ComboBox(IDC_GRAPHICS_DEVICE) );
 
 			for (Adapters::const_iterator it(adapters.begin()); it != adapters.end(); ++it)
+			{
 				comboBox.Add( it->name );
 
-			comboBox[settings.adapter].Select();
+				if (settings.adapter == it)
+					comboBox[comboBox.Size() - 1].Select();
+			}
 		}
   
 		NST_COMPILE_ASSERT
@@ -436,12 +413,13 @@ namespace Nestopia
 		UpdateTexMem();
 		UpdateRects();
 		UpdatePalette();
+		UpdateDevice();
 
-		UpdateDevice( adapters[settings.adapter].modes[settings.mode] );
+		dialog.CheckBox( IDC_GRAPHICS_AUTO_HZ ).Check( settings.autoHz );
 
 		const Control::ComboBox comboBox( dialog.ComboBox(IDC_GRAPHICS_EFFECTS) );
 
-		for (uint i=0,size=comboBox.Size(); i < size; ++i)
+		for (uint i=0, size=comboBox.Size(); i < size; ++i)
 		{
 			if (settings.filter == (Filter) (Control::ComboBox::Value) comboBox[i].Data())
 			{
@@ -480,9 +458,12 @@ namespace Nestopia
 	{
 		if (param.ComboBox().SelectionChanged())
 		{
-			const Mode& oldMode = adapters[settings.adapter].modes[settings.mode];
-			settings.adapter = dialog.ComboBox( IDC_GRAPHICS_DEVICE ).Selection().GetIndex();
-			UpdateDevice( oldMode );
+			settings.adapter = adapters.begin();
+			
+			for (uint i=0, index=dialog.ComboBox( IDC_GRAPHICS_DEVICE ).Selection().GetIndex(); i < index; ++i)
+				++settings.adapter;
+			
+			UpdateDevice();
 		}
 
 		return TRUE;
@@ -497,22 +478,7 @@ namespace Nestopia
 		);
 
 		if (param.Button().IsClicked())
-		{
-			const uint cmd = param.Button().GetId();
-
-			if (!dialog.RadioButton( cmd ).IsChecked())
-			{
-				UpdateBitDepth
-				( 
-					Mode
-					(
-						adapters[settings.adapter].modes[settings.mode].width,
-						adapters[settings.adapter].modes[settings.mode].height,
-						8U << (cmd - IDC_GRAPHICS_8_BIT)
-					)
-				);
-			}
-		}
+			UpdateBitDepth( 8U << (param.Button().GetId() - IDC_GRAPHICS_8_BIT) );
 
 		return TRUE;
 	}
@@ -520,7 +486,12 @@ namespace Nestopia
 	ibool Video::OnCmdMode(Param& param)
 	{
 		if (param.ComboBox().SelectionChanged())
-			settings.mode = dialog.ComboBox(IDC_GRAPHICS_MODE).Selection().Data();
+		{
+			settings.mode = settings.adapter->modes.begin();
+
+			for (uint i=0, index=dialog.ComboBox(IDC_GRAPHICS_MODE).Selection().Data(); i < index; ++i)
+				++settings.mode;
+		}
 
 		return TRUE;
 	}
@@ -546,26 +517,17 @@ namespace Nestopia
 	{
 		if (param.Button().IsClicked())
 		{
-			uint cmd = param.Button().GetId();
+			const uint cmd = param.Button().GetId();
 
-			if (!dialog.RadioButton( cmd ).IsChecked())
+			const Nes::Result result = nes.GetPalette().SetMode
+			( 
+				cmd == IDC_GRAPHICS_PALETTE_EMULATED ? Nes::Video::Palette::EMULATED :
+				cmd == IDC_GRAPHICS_PALETTE_INTERNAL ? Nes::Video::Palette::INTERNAL :
+				                                       Nes::Video::Palette::CUSTOM
+			);
+
+			if (NES_SUCCEEDED(result) && result != Nes::RESULT_NOP)
 			{
-				if (cmd == IDC_GRAPHICS_PALETTE_CUSTOM)
-				{
-					if (settings.palette.file.Size())
-						ImportPalette();
-
-					if (!settings.palette.valid)
-						cmd = IDC_GRAPHICS_PALETTE_INTERNAL;
-				}
-
-				nes.GetPalette().SetMode
-				( 
-					cmd == IDC_GRAPHICS_PALETTE_EMULATED ? Nes::Video::Palette::EMULATED :
-					cmd == IDC_GRAPHICS_PALETTE_INTERNAL ? Nes::Video::Palette::INTERNAL :
-					                                       Nes::Video::Palette::CUSTOM
-				);
-
 				UpdatePalette();
 				UpdateScreen( param.hWnd );
 			}
@@ -590,19 +552,20 @@ namespace Nestopia
 	{
 		if (param.Button().IsClicked())
 		{
-			const Managers::Paths::TmpPath fileName
+			const Managers::Paths::TmpPath file
 			(
 				paths.BrowseLoad
 				( 
 					Managers::Paths::File::PALETTE|Managers::Paths::File::ARCHIVE,
-					settings.palette.file
+					settings.palette
 				)
 			);
 
-			if (fileName.Size())
+			if (file.Size())
 			{
-				settings.palette.file = fileName;
-				settings.palette.valid = TRUE;
+				settings.palette = file;
+				
+				ImportPalette( Managers::Paths::NOISY );
 				UpdatePalette();
 			}
 		}
@@ -614,10 +577,9 @@ namespace Nestopia
 	{
 		if (param.Button().IsClicked())
 		{
-			if (settings.palette.file.Size())
+			if (settings.palette.Size())
 			{
-				settings.palette.file.Clear();
-				settings.palette.valid = FALSE;
+				settings.palette.Destroy();
 
 				nes.GetPalette().SetMode( Nes::Video::Palette::INTERNAL );
 
@@ -629,12 +591,20 @@ namespace Nestopia
 		return TRUE;
 	}
 
+	ibool Video::OnCmdAutoHz(Param& param)
+	{
+		if (param.Button().IsClicked())
+			settings.autoHz = dialog.CheckBox( IDC_GRAPHICS_AUTO_HZ ).IsChecked();
+
+		return TRUE;
+	}
+
 	ibool Video::OnCmdDefault(Param& param)
 	{
 		if (param.Button().IsClicked())
 		{
 			ResetDevice();
-			UpdateDevice( adapters[settings.adapter].modes[settings.mode] );
+			UpdateDevice();
 
 			ResetColors();
 			UpdateColors();
@@ -649,6 +619,9 @@ namespace Nestopia
 
 			nes.GetPalette().SetMode( Nes::Video::Palette::INTERNAL );
 			UpdatePalette();
+
+			settings.autoHz = FALSE;
+			dialog.CheckBox( IDC_GRAPHICS_AUTO_HZ ).Uncheck();
 
 			UpdateScreen( param.hWnd );
 		}
@@ -709,10 +682,8 @@ namespace Nestopia
 
 	void Video::UpdatePalette() const
 	{
-		NST_VERIFY( bool(settings.palette.valid) >= bool(settings.palette.file.Size()) );
-
-		dialog.Control( IDC_GRAPHICS_PALETTE_CUSTOM ).Enable( settings.palette.valid );
-		dialog.Edit( IDC_GRAPHICS_PALETTE_PATH   ) << settings.palette.file;
+		dialog.Control( IDC_GRAPHICS_PALETTE_CUSTOM ).Enable( settings.palette.Size() );
+		dialog.Edit( IDC_GRAPHICS_PALETTE_PATH ) << settings.palette;
 
 		const Nes::Video::Palette::Mode mode = nes.GetPalette().GetMode();
 
@@ -721,9 +692,9 @@ namespace Nestopia
 		dialog.RadioButton( IDC_GRAPHICS_PALETTE_CUSTOM   ).Check( mode == Nes::Video::Palette::CUSTOM   );
 	}
 
-	void Video::ImportPalette()
+	void Video::ImportPalette(Managers::Paths::Alert alert)
 	{
-		NST_ASSERT( settings.palette.file.Size() );
+		NST_ASSERT( settings.palette.Size() );
 
 		Managers::Paths::File file;
 
@@ -736,26 +707,88 @@ namespace Nestopia
 			)
 		};
 
-		settings.palette.valid =
+		if
 		(
-			paths.Load( file, FILE_TYPES, settings.palette.file ) == Managers::Paths::File::PALETTE &&
-			file.data.Size() >= 64 * 3 &&
-			NES_SUCCEEDED(nes.GetPalette().SetCustom( reinterpret_cast<Nes::Video::Palette::Colors>(file.data.Begin()) ))
-		);
+			!paths.Load( file, FILE_TYPES, settings.palette, alert ) || file.data.Size() < 64 * 3 ||
+			NES_FAILED(nes.GetPalette().SetCustom( reinterpret_cast<Nes::Video::Palette::Colors>(file.data.Begin()) ))
+		)
+		{
+			if (alert == Managers::Paths::QUIETLY)
+				Io::Log() << "Video: warning, custom palette file: \"" << settings.palette << "\" invalid or not found!\r\n";
+			else
+				Window::User::Fail( IDS_DIALOG_VIDEO_INVALID_PALETTE );
 
-		if (!settings.palette.valid)
-			settings.palette.file.Clear();
+			settings.palette.Destroy();
+			nes.GetPalette().SetMode( Nes::Video::Palette::INTERNAL );
+		}
 	}
 
-	uint Video::UpdateBitDepthEnable() const
+	void Video::UpdateBitDepth(const uint bpp)
 	{
-		const Modes& modes = adapters[settings.adapter].modes;
+		dialog.RadioButton( IDC_GRAPHICS_8_BIT   ).Check( bpp == 8  );
+		dialog.RadioButton( IDC_GRAPHICS_16_BIT  ).Check( bpp == 16 );
+		dialog.RadioButton( IDC_GRAPHICS_32_BIT  ).Check( bpp == 32 );
 
+		if (settings.mode->bpp != bpp)
+		{
+			for (Modes::const_iterator it(settings.adapter->modes.begin()), end(settings.adapter->modes.end()); it != end; ++it)
+			{
+				if (it->bpp == bpp && settings.mode->width == it->width && settings.mode->height == it->height)
+				{
+					settings.mode = it;
+					break;
+				}
+			}
+
+			if (settings.mode->bpp != bpp)
+			{
+				for (Modes::const_iterator it(settings.adapter->modes.begin()), end(settings.adapter->modes.end()); it != end; ++it)
+				{
+					if (it->bpp == bpp)
+					{
+						settings.mode = it;
+						break;
+					}
+				}				
+			}
+		}
+
+		UpdateResolution();		
+	}
+
+	void Video::UpdateTexMem() const
+	{
+		dialog.RadioButton( IDC_GRAPHICS_NESTEXTURE_AUTO   ).Check( settings.texMem == Settings::TEXMEM_AUTO   );
+		dialog.RadioButton( IDC_GRAPHICS_NESTEXTURE_VIDMEM ).Check( settings.texMem == Settings::TEXMEM_VIDMEM );
+		dialog.RadioButton( IDC_GRAPHICS_NESTEXTURE_SYSMEM ).Check( settings.texMem == Settings::TEXMEM_SYSMEM );
+	}
+
+	void Video::UpdateResolution() const
+	{
+		const Control::ComboBox comboBox( dialog.ComboBox(IDC_GRAPHICS_MODE) );
+		comboBox.Clear();
+
+		uint idx=0;
+
+		for (Modes::const_iterator it(settings.adapter->modes.begin()), end(settings.adapter->modes.end()); it != end; ++it, ++idx)
+		{
+			if (settings.mode->bpp == it->bpp)
+			{
+				comboBox.Add( String::Smart<16>() << it->width << 'x' << it->height ).Data() = idx;
+
+				if (settings.mode->width == it->width && settings.mode->height == it->height)
+					comboBox[comboBox.Size() - 1].Select();
+			}
+		}
+	}
+
+	void Video::UpdateDevice()
+	{
 		uint available = 0;
 
-		for (uint i=modes.Size(); i; )
+		for (Modes::const_iterator it(settings.adapter->modes.begin()), end(settings.adapter->modes.end()); it != end; ++it)
 		{
-			switch (modes[--i].bpp)
+			switch (it->bpp)
 			{
 				case 8:  available |=  8; break;
 				case 16: available |= 16; break;
@@ -766,86 +799,31 @@ namespace Nestopia
 				break;
 		}
 
+		NST_ASSERT( available & (8|16|32) );
+
 		dialog.Control( IDC_GRAPHICS_8_BIT  ).Enable( available & 8  );
 		dialog.Control( IDC_GRAPHICS_16_BIT ).Enable( available & 16 );
 		dialog.Control( IDC_GRAPHICS_32_BIT ).Enable( available & 32 );
 
-		return available;
-	}
+		uint bpp = settings.mode->bpp;
 
-	void Video::UpdateBitDepth(const Mode& mode)
-	{
-		dialog.RadioButton( IDC_GRAPHICS_8_BIT   ).Check( mode.bpp == 8  );
-		dialog.RadioButton( IDC_GRAPHICS_16_BIT  ).Check( mode.bpp == 16 );
-		dialog.RadioButton( IDC_GRAPHICS_32_BIT  ).Check( mode.bpp == 32 );
-
-		UpdateResolution( mode );
-	}
-
-	void Video::UpdateTexMem() const
-	{
-		dialog.RadioButton( IDC_GRAPHICS_NESTEXTURE_AUTO   ).Check( settings.texMem == Settings::TEXMEM_AUTO   );
-		dialog.RadioButton( IDC_GRAPHICS_NESTEXTURE_VIDMEM ).Check( settings.texMem == Settings::TEXMEM_VIDMEM );
-		dialog.RadioButton( IDC_GRAPHICS_NESTEXTURE_SYSMEM ).Check( settings.texMem == Settings::TEXMEM_SYSMEM );
-	}
-
-	void Video::UpdateResolution(const Mode& mode)
-	{
-		const Control::ComboBox comboBox( dialog.ComboBox(IDC_GRAPHICS_MODE) );
-
-		comboBox.Clear();
-
-		uint index = 0;
-		ibool found = FALSE;
-
-		const Modes& modes = adapters[settings.adapter].modes;
-
-		for (Modes::ConstIterator it(modes.Begin()); it != modes.End(); ++it)
+		switch (bpp)
 		{
-			if (mode.bpp == it->bpp)
-			{
-				comboBox.Add( String::Smart<16>() << it->width << 'x' << it->height ).Data() = it - modes.Begin();
-
-				if (mode.width == it->width && mode.height == it->height)
-				{
-					settings.mode = it - modes.Begin();
-					comboBox[index].Select();
-					found = TRUE;
-				}
-
-				++index;
-			}
+			case 32: bpp = ((available & 32) ? 32 : (available & 16) ? 16 :  8); break;
+			case 16: bpp = ((available & 16) ? 16 : (available & 32) ? 32 :  8); break;
+			case  8: bpp = ((available &  8) ?  8 : (available & 16) ? 16 : 32); break;
 		}
 
-		if (!found)
-		{
-			settings.mode = comboBox[0].Data();
-			comboBox[0].Select();
-		}
-	}
-
-	void Video::UpdateDevice(Mode mode)
-	{
-		const uint available = UpdateBitDepthEnable();
-		NST_ASSERT( available & (8|16|32) );
-
-		switch (mode.bpp)
-		{
-			case 32: mode.bpp = ((available & 32) ? 32 : (available & 16) ? 16 :  8); break;
-			case 16: mode.bpp = ((available & 16) ? 16 : (available & 32) ? 32 :  8); break;
-			default: mode.bpp = ((available &  8) ?  8 : (available & 16) ? 16 : 32); break;
-		}
-
-		UpdateBitDepth( mode );
+		UpdateBitDepth( bpp );
 		UpdateFilters();
 		UpdateTexMemEnable();
 	}
 
 	void Video::UpdateTexMemEnable() const
 	{
-		dialog.Slider( IDC_GRAPHICS_NESTEXTURE_AUTO   ).Enable( adapters[settings.adapter].videoMemScreen );
-		dialog.Slider( IDC_GRAPHICS_NESTEXTURE_VIDMEM ).Enable( adapters[settings.adapter].videoMemScreen );
-		dialog.Slider( IDC_GRAPHICS_NESTEXTURE_SYSMEM ).Enable( adapters[settings.adapter].videoMemScreen );
+		dialog.Slider( IDC_GRAPHICS_NESTEXTURE_AUTO   ).Enable( settings.adapter->videoMemScreen );
+		dialog.Slider( IDC_GRAPHICS_NESTEXTURE_VIDMEM ).Enable( settings.adapter->videoMemScreen );
+		dialog.Slider( IDC_GRAPHICS_NESTEXTURE_SYSMEM ).Enable( settings.adapter->videoMemScreen );
 	}
 
 	void Video::UpdateFilters() const
@@ -855,15 +833,15 @@ namespace Nestopia
 		comboBox.Clear();
 		comboBox.Add( Resource::String(IDS_VIDEO_FILTER_NONE) ).Data() = (Control::ComboBox::Value) FILTER_NONE;
 
-		if (adapters[settings.adapter].filters & Adapter::FILTER_BILINEAR)		
+		if (settings.adapter->filters & Adapter::FILTER_BILINEAR)		
 			comboBox.Add( Resource::String(IDS_VIDEO_FILTER_BILINEAR) ).Data() = FILTER_BILINEAR;
 
 		comboBox.Add( Resource::String(IDS_VIDEO_FILTER_SCANLINES_BRIGHT) ).Data() = FILTER_SCANLINES_BRIGHT;
 		comboBox.Add( Resource::String(IDS_VIDEO_FILTER_SCANLINES_DARK) ).Data() = FILTER_SCANLINES_DARK;
 
-		if (adapters[settings.adapter].maxScreenSize >= NST_MAX(NES_WIDTH*2,NES_HEIGHT*2))
+		if (settings.adapter->maxScreenSize >= NST_MAX(NES_WIDTH*2,NES_HEIGHT*2))
 		{
-			if (adapters[settings.adapter].filters & Adapter::FILTER_BILINEAR)		
+			if (settings.adapter->filters & Adapter::FILTER_BILINEAR)		
 				comboBox.Add( Resource::String(IDS_VIDEO_FILTER_TV_SOFT) ).Data() = FILTER_TV_SOFT;
 
 			comboBox.Add( Resource::String(IDS_VIDEO_FILTER_TV_HARSH) ).Data() = FILTER_TV_HARSH;
@@ -872,12 +850,12 @@ namespace Nestopia
 			comboBox.Add( Resource::String(IDS_VIDEO_FILTER_SUPER_EAGLE) ).Data() = FILTER_SUPER_EAGLE;
 			comboBox.Add( Resource::String(IDS_VIDEO_FILTER_SCALE2X) ).Data() = FILTER_SCALE2X;
 
-			if (adapters[settings.adapter].maxScreenSize >= NST_MAX(NES_WIDTH*3,NES_HEIGHT*3))
+			if (settings.adapter->maxScreenSize >= NST_MAX(NES_WIDTH*3,NES_HEIGHT*3))
 				comboBox.Add( Resource::String(IDS_VIDEO_FILTER_SCALE3X) ).Data() = FILTER_SCALE3X;
 
 			comboBox.Add( Resource::String(IDS_VIDEO_FILTER_HQ2X) ).Data() = FILTER_HQ2X;
 
-			if (adapters[settings.adapter].maxScreenSize >= NST_MAX(NES_WIDTH*3,NES_HEIGHT*3))
+			if (settings.adapter->maxScreenSize >= NST_MAX(NES_WIDTH*3,NES_HEIGHT*3))
 				comboBox.Add( Resource::String(IDS_VIDEO_FILTER_HQ3X) ).Data() = FILTER_HQ3X;
 		}
 	}

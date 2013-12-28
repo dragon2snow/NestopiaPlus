@@ -1589,16 +1589,17 @@ namespace Nestopia
     #pragma optimize("t", on)
     #endif
 
-	inline ibool Keyboard::Key::operator < (cstring const n) const
+	inline ibool Keyboard::Key::operator < (const Key& key) const
 	{
-		return String::Compare( name, n ) < 0;
+		return String::Compare( name, key.name ) < 0;
 	}
 
 	const Keyboard::Key* Keyboard::Locate(cstring const name)
 	{
 		if (name && *name)
 		{
-			const Key* const key = std::lower_bound( keys, keys + NST_COUNT(keys), name );
+			const Key entry = {name,0,0};
+			const Key* const key = std::lower_bound( keys, keys + NST_COUNT(keys), entry );
 
 			if (key != keys + NST_COUNT(keys) && String::Compare( key->name, name ) == 0) 
 				return key;

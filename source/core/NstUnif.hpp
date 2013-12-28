@@ -119,7 +119,6 @@ namespace Nes
 			struct Board
 			{
 				bool operator <	(const Board&) const;
-				bool operator <	(cstring) const;
 
 				cstring name;
 				u16 mapper;

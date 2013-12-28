@@ -70,7 +70,7 @@ namespace Nestopia
 
 			public:
 
-				Key(const Key& NST_RESTRICT parent,cstring name)
+				Key(const Key& parent,cstring name)
 				: count(parent.count + 1)
 				{
 					NST_ASSERT( count <= MAX_STACK );
@@ -78,7 +78,7 @@ namespace Nestopia
 					stack[parent.count] = name;
 				}
 
-				Key(const Key& NST_RESTRICT parent)
+				Key(const Key& parent)
 				: count(parent.count)
 				{
 					std::memcpy( stack, parent.stack, parent.count * sizeof(char*) );

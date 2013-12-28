@@ -173,7 +173,7 @@ namespace Nes
 				return RESULT_OK;
 			}
 		
-			Result Palette::SetCustomColors(Colors NST_RESTRICT colors)
+			Result Palette::SetCustomColors(Colors colors)
 			{
 				if (!colors || colors == custom)
 					return RESULT_ERR_INVALID_PARAM;
@@ -239,7 +239,7 @@ namespace Nes
 		
 				update = false;
 		
-				Colors NST_RESTRICT from = (type == CUSTOM ? custom : defaultPalette);
+				Colors from = (type == CUSTOM ? custom : defaultPalette);
 				NST_ASSERT( from );
 		
 				for (uint i=0; i < 8; ++i)

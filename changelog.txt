@@ -1,4 +1,25 @@
 ----------------------------------------------------------------
+1.23
+----------------------------------------------------------------
+
+Windows Port:
+
+- Upgraded compiler.
+- Added an option in the video dialog to automatically take advantage of other 
+  display frequencies. It's disabled by default for compatibility reasons
+  but should be enabled for best performance.
+- IDirect3DDevice9::SetDialogBoxMode() and D3DPRESENTFLAG_LOCKABLE_BACKBUFFER
+  are now ONLY set when a menu or window is visible in full-screen mode. Improves 
+  speed and vsync timing.
+- Added an option for tripple-buffering in the timing dialog.
+- Emulation is now stopped upon menubar activation.
+- The last selected file type in the launcher dialog is now remembered throughout 
+  the application lifetime.
+- File names that are too long to fit inside the screen message field are now 
+  truncated using ellipses.
+- Minor bug fixes.
+
+----------------------------------------------------------------
 1.22
 ----------------------------------------------------------------
 

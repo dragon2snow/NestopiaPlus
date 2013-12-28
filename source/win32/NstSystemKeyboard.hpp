@@ -68,7 +68,7 @@ namespace Nestopia
 
 			struct Key
 			{
-				inline ibool operator < (cstring) const;
+				inline ibool operator < (const Key&) const;
 
 				cstring name;
 				uchar vik;

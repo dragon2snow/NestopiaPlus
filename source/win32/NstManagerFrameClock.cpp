@@ -82,7 +82,8 @@ namespace Nestopia
 		emulator.ResetSpeed
 		( 
 	     	dialog->UseDefaultSpeed() ? Emulator::DEFAULT_SPEED : dialog->GetSpeed(), 
-			dialog->UseVSync() 
+			dialog->UseVSync(),
+			dialog->UseTrippleBuffering()
 		);
 				   
 		ResetTimer();
@@ -177,7 +178,11 @@ namespace Nestopia
 	}
 
     #ifdef NST_PRAGMA_OPTIMIZE
-    #pragma optimize("at", on)
+    #pragma optimize("t", on)
+    #endif
+
+    #ifdef NST_PRAGMA_OPTIMIZE_ALIAS
+    #pragma optimize("a", on)
     #endif
 
 	void FrameClock::Synchronize(const ibool wait,const uint skip)

@@ -187,9 +187,12 @@ namespace Nes
 		
 				irq.unit.SaveState( State::Saver::Subset(state,'I','R','Q','\0').Ref() );
 			}
-		
+
             #ifdef NST_PRAGMA_OPTIMIZE
             #pragma optimize("", on)
+            #endif
+
+            #ifdef NST_PRAGMA_OPTIMIZE_ALIAS
             #pragma optimize("w", on)
             #endif
 		
@@ -280,7 +283,7 @@ namespace Nes
 				irq.VSync();
 			}
 		
-            #ifdef NST_PRAGMA_OPTIMIZE
+            #ifdef NST_PRAGMA_OPTIMIZE_ALIAS
             #pragma optimize("", on)
             #endif
 		}

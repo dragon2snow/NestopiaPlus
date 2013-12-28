@@ -29,6 +29,7 @@
 #include "NstManagerEmulator.hpp"
 #include "NstManagerPaths.hpp"
 #include "NstWindowMenu.hpp"
+#include "NstWindowMain.hpp"
 #include "NstManagerSaveStates.hpp"
 
 namespace Nestopia
@@ -60,7 +61,7 @@ namespace Nestopia
 		IDS_SCREEN_SLOT_9 - IDS_SCREEN_SLOT_1 == 8
 	);
 
-	SaveStates::SaveStates(Emulator& e,const Configuration&,Window::Menu& m,const Paths& p,const Window::Custom& w)
+	SaveStates::SaveStates(Emulator& e,const Configuration&,Window::Menu& m,const Paths& p,const Window::Main& w)
 	: 
 	emulator        ( e ),
 	menu            ( m ),
@@ -208,11 +209,13 @@ namespace Nestopia
 	{
 		if (emulator.LoadState( data ))
 		{
-			if (name.Size())
+			const uint length = window.GetMaxMessageLength(); 
+
+			if (name.Size() && length > 20)
 			{
-				Io::Screen() << Resource::String(IDS_SCREEN_LOAD_STATE_FROM) 
+				Io::Screen() << Resource::String( IDS_SCREEN_LOAD_STATE_FROM )
 					         << " \"" 
-							 << name 
+							 << String::Path<true>::Compact( name, length - 18 )
 							 << '\"';
 			}
 
@@ -269,10 +272,15 @@ namespace Nestopia
 
 		if (paths.Load( file, Paths::File::STATE|Paths::File::SLOTS|Paths::File::ARCHIVE ) && emulator.LoadState( file.data ))
 		{
-			Io::Screen() << Resource::String(IDS_SCREEN_LOAD_STATE_FROM) 
-				         << " \"" 
-						 << file.name 
-						 << '\"';
+			const uint length = window.GetMaxMessageLength(); 
+
+			if (length > 20)
+			{
+				Io::Screen() << Resource::String( IDS_SCREEN_LOAD_STATE_FROM )
+					         << " \"" 
+							 << String::Path<true>::Compact( file.name, length - 18 )
+							 << '\"';
+			}
 			
 			emulator.Resume();
 		}
@@ -288,10 +296,15 @@ namespace Nestopia
 
 			if (emulator.SaveState( buffer, paths.UseStateCompression() ) && paths.Save( buffer, buffer.Size(), Paths::File::STATE, path ))
 			{
-				Io::Screen() << Resource::String(IDS_SCREEN_SAVE_STATE_TO) 
-					         << " \"" 
-							 << path 
-							 << '\"';
+				const uint length = window.GetMaxMessageLength(); 
+
+				if (length > 20)
+				{
+					Io::Screen() << Resource::String( IDS_SCREEN_SAVE_STATE_TO ) 
+						         << " \"" 
+								 << String::Path<true>::Compact( path, length - 18 )
+								 << '\"';
+				}
 			}
 		}
 	}
@@ -342,10 +355,15 @@ namespace Nestopia
 					autoSaver->ShouldNotify()
 				)
 				{
-					Io::Screen() << Resource::String(IDS_SCREEN_SAVE_STATE_TO) 
-						         << " \"" 
-								 << autoSaver->GetStateFile() 
-								 << '\"';
+					const uint length = window.GetMaxMessageLength();
+				
+					if (length > 20)
+					{
+						Io::Screen() << Resource::String( IDS_SCREEN_SAVE_STATE_TO )
+							         << " \"" 
+									 << String::Path<true>::Compact( autoSaver->GetStateFile(), length - 18 )
+									 << '\"';
+					}
 				}
 			}
 			else
@@ -364,8 +382,8 @@ namespace Nestopia
 		autoSaveEnabled = enable;
 
 		if (enable)
-			window.StartTimer( this, &SaveStates::OnTimerAutoSave, autoSaver->GetInterval() );
+			window.Get().StartTimer( this, &SaveStates::OnTimerAutoSave, autoSaver->GetInterval() );
 		else
-			window.StopTimer( this, &SaveStates::OnTimerAutoSave );
+			window.Get().StopTimer( this, &SaveStates::OnTimerAutoSave );
 	}
 }

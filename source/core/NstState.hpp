@@ -92,7 +92,7 @@ namespace Nes
 
 			private:
 
-            #ifdef _DEBUG
+            #ifndef NDEBUG
 
 				Saver(const Saver&);
 
@@ -201,7 +201,7 @@ namespace Nes
 
 			private:
 
-            #ifdef _DEBUG
+            #ifndef NDEBUG
 
 				Loader(const Loader&);
              

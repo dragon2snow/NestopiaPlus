@@ -148,7 +148,7 @@ namespace Nestopia
 			void  Resume();
 			void  Wait();
 			ibool Pause(ibool);
-			void  ResetSpeed(uint,ibool);
+			void  ResetSpeed(uint,ibool,ibool);
 			void  SetSpeed(uint);
 			uint  GetBaseSpeed();
 			uint  GetSpeed();
@@ -224,11 +224,12 @@ namespace Nestopia
 				{
 					inline Timing();
 
-					uint  speed;
-					uchar baseSpeed;
-					bool  speeding;
-					bool  sync;
-					bool  rewinding;
+					uint speed;
+					uint baseSpeed;
+					bool speeding;
+					bool sync;
+					bool tripleBuffering;
+					bool rewinding;
 				};
 
 				struct Paths
@@ -378,6 +379,11 @@ namespace Nestopia
 			ibool SyncFrameRate() const
 			{
 				return settings.timing.sync;
+			}
+
+			ibool UseTripleBuffering() const
+			{
+				return settings.timing.tripleBuffering;
 			}
 
 			uint GetPlayer() const

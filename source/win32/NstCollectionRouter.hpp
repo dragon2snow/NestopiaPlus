@@ -106,9 +106,9 @@ namespace Nestopia
 				: next(NULL) {}
 			};
 
-			NST_NO_INLINE void  AddHook(KeyParam,const Hook::Item&);
-			NST_NO_INLINE ibool RemoveHook(Item* const,Hook*,Hook::Item*);
-			NST_NO_INLINE void  RemoveHook(KeyParam,const Hook::Item&);
+			NST_NO_INLINE void  AddHook(KeyParam,const typename Hook::Item&);
+			NST_NO_INLINE ibool RemoveHook(Item* const,Hook*,typename Hook::Item*);
+			NST_NO_INLINE void  RemoveHook(KeyParam,typename const Hook::Item&);
 			NST_NO_INLINE void  RemoveHooks(const void*);
 
 			class HookRouter
@@ -123,7 +123,7 @@ namespace Nestopia
 				HookRouter(Router& ref)
 				: router(ref) {}
 
-				typedef Hook::Item Callback;
+				typedef typename Hook::Item Callback;
 
 				template<typename Data,typename Code>
 				void Add(KeyParam key,Data* data,Code code)

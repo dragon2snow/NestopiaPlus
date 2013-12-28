@@ -173,10 +173,16 @@ namespace Nestopia
 
 		{
 			const String::Heap& type = cfg["machine region"];
+			const uint id = (type == "ntsc" ? IDM_MACHINE_SYSTEM_NTSC : type == "pal" ? IDM_MACHINE_SYSTEM_PAL : IDM_MACHINE_SYSTEM_AUTO);
 
-			menu[ IDM_MACHINE_SYSTEM_AUTO ].Check( type != "pal" && type != "ntsc" );
-			menu[ IDM_MACHINE_SYSTEM_NTSC ].Check( type == "ntsc" );
-			menu[ IDM_MACHINE_SYSTEM_PAL  ].Check( type == "pal" );
+			menu[ IDM_MACHINE_SYSTEM_AUTO ].Check( id == IDM_MACHINE_SYSTEM_AUTO );
+			menu[ IDM_MACHINE_SYSTEM_NTSC ].Check( id == IDM_MACHINE_SYSTEM_NTSC );
+			menu[ IDM_MACHINE_SYSTEM_PAL  ].Check( id == IDM_MACHINE_SYSTEM_PAL  );
+
+			if (id == IDM_MACHINE_SYSTEM_AUTO)
+				emulator.AutoSetMode();
+			else
+				emulator.SetMode( id == IDM_MACHINE_SYSTEM_NTSC ? Nes::Machine::NTSC : Nes::Machine::PAL );
 		}
 
 		{
@@ -298,20 +304,12 @@ namespace Nestopia
 
 		{
 			String::Heap& value = cfg["view size fullscreen"].GetString();
+			const uint scale = video->GetFullscreenScale();
 
-			switch (video->GetFullscreenScale())
-			{								
-				case 0:  value = '1';         break;
-				case 1:  value = '2';         break;
-				case 2:  value = '3';         break;
-				case 3:  value = '4';         break;
-				case 4:  value = '5';         break;
-				case 5:  value = '6';         break;
-				case 6:  value = '7';         break;
-				case 7:  value = '8';         break;
-				case 8:  value = '9';         break;
-				default: value = "stretched"; break;
-			}
+			if (scale <= 8)
+				value << scale;
+			else
+				value << "stretched";
 		}
 
 		video->Save( cfg );
@@ -368,7 +366,7 @@ namespace Nestopia
 
 						emulator.Execute( video->GetOutput(), sound->GetOutput(), input->GetOutput() );
 						input->RefreshCursor();					
-						frameClock->GameSynchronize( !video->IsVSyncEnabled() );
+						frameClock->GameSynchronize( video->IsThrottleRequired() );
 						video->PresentScreen();
 					}
 					else
@@ -402,6 +400,11 @@ namespace Nestopia
     #pragma optimize("", on)
     #endif
 
+	uint Main::GetMaxMessageLength() const
+	{
+		return video->GetMaxMessageLength();
+	}
+
 	void Main::OnStopEmulation()
 	{
 		::SetThreadPriority( ::GetCurrentThread(), THREAD_PRIORITY_NORMAL );
@@ -416,7 +419,7 @@ namespace Nestopia
 
 	ibool Main::OnStartEmulation()
 	{
-		if (window.IsEnabled() && (CanRunInBackground() || (window.IsForeground() && !window.Minimized()))) 
+		if (window.IsEnabled() && (CanRunInBackground() || (window.IsForeground() && !window.Minimized() && (IsWindowed() || !menu.IsVisible())))) 
 		{
 			menu.ToggleModeless( CanRunInBackground() );
 
@@ -470,17 +473,23 @@ namespace Nestopia
 
 	ibool Main::ToggleMenu()
 	{
-		ibool visible;
+		ibool visible = menu.IsVisible();
 
 		if (IsFullscreen() || !window.Restored())
 		{
+			if (IsFullscreen() && !visible && !CanRunInBackground())
+				emulator.Stop();
+
 			visible = menu.Toggle();
+
+			if (IsFullscreen() && !visible)
+				emulator.Resume();
 		}
 		else
 		{
 			Point size;
 
-			if (menu.IsVisible())
+			if (visible)
 			{
 				size.y = menu.GetHeight();
 				menu.Hide();

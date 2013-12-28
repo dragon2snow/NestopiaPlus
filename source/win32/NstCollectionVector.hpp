@@ -52,7 +52,7 @@ namespace Nestopia
 				uint size;
 
 				explicit Base(uint);
-				explicit Base(const Base& NST_RESTRICT);
+				explicit Base(const Base&);
 				Base(const void* NST_RESTRICT,uint);
 
 				void operator = (const Base&);
