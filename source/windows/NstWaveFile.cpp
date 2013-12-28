@@ -1,3 +1,7 @@
+////////////////////////////////////////////////////////////////////////////////////////
+//
+// Nestopia - NES / Famicom emulator written in C++
+//
 // Copyright (C) 2003 Martin Freij
 //
 // This file is part of Nestopia.
@@ -18,7 +22,14 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstApplication.h"
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+
+#include <Windows.h>
+#include <MMSystem.h>
+#include "../paradox/PdxString.h"
+#include "NstUI.h"
 #include "NstWaveFile.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -53,8 +64,8 @@ PDXRESULT WAVEFILE::Open(const CHAR* const f,const WAVEFORMATEX& WaveFormat)
 	{
 		PDXSTRING file(f);
 
-		if (!(mmio = mmioOpen( file.Begin(), NULL, MMIO_ALLOCBUF|MMIO_READWRITE|MMIO_CREATE )))
-			return application.OnWarning("mmioOpen() failed!");
+		if (!(mmio = ::mmioOpen( file.Begin(), NULL, MMIO_ALLOCBUF|MMIO_READWRITE|MMIO_CREATE )))
+			return UI::MsgWarning("mmioOpen() failed!");
 	}
 
 	PDXMemZero( mmck     );
@@ -64,30 +75,30 @@ PDXRESULT WAVEFILE::Open(const CHAR* const f,const WAVEFORMATEX& WaveFormat)
 	mmckRiff.fccType = mmioFOURCC('W','A','V','E');
 	mmckRiff.cksize = 0;
 
-	if (mmioCreateChunk( mmio, &mmckRiff, MMIO_CREATERIFF) != MMSYSERR_NOERROR)
+	if (::mmioCreateChunk( mmio, &mmckRiff, MMIO_CREATERIFF) != MMSYSERR_NOERROR)
 	{
-		application.OnWarning("mmioCreateChunk() failed!");
+		UI::MsgWarning("mmioCreateChunk() failed!");
 		goto hell;
 	}
 
 	mmck.ckid = mmioFOURCC('f','m','t',' ');
 	mmck.cksize	= sizeof(PCMWAVEFORMAT);
 
-	if (mmioCreateChunk( mmio, &mmck, 0 ) != MMSYSERR_NOERROR)
+	if (::mmioCreateChunk( mmio, &mmck, 0 ) != MMSYSERR_NOERROR)
 	{
-		application.OnWarning("mmioCreateChunk() failed!");
+		UI::MsgWarning("mmioCreateChunk() failed!");
 		goto hell;
 	}
 
-	if (mmioWrite( mmio, HPSTR(&WaveFormat), sizeof(PCMWAVEFORMAT)) != sizeof(PCMWAVEFORMAT))
+	if (::mmioWrite( mmio, HPSTR(&WaveFormat), sizeof(PCMWAVEFORMAT)) != sizeof(PCMWAVEFORMAT))
 	{
-		application.OnWarning("mmioWrite() failed!");
+		UI::MsgWarning("mmioWrite() failed!");
 		goto hell;
 	}
 
-	if (mmioAscend( mmio, &mmck, 0 ) != MMSYSERR_NOERROR)
+	if (::mmioAscend( mmio, &mmck, 0 ) != MMSYSERR_NOERROR)
 	{
-		application.OnWarning("mmioAscend() failed!");
+		UI::MsgWarning("mmioAscend() failed!");
 		goto hell;
 	}
 
@@ -96,38 +107,38 @@ PDXRESULT WAVEFILE::Open(const CHAR* const f,const WAVEFORMATEX& WaveFormat)
 
 	ck.ckid = mmioFOURCC('f','a','c','t');
 
-	if (mmioCreateChunk( mmio, &ck, 0 ) != MMSYSERR_NOERROR)
+	if (::mmioCreateChunk( mmio, &ck, 0 ) != MMSYSERR_NOERROR)
 	{
-		application.OnWarning("mmioCreateChunk() failed!");
+		UI::MsgWarning("mmioCreateChunk() failed!");
 		goto hell;
 	}
 
 	const DWORD fact = DWORD(-1);
 
-	if (mmioWrite( mmio, HPSTR(&fact), sizeof(fact)) != sizeof(fact))
+	if (::mmioWrite( mmio, HPSTR(&fact), sizeof(fact)) != sizeof(fact))
 	{
-		application.OnWarning("mmioWrite() failed!");
+		UI::MsgWarning("mmioWrite() failed!");
 		goto hell;
 	}
 
-	if (mmioAscend( mmio, &ck, 0 ) != MMSYSERR_NOERROR)
+	if (::mmioAscend( mmio, &ck, 0 ) != MMSYSERR_NOERROR)
 	{
-		application.OnWarning("mmioAscend() failed!");
+		UI::MsgWarning("mmioAscend() failed!");
 		goto hell;
 	}
 
 	mmck.ckid = mmioFOURCC('d','a','t','a');
 	mmck.cksize = 0;
 
-	if (mmioCreateChunk( mmio, &mmck, 0 ) != MMSYSERR_NOERROR)
+	if (::mmioCreateChunk( mmio, &mmck, 0 ) != MMSYSERR_NOERROR)
 	{
-		application.OnWarning("mmioCreateChunk() failed!");
+		UI::MsgWarning("mmioCreateChunk() failed!");
 		goto hell;
 	}
 
-	if (mmioGetInfo( mmio, &mmckInfo, 0 ) != MMSYSERR_NOERROR)
+	if (::mmioGetInfo( mmio, &mmckInfo, 0 ) != MMSYSERR_NOERROR)
 	{
-		application.OnWarning("mmioGetInfo() failed!");
+		UI::MsgWarning("mmioGetInfo() failed!");
 		goto hell;
 	}
 
@@ -137,7 +148,7 @@ hell:
 
 	if (mmio)
 	{
-		mmioClose( mmio, 0 );
+		::mmioClose( mmio, 0 );
 		mmio = NULL;
 	}
 
@@ -160,8 +171,8 @@ PDXRESULT WAVEFILE::Write(const VOID* const d,const DWORD size)
 		{
 			mmckInfo.dwFlags |= MMIO_DIRTY;
 
-			if (mmioAdvance( mmio, &mmckInfo, MMIO_WRITE ) != MMSYSERR_NOERROR)
-				return application.OnWarning("mmioAdvance() failed!");
+			if (::mmioAdvance( mmio, &mmckInfo, MMIO_WRITE ) != MMSYSERR_NOERROR)
+				return UI::MsgWarning("mmioAdvance() failed!");
 		}
 
 		*((BYTE*)mmckInfo.pchNext) = data[i];
@@ -182,50 +193,50 @@ PDXRESULT WAVEFILE::Close()
 
 	mmckInfo.dwFlags |= MMIO_DIRTY;
 
-	if (mmioSetInfo( mmio, &mmckInfo, 0 ) != MMSYSERR_NOERROR)
+	if (::mmioSetInfo( mmio, &mmckInfo, 0 ) != MMSYSERR_NOERROR)
 	{
-		application.OnWarning("mmioSetInfo() failed!");
+		UI::MsgWarning("mmioSetInfo() failed!");
 		goto hell;
 	}
 
-	if (mmioAscend( mmio, &mmck, 0 ) != MMSYSERR_NOERROR)
+	if (::mmioAscend( mmio, &mmck, 0 ) != MMSYSERR_NOERROR)
 	{
-		application.OnWarning("mmioAscend() failed!");
+		UI::MsgWarning("mmioAscend() failed!");
 		goto hell;
 	}
 
-	if (mmioAscend( mmio, &mmckRiff, 0 ) != MMSYSERR_NOERROR)
+	if (::mmioAscend( mmio, &mmckRiff, 0 ) != MMSYSERR_NOERROR)
 	{
-		application.OnWarning("mmioAscend() failed!");
+		UI::MsgWarning("mmioAscend() failed!");
 		goto hell;
 	}
 
-	mmioSeek( mmio, 0, SEEK_SET );
+	::mmioSeek( mmio, 0, SEEK_SET );
 
-	if (mmioDescend( mmio, &mmckRiff, NULL, 0 ) != MMSYSERR_NOERROR)
+	if (::mmioDescend( mmio, &mmckRiff, NULL, 0 ) != MMSYSERR_NOERROR)
 	{
-		application.OnWarning("mmioDescend() failed!");
+		UI::MsgWarning("mmioDescend() failed!");
 		goto hell;
 	}
 
 	mmck.ckid = mmioFOURCC('f','a','c','t');
 
-	if (mmioDescend( mmio, &mmck, &mmckRiff, MMIO_FINDCHUNK ) == MMSYSERR_NOERROR) 
+	if (::mmioDescend( mmio, &mmck, &mmckRiff, MMIO_FINDCHUNK ) == MMSYSERR_NOERROR) 
 	{
 		const DWORD samples = 0;
-		mmioWrite( mmio, HPSTR(&samples), sizeof(DWORD) );
-		mmioAscend( mmio, &mmck, 0 ); 
+		::mmioWrite( mmio, HPSTR(&samples), sizeof(DWORD) );
+		::mmioAscend( mmio, &mmck, 0 ); 
 	}
 
-	if (mmioAscend( mmio, &mmckRiff, 0 ) != MMSYSERR_NOERROR)
+	if (::mmioAscend( mmio, &mmckRiff, 0 ) != MMSYSERR_NOERROR)
 	{
-		application.OnWarning("mmioAscend() failed!");
+		UI::MsgWarning("mmioAscend() failed!");
 		goto hell;
 	}
 
 	if (mmio)
 	{
-		mmioClose( mmio, 0 );
+		::mmioClose( mmio, 0 );
 		mmio = NULL;
 	}
 
@@ -235,7 +246,7 @@ hell:
 
 	if (mmio)
 	{
-		mmioClose( mmio, 0 );
+		::mmioClose( mmio, 0 );
 		mmio = NULL;
 	}
 

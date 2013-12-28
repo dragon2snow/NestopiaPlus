@@ -46,12 +46,8 @@ public:
 
 	PALETTE();
 
-	VOID SetBrightness (const INT);
-	VOID SetSaturation (const INT);
-	VOID SetHue        (const INT);	
-	VOID SetType       (const TYPE);
-	VOID Import        (const U8* const);
-
+	VOID GetContext(IO::GFX::CONTEXT&) const;
+	VOID SetContext(const IO::GFX::CONTEXT&);
 	BOOL Update();
 
 	const U8* GetData() const;

@@ -22,11 +22,14 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+
 #include <Windows.h>
-#include "../paradox/PdxString.h"
-#include "resource/resource.h"
-#include "NstApplication.h"
 #include "NstFdsManager.h"
+#include "NstFileManager.h"
+#include "NstApplication.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -53,7 +56,7 @@ VOID FDSMANAGER::Create(CONFIGFILE* const ConfigFile)
 
 		PDXFILE BiosFile;
 
-		if (bios.IsEmpty() || PDX_FAILED(BiosFile.Open(bios,PDXFILE::INPUT)))
+		if (bios.IsEmpty() || PDX_FAILED(BiosFile.Open( bios, PDXFILE::INPUT )))
 			SearchBios();
 	}
 	else
@@ -74,7 +77,7 @@ VOID FDSMANAGER::Destroy(CONFIGFILE* const ConfigFile)
 	{
 		CONFIGFILE& file = *ConfigFile;
 
-		file["files fds bios"] = bios;
+		file["files fds bios"] = bios.Quoted();
 		file["files write protect fds"] = (WriteProtect ? "yes" : "no");
 	}
 }
@@ -95,28 +98,25 @@ VOID FDSMANAGER::Reset()
 
 BOOL FDSMANAGER::SearchBios()
 {
-	if (PDX_SUCCEEDED(FILEMANAGER::GetExeFilePath(bios)))
-		bios << "disksys.rom";
+	UTILITIES::GetExeDir( bios );
+	bios += "disksys.rom";
 
-	PDXFILE file;
+	if (UTILITIES::FileExist( bios ))
+		return TRUE;
 
-	if (bios.IsEmpty() || PDX_FAILED(file.Open(bios,PDXFILE::INPUT)))
-	{
-		if (PDX_SUCCEEDED(FILEMANAGER::GetCurrentPath(bios)))
-			bios << "disksys.rom";
+	UTILITIES::GetCurrentDir( bios );
+	bios += "disksys.rom";
 
-		if (bios.IsEmpty() || PDX_FAILED(file.Open(bios,PDXFILE::INPUT)))
-		{
-			bios  = application.GetFileManager().GetRomPath();
-			bios +=	"disksys.rom";
+	if (UTILITIES::FileExist( bios ))
+		return TRUE;
 
-			if (PDX_FAILED(file.Open(bios,PDXFILE::INPUT)))
-			{
-				bios.Clear();
-				return FALSE;
-			}
-		}
-	}
+	bios  = application.GetFileManager().GetDefaultRomPath();
+	bios +=	"disksys.rom";
+
+	if (UTILITIES::FileExist( bios ))
+		return TRUE;
+
+	bios.Clear();
 
 	return TRUE;
 }
@@ -137,7 +137,7 @@ VOID FDSMANAGER::SubmitBios(const BOOL SkipBios)
 
 		if (!SkipBios && bios.Length() && PDX_SUCCEEDED(file.Open( bios )))
 		{
-			if (bios.GetFileExtension() == "zip")
+			if (bios.IsFileExtension( "zip", 3 ))
 			{
 				PDXARRAY<PDXSTRING> extensions;
 				extensions.Resize(2);
@@ -147,10 +147,10 @@ VOID FDSMANAGER::SubmitBios(const BOOL SkipBios)
 
 				file.Close();
 
-				if (application.GetFileManager().OpenZipFile( "Choose BIOS Rom", bios.String(), extensions, file ) == 0)
+				if (application.GetFileManager().OpenZipFile( UTILITIES::IdToString(IDS_FDS_LOAD_BIOS).String(), bios.String(), extensions, file ) == 0)
 				{
 					file.Close();
-					application.OnWarning("Either the zip file is corrupt or the bios file could not be found inside it!");
+					UI::MsgWarning( IDS_FDS_BIOS_ZIP_INVALID );
 				}
 			}
 
@@ -170,8 +170,8 @@ VOID FDSMANAGER::SubmitBios(const BOOL SkipBios)
 
 VOID FDSMANAGER::UpdateDialog(HWND hDlg)
 {
-	SetDlgItemText( hDlg, IDC_FDS_BIOS, bios.String() );	
-	CheckDlgButton( hDlg, IDC_FDS_WRITE_PROTECT, WriteProtect ? BST_CHECKED : BST_UNCHECKED );
+	::SetDlgItemText( hDlg, IDC_FDS_BIOS, bios.String() );	
+	::CheckDlgButton( hDlg, IDC_FDS_WRITE_PROTECT, WriteProtect ? BST_CHECKED : BST_UNCHECKED );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -180,11 +180,10 @@ VOID FDSMANAGER::UpdateDialog(HWND hDlg)
 
 VOID FDSMANAGER::UpdateSettings(HWND hDlg)
 {
+	WriteProtect = (::IsDlgButtonChecked( hDlg, IDC_FDS_WRITE_PROTECT ) == BST_CHECKED);
+
 	const PDXSTRING old( bios );
-	bios.Buffer().Resize( NST_MAX_PATH );
-	GetDlgItemText( hDlg, IDC_FDS_BIOS, bios.Begin(), NST_MAX_PATH );	
-	WriteProtect = (IsDlgButtonChecked(hDlg, IDC_FDS_WRITE_PROTECT ) == BST_CHECKED);
-	bios.Validate();
+	MANAGER::GetDlgItemText( hDlg, IDC_FDS_BIOS, bios );
 	SubmitBios( old == bios );
 }
 
@@ -194,25 +193,14 @@ VOID FDSMANAGER::UpdateSettings(HWND hDlg)
 
 VOID FDSMANAGER::OnBrowse(HWND hDlg)
 {
-	PDXSTRING file;
-	file.Buffer().Resize( NST_MAX_PATH );
-	file.Buffer().Front() = '\0';
+	PDXSTRING filename;
 
-	OPENFILENAME ofn;
-	PDXMemZero( ofn );
-
-	ofn.lStructSize     = sizeof(ofn);
-	ofn.hwndOwner       = hWnd;
-	ofn.nFilterIndex    = 1;
-	ofn.lpstrInitialDir	= application.GetFileManager().GetRomPath().String();
-	ofn.lpstrFile       = file.Begin();
-	ofn.lpstrTitle      = "Famicom Disk System Bios Rom";
-	ofn.nMaxFile        = NST_MAX_PATH;
-	ofn.Flags           = OFN_HIDEREADONLY | OFN_FILEMUSTEXIST;
-
-	ofn.lpstrFilter = 
-	(
-     	"All supported files (*.rom, *.nes, *.zip)\0"
+	const BOOL succeeded = UTILITIES::BrowseOpenFile
+	( 
+    	filename, 
+		hDlg, 
+		IDS_FDS_SELECT_BIOS,
+		"All supported files (*.rom, *.nes, *.zip)\0"
 		"*.rom;*.nes;*.zip\0"
 		"Rom Files (*.rom)\0"
 		"*.rom\0"
@@ -221,14 +209,12 @@ VOID FDSMANAGER::OnBrowse(HWND hDlg)
 		"Zip Files (*.zip)\0"
 		"*.zip\0"
 		"All Files (*.*)\0"
-		"*.*\0"
+		"*.*\0",
+		application.GetFileManager().GetRomPath().String()
 	);
 
-	if (GetOpenFileName(&ofn))
-	{
-		file.Validate();
-		SetDlgItemText( hDlg, IDC_FDS_BIOS, file.String() );
-	}
+	if (succeeded)
+		::SetDlgItemText( hDlg, IDC_FDS_BIOS, filename.String() );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -237,7 +223,7 @@ VOID FDSMANAGER::OnBrowse(HWND hDlg)
 
 VOID FDSMANAGER::OnClear(HWND hDlg)
 {
-	SetDlgItemText( hDlg, IDC_FDS_BIOS, "" );
+	::SetDlgItemText( hDlg, IDC_FDS_BIOS, "" );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -260,13 +246,13 @@ BOOL FDSMANAGER::DialogProc(HWND hDlg,UINT uMsg,WPARAM wParam,LPARAM)
     			case IDC_FDS_CLEAR:  OnClear( hDlg ); return TRUE;
     			case IDC_FDS_BROWSE: OnBrowse( hDlg ); return TRUE;
 				case IDC_FDS_OK:     UpdateSettings( hDlg );
-				case IDC_FDS_CANCEL: EndDialog( hDlg, 0 ); return TRUE;
+				case IDC_FDS_CANCEL: ::EndDialog( hDlg, 0 ); return TRUE;
 			}		
 			return FALSE;
 
      	case WM_CLOSE:
 
-     		EndDialog( hDlg, 0 );
+     		::EndDialog( hDlg, 0 );
      		return TRUE;
 	}
 

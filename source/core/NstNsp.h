@@ -27,6 +27,8 @@
 #ifndef NST_NSP_H
 #define NST_NSP_H
 
+#include "../paradox/PdxMap.h"
+
 ////////////////////////////////////////////////////////////////////////////////////////
 //
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -37,29 +39,38 @@ class NSP
 {
 public:
 
-	PDXRESULT Load(PDXFILE&);
-	PDXRESULT Save(PDXFILE&) const;
+	enum SAVEOPTION
+	{
+		SAVE_ALL,
+		SAVE_ONLY_GAMEGENIE
+	};
 
-	VOID SetContext(const IO::NSP::CONTEXT&); 
-	VOID GetContext(IO::NSP::CONTEXT&) const;
+	typedef IO::NSP::CONTEXT CONTEXT;
+
+	PDXRESULT Load(PDXFILE&);
+	PDXRESULT Save(PDXFILE&,const SAVEOPTION=SAVE_ALL) const;
+
+	VOID SetContext(const CONTEXT&); 
+	VOID GetContext(CONTEXT&) const;
 
 private:
 
+	typedef PDXMAP<PDXSTRING,PDXSTRING> TREE;
+	typedef PDXARRAY<PDXSTRING> BATCH;
+
+	static const PDXSTRING* FindItem (const TREE&,const CHAR* const);
+
+	static VOID PreProcess    (PDXSTRING&,PDXFILE&);
+	static BOOL Parse         (TREE&,BATCH&,PDXSTRING&);
+	static VOID ParseFileName (const PDXSTRING* const,PDXSTRING&);
+	static VOID ParsePort     (const PDXSTRING* const,CONTROLLERTYPE&);
+	static VOID ParseMode     (const PDXSTRING* const,INT&);
+	
+	VOID ParseGenie (const BATCH&);
+
 	VOID ValidateContext();
 
-	PDXRESULT ParseType      (PDXFILE&);
-	PDXRESULT ParseComment   (PDXFILE&);
-	PDXRESULT ParseMode      (PDXFILE&);
-	PDXRESULT ParseGenie     (PDXFILE&);
-	PDXRESULT ParsePort      (PDXFILE&);
-	PDXRESULT ParseStateSlot (PDXFILE&);
-
-	static PDXRESULT ParseLineEnd  (PDXFILE&);
-	static PDXRESULT ParseChoice   (PDXFILE&,PDXSTRING&);
-	static PDXRESULT ParseRestType (PDXFILE&,const CHAR* const);
-	static VOID      RemoveSpace   (PDXSTRING&);
-
-	IO::NSP::CONTEXT context;
+	CONTEXT context;
 };
 
 NES_NAMESPACE_END

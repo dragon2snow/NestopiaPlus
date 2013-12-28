@@ -27,7 +27,6 @@
 #ifndef NST_CONFIGFILE_H
 #define NST_CONFIGFILE_H
 
-#include "../paradox/PdxFile.h"
 #include "../paradox/PdxMap.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -40,31 +39,16 @@ public:
 
 	CONFIGFILE() {}
 
-	PDXRESULT Load(const PDXSTRING&);
-	PDXRESULT Save(const PDXSTRING&);
+	BOOL Load (const PDXSTRING&,const BOOL=TRUE);
+	BOOL Save (const PDXSTRING&);
 
 	template<class T> PDXSTRING& operator [] (const T& command)
 	{ return tree[command]; }
-
-	static const CHAR* FromGUID(const GUID&);
-	static GUID ToGUID(const CHAR* const);
-
-	const PDXSTRING& FileName() const
-	{ return file.Name(); }
-
-private:
-
-	static VOID WriteGuid(PDXSTRING&,const GUID&);
-	static VOID FormatString(PDXSTRING&);
-
-	VOID ParseOptions(PDXSTRING* const);
-	VOID WriteCommentHeader();
 
 private:
 
 	typedef PDXMAP<PDXSTRING,PDXSTRING> TREE;
 
-	PDXFILE file;
 	TREE tree;
 };
 

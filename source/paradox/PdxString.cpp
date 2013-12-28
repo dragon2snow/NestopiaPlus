@@ -44,6 +44,60 @@ VOID PDXSTRING::InsertBack(const CHAR c)
 //
 //////////////////////////////////////////////////////////////////////////////////////////////
 
+VOID PDXSTRING::RemoveSpaces()
+{
+	if (buffer.Size() > 1)
+	{
+		TSIZE begin;
+
+		for (begin=0; buffer[begin] == ' '; ++begin);
+
+		TSIZE end = buffer.Size() - 1;
+
+		if (begin < end)
+		{
+			while (buffer[end-1] == ' ')
+				--end;
+
+			if (begin)
+			{
+				end -= begin;
+				memmove( buffer.Begin(), buffer.At(begin), end );
+			}
+		}
+		else
+		{
+			end = 0;
+		}
+
+		buffer.Resize( end + 1 );
+		buffer.Back() = '\0';
+	}
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+//
+//////////////////////////////////////////////////////////////////////////////////////////////
+
+VOID PDXSTRING::RemoveQuotes()
+{
+	if (buffer.Size() > 1)
+	{
+		if (buffer.Front() == '\"')
+			buffer.EraseFront();
+
+		if (buffer.Size() > 1 && buffer[buffer.Size() - 2] == '\"')
+		{
+			buffer.EraseBack();
+			buffer.Back() = '\0';
+		}
+	}
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+//
+//////////////////////////////////////////////////////////////////////////////////////////////
+
 ULONG PDXSTRING::ToUlong() const
 {
 	if (buffer.Size() < 2)
@@ -210,6 +264,17 @@ VOID PDXSTRING::Resize(const TSIZE length,const CHAR FillCharacter)
 	if (length > pos)
 		memset( buffer.At(pos), FillCharacter, length - pos );
 
+	buffer.Back() = '\0';
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+//
+//////////////////////////////////////////////////////////////////////////////////////////////
+
+VOID PDXSTRING::EraseBack()
+{
+	PDX_ASSERT( buffer.Size() >= 2 );
+	buffer.EraseBack();
 	buffer.Back() = '\0';
 }
 
@@ -410,7 +475,7 @@ TSIZE PDXSTRING::PosAtFirstOf(CONSTITERATOR SubBegin,CONSTITERATOR SubEnd,CONSTI
 
 	for (TSIZE i=0; (i+SubLength) <= length; ++i)
 	{
-		CONSTITERATOR pos = &begin[i];
+		CONSTITERATOR pos = begin+i;
 
 		TSIZE j;
 
@@ -451,6 +516,63 @@ TSIZE PDXSTRING::PosAtLastOf(CONSTITERATOR SubBegin,CONSTITERATOR SubEnd,CONSTIT
 	}
 
 	return length;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+//
+//////////////////////////////////////////////////////////////////////////////////////////////
+
+PDXSTRING PDXSTRING::Quoted() const
+{
+	PDXSTRING quoted;
+
+	const TSIZE length = Length();
+
+	quoted.buffer.Resize( 3 + length );
+	quoted.buffer.Front() = '\"';
+
+	memcpy( quoted.buffer.At(1), buffer.Begin(), length );
+	
+	quoted.buffer[1 + length] = '\"';
+	quoted.buffer[2 + length] = '\0';
+
+	return quoted;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+//
+//////////////////////////////////////////////////////////////////////////////////////////////
+
+BOOL PDXSTRING::IsFileExtension(const CHAR* ext,const TSIZE length) const
+{
+	if (buffer.Size() > 1)
+	{
+		for (const CHAR* c=buffer.At(buffer.Size()-2); c >= buffer.Begin(); --c)
+		{
+			if (*c == '.')
+			{
+				++c;
+
+				for (const CHAR* end = ext + (length ? length : strlen(ext)); ext != end; ++ext)
+				{
+					if (*c++ != *ext)
+						return FALSE;
+				}
+
+				while (*c != '\0')
+				{
+					if (*c != ' ' && *c != '\r' && *c != '\n' && *c != '\t' && *c != '\v')
+						return FALSE;
+
+					++c;
+				}
+
+				return TRUE;
+			}
+		}
+	}
+
+	return FALSE;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////

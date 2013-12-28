@@ -22,8 +22,18 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+
+#include <Windows.h>
+#include "resource/resource.h"
+#include "../paradox/PdxArray.h"
+#include "../NstNes.h"
+#include "NstUtilities.h"
+#include "NstLogFileManager.h"
+#include "NstDirectSound.h"
 #include "NstDirectX.h"
-#include "NstApplication.h"
 
 #pragma comment(lib,"dsound")
 
@@ -90,11 +100,11 @@ PDXRESULT DIRECTSOUND::OnError(const CHAR* const msg)
 
 	Destroy();
 
-	PDXSTRING m(msg);
-	m += " Sound will be disabled for this device!";
+	PDXSTRING m( msg );
+	m << " " << UTILITIES::IdToString(IDS_SOUND_DISABLE);
 
-	application.LogFile().Output("DIRECTSOUND: ",m);
-	application.OnWarning(m.String());
+	LOGFILE::Output( "DIRECTSOUND: ", m );
+	UI::MsgWarning( m );
 	
 	return PDX_FAILURE;
 }
@@ -107,17 +117,17 @@ BOOL CALLBACK DIRECTSOUND::EnumAdapters(LPGUID guid,LPCSTR desc,LPCSTR,LPVOID co
 {
 	LPDIRECTSOUND8 device = NULL;
 
-	application.LogFile().Output
+	LOGFILE::Output
 	(
        	"DIRECTSOUND: enumerating device, guid: ",
-		(guid ? CONFIGFILE::FromGUID(*guid) : "default"),
+		(guid ? UTILITIES::FromGUID(*guid).String() : "default"),
 		", name: ",
 		(desc ? desc : "unknown") 
 	);
 
-	if (FAILED(DirectSoundCreate8(guid,&device,NULL)) || !device)
+	if (FAILED(::DirectSoundCreate8(guid,&device,NULL)) || !device)
 	{
-		application.LogFile().Output
+		LOGFILE::Output
 		(
 	     	"DIRECTSOUND: DirectSoundCreate8() on this device failed, continuing enumeration.."
 		);
@@ -129,7 +139,7 @@ BOOL CALLBACK DIRECTSOUND::EnumAdapters(LPGUID guid,LPCSTR desc,LPCSTR,LPVOID co
 
 	if (FAILED(device->GetCaps(&caps)))
 	{
-		application.LogFile().Output
+		LOGFILE::Output
 		(
        		"DIRECTSOUND: IDirectSound8::GetCaps() on this device failed, continuing enumeration.."
 		);		
@@ -172,14 +182,14 @@ VOID DIRECTSOUND::Initialize(HWND h)
 	if (!hWnd || adapters.Size())
 		throw ("Internal error in DIRECTSOUND::Initialize()!");
 
-	if (FAILED(DirectSoundEnumerate(EnumAdapters,PDX_CAST(LPVOID,&adapters))) || adapters.IsEmpty())
+	if (FAILED(::DirectSoundEnumerate(EnumAdapters,PDX_CAST(LPVOID,&adapters))) || adapters.IsEmpty())
 	{
-		application.LogFile().Output("DIRECTSOUND: sound enumeration failed or no adapters was found, retrying with default..");
+		LOGFILE::Output("DIRECTSOUND: sound enumeration failed or no adapters was found, retrying with default..");
 		EnumAdapters(NULL,"Primary Sound Driver","",PDX_CAST(LPVOID,&adapters));
 	}
 
 	if (adapters.IsEmpty())
-		OnError("No sound device could be found!");
+		OnError(UTILITIES::IdToString(IDS_SOUND_NO_DEVICE).String());
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -196,13 +206,13 @@ PDXRESULT DIRECTSOUND::Create(const GUID& g)
 	Destroy();
 	guid = g;
 
-	if (FAILED(DirectSoundCreate8(&guid,&device,NULL)))
+	if (FAILED(::DirectSoundCreate8(&guid,&device,NULL)))
 		return OnError("DirectSoundCreate8() failed!");
 
-	application.LogFile().Output
+	LOGFILE::Output
 	( 
      	"DIRECTSOUND: creating device - guid: ",
-		CONFIGFILE::FromGUID(guid)
+		UTILITIES::FromGUID(guid).String()
 	);
 
 	if (FAILED(device->SetCooperativeLevel(hWnd,DSSCL_PRIORITY)))
@@ -230,20 +240,20 @@ PDXRESULT DIRECTSOUND::CreateBuffer(const UINT latency,const UINT rate,const BOO
 	BufferSize  = NotifySize * 2;
 	LastOffset  = 0;
 
-	application.LogFile().Output
+	LOGFILE::Output
 	(
        	"DIRECTSOUND: creating ",
     	BufferSize,
      	" byte sound buffer"
 	);
 
-	application.LogFile().Output
+	LOGFILE::Output
 	(
      	"DIRECTSOUND: sample rate - ",
      	WaveFormat.nSamplesPerSec
 	);
 
-	application.LogFile().Output
+	LOGFILE::Output
 	(
     	"DIRECTSOUND: sample bits - ",
      	WaveFormat.wBitsPerSample
@@ -359,48 +369,47 @@ PDXRESULT DIRECTSOUND::Unlock()
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#ifdef NST_SYNCHRONIZE_SOUND
-
-BOOL DIRECTSOUND::UpdateRefresh()
+BOOL DIRECTSOUND::Synchronize()
 {
-	if (secondary)
+	if (!secondary)
+		return FALSE;
+
+	DWORD status = 0;
+
+	if (FAILED(secondary->GetStatus(&status)) || !(status & DSBSTATUS_PLAYING))
+		return FALSE;
+
+	DWORD current;
+
+	for (;;)
 	{
-		DWORD status = 0;
+		if (FAILED(secondary->GetCurrentPosition( &current, NULL )))
+			return FALSE;
 
-		if (SUCCEEDED(secondary->GetStatus(&status)) && (status & DSBSTATUS_PLAYING))
-		{
-			DWORD CurrentPos;
+		DWORD elapsed = current;
 
-			for (;;)
-			{
-				if (FAILED(secondary->GetCurrentPosition(&CurrentPos,NULL)))
-					return FALSE;
+		if (current < LastPos)
+			elapsed += (BufferSize - LastPos);
+		else
+			elapsed -= LastPos;
 
-				const DWORD offset = CurrentPos + (LastPos < CurrentPos ? 0 : BufferSize);
-
-				if ((offset - LastPos) >= TimerRate)
-				{
-					LastPos += TimerRate;
-
-					if (LastPos + TimerRate < offset)
-					{
-						LastPos = CurrentPos;
-					}
-					else if (LastPos >= BufferSize)
-					{
-						LastPos -= BufferSize;
-					}
-
-					return TRUE;
-				}
-			}
-		}
+		if (elapsed >= TimerRate)
+			break;
 	}
 
-	return FALSE;
-}
+	LastPos += TimerRate;
 
-#endif
+	if (LastPos + TimerRate < current || LastPos > current)
+	{
+		LastPos = current;
+	}
+	else if (LastPos >= BufferSize)
+	{
+		LastPos -= BufferSize;
+	}  
+  
+	return TRUE;
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //

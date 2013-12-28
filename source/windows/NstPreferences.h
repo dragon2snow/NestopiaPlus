@@ -42,40 +42,85 @@ public:
 	VOID Create  (CONFIGFILE* const);
 	VOID Destroy (CONFIGFILE* const);
 
-	inline BOOL HighPriority()         const { return highpriority;       }
-	inline BOOL EmulateImmediately()   const { return emulateimmediately; }
-	inline BOOL RunInBackground()      const { return background;         }
-	inline BOOL RunNsfInBackground()   const { return backgroundnsf;      }
-	inline BOOL StartUpFullScreen()    const { return fullscreen;         }
-	inline BOOL PowerOffOnClose()      const { return closepoweroff;      }
-	inline BOOL HideMenuInFullScreen() const { return hidemenu;           }
-	inline BOOL ConfirmExit()		   const { return confirmexit;        }
-	inline BOOL LogFileEnabled()       const { return uselogfile;         }
-	inline BOOL NoWarnings()           const { return nowarnings;         }
-	inline BOOL ShowWarnings()         const { return !nowarnings;        }
-	inline BOOL UseDatabase()          const { return usedatabase;        }
+	inline BOOL PriorityControl()        const { return prioritycontrol;    }
+	inline BOOL EmulateImmediately()     const { return emulateimmediately; }
+	inline BOOL RunInBackground()        const { return background;         }
+	inline BOOL StartUpFullScreen()      const { return fullscreen;         }
+	inline BOOL PowerOffOnClose()        const { return closepoweroff;      }
+	inline BOOL ConfirmExit()		     const { return confirmexit;        }
+	inline BOOL SaveLogFile()            const { return savelogfile;        }
+	inline BOOL SaveSettings()           const { return savesettings;       }
+	inline BOOL NoWarnings()             const { return nowarnings;         }
+	inline BOOL ShowWarnings()           const { return !nowarnings;        }
+	inline BOOL UseDatabase()            const { return usedatabase;        }
+	inline BOOL AllowMultipleInstances() const { return multipleinstances;  }
+	
+	inline INT GetDefaultPriority() const
+	{ return DefaultPriority; }
 
 private:
 
 	BOOL DialogProc(HWND,UINT,WPARAM,LPARAM);
+	VOID CloseDialog();
+
+	static BOOL ReadRegKey();
 
 	VOID Reset();
 	VOID UpdateDialog(HWND);
 	VOID SetContext(HWND=NULL);
+	
+	static VOID DeleteKey(HKEY,const PDXSTRING&);
 
 	BOOL emulateimmediately;
 	BOOL background;
-	BOOL backgroundnsf;
 	BOOL fullscreen;
 	BOOL nowarnings;    
 	BOOL closepoweroff;
-	BOOL hidemenu;
 	BOOL confirmexit;
-	BOOL uselogfile;
-	BOOL highpriority;
+	BOOL prioritycontrol;
 	BOOL usedatabase;
+	BOOL multipleinstances;
+	BOOL savesettings;
+	BOOL savelogfile;
 
-	INT DefPriority;
+	enum
+	{
+		FILE_NES,
+		FILE_UNF,
+		FILE_FDS,
+		FILE_NSF,
+		FILE_NSP,
+		NUM_FILE_TYPES
+	};
+
+	struct ASSOCIATION
+	{
+		ASSOCIATION()
+		: enabled(FALSE)
+		{}
+
+		VOID Set(const CHAR* const ext,const CHAR* const dsc,const UINT ico)
+		{
+			extension = ext;
+			desc = dsc;
+			icon = ico;
+		}
+
+		BOOL enabled;
+		PDXSTRING extension;
+		PDXSTRING desc;
+		UINT icon;
+	};
+
+	VOID RegisterFile      (const ASSOCIATION&,const BOOL);
+	VOID UnregisterFile    (const ASSOCIATION&);
+	VOID UpdateAssociation (ASSOCIATION&);
+
+	ASSOCIATION associations[NUM_FILE_TYPES];
+
+	BOOL FilesUpdated;
+
+	INT DefaultPriority;
 };
 
 #endif

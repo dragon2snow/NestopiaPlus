@@ -22,8 +22,15 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+
+#include <Windows.h>
+#include "../paradox/PdxArray.h"
+#include "NstLogFileManager.h"
+#include "NstDirectInput.h"
 #include "NstDirectX.h"
-#include "NstApplication.h"
 
 #pragma comment(lib,"dinput8")
 #pragma comment(lib,"dxguid")
@@ -107,14 +114,14 @@ VOID DIRECTINPUT::Initialize(HWND h)
 
 	hWnd = h;
 
-	application.LogFile().Output("DIRECTINPUT: initializing");
+	LOGFILE::Output("DIRECTINPUT: initializing");
 
-	if (FAILED(DirectInput8Create(GetModuleHandle(NULL),DIRECTINPUT_VERSION,IID_IDirectInput8,PDX_CAST(LPVOID*,&device),NULL)) || !device)
+	if (FAILED(::DirectInput8Create(GetModuleHandle(NULL),DIRECTINPUT_VERSION,IID_IDirectInput8,PDX_CAST(LPVOID*,&device),NULL)) || !device)
 		throw ("DirectInput8Create() failed!");
 
 	if (SUCCEEDED(device->EnumDevices(DI8DEVCLASS_GAMECTRL,EnumJoysticks,PDX_CAST(LPVOID,this),DIEDFL_ATTACHEDONLY)))
 	{
-		application.LogFile().Output
+		LOGFILE::Output
 		( 
 			"DIRECTINPUT: found ",
 			joysticks.Size(),
@@ -123,7 +130,7 @@ VOID DIRECTINPUT::Initialize(HWND h)
 	}
 	else
 	{
-		application.LogFile().Output
+		LOGFILE::Output
 		(
 	     	"IDirectInput8::EnumDevices() failed! No joysticks can be used!"
 		);
@@ -180,8 +187,6 @@ VOID DIRECTINPUT::UnacquireDevices()
 VOID DIRECTINPUT::PollKeyboard()
 {
 	PDX_ASSERT(keyboard);
-
-	keyboard->Poll();
 
 	if (FAILED(keyboard->GetDeviceState( KEYBOARD_BUFFER_SIZE, PDX_CAST(LPVOID,KeyboardBuffer) )))
 	{
@@ -322,7 +327,7 @@ PDXRESULT DIRECTINPUT::JOYSTICK::Create(LPDIRECTINPUT8 dinput,HWND hWnd,const GU
 
 	if (FAILED(dinput->CreateDevice( guid, &device, NULL )) || !device)
 	{
-		application.LogFile().Output
+		LOGFILE::Output
 		(
 	     	"DIRECTINPUT: IDirectInputDevice8::CreateDevice() failed, skipping one input device.."
 		);
@@ -333,7 +338,7 @@ PDXRESULT DIRECTINPUT::JOYSTICK::Create(LPDIRECTINPUT8 dinput,HWND hWnd,const GU
 	{
 		DIRECTX::Release(device,TRUE);
 
-		application.LogFile().Output
+		LOGFILE::Output
 		(
 			"DIRECTINPUT: IDirectInputDevice8::SetDataFormat() failed, skipping one input device.."
 		);
@@ -344,7 +349,7 @@ PDXRESULT DIRECTINPUT::JOYSTICK::Create(LPDIRECTINPUT8 dinput,HWND hWnd,const GU
 	{
 		DIRECTX::Release(device,TRUE);
 
-		application.LogFile().Output
+		LOGFILE::Output
 		(
 			"DIRECTINPUT: IDirectInputDevice8::SetCooperativeLevel() failed, skipping one input device.."
 		);
@@ -359,7 +364,7 @@ PDXRESULT DIRECTINPUT::JOYSTICK::Create(LPDIRECTINPUT8 dinput,HWND hWnd,const GU
 		{
      		DIRECTX::Release(device,TRUE);
 
-			application.LogFile().Output
+			LOGFILE::Output
 			(
 				"DIRECTINPUT: IDirectInputDevice8::GetCapabilities() failed, skipping one input device.."
 			);
@@ -442,6 +447,13 @@ BOOL CALLBACK DIRECTINPUT::EnumJoysticks(LPCDIDEVICEINSTANCE instance,LPVOID con
 
 	DIRECTINPUT& DirectInput = *PDX_CAST(DIRECTINPUT*,context);
 	PDX_ASSERT(DirectInput.device);
+
+	if (DirectInput.joysticks.Size() == MAX_JOYSTICKS)
+	{
+		// will never happen... really
+		LOGFILE::Output("DIRECTINPUT: reached the limit of number of supported joysticks, enumeration stopped");
+		return DIENUM_STOP;
+	}
 
 	DirectInput.joysticks.Grow();
 

@@ -87,6 +87,8 @@ public:
 	BOOL IsMovieRecording() const;
 	BOOL IsMovieRewinded()  const;
 
+	TSIZE GetAudioLatency() const;
+
 	const PDXSTRING* GetMovieFileName() const;
 
 	VOID Unload();
@@ -107,9 +109,6 @@ public:
 	VOID GetAudioContext (IO::SFX::CONTEXT&) const;
 	VOID SetAudioContext (const IO::SFX::CONTEXT&);
 
-	PDXRESULT GetGameGenieContext (IO::GAMEGENIE::CONTEXT&);
-	PDXRESULT SetGameGenieContext (const IO::GAMEGENIE::CONTEXT&);
-
 	PDXRESULT GetFdsContext(IO::FDS::CONTEXT&) const;
 	PDXRESULT SetFdsContext(const IO::FDS::CONTEXT&);
 
@@ -118,6 +117,13 @@ public:
 
 	VOID GetGeneralContext(IO::GENERAL::CONTEXT&) const;
 	VOID SetGeneralContext(const IO::GENERAL::CONTEXT&);
+
+	enum INTERFACETYPE
+	{
+		INTERFACE_GAMEGENIE
+	};
+
+	VOID* QueryInterface(const INTERFACETYPE);
 
 	const IO::CARTRIDGE::INFO* GetCartridgeInfo() const;
 

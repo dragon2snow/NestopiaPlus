@@ -27,10 +27,8 @@
 #ifndef NST_INPUTMANAGER_H
 #define NST_INPUTMANAGER_H
 
-#include "NstDirectX.h"
 #include "NstManager.h"
-
-class PDXFILE;
+#include "NstDirectInput.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //

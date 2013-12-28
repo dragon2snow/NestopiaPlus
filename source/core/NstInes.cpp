@@ -31,59 +31,90 @@
 
 NES_NAMESPACE_BEGIN
 
-#define NES_INES_SIGNATURE 0x1A53454EUL
-
 ////////////////////////////////////////////////////////////////////////////////////////
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT INES::Import(CARTRIDGE* const cartridge,PDXFILE& file,const IO::GENERAL::CONTEXT& context)
+PDXRESULT INES::Import(CARTRIDGE* const c,PDXFILE& file,const IO::GENERAL::CONTEXT& context)
 {
+	PDX_ASSERT( c );
+
+	cartridge = c;
+
+	try
 	{
-		HEADER header;
+		{
+			HEADER header;
 
-		if (!file.Read(header))
-			return MsgWarning( "Not a valid rom image format!" );
+			if (!file.Read(header))
+				throw 1;
 
-		if (header.signature != NES_INES_SIGNATURE)
-			return MsgWarning( "Invalid file type or file is corrupt!" );
+			MessWithTheHeader( header );
+		}
 
-		if (!header.Num16kPRomBanks)
-			return MsgWarning( "INES file is corrupt!" );
+		BOOL UsedDatabase = FALSE;
 
-		MessWithTheHeader( cartridge, header );
+      #ifdef NES_USE_ROM_DATABASE
+
+		PDXSTRING msg;
+
+		if (context.UseRomDatabase)
+			UsedDatabase = TryDatabase( file, context.DisableWarnings ? NULL : &msg );
+
+      #endif
+
+		if (!cartridge->info.pRom || cartridge->info.pRom > file.Size() - 0x10)
+			throw 1;
+
+		cartridge->wRam.Resize( PDX_MAX(cartridge->info.wRam,n8k) );
+
+		cartridge->wRam.Fill( cartridge->wRam.At(0x0000), cartridge->wRam.At(0x1000), 0x60 );
+		cartridge->wRam.Fill( cartridge->wRam.At(0x1000), cartridge->wRam.At(0x2000), 0x70 );
+		cartridge->wRam.Fill( cartridge->wRam.At(0x2000), cartridge->wRam.End(),      0x00 );
+
+		if (cartridge->info.trained)
+		{
+			if (!file.Read( cartridge->wRam.At(0x1000), cartridge->wRam.At(0x1200) ))
+				throw 1;
+		}
+
+		cartridge->pRom.Resize( cartridge->info.pRom );
+
+		if (!file.Read( cartridge->pRom.Begin(), cartridge->pRom.End() ))
+			throw 1;
+
+		cartridge->cRom.Resize( cartridge->info.cRom );
+
+		if (!file.Read( cartridge->cRom.Begin(), cartridge->cRom.End() ))
+			throw 1;
+
+		cartridge->info.board   = MAPPER::boards[ cartridge->info.mapper ];
+		cartridge->info.pRomCrc = PDXCRC32::Compute( cartridge->pRom.Begin(), cartridge->pRom.Size() );
+		cartridge->info.cRomCrc = PDXCRC32::Compute( cartridge->cRom.Begin(), cartridge->cRom.Size() );
+
+		if (!UsedDatabase)
+		{
+			cartridge->info.name       = "unknown";
+			cartridge->info.copyright  = "unknown";
+			cartridge->info.condition  = IO::CARTRIDGE::GOOD;
+			cartridge->info.hacked     = IO::CARTRIDGE::UNKNOWN;
+			cartridge->info.translated = IO::CARTRIDGE::UNKNOWN;
+			cartridge->info.licensed   = IO::CARTRIDGE::UNKNOWN;
+			cartridge->info.bootleg    = IO::CARTRIDGE::UNKNOWN;
+			cartridge->info.crc        = PDXCRC32::Compute( file.At(0x10), file.Size() - 0x10 ); 
+		}
+
+      #ifdef NES_USE_ROM_DATABASE
+
+		if (msg.Length())
+			MsgWarning( msg.String() );
+
+      #endif
 	}
-
-	if (cartridge->info.trained)
+	catch (...)
 	{
-		if (!file.Read( cartridge->wRam.At(0x1000), cartridge->wRam.At(0x1200) ))
-			return MsgWarning( "INES file is corrupt!" );
+		return MsgError( "iNes file is corrupt!" );
 	}
-
-	if (!file.Read( cartridge->pRom.Begin(), cartridge->pRom.End() ))
-		return MsgWarning( "INES file is corrupt!" );
-
-	if (!file.Read( cartridge->cRom.Begin(), cartridge->cRom.End() ))
-		return MsgWarning( "INES file is corrupt!" );
-
-	cartridge->info.name       = "unknown";
-	cartridge->info.copyright  = "unknown";
-	cartridge->info.crc        = PDXCRC32::Compute( file.At(16), file.Size() - 16 );
-	cartridge->info.pRomCrc    = PDXCRC32::Compute( cartridge->pRom.Begin(), cartridge->pRom.Size() );
-	cartridge->info.cRomCrc    = PDXCRC32::Compute( cartridge->cRom.Begin(), cartridge->cRom.Size() );
-	cartridge->info.condition  = IO::CARTRIDGE::GOOD;
-	cartridge->info.translated = IO::CARTRIDGE::UNKNOWN;
-	cartridge->info.hacked     = IO::CARTRIDGE::UNKNOWN;
-	cartridge->info.licensed   = IO::CARTRIDGE::UNKNOWN;
-	cartridge->info.bootleg    = IO::CARTRIDGE::UNKNOWN;
-	cartridge->info.board      = MAPPER::boards[cartridge->info.mapper];
-
-  #ifdef NES_USE_ROM_DATABASE
-
-	if (context.UseRomDatabase)
-		CheckDatabase( cartridge, file, context );
-
-  #endif
 
 	return PDX_OK;
 }
@@ -92,7 +123,7 @@ PDXRESULT INES::Import(CARTRIDGE* const cartridge,PDXFILE& file,const IO::GENERA
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-VOID INES::MessWithTheHeader(CARTRIDGE* const cartridge,HEADER& header)
+VOID INES::MessWithTheHeader(HEADER& header)
 {
 	for (UINT i=0; i < INES_RESERVED_LENGTH; ++i)
 	{
@@ -120,21 +151,9 @@ VOID INES::MessWithTheHeader(CARTRIDGE* const cartridge,HEADER& header)
 	cartridge->info.battery = (header.flags & INES_BATTERY) ? TRUE : FALSE;
 	cartridge->info.system  = (header.flags & INES_VS) ? SYSTEM_VS : SYSTEM_NTSC;
 
-	cartridge->info.pRom = header.Num16kPRomBanks * n16k;
-	cartridge->info.cRom = header.Num8kCRomBanks * n8k;
-	cartridge->info.wRam = header.Num8kWRamBanks * n8k;
-
-	cartridge->pRom.Resize( cartridge->info.pRom );
-	cartridge->cRom.Resize( cartridge->info.cRom );
-	cartridge->wRam.Resize( PDX_MAX(cartridge->info.wRam,n8k) );	
-
-	cartridge->wRam.Fill( cartridge->wRam.At(0x0000), cartridge->wRam.At(0x1000), 0x60 );
-	cartridge->wRam.Fill( cartridge->wRam.At(0x1000), cartridge->wRam.At(0x2000), 0x70 );
-	cartridge->wRam.Fill( cartridge->wRam.At(0x2000), cartridge->wRam.End(),      0x00 );
-
-	cartridge->pRom.Defrag();
-	cartridge->cRom.Defrag();
-	cartridge->wRam.Defrag();
+	cartridge->info.pRom = n16k * header.Num16kPRomBanks;
+	cartridge->info.cRom = n8k * header.Num8kCRomBanks;
+	cartridge->info.wRam = n8k * header.Num8kWRamBanks;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -143,139 +162,227 @@ VOID INES::MessWithTheHeader(CARTRIDGE* const cartridge,HEADER& header)
 
 #ifdef NES_USE_ROM_DATABASE
 
-VOID INES::CheckDatabase(CARTRIDGE* const cartridge,PDXFILE& file,const IO::GENERAL::CONTEXT& context)
+const INES::IMAGE* INES::FindInDatabase(PDXFILE& file,const TSIZE offset,const TSIZE length,ULONG& crc) const
+{
+	if (file.Size() >= offset + length)
+	{
+		crc = PDXCRC32::Compute( file.At(offset), length );
+		IMAGEFILE::DATABASE::CONSTITERATOR iterator( database.Find( crc ) );
+
+		if (iterator != database.End())
+			return &(*iterator).Second();
+	}
+
+	return NULL;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+BOOL INES::TryDatabase(PDXFILE& file,PDXSTRING* msg)
 {
 	if (database.IsEmpty())
 		ImportDatabase();
 
-	PDXMAP<IMAGE,KEY>::CONSTITERATOR iterator(database.Find(KEY(cartridge->info.crc,cartridge->info.pRomCrc)));
+	ULONG crc;
 
-	PDXSTRING log("INES: ");
+	const IMAGE* image = NULL;
 
-	if (iterator != database.End())
+	TSIZE length = file.Size() - 0x10;
+
+	if (length)
+		image = FindInDatabase( file, 0x10, length, crc );
+
+	if (!image)
 	{
-		const IMAGE& image = (*iterator).Second();
+		length = cartridge->info.pRom + cartridge->info.cRom;
 
-		cartridge->info.condition = (image.bad ? IO::CARTRIDGE::BAD : IO::CARTRIDGE::GOOD);
-
-		BOOL DisableWarning = context.DisableWarnings;
-
-		if (cartridge->info.condition == IO::CARTRIDGE::BAD)
-		{
-			LogOutput("INES: warning, PRG-ROM or CHR-ROM may be broken");
-
-			if (!DisableWarning)
-			{
-				DisableWarning = TRUE;
-				MsgWarning( "Possibly bad dump! Image may not run properly!" );
-			}
-		}
-
-		if (cartridge->info.mapper != image.mapper)
-		{
-			log.Resize( 6 );
-			log += "warning, mapper ";
-			log += cartridge->info.mapper;
-			log += " as defined in the file header is wrong and should be ";
-			log += image.mapper;
-			LogOutput( log.String() );
-
-			cartridge->info.mapper = image.mapper;
-		}
-
-		if      (image.vs)                 cartridge->info.system = SYSTEM_VS;
-		else if (image.p10)                cartridge->info.system = SYSTEM_PC10;
-		else if (image.pal && !image.ntsc) cartridge->info.system = SYSTEM_PAL;
-		else                               cartridge->info.system = SYSTEM_NTSC;
-
-		if (cartridge->info.mirroring != image.mirroring)
-			cartridge->info.mirroring = MIRRORING(image.mirroring);
-
-		if (cartridge->info.battery != image.battery)
-		{
-			log.Resize( 6 );
-			log += "warning, battery save ram should be ";
-			log += (image.battery ? "enabled" : "disabled");
-			log += " and not ";
-			log += (image.battery ? "disabled" : "enabled");
-			log += " as defined in the file header";
-			LogOutput( log.String() );
-
-			cartridge->info.battery = image.battery;
-		}
-
-		cartridge->info.pRom = image.pRomSize * n16k;
-		cartridge->info.cRom = image.cRomSize * n8k;
-
-		if (cartridge->pRom.Size() != cartridge->info.pRom)
-		{	
-			log.Resize( 6 );
-			log += "warning, PRG-ROM size ";
-			log += (cartridge->pRom.Size() / 1024);
-			log += "k as defined in the file header is wrong and should be ";
-			log += (cartridge->info.pRom / 1024);
-			log += "k";
-			LogOutput( log.String() );
-
-			if (!DisableWarning)
-			{
-				DisableWarning = TRUE;
-				cartridge->info.condition = IO::CARTRIDGE::BAD;
-				MsgWarning( "Wrong PRG-ROM size! Image may not run properly!" );
-			}
-
-			if (cartridge->pRom.Size() > cartridge->info.pRom)
-			{
-				cartridge->pRom.Resize( cartridge->info.pRom );
-				cartridge->info.pRomCrc = PDXCRC32::Compute( cartridge->pRom.Begin(), cartridge->info.pRom );
-			}
-		}
-
-		if (cartridge->cRom.Size() != cartridge->info.cRom)
-		{
-			log.Resize( 6 );
-			log += "warning, CHR-ROM size ";
-			log += (cartridge->cRom.Size() / 1024);
-			log += "k as defined in the file header is wrong and should be ";
-			log += (cartridge->info.cRom / 1024);
-			log += "k";
-			LogOutput( log.String() );
-  
-			if (!DisableWarning)
-			{
-				DisableWarning = TRUE;
-				cartridge->info.condition = IO::CARTRIDGE::BAD;
-				MsgWarning( "Wrong CHR-ROM size! Image may not run properly!" );
-			}
-  
-			if (cartridge->cRom.Size() > cartridge->info.cRom)
-			{
-				cartridge->cRom.Resize( cartridge->info.cRom );
-				cartridge->info.cRomCrc = PDXCRC32::Compute( cartridge->cRom.Begin(), cartridge->info.cRom );
-			}
-		}
-
-		if (cartridge->wRam.Size() < image.wRamSize)
-		{
-			log.Resize( 6 );
-			log += "warning, WRAM size ";
-			log += (cartridge->info.wRam / 1024);
-			log += "k as defined in the file header is wrong and should be ";
-			log += (image.wRamSize / 1024);
-			log += "k";
-			LogOutput( log.String() );
-
-			cartridge->info.wRam = image.wRamSize;
-			cartridge->wRam.Resize( image.wRamSize );
-		}
-
-		cartridge->info.name       = image.name;
-		cartridge->info.copyright  = ( image.copyright.Size() ? image.copyright.String() : "unknown");
-		cartridge->info.translated = ( image.translation ? IO::CARTRIDGE::YES : IO::CARTRIDGE::NO  );
-		cartridge->info.hacked     = ( image.hack        ? IO::CARTRIDGE::YES : IO::CARTRIDGE::NO  );
-		cartridge->info.licensed   = ( image.unlicensed  ? IO::CARTRIDGE::NO  : IO::CARTRIDGE::YES );
-		cartridge->info.bootleg    = ( image.bootleg     ? IO::CARTRIDGE::YES : IO::CARTRIDGE::NO  );
+		if (length && length <= file.Size() - 0x10)
+			image = FindInDatabase( file, 0x10, length, crc );
 	}
+
+	if (!image)
+		return FALSE;
+
+	cartridge->info.name       = image->name;
+	cartridge->info.copyright  = image->copyright;
+	cartridge->info.crc        = crc;
+	cartridge->info.condition  = ( image->bad         ? IO::CARTRIDGE::BAD : IO::CARTRIDGE::GOOD );
+	cartridge->info.hacked     = ( image->hack 	      ? IO::CARTRIDGE::YES : IO::CARTRIDGE::NO   );
+	cartridge->info.translated = ( image->translation ? IO::CARTRIDGE::YES : IO::CARTRIDGE::NO   );
+	cartridge->info.licensed   = ( image->unlicensed  ? IO::CARTRIDGE::NO  : IO::CARTRIDGE::YES  );
+	cartridge->info.bootleg    = ( image->bootleg     ? IO::CARTRIDGE::YES : IO::CARTRIDGE::NO   );
+
+	if (image->bad)
+	{
+		LogOutput("INES DATABASE: warning, possibly bad dump!");
+
+		if (msg)
+		{
+			*msg = "Possibly bad dump! Image may not run properly!";
+			msg = NULL;
+		}
+	}
+
+	{
+		PDXSTRING log("INES DATABASE: warning, ");
+
+		const TSIZE pRom = image->pRomSize * n16k;
+		PDX_ASSERT( pRom );
+
+		if (cartridge->info.pRom != pRom)
+		{	
+			log.Resize( 24 );
+
+			const TSIZE total = (image->trainer ? 0x210 : 0x10) + pRom;
+
+			if (cartridge->info.pRom > pRom || !cartridge->info.pRom || file.Size() >= total)
+			{
+				log << "changed PRG-ROM size: ";
+				log << (cartridge->info.pRom / 1024);
+				log << "k to: ";
+				log << (pRom / 1024);
+				log < "k";
+
+				cartridge->info.pRom = pRom;
+			}
+			else
+			{
+				log << "wanted to change PRG-ROM size: ";
+				log << (cartridge->info.pRom / 1024);
+				log << "k to: ";
+				log << (pRom / 1024);
+				log << "k but couldn't";
+			}
+
+			LogOutput( log );
+
+			cartridge->info.condition = IO::CARTRIDGE::BAD;
+
+			if (msg)
+			{
+				*msg = "Wrong PRG-ROM size! Image may not run properly!";
+				msg = NULL;
+			}
+		}
+
+		const TSIZE cRom = image->cRomSize * n8k;
+
+		if (cartridge->info.cRom != cRom)
+		{
+			log.Resize( 24 );
+
+			const TSIZE total = (image->trainer ? 0x210 : 0x10) + cartridge->info.pRom + cRom;
+
+			if (cartridge->info.cRom > cRom || file.Size() >= total)
+			{
+				log << "changed CHR-ROM size: ";
+				log << (cartridge->info.cRom / 1024);
+				log << "k to: ";
+				log << (cRom / 1024);
+				log << "k";
+
+				cartridge->info.cRom = cRom;
+			}
+			else
+			{
+				log << "wanted to change CHR-ROM size: ";
+				log << (cartridge->info.cRom / 1024);
+				log << "k to: ";
+				log << (cRom / 1024);
+				log << "k but couldn't";
+			}
+
+			LogOutput( log );
+
+			cartridge->info.condition = IO::CARTRIDGE::BAD;
+
+			if (msg)
+			{
+				*msg = "Wrong CHR-ROM size! Image may not run properly!";
+				msg = NULL;
+			}
+		}
+
+		const TSIZE wRam = image->wRamSize * n8k;
+
+		if (cartridge->info.wRam != wRam)
+		{
+			log.Resize( 24 );
+			log << "changed WRAM size: ";
+			log << (cartridge->info.wRam / 1024);
+			log << "k to: ";
+			log << (wRam / 1024);
+			log << "k";
+			LogOutput( log );
+
+			cartridge->info.wRam = wRam;
+		}
+
+		if (cartridge->info.mapper != image->mapper)
+		{
+			log.Resize( 24 );
+			log << "changed mapper ";
+			log << cartridge->info.mapper;
+			log << " to ";
+			log << image->mapper;
+			LogOutput( log );
+
+			cartridge->info.mapper = image->mapper;
+		}
+
+		if (bool(cartridge->info.battery) != bool(image->battery))
+		{
+			log.Resize( 24 );
+			log << (image->battery ? "enabled" : "disabled");
+			log << " battery RAM";
+			LogOutput( log );
+			
+			cartridge->info.battery = image->battery;
+		}
+
+		if (cartridge->info.mirroring != MIRRORING(image->mirroring))
+		{
+			PDX_COMPILE_ASSERT(MIRROR_HORIZONTAL < 3 && MIRROR_VERTICAL < 3 && MIRROR_FOURSCREEN < 3);
+
+			const CHAR* types[3];
+
+			types[ MIRROR_HORIZONTAL ] = "horizontal mirroring";
+			types[ MIRROR_VERTICAL   ] = "vertical mirroring";
+			types[ MIRROR_FOURSCREEN ] = "four-screen mirroring";
+
+			log.Resize( 24 );
+			log << "changed ";
+			log << types[cartridge->info.mirroring];
+			log << " to ";
+			log << types[image->mirroring];
+			LogOutput( log );
+			
+			cartridge->info.mirroring = MIRRORING(image->mirroring);
+		}
+  
+		if (bool(cartridge->info.trained) != bool(image->trainer))
+		{
+			log.Resize( 24 );
+			log << (image->trainer ? "enabled" : "disabled");
+			log << " trainer";
+			LogOutput( log );
+
+			cartridge->info.trained = image->trainer;
+		}
+	}
+
+	if (cartridge->info.copyright.IsEmpty())
+		cartridge->info.copyright = "unknown";
+
+	if      ( image->p10  ) cartridge->info.system = SYSTEM_PC10;
+	else if ( image->vs   ) cartridge->info.system = SYSTEM_VS;
+	else if ( image->ntsc ) cartridge->info.system = SYSTEM_NTSC;
+	else if ( image->pal  ) cartridge->info.system = SYSTEM_PAL;
+	else			  	    cartridge->info.system = SYSTEM_NTSC;
+
+	return TRUE;
 }
 
 #endif

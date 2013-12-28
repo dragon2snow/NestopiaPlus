@@ -26,9 +26,8 @@
 #define WIN32_LEAN_AND_MEAN
 #endif
 
-#include <windows.h>
+#include <Windows.h>
 #include "../paradox/PdxString.h"
-#include "resource/resource.h"
 #include "NstRominfo.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -41,6 +40,8 @@ BOOL ROMINFO::DialogProc(HWND hDlg,UINT uMsg,WPARAM,LPARAM)
 	{
      	case WM_INITDIALOG:
 		{
+			uggly = FALSE;
+
 			const NES::IO::CARTRIDGE::INFO* const info = nes.GetCartridgeInfo();
 
 			if (!info)
@@ -119,14 +120,25 @@ BOOL ROMINFO::DialogProc(HWND hDlg,UINT uMsg,WPARAM,LPARAM)
 			text << "Hacked:     " << (info->hacked     == YES  ? "yes\r\n"  : (info->hacked     == NO ? "no\r\n" : "unknown\r\n" ));
 			text << "Translated: " << (info->translated == YES  ? "yes"      : (info->translated == NO ? "no"     : "unknown"     ));
 
-			SetDlgItemText( hDlg, IDC_ROM_INFO_EDIT, text.String() );
+			::SetDlgItemText( hDlg, IDC_ROM_INFO_EDIT, text.String() );
 
 			return TRUE;
-		}     		
+		}     
 
-     	case WM_CLOSE:
+		case WM_ACTIVATE:
+		
+			if (!uggly && hDlg)
+			{
+				// Every time the dialog starts, the text gets automaticaly selected !!!?
 
-     		EndDialog( hDlg, 0 );
+				uggly = TRUE;
+				::SendMessage( ::GetDlgItem( hDlg, IDC_ROM_INFO_EDIT ), EM_SETSEL, WPARAM(-1), LPARAM(0) );
+			}
+			return FALSE;
+  
+     	case WM_CLOSE:			 
+
+     		::EndDialog( hDlg, 0 );
      		return TRUE;
 	}
 

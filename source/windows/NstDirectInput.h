@@ -51,8 +51,9 @@ protected:
 
 	enum {KEYBOARD_BUFFER_LENGTH = 256};
 	enum {KEYBOARD_BUFFER_SIZE = sizeof(BYTE) * KEYBOARD_BUFFER_LENGTH};
+	enum {MAX_JOYSTICKS = 64};
 
-	PDX_NO_INLINE VOID Initialize(HWND) throw(const CHAR*);
+	PDX_NO_INLINE VOID Initialize(HWND);
 	PDX_NO_INLINE VOID Destroy();
 	
 	inline const BYTE* GetKeyboardBuffer() const 

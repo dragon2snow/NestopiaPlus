@@ -33,7 +33,7 @@ NES_NAMESPACE_BEGIN
 // nice macros
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#define NES_APU_BUFFER_SIZE    0x8000U
+#define NES_APU_BUFFER_SIZE    0x10000UL
 #define NES_APU_BUFFER_MASK    (NES_APU_BUFFER_SIZE-1)
 #define NES_APU_BUFFER_TO_8(x) (((x) >> 8) ^ 0x80)
 
@@ -110,11 +110,25 @@ APU::BUFFER::~BUFFER()
 // Reset Sound Buffer
 ////////////////////////////////////////////////////////////////////////////////////////
 
-VOID APU::BUFFER::Reset(const UINT bits)
+VOID APU::BUFFER::Reset(const UINT bits,const BOOL discard)
 {
 	pos = start = 0;
 	Bit16 = (bits == 16);
-	PDXMemZero( output, NES_APU_BUFFER_SIZE );
+
+	if (discard)
+		PDXMemZero( output, NES_APU_BUFFER_SIZE );
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+TSIZE APU::BUFFER::GetLatency() const
+{
+	if (pos >= start)
+		return pos - start;
+
+	return (NES_APU_BUFFER_SIZE - start) + pos;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -707,7 +721,7 @@ VOID APU::ClearBuffers()
 	for (UINT i=0; i < ExtChannels.Size(); ++i)
 		ExtChannels[i]->ClearAmp();
 
-	buffer.Reset( emulation.SampleBits );
+	buffer.Reset( emulation.SampleBits, FALSE );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////

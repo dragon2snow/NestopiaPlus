@@ -35,7 +35,7 @@ VOID MAPPER33::Reset()
 {
 	EnableIrqSync(IRQSYNC_PPU);
 
-	for (ULONG i=0x8000; i <= 0xFFFFU; ++i)
+	for (ULONG i=0x8000; i <= 0xFFFF; ++i)
 	{
 		switch (i & 0xF003)
 		{

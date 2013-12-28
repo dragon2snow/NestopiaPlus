@@ -22,14 +22,13 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstGraphicManager.h"
-#include "NstApplication.h"
-#include "../paradox/PdxFile.h"
+#include <cstdio>
+#include <Windows.h>
 #include <WindowsX.h>
 #include <CommCtrl.h>
 #include <GdiPlus.h>
-
-#define NST_DEFAULT_SCREENSHOT_FILE_FORMAT ".png"
+#include "NstGraphicManager.h"
+#include "NstApplication.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -41,7 +40,7 @@ BOOL GRAPHICMANAGER::HasGDIPlus()
 
 	if (hDLL)
 	{
-		FreeLibrary( hDLL );
+		::FreeLibrary( hDLL );
 		return TRUE;
 	}
 
@@ -70,8 +69,8 @@ Support16Bpp      (FALSE),
 Support32Bpp      (FALSE),
 palette           (new U8[PALETTE_LENGTH])
 {
-	SetRect( &rcNtsc, 0, 8, 255, 231 );
-	SetRect( &rcPal,  0, 0, 255, 239 );
+	::SetRect( &rcNtsc, 0, 8, 255, 231 );
+	::SetRect( &rcPal,  0, 0, 255, 239 );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -97,7 +96,7 @@ VOID GRAPHICMANAGER::Create(CONFIGFILE* const ConfigFile)
 	{
 		CONFIGFILE& file = *ConfigFile;
 
-		CreateDevice( CONFIGFILE::ToGUID( file["video device"].String() ) );
+		CreateDevice( UTILITIES::ToGUID( file["video device"].String() ) );
 
 		{
 			const PDXSTRING& bpp = file["video fullscreen bpp"];
@@ -112,11 +111,11 @@ VOID GRAPHICMANAGER::Create(CONFIGFILE* const ConfigFile)
 
 		EnableBpp();
 
-		SelectedOffScreen = (file[ "video offscreen buffer in vram" ] == "yes" ? IDC_GRAPHICS_VRAM : IDC_GRAPHICS_SRAM);	
+		SelectedOffScreen = (file["video offscreen buffer in vram"] == "yes" ? IDC_GRAPHICS_VRAM : IDC_GRAPHICS_SRAM);	
 
 		{
-			const UINT width = file[ "video fullscreen width" ].ToUlong();
-			const UINT height = file[ "video fullscreen height" ].ToUlong();
+			const UINT width = file["video fullscreen width"].ToUlong();
+			const UINT height = file["video fullscreen height"].ToUlong();
 
 			const UINT bpp = 
 			(
@@ -169,8 +168,6 @@ VOID GRAPHICMANAGER::Create(CONFIGFILE* const ConfigFile)
 	   			IDC_GRAPHICS_PALETTE_INTERNAL
 			);
 		}
-
-		context.InfiniteSprites = (file[ "video infinite sprites" ] == "yes" ? TRUE : FALSE);
 
 		const PDXSTRING* string;
 
@@ -250,7 +247,7 @@ VOID GRAPHICMANAGER::CreateDevice(GUID guid)
 		return;
 	}
 
-	throw ("No valid graphic device found!");
+	throw (EXCEPTION(IDS_VIDEO_NO_DEVICE));
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -269,7 +266,7 @@ VOID GRAPHICMANAGER::Destroy(CONFIGFILE* const ConfigFile)
 		{
 			const ADAPTER& adapter = adapters[SelectedAdapter];
 
-			file[ "video device" ] = CONFIGFILE::FromGUID( adapter.guid );
+			file[ "video device" ] = UTILITIES::FromGUID( adapter.guid ).Quoted();
 
 			if (SelectedMode < ModeIndices.Size() && ModeIndices[SelectedMode] < adapter.DisplayModes.Size())
 			{
@@ -323,8 +320,7 @@ VOID GRAPHICMANAGER::Destroy(CONFIGFILE* const ConfigFile)
          	default:                            file[ "video palette" ] = "internal"; break;
 		}
 		
-		file[ "video palette file"     ] = PaletteFile;	
-		file[ "video infinite sprites" ] = (context.InfiniteSprites ? "yes" : "no");	
+		file[ "video palette file"     ] = PaletteFile.Quoted();	
 		file[ "video ntsc left"        ] = rcNtsc.left;
 		file[ "video ntsc top"         ] = rcNtsc.top;
 		file[ "video ntsc right"       ] = rcNtsc.right;
@@ -379,38 +375,35 @@ BOOL GRAPHICMANAGER::InitModes(const UINT width,const UINT height,const UINT bpp
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-BOOL GRAPHICMANAGER::OnFocus(const BOOL active)
+BOOL GRAPHICMANAGER::TestCooperativeLevel()
 {
 	LPDIRECTDRAW7 device = GetDevice();
 
-	if (!device)
-		return TRUE;
-	
-	HRESULT hResult;
-
-	if (FAILED(hResult=device->TestCooperativeLevel()))
+	if (device)
 	{
-		switch (hResult)
+		switch (device->TestCooperativeLevel())
 		{
-	 		case DDERR_EXCLUSIVEMODEALREADYSET:
-	   		case DDERR_NOEXCLUSIVEMODE:
-	   			return FALSE;
+       		case DDERR_EXCLUSIVEMODEALREADYSET:
+     		case DDERR_NOEXCLUSIVEMODE:
+       			return FALSE;
 
-	 		case DDERR_WRONGMODE:
-			{
-				if (active && IsWindowed())
+       		case DDERR_WRONGMODE:
+
+				if (IsWindowed())
 				{
 					DIRECTDRAW::Create( adapters[SelectedAdapter].guid, TRUE );
 					DIRECTDRAW::SwitchToWindowed( DIRECTDRAW::GetScreenRect(), TRUE );
-					return TRUE;
 				}
-			}
+				break;
+		}
+
+		if (GetFrontBuffer() && GetFrontBuffer()->IsLost() == DDERR_SURFACELOST)
+		{
+			if (FAILED(device->RestoreAllSurfaces()))
+				return FALSE;
 		}
 	}
 
-	if (active)
-		device->RestoreAllSurfaces();
-	
 	return TRUE;
 }
 
@@ -455,19 +448,18 @@ VOID GRAPHICMANAGER::Reset()
 	SelectedEffect = 0;
 	SelectedFactor = SCREEN_FACTOR_4X;
 
-	SetRect( &rcNtsc, 0, 8, 255, 231 );
-	SetRect( &rcPal,  0, 0, 255, 239 );
+	::SetRect( &rcNtsc, 0, 8, 255, 231 );
+	::SetRect( &rcPal,  0, 0, 255, 239 );
 
 	PaletteFile.Clear();
 
 	nes.GetGraphicContext( context );
 	
-	context.palette         = NULL;
-	context.InfiniteSprites = FALSE;
-	context.brightness      = 128;
-	context.saturation      = 128;
-	context.hue             = 128;
-	context.PaletteMode     = NES::IO::GFX::PALETTE_EMULATED;
+	context.palette     = NULL;
+	context.brightness  = 128;
+	context.saturation  = 128;
+	context.hue         = 128;
+	context.PaletteMode = NES::IO::GFX::PALETTE_EMULATED;
 	
 	nes.SetGraphicContext( context );
 }
@@ -515,7 +507,7 @@ VOID GRAPHICMANAGER::ResetBpp()
 	}
 
 	if (ModeIndices.IsEmpty())
-		throw ("Couldn't find any valid display mode!");
+		throw (EXCEPTION(IDS_VIDEO_NO_DISPLAYMODE));
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -549,7 +541,20 @@ VOID GRAPHICMANAGER::EnableBpp()
 		Support8Bpp = FALSE;
 
 	if (!Support8Bpp && !Support16Bpp && !Support32Bpp)
-		throw ("Couldn't find a valid display mode!");
+		throw (EXCEPTION(IDS_VIDEO_NO_DISPLAYMODE));
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+VOID GRAPHICMANAGER::EnableGDI(const BOOL state)
+{
+	switch (DIRECTDRAW::EnableGDI( state ))
+	{
+     	case +1: application.RefreshCursor( TRUE  ); return;
+     	case -1: application.RefreshCursor( FALSE ); return;
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -570,7 +575,7 @@ VOID GRAPHICMANAGER::BeginDialogMode()
 			DIRECTDRAW::SwitchToFullScreen( 640, 480, 16, rect );
 		}
 
-		DIRECTDRAW::EnableGDI( TRUE );
+		EnableGDI( TRUE );
 	}
 }
 
@@ -588,7 +593,7 @@ VOID GRAPHICMANAGER::EndDialogMode()
 		RECT rect;
 		SetScreenSize( SelectedFactor, rect );
 		DIRECTDRAW::SwitchToFullScreen( mode.width, mode.height, mode.bpp, rect );
-		DIRECTDRAW::EnableGDI( FALSE );
+		EnableGDI( FALSE );
 
 		application.UpdateWindowSizes( mode.width, mode.height );
 	}
@@ -616,7 +621,7 @@ BOOL GRAPHICMANAGER::DialogProc(HWND h,UINT uMsg,WPARAM wParam,LPARAM)
      				
 					if (HIWORD(wParam) == CBN_SELCHANGE)
 					{
-						SelectedAdapter = ComboBox_GetCurSel(GetDlgItem(hDlg,IDC_GRAPHICS_DEVICE));
+						SelectedAdapter = ComboBox_GetCurSel(::GetDlgItem(hDlg,IDC_GRAPHICS_DEVICE));
 						UpdateDevice();
 						ResetBpp();
 						UpdateMode();
@@ -628,7 +633,7 @@ BOOL GRAPHICMANAGER::DialogProc(HWND h,UINT uMsg,WPARAM wParam,LPARAM)
 				case IDC_GRAPHICS_MODE:
 
 					if (HIWORD(wParam) == CBN_SELCHANGE)
-						SelectedMode = ComboBox_GetCurSel(GetDlgItem(hDlg,IDC_GRAPHICS_MODE));
+						SelectedMode = ComboBox_GetCurSel(::GetDlgItem(hDlg,IDC_GRAPHICS_MODE));
 					
 					return TRUE;
 
@@ -658,7 +663,7 @@ BOOL GRAPHICMANAGER::DialogProc(HWND h,UINT uMsg,WPARAM wParam,LPARAM)
 				case IDC_GRAPHICS_EFFECTS:
 
 					if (HIWORD(wParam) == CBN_SELCHANGE)
-						SelectedEffect = ComboBox_GetCurSel(GetDlgItem(hDlg,IDC_GRAPHICS_EFFECTS));
+						SelectedEffect = ComboBox_GetCurSel(::GetDlgItem(hDlg,IDC_GRAPHICS_EFFECTS));
 
 					return TRUE;
 
@@ -672,11 +677,6 @@ BOOL GRAPHICMANAGER::DialogProc(HWND h,UINT uMsg,WPARAM wParam,LPARAM)
 				case IDC_GRAPHICS_PAL_BOTTOM:
 				
 					UpdateNesScreen(wParam);
-					return TRUE;
-
-				case IDC_GRAPHICS_INFINITE_SPRITES:
-
-					context.InfiniteSprites = (IsDlgButtonChecked(hDlg,IDC_GRAPHICS_INFINITE_SPRITES) == BST_CHECKED);
 					return TRUE;
 
 				case IDC_GRAPHICS_PALETTE_EMULATED:
@@ -694,10 +694,7 @@ BOOL GRAPHICMANAGER::DialogProc(HWND h,UINT uMsg,WPARAM wParam,LPARAM)
 
 					context.brightness = 128;
 					context.saturation = 128;
-
-					if (IsWindowEnabled(GetDlgItem(hDlg,IDC_GRAPHICS_COLORS_HUE)))
-						context.hue = 128;
-
+					context.hue = 128;
 					ResetColors();
 					return TRUE;
 
@@ -719,7 +716,7 @@ BOOL GRAPHICMANAGER::DialogProc(HWND h,UINT uMsg,WPARAM wParam,LPARAM)
 
 				case IDC_GRAPHICS_OK:
 
-					EndDialog(hDlg,0);
+					::EndDialog(hDlg,0);
 					return TRUE;
 			}
 			return FALSE;
@@ -731,7 +728,7 @@ BOOL GRAPHICMANAGER::DialogProc(HWND h,UINT uMsg,WPARAM wParam,LPARAM)
 
 		case WM_CLOSE:
 
-			EndDialog(hDlg,0);
+			::EndDialog(hDlg,0);
 			return TRUE;
 
 		case WM_DESTROY:
@@ -739,7 +736,6 @@ BOOL GRAPHICMANAGER::DialogProc(HWND h,UINT uMsg,WPARAM wParam,LPARAM)
 			CreateDevice(adapters[SelectedAdapter].guid);
 			UpdateDirectDraw();
 			hDlg = NULL;
-
 			return TRUE;
 	}
 
@@ -815,7 +811,7 @@ VOID GRAPHICMANAGER::UpdateDirectDraw()
 
 VOID GRAPHICMANAGER::UpdateDevice()
 {
-	HWND item = GetDlgItem( hDlg, IDC_GRAPHICS_DEVICE );
+	HWND item = ::GetDlgItem( hDlg, IDC_GRAPHICS_DEVICE );
 
 	ComboBox_ResetContent( item );
 
@@ -831,10 +827,10 @@ VOID GRAPHICMANAGER::UpdateDevice()
 
 VOID GRAPHICMANAGER::UpdateBpp()
 {
-	SendMessage( GetDlgItem( hDlg, IDC_GRAPHICS_8_BIT  ), BM_SETCHECK, BST_UNCHECKED, 0 );
-	SendMessage( GetDlgItem( hDlg, IDC_GRAPHICS_16_BIT ), BM_SETCHECK, BST_UNCHECKED, 0 );
-	SendMessage( GetDlgItem( hDlg, IDC_GRAPHICS_32_BIT ), BM_SETCHECK, BST_UNCHECKED, 0 );
-	SendMessage( GetDlgItem( hDlg, SelectedBpp         ), BM_SETCHECK, BST_CHECKED,   0 );
+	::SendMessage( ::GetDlgItem( hDlg, IDC_GRAPHICS_8_BIT  ), BM_SETCHECK, BST_UNCHECKED, 0 );
+	::SendMessage( ::GetDlgItem( hDlg, IDC_GRAPHICS_16_BIT ), BM_SETCHECK, BST_UNCHECKED, 0 );
+	::SendMessage( ::GetDlgItem( hDlg, IDC_GRAPHICS_32_BIT ), BM_SETCHECK, BST_UNCHECKED, 0 );
+	::SendMessage( ::GetDlgItem( hDlg, SelectedBpp         ), BM_SETCHECK, BST_CHECKED,   0 );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -843,9 +839,9 @@ VOID GRAPHICMANAGER::UpdateBpp()
 
 VOID GRAPHICMANAGER::UpdateOffScreen()
 {
-	SendMessage( GetDlgItem( hDlg, IDC_GRAPHICS_SRAM ), BM_SETCHECK, BST_UNCHECKED, 0 );
-	SendMessage( GetDlgItem( hDlg, IDC_GRAPHICS_VRAM ), BM_SETCHECK, BST_UNCHECKED, 0 );
-	SendMessage( GetDlgItem( hDlg, SelectedOffScreen ), BM_SETCHECK, BST_CHECKED,   0 );
+	::SendMessage( ::GetDlgItem( hDlg, IDC_GRAPHICS_SRAM ), BM_SETCHECK, BST_UNCHECKED, 0 );
+	::SendMessage( ::GetDlgItem( hDlg, IDC_GRAPHICS_VRAM ), BM_SETCHECK, BST_UNCHECKED, 0 );
+	::SendMessage( ::GetDlgItem( hDlg, SelectedOffScreen ), BM_SETCHECK, BST_CHECKED,   0 );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -854,7 +850,7 @@ VOID GRAPHICMANAGER::UpdateOffScreen()
 
 VOID GRAPHICMANAGER::UpdateMode()
 {
-	HWND item = GetDlgItem( hDlg, IDC_GRAPHICS_MODE );
+	HWND item = ::GetDlgItem( hDlg, IDC_GRAPHICS_MODE );
 
 	ModeIndices.Clear();
 	ComboBox_ResetContent (item );
@@ -879,7 +875,7 @@ VOID GRAPHICMANAGER::UpdateMode()
 			string += modes[i].height;
 
 			ModeIndices.InsertBack( i );
-			ComboBox_AddString( item, string. Begin() );
+			ComboBox_AddString( item, string.Begin() );
 		}
 	}
 
@@ -897,12 +893,12 @@ VOID GRAPHICMANAGER::UpdateMode()
 
 VOID GRAPHICMANAGER::UpdatePalette()
 {
-	SendMessage( GetDlgItem( hDlg, IDC_GRAPHICS_PALETTE_EMULATED ), BM_SETCHECK, BST_UNCHECKED, 0 );
-	SendMessage( GetDlgItem( hDlg, IDC_GRAPHICS_PALETTE_INTERNAL ), BM_SETCHECK, BST_UNCHECKED, 0 );
-	SendMessage( GetDlgItem( hDlg, IDC_GRAPHICS_PALETTE_CUSTOM   ), BM_SETCHECK, BST_UNCHECKED, 0 );
-	SendMessage( GetDlgItem( hDlg, SelectedPalette               ), BM_SETCHECK, BST_CHECKED,   0 );
+	::SendMessage( ::GetDlgItem( hDlg, IDC_GRAPHICS_PALETTE_EMULATED ), BM_SETCHECK, BST_UNCHECKED, 0 );
+	::SendMessage( ::GetDlgItem( hDlg, IDC_GRAPHICS_PALETTE_INTERNAL ), BM_SETCHECK, BST_UNCHECKED, 0 );
+	::SendMessage( ::GetDlgItem( hDlg, IDC_GRAPHICS_PALETTE_CUSTOM   ), BM_SETCHECK, BST_UNCHECKED, 0 );
+	::SendMessage( ::GetDlgItem( hDlg, SelectedPalette               ), BM_SETCHECK, BST_CHECKED,   0 );
 
-	SetDlgItemText( hDlg, IDC_GRAPHICS_PALETTE_PATH, PaletteFile.Begin() );
+	::SetDlgItemText( hDlg, IDC_GRAPHICS_PALETTE_PATH, PaletteFile.Begin() );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -911,13 +907,13 @@ VOID GRAPHICMANAGER::UpdatePalette()
 
 VOID GRAPHICMANAGER::ResetColors()
 {
-	SetDlgItemText( hDlg, IDC_GRAPHICS_COLORS_BRIGHTNESS_VAL, PDXSTRING( context.brightness ).String() );
-	SetDlgItemText( hDlg, IDC_GRAPHICS_COLORS_SATURATION_VAL, PDXSTRING( context.saturation ).String() );
-	SetDlgItemText( hDlg, IDC_GRAPHICS_COLORS_HUE_VAL,        PDXSTRING( context.hue        ).String() );
+	::SetDlgItemText( hDlg, IDC_GRAPHICS_COLORS_BRIGHTNESS_VAL, PDXSTRING( context.brightness ).String() );
+	::SetDlgItemText( hDlg, IDC_GRAPHICS_COLORS_SATURATION_VAL, PDXSTRING( context.saturation ).String() );
+	::SetDlgItemText( hDlg, IDC_GRAPHICS_COLORS_HUE_VAL,        PDXSTRING( context.hue        ).String() );
 
-	SendMessage( GetDlgItem( hDlg, IDC_GRAPHICS_COLORS_BRIGHTNESS ), TBM_SETPOS, WPARAM(TRUE), context.brightness );
-	SendMessage( GetDlgItem( hDlg, IDC_GRAPHICS_COLORS_SATURATION ), TBM_SETPOS, WPARAM(TRUE), context.saturation );
-	SendMessage( GetDlgItem( hDlg, IDC_GRAPHICS_COLORS_HUE        ), TBM_SETPOS, WPARAM(TRUE), context.hue        );
+	::SendMessage( ::GetDlgItem( hDlg, IDC_GRAPHICS_COLORS_BRIGHTNESS ), TBM_SETPOS, WPARAM(TRUE), context.brightness );
+	::SendMessage( ::GetDlgItem( hDlg, IDC_GRAPHICS_COLORS_SATURATION ), TBM_SETPOS, WPARAM(TRUE), context.saturation );
+	::SendMessage( ::GetDlgItem( hDlg, IDC_GRAPHICS_COLORS_HUE        ), TBM_SETPOS, WPARAM(TRUE), context.hue        );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -935,9 +931,9 @@ VOID GRAPHICMANAGER::UpdateColors()
 
 	for (UINT i=0; i < 3; ++i)
 	{
-		const UINT value = (UINT) SendMessage
+		const UINT value = (UINT) ::SendMessage
 		(
-			GetDlgItem(hDlg,types[i]),
+			::GetDlgItem(hDlg,types[i]),
 			TBM_GETPOS,
 			WPARAM(0),
 			LPARAM(0)
@@ -961,17 +957,8 @@ VOID GRAPHICMANAGER::UpdateColors()
 VOID GRAPHICMANAGER::ClearPalette()
 {
 	PaletteFile.Clear();
-	SelectedPalette = IDC_GRAPHICS_PALETTE_EMULATED;
+	SelectedPalette = IDC_GRAPHICS_PALETTE_INTERNAL;
 	UpdatePalette();
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID GRAPHICMANAGER::UpdateEmulation()
-{
-	CheckDlgButton( hDlg, IDC_GRAPHICS_INFINITE_SPRITES, context.InfiniteSprites );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -982,7 +969,7 @@ VOID GRAPHICMANAGER::UpdateNesScreen(const WPARAM wParam)
 {
 	if (HIWORD(wParam) == EN_KILLFOCUS)
 	{
-		UINT value = GetDlgItemInt( hDlg, LOWORD(wParam), NULL, FALSE );
+		UINT value = ::GetDlgItemInt( hDlg, LOWORD(wParam), NULL, FALSE );
 		
 		switch (LOWORD(wParam))
 		{
@@ -996,7 +983,7 @@ VOID GRAPHICMANAGER::UpdateNesScreen(const WPARAM wParam)
      		case IDC_GRAPHICS_PAL_BOTTOM:  rcPal.bottom  = value = PDX_MAX( rcPal.top,  PDX_MIN( value, 239 ) ); break;
 		}
 
-		SetDlgItemInt( hDlg, LOWORD(wParam), value, FALSE );
+		::SetDlgItemInt( hDlg, LOWORD(wParam), value, FALSE );
 	}
 }
 
@@ -1008,38 +995,37 @@ VOID GRAPHICMANAGER::UpdateDialog()
 {
 	UpdateDevice();
 
-	EnableWindow( GetDlgItem( hDlg, IDC_GRAPHICS_8_BIT ),  Support8Bpp  );
-	EnableWindow( GetDlgItem( hDlg, IDC_GRAPHICS_16_BIT ), Support16Bpp );
-	EnableWindow( GetDlgItem( hDlg, IDC_GRAPHICS_32_BIT ), Support32Bpp );
+	::EnableWindow( ::GetDlgItem( hDlg, IDC_GRAPHICS_8_BIT ),  Support8Bpp  );
+	::EnableWindow( ::GetDlgItem( hDlg, IDC_GRAPHICS_16_BIT ), Support16Bpp );
+	::EnableWindow( ::GetDlgItem( hDlg, IDC_GRAPHICS_32_BIT ), Support32Bpp );
 
-	SendMessage( GetDlgItem( hDlg, IDC_GRAPHICS_NTSC_LEFT   ), EM_LIMITTEXT, 3, 0 );
-	SendMessage( GetDlgItem( hDlg, IDC_GRAPHICS_NTSC_TOP    ), EM_LIMITTEXT, 3, 0 );
-	SendMessage( GetDlgItem( hDlg, IDC_GRAPHICS_NTSC_RIGHT  ), EM_LIMITTEXT, 3, 0 );
-	SendMessage( GetDlgItem( hDlg, IDC_GRAPHICS_NTSC_BOTTOM ), EM_LIMITTEXT, 3, 0 );
+	::SendMessage( ::GetDlgItem( hDlg, IDC_GRAPHICS_NTSC_LEFT   ), EM_LIMITTEXT, 3, 0 );
+	::SendMessage( ::GetDlgItem( hDlg, IDC_GRAPHICS_NTSC_TOP    ), EM_LIMITTEXT, 3, 0 );
+	::SendMessage( ::GetDlgItem( hDlg, IDC_GRAPHICS_NTSC_RIGHT  ), EM_LIMITTEXT, 3, 0 );
+	::SendMessage( ::GetDlgItem( hDlg, IDC_GRAPHICS_NTSC_BOTTOM ), EM_LIMITTEXT, 3, 0 );
 
-	SendMessage( GetDlgItem( hDlg, IDC_GRAPHICS_PAL_LEFT   ), EM_LIMITTEXT, 3, 0 );
-	SendMessage( GetDlgItem( hDlg, IDC_GRAPHICS_PAL_TOP    ), EM_LIMITTEXT, 3, 0 );
-	SendMessage( GetDlgItem( hDlg, IDC_GRAPHICS_PAL_RIGHT  ), EM_LIMITTEXT, 3, 0 );
-	SendMessage( GetDlgItem( hDlg, IDC_GRAPHICS_PAL_BOTTOM ), EM_LIMITTEXT, 3, 0 );
+	::SendMessage( ::GetDlgItem( hDlg, IDC_GRAPHICS_PAL_LEFT   ), EM_LIMITTEXT, 3, 0 );
+	::SendMessage( ::GetDlgItem( hDlg, IDC_GRAPHICS_PAL_TOP    ), EM_LIMITTEXT, 3, 0 );
+	::SendMessage( ::GetDlgItem( hDlg, IDC_GRAPHICS_PAL_RIGHT  ), EM_LIMITTEXT, 3, 0 );
+	::SendMessage( ::GetDlgItem( hDlg, IDC_GRAPHICS_PAL_BOTTOM ), EM_LIMITTEXT, 3, 0 );
 
-	SetDlgItemInt( hDlg, IDC_GRAPHICS_NTSC_LEFT,   rcNtsc.left,   FALSE );
-	SetDlgItemInt( hDlg, IDC_GRAPHICS_NTSC_TOP,    rcNtsc.top,    FALSE );
-	SetDlgItemInt( hDlg, IDC_GRAPHICS_NTSC_RIGHT,  rcNtsc.right,  FALSE );
-	SetDlgItemInt( hDlg, IDC_GRAPHICS_NTSC_BOTTOM, rcNtsc.bottom, FALSE );
+	::SetDlgItemInt( hDlg, IDC_GRAPHICS_NTSC_LEFT,   rcNtsc.left,   FALSE );
+	::SetDlgItemInt( hDlg, IDC_GRAPHICS_NTSC_TOP,    rcNtsc.top,    FALSE );
+	::SetDlgItemInt( hDlg, IDC_GRAPHICS_NTSC_RIGHT,  rcNtsc.right,  FALSE );
+	::SetDlgItemInt( hDlg, IDC_GRAPHICS_NTSC_BOTTOM, rcNtsc.bottom, FALSE );
 
-	SetDlgItemInt( hDlg, IDC_GRAPHICS_PAL_LEFT,   rcPal.left,   FALSE );
-	SetDlgItemInt( hDlg, IDC_GRAPHICS_PAL_TOP,    rcPal.top,    FALSE );
-	SetDlgItemInt( hDlg, IDC_GRAPHICS_PAL_RIGHT,  rcPal.right,  FALSE );
-	SetDlgItemInt( hDlg, IDC_GRAPHICS_PAL_BOTTOM, rcPal.bottom, FALSE );
+	::SetDlgItemInt( hDlg, IDC_GRAPHICS_PAL_LEFT,   rcPal.left,   FALSE );
+	::SetDlgItemInt( hDlg, IDC_GRAPHICS_PAL_TOP,    rcPal.top,    FALSE );
+	::SetDlgItemInt( hDlg, IDC_GRAPHICS_PAL_RIGHT,  rcPal.right,  FALSE );
+	::SetDlgItemInt( hDlg, IDC_GRAPHICS_PAL_BOTTOM, rcPal.bottom, FALSE );
 
-	SendMessage( GetDlgItem(hDlg,IDC_GRAPHICS_COLORS_BRIGHTNESS), TBM_SETRANGE, WPARAM(FALSE), LPARAM(MAKELONG(0,255)) );
-	SendMessage( GetDlgItem(hDlg,IDC_GRAPHICS_COLORS_SATURATION), TBM_SETRANGE, WPARAM(FALSE), LPARAM(MAKELONG(0,255)) );
-	SendMessage( GetDlgItem(hDlg,IDC_GRAPHICS_COLORS_HUE),        TBM_SETRANGE, WPARAM(FALSE), LPARAM(MAKELONG(0,255)) );
+	::SendMessage( ::GetDlgItem( hDlg, IDC_GRAPHICS_COLORS_BRIGHTNESS ), TBM_SETRANGE, WPARAM(FALSE), LPARAM(MAKELONG(0,255)) );
+	::SendMessage( ::GetDlgItem( hDlg, IDC_GRAPHICS_COLORS_SATURATION ), TBM_SETRANGE, WPARAM(FALSE), LPARAM(MAKELONG(0,255)) );
+	::SendMessage( ::GetDlgItem( hDlg, IDC_GRAPHICS_COLORS_HUE        ), TBM_SETRANGE, WPARAM(FALSE), LPARAM(MAKELONG(0,255)) );
 
 	ResetColors();
 	UpdateBpp();
 	UpdateMode();
-	UpdateEmulation();
 	UpdateEffects();
 	UpdatePalette();
 	UpdateOffScreen();
@@ -1051,25 +1037,23 @@ VOID GRAPHICMANAGER::UpdateDialog()
 
 VOID GRAPHICMANAGER::BrowsePalette()
 {
-	CHAR name[NST_MAX_PATH];
-	name[0] = '\0';
+	PDXSTRING filename;
 
-	OPENFILENAME ofn;
-	PDXMemZero( ofn );
+	const BOOL succeeded = UTILITIES::BrowseOpenFile
+	(
+	    filename,
+		hDlg,
+		IDS_FILE_LOAD_PALETTE,
+		"Palette Files (.pal)\0"
+		"*.pal\0"
+		"All Files (*.*)\0"
+		"*.*\0"
+	);
 
-	ofn.lStructSize  = sizeof(ofn);
-	ofn.hwndOwner    = MANAGER::hWnd;
-	ofn.lpstrFilter  = "Palette Files (.pal)\0*.pal\0All Files (*.*)\0*.*\0";
-	ofn.nFilterIndex = 1;
-	ofn.lpstrFile    = name;
-	ofn.lpstrTitle   = "Import Palette";
-	ofn.nMaxFile     = NST_MAX_PATH-1;
-	ofn.Flags        = OFN_FILEMUSTEXIST|OFN_PATHMUSTEXIST;
+	if (succeeded)
+		PaletteFile = filename;
 
-	if (GetOpenFileName(&ofn) && name && strlen(name))
-		PaletteFile = name;
-
-	SetDlgItemText( hDlg, IDC_GRAPHICS_PALETTE_PATH, PaletteFile.Begin() );
+	::SetDlgItemText( hDlg, IDC_GRAPHICS_PALETTE_PATH, PaletteFile.Begin() );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -1098,7 +1082,7 @@ BOOL GRAPHICMANAGER::ImportPalette()
 
 VOID GRAPHICMANAGER::UpdateEffects()
 {
-	HWND hItem = GetDlgItem( hDlg, IDC_GRAPHICS_EFFECTS );
+	HWND hItem = ::GetDlgItem( hDlg, IDC_GRAPHICS_EFFECTS );
 
 	ComboBox_ResetContent( hItem );
 	ComboBox_AddString( hItem, "None" );
@@ -1240,6 +1224,176 @@ VOID GRAPHICMANAGER::SetScreenSize(const SCREENTYPE type,RECT& rect,const UINT w
 			height - y 
 		);
 	}
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+VOID GRAPHICMANAGER::DisplayMsg(const PDXSTRING* const msg)
+{
+	PDX_ASSERT( !IsWindowed() );
+
+	if (!IsReady())
+		return;
+
+	LPDIRECTDRAWSURFACE7 surface = GetBackBuffer();
+
+	const UINT y = GetDisplayHeight() - 18;
+
+	if (msg)
+	{
+		HDC hDC;
+
+		if (FAILED(surface->GetDC( &hDC )))
+			return;
+
+		const BOOL OnScreen = GetScreenRect().bottom >= y;
+
+		if (OnScreen)
+		{
+			::SetBkMode( hDC, TRANSPARENT );
+		}
+		else
+		{
+			::SetBkMode( hDC, OPAQUE );
+			::SetBkColor( hDC, RGB(0x00,0x00,0x00) );
+		}
+
+		::SetTextColor( hDC, RGB(0x20,0x20,0xA0) );
+		::TextOut( hDC, 2, y+1, msg->String(), msg->Length() );
+
+		if (!OnScreen)
+			::SetBkMode( hDC, TRANSPARENT );
+
+		::SetTextColor( hDC, RGB(0xFF,0x20,0x20) );
+		::TextOut( hDC, 1, y+0, msg->String(), msg->Length() );
+
+		surface->ReleaseDC( hDC );
+	}
+	else
+	{
+		RECT rcMsg = { 0, y, GetDisplayWidth(), GetDisplayHeight() };
+
+		DDBLTFX BltFX;
+
+		BltFX.dwSize = sizeof(BltFX);
+		BltFX.dwFillColor = 0;
+
+		surface->Blt( &rcMsg, NULL, NULL, DDBLT_COLORFILL|DDBLT_WAIT, &BltFX );
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+VOID GRAPHICMANAGER::DisplayFPS(DOUBLE fps)
+{
+	PDX_ASSERT( !IsWindowed() );
+
+	if (!IsReady())
+		return;
+
+	CHAR buffer[16];
+
+	fps = PDX_CLAMP( fps, 0.0, 999.0 );
+	sprintf( buffer, "%.1f", fps );
+
+	const TSIZE length = strlen(buffer);
+
+	const UINT x = GetDisplayWidth() - 42;
+	const UINT y = GetDisplayHeight() - 20;
+
+	LPDIRECTDRAWSURFACE7 surface = GetBackBuffer();
+
+	HDC hDC;
+
+	if (FAILED(surface->GetDC( &hDC )))
+		return;
+
+	const BOOL OnScreen = GetScreenRect().bottom >= y;
+
+	if (OnScreen)
+	{
+		::SetBkMode( hDC, TRANSPARENT );
+	}
+	else
+	{
+		::SetBkMode( hDC, OPAQUE );
+		::SetBkColor( hDC, RGB(0x00,0x00,0x00) );
+	}
+
+	::SetTextColor( hDC, RGB(0x2A,0x35,0x10) );
+	::TextOut( hDC, x+1, y+1, buffer, length );
+	::SetTextColor( hDC, RGB(0xA5,0xB5,0x40) );
+	::TextOut( hDC, x, y, buffer, length );
+
+	surface->ReleaseDC( hDC );
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+VOID GRAPHICMANAGER::DisplayNsf
+(
+    const PDXSTRING& name,
+	const PDXSTRING& artist,
+	const PDXSTRING& copyright,
+	const PDXSTRING& song
+)
+{
+	if (!IsReady())
+		return;
+
+	LPDIRECTDRAWSURFACE7 surface = GetNesBuffer();
+
+	HDC hDC;
+
+	if (FAILED(surface->GetDC( &hDC )))
+		return;
+
+	::SetBkMode( hDC, OPAQUE );
+	::SetBkColor( hDC, RGB(0x00,0x00,0x00) );
+	::SetTextColor( hDC, RGB(0x20,0x60,0x20) );
+
+	for (UINT i=0; i < 2; ++i)
+	{
+		if (i)
+		{
+			::SetBkMode( hDC, TRANSPARENT );
+			::SetTextColor( hDC, RGB(0x20,0xFF,0x20) );
+		}
+
+		UINT y = 24 - i;
+		UINT x = 1 - i;
+
+		if (name.Length())
+		{
+			::TextOut( hDC, x, y, name.String(), name.Length() );
+			y += 12;
+		}
+
+		if (artist.Length())
+		{
+			::TextOut( hDC, x, y, artist.String(), artist.Length() );
+			y += 12;
+		}
+
+		if (copyright.Length())
+		{
+			::TextOut( hDC, x, y, copyright.String(), copyright.Length() );
+			y += 12;
+		}
+
+		::TextOut( hDC, x, y, song.String(), song.Length() );
+	}
+
+	surface->ReleaseDC( hDC );
+
+	RECT rcNsf = {0,0,NES::IO::GFX::WIDTH,NES::IO::GFX::HEIGHT};
+	(IsWindowed() ? surface : GetBackBuffer())->Blt( NULL, surface, &rcNsf, DDBLT_WAIT, NULL );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -1431,10 +1585,10 @@ hell:
 		shutdown(token);
 
 	if (hDLL)
-		FreeLibrary(hDLL);
+		::FreeLibrary(hDLL);
 
 	if (PDX_FAILED(result))
-		application.OnWarning("Couldn't export any bitmaps, are you sure you have GdiPlus properly installed?");
+		UI::MsgWarning(IDS_FILE_BITMAP_EXPORT_FAILED);
 
 	return result;
 }
@@ -1448,31 +1602,19 @@ hell:
 PDXRESULT GRAPHICMANAGER::SaveScreenShot()
 {
 	PDXSTRING filename;
-	filename.Buffer().Resize( NST_MAX_PATH );
-	filename.Buffer().Front() = '\0';
 
-	{
-		OPENFILENAME ofn;
-		PDXMemZero( ofn );
+	const BOOL succeeded = UTILITIES::BrowseSaveFile
+	(
+	    filename,
+		hDlg ? hDlg : MANAGER::hWnd,
+		IDS_FILE_SAVE_BITMAP,
+     	"All supported bitmap Files (*.png, *.jpg, *.bmp, *.tif)\0"
+		"*.png;*.jpg;*.bmp;*.tif\0"
+		"All files (*.*)\0"
+		"*.*\0",
+		NULL,
+		"png"
+	);
 
-		ofn.lStructSize  = sizeof(ofn);
-		ofn.hwndOwner    = MANAGER::hWnd;
-		ofn.lpstrFilter  = "Bitmap Files (*.png, *.jpg, *.bmp, *.tif)\0*.png;*.jpg;*.bmp;*.tif\0All Files (*.*)\0*.*\0";
-		ofn.nFilterIndex = 1;
-		ofn.lpstrFile    = filename.Begin();
-		ofn.lpstrTitle   = "Save Screenshot";
-		ofn.nMaxFile     = NST_MAX_PATH;
-		ofn.Flags        = OFN_HIDEREADONLY | OFN_PATHMUSTEXIST;
-
-		if (!GetSaveFileName( &ofn ))
-			return PDX_FAILURE;
-	}
-
-	filename.Validate();
-
-	if (filename.Size() && filename.GetFileExtension().IsEmpty())
-		filename.Append( NST_DEFAULT_SCREENSHOT_FILE_FORMAT );
-
-	return ExportBitmap( filename );
+	return succeeded ? ExportBitmap( filename ) : PDX_FAILURE;
 }
-

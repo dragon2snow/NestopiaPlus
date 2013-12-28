@@ -26,14 +26,14 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-inline BOOL MACHINE::IsOn()        const { return on;                       }
-inline BOOL MACHINE::IsOff()       const { return !on;                      }
-inline BOOL MACHINE::IsPaused()    const { return paused;                   }
-inline BOOL MACHINE::IsNsf()       const { return nsf ? TRUE : FALSE;       }
-inline BOOL MACHINE::IsCartridge() const { return cartridge ? TRUE : FALSE; }
-inline BOOL MACHINE::IsFds()       const { return fds ? TRUE : FALSE;       }
-inline BOOL MACHINE::IsVs()        const { return VsSystem ? TRUE : FALSE;  }
-inline BOOL MACHINE::IsImage()     const { return cartridge || fds;         }
+inline BOOL MACHINE::IsOn()        const { return on;                }
+inline BOOL MACHINE::IsOff()       const { return !on;               }
+inline BOOL MACHINE::IsPaused()    const { return paused;            }
+inline BOOL MACHINE::IsNsf()       const { return nsf != NULL;       }
+inline BOOL MACHINE::IsCartridge() const { return cartridge != NULL; }
+inline BOOL MACHINE::IsFds()       const { return fds != NULL;       }
+inline BOOL MACHINE::IsVs()        const { return VsSystem != NULL;  }
+inline BOOL MACHINE::IsImage()     const { return cartridge || fds;  }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //

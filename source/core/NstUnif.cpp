@@ -122,12 +122,10 @@ PDXRESULT UNIF::Import(CARTRIDGE* const cartridge,PDXFILE& file,const IO::GENERA
 		HEADER header;
 
 		if (!file.Read(header) || memcmp(header.signature,"UNIF",4))
-			return MsgWarning("Not a valid rom image format!");
+			return MsgError("Not a valid rom image format!");
 
 		log.Resize( 6 ); 
-		log += "revision ";
-		log += header.revision;        
-		LogOutput( log.String() );
+		LogOutput( log << "revision " << header.revision );
 	}
 
 	cartridge->info.name       = "unknown";
@@ -166,9 +164,7 @@ PDXRESULT UNIF::Import(CARTRIDGE* const cartridge,PDXFILE& file,const IO::GENERA
 			length = cartridge->info.name.Length() + 1;
 
 			log.Resize( 6 ); 
-			log += "Name: ";
-			log += cartridge->info.name;
-			LogOutput( log.String() );
+			LogOutput( log << "Name: " << cartridge->info.name );
 		}
 		else if ((!memcmp(chunk.id,"READ",4)))
 		{
@@ -183,9 +179,7 @@ PDXRESULT UNIF::Import(CARTRIDGE* const cartridge,PDXFILE& file,const IO::GENERA
 			length = comments.Length() + 1;
 
 			log.Resize( 6 ); 
-			log += "Comments: ";
-			log += comments;
-			LogOutput( log.String() );
+			LogOutput( log << "Comments: " << comments );
 		}
 		else if ((!memcmp(chunk.id,"DINF",4)))
 		{
@@ -212,32 +206,17 @@ PDXRESULT UNIF::Import(CARTRIDGE* const cartridge,PDXFILE& file,const IO::GENERA
 			if (*dump.name != '\0')
 			{
 				log.Resize( 6 ); 
-				log += "Dumper Name: ";
-				log += dump.name;
-				LogOutput( log.String() );
+				LogOutput( log << "Dumper Name: " << dump.name );
 			}
 
-			log.Resize( 6 ); 
-			log += "Dump Year: ";
-			log += dump.year;
-			LogOutput( log.String() );
-
-			log.Resize( 6 ); 
-			log += "Dump Month: ";
-			log += dump.month;
-			LogOutput( log.String() );
-
-			log.Resize( 6 ); 
-			log += "Dump Day: ";
-			log += dump.day;
-			LogOutput( log.String() );
+			log.Resize( 6 ); LogOutput( log << "Dump Year: "  << dump.year  );
+			log.Resize( 6 ); LogOutput( log << "Dump Month: " << dump.month );
+			log.Resize( 6 ); LogOutput( log << "Dump Day: "   << dump.day   );
 
 			if (*dump.agent != '\0')
 			{
 				log.Resize( 6 ); 
-				log += "Dumper Agent: ";
-				log += dump.agent;
-				LogOutput( log.String() );
+				LogOutput( log << "Dumper Agent: " << dump.agent );
 			}
 		}
 		else if ((!memcmp(chunk.id,"TVCI",4)))
@@ -248,16 +227,16 @@ PDXRESULT UNIF::Import(CARTRIDGE* const cartridge,PDXFILE& file,const IO::GENERA
 			length = sizeof(U8);
 
 			log.Resize( 6 ); 
-			log += "System: ";
+			log << "System: ";
 
 			switch (file.Read<U8>())
 			{
-       			case 0:  cartridge->info.system = SYSTEM_NTSC; log += "NTSC only";         break;
-				case 1:  cartridge->info.system = SYSTEM_PAL;  log += "PAL only";          break;
-				default: cartridge->info.system = SYSTEM_NTSC; log += "both PAL and NTSC"; break;
+       			case 0:  cartridge->info.system = SYSTEM_NTSC; log << "NTSC only";         break;
+				case 1:  cartridge->info.system = SYSTEM_PAL;  log << "PAL only";          break;
+				default: cartridge->info.system = SYSTEM_NTSC; log << "both PAL and NTSC"; break;
 			}			
 
-			LogOutput( log.String() );
+			LogOutput( log );
 		}
 		else if (!memcmp(chunk.id,"PCK",3))
 		{
@@ -275,10 +254,10 @@ PDXRESULT UNIF::Import(CARTRIDGE* const cartridge,PDXFILE& file,const IO::GENERA
 						id[4] = '\0';
 
 						log.Resize( 6 ); 
-						log += id;
-						log += " crc - ";
+						log << id;
+						log << " crc - ";
 						log.Append( pRomCrcs[i], PDXSTRING::HEX );
-						LogOutput( log.String() );
+						LogOutput( log );
 					}
 					break;
 				}
@@ -298,11 +277,7 @@ PDXRESULT UNIF::Import(CARTRIDGE* const cartridge,PDXFILE& file,const IO::GENERA
 					id[4] = '\0';
 
 					log.Resize( 6 ); 
-					log += id;
-					log += " data, ";
-					log += (chunk.length / n1k);
-					log += "k";
-					LogOutput( log.String() );
+					LogOutput( log << id << " data, " << (chunk.length / n1k) << "k" );
 
 					const UINT pos = cartridge->pRom.Size();
 					cartridge->pRom.Grow( chunk.length );
@@ -312,15 +287,15 @@ PDXRESULT UNIF::Import(CARTRIDGE* const cartridge,PDXFILE& file,const IO::GENERA
 					if (success && pRomCrcs[i])
 					{
 						log.Resize( 6 ); 
-						log += "crc check ";
+						log << "crc check ";
 
 						if (pRomCrcs[i] == PDXCRC32::Compute( cartridge->pRom.At(pos), length ))
 						{
-							log += "ok";
+							log << "ok";
 						}
 						else
 						{
-							log += "failed";
+							log << "failed";
 
 							if (!DisableWarning)
 							{
@@ -330,7 +305,7 @@ PDXRESULT UNIF::Import(CARTRIDGE* const cartridge,PDXFILE& file,const IO::GENERA
 							}
 						}
 
-						LogOutput( log.String() );
+						LogOutput( log );
 					}
 					break;
 				}
@@ -355,10 +330,10 @@ PDXRESULT UNIF::Import(CARTRIDGE* const cartridge,PDXFILE& file,const IO::GENERA
 						id[4] = '\0';
 
 						log.Resize( 6 ); 
-						log += id;
-						log += " crc - ";
+						log << id;
+						log << " crc - ";
 						log.Append( cRomCrcs[i], PDXSTRING::HEX );
-						LogOutput( log.String() );
+						LogOutput( log );
 					}
 					break;
 				}
@@ -378,11 +353,7 @@ PDXRESULT UNIF::Import(CARTRIDGE* const cartridge,PDXFILE& file,const IO::GENERA
 					id[4] = '\0';
 
 					log.Resize( 6 ); 
-					log += id;
-					log += " data, ";
-					log += (chunk.length / n1k);
-					log += "k";
-					LogOutput( log.String() );
+					LogOutput( log << id << " data, " << (chunk.length / n1k) << "k" );
 
 					const UINT pos = cartridge->cRom.Size();
 					cartridge->cRom.Grow( chunk.length );
@@ -392,15 +363,15 @@ PDXRESULT UNIF::Import(CARTRIDGE* const cartridge,PDXFILE& file,const IO::GENERA
 					if (success && cRomCrcs[i])
 					{
 						log.Resize( 6 ); 
-						log += "crc check ";
+						log << "crc check ";
 
 						if (cRomCrcs[i] == PDXCRC32::Compute( cartridge->cRom.At(pos), length ))
 						{
-							log += "ok";
+							log << "ok";
 						}
 						else
 						{
-							log += "failed";
+							log << "failed";
 
 							if (!DisableWarning)
 							{
@@ -410,7 +381,7 @@ PDXRESULT UNIF::Import(CARTRIDGE* const cartridge,PDXFILE& file,const IO::GENERA
 							}
 						}
 
-						LogOutput( log.String() );
+						LogOutput( log );
 					}
 					break;
 				}
@@ -424,8 +395,7 @@ PDXRESULT UNIF::Import(CARTRIDGE* const cartridge,PDXFILE& file,const IO::GENERA
 			cartridge->info.battery = TRUE;
 
 			log.Resize( 6 ); 
-			log += "Battery present";
-			LogOutput( log.String() );
+			LogOutput( log << "Battery present" );
 		}
 		else if ((!memcmp(chunk.id,"MAPR",4)))
 		{
@@ -457,9 +427,7 @@ PDXRESULT UNIF::Import(CARTRIDGE* const cartridge,PDXFILE& file,const IO::GENERA
 				cartridge->info.mapper = (*iterator).Second();
 
 			log.Resize( 6 ); 			
-			log += "Board: ";
-			log += cartridge->info.board;			
-			LogOutput( log.String() );
+			LogOutput( log << "Board: " << cartridge->info.board );
 
 			length = cartridge->info.board.Length() + extra + 1;
 		}
@@ -471,19 +439,19 @@ PDXRESULT UNIF::Import(CARTRIDGE* const cartridge,PDXFILE& file,const IO::GENERA
 			length = sizeof(U8);
 
 			log.Resize( 6 ); 
-			log += "Mirroring: ";
+			log << "Mirroring: ";
 
 			switch (file.Read<U8>())
 			{
-	     		case 0:  cartridge->info.mirroring = MIRROR_HORIZONTAL; log += "horizontal";                    break;
-				case 1:  cartridge->info.mirroring = MIRROR_VERTICAL;   log += "vertical";                      break;
-				case 2:  cartridge->info.mirroring = MIRROR_ZERO;       log += "zero";                          break;
-				case 3:  cartridge->info.mirroring = MIRROR_ONE;        log += "one";                           break;
-				case 4:  cartridge->info.mirroring = MIRROR_FOURSCREEN; log += "four-screen";                   break;
-				default: cartridge->info.mirroring = MIRROR_HORIZONTAL; log += "controlled by mapper hardware"; break;
+	     		case 0:  cartridge->info.mirroring = MIRROR_HORIZONTAL; log << "horizontal";                    break;
+				case 1:  cartridge->info.mirroring = MIRROR_VERTICAL;   log << "vertical";                      break;
+				case 2:  cartridge->info.mirroring = MIRROR_ZERO;       log << "zero";                          break;
+				case 3:  cartridge->info.mirroring = MIRROR_ONE;        log << "one";                           break;
+				case 4:  cartridge->info.mirroring = MIRROR_FOURSCREEN; log << "four-screen";                   break;
+				default: cartridge->info.mirroring = MIRROR_HORIZONTAL; log << "controlled by mapper hardware"; break;
 			}
 
-			LogOutput( log.String() );
+			LogOutput( log );
 		}
 		else if ((!memcmp(chunk.id,"CTRL",4)))
 		{
@@ -493,7 +461,7 @@ PDXRESULT UNIF::Import(CARTRIDGE* const cartridge,PDXFILE& file,const IO::GENERA
 			length = sizeof(U8);
 
 			log.Resize( 6 ); 
-			log += "Controller(s): ";
+			log << "Controller(s): ";
 
 			const UINT controller = file.Read<U8>();
 
@@ -501,37 +469,37 @@ PDXRESULT UNIF::Import(CARTRIDGE* const cartridge,PDXFILE& file,const IO::GENERA
 			{
 				cartridge->info.controllers[0] = CONTROLLER_PAD1;
 				cartridge->info.controllers[1] = CONTROLLER_PAD2;
-				log += "standard joypad";
+				log << "standard joypad";
 			}
 
 			if (controller & 0x02) 
 			{
 				cartridge->info.controllers[1] = CONTROLLER_ZAPPER;
 
-				if (log.Back() == ' ') log += "Zapper";
-				else				   log += ", Zapper";
+				if (log.Back() == ' ') log << "Zapper";
+				else				   log << ", Zapper";
 			}
 
 			if (controller & 0x04) 
 			{
-				if (log.Back() == ' ') log += "R.O.B";
-				else				   log += ", R.O.B";
+				if (log.Back() == ' ') log << "R.O.B";
+				else				   log << ", R.O.B";
 			}
 
 			if (controller & 0x08) 
 			{
 				cartridge->info.controllers[0] = CONTROLLER_PADDLE;
 
-				if (log.Back() == ' ') log += "Paddle";
-				else				   log += ", Paddle";
+				if (log.Back() == ' ') log << "Paddle";
+				else				   log << ", Paddle";
 			}
 
 			if (controller & 0x10) 
 			{
 				cartridge->info.controllers[1] = CONTROLLER_POWERPAD;
 
-				if (log.Back() == ' ') log += "Power Pad";
-				else				   log += ", Power Pad";
+				if (log.Back() == ' ') log << "Power Pad";
+				else				   log << ", Power Pad";
 			}
 
 			if (controller & 0x20) 
@@ -539,22 +507,20 @@ PDXRESULT UNIF::Import(CARTRIDGE* const cartridge,PDXFILE& file,const IO::GENERA
 				cartridge->info.controllers[2] = CONTROLLER_PAD3;
 				cartridge->info.controllers[3] = CONTROLLER_PAD4;
 
-				if (log.Back() == ' ') log += "Four-Score adapter";
-				else				   log += ", Four-Score adapter";
+				if (log.Back() == ' ') log << "Four-Score adapter";
+				else				   log << ", Four-Score adapter";
 			}
 
 			if (log.Back() == ' ') 
-				log += "not defined";
+				log << "not defined";
 
-			LogOutput( log.String() );
+			LogOutput( log );
 		}
 		else if ((!memcmp(chunk.id,"VROR",4)))
 		{
 			cartridge->info.IsCRam = TRUE;
-
 			log.Resize( 6 ); 			
-			log += "VRAM override";
-			LogOutput( log.String() );
+			LogOutput( log << "VRAM override" );
 		}
 
 		file.Seek( PDXFILE::CURRENT, chunk.length - length );
@@ -563,16 +529,19 @@ PDXRESULT UNIF::Import(CARTRIDGE* const cartridge,PDXFILE& file,const IO::GENERA
 	if (cartridge->pRom.IsEmpty())
 	{
 		log.Resize( 6 ); 
-		log += "PRG-ROM is missing.. aborting";
-		LogOutput( log.String() );
-
-		return MsgWarning("PRG-ROM is missing!");
+		LogOutput( log << "PRG-ROM is missing.. aborting" );
+		return MsgError("PRG-ROM is missing!");
 	}
 
 	if (!success)
-		return MsgWarning("Corrupt file!");
+		return MsgError("Corrupt file!");
 
-	cartridge->info.crc     = PDXCRC32::Compute( file.At(16), file.Size() - 16 );
+	{
+		PDXARRAY<U8> block( cartridge->pRom );
+		block += cartridge->cRom;
+		cartridge->info.crc = PDXCRC32::Compute( block.Begin(), block.Size() );
+	}
+
 	cartridge->info.pRomCrc = PDXCRC32::Compute( cartridge->pRom.Begin(), cartridge->pRom.Size() );
 	cartridge->info.cRomCrc = PDXCRC32::Compute( cartridge->cRom.Begin(), cartridge->cRom.Size() );
 
@@ -632,7 +601,7 @@ PDXRESULT UNIF::CheckDatabase(CARTRIDGE* const cartridge,PDXFILE& file,const IO:
 	if (database.IsEmpty())
 		ImportDatabase();
 
-	PDXMAP<IMAGE,KEY>::CONSTITERATOR iterator(database.Find(KEY(cartridge->info.crc,cartridge->info.pRomCrc)) );
+	IMAGEFILE::DATABASE::CONSTITERATOR iterator( database.Find( cartridge->info.crc ) );
 
 	if (iterator != database.End())
 	{

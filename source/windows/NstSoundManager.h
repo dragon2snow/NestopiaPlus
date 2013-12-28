@@ -27,8 +27,8 @@
 #ifndef NST_SOUNDMANAGER_H
 #define NST_SOUNDMANAGER_H
 
-#include "NstDirectX.h"
 #include "NstManager.h"
+#include "NstDirectSound.h"
 
 class WAVEFILE;
 

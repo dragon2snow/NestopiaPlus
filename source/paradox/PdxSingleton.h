@@ -57,6 +57,11 @@ public:
 		return (*singleton);
 	}
 
+	static inline BOOL IsInstanced()
+	{
+		return singleton != NULL;
+	}
+
 private:
 
 	static T* singleton;

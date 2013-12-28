@@ -84,67 +84,56 @@ saturation  (DEFAULT_SATURATION)
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-VOID PALETTE::SetType(const TYPE t)
+VOID PALETTE::GetContext(IO::GFX::CONTEXT& context) const
 {
-	if (type != t)
+	switch (type)
 	{
-		type = t;
-		NeedUpdate = TRUE;
+     	case EMULATE:  context.PaletteMode = IO::GFX::PALETTE_EMULATED; context.palette = NULL;      break;
+		case CUSTOM:   context.PaletteMode = IO::GFX::PALETTE_CUSTOM;   context.palette = custom[0]; break;
+		case INTERNAL: context.PaletteMode = IO::GFX::PALETTE_INTERNAL; context.palette = NULL;      break;
 	}
+
+	context.brightness = brightness;
+	context.saturation = saturation;
+	context.hue        = hue;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-VOID PALETTE::SetBrightness(const INT level)
+VOID PALETTE::SetContext(const IO::GFX::CONTEXT& context)
 {
-	if (brightness != level)
+	TYPE t;
+
+	switch (context.PaletteMode)
 	{
-		brightness = level;
+    	case IO::GFX::PALETTE_EMULATED: t = EMULATE;  break;
+     	case IO::GFX::PALETTE_CUSTOM:   t = CUSTOM;   if (context.palette) break;
+     	case IO::GFX::PALETTE_INTERNAL: t = INTERNAL; break;
+	}
+
+	if (!NeedUpdate)
+	{
+		NeedUpdate =
+		(
+			( t          != type               ) ||
+			( brightness != context.brightness ) ||
+			( saturation != context.saturation ) ||
+			( hue        != context.hue        )
+		);
+	}
+
+	if (t == CUSTOM && context.palette != custom[0])
+	{
 		NeedUpdate = TRUE;
+		memcpy( custom, context.palette, sizeof(U8) * 64 * 3 );
 	}
-}
 
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID PALETTE::SetSaturation(const INT level)
-{
-	if (saturation != level)
-	{
-		saturation = level;
-		NeedUpdate = TRUE;
-	}
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID PALETTE::SetHue(const INT level)
-{
-	if (hue != level)
-	{
-		hue = level;
-		NeedUpdate = TRUE;
-	}
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID PALETTE::Import(const U8* const input)
-{
-	if (input)
-	{
-		if (!NeedUpdate && type == CUSTOM)
-			NeedUpdate = TRUE;
-
-		memcpy( custom, input, sizeof(U8) * 64 * 3 );
-	}
+	type       = t;
+	brightness = context.brightness;
+	saturation = context.saturation;
+	hue        = context.hue;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////

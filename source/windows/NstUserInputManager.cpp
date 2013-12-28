@@ -26,9 +26,8 @@
 #define WIN32_LEAN_AND_MEAN
 #endif
 
-#include <windows.h>
+#include <Windows.h>
 #include "../paradox/PdxString.h"
-#include "resource/resource.h"
 #include "NstUserInputManager.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -82,10 +81,10 @@ BOOL USERINPUTMANAGER::DialogProc(HWND hDlg,UINT uMsg,WPARAM wParam,LPARAM)
 			input.Clear();
 			
 			if (msg.Length())
-				SetDlgItemText( hDlg, IDC_USERINPUT_TEXT, msg.String() );
+				::SetDlgItemText( hDlg, IDC_USERINPUT_TEXT, msg.String() );
 
 			if (title.Length())
-				SetWindowText( hDlg, title.String() );
+				::SetWindowText( hDlg, title.String() );
 
 			return TRUE;
 
@@ -93,24 +92,21 @@ BOOL USERINPUTMANAGER::DialogProc(HWND hDlg,UINT uMsg,WPARAM wParam,LPARAM)
 
      		switch (LOWORD(wParam))
      		{
-        		case IDC_USERINPUT_OK:    
+        		case IDC_USERINPUT_OK: 
 
-					input.Buffer().Resize( 256 );
-					input.Buffer().Back() = '\0';
-					GetDlgItemText( hDlg, IDC_USERINPUT_EDIT, input.Begin(), 256 );
-					input.Validate();
+					MANAGER::GetDlgItemText( hDlg, IDC_USERINPUT_EDIT, input );
 					ok = TRUE;
 
           		case IDC_USERINPUT_ABORT: 
 					
-					EndDialog( hDlg, 0 ); 
+					::EndDialog( hDlg, 0 ); 
 					return TRUE;
     		}		
      		return FALSE;
 
        	case WM_CLOSE:
 
-       		EndDialog( hDlg, 0 );
+       		::EndDialog( hDlg, 0 );
        		return TRUE;
 	}
 

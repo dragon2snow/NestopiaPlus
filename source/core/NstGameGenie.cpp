@@ -43,15 +43,14 @@ NES_NAMESPACE_BEGIN
 #define NES_PACKED_SHIFT_ADDRESS    16
 #define NES_PACKED_SHIFT_USECOMPARE 31
 
-#define NES_CODE_TO_KEY(packed)  ( 0x8000U + (((packed) & NES_PACKED_ADDRESS) >> NES_PACKED_SHIFT_ADDRESS) )
+#define NES_CODE_TO_KEY(packed)  ( 0x8000 + (((packed) & NES_PACKED_ADDRESS) >> NES_PACKED_SHIFT_ADDRESS) )
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-GAMEGENIE::CODE::CODE(const BOOL state)
+GAMEGENIE::CODE::CODE()
 : 
-enabled    (state), 
 address    (0x0000),
 data       (0x00),
 compare    (0x00),
@@ -68,41 +67,128 @@ VOID GAMEGENIE::CODE::operator = (const CODE& code)
 	compare    = code.compare;
 	address    = code.address;
 	UseCompare = code.UseCompare;
-	enabled    = code.enabled;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT GAMEGENIE::GetContext(IO::GAMEGENIE::CONTEXT& context) const
+PDXRESULT GAMEGENIE::Encode(const ULONG packed,PDXSTRING& characters)
 {
-	switch (context.op)
-	{
-    	case IO::GAMEGENIE::ENCODE:   return Encode ( context.packed, context.characters );
-		case IO::GAMEGENIE::DECODE:   return Decode ( context.characters.String(), context.packed );
-		case IO::GAMEGENIE::PACK:     return Pack   ( context.address, context.value, context.compare, context.UseCompare, context.packed );
-		case IO::GAMEGENIE::UNPACK:   return Unpack ( context.packed, context.address, context.value, context.compare, context.UseCompare );
-		case IO::GAMEGENIE::GETSTATE: context.state = IsCodeEnabled( context.packed ); return PDX_OK;
-	}
-
-	return PDX_FAILURE;
+	return CODE().Encode( packed, &characters );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT GAMEGENIE::SetContext(const IO::GAMEGENIE::CONTEXT& context)
+PDXRESULT GAMEGENIE::Decode(const CHAR* const characters,ULONG& packed)
 {
-	switch (context.op)
-	{
-    	case IO::GAMEGENIE::ADD:        return SetCode    ( context.packed, context.state );
-		case IO::GAMEGENIE::SETSTATE:   return EnableCode ( context.packed, context.state );
-    	case IO::GAMEGENIE::DESTROYALL: Destroy(); return PDX_OK;
-	}
+	return CODE().Decode( characters, &packed );
+}
 
-	return PDX_FAILURE;
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+PDXRESULT GAMEGENIE::Pack(const UINT address,const UINT data,const UINT compare,const BOOL UseCompare,ULONG& packed)
+{
+	if ((address < 0x8000) || (address > 0xFFFF) || (data > 0xFF) || (compare > 0xFF && UseCompare))
+		return PDX_FAILURE;
+
+	packed =
+	(
+		( ULONG( data             ) << NES_PACKED_SHIFT_DATA    ) | 
+		( ULONG( compare          ) << NES_PACKED_SHIFT_COMPARE ) | 
+		( ULONG( address - 0x8000 ) << NES_PACKED_SHIFT_ADDRESS ) |
+		( UseCompare ? NES_PACKED_USECOMPARE : 0 )
+	);
+
+	return PDX_OK;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+PDXRESULT GAMEGENIE::Unpack(const ULONG packed,UINT& address,UINT& data,UINT& compare,BOOL& UseCompare)
+{
+	data       = (( packed & NES_PACKED_DATA       ) >> NES_PACKED_SHIFT_DATA       );
+	compare    = (( packed & NES_PACKED_COMPARE    ) >> NES_PACKED_SHIFT_COMPARE    );
+	address    = (( packed & NES_PACKED_ADDRESS    ) >> NES_PACKED_SHIFT_ADDRESS    ) + 0x8000;
+	UseCompare = (( packed & NES_PACKED_USECOMPARE ) >> NES_PACKED_SHIFT_USECOMPARE );
+
+	return PDX_OK;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+PDXRESULT GAMEGENIE::AddCode(const ULONG packed)
+{
+	CODE tmp;
+
+	PDX_TRY(tmp.Encode( packed ));
+	PDX_ASSERT(tmp.Address() < 0x8000);
+
+	CODE& code = codes[0x8000 + tmp.Address()];
+	code = tmp;
+
+	Map( code, TRUE );
+  
+	return PDX_OK;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+PDXRESULT GAMEGENIE::DeleteCode(const ULONG packed)
+{
+	CODE tmp;
+
+	PDX_TRY(tmp.Encode( packed ));
+	PDX_ASSERT(tmp.Address() < 0x8000);
+
+	CODES::ITERATOR iterator( codes.Find(0x8000 + tmp.Address()) );
+
+	if (iterator != codes.End())
+	{
+		Map( (*iterator).Second(), FALSE );
+		codes.Erase( (*iterator).First() );
+	}
+  
+	return PDX_OK;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+TSIZE GAMEGENIE::NumCodes() const
+{
+	return codes.Size();
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+ULONG GAMEGENIE::GetCode(const TSIZE index) const
+{
+	return (*codes.At(index)).Second().Packed();
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+ULONG GAMEGENIE::CODE::Packed() const
+{
+	ULONG packed;
+	GAMEGENIE::Pack( address, data, compare, UseCompare, packed );
+	return packed;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -127,7 +213,7 @@ PDXRESULT GAMEGENIE::CODE::Decode(const CHAR* const characters,ULONG* const pack
 			( ULONG( data    ) << NES_PACKED_SHIFT_DATA	   ) |
             ( ULONG( compare ) << NES_PACKED_SHIFT_COMPARE ) |
             ( ULONG( address ) << NES_PACKED_SHIFT_ADDRESS ) |
-    		( UseCompare ? NES_PACKED_USECOMPARE : 0x0UL   )
+    		( UseCompare ? NES_PACKED_USECOMPARE : 0   )
 		);
 	}
 
@@ -400,71 +486,9 @@ VOID GAMEGENIE::CODE::Encode8(UINT* const codes) const
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT GAMEGENIE::Pack(const UINT address,const UINT data,const UINT compare,const BOOL UseCompare,ULONG& packed) const
-{
-	if ((address < 0x8000U) || (address > 0xFFFFU) || (data > 0xFF) || (compare > 0xFF && UseCompare))
-		return PDX_FAILURE;
-
-	packed =
-	(
-    	( ULONG( data              ) << NES_PACKED_SHIFT_DATA    ) | 
-		( ULONG( compare           ) << NES_PACKED_SHIFT_COMPARE ) | 
-		( ULONG( address - 0x8000U ) << NES_PACKED_SHIFT_ADDRESS ) |
-		( UseCompare ? NES_PACKED_USECOMPARE : 0x0UL )
-	);
-
-	return PDX_OK;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-PDXRESULT GAMEGENIE::Unpack(const ULONG packed,UINT& address,UINT& data,UINT& compare,BOOL& UseCompare) const
-{
-	data       = (( packed & NES_PACKED_DATA       ) >> NES_PACKED_SHIFT_DATA       );
-	compare    = (( packed & NES_PACKED_COMPARE    ) >> NES_PACKED_SHIFT_COMPARE    );
-	address    = (( packed & NES_PACKED_ADDRESS    ) >> NES_PACKED_SHIFT_ADDRESS    ) + 0x8000;
-	UseCompare = (( packed & NES_PACKED_USECOMPARE ) >> NES_PACKED_SHIFT_USECOMPARE );
-
-	return PDX_OK;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-IO::GAMEGENIE::STATE GAMEGENIE::IsCodeEnabled(const ULONG packed) const
-{ 
-	const CODES::CONSTITERATOR iterator( codes.Find( NES_CODE_TO_KEY(packed) ) );	
-	return (iterator != codes.End() && (*iterator).Second().IsEnabled()) ? IO::GAMEGENIE::ENABLE : IO::GAMEGENIE::DISABLE; 
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-PDXRESULT GAMEGENIE::Decode(const CHAR* const characters,ULONG& packed) const
-{
-	return CODE().Decode( characters, &packed );
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-PDXRESULT GAMEGENIE::Encode(const ULONG packed,PDXSTRING& characters) const
-{
-	return CODE().Encode( packed, &characters );
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
 inline UINT GAMEGENIE::CODE::Peek(const UINT address)
 {
-	PDX_ASSERT( enabled && (0x8000U + this->address) == address );
+	PDX_ASSERT( (0x8000 + this->address) == address );
 
 	if (UseCompare)
 	{
@@ -484,7 +508,7 @@ inline UINT GAMEGENIE::CODE::Peek(const UINT address)
 
 inline VOID GAMEGENIE::CODE::Poke(const UINT address,const UINT value)
 {
-	PDX_ASSERT( enabled && port.object && port.writer && (0x8000U + this->address) == address );
+	PDX_ASSERT( port.object && port.writer && (0x8000 + this->address) == address );
 	(*port.object.*port.writer)(address,value);
 }
 
@@ -501,16 +525,16 @@ GAMEGENIE::GAMEGENIE(CPU& c)
 
 GAMEGENIE::~GAMEGENIE()
 {
-	Destroy();
+	ClearCodes();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-VOID GAMEGENIE::Destroy()
+VOID GAMEGENIE::ClearCodes()
 {
-	for (CODES::ITERATOR iterator = codes.Begin(); iterator != codes.End(); ++iterator)
+	for (CODES::ITERATOR iterator(codes.Begin()); iterator != codes.End(); ++iterator)
 	{
 		if (this == cpu.GetPort( (*iterator).First() ).Object<GAMEGENIE>())
 		{
@@ -526,19 +550,19 @@ VOID GAMEGENIE::Destroy()
 
 VOID GAMEGENIE::Reset()
 {
-	for (CODES::ITERATOR iterator = codes.Begin(); iterator != codes.End(); ++iterator)
-		Map( (*iterator).Second() );
+	for (CODES::ITERATOR iterator(codes.Begin()); iterator != codes.End(); ++iterator)
+		Map( (*iterator).Second(), TRUE );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-VOID GAMEGENIE::Map(CODE& code)
+VOID GAMEGENIE::Map(CODE& code,const BOOL enable)
 {
-	const UINT address = 0x8000U + code.Address();
+	const UINT address = 0x8000 + code.Address();
 
-	if (code.IsEnabled())
+	if (enable)
 	{
 		const CPU_PORT& port = cpu.GetPort(address);
 
@@ -556,43 +580,6 @@ VOID GAMEGENIE::Map(CODE& code)
 			cpu.SetPort( address, port.object, port.reader, port.writer );
 		}
 	}
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-PDXRESULT GAMEGENIE::SetCode(const ULONG packed,const IO::GAMEGENIE::STATE state)
-{
-	CODE code(state == IO::GAMEGENIE::DISABLE ? FALSE : TRUE);
-
-	PDX_TRY(code.Encode( packed ));
-
-	PDX_ASSERT(code.Address() < 0x8000U);
-
-	CODE& target = codes[0x8000U + code.Address()];
-	const BOOL enabled = target.IsEnabled();
-
-	target = code;
-
-	if (state == IO::GAMEGENIE::NOCHANGE)
-		target.Enable( enabled );
-
-	Map( target );
-
-	return PDX_OK;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-PDXRESULT GAMEGENIE::EnableCode(const ULONG packed,const IO::GAMEGENIE::STATE state)
-{
-	CODE& code = codes[NES_CODE_TO_KEY(packed)];
-	code.Enable( state == IO::GAMEGENIE::DISABLE ? FALSE : TRUE );
-	Map( code );
-	return PDX_OK;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////

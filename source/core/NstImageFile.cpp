@@ -33,7 +33,7 @@
 
 NES_NAMESPACE_BEGIN
 
-PDXMAP<IMAGEFILE::IMAGE,IMAGEFILE::KEY> IMAGEFILE::database;
+IMAGEFILE::DATABASE IMAGEFILE::database;
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -45,16 +45,16 @@ VOID IMAGEFILE::ImportDatabase()
 	const CHAR* end = NULL;
 
 	HGLOBAL hGlobal;
-	HMODULE hModule = GetModuleHandle( NULL );		
-	HRSRC hRsrc = FindResource( hModule, MAKEINTRESOURCE(IDR_ROMDATABASE1),"RomDatabase" );
+	HMODULE hModule = ::GetModuleHandle( NULL );		
+	HRSRC hRsrc = ::FindResource( hModule, MAKEINTRESOURCE(IDR_ROMDATABASE1),"RomDatabase" );
 
-	if (hRsrc && (hGlobal = LoadResource( hModule, hRsrc )))
+	if (hRsrc && (hGlobal = ::LoadResource( hModule, hRsrc )))
 	{
-		const DWORD size = SizeofResource( hModule, hRsrc );
+		const DWORD size = ::SizeofResource( hModule, hRsrc );
 
 		if (size)
 		{
-			iterator = (const CHAR*) LockResource(hGlobal);
+			iterator = (const CHAR*) ::LockResource(hGlobal);
 			end = iterator + size;
 		}
 	}
@@ -67,10 +67,10 @@ VOID IMAGEFILE::ImportDatabase()
 
 	iterator += sizeof(U8);
 
-	for (UINT i=0; i < copyright.Size(); ++i)
+	for (TSIZE i=0; i < copyright.Size(); ++i)
 	{
 		copyright[i] = iterator;
-		iterator += strlen(iterator) + 1;
+		iterator += strlen(copyright[i]) + 1;
 	}
 
 	while (iterator < end)
@@ -81,7 +81,7 @@ VOID IMAGEFILE::ImportDatabase()
 		const DBCHUNK* const chunk = PDX_CAST(const DBCHUNK*,iterator);
 		iterator += sizeof(DBCHUNK);
 
-		IMAGE& image = database[KEY(chunk->crc,chunk->pRomCrc)];
+		IMAGE& image = database[chunk->crc];
 
 		if (chunk->copyright < copyright.Size())
 			image.copyright  = copyright[chunk->copyright];

@@ -224,6 +224,7 @@ public:
 
 	BOOL ReplaceFileExtension (CONSTITERATOR);
 	BOOL ReplaceFilePath      (const PDXSTRING&);
+	BOOL IsFileExtension      (const CHAR*,const TSIZE=0) const;
 
 	PDXSTRING(const INT   v,const UINT r=DEC) { Append( v, r ); }
 	PDXSTRING(const UINT  v,const UINT r=DEC) { Append(	v, r ); }
@@ -288,8 +289,13 @@ public:
 
 	VOID Resize (const TSIZE,const CHAR=' ');
 	VOID Grow   (const TSIZE,const CHAR=' ');
+	
+	VOID EraseBack();
+	VOID RemoveSpaces();
+	VOID RemoveQuotes();
 
 	ULONG ToUlong() const;
+	PDXSTRING Quoted() const;
 
 	VOID Validate();
 

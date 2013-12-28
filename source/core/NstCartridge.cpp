@@ -110,11 +110,11 @@ PDXRESULT CARTRIDGE::Load(PDXFILE& ImageFile,const PDXSTRING* const save,CPU& cp
 	{
 		PDXSTRING msg;
 		
-		msg  = "Mapper ";
-		msg += info.mapper;
-		msg += " is not supported!";
+		msg << "Mapper ";
+		msg << info.mapper;
+		msg << " is not supported!";
 		
-		return MsgWarning(msg.String());
+		return MsgError( msg.String() );
 	}
 
 	return PDX_OK;
@@ -391,7 +391,7 @@ VOID CARTRIDGE::LoadBatteryRam()
 		yep = 
 		(
 			size >= n8k ||
-			MsgQuestion("Spooky Save File","Save file may be invalid! Sure you want to load it in?")
+			MsgQuestion("Weird Save File","Save file may be invalid! Sure you want to load it in?")
 		);
 
 		if (yep)
@@ -405,18 +405,10 @@ VOID CARTRIDGE::LoadBatteryRam()
 
 	PDXSTRING log;
 
-	if (yep)
-	{
-		log  = "CARTRIDGE: battery-backup ram was read from \"";
-		log += SaveFile.Name();
-		log += "\"";
-	}
-	else
-	{
-		log = "CARTRIDGE: battery-backup ram was not read from any file";
-	}
+	if (yep) log << "CARTRIDGE: battery-backup ram was read from \"" << SaveFile.Name() << "\"";
+	else     log << "CARTRIDGE: battery-backup ram was not read from any file";
 
-	LogOutput( log.String() );
+	LogOutput( log );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -434,17 +426,15 @@ VOID CARTRIDGE::SaveBatteryRam() const
 		{
 			SaveFile.Write( wRam.Begin(), wRam.End() );
 
-			log  = "CARTRIDGE: battery-backup ram was written to \"";
-			log += SaveFile.Name();
-			log += "\"";
+			log << "CARTRIDGE: battery-backup ram was written to \"" << SaveFile.Name() << "\"";
 		}
 		else
 		{
-			log = "CARTRIDGE: warning, battery-backup ram was not written to any file";
+			log << "CARTRIDGE: warning, battery-backup ram was not written to any file";
 		}
 	}
 
-	LogOutput( log.String() );
+	LogOutput( log );
 }
 
 NES_NAMESPACE_END

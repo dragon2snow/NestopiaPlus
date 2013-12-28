@@ -1255,17 +1255,17 @@ VOID CPU::ResetLog()
 
 	PDXSTRING log("CPU: ");
 
-	log.Resize( 5 ); log += "Program Counter: "; log.Append( PCD, PDXSTRING::HEX );     LogOutput( log.String() );
-	log.Resize( 5 ); log += "Stack Pointer: ";   log.Append( SPD, PDXSTRING::HEX );     LogOutput( log.String() );
-	log.Resize( 5 ); log += "A register: ";      log.Append( AD,  PDXSTRING::HEX );     LogOutput( log.String() );
-	log.Resize( 5 ); log += "X register: ";      log.Append( XD,  PDXSTRING::HEX );     LogOutput( log.String() );
-	log.Resize( 5 ); log += "Y register: ";      log.Append( YD,  PDXSTRING::HEX );     LogOutput( log.String() );
-	log.Resize( 5 ); log += "C flag: ";          log += (FCD ? "1" : "0");      		LogOutput( log.String() );
-	log.Resize( 5 ); log += "Z flag: ";          log += (FZD ? "0" : "1");              LogOutput( log.String() );	
-	log.Resize( 5 ); log += "I flag: ";          log += (FID ? "1" : "0");              LogOutput( log.String() );
-	log.Resize( 5 ); log += "D flag: ";          log += (FDD ? "1" : "0");              LogOutput( log.String() );	
-	log.Resize( 5 ); log += "V flag: ";          log += (FVD ? "1" : "0");              LogOutput( log.String() );	
-	log.Resize( 5 ); log += "N flag: ";          log += ((FND & FLAGS::N) ? "1" : "0"); LogOutput( log.String() );
+	log.Resize( 5 ); log << "Program Counter: "; log.Append( PCD, PDXSTRING::HEX );     LogOutput( log );
+	log.Resize( 5 ); log << "Stack Pointer: ";   log.Append( SPD, PDXSTRING::HEX );     LogOutput( log );
+	log.Resize( 5 ); log << "A register: ";      log.Append( AD,  PDXSTRING::HEX );     LogOutput( log );
+	log.Resize( 5 ); log << "X register: ";      log.Append( XD,  PDXSTRING::HEX );     LogOutput( log );
+	log.Resize( 5 ); log << "Y register: ";      log.Append( YD,  PDXSTRING::HEX );     LogOutput( log );
+	log.Resize( 5 ); log << "C flag: ";          log << (FCD ? "1" : "0");      		LogOutput( log );
+	log.Resize( 5 ); log << "Z flag: ";          log << (FZD ? "0" : "1");              LogOutput( log );	
+	log.Resize( 5 ); log << "I flag: ";          log << (FID ? "1" : "0");              LogOutput( log );
+	log.Resize( 5 ); log << "D flag: ";          log << (FDD ? "1" : "0");              LogOutput( log );	
+	log.Resize( 5 ); log << "V flag: ";          log << (FVD ? "1" : "0");              LogOutput( log );	
+	log.Resize( 5 ); log << "N flag: ";          log << ((FND & FLAGS::N) ? "1" : "0"); LogOutput( log );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////

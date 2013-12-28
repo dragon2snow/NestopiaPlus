@@ -38,11 +38,13 @@ class ROMINFO : public MANAGER
 public:
 
 	ROMINFO()
-	: MANAGER(IDD_ROM_INFO) {}
+	: MANAGER(IDD_ROM_INFO), uggly(FALSE) {}
 
 private:
 
 	BOOL DialogProc(HWND,UINT,WPARAM,LPARAM);
+
+	BOOL uggly;
 };
 
 #endif

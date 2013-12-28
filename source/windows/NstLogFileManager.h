@@ -24,8 +24,8 @@
 
 #pragma once
 
-#ifndef NST_LOGFILEMANAGER_H
-#define NST_LOGFILEMANAGER_H
+#ifndef NST_LOGFILE_H
+#define NST_LOGFILE_H
 
 #include "NstManager.h"
 
@@ -33,22 +33,19 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-class LOGFILEMANAGER : public MANAGER
+class LOGFILE : public MANAGER
 {
 public:
 
-	LOGFILEMANAGER()
+	LOGFILE()
 	: MANAGER(IDD_LOGFILE) {}
 
 	VOID Close(const BOOL);
 
-	static VOID LogSeparator();
-
 	template<class T> 
 	static PDX_NO_INLINE VOID Output(const T& m1)
 	{
-		LogString << m1;
-		LogString << "\r\n";
+		LogString << m1 << "\r\n";
 
 		if (LogString.Length() >= 0x100000UL)
 			LogString.Clear();
@@ -57,9 +54,7 @@ public:
 	template<class T,class U> 
 	static PDX_NO_INLINE VOID Output(const T& m1,const U& m2)
 	{
-		LogString << m1;
-		LogString << m2;
-		LogString << "\r\n";
+		LogString << m1 << m2 << "\r\n";
 
 		if (LogString.Length() >= 0x100000UL)
 			LogString.Clear();
@@ -68,10 +63,7 @@ public:
 	template<class T,class U,class V> 
 	static PDX_NO_INLINE VOID Output(const T& m1,const U& m2,const V& m3)
 	{
-		LogString << m1;
-		LogString << m2;
-		LogString << m3;
-		LogString << "\r\n";
+		LogString << m1 << m2 << m3 << "\r\n";
 
 		if (LogString.Length() >= 0x100000UL)
 			LogString.Clear();
@@ -80,11 +72,7 @@ public:
 	template<class T,class U,class V,class W> 
 	static PDX_NO_INLINE VOID Output(const T& m1,const U& m2,const V& m3,const W& m4)
 	{
-		LogString << m1;
-		LogString << m2;
-		LogString << m3;
-		LogString << m4;
-		LogString << "\r\n";
+		LogString << m1 << m2 << m3 << m4 << "\r\n";
 
 		if (LogString.Length() >= 0x100000UL)
 			LogString.Clear();

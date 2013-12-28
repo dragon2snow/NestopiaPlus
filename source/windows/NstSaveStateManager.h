@@ -27,7 +27,6 @@
 #ifndef NST_SAVESTATEMANAGER_H
 #define NST_SAVESTATEMANAGER_H
 
-#include "../paradox/PdxFile.h"
 #include "NstManager.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -86,7 +85,6 @@ private:
 		return index;
 	}
 
-	BOOL IsActive() const;
 	VOID UpdateDialog(HWND);
 	VOID UpdateDialogTime(HWND,const WPARAM);
 	VOID UpdateSettings(HWND);

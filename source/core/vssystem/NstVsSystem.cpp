@@ -413,7 +413,7 @@ VSSYSTEM* VSSYSTEM::New(CPU& cpu,PPU& ppu,const ULONG pRomCrc)
 		case 0x7D6B764FUL: // Ice Climber
 
 			LogOutput("VSSYSTEM: error, Dual-System games are not supported");			
-			MsgWarning("VS. Dual-System games are not supported!");
+			MsgError("VS. Dual-System games are not supported!");
 			return NULL;
 	}
 

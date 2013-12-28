@@ -34,7 +34,15 @@
 #endif
 
 #include <new>
+
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+
+#include <Windows.h>
 #include "windows/NstApplication.h"
+#include "windows/NstFileManager.h"
+#include "windows/NstConfigFile.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -46,11 +54,89 @@ VOID PDX_CDECL NewHandler()
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+BOOL AllowOnlyOneInstance()
+{
+	PDXSTRING filename;
+
+	UTILITIES::GetExeDir( filename );
+	filename << "Nestopia.cfg";
+
+	CONFIGFILE cfg;
+
+	if (cfg.Load( filename, FALSE ) && cfg[ "preferences allow multiple instances" ] == "yes") 
+		return FALSE;
+
+	return TRUE;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+BOOL TooManyInstances(CHAR* const CmdLine)
+{
+	HANDLE hMutex = CreateMutex( NULL, TRUE, "Nestopia Instance" );
+
+	if (GetLastError() == ERROR_ALREADY_EXISTS) 
+	{
+		HWND hWnd = FindWindow( NST_CLASS_NAME, NULL );
+
+		if (hWnd)
+		{
+			if (IsIconic( hWnd ))
+				ShowWindow( hWnd, SW_RESTORE );
+
+			SetForegroundWindow( hWnd );
+
+			if (CmdLine)
+			{
+				for (CHAR* begin=CmdLine; *begin != '\0'; )
+				{
+					if (*begin++ == '\"')
+					{
+						while (*begin == ' ')
+							++begin;
+
+						for (const CHAR* end=begin+1; *end != '\0'; ++end)
+						{
+							if (*end == '\"')
+							{
+								for (--end; *end == ' '; --end);
+								
+								COPYDATASTRUCT cds;
+
+								cds.dwData = NST_WM_CMDLINE;
+								cds.lpData = PDX_CAST(PVOID,begin);
+								cds.cbData = end + 1 - begin;
+
+								SendMessage( hWnd, WM_COPYDATA, WPARAM(hWnd), LPARAM(LPVOID(&cds)) );
+								break;
+							}
+						}
+						break;
+					}
+				}
+			}
+		}
+
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
 // big bang
 ////////////////////////////////////////////////////////////////////////////////////////
 
 INT WINAPI WinMain(HINSTANCE hInstance,HINSTANCE,LPSTR CmdLine,INT iCmdShow)
 {
+	if (AllowOnlyOneInstance() && TooManyInstances( CmdLine ))
+		return EXIT_SUCCESS;
+
 	INT ExitCode = EXIT_FAILURE;
 
 	try
@@ -61,12 +147,20 @@ INT WINAPI WinMain(HINSTANCE hInstance,HINSTANCE,LPSTR CmdLine,INT iCmdShow)
 
 		std::set_new_handler( NewHandler );
 
-		_control87( _PC_24, MCW_PC );
 		{
 			APPLICATION app( hInstance, CmdLine, iCmdShow );
 			ExitCode = app.Run();
 		}		
-		_control87( _CW_DEFAULT, 0xFFFFFUL );
+	}
+	catch (EXCEPTION)
+	{
+		MessageBox
+		( 
+			NULL, 
+			EXCEPTION::Msg(), 
+			"Nestopia Error!",
+			MB_OK|MB_ICONERROR 
+		);
 	}
 	catch (const CHAR* msg)
 	{

@@ -27,9 +27,8 @@
 #ifndef NST_DIRECTSOUND_H
 #define NST_DIRECTSOUND_H
 
+#include <Mmreg.h>
 #include <dsound.h>
-#include <MMSystem.h>
-#include "../paradox/PdxArray.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // Direct Sound
@@ -40,12 +39,7 @@ class DIRECTSOUND
 public:
 
 	VOID EnablePAL(const BOOL);
-
-  #ifdef NST_SYNCHRONIZE_SOUND
-
-	BOOL UpdateRefresh();
-
-  #endif
+	BOOL Synchronize();
 
 	VOID Halt()
 	{

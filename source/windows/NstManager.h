@@ -27,10 +27,12 @@
 #ifndef NST_MANAGER_H
 #define NST_MANAGER_H
 
+#include "resource/resource.h"
 #include "../NstNes.h"
+#include "NstUI.h"
+#include "NstException.h"
+#include "NstUtilities.h"
 #include "NstConfigFile.h"
-
-class PDXFILE;
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -47,6 +49,8 @@ public:
 	virtual VOID Destroy (CONFIGFILE* const) {}
 
 	VOID StartDialog();
+
+	static TSIZE GetDlgItemText(HWND,const INT,PDXSTRING&,const INT=MAX_PATH);
 
 protected:
 
@@ -65,5 +69,28 @@ private:
 
 	const INT DialogID;
 };
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+class FILEEXISTDIALOG : public MANAGER
+{
+public:
+
+	FILEEXISTDIALOG()				  
+	: MANAGER(IDD_FILE_EXIST), choice(ULONG_MAX) {}
+
+	inline ULONG Choice() const
+	{ return choice; }
+
+private:
+
+	BOOL DialogProc(HWND,UINT,WPARAM,LPARAM);
+
+	ULONG choice;
+};
+
+#include "NstLogFileManager.h"
 
 #endif

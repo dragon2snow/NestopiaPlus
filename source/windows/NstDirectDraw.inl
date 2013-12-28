@@ -41,16 +41,6 @@ inline UINT DIRECTDRAW::GetPixel(const UINT x,const UINT y) const
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-inline VOID DIRECTDRAW::ClearScreen()
-{ 
-	PDX_ASSERT(ready && bool(ready) == CheckReady());
-	ClearSurface( windowed ? NesBuffer : BackBuffer ); 
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
 inline BOOL DIRECTDRAW::IsGDI()      const { return GDIMode;  }
 inline BOOL DIRECTDRAW::IsReady()    const { return ready;    }
 inline BOOL DIRECTDRAW::IsWindowed() const { return windowed; }
@@ -69,6 +59,16 @@ inline LPDIRECTDRAWSURFACE7 DIRECTDRAW::GetNesBuffer() const
 	return NesBuffer; 
 }
 
+inline LPDIRECTDRAWSURFACE7 DIRECTDRAW::GetFrontBuffer() const
+{
+	return FrontBuffer;
+}
+
+inline LPDIRECTDRAWSURFACE7 DIRECTDRAW::GetBackBuffer() const
+{
+	return BackBuffer;
+}
+
 inline const DDSURFACEDESC2& DIRECTDRAW::GetNesDesc() const
 { 
 	return NesDesc; 
@@ -84,6 +84,11 @@ inline const DDCAPS& DIRECTDRAW::GetHelCaps() const
 	return HelCaps;
 }
 
+inline UINT DIRECTDRAW::GetRefreshRate() const
+{
+	return DisplayMode.RefreshRate;
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////
 //
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -97,8 +102,8 @@ inline UINT DIRECTDRAW::GetScaleFactor() const
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-inline const RECT& DIRECTDRAW::GetScreenRect() const { return ScreenRect; }
-inline const RECT& DIRECTDRAW::GetNesRect()    const { return NesRect;    }
+inline const RECT& DIRECTDRAW::GetScreenRect() const { return rcScreen; }
+inline const RECT& DIRECTDRAW::GetNesRect()    const { return rcNes;    }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //

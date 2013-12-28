@@ -41,7 +41,7 @@ VOID MAPPER25::Reset()
 	cpu.SetPort( 0x8000, 0x8FFF, this, Peek_8000, Poke_8000 );
 	cpu.SetPort( 0xA000, 0xAFFF, m21, MAPPER21::Peek_A000, MAPPER21::Poke_A000 );
 
-	for (ULONG i=0x9000; i <= 0xFFFFU; ++i)
+	for (ULONG i=0x9000; i <= 0xFFFF; ++i)
 	{
 		switch (i & 0xF00F)
 		{

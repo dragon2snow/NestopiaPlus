@@ -22,7 +22,16 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+
+#include <Windows.h>
 #include "../paradox/PdxFile.h"
+#include "NstManager.h"
+#include "NstTimerManager.h"
+#include "NstSoundManager.h"
+#include "NstGraphicManager.h"
 #include "NstApplication.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -46,7 +55,7 @@ VOID MANAGER::StartDialog()
 
 	DialogBoxParam
 	(
-		GetModuleHandle(NULL),
+		::GetModuleHandle(NULL),
 		MAKEINTRESOURCE(DialogID),
 		hWnd,
 		StaticDialogProc,
@@ -60,28 +69,87 @@ VOID MANAGER::StartDialog()
 
 BOOL CALLBACK MANAGER::StaticDialogProc(HWND hDlg,UINT uMsg,WPARAM wParam,LPARAM lParam)
 {
-	static MANAGER* manager = NULL;
+	static PDXARRAY<PDXPAIR<HWND,MANAGER* const> > stack;
 
 	BOOL GotIt = FALSE;
 
 	if (uMsg == WM_INITDIALOG)
 	{
-		PDX_ASSERT( !manager );
-		manager = PDX_CAST(MANAGER*,lParam);
-		application.GetSoundManager().Clear();
-		application.GetGraphicManager().BeginDialogMode();
 		GotIt = TRUE;
+
+		if (stack.IsEmpty() || stack.Back().First() != hDlg)
+		{
+			if (stack.IsEmpty())
+			{
+				application.GetSoundManager().Clear();
+				application.GetTimerManager().Update();
+				application.GetGraphicManager().BeginDialogMode();
+			}
+
+			stack.InsertBack( PDX::MakePair(hDlg,PDX_CAST(MANAGER* const,lParam)) );
+		}
 	}
 
-	if (manager && manager->DialogProc( hDlg, uMsg, wParam, lParam ))
+	if 
+	(
+     	stack.Size() && 
+		stack.Back().First() == hDlg && 
+		stack.Back().Second() && 
+		stack.Back().Second()->DialogProc( hDlg, uMsg, wParam, lParam )
+	)
 		GotIt = TRUE;
 
 	if (uMsg == WM_DESTROY)
 	{
-		manager = NULL;
-		application.GetGraphicManager().EndDialogMode();
 		GotIt = TRUE;
+
+		if (stack.Size() && stack.Back().First() == hDlg)
+		{
+			stack.EraseBack();
+
+			if (stack.IsEmpty())
+				application.GetGraphicManager().EndDialogMode();
+		}
 	}
 
 	return GotIt;
 }
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+TSIZE MANAGER::GetDlgItemText(HWND hDlg,const INT id,PDXSTRING& string,const INT MaxLength)
+{
+	PDX_ASSERT( hDlg && id );
+
+	string.Buffer().Resize( MaxLength + 1 );
+	string.Buffer().Front() = '\0';
+	string.Buffer().Resize( ::GetDlgItemText( hDlg, id, string.Begin(), MaxLength ) + 1 );
+
+	return string.Length();
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+BOOL FILEEXISTDIALOG::DialogProc(HWND hDlg,UINT uMsg,WPARAM wParam,LPARAM)
+{
+	if (uMsg == WM_COMMAND)
+	{
+		switch (LOWORD(wParam))
+		{
+     		case IDC_FILEEXIST_OVERWRITE:
+			case IDC_FILEEXIST_APPEND:
+			case IDC_FILEEXIST_CANCEL:
+
+				choice = LOWORD(wParam);
+				::EndDialog( hDlg, 0 );
+				return TRUE;
+		}
+	}
+
+	return FALSE;
+}
+

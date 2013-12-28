@@ -185,27 +185,14 @@ NES_PEEK(MACHINE,4017)
 
 VOID MACHINE::GetGraphicContext(IO::GFX::CONTEXT& context) const
 { 
-	ppu.GetContext(context); 
+	ppu.GetContext( context );
+	palette.GetContext( context );
 }
 
 VOID MACHINE::SetGraphicContext(const IO::GFX::CONTEXT& context)
 {
-	PALETTE::TYPE type;
-
-	switch (context.PaletteMode)
-	{
-    	case IO::GFX::PALETTE_EMULATED: type = PALETTE::EMULATE;  break;
-		case IO::GFX::PALETTE_CUSTOM:   type = PALETTE::CUSTOM;   if (context.palette) break;
-		case IO::GFX::PALETTE_INTERNAL: type = PALETTE::INTERNAL; break;
-	}
-
-	palette.SetHue        ( context.hue        );
-	palette.SetBrightness ( context.brightness );
-	palette.SetSaturation ( context.saturation );
-	palette.SetType       ( type               );
-	palette.Import        ( context.palette    );
-
 	ppu.SetContext( context ); 
+	palette.SetContext( context );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -226,14 +213,14 @@ VOID MACHINE::GetAudioContext(IO::SFX::CONTEXT& context) const
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT MACHINE::SetGameGenieContext(const IO::GAMEGENIE::CONTEXT& context)
+VOID* MACHINE::QueryInterface(const INTERFACETYPE face)
 {
-	return GameGenie->SetContext( context );
-}
+	switch (face)
+	{
+    	case INTERFACE_GAMEGENIE: return GameGenie;
+	}
 
-PDXRESULT MACHINE::GetGameGenieContext(IO::GAMEGENIE::CONTEXT& context)
-{
-	return GameGenie->GetContext( context );
+	return NULL;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -430,12 +417,7 @@ PDXRESULT MACHINE::LoadINES(PDXFILE& ImageFile,const PDXSTRING* const SaveFile)
 
 	{
 		PDXSTRING log;
-		
-		log  = "MACHINE: loading NES file \"";
-		log	+= ImageFile.Name();
-		log += "\"";
-		
-		LogOutput( log.String() );
+		LogOutput( log << "MACHINE: loading NES file \"" << ImageFile.Name() << "\"" );
 	}
 
 	cartridge = new CARTRIDGE;
@@ -468,12 +450,7 @@ PDXRESULT MACHINE::LoadUNIF(PDXFILE& ImageFile,const PDXSTRING* const SaveFile)
 
 	{
 		PDXSTRING log;
-
-		log  = "MACHINE: loading UNIF file \"";
-		log	+= ImageFile.Name();
-		log += "\"";
-
-		LogOutput( log.String() );
+		LogOutput( log << "MACHINE: loading UNIF file \"" << ImageFile.Name() << "\"" );
 	}
 
 	cartridge = new CARTRIDGE;
@@ -506,12 +483,7 @@ PDXRESULT MACHINE::LoadFDS(PDXFILE& ImageFile)
 
 	{
 		PDXSTRING log;
-
-		log  = "MACHINE: loading FDS file \"";
-		log	+= ImageFile.Name();
-		log += "\"";
-
-		LogOutput( log.String() );
+		LogOutput( log << "MACHINE: loading FDS file \"" << ImageFile.Name() << "\"" );
 	}
 
 	fds = new FDS(cpu,ppu);
@@ -535,12 +507,7 @@ PDXRESULT MACHINE::LoadNSF(PDXFILE& ImageFile)
 
 	{
 		PDXSTRING log;
-
-		log  = "MACHINE: loading NSF file \"";
-		log	+= ImageFile.Name();
-		log += "\"";
-
-		LogOutput( log.String() );
+		LogOutput( log << "MACHINE: loading NSF file \"" << ImageFile.Name() << "\"" );
 	}
 
 	nsf = new NSF(cpu);
@@ -564,22 +531,20 @@ PDXRESULT MACHINE::LoadNST(PDXFILE& file)
 		return PDX_FAILURE;
 
 	if (!file.Readable(sizeof(U32) * 2) || file.Read<U32>() != 0x1A54534EUL)
-		return MsgWarning( "invalid save state file!" );
+		return MsgError( "invalid save state file!" );
 
 	if (file.Read<U32>() != (cartridge ? cartridge->GetInfo().crc : 0))
 	{
-		static const CHAR wrn[] = 
+		const CHAR* const wrn = "Save State Loading!";
+		
+		const BOOL yes = MsgQuestion
 		(
-     		"Save State Loading!"
-		);
-
-		static const CHAR msg[] = 
-		(
-     		"The current rom image file checksum doesn't match the state file's saved value. "
+		    wrn,
+			"The current rom image file checksum doesn't match the state file's saved value. "
 			"Do you still want to load it?"
 		);
 
-		if (!MsgQuestion(wrn,msg))
+		if (!yes)
 			return PDX_FAILURE;
 
 		if (MsgQuestion(wrn,"Do you want to repair it?"))
@@ -605,17 +570,17 @@ PDXRESULT MACHINE::LoadNST(PDXFILE& file)
 	PDX_TRY( ppu.LoadState( file ) );
 
 	if (!file.Readable(sizeof(U8)))
-		return MsgWarning("Corrupt data!");
+		return MsgError("Corrupt data!");
 
 	if (cartridge)
 	{
 		if (file.Read<U8>() != 0x88 || PDX_FAILED(cartridge->Mapper()->LoadState(file)))
-			return MsgWarning("Corrupt data!");
+			return MsgError("Corrupt data!");
 	}
 	else if (fds)
 	{
 		if (file.Read<U8>() != 0x99 || PDX_FAILED(fds->LoadState(file)))
-			return MsgWarning("Corrupt data!");
+			return MsgError("Corrupt data!");
 	}
 
 	return PDX_OK;
@@ -782,6 +747,15 @@ BOOL MACHINE::IsMovieRewinded()  const { return !(on && (cartridge || fds) && mo
 VOID MACHINE::ResetAudioBuffer()
 {
 	apu.ClearBuffers();
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+TSIZE MACHINE::GetAudioLatency() const
+{
+	return apu.GetLatency();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -1095,11 +1069,7 @@ VOID MACHINE::Reset(const BOOL hard)
 				nsf->SetMode( m );
 
 			PDXSTRING log;
-			
-			log  = "MACHINE: auto-changed to ";
-			log += (m == MODE_NTSC ? "NTSC" : "PAL");
-			
-			LogOutput( log.String() );
+			LogOutput( log << "MACHINE: auto-changed to " << (m == MODE_NTSC ? "NTSC" : "PAL") );
 		}
 	}
 }

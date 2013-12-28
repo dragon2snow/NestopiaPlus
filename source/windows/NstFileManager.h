@@ -29,6 +29,7 @@
 
 class ZIPFILE;
 class PDXFILE;
+class CONFIGFILE;
 
 #include "NstManager.h"
 
@@ -40,13 +41,20 @@ class FILEMANAGER : public MANAGER
 {
 public:
 
+	enum COMMAND
+	{
+		COMMAND_CHOOSE_FILE,
+		COMMAND_RECENT_FILE,
+		COMMAND_INPUT_FILE
+	};
+
 	FILEMANAGER();
 
 	VOID Create  (CONFIGFILE* const);
 	VOID Destroy (CONFIGFILE* const);
 
-	PDX_NO_INLINE PDXRESULT Load(INT=-1,const BOOL=TRUE);
-	PDX_NO_INLINE PDXRESULT LoadNSP(INT=-1,const BOOL=TRUE);
+	PDX_NO_INLINE PDXRESULT Load    (const COMMAND,const VOID* const,const BOOL);
+	PDX_NO_INLINE PDXRESULT LoadNSP (const COMMAND,const VOID* const,const BOOL);
 	PDX_NO_INLINE PDXRESULT LoadNST();
 	PDX_NO_INLINE PDXRESULT SaveNSP();
 	PDX_NO_INLINE PDXRESULT SaveNST();
@@ -58,13 +66,12 @@ public:
 
 	BOOL UpdatedRecentFiles() const;
 
-	PDX_NO_INLINE VOID AddRecentFile(const CHAR* const);
-
-	const PDXSTRING& GetRomPath()  const;
-	const PDXSTRING& GetSavePath() const;
-	const PDXSTRING& GetNstPath()  const;
-	const PDXSTRING& GetIpsPath()  const;
-	const PDXSTRING& GetNspPath()  const;
+	PDX_NO_INLINE const PDXSTRING& GetRomPath();
+	PDX_NO_INLINE const PDXSTRING& GetSavePath();
+	PDX_NO_INLINE const PDXSTRING& GetNstPath();
+	PDX_NO_INLINE const PDXSTRING& GetIpsPath();
+	PDX_NO_INLINE const PDXSTRING& GetNspPath();
+	PDX_NO_INLINE const PDXSTRING& GetDefaultRomPath();
 
 	UINT OpenZipFile
 	(
@@ -74,11 +81,13 @@ public:
 		PDXFILE&
 	);
 
-	static PDX_NO_INLINE PDXRESULT GetExeFileName(PDXSTRING&);
-	static PDX_NO_INLINE PDXRESULT GetExeFilePath(PDXSTRING&);
-	static PDX_NO_INLINE PDXRESULT GetCurrentPath(PDXSTRING&);
-
 private:
+
+	enum RECENT_FILE_COMMAND
+	{
+		DONT_ADD_RECENT_FILE,
+		ADD_RECENT_FILE
+	};
 
 	PDX_NO_INLINE PDXRESULT LoadNesFile (PDXFILE&,const BOOL);
 	
@@ -96,33 +105,29 @@ private:
 	BOOL FindNst (const PDXSTRING&,PDXSTRING&) const;
 	BOOL FindSlt (const UINT,const PDXSTRING&,PDXSTRING&) const;
 
+	PDX_NO_INLINE VOID UpdatePaths();
 	PDX_NO_INLINE VOID UpdateContext();
+	PDX_NO_INLINE VOID AddRecentFile(const CHAR* const);
 
 	PDX_NO_INLINE PDXRESULT LoadFile
 	(
+	    const COMMAND,
+		const VOID* const,
 	    PDXFILE&,
+		PDXSTRING* const,
        	const CHAR* const,
 		const CHAR* const,
 		const CHAR* const,
 		const PDXARRAY<PDXSTRING>&,
-		const BOOL=FALSE,
-		const INT=-1
-	);
-
-	PDX_NO_INLINE PDXRESULT SaveFile
-	(
-	    PDXFILE&,
-       	const CHAR* const,
-		const CHAR* const,
-		const CHAR* const,
-		const CHAR* const
+		const RECENT_FILE_COMMAND
 	);
 
 	typedef PDXARRAY<PDXSTRING> RECENTFILES;
 
 	PDX_NO_INLINE VOID Reset();
 	PDX_NO_INLINE VOID UpdateDialog();
-	PDX_NO_INLINE BOOL SelectPath(PDXSTRING&,const CHAR* const);	
+	PDX_NO_INLINE VOID UpdateSettings();
+	PDX_NO_INLINE BOOL SelectPath(PDXSTRING&,const UINT);	
 	
 	PDX_NO_INLINE UINT OpenZipFile
 	(
@@ -132,10 +137,6 @@ private:
 		PDXFILE&,
 		const BOOL
 	);
-
-	VOID UpdateSettings();
-
-	static PDX_NO_INLINE VOID ValidatePath(PDXSTRING&);
 
 	BOOL DialogProc(HWND,UINT,WPARAM,LPARAM);
 

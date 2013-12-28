@@ -226,6 +226,8 @@ enum CONTROLLERTYPE
 	CONTROLLER_KEYBOARD    
 };
 
+class MACHINE;
+
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -323,13 +325,11 @@ namespace IO
 			dpcm            ( TRUE      ),
 			external        ( TRUE      ),
 			SampleBits      ( 16        ),
-			SampleRate      ( 44100     ),
-			MaxBufferLength ( TSIZE_MAX )
+			SampleRate      ( 44100     )
 			{}
 
 			UINT  SampleBits;
 			ULONG SampleRate;
-			TSIZE MaxBufferLength;
 			BOOL  enabled;
 			BOOL  square1;
 			BOOL  square2;
@@ -597,50 +597,28 @@ namespace IO
 		};
 	}
 
-	namespace GAMEGENIE
+	class GAMEGENIE
 	{
-		enum OP
-		{
-			ENCODE,
-			DECODE,
-			PACK,
-			UNPACK,
-			ADD,
-			SETSTATE,
-			GETSTATE,
-			DESTROYALL
-		};
+	public:
 
-		enum STATE
-		{
-			NOCHANGE,
-			ENABLE,
-			DISABLE
-		};
+		GAMEGENIE(MACHINE&);
 
-		struct CONTEXT
-		{
-			CONTEXT()
-			: 
-			packed     ( 0        ),
-			address    ( 0        ), 
-			value      ( 0        ),
-			compare    ( 0        ),
-			UseCompare ( FALSE    ),
-			state      ( NOCHANGE ),
-			op         ( ENCODE   )
-			{}
+		static PDXRESULT Encode (const ULONG,PDXSTRING&);
+		static PDXRESULT Decode (const CHAR* const,ULONG&);
+		static PDXRESULT Pack   (const UINT,const UINT,const UINT,const BOOL,ULONG&);
+		static PDXRESULT Unpack (const ULONG,UINT&,UINT&,UINT&,BOOL&);
 
-			PDXSTRING characters;
-			ULONG packed;
-			UINT address;
-			UINT value;
-			UINT compare;
-			BOOL UseCompare;
-			STATE state;
-			OP op;
-		};
-	}
+		PDXRESULT AddCode    (const ULONG);
+		PDXRESULT DeleteCode (const ULONG);
+
+		TSIZE NumCodes  () const;
+		ULONG GetCode   (const TSIZE) const;
+		VOID ClearCodes ();
+
+	private:
+
+		VOID* const handler;
+	};
 
 	namespace GENERAL
 	{
@@ -694,6 +672,7 @@ namespace IO
 
 			struct GENIECODE
 			{
+				BOOL enabled;
 				PDXSTRING code;
 				PDXSTRING comment;
 			};
@@ -718,11 +697,12 @@ namespace IO
 // global callback functions which have to be implemented for the specific target platform
 ////////////////////////////////////////////////////////////////////////////////////////
 
+PDXRESULT MsgError    (const CHAR* const);
 PDXRESULT MsgWarning  (const CHAR* const);
 BOOL      MsgQuestion (const CHAR* const,const CHAR* const);
 BOOL      MsgInput    (const CHAR* const,const CHAR* const,PDXSTRING&);
 VOID      MsgOutput   (const CHAR* const);
-VOID      LogOutput   (const CHAR* const);
+VOID      LogOutput   (const PDXSTRING&);
 
 NES_NAMESPACE_END
 

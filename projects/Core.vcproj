@@ -4,6 +4,7 @@
 	Version="7.10"
 	Name="Core"
 	ProjectGUID="{D1A6D493-1CC0-479C-831D-B36149D816FD}"
+	RootNamespace="Core"
 	Keyword="Win32Proj">
 	<Platforms>
 		<Platform
@@ -19,7 +20,6 @@
 			WholeProgramOptimization="FALSE">
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalOptions="/Qwn1 /Qrcd"
 				Optimization="0"
 				GlobalOptimizations="FALSE"
 				InlineFunctionExpansion="0"
@@ -42,7 +42,8 @@
 				WarningLevel="3"
 				Detect64BitPortabilityProblems="FALSE"
 				DebugInformationFormat="3"
-				CallingConvention="1">
+				CallingConvention="1"
+				AdditionalOptions="">
 				<IntelOptions
 					Optimization="0"
 					GlobalOptimizations="0"
@@ -66,8 +67,8 @@
 					DisableFunctionSplitting="0"
 					ForceConformanceInForLoopScope="1"
 					RecognizeRestrictKeyword="1"
-					AllOptions="/c  /Zi /nologo /W3 /Od /Oi /G7 /D &quot;WIN32&quot; /D &quot;_DEBUG&quot; /D &quot;_LIBS&quot; /D &quot;_USE_INTEL_COMPILER&quot; /D &quot;_M_IX86&quot; /GF /FD /EHsc /MLd /GS /Gy /Zc:forScope /Qrestrict /YX&quot;StdAfx.h&quot; /Fp&quot;Debug/CoreDebug.pch&quot; /Fo&quot;Debug/&quot; /Fd&quot;Debug/vc70.pdb&quot; /Gr /TP /Qwn1 /Qrcd"
-					MSOriginalAdditionalOptions="/Qwn1 /Qrcd"/>
+					AllOptions="/c  /Zi /nologo /W3 /Od /Oi /G7 /D &quot;WIN32&quot; /D &quot;_DEBUG&quot; /D &quot;_LIBS&quot; /D &quot;_USE_INTEL_COMPILER&quot; /D &quot;_M_IX86&quot; /GF /FD /EHsc /MLd /GS /Gy /Zc:forScope /Qrestrict /YX&quot;StdAfx.h&quot; /Fp&quot;Debug/CoreDebug.pch&quot; /Fo&quot;Debug/&quot; /Fd&quot;Debug/vc70.pdb&quot; /Gr /TP"
+					MSOriginalAdditionalOptions=""/>
 			</Tool>
 			<Tool
 				Name="VCCustomBuildTool"/>
@@ -88,7 +89,10 @@
 			<Tool
 				Name="VCPreLinkEventTool"/>
 			<Tool
-				Name="VCResourceCompilerTool"/>
+				Name="VCResourceCompilerTool"
+				Culture="1033"
+				ShowProgress="TRUE"
+				ResourceOutputFileName="$(IntDir)/$(InputName).res"/>
 			<Tool
 				Name="VCWebServiceProxyGeneratorTool"/>
 			<Tool
@@ -107,7 +111,7 @@
 			WholeProgramOptimization="TRUE">
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalOptions="/Qwn1 /Qrcd"
+				AdditionalOptions="/Qwn1"
 				Optimization="2"
 				GlobalOptimizations="TRUE"
 				InlineFunctionExpansion="2"
@@ -150,8 +154,8 @@
 					EnableFunctionLevelLinking="1"
 					ForceConformanceInForLoopScope="1"
 					RecognizeRestrictKeyword="1"
-					AllOptions="/c  /GL /nologo /W3 /O3 /Og /Ob2 /Oi /Ot /Oy /G7 /GA /QaxW /QxM /D &quot;WIN32&quot; /D &quot;NDEBUG&quot; /D &quot;_LIB&quot; /D &quot;_USE_INTEL_COMPILER&quot; /D &quot;_WINDOWS&quot; /D &quot;_M_IX86&quot; /GF /FD /EHsc /ML /Gy /Zc:forScope /Qrestrict /YX&quot;StdAfx.h&quot; /Fp&quot;Release/core.pch&quot; /Fo&quot;Release/&quot; /Fd&quot;Release/vc70.pdb&quot; /Gr /TP /Qwn1 /Qrcd"
-					MSOriginalAdditionalOptions="/Qwn1 /Qrcd"/>
+					AllOptions="/c  /GL /nologo /W3 /O3 /Og /Ob2 /Oi /Ot /Oy /G7 /GA /QaxW /QxM /D &quot;WIN32&quot; /D &quot;NDEBUG&quot; /D &quot;_LIB&quot; /D &quot;_USE_INTEL_COMPILER&quot; /D &quot;_WINDOWS&quot; /D &quot;_M_IX86&quot; /GF /FD /EHsc /ML /Gy /Zc:forScope /Qrestrict /YX&quot;StdAfx.h&quot; /Fp&quot;Release/core.pch&quot; /Fo&quot;Release/&quot; /Fd&quot;Release/vc70.pdb&quot; /Gr /TP /Qwn1"
+					MSOriginalAdditionalOptions="/Qwn1"/>
 			</Tool>
 			<Tool
 				Name="VCCustomBuildTool"/>
@@ -173,7 +177,8 @@
 			<Tool
 				Name="VCPreLinkEventTool"/>
 			<Tool
-				Name="VCResourceCompilerTool"/>
+				Name="VCResourceCompilerTool"
+				Culture="1033"/>
 			<Tool
 				Name="VCWebServiceProxyGeneratorTool"/>
 			<Tool
@@ -856,7 +861,7 @@
 					Name="VCCLCompilerTool"
 					AdditionalOptions="">
 					<IntelOptions
-						AllOptions="/c /Qwn1 /Qrcd /Zi /nologo /W3 /Od /Oi /G7 /D &quot;WIN32&quot; /D &quot;_DEBUG&quot; /D &quot;_LIBS&quot; /D &quot;_USE_INTEL_COMPILER&quot; /D &quot;_M_IX86&quot; /GF /FD /EHsc /MLd /GS /Gy /Zc:forScope /Qrestrict /YX&quot;StdAfx.h&quot; /Fp&quot;Debug/CoreDebug.pch&quot; /Fo&quot;Debug/&quot; /Fd&quot;Debug/vc70.pdb&quot; /Gr /TP"
+						AllOptions="/c  /Zi /nologo /W3 /Od /Oi /G7 /D &quot;WIN32&quot; /D &quot;_DEBUG&quot; /D &quot;_LIBS&quot; /D &quot;_USE_INTEL_COMPILER&quot; /D &quot;_M_IX86&quot; /GF /FD /EHsc /MLd /GS /Gy /Zc:forScope /Qrestrict /YX&quot;StdAfx.h&quot; /Fp&quot;Debug/CoreDebug.pch&quot; /Fo&quot;Debug/&quot; /Fd&quot;Debug/vc70.pdb&quot; /Gr /TP"
 						MSOriginalAdditionalOptions=""/>
 				</Tool>
 			</FileConfiguration>
@@ -866,7 +871,7 @@
 					Name="VCCLCompilerTool"
 					AdditionalOptions="">
 					<IntelOptions
-						AllOptions="/c /Qwn1 /Qrcd /GL /nologo /W3 /O3 /Og /Ob2 /Oi /Ot /Oy /G7 /GA /QaxW /QxM /D &quot;WIN32&quot; /D &quot;NDEBUG&quot; /D &quot;_LIB&quot; /D &quot;_USE_INTEL_COMPILER&quot; /D &quot;_WINDOWS&quot; /D &quot;_M_IX86&quot; /GF /FD /EHsc /ML /Gy /Zc:forScope /Qrestrict /YX&quot;StdAfx.h&quot; /Fp&quot;Release/core.pch&quot; /Fo&quot;Release/&quot; /Fd&quot;Release/vc70.pdb&quot; /Gr /TP"
+						AllOptions="/c /Qwn1 /GL /nologo /W3 /O3 /Og /Ob2 /Oi /Ot /Oy /G7 /GA /QaxW /QxM /D &quot;WIN32&quot; /D &quot;NDEBUG&quot; /D &quot;_LIB&quot; /D &quot;_USE_INTEL_COMPILER&quot; /D &quot;_WINDOWS&quot; /D &quot;_M_IX86&quot; /GF /FD /EHsc /ML /Gy /Zc:forScope /Qrestrict /YX&quot;StdAfx.h&quot; /Fp&quot;Release/core.pch&quot; /Fo&quot;Release/&quot; /Fd&quot;Release/vc70.pdb&quot; /Gr /TP"
 						MSOriginalAdditionalOptions=""/>
 				</Tool>
 			</FileConfiguration>
@@ -907,6 +912,8 @@
 			RelativePath="..\source\core\NstPpu.h"/>
 		<File
 			RelativePath="..\source\core\NstPpu.inl"/>
+		<File
+			RelativePath="..\source\core\NstTypes.cpp"/>
 		<File
 			RelativePath="..\source\core\NstTypes.h"/>
 		<File

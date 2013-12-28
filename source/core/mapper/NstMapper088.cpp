@@ -35,7 +35,7 @@ VOID MAPPER88::Reset()
 {
 	command = 0;
 
-	for (ULONG i=0x8000; i < 0xFFFFU; ++i)
+	for (ULONG i=0x8000; i < 0xFFFF; ++i)
 	{
 		switch (i & 0x8001)
 		{

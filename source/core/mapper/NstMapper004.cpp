@@ -40,7 +40,7 @@ VOID MAPPER4::Reset()
 
 	cpu.SetPort( 0x6000, 0x7FFF, this, Peek_wRam, Poke_wRam );
 
-	for (ULONG i=0x8000; i <= 0xFFFFU; ++i)
+	for (ULONG i=0x8000; i <= 0xFFFF; ++i)
 	{
 		switch (i & 0xE001)
 		{

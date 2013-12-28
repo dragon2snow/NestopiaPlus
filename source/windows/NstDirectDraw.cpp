@@ -22,10 +22,18 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+
+#include <Windows.h>
 #include "../paradox/PdxQuickSort.h"
 #include "../2xSai/2xSai.h"
+#include "NstException.h"
+#include "NstUtilities.h"
+#include "NstLogFileManager.h"
+#include "NstDirectDraw.h"
 #include "NstDirectX.h"
-#include "NstApplication.h"
 
 #pragma comment(lib,"ddraw")
 
@@ -113,11 +121,16 @@ Use2xSaI565      (FALSE),
 ScreenEffect     (SCREENEFFECT_NONE),
 IsNesBuffer2xSaI (FALSE),
 FrameLatency     (0),
-PixelData        (new PIXELDATA)
+PixelData        (NULL)
 {
-	SetRect( &NesRect,    0, 8, 256, 232 );
-	SetRect( &ScreenRect, 0, 0, 256, 224 );
-	NesBltRect = NesRect;
+	PixelData = new PIXELDATA;
+
+	DisplayMode.width = GetSystemMetrics( SM_CXSCREEN );
+	DisplayMode.height = GetSystemMetrics( SM_CYSCREEN );
+
+	::SetRect( &rcNes,    0, 8, 256, 232 );
+	::SetRect( &rcScreen, 0, 0, 256, 224 );
+	rcNesBlt = rcNes;
 
 	DIRECTX::InitStruct( HalCaps   );
 	DIRECTX::InitStruct( HelCaps   );
@@ -160,17 +173,17 @@ BOOL WINAPI DIRECTDRAW::EnumAdapters(LPGUID guid,LPSTR desc,LPSTR name,LPVOID co
 	if (!context)
 		return DDENUMRET_CANCEL;
 
-	application.LogFile().Output
+	LOGFILE::Output
 	(
 		"DIRECTDRAW: enumerating device, guid: ",
-		(guid ? CONFIGFILE::FromGUID(*guid) : "default"),
+		(guid ? UTILITIES::FromGUID(*guid).String() : "default"),
 		", name: ",
 		(desc ? desc : "unknown") 
 	);
 
-	if (FAILED(DirectDrawCreateEx(guid,PDX_CAST_PTR(LPVOID,device),IID_IDirectDraw7,NULL)) || !device)
+	if (FAILED(::DirectDrawCreateEx(guid,PDX_CAST_PTR(LPVOID,device),IID_IDirectDraw7,NULL)) || !device)
 	{
-		application.LogFile().Output("DIRECTDRAW: DirectDrawCreateEx() failed on this device, continuing enumeration..");
+		LOGFILE::Output("DIRECTDRAW: DirectDrawCreateEx() failed on this device, continuing enumeration..");
 		return DDENUMRET_OK;
 	}
 
@@ -196,13 +209,13 @@ BOOL WINAPI DIRECTDRAW::EnumAdapters(LPGUID guid,LPSTR desc,LPSTR name,LPVOID co
 	if (modes.IsEmpty())
 	{
 		adapters.EraseBack();
-		application.LogFile().Output("DIRECTDRAW: found no valid display mode for this device, continuing enumeration..");
+		LOGFILE::Output("DIRECTDRAW: found no valid display mode for this device, continuing enumeration..");
 		return DDENUMRET_OK;
 	}
 
 	PDXQUICKSORT::Sort( modes.Begin(), modes.End() );
 
-	application.LogFile().Output
+	LOGFILE::Output
 	(
 		"DIRECTDRAW: found ",
 		modes.Size(),
@@ -274,11 +287,11 @@ VOID DIRECTDRAW::SetScreenParameters(const SCREENEFFECT effect,const BOOL vram,c
 	UseVRam = vram;
 	ScreenEffect = effect;
 
-	SetRect( &NesRect, nRect.left, nRect.top, nRect.right+1, nRect.bottom+1 );
-	NesBltRect = NesRect;
+	::SetRect( &rcNes, nRect.left, nRect.top, nRect.right+1, nRect.bottom+1 );
+	rcNesBlt = rcNes;
 
 	if (sRect)
-		ScreenRect = *sRect;
+		rcScreen = *sRect;
 
 	if (device && FrontBuffer)
 		CreateNesBuffer();
@@ -288,19 +301,12 @@ VOID DIRECTDRAW::SetScreenParameters(const SCREENEFFECT effect,const BOOL vram,c
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-VOID DIRECTDRAW::UpdateScreenRect(const RECT& rect,const BOOL ReCreate)
+VOID DIRECTDRAW::UpdateScreenRect(const RECT& rect)
 {
-	if (!windowed || ReCreate)
-	{
-		ScreenRect = rect;
+	rcScreen = rect;
 
-		if (device && FrontBuffer)
-			CreateNesBuffer();
-	}
-	else
-	{
-		ScreenRect = rect;
-	}
+	if (device && FrontBuffer)
+		CreateNesBuffer();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -317,11 +323,11 @@ VOID DIRECTDRAW::Initialize(HWND h)
 	if (!hWnd || adapters.Size())
 		throw ("Internal error in DIRECTDRAW::Initialize()!");
 
-	if (FAILED(DirectDrawEnumerateEx(EnumAdapters,PDX_CAST(LPVOID,&adapters),DDENUM_ATTACHEDSECONDARYDEVICES)))
+	if (FAILED(::DirectDrawEnumerateEx(EnumAdapters,PDX_CAST(LPVOID,&adapters),DDENUM_ATTACHEDSECONDARYDEVICES)))
 		throw ("DirectDrawEnumerateEx() failed!");
 
 	if (adapters.IsEmpty())
-		throw ("Found no valid graphic adapter!");
+		throw (EXCEPTION(IDS_VIDEO_NO_DEVICE));
 
 	PDX_ASSERT(adapters.Front().DisplayModes.Size());
 }
@@ -340,13 +346,13 @@ BOOL DIRECTDRAW::Create(const GUID& g,const BOOL force)
 
 	guid = g;
 
-	if (FAILED(DirectDrawCreateEx(&guid,PDX_CAST(LPVOID*,&device),IID_IDirectDraw7,NULL)) || !device)
+	if (FAILED(::DirectDrawCreateEx(&guid,PDX_CAST(LPVOID*,&device),IID_IDirectDraw7,NULL)) || !device)
 		return FALSE;
 
-	application.LogFile().Output
+	LOGFILE::Output
 	(
      	"DIRECTDRAW: creating device, guid: ",
-		CONFIGFILE::FromGUID(guid)
+		UTILITIES::FromGUID(guid).String()
 	);
 
 	DIRECTX::InitStruct( HalCaps );
@@ -357,7 +363,7 @@ BOOL DIRECTDRAW::Create(const GUID& g,const BOOL force)
 
 	if (!CanRenderWindowed())
 	{
-		application.LogFile().Output
+		LOGFILE::Output
 		(
 			"DIRECTDRAW: error, this device is not capable of rendering in window mode!"
 		);
@@ -366,7 +372,7 @@ BOOL DIRECTDRAW::Create(const GUID& g,const BOOL force)
 
 	if (!CanFlipNoVSync())
 	{
-		application.LogFile().Output
+		LOGFILE::Output
 		(
 			"DIRECTDRAW: warning, this device is not capable of flipping surfaces without waiting for VBlank! "
 			"performance may go down!"
@@ -375,7 +381,7 @@ BOOL DIRECTDRAW::Create(const GUID& g,const BOOL force)
 
 	if (!Is8BitModeSupported)
 	{
-		application.LogFile().Output
+		LOGFILE::Output
 		(
 			"DIRECTDRAW: warning, this device doesn't support palettes with 256 entries for 8bit modes!"
 		);
@@ -405,25 +411,25 @@ VOID DIRECTDRAW::CreateScreenBuffers()
 
 		if ((HalCaps.dwCaps & DDCAPS_BLTSTRETCH) || (HelCaps.dwCaps & DDCAPS_BLTSTRETCH))
 		{
-			application.LogFile().Output("DIRECTDRAW: creating the primary surface in video memory");
+			LOGFILE::Output("DIRECTDRAW: creating the primary surface in video memory");
 			FrontDesc.ddsCaps.dwCaps |= DDSCAPS_VIDEOMEMORY;
 		}
 		else
 		{
-			application.LogFile().Output("DIRECTDRAW: creating the primary surface in system memory");
+			LOGFILE::Output("DIRECTDRAW: creating the primary surface in system memory");
 			FrontDesc.ddsCaps.dwCaps |= DDSCAPS_SYSTEMMEMORY;
 		}
 	}
 	else
 	{
-		application.LogFile().Output("DIRECTDRAW: creating the primary surface");
+		LOGFILE::Output("DIRECTDRAW: creating the primary surface");
 	}
 	
 	if (FAILED(device->CreateSurface(&FrontDesc,&FrontBuffer,NULL)) || !FrontBuffer)
 	{
 		if (!windowed)
 		{
-			application.LogFile().Output("DIRECTDRAW: primary surface creation failed, resolving to use only one backbuffer..");
+			LOGFILE::Output("DIRECTDRAW: primary surface creation failed, resolving to use only one backbuffer..");
 
 			FrontDesc.dwBackBufferCount = 1;
 
@@ -444,7 +450,7 @@ VOID DIRECTDRAW::CreateScreenBuffers()
 					FrontDesc.ddsCaps.dwCaps |= DDSCAPS_VIDEOMEMORY;
 				}
 
-				application.LogFile().Output( log );
+				LOGFILE::Output( log );
 			}
 		}
 
@@ -463,13 +469,7 @@ VOID DIRECTDRAW::CreateScreenBuffers()
 	);
 
 	if (InvalidBitDepth)
-	{
-		throw 
-		(
-	     	"The current desktop screen bit depth is not supported! You must " 
-			"switch to 16 or 32 in order to run Nestopia!"
-		);
-	}
+		throw (EXCEPTION(IDS_VIDEO_INVALID_DESKTOP_MODE));
 
 	if (!windowed)
 	{
@@ -482,13 +482,12 @@ VOID DIRECTDRAW::CreateScreenBuffers()
 			throw ("IDirectDrawSurface7::GetAttachedBuffer() failed!");
 
 		BackBuffer->AddRef();
-
 		BackDesc.dwSize = sizeof(BackDesc);
 
 		if (FAILED(BackBuffer->GetSurfaceDesc(&BackDesc)))
 			throw ("IDirectDrawSurface7::GetSurfaceDesc() failed!");
 
-		ClearSurface(BackBuffer);
+		ClearSurface( BackBuffer );
 	}
 
 	if (FrontDesc.ddpfPixelFormat.dwRGBBitCount == 8)
@@ -502,15 +501,15 @@ VOID DIRECTDRAW::CreateScreenBuffers()
 
 			if (hDC)
 			{
-     			GetSystemPaletteEntries( hDC, 0, 10, entries + 0 );
-     			GetSystemPaletteEntries( hDC, 246, 256, entries + 246 );
+     			::GetSystemPaletteEntries( hDC, 0, 10, entries + 0 );
+     			::GetSystemPaletteEntries( hDC, 246, 256, entries + 246 );
      			ReleaseDC(NULL,hDC);
 			}
 			else
 			{
 				PDXMemZero( entries + 0, 10 );
 				PDXMemZero( entries + 246, 10 );
-				application.LogFile().Output("DIRECTDRAW: warning, GetDC() failed, colors in fullscreen may not be accurate!");
+				LOGFILE::Output("DIRECTDRAW: warning, GetDC() failed, colors in fullscreen may not be accurate!");
 			}
 
 			for (UINT i=0; i < 256; ++i)
@@ -596,7 +595,7 @@ VOID DIRECTDRAW::CreateNesBuffer()
 	PaletteChanged = TRUE;
 	format.PaletteChanged = TRUE;
 	ScaleFactor = 0;
-	NesBltRect = NesRect;
+	rcNesBlt = rcNes;
 	Use2xSaI = FALSE;
 
 	if (FrontDesc.ddpfPixelFormat.dwRGBBitCount != 8)
@@ -605,29 +604,29 @@ VOID DIRECTDRAW::CreateNesBuffer()
 		( 
 		    windowed ||
 			(
-     			(ScreenRect.right - ScreenRect.left) <= DisplayMode.width && 
-      			(ScreenRect.right - ScreenRect.left) >= 1 &&
-       			(ScreenRect.bottom - ScreenRect.top) <= DisplayMode.height &&
-     			(ScreenRect.bottom - ScreenRect.top) >= 1
+     			(rcScreen.right - rcScreen.left) <= DisplayMode.width && 
+      			(rcScreen.right - rcScreen.left) >= 1 &&
+       			(rcScreen.bottom - rcScreen.top) <= DisplayMode.height &&
+     			(rcScreen.bottom - rcScreen.top) >= 1
 			)
 		);
 
-		const INT width = ScreenRect.right - ScreenRect.left;
-		const INT height = ScreenRect.bottom - ScreenRect.top;
+		const INT width = rcScreen.right - rcScreen.left;
+		const INT height = rcScreen.bottom - rcScreen.top;
 
 		switch (ScreenEffect)
 		{
      		case SCREENEFFECT_SCANLINES:
 			{
-				if ((NesRect.right-NesRect.left) * 2 <= width && (NesRect.bottom-NesRect.top) * 2 <= height)
+				if ((rcNes.right-rcNes.left) * 2 <= width && (rcNes.bottom-rcNes.top) * 2 <= height)
 				{
 					++ScaleFactor;
 					desc.dwWidth      *= 2;
 					desc.dwHeight     *= 2;
-					NesBltRect.top    *= 2;			
-					NesBltRect.right  *= 2;
-					NesBltRect.bottom *= 2;
-					NesBltRect.left   *= 2;
+					rcNesBlt.top    *= 2;			
+					rcNesBlt.right  *= 2;
+					rcNesBlt.bottom *= 2;
+					rcNesBlt.left   *= 2;
 				}
 				break;
 			}
@@ -637,10 +636,10 @@ VOID DIRECTDRAW::CreateNesBuffer()
 				ScaleFactor        = 1;
 				desc.dwWidth      *= 2;
 				desc.dwHeight     *= 2;
-				NesBltRect.top    *= 2;			
-				NesBltRect.right  *= 2;
-				NesBltRect.bottom *= 2;
-				NesBltRect.left   *= 2;
+				rcNesBlt.top    *= 2;			
+				rcNesBlt.right  *= 2;
+				rcNesBlt.bottom *= 2;
+				rcNesBlt.left   *= 2;
 				break;
 			}
 
@@ -648,17 +647,17 @@ VOID DIRECTDRAW::CreateNesBuffer()
 			case SCREENEFFECT_SUPER_2XSAI:
 			case SCREENEFFECT_SUPER_EAGLE:
 			{
-				if ((NesRect.right-NesRect.left) * 2 <= width && (NesRect.bottom-NesRect.top) * 2 <= height)
+				if ((rcNes.right-rcNes.left) * 2 <= width && (rcNes.bottom-rcNes.top) * 2 <= height)
 				{
 					++ScaleFactor;
 
 					desc.dwWidth   *= 2;
 					desc.dwHeight  *= 2;
 
-					NesBltRect.top    *= 2;			
-					NesBltRect.right  *= 2;
-					NesBltRect.bottom *= 2;
-					NesBltRect.left   *= 2;
+					rcNesBlt.top    *= 2;			
+					rcNesBlt.right  *= 2;
+					rcNesBlt.bottom *= 2;
+					rcNesBlt.left   *= 2;
 
 					Use2xSaI = TRUE;
 				}
@@ -689,36 +688,19 @@ VOID DIRECTDRAW::CreateNesBuffer()
 
 			log  = "DIRECTDRAW: creating the nes render target surface in ";
 			log += (UseVRam ? "video memory" : "system memory");
-			application.LogFile().Output( log );
+			LOGFILE::Output( log );
 
 			log  = "DIRECTDRAW: surface dimensions (";
-			log += desc.dwWidth;
-			log += ",";
-			log += desc.dwHeight;
-			log += ")";
-			application.LogFile().Output( log );
+			log << desc.dwWidth << "," << desc.dwHeight << ")";
+			LOGFILE::Output( log );
 
 			log  = "DIRECTDRAW: source blit dimensions (";
-			log += NesBltRect.left;
-			log += ",";
-			log += NesBltRect.top;
-			log += ") - (";
-			log += NesBltRect.right;
-			log += ",";
-			log += NesBltRect.bottom;
-			log += ")";
-			application.LogFile().Output( log );
+			log << rcNesBlt.left << "," << rcNesBlt.top << ") - (" << rcNesBlt.right << "," << rcNesBlt.bottom << ")";
+			LOGFILE::Output( log );
 
 			log  = "DIRECTDRAW: target blit dimensions (";
-			log += ScreenRect.left;
-			log += ",";
-			log += ScreenRect.top;
-			log += ") - (";
-			log += ScreenRect.right;
-			log += ",";
-			log += ScreenRect.bottom;
-			log += ")";
-			application.LogFile().Output( log );
+			log << rcScreen.left << "," << rcScreen.top << ") - (" << rcScreen.right << "," << rcScreen.bottom << ")";
+			LOGFILE::Output( log );
 
 			log = "DIRECTDRAW: filter - ";
 
@@ -732,11 +714,11 @@ VOID DIRECTDRAW::CreateNesBuffer()
 				default:					   log += "none";        break;
 			}
 
-			application.LogFile().Output( log );
+			LOGFILE::Output( log );
 
-			log  = "DIRECTDRAW: scale factor - ";
-			log += ScaleFactor;
-			application.LogFile().Output( log );
+			log = "DIRECTDRAW: scale factor - ";
+			log << ScaleFactor;
+			LOGFILE::Output( log );
 		}
 
 		if (FAILED(device->CreateSurface(&desc,&NesBuffer,NULL)) || !NesBuffer)
@@ -756,7 +738,7 @@ VOID DIRECTDRAW::CreateNesBuffer()
 				desc.ddsCaps.dwCaps |=  DDSCAPS_VIDEOMEMORY;
 			}
 
-			application.LogFile().Output( log );
+			LOGFILE::Output( log );
 
 			if (FAILED(device->CreateSurface(&desc,&NesBuffer,NULL)) || !NesBuffer)
 				throw ("IDirectDraw7::CreateSurface() failed!");
@@ -766,6 +748,8 @@ VOID DIRECTDRAW::CreateNesBuffer()
 
 		if (FAILED(NesBuffer->GetSurfaceDesc(&NesDesc)))
 			throw ("IDirectDrawSurface7::GetSurfaceDesc() failed!");
+
+		NesDesc.ddsCaps.dwCaps = desc.ddsCaps.dwCaps;
 	}
 
 	Use2xSaI565 = FALSE;
@@ -826,6 +810,8 @@ DWORD DIRECTDRAW::GetMonitorFrequency() const
 	PDX_ASSERT(device);
 
 	{
+		// #1 try
+
 		DWORD frequency = 0;
 
 		if (SUCCEEDED(device->GetMonitorFrequency(&frequency)) && frequency > 1 && frequency < 512)
@@ -833,6 +819,23 @@ DWORD DIRECTDRAW::GetMonitorFrequency() const
 	}
 
 	{
+		// #2 try
+
+		HDC hDC = GetDC( NULL );
+
+		if (hDC)
+		{
+			const INT frequency = ::GetDeviceCaps( hDC, VREFRESH );
+			::ReleaseDC( NULL, hDC );
+
+			if (frequency > 1 && frequency < 512)
+				return frequency;
+		}
+	}
+
+	{
+		// #3 try
+
 		DDSURFACEDESC2 desc;
 		DIRECTX::InitStruct(desc);
 
@@ -841,20 +844,24 @@ DWORD DIRECTDRAW::GetMonitorFrequency() const
 	}
 
 	{
+		// #4 try
+
 		DEVMODE devmode;
 
 		PDXMemZero(devmode);
 		devmode.dmSize = sizeof(devmode);
 
-		if (EnumDisplaySettings(NULL,ENUM_CURRENT_SETTINGS,&devmode) && devmode.dmDisplayFrequency > 1 && devmode.dmDisplayFrequency < 512)
+		if (::EnumDisplaySettings(NULL,ENUM_CURRENT_SETTINGS,&devmode) && devmode.dmDisplayFrequency > 1 && devmode.dmDisplayFrequency < 512)
 			return devmode.dmDisplayFrequency;
 
 		PDXMemZero(devmode);
 		devmode.dmSize = sizeof(devmode);
 
-		if (EnumDisplaySettings(NULL,ENUM_REGISTRY_SETTINGS,&devmode) && devmode.dmDisplayFrequency > 1 && devmode.dmDisplayFrequency < 512)
+		if (::EnumDisplaySettings(NULL,ENUM_REGISTRY_SETTINGS,&devmode) && devmode.dmDisplayFrequency > 1 && devmode.dmDisplayFrequency < 512)
 			return devmode.dmDisplayFrequency;
 	}
+
+	// ugh, screw this
 
 	return 0;
 }
@@ -875,7 +882,7 @@ VOID DIRECTDRAW::SwitchToWindowed(const RECT& rect,const BOOL force)
 
 	if (ready && windowed && !force)
 	{
-		UpdateScreenRect( rect, TRUE );
+		UpdateScreenRect( rect );
 		return;
 	}
 
@@ -892,7 +899,7 @@ VOID DIRECTDRAW::SwitchToWindowed(const RECT& rect,const BOOL force)
 
 	GDIMode = 0;
 
-    device->SetCooperativeLevel(hWnd,DDSCL_NORMAL);
+    device->SetCooperativeLevel( hWnd, DDSCL_NORMAL );
 
 	CreateScreenBuffers();
 
@@ -902,11 +909,11 @@ VOID DIRECTDRAW::SwitchToWindowed(const RECT& rect,const BOOL force)
 	DisplayMode.RefreshRate = GetMonitorFrequency();
 
 	if (DisplayMode.RefreshRate)
-		application.LogFile().Output("DIRECTDRAW: refresh rate is set to ",DisplayMode.RefreshRate," hz");
+		LOGFILE::Output("DIRECTDRAW: refresh rate is at ",DisplayMode.RefreshRate," hz");
 	else
-		application.LogFile().Output("DIRECTDRAW: refresh rate couldn't be detected!");
+		LOGFILE::Output("DIRECTDRAW: refresh rate couldn't be detected!");
 
-	UpdateScreenRect( rect, TRUE );
+	UpdateScreenRect( rect );
 
 	DisplayMode.SetPixelFormat
 	(
@@ -951,61 +958,52 @@ VOID DIRECTDRAW::SwitchToFullScreen(const UINT width,const UINT height,const UIN
 		}
 
 		if (!found)
-			throw ("Found no good display mode!");
+			throw (EXCEPTION(IDS_VIDEO_NO_DISPLAYMODE));
 
 		device->SetCooperativeLevel(hWnd,DDSCL_EXCLUSIVE|DDSCL_FULLSCREEN|DDSCL_ALLOWREBOOT);
 
+		LOGFILE::Output
+		( 
+   		   	PDXSTRING("DIRECTDRAW: setting display mode ") <<
+			DisplayMode.width  << " * " <<
+			DisplayMode.height << " * " <<
+			DisplayMode.bpp << ", 60 hz"
+		);
+
+		if (FAILED(device->SetDisplayMode(DisplayMode.width,DisplayMode.height,DisplayMode.bpp,60,0)))
 		{
-			{
-				PDXSTRING msg;
+			LOGFILE::Output("DIRECTDRAW: SetDisplayMode() failed, trying with default refresh rate");
 
-				msg  = "DIRECTDRAW: setting display mode ";
-				msg += DisplayMode.width;
-				msg += " * ";
-				msg += DisplayMode.height;
-				msg += " * ";
-				msg += DisplayMode.bpp;
-				msg += ", 60 hz";
+			if (FAILED(device->SetDisplayMode(DisplayMode.width,DisplayMode.height,DisplayMode.bpp,0,0)))
+				throw ("IDirectDraw7::SetDisplayMode() failed!");
 
-				application.LogFile().Output( msg );
-			}
+			DisplayMode.RefreshRate = GetMonitorFrequency();
 
-			if (FAILED(device->SetDisplayMode(DisplayMode.width,DisplayMode.height,DisplayMode.bpp,60,0)))
-			{
-				application.LogFile().Output("DIRECTDRAW: SetDisplayMode() failed, trying with default refresh rate");
-
-				if (FAILED(device->SetDisplayMode(DisplayMode.width,DisplayMode.height,DisplayMode.bpp,0,0)))
-					throw ("IDirectDraw7::SetDisplayMode() failed!");
-
-				DisplayMode.RefreshRate = GetMonitorFrequency();
-
-				if (DisplayMode.RefreshRate)
-					application.LogFile().Output("DIRECTDRAW: refresh rate was found to be ", DisplayMode.RefreshRate, " hz");
-				else
-					application.LogFile().Output("DIRECTDRAW: warning, unknown refresh rate, performance may degrade");
-			}
+			if (DisplayMode.RefreshRate)
+				LOGFILE::Output("DIRECTDRAW: refresh rate was found to be ", DisplayMode.RefreshRate, " hz");
 			else
-			{
-				DisplayMode.RefreshRate = 60;
-			}
-
-			if (DisplayMode.bpp == 8)
-				application.LogFile().Output("DIRECTDRAW: warning, emulation of color de-emphasis is disabled for 8bit modes");
-
-			windowed = FALSE;
+				LOGFILE::Output("DIRECTDRAW: warning, unknown refresh rate, performance may degrade");
+		}
+		else
+		{
+			DisplayMode.RefreshRate = 60;
 		}
 
+		if (DisplayMode.bpp == 8)
+			LOGFILE::Output("DIRECTDRAW: warning, emulation of color de-emphasis is disabled for 8 bit modes");
+
+		windowed = FALSE;
 		CreateScreenBuffers();
 	}
 
-	ScreenRect = rect;
+	rcScreen = rect;
 
 	PDX_ASSERT
 	( 
-		(ScreenRect.right - ScreenRect.left) <= DisplayMode.width && 
-		(ScreenRect.right - ScreenRect.left) >= 1 &&
-		(ScreenRect.bottom - ScreenRect.top) <= DisplayMode.height &&
-		(ScreenRect.bottom - ScreenRect.top) >= 1
+		(rcScreen.right - rcScreen.left) <= DisplayMode.width && 
+		(rcScreen.right - rcScreen.left) >= 1 &&
+		(rcScreen.bottom - rcScreen.top) <= DisplayMode.height &&
+		(rcScreen.bottom - rcScreen.top) >= 1
 	);
 
 	CreateNesBuffer();
@@ -1016,10 +1014,10 @@ VOID DIRECTDRAW::SwitchToFullScreen(const UINT width,const UINT height,const UIN
 // enable/disable GDI output in fullscreen mode
 ////////////////////////////////////////////////////////////////////////////////////////
 
-VOID DIRECTDRAW::EnableGDI(const BOOL state)
+INT DIRECTDRAW::EnableGDI(const BOOL state)
 {
 	if (windowed || !ready)
-		return;
+		return 0;
 
 	PDX_ASSERT(device && FrontBuffer);
 
@@ -1035,7 +1033,7 @@ VOID DIRECTDRAW::EnableGDI(const BOOL state)
 
 			FrontBuffer->SetClipper(clipper);
 			device->FlipToGDISurface();
-			application.RefreshCursor( TRUE );
+			return +1;
 		}
 	}
 	else
@@ -1049,38 +1047,44 @@ VOID DIRECTDRAW::EnableGDI(const BOOL state)
 			}
 
 			FrontBuffer->SetClipper(NULL);
-			application.RefreshCursor( FALSE );
+			return -1;
 		}
 	}
 
-    #ifdef _DEBUG
-	{
-		application.LogFile().Output
-		(
-		    "DIRECTDRAW: GDI mode reference count = ",
-			GDIMode
-		);
-	}
-	#endif
+	return 0;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-BOOL DIRECTDRAW::TryClearScreen()
+BOOL DIRECTDRAW::ClearScreen(const BOOL wait,const BOOL ClearFrontBuffer)
 {
 	PDX_ASSERT(ready && bool(ready) == CheckReady());
 
-	LPDIRECTDRAWSURFACE7 surface = (windowed ? NesBuffer : BackBuffer);
+	LPDIRECTDRAWSURFACE7 surface = (ClearFrontBuffer ? FrontBuffer : windowed ? NesBuffer : BackBuffer);
 
-	if (surface->GetBltStatus(DDGBS_CANBLT) == DD_OK)
+	DDBLTFX BltFX;
+	BltFX.dwSize = sizeof(BltFX);
+	BltFX.dwFillColor = 0;
+
+	const DWORD flags = 
+	(
+     	wait ? (DDBLT_COLORFILL|DDBLT_ASYNC|DDBLT_WAIT) : (DDBLT_COLORFILL|DDBLT_ASYNC|DDBLT_DONOTWAIT)
+	);
+
+	HRESULT hResult;
+
+	if (FAILED(hResult=surface->Blt( NULL, NULL, NULL, flags, &BltFX )))
 	{
-		ClearSurface(surface);
-		return TRUE;
+		if (hResult == DDERR_WASSTILLDRAWING || !Validate( hResult ))
+			return FALSE;
+
+		if (FAILED(hResult=surface->Blt( NULL, NULL, NULL, flags & ~DDBLT_ASYNC, &BltFX )))
+			return FALSE;
 	}
 
-	return FALSE;
+	return TRUE;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -1090,7 +1094,6 @@ BOOL DIRECTDRAW::TryClearScreen()
 VOID DIRECTDRAW::ClearSurface(LPDIRECTDRAWSURFACE7 surface,const DWORD color)
 {
 	DDBLTFX BltFX;
-
 	BltFX.dwSize = sizeof(BltFX);
 	BltFX.dwFillColor = color;
 
@@ -1173,7 +1176,7 @@ PDXRESULT DIRECTDRAW::Unlock()
 
 		NesBuffer->Unlock(NULL);
 
-		if (!windowed && (ScreenRect.right-ScreenRect.left) > 0 && (ScreenRect.bottom-ScreenRect.top) > 0)
+		if (!windowed && (rcScreen.right-rcScreen.left) > 0 && (rcScreen.bottom-rcScreen.top) > 0)
 			DrawNesBuffer();
 	}
 
@@ -1663,27 +1666,13 @@ BOOL DIRECTDRAW::Validate(const HRESULT hResult)
 {
 	PDX_ASSERT(device);
 
-	switch (hResult)
+	if (hResult == DDERR_SURFACELOST)
 	{
-     	case DDERR_INVALIDRECT:
-			return FALSE;
+		if (SUCCEEDED(device->RestoreAllSurfaces()))
+			return TRUE;
 	}
 
-	switch (device->TestCooperativeLevel())
-	{
-   		case DDERR_EXCLUSIVEMODEALREADYSET:
-   		case DDERR_NOEXCLUSIVEMODE:
-   		case DDERR_WRONGMODE:
-   			return FALSE;
-	}
-
-	if (IsIconic(hWnd))
-		return FALSE;
-
-	device->RestoreAllSurfaces();
-	UpdateNesBuffer();
-
-	return TRUE;
+	return FALSE;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -1725,7 +1714,7 @@ VOID DIRECTDRAW::ReleaseBuffers()
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
-// draw the nes surface to the back buffer
+//
 ////////////////////////////////////////////////////////////////////////////////////////
 
 VOID DIRECTDRAW::DrawNesBuffer()
@@ -1734,9 +1723,35 @@ VOID DIRECTDRAW::DrawNesBuffer()
 
 	HRESULT hResult;
 
-	if (FAILED(BackBuffer->Blt(&ScreenRect,NesBuffer,&NesBltRect,DDBLT_WAIT|DDBLT_ASYNC,NULL)))
-		if (FAILED(hResult=BackBuffer->Blt(&ScreenRect,NesBuffer,&NesBltRect,DDBLT_WAIT,NULL)) && Validate(hResult))
-			BackBuffer->Blt(&ScreenRect,NesBuffer,&NesBltRect,DDBLT_WAIT,NULL);
+	if (FAILED(BackBuffer->Blt(&rcScreen,NesBuffer,&rcNesBlt,DDBLT_WAIT|DDBLT_ASYNC,NULL)))
+		if (FAILED(hResult=BackBuffer->Blt(&rcScreen,NesBuffer,&rcNesBlt,DDBLT_WAIT,NULL)) && Validate(hResult))
+			BackBuffer->Blt(&rcScreen,NesBuffer,&rcNesBlt,DDBLT_WAIT,NULL);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+VOID DIRECTDRAW::RedrawNesScreen()
+{
+	PDX_ASSERT( bool(ready) == CheckReady() );
+
+	if (ready)
+	{
+		if (windowed)
+		{
+			UpdateNesBuffer();
+		}
+		else
+		{
+			DrawNesBuffer();
+
+			HRESULT hResult;
+
+			if (FAILED(hResult=BackBuffer->Blt(&rcScreen,NesBuffer,&rcNesBlt,DDBLT_WAIT,NULL)) && Validate(hResult))
+				BackBuffer->Blt(&rcScreen,NesBuffer,&rcNesBlt,DDBLT_WAIT,NULL);
+		}
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -1745,33 +1760,25 @@ VOID DIRECTDRAW::DrawNesBuffer()
 
 VOID DIRECTDRAW::Repaint()
 {
-	PDX_ASSERT( ready && bool(ready) == CheckReady() );
+	PDX_ASSERT( bool(ready) == CheckReady() );
 
-	if ((ScreenRect.right-ScreenRect.left) <= 0 || (ScreenRect.bottom-ScreenRect.top) <= 0)
-		return;
-
-	HRESULT hResult;
-
-	if (windowed)
+	if (ready)
 	{
-		UpdateNesBuffer();
+		HRESULT hResult;
 
-		while (FrontBuffer->GetBltStatus(DDGBS_ISBLTDONE) == DDERR_WASSTILLDRAWING);
-
-		if (FAILED(hResult=FrontBuffer->Blt(&ScreenRect,NesBuffer,&NesBltRect,DDBLT_WAIT,NULL)) && Validate(hResult))
-			FrontBuffer->Blt(&ScreenRect,NesBuffer,&NesBltRect,DDBLT_WAIT,NULL);
-	}
-	else
-	{
-		DrawNesBuffer();
-
-		if (FAILED(hResult=BackBuffer->Blt(&ScreenRect,NesBuffer,&NesBltRect,DDBLT_WAIT,NULL)) && Validate(hResult))
-			BackBuffer->Blt(&ScreenRect,NesBuffer,&NesBltRect,DDBLT_WAIT,NULL);
-
-		while (FrontBuffer->GetBltStatus(DDGBS_ISBLTDONE) == DDERR_WASSTILLDRAWING);
-
-		if (FAILED(hResult=FrontBuffer->Blt(NULL,BackBuffer,NULL,DDBLT_WAIT,NULL) && Validate(hResult)))
-			FrontBuffer->Blt(NULL,BackBuffer,NULL,DDBLT_WAIT,NULL);
+		if (windowed)
+		{
+			if ((rcScreen.right - rcScreen.left) > 0 && (rcScreen.bottom - rcScreen.top) > 0)
+			{
+				if (FAILED(hResult=FrontBuffer->Blt(&rcScreen,NesBuffer,&rcNesBlt,DDBLT_WAIT,NULL)) && Validate(hResult))
+					FrontBuffer->Blt(&rcScreen,NesBuffer,&rcNesBlt,DDBLT_WAIT,NULL);
+			}
+		}
+		else
+		{
+			if (FAILED(hResult=FrontBuffer->Blt(NULL,BackBuffer,NULL,DDBLT_WAIT,NULL) && Validate(hResult)))
+				FrontBuffer->Blt(NULL,BackBuffer,NULL,DDBLT_WAIT,NULL);
+		}
 	}
 }
 
@@ -1783,7 +1790,7 @@ BOOL DIRECTDRAW::Present()
 {
 	PDX_ASSERT( ready && bool(ready) == CheckReady() );
 
-	if ((ScreenRect.right-ScreenRect.left) <= 0 || (ScreenRect.bottom-ScreenRect.top) <= 0)
+	if ((rcScreen.right-rcScreen.left) <= 0 || (rcScreen.bottom-rcScreen.top) <= 0)
 		return TRUE;
 
 	DWORD flags = DDBLT_WAIT|DDBLT_ASYNC;
@@ -1798,9 +1805,9 @@ BOOL DIRECTDRAW::Present()
 
 	if (windowed)
 	{
-		if (FAILED(FrontBuffer->Blt(&ScreenRect,NesBuffer,&NesBltRect,flags,NULL)))
-			if (FAILED(hResult=FrontBuffer->Blt(&ScreenRect,NesBuffer,&NesBltRect,DDBLT_WAIT,NULL)))
-				if (!Validate(hResult) || FAILED(FrontBuffer->Blt(&ScreenRect,NesBuffer,&NesBltRect,DDBLT_WAIT,NULL)))
+		if (FAILED(FrontBuffer->Blt(&rcScreen,NesBuffer,&rcNesBlt,flags,NULL)))
+			if (FAILED(hResult=FrontBuffer->Blt(&rcScreen,NesBuffer,&rcNesBlt,DDBLT_WAIT,NULL)))
+				if (!Validate(hResult) || FAILED(FrontBuffer->Blt(&rcScreen,NesBuffer,&rcNesBlt,DDBLT_WAIT,NULL)))
 					return FALSE;
 	}
 	else
@@ -1814,9 +1821,6 @@ BOOL DIRECTDRAW::Present()
 		}
 		else
 		{
-			if (flags == DDBLT_WAIT)
-				while (FrontBuffer->GetFlipStatus(DDGFS_ISFLIPDONE) == DDERR_WASSTILLDRAWING);
-
 			if (FAILED(hResult=FrontBuffer->Flip(NULL,FlipFlags)))
 				if (!Validate(hResult) || FAILED(FrontBuffer->Flip(NULL,DDFLIP_WAIT)))
 					return FALSE;
@@ -1856,46 +1860,6 @@ BOOL DIRECTDRAW::UpdateRefresh(const BOOL vSync,const UINT RefreshRate)
 	}
 
 	return FALSE;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-// prevent the pipeline from getting overflowed
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID DIRECTDRAW::Wait()
-{
-	if (ready)
-	{
-		if (windowed || DontFlip || GDIMode)
-		{
-			while (FrontBuffer->GetBltStatus(DDGBS_ISBLTDONE) == DDERR_WASSTILLDRAWING);
-		}
-		else
-		{
-			while (FrontBuffer->GetFlipStatus(DDGFS_ISFLIPDONE) == DDERR_WASSTILLDRAWING);
-		}
-	}
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID DIRECTDRAW::Print(const CHAR* const text,const UINT x,const UINT y,const ULONG color,const UINT length)
-{
-	PDX_ASSERT( text && ready && bool(ready) == CheckReady() );
-
-	HDC hDC; 
-	LPDIRECTDRAWSURFACE7 surface = windowed ? NesBuffer : BackBuffer;
-	HRESULT hResult;
-
-	if (FAILED(hResult=surface->GetDC(&hDC)) && (!Validate(hResult) || FAILED(surface->GetDC(&hDC))))
-		return;
-
-	SetTextColor( hDC, color );
-	SetBkMode( hDC, TRANSPARENT );
-	TextOut( hDC, x, y, text, length ? length : strlen(text) );
-	surface->ReleaseDC( hDC );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////

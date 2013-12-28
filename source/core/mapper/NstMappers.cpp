@@ -421,83 +421,72 @@ VOID MAPPER::ResetLog()
 {
 	PDXSTRING log;
 
-	log  = "MAPPER ";
-	log += id;
-	log += ": ";
-
+	log << "MAPPER " << id <<  ": ";
 	const TSIZE length = log.Length();
 
-	log += "reset";
-	LogOutput( log.String() );
+	log << "reset";
+	LogOutput( log );
 
-	if (strlen(boards[id]))
+	if (strlen( boards[id] ))
 	{
 		log.Resize( length );
-		log += "board name: ";
-		log += boards[id];
-		LogOutput( log.String() );
+		LogOutput( log << "board name: " << boards[id] );
 	}
 
 	log.Resize( length );
-	log += (pRom.Size() / 1024);
-	log += "k PRG-ROM present";
-
-	LogOutput( log.String() );
+	LogOutput( log << (pRom.Size() / 1024) << "k PRG-ROM present" );
 
 	log.Resize( length );
 
 	if (cRom.Size())
 	{
-		log += (cRom.Size() / 1024);
-		log += (IsCRam ? "k CHR-RAM present" : "k CHR-ROM present");
+		log << (cRom.Size() / 1024) << (IsCRam ? "k CHR-RAM present" : "k CHR-ROM present");
 	}
 	else
 	{
-		log += "no CHR-ROM present";
+		log << "no CHR-ROM present";
 	}
 
-	LogOutput( log.String() );
+	LogOutput( log );
 
 	log.Resize( length );
-	log += (wRam.Size() / 1024);
-	log += "k WRAM present";
+	log << (wRam.Size() / 1024) << "k WRAM present";
 
 	if (wRam.Size() != wRamInitSize)
-		log += " for compatibility";
+		log << " for compatibility";
 
-	LogOutput( log.String() );
+	LogOutput( log );
 
 	log.Resize( length );
-	log += "defaulting to ";
+	log << "defaulting to ";
 
 	switch (mirroring)
 	{
-        case MIRROR_HORIZONTAL: log += "horizontal";  break;
-        case MIRROR_VERTICAL:   log += "vertical";    break;
-        case MIRROR_FOURSCREEN: log += "four-screen"; break;
-        case MIRROR_ZERO:       log += "zero bank";   break;
-        case MIRROR_ONE:        log += "first bank";  break;
-        case MIRROR_TWO:        log += "second bank"; break;
-        case MIRROR_THREE:      log += "third bank";  break;
-     	default:                log += "unknown";     break;
+        case MIRROR_HORIZONTAL: log << "horizontal";  break;
+        case MIRROR_VERTICAL:   log << "vertical";    break;
+        case MIRROR_FOURSCREEN: log << "four-screen"; break;
+        case MIRROR_ZERO:       log << "zero bank";   break;
+        case MIRROR_ONE:        log << "first bank";  break;
+        case MIRROR_TWO:        log << "second bank"; break;
+        case MIRROR_THREE:      log << "third bank";  break;
+     	default:                log << "unknown";     break;
 	}
 
-	log += " PPU name-table mirroring";
-
-	LogOutput( log.String() );
+	log << " PPU name-table mirroring";
+	LogOutput( log );
 
 	log.Resize( length );
 
 	switch (IrqSyncType)
 	{
         case IRQSYNC_PPU:	
-        case IRQSYNC_PPU_ALWAYS: log += "PPU synchronized IRQ counter present"; break;
-        case IRQSYNC_COUNT:   	 log += "IRQ counter present";                  break;
-		case IRQSYNC_COMBINED: 	 log += "CPU and PPU IRQ counter present";      break;
-		default:          	     log += "no IRQ counter present";               break;
+        case IRQSYNC_PPU_ALWAYS: log << "PPU synchronized IRQ counter present"; break;
+        case IRQSYNC_COUNT:   	 log << "IRQ counter present";                  break;
+		case IRQSYNC_COMBINED: 	 log << "CPU and PPU IRQ counter present";      break;
+		default:          	     log << "no IRQ counter present";               break;
 	}
 
-	LogOutput( log.String() );
+	LogOutput( log );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////

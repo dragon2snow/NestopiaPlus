@@ -43,17 +43,21 @@ public:
 	VOID Create  (CONFIGFILE* const);
 	VOID Destroy (CONFIGFILE* const);
 
-	UINT SynchRefreshRate(const BOOL,const BOOL,INT);
-	VOID EnableCustomFPS(const BOOL);
-	VOID EnablePAL(const BOOL);
+	DOUBLE CurrentTime() const;
+	VOID Synchronize(const BOOL,BOOL);
 
+	PDX_NO_INLINE VOID Update();
+	PDX_NO_INLINE VOID EnableCustomFPS(const BOOL);
+	PDX_NO_INLINE VOID EnablePAL(const BOOL);
+	PDX_NO_INLINE BOOL CalculateFPS(DOUBLE&);
+
+	inline UINT NumFrameSkips() const
+	{ return FrameSkips; }
+
+	inline DOUBLE GetFPS() const
+	{ return dbFps; }
+	
 private:
-
-	VOID UpdateRefreshRate();
-	VOID UpdateDialog(HWND);
-	VOID ResetDialog();
-
-	BOOL DialogProc(HWND,UINT,WPARAM,LPARAM);
 
 	enum
 	{
@@ -61,46 +65,92 @@ private:
 		MAX_FPS = 240,
 		MIN_FRAME_SKIPS = 1,
 		MAX_FRAME_SKIPS = 16,
-		FRAME_SKIPS_TIMEOUT = 32,
 		DEFAULT_FPS = NES_FPS_NTSC,
 		DEFAULT_FRAME_SKIPS = 8,
-		SLEEP_MINIMUM = 3,
-		SLEEP_LIMIT = 2,
 	};
+
+	BOOL DialogProc(HWND,UINT,WPARAM,LPARAM);
+
+	PDX_NO_INLINE VOID SwitchToPFCounter();
+	PDX_NO_INLINE VOID SwitchToMMTimer();
+	PDX_NO_INLINE VOID ResetDialog();
+	PDX_NO_INLINE VOID UpdateDialog(HWND);
+	PDX_NO_INLINE VOID UpdateSettings(HWND);
+
+	const BOOL HasPFCounter;
+
+	I64 pfFrequency;
 
 	BOOL IsPAL;
 	BOOL UseDefaultFps;
 	UINT MaxFrameSkips;
 	UINT CustomFps;
 	UINT fps;
-	BOOL UseVSync;
+	BOOL period;
+	UINT resolution;
 	BOOL AutoFrameSkip;
-	BOOL DoSleep;
+	BOOL UseVSync;
+	BOOL UsePFCounter;
 
-	const BOOL HasPFCounter;
+	class SLEEPER
+	{
+	public:
+
+		SLEEPER()
+		{
+			Reset( 1000 / NES_FPS_NTSC );
+		}
+
+		VOID Reset(const UINT);
+		VOID GoToBed(TIMERMANAGER&,DOUBLE&);
+
+		inline BOOL IsFired() const
+		{ return fired; }
+
+	private:
+
+		enum
+		{
+			MIN_SLEEP_TIME = 4,
+			ZOMBIE_TIME = 2,
+			OVERSLEPT = 1
+		};
+
+		BOOL fired;
+		UINT ZombieTime;
+		UINT AvailableCoffee;
+		UINT Overflows;
+	};
+
+	SLEEPER sleeper;
+
+	UINT FrameSkips;
+	UINT SleepThreshold;
+	BOOL vSyncOnly;
 
 	union
 	{
-		struct  
-		{
-			I64 pfTicksPerMilli;
-			I64 pfRefreshFrequency;
-			I64 pfRefreshClockNTSC;
-			I64 pfRefreshClockPAL;
-			I64 pfRefreshClock;
-			I64 pfLast;
-		};
-
-		struct  
-		{
-			DOUBLE dbRefreshClockNTSC;
-			DOUBLE dbRefreshClockPAL;
-			DOUBLE dbRefreshClock;
-			DOUBLE dbLast;
-			UINT resolution;
-			BOOL period;
-		};
+		I64 pfStart;
+		DWORD dwStart;
 	};
+
+	DOUBLE dbScale;
+	DOUBLE dbRefresh;
+	DOUBLE dbTarget;
+	DOUBLE dbFps;
+
+	union
+	{
+		I64 pfLastFps;
+		DWORD dwLastFps;
+	};
+
+	ULONG FrameCounter;
+
+public:
+
+	inline BOOL NoSleeping() const
+	{ return vSyncOnly || sleeper.IsFired(); }
 };
 
 #endif

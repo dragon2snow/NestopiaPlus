@@ -39,7 +39,7 @@ VOID MAPPER26::Reset()
 
 	MAPPER24* const m24 = PDX_STATIC_CAST(MAPPER24*,this);
 
-	for (ULONG i=0x8000; i <= 0xFFFFU; ++i)
+	for (ULONG i=0x8000; i <= 0xFFFF; ++i)
 	{
 		switch (((i & 0xFFFC) | ((i >> 1) & 0x1) | ((i << 1) & 0x2)) & 0xF003)
 		{

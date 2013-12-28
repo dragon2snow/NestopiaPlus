@@ -27,9 +27,6 @@
 #ifndef NST_WAVEFILE_H
 #define NST_WAVEFILE_H
 
-#include <Windows.h>
-#include <MMSystem.h>
-
 ////////////////////////////////////////////////////////////////////////////////////////
 //
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -41,9 +38,9 @@ public:
 	WAVEFILE();
 	~WAVEFILE();
 
-	PDXRESULT Open(const CHAR* const,const WAVEFORMATEX&);
-	PDXRESULT Write(const VOID*,const DWORD);
-	PDXRESULT Close();
+	PDXRESULT Open  (const CHAR* const,const WAVEFORMATEX&);
+	PDXRESULT Write (const VOID*,const DWORD);
+	PDXRESULT Close ();
 
 private:
 

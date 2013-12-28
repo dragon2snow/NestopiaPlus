@@ -1,5 +1,5 @@
 -----------------------------------------------------------------------------
-Nestopia 1.06 - NES/Famicom emulator
+Nestopia 1.07 - NES/Famicom emulator
 -----------------------------------------------------------------------------
 
 Nestopia is Copyright 2003 by Martin Freij
@@ -7,8 +7,7 @@ under the terms and conditions of the
 GNU General Public License. 
 http://www.gnu.org
 
-Homepage: http://nestopia.znes.org/ (currently down)
-Project:  http://sourceforge.net/projects/nestopia/
+Homepage: http://sourceforge.net/projects/nestopia/
 Mail:     martin-freij at home.se
 
 -----------------------------------------------------------------------------
@@ -65,8 +64,8 @@ Minimum:
 Processor: Pentium MMX or comparable AMD
 Ram:       32MB
 Video:     DirectDraw 7 compatible graphic card
-OS:        Windows 98/Me/NT/2000/XP or greater
-Software:  DirectX 8.1 or greater
+OS:        Windows 98/Me/NT/2000/XP
+Software:  DirectX 8.1
 
 Recommended:
 ------------
@@ -75,7 +74,7 @@ Processor: Pentium 4 or comparable AMD
 Ram:       128MB
 Video:     Direct3D compatible graphic card
 Audio:     DirectSound 8.1 compatible sound card
-OS:        Windows XP or greater
+OS:        Windows XP
 Software:  DirectX 9 or greater
 
 Note: If you have GdiPlus from Microsoft installed (comes with XP) you'll be 
@@ -87,16 +86,16 @@ Supported File Types
 
 NES  - NES Rom Image. Since this fileformat is somewhat lacking in cartridge 
        info plus many file headers floating around on the net are broken for 
-       some reason or another (think dudes with disks) Nestopia uses a rom 
-       database internally and will try to identify and repair them temporarly 
-       in memory using some CRC32 magic.
+       some reason or another Nestopia uses a rom database internally and will 
+       try to identify and repair them temporarly in memory using some CRC32 
+       magic.
 
 UNIF - NES Rom Image. If Nestopia can't recognize the specified board name you 
        have the option to select the corresponding mapper the cartridge should 
        use. IPS patching is not supported for this format.
 
-NSP  - Nestopia Game Configuration File. It's text based and easy to edit by 
-       hand. The available commands are:
+NSP  - Nestopia script File. It's text based and easy to edit by hand. The 
+       available commands are:
         
         -ROM or -IMAGE <file>
         -SAV or -SAVE  <file>
@@ -108,19 +107,20 @@ NSP  - Nestopia Game Configuration File. It's text based and easy to edit by
         -MODE <ntsc/pal>
         -PORT1..PORT5 <unconnected,pad1,pad2,pad3,pad4,zapper,paddle,powerpad,
                        keyboard>
-        -GENIE or -CHEAT <code> <comment> (last is optional)
+        -GENIE or -CHEAT <code> <on,off> <comment> (last is optional)
 
-       Note, the brackets <> should not be included.
+       Note, the brackets <> should not be included and only one command
+       allowed per line.
 
-       Example - c:\game.nsp:
+       Example - C:\game.nsp:
        
-        -IMAGE mammamia.nes // C style comments are supported
+        -IMAGE C:\Games\mammamia.nes // C style comments are supported
         -MODE ntsc
         -PORT1 pad1
         -PORT2 unconnected
-        -CHEAT SXIOPO infinite plumbers
+        -CHEAT SXIOPO on infinite plumbers
 
-       This will load up the mammamia.nes file and force it into NTSC mode using
+       This will load in the mammamia.nes file and force it into NTSC mode using
        one standard controller plugged into the first port and enable one game-
        genie code. These files can both be directly or indirectly loaded. You can 
        also at any time have your current game configuration saved into this 
@@ -164,6 +164,181 @@ NSV  - Nestopia Movie File. Available commands are located in the menu. One note
        position.
 
 -----------------------------------------------------------------------------
+Command Line Parameters
+-----------------------------------------------------------------------------
+
+This is long so I'll just going to blurt it out.
+
+Nestopia.exe "<file>"
+
+-files auto apply ips                 : <yes,no>
+-files auto apply nsp                 : <yes,no>
+-files auto export nst                : <yes,no>
+-files auto import nst                : <yes,no>
+-files fds bios                       : "<fds bios filename>"
+-files last path image                : "<last visited image file path>"
+-files last path nsp                  : "<last visited nsp file path>"
+-files last path nst                  : "<last visited state file path>"
+-files path battery                   : "<default battery-backup ram file path>"
+-files path image                     : "<default image file path>"
+-files path ips                       : "<default ips file path>"
+-files path nsp                       : "<default nsp path>"
+-files path nst                       : "<default state file path>"
+-files recent 0                       : "<recent image file / nsp file 0>"
+-files recent 1                       : "<recent image file / nsp file 1>"
+-files recent 2                       : "<recent image file / nsp file 2>"
+-files recent 3                       : "<recent image file / nsp file 3>"
+-files recent 4                       : "<recent image file / nsp file 4>"
+-files recent 5                       : "<recent image file / nsp file 5>"
+-files recent 6                       : "<recent image file / nsp file 6>"
+-files recent 7                       : "<recent image file / nsp file 7>"
+-files recent 8                       : "<recent image file / nsp file 8>"
+-files recent 9                       : "<recent image file / nsp file 9>"
+-files search battery in image path   : <yes,no>
+-files search ips in image path       : <yes,no>
+-files search nsp in image path       : <yes,no>
+-files search nst in image path       : <yes,no>
+-files use last image path            : <yes,no>
+-files use last nsp path              : <yes,no>
+-files use last nst path              : <yes,no>
+-files write protect battery          : <yes,no>
+-files write protect fds              : <yes,no>
+-game genie code                      : <index> <code> <on,off> "<comment>"
+-game genie number of codes           : <number>
+-input device                         : <index> <GUID>
+-input general insert coin 1          : <key,(joy device) button,...>
+-input general insert coin 2          : <key,(joy device) button,...>
+-input general load from last slot    : <key,(joy device) button,...>
+-input general save to next slot      : <key,(joy device) button,...>
+-input general speed throttle         : <key,(joy device) button,...>
+-input pad1 a                         : <key,(joy device) button,...>
+-input pad1 auto fire a               : <key,(joy device) button,...>
+-input pad1 auto fire b               : <key,(joy device) button,...>
+-input pad1 b                         : <key,(joy device) button,...>
+-input pad1 down                      : <key,(joy device) button,...>
+-input pad1 left                      : <key,(joy device) button,...>
+-input pad1 right                     : <key,(joy device) button,...>
+-input pad1 select                    : <key,(joy device) button,...>
+-input pad1 start                     : <key,(joy device) button,...>
+-input pad1 up                        : <key,(joy device) button,...>
+-input pad2 a                         : <key,(joy device) button,...>
+-input pad2 auto fire a               : <key,(joy device) button,...>
+-input pad2 auto fire b               : <key,(joy device) button,...>
+-input pad2 b                         : <key,(joy device) button,...>
+-input pad2 down                      : <key,(joy device) button,...>
+-input pad2 left                      : <key,(joy device) button,...>
+-input pad2 right                     : <key,(joy device) button,...>
+-input pad2 select                    : <key,(joy device) button,...>
+-input pad2 start                     : <key,(joy device) button,...>
+-input pad2 up                        : <key,(joy device) button,...>
+-input pad3 a                         : <key,(joy device) button,...>
+-input pad3 auto fire a               : <key,(joy device) button,...>
+-input pad3 auto fire b               : <key,(joy device) button,...>
+-input pad3 b                         : <key,(joy device) button,...>
+-input pad3 down                      : <key,(joy device) button,...>
+-input pad3 left                      : <key,(joy device) button,...>
+-input pad3 right                     : <key,(joy device) button,...>
+-input pad3 select                    : <key,(joy device) button,...>
+-input pad3 start                     : <key,(joy device) button,...>
+-input pad3 up                        : <key,(joy device) button,...>
+-input pad4 a                         : <key,(joy device) button,...>
+-input pad4 auto fire a               : <key,(joy device) button,...>
+-input pad4 auto fire b               : <key,(joy device) button,...>
+-input pad4 b                         : <key,(joy device) button,...>
+-input pad4 down                      : <key,(joy device) button,...>
+-input pad4 left                      : <key,(joy device) button,...>
+-input pad4 right                     : <key,(joy device) button,...>
+-input pad4 select                    : <key,(joy device) button,...>
+-input pad4 start                     : <key,(joy device) button,...>
+-input pad4 up                        : <key,(joy device) button,...>
+-input powerpad side a 1              : <key,(joy device) button,...>
+-input powerpad side a 10             : <key,(joy device) button,...>
+-input powerpad side a 11             : <key,(joy device) button,...>
+-input powerpad side a 12             : <key,(joy device) button,...>
+-input powerpad side a 2              : <key,(joy device) button,...>
+-input powerpad side a 3              : <key,(joy device) button,...>
+-input powerpad side a 4              : <key,(joy device) button,...>
+-input powerpad side a 5              : <key,(joy device) button,...>
+-input powerpad side a 6              : <key,(joy device) button,...>
+-input powerpad side a 7              : <key,(joy device) button,...>
+-input powerpad side a 8              : <key,(joy device) button,...>
+-input powerpad side a 9              : <key,(joy device) button,...>
+-input powerpad side b 10             : <key,(joy device) button,...>
+-input powerpad side b 11             : <key,(joy device) button,...>
+-input powerpad side b 2              : <key,(joy device) button,...>
+-input powerpad side b 3              : <key,(joy device) button,...>
+-input powerpad side b 5              : <key,(joy device) button,...>
+-input powerpad side b 6              : <key,(joy device) button,...>
+-input powerpad side b 7              : <key,(joy device) button,...>
+-input powerpad side b 8              : <key,(joy device) button,...>
+-preferences allow multiple instances : <yes,no>
+-preferences auto priority control    : <yes,no>
+-preferences confirm exit             : <yes,no>
+-preferences emulate at once          : <yes,no>
+-preferences fullscreen on start      : <yes,no>
+-preferences nsf in background        : <yes,no>
+-preferences power off on exit        : <yes,no>
+-preferences run in background        : <yes,no>
+-preferences save logfile             : <yes,no>
+-preferences save settings            : <yes,no>
+-preferences use rom database         : <yes,no>
+-preferences warnings                 : <yes,no>
+-sound apu dpcm                       : <yes,no>
+-sound apu external                   : <yes,no>
+-sound apu noise                      : <yes,no>
+-sound apu square 1                   : <yes,no>
+-sound apu square 2                   : <yes,no>
+-sound apu triangle                   : <yes,no>
+-sound buffers                        : <1..10>
+-sound device                         : <GUID>
+-sound enabled                        : <yes,no>
+-sound sample bits                    : <8,16>
+-sound sample rate                    : <11025,22050,44100,48000,96000>
+-sound volume                         : <0..100>
+-timer auto frame skip                : <yes,no>
+-timer custom fps                     : <30..240>
+-timer default fps                    : <yes,no>
+-timer max frame skips                : <1..16>
+-timer performance counter            : <yes,no>
+-timer vsync                          : <yes,no>
+-video color brightness               : <0..255>
+-video color hue                      : <0..255>
+-video color saturation               : <0..255>
+-video device                         : <GUID>
+-video filter                         : <none,scanlines,tv,2xsai,super 2xsai,super eagle>
+-video fullscreen bpp                 : <8,16,32>
+-video fullscreen height              : <height>
+-video fullscreen width               : <width>
+-video ntsc bottom                    : <1..239>
+-video ntsc left                      : <0..255>
+-video ntsc right                     : <1..255>
+-video ntsc top                       : <0..239>
+-video offscreen buffer in vram       : <yes,no>
+-video pal bottom                     : <1..239>
+-video pal left                       : <0..255>
+-video pal right                      : <1..255>
+-video pal top                        : <0..239>
+-video palette                        : <internal,emulated,custom>
+-video palette file                   : "<palette filename>"
+-video screen                         : <1x,2x,3x,stretched>
+-video unlimited sprites              : <yes,no>
+-view show fps                        : <yes,no>
+-view show fullscreen menu            : <yes,no>
+-view show on top                     : <yes,no>
+-view show status bar                 : <yes,no>
+-window size                          : <1x,2x,3x,4x>
+
+Example:
+
+Nestopia.exe "C:\gianasisters.nes" -video fullscreen bpp : 16 -video fullscreen width : 1024 
+             -video fullscreen height : 768 -preferences fullscreen on start : yes
+
+You may have noticed that these values are taken from the nestopia.cfg file. if you use any 
+of them in the command line they'll override the settings in the file. For more inspiration 
+and hints on how to use them properly look in the nestopia.cfg file (it will be present 
+after first run).
+
+-----------------------------------------------------------------------------
 Fully or Partially Supported Mappers
 -----------------------------------------------------------------------------
 
@@ -195,9 +370,15 @@ Power Pad
 Arkanoid Paddle
 Family Basic Keyboard
 
+Keep in mind that if you select the Family Basic as input device, all keyboard 
+shortcuts will be disabled. This is to prevent key conflicts.
+
 -----------------------------------------------------------------------------
 Exclusively Supported VS-Unisystem Games (only .nes)
 -----------------------------------------------------------------------------
+
+DIP switch settings can be accessed from the menu when any of the following
+games are being emulated.
 
 Battle City
 Castlevania
@@ -237,7 +418,8 @@ suggestions on what you can do to speed things up.
 - Keep the menu hidden when you're in fullscreen mode. Having it visible 
   forces Nestopia to co-operate with GDI which adds extra overhead.
 
-- Set the display mode to 320*240 8 bit.
+- Set the display mode to 320*240 8 bit. 16/32 bit mode may be faster on newer 
+  graphic cards so you may have to experiment with this.
 
 - Disable graphic filtering.
 
@@ -247,17 +429,17 @@ suggestions on what you can do to speed things up.
   DirectDraw 7 so the default setting for Nestopia is system memory, but you 
   can try video memory and see if it helps.
 
-- Enable "high priority" in the preferences dialog.
-
-- Don't enable the support for more than eight simultaneous sprites visible at 
-  the screen. It probably won't make any difference though but I thought I'd 
-  mention it since it may require the PPU to do some extra work.
+- Don't enable support for more than eight simultaneous sprites visible at 
+  the screen. It probably won't make any notable difference though but I thought 
+  I'd mention it since it may require the PPU to do some extra work.
 
 - Raise the sound volume to max. Using a different volume forces DirectSound to 
   perform a few more calculations for each sample it process.
 
-- Try a lower sample rate and bit length, 22.05 kHz and 8 bit may be a good 
+- Try a lower sample rate and bit length, 22.05 kHz and 8 bit might be a good 
   choice here. If you're desperate, turn off sound completely.
+
+- Disable the FPS counter.
 
 -----------------------------------------------------------------------------
 Credits and Thanks
@@ -266,8 +448,7 @@ Credits and Thanks
 Brad Taylor               - PPU and pAPU technical documents
 Chris Covell              - demos, test roms and general info
 Derek Liauw Kie Fa.       - 2xSaI engine
-Digitoxin                 - Nestoy rom database which is the one used 
-                            internally by Nestopia
+[yang]                    - rom database 
 FireBug                   - mapper documents
 Gilles Vollant            - ZIP file loading routines 
 Goroh                     - technical documents on various hardware 
@@ -290,11 +471,9 @@ Memblers                  - nesdev.parodius.com, simply the best resource
 Tennessee Carmel-Veilleux - UNIF format inventor
 Quietust                  - various info
 
-Also a big thanks to the authors of NNNesterJ and FCEUltra for a good 
-reference on the more exotic mappers, you know, those that made you just 
-wanna stand up and start breakdancing because they were way too funky. 
-Phew, and lastly, credits to the authors of the VS.NES part in MAME for 
-all the dipswitch settings and explanations, thanks to them you can now 
-control the appearence of that retarded bear in Ice Climber!
+Also a big thanks to the authors of NNNesterJ and FCEUltra for a good reference 
+on the more exotic mappers. And lastly, credits to the authors of the VS.NES part 
+in MAME for all the dipswitch settings and explanations, thanks to them you can 
+now control the appearence of that retarded bear in Ice Climber!
 
 <eof>

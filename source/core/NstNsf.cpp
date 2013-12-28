@@ -89,10 +89,10 @@ PDXRESULT NSF::Load(PDXFILE& file)
 	Destroy();
 
 	if (!file.Read( context ))
-		return MsgWarning("Not a valid nsf file!");
+		return MsgError("Not a valid nsf file!");
 
 	if (*PDX_CAST(const U32*,context.signature) != 0x4D53454EUL)
-		return MsgWarning("Invalid file type or file is corrupt!");
+		return MsgError("Invalid file type or file is corrupt!");
 
 	// just in case
 	context.LoadAddress |= 0x8000;
@@ -112,7 +112,7 @@ PDXRESULT NSF::Load(PDXFILE& file)
 		case CHIP_MMC5:	  InitMmc5(); break;
 		case CHIP_N106:   InitN106(); break;
 		case CHIP_FME7:   InitFme7(); break;
-		case CHIP_VRCVII: return MsgWarning("The VRCVII chip is not supported!");
+		case CHIP_VRCVII: return MsgError("The VRCVII chip is not supported!");
 	}
 
 	if (wRam.IsEmpty())
@@ -121,7 +121,7 @@ PDXRESULT NSF::Load(PDXFILE& file)
 	const TSIZE pRomSize = (file.Size() - sizeof(CONTEXT)) * sizeof(U8);
 
 	if (!pRomSize)
-		return MsgWarning("NSF file is corrupt!");
+		return MsgError("NSF file is corrupt!");
 
 	const UINT offset = context.LoadAddress & 0xFFF;
 	const UINT size = pRomSize + offset;
@@ -135,7 +135,7 @@ PDXRESULT NSF::Load(PDXFILE& file)
 	pRom.Fill( 0, offset, JAM );
 	
 	if (!file.Read( pRom.Ram() + offset, pRom.Ram() + size ))
-		return MsgWarning("NSF file is corrupt!");
+		return MsgError("NSF file is corrupt!");
 
 	cpu.SetFrameCycles( NES_CPU_MCC_FRAME_NTSC );
 
@@ -250,72 +250,65 @@ VOID NSF::ResetLog()
 {
 	PDXSTRING log("NSF: ");
 
-	log += "reset";
-	LogOutput( log.String() );
+	LogOutput( log << "reset" );
 
 	log.Resize( 5 ); 
-	log += "version ";
-	log += context.version;        
-	LogOutput( log.String() );
+	LogOutput( log << "version " << context.version );
 	
-	log.Resize( 5 ); log +=	"name: ";      log += context.info.name;      LogOutput( log.String() );
-	log.Resize( 5 ); log +=	"artist: ";    log += context.info.artist;    LogOutput( log.String() );
-	log.Resize( 5 ); log +=	"copyright: "; log += context.info.copyright; LogOutput( log.String() );	
+	log.Resize( 5 ); LogOutput( log <<	"name: "      << context.info.name      );
+	log.Resize( 5 ); LogOutput( log <<	"artist: "    << context.info.artist    );
+	log.Resize( 5 ); LogOutput( log <<	"copyright: " << context.info.copyright );
 	
 	log.Resize( 5 ); 
-	log += "start song ";
-	log += context.StartSong;
-	log += " of ";
-	log += context.NumSongs;
-	LogOutput( log.String() );
+	LogOutput( log << "start song " << context.StartSong << " of " << context.NumSongs );
 
 	log.Resize( 5 );
 
 	if (context.mode.pal)
 	{
-		if (context.mode.ntsc) log += "PAL/NTSC";
-		else				   log += "PAL only";
+		if (context.mode.ntsc) log << "PAL/NTSC";
+		else				   log << "PAL only";
 	}
 	else
 	{
-		log += "NTSC only";
+		log << "NTSC only";
 	}
 
-	LogOutput( log.String() );
+	LogOutput( log );
 
 	log.Resize( 5 );
 
 	switch (context.chip)
 	{
-       	case CHIP_VRCVI: log += "Konami VRC6 sound chip present";         break;		
-		case CHIP_FDS:	 log += "Famicom Disk System sound chip present"; break;
-		case CHIP_N106:  log += "Namco N106 sound chip present";          break;
-		case CHIP_FME7:  log += "Sunsoft FME-07 sound chip present";      break;
-		case CHIP_MMC5:  log += "MMC5 sound chip present";                break;
+       	case CHIP_VRCVI: log << "Konami VRC6 sound chip present";         break;		
+		case CHIP_FDS:	 log << "Famicom Disk System sound chip present"; break;
+		case CHIP_N106:  log << "Namco N106 sound chip present";          break;
+		case CHIP_FME7:  log << "Sunsoft FME-07 sound chip present";      break;
+		case CHIP_MMC5:  log << "MMC5 sound chip present";                break;
 	}
 
 	if (log.Length() > 5)
 	{
-		LogOutput( log.String() );
+		LogOutput( log );
 		log.Resize( 5 );
 	}
 
-	log += (pRom.Size() / 1024);
-	log += (BankSwitched ? "k bankswitchable PRG-ROM present" : "k not bankswitchable PRG-ROM present");
-	LogOutput( log.String() );
+	log << (pRom.Size() / 1024);
+	log << (BankSwitched ? "k bankswitchable PRG-ROM present" : "k not bankswitchable PRG-ROM present");
+	LogOutput( log );
 
 	log.Resize( 5 );
-	log += (wRam.Size() / 1024);
-	log += (context.chip == CHIP_FDS ? "k PRG-RAM present" : "k WRAM present");
+	log << (wRam.Size() / 1024);
+	log << (context.chip == CHIP_FDS ? "k PRG-RAM present" : "k WRAM present");
 
 	if (context.chip != CHIP_MMC5 && context.chip != CHIP_FDS)
-		log += " for compatibility";
+		log << " for compatibility";
 
-	LogOutput( log.String() );
+	LogOutput( log );
 
-	log.Resize( 5 ); log += "Load Address - "; log.Append( context.LoadAddress, PDXSTRING::HEX ); LogOutput( log.String() );
-	log.Resize( 5 ); log += "Init Address - "; log.Append( context.InitAddress, PDXSTRING::HEX ); LogOutput( log.String() );
-	log.Resize( 5 ); log += "Play Address - "; log.Append( context.PlayAddress, PDXSTRING::HEX ); LogOutput( log.String() );
+	log.Resize( 5 ); log << "Load Address - "; log.Append( context.LoadAddress, PDXSTRING::HEX ); LogOutput( log );
+	log.Resize( 5 ); log << "Init Address - "; log.Append( context.InitAddress, PDXSTRING::HEX ); LogOutput( log );
+	log.Resize( 5 ); log << "Play Address - "; log.Append( context.PlayAddress, PDXSTRING::HEX ); LogOutput( log );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////

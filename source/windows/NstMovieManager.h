@@ -27,7 +27,7 @@
 #ifndef NST_MOVIEMANAGER_H
 #define NST_MOVIEMANAGER_H
 
-#include "../paradox/PdxFile.h"
+#include "../paradox/PdxString.h"
 #include "NstManager.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////

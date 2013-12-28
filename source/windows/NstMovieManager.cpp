@@ -22,10 +22,14 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+
 #include <Windows.h>
-#include "resource/resource.h"
-#include "NstApplication.h"
 #include "NstMovieManager.h"
+#include "NstFileManager.h"
+#include "NstApplication.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -64,7 +68,7 @@ VOID MOVIEMANAGER::Forward() { if (nes.CanForwardMovie()) nes.ForwardMovie(); }
 
 VOID MOVIEMANAGER::UpdateDialog(HWND hDlg)
 {
-	SetDlgItemText( hDlg, IDC_MOVIE_FILE, file.String() );	
+	::SetDlgItemText( hDlg, IDC_MOVIE_FILE, file.String() );	
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -74,11 +78,7 @@ VOID MOVIEMANAGER::UpdateDialog(HWND hDlg)
 VOID MOVIEMANAGER::UpdateSettings(HWND hDlg)
 {
 	PDXSTRING name;
-	name.Buffer().Resize( NST_MAX_PATH );
-	name.Front() = '\0';
-
-	GetDlgItemText( hDlg, IDC_MOVIE_FILE, name.Begin(), NST_MAX_PATH );
-	name.Validate();
+	MANAGER::GetDlgItemText( hDlg, IDC_MOVIE_FILE, name );
 	Load( name );
 }
 
@@ -88,32 +88,23 @@ VOID MOVIEMANAGER::UpdateSettings(HWND hDlg)
 
 VOID MOVIEMANAGER::OnBrowse(HWND hDlg)
 {
-	PDXSTRING file;
-	file.Buffer().Resize( NST_MAX_PATH );
-	file.Buffer().Front() = '\0';
+	PDXSTRING filename;
 
-	OPENFILENAME ofn;
-	PDXMemZero( ofn );
+	const BOOL succeeded = UTILITIES::BrowseSaveFile
+	(
+	    filename,
+		hDlg,
+		IDS_FILE_SELECT_MOVIE,
+    	"Nestopia Movie File (*.nsv)\0"
+		"*.nsv\0"
+		"All Files (*.*)\0"
+		"*.*\0",
+		application.GetFileManager().GetNstPath().String(),
+		"nsv"
+	);
 
-	ofn.lStructSize     = sizeof(ofn);
-	ofn.hwndOwner       = hWnd;
-	ofn.lpstrFilter     = "NES Movie File (*.nsv)\0*.nsv\0All Files (*.*)\0*.*\0";
-	ofn.nFilterIndex    = 1;
-	ofn.lpstrInitialDir	= application.GetFileManager().GetNstPath().String();
-	ofn.lpstrFile       = file.Begin();
-	ofn.lpstrTitle      = "Select NES Movie File";
-	ofn.nMaxFile        = NST_MAX_PATH;
-	ofn.Flags           = OFN_HIDEREADONLY | OFN_PATHMUSTEXIST;
-
-	if (GetSaveFileName(&ofn))
-	{
-		file.Validate();
-
-		if (file.Length() && file.GetFileExtension().IsEmpty())
-			file += ".nsv";
-
-		SetDlgItemText( hDlg, IDC_MOVIE_FILE, file.String() );
-	}
+	if (succeeded)
+		::SetDlgItemText( hDlg, IDC_MOVIE_FILE, filename.String() );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -122,7 +113,7 @@ VOID MOVIEMANAGER::OnBrowse(HWND hDlg)
 
 VOID MOVIEMANAGER::OnClear(HWND hDlg)
 {
-	SetDlgItemText( hDlg, IDC_MOVIE_FILE, "" );
+	::SetDlgItemText( hDlg, IDC_MOVIE_FILE, "" );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -145,13 +136,13 @@ BOOL MOVIEMANAGER::DialogProc(HWND hDlg,UINT uMsg,WPARAM wParam,LPARAM)
     			case IDC_MOVIE_CLEAR:  OnClear( hDlg ); return TRUE;
     			case IDC_MOVIE_BROWSE: OnBrowse( hDlg ); return TRUE;
 				case IDC_MOVIE_OK:     UpdateSettings( hDlg );
-				case IDC_MOVIE_CANCEL: EndDialog( hDlg, 0 ); return TRUE;
+				case IDC_MOVIE_CANCEL: ::EndDialog( hDlg, 0 ); return TRUE;
 			}		
 			return FALSE;
 
      	case WM_CLOSE:
 
-     		EndDialog( hDlg, 0 );
+     		::EndDialog( hDlg, 0 );
      		return TRUE;
 	}
 

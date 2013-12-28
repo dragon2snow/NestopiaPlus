@@ -27,32 +27,36 @@
 #ifndef NST_APPLICATION_H
 #define NST_APPLICATION_H
 
-#define NST_MAX_PATH PDX_MAX(MAX_PATH,512)
 #define application APPLICATION::GetSingleton()
+
+#define NST_WM_CMDLINE 1
+#define NST_CLASS_NAME "Nestopia Window"
+#define NST_WINDOW_NAME "Nestopia"
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
 #include "../paradox/PdxSingleton.h"
-#include "../paradox/PdxFile.h"
-#include "resource/resource.h"
-#include "NstGraphicManager.h"
-#include "NstFileManager.h"
-#include "NstTimerManager.h"
-#include "NstLogFileManager.h"
-#include "NstSoundManager.h"
-#include "NstInputManager.h"
-#include "NstFdsManager.h"
-#include "NstSaveStateManager.h"
-#include "NstMovieManager.h"
-#include "NstGameGenieManager.h"
-#include "NstVsDipSwitchManager.h"
-#include "NstPreferences.h"
-#include "NstRomInfo.h"
-#include "NstHelpManager.h"
-#include "NstUserInputManager.h"
-#include "NstConfigFile.h"
+#include "../NstNes.h"
+#include "NstStatusBar.h"
+
+class TIMERMANAGER;
+class GRAPHICMANAGER;
+class SOUNDMANAGER;
+class INPUTMANAGER;
+class FILEMANAGER;
+class FDSMANAGER;  
+class GAMEGENIEMANAGER;
+class SAVESTATEMANAGER;
+class MOVIEMANAGER;
+class VSDIPSWITCHMANAGER;
+class PREFERENCES;
+class LOGFILE;
+class ROMINFO;
+class HELPMANAGER; 
+class USERINPUTMANAGER;
+class CONFIGFILE;
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // window class
@@ -62,40 +66,41 @@ class APPLICATION : public PDXSINGLETON<APPLICATION>
 {
 public:
 
-	APPLICATION(HINSTANCE,const CHAR* const,const INT) throw(const CHAR*);
+	APPLICATION(HINSTANCE,const CHAR* const,const INT);
 	~APPLICATION();
 
 	INT Run();
 
 	HWND  GetHWnd() const;
 	HMENU GetMenu() const;
+	HINSTANCE GetInstance() const;
 
 	BOOL IsActive()   const;
 	BOOL IsWindowed() const;
 	BOOL IsMenuSet()  const;
-
+	BOOL IsRunning()  const;
+	BOOL IsPassive()  const;
+						
 	NES::MACHINE& GetNes();
 
 	PDX_NO_INLINE VOID RefreshCursor(const BOOL=FALSE);
 	PDX_NO_INLINE VOID UpdateWindowSizes(const UINT,const UINT);
 
-	SAVESTATEMANAGER& GetSaveStateManager();
-	FILEMANAGER&      GetFileManager();     
-	GAMEGENIEMANAGER& GetGameGenieManager();
-	GRAPHICMANAGER&   GetGraphicManager();  
-	SOUNDMANAGER&     GetSoundManager();
-	PREFERENCES&      GetPreferences();
-	MOVIEMANAGER&     GetMovieManager();
-	TIMERMANAGER&     GetTimerManager();
-	LOGFILEMANAGER&   LogFile();
+	SAVESTATEMANAGER& GetSaveStateManager  ();
+	FILEMANAGER&      GetFileManager       ();     
+	GAMEGENIEMANAGER& GetGameGenieManager  ();
+	GRAPHICMANAGER&   GetGraphicManager    ();  
+	USERINPUTMANAGER& GetUserInputManager  ();
+	SOUNDMANAGER&     GetSoundManager      ();
+	PREFERENCES&      GetPreferences       ();
+	MOVIEMANAGER&     GetMovieManager      ();
+	TIMERMANAGER&     GetTimerManager      ();
+	STATUSBAR&        GetStatusBar         ();
 
 	NES::MODE GetNesMode() const;
 
-	PDX_NO_INLINE PDXRESULT OnWarning       (const CHAR* const);
-	PDX_NO_INLINE BOOL      OnQuestion      (const CHAR* const,const CHAR* const);
-	PDX_NO_INLINE BOOL      OnUserInput	    (const CHAR* const,const CHAR* const,PDXSTRING&);
-	PDX_NO_INLINE VOID      OnLoadStateSlot (const UINT);
-	PDX_NO_INLINE VOID      OnSaveStateSlot (const UINT);
+	PDX_NO_INLINE VOID OnLoadStateSlot (const UINT);
+	PDX_NO_INLINE VOID OnSaveStateSlot (const UINT);
 
 	enum
 	{
@@ -104,31 +109,31 @@ public:
 	};
 
 	template<class T>                         
-	PDX_NO_INLINE VOID StartScreenMsg(const UINT,const T&);
+	VOID StartScreenMsg(const UINT,const T&);
 
 	template<class T,class U>
-	PDX_NO_INLINE VOID StartScreenMsg(const UINT,const T&,const U&);
+	VOID StartScreenMsg(const UINT,const T&,const U&);
 
 	template<class T,class U,class V>
-	PDX_NO_INLINE VOID StartScreenMsg(const UINT,const T&,const U&,const V&);
+	VOID StartScreenMsg(const UINT,const T&,const U&,const V&);
 
 	template<class T,class U,class V,class W> 
-	PDX_NO_INLINE VOID StartScreenMsg(const UINT,const T&,const U&,const V&,const W&);
+	VOID StartScreenMsg(const UINT,const T&,const U&,const V&,const W&);
 
 private:
 
 	enum FILETYPE
 	{
 		FILE_ALL,
-		FILE_NSP
+		FILE_NSP,
+		FILE_INPUT
 	};
-
-	static HWND Init(HINSTANCE);
 
 	static LRESULT CALLBACK WndProc(HWND,UINT,WPARAM,LPARAM);
 	LRESULT MsgProc(const HWND,const UINT,const WPARAM,const LPARAM);
 
-	VOID ExecuteFrame();
+	VOID ExecuteImage();
+	PDX_NO_INLINE VOID ExecuteNsf();
 
 	PDX_NO_INLINE VOID SwitchScreen();
 	PDX_NO_INLINE VOID PushWindow();
@@ -137,10 +142,11 @@ private:
 	PDX_NO_INLINE VOID UpdateWindowItems();
 	PDX_NO_INLINE VOID UpdateSoundRecorderMenu();
 	PDX_NO_INLINE VOID UpdateFdsMenu();
-	PDX_NO_INLINE VOID ApplyWindowSizing();
-	PDX_NO_INLINE VOID OutputScreenMsg();
+	PDX_NO_INLINE VOID DisplayMsg();
 	PDX_NO_INLINE VOID OutputNsfInfo();
+	PDX_NO_INLINE VOID DisplayFPS(BOOL=TRUE);
 	PDX_NO_INLINE BOOL ChangeMenuText(const ULONG,CHAR* const) const;
+	PDX_NO_INLINE VOID SetScreenMsg(const UINT,const BOOL);
 	
 	enum CFG_OP
 	{
@@ -148,17 +154,20 @@ private:
 		CFG_SAVE
 	};
 
-	static PDX_NO_INLINE BOOL InitConfigFile(CONFIGFILE&,const CFG_OP);
+	PDX_NO_INLINE BOOL InitConfigFile(CONFIGFILE&,const CFG_OP);
 
-	VOID UpdateWindowRect(RECT&,const RECT&);
-	VOID UpdateWindowRect(RECT&);
 	VOID UpdateControllerPorts();
 	VOID UpdateDynamicMenuItems();
 	VOID UpdateMovieMenu();
 	VOID UpdateNsf();
 	VOID ResetSaveSlots(const BOOL=FALSE);
+	VOID GetScreenRect(RECT&) const;
+	
+	BOOL IsChecked(const UINT) const;
 
-	PDX_NO_INLINE VOID OnOpen(const FILETYPE,const INT=-1);
+	INT GetMenuHeight() const;
+
+	PDX_NO_INLINE VOID OnOpen(const FILETYPE,const VOID* const=NULL);
 	PDX_NO_INLINE VOID OnPort(const UINT);
 	PDX_NO_INLINE VOID OnAutoSelectController();
 	PDX_NO_INLINE VOID OnActive();
@@ -168,13 +177,18 @@ private:
 	PDX_NO_INLINE VOID OnReset(const BOOL);
 	PDX_NO_INLINE UINT GetAspectRatio() const;
 	PDX_NO_INLINE VOID OnNsfCommand(const NES::IO::NSF::OP);
-	PDX_NO_INLINE VOID OnWindowSize(const UINT,UINT=0,UINT=0);
+	PDX_NO_INLINE VOID OnWindowSize(const UINT,const BOOL=FALSE);
+	PDX_NO_INLINE VOID OnToggleStatusBar();
+	PDX_NO_INLINE VOID OnToggleMenu();
+	PDX_NO_INLINE VOID OnToggleFPS();
 	PDX_NO_INLINE VOID OnHideMenu();
 	PDX_NO_INLINE VOID OnShowMenu();
+	PDX_NO_INLINE BOOL OnCopyData(const LPARAM);
+	PDX_NO_INLINE VOID OnTop();
+	PDX_NO_INLINE VOID SetThreadPriority(INT);
+	PDX_NO_INLINE VOID OnPaint(const BOOL=FALSE);
 
-	VOID OnPaint();
 	VOID OnMode(const UINT);
-	VOID OnExitSizeMove();
 	VOID OnRecent(const UINT);
 	VOID OnLoadNsp();
 	VOID OnSaveNsp();
@@ -185,9 +199,9 @@ private:
 	VOID OnMouseMove(const LPARAM);
 	VOID OnLeftMouseButtonDown(const LPARAM);
 	VOID OnLeftMouseButtonUp();
-	VOID OnRightMouseButtonDown();
-	VOID OnMove(const LPARAM);
-	VOID OnSize(const LPARAM);
+	VOID OnUnlimitedSprites();
+	VOID OnNsfInBackground();
+	VOID OnSizeMove(const LPARAM);
 	VOID OnActivate(const WPARAM);
 	VOID OnClose();
 	VOID OnCloseWindow();
@@ -198,52 +212,59 @@ private:
 	VOID OnPause();
 	VOID OnHelp(const UINT);
 
+	INT GetDesiredPriority() const;
+
+	INT ThreadPriority;
+
 	BOOL AcceleratorEnabled;
 	BOOL active;
 	BOOL windowed;
-	BOOL ready;
 	BOOL AutoSelectController;
-	UINT FrameSkips;
 	
 	HMENU        hMenu;
 	HCURSOR      hCursor;
 	HACCEL const hAccel;
 	BOOL         UseZapper;
+	BOOL         ShowFPS;
 	BOOL         InBackground;
+	BOOL         WindowVisible;
 	BOOL         ExitSuccess;
 	
 	RECT rcWindow;
-	RECT rcClient;
 	RECT rcScreen;
-	RECT rcDefWindow;
-	RECT rcDefClient;
-	RECT rcRestoreWindow;
+	RECT rcDesktop;
+	RECT rcDesktopClient;
 
-	HWND const hWnd;
+	HWND hWnd;
+	HINSTANCE const hInstance;
 
-	NES::MACHINE nes;
+	STATUSBAR*          StatusBar;
+	TIMERMANAGER*       TimerManager;
+	GRAPHICMANAGER*     GraphicManager;
+	SOUNDMANAGER*       SoundManager;
+	INPUTMANAGER*       InputManager;
+	FILEMANAGER*        FileManager;
+	FDSMANAGER*         FdsManager;
+	GAMEGENIEMANAGER*   GameGenieManager;
+	SAVESTATEMANAGER*   SaveStateManager;
+	MOVIEMANAGER*       MovieManager;
+	VSDIPSWITCHMANAGER* VsDipSwitchManager;
+	PREFERENCES*        preferences;
+	LOGFILE*            log;
+	ROMINFO*            RomInfo;
+	HELPMANAGER*        HelpManager;
+	USERINPUTMANAGER*   UserInputManager;
+
+	PDXSTRING ScreenMsg;
+
 	NES::MODE NesMode;
 	UINT SelectPort[5];
 
-	TIMERMANAGER       TimerManager;
-	GRAPHICMANAGER     GraphicManager;
-	SOUNDMANAGER       SoundManager;
-	INPUTMANAGER       InputManager;
-	FILEMANAGER        FileManager;
-	FDSMANAGER         FdsManager;
-	GAMEGENIEMANAGER   GameGenieManager;
-	SAVESTATEMANAGER   SaveStateManager;
-	MOVIEMANAGER       MovieManager;
-	VSDIPSWITCHMANAGER VsDipSwitchManager;
-	PREFERENCES        preferences;
-	LOGFILEMANAGER     log;
-	ROMINFO            RomInfo;
-	HELPMANAGER        HelpManager;
-	USERINPUTMANAGER   UserInputManager;
+	NES::MACHINE nes;
 
 	struct NSFINFO
 	{
-		PDX_NO_INLINE VOID Clear()
+		VOID Clear()
 		{
 			name.Clear();
 			artist.Clear();
@@ -258,8 +279,6 @@ private:
 	};
 
 	NSFINFO NsfInfo;
-
-	static PDXSTRING ScreenMsg;
 
 	static VOID CALLBACK OnScreenMsgEnd(HWND,UINT,UINT_PTR,DWORD);
 	static BOOL CALLBACK HelpAboutDlgProc(HWND,UINT,WPARAM,LPARAM);

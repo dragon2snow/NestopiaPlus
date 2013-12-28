@@ -35,7 +35,7 @@ VOID MAPPER16::Reset()
 {
 	EnableIrqSync(IRQSYNC_COUNT);
 
-	for (ULONG i=0x6000; i <= 0xFFFFU; ++i)
+	for (ULONG i=0x6000; i <= 0xFFFF; ++i)
 	{
 		switch (i & 0x000F)
 		{

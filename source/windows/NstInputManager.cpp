@@ -22,17 +22,22 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "resource/resource.h"
-#include "NstInputManager.h"
-#include "NstApplication.h"
-#include "../paradox/PdxFile.h"
-#include "../paradox/PdxSet.h"
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+
+#include <Windows.h>
 #include <WindowsX.h>
+#include "../paradox/PdxFile.h"
+#include "NstInputManager.h"
+#include "NstTimerManager.h"
+#include "NstGraphicManager.h"
+#include "NstApplication.h"
 
 #define NST_USE_JOYSTICK 0x80000000UL
 #define NST_JOY_TO_INDEX(x) (((x) & ~NST_USE_JOYSTICK) / 64)
 
-const UINT INPUTMANAGER::MenuHeight = GetSystemMetrics(SM_CYMENU);
+const UINT INPUTMANAGER::MenuHeight = ::GetSystemMetrics(SM_CYMENU);
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -254,7 +259,7 @@ ULONG INPUTMANAGER::IsJoystickButtonPressed(ULONG key) const
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-inline ULONG INPUTMANAGER::IsButtonPressed(const ULONG key) const
+ULONG INPUTMANAGER::IsButtonPressed(const ULONG key) const
 {
 	return 
 	(
@@ -281,23 +286,31 @@ VOID INPUTMANAGER::Create(CONFIGFILE* const ConfigFile)
 	{
 		CONFIGFILE& file = *ConfigFile;
 	
-		PDXARRAY<UINT> indices;
+		UINT indices[MAX_JOYSTICKS];
 
 		{
 			PDXSTRING string("input device ");
 	
-			for (UINT i=0; ; ++i)
+			for (UINT i=0; i < MAX_JOYSTICKS; ++i)
 			{
 				string.Resize(13);
 				string << i;
 	
 				const PDXSTRING& input = file[string];
-	
-				if (input.IsEmpty())
-					break;
-	
-				const JOYSTICK* const it(PDX::Find(joysticks.Begin(),joysticks.End(),CONFIGFILE::ToGUID(input.String())));
-				indices.InsertBack( (it != joysticks.End() ? UINT(it - joysticks.Begin()) : UINT_MAX) );
+
+				const JOYSTICK* const it =
+				( 
+				    input.Length() ? 
+					PDX::Find(joysticks.Begin(),joysticks.End(),UTILITIES::ToGUID(input.String())) :
+				    NULL
+				);
+
+				indices[i] =
+				( 
+			     	(it && it != joysticks.End()) ? 
+					UINT(it - joysticks.Begin()) : 
+			       	UINT_MAX
+				);
 			}
 		}
 	
@@ -315,7 +328,7 @@ VOID INPUTMANAGER::Create(CONFIGFILE* const ConfigFile)
 					{
 						const UINT index = NST_JOY_TO_INDEX(key);
 
-						if (indices.Size() <= index || indices[index] == UINT_MAX)
+						if (index >= MAX_JOYSTICKS || indices[index] == UINT_MAX)
 							continue;
 
 						if (PDX_FAILED(joysticks[indices[index]].Create(GetDevice(),DIRECTINPUT::hWnd)))
@@ -346,23 +359,20 @@ VOID INPUTMANAGER::Destroy(CONFIGFILE* const ConfigFile)
 		{
 			PDXSTRING string("input device ");
 
-			DIDEVICEINSTANCE info;
-			DIRECTX::InitStruct(info);
-
 			for (UINT i=0; i < joysticks.Size(); ++i)
 			{
 				if (joysticks[i].device)
 				{
 					string.Resize(13);
-					string << i;
-					file[string] = CONFIGFILE::FromGUID(joysticks[i].guid);
+					string += i;
+					file[string] = UTILITIES::FromGUID( joysticks[i].guid ).Quoted();
 				}
 			}
 		}
 
 		for (UINT i=0; i < NUM_CATEGORIES; ++i)
 			for (UINT j=0; j < map.category[i].keys.Size(); ++j)
-				file[Map2Text(i,j)] = Key2Text(map.category[i].keys[j]);
+				file[Map2Text(i,j)] = PDXSTRING(Key2Text( map.category[i].keys[j] )).Quoted();
 	}
 
 	DIRECTINPUT::Destroy();
@@ -513,7 +523,7 @@ BOOL INPUTMANAGER::OnMouseMove(POINT& point)
 
 	if (application.IsWindowed())
 	{
-		GetClientRect( MANAGER::hWnd, &rcClient );
+		::GetClientRect( MANAGER::hWnd, &rcClient );
 	}
 	else
 	{
@@ -558,8 +568,8 @@ BOOL CALLBACK INPUTMANAGER::StaticKeyPressDialogProc(HWND hDlg,UINT uMsg,WPARAM,
 			im = PDX_CAST(INPUTMANAGER*,lParam);
 			PDX_ASSERT( im );
 			im->AcquireDevices();
-			SetTimer( hDlg, 666, 100, NULL );
-			SetWindowPos( hDlg, HWND_TOP, 0, 0, 0, 0, SWP_HIDEWINDOW );
+			::SetTimer( hDlg, 666, 100, NULL );
+			::SetWindowPos( hDlg, HWND_TOP, 0, 0, 0, 0, SWP_HIDEWINDOW );
 			return TRUE;
 		
 		case WM_KEYDOWN:
@@ -587,12 +597,12 @@ BOOL CALLBACK INPUTMANAGER::StaticKeyPressDialogProc(HWND hDlg,UINT uMsg,WPARAM,
 					case DIK_8:
 					case DIK_9:
 
-						KillTimer( hDlg, 666 );
-						application.OnWarning("This key is reserved!");
+						::KillTimer( hDlg, 666 );
+						UI::MsgWarning( IDS_INPUT_KEY_RESERVED );
 
 					case DIK_ESCAPE:
 
-						EndDialog( hDlg, 0 );
+						::EndDialog( hDlg, 0 );
 						return TRUE;
 				}
 
@@ -611,12 +621,12 @@ BOOL CALLBACK INPUTMANAGER::StaticKeyPressDialogProc(HWND hDlg,UINT uMsg,WPARAM,
 
 			if (key)
 			{
-				HWND hMap = GetDlgItem( im->hDlg, IDC_INPUT_MAP );
+				HWND hMap = ::GetDlgItem( im->hDlg, IDC_INPUT_MAP );
 
 				ListBox_DeleteString( hMap, im->SelectKey );
 				ListBox_InsertString( hMap, im->SelectKey, Key2Text( key ) );	
 
-				EndDialog( hDlg, 0 );
+				::EndDialog( hDlg, 0 );
 			}
   	
 			return TRUE;
@@ -626,7 +636,7 @@ BOOL CALLBACK INPUTMANAGER::StaticKeyPressDialogProc(HWND hDlg,UINT uMsg,WPARAM,
 
 			PDX_ASSERT( im );
 			im = NULL;
-			KillTimer( hDlg, 666 );
+			::KillTimer( hDlg, 666 );
 			return TRUE;
 	}
 
@@ -660,7 +670,7 @@ BOOL INPUTMANAGER::DialogProc(HWND h,UINT uMsg,WPARAM wParam,LPARAM)
 
 					if (HIWORD(wParam) == CBN_SELCHANGE)
 					{
-						SelectDevice = ListBox_GetCurSel( GetDlgItem( hDlg, IDC_INPUT_DEVICES ) );
+						SelectDevice = ListBox_GetCurSel( ::GetDlgItem( hDlg, IDC_INPUT_DEVICES ) );
 						UpdateDlgButtonTexts();
 					}
 					return TRUE;
@@ -668,7 +678,7 @@ BOOL INPUTMANAGER::DialogProc(HWND h,UINT uMsg,WPARAM wParam,LPARAM)
 				case IDC_INPUT_MAP:
 
 					if (HIWORD(wParam) == CBN_SELCHANGE)
-						SelectKey = ListBox_GetCurSel( GetDlgItem( hDlg, IDC_INPUT_MAP ) );
+						SelectKey = ListBox_GetCurSel( ::GetDlgItem( hDlg, IDC_INPUT_MAP ) );
 
 					return TRUE;
 
@@ -679,7 +689,7 @@ BOOL INPUTMANAGER::DialogProc(HWND h,UINT uMsg,WPARAM wParam,LPARAM)
 
 				case IDC_INPUT_SETALL:
 				{
-					HWND hItem = GetDlgItem( hDlg, IDC_INPUT_MAP );
+					HWND hItem = ::GetDlgItem( hDlg, IDC_INPUT_MAP );
 					const UINT count = ListBox_GetCount( hItem );
 
 					for (SelectKey=0; SelectKey < count;)
@@ -709,7 +719,7 @@ BOOL INPUTMANAGER::DialogProc(HWND h,UINT uMsg,WPARAM wParam,LPARAM)
 
 				case IDC_INPUT_OK:
 
-					EndDialog( hDlg, 0 );
+					::EndDialog( hDlg, 0 );
 					return TRUE;
 
 				case IDC_INPUT_DEFAULT:
@@ -722,7 +732,7 @@ BOOL INPUTMANAGER::DialogProc(HWND h,UINT uMsg,WPARAM wParam,LPARAM)
 
      	case WM_CLOSE:
 
-     		EndDialog( hDlg, 0 );
+     		::EndDialog( hDlg, 0 );
      		return TRUE;
 
 		case WM_DESTROY:
@@ -741,7 +751,7 @@ BOOL INPUTMANAGER::DialogProc(HWND h,UINT uMsg,WPARAM wParam,LPARAM)
 
 VOID INPUTMANAGER::UpdateDialog()
 {
-	HWND hDevice = GetDlgItem( hDlg, IDC_INPUT_DEVICES );
+	HWND hDevice = ::GetDlgItem( hDlg, IDC_INPUT_DEVICES );
 
 	ListBox_ResetContent( hDevice );
 	
@@ -762,8 +772,8 @@ VOID INPUTMANAGER::UpdateDialog()
 
 VOID INPUTMANAGER::UpdateDlgButtonTexts()
 {
-	HWND hKeys = GetDlgItem( hDlg, IDC_INPUT_KEYS );
-	HWND hMap  = GetDlgItem( hDlg, IDC_INPUT_MAP  );
+	HWND hKeys = ::GetDlgItem( hDlg, IDC_INPUT_KEYS );
+	HWND hMap  = ::GetDlgItem( hDlg, IDC_INPUT_MAP  );
 
 	ListBox_ResetContent( hKeys );
 	ListBox_ResetContent( hMap  );
@@ -880,19 +890,19 @@ VOID INPUTMANAGER::Clear()
 
 VOID INPUTMANAGER::ScanInput()
 {
-	HWND hItem = GetDlgItem( hDlg, IDC_INPUT_KEYPRESS_TEXT );
-	SetWindowText( hItem, "Press any key/button to use, ESC to skip.." );
+	HWND hItem = ::GetDlgItem( hDlg, IDC_INPUT_KEYPRESS_TEXT );
+	::SetWindowText( hItem, UTILITIES::IdToString( IDS_INPUT_WAIT_KEYPRESS ).String() );
 	
 	DialogBoxParam
 	( 
-    	GetModuleHandle(NULL), 
+    	::GetModuleHandle(NULL), 
 		MAKEINTRESOURCE(IDD_INPUT_KEYPRESS), 
 		hDlg, 
 		StaticKeyPressDialogProc,
 		PDX_CAST(LPARAM,this)
 	); 
 	
-	SetWindowText( hItem, "" );
+	::SetWindowText( hItem, "" );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////

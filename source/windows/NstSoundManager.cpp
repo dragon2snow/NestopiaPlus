@@ -22,13 +22,18 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "resource/resource.h"
-#include "NstApplication.h"
-#include "NstSoundManager.h"
-#include "../paradox/PdxFile.h"
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+
+#include <Windows.h>
+#include <MMSystem.h>
 #include <WindowsX.h>
 #include <CommCtrl.h>
+#include "../paradox/PdxFile.h"
+#include "NstSoundManager.h"
 #include "NstWaveFile.h"
+#include "NstApplication.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -120,7 +125,7 @@ VOID SOUNDMANAGER::Create(CONFIGFILE* const ConfigFile)
 		SelectedLatency = PDX_MIN(SelectedLatency,10);
 		SelectedVolume = LONG(PDX_MIN(volume,100) * 100) + DSBVOLUME_MIN;
 
-		guid = CONFIGFILE::ToGUID( file["sound device"].String() );
+		guid = UTILITIES::ToGUID( file["sound device"].String() );
 		pGuid = &guid;
 	}
 	else
@@ -158,7 +163,7 @@ VOID SOUNDMANAGER::Destroy(CONFIGFILE* const ConfigFile)
 
 		if (adapters.Size() > SelectedAdapter)
 		{
-			file[ "sound device"      ] = CONFIGFILE::FromGUID(adapters[SelectedAdapter].guid);
+			file[ "sound device"      ] = UTILITIES::FromGUID(adapters[SelectedAdapter].guid).Quoted();
 			file[ "sound sample rate" ] = adapters[SelectedAdapter].SampleRates[SelectedSampleRate];
 		}
 		else
@@ -190,13 +195,10 @@ VOID SOUNDMANAGER::Destroy(CONFIGFILE* const ConfigFile)
 
 VOID SOUNDMANAGER::Stop()
 {
-	if (enabled)
-	{
-		nes.ResetAudioBuffer();
+	nes.ResetAudioBuffer();
 
-		if (PDX_FAILED(DIRECTSOUND::Stop(format)))
-			Disable();
-	}
+	if (enabled && PDX_FAILED(DIRECTSOUND::Stop(format)))
+		Disable();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -205,11 +207,8 @@ VOID SOUNDMANAGER::Stop()
 
 VOID SOUNDMANAGER::Start()
 {
-	if (enabled)
-	{
-		if (PDX_FAILED(DIRECTSOUND::Start()))
-			Disable();
-	}
+	if (enabled && PDX_FAILED(DIRECTSOUND::Start()))
+		Disable();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -218,15 +217,12 @@ VOID SOUNDMANAGER::Start()
 
 PDXRESULT SOUNDMANAGER::Clear()
 {
-	if (enabled)
-	{
-		nes.ResetAudioBuffer();
+	nes.ResetAudioBuffer();
 
-		if (PDX_FAILED(DIRECTSOUND::Stop(format)) || PDX_FAILED(DIRECTSOUND::Start()))
-		{
-			Disable();
-			return PDX_FAILURE;
-		}
+	if (enabled && (PDX_FAILED(DIRECTSOUND::Stop(format)) || PDX_FAILED(DIRECTSOUND::Start())))
+	{
+		Disable();
+		return PDX_FAILURE;
 	}
   
 	return PDX_OK;
@@ -384,7 +380,12 @@ PDXRESULT SOUNDMANAGER::Unlock()
 		}
 
 		if (PDX_SUCCEEDED(DIRECTSOUND::Unlock()))
+		{
+			if (nes.GetAudioLatency() > GetMaxBufferLength())
+				nes.ResetAudioBuffer();
+
 			return PDX_OK;
+		}
 
 		Disable();
 	}
@@ -440,7 +441,7 @@ BOOL SOUNDMANAGER::DialogProc(HWND hDlg,UINT uMsg,WPARAM wParam,LPARAM)
 			{
 				case IDC_SOUND_ENABLE:
 				{
-					const bool checked = IsDlgButtonChecked(hDlg,IDC_SOUND_ENABLE) == BST_CHECKED;
+					const bool checked = ::IsDlgButtonChecked(hDlg,IDC_SOUND_ENABLE) == BST_CHECKED;
 
 					if (bool(enabled) != checked)
 					{
@@ -454,7 +455,7 @@ BOOL SOUNDMANAGER::DialogProc(HWND hDlg,UINT uMsg,WPARAM wParam,LPARAM)
      				
 					if (HIWORD(wParam) == CBN_SELCHANGE)
 					{
-						SelectedAdapter = ComboBox_GetCurSel(GetDlgItem(hDlg,IDC_SOUND_DEVICE));
+						SelectedAdapter = ComboBox_GetCurSel(::GetDlgItem(hDlg,IDC_SOUND_DEVICE));
 						SetSampleRate();
 						SetSampleBits();
        					UpdateDialog(hDlg);
@@ -464,19 +465,19 @@ BOOL SOUNDMANAGER::DialogProc(HWND hDlg,UINT uMsg,WPARAM wParam,LPARAM)
 				case IDC_SOUND_SAMPLE_RATE:
 
 					if (HIWORD(wParam) == CBN_SELCHANGE)
-						SelectedSampleRate = ComboBox_GetCurSel(GetDlgItem(hDlg,IDC_SOUND_SAMPLE_RATE));
+						SelectedSampleRate = ComboBox_GetCurSel(::GetDlgItem(hDlg,IDC_SOUND_SAMPLE_RATE));
 
 					return TRUE;
 
 				case IDC_SOUND_8_BIT:  SelectedSampleBits = 8;  return TRUE;
 				case IDC_SOUND_16_BIT: SelectedSampleBits = 16; return TRUE;
 
-				case IDC_SOUND_SQUARE1:  context.square1  = (IsDlgButtonChecked( hDlg, IDC_SOUND_SQUARE1  ) == BST_CHECKED); return TRUE;
-				case IDC_SOUND_SQUARE2:  context.square2  = (IsDlgButtonChecked( hDlg, IDC_SOUND_SQUARE2  ) == BST_CHECKED); return TRUE;
-				case IDC_SOUND_TRIANGLE: context.triangle = (IsDlgButtonChecked( hDlg, IDC_SOUND_TRIANGLE ) == BST_CHECKED); return TRUE;
-				case IDC_SOUND_NOISE:    context.noise    = (IsDlgButtonChecked( hDlg, IDC_SOUND_NOISE    ) == BST_CHECKED); return TRUE;
-				case IDC_SOUND_DPCM:     context.dpcm     = (IsDlgButtonChecked( hDlg, IDC_SOUND_DPCM     ) == BST_CHECKED); return TRUE;
-				case IDC_SOUND_EXTERNAL: context.external = (IsDlgButtonChecked( hDlg, IDC_SOUND_EXTERNAL ) == BST_CHECKED); return TRUE;
+				case IDC_SOUND_SQUARE1:  context.square1  = (::IsDlgButtonChecked( hDlg, IDC_SOUND_SQUARE1  ) == BST_CHECKED); return TRUE;
+				case IDC_SOUND_SQUARE2:  context.square2  = (::IsDlgButtonChecked( hDlg, IDC_SOUND_SQUARE2  ) == BST_CHECKED); return TRUE;
+				case IDC_SOUND_TRIANGLE: context.triangle = (::IsDlgButtonChecked( hDlg, IDC_SOUND_TRIANGLE ) == BST_CHECKED); return TRUE;
+				case IDC_SOUND_NOISE:    context.noise    = (::IsDlgButtonChecked( hDlg, IDC_SOUND_NOISE    ) == BST_CHECKED); return TRUE;
+				case IDC_SOUND_DPCM:     context.dpcm     = (::IsDlgButtonChecked( hDlg, IDC_SOUND_DPCM     ) == BST_CHECKED); return TRUE;
+				case IDC_SOUND_EXTERNAL: context.external = (::IsDlgButtonChecked( hDlg, IDC_SOUND_EXTERNAL ) == BST_CHECKED); return TRUE;
 
 				case IDC_SOUND_DEFAULT:
 
@@ -486,16 +487,16 @@ BOOL SOUNDMANAGER::DialogProc(HWND hDlg,UINT uMsg,WPARAM wParam,LPARAM)
 
 				case IDC_SOUND_OK:
 
-					EndDialog(hDlg,0);
+					::EndDialog(hDlg,0);
 					return TRUE;
 			}
 			return TRUE;
 
 		case WM_VSCROLL:
 		{
-			const INT volume = DSBVOLUME_MIN - (INT) SendMessage
+			const INT volume = DSBVOLUME_MIN - (INT) ::SendMessage
 			(
-				GetDlgItem(hDlg,IDC_SOUND_VOLUME),
+				::GetDlgItem(hDlg,IDC_SOUND_VOLUME),
 				TBM_GETPOS,
 				WPARAM(0),
 				LPARAM(0)
@@ -507,9 +508,9 @@ BOOL SOUNDMANAGER::DialogProc(HWND hDlg,UINT uMsg,WPARAM wParam,LPARAM)
 
 		case WM_HSCROLL:
 		{
-			const UINT latency = (UINT) SendMessage
+			const UINT latency = (UINT) ::SendMessage
 			(
-				GetDlgItem(hDlg,IDC_SOUND_LATENCY),
+				::GetDlgItem(hDlg,IDC_SOUND_LATENCY),
 				TBM_GETPOS,
 				WPARAM(0),
 				LPARAM(0)
@@ -521,7 +522,7 @@ BOOL SOUNDMANAGER::DialogProc(HWND hDlg,UINT uMsg,WPARAM wParam,LPARAM)
 
 		case WM_CLOSE:
 
-			EndDialog(hDlg,0);
+			::EndDialog(hDlg,0);
 			return TRUE;
 
 		case WM_DESTROY:
@@ -539,19 +540,19 @@ BOOL SOUNDMANAGER::DialogProc(HWND hDlg,UINT uMsg,WPARAM wParam,LPARAM)
 
 VOID SOUNDMANAGER::OnEnable(HWND hDlg)
 {
-	EnableWindow( GetDlgItem( hDlg, IDC_SOUND_DEVICE      ), enabled );
-	EnableWindow( GetDlgItem( hDlg, IDC_SOUND_SAMPLE_RATE ), enabled );
-	EnableWindow( GetDlgItem( hDlg, IDC_SOUND_8_BIT       ), enabled );
-	EnableWindow( GetDlgItem( hDlg, IDC_SOUND_16_BIT      ), enabled );
-	EnableWindow( GetDlgItem( hDlg, IDC_SOUND_VOLUME      ), enabled );
-	EnableWindow( GetDlgItem( hDlg, IDC_SOUND_LATENCY     ), enabled );
-	EnableWindow( GetDlgItem( hDlg, IDC_SOUND_SQUARE1     ), enabled );
-	EnableWindow( GetDlgItem( hDlg, IDC_SOUND_SQUARE2     ), enabled );
-	EnableWindow( GetDlgItem( hDlg, IDC_SOUND_TRIANGLE    ), enabled );
-	EnableWindow( GetDlgItem( hDlg, IDC_SOUND_NOISE       ), enabled );
-	EnableWindow( GetDlgItem( hDlg, IDC_SOUND_DPCM        ), enabled );
-	EnableWindow( GetDlgItem( hDlg, IDC_SOUND_EXTERNAL    ), enabled );
-	EnableWindow( GetDlgItem( hDlg, IDC_SOUND_DEFAULT     ), enabled );
+	::EnableWindow( ::GetDlgItem( hDlg, IDC_SOUND_DEVICE      ), enabled );
+	::EnableWindow( ::GetDlgItem( hDlg, IDC_SOUND_SAMPLE_RATE ), enabled );
+	::EnableWindow( ::GetDlgItem( hDlg, IDC_SOUND_8_BIT       ), enabled );
+	::EnableWindow( ::GetDlgItem( hDlg, IDC_SOUND_16_BIT      ), enabled );
+	::EnableWindow( ::GetDlgItem( hDlg, IDC_SOUND_VOLUME      ), enabled );
+	::EnableWindow( ::GetDlgItem( hDlg, IDC_SOUND_LATENCY     ), enabled );
+	::EnableWindow( ::GetDlgItem( hDlg, IDC_SOUND_SQUARE1     ), enabled );
+	::EnableWindow( ::GetDlgItem( hDlg, IDC_SOUND_SQUARE2     ), enabled );
+	::EnableWindow( ::GetDlgItem( hDlg, IDC_SOUND_TRIANGLE    ), enabled );
+	::EnableWindow( ::GetDlgItem( hDlg, IDC_SOUND_NOISE       ), enabled );
+	::EnableWindow( ::GetDlgItem( hDlg, IDC_SOUND_DPCM        ), enabled );
+	::EnableWindow( ::GetDlgItem( hDlg, IDC_SOUND_EXTERNAL    ), enabled );
+	::EnableWindow( ::GetDlgItem( hDlg, IDC_SOUND_DEFAULT     ), enabled );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -595,8 +596,6 @@ VOID SOUNDMANAGER::UpdateDirectSound(const GUID* const guid)
 		DIRECTSOUND::Destroy();
 	}
 
-	context.MaxBufferLength	= GetMaxBufferLength();
-
 	UpdateRefreshRate();
 
 	if (NeedVolume)
@@ -617,14 +616,14 @@ VOID SOUNDMANAGER::UpdateDialog(HWND hDlg)
 
 	if (adapters.IsEmpty())
 	{
-		CheckDlgButton(hDlg,IDC_SOUND_ENABLE,BST_UNCHECKED);
-		EnableWindow(GetDlgItem(hDlg,IDC_SOUND_ENABLE),FALSE);
+		::CheckDlgButton(hDlg,IDC_SOUND_ENABLE,BST_UNCHECKED);
+		::EnableWindow(::GetDlgItem(hDlg,IDC_SOUND_ENABLE),FALSE);
 		OnEnable(hDlg);
 		return;
 	}
 
 	{
-		HWND item = GetDlgItem(hDlg,IDC_SOUND_DEVICE);
+		HWND item = ::GetDlgItem(hDlg,IDC_SOUND_DEVICE);
 
 		ComboBox_ResetContent(item);
 
@@ -635,7 +634,7 @@ VOID SOUNDMANAGER::UpdateDialog(HWND hDlg)
 	}
 
 	{
-		HWND item = GetDlgItem(hDlg,IDC_SOUND_SAMPLE_RATE);
+		HWND item = ::GetDlgItem(hDlg,IDC_SOUND_SAMPLE_RATE);
 
 		ComboBox_ResetContent(item);
 
@@ -654,34 +653,34 @@ VOID SOUNDMANAGER::UpdateDialog(HWND hDlg)
 
 	{
 		const INT button = (SelectedSampleBits == 16) ? IDC_SOUND_16_BIT : IDC_SOUND_8_BIT;
-		CheckRadioButton( hDlg, IDC_SOUND_8_BIT, IDC_SOUND_16_BIT, button );
+		::CheckRadioButton( hDlg, IDC_SOUND_8_BIT, IDC_SOUND_16_BIT, button );
 	}
 
 	{
-		CheckDlgButton( hDlg, IDC_SOUND_SQUARE1,  context.square1  );
-		CheckDlgButton( hDlg, IDC_SOUND_SQUARE2,  context.square2  );
-		CheckDlgButton( hDlg, IDC_SOUND_TRIANGLE, context.triangle );
-		CheckDlgButton( hDlg, IDC_SOUND_NOISE,    context.noise    );
-		CheckDlgButton( hDlg, IDC_SOUND_DPCM,     context.dpcm     );
-		CheckDlgButton( hDlg, IDC_SOUND_EXTERNAL, context.external );
+		::CheckDlgButton( hDlg, IDC_SOUND_SQUARE1,  context.square1  );
+		::CheckDlgButton( hDlg, IDC_SOUND_SQUARE2,  context.square2  );
+		::CheckDlgButton( hDlg, IDC_SOUND_TRIANGLE, context.triangle );
+		::CheckDlgButton( hDlg, IDC_SOUND_NOISE,    context.noise    );
+		::CheckDlgButton( hDlg, IDC_SOUND_DPCM,     context.dpcm     );
+		::CheckDlgButton( hDlg, IDC_SOUND_EXTERNAL, context.external );
 	}
 
 	{
-		CheckDlgButton( hDlg, IDC_SOUND_ENABLE, enabled );
+		::CheckDlgButton( hDlg, IDC_SOUND_ENABLE, enabled );
 	}
 
 	{
-		HWND item = GetDlgItem( hDlg, IDC_SOUND_LATENCY );
+		HWND item = ::GetDlgItem( hDlg, IDC_SOUND_LATENCY );
 
-		SendMessage( item, TBM_SETRANGE, WPARAM(FALSE), LPARAM(MAKELONG(1,10)) );
-		SendMessage( item, TBM_SETPOS, WPARAM(TRUE), LPARAM(SelectedLatency) );
+		::SendMessage( item, TBM_SETRANGE, WPARAM(FALSE), LPARAM(MAKELONG(1,10)) );
+		::SendMessage( item, TBM_SETPOS, WPARAM(TRUE), LPARAM(SelectedLatency) );
 	}
 
 	{
-		HWND item = GetDlgItem( hDlg, IDC_SOUND_VOLUME );
+		HWND item = ::GetDlgItem( hDlg, IDC_SOUND_VOLUME );
 
-		SendMessage( item, TBM_SETRANGE, WPARAM(FALSE), LPARAM(MAKELONG(DSBVOLUME_MIN,DSBVOLUME_MAX)) );
-		SendMessage( item, TBM_SETPOS, WPARAM(TRUE), LPARAM(DSBVOLUME_MIN - SelectedVolume) );
+		::SendMessage( item, TBM_SETRANGE, WPARAM(FALSE), LPARAM(MAKELONG(DSBVOLUME_MIN,DSBVOLUME_MAX)) );
+		::SendMessage( item, TBM_SETPOS, WPARAM(TRUE), LPARAM(DSBVOLUME_MIN - SelectedVolume) );
 	}
 
 	if (!enabled)
@@ -733,11 +732,10 @@ VOID SOUNDMANAGER::SOUNDRECORDER::NotifySize()
 	{
 		if (WrittenBytes >= NST_1MB * 100 && !KeepGoing)
 		{
-			KeepGoing = application.OnQuestion
+			KeepGoing = UI::MsgQuestion
 			(
-				"Sound Recorder",
-				"You've wasted 100MB of hard drive space on the wave file " 
-				"recording so far. Are you sure you want to continue?"
+				IDS_SOUNDRECORD_WASTED_SPACE_1_2,
+				IDS_SOUNDRECORD_WASTED_SPACE_2_2
 			);
 
 			if (!KeepGoing)
@@ -874,31 +872,23 @@ VOID SOUNDMANAGER::SOUNDRECORDER::Reset(const BOOL msg)
 
 VOID SOUNDMANAGER::SOUNDRECORDER::OnBrowse(HWND hDlg)
 {
-	PDXSTRING file;
-	file.Buffer().Resize( NST_MAX_PATH );
-	file.Buffer().Front() = '\0';
+	PDXSTRING filename;
 
-	OPENFILENAME ofn;
-	PDXMemZero( ofn );
+	const BOOL succeeded = UTILITIES::BrowseSaveFile
+	(
+	    filename,
+		hDlg,
+		IDS_FILE_SAVE_WAVE,
+   		"WAVE Files (*.wav)\0"
+		"*.wav\0"
+		"All Files (*.*)\0"
+		"*.*\0",
+		NULL,
+		"wav"
+	);
 
-	ofn.lStructSize  = sizeof(ofn);
-	ofn.hwndOwner    = hWnd;
-	ofn.lpstrFilter  = "Wave Files (*.wav)\0*.wav\0All Files (*.*)\0*.*\0";
-	ofn.nFilterIndex = 1;
-	ofn.lpstrFile    = file.Begin();
-	ofn.lpstrTitle   = "Choose Wave File";
-	ofn.nMaxFile     = NST_MAX_PATH;
-	ofn.Flags        = OFN_HIDEREADONLY | OFN_PATHMUSTEXIST;
-
-	if (GetSaveFileName(&ofn))
-	{
-		file.Validate();
-
-		if (file.Length() && file.GetFileExtension().IsEmpty())
-			file += ".wav";
-
-		SetDlgItemText( hDlg, IDC_SOUND_CAPTURE_FILE, file.String() );
-	}
+	if (succeeded)
+		::SetDlgItemText( hDlg, IDC_SOUND_CAPTURE_FILE, filename.String() );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -907,7 +897,7 @@ VOID SOUNDMANAGER::SOUNDRECORDER::OnBrowse(HWND hDlg)
 
 VOID SOUNDMANAGER::SOUNDRECORDER::OnClear(HWND hDlg)
 {
-	SetDlgItemText( hDlg, IDC_SOUND_CAPTURE_FILE, "" );
+	::SetDlgItemText( hDlg, IDC_SOUND_CAPTURE_FILE, "" );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -916,19 +906,15 @@ VOID SOUNDMANAGER::SOUNDRECORDER::OnClear(HWND hDlg)
 
 VOID SOUNDMANAGER::SOUNDRECORDER::OnOk(HWND hDlg)
 {
-	PDXSTRING name;
-	
-	name.Buffer().Resize( NST_MAX_PATH );	
-	GetDlgItemText( hDlg, IDC_SOUND_CAPTURE_FILE, name.Begin(), NST_MAX_PATH );
-	
-	name.Validate();
-	
-	if (name.Length() && name.GetFileExtension().IsEmpty())
-		name += ".wav";
+	PDXSTRING filename;	
+	MANAGER::GetDlgItemText( hDlg, IDC_SOUND_CAPTURE_FILE, filename );
 
-	if (file != name)
+	if (filename.Length() && filename.GetFileExtension().IsEmpty())
+		filename += ".wav";
+
+	if (file != filename)
 	{
-		file = name;
+		file = filename;
 		Reset( FALSE );
 	}
 }
@@ -943,7 +929,7 @@ BOOL SOUNDMANAGER::SOUNDRECORDER::DialogProc(HWND hDlg,UINT uMsg,WPARAM wParam,L
 	{
      	case WM_INITDIALOG:
 
-			SetDlgItemText( hDlg, IDC_SOUND_CAPTURE_FILE, file.String() );
+			::SetDlgItemText( hDlg, IDC_SOUND_CAPTURE_FILE, file.String() );
 			return TRUE;
 
 		case WM_COMMAND:
@@ -952,14 +938,14 @@ BOOL SOUNDMANAGER::SOUNDRECORDER::DialogProc(HWND hDlg,UINT uMsg,WPARAM wParam,L
 			{
      			case IDC_SOUND_CAPTURE_BROWSE: OnBrowse( hDlg );     return TRUE;
 				case IDC_SOUND_CAPTURE_CLEAR:  OnClear( hDlg );      return TRUE;
-    			case IDC_SOUND_CAPTURE_OK:	  OnOk( hDlg );
-	       		case IDC_SOUND_CAPTURE_CANCEL: EndDialog( hDlg, 0 ); return TRUE;
+    			case IDC_SOUND_CAPTURE_OK:	   OnOk( hDlg );
+	       		case IDC_SOUND_CAPTURE_CANCEL: ::EndDialog( hDlg, 0 ); return TRUE;
 			}
 			return FALSE;
 
 		case WM_CLOSE:
 
-			EndDialog( hDlg, 0 );
+			::EndDialog( hDlg, 0 );
 			return TRUE;
 	}
 

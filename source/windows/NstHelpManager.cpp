@@ -26,9 +26,8 @@
 #define WIN32_LEAN_AND_MEAN
 #endif
 
-#include <windows.h>
+#include <Windows.h>
 #include <ShellAPI.h>
-#include "resource/resource.h"
 #include "NstHelpManager.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -48,11 +47,11 @@ licence (IDD_LICENCE)
 const CHAR* HELPMANAGER::ImportResource(const CHAR* name,const UINT id)
 {
 	HGLOBAL hGlobal;
-	HMODULE hModule = GetModuleHandle( NULL );		
-	HRSRC hRsrc = FindResource( hModule, MAKEINTRESOURCE(id), name );
+	HMODULE hModule = ::GetModuleHandle( NULL );		
+	HRSRC hRsrc = ::FindResource( hModule, MAKEINTRESOURCE(id), name );
 
-	if (hRsrc && (hGlobal = LoadResource( hModule, hRsrc )) && SizeofResource( hModule, hRsrc ))
-		return (const CHAR*) LockResource( hGlobal );
+	if (hRsrc && (hGlobal = ::LoadResource( hModule, hRsrc )) && ::SizeofResource( hModule, hRsrc ))
+		return (const CHAR*) ::LockResource( hGlobal );
 
 	return NULL;
 }
@@ -69,20 +68,20 @@ BOOL HELPMANAGER::ABOUT::DialogProc(HWND hDlg,UINT uMsg,WPARAM wParam,LPARAM)
 		{
 			const BOOL touching =
 			(
-			    HWND(wParam) == GetDlgItem( hDlg, IDC_ABOUT_GNU  ) || 
-				HWND(wParam) == GetDlgItem( hDlg, IDC_ABOUT_URL1 ) ||
-				HWND(wParam) == GetDlgItem( hDlg, IDC_ABOUT_URL2 )
+			    HWND(wParam) == ::GetDlgItem( hDlg, IDC_ABOUT_GNU  ) || 
+				HWND(wParam) == ::GetDlgItem( hDlg, IDC_ABOUT_URL1 ) ||
+				HWND(wParam) == ::GetDlgItem( hDlg, IDC_ABOUT_URL2 )
 			);
 
 			if (touching)
 			{
-				SetCursor( LoadCursor(NULL,IDC_UPARROW) );
-				SetWindowLong( hDlg, DWL_MSGRESULT, MAKELONG(TRUE,0) );
+				::SetCursor( ::LoadCursor(NULL,IDC_UPARROW) );
+				::SetWindowLong( hDlg, DWL_MSGRESULT, MAKELONG(TRUE,0) );
 			}
 			else
 			{
-				SetCursor( LoadCursor(NULL,IDC_ARROW) );
-				SetWindowLong( hDlg, DWL_MSGRESULT, MAKELONG(TRUE,0) );
+				::SetCursor( ::LoadCursor(NULL,IDC_ARROW) );
+				::SetWindowLong( hDlg, DWL_MSGRESULT, MAKELONG(TRUE,0) );
 			}
 			return TRUE;
 		}
@@ -95,9 +94,11 @@ BOOL HELPMANAGER::ABOUT::DialogProc(HWND hDlg,UINT uMsg,WPARAM wParam,LPARAM)
 				case IDC_ABOUT_URL1:
 				case IDC_ABOUT_URL2:
 				{
-					CHAR url[MAX_PATH];
-					GetDlgItemText( hDlg, LOWORD(wParam), url, MAX_PATH );
-					ShellExecute( hDlg, "open", url, NULL, NULL, SW_SHOWNORMAL );
+					PDXSTRING url;
+
+					if (MANAGER::GetDlgItemText( hDlg, LOWORD(wParam), url ))
+						::ShellExecute( hDlg, "open", url.Begin(), NULL, NULL, SW_SHOWNORMAL );
+
 					return TRUE;
 				}
 			}		
@@ -105,7 +106,7 @@ BOOL HELPMANAGER::ABOUT::DialogProc(HWND hDlg,UINT uMsg,WPARAM wParam,LPARAM)
 
      	case WM_CLOSE:
 
-     		EndDialog( hDlg, 0 );
+     		::EndDialog( hDlg, 0 );
      		return TRUE;
 	}
 
@@ -125,7 +126,7 @@ BOOL HELPMANAGER::LICENCE::DialogProc(HWND hDlg,UINT uMsg,WPARAM wParam,LPARAM)
 			const CHAR* string;
 
 			if (string = ImportResource( "copying", IDR_COPYING1 ))
-				SetDlgItemText( hDlg, IDC_LICENCE_EDIT, string );
+				::SetDlgItemText( hDlg, IDC_LICENCE_EDIT, string );
 
 			return TRUE;
 		}
@@ -136,7 +137,7 @@ BOOL HELPMANAGER::LICENCE::DialogProc(HWND hDlg,UINT uMsg,WPARAM wParam,LPARAM)
 			{
      			case IDC_LICENCE_OK:
 					
-					EndDialog( hDlg, 0 ); 
+					::EndDialog( hDlg, 0 ); 
 					return TRUE;
 			}		
 			return FALSE;

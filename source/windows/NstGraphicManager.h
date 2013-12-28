@@ -27,11 +27,8 @@
 #ifndef NST_GRAPHICMANAGER_H
 #define NST_GRAPHICMANAGER_H
 
-#include "NstDirectX.h"
 #include "NstManager.h"
-#include "resource/resource.h"
-
-class PDXFILE;
+#include "NstDirectDraw.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -57,14 +54,20 @@ public:
 	};
 
 	VOID SwitchToWindowed(const RECT&);
+	BOOL TestCooperativeLevel();
 
-	PDX_NO_INLINE BOOL OnFocus(const BOOL);
 	PDX_NO_INLINE VOID SwitchToFullScreen();
 	PDX_NO_INLINE VOID BeginDialogMode();
 	PDX_NO_INLINE VOID EndDialogMode();
 	PDX_NO_INLINE VOID LoadPalette(const PDXSTRING&);
 	PDX_NO_INLINE VOID SetScreenSize(const SCREENTYPE);
 	PDX_NO_INLINE VOID UpdateDirectDraw();
+
+	VOID EnableGDI(const BOOL);
+
+	VOID DisplayMsg (const PDXSTRING* const);
+	VOID DisplayNsf (const PDXSTRING&,const PDXSTRING&,const PDXSTRING&,const PDXSTRING&);
+	VOID DisplayFPS (DOUBLE);
 
 	PDX_NO_INLINE PDXRESULT SaveScreenShot();
 
@@ -75,9 +78,9 @@ public:
 
 private:
 
-	PDX_NO_INLINE VOID CreateDevice(GUID) throw(const CHAR*);	
-	PDX_NO_INLINE VOID ResetBpp() throw(const CHAR*);
-	PDX_NO_INLINE VOID EnableBpp() throw(const CHAR*);
+	PDX_NO_INLINE VOID CreateDevice(GUID);	
+	PDX_NO_INLINE VOID ResetBpp();
+	PDX_NO_INLINE VOID EnableBpp();
 	PDX_NO_INLINE VOID SetScreenSize(const SCREENTYPE,RECT&) const;
 	PDX_NO_INLINE VOID SetScreenSize(const SCREENTYPE,RECT&,const UINT,const UINT) const;
 
@@ -97,13 +100,12 @@ private:
 	PDX_NO_INLINE BOOL InitModes(const UINT,const UINT,const UINT);
 
 	VOID UpdateOffScreen();
-	VOID UpdateEmulation();
 	VOID UpdateColors();
 	VOID UpdateEffects();
 	VOID BrowsePalette();
 	VOID ClearPalette();
 	
-	PDX_NO_INLINE VOID CheckModeBounds() const throw(const CHAR*);
+	PDX_NO_INLINE VOID CheckModeBounds() const;
 
 	HWND hDlg;
 

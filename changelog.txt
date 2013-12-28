@@ -1,4 +1,48 @@
 ----------------------------------------------------------------
+1.07
+----------------------------------------------------------------
+
+Added support for file associations (preferences dialog).
+
+Added an option to select between single and multiple application instances (preferences dialog).
+
+Fixed a bug that caused the key mapping for a second joystick device to be reset every time Nestopia was restarted.
+
+Changed so that all Game Genie codes are saved on exit.
+
+Moved most of the on-screen-messages into the resource string table to make life easier for people making translation patches.
+
+Updated the rom database. Thanks again to [yang] for the new compilation.
+
+Fixed so that ns1..ns9 (save slots) files will show up when browsing files.
+
+Added command line parameter support.
+
+Added a status bar (menu).
+
+Added an FPS counter (menu).
+
+Added an option to force the window on top (menu).
+
+Added an option to disable the performance counter timer (timer dialog).
+
+Added an option to disable configuration saving on exit (preferences dialog).
+
+Added some more shortcut keys to the menu.
+
+Better multitasking.
+
+Added automatic thread priority control (preferences dialog).
+
+Changed so that even a totally screwed up iNes file header may pass thru the loader if the file can be found in the database.
+
+Improved the timers.
+
+Made new icons.
+
+Many bug fixes.
+
+----------------------------------------------------------------
 1.06
 ----------------------------------------------------------------
 

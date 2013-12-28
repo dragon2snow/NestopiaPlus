@@ -22,20 +22,25 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "resource/resource.h"
-#include "NstApplication.h"
-#include "NstGraphicManager.h"
-#include "NstGameGenieManager.h"
-#include "NstPreferences.h"
-#include "NstFileManager.h"
-#include "NstSaveStateManager.h"
-#include "NstMovieManager.h"
-#include "../NstZipFile.h"
-#include "../core/NstIps.h"
-#include "../core/NstNsp.h"
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+
+#include <Windows.h>
 #include <WindowsX.h>
 #include <ShlObj.h>
 #include "../paradox/PdxFile.h"
+#include "../NstZipFile.h"
+#include "../NstNes.h"
+#include "../core/NstIps.h"
+#include "../core/NstNsp.h"
+#include "NstFileManager.h"
+#include "NstSaveStateManager.h"
+#include "NstGraphicManager.h"
+#include "NstGameGenieManager.h"
+#include "NstMovieManager.h"
+#include "NstPreferences.h"
+#include "NstApplication.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -48,78 +53,6 @@
 #define NES_MAGIC_IPS  0x43544150UL
 #define NES_MAGIC_NST  0x1A54534EUL
 #define NES_MAGIC_NSV  0x1A564D4EUL
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-PDXRESULT FILEMANAGER::GetExeFileName(PDXSTRING& name)
-{
-	CHAR buffer[NST_MAX_PATH];
-	buffer[0] = '\0';
-
-	if (GetModuleFileName( NULL, buffer, NST_MAX_PATH-1 ) && buffer[0] != '\0')
-	{
-		name = buffer;
-		return PDX_OK;
-	}
-
-	name.Clear();
-
-	return PDX_FAILURE;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-PDXRESULT FILEMANAGER::GetExeFilePath(PDXSTRING& path)
-{
-	CHAR buffer[NST_MAX_PATH];
-	buffer[0] = '\0';
-
-	if (GetModuleFileName( NULL, buffer, NST_MAX_PATH-1 ) && buffer[0] != '\0')
-	{
-		path = buffer;
-		path = path.GetFilePath();
-
-		if (path.Length())
-		{
-			if (path.Back() != '\\')
-				path.InsertBack('\\');
-
-			return PDX_OK;
-		}
-	}
-
-	path.Clear();
-
-	return PDX_FAILURE;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-PDXRESULT FILEMANAGER::GetCurrentPath(PDXSTRING& path)
-{
-	CHAR buffer[NST_MAX_PATH];
-	buffer[0] = '\0';
-
-	if (GetCurrentDirectory( NST_MAX_PATH-1, buffer ) && buffer[0] != '\0')
-	{
-		path = buffer;
-
-		if (path.Back() != '\\')
-			path.InsertBack('\\');
-
-		return PDX_OK;
-	}
-
-	path.Clear();
-
-	return PDX_FAILURE;
-}
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -167,19 +100,7 @@ VOID FILEMANAGER::Create(CONFIGFILE* const ConfigFile)
 		NstPathLast = file[ "files last path nst"   ];
 		NspPathLast = file[ "files last path nsp"   ];
 
-		if (RomPath.IsEmpty() || GetFileAttributes(RomPath.String()) == INVALID_FILE_ATTRIBUTES)
-		{
-			if (PDX_FAILED(GetExeFilePath(RomPath)))
-				RomPath = "C:\\";
-		}
-
-		if (SavePath.IsEmpty()      || GetFileAttributes( SavePath.String()    ) == INVALID_FILE_ATTRIBUTES) SavePath    = RomPath;
-		if (NstPath.IsEmpty()       || GetFileAttributes( NstPath.String()     ) == INVALID_FILE_ATTRIBUTES) NstPath     = RomPath;
-		if (IpsPath.IsEmpty()       || GetFileAttributes( IpsPath.String()     ) == INVALID_FILE_ATTRIBUTES) IpsPath     = RomPath;
-		if (NspPath.IsEmpty()       || GetFileAttributes( NspPath.String()     ) == INVALID_FILE_ATTRIBUTES) NspPath     = RomPath;
-		if (RomPathLast.IsEmpty()   || GetFileAttributes( RomPathLast.String() ) == INVALID_FILE_ATTRIBUTES) RomPathLast = RomPath;
-		if (NstPathLast.IsEmpty()   || GetFileAttributes( NstPathLast.String() ) == INVALID_FILE_ATTRIBUTES) NstPathLast = NstPath;
-		if (NspPathLast.IsEmpty()   || GetFileAttributes( NspPathLast.String() ) == INVALID_FILE_ATTRIBUTES) NspPathLast = NspPath;
+		UpdatePaths();
 
 		UseRomPathLast      = (file[ "files use last image path"          ] == "no"  ? FALSE : TRUE);
 		UseNstPathLast      = (file[ "files use last nst path"            ] == "no"  ? FALSE : TRUE);
@@ -196,16 +117,16 @@ VOID FILEMANAGER::Create(CONFIGFILE* const ConfigFile)
 
 		const PDXSTRING* string;
 
-		string = &file["files recent 0"]; if (string && GetFileAttributes(string->String()) != INVALID_FILE_ATTRIBUTES) RecentFiles.InsertBack(*string);
-		string = &file["files recent 1"]; if (string && GetFileAttributes(string->String()) != INVALID_FILE_ATTRIBUTES) RecentFiles.InsertBack(*string);
-		string = &file["files recent 2"]; if (string && GetFileAttributes(string->String()) != INVALID_FILE_ATTRIBUTES) RecentFiles.InsertBack(*string);
-		string = &file["files recent 3"]; if (string && GetFileAttributes(string->String()) != INVALID_FILE_ATTRIBUTES) RecentFiles.InsertBack(*string);
-		string = &file["files recent 4"]; if (string && GetFileAttributes(string->String()) != INVALID_FILE_ATTRIBUTES) RecentFiles.InsertBack(*string);
-		string = &file["files recent 5"]; if (string && GetFileAttributes(string->String()) != INVALID_FILE_ATTRIBUTES) RecentFiles.InsertBack(*string);
-		string = &file["files recent 6"]; if (string && GetFileAttributes(string->String()) != INVALID_FILE_ATTRIBUTES) RecentFiles.InsertBack(*string);
-		string = &file["files recent 7"]; if (string && GetFileAttributes(string->String()) != INVALID_FILE_ATTRIBUTES) RecentFiles.InsertBack(*string);
-		string = &file["files recent 8"]; if (string && GetFileAttributes(string->String()) != INVALID_FILE_ATTRIBUTES) RecentFiles.InsertBack(*string);
-		string = &file["files recent 9"]; if (string && GetFileAttributes(string->String()) != INVALID_FILE_ATTRIBUTES) RecentFiles.InsertBack(*string);
+		string = &file["files recent 0"]; if (UTILITIES::FileExist( *string )) RecentFiles.InsertBack( *string );
+		string = &file["files recent 1"]; if (UTILITIES::FileExist( *string )) RecentFiles.InsertBack( *string );
+		string = &file["files recent 2"]; if (UTILITIES::FileExist( *string )) RecentFiles.InsertBack( *string );
+		string = &file["files recent 3"]; if (UTILITIES::FileExist( *string )) RecentFiles.InsertBack( *string );
+		string = &file["files recent 4"]; if (UTILITIES::FileExist( *string )) RecentFiles.InsertBack( *string );
+		string = &file["files recent 5"]; if (UTILITIES::FileExist( *string )) RecentFiles.InsertBack( *string );
+		string = &file["files recent 6"]; if (UTILITIES::FileExist( *string )) RecentFiles.InsertBack( *string );
+		string = &file["files recent 7"]; if (UTILITIES::FileExist( *string )) RecentFiles.InsertBack( *string );
+		string = &file["files recent 8"]; if (UTILITIES::FileExist( *string )) RecentFiles.InsertBack( *string );
+		string = &file["files recent 9"]; if (UTILITIES::FileExist( *string )) RecentFiles.InsertBack( *string );
 	}
 	else
 	{
@@ -228,14 +149,15 @@ VOID FILEMANAGER::Destroy(CONFIGFILE* const ConfigFile)
 	{
 		CONFIGFILE& file = *ConfigFile;
 
-		file[ "files path image"                   ] = RomPath;
-		file[ "files path battery"                 ] = SavePath;
-		file[ "files path nst"                     ] = NstPath;
-		file[ "files path ips"                     ] = IpsPath;
-		file[ "files path nsp"                     ] = NspPath;
-		file[ "files last path image"              ] = RomPathLast; 
-		file[ "files last path nst"                ] = NstPathLast;
-		file[ "files last path nsp"                ] = NspPathLast;
+		file[ "files path image"      ] = RomPath.Quoted();
+		file[ "files path battery"    ] = SavePath.Quoted();
+		file[ "files path nst"        ] = NstPath.Quoted();
+		file[ "files path ips"        ] = IpsPath.Quoted();
+		file[ "files path nsp"        ] = NspPath.Quoted();
+		file[ "files last path image" ] = RomPathLast.Quoted(); 
+		file[ "files last path nst"   ] = NstPathLast.Quoted();
+		file[ "files last path nsp"   ] = NspPathLast.Quoted();
+
 		file[ "files use last image path"          ] = (UseRomPathLast      ? "yes" : "no");
 		file[ "files use last nst path"            ] = (UseNstPathLast      ? "yes" : "no");
 		file[ "files use last nsp path"            ] = (UseNspPathLast      ? "yes" : "no");
@@ -249,16 +171,16 @@ VOID FILEMANAGER::Destroy(CONFIGFILE* const ConfigFile)
 		file[ "files auto import nst"              ] = (AutoImportNst       ? "yes" : "no");
 		file[ "files auto export nst"              ] = (AutoExportNst       ? "yes" : "no");
 
-		if (RecentFiles.Size() > 0) file[ "files recent 0" ] = RecentFiles[0];
-		if (RecentFiles.Size() > 1) file[ "files recent 1" ] = RecentFiles[1];
-		if (RecentFiles.Size() > 2) file[ "files recent 2" ] = RecentFiles[2];
-		if (RecentFiles.Size() > 3) file[ "files recent 3" ] = RecentFiles[3];
-		if (RecentFiles.Size() > 4) file[ "files recent 4" ] = RecentFiles[4];
-		if (RecentFiles.Size() > 5) file[ "files recent 5" ] = RecentFiles[5];
-		if (RecentFiles.Size() > 6) file[ "files recent 6" ] = RecentFiles[6];
-		if (RecentFiles.Size() > 7) file[ "files recent 7" ] = RecentFiles[7];
-		if (RecentFiles.Size() > 8) file[ "files recent 8" ] = RecentFiles[8];
-		if (RecentFiles.Size() > 9) file[ "files recent 9" ] = RecentFiles[9];
+		if (RecentFiles.Size() > 0) file[ "files recent 0" ] = RecentFiles[0].Quoted();
+		if (RecentFiles.Size() > 1) file[ "files recent 1" ] = RecentFiles[1].Quoted();
+		if (RecentFiles.Size() > 2) file[ "files recent 2" ] = RecentFiles[2].Quoted();
+		if (RecentFiles.Size() > 3) file[ "files recent 3" ] = RecentFiles[3].Quoted();
+		if (RecentFiles.Size() > 4) file[ "files recent 4" ] = RecentFiles[4].Quoted();
+		if (RecentFiles.Size() > 5) file[ "files recent 5" ] = RecentFiles[5].Quoted();
+		if (RecentFiles.Size() > 6) file[ "files recent 6" ] = RecentFiles[6].Quoted();
+		if (RecentFiles.Size() > 7) file[ "files recent 7" ] = RecentFiles[7].Quoted();
+		if (RecentFiles.Size() > 8) file[ "files recent 8" ] = RecentFiles[8].Quoted();
+		if (RecentFiles.Size() > 9) file[ "files recent 9" ] = RecentFiles[9].Quoted();
 	}								
 }
 
@@ -268,10 +190,7 @@ VOID FILEMANAGER::Destroy(CONFIGFILE* const ConfigFile)
 
 VOID FILEMANAGER::Reset()
 {
-	RomPath.Clear();
-
-	if (PDX_FAILED(GetExeFilePath(RomPath)))
-		RomPath = "C:\\";
+	UTILITIES::GetCurrentDir( RomPath );
 
 	SavePath    = RomPath;
 	NstPath     = RomPath;
@@ -312,13 +231,18 @@ VOID FILEMANAGER::UpdateContext()
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-VOID FILEMANAGER::ValidatePath(PDXSTRING& path)
+VOID FILEMANAGER::UpdatePaths()
 {
-	if (path.IsEmpty() || GetFileAttributes(path.String()) == INVALID_FILE_ATTRIBUTES)
-	{
-		if (PDX_FAILED(GetExeFilePath(path)))
-			path = "C:\\";
-	}
+	if (!UTILITIES::ValidateDir( RomPath ))
+		UTILITIES::GetCurrentDir( RomPath );
+
+	if (!UTILITIES::ValidateDir( SavePath    )) SavePath    = RomPath;
+	if (!UTILITIES::ValidateDir( NstPath     )) NstPath     = RomPath;
+	if (!UTILITIES::ValidateDir( IpsPath     )) IpsPath     = RomPath;
+	if (!UTILITIES::ValidateDir( NspPath     )) NspPath     = RomPath;
+	if (!UTILITIES::ValidateDir( RomPathLast )) RomPathLast = RomPath;
+	if (!UTILITIES::ValidateDir( NstPathLast )) NstPathLast = NstPath;
+	if (!UTILITIES::ValidateDir( NspPathLast )) NspPathLast = NspPath;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -329,66 +253,29 @@ VOID FILEMANAGER::UpdateSettings()
 {
 	PDX_ASSERT( hDlg );
 
-	RomPath.  Buffer().Resize( NST_MAX_PATH );
-	SavePath. Buffer().Resize( NST_MAX_PATH );
-	NstPath.  Buffer().Resize( NST_MAX_PATH );
-	IpsPath.  Buffer().Resize( NST_MAX_PATH );
-	NspPath.  Buffer().Resize( NST_MAX_PATH );
+	MANAGER::GetDlgItemText( hDlg, IDC_PATHS_IMAGE,   RomPath  );
+	MANAGER::GetDlgItemText( hDlg, IDC_PATHS_BATTERY, SavePath );
+	MANAGER::GetDlgItemText( hDlg, IDC_PATHS_NST,     NstPath  );
+	MANAGER::GetDlgItemText( hDlg, IDC_PATHS_IPS,     IpsPath  );
+	MANAGER::GetDlgItemText( hDlg, IDC_PATHS_NSP,     NspPath  );
 
-	RomPath.  Buffer().Front() = '\0';
-	SavePath. Buffer().Front() = '\0';
-	NstPath.  Buffer().Front() = '\0';
-	IpsPath.  Buffer().Front() = '\0';
-	NspPath.  Buffer().Front() = '\0';
+	UpdatePaths();
 
-	GetDlgItemText( hDlg, IDC_PATHS_IMAGE,   RomPath.Begin(),   NST_MAX_PATH );
-	GetDlgItemText( hDlg, IDC_PATHS_BATTERY, SavePath.Begin(),  NST_MAX_PATH );
-	GetDlgItemText( hDlg, IDC_PATHS_NST,     NstPath.Begin(),   NST_MAX_PATH );
-	GetDlgItemText( hDlg, IDC_PATHS_IPS,     IpsPath.Begin(),   NST_MAX_PATH );
-	GetDlgItemText( hDlg, IDC_PATHS_NSP,     NspPath.Begin(),   NST_MAX_PATH );
-
-	RomPath.   Validate();
-	SavePath.  Validate();
-	NstPath.   Validate();
-	IpsPath.   Validate();
-	NspPath.   Validate();
-
-	if (RomPath.Length()   && RomPath.Back()   != '\\') RomPath  += "\\";
-	if (SavePath.Length()  && SavePath.Back()  != '\\') SavePath += "\\";
-	if (NstPath.Length()   && NstPath.Back()   != '\\') NstPath  += "\\";
-	if (IpsPath.Length()   && IpsPath.Back()   != '\\') IpsPath  += "\\";
-	if (NspPath.Length()   && NspPath.Back()   != '\\') NspPath  += "\\";
-
-	ValidatePath( RomPath  );
-	ValidatePath( SavePath );
-	ValidatePath( NstPath  );
-	ValidatePath( IpsPath  );
-	ValidatePath( NspPath  );
-
-	UseRomPathLast      = IsDlgButtonChecked( hDlg, IDC_PATHS_IMAGE_LAST            ) == BST_CHECKED;  
-	DisableSaveRamWrite = IsDlgButtonChecked( hDlg, IDC_PATHS_BATTERY_PROTECT       ) == BST_CHECKED;  
-	UseSavePathRom      = IsDlgButtonChecked( hDlg, IDC_PATHS_BATTERY_IN_IMAGE      ) == BST_CHECKED;  
-	UseNspPathRom       = IsDlgButtonChecked( hDlg, IDC_PATHS_NSP_IN_IMAGE          ) == BST_CHECKED; 
-	UseNstPathRom       = IsDlgButtonChecked( hDlg, IDC_PATHS_NST_IN_IMAGE          ) == BST_CHECKED; 
-	UseIpsPathRom       = IsDlgButtonChecked( hDlg, IDC_PATHS_IPS_IN_IMAGE          ) == BST_CHECKED; 
-	AutoApplyIps        = IsDlgButtonChecked( hDlg, IDC_PATHS_IPS_AUTO_APPLY        ) == BST_CHECKED; 
-	AutoImportNst       = IsDlgButtonChecked( hDlg, IDC_PATHS_NST_AUTO_IMPORT       ) == BST_CHECKED; 
-	AutoExportNst       = IsDlgButtonChecked( hDlg, IDC_PATHS_NST_AUTO_EXPORT       ) == BST_CHECKED; 
-	AutoApplyNsp        = IsDlgButtonChecked( hDlg, IDC_PATHS_NSP_AUTO_APPLY        ) == BST_CHECKED; 
-	UseNspPathLast      = IsDlgButtonChecked( hDlg, IDC_PATHS_NSP_LAST              ) == BST_CHECKED; 
-	UseNstPathLast      = IsDlgButtonChecked( hDlg, IDC_PATHS_NST_LAST              ) == BST_CHECKED; 
+	UseRomPathLast      = ( ::IsDlgButtonChecked( hDlg, IDC_PATHS_IMAGE_LAST       ) == BST_CHECKED );  
+	DisableSaveRamWrite = ( ::IsDlgButtonChecked( hDlg, IDC_PATHS_BATTERY_PROTECT  ) == BST_CHECKED );  
+	UseSavePathRom      = ( ::IsDlgButtonChecked( hDlg, IDC_PATHS_BATTERY_IN_IMAGE ) == BST_CHECKED );  
+	UseNspPathRom       = ( ::IsDlgButtonChecked( hDlg, IDC_PATHS_NSP_IN_IMAGE     ) == BST_CHECKED ); 
+	UseNstPathRom       = ( ::IsDlgButtonChecked( hDlg, IDC_PATHS_NST_IN_IMAGE     ) == BST_CHECKED ); 
+	UseIpsPathRom       = ( ::IsDlgButtonChecked( hDlg, IDC_PATHS_IPS_IN_IMAGE     ) == BST_CHECKED ); 
+	AutoApplyIps        = ( ::IsDlgButtonChecked( hDlg, IDC_PATHS_IPS_AUTO_APPLY   ) == BST_CHECKED ); 
+	AutoImportNst       = ( ::IsDlgButtonChecked( hDlg, IDC_PATHS_NST_AUTO_IMPORT  ) == BST_CHECKED ); 
+	AutoExportNst       = ( ::IsDlgButtonChecked( hDlg, IDC_PATHS_NST_AUTO_EXPORT  ) == BST_CHECKED ); 
+	AutoApplyNsp        = ( ::IsDlgButtonChecked( hDlg, IDC_PATHS_NSP_AUTO_APPLY   ) == BST_CHECKED ); 
+	UseNspPathLast      = ( ::IsDlgButtonChecked( hDlg, IDC_PATHS_NSP_LAST         ) == BST_CHECKED ); 
+	UseNstPathLast      = ( ::IsDlgButtonChecked( hDlg, IDC_PATHS_NST_LAST         ) == BST_CHECKED ); 
 
 	application.GetSaveStateManager().EnableFileImport( AutoImportNst );
 	application.GetSaveStateManager().EnableFileExport( AutoExportNst );
-
-	if (!UseRomPathLast || RomPathLast.IsEmpty() || GetFileAttributes( RomPathLast.String() ) == INVALID_FILE_ATTRIBUTES)
-		RomPathLast = RomPath;
-
-	if (!UseNstPathLast || NstPathLast.IsEmpty() || GetFileAttributes( NstPathLast.String() ) == INVALID_FILE_ATTRIBUTES)
-		NstPathLast = NstPath;
-
-	if (!UseNspPathLast || NspPathLast.IsEmpty() || GetFileAttributes( NspPathLast.String() ) == INVALID_FILE_ATTRIBUTES)
-		NspPathLast = NspPath;
 
 	UpdateContext();
 }
@@ -415,8 +302,8 @@ BOOL FILEMANAGER::DialogProc(HWND h,UINT uMsg,WPARAM wParam,LPARAM)
 				{
 					PDXSTRING path;
 					
-					if (SelectPath( path, "Select your image file (*.nes,*.unf,*.fds,*.nsf) directory.." ))
-						SetDlgItemText( hDlg, IDC_PATHS_IMAGE, path.String() );
+					if (SelectPath( path, IDS_FILE_SELECT_IMAGE ))
+						::SetDlgItemText( hDlg, IDC_PATHS_IMAGE, path.String() );
 
 					return TRUE;
 				}
@@ -424,9 +311,9 @@ BOOL FILEMANAGER::DialogProc(HWND h,UINT uMsg,WPARAM wParam,LPARAM)
 				case IDC_PATHS_BATTERY_BROWSE:
 				{		
 					PDXSTRING path;
-					
-					if (SelectPath( path, "Select your save ram (*.sav) directory.." ))
-						SetDlgItemText( hDlg, IDC_PATHS_BATTERY, path.String() );
+
+					if (SelectPath( path, IDS_FILE_SELECT_BATTERY ))
+						::SetDlgItemText( hDlg, IDC_PATHS_BATTERY, path.String() );
 
 					return TRUE;
 				}
@@ -434,9 +321,9 @@ BOOL FILEMANAGER::DialogProc(HWND h,UINT uMsg,WPARAM wParam,LPARAM)
 				case IDC_PATHS_NST_BROWSE:
 				{
 					PDXSTRING path;
-					
-					if (SelectPath( path, "Select your save state (*.nst) directory.." ))
-						SetDlgItemText( hDlg, IDC_PATHS_NST, path.String() );
+
+					if (SelectPath( path, IDS_FILE_SELECT_NST ))
+						::SetDlgItemText( hDlg, IDC_PATHS_NST, path.String() );
 
 					return TRUE;
 				}
@@ -445,8 +332,8 @@ BOOL FILEMANAGER::DialogProc(HWND h,UINT uMsg,WPARAM wParam,LPARAM)
 				{
 					PDXSTRING path;
 
-					if (SelectPath( path, "Select your patch file (*.ips) directory.." ))
-						SetDlgItemText( hDlg, IDC_PATHS_IPS, path.String() );
+					if (SelectPath( path, IDS_FILE_SELECT_IPS ))
+						::SetDlgItemText( hDlg, IDC_PATHS_IPS, path.String() );
 
 					return TRUE;
 				}
@@ -455,8 +342,8 @@ BOOL FILEMANAGER::DialogProc(HWND h,UINT uMsg,WPARAM wParam,LPARAM)
 				{
 					PDXSTRING path;
 
-					if (SelectPath( path, "Select your game config file (*.nsp) directory.." ))
-						SetDlgItemText( hDlg, IDC_PATHS_NSP, path.String() );
+					if (SelectPath( path, IDS_FILE_SELECT_NSP ))
+						::SetDlgItemText( hDlg, IDC_PATHS_NSP, path.String() );
 
 					return TRUE;
 				}
@@ -467,22 +354,18 @@ BOOL FILEMANAGER::DialogProc(HWND h,UINT uMsg,WPARAM wParam,LPARAM)
 					UpdateDialog();
 					return TRUE;
 		
-				case IDC_PATHS_CANCEL:
-
-					EndDialog( hDlg, 0 );
-					return TRUE;
-
 				case IDC_PATHS_OK:
 		
 					UpdateSettings();
-					EndDialog( hDlg, 0 );
+					::EndDialog( hDlg, 0 );
 					return TRUE;
 			}
 			return FALSE;
 
 		case WM_CLOSE:
 
-			EndDialog( hDlg, 0 );
+			UpdateSettings();
+			::EndDialog( hDlg, 0 );
 			return TRUE;
 
 		case WM_DESTROY:
@@ -498,34 +381,136 @@ BOOL FILEMANAGER::DialogProc(HWND h,UINT uMsg,WPARAM wParam,LPARAM)
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-BOOL FILEMANAGER::SelectPath(PDXSTRING& path,const CHAR* const title)
+const PDXSTRING& FILEMANAGER::GetDefaultRomPath()
 {
-	CHAR name[NST_MAX_PATH];
+	if (!UTILITIES::PathExist( RomPath ))
+		UTILITIES::GetCurrentDir( RomPath );
+
+	return RomPath;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+const PDXSTRING& FILEMANAGER::GetRomPath()
+{
+	if (!UTILITIES::PathExist( RomPath ))
+		UTILITIES::GetCurrentDir( RomPath );
+
+	if (!UseRomPathLast)
+		return RomPath;
+
+	if (!UTILITIES::PathExist( RomPathLast ))
+		RomPathLast = RomPath;
+
+	return RomPathLast;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+const PDXSTRING& FILEMANAGER::GetSavePath()
+{
+	if (UseSavePathRom)
+		return GetRomPath();
+
+	if (!UTILITIES::PathExist( SavePath ))
+		SavePath = GetRomPath();
+
+	return SavePath; 
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+const PDXSTRING& FILEMANAGER::GetNstPath()
+{ 
+	if (!UTILITIES::PathExist( NstPath ))
+		NstPath = GetRomPath();
+
+	if (!UseNstPathLast)
+		return NstPath;
+
+	if (!UTILITIES::PathExist( NstPathLast ))
+		NstPathLast = NstPath;
+
+	return NstPathLast;  
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+const PDXSTRING& FILEMANAGER::GetIpsPath()
+{
+	if (UseIpsPathRom)
+		return GetRomPath();
+
+	if (!UTILITIES::PathExist( IpsPath ))
+		IpsPath = GetRomPath();
+
+	return IpsPath; 
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+const PDXSTRING& FILEMANAGER::GetNspPath()
+{
+	if (!UTILITIES::PathExist( NspPath ))
+		NspPath = GetRomPath();
+
+	if (!UseNspPathLast)
+		return NspPath;
+
+	if (!UTILITIES::PathExist( NspPathLast ))
+		NspPathLast = NspPath;
+
+	return NspPathLast;  
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+BOOL FILEMANAGER::SelectPath(PDXSTRING& path,const UINT TitleID)
+{
+	PDXSTRING title;
+
+	CHAR name[MAX_PATH+1];
 	name[0] = '\0';
 
 	BROWSEINFO bi;
 	PDXMemZero( bi );
 
-	bi.hwndOwner	  = hWnd;
+	bi.hwndOwner	  = hDlg;
 	bi.pszDisplayName = name;
-	bi.lpszTitle	  = title;
+	bi.lpszTitle	  = UTILITIES::IdToString(TitleID,title);
 	bi.ulFlags		  = BIF_RETURNONLYFSDIRS;
 
-	LPITEMIDLIST idl = SHBrowseForFolder( &bi );
+	LPITEMIDLIST idl = ::SHBrowseForFolder( &bi );
 
 	BOOL yep = FALSE;
 
 	if (idl)
 	{
-		if (SHGetPathFromIDList( idl, name ))
+		if (::SHGetPathFromIDList( idl, name ) && name[0] != '\0')
 		{
 			path = name;
+
+			if (path.Back() != '\\' && path.Back() != '/')
+				path.InsertBack('\\');
+
 			yep = TRUE;
 		}
 
 		LPMALLOC pMalloc;
 
-		if (SUCCEEDED(SHGetMalloc( &pMalloc ))) 
+		if (SUCCEEDED(::SHGetMalloc( &pMalloc ))) 
 		{
 			pMalloc->Free( idl );
 			pMalloc->Release();
@@ -541,62 +526,71 @@ BOOL FILEMANAGER::SelectPath(PDXSTRING& path,const CHAR* const title)
 
 VOID FILEMANAGER::UpdateDialog()
 {
-	SetDlgItemText( hDlg, IDC_PATHS_IMAGE,                 RomPath.String()    );
-	SetDlgItemText( hDlg, IDC_PATHS_BATTERY,               SavePath.String()   );
-	SetDlgItemText( hDlg, IDC_PATHS_NST,                   NstPath.String()    );
-	SetDlgItemText( hDlg, IDC_PATHS_IPS,                   IpsPath.String()    );
-	SetDlgItemText( hDlg, IDC_PATHS_NSP,                   NspPath.String()    );
-	CheckDlgButton( hDlg, IDC_PATHS_IMAGE_LAST,            UseRomPathLast      ); 
-	CheckDlgButton( hDlg, IDC_PATHS_BATTERY_IN_IMAGE,      UseSavePathRom      );
-	CheckDlgButton( hDlg, IDC_PATHS_NST_LAST,              UseNstPathLast      );
-	CheckDlgButton( hDlg, IDC_PATHS_NST_IN_IMAGE,          UseNstPathRom       );
-	CheckDlgButton( hDlg, IDC_PATHS_NST_AUTO_IMPORT,       AutoImportNst       );
-	CheckDlgButton( hDlg, IDC_PATHS_NST_AUTO_EXPORT,       AutoExportNst       );
-	CheckDlgButton( hDlg, IDC_PATHS_BATTERY_PROTECT,       DisableSaveRamWrite );
-	CheckDlgButton( hDlg, IDC_PATHS_IPS_IN_IMAGE,          UseIpsPathRom       );
-	CheckDlgButton( hDlg, IDC_PATHS_IPS_AUTO_APPLY,        AutoApplyIps        );
-	CheckDlgButton( hDlg, IDC_PATHS_NSP_IN_IMAGE,          UseNspPathRom       );
-	CheckDlgButton( hDlg, IDC_PATHS_NSP_AUTO_APPLY,        AutoApplyNsp        );
-	CheckDlgButton( hDlg, IDC_PATHS_NSP_LAST,              UseNspPathLast      );
+	::SetDlgItemText( hDlg, IDC_PATHS_IMAGE,   RomPath.String()  );
+	::SetDlgItemText( hDlg, IDC_PATHS_BATTERY, SavePath.String() );
+	::SetDlgItemText( hDlg, IDC_PATHS_NST,     NstPath.String()  );
+	::SetDlgItemText( hDlg, IDC_PATHS_IPS,     IpsPath.String()  );
+	::SetDlgItemText( hDlg, IDC_PATHS_NSP,     NspPath.String()  );
+
+	::CheckDlgButton( hDlg, IDC_PATHS_IMAGE_LAST,       UseRomPathLast      ); 
+	::CheckDlgButton( hDlg, IDC_PATHS_BATTERY_IN_IMAGE, UseSavePathRom      );
+	::CheckDlgButton( hDlg, IDC_PATHS_NST_LAST,         UseNstPathLast      );
+	::CheckDlgButton( hDlg, IDC_PATHS_NST_IN_IMAGE,     UseNstPathRom       );
+	::CheckDlgButton( hDlg, IDC_PATHS_NST_AUTO_IMPORT,  AutoImportNst       );
+	::CheckDlgButton( hDlg, IDC_PATHS_NST_AUTO_EXPORT,  AutoExportNst       );
+	::CheckDlgButton( hDlg, IDC_PATHS_BATTERY_PROTECT,  DisableSaveRamWrite );
+	::CheckDlgButton( hDlg, IDC_PATHS_IPS_IN_IMAGE,     UseIpsPathRom       );
+	::CheckDlgButton( hDlg, IDC_PATHS_IPS_AUTO_APPLY,   AutoApplyIps        );
+	::CheckDlgButton( hDlg, IDC_PATHS_NSP_IN_IMAGE,     UseNspPathRom       );
+	::CheckDlgButton( hDlg, IDC_PATHS_NSP_AUTO_APPLY,   AutoApplyNsp        );
+	::CheckDlgButton( hDlg, IDC_PATHS_NSP_LAST,         UseNspPathLast      );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT FILEMANAGER::Load(INT RecentFileIndex,const BOOL power)
+PDXRESULT FILEMANAGER::Load(const COMMAND command,const VOID* const param,const BOOL power)
 {
-	PDX_ASSERT(RecentFileIndex >= -1 && RecentFileIndex < LONG(RecentFiles.Size()));
-
-	application.GetGraphicManager().BeginDialogMode();
-
 	UpdatedRecentFile = FALSE;
 
 	PDXFILE file;
 	PDXRESULT result;
 
 	{
-     	PDXARRAY<PDXSTRING> extensions;	
-       	extensions.Resize( 9 );
+		PDXARRAY<PDXSTRING> extensions;	
+		extensions.Resize( 18 );
 
-     	extensions[0] = "nes";
-		extensions[1] = "unf";
-		extensions[2] = "unif";
-		extensions[3] = "fds";
-     	extensions[4] = "nsf";
-     	extensions[5] = "nst";
-		extensions[6] = "nsv";
-		extensions[7] = "nsp";
-		extensions[8] = "ips";
+     	extensions[0]  = "nes";
+		extensions[1]  = "unf";
+		extensions[2]  = "unif";
+		extensions[3]  = "fds";
+     	extensions[4]  = "nsf";
+     	extensions[5]  = "nst";
+		extensions[6]  = "nsv";
+		extensions[7]  = "nsp";
+		extensions[8]  = "ips";
+		extensions[9]  = "ns1";
+		extensions[10] = "ns2";
+		extensions[11] = "ns3";
+		extensions[12] = "ns4";
+		extensions[13] = "ns5";
+		extensions[14] = "ns6";
+		extensions[15] = "ns7";
+		extensions[16] = "ns8";
+		extensions[17] = "ns9";
 
      	result = LoadFile
 		( 
+		    command,
+			param,
      		file,
-			(GetFileAttributes(GetRomPath().String()) != INVALID_FILE_ATTRIBUTES ? GetRomPath().String() : NULL),
-     		"Open..",
+			&RomPathLast,
+			GetRomPath().String(),
+     		UTILITIES::IdToString(IDS_FILE_OPEN).String(),
 			(
 				"All supported files\0"
-				"*.nes;*.unf;*.fds;*.nsf;*.nst;*.nsp;*.nsv;*.ips;*.zip\0"
+				"*.nes;*.unf;*.fds;*.nsf;*.nst;*.nsp;*.nsv;*.ips;*.zip;*.ns1;*.ns2;*.ns3;*.ns4;*.ns5;*.ns6;*.ns7;*.ns8;*.ns9\0"
 				"iNes ROM Images (*.nes)\0"
 				"*.nes\0"
 				"UNIF ROM Images (*.unf)\0"
@@ -605,9 +599,9 @@ PDXRESULT FILEMANAGER::Load(INT RecentFileIndex,const BOOL power)
 				"*.fds\0"
 				"NES Sound Files (*.nsf)\0"
 				"*.nsf\0"
-				"Nestopia State Files (*.nst)\0"
-				"*.nst\0"
-				"Nestopia Game Configuration Files (*.nsp)\0"
+				"Nestopia State Files (*.nst,*.ns?)\0"
+				"*.nst;*.ns1;*.ns2;*.ns3;*.ns4;*.ns5;*.ns6;*.ns7;*.ns8;*.ns9\0"
+				"Nestopia Script Files (*.nsp)\0"
 				"*.nsp\0"
 				"Nestopia Movie Files (*.nsv)\0"
 				"*.nsv\0"
@@ -619,15 +613,13 @@ PDXRESULT FILEMANAGER::Load(INT RecentFileIndex,const BOOL power)
 				"*.*\0"									   
 			),
        		extensions,
-     		TRUE,
-       		RecentFileIndex
+     		ADD_RECENT_FILE
 		);
 	}
 
 	if (PDX_SUCCEEDED(result))
 	{
 		PDX_ASSERT(file.IsOpen());
-		RomPathLast = file.FilePath();
 
 		if (PDX_FAILED(LoadNesFile( file, power )))
 		{
@@ -638,8 +630,6 @@ PDXRESULT FILEMANAGER::Load(INT RecentFileIndex,const BOOL power)
 		}
 	}
 
-	application.GetGraphicManager().EndDialogMode();
-
 	return result;														
 }
 
@@ -647,12 +637,8 @@ PDXRESULT FILEMANAGER::Load(INT RecentFileIndex,const BOOL power)
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT FILEMANAGER::LoadNSP(INT RecentFileIndex,const BOOL power)
+PDXRESULT FILEMANAGER::LoadNSP(const COMMAND command,const VOID* const param,const BOOL power)
 {
-	PDX_ASSERT(RecentFileIndex >= -1 && RecentFileIndex < LONG(RecentFiles.Size()));
-
-	application.GetGraphicManager().BeginDialogMode();
-
 	UpdatedRecentFile = FALSE;
 
 	PDXFILE file;
@@ -664,13 +650,16 @@ PDXRESULT FILEMANAGER::LoadNSP(INT RecentFileIndex,const BOOL power)
 
 		result = LoadFile
 		( 
+		    command,
+			param,
 			file,
-			(GetFileAttributes(GetNspPath().String()) != INVALID_FILE_ATTRIBUTES ? GetNspPath().String() : NULL),
-			"Load Game Configuration",
+			&NspPathLast,
+			GetNspPath().String(),
+			UTILITIES::IdToString(IDS_FILE_LOAD_NSP).String(),
 			(
 				"All supported files (*.nsp, *.zip)\0"
 				"*.nsp;*.zip\0"
-				"Nestopia Game Configuration Files (*.nsp)\0"
+				"Nestopia Script Files (*.nsp)\0"
 				"*.nsp\0"
 				"Zip Files (*.zip)\0"
 				"*.zip\0"
@@ -678,15 +667,13 @@ PDXRESULT FILEMANAGER::LoadNSP(INT RecentFileIndex,const BOOL power)
 				"*.*\0"
 			),
 			extension,
-			TRUE,
-			RecentFileIndex
+			ADD_RECENT_FILE
 		);
 	}
 
 	if (PDX_SUCCEEDED(result))
 	{
 		PDX_ASSERT(file.IsOpen());
-		NspPathLast = file.FilePath();
 
 		if (PDX_FAILED(LoadNesFile( file, power )))
 		{
@@ -696,8 +683,6 @@ PDXRESULT FILEMANAGER::LoadNSP(INT RecentFileIndex,const BOOL power)
 			nes.Power( FALSE );
 		}
 	}
-
-	application.GetGraphicManager().EndDialogMode();
 
 	return result;
 }
@@ -714,31 +699,44 @@ PDXRESULT FILEMANAGER::LoadNST()
 	if (nes.IsOff())
 		nes.Power( TRUE );
 
-	application.GetGraphicManager().BeginDialogMode();
-
 	PDXFILE file;
 	PDXRESULT result;
 
 	{
-		PDXARRAY<PDXSTRING> extension;
-		extension.InsertBack(PDXSTRING("nst"));
+		PDXARRAY<PDXSTRING> extensions;
+		extensions.Resize( 10 );
+
+		extensions[0] = "nst";
+		extensions[1] = "ns1";
+		extensions[2] = "ns2";
+		extensions[3] = "ns3";
+		extensions[4] = "ns4";
+		extensions[5] = "ns5";
+		extensions[6] = "ns6";
+		extensions[7] = "ns7";
+		extensions[8] = "ns8";
+		extensions[9] = "ns9";
 
 		result = LoadFile
 		( 
+		    COMMAND_CHOOSE_FILE,
+			NULL,
 			file,
-			(GetFileAttributes(GetNstPath().String()) != INVALID_FILE_ATTRIBUTES ? GetNstPath().String() : NULL),
-			"Load State",
+			&NstPathLast,
+			GetNstPath().String(),
+			UTILITIES::IdToString(IDS_FILE_LOAD_NST).String(),
 			(
-	     		"All supported files (*.nst, *.zip)\0"
-	     		"*.nst;*.zip\0"
-	       		"Nestopia State Files (*.nst)\0"
-	     		"*.nst\0"
+	     		"All supported files (*.nst, *ns?, *.zip)\0"
+	     		"*.nst;*.ns1;*.ns2;*.ns3;*.ns4;*.ns5;*.ns6;*.ns7;*.ns8;*.ns9;*.zip\0"
+	       		"Nestopia State Files (*.nst, *ns?)\0"
+	     		"*.nst;*.ns1;*.ns2;*.ns3;*.ns4;*.ns5;*.ns6;*.ns7;*.ns8;*.ns9\0"
 				"Zip Files (*.zip)\0"
 				"*.zip\0"
 	     		"All files (*.*)\0"
 	       		"*.*\0"
 			),
-			extension
+			extensions,
+			DONT_ADD_RECENT_FILE
 		);
 	}
 
@@ -746,22 +744,18 @@ PDXRESULT FILEMANAGER::LoadNST()
 	{
 		PDX_ASSERT(file.IsOpen());
 
-		NstPathLast = file.FilePath();
-
 		if (file.Readable(sizeof(U32)))
 		{
 			if (file.Peek<U32>() == NES_MAGIC_NST)
 				result = LoadNesFile( file, TRUE );
 			else
-				result = application.OnWarning("Not a state file!");
+				result = UI::MsgWarning(IDS_FILE_INVALID_NST);
 		}
 		else
 		{
-			result = application.OnWarning("Corrupt file!");
+			result = UI::MsgWarning(IDS_FILE_CORRUPT);
 		}
 	}
-
-	application.GetGraphicManager().EndDialogMode();
 
 	return result;
 }
@@ -773,7 +767,7 @@ PDXRESULT FILEMANAGER::LoadNST()
 PDXRESULT FILEMANAGER::LoadNesFile(PDXFILE& file,const BOOL power)
 {
 	if (!file.Readable(sizeof(U32)))
-		return application.OnWarning("Corrupt file!");
+		return UI::MsgWarning(IDS_FILE_CORRUPT);
 	
 	PDXRESULT result = PDX_FAILURE;
 
@@ -805,6 +799,9 @@ PDXRESULT FILEMANAGER::LoadNesFile(PDXFILE& file,const BOOL power)
 		case NES_MAGIC_UNIF:
 		case NES_MAGIC_FDS:
 		{
+			if (nes.IsImage())
+				application.GetGameGenieManager().ClearCodes( TRUE );
+
 			NspLoaded = PDX_SUCCEEDED(ApplyNsp( file.Name(), NspContext, ShowWarnings ));
 
 			if (magic != NES_MAGIC_UNIF)
@@ -845,7 +842,7 @@ PDXRESULT FILEMANAGER::LoadNesFile(PDXFILE& file,const BOOL power)
 				return PDX_FAILURE;
 
 			if (PDX_FAILED(NES::IPS::Load( ImageFile, file )))
-				return application.OnWarning("IPS patching failed!");
+				return UI::MsgWarning(IDS_FILE_IPS_FAILED);
 
 			LastIpsFile = file.Name();
 
@@ -900,22 +897,21 @@ PDXRESULT FILEMANAGER::LoadNesFile(PDXFILE& file,const BOOL power)
 
 		default: // NSP
 		{
+			if (!file.Name().IsFileExtension( "nsp", 3 ))
+				return UI::MsgError(IDS_FILE_INVALID);
+
 			{
 				NES::NSP nsp;
 
 				if (PDX_FAILED(nsp.Load( file )))
-				{
-					return application.OnWarning
-					(
-					    file.FileExtension() == "nsp" ?
-						"Parse error!" :
-					    "Invalid file!"
-					);
-				}
+					return UI::MsgWarning(IDS_FILE_PARSE_ERROR);
 
 				NspLoaded = TRUE;
 				nsp.GetContext( NspContext );
 			}
+
+			if (nes.IsImage())
+				application.GetGameGenieManager().ClearCodes( TRUE );
 
 			PDXFILE ImageFile;
 
@@ -958,13 +954,12 @@ PDXRESULT FILEMANAGER::LoadNesFile(PDXFILE& file,const BOOL power)
 			{
 				ShowWarnings = FALSE;
 
-				PDXSTRING msg;
-
-				msg  = "NSV file: \"";
-				msg += NspContext.MovieFile;
-				msg += " was referenced but loading failed!";
-
-				application.OnWarning( msg.String() );
+				UI::MsgWarning
+				(  
+				    UTILITIES::IdToString(IDS_FILE_NSV_FAILED_1_2) <<
+					NspContext.MovieFile <<
+					UTILITIES::IdToString(IDS_FILE_NSV_FAILED_2_2)
+				);
 				
 				nes.CloseMovie();
 			}
@@ -995,18 +990,14 @@ PDXRESULT FILEMANAGER::LoadNesFile(PDXFILE& file,const BOOL power)
 		}
   
 		application.GetSaveStateManager().CacheSlots();
-		application.GetGameGenieManager().ClearAllCodes();
 
 		for (UINT i=0; i < NspContext.GenieCodes.Size(); ++i)
 		{
 			application.GetGameGenieManager().AddCode
 			(
 			    NspContext.GenieCodes[i].code,
-				TRUE,
-				(
-    				NspContext.GenieCodes[i].comment.Length() ? 
-					&NspContext.GenieCodes[i].comment : NULL
-				)
+				NspContext.GenieCodes[i].enabled,
+				&NspContext.GenieCodes[i].comment
 			);
 		}
 
@@ -1034,7 +1025,13 @@ PDXRESULT FILEMANAGER::ApplyRom(const PDXSTRING& AnyFileName,PDXFILE& ImageFile,
 
 	if (!ImageFile.IsOpen())
 	{
-		if (application.OnQuestion("Image file not found!","A matching image file couldn't be found. Do you want to specify it?"))
+		const BOOL yeah = UI::MsgQuestion
+		(
+		    IDS_FILE_IMAGE_NOT_FOUND_1_2,
+			IDS_FILE_IMAGE_NOT_FOUND_2_2
+		);
+
+		if (yeah)
 		{
 			PDXARRAY<PDXSTRING> extensions;	
 			extensions.Resize( 4 );
@@ -1044,11 +1041,14 @@ PDXRESULT FILEMANAGER::ApplyRom(const PDXSTRING& AnyFileName,PDXFILE& ImageFile,
 			extensions[2] = "unif";
 			extensions[3] = "fds";
 
-			PDX_TRY(LoadFile
+			const PDXRESULT result = LoadFile
 			( 
+			    COMMAND_CHOOSE_FILE,
+				NULL,
 				ImageFile,
-				(GetFileAttributes(GetRomPath().String()) != INVALID_FILE_ATTRIBUTES ? GetRomPath().String() : NULL),
-				"Open..",
+				NULL,
+				GetRomPath().String(),
+				UTILITIES::IdToString(IDS_FILE_OPEN).String(),
 				(
 					"All supported files\0"
 					"*.nes;*.unf;*.fds;*.zip\0"
@@ -1063,8 +1063,12 @@ PDXRESULT FILEMANAGER::ApplyRom(const PDXSTRING& AnyFileName,PDXFILE& ImageFile,
 					"All files (*.*)\0"
 					"*.*\0"									   
 				),
-				extensions
-			));
+				extensions,
+				DONT_ADD_RECENT_FILE
+			);
+
+			if (PDX_FAILED(result))
+				return PDX_FAILURE;
 		}
 	}
 
@@ -1072,7 +1076,7 @@ PDXRESULT FILEMANAGER::ApplyRom(const PDXSTRING& AnyFileName,PDXFILE& ImageFile,
 		return PDX_FAILURE;
 
 	if (!ImageFile.Readable(sizeof(U32)))
-		return application.OnWarning("File is corrupt!");
+		return UI::MsgWarning(IDS_FILE_CORRUPT);
 
 	return PDX_OK;
 }
@@ -1102,13 +1106,10 @@ PDXRESULT FILEMANAGER::ApplyNsp(const PDXSTRING& ImageName,NES::IO::NSP::CONTEXT
 			{
 				ShowWarning = FALSE;
 
-				PDXSTRING msg;
-
-				msg  = "NSP file: \"";
-				msg += NspName;
-				msg += " was found but parsing failed!";
-
-				application.OnWarning( msg.String() );
+				UI::MsgWarning
+				( 
+					PDXSTRING("NSP file: \"") << NspName << " was found but parsing failed!"
+				);
 			}
 		} 
 	}
@@ -1145,13 +1146,10 @@ PDXRESULT FILEMANAGER::ApplyIps(PDXFILE& ImageFile,PDXSTRING& IpsName,BOOL& Show
 			{
 				ShowWarning = FALSE;
 
-				PDXSTRING msg;
-
-				msg  = "IPS file: \"";
-				msg += IpsName;
-				msg += " was found but the image file couldn't be patched!";
-
-				application.OnWarning( msg.String() );
+				UI::MsgWarning
+				( 
+				    PDXSTRING("IPS file: \"") << IpsName << " was found but the image file couldn't be patched!"
+				);
 			}
 		} 
 	}
@@ -1192,13 +1190,10 @@ PDXRESULT FILEMANAGER::ApplyNst(PDXFILE& StateFile,PDXSTRING& StateName,BOOL& Sh
 		{
 			ShowWarning = FALSE;
 
-			PDXSTRING msg;
-
-			msg  = "State file: \"";
-			msg += StateName;
-			msg += " was referenced but not found!";
-
-			application.OnWarning( msg.String() );
+			UI::MsgWarning
+			( 
+    			PDXSTRING("State file: \"") << StateName << " was referenced but not found!"
+			);
 		}
 	}
 
@@ -1215,13 +1210,11 @@ BOOL FILEMANAGER::FindRom(const PDXSTRING& FileName,PDXSTRING& ImageName) const
 
 	ImageName = FileName;
 
-	PDXFILE ImageFile;
-
 	for (UINT i=0; i < 4; ++i)
 	{
 		ImageName.ReplaceFileExtension( types[i] );
 
-		if (PDX_SUCCEEDED(ImageFile.Open( ImageName, PDXFILE::INPUT )))
+		if (UTILITIES::FileExist( ImageName ))
 			return TRUE;
 	}
 
@@ -1231,7 +1224,7 @@ BOOL FILEMANAGER::FindRom(const PDXSTRING& FileName,PDXSTRING& ImageName) const
 	{
 		ImageName.ReplaceFileExtension( types[i] );
 
-		if (PDX_SUCCEEDED(ImageFile.Open( ImageName, PDXFILE::INPUT )))
+		if (UTILITIES::FileExist( ImageName ))
 			return TRUE;
 	}
 
@@ -1249,18 +1242,15 @@ BOOL FILEMANAGER::FindIps(const PDXSTRING& ImageName,PDXSTRING& IpsName) const
 		IpsName = ImageName;
 		IpsName.ReplaceFileExtension( "ips" );
 
-		PDXFILE IpsFile;
-
 		if (UseIpsPathRom)
 		{
-			if (PDX_SUCCEEDED(IpsFile.Open( IpsName, PDXFILE::INPUT )))
+			if (UTILITIES::FileExist( IpsName ))
 				return TRUE;
 		}
 
 		IpsName.ReplaceFilePath( IpsPath );
 
-		if (PDX_SUCCEEDED(IpsFile.Open( IpsName, PDXFILE::INPUT )))
-			return TRUE;
+		return UTILITIES::FileExist( IpsName );
 	}
 
 	return FALSE;
@@ -1275,20 +1265,15 @@ BOOL FILEMANAGER::FindSav(const PDXSTRING& ImageName,PDXSTRING& SaveName) const
 	SaveName = ImageName;
 	SaveName.ReplaceFileExtension( "sav" );
 
-	PDXFILE SaveFile;
-
 	if (UseSavePathRom)
 	{
-		if (PDX_SUCCEEDED(SaveFile.Open( SaveName, PDXFILE::INPUT )))
+		if (UTILITIES::FileExist( SaveName ))
 			return TRUE;
 	}
 
 	SaveName.ReplaceFilePath( SavePath );
 
-	if (PDX_SUCCEEDED(SaveFile.Open( SaveName, PDXFILE::INPUT )))
-		return TRUE;
-
-	return FALSE;
+	return UTILITIES::FileExist( SaveName );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -1302,18 +1287,15 @@ BOOL FILEMANAGER::FindNsp(const PDXSTRING& ImageName,PDXSTRING& NspName) const
 		NspName = ImageName;
 		NspName.ReplaceFileExtension( "nsp" );
 
-		PDXFILE NspFile;
-
 		if (UseNspPathRom)
 		{
-			if (PDX_SUCCEEDED(NspFile.Open( NspName, PDXFILE::INPUT )))
+			if (UTILITIES::FileExist( NspName ))
 				return TRUE;
 		}
 
 		NspName.ReplaceFilePath( UseNspPathLast ? NspPathLast : NspPath );
 
-		if (PDX_SUCCEEDED(NspFile.Open( NspName, PDXFILE::INPUT )))
-			return TRUE;
+		return UTILITIES::FileExist( NspName );
 	}
 
 	return FALSE;
@@ -1328,17 +1310,12 @@ BOOL FILEMANAGER::FindNst(const PDXSTRING& ImageName,PDXSTRING& NstName) const
 	NstName = ImageName;
 	NstName.ReplaceFileExtension( "nst" );
 
-	PDXFILE NstFile;
-
-	if (PDX_SUCCEEDED(NstFile.Open( NstName, PDXFILE::INPUT )))
+	if (UTILITIES::FileExist( NstName ))
 		return TRUE;
 
 	NstName.ReplaceFilePath( UseNstPathLast ? NstPathLast : NstPath );
 
-	if (PDX_SUCCEEDED(NstFile.Open( NstName, PDXFILE::INPUT )))
-		return TRUE;
-
-	return FALSE;
+	return UTILITIES::FileExist( NstName );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -1351,20 +1328,15 @@ BOOL FILEMANAGER::FindSlt(const UINT index,const PDXSTRING& ImageName,PDXSTRING&
 	SlotName.ReplaceFileExtension( "ns" );
 	SlotName << index;
 
-	PDXFILE SlotFile;
-
 	if (UseNstPathRom)
 	{
-		if (PDX_SUCCEEDED(SlotFile.Open( SlotName, PDXFILE::INPUT )))
+		if (UTILITIES::FileExist( SlotName ))
 			return TRUE;
 	}
 
 	SlotName.ReplaceFilePath( UseNstPathLast ? NstPathLast : NstPath );
 
-	if (PDX_SUCCEEDED(SlotFile.Open( SlotName, PDXFILE::INPUT )) && SlotFile.Size())
-		return TRUE;
-
-	return FALSE;
+	return UTILITIES::FileExist( SlotName );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -1373,87 +1345,103 @@ BOOL FILEMANAGER::FindSlt(const UINT index,const PDXSTRING& ImageName,PDXSTRING&
 
 PDXRESULT FILEMANAGER::LoadFile
 (
+    COMMAND command,
+	const VOID* const param,
     PDXFILE& file,
+	PDXSTRING* const TargetDir,
     const CHAR* const path,
 	const CHAR* const title,
 	const CHAR* const filter,
 	const PDXARRAY<PDXSTRING>& extensions,
-	const BOOL SaveRecentFiles,
-	const INT RecentFileIndex
+	const RECENT_FILE_COMMAND RecentFileCommand
 )
 {
-	PDX_ASSERT(!file.IsOpen());
+	PDX_ASSERT( !file.IsOpen() );
 
 	PDXSTRING filename;
 
-	if (RecentFileIndex == -1)
+	switch (command)
 	{
-		filename.Buffer().Resize( NST_MAX_PATH );
-		filename.Buffer().Front() = '\0';
-
-		OPENFILENAME ofn;
-		PDXMemZero( ofn );
-
-		ofn.lStructSize     = sizeof(ofn);
-		ofn.hwndOwner       = hWnd;
-		ofn.lpstrFilter     = filter;
-		ofn.nFilterIndex    = 1;
-		ofn.lpstrInitialDir	= path;
-		ofn.lpstrFile       = filename.Begin();
-		ofn.lpstrTitle      = title;
-		ofn.nMaxFile        = NST_MAX_PATH;
-		ofn.Flags           = OFN_FILEMUSTEXIST|OFN_PATHMUSTEXIST;
-
-		if (!GetOpenFileName( &ofn ))
-			return PDX_FAILURE;
-		
-		filename.Validate();
-
-		if (filename.GetFileExtension() == "zip")
+     	case COMMAND_CHOOSE_FILE:
 		{
-			if (!OpenZipFile( NULL, filename.String(), extensions, file ))
-				return application.OnWarning("Found nothing in zip file!");
-		}
-		else
-		{
-			if (PDX_FAILED(file.Open( filename, PDXFILE::INPUT )))
-				return application.OnWarning("Couldn't open file!");
-		}
-	}
-	else
-	{
-		filename = RecentFiles[RecentFileIndex];
-		const BOOL IsZip = filename.GetFileExtension() == "zip";
+			application.GetGraphicManager().BeginDialogMode();
+			const BOOL success = UTILITIES::BrowseOpenFile( filename, hWnd, title, filter, path );
+			application.GetGraphicManager().EndDialogMode();
 
-		if (RecentFileIndex == 0 && nes.IsOn())
-		{
-			if (IsZip && OpenZipFile( NULL, filename.String(), extensions, file, TRUE ) > 1)
+			if (!success)
+				return PDX_FAILURE;
+
+			if (TargetDir)
 			{
-				if (!OpenZipFile( NULL, filename.String(), extensions, file ))
+				*TargetDir = filename;
+				UTILITIES::ValidateDir( *TargetDir );
+			}
+			break;
+		}
+
+		case COMMAND_INPUT_FILE:
+		{
+			PDX_ASSERT( param );
+			filename = PDX_CAST(const CHAR*,param);
+			break;
+		}
+
+		case COMMAND_RECENT_FILE:
+		{
+			PDX_ASSERT( param );
+			const UINT RecentFileIndex = *PDX_CAST(const UINT*,param);
+
+			filename = RecentFiles[RecentFileIndex];
+			const BOOL IsZip = filename.IsFileExtension( "zip", 3 );
+
+			if (RecentFileIndex == 0 && nes.IsOn())
+			{
+				if (IsZip && OpenZipFile( NULL, filename.String(), extensions, file, TRUE ) > 1)
 				{
-					RecentFiles.Erase( RecentFiles.Begin() );
-					UpdatedRecentFile = TRUE;
-					return application.OnWarning("Found nothing in zip file!");
+					if (!OpenZipFile( NULL, filename.String(), extensions, file ))
+					{
+						RecentFiles.Erase( RecentFiles.Begin() );
+						UpdatedRecentFile = TRUE;
+						return UI::MsgWarning(IDS_FILE_ZIP_EMPTY);
+					}
+				}
+				else
+				{
+					return PDX_NOT_UPDATED;
 				}
 			}
 			else
 			{
-				return PDX_NOT_UPDATED;
-			}
-		}
-		else
-		{
-			if ((IsZip && !OpenZipFile(NULL,filename.String(),extensions,file)) || (!IsZip && PDX_FAILED(file.Open(filename,PDXFILE::INPUT))))
-			{
-				RecentFiles.Erase( RecentFiles.At(RecentFileIndex) );
-				UpdatedRecentFile = TRUE;
-				return application.OnWarning( IsZip ? "Found nothing in zip file!" : "Couldn't open file!" );
+				if ((IsZip && !OpenZipFile(NULL,filename.String(),extensions,file)) || (!IsZip && PDX_FAILED(file.Open(filename,PDXFILE::INPUT))))
+				{
+					RecentFiles.Erase( RecentFiles.At(RecentFileIndex) );
+					UpdatedRecentFile = TRUE;
+					return UI::MsgWarning(IsZip ? IDS_FILE_ZIP_EMPTY : IDS_FILE_OPEN_ERROR);
+				}
 			}
 		}
 	}
 
-	if (SaveRecentFiles)
-		AddRecentFile(filename.String());
+	switch (command)
+	{
+     	case COMMAND_CHOOSE_FILE:
+       	case COMMAND_INPUT_FILE:
+
+			if (filename.IsFileExtension( "zip", 3 ))
+			{
+				if (!OpenZipFile( NULL, filename.String(), extensions, file ))
+					return UI::MsgWarning(IDS_FILE_ZIP_EMPTY);
+			}
+			else
+			{
+				if (PDX_FAILED(file.Open( filename, PDXFILE::INPUT )))
+					return UI::MsgWarning(IDS_FILE_OPEN_ERROR);
+			}
+			break;
+	}
+
+	if (RecentFileCommand == ADD_RECENT_FILE)
+		AddRecentFile( filename.String() );
 
 	return PDX_OK;
 }
@@ -1499,27 +1487,35 @@ PDXRESULT FILEMANAGER::SaveNST()
 
 	application.GetGraphicManager().BeginDialogMode();
 
-	PDXFILE file;
+	PDXSTRING filename;
 
-	PDXRESULT result = SaveFile
-	( 
-	    file,
-		(GetFileAttributes(GetNstPath().String()) != INVALID_FILE_ATTRIBUTES ? GetNstPath().String() : NULL),
-		"Save State",
-		"Nestopia State Files (*.nst)\0*.nst\0All Files (*.*)\0*.*\0",
+	BOOL succeeded = UTILITIES::BrowseSaveFile
+	(
+	    filename,
+		hWnd,
+		IDS_FILE_SAVE_NST,
+     	"Nestopia State Files (*.nst)\0"
+		"*.nst\0"
+		"All Files (*.*)\0"
+		"*.*\0",
+		GetNstPath().String(),
 		"nst"
 	);
 
-	if (PDX_SUCCEEDED(result))
+	if (succeeded)
 	{
-		PDX_ASSERT(file.IsOpen());
-		NstPathLast = file.FilePath();
-		result = nes.SaveNST( file );
+		NstPathLast = filename;
+		UTILITIES::ValidateDir( NstPathLast );
+
+		PDXFILE file( filename, PDXFILE::OUTPUT );
+
+		if (succeeded = file.IsOpen())
+			succeeded = PDX_SUCCEEDED(nes.SaveNST( file ));
 	}
 
 	application.GetGraphicManager().EndDialogMode();
 
-	return result;
+	return succeeded ? PDX_OK : PDX_FAILURE;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -1533,39 +1529,48 @@ PDXRESULT FILEMANAGER::SaveNSP()
 
 	application.GetGraphicManager().BeginDialogMode();
 
-	PDXFILE file;
+	PDXSTRING filename;
 
-	PDXRESULT result = SaveFile
-	( 
-		file,
-		(GetFileAttributes(GetNspPath().String()) != INVALID_FILE_ATTRIBUTES ? GetNspPath().String() : NULL),
-		"Save Game Configuration",
-		"Nestopia Game Configuration Files (*.nsp)\0*.nsp\0All Files (*.*)\0*.*\0",
+	BOOL succeeded = UTILITIES::BrowseSaveFile
+	(
+	    filename,
+		hWnd,
+		IDS_FILE_SAVE_NSP,
+   		"Nestopia Script Files (*.nsp)\0"
+		"*.nsp\0"
+		"All Files (*.*)\0"
+		"*.*\0",
+		GetNspPath().String(),
 		"nsp"
 	);
 
-	if (PDX_SUCCEEDED(result))
+	if (succeeded)
 	{
-		PDX_ASSERT(file.IsOpen());
-		NspPathLast = file.FilePath();
-		
-		NES::IO::NSP::CONTEXT context;
-		
+		NspPathLast = filename;
+		UTILITIES::ValidateDir( NspPathLast );
+	}
+
+	PDXFILE file;
+
+	if (succeeded && (succeeded = PDX_SUCCEEDED(file.Open( filename, PDXFILE::OUTPUT ))))
+	{
+		NES::NSP::CONTEXT context;
+
 		context.ImageFile = LastImageFile;
 		context.IpsFile = LastIpsFile;
 
-		if (nes.GetCartridgeInfo()->battery)
+		if (nes.IsCartridge() && nes.GetCartridgeInfo()->battery)
 			context.SaveFile = LastSaveFile;
 
 		{
-			PDXFILE file;
+			PDXFILE SlotFile;
 
 			for (UINT i=0; i < SAVESTATEMANAGER::MAX_SLOTS; ++i)
 			{
-				const PDXSTRING& SlotFile = application.GetSaveStateManager().GetSlotFile(i+1);
+				const PDXSTRING& name = application.GetSaveStateManager().GetSlotFile(i+1);
 
-				if (SlotFile.Length() && PDX_SUCCEEDED(file.Open(SlotFile,PDXFILE::INPUT) && file.Size()))
-					context.StateSlots[i] = SlotFile;
+				if (name.Length() && PDX_SUCCEEDED(SlotFile.Open( name, PDXFILE::INPUT )) && SlotFile.Size())
+					context.StateSlots[i] = name;
 			}
 		}
 
@@ -1579,7 +1584,15 @@ PDXRESULT FILEMANAGER::SaveNSP()
 			context.GenieCodes.Resize( NumCodes );
 
 			for (UINT i=0; i < NumCodes; ++i)
-				application.GetGameGenieManager().GetCode( i, context.GenieCodes[i].code, &context.GenieCodes[i].comment );
+			{
+				application.GetGameGenieManager().GetCode
+				(
+					i, 
+					context.GenieCodes[i].code, 
+					context.GenieCodes[i].enabled,
+					&context.GenieCodes[i].comment 
+				);
+			}
 		}
 
 		context.pal = nes.IsPAL() ? 1 : 0;
@@ -1589,62 +1602,12 @@ PDXRESULT FILEMANAGER::SaveNSP()
 
 		NES::NSP nsp;
 		nsp.SetContext( context );
-		result = nsp.Save( file );
+		succeeded = PDX_SUCCEEDED(nsp.Save( file ));
 	}
 
 	application.GetGraphicManager().EndDialogMode();
 
-	return result;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-PDXRESULT FILEMANAGER::SaveFile
-(
-    PDXFILE& file,
-	const CHAR* const path,
-	const CHAR* const title,
-	const CHAR* const filter,
-	const CHAR* const extension
-)
-{
-	PDXSTRING filename;
-	filename.Buffer().Resize( NST_MAX_PATH );
-	filename.Buffer().Front() = '\0';
-
-	OPENFILENAME ofn;
-	PDXMemZero( ofn );
-
-	ofn.lStructSize     = sizeof(ofn);
-	ofn.hwndOwner       = hWnd;
-	ofn.lpstrFilter     = filter;
-	ofn.nFilterIndex    = 1;
-	ofn.lpstrInitialDir	= path;
-	ofn.lpstrFile       = filename.Begin();
-	ofn.lpstrTitle      = title;
-	ofn.nMaxFile        = NST_MAX_PATH;
-	ofn.Flags           = OFN_HIDEREADONLY|OFN_PATHMUSTEXIST;
-
-	if (GetSaveFileName(&ofn))
-	{
-		filename.Validate();
-
-		if (filename.GetFileExtension().IsEmpty())
-		{
-			filename += ".";
-			filename += extension;
-		}
-		else
-		{
-			filename.ReplaceFileExtension( extension );
-		}
-
-		return file.Open( filename, PDXFILE::OUTPUT );
-	}
-
-	return PDX_FAILURE;
+	return succeeded ? PDX_OK : PDX_FAILURE;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -1662,7 +1625,7 @@ UINT FILEMANAGER::OpenZipFile
 {
 	PDX_ASSERT(name && !ZipFile);
 
-	ZipDialogTitle = title ? title : "Choose File";
+	ZipDialogTitle = (title ? title : UTILITIES::IdToString(IDS_FILE_ZIP_TITLE).String());
 
 	ZipFile = new ZIPFILE();
 
@@ -1693,7 +1656,7 @@ UINT FILEMANAGER::OpenZipFile
 	{
 		DialogBoxParam
 		(
-			GetModuleHandle(NULL),
+			::GetModuleHandle(NULL),
 			MAKEINTRESOURCE(IDD_COMPRESSED_FILE),
 			hWnd,
 			CompressedFileDialogProc,
@@ -1737,9 +1700,9 @@ BOOL CALLBACK FILEMANAGER::CompressedFileDialogProc(HWND hDlg,UINT uMsg,WPARAM w
 			PDX_ASSERT( lParam && !fm );
 			fm = PDX_CAST(FILEMANAGER*,lParam);
 
-			SetWindowText( hDlg, fm->ZipDialogTitle.String() );
+			::SetWindowText( hDlg, fm->ZipDialogTitle.String() );
 
-			HWND hList = GetDlgItem( hDlg, IDC_COMPRESSED_FILE_LIST );
+			HWND hList = ::GetDlgItem( hDlg, IDC_COMPRESSED_FILE_LIST );
 
 			for (UINT i=0; i < fm->ZipFile->NumFiles(); ++i)
 				ListBox_AddString( hList, fm->ZipFile->FileName(i).String() );
@@ -1755,18 +1718,18 @@ BOOL CALLBACK FILEMANAGER::CompressedFileDialogProc(HWND hDlg,UINT uMsg,WPARAM w
 				case IDC_COMPRESSED_FILE_OK:
 		
 					PDX_ASSERT( fm );
-					fm->CompressedFileIndex = ListBox_GetCurSel( GetDlgItem( hDlg, IDC_COMPRESSED_FILE_LIST ) );
+					fm->CompressedFileIndex = ListBox_GetCurSel( ::GetDlgItem( hDlg, IDC_COMPRESSED_FILE_LIST ) );
 		
 				case IDC_COMPRESSED_FILE_CANCEL:
 		
-					EndDialog( hDlg, 0 );
+					::EndDialog( hDlg, 0 );
 					return TRUE;
 			}
 			return FALSE;
 
 		case WM_CLOSE:
 
-			EndDialog( hDlg, 0 );
+			::EndDialog( hDlg, 0 );
 			return TRUE;
 
 		case WM_DESTROY:

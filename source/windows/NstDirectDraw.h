@@ -31,7 +31,6 @@
 #define DIRECTDRAW_VERSION 0x0700
 
 #include <ddraw.h>
-#include "../paradox/PdxArray.h"
 #include "../NstNes.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -56,30 +55,28 @@ public:
 	};
 
 	BOOL Present();
+
+	PDX_NO_INLINE VOID RedrawNesScreen();
 	PDX_NO_INLINE VOID Repaint();
 
 	NES::IO::GFX* GetFormat();
 
 	PDXRESULT Lock(NES::IO::GFX&);
-	PDXRESULT Unlock() throw(const CHAR*);
+	PDXRESULT Unlock();
 
 	BOOL DoVSync();
 
-	PDX_NO_INLINE VOID EnableGDI(const BOOL) throw(const CHAR*);
-	PDX_NO_INLINE VOID UpdateScreenRect(const RECT&,const BOOL=FALSE);
+	PDX_NO_INLINE VOID UpdateScreenRect(const RECT&);
 
-	BOOL TryClearScreen();
 	BOOL UpdateRefresh(const BOOL,const UINT);
+	UINT GetRefreshRate() const;
 
 	BOOL IsGDI()      const;
 	BOOL IsReady()    const;
 	BOOL IsWindowed() const;
 
 	UINT GetPixel(const UINT,const UINT) const;
-
-	VOID Print(const CHAR* const,const UINT,const UINT,const ULONG,const UINT=0);
-
-	VOID ClearScreen();
+	BOOL ClearScreen(const BOOL=TRUE,const BOOL=FALSE);
 	VOID ClearNesScreen();
 
 	LPDIRECTDRAW7 GetDevice();
@@ -99,17 +96,21 @@ public:
 
 	const DDSURFACEDESC2& GetNesDesc() const;
 
+	LPDIRECTDRAWSURFACE7 GetFrontBuffer() const;
+	LPDIRECTDRAWSURFACE7 GetBackBuffer()  const;
+
 protected:
 
 	DIRECTDRAW();				 
 	~DIRECTDRAW();
 
-	PDX_NO_INLINE VOID Initialize(HWND) throw(const CHAR*);
+	PDX_NO_INLINE VOID Initialize(HWND);
 	PDX_NO_INLINE VOID Destroy();
-	PDX_NO_INLINE VOID SwitchToFullScreen(const UINT,const UINT,const UINT,const RECT&) throw(const CHAR*);
-	PDX_NO_INLINE VOID SwitchToWindowed(const RECT&,const BOOL=FALSE) throw(const CHAR*);
-	PDX_NO_INLINE BOOL Create(const GUID&,const BOOL=FALSE) throw(const CHAR*);
-	PDX_NO_INLINE VOID CreateClipper() throw(const CHAR*);
+	PDX_NO_INLINE VOID SwitchToFullScreen(const UINT,const UINT,const UINT,const RECT&);
+	PDX_NO_INLINE VOID SwitchToWindowed(const RECT&,const BOOL=FALSE);
+	PDX_NO_INLINE BOOL Create(const GUID&,const BOOL=FALSE);
+	PDX_NO_INLINE VOID CreateClipper();
+	PDX_NO_INLINE INT EnableGDI(const BOOL);
 
 	const DDCAPS& GetHalCaps() const;
 	const DDCAPS& GetHelCaps() const;
@@ -129,7 +130,7 @@ protected:
 	};
 
 	VOID ReleaseBuffers();
-	BOOL LockNesBuffer(DDSURFACEDESC2&) throw(const CHAR*);
+	BOOL LockNesBuffer(DDSURFACEDESC2&);
 
 	PDX_NO_INLINE VOID SetScreenParameters(const SCREENEFFECT,const BOOL,const RECT&,const RECT* const=NULL);
 
@@ -144,10 +145,9 @@ private:
 
 	PDX_NO_INLINE BOOL Validate(const HRESULT=DD_OK);
 	PDX_NO_INLINE VOID UpdatePalette(const U8* const);
-	PDX_NO_INLINE VOID CreateScreenBuffers() throw(const CHAR*);
-	PDX_NO_INLINE VOID CreateNesBuffer() throw(const CHAR*);
+	PDX_NO_INLINE VOID CreateScreenBuffers();
+	PDX_NO_INLINE VOID CreateNesBuffer();
 
-	VOID Wait();
 	VOID UpdateNesBuffer();
 	VOID ClearSurface(LPDIRECTDRAWSURFACE7,const DWORD=0);
 	VOID DrawWindowText();
@@ -174,9 +174,9 @@ private:
 
 	SCREENEFFECT ScreenEffect;
 
-	RECT NesRect;
-	RECT NesBltRect;
-	RECT ScreenRect;
+	RECT rcNes;
+	RECT rcNesBlt;
+	RECT rcScreen;
 
 	BOOL  windowed;
 	BOOL  ready;
@@ -191,7 +191,7 @@ private:
 	BOOL  Use2xSaI565;
 	BOOL  IsNesBuffer2xSaI;
 	UINT  FrameLatency;
-	
+
 	DDSURFACEDESC2 FrontDesc;
 	DDSURFACEDESC2 BackDesc;
 	DDSURFACEDESC2 NesDesc;
@@ -281,7 +281,7 @@ protected:
 
 private:
 
-	enum {MAX_FRAME_LATENCY = 3};
+	enum {MAX_FRAME_LATENCY=3};
 
 	BOOL CheckReady() const;
 
@@ -305,7 +305,7 @@ private:
 		U16 conv[CONV_BUFFER_LENGTH];
 	};
 
-	PIXELDATA* const PixelData;
+	PIXELDATA* PixelData;
 };
 
 #include "NstDirectDraw.inl"

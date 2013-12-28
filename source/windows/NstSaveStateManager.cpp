@@ -22,12 +22,16 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+
 #include <Windows.h>
 #include "../paradox/PdxString.h"
 #include "../paradox/PdxMap.h"
-#include "resource/resource.h"
-#include "NstApplication.h"
 #include "NstSaveStateManager.h"
+#include "NstFileManager.h"
+#include "NstApplication.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -55,21 +59,6 @@ ExportFile (FALSE)
 VOID SAVESTATEMANAGER::Create(CONFIGFILE* const)
 {
 	Reset();
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-BOOL SAVESTATEMANAGER::IsActive() const
-{
-	return
-	(
-     	nes.IsOn() && 
-     	nes.IsImage() &&
-    	!nes.IsPaused() && 
-    	application.IsActive()
-	);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -109,7 +98,7 @@ VOID SAVESTATEMANAGER::SetFileName(const UINT index,const PDXSTRING& filename)
 			{
 				WIN32_FILE_ATTRIBUTE_DATA attribute;
 
-				if (GetFileAttributesEx(slots[i].filename.String(),GetFileExInfoStandard,PDX_CAST(LPVOID,&attribute)))
+				if (::GetFileAttributesEx(slots[i].filename.String(),GetFileExInfoStandard,PDX_CAST(LPVOID,&attribute)))
 					tree[PDX_CAST_REF(const U64,attribute.ftLastWriteTime.dwLowDateTime)] = i;
 			}
 		}
@@ -138,7 +127,7 @@ VOID SAVESTATEMANAGER::CacheSlots()
 		{
 			slots[i].data = file.Buffer();
 
-			application.LogFile().Output
+			LOGFILE::Output
 			(
      			"SAVESTATE: imported ",
 				slots[i].filename,
@@ -170,7 +159,7 @@ VOID SAVESTATEMANAGER::FlushSlots() const
 
 			if (PDX_SUCCEEDED(file.Close()))
 			{
-				application.LogFile().Output
+				LOGFILE::Output
 				(
 					"SAVESTATE: exported slot ",
 					(i+1),
@@ -180,7 +169,7 @@ VOID SAVESTATEMANAGER::FlushSlots() const
 			}
 			else
 			{
-				application.LogFile().Output
+				LOGFILE::Output
 				(
 					"SAVESTATE: failed to export slot ",
 					(i+1),
@@ -198,7 +187,7 @@ VOID SAVESTATEMANAGER::FlushSlots() const
 
 PDXRESULT SAVESTATEMANAGER::LoadState(UINT index)
 {
-	if (!IsActive())
+	if (!application.IsRunning())
 		return PDX_FAILURE;
 
 	index = IndexToSlot( index );
@@ -221,7 +210,7 @@ PDXRESULT SAVESTATEMANAGER::LoadState(UINT index)
 	{
 		slot.data = file.Buffer();
 
-		application.LogFile().Output
+		LOGFILE::Output
 		(
 			"SAVESTATE: imported ",
 			slot.filename,
@@ -232,7 +221,7 @@ PDXRESULT SAVESTATEMANAGER::LoadState(UINT index)
 		return PDX_OK;
 	}
 
-	application.LogFile().Output
+	LOGFILE::Output
 	(
 		"SAVESTATE: failed to import ",
 		slot.filename,
@@ -251,7 +240,7 @@ PDXRESULT SAVESTATEMANAGER::SaveState(UINT index)
 {
 	PDX_ASSERT( index <= MAX_SLOTS );
 
-	if (!IsActive())
+	if (!application.IsRunning())
 		return PDX_FAILURE;
 
 	if (index == NEXT_SLOT)
@@ -272,7 +261,7 @@ PDXRESULT SAVESTATEMANAGER::SaveState(UINT index)
 	{
 		file.Abort();
 
-		application.LogFile().Output
+		LOGFILE::Output
 		(
 			"SAVESTATE: failed to save to slot ",
 			LastSlot
@@ -289,7 +278,7 @@ PDXRESULT SAVESTATEMANAGER::SaveState(UINT index)
 
 		if (PDX_FAILED(file.Close()))
 		{
-			application.LogFile().Output
+			LOGFILE::Output
 			(
 				"SAVESTATE: exported slot ",
 				LastSlot,
@@ -299,7 +288,7 @@ PDXRESULT SAVESTATEMANAGER::SaveState(UINT index)
 		}
 		else
 		{
-			application.LogFile().Output
+			LOGFILE::Output
 			(
 				"SAVESTATE: failed to export slot ",
 				LastSlot,
@@ -329,7 +318,7 @@ VOID CALLBACK SAVESTATEMANAGER::OnAutoSaveProc(HWND,UINT,UINT_PTR,DWORD)
 
 VOID SAVESTATEMANAGER::OnAutoSave()
 {
-	if (IsActive())
+	if (application.IsRunning())
 	{
 		UINT NoFile;
 
@@ -376,7 +365,7 @@ VOID SAVESTATEMANAGER::UpdateAutoSaveTimer()
 {
 	if (AutoSave.enabled)
 	{
-		SetTimer
+		::SetTimer
 		( 
     		hWnd, 
     		APPLICATION::TIMER_ID_AUTO_SAVE, 
@@ -386,7 +375,7 @@ VOID SAVESTATEMANAGER::UpdateAutoSaveTimer()
 	}
 	else
 	{
-		KillTimer(hWnd,APPLICATION::TIMER_ID_AUTO_SAVE); 
+		::KillTimer(hWnd,APPLICATION::TIMER_ID_AUTO_SAVE); 
 	}
 }
 
@@ -396,10 +385,10 @@ VOID SAVESTATEMANAGER::UpdateAutoSaveTimer()
 
 VOID SAVESTATEMANAGER::UpdateDialog(HWND hDlg)
 {
-	SetDlgItemText( hDlg, IDC_AUTOSAVE_FILE, AutoSave.filename.String() );	
-	SetDlgItemInt( hDlg, IDC_AUTOSAVE_TIME, NST_FROM_MILLI(AutoSave.time), FALSE );	
-	CheckDlgButton( hDlg, IDC_AUTOSAVE_ENABLED, AutoSave.enabled );
-	CheckDlgButton( hDlg, IDC_AUTOSAVE_ENABLE_MSG, AutoSave.msg );
+	::SetDlgItemText( hDlg, IDC_AUTOSAVE_FILE, AutoSave.filename.String() );	
+	::SetDlgItemInt( hDlg, IDC_AUTOSAVE_TIME, NST_FROM_MILLI(AutoSave.time), FALSE );	
+	::CheckDlgButton( hDlg, IDC_AUTOSAVE_ENABLED, AutoSave.enabled );
+	::CheckDlgButton( hDlg, IDC_AUTOSAVE_ENABLE_MSG, AutoSave.msg );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -410,12 +399,12 @@ VOID SAVESTATEMANAGER::UpdateDialogTime(HWND hDlg,const WPARAM wParam)
 {
 	if (HIWORD(wParam) == EN_KILLFOCUS)
 	{
-		UINT value = GetDlgItemInt( hDlg, IDC_AUTOSAVE_TIME, NULL, FALSE );
+		UINT value = ::GetDlgItemInt( hDlg, IDC_AUTOSAVE_TIME, NULL, FALSE );
 		
 		if (value < 1)
 			value = 1;
 
-		SetDlgItemInt( hDlg, IDC_AUTOSAVE_TIME, value, FALSE );
+		::SetDlgItemInt( hDlg, IDC_AUTOSAVE_TIME, value, FALSE );
 	}
 }
 
@@ -425,20 +414,20 @@ VOID SAVESTATEMANAGER::UpdateDialogTime(HWND hDlg,const WPARAM wParam)
 
 VOID SAVESTATEMANAGER::UpdateSettings(HWND hDlg)
 {
-	AutoSave.time    = NST_TO_MILLI(GetDlgItemInt( hDlg, IDC_AUTOSAVE_TIME, NULL, FALSE ));
-	AutoSave.enabled = (IsDlgButtonChecked( hDlg, IDC_AUTOSAVE_ENABLED    ) == BST_CHECKED);
-	AutoSave.msg     = (IsDlgButtonChecked( hDlg, IDC_AUTOSAVE_ENABLE_MSG ) == BST_CHECKED);
+	AutoSave.time    = NST_TO_MILLI(::GetDlgItemInt( hDlg, IDC_AUTOSAVE_TIME, NULL, FALSE ));
+	AutoSave.enabled = (::IsDlgButtonChecked( hDlg, IDC_AUTOSAVE_ENABLED    ) == BST_CHECKED);
+	AutoSave.msg     = (::IsDlgButtonChecked( hDlg, IDC_AUTOSAVE_ENABLE_MSG ) == BST_CHECKED);
 
 	if (AutoSave.time < NST_TO_MILLI(1))
 		AutoSave.time = NST_TO_MILLI(1);
 
 	AutoSave.filename.Clear();
 
-    CHAR buffer[NST_MAX_PATH];
+	PDXSTRING filename;
 
-	if (GetDlgItemText( hDlg, IDC_AUTOSAVE_FILE, buffer, NST_MAX_PATH-1 ))
+	if (MANAGER::GetDlgItemText( hDlg, IDC_AUTOSAVE_FILE, filename ))
 	{
-		AutoSave.filename = buffer;
+		AutoSave.filename = filename;
 
 		if (AutoSave.filename.Length() && AutoSave.filename.GetFileExtension().IsEmpty())
 			AutoSave.filename.Append( ".nst" );
@@ -452,31 +441,22 @@ VOID SAVESTATEMANAGER::UpdateSettings(HWND hDlg)
 VOID SAVESTATEMANAGER::OnBrowse(HWND hDlg)
 {
 	PDXSTRING filename;
-	filename.Buffer().Resize( NST_MAX_PATH );
-	filename.Buffer().Front() = '\0';
 
-	OPENFILENAME ofn;
-	PDXMemZero( ofn );
+	const BOOL succeeded = UTILITIES::BrowseSaveFile
+	(
+	    filename,
+		hDlg,
+		IDS_AUTOSAVER_SELECT_NST,
+   		"NES State (*.nst)\0"
+		"*.nst\0"
+		"All Files (*.*)\0"
+		"*.*\0",
+		application.GetFileManager().GetNstPath().String(),
+		"nst"
+	);
 
-	ofn.lStructSize     = sizeof(ofn);
-	ofn.hwndOwner       = hWnd;
-	ofn.lpstrFilter     = "NES State (*.nst)\0*.nst\0All Files (*.*)\0*.*\0";
-	ofn.nFilterIndex    = 1;
-	ofn.lpstrInitialDir	= application.GetFileManager().GetNstPath().String();
-	ofn.lpstrFile       = filename.Begin();
-	ofn.lpstrTitle      = "Save State File";
-	ofn.nMaxFile        = NST_MAX_PATH;
-	ofn.Flags           = OFN_HIDEREADONLY | OFN_PATHMUSTEXIST;
-
-	if (GetSaveFileName(&ofn))
-	{
-		filename.Validate();
-
-		if (filename.Length() && filename.GetFileExtension().IsEmpty())
-			filename.Append( ".nst" );
-
-		SetDlgItemText( hDlg, IDC_AUTOSAVE_FILE, filename.String() );
-	}
+	if (succeeded)
+		::SetDlgItemText( hDlg, IDC_AUTOSAVE_FILE, filename.String() );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -485,7 +465,7 @@ VOID SAVESTATEMANAGER::OnBrowse(HWND hDlg)
 
 VOID SAVESTATEMANAGER::OnClear(HWND hDlg)
 {
-	SetDlgItemText( hDlg, IDC_AUTOSAVE_FILE, "" );
+	::SetDlgItemText( hDlg, IDC_AUTOSAVE_FILE, "" );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -509,13 +489,13 @@ BOOL SAVESTATEMANAGER::DialogProc(HWND hDlg,UINT uMsg,WPARAM wParam,LPARAM)
     			case IDC_AUTOSAVE_BROWSE: OnBrowse( hDlg ); return TRUE;
 				case IDC_AUTOSAVE_TIME:   UpdateDialogTime( hDlg, wParam ); return TRUE;
 				case IDC_AUTOSAVE_OK:     UpdateSettings( hDlg );
-				case IDC_AUTOSAVE_CANCEL: EndDialog( hDlg, 0 ); return TRUE;
+				case IDC_AUTOSAVE_CANCEL: ::EndDialog( hDlg, 0 ); return TRUE;
 			}		
 			return FALSE;
 
      	case WM_CLOSE:
 
-     		EndDialog( hDlg, 0 );
+     		::EndDialog( hDlg, 0 );
      		return TRUE;
 
 		case WM_DESTROY:

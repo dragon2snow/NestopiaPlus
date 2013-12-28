@@ -74,20 +74,20 @@ PDXRESULT FDS::Load(PDXFILE& file)
 	ImageFileName = file.Name();
 
 	if (!BiosLoaded)
-		return MsgWarning("Missing FDS BIOS file!");
+		return MsgError("Missing FDS BIOS file!");
 
 	if (!file.Read(header))
-		return MsgWarning("Not a valid disk format!");
+		return MsgError("Not a valid disk format!");
 
 	if (header.magic != 0x1A534446UL)
-		return MsgWarning("Not a valid disk format!");
+		return MsgError("Not a valid disk format!");
 
 	disks.Resize( header.NumDisksAndSides );
 	
 	for (UINT i=0; i < header.NumDisksAndSides; ++i)
 	{
 		if (!file.Read( disks[i].Begin(), disks[i].End() ))
-			return MsgWarning("corrupt data!");
+			return MsgError("corrupt data!");
 	}
 
 	offset = 0;
@@ -165,7 +165,7 @@ PDXRESULT FDS::SetBIOS(PDXFILE& file)
 	if (file.IsOpen())
 	{
 		if (file.Size() < sizeof(U8) * n8k)
-			return MsgWarning("Bios file is corrupt!");
+			return MsgError("BIOS file is corrupt!");
 
 		if (file.Peek<U32>() == 0x1A53454EUL)
 		{
@@ -174,7 +174,7 @@ PDXRESULT FDS::SetBIOS(PDXFILE& file)
 			const UINT NumBanks = file.Read<U8>();
 
 			if (!NumBanks)
-				return MsgWarning("iNes bios file is corrupt!");
+				return MsgError("iNes BIOS file is corrupt!");
 
 			UINT offset;
 
@@ -183,7 +183,7 @@ PDXRESULT FDS::SetBIOS(PDXFILE& file)
 			offset += (file.Read<U8>() & 0x4) ? 0x200 : 0x000; // trainer
 
 			if (offset + n8k > file.Size() * sizeof(U8))
-				return MsgWarning("iNes bios file is corrupt!");
+				return MsgError("iNes BIOS file is corrupt!");
 
 			file.Seek( PDXFILE::BEGIN, sizeof(U8) * offset );
 		}
@@ -200,7 +200,7 @@ PDXRESULT FDS::SetBIOS(PDXFILE& file)
 
 				default:
 
-					MsgWarning("The bios file was not recognized and may not work properly!");
+					MsgWarning("The BIOS file was not recognized and may not work properly!");
 			}
 
            #endif
@@ -212,7 +212,7 @@ PDXRESULT FDS::SetBIOS(PDXFILE& file)
 		}
 		else
 		{
-			return MsgWarning("Bios file is corrupt!");
+			return MsgError("BIOS file is corrupt!");
 		}
 	}
 
@@ -331,14 +331,9 @@ VOID FDS::Reset(const BOOL)
 VOID FDS::LogReset()
 {
 	PDXSTRING log("FDS: ");
-	
-	log += "reset";
-	LogOutput( log.String() );
-
+	LogOutput( log << "reset" );
 	log.Resize( 5 );
-	log += disks.Size() / 2;
-	log += " disk(s) present";
-	LogOutput( log.String() );
+	LogOutput( log << (disks.Size() / 2) << " disk(s) present" );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////

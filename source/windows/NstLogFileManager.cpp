@@ -26,42 +26,30 @@
 #define WIN32_LEAN_AND_MEAN
 #endif
 
-#include <windows.h>
+#include <Windows.h>
 #include "../paradox/PdxFile.h"
-#include "resource/resource.h"
 #include "NstLogFileManager.h"
 #include "NstFileManager.h"
 
-PDXSTRING LOGFILEMANAGER::LogString;
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID LOGFILEMANAGER::LogSeparator()
-{
-	LogString << "-----------------------------------------------------------------------------------------------------\r\n";
-}
+PDXSTRING LOGFILE::LogString;
 
 /////////////////////////////////////////////////////////////////////////////////////////
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-VOID LOGFILEMANAGER::Close(const BOOL WriteToFile)
+VOID LOGFILE::Close(const BOOL WriteToFile)
 {
 	if (WriteToFile && LogString.Length())
 	{
-		PDXSTRING name;
+		PDXSTRING filename;
+		
+		UTILITIES::GetExeDir( filename );
+		filename << "Nestopia.log";
 
-		if (PDX_SUCCEEDED(FILEMANAGER::GetExeFileName(name)))
-		{
-			name.ReplaceFileExtension("log");
+		PDXFILE file( filename, PDXFILE::OUTPUT );
 
-			PDXFILE file(name,PDXFILE::OUTPUT);
-
-			if (file.IsOpen())
-				file.Text() << LogString;
-		}
+		if (file.IsOpen())
+			file.Write( LogString.Begin(), LogString.End() );
 	}
 
 	LogString.Destroy();
@@ -71,14 +59,26 @@ VOID LOGFILEMANAGER::Close(const BOOL WriteToFile)
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-BOOL LOGFILEMANAGER::DialogProc(HWND hDlg,UINT uMsg,WPARAM wParam,LPARAM)
+BOOL LOGFILE::DialogProc(HWND hDlg,UINT uMsg,WPARAM wParam,LPARAM)
 {
 	switch (uMsg) 
 	{
      	case WM_INITDIALOG:
-		
-			SetDlgItemText( hDlg, IDC_LOGFILE_EDIT, LogString.String() );
+		{
+			TSIZE offset = LogString.Size();
+
+			for (UINT i=0; ; ++i)
+			{
+				if (::SetDlgItemText( hDlg, IDC_LOGFILE_EDIT, LogString.At( LogString.Size() - offset ) ))
+					break;
+
+				if (offset < 32)
+					break;
+
+				offset /= 2;
+			}
 			return TRUE;
+		}
 		    
 		case WM_COMMAND:
 
@@ -86,20 +86,20 @@ BOOL LOGFILEMANAGER::DialogProc(HWND hDlg,UINT uMsg,WPARAM wParam,LPARAM)
 			{
        			case IDC_LOGFILE_CLEAR:  
 					
-					SetDlgItemText( hDlg, IDC_LOGFILE_EDIT, "" ); 
+					::SetDlgItemText( hDlg, IDC_LOGFILE_EDIT, "" ); 
 					LogString.Clear(); 
 					return TRUE;
 
      			case IDC_LOGFILE_OK:
 					
-					EndDialog( hDlg, 0 ); 
+					::EndDialog( hDlg, 0 ); 
 					return TRUE;
 			}		
 			return FALSE;
 
      	case WM_CLOSE:
 
-     		EndDialog( hDlg, 0 );
+     		::EndDialog( hDlg, 0 );
      		return TRUE;
 	}
 

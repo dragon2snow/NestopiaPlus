@@ -40,62 +40,75 @@ public:
 
 	GAMEGENIEMANAGER();
 
-	VOID Create(CONFIGFILE* const);
+	VOID Create  (CONFIGFILE* const);
+	VOID Destroy (CONFIGFILE* const);
 
-	PDXRESULT ClearAllCodes();
-	PDXRESULT AddCode(const PDXSTRING&,const BOOL=TRUE,const PDXSTRING* const=NULL);
-	PDXRESULT GetCode(const UINT,PDXSTRING&,PDXSTRING* const) const;
+	PDXRESULT GetCode(const TSIZE,PDXSTRING&,BOOL&,PDXSTRING* const) const;
+	PDXRESULT AddCode(const PDXSTRING&,const BOOL,const PDXSTRING* const);
+	PDXRESULT ClearCodes(const BOOL);
 
-	inline UINT NumCodes() const
+	inline TSIZE NumCodes() const
 	{ return codes.Size(); }
 
 private:
 
 	struct CODE
 	{
-		inline BOOL operator == (const CODE& a) const { return code == a.code; }
-		inline BOOL operator <  (const CODE& a) const { return code <  a.code; }
-		inline BOOL operator == (const ULONG a) const { return code == a;      }
-		inline BOOL operator <  (const ULONG a) const { return code <  a;      }
+		CODE(const ULONG p=0,const BOOL e=FALSE,const PDXSTRING* const c=NULL)
+		: packed(p), enabled(e) { if (c && c->Length()) comment = *c; }
 
-		inline friend BOOL operator == (const ULONG a,const CODE& b) { return a == b.code; }
-		inline friend BOOL operator <  (const ULONG a,const CODE& b) { return a <  b.code; }
+		inline BOOL operator == (const CODE& a) const { return packed == a.packed; }
+		inline BOOL operator <  (const CODE& a) const { return packed <  a.packed; }
+		inline BOOL operator == (const ULONG a) const { return packed == a;        }
+		inline BOOL operator <  (const ULONG a) const { return packed <  a;        }
 
-		ULONG code;
+		inline friend BOOL operator == (const ULONG a,const CODE& b) { return a == b.packed; }
+		inline friend BOOL operator <  (const ULONG a,const CODE& b) { return a <  b.packed; }
+
+		ULONG packed;
+		BOOL enabled;
 		PDXSTRING comment;
 	};
 
 	typedef PDXSET<CODE> CODES;
 
-	VOID UpdateDialog();
+	VOID InitDialog();
 	VOID CloseDialog();
-	VOID UpdateColumns();
-	BOOL AddCode(CODE&,const BOOL=FALSE);
-	VOID UpdateCodes();
+	BOOL AddToList(CODE&);
 	VOID RemoveCode();
 	VOID ClearCodes();
+	VOID SetCodeStates(const BOOL);
 	VOID ImportCodes();
 	VOID ExportCodes();
 	VOID CreateCodeDialog();
 	VOID SubmitCode(HWND);
 	VOID ValidateCode(HWND) const;
 
-	BOOL      NesIsEnabled (const ULONG) const;
-	PDXRESULT NesEncode    (const ULONG,PDXSTRING&) const;
-	PDXRESULT NesDecode    (const CHAR* const,ULONG&) const;
-	PDXRESULT NesPack      (const UINT,const UINT,const UINT,const BOOL,ULONG&) const;
-	PDXRESULT NesUnpack    (const ULONG,UINT&,UINT&,UINT&,BOOL&) const;
-	PDXRESULT NesEnable    (const ULONG,const NES::IO::GAMEGENIE::STATE);
-	PDXRESULT NesSet       (const ULONG,const NES::IO::GAMEGENIE::STATE);
-	PDXRESULT NesDestroy   ();
-
 	BOOL DialogProc(HWND,UINT,WPARAM,LPARAM);
 
 	static BOOL CALLBACK StaticCodeDialogProc(HWND,UINT,WPARAM,LPARAM);
 
+	NES::IO::GAMEGENIE GameGenie;
+
 	HWND hDlg;
 	HWND hList;
 	CODES codes;
+
+	class GAMEGENIECLOSE : public MANAGER
+	{
+	public:
+
+		GAMEGENIECLOSE(GAMEGENIEMANAGER& m)
+		: MANAGER(IDD_GAMEGENIECLOSE), ggm(m) {}
+
+	private:
+
+		BOOL DialogProc(HWND,UINT,WPARAM,LPARAM);
+
+		GAMEGENIEMANAGER& ggm;
+	};
+
+	friend class GAMEGENIECLOSE;
 };
 
 #endif

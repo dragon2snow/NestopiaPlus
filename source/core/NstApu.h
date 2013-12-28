@@ -71,6 +71,8 @@ public:
 	LONG GetDmcLengthCounter() const;
 	BOOL IsDmcLooped()         const;
 
+	TSIZE GetLatency() const;
+
 	class CHANNEL
 	{
 	public:
@@ -570,12 +572,14 @@ private:
 		BUFFER(); 
 		~BUFFER();
 
-		VOID Reset(const UINT);
+		VOID Reset(const UINT,const BOOL=TRUE);
 
 		PDX_NO_INLINE TSIZE Flush(IO::SFX* const);
 
-		inline UINT GetPos() const
+		inline TSIZE GetPos() const
 		{ return pos; }
+
+		TSIZE GetLatency() const;
 
 		VOID Write(const LONG);		
 	

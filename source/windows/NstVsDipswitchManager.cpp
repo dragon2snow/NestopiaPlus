@@ -29,7 +29,6 @@
 #include <Windows.h>
 #include <WindowsX.h>
 #include "../paradox/PdxString.h"
-#include "resource/resource.h"
 #include "NstVsDipSwitchManager.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -42,21 +41,21 @@ BOOL VSDIPSWITCHMANAGER::DialogProc(HWND hDlg,UINT uMsg,WPARAM wParam,LPARAM)
 	{
      	case WM_INITDIALOG:
 
-			InitDialog(hDlg);
+			InitDialog( hDlg );
 			return TRUE;
 
 		case WM_COMMAND:
 
 			switch (LOWORD(wParam))
 			{
-       			case IDC_DIPSWITCHES_OK:     CloseDialog(hDlg);
-				case IDC_DIPSWITCHES_CANCEL: EndDialog(hDlg,0); return TRUE;
+       			case IDC_DIPSWITCHES_OK:     CloseDialog( hDlg );
+				case IDC_DIPSWITCHES_CANCEL: ::EndDialog( hDlg, 0 ); return TRUE;
 			}
 			return FALSE;
 
      	case WM_CLOSE:
 
-     		EndDialog(hDlg,0);
+     		::EndDialog( hDlg, 0 );
      		return TRUE;
 	}
 
@@ -95,14 +94,14 @@ VOID VSDIPSWITCHMANAGER::InitDialog(HWND hDlg)
 
 	for (UINT i=0; i < 8; ++i)
 	{
-		HWND hCmd = GetDlgItem( hDlg, IDC_DIPSWITCHES_1 + i );
-		HWND hTxt = GetDlgItem( hDlg, IDC_DIPSWITCHES_1_TEXT + i );
+		HWND hCmd = ::GetDlgItem( hDlg, IDC_DIPSWITCHES_1 + i );
+		HWND hTxt = ::GetDlgItem( hDlg, IDC_DIPSWITCHES_1_TEXT + i );
 
 		if (nes.GetNumVsSystemDipSwitches() > i)
 		{
 			nes.GetVsSystemDipSwitch( i, context );
 
-			SetWindowText( hTxt, context.name.String() );
+			::SetWindowText( hTxt, context.name.String() );
 
 			for (UINT j=0; j < context.settings.Size(); ++j)
 				ComboBox_AddString( hCmd, context.settings[j].String() );
@@ -111,8 +110,8 @@ VOID VSDIPSWITCHMANAGER::InitDialog(HWND hDlg)
 		}
 		else
 		{
-			DestroyWindow( hTxt );
-			DestroyWindow( hCmd ); 
+			::DestroyWindow( hTxt );
+			::DestroyWindow( hCmd ); 
 		}
 	}
 }
@@ -127,7 +126,7 @@ VOID VSDIPSWITCHMANAGER::CloseDialog(HWND hDlg)
 
 	for (UINT i=0; i < nes.GetNumVsSystemDipSwitches(); ++i)
 	{
-		context.index = ComboBox_GetCurSel( GetDlgItem( hDlg, IDC_DIPSWITCHES_1 + i ) );
+		context.index = ComboBox_GetCurSel( ::GetDlgItem( hDlg, IDC_DIPSWITCHES_1 + i ) );
 		nes.SetVsSystemDipSwitch( i, context );
 	}
 }

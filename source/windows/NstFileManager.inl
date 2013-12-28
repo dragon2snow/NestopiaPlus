@@ -59,16 +59,6 @@ inline BOOL FILEMANAGER::UpdatedRecentFiles() const
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-inline const PDXSTRING& FILEMANAGER::GetRomPath()  const { return UseRomPathLast ? RomPathLast  : RomPath;  }
-inline const PDXSTRING& FILEMANAGER::GetSavePath() const { return UseSavePathRom ? GetRomPath() : SavePath; }
-inline const PDXSTRING& FILEMANAGER::GetNstPath()  const { return UseNstPathLast ? NstPathLast  : NstPath;  }
-inline const PDXSTRING& FILEMANAGER::GetIpsPath()  const { return UseIpsPathRom  ? GetRomPath() : IpsPath;  }
-inline const PDXSTRING& FILEMANAGER::GetNspPath()  const { return UseNspPathLast ? NspPathLast  : NspPath;  }
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
 inline UINT FILEMANAGER::OpenZipFile(const CHAR* const title,const CHAR* const name,const PDXARRAY<PDXSTRING>& extensions,PDXFILE& file)
 { 
 	return OpenZipFile( title, name, extensions, file, FALSE ); 

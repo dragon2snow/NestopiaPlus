@@ -44,28 +44,28 @@ public:
 	GAMEGENIE(CPU&);
 	~GAMEGENIE();
 
-	VOID Destroy();
 	VOID Reset();
+	VOID ClearCodes();
 
-	PDXRESULT GetContext(IO::GAMEGENIE::CONTEXT&) const;
-	PDXRESULT SetContext(const IO::GAMEGENIE::CONTEXT&);
+	static PDXRESULT Encode (const ULONG,PDXSTRING&);
+	static PDXRESULT Decode (const CHAR* const,ULONG&);
+	static PDXRESULT Pack   (const UINT,const UINT,const UINT,const BOOL,ULONG&);
+	static PDXRESULT Unpack (const ULONG,UINT&,UINT&,UINT&,BOOL&);
+
+	PDXRESULT AddCode    (const ULONG);
+	PDXRESULT DeleteCode (const ULONG);
+
+	TSIZE NumCodes() const;
+	
+	ULONG GetCode(const TSIZE) const;	
 
 private:
-
-	PDXRESULT SetCode    (const ULONG,const IO::GAMEGENIE::STATE);
-	PDXRESULT Pack       (const UINT,const UINT,const UINT,const BOOL,ULONG&) const;
-	PDXRESULT Unpack     (const ULONG,UINT&,UINT&,UINT&,BOOL&) const;
-	PDXRESULT Encode     (const ULONG,PDXSTRING&) const;
-	PDXRESULT Decode     (const CHAR* const,ULONG&) const;
-	PDXRESULT EnableCode (const ULONG,const IO::GAMEGENIE::STATE);	
-	
-	IO::GAMEGENIE::STATE IsCodeEnabled (const ULONG) const;
 
 	class CODE
 	{
 	public:
 
-		CODE(const BOOL=TRUE);
+		CODE();
 
 		VOID operator = (const CODE&);
 
@@ -75,12 +75,6 @@ private:
 		UINT Peek(const UINT);
 		VOID Poke(const UINT,const UINT);
 
-		inline VOID Enable(const BOOL state=TRUE)
-		{ enabled = state; }
-
-		inline BOOL IsEnabled() const
-		{ return enabled; }
-
 		inline VOID SetPort(const CPU_PORT& p)
 		{ port = p; }
 
@@ -89,6 +83,8 @@ private:
 
 		inline UINT Address() const 
 		{ return address; }
+
+		ULONG Packed() const;
 		
 	private:
 
@@ -110,12 +106,11 @@ private:
 		UCHAR  compare;
 		USHORT address;
 		UCHAR  UseCompare;
-		UCHAR  enabled;
 	};
 
 	typedef PDXMAP<CODE,UINT> CODES;
 
-	VOID Map(CODE&);
+	VOID Map(CODE&,const BOOL);
 
 	NES_DECL_PEEK(wizard);
 	NES_DECL_POKE(wizard);

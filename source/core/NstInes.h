@@ -39,14 +39,16 @@ class INES : public IMAGEFILE
 {
 public:
 
-	PDXRESULT Import
-	(
-       	CARTRIDGE* const,
-		PDXFILE&,
-		const IO::GENERAL::CONTEXT&
-	);
+	PDXRESULT Import(CARTRIDGE* const,PDXFILE&,const IO::GENERAL::CONTEXT&);
 	
 private:
+
+   #ifdef NES_USE_ROM_DATABASE
+
+	BOOL TryDatabase(PDXFILE&,PDXSTRING*);
+	const IMAGE* FindInDatabase(PDXFILE&,const TSIZE,const TSIZE,ULONG&) const;
+
+   #endif
 
 	enum
 	{
@@ -82,18 +84,9 @@ private:
 
 	PDX_COMPILE_ASSERT(sizeof(HEADER) == sizeof(U8) * 16);
 
-	VOID MessWithTheHeader(CARTRIDGE* const,HEADER&);
+	VOID MessWithTheHeader(HEADER&);
 
-   #ifdef NES_USE_ROM_DATABASE
-
-	VOID CheckDatabase
-	(
-    	CARTRIDGE* const,
-		PDXFILE&,
-		const IO::GENERAL::CONTEXT&
-	);
-
-   #endif
+	CARTRIDGE* cartridge;
 };
 
 NES_NAMESPACE_END

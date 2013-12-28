@@ -37,6 +37,25 @@ inline NES::MACHINE& APPLICATION::GetNes()
 	return nes;
 }
 
+inline HINSTANCE APPLICATION::GetInstance()	const
+{
+	return hInstance;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+inline BOOL APPLICATION::IsRunning() const
+{
+	return active && nes.IsOn() && !nes.IsPaused() && (nes.IsImage() || nes.IsNsf());
+}
+
+inline BOOL APPLICATION::IsPassive() const
+{
+	return nes.IsOff() || nes.IsPaused() || nes.IsNsf();
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////
 //
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -49,15 +68,15 @@ inline BOOL APPLICATION::IsMenuSet()  const { return hMenu == NULL; }
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-inline SAVESTATEMANAGER& APPLICATION::GetSaveStateManager() { return SaveStateManager;   }
-inline FILEMANAGER&      APPLICATION::GetFileManager()      { return FileManager;        }
-inline GAMEGENIEMANAGER& APPLICATION::GetGameGenieManager() { return GameGenieManager;   }
-inline GRAPHICMANAGER&   APPLICATION::GetGraphicManager()   { return GraphicManager;     }
-inline PREFERENCES&      APPLICATION::GetPreferences()      { return preferences;        }
-inline MOVIEMANAGER&     APPLICATION::GetMovieManager()     { return MovieManager;       }
-inline SOUNDMANAGER&     APPLICATION::GetSoundManager()     { return SoundManager;       }
-inline TIMERMANAGER&     APPLICATION::GetTimerManager()     { return TimerManager;       }
-inline LOGFILEMANAGER&   APPLICATION::LogFile()             { return log;                }
+inline SAVESTATEMANAGER& APPLICATION::GetSaveStateManager () { return *SaveStateManager;   }
+inline FILEMANAGER&      APPLICATION::GetFileManager      () { return *FileManager;        }
+inline GAMEGENIEMANAGER& APPLICATION::GetGameGenieManager () { return *GameGenieManager;   }
+inline GRAPHICMANAGER&   APPLICATION::GetGraphicManager   () { return *GraphicManager;     }
+inline PREFERENCES&      APPLICATION::GetPreferences      () { return *preferences;        }
+inline MOVIEMANAGER&     APPLICATION::GetMovieManager     () { return *MovieManager;       }
+inline SOUNDMANAGER&     APPLICATION::GetSoundManager     () { return *SoundManager;       }
+inline TIMERMANAGER&     APPLICATION::GetTimerManager     () { return *TimerManager;       }
+inline USERINPUTMANAGER& APPLICATION::GetUserInputManager () { return *UserInputManager;    }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -75,36 +94,34 @@ inline NES::MODE APPLICATION::GetNesMode() const
 template<class T> 
 VOID APPLICATION::StartScreenMsg(const UINT duration,const T& t)
 {
+	const BOOL PrevMsg = bool(ScreenMsg.Length());
 	ScreenMsg = t;
-	SetTimer( hWnd, TIMER_ID_SCREEN_MSG, duration, OnScreenMsgEnd );
+	SetScreenMsg( duration, PrevMsg );
 }
 
 template<class T,class U> 
 VOID APPLICATION::StartScreenMsg(const UINT duration,const T& t,const U& u)
 {
-	ScreenMsg  = t;
-	ScreenMsg += u;
-
-	SetTimer( hWnd, TIMER_ID_SCREEN_MSG, duration, OnScreenMsgEnd );
+	const BOOL PrevMsg = bool(ScreenMsg.Length());
+	ScreenMsg = t; 
+	ScreenMsg << u;
+	SetScreenMsg( duration, PrevMsg );
 }
 
 template<class T,class U,class V> 
 VOID APPLICATION::StartScreenMsg(const UINT duration,const T& t,const U& u,const V& v)
 {
-	ScreenMsg  = t;
-	ScreenMsg += u;
-	ScreenMsg += v;
-
-	SetTimer( hWnd, TIMER_ID_SCREEN_MSG, duration, OnScreenMsgEnd );
+	const BOOL PrevMsg = bool(ScreenMsg.Length());
+	ScreenMsg = t; 
+	ScreenMsg << u << v;
+	SetScreenMsg( duration, PrevMsg );
 }
 
 template<class T,class U,class V,class W> 
 VOID APPLICATION::StartScreenMsg(const UINT duration,const T& t,const U& u,const V& v,const W& w)
 {
-	ScreenMsg  = t;
-	ScreenMsg += u;
-	ScreenMsg += v;
-	ScreenMsg += w;
-
-	SetTimer( hWnd, TIMER_ID_SCREEN_MSG, duration, OnScreenMsgEnd );
+	const BOOL PrevMsg = bool(ScreenMsg.Length());
+	ScreenMsg = t; 
+	ScreenMsg << u << v << w;
+	SetScreenMsg( duration, PrevMsg );
 }
