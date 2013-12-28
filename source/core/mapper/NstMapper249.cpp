@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003 Martin Freij
+// Copyright (C) 2003-2005 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -22,146 +22,120 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstMappers.h"
-#include "NstMapper004.h"
-#include "NstMapper249.h"
+#include "../NstMapper.hpp"
+#include "../board/NstBrdMmc3.hpp"
+#include "NstMapper249.hpp"
 	   
-NES_NAMESPACE_BEGIN
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER249::Reset()
+namespace Nes
 {
-	MAPPER4::Reset();
-
-	for (ULONG i=0x8000; i <= 0xFFFF; ++i)
+	namespace Core
 	{
-		switch (i & 0xFF01) 
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("s", on)
+        #endif
+	
+		void Mapper249::SubReset(const bool hard)
 		{
-     		case 0x8000: case 0x8800: cpu.SetPort( i, this, Peek_8000, Poke_8000 ); continue;
-			case 0x8001: case 0x8801: cpu.SetPort( i, this, Peek_8000, Poke_8001 ); continue;
-			case 0xA000: case 0xA800: cpu.SetPort( i, this, Peek_A000, Poke_A000 ); continue;
-			case 0xA001: case 0xA801: cpu.SetPort( i, this, Peek_A000, Poke_A001 ); continue;
-			case 0xC000: case 0xC800: cpu.SetPort( i, this, Peek_C000, Poke_C000 ); continue;
-			case 0xC001: case 0xC801: cpu.SetPort( i, this, Peek_C000, Poke_C001 ); continue;
-			case 0xE000: case 0xE800: cpu.SetPort( i, this, Peek_E000, Poke_E000 ); continue;
-			case 0xE001: case 0xE801: cpu.SetPort( i, this, Peek_E000, Poke_E001 ); continue;
+			if (hard)
+				exReg = 0;
+
+			Mmc3::SubReset( hard );
+			
+			Map( 0x5000U, &Mapper249::Poke_5000 );
+		}
+	
+		void Mapper249::SubLoad(State::Loader& state)
+		{
+			while (const dword chunk = state.Begin())
+			{
+				if (chunk == NES_STATE_CHUNK_ID('R','E','G','\0'))
+					exReg = state.Read8() & 0x2;
+	
+				state.End();
+			}
+		}
+	
+		void Mapper249::SubSave(State::Saver& state) const
+		{
+			state.Begin('R','E','G','\0').Write8( exReg ).End();
+		}
+	
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("", on)
+        #endif
+	
+		NES_POKE(Mapper249,5000)
+		{
+			if (exReg != (data & 0x2))
+			{
+				exReg = data & 0x2;
+	
+				Mapper249::UpdatePrg();
+				Mapper249::UpdateChr();
+			}
+		}
+	
+		uint Mapper249::UnscrambleChr(const uint data) const
+		{
+			return (!exReg) ? data :
+			(
+				( ( ( data & 0x01 ) >> 0 ) << 0 ) |
+				( ( ( data & 0x02 ) >> 1 ) << 1 ) |
+				( ( ( data & 0x04 ) >> 2 ) << 5 ) |
+				( ( ( data & 0x08 ) >> 3 ) << 2 ) |
+				( ( ( data & 0x10 ) >> 4 ) << 6 ) |
+				( ( ( data & 0x20 ) >> 5 ) << 7 ) |
+				( ( ( data & 0x40 ) >> 6 ) << 4 ) |
+				( ( ( data & 0x80 ) >> 7 ) << 3 )
+			);
+		}
+	
+		uint Mapper249::UnscramblePrg(const uint data) const
+		{
+			return (!exReg) ? data :
+			(
+				( ( ( data & 0x01 ) >> 0 ) << 0 ) |
+				( ( ( data & 0x02 ) >> 1 ) << 3 ) |
+				( ( ( data & 0x04 ) >> 2 ) << 4 ) |
+				( ( ( data & 0x08 ) >> 3 ) << 2 ) |
+				( ( ( data & 0x10 ) >> 4 ) << 1 )
+			);
+		}
+	
+		void Mapper249::UpdatePrg()
+		{
+			const uint i = (regs.ctrl0 & Regs::CTRL0_XOR_PRG) >> 5;
+	
+			prg.SwapBanks<NES_8K,0x0000U>
+			( 
+		     	UnscramblePrg( banks.prg[i]   ),
+           		UnscramblePrg( banks.prg[1]   ),
+           		UnscramblePrg( banks.prg[i^2] ),
+           		UnscramblePrg( banks.prg[3]   ) 
+			);
+		}
+	
+		void Mapper249::UpdateChr() const
+		{
+			ppu.Update();
+	
+			const uint swap = (regs.ctrl0 & Regs::CTRL0_XOR_CHR) << 5;
+	
+			chr.SwapBanks<NES_2K>
+			( 
+		    	0x0000U ^ swap, 
+				UnscrambleChr( ((banks.chr[0] << 1) | 0 ) ) >> 1,
+				UnscrambleChr( ((banks.chr[1] << 1) | 1 ) ) >> 1
+			);
+	
+			chr.SwapBanks<NES_1K>
+			( 
+		       	0x1000U ^ swap, 
+				UnscrambleChr( banks.chr[2] ),
+				UnscrambleChr( banks.chr[3] ),
+				UnscrambleChr( banks.chr[4] ),
+				UnscrambleChr( banks.chr[5] )
+			); 
 		}
 	}
-
-	cpu.SetPort( 0x5000, this, Peek_Nop, Poke_5000 );
-
-	reg = 0;
 }
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER249,5000)
-{
-	reg = data & 0x2;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER249,8000)
-{
-	command = data;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-UINT MAPPER249::Unscramble1(const UINT data)
-{
-	return
-	(
-		( ( ( data & 0x01 ) >> 0 ) << 0 ) |
-		( ( ( data & 0x02 ) >> 1 ) << 1 ) |
-		( ( ( data & 0x04 ) >> 2 ) << 5 ) |
-		( ( ( data & 0x08 ) >> 3 ) << 2 ) |
-		( ( ( data & 0x10 ) >> 4 ) << 6 ) |
-		( ( ( data & 0x20 ) >> 5 ) << 7 ) |
-		( ( ( data & 0x40 ) >> 6 ) << 4 ) |
-		( ( ( data & 0x80 ) >> 7 ) << 3 )
-	);
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-UINT MAPPER249::Unscramble2(const UINT data)
-{
-	return
-	(
-		( ( ( data & 0x01 ) >> 0 ) << 0 ) |
-		( ( ( data & 0x02 ) >> 1 ) << 3 ) |
-		( ( ( data & 0x04 ) >> 2 ) << 4 ) |
-		( ( ( data & 0x08 ) >> 3 ) << 2 ) |
-		( ( ( data & 0x10 ) >> 4 ) << 1 )
-	);
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER249,8001)
-{
-	UINT bank = data;
-	UINT index = command & COMMAND_INDEX;
-
-	switch (index) 
-	{
-     	case 0x0:
-		case 0x1:
-
-			ppu.Update();
-
-			if (reg) 
-				bank = Unscramble1( bank );
-
-			index <<= 11;
-			cRom.SwapBanks<n1k>( 0x0000 + index, bank & 0xFE );
-			cRom.SwapBanks<n1k>( 0x0400 + index, bank | 0x01 );
-			break;
-
-   		case 0x2:
-		case 0x3:
-		case 0x4:
-		case 0x5:
-
-			ppu.Update();
-
-			if (reg) 
-				bank = Unscramble1( bank );
-
-			cRom.SwapBanks<n1k>( 0x1000 + ((index - 0x2) << 10), bank );
-			break;	 
-
-		case 0x6:
-		case 0x7:
-
-			apu.Update();
-
-			if (reg)
-			{
-				if (bank < 0x20)
-					bank = Unscramble2( bank );
-				else
-					bank = Unscramble1( bank - 0x20 );
-			}
-
-			pRom.SwapBanks<n8k>( (index - 0x6) << 13, bank );
-			break;
-	}
-}
-
-NES_NAMESPACE_END

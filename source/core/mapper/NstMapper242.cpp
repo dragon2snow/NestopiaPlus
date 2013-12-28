@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003 Martin Freij
+// Copyright (C) 2003-2005 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -22,52 +22,39 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstMappers.h"
-#include "NstMapper242.h"
+#include "../NstMapper.hpp"
+#include "NstMapper242.hpp"
    
-NES_NAMESPACE_BEGIN
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER242::Reset()
+namespace Nes
 {
-	cpu.SetPort( 0x8000, 0x9FFF, this, Peek_8000, Poke_pRom );
-	cpu.SetPort( 0xA000, 0xBFFF, this, Peek_A000, Poke_pRom );
-	cpu.SetPort( 0xC000, 0xDFFF, this, Peek_C000, Poke_pRom );
-	cpu.SetPort( 0xE000, 0xFFFF, this, Peek_E000, Poke_pRom );
-
-	pRom.SwapBanks<n32k,0x0000>(0);
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER242,pRom) 
-{ 
-	apu.Update();
-
-	pRom.SwapBanks<n32k,0x0000>( (address >> 3) & 0xF );
-
-	static const UCHAR select[4][4] =
+	namespace Core
 	{
-		{0,1,0,1},
-		{0,0,1,1},
-		{0,0,0,0},
-		{1,1,1,1}
-	};
-
-	const UCHAR* const index = select[data & 0x3];
-
-	ppu.SetMirroring
-	(
-		index[0],
-		index[1],
-		index[2],
-		index[3]
-	);
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("s", on)
+        #endif
+	
+		void Mapper242::SubReset(bool)
+		{
+			Map( 0x8000U, 0xFFFFU, &Mapper242::Poke_Prg );
+		}
+	
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("", on)
+        #endif
+	
+		NES_POKE(Mapper242,Prg) 
+		{ 
+			prg.SwapBank<NES_32K,0x0000U>( (address >> 3) & 0xF );
+	
+			static const uchar lut[4] =
+			{
+				Ppu::NMT_VERTICAL,
+				Ppu::NMT_HORIZONTAL,
+				Ppu::NMT_ZERO,
+				Ppu::NMT_ONE
+			};
+	
+			ppu.SetMirroring( lut[data & 0x3] );
+		}
+	}
 }
-
-NES_NAMESPACE_END

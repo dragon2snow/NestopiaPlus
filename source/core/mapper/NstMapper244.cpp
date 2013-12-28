@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003 Martin Freij
+// Copyright (C) 2003-2005 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -22,46 +22,36 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstMappers.h"
-#include "NstMapper244.h"
+#include "../NstMapper.hpp"
+#include "NstMapper244.hpp"
 
-NES_NAMESPACE_BEGIN
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER244::Reset()
+namespace Nes
 {
-	cpu.SetPort( 0x8000, 0x8064, this, Peek_8000, Poke_Nop  );
-	cpu.SetPort( 0x8065, 0x80A4, this, Peek_8000, Poke_8065 );
-	cpu.SetPort( 0x80A5, 0x80E4, this, Peek_8000, Poke_80A5 );
-	cpu.SetPort( 0x80E5, 0x9FFF, this, Peek_8000, Poke_Nop  );
-	cpu.SetPort( 0xA000, 0xBFFF, this, Peek_A000, Poke_Nop  );
-	cpu.SetPort( 0xC000, 0xDFFF, this, Peek_C000, Poke_Nop  );
-	cpu.SetPort( 0xE000, 0xFFFF, this, Peek_E000, Poke_Nop  );
-
-	pRom.SwapBanks<n32k,0x0000>(0);
+	namespace Core
+	{
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("s", on)
+        #endif
+	
+		void Mapper244::SubReset(const bool hard)
+		{
+			Map( 0x8065U, 0x80A4U, &Mapper244::Poke_8065 );
+			Map( 0x80A5U, 0x80E4U, &Mapper244::Poke_80A5 );
+		}
+	
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("", on)
+        #endif
+	
+		NES_POKE(Mapper244,8065) 
+		{
+			prg.SwapBank<NES_32K,0x0000U>( (address - 0x8065U) & 0x3 );
+		}
+	
+		NES_POKE(Mapper244,80A5)
+		{
+			ppu.Update();
+			chr.SwapBank<NES_8K,0x0000U>( (address - 0x80A5U) & 0x7 );
+		}
+	}
 }
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER244,8065) 
-{
-	apu.Update();
-	pRom.SwapBanks<n32k,0x0000>( (address - 0x8065) & 0x3 );
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER244,80A5)
-{
-	ppu.Update();
-	cRom.SwapBanks<n8k,0x0000>( (address - 0x80A5) & 0x7 );
-}
-
-NES_NAMESPACE_END

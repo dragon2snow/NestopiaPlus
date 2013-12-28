@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003 Martin Freij
+// Copyright (C) 2003-2005 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -22,76 +22,50 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstMappers.h"
-#include "NstMapper004.h"
-#include "NstMapper250.h"
+#include "../NstMapper.hpp"
+#include "../board/NstBrdMmc3.hpp"
+#include "NstMapper250.hpp"
 	   
-NES_NAMESPACE_BEGIN
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER250::Reset()
+namespace Nes
 {
-	MAPPER4::Reset();
-
-	cpu.SetPort( 0x8000, 0x9FFF, this, Peek_8000, Poke_8000 );
-	cpu.SetPort( 0xA000, 0xBFFF, this, Peek_A000, Poke_8000 );
-	cpu.SetPort( 0xC000, 0xDFFF, this, Peek_C000, Poke_C000 );
-	cpu.SetPort( 0xE000, 0xFFFF, this, Peek_E000, Poke_C000 );
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER250,8000)
-{
-	const UINT offset = 
-	( 
-		((address & 0xE000) >>  0) | 
-		((address & 0x0400) >> 10)
-	);
-
-	const UINT value =
-	(
-	    address & 0xFF
-	);
-
-	switch (offset & 0xE001)
+	namespace Core
 	{
-       	case 0x8000: MAPPER4::Poke_8000( 0x8000, value ); return;
-     	case 0x8001: MAPPER4::Poke_8001( 0x8001, value ); return;
-     	case 0xA000: MAPPER4::Poke_A000( 0xA000, value ); return;
-       	case 0xA001: MAPPER4::Poke_A001( 0xA001, value ); return;
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("s", on)
+        #endif
+	
+		void Mapper250::SubReset(const bool hard)
+		{
+			Mmc3::SubReset( hard );
+	
+			Map( 0x8000U, 0xFFFFU, &Mapper250::Poke_Prg );
+		}
+	
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("", on)
+        #endif
+	
+		NES_POKE(Mapper250,Prg)
+		{
+			data = address & 0xFF;
+			address = (address & 0xE000U) | ((address & 0x0400U) >> 10);
+	
+			switch (address & 0xE001U)
+			{
+				case 0x8000U: NES_CALL_POKE( Mmc3, 8000, 0x8000U, data ); break;
+				case 0x8001U: NES_CALL_POKE( Mmc3, 8001, 0x8001U, data ); break;
+	
+				case 0xA000U: 
+					
+					ppu.SetMirroring( (data & 0x1) ? Ppu::NMT_HORIZONTAL : Ppu::NMT_VERTICAL );
+					break;
+				
+				case 0xA001U: NES_CALL_POKE( Mmc3, A001, 0xA001U, data ); break;
+				case 0xC000U: NES_CALL_POKE( Mmc3, C000, 0xC000U, data ); break;
+				case 0xC001U: NES_CALL_POKE( Mmc3, C001, 0xC001U, data ); break;
+				case 0xE000U: NES_CALL_POKE( Mmc3, E000, 0xE000U, data ); break;
+				case 0xE001U: NES_CALL_POKE( Mmc3, E001, 0xE001U, data ); break;
+			}
+		}
 	}
 }
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER250,C000)
-{
-	const UINT offset = 
-	( 
-		((address & 0xE000) >>  0) | 
-		((address & 0x0400) >> 10)
-	);
-
-	const UINT value =
-	(
-	    address & 0xFF
-	);
-
-	switch (offset & 0xE001)
-	{
-       	case 0xC000: MAPPER4::Poke_C000( 0xC000, value ); return;
-     	case 0xC001: MAPPER4::Poke_C001( 0xC001, value ); return;
-     	case 0xE000: MAPPER4::Poke_E000( 0xE000, value ); return;
-       	case 0xE001: MAPPER4::Poke_E001( 0xE001, value ); return;
-	}
-}
-
-NES_NAMESPACE_END

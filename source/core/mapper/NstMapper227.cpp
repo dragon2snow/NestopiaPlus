@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003 Martin Freij
+// Copyright (C) 2003-2005 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -22,56 +22,49 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstMappers.h"
-#include "NstMapper227.h"
+#include "../NstMapper.hpp"
+#include "NstMapper227.hpp"
 
-NES_NAMESPACE_BEGIN
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER227::Reset()
+namespace Nes
 {
-	cpu.SetPort( 0x8000, 0x9FFF, this, Peek_8000, Poke_pRom );
-	cpu.SetPort( 0xA000, 0xBFFF, this, Peek_A000, Poke_pRom );
-	cpu.SetPort( 0xC000, 0xDFFF, this, Peek_C000, Poke_pRom );
-	cpu.SetPort( 0xE000, 0xFFFF, this, Peek_E000, Poke_pRom );
-
-	pRom.SwapBanks<n16k,0x0000>(0);
-	pRom.SwapBanks<n16k,0x4000>(0);
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER227,pRom) 
-{
-	apu.Update();
-
-	const UINT bank = 
-	(
-     	((address & 0x0100) >> 4) | 
-		((address & 0x0078) >> 3)
-	);
-
-	if (address & 0x1)
+	namespace Core
 	{
-		pRom.SwapBanks<n32k,0x0000>( bank );
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("s", on)
+        #endif
+	
+		void Mapper227::SubReset(const bool hard)
+		{
+			NES_CALL_POKE(Mapper227,Prg,0x8000U,0x00);
+			Map( 0x8000U, 0xFFFFU, &Mapper227::Poke_Prg );
+		}
+	
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("", on)
+        #endif
+	
+		NES_POKE(Mapper227,Prg) 
+		{
+			const uint bank = 
+			(
+				((address & 0x0100) >> 4) | 
+				((address & 0x0078) >> 3)
+			);
+	
+			if (address & 0x1)
+			{
+				prg.SwapBank<NES_32K,0x0000U>( bank );
+			}
+			else 
+			{
+				const uint offset = ((address >> 2) & 0x1) + (bank << 1);
+				prg.SwapBanks<NES_16K,0x0000U>( offset, offset );
+			}
+	
+			if (!(address & 0x80))
+				prg.SwapBank<NES_16K,0x4000U>( ((address & 0x200) ? 0x7 : 0x0) + ((bank & 0x1C) << 1) );
+	
+			ppu.SetMirroring( (address & 0x2) ? Ppu::NMT_HORIZONTAL : Ppu::NMT_VERTICAL );
+		}
 	}
-	else 
-	{
-		const UINT offset = ((address & 0x4) ? 1 : 0) + (bank << 1);
-
-		pRom.SwapBanks<n16k,0x0000>( offset );
-		pRom.SwapBanks<n16k,0x4000>( offset );
-	}
-
-	if (!(address & 0x80))
-		pRom.SwapBanks<n16k,0x4000>( ((address & 0x200) ? 7 : 0) + ((bank & 0x1C) << 1) );
-
-	ppu.SetMirroring( (address & 0x2) ? MIRROR_HORIZONTAL : MIRROR_VERTICAL );
 }
-
-NES_NAMESPACE_END

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003 Martin Freij
+// Copyright (C) 2003-2005 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -22,51 +22,53 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstMappers.h"
-#include "NstMapper185.h"
+#include "../NstMapper.hpp"
+#include "NstMapper185.hpp"
 	  
-NES_NAMESPACE_BEGIN
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER185::Reset()
+namespace Nes
 {
-	cpu.SetPort( 0x8000, 0xFFFF, this, Peek_pRom, Poke_pRom );
-	ppu.SetPort( 0x0000, 0x1FFF, this, Peek_cRom, Poke_Nop  );
-
-	if (pRom.Size() >= n32k)
+	namespace Core
 	{
-		pRom.SwapBanks<n32k,0x0000>(0);
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("s", on)
+        #endif
+	
+		Mapper185::Mapper185(Context& c)
+		: 
+		Mapper   (c,CRAM_1K), 
+		spyVsSpy (c.pRomCrc == 0xB36457C7UL) // Spy vs Spy
+		{}
+	
+		void Mapper185::SubReset(const bool hard)
+		{
+			if (hard)
+			{
+				if (prg.Source().Size() >= NES_32K)
+					prg.SwapBank<NES_32K,0x0000U>(0);
+				else
+					prg.SwapBank<NES_16K,0x4000U>(0);
+
+				chr.Source(1).Fill(0xFF);
+				chr.Source(1).SwapBank<NES_8K,0x0000U>(0);
+			}
+
+			Map( 0x8000U, 0xFFFFU, spyVsSpy ? &Mapper185::Poke_Prg_2 : &Mapper185::Poke_Prg_1 );
+		}
+	
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("", on)
+        #endif
+	
+		NES_POKE(Mapper185,Prg_1)
+		{
+			ppu.Update();	
+			chr.Source( (data & 0x3) == 0 ).SwapBank<NES_8K,0x0000U>( data & 0x1 );
+		}
+	
+		NES_POKE(Mapper185,Prg_2)
+		{
+			ppu.Update();
+			chr.Source( data != 0x21 ).SwapBank<NES_8K,0x0000U>( 0 );
+		}
 	}
-	else
-	{
-		pRom.SwapBanks<n16k,0x0000>(0);
-		pRom.SwapBanks<n16k,0x4000>(0);
-	}
-
-	hack[0] = (pRomCrc == 0xB36457C7UL); // Spy vs Spy
-	hack[1] = TRUE;
 }
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER185,pRom)
-{
-	ppu.Update();
-	hack[1] = (!hack[0] && (data & 0x3)) || (hack[0] && data == 0x21);
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_PEEK(MAPPER185,cRom)
-{
-	return hack[1] ? cRom[address] : 0xFF;
-}
-
-NES_NAMESPACE_END

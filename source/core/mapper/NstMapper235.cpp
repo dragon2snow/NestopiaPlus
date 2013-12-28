@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003 Martin Freij
+// Copyright (C) 2003-2005 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -22,115 +22,110 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstMappers.h"
-#include "NstMapper235.h"
+#include "../NstMapper.hpp"
+#include "NstMapper235.hpp"
 		
-NES_NAMESPACE_BEGIN
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER235::Reset()
+namespace Nes
 {
-	cpu.SetPort( 0x8000, 0xFFFF, this, Peek_pRom, Poke_pRom );
-
-	pRom.SwapBanks<n32k,0x0000>(0);
-
-	switch (pRom.Size())
+	namespace Core
 	{
-     	case 0x00100000UL: SelectCartridge = Select128k; break;
-		case 0x00200000UL: SelectCartridge = Select256k; break;
-		case 0x00300000UL: SelectCartridge = Select384k; break;
-		default:           SelectCartridge = NULL;       break;
-	}
-
-	dummy = 0;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER235::Select128k(const UINT address)
-{
-	dummy = address & 0x0300;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER235::Select256k(const UINT address)
-{
-	switch (address & 0x0300)
-	{
-		case 0x0000: dummy = 0; return;
-		case 0x0100: dummy = 1; return;
-		case 0x0200: dummy = 0; bank = (bank & 0x1F) | 0x20; return;
-		case 0x0300: dummy = 1; return;
-	}
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER235::Select384k(const UINT address)
-{
-	switch (address & 0x0300)
-	{
-     	case 0x0000: dummy = 0;	return;
-     	case 0x0100: dummy = 1; return;
-     	case 0x0200: dummy = 0; bank = (bank & 0x1F) | 0x20; return;
-     	case 0x0300: dummy = 0; bank = (bank & 0x1F) | 0x40; return;
-	}
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER235,pRom) 
-{ 
-	ppu.SetMirroring
-	( 
-		(address & 0x0400) ? MIRROR_ZERO : 
-       	(address & 0x2000) ? MIRROR_HORIZONTAL : 
-		MIRROR_VERTICAL 
-	);
-
-	bank = ((address & 0x0300) >> 3) | (address & 0x001F);
-
-	if (SelectCartridge)
-		(*this.*SelectCartridge)(address);
-
-	if (address & 0x0800)
-	{
-		if (address & 0x1000)
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("s", on)
+        #endif
+	
+		void Mapper235::SubReset(const bool hard)
 		{
-			pRom.SwapBanks<n16k,0x0000>(bank << 1);
-			pRom.SwapBanks<n16k,0x4000>(bank << 1);
+			if (hard)
+			{
+				open = 0;
+				bank = 0;
+			}
+
+			Map( 0x8000U, 0xFFFFU, &Mapper235::Peek_Prg, &Mapper235::Poke_Prg );
+		
+			switch (prg.Source().Size())
+			{						
+				case 0x100000UL: SelectCartridge = &Mapper235::Select1024k; break;
+				case 0x200000UL: SelectCartridge = &Mapper235::Select2048k; break;
+				case 0x300000UL: SelectCartridge = &Mapper235::Select3072k; break;
+				default:         SelectCartridge = NULL; break;
+			}
 		}
-		else
+	
+		void Mapper235::SubLoad(State::Loader& state)
 		{
-			pRom.SwapBanks<n16k,0x0000>(bank << 0);
-			pRom.SwapBanks<n16k,0x4000>(bank << 0);
+			while (const dword chunk = state.Begin())
+			{
+				if (chunk == NES_STATE_CHUNK_ID('B','U','S','\0'))
+					open = state.Read8() & 0x1;
+	
+				state.End();
+			}
+		}
+	
+		void Mapper235::SubSave(State::Saver& state) const
+		{
+			state.Begin('B','U','S','\0').Write8( open != 0 ).End();
+		}
+	
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("", on)
+        #endif
+	
+		void Mapper235::Select1024k(const uint address)
+		{
+			open = address & 0x0300;
+		}
+	
+		void Mapper235::Select2048k(const uint address)
+		{
+			switch (address & 0x0300)
+			{
+				case 0x0100:
+				case 0x0300: open = 1; break;
+				case 0x0200: bank = (bank & 0x1F) | 0x20; break;
+			}
+		}
+	
+		void Mapper235::Select3072k(const uint address)
+		{
+			switch (address & 0x0300)
+			{
+				case 0x0100: open = 1; break;
+				case 0x0200: bank = (bank & 0x1F) | 0x20; break;
+				case 0x0300: bank = (bank & 0x1F) | 0x40; break;
+			}
+		}
+	
+		NES_POKE(Mapper235,Prg) 
+		{ 
+			ppu.SetMirroring
+			( 
+         		(address & 0x0400U) ? Ppu::NMT_ZERO : 
+           		(address & 0x2000U) ? Ppu::NMT_HORIZONTAL : 
+                           	       	  Ppu::NMT_VERTICAL 
+			);
+	
+		    open = 0;
+			bank = ((address & 0x0300U) >> 3) | (address & 0x001F);
+	
+			if (SelectCartridge)
+				(*this.*SelectCartridge)(address);
+	
+			if (address & 0x0800)
+			{
+				data = (bank << 1) | ((address >> 12) & 0x1);
+				prg.SwapBanks<NES_16K,0x0000U>( data, data );
+			}
+			else
+			{
+				prg.SwapBank<NES_32K,0x0000U>( bank );
+			}
+		}
+	
+		NES_PEEK(Mapper235,Prg)
+		{
+			return (open == 0 ? prg.Peek(address - 0x8000U) : address >> 8);
 		}
 	}
-	else
-	{
-		pRom.SwapBanks<n32k,0x0000>(bank);
-	}
 }
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_PEEK(MAPPER235,pRom)
-{
-	return dummy ? cpu.GetCache() : pRom[address - 0x8000];
-}
-
-NES_NAMESPACE_END

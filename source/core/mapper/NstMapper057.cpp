@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003 Martin Freij
+// Copyright (C) 2003-2005 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -22,72 +22,73 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstMappers.h"
-#include "NstMapper057.h"
+#include "../NstMapper.hpp"
+#include "NstMapper057.hpp"
 
-NES_NAMESPACE_BEGIN
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER57::Reset()
+namespace Nes
 {
-	cpu.SetPort( 0x8000, 0x8003, this, Peek_8000, Poke_8000 );
-	cpu.SetPort( 0x8800,         this, Peek_8000, Poke_8800 );
-
-	reg = 0x00;
-
-	pRom.SwapBanks<n16k,0x0000>(0);
-	pRom.SwapBanks<n16k,0x4000>(0);
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER57,8000) 
-{
-	if (data & 0x40)
+	namespace Core
 	{
-		ppu.Update();
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("s", on)
+        #endif
+	
+		void Mapper57::SubReset(const bool hard)
+		{
+			if (hard)
+				reg = 0x00;
 
-		cRom.SwapBanks<n8k,0x0000>
-		( 
-	       	((data & 0x03) >> 0) + 
-			((reg  & 0x10) >> 1) +
-			((reg  & 0x07) >> 0)
-		);
+			Map( 0x8000U, 0x8003U, &Mapper57::Poke_8000 );
+			Map( 0x8800U,          &Mapper57::Poke_8800 );
+		}
+	
+		void Mapper57::SubLoad(State::Loader& state)
+		{
+			while (const dword chunk = state.Begin())
+			{
+				if (chunk == NES_STATE_CHUNK_ID('R','E','G','\0'))
+					reg = state.Read8();
+	
+				state.End();
+			}
+		}
+	
+		void Mapper57::SubSave(State::Saver& state) const
+		{
+			state.Begin('R','E','G','\0').Write8( reg ).End();
+		}
+	
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("", on)
+        #endif
+	
+		NES_POKE(Mapper57,8000) 
+		{
+			if (data & 0x40)
+			{
+				ppu.Update();
+	
+				chr.SwapBank<NES_8K,0x0000U>
+				( 
+					((data & 0x03) >> 0) + 
+					((reg  & 0x10) >> 1) +
+					((reg  & 0x07) >> 0)
+				);
+			}
+		}
+	
+		NES_POKE(Mapper57,8800) 
+		{
+			reg = data;
+	
+			ppu.SetMirroring( (data & 0x8) ? Ppu::NMT_HORIZONTAL : Ppu::NMT_VERTICAL );
+	
+			if (data & 0x80)
+				prg.SwapBank<NES_32K,0x0000U>( ((data & 0x40) >> 6) + 2 );
+			else
+				prg.SwapBanks<NES_16K,0x0000U>( (data & 0x60) >> 5, (data & 0x60) >> 5 );
+	
+			chr.SwapBank<NES_8K,0x0000U>( ((data & 0x07) >> 0) + ((data & 0x10) >> 1) );
+		}
 	}
 }
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER57,8800) 
-{
-	apu.Update();
-
-	reg = data;
-
-	ppu.SetMirroring( (data & 0x8) ? MIRROR_HORIZONTAL : MIRROR_VERTICAL );
-
-	if (data & 0x80)
-	{
-		pRom.SwapBanks<n32k,0x0000>( ((data & 0x40) >> 6) + 2 );
-	}
-	else
-	{
-		pRom.SwapBanks<n16k,0x0000>( (data & 0x60) >> 5 );
-		pRom.SwapBanks<n16k,0x4000>( (data & 0x60) >> 5 );
-	}
-
-	cRom.SwapBanks<n8k,0x0000>
-	( 
-		((data & 0x07) >> 0) + 
-		((data & 0x10) >> 1)
-	);
-}
-
-NES_NAMESPACE_END

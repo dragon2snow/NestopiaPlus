@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003 Martin Freij
+// Copyright (C) 2003-2005 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -22,74 +22,131 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstMappers.h"
-#include "NstMapper073.h"
+#include "../NstMapper.hpp"
+#include "../NstClock.hpp"
+#include "NstMapper073.hpp"
 	  
-NES_NAMESPACE_BEGIN
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER73::Reset()
+namespace Nes
 {
-	EnableIrqSync(IRQSYNC_COUNT);
-
-	cpu.SetPort( 0x8000, 0x8FFF, this, Peek_8000, Poke_8000 );
-	cpu.SetPort( 0x9000, 0x9FFF, this, Peek_9000, Poke_9000 );
-	cpu.SetPort( 0xA000, 0xAFFF, this, Peek_A000, Poke_A000 );
-	cpu.SetPort( 0xB000, 0xBFFF, this, Peek_B000, Poke_B000 );
-	cpu.SetPort( 0xC000, 0xCFFF, this, Peek_C000, Poke_C000 );
-	cpu.SetPort( 0xF000, 0xFFFF, this, Peek_F000, Poke_F000 );
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER73,8000) { IrqCount = (IrqCount & 0xFFF0) | ((data & 0xF) <<  0); }
-NES_POKE(MAPPER73,9000) { IrqCount = (IrqCount & 0xFF0F) | ((data & 0xF) <<  4); }
-NES_POKE(MAPPER73,A000) { IrqCount = (IrqCount & 0xF0FF) | ((data & 0xF) <<  8); }
-NES_POKE(MAPPER73,B000) { IrqCount = (IrqCount & 0x0FFF) | ((data & 0xF) << 12); }
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER73,C000)
-{
-	SetIrqEnable(data & 0x2);
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER73,F000)
-{
-	apu.Update(); 
-	pRom.SwapBanks<n16k,0x0000>(data);
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER73::IrqSync(const UINT delta)
-{
-	IrqCount += delta;
-
-	if (IrqCount >= 0xFFFFUL + 0xFF)
+	namespace Core
 	{
-		IrqCount = 0xFFFFU;
-		SetIrqEnable(FALSE);
-	}
-	else if (IrqCount >= 0xFFFFUL)
-	{
-		IrqCount = 0xFFFFUL + 0xFF;
-		cpu.DoIRQ();
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("s", on)
+        #endif
+	
+		Mapper73::Mapper73(Context& c)
+		: Mapper(c,CROM_NONE), irq(c.cpu) {}
+	
+		void Mapper73::Irq::Reset(const bool hard)
+		{
+			if (hard)
+			{
+				enabled = false;
+				count = 0;
+			}
+		}
+	
+		void Mapper73::SubReset(const bool hard)
+		{
+			irq.Reset( hard, true );
+	
+			Map( 0x8000U, 0x8FFFU, &Mapper73::Poke_8000 );
+			Map( 0x9000U, 0x9FFFU, &Mapper73::Poke_9000 );
+			Map( 0xA000U, 0xAFFFU, &Mapper73::Poke_A000 );
+			Map( 0xB000U, 0xBFFFU, &Mapper73::Poke_B000 );
+			Map( 0xC000U, 0xCFFFU, &Mapper73::Poke_C000 );
+			Map( 0xD000U, 0xDFFFU, &Mapper73::Poke_D000 );	
+			Map( 0xF000U, 0xFFFFU, PRG_SWAP_16K );
+		}
+	
+		void Mapper73::SubLoad(State::Loader& state)
+		{
+			while (const dword chunk = state.Begin())
+			{
+				if (chunk == NES_STATE_CHUNK_ID('I','R','Q','\0'))
+				{
+					const State::Loader::Data<3> data( state );
+					irq.unit.enabled = data[0] & 0x1;
+					irq.unit.count = data[1] | (data[2] << 8);
+				}
+
+				state.End();
+			}
+		}
+	
+		void Mapper73::SubSave(State::Saver& state) const
+		{
+			const u8 data[3] =
+			{
+				irq.unit.enabled != 0,
+				irq.unit.count & 0xFF,
+				irq.unit.count >> 8
+			};
+
+			state.Begin('I','R','Q','\0').Write( data ).End();
+		}
+	
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("", on)
+        #endif
+	
+		ibool Mapper73::Irq::Signal()
+		{
+			if (enabled)
+			{
+				count = (count + 1) & 0xFFFFU;
+
+				if (!count)
+				{
+					enabled = false;
+					return true;
+				}
+			}
+
+			return false;
+		}
+
+		NES_POKE(Mapper73,8000) 
+		{
+			irq.Update();
+			irq.unit.count = (irq.unit.count & 0xFFF0U) | ((data & 0xF) << 0); 
+		}
+
+		NES_POKE(Mapper73,9000) 
+		{
+			irq.Update();
+			irq.unit.count = (irq.unit.count & 0xFF0FU) | ((data & 0xF) << 4); 
+		}
+
+		NES_POKE(Mapper73,A000) 
+		{
+			irq.Update();
+			irq.unit.count = (irq.unit.count & 0xF0FFU) | ((data & 0xF) << 8); 		
+		}
+
+		NES_POKE(Mapper73,B000) 
+		{
+			irq.Update();
+			irq.unit.count = (irq.unit.count & 0x0FFFU) | ((data & 0xF) << 12); 
+		}
+		
+		NES_POKE(Mapper73,C000) 
+		{ 
+			irq.Update();
+			irq.unit.enabled = data & 0x2;
+			irq.ClearIRQ();
+		}
+
+		NES_POKE(Mapper73,D000) 
+		{
+			irq.Update();
+			irq.unit.enabled = false;
+			irq.ClearIRQ();
+		}
+	
+		void Mapper73::VSync()
+		{
+			irq.VSync();
+		}
 	}
 }
-
-NES_NAMESPACE_END
-

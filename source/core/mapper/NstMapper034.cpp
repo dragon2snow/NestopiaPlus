@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003 Martin Freij
+// Copyright (C) 2003-2005 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -22,35 +22,27 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstMappers.h"
-#include "NstMapper034.h"
+#include "../NstMapper.hpp"
+#include "NstMapper034.hpp"
 		
-NES_NAMESPACE_BEGIN
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER34::Reset()
+namespace Nes
 {
-	cpu.SetPort( 0x7FFD, this, Peek_Nop, Poke_7FFD );
-	cpu.SetPort( 0x7FFE, this, Peek_Nop, Poke_7FFE );
-	cpu.SetPort( 0x7FFF, this, Peek_Nop, Poke_7FFF );
-
-	cpu.SetPort( 0x8000, 0x9FFF, this, Peek_8000, Poke_7FFD );
-	cpu.SetPort( 0xA000, 0xBFFF, this, Peek_A000, Poke_7FFD );
-	cpu.SetPort( 0xC000, 0xDFFF, this, Peek_C000, Poke_7FFD );
-	cpu.SetPort( 0xE000, 0xFFFF, this, Peek_E000, Poke_7FFD );
-
-	pRom.SwapBanks<n32k,0x0000>(0);
+	namespace Core
+	{
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("s", on)
+        #endif
+	
+		void Mapper34::SubReset(bool)
+		{
+			Map( 0x7FFDU, PRG_SWAP_32K  );	
+			Map( 0x7FFEU, CHR_SWAP_4K_0 );
+			Map( 0x7FFFU, CHR_SWAP_4K_1 );	
+			Map( 0x8000U, 0xFFFFU, PRG_SWAP_32K );
+		}
+	
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("", on)
+        #endif
+	}
 }
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER34,7FFD) { apu.Update(); pRom.SwapBanks<n32k,0x0000>(data); }
-NES_POKE(MAPPER34,7FFE) { ppu.Update(); cRom.SwapBanks<n4k,0x0000>(data);  }
-NES_POKE(MAPPER34,7FFF) { ppu.Update(); cRom.SwapBanks<n4k,0x1000>(data);  }
-
-NES_NAMESPACE_END

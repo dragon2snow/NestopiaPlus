@@ -1,0 +1,3956 @@
+<html>
+	<head>
+		<title>Nestopia Documentation </title>
+	</head>
+	<body>
+		<H1>
+			<center>Nestopia Documentation
+			</center>
+		</H1>
+		<CENTER><EM>version 1.20</EM></CENTER>
+		<CENTER><EM>&nbsp;last&nbsp;updated september 26, 2005</EM></CENTER>
+		<H1>
+			<CENTER>
+				<DIV align="left">
+					<HR>
+				</DIV>
+			</CENTER>
+		</H1>
+		<P align="left"><FONT size="3">This program is free software; you can redistribute it 
+				and/or modify it under the terms of the GNU General Public License as published 
+				by the Free Software Foundation; either version 2 of the License, or (at your 
+				option) any later version. This program is distributed in the hope that it will 
+				be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of 
+				MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public 
+				License for more details. You should have received a copy of the GNU General 
+				Public License along with this program; if not, write to the Free Software 
+				Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA</FONT>
+		</P>
+		<H1>
+			<CENTER>
+				<HR>
+			</CENTER>
+		</H1>
+		<H2 align="left">Table of Contents</H2>
+		<UL>
+			<LI>
+				<DIV align="left">Introduction</DIV>
+			<LI>
+				<DIV align="left">Features</DIV>
+			<LI>
+				<DIV align="left">System Requirements</DIV>
+			<LI>
+				<DIV align="left">Getting Started</DIV>
+			<LI>
+				<DIV align="left">
+					Troubleshooting</DIV>
+			<LI>
+				<DIV align="left">Credits</DIV>
+			</LI>
+		</UL>
+		<DIV align="left">For recent changes refer to the changelog.txt file.</DIV>
+		<H1>
+			<CENTER>
+				<HR>
+			</CENTER>
+		</H1>
+		<H2>Introduction</H2>
+		<P>Nestopia is a portable&nbsp;open source NES/Famicom emulator written in C++. 
+			It's designed to be as accurate as possible and supports 
+			a&nbsp;large&nbsp;number of peripherals.&nbsp;The hardware is 
+			emulated&nbsp;at&nbsp;cycle-by-cycle granularity,&nbsp;ensuring full support 
+			for&nbsp;software that do&nbsp;mid-scanline&nbsp;and other timing trickery. The 
+			emulation core has been carefully made to conform to the C++98 standard and any 
+			decent compiler should be able to compile it without any hassle. To ease the 
+			process of porting&nbsp;the emulator&nbsp;to&nbsp;a plattform of 
+			choice,&nbsp;the core provides&nbsp;a set of API classes. At the moment, a <A href="http://www.bannister.org/software/nestopia.htm">
+				Mac port</A> &nbsp;by Richard Bannister&nbsp;is available under an 
+			alternative licence.</P>
+		<P>
+			<hr>
+		<P></P>
+		<H2>Features</H2>
+		<H4>Boards&nbsp;(non-assigned mapper)
+		</H4>
+		<UL>
+			<LI>
+			Mario 1 Malee 2
+			<LI>
+			Novel Diamond 9999999-in-1
+			<LI>
+			Super 24-in-1
+			<LI>
+			Super Game 8237
+			<LI>
+				WS 40-in-1</LI></UL>
+		<H4>Sound Chips
+		</H4>
+		<UL>
+			<LI>
+			FDS
+			<LI>
+			FME-07
+			<LI>
+			VRC6
+			<LI>
+			N106
+			<LI>
+				MMC5</LI></UL>
+		<H4>Controllers
+		</H4>
+		<UL>
+			<LI>
+			Standard Pad
+			<LI>
+			Light Gun&nbsp;
+			<LI>
+			Family Basic Keyboard
+			<LI>
+			Power Pad
+			<LI>
+			Arkanoid Paddle
+			<LI>
+			Oeka Kids Tablet
+			<LI>
+			Hyper Shot
+			<LI>
+			Crazy Climber
+			<LI>
+			Mahjong
+			<LI>
+			Exciting Boxing
+			<LI>
+			Top Rider
+			<LI>
+				Pokkun Moguraa</LI></UL>
+		<H4>Extras</H4>
+		<UL>
+			<LI>
+			Famicom Disk System
+			<LI>
+			NSF Player
+			<LI>
+				VS.UniSystem</LI></UL>
+		<H4>Fully or Partially&nbsp;Supported&nbsp;Mappers
+		</H4>
+		<table border="1">
+			<tr>
+				<th>
+					Number
+				</th>
+				<th>
+					Board(s)
+				</th>
+			</tr>
+			<tr>
+				<td>0
+				</td>
+				<td>NROM
+				</td>
+			</tr>
+			<tr>
+				<td>1
+				</td>
+				<td>MMC1
+				</td>
+			</tr>
+			<tr>
+				<td>2
+				</td>
+				<td>UNROM
+				</td>
+			</tr>
+			<tr>
+				<td>3
+				</td>
+				<td>CNROM
+				</td>
+			</tr>
+			<tr>
+				<td>4
+				</td>
+				<td>MMC3 / MMC6 / MIMIC-1
+				</td>
+			</tr>
+			<tr>
+				<td>5
+				</td>
+				<td>MMC5
+				</td>
+			</tr>
+			<tr>
+				<td>6
+				</td>
+				<td>FFE F4xxx
+				</td>
+			</tr>
+			<tr>
+				<td>7
+				</td>
+				<td>AOROM / AMROM
+				</td>
+			</tr>
+			<tr>
+				<td>8
+				</td>
+				<td>FFE F3xxx
+				</td>
+			</tr>
+			<tr>
+				<td>9
+				</td>
+				<td>MMC2
+				</td>
+			</tr>
+			<tr>
+				<td>10
+				</td>
+				<td>MMC4
+				</td>
+			</tr>
+			<tr>
+				<td>11
+				</td>
+				<td>COLOR DREAMS
+				</td>
+			</tr>
+			<tr>
+				<td>12
+				</td>
+				<td>DBZ5 (MMC3)
+				</td>
+			</tr>
+			<tr>
+				<td>13
+				</td>
+				<td>CPROM
+				</td>
+			</tr>
+			<tr>
+				<td>15
+				</td>
+				<td>BMC CONTRA 100-IN-1
+				</td>
+			</tr>
+			<tr>
+				<td>16
+				</td>
+				<td>BANDAI
+				</td>
+			</tr>
+			<tr>
+				<td>17
+				</td>
+				<td>FFE F8xxx
+				</td>
+			</tr>
+			<tr>
+				<td>18
+				</td>
+				<td>JALECO SS8806
+				</td>
+			</tr>
+			<tr>
+				<td>19
+				</td>
+				<td>NAMCO 106
+				</td>
+			</tr>
+			<tr>
+				<td>21
+				</td>
+				<td>KONAMI VRC4 2A
+				</td>
+			</tr>
+			<tr>
+				<td>22
+				</td>
+				<td>KONAMI VRC2 / VRC4 A
+				</td>
+			</tr>
+			<tr>
+				<td>23
+				</td>
+				<td>KONAMI VRC2 / VRC4 B
+				</td>
+			</tr>
+			<tr>
+				<td>24
+				</td>
+				<td>KONAMI VRC6 A0/A1
+				</td>
+			</tr>
+			<tr>
+				<td>25
+				</td>
+				<td>KONAMI VRC4 Y
+				</td>
+			</tr>
+			<tr>
+				<td>26
+				</td>
+				<td>KONAMI VRC6 A1/A0
+				</td>
+			</tr>
+			<tr>
+				<td>32
+				</td>
+				<td>IREM G-101
+				</td>
+			</tr>
+			<tr>
+				<td>33
+				</td>
+				<td>TAITO TC0190/TC0350
+				</td>
+			</tr>
+			<tr>
+				<td>34
+				</td>
+				<td>NINA-1 / BNROM
+				</td>
+			</tr>
+			<tr>
+				<td>40
+				</td>
+				<td>BTL-SMB2
+				</td>
+			</tr>
+			<tr>
+				<td>41
+				</td>
+				<td>CALTRON 6-IN-1
+				</td>
+			</tr>
+			<tr>
+				<td>42
+				</td>
+				<td>BTL-MARIOBABY
+				</td>
+			</tr>
+			<tr>
+				<td>44
+				</td>
+				<td>BMC SUPER BIG 7-IN-1
+				</td>
+			</tr>
+			<tr>
+				<td>45
+				</td>
+				<td>BMC SUPER (1000000/13/7)-IN-1
+				</td>
+			</tr>
+			<tr>
+				<td>46
+				</td>
+				<td>GAME-STATION / RUMBLE-STATION
+				</td>
+			</tr>
+			<tr>
+				<td>47
+				</td>
+				<td>NES-QJ
+				</td>
+			</tr>
+			<tr>
+				<td>48
+				</td>
+				<td>TAITO TC190V
+				</td>
+			</tr>
+			<tr>
+				<td>49
+				</td>
+				<td>SUPER HiK 4-IN-1 (MMC3)
+				</td>
+			</tr>
+			<tr>
+				<td>50
+				</td>
+				<td>SMB2j REV.A
+				</td>
+			</tr>
+			<tr>
+				<td>51
+				</td>
+				<td>BMC BALL GAMES 11-IN-1
+				</td>
+			</tr>
+			<tr>
+				<td>52
+				</td>
+				<td>MARIO PARTY 7-IN-1 (MMC3)
+				</td>
+			</tr>
+			<tr>
+				<td>53
+				</td>
+				<td>SUPERVISION 16-IN-1
+				</td>
+			</tr>
+			<tr>
+				<td>56
+				</td>
+				<td>BTL-SMB3
+				</td>
+			</tr>
+			<tr>
+				<td>57
+				</td>
+				<td>GAME STAR GK-54
+				</td>
+			</tr>
+			<tr>
+				<td>58
+				</td>
+				<td>STUDY &amp; GAME 32-IN-1
+				</td>
+			</tr>
+			<tr>
+				<td>60
+				</td>
+				<td>BMC RESET-TRIGGERED 4-IN-1
+				</td>
+			</tr>
+			<tr>
+				<td>61
+				</td>
+				<td>BMC 20-IN-1
+				</td>
+			</tr>
+			<tr>
+				<td>62
+				</td>
+				<td>BMC 700-IN-1
+				</td>
+			</tr>
+			<tr>
+				<td>64
+				</td>
+				<td>TENGEN RAMBO-1
+				</td>
+			</tr>
+			<tr>
+				<td>65
+				</td>
+				<td>IREM H-3001
+				</td>
+			</tr>
+			<tr>
+				<td>66
+				</td>
+				<td>GNROM
+				</td>
+			</tr>
+			<tr>
+				<td>67
+				</td>
+				<td>SUNSOFT #3
+				</td>
+			</tr>
+			<tr>
+				<td>68
+				</td>
+				<td>SUNSOFT #4
+				</td>
+			</tr>
+			<tr>
+				<td>69
+				</td>
+				<td>SUNSOFT FME-07
+				</td>
+			</tr>
+			<tr>
+				<td>70
+				</td>
+				<td>BANDAI 74161/32
+				</td>
+			</tr>
+			<tr>
+				<td>71
+				</td>
+				<td>CAMERICA
+				</td>
+			</tr>
+			<tr>
+				<td>72
+				</td>
+				<td>JALECO
+				</td>
+			</tr>
+			<tr>
+				<td>73
+				</td>
+				<td>KONAMI VRC3
+				</td>
+			</tr>
+			<tr>
+				<td>74
+				</td>
+				<td>MMC3 TAIWAN
+				</td>
+			</tr>
+			<tr>
+				<td>75
+				</td>
+				<td>JALECO SS8805 / KONAMI VRC1
+				</td>
+			</tr>
+			<tr>
+				<td>76
+				</td>
+				<td>NAMCO 109
+				</td>
+			</tr>
+			<tr>
+				<td>77
+				</td>
+				<td>IREM
+				</td>
+			</tr>
+			<tr>
+				<td>78
+				</td>
+				<td>IREM 74HC161/32
+				</td>
+			</tr>
+			<tr>
+				<td>79
+				</td>
+				<td>NINA-06 / NINA-03
+				</td>
+			</tr>
+			<tr>
+				<td>80
+				</td>
+				<td>TAITO X-005
+				</td>
+			</tr>
+			<tr>
+				<td>82
+				</td>
+				<td>TAITO
+				</td>
+			</tr>
+			<tr>
+				<td>83
+				</td>
+				<td>BTL-DRAGON BALL PARTY
+				</td>
+			</tr>
+			<tr>
+				<td>85
+				</td>
+				<td>KONAMI VRC7
+				</td>
+			</tr>
+			<tr>
+				<td>86
+				</td>
+				<td>JALECO
+				</td>
+			</tr>
+			<tr>
+				<td>87
+				</td>
+				<td>KONAMI 74HC161/32
+				</td>
+			</tr>
+			<tr>
+				<td>88
+				</td>
+				<td>NAMCO 118
+				</td>
+			</tr>
+			<tr>
+				<td>89
+				</td>
+				<td>SUNSOFT
+				</td>
+			</tr>
+			<tr>
+				<td>90
+				</td>
+				<td>BTL-TEK2A
+				</td>
+			</tr>
+			<tr>
+				<td>91
+				</td>
+				<td>PC-HK-SF3
+				</td>
+			</tr>
+			<tr>
+				<td>92
+				</td>
+				<td>JALECO (early)
+				</td>
+			</tr>
+			<tr>
+				<td>93
+				</td>
+				<td>SUNSOFT 74HC161/32
+				</td>
+			</tr>
+			<tr>
+				<td>94
+				</td>
+				<td>CAPCOM 74HC161/32
+				</td>
+			</tr>
+			<tr>
+				<td>95
+				</td>
+				<td>DRAGON BUSTER (MMC3)
+				</td>
+			</tr>
+			<tr>
+				<td>96
+				</td>
+				<td>BANDAI 74HC161/32
+				</td>
+			</tr>
+			<tr>
+				<td>97
+				</td>
+				<td>IREM 74HC161/32
+				</td>
+			</tr>
+			<tr>
+				<td>99
+				</td>
+				<td>VS SYSTEM +8KB CHR SWITCH
+				</td>
+			</tr>
+			<tr>
+				<td>100
+				</td>
+				<td>MMC3 HACK
+				</td>
+			</tr>
+			<tr>
+				<td>101
+				</td>
+				<td>JALECO 74HC161/32
+				</td>
+			</tr>
+			<tr>
+				<td>105
+				</td>
+				<td>NES-EVENT
+				</td>
+			</tr>
+			<tr>
+				<td>107
+				</td>
+				<td>MAGIC DRAGON
+				</td>
+			</tr>
+			<tr>
+				<td>112
+				</td>
+				<td>ASDER
+				</td>
+			</tr>
+			<tr>
+				<td>113
+				</td>
+				<td>MB-91
+				</td>
+			</tr>
+			<tr>
+				<td>114
+				</td>
+				<td>THE LION KING
+				</td>
+			</tr>
+			<tr>
+				<td>115
+				</td>
+				<td>YUU YUU HAKUSHO FINAL
+				</td>
+			</tr>
+			<tr>
+				<td>117
+				</td>
+				<td>PC-FUTURE
+				</td>
+			</tr>
+			<tr>
+				<td>118
+				</td>
+				<td>TLSROM / TKSROM (MMC3)
+				</td>
+			</tr>
+			<tr>
+				<td>119
+				</td>
+				<td>TQROM (MMC3)
+				</td>
+			</tr>
+			<tr>
+				<td>133
+				</td>
+				<td>SACHEN-JOVIAL RACE
+				</td>
+			</tr>
+			<tr>
+				<td>134
+				</td>
+				<td>SACHEN-74LS374N
+				</td>
+			</tr>
+			<tr>
+				<td>135
+				</td>
+				<td>SACHEN-72008
+				</td>
+			</tr>
+			<tr>
+				<td>140
+				</td>
+				<td>JALECO
+				</td>
+			</tr>
+			<tr>
+				<td>142
+				</td>
+				<td>BTL KS 202 (SMB2J)
+				</td>
+			</tr>
+			<tr>
+				<td>144
+				</td>
+				<td>AGCI 50282
+				</td>
+			</tr>
+			<tr>
+				<td>151
+				</td>
+				<td>KONAMI VS-SYSTEM
+				</td>
+			</tr>
+			<tr>
+				<td>152
+				</td>
+				<td>BANDAI 74161/32 +MIRR
+				</td>
+			</tr>
+			<tr>
+				<td>153
+				</td>
+				<td>BANDAI +WRAM
+				</td>
+			</tr>
+			<tr>
+				<td>154
+				</td>
+				<td>NAMCO 118 +MIRR
+				</td>
+			</tr>
+			<tr>
+				<td>155
+				</td>
+				<td>MMC1 WRAM-ENABLE
+				</td>
+			</tr>
+			<tr>
+				<td>156
+				</td>
+				<td>TBA
+				</td>
+			</tr>
+			<tr>
+				<td>157
+				</td>
+				<td>BANDAI +BARCODE
+				</td>
+			</tr>
+			<tr>
+				<td>158
+				</td>
+				<td>TENGEN RAMBO1 (alt)
+				</td>
+			</tr>
+			<tr>
+				<td>160
+				</td>
+				<td>PC-ALADDIN
+				</td>
+			</tr>
+			<tr>
+				<td>164
+				</td>
+				<td>FINAL FANTASY V
+				</td>
+			</tr>
+			<tr>
+				<td>165
+				</td>
+				<td>FIRE EMBLEM
+				</td>
+			</tr>
+			<tr>
+				<td>180
+				</td>
+				<td>NICHIBUTSU
+				</td>
+			</tr>
+			<tr>
+				<td>181
+				</td>
+				<td>HACKER INT.TYPE2
+				</td>
+			</tr>
+			<tr>
+				<td>182
+				</td>
+				<td>SUPER DONKEY KONG
+				</td>
+			</tr>
+			<tr>
+				<td>184
+				</td>
+				<td>SUNSOFT 74HC161/32
+				</td>
+			</tr>
+			<tr>
+				<td>185
+				</td>
+				<td>CROM WRITE-ENABLE
+				</td>
+			</tr>
+			<tr>
+				<td>187
+				</td>
+				<td>STREET FIGHTER ZERO 2 97
+				</td>
+			</tr>
+			<tr>
+				<td>188
+				</td>
+				<td>BANDAI KARAOKE STUDIO
+				</td>
+			</tr>
+			<tr>
+				<td>189
+				</td>
+				<td>SF2 YOKO VERSION
+				</td>
+			</tr>
+			<tr>
+				<td>193
+				</td>
+				<td>MEGA SOFT (NTDEC)
+				</td>
+			</tr>
+			<tr>
+				<td>198
+				</td>
+				<td>DESTINY OF AN EMPEROR
+				</td>
+			</tr>
+			<tr>
+				<td>200
+				</td>
+				<td>BMC (1200-IN-1)
+				</td>
+			</tr>
+			<tr>
+				<td>201
+				</td>
+				<td>BMC (21-IN-1)
+				</td>
+			</tr>
+			<tr>
+				<td>202
+				</td>
+				<td>BMC (150-IN-1)
+				</td>
+			</tr>
+			<tr>
+				<td>203
+				</td>
+				<td>BMC (35-IN-1)
+				</td>
+			</tr>
+			<tr>
+				<td>204
+				</td>
+				<td>BMC (64-IN-1)
+				</td>
+			</tr>
+			<tr>
+				<td>205
+				</td>
+				<td>BMC (15/3-IN-1)
+				</td>
+			</tr>
+			<tr>
+				<td>206
+				</td>
+				<td>DEIROM
+				</td>
+			</tr>
+			<tr>
+				<td>207
+				</td>
+				<td>TAITO X-005 +MIRR
+				</td>
+			</tr>
+			<tr>
+				<td>208
+				</td>
+				<td>STREET FIGHTER 4
+				</td>
+			</tr>
+			<tr>
+				<td>209
+				</td>
+				<td>BTL-TEK2A EXT.MIRR
+				</td>
+			</tr>
+			<tr>
+				<td>210
+				</td>
+				<td>NAMCO
+				</td>
+			</tr>
+			<tr>
+				<td>211
+				</td>
+				<td>2-IN-1: DKC4 &amp; JUNGLE BOOK
+				</td>
+			</tr>
+			<tr>
+				<td>212
+				</td>
+				<td>SUPER HIK 300-IN-1
+				</td>
+			</tr>
+			<tr>
+				<td>213
+				</td>
+				<td>9999999-IN-1
+				</td>
+			</tr>
+			<tr>
+				<td>215
+				</td>
+				<td>M-E3
+				</td>
+			</tr>
+			<tr>
+				<td>217
+				</td>
+				<td>BMC SPC009
+				</td>
+			</tr>
+			<tr>
+				<td>222
+				</td>
+				<td>BTL DRAGON NINJA
+				</td>
+			</tr>
+			<tr>
+				<td>225
+				</td>
+				<td>BMC (58-IN-1 &amp; 110-IN-1/52)
+				</td>
+			</tr>
+			<tr>
+				<td>226
+				</td>
+				<td>BMC (76-IN-1)
+				</td>
+			</tr>
+			<tr>
+				<td>227
+				</td>
+				<td>BMC (1200-IN-1)
+				</td>
+			</tr>
+			<tr>
+				<td>228
+				</td>
+				<td>ACTION 52
+				</td>
+			</tr>
+			<tr>
+				<td>229
+				</td>
+				<td>BMC (31-IN-1)
+				</td>
+			</tr>
+			<tr>
+				<td>230
+				</td>
+				<td>BMC (22-IN-1)
+				</td>
+			</tr>
+			<tr>
+				<td>231
+				</td>
+				<td>20-IN-1
+				</td>
+			</tr>
+			<tr>
+				<td>232
+				</td>
+				<td>BIC-48
+				</td>
+			</tr>
+			<tr>
+				<td>233
+				</td>
+				<td>BMC (42-IN-1)
+				</td>
+			</tr>
+			<tr>
+				<td>234
+				</td>
+				<td>MAXI-15
+				</td>
+			</tr>
+			<tr>
+				<td>235
+				</td>
+				<td>BMC GOLDEN GAME (150-IN-1)
+				</td>
+			</tr>
+			<tr>
+				<td>240
+				</td>
+				<td>GEN KE LE ZHUAN
+				</td>
+			</tr>
+			<tr>
+				<td>241
+				</td>
+				<td>EDU
+				</td>
+			</tr>
+			<tr>
+				<td>242
+				</td>
+				<td>WAI XING ZHAN SHI
+				</td>
+			</tr>
+			<tr>
+				<td>243
+				</td>
+				<td>SACHEN 74LS374N
+				</td>
+			</tr>
+			<tr>
+				<td>244
+				</td>
+				<td>HACKER INT.
+				</td>
+			</tr>
+			<tr>
+				<td>245
+				</td>
+				<td>YONG ZHE DOU E LONG
+				</td>
+			</tr>
+			<tr>
+				<td>246
+				</td>
+				<td>PHONE SERM BERM
+				</td>
+			</tr>
+			<tr>
+				<td>248
+				</td>
+				<td>BAO QING TIAN
+				</td>
+			</tr>
+			<tr>
+				<td>249
+				</td>
+				<td>WAIXING
+				</td>
+			</tr>
+			<tr>
+				<td>250
+				</td>
+				<td>TIME DIVER AVENGER (MMC3)
+				</td>
+			</tr>
+			<tr>
+				<td>252
+				</td>
+				<td>SUPER 8-IN-1 FIGHTING
+				</td>
+			</tr>
+			<tr>
+				<td>254
+				</td>
+				<td>PIKACHU Y2K
+				</td>
+			</tr>
+			<tr>
+				<td>255
+				</td>
+				<td>BMC (110-IN-1)
+				</td>
+			</tr>
+		</table>
+		<P>..that renders a total of <STRONG>159</STRONG>.</P>
+		<h3>Recognized VS UniSystem Games
+		</h3>
+		<table border="1">
+			<tr>
+				<th width="150">
+					Name
+				</th>
+				<th>
+					Dip Switch Info
+				</th>
+			</tr>
+			<tr>
+				<td width="150">Battle City
+				</td>
+				<td>yes
+				</td>
+			</tr>
+			<tr>
+				<td width="150">Castlevania
+				</td>
+				<td>yes
+				</td>
+			</tr>
+			<tr>
+				<td width="150">Clu Clu Land
+				</td>
+				<td>yes
+				</td>
+			</tr>
+			<tr>
+				<td width="150">Dr. Mario
+				</td>
+				<td>yes
+				</td>
+			</tr>
+			<tr>
+				<td width="150">Duck Hunt
+				</td>
+				<td>yes
+				</td>
+			</tr>
+			<tr>
+				<td width="150">Excitebike
+				</td>
+				<td>yes
+				</td>
+			</tr>
+			<tr>
+				<td width="150">Freedom Force
+				</td>
+				<td>no
+				</td>
+			</tr>
+			<tr>
+				<td width="150">Golf
+				</td>
+				<td>yes
+				</td>
+			</tr>
+			<tr>
+				<td width="150">Goonies
+				</td>
+				<td>yes
+				</td>
+			</tr>
+			<tr>
+				<td width="150">Gradius
+				</td>
+				<td>yes
+				</td>
+			</tr>
+			<tr>
+				<td width="150">Hogan's Alley
+				</td>
+				<td>yes
+				</td>
+			</tr>
+			<tr>
+				<td width="150">Ice Climber
+				</td>
+				<td>yes
+				</td>
+			</tr>
+			<tr>
+				<td width="150">Lady Golf
+				</td>
+				<td>yes
+				</td>
+			</tr>
+			<tr>
+				<td width="150">Mach Rider
+				</td>
+				<td>yes
+				</td>
+			</tr>
+			<tr>
+				<td width="150">Mighty Bomb Jack
+				</td>
+				<td>no
+				</td>
+			</tr>
+			<tr>
+				<td width="150">Ninja Jajamaru Kun
+				</td>
+				<td>yes
+				</td>
+			</tr>
+			<tr>
+				<td width="150">Pinball
+				</td>
+				<td>yes
+				</td>
+			</tr>
+			<tr>
+				<td width="150">Platoon
+				</td>
+				<td>yes
+				</td>
+			</tr>
+			<tr>
+				<td width="150">Raid on Bungeling Bay
+				</td>
+				<td>no
+				</td>
+			</tr>
+			<tr>
+				<td width="150">RBI Baseball
+				</td>
+				<td>yes
+				</td>
+			</tr>
+			<tr>
+				<td width="150">Sky Kid
+				</td>
+				<td>yes
+				</td>
+			</tr>
+			<tr>
+				<td width="150">Slalom
+				</td>
+				<td>yes
+				</td>
+			</tr>
+			<tr>
+				<td width="150">Soccer
+				</td>
+				<td>yes
+				</td>
+			</tr>
+			<tr>
+				<td width="150">Star Luster
+				</td>
+				<td>yes
+				</td>
+			</tr>
+			<tr>
+				<td width="150">Stroke and Match Golf
+				</td>
+				<td>no
+				</td>
+			</tr>
+			<tr>
+				<td width="150">Super Mario Bros
+				</td>
+				<td>yes
+				</td>
+			</tr>
+			<tr>
+				<td width="150">Super Xevious
+				</td>
+				<td>no
+				</td>
+			</tr>
+			<tr>
+				<td width="150">Tetris
+				</td>
+				<td>yes
+				</td>
+			</tr>
+			<tr>
+				<td width="150">TKO Boxing
+				</td>
+				<td>yes
+				</td>
+			</tr>
+			<tr>
+				<td width="150">Top Gun
+				</td>
+				<td>yes
+				</td>
+			</tr>
+		</table>
+		<P>
+			<HR>
+		<P></P>
+		<H2>&nbsp;System Requirements
+		</H2>
+		<P>
+			<TABLE id="Table2" height="158" border="1" colspan="2">
+				<TR>
+					<TH width="122">
+						Minimum
+					</TH>
+				</TR>
+				<TR>
+					<TD width="122">Processor
+					</TD>
+					<TD>Pentium MMX or comparable AMD <FONT size="1">(1)</FONT> &nbsp;
+					</TD>
+				</TR>
+				<TR>
+					<TD width="122">Ram
+					</TD>
+					<TD>64MB
+					</TD>
+				</TR>
+				<TR>
+					<TD width="122">Video
+					</TD>
+					<TD>Direct3D 9.0 compatible graphic card
+					</TD>
+				</TR>
+				<TR>
+					<TD width="122">OS
+					</TD>
+					<TD>Windows 98/Me/2000/XP <FONT size="1">(2)</FONT>
+					</TD>
+				</TR>
+				<TR>
+					<TD width="122">Software
+					</TD>
+					<TD>DirectX 9.0c or greater&nbsp;
+					</TD>
+				</TR>
+			</TABLE>
+		</P>
+		<P><FONT size="2">(1)&nbsp;</FONT><FONT size="2">With this spec you should expect 
+				nothing but turtle speed.</FONT></P>
+		<P><FONT size="2">(2)&nbsp;Untested on 98/Me/2000. 
+				If&nbsp;Nestopia&nbsp;doesn't&nbsp;work on any of them, I'd like to know.</FONT></P>
+		<P>
+			<TABLE id="Table3" border="1" colspan="2">
+				<TR>
+					<TH width="124">
+						Recommended
+					</TH>
+				</TR>
+				<TR>
+					<TD width="124">Processor
+					</TD>
+					<TD>Pentium 4 or comparable AMD <FONT size="1">(1)</FONT>
+					</TD>
+				</TR>
+				<TR>
+					<TD width="124">Ram
+					</TD>
+					<TD>256MB
+					</TD>
+				</TR>
+				<TR>
+					<TD width="124">Video
+					</TD>
+					<TD>Direct3D 9.0 compatible graphic card</TD>
+				</TR>
+				<TR>
+					<TD width="124">Sound
+					</TD>
+					<TD>DirectSound 8.1 compatible sound card
+					</TD>
+				</TR>
+				<TR>
+					<TD width="124">OS
+					</TD>
+					<TD>Windows XP
+					</TD>
+				</TR>
+				<TR>
+					<TD width="124">Software
+					</TD>
+					<TD>DirectX 9.0c or greater
+					</TD>
+				</TR>
+			</TABLE>
+		</P>
+		<P>
+		<P><FONT size="2">(1)&nbsp;This is better;&nbsp;expect ninja turtle speed.</FONT>
+		<P>
+			<HR>
+			<H2>Getting Started</H2>
+			<H4>NES / Famicom console</H4>
+		<P>Supported cartridge formats are&nbsp;<STRONG>.nes</STRONG> and <STRONG>.unif</STRONG>.&nbsp;To 
+			get beyond&nbsp;the limitation of the&nbsp;<STRONG>.nes</STRONG> format&nbsp;Nestopia 
+			maintains an internal game database&nbsp;that will&nbsp;attempt 
+			to&nbsp;fix&nbsp;incorrect headers&nbsp;as well as provide necessary info for 
+			certain cartridge types. No changes are made to the physical file.&nbsp;This 
+			feature can be&nbsp;disabled&nbsp;in the preferences dialog.</P>
+		<P>
+			Non-volatile save data is managed by Nestopia as needed. The save data is 
+			usually an 8K sized chunk&nbsp;of battery-backed&nbsp;RAM which when in 
+			use,&nbsp;will be placed in a default or user defined directory. It's possible 
+			to instruct Nestopia not to&nbsp;save the&nbsp;data&nbsp;through an 
+			option&nbsp;in the paths dialog, thus making it read-only.</P>
+		<H4>Famicom Disk System</H4>
+		<P>Supported disk formats are <STRONG>.fds</STRONG>&nbsp;and&nbsp;raw files. In 
+			order to run FDS software&nbsp;a valid BIOS ROM file&nbsp;in either a<STRONG>&nbsp;.nes</STRONG>
+			or a raw format is required. During&nbsp;application startup Nestopia performs 
+			a search&nbsp;in various directories&nbsp;for it&nbsp;by the name 
+			"disksys.rom". If none was found you have to&nbsp;open the FDS dialog and set 
+			the file path&nbsp;yourself.</P>
+		<P>You can select between three options that let you choose how changes to disk 
+			files&nbsp;should be&nbsp;handled. The default and prefered way to handle it is 
+			through the use of IPS files. Any data that was changed during a gaming session 
+			is saved and put into&nbsp;a default or user defined directory. The next time 
+			the game is loaded Nestopia will locate this IPS file and use it to patch 
+			the&nbsp;original&nbsp;disk file in memory. This method however, is not 
+			garuanteed to work if&nbsp;the&nbsp;disk file&nbsp;has been&nbsp;altered 
+			between saves unknowingly to Nestopia,&nbsp;by for example another emulator. 
+			The second option will simply&nbsp;make the changes&nbsp;directly to 
+			the&nbsp;disk&nbsp;file. Be aware that this method is unsafe and can if you're 
+			extremely unlucky, cause&nbsp;the disk file to become corrupted. Possible 
+			reasons&nbsp;could be&nbsp;I/O error,&nbsp;system crash, in-game bug&nbsp;etc. 
+			The last option simply disables disk file saving&nbsp;altogether.
+		</P>
+		<H4>Save States / Movie Tapes</H4>
+		<P>Whenever a game is&nbsp;running&nbsp;its current state&nbsp;can be captured and 
+			saved into a file enabling you to resume your game at a later time. Also 
+			available are&nbsp;9 quick save slots&nbsp;which are&nbsp;automatically managed 
+			by Nestopia. Unless you disable the auto import/export&nbsp;to files 
+			option&nbsp;in the paths dialog&nbsp;the save 
+			slots&nbsp;will&nbsp;be&nbsp;saved to/loaded from&nbsp;files&nbsp;with the same 
+			name as the&nbsp;game file - i.e,&nbsp;<EM>nighthawk.nes</EM> will&nbsp;save 
+			them as&nbsp;<EM><EM>nighthawk</EM>.ns1</EM>..<EM><EM>nighthawk</EM>.ns9</EM>.</P>
+		<P>Nestopia is capable of recording movies by listening to the NES I/O 
+			ports&nbsp;collecting any data that&nbsp;gets transmitted from&nbsp;any 
+			connected&nbsp;input devices&nbsp;to the CPU. During playback&nbsp;the recorded 
+			data stream&nbsp;is then&nbsp;fed&nbsp;to the CPU&nbsp;whenever it makes a read 
+			from&nbsp;one of the&nbsp;I/O ports. Available commands are play, record, stop, 
+			rewind and&nbsp;forward.</P>
+		<P>
+			As of version 1.20&nbsp;these two file formats have gone through a major 
+			overhaul and&nbsp;as a result,&nbsp;the old formats&nbsp;will no 
+			longer&nbsp;work&nbsp;with new versions of Nestopia. The files are chunk based 
+			and uses (unless disabled by the user)&nbsp;internal compression with the 
+			help&nbsp;of&nbsp;<A href="http://www.zlib.net/">ZLib</A>. The file extensions 
+			for the state and movie files&nbsp;are&nbsp;<STRONG>.nst&nbsp;</STRONG>respective
+			<STRONG>.nsv</STRONG>.</P>
+		<H4>Image&nbsp;Patching</H4>
+		<P>
+			Nestopia&nbsp;can apply IPS patching on all the supported&nbsp;image file 
+			formats.&nbsp;By making&nbsp;the changes&nbsp;in memory 
+			your&nbsp;physical&nbsp;files will&nbsp;remain intact. There are&nbsp;several 
+			ways to apply the patching. Either you can just open the IPS file 
+			and&nbsp;apply it&nbsp;on&nbsp;a&nbsp;game&nbsp;currently&nbsp;running, in 
+			which case&nbsp;a power-reset will be made. Another option is to enable 
+			Nestopia to look for it&nbsp;when a&nbsp;game is loaded and have the patch 
+			applied&nbsp;automatically.
+		</P>
+		<H4>Cheats</H4>
+		<P>The cheat&nbsp;dialog provides two tables for cheat codes. Codes&nbsp;listed in 
+			the "temporary codes" table&nbsp;will get flushed once a game&nbsp;has 
+			been&nbsp;unloaded. This is useful if you're trying out&nbsp;codes but later 
+			forget to remove or disable them, causing the next&nbsp;game you load to 
+			misbehave&nbsp;due to&nbsp;the codes&nbsp;still being in use. Codes listed in 
+			the "static codes" table will be preserved at all time, even after the 
+			application is closed.
+		</P>
+		<P>Cheat codes can be submitted in two different&nbsp;ways. Either&nbsp;by 
+			providing&nbsp;the <EM>address, data </EM>and<EM> compare</EM> bytes 
+			explicitly;&nbsp;or&nbsp;through the&nbsp;Game Genie&nbsp;method with&nbsp;the 
+			values&nbsp;packed and encoded into a 6-8 character&nbsp;string.</P>
+		<H4>Netplay</H4>
+		<P>Netplay is supported through the Kaillera network. The&nbsp;user interface 
+			should be&nbsp;fairly easy to navigate through. Before you start playing make 
+			sure you and your gaming buddies share the same emulation settings. For 
+			more&nbsp;Kaillera info&nbsp;visit&nbsp;the <A href="http://www.kaillera.com/">official 
+				site</A>.</P>
+		<H4>NSP Files</H4>
+		<P><FONT face="Times New Roman">This is a text based game configuration file format. 
+				It's easy to edit by hand and will give you&nbsp;more control over what files 
+				and settings to use&nbsp;for individual&nbsp;games.&nbsp;You&nbsp;may also at 
+				any time save your </FONT><FONT face="Times New Roman">current&nbsp;emulation&nbsp;configuration 
+				into this format.</FONT>
+		</P>
+		<P><FONT face="Times New Roman"> Available&nbsp;arguments are:</FONT>
+		</P>
+		<UL>
+			<LI>
+				<FONT size="2">-ROM or -IMAGE [filename]</FONT>
+			<LI>
+				<FONT size="2">-SAVE or -SAV [filename]</FONT>
+			<LI>
+				<FONT size="2">-STATE [filename]</FONT>
+			<LI>
+				<FONT size="2">-MOVIE [filename]</FONT>
+			<LI>
+				<FONT size="2">-STATESLOT1..STATESLOT9 [filename]</FONT>
+			<LI>
+				<FONT size="2">-IPS [filename]</FONT>
+			<LI>
+				<FONT size="2">-MODE [ntsc,pal]</FONT>
+			<LI>
+				<FONT size="2">-PORT1..PORT5 
+					[unconnected,pad1,pad2,pad3,pad4,zapper,paddle,powerpad,keyboard,oekakidstablet,hypershot,crazyclimber,excitingboxing,toprider,pokkunmoguraa]</FONT>
+			<LI>
+				<FONT size="2">-GENIE or -CHEAT [code] [on,off] [optional comment]</FONT></LI></UL>
+		<P>Note, the brackets [] should not be included and you can only specify one 
+			argument per line.</P>
+		Example - c:\game.nsp:
+		<BR>
+		<BR>
+		-IMAGE c:\games\willybeamish.nes
+		<BR>
+		-MODE pal
+		<BR>
+		-PORT1 pad1
+		<BR>
+		-PORT2 unconnected
+		<BR>
+		-CHEAT szneevvk on
+		<BR>
+		<P>
+			This will load the willybeamish.nes file, force it into PAL mode&nbsp;with one 
+			standard controller plugged in and&nbsp;enable one cheat code.
+		</P>
+		<P>
+			<HR>
+		<P></P>
+		<P></P>
+		<H3>
+			Command Line/Configuration File Parameters
+		</H3>
+		<P>While parameters in the command line and configuration file&nbsp;shares the same 
+			syntax&nbsp;and can be used interchangebly,&nbsp;command line 
+			parameters&nbsp;are given&nbsp;higher priority. Directories, filenames, guids 
+			and input keys&nbsp;must be surrounded&nbsp;by quotation marks.</P>
+		<P>Example: Nestopia.exe "c:\gianasisters.nes" -video fullscreen bpp : 16 -video 
+			fullscreen width : 1024 -video fullscreen height : 768 -preferences fullscreen 
+			on start : yes -view size fullscreen : stretched&nbsp;
+		</P>
+		<P>
+			<TABLE id="Table1" border="1">
+				<TR>
+					<TH height="23">
+						Argument&nbsp;
+					</TH>
+					<TH width="292" height="23">
+						Values
+					</TH>
+					<TH height="23">
+						Default
+					</TH>
+				</TR>
+				<TR>
+					<TD>files auto export states
+					</TD>
+					<TD width="292">yes, no
+					</TD>
+					<TD>yes
+					</TD>
+				</TR>
+				<TR>
+					<TD>files auto import states
+					</TD>
+					<TD width="292">yes, no
+					</TD>
+					<TD>yes
+					</TD>
+				</TR>
+				<TR>
+					<TD>files auto ips patching
+					</TD>
+					<TD width="292">yes, no
+					</TD>
+					<TD>no
+					</TD>
+				</TR>
+				<TR>
+					<TD>files compress states
+					</TD>
+					<TD width="292">yes, no
+					</TD>
+					<TD>yes
+					</TD>
+				</TR>
+				<TR>
+					<TD>files fds bios
+					</TD>
+					<TD width="292">file
+					</TD>
+					<TD>-
+					</TD>
+				</TR>
+				<TR>
+					<TD>files fds led
+					</TD>
+					<TD width="292">screen, numlock, scrolllock, capslock, disable
+					</TD>
+					<TD>screen
+					</TD>
+				</TR>
+				<TR>
+					<TD>files fds save
+					</TD>
+					<TD width="292">ips, image, disable
+					</TD>
+					<TD>ips
+					</TD>
+				</TR>
+				<TR>
+					<TD>files last path images
+					</TD>
+					<TD width="292">dir
+					</TD>
+					<TD>-
+					</TD>
+				</TR>
+				<TR>
+					<TD>files last path scripts
+					</TD>
+					<TD width="292">dir&nbsp;
+					</TD>
+					<TD>-
+					</TD>
+				</TR>
+				<TR>
+					<TD>files path cartridge data
+					</TD>
+					<TD width="292">dir&nbsp;
+					</TD>
+					<TD>.\cartridge\
+					</TD>
+				</TR>
+				<TR>
+					<TD>files path image
+					</TD>
+					<TD width="292">dir&nbsp;
+					</TD>
+					<TD>.\
+					</TD>
+				</TR>
+				<TR>
+					<TD>files path ips
+					</TD>
+					<TD width="292">dir&nbsp;
+					</TD>
+					<TD>.\ips\
+					</TD>
+				</TR>
+				<TR>
+					<TD>files path screenshot
+					</TD>
+					<TD width="292">dir&nbsp;
+					</TD>
+					<TD>.\screenshots\
+					</TD>
+				</TR>
+				<TR>
+					<TD>files path script
+					</TD>
+					<TD width="292">dir
+					</TD>
+					<TD>.\scripts\
+					</TD>
+				</TR>
+				<TR>
+					<TD>files path state
+					</TD>
+					<TD width="292">dir&nbsp;
+					</TD>
+					<TD>.\states\
+					</TD>
+				</TR>
+				<TR>
+					<TD>files readonly cartridge
+					</TD>
+					<TD width="292">yes, no
+					</TD>
+					<TD>no
+					</TD>
+				</TR>
+				<TR>
+					<TD>files recent 1..9
+					</TD>
+					<TD width="292">file
+					</TD>
+					<TD>-
+					</TD>
+				</TR>
+				<TR>
+					<TD>files recent dir 1..5
+					</TD>
+					<TD width="292">dir&nbsp;
+					</TD>
+					<TD>-
+					</TD>
+				</TR>
+				<TR>
+					<TD>files screenshot format
+					</TD>
+					<TD width="292">
+						png, jpg, bmp
+					</TD>
+					<TD>png
+					</TD>
+				</TR>
+				<TR>
+					<TD>files use last image path
+					</TD>
+					<TD width="292">yes, no
+					</TD>
+					<TD>yes
+					</TD>
+				</TR>
+				<TR>
+					<TD>files use last script path
+					</TD>
+					<TD width="292">yes, no
+					</TD>
+					<TD>yes
+					</TD>
+				</TR>
+				<TR>
+					<TD>gamegenie 1..N
+					</TD>
+					<TD width="292">code on, off
+					</TD>
+					<TD>-
+					</TD>
+				</TR>
+				<TR>
+					<TD>input autofire speed
+					</TD>
+					<TD width="292">0..5
+					</TD>
+					<TD>4
+					</TD>
+				</TR>
+				<TR>
+					<TD>input crazyclimber left down
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>S
+					</TD>
+				</TR>
+				<TR>
+					<TD>input crazyclimber left left
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>A
+					</TD>
+				</TR>
+				<TR>
+					<TD>input crazyclimber left right
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>D
+					</TD>
+				</TR>
+				<TR>
+					<TD>input crazyclimber left up
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>W
+					</TD>
+				</TR>
+				<TR>
+					<TD>input crazyclimber right down
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>H
+					</TD>
+				</TR>
+				<TR>
+					<TD>input crazyclimber right left
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>G
+					</TD>
+				</TR>
+				<TR>
+					<TD>input crazyclimber right right
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>J
+					</TD>
+				</TR>
+				<TR>
+					<TD>input crazyclimber right up
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>Y
+					</TD>
+				</TR>
+				<TR>
+					<TD>input device 0..N
+					</TD>
+					<TD width="292">guid
+					</TD>
+					<TD>-
+					</TD>
+				</TR>
+				<TR>
+					<TD>input emulation alternative speed
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>BACK
+					</TD>
+				</TR>
+				<TR>
+					<TD>input emulation insert coin 1..2
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>F2, F3
+					</TD>
+				</TR>
+				<TR>
+					<TD>input excitingboxing body
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>DOWN
+					</TD>
+				</TR>
+				<TR>
+					<TD>input excitingboxing left hook
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>K
+					</TD>
+				</TR>
+				<TR>
+					<TD>input excitingboxing left jabb
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>,
+					</TD>
+				</TR>
+				<TR>
+					<TD>input excitingboxing left move
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>LEFT
+					</TD>
+				</TR>
+				<TR>
+					<TD>input excitingboxing right hook
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>L
+					</TD>
+				</TR>
+				<TR>
+					<TD>input excitingboxing right jabb
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>.
+					</TD>
+				</TR>
+				<TR>
+					<TD>input excitingboxing right move
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>RIGHT
+					</TD>
+				</TR>
+				<TR>
+					<TD>input excitingboxing straight
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>UP
+					</TD>
+				</TR>
+				<TR>
+					<TD>input file exit
+					</TD>
+					<TD width="292">key, ...
+					</TD>
+					<TD>ALT+X
+					</TD>
+				</TR>
+				<TR>
+					<TD>input file launcher
+					</TD>
+					<TD width="292">key, ...
+					</TD>
+					<TD>ALT+L
+					</TD>
+				</TR>
+				<TR>
+					<TD>input file load script
+					</TD>
+					<TD width="292">key, ...
+					</TD>
+					<TD>CTRL+SHIFT+W
+					</TD>
+				</TR>
+				<TR>
+					<TD>input file load state
+					</TD>
+					<TD width="292">key, ...
+					</TD>
+					<TD>F7&nbsp;</TD>
+				</TR>
+				<TR>
+					<TD>input file open
+					</TD>
+					<TD width="292">key, ...
+					</TD>
+					<TD>CTRL+O
+					</TD>
+				</TR>
+				<TR>
+					<TD>input file quick load last state
+					</TD>
+					<TD width="292">key, ...
+					</TD>
+					<TD>SHIFT+0
+					</TD>
+				</TR>
+				<TR>
+					<TD>input file quick load state 1
+					</TD>
+					<TD width="292">key, ...
+					</TD>
+					<TD>SHIFT+1
+					</TD>
+				</TR>
+				<TR>
+					<TD>input file quick load state 2
+					</TD>
+					<TD width="292">key, ...
+					</TD>
+					<TD>SHIFT+2
+					</TD>
+				</TR>
+				<TR>
+					<TD>input file quick load state 3
+					</TD>
+					<TD width="292">key, ...
+					</TD>
+					<TD>SHIFT+3
+					</TD>
+				</TR>
+				<TR>
+					<TD>input file quick load state 4
+					</TD>
+					<TD width="292">key, ...
+					</TD>
+					<TD>SHIFT+4
+					</TD>
+				</TR>
+				<TR>
+					<TD>input file quick load state 5
+					</TD>
+					<TD width="292">key, ...
+					</TD>
+					<TD>SHIFT+5
+					</TD>
+				</TR>
+				<TR>
+					<TD>input file quick load state 6
+					</TD>
+					<TD width="292">key, ...
+					</TD>
+					<TD>SHIFT+6
+					</TD>
+				</TR>
+				<TR>
+					<TD>input file quick load state 7
+					</TD>
+					<TD width="292">key, ...
+					</TD>
+					<TD>SHIFT+7
+					</TD>
+				</TR>
+				<TR>
+					<TD>input file quick load state 8
+					</TD>
+					<TD width="292">key, ...
+					</TD>
+					<TD>SHIFT+8
+					</TD>
+				</TR>
+				<TR>
+					<TD>input file quick load state 9
+					</TD>
+					<TD width="292">key, ...
+					</TD>
+					<TD>SHIFT+9
+					</TD>
+				</TR>
+				<TR>
+					<TD>input file quick save next state
+					</TD>
+					<TD width="292">key, ...
+					</TD>
+					<TD>0
+					</TD>
+				</TR>
+				<TR>
+					<TD>input file quick save state 1
+					</TD>
+					<TD width="292">key, ...
+					</TD>
+					<TD>1
+					</TD>
+				</TR>
+				<TR>
+					<TD>input file quick save state 2
+					</TD>
+					<TD width="292">key, ...
+					</TD>
+					<TD>2
+					</TD>
+				</TR>
+				<TR>
+					<TD>input file quick save state 3
+					</TD>
+					<TD width="292">key, ...
+					</TD>
+					<TD>3
+					</TD>
+				</TR>
+				<TR>
+					<TD>input file quick save state 4
+					</TD>
+					<TD width="292">key, ...
+					</TD>
+					<TD>4
+					</TD>
+				</TR>
+				<TR>
+					<TD>input file quick save state 5
+					</TD>
+					<TD width="292">key, ...
+					</TD>
+					<TD>5
+					</TD>
+				</TR>
+				<TR>
+					<TD>input file quick save state 6
+					</TD>
+					<TD width="292">key, ...
+					</TD>
+					<TD>6
+					</TD>
+				</TR>
+				<TR>
+					<TD>input file quick save state 7
+					</TD>
+					<TD width="292">key, ...
+					</TD>
+					<TD>7
+					</TD>
+				</TR>
+				<TR>
+					<TD>input file quick save state 8
+					</TD>
+					<TD width="292">key, ...
+					</TD>
+					<TD>8
+					</TD>
+				</TR>
+				<TR>
+					<TD>input file quick save state 9
+					</TD>
+					<TD width="292">key, ...
+					</TD>
+					<TD>9
+					</TD>
+				</TR>
+				<TR>
+					<TD>input file save screenshot
+					</TD>
+					<TD width="292">key, ...
+					</TD>
+					<TD>ALT+E
+					</TD>
+				</TR>
+				<TR>
+					<TD>input file save script
+					</TD>
+					<TD width="292">key, ...
+					</TD>
+					<TD>CTRL+SHIFT+S
+					</TD>
+				</TR>
+				<TR>
+					<TD>input file save state
+					</TD>
+					<TD width="292">key, ...
+					</TD>
+					<TD>F5&nbsp;</TD>
+				</TR>
+				<TR>
+					<TD>input help help
+					</TD>
+					<TD width="292">key, ...
+					</TD>
+					<TD>F1
+					</TD>
+				</TR>
+				<TR>
+					<TD>input machine change disk side
+					</TD>
+					<TD width="292">key, ...
+					</TD>
+					<TD>SHIFT+B
+					</TD>
+				</TR>
+				<TR>
+					<TD>input machine hard reset
+					</TD>
+					<TD width="292">key, ...
+					</TD>
+					<TD>SHIFT+T
+					</TD>
+				</TR>
+				<TR>
+					<TD>input machine pause
+					</TD>
+					<TD width="292">key, ...
+					</TD>
+					<TD>SHIFT+P
+					</TD>
+				</TR>
+				<TR>
+					<TD>input machine power
+					</TD>
+					<TD width="292">key, ...
+					</TD>
+					<TD>SHIFT+D
+					</TD>
+				</TR>
+				<TR>
+					<TD>input machine soft reset
+					</TD>
+					<TD width="292">key, ...
+					</TD>
+					<TD>SHIFT+R
+					</TD>
+				</TR>
+				<TR>
+					<TD>input machine unlimited sprite toggle
+					</TD>
+					<TD width="292">key, ...
+					</TD>
+					<TD>SHIFT+U
+					</TD>
+				</TR>
+				<TR>
+					<TD>input mahjong a
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>Q
+					</TD>
+				</TR>
+				<TR>
+					<TD>input mahjong b
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>W
+					</TD>
+				</TR>
+				<TR>
+					<TD>input mahjong c
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>E
+					</TD>
+				</TR>
+				<TR>
+					<TD>input mahjong chii
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>B
+					</TD>
+				</TR>
+				<TR>
+					<TD>input mahjong d
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>R
+					</TD>
+				</TR>
+				<TR>
+					<TD>input mahjong e
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>T
+					</TD>
+				</TR>
+				<TR>
+					<TD>input mahjong f
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>A
+					</TD>
+				</TR>
+				<TR>
+					<TD>input mahjong g
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>S
+					</TD>
+				</TR>
+				<TR>
+					<TD>input mahjong h
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>D
+					</TD>
+				</TR>
+				<TR>
+					<TD>input mahjong i
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>F
+					</TD>
+				</TR>
+				<TR>
+					<TD>input mahjong j
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>G
+					</TD>
+				</TR>
+				<TR>
+					<TD>input mahjong k
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>H
+					</TD>
+				</TR>
+				<TR>
+					<TD>input mahjong kan
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>C
+					</TD>
+				</TR>
+				<TR>
+					<TD>input mahjong l
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>J
+					</TD>
+				</TR>
+				<TR>
+					<TD>input mahjong m
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>K
+					</TD>
+				</TR>
+				<TR>
+					<TD>input mahjong n
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>L
+					</TD>
+				</TR>
+				<TR>
+					<TD>input mahjong pon
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>V
+					</TD>
+				</TR>
+				<TR>
+					<TD>input mahjong reach
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>N
+					</TD>
+				</TR>
+				<TR>
+					<TD>input mahjong ron
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>M
+					</TD>
+				</TR>
+				<TR>
+					<TD>input mahjong select
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>X
+					</TD>
+				</TR>
+				<TR>
+					<TD>input mahjong start
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>Z
+					</TD>
+				</TR>
+				<TR>
+					<TD>input nsf next song
+					</TD>
+					<TD width="292">key, ...
+					</TD>
+					<TD>SHIFT+RIGHT
+					</TD>
+				</TR>
+				<TR>
+					<TD>input nsf play song
+					</TD>
+					<TD width="292">key, ...
+					</TD>
+					<TD>SHIFT+UP
+					</TD>
+				</TR>
+				<TR>
+					<TD>input nsf previous song
+					</TD>
+					<TD width="292">key, ...
+					</TD>
+					<TD>SHIFT+LEFT
+					</TD>
+				</TR>
+				<TR>
+					<TD>input nsf stop song
+					</TD>
+					<TD width="292">key, ...
+					</TD>
+					<TD>SHIFT+DOWN
+					</TD>
+				</TR>
+				<TR>
+					<TD>input pad1 a
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>.
+					</TD>
+				</TR>
+				<TR>
+					<TD>input pad1 autofire a
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>L
+					</TD>
+				</TR>
+				<TR>
+					<TD>input pad1 autofire b
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>K
+					</TD>
+				</TR>
+				<TR>
+					<TD>input pad1 b
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>,
+					</TD>
+				</TR>
+				<TR>
+					<TD>input pad1 down
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>DOWN
+					</TD>
+				</TR>
+				<TR>
+					<TD>input pad1 left
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>LEFT
+					</TD>
+				</TR>
+				<TR>
+					<TD>input pad1 right
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>RIGHT
+					</TD>
+				</TR>
+				<TR>
+					<TD>input pad1 select
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>RSHIFT
+					</TD>
+				</TR>
+				<TR>
+					<TD>input pad1 start
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>RETURN
+					</TD>
+				</TR>
+				<TR>
+					<TD>input pad1 up
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>UP
+					</TD>
+				</TR>
+				<TR>
+					<TD>input pad2 a
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>X
+					</TD>
+				</TR>
+				<TR>
+					<TD>input pad2 autofire a
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>W
+					</TD>
+				</TR>
+				<TR>
+					<TD>input pad2 autofire b
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>Q
+					</TD>
+				</TR>
+				<TR>
+					<TD>input pad2 b
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>Z
+					</TD>
+				</TR>
+				<TR>
+					<TD>input pad2 down
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>V
+					</TD>
+				</TR>
+				<TR>
+					<TD>input pad2 left
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>C
+					</TD>
+				</TR>
+				<TR>
+					<TD>input pad2 right
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>B
+					</TD>
+				</TR>
+				<TR>
+					<TD>input pad2 select
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>A
+					</TD>
+				</TR>
+				<TR>
+					<TD>input pad2 start
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>S
+					</TD>
+				</TR>
+				<TR>
+					<TD>input pad2 up
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>F
+					</TD>
+				</TR>
+				<TR>
+					<TD>input pad3 a
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>-
+					</TD>
+				</TR>
+				<TR>
+					<TD>input pad3 autofire a
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>-
+					</TD>
+				</TR>
+				<TR>
+					<TD>input pad3 autofire b
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>-
+					</TD>
+				</TR>
+				<TR>
+					<TD>input pad3 b
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>-
+					</TD>
+				</TR>
+				<TR>
+					<TD>input pad3 down
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>-
+					</TD>
+				</TR>
+				<TR>
+					<TD>input pad3 left
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>-
+					</TD>
+				</TR>
+				<TR>
+					<TD>input pad3 right
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>-
+					</TD>
+				</TR>
+				<TR>
+					<TD>input pad3 select
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>-
+					</TD>
+				</TR>
+				<TR>
+					<TD>input pad3 start
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>-
+					</TD>
+				</TR>
+				<TR>
+					<TD>input pad3 up
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>-
+					</TD>
+				</TR>
+				<TR>
+					<TD>input pad4 a
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>-
+					</TD>
+				</TR>
+				<TR>
+					<TD>input pad4 autofire a
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>-
+					</TD>
+				</TR>
+				<TR>
+					<TD>input pad4 autofire b
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>-
+					</TD>
+				</TR>
+				<TR>
+					<TD>input pad4 b
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>-
+					</TD>
+				</TR>
+				<TR>
+					<TD>input pad4 down
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>-
+					</TD>
+				</TR>
+				<TR>
+					<TD>input pad4 left
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>-
+					</TD>
+				</TR>
+				<TR>
+					<TD>input pad4 right
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>-
+					</TD>
+				</TR>
+				<TR>
+					<TD>input pad4 select
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>-
+					</TD>
+				</TR>
+				<TR>
+					<TD>input pad4 start
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>-
+					</TD>
+				</TR>
+				<TR>
+					<TD>input pad4 up
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>-
+					</TD>
+				</TR>
+				<TR>
+					<TD>input pokkunmoguraa row 1 button 1
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>T
+					</TD>
+				</TR>
+				<TR>
+					<TD>input pokkunmoguraa row 1 button 2
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>Y
+					</TD>
+				</TR>
+				<TR>
+					<TD>input pokkunmoguraa row 1 button 3
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>U
+					</TD>
+				</TR>
+				<TR>
+					<TD>input pokkunmoguraa row 1 button 4
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>I
+					</TD>
+				</TR>
+				<TR>
+					<TD>input pokkunmoguraa row 2 button 1
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>G
+					</TD>
+				</TR>
+				<TR>
+					<TD>input pokkunmoguraa row 2 button 2
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>H
+					</TD>
+				</TR>
+				<TR>
+					<TD>input pokkunmoguraa row 2 button 3
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>J
+					</TD>
+				</TR>
+				<TR>
+					<TD>input pokkunmoguraa row 2 button 4
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>K
+					</TD>
+				</TR>
+				<TR>
+					<TD>input pokkunmoguraa row 3 button 1
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>B
+					</TD>
+				</TR>
+				<TR>
+					<TD>input pokkunmoguraa row 3 button 2
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>N
+					</TD>
+				</TR>
+				<TR>
+					<TD>input pokkunmoguraa row 3 button 3
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>M
+					</TD>
+				</TR>
+				<TR>
+					<TD>input pokkunmoguraa row 3 button 4
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>,
+					</TD>
+				</TR>
+				<TR>
+					<TD>input powerpad side a 1
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>Q
+					</TD>
+				</TR>
+				<TR>
+					<TD>input powerpad side a 10
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>X
+					</TD>
+				</TR>
+				<TR>
+					<TD>input powerpad side a 11
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>C
+					</TD>
+				</TR>
+				<TR>
+					<TD>input powerpad side a 12
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>V
+					</TD>
+				</TR>
+				<TR>
+					<TD>input powerpad side a 2
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>W
+					</TD>
+				</TR>
+				<TR>
+					<TD>input powerpad side a 3
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>E
+					</TD>
+				</TR>
+				<TR>
+					<TD>input powerpad side a 4
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>R
+					</TD>
+				</TR>
+				<TR>
+					<TD>input powerpad side a 5
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>A
+					</TD>
+				</TR>
+				<TR>
+					<TD>input powerpad side a 6
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>S
+					</TD>
+				</TR>
+				<TR>
+					<TD>input powerpad side a 7
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>D
+					</TD>
+				</TR>
+				<TR>
+					<TD>input powerpad side a 8
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>F
+					</TD>
+				</TR>
+				<TR>
+					<TD>input powerpad side a 9
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>Z
+					</TD>
+				</TR>
+				<TR>
+					<TD>input powerpad side b 10
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>M
+					</TD>
+				</TR>
+				<TR>
+					<TD>input powerpad side b 11
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>N
+					</TD>
+				</TR>
+				<TR>
+					<TD>input powerpad side b 2
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>U
+					</TD>
+				</TR>
+				<TR>
+					<TD>input powerpad side b 3
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>Y
+					</TD>
+				</TR>
+				<TR>
+					<TD>input powerpad side b 5
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>K
+					</TD>
+				</TR>
+				<TR>
+					<TD>input powerpad side b 6
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>J
+					</TD>
+				</TR>
+				<TR>
+					<TD>input powerpad side b 7
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>H
+					</TD>
+				</TR>
+				<TR>
+					<TD>input powerpad side b 8
+					</TD>
+					<TD width="292">key, (joy device) button, ...
+					</TD>
+					<TD>G
+					</TD>
+				</TR>
+				<TR>
+					<TD>input view fullscreen
+					</TD>
+					<TD width="292">key, ...
+					</TD>
+					<TD>ALT+RETURN
+					</TD>
+				</TR>
+				<TR>
+					<TD>input view screen size 1x..9x
+					</TD>
+					<TD width="292">key, ...
+					</TD>
+					<TD>ALT+1..9
+					</TD>
+				</TR>
+				<TR>
+					<TD>input view screen size max
+					</TD>
+					<TD width="292">key, ...
+					</TD>
+					<TD>ALT+S
+					</TD>
+				</TR>
+				<TR>
+					<TD>input view toggle fps
+					</TD>
+					<TD width="292">key, ...
+					</TD>
+					<TD>CTRL+F
+					</TD>
+				</TR>
+				<TR>
+					<TD>input view toggle menu
+					</TD>
+					<TD width="292">key, ...
+					</TD>
+					<TD>ESC
+					</TD>
+				</TR>
+				<TR>
+					<TD>input view toggle statusbar
+					</TD>
+					<TD width="292">key, ...
+					</TD>
+					<TD>CTRL+B
+					</TD>
+				</TR>
+				<TR>
+					<TD>input view toggle window ontop
+					</TD>
+					<TD width="292">key, ...
+					</TD>
+					<TD>CTRL+T
+					</TD>
+				</TR>
+				<TR>
+					<TD>launcher color background
+					</TD>
+					<TD width="292">0x00000000..0xFFFFFFFF
+					</TD>
+					<TD>0x00FFFFFF
+					</TD>
+				</TR>
+				<TR>
+					<TD>launcher color foreground
+					</TD>
+					<TD width="292">0x00000000..0xFFFFFFFF
+					</TD>
+					<TD>0x00000000
+					</TD>
+				</TR>
+				<TR>
+					<TD>launcher column 1..10
+					</TD>
+					<TD width="292">file, system, mapper, prom, crom, wram, battery, trainer, 
+						mirroring, name, maker, folder
+					</TD>
+					<TD>-
+					</TD>
+				</TR>
+				<TR>
+					<TD>launcher search any file extension
+					</TD>
+					<TD width="292">yes, no
+					</TD>
+					<TD>no
+					</TD>
+				</TR>
+				<TR>
+					<TD>launcher search files fds
+					</TD>
+					<TD width="292">yes, no
+					</TD>
+					<TD>yes
+					</TD>
+				</TR>
+				<TR>
+					<TD>launcher search files ips
+					</TD>
+					<TD width="292">yes, no
+					</TD>
+					<TD>yes
+					</TD>
+				</TR>
+				<TR>
+					<TD>launcher search files nes
+					</TD>
+					<TD width="292">yes, no
+					</TD>
+					<TD>yes
+					</TD>
+				</TR>
+				<TR>
+					<TD>launcher search files nsf
+					</TD>
+					<TD width="292">yes, no
+					</TD>
+					<TD>yes
+					</TD>
+				</TR>
+				<TR>
+					<TD>launcher search files nsp
+					</TD>
+					<TD width="292">yes, no
+					</TD>
+					<TD>yes
+					</TD>
+				</TR>
+				<TR>
+					<TD>launcher search files unf
+					</TD>
+					<TD width="292">yes, no
+					</TD>
+					<TD>yes
+					</TD>
+				</TR>
+				<TR>
+					<TD>launcher search files zip
+					</TD>
+					<TD width="292">yes, no
+					</TD>
+					<TD>yes
+					</TD>
+				</TR>
+				<TR>
+					<TD>launcher search no duplicate files
+					</TD>
+					<TD width="292">yes, no
+					</TD>
+					<TD>yes
+					</TD>
+				</TR>
+				<TR>
+					<TD>launcher search path 1..N
+					</TD>
+					<TD width="292">dir&nbsp;
+					</TD>
+					<TD>-
+					</TD>
+				</TR>
+				<TR>
+					<TD>launcher search path 1..N subs
+					</TD>
+					<TD width="292">yes, no
+					</TD>
+					<TD>-
+					</TD>
+				</TR>
+				<TR>
+					<TD>launcher show gridlines
+					</TD>
+					<TD width="292">yes, no
+					</TD>
+					<TD>yes
+					</TD>
+				</TR>
+				<TR>
+					<TD>launcher use image database
+					</TD>
+					<TD width="292">yes, no
+					</TD>
+					<TD>yes
+					</TD>
+				</TR>
+				<TR>
+					<TD>netplay in fullscreen
+					</TD>
+					<TD width="292">yes, no
+					</TD>
+					<TD>no
+					</TD>
+				</TR>
+				<TR>
+					<TD>netplay use database names
+					</TD>
+					<TD width="292">yes, no
+					</TD>
+					<TD>yes
+					</TD>
+				</TR>
+				<TR>
+					<TD>nsf in background
+					</TD>
+					<TD width="292">yes, no
+					</TD>
+					<TD>yes
+					</TD>
+				</TR>
+				<TR>
+					<TD>preferences allow multiple instances
+					</TD>
+					<TD width="292">yes, no
+					</TD>
+					<TD>no
+					</TD>
+				</TR>
+				<TR>
+					<TD>preferences autocorrect images
+					</TD>
+					<TD width="292">yes, no
+					</TD>
+					<TD>yes
+					</TD>
+				</TR>
+				<TR>
+					<TD>preferences autostart emulation
+					</TD>
+					<TD width="292">yes, no
+					</TD>
+					<TD>yes
+					</TD>
+				</TR>
+				<TR>
+					<TD>preferences confirm exit
+					</TD>
+					<TD width="292">yes, no
+					</TD>
+					<TD>yes
+					</TD>
+				</TR>
+				<TR>
+					<TD>preferences confirm machine reset
+					</TD>
+					<TD width="292">yes, no
+					</TD>
+					<TD>no
+					</TD>
+				</TR>
+				<TR>
+					<TD>preferences default desktop menu color
+					</TD>
+					<TD width="292">yes, no
+					</TD>
+					<TD>yes
+					</TD>
+				</TR>
+				<TR>
+					<TD>preferences default fullscreen menu color
+					</TD>
+					<TD width="292">yes, no
+					</TD>
+					<TD>yes&nbsp;
+					</TD>
+				</TR>
+				<TR>
+					<TD>preferences desktop menu color
+					</TD>
+					<TD width="292">0x00000000..0xFFFFFFFF
+					</TD>
+					<TD>0x00EFCA18
+					</TD>
+				</TR>
+				<TR>
+					<TD>preferences fullscreen menu color
+					</TD>
+					<TD width="292">0x00000000..0xFFFFFFFF
+					</TD>
+					<TD>0x00EFCA18
+					</TD>
+				</TR>
+				<TR>
+					<TD>preferences power off on exit
+					</TD>
+					<TD width="292">yes, no
+					</TD>
+					<TD>no
+					</TD>
+				</TR>
+				<TR>
+					<TD>preferences priority
+					</TD>
+					<TD width="292">normal, above normal, high
+					</TD>
+					<TD>normal
+					</TD>
+				</TR>
+				<TR>
+					<TD>preferences run in background
+					</TD>
+					<TD width="292">yes, no
+					</TD>
+					<TD>no
+					</TD>
+				</TR>
+				<TR>
+					<TD>preferences save cheats
+					</TD>
+					<TD width="292">yes, no
+					</TD>
+					<TD>yes
+					</TD>
+				</TR>
+				<TR>
+					<TD>preferences save launcher files
+					</TD>
+					<TD width="292">yes, no
+					</TD>
+					<TD>yes
+					</TD>
+				</TR>
+				<TR>
+					<TD>preferences save logfile
+					</TD>
+					<TD width="292">yes, no
+					</TD>
+					<TD>no
+					</TD>
+				</TR>
+				<TR>
+					<TD>preferences save netplay list
+					</TD>
+					<TD width="292">yes, no
+					</TD>
+					<TD>yes
+					</TD>
+				</TR>
+				<TR>
+					<TD>preferences save settings
+					</TD>
+					<TD width="292">yes, no
+					</TD>
+					<TD>yes
+					</TD>
+				</TR>
+				<TR>
+					<TD>preferences start in fullscreen
+					</TD>
+					<TD width="292">yes, no
+					</TD>
+					<TD>no
+					</TD>
+				</TR>
+				<TR>
+					<TD>preferences suppress warnings
+					</TD>
+					<TD width="292">yes, no
+					</TD>
+					<TD>no
+					</TD>
+				</TR>
+				<TR>
+					<TD>sound adjust pitch</TD>
+					<TD width="292">yes, no</TD>
+					<TD>yes</TD>
+				</TR>
+				<TR>
+					<TD>sound apu dpcm
+					</TD>
+					<TD width="292">on, off
+					</TD>
+					<TD>on
+					</TD>
+				</TR>
+				<TR>
+					<TD>sound apu external
+					</TD>
+					<TD width="292">on, off
+					</TD>
+					<TD>on
+					</TD>
+				</TR>
+				<TR>
+					<TD>sound apu noise
+					</TD>
+					<TD width="292">on, off
+					</TD>
+					<TD>on
+					</TD>
+				</TR>
+				<TR>
+					<TD>sound apu square 1
+					</TD>
+					<TD width="292">on, off
+					</TD>
+					<TD>on
+					</TD>
+				</TR>
+				<TR>
+					<TD>sound apu square 2
+					</TD>
+					<TD width="292">on, off
+					</TD>
+					<TD>on
+					</TD>
+				</TR>
+				<TR>
+					<TD>sound apu triangle
+					</TD>
+					<TD width="292">on, off
+					</TD>
+					<TD>on
+					</TD>
+				</TR>
+				<TR>
+					<TD>sound buffers
+					</TD>
+					<TD width="292">1..10
+					</TD>
+					<TD>2
+					</TD>
+				</TR>
+				<TR>
+					<TD>sound device
+					</TD>
+					<TD width="292">guid
+					</TD>
+					<TD>-
+					</TD>
+				</TR>
+				<TR>
+					<TD>sound enabled
+					</TD>
+					<TD width="292">yes, no
+					</TD>
+					<TD>yes
+					</TD>
+				</TR>
+				<TR>
+					<TD>sound output
+					</TD>
+					<TD width="292">mono, stereo
+					</TD>
+					<TD>mono
+					</TD>
+				</TR>
+				<TR>
+					<TD>sound sample bits
+					</TD>
+					<TD width="292">8, 16
+					</TD>
+					<TD>16
+					</TD>
+				</TR>
+				<TR>
+					<TD>sound sample rate
+					</TD>
+					<TD width="292">11025, 22050, 44100, 48000, 96000
+					</TD>
+					<TD>44100
+					</TD>
+				</TR>
+				<TR>
+					<TD>sound volume
+					</TD>
+					<TD width="292">0..100
+					</TD>
+					<TD>100
+					</TD>
+				</TR>
+				<TR>
+					<TD>timer alternative speed
+					</TD>
+					<TD width="292">30..240
+					</TD>
+					<TD>180
+					</TD>
+				</TR>
+				<TR>
+					<TD>timer auto frame skip
+					</TD>
+					<TD width="292">yes, no
+					</TD>
+					<TD>no
+					</TD>
+				</TR>
+				<TR>
+					<TD>timer default speed
+					</TD>
+					<TD width="292">yes, no
+					</TD>
+					<TD>yes
+					</TD>
+				</TR>
+				<TR>
+					<TD>timer max frame skips
+					</TD>
+					<TD width="292">1..16
+					</TD>
+					<TD>8
+					</TD>
+				</TR>
+				<TR>
+					<TD>timer performance counter
+					</TD>
+					<TD width="292">yes, no
+					</TD>
+					<TD>yes
+					</TD>
+				</TR>
+				<TR>
+					<TD>timer speed
+					</TD>
+					<TD width="292">30..240
+					</TD>
+					<TD>60
+					</TD>
+				</TR>
+				<TR>
+					<TD>timer vsync
+					</TD>
+					<TD width="292">yes, no
+					</TD>
+					<TD>yes
+					</TD>
+				</TR>
+				<TR>
+					<TD>video color brightness
+					</TD>
+					<TD width="292">0..255
+					</TD>
+					<TD>128
+					</TD>
+				</TR>
+				<TR>
+					<TD>video color hue
+					</TD>
+					<TD width="292">0..255
+					</TD>
+					<TD>128
+					</TD>
+				</TR>
+				<TR>
+					<TD>video color saturation
+					</TD>
+					<TD width="292">0..255
+					</TD>
+					<TD>128
+					</TD>
+				</TR>
+				<TR>
+					<TD>video device
+					</TD>
+					<TD width="292">guid
+					</TD>
+					<TD>-
+					</TD>
+				</TR>
+				<TR>
+					<TD>video filter
+					</TD>
+					<TD width="292">bilinear, scanlines bright, scanlines dark, tv soft, tv harsh, 
+						scale2x, scale3x, 2xsai, super 2xsai, super eagle, hq2x, hq3x, none
+					</TD>
+					<TD>none
+					</TD>
+				</TR>
+				<TR>
+					<TD>video fullscreen bpp
+					</TD>
+					<TD width="292">16, 32
+					</TD>
+					<TD>16
+					</TD>
+				</TR>
+				<TR>
+					<TD>video fullscreen height
+					</TD>
+					<TD width="292">height
+					</TD>
+					<TD>480
+					</TD>
+				</TR>
+				<TR>
+					<TD>video fullscreen width
+					</TD>
+					<TD width="292">width
+					</TD>
+					<TD>640
+					</TD>
+				</TR>
+				<TR>
+					<TD>video ntsc bottom
+					</TD>
+					<TD width="292">1..239
+					</TD>
+					<TD>231
+					</TD>
+				</TR>
+				<TR>
+					<TD>video ntsc left
+					</TD>
+					<TD width="292">0..255
+					</TD>
+					<TD>0
+					</TD>
+				</TR>
+				<TR>
+					<TD>video ntsc right
+					</TD>
+					<TD width="292">1..255
+					</TD>
+					<TD>255
+					</TD>
+				</TR>
+				<TR>
+					<TD>video ntsc top
+					</TD>
+					<TD width="292">0..239
+					</TD>
+					<TD>8
+					</TD>
+				</TR>
+				<TR>
+					<TD>video pal bottom
+					</TD>
+					<TD width="292">1..239
+					</TD>
+					<TD>239
+					</TD>
+				</TR>
+				<TR>
+					<TD>video pal left
+					</TD>
+					<TD width="292">0..255
+					</TD>
+					<TD>0
+					</TD>
+				</TR>
+				<TR>
+					<TD>video pal right
+					</TD>
+					<TD width="292">1..255
+					</TD>
+					<TD>255
+					</TD>
+				</TR>
+				<TR>
+					<TD>video pal top
+					</TD>
+					<TD width="292">0..239
+					</TD>
+					<TD>0
+					</TD>
+				</TR>
+				<TR>
+					<TD>video palette
+					</TD>
+					<TD width="292">internal, emulated, custom
+					</TD>
+					<TD>internal
+					</TD>
+				</TR>
+				<TR>
+					<TD>video palette file
+					</TD>
+					<TD width="292">file&nbsp;
+					</TD>
+					<TD>-
+					</TD>
+				</TR>
+				<TR>
+					<TD>video texture location</TD>
+					<TD width="292">auto, vidmem, sysmem</TD>
+					<TD>auto</TD>
+				</TR>
+				<TR>
+					<TD>video unlimited sprites
+					</TD>
+					<TD width="292">yes, no
+					</TD>
+					<TD>no
+					</TD>
+				</TR>
+				<TR>
+					<TD>view show fps
+					</TD>
+					<TD width="292">yes, no
+					</TD>
+					<TD>no
+					</TD>
+				</TR>
+				<TR>
+					<TD>view show on top
+					</TD>
+					<TD width="292">yes, no
+					</TD>
+					<TD>no
+					</TD>
+				</TR>
+				<TR>
+					<TD>view show status bar
+					</TD>
+					<TD width="292">yes, no
+					</TD>
+					<TD>yes
+					</TD>
+				</TR>
+				<TR>
+					<TD>view show window menu
+					</TD>
+					<TD width="292">yes, no
+					</TD>
+					<TD>yes
+					</TD>
+				</TR>
+				<TR>
+					<TD>view size fullscreen
+					</TD>
+					<TD width="292">1..9, stretched
+					</TD>
+					<TD>9
+					</TD>
+				</TR>
+				<TR>
+					<TD>view size window
+					</TD>
+					<TD width="292">1..9
+					</TD>
+					<TD>1
+					</TD>
+				</TR>
+			</TABLE>
+		</P>
+		<P>
+			<hr>
+			<H2>
+				Troubleshooting</H2>
+		<P>If you experience slow performance with Nestopia, here are a&nbsp;couple&nbsp;of 
+			things you can try&nbsp;to speed it up:</P>
+		<UL>
+			<LI>
+			Lower the screen resolution and/or pixel bit-depth (video dialog).
+			<LI>
+			Disable&nbsp;video&nbsp;filtering (video dialog).
+			<LI>
+			Change&nbsp;the NES screen memory location (video dialog)&nbsp;
+			<LI>
+			Enable auto-frameskip (timing dialog).
+			<LI>
+			Disable vsync (timing dialog).&nbsp;
+			<LI>
+			Change the application priority to "above normal" or "high" (preferences 
+			dialog).
+			<LI>
+			Keep the menu and other windows hidden while in fullscreen.
+			<LI>
+			Lower the sound frequency and/or sample bit-depth or disable sound&nbsp;output 
+			completely (sound dialog).
+			<LI>
+				If your video driver has an option for&nbsp;vsync,&nbsp;make sure it's&nbsp;set 
+				to be application controlled.</LI></UL>
+		<P>If you have trouble&nbsp;running a&nbsp;particular game, possible reasons could 
+			be:</P>
+		<UL>
+			<LI>
+			The image file has incorrect header data such as&nbsp;wrong mapper 
+			or&nbsp;name-table mirroring.
+			<LI>
+			It's a bad dump.
+			<LI>
+			Does it work on the real thing? If not,&nbsp;it's not supposed&nbsp;to work on 
+			Nestopia either.
+			<LI>
+			It has&nbsp;been hacked solely&nbsp;for the purpose&nbsp;of&nbsp;making it 
+			run&nbsp;on&nbsp;another&nbsp;emulator.
+			<LI>
+			You have the wrong region setting applied, try&nbsp;switching to either PAL or 
+			NTSC.
+			<LI>
+			Proper controller(s) connected?&nbsp;For instance, it could be a keyboard-only 
+			program or&nbsp;a game&nbsp;that only&nbsp;responds to the secondary 
+			controller.
+			<LI>
+			Do you have the&nbsp;'no sprite limit' option enabled? Try disabling it, some 
+			games might depend on this hardware limitation.
+			<LI>
+			It's possible&nbsp;that the game database&nbsp;will cause more harm than 
+			good&nbsp;with some&nbsp;games.&nbsp;If the problem goes away when&nbsp;you 
+			disable the option for auto-correction of faulty images,&nbsp;please send 
+			me&nbsp;a report&nbsp;with the name of the game so I can correct it.
+			<LI>
+				It's unsupported by Nestopia.</LI></UL>
+		<H2>
+			<HR>
+		</H2>
+		<H2>&nbsp;Credits
+		</H2>
+		<table border="1">
+			<tr>
+				<th width="171">
+					Name
+				</th>
+				<th>
+					Contribution
+				</th>
+			</tr>
+			<tr>
+				<td width="171">[yang]
+				</td>
+				<td>Image file database
+				</td>
+			</tr>
+			<tr>
+				<td width="171">Andrea Mazzoleni
+				</td>
+				<td><a href="http://scale2x.sourceforge.net/">Scale2x/Scale3x </a>
+				</td>
+			</tr>
+			<tr>
+				<td width="171">Blargg
+				</td>
+				<td>APU technical documents
+				</td>
+			</tr>
+			<tr>
+				<td width="171">Brad Taylor
+				</td>
+				<td>PPU and APU technical documents
+				</td>
+			</tr>
+			<tr>
+				<td width="171">CaH4e3
+				</td>
+				<td>Mapper info
+				</td>
+			</tr>
+			<tr>
+				<td width="171">Chris Covell
+				</td>
+				<td>Demos and general info
+				</td>
+			</tr>
+			<tr>
+				<td width="171">Christophe Thibault
+				</td>
+				<td><a href="http://www.kaillera.com/">Kaillera </a>
+				</td>
+			</tr>
+			<tr>
+				<td width="171">Derek Liauw Kie Fa
+				</td>
+				<td><a href="http://elektron.its.tudelft.nl/~dalikifa/">2xSaI </a>
+				</td>
+			</tr>
+			<tr>
+				<td width="171">FireBug
+				</td>
+				<td>Mapper documents
+				</td>
+			</tr>
+			<tr>
+				<td width="171">Gilles Vollant
+				</td>
+				<td><a href="http://www.winimage.com/zLibDll/minizip.html">Unzip library </a>
+				</td>
+			</tr>
+			<tr>
+				<td width="171">Goroh
+				</td>
+				<td>Various technical documents
+				</td>
+			</tr>
+			<tr>
+				<td width="171">Hellsbane
+				</td>
+				<td>Testing
+				</td>
+			</tr>
+			<tr>
+				<td width="171">Jean-loup Gailly
+				</td>
+				<td><a href="http://www.zlib.net/">ZLib </a>
+				</td>
+			</tr>
+			<tr>
+				<td width="171">Jeremy Chadwick
+				</td>
+				<td>NES technical document
+				</td>
+			</tr>
+			<tr>
+				<td width="171">John West
+				</td>
+				<td>65xx/85xx technical document
+				</td>
+			</tr>
+			<tr>
+				<td width="171">Kevin Horton
+				</td>
+				<td>Mapper technical documents
+				</td>
+			</tr>
+			<tr>
+				<td width="171">Ki
+				</td>
+				<td>CPU and APU info
+				</td>
+			</tr>
+			<tr>
+				<td width="171">Loopy
+				</td>
+				<td>Various info
+				</td>
+			</tr>
+			<tr>
+				<td width="171">MAME dev.team
+				</td>
+				<td>VS UniSystem info
+				</td>
+			</tr>
+			<tr>
+				<td width="171">Marat Fayzullin
+				</td>
+				<td>NES technical document
+				</td>
+			</tr>
+			<tr>
+				<td width="171">Mark Adler
+				</td>
+				<td><a href="http://www.zlib.net/">ZLib </a>
+				</td>
+			</tr>
+			<tr>
+				<td width="171">Mark Knibbs
+				</td>
+				<td>Various info
+				</td>
+			</tr>
+			<tr>
+				<td width="171">Marko Mäkelä
+				</td>
+				<td>65xx/85xx technical document
+				</td>
+			</tr>
+			<tr>
+				<td width="171">Matrixz
+				</td>
+				<td>Palette used internally by Nestopia
+				</td>
+			</tr>
+			<tr>
+				<td width="171">Matthew Conte
+				</td>
+				<td>APU info
+				</td>
+			</tr>
+			<TR>
+				<TD width="171">Maxim Stepin</TD>
+				<TD><A href="http://www.hiend3d.com/hq2x.html">hq2x/hq3x</A></TD>
+			</TR>
+			<tr>
+				<td width="171">Memblers
+				</td>
+				<td><a href="http://nesdev.parodius.com/">NESDev </a>
+				</td>
+			</tr>
+			<tr>
+				<td width="171">Norix
+				</td>
+				<td>Mapper, FDS sound and Famicom add-ons info
+				</td>
+			</tr>
+			<tr>
+				<td width="171">Quietust
+				</td>
+				<td>PPU info
+				</td>
+			</tr>
+			<TR>
+				<TD width="171">Richard Bannister</TD>
+				<TD><A href="http://www.bannister.org/software/nestopia.htm">Mac port</A>&nbsp;of 
+					Nestopia</TD>
+			</TR>
+			<tr>
+				<td width="171">Richard Hoelscher
+				</td>
+				<td>Famicom four-player adapter technical document
+				</td>
+			</tr>
+			<tr>
+				<td width="171">Tennessee Carmel-Veilleux
+				</td>
+				<td>UNIF format
+				</td>
+			</tr>
+			<tr>
+				<td>Xodnizel
+				</td>
+				<td>Mapper info
+				</td>
+			</tr>
+		</table>
+		<BR>
+		<HR>
+		Nestopia is Copyright 2003-2005 by Martin Freij under the terms and conditions 
+		of the <A href="http://www.gnu.org">GNU General Public License</A> .
+		<BR>
+		<BR>
+		Homepage: <A href="http://sourceforge.net/projects/nestopia/">http://sourceforge.net/projects/nestopia/</A><BR>
+		Mail: martin-freij at home.se
+	</body>
+</html>

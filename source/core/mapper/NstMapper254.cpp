@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003 Martin Freij
+// Copyright (C) 2003-2005 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -22,48 +22,60 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstMappers.h"
-#include "NstMapper004.h"
-#include "NstMapper254.h"
+#include "../NstMapper.hpp"
+#include "../board/NstBrdMmc3.hpp"
+#include "NstMapper254.hpp"
 	   
-NES_NAMESPACE_BEGIN
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER254::Reset()
+namespace Nes
 {
-	MAPPER4::Reset();
-
-	for (ULONG i=0x8000; i <= 0x8FFF; ++i)
+	namespace Core
 	{
-		if ((i & 0xE001) == 0x8000)
-    		cpu.SetPort( i, this, Peek_8000, Poke_8000 );
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("s", on)
+        #endif
+	
+		void Mapper254::SubReset(const bool hard)
+		{
+			latchFlip = 0x1;
+	
+			Mmc3::SubReset( hard );
+	
+			for (uint i=0x8000U; i < 0xA000U; i += 0x2)
+				Map( i, &Mapper254::Poke_8000 );
+	
+			Map( WRK_POKE );
+			Map( 0x6000U, 0x7FFFU, &Mapper254::Peek_Wrk );
+		}
+	
+		void Mapper254::SubLoad(State::Loader& state)
+		{
+			while (const dword chunk = state.Begin())
+			{
+				if (chunk == NES_STATE_CHUNK_ID('R','E','G','\0'))
+					latchFlip = state.Read8() & 0x1;
+	
+				state.End();
+			}
+		}
+	
+		void Mapper254::SubSave(State::Saver& state) const
+		{
+			state.Begin('R','E','G','\0').Write8( latchFlip ).End();
+		}
+	
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("", on)
+        #endif
+	
+		NES_PEEK(Mapper254,Wrk)
+		{
+			return wrk[0][address - 0x6000U] ^ latchFlip;
+		}
+	
+		NES_POKE(Mapper254,8000)
+		{
+			latchFlip = 0x0;
+			NES_CALL_POKE(Mmc3,8000,0x8000U,data);
+		}
 	}
-
-	cpu.SetPort( 0x6000, 0x7FFF, this, Peek_wRam, Poke_wRam );
-	protect = FALSE;
 }
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_PEEK(MAPPER254,wRam)
-{
-	const UINT data = wRam[address - 0x6000];
-	return (protect ? data : data ^ 0x1);
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER254,8000)
-{
-	protect = TRUE;
-	MAPPER4::Poke_8000( 0x8000, data );
-}
-
-NES_NAMESPACE_END

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003 Martin Freij
+// Copyright (C) 2003-2005 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -22,35 +22,30 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstMappers.h"
-#include "NstMapper097.h"
+#include "../NstMapper.hpp"
+#include "NstMapper097.hpp"
 
-NES_NAMESPACE_BEGIN
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER97::Reset()
+namespace Nes
 {
-	cpu.SetPort( 0x8000, 0x9FFF, this, Peek_8000, Poke_8000 );
-	cpu.SetPort( 0xA000, 0xBFFF, this, Peek_A000, Poke_8000 );
-	cpu.SetPort( 0xC000, 0xDFFF, this, Peek_C000, Poke_Nop  );
-	cpu.SetPort( 0xE000, 0xFFFF, this, Peek_E000, Poke_Nop  );
-
-	pRom.SwapBanks<n16k,0x0000>( pRom.NumBanks<n16k>() - 1 );
-	pRom.SwapBanks<n16k,0x4000>( 0 );
+	namespace Core
+	{
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("s", on)
+        #endif
+	
+		void Mapper97::SubReset(const bool hard)
+		{
+			Map( 0x8000U, 0xBFFFU, &Mapper97::Poke_8000 );
+		}
+	
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("", on)
+        #endif
+	
+		NES_POKE(Mapper97,8000)
+		{
+			ppu.SetMirroring( (data & 0x80) ? Ppu::NMT_VERTICAL : Ppu::NMT_HORIZONTAL );
+			prg.SwapBank<NES_16K,0x4000U>(data & 0xF);
+		}
+	}
 }
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER97,8000)
-{
-	ppu.SetMirroring( (data & 0x80) ? MIRROR_VERTICAL : MIRROR_HORIZONTAL );
-	apu.Update();
-	pRom.SwapBanks<n16k,0x4000>(data & 0xF);
-}
-
-NES_NAMESPACE_END

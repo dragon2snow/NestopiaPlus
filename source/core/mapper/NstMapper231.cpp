@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003 Martin Freij
+// Copyright (C) 2003-2005 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -22,44 +22,34 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstMappers.h"
-#include "NstMapper231.h"
+#include "../NstMapper.hpp"
+#include "NstMapper231.hpp"
 
-NES_NAMESPACE_BEGIN
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER231::Reset()
+namespace Nes
 {
-	cpu.SetPort( 0x8000, 0x9FFF, this, Peek_9000, Poke_pRom );
-	cpu.SetPort( 0xA000, 0xBFFF, this, Peek_A000, Poke_pRom );
-	cpu.SetPort( 0xC000, 0xDFFF, this, Peek_C000, Poke_pRom );
-	cpu.SetPort( 0xE000, 0xFFFF, this, Peek_E000, Poke_pRom );
-
-	pRom.SwapBanks<n32k,0x0000>(0);
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER231,pRom) 
-{
-	apu.Update();
-
-	if (address & 0x20)
+	namespace Core
 	{
-		pRom.SwapBanks<n32k,0x0000>( (address >> 1) & 0xF );
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("s", on)
+        #endif
+	
+		void Mapper231::SubReset(const bool hard)
+		{
+			Map( 0x8000U, 0xFFFFU, &Mapper231::Poke_Prg );
+		}
+	
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("", on)
+        #endif
+	
+		NES_POKE(Mapper231,Prg) 
+		{
+			if (address & 0x20)
+				prg.SwapBank<NES_32K,0x0000U>( (address >> 1) & 0xF );
+			else
+				prg.SwapBanks<NES_16K,0x0000U>( address & 0x1E, address & 0x1E );
+	
+			ppu.SetMirroring( (address & 0x80) ? Ppu::NMT_HORIZONTAL : Ppu::NMT_VERTICAL );
+		}
 	}
-	else
-	{
-		pRom.SwapBanks<n16k,0x0000>( address & 0x1E );
-		pRom.SwapBanks<n16k,0x4000>( address & 0x1E );
-	}
-
-	ppu.SetMirroring( (address & 0x80) ? MIRROR_HORIZONTAL : MIRROR_VERTICAL );
 }
-
-NES_NAMESPACE_END

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003 Martin Freij
+// Copyright (C) 2003-2005 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -22,52 +22,61 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstMappers.h"
-#include "NstMapper041.h"
+#include "../NstMapper.hpp"
+#include "NstMapper041.hpp"
 		 
-NES_NAMESPACE_BEGIN
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER41::Reset()
+namespace Nes
 {
-	cpu.SetPort( 0x6000, 0x67FF, this, Peek_Nop,  Poke_6000 );
-	cpu.SetPort( 0x8000, 0x9FFF, this, Peek_8000, Poke_pRom );
-	cpu.SetPort( 0xA000, 0xBFFF, this, Peek_A000, Poke_pRom );
-	cpu.SetPort( 0xC000, 0xDFFF, this, Peek_C000, Poke_pRom );
-	cpu.SetPort( 0xE000, 0xFFFF, this, Peek_E000, Poke_pRom );
-
-	pRom.SwapBanks<n32k,0x0000>(0);
-
-	status = 0x4;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER41,6000) 
-{
-	apu.Update(); 
-	pRom.SwapBanks<n32k,0x0000>( address & 0x7 );
-	ppu.SetMirroring( (address & 0x20) ? MIRROR_HORIZONTAL : MIRROR_VERTICAL );
-	status = address & 0xFF;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER41,pRom) 
-{ 
-	if (status & 0x4)
+	namespace Core
 	{
-		ppu.Update();
-		cRom.SwapBanks<n8k,0x0000>(((status & 0x18) >> 1) | (data & 0x3));
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("s", on)
+        #endif
+	
+		void Mapper41::SubReset(const bool hard)
+		{
+			if (hard)
+				reg = 0x4;
+
+			Map( 0x6000U, 0x67FFU, &Mapper41::Poke_6000 );
+			Map( 0x8000U, 0xFFFFU, &Mapper41::Poke_Prg );
+		}
+	
+		void Mapper41::SubLoad(State::Loader& state)
+		{
+			while (const dword chunk = state.Begin())
+			{
+				if (chunk == NES_STATE_CHUNK_ID('R','E','G','\0'))
+					reg = state.Read8();
+	
+				state.End();
+			}
+		}
+	
+		void Mapper41::SubSave(State::Saver& state) const
+		{
+			state.Begin('R','E','G','\0').Write8( reg ).End();
+		}
+	
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("", on)
+        #endif
+	
+		NES_POKE(Mapper41,6000) 
+		{
+			reg = address & 0xFF;
+			prg.SwapBank<NES_32K,0x0000U>( address & 0x7 );
+			ppu.SetMirroring( (data & 0x20) ? Ppu::NMT_VERTICAL : Ppu::NMT_HORIZONTAL );
+		}
+	
+		NES_POKE(Mapper41,Prg) 
+		{ 
+			if (reg & 0x4)
+			{
+				data = ((reg & 0x18) >> 1) | (data & 0x3);
+				ppu.Update();
+				chr.SwapBank<NES_8K,0x0000U>( data );
+			}
+		}
 	}
 }
-
-NES_NAMESPACE_END
-

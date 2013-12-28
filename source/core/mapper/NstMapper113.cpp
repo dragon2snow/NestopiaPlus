@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003 Martin Freij
+// Copyright (C) 2003-2005 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -22,55 +22,63 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstMappers.h"
-#include "NstMapper113.h"
+#include "../NstMapper.hpp"
+#include "NstMapper113.hpp"
 		  
-NES_NAMESPACE_BEGIN
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER113::Reset()
+namespace Nes
 {
-	cpu.SetPort( 0x4020, 0x7FFF, this, Peek_Nop,  Poke_4020 );
-	cpu.SetPort( 0x8008, 0x8009, this, Peek_pRom, Poke_4020 );
-	cpu.SetPort( 0x8E66, 0x8E67, this, Peek_pRom, Poke_8E66 );
-	cpu.SetPort( 0xE00A,         this, Peek_pRom, Poke_E00A );
+	namespace Core
+	{
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("s", on)
+        #endif
 	
-	pRom.SwapBanks<n32k,0x0000>(0);
+		Mapper113::Mapper113(Context& c)
+		: 
+		Mapper  (c,WRAM_NONE), 
+		hes6in1 (c.pRomCrc == 0xA75AEDE5UL) // HES 6-in-1 
+		{}
+
+		void Mapper113::SubReset(const bool)
+		{
+			Map( 0x4100U, hes6in1 ? &Mapper113::Poke_4100 : &Mapper113::Poke_8008 );
+			Map( 0x4111U, hes6in1 ? &Mapper113::Poke_4100 : &Mapper113::Poke_8008 );
+			Map( 0x4120U, hes6in1 ? &Mapper113::Poke_4100 : &Mapper113::Poke_8008 );
+			Map( 0x4194U, hes6in1 ? &Mapper113::Poke_4100 : &Mapper113::Poke_8008 );
+			Map( 0x4195U, hes6in1 ? &Mapper113::Poke_4100 : &Mapper113::Poke_8008 );
+			Map( 0x4900U, hes6in1 ? &Mapper113::Poke_4100 : &Mapper113::Poke_8008 );
+
+			Map( 0x8008U, 0x8009U, &Mapper113::Poke_8008 );
+			Map( 0x8E66U, 0x8E67U, &Mapper113::Poke_8E66 );
+			Map( 0xE00AU,          &Mapper113::Poke_E00A );
+		}
+	
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("", on)
+        #endif
+	
+		NES_POKE(Mapper113,4100)
+		{
+			ppu.SetMirroring( (data & 0x80) ? Ppu::NMT_VERTICAL : Ppu::NMT_HORIZONTAL );
+			NES_CALL_POKE( Mapper113, 8008, address, data );
+		}
+
+		NES_POKE(Mapper113,8008)
+		{
+			ppu.Update();
+			prg.SwapBank<NES_32K,0x0000U>(data >> 3);
+			chr.SwapBank<NES_8K,0x0000U>(((data >> 3) & 0x8) + (data & 0x7));
+		}
+
+		NES_POKE(Mapper113,8E66)
+		{
+			ppu.Update();
+			chr.SwapBank<NES_8K,0x0000U>( (data & 0x7) == 0 );
+		}
+
+		NES_POKE(Mapper113,E00A) 
+		{
+			ppu.SetMirroring( Ppu::NMT_ZERO );
+		}
+	}
 }
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER113,4020) 
-{
-	apu.Update();
-	ppu.Update();
-	pRom.SwapBanks<n32k,0x0000>(data >> 3);
-	cRom.SwapBanks<n8k,0x0000>(((data >> 3) & 0x8) + (data & 0x7));
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER113,8E66) 
-{
-	ppu.Update();
-	cRom.SwapBanks<n8k,0x0000>( (data & 0x7) ? 0x0 : 0x1 );
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER113,E00A) 
-{
-	apu.Update();
-	ppu.SetMirroring( MIRROR_ZERO );
-}
-
-NES_NAMESPACE_END

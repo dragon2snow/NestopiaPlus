@@ -9,11 +9,17 @@
   0.72: added kailleraEndGame() method
         added kailleraGetVersion() method
   0.7:  modified kailleraModifyPlayValues behaviour
-
-  /////////////////////////////////////////////////////////////////////////////////////////////
-  // Nestopia change - added 'int' as return type in DLLEXP macros to suppress warning messages
-  /////////////////////////////////////////////////////////////////////////////////////////////
 */
+																   
+//////////////////////////////////////////////////////////////////////////////////////
+//
+// Nestopia changes:
+//
+// - added 'int' as return type in DLLEXP macros to suppress compiler warning messages
+//
+// 2004-07-28 / Martin Freij
+//
+//////////////////////////////////////////////////////////////////////////////////////
 
 #ifndef KAILLERA_CLIENT_H
 #define KAILLERA_CLIENT_H
@@ -133,7 +139,7 @@ extern "C" {
   DLLEXP kailleraEndGame();
 
 #ifdef __cplusplus
-};
+}
 #endif
 
 #endif

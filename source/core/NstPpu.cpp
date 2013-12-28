@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003 Martin Freij
+// Copyright (C) 2003-2005 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -22,1465 +22,1731 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "../paradox/PdxFile.h"
-#include "NstTypes.h"
-#include "NstCpu.h"
-#include "NstPpu.h"
+#include <cstring>
+#include "NstLog.hpp"
+#include "NstState.hpp"
+#include "NstCpu.hpp"
+#include "NstPpu.hpp"
 
-NES_NAMESPACE_BEGIN
-
-#define NES_WARMUP_CYCLES (ULONG_MAX-1)
-
-////////////////////////////////////////////////////////////////////////////////////////
-// constructor
-////////////////////////////////////////////////////////////////////////////////////////
-
-PPU::PPU(CPU& c)
-:
-CiRam       (n4k),
-cpu         (c),
-pal         (FALSE),
-GarbageLine (NULL),
-MaxSprites  (8)
+namespace Nes
 {
-	GarbageLine = new IO::GFX::PIXEL[MARGIN + IO::GFX::WIDTH];
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-// constructor
-////////////////////////////////////////////////////////////////////////////////////////
-
-PPU::PPUCYCLES::PPUCYCLES()
-:
-WarmUp (WARM_UP),
-fetch  (NES_PPU_MCC_FETCH_NTSC),
-pixel  (NES_PPU_MCC_PIXEL_NTSC),
-delay  (NES_PPU_MCC_PIXEL_NTSC * 3),
-frame  (NES_PPU_MCC_FRAME_0_NTSC),
-vint   (NES_PPU_MCC_VINT_NTSC),
-count  (ULONG_MAX)
-{}
-
-////////////////////////////////////////////////////////////////////////////////////////
-// destructor
-////////////////////////////////////////////////////////////////////////////////////////
-
-PPU::~PPU()
-{
-	if (GarbageLine)
-		delete [] GarbageLine;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-// reset ppu
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID PPU::Reset(const BOOL hard)
-{
-	LogOutput("PPU: reset");
-
-	for (UINT i=0; i < 4; ++i)
-		logged[i] = false;
-
-	if (hard)
+	namespace Core
 	{
-		CiRam.Clear();
+		static const u8 reverseLut[256] =
+		{
+			0x00,0x80,0x40,0xC0,0x20,0xA0,0x60,0xE0,
+			0x10,0x90,0x50,0xD0,0x30,0xB0,0x70,0xF0,
+			0x08,0x88,0x48,0xC8,0x28,0xA8,0x68,0xE8,
+			0x18,0x98,0x58,0xD8,0x38,0xB8,0x78,0xF8,
+			0x04,0x84,0x44,0xC4,0x24,0xA4,0x64,0xE4,
+			0x14,0x94,0x54,0xD4,0x34,0xB4,0x74,0xF4,
+			0x0C,0x8C,0x4C,0xCC,0x2C,0xAC,0x6C,0xEC,
+			0x1C,0x9C,0x5C,0xDC,0x3C,0xBC,0x7C,0xFC,
+			0x02,0x82,0x42,0xC2,0x22,0xA2,0x62,0xE2,
+			0x12,0x92,0x52,0xD2,0x32,0xB2,0x72,0xF2,
+			0x0A,0x8A,0x4A,0xCA,0x2A,0xAA,0x6A,0xEA,
+			0x1A,0x9A,0x5A,0xDA,0x3A,0xBA,0x7A,0xFA,
+			0x06,0x86,0x46,0xC6,0x26,0xA6,0x66,0xE6,
+			0x16,0x96,0x56,0xD6,0x36,0xB6,0x76,0xF6,
+			0x0E,0x8E,0x4E,0xCE,0x2E,0xAE,0x6E,0xEE,
+			0x1E,0x9E,0x5E,0xDE,0x3E,0xBE,0x7E,0xFE,
+			0x01,0x81,0x41,0xC1,0x21,0xA1,0x61,0xE1,
+			0x11,0x91,0x51,0xD1,0x31,0xB1,0x71,0xF1,
+			0x09,0x89,0x49,0xC9,0x29,0xA9,0x69,0xE9,
+			0x19,0x99,0x59,0xD9,0x39,0xB9,0x79,0xF9,
+			0x05,0x85,0x45,0xC5,0x25,0xA5,0x65,0xE5,
+			0x15,0x95,0x55,0xD5,0x35,0xB5,0x75,0xF5,
+			0x0D,0x8D,0x4D,0xCD,0x2D,0xAD,0x6D,0xED,
+			0x1D,0x9D,0x5D,0xDD,0x3D,0xBD,0x7D,0xFD,
+			0x03,0x83,0x43,0xC3,0x23,0xA3,0x63,0xE3,
+			0x13,0x93,0x53,0xD3,0x33,0xB3,0x73,0xF3,
+			0x0B,0x8B,0x4B,0xCB,0x2B,0xAB,0x6B,0xEB,
+			0x1B,0x9B,0x5B,0xDB,0x3B,0xBB,0x7B,0xFB,
+			0x07,0x87,0x47,0xC7,0x27,0xA7,0x67,0xE7,
+			0x17,0x97,0x57,0xD7,0x37,0xB7,0x77,0xF7,
+			0x0F,0x8F,0x4F,0xCF,0x2F,0xAF,0x6F,0xEF,
+			0x1F,0x9F,0x5F,0xDF,0x3F,0xBF,0x7F,0xFF
+		};
 
-		PDXMemZero( cRam,   n8k );
-		PDXMemZero( SpRam,  256 );
-		PDXMemZero( PalRam,	 32 );
+		static const union { u8 pixels[4]; u32 block; } chrLut[2][16] =
+		{	
+			{
+				{0x00,0x00,0x00,0x00},
+				{0x01,0x00,0x00,0x00},
+				{0x00,0x01,0x00,0x00},
+				{0x01,0x01,0x00,0x00},
+				{0x00,0x00,0x01,0x00},
+				{0x01,0x00,0x01,0x00},
+				{0x00,0x01,0x01,0x00},
+				{0x01,0x01,0x01,0x00},
+				{0x00,0x00,0x00,0x01},
+				{0x01,0x00,0x00,0x01},
+				{0x00,0x01,0x00,0x01},
+				{0x01,0x01,0x00,0x01},
+				{0x00,0x00,0x01,0x01},
+				{0x01,0x00,0x01,0x01},
+				{0x00,0x01,0x01,0x01},
+				{0x01,0x01,0x01,0x01}
+			},
+			{
+				{0x00,0x00,0x00,0x00},
+				{0x02,0x00,0x00,0x00},
+				{0x00,0x02,0x00,0x00},
+				{0x02,0x02,0x00,0x00},
+				{0x00,0x00,0x02,0x00},
+				{0x02,0x00,0x02,0x00},
+				{0x00,0x02,0x02,0x00},
+				{0x02,0x02,0x02,0x00},
+				{0x00,0x00,0x00,0x02},
+				{0x02,0x00,0x00,0x02},
+				{0x00,0x02,0x00,0x02},
+				{0x02,0x02,0x00,0x02},
+				{0x00,0x00,0x02,0x02},
+				{0x02,0x00,0x02,0x02},
+				{0x00,0x02,0x02,0x02},
+				{0x02,0x02,0x02,0x02}
+			}
+		};
 
-		ReadLatch = 0;
-		EvenFrame = 1^1;
-	}
+		static const union { u8 pixels[4]; u32 block; } chrAttLut[2][64] =
+		{	
+			{
+				{0x00,0x00,0x00,0x00},
+				{0x01,0x00,0x00,0x00},
+				{0x00,0x01,0x00,0x00},
+				{0x01,0x01,0x00,0x00},
+				{0x00,0x00,0x01,0x00},
+				{0x01,0x00,0x01,0x00},
+				{0x00,0x01,0x01,0x00},
+				{0x01,0x01,0x01,0x00},
+				{0x00,0x00,0x00,0x01},
+				{0x01,0x00,0x00,0x01},
+				{0x00,0x01,0x00,0x01},
+				{0x01,0x01,0x00,0x01},
+				{0x00,0x00,0x01,0x01},
+				{0x01,0x00,0x01,0x01},
+				{0x00,0x01,0x01,0x01},
+				{0x01,0x01,0x01,0x01},
+				{0x00,0x00,0x00,0x00},
+				{0x05,0x00,0x00,0x00},
+				{0x00,0x05,0x00,0x00},
+				{0x05,0x05,0x00,0x00},
+				{0x00,0x00,0x05,0x00},
+				{0x05,0x00,0x05,0x00},
+				{0x00,0x05,0x05,0x00},
+				{0x05,0x05,0x05,0x00},
+				{0x00,0x00,0x00,0x05},
+				{0x05,0x00,0x00,0x05},
+				{0x00,0x05,0x00,0x05},
+				{0x05,0x05,0x00,0x05},
+				{0x00,0x00,0x05,0x05},
+				{0x05,0x00,0x05,0x05},
+				{0x00,0x05,0x05,0x05},
+				{0x05,0x05,0x05,0x05},
+				{0x00,0x00,0x00,0x00},
+				{0x09,0x00,0x00,0x00},
+				{0x00,0x09,0x00,0x00},
+				{0x09,0x09,0x00,0x00},
+				{0x00,0x00,0x09,0x00},
+				{0x09,0x00,0x09,0x00},
+				{0x00,0x09,0x09,0x00},
+				{0x09,0x09,0x09,0x00},
+				{0x00,0x00,0x00,0x09},
+				{0x09,0x00,0x00,0x09},
+				{0x00,0x09,0x00,0x09},
+				{0x09,0x09,0x00,0x09},
+				{0x00,0x00,0x09,0x09},
+				{0x09,0x00,0x09,0x09},
+				{0x00,0x09,0x09,0x09},
+				{0x09,0x09,0x09,0x09},
+				{0x00,0x00,0x00,0x00},
+				{0x0D,0x00,0x00,0x00},
+				{0x00,0x0D,0x00,0x00},
+				{0x0D,0x0D,0x00,0x00},
+				{0x00,0x00,0x0D,0x00},
+				{0x0D,0x00,0x0D,0x00},
+				{0x00,0x0D,0x0D,0x00},
+				{0x0D,0x0D,0x0D,0x00},
+				{0x00,0x00,0x00,0x0D},
+				{0x0D,0x00,0x00,0x0D},
+				{0x00,0x0D,0x00,0x0D},
+				{0x0D,0x0D,0x00,0x0D},
+				{0x00,0x00,0x0D,0x0D},
+				{0x0D,0x00,0x0D,0x0D},
+				{0x00,0x0D,0x0D,0x0D},
+				{0x0D,0x0D,0x0D,0x0D}
+			},
+			{
+				{0x00,0x00,0x00,0x00},
+				{0x02,0x00,0x00,0x00},
+				{0x00,0x02,0x00,0x00},
+				{0x02,0x02,0x00,0x00},
+				{0x00,0x00,0x02,0x00},
+				{0x02,0x00,0x02,0x00},
+				{0x00,0x02,0x02,0x00},
+				{0x02,0x02,0x02,0x00},
+				{0x00,0x00,0x00,0x02},
+				{0x02,0x00,0x00,0x02},
+				{0x00,0x02,0x00,0x02},
+				{0x02,0x02,0x00,0x02},
+				{0x00,0x00,0x02,0x02},
+				{0x02,0x00,0x02,0x02},
+				{0x00,0x02,0x02,0x02},
+				{0x02,0x02,0x02,0x02},
+				{0x00,0x00,0x00,0x00},
+				{0x06,0x00,0x00,0x00},
+				{0x00,0x06,0x00,0x00},
+				{0x06,0x06,0x00,0x00},
+				{0x00,0x00,0x06,0x00},
+				{0x06,0x00,0x06,0x00},
+				{0x00,0x06,0x06,0x00},
+				{0x06,0x06,0x06,0x00},
+				{0x00,0x00,0x00,0x06},
+				{0x06,0x00,0x00,0x06},
+				{0x00,0x06,0x00,0x06},
+				{0x06,0x06,0x00,0x06},
+				{0x00,0x00,0x06,0x06},
+				{0x06,0x00,0x06,0x06},
+				{0x00,0x06,0x06,0x06},
+				{0x06,0x06,0x06,0x06},
+				{0x00,0x00,0x00,0x00},
+				{0x0A,0x00,0x00,0x00},
+				{0x00,0x0A,0x00,0x00},
+				{0x0A,0x0A,0x00,0x00},
+				{0x00,0x00,0x0A,0x00},
+				{0x0A,0x00,0x0A,0x00},
+				{0x00,0x0A,0x0A,0x00},
+				{0x0A,0x0A,0x0A,0x00},
+				{0x00,0x00,0x00,0x0A},
+				{0x0A,0x00,0x00,0x0A},
+				{0x00,0x0A,0x00,0x0A},
+				{0x0A,0x0A,0x00,0x0A},
+				{0x00,0x00,0x0A,0x0A},
+				{0x0A,0x00,0x0A,0x0A},
+				{0x00,0x0A,0x0A,0x0A},
+				{0x0A,0x0A,0x0A,0x0A},
+				{0x00,0x00,0x00,0x00},
+				{0x0E,0x00,0x00,0x00},
+				{0x00,0x0E,0x00,0x00},
+				{0x0E,0x0E,0x00,0x00},
+				{0x00,0x00,0x0E,0x00},
+				{0x0E,0x00,0x0E,0x00},
+				{0x00,0x0E,0x0E,0x00},
+				{0x0E,0x0E,0x0E,0x00},
+				{0x00,0x00,0x00,0x0E},
+				{0x0E,0x00,0x00,0x0E},
+				{0x00,0x0E,0x00,0x0E},
+				{0x0E,0x0E,0x00,0x0E},
+				{0x00,0x00,0x0E,0x0E},
+				{0x0E,0x00,0x0E,0x0E},
+				{0x00,0x0E,0x0E,0x0E},
+				{0x0E,0x0E,0x0E,0x0E}
+			}
+		};
 
-	cycles.count = NES_WARMUP_CYCLES;
-	cycles.WarmUp = PPUCYCLES::WARM_UP;
+		dword Ppu::logged;
+		u16 Ppu::Output::dummy;
 
-	ctrl0             = 0;
-	ctrl1             = 0;
-	status            = 0;	
-	CanSkipLine       = FALSE;
-	vRamAddress       = 0x2000;
-	vRamLatch         = 0x2000;
-	OamAddress        = 0x0000;
-	OamLatch          = 0;
-	latch             = 0;
-	xFine             = 0;
-	FlipFlop          = 0;
-	SpIndex           = 0;
-	scanline          = SCANLINE_VBLANK;
-	SpTmpBufferSize   = 0;
-	SpBufferSize      = 0;
-	screen            = NULL;
-	process           = processes;
-
-	UpdateTmpVariables();
-
-	output.clipping   = 0xFF;
-	output.monochrome = 0xFF;
-	output.pixels     = NULL;
-	output.ClipOffset = NULL;
-
-	hooks.Reset();
-
-	// Default to horizontal mirroring
-
-	CiRam.SwapBanks<n1k,0x0000>(0);
-	CiRam.SwapBanks<n1k,0x0400>(0);
-	CiRam.SwapBanks<n1k,0x0800>(1);
-	CiRam.SwapBanks<n1k,0x0C00>(1);
-
-	vRam.SetPort( 0x0000, 0x1FFF, this, Peek_vRam_00xx, Poke_vRam_00xx );
-	vRam.SetPort( 0x2000, 0x23FF, this, Peek_vRam_20xx, Poke_vRam_20xx );
-	vRam.SetPort( 0x2400, 0x27FF, this, Peek_vRam_24xx, Poke_vRam_24xx );
-	vRam.SetPort( 0x2800, 0x2BFF, this, Peek_vRam_28xx, Poke_vRam_28xx );
-	vRam.SetPort( 0x2C00, 0x2FFF, this, Peek_vRam_2Cxx, Poke_vRam_2Cxx );
-	vRam.SetPort( 0x3000, 0x33FF, this, Peek_vRam_20xx, Poke_vRam_20xx );
-	vRam.SetPort( 0x3400, 0x37FF, this, Peek_vRam_24xx, Poke_vRam_24xx );
-	vRam.SetPort( 0x3800, 0x3BFF, this, Peek_vRam_28xx, Poke_vRam_28xx );
-	vRam.SetPort( 0x3C00, 0x3FFF, this, Peek_vRam_2Cxx, Poke_vRam_2Cxx );
-
-	for (UINT i=0x2000; i < 0x4000; i += 0x8)
-	{
-		cpu.SetPort( i + 0x0, this, Peek_2xxx, Poke_2000 );
-		cpu.SetPort( i + 0x1, this, Peek_2xxx, Poke_2001 );
-		cpu.SetPort( i + 0x2, this, Peek_2002, Poke_2xxx );
-		cpu.SetPort( i + 0x3, this, Peek_2xxx, Poke_2003 );
-		cpu.SetPort( i + 0x4, this, Peek_2004, Poke_2004 );
-		cpu.SetPort( i + 0x5, this, Peek_2xxx, Poke_2005 );
-		cpu.SetPort( i + 0x6, this, Peek_2xxx, Poke_2006 );
-		cpu.SetPort( i + 0x7, this, Peek_2007, Poke_2007 );
-	}
-
-	cpu.SetPort( 0x4014, this, Peek_4014, Poke_4014 );
-
-	PDXMemZero( BgBuffer );
-
-	BgCache.cache = 0;
-	BgCache.pixels = BgBuffer.u32Pixels;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID PPU::UpdateTmpVariables()
-{
-	AddressIncrease  = (ctrl0 & CTRL0_INC32) ? 32 : 1;
-	SpHeight         = (ctrl0 & CTRL0_SP8X16) ? 16 : 8;
-	BgPatternAddress = (ctrl0 & CTRL0_BG_OFFSET) ? 0x1000 : 0x0000;
-	SpPatternAddress = (ctrl0 & CTRL0_SP_OFFSET) ? 0x1000 : 0x0000;
-	emphasis         = ((ctrl1 & CTRL1_BG_COLOR) >> CTRL1_BG_COLOR_SHIFT) * 64;
-	monochrome       = (ctrl1 & CTRL1_MONOCHROME) ? 0xF0 : 0xFF;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(PPU,vRam_00xx) { cRam[address & 0x1FFF] = data;   }
-NES_POKE(PPU,vRam_20xx) { CiRam(0,address & 0x3FF) = data; }
-NES_POKE(PPU,vRam_24xx) { CiRam(1,address & 0x3FF) = data; }
-NES_POKE(PPU,vRam_28xx) { CiRam(2,address & 0x3FF) = data; }
-NES_POKE(PPU,vRam_2Cxx) { CiRam(3,address & 0x3FF) = data; }
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_PEEK(PPU,vRam_00xx) { return cRam[address & 0x1FFF];  }
-NES_PEEK(PPU,vRam_20xx) { return CiRam(0,address & 0x3FF); } 
-NES_PEEK(PPU,vRam_24xx) { return CiRam(1,address & 0x3FF); } 
-NES_PEEK(PPU,vRam_28xx) { return CiRam(2,address & 0x3FF); } 
-NES_PEEK(PPU,vRam_2Cxx) { return CiRam(3,address & 0x3FF); } 
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID PPU::SetMirroring(const MIRRORING type)
-{
-	PDX_ASSERT(UINT(type) < 7);
-
-	PDX_COMPILE_ASSERT
-	(
-	    MIRROR_HORIZONTAL == 0 &&
-		MIRROR_VERTICAL   == 1 &&
-		MIRROR_FOURSCREEN == 2 &&
-		MIRROR_ZERO       == 3 &&
-		MIRROR_ONE        == 4 &&
-		MIRROR_TWO        == 5 &&
-		MIRROR_THREE      == 6
-	);
-
-	Update();
-
-	static const UCHAR select[7][4] =
-	{
-		{0,0,1,1}, // horizontal
-		{0,1,0,1}, // vertical
-		{0,1,2,3}, // four-screen
-		{0,0,0,0}, // banks #1
-		{1,1,1,1}, // banks #2
-		{2,2,2,2}, // banks	#3
-		{3,3,3,3}  // banks	#4
-	};
-
-	CiRam.SwapBanks<n1k,0x0000>( select[type][0] );
-	CiRam.SwapBanks<n1k,0x0400>( select[type][1] );
-	CiRam.SwapBanks<n1k,0x0800>( select[type][2] );
-	CiRam.SwapBanks<n1k,0x0C00>( select[type][3] );
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID PPU::SetMode(const MODE mode)
-{
-	if (pal = (mode == MODE_PAL))
-	{
-		cycles.fetch = NES_PPU_MCC_FETCH_PAL;
-		cycles.pixel = NES_PPU_MCC_PIXEL_PAL;
-		cycles.delay = NES_PPU_MCC_PIXEL_PAL * 3;
-		cycles.frame = EvenFrame ? NES_PPU_MCC_FRAME_0_PAL : NES_PPU_MCC_FRAME_1_PAL;
-		cycles.vint  = NES_PPU_MCC_VINT_PAL;
-	}
-	else
-	{
-		cycles.fetch = NES_PPU_MCC_FETCH_NTSC;
-		cycles.pixel = NES_PPU_MCC_PIXEL_NTSC;
-		cycles.delay = NES_PPU_MCC_PIXEL_NTSC * 3;
-		cycles.frame = EvenFrame ? NES_PPU_MCC_FRAME_0_NTSC : NES_PPU_MCC_FRAME_1_NTSC;
-		cycles.vint  = NES_PPU_MCC_VINT_NTSC;
-	}
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID PPU::SetContext(const IO::GFX::CONTEXT& context)
-{
-	MaxSprites = context.InfiniteSprites ? MAX_SPRITES : 8;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID PPU::GetContext(IO::GFX::CONTEXT& context) const
-{
-	context.InfiniteSprites = (MaxSprites == MAX_SPRITES);
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-// write to control register 0
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(PPU,2000)
-{
-	UpdateLazy();
-
-	latch = data;
-
-	AddressIncrease  = (data & CTRL0_INC32) ? 32 : 1;
-	SpHeight         = (data & CTRL0_SP8X16) ? 16 : 8;
-	BgPatternAddress = (data & CTRL0_BG_OFFSET) ? 0x1000 : 0x0000;
-	SpPatternAddress = (data & CTRL0_SP_OFFSET) ? 0x1000 : 0x0000;
-	
-	vRamLatch &= ~VRAM_NAME;
-	vRamLatch |= (data & CTRL0_NAME_OFFSET) << 10;
-
-	PDX_COMPILE_ASSERT( CTRL0_NMI == 0x80 && STATUS_VBLANK == 0x80 );
-
-	if ((data & status & CTRL0_NMI) > ctrl0)
-		cpu.DoNMI( cpu.GetCycles<CPU::CYCLE_MASTER>() );
-
-	ctrl0 = data;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-// write to control register 1
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(PPU,2001)
-{
-	UpdateLazy();
-
-	emphasis = ((data & CTRL1_BG_COLOR) >> CTRL1_BG_COLOR_SHIFT) * IO::GFX::PALETTE_CHUNK;
-	monochrome = (data & CTRL1_MONOCHROME) ? 0xF0 : 0xFF;
-
-	if ((data & CTRL1_BG_ENABLED) < (ctrl1 & CTRL1_BG_ENABLED))
-	{
-		BgCache.cache =
-		BgBuffer.name = 
-		BgBuffer.cache =
-		BgBuffer.u32Pixels[0] =
-		BgBuffer.u32Pixels[1] =
-		BgBuffer.u32Pixels[2] =
-		BgBuffer.u32Pixels[3] = 0x00;
-	}
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("s", on)
+        #endif
+		
+        #ifdef NST_TAILCALL_OPTIMIZE
   
-	ctrl1 = latch = data;
-}
+          #define NST_PPU_NEXT_PHASE(function_)	\
+												\
+		  if (cycles.count < cycles.round)		\
+			  function_();						\
+		  else									\
+			  phase = &Ppu::function_
 
-////////////////////////////////////////////////////////////////////////////////////////
-// read the status register
-////////////////////////////////////////////////////////////////////////////////////////
+        #else
 
-NES_PEEK(PPU,2002)
-{
-	Update();
+          #define NST_PPU_NEXT_PHASE(function_) phase = &Ppu::function_
 
-	FlipFlop = 0;
-	latch = (latch & STATUS_LATCH) | status;
-	status &= ~STATUS_VBLANK;
+        #endif
 
-	return latch;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-// write to the sprite RAM address counter
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(PPU,2003)
-{
-	Update();
-
-	OamAddress = latch = data;
-	OamLatch = data & 0x7;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-// write a byte to the current sprite RAM address
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(PPU,2004)
-{
-	Update();
-
-	latch = data;
-
-	if (OamLatch >= 0x8)
-	{
-		if (OamAddress >= 0x8)
-			SpRam[OamAddress] = data;
-	}
-	else
-	{
-		SpRam[OamLatch] = data;
-	}
-
-	OamLatch = (OamLatch + 1) & 0xFF;
-	OamAddress = (OamAddress + 1) & 0xFF;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-// read from sprite RAM
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_PEEK(PPU,2004)
-{
-	Update();
-
-	latch = SpRam[OamAddress];
-	OamAddress = (OamAddress + 1) & 0xFF;
-
-	return latch;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-// write a compressed byte to the scroll register
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(PPU,2005)
-{
-	Update();
-
-	latch = data;
-
-	if (FlipFlop ^= 1)
-	{
-       	// First write. Store the x tile and x fine. 
-		
-		vRamLatch &= ~VRAM_X_TILE;
-		vRamLatch |= latch >> 3;
-		xFine = latch & b00000111;
-	}
-	else
-	{
-		// Second write. Store the y tile and y fine.
-
-		vRamLatch &= ~(VRAM_Y_TILE|VRAM_Y_FINE);
-		vRamLatch |= (latch & b11111000) << 2;
-		vRamLatch |= (latch & b00000111) << 12;
-	}
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-// write to the register controling the VRAM address
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(PPU,2006)
-{
-	UpdateLazy();
-
-	latch = data;
-
-	if (FlipFlop ^= 1)
-	{
-		// First write. Store the high byte 6 bits 
-		// and clear out the last two.
-
-		vRamLatch &= ~VRAM_HIGH;
-		vRamLatch |= (latch & b00111111) << 8;
-	}
-	else
-	{
-		// Second write. Store the low byte 8 bits.
-		
-		vRamLatch &= ~VRAM_LOW;
-		vRamLatch |= latch;
-		vRamAddress = vRamLatch;
-		vRam[vRamAddress & 0x3FFF];
-	}
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-// write a byte to VRAM
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(PPU,2007)
-{
-  	UpdateLazy();
-
-	latch = data;
-
-	if ((vRamAddress & 0xFF00) == 0x3F00)
-		WritePalRam( vRamAddress );
-	else
-		vRam.Poke( vRamAddress & 0x3FFF, data );
-
-	vRamAddress = (vRamAddress + AddressIncrease) & 0x7FFF;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID PPU::WritePalRam(const UINT address)
-{
-	const UINT color = latch & 0x3F;
-
-	if (!(address & 0xF))
-	{
-		PalRam[0x00] = 
-		PalRam[0x04] = 
-		PalRam[0x08] = 
-		PalRam[0x0C] =			
-		PalRam[0x10] = 
-		PalRam[0x14] = 
-		PalRam[0x18] = 
-		PalRam[0x1C] = color;
-	}
-	else if (address & 0x3)
-	{
-		PalRam[address & 0x1F] = color;
-	}
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-// read a byte from VRAM
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_PEEK(PPU,2007)
-{
-	Update();
-
-	// first read is always a throw-away read (except palette RAM)
-
-	latch = ReadLatch;
-
-	if ((vRamAddress & 0xFF00) == 0x3F00)
-		latch = PalRam[vRamAddress & 0x1F];
-	else
-		ReadLatch = vRam[vRamAddress & 0x3FFF];
-
-	vRamAddress = (vRamAddress + AddressIncrease) & 0x7FFF;
-
-	return latch;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-// put any crap that gets written on the bus
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(PPU,2xxx)
-{
-	Update();
-	Log("PPU: useless write to 0x2xxx",0);
-	latch = data;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-// read what's left on the bus
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_PEEK(PPU,2xxx)
-{
-	Update();
-	Log("PPU: useless read from 0x2xxx",1);
-	return latch;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-// sprite DMA
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(PPU,4014)
-{
-	Update();
-
-	const UINT offset = data << 8;
-
-	const BOOL SafeDma =
-	(
-	    (offset <= (CPU::RAM_SIZE - NES_CPU_PPU_DMA_TRANSFERS)) &&
-		!OamAddress &&
-		(cycles.count <= cycles.vint || !(ctrl1 & CTRL1_BG_SP_ENABLED))
-	);
-
-	if (SafeDma)
-	{
-		memcpy( SpRam, cpu.Ram() + offset, sizeof(U8) * NES_CPU_PPU_DMA_TRANSFERS ); 
-		latch = SpRam[0xFF];
-	}
-	else
-	{
-		DoDma( offset );
-	}
-
-	cpu.AdvanceCycles
-	( 
-     	pal ? (NES_CPU_MCC_PPU_DMA_PAL * NES_CPU_PPU_DMA_TRANSFERS) : 
-	          (NES_CPU_MCC_PPU_DMA_NTSC * NES_CPU_PPU_DMA_TRANSFERS)
-	);
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID PPU::DoDma(UINT offset)
-{
-	const UINT length = offset + NES_CPU_PPU_DMA_TRANSFERS;
-
-	ULONG target = cpu.GetCycles<CPU::CYCLE_MASTER>();
-	const ULONG cycle = (pal ? NES_CPU_MCC_PPU_DMA_PAL : NES_CPU_MCC_PPU_DMA_NTSC);
-
-	do
-	{
-		if (target + cycle <= cycles.frame)
+		Ppu::Output::Output()
+		: 
+		emphasisMask (Regs::CTRL1_BG_COLOR),
+		screen       (NULL) 
 		{
-			target += cycle;
-
-			while (cycles.count < target)
-				(this->**process++)();
 		}
-
-		latch = cpu.Peek(offset);
-
-		if (OamLatch >= 0x8)
-		{
-			if (OamAddress >= 0x8)
-				SpRam[OamAddress] = latch;
-		}
-		else
-		{
-			SpRam[OamLatch] = latch;
-		}
-
-		OamLatch = (OamLatch + 1) & 0xFF;
-		OamAddress = (OamAddress + 1) & 0xFF;
-	}
-	while (++offset < length);
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_PEEK(PPU,4014)
-{
-	Update();
-	Log("PPU: read from 0x4014",3);
-	return cpu.GetCache();
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID PPU::Update()
-{
-	const ULONG target = cpu.GetCycles<CPU::CYCLE_MASTER>();
-
-	while (cycles.count < target)
-		(this->**process++)();
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID PPU::UpdateLazy()
-{
-	const ULONG target = cpu.GetCycles<CPU::CYCLE_MASTER>() + cycles.delay;
 	
-	while (cycles.count < target) 
-		(this->**process++)();
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-// begin a new frame
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID PPU::BeginFrame(IO::GFX* const gfx)
-{ 
-	screen = gfx;
-	process = processes;
-	CanSkipLine = FALSE;
-
-	if (cycles.WarmUp)
-	{
-		--cycles.WarmUp;
-		PDX_ASSERT( cycles.count == NES_WARMUP_CYCLES );
-	}
-	else
-	{
-		if (cycles.count != ULONG_MAX)
-			vBlankBegin();
-
-		cycles.count = cycles.vint;
-	}
-
-	EvenFrame ^= 1;
-
-	if (pal) cycles.frame = (EvenFrame ? NES_PPU_MCC_FRAME_0_PAL : NES_PPU_MCC_FRAME_1_PAL);
-	else     cycles.frame = (EvenFrame ? NES_PPU_MCC_FRAME_0_NTSC : NES_PPU_MCC_FRAME_1_NTSC);
-
-	cpu.SetupFrame( cycles.frame );
-
-	if (gfx && PDX_FAILED(gfx->Lock()))
-		screen = NULL;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-// end the frame
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID PPU::EndFrame()
-{
-	const ULONG frame = cycles.frame;
-
-	while (cycles.count < frame)
-		(this->**process++)();
-
-	if (screen)
-	{
-		screen->Unlock();
-		screen = NULL;
-	}
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID PPU::vBlankBegin()
-{
-	cycles.count = ULONG_MAX;
-
-	OamLatch = 0x00;
-	OamAddress = 0x0000;
-
-	scanline = SCANLINE_VBLANK;
-	status |= STATUS_VBLANK;
-
-	if (ctrl0 & CTRL0_NMI)
-		cpu.DoNMI( 0 );
-
-	if (hooks.hSync)
-		hooks.hSync.Execute();
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID PPU::vBlankEnd()
-{
-	PhaseCount = PHASE_HDUMMY_COUNT;
-	phase = processes + PHASE_HDUMMY;
-
-	status &= ~(STATUS_VBLANK|STATUS_SP_ZERO_HIT|STATUS_SP_OVERFLOW);
+		void Ppu::Output::ClearScreen()
+		{
+			NST_ASSERT( screen );
+			std::memset( screen, 0, sizeof(u16) * WIDTH * HEIGHT );
+		}
 	
-	SpTmpBufferSize = 0;
-	SpBufferSize = 0;
-}
+        #ifdef _MSC_VER
+        #pragma warning( disable : 4355 )
+        #endif
 
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID PPU::hDummyEnd()
-{
-	PhaseCount = PHASE_HBLANK_0_COUNT;
-	process = phase = processes + PHASE_HBLANK_0;
-
-	SpBufferSize = 0;
-	SpIndex = 0;
-
-	if (ctrl1 & CTRL1_BG_SP_ENABLED)
-		vRamAddress = vRamLatch;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID PPU::hActiveEnd()
-{
-	if (--PhaseCount)
-	{
-		process = phase;
-		NextTile();
-	}
-	else
-	{
-		if (CanSkipLine)
+		Ppu::Ppu(Cpu& c)
+		: cpu(c), bgHook(this,&Ppu::Hook_Null), spHook(this,&Ppu::Hook_Null)
 		{
-			SkipLine();
+			oam.limit = oam.buffer + Oam::STD_LINE_SPRITES;
 		}
-		else
+
+        #ifdef _MSC_VER
+        #pragma warning( default : 4355 )
+        #endif
+
+		Ppu::~Ppu()
 		{
-			SpBufferSize = 0;
-			SpIndex = 0;
-
-			PhaseCount = PHASE_HBLANK_0_COUNT;
-			phase = processes + PHASE_HBLANK_0;
-
-    		if (!screen && (status & STATUS_SP_ZERO_HIT))
+		}
+	
+		void Ppu::Reset(const bool hard)
+		{
+			logged = 0;
+	
+			for (uint i=0x2000U; i < 0x4000U; )
 			{
-				CanSkipLine = TRUE;
-				SkipLine();
+				cpu.Map( i++ ).Set( this, &Ppu::Peek_2xxx, &Ppu::Poke_2000 );
+				cpu.Map( i++ ).Set( this, &Ppu::Peek_2xxx, &Ppu::Poke_2001 );
+				cpu.Map( i++ ).Set( this, &Ppu::Peek_2002, &Ppu::Poke_2xxx );
+				cpu.Map( i++ ).Set( this, &Ppu::Peek_2xxx, &Ppu::Poke_2003 );
+				cpu.Map( i++ ).Set( this, &Ppu::Peek_2004, &Ppu::Poke_2004 );
+				cpu.Map( i++ ).Set( this, &Ppu::Peek_2xxx, &Ppu::Poke_2005 );
+				cpu.Map( i++ ).Set( this, &Ppu::Peek_2xxx, &Ppu::Poke_2006 );
+				cpu.Map( i++ ).Set( this, &Ppu::Peek_2007, &Ppu::Poke_2007 );
 			}
-		}
-
-		NextLine();
-	}
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID PPU::hBlankEnd()
-{
-	PDX_ASSERT(SpIndex == 0);
-
-	status &= ~STATUS_SP_OVERFLOW;	
-
-	if (++scanline < 240)
-	{
-		SpTmpBufferSize = 0;
-
-		PhaseCount = PHASE_HACTIVE_COUNT;
-		process = phase = processes + PHASE_HACTIVE;
-
-		if (screen)
-			output.pixels = screen->pixels + (scanline * IO::GFX::WIDTH);
-		else
-			output.pixels = GarbageLine;
-
-		output.ClipOffset = output.pixels + 8;
-
-		if (scanline || EvenFrame)
-			cycles.count += cycles.rest;
-	}
-	else
-	{
-		cycles.count = cycles.frame;
-	}
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID PPU::NextTile()
-{
-	if (ctrl1 & CTRL1_BG_SP_ENABLED)
-	{
-    	if ((vRamAddress & VRAM_X_TILE) == VRAM_X_TILE)
-    		vRamAddress ^= (VRAM_X_TILE|VRAM_NAME_LOW);
-    	else
-    		++vRamAddress;
-	}
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID PPU::NextLine()
-{
-	if (hooks.hSync)
-		hooks.hSync.Execute();
-
-	if (ctrl1 & CTRL1_BG_SP_ENABLED)
-	{
-		vRamAddress = 
-		(
-	    	(vRamAddress & ~(VRAM_X_TILE|VRAM_NAME_LOW)) | 
-			(vRamLatch   &  (VRAM_X_TILE|VRAM_NAME_LOW))
-		);
-
-		if ((vRamAddress & VRAM_Y_FINE) == (7U << 12))
-		{
-			switch (vRamAddress & VRAM_Y_TILE)
+	
+			cpu.Map( 0x4014U ).Set( this, &Ppu::Peek_4014, &Ppu::Poke_4014 );
+		
+			if (hard)
 			{
-				case (29U << 5): vRamAddress ^= VRAM_NAME_HIGH;
-				case (31U << 5): vRamAddress &= ~(VRAM_Y_FINE|VRAM_Y_TILE); break;
-				default:         vRamAddress = (vRamAddress & ~VRAM_Y_FINE) + (1U << 5); break;
-			}
-		}
-		else
-		{
-			vRamAddress += (1U << 12);
-		}
-	}
-}
+				io.a12.Invalidate();
 
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
+				static const u8 powerUpPalette[] =
+				{
+					0x3F,0x01,0x00,0x01,0x00,0x02,0x02,0x0D,
+					0x08,0x10,0x08,0x24,0x00,0x00,0x04,0x2C,
+					0x09,0x01,0x34,0x03,0x00,0x04,0x00,0x14,
+					0x08,0x3A,0x00,0x02,0x00,0x20,0x2C,0x08 
+				};
 
-VOID PPU::SkipLine()
-{
-	PDX_ASSERT(status & STATUS_SP_ZERO_HIT);
-
-	status &= ~STATUS_SP_OVERFLOW;	
-
-	if (ctrl1 & CTRL1_BG_SP_ENABLED)
-	{
-		// Simulate sprite and background pattern fetches for
-		// any IRQ generating hardware depending on them
-
-		vRam[BgPatternAddress];
-		vRam[SpPatternAddress];
-	}
-
-	if (++scanline < 240)
-	{
-		PhaseCount = 1;
-		process = processes + PHASE_HACTIVE_END;
-		cycles.count += (pal ? NES_PPU_MCC_HSYNC_PAL : NES_PPU_MCC_HSYNC_NTSC);
-	}
-	else
-	{
-		cycles.count = cycles.frame;
-	}
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID PPU::FetchGarbageName()
-{
-	cycles.count += cycles.fetch;
-
-	if (ctrl1 & CTRL1_BG_SP_ENABLED)
-		vRam[0x2000 + (vRamAddress & 0x0FFF)];
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID PPU::FetchGarbageAttribute()
-{
-	cycles.count += cycles.fetch;
-
-	if (ctrl1 & CTRL1_BG_SP_ENABLED)
-		vRam[0x23C0 + (vRamAddress & 0x0C00) + ((((vRamAddress & VRAM_Y_TILE) >> 5) & 0x1C) << 1) + ((vRamAddress & VRAM_X_TILE) >> 2)];
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID PPU::FetchGarbagePattern0()
-{
-	cycles.count += cycles.fetch;
-
-	if (ctrl1 & CTRL1_BG_SP_ENABLED)
-		vRam[(BgPatternAddress + (BgBuffer.name << 4) + (vRamAddress >> 12)) & 0x1FFF];
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID PPU::FetchGarbagePattern1()
-{
-	cycles.count += cycles.fetch;
-
-	if (--PhaseCount)
-		process = phase;
-
-	if (ctrl1 & CTRL1_BG_SP_ENABLED)
-		vRam[(BgPatternAddress + (BgBuffer.name << 4) + (vRamAddress >> 12) + 0x8) & 0x1FFF];
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID PPU::FetchBgName()
-{
-	if (ctrl1 & CTRL1_BG_SP_ENABLED)
-	{
-		const UINT name = vRam[0x2000 + (vRamAddress & 0x0FFF)];
-
-		if (ctrl1 & CTRL1_BG_ENABLED)
-		{
-			BgBuffer.name = name;
-
-			U32* const PDX_RESTRICT pixels = BgBuffer.u32Pixels + BgBuffer.offset;
-
-			if (BgCache.cache == BgBuffer.cache)
-			{
-				if (BgCache.pixels != pixels)
-					memcpy( pixels, BgCache.pixels, sizeof(U32) * 2 );
+				std::memset( oam.ram, Oam::GARBAGE, Oam::SIZE );
+				std::memcpy( palette.ram, powerUpPalette, Palette::SIZE );
+				std::memset( nameTable.ram, NameTable::GARBAGE, NameTable::SIZE );
+	
+				io.latch = 0;
+				io.buffer = 0;
+	
+				stage = WARM_UP_FRAMES;
+				phase = &Ppu::WarmUp;
 			}
 			else
 			{
-				BgCache.cache = BgBuffer.cache;
-				BgCache.pixels = pixels;
+				stage = 0;
+				phase = &Ppu::VBlank;
+			}
+	
+			if (chrMem.Source().Empty())
+			{
+				chrMem.Source().Set( nameTable.ram, NameTable::SIZE, true, false );
+				chrMem.SwapBanks<NES_2K,0x0000>(0,0,0,0);
+			}
+	
+			if (nmtMem.Source().Empty())
+			{
+				nmtMem.Source().Set( nameTable.ram, NameTable::SIZE, true, true );
+				nmtMem.SwapBanks<NES_2K,0x0000>(0,0);
+			}
+	
+			chrMem.ResetAccessors();
+			nmtMem.ResetAccessors();
+	
+			SetMode( cpu.GetMode() );
+			cycles.count = NES_CYCLE_MAX;
+			cycles.spriteOverflow = NES_CYCLE_MAX;
+	
+			io.address = 0;
+			io.pattern = 0;
+	
+			regs.ctrl0 = 0;
+			regs.ctrl1 = 0;
+			regs.status = 0;
+	
+			scroll.address = 0;
+			scroll.toggle = 0;
+			scroll.latch = 0;
+			scroll.xFine = 0;
+	
+			scanline = SCANLINE_VBLANK;
+	
+			tiles.pattern[0] = 0;
+			tiles.pattern[1] = 0;
+			tiles.attribute = 0;
+			tiles.pad = 0;
+	
+			oam.address = 0;
+			oam.visible = oam.output;
+			oam.evaluated = oam.buffer;
+	
+			UpdateStates();
+	
+			output.index = 0;
+			output.ClearScreen();
 
-				const UINT pattern[2] =
+			RemoveBgHook();
+			RemoveSpHook();
+		}
+	
+		void Ppu::UpdateStates()
+		{
+			io.enabled = regs.ctrl1 & (Regs::CTRL1_BG_ENABLED|Regs::CTRL1_SP_ENABLED);
+			scroll.increase = (regs.ctrl0 & Regs::CTRL0_INC32) ? 32 : 1;
+			scroll.pattern = (regs.ctrl0 & Regs::CTRL0_BG_OFFSET) << 8;
+			tiles.show = (regs.ctrl1 & Regs::CTRL1_BG_ENABLED) ? ~0U : 0U;
+			oam.show = (regs.ctrl1 & Regs::CTRL1_SP_ENABLED) ? ~0U : 0U;
+			output.emphasis = (regs.ctrl1 & output.emphasisMask) << 1;
+			output.coloring = (regs.ctrl1 & Regs::CTRL1_MONOCHROME) ? Palette::MONO : Palette::COLOR;
+		}
+	
+		void Ppu::SaveState(State::Saver& state) const
+		{
+			{
+				const u8 data[11] =
 				{
-					( ( BgBuffer.pattern[0] >> 1 ) & b01010101 ) | 
-					( ( BgBuffer.pattern[1]      ) & b10101010 ),
-					( ( BgBuffer.pattern[0]      ) & b01010101 ) | 
-					( ( BgBuffer.pattern[1] << 1 ) & b10101010 )
+					regs.ctrl0,
+					regs.ctrl1,
+					regs.status | (cycles.spriteOverflow != NES_CYCLE_MAX ? Regs::STATUS_SP_OVERFLOW : 0),
+					scroll.address & 0xFF,
+					scroll.address >> 8,
+					scroll.latch & 0xFF,
+					scroll.latch >> 8,
+					scroll.xFine | (scroll.toggle << 3),
+					oam.address,
+					io.buffer,
+					io.latch
 				};
 
-				const UINT attribute = BgBuffer.attribute;
+				state.Begin('R','E','G','\0').Write( data ).End();
+			}
+	
+          	state.Begin('P','A','L','\0').Compress( palette.ram   ).End();
+			state.Begin('O','A','M','\0').Compress( oam.ram       ).End();
+			state.Begin('N','M','T','\0').Compress( nameTable.ram ).End();
 
-				pixels[0] = 
-				(
-			    	( ( ( ( pattern[0] >> 6 )       ) + attribute )       ) |
-	    			( ( ( ( pattern[0] >> 4 ) & 0x3 ) + attribute ) << 16 ) |
-	    			( ( ( ( pattern[1] >> 6 )       ) + attribute ) <<  8 ) |
-	    			( ( ( ( pattern[1] >> 4 ) & 0x3 ) + attribute ) << 24 )
-				);
+			if (cpu.GetMode() == MODE_NTSC)
+				state.Begin('F','R','M','\0').Write8( cycles.frame == (CC_FRAME_0_NTSC * MC_DIV_NTSC) ).End();
+		}
+	
+		void Ppu::LoadState(State::Loader& state)
+		{
+			while (const dword chunk = state.Begin())
+			{
+				switch (chunk)
+				{
+					case NES_STATE_CHUNK_ID('R','E','G','\0'): 
+					{
+						const State::Loader::Data<11> data( state );
+
+						regs.ctrl0     = data[0];
+						regs.ctrl1     = data[1];
+						regs.status    = data[2] & Regs::STATUS_BITS;
+						scroll.address = data[3] | ((data[4] & 0x7F) << 8);
+						scroll.latch   = data[5] | ((data[6] & 0x7F) << 8);
+						scroll.xFine   = data[7] & 0x7;
+						scroll.toggle  = (data[7] & 0x8) >> 3;
+						oam.address    = data[8];
+						io.buffer      = data[9];
+						io.latch       = data[10];
+
+						cycles.spriteOverflow = NES_CYCLE_MAX;
+						scanline = SCANLINE_VBLANK;
+
+						if (regs.status & Regs::STATUS_VBLANK)
+							phase = &Ppu::HDummy;
+						else
+							phase = &Ppu::VBlank;
+
+						UpdateStates();
+						break;
+					}
+	
+					case NES_STATE_CHUNK_ID('P','A','L','\0'):
+	
+						state.Uncompress( palette.ram );
+						break;
+	
+					case NES_STATE_CHUNK_ID('O','A','M','\0'): 
+	
+						state.Uncompress( oam.ram );
+						break;
+	
+					case NES_STATE_CHUNK_ID('N','M','T','\0'): 
+	
+						state.Uncompress( nameTable.ram );
+						break;
+
+					case NES_STATE_CHUNK_ID('F','R','M','\0'):
+					
+						if (cpu.GetMode() == MODE_NTSC)
+							cycles.frame = (state.Read8() & 0x1) ? (CC_FRAME_0_NTSC * MC_DIV_NTSC) : (CC_FRAME_1_NTSC * MC_DIV_NTSC);
+
+						break;
+				}
+	
+				state.End();
+			}
+		}
+	
+		void Ppu::EnableCpuSynchronization()
+		{
+			cpu.AddHook( Hook(this,&Ppu::Hook_Synchronize) );
+		}
+	
+		void Ppu::ChrMem::ResetAccessors()
+		{
+			accessors[0].Set( this, &ChrMem::Access_Pattern );
+			accessors[1].Set( this, &ChrMem::Access_Pattern );
+		}
+	
+		void Ppu::ChrMem::SetDefaultAccessor(uint i)
+		{
+			NST_ASSERT( i < 2 );
+			accessors[i].Set( this, &ChrMem::Access_Pattern );
+		}
+	
+		void Ppu::NmtMem::ResetAccessors()
+		{
+			accessors[0][0].Set( this, &NmtMem::Access_Name_2000 );
+			accessors[0][1].Set( this, &NmtMem::Access_Name_2000 );
+			accessors[1][0].Set( this, &NmtMem::Access_Name_2400 );
+			accessors[1][1].Set( this, &NmtMem::Access_Name_2400 );
+			accessors[2][0].Set( this, &NmtMem::Access_Name_2800 );
+			accessors[2][1].Set( this, &NmtMem::Access_Name_2800 );
+			accessors[3][0].Set( this, &NmtMem::Access_Name_2C00 );
+			accessors[3][1].Set( this, &NmtMem::Access_Name_2C00 );
+		}
+	
+		void Ppu::NmtMem::SetDefaultAccessor(uint i,uint j)
+		{
+			NST_ASSERT( i < 4 && j < 2 );
+	
+			accessors[i][j].Set
+			( 
+		     	this, 
+				i == 0 ? &NmtMem::Access_Name_2000 :
+       	     	i == 1 ? &NmtMem::Access_Name_2400 :
+        		i == 2 ? &NmtMem::Access_Name_2800 :
+				         &NmtMem::Access_Name_2C00 
+			);
+		}
+	
+		void Ppu::NmtMem::SetDefaultAccessors(uint i)
+		{
+			SetDefaultAccessor( i, 0 );
+			SetDefaultAccessor( i, 1 );
+		}
+	
+		void Ppu::LogMsg(cstring const msg,const uint length,const uint which)
+		{
+			NST_ASSERT( msg );
+	
+			if (!(logged & which))
+			{
+				logged |= which;
+				Log::Flush( msg, length );
+			}
+		}
+	
+		template<size_t N>
+		inline void Ppu::LogMsg(const char (&c)[N],const uint e)
+		{
+			LogMsg( c, N-1, e );
+		}
+
+		void Ppu::SetMode(const Mode mode)
+		{
+			if (mode == MODE_NTSC)
+			{
+				cycles.one   = MC_DIV_NTSC * 1;
+				cycles.four  = MC_DIV_NTSC * 4;
+				cycles.eight = MC_DIV_NTSC * 8;
+				cycles.seven = MC_DIV_NTSC * 7;
+				cycles.rest  = MC_DIV_NTSC * 6;
+				cycles.frame = MC_DIV_NTSC * CC_FRAME_0_NTSC;
+				cycles.dead  = MC_DIV_NTSC * 6;
+			}
+			else
+			{
+				cycles.one   = MC_DIV_PAL * 1;
+				cycles.four  = MC_DIV_PAL * 4;
+				cycles.eight = MC_DIV_PAL * 8;
+				cycles.seven = MC_DIV_PAL * 7;
+				cycles.rest  = MC_DIV_PAL * 6;
+				cycles.frame = MC_DIV_PAL * CC_FRAME_PAL;
+				cycles.dead  = MC_DIV_PAL * 6;
+			}
+		}
+	
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("", on)
+        #pragma optimize("w", on)
+        #endif
+	
+		void Ppu::BeginFrame(const bool render)
+		{
+			NST_ASSERT( (cpu.GetMode() == MODE_NTSC) == (cycles.one == MC_DIV_NTSC) );
+
+			if (render)
+			{
+				NST_ASSERT( output.screen );
+				output.pixels = output.screen;
+				output.next = 1;
+			}
+			else
+			{
+				output.pixels = &Output::dummy;
+				output.next = 0;
+			}
+	
+			if (cpu.GetMode() == MODE_NTSC)
+			{
+				cycles.count = MC_DIV_NTSC * CC_VINT_NTSC;
+	
+				if (cycles.frame == MC_DIV_NTSC * CC_FRAME_0_NTSC)
+				{
+					cycles.frame = MC_DIV_NTSC * CC_FRAME_1_NTSC;
+					cycles.dead = MC_DIV_NTSC * 5;
+				}
+				else
+				{
+					cycles.frame = MC_DIV_NTSC * CC_FRAME_0_NTSC;
+					cycles.dead = MC_DIV_NTSC * 6;
+				}
+			}
+			else
+			{
+				cycles.count = MC_DIV_PAL * CC_VINT_PAL;
+			}
+	
+			cpu.SetupFrame( cycles.frame );
+	
+			if (phase == &Ppu::VBlank)
+			{
+				phase = &Ppu::HDummy;
+	
+				regs.status |= Regs::STATUS_VBLANK;
+				scanline = SCANLINE_VBLANK;
+				oam.address = 0x00;
+	
+				if (regs.ctrl0 & Regs::CTRL0_NMI)
+					cpu.DoNMI( 0 );
+			}
+		}
+	
+		NES_HOOK(Ppu,Null)
+		{
+		}
+
+		NES_HOOK(Ppu,Synchronize)
+		{
+			const Cycle elapsed = cpu.GetMasterClockCycles();
+	
+			if (cycles.count < elapsed)
+			{
+				cycles.round = elapsed;
+
+            #ifdef NST_TAILCALL_OPTIMIZE
+				(*this.*phase)();
+            #else
+				do 
+				{
+					(*this.*phase)();
+				}
+				while (cycles.count < elapsed);
+            #endif
+			}
+		}
+	
+		void Ppu::EndFrame()
+		{
+			const Cycle elapsed = cycles.frame;
+
+			if (cycles.count < elapsed)
+			{
+				cycles.round = elapsed;
+
+            #ifdef NST_TAILCALL_OPTIMIZE
+				(*this.*phase)();
+            #else
+				do 
+				{
+					(*this.*phase)();
+				}
+				while (cycles.count < elapsed);
+            #endif
+			}
+		}
+	
+		void Ppu::Update()
+		{
+			const Cycle elapsed = cpu.GetMasterClockCycles();
+	
+			if (cycles.count < elapsed)
+			{
+				cycles.round = elapsed;
+
+            #ifdef NST_TAILCALL_OPTIMIZE
+				(*this.*phase)();
+            #else
+				do 
+				{
+					(*this.*phase)();
+				}
+				while (cycles.count < elapsed);
+            #endif
+			}
+		}
+	
+		void Ppu::UpdateLatency()
+		{
+			const Cycle elapsed = cpu.GetMasterClockCycles() + cycles.one;
+
+			if (cycles.count < elapsed)
+			{
+				cycles.round = elapsed;
+
+            #ifdef NST_TAILCALL_OPTIMIZE
+				(*this.*phase)();
+            #else
+				do 
+				{					
+					(*this.*phase)();
+				} 
+				while (cycles.count < elapsed);
+            #endif
+			}
+		}
+	
+		void Ppu::SetMirroring(uint type)
+		{
+			NST_ASSERT( type < 6 );
+			NST_VERIFY( type < 5 );
+	
+			NST_COMPILE_ASSERT
+			(
+				NMT_HORIZONTAL == 0 &&
+				NMT_VERTICAL   == 1 &&
+				NMT_FOURSCREEN == 2 &&
+				NMT_ZERO       == 3 &&
+				NMT_ONE        == 4	&&
+				NMT_CONTROLLED == 5
+			);
+	
+			Update();
+	
+			static const uchar banks[6][4] =
+			{
+				{0,0,1,1}, // horizontal
+				{0,1,0,1}, // vertical
+				{0,1,2,3}, // four-screen
+				{0,0,0,0}, // banks #1
+				{1,1,1,1}, // banks #2
+				{0,1,0,1}  // controlled, default to vertical 
+			};
+	
+			nmtMem.SwapBanks<NES_1K,0x0000U>
+			( 
+		    	banks[type][0],
+				banks[type][1],
+				banks[type][2],
+				banks[type][3]
+			);
+		}
+	
+		void Ppu::SetMirroring(const uchar (&banks)[4])
+		{
+			Update();
+	
+			NST_ASSERT( banks[0] < 4 && banks[1] < 4 && banks[2] < 4 && banks[3] < 4 );
+	
+			nmtMem.SwapBanks<NES_1K,0x0000U>
+			( 
+		       	banks[0], 
+				banks[1], 
+				banks[2], 
+				banks[3] 
+			);
+		}
+
+		NES_ACCESSOR(Ppu::ChrMem,Pattern)
+		{ 
+			return Peek( address ); 
+		}
+	
+		NES_ACCESSOR(Ppu::NmtMem,Name_2000)
+		{ 
+			return (*this)[0][address]; 
+		}
+	
+		NES_ACCESSOR(Ppu::NmtMem,Name_2400)
+		{ 
+			return (*this)[1][address]; 
+		}
+	
+		NES_ACCESSOR(Ppu::NmtMem,Name_2800)
+		{ 
+			return (*this)[2][address]; 
+		}
+	
+		NES_ACCESSOR(Ppu::NmtMem,Name_2C00)
+		{ 
+			return (*this)[3][address]; 
+		}
+	
+		inline uint Ppu::ChrMem::FetchPattern(uint address) const
+		{
+			address &= 0x1FFF;
+			return accessors[address >> 12].Fetch( address );
+		}
+	
+		inline uint Ppu::NmtMem::FetchName(const uint address) const
+		{
+			const uint offset = address & (Scroll::Y_TILE|Scroll::X_TILE);
+   	      	return accessors[(address & Scroll::NAME) >> 10][(offset + 0x40) >> 10].Fetch( offset );
+		}
+	
+		inline uint Ppu::NmtMem::FetchAttribute(const uint address) const
+		{
+  	  		return accessors[(address & Scroll::NAME) >> 10][1].Fetch
+  	  		( 
+			    0x3C0 |
+          		((address & (Scroll::X_TILE ^ b00000011)) >> 2) |
+          		((address & (Scroll::Y_TILE ^ b01100000)) >> 4)
+			);
+		}
+	
+		inline uint Ppu::FetchName() const
+		{
+			return scroll.pattern | (nmtMem.FetchName( io.address ) << 4) | (scroll.address >> 12);
+		}
+	
+		inline uint Ppu::FetchAttribute() const
+		{
+			return (nmtMem.FetchAttribute( io.address ) >> ((scroll.address & 0x02) | ((scroll.address & 0x40) >> 4))) & 0x3;
+		}
+	
+		inline bool Ppu::IsDead() const
+		{
+			return !io.enabled || scanline >= 240;
+		}
+	
+		NES_POKE(Ppu,2000)
+		{
+			UpdateLatency();
+	
+			io.latch = data;
+	
+			scroll.latch &= (Scroll::NAME ^ 0x7FFFU);
+			scroll.latch |= (data & Regs::CTRL0_NAME_OFFSET) << 10;
+			scroll.increase = (data & Regs::CTRL0_INC32) ? 32 : 1;
+			scroll.pattern = (data & Regs::CTRL0_BG_OFFSET) << 8;
+	
+			register const uint old = regs.ctrl0;
+			regs.ctrl0 = data;
+	
+			if ((data & regs.status & Regs::CTRL0_NMI) > old)
+				cpu.DoNMI();
+		}
+	
+		NES_POKE(Ppu,2001)
+		{
+			UpdateLatency();
+	
+			regs.ctrl1 = io.latch = data;
+			io.enabled = data & (Regs::CTRL1_BG_ENABLED|Regs::CTRL1_SP_ENABLED);
+			tiles.show = (data & Regs::CTRL1_BG_ENABLED) ? ~0U : 0U;
+			oam.show = (data & Regs::CTRL1_SP_ENABLED) ? ~0U : 0U;
+			
+			output.emphasis = (data & output.emphasisMask) << 1;
+			output.coloring = (data & Regs::CTRL1_MONOCHROME) ? Palette::MONO : Palette::COLOR;		
+		}
+	
+		NES_PEEK(Ppu,2002)
+		{
+			Update();
+	
+			register uint status = regs.status;
+			regs.status &= (Regs::STATUS_VBLANK ^ 0xFF);
+	
+			scroll.toggle = 0;
+	
+			if (cycles.spriteOverflow < cpu.GetMasterClockCycles())
+				status |= Regs::STATUS_SP_OVERFLOW;
+	
+			io.latch = (io.latch & Regs::STATUS_LATCH) | status;
+	
+			return io.latch;
+		}
+	
+		NES_POKE(Ppu,2003)
+		{
+			UpdateLatency();
+	
+			oam.address = io.latch = data;
+		}
+	
+		NES_POKE(Ppu,2004)
+		{
+			UpdateLatency();
+	
+			NST_ASSERT( oam.address < Oam::SIZE );
+			NST_VERIFY( IsDead() );
+	
+			io.latch = data = IsDead() ? data : Oam::GARBAGE;
+			u8& NST_RESTRICT value = oam.ram[oam.address];
+			oam.address = (oam.address + 1) & 0xFF;
+			value = data;
+		}
+	
+		NES_PEEK(Ppu,2004)
+		{
+			Update();
+	
+			NST_ASSERT( oam.address < Oam::SIZE );
+	
+			uint data;
+	
+			if (IsDead())
+			{
+				data = oam.ram[oam.address];
+			}
+			else
+			{
+				data = cpu.GetMasterClockCycles() / cycles.one % 341;
+	
+				if (data < 64)
+				{
+					data = Oam::GARBAGE;
+				}
+				else if (data < 192)
+				{
+					data = oam.ram[((data - 64) << 1) & 0xFC];
+				}
+				else if (data < 256)
+				{
+					data = oam.ram[(data & 1) ? 0xFC : ((data - 192) << 1) & 0xFC];
+				}
+				else if (data < 320)
+				{
+					data = Oam::GARBAGE;
+				}
+				else
+				{
+					data = oam.ram[0];
+				}
+			}
+	
+			return io.latch = data;
+		}
+	
+		NES_POKE(Ppu,2005)
+		{
+			UpdateLatency();
+	
+			io.latch = data;
+	
+			if (scroll.toggle ^= 1)
+			{
+				scroll.latch &= (Scroll::X_TILE ^ 0x7FFFU);
+				scroll.latch |= data >> 3;
+				scroll.xFine = data & b111;
+			}
+			else
+			{
+				scroll.latch &= ((Scroll::Y_TILE|Scroll::Y_FINE) ^ 0x7FFFU);
+				scroll.latch |= ((data << 2) | (data << 12)) & (Scroll::Y_TILE|Scroll::Y_FINE);
+			}
+		}
+	
+		NES_POKE(Ppu,2006)
+		{
+			UpdateLatency();
+	
+			io.latch = data;
+	
+			if (scroll.toggle ^= 1)
+			{
+				scroll.latch &= (Scroll::HIGH ^ 0x7FFFU);
+				scroll.latch |= (data & b00111111) << 8;
+			}
+			else
+			{
+				scroll.latch &= (Scroll::LOW ^ 0x7FFFU);
+				scroll.latch |= data;
+				const uint tmp = scroll.address;
+				scroll.address = scroll.latch;
+	
+				if (io.a12.InUse() && IsDead() && (scroll.address & 0x1000) > (tmp & 0x1000))
+					io.a12.Toggle( cpu.GetMasterClockCycles() );
+			}
+		}
+	
+		NES_POKE(Ppu,2007)
+		{
+			UpdateLatency();
+	
+			io.latch = data;
+	
+			address = scroll.address;
+			scroll.address = (scroll.address + scroll.increase) & 0x7FFF;
+	
+			if ((address & 0x3F00) == 0x3F00)
+			{
+				address &= 0x1F;
+				data &= Palette::COLOR;
 				
-				pixels[1] = 
-				(
-    				( ( ( ( pattern[0] >> 2 ) & 0x3 ) + attribute )       ) |
-    				( ( ( ( pattern[0]      ) & 0x3 ) + attribute ) << 16 ) |
-    				( ( ( ( pattern[1] >> 2 ) & 0x3 ) + attribute ) <<  8 ) |
-    				( ( ( ( pattern[1]      ) & 0x3 ) + attribute )	<< 24 )
-				);
-			}
-
-			output.clipping = 0xFF;
-			output.monochrome = monochrome;
-
-			if (output.pixels < output.ClipOffset && !(ctrl1 & CTRL1_BG_NO_CLIPPING))
-			{
-				output.clipping = 0x00;
-				output.monochrome = 0xFF;
-			}
-		}
-	}
-
-	BgBuffer.offset ^= 2;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID PPU::FetchBgAttribute()
-{
-	if (ctrl1 & CTRL1_BG_SP_ENABLED)
-	{
-		const UINT xTile = (vRamAddress & VRAM_X_TILE) >> 0;
-		const UINT yTile = (vRamAddress & VRAM_Y_TILE) >> 5;
-		const UINT value = vRam[0x23C0 + (vRamAddress & 0x0C00) + ((yTile & 0x1C) << 1) + (xTile >> 2)];
-
-		if (ctrl1 & CTRL1_BG_ENABLED)
-		{
-			const UINT shift = (xTile & 0x2) + ((yTile & 0x2) << 1);
-			BgBuffer.attribute = ((value >> shift) & 0x3) << 2;
-		}
-	}
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID PPU::FetchBgPattern0()
-{
-	if (ctrl1 & CTRL1_BG_SP_ENABLED)
-	{
-		const UINT value = vRam[(BgPatternAddress + (BgBuffer.name << 4) + (vRamAddress >> 12)) & 0x1FFF];
-
-		if (ctrl1 & CTRL1_BG_ENABLED)
-			BgBuffer.pattern[0] = value;
-	}
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID PPU::FetchBgPattern1()
-{
-	if (ctrl1 & CTRL1_BG_SP_ENABLED)
-	{
-		const UINT value = vRam[(BgPatternAddress + (BgBuffer.name << 4) + (vRamAddress >> 12) + 0x8) & 0x1FFF];
-
-		if (ctrl1 & CTRL1_BG_ENABLED)
-			BgBuffer.pattern[1] = value;
-	}
+				palette.ram[address] = data;
 	
-	if (hooks.renderer)
-		hooks.renderer.Execute( PDX_CAST(U8*,&BgBuffer.cache) );
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID PPU::PrefetchBg0Name()      
-{ 
-	cycles.count += cycles.fetch; 
-	BgBuffer.offset = 0;
-
-	if (ctrl1 & CTRL1_BG_SP_ENABLED)
-	{
-		const UINT name = vRam[0x2000 + (vRamAddress & 0x0FFF)];
-
-		if (ctrl1 & CTRL1_BG_ENABLED)
-			BgBuffer.name = name;
-	}
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID PPU::PrefetchBg1Name()     
-{ 
-	cycles.count += cycles.fetch; 
-	NextTile(); 
-	FetchBgName();      
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID PPU::PrefetchBgAttribute() 
-{ 
-	cycles.count += cycles.fetch; 
-	FetchBgAttribute(); 
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID PPU::PrefetchBgPattern0()  
-{ 
-	cycles.count += cycles.fetch; 
-	FetchBgPattern0();  
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID PPU::PrefetchBgPattern1()  
-{ 
-	cycles.count += cycles.fetch; 
-	FetchBgPattern1();  
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID PPU::FetchSpPattern0()
-{
-	cycles.count += cycles.fetch;
-
-	if (ctrl1 & CTRL1_BG_SP_ENABLED)
-	{
-		if (SpBufferSize < SpTmpBufferSize)
-		{
-			UINT index = SpBufferSize;
-
-			do
-			{
-				SPTMP& SpTmp = SpTmpBuffer[index];
-
-				if (SpHeight == 8)
-					SpTmp.address += SpPatternAddress;
-
-				SpTmp.pattern = vRam[SpTmp.address & 0x1FFF];
+				if (!(address & 0x3))
+					palette.ram[address ^ 0x10] = data;
 			}
-			while (MaxSprites > 8 && ++index >= 8 && index < SpTmpBufferSize);
-		}
-		else
-		{
-			vRam[SpPatternAddress];
-		}
-	}
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID PPU::FetchSpPattern1()
-{
-	cycles.count += cycles.fetch;
-
-	if (--PhaseCount)
-		process = phase;
-
-	if (ctrl1 & CTRL1_BG_SP_ENABLED)
-	{
-		if (SpBufferSize < SpTmpBufferSize)
-		{
-			do
+			else 
 			{
-				const SPTMP& SpTmp = SpTmpBuffer[SpBufferSize];
+				address &= 0x3FFF;
+									 
+				if (address >= 0x2000)
+					nmtMem.Poke( address & 0xFFF, data );	
+				else
+					chrMem.Poke( address, data );
+			}
+		}
+		
+		NES_PEEK(Ppu,2007)
+		{
+			Update();
 
-				SP& sp = SpBuffer[SpBufferSize++];
+			address = scroll.address & 0x3FFF;
+			scroll.address = (scroll.address + scroll.increase) & 0x7FFF;
 
-				sp.x       = SpTmp.x;
-				sp.palette = SpPalRam + ((SpTmp.attribute & SP_COLOR) << 2);
-				sp.behind  = ((SpTmp.attribute & SP_BEHIND) ? b11 : b00);
-				sp.zero    = (SpTmp.index ? b00 : b11);
+			if ((address & 0x3F00) != 0x3F00)
+				io.latch = io.buffer;
+			else
+				io.latch = palette.ram[address & 0x1F] & output.coloring;
 
-				UINT pattern = vRam[(SpTmp.address + 8) & 0x1FFF];
+			if (address >= 0x2000)
+				io.buffer = nmtMem.FetchName( address );
+			else
+				io.buffer = chrMem.FetchPattern( address );
 
-				pattern = 
-				(
-					((SpTmp.pattern & b01010101) << 0) |
-					((SpTmp.pattern & b10101010) << 7) |
-					((pattern       & b01010101) << 1) |
-					((pattern       & b10101010) << 8) 
-				);
-
-				static const UCHAR shifter[2][8] =
+			return io.latch;
+		}
+	
+		NES_POKE(Ppu,2xxx)
+		{
+			io.latch = data;
+		}
+	
+		NES_PEEK(Ppu,2xxx)
+		{
+			return io.latch;
+		}
+	
+		NES_POKE(Ppu,4014)
+		{
+			UpdateLatency();
+	
+			NST_ASSERT( oam.address < Oam::SIZE );
+			NST_VERIFY( IsDead() );
+	
+			if (IsDead())
+			{
+				data <<= 8;
+	
+				if (oam.address == 0x00 && data < 0x2000)
 				{
-					{0xE,0x6,0xC,0x4,0xA,0x2,0x8,0x0},
-					{0x0,0x8,0x2,0xA,0x4,0xC,0x6,0xE}
-				};
-
-				const UCHAR* const PDX_RESTRICT order = shifter[(SpTmp.attribute & SP_X_FLIP) ? 1 : 0];
-
-				for (UINT i=0; i < 8; ++i)
-					sp.pixels[i] = (pattern >> order[i]) & 0x3;
-
-				if (sp.x < (8+1) && !(ctrl1 & CTRL1_SP_NO_CLIPPING))
-					memset( sp.pixels, 0x00, sizeof(U8) * ((8+1) - sp.x) );
-			}
-			while (MaxSprites > 8 && SpBufferSize >= 8 && SpBufferSize < SpTmpBufferSize);
-		}
-		else
-		{
-			vRam[SpPatternAddress];
-		}
-	}
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID PPU::RenderPixel()
-{
-	cycles.count += cycles.pixel;
-
-	const UINT BgPixel = BgBuffer.pixels[(BgBuffer.index++ + xFine) & 0xF] & output.clipping;
-	UINT pixel = BgPalRam[BgPixel];
-
-	if (ctrl1 & CTRL1_SP_ENABLED)
-	{
-		const SP* const end = SpBuffer + SpBufferSize;
-
-		for (SP* PDX_RESTRICT sp = SpBuffer; sp != end; ++sp)
-		{
-			const INT x = --sp->x;
-
-			if (x > 0 || x < -7)
-				continue;
-
-			const UINT SpPixel = sp->pixels[-x];
+					std::memcpy( oam.ram, cpu.GetSystemRam() + (data & (Cpu::RAM_SIZE-1)), Oam::SIZE );
+					io.latch = oam.ram[0xFF];
+				}
+				else 
+				{
+					uint dst = oam.address;
+					const uint end = oam.address;
+					register uint tmp;
 	
-			if (SpPixel)
+					do 
+					{					
+						oam.ram[dst] = tmp = cpu.Peek( data++ );
+						dst = (dst + 1) & 0xFF;
+					} 
+					while (dst != end);
+	
+					io.latch = tmp;
+				}
+			}
+			else
 			{
-				// first two bits of sp->zero and sp->behind are masked if true
-				// (for avoiding additional branches with lazy evaluation)
-			
-				if (sp->zero & BgPixel)
-					status |= STATUS_SP_ZERO_HIT;
-			
-				if (!(sp->behind & BgPixel))
-					pixel = sp->palette[SpPixel];
-	            
-				while (++sp != end)
-					--sp->x;
-
-				break;
+				std::memset( oam.ram, Oam::GARBAGE, Oam::SIZE );
+				io.latch = Oam::GARBAGE;
+	
+				LogMsg("Ppu: garbage DMA transfer!" NST_LINEBREAK,1UL << 0);
+			}
+	
+			cpu.StealCycles( cpu.GetMasterClockCycle(1) * Oam::DMA_CYCLES );
+		}
+	
+		NES_PEEK(Ppu,4014)
+		{
+			return 0x40;
+		}
+	
+		inline void Ppu::Scroll::ClockX()
+		{
+			if ((address & X_TILE) != X_TILE)
+				++address;
+			else
+				address ^= (X_TILE|NAME_LOW);
+		}
+	
+		inline void Ppu::Scroll::ResetX()
+		{
+			address &= ((X_TILE|NAME_LOW) ^ 0x7FFFU);
+			address |= latch & (X_TILE|NAME_LOW);
+		}
+	
+		inline void Ppu::Scroll::ClockY()
+		{
+			if ((address & Y_FINE) != (7U << 12))
+			{
+				address += (1U << 12);
+			}
+			else switch (address & Y_TILE)
+			{
+				case (29U << 5): address ^= NAME_HIGH;
+				case (31U << 5): address &= ((Y_FINE|Y_TILE) ^ 0x7FFFU); break;
+				default:         address = (address & (Y_FINE ^ 0x7FFFU)) + (1U << 5); break;
 			}
 		}
-	}
-
-	*output.pixels++ = emphasis + (output.monochrome & pixel);
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-// sprite evaluation for the next line
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID PPU::EvaluateSp()
-{
-	const U8* const PDX_RESTRICT sprite = SpRam + SpIndex;
-
-	LONG y = scanline - sprite[SP_Y];
-
-	if (y >= 0 && y < SpHeight && sprite[SP_Y] < 240)
-	{
-		if (SpTmpBufferSize == MaxSprites)
+	
+		void Ppu::EvaluateSpritesAndRenderPixel()
 		{
-			status |= STATUS_SP_OVERFLOW;
-		}
-		else
-		{
-			SPTMP& SpTmp = SpTmpBuffer[SpTmpBufferSize++];
-
-			if (SpHeight == 8)
+			NST_ASSERT( scanline >= 0 && scanline <= 239 && oam.address < Oam::SIZE );
+	
+			oam.evaluated = oam.buffer;
+	
+			if (io.enabled && scanline != 239)
 			{
-				SpTmp.address = 
+				const uint height = ((regs.ctrl0 & Regs::CTRL0_SP8X16) >> 2) + 8;
+				const uint line = scanline;
+	
+				uint i = 0;
+	
+				for (;;)
+				{
+					const u8* const NST_RESTRICT obj = oam.ram + i + (i <= 4 ? (oam.address & Oam::OFFSET_TO_0_1) : 0);
+					i += 4;
+	
+					uint y = line - obj[0];
+	
+					if (y >= height)
+					{
+						if (i == Oam::SIZE)
+						{
+							RenderPixel();
+							return;
+						}
+					}
+					else
+					{
+						if (obj[2] & Oam::Y_FLIP)
+							y ^= 0xF;
+	
+						oam.evaluated->comparitor = y;
+	
+						oam.evaluated->attribute = 
+						(
+							(i == 4) |
+							((obj[2] & Oam::COLOR) << 2) |
+							(obj[2] & (Oam::BEHIND|Oam::X_FLIP))
+						);
+	
+						oam.evaluated->tile = obj[1];
+						oam.evaluated->x = obj[3];
+						
+						++oam.evaluated;
+	
+						if (i == Oam::SIZE)
+						{
+							RenderPixel();
+							return;
+						}
+	
+						if (oam.evaluated == oam.limit)
+							break;
+					}
+				}
+	
+				if (cycles.spriteOverflow == NES_CYCLE_MAX)
+				{
+					do
+					{
+						if (line - oam.ram[i] >= height)
+						{
+							i += 5;
+						}
+						else
+						{
+							cycles.spriteOverflow = cycles.count + cycles.one * (i / 4 * 3 + 2);
+							break;
+						}
+					}
+					while (i < Oam::SIZE);
+				}
+			}
+	
+			RenderPixel();
+		}
+		
+		void Ppu::LoadSprite()
+		{
+			NST_ASSERT( oam.loaded < oam.evaluated );
+	
+			uint address;
+	
+			if (regs.ctrl0 & Regs::CTRL0_SP8X16)
+			{
+				address = 
 				(
-					(sprite[SP_TILE] << 4) + 
-					((sprite[SP_ATTRIBUTE] & SP_Y_FLIP) ? y^7 : y)
+					((oam.loaded->tile & (Oam::Buffer::TILE_LSB)) << 12) | 
+					((oam.loaded->tile & (Oam::Buffer::TILE_LSB ^ 0xFF)) << 4) |
+					((oam.loaded->comparitor & Oam::Buffer::RANGE_MSB) << 1)
 				);
 			}
 			else
 			{
-				if (y > 7)
-					y += 8;
-
-				SpTmp.address = 
-				(
-					((sprite[SP_TILE] & 0x01) << 0xC) + 
-					((sprite[SP_TILE] & 0xFE) << 0x4) + 
-					((sprite[SP_ATTRIBUTE] & SP_Y_FLIP) ? y^23 : y)
-				);
+				address = ((regs.ctrl0 & Regs::CTRL0_SP_OFFSET) << 9) | (oam.loaded->tile << 4);
 			}
+	
+			address |= oam.loaded->comparitor & Oam::Buffer::XFINE;
+	
+			if (io.a12.InUse() && (address & 0x1000))
+				io.a12.Toggle( cycles.count );
+	
+			uint pattern[2] =
+			{
+				chrMem.FetchPattern( address | 0x0 ),
+				chrMem.FetchPattern( address | 0x8 )
+			};
+	
+			if (pattern[0] | pattern[1])
+			{
+				if (!(oam.loaded->attribute & Oam::X_FLIP))
+				{
+					pattern[0] = reverseLut[pattern[0]];
+					pattern[1] = reverseLut[pattern[1]];
+				}
+	
+				const u32 block[] =
+				{
+					chrLut[0][pattern[0] & 0xF].block | 
+					chrLut[1][pattern[1] & 0xF].block,
+					chrLut[0][pattern[0] >>  4].block | 
+					chrLut[1][pattern[1] >>  4].block
+				};
+	
+				Oam::Output& output = *oam.visible++;
+	
+				output.block[0] = block[0];
+				output.block[1] = block[1];
 
-			SpTmp.x = sprite[SP_X] + 1;
-			SpTmp.attribute = sprite[SP_ATTRIBUTE];
-			SpTmp.index = SpIndex;
+				const uint attribute = oam.loaded->attribute;
+
+				output.x       = oam.loaded->x;
+				output.palette = Palette::SPRITE_OFFSET + (attribute & (uint(Oam::COLOR) << 2));
+				output.zero    = (attribute & 0x1) ? b11 : b00;
+				output.behind  = (attribute & Oam::BEHIND) ? b11 : b00;	
+			}
+	
+			++oam.loaded;
 		}
+
+		void Ppu::Tiles::Load()
+		{	
+			const u32 tmp[] =
+			{
+				chrAttLut[0][(reverseLut[pattern[0]] & 0xF) | (attribute << 4)].block | 
+				chrAttLut[1][(reverseLut[pattern[1]] & 0xF) | (attribute << 4)].block,
+				chrAttLut[0][(reverseLut[pattern[0]] >>  4) | (attribute << 4)].block | 
+				chrAttLut[1][(reverseLut[pattern[1]] >>  4) | (attribute << 4)].block
+			};
+
+			u32* const NST_RESTRICT dst = block + index;
+			index ^= 2;
+
+			dst[0] = tmp[0];
+			dst[1] = tmp[1];
+		}
+	
+		void Ppu::RenderPixel()
+		{
+			register uint pixel = 0;
+	
+			if (io.enabled)
+			{
+				pixel = tiles.pixels[(output.index + scroll.xFine) & 15] & tiles.show & tiles.clip;
+
+				const Oam::Output* NST_RESTRICT sprite = oam.output;
+
+				for (const Oam::Output* const end = oam.visible; sprite != end; ++sprite)
+				{
+					register uint x = (output.index & 0xFF) - sprite->x;
+
+					if (x > 7)
+						continue;
+
+					x = sprite->pixels[x] & oam.show & oam.clip;
+	
+					if (x)
+					{
+						// first two bits of sprite->zero and sprite->behind are masked if true
+						// (for minimizing branching)
+	
+						if (pixel & sprite->zero)
+							regs.status |= Regs::STATUS_SP_ZERO_HIT;
+	
+						if (!(pixel & sprite->behind))
+							pixel = sprite->palette + x;
+	
+						break;
+					}
+				}
+			}
+			else if ((scroll.address & 0x3F00) == 0x3F00)
+			{					
+				pixel = scroll.address & 0x1F;
+			}
+	
+			pixel = palette.ram[pixel];
+			u16& NST_RESTRICT screen = *output.pixels;
+			output.pixels += output.next;
+			++output.index;
+			screen = output.emphasis + (output.coloring & pixel);
+		}
+	
+		void Ppu::HActive0()
+		{
+			if (io.enabled)
+				io.address = scroll.address;
+	
+			tiles.Load();
+	
+			if (stage != 8)
+				RenderPixel();
+			else
+				EvaluateSpritesAndRenderPixel();
+	
+			cycles.count += cycles.one;	
+			NST_PPU_NEXT_PHASE( HActive1 );
+		}
+	
+		void Ppu::HActive1()
+		{
+			if (io.enabled)
+				io.pattern = FetchName();
+	
+			RenderPixel();
+	
+			cycles.count += cycles.one;
+			NST_PPU_NEXT_PHASE( HActive2 );
+		}
+	
+		void Ppu::HActive2()
+		{
+			if (io.enabled)
+				io.address = scroll.address;
+	
+			RenderPixel();
+	
+			cycles.count += cycles.one;
+			NST_PPU_NEXT_PHASE( HActive3 );
+		}
+	
+		void Ppu::HActive3()
+		{
+			if (io.enabled)
+			{
+				tiles.attribute = FetchAttribute();
+				scroll.ClockX();
+	
+				if (stage == 31)
+					scroll.ClockY();
+			}
+	
+			RenderPixel();
+	
+			cycles.count += cycles.one;	
+			NST_PPU_NEXT_PHASE( HActive4 );
+		}
+	
+		void Ppu::HActive4()
+		{
+			if (io.enabled)
+			{
+				io.address = io.pattern | 0x0;
+	
+				if (io.a12.InUse() && (regs.ctrl0 & Regs::CTRL0_BG_OFFSET))
+					io.a12.Toggle( cycles.count );
+			}
+	
+			RenderPixel();
+	
+			cycles.count += cycles.one;
+			NST_PPU_NEXT_PHASE( HActive5 );
+		}
+	
+		void Ppu::HActive5()
+		{
+			if (io.enabled)
+				tiles.pattern[0] = chrMem.FetchPattern( io.address );
+	
+			RenderPixel();
+	
+			cycles.count += cycles.one;
+			NST_PPU_NEXT_PHASE( HActive6 );
+		}
+	
+		void Ppu::HActive6()
+		{
+			if (io.enabled)
+				io.address = io.pattern | 0x8;
+	
+			RenderPixel();
+	
+			cycles.count += cycles.one;
+			NST_PPU_NEXT_PHASE( HActive7 );
+		}
+	
+		void Ppu::HActive7()
+		{
+			const uint noSpHitOn255 = regs.status;
+	
+			RenderPixel();
+	
+			oam.clip = ~0U;
+			tiles.clip = ~0U;
+	
+			if (io.enabled)
+				tiles.pattern[1] = chrMem.FetchPattern( io.address );
+	
+			cycles.count += cycles.one;
+	
+			NST_ASSERT( stage < 32 );
+	
+			stage = (stage + 1) & 31;
+	
+			if (stage)
+			{
+				NST_PPU_NEXT_PHASE( HActive0 );
+			}
+			else
+			{
+				cycles.count += cycles.one;
+				regs.status = noSpHitOn255;
+				
+				NST_PPU_NEXT_PHASE( HBlank );
+			}
+		}
+	
+		void Ppu::HBlank()
+		{
+			NST_ASSERT( stage == 0 );
+
+			spHook.Execute();
+
+			oam.loaded = oam.buffer;
+			oam.visible = oam.output;
+	
+			if (io.enabled)
+				scroll.ResetX();
+	
+			cycles.count += cycles.four - cycles.one;
+			NST_PPU_NEXT_PHASE( HBlankSp );
+		}
+	
+		void Ppu::HBlankSp()
+		{
+        hell:
+	
+			if (io.enabled)
+			{
+				if (oam.loaded == oam.evaluated)
+				{
+					if (io.a12.InUse() && (regs.ctrl0 & (Regs::CTRL0_SP_OFFSET|Regs::CTRL0_SP8X16)))
+						io.a12.Toggle( cycles.count );
+				}
+				else 
+				{
+					LoadSprite();
+				}
+			}
+	
+			NST_ASSERT( stage < 8 );
+	
+			stage = (stage + 1) & 7;
+	
+			if (stage)
+			{
+				cycles.count += cycles.eight;
+	
+				if (cycles.count < cycles.round)
+					goto hell;
+				else
+					phase = &Ppu::HBlankSp;
+			}
+			else
+			{
+				if (io.enabled)
+				{
+					// extended +9 sprites
+	
+					while (oam.loaded != oam.evaluated) 
+						LoadSprite(); 
+				}
+	
+				cycles.count += cycles.four;
+				NST_PPU_NEXT_PHASE( HBlankBg );
+			}
+		}
+	
+		void Ppu::HBlankBg()
+		{
+			NST_ASSERT( stage == 0 );
+
+			bgHook.Execute();
+
+			tiles.index = 0;
+	
+			if (io.enabled)
+				io.address = scroll.address;
+	
+			cycles.count += cycles.one;
+			NST_PPU_NEXT_PHASE( HBlankBg1 );
+		}
+	
+		void Ppu::HBlankBg0()
+		{
+			if (io.enabled)
+				io.address = scroll.address;
+	
+			tiles.Load();
+	
+			cycles.count += cycles.one;
+			NST_PPU_NEXT_PHASE( HBlankBg1 );
+		}
+	
+		void Ppu::HBlankBg1()
+		{
+			if (io.enabled)
+				io.pattern = FetchName();
+	
+			cycles.count += cycles.one;
+			NST_PPU_NEXT_PHASE( HBlankBg2 );
+		}
+	
+		void Ppu::HBlankBg2()
+		{
+			if (io.enabled)
+				io.address = scroll.address;
+	
+			cycles.count += cycles.one;
+			NST_PPU_NEXT_PHASE( HBlankBg3 );
+		}
+	
+		void Ppu::HBlankBg3()
+		{
+			if (io.enabled)
+			{
+				tiles.attribute = FetchAttribute();
+				scroll.ClockX();
+			}
+	
+			cycles.count += cycles.one;
+			NST_PPU_NEXT_PHASE( HBlankBg4 );
+		}
+	
+		void Ppu::HBlankBg4()
+		{
+			if (io.enabled)
+			{
+				io.address = io.pattern | 0x0;
+	
+				if (io.a12.InUse() && (regs.ctrl0 & Regs::CTRL0_BG_OFFSET))
+					io.a12.Toggle( cycles.count );
+			}
+	
+			cycles.count += cycles.one;
+			NST_PPU_NEXT_PHASE( HBlankBg5 );
+		}
+	
+		void Ppu::HBlankBg5()
+		{
+			if (io.enabled)
+				tiles.pattern[0] = chrMem.FetchPattern( io.address );
+	
+			cycles.count += cycles.one;
+			NST_PPU_NEXT_PHASE( HBlankBg6 );
+		}
+	
+		void Ppu::HBlankBg6()
+		{
+			if (io.enabled)
+				io.address = io.pattern | 0x8;
+	
+			cycles.count += cycles.one;
+			NST_PPU_NEXT_PHASE( HBlankBg7 );
+		}
+	
+		void Ppu::HBlankBg7()
+		{
+			NST_ASSERT( stage < 2 && scanline < 240 );
+	
+			if (io.enabled)
+				tiles.pattern[1] = chrMem.FetchPattern( io.address );
+	
+			if (stage ^= 1)
+			{
+				cycles.count += cycles.one;
+				NST_PPU_NEXT_PHASE( HBlankBg0 );
+			}
+			else if (++scanline != 240)
+			{
+				if (scanline == 0)
+					output.index = 0;
+
+				oam.clip = (regs.ctrl1 & Regs::CTRL1_SP_NO_CLIPPING) ? ~0U : 0U;			
+				tiles.clip = (regs.ctrl1 & Regs::CTRL1_BG_NO_CLIPPING) ? ~0U : 0U;
+				cycles.count += cycles.dead;			
+				cycles.dead = cycles.rest;
+
+				NST_PPU_NEXT_PHASE( HActive0 );
+			}
+			else
+			{
+				output.index = ~0U;
+				cycles.count = cycles.frame;
+	
+				NST_PPU_NEXT_PHASE( VBlank );
+			}
+		}
+	
+		void Ppu::VBlank()
+		{
+			NST_ASSERT( cycles.count == cycles.frame && scanline != SCANLINE_VBLANK && oam.address < Oam::SIZE );
+	
+			// if landing here, the CPU's frame cycle count overflowed
+	
+			regs.status |= Regs::STATUS_VBLANK;
+			cycles.count = NES_CYCLE_MAX;
+			phase = &Ppu::HDummy;
+			scanline = SCANLINE_VBLANK;
+			oam.address = 0x00;
+			
+			if (regs.ctrl0 & Regs::CTRL0_NMI)
+				cpu.DoNMI( cycles.frame );
+		}
+	
+		void Ppu::HDummy()
+		{
+			NST_ASSERT( scanline == SCANLINE_VBLANK );
+	
+			regs.status = 0;
+			scanline = SCANLINE_HDUMMY;
+			cycles.spriteOverflow = NES_CYCLE_MAX;
+			cycles.count += cycles.four;
+	
+			NST_PPU_NEXT_PHASE( HDummyBg );
+		}
+	
+		void Ppu::HDummyBg()
+		{
+			NST_ASSERT( scanline == SCANLINE_HDUMMY );
+	
+        hell:
+	
+			if (io.a12.InUse() && (regs.ctrl0 & Regs::CTRL0_BG_OFFSET) && io.enabled)
+				io.a12.Toggle( cycles.count );
+	
+			cycles.count += cycles.eight;
+	
+			stage = (stage + 1) & 31;
+	
+			if (stage)
+			{
+				if (cycles.count < cycles.round)
+					goto hell;
+				else
+					phase = &Ppu::HDummyBg;
+			}
+			else
+			{
+				NST_PPU_NEXT_PHASE( HDummySp );
+			}
+		}
+	
+		void Ppu::HDummySp()
+		{
+			NST_ASSERT( scanline == SCANLINE_HDUMMY );
+	
+        hell:
+	
+			if (io.a12.InUse() && (regs.ctrl0 & (Regs::CTRL0_SP_OFFSET|Regs::CTRL0_SP8X16)) && io.enabled)
+				io.a12.Toggle( cycles.count );
+	
+			stage = (stage + 1) & 7;
+	
+			if (stage)
+			{
+				if (stage != 6)
+				{
+					cycles.count += cycles.eight;
+	
+					if (cycles.count < cycles.round)
+						goto hell;
+					else
+						phase = &Ppu::HDummySp;
+				}
+				else
+				{
+					cycles.count += cycles.four;
+					NST_PPU_NEXT_PHASE( HDummyScroll );
+				}
+			}
+			else
+			{
+				cycles.count += cycles.four;
+				NST_PPU_NEXT_PHASE( HBlankBg );
+			}		
+		}
+	
+		void Ppu::HDummyScroll()
+		{
+			NST_ASSERT( scanline == SCANLINE_HDUMMY );
+	
+			if (io.enabled)
+				scroll.address = scroll.latch;
+	
+			cycles.count += cycles.four;
+			NST_PPU_NEXT_PHASE( HDummySp );
+		}
+	
+		void Ppu::WarmUp()
+		{
+			NST_ASSERT( stage );
+	
+			cycles.count = NES_CYCLE_MAX;
+	
+			if (!--stage)
+				phase = &Ppu::VBlank;
+		}
+	
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("", on)
+        #endif
 	}
-
-	SpIndex += 4;
 }
-
-////////////////////////////////////////////////////////////////////////////////////////
-// read from any memory location
-////////////////////////////////////////////////////////////////////////////////////////
-
-UINT PPU::Peek(UINT address)
-{
-	Update();
-	
-	address &= 0x3FFF;
-	
-	return (address < 0x2000) ? cRam[address] : CiRam[address & 0x1FFF];
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-// write into any memory location
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID PPU::Poke(UINT address,const UINT data)
-{
-	Update();
-	
-	address &= 0x3FFF;
-	
-	if (address < 0x2000) 
-		cRam[address] = data;
-	else
-		CiRam[address & 0x1FFF] = data;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID PPU::Log(const CHAR* const msg,const UINT which)
-{
-	if (!logged[which])
-	{
-		logged[which] = true;
-		LogOutput( msg );
-	}
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-// load state file
-////////////////////////////////////////////////////////////////////////////////////////
-
-PDXRESULT PPU::LoadState(PDXFILE& file)
-{
-	{
-		HEADER header;
-
-		if (!file.Read(header))
-			return PDX_FAILURE;
-
-		ctrl0        = header.ctrl0;
-		ctrl1        = header.ctrl1;
-		status       = header.status;
-		vRamAddress  = header.vRamAddress;
-		vRamLatch    = header.vRamLatch;
-		OamAddress   = header.OamAddress;
-		latch        = header.latch;
-		ReadLatch    = header.ReadLatch;
-		xFine        = header.xFine;
-		FlipFlop     = header.FlipFlop;
-		EvenFrame    = header.EvenFrame;
-	}
-
-	UpdateTmpVariables();
-
-	if (!file.Readable(sizeof(U8) * (n8k+256+32)))
-		return PDX_FAILURE;
-
-	file.Read( cRam, cRam + n8k );
-	file.Read( SpRam, SpRam + 256 );
-	file.Read( PalRam, PalRam + 32 );
-
-	return CiRam.LoadState(file);
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-// save state file
-////////////////////////////////////////////////////////////////////////////////////////
-
-PDXRESULT PPU::SaveState(PDXFILE& file) const
-{
-	{
-		HEADER header;
-
-		header.ctrl0        = ctrl0;
-		header.ctrl1        = ctrl1;
-		header.status       = status;
-		header.vRamAddress  = vRamAddress;
-		header.vRamLatch    = vRamLatch;
-		header.OamAddress   = OamAddress;
-		header.reserved     = 0;
-		header.latch        = latch;
-		header.ReadLatch    = ReadLatch;
-		header.xFine        = xFine;
-		header.FlipFlop     = FlipFlop ? 1 : 0;
-		header.EvenFrame    = EvenFrame ? 1 : 0;
-
-		file.Write(header);
-	}
-
-	file.Write( cRam, cRam + n8k );
-	file.Write( SpRam, SpRam + 256 );
-	file.Write( PalRam, PalRam + 32 );
-
-	return CiRam.SaveState(file);
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-const PPU::PROCESS PPU::processes[] =
-{
-	vBlankEnd,
-
-	// hDummy, repeated 32 times
-	FetchGarbageName, 
-	EvaluateSp,
-	FetchGarbageAttribute, 
-	FetchGarbagePattern0, 
-	EvaluateSp,
-	FetchGarbagePattern1, 
-	hDummyEnd,
-
-	// hActive, repeated 32 times
-	FetchBgName, 
-	RenderPixel,
-	RenderPixel,
-	EvaluateSp,
-	FetchBgAttribute, 
-	RenderPixel,
-	RenderPixel,
-	FetchBgPattern0, 
-	RenderPixel,
-	RenderPixel,
-	EvaluateSp,
-	FetchBgPattern1, 
-	RenderPixel,
-	RenderPixel,
-	hActiveEnd,
-
-	// hBlank - phase 0, repeated 8 times
-	FetchGarbageName, 
-	FetchGarbageName, 
-	FetchSpPattern0,
-	FetchSpPattern1,
-
-	// hBlank - phase 1
-	PrefetchBg0Name,
-	PrefetchBgAttribute,
-	PrefetchBgPattern0, 
-	PrefetchBgPattern1, 
-	PrefetchBg1Name,
-	PrefetchBgAttribute,
-	PrefetchBgPattern0, 
-	PrefetchBgPattern1,
-	NextTile,
-
-	// hBlank - phase 2
-	FetchGarbageName,
-	FetchGarbageName,
-	hBlankEnd,
-	
-	vBlankBegin
-};
-
-NES_NAMESPACE_END
-

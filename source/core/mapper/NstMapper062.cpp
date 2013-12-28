@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003 Martin Freij
+// Copyright (C) 2003-2005 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -22,48 +22,38 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstMappers.h"
-#include "NstMapper062.h"
+#include "../NstMapper.hpp"
+#include "NstMapper062.hpp"
 
-NES_NAMESPACE_BEGIN
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER62::Reset()
+namespace Nes
 {
-	cpu.SetPort( 0x8000, 0x9FFF, this, Peek_8000, Poke_pRom );
-	cpu.SetPort( 0xA000, 0xBFFF, this, Peek_A000, Poke_pRom );
-	cpu.SetPort( 0xC000, 0xDFFF, this, Peek_C000, Poke_pRom );
-	cpu.SetPort( 0xE000, 0xFFFF, this, Peek_E000, Poke_pRom );
-
-	pRom.SwapBanks<n32k,0x0000>(0);
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER62,pRom) 
-{
-	ppu.SetMirroring( (address & 0x0080) ? MIRROR_HORIZONTAL : MIRROR_VERTICAL );
+	namespace Core
+	{
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("s", on)
+        #endif
 	
-	cRom.SwapBanks<n8k,0x0000>( ((address & 0x1F) << 2) | (data & 0x3) );
-
-	apu.Update();
-											
-	const UINT bank = (address & 0x0040) | ((address & 0x3F00) >> 8);
-
-	if (address & 0x0020)
-	{
-		pRom.SwapBanks<n16k,0x0000>( bank );
-		pRom.SwapBanks<n16k,0x4000>( bank );
-	}
-	else
-	{
-		pRom.SwapBanks<n32k,0x0000>( bank >> 1);
+		void Mapper62::SubReset(bool)
+		{
+			Map( 0x8000U, 0xFFFFU, &Mapper62::Poke_Prg );
+		}
+	
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("", on)
+        #endif
+	
+		NES_POKE(Mapper62,Prg) 
+		{
+			ppu.SetMirroring( (address & 0x80) ? Ppu::NMT_HORIZONTAL : Ppu::NMT_VERTICAL );
+	
+			chr.SwapBank<NES_8K,0x0000U>( ((address & 0x1F) << 2) | (data & 0x3) );
+	
+			const uint bank = (address & 0x0040) | ((address & 0x3F00) >> 8);
+	
+			if (address & 0x0020)
+				prg.SwapBanks<NES_16K,0x0000U>( bank, bank );
+			else
+				prg.SwapBank<NES_32K,0x0000U>( bank >> 1);
+		}
 	}
 }
-
-NES_NAMESPACE_END

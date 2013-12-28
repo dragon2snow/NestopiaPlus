@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003 Martin Freij
+// Copyright (C) 2003-2005 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -22,32 +22,28 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstMappers.h"
-#include "NstMapper151.h"
-			   
-NES_NAMESPACE_BEGIN
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER151::Reset()
+#include "../NstMapper.hpp"
+#include "NstMapper151.hpp"
+			  
+namespace Nes
 {
-	cpu.SetPort( 0x8000, 0x8FFF, this, Peek_8000, Poke_8000 );
-	cpu.SetPort( 0xA000, 0xAFFF, this, Peek_A000, Poke_A000 );
-	cpu.SetPort( 0xC000, 0xCFFF, this, Peek_C000, Poke_C000 );
-	cpu.SetPort( 0xE000, 0xEFFF, this, Peek_E000, Poke_E000 );
-	cpu.SetPort( 0xF000, 0xFFFF, this, Peek_F000, Poke_F000 );
+	namespace Core
+	{
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("s", on)
+        #endif
+	
+		void Mapper151::SubReset(bool)
+		{
+			Map( 0x8000U, 0x8FFFU, PRG_SWAP_8K_0 );
+			Map( 0xA000U, 0xAFFFU, PRG_SWAP_8K_1 );
+			Map( 0xC000U, 0xCFFFU, PRG_SWAP_8K_2 );
+			Map( 0xE000U, 0xEFFFU, CHR_SWAP_4K_0 );
+			Map( 0xF000U, 0xFFFFU, CHR_SWAP_4K_1 );
+		}
+	
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("", on)
+        #endif
+	}
 }
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER151,8000) { apu.Update(); pRom.SwapBanks<n8k,0x0000>(data); }
-NES_POKE(MAPPER151,A000) { apu.Update(); pRom.SwapBanks<n8k,0x2000>(data); }
-NES_POKE(MAPPER151,C000) { apu.Update(); pRom.SwapBanks<n8k,0x4000>(data); }
-NES_POKE(MAPPER151,E000) { ppu.Update(); cRom.SwapBanks<n4k,0x0000>(data); }
-NES_POKE(MAPPER151,F000) { ppu.Update(); cRom.SwapBanks<n4k,0x1000>(data); }
-
-NES_NAMESPACE_END

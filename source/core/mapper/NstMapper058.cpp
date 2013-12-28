@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003 Martin Freij
+// Copyright (C) 2003-2005 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -22,63 +22,53 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstMappers.h"
-#include "NstMapper058.h"
+#include "../NstMapper.hpp"
+#include "NstMapper058.hpp"
 
-NES_NAMESPACE_BEGIN
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER58::Reset()
+namespace Nes
 {
-	cpu.SetPort( 0x8000, 0x9FFF, this, Peek_8000, Poke_pRom );
-	cpu.SetPort( 0xA000, 0xBFFF, this, Peek_A000, Poke_pRom );
-	cpu.SetPort( 0xC000, 0xDFFF, this, Peek_C000, Poke_pRom );
-	cpu.SetPort( 0xE000, 0xFFFF, this, Peek_E000, Poke_pRom );
+	namespace Core
+	{
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("s", on)
+        #endif
+	
+		Mapper58::Mapper58(Context& c)
+		: 
+		Mapper    (c), 
+		studyGame ((c.pRomCrc == 0xABB2F974UL) || (c.pRomCrc == 0x6A24FA34UL)) // Study and Game 32-in-1
+		{}
+	
+		void Mapper58::SubReset(const bool hard)
+		{
+			if (hard)
+				prg.SwapBank<NES_16K,0x4000U>( studyGame );
 
-	if (pRomCrc == 0xABB2F974UL)
-	{
-		// Study and Game 32-in-1
-		pRom.SwapBanks<n32k,0x0000>(0);
-	}
-	else
-	{
-		pRom.SwapBanks<n16k,0x0000>(0);
-		pRom.SwapBanks<n16k,0x4000>(0);
+			Map( 0x8000U, 0xFFFFU, &Mapper58::Poke_Prg );
+		}
+	
+		#ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("", on)
+        #endif
+	
+		NES_POKE(Mapper58,Prg) 
+		{
+			if (studyGame)
+			{
+				// Study and Game 32-in-1
+				prg.SwapBank<NES_32K,0x0000U>( data & 0x1F );
+			}
+			else
+			{
+				ppu.SetMirroring( (data & 0x2) ? Ppu::NMT_VERTICAL : Ppu::NMT_HORIZONTAL );
+	
+				if (address & 0x40)
+					prg.SwapBanks<NES_16K,0x0000U>( address & 0x7, address & 0x7 );
+				else
+					prg.SwapBank<NES_32K,0x0000U>( (address & 0x6) >> 1 );
+	
+				chr.SwapBank<NES_8K,0x0000U>( (address & 0x38) >> 3 );
+			}
+		}
 	}
 }
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER58,pRom) 
-{
-	apu.Update();
-
-	if (pRomCrc == 0xABB2F974UL)
-	{
-		// Study and Game 32-in-1
-		pRom.SwapBanks<n32k,0x0000>( data & 0x1F );
-	}
-	else
-	{
-		ppu.SetMirroring( (data & 0x2) ? MIRROR_VERTICAL : MIRROR_HORIZONTAL );
-
-		if (address & 0x40)
-		{
-			pRom.SwapBanks<n16k,0x0000>( address & 0x7 );
-			pRom.SwapBanks<n16k,0x4000>( address & 0x7 );
-		}
-		else
-		{
-			pRom.SwapBanks<n32k,0x0000>( (address & 0x6) >> 1 );
-		}
-
-		cRom.SwapBanks<n8k,0x0000>( (address & 0x38) >> 3 );
-	}
-}
-
-NES_NAMESPACE_END

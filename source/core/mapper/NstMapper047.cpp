@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003 Martin Freij
+// Copyright (C) 2003-2005 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -22,93 +22,101 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstMappers.h"
-#include "NstMapper004.h"
-#include "NstMapper047.h"
+#include "../NstMapper.hpp"
+#include "../board/NstBrdMmc3.hpp"
+#include "NstMapper047.hpp"
 
-NES_NAMESPACE_BEGIN
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER47::Reset()
+namespace Nes
 {
-	reg = 0x00;
-	fix = (pRomCrc == 0x7EEF434CUL); // Super Mario Bros, Tetris, Nintendo World Cup
-
-	MAPPER4::Reset();
-
-	cpu.SetPort( 0x6000, 0x7FFF, this, Peek_Nop, Poke_6000 );
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER47,6000) 
-{
-	reg = fix ? (data & 0x6) >> 1 : (data & 0x1) << 1;
-
-	UpdatePRom();
-	UpdateCRom();
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER47::UpdatePRom()
-{
-	apu.Update();
-
-	const UINT r = reg << 3;
-	const BOOL h = fix && reg != 2; 
-
-	if (command & SWAP_PROM_BANKS)
+	namespace Core
 	{
-		pRom.SwapBanks<n8k,0x0000>( (h ? 0x6 : 0xE) | r );
-		pRom.SwapBanks<n8k,0x2000>( pRomBanks[1]    | r );
-		pRom.SwapBanks<n8k,0x4000>( pRomBanks[0]    | r );
-	}
-	else
-	{
-		pRom.SwapBanks<n8k,0x0000>( pRomBanks[0]    | r );
-		pRom.SwapBanks<n8k,0x2000>( pRomBanks[1]    | r );
-		pRom.SwapBanks<n8k,0x4000>( (h ? 0x6 : 0xE) | r );
-	}
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("s", on)
+        #endif
 
-	pRom.SwapBanks<n8k,0x6000>( (h ? 0x7 : 0xF) | r );	
+		Mapper47::Mapper47(Context& c)
+		: 
+		Mmc3  (c,WRAM_NONE), 
+		patch (c.pRomCrc == 0x7EEF434CUL) // Super Mario Bros, Tetris, World Cup 
+		{}
+
+		void Mapper47::SubReset(const bool hard)
+		{
+			if (hard)
+				exReg = 0x0;
+			
+			Mmc3::SubReset( hard );
+
+			Map( 0x6000U, 0x7FFFU, &Mapper47::Poke_6000 );
+		}
+
+		void Mapper47::SubLoad(State::Loader& state)
+		{
+			while (const dword chunk = state.Begin())
+			{
+				if (chunk == NES_STATE_CHUNK_ID('R','E','G','\0'))
+					exReg = state.Read8() & (patch ? 0x3 : 0x1);
+
+				state.End();
+			}
+		}
+
+		void Mapper47::SubSave(State::Saver& state) const
+		{
+			state.Begin('R','E','G','\0').Write8( exReg ).End();
+		}
+
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("", on)
+        #endif
+
+		NES_POKE(Mapper47,6000) 
+		{
+			exReg = patch ? ((data >> 1) & 0x3) : (data & 0x1);
+
+			Mapper47::UpdatePrg();
+			Mapper47::UpdateChr();
+		}
+
+		void Mapper47::UpdatePrg()
+		{
+			const uint base = patch ? (exReg << 3) : (exReg << 4);
+			const uint swap = (regs.ctrl0 & Regs::CTRL0_XOR_PRG) << 8;
+
+			const uint hack[2] =
+			{
+				patch ? (exReg == 0x2 ? 0xE : 0x6) : (banks.prg[2] & 0xF),
+				patch ? (exReg == 0x2 ? 0xF : 0x7) : (banks.prg[3] & 0xF)
+			};
+
+			prg.SwapBank<NES_8K>( 0x0000U ^ swap, base | (banks.prg[0] & 0xF) );
+			prg.SwapBank<NES_8K>( 0x2000U,        base | (banks.prg[1] & 0xF) );
+			prg.SwapBank<NES_8K>( 0x4000U ^ swap, base | hack[0] );
+			prg.SwapBank<NES_8K>( 0x6000U,        base | hack[1] );	
+		}
+
+		void Mapper47::UpdateChr() const
+		{
+			ppu.Update();
+
+			const uint base = patch ? ((exReg & 0x2) << 6) : (exReg << 7);
+			const uint swap = (regs.ctrl0 & Regs::CTRL0_XOR_CHR) << 5;
+
+			chr.SwapBanks<NES_2K>
+			( 
+		       	0x0000U ^ swap, 
+				(base >> 1) | (banks.chr[0] & 0x3F),
+				(base >> 1) | (banks.chr[1] & 0x3F)
+			); 
+			
+			chr.SwapBanks<NES_1K>
+			( 
+		     	0x1000U ^ swap, 
+				base | (banks.chr[2] & 0x7F),
+				base | (banks.chr[3] & 0x7F),
+				base | (banks.chr[4] & 0x7F),
+				base | (banks.chr[5] & 0x7F)
+			); 
+		}
+	}
 }
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER47::UpdateCRom()
-{
-	ppu.Update();
-
-	const UINT r = (reg & 0x2) << 6;
-
-	if (command & SWAP_CROM_BANKS)
-	{
-		cRom.SwapBanks<n1k,0x0000>( cRomBanks[2] + r        ); 
-		cRom.SwapBanks<n1k,0x0400>( cRomBanks[3] + r        ); 
-		cRom.SwapBanks<n1k,0x0800>( cRomBanks[4] + r        ); 
-		cRom.SwapBanks<n1k,0x0C00>( cRomBanks[5] + r        ); 
-		cRom.SwapBanks<n2k,0x1000>( cRomBanks[0] + (r >> 1) ); 
-		cRom.SwapBanks<n2k,0x1800>( cRomBanks[1] + (r >> 1) ); 
-	}
-	else
-	{
-		cRom.SwapBanks<n2k,0x0000>( cRomBanks[0] + (r >> 1) ); 
-		cRom.SwapBanks<n2k,0x0800>( cRomBanks[1] + (r >> 1) ); 
-		cRom.SwapBanks<n1k,0x1000>( cRomBanks[2] + r        ); 
-		cRom.SwapBanks<n1k,0x1400>( cRomBanks[3] + r        ); 
-		cRom.SwapBanks<n1k,0x1800>( cRomBanks[4] + r        ); 
-		cRom.SwapBanks<n1k,0x1C00>( cRomBanks[5] + r        ); 
-	}
-}
-
-NES_NAMESPACE_END

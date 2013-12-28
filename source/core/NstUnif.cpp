@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003 Martin Freij
+// Copyright (C) 2003-2005 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -22,615 +22,644 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "../paradox/PdxCrc32.h"
-#include "../paradox/PdxFile.h"
-#include "mapper/NstMappers.h"
-#include "NstCartridge.h"
-#include "NstRomDatabase.h"
-#include "NstUnif.h"
-
-NES_NAMESPACE_BEGIN
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-UNIF::UNIF()
-{	
-	boards[ "SNROM"           ] = 1;  // MMC1
-	boards[ "SKROM"           ] = 1;
-	boards[ "SAROM"           ] = 1;
-	boards[ "SBROM"           ] = 1;
-	boards[ "SCEOROM"         ] = 1;
-	boards[ "SC1ROM"          ] = 1;
-	boards[ "SEROM"           ] = 1;
-	boards[ "SFROM"           ] = 1;
-	boards[ "SGROM"           ] = 1;
-	boards[ "SHROM"           ] = 1;
-	boards[ "SJROM"           ] = 1;
-	boards[ "SLROM"           ] = 1;
-	boards[ "SLRROM"          ] = 1;
-	boards[ "SN1-ROM"         ] = 1;
-	boards[ "SOROM"           ] = 1;
-	boards[ "SVROM"           ] = 1;
-	boards[ "SUROM"           ] = 1;
-	boards[ "PNROM"           ] = 9;  // MMC2	
-	boards[ "51555"           ] = 4;  // MMC3/MMC6
-	boards[ "DRROM"           ] = 4;
-	boards[ "EKROM"           ] = 4;
-	boards[ "SL1ROM"          ] = 4;
-	boards[ "SL2ROM"          ] = 4;
-	boards[ "SL3ROM"          ] = 4;
-	boards[ "TEROM"           ] = 4;
-	boards[ "TFROM"           ] = 4;
-	boards[ "TGROM"           ] = 4;
-	boards[ "TKROM"           ] = 4;
-	boards[ "TLROM"           ] = 4;
-	boards[ "TQROM"           ] = 4;
-	boards[ "TSROM"           ] = 4;
-	boards[ "TVROM"           ] = 4;
-	boards[ "TL1ROM"          ] = 4;
-	boards[ "TLSROM"          ] = 4;
-	boards[ "B4"              ] = 4;
-	boards[ "HKROM"           ] = 4;  // MMC6B	
-	boards[ "ELROM"           ] = 5;  // MMC5
-	boards[ "ETROM"           ] = 5;
-	boards[ "EWROM"           ] = 5;	
-	boards[ "351258"          ] = 2;  // UNROM
-	boards[ "351298"          ] = 2;
-	boards[ "351908"          ] = 2;
-	boards[ "UNROM"           ] = 2;	
-	boards[ "NROM"            ] = 0;  // NROM
-	boards[ "NROM-128"        ] = 0;
-	boards[ "NROM-256"        ] = 0;
-	boards[ "RROM"            ] = 0;
-	boards[ "RROM-128"        ] = 0;	
-	boards[ "GNROM"           ] = 66; // GNROM	
-	boards[ "AOROM"           ] = 7;  // AOROM	
-	boards[ "BNROM"           ] = 34; // BNROM	
-	boards[ "CNROM"           ] = 3;  // CNROM	
-	boards[ "CPROM"           ] = 13; // CPROM
-	boards[ "Sachen-74LS374N" ] = 134;
-	boards[ "Sachen-8259A"    ] = 135;
-
-	PDXSTRING number;
-
-	// shhh... don't tell anyone
-
-	for (UINT i=0; i < 255; ++i)
-		boards[number = i] = i;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-PDXRESULT UNIF::Import(CARTRIDGE* const cartridge,PDXFILE& file,const ROMDATABASE& RomDatabase,const IO::GENERAL::CONTEXT& context)
-{
-	PDX_ASSERT( cartridge );
-
-	PDXMemZero( pRomCrcs, 16 );
-	PDXMemZero( cRomCrcs, 16 );
-
-	cartridge->pRom.Clear();
-	cartridge->cRom.Clear();
-	cartridge->wRam.Clear();
-
-	PDXSTRING log("UNIF: ");
-
-	{
-		HEADER header;
-
-		if (!file.Read(header) || memcmp(header.signature,"UNIF",4))
-			return MsgError("Not a valid rom image format!");
-
-		log.Resize( 6 ); 
-		LogOutput( log << "revision " << header.revision );
-	}
-
-	cartridge->info.name       = "unknown";
-	cartridge->info.copyright  = "";
-	cartridge->info.condition  = IO::CARTRIDGE::GOOD;
-	cartridge->info.translated = IO::CARTRIDGE::UNKNOWN;
-	cartridge->info.hacked     = IO::CARTRIDGE::UNKNOWN;
-	cartridge->info.licensed   = IO::CARTRIDGE::UNKNOWN;
-	cartridge->info.bootleg    = IO::CARTRIDGE::UNKNOWN;
-	cartridge->info.system     = SYSTEM_NTSC;
-	cartridge->info.mirroring  = MIRROR_HORIZONTAL;
-	cartridge->info.mapper     = UINT_MAX;
-
-	CHUNK chunk;
-
-	const CHAR DataIds[] = {'0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'};
-
-	BOOL DisableWarning = context.DisableWarnings;
-	BOOL success = TRUE;
-
-	while (!file.Eof())
-	{
-		if (!file.Read( chunk ))
-			break;
-
-		UINT length = 0;
-
-		if (!memcmp(chunk.id,"NAME",4))
-		{
-			if (file.Text().Read( cartridge->info.name ).IsEmpty())
-			{
-				success = FALSE;
-				break;
-			}
-
-			length = cartridge->info.name.Length() + 1;
-
-			log.Resize( 6 ); 
-			LogOutput( log << "Name: " << cartridge->info.name );
-		}
-		else if ((!memcmp(chunk.id,"READ",4)))
-		{
-			PDXSTRING comments;
-
-			if (file.Text().Read( comments ).IsEmpty())
-			{
-				success = FALSE;
-				break;
-			}
-
-			length = comments.Length() + 1;
-
-			log.Resize( 6 ); 
-			LogOutput( log << "Comments: " << comments );
-		}
-		else if ((!memcmp(chunk.id,"DINF",4)))
-		{
-           #pragma pack(push,1)
-
-			struct DUMP
-			{
-				CHAR name[100];
-				U8   day;
-				U8   month;
-				U16  year;
-				CHAR agent[100];
-			};
-
-           #pragma pack(pop)
-
-			DUMP dump;
-
-			if (!(success=file.Read( PDX_CAST(CHAR*,&dump), PDX_CAST(CHAR*,&dump) + sizeof(dump) )))
-				break;
-
-			length = sizeof(dump);
-
-			if (*dump.name != '\0')
-			{
-				log.Resize( 6 ); 
-				LogOutput( log << "Dumper Name: " << dump.name );
-			}
-
-			log.Resize( 6 ); LogOutput( log << "Dump Year: "  << dump.year  );
-			log.Resize( 6 ); LogOutput( log << "Dump Month: " << dump.month );
-			log.Resize( 6 ); LogOutput( log << "Dump Day: "   << dump.day   );
-
-			if (*dump.agent != '\0')
-			{
-				log.Resize( 6 ); 
-				LogOutput( log << "Dumper Agent: " << dump.agent );
-			}
-		}
-		else if ((!memcmp(chunk.id,"TVCI",4)))
-		{
-			if (!(success=file.Readable(sizeof(U8))))
-				break;
-
-			length = sizeof(U8);
-
-			log.Resize( 6 ); 
-			log << "System: ";
-
-			switch (file.Read<U8>())
-			{
-       			case 0:  cartridge->info.system = SYSTEM_NTSC; log << "NTSC only";         break;
-				case 1:  cartridge->info.system = SYSTEM_PAL;  log << "PAL only";          break;
-				default: cartridge->info.system = SYSTEM_NTSC; log << "both PAL and NTSC"; break;
-			}			
-
-			LogOutput( log );
-		}
-		else if (!memcmp(chunk.id,"PCK",3))
-		{
-			for (UINT i=0; i < 16; ++i)
-			{
-				if (chunk.id[3] == DataIds[i])
-				{
-					success = file.Read( pRomCrcs[i] );
-					length = sizeof(U32);
-
-					if (success)
-					{
-						CHAR id[5];
-						memcpy( id, chunk.id, 4 );
-						id[4] = '\0';
-
-						log.Resize( 6 ); 
-						log << id;
-						log << " crc - ";
-						log.Append( pRomCrcs[i], PDXSTRING::HEX );
-						LogOutput( log );
-					}
-					break;
-				}
-			}
-
-			if (!success)
-				break;
-		}
-		else if (!memcmp(chunk.id,"PRG",3))
-		{
-			for (UINT i=0; i < 16; ++i)
-			{
-				if (chunk.id[3] == DataIds[i])
-				{
-					CHAR id[5];
-					memcpy( id, chunk.id, 4 );
-					id[4] = '\0';
-
-					log.Resize( 6 ); 
-					LogOutput( log << id << " data, " << (chunk.length / n1k) << "k" );
-
-					const UINT pos = cartridge->pRom.Size();
-					cartridge->pRom.Grow( chunk.length );
-					success = file.Read( cartridge->pRom.At(pos), cartridge->pRom.End() );
-					length = chunk.length;
-
-					if (success && pRomCrcs[i])
-					{
-						log.Resize( 6 ); 
-						log << "crc check ";
-
-						if (pRomCrcs[i] == PDXCRC32::Compute( cartridge->pRom.At(pos), length ))
-						{
-							log << "ok";
-						}
-						else
-						{
-							log << "failed";
-
-							if (!DisableWarning)
-							{
-								DisableWarning = TRUE;
-								cartridge->info.condition = IO::CARTRIDGE::BAD;
-								MsgWarning( "PRG-ROM crc check failed! Image may not run properly!" );
-							}
-						}
-
-						LogOutput( log );
-					}
-					break;
-				}
-			}
-
-			if (!success)
-				break;
-		}
-		else if (!memcmp(chunk.id,"CCK",3))
-		{
-			for (UINT i=0; i < 16; ++i)
-			{
-				if (chunk.id[3] == DataIds[i])
-				{
-					success = file.Read( cRomCrcs[i] );
-					length = sizeof(U32);
-
-					if (success)
-					{
-						CHAR id[5];
-						memcpy( id, chunk.id, 4 );
-						id[4] = '\0';
-
-						log.Resize( 6 ); 
-						log << id;
-						log << " crc - ";
-						log.Append( cRomCrcs[i], PDXSTRING::HEX );
-						LogOutput( log );
-					}
-					break;
-				}
-			}
-
-			if (!success)
-				break;
-		}
-		else if (!memcmp(chunk.id,"CHR",3))
-		{
-			for (UINT i=0; i < 16; ++i)
-			{
-				if (chunk.id[3] == DataIds[i])
-				{
-					CHAR id[5];
-					memcpy( id, chunk.id, 4 );
-					id[4] = '\0';
-
-					log.Resize( 6 ); 
-					LogOutput( log << id << " data, " << (chunk.length / n1k) << "k" );
-
-					const UINT pos = cartridge->cRom.Size();
-					cartridge->cRom.Grow( chunk.length );
-					success = file.Read( cartridge->cRom.At(pos), cartridge->cRom.End() );
-					length = chunk.length;
-					
-					if (success && cRomCrcs[i])
-					{
-						log.Resize( 6 ); 
-						log << "crc check ";
-
-						if (cRomCrcs[i] == PDXCRC32::Compute( cartridge->cRom.At(pos), length ))
-						{
-							log << "ok";
-						}
-						else
-						{
-							log << "failed";
-
-							if (!DisableWarning)
-							{
-								DisableWarning = TRUE;
-								cartridge->info.condition = IO::CARTRIDGE::BAD;
-								MsgWarning( "CHR-ROM crc check failed! Image may not run properly!" );
-							}
-						}
-
-						LogOutput( log );
-					}
-					break;
-				}
-			}
-
-			if (!success)
-				break;
-		}
-		else if ((!memcmp(chunk.id,"BATR",4)))
-		{
-			cartridge->info.battery = TRUE;
-
-			log.Resize( 6 ); 
-			LogOutput( log << "Battery present" );
-		}
-		else if ((!memcmp(chunk.id,"MAPR",4)))
-		{
-			if (file.Text().Read( cartridge->info.board ).IsEmpty())
-			{
-				success = FALSE;
-				break;
-			}
-
-			UINT extra = 0;
-
-			if 
-			(
-		     	!memcmp( cartridge->info.board.String(), "NES-", 4 ) || 
-				!memcmp( cartridge->info.board.String(), "UNL-", 4 ) || 
-				!memcmp( cartridge->info.board.String(), "HVC-", 4 ) || 
-				!memcmp( cartridge->info.board.String(), "BTL-", 4 ) || 
-				!memcmp( cartridge->info.board.String(), "BMC-", 4 )
-			)
-			{
-				const PDXSTRING tmp(cartridge->info.board);
-				cartridge->info.board = tmp.At(4);
-				extra += 4;
-			}
-
-			BOARDS::CONSTITERATOR iterator( boards.Find(cartridge->info.board.Begin()) );
-
-			if (iterator != boards.End())
-				cartridge->info.mapper = (*iterator).Second();
-
-			log.Resize( 6 ); 			
-			LogOutput( log << "Board: " << cartridge->info.board );
-
-			length = cartridge->info.board.Length() + extra + 1;
-		}
-		else if ((!memcmp(chunk.id,"MIRR",4)))
-		{
-			if (!(success=file.Readable(sizeof(U8))))
-				break;
-
-			length = sizeof(U8);
-
-			log.Resize( 6 ); 
-			log << "Mirroring: ";
-
-			switch (file.Read<U8>())
-			{
-	     		case 0:  cartridge->info.mirroring = MIRROR_HORIZONTAL; log << "horizontal";                    break;
-				case 1:  cartridge->info.mirroring = MIRROR_VERTICAL;   log << "vertical";                      break;
-				case 2:  cartridge->info.mirroring = MIRROR_ZERO;       log << "zero";                          break;
-				case 3:  cartridge->info.mirroring = MIRROR_ONE;        log << "one";                           break;
-				case 4:  cartridge->info.mirroring = MIRROR_FOURSCREEN; log << "four-screen";                   break;
-				default: cartridge->info.mirroring = MIRROR_HORIZONTAL; log << "controlled by mapper hardware"; break;
-			}
-
-			LogOutput( log );
-		}
-		else if ((!memcmp(chunk.id,"CTRL",4)))
-		{
-			if (!(success=file.Readable(sizeof(U8))))
-				break;
-
-			length = sizeof(U8);
-
-			log.Resize( 6 ); 
-			log << "Controller(s): ";
-
-			const UINT controller = file.Read<U8>();
-
-			if (controller & 0x01) 
-			{
-				cartridge->info.controllers[0] = CONTROLLER_PAD1;
-				cartridge->info.controllers[1] = CONTROLLER_PAD2;
-				log << "standard joypad";
-			}
-
-			if (controller & 0x02) 
-			{
-				cartridge->info.controllers[1] = CONTROLLER_ZAPPER;
-
-				if (log.Back() == ' ') log << "Zapper";
-				else				   log << ", Zapper";
-			}
-
-			if (controller & 0x04) 
-			{
-				if (log.Back() == ' ') log << "R.O.B";
-				else				   log << ", R.O.B";
-			}
-
-			if (controller & 0x08) 
-			{
-				cartridge->info.controllers[0] = CONTROLLER_PADDLE;
-
-				if (log.Back() == ' ') log << "Paddle";
-				else				   log << ", Paddle";
-			}
-
-			if (controller & 0x10) 
-			{
-				cartridge->info.controllers[1] = CONTROLLER_POWERPAD;
-
-				if (log.Back() == ' ') log << "Power Pad";
-				else				   log << ", Power Pad";
-			}
-
-			if (controller & 0x20) 
-			{
-				cartridge->info.controllers[2] = CONTROLLER_PAD3;
-				cartridge->info.controllers[3] = CONTROLLER_PAD4;
-
-				if (log.Back() == ' ') log << "Four-Score adapter";
-				else				   log << ", Four-Score adapter";
-			}
-
-			if (log.Back() == ' ') 
-				log << "not defined";
-
-			LogOutput( log );
-		}
-		else if ((!memcmp(chunk.id,"VROR",4)))
-		{
-			cartridge->info.IsCRam = TRUE;
-			log.Resize( 6 ); 			
-			LogOutput( log << "VRAM override" );
-		}
-
-		file.Seek( PDXFILE::CURRENT, chunk.length - length );
-	}
-
-	if (cartridge->pRom.IsEmpty())
-	{
-		log.Resize( 6 ); 
-		LogOutput( log << "PRG-ROM is missing.. aborting" );
-		return MsgError("PRG-ROM is missing!");
-	}
-
-	if (!success)
-		return MsgError("Corrupt file!");
-
-	{
-		PDXARRAY<U8> block( cartridge->pRom );
-		block += cartridge->cRom;
-		cartridge->info.crc = PDXCRC32::Compute( block.Begin(), block.Size() );
-	}
-
-	cartridge->info.pRomCrc = PDXCRC32::Compute( cartridge->pRom.Begin(), cartridge->pRom.Size() );
-	cartridge->info.cRomCrc = PDXCRC32::Compute( cartridge->cRom.Begin(), cartridge->cRom.Size() );
-
-   #ifdef NES_USE_ROM_DATABASE
-
-	if (context.UseRomDatabase)
-		CheckDatabase( RomDatabase, cartridge, file, context );
-
-   #endif
-
-	if (cartridge->info.mapper == UINT_MAX)
-	{
-		PDXSTRING msg;
-
-		msg << "Couldn't find the corresponding mapper to the board: \"";
-		msg << cartridge->info.board;
-		msg << "\". You may specify which mapper this cartridge uses by entering the appropriate number in the field.";
-
-		PDXSTRING choice;
-
-		if (MsgInput("Unsupported board!",msg.String(),choice) && choice.Length() >= 1 && choice.Length() <= 3)
-		{
-			const INT id = atoi( choice.String() );
-
-			if (id >= 0 && id <= 255)
-				cartridge->info.mapper = id;
-		}
-	}
-
-	if (cartridge->info.mapper == UINT_MAX)
-		return PDX_FAILURE;
-
-	cartridge->wRam.Resize( PDX_MAX(cartridge->info.wRam,n8k) );	
-	cartridge->wRam.Fill( cartridge->wRam.At(0x0000), cartridge->wRam.At(0x1000), 0x60 );
-	cartridge->wRam.Fill( cartridge->wRam.At(0x1000), cartridge->wRam.At(0x2000), 0x70 );
-	cartridge->wRam.Fill( cartridge->wRam.At(0x2000), cartridge->wRam.End(),      0x00 );
-
-	cartridge->info.pRom = cartridge->pRom.Size();
-	cartridge->info.cRom = cartridge->cRom.Size();
-	cartridge->info.wRam = cartridge->wRam.Size();
-
-	cartridge->pRom.Defrag();
-	cartridge->cRom.Defrag();
-	cartridge->wRam.Defrag();
-
-	return PDX_OK;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-#ifdef NES_USE_ROM_DATABASE
-
-PDXRESULT UNIF::CheckDatabase
-(
-    const ROMDATABASE& RomDatabase,
-    CARTRIDGE* const cartridge,
-	PDXFILE& file,
-	const IO::GENERAL::CONTEXT& context
-)
-{
-	ROMDATABASE::HANDLE handle = RomDatabase.GetHandle( cartridge->info.crc );
-
-	if (!handle)
-		return PDX_FAILURE;
-	
-	cartridge->info.condition = (RomDatabase.IsBad( handle ) ? IO::CARTRIDGE::BAD : IO::CARTRIDGE::GOOD);
-	cartridge->info.mapper = RomDatabase.Mapper( handle );
-
-	if (cartridge->info.board.IsEmpty())
-		cartridge->info.board = MAPPER::boards[cartridge->info.mapper];
-
-	const SYSTEM system = RomDatabase.System( handle );
-
-	if      (system == SYSTEM_VS)   cartridge->info.system = SYSTEM_VS;
-	else if (system == SYSTEM_PC10) cartridge->info.system = SYSTEM_PC10;
-
-	const TSIZE wRamSize = RomDatabase.wRamSize( handle );
-
-	if (cartridge->wRam.Size() < wRamSize)
-	{
-		cartridge->info.wRam = wRamSize;
-		cartridge->wRam.Resize( wRamSize );
-	}
-
-	return PDX_OK;
-}
-
+#include <cstring>
+#include <algorithm>
+#include "NstStream.hpp"
+#include "NstMemory.hpp"
+#include "NstLog.hpp"
+#include "NstCrc32.hpp"
+#include "NstImageDatabase.hpp"
+#include "NstUnif.hpp"
+#include "NstMapper.hpp"
+#include "api/NstApiUser.hpp"
+
+#ifdef NST_PRAGMA_OPTIMIZE
+#pragma optimize("s", on)
 #endif
 
-NES_NAMESPACE_END
+namespace Nes
+{
+	namespace Core
+	{
+		const char Unif::Rom::id[] = 
+		{
+			'0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'
+		};
+	
+		bool Unif::sorted = false;
+	
+		Unif::Board Unif::boards[] =
+		{
+			{"NROM",                   0}, 
+			{"NROM-128",               0},
+			{"NROM-256",               0},
+			{"RROM",                   0},
+			{"RROM-128",               0},
+			{"SNROM",                  1},  // MMC1
+			{"SKROM",                  1},
+			{"SAROM",                  1},
+			{"SBROM",                  1},
+			{"SCEOROM",                1},
+			{"SC1ROM",                 1},
+			{"SEROM",                  1},
+			{"SFROM",                  1},
+			{"SGROM",                  1},
+			{"SHROM",                  1},
+			{"SJROM",                  1},
+			{"SLROM",                  1},
+			{"SLRROM",                 1},
+			{"SL2ROM",                 1},
+			{"SL3ROM",                 1},
+			{"SN1-ROM",                1},
+			{"SOROM",                  1},
+			{"SVROM",                  1},
+			{"SUROM",                  1},
+			{"351258",                 2},  // UNROM
+			{"351298",                 2},
+			{"351908",                 2},
+			{"UNROM",                  2},	
+			{"CNROM",                  3},  	
+			{"51555",                  4},  // MMC3/MMC6
+			{"DRROM",                  4},
+			{"EKROM",                  4},
+			{"SL1ROM",                 4},
+			{"SL2ROM",                 4},
+			{"SL3ROM",                 4},
+			{"TEROM",                  4},
+			{"TFROM",                  4},
+			{"TGROM",                  4},
+			{"TKROM",                  4},
+			{"TLROM",                  4},
+			{"TQROM",                  4},
+			{"TSROM",                  4},
+			{"TVROM",                  4},
+			{"TL1ROM",                 4},
+			{"TLSROM",                 4},
+			{"B4",                     4},
+			{"HKROM",                  4},  // MMC6B	
+			{"ELROM",                  5},  // MMC5
+			{"ETROM",                  5},	 
+			{"EWROM",                  5},	 
+			{"AOROM",                  7},   	
+			{"PNROM",                  9},  // MMC2	
+			{"TC-U01-1.5M",            11}, // Color Dreams
+			{"SA-016-1M",              11}, 
+			{"CPROM",                  13}, 
+			{"BNROM",                  34}, 	
+			{"1991SUPERHIK7IN1",       45},
+			{"1992BALLGAMES11IN1",     51},
+			{"MARIO7IN1",              52},
+			{"SUPERVISION16IN1",       53},
+			{"STUDYGAME32IN1",         58},
+			{"RESET4IN1",              60},
+			{"GNROM",                  66}, 
+			{"SA-72007",               113},
+			{"SA-72008",               133},
+			{"SACHEN-74LS374N",        134},
+			{"SACHEN-8259A",           135},
+			{"DEIROM",                 206},
+			{"GOLDENGAME150IN1",       235},
+			{"SUPER24IN1SC03",         Mapper::EXT_SUPER24IN1},
+			{"MARIO1-MALEE2",          Mapper::EXT_MARIO1MALEE2},
+			{"NOVELDIAMOND9999999IN1", Mapper::EXT_NOVELDIAMOND},
+			{"8237",                   Mapper::EXT_8237},
+			{"WS",                     Mapper::EXT_WS}
+		};
+	
+		bool Unif::Board::operator < (cstring const s) const
+		{
+			return std::strcmp( name, s ) < 0;
+		}
+	
+		bool Unif::Board::operator < (const Board& b) const
+		{
+			return (*this) < b.name;
+		}
+	
+		Unif::Rom::Rom()
+		: crc(0) {}
+	
+		Unif::Unif
+		(
+        	StdStream s,
+			LinearMemory& p,
+			LinearMemory& c,
+			LinearMemory& w,
+			Api::Cartridge::Info& i,
+			const ImageDatabase* const r,
+			Result& result
+		)
+		: 
+		stream   (s),
+		pRom     (p),
+		cRom     (c),
+		wRam     (w),
+		info     (i),
+		database (r)
+		{	
+			if (!sorted)
+			{
+				sorted = true;
+				std::sort( boards, boards + NST_COUNT(boards) );
+			}
+	
+			info.Clear();
+			Import( result );
+		}
+	
+		bool Unif::NewChunk(bool& index)
+		{
+			if (index)
+			{
+				log << "Unif: duplicate chunk, ignoring.." NST_LINEBREAK;
+				return false;
+			}
+	
+			index = true;
+			return true;
+		}
+	
+        #define NES_ID4(a_,b_,c_,d_) u32( (a_) | ((b_) << 8) | ((c_) << 16) | ((d_) << 24) )
+        #define NES_ID3(a_,b_,c_)	 u32( (a_) | ((b_) << 8) | ((c_) << 16) )
+	
+		void Unif::Import(Result& result)
+		{
+			stream.Validate( NES_ID4('U','N','I','F') );
+	
+			log << "Unif: revision " << stream.Read32() << NST_LINEBREAK;
+	
+			stream.Seek( HEADER_RESERVED_LENGTH );
+	
+			info.mapper = UINT_MAX;
+	
+			bool chunks[9] = {false};
+	
+			while (!stream.Eof())
+			{
+				ulong id = stream.Read32();
+				const ulong length = stream.Read32();
+	
+				switch (id)
+				{
+					case NES_ID4('N','A','M','E'): if (NewChunk( chunks[0] )) id = ReadName       (); break;
+					case NES_ID4('R','E','A','D'): if (NewChunk( chunks[1] )) id = ReadComment    (); break;
+					case NES_ID4('D','I','N','F'): if (NewChunk( chunks[2] )) id = ReadDumper     (); break;
+					case NES_ID4('T','V','C','I'): if (NewChunk( chunks[3] )) id = ReadSystem     (); break;
+					case NES_ID4('B','A','T','R'): if (NewChunk( chunks[4] )) id = ReadBattery    (); break;
+					case NES_ID4('M','A','P','R'): if (NewChunk( chunks[5] )) id = ReadMapper     (); break;
+					case NES_ID4('M','I','R','R'): if (NewChunk( chunks[6] )) id = ReadMirroring  (); break;
+					case NES_ID4('C','T','R','L'): if (NewChunk( chunks[7] )) id = ReadController (); break;
+					case NES_ID4('V','R','O','R'): if (NewChunk( chunks[8] )) id = ReadChrRam     (); break;
+				
+					default:
+					{
+						const uint id4 = id >> 24;
+				
+						switch (id & 0x00FFFFFFUL)
+						{
+							case NES_ID3('P','C','K'): id = ReadRomCrc  ( 0, id4         ); break;
+							case NES_ID3('C','C','K'): id = ReadRomCrc  ( 1, id4         ); break;
+							case NES_ID3('P','R','G'): id = ReadRomData ( 0, id4, length ); break;
+							case NES_ID3('C','H','R'): id = ReadRomData ( 1, id4, length ); break;
+							default: id = 0; break;
+						}
+					}
+				}
+	
+				if (id == ULONG_MAX || id > length)
+					throw RESULT_ERR_CORRUPT_FILE;
+	
+				if (length != id)
+					stream.Seek( length - id );
+			}
+	
+			result = CopyRom();
+	
+			info.crc = info.pRomCrc = Crc32::Compute( pRom.Mem(), pRom.Size() );
+	
+			if (cRom.Size())
+			{
+				info.cRomCrc = Crc32::Compute( cRom.Mem(), cRom.Size() );
+				info.crc = Crc32::Iterate( cRom.Mem(), cRom.Size(), info.crc );
+			}
+	
+			if (database && database->Enabled())
+				CheckImageDatabase();
+	
+			if (!CheckMapper())
+				throw RESULT_ERR_UNSUPPORTED_MAPPER;
+	
+			info.pRom = pRom.Size();
+			info.cRom = cRom.Size();
+			info.wRam = wRam.Size();
+		}
+	
+		Result Unif::CopyRom()
+		{
+			Result result = RESULT_OK;
+	
+			for (uint i=0; i < 2; ++i)
+			{
+				LinearMemory& dst = (i ? cRom : pRom);
+				cstring const type = (i ? "Unif: CHR-ROM " : "Unif: PRG-ROM ");
+	
+				dst.Destroy();
+	
+				for (uint j=0; j < sizeof(Rom::id); ++j)
+				{
+					Rom& src = roms[i][j];
+	
+					if (const ulong size = src.rom.Size())
+					{
+						if (src.crc)
+						{
+							cstring msg;
+	
+							if (src.crc == Crc32::Compute( src.rom.Mem(), size ))
+							{
+								msg = " crc check ok" NST_LINEBREAK;
+							}
+							else
+							{
+								msg = " crc check failed" NST_LINEBREAK;
+								info.condition = Api::Cartridge::NO;
+								result = (i ? RESULT_WARN_BAD_CROM : RESULT_WARN_BAD_PROM);
+							}
+	
+							log << type << j << msg;
+						}
+	
+						dst += src.rom;
+						src.rom.Destroy();
+					}
+				}
+			}
+	
+			if (pRom.Empty())
+				throw RESULT_ERR_CORRUPT_FILE;
+	
+			return result;
+		}
+	
+		bool Unif::CheckMapper()
+		{
+			if (info.mapper != UINT_MAX)
+				return true;
+	
+			if (info.crc && database)
+			{
+				if (ImageDatabase::Handle handle = database->GetHandle( info.crc ))
+				{
+					info.mapper = database->Mapper( handle );
+					return true;
+				}
+			}
+	
+			std::string choice;
+	
+			Api::User::inputCallback
+			( 
+				Api::User::INPUT_CHOOSE_MAPPER, 
+				(info.board.empty() ? "unknown" : info.board.c_str()), 
+				choice 
+			);
+	
+			if (!choice.empty() && choice.length() <= 3)
+			{
+				const int id = std::atoi( choice.c_str() );
+	
+				if (id >= 0 && id <= 255)
+				{
+					info.mapper = id;
+					return true;
+				}
+			}
+	
+			return false;
+		}
+	
+		ulong Unif::ReadName()
+		{
+			std::string text;
+			return ReadString( "Unif: name: ", text ) + 1;
+		}
+	
+		ulong Unif::ReadComment()
+		{
+			std::string text;
+			return ReadString( "Unif: comments: ", text ) + 1;
+		}
+	
+		ulong Unif::ReadString(cstring const logtext,std::string& text)
+		{
+			if (const size_t length = stream.ReadString( &text ))
+			{
+				log << logtext << text.c_str() << NST_LINEBREAK;
+				return length;
+			}
+	
+			return 0;
+		}
+	
+		ulong Unif::ReadDumper()
+		{
+			Dump dump;
+	
+			stream.Read( dump.name, Dump::NAME_LENGTH );
+	
+			dump.day   = stream.Read8();
+			dump.month = stream.Read8();
+			dump.year  = stream.Read16();
+	
+			stream.Read( dump.agent, Dump::AGENT_LENGTH );
+	
+			if (*dump.name)
+				log << "Unif: dumper Name: " << dump.name << NST_LINEBREAK;
+	
+			log << "Unif: dump Year: "  << dump.year << NST_LINEBREAK 
+				   "Unif: dump Month: " << dump.month << NST_LINEBREAK 
+				   "Unif: dump Day: "   << dump.day << NST_LINEBREAK;
+	
+			if (*dump.agent)
+				log << "Unif: dumper Agent: " << dump.agent << NST_LINEBREAK;
+	
+			return Dump::LENGTH;
+		}
+	
+		ulong Unif::ReadSystem()
+		{
+			cstring msg;
+	
+			switch (stream.Read8())
+			{
+				case 0:  info.system = Api::Cartridge::SYSTEM_NTSC;     msg = "Unif: NTSC system"     NST_LINEBREAK; break;
+				case 1:  info.system = Api::Cartridge::SYSTEM_PAL;      msg = "Unif: PAL system"      NST_LINEBREAK; break;
+				default: info.system = Api::Cartridge::SYSTEM_NTSC_PAL; msg = "Unif: NTSC/PAL system" NST_LINEBREAK; break;
+			}		
+	
+			log << msg;
+	
+			return 1;
+		}
+	
+		ulong Unif::ReadRomCrc(const uint type,const uint id)
+		{
+			NST_ASSERT( type == 0 || type == 1 );
+	
+			for (uint i=0; i < sizeof(Rom::id); ++i)
+			{
+				if (char(id) == Rom::id[i])
+				{
+					roms[type][i].crc = stream.Read32();
+	
+					log << (type ? "Unif: CHR-ROM " : "Unif: PRG-ROM ")
+						<< char(id) 
+						<< " crc - " 
+						<< Log::Hex( (u32) roms[type][i].crc )
+						<< NST_LINEBREAK;
+	
+					return 4;
+				}
+			}
+	
+			return 0;
+		}
+	
+		ulong Unif::ReadRomData(const uint type,const uint id,const ulong length)
+		{
+			NST_ASSERT( type == 0 || type == 1 );
+	
+			for (uint i=0; i < sizeof(Rom::id); ++i)
+			{
+				if (char(id) == Rom::id[i])
+				{
+					cstring const name = (type ? "Unif: CHR-ROM " : "Unif: PRG-ROM ");
+					log << name << char(id) << " data, " << (length / NES_1K) << "k" NST_LINEBREAK;
+	
+					LinearMemory& rom = roms[type][i].rom;
+	
+					if (rom.Size())
+					{
+						log << "Unif: duplicate chunk, ";
+	
+						if (!length)
+						{
+							log << "length is zero! keeping old data.." NST_LINEBREAK;
+							return 0;
+						}
+	
+						log << "refreshing data.." NST_LINEBREAK;
+						rom.Destroy();
+					}
+					else if (!length)
+					{
+						return 0;
+					}
+	
+					rom.Set( length );
+					stream.Read( rom.Mem(), length );
+	
+					return length;
+				}
+			}
+	
+			return 0;
+		}
+	
+		ulong Unif::ReadMapper()
+		{
+			const ulong length = ReadString( "Unif: board: ", info.board );
+	
+			if (length)
+			{
+				for (std::string::iterator it(info.board.begin()); it != info.board.end(); ++it)
+				{
+					if (*it >= 0x61 && *it <= 0x7A)
+						*it -= 0x20;
+				}
+	
+				if (length > 4)
+				{
+					static const ulong types[5] =
+					{
+						NES_ID4('N','E','S','-'),
+						NES_ID4('U','N','L','-'),
+						NES_ID4('H','V','C','-'),
+						NES_ID4('B','T','L','-'),
+						NES_ID4('B','M','C','-')
+					};
+	
+					if (std::find( types, types + 5, NES_ID4(info.board[0],info.board[1],info.board[2],info.board[3]) ) != types + 5)
+						info.board.erase( 0, 4 );
+				}
+	
+				{
+					const Board* begin = boards;
+					const Board* const end = boards + NST_COUNT(boards);
+	
+					begin = std::lower_bound( begin, end, info.board.c_str() );
+	
+					if (begin != end && info.board == begin->name)
+						info.mapper = begin->mapper;
+				}
+			}
+	
+			return length + 1;
+		}
+	
+        #undef NES_ID3
+        #undef NES_ID4
+
+		ulong Unif::ReadBattery()
+		{
+			info.battery = true;
+			log << "Unif: battery present" NST_LINEBREAK;
+			return 0;
+		}
+	
+		ulong Unif::ReadMirroring()
+		{
+			cstring text;
+	
+			switch (stream.Read8())
+			{
+				case 0:  info.mirroring = Api::Cartridge::MIRROR_HORIZONTAL; text = "Unif: horizontal mirroring"                    NST_LINEBREAK; break;
+				case 1:  info.mirroring = Api::Cartridge::MIRROR_VERTICAL;   text = "Unif: vertical mirroring"                      NST_LINEBREAK; break;
+				case 2:  info.mirroring = Api::Cartridge::MIRROR_ZERO;       text = "Unif: zero mirroring"                          NST_LINEBREAK; break;
+				case 3:  info.mirroring = Api::Cartridge::MIRROR_ONE;        text = "Unif: one mirroring"                           NST_LINEBREAK; break;
+				case 4:  info.mirroring = Api::Cartridge::MIRROR_FOURSCREEN; text = "Unif: four-screen mirroring"                   NST_LINEBREAK; break;
+				default: info.mirroring = Api::Cartridge::MIRROR_CONTROLLED; text = "Unif: mirroring controlled by mapper hardware" NST_LINEBREAK; break;
+			}
+	
+			log << text;
+	
+			return 1;
+		}
+	
+		ulong Unif::ReadController()
+		{
+			std::string string("Unif: controller(s): ");
+	
+			const uint controller = stream.Read8();
+	
+			if (controller & 0x01) 
+			{
+				info.controllers[0] = Api::Input::PAD1;
+				info.controllers[1] = Api::Input::PAD2;
+				string += "standard joypad";
+			}
+	
+			cstring offset;
+	
+			if (controller & 0x02) 
+			{
+				info.controllers[1] = Api::Input::ZAPPER;
+	
+				offset = ", zapper";
+	
+				if (string[string.length() - 1] == ' ') 
+					offset += 2;
+	
+				string += offset;
+			}
+	
+			if (controller & 0x04) 
+			{
+				offset = ", R.O.B";
+	
+				if (string[string.length() - 1] == ' ') 
+					offset += 2;
+	
+				string += offset;
+			}
+	
+			if (controller & 0x08) 
+			{
+				info.controllers[0] = Api::Input::PADDLE;
+	
+				offset = ", paddle";
+	
+				if (string[string.length() - 1] == ' ') 
+					offset += 2;
+	
+				string += offset;
+			}
+	
+			if (controller & 0x10) 
+			{
+				info.controllers[1] = Api::Input::POWERPAD;
+	
+				offset = ", power pad";
+	
+				if (string[string.length() - 1] == ' ') 
+					offset += 2;
+	
+				string += offset;
+			}
+	
+			if (controller & 0x20) 
+			{
+				info.controllers[2] = Api::Input::PAD3;
+				info.controllers[3] = Api::Input::PAD4;
+	
+				offset = ", four-score adapter";
+	
+				if (string[string.length() - 1] == ' ') 
+					offset += 2;
+	
+				string += offset;
+			}
+	
+			if (string[string.length() - 1] == ' ') 
+				string += "not defined";
+	
+			log << string.c_str() << NST_LINEBREAK;
+	
+			return 1;
+		}
+	
+		ulong Unif::ReadChrRam()
+		{
+			info.isCRam = true;
+			log << "Unif: CHR is writable" NST_LINEBREAK;
+			return 0;
+		}
+	
+		void Unif::CheckImageDatabase()
+		{
+			NST_ASSERT( database && database->Enabled() );
+	
+			if (!info.crc)
+				return;
+	
+			ImageDatabase::Handle handle = database->GetHandle( info.crc );
+	
+			if (!handle)
+				return;
+	
+			info.mapper = database->Mapper( handle );
+	
+			switch (database->GetSystem( handle ))
+			{
+				case Api::Cartridge::SYSTEM_VS:
+			
+					info.system = Api::Cartridge::SYSTEM_VS;
+					break;
+			
+				case Api::Cartridge::SYSTEM_PC10:
+
+					info.system = Api::Cartridge::SYSTEM_PC10;
+					break;
+			}
+	
+			const ulong wRamSize = database->wRamSize( handle );
+	
+			if (wRam.Size() < wRamSize)
+				wRam.Set( wRamSize );
+		}
+	}
+}
+
+#ifdef NST_PRAGMA_OPTIMIZE
+#pragma optimize("", on)
+#endif

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003 Martin Freij
+// Copyright (C) 2003-2005 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -22,50 +22,47 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstMappers.h"
-#include "NstMapper233.h"
+#include "../NstMapper.hpp"
+#include "NstMapper233.hpp"
 
-NES_NAMESPACE_BEGIN
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER233::Reset()
+namespace Nes
 {
-	cpu.SetPort( 0x8000, 0x9FFF, this, Peek_8000, Poke_pRom );
-	cpu.SetPort( 0xA000, 0xBFFF, this, Peek_A000, Poke_pRom );
-	cpu.SetPort( 0xC000, 0xDFFF, this, Peek_C000, Poke_pRom );
-	cpu.SetPort( 0xE000, 0xFFFF, this, Peek_E000, Poke_pRom );
+	namespace Core
+	{
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("s", on)
+        #endif
+	
+		void Mapper233::SubReset(const bool hard)
+		{
+			if (hard)
+				NES_CALL_POKE(Mapper233,Prg,0x8000U,0x00);
 
-	pRom.SwapBanks<n32k,0x0000>(0);
+			Map( 0x8000U, 0xFFFFU, &Mapper233::Poke_Prg );
+		}
+	
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("", on)
+        #endif
+	
+		NES_POKE(Mapper233,Prg)
+		{
+			const uint bank = data & 0x1F;
+	
+			if (data & 0x20) 
+				prg.SwapBanks<NES_16K,0x0000U>( bank, bank );
+			else
+				prg.SwapBank<NES_32K,0x0000U>( bank >> 1 );
+	
+			static const uchar lut[4][4] =
+			{
+				{0,0,0,1},
+				{0,1,0,1},
+				{0,0,1,1},
+				{1,1,1,1}
+			};
+	
+			ppu.SetMirroring( lut[data >> 6] );
+		}
+	}
 }
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER233,pRom)
-{
-	apu.Update();
-
-	if (data & 0x20) 
-	{
-		pRom.SwapBanks<n16k,0x0000>( (data & 0x1F) );
-		pRom.SwapBanks<n16k,0x4000>( (data & 0x1F) );
-	}
-	else
-	{
-		pRom.SwapBanks<n32k,0x0000>( (data & 0x1E) >> 1 );
-	}
-
-	switch (data & 0xC0)
-	{
-    	case 0x00: ppu.SetMirroring(0,0,0,1); break;
-		case 0x40: ppu.SetMirroring(0,1,0,1); break;
-		case 0x80: ppu.SetMirroring(0,0,1,1); break;
-		default:   ppu.SetMirroring(1,1,1,1); break;
-	}
-}
-
-NES_NAMESPACE_END

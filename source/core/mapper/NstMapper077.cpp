@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003 Martin Freij
+// Copyright (C) 2003-2005 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -22,83 +22,35 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstMappers.h"
-#include "NstMapper077.h"
+#include "../NstMapper.hpp"
+#include "NstMapper077.hpp"
 			 
-NES_NAMESPACE_BEGIN
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-MAPPER77::MAPPER77(CONTEXT& c)
-: 
-MAPPER (c),
-cRam   (NULL) 
-{}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-MAPPER77::~MAPPER77()
+namespace Nes
 {
-	delete cRam;
+	namespace Core
+	{
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("s", on)
+        #endif
+	
+		void Mapper77::SubReset(const bool hard)
+		{
+			Map( 0x6000U, 0xFFFFU, &Mapper77::Poke_Prg );
+
+			chr.Source(1).SwapBank<NES_2K,0x0800U>( 0 );
+			chr.Source(1).SwapBank<NES_2K,0x1000U>( 1 );
+			chr.Source(1).SwapBank<NES_2K,0x1800U>( 2 );
+		}
+	
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("", on)
+        #endif
+	
+		NES_POKE(Mapper77,Prg) 
+		{
+			ppu.Update();
+			prg.SwapBank<NES_32K,0x0000U>(data & 0x7);
+			chr.SwapBank<NES_2K,0x0000U>(data >> 4);
+		}
+	}
 }
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER77::Reset()
-{
-	cpu.SetPort( 0x8000, 0x9FFF, this, Peek_8000, Poke_pRom );
-	cpu.SetPort( 0xA000, 0xBFFF, this, Peek_A000, Poke_pRom );
-	cpu.SetPort( 0xC000, 0xDFFF, this, Peek_C000, Poke_pRom );
-	cpu.SetPort( 0xE000, 0xFFFF, this, Peek_E000, Poke_pRom );
-
-	delete cRam;
-	cRam = new CRAM( cRom.Ram(), cRom.Size() );
-	ppu.SetPort( 0x0000, 0x1FFF, this, Peek_cRam, Poke_cRam );
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-PDXRESULT MAPPER77::LoadState(PDXFILE& file)
-{
-	PDX_TRY(MAPPER::LoadState(file));
-	return cRam->LoadState( file );
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-PDXRESULT MAPPER77::SaveState(PDXFILE& file) const
-{
-	PDX_TRY(MAPPER::SaveState(file));
-	return cRam->SaveState( file );
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER77,pRom) 
-{
-	apu.Update(); 
-	ppu.Update();
-	pRom.SwapBanks<n32k,0x0000>((data & 0x07) >> 0);
-	cRam->SwapBanks< n2k,0x0000>((data & 0xF0) >> 4);
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER77,cRam) { (*cRam)[address] = data; }
-NES_PEEK(MAPPER77,cRam) { return (*cRam)[address]; }
-
-NES_NAMESPACE_END

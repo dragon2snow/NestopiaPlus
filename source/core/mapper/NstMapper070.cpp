@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003 Martin Freij
+// Copyright (C) 2003-2005 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -22,64 +22,54 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstMappers.h"
-#include "NstMapper070.h"
+#include "../NstMapper.hpp"
+#include "NstMapper070.hpp"
 			   
-NES_NAMESPACE_BEGIN
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER70::Reset()
+namespace Nes
 {
-	switch (pRomCrc)
+	namespace Core
 	{
-     	case 0xA59CA2EF: // Kamen Rider Kurabu (J)
-     	case 0x10BB8F9A: // Family Trainer - Manhattan Police (J)
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("s", on)
+        #endif
+	
+		Mapper70::Mapper70(Context& c)
+		: 
+		Mapper (c), 
+		useGun (c.pRomCrc == 0x0CD00488UL || c.pRomCrc == 0x03B6596CUL) 
+		{}
 
-			cpu.SetPort( 0x8000, 0xFFFF, this, Peek_pRom, Poke_6000_2 );
-			break;
+		void Mapper70::SubReset(bool)
+		{
+			Map( 0x6000U, 0xFFFFU, &Mapper70::Poke_pRom );
 
-		default:
+			if (useGun)
+			{
+				p4016 = cpu.Map( 0x4016 );
+				cpu.Map( 0x4016 ).Set( this, &Mapper70::Peek_SpaceShadow, &Mapper70::Poke_SpaceShadow );
+			}
+		}
+	
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("", on)
+        #endif
+	
+		NES_POKE(Mapper70,pRom) 
+		{
+			ppu.Update();	
+			prg.SwapBank<NES_16K,0x0000U>( (data & 0xF0) >> 4 ); 
+			chr.SwapBank<NES_8K,0x0000U>( (data & 0x0F) >> 0 );
+		}
 
-			cpu.SetPort( 0x8000, 0xFFFF, this, Peek_pRom, Poke_6000_1 );
-			break;
+		NES_PEEK(Mapper70,SpaceShadow)
+		{
+			const uint data = p4016.Peek( 0x4016 );
+			return (data & 0xFE) | ((data & 0x1) << 1);
+		}
+
+		NES_POKE(Mapper70,SpaceShadow)
+		{
+			p4016.Poke( address, data );
+		}
 	}
 }
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER70::SetBanks(const UINT data)
-{
-	apu.Update();
-	ppu.Update();
-
-	pRom.SwapBanks<n16k,0x0000>( (data & 0x70) >> 4); 
-	cRom.SwapBanks<n8k,0x0000> ( (data & 0x0F) >> 0);
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER70,6000_1) 
-{
-	SetBanks(data);
-	ppu.SetMirroring( (data & 0x80) ? MIRROR_ONE : MIRROR_ZERO );
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER70,6000_2) 
-{
-	SetBanks(data);
-	ppu.SetMirroring( (data & 0x80) ? MIRROR_HORIZONTAL : MIRROR_VERTICAL );
-}
-
-NES_NAMESPACE_END
-

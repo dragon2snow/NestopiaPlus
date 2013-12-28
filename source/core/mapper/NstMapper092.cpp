@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003 Martin Freij
+// Copyright (C) 2003-2005 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -22,67 +22,59 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstMappers.h"
-#include "NstMapper092.h"
+#include "../NstMapper.hpp"
+#include "NstMapper092.hpp"
 
-NES_NAMESPACE_BEGIN
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER92::Reset()
+namespace Nes
 {
-	cpu.SetPort( 0x8000, 0x8FFF, this, Peek_8000, Poke_8000 );
-	cpu.SetPort( 0xA000, 0xBFFF, this, Peek_A000, Poke_9000 );
-	cpu.SetPort( 0xC000, 0xDFFF, this, Peek_C000, Poke_9000 );
-	cpu.SetPort( 0xE000, 0xFFFF, this, Peek_E000, Poke_9000 );
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER92,8000)
-{
-	switch (address & 0xF0)
+	namespace Core
 	{
-       	case 0xB0: 
-			
-			apu.Update();
-			pRom.SwapBanks<n16k,0x0000>( 0 ); 
-			pRom.SwapBanks<n16k,0x4000>( address & 0xF );
-			return;
-
-		case 0x70: 
-			
-			ppu.Update();
-			cRom.SwapBanks<n8k,0x0000>( address & 0xF );
-			return;
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("s", on)
+        #endif
+	
+		void Mapper92::SubReset(bool)
+		{
+			Map( 0x8000U, 0x8FFFU, &Mapper92::Poke_8000 );
+			Map( 0x9000U, 0xFFFFU, &Mapper92::Poke_9000 );
+		}
+	
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("", on)
+        #endif
+	
+		NES_POKE(Mapper92,8000)
+		{
+			switch (address & 0xF0)
+			{
+				case 0xB0: 
+		
+					prg.SwapBanks<NES_16K,0x0000U>( 0, address & 0xF ); 
+					break;
+		
+				case 0x70: 
+		
+					ppu.Update();
+					chr.SwapBank<NES_8K,0x0000U>( address & 0xF );
+					break;
+			}
+		}
+	
+		NES_POKE(Mapper92,9000)
+		{
+			switch (address & 0xF0)
+			{
+				case 0xD0: 
+		
+					prg.SwapBanks<NES_16K,0x0000U>( 0, address & 0xF ); 
+					break;
+		
+				case 0xE0: 
+		
+					ppu.Update();
+					chr.SwapBank<NES_8K,0x0000U>( address & 0xF );
+					break;
+			}
+		}
 	}
 }
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER92,9000)
-{
-	switch (address & 0xF0)
-	{
-       	case 0xD0: 
-			
-			apu.Update();
-			pRom.SwapBanks<n16k,0x0000>( 0 ); 
-			pRom.SwapBanks<n16k,0x4000>( address & 0xF );
-			return;
-
-		case 0xE0: 
-			
-			ppu.Update();
-			cRom.SwapBanks<n8k,0x0000>( address & 0xF );
-			return;
-	}
-}
-
-NES_NAMESPACE_END

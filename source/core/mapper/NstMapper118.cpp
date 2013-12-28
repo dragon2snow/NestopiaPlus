@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003 Martin Freij
+// Copyright (C) 2003-2005 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -22,35 +22,25 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstMappers.h"
-#include "NstMapper004.h"
-#include "NstMapper118.h"
+#include "../NstMapper.hpp"
+#include "../board/NstBrdMmc3.hpp"
+#include "NstMapper118.hpp"
 		   
-NES_NAMESPACE_BEGIN
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER118::Reset()
+namespace Nes
 {
-	MAPPER4::Reset();
+	namespace Core
+	{
+		void Mapper118::UpdateChr() const
+		{
+			Mmc3::UpdateChr();
 
-	for (UINT i=0x8001; i <= 0x8FFF; i += 2)
-		cpu.SetPort( i, this, Peek_8000, Poke_8001 );
+			nmt.SwapBanks<NES_1K,0x0000U>
+			(
+				((regs.ctrl0 & Regs::CTRL0_XOR_CHR) ? banks.chr[2] >> 7 : banks.chr[0] >> 6) ^ 1,
+				((regs.ctrl0 & Regs::CTRL0_XOR_CHR) ? banks.chr[3] >> 7 : banks.chr[0] >> 6) ^ 1,
+				((regs.ctrl0 & Regs::CTRL0_XOR_CHR) ? banks.chr[4] >> 7 : banks.chr[1] >> 6) ^ 1,
+				((regs.ctrl0 & Regs::CTRL0_XOR_CHR) ? banks.chr[5] >> 7 : banks.chr[1] >> 6) ^ 1
+			);
+		}
+	}
 }
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER118,8001)
-{
-	if ((command & 0x7) < 6)
-		ppu.SetMirroring( (data & 0x80) ? MIRROR_ZERO : MIRROR_ONE );
-
-	MAPPER4::Poke_8001(0x8001,data);
-}
-
-NES_NAMESPACE_END
-

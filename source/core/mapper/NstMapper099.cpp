@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003 Martin Freij
+// Copyright (C) 2003-2005 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -22,39 +22,37 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstMappers.h"
-#include "NstMapper099.h"
+#include "../NstMapper.hpp"
+#include "NstMapper099.hpp"
 		
-NES_NAMESPACE_BEGIN
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER99::Reset()
+namespace Nes
 {
-	p4016 = cpu.GetPort( 0x4016 );
-	cpu.SetPort( 0x4016, 0x4016, this, Peek_4016, Poke_4016 );
+	namespace Core
+	{
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("s", on)
+        #endif
+	
+		void Mapper99::SubReset(bool)
+		{
+			p4016 = cpu.Map( 0x4016 );
+			cpu.Map( 0x4016 ).Set( this, &Mapper99::Peek_4016, &Mapper99::Poke_4016 );
+		}
+	
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("", on)
+        #endif
+	
+		NES_POKE(Mapper99,4016)
+		{
+			ppu.Update();
+			chr.SwapBank<NES_8K,0x0000U>( (data >> 2) & 0x1 );
+			p4016.Poke( 0x4016, data );
+		}
+	
+		NES_PEEK(Mapper99,4016)
+		{
+			return p4016.Peek( address );
+		}
+	}
 }
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER99,4016)
-{
-	ppu.Update();
-	cRom.SwapBanks<n8k,0x0000>( (data >> 2) & 0x1 );
-	p4016.Poke(0x4016,data);
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_PEEK(MAPPER99,4016)
-{
-	return p4016.Peek(0x4016);
-}
-
-NES_NAMESPACE_END

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003 Martin Freij
+// Copyright (C) 2003-2005 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -22,141 +22,215 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstMappers.h"
-#include "NstMapper018.h"
+#include "../NstMapper.hpp"
+#include "../NstClock.hpp"
+#include "NstMapper018.hpp"
 		 
-NES_NAMESPACE_BEGIN
-
-////////////////////////////////////////////////////////////////////////////////////////
-// reset
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER18::Reset()
+namespace Nes
 {
-	for (ULONG i=0x8000; i <= 0xFFFF; ++i)
+	namespace Core
 	{
-		switch (i & 0xF003)
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("s", on)
+        #endif
+
+		void Mapper18::Irq::Reset(const bool hard)
 		{
-			case 0x8000: cpu.SetPort( i, this, Peek_8000, Poke_8000 ); continue;
-			case 0x8001: cpu.SetPort( i, this, Peek_8000, Poke_8001 ); continue;
-			case 0x8002: cpu.SetPort( i, this, Peek_8000, Poke_8002 ); continue;
-			case 0x8003: cpu.SetPort( i, this, Peek_8000, Poke_8003 ); continue;
-			case 0x9000: cpu.SetPort( i, this, Peek_9000, Poke_9000 ); continue;
-			case 0x9001: cpu.SetPort( i, this, Peek_9000, Poke_9001 ); continue;
-			case 0xA000: cpu.SetPort( i, this, Peek_A000, Poke_A000 ); continue;
-			case 0xA001: cpu.SetPort( i, this, Peek_A000, Poke_A001 ); continue;
-			case 0xA002: cpu.SetPort( i, this, Peek_A000, Poke_A002 ); continue;
-			case 0xA003: cpu.SetPort( i, this, Peek_A000, Poke_A003 ); continue;
-			case 0xB000: cpu.SetPort( i, this, Peek_B000, Poke_B000 ); continue;
-			case 0xB001: cpu.SetPort( i, this, Peek_B000, Poke_B001 ); continue;
-			case 0xB002: cpu.SetPort( i, this, Peek_B000, Poke_B002 ); continue;
-			case 0xB003: cpu.SetPort( i, this, Peek_B000, Poke_B003 ); continue;
-			case 0xC000: cpu.SetPort( i, this, Peek_C000, Poke_C000 ); continue;
-			case 0xC001: cpu.SetPort( i, this, Peek_C000, Poke_C001 ); continue;
-			case 0xC002: cpu.SetPort( i, this, Peek_C000, Poke_C002 ); continue;
-			case 0xC003: cpu.SetPort( i, this, Peek_C000, Poke_C003 ); continue;
-			case 0xD000: cpu.SetPort( i, this, Peek_D000, Poke_D000 ); continue;
-			case 0xD001: cpu.SetPort( i, this, Peek_D000, Poke_D001 ); continue;
-			case 0xD002: cpu.SetPort( i, this, Peek_D000, Poke_D002 ); continue;
-			case 0xD003: cpu.SetPort( i, this, Peek_D000, Poke_D003 ); continue;
-			case 0xE000: cpu.SetPort( i, this, Peek_E000, Poke_E000 ); continue;
-			case 0xE001: cpu.SetPort( i, this, Peek_E000, Poke_E001 ); continue;
-			case 0xE002: cpu.SetPort( i, this, Peek_E000, Poke_E002 ); continue;
-			case 0xE003: cpu.SetPort( i, this, Peek_E000, Poke_E003 ); continue;
-			case 0xF000: cpu.SetPort( i, this, Peek_F000, Poke_F000 ); continue;
-			case 0xF001: cpu.SetPort( i, this, Peek_F000, Poke_F001 ); continue;
-			case 0xF002: cpu.SetPort( i, this, Peek_F000, Poke_F002 ); continue;
+			if (hard)
+			{
+				mask = 0xFFFFU;
+				count = 0;
+				latch = 0;
+			}
+		}
+
+		Mapper18::Mapper18(Context& c)
+		: Mapper(c), irq(c.cpu) {}
+
+		void Mapper18::SubReset(const bool hard)
+		{
+			irq.Reset( hard, hard ? false : irq.IsLineEnabled() );
+
+			for (uint i=0x0000U; i < 0x1000U; i += 0x4)
+			{
+				Map( 0x8000U + i, &Mapper18::Poke_8000 );
+				Map( 0x8001U + i, &Mapper18::Poke_8001 );
+				Map( 0x8002U + i, &Mapper18::Poke_8002 );
+				Map( 0x8003U + i, &Mapper18::Poke_8003 );
+				Map( 0x9000U + i, &Mapper18::Poke_9000 );
+				Map( 0x9001U + i, &Mapper18::Poke_9001 );
+				Map( 0xA000U + i, &Mapper18::Poke_A000 );
+				Map( 0xA001U + i, &Mapper18::Poke_A001 );
+				Map( 0xA002U + i, &Mapper18::Poke_A002 );
+				Map( 0xA003U + i, &Mapper18::Poke_A003 );
+				Map( 0xB000U + i, &Mapper18::Poke_B000 );
+				Map( 0xB001U + i, &Mapper18::Poke_B001 );
+				Map( 0xB002U + i, &Mapper18::Poke_B002 );
+				Map( 0xB003U + i, &Mapper18::Poke_B003 );
+				Map( 0xC000U + i, &Mapper18::Poke_C000 );
+				Map( 0xC001U + i, &Mapper18::Poke_C001 );
+				Map( 0xC002U + i, &Mapper18::Poke_C002 );
+				Map( 0xC003U + i, &Mapper18::Poke_C003 );
+				Map( 0xD000U + i, &Mapper18::Poke_D000 );
+				Map( 0xD001U + i, &Mapper18::Poke_D001 );
+				Map( 0xD002U + i, &Mapper18::Poke_D002 );
+				Map( 0xD003U + i, &Mapper18::Poke_D003 );
+				Map( 0xE000U + i, &Mapper18::Poke_E000 );
+				Map( 0xE001U + i, &Mapper18::Poke_E001 );
+				Map( 0xE002U + i, &Mapper18::Poke_E002 );
+				Map( 0xE003U + i, &Mapper18::Poke_E003 );
+				Map( 0xF000U + i, &Mapper18::Poke_F000 );
+				Map( 0xF001U + i, &Mapper18::Poke_F001 );
+				Map( 0xF002U + i, &Mapper18::Poke_F002 );
+			}
+		}
+	
+		void Mapper18::SubLoad(State::Loader& state)
+		{
+			while (const dword chunk = state.Begin())
+			{
+				if (chunk == NES_STATE_CHUNK_ID('I','R','Q','\0'))
+				{
+					const State::Loader::Data<5> data( state );
+
+					irq.EnableLine( data[0] & 0x1 );
+
+					if      (data[0] & 0x8) irq.unit.mask = 0x000FU;
+					else if (data[0] & 0x4) irq.unit.mask = 0x00FFU;
+					else if (data[0] & 0x2) irq.unit.mask = 0x0FFFU;
+					else                    irq.unit.mask = 0xFFFFU;
+
+					irq.unit.latch = data[1] | (data[2] << 8);
+					irq.unit.count = data[3] | (data[4] << 8);
+				}
+
+				state.End();
+			}
+		}
+	
+		void Mapper18::SubSave(State::Saver& state) const
+		{
+			const u8 data[5] =
+			{
+				(irq.IsLineEnabled() ? 0x1 : 0x0) |
+				(
+				    irq.unit.mask == 0x000FU ? 0x8 :
+				    irq.unit.mask == 0x00FFU ? 0x4 :
+				    irq.unit.mask == 0x0FFFU ? 0x2 : 
+				                               0x0
+				),
+				irq.unit.latch & 0xFF,
+				irq.unit.latch >> 8,
+				irq.unit.count & 0xFF,
+				irq.unit.count >> 8
+			};
+
+			state.Begin('I','R','Q','\0').Write( data ).End();
+		}
+	
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("", on)
+        #endif
+	
+		template<uint MASK,uint SHIFT>
+		void Mapper18::SwapPrg(const uint address,const uint data)
+		{
+			prg.SwapBank<NES_8K>( address, (prg.GetBank<NES_8K>(address) & MASK) | ((data & 0xF) << SHIFT) );
+		}
+
+		NES_POKE(Mapper18,8000) { SwapPrg<0xF0,0>( 0x0000U, data ); } 
+		NES_POKE(Mapper18,8001) { SwapPrg<0x0F,4>( 0x0000U, data ); }
+		NES_POKE(Mapper18,8002) { SwapPrg<0xF0,0>( 0x2000U, data ); }
+		NES_POKE(Mapper18,8003) { SwapPrg<0x0F,4>( 0x2000U, data ); }
+		NES_POKE(Mapper18,9000) { SwapPrg<0xF0,0>( 0x4000U, data ); }
+		NES_POKE(Mapper18,9001) { SwapPrg<0x0F,4>( 0x4000U, data ); }
+	
+		template<uint MASK,uint SHIFT>
+		void Mapper18::SwapChr(const uint address,const uint data) const
+		{
+			ppu.Update(); 
+			chr.SwapBank<NES_1K>( address, (chr.GetBank<NES_1K>(address) & MASK) | ((data & 0xF) << SHIFT) );
+		}
+
+		NES_POKE(Mapper18,A000) { SwapChr<0xF0,0>( 0x0000U, data ); }
+		NES_POKE(Mapper18,A001) { SwapChr<0x0F,4>( 0x0000U, data ); }
+		NES_POKE(Mapper18,A002) { SwapChr<0xF0,0>( 0x0400U, data ); }
+		NES_POKE(Mapper18,A003) { SwapChr<0x0F,4>( 0x0400U, data ); }
+		NES_POKE(Mapper18,B000) { SwapChr<0xF0,0>( 0x0800U, data ); }
+		NES_POKE(Mapper18,B001) { SwapChr<0x0F,4>( 0x0800U, data ); }
+		NES_POKE(Mapper18,B002) { SwapChr<0xF0,0>( 0x0C00U, data ); }
+		NES_POKE(Mapper18,B003) { SwapChr<0x0F,4>( 0x0C00U, data ); }
+		NES_POKE(Mapper18,C000) { SwapChr<0xF0,0>( 0x1000U, data ); }
+		NES_POKE(Mapper18,C001) { SwapChr<0x0F,4>( 0x1000U, data ); }
+		NES_POKE(Mapper18,C002) { SwapChr<0xF0,0>( 0x1400U, data ); }
+		NES_POKE(Mapper18,C003) { SwapChr<0x0F,4>( 0x1400U, data ); }
+		NES_POKE(Mapper18,D000) { SwapChr<0xF0,0>( 0x1800U, data ); }
+		NES_POKE(Mapper18,D001) { SwapChr<0x0F,4>( 0x1800U, data ); }
+		NES_POKE(Mapper18,D002) { SwapChr<0xF0,0>( 0x1C00U, data ); }
+		NES_POKE(Mapper18,D003) { SwapChr<0x0F,4>( 0x1C00U, data ); }
+
+		NES_POKE(Mapper18,E000) 
+		{ 
+			irq.Update(); 
+			irq.unit.latch = (irq.unit.latch & 0xFFF0U) | (data & 0xF); 
+		}
+
+		NES_POKE(Mapper18,E001) 
+		{
+			irq.Update(); 
+			irq.unit.latch = (irq.unit.latch & 0xFF0FU) | ((data & 0xF) << 4); 
+		}
+
+		NES_POKE(Mapper18,E002) 
+		{
+			irq.Update();
+			irq.unit.latch = (irq.unit.latch & 0xF0FFU) | ((data & 0xF) << 8); 
+		}
+
+		NES_POKE(Mapper18,E003) 
+		{ 
+			irq.Update();
+			irq.unit.latch = (irq.unit.latch & 0x0FFFU) | ((data & 0xF) << 12); 
+		}
+
+		NES_POKE(Mapper18,F000) 
+		{ 
+			irq.Update();
+			irq.unit.count = irq.unit.latch;
+			irq.ClearIRQ();
+		}
+	
+		NES_POKE(Mapper18,F001) 
+		{
+			irq.Update();
+
+			if      (data & 0x8) irq.unit.mask = 0x000FU;
+			else if (data & 0x4) irq.unit.mask = 0x00FFU;
+			else if (data & 0x2) irq.unit.mask = 0x0FFFU;
+			else                 irq.unit.mask = 0xFFFFU;
+
+			irq.EnableLine( data & 0x1 );
+			irq.ClearIRQ();
+		}
+	
+		NES_POKE(Mapper18,F002) 
+		{
+			ppu.SetMirroring
+			(
+				(data & 0x3) == 0 ? Ppu::NMT_HORIZONTAL : 
+		    	(data & 0x3) == 1 ? Ppu::NMT_VERTICAL :
+                               		Ppu::NMT_ZERO
+			);
+		}
+
+		ibool Mapper18::Irq::Signal()
+		{
+			return (count & mask) && !(--count & mask);
+		}
+
+		void Mapper18::VSync()
+		{
+			irq.VSync();
 		}
 	}
-
-	EnableIrqSync(IRQSYNC_COUNT);
-
-	buffer[0x0] = 0;
-	buffer[0x1] = 1;
-	buffer[0x2] = pRom.NumBanks<n8k>() - 2;
-	buffer[0x3] = pRom.NumBanks<n8k>() - 1;
-	buffer[0x4] = 0;
-	buffer[0x5] = 0;
-	buffer[0x6] = 0;
-	buffer[0x7] = 0;
-	buffer[0x8] = 0;
-	buffer[0x9] = 0;
-	buffer[0xA] = 0;
 }
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER18,8000) { buffer[0x0] = (buffer[0x0] & 0xF0) | ((data & 0x0F) << 0); apu.Update(); pRom.SwapBanks<n8k,0x0000>( buffer[0x0] ); } 
-NES_POKE(MAPPER18,8001) { buffer[0x0] = (buffer[0x0] & 0x0F) | ((data & 0x0F) << 4); apu.Update(); pRom.SwapBanks<n8k,0x0000>( buffer[0x0] ); }
-NES_POKE(MAPPER18,8002) { buffer[0x1] = (buffer[0x1] & 0xF0) | ((data & 0x0F) << 0); apu.Update(); pRom.SwapBanks<n8k,0x2000>( buffer[0x1] ); }
-NES_POKE(MAPPER18,8003) { buffer[0x1] = (buffer[0x1] & 0x0F) | ((data & 0x0F) << 4); apu.Update(); pRom.SwapBanks<n8k,0x2000>( buffer[0x1] ); }
-NES_POKE(MAPPER18,9000) { buffer[0x2] = (buffer[0x2] & 0xF0) | ((data & 0x0F) << 0); apu.Update(); pRom.SwapBanks<n8k,0x4000>( buffer[0x2] ); }
-NES_POKE(MAPPER18,9001) { buffer[0x2] = (buffer[0x2] & 0x0F) | ((data & 0x0F) << 4); apu.Update(); pRom.SwapBanks<n8k,0x4000>( buffer[0x2] ); }
-NES_POKE(MAPPER18,A000) { buffer[0x3] = (buffer[0x3] & 0xF0) | ((data & 0x0F) << 0); ppu.Update(); cRom.SwapBanks<n1k,0x0000>( buffer[0x3] ); }
-NES_POKE(MAPPER18,A001) { buffer[0x3] = (buffer[0x3] & 0x0F) | ((data & 0x0F) << 4); ppu.Update(); cRom.SwapBanks<n1k,0x0000>( buffer[0x3] ); }
-NES_POKE(MAPPER18,A002) { buffer[0x4] = (buffer[0x4] & 0xF0) | ((data & 0x0F) << 0); ppu.Update(); cRom.SwapBanks<n1k,0x0400>( buffer[0x4] ); }
-NES_POKE(MAPPER18,A003) { buffer[0x4] = (buffer[0x4] & 0x0F) | ((data & 0x0F) << 4); ppu.Update(); cRom.SwapBanks<n1k,0x0400>( buffer[0x4] ); }
-NES_POKE(MAPPER18,B000) { buffer[0x5] = (buffer[0x5] & 0xF0) | ((data & 0x0F) << 0); ppu.Update(); cRom.SwapBanks<n1k,0x0800>( buffer[0x5] ); }
-NES_POKE(MAPPER18,B001) { buffer[0x5] = (buffer[0x5] & 0x0F) | ((data & 0x0F) << 4); ppu.Update(); cRom.SwapBanks<n1k,0x0800>( buffer[0x5] ); }
-NES_POKE(MAPPER18,B002) { buffer[0x6] = (buffer[0x6] & 0xF0) | ((data & 0x0F) << 0); ppu.Update(); cRom.SwapBanks<n1k,0x0C00>( buffer[0x6] ); }
-NES_POKE(MAPPER18,B003) { buffer[0x6] = (buffer[0x6] & 0x0F) | ((data & 0x0F) << 4); ppu.Update(); cRom.SwapBanks<n1k,0x0C00>( buffer[0x6] ); }
-NES_POKE(MAPPER18,C000) { buffer[0x7] = (buffer[0x7] & 0xF0) | ((data & 0x0F) << 0); ppu.Update(); cRom.SwapBanks<n1k,0x1000>( buffer[0x7] ); }
-NES_POKE(MAPPER18,C001) { buffer[0x7] = (buffer[0x7] & 0x0F) | ((data & 0x0F) << 4); ppu.Update(); cRom.SwapBanks<n1k,0x1000>( buffer[0x7] ); }
-NES_POKE(MAPPER18,C002) { buffer[0x8] = (buffer[0x8] & 0xF0) | ((data & 0x0F) << 0); ppu.Update(); cRom.SwapBanks<n1k,0x1400>( buffer[0x8] ); }
-NES_POKE(MAPPER18,C003) { buffer[0x8] = (buffer[0x8] & 0x0F) | ((data & 0x0F) << 4); ppu.Update(); cRom.SwapBanks<n1k,0x1400>( buffer[0x8] ); }
-NES_POKE(MAPPER18,D000) { buffer[0x9] = (buffer[0x9] & 0xF0) | ((data & 0x0F) << 0); ppu.Update(); cRom.SwapBanks<n1k,0x1800>( buffer[0x9] ); }
-NES_POKE(MAPPER18,D001) { buffer[0x9] = (buffer[0x9] & 0x0F) | ((data & 0x0F) << 4); ppu.Update(); cRom.SwapBanks<n1k,0x1800>( buffer[0x9] ); }
-NES_POKE(MAPPER18,D002) { buffer[0xA] = (buffer[0xA] & 0xF0) | ((data & 0x0F) << 0); ppu.Update(); cRom.SwapBanks<n1k,0x1C00>( buffer[0xA] ); }
-NES_POKE(MAPPER18,D003) { buffer[0xA] = (buffer[0xA] & 0x0F) | ((data & 0x0F) << 4); ppu.Update(); cRom.SwapBanks<n1k,0x1C00>( buffer[0xA] ); }
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER18,E000) { IrqLatch = (IrqLatch & 0xFFF0) | ((data & 0xF) << 0x0); }
-NES_POKE(MAPPER18,E001) { IrqLatch = (IrqLatch & 0xFF0F) | ((data & 0xF) << 0x4); }
-NES_POKE(MAPPER18,E002) { IrqLatch = (IrqLatch & 0xF0FF) | ((data & 0xF) << 0x8); }
-NES_POKE(MAPPER18,E003) { IrqLatch = (IrqLatch & 0x0FFF) | ((data & 0xF) << 0xC); }
-NES_POKE(MAPPER18,F000) { IrqCount = IrqLatch; }
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER18,F001) 
-{
-	cpu.ClearIRQ();
-	SetIrqEnable(data & 0x1);
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER18,F002) 
-{
-	switch (data & 0x3)
-	{
-       	case 0:	 ppu.SetMirroring( MIRROR_HORIZONTAL ); break;
-		case 1:	 ppu.SetMirroring( MIRROR_VERTICAL   ); break;
-		default: ppu.SetMirroring( MIRROR_ZERO       ); break;
-	}
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER18::IrqSync(const UINT delta)
-{
-	if (IrqCount && (IrqCount -= delta) <= 0)
-	{
-		IrqCount = 0;
-		SetIrqEnable(FALSE);
-		cpu.DoIRQ();
-	}	   
-}
-
-NES_NAMESPACE_END

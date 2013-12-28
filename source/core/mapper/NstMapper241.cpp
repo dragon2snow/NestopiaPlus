@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003 Martin Freij
+// Copyright (C) 2003-2005 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -22,29 +22,34 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstMappers.h"
-#include "NstMapper241.h"
+#include "../NstMapper.hpp"
+#include "NstMapper241.hpp"
 		
-NES_NAMESPACE_BEGIN
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER241::Reset()
+namespace Nes
 {
-	cpu.SetPort( 0x8000, this, Peek_8000, Poke_8000 );
-	pRom.SwapBanks<n32k,0x0000>(0);
+	namespace Core
+	{
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("s", on)
+        #endif
+	
+		Mapper241::Mapper241(Context& c)
+		: 
+		Mapper (c,CROM_NONE), 
+		edu    (c.pRomCrc == 0xD5D6EAC4UL) // Edu (Asia)
+		{
+		}
+
+		void Mapper241::SubReset(bool)
+		{
+			if (!edu)
+				Map( 0x5000U, 0x5FFFU, PRG_SWAP_32K );
+
+			Map( 0x8000U, 0xFFFFU, PRG_SWAP_32K );
+		}
+	
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("", on)
+        #endif
+	}
 }
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER241,8000) 
-{ 
-	apu.Update();
-	pRom.SwapBanks<n32k,0x0000>(data);
-}
-
-NES_NAMESPACE_END

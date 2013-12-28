@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003 Martin Freij
+// Copyright (C) 2003-2005 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -22,27 +22,26 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstMappers.h"
-#include "NstMapper001.h"
-#include "NstMapper155.h"
+#include "../NstMapper.hpp"
+#include "../board/NstBrdMmc1.hpp"
+#include "NstMapper155.hpp"
 
-NES_NAMESPACE_BEGIN
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER155::Reset()
+namespace Nes
 {
-	MAPPER1::Reset();
-	cpu.SetPort( 0x6000, 0x7FFF, this, Peek_wRam, Poke_wRam );
+	namespace Core
+	{
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("s", on)
+        #endif
+	
+		void Mapper155::SubReset(const bool hard)
+		{
+			Mmc1::SubReset( hard );
+			Map( WRK_PEEK_POKE );
+		}
+	
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("", on)
+        #endif
+	}
 }
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_PEEK(MAPPER155,wRam) { return wRam[address - 0x6000]; }
-NES_POKE(MAPPER155,wRam) { wRam[address - 0x6000] = data; }
-
-NES_NAMESPACE_END

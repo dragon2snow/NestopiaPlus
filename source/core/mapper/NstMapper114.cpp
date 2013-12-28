@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003 Martin Freij
+// Copyright (C) 2003-2005 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -22,157 +22,104 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstMappers.h"
-#include "NstMapper114.h"
-
-NES_NAMESPACE_BEGIN
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER114::Reset()
+#include "../NstMapper.hpp"
+#include "../board/NstBrdMmc3.hpp"
+#include "NstMapper114.hpp"
+	   
+namespace Nes
 {
-	EnableIrqSync(IRQSYNC_PPU);
-
-	cpu.SetPort( 0x6000, 0x7FFF, this, Peek_Nop, Poke_6000 );
-
-	for (ULONG i=0x8000; i <= 0xFFFF; ++i)
+	namespace Core
 	{
-		switch (i & 0xE000)
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("s", on)
+        #endif
+	
+		void Mapper114::SubReset(const bool hard)
 		{
-     		case 0x8000: cpu.SetPort( i, this, Peek_8000, Poke_8000 ); continue;
-			case 0xA000: cpu.SetPort( i, this, Peek_A000, Poke_A000 ); continue;
-			case 0xC000: cpu.SetPort( i, this, Peek_C000, Poke_C000 ); continue;
+			exRegs[0] = 0x00;
+			exRegs[1] = false;
+
+			Mmc3::SubReset( hard );
+
+			Map( 0x5000U, 0x7FFFU, &Mapper114::Poke_5000 );
+			Map( 0x8000U, 0x9FFFU, NMT_SWAP_HV           );
+			Map( 0xA000U, 0xBFFFU, &Mapper114::Poke_A000 );
+			Map( 0xC000U, 0xDFFFU, &Mapper114::Poke_C000 );
+			Map( 0xE000U, 0xFFFFU, NOP_POKE              );
+			Map( 0xE002U,          &Mapper114::Poke_E000 );
+			Map( 0xE003U,          &Mapper114::Poke_E003 );
 		}
-	}
-
-	cpu.SetPort( 0xE002, this, Peek_E000, Poke_E002 );
-	cpu.SetPort( 0xE003, this, Peek_E000, Poke_E003 );
-
-	ctrl = 0;
-	ready = FALSE;
-	command = 0;
-
-	for (UINT i=0; i < 8; ++i)
-		banks[i] = 0;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER114::UpdatePRom()
-{
-	apu.Update();
-
-	if (ctrl & 0x80)
-	{
-		pRom.SwapBanks<n16k,0x0000>( ctrl & 0x1F );
-	}
-	else
-	{
-		pRom.SwapBanks<n8k,0x0000>( banks[4] );
-		pRom.SwapBanks<n8k,0x2000>( banks[5] );
-	}
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER114::UpdateCRom()
-{
-	ppu.Update();
-
-	cRom.SwapBanks<n2k,0x0000>( banks[0] >> 1 );
-	cRom.SwapBanks<n2k,0x0800>( banks[2] >> 1 );
-	cRom.SwapBanks<n1k,0x1000>( banks[6]      );
-	cRom.SwapBanks<n1k,0x1400>( banks[1]      );
-	cRom.SwapBanks<n1k,0x1800>( banks[7]      );
-	cRom.SwapBanks<n1k,0x1C00>( banks[3]      );
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER114,6000)
-{
-	ctrl = data;
-	UpdatePRom();
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER114,8000)
-{
-	ppu.SetMirroring( (data & 0x1) ? MIRROR_HORIZONTAL : MIRROR_VERTICAL );
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER114,A000)
-{
-	command = data & 0x7;
-	ready = TRUE;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER114,C000)
-{
-	if (ready)
-	{
-		banks[command] = data;
-
-		switch (command)
+		
+		void Mapper114::SubLoad(State::Loader& state)
 		{
-     		case 0x0:
-			case 0x1:
-			case 0x2:
-			case 0x3:
-			case 0x6:
-			case 0x7:
+			while (const dword chunk = state.Begin())
+			{
+				if (chunk == NES_STATE_CHUNK_ID('R','E','G','\0'))
+				{
+					const State::Loader::Data<2> data( state );
+					
+					exRegs[0] = data[0];
+					exRegs[1] = data[1] & 0x1;
+				}
+	
+				state.End();
+			}
+		}
+	
+		void Mapper114::SubSave(State::Saver& state) const
+		{
+			const u8 data[2] =
+			{
+				exRegs[0],
+				exRegs[1]
+			};
 
-				UpdateCRom();
-				break;
-
-			case 0x4:
-			case 0x5:
-
-				UpdatePRom();
-				break;
+			state.Begin('R','E','G','\0').Write( data ).End();
 		}
 
-		ready = FALSE;
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("", on)
+        #endif
+
+		NES_POKE(Mapper114,5000)
+		{
+			exRegs[0] = data;
+
+			if (data & 0x80)
+			{
+				data &= 0x1F;
+				prg.SwapBanks<NES_16K,0x0000U>( data, data );
+			}
+			else
+			{
+				UpdatePrg();
+			}
+		}
+
+		NES_POKE(Mapper114,A000)
+		{
+			static const u8 security[8] = {0,3,1,5,6,7,2,4};
+
+			data = (data & 0xC0) | security[data & 0x07];
+			exRegs[1] = true;
+
+			NES_CALL_POKE(Mmc3,8000,0x8000U,data);
+		}
+
+		NES_POKE(Mapper114,C000)
+		{
+			if (exRegs[1] && ((exRegs[0] & 0x80) == 0 || (regs.ctrl0 & Regs::CTRL0_MODE) < 6))
+			{
+				exRegs[1] = false;
+				NES_CALL_POKE(Mmc3,8001,0x8001U,data);
+			}
+		}
+
+		NES_POKE(Mapper114,E003)
+		{
+			NES_CALL_POKE(Mmc3,E001,0xE001U,data);
+			NES_CALL_POKE(Mmc3,C000,0xC000U,data);
+			NES_CALL_POKE(Mmc3,C001,0xC001U,data);
+		}
 	}
 }
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER114,E002) { cpu.ClearIRQ(); }
-NES_POKE(MAPPER114,E003) { SetIrqEnable(IrqCount = data); }
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER114::IrqSync()
-{
-	if (!--IrqCount)
-	{
-		SetIrqEnable(FALSE);
-		cpu.DoIRQ();
-	}
-}
-
-NES_NAMESPACE_END

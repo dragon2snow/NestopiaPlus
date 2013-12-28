@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003 Martin Freij
+// Copyright (C) 2003-2005 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -22,38 +22,33 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstMappers.h"
-#include "NstMapper202.h"
+#include "../NstMapper.hpp"
+#include "NstMapper202.hpp"
 
-NES_NAMESPACE_BEGIN
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER202::Reset()
+namespace Nes
 {
-	cpu.SetPort( 0x4020, 0x7FFF, this, Peek_Nop,  Poke_8000 );
-	cpu.SetPort( 0x8000, 0xFFFF, this, Peek_pRom, Poke_8000 );
-
-	pRom.SwapBanks<n16k,0x0000>(6);
-	pRom.SwapBanks<n16k,0x4000>(7);
+	namespace Core
+	{
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("s", on)
+        #endif
+	
+		void Mapper202::SubReset(const bool hard)
+		{
+			Map( 0x4020U, 0xFFFFU, &Mapper202::Poke_Prg );
+		}
+	
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("", on)
+        #endif
+	
+		NES_POKE(Mapper202,Prg)
+		{
+			ppu.SetMirroring( (address & 0x1) ? Ppu::NMT_HORIZONTAL : Ppu::NMT_VERTICAL );
+	
+			const uint bank = (address >> 1) & 0x7;
+			prg.SwapBanks<NES_16K,0x0000U>( bank, bank + ((address & 0xC) == 0xC) );
+			chr.SwapBank<NES_8K,0x0000U>( bank );
+		}
+	}
 }
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER202,8000)
-{
-	apu.Update();
-	ppu.SetMirroring( (address & 0x1) ? MIRROR_HORIZONTAL : MIRROR_VERTICAL );
-
-	const UINT bank = (address >> 1) & 0x7;
-
-	pRom.SwapBanks<n16k,0x0000>( bank );
-	pRom.SwapBanks<n16k,0x4000>( bank + ((address & 0xC) == 0xC ? 1 : 0) );
-	cRom.SwapBanks<n8k,0x0000>( bank );
-}
-
-NES_NAMESPACE_END

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003 Martin Freij
+// Copyright (C) 2003-2005 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -22,31 +22,31 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstMappers.h"
-#include "NstMapper133.h"
+#include "../NstMapper.hpp"
+#include "NstMapper133.hpp"
 
-NES_NAMESPACE_BEGIN
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER133::Reset()
+namespace Nes
 {
-	cpu.SetPort( 0x4120, this, Peek_Nop, Poke_4120 );
+	namespace Core
+	{
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("s", on)
+        #endif
+	
+		void Mapper133::SubReset(bool)
+		{
+			Map( 0x4120U, &Mapper133::Poke_4120 );
+		}
+	
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("", on)
+        #endif
+	
+		NES_POKE(Mapper133,4120) 
+		{
+			ppu.Update();
+			prg.SwapBank<NES_32K,0x0000U>( (data & 0x4) >> 2 );
+			chr.SwapBank<NES_8K,0x0000U>( data & 0x3 );
+		}
+	}
 }
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER133,4120) 
-{
-	apu.Update();
-	ppu.Update();
-
-	pRom.SwapBanks<n32k,0x0000>( (data & 0x4) >> 2 );
-	cRom.SwapBanks<n8k,0x0000>( data & 0x3 );
-}
-
-NES_NAMESPACE_END

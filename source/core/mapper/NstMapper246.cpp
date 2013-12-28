@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003 Martin Freij
+// Copyright (C) 2003-2005 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -22,44 +22,34 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstMappers.h"
-#include "NstMapper246.h"
+#include "../NstMapper.hpp"
+#include "NstMapper246.hpp"
 		   
-NES_NAMESPACE_BEGIN
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER246::Reset()
+namespace Nes
 {
-	for (ULONG i=0x6000; i <= 0x67FF; ++i)
+	namespace Core
 	{
-		switch (i & 0xF007)
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("s", on)
+        #endif
+	
+		void Mapper246::SubReset(bool)
 		{
-			case 0x6000: cpu.SetPort( i, this, Peek_Nop, Poke_6000 ); continue;
-			case 0x6001: cpu.SetPort( i, this, Peek_Nop, Poke_6001 ); continue;
-			case 0x6002: cpu.SetPort( i, this, Peek_Nop, Poke_6002 ); continue;
-			case 0x6003: cpu.SetPort( i, this, Peek_Nop, Poke_6003 ); continue;
-			case 0x6004: cpu.SetPort( i, this, Peek_Nop, Poke_6004 ); continue;
-			case 0x6005: cpu.SetPort( i, this, Peek_Nop, Poke_6005 ); continue;
-			case 0x6006: cpu.SetPort( i, this, Peek_Nop, Poke_6006 ); continue;
-			case 0x6007: cpu.SetPort( i, this, Peek_Nop, Poke_6007 ); continue;
+			for (uint i=0x6000U; i < 0x6800U; i += 0x8)
+			{
+				Map( i + 0x0, PRG_SWAP_8K_0 );
+				Map( i + 0x1, PRG_SWAP_8K_1 );
+				Map( i + 0x2, PRG_SWAP_8K_2 );
+				Map( i + 0x3, PRG_SWAP_8K_3 );
+				Map( i + 0x4, CHR_SWAP_2K_0 );
+				Map( i + 0x5, CHR_SWAP_2K_1 );
+				Map( i + 0x6, CHR_SWAP_2K_2 );
+				Map( i + 0x7, CHR_SWAP_2K_3 );
+			}
 		}
+	
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("", on)
+        #endif
 	}
 }
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER246,6000) { apu.Update(); pRom.SwapBanks<n8k,0x0000>(data); }
-NES_POKE(MAPPER246,6001) { apu.Update(); pRom.SwapBanks<n8k,0x2000>(data); }
-NES_POKE(MAPPER246,6002) { apu.Update(); pRom.SwapBanks<n8k,0x4000>(data); }
-NES_POKE(MAPPER246,6003) { apu.Update(); pRom.SwapBanks<n8k,0x6000>(data); }
-NES_POKE(MAPPER246,6004) { ppu.Update(); cRom.SwapBanks<n2k,0x0000>(data); }
-NES_POKE(MAPPER246,6005) { ppu.Update(); cRom.SwapBanks<n2k,0x0800>(data); }
-NES_POKE(MAPPER246,6006) { ppu.Update(); cRom.SwapBanks<n2k,0x1000>(data); }
-NES_POKE(MAPPER246,6007) { ppu.Update(); cRom.SwapBanks<n2k,0x1800>(data); }
-
-NES_NAMESPACE_END

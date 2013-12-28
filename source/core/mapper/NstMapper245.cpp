@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003 Martin Freij
+// Copyright (C) 2003-2005 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -22,83 +22,125 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstMappers.h"
-#include "NstMapper004.h"
-#include "NstMapper245.h"
+#include "../NstMapper.hpp"
+#include "../board/NstBrdMmc3.hpp"
+#include "NstMapper245.hpp"
 	  
-NES_NAMESPACE_BEGIN
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER245::Reset()
+namespace Nes
 {
-	EnableIrqSync(IRQSYNC_PPU);
-
-	for (ULONG i=0x8000; i <= 0xFFFF; ++i)
+	namespace Core
 	{
-		switch (i & 0xF7FF)
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("s", on)
+        #endif
+	
+		uint Mapper245::GetCRomFlag(dword crc)
 		{
-    		case 0x8000: cpu.SetPort( i, this, Peek_pRom, Poke_8000 ); continue;
-			case 0x8001: cpu.SetPort( i, this, Peek_pRom, Poke_8001 ); continue;
-			case 0xA000: cpu.SetPort( i, this, Peek_pRom, Poke_A000 ); continue;
-			case 0xC000: cpu.SetPort( i, this, Peek_pRom, Poke_C000 ); continue;
-			case 0xC001: cpu.SetPort( i, this, Peek_pRom, Poke_C001 ); continue;
-			case 0xE000: cpu.SetPort( i, this, Peek_pRom, Poke_E000 ); continue;
-			case 0xE001: cpu.SetPort( i, this, Peek_pRom, Poke_E001 ); continue;
-			default:     cpu.SetPort( i, this, Peek_pRom, Poke_Nop  ); continue;
+			switch (crc)
+			{
+           		case 0xD3A269DCUL: // Dragon Quest II (J)
+         		case 0x9767DC74UL: // Ying Lie Qun Xia Zhuan
+	
+					return CROM_NONE;
+			}
+	
+			return 0;
+		}
+	
+		Mapper245::Mapper245(Context& c)
+		: Mmc3(c,WRAM_8K | GetCRomFlag(c.pRomCrc)) {}
+	
+		void Mapper245::SubReset(const bool hard)
+		{
+			if (hard)		
+				exReg = 0;			
+
+			Mmc3::SubReset( hard );
+	
+			banks.prg[2] = 0x3E;
+			banks.prg[3] = 0x3F;
+
+			for (uint i=0x8001U; i < 0x9000; i += 0x2)
+				Map( i, &Mapper245::Poke_8001 );
+	
+			Map( WRK_PEEK_POKE );
+		}
+	
+		void Mapper245::SubLoad(State::Loader& state)
+		{
+			while (const dword chunk = state.Begin())
+			{
+				if (chunk == NES_STATE_CHUNK_ID('R','E','G','\0'))
+					exReg = (state.Read8() & 0x2) << 5;
+	
+				state.End();
+			}
+		}
+	
+		void Mapper245::SubSave(State::Saver& state) const
+		{
+			state.Begin('R','E','G','\0').Write8( exReg >> 5 ).End();
+		}
+	
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("", on)
+        #endif
+	
+		void Mapper245::UpdatePrg()
+		{
+			const uint i = (regs.ctrl0 & Regs::CTRL0_XOR_PRG) >> 5;
+	
+			prg.SwapBanks<NES_8K,0x0000U>
+			( 
+				exReg | banks.prg[i],
+				exReg | banks.prg[1],
+				exReg | banks.prg[i^2],
+				exReg | banks.prg[3]
+			);
+		}
+  
+		void Mapper245::UpdateChr() const
+		{
+			if (!chr.Source().IsWritable())
+				Mmc3::UpdateChr();
+		}
+	
+		NES_POKE(Mapper245,8001) 
+		{
+			address = (regs.ctrl0 & Regs::CTRL0_MODE);
+
+			if (address >= 6)
+			{
+				if (banks.prg[address - 6] != data)
+				{
+					banks.prg[address - 6] = data;
+					Mapper245::UpdatePrg();
+				}
+			}
+			else 
+			{
+				if (address < 2)
+				{
+					if (address == 0)
+					{
+						const uint tmp = (data & 0x2) << 5;
+
+						if (exReg != tmp)
+						{
+							exReg = tmp;
+							Mapper245::UpdatePrg();
+						}
+					}
+
+					data >>= 1;
+				}
+
+				if (banks.chr[address] != data)
+				{
+					banks.chr[address] = data;
+					Mapper245::UpdateChr();
+				}
+			}
 		}
 	}
-
-	command = 0;
-	latched = FALSE;
-	IrqReset = 0;
-
-	regs[0] = 0;
-	regs[1] = 0;
-	regs[2] = 1;
 }
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER245,8000) 
-{ 
-	command = data;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER245,8001) 
-{
-	apu.Update();
-
-	switch (command)
-	{
-       	case 0x0:
-
-			regs[0] = (data & 0x2) << 5;
-			pRom.SwapBanks<n8k,0x4000>( 0x3E | regs[0] );
-			pRom.SwapBanks<n8k,0x6000>( 0x3F | regs[0] ); 
-			break;
-
-     	case 0x6: 
-			
-			regs[1] = data; 
-			break;
-
-       	case 0x7: 
-			
-			regs[2] = data; 
-			break;
-	}
-
-	pRom.SwapBanks<n8k,0x0000>( regs[0] | regs[1] );
-	pRom.SwapBanks<n8k,0x2000>( regs[0] | regs[2] );
-}
-
-NES_NAMESPACE_END

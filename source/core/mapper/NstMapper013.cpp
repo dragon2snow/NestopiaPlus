@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003 Martin Freij
+// Copyright (C) 2003-2005 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -22,68 +22,31 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstMappers.h"
-#include "NstMapper013.h"
-		   
-NES_NAMESPACE_BEGIN
+#include "../NstMapper.hpp"
+#include "NstMapper013.hpp"
 
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-MAPPER13::MAPPER13(CONTEXT& c)
-: 
-MAPPER (c),
-cram   (n16k)
-{}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER13::Reset()
+namespace Nes
 {
-	cpu.SetPort( 0x8000, 0x9FFF, this, Peek_8000, Poke_pRom );
-	cpu.SetPort( 0xA000, 0xBFFF, this, Peek_A000, Poke_pRom );
-	cpu.SetPort( 0xC000, 0xDFFF, this, Peek_C000, Poke_pRom );
-	cpu.SetPort( 0xE000, 0xFFFF, this, Peek_E000, Poke_pRom );
-
-	pRom.SwapBanks<n32k,0x0000>(0);
-	ppu.SetPort( 0x0000, 0x1FFF, &cram, CRAM::Peek, CRAM::Poke );
+	namespace Core
+	{
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("s", on)
+        #endif
+	
+		void Mapper13::SubReset(const bool hard)
+		{
+			Map( 0x8000U, 0xFFFFU, &Mapper13::Poke_Prg );
+		}
+	
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("", on)
+        #endif
+	
+		NES_POKE(Mapper13,Prg)
+		{
+			ppu.Update();
+			prg.SwapBank<NES_32K,0x0000U>( (data >> 4) & 0x3 );
+			chr.SwapBank<NES_4K,0x1000U>( (data >> 0) & 0x3 );
+		}
+	}
 }
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER13,pRom)
-{
-	apu.Update();
-	ppu.Update();
-	pRom.SwapBanks<n32k,0x0000>( (data & 0x30) >> 4 );
-	cram.SwapBanks<n4k,0x1000> ( (data & 0x03) >> 0 );
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-PDXRESULT MAPPER13::LoadState(PDXFILE& file)
-{
-	PDX_TRY(MAPPER::LoadState(file));
-	return cram.LoadState(file);
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-PDXRESULT MAPPER13::SaveState(PDXFILE& file) const
-{
-	PDX_TRY(MAPPER::SaveState(file));
-	return cram.SaveState(file);
-}
-
-NES_NAMESPACE_END
-
-

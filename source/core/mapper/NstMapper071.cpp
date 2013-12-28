@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003 Martin Freij
+// Copyright (C) 2003-2005 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -22,41 +22,31 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstMappers.h"
-#include "NstMapper071.h"
+#include "../NstMapper.hpp"
+#include "NstMapper071.hpp"
 			 
-NES_NAMESPACE_BEGIN
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER71::Reset()
+namespace Nes
 {
-	cpu.SetPort( 0x6000, 0x7FFF, this, Peek_Nop,  Poke_C000 );
-	cpu.SetPort( 0x9000, 0x9FFF, this, Peek_9000, Poke_9000 );
-	cpu.SetPort( 0xC000, 0xFFFF, this, Peek_pRom, Poke_C000 );
+	namespace Core
+	{
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("s", on)
+        #endif
+	
+		void Mapper71::SubReset(bool)
+		{
+			Map( 0x6000U, 0x7FFFU, PRG_SWAP_16K );
+			Map( 0x9000U, 0x9FFFU, &Mapper71::Poke_9000 );
+			Map( 0xC000U, 0xFFFFU, PRG_SWAP_16K );
+		}
+	
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("", on)
+        #endif
+	
+		NES_POKE(Mapper71,9000)
+		{
+			ppu.SetMirroring( (data & 0x10) ? Ppu::NMT_ONE : Ppu::NMT_ZERO );
+		}
+	}
 }
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER71,9000)
-{
-	const UINT m = (data & 0x10) ? 1 : 0;
-	ppu.SetMirroring(m,m,m,m);
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER71,C000)
-{
-	apu.Update();
-	pRom.SwapBanks<n16k,0x0000>(data);
-}
-
-NES_NAMESPACE_END
-

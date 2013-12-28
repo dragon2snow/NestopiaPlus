@@ -1,4 +1,85 @@
 ----------------------------------------------------------------
+1.20
+----------------------------------------------------------------
+
+Given the fact that it has taken almost two years to complete this release 
+I've basically lost track of the shitload of changes and fixes I've made
+throughout this time, but I'll try to cover the most notable new additions.
+
+But first, I'd like to thank all the beta testers who helped shaping up 
+this release, especially Hellsbane, Michael Walsemann, Benjamin Siskoo 
+and Robert Tuccitto for their dedicated time and effort in searching for
+bugs.
+
+The Windows port has been rewritten from scratch (which proved to be more
+time consuming than I initially thought). The emulation core has gone 
+through a complete overhaul as well.
+
+Some of the new features:
+
+ - DirectDraw kicked out and replaced by Direct3D (DirectX 9.0c now required)
+ - More video filtering options
+ - More multitasking friendly
+ - Configurable menu keys
+ - Less cumbersome to take screenshots and no more GDI+ requirement
+ - Selectable auto-fire speed
+ - Recent directories
+ - Ability to lock and clear the recent files and directories lists
+ - Selectable LED source for FDS disk access
+ - Alternative emulation speed via assignable key/button
+ - Ability to change the menu color
+ - Changes to brightness/saturation/hue takes effect immediately
+ - More logfile (disabled by default now) diagnostics
+ - Cursor gets auto-hidden
+ - Many hard-coded strings now moved into the resource section 
+ - Image info for FDS and NSF files
+ - Can make IPS files out of changes to FDS disk files
+ - Can edit iNes file headers
+ - Hq2x/Hq3x filter support
+ - Additional GUI improvements
+
+New iNes mappers:
+
+ 53, 56, 142, 158, 164, 165, 193, 203, 204, 205, 206, 207, 208,
+ 209, 210, 211, 212, 213, 215, 217
+
+Fixed iNes mappers:
+  
+ *many*
+
+New UNIF boards:
+
+ Mario 1 Malee 2, Novel Diamond 9999999-in-1, Super Game 8237 
+ Super 24-in-1, WS 40-in-1
+
+New controllers:
+
+ Oeka Kids Tablet, Hyper Shot, Crazy Climber, Mahjong, Exciting Boxing 
+ Top Rider, Pokkun Moguraa
+
+Other emu core related things:
+
+ - More standard conformant C++ code
+ - Easier to port to other platforms using a new written API
+ - Many speed optimizations (but at NO cost of emulation accuracy)
+ - Save state and movie file formats rewritten, old files will no longer work
+ - More accurate APU and PPU emulation thanks to RE work by Blargg, Kevtris and Quietust
+ - Perfectly time-aligned sound sample output by using a common clocking rate
+ - Uses new updated palette by Matrixz
+ - Better (but not perfect) NTSC color generation algorithm based on tweaks by AWJ
+ - ROM database fixes and additions
+ - Support for phantom stereo sound output
+ - More accurate FDS emulation
+ - Better sound quality with the external sound chips
+ - Auto-selects between Famicom and NES 4-player adapter based on game CRC
+ - More accurate emulation for several controllers
+ - More accurate hard/soft reset behaviour
+ 
+That covers most of it.	If you like this release and would like to thank me for
+eating Nestopia, sleeping Nestopia and breathing Nestopia during these past two years 
+consider donating a few bucks through the pay-pal link at http://sourceforge.net/projects/nestopia.
+
+----------------------------------------------------------------
 1.09
 ----------------------------------------------------------------
 

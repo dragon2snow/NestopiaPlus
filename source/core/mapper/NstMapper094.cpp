@@ -1,8 +1,8 @@
-////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003 Martin Freij
+// Copyright (C) 2003-2005 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -22,34 +22,30 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstMappers.h"
-#include "NstMapper094.h"
+#include "../NstMapper.hpp"
+#include "NstMapper094.hpp"
 
-NES_NAMESPACE_BEGIN
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER94::Reset()
+namespace Nes
 {
-	cpu.SetPort( 0x8000, 0x8FFF, this, Peek_8000, Poke_pRom );
-	cpu.SetPort( 0xA000, 0xBFFF, this, Peek_A000, Poke_pRom );
-	cpu.SetPort( 0xC000, 0xDFFF, this, Peek_C000, Poke_pRom );
-	cpu.SetPort( 0xE000, 0xFFFF, this, Peek_E000, Poke_pRom );
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER94,pRom)
-{
-	if ((address & 0xFFF0) == 0xFF00)
+	namespace Core
 	{
-		apu.Update();
-		pRom.SwapBanks<n16k,0x0000>( (data & 0x1C) >> 2 );
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("s", on)
+        #endif
+	
+		void Mapper94::SubReset(bool)
+		{
+			Map( 0x8000U, 0xFFFFU, &Mapper94::Poke_Prg );
+		}
+	
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("", on)
+        #endif
+	
+		NES_POKE(Mapper94,Prg)
+		{
+			if ((address & 0xFFF0U) == 0xFF00U)
+				prg.SwapBank<NES_16K,0x0000U>( (data & 0x1C) >> 2 );
+		}
 	}
 }
-
-NES_NAMESPACE_END

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003 Martin Freij
+// Copyright (C) 2003-2005 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -22,100 +22,96 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstMappers.h"
-#include "NstMapper051.h"
+#include "../NstMapper.hpp"
+#include "NstMapper051.hpp"
 
-NES_NAMESPACE_BEGIN
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER51::Reset()
+namespace Nes
 {
-	if (cRom.Size())
-		EnableCartridgeCRam();
-
-	cpu.SetPort( 0x6000, 0x7FFF, this, Peek_6000, Poke_6000 );
-	cpu.SetPort( 0x8000, 0x9FFF, this, Peek_8000, Poke_8000 );
-	cpu.SetPort( 0xA000, 0xBFFF, this, Peek_A000, Poke_8000 );
-	cpu.SetPort( 0xC000, 0xDFFF, this, Peek_C000, Poke_C000 );
-	cpu.SetPort( 0xE000, 0xFFFF, this, Peek_E000, Poke_8000 );
-
-	bank = 0;
-	mode = 1;
-
-	UpdateBanks();
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_PEEK(MAPPER51,6000)
-{
-	return *pRom.Ram(offset + address - 0x6000);
-}
-
-NES_POKE(MAPPER51,6000) 
-{
-	mode = 
-	(
-     	((data & 0x10) >> 3) | 
-		((data & 0x02) >> 1)
-	);
-
-	UpdateBanks();
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER51,8000) 
-{
-	bank = (data & 0x0F) << 2;
-	UpdateBanks();
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER51,C000)
-{
-	bank = (data & 0x0F) << 2;
-	mode = (mode & 0x01) | ((data & 0x10) >> 3);
-	UpdateBanks();
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER51::UpdateBanks()
-{
-	apu.Update();
-	ppu.SetMirroring( (mode < 3) ? MIRROR_VERTICAL : MIRROR_HORIZONTAL );
-
-	switch (mode)
+	namespace Core
 	{
-		case 1:
-		case 3:
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("s", on)
+        #endif
+		
+		void Mapper51::SubReset(const bool hard)
+		{
+			if (hard)
+			{
+				bank = 0;
+				mode = 1;
+			}
 
-			pRom.SwapBanks<n32k,0x0000>( (bank >> 2) );
-			offset = bank | 0x23;
-			break;
+			Map( WRK_PEEK );
+			Map( 0x6000U, 0x7FFFU, &Mapper51::Poke_6000 );
+			Map( 0x8000U, 0xBFFFU, &Mapper51::Poke_8000 );
+			Map( 0xC000U, 0xDFFFU, &Mapper51::Poke_C000 );
+			Map( 0xE000U, 0xFFFFU, &Mapper51::Poke_8000 );
+		}
 
-		default:
+		void Mapper51::SubLoad(State::Loader& state)
+		{
+			while (const dword chunk = state.Begin())
+			{
+				if (chunk == NES_STATE_CHUNK_ID('R','E','G','\0'))
+				{
+					{
+						const uint data = state.Read8();
+						mode = data & 0x3;
+						bank = data >> 4;
+					}
 
-			pRom.SwapBanks<n16k,0x0000>( (bank >> 1) | (mode >> 1) );
-			pRom.SwapBanks<n16k,0x4000>( (bank >> 1) | 0x7 );
-			offset = bank | 0x2F;
-			break;
+					UpdateBanks();
+				}
+	
+				state.End();
+			}
+		}
+	
+		void Mapper51::SubSave(State::Saver& state) const
+		{
+			state.Begin('R','E','G','\0').Write8( mode | (bank << 4) ).End();
+		}
+	
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("", on)
+        #endif
+
+		void Mapper51::UpdateBanks()
+		{
+			uint offset;
+
+			if (mode & 0x1)
+			{
+				prg.SwapBank<NES_32K,0x0000U>( bank );
+				offset = 0x23;
+			}
+			else
+			{
+				prg.SwapBanks<NES_16K,0x0000U>( (bank << 1) | (mode >> 1), (bank << 1) | 0x7 );
+				offset = 0x2F;
+			}
+
+			wrk.SwapBank<NES_8K,0x0000U>( offset | (bank << 2) );
+			ppu.SetMirroring( (mode == 0x3) ? Ppu::NMT_HORIZONTAL : Ppu::NMT_VERTICAL );
+		}
+
+		NES_POKE(Mapper51,6000) 
+		{
+			mode = ((data & 0x10) >> 3) | ((data & 0x02) >> 1);	
+			UpdateBanks();
+		}
+	
+		NES_POKE(Mapper51,8000) 
+		{
+			bank = data & 0x0F;
+			UpdateBanks();
+		}
+	
+		NES_POKE(Mapper51,C000)
+		{
+			bank = data & 0x0F;
+			mode = (mode & 0x01) | ((data & 0x10) >> 3);
+			UpdateBanks();
+		}
 	}
-
-	offset *= n8k;
 }
-
-NES_NAMESPACE_END

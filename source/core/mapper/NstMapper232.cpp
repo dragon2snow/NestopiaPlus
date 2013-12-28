@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003 Martin Freij
+// Copyright (C) 2003-2005 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -22,42 +22,36 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstMappers.h"
-#include "NstMapper232.h"
+#include "../NstMapper.hpp"
+#include "NstMapper232.hpp"
 
-NES_NAMESPACE_BEGIN
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER232::Reset()
+namespace Nes
 {
-	cpu.SetPort( 0x9000,         this, Peek_9000, Poke_9000 );
-	cpu.SetPort( 0xA000, 0xBFFF, this, Peek_A000, Poke_A000 );
-	cpu.SetPort( 0xC000, 0xDFFF, this, Peek_C000, Poke_A000 );
-	cpu.SetPort( 0xE000, 0xFFFF, this, Peek_E000, Poke_A000 );
+	namespace Core
+	{
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("s", on)
+        #endif
+	
+		void Mapper232::SubReset(bool)
+		{
+			Map( 0x9000U,          &Mapper232::Poke_9000 );
+			Map( 0xA000U, 0xFFFFU, &Mapper232::Poke_A000 );
+		}
 
-	regs[0] = 0x0C;
-	regs[1] = 0x00;
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("", on)
+        #endif
+
+		NES_POKE(Mapper232,9000) 
+		{ 
+			data = (data & 0x18) >> 1;
+			prg.SwapBanks<NES_16K,0x0000U>( data | (prg.GetBank<NES_16K,0x0000U>() & 0x3), data | 0x3 );
+		}
+
+		NES_POKE(Mapper232,A000) 
+		{ 
+			prg.SwapBank<NES_16K,0x0000U>( (prg.GetBank<NES_16K,0x0000U>() & 0xC) | (data & 0x3) );
+		}
+	}
 }
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER232,9000) { regs[0] = (data & 0x18) >> 1; BankSwitch(); }
-NES_POKE(MAPPER232,A000) { regs[1] = (data & 0x03) >> 0; BankSwitch(); }
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER232::BankSwitch()
-{
-	apu.Update();
-	pRom.SwapBanks<n16k,0x0000>( regs[0] | regs[1] );
-	pRom.SwapBanks<n16k,0x4000>( regs[0] | 0x3     );
-}
-
-NES_NAMESPACE_END

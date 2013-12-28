@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003 Martin Freij
+// Copyright (C) 2003-2005 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -22,35 +22,26 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstMappers.h"
-#include "NstMapper009.h"
-#include "NstMapper010.h"
+#include "../NstMapper.hpp"
+#include "../board/NstBrdMmc2.hpp"
+#include "NstMapper010.hpp"
 	  
-NES_NAMESPACE_BEGIN
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER10::Reset()
+namespace Nes
 {
-	MAPPER9::Reset();
+	namespace Core
+	{
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("s", on)
+        #endif
 
-	cpu.SetPort( 0xA000, 0xAFFF, this, Peek_A000, Poke_A000 );
+		void Mapper10::SubReset(const bool hard)
+		{
+			Mmc2::SubReset( hard );
+			Map( 0xA000U, 0xAFFFU, PRG_SWAP_16K );
+		}
 
-	pRom.SwapBanks<n16k,0x0000>( 0 );
-	pRom.SwapBanks<n16k,0x4000>( pRom.NumBanks<n16k>() - 1 );
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("", on)
+        #endif
+	}
 }
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER10,A000)
-{
-	apu.Update(); 
-	pRom.SwapBanks<n16k,0x0000>(data);
-}
-
-NES_NAMESPACE_END
-

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003 Martin Freij
+// Copyright (C) 2003-2005 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -22,49 +22,66 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstMappers.h"
-#include "NstMapper004.h"
-#include "NstMapper115.h"
+#include "../NstMapper.hpp"
+#include "../board/NstBrdMmc3.hpp"
+#include "NstMapper115.hpp"
 
-NES_NAMESPACE_BEGIN
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER115::Reset()
+namespace Nes
 {
-	MAPPER4::Reset();
+	namespace Core
+	{
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("s", on)
+        #endif
+	
+		void Mapper115::SubReset(const bool hard)
+		{
+			if (hard)
+				exReg = 0;
 
-	cpu.SetPort( 0x6000,         this, Peek_Nop, Poke_6000 );
-	cpu.SetPort( 0x6001, 0x7FFF, this, Peek_Nop, Poke_6001 );
+			Mmc3::SubReset( hard );
+	
+			Map( 0x6000U,          &Mapper115::Poke_6000 );
+			Map( 0x6001U, 0x7FFFU, &Mapper115::Poke_6001 );
+		}
+	
+		void Mapper115::SubLoad(State::Loader& state)
+		{
+			while (const dword chunk = state.Begin())
+			{
+				if (chunk == NES_STATE_CHUNK_ID('R','E','G','\0'))
+					exReg = state.Read8();
+	
+				state.End();
+			}
+		}
+	
+		void Mapper115::SubSave(State::Saver& state) const
+		{
+			state.Begin('R','E','G','\0').Write8( exReg ).End();
+		}
+	
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("", on)
+        #endif
+	
+		NES_POKE(Mapper115,6000)
+		{
+			exReg = data;
+			Mapper115::UpdatePrg();
+		}
+	
+		NES_POKE(Mapper115,6001)
+		{
+			Mapper115::UpdatePrg();
+		}
+	
+		void Mapper115::UpdatePrg()
+		{
+			Mmc3::UpdatePrg();
+	
+			if (exReg & 0x80)
+				prg.SwapBank<NES_16K,0x0000U>(exReg & 0x7);
+		}
+	}
 }
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER115,6000)
-{
-	reg = data;
-	UpdatePRom();
-}
-
-NES_POKE(MAPPER115,6001)
-{
-	UpdatePRom();
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER115::UpdatePRom()
-{
-	MAPPER4::UpdatePRom();
-
-	if (reg & 0x80)
-		pRom.SwapBanks<n16k,0x0000>(reg & 0x7);
-}
-
-NES_NAMESPACE_END

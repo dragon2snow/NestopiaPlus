@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003 Martin Freij
+// Copyright (C) 2003-2005 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -22,108 +22,115 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstMappers.h"
-#include "NstMapper117.h"
+#include "../NstMapper.hpp"
+#include "../board/NstBrdMmc3.hpp"
+#include "NstMapper117.hpp"
 	  
-NES_NAMESPACE_BEGIN
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER117::Reset()
+namespace Nes
 {
-	EnableIrqSync(IRQSYNC_PPU);
-
-	cpu.SetPort( 0x8000, this, Peek_8000, Poke_8000 );
-	cpu.SetPort( 0x8001, this, Peek_8000, Poke_8001 );
-	cpu.SetPort( 0x8002, this, Peek_8000, Poke_8002 );
-	cpu.SetPort( 0x8003, this, Peek_8000, Poke_8003 );
-	cpu.SetPort( 0xA000, this, Peek_A000, Poke_A000 );
-	cpu.SetPort( 0xA001, this, Peek_A000, Poke_A001 );
-	cpu.SetPort( 0xA002, this, Peek_A000, Poke_A002 );
-	cpu.SetPort( 0xA003, this, Peek_A000, Poke_A003 );
-	cpu.SetPort( 0xA004, this, Peek_A000, Poke_A004 );
-	cpu.SetPort( 0xA005, this, Peek_A000, Poke_A005 );
-	cpu.SetPort( 0xA006, this, Peek_A000, Poke_A006 );
-	cpu.SetPort( 0xA007, this, Peek_A000, Poke_A007 );
-	cpu.SetPort( 0xC001, this, Peek_C000, Poke_C001 );
-	cpu.SetPort( 0xC002, this, Peek_C000, Poke_C002 );
-	cpu.SetPort( 0xC003, this, Peek_C000, Poke_C003 );
-	cpu.SetPort( 0xE000, this, Peek_E000, Poke_E000 );
-
-	IrqLine = 0;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER117,8000) { apu.Update(); pRom.SwapBanks<n8k,0x0000>(data); }
-NES_POKE(MAPPER117,8001) { apu.Update(); pRom.SwapBanks<n8k,0x2000>(data); }
-NES_POKE(MAPPER117,8002) { apu.Update(); pRom.SwapBanks<n8k,0x4000>(data); }
-NES_POKE(MAPPER117,8003) { apu.Update(); pRom.SwapBanks<n8k,0x6000>(data); }
-NES_POKE(MAPPER117,A000) { ppu.Update(); cRom.SwapBanks<n1k,0x0000>(data); }
-NES_POKE(MAPPER117,A001) { ppu.Update(); cRom.SwapBanks<n1k,0x0400>(data); }
-NES_POKE(MAPPER117,A002) { ppu.Update(); cRom.SwapBanks<n1k,0x0800>(data); }
-NES_POKE(MAPPER117,A003) { ppu.Update(); cRom.SwapBanks<n1k,0x0C00>(data); }
-NES_POKE(MAPPER117,A004) { ppu.Update(); cRom.SwapBanks<n1k,0x1000>(data); }
-NES_POKE(MAPPER117,A005) { ppu.Update(); cRom.SwapBanks<n1k,0x1400>(data); }
-NES_POKE(MAPPER117,A006) { ppu.Update(); cRom.SwapBanks<n1k,0x1800>(data); }
-NES_POKE(MAPPER117,A007) { ppu.Update(); cRom.SwapBanks<n1k,0x1C00>(data); }
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER117,C001) 
-{ 
-	IrqLatch = data; 
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER117,C002) 
-{ 
-	cpu.ClearIRQ();  
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER117,C003) 
-{ 
-	IrqCount = IrqLatch; 
-	IrqLine |= IRQ_LINE_2; 
-	SetIrqEnable(IrqLine == IRQ_LINE_1_2); 
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER117,E000) 
-{ 
-	cpu.ClearIRQ(); 
-	IrqLine = (IrqLine & ~IRQ_LINE_1) | (data & IRQ_LINE_1);
-	SetIrqEnable(IrqLine == IRQ_LINE_1_2);
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER117::IrqSync()
-{
-	if (--IrqCount <= 0)
+	namespace Core
 	{
-		IrqLine &= IRQ_LINE_1;
-		SetIrqEnable(FALSE);
-		cpu.DoIRQ();
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("s", on)
+        #endif
+	
+		Mapper117::Mapper117(Context& c)
+		: 
+		Mapper (c),
+		irq    (c.cpu,c.ppu)
+		{}
+	
+		void Mapper117::SubReset(const bool hard)
+		{
+			if (hard)
+				irqState = 0;
+
+			irq.Reset( hard, hard || irq.IsLineEnabled() );
+
+			Map( 0x8000U, PRG_SWAP_8K_0 );
+			Map( 0x8001U, PRG_SWAP_8K_1 );
+			Map( 0x8002U, PRG_SWAP_8K_2 );
+			Map( 0x8003U, PRG_SWAP_8K_3 );		
+			Map( 0xA000U, CHR_SWAP_1K_0 );
+			Map( 0xA001U, CHR_SWAP_1K_1 );
+			Map( 0xA002U, CHR_SWAP_1K_2 );
+			Map( 0xA003U, CHR_SWAP_1K_3 );
+			Map( 0xA004U, CHR_SWAP_1K_4 );
+			Map( 0xA005U, CHR_SWAP_1K_5 );
+			Map( 0xA006U, CHR_SWAP_1K_6 );
+			Map( 0xA007U, CHR_SWAP_1K_7 );
+			Map( 0xC001U, &Mapper117::Poke_C001 );
+			Map( 0xC002U, &Mapper117::Poke_C002 );
+			Map( 0xC003U, &Mapper117::Poke_C003 );
+			Map( 0xE000U, &Mapper117::Poke_E000 );
+		}
+	
+		void Mapper117::SubLoad(State::Loader& state)
+		{
+			while (const dword chunk = state.Begin())
+			{
+				if (chunk == NES_STATE_CHUNK_ID('I','R','Q','\0'))
+				{
+					irq.unit.LoadState( state );
+					irqState = state.Read8() & (IRQ_LATCH_0|IRQ_LATCH_1);
+				}
+
+				state.End();
+			}
+		}
+
+		void Mapper117::SubSave(State::Saver& state) const
+		{
+			state.Begin('I','R','Q','\0');
+			irq.unit.SaveState( state );
+			state.Write8( irqState );
+			state.End();
+		}
+	
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("", on)
+        #endif
+	
+		NES_POKE(Mapper117,C001) 
+		{ 
+			irq.Update();
+			irq.unit.SetLatch( data );
+		}
+	
+		NES_POKE(Mapper117,C002) 
+		{ 
+			cpu.ClearIRQ();
+		}
+	
+		NES_POKE(Mapper117,C003) 
+		{ 
+			irq.Update();
+	
+			irqState |= IRQ_LATCH_0;
+	
+			if (irqState == IRQ_ENABLE)
+				irq.unit.Enable();
+			else
+				irq.unit.Disable( cpu );
+	
+			irq.unit.Reload();
+		}
+	
+		NES_POKE(Mapper117,E000) 
+		{ 
+			irq.Update();
+	
+			irqState = (irqState & ~uint(IRQ_LATCH_1)) | (data & IRQ_LATCH_1);
+	
+			if (irqState == IRQ_ENABLE)
+				irq.unit.Enable();
+			else
+				irq.unit.Disable( cpu );
+		}
+
+		void Mapper117::VSync()
+		{
+			irq.VSync();
+		}
 	}
 }
-
-NES_NAMESPACE_END

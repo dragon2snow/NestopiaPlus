@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003 Martin Freij
+// Copyright (C) 2003-2005 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -22,129 +22,80 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstMappers.h"
-#include "NstMapper004.h"
-#include "NstMapper012.h"
+#include "../NstMapper.hpp"
+#include "../board/NstBrdMmc3.hpp"
+#include "NstMapper012.hpp"
 	   
-NES_NAMESPACE_BEGIN
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-MAPPER12::MAPPER12(CONTEXT& c)
-: MAPPER4(c,regs,regs+2) {}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER12::Reset()
+namespace Nes
 {
-	MAPPER4::Reset();
-
-	regs[0] = regs[1] = 0;
-
-	if (!cRom.Size())
+	namespace Core
 	{
-		EnableCartridgeCRam();
-		cpu.SetPort( 0x4100, 0x7FFF, this, Peek_4100, Poke_Nop );
-	}
-	else
-	{
-		cpu.SetPort( 0x4100, 0x5FFF, this, Peek_4100, Poke_4100 );
-		cpu.SetPort( 0x6000, 0x7FFF, this, Peek_4100, Poke_Nop );
-	}
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER12,4100)
-{
-	regs[0] = (data & 0x01) << 8;
-	regs[1] = (data & 0x10) << 4;
-
-	UpdateCRom();
-}
-
-NES_PEEK(MAPPER12,4100)
-{
-	return 0x01;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER12::UpdateCRom()
-{
-	ppu.Update();
-
-	if (IsCRam)
-	{
-		UpdateCRam();
-	}
-	else
-	{
-		if (command & SWAP_CROM_BANKS) 
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("s", on)
+        #endif
+	
+		void Mapper12::SubReset(const bool hard)
 		{
-			cRom.SwapBanks<n1k,0x0000>( regs[0] + cRomBanks[2] ); 
-			cRom.SwapBanks<n1k,0x0400>( regs[0] + cRomBanks[3] ); 
-			cRom.SwapBanks<n1k,0x0800>( regs[0] + cRomBanks[4] ); 
-			cRom.SwapBanks<n1k,0x0C00>( regs[0] + cRomBanks[5] ); 
-			cRom.SwapBanks<n2k,0x1000>( regs[1] + cRomBanks[0] ); 
-			cRom.SwapBanks<n2k,0x1800>( regs[1] + cRomBanks[1] ); 
+			if (hard)
+				exRegs[0] = exRegs[1] = 0;
+	
+			Mmc3::SubReset( hard );
+	
+			Map( 0x4100U, 0x5FFFU, &Mapper12::Peek_4100, &Mapper12::Poke_4100 );
+			Map( 0x6000U, 0x7FFFU, &Mapper12::Peek_4100 );
 		}
-		else
+	
+		void Mapper12::SubLoad(State::Loader& state)
 		{
-			cRom.SwapBanks<n2k,0x0000>( regs[0] + cRomBanks[0] ); 
-			cRom.SwapBanks<n2k,0x0800>( regs[0] + cRomBanks[1] ); 
-			cRom.SwapBanks<n1k,0x1000>( regs[1] + cRomBanks[2] ); 
-			cRom.SwapBanks<n1k,0x1400>( regs[1] + cRomBanks[3] ); 
-			cRom.SwapBanks<n1k,0x1800>( regs[1] + cRomBanks[4] ); 
-			cRom.SwapBanks<n1k,0x1C00>( regs[1] + cRomBanks[5] ); 
+			while (const dword chunk = state.Begin())
+			{
+				if (chunk == NES_STATE_CHUNK_ID('R','E','G','\0'))
+				{
+					const uint data = state.Read8();
+					exRegs[0] = (data & 0x01) << 8;
+					exRegs[1] = (data & 0x10) << 4;
+				}
+	
+				state.End();
+			}
+		}
+	
+		void Mapper12::SubSave(State::Saver& state) const
+		{
+			state.Begin('R','E','G','\0').Write8( ((exRegs[0] >> 8) & 0x01) | ((exRegs[1] >> 4) & 0x10) ).End();
+		}
+	
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("", on)
+        #endif
+	
+		NES_POKE(Mapper12,4100)
+		{
+			exRegs[0] = (data & 0x01) << 8;
+			exRegs[1] = (data & 0x10) << 4;
+	
+			Mapper12::UpdateChr();
+		}
+	
+		NES_PEEK(Mapper12,4100)
+		{
+			return 0x01;
+		}
+	
+		void Mapper12::UpdateChr() const
+		{
+			ppu.Update();
+	
+			const uint swap = (regs.ctrl0 & Regs::CTRL0_XOR_CHR) << 5;
+	
+			const uint base[2] = 
+			{
+				exRegs[(regs.ctrl0 >> Regs::CTRL0_MODE) ^ 0],
+				exRegs[(regs.ctrl0 >> Regs::CTRL0_MODE) ^ 1]
+			};
+	
+			chr.SwapBanks<NES_2K>( 0x0000U ^ swap, base[0] + banks.chr[0], base[0] + banks.chr[1] ); 
+			chr.SwapBanks<NES_1K>( 0x1000U ^ swap, base[1] + banks.chr[2], base[1] + banks.chr[3], base[1] + banks.chr[4], base[1] + banks.chr[5] ); 
 		}
 	}
 }
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER12::UpdateCRam()
-{
-	if (command & SWAP_CROM_BANKS)
-	{
-		cRom.SwapBanks<n1k,0x0000>( cRomBanks[2] & 0x7 ); 
-		cRom.SwapBanks<n1k,0x0400>( cRomBanks[3] & 0x7 ); 
-		cRom.SwapBanks<n1k,0x0800>( cRomBanks[4] & 0x7 ); 
-		cRom.SwapBanks<n1k,0x0C00>( cRomBanks[5] & 0x7 ); 
-		cRom.SwapBanks<n2k,0x1000>( cRomBanks[0] & 0x3 ); 
-		cRom.SwapBanks<n2k,0x1800>( cRomBanks[1] & 0x3 ); 
-	}
-	else
-	{
-		cRom.SwapBanks<n2k,0x0000>( cRomBanks[0] & 0x3 ); 
-		cRom.SwapBanks<n2k,0x0800>( cRomBanks[1] & 0x3 ); 
-		cRom.SwapBanks<n1k,0x1000>( cRomBanks[2] & 0x7 ); 
-		cRom.SwapBanks<n1k,0x1400>( cRomBanks[3] & 0x7 ); 
-		cRom.SwapBanks<n1k,0x1800>( cRomBanks[4] & 0x7 ); 
-		cRom.SwapBanks<n1k,0x1C00>( cRomBanks[5] & 0x7 ); 
-	}	
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER12::IrqSync()
-{
-	IrqReset = 0;
-
-	if ((IrqCount-- <= 0) && (IrqCount = IrqLatch))
-		cpu.DoIRQ();
-}
-
-NES_NAMESPACE_END

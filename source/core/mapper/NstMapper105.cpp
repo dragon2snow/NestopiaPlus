@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003 Martin Freij
+// Copyright (C) 2003-2005 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -22,316 +22,241 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstMappers.h"
-#include "NstMapper105.h"
-			  
-NES_NAMESPACE_BEGIN
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-MAPPER105::MAPPER105(CONTEXT& c)
-: 
-MAPPER       (c,registers,&ready+1), 
-DipValue     (0),
-DisplayTimer (TRUE),
-elapsed      ("Time Left: ")
-{}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER105::Reset()
+#include <cstdio>
+#include <cstring>
+#include "../NstMapper.hpp"
+#include "../board/NstBrdMmc1.hpp"
+#include "NstMapper105.hpp"
+#include "../api/NstApiUser.hpp"
+			 
+namespace Nes
 {
-	EnableIrqSync(IRQSYNC_COUNT);
-
-	cpu.SetPort( 0x8000, 0x9FFF, this, Peek_8000, Poke_pRom );
-	cpu.SetPort( 0xA000, 0xBFFF, this, Peek_A000, Poke_pRom );
-	cpu.SetPort( 0xC000, 0xDFFF, this, Peek_C000, Poke_pRom );
-	cpu.SetPort( 0xE000, 0xFFFF, this, Peek_E000, Poke_pRom );
-
-	registers[0] = REG0_RESET;
-	registers[1] = 0x00;
-	registers[2] = 0x00;
-	registers[3] = 0x10;
-
-	pRom.SwapBanks<n32k,0x0000>(0);
-
-	latch = 0;
-	count = 0;
-	ready = 0;
+	namespace Core
+	{
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("s", on)
+        #endif
 	
-	UpdateTimer();
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER105,pRom)
-{
-	const UINT index = (address & 0x7FFF) >> 13;
-
-	if (data & DATA_RESET)
-	{
-		latch = 0;
-		count = 0;
-
-		if (!index)
-			registers[0] |= REG0_RESET;
-	}
-	else
-	{
-		latch |= (data & 0x1) << count++;
-
-		if (count == 5)
+		Mapper105::Mapper105(Context& c)
+		: 
+		Mmc1        (c), 
+		dipValue    (0),
+		displayTime (true)
 		{
-			registers[index] = latch & 0x1F;
-			latch = 0;
-			count = 0;
+			std::strcpy( text, "Time Left: " );
+		}
+	
+		void Mapper105::SubReset(const bool hard)
+		{
+			irqEnabled = false;
+			Mmc1::SubReset( hard );
+	
+			prg.SwapBank<NES_16K,0x4000U>( 1 );
+	
+			static const u16 lut[16] =
+			{
+				5.001 * 60,
+				5.316 * 60,
+				5.629 * 60,
+				5.942 * 60,
+				6.254 * 60,
+				6.567 * 60,
+				6.880 * 60,
+				7.193 * 60,
+				7.505 * 60,
+				7.818 * 60,
+				8.131 * 60,
+				8.444 * 60,
+				8.756 * 60,
+				9.070 * 60,
+				9.318 * 60,
+				9.695 * 60
+			};
+	
+			NST_ASSERT( dipValue < 16 );
+	
+			time = lut[dipValue];
+		}
+	
+		void Mapper105::SubLoad(State::Loader& state)
+		{
+			irqEnabled = (regs[1] & IRQ_DISABLE) ^ IRQ_DISABLE;
+			frames = 1;
+	
+			while (const dword chunk = state.Begin())
+			{
+				if (chunk == NES_STATE_CHUNK_ID('T','I','M','\0'))
+				{
+					seconds = state.Read32();
+					seconds = NST_CLAMP(seconds,1,time);
+				}
+	
+				state.End();
+			}
+		}
+	
+		void Mapper105::SubSave(State::Saver& state) const
+		{
+			state.Begin('T','I','M','\0').Write32( seconds ).End();
+		}
+	
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("", on)
+        #endif
+	
+		void Mapper105::UpdatePrg()
+		{
+			if (regs[1] & 0x8)
+			{
+				switch (regs[0] & 0xC)
+				{
+					case 0x0:
+					case 0x4:
+				
+						prg.SwapBank<NES_32K,0x0000U>( (0x8 + (regs[3] & 0x6)) >> 1 );
+						break;
+				
+					case 0x8:
+				
+						prg.SwapBanks<NES_16K,0x0000U>( 0x8, 0x8 + (regs[3] & 0x7) );
+						break;
+				
+					case 0xC:
+				
+						prg.SwapBanks<NES_16K,0x0000U>( 0x8 + (regs[3] & 0x7), 0xF );
+						break;
+				}
+			}
+			else
+			{	
+				prg.SwapBank<NES_32K,0x0000U>( (regs[1] & 0x6) >> 1 );
+			}
+		}
+	
+		void Mapper105::UpdateRegister0()
+		{
+			UpdateMirroring();
+			UpdatePrg();
+		}
+	
+		void Mapper105::UpdateRegister1()
+		{
+			const uint state = (regs[1] & IRQ_DISABLE) ^ IRQ_DISABLE;
+	
+			if (irqEnabled != state)
+			{
+				irqEnabled = state;
+	
+				if (state)
+				{
+					frames = 1;
+					seconds = time;
+				}
+				else
+				{
+					cpu.ClearIRQ();
+				}
+			}
+	
+			UpdatePrg();
+		}
+	
+		void Mapper105::UpdateRegister3()
+		{
+			UpdatePrg();
+		}
+	
+		cstring Mapper105::GetDipSwitchName(const uint i) const
+		{ 
+			return (i == 0) ? "Time" : (i == 1) ? "Show Timer" : NULL; 
+		}
+	
+		cstring Mapper105::GetDipSwitchValueName(const uint i,const uint j) const
+		{
+			if (i == 0)
+			{
+				switch (j)
+				{
+					case 0x0: return "5.001";
+					case 0x1: return "5.316";
+					case 0x2: return "5.629";
+					case 0x3: return "5.942";
+					case 0x4: return "6.254";
+					case 0x5: return "6.567";
+					case 0x6: return "6.880";
+					case 0x7: return "7.193";
+					case 0x8: return "7.505";
+					case 0x9: return "7.818";
+					case 0xA: return "8.131";
+					case 0xB: return "8.444";
+					case 0xC: return "8.756";
+					case 0xD: return "9.070";
+					case 0xE: return "9.318";
+					case 0xF: return "9.695";
+				}
+			}
+			else if (i == 1)
+			{
+				switch (j)
+				{
+					case 0x0: return "no";
+					case 0x1: return "yes";
+				}
+			}
+	
+			return NULL;
+		}
+	
+		int Mapper105::GetDipSwitchValue(const uint i) const
+		{
+			switch (i)
+			{
+				case 0x0: return dipValue;
+				case 0x1: return (displayTime != 0);
+			}
+	
+			return -1;
+		}
+	
+		Result Mapper105::SetDipSwitchValue(const uint i,const uint j)
+		{
+			if (i == 0 && j < 16)
+			{
+				dipValue = j;
+				return RESULT_OK;
+			}
+			else if (i == 1 && j < 2)
+			{
+				displayTime = j;
+				return RESULT_OK;
+			}
+	
+			return RESULT_ERR_INVALID_PARAM;
+		}
+	
+		void Mapper105::VSync()
+		{
+			if (irqEnabled)
+			{
+				if (!--frames)
+				{
+					frames = (cpu.GetMode() == MODE_NTSC ? 60 : 50);
+	
+					if (displayTime)
+						std::sprintf( text + TIME_OFFSET, "%u:%u", uint(seconds / 60), uint(seconds % 60) );
+	
+					if (!--seconds)
+					{
+						seconds = time;
+						cpu.DoIRQ();
+					}
+				}
+	
+				if (displayTime)
+					Api::User::eventCallback( Api::User::EVENT_DISPLAY_TIMER, text );
+			}
+
+			Mmc1::VSync();
 		}
 	}
-
-	UpdateMirroring();
-
-	if (ready < 2)
-	{
-		++ready;
-	}
-	else
-	{
-		UpdateBanks();
-		UpdateIRQ();
-	}
 }
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER105::UpdateMirroring()
-{
-	static const UCHAR select[4][4] =
-	{
-		{0,0,0,0},
-		{1,1,1,1},
-		{0,1,0,1},
-		{0,0,1,1}
-	};
-
-	const UCHAR* const index = select[registers[0] & 0x3];
-
-	ppu.SetMirroring
-	(
-	    index[0],
-		index[1],
-		index[2],
-		index[3]
-	);
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER105::UpdateIRQ()
-{
-	const BOOL state = (registers[1] & IRQ_DISABLE) ? FALSE : TRUE;
-
-	SetIrqEnable(state);
-
-	if (!state)
-		timer = 0;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER105::UpdateBanks()
-{
-	apu.Update();
-
-	if (registers[1] & 0x8)
-	{
-		const UINT mode = registers[0] & 0xC;
-
-		switch (mode)
-		{
-     		case 0x0:
-     		case 0x4:
-
-     			pRom.SwapBanks<n32k,0x0000>( (0x8 + (registers[3] & 0x6)) >> 1 );
-     			return;
-
-			case 0x8:
-
-				pRom.SwapBanks<n16k,0x0000>( 0x8 );
-				pRom.SwapBanks<n16k,0x4000>( 0x8 + (registers[3] & 0x7) );
-				return;
-
-			case 0xC:
-
-				pRom.SwapBanks<n16k,0x0000>( 0x8 + (registers[3] & 0x7) );
-				pRom.SwapBanks<n16k,0x4000>( 0xF );
-				return;
-		}
-	}
-	else
-	{	
-		pRom.SwapBanks<n32k,0x0000>( (registers[1] & 0x6) >> 1 );
-	}
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-UINT MAPPER105::NumDipSwitches() const 
-{ 
-	return 2; 
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER105::GetDipSwitch(const UINT index,IO::DIPSWITCH::CONTEXT& context) const 
-{
-	PDX_ASSERT( index <= 1 );
-
-	switch (index)
-	{
-     	case 0:
-
-			context.name = "Time";
-
-			context.settings.Resize( 16 );
-
-			context.settings[0x0] = "5.001";
-			context.settings[0x1] = "5.316";
-			context.settings[0x2] = "5.629";
-			context.settings[0x3] = "5.942";
-			context.settings[0x4] = "6.254";
-			context.settings[0x5] = "6.567";
-			context.settings[0x6] = "6.880";
-			context.settings[0x7] = "7.193";
-			context.settings[0x8] = "7.505";
-			context.settings[0x9] = "7.818";
-			context.settings[0xA] = "8.131";
-			context.settings[0xB] = "8.444";
-			context.settings[0xC] = "8.756";
-			context.settings[0xD] = "9.070";
-			context.settings[0xE] = "9.318";
-			context.settings[0xF] = "9.695";
-
-			context.index = DipValue;
-			return;
-
-		case 1:
-
-			context.name = "Display Timer";
-
-			context.settings.Resize( 2 );
-
-			context.settings[0x0] = "no";
-			context.settings[0x1] = "yes";
-
-			context.index = DisplayTimer ? 1 : 0;
-			return;
-	}
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER105::SetDipSwitch(const UINT index,const IO::DIPSWITCH::CONTEXT& context) 
-{
-	PDX_ASSERT( index <= 1 );
-	
-	switch (index)
-	{
-     	case 0:
-
-			PDX_ASSERT( context.index <= 15 );
-			DipValue = context.index;
-			UpdateTimer();
-			return;
-
-		case 1:
-
-			PDX_ASSERT( context.index <= 1 );
-			DisplayTimer = context.index == 1;
-			return;
-	}
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER105::UpdateTimer()
-{
-	TimerEnd = cpu.IsPAL() ? NES_CPU_CLOCK_HZ_REAL_PAL : NES_CPU_CLOCK_HZ_REAL_NTSC;
-
-	switch (DipValue)
-	{
-		case 0x0: TimerEnd *= 5.001 * 60; return;
-		case 0x1: TimerEnd *= 5.316 * 60; return;
-		case 0x2: TimerEnd *= 5.629 * 60; return;
-		case 0x3: TimerEnd *= 5.942 * 60; return;
-		case 0x4: TimerEnd *= 6.254 * 60; return;
-		case 0x5: TimerEnd *= 6.567 * 60; return;
-		case 0x6: TimerEnd *= 6.880 * 60; return;
-		case 0x7: TimerEnd *= 7.193 * 60; return;
-		case 0x8: TimerEnd *= 7.505 * 60; return;
-		case 0x9: TimerEnd *= 7.818 * 60; return;
-		case 0xA: TimerEnd *= 8.131 * 60; return;
-		case 0xB: TimerEnd *= 8.444 * 60; return;
-		case 0xC: TimerEnd *= 8.756 * 60; return;
-		case 0xD: TimerEnd *= 9.070 * 60; return;
-		case 0xE: TimerEnd *= 9.318 * 60; return;
-		case 0xF: TimerEnd *= 9.695 * 60; return;
-	}
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER105::IrqSync(const UINT delta)
-{
-	timer += delta;
-
-	if (timer >= TimerEnd)
-	{
-		timer = 0;
-		cpu.DoIRQ();
-	}
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER105::EndFrame()
-{
-	if (DisplayTimer && IsIrqEnabled())
-	{
-		elapsed.Resize( 11 );
-
-		const DOUBLE cycles = cpu.IsPAL() ? NES_CPU_CLOCK_HZ_REAL_PAL : NES_CPU_CLOCK_HZ_REAL_NTSC;
-		const ULONG seconds = ULONG((TimerEnd - timer) / cycles);
-
-		elapsed += seconds / 60;
-		elapsed += ":";
-		elapsed += seconds % 60;
-
-		MsgOutput( elapsed.String() );
-	}
-}
-
-NES_NAMESPACE_END

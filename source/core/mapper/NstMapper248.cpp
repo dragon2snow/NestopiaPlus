@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003 Martin Freij
+// Copyright (C) 2003-2005 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -22,130 +22,170 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstMappers.h"
-#include "NstMapper248.h"
+#include "../NstMapper.hpp"
+#include "../board/NstBrdMmc3.hpp"
+#include "NstMapper248.hpp"
 		
-NES_NAMESPACE_BEGIN
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER248::Reset()
+namespace Nes
 {
-	EnableIrqSync(IRQSYNC_PPU);
-
-	cpu.SetPort( 0x6000, 0x7FFF, this, Peek_Nop, Poke_6000 );
-
-	for (ULONG i=0x8000; i <= 0xFFFF; ++i)
+	namespace Core
 	{
-		switch (i & 0xF001)
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("s", on)
+        #endif
+	
+		Mapper248::Mapper248(Context& c)
+		: 
+		Mapper (c,WRAM_NONE), 
+		irq    (c.cpu,c.ppu) 
+		{}
+	
+		void Mapper248::SubReset(const bool hard)
 		{
-			case 0x8000: cpu.SetPort( i, this, Peek_8000, Poke_8000 ); continue;
-			case 0x8001: cpu.SetPort( i, this, Peek_8000, Poke_8001 ); continue;
-			case 0xA000: cpu.SetPort( i, this, Peek_A000, Poke_A000 ); continue;
-			case 0xC000: cpu.SetPort( i, this, Peek_C000, Poke_C000 ); continue;
-			case 0xC001: cpu.SetPort( i, this, Peek_C000, Poke_C001 ); continue;
-			case 0xE000: cpu.SetPort( i, this, Peek_E000, Poke_E000 ); continue;
-			case 0xE001: cpu.SetPort( i, this, Peek_E000, Poke_E001 ); continue;
+			if (hard)
+			{
+				regs.command = 0;
+				regs.ctrl = 0;
+				regs.prg[0] = 0;
+				regs.prg[1] = 1;
+			}
+
+			irq.Reset( hard, hard || irq.IsLineEnabled() );
+
+			Map( 0x6000U, 0x7FFFU, &Mapper248::Poke_6000 );
+	
+			for (uint i=0x0000U; i < 0x1000U; i += 2)
+			{
+				Map( 0x8000U + i, &Mapper248::Poke_8000 );
+				Map( 0x8001U + i, &Mapper248::Poke_8001 );			
+				Map( 0xA000U + i, NMT_SWAP_HV           );
+				Map( 0xC000U + i, &Mapper248::Poke_C000 );
+				Map( 0xC001U + i, &Mapper248::Poke_C001 );
+				Map( 0xE000U + i, &Mapper248::Poke_E000 );
+				Map( 0xE001U + i, &Mapper248::Poke_E001 );
+			}
+		}
+	
+		void Mapper248::SubLoad(State::Loader& state)
+		{
+			while (const dword chunk = state.Begin())
+			{
+				switch (chunk)
+				{
+     				case NES_STATE_CHUNK_ID('R','E','G','\0'):
+					{
+						const State::Loader::Data<4> data( state );
+
+						regs.ctrl = data[0];
+						regs.command = data[1];
+						regs.prg[0] = data[2];
+						regs.prg[1] = data[3];
+
+						break;
+					}
+
+					case NES_STATE_CHUNK_ID('I','R','Q','\0'):
+						
+						irq.unit.LoadState( state );
+						break;
+				}
+
+				state.End();
+			}
+		}
+
+		void Mapper248::SubSave(State::Saver& state) const
+		{
+			{
+				const u8 data[4] =
+				{
+					regs.ctrl,
+					regs.command,
+					regs.prg[0],
+					regs.prg[1]
+				};
+
+				state.Begin('R','E','G','\0').Write( data ).End();
+			}
+
+			irq.unit.SaveState( State::Saver::Subset(state,'I','R','Q','\0').Ref() );
+		}
+
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("", on)
+        #endif
+	
+		void Mapper248::UpdatePrg()
+		{
+			prg.SwapBanks<NES_8K,0x0000U>
+			( 
+		       	((regs.ctrl & 0x80) ? ((regs.ctrl << 1) | 0x0) : regs.prg[0]) & 0x1F,
+				((regs.ctrl & 0x80) ? ((regs.ctrl << 1) | 0x1) : regs.prg[1]) & 0x1F
+			);
+		}
+	
+		NES_POKE(Mapper248,6000)
+		{
+			regs.ctrl = data;
+			UpdatePrg();
+		}
+	
+		NES_POKE(Mapper248,8000)
+		{
+			regs.command = data;
+		}
+	
+		NES_POKE(Mapper248,8001)
+		{
+			const uint index = regs.command & 0x7;
+
+			if (index < 0x6)
+			{
+				ppu.Update();
+
+				if (index > 0x1)
+				{
+					chr.SwapBank<NES_1K>( (index << 10) + 0x800U, data );
+				}
+				else
+				{
+					chr.SwapBank<NES_2K>( index << 11, data >> 1 );
+				}
+			}
+			else 
+			{
+				regs.prg[index - 0x6] = data; 
+				UpdatePrg();
+			}
+		}
+	
+		NES_POKE(Mapper248,C000) 
+		{
+			irq.Update(); 
+			irq.unit.SetLatch( data );
+		}
+	
+		NES_POKE(Mapper248,C001) 
+		{ 
+			irq.Update(); 
+			irq.unit.Reload(); 
+		}
+	
+		NES_POKE(Mapper248,E000) 
+		{ 
+			irq.Update(); 
+			irq.unit.Disable( cpu );
+		}
+	
+		NES_POKE(Mapper248,E001) 
+		{
+			irq.Update(); 
+			irq.unit.Enable();
+		}
+
+		void Mapper248::VSync()
+		{
+			irq.VSync();
 		}
 	}
-
-	command  = 0;
-	status   = 0;
-	banks[0] = 0;
-	banks[1] = 1;
 }
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER248::SwapBanks()
-{
-	apu.Update();
-
-	if (status & SELECT_PROM_16)
-	{
-		pRom.SwapBanks<n16k,0x0000>( status & SWAP_PROM );
-	}
-	else
-	{
-		pRom.SwapBanks<n8k,0x0000>( banks[0] & 0x1F );
-		pRom.SwapBanks<n8k,0x2000>( banks[1] & 0x1F );
-	}
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER248,6000)
-{
-	status = data;
-	SwapBanks();
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER248,8000)
-{
-	command = data;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER248,8001)
-{
-	ppu.Update();
-
-	switch (command & 0x7)
-	{
-     	case 0x0: cRom.SwapBanks<n2k,0x0000>( data >> 1 ); return;
-     	case 0x1: cRom.SwapBanks<n2k,0x0800>( data >> 1 ); return;
-       	case 0x2: cRom.SwapBanks<n1k,0x1000>( data >> 0 ); return;
-     	case 0x3: cRom.SwapBanks<n1k,0x1400>( data >> 0 ); return;
-     	case 0x4: cRom.SwapBanks<n1k,0x1800>( data >> 0 ); return;
-     	case 0x5: cRom.SwapBanks<n1k,0x1C00>( data >> 0 ); return;
-     	case 0x6: banks[0] = data; SwapBanks(); return;
-     	case 0x7: banks[1] = data; SwapBanks(); return;
-	}
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER248,A000)
-{
-	if (mirroring != MIRROR_FOURSCREEN)
-		ppu.SetMirroring( (data & 0x1) ? MIRROR_HORIZONTAL : MIRROR_VERTICAL );
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER248,C000) { IrqLatch = data;     }
-NES_POKE(MAPPER248,C001) { IrqCount = IrqLatch; }
-NES_POKE(MAPPER248,E000) { SetIrqEnable(FALSE); }
-NES_POKE(MAPPER248,E001) { SetIrqEnable(TRUE);  }
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER248::IrqSync()
-{ 
-	if (--IrqCount < 0)
-	{
-		IrqCount = IrqLatch;
-		cpu.DoIRQ();
-	}
-}
-
-NES_NAMESPACE_END

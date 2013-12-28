@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003 Martin Freij
+// Copyright (C) 2003-2005 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -22,46 +22,36 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstMappers.h"
-#include "NstMapper229.h"
+#include "../NstMapper.hpp"
+#include "NstMapper229.hpp"
 
-NES_NAMESPACE_BEGIN
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER229::Reset()
+namespace Nes
 {
-	cpu.SetPort( 0x8000, 0x9FFF, this, Peek_8000, Poke_pRom );
-	cpu.SetPort( 0xA000, 0xBFFF, this, Peek_A000, Poke_pRom );
-	cpu.SetPort( 0xC000, 0xDFFF, this, Peek_C000, Poke_pRom );
-	cpu.SetPort( 0xE000, 0xFFFF, this, Peek_E000, Poke_pRom );
-
-	pRom.SwapBanks<n32k,0x0000>(0);
-	cRom.SwapBanks<n8k,0x0000>(0);
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER229,pRom) 
-{
-	apu.Update();
-	ppu.SetMirroring( (address & 0x20) ? MIRROR_HORIZONTAL : MIRROR_VERTICAL );
-
-	if (address & 0x1E)
+	namespace Core
 	{
-		pRom.SwapBanks<n16k,0x0000>( address & 0x1F );
-		pRom.SwapBanks<n16k,0x4000>( address & 0x1F );
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("s", on)
+        #endif
+	
+		void Mapper229::SubReset(const bool hard)
+		{
+			Map( 0x8000U, 0xFFFFU, &Mapper229::Poke_Prg );
+		}
+	
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("", on)
+        #endif
+	
+		NES_POKE(Mapper229,Prg) 
+		{
+			ppu.SetMirroring( (address & 0x20) ? Ppu::NMT_HORIZONTAL : Ppu::NMT_VERTICAL );
+	
+			if (address & 0x1E)
+				prg.SwapBanks<NES_16K,0x0000U>( address & 0x1F, address & 0x1F );
+			else
+				prg.SwapBank<NES_32K,0x0000U>(0);
+	
+			chr.SwapBank<NES_8K,0x0000U>(address);
+		}
 	}
-	else
-	{
-		pRom.SwapBanks<n32k,0x0000>(0);
-	}
-
-	cRom.SwapBanks<n8k,0x0000>(address);
 }
-
-NES_NAMESPACE_END

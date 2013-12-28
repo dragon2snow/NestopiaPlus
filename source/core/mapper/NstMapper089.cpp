@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003 Martin Freij
+// Copyright (C) 2003-2005 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -22,36 +22,35 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstMappers.h"
-#include "NstMapper089.h"
+#include "../NstMapper.hpp"
+#include "NstMapper089.hpp"
 
-NES_NAMESPACE_BEGIN
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER89::Reset()
+namespace Nes
 {
-	for (ULONG i=0x8000; i <= 0xFFFF; ++i)
+	namespace Core
 	{
-		if ((i & 0xFF00) == 0xC000)
-			cpu.SetPort( i, this, Peek_C000, Poke_pRom );
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("s", on)
+        #endif
+	
+		void Mapper89::SubReset(bool)
+		{
+			for (dword i=0x8000U; i <= 0xFFFFUL; ++i)
+			{
+				if ((i & 0xFF00U) == 0xC000U)
+					Map( i, &Mapper89::Poke_Prg );
+			}
+		}
+	
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("", on)
+        #endif
+	
+		NES_POKE(Mapper89,Prg)
+		{
+			ppu.SetMirroring( (data & 0x8) ? Ppu::NMT_ONE : Ppu::NMT_ZERO );
+			prg.SwapBank<NES_16K,0x0000U>( (data & 0x70) >> 4 );
+			chr.SwapBank<NES_8K,0x0000U>( ((data & 0x80) >> 4) | (data & 0x7) );
+		}
 	}
 }
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER89,pRom)
-{
-	apu.Update();
-
-	ppu.SetMirroring( (data & 0x8) ? MIRROR_ONE : MIRROR_ZERO );
-
-	pRom.SwapBanks<n16k,0x0000>( (data & 0x70) >> 4 );
-	cRom.SwapBanks<n8k,0x0000>( ((data & 0x80) >> 4) | (data & 0x7) );
-}
-
-NES_NAMESPACE_END

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003 Martin Freij
+// Copyright (C) 2003-2005 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -22,71 +22,87 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstMappers.h"
-#include "NstMapper255.h"
+#include "../NstMapper.hpp"
+#include "NstMapper255.hpp"
 		 
-NES_NAMESPACE_BEGIN
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER255::Reset()
+namespace Nes
 {
-	cpu.SetPort( 0x5800, 0x5FFF, this, Peek_5800, Poke_5800 );
-	cpu.SetPort( 0x8000, 0x9FFF, this, Peek_8000, Poke_pRom );
-	cpu.SetPort( 0xA000, 0xBFFF, this, Peek_A000, Poke_pRom );
-	cpu.SetPort( 0xC000, 0xDFFF, this, Peek_C000, Poke_pRom );
-	cpu.SetPort( 0xE000, 0xFFFF, this, Peek_E000, Poke_pRom );
-
-	pRom.SwapBanks<n32k,0x0000>(0);
-	ppu.SetMirroring(MIRROR_VERTICAL);
-
-	regs[0] = 
-	regs[1] = 
-	regs[2] = 
-	regs[3] = 0xF;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER255,pRom) 
-{ 
-	apu.Update();
-	ppu.Update();
-
-	const UINT rBank = (address >> 14) & 0x01;
-	const UINT pBank = ((address >> 7) & 0x1F) | (rBank << 5);
-	const UINT cBank = ((address >> 0) & 0x3F) | (rBank << 6);
-
-	if (address & 0x1000)
+	namespace Core
 	{
-		pRom.SwapBanks<n16k,0x0000>( (pBank << 1) | ((address & 0x40) >> 6) );
-		pRom.SwapBanks<n16k,0x4000>( (pBank << 1) | ((address & 0x40) >> 6) );	  
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("s", on)
+        #endif
+	
+		void Mapper255::SubReset(const bool hard)
+		{
+			if (hard)
+				regs[3] = regs[2] = regs[1] = regs[0] = 0xF;
+
+			Map( 0x5800U, 0x5FFFU, &Mapper255::Peek_5800, &Mapper255::Poke_5800 );
+			Map( 0x8000U, 0xFFFFU, &Mapper255::Poke_Prg );
+		}
+	
+		void Mapper255::SubLoad(State::Loader& state)
+		{
+			while (const dword chunk = state.Begin())
+			{
+				if (chunk == NES_STATE_CHUNK_ID('R','E','G','\0'))
+				{
+					const State::Loader::Data<2> data( state );
+	
+					regs[0] = data[0] & 0xF;
+					regs[1] = data[0] >> 4;
+					regs[2] = data[1] & 0xF;
+					regs[3] = data[1] >> 4;
+				}
+	
+				state.End();
+			}
+		}
+	
+		void Mapper255::SubSave(State::Saver& state) const
+		{
+			const u8 data[2] =
+			{
+				regs[0]	| (regs[1] << 4),
+				regs[2] | (regs[3] << 4)
+			};
+
+			state.Begin('R','E','G','\0').Write( data ).End();
+		}
+	
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("", on)
+        #endif
+	
+		NES_POKE(Mapper255,Prg) 
+		{ 
+			uint rBank = (address >> 14) & 0x01;
+			uint pBank = ((address >> 7) & 0x1F) | (rBank << 5);
+			uint cBank = ((address >> 0) & 0x3F) | (rBank << 6);
+	
+			if (address & 0x1000)
+			{
+				pBank = (pBank << 1) | ((address & 0x40) >> 6);
+				prg.SwapBanks<NES_16K,0x0000U>( pBank, pBank );
+			}
+			else
+			{
+				prg.SwapBank<NES_32K,0x0000U>( pBank );
+			}
+	
+			ppu.SetMirroring( (address & 0x2000U) ? Ppu::NMT_HORIZONTAL : Ppu::NMT_VERTICAL );	
+			chr.SwapBank<NES_8K,0x0000U>( cBank ); 
+		}
+	
+		NES_POKE(Mapper255,5800)
+		{
+			regs[address & 0x3] = data & 0xF;
+		}
+	
+		NES_PEEK(Mapper255,5800)
+		{
+			return regs[address & 0x3];
+		}
 	}
-	else
-	{
-		pRom.SwapBanks<n32k,0x0000>(pBank);
-	}
-
-	ppu.SetMirroring( (address & 0x2000) ? MIRROR_HORIZONTAL : MIRROR_VERTICAL );
-	cRom.SwapBanks<n8k,0x0000>(cBank); 
 }
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER255,5800)
-{
-	regs[address & 0x3] = data & 0xF;
-}
-
-NES_PEEK(MAPPER255,5800)
-{
-	return regs[address & 0x3];
-}
-
-NES_NAMESPACE_END

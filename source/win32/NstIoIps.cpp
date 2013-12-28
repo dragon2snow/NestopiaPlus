@@ -1,0 +1,305 @@
+////////////////////////////////////////////////////////////////////////////////////////
+//
+// Nestopia - NES / Famicom emulator written in C++
+//
+// Copyright (C) 2003-2005 Martin Freij
+//
+// This file is part of Nestopia.
+// 
+// Nestopia is free software; you can redistribute it and/or modify
+// it under the terms of the GNU General Public License as published by
+// the Free Software Foundation; either version 2 of the License, or
+// (at your option) any later version.
+// 
+// Nestopia is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
+// 
+// You should have received a copy of the GNU General Public License
+// along with Nestopia; if not, write to the Free Software
+// Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+#include "NstObjectBackup.hpp"
+#include "NstIoIps.hpp"
+
+namespace Nestopia
+{
+	using Io::Ips;
+
+	Ips::Blocks::~Blocks()
+	{
+		for (Iterator it=Begin(); it != End(); ++it)
+			delete [] it->data;
+	}
+
+	void Ips::Create(SourceData source,SourceData target,PatchData& patch)
+	{
+		NST_ASSERT
+		( 
+	     	source.Size() && 
+			source.Size() == target.Size() && 
+			source.Size() <= MAX_LENGTH 
+		);
+
+		struct Stream
+		{
+			static void Write(PatchData& patch,const u8* data,uint length)
+			{
+				NST_ASSERT( length && length <= 0xFFFF );
+				patch.Append( data, length );
+			}
+
+			static void Write3(PatchData& patch,const uint value)
+			{
+				const uint pos = patch.Size();
+
+				patch.Grow( 3 );
+
+				patch[pos+0] = (u8) ((value >> 16 )       );
+				patch[pos+1] = (u8) ((value >>  8 ) & 0xFF);
+				patch[pos+2] = (u8) ((value >>  0 ) & 0xFF);
+			}
+
+			static void Write2(PatchData& patch,const uint value)
+			{
+				const uint pos = patch.Size();
+
+				patch.Grow( 2 );
+
+				patch[pos+0] = (u8) ((value >> 8)       );
+				patch[pos+1] = (u8) ((value >> 0) & 0xFF);
+			}
+
+			static void Write1(PatchData& patch,const uint value)
+			{
+				patch.PushBack( (u8) value );
+			}
+		};
+
+		patch.Reserve( source.Size() );
+
+		Stream::Write3( patch, DATA_ID1 );
+		Stream::Write2( patch, DATA_ID2 );
+
+		const u8* src = source;
+		const u8* dst = target;
+		const uint length = source.Size();
+
+		for (uint i=0; i < length; )
+		{
+			if (src[i] == dst[i])
+			{
+				++i;
+				continue;
+			}
+
+			uint j = i++;
+
+			for (uint k=0; i < length; ++i)
+			{
+				if (src[i] != dst[i])
+				{
+					k = 0;
+				}
+				else if (k++ == MIN_EQUAL)
+				{
+					i -= MIN_EQUAL;
+					break;
+				}
+			}
+
+			do
+			{
+				if (j == DATA_EOF)
+					--j;
+
+				Stream::Write3( patch, j );
+
+				u8 c = dst[j];
+
+				uint k = j;
+				const uint stop = NST_MIN(j + MAX_BLOCK,i);
+
+				while (++k != stop && c == dst[k]);
+
+				if (k - j >= MIN_BEG_RUN)
+				{
+					Stream::Write2( patch, 0     );
+					Stream::Write2( patch, k - j );
+					Stream::Write1( patch, c     );
+				}
+				else 
+				{
+					uint l = k;
+
+					if (k + 1 < stop)
+					{
+						c = dst[k];
+
+						for (l=k++; k < stop; ++k)
+						{
+							if (c != dst[k])
+							{
+								c = dst[k];
+								l = k;
+							}
+							else if (k - l == MIN_MID_RUN)
+							{
+								k = l;
+								break;
+							}
+						}
+					}
+
+					if (k == stop && k - l >= MIN_END_RUN)
+						k = l;
+
+					if (k == DATA_EOF)
+						++k;
+
+					Stream::Write2( patch, k - j  );
+					Stream::Write( patch, dst + j, k - j );
+				}
+
+				j = k;
+			}
+			while (j != i);
+		}
+
+		Stream::Write3( patch, DATA_EOF );
+	}
+
+	void Ips::Parse(SourceData source)
+	{
+		class Stream
+		{
+			const u8* data;
+			const u8* const end;
+
+			void Check(const uint length) const
+			{
+				if (data + length > end)
+					throw ERR_CORRUPT;
+			}
+
+		public:
+
+			Stream(const SourceData& source)
+			: 
+			data (static_cast<const u8*>(source)),
+			end  (static_cast<const u8*>(source) + source.Size())
+			{}
+
+			const u8* Read(const uint length)
+			{
+				Check( length );
+
+				const u8* ptr = data;
+				data += length;
+
+				return ptr;
+			}
+
+			uint Read1()
+			{
+				Check( 1 );
+				return *data++;
+			}
+
+			uint Read2()
+			{
+				Check( 2 );
+
+				const uint value = (data[0] << 8) | data[1];
+				data += 2;
+
+				return value;
+			}
+
+			uint Read3()
+			{
+				Check( 3 );
+
+				const uint value = (data[0] << 16) | (data[1] << 8) | data[2];
+				data += 3;
+
+				return value;
+			}
+
+			operator ibool () const
+			{
+				return data != end;
+			}
+		};
+
+		if (source.Empty())
+			throw ERR_EMPTY;
+
+		blocks.Clear();
+
+		Stream stream( source );
+
+		if (stream.Read3() != DATA_ID1 || stream.Read2() != DATA_ID2)
+			throw ERR_CORRUPT;
+
+		Block block;
+
+		while (stream)
+		{
+			block.offset = stream.Read3();
+
+			if (block.offset == DATA_EOF)
+				break;
+
+			if ((block.length = stream.Read2()) != 0)
+			{
+				block.fill = UINT_MAX;
+				const u8* const data = stream.Read( block.length );
+				std::memcpy( block.data = new u8 [block.length], data, block.length );
+			}
+			else if ((block.length = stream.Read2()) != 0)
+			{
+				block.fill = stream.Read1();
+				block.data = NULL;
+			}
+			else
+			{
+				throw ERR_CORRUPT;
+			}
+
+			blocks.PushBack( block );
+		}
+
+		if (blocks.Empty())
+			throw ERR_EMPTY;
+	}
+
+	void Ips::Patch(TargetData target) const
+	{
+		NST_ASSERT( target.Size() );
+
+		Object::Backup backup( target, target.Size() );
+		Blocks::ConstIterator const end = blocks.End();
+
+		for (Blocks::ConstIterator it = blocks.Begin(); it != end; ++it)
+		{
+			NST_ASSERT( it->length );
+
+			if (it->offset + it->length <= target.Size())
+			{
+				if (it->fill == UINT_MAX)
+					std::memcpy( target + it->offset, it->data, it->length );
+				else
+					std::memset( target + it->offset, it->fill, it->length );
+			}
+			else
+			{
+				backup.Restore();
+				throw ERR_CORRUPT;
+			}
+		}
+	}
+}

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003 Martin Freij
+// Copyright (C) 2003-2005 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -22,142 +22,104 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstMappers.h"
-#include "NstMapper068.h"
+#include "../NstMapper.hpp"
+#include "NstMapper068.hpp"
 		 
-NES_NAMESPACE_BEGIN
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-MAPPER68::MAPPER68(CONTEXT& c)
-: 
-MAPPER (c,&status,CiRomBanks+2),
-CiRam  (n2k)
-{}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER68::Reset()
+namespace Nes
 {
-	cpu.SetPort( 0x8000, 0x8FFF, this, Peek_8000, Poke_8000 );
-	cpu.SetPort( 0x9000, 0x9FFF, this, Peek_9000, Poke_9000 );
-	cpu.SetPort( 0xA000, 0xAFFF, this, Peek_A000, Poke_A000 );
-	cpu.SetPort( 0xB000, 0xBFFF, this, Peek_B000, Poke_B000 );
-	cpu.SetPort( 0xC000, 0xCFFF, this, Peek_C000, Poke_C000 );
-	cpu.SetPort( 0xD000, 0xDFFF, this, Peek_D000, Poke_D000 );
-	cpu.SetPort( 0xE000, 0xEFFF, this, Peek_E000, Poke_E000 );
-	cpu.SetPort( 0xF000, 0xFFFF, this, Peek_F000, Poke_F000 );
-
-	CiRom.ReAssign( cRom.Ram(), cRom.Size() );
-
-	ppu.SetPort( 0x2000, 0x2FFF, this, Peek_CiRam, Poke_CiRam );
-
-	status = 0;
-	CiRomBanks[0] = 0;
-	CiRomBanks[1] = 0;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-PDXRESULT MAPPER68::LoadState(PDXFILE& file)
-{
-	PDX_TRY(MAPPER::LoadState(file));
-	PDX_TRY(CiRam.LoadState(file));
-	return CiRom.LoadState(file);
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-PDXRESULT MAPPER68::SaveState(PDXFILE& file) const
-{
-	PDX_TRY(MAPPER::SaveState(file));
-	PDX_TRY(CiRam.SaveState(file));
-	return CiRom.SaveState(file);
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER68,8000) { ppu.Update(); cRom.SwapBanks<n2k,0x0000>(data); }
-NES_POKE(MAPPER68,9000) { ppu.Update(); cRom.SwapBanks<n2k,0x0800>(data); }
-NES_POKE(MAPPER68,A000) { ppu.Update(); cRom.SwapBanks<n2k,0x1000>(data); }
-NES_POKE(MAPPER68,B000) { ppu.Update(); cRom.SwapBanks<n2k,0x1800>(data); }
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER68,C000) { CiRomBanks[0] = data; UpdateMirroring(); }
-NES_POKE(MAPPER68,D000) { CiRomBanks[1] = data; UpdateMirroring(); }
-NES_POKE(MAPPER68,E000) { status = data;        UpdateMirroring(); }
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER68,F000) 
-{ 
-	apu.Update(); 
-	pRom.SwapBanks<n16k,0x0000>(data); 
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_PEEK(MAPPER68,CiRam) 
-{ 
-	const UINT offset = address - 0x2000;
-	return (status & SELECT_CIROM) ? CiRom[offset] : CiRam[offset];
-}
-
-NES_POKE(MAPPER68,CiRam) 
-{ 
-	if (!(status & SELECT_CIROM))
-		CiRam[address - 0x2000] = data; 
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER68::UpdateMirroring()
-{
-	ppu.Update();
-
-	static const UCHAR select[4][4] =
+	namespace Core
 	{
-		{0,1,0,1},
-		{0,0,1,1},
-		{0,0,0,0},
-		{1,1,1,1}
-	};
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("s", on)
+        #endif
+	
+		void Mapper68::SubReset(const bool hard)
+		{
+			if (hard)
+			{
+				regs.ctrl = 0;
+				regs.nmt[0] = Regs::BANK_OFFSET;
+				regs.nmt[1] = Regs::BANK_OFFSET;
+			}
 
-	const UCHAR* const index = select[status & SELECT_MIRRORING];
+			Map( 0x8000U, 0x8FFFU, CHR_SWAP_2K_0 );
+			Map( 0x9000U, 0x9FFFU, CHR_SWAP_2K_1 );
+			Map( 0xA000U, 0xAFFFU, CHR_SWAP_2K_2 );
+			Map( 0xB000U, 0xBFFFU, CHR_SWAP_2K_3 );
+			Map( 0xC000U, 0xCFFFU, &Mapper68::Poke_C000 );
+			Map( 0xD000U, 0xDFFFU, &Mapper68::Poke_D000 );
+			Map( 0xE000U, 0xEFFFU, &Mapper68::Poke_E000 );		
+			Map( 0xF000U, 0xFFFFU, PRG_SWAP_16K );
+		}
+	
+		void Mapper68::SubLoad(State::Loader& state)
+		{  
+			while (const dword chunk = state.Begin())
+			{
+				if (chunk == NES_STATE_CHUNK_ID('R','E','G','\0'))			
+				{
+					const State::Loader::Data<3> data( state );
+	
+					regs.ctrl = data[0];
+					regs.nmt[0] = data[1] | Regs::BANK_OFFSET;
+					regs.nmt[1] = data[2] | Regs::BANK_OFFSET;
+				}
+	
+				state.End();
+			}
+		}
+	
+		void Mapper68::SubSave(State::Saver& state) const
+		{
+			const u8 data[3] =
+			{
+				regs.ctrl,
+				regs.nmt[0] & ~uint(Regs::BANK_OFFSET),
+				regs.nmt[1] & ~uint(Regs::BANK_OFFSET)
+			};
 
-	if (status & SELECT_CIROM)
-	{
-		CiRom.SwapBanks<n1k,0x0000>( BANK_OFFSET + CiRomBanks[index[0]] );
-		CiRom.SwapBanks<n1k,0x0400>( BANK_OFFSET + CiRomBanks[index[1]] );
-		CiRom.SwapBanks<n1k,0x0800>( BANK_OFFSET + CiRomBanks[index[2]] );
-		CiRom.SwapBanks<n1k,0x0C00>( BANK_OFFSET + CiRomBanks[index[3]] );
-	}
-	else
-	{
-		CiRam.SwapBanks<n1k,0x0000>( index[0] );
-		CiRam.SwapBanks<n1k,0x0400>( index[1] );
-		CiRam.SwapBanks<n1k,0x0800>( index[2] );
-		CiRam.SwapBanks<n1k,0x0C00>( index[3] );
+			state.Begin('R','E','G','\0').Write( data ).End();
+		}
+	
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("", on)
+        #endif
+	
+		void Mapper68::UpdateMirroring() const
+		{
+			ppu.Update();
+	
+			static const uchar select[4][4] =
+			{
+				{0,1,0,1},
+				{0,0,1,1},
+				{0,0,0,0},
+				{1,1,1,1}
+			};
+	
+			const uint isCrom = (regs.ctrl & Regs::CTRL_CROM) >> 4;
+			const uchar (&index)[4] = select[regs.ctrl & Regs::CTRL_MIRRORING];
+	
+			for (uint i=0; i < 4; ++i)
+				nmt.Source( isCrom ).SwapBank<NES_1K>( i * NES_1K, isCrom ? regs.nmt[index[i]] : index[i] );
+		}
+	
+		NES_POKE(Mapper68,C000) 
+		{ 
+			regs.nmt[0] = Regs::BANK_OFFSET | data; 
+			UpdateMirroring(); 
+		}
+	
+		NES_POKE(Mapper68,D000) 
+		{ 
+			regs.nmt[1] = Regs::BANK_OFFSET | data; 
+			UpdateMirroring(); 
+		}
+	
+		NES_POKE(Mapper68,E000) 
+		{ 
+			regs.ctrl = data; 
+			UpdateMirroring(); 
+		}
 	}
 }
-
-NES_NAMESPACE_END

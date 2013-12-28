@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003 Martin Freij
+// Copyright (C) 2003-2005 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -22,45 +22,34 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstMappers.h"
-#include "NstMapper079.h"
+#include "../NstMapper.hpp"
+#include "NstMapper079.hpp"
 		
-NES_NAMESPACE_BEGIN
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER79::Reset()
+namespace Nes
 {
-	cpu.SetPort( 0x4020, 0x40FF, this, Peek_Nop,  Poke_8000 );
-	cpu.SetPort( 0x4100,         this, Peek_Nop,  Poke_4100 );
-	cpu.SetPort( 0x4101, 0x5FFF, this, Peek_Nop,  Poke_8000 );
-	cpu.SetPort( 0x8000, 0xFFFF, this, Peek_pRom, Poke_8000 );
-
-	pRom.SwapBanks<n32k,0x0000>(0);
+	namespace Core
+	{
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("s", on)
+        #endif
+	
+		void Mapper79::SubReset(const bool hard)
+		{
+			Map( 0x4020U, 0x40FFU, CHR_SWAP_8K );
+			Map( 0x4100U, &Mapper79::Poke_4100 );		
+			Map( 0x4101U, 0x5FFFU, CHR_SWAP_8K );
+			Map( 0x8000U, 0xFFFFU, CHR_SWAP_8K );
+		}
+	
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("", on)
+        #endif
+	
+		NES_POKE(Mapper79,4100)
+		{
+			ppu.Update();
+			prg.SwapBank<NES_32K,0x0000U>( (data >> 3) & 0x1 );
+			chr.SwapBank<NES_8K,0x0000U>( data );
+		}
+	}
 }
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER79,8000)
-{
-	ppu.Update();
-	cRom.SwapBanks<n8k,0x0000>(data);
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER79,4100)
-{
-	ppu.Update();
-	apu.Update(); 
-	pRom.SwapBanks<n32k,0x0000>( (data >> 3) & 0x1 );
-	cRom.SwapBanks<n8k,0x0000>(data);
-}
-
-NES_NAMESPACE_END

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003 Martin Freij
+// Copyright (C) 2003-2005 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -22,49 +22,45 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstMappers.h"
-#include "NstMapper061.h"
+#include "../NstMapper.hpp"
+#include "NstMapper061.hpp"
 
-NES_NAMESPACE_BEGIN
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER61::Reset()
+namespace Nes
 {
-	cpu.SetPort( 0x8000, 0x9FFF, this, Peek_8000, Poke_pRom );
-	cpu.SetPort( 0xA000, 0xBFFF, this, Peek_A000, Poke_pRom );
-	cpu.SetPort( 0xC000, 0xDFFF, this, Peek_C000, Poke_pRom );
-	cpu.SetPort( 0xE000, 0xFFFF, this, Peek_E000, Poke_pRom );
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER61,pRom) 
-{
-	ppu.SetMirroring( (address & 0x80) ? MIRROR_HORIZONTAL : MIRROR_VERTICAL );
-	apu.Update();
-
-	switch (address & 0x30)
+	namespace Core
 	{
-     	case 0x00:
-		case 0x30:
-
-			pRom.SwapBanks<n32k,0x0000>(address & 0xF);
-			return;
-
-		case 0x20:
-		case 0x10:
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("s", on)
+        #endif
+	
+		void Mapper61::SubReset(bool)
 		{
-			const UINT bank = ((address & 0x0F) << 1) | ((address & 0x20) >> 4);
-			pRom.SwapBanks<n16k,0x0000>( bank );
-			pRom.SwapBanks<n16k,0x4000>( bank );
-			return;
+			Map( 0x8000U, 0xFFFFU, &Mapper61::Poke_Prg );
+		}
+	
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("", on)
+        #endif
+	
+		NES_POKE(Mapper61,Prg) 
+		{
+			ppu.SetMirroring( (address & 0x80) ? Ppu::NMT_HORIZONTAL : Ppu::NMT_VERTICAL );
+	
+			switch (address & 0x30)
+			{
+				case 0x00:
+				case 0x30:
+		
+					prg.SwapBank<NES_32K,0x0000U>( address & 0xF );
+					break;
+		
+				case 0x20:
+				case 0x10:
+				
+					address = ((address & 0x0F) << 1) | ((address & 0x20) >> 4);
+					prg.SwapBanks<NES_16K,0x0000U>( address, address );
+					break;
+			}
 		}
 	}
 }
-
-NES_NAMESPACE_END

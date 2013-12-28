@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003 Martin Freij
+// Copyright (C) 2003-2005 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -22,63 +22,63 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstMappers.h"
-#include "NstMapper230.h"
+#include "../NstMapper.hpp"
+#include "NstMapper230.hpp"
 
-NES_NAMESPACE_BEGIN
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER230::Reset()
+namespace Nes
 {
-	cpu.SetPort( 0x8000, 0x9FFF, this, Peek_8000, Poke_pRom );
-	cpu.SetPort( 0xA000, 0xBFFF, this, Peek_A000, Poke_pRom );
-	cpu.SetPort( 0xC000, 0xDFFF, this, Peek_C000, Poke_pRom );
-	cpu.SetPort( 0xE000, 0xFFFF, this, Peek_E000, Poke_pRom );
-
-	if (!HardReset)
-		RomSwitch ^= 1;
-
-	if (RomSwitch)
+	namespace Core
 	{
-		pRom.SwapBanks<n16k,0x0000>( 0 );
-		pRom.SwapBanks<n16k,0x4000>( 7 );
-	}
-	else
-	{
-		pRom.SwapBanks<n16k,0x0000>( 8 );
-		pRom.SwapBanks<n16k,0x4000>( pRom.NumBanks<n16k>() - 1 );
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("s", on)
+        #endif
+	
+		void Mapper230::SubReset(const bool hard)
+		{
+			if (hard)
+				romSwitch = 1;
+	
+			romSwitch ^= 1;
+			prg.SwapBanks<NES_16K,0x0000U>( romSwitch ? 0U : 8U, romSwitch ? 7U : ~0U );
+	
+			Map( 0x8000U, 0xFFFFU, &Mapper230::Poke_Prg );
+		}
+	
+		void Mapper230::SubLoad(State::Loader& state)
+		{
+			while (const dword chunk = state.Begin())
+			{
+				if (chunk == NES_STATE_CHUNK_ID('R','E','G','\0'))
+					romSwitch = state.Read8() & 0x1;
+	
+				state.End();
+			}
+		}
+	
+		void Mapper230::SubSave(State::Saver& state) const
+		{
+			state.Begin('R','E','G','\0').Write8( romSwitch ).End();
+		}
+	
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("", on)
+        #endif
+	
+		NES_POKE(Mapper230,Prg) 
+		{
+			if (romSwitch)
+			{
+				prg.SwapBank<NES_16K,0x0000U>( data & 0x7 );
+			}
+			else
+			{
+				ppu.SetMirroring( (data & 0x40) ? Ppu::NMT_VERTICAL : Ppu::NMT_HORIZONTAL );
+	
+				if (data & 0x20)
+					prg.SwapBanks<NES_16K,0x0000U>( 8 + (data & 0x1F), 8 + (data & 0x1F) );
+				else
+					prg.SwapBank<NES_32K,0x0000U>( 4 + ((data & 0x1E) >> 1) );
+			}
+		}
 	}
 }
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER230,pRom) 
-{
-	apu.Update();
-
-	if (RomSwitch)
-	{
-		pRom.SwapBanks<n16k,0x0000>( data & 0x7 );
-	}
-	else
-	{
-		ppu.SetMirroring( (data & 0x40) ? MIRROR_VERTICAL : MIRROR_HORIZONTAL );
-
-		if (data & 0x20)
-		{
-			pRom.SwapBanks<n16k,0x0000>( 8 + (data & 0x1F) );
-			pRom.SwapBanks<n16k,0x4000>( 8 + (data & 0x1F) );
-		}
-		else
-		{
-			pRom.SwapBanks<n32k,0x0000>( 4 + ((data & 0x1E) >> 1) );
-		}
-	}
-}
-
-NES_NAMESPACE_END

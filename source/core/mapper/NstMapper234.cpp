@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003 Martin Freij
+// Copyright (C) 2003-2005 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -22,111 +22,107 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstMappers.h"
-#include "NstMapper234.h"
-		  
-NES_NAMESPACE_BEGIN
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER234::Reset()
+#include "../NstMapper.hpp"
+#include "NstMapper234.hpp"
+		 
+namespace Nes
 {
-	cpu.SetPort( 0xFF80, 0xFF9F, this, Peek_FF80, Poke_FF80 );
-	cpu.SetPort( 0xFFE8, 0xFFF7, this, Peek_FFE8, Poke_FFE8 );
-	cpu.SetPort( 0x6000, 0x7FFF, this, Peek_Nop,  Poke_Nop  );
-
-	banks[0] = 0;
-	banks[1] = 0;
-
-	ppu.SetMirroring(MIRROR_HORIZONTAL);
-	pRom.SwapBanks<n32k,0x0000>(0);
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER234::UpdateBanks()
-{
-	apu.Update();
-	ppu.Update();
-
-	if (banks[0] & 0x40)
+	namespace Core
 	{
-		pRom.SwapBanks<n32k,0x0000>( ((banks[0] & 0xE) << 0) | ((banks[1] >> 0) & 0x1) );
-		cRom.SwapBanks<n8k,0x0000> ( ((banks[0] & 0xE) << 2) | ((banks[1] >> 4) & 0x7) );
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("s", on)
+        #endif
+	
+		void Mapper234::SubReset(const bool hard)
+		{
+			if (hard)
+			{
+				banks[0] = 0;
+				banks[1] = 0;
+			}
+
+			Map( 0xFF80U, 0xFF9FU, &Mapper234::Peek_FF80, &Mapper234::Poke_FF80 );
+			Map( 0xFFE8U, 0xFFF7U, &Mapper234::Peek_FFE8, &Mapper234::Poke_FFE8 );
+		}
+	
+		void Mapper234::SubLoad(State::Loader& state)
+		{
+			while (const dword chunk = state.Begin())
+			{
+				if (chunk == NES_STATE_CHUNK_ID('R','E','G','\0'))
+				{
+					const State::Loader::Data<2> data( state );
+					banks[0] = data[0];
+					banks[1] = data[1];
+				}
+	
+				state.End();
+			}
+		}
+	
+		void Mapper234::SubSave(State::Saver& state) const
+		{
+			state.Begin('R','E','G','\0').Write16( banks[0] | (banks[0] << 8) ).End();
+		}
+	
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("", on)
+        #endif
+	
+		void Mapper234::UpdateBanks()
+		{
+			ppu.Update();
+	
+			if (banks[0] & 0x40)
+			{
+				prg.SwapBank<NES_32K,0x0000U>( ((banks[0] & 0xE) << 0) | ((banks[1] >> 0) & 0x1) );
+				chr.SwapBank<NES_8K,0x0000U> ( ((banks[0] & 0xE) << 2) | ((banks[1] >> 4) & 0x7) );
+			}
+			else
+			{
+				prg.SwapBank<NES_32K,0x0000U>( ((banks[0] & 0xF) << 0) );
+				chr.SwapBank<NES_8K,0x0000U> ( ((banks[0] & 0xF) << 2) | ((banks[1] >> 4) & 0x3) );
+			}
+		}
+	
+		void Mapper234::UpdateBank0(const uint data)
+		{
+			if (!banks[0])
+			{
+				banks[0] = data;	
+				ppu.SetMirroring( (data & 0x80) ? Ppu::NMT_HORIZONTAL : Ppu::NMT_VERTICAL );	
+				UpdateBanks();
+			}
+		}
+	
+		void Mapper234::UpdateBank1(const uint data)
+		{
+			banks[1] = data;
+			UpdateBanks();
+		}
+	
+		NES_PEEK(Mapper234,FF80) 
+		{ 
+			const uint data = prg.Peek(address - 0x8000U);
+			UpdateBank0( data );
+			return data;
+		}
+	
+		NES_POKE(Mapper234,FF80) 
+		{ 
+			UpdateBank0( data );
+		}
+	
+		NES_PEEK(Mapper234,FFE8) 
+		{ 
+			const uint data = prg.Peek(address - 0x8000U);
+			UpdateBank1( data );
+			return data;
+		}
+	
+		NES_POKE(Mapper234,FFE8) 
+		{ 
+			UpdateBank1( data );
+		}
 	}
-	else
-	{
-		pRom.SwapBanks<n32k,0x0000>( ((banks[0] & 0xF) << 0) );
-		cRom.SwapBanks<n8k,0x0000> ( ((banks[0] & 0xF) << 2) | ((banks[1] >> 4) & 0x3) );
-	}
 }
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER234::UpdateBank0(const UINT data)
-{
-	if (!banks[0])
-	{
-		banks[0] = data;
-		ppu.SetMirroring( (data & 0x80) ? MIRROR_VERTICAL : MIRROR_HORIZONTAL );
-		UpdateBanks();
-	}
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER234::UpdateBank1(const UINT data)
-{
-	banks[1] = data;
-	UpdateBanks();
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_PEEK(MAPPER234,FF80) 
-{ 
-	const UINT data = pRom[address - 0x8000];
-	UpdateBank0(0);
-	return data;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER234,FF80) 
-{ 
-	UpdateBank0(data);
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_PEEK(MAPPER234,FFE8) 
-{ 
-	const UINT data = pRom[address - 0x8000];
-	UpdateBank1(data);
-	return data;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER234,FFE8) 
-{ 
-	UpdateBank1(data);
-}
-
-NES_NAMESPACE_END

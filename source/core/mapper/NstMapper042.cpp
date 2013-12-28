@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003 Martin Freij
+// Copyright (C) 2003-2005 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -22,148 +22,115 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstMappers.h"
-#include "NstMapper042.h"
-		
-NES_NAMESPACE_BEGIN
+#include "../NstMapper.hpp"
+#include "../NstClock.hpp"
+#include "NstMapper042.hpp"
 
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-MAPPER42::MAPPER42(CONTEXT& c)
-:
-MAPPER (c),
-ExRom  (NULL)
-{}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-MAPPER42::~MAPPER42()
+namespace Nes
 {
-	delete ExRom;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-PDXRESULT MAPPER42::LoadState(PDXFILE& file)
-{
-	PDX_TRY(MAPPER::LoadState(file));
-	return ExRom->LoadState( file );
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-PDXRESULT MAPPER42::SaveState(PDXFILE& file) const
-{
-	PDX_TRY(MAPPER::SaveState(file));
-	return ExRom->SaveState( file );
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER42::Reset()
-{
-	EnableIrqSync(IRQSYNC_COUNT);
-
-	delete ExRom;
-	ExRom = new EXROM( pRom.Ram(), pRom.Size() );
-
-	cpu.SetPort( 0x6000, 0x7FFF, this, Peek_ExRom, Poke_Nop );
-
-	for (ULONG i=0x8000; i <= 0xFFFF; ++i)
+	namespace Core
 	{
-		switch (i & 0xE003)
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("s", on)
+        #endif
+	
+		Mapper42::Mapper42(Context& c)
+		: 
+		Mapper (c,WRAM_NONE), 
+		irq    (c.cpu,c.cpu)
+		{}
+
+		void Mapper42::Irq::Reset(const bool hard)
 		{
-    		case 0x8000: cpu.SetPort( i, this, Peek_8000, Poke_8000 ); continue;
-     		case 0xE000: cpu.SetPort( i, this, Peek_E000, Poke_E000 ); continue;
-     		case 0xE001: cpu.SetPort( i, this, Peek_E000, Poke_E001 ); continue;
-			case 0xE002: cpu.SetPort( i, this, Peek_E000, Poke_E002 ); continue;
+			if (hard)
+				count = 0;
+		}
+
+		void Mapper42::SubReset(const bool hard)
+		{
+			irq.Reset( hard, hard ? false : irq.IsLineEnabled() );
+
+			Map( WRK_PEEK );
+	
+			for (uint i=0x0000U; i < 0x2000U; i += 0x4)
+			{
+				Map( 0x8000U + i, CHR_SWAP_8K          );
+				Map( 0xE000U + i, &Mapper42::Poke_E000 );
+				Map( 0xE001U + i, &Mapper42::Poke_E001 );
+				Map( 0xE002U + i, &Mapper42::Poke_E002 );
+			}
+		}
+	
+		void Mapper42::SubLoad(State::Loader& state)
+		{
+			while (const dword chunk = state.Begin())
+			{
+				if (chunk == NES_STATE_CHUNK_ID('I','R','Q','\0'))
+				{
+					const State::Loader::Data<3> data( state );
+					irq.EnableLine( data[0] & 0x1 );
+					irq.unit.count = data[1] | ((data[2] & 0x7F) << 8);
+				}
+
+				state.End();
+			}
+		}
+	
+		void Mapper42::SubSave(State::Saver& state) const
+		{
+			const u8 data[3] =
+			{
+				irq.IsLineEnabled() ? 0x1 : 0x0,
+				(irq.unit.count >> 0) & 0xFF,
+				(irq.unit.count >> 8) & 0x7F
+			};
+
+			state.Begin('I','R','Q','\0').Write( data ).End();
+		}
+	
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("", on)
+        #endif
+
+		NES_POKE(Mapper42,E000) 
+		{
+			wrk.SwapBank<NES_8K,0x0000U>(data & 0xF);
+		}
+	
+		NES_POKE(Mapper42,E001) 
+		{ 
+			ppu.SetMirroring( (data & 0x8) ? Ppu::NMT_HORIZONTAL : Ppu::NMT_VERTICAL );
+		}
+	
+		NES_POKE(Mapper42,E002) 
+		{ 
+			irq.Update();
+
+			if (!irq.EnableLine( data & 0x2 ))
+			{
+				irq.unit.count = 0;
+				irq.ClearIRQ();
+			}
+		}
+
+		ibool Mapper42::Irq::Signal()
+		{
+			const uint prev = count++;
+
+			if ((count & 0x6000U) != (prev & 0x6000U))
+			{
+				if ((count & 0x6000U) == 0x6000U)
+					return true;
+				else
+					cpu.ClearIRQ();
+			}
+
+			return false;
+		}
+
+		void Mapper42::VSync()
+		{
+			irq.VSync();
 		}
 	}
-
-	pRom.SwapBanks<n8k,0x0000>( pRom.NumBanks<n8k>() - 4 );
-	pRom.SwapBanks<n8k,0x2000>( pRom.NumBanks<n8k>() - 3 );
-	pRom.SwapBanks<n8k,0x4000>( pRom.NumBanks<n8k>() - 2 );
-	pRom.SwapBanks<n8k,0x6000>( pRom.NumBanks<n8k>() - 1 );
 }
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER42,8000) 
-{
-	ppu.Update();
-	cRom.SwapBanks<n8k,0x0000>(data & 0x1F);
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER42,E000) 
-{
-	ExRom->SwapBanks<n8k,0x0000>(data & 0xF);
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER42,E001) 
-{ 
-	ppu.SetMirroring( (data & 0x8) ? MIRROR_HORIZONTAL : MIRROR_VERTICAL );
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER42,E002) 
-{ 
-	cpu.ClearIRQ();
-	SetIrqEnable(data & 0x2);
-
-	if (!(data & 0x2))
-		IrqCount = 0;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_PEEK(MAPPER42,ExRom)
-{
-	return (*ExRom)[address - 0x6000];
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER42::IrqSync(const UINT delta)
-{
-	IrqCount += delta;
-
-	if (IrqCount >= 24590)
-	{
-		SetIrqEnable(FALSE);
-	}
-	else if (IrqCount >= 24576)
-	{
-		cpu.DoIRQ();
-	}
-}
-
-NES_NAMESPACE_END
-
-

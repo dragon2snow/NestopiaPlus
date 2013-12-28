@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003 Martin Freij
+// Copyright (C) 2003-2005 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -22,41 +22,36 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstMappers.h"
-#include "NstMapper072.h"
+#include "../NstMapper.hpp"
+#include "NstMapper072.hpp"
 		 
-NES_NAMESPACE_BEGIN
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER72::Reset()
+namespace Nes
 {
-	cpu.SetPort( 0x8000, 0x9FFF, this, Peek_8000, Poke_pRom );
-	cpu.SetPort( 0xA000, 0xBFFF, this, Peek_A000, Poke_pRom );
-	cpu.SetPort( 0xC000, 0xDFFF, this, Peek_C000, Poke_pRom );
-	cpu.SetPort( 0xE000, 0xFFFF, this, Peek_E000, Poke_pRom );
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER72,pRom)
-{
-	if (data & SWAP_PROM)
+	namespace Core
 	{
-		apu.Update(); 
-		pRom.SwapBanks<n16k,0x0000>(data & SELECT_BANK);
-	}
-
-	if (data & SWAP_CROM)
-	{
-		ppu.Update();
-		cRom.SwapBanks<n8k,0x0000>(data & SELECT_BANK);
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("s", on)
+        #endif
+	
+		void Mapper72::SubReset(bool)
+		{
+			Map( 0x8000U, 0xFFFFU, &Mapper72::Poke_Prg );
+		}
+	
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("", on)
+        #endif
+	
+		NES_POKE(Mapper72,Prg)
+		{
+			if (data & SWAP_PROM)
+				prg.SwapBank<NES_16K,0x0000U>(data & SELECT_BANK);
+	
+			if (data & SWAP_CROM)
+			{
+				ppu.Update();
+				chr.SwapBank<NES_8K,0x0000U>(data & SELECT_BANK);
+			}
+		}
 	}
 }
-
-NES_NAMESPACE_END
-

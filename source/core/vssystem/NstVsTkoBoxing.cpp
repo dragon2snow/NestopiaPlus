@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003 Martin Freij
+// Copyright (C) 2003-2005 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -22,50 +22,58 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "../NstTypes.h"
-#include "../NstMap.h"
-#include "../NstCpu.h"
-#include "../vssystem/NstVsSystem.h"
-#include "../vssystem/NstVsTkoBoxing.h"
+#include "../NstState.hpp"
+#include "../NstCpu.hpp"
+#include "../vssystem/NstVsSystem.hpp"
+#include "../vssystem/NstVsTkoBoxing.hpp"
 
-NES_NAMESPACE_BEGIN
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID VSTKOBOXING::Reset()
+namespace Nes
 {
-	cpu.SetPort( 0x5E00, this, Peek_5E00, Poke );
-	cpu.SetPort( 0x5E01, this, Peek_5E01, Poke );
-	counter = 0;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_PEEK(VSTKOBOXING,5E00)
-{
-	counter = 0;
-	return 0x00;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_PEEK(VSTKOBOXING,5E01)
-{
-	static const UCHAR SecurityData[32] =
+	namespace Core
 	{
-		0xFF, 0xBF, 0xB7, 0x97, 0x97, 0x17, 0x57, 0x4F,
-		0x6F, 0x6B, 0xEB, 0xA9, 0xB1, 0x90, 0x94, 0x14,
-		0x56, 0x4E, 0x6F, 0x6B, 0xEB, 0xA9, 0xB1, 0x90,
-		0xD4, 0x5C, 0x3E, 0x26, 0x87, 0x83, 0x13, 0x00
-	};
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("s", on)
+        #endif
 
-	return SecurityData[counter++ & 0x1F];
+		void VsTkoBoxing::Reset()
+		{
+			cpu.Map( 0x5E00U ).Set( &VsTkoBoxing::Peek_5E00 );
+			cpu.Map( 0x5E01U ).Set( &VsTkoBoxing::Peek_5E01 );
+			
+			counter = 0;
+		}
+
+		void VsTkoBoxing::SubSave(State::Saver& state) const
+		{
+			state.Begin('T','K','O','\0').Write8( counter & 0x1F ).End();
+		}
+
+		void VsTkoBoxing::SubLoad(State::Loader& state,const dword id)
+		{
+			if (id == NES_STATE_CHUNK_ID('T','K','O','\0'))
+				counter = state.Read8() & 0x1F;
+		}
+
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("", on)
+        #endif
+
+		NES_PEEK(VsTkoBoxing,5E00)
+		{
+			return counter = 0;
+		}
+
+		NES_PEEK(VsTkoBoxing,5E01)
+		{
+			static const uchar securityData[32] =
+			{
+				0xFF, 0xBF, 0xB7, 0x97, 0x97, 0x17, 0x57, 0x4F,
+				0x6F, 0x6B, 0xEB, 0xA9, 0xB1, 0x90, 0x94, 0x14,
+				0x56, 0x4E, 0x6F, 0x6B, 0xEB, 0xA9, 0xB1, 0x90,
+				0xD4, 0x5C, 0x3E, 0x26, 0x87, 0x83, 0x13, 0x00
+			};
+
+			return securityData[counter++ & 0x1F];
+		}
+	}
 }
-
-NES_NAMESPACE_END

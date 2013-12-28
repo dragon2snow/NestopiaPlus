@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003 Martin Freij
+// Copyright (C) 2003-2005 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -22,54 +22,41 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstMappers.h"
-#include "NstMapper188.h"
+#include "../NstMapper.hpp"
+#include "NstMapper188.hpp"
 		  
-NES_NAMESPACE_BEGIN
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER188::Reset()
+namespace Nes
 {
-	cpu.SetPort( 0x6000, 0x7FFF, this, Peek_wRam, Poke_6000 );
-	cpu.SetPort( 0x8000, 0x9FFF, this, Peek_8000, Poke_pRom );
-	cpu.SetPort( 0xA000, 0xBFFF, this, Peek_A000, Poke_pRom );
-	cpu.SetPort( 0xC000, 0xDFFF, this, Peek_C000, Poke_pRom );
-	cpu.SetPort( 0xE000, 0xFFFF, this, Peek_E000, Poke_pRom );
-
-	if (pRom.NumBanks<n8k>() > 16)
-		pRom.SwapBanks<n16k,0x4000>(7);
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER188,pRom)
-{
-	apu.Update();
-
-	if (data)
+	namespace Core
 	{
-		if (data & 0x10) pRom.SwapBanks<n16k,0x0000>( (data & 0x7) );
-		else             pRom.SwapBanks<n16k,0x0000>( data + 8 );
-	}
-	else
-	{
-		if (pRom.NumBanks<n8k>() == 16) pRom.SwapBanks<n16k,0x0000>(7);
-		else                            pRom.SwapBanks<n16k,0x0000>(8);
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("s", on)
+        #endif
+	
+		void Mapper188::SubReset(const bool hard)
+		{
+			if (hard && prg.Source().Size() > NES_128K)
+				prg.SwapBank<NES_16K,0x4000U>(7);
+
+			Map( 0x6000U, 0x7FFFU, &Mapper188::Peek_wRam );
+			Map( 0x8000U, 0xFFFFU, &Mapper188::Poke_Prg );
+		}
+	
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("", on)
+        #endif
+	
+		NES_POKE(Mapper188,Prg)
+		{
+			prg.SwapBank<NES_16K,0x0000U>
+			( 
+   	   			(data ? (data & 0x10) ? (data & 0x7) : (data + 8) : (prg.Source().Size() == NES_128K) ? 7 : 8)
+			);
+		}
+	
+		NES_PEEK(Mapper188,wRam)
+		{
+			return 0x3;
+		}
 	}
 }
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_PEEK(MAPPER188,wRam)
-{
-	return 0x3;
-}
-
-NES_NAMESPACE_END

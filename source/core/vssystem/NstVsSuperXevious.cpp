@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003 Martin Freij
+// Copyright (C) 2003-2005 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -22,35 +22,36 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "../NstTypes.h"
-#include "../NstMap.h"
-#include "../NstCpu.h"
-#include "../vssystem/NstVsSystem.h"
-#include "../vssystem/NstVsSuperXevious.h"
+#include "../NstCore.hpp"
+#include "../NstCpu.hpp"
+#include "../vssystem/NstVsSystem.hpp"
+#include "../vssystem/NstVsSuperXevious.hpp"
 
-NES_NAMESPACE_BEGIN
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID VSSUPERXEVIOUS::Reset()
+namespace Nes
 {
-	cpu.SetPort( 0x54FF, this, Peek_54FF, Poke );
-	cpu.SetPort( 0x5567, this, Peek_5567, Poke );
-	cpu.SetPort( 0x5678, this, Peek_5678, Poke );
-	cpu.SetPort( 0x578F, this, Peek_578F, Poke );
-
-	protection = 0;
+	namespace Core
+	{
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("s", on)
+        #endif
+	
+		void VsSuperXevious::Reset()
+		{
+			cpu.Map( 0x54FFU ).Set( &VsSuperXevious::Peek_54FF );
+			cpu.Map( 0x5567U ).Set( &VsSuperXevious::Peek_5567 );
+			cpu.Map( 0x5678U ).Set( &VsSuperXevious::Peek_5678 );
+			cpu.Map( 0x578FU ).Set( &VsSuperXevious::Peek_578F );
+	
+			protection = 0;
+		}
+	
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("", on)
+        #endif
+	
+		NES_PEEK(VsSuperXevious,54FF) { return 0x05;                              }
+		NES_PEEK(VsSuperXevious,5567) { return (protection ^= 0x1) ? 0x37 : 0x3E; }
+		NES_PEEK(VsSuperXevious,5678) { return protection ? 0x00 : 0x01;          }
+		NES_PEEK(VsSuperXevious,578F) { return protection ? 0xD1 : 0x89;          }
+	}
 }
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_PEEK(VSSUPERXEVIOUS,54FF) { return 0x05;                            }
-NES_PEEK(VSSUPERXEVIOUS,5567) { return protection ^= 0x1 ? 0x37 : 0x3E; }
-NES_PEEK(VSSUPERXEVIOUS,5678) { return protection ? 0x00 : 0x01;        }
-NES_PEEK(VSSUPERXEVIOUS,578F) { return protection ? 0xD1 : 0x89;        }
-
-NES_NAMESPACE_END

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003 Martin Freij
+// Copyright (C) 2003-2005 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -22,211 +22,229 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstMappers.h"
-#include "NstMapper004.h"
-#include "NstMapper187.h"
+#include "../NstMapper.hpp"
+#include "../board/NstBrdMmc3.hpp"
+#include "NstMapper187.hpp"
 	 
-NES_NAMESPACE_BEGIN
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER187::Reset()
+namespace Nes
 {
-	MAPPER4::Reset();
-
-	cpu.SetPort( 0x5000,         this, Peek_5000, Poke_5000 );
-	cpu.SetPort( 0x5001, 0x7FFF, this, Peek_5000, Poke_5001 );
-	cpu.SetPort( 0x8000,         this, Peek_8000, Poke_8000 );
-	cpu.SetPort( 0x8001,         this, Peek_8000, Poke_8001 );
-	cpu.SetPort( 0x8002,         this, Peek_8000, Poke_Nop  );
-	cpu.SetPort( 0x8003,         this, Peek_8000, Poke_8003 );
-	cpu.SetPort( 0x8004, 0x9FFF, this, Peek_8000, Poke_Nop  );
-	cpu.SetPort( 0xA000,         this, Peek_A000, Poke_A000 );
-	cpu.SetPort( 0xA001,         this, Peek_A000, Poke_A001 );
-	cpu.SetPort( 0xA003, 0xBFFF, this, Peek_A000, Poke_Nop  );
-	cpu.SetPort( 0xC000,         this, Peek_C000, Poke_C000 );
-	cpu.SetPort( 0xC001,         this, Peek_C000, Poke_C001 );
-	cpu.SetPort( 0xC002, 0xDFFF, this, Peek_C000, Poke_Nop  );
-	cpu.SetPort( 0xE000,         this, Peek_E000, Poke_E000 );
-	cpu.SetPort( 0xE002,         this, Peek_E000, Poke_E000 );
-	cpu.SetPort( 0xE001,         this, Peek_E000, Poke_E001 );
-	cpu.SetPort( 0xE003,         this, Peek_E000, Poke_E001 );
-	cpu.SetPort( 0xE004, 0xFFFF, this, Peek_E000, Poke_Nop  );
-
-	latch = 0;
-
-	ExBanks[0] = 0;
-	ExBanks[1] = 1;
-
-	UseExBank = FALSE;
-	ExBankMode = 0;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER187,5000)
-{
-	apu.Update();
-
-	latch = data & 0x3;
-	ExBankMode = data;
-
-	if (data & SWAP_NO_EXBANK)
+	namespace Core
 	{
-		if (data & SWAP_32)
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("s", on)
+        #endif
+	
+		void Mapper187::SubReset(const bool hard)
 		{
-			const UINT bank = (data & 0x1E) << 1;
+			if (hard)
+			{
+				latch = 0;
+				hack = true;
 
-			pRomBanks[0] = bank + 0;
-			pRomBanks[1] = bank + 1;
-			pRomBanks[2] = bank + 2;
-			pRomBanks[3] = bank + 3;
+				exBanks[0] = 0;
+				exBanks[1] = 1;
+
+				useExBank = false;
+				exBankMode = 0;
+			}
+	
+			Mmc3::SubReset( hard );
+	
+			Map( 0x5000U,          &Mapper187::Peek_5000, &Mapper187::Poke_5000 );
+			Map( 0x5001U, 0x7FFFU, &Mapper187::Peek_5000, &Mapper187::Poke_5001 );
+	
+			for (uint i=0x8000U; i < 0xA000U; )
+			{
+				Map( i++, &Mapper187::Poke_8000 );
+				Map( i++, &Mapper187::Poke_8001 );			
+				Map( i++, NOP_POKE              );			
+				Map( i++, &Mapper187::Poke_8003 );
+			}
+	
+			Map( 0x8000U,          &Mapper187::Poke_8000 );
+			Map( 0x8002U,          NOP_POKE              );
+			Map( 0x8001U,          &Mapper187::Poke_8001 );
+			Map( 0x8003U,          &Mapper187::Poke_8003 );
+			Map( 0x8004U, 0x9FFFU, NOP_POKE              );				
+			Map( 0xA000U,          NMT_SWAP_HV           );
+			Map( 0xA001U,          &Mapper187::Poke_A001 );
+			Map( 0xA003U, 0xBFFFU, NOP_POKE              );
+			Map( 0xC000U,          &Mapper187::Poke_C000 );
+			Map( 0xC001U,          &Mapper187::Poke_C001 );
+			Map( 0xC002U, 0xDFFFU, NOP_POKE              );
+			Map( 0xE000U,          &Mapper187::Poke_E000 );
+			Map( 0xE002U,          &Mapper187::Poke_E000 );
+			Map( 0xE001U,          &Mapper187::Poke_E001 );
+			Map( 0xE003U,          &Mapper187::Poke_E001 );
+			Map( 0xE004U, 0xFFFFU, NOP_POKE              );
 		}
-		else
+	
+		void Mapper187::SubLoad(State::Loader& state)
 		{
-			const UINT bank = (data & 0x1F) << 1;
-			
-			pRomBanks[2] = bank + 0;
-			pRomBanks[3] = bank + 1;
-		}
-	}
-	else
-	{
-		pRomBanks[0] = ExBanks[0];
-		pRomBanks[1] = ExBanks[1];
-		pRomBanks[2] = pRom.NumBanks<n8k>() - 2;
-		pRomBanks[3] = pRom.NumBanks<n8k>() - 1;
-	}
-
-	UpdatePRom();
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER187,5001)
-{
-	latch = data & 0x3;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_PEEK(MAPPER187,5000)
-{
-	switch (latch)
-	{
-    	case 0:
-		case 1:	return 0x83;
-		case 2: return 0x42;
-	}
-
-	return 0x00;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER187,8000)
-{
-	UseExBank = FALSE;
-	command = data;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER187,8001)
-{
-	const UINT index = command & COMMAND_INDEX;
-
-	switch (index)
-	{
-    	case 0x6:
-		case 0x7:
-
-			ExBanks[index - 0x6] = data;
-	}
-
-	if (UseExBank)
-	{
-		switch (command)
-		{
-			case 0x2A: pRomBanks[1] = 0x0F; break;
-			case 0x28: pRomBanks[2] = 0x17; break;
-		}
-
-		UpdatePRom();
-	}
-	else
-	{
-		switch (index)
-		{
-			case 0x0:		
-			case 0x1:					
-
-				cRomBanks[index] = (data | 0x100) >> 1;
-				UpdateCRom(); 
-				return;
-
-			case 0x2:
-			case 0x3:
-			case 0x4:
-			case 0x5:
-		
-				cRomBanks[index] = data >> 0;
-				UpdateCRom(); 
-				return;
-
-			case 0x6: 
-			case 0x7: 
-
-				if ((ExBankMode & 0xA0) != 0xA0)
+			while (const dword chunk = state.Begin())
+			{
+				if (chunk == NES_STATE_CHUNK_ID('R','E','G','\0'))
 				{
-					pRomBanks[index - 0x6] = data;
-					UpdatePRom();
+					const State::Loader::Data<5> data( state );
+	
+					exBankMode = data[0];
+					exBanks[0] = data[1];
+					exBanks[1] = data[2];
+					useExBank = data[3] & 0x1;
+					latch = (data[3] >> 1) & 0x3;
 				}
-				return;
+	
+				state.End();
+			}
+		}
+	
+		void Mapper187::SubSave(State::Saver& state) const
+		{
+			const u8 data[4] =
+			{
+				exBankMode,
+				exBanks[0],
+				exBanks[1],
+				useExBank | (latch << 1)
+			};
+
+			state.Begin('R','E','G','\0').Write( data ).End();
+		}
+	
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("", on)
+        #endif
+	
+		NES_POKE(Mapper187,5000)
+		{
+			latch = data & 0x3;
+			exBankMode = data;
+	
+			if (data & SWAP_NO_EXBANK)
+			{
+				if (data & SWAP_32)
+				{
+					const uint bank = (data & 0x1E) << 1;
+	
+					banks.prg[0] = bank + 0;
+					banks.prg[1] = bank + 1;
+					banks.prg[2] = bank + 2;
+					banks.prg[3] = bank + 3;
+				}
+				else
+				{
+					const uint bank = (data & 0x1F) << 1;
+	
+					banks.prg[2] = bank + 0;
+					banks.prg[3] = bank + 1;
+				}
+			}
+			else
+			{
+				banks.prg[0] = exBanks[0];
+				banks.prg[1] = exBanks[1];
+				banks.prg[2] = 0xFE;
+				banks.prg[3] = 0xFF;
+			}
+	
+			Mapper187::UpdatePrg();
+		}
+	
+		NES_PEEK(Mapper187,5000)
+		{
+			switch (latch)
+			{
+				case 0:
+				case 1:	return 0x83;
+				case 2: return 0x42;
+			}
+	
+			return 0x00;
+		}
+	
+		NES_POKE(Mapper187,5001)
+		{
+			if (hack)
+			{
+				hack = false;
+
+				// Sonic 3D Blast 6 will not work unless APU 
+				// frame IRQ's are disabled on power-on
+
+				cpu.Poke( 0x4017, 0x40 ); 
+			}
+
+			latch = data & 0x3;
+		}
+	
+		NES_POKE(Mapper187,8000)
+		{
+			useExBank = false;
+			regs.ctrl0 = data;
+		}
+	
+		NES_POKE(Mapper187,8001)
+		{
+			const uint index = regs.ctrl0 & Regs::CTRL0_MODE;
+	
+			if (index == 6 || index == 7)
+				exBanks[index - 6] = data;
+	
+			if (useExBank)
+			{
+				switch (regs.ctrl0)
+				{
+					case 0x2A: banks.prg[1] = 0x0F; break;
+					case 0x28: banks.prg[2] = 0x17; break;
+				}
+	
+				Mapper187::UpdatePrg();
+			}
+			else switch (index)
+			{
+				case 0:		
+				case 1:					
+			
+					banks.chr[index] = (data | 0x100) >> 1;
+					UpdateChr(); 
+					break;
+			
+				case 2:
+				case 3:
+				case 4:
+				case 5:
+			
+					banks.chr[index] = data >> 0;
+					UpdateChr(); 
+					break;
+			
+				case 6: 
+				case 7: 
+			
+					if ((exBankMode & 0xA0) != 0xA0)
+					{
+						banks.prg[index - 0x6] = data;
+						Mapper187::UpdatePrg();
+					}
+					break;
+			}
+		}
+	
+		NES_POKE(Mapper187,8003)
+		{
+			useExBank = true;
+			regs.ctrl0 = data;
+	
+			if (!(data & 0xF0))
+			{
+				banks.prg[2] = 0xFE;
+				Mapper187::UpdatePrg();
+			}
+		}
+	
+		void Mapper187::UpdatePrg()
+		{
+			prg.SwapBanks<NES_8K,0x0000U>( banks.prg[0], banks.prg[1], banks.prg[2], banks.prg[3] );
 		}
 	}
 }
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER187,8003)
-{
-	UseExBank = TRUE;
-	command = data;
-
-	if (!(data & 0xF0))
-	{
-		pRomBanks[2] = pRom.NumBanks<n8k>() - 2;
-		UpdatePRom();
-	}
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER187::UpdatePRom()
-{
-	apu.Update(); 
-
-	pRom.SwapBanks<n8k,0x0000>( pRomBanks[0] );
-	pRom.SwapBanks<n8k,0x2000>( pRomBanks[1] );
-	pRom.SwapBanks<n8k,0x4000>( pRomBanks[2] );
-	pRom.SwapBanks<n8k,0x6000>( pRomBanks[3] );
-}
-
-NES_NAMESPACE_END

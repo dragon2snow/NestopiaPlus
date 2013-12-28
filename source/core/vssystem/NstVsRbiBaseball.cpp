@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003 Martin Freij
+// Copyright (C) 2003-2005 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -22,42 +22,51 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "../NstTypes.h"
-#include "../NstMap.h"
-#include "../NstCpu.h"
-#include "../vssystem/NstVsSystem.h"
-#include "../vssystem/NstVsRbiBaseball.h"
+#include "../NstState.hpp"
+#include "../NstCpu.hpp"
+#include "../vssystem/NstVsSystem.hpp"
+#include "../vssystem/NstVsRbiBaseball.hpp"
 
-NES_NAMESPACE_BEGIN
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID VSRBIBASEBALL::Reset()
+namespace Nes
 {
-	cpu.SetPort( 0x5E00, this, Peek_5E00, Poke );
-	cpu.SetPort( 0x5E01, this, Peek_5E01, Poke );	
-	counter = 0;
+	namespace Core
+	{
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("s", on)
+        #endif
+	
+		void VsRbiBaseball::Reset()
+		{
+			cpu.Map( 0x5E00U ).Set( &VsRbiBaseball::Peek_5E00 );
+			cpu.Map( 0x5E01U ).Set( &VsRbiBaseball::Peek_5E01 );	
+			
+			counter = 0;
+		}
+	
+		void VsRbiBaseball::SubSave(State::Saver& state) const
+		{
+			state.Begin('R','B','I','\0').Write8( counter & 0xFF ).End();
+		}
+	
+		void VsRbiBaseball::SubLoad(State::Loader& state,const dword id)
+		{
+			if (id == NES_STATE_CHUNK_ID('R','B','I','\0'))
+				counter = state.Read8();
+		}
+	
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("", on)
+        #endif
+	
+		NES_PEEK(VsRbiBaseball,5E00)
+		{
+			counter = 0;
+			return 0x00;
+		}
+	
+		NES_PEEK(VsRbiBaseball,5E01)
+		{
+			return (counter++ == 0x9) ? 0x6F : 0xB4;
+		}
+	}
 }
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_PEEK(VSRBIBASEBALL,5E00)
-{
-	counter = 0;
-	return 0x00;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_PEEK(VSRBIBASEBALL,5E01)
-{
-	return (counter++ == 0x9) ? 0x6F : 0xB4;
-}
-
-NES_NAMESPACE_END

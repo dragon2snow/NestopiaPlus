@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003 Martin Freij
+// Copyright (C) 2003-2005 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -22,108 +22,94 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstMappers.h"
-#include "NstMapper032.h"
+#include "../NstMapper.hpp"
+#include "NstMapper032.hpp"
 		   
-NES_NAMESPACE_BEGIN
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER32::Reset()
+namespace Nes
 {
-	cpu.SetPort( 0x8000, 0x8FFF, this, Peek_8000, Poke_8000 );
-	cpu.SetPort( 0x9000, 0x9FFF, this, Peek_9000, Poke_9000 );
-	cpu.SetPort( 0xA000, 0xAFFF, this, Peek_A000, Poke_A000 );
-
-	for (UINT i=0xB000; i <= 0xBFFF; i += 0x8)
+	namespace Core
 	{
-		cpu.SetPort( i + 0x0, this, Peek_B000, Poke_B000 );
-		cpu.SetPort( i + 0x1, this, Peek_B000, Poke_B001 );
-		cpu.SetPort( i + 0x2, this, Peek_B000, Poke_B002 );
-		cpu.SetPort( i + 0x3, this, Peek_B000, Poke_B003 );
-		cpu.SetPort( i + 0x4, this, Peek_B000, Poke_B004 );
-		cpu.SetPort( i + 0x5, this, Peek_B000, Poke_B005 );
-		cpu.SetPort( i + 0x6, this, Peek_B000, Poke_B006 );
-		cpu.SetPort( i + 0x7, this, Peek_B000, Poke_B007 );
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("s", on)
+        #endif
+	
+		void Mapper32::SubReset(const bool hard)
+		{
+			if (hard)
+			{
+				pRomOffset = 0x0000U;
+
+				if (pRomCrc == 0xC0FED437UL) // Major League
+					ppu.SetMirroring( Ppu::NMT_ZERO );
+			}
+
+			Map( 0x8000U, 0x8FFFU, &Mapper32::Poke_8000 );
+			Map( 0x9000U, 0x9FFFU, &Mapper32::Poke_9000 );			
+			Map( 0xA000U, 0xAFFFU, PRG_SWAP_8K_1 );
+	
+			for (uint i=0xB000U; i < 0xC000U; i += 0x8)
+			{
+				Map( i + 0x0, CHR_SWAP_1K_0 );
+				Map( i + 0x1, CHR_SWAP_1K_1 );
+				Map( i + 0x2, CHR_SWAP_1K_2 );
+				Map( i + 0x3, CHR_SWAP_1K_3 );
+				Map( i + 0x4, CHR_SWAP_1K_4 );
+				Map( i + 0x5, CHR_SWAP_1K_5 );
+				Map( i + 0x6, &Mapper32::Poke_B006 );
+				Map( i + 0x7, &Mapper32::Poke_B007 );
+			}
+		}
+	
+		void Mapper32::SubLoad(State::Loader& state)
+		{
+			while (const dword chunk = state.Begin())
+			{
+				if (chunk == NES_STATE_CHUNK_ID('R','E','G','\0'))
+					pRomOffset = (state.Read8() & 0x2) << 13;
+	
+				state.End();
+			}
+		}
+	
+		void Mapper32::SubSave(State::Saver& state) const
+		{
+			state.Begin('R','E','G','\0').Write8( pRomOffset >> 13 ).End();
+		}
+	
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("", on)
+        #endif
+	
+		NES_POKE(Mapper32,8000)
+		{
+			prg.SwapBank<NES_8K>( pRomOffset, data );
+		}
+	
+		NES_POKE(Mapper32,9000)
+		{
+			ppu.SetMirroring( (data & 0x1) ? Ppu::NMT_HORIZONTAL : Ppu::NMT_VERTICAL );
+			pRomOffset = (data & 0x2) << 13;
+		}
+	
+		NES_POKE(Mapper32,B006) 
+		{ 
+			ppu.Update(); 
+			chr.SwapBank<NES_1K,0x1800U>(data); 
+	
+			if (pRomCrc == 0xC0FED437UL && (data & 0x40)) // Major League
+			{
+				const uchar mirroring[4] = {0,0,0,1};
+				ppu.SetMirroring( mirroring );
+			}
+		}
+	
+		NES_POKE(Mapper32,B007) 
+		{ 
+			ppu.Update(); 
+			chr.SwapBank<NES_1K,0x1C00U>(data); 
+	
+			if (pRomCrc == 0xC0FED437UL && (data & 0x40)) // Major League
+				ppu.SetMirroring( Ppu::NMT_ZERO );
+		}
 	}
-
-	pRomOffset = 0x0000;
-
-	switch (pRomCrc) 
-	{
-       	case 0xFD3FC292UL: // Ai Sensei no Oshiete - Watashi no Hoshi
-
-			
-			pRom.SwapBanks<n16k,0x0000>( 0xF );
-			pRom.SwapBanks<n16k,0x4000>( 0xF );
-			break;
-			
-		case 0xC0FED437UL: // Major League
-
-			ppu.SetMirroring( MIRROR_ZERO );
-			break;
-	}
 }
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER32,8000)
-{
-	apu.Update(); 
-	pRom.SwapBanks<n8k>( pRomOffset, data );
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER32,9000)
-{
-	ppu.SetMirroring( (data & 0x1) ? MIRROR_HORIZONTAL : MIRROR_VERTICAL );
-	pRomOffset = (data & 0x2) ? 0x4000 : 0x0000;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER32,A000)
-{
-	apu.Update(); 
-	pRom.SwapBanks<n8k,0x2000>(data);
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER32,B000) { ppu.Update(); cRom.SwapBanks<n1k,0x0000>(data); }
-NES_POKE(MAPPER32,B001) { ppu.Update(); cRom.SwapBanks<n1k,0x0400>(data); }
-NES_POKE(MAPPER32,B002) { ppu.Update(); cRom.SwapBanks<n1k,0x0800>(data); }
-NES_POKE(MAPPER32,B003) { ppu.Update(); cRom.SwapBanks<n1k,0x0C00>(data); }
-NES_POKE(MAPPER32,B004) { ppu.Update(); cRom.SwapBanks<n1k,0x1000>(data); }
-NES_POKE(MAPPER32,B005) { ppu.Update(); cRom.SwapBanks<n1k,0x1400>(data); }
-
-NES_POKE(MAPPER32,B006) 
-{ 
-	ppu.Update(); 
-	cRom.SwapBanks<n1k,0x1800>(data); 
-
-	if (pRomCrc == 0xC0FED437UL && (data & 0x40)) // Major League
-		ppu.SetMirroring( 0, 0, 0, 1 );
-}
-
-NES_POKE(MAPPER32,B007) 
-{ 
-	ppu.Update(); 
-	cRom.SwapBanks<n1k,0x1C00>(data); 
-
-	if (pRomCrc == 0xC0FED437UL && (data & 0x40)) // Major League
-		ppu.SetMirroring( 0, 0, 0, 0 );
-}
-
-NES_NAMESPACE_END

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003 Martin Freij
+// Copyright (C) 2003-2005 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -22,255 +22,130 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstMappers.h"
-#include "NstMapper004.h"
+#include "../NstMapper.hpp"
+#include "../board/NstBrdMmc3.hpp"
+#include "NstMapper004.hpp"
 
-NES_NAMESPACE_BEGIN
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER4::Reset()
+namespace Nes
 {
-	if (!cRom.Size())
-		EnableCartridgeCRam();
-
-	EnableIrqSync(IRQSYNC_PPU);
-
-	for (ULONG i=0x8000; i <= 0xFFFF; ++i)
+	namespace Core
 	{
-		switch (i & 0xE001)
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("s", on)
+        #endif
+	
+		bool Mapper4::IsMmc6(dword crc)
 		{
-    	   	case 0x8000: cpu.SetPort( i, this, Peek_8000, Poke_8000 ); continue;
-     		case 0x8001: cpu.SetPort( i, this, Peek_8000, Poke_8001 ); continue;
-     		case 0xA000: cpu.SetPort( i, this, Peek_A000, Poke_A000 ); continue;
-			case 0xA001: cpu.SetPort( i, this, Peek_A000, Poke_A001 ); continue;
-     		case 0xC000: cpu.SetPort( i, this, Peek_C000, Poke_C000 ); continue;
-     		case 0xC001: cpu.SetPort( i, this, Peek_C000, Poke_C001 ); continue;
-     		case 0xE000: cpu.SetPort( i, this, Peek_E000, Poke_E000 ); continue;
-    		case 0xE001: cpu.SetPort( i, this, Peek_E000, Poke_E001 ); continue;
+			switch (crc)
+			{
+				case 0xBEB88304UL: // Startropics (U)
+				case 0xAC74DD5CUL: // Startropics (E)
+				case 0x80FB117EUL: // Startropics 2 - Zoda's Revenge (U)
+					return true;
+			}
+	
+			return false;
+		}
+	
+		Mapper4::Mapper4(Context& c)
+		: 
+		Mmc3 (c,WRAM_8K,IsMmc6(c.pRomCrc)), 
+		mmc6 (IsMmc6(c.pRomCrc)) 
+		{}
+	
+		void Mapper4::SubReset(const bool hard)
+		{
+			Mmc3::SubReset( hard );
+	
+			if (mmc6.indeed)
+			{
+				mmc6.wRam = 0;
+	
+				Map( 0x6000U, 0x6FFFU, NOP_PEEK_POKE );
+				Map( 0x7000U, 0x7FFFU, &Mapper4::Peek_Mmc6_wRam, &Mapper4::Poke_Mmc6_wRam );
+	
+				for (uint i=0xA001U; i < 0xC000U; i += 0x2)
+					Map( i, &Mapper4::Poke_Mmc6_A001 );
+			}
+	
+			if (mirroring == Ppu::NMT_FOURSCREEN)
+			{
+				for (uint i=0xA000U; i < 0xC000U; i += 0x2)
+					Map( i, NOP_POKE );
+			}
+		}
+	
+		void Mapper4::SubLoad(State::Loader& state)
+		{
+			while (const dword chunk = state.Begin())
+			{
+				if (chunk == NES_STATE_CHUNK_ID('R','E','G','\0') && mmc6.indeed)
+					mmc6.wRam = state.Read8();
+	
+				state.End();
+			}
+		}
+	
+		void Mapper4::SubSave(State::Saver& state) const
+		{
+			if (mmc6.indeed)
+				state.Begin('R','E','G','\0').Write8( mmc6.wRam ).End();
+		}
+	
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("", on)
+        #endif
+	
+		inline ibool Mapper4::Mmc6::IsWRamEnabled() const
+		{
+			return wRam & (Mmc6::WRAM_LO_BANK_ENABLED|Mmc6::WRAM_HI_BANK_ENABLED);
+		}
+	
+		inline ibool Mapper4::Mmc6::IsWRamReadable(uint address) const
+		{
+			return (wRam >> ((address & 0x200) >> 8)) & 0x20;
+		}
+	
+		inline ibool Mapper4::Mmc6::IsWRamWritable(uint address) const
+		{
+			return ((wRam >> ((address & 0x200) >> 8)) & 0x30) == 0x30;
+		}
+	
+		NES_POKE(Mapper4,Mmc6_wRam)
+		{
+			NST_VERIFY( mmc6.IsWRamWritable( address ) );
+	
+			if (mmc6.IsWRamWritable( address ))
+			{
+				address &= 0x3FFU;
+				
+				// mirror data just for 8K save file compatibility
+
+				wrk[0][0x1C00 + address] =
+				wrk[0][0x1800 + address] =
+				wrk[0][0x1400 + address] =
+				wrk[0][0x1000 + address] =
+				wrk[0][0x0C00 + address] =
+				wrk[0][0x0800 + address] =
+				wrk[0][0x0400 + address] =
+				wrk[0][0x0000 + address] = data;
+			}
+		}
+	
+		NES_PEEK(Mapper4,Mmc6_wRam)
+		{
+			NST_VERIFY( mmc6.IsWRamEnabled() );
+	
+			if (mmc6.IsWRamEnabled())
+				return mmc6.IsWRamReadable( address ) ? wrk[0][address & 0x3FFU] : 0x00;
+			else
+				return address >> 8;
+		}
+	
+		NES_POKE(Mapper4,Mmc6_A001)
+		{
+			if ((mmc6.wRam & 0x1) | (regs.ctrl0 & Mmc6::WRAM_ENABLE))
+				mmc6.wRam = data | 0x1;
 		}
 	}
-
-	command = 0;
-	wRamEnable = 0;
-
-	switch (pRomCrc)
-	{
-		// MMC6B games doesn't seem to use the wRam enable bit the same way MMC3 does
-
-    	case 0xBEB88304UL: // Startropics (U)
-		case 0xAC74DD5CUL: // Startropics (E)
-		case 0x80FB117EUL: // Startropics 2 - Zoda's Revenge (U)
-			break; 
-
-		default:
-
-			cpu.SetPort( 0x6000, 0x7FFF, this, Peek_wRam, Poke_wRam );
-	}
-
-	pRomBanks[0] = 0;
-	pRomBanks[1] = 1;
-	pRomBanks[2] = pRom.NumBanks<n8k>() - 2;
-	pRomBanks[3] = pRom.NumBanks<n8k>() - 1;
-
-	cRomBanks[0] = 0;
-	cRomBanks[1] = 2;
-	cRomBanks[2] = 4;
-	cRomBanks[3] = 5;
-	cRomBanks[4] = 6;
-	cRomBanks[5] = 7;
-
-	latched = FALSE;
-	IrqReset = 0;
-
-	ppu.SetMirroring(0,1,2,3);
-
-	UpdatePRom();
-	UpdateCRom();
 }
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER4,8000)
-{
-	const UINT tmp = command;
-	command = data;
-
-	if ((tmp & SWAP_PROM_BANKS) != (data & SWAP_PROM_BANKS)) UpdatePRom();
-	if ((tmp & SWAP_CROM_BANKS) != (data & SWAP_CROM_BANKS)) UpdateCRom();
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER4,8001)
-{
-	const UINT index = command & COMMAND_INDEX;
-
-	switch (index)
-	{
-     	case 0x0:	
-     	case 0x1:	
-
-			cRomBanks[index] = data >> 1;
-			UpdateCRom();
-     		return;
-
-		case 0x2:
-		case 0x3:
-		case 0x4:
-		case 0x5:
-
-			cRomBanks[index] = data >> 0;
-			UpdateCRom();
-			return;
-
-		case 0x6: 
-		case 0x7:
-
-			pRomBanks[index - 0x6] = data;
-			UpdatePRom();
-			return;
-	}
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER4,A000)
-{
-	if (mirroring != MIRROR_FOURSCREEN)
-		ppu.SetMirroring((data & 0x1) ? MIRROR_HORIZONTAL : MIRROR_VERTICAL);
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER4,A001)
-{
-	wRamEnable = data & WRAM_ENABLE;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER4,C000) 
-{ 
-	IrqLatch = data;
-	latched = IrqReset ^ 1;
-
-	if (IrqReset)
-		IrqCount = data;
-}						 
-
-NES_POKE(MAPPER4,C001) 
-{
-	IrqCount = IrqLatch;                    
-}
-
-NES_POKE(MAPPER4,E000) 
-{ 
-	SetIrqEnable(FALSE);   
-	IrqReset = 1;
-}
-
-NES_POKE(MAPPER4,E001) 
-{ 
-	SetIrqEnable(TRUE); 
-	cpu.ClearIRQ(); 
-
-	if (latched)
-		IrqCount = IrqLatch;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER4,wRam)
-{
-	if (wRamEnable)
-		wRam[address - 0x6000] = data;
-}
-
-NES_PEEK(MAPPER4,wRam)
-{
-	return wRamEnable ? wRam[address - 0x6000] : cpu.GetCache();
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER4::UpdatePRom()
-{
-	apu.Update(); 
-
-	if (command & SWAP_PROM_BANKS)
-	{
-		pRom.SwapBanks<n8k,0x0000>( pRomBanks[2] );
-		pRom.SwapBanks<n8k,0x2000>( pRomBanks[1] );
-		pRom.SwapBanks<n8k,0x4000>( pRomBanks[0] );
-	}
-	else
-	{
-		pRom.SwapBanks<n8k,0x0000>( pRomBanks[0] );
-		pRom.SwapBanks<n8k,0x2000>( pRomBanks[1] );
-		pRom.SwapBanks<n8k,0x4000>( pRomBanks[2] );
-	}
-
-	pRom.SwapBanks<n8k,0x6000>( pRomBanks[3] );
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER4::UpdateCRom()
-{
-	ppu.Update();
-
-	if (command & SWAP_CROM_BANKS)
-	{
-		cRom.SwapBanks<n1k,0x0000>( cRomBanks[2] ); 
-		cRom.SwapBanks<n1k,0x0400>( cRomBanks[3] ); 
-		cRom.SwapBanks<n1k,0x0800>( cRomBanks[4] ); 
-		cRom.SwapBanks<n1k,0x0C00>( cRomBanks[5] ); 
-		cRom.SwapBanks<n2k,0x1000>( cRomBanks[0] ); 
-		cRom.SwapBanks<n2k,0x1800>( cRomBanks[1] ); 
-	}
-	else
-	{
-		cRom.SwapBanks<n2k,0x0000>( cRomBanks[0] ); 
-		cRom.SwapBanks<n2k,0x0800>( cRomBanks[1] ); 
-		cRom.SwapBanks<n1k,0x1000>( cRomBanks[2] ); 
-		cRom.SwapBanks<n1k,0x1400>( cRomBanks[3] ); 
-		cRom.SwapBanks<n1k,0x1800>( cRomBanks[4] ); 
-		cRom.SwapBanks<n1k,0x1C00>( cRomBanks[5] ); 
-	}
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER4::IrqSync()
-{
-	IrqReset = 0;
-
-	if (IrqCount-- <= 0)
-	{
-		IrqCount = IrqLatch;
-		cpu.DoIRQ();
-	}
-}
-
-NES_NAMESPACE_END

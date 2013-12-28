@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003 Martin Freij
+// Copyright (C) 2003-2005 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -22,57 +22,78 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstMappers.h"
-#include "NstMapper091.h"
+#include "../NstMapper.hpp"
+#include "../board/NstBrdMmc3.hpp"
+#include "NstMapper091.hpp"
 	
-NES_NAMESPACE_BEGIN
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER91::Reset()
+namespace Nes
 {
-	EnableIrqSync(IRQSYNC_PPU);
-
-	for (UINT i=0x6000; i <= 0x7FFF; ++i)
+	namespace Core
 	{
-		switch (i & 0xF003)
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("s", on)
+        #endif
+	
+		Mapper91::Mapper91(Context& c)
+		: 
+		Mapper (c,WRAM_NONE),
+		irq    (c.cpu,c.ppu)
+		{}
+	
+		void Mapper91::SubReset(const bool hard)
 		{
-     		case 0x6000: cpu.SetPort( i, this, Peek_Nop, Poke_6000 ); continue; 
-			case 0x6001: cpu.SetPort( i, this, Peek_Nop, Poke_6001 ); continue;
-			case 0x6002: cpu.SetPort( i, this, Peek_Nop, Poke_6002 ); continue;
-			case 0x6003: cpu.SetPort( i, this, Peek_Nop, Poke_6003 ); continue;
-			case 0x7000: cpu.SetPort( i, this, Peek_Nop, Poke_7000 ); continue;
-			case 0x7001: cpu.SetPort( i, this, Peek_Nop, Poke_7001 ); continue;
-			case 0x7002: cpu.SetPort( i, this, Peek_Nop, Poke_7002 ); continue;
-			case 0x7003: cpu.SetPort( i, this, Peek_Nop, Poke_7003 ); continue;
+			irq.Reset( hard, hard || irq.IsLineEnabled() );
+	
+			for (uint i=0x0000U; i < 0x1000U; i += 0x4)
+			{
+				Map( 0x6000U + i, CHR_SWAP_2K_0 );
+				Map( 0x6001U + i, CHR_SWAP_2K_1 );
+				Map( 0x6002U + i, CHR_SWAP_2K_2 );
+				Map( 0x6003U + i, CHR_SWAP_2K_3 );			
+				Map( 0x7000U + i, PRG_SWAP_8K_0 );			
+				Map( 0x7001U + i, PRG_SWAP_8K_1 );
+				Map( 0x7002U + i, &Mapper91::Poke_7002 );
+				Map( 0x7003U + i, &Mapper91::Poke_7003 );
+			}
+		}
+	
+		void Mapper91::SubLoad(State::Loader& state)
+		{
+			while (const dword chunk = state.Begin())
+			{
+				if (chunk == NES_STATE_CHUNK_ID('I','R','Q','\0'))
+					irq.unit.LoadState( state );
+
+				state.End();
+			}
+		}
+	
+		void Mapper91::SubSave(State::Saver& state) const
+		{
+			irq.unit.SaveState( State::Saver::Subset(state,'I','R','Q','\0').Ref() );
+		}
+	
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("", on)
+        #endif
+	
+		NES_POKE(Mapper91,7002) 
+		{ 
+			irq.Update(); 
+			irq.unit.Disable( cpu );
+			irq.unit.SetLatch( 0 );
+		}
+	
+		NES_POKE(Mapper91,7003) 
+		{ 
+			irq.Update(); 
+			irq.unit.Enable();
+			irq.unit.SetLatch( 7 );
+		}
+
+		void Mapper91::VSync()
+		{
+			irq.VSync();
 		}
 	}
 }
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER91,6000) { ppu.Update(); cRom.SwapBanks<n2k,0x0000>(data); }
-NES_POKE(MAPPER91,6001) { ppu.Update(); cRom.SwapBanks<n2k,0x0800>(data); }
-NES_POKE(MAPPER91,6002) { ppu.Update(); cRom.SwapBanks<n2k,0x1000>(data); }
-NES_POKE(MAPPER91,6003) { ppu.Update(); cRom.SwapBanks<n2k,0x1800>(data); }
-NES_POKE(MAPPER91,7000) { apu.Update(); pRom.SwapBanks<n8k,0x0000>(data); }
-NES_POKE(MAPPER91,7001) { apu.Update(); pRom.SwapBanks<n8k,0x2000>(data); }
-NES_POKE(MAPPER91,7002) { SetIrqEnable(FALSE); cpu.ClearIRQ(); IrqCount = 0; }
-NES_POKE(MAPPER91,7003) { SetIrqEnable(TRUE); }
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER91::IrqSync()
-{
-	if (++IrqCount >= 8)
-		cpu.DoIRQ();
-}
-
-NES_NAMESPACE_END
-

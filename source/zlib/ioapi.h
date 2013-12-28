@@ -1,9 +1,9 @@
-/* ioapi.h -- IO base function header for compress/uncompress .zip 
+/* ioapi.h -- IO base function header for compress/uncompress .zip
    files using zlib + zip or unzip API
 
-   Version 0.18 beta, Feb 26th, 2002
+   Version 1.01e, February 12th, 2005
 
-   Copyright (C) 1998-2002 Gilles Vollant
+   Copyright (C) 1998-2005 Gilles Vollant
 */
 
 #ifndef _ZLIBIOAPI_H
@@ -24,11 +24,15 @@
 
 #ifndef ZCALLBACK
 
-#if (defined(WIN32) || defined (WINDOWS) || defined (_WINDOWS)) && defined(CALLBACK)
+#if (defined(WIN32) || defined (WINDOWS) || defined (_WINDOWS)) && defined(CALLBACK) && defined (USEWINDOWS_CALLBACK)
 #define ZCALLBACK CALLBACK
 #else
 #define ZCALLBACK
 #endif
+#endif
+
+#ifdef __cplusplus
+extern "C" {
 #endif
 
 typedef voidpf (ZCALLBACK *open_file_func) OF((voidpf opaque, const char* filename, int mode));
@@ -36,7 +40,7 @@ typedef uLong  (ZCALLBACK *read_file_func) OF((voidpf opaque, voidpf stream, voi
 typedef uLong  (ZCALLBACK *write_file_func) OF((voidpf opaque, voidpf stream, const void* buf, uLong size));
 typedef long   (ZCALLBACK *tell_file_func) OF((voidpf opaque, voidpf stream));
 typedef long   (ZCALLBACK *seek_file_func) OF((voidpf opaque, voidpf stream, uLong offset, int origin));
-typedef long   (ZCALLBACK *close_file_func) OF((voidpf opaque, voidpf stream));
+typedef int    (ZCALLBACK *close_file_func) OF((voidpf opaque, voidpf stream));
 typedef int    (ZCALLBACK *testerror_file_func) OF((voidpf opaque, voidpf stream));
 
 typedef struct zlib_filefunc_def_s
@@ -61,4 +65,11 @@ void fill_fopen_filefunc OF((zlib_filefunc_def* pzlib_filefunc_def));
 #define ZSEEK(filefunc,filestream,pos,mode) ((*((filefunc).zseek_file))((filefunc).opaque,filestream,pos,mode))
 #define ZCLOSE(filefunc,filestream) ((*((filefunc).zclose_file))((filefunc).opaque,filestream))
 #define ZERROR(filefunc,filestream) ((*((filefunc).zerror_file))((filefunc).opaque,filestream))
+
+
+#ifdef __cplusplus
+}
 #endif
+
+#endif
+
