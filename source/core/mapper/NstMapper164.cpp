@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -29,34 +29,34 @@ namespace Nes
 {
 	namespace Core
 	{
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("s", on)
 		#endif
 
 		void Mapper164::SubReset(bool)
 		{
-			for (uint i=0x5000U; i < 0x6000U; i += 0x400)
+			for (uint i=0x5000; i < 0x6000; i += 0x400)
 				Map( i + 0x00, i + 0x1FF, &Mapper164::Poke_5000 );
 
 			regs[0] = 0xFFF;
 			regs[1] = 0x00;
 
-			NES_CALL_POKE(Mapper164,5000,0x5000U,0x00);
+			NES_DO_POKE(5000,0x5000,0x00);
 		}
 
 		void Mapper164::SubSave(State::Saver& state) const
 		{
-			const u8 data[2] = { regs[0], regs[1] };
-			state.Begin('R','E','G','\0').Write( data ).End();
+			const byte data[2] = { regs[0], regs[1] };
+			state.Begin( AsciiId<'R','E','G'>::V ).Write( data ).End();
 		}
 
 		void Mapper164::SubLoad(State::Loader& state)
 		{
 			while (const dword chunk = state.Begin())
 			{
-				if (chunk == NES_STATE_CHUNK_ID('R','E','G','\0'))
+				if (chunk == AsciiId<'R','E','G'>::V)
 				{
-					const State::Loader::Data<2> data( state );
+					State::Loader::Data<2> data( state );
 
 					regs[0] = data[0];
 					regs[1] = data[1];
@@ -66,7 +66,7 @@ namespace Nes
 			}
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
@@ -86,17 +86,17 @@ namespace Nes
 					case 0x40:
 					case 0x60:
 
-						prg.SwapBanks<SIZE_16K,0x0000U>( data | (regs[0] >> 1 & 0x10) | (regs[0] & 0xF), data | 0x1F );
+						prg.SwapBanks<SIZE_16K,0x0000>( data | (regs[0] >> 1 & 0x10) | (regs[0] & 0xF), data | 0x1F );
 						break;
 
 					case 0x50:
 
-						prg.SwapBank<SIZE_32K,0x0000U>( (data >> 1) | (regs[0] & 0xF) );
+						prg.SwapBank<SIZE_32K,0x0000>( (data >> 1) | (regs[0] & 0xF) );
 						break;
 
 					case 0x70:
 
-						prg.SwapBanks<SIZE_16K,0x0000U>( data | (regs[0] << 1 & 0x10) | (regs[0] & 0xF), data | 0x1F );
+						prg.SwapBanks<SIZE_16K,0x0000>( data | (regs[0] << 1 & 0x10) | (regs[0] & 0xF), data | 0x1F );
 						break;
 				}
 			}

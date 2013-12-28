@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -130,11 +130,11 @@ namespace Nestopia
 		inline Paths::Settings::Flags::Flags()
 		: Collection::BitSet
 		(
-			( 1U << USE_LAST_IMAGE_DIR      ) |
-			( 1U << USE_LAST_SCRIPT_DIR     ) |
-			( 1U << AUTO_IMPORT_STATE_SLOTS ) |
-			( 1U << AUTO_EXPORT_STATE_SLOTS ) |
-			( 1U << COMPRESS_STATES         )
+			1U << USE_LAST_IMAGE_DIR      |
+			1U << USE_LAST_SCRIPT_DIR     |
+			1U << AUTO_IMPORT_STATE_SLOTS |
+			1U << AUTO_EXPORT_STATE_SLOTS |
+			1U << COMPRESS_STATES
 		)
 		{}
 
@@ -175,6 +175,10 @@ namespace Nestopia
 					}
 				}
 			}
+		}
+
+		Paths::~Paths()
+		{
 		}
 
 		void Paths::Save(Configuration& cfg) const
@@ -237,7 +241,7 @@ namespace Nestopia
 			}
 		}
 
-		void Paths::Update(const ibool reset) const
+		void Paths::Update(const bool reset) const
 		{
 			for (uint i=0; i < NUM_DIRS; ++i)
 				dialog.Edit( Lut::dirs[i].dlg ) << (reset ? Application::Instance::GetExePath(Lut::dirs[i].def).Ptr() : settings.dirs[Lut::dirs[i].type].Ptr());
@@ -263,7 +267,7 @@ namespace Nestopia
 
 		void Paths::UpdateLastVisited() const
 		{
-			ibool unchecked = dialog.CheckBox( IDC_PATHS_IMAGE_LAST ).Unchecked();
+			bool unchecked = dialog.CheckBox( IDC_PATHS_IMAGE_LAST ).Unchecked();
 			dialog.Control( IDC_PATHS_IMAGE ).Enable( unchecked );
 			dialog.Control( IDC_PATHS_IMAGE_BROWSE ).Enable( unchecked );
 

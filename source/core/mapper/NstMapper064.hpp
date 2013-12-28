@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,7 +25,7 @@
 #ifndef NST_MAPPER_64_H
 #define NST_MAPPER_64_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
+#ifdef NST_PRAGMA_ONCE
 #pragma once
 #endif
 
@@ -37,9 +37,11 @@ namespace Nes
 		{
 		public:
 
-			Mapper64(Context&);
+			explicit Mapper64(Context&);
 
 		private:
+
+			~Mapper64() {}
 
 			void SubReset(bool);
 			void SubSave(State::Saver&) const;
@@ -48,21 +50,21 @@ namespace Nes
 			void UpdateChr() const;
 			void VSync();
 
-			NES_DECL_POKE( 8000 )
-			NES_DECL_POKE( 8001 )
-			NES_DECL_POKE( C000 )
-			NES_DECL_POKE( C001 )
-			NES_DECL_POKE( E000 )
-			NES_DECL_POKE( E001 )
+			NES_DECL_POKE( 8000 );
+			NES_DECL_POKE( 8001 );
+			NES_DECL_POKE( C000 );
+			NES_DECL_POKE( C001 );
+			NES_DECL_POKE( E000 );
+			NES_DECL_POKE( E001 );
 
 			struct Regs
 			{
 				void Reset();
 
 				uint ctrl;
-				uchar chr[8];
-				uchar prg[3];
-				uchar pad;
+				byte chr[8];
+				byte prg[3];
+				byte padding;
 			};
 
 			struct Irq
@@ -75,9 +77,9 @@ namespace Nes
 				{
 					M2_CLOCK   = 4,
 					A12_SIGNAL = 16,
-					SOURCE_PPU = b00,
-					SOURCE_CPU = b01,
-					SOURCE     = b01
+					SOURCE_PPU = 0x0,
+					SOURCE_CPU = 0x1,
+					SOURCE     = 0x1
 				};
 
 				struct Unit

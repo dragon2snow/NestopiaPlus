@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -26,6 +26,8 @@
 #error Do not include NstApu.h directly!
 #endif
 
+#include "NstSoundRenderer.hpp"
+
 namespace Nes
 {
 	namespace Core
@@ -33,7 +35,6 @@ namespace Nes
 		namespace Sound
 		{
 			class Output;
-			class Buffer;
 		}
 
 		namespace State
@@ -48,10 +49,9 @@ namespace Nes
 		{
 		public:
 
-			Apu(Cpu*);
-			~Apu();
+			explicit Apu(Cpu&);
 
-			typedef iword Sample;
+			typedef Sound::Sample Sample;
 
 			enum
 			{
@@ -71,13 +71,13 @@ namespace Nes
 
 			enum
 			{
-				FRAME_CLOCK_NTSC = 14915,
-				FRAME_CLOCK_PAL  = 16626,
-				OUTPUT_MIN       =-32768L,
-				OUTPUT_MAX       = 32767L,
-				OUTPUT_MUL       = 256,
-				OUTPUT_DECAY     = OUTPUT_MUL / 4 - 1,
-				DEFAULT_VOLUME   = 85
+				FRAME_CLOCK_NTSC =  14915,
+				FRAME_CLOCK_PAL  =  16626,
+				OUTPUT_MIN       = -32767,
+				OUTPUT_MAX       = +32767,
+				OUTPUT_MUL       =  256,
+				OUTPUT_DECAY     =  OUTPUT_MUL / 4 - 1,
+				DEFAULT_VOLUME   =  85
 			};
 
 			void   Reset(bool);
@@ -86,7 +86,6 @@ namespace Nes
 			void   BeginFrame(Sound::Output*);
 			void   EndFrame();
 			void   Poke_4017(uint);
-			uint   GetLatency() const;
 			Result SetSampleRate(dword);
 			Result SetSampleBits(uint);
 			Result SetSpeed(uint);
@@ -97,7 +96,7 @@ namespace Nes
 
 			inline void Update();
 
-			class Channel
+			class NST_NO_VTABLE Channel
 			{
 			public:
 
@@ -112,11 +111,12 @@ namespace Nes
 				virtual void Reset() = 0;
 				virtual Sample GetSample() = 0;
 
-				void SetContext(Cycle,Cycle,Mode,const u8 (&)[MAX_CHANNELS]);
+				void SetContext(Cycle,Cycle,Mode,const byte (&)[MAX_CHANNELS]);
 
 			protected:
 
 				Channel();
+				~Channel() {}
 
 				Mode mode;
 				uint fixed;
@@ -126,7 +126,7 @@ namespace Nes
 
 			private:
 
-				virtual void UpdateContext(uint,const u8 (&)[MAX_CHANNELS]) = 0;
+				virtual void UpdateContext(uint,const byte (&)[MAX_CHANNELS]) = 0;
 
 			public:
 
@@ -142,7 +142,7 @@ namespace Nes
 			};
 
 			void HookChannel(Channel*);
-			void SaveState(State::Saver&);
+			void SaveState(State::Saver&,dword) const;
 			void LoadState(State::Loader&);
 
 			struct DcBlocker
@@ -155,9 +155,9 @@ namespace Nes
 					POLE = 3 // ~0.9999
 				};
 
-				iword prev;
-				iword next;
-				iword acc;
+				idword prev;
+				idword next;
+				idword acc;
 			};
 
 			class LengthCounter
@@ -165,7 +165,7 @@ namespace Nes
 			public:
 
 				void LoadState(State::Loader&);
-				void SaveState(State::Saver&) const;
+				void SaveState(State::Saver&,dword) const;
 
 			private:
 
@@ -177,7 +177,7 @@ namespace Nes
 				ibool enabled;
 				uint count;
 
-				static const uchar lut[32];
+				static const byte lut[32];
 
 			public:
 
@@ -200,7 +200,7 @@ namespace Nes
 
 				void Write(uint data)
 				{
-					NST_ASSERT( (data >> SHIFT_COUNT) < sizeof(lut) );
+					NST_ASSERT( (data >> SHIFT_COUNT) < sizeof(array(lut)) );
 
 					if (enabled)
 						count = lut[data >> SHIFT_COUNT];
@@ -226,7 +226,7 @@ namespace Nes
 				void Reset();
 				void SetOutputVolume(uint);
 				void LoadState(State::Loader&);
-				void SaveState(State::Saver&) const;
+				void SaveState(State::Saver&,dword) const;
 
 				void Clock();
 				void Write(uint);
@@ -237,13 +237,9 @@ namespace Nes
 
 				enum
 				{
-					DECAY_RATE    = b00001111,
-					DECAY_DISABLE = b00010000,
-					DECAY_LOOP    = b00100000
-				};
-
-				enum
-				{
+					DECAY_RATE           = b00001111,
+					DECAY_DISABLE        = b00010000,
+					DECAY_LOOP           = b00100000,
 					SAVE_0_COUNT         = b00001111,
 					SAVE_1_VOLUME        = b00001111,
 					SAVE_1_RESET         = b10000000,
@@ -256,15 +252,15 @@ namespace Nes
 				dword output;
 				uint  outputVolume;
 				bool  reset;
-				u8    reg;
-				u8    count;
-				u8    volume;
+				byte  reg;
+				byte  count;
+				byte  volume;
 
 			public:
 
 				uint Loop() const
 				{
-					return reg & DECAY_LOOP;
+					return reg & uint(DECAY_LOOP);
 				}
 
 				dword Volume() const
@@ -290,61 +286,48 @@ namespace Nes
 
 			enum
 			{
-				RESET_CYCLES = 2048,
-				NUM_SQUARES = 2
-			};
-
-			enum
-			{
-				ENABLE_SQUARE1  = 0x01,
-				ENABLE_SQUARE2  = 0x02,
-				ENABLE_TRIANGLE = 0x04,
-				ENABLE_NOISE    = 0x08,
-				ENABLE_DMC      = 0x10
-			};
-
-			enum
-			{
+				RESET_CYCLES            = 2048,
+				ENABLE_SQUARE1          = 0x01,
+				ENABLE_SQUARE2          = 0x02,
+				ENABLE_TRIANGLE         = 0x04,
+				ENABLE_NOISE            = 0x08,
+				ENABLE_DMC              = 0x10,
 				STATUS_NO_FRAME_IRQ     = b01000000,
 				STATUS_SEQUENCE_5_STEP  = b10000000,
 				STATUS_FRAME_IRQ_ENABLE = 0,
-				STATUS_BITS             = STATUS_NO_FRAME_IRQ|STATUS_SEQUENCE_5_STEP
+				STATUS_BITS             = STATUS_NO_FRAME_IRQ|STATUS_SEQUENCE_5_STEP,
+				NLN_VOL                 = 192,
+				NLN_SQ_F                = 900,
+				NLN_SQ_0                = 9552UL * OUTPUT_MUL * NLN_VOL * (NLN_SQ_F/100),
+				NLN_SQ_1                = 8128UL * OUTPUT_MUL * NLN_SQ_F,
+				NLN_SQ_2                = NLN_SQ_F * 100UL,
+				NLN_TND_F               = 500,
+				NLN_TND_0               = 16367UL * OUTPUT_MUL * NLN_VOL * (NLN_TND_F/100),
+				NLN_TND_1               = 24329UL * OUTPUT_MUL * NLN_TND_F,
+				NLN_TND_2               = NLN_TND_F * 100UL
 			};
 
-			enum
-			{
-				NLN_VOL   = 192,
-				NLN_SQ_F  = 900,
-				NLN_SQ_0  = 9552UL * OUTPUT_MUL * NLN_VOL * (NLN_SQ_F/100),
-				NLN_SQ_1  = 8128UL * OUTPUT_MUL * NLN_SQ_F,
-				NLN_SQ_2  = NLN_SQ_F * 100UL,
-				NLN_TND_F = 500,
-				NLN_TND_0 = 16367UL * OUTPUT_MUL * NLN_VOL * (NLN_TND_F/100),
-				NLN_TND_1 = 24329UL * OUTPUT_MUL * NLN_TND_F,
-				NLN_TND_2 = NLN_TND_F * 100UL
-			};
-
-			NES_DECL_POKE( 4000 )
-			NES_DECL_POKE( 4001 )
-			NES_DECL_POKE( 4002 )
-			NES_DECL_POKE( 4003 )
-			NES_DECL_POKE( 4004 )
-			NES_DECL_POKE( 4005 )
-			NES_DECL_POKE( 4006 )
-			NES_DECL_POKE( 4007 )
-			NES_DECL_POKE( 4008 )
-			NES_DECL_POKE( 400A )
-			NES_DECL_POKE( 400B )
-			NES_DECL_POKE( 400C )
-			NES_DECL_POKE( 400E )
-			NES_DECL_POKE( 400F )
-			NES_DECL_POKE( 4010 )
-			NES_DECL_POKE( 4011 )
-			NES_DECL_POKE( 4012 )
-			NES_DECL_POKE( 4013 )
-			NES_DECL_POKE( 4015 )
-			NES_DECL_PEEK( 4015 )
-			NES_DECL_PEEK( 4xxx )
+			NES_DECL_POKE( 4000 );
+			NES_DECL_POKE( 4001 );
+			NES_DECL_POKE( 4002 );
+			NES_DECL_POKE( 4003 );
+			NES_DECL_POKE( 4004 );
+			NES_DECL_POKE( 4005 );
+			NES_DECL_POKE( 4006 );
+			NES_DECL_POKE( 4007 );
+			NES_DECL_POKE( 4008 );
+			NES_DECL_POKE( 400A );
+			NES_DECL_POKE( 400B );
+			NES_DECL_POKE( 400C );
+			NES_DECL_POKE( 400E );
+			NES_DECL_POKE( 400F );
+			NES_DECL_POKE( 4010 );
+			NES_DECL_POKE( 4011 );
+			NES_DECL_POKE( 4012 );
+			NES_DECL_POKE( 4013 );
+			NES_DECL_POKE( 4015 );
+			NES_DECL_PEEK( 4015 );
+			NES_DECL_PEEK( 4xxx );
 
 			Sample GetSample();
 
@@ -355,8 +338,8 @@ namespace Nes
 			void ClockDmc(Cycle);
 			NST_NO_INLINE void ClockFrameIRQ();
 
-			template<typename T>
-			void UpdateBuffer(T);
+			template<typename T,bool STEREO>
+			void FlushSound();
 
 			void UpdateSettings();
 
@@ -377,8 +360,8 @@ namespace Nes
 				Cycle frameIrqClock;
 				Cycle dmcClock;
 
-				static const Cycle frame[2];
-				static const Cycle frameClocks[2][2][4];
+				static const dword frame[2];
+				static const dword frameClocks[2][2][4];
 			};
 
 			class Oscillator
@@ -388,10 +371,10 @@ namespace Nes
 				Oscillator();
 
 				void Reset();
-				void SetContext(Cycle,Cycle);
+				void SetContext(dword,uint);
 
 				ibool active;
-				iword timer;
+				idword timer;
 				Cycle rate;
 				Cycle frequency;
 				dword amp;
@@ -423,7 +406,7 @@ namespace Nes
 				inline uint GetLengthCounter() const;
 
 				void LoadState(State::Loader&);
-				void SaveState(State::Saver&) const;
+				void SaveState(State::Saver&,dword) const;
 
 			private:
 
@@ -432,24 +415,16 @@ namespace Nes
 
 				enum
 				{
-					MIN_FRQ = 0x008,
-					MAX_FRQ = 0x7FF
-				};
-
-				enum
-				{
-					REG0_DUTY_SHIFT       = 6,
-					REG1_SWEEP_SHIFT      = b00000111,
-					REG1_SWEEP_DECREASE   = b00001000,
-					REG1_SWEEP_RATE       = b01110000,
-					REG1_SWEEP_RATE_SHIFT = 4,
-					REG1_SWEEP_ENABLED    = b10000000,
-					REG2_WAVELENGTH_LOW   = b11111111,
-					REG3_WAVELENGTH_HIGH  = b00000111
-				};
-
-				enum
-				{
+					MIN_FRQ                = 0x008,
+					MAX_FRQ                = 0x7FF,
+					REG0_DUTY_SHIFT        = 6,
+					REG1_SWEEP_SHIFT       = b00000111,
+					REG1_SWEEP_DECREASE    = b00001000,
+					REG1_SWEEP_RATE        = b01110000,
+					REG1_SWEEP_RATE_SHIFT  = 4,
+					REG1_SWEEP_ENABLED     = b10000000,
+					REG2_WAVELENGTH_LOW    = b11111111,
+					REG3_WAVELENGTH_HIGH   = b00000111,
 					SAVE_1_WAVELENGTH_LOW  = b11111111,
 					SAVE_1_WAVELENGTH_HIGH = b00000111,
 					SAVE_1_DUTY            = b01111000,
@@ -469,7 +444,7 @@ namespace Nes
 				uint sweepRate;
 				uint sweepShift;
 				ibool sweepReload;
-				uint sweepNegate;
+				uint sweepIncrease;
 				uint waveLength;
 				ibool validFrequency;
 			};
@@ -493,7 +468,7 @@ namespace Nes
 				inline uint GetLengthCounter() const;
 
 				void LoadState(State::Loader&);
-				void SaveState(State::Saver&) const;
+				void SaveState(State::Saver&,dword) const;
 
 			private:
 
@@ -501,27 +476,23 @@ namespace Nes
 
 				enum
 				{
-					MIN_FRQ = 2 + 1,
-					STEP_CHECK = 0x00, // >= 0x1F is technically correct but will produce clicks/pops
-					STATUS_COUNTING = 0,
+					STATUS_COUNTING,
 					STATUS_RELOAD
 				};
 
 				enum
 				{
+					MIN_FRQ                   = 2 + 1,
+					STEP_CHECK                = 0x00, // >= 0x1F is technically correct but will produce clicks/pops
 					REG0_LINEAR_COUNTER_LOAD  = b01111111,
 					REG0_LINEAR_COUNTER_START = b10000000,
 					REG2_WAVE_LENGTH_LOW      = b11111111,
-					REG3_WAVE_LENGTH_HIGH     = b00000111
-				};
-
-				enum
-				{
-					SAVE_0_WAVELENGTH_LOW  = b11111111,
-					SAVE_1_WAVELENGTH_HIGH = b00000111,
-					SAVE_2_LINEAR_COUNT    = b01111111,
-					SAVE_2_LINEAR_STATUS   = b10000000,
-					SAVE_3_LINEAR_CTRL     = b11111111
+					REG3_WAVE_LENGTH_HIGH     = b00000111,
+					SAVE_0_WAVELENGTH_LOW     = b11111111,
+					SAVE_1_WAVELENGTH_HIGH    = b00000111,
+					SAVE_2_LINEAR_COUNT       = b01111111,
+					SAVE_2_LINEAR_STATUS      = b10000000,
+					SAVE_3_LINEAR_CTRL        = b11111111
 				};
 
 				uint step;
@@ -552,7 +523,7 @@ namespace Nes
 				inline uint GetLengthCounter() const;
 
 				void LoadState(State::Loader&);
-				void SaveState(State::Saver&) const;
+				void SaveState(State::Saver&,dword) const;
 
 			private:
 
@@ -561,13 +532,9 @@ namespace Nes
 				enum
 				{
 					REG2_SAMPLE_RATE = b00001111,
-					REG2_93BIT_MODE  = b10000000
-				};
-
-				enum
-				{
-					SAVE_WAVELENGTH = b00001111,
-					SAVE_93BIT_MODE = b00010000
+					REG2_93BIT_MODE  = b10000000,
+					SAVE_WAVELENGTH  = b00001111,
+					SAVE_93BIT_MODE  = b00010000
 				};
 
 				uint bits;
@@ -576,7 +543,7 @@ namespace Nes
 				LengthCounter lengthCounter;
 				Envelope envelope;
 
-				static const u16 lut[2][16];
+				static const word lut[2][16];
 			};
 
 			class Dmc
@@ -587,8 +554,8 @@ namespace Nes
 
 				void Reset(Cpu&);
 				void SetContext(uint,Mode);
-				NST_FORCE_INLINE void Toggle(uint,Cpu&);
 
+				NST_FORCE_INLINE void Toggle(uint,Cpu&);
 				NST_FORCE_INLINE void WriteReg0(uint,Cpu&);
 				NST_FORCE_INLINE void WriteReg1(uint);
 				NST_FORCE_INLINE void WriteReg2(uint);
@@ -603,7 +570,7 @@ namespace Nes
 				inline uint GetLengthCounter() const;
 
 				void LoadState(State::Loader&,Cpu&,Cycle&);
-				void SaveState(State::Saver&,const Cpu&,Cycle) const;
+				void SaveState(State::Saver&,dword,const Cpu&,Cycle) const;
 
 				static Cycle GetResetFrequency(Mode);
 
@@ -614,15 +581,11 @@ namespace Nes
 
 				enum
 				{
-					DMA_CYCLES      = 4,
-					REG0_FREQUENCY  = b00001111,
-					REG0_LOOP       = b01000000,
-					REG0_IRQ_ENABLE = b10000000,
-					INP_STEP        = 8
-				};
-
-				enum
-				{
+					DMA_CYCLES          = 4,
+					REG0_FREQUENCY      = b00001111,
+					REG0_LOOP           = b01000000,
+					REG0_IRQ_ENABLE     = b10000000,
+					INP_STEP            = 8,
 					SAVE_2_FREQUENCY    = b00001111,
 					SAVE_2_LOOP         = b00010000,
 					SAVE_2_IRQ          = b00100000,
@@ -639,34 +602,33 @@ namespace Nes
 					SAVE_11_DAC         = b01111111
 				};
 
-				struct Out
-				{
-					uint dac;
-					uint shifter;
-					uint buffer;
-				};
-
-				struct Dma
-				{
-					uint lengthCounter;
-					ibool buffered;
-					uint address;
-					uint buffer;
-				};
-
 				Mode mode;
 				ibool loop;
 				uint loadedAddress;
 				uint loadedLengthCount;
 				uint active;
 				Cycle frequency;
-				Out out;
-				Dma dma;
+
+				struct
+				{
+					uint dac;
+					uint shifter;
+					uint buffer;
+				}   out;
+
+				struct
+				{
+					uint lengthCounter;
+					ibool buffered;
+					uint address;
+					uint buffer;
+				}   dma;
+
 				uint curSample;
 				uint linSample;
 				uint outputVolume;
 
-				static const Cycle lut[2][16];
+				static const word lut[2][16];
 			};
 
 			struct Context
@@ -674,12 +636,12 @@ namespace Nes
 				Context();
 
 				dword rate;
-				u8 bits;
-				u8 speed;
+				byte bits;
+				byte speed;
 				bool transpose;
 				bool stereo;
 				bool audible;
-				u8 volumes[MAX_CHANNELS];
+				byte volumes[MAX_CHANNELS];
 			};
 
 			Sound::Output* stream;
@@ -688,14 +650,15 @@ namespace Nes
 			Cpu& cpu;
 			Cycles cycles;
 			Mode mode;
-			Square square[NUM_SQUARES];
+			Square square[2];
 			Triangle triangle;
 			Noise noise;
 			Dmc dmc;
 			Channel* extChannel;
 			DcBlocker dcBlocker;
-			Sound::Buffer& buffer;
+			Sound::Buffer buffer;
 			Context context;
+			const dword padding;
 
 		public:
 

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -31,17 +31,17 @@ namespace Nestopia
 	{
 		Ips::Blocks::~Blocks()
 		{
-			for (Iterator it=Begin(); it != End(); ++it)
+			for (Iterator it(Begin()), end(End()); it != end; ++it)
 				delete [] it->data;
 		}
 
-		void Ips::Create(const void* const source,const void* const target,const uint length,PatchData& patch)
+		bool Ips::Create(const void* const source,const void* const target,const uint length,PatchData& patch)
 		{
 			NST_ASSERT( length && length <= MAX_LENGTH );
 
 			struct Stream
 			{
-				static void Write(PatchData& patch,const u8* data,uint length)
+				static void Write(PatchData& patch,const uchar* data,uint length)
 				{
 					NST_ASSERT( length && length <= 0xFFFF );
 					patch.Append( data, length );
@@ -53,9 +53,9 @@ namespace Nestopia
 
 					patch.Grow( 3 );
 
-					patch[pos+0] = (value >> 16 );
-					patch[pos+1] = (value >>  8 ) & 0xFF;
-					patch[pos+2] = (value >>  0 ) & 0xFF;
+					patch[pos+0] = value >> 16;
+					patch[pos+1] = value >> 8 & 0xFF;
+					patch[pos+2] = value >> 0 & 0xFF;
 				}
 
 				static void Write2(PatchData& patch,const uint value)
@@ -64,23 +64,24 @@ namespace Nestopia
 
 					patch.Grow( 2 );
 
-					patch[pos+0] = (value >> 8);
-					patch[pos+1] = (value >> 0) & 0xFF;
+					patch[pos+0] = value >> 8;
+					patch[pos+1] = value >> 0 & 0xFF;
 				}
 
 				static void Write1(PatchData& patch,const uint value)
 				{
-					patch.PushBack( (u8) value );
+					patch.PushBack( uchar(value) );
 				}
 			};
 
-			patch.Reserve( length );
+			const uint offset = patch.Size();
+			patch.Reserve( offset + length );
 
 			Stream::Write3( patch, DATA_ID1 );
 			Stream::Write2( patch, DATA_ID2 );
 
-			const u8* src = static_cast<const u8*>(source);
-			const u8* dst = static_cast<const u8*>(target);
+			const uchar* src = static_cast<const uchar*>(source);
+			const uchar* dst = static_cast<const uchar*>(target);
 
 			for (uint i=0; i < length; )
 			{
@@ -112,7 +113,7 @@ namespace Nestopia
 
 					Stream::Write3( patch, j );
 
-					u8 c = dst[j];
+					uchar c = dst[j];
 
 					uint k = j;
 					const uint stop = NST_MIN(j + MAX_BLOCK,i);
@@ -164,14 +165,16 @@ namespace Nestopia
 			}
 
 			Stream::Write3( patch, DATA_EOF );
+
+			return patch.Size() > (offset + 3+2+3);
 		}
 
 		void Ips::Parse(const void* const source,const uint size)
 		{
 			class Stream
 			{
-				const u8* data;
-				const u8* const end;
+				const uchar* data;
+				const uchar* const end;
 
 				void Check(const uint length) const
 				{
@@ -183,15 +186,15 @@ namespace Nestopia
 
 				Stream(const void* source,uint size)
 				:
-				data (static_cast<const u8*>(source)),
-				end  (static_cast<const u8*>(source) + size)
+				data (static_cast<const uchar*>(source)),
+				end  (static_cast<const uchar*>(source) + size)
 				{}
 
-				const u8* Read(const uint length)
+				const uchar* Read(const uint length)
 				{
 					Check( length );
 
-					const u8* ptr = data;
+					const uchar* ptr = data;
 					data += length;
 
 					return ptr;
@@ -207,7 +210,7 @@ namespace Nestopia
 				{
 					Check( 2 );
 
-					const uint value = (data[0] << 8) | data[1];
+					const uint value = uint(data[0]) << 8 | data[1];
 					data += 2;
 
 					return value;
@@ -217,13 +220,13 @@ namespace Nestopia
 				{
 					Check( 3 );
 
-					const uint value = (data[0] << 16) | (data[1] << 8) | data[2];
+					const uint value = uint(data[0]) << 16 | uint(data[1]) << 8 | data[2];
 					data += 3;
 
 					return value;
 				}
 
-				operator ibool () const
+				operator bool () const
 				{
 					return data != end;
 				}
@@ -251,8 +254,8 @@ namespace Nestopia
 				if ((block.length = stream.Read2()) != 0)
 				{
 					block.fill = UINT_MAX;
-					const u8* const data = stream.Read( block.length );
-					std::memcpy( block.data = new u8 [block.length], data, block.length );
+					const uchar* const data = stream.Read( block.length );
+					std::memcpy( block.data = new uchar [block.length], data, block.length );
 				}
 				else if ((block.length = stream.Read2()) != 0)
 				{
@@ -277,16 +280,16 @@ namespace Nestopia
 
 			Object::Backup backup( target, size );
 
-			for (Blocks::ConstIterator it=blocks.Begin(), end=blocks.End(); it != end; ++it)
+			for (Blocks::ConstIterator it(blocks.Begin()), end(blocks.End()); it != end; ++it)
 			{
 				NST_ASSERT( it->length );
 
 				if (it->offset + it->length <= size)
 				{
 					if (it->fill == UINT_MAX)
-						std::memcpy( static_cast<u8*>(target) + it->offset, it->data, it->length );
+						std::memcpy( static_cast<uchar*>(target) + it->offset, it->data, it->length );
 					else
-						std::memset( static_cast<u8*>(target) + it->offset, it->fill, it->length );
+						std::memset( static_cast<uchar*>(target) + it->offset, it->fill, it->length );
 				}
 				else
 				{

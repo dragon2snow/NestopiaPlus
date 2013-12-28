@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,12 +25,12 @@
 #include "../NstMachine.hpp"
 #include "NstApiSound.hpp"
 
-#ifdef NST_PRAGMA_OPTIMIZE
-#pragma optimize("s", on)
-#endif
-
 namespace Nes
 {
+	#ifdef NST_MSVC_OPTIMIZE
+	#pragma optimize("s", on)
+	#endif
+
 	namespace Core
 	{
 		namespace Sound
@@ -117,19 +117,14 @@ namespace Nes
 			return emulator.cpu.GetApu().InStereo() ? SPEAKER_STEREO : SPEAKER_MONO;
 		}
 
-		uint Sound::GetLatency() const throw()
-		{
-			return emulator.tracker.GetSoundLatency( emulator.cpu.GetApu() );
-		}
-
 		void Sound::EmptyBuffer() throw()
 		{
 			return emulator.cpu.GetApu().ClearBuffers();
 		}
 	}
-}
 
-#ifdef NST_PRAGMA_OPTIMIZE
-#pragma optimize("", on)
-#endif
+	#ifdef NST_MSVC_OPTIMIZE
+	#pragma optimize("", on)
+	#endif
+}
 

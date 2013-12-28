@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -31,12 +31,11 @@ namespace Nestopia
 {
 	namespace Managers
 	{
-		class Nsf
+		class Nsf : Manager
 		{
 		public:
 
 			Nsf(Emulator&,const Configuration&,Window::Menu&);
-			~Nsf();
 
 			void Save(Configuration&) const;
 
@@ -46,9 +45,6 @@ namespace Nestopia
 
 			void OnCmdPlayInBkg (uint);
 			void OnCmd          (uint);
-
-			Emulator& emulator;
-			const Window::Menu& menu;
 		};
 	}
 }

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -67,7 +67,7 @@ namespace Nestopia
 			container.Defrag();
 		}
 
-		ibool Launcher::List::Files::Strings::Import(const Io::File& file,const uint size,const ibool utf16)
+		bool Launcher::List::Files::Strings::Import(const Io::File& file,const uint size,const bool utf16)
 		{
 			NST_VERIFY( size >= 2 );
 

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -22,7 +22,6 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include <algorithm>
 #include "NstApplicationException.hpp"
 #include "NstApplicationLanguage.hpp"
 
@@ -30,7 +29,7 @@ namespace Nestopia
 {
 	namespace Application
 	{
-		ibool Instance::Language::Resource::Load(tstring const p)
+		bool Instance::Language::Resource::Load(tstring const p)
 		{
 			if (!Dll::Load( p ))
 				return false;
@@ -60,14 +59,20 @@ namespace Nestopia
 				EnumerateResources( paths );
 
 				if (paths.empty())
-					throw Exception(_T("language\\english.nlg file missing!"));
+					throw Exception(_T("language\\english.nlg file not found!"));
 
-				Paths::const_iterator path(std::find( paths.begin(), paths.end(), Instance::GetExePath(_T("english.nlg")) ));
+				Paths::const_iterator it( paths.begin() );
 
-				if (path == paths.end())
-					path = paths.begin();
+				for (Paths::const_iterator end(paths.end()); it != end; ++it)
+				{
+					if (it->File() == _T("english.nlg"))
+						break;
+				}
 
-				if (!resource.Load( path->Ptr() ))
+				if (it == paths.end())
+					it = paths.begin();
+
+				if (!resource.Load( it->Ptr() ))
 					throw Exception(_T("Failed to load language plugin file!"));
 			}
 			else if (!resource.Load( path ))

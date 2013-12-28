@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,56 +25,37 @@
 #ifndef NST_NSF_H
 #define NST_NSF_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
+#include "NstImage.hpp"
+
+#ifdef NST_PRAGMA_ONCE
 #pragma once
 #endif
-
-#include "NstImage.hpp"
 
 namespace Nes
 {
 	namespace Core
 	{
-		class Cpu;
-		class Apu;
-
 		class Nsf : public Image
 		{
 		public:
 
-			Nsf(Context&);
-			~Nsf();
+			explicit Nsf(Context&);
 
-			void Reset(bool);
+			void BeginFrame();
+			uint GetChips() const;
+
 			Result SelectSong(uint);
 			Result PlaySong();
 			Result StopSong();
 
-			enum TuneMode
-			{
-				TUNE_MODE_NTSC,
-				TUNE_MODE_PAL,
-				TUNE_MODE_BOTH
-			};
-
-			enum Chip
-			{
-				CHIP_VRC6 = 0x01,
-				CHIP_VRC7 = 0x02,
-				CHIP_FDS  = 0x04,
-				CHIP_MMC5 = 0x08,
-				CHIP_N106 = 0x10,
-				CHIP_S5B  = 0x20
-			};
-
-			void SetMode(Mode);
-			Mode GetMode() const;
-			void BeginFrame();
-			uint GetChips() const;
-
 		private:
 
+			~Nsf();
+
+			void Reset(bool);
 			void InitSong();
+			void SetMode(Mode);
+			Mode GetMode() const;
 
 			inline uint FetchLast(uint) const;
 
@@ -91,92 +72,92 @@ namespace Nes
 				TXS = 0x9A
 			};
 
-			NES_DECL_PEEK( 38EC )
-			NES_DECL_PEEK( 38ED )
-			NES_DECL_PEEK( 38EE )
-			NES_DECL_PEEK( 38EF )
-			NES_DECL_PEEK( 38F0 )
-			NES_DECL_PEEK( 38F1 )
-			NES_DECL_PEEK( 38F2 )
-			NES_DECL_PEEK( 38F3 )
-			NES_DECL_PEEK( 38F4 )
-			NES_DECL_PEEK( 38F5 )
-			NES_DECL_PEEK( 38F6 )
-			NES_DECL_PEEK( 38F7 )
-			NES_DECL_PEEK( 38F8 )
-			NES_DECL_PEEK( 38F9 )
-			NES_DECL_PEEK( 38FA )
-			NES_DECL_PEEK( 38FB )
-			NES_DECL_PEEK( 38FC )
-			NES_DECL_PEEK( 38FD )
-			NES_DECL_PEEK( 38FE )
-			NES_DECL_PEEK( 38FF )
+			NES_DECL_PEEK( 38EC );
+			NES_DECL_PEEK( 38ED );
+			NES_DECL_PEEK( 38EE );
+			NES_DECL_PEEK( 38EF );
+			NES_DECL_PEEK( 38F0 );
+			NES_DECL_PEEK( 38F1 );
+			NES_DECL_PEEK( 38F2 );
+			NES_DECL_PEEK( 38F3 );
+			NES_DECL_PEEK( 38F4 );
+			NES_DECL_PEEK( 38F5 );
+			NES_DECL_PEEK( 38F6 );
+			NES_DECL_PEEK( 38F7 );
+			NES_DECL_PEEK( 38F8 );
+			NES_DECL_PEEK( 38F9 );
+			NES_DECL_PEEK( 38FA );
+			NES_DECL_PEEK( 38FB );
+			NES_DECL_PEEK( 38FC );
+			NES_DECL_PEEK( 38FD );
+			NES_DECL_PEEK( 38FE );
+			NES_DECL_PEEK( 38FF );
 
-			NES_DECL_POKE( 4017 )
+			NES_DECL_POKE( 4017 );
 
-			NES_DECL_POKE( 5FF8 )
-			NES_DECL_POKE( 5FF9 )
-			NES_DECL_POKE( 5FFA )
-			NES_DECL_POKE( 5FFB )
-			NES_DECL_POKE( 5FFC )
-			NES_DECL_POKE( 5FFD )
-			NES_DECL_POKE( 5FFE )
-			NES_DECL_POKE( 5FFF )
+			NES_DECL_POKE( 5FF8 );
+			NES_DECL_POKE( 5FF9 );
+			NES_DECL_POKE( 5FFA );
+			NES_DECL_POKE( 5FFB );
+			NES_DECL_POKE( 5FFC );
+			NES_DECL_POKE( 5FFD );
+			NES_DECL_POKE( 5FFE );
+			NES_DECL_POKE( 5FFF );
 
-			NES_DECL_POKE( Fds_5FF6 )
-			NES_DECL_POKE( Fds_5FF7 )
-			NES_DECL_POKE( Fds_5FF8 )
-			NES_DECL_POKE( Fds_5FF9 )
-			NES_DECL_POKE( Fds_5FFA )
-			NES_DECL_POKE( Fds_5FFB )
-			NES_DECL_POKE( Fds_5FFC )
-			NES_DECL_POKE( Fds_5FFD )
-			NES_DECL_POKE( Fds_5FFE )
-			NES_DECL_POKE( Fds_5FFF )
+			NES_DECL_POKE( Fds_5FF6 );
+			NES_DECL_POKE( Fds_5FF7 );
+			NES_DECL_POKE( Fds_5FF8 );
+			NES_DECL_POKE( Fds_5FF9 );
+			NES_DECL_POKE( Fds_5FFA );
+			NES_DECL_POKE( Fds_5FFB );
+			NES_DECL_POKE( Fds_5FFC );
+			NES_DECL_POKE( Fds_5FFD );
+			NES_DECL_POKE( Fds_5FFE );
+			NES_DECL_POKE( Fds_5FFF );
 
-			NES_DECL_PEEK( Ram   )
-			NES_DECL_POKE( Ram   )
-			NES_DECL_PEEK( ExRam )
-			NES_DECL_POKE( ExRam )
-			NES_DECL_PEEK( Fds   )
-			NES_DECL_POKE( Fds   )
+			NES_DECL_PEEK( Ram   );
+			NES_DECL_POKE( Ram   );
+			NES_DECL_PEEK( ExRam );
+			NES_DECL_POKE( ExRam );
+			NES_DECL_PEEK( Fds   );
+			NES_DECL_POKE( Fds   );
 
-			NES_DECL_PEEK( Prg_8 )
-			NES_DECL_PEEK( Prg_9 )
-			NES_DECL_PEEK( Prg_A )
-			NES_DECL_PEEK( Prg_B )
-			NES_DECL_PEEK( Prg_C )
-			NES_DECL_PEEK( Prg_D )
-			NES_DECL_PEEK( Prg_E )
-			NES_DECL_PEEK( Prg_F )
+			NES_DECL_PEEK( Prg_8 );
+			NES_DECL_PEEK( Prg_9 );
+			NES_DECL_PEEK( Prg_A );
+			NES_DECL_PEEK( Prg_B );
+			NES_DECL_PEEK( Prg_C );
+			NES_DECL_PEEK( Prg_D );
+			NES_DECL_PEEK( Prg_E );
+			NES_DECL_PEEK( Prg_F );
 
-			NES_DECL_POKE( Vrc6_9000 )
-			NES_DECL_POKE( Vrc6_9001 )
-			NES_DECL_POKE( Vrc6_9002 )
-			NES_DECL_POKE( Vrc6_A000 )
-			NES_DECL_POKE( Vrc6_A001 )
-			NES_DECL_POKE( Vrc6_A002 )
-			NES_DECL_POKE( Vrc6_B000 )
-			NES_DECL_POKE( Vrc6_B001 )
-			NES_DECL_POKE( Vrc6_B002 )
+			NES_DECL_POKE( Vrc6_9000 );
+			NES_DECL_POKE( Vrc6_9001 );
+			NES_DECL_POKE( Vrc6_9002 );
+			NES_DECL_POKE( Vrc6_A000 );
+			NES_DECL_POKE( Vrc6_A001 );
+			NES_DECL_POKE( Vrc6_A002 );
+			NES_DECL_POKE( Vrc6_B000 );
+			NES_DECL_POKE( Vrc6_B001 );
+			NES_DECL_POKE( Vrc6_B002 );
 
-			NES_DECL_POKE( Vrc7_9010 )
-			NES_DECL_POKE( Vrc7_9030 )
+			NES_DECL_POKE( Vrc7_9010 );
+			NES_DECL_POKE( Vrc7_9030 );
 
-			NES_DECL_PEEK( N106_48 )
-			NES_DECL_POKE( N106_48 )
-			NES_DECL_POKE( N106_F8 )
+			NES_DECL_PEEK( N106_48 );
+			NES_DECL_POKE( N106_48 );
+			NES_DECL_POKE( N106_F8 );
 
-			NES_DECL_POKE( S5B_C )
-			NES_DECL_POKE( S5B_E )
+			NES_DECL_POKE( S5B_C );
+			NES_DECL_POKE( S5B_E );
 
-			NES_DECL_PEEK( FFFA )
-			NES_DECL_PEEK( FFFB )
-			NES_DECL_PEEK( FFFC )
-			NES_DECL_PEEK( FFFD )
+			NES_DECL_PEEK( FFFA );
+			NES_DECL_PEEK( FFFB );
+			NES_DECL_PEEK( FFFC );
+			NES_DECL_PEEK( FFFD );
 
-			NES_DECL_PEEK( Nop )
-			NES_DECL_POKE( Nop )
+			NES_DECL_PEEK( Nop );
+			NES_DECL_POKE( Nop );
 
 			enum Header
 			{
@@ -186,32 +167,33 @@ namespace Nes
 
 			class Chips;
 
-			struct Info
-			{
-				char name[32];
-				char artist[32];
-				char maker[32];
-			};
-
 			struct Songs
 			{
-				uchar start;
-				uchar current;
-				uchar count;
-				Info info;
+				byte start;
+				byte current;
+				byte count;
+				const byte padding;
+
+				struct
+				{
+					char name[32];
+					char artist[32];
+					char maker[32];
+				}   info;
 
 				Songs()
 				:
-				start   (0),
-				current (0),
-				count   (0)
+				start    (0),
+				current  (0),
+				count    (0),
+				padding  (0)
 				{}
 			};
 
 			struct Speed
 			{
-				ushort ntsc;
-				ushort pal;
+				word ntsc;
+				word pal;
 
 				Speed()
 				:
@@ -222,10 +204,10 @@ namespace Nes
 
 			struct Addressing
 			{
-				ushort play;
-				ushort init;
-				ushort load;
-				bool bankSwitched;
+				word play;
+				word init;
+				word load;
+				word bankSwitched;
 
 				Addressing()
 				:
@@ -249,9 +231,9 @@ namespace Nes
 				};
 
 				bool playing;
-				uchar nmi;
-				uchar reset;
-				uchar jmp;
+				byte nmi;
+				byte reset;
+				byte jmp;
 
 				Routine()
 				:
@@ -269,9 +251,9 @@ namespace Nes
 			Songs      songs;
 			Addressing addressing;
 			Speed      speed;
-			TuneMode   tuneMode;
-			u8         banks[8];
-			u8         ram[SIZE_8K];
+			uint       tuneMode;
+			byte       banks[8];
+			byte       ram[SIZE_8K];
 
 		public:
 
@@ -290,7 +272,7 @@ namespace Nes
 				return songs.info.maker;
 			}
 
-			TuneMode GetTuneMode() const
+			uint GetTuneMode() const
 			{
 				return tuneMode;
 			}

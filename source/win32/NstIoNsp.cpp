@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -44,23 +44,24 @@ namespace Nestopia
 				Nes::Input::ZAPPER            ==  5 &&
 				Nes::Input::PADDLE            ==  6 &&
 				Nes::Input::POWERPAD          ==  7 &&
-				Nes::Input::MOUSE             ==  8 &&
-				Nes::Input::ROB               ==  9 &&
-				Nes::Input::FAMILYTRAINER     == 10 &&
-				Nes::Input::FAMILYKEYBOARD    == 11 &&
-				Nes::Input::SUBORKEYBOARD     == 12 &&
-				Nes::Input::DOREMIKKOKEYBOARD == 13 &&
-				Nes::Input::HORITRACK         == 14 &&
-				Nes::Input::PACHINKO          == 15 &&
-				Nes::Input::OEKAKIDSTABLET    == 16 &&
-				Nes::Input::HYPERSHOT         == 17 &&
-				Nes::Input::CRAZYCLIMBER      == 18 &&
-				Nes::Input::MAHJONG           == 19 &&
-				Nes::Input::EXCITINGBOXING    == 20 &&
-				Nes::Input::TOPRIDER          == 21 &&
-				Nes::Input::POKKUNMOGURAA     == 22 &&
-				Nes::Input::PARTYTAP          == 23 &&
-				Nes::Input::NUM_CONTROLLERS   == 23
+				Nes::Input::POWERGLOVE        ==  8 &&
+				Nes::Input::MOUSE             ==  9 &&
+				Nes::Input::ROB               == 10 &&
+				Nes::Input::FAMILYTRAINER     == 11 &&
+				Nes::Input::FAMILYKEYBOARD    == 12 &&
+				Nes::Input::SUBORKEYBOARD     == 13 &&
+				Nes::Input::DOREMIKKOKEYBOARD == 14 &&
+				Nes::Input::HORITRACK         == 15 &&
+				Nes::Input::PACHINKO          == 16 &&
+				Nes::Input::OEKAKIDSTABLET    == 17 &&
+				Nes::Input::HYPERSHOT         == 18 &&
+				Nes::Input::CRAZYCLIMBER      == 19 &&
+				Nes::Input::MAHJONG           == 20 &&
+				Nes::Input::EXCITINGBOXING    == 21 &&
+				Nes::Input::TOPRIDER          == 22 &&
+				Nes::Input::POKKUNMOGURAA     == 23 &&
+				Nes::Input::PARTYTAP          == 24 &&
+				Nes::Input::NUM_CONTROLLERS   == 24
 			);
 
 			Context::Context()
@@ -68,6 +69,10 @@ namespace Nestopia
 			{
 				for (uint i=0; i < NUM_CONTROLLER_PORTS; ++i)
 					controllers[i] = UNKNOWN;
+			}
+
+			Context::~Context()
+			{
 			}
 
 			void Context::Reset()
@@ -98,6 +103,7 @@ namespace Nestopia
 				_T( "zapper"            ),
 				_T( "paddle"            ),
 				_T( "powerpad"          ),
+				_T( "powerglove"        ),
 				_T( "mouse"             ),
 				_T( "rob"               ),
 				_T( "familytrainer"     ),
@@ -118,7 +124,7 @@ namespace Nestopia
 
 			void File::Save(Output& output,const Context& context) const
 			{
-				NST_COMPILE_ASSERT( Context::NUM_CONTROLLER_PORTS == 5 && Context::NUM_CONTROLLERS == 23 );
+				NST_COMPILE_ASSERT( Context::NUM_CONTROLLER_PORTS == 5 && Context::NUM_CONTROLLERS == 24 );
 
 				output << "//\r\n"
                           "// Generated Nestopia Script File. Version " << Application::Instance::GetVersion() << "\r\n"
@@ -133,8 +139,8 @@ namespace Nestopia
                           "//  -IPS <filename>\r\n"
                           "//  -PALETTE <filename>\r\n"
                           "//  -MODE <ntsc/pal>\r\n"
-                          "//  -PORT1..PORT5 <unconnected,pad1,pad2,pad3,pad4,zapper,paddle,powerpad,mouse,rob,\r\n"
-                          "//                 familytrainer,familykeyboard,suborkeyboard,doremikkokeyboard,\r\n"
+                          "//  -PORT1..PORT5 <unconnected,pad1,pad2,pad3,pad4,zapper,paddle,powerpad,powerglove,\r\n"
+                          "//                 mouse,rob,familytrainer,familykeyboard,suborkeyboard,doremikkokeyboard,\r\n"
                           "//                 horitrack,pachinko,oekakidstablet,hypershot,crazyclimber,\r\n"
                           "//                 mahjong,excitingboxing,toprider,pokkunmoguraa,partytap>\r\n"
                           "//\r\n"
@@ -183,12 +189,12 @@ namespace Nestopia
 				for (Context::Cheats::const_iterator it(context.cheats.begin()), end(context.cheats.end()); it != end; ++it)
 				{
 					output << "-CHEAT "
-                           << HexString( (u16) it->address )
+                           << HexString( 16, it->address )
                            << ' '
-                           << HexString( (u8) it->value );
+                           << HexString( 8, it->value );
 
 					if (it->useCompare)
-						output << ' ' << HexString( (u8) it->compare );
+						output << ' ' << HexString( 8, it->compare );
 
 					output << (it->enabled ? " on" : " off");
 
@@ -196,7 +202,7 @@ namespace Nestopia
 					{
 						output << ' ' << it->desc;
 					}
-					else if (it->address >= 0x8000U)
+					else if (it->address >= 0x8000)
 					{
 						char characters[9];
 
@@ -232,7 +238,7 @@ namespace Nestopia
 					delete [] buffer;
 				}
 
-				ibool Check() const
+				bool Check() const
 				{
 					if (*it)
 					{
@@ -250,7 +256,7 @@ namespace Nestopia
 					while (*it && *it++ != '\n');
 				}
 
-				ibool CheckType()
+				bool CheckType()
 				{
 					SkipSpace();
 
@@ -304,7 +310,7 @@ namespace Nestopia
 
 				while (begin != end)
 				{
-					const uint c = (uint) *begin++;
+					const uint c = *begin++;
 
 					if (c > 31 || c == '\n')
 						*output++ = c;
@@ -313,7 +319,7 @@ namespace Nestopia
 				*output = '\0';
 			}
 
-			ibool File::Match(tstring const type,tstring (&values)[2])
+			bool File::Match(tstring const type,tstring (&values)[2])
 			{
 				return ::_tcsnicmp( type, values[0], values[1] - values[0] ) == 0;
 			}
@@ -331,7 +337,7 @@ namespace Nestopia
 				in = it;
 			}
 
-			ibool File::ParseFile(tstring const type,tstring (&values)[2][2],Path& file)
+			bool File::ParseFile(tstring const type,tstring (&values)[2][2],Path& file)
 			{
 				if (Match( type, values[0] ))
 				{
@@ -347,11 +353,11 @@ namespace Nestopia
 				return false;
 			}
 
-			ibool File::ParsePort(tstring const type,tstring (&values)[2][2],uint& controller)
+			bool File::ParsePort(tstring const type,tstring (&values)[2][2],uint& controller)
 			{
 				if (Match( type, values[0] ))
 				{
-					for (uint i=0; i < NST_COUNT(controllerNames); ++i)
+					for (uint i=0; i < sizeof(array(controllerNames)); ++i)
 					{
 						if (Match( controllerNames[i], values[1] ))
 						{
@@ -366,7 +372,7 @@ namespace Nestopia
 				return false;
 			}
 
-			ibool File::ParseMode(tstring const type,tstring (&values)[2][2],uint& mode)
+			bool File::ParseMode(tstring const type,tstring (&values)[2][2],uint& mode)
 			{
 				if (Match( type, values[0] ))
 				{
@@ -387,7 +393,7 @@ namespace Nestopia
 				return false;
 			}
 
-			ibool File::ParseGenie(tstring const type,tstring (&values)[2][2],Context::Cheats& cheats,const bool shortcut)
+			bool File::ParseGenie(tstring const type,tstring (&values)[2][2],Context::Cheats& cheats,const bool shortcut)
 			{
 				if (shortcut || Match( type, values[0] ))
 				{
@@ -429,7 +435,7 @@ namespace Nestopia
 				return false;
 			}
 
-			ibool File::ParseCheat(tstring const type,tstring (&values)[2][2],Context::Cheats& cheats)
+			bool File::ParseCheat(tstring const type,tstring (&values)[2][2],Context::Cheats& cheats)
 			{
 				if (Match( type, values[0] ))
 				{

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,7 +25,7 @@
 #ifndef NST_INPUT_PADDLE_H
 #define NST_INPUT_PADDLE_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
+#ifdef NST_PRAGMA_ONCE
 #pragma once
 #endif
 
@@ -43,11 +43,13 @@ namespace Nes
 
 			private:
 
+				~Paddle() {}
+
 				void Reset();
 				uint Peek(uint);
 				void Poke(uint);
 				void LoadState(State::Loader&,dword);
-				void SaveState(State::Saver&,uchar) const;
+				void SaveState(State::Saver&,byte) const;
 
 				uint stream[2];
 				uint shifter;

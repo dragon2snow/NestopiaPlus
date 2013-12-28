@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -43,7 +43,7 @@ namespace Nestopia
 
 	namespace Managers
 	{
-		class Input
+		class Input : Manager
 		{
 		public:
 
@@ -99,7 +99,7 @@ namespace Nestopia
 			{
 			public:
 
-				Cursor(Window::Custom&);
+				explicit Cursor(Window::Custom&);
 
 				void Acquire(Emulator&);
 				void Unacquire();
@@ -136,7 +136,7 @@ namespace Nestopia
 
 			public:
 
-				ibool MustAutoHide() const
+				bool MustAutoHide() const
 				{
 					return deadline != DWORD(~0UL) && deadline <= ::GetTickCount();
 				}
@@ -165,10 +165,10 @@ namespace Nestopia
 
 				inline bool CanPoll() const;
 
-				ibool ForcePoll();
-				void  Update();
-				uint  OnTimer();
-				void  OnFocus(Window::Param&);
+				bool ForcePoll();
+				void Update();
+				uint OnTimer();
+				void OnFocus(Window::Param&);
 
 				enum
 				{
@@ -183,12 +183,12 @@ namespace Nestopia
 					CmdKey(const Key&,uint);
 
 					uint cmd;
-					ibool prev;
+					bool prev;
 				};
 
 				typedef Collection::Vector<CmdKey> Keys;
 
-				ibool acquired;
+				bool acquired;
 				Keys keys;
 				uint clock;
 				const Window::Custom& window;
@@ -198,8 +198,8 @@ namespace Nestopia
 			class ClipBoard : String::Heap<wchar_t>
 			{
 				uint pos;
-				u8 releasing;
-				u8 hold;
+				uchar releasing;
+				uchar hold;
 				bool shifted;
 				bool paste;
 
@@ -213,8 +213,8 @@ namespace Nestopia
 					SUBOR
 				};
 
-				uint Query(const u8* NST_RESTRICT,Type);
-				ibool CanPaste() const;
+				uint Query(const uchar* NST_RESTRICT,Type);
+				bool CanPaste() const;
 				void Paste();
 				void Clear();
 				void operator ++ ();
@@ -242,8 +242,6 @@ namespace Nestopia
 			};
 
 			Rects rects;
-			Window::Menu& menu;
-			Emulator& emulator;
 			ibool polled;
 			AutoFire autoFire;
 			Cursor cursor;
@@ -254,6 +252,11 @@ namespace Nestopia
 			ClipBoard clipBoard;
 
 		public:
+
+			void Calibrate(bool full)
+			{
+				directInput.Calibrate( full );
+			}
 
 			Nes::Input::Controllers* GetOutput()
 			{

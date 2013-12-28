@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -135,8 +135,8 @@ namespace Nestopia
 
 		void FrameClock::UpdateRewinderEnable() const
 		{
-			const ibool enabled = dialog.CheckBox( IDC_TIMING_REWINDER ).Checked();
-			const ibool defaultSpeed = dialog.CheckBox( IDC_TIMING_REWINDER_DEFAULT_SPEED ).Checked();
+			const bool enabled = dialog.CheckBox( IDC_TIMING_REWINDER ).Checked();
+			const bool defaultSpeed = dialog.CheckBox( IDC_TIMING_REWINDER_DEFAULT_SPEED ).Checked();
 
 			dialog.Control( IDC_TIMING_REWINDER_DEFAULT_SPEED ).Enable( enabled );
 			dialog.Control( IDC_TIMING_REWINDER_NOSOUND       ).Enable( enabled );
@@ -170,10 +170,10 @@ namespace Nestopia
 			dialog.Control     ( IDC_TIMING_SPEED                  ).Enable       ( !settings.useDefaultSpeed              );
 			dialog.Control     ( IDC_TIMING_SPEED_NUM              ).Enable       ( !settings.useDefaultSpeed              );
 
-			dialog.Edit( IDC_TIMING_SPEED_NUM          ) << settings.speed;
-			dialog.Edit( IDC_TIMING_ALT_SPEED_NUM      ) << settings.altSpeed;
-			dialog.Edit( IDC_TIMING_REWINDER_SPEED_NUM ) << settings.rewindSpeed;
-			dialog.Edit( IDC_TIMING_FRAME_SKIPS_NUM    ) << settings.maxFrameSkips;
+			dialog.Edit( IDC_TIMING_SPEED_NUM          ) << uint( settings.speed );
+			dialog.Edit( IDC_TIMING_ALT_SPEED_NUM      ) << uint( settings.altSpeed );
+			dialog.Edit( IDC_TIMING_REWINDER_SPEED_NUM ) << uint( settings.rewindSpeed );
+			dialog.Edit( IDC_TIMING_FRAME_SKIPS_NUM    ) << uint( settings.maxFrameSkips );
 
 			UpdateRewinderEnable();
 
@@ -208,7 +208,7 @@ namespace Nestopia
 		{
 			if (param.Button().Clicked())
 			{
-				const ibool autoFrameSkip = (param.Button().GetId() == IDC_TIMING_AUTO_FRAME_SKIP);
+				const bool autoFrameSkip = (param.Button().GetId() == IDC_TIMING_AUTO_FRAME_SKIP);
 
 				dialog.Control( IDC_TIMING_FRAME_SKIPS      ).Enable( autoFrameSkip );
 				dialog.Control( IDC_TIMING_FRAME_SKIPS_TEXT ).Enable( autoFrameSkip );
@@ -222,7 +222,7 @@ namespace Nestopia
 		{
 			if (param.Button().Clicked())
 			{
-				const ibool speed = dialog.CheckBox( IDC_TIMING_DEFAULT_SPEED ).Unchecked();
+				const bool speed = dialog.CheckBox( IDC_TIMING_DEFAULT_SPEED ).Unchecked();
 
 				dialog.Control( IDC_TIMING_SPEED     ).Enable( speed );
 				dialog.Control( IDC_TIMING_SPEED_NUM ).Enable( speed );
@@ -262,10 +262,10 @@ namespace Nestopia
 				dialog.Control     ( IDC_TIMING_FRAME_SKIPS_NUM        ).Enable ( false );
 				dialog.Control     ( IDC_TIMING_SPEED                  ).Enable ( false );
 				dialog.Control     ( IDC_TIMING_SPEED_NUM              ).Enable ( false );
-				dialog.Edit        ( IDC_TIMING_SPEED_NUM              ) << (uint) DEFAULT_SPEED;
-				dialog.Edit        ( IDC_TIMING_ALT_SPEED_NUM          ) << (uint) DEFAULT_ALT_SPEED;
-				dialog.Edit        ( IDC_TIMING_REWINDER_SPEED_NUM     ) << (uint) DEFAULT_REWIND_SPEED;
-				dialog.Edit        ( IDC_TIMING_FRAME_SKIPS_NUM        ) << (uint) DEFAULT_FRAME_SKIPS;
+				dialog.Edit        ( IDC_TIMING_SPEED_NUM              ) << uint(DEFAULT_SPEED);
+				dialog.Edit        ( IDC_TIMING_ALT_SPEED_NUM          ) << uint(DEFAULT_ALT_SPEED);
+				dialog.Edit        ( IDC_TIMING_REWINDER_SPEED_NUM     ) << uint(DEFAULT_REWIND_SPEED);
+				dialog.Edit        ( IDC_TIMING_FRAME_SKIPS_NUM        ) << uint(DEFAULT_FRAME_SKIPS);
 
 				UpdateRewinderEnable();
 			}

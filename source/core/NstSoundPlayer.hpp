@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,13 +25,12 @@
 #ifndef NST_SOUND_PLAYER_H
 #define NST_SOUND_PLAYER_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
-#pragma once
-#endif
-
-#include <vector>
 #include "NstSoundPcm.hpp"
 #include "api/NstApiSound.hpp"
+
+#ifdef NST_PRAGMA_ONCE
+#pragma once
+#endif
 
 namespace Nes
 {
@@ -44,40 +43,33 @@ namespace Nes
 			public:
 
 				static Player* Create(Cpu&,Loader::Type,uint);
-
-				void LoadState(State::Loader&);
-				void SaveState(State::Saver&) const;
+				static void Destroy(Player*);
 
 			private:
 
-				class SampleLoader;
-
 				Player(Cpu&,uint);
+				~Player();
+
+				class SampleLoader;
 
 				struct Slot
 				{
-					const i16* data;
+					Slot();
+					~Slot();
+
+					const iword* data;
 					dword length;
 					dword rate;
-
-					Slot()
-					: data(NULL) {}
-
-					~Slot()
-					{
-						delete [] data;
-					}
 				};
 
-				typedef std::vector<Slot> Slots;
-
-				Slots slots;
+				Slot* const slots;
+				const uint numSlots;
 
 			public:
 
 				void Play(uint i)
 				{
-					if (i < slots.size() && slots[i].data)
+					if (i < numSlots && slots[i].data)
 						Pcm::Play( slots[i].data, slots[i].length, slots[i].rate );
 				}
 			};

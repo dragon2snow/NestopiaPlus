@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -27,7 +27,6 @@
 #include "NstIoScreen.hpp"
 #include "NstWindowUser.hpp"
 #include "NstResourceString.hpp"
-#include "NstWindowMenu.hpp"
 #include "NstDialogBrowse.hpp"
 #include "NstDialogPaths.hpp"
 #include "NstManagerPaths.hpp"
@@ -43,15 +42,20 @@ namespace Nestopia
 			"files last path scripts"
 		};
 
+		Paths::File::File()
+		: type(NONE)
+		{
+		}
+
+		Paths::File::~File()
+		{
+		}
+
 		Paths::Paths(Emulator& e,const Configuration& cfg,Window::Menu& m)
 		:
-		emulator ( e ),
-		menu     ( m ),
-		dialog   ( new Window::Paths(cfg) )
+		Manager ( e, m, this, &Paths::OnEmuEvent, IDM_OPTIONS_PATHS, &Paths::OnMenu ),
+		dialog  ( new Window::Paths(cfg) )
 		{
-			m.Commands().Add( IDM_OPTIONS_PATHS, this, &Paths::OnMenu );
-			emulator.Events().Add( this, &Paths::OnEmuEvent );
-
 			for (uint i=0; i < NUM_RECENT_DIRS; ++i)
 				recentDirs[i] = cfg[recentDirCfgNames[i]];
 
@@ -60,7 +64,6 @@ namespace Nestopia
 
 		Paths::~Paths()
 		{
-			emulator.Events().Remove( this );
 		}
 
 		void Paths::Save(Configuration& cfg) const
@@ -100,32 +103,26 @@ namespace Nestopia
 			}
 		}
 
-		ibool Paths::SaveSlotExportingEnabled() const
+		bool Paths::SaveSlotExportingEnabled() const
 		{
 			return dialog->GetSetting(Window::Paths::AUTO_EXPORT_STATE_SLOTS);
 		}
 
-		ibool Paths::SaveSlotImportingEnabled() const
+		bool Paths::SaveSlotImportingEnabled() const
 		{
 			return dialog->GetSetting(Window::Paths::AUTO_IMPORT_STATE_SLOTS);
 		}
 
-		ibool Paths::UseStateCompression() const
+		bool Paths::UseStateCompression() const
 		{
 			return dialog->GetSetting(Window::Paths::COMPRESS_STATES);
 		}
 
-		ibool Paths::LocateFile(Path& path,const File::Types types) const
+		bool Paths::LocateFile(Path& path,const File::Types types) const
 		{
 			NST_ASSERT( path.File().Length() );
 
-			struct Lut
-			{
-				uint type;
-				tchar extension[4];
-			};
-
-			static const Lut lut[17] =
+			static const struct { uint type; tchar extension[4]; } lut[17] =
 			{
 				{ File::INES,              _T( "nes" ) },
 				{ File::UNIF,              _T( "unf" ) },
@@ -161,7 +158,7 @@ namespace Nestopia
 			return false;
 		}
 
-		ibool Paths::FindFile(Path& path) const
+		bool Paths::FindFile(Path& path) const
 		{
 			NST_ASSERT( path.File().Length() );
 
@@ -284,7 +281,7 @@ namespace Nestopia
 			return dialog->GetDirectory( type );
 		}
 
-		ibool Paths::CheckFile(Path& path,const File::Types types,const Alert alert,const uint title) const
+		bool Paths::CheckFile(Path& path,const File::Types types,const Alert alert,const uint title) const
 		{
 			NST_ASSERT( types.Word() );
 
@@ -456,7 +453,7 @@ namespace Nestopia
 			return file.type;
 		}
 
-		ibool Paths::Save
+		bool Paths::Save
 		(
 			const void* const data,
 			const uint size,
@@ -470,7 +467,7 @@ namespace Nestopia
 
 			try
 			{
-				const Io::File file( path, Io::File::DUMP );
+				const Io::File file( path, Io::File::DUMP|Io::File::WRITE_THROUGH );
 
 				if (type == File::SCRIPT)
 					file.WriteText( static_cast<const tchar*>(data), size );
@@ -508,7 +505,7 @@ namespace Nestopia
 			{
 				Io::File file( filePath, Io::File::READ|Io::File::EXISTING );
 
-				const File::Type type = CheckFile( types, file.Peek<u32>(), path.Extension().Id() );
+				const File::Type type = CheckFile( types, file.Peek32(), path.Extension().Id() );
 
 				if (type == File::NONE)
 					throw IDS_FILE_ERR_INVALID;
@@ -612,7 +609,7 @@ namespace Nestopia
 				type = CheckFile
 				(
 					types,
-					reinterpret_cast<const u32&>(data->Front()),
+					NST_FOURCC((*data)[0],(*data)[1],(*data)[2],(*data)[3]),
 					archive[index].GetName().Extension().Id()
 				);
 
@@ -632,17 +629,17 @@ namespace Nestopia
 
 			switch (fileId)
 			{
-				case File::FILEID_INES:    if (types( File::INES              )) type = File::INES;    break;
-				case File::FILEID_UNIF:    if (types( File::UNIF              )) type = File::UNIF;    break;
-				case File::FILEID_FDS:
-				case File::FILEID_FDS_RAW: if (types( File::FDS               )) type = File::FDS;     break;
-				case File::FILEID_NSF:     if (types( File::NSF               )) type = File::NSF;     break;
-				case File::FILEID_IPS:     if (types( File::IPS               )) type = File::IPS;     break;
-				case File::FILEID_NSV:     if (types( File::MOVIE             )) type = File::MOVIE;   break;
-				case File::FILEID_NST:     if (types( File::STATE|File::SLOTS )) type = File::STATE;   break;
-				case File::FILEID_ZIP:
-				case File::FILEID_7Z:
-				case File::FILEID_RAR:     if (types( File::ARCHIVE           )) type = File::ARCHIVE; break;
+				case File::ID_INES:    if (types( File::INES              )) type = File::INES;    break;
+				case File::ID_UNIF:    if (types( File::UNIF              )) type = File::UNIF;    break;
+				case File::ID_FDS:
+				case File::ID_FDS_RAW: if (types( File::FDS               )) type = File::FDS;     break;
+				case File::ID_NSF:     if (types( File::NSF               )) type = File::NSF;     break;
+				case File::ID_IPS:     if (types( File::IPS               )) type = File::IPS;     break;
+				case File::ID_NSV:     if (types( File::MOVIE             )) type = File::MOVIE;   break;
+				case File::ID_NST:     if (types( File::STATE|File::SLOTS )) type = File::STATE;   break;
+				case File::ID_ZIP:
+				case File::ID_7Z:
+				case File::ID_RAR:     if (types( File::ARCHIVE           )) type = File::ARCHIVE; break;
 
 				default:
 

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -24,7 +24,6 @@
 
 #include "NstWindowCustom.hpp"
 #include "NstCtrlEdit.hpp"
-#include <Richedit.h>
 
 namespace Nestopia
 {
@@ -32,7 +31,7 @@ namespace Nestopia
 	{
 		namespace Control
 		{
-			void Edit::SetNumberOnly(const ibool numOnly) const
+			void Edit::SetNumberOnly(const bool numOnly) const
 			{
 				control.Style(ES_NUMBER) = numOnly;
 			}

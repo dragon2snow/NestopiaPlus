@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -27,38 +27,36 @@
 
 #pragma once
 
-#include "../core/NstTypes.hpp"
+#include "../core/NstBase.hpp"
+
+#if NST_MSVC >= 1200 || NST_ICC >= 800
+#pragma warning( push )
+#endif
+
+#include "../core/NstCore.hpp"
+#include "../core/NstAssert.hpp"
+
+#if NST_MSVC >= 1200 || NST_ICC >= 800
+#pragma warning( pop )
+#endif
+
+#if UINT_MAX < 0xFFFFFFFF || INT_MAX < 2147483647 || INT_MIN > -2147483647
+#error Unsupported plattform!
+#endif
+
 #include <tchar.h>
 
-#ifdef _MSC_VER
+#if NST_ICC
 
- #ifdef __INTEL_COMPILER
+ #pragma warning( disable : 11 304 373 383 444 810 981 1572 1599 1786 )
 
-  #pragma warning( disable : 171 304 373 383 444 810 981 1683 1684 )
+#elif NST_MSVC
 
- #else
+ #pragma warning( disable : 4018 4127 4244 4355 4389 4512 4800 4996 )
 
-  #pragma warning( disable : 4244 4355 4511 4512 4800 4996 )
-
-  #ifdef NDEBUG
-
-   #ifdef NST_SHOW_INLINING
-   #pragma warning( default : 4710 4711 )
-   #endif
-
-  #endif
-
+ #if defined(NDEBUG) && defined(NST_SHOW_INLINING)
+ #pragma warning( default : 4710 4711 )
  #endif
-
- #define NST_CDECL __cdecl
- #define NST_STDCALL __stdcall
-
- #define NST_SIGN_SHIFT
-
-#elif defined(__GNUC__)
-
- #define NST_CDECL __cdecl
- #define NST_STDCALL __stdcall
 
 #endif
 
@@ -73,9 +71,12 @@
 
 #define STRICT
 #define WIN32_LEAN_AND_MEAN
-#define VC_EXTRALEAN
 
 // <Windows.h>
+
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
 
 #define NOGDICAPMASKS
 #define NOICONS
@@ -95,10 +96,6 @@
 #define NODEFERWINDOWPOS
 #define NOMCX
 
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
-
 // <commctrl.h>
 
 #define NOUPDOWN
@@ -116,7 +113,7 @@
 #define NOCOMBOBOX
 #define NOSCROLLBAR
 
-#define NST_FOURCC(a_,b_,c_,d_) uint((a_) | ((b_) << 8) | ((c_) << 16) | ((d_) << 24))
+#define NST_FOURCC(a_,b_,c_,d_) (uint(a_) | (uint(b_) << 8) | (uint(c_) << 16) | (uint(d_) << 24))
 
 namespace Nestopia
 {
@@ -125,20 +122,15 @@ namespace Nestopia
 	typedef unsigned short ushort;
 	typedef unsigned int uint;
 	typedef unsigned long ulong;
-	typedef TCHAR tchar;
-
-	using Nes::u8;
-	using Nes::i8;
-	using Nes::u16;
-	using Nes::i16;
-	using Nes::u32;
-	using Nes::i32;
-	using Nes::u64;
-
 	typedef uint ibool;
+	typedef TCHAR tchar;
 	typedef const char* cstring;
 	typedef const wchar_t* wstring;
 	typedef const TCHAR* tstring;
+	typedef Nes::qword qword;
+
+	template<typename T,uint N>
+	char(& array(T(&)[N]))[N];
 
 	namespace Collection
 	{

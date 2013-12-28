@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,7 +25,7 @@
 #ifndef NST_HOOK_H
 #define NST_HOOK_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
+#ifdef NST_PRAGMA_ONCE
 #pragma once
 #endif
 
@@ -33,7 +33,7 @@ namespace Nes
 {
 	namespace Core
 	{
-	#ifndef NST_FPTR_MEM_MAP
+	#ifndef NST_NO_FASTDELEGATE
 
 		class Hook
 		{
@@ -44,6 +44,8 @@ namespace Nes
 			Function function;
 
 		public:
+
+			Hook() {}
 
 			template<typename T>
 			Hook(T* c,void (T::*t)())
@@ -65,9 +67,10 @@ namespace Nes
 			}
 		};
 
-		#define NES_DECL_HOOK(a_) void Hook_##a_();
+		#define NES_DECL_HOOK(a_) void Hook_##a_()
 		#define NES_HOOK(o_,a_) void o_::Hook_##a_()
-		#define NES_CALL_HOOK(o_,a_) o_::Hook_##a_()
+		#define NES_HOOK_T(t_,o_,a_) t_ void o_::Hook_##a_()
+		#define NES_DO_HOOK(a_) Hook_##a_()
 
 	#else
 
@@ -80,6 +83,8 @@ namespace Nes
 			Function function;
 
 		public:
+
+			Hook() {}
 
 			Hook(Component c,Function t)
 			:
@@ -98,23 +103,30 @@ namespace Nes
 			}
 		};
 
-		#define NES_DECL_HOOK(a_)                                    \
-                                                                     \
-			void Hook_Member_##a_();                                 \
-                                                                     \
-			template<typename T>                                     \
-			static void Hook_Type_##a_(void* instance,void (T::*)()) \
-			{                                                        \
-				static_cast<T*>(instance)->Hook_Member_##a_();       \
-			}                                                        \
-                                                                     \
-			static void Hook_##a_(void* instance)                    \
-			{                                                        \
-				Hook_Type_##a_( instance, &Hook_Member_##a_ );       \
-			}
+		#define NES_DECL_HOOK(a_)                    \
+                                                     \
+			void Hook_M_##a_();                      \
+			static void Hook_##a_(void*)
 
-		#define NES_HOOK(o_,a_) void o_::Hook_Member_##a_()
-		#define NES_CALL_HOOK(o_,a_) o_::Hook_Member_##a_()
+		#define NES_HOOK(o_,a_)                      \
+                                                     \
+			void o_::Hook_##a_(void* p_)             \
+			{                                        \
+				static_cast<o_*>(p_)->Hook_M_##a_(); \
+			}                                        \
+                                                     \
+			void o_::Hook_M_##a_()
+
+		#define NES_HOOK_T(t_,o_,a_)                 \
+                                                     \
+			t_ void o_::Hook_##a_(void* p_)          \
+			{                                        \
+				static_cast<o_*>(p_)->Hook_M_##a_(); \
+			}                                        \
+                                                     \
+			t_ void o_::Hook_M_##a_()
+
+		#define NES_DO_HOOK(a_) Hook_M_##a_()
 
 	#endif
 	}

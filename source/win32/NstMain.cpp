@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,19 +25,15 @@
 #include "NstApplicationException.hpp"
 #include "NstApplicationMain.hpp"
 
-#ifdef _MSC_VER
+#if NST_MSVC
 
  #ifdef _MBCS
- #error Multibyte characters are not supported!
+ #error compile with _UNICODE, not _MBCS!
  #endif
 
  #ifdef NDEBUG
 
   #pragma comment(lib,"emucore")
-
-  #ifdef __MSVC_RUNTIME_CHECKS
-  #error turn off RTCx compiler options!
-  #endif
 
  #else
 
@@ -47,15 +43,21 @@
 
  #endif
 
- #if _MSC_VER >= 1400
- #pragma comment(linker,"\"/manifestdependency:type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='X86' publicKeyToken='6595b64144ccf1df' language='*'\"")
+ #if NST_MSVC >= 1400 && !NST_ICC
+
+  #ifdef _M_IX86
+  #pragma comment(linker,"\"/manifestdependency:type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='X86' publicKeyToken='6595b64144ccf1df' language='*'\"")
+  #else
+  #pragma comment(linker,"\"/manifestdependency:type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
+  #endif
+
  #endif
 
 #endif
 
 int WINAPI WinMain(HINSTANCE,HINSTANCE,char*,int cmdShow)
 {
-#if defined(_MSC_VER) && !defined(NDEBUG)
+#if NST_MSVC && !defined(NDEBUG)
 	_CrtSetDbgFlag( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
 #endif
 

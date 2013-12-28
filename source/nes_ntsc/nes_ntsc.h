@@ -1,10 +1,10 @@
-
 /* NES NTSC video filter */
 
-/* nes_ntsc 0.2.1 */
-
+/* nes_ntsc 0.2.2 */
 #ifndef NES_NTSC_H
 #define NES_NTSC_H
+
+#include "nes_ntsc_config.h"
 
 #ifdef __cplusplus
 	extern "C" {
@@ -31,7 +31,12 @@ typedef struct nes_ntsc_setup_t
 	float const* decoder_matrix; /* optional RGB decoder matrix, 6 elements */
 	
 	unsigned char* palette_out;  /* optional RGB palette out, 3 bytes per color */
-	unsigned char const* palette;/* optional RGB palette in,  3 bytes per color */
+	
+	/* You can replace the standard NES color generation with an RGB palette. The
+	first replaces all color generation, while the second replaces only the core
+	64-color generation and does standard color emphasis calculations on it. */
+	unsigned char const* palette;/* optional 512-entry RGB palette in, 3 bytes per color */
+	unsigned char const* base_palette;/* optional 64-entry RGB palette in, 3 bytes per color */
 } nes_ntsc_setup_t;
 
 /* Video format presets */
@@ -40,28 +45,22 @@ extern nes_ntsc_setup_t const nes_ntsc_svideo;    /* color bleeding only */
 extern nes_ntsc_setup_t const nes_ntsc_rgb;       /* crisp image */
 extern nes_ntsc_setup_t const nes_ntsc_monochrome;/* desaturated + artifacts */
 
-enum { nes_ntsc_palette_size      = 64 };
-enum { nes_ntsc_emph_palette_size = 64 * 8 };
+#ifdef NES_NTSC_EMPHASIS
+	enum { nes_ntsc_palette_size = 64 * 8 };
+#else
+	enum { nes_ntsc_palette_size = 64 };
+#endif
 
-/* Initialize and adjust parameters. Can be called multiple times on the same
-nes_ntsc_t object. Can pass 0 for either parameter. */
+/* Initializes and adjusts parameters. Can be called multiple times on the same
+nes_ntsc_t object. Can pass NULL for either parameter. */
 typedef struct nes_ntsc_t nes_ntsc_t;
 void nes_ntsc_init( nes_ntsc_t* ntsc, nes_ntsc_setup_t const* setup );
 
-/* Filter one or more rows of pixels. Input pixels are 6-bit palette indicies.
+/* Filters one or more rows of pixels. Input pixels are 6/9-bit palette indicies.
 In_row_width is the number of pixels to get to the next input row. Out_pitch
 is the number of *bytes* to get to the next output row. Output pixel format
 is set by NES_NTSC_OUT_DEPTH (defaults to 16-bit RGB). */
-void nes_ntsc_blit( nes_ntsc_t const* ntsc, unsigned char const* nes_in,
-		long in_row_width, int burst_phase, int in_width, int in_height,
-		void* rgb_out, long out_pitch );
-
-/* Equivalent functions with color emphasis support. Source pixels are
-9-bit values with the upper 3 bits specifying the emphasis bits from
-PPU register 0x2001. */
-typedef struct nes_ntsc_emph_t nes_ntsc_emph_t;
-void nes_ntsc_init_emph( nes_ntsc_emph_t* ntsc, nes_ntsc_setup_t const* setup );
-void nes_ntsc_blit_emph( nes_ntsc_emph_t const* ntsc, unsigned short const* nes_in,
+void nes_ntsc_blit( nes_ntsc_t const* ntsc, NES_NTSC_IN_T const* nes_in,
 		long in_row_width, int burst_phase, int in_width, int in_height,
 		void* rgb_out, long out_pitch );
 
@@ -69,57 +68,53 @@ void nes_ntsc_blit_emph( nes_ntsc_emph_t const* ntsc, unsigned short const* nes_
 be rounded down slightly; use NES_NTSC_IN_WIDTH() on result to find rounded
 value. Guaranteed not to round 256 down at all. */
 #define NES_NTSC_OUT_WIDTH( in_width ) \
-	(((in_width) - 1) / nes_ntsc_in_chunk * nes_ntsc_out_chunk + nes_ntsc_out_chunk)
+	((((in_width) - 1) / nes_ntsc_in_chunk + 1) * nes_ntsc_out_chunk)
 
 /* Number of input pixels that will fit within given output width. Might be
 rounded down slightly; use NES_NTSC_OUT_WIDTH() on result to find rounded
 value. */
 #define NES_NTSC_IN_WIDTH( out_width ) \
-	((out_width) / nes_ntsc_out_chunk * nes_ntsc_in_chunk - nes_ntsc_in_chunk + 1)
+	(((out_width) / nes_ntsc_out_chunk - 1) * nes_ntsc_in_chunk + 1)
 
 
-/* Interface for user-defined custom blitters.
-Can be used with nes_ntsc_t and nes_ntsc_emph_t */
+/* Interface for user-defined custom blitters */
 
 enum { nes_ntsc_in_chunk    = 3  }; /* number of input pixels read per chunk */
 enum { nes_ntsc_out_chunk   = 7  }; /* number of output pixels generated per chunk */
 enum { nes_ntsc_black       = 15 }; /* palette index for black */
 enum { nes_ntsc_burst_count = 3  }; /* burst phase cycles through 0, 1, and 2 */
 
-/* Begin outputting row and start three pixels. First pixel will be cut off a bit.
+/* Begins outputting row and starts three pixels. First pixel will be cut off a bit.
 Use nes_ntsc_black for unused pixels. Declares variables, so must be before first
 statement in a block (unless you're using C++). */
 #define NES_NTSC_BEGIN_ROW( ntsc, burst, pixel0, pixel1, pixel2 ) \
 	char const* const ktable = \
-		(char*) (ntsc)->table + burst * (nes_ntsc_burst_size * sizeof (ntsc_rgb_t));\
-	NTSC_BEGIN_ROW_6_( pixel0, pixel1, pixel2, NES_NTSC_ENTRY_, ktable )
+		(char const*) (ntsc)->table [0] + burst * (nes_ntsc_burst_size * sizeof (nes_ntsc_rgb_t));\
+	NES_NTSC_BEGIN_ROW_6_( pixel0, pixel1, pixel2, NES_NTSC_ENTRY_, ktable )
 
-/* Begin input pixel */
+/* Begins input pixel */
 #define NES_NTSC_COLOR_IN( in_index, color_in ) \
-	NTSC_COLOR_IN_( in_index, color_in, NES_NTSC_ENTRY_, ktable )
+	NES_NTSC_COLOR_IN_( in_index, color_in, NES_NTSC_ENTRY_, ktable )
 
-/* Generate output pixel. Bits can be 24, 16, 15, 32 (treated as 24), or 0:
-24: RRRRRRRR GGGGGGGG BBBBBBBB
-16:          RRRRRGGG GGGBBBBB
-15:           RRRRRGG GGGBBBBB
+/* Generates output pixel. Bits can be 24, 16, 15, 32 (treated as 24), or 0:
+24:          RRRRRRRR GGGGGGGG BBBBBBBB (8-8-8 RGB)
+16:                   RRRRRGGG GGGBBBBB (5-6-5 RGB)
+15:                    RRRRRGG GGGBBBBB (5-5-5 RGB)
  0: xxxRRRRR RRRxxGGG GGGGGxxB BBBBBBBx (native internal format; x = junk bits) */
 #define NES_NTSC_RGB_OUT( index, rgb_out, bits ) \
-	NTSC_RGB_OUT_14_( index, rgb_out, bits, 0 )
+	NES_NTSC_RGB_OUT_14_( index, rgb_out, bits, 0 )
 
 
 /* private */
 enum { nes_ntsc_entry_size = 128 };
-typedef unsigned long ntsc_rgb_t;
+typedef unsigned long nes_ntsc_rgb_t;
 struct nes_ntsc_t {
-	ntsc_rgb_t table [nes_ntsc_palette_size * nes_ntsc_entry_size];
-};
-struct nes_ntsc_emph_t {
-	ntsc_rgb_t table [nes_ntsc_emph_palette_size * nes_ntsc_entry_size];
+	nes_ntsc_rgb_t table [nes_ntsc_palette_size] [nes_ntsc_entry_size];
 };
 enum { nes_ntsc_burst_size = nes_ntsc_entry_size / nes_ntsc_burst_count };
 
 #define NES_NTSC_ENTRY_( ktable, n ) \
-	(ntsc_rgb_t*) (ktable + (n) * (nes_ntsc_entry_size * sizeof (ntsc_rgb_t)))
+	(nes_ntsc_rgb_t const*) (ktable + (n) * (nes_ntsc_entry_size * sizeof (nes_ntsc_rgb_t)))
 
 /* deprecated */
 #define NES_NTSC_RGB24_OUT( x, out ) NES_NTSC_RGB_OUT( x, out, 24 )
@@ -141,53 +136,51 @@ enum { nes_ntsc_full_overscan_left  = 16 };
 enum { nes_ntsc_full_overscan_right = nes_ntsc_full_in_width - 256 - nes_ntsc_full_overscan_left };
 
 /* common 3->7 ntsc macros */
-#define NTSC_BEGIN_ROW_6_( pixel0, pixel1, pixel2, ENTRY, table ) \
-	unsigned const ntsc_pixel0_ = (pixel0);\
-	ntsc_rgb_t const* kernel0  = ENTRY( table, ntsc_pixel0_ );\
-	unsigned const ntsc_pixel1_ = (pixel1);\
-	ntsc_rgb_t const* kernel1  = ENTRY( table, ntsc_pixel1_ );\
-	unsigned const ntsc_pixel2_ = (pixel2);\
-	ntsc_rgb_t const* kernel2  = ENTRY( table, ntsc_pixel2_ );\
-	ntsc_rgb_t const* kernelx0;\
-	ntsc_rgb_t const* kernelx1 = kernel0;\
-	ntsc_rgb_t const* kernelx2 = kernel0
+#define NES_NTSC_BEGIN_ROW_6_( pixel0, pixel1, pixel2, ENTRY, table ) \
+	unsigned const nes_ntsc_pixel0_ = (pixel0);\
+	nes_ntsc_rgb_t const* kernel0  = ENTRY( table, nes_ntsc_pixel0_ );\
+	unsigned const nes_ntsc_pixel1_ = (pixel1);\
+	nes_ntsc_rgb_t const* kernel1  = ENTRY( table, nes_ntsc_pixel1_ );\
+	unsigned const nes_ntsc_pixel2_ = (pixel2);\
+	nes_ntsc_rgb_t const* kernel2  = ENTRY( table, nes_ntsc_pixel2_ );\
+	nes_ntsc_rgb_t const* kernelx0;\
+	nes_ntsc_rgb_t const* kernelx1 = kernel0;\
+	nes_ntsc_rgb_t const* kernelx2 = kernel0
 
-#define NTSC_RGB_OUT_14_( x, rgb_out, bits, shift ) {\
-	ntsc_rgb_t raw_ =\
+#define NES_NTSC_RGB_OUT_14_( x, rgb_out, bits, shift ) {\
+	nes_ntsc_rgb_t raw_ =\
 		kernel0  [x       ] + kernel1  [(x+12)%7+14] + kernel2  [(x+10)%7+28] +\
 		kernelx0 [(x+7)%14] + kernelx1 [(x+ 5)%7+21] + kernelx2 [(x+ 3)%7+35];\
-	NTSC_CLAMP_( raw_, shift );\
-	NTSC_RGB_OUT_( rgb_out, bits, shift );\
+	NES_NTSC_CLAMP_( raw_, shift );\
+	NES_NTSC_RGB_OUT_( rgb_out, bits, shift );\
 }
 
 /* common ntsc macros */
-#define ntsc_rgb_builder    ((1L << 21) | (1 << 11) | (1 << 1))
-#define ntsc_clamp_mask     (ntsc_rgb_builder * 3 / 2)
-#define ntsc_clamp_add      (ntsc_rgb_builder * 0x101)
-#define NTSC_CLAMP_( io, shift ) {\
-	ntsc_rgb_t sub = (io) >> (9-(shift)) & ntsc_clamp_mask;\
-	ntsc_rgb_t clamp = ntsc_clamp_add - sub;\
+#define nes_ntsc_rgb_builder    ((1L << 21) | (1 << 11) | (1 << 1))
+#define nes_ntsc_clamp_mask     (nes_ntsc_rgb_builder * 3 / 2)
+#define nes_ntsc_clamp_add      (nes_ntsc_rgb_builder * 0x101)
+#define NES_NTSC_CLAMP_( io, shift ) {\
+	nes_ntsc_rgb_t sub = (io) >> (9-(shift)) & nes_ntsc_clamp_mask;\
+	nes_ntsc_rgb_t clamp = nes_ntsc_clamp_add - sub;\
 	io |= clamp;\
 	clamp -= sub;\
 	io &= clamp;\
 }
 
-#define NTSC_COLOR_IN_( index, color, ENTRY, table ) {\
+#define NES_NTSC_COLOR_IN_( index, color, ENTRY, table ) {\
 	unsigned color_;\
 	kernelx##index = kernel##index;\
 	kernel##index = (color_ = (color), ENTRY( table, color_ ));\
 }
 
 /* x is always zero except in snes_ntsc library */
-#define NTSC_RGB_OUT_( rgb_out, bits, x ) {\
+#define NES_NTSC_RGB_OUT_( rgb_out, bits, x ) {\
 	if ( bits == 16 )\
 		rgb_out = (raw_>>(13-x)& 0xF800)|(raw_>>(8-x)&0x07E0)|(raw_>>(4-x)&0x001F);\
 	if ( bits == 24 || bits == 32 )\
 		rgb_out = (raw_>>(5-x)&0xFF0000)|(raw_>>(3-x)&0xFF00)|(raw_>>(1-x)&0xFF);\
 	if ( bits == 15 )\
 		rgb_out = (raw_>>(14-x)& 0x7C00)|(raw_>>(9-x)&0x03E0)|(raw_>>(4-x)&0x001F);\
-	if ( bits == 14 )\
-		rgb_out = (raw_>>(24-x)& 0x001F)|(raw_>>(9-x)&0x03E0)|(raw_<<(6+x)&0x7C00);\
 	if ( bits == 0 )\
 		rgb_out = raw_ << x;\
 }
@@ -197,4 +190,3 @@ enum { nes_ntsc_full_overscan_right = nes_ntsc_full_in_width - 256 - nes_ntsc_fu
 #endif
 
 #endif
-

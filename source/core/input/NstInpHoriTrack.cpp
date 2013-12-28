@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -31,7 +31,7 @@ namespace Nes
 	{
 		namespace Input
 		{
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("s", on)
 			#endif
 
@@ -48,21 +48,21 @@ namespace Nes
 				state = 0xFF00U|CONNECTED;
 			}
 
-			void HoriTrack::SaveState(State::Saver& state,const uchar id) const
+			void HoriTrack::SaveState(State::Saver& state,const byte id) const
 			{
-				state.Begin('H','T',id,'\0').Write8( strobe ).Write32( stream ).End();
+				state.Begin( AsciiId<'H','T'>::R(0,0,id) ).Write8( strobe ).Write32( stream ).End();
 			}
 
 			void HoriTrack::LoadState(State::Loader& state,const dword id)
 			{
-				if (id == NES_STATE_CHUNK_ID('H','T','\0','\0'))
+				if (id == AsciiId<'H','T'>::V)
 				{
 					strobe = state.Read8() & 0x1;
 					stream = state.Read32();
 				}
 			}
 
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("", on)
 			#endif
 
@@ -99,13 +99,13 @@ namespace Nes
 							if (horiTrack.mode & Controllers::HoriTrack::MODE_REVERSED)
 								bits |= REVERSED;
 
-							static const char speeds[2][5] =
+							static const schar speeds[2][5] =
 							{
 								{0,4,8,16,24},
 								{1,16,32,48,56}
 							};
 
-							const char* NST_RESTRICT speed = speeds[0];
+							const schar* NST_RESTRICT speed = speeds[0];
 
 							if (horiTrack.mode & Controllers::HoriTrack::MODE_LOWSPEED)
 							{
@@ -126,54 +126,54 @@ namespace Nes
 							{
 								bits |=
 								(
-									(ox >= +speed[4]) ? 0x0000U|0x0100U :
-									(ox >= +speed[3]) ? 0x0800U|0x0100U :
-									(ox >= +speed[2]) ? 0x0400U|0x0100U :
-									(ox >= +speed[1]) ? 0x0200U|0x0100U :
-														0x0600U|0x0100U
+									(ox >= +speed[4]) ? (0x0000U|0x0100U) :
+									(ox >= +speed[3]) ? (0x0800U|0x0100U) :
+									(ox >= +speed[2]) ? (0x0400U|0x0100U) :
+									(ox >= +speed[1]) ? (0x0200U|0x0100U) :
+														(0x0600U|0x0100U)
 								);
 							}
 							else if (ox < -speed[0])
 							{
 								bits |=
 								(
-									(ox <= -speed[4]) ? 0x0600U|0x0000U :
-									(ox <= -speed[3]) ? 0x0200U|0x0000U :
-									(ox <= -speed[2]) ? 0x0400U|0x0000U :
-									(ox <= -speed[1]) ? 0x0800U|0x0000U :
-														0x0000U|0x0000U
+									(ox <= -speed[4]) ? (0x0600U|0x0000U) :
+									(ox <= -speed[3]) ? (0x0200U|0x0000U) :
+									(ox <= -speed[2]) ? (0x0400U|0x0000U) :
+									(ox <= -speed[1]) ? (0x0800U|0x0000U) :
+														(0x0000U|0x0000U)
 								);
 							}
 							else
 							{
-								bits |= 0x0F00U;
+								bits |= 0x0F00;
 							}
 
 							if (oy > speed[0])
 							{
 								bits |=
 								(
-									(oy >= +speed[4]) ? 0x6000U|0x0000U :
-									(oy >= +speed[3]) ? 0x2000U|0x0000U :
-									(oy >= +speed[2]) ? 0x4000U|0x0000U :
-									(oy >= +speed[1]) ? 0x8000U|0x0000U :
-														0x0000U|0x0000U
+									(oy >= +speed[4]) ? (0x6000U|0x0000U) :
+									(oy >= +speed[3]) ? (0x2000U|0x0000U) :
+									(oy >= +speed[2]) ? (0x4000U|0x0000U) :
+									(oy >= +speed[1]) ? (0x8000U|0x0000U) :
+														(0x0000U|0x0000U)
 								);
 							}
 							else if (oy < -speed[0])
 							{
 								bits |=
 								(
-									(oy <= -speed[4]) ? 0x0000U|0x1000U :
-									(oy <= -speed[3]) ? 0x8000U|0x1000U :
-									(oy <= -speed[2]) ? 0x4000U|0x1000U :
-									(oy <= -speed[1]) ? 0x2000U|0x1000U :
-														0x6000U|0x1000U
+									(oy <= -speed[4]) ? (0x0000U|0x1000U) :
+									(oy <= -speed[3]) ? (0x8000U|0x1000U) :
+									(oy <= -speed[2]) ? (0x4000U|0x1000U) :
+									(oy <= -speed[1]) ? (0x2000U|0x1000U) :
+														(0x6000U|0x1000U)
 								);
 							}
 							else
 							{
-								bits |= 0xF000U;
+								bits |= 0xF000;
 							}
 
 							state = bits << 1;

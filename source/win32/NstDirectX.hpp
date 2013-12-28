@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -35,9 +35,9 @@ namespace Nestopia
 	{
 		struct BaseAdapter
 		{
-			ibool operator == (const BaseAdapter& a)  const { return guid == a.guid; }
-			ibool operator <  (const BaseAdapter& a)  const { return guid < a.guid;  }
-			ibool operator == (const System::Guid& g) const { return guid == g;      }
+			bool operator == (const BaseAdapter& a)  const { return guid == a.guid; }
+			bool operator <  (const BaseAdapter& a)  const { return guid < a.guid;  }
+			bool operator == (const System::Guid& g) const { return guid == g;      }
 
 			System::Guid guid;
 			HeapString name;

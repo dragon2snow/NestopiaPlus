@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,7 +25,7 @@
 #ifndef NST_BOARDS_FFE_H
 #define NST_BOARDS_FFE_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
+#ifdef NST_PRAGMA_ONCE
 #pragma once
 #endif
 
@@ -35,7 +35,7 @@ namespace Nes
 	{
 		namespace Boards
 		{
-			class NST_NO_VTABLE Ffe : public Mapper
+			class Ffe : public Mapper
 			{
 			protected:
 
@@ -57,25 +57,25 @@ namespace Nes
 				void BaseLoad(State::Loader&,dword);
 				void VSync();
 
-				NES_DECL_POKE( 42FC )
-				NES_DECL_POKE( 42FD )
+				NES_DECL_POKE( 42FC );
+				NES_DECL_POKE( 42FD );
 
-				NES_DECL_POKE( 42FE )
-				NES_DECL_POKE( 42FF )
+				NES_DECL_POKE( 42FE );
+				NES_DECL_POKE( 42FF );
 
-				NES_DECL_POKE( 43FC )
-				NES_DECL_POKE( 43FD )
-				NES_DECL_POKE( 43FE )
-				NES_DECL_POKE( 43FF )
+				NES_DECL_POKE( 43FC );
+				NES_DECL_POKE( 43FD );
+				NES_DECL_POKE( 43FE );
+				NES_DECL_POKE( 43FF );
 
-				NES_DECL_POKE( 4501 )
-				NES_DECL_POKE( 4502 )
-				NES_DECL_POKE( 4503 )
+				NES_DECL_POKE( 4501 );
+				NES_DECL_POKE( 4502 );
+				NES_DECL_POKE( 4503 );
 
-				NES_DECL_POKE( Prg_F3 )
-				NES_DECL_POKE( Prg_F4 )
+				NES_DECL_POKE( Prg_F3 );
+				NES_DECL_POKE( Prg_F4 );
 
-				NES_DECL_POKE( Prg_X )
+				NES_DECL_POKE( Prg_X );
 
 				struct Irq
 				{
@@ -86,7 +86,7 @@ namespace Nes
 					ibool enabled;
 					const uint clock;
 
-					Irq(uint c)
+					explicit Irq(uint c)
 					: clock(c) {}
 				};
 

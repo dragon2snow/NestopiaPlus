@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -31,22 +31,27 @@ namespace Nes
 	{
 		namespace Boards
 		{
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("s", on)
 			#endif
+
+			S8259::S8259(Context& c,Type t)
+			: Mapper(c,WRAM_NONE), type(t) {}
 
 			void S8259::SubReset(const bool hard)
 			{
 				if (hard)
 				{
 					ctrl = 0;
-					std::memset( regs, 0, sizeof(regs) );
+
+					for (uint i=0; i < 8; ++i)
+						regs[i] = 0;
 				}
 
 				if (type == TYPE_D && !chr.Source().Writable())
-					chr.SwapBank<SIZE_4K,0x1000U>( ~0U );
+					chr.SwapBank<SIZE_4K,0x1000>( ~0U );
 
-				for (uint i=0x4100U; i < 0x8000U; i += 0x200)
+				for (uint i=0x4100; i < 0x8000; i += 0x200)
 				{
 					for (uint j=0; j < 0x100; j += 0x2)
 					{
@@ -58,13 +63,13 @@ namespace Nes
 
 			void S8259::BaseLoad(State::Loader& state,const dword id)
 			{
-				NST_VERIFY( id == NES_STATE_CHUNK_ID('S','8','2','\0') );
+				NST_VERIFY( id == (AsciiId<'S','8','2'>::V) );
 
-				if (id == NES_STATE_CHUNK_ID('S','8','2','\0'))
+				if (id == AsciiId<'S','8','2'>::V)
 				{
 					while (const dword chunk = state.Begin())
 					{
-						if (chunk == NES_STATE_CHUNK_ID('R','E','G','\0'))
+						if (chunk == AsciiId<'R','E','G'>::V)
 						{
 							ctrl = state.Read8();
 							state.Read( regs );
@@ -77,10 +82,10 @@ namespace Nes
 
 			void S8259::BaseSave(State::Saver& state) const
 			{
-				state.Begin('S','8','2','\0').Begin('R','E','G','\0').Write8( ctrl ).Write( regs ).End().End();
+				state.Begin( AsciiId<'S','8','2'>::V ).Begin( AsciiId<'R','E','G'>::V ).Write8( ctrl ).Write( regs ).End().End();
 			}
 
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("", on)
 			#endif
 
@@ -97,12 +102,12 @@ namespace Nes
 				{
 					case 0x5:
 
-						prg.SwapBank<SIZE_32K,0x0000U>( data );
+						prg.SwapBank<SIZE_32K,0x0000>( data );
 						break;
 
 					case 0x7:
 					{
-						static const uchar lut[4][4] =
+						static const byte lut[4][4] =
 						{
 							{0,1,0,1},
 							{0,0,1,1},
@@ -121,25 +126,25 @@ namespace Nes
 
 							if (type == TYPE_D)
 							{
-								chr.SwapBanks<SIZE_1K,0x0000U>
+								chr.SwapBanks<SIZE_1K,0x0000>
 								(
-									(regs[0] & 0x07),
-									(regs[1] & 0x07) | (regs[4] << 4 & 0x10),
-									(regs[2] & 0x07) | (regs[4] << 3 & 0x10),
-									(regs[3] & 0x07) | (regs[4] << 2 & 0x10) | (regs[6] << 3 & 0x08)
+									(regs[0] & 0x07U),
+									(regs[1] & 0x07U) | (regs[4] << 4 & 0x10U),
+									(regs[2] & 0x07U) | (regs[4] << 3 & 0x10U),
+									(regs[3] & 0x07U) | (regs[4] << 2 & 0x10U) | (regs[6] << 3 & 0x08U)
 								);
 							}
 							else
 							{
-								const uint h = regs[4] << 3 & 0x38;
+								const uint h = regs[4] << 3 & 0x38U;
 								const uint s = (type == TYPE_A ? 1 : type == TYPE_C ? 2 : 0);
 
-								chr.SwapBanks<SIZE_2K,0x0000U>
+								chr.SwapBanks<SIZE_2K,0x0000>
 								(
-									(regs[(regs[7] & 0x1) ? 0 : 0] & 0x07 | h) << s,
-									(regs[(regs[7] & 0x1) ? 0 : 1] & 0x07 | h) << s | (type != TYPE_B ? 1 : 0),
-									(regs[(regs[7] & 0x1) ? 0 : 2] & 0x07 | h) << s | (type == TYPE_C ? 2 : 0),
-									(regs[(regs[7] & 0x1) ? 0 : 3] & 0x07 | h) << s | (type == TYPE_A ? 1 : type == TYPE_C ? 3 : 0)
+									(regs[(regs[7] & 0x1U) ? 0 : 0] & 0x07U | h) << s,
+									(regs[(regs[7] & 0x1U) ? 0 : 1] & 0x07U | h) << s | (type != TYPE_B ? 1 : 0),
+									(regs[(regs[7] & 0x1U) ? 0 : 2] & 0x07U | h) << s | (type == TYPE_C ? 2 : 0),
+									(regs[(regs[7] & 0x1U) ? 0 : 3] & 0x07U | h) << s | (type == TYPE_A ? 1 : type == TYPE_C ? 3 : 0)
 								);
 							}
 						}

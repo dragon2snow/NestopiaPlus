@@ -1,4 +1,3 @@
-
 /* Simple shell used by demos. Uses SDL multimedia library. */
 
 #include <stdlib.h>
@@ -6,15 +5,11 @@
 #include <stdio.h>
 #include "SDL.h"
 
-#ifndef SDL_DEMO_DEPTH
-	#define SDL_DEMO_DEPTH 16
-#endif
-
 /* Image loader */
 typedef struct image_t
 {
-	unsigned char const* pixels_8;   /* 8-bit pixels */
-	unsigned short const* pixels_16; /* 16-bit pixels */
+	unsigned char const* byte_pixels;/* 8-bit pixels */
+	unsigned short const* rgb_16;    /* 16-bit pixels */
 	int width;
 	int height;
 	int row_width; /* number of pixels to get to next row (may be greater than width) */
@@ -23,10 +18,10 @@ typedef struct image_t
 void load_bmp( image_t* out, const char* path, SDL_Color palette [256] );
 void save_bmp( const char* path );
 void init_window( int width, int height );
-int read_input();
-void lock_pixels();
-void double_output_height();
-void display_output();
+int read_input( void );
+void lock_pixels( void );
+void double_output_height( void );
+void display_output( void );
 void fatal_error( const char* str );
 
 static unsigned char* output_pixels; /* 16-bit RGB */
@@ -48,7 +43,7 @@ void fatal_error( const char* str )
 	exit( EXIT_FAILURE );
 }
 
-static void init_sdl_()
+static void init_sdl_( void )
 {
 	static int initialized;
 	if ( !initialized )
@@ -67,14 +62,14 @@ void init_window( int width, int height )
 	init_sdl_();
 	
 	screen = SDL_SetVideoMode( width, height, 0, 0 );
-	surface = SDL_CreateRGBSurface( SDL_SWSURFACE, width, height, SDL_DEMO_DEPTH, 0, 0, 0, 0 );
+	surface = SDL_CreateRGBSurface( SDL_SWSURFACE, width, height, 16, 0, 0, 0, 0 );
 	if ( !screen || !surface )
 		fatal_error( "SDL initialization failed" );
 	
 	SDL_WM_SetCaption( "NTSC Filter Demo", "NTSC Filter Demo" );
 }
 
-int read_input()
+int read_input( void )
 {
 	SDL_Event e;
 	
@@ -112,7 +107,7 @@ int read_input()
 	return 1;
 }
 
-void lock_pixels()
+void lock_pixels( void )
 {
 	if ( SDL_LockSurface( surface ) < 0 )
 		fatal_error( "Couldn't lock surface" );
@@ -121,7 +116,7 @@ void lock_pixels()
 	output_pixels = (unsigned char*) surface->pixels;
 }
 
-void double_output_height()
+void double_output_height( void )
 {
 	int y;
 	for ( y = surface->h / 2; --y >= 0; )
@@ -144,7 +139,7 @@ void double_output_height()
 	}
 }
 
-void display_output()
+void display_output( void )
 {
 	SDL_UnlockSurface( surface );
 	if ( SDL_BlitSurface( surface, &rect, screen, &rect ) < 0 || SDL_Flip( screen ) < 0 )
@@ -158,7 +153,8 @@ void load_bmp( image_t* out, const char* path, SDL_Color palette [256] )
 	SDL_Surface* bmp;
 	SDL_Surface* conv;
 	
-	bmp = (init_sdl_(), SDL_LoadBMP( path ));
+	init_sdl_();
+	bmp = SDL_LoadBMP( path );
 	if ( !bmp )
 		fatal_error( "Couldn't load BMP" );
 	
@@ -180,11 +176,11 @@ void load_bmp( image_t* out, const char* path, SDL_Color palette [256] )
 	if ( SDL_LockSurface( conv ) < 0 )
 		fatal_error( "Couldn't lock surface" );
 	
-	out->pixels_8  = (unsigned char*) conv->pixels;
-	out->pixels_16 = (unsigned short*) conv->pixels;
-	out->width     = conv->w;
-	out->height    = conv->h;
-	out->row_width = conv->pitch / fmt.BytesPerPixel;
+	out->byte_pixels = (unsigned char *) conv->pixels;
+	out->rgb_16      = (unsigned short*) conv->pixels;
+	out->width       = conv->w;
+	out->height      = conv->h;
+	out->row_width   = conv->pitch / fmt.BytesPerPixel;
 }
 
 void save_bmp( const char* path )
@@ -192,4 +188,3 @@ void save_bmp( const char* path )
 	if ( SDL_SaveBMP( surface, path ) )
 		fatal_error( "Couldn't save BMP" );
 }
-

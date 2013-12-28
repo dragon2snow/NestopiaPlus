@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -31,7 +31,7 @@ namespace Nes
 	{
 		namespace Input
 		{
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("s", on)
 			#endif
 
@@ -45,24 +45,24 @@ namespace Nes
 			{
 				strobe = 0;
 				stream = 0;
-				state = 0xFF0000U;
+				state = 0xFF0000;
 			}
 
-			void Pachinko::SaveState(State::Saver& state,const uchar id) const
+			void Pachinko::SaveState(State::Saver& state,const byte id) const
 			{
-				state.Begin('P','A',id,'\0').Write8( strobe ).Write32( stream ).End();
+				state.Begin( AsciiId<'P','A'>::R(0,0,id) ).Write8( strobe ).Write32( stream ).End();
 			}
 
 			void Pachinko::LoadState(State::Loader& state,const dword id)
 			{
-				if (id == NES_STATE_CHUNK_ID('P','A','\0','\0'))
+				if (id == AsciiId<'P','A'>::V)
 				{
 					strobe = state.Read8() & 0x1;
 					stream = state.Read32();
 				}
 			}
 
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("", on)
 			#endif
 

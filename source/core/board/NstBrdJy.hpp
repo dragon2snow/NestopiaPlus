@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,7 +25,7 @@
 #ifndef NST_BOARDS_YC_H
 #define NST_BOARDS_YC_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
+#ifdef NST_PRAGMA_ONCE
 #pragma once
 #endif
 
@@ -38,7 +38,7 @@ namespace Nes
 	{
 		namespace Boards
 		{
-			class NST_NO_VTABLE Jy : public Mapper
+			class Jy : public Mapper
 			{
 			protected:
 
@@ -50,6 +50,7 @@ namespace Nes
 				};
 
 				Jy(Context&,DefaultDipSwitch,bool=false);
+				~Jy() {}
 
 			private:
 
@@ -92,30 +93,30 @@ namespace Nes
 				Device QueryDevice(DeviceType);
 				void VSync();
 
-				NES_DECL_HOOK( PpuBg )
-				NES_DECL_HOOK( PpuSp )
+				NES_DECL_HOOK( PpuBg );
+				NES_DECL_HOOK( PpuSp );
 
-				NES_DECL_ACCESSOR( Chr_0000 )
-				NES_DECL_ACCESSOR( Chr_1000 )
+				NES_DECL_ACCESSOR( Chr_0000 );
+				NES_DECL_ACCESSOR( Chr_1000 );
 
-				NES_DECL_PEEK( 5000 )
-				NES_DECL_PEEK( 6000 )
-				NES_DECL_POKE( 8000 )
-				NES_DECL_POKE( 9000 )
-				NES_DECL_POKE( A000 )
-				NES_DECL_POKE( B000 )
-				NES_DECL_POKE( B004 )
-				NES_DECL_POKE( C000 )
-				NES_DECL_POKE( C001 )
-				NES_DECL_POKE( C002 )
-				NES_DECL_POKE( C003 )
-				NES_DECL_POKE( C004 )
-				NES_DECL_POKE( C005 )
-				NES_DECL_POKE( C006 )
-				NES_DECL_POKE( D000 )
-				NES_DECL_POKE( D001 )
-				NES_DECL_POKE( D002 )
-				NES_DECL_POKE( D003 )
+				NES_DECL_PEEK( 5000 );
+				NES_DECL_PEEK( 6000 );
+				NES_DECL_POKE( 8000 );
+				NES_DECL_POKE( 9000 );
+				NES_DECL_POKE( A000 );
+				NES_DECL_POKE( B000 );
+				NES_DECL_POKE( B004 );
+				NES_DECL_POKE( C000 );
+				NES_DECL_POKE( C001 );
+				NES_DECL_POKE( C002 );
+				NES_DECL_POKE( C003 );
+				NES_DECL_POKE( C004 );
+				NES_DECL_POKE( C005 );
+				NES_DECL_POKE( C006 );
+				NES_DECL_POKE( D000 );
+				NES_DECL_POKE( D001 );
+				NES_DECL_POKE( D002 );
+				NES_DECL_POKE( D003 );
 
 				struct Regs
 				{
@@ -145,13 +146,13 @@ namespace Nes
 						CTRL3_EX_PRG        = b00000110
 					};
 
-					NES_DECL_PEEK( 5001 )
-					NES_DECL_PEEK( 5800 )
-					NES_DECL_POKE( 5800 )
-					NES_DECL_POKE( 5801 )
-					NES_DECL_PEEK( 5801 )
-					NES_DECL_POKE( 5803 )
-					NES_DECL_PEEK( 5803 )
+					NES_DECL_PEEK( 5001 );
+					NES_DECL_PEEK( 5800 );
+					NES_DECL_POKE( 5800 );
+					NES_DECL_POKE( 5801 );
+					NES_DECL_PEEK( 5801 );
+					NES_DECL_POKE( 5803 );
+					NES_DECL_PEEK( 5803 );
 
 					uint mul[2];
 					uint tmp;
@@ -164,17 +165,17 @@ namespace Nes
 
 					static uint Unscramble(uint);
 
-					struct ExChr
-					{
-						uint mask;
-						uint bank;
-					};
-
 					uint prg[4];
 					uint chr[8];
 					uint nmt[4];
-					ExChr exChr;
-					const u8* prg6;
+
+					struct
+					{
+						uint mask;
+						uint bank;
+					}   exChr;
+
+					const byte* prg6;
 					uint chrLatch[2];
 				};
 
@@ -182,7 +183,7 @@ namespace Nes
 				{
 					struct A12
 					{
-						A12(Irq&);
+						explicit A12(Irq&);
 
 						void Reset(bool);
 						ibool Signal();
@@ -192,7 +193,7 @@ namespace Nes
 
 					struct M2
 					{
-						M2(Irq&);
+						explicit M2(Irq&);
 
 						void Reset(bool);
 						ibool Signal();

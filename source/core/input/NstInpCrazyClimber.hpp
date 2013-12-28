@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,7 +25,7 @@
 #ifndef NST_INPUT_CRAZYCLIMBER_H
 #define NST_INPUT_CRAZYCLIMBER_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
+#ifdef NST_PRAGMA_ONCE
 #pragma once
 #endif
 
@@ -39,7 +39,7 @@ namespace Nes
 			{
 			public:
 
-				CrazyClimber(const Cpu&);
+				explicit CrazyClimber(const Cpu&);
 
 			private:
 
@@ -47,7 +47,7 @@ namespace Nes
 				void Poke(uint);
 				uint Peek(uint);
 				void LoadState(State::Loader&,dword);
-				void SaveState(State::Saver&,uchar) const;
+				void SaveState(State::Saver&,byte) const;
 
 				enum {LEFT,RIGHT};
 

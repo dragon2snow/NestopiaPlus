@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -33,10 +33,6 @@
 #include "NstDialogVideoDecoder.hpp"
 #include "NstDialogVideo.hpp"
 
-#ifdef __INTEL_COMPILER
-#pragma warning( disable : 279 )
-#endif
-
 namespace Nestopia
 {
 	namespace Window
@@ -54,8 +50,7 @@ namespace Nestopia
 
 		NST_COMPILE_ASSERT
 		(
-			IDC_VIDEO_16_BIT == IDC_VIDEO_8_BIT + 1 &&
-			IDC_VIDEO_32_BIT == IDC_VIDEO_8_BIT + 2
+			IDC_VIDEO_32_BIT == IDC_VIDEO_16_BIT + 1
 		);
 
 		NST_COMPILE_ASSERT
@@ -93,7 +88,6 @@ namespace Nestopia
 		{
 			{ IDC_VIDEO_DEVICE,            &Video::OnCmdDevice         },
 			{ IDC_VIDEO_MODE,              &Video::OnCmdMode           },
-			{ IDC_VIDEO_8_BIT,             &Video::OnCmdBitDepth       },
 			{ IDC_VIDEO_16_BIT,            &Video::OnCmdBitDepth       },
 			{ IDC_VIDEO_32_BIT,            &Video::OnCmdBitDepth       },
 			{ IDC_VIDEO_EFFECTS,           &Video::OnCmdFilter         },
@@ -117,22 +111,22 @@ namespace Nestopia
 			const Modes::const_iterator mode;
 			Filter::Settings* const filter;
 			Filter::Settings filters[Filter::NUM_TYPES];
-			const i16 screenCurvature;
+			const short screenCurvature;
 			const bool autoPalette;
-			const i8 brightness;
-			const i8 saturation;
-			const i8 contrast;
-			const i8 hue;
-			const i8 sharpness;
-			const i8 colorResolution;
-			const i8 colorBleed;
-			const i8 colorArtifacts;
-			const i8 colorFringing;
+			const schar brightness;
+			const schar saturation;
+			const schar contrast;
+			const schar hue;
+			const schar sharpness;
+			const schar colorResolution;
+			const schar colorBleed;
+			const schar colorArtifacts;
+			const schar colorFringing;
 			const Nes::Video::Decoder decoder;
 			const Path palettePath;
 			const Nes::Video::Palette::Mode paletteMode;
 			const Nes::Video::Palette::CustomType paletteCustomType;
-			u8 paletteData[Nes::Video::Palette::NUM_ENTRIES_EXT][3];
+			uchar paletteData[Nes::Video::Palette::NUM_ENTRIES_EXT][3];
 
 		public:
 
@@ -264,14 +258,14 @@ namespace Nestopia
 				Rect& ntsc = settings.rects.ntsc;
 				Rect& pal = settings.rects.pal;
 
-				ntsc.left   = cfg[ "video ntsc left"   ].Default( 0                  );
-				ntsc.top    = cfg[ "video ntsc top"    ].Default( NTSC_CLIP_TOP      );
-				ntsc.right  = cfg[ "video ntsc right"  ].Default( NES_WIDTH-1        );
-				ntsc.bottom = cfg[ "video ntsc bottom" ].Default( NTSC_CLIP_BOTTOM-1 );
-				pal.left    = cfg[ "video pal left"    ].Default( 0                  );
-				pal.top     = cfg[ "video pal top"     ].Default( PAL_CLIP_TOP       );
-				pal.right   = cfg[ "video pal right"   ].Default( NES_WIDTH-1        );
-				pal.bottom  = cfg[ "video pal bottom"  ].Default( PAL_CLIP_BOTTOM-1  );
+				ntsc.left   = cfg[ "video ntsc left"   ].Default( uint( 0                  ) );
+				ntsc.top    = cfg[ "video ntsc top"    ].Default( uint( NTSC_CLIP_TOP      ) );
+				ntsc.right  = cfg[ "video ntsc right"  ].Default( uint( NES_WIDTH-1        ) );
+				ntsc.bottom = cfg[ "video ntsc bottom" ].Default( uint( NTSC_CLIP_BOTTOM-1 ) );
+				pal.left    = cfg[ "video pal left"    ].Default( uint( 0                  ) );
+				pal.top     = cfg[ "video pal top"     ].Default( uint( PAL_CLIP_TOP       ) );
+				pal.right   = cfg[ "video pal right"   ].Default( uint( NES_WIDTH-1        ) );
+				pal.bottom  = cfg[ "video pal bottom"  ].Default( uint( PAL_CLIP_BOTTOM-1  ) );
 
 				ValidateRects();
 			}
@@ -279,18 +273,18 @@ namespace Nestopia
 			{
 				uint value;
 
-				if (200 >= (value=cfg["video color brightness"].Default( 100 )))
+				if (200 >= (value=cfg["video color brightness"].Default( 100U )))
 					Nes::Video(nes).SetBrightness( int(value) - 100 );
 
-				if (200 >= (value=cfg["video color saturation"].Default( 100 )))
+				if (200 >= (value=cfg["video color saturation"].Default( 100U )))
 					Nes::Video(nes).SetSaturation( int(value) - 100 );
 
-				if (200 >= (value=cfg["video color contrast"].Default( 100 )))
+				if (200 >= (value=cfg["video color contrast"].Default( 100U )))
 					Nes::Video(nes).SetContrast( int(value) - 100 );
 			}
 
 			{
-				int hue = (uint) cfg["video color hue"].Default( 0 );
+				int hue = cfg["video color hue"].Default( 0U );
 
 				if (hue > 180 && hue <= 360)
 					hue -= 360;
@@ -332,7 +326,7 @@ namespace Nestopia
 			{
 				int value;
 
-				if (MAX_SCREEN_CURVATURE-MIN_SCREEN_CURVATURE >= (value=cfg["video screen curvature"].Default( MAX_SCREEN_CURVATURE )))
+				if (MAX_SCREEN_CURVATURE-MIN_SCREEN_CURVATURE >= (value=cfg["video screen curvature"].Default( uint(MAX_SCREEN_CURVATURE) )))
 					value -= MAX_SCREEN_CURVATURE;
 
 				settings.screenCurvature = value;
@@ -347,6 +341,10 @@ namespace Nestopia
 			VideoDecoder::Load( cfg, Nes::Video(nes) );
 
 			UpdateFinalRects();
+		}
+
+		Video::~Video()
+		{
 		}
 
 		void Video::Save(Configuration& cfg) const
@@ -391,14 +389,14 @@ namespace Nestopia
 			}
 
 			cfg[ "video palette file"           ].Quote() = settings.palette;
-			cfg[ "video ntsc left"              ] = settings.rects.ntsc.left;
-			cfg[ "video ntsc top"               ] = settings.rects.ntsc.top;
-			cfg[ "video ntsc right"             ] = settings.rects.ntsc.right - 1;
-			cfg[ "video ntsc bottom"            ] = settings.rects.ntsc.bottom - 1;
-			cfg[ "video pal left"               ] = settings.rects.pal.left;
-			cfg[ "video pal top"                ] = settings.rects.pal.top;
-			cfg[ "video pal right"              ] = settings.rects.pal.right - 1;
-			cfg[ "video pal bottom"             ] = settings.rects.pal.bottom - 1;
+			cfg[ "video ntsc left"              ] = uint( settings.rects.ntsc.left       );
+			cfg[ "video ntsc top"               ] = uint( settings.rects.ntsc.top        );
+			cfg[ "video ntsc right"             ] = uint( settings.rects.ntsc.right - 1  );
+			cfg[ "video ntsc bottom"            ] = uint( settings.rects.ntsc.bottom - 1 );
+			cfg[ "video pal left"               ] = uint( settings.rects.pal.left        );
+			cfg[ "video pal top"                ] = uint( settings.rects.pal.top         );
+			cfg[ "video pal right"              ] = uint( settings.rects.pal.right - 1   );
+			cfg[ "video pal bottom"             ] = uint( settings.rects.pal.bottom - 1  );
 			cfg[ "video color brightness"       ] = uint( 100 + Nes::Video(nes).GetBrightness() );
 			cfg[ "video color saturation"       ] = uint( 100 + Nes::Video(nes).GetSaturation() );
 			cfg[ "video color contrast"         ] = uint( 100 + Nes::Video(nes).GetContrast()   );
@@ -451,13 +449,11 @@ namespace Nestopia
 
 			switch (settings.filter - settings.filters)
 			{
-				case Filter::TYPE_SCANLINES:
+				case Filter::TYPE_STD:
 
-					NST_ASSERT( settings.adapter->maxScreenSize >= Filter::MAX_2X_SIZE );
+					state.scanlines = settings.filters[Filter::TYPE_STD].attributes[Filter::ATR_SCANLINES];
 
-					state.scanlines = settings.filters[Filter::TYPE_SCANLINES].attributes[Filter::ATR_SCANLINES];
-
-					if (state.scanlines && screen.y >= (rect[3]-rect[1]) * 2)
+					if (state.scanlines && settings.adapter->maxScreenSize >= Filter::MAX_2X_SIZE && screen.y >= (rect[3]-rect[1]) * 2)
 						scale = 2;
 
 					break;
@@ -478,20 +474,6 @@ namespace Nestopia
 					state.height = NTSC_HEIGHT;
 					state.filter = State::FILTER_NTSC;
 					state.scanlines = settings.filters[Filter::TYPE_NTSC].attributes[Filter::ATR_SCANLINES];
-					break;
-
-				case Filter::TYPE_2XSAI:
-
-					NST_ASSERT( settings.adapter->maxScreenSize >= Filter::MAX_2X_SIZE );
-
-					scale = 2;
-
-					switch (settings.filters[Filter::TYPE_2XSAI].attributes[Filter::ATR_TYPE])
-					{
-						case Filter::ATR_SUPER2XSAI: state.filter = State::FILTER_SUPER_2XSAI; break;
-						case Filter::ATR_SUPEREAGLE: state.filter = State::FILTER_SUPER_EAGLE; break;
-						default:                     state.filter = State::FILTER_2XSAI;       break;
-					}
 					break;
 
 				case Filter::TYPE_SCALEX:
@@ -857,7 +839,7 @@ namespace Nestopia
 		ibool Video::OnCmdBitDepth(Param& param)
 		{
 			if (param.Button().Clicked())
-				UpdateResolutions( Mode(settings.mode->width,settings.mode->height,8U << (param.Button().GetId() - IDC_VIDEO_8_BIT)) );
+				UpdateResolutions( Mode(settings.mode->width,settings.mode->height,param.Button().GetId() == IDC_VIDEO_32_BIT ? 32 : 16) );
 
 			return true;
 		}
@@ -898,10 +880,8 @@ namespace Nestopia
 
 				static const ushort idd[] =
 				{
-					IDD_VIDEO_FILTER_NONE,
-					IDD_VIDEO_FILTER_SCANLINES,
+					IDD_VIDEO_FILTER_STD,
 					IDD_VIDEO_FILTER_NTSC,
-					IDD_VIDEO_FILTER_2XSAI,
 					IDD_VIDEO_FILTER_SCALEX,
 					IDD_VIDEO_FILTER_HQX
 				};
@@ -1055,9 +1035,9 @@ namespace Nestopia
 				settings.mode = GetDefaultMode();
 
 				for (uint i=0; i < Filter::NUM_TYPES; ++i)
-					settings.filters[i].Reset( (Filter::Type) i );
+					settings.filters[i].Reset();
 
-				settings.filter = settings.filters + Filter::TYPE_NONE;
+				settings.filter = settings.filters + Filter::TYPE_STD;
 
 				UpdateDevice( *settings.mode );
 
@@ -1088,7 +1068,7 @@ namespace Nestopia
 
 				VideoFilters::UpdateAutoModes( settings.filters, video, mode );
 
-				video.SetDecoder( Nes::Video::Decoder(Nes::Video::DECODER_CANONICAL) );
+				video.SetDecoder( Nes::Video::DECODER_CANONICAL );
 
 				UpdateFullscreenScaleMethod( method );
 
@@ -1123,26 +1103,23 @@ namespace Nestopia
 			{
 				switch (it->bpp)
 				{
-					case 8:  available |=  8; break;
 					case 16: available |= 16; break;
 					case 32: available |= 32; break;
 				}
 
-				if (available == (8|16|32))
+				if (available == (16|32))
 					break;
 			}
 
-			NST_ASSERT( available & (8|16|32) );
+			NST_ASSERT( available & (16|32) );
 
-			dialog.Control( IDC_VIDEO_8_BIT  ).Enable( available & 8  );
 			dialog.Control( IDC_VIDEO_16_BIT ).Enable( available & 16 );
 			dialog.Control( IDC_VIDEO_32_BIT ).Enable( available & 32 );
 
 			switch (mode.bpp)
 			{
-				case 32: mode.bpp = ((available & 32) ? 32 : (available & 16) ? 16 :  8); break;
-				case 16: mode.bpp = ((available & 16) ? 16 : (available & 32) ? 32 :  8); break;
-				case  8: mode.bpp = ((available &  8) ?  8 : (available & 16) ? 16 : 32); break;
+				case 32: mode.bpp = ((available & 32) ? 32 : 16); break;
+				case 16: mode.bpp = ((available & 16) ? 16 : 32); break;
 			}
 
 			UpdateResolutions( mode );
@@ -1163,7 +1140,6 @@ namespace Nestopia
 				mode = *settings.mode;
 			}
 
-			dialog.RadioButton( IDC_VIDEO_8_BIT  ).Check( mode.bpp == 8  );
 			dialog.RadioButton( IDC_VIDEO_16_BIT ).Check( mode.bpp == 16 );
 			dialog.RadioButton( IDC_VIDEO_32_BIT ).Check( mode.bpp == 32 );
 
@@ -1191,16 +1167,13 @@ namespace Nestopia
 			const Control::ComboBox comboBox( dialog.ComboBox(IDC_VIDEO_EFFECTS) );
 			comboBox.Clear();
 
-			comboBox.Add( Resource::String(IDS_NONE) ).Data() = Filter::TYPE_NONE;
+			comboBox.Add( Resource::String(IDS_VIDEO_FILTER_STD) ).Data() = Filter::TYPE_STD;
 
 			if (settings.adapter->maxScreenSize >= Filter::MAX_2X_SIZE)
 			{
-				comboBox.Add( Resource::String(IDS_VIDEO_FILTER_SCANLINES) ).Data() = Filter::TYPE_SCANLINES;
-
 				if (settings.adapter->maxScreenSize >= Filter::MAX_NTSC_SIZE)
 					comboBox.Add( Resource::String(IDS_VIDEO_FILTER_NTSC) ).Data() = Filter::TYPE_NTSC;
 
-				comboBox.Add( Resource::String(IDS_VIDEO_FILTER_2XSAI) ).Data() = Filter::TYPE_2XSAI;
 				comboBox.Add( Resource::String(IDS_VIDEO_FILTER_SCALEX) ).Data() = Filter::TYPE_SCALEX;
 				comboBox.Add( Resource::String(IDS_VIDEO_FILTER_HQX) ).Data() = Filter::TYPE_HQX;
 			}
@@ -1214,7 +1187,7 @@ namespace Nestopia
 				}
 			}
 
-			settings.filter = settings.filters + Filter::TYPE_NONE;
+			settings.filter = settings.filters + Filter::TYPE_STD;
 			comboBox[0].Select();
 		}
 
@@ -1255,19 +1228,19 @@ namespace Nestopia
 
 		void Video::UpdateRects(const Rect& ntsc,const Rect& pal) const
 		{
-			dialog.Control( IDC_VIDEO_NTSC_LEFT   ).Text() << uint(ntsc.left);
-			dialog.Control( IDC_VIDEO_NTSC_TOP    ).Text() << uint(ntsc.top);
-			dialog.Control( IDC_VIDEO_NTSC_RIGHT  ).Text() << uint(ntsc.right - 1);
-			dialog.Control( IDC_VIDEO_NTSC_BOTTOM ).Text() << uint(ntsc.bottom - 1);
-			dialog.Control( IDC_VIDEO_PAL_LEFT    ).Text() << uint(pal.left);
-			dialog.Control( IDC_VIDEO_PAL_TOP     ).Text() << uint(pal.top);
-			dialog.Control( IDC_VIDEO_PAL_RIGHT   ).Text() << uint(pal.right - 1);
-			dialog.Control( IDC_VIDEO_PAL_BOTTOM  ).Text() << uint(pal.bottom - 1);
+			dialog.Control( IDC_VIDEO_NTSC_LEFT   ).Text() << uint( ntsc.left       );
+			dialog.Control( IDC_VIDEO_NTSC_TOP    ).Text() << uint( ntsc.top        );
+			dialog.Control( IDC_VIDEO_NTSC_RIGHT  ).Text() << uint( ntsc.right - 1  );
+			dialog.Control( IDC_VIDEO_NTSC_BOTTOM ).Text() << uint( ntsc.bottom - 1 );
+			dialog.Control( IDC_VIDEO_PAL_LEFT    ).Text() << uint( pal.left        );
+			dialog.Control( IDC_VIDEO_PAL_TOP     ).Text() << uint( pal.top         );
+			dialog.Control( IDC_VIDEO_PAL_RIGHT   ).Text() << uint( pal.right - 1   );
+			dialog.Control( IDC_VIDEO_PAL_BOTTOM  ).Text() << uint( pal.bottom - 1  );
 		}
 
 		void Video::UpdatePalette() const
 		{
-			const ibool unlocked = settings.lockedPalette.Empty();
+			const bool unlocked = settings.lockedPalette.Empty();
 
 			for (uint i=IDC_VIDEO_PALETTE_AUTO; i <= IDC_VIDEO_PALETTE_EDITOR; ++i)
 				dialog.Control( i ).Enable( unlocked );

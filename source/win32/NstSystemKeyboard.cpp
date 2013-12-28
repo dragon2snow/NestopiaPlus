@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -118,7 +118,7 @@ namespace Nestopia
 			return NONE;
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("t", on)
 		#endif
 
@@ -133,7 +133,7 @@ namespace Nestopia
 				case SCROLL_LOCK: key = VK_SCROLL;  break;
 			}
 
-			if (on != (::GetKeyState( key ) & 0x1))
+			if (on != (::GetKeyState( key ) & 0x1U))
 			{
 				INPUT input[2];
 				std::memset( input, 0, sizeof(input) );
@@ -153,7 +153,7 @@ namespace Nestopia
 			return false;
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 	}

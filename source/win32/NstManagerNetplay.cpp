@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -26,12 +26,10 @@
 #include "NstIoScreen.hpp"
 #include "NstSystemDll.hpp"
 #include "NstResourceString.hpp"
-#include "NstWindowMenu.hpp"
 #include "NstWindowUser.hpp"
 #include "NstWindowParam.hpp"
 #include "NstSystemThread.hpp"
 #include "NstManagerPaths.hpp"
-#include "NstManagerEmulator.hpp"
 #include "NstDialogNetplay.hpp"
 #include "NstManagerNetplay.hpp"
 #include "../kaillera/kailleraclient.h"
@@ -106,11 +104,11 @@ namespace Nestopia
 			}
 		};
 
-		class Netplay::Kaillera
+		class Netplay::Kaillera : Manager
 		{
 		public:
 
-			Kaillera(Emulator&,Window::Menu&,const Paths&,Window::Custom&,ibool);
+			Kaillera(Emulator&,Window::Menu&,const Paths&,Window::Custom&,bool);
 			~Kaillera();
 
 			enum Exception
@@ -121,7 +119,7 @@ namespace Nestopia
 			void Start();
 			void Disconnect();
 			void Chat();
-			ibool Close() const;
+			bool Close() const;
 
 		private:
 
@@ -162,13 +160,13 @@ namespace Nestopia
 
 				enum
 				{
-					PACKET_TYPE                 = Nes::b00001111,
-					PACKET_DATA                 = Nes::b11110000,
-					PACKET_DATA_SYSTEM          = Nes::b00000011,
-					PACKET_DATA_SYSTEM_AUTO     = Nes::b00000000,
-					PACKET_DATA_SYSTEM_NTSC     = Nes::b00000001,
-					PACKET_DATA_SYSTEM_PAL      = Nes::b00000010,
-					PACKET_DATA_NO_SPRITE_LIMIT = Nes::b00000100,
+					PACKET_TYPE                 = 0x0F,
+					PACKET_DATA                 = 0xF0,
+					PACKET_DATA_SYSTEM          = 0x03,
+					PACKET_DATA_SYSTEM_AUTO     = 0x00,
+					PACKET_DATA_SYSTEM_NTSC     = 0x01,
+					PACKET_DATA_SYSTEM_PAL      = 0x02,
+					PACKET_DATA_NO_SPRITE_LIMIT = 0x04,
 					PACKET_DATA_SHIFT           = 4,
 					PACKET_STARTUP              = 1,
 					PACKET_RESET                = 2,
@@ -188,12 +186,6 @@ namespace Nestopia
 					: code(NULL) {}
 				};
 
-				struct Settings
-				{
-					uint system;
-					ibool noSpriteLimit;
-				};
-
 				void OnReset      (uint);
 				void OnInsertDisk (uint);
 				void OnEjectDisk  (uint);
@@ -202,7 +194,12 @@ namespace Nestopia
 				uint command;
 				MenuCallback menuCallbacks[NUM_CALLBACKS];
 				CoinCallback coinCallback;
-				Settings settings;
+
+				struct
+				{
+					uint system;
+					bool noSpriteLimit;
+				}   settings;
 			};
 
 			class Input
@@ -216,14 +213,14 @@ namespace Nestopia
 
 			private:
 
-				struct PollCallback
+				uint pads[4];
+
+				struct
 				{
 					Nes::Input::UserData data;
 					Nes::Input::Controllers::Pad::PollCallback code;
-				};
+				}   pollCallback;
 
-				uint pads[4];
-				PollCallback pollCallback;
 				Nes::Input::Type normalSetup[5];
 
 			public:
@@ -249,24 +246,17 @@ namespace Nestopia
 				}
 			};
 
-			struct Network
-			{
-				ibool connected;
-				Command command;
-				Input input;
-				uint player;
-				uint players;
-				Path game;
-			};
+			friend class Command;
+			friend class Input;
 
 			struct Callbacks;
 			class Client;
 
-			ibool ResetWindow() const;
-			void  Initialize();
-			void  DisableVisualStyles();
-			void  RestoreVisualStyles();
-			void  StartNetwork(System::Thread::Terminator);
+			bool ResetWindow() const;
+			void Initialize();
+			void DisableVisualStyles();
+			void RestoreVisualStyles();
+			void StartNetwork(System::Thread::Terminator);
 
 			ibool OnOpenClient  (Window::Param&);
 			ibool OnCloseClient (Window::Param&);
@@ -277,21 +267,29 @@ namespace Nestopia
 			void OnEmuEvent (Emulator::Event);
 
 			const Dll dll;
-			Emulator& emulator;
-			Window::Menu& menu;
 			Window::Custom& window;
 			Window::Netplay::Chat chat;
 			Window::Netplay dialog;
 			System::Thread thread;
 			Window::MsgHandler::Callback enableCallback;
-			Network network;
+
+			struct
+			{
+				bool connected;
+				Command command;
+				Input input;
+				uint player;
+				uint players;
+				Path game;
+			}   network;
+
 			DWORD visualStyles;
 
 			static Kaillera* instance;
 
 		public:
 
-			ibool ShouldGoFullscreen() const
+			bool ShouldGoFullscreen() const
 			{
 				return dialog.ShouldGoFullscreen();
 			}
@@ -301,7 +299,7 @@ namespace Nestopia
 				dialog.SaveFile();
 			}
 
-			ibool Idle() const
+			bool Idle() const
 			{
 				return thread.Idle();
 			}
@@ -369,7 +367,7 @@ namespace Nestopia
 
 			class Callbacks
 			{
-				static NST_NO_INLINE ibool IsKaillera(const Window::Generic window)
+				static NST_NO_INLINE bool IsKaillera(const Window::Generic window)
 				{
 					HeapString name;
 					window.Text() >> name;
@@ -412,7 +410,7 @@ namespace Nestopia
 				::EnumThreadWindows( instance.threadId, callback, LPARAM(t) );
 			}
 
-			static ibool IsZombie(HWND hWnd)
+			static bool IsZombie(HWND hWnd)
 			{
 				if (!::GetParent( hWnd ))
 				{
@@ -484,9 +482,9 @@ namespace Nestopia
 					Enumerate( Callbacks::Destroy, 0 );
 			}
 
-			static ibool IsOpen()
+			static bool IsOpen()
 			{
-				return instance.hHook != NULL;
+				return instance.hHook;
 			}
 
 			NST_NO_INLINE ~Client()
@@ -533,7 +531,7 @@ namespace Nestopia
 		{
 			CmdHandler& menu = instance->menu.Commands();
 
-			for (uint i=0; i < NST_COUNT(Handler::messages); ++i)
+			for (uint i=0; i < sizeof(array(Handler::messages)); ++i)
 				menuCallbacks[i] = menu[Handler::messages[i].key].Replace( this, Handler::messages[i].function );
 		}
 
@@ -541,16 +539,16 @@ namespace Nestopia
 		{
 			CmdHandler& menu = instance->menu.Commands();
 
-			for (uint i=0; i < NST_COUNT(Handler::messages); ++i)
+			for (uint i=0; i < sizeof(array(Handler::messages)); ++i)
 				menu[Handler::messages[i].key] = menuCallbacks[i];
 		}
 
 		void Netplay::Kaillera::Command::Begin()
 		{
-			if (instance->emulator.Is( Nes::Machine::VS ))
+			if (instance->emulator.Is(Nes::Machine::VS))
 			{
 				Nes::Input::Controllers::VsSystem::callback.Get( coinCallback.code, coinCallback.data );
-				Nes::Input::Controllers::VsSystem::callback.Set( NULL, NULL );
+				Nes::Input::Controllers::VsSystem::callback.Unset();
 			}
 
 			if (instance->menu[IDM_MACHINE_SYSTEM_NTSC].Checked())
@@ -573,12 +571,12 @@ namespace Nestopia
 				command = PACKET_STARTUP;
 
 				if (settings.noSpriteLimit)
-					command |= (PACKET_DATA_NO_SPRITE_LIMIT << PACKET_DATA_SHIFT);
+					command |= uint(PACKET_DATA_NO_SPRITE_LIMIT) << PACKET_DATA_SHIFT;
 
 				switch (settings.system)
 				{
-					case IDM_MACHINE_SYSTEM_NTSC: command |= (PACKET_DATA_SYSTEM_NTSC << PACKET_DATA_SHIFT); break;
-					case IDM_MACHINE_SYSTEM_PAL:  command |= (PACKET_DATA_SYSTEM_PAL  << PACKET_DATA_SHIFT); break;
+					case IDM_MACHINE_SYSTEM_NTSC: command |= uint(PACKET_DATA_SYSTEM_NTSC) << PACKET_DATA_SHIFT; break;
+					case IDM_MACHINE_SYSTEM_PAL:  command |= uint(PACKET_DATA_SYSTEM_PAL)  << PACKET_DATA_SHIFT; break;
 				}
 			}
 			else
@@ -599,7 +597,7 @@ namespace Nestopia
 			{
 				instance->window.PostCommand( settings.system );
 
-				if (bool(settings.noSpriteLimit) != bool(Nes::Video(instance->emulator).AreUnlimSpritesEnabled()))
+				if (settings.noSpriteLimit != bool(Nes::Video(instance->emulator).AreUnlimSpritesEnabled()))
 					Nes::Video(instance->emulator).EnableUnlimSprites( settings.noSpriteLimit );
 			}
 		}
@@ -661,7 +659,7 @@ namespace Nestopia
                                                                                              IDM_MACHINE_SYSTEM_AUTO
 								);
 
-								if (bool(settings.noSpriteLimit) != bool(data & PACKET_DATA_NO_SPRITE_LIMIT))
+								if (settings.noSpriteLimit != bool(data & PACKET_DATA_NO_SPRITE_LIMIT))
 									Nes::Video(instance->emulator).EnableUnlimSprites( !settings.noSpriteLimit );
 							}
 							break;
@@ -670,7 +668,7 @@ namespace Nestopia
 			}
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("t", on)
 		#endif
 
@@ -702,7 +700,7 @@ namespace Nestopia
 			return 0;
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
@@ -728,7 +726,7 @@ namespace Nestopia
 			const int disk = Nes::Fds(instance->emulator).GetCurrentDisk();
 
 			if (disk != Nes::Fds::NO_DISK)
-				command = (PACKET_INSERT_DISK_SIDE_A + (Nes::Fds(instance->emulator).GetCurrentDiskSide() ^ 1)) | (uint(disk) << PACKET_DATA_SHIFT);
+				command = (PACKET_INSERT_DISK_SIDE_A + (Nes::Fds(instance->emulator).GetCurrentDiskSide() ^ 1U)) | (uint(disk) << PACKET_DATA_SHIFT);
 		}
 
 		void Netplay::Kaillera::Input::Capture()
@@ -737,7 +735,7 @@ namespace Nestopia
 				normalSetup[i] = Nes::Input(instance->emulator).GetConnectedController( i );
 
 			Nes::Input::Controllers::Pad::callback.Get( pollCallback.code, pollCallback.data );
-			Nes::Input::Controllers::Pad::callback.Set( NULL, NULL );
+			Nes::Input::Controllers::Pad::callback.Unset();
 		}
 
 		void Netplay::Kaillera::Input::Release() const
@@ -825,14 +823,13 @@ namespace Nestopia
 			Window::Menu& m,
 			const Paths& paths,
 			Window::Custom& w,
-			const ibool doFullscreen
+			const bool doFullscreen
 		)
 		:
-		emulator ( e ),
-		menu     ( m ),
-		window   ( w ),
-		dialog   ( emulator, paths, doFullscreen ),
-		chat     ( dll.ChatSend )
+		Manager ( e, m, this, &Kaillera::OnEmuEvent ),
+		window  ( w ),
+		dialog  ( emulator, paths, doFullscreen ),
+		chat    ( dll.ChatSend )
 		{
 			if (!dll.Loaded())
 				throw ERR_LOAD;
@@ -840,13 +837,11 @@ namespace Nestopia
 			NST_ASSERT( instance == NULL );
 
 			instance = this;
-			emulator.Events().Add( this, &Kaillera::OnEmuEvent );
 		}
 
 		Netplay::Kaillera::~Kaillera()
 		{
 			instance = NULL;
-			emulator.Events().Remove( this );
 		}
 
 		void Netplay::Kaillera::Initialize()
@@ -993,7 +988,7 @@ namespace Nestopia
 			return true;
 		}
 
-		ibool Netplay::Kaillera::Close() const
+		bool Netplay::Kaillera::Close() const
 		{
 			if (Client::IsOpen())
 			{
@@ -1034,7 +1029,7 @@ namespace Nestopia
 			return true;
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("t", on)
 		#endif
 
@@ -1047,7 +1042,7 @@ namespace Nestopia
 
 			if (network.connected)
 			{
-				u8 packets[MAX_PLAYERS][2];
+				uchar packets[MAX_PLAYERS][2];
 
 				packets[0][0] = network.input.GetCode();
 				packets[0][1] = network.command.GetCode();
@@ -1068,15 +1063,15 @@ namespace Nestopia
 			}
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
-		ibool Netplay::Kaillera::ResetWindow() const
+		bool Netplay::Kaillera::ResetWindow() const
 		{
 			window.SendCommand( IDM_FILE_CLOSE );
 
-			if (emulator.Is( Nes::Machine::IMAGE ))
+			if (emulator.Is(Nes::Machine::IMAGE))
 			{
 				// user refused, ok,
 				// no netplay then..
@@ -1125,7 +1120,7 @@ namespace Nestopia
 			{
 				case Emulator::EVENT_NETPLAY_POWER_ON:
 
-					if (emulator.Is( Nes::Machine::GAME ))
+					if (emulator.Is(Nes::Machine::GAME))
 					{
 						Client::Hide();
 						network.connected = true;
@@ -1154,7 +1149,7 @@ namespace Nestopia
 
 				case Emulator::EVENT_NETPLAY_POWER_OFF:
 
-					if (emulator.Is( Nes::Machine::GAME ))
+					if (emulator.Is(Nes::Machine::GAME))
 					{
 						menu[IDM_NETPLAY_DISCONNECT].Disable();
 						menu[IDM_NETPLAY_CHAT].Disable();
@@ -1296,7 +1291,7 @@ namespace Nestopia
 			}
 		}
 
-		void Netplay::Save(Configuration& cfg,const ibool saveGameList) const
+		void Netplay::Save(Configuration& cfg,const bool saveGameList) const
 		{
 			cfg["netplay in fullscreen"].YesNo() = (kaillera ? kaillera->ShouldGoFullscreen() : doFullscreen);
 
@@ -1304,7 +1299,7 @@ namespace Nestopia
 				kaillera->SaveFile();
 		}
 
-		ibool Netplay::Close() const
+		bool Netplay::Close() const
 		{
 			return kaillera ? kaillera->Close() : false;
 		}

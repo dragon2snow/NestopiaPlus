@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -29,7 +29,7 @@ namespace Nes
 {
 	namespace Core
 	{
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("s", on)
 		#endif
 
@@ -38,7 +38,7 @@ namespace Nes
 			if (hard)
 				command = 0;
 
-			for (uint i=0x4100U; i < 0x5000U; i += 0x2)
+			for (uint i=0x4100; i < 0x5000; i += 0x2)
 			{
 				Map( i + 0x0, &Mapper243::Poke_4100 );
 				Map( i + 0x1, &Mapper243::Poke_4101 );
@@ -49,7 +49,7 @@ namespace Nes
 		{
 			while (const dword chunk = state.Begin())
 			{
-				if (chunk == NES_STATE_CHUNK_ID('R','E','G','\0'))
+				if (chunk == AsciiId<'R','E','G'>::V)
 					command = state.Read8();
 
 				state.End();
@@ -58,10 +58,10 @@ namespace Nes
 
 		void Mapper243::SubSave(State::Saver& state) const
 		{
-			state.Begin('R','E','G','\0').Write8( command ).End();
+			state.Begin( AsciiId<'R','E','G'>::V ).Write8( command ).End();
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
@@ -78,33 +78,33 @@ namespace Nes
 			{
 				case 0x0:
 
-					prg.SwapBank<SIZE_32K,0x0000U>( 0x0 );
-					chr.SwapBank<SIZE_8K,0x0000U>( 0x3 );
+					prg.SwapBank<SIZE_32K,0x0000>( 0x0 );
+					chr.SwapBank<SIZE_8K,0x0000>( 0x3 );
 					break;
 
 				case 0x2:
 
-					chr.SwapBank<SIZE_8K,0x0000U>( (chr.GetBank<SIZE_8K,0x0000U>() & 0x7) | (data << 3 & 0x8) );
+					chr.SwapBank<SIZE_8K,0x0000>( (chr.GetBank<SIZE_8K,0x0000>() & 0x7) | (data << 3 & 0x8) );
 					break;
 
 				case 0x4:
 
-					chr.SwapBank<SIZE_8K,0x0000U>( (chr.GetBank<SIZE_8K,0x0000U>() & 0xE) | (data & 0x1) );
+					chr.SwapBank<SIZE_8K,0x0000>( (chr.GetBank<SIZE_8K,0x0000>() & 0xE) | (data & 0x1) );
 					break;
 
 				case 0x5:
 
-					prg.SwapBank<SIZE_32K,0x0000U>( data & 0x1 );
+					prg.SwapBank<SIZE_32K,0x0000>( data & 0x1 );
 					break;
 
 				case 0x6:
 
-					chr.SwapBank<SIZE_8K,0x0000U>( (chr.GetBank<SIZE_8K,0x0000U>() & 0x9) | (data << 1 & 0x6) );
+					chr.SwapBank<SIZE_8K,0x0000>( (chr.GetBank<SIZE_8K,0x0000>() & 0x9) | (data << 1 & 0x6) );
 					break;
 
 				case 0x7:
 
-					nmt.SwapBank<SIZE_1K,0x0000U>( data & 0x1 );
+					nmt.SwapBank<SIZE_1K,0x0000>( data & 0x1 );
 					break;
 			}
 		}

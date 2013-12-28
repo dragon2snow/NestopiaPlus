@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -23,8 +23,8 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 
 #include <new>
-#include "NstState.hpp"
 #include "NstMachine.hpp"
+#include "NstState.hpp"
 #include "NstTrackerMovie.hpp"
 #include "api/NstApiMovie.hpp"
 #include "api/NstApiUser.hpp"
@@ -33,7 +33,7 @@ namespace Nes
 {
 	namespace Core
 	{
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("s", on)
 		#endif
 
@@ -41,7 +41,7 @@ namespace Nes
 		{
 		public:
 
-			void Start(ulong,dword);
+			void Start(bool,dword);
 			void BeginFrame(dword,Machine&,EmuSaveState);
 			uint WritePort(uint,uint);
 			void Reset(bool);
@@ -53,7 +53,7 @@ namespace Nes
 
 			void Flush();
 
-			typedef Vector<u8> Buffer;
+			typedef Vector<byte> Buffer;
 
 			struct Port
 			{
@@ -70,20 +70,33 @@ namespace Nes
 				: lock(0) {}
 			};
 
+			struct Saver : State::Saver
+			{
+				explicit Saver(StdStream s)
+				: State::Saver(s,true,true) {}
+
+				void WriteHeader(bool,dword);
+
+				bool operator != (StdStream s) const
+				{
+					return stream != s;
+				}
+			};
+
 			ibool good;
 			dword frame;
 			ibool cut;
 			Port port[2];
-			State::Saver state;
+			Saver state;
 
 		public:
 
-			Recorder(StdStream stream)
-			: good(true), frame(0), cut(false), state(stream,true,true) {}
+			explicit Recorder(StdStream stream)
+			: good(true), frame(0), cut(false), state(stream) {}
 
-			bool operator == (StdStream stream) const
+			bool operator != (StdStream stream) const
 			{
-				return state.GetStream().GetStdStream() == stream;
+				return state != stream;
 			}
 		};
 
@@ -98,7 +111,7 @@ namespace Nes
 
 		private:
 
-			typedef Vector<u8> Buffer;
+			typedef Vector<byte> Buffer;
 
 			struct Port
 			{
@@ -112,27 +125,45 @@ namespace Nes
 				Buffer output;
 			};
 
-			struct Frame
+			struct Loader : State::Loader
+			{
+				explicit Loader(StdStream s)
+				: State::Loader(s,false) {}
+
+				void ReadHeader(dword);
+
+				bool Eof()
+				{
+					return stream.Eof();
+				}
+
+				bool operator != (StdStream s) const
+				{
+					return stream != s;
+				}
+			};
+
+			ibool good;
+
+			struct
 			{
 				uint port;
 				dword clip;
 				dword reset;
 				dword wait;
-			};
+			}   frame;
 
-			ibool good;
-			Frame frame;
 			Port port[2];
-			State::Loader state;
+			Loader state;
 
 		public:
 
-			Player(StdStream stream)
+			explicit Player(StdStream stream)
 			: state(stream) {}
 
-			bool operator == (StdStream stream) const
+			bool operator != (StdStream stream) const
 			{
-				return state.GetStream().GetStdStream() == stream;
+				return state != stream;
 			}
 
 			void Stop()
@@ -171,106 +202,100 @@ namespace Nes
 			recorder = NULL;
 		}
 
-		Result Tracker::Movie::Record(StdStream const stream,const bool end,const bool callback)
+		bool Tracker::Movie::Record(StdStream const stream,const bool end,const bool callback)
 		{
 			NST_ASSERT( stream );
 
-			if (status != PLAYING)
-			{
-				callbackEnable = callback;
+			if (status == PLAYING)
+				throw RESULT_ERR_NOT_READY;
 
-				if (player)
+			callbackEnable = callback;
+
+			if (player)
+			{
+				Close();
+			}
+			else if (recorder)
+			{
+				if (*recorder != stream)
 				{
 					Close();
 				}
-				else if (recorder)
+				else if (status == RECORDING)
 				{
-					if (*recorder == stream)
-					{
-						if (status == RECORDING)
-							return RESULT_NOP;
-					}
-					else
-					{
-						Close();
-					}
+					return false;
 				}
-
-				if (recorder == NULL)
-					recorder = new Recorder( stream );
-
-				try
-				{
-					recorder->Start( end, prgCrc );
-				}
-				catch (...)
-				{
-					delete recorder;
-					recorder = NULL;
-					throw;
-				}
-
-				status = RECORDING;
-				SaveCpuPorts();
-
-				if (callbackEnable)
-					Api::Movie::stateCallback( Api::Movie::RECORDING );
-
-				return RESULT_OK;
 			}
 
-			return RESULT_ERR_NOT_READY;
+			if (recorder == NULL)
+				recorder = new Recorder( stream );
+
+			try
+			{
+				recorder->Start( end, prgCrc );
+			}
+			catch (...)
+			{
+				delete recorder;
+				recorder = NULL;
+				throw;
+			}
+
+			status = RECORDING;
+			SaveCpuPorts();
+
+			if (callbackEnable)
+				Api::Movie::stateCallback( Api::Movie::RECORDING );
+
+			return true;
 		}
 
-		Result Tracker::Movie::Play(StdStream const stream,const bool callback)
+		bool Tracker::Movie::Play(StdStream const stream,const bool callback)
 		{
 			NST_ASSERT( stream );
 
-			if (status != RECORDING)
-			{
-				callbackEnable = callback;
+			if (status == RECORDING)
+				throw RESULT_ERR_NOT_READY;
 
-				if (recorder)
+			callbackEnable = callback;
+
+			if (recorder)
+			{
+				Close();
+			}
+			else if (player)
+			{
+				if (*player != stream)
 				{
 					Close();
 				}
-				else if (player)
+				else if (status == PLAYING)
 				{
-					if (*player == stream)
-					{
-						if (status == PLAYING)
-							return RESULT_NOP;
-					}
-					else
-					{
-						Close();
-					}
+					return false;
 				}
-
-				if (player == NULL)
-					player = new Player( stream );
-
-				try
-				{
-					player->Start( prgCrc );
-				}
-				catch (...)
-				{
-					delete player;
-					player = NULL;
-					throw;
-				}
-
-				status = PLAYING;
-				SaveCpuPorts();
-
-				if (callbackEnable)
-					Api::Movie::stateCallback( Api::Movie::PLAYING );
-
-				return RESULT_OK;
 			}
 
-			return RESULT_ERR_NOT_READY;
+			if (player == NULL)
+				player = new Player( stream );
+
+			try
+			{
+				player->Start( prgCrc );
+			}
+			catch (...)
+			{
+				delete player;
+				player = NULL;
+				throw;
+			}
+
+			status = PLAYING;
+			SaveCpuPorts();
+
+			if (callbackEnable)
+				Api::Movie::stateCallback( Api::Movie::PLAYING );
+
+			return true;
 		}
 
 		bool Tracker::Movie::Stop(Result result)
@@ -367,7 +392,7 @@ namespace Nes
 				recorder->Cut();
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
@@ -430,7 +455,7 @@ namespace Nes
 			}
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("s", on)
 		#endif
 
@@ -474,7 +499,7 @@ namespace Nes
 			ports[1] = cpu.Link( 0x4017, Cpu::LEVEL_HIGHEST, this, recording ? &Movie::Peek_4017_Record : &Movie::Peek_4017_Play, &Movie::Poke_4017 );
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
@@ -485,7 +510,7 @@ namespace Nes
 
 			if (output.Size())
 			{
-				state.Begin('P','T','0'+index,'\0').Write32( output.Size() - 1 ).Compress( output.Begin(), output.Size() ).End();
+				state.Begin( AsciiId<'P','T','0'>::R(0,0,index) ).Write32( output.Size() - 1 ).Compress( output.Begin(), output.Size() ).End();
 				output.Clear();
 			}
 		}
@@ -496,41 +521,43 @@ namespace Nes
 				port[i].Flush( state, i );
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("s", on)
 		#endif
 
-		void Tracker::Movie::Recorder::Start(ulong end,const dword prgCrc)
+		void Tracker::Movie::Recorder::Saver::WriteHeader(const bool end,const dword prgCrc)
 		{
-			static const u8 header[5] =
+			const byte header[16] =
 			{
-				'N','S','V', 0x1A, VERSION
+				Ascii<'N'>::V,
+				Ascii<'S'>::V,
+				Ascii<'V'>::V,
+				0x1A,
+				VERSION,
+				prgCrc >>  0 & 0xFF,
+				prgCrc >>  8 & 0xFF,
+				prgCrc >> 16 & 0xFF,
+				prgCrc >> 24 & 0xFF,
+				0,
+				0,
+				0,
+				0,
+				0,
+				0,
+				0
 			};
 
-			static const u8 reserved[7] =
-			{
-				0,0,0,0,0,0,0
-			};
+			stream.Write( header );
 
+			if (end)
+				stream.SeekEnd();
+		}
+
+		void Tracker::Movie::Recorder::Start(const bool end,const dword prgCrc)
+		{
 			cut = false;
-
-			if (end && 0 < (end = state.GetStream().Length()))
-			{
-				frame = dword(~0UL);
-
-				if (end >= sizeof(header) + 4 + sizeof(reserved))
-					state.GetStream().Seek( end );
-				else
-					throw RESULT_ERR_CORRUPT_FILE;
-			}
-			else
-			{
-				frame = 0;
-
-				state.GetStream().Write( header, sizeof(header) );
-				state.GetStream().Write32( prgCrc );
-				state.GetStream().Write( reserved, sizeof(reserved) );
-			}
+			frame = NO_FRAME;
+			state.WriteHeader( end, prgCrc );
 		}
 
 		void Tracker::Movie::Recorder::Stop()
@@ -539,8 +566,8 @@ namespace Nes
 
 			Flush();
 
-			if (frame && frame != dword(~0UL))
-				state.Begin('W','A','I','\0').Write32( frame ).End();
+			if (frame && frame != NO_FRAME)
+				state.Begin( AsciiId<'W','A','I'>::V ).Write32( frame ).End();
 		}
 
 		void Tracker::Movie::Recorder::Cut()
@@ -554,9 +581,29 @@ namespace Nes
 			if (frame)
 			{
 				Flush();
-				state.Begin('R','E','S','\0').Write32( frame != dword(~0UL) ? frame : 0 ).Write8( hard ).End();
+				state.Begin( AsciiId<'R','E','S'>::V ).Write32( frame != NO_FRAME ? frame : 0 ).Write8( hard ).End();
 				frame = 0;
 			}
+		}
+
+		void Tracker::Movie::Player::Loader::ReadHeader(const dword prgCrc)
+		{
+			if (stream.Read32() != (AsciiId<'N','S','V'>::V | 0x1AUL << 24))
+				throw RESULT_ERR_INVALID_FILE;
+
+			if (stream.Read8() != VERSION)
+				throw RESULT_ERR_UNSUPPORTED_FILE_VERSION;
+
+			const dword crc = stream.Read32();
+
+			if
+			(
+				crc && prgCrc && crc != prgCrc &&
+				Api::User::questionCallback( Api::User::QUESTION_NSV_PRG_CRC_FAIL_CONTINUE ) == Api::User::ANSWER_NO
+			)
+				throw RESULT_ERR_INVALID_CRC;
+
+			stream.Seek( 7 );
 		}
 
 		void Tracker::Movie::Player::Start(const dword prgCrc)
@@ -564,9 +611,9 @@ namespace Nes
 			good = false;
 
 			frame.port = 0;
-			frame.clip = dword(~0UL);
-			frame.reset = dword(~0UL);
-			frame.wait = dword(~0UL);
+			frame.clip = NO_FRAME;
+			frame.reset = NO_FRAME;
+			frame.wait = NO_FRAME;
 
 			for (uint i=0; i < 2; ++i)
 			{
@@ -577,27 +624,12 @@ namespace Nes
 				port[i].output.Clear();
 			}
 
-			if (state.GetStream().Read32() != NES_STATE_CHUNK_ID('N','S','V',0x1A))
-				throw RESULT_ERR_INVALID_FILE;
-
-			if (state.GetStream().Read8() != VERSION)
-				throw RESULT_ERR_UNSUPPORTED_FILE_VERSION;
-
-			const dword crc = state.GetStream().Read32();
-
-			if
-			(
-				crc && prgCrc && crc != prgCrc &&
-				Api::User::questionCallback( Api::User::QUESTION_NSV_PRG_CRC_FAIL_CONTINUE ) == Api::User::ANSWER_NO
-			)
-				throw RESULT_ERR_INVALID_CRC;
-
-			state.GetStream().Seek( 7 );
+			state.ReadHeader( prgCrc );
 
 			good = true;
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
@@ -637,9 +669,9 @@ namespace Nes
 				}
 				else
 				{
-					u8* const ptr = output.End() - 4;
+					byte* const ptr = output.End() - 4;
 
-					ptr[0] = count >> 24 | LOCK_BIT;
+					ptr[0] = count >> 24 & 0xFF | LOCK_BIT;
 					ptr[1] = count >> 16 & 0xFF;
 					ptr[2] = count >>  8 & 0xFF;
 					ptr[3] = count >>  0 & 0xFF;
@@ -666,7 +698,7 @@ namespace Nes
 					else
 					{
 						if (!Unlock() && index && recent.Size())
-							output << 0x00; // $4016 can afford one bit while $4017 can't
+							output.Append( 0x00 ); // $4016 can afford one bit while $4017 can't
 
 						recent = input;
 						output += input;
@@ -718,10 +750,10 @@ namespace Nes
 							{
 								lock = 1 +
 								(
-									( (ctrl & ~uint(LOCK_BIT)) << 24) |
-									( output[next-3]           << 16) |
-									( output[next-2]           <<  8) |
-									( output[next-1]           <<  0)
+									dword(ctrl & ~uint(LOCK_BIT)) << 24 |
+									dword(output[next-3])         << 16 |
+									dword(output[next-2])         <<  8 |
+									dword(output[next-1])         <<  0
 								);
 							}
 							else
@@ -741,7 +773,7 @@ namespace Nes
 
 		void Tracker::Movie::Recorder::BeginFrame(const dword emuFrame,Machine& emulator,EmuSaveState emuSaveState)
 		{
-			NST_VERIFY( frame <= emuFrame || frame == dword(~0UL) );
+			NST_VERIFY( frame <= emuFrame || frame == NO_FRAME );
 
 			for (uint i=0; i < 2; ++i)
 				port[i].input.Clear();
@@ -753,21 +785,10 @@ namespace Nes
 
 			Flush();
 
-			if (emuFrame)
-			{
-				state.Begin('C','L','P','\0').Write32( frame != dword(~0UL) ? frame : 0 );
-
-				const Result result = (emulator.*emuSaveState)( state.GetStream().GetStdStream(), true, true );
-
-				if (NES_FAILED(result))
-					throw result;
-
-				state.End();
-			}
-			else
-			{
-				Reset( true );
-			}
+			state.Begin( AsciiId<'C','L','P'>::V );
+			state.Write32( frame != NO_FRAME ? frame : 0 );
+			(emulator.*emuSaveState)( state );
+			state.End();
 
 			frame = emuFrame;
 		}
@@ -789,7 +810,6 @@ namespace Nes
 					if (port[frame.port - 1].Load( state ))
 					{
 						frame.port = 0;
-						state.DigOut();
 						state.End();
 					}
 					else
@@ -797,59 +817,37 @@ namespace Nes
 						break;
 					}
 				}
-				else if (frame.clip != dword(~0UL))
+				else if (frame.clip != NO_FRAME)
 				{
 					if (frame.clip <= emuFrame)
 					{
-						frame.clip = dword(~0UL);
-
-						const Result result = (emulator.*emuLoadState)( state.GetStream().GetStdStream(), false );
-
-						if (NES_SUCCEEDED(result))
-						{
-							state.DigOut();
-							state.End();
-						}
-						else
-						{
-							throw RESULT_ERR_CORRUPT_FILE;
-						}
+						frame.clip = NO_FRAME;
+						(emulator.*emuLoadState)( state );
+						state.End();
 					}
 					else
 					{
 						break;
 					}
 				}
-				else if (frame.reset != dword(~0UL))
+				else if (frame.reset != NO_FRAME)
 				{
 					if (frame.reset <= emuFrame)
 					{
-						frame.reset = dword(~0UL);
-
-						const Result result = (emulator.*emuReset)( state.Read8() & 0x1 );
-
-						if (NES_SUCCEEDED(result))
-						{
-							state.DigOut();
-							state.End();
-						}
-						else
-						{
-							throw result;
-						}
+						frame.reset = NO_FRAME;
+						(emulator.*emuReset)( state.Read8() & 0x1 );
+						state.End();
 					}
 					else
 					{
 						break;
 					}
 				}
-				else if (frame.wait != dword(~0UL))
+				else if (frame.wait != NO_FRAME)
 				{
 					if (frame.wait <= emuFrame)
 					{
-						frame.wait = dword(~0UL);
-
-						state.DigOut();
+						frame.wait = NO_FRAME;
 						state.End();
 					}
 					else
@@ -858,38 +856,33 @@ namespace Nes
 					}
 				}
 
-				if (!state.GetStream().Eof())
+				if (!state.Eof())
 				{
 					switch (state.Begin())
 					{
-						case NES_STATE_CHUNK_ID('P','T','0','\0'):
+						case AsciiId<'P','T','0'>::V:
 
-							state.DigIn();
 							frame.port = 1;
 							break;
 
-						case NES_STATE_CHUNK_ID('P','T','1','\0'):
+						case AsciiId<'P','T','1'>::V:
 
-							state.DigIn();
 							frame.port = 2;
 							break;
 
-						case NES_STATE_CHUNK_ID('C','L','P','\0'):
+						case AsciiId<'C','L','P'>::V:
 
-							state.DigIn();
-							frame.clip = state.Read32() & ~dword(1);
+							frame.clip = state.Read32() & VALID_FRAME;
 							break;
 
-						case NES_STATE_CHUNK_ID('R','E','S','\0'):
+						case AsciiId<'R','E','S'>::V:
 
-							state.DigIn();
-							frame.reset = state.Read32() & ~dword(1);
+							frame.reset = state.Read32() & VALID_FRAME;
 							break;
 
-						case NES_STATE_CHUNK_ID('W','A','I','\0'):
+						case AsciiId<'W','A','I'>::V:
 
-							state.DigIn();
-							frame.wait = state.Read32() & ~dword(1);
+							frame.wait = state.Read32() & VALID_FRAME;
 							break;
 
 						default:
@@ -942,7 +935,7 @@ namespace Nes
 			{
 				try
 				{
-					port[index].input << data;
+					port[index].input.Append( data );
 				}
 				catch (...)
 				{

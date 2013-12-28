@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -31,14 +31,14 @@
 #include "NstString.hpp"
 #include <Windows.h>
 
-#ifdef _MSC_VER
+#if NST_MSVC >= 1200
 #pragma warning( push )
 #pragma warning( disable : 4201 )
 #endif
 
 #include <MMSystem.h>
 
-#ifdef _MSC_VER
+#if NST_MSVC >= 1200
 #pragma warning( pop )
 #endif
 
@@ -56,7 +56,7 @@ namespace Nestopia
 				MODE_WRITE = MMIO_ALLOCBUF|MMIO_READWRITE|MMIO_CREATE|MMIO_EXCLUSIVE
 			};
 
-			Wave(Mode);
+			explicit Wave(Mode);
 			~Wave();
 
 			enum Exception
@@ -94,9 +94,9 @@ namespace Nestopia
 
 		public:
 
-			ibool IsOpen() const
+			bool IsOpen() const
 			{
-				return handle != NULL;
+				return handle;
 			}
 
 			const Path& GetName() const

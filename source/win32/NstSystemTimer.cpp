@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -22,21 +22,21 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#ifdef _MSC_VER
-#pragma comment(lib,"winmm")
-#endif
-
 #include "NstSystemTimer.hpp"
 #include <Windows.h>
 
-#ifdef _MSC_VER
+#if NST_MSVC
+#pragma comment(lib,"winmm")
+#endif
+
+#if NST_MSVC >= 1200
 #pragma warning( push )
 #pragma warning( disable : 4201 )
 #endif
 
 #include <MMSystem.h>
 
-#ifdef _MSC_VER
+#if NST_MSVC >= 1200
 #pragma warning( pop )
 #endif
 
@@ -81,7 +81,7 @@ namespace Nestopia
 			Reset( desired );
 		}
 
-		ibool Timer::Reset(const Type desired)
+		bool Timer::Reset(const Type desired)
 		{
 			threshold = THRESHOLD;
 			giveup = 0;
@@ -94,7 +94,7 @@ namespace Nestopia
 			)
 			{
 				frequency = settings.pfFrequency;
-				checkPoint = settings.pfFrequency * CHECKPOINT;
+				checkPoint = settings.pfFrequency * uint(CHECKPOINT);
 				type = PERFORMANCE;
 			}
 			else
@@ -108,7 +108,7 @@ namespace Nestopia
 			return type == desired;
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("t", on)
 		#endif
 
@@ -150,7 +150,7 @@ namespace Nestopia
 			if (threshold > THRESHOLD && checkPoint < target)
 			{
 				--threshold;
-				checkPoint = target + frequency * CHECKPOINT;
+				checkPoint = target + frequency * uint(CHECKPOINT);
 			}
 
 			if (type == PERFORMANCE)
@@ -165,7 +165,7 @@ namespace Nestopia
 			}
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 	}

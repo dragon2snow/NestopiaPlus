@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -31,12 +31,12 @@ namespace Nestopia
 	{
 		namespace Control
 		{
-			void CheckBox::Check(const ibool state) const
+			void CheckBox::Check(const bool state) const
 			{
 				control.Send( BM_SETCHECK, state ? BST_CHECKED : BST_UNCHECKED, 0 );
 			}
 
-			ibool CheckBox::Checked() const
+			bool CheckBox::Checked() const
 			{
 				return control.Send( BM_GETCHECK, 0, 0 ) == BST_CHECKED;
 			}

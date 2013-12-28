@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -139,22 +139,22 @@ namespace Nestopia
 				Inform( Resource::String(textId).Ptr(), titleId );
 			}
 
-			ibool Confirm(tstring const text,tstring const title)
+			bool Confirm(tstring const text,tstring const title)
 			{
 				return Present( text, title && *title ? title : _T("Nestopia"), MB_YESNO|MB_ICONQUESTION ) == IDYES;
 			}
 
-			ibool Confirm(tstring const text,const uint titleId)
+			bool Confirm(tstring const text,const uint titleId)
 			{
 				return Confirm( text, Resource::String(titleId ? titleId : IDS_TITLE_NESTOPIA).Ptr() );
 			}
 
-			ibool Confirm(const uint textId,const uint titleId)
+			bool Confirm(const uint textId,const uint titleId)
 			{
 				return Confirm( Resource::String(textId), titleId );
 			}
 
-			ibool Input (HeapString& response,tstring const text,tstring const title)
+			bool Input (HeapString& response,tstring const text,tstring const title)
 			{
 				return InputDialog( text, title ? title : Resource::String(IDS_TITLE_NESTOPIA), response ).Open();
 			}

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -31,7 +31,7 @@ namespace Nes
 	{
 		namespace Input
 		{
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("s", on)
 			#endif
 
@@ -43,24 +43,25 @@ namespace Nes
 
 			void Paddle::Reset()
 			{
-				stream[1] = stream[0] = 0;
+				stream[0] = 0;
+				stream[1] = 0;
 				shifter = 1;
 				x = 0;
 				button = 0;
 			}
 
-			void Paddle::SaveState(State::Saver& state,const uchar id) const
+			void Paddle::SaveState(State::Saver& state,const byte id) const
 			{
-				state.Begin('P','L',id,'\0').Write8( shifter ^ 1 ).End();
+				state.Begin( AsciiId<'P','L'>::R(0,0,id) ).Write8( shifter ^ 1 ).End();
 			}
 
 			void Paddle::LoadState(State::Loader& state,const dword id)
 			{
-				if (id == NES_STATE_CHUNK_ID('P','L','\0','\0'))
+				if (id == AsciiId<'P','L'>::V)
 					shifter = ~state.Read8() & 0x1;
 			}
 
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("", on)
 			#endif
 
@@ -102,14 +103,14 @@ namespace Nes
 
 							x =
 							(
-								(( data & 0x01 ) << 7 ) |
-								(( data & 0x02 ) << 5 ) |
-								(( data & 0x04 ) << 3 ) |
-								(( data & 0x08 ) << 1 ) |
-								(( data & 0x10 ) >> 1 ) |
-								(( data & 0x20 ) >> 3 ) |
-								(( data & 0x40 ) >> 5 ) |
-								(( data & 0x80 ) >> 7 )
+								( data & 0x01 ) << 7 |
+								( data & 0x02 ) << 5 |
+								( data & 0x04 ) << 3 |
+								( data & 0x08 ) << 1 |
+								( data & 0x10 ) >> 1 |
+								( data & 0x20 ) >> 3 |
+								( data & 0x40 ) >> 5 |
+								( data & 0x80 ) >> 7
 							)   << (expPort ? 1 : 4);
 
 							button = (paddle.button ? expPort ? 0x2 : 0x8 : 0x0);

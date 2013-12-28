@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -30,7 +30,7 @@ namespace Nes
 {
 	namespace Core
 	{
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("s", on)
 		#endif
 
@@ -58,9 +58,9 @@ namespace Nes
 		{
 			while (const dword chunk = state.Begin())
 			{
-				if (chunk == NES_STATE_CHUNK_ID('R','E','G','\0'))
+				if (chunk == AsciiId<'R','E','G'>::V)
 				{
-					const State::Loader::Data<12> data( state );
+					State::Loader::Data<12> data( state );
 
 					exMode = data[0];
 
@@ -79,7 +79,7 @@ namespace Nes
 
 		void Mapper14::SubSave(State::Saver& state) const
 		{
-			const u8 data[12] =
+			const byte data[12] =
 			{
 				exMode,
 				exPrg[0],
@@ -95,10 +95,10 @@ namespace Nes
 				exNmt
 			};
 
-			state.Begin('R','E','G','\0').Write( data ).End();
+			state.Begin( AsciiId<'R','E','G'>::V ).Write( data ).End();
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
@@ -107,7 +107,7 @@ namespace Nes
 			if (exMode & 0x2)
 				Mmc3::UpdatePrg();
 			else
-				prg.SwapBanks<SIZE_8K,0x0000U>( exPrg[0], exPrg[1], ~1U, ~0U );
+				prg.SwapBanks<SIZE_8K,0x0000>( exPrg[0], exPrg[1], ~1U, ~0U );
 		}
 
 		void Mapper14::UpdateChr() const
@@ -120,23 +120,23 @@ namespace Nes
 
 				chr.SwapBanks<SIZE_2K>
 				(
-					0x0000U ^ swap,
-					(exMode << 4 & 0x80) | banks.chr[0],
-					(exMode << 4 & 0x80) | banks.chr[1]
+					0x0000 ^ swap,
+					(exMode << 4 & 0x80U) | banks.chr[0],
+					(exMode << 4 & 0x80U) | banks.chr[1]
 				);
 
 				chr.SwapBanks<SIZE_1K>
 				(
-					0x1000U ^ swap,
-					(exMode << 3 & 0x100) | banks.chr[2],
-					(exMode << 3 & 0x100) | banks.chr[3],
-					(exMode << 1 & 0x100) | banks.chr[4],
-					(exMode << 1 & 0x100) | banks.chr[5]
+					0x1000 ^ swap,
+					(exMode << 3 & 0x100U) | banks.chr[2],
+					(exMode << 3 & 0x100U) | banks.chr[3],
+					(exMode << 1 & 0x100U) | banks.chr[4],
+					(exMode << 1 & 0x100U) | banks.chr[5]
 				);
 			}
 			else
 			{
-				chr.SwapBanks<SIZE_1K,0x0000U>
+				chr.SwapBanks<SIZE_1K,0x0000>
 				(
 					exChr[0],
 					exChr[1],
@@ -152,7 +152,7 @@ namespace Nes
 
 		NES_POKE(Mapper14,Prg)
 		{
-			if ((address & 0xA131U) == 0xA131U && exMode != data)
+			if ((address & 0xA131) == 0xA131 && exMode != data)
 			{
 				exMode = data;
 
@@ -165,29 +165,29 @@ namespace Nes
 
 			if (exMode & 0x2)
 			{
-				switch (address & 0xE001U)
+				switch (address & 0xE001)
 				{
-					case 0x8000U: NES_CALL_POKE(Mmc3,8000,address,data); break;
-					case 0x8001U: NES_CALL_POKE(Mmc3,8001,address,data); break;
-					case 0xA000U: SetMirroringVH( exNmt );               break;
-					case 0xA001U: NES_CALL_POKE(Mmc3,A001,address,data); break;
-					case 0xC000U: NES_CALL_POKE(Mmc3,C000,address,data); break;
-					case 0xC001U: NES_CALL_POKE(Mmc3,C001,address,data); break;
-					case 0xE000U: NES_CALL_POKE(Mmc3,E000,address,data); break;
-					case 0xE001U: NES_CALL_POKE(Mmc3,E001,address,data); break;
+					case 0x8000: Mmc3::NES_DO_POKE( 8000, address, data ); break;
+					case 0x8001: Mmc3::NES_DO_POKE( 8001, address, data ); break;
+					case 0xA000: SetMirroringVH( exNmt );                  break;
+					case 0xA001: Mmc3::NES_DO_POKE( A001, address, data ); break;
+					case 0xC000: Mmc3::NES_DO_POKE( C000, address, data ); break;
+					case 0xC001: Mmc3::NES_DO_POKE( C001, address, data ); break;
+					case 0xE000: Mmc3::NES_DO_POKE( E000, address, data ); break;
+					case 0xE001: Mmc3::NES_DO_POKE( E001, address, data ); break;
 				}
 			}
-			else if (address >= 0xB000U && address <= 0xE003U)
+			else if (address >= 0xB000 && address <= 0xE003)
 			{
 				const uint offset = address << 2 & 0x4;
 				address = ((((address & 0x2) | address >> 10) >> 1) + 2) & 0x7;
-				exChr[address] = (exChr[address] & 0xF0 >> offset) | ((data & 0x0F) << offset);
+				exChr[address] = (exChr[address] & 0xF0U >> offset) | ((data & 0x0F) << offset);
 
 				Mapper14::UpdateChr();
 			}
-			else switch (address & 0xF003U)
+			else switch (address & 0xF003)
 			{
-				case 0x8000U:
+				case 0x8000:
 
 					if (exPrg[0] != data)
 					{
@@ -196,7 +196,7 @@ namespace Nes
 					}
 					break;
 
-				case 0x9000U:
+				case 0x9000:
 
 					if (exNmt != data)
 					{
@@ -205,7 +205,7 @@ namespace Nes
 					}
 					break;
 
-				case 0xA000U:
+				case 0xA000:
 
 					if (exPrg[1] != data)
 					{

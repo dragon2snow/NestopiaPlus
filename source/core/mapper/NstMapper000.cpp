@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -31,7 +31,7 @@ namespace Nes
 {
 	namespace Core
 	{
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("s", on)
 		#endif
 
@@ -72,7 +72,7 @@ namespace Nes
 			{
 				NST_ASSERT( dip == 0 && value < 2 );
 
-				if (bool(wrk.Source().Writable()) != !value)
+				if (wrk.Source().Writable() != !value)
 				{
 					wrk.Source().SetSecurity( true, !value );
 					return true;
@@ -83,18 +83,20 @@ namespace Nes
 
 		public:
 
-			CartSwitch(Wrk& w)
+			explicit CartSwitch(Wrk& w)
 			: wrk(w) {}
 
-			void Flush(bool power) const
-			{
-				if (wrk.Source().Writable() && !power)
-				{
-					wrk.Source().Fill( 0xFF );
-					Log::Flush( "Mapper0: battery-switch OFF, discarding data!" NST_LINEBREAK );
-				}
-			}
+			void Flush() const;
 		};
+
+		void Mapper0::CartSwitch::Flush() const
+		{
+			if (wrk.Source().Writable())
+			{
+				wrk.Source().Fill( 0xFF );
+				Log::Flush( "Mapper0: battery-switch OFF, discarding W-RAM.." NST_LINEBREAK );
+			}
+		}
 
 		Mapper0::Mapper0(Context& c)
 		:
@@ -107,16 +109,21 @@ namespace Nes
 			delete cartSwitch;
 		}
 
-		void Mapper0::SubReset(bool)
+		void Mapper0::SubReset(bool hard)
 		{
 			if (cartSwitch)
+			{
+				if (hard)
+					cartSwitch->Flush();
+
 				Map( WRK_SAFE_PEEK_POKE );
+			}
 		}
 
-		void Mapper0::Flush(bool power)
+		void Mapper0::PowerOff()
 		{
 			if (cartSwitch)
-				cartSwitch->Flush( power );
+				cartSwitch->Flush();
 		}
 
 		Mapper0::Device Mapper0::QueryDevice(DeviceType type)
@@ -127,7 +134,7 @@ namespace Nes
 				return Mapper::QueryDevice( type );
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 	}

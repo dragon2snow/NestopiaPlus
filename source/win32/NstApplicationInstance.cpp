@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -22,17 +22,17 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#ifdef _MSC_VER
-#pragma comment(lib,"comctl32")
-#endif
-
-#include <clocale>
+#include "language/resource.h"
 #include "NstResourceCursor.hpp"
 #include "NstResourceVersion.hpp"
 #include "NstApplicationException.hpp"
 #include "NstApplicationLanguage.hpp"
 #include <CommCtrl.h>
 #include <ObjBase.h>
+
+#if NST_MSVC
+#pragma comment(lib,"comctl32")
+#endif
 
 #define NST_MENU_CLASS_NAME   _T("#32768") // name for menus as documented on MSDN
 #define NST_APP_CLASS_NAME    _T("Nestopia")
@@ -109,7 +109,7 @@ namespace Nestopia
 		}
 
 		Instance::Global::Hooks::Hooks(HINSTANCE const hInstance)
-		: handle( ::SetWindowsHookEx( WH_CBT, CBTProc, hInstance, ::GetCurrentThreadId() ))
+		: handle(::SetWindowsHookEx( WH_CBT, CBTProc, hInstance, ::GetCurrentThreadId() ))
 		{
 			children.Reserve( CHILDREN_RESERVE );
 		}
@@ -120,7 +120,7 @@ namespace Nestopia
 				::UnhookWindowsHookEx( handle );
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("t", on)
 		#endif
 
@@ -133,8 +133,8 @@ namespace Nestopia
 				{
 					enum
 					{
-						MAX_LENGTH = NST_MAX( NST_COUNT(NST_APP_CLASS_NAME) - 1,
-                                     NST_MAX( NST_COUNT(NST_STATUS_CLASS_NAME) - 1, NST_COUNT(NST_MENU_CLASS_NAME) - 1 ))
+						MAX_LENGTH = NST_MAX( sizeof(array(NST_APP_CLASS_NAME)) - 1,
+                                     NST_MAX( sizeof(array(NST_STATUS_CLASS_NAME)) - 1, sizeof(array(NST_MENU_CLASS_NAME)) - 1 ))
 					};
 
 					String::Stack<MAX_LENGTH,tchar> name;
@@ -195,7 +195,7 @@ namespace Nestopia
 				window = NULL;
 		}
 
-		LRESULT CALLBACK Instance::Global::Hooks::CBTProc(int nCode,WPARAM wParam,LPARAM lParam)
+		LRESULT CALLBACK Instance::Global::Hooks::CBTProc(const int nCode,const WPARAM wParam,const LPARAM lParam)
 		{
 			NST_COMPILE_ASSERT( HCBT_CREATEWND >= 0 && HCBT_DESTROYWND >= 0 );
 
@@ -206,7 +206,10 @@ namespace Nestopia
 					NST_ASSERT( lParam );
 
 					if (const CREATESTRUCT* const createStruct = reinterpret_cast<const CBT_CREATEWND*>(lParam)->lpcs)
+					{
+						NST_VERIFY( wParam );
 						global.hooks.OnCreate( *createStruct, reinterpret_cast<HWND>(wParam) );
+					}
 
 					return 0;
 
@@ -220,10 +223,10 @@ namespace Nestopia
 					return 0;
 			}
 
-			return (nCode < 0) ? ::CallNextHookEx( global.hooks.handle, nCode, wParam, lParam ) : 0;
+			return nCode < 0 ? ::CallNextHookEx( global.hooks.handle, nCode, wParam, lParam ) : 0;
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
@@ -326,6 +329,11 @@ namespace Nestopia
 			return path;
 		}
 
+		Instance::Events::Callbacks::~Callbacks()
+		{
+			NST_VERIFY( Empty() );
+		}
+
 		void Instance::Events::Add(const Callback& callback)
 		{
 			NST_ASSERT( bool(callback) && !callbacks.Find( callback ) );
@@ -334,7 +342,7 @@ namespace Nestopia
 
 		void Instance::Events::Signal(const Event event,const void* param)
 		{
-			for (Callbacks::ConstIterator it=callbacks.Begin(), end=callbacks.End(); it != end; ++it)
+			for (Callbacks::ConstIterator it(callbacks.Begin()), end(callbacks.End()); it != end; ++it)
 				(*it)( event, param );
 		}
 
@@ -381,11 +389,11 @@ namespace Nestopia
 			global.iconStyle = style;
 		}
 
-		void Instance::ShowChildWindows(uint state)
+		void Instance::ShowChildWindows(bool show)
 		{
-			state = (state ? SW_SHOWNA : SW_HIDE);
+			const uint state = (show ? SW_SHOWNA : SW_HIDE);
 
-			for (Global::Hooks::Children::ConstIterator it=global.hooks.children.Begin(), end=global.hooks.children.End(); it != end; ++it)
+			for (Global::Hooks::Children::ConstIterator it(global.hooks.children.Begin()), end(global.hooks.children.End()); it != end; ++it)
 				::ShowWindow( *it, state );
 		}
 
@@ -399,11 +407,11 @@ namespace Nestopia
 			::LockWindowUpdate( hWnd );
 		}
 
-		ibool Instance::Locker::CheckInput(int vKey) const
+		bool Instance::Locker::CheckInput(int vKey) const
 		{
-			if (::GetAsyncKeyState( vKey ) & 0x8000)
+			if (::GetAsyncKeyState( vKey ) & 0x8000U)
 			{
-				while (::GetAsyncKeyState( vKey ) & 0x8000)
+				while (::GetAsyncKeyState( vKey ) & 0x8000U)
 					::Sleep( 10 );
 
 				return true;
@@ -421,12 +429,6 @@ namespace Nestopia
 
 		Instance::Instance()
 		{
-			if (global.paths.exePath.Empty())
-				throw Exception(_T("unicows.dll file is missing!"));
-
-			if (global.hooks.handle == NULL)
-				throw Exception(_T("SetWindowsHookEx() failed!"));
-
 			if (static_cast<const Configuration&>(cfg)["preferences allow multiple instances"] != Configuration::YES)
 			{
 				::CreateMutex( NULL, true, NST_APP_MUTEX_NAME );
@@ -453,10 +455,16 @@ namespace Nestopia
 				}
 			}
 
+			if (global.paths.exePath.Empty())
+				throw Exception(_T("unicows.dll file is missing!"));
+
 			global.language.Load( cfg );
 
+			if (global.hooks.handle == NULL)
+				throw Exception( IDS_FAILED, _T("SetWindowsHookEx()") );
+
 			if (FAILED(::CoInitializeEx( NULL, COINIT_APARTMENTTHREADED )))
-				throw Exception(_T("::CoInitializeEx() failed!"));
+				throw Exception( IDS_FAILED, _T("CoInitializeEx()") );
 
 			Object::Pod<INITCOMMONCONTROLSEX> initCtrlEx;
 

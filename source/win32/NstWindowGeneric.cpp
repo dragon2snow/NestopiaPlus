@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -168,32 +168,32 @@ namespace Nestopia
 			Post( WM_COMMAND, id, 0 );
 		}
 
-		ibool Generic::Enabled() const
+		bool Generic::Enabled() const
 		{
 			return ::IsWindowEnabled( hWnd );
 		}
 
-		ibool Generic::Active() const
+		bool Generic::Active() const
 		{
 			return hWnd && hWnd == ::GetActiveWindow();
 		}
 
-		ibool Generic::Focused() const
+		bool Generic::Focused() const
 		{
 			return hWnd && hWnd == ::GetFocus();
 		}
 
-		ibool Generic::Visible() const
+		bool Generic::Visible() const
 		{
 			return ::IsWindowVisible( hWnd );
 		}
 
-		ibool Generic::Enable(ibool enable) const
+		bool Generic::Enable(bool enable) const
 		{
 			return ::EnableWindow( hWnd, enable );
 		}
 
-		void Generic::Show(ibool show) const
+		void Generic::Show(bool show) const
 		{
 			::ShowWindow( hWnd, show ? SW_SHOW : SW_HIDE );
 		}
@@ -222,27 +222,27 @@ namespace Nestopia
 				Post( WM_SYSCOMMAND, SC_RESTORE, 0 );
 		}
 
-		ibool Generic::Maximized() const
+		bool Generic::Maximized() const
 		{
 			return ::IsZoomed( hWnd );
 		}
 
-		ibool Generic::Minimized() const
+		bool Generic::Minimized() const
 		{
 			return ::IsIconic( hWnd );
 		}
 
-		ibool Generic::Restored() const
+		bool Generic::Restored() const
 		{
 			return !::IsZoomed( hWnd ) && !::IsIconic( hWnd );
 		}
 
-		ibool Generic::SameThread() const
+		bool Generic::SameThread() const
 		{
 			return ::GetCurrentThreadId() == ::GetWindowThreadProcessId( hWnd, NULL );
 		}
 
-		void Generic::MakeTopMost(ibool topMost) const
+		void Generic::MakeTopMost(bool topMost) const
 		{
 			::SetWindowPos
 			(
@@ -280,7 +280,7 @@ namespace Nestopia
 			);
 		}
 
-		ibool Generic::Activate() const
+		bool Generic::Activate() const
 		{
 			if (::IsWindowEnabled( hWnd ))
 			{
@@ -295,7 +295,7 @@ namespace Nestopia
 			return false;
 		}
 
-		void Generic::Redraw(ibool redraw) const
+		void Generic::Redraw(bool redraw) const
 		{
 			if (redraw)
 				::InvalidateRect( hWnd, NULL, true );
@@ -319,13 +319,13 @@ namespace Nestopia
 			}
 		}
 
-		ibool Generic::Destroy()
+		bool Generic::Destroy()
 		{
 			NST_VERIFY( !hWnd || ::IsWindow( hWnd ) );
 
 			if (hWnd)
 			{
-				ibool result = ::DestroyWindow( hWnd );
+				bool result = ::DestroyWindow( hWnd );
 				hWnd = NULL;
 				return result;
 			}

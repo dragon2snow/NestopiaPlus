@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,12 +25,16 @@
 #ifndef NST_TRACKER_REWINDER_H
 #define NST_TRACKER_REWINDER_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
-#pragma once
-#endif
-
 #include <sstream>
 #include "api/NstApiSound.hpp"
+
+#ifndef NST_VECTOR_H
+#include "NstVector.hpp"
+#endif
+
+#ifdef NST_PRAGMA_ONCE
+#pragma once
+#endif
 
 namespace Nes
 {
@@ -38,9 +42,9 @@ namespace Nes
 	{
 		class Tracker::Rewinder
 		{
-			typedef Result (Machine::*EmuExecute)(Video::Output*,Sound::Output*,Input::Controllers*);
-			typedef Result (Machine::*EmuSaveState)(StdStream,bool,bool);
-			typedef Result (Machine::*EmuLoadState)(StdStream,bool);
+			typedef void (Machine::*EmuExecute)(Video::Output*,Sound::Output*,Input::Controllers*);
+			typedef void (Machine::*EmuSaveState)(State::Saver&) const;
+			typedef bool (Machine::*EmuLoadState)(State::Loader&);
 
 		public:
 
@@ -49,7 +53,7 @@ namespace Nes
 
 			Result Start();
 			Result Stop();
-			Result Execute(Video::Output*,Sound::Output*,Input::Controllers*);
+			void   Execute(Video::Output*,Sound::Output*,Input::Controllers*);
 
 		private:
 
@@ -69,7 +73,7 @@ namespace Nes
 			{
 				class Input
 				{
-					typedef Vector<u8> Buffer;
+					typedef Vector<byte> Buffer;
 
 					enum
 					{
@@ -78,7 +82,7 @@ namespace Nes
 						OPEN_BUS = 0x40
 					};
 
-					ulong pos;
+					dword pos;
 					Buffer buffer;
 
 				public:
@@ -86,13 +90,13 @@ namespace Nes
 					void Reset();
 					inline void BeginForward();
 					bool EndForward();
-					bool BeginBackward();
+					void BeginBackward();
 					inline void EndBackward();
 
 					inline uint Put(uint);
 					inline uint Get();
 
-					inline bool ResumeForward();
+					inline void ResumeForward();
 					inline bool CanRewind() const;
 					inline void Invalidate();
 				};
@@ -102,18 +106,21 @@ namespace Nes
 
 			public:
 
+				Key();
+				~Key();
+
 				void Reset();
-				bool BeginForward(Machine&,EmuSaveState,EmuLoadState);
+				void BeginForward(Machine&,EmuSaveState,EmuLoadState);
 				void EndForward();
-				bool BeginBackward(Machine&,EmuLoadState);
+				void BeginBackward(Machine&,EmuLoadState);
 				inline void EndBackward();
 
 				inline uint Put(uint);
 				inline uint Get();
 
 				inline bool CanRewind() const;
-				inline bool ResumeForward();
-				inline bool TurnForward(Machine&,EmuLoadState);
+				inline void ResumeForward();
+				inline void TurnForward(Machine&,EmuLoadState);
 				inline void Invalidate();
 			};
 
@@ -121,24 +128,24 @@ namespace Nes
 			{
 			public:
 
-				ReverseVideo(Ppu&);
+				explicit ReverseVideo(Ppu&);
 				~ReverseVideo();
 
 				class Mutex;
 
-				ibool Begin();
+				void Begin();
 				void End();
 				void Store();
 				inline void Flush(const Mutex&);
 
 			private:
 
-				friend class Mutex;
+				class Buffer;
 
 				uint pingpong;
 				uint frame;
 				Ppu& ppu;
-				Video::Screen::Pixels* buffer;
+				Buffer* buffer;
 			};
 
 			class ReverseSound
@@ -152,7 +159,7 @@ namespace Nes
 
 				class Mutex;
 
-				ibool   Begin();
+				void    Begin();
 				void    End();
 				void    Enable(bool);
 				Output* Store();
@@ -161,38 +168,33 @@ namespace Nes
 			private:
 
 				template<typename T>
-				void ReverseCopy(const Output&);
+				const void* ReverseCopy(const Output&) const;
 
-				void Clear() const;
-				ibool Update();
+				template<typename T,int SILENCE>
+				void ReverseSilence(const Output&) const;
+
+				template<typename T>
+				NST_FORCE_INLINE Output* StoreType();
+
+				bool Update();
 
 				bool enabled;
 				bool good;
-				uchar stereo;
-				uchar bits;
+				byte stereo;
+				byte bits;
 				dword rate;
 				uint index;
-				u8* buffer;
+				void* buffer;
 				dword size;
 				Output output;
-				const u8* input;
+				const void* input;
 				const Apu& apu;
-
-				uint SampleSize() const
-				{
-					return (bits / 8) << stereo;
-				}
 
 			public:
 
 				bool IsRewinding() const
 				{
 					return enabled && good && buffer;
-				}
-
-				dword GetLatency() const
-				{
-					return (input - buffer) * SampleSize();
 				}
 			};
 
@@ -201,9 +203,9 @@ namespace Nes
 			inline Key* NextKey(Key*);
 			inline Key* NextKey();
 
-			NES_DECL_PEEK( Port_Get )
-			NES_DECL_PEEK( Port_Put )
-			NES_DECL_POKE( Port     )
+			NES_DECL_PEEK( Port_Get );
+			NES_DECL_PEEK( Port_Put );
+			NES_DECL_POKE( Port     );
 
 			ibool rewinding;
 			ibool uturn;
@@ -250,11 +252,6 @@ namespace Nes
 			bool IsSoundRewinding() const
 			{
 				return rewinding && sound.IsRewinding();
-			}
-
-			uint GetSoundLatency() const
-			{
-				return sound.GetLatency();
 			}
 		};
 	}

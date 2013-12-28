@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -35,7 +35,6 @@
 #include "../core/api/NstApiVideo.hpp"
 #include "../core/api/NstApiSound.hpp"
 #include "../core/api/NstApiInput.hpp"
-#include "../core/api/NstApiUser.hpp"
 
 namespace Nes
 {
@@ -145,38 +144,38 @@ namespace Nestopia
 				EVENT_QUERY_FDS_BIOS
 			};
 
-			void  Initialize() const;
-			void  Stop();
-			void  Resume();
-			void  Wait();
-			ibool Pause(ibool);
-			void  ResetSpeed(uint,ibool,ibool);
-			void  SetSpeed(uint);
-			uint  GetBaseSpeed();
-			uint  GetSpeed();
-			ibool SetMode(Nes::Machine::Mode);
-			void  ToggleSpeed(ibool);
-			void  ToggleRewind(ibool);
-			ibool AutoSetMode();
-			void  AutoSelectController(uint);
-			void  AutoSelectControllers();
-			void  ConnectController(uint,Nes::Input::Type);
-			void  PlaySong();
-			void  StopSong();
-			void  SelectNextSong();
-			void  SelectPrevSong();
-			void  Save(Io::Nsp::Context&);
-			ibool Load(Collection::Buffer&,const Path&,const Io::Nsp::Context&,ibool);
-			ibool Unload();
-			ibool SaveState(Collection::Buffer&,ibool,Alert=NOISY);
-			ibool LoadState(Collection::Buffer&,Alert=NOISY);
-			ibool Power(ibool);
-			ibool Reset(ibool);
-			void  Execute(Nes::Video::Output*,Nes::Sound::Output*,Nes::Input::Controllers*);
-			void  BeginNetplayMode();
-			void  EndNetplayMode();
-			void  DisableNetplay();
-			void  Unhook();
+			void Initialize() const;
+			void Stop();
+			void Resume();
+			void Wait();
+			bool Pause(bool);
+			void ResetSpeed(uint,bool,bool);
+			void SetSpeed(uint);
+			uint GetBaseSpeed();
+			uint GetSpeed();
+			bool SetMode(Nes::Machine::Mode);
+			void ToggleSpeed(bool);
+			void ToggleRewind(bool);
+			bool AutoSetMode();
+			void AutoSelectController(uint);
+			void AutoSelectControllers();
+			void ConnectController(uint,Nes::Input::Type);
+			void PlaySong();
+			void StopSong();
+			void SelectNextSong();
+			void SelectPrevSong();
+			void Save(Io::Nsp::Context&);
+			bool Load(Collection::Buffer&,const Path&,const Io::Nsp::Context&,bool);
+			bool Unload();
+			bool SaveState(Collection::Buffer&,bool,Alert=NOISY);
+			bool LoadState(Collection::Buffer&,Alert=NOISY);
+			bool Power(bool);
+			bool Reset(bool);
+			void Execute(Nes::Video::Output*,Nes::Sound::Output*,Nes::Input::Controllers*);
+			void BeginNetplayMode();
+			void EndNetplayMode();
+			void DisableNetplay();
+			void Unhook();
 
 		private:
 
@@ -184,12 +183,6 @@ namespace Nestopia
 
 			class EventHandler
 			{
-			public:
-
-				void Remove(const void*);
-
-			private:
-
 				friend class Emulator;
 				friend struct Callbacks;
 
@@ -198,13 +191,14 @@ namespace Nestopia
 
 				Callbacks callbacks;
 
-				EventHandler() {}
+				~EventHandler();
 
 				void operator () (Event) const;
+				void Add(const Callback&);
 
 			public:
 
-				void Add(const Callback&);
+				void Remove(const void*);
 
 				template<typename Data,typename Code>
 				void Add(Data* data,Code code)
@@ -215,7 +209,8 @@ namespace Nestopia
 
 			struct Settings
 			{
-				inline Settings();
+				Settings();
+				~Settings();
 
 				void Reset();
 
@@ -231,14 +226,6 @@ namespace Nestopia
 					bool rewinding;
 				};
 
-				struct Paths
-				{
-					Path start;
-					Path image;
-					Path save;
-					Path tape;
-				};
-
 				struct Fds
 				{
 					inline Fds();
@@ -251,37 +238,44 @@ namespace Nestopia
 				{
 					inline Cartridge();
 
-					ibool writeProtect;
+					bool writeProtect;
 				};
 
 				Timing timing;
-				Paths paths;
+
+				struct
+				{
+					Path start;
+					Path image;
+					Path save;
+					Path tape;
+				}   paths;
+
 				Cartridge cartridge;
 				Fds fds;
-				ibool askSave;
+				bool askSave;
 			};
 
 			struct State
 			{
-				typedef Object::Delegate<ibool> Activator;
+				typedef Object::Delegate<bool> Activator;
 				typedef Object::Delegate<void> Inactivator;
 
 				inline State();
 
-				ibool NoActivator();
+				bool NoActivator();
 				void NoInactivator();
 
-				ibool running;
-				ibool paused;
-				uint frame;
+				bool running;
+				bool paused;
 				Activator activator;
 				Inactivator inactivator;
 			};
 
-			ibool IsDiskImage(const Collection::Buffer&) const;
-			ibool UsesBaseSpeed() const;
-			void  EnableNetplay(const Netplay::Callback&,uint,uint);
-			void  Unpause();
+			bool IsDiskImage(const Collection::Buffer&) const;
+			bool UsesBaseSpeed() const;
+			void EnableNetplay(const Netplay::Callback&,uint,uint);
+			void Unpause();
 
 			struct CallbackData;
 
@@ -297,44 +291,39 @@ namespace Nestopia
 
 		public:
 
-			ibool Running() const
+			bool Running() const
 			{
 				return state.running;
 			}
 
-			ibool Idle() const
+			bool Idle() const
 			{
 				return !state.running;
 			}
 
-			ibool Paused() const
+			bool Paused() const
 			{
 				return state.paused;
 			}
 
-			ibool Speeding() const
+			bool Speeding() const
 			{
 				return settings.timing.speeding;
 			}
 
-			ibool Rewinding() const
+			bool Rewinding() const
 			{
 				return settings.timing.rewinding;
 			}
 
-			uint GetFrame()
+			bool Is(uint a)
 			{
-				return state.frame;
+				return Nes::Machine(*this).Is( a );
 			}
 
-			uint Is(uint what)
+			bool Is(uint a,uint b)
 			{
-				return Nes::Machine(*this).Is( what );
-			}
-
-			uint Is(uint what,uint that)
-			{
-				return Nes::Machine(*this).Is( what, that );
+				return Nes::Machine(*this).Is( a, b );
 			}
 
 			void AskBeforeSaving()
@@ -352,12 +341,12 @@ namespace Nestopia
 				settings.fds.save = method;
 			}
 
-			void WriteProtectCartridge(ibool state)
+			void WriteProtectCartridge(bool state)
 			{
 				settings.cartridge.writeProtect = state;
 			}
 
-			ibool CartridgeWriteProtected() const
+			bool CartridgeWriteProtected() const
 			{
 				return settings.cartridge.writeProtect;
 			}
@@ -377,12 +366,12 @@ namespace Nestopia
 				return settings.paths.save;
 			}
 
-			ibool SyncFrameRate() const
+			bool SyncFrameRate() const
 			{
 				return settings.timing.sync;
 			}
 
-			ibool UseTripleBuffering() const
+			bool UseTripleBuffering() const
 			{
 				return settings.timing.tripleBuffering;
 			}
@@ -395,6 +384,11 @@ namespace Nestopia
 			uint NumPlayers() const
 			{
 				return netplay.players;
+			}
+
+			bool IsNetplaying() const
+			{
+				return netplay;
 			}
 
 			EventHandler& Events()

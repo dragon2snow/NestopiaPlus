@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -33,15 +33,16 @@ namespace Nes
 {
 	namespace Core
 	{
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("s", on)
 		#endif
 
 		Tracker::Tracker()
 		:
+		frame         (0),
+		rewinderSound (false),
 		rewinder      (NULL),
-		movie         (NULL),
-		rewinderSound (false)
+		movie         (NULL)
 		{}
 
 		Tracker::~Tracker()
@@ -52,6 +53,8 @@ namespace Nes
 
 		void Tracker::Unload()
 		{
+			frame = 0;
+
 			if (rewinder)
 				rewinder->Unload();
 			else
@@ -60,14 +63,15 @@ namespace Nes
 
 		void Tracker::Reset(bool hard)
 		{
-			if (movie)
-			{
-				if (!movie->Reset( hard ))
-					MovieEject();
-			}
-			else
+			frame = 0;
+
+			if (!movie)
 			{
 				RewinderReset();
+			}
+			else if (!movie->Reset( hard ))
+			{
+				MovieEject();
 			}
 		}
 
@@ -75,6 +79,16 @@ namespace Nes
 		{
 			RewinderReset();
 			MovieCut();
+		}
+
+		Result Tracker::Flush(Result lastResult)
+		{
+			NST_VERIFY( NES_SUCCEEDED(lastResult) );
+
+			if (NES_SUCCEEDED(lastResult) && lastResult != RESULT_NOP)
+				Flush();
+
+			return lastResult;
 		}
 
 		void Tracker::RewinderReset() const
@@ -123,99 +137,96 @@ namespace Nes
 
 		Result Tracker::MoviePlay(Machine& emulator,StdStream stream,bool mode)
 		{
-			if (!rewinder && emulator.Is(Api::Machine::GAME))
+			if (rewinder || !emulator.Is(Api::Machine::GAME))
+				return RESULT_ERR_NOT_READY;
+
+			Result result;
+
+			try
 			{
-				Result result;
-
-				try
+				if (movie == NULL)
 				{
-					if (movie == NULL)
-					{
-						movie = new Movie
-						(
-							emulator,
-							&Machine::Reset,
-							&Machine::LoadState,
-							&Machine::SaveState,
-							emulator.cpu,
-							emulator.Is(Api::Machine::CARTRIDGE) ? emulator.image->GetPrgCrc() : 0
-						);
-					}
-
-					result = movie->Play( stream, mode );
-				}
-				catch (Result r)
-				{
-					result = r;
-				}
-				catch (const std::bad_alloc&)
-				{
-					result = RESULT_ERR_OUT_OF_MEMORY;
-				}
-				catch (...)
-				{
-					result = RESULT_ERR_GENERIC;
+					movie = new Movie
+					(
+						emulator,
+						&Machine::Reset,
+						&Machine::LoadState,
+						&Machine::SaveState,
+						emulator.cpu,
+						emulator.Is(Api::Machine::CARTRIDGE) ? emulator.image->GetPrgCrc() : 0
+					);
 				}
 
-				if (NES_SUCCEEDED(result))
+				if (movie->Play( stream, mode ))
 				{
-					if (result != RESULT_NOP && emulator.Is(Api::Machine::ON))
+					if (emulator.Is(Api::Machine::ON))
 						emulator.Reset( true );
+
+					return RESULT_OK;
 				}
 				else
 				{
-					MovieEject();
+					return RESULT_NOP;
 				}
-
-				return result;
+			}
+			catch (Result r)
+			{
+				result = r;
+			}
+			catch (const std::bad_alloc&)
+			{
+				result = RESULT_ERR_OUT_OF_MEMORY;
+			}
+			catch (...)
+			{
+				result = RESULT_ERR_GENERIC;
 			}
 
-			return RESULT_ERR_NOT_READY;
+			MovieEject();
+
+			return result;
 		}
 
 		Result Tracker::MovieRecord(Machine& emulator,StdStream stream,bool how,bool mode)
 		{
-			if (!rewinder && emulator.Is(Api::Machine::GAME))
+			if (rewinder || !emulator.Is(Api::Machine::GAME))
+				return RESULT_ERR_NOT_READY;
+
+			Result result;
+
+			try
 			{
-				Result result;
-
-				try
+				if (movie == NULL)
 				{
-					if (movie == NULL)
-					{
-						movie = new Movie
-						(
-							emulator,
-							&Machine::Reset,
-							&Machine::LoadState,
-							&Machine::SaveState,
-							emulator.cpu,
-							emulator.image->GetPrgCrc()
-						);
-					}
-
-					result = movie->Record( stream, how, mode );
-				}
-				catch (Result r)
-				{
-					result = r;
-				}
-				catch (const std::bad_alloc&)
-				{
-					result = RESULT_ERR_OUT_OF_MEMORY;
-				}
-				catch (...)
-				{
-					result = RESULT_ERR_GENERIC;
+					movie = new Movie
+					(
+						emulator,
+						&Machine::Reset,
+						&Machine::LoadState,
+						&Machine::SaveState,
+						emulator.cpu,
+						emulator.image->GetPrgCrc()
+					);
 				}
 
-				if (NES_FAILED(result))
-					MovieEject();
-
-				return result;
+				return movie->Record( stream, how, mode ) ? RESULT_OK : RESULT_NOP;
+			}
+			catch (Result r)
+			{
+				result = r;
+			}
+			catch (const std::bad_alloc&)
+			{
+				result = RESULT_ERR_OUT_OF_MEMORY;
+			}
+			catch (...)
+			{
+				result = RESULT_ERR_GENERIC;
 			}
 
-			return RESULT_ERR_NOT_READY;
+			MovieEject();
+
+			return result;
 		}
 
 		void Tracker::MovieStop()
@@ -236,7 +247,7 @@ namespace Nes
 			movie = NULL;
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
@@ -275,14 +286,6 @@ namespace Nes
 			return IsRewinding() || MovieIsPlaying();
 		}
 
-		dword Tracker::GetSoundLatency(const Apu& apu) const
-		{
-			if (rewinder && rewinder->IsSoundRewinding())
-				return rewinder->GetSoundLatency();
-			else
-				return apu.GetLatency();
-		}
-
 		Result Tracker::Execute
 		(
 			Machine& emulator,
@@ -293,27 +296,31 @@ namespace Nes
 		{
 			if (emulator.Is(Api::Machine::ON))
 			{
+				++frame;
+
 				if (emulator.Is(Api::Machine::GAME))
 				{
 					if (rewinder)
 					{
-						return rewinder->Execute( video, sound, input );
+						rewinder->Execute( video, sound, input );
+						return RESULT_OK;
 					}
 					else if (movie)
 					{
 						if (!movie->BeginFrame( emulator.frame ))
 							MovieEject();
 
-						const Result result = emulator.ExecuteFrame( video, sound, input );
+						emulator.ExecuteFrame( video, sound, input );
 
-						if (NES_FAILED(result) || !movie->EndFrame())
+						if (!movie->EndFrame())
 							MovieEject();
 
-						return result;
+						return RESULT_OK;
 					}
 				}
 
-				return emulator.ExecuteFrame( video, sound, input );
+				emulator.ExecuteFrame( video, sound, input );
+				return RESULT_OK;
 			}
 			else
 			{

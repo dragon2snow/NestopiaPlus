@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,7 +25,7 @@
 #ifndef NST_SOUND_PCM_H
 #define NST_SOUND_PCM_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
+#ifdef NST_PRAGMA_ONCE
 #pragma once
 #endif
 
@@ -39,30 +39,34 @@ namespace Nes
 			{
 			protected:
 
-				Pcm(Cpu&);
+				explicit Pcm(Cpu&);
 				~Pcm();
 
 				void Reset();
-				void Play(const i16*,dword,dword);
+				void Play(const iword*,dword,dword);
 
 				static Result CanDo(const void*,dword,uint,dword);
+
+			private:
+
+				qword pos;
+
+			public:
 
 				Cpu& cpu;
 
 			private:
 
-				void UpdateContext(uint,const u8 (&)[MAX_CHANNELS]);
+				void UpdateContext(uint,const byte (&)[MAX_CHANNELS]);
 				Sample GetSample();
 
-				struct Wave
+				struct
 				{
-					const i16* data;
+					const iword* data;
 					dword length;
 					dword rate;
-				};
+				}   wave;
 
-				Wave wave;
-				qword pos;
 				dword rate;
 
 			public:

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,7 +25,7 @@
 #ifndef NST_VIDEO_FILTER_SCANLINES_H
 #define NST_VIDEO_FILTER_SCANLINES_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
+#ifdef NST_PRAGMA_ONCE
 #pragma once
 #endif
 
@@ -37,28 +37,33 @@ namespace Nes
 		{
 			class Renderer::FilterScanlines : public Renderer::Filter
 			{
-				template<typename T>
-				NST_FORCE_INLINE void Blit1x(const Input&,const Output&) const;
+			public:
+
+				explicit FilterScanlines(const RenderState&);
+
+				static bool Check(const RenderState&);
+
+			private:
+
+				~FilterScanlines() {}
+
+				typedef void (FilterScanlines::*Path)(const Input&,const Output&,uint) const;
+
+				static Path GetPath(const RenderState&);
+
+				void Blit(const Input&,const Output&,uint);
 
 				template<typename T>
-				NST_FORCE_INLINE void Blit2x(const Input&,const Output&) const;
+				void Blit1x(const Input&,const Output&,uint) const;
 
 				template<typename T>
-				NST_FORCE_INLINE void BlitType(const Input&,const Output&) const;
+				void Blit2x(const Input&,const Output&,uint) const;
 
-				const ibool scale;
+				const Path path;
 				const uint scanlines;
 				const dword gMask;
 				const dword rbMask;
 				const uint rgbShift;
-
-				void Blit(const Input&,const Output&,uint);
-
-			public:
-
-				FilterScanlines(const RenderState&);
-
-				static bool Check(const RenderState&);
 			};
 		}
 	}

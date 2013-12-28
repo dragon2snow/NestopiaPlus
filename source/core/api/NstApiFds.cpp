@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -22,38 +22,45 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
+#include <new>
 #include "../NstMachine.hpp"
+#include "../NstStream.hpp"
 #include "../NstFds.hpp"
+#include "NstApiCartridge.hpp"
 #include "NstApiMachine.hpp"
 #include "NstApiFds.hpp"
-
-#ifdef NST_PRAGMA_OPTIMIZE
-#pragma optimize("s", on)
-#endif
 
 namespace Nes
 {
 	namespace Api
 	{
+		#ifdef NST_MSVC_OPTIMIZE
+		#pragma optimize("s", on)
+		#endif
+
 		Fds::DiskChange Fds::diskChangeCallback;
 		Fds::Lamp Fds::diskAccessLampCallback;
 
-		Fds::DiskData::File::File()
+		Fds::DiskData::File::File() throw()
 		:
 		id      (0),
 		index   (0),
 		address (0),
 		type    (TYPE_UNKNOWN)
 		{
-			for (uint i=0; i < 9; ++i)
+			for (uint i=0; i < sizeof(name); ++i)
 				name[i] = '\0';
 		}
 
-		Fds::DiskData::DiskData()
+		Fds::DiskData::DiskData() throw()
 		{
 		}
 
-		Result Fds::GetDiskData(uint side,DiskData& data)
+		Fds::DiskData::~DiskData() throw()
+		{
+		}
+
+		Result Fds::GetDiskData(uint side,DiskData& data) const throw()
 		{
 			if (emulator.Is(Machine::DISK))
 				return static_cast<Core::Fds*>(emulator.image)->GetDiskData( side, data );
@@ -72,14 +79,7 @@ namespace Nes
 		Result Fds::InsertDisk(uint disk,uint side) throw()
 		{
 			if (emulator.Is(Machine::DISK) && !emulator.tracker.IsLocked())
-			{
-				const Result result = static_cast<Core::Fds*>(emulator.image)->InsertDisk( disk, side );
-
-				if (result == RESULT_OK)
-					emulator.tracker.Flush();
-
-				return result;
-			}
+				return emulator.tracker.Flush( static_cast<Core::Fds*>(emulator.image)->InsertDisk( disk, side ) );
 
 			return RESULT_ERR_NOT_READY;
 		}
@@ -97,31 +97,83 @@ namespace Nes
 		Result Fds::EjectDisk() throw()
 		{
 			if (emulator.Is(Machine::DISK) && !emulator.tracker.IsLocked())
-			{
-				const Result result = static_cast<Core::Fds*>(emulator.image)->EjectDisk();
-
-				if (result == RESULT_OK)
-					emulator.tracker.Flush();
-
-				return result;
-			}
+				return emulator.tracker.Flush( static_cast<Core::Fds*>(emulator.image)->EjectDisk() );
 
 			return RESULT_ERR_NOT_READY;
 		}
 
-		Result Fds::SetBIOS(std::istream* const stream) throw()
+		Result Fds::SetBIOS(std::istream* const stdStream) throw()
 		{
-			return Core::Fds::Bios::Set( stream );
+			try
+			{
+				if (stdStream)
+				{
+					Core::Stream::In stream( stdStream );
+
+					idword offset;
+
+					Cartridge::Setup setup;
+
+					byte header[16];
+					stream.Read( header );
+
+					if (NES_FAILED(Cartridge::ReadNesHeader( setup, header, 16 )))
+					{
+						offset = -16;
+					}
+					else if (setup.prgRom >= Core::SIZE_8K)
+					{
+						offset = (setup.trainer ? 512 : 0) + (setup.prgRom - Core::SIZE_8K);
+					}
+					else
+					{
+						return RESULT_ERR_CORRUPT_FILE;
+					}
+
+					stream.Seek( offset );
+				}
+
+				Core::Fds::SetBios( stdStream );
+			}
+			catch (Result result)
+			{
+				return result;
+			}
+			catch (const std::bad_alloc&)
+			{
+				return RESULT_ERR_OUT_OF_MEMORY;
+			}
+			catch (...)
+			{
+				return RESULT_ERR_GENERIC;
+			}
+
+			return RESULT_OK;
 		}
 
 		Result Fds::GetBIOS(std::ostream& stream) const throw()
 		{
-			return Core::Fds::Bios::Get( &stream );
+			try
+			{
+				return Core::Fds::GetBios( &stream );
+			}
+			catch (Result result)
+			{
+				return result;
+			}
+			catch (const std::bad_alloc&)
+			{
+				return RESULT_ERR_OUT_OF_MEMORY;
+			}
+			catch (...)
+			{
+				return RESULT_ERR_GENERIC;
+			}
 		}
 
 		bool Fds::HasBIOS() const throw()
 		{
-			return Core::Fds::Bios::IsLoaded();
+			return Core::Fds::HasBios();
 		}
 
 		uint Fds::GetNumDisks() const throw()
@@ -168,9 +220,9 @@ namespace Nes
 		{
 			return emulator.Is(Machine::DISK) && static_cast<const Core::Fds*>(emulator.image)->HasHeader();
 		}
+
+		#ifdef NST_MSVC_OPTIMIZE
+		#pragma optimize("", on)
+		#endif
 	}
 }
-
-#ifdef NST_PRAGMA_OPTIMIZE
-#pragma optimize("", on)
-#endif

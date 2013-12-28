@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -108,13 +108,13 @@ namespace Nestopia
 			class StyleProxy
 			{
 				HWND const hWnd;
-				const ibool ex;
 				const long flags;
+				const bool ex;
 
 			public:
 
-				StyleProxy(HWND h,ibool e,long f)
-				: hWnd(h), ex(e), flags(f) {}
+				StyleProxy(HWND h,bool e,long f)
+				: hWnd(h), flags(f), ex(e) {}
 
 				void operator = (bool) const;
 				operator long () const;
@@ -166,27 +166,27 @@ namespace Nestopia
 			void Minimize() const;
 			void Restore() const;
 
-			ibool Enabled() const;
-			ibool Active() const;
-			ibool Focused() const;
-			ibool Maximized() const;
-			ibool Minimized() const;
-			ibool Restored() const;
-			ibool Visible() const;
+			bool Enabled() const;
+			bool Active() const;
+			bool Focused() const;
+			bool Maximized() const;
+			bool Minimized() const;
+			bool Restored() const;
+			bool Visible() const;
 
 			Rect GetPlacement() const;
 			void SetPlacement(const Rect&) const;
 
-			ibool SameThread() const;
+			bool SameThread() const;
 
-			ibool Enable(ibool=true) const;
-			void  Show(ibool=true) const;
-			ibool Activate() const;
-			void  Redraw(ibool=true) const;
-			void  Close() const;
-			ibool Destroy();
+			bool Enable(bool=true) const;
+			void Show(bool=true) const;
+			bool Activate() const;
+			void Redraw(bool=true) const;
+			void Close() const;
+			bool Destroy();
 
-			void MakeTopMost(ibool=true) const;
+			void MakeTopMost(bool=true) const;
 			void MakeWindowed(long,long) const;
 			void MakeFullscreen() const;
 

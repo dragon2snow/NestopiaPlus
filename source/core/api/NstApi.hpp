@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,18 +25,21 @@
 #ifndef NST_API_H
 #define NST_API_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
+#ifndef NST_BASE_H
+#include "../NstBase.hpp"
+#endif
+
+#ifdef NST_PRAGMA_ONCE
 #pragma once
 #endif
 
-#ifdef _MSC_VER
-#pragma warning( push )
-#endif
-
-#include "../NstCore.hpp"
-
 #ifndef NST_CALLBACK
 #define NST_CALLBACK NST_CALL
+#endif
+
+#if NST_MSVC >= 1200
+#pragma warning( push )
+#pragma warning( disable : 4512 )
 #endif
 
 namespace Nes
@@ -59,7 +62,7 @@ namespace Nes
 			UserData userdata;
 
 			UserCallback()
-			: function(NULL), userdata(NULL) {}
+			: function(0), userdata(0) {}
 
 		public:
 
@@ -69,10 +72,21 @@ namespace Nes
 				userdata = d;
 			}
 
+			void Unset()
+			{
+				function = 0;
+				userdata = 0;
+			}
+
 			void Get(Function& f,UserData& d) const
 			{
 				f = function;
 				d = userdata;
+			}
+
+			bool IsSet() const
+			{
+				return function;
 			}
 		};
 	}
@@ -95,7 +109,7 @@ namespace Nes
 	}
 }
 
-#ifdef _MSC_VER
+#if NST_MSVC >= 1200
 #pragma warning( pop )
 #endif
 

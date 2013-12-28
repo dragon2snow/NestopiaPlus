@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -34,16 +34,16 @@ namespace Nes
 		{
 			Mmc3::SubReset( hard );
 
-			for (uint i=0x0000U; i < 0x2000U; i += 0x8)
+			for (uint i=0x0000; i < 0x2000; i += 0x8)
 			{
-				Map( 0x8000U + i, 0x8003U + i, &Mapper196::Poke_8000 );
-				Map( 0x8004U + i, 0x8007U + i, &Mapper196::Poke_8001 );
-				Map( 0xA000U + i, 0xA003U + i, NMT_SWAP_HV           );
-				Map( 0xA004U + i, 0xA007U + i, &Mapper196::Poke_A001 );
-				Map( 0xC000U + i, 0xC003U + i, &Mapper196::Poke_C000 );
-				Map( 0xC004U + i, 0xC007U + i, &Mapper196::Poke_C001 );
-				Map( 0xE000U + i, 0xE003U + i, &Mapper196::Poke_E000 );
-				Map( 0xE004U + i, 0xE007U + i, &Mapper196::Poke_E001 );
+				Map( 0x8000 + i, 0x8003 + i, &Mapper196::Poke_8000 );
+				Map( 0x8004 + i, 0x8007 + i, &Mapper196::Poke_8001 );
+				Map( 0xA000 + i, 0xA003 + i, NMT_SWAP_HV           );
+				Map( 0xA004 + i, 0xA007 + i, &Mapper196::Poke_A001 );
+				Map( 0xC000 + i, 0xC003 + i, &Mapper196::Poke_C000 );
+				Map( 0xC004 + i, 0xC007 + i, &Mapper196::Poke_C001 );
+				Map( 0xE000 + i, 0xE003 + i, &Mapper196::Poke_E000 );
+				Map( 0xE004 + i, 0xE007 + i, &Mapper196::Poke_E001 );
 			}
 		}
 	}

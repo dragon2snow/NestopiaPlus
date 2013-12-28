@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,23 +25,28 @@
 #ifndef NST_STREAM_H
 #define NST_STREAM_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
-#pragma once
+#ifndef NST_ASSERT_H
+#include "NstAssert.hpp"
 #endif
 
-#include "NstCore.hpp"
+#ifdef NST_PRAGMA_ONCE
+#pragma once
+#endif
 
 namespace Nes
 {
 	namespace Core
 	{
+		template<typename T>
+		class Vector;
+
 		namespace Stream
 		{
 			class In
 			{
 				StdStream const stream;
 
-				int Peek();
+				void SafeRead(byte*,dword);
 
 			public:
 
@@ -51,38 +56,44 @@ namespace Nes
 					NST_ASSERT( stream );
 				}
 
-				void  SetPos(ulong);
-				ulong GetPos();
-				void  Read(void*,ulong);
+				static dword AsciiToC(char* NST_RESTRICT,const byte* NST_RESTRICT,dword);
+
+				void  Read(byte*,dword);
+				void  Read(char*,dword);
+				dword Read(Vector<char>&);
 				uint  Read8();
 				uint  Read16();
 				dword Read32();
+				uint  SafeRead8();
 				uint  Peek8();
 				uint  Peek16();
 				dword Peek32();
-				void  Seek(long);
-				void  Validate(u8);
-				void  Validate(u16);
-				void  Validate(u32);
+				void  Seek(idword);
 				bool  Eof();
-				ulong Length();
-				ulong ReadString(void*);
 
-				template<size_t N>
-				void Read(u8 (&data)[N])
+				template<dword N>
+				void Read(byte (&data)[N])
 				{
+					NST_COMPILE_ASSERT( N > 0 );
 					Read( data, N );
 				}
 
-				StdStream GetStdStream() const
+				bool operator == (StdStream s) const
 				{
-					return stream;
+					return stream == s;
+				}
+
+				bool operator != (StdStream s) const
+				{
+					return stream != s;
 				}
 			};
 
 			class Out
 			{
 				StdStream const stream;
+
+				void Clear();
 
 			public:
 
@@ -92,18 +103,28 @@ namespace Nes
 					NST_ASSERT( stream );
 				}
 
-				void  Write(const void*,ulong);
-				void  Write8(uint);
-				void  Write16(uint);
-				void  Write32(dword);
-				void  Seek(long);
-				void  SetPos(ulong);
-				ulong GetPos();
-				ulong Length();
+				void Write(const byte*,dword);
+				void Write8(uint);
+				void Write16(uint);
+				void Write32(dword);
+				void Seek(idword);
+				bool SeekEnd();
 
-				StdStream GetStdStream() const
+				template<dword N>
+				void Write(const byte (&data)[N])
 				{
-					return stream;
+					NST_COMPILE_ASSERT( N > 0 );
+					Write( data, N );
+				}
+
+				bool operator == (StdStream s) const
+				{
+					return stream == s;
+				}
+
+				bool operator != (StdStream s) const
+				{
+					return stream != s;
 				}
 			};
 		}

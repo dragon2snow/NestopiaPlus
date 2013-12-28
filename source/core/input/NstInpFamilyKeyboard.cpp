@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -31,7 +31,7 @@ namespace Nes
 	{
 		namespace Input
 		{
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("s", on)
 			#endif
 
@@ -47,14 +47,14 @@ namespace Nes
 				mode = 0;
 			}
 
-			void FamilyKeyboard::SaveState(State::Saver& state,const uchar id) const
+			void FamilyKeyboard::SaveState(State::Saver& state,const byte id) const
 			{
-				state.Begin('K','B',id,'\0').Write8( mode | (scan << 1) ).End();
+				state.Begin( AsciiId<'K','B'>::R(0,0,id) ).Write8( mode | (scan << 1) ).End();
 			}
 
 			void FamilyKeyboard::LoadState(State::Loader& state,const dword id)
 			{
-				if (id == NES_STATE_CHUNK_ID('K','B','\0','\0'))
+				if (id == AsciiId<'K','B'>::V)
 				{
                      const uint data = state.Read8();
 
@@ -66,7 +66,7 @@ namespace Nes
 				}
 			}
 
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("", on)
 			#endif
 
@@ -95,7 +95,7 @@ namespace Nes
 				else if (input && scan < 9)
 				{
 					Controllers::FamilyKeyboard::callback( input->familyKeyboard, scan, mode );
-					return ~input->familyKeyboard.parts[scan] & 0x1E;
+					return ~uint(input->familyKeyboard.parts[scan]) & 0x1E;
 				}
 				else
 				{

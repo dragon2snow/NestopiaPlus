@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -31,14 +31,14 @@
 #include "NstObjectPod.hpp"
 #include "NstDirectX.hpp"
 
-#ifdef _MSC_VER
+#if NST_MSVC >= 1200
 #pragma warning( push )
 #pragma warning( disable : 4201 )
 #endif
 
 #include <MMSystem.h>
 
-#ifdef _MSC_VER
+#if NST_MSVC >= 1200
 #pragma warning( pop )
 #endif
 
@@ -55,9 +55,6 @@ namespace Nestopia
 			explicit DirectSound(HWND);
 			~DirectSound();
 
-			typedef BaseAdapter Adapter;
-			typedef std::vector<Adapter> Adapters;
-
 			enum Channels
 			{
 				MONO = 1,
@@ -70,12 +67,41 @@ namespace Nestopia
 				POOL_SYSTEM
 			};
 
-			tstring Update(uint,uint,uint,Channels,uint,Pool,ibool);
-			void    Destroy();
+			struct Adapter : BaseAdapter
+			{
+				Adapter();
+
+				bool buggy;
+			};
+
+			typedef std::vector<Adapter> Adapters;
+
+			cstring Update(uint,uint,uint,Channels,uint,Pool,bool);
+			void Destroy();
+			void StopStream();
 
 		private:
 
-			static BOOL CALLBACK EnumAdapter(LPGUID,LPCTSTR,LPCTSTR,LPVOID);
+			class SoundAdapters
+			{
+				static BOOL CALLBACK Enumerator(LPGUID,LPCTSTR,LPCTSTR,LPVOID);
+
+			public:
+
+				SoundAdapters();
+
+				Adapters list;
+			};
+
+			struct Device : ComInterface<IDirectSound8>
+			{
+				explicit Device(HWND);
+
+				HWND const hWnd;
+				ushort id;
+				bool priority;
+				bool buggy;
+			};
 
 			class Buffer
 			{
@@ -84,20 +110,26 @@ namespace Nestopia
 				Buffer();
 				~Buffer();
 
-				tstring Update(IDirectSound8&,bool,uint,uint,Channels,uint,Pool,bool);
-				void    StartStream();
-				ibool   LockStream(void**,uint*);
-				void    StopStream(IDirectSound8*,bool);
-				void    Release();
+				cstring Update(IDirectSound8&,bool,uint,uint,Channels,uint,Pool,bool);
+				void StartStream();
+				void StopStream(IDirectSound8*,bool);
+				void Release();
 
 			private:
 
-				tstring Create(IDirectSound8&,bool);
+				cstring Create(IDirectSound8&,bool);
 
 				enum
 				{
 					DC_OFFSET_8 = 0x80,
 					DC_OFFSET_16 = 0x0000
+				};
+
+				struct Com : ComInterface<IDirectSoundBuffer8>
+				{
+					Com();
+
+					uint writePos;
 				};
 
 				struct Settings
@@ -106,11 +138,10 @@ namespace Nestopia
 
 					uint size;
 					Pool pool;
-					ibool globalFocus;
+					bool globalFocus;
 				};
 
-				ComInterface<IDirectSoundBuffer8> com;
-				uint writeOffset;
+				Com com;
 				Object::Pod<WAVEFORMATEX> waveFormat;
 				Settings settings;
 
@@ -121,9 +152,37 @@ namespace Nestopia
 					return waveFormat;
 				}
 
-				ibool GlobalFocus() const
+				bool GlobalFocus() const
 				{
 					return settings.globalFocus;
+				}
+
+				NST_FORCE_INLINE bool LockStream(void** data,uint* size)
+				{
+					DWORD pos;
+
+					if (SUCCEEDED(com->GetCurrentPosition( &pos, NULL )))
+					{
+						pos = (pos > com.writePos ? pos - com.writePos : pos + settings.size - com.writePos);
+
+						DWORD bytes[2];
+
+						if (SUCCEEDED(com->Lock( com.writePos, pos, data+0, bytes+0, data+1, bytes+1, 0 )))
+						{
+							com.writePos = (com.writePos + pos) % settings.size;
+
+							size[0] = bytes[0] / waveFormat.nBlockAlign;
+							size[1] = bytes[1] / waveFormat.nBlockAlign;
+
+							return true;
+						}
+					}
+
+					com->Stop();
+
+					NST_DEBUG_MSG("DirectSound::Buffer::Lock() failed!");
+
+					return false;
 				}
 
 				void UnlockStream(void** data,uint* size) const
@@ -132,7 +191,7 @@ namespace Nestopia
 					com->Unlock( data[0], size[0]*waveFormat.nBlockAlign, data[1], size[1]*waveFormat.nBlockAlign );
 				}
 
-				ibool Streaming() const
+				bool Streaming() const
 				{
 					DWORD status;
 
@@ -144,31 +203,15 @@ namespace Nestopia
 				}
 			};
 
-			struct Settings
-			{
-				Settings(HWND);
-
-				HWND const hWnd;
-				u16 deviceId;
-				bool priority;
-				bool buggyDriver;
-			};
-
-			ComInterface<IDirectSound8> device;
+			Device device;
 			Buffer buffer;
-			Settings settings;
-			Adapters adapters;
+			const SoundAdapters adapters;
 
 		public:
 
-			ibool Streaming() const
+			bool Streaming() const
 			{
 				return buffer.Streaming();
-			}
-
-			void StopStream()
-			{
-				buffer.StopStream( settings.buggyDriver ? *device : NULL, settings.priority );
 			}
 
 			void StartStream()
@@ -176,7 +219,7 @@ namespace Nestopia
 				buffer.StartStream();
 			}
 
-			ibool LockStream(void** data,uint* size)
+			NST_FORCE_INLINE bool LockStream(void** data,uint* size)
 			{
 				return buffer.LockStream( data, size );
 			}
@@ -188,7 +231,7 @@ namespace Nestopia
 
 			const Adapters& GetAdapters() const
 			{
-				return adapters;
+				return adapters.list;
 			}
 
 			const WAVEFORMATEX& GetWaveFormat() const
@@ -196,7 +239,7 @@ namespace Nestopia
 				return buffer.GetWaveFormat();
 			}
 
-			ibool GlobalFocus() const
+			bool GlobalFocus() const
 			{
 				return buffer.GlobalFocus();
 			}

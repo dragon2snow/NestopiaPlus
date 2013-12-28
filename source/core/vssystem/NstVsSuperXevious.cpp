@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -22,7 +22,6 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "../NstCore.hpp"
 #include "../NstCpu.hpp"
 #include "../vssystem/NstVsSystem.hpp"
 #include "../vssystem/NstVsSuperXevious.hpp"
@@ -31,27 +30,27 @@ namespace Nes
 {
 	namespace Core
 	{
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("s", on)
 		#endif
 
-		void VsSuperXevious::Reset()
+		void Cartridge::VsSystem::SuperXevious::Reset()
 		{
-			cpu.Map( 0x54FFU ).Set( &VsSuperXevious::Peek_54FF );
-			cpu.Map( 0x5567U ).Set( &VsSuperXevious::Peek_5567 );
-			cpu.Map( 0x5678U ).Set( &VsSuperXevious::Peek_5678 );
-			cpu.Map( 0x578FU ).Set( &VsSuperXevious::Peek_578F );
+			cpu.Map( 0x54FF ).Set( &SuperXevious::Peek_54FF );
+			cpu.Map( 0x5567 ).Set( &SuperXevious::Peek_5567 );
+			cpu.Map( 0x5678 ).Set( &SuperXevious::Peek_5678 );
+			cpu.Map( 0x578F ).Set( &SuperXevious::Peek_578F );
 
 			protection = 0;
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
-		NES_PEEK(VsSuperXevious,54FF) { return 0x05;                              }
-		NES_PEEK(VsSuperXevious,5567) { return (protection ^= 0x1) ? 0x37 : 0x3E; }
-		NES_PEEK(VsSuperXevious,5678) { return protection ? 0x00 : 0x01;          }
-		NES_PEEK(VsSuperXevious,578F) { return protection ? 0xD1 : 0x89;          }
+		NES_PEEK(Cartridge::VsSystem::SuperXevious,54FF) { return 0x05;                              }
+		NES_PEEK(Cartridge::VsSystem::SuperXevious,5567) { return (protection ^= 0x1) ? 0x37 : 0x3E; }
+		NES_PEEK(Cartridge::VsSystem::SuperXevious,5678) { return protection ? 0x00 : 0x01;          }
+		NES_PEEK(Cartridge::VsSystem::SuperXevious,578F) { return protection ? 0xD1 : 0x89;          }
 	}
 }

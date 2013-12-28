@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -24,18 +24,19 @@
 
 #include "../NstMachine.hpp"
 #include "../NstImage.hpp"
+#include "../NstFile.hpp"
 #include "../NstPrpDataRecorder.hpp"
 #include "NstApiMachine.hpp"
 #include "NstApiTapeRecorder.hpp"
-
-#ifdef NST_PRAGMA_OPTIMIZE
-#pragma optimize("s", on)
-#endif
 
 namespace Nes
 {
 	namespace Api
 	{
+		#ifdef NST_MSVC_OPTIMIZE
+		#pragma optimize("s", on)
+		#endif
+
 		Core::Peripherals::DataRecorder* TapeRecorder::Query() const
 		{
 			if (emulator.image && emulator.Is(Machine::ON))
@@ -45,14 +46,6 @@ namespace Nes
 			}
 
 			return NULL;
-		}
-
-		bool TapeRecorder::IsStopped() const throw()
-		{
-			if (Core::Peripherals::DataRecorder* const dataRecorder = Query())
-				return dataRecorder->IsStopped();
-
-			return true;
 		}
 
 		bool TapeRecorder::IsPlaying() const throw()
@@ -71,9 +64,22 @@ namespace Nes
 			return false;
 		}
 
-		bool TapeRecorder::CanPlay() const throw()
+		bool TapeRecorder::IsStopped() const throw()
 		{
 			if (Core::Peripherals::DataRecorder* const dataRecorder = Query())
+				return dataRecorder->IsStopped();
+
+			return true;
+		}
+
+		Core::Peripherals::DataRecorder* TapeRecorder::CommandQuery() const
+		{
+			return emulator.tracker.IsLocked() ? NULL : Query();
+		}
+
+		bool TapeRecorder::CanPlay() const throw()
+		{
+			if (Core::Peripherals::DataRecorder* const dataRecorder = CommandQuery())
 				return dataRecorder->CanPlay();
 
 			return false;
@@ -81,28 +87,30 @@ namespace Nes
 
 		Result TapeRecorder::Play() throw()
 		{
-			if (Core::Peripherals::DataRecorder* const dataRecorder = Query())
-				return dataRecorder->Play();
+			if (Core::Peripherals::DataRecorder* const dataRecorder = CommandQuery())
+				return emulator.tracker.Flush( dataRecorder->Play() );
 
 			return RESULT_ERR_NOT_READY;
 		}
 
 		Result TapeRecorder::Record() throw()
 		{
-			if (Core::Peripherals::DataRecorder* const dataRecorder = Query())
-				return dataRecorder->Record();
+			if (Core::Peripherals::DataRecorder* const dataRecorder = CommandQuery())
+				return emulator.tracker.Flush( dataRecorder->Record() );
 
 			return RESULT_ERR_NOT_READY;
 		}
 
-		void TapeRecorder::Stop() throw()
+		Result TapeRecorder::Stop() throw()
 		{
-			if (Core::Peripherals::DataRecorder* const dataRecorder = Query())
-				dataRecorder->Stop();
+			if (Core::Peripherals::DataRecorder* const dataRecorder = CommandQuery())
+				return emulator.tracker.Flush( dataRecorder->Stop() );
+
+			return RESULT_ERR_NOT_READY;
 		}
+
+		#ifdef NST_MSVC_OPTIMIZE
+		#pragma optimize("", on)
+		#endif
 	}
 }
-
-#ifdef NST_PRAGMA_OPTIMIZE
-#pragma optimize("", on)
-#endif

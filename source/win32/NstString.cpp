@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -100,25 +100,26 @@ namespace Nestopia
 		}
 
 		template<>
-		ibool Path<char>::Compact(char* to,const char* from,uint maxLength)
+		bool Path<char>::Compact(char* to,const char* from,uint maxLength)
 		{
 			return ::PathCompactPathExA( to, from, maxLength + 1, 0 );
 		}
 
 		template<>
-		ibool Path<wchar_t>::Compact(wchar_t* to,const wchar_t* from,uint maxLength)
+		bool Path<wchar_t>::Compact(wchar_t* to,const wchar_t* from,uint maxLength)
 		{
 			return ::PathCompactPathExW( to, from, maxLength + 1, 0 );
 		}
 
 		template<>
-		Heap<char>& Heap<char>::Import(cstring from,ibool)
+		Heap<char>& Heap<char>::Import(cstring from,bool)
 		{
-			return *this = from;
+			*this = from;
+			return *this;
 		}
 
 		template<>
-		Heap<char>& Heap<char>::Import(wstring src,ibool utf8)
+		Heap<char>& Heap<char>::Import(wstring src,bool utf8)
 		{
 			const int n = ::WideCharToMultiByte( utf8 ? CP_UTF8 : CP_ACP, 0, src, -1, NULL, 0, NULL, NULL );
 
@@ -133,7 +134,7 @@ namespace Nestopia
 		}
 
 		template<>
-		Heap<wchar_t>& Heap<wchar_t>::Import(cstring src,ibool utf8)
+		Heap<wchar_t>& Heap<wchar_t>::Import(cstring src,bool utf8)
 		{
 			const int n = ::MultiByteToWideChar( utf8 ? CP_UTF8 : CP_ACP, 0, src, -1, NULL, 0 );
 
@@ -148,9 +149,10 @@ namespace Nestopia
 		}
 
 		template<>
-		Heap<wchar_t>& Heap<wchar_t>::Import(wstring from,ibool)
+		Heap<wchar_t>& Heap<wchar_t>::Import(wstring from,bool)
 		{
-			return *this = from;
+			*this = from;
+			return *this;
 		}
 
 		bool Base::Trim(char* string)

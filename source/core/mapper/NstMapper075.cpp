@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -29,7 +29,7 @@ namespace Nes
 {
 	namespace Core
 	{
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("s", on)
 		#endif
 
@@ -43,7 +43,7 @@ namespace Nes
 			Map( 0xF000U, 0xFFFFU, &Mapper75::Poke_F000 );
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
@@ -51,23 +51,23 @@ namespace Nes
 		{
 			ppu.SetMirroring( (data & 0x1) ? Ppu::NMT_HORIZONTAL : Ppu::NMT_VERTICAL );
 
-			chr.SwapBanks<SIZE_4K,0x0000U>
+			chr.SwapBanks<SIZE_4K,0x0000>
 			(
-				(data << 3 & 0x10) | (chr.GetBank<SIZE_4K,0x0000U>() & 0xF),
-				(data << 2 & 0x10) | (chr.GetBank<SIZE_4K,0x1000U>() & 0xF)
+				(data << 3 & 0x10) | (chr.GetBank<SIZE_4K,0x0000>() & 0xF),
+				(data << 2 & 0x10) | (chr.GetBank<SIZE_4K,0x1000>() & 0xF)
 			);
 		}
 
 		NES_POKE(Mapper75,E000)
 		{
 			ppu.Update();
-			chr.SwapBank<SIZE_4K,0x0000U>( (chr.GetBank<SIZE_4K,0x0000U>() & 0x10) | (data & 0xF) );
+			chr.SwapBank<SIZE_4K,0x0000>( (chr.GetBank<SIZE_4K,0x0000>() & 0x10) | (data & 0xF) );
 		}
 
 		NES_POKE(Mapper75,F000)
 		{
 			ppu.Update();
-			chr.SwapBank<SIZE_4K,0x1000U>( (chr.GetBank<SIZE_4K,0x1000U>() & 0x10) | (data & 0xF) );
+			chr.SwapBank<SIZE_4K,0x1000>( (chr.GetBank<SIZE_4K,0x1000>() & 0x10) | (data & 0xF) );
 		}
 	}
 }

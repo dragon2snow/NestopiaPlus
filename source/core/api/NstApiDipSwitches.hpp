@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,13 +25,16 @@
 #ifndef NST_API_DIPSWITCHES_H
 #define NST_API_DIPSWITCHES_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
+#include "NstApi.hpp"
+
+#ifdef NST_PRAGMA_ONCE
 #pragma once
 #endif
 
-#include "NstApi.hpp"
-
-#ifdef _MSC_VER
+#if NST_ICC >= 810
+#pragma warning( push )
+#pragma warning( disable : 444 )
+#elif NST_MSVC >= 1200
 #pragma warning( push )
 #pragma warning( disable : 4512 )
 #endif
@@ -62,6 +65,7 @@ namespace Nes
 
 			uint NumDips() const throw();
 			uint NumValues(uint) const throw();
+			bool CanModify() const throw();
 
 			const char* GetDipName(uint) const throw();
 			const char* GetValueName(uint,uint) const throw();
@@ -72,7 +76,7 @@ namespace Nes
 	}
 }
 
-#ifdef _MSC_VER
+#if NST_MSVC >= 1200 || NST_ICC >= 810
 #pragma warning( pop )
 #endif
 

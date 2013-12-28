@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -55,11 +55,11 @@ namespace Nestopia
 			{
 			public:
 
-				ibool operator << (const GenericString) const;
-				ibool operator >> (HeapString&) const;
+				bool operator << (const GenericString) const;
+				bool operator >> (HeapString&) const;
 
-				ibool Delete() const;
-				ibool Delete(const GenericString) const;
+				bool Delete() const;
+				bool Delete(const GenericString) const;
 
 			private:
 

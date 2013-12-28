@@ -42,7 +42,6 @@
 				AdditionalOptions="/vmb"
 				Optimization="0"
 				EnableIntrinsicFunctions="true"
-				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_M_IX86;NST_PRAGMA_ONCE_SUPPORT"
 				StringPooling="true"
 				MinimalRebuild="true"
 				BasicRuntimeChecks="3"
@@ -91,6 +90,8 @@
 			/>
 			<Tool
 				Name="VCManifestTool"
+				SuppressStartupBanner="true"
+				VerboseOutput="false"
 			/>
 			<Tool
 				Name="VCXDCMakeTool"
@@ -142,13 +143,14 @@
 				EnableIntrinsicFunctions="true"
 				FavorSizeOrSpeed="2"
 				OmitFramePointers="true"
-				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_M_IX86;NST_PRAGMA_ONCE_SUPPORT"
+				PreprocessorDefinitions="NDEBUG;_SECURE_SCL=0"
 				StringPooling="true"
 				RuntimeLibrary="0"
 				BufferSecurityCheck="false"
 				EnableFunctionLevelLinking="true"
 				EnableEnhancedInstructionSet="0"
 				FloatingPointModel="0"
+				DisableLanguageExtensions="false"
 				DefaultCharIsUnsigned="true"
 				RuntimeTypeInfo="false"
 				UsePrecompiledHeader="0"
@@ -723,6 +725,14 @@
 			Name="Managers"
 			>
 			<File
+				RelativePath="..\source\win32\NstManager.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\win32\NstManager.hpp"
+				>
+			</File>
+			<File
 				RelativePath="..\source\win32\NstManagerAviConverter.cpp"
 				>
 			</File>
@@ -1202,7 +1212,7 @@
 					>
 				</File>
 				<File
-					RelativePath="..\source\win32\resource\ImageDatabase.zip"
+					RelativePath="..\source\core\database\NstDatabase.zip"
 					>
 				</File>
 			</Filter>

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,7 +25,7 @@
 #ifndef NST_MAPPER_27_H
 #define NST_MAPPER_27_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
+#ifdef NST_PRAGMA_ONCE
 #pragma once
 #endif
 
@@ -37,40 +37,42 @@ namespace Nes
 		{
 		public:
 
-			Mapper27(Context&);
+			explicit Mapper27(Context&);
 
 		private:
+
+			~Mapper27() {}
 
 			void SubReset(bool);
 			void SubSave(State::Saver&) const;
 			void SubLoad(State::Loader&);
 			void VSync();
 
-			template<ushort MASK,uchar BITS,uchar SHIFT>
+			template<uint MASK,uint BITS,uint SHIFT>
 			void SwapChr(uint,uint) const;
 
-			NES_DECL_POKE( 8  )
-			NES_DECL_POKE( 9  )
-			NES_DECL_POKE( B0 )
-			NES_DECL_POKE( B1 )
-			NES_DECL_POKE( B2 )
-			NES_DECL_POKE( B3 )
-			NES_DECL_POKE( C0 )
-			NES_DECL_POKE( C1 )
-			NES_DECL_POKE( C2 )
-			NES_DECL_POKE( C3 )
-			NES_DECL_POKE( D0 )
-			NES_DECL_POKE( D1 )
-			NES_DECL_POKE( D2 )
-			NES_DECL_POKE( D3 )
-			NES_DECL_POKE( E0 )
-			NES_DECL_POKE( E1 )
-			NES_DECL_POKE( E2 )
-			NES_DECL_POKE( E3 )
-			NES_DECL_POKE( F0 )
-			NES_DECL_POKE( F1 )
-			NES_DECL_POKE( F2 )
-			NES_DECL_POKE( F3 )
+			NES_DECL_POKE( 8  );
+			NES_DECL_POKE( 9  );
+			NES_DECL_POKE( B0 );
+			NES_DECL_POKE( B1 );
+			NES_DECL_POKE( B2 );
+			NES_DECL_POKE( B3 );
+			NES_DECL_POKE( C0 );
+			NES_DECL_POKE( C1 );
+			NES_DECL_POKE( C2 );
+			NES_DECL_POKE( C3 );
+			NES_DECL_POKE( D0 );
+			NES_DECL_POKE( D1 );
+			NES_DECL_POKE( D2 );
+			NES_DECL_POKE( D3 );
+			NES_DECL_POKE( E0 );
+			NES_DECL_POKE( E1 );
+			NES_DECL_POKE( E2 );
+			NES_DECL_POKE( E3 );
+			NES_DECL_POKE( F0 );
+			NES_DECL_POKE( F1 );
+			NES_DECL_POKE( F2 );
+			NES_DECL_POKE( F3 );
 
 			Boards::Vrc4::Irq irq;
 			uint prgSwap;

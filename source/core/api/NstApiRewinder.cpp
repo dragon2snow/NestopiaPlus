@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -27,14 +27,14 @@
 #include "NstApiMachine.hpp"
 #include "NstApiRewinder.hpp"
 
-#ifdef NST_PRAGMA_OPTIMIZE
-#pragma optimize("s", on)
-#endif
-
 namespace Nes
 {
 	namespace Api
 	{
+		#ifdef NST_MSVC_OPTIMIZE
+		#pragma optimize("s", on)
+		#endif
+
 		Rewinder::StateCaller Rewinder::stateCallback;
 
 		Result Rewinder::Enable(bool enable) throw()
@@ -79,7 +79,7 @@ namespace Nes
 
 		Result Rewinder::SetDirection(Direction dir) throw()
 		{
-			if (emulator.Is(Machine::GAME) && emulator.Is(Machine::ON))
+			if (emulator.Is(Machine::GAME,Machine::ON))
 			{
 				if (dir == BACKWARD)
 					return emulator.tracker.RewinderStart();
@@ -92,12 +92,12 @@ namespace Nes
 
 		void Rewinder::Reset() throw()
 		{
-			if (emulator.Is(Machine::GAME) && emulator.Is(Machine::ON))
+			if (emulator.Is(Machine::GAME,Machine::ON))
 				emulator.tracker.RewinderReset();
 		}
+
+		#ifdef NST_MSVC_OPTIMIZE
+		#pragma optimize("", on)
+		#endif
 	}
 }
-
-#ifdef NST_PRAGMA_OPTIMIZE
-#pragma optimize("", on)
-#endif

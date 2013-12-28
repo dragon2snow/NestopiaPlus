@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,15 +25,15 @@
 #ifndef NST_STATE_H
 #define NST_STATE_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
-#pragma once
+#ifndef NST_VECTOR_H
+#include "NstVector.hpp"
 #endif
 
-#include "NstCore.hpp"
-#include "NstVector.hpp"
 #include "NstStream.hpp"
 
-#define NES_STATE_CHUNK_ID(a_,b_,c_,d_) u32( (a_) | ((b_) << 8) | ((c_) << 16) | ((d_) << 24) )
+#ifdef NST_PRAGMA_ONCE
+#pragma once
+#endif
 
 namespace Nes
 {
@@ -41,11 +41,6 @@ namespace Nes
 	{
 		namespace State
 		{
-			enum
-			{
-				MIN_CHUNK_SIZE = 4 + 4
-			};
-
 			class Saver
 			{
 			public:
@@ -54,81 +49,42 @@ namespace Nes
 				~Saver();
 
 				Saver& Begin(dword);
-				Saver& End();
 				Saver& Write8(uint);
 				Saver& Write16(uint);
 				Saver& Write32(dword);
-				Saver& Write(const void*,dword);
-				Saver& Compress(const u8*,dword);
+				Saver& Write(const byte*,dword);
+				Saver& Compress(const byte*,dword);
+				Saver& End();
 
-				class Subset
-				{
-					Saver& saver;
-
-				public:
-
-					Subset(Saver& s,char a,char b,char c,char d)
-					: saver(s)
-					{
-						s.Begin( NES_STATE_CHUNK_ID(a,b,c,d) );
-					}
-
-					Subset(Saver& s,dword id)
-					: saver(s)
-					{
-						s.Begin( id );
-					}
-
-					Saver& Ref() const
-					{
-						return saver;
-					}
-
-					~Subset()
-					{
-						saver.End();
-					}
-				};
-
-			private:
+			protected:
 
 				Stream::Out stream;
-				Vector<u32> chunks;
-				const bool useCompression;
-				const bool internal;
+
+			private:
 
 				enum
 				{
 					CHUNK_RESERVE = 8
 				};
 
+				Vector<dword> chunks;
+				const bool useCompression;
+				const bool internal;
+
 			public:
 
-				Saver& Begin(char a,char b,char c,char d)
+				template<dword N>
+				Saver& Write(const byte (&data)[N])
 				{
-					return Begin( NES_STATE_CHUNK_ID(a,b,c,d) );
-				}
-
-				template<size_t N>
-				Saver& Write(const u8 (&data)[N])
-				{
+					NST_COMPILE_ASSERT( N > 0 );
 					return Write( data, N );
 				}
 
-				template<size_t N>
-				Saver& Compress(const u8 (&data)[N])
+				template<dword N>
+				Saver& Compress(const byte (&data)[N])
 				{
+					NST_COMPILE_ASSERT( N > 0 );
 					return Compress( data, N );
-				}
-
-				Stream::Out& GetStream()
-				{
-					return stream;
-				}
-
-				const Stream::Out& GetStream() const
-				{
-					return stream;
 				}
 
 				bool Internal() const
@@ -141,99 +97,79 @@ namespace Nes
 			{
 			public:
 
-				explicit Loader(StdStream);
+				Loader(StdStream,bool);
 				~Loader();
 
 				dword Begin();
-				void  End();
-				void  DigIn();
-				void  DigOut();
 				uint  Read8();
 				uint  Read16();
 				dword Read32();
-				void  Read(u8*,dword);
-				void  Uncompress(u8*,dword);
-
-				class Subset
-				{
-					Loader& loader;
-
-				public:
-
-					Subset(Loader& l)
-					: loader(l)
-					{
-						l.DigIn();
-					}
-
-					Loader& Ref() const
-					{
-						return loader;
-					}
-
-					~Subset()
-					{
-						loader.DigOut();
-					}
-				};
+				void  Read(byte*,dword);
+				void  Uncompress(byte*,dword);
+				void  End();
 
 				template<uint N>
 				class Data
 				{
-					struct Array
+					struct Block
 					{
-						u8 data[N];
+						byte data[N];
 
-						Array(Loader& loader)
+						explicit Block(Loader& loader)
 						{
 							loader.Read( data, N );
 						}
 					};
 
-					const Array array;
+					const Block block;
 
 				public:
 
-					Data(Loader& loader)
-					: array(loader) {}
+					explicit Data(Loader& loader)
+					: block(loader) {}
 
-					const u8& operator [] (uint i) const
+					uint operator [] (uint i) const
 					{
 						NST_ASSERT( i < N );
-						return array.data[i];
+						return block.data[i];
 					}
 				};
+
+			protected:
+
+				Stream::In stream;
 
 			private:
 
 				void CheckRead(dword);
 
-				Stream::In stream;
-				Vector<u32> chunks;
-				Vector<u32> lengths;
+				enum
+				{
+					CHUNK_RESERVE = 8
+				};
+
+				Vector<dword> chunks;
+				const bool checkCrc;
 
 			public:
 
-				template<size_t N>
-				void Read(u8 (&data)[N])
+				template<dword N>
+				void Read(byte (&data)[N])
 				{
+					NST_COMPILE_ASSERT( N > 0 );
 					Read( data, N );
 				}
 
-				template<size_t N>
-				void Uncompress(u8 (&data)[N])
+				template<dword N>
+				void Uncompress(byte (&data)[N])
 				{
+					NST_COMPILE_ASSERT( N > 0 );
 					Uncompress( data, N );
 				}
 
-				Stream::In& GetStream()
+				bool CheckCrc() const
 				{
-					return stream;
-				}
-
-				const Stream::In& GetStream() const
-				{
-					return stream;
+					return checkCrc;
 				}
 			};
 		}

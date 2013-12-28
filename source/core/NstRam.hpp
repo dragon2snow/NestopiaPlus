@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,7 +25,7 @@
 #ifndef NST_RAM_H
 #define NST_RAM_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
+#ifdef NST_PRAGMA_ONCE
 #pragma once
 #endif
 
@@ -40,21 +40,21 @@ namespace Nes
 			Ram();
 			~Ram();
 
-			void Set(dword,u8* = NULL);
-			void Set(bool,bool,dword,u8* = NULL);
+			void Set(dword,byte* = NULL);
+			void Set(bool,bool,dword,byte* = NULL);
 			void Destroy();
 			void Fill(uint);
 			void Mirror(dword);
 
 		private:
 
-			u8* mem;
+			byte* mem;
 			dword mask;
 			dword size;
-			u8 writable;
-			u8 readable;
-			u8 internal;
-			const u8 pad;
+			bool writable;
+			bool readable;
+			bool internal;
+			const bool padding;
 
 		public:
 
@@ -68,22 +68,22 @@ namespace Nes
 				return mask;
 			}
 
-			ibool Empty() const
+			bool Empty() const
 			{
 				return size == 0;
 			}
 
-			ibool Readable() const
+			bool Readable() const
 			{
 				return readable;
 			}
 
-			ibool Writable() const
+			bool Writable() const
 			{
 				return writable;
 			}
 
-			ibool Internal() const
+			bool Internal() const
 			{
 				return internal;
 			}
@@ -98,22 +98,22 @@ namespace Nes
 				writable = w;
 			}
 
-			u8* Mem(dword offset=0)
+			byte* Mem(dword offset=0)
 			{
 				return mem + (offset & mask);
 			}
 
-			const u8* Mem(dword offset=0) const
+			const byte* Mem(dword offset=0) const
 			{
 				return mem + (offset & mask);
 			}
 
-			u8& operator [] (dword i)
+			byte& operator [] (dword i)
 			{
 				return mem[i];
 			}
 
-			const u8& operator [] (dword i) const
+			const byte& operator [] (dword i) const
 			{
 				return mem[i];
 			}

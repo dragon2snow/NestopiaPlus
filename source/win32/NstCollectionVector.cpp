@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,7 +25,7 @@
 #include <cstring>
 #include "NstCollectionVector.hpp"
 
-#ifdef NST_PRAGMA_OPTIMIZE
+#ifdef NST_MSVC_OPTIMIZE
 #pragma optimize("t", on)
 #endif
 
@@ -33,14 +33,14 @@ namespace Nestopia
 {
 	namespace Collection
 	{
-		Private::Base::Base(const uint inSize)
+		VectorBase::VectorBase(const uint inSize)
 		:
 		data     (inSize ? std::malloc( inSize ) : NULL),
 		capacity (inSize),
 		size     (inSize)
 		{}
 
-		Private::Base::Base(const void* const NST_RESTRICT inData,const uint inSize)
+		VectorBase::VectorBase(const void* const NST_RESTRICT inData,const uint inSize)
 		:
 		data     (inSize ? std::memcpy( std::malloc( inSize ), inData, inSize ) : NULL),
 		capacity (inSize),
@@ -49,7 +49,7 @@ namespace Nestopia
 			NST_ASSERT( bool(inData) >= bool(inSize) );
 		}
 
-		Private::Base::Base(const Base& base)
+		VectorBase::VectorBase(const VectorBase& base)
 		:
 		data     (base.size ? std::memcpy( std::malloc( base.size ), base.data, base.size ) : NULL),
 		capacity (base.size),
@@ -57,17 +57,17 @@ namespace Nestopia
 		{
 		}
 
-		ibool Private::Base::Valid(const void* const it) const
+		bool VectorBase::Valid(const void* const it) const
 		{
 			return it >= bytes && it <= bytes + size;
 		}
 
-		ibool Private::Base::InBound(const void* const it) const
+		bool VectorBase::InBound(const void* const it) const
 		{
 			return it >= bytes && it < bytes + size;
 		}
 
-		void Private::Base::Assign(const void* const NST_RESTRICT inData,const uint inSize)
+		void VectorBase::Assign(const void* const NST_RESTRICT inData,const uint inSize)
 		{
 			size = inSize;
 
@@ -77,7 +77,7 @@ namespace Nestopia
 			std::memcpy( data, inData, inSize );
 		}
 
-		void Private::Base::Append(const void* const NST_RESTRICT inData,const uint inSize)
+		void VectorBase::Append(const void* const NST_RESTRICT inData,const uint inSize)
 		{
 			size += inSize;
 
@@ -87,20 +87,20 @@ namespace Nestopia
 			std::memcpy( bytes + (size - inSize), inData, inSize );
 		}
 
-		void Private::Base::Insert(void* const offset,const void* const NST_RESTRICT inData,const uint inSize)
+		void VectorBase::Insert(void* const offset,const void* const NST_RESTRICT inData,const uint inSize)
 		{
 			NST_ASSERT( Valid(offset) );
 
 			if (inSize)
 			{
-				const uint pos = static_cast<char*>(offset) - bytes;
+				const uint pos = static_cast<uchar*>(offset) - bytes;
 				const uint end = size - pos;
 
 				size += inSize;
 
 				if (capacity >= size)
 				{
-					std::memmove( static_cast<char*>(offset) + inSize, offset, end );
+					std::memmove( static_cast<uchar*>(offset) + inSize, offset, end );
 
 					if (inData)
 						std::memcpy( offset, inData, inSize );
@@ -114,9 +114,9 @@ namespace Nestopia
 					std::memcpy( next, data, pos );
 
 					if (inData)
-						std::memcpy( static_cast<char*>(next) + pos, inData, inSize );
+						std::memcpy( static_cast<uchar*>(next) + pos, inData, inSize );
 
-					std::memcpy( static_cast<char*>(next) + pos + inSize, offset, end );
+					std::memcpy( static_cast<uchar*>(next) + pos + inSize, offset, end );
 
 					void* tmp = data;
 					data = next;
@@ -125,17 +125,17 @@ namespace Nestopia
 			}
 		}
 
-		void Private::Base::Erase(void* const begin,void* const end)
+		void VectorBase::Erase(void* const begin,void* const end)
 		{
 			NST_ASSERT( end >= begin && begin >= bytes && end <= bytes + size );
 
-			const uint back = (bytes + size) - static_cast<char*>(end);
-			size -= static_cast<char*>(end) - static_cast<char*>(begin);
+			const uint back = (bytes + size) - static_cast<uchar*>(end);
+			size -= static_cast<uchar*>(end) - static_cast<uchar*>(begin);
 
 			std::memmove( begin, end, back );
 		}
 
-		void Private::Base::Destroy()
+		void VectorBase::Destroy()
 		{
 			if (void* tmp = data)
 			{
@@ -146,35 +146,35 @@ namespace Nestopia
 			}
 		}
 
-		void Private::Base::operator = (const Base& base)
+		void VectorBase::operator = (const VectorBase& base)
 		{
 			Assign( base.data, base.size );
 		}
 
-		void Private::Base::Reserve(const uint inSize)
+		void VectorBase::Reserve(const uint inSize)
 		{
 			if (capacity < inSize)
 				data = std::realloc( data, capacity = inSize );
 		}
 
-		void Private::Base::Resize(const uint inSize)
+		void VectorBase::Resize(const uint inSize)
 		{
 			size = inSize;
 			Reserve( inSize );
 		}
 
-		void Private::Base::Grow(const uint inSize)
+		void VectorBase::Grow(const uint inSize)
 		{
 			Resize( size + inSize );
 		}
 
-		void Private::Base::Defrag()
+		void VectorBase::Defrag()
 		{
 			if (capacity != size)
 				data = std::realloc( data, capacity = size );
 		}
 
-		void Private::Base::Import(Base& base)
+		void VectorBase::Import(VectorBase& base)
 		{
 			void* tmp = data;
 			data = base.data;
@@ -188,6 +188,6 @@ namespace Nestopia
 	}
 }
 
-#ifdef NST_PRAGMA_OPTIMIZE
+#ifdef NST_MSVC_OPTIMIZE
 #pragma optimize("", on)
 #endif

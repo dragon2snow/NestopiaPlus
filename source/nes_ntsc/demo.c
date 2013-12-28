@@ -60,7 +60,7 @@ int main( int argc, char** argv )
 		if ( setup.merge_fields )
 			burst_phase = 0;
 		
-		nes_ntsc_blit( ntsc, image.pixels_8, image.row_width, burst_phase,
+		nes_ntsc_blit( ntsc, image.byte_pixels, image.row_width, burst_phase,
 				image.width, image.height, output_pixels, output_pitch );
 		
 		double_output_height();
@@ -106,13 +106,12 @@ int main( int argc, char** argv )
 		FILE* out = fopen( "nes.pal", "wb" );
 		if ( out )
 		{
-			unsigned char palette [64 * 3];
+			unsigned char palette [nes_ntsc_palette_size * 3];
 			setup.palette_out = palette;
 			nes_ntsc_init( 0, &setup );
-			fwrite( palette, sizeof palette, 1, out );
+			fwrite( palette, 192, 1, out );
 		}
 	}
 	
 	return 0;
 }
-

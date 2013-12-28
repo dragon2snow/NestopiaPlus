@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,57 +25,50 @@
 #ifndef NST_PRP_DATARECORDER_H
 #define NST_PRP_DATARECORDER_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
-#pragma once
+#ifndef NST_VECTOR_H
+#include "NstVector.hpp"
 #endif
 
-#include "NstVector.hpp"
-#include "NstChecksumMd5.hpp"
+#ifdef NST_PRAGMA_ONCE
+#pragma once
+#endif
 
 namespace Nes
 {
 	namespace Core
 	{
-		class Cpu;
-
-		namespace State
-		{
-			class Saver;
-			class Loader;
-		}
-
 		namespace Peripherals
 		{
-			class NST_NO_VTABLE DataRecorder
+			class DataRecorder
 			{
 			public:
 
-				DataRecorder(Cpu&);
+				explicit DataRecorder(Cpu&);
 				~DataRecorder();
 
+				void   Reset();
+				void   PowerOff();
 				Result Record();
 				Result Play();
-				void Stop();
-				void VSync();
-
-				void SaveState(State::Saver&) const;
-				void LoadState(State::Loader&);
+				Result Stop();
+				bool   CanPlay();
+				void   VSync();
+				void   SaveState(State::Saver&,dword) const;
+				void   LoadState(State::Loader&);
 
 			private:
 
-				void Load();
-				void Prepare();
-
-				NES_DECL_HOOK( Tape )
-				NES_DECL_POKE( 4016 )
-				NES_DECL_PEEK( 4016 )
-				NES_DECL_POKE( 4017 )
-				NES_DECL_PEEK( 4017 )
-
 				enum
 				{
+					MAX_LENGTH = SIZE_4096K,
 					CLOCK = 32000
 				};
+
+				void Start();
+
+				NES_DECL_HOOK( Tape );
+				NES_DECL_POKE( 4016 );
+				NES_DECL_PEEK( 4016 );
 
 				enum Status
 				{
@@ -87,36 +80,17 @@ namespace Nes
 				Cpu& cpu;
 				Cycle cycles;
 				Status status;
-				Vector<u8> stream;
+				Vector<byte> stream;
 				dword pos;
 				uint in;
 				uint out;
 				const Io::Port* p4016;
 				ibool loaded;
-				Checksum::Md5::Key checksum;
+				File file;
 
-				static const Cycle clocks[2][2];
+				static const dword clocks[2][2];
 
 			public:
-
-				void Reset()
-				{
-					cycles = NES_CYCLE_MAX;
-					status = STOPPED;
-				}
-
-				bool CanPlay()
-				{
-					if (!loaded)
-						Load();
-
-					return stream.Size();
-				}
-
-				bool CanSaveState() const
-				{
-					return stream.Size();
-				}
 
 				bool IsStopped() const
 				{

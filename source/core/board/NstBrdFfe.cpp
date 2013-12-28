@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -32,14 +32,14 @@ namespace Nes
 	{
 		namespace Boards
 		{
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("s", on)
 			#endif
 
 			Ffe::Ffe(Context& c,const Type t)
 			:
 			Mapper (c,t == F4_XXX ? CRAM_32K : WRAM_8K),
-			irq    (t == F3_XXX ? NULL : new Clock::M2<Irq>(c.cpu,t == F8_XXX_1 ? 0xFFFFU : 0xCFFFU)),
+			irq    (t == F3_XXX ? NULL : new Clock::M2<Irq>(c.cpu,t == F8_XXX_1 ? 0xFFFF : 0xCFFF)),
 			type   (t)
 			{
 			}
@@ -82,7 +82,7 @@ namespace Nes
 						Map( 0x8000U, 0xFFFFU, &Ffe::Poke_Prg_F3 );
 
 						if (hard)
-							prg.SwapBank<SIZE_16K,0x4000U>(1);
+							prg.SwapBank<SIZE_16K,0x4000>(1);
 
 						break;
 
@@ -91,7 +91,7 @@ namespace Nes
 						Map( 0x8000U, 0xFFFFU, &Ffe::Poke_Prg_F4 );
 
 						if (hard)
-							prg.SwapBank<SIZE_16K,0x4000U>(7);
+							prg.SwapBank<SIZE_16K,0x4000>(7);
 
 						break;
 
@@ -117,15 +117,15 @@ namespace Nes
 
 			void Ffe::BaseLoad(State::Loader& state,const dword id)
 			{
-				NST_VERIFY( id == NES_STATE_CHUNK_ID('F','F','E','\0') );
+				NST_VERIFY( id == (AsciiId<'F','F','E'>::V) );
 
-				if (id == NES_STATE_CHUNK_ID('F','F','E','\0'))
+				if (id == AsciiId<'F','F','E'>::V)
 				{
 					while (const dword chunk = state.Begin())
 					{
 						switch (chunk)
 						{
-							case NES_STATE_CHUNK_ID('R','E','G','\0'):
+							case AsciiId<'R','E','G'>::V:
 
 								NST_VERIFY( type == F4_XXX );
 
@@ -134,16 +134,16 @@ namespace Nes
 
 								break;
 
-							case NES_STATE_CHUNK_ID('I','R','Q','\0'):
+							case AsciiId<'I','R','Q'>::V:
 
 								NST_VERIFY( irq );
 
 								if (irq)
 								{
-									const State::Loader::Data<3> data( state );
+									State::Loader::Data<3> data( state );
 
 									irq->unit.enabled = data[0] & 0x1;
-									irq->unit.count = data[1] | (data[2] << 8);
+									irq->unit.count = data[1] | data[2] << 8;
 								}
 								break;
 						}
@@ -155,27 +155,27 @@ namespace Nes
 
 			void Ffe::BaseSave(State::Saver& state) const
 			{
-				state.Begin('F','F','E','\0');
+				state.Begin( AsciiId<'F','F','E'>::V );
 
 				if (type == F4_XXX)
-					state.Begin('R','E','G','\0').Write8( mode ).End();
+					state.Begin( AsciiId<'R','E','G'>::V ).Write8( mode ).End();
 
 				if (irq)
 				{
-					const u8 data[3] =
+					const byte data[3] =
 					{
 						irq->unit.enabled != false,
 						irq->unit.count & 0xFF,
 						irq->unit.count >> 8
 					};
 
-					state.Begin('I','R','Q','\0').Write( data ).End();
+					state.Begin( AsciiId<'I','R','Q'>::V ).Write( data ).End();
 				}
 
 				state.End();
 			}
 
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("", on)
 			#endif
 
@@ -212,13 +212,13 @@ namespace Nes
 			NES_POKE(Ffe,4502)
 			{
 				irq->Update();
-				irq->unit.count = (irq->unit.count & 0xFF00U) | data;
+				irq->unit.count = (irq->unit.count & 0xFF00) | data;
 			}
 
 			NES_POKE(Ffe,4503)
 			{
 				irq->Update();
-				irq->unit.count = (irq->unit.count & 0x00FFU) | (data << 8);
+				irq->unit.count = (irq->unit.count & 0x00FF) | (data << 8);
 				irq->unit.enabled = true;
 				irq->ClearIRQ();
 			}
@@ -226,8 +226,8 @@ namespace Nes
 			NES_POKE(Ffe,Prg_F3)
 			{
 				ppu.Update();
-				prg.SwapBank<SIZE_16K,0x0000U>( data >> 3 );
-				chr.SwapBank<SIZE_8K,0x0000U>( data & 0x7 );
+				prg.SwapBank<SIZE_16K,0x0000>( data >> 3 );
+				chr.SwapBank<SIZE_8K,0x0000>( data & 0x7 );
 			}
 
 			NES_POKE(Ffe,Prg_F4)
@@ -236,11 +236,11 @@ namespace Nes
 
 				if (mode || chr.Source(0).Writable())
 				{
-					prg.SwapBank<SIZE_16K,0x0000U>( data >> 2 );
+					prg.SwapBank<SIZE_16K,0x0000>( data >> 2 );
 					data &= 0x3;
 				}
 
-				chr.Source( mode ).SwapBank<SIZE_8K,0x0000U>( data );
+				chr.Source( mode ).SwapBank<SIZE_8K,0x0000>( data );
 			}
 
 			void Ffe::VSync()

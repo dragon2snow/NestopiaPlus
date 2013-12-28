@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -22,6 +22,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
+#include "language/resource.h"
 #include "NstApplicationException.hpp"
 #include "NstResourceBitmap.hpp"
 #include "NstWindowCustom.hpp"
@@ -46,7 +47,7 @@ namespace Nestopia
 							ImageList_AddMasked( static_cast<HIMAGELIST>(handle), Resource::Bitmap( selected   ), 0 ) == -1 ||
 							ImageList_AddMasked( static_cast<HIMAGELIST>(handle), Resource::Bitmap( unselected ), 0 ) == -1
 						)
-							throw Application::Exception(_T("ImageList_Add() failed!"));
+							throw Application::Exception( IDS_FAILED, _T("ImageList_Add()") );
 					}
 					catch (const Application::Exception& exception)
 					{
@@ -56,7 +57,7 @@ namespace Nestopia
 				}
 				else
 				{
-					throw Application::Exception(_T("ImageList_Create() failed!"));
+					throw Application::Exception( IDS_FAILED, _T("ImageList_Create()") );
 				}
 			}
 

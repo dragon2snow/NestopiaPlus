@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -30,8 +30,6 @@
 #include "NstWindowUser.hpp"
 #include "NstWindowParam.hpp"
 #include "NstWindowDropFiles.hpp"
-#include "NstWindowMenu.hpp"
-#include "NstManagerEmulator.hpp"
 #include "NstManagerPaths.hpp"
 #include "NstManagerPreferences.hpp"
 #include "NstManagerMovie.hpp"
@@ -59,8 +57,7 @@ namespace Nestopia
 			Window::Main& w
 		)
 		:
-		emulator     ( e ),
-		menu         ( m ),
+		Manager      ( e, m, this, &Files::OnEmuEvent ),
 		paths        ( p ),
 		preferences  ( r ),
 		movie        ( o ),
@@ -76,6 +73,8 @@ namespace Nestopia
 				{ Application::Instance::WM_NST_LAUNCH, &Files::OnMsgLaunch    }
 			};
 
+			w.Get().Messages().Add( this, messages );
+
 			static const Window::Menu::CmdHandler::Entry<Files> commands[] =
 			{
 				{ IDM_FILE_OPEN,     &Files::OnCmdOpen       },
@@ -84,14 +83,7 @@ namespace Nestopia
 				{ IDM_FILE_SAVE_NSP, &Files::OnCmdSaveScript }
 			};
 
-			w.Get().Messages().Add( this, messages );
-			m.Commands().Add( this, commands );
-			emulator.Events().Add( this, &Files::OnEmuEvent );
-		}
-
-		Files::~Files()
-		{
-			emulator.Events().Remove( this );
+			menu.Commands().Add( this, commands );
 		}
 
 		void Files::Open(tstring const name,uint types) const
@@ -149,7 +141,7 @@ namespace Nestopia
 
 				case Paths::File::STATE:
 
-					if (emulator.Is( Nes::Machine::GAME ))
+					if (emulator.Is(Nes::Machine::GAME))
 					{
 						saveStates.Load( file.data, file.name );
 						return;
@@ -161,7 +153,7 @@ namespace Nestopia
 
 				case Paths::File::MOVIE:
 
-					if (emulator.Is( Nes::Machine::GAME ))
+					if (emulator.Is(Nes::Machine::GAME))
 					{
 						if (movie.Load( file.name, Movie::NOISY ) && preferences[Preferences::AUTOSTART_EMULATION])
 						{
@@ -178,7 +170,7 @@ namespace Nestopia
 
 				case Paths::File::BATTERY:
 
-					if (emulator.Is( Nes::Machine::CARTRIDGE ) && Nes::Cartridge(emulator).GetInfo()->setup.wrkRamBacked)
+					if (emulator.Is(Nes::Machine::CARTRIDGE) && Nes::Cartridge(emulator).GetInfo()->setup.wrkRamBacked)
 					{
 						if (Window::User::Confirm( IDS_LOAD_APPLY_CURRENT_GAME ))
 							context.image = emulator.GetImagePath();
@@ -200,7 +192,7 @@ namespace Nestopia
 						return;
 					}
 
-					if (emulator.Is( Nes::Machine::GAME ))
+					if (emulator.Is(Nes::Machine::GAME))
 					{
 						if (Window::User::Confirm( IDS_LOAD_APPLY_CURRENT_GAME ))
 							context.image = emulator.GetImagePath();
@@ -222,7 +214,7 @@ namespace Nestopia
 						return;
 					}
 
-					if (context.image.Empty() && emulator.Is( Nes::Machine::GAME ))
+					if (context.image.Empty() && emulator.Is(Nes::Machine::GAME))
 					{
 						if (Window::User::Confirm( IDS_LOAD_APPLY_CURRENT_GAME ))
 							context.image = emulator.GetImagePath();
@@ -335,11 +327,11 @@ namespace Nestopia
 			AutoStart();
 		}
 
-		ibool Files::Close() const
+		bool Files::Close() const
 		{
 			if
 			(
-				!emulator.Is( Nes::Machine::ON ) ||
+				!emulator.Is(Nes::Machine::ON) ||
 				!preferences[Preferences::CONFIRM_RESET] ||
 				Window::User::Confirm( IDS_ARE_YOU_SURE, IDS_MACHINE_POWER_OFF_TITLE )
 			)
@@ -422,7 +414,7 @@ namespace Nestopia
 
 		void Files::OnCmdSaveScript(uint)
 		{
-			if (emulator.Is( Nes::Machine::GAME ))
+			if (emulator.Is(Nes::Machine::GAME))
 			{
 				Io::Nsp::Context context;
 
@@ -477,7 +469,7 @@ namespace Nestopia
 				case Emulator::EVENT_NETPLAY_MODE_ON:
 				case Emulator::EVENT_NETPLAY_MODE_OFF:
 				{
-					const ibool state = (event == Emulator::EVENT_NETPLAY_MODE_OFF);
+					const bool state = (event == Emulator::EVENT_NETPLAY_MODE_OFF);
 
 					menu[ IDM_FILE_OPEN ].Enable( state );
 					menu[ IDM_FILE_LOAD_NSP ].Enable( state );

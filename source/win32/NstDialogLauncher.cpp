@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -100,8 +100,8 @@ namespace Nestopia
 				cfg["launcher view on top"] == Configuration::YES
 			);
 
-			initialSize.x = cfg["launcher window size x"];
-			initialSize.y = cfg["launcher window size y"];
+			initialSize.x = uint(cfg["launcher window size x"]);
+			initialSize.y = uint(cfg["launcher window size y"]);
 
 			if (!initialSize.x || !initialSize.y)
 			{
@@ -113,7 +113,7 @@ namespace Nestopia
 
 			for (uint i=0; i < 6; ++i)
 			{
-				static const u16 keys[6][2] =
+				static const ushort keys[6][2] =
 				{
 					{ IDM_LAUNCHER_FILE_RUN,        VK_RETURN },
 					{ IDM_LAUNCHER_FILE_EDITHEADER, VK_F4     },
@@ -133,7 +133,7 @@ namespace Nestopia
 			Close();
 		}
 
-		void Launcher::Save(Configuration& cfg,ibool saveSize,ibool saveFiles)
+		void Launcher::Save(Configuration& cfg,bool saveSize,bool saveFiles)
 		{
 			if (saveSize)
 			{
@@ -147,7 +147,7 @@ namespace Nestopia
 			colors.Save( cfg );
 		}
 
-		void Launcher::Open(ibool child)
+		void Launcher::Open(bool child)
 		{
 			menu[IDM_LAUNCHER_VIEW_ONTOP].Enable( !child );
 			dialog.Open( child ? Dialog::MODELESS_CHILD : Dialog::MODELESS_FREE );
@@ -242,7 +242,7 @@ namespace Nestopia
 			return true;
 		}
 
-		void Launcher::UpdateItemCount(const u32 count) const
+		void Launcher::UpdateItemCount(const uint count) const
 		{
 			if (count == 0 || count == 1)
 			{

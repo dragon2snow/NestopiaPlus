@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -29,18 +29,21 @@ namespace Nes
 {
 	namespace Core
 	{
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("s", on)
 		#endif
 
 		void Mapper163::SubReset(bool)
 		{
-			regs[0] = strobe = 0xFF;
-			security = trigger = regs[1] = 0x00;
+			strobe = 0xFF;
+			regs[0] = 0xFF;
+			regs[1] = 0x00;
+			trigger = 0x00;
+			security = 0x00;
 
 			ppu.SetSpHook( Hook(this,&Mapper163::Hook_Ppu) );
 
-			for (uint i=0x5000U; i < 0x6000U; i += 0x800)
+			for (uint i=0x5000; i < 0x6000; i += 0x800)
 			{
 				Map( i + 0x000, i + 0x0FF, &Mapper163::Peek_5000 );
 				Map( i + 0x100, i + 0x1FF, &Mapper163::Peek_5100 );
@@ -52,7 +55,7 @@ namespace Nes
 			Map( 0x5100U, &Mapper163::Poke_5100 );
 			Map( 0x5101U, &Mapper163::Poke_5101 );
 
-			for (uint i=0x5000U; i < 0x6000U; i += 0x400)
+			for (uint i=0x5000; i < 0x6000; i += 0x400)
 			{
 				Map( i + 0x000, i + 0x0FF, &Mapper163::Poke_5000 );
 				Map( i + 0x200, i + 0x2FF, &Mapper163::Poke_5000 );
@@ -63,13 +66,13 @@ namespace Nes
 		void Mapper163::SubSave(State::Saver& state) const
 		{
 			{
-				const u8 data[2] = { regs[0], regs[1] };
-				state.Begin('R','E','G','\0').Write( data ).End();
+				const byte data[2] = { regs[0], regs[1] };
+				state.Begin( AsciiId<'R','E','G'>::V ).Write( data ).End();
 			}
 
 			{
-				const u8 data[3] = { strobe, trigger ? 0x1 : 0x0, security };
-				state.Begin('S','E','C','\0').Write( data ).End();
+				const byte data[3] = { strobe, trigger ? 0x1 : 0x0, security };
+				state.Begin( AsciiId<'S','E','C'>::V ).Write( data ).End();
 			}
 		}
 
@@ -79,21 +82,21 @@ namespace Nes
 			{
 				switch (chunk)
 				{
-					case NES_STATE_CHUNK_ID('R','E','G','\0'):
+					case AsciiId<'R','E','G'>::V:
 					{
-						const State::Loader::Data<2> data( state );
+						State::Loader::Data<2> data( state );
 
 						regs[0] = data[0];
 						regs[1] = data[1];
 						break;
 					}
 
-					case NES_STATE_CHUNK_ID('S','E','C','\0'):
+					case AsciiId<'S','E','C'>::V:
 					{
-						const State::Loader::Data<3> data( state );
+						State::Loader::Data<3> data( state );
 
 						strobe = data[0];
-						trigger = (data[1] & 0x1) ? ~0U : 0U;
+						trigger = (data[1] & 0x1) ? 0xFF : 0x00;
 						security = data[2];
 						break;
 					}
@@ -103,7 +106,7 @@ namespace Nes
 			}
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
@@ -115,14 +118,14 @@ namespace Nes
 		NES_POKE(Mapper163,5000)
 		{
 			regs[address >> 9 & 0x1] = data;
-			prg.SwapBank<SIZE_32K,0x0000U>( (regs[0] & 0xF) | (regs[1] << 4) );
+			prg.SwapBank<SIZE_32K,0x0000>( (regs[0] & 0xFU) | (regs[1] << 4) );
 
-			if (!((address & 0x0300) | (regs[0] & 0x80)))
+			if (!((address & 0x0300) | (regs[0] & 0x80U)))
 			{
 				ppu.Update();
 
 				if (ppu.GetScanline() <= 127)
-					chr.SwapBank<SIZE_8K,0x0000U>(0);
+					chr.SwapBank<SIZE_8K,0x0000>(0);
 			}
 		}
 
@@ -134,7 +137,7 @@ namespace Nes
 		NES_POKE(Mapper163,5100)
 		{
 			if (data == 0x6)
-				prg.SwapBank<SIZE_32K,0x0000U>( 0x3 );
+				prg.SwapBank<SIZE_32K,0x0000>( 0x3 );
 		}
 
 		NES_POKE(Mapper163,5101)
@@ -143,7 +146,7 @@ namespace Nes
 			strobe = data;
 
 			if (address && !data)
-				trigger = ~trigger;
+				trigger ^= 0xFFU;
 		}
 
 		NES_POKE(Mapper163,5300)
@@ -158,14 +161,14 @@ namespace Nes
 
 		NES_HOOK(Mapper163,Ppu)
 		{
-			if ((regs[0] & 0x80) && ppu.IsEnabled())
+			if ((regs[0] & 0x80U) && ppu.IsEnabled())
 			{
 				switch (const int scanline=ppu.GetScanline())
 				{
 					case 127:
 					case 239:
 
-						chr.SwapBanks<SIZE_4K,0x0000U>( scanline == 127, scanline == 127 );
+						chr.SwapBanks<SIZE_4K,0x0000>( scanline == 127, scanline == 127 );
 						break;
 				}
 			}

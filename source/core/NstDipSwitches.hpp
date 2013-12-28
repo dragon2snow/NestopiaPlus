@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,7 +25,7 @@
 #ifndef NST_DIPSWITCHES_H
 #define NST_DIPSWITCHES_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
+#ifdef NST_PRAGMA_ONCE
 #pragma once
 #endif
 
@@ -35,6 +35,10 @@ namespace Nes
 	{
 		class NST_NO_VTABLE DipSwitches
 		{
+		protected:
+
+			~DipSwitches() {}
+
 		public:
 
 			virtual uint NumDips() const = 0;

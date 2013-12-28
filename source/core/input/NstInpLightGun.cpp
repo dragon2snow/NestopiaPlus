@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -32,7 +32,7 @@ namespace Nes
 	{
 		namespace Input
 		{
-			const u8 LightGun::lightMap[Video::Screen::PALETTE] =
+			const byte LightGun::lightMap[Video::Screen::PALETTE] =
 			{
 				0x66, 0x28, 0x23, 0x24, 0x29, 0x28, 0x25, 0x2B,
 				0x2F, 0x2E, 0x30, 0x2F, 0x2E, 0x00, 0x00, 0x00,
@@ -107,7 +107,7 @@ namespace Nes
 				0xAF, 0xAF, 0xAE, 0xAE, 0xAE, 0x8E, 0x00, 0x00
 			};
 
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("s", on)
 			#endif
 
@@ -133,24 +133,24 @@ namespace Nes
 				arcade = a;
 			}
 
-			void LightGun::SaveState(State::Saver& state,const uchar id) const
+			void LightGun::SaveState(State::Saver& state,const byte id) const
 			{
-				const u8 data[2] =
+				const byte data[2] =
 				{
 					arcade ? shifter ? 0x1 : 0x3 : 0x0,
 					arcade ? stream : 0x00
 				};
 
-				state.Begin('L','G',id,'\0').Write( data ).End();
+				state.Begin( AsciiId<'L','G'>::R(0,0,id) ).Write( data ).End();
 			}
 
 			void LightGun::LoadState(State::Loader& state,const dword id)
 			{
-				if (id == NES_STATE_CHUNK_ID('L','G','\0','\0'))
+				if (id == AsciiId<'L','G'>::V)
 				{
-					const State::Loader::Data<2> data( state );
+					State::Loader::Data<2> data( state );
 
-					if (data[0] & 0x1)
+					if (data[0] & 0x1U)
 					{
 						shifter = ~data[0] >> 1 & 0x1;
 						stream = data[1];
@@ -158,7 +158,7 @@ namespace Nes
 				}
 			}
 
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("", on)
 			#endif
 
@@ -184,10 +184,25 @@ namespace Nes
 				{
 					ppu.Update();
 
-					const uint cycle = ppu.GetPixelCycles();
+					uint pixel = ppu.GetPixelCycles();
 
-					if (pos < cycle && pos >= cycle - PHOSPHOR_DECAY)
-						return lightMap[ppu.GetYuvPixel( pos )];
+					if (pos < pixel && pos >= pixel - PHOSPHOR_DECAY)
+					{
+						pixel = ppu.GetPixel( pos );
+
+						if (arcade)
+						{
+							NST_COMPILE_ASSERT( LIGHT_SENSOR >= 0x3F );
+							NST_VERIFY( pixel <= 0x3F );
+
+							if (pixel > 0x3F)
+								return pixel;
+
+							pixel = ppu.GetYuvColor( pixel );
+						}
+
+						return lightMap[pixel];
+					}
 				}
 
 				return 0;

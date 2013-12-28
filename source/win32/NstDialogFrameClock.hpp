@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -59,7 +59,17 @@ namespace Nestopia
 				MAX_MHZ_AUTO_FRAME_SKIP_ENABLE = 950
 			};
 
-			struct Settings
+			void UpdateRewinderEnable() const;
+
+			ibool OnInitDialog      (Param&);
+			ibool OnHScroll         (Param&);
+			ibool OnCmdRefresh      (Param&);
+			ibool OnCmdDefaultSpeed (Param&);
+			ibool OnCmdRewinder     (Param&);
+			ibool OnCmdDefault      (Param&);
+			ibool OnCmdOk           (Param&);
+
+			struct
 			{
 				bool autoFrameSkip;
 				bool vsync;
@@ -73,21 +83,10 @@ namespace Nestopia
 				uchar altSpeed;
 				uchar rewindSpeed;
 				uchar maxFrameSkips;
-			};
+			}   settings;
 
-			void UpdateRewinderEnable() const;
-
-			ibool OnInitDialog      (Param&);
-			ibool OnHScroll         (Param&);
-			ibool OnCmdRefresh      (Param&);
-			ibool OnCmdDefaultSpeed (Param&);
-			ibool OnCmdRewinder     (Param&);
-			ibool OnCmdDefault      (Param&);
-			ibool OnCmdOk           (Param&);
-
-			Settings settings;
 			Dialog dialog;
-			const ibool modernGPU;
+			const bool modernGPU;
 
 		public:
 

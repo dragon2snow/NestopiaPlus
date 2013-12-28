@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -27,14 +27,14 @@
 #include "NstStream.hpp"
 #include "NstImageDatabase.hpp"
 
-#ifdef NST_PRAGMA_OPTIMIZE
-#pragma optimize("s", on)
-#endif
-
 namespace Nes
 {
 	namespace Core
 	{
+		#ifdef NST_MSVC_OPTIMIZE
+		#pragma optimize("s", on)
+		#endif
+
 		NST_COMPILE_ASSERT
 		(
 			Api::Cartridge::MIRROR_HORIZONTAL == 0 &&
@@ -45,7 +45,7 @@ namespace Nes
 			Api::Cartridge::MIRROR_CONTROLLED == 5
 		);
 
-		const u32 ImageDatabase::ramLut[16] =
+		const dword ImageDatabase::ramSizes[16] =
 		{
 			0,
 			128,
@@ -82,24 +82,28 @@ namespace Nes
 			Unload();
 
 			Result result;
-			Stream::In stream( input );
 
 			try
 			{
-				numEntries = stream.Read32() & 0xFFFF;
+				Stream::In stream( input );
+
+				numEntries = stream.Read32();
+				NST_VERIFY( numEntries <= 0xFFFF );
 
 				if (!numEntries)
 					throw RESULT_ERR_CORRUPT_FILE;
+
+				numEntries &= 0xFFFF;
 
 				Entry* NST_RESTRICT it = new Entry [numEntries];
 				entries = it;
 
 				for (Ref const end = it + numEntries; it != end; ++it)
 				{
-					u8 data[14];
+					byte data[14];
 					stream.Read( data );
 
-					it->crc       = data[0] | (data[1] << 8) | (data[2] << 16) | (data[3] << 24);
+					it->crc       = data[0] | uint(data[1]) << 8 | dword(data[2]) << 16 | dword(data[3]) << 24;
 					it->prgSize   = data[4];
 					it->prgSkip   = data[5];
 					it->chrSize   = data[6];
@@ -108,7 +112,7 @@ namespace Nes
 					it->mapper    = data[9];
 					it->attribute = data[10];
 					it->input     = data[11];
-					it->flags     = data[12] | (data[13] << 8);
+					it->flags     = data[12] | uint(data[13]) << 8;
 				}
 
 				return RESULT_OK;
@@ -152,21 +156,6 @@ namespace Nes
 			return NULL;
 		}
 
-		dword ImageDatabase::WrkRam(Handle h) const
-		{
-			return ramLut[static_cast<Ref>(h)->wrkSize >> 4];
-		}
-
-		dword ImageDatabase::WrkRamBacked(Handle h) const
-		{
-			return ramLut[static_cast<Ref>(h)->wrkSize & 0xF];
-		}
-
-		dword ImageDatabase::ChrRam(Handle h) const
-		{
-			return static_cast<Ref>(h)->chrSize ? 0 : SIZE_8K;
-		}
-
 		System ImageDatabase::GetSystem(Handle h) const
 		{
 			const uint flags = static_cast<Ref>(h)->flags;
@@ -187,7 +176,7 @@ namespace Nes
 
 		Region ImageDatabase::GetRegion(Handle h) const
 		{
-			switch (static_cast<Ref>(h)->flags & (Entry::FLAGS_NTSC|Entry::FLAGS_PAL))
+			switch (uint(static_cast<Ref>(h)->flags) & (Entry::FLAGS_NTSC|Entry::FLAGS_PAL))
 			{
 				case (Entry::FLAGS_NTSC|Entry::FLAGS_PAL):
 					return REGION_BOTH;
@@ -200,13 +189,13 @@ namespace Nes
 			}
 		}
 
-		Api::Cartridge::Condition ImageDatabase::Condition(Handle h) const
+		Api::Cartridge::Condition ImageDatabase::GetCondition(Handle h) const
 		{
-			if (static_cast<Ref>(h)->flags & Entry::FLAGS_BAD)
+			if (uint(static_cast<Ref>(h)->flags) & Entry::FLAGS_BAD)
 			{
 				return Api::Cartridge::DUMP_BAD;
 			}
-			else if ((static_cast<Ref>(h)->prgSkip | static_cast<Ref>(h)->chrSkip) && !(static_cast<Ref>(h)->flags & Entry::FLAGS_P10))
+			else if ((uint(static_cast<Ref>(h)->prgSkip) | uint(static_cast<Ref>(h)->chrSkip)) && !(uint(static_cast<Ref>(h)->flags) & Entry::FLAGS_P10))
 			{
 				return Api::Cartridge::DUMP_REPAIRABLE;
 			}
@@ -215,9 +204,9 @@ namespace Nes
 				return Api::Cartridge::DUMP_OK;
 			}
 		}
+
+		#ifdef NST_MSVC_OPTIMIZE
+		#pragma optimize("", on)
+		#endif
 	}
 }
-
-#ifdef NST_PRAGMA_OPTIMIZE
-#pragma optimize("", on)
-#endif

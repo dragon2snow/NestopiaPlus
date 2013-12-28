@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -30,7 +30,7 @@ namespace Nes
 {
 	namespace Core
 	{
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("s", on)
 		#endif
 
@@ -44,26 +44,26 @@ namespace Nes
 		{
 			if (hard)
 			{
-				title = 0xB000U;
-				prg.SwapBanks<SIZE_8K,0x0000U>( 1, 0, 0, 9 );
+				title = 0xB000;
+				prg.SwapBanks<SIZE_8K,0x0000>( 1, 0, 0, 9 );
 			}
-			else if (title == 0xB000U)
+			else if (title == 0xB000)
 			{
-				title = 0xC000U;
+				title = 0xC000;
 			}
 			else
 			{
-				title = 0xB000U;
+				title = 0xB000;
 			}
 
 			irq.Reset( hard, true );
 
-			for (dword i=0x4022U; i < 0x10000UL; i += 0x100)
+			for (dword i=0x4022; i <= 0xFFFF; i += 0x100)
 			{
-				switch (i & 0x71FFU)
+				switch (i & 0x71FF)
 				{
-					case 0x0122U: Map( i, &Mapper43::Poke_4122 ); break;
-					case 0x4022U: Map( i, &Mapper43::Poke_4022 ); break;
+					case 0x0122: Map( i, &Mapper43::Poke_4122 ); break;
+					case 0x4022: Map( i, &Mapper43::Poke_4022 ); break;
 				}
 			}
 
@@ -77,17 +77,19 @@ namespace Nes
 			{
 				switch (chunk)
 				{
-					case NES_STATE_CHUNK_ID('I','R','Q','\0'):
+					case AsciiId<'I','R','Q'>::V:
 					{
 						State::Loader::Data<3> data( state );
+
 						irq.unit.enabled = data[0] & 0x1;
-						irq.unit.count = data[1] | ((data[2] & 0xF) << 8);
+						irq.unit.count = data[1] | (data[2] << 8 & 0xF00);
+
 						break;
 					}
 
-					case NES_STATE_CHUNK_ID('T','T','L','\0'):
+					case AsciiId<'T','T','L'>::V:
 
-						title = (state.Read8() & 0x1) ? 0xC000U : 0xB000U;
+						title = (state.Read8() & 0x1) ? 0xC000 : 0xB000;
 						break;
 				}
 
@@ -97,19 +99,19 @@ namespace Nes
 
 		void Mapper43::SubSave(State::Saver& state) const
 		{
-			state.Begin('T','T','L','\0').Write8( title == 0xC000U ? 0x1 : 0x0 ).End();
+			state.Begin( AsciiId<'T','T','L'>::V ).Write8( title == 0xC000 ? 0x1 : 0x0 ).End();
 
-			const u8 data[3] =
+			const byte data[3] =
 			{
 				irq.unit.enabled != 0,
 				irq.unit.count & 0xFF,
 				irq.unit.count >> 8
 			};
 
-			state.Begin('I','R','Q','\0').Write( data ).End();
+			state.Begin( AsciiId<'I','R','Q'>::V ).Write( data ).End();
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
@@ -126,7 +128,7 @@ namespace Nes
 		{
 			if (enabled)
 			{
-				count = (count + 1) & 0xFFFU;
+				count = (count + 1) & 0xFFF;
 
 				if (!count)
 				{
@@ -140,8 +142,8 @@ namespace Nes
 
 		NES_POKE(Mapper43,4022)
 		{
-			static const u8 banks[8] = {4,3,4,4,4,7,5,6};
-			prg.SwapBank<SIZE_8K,0x4000U>( banks[data & 0x7] );
+			static const byte banks[8] = {4,3,4,4,4,7,5,6};
+			prg.SwapBank<SIZE_8K,0x4000>( banks[data & 0x7] );
 		}
 
 		NES_POKE(Mapper43,4122)
@@ -159,7 +161,7 @@ namespace Nes
 
 		NES_PEEK(Mapper43,6000)
 		{
-			return *prg.Source().Mem( address - (0x6000U-0x4000U) );
+			return *prg.Source().Mem( address - (0x6000-0x4000) );
 		}
 
 		void Mapper43::VSync()

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -23,7 +23,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 
 #include <algorithm>
-#include "NstCore.hpp"
 #include "NstCpu.hpp"
 #include "NstCheats.hpp"
 
@@ -31,28 +30,9 @@ namespace Nes
 {
 	namespace Core
 	{
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("s", on)
 		#endif
-
-		Cheats::LoCode::LoCode(u16 a,u8 d,u8 c,bool u)
-		:
-		address    (a),
-		data       (d),
-		compare    (c),
-		useCompare (u)
-		{}
-
-		bool Cheats::LoCode::operator == (const LoCode& code) const
-		{
-			return data == code.data && compare == code.compare && useCompare == code.useCompare;
-		}
-
-		Cheats::HiCode::HiCode(u16 a,u8 d,u8 c,bool u)
-		: LoCode(a,d,c,u), port(NULL) {}
-
-		inline Cheats::HiCode::HiCode(uint address)
-		: LoCode(address,0,0,0), port(NULL) {}
 
 		Cheats::Cheats(Cpu& c)
 		: cpu(c) {}
@@ -64,61 +44,63 @@ namespace Nes
 
 		Result Cheats::SetCode
 		(
-			const u16 address,
-			const u8 data,
-			const u8 compare,
+			const word address,
+			const byte data,
+			const byte compare,
 			const bool useCompare,
 			const bool activate
 		)
 		{
-			if (address < 0x2000U)
+			if (address < 0x2000)
 			{
-				const LoCode code(address,data,compare,useCompare);
+				const LoCode code = {address,data,compare,useCompare};
 
-				for (LoCodes::iterator it(loCodes.begin()), end(loCodes.end()); ; ++it)
+				for (LoCode *it=loCodes.Begin(), *const end=loCodes.End(); ; ++it)
 				{
-					if (it == loCodes.end() || it->address > address)
+					if (it == end || it->address > address)
 					{
-						loCodes.insert( it, code );
+						loCodes.Insert( it, code );
 						break;
 					}
 					else if (it->address == address)
 					{
-						if (*it == code)
+						if (it->data == code.data && it->useCompare == code.useCompare && (!code.useCompare || it->compare == code.compare))
 						{
 							return RESULT_NOP;
 						}
 						else
 						{
 							*it = code;
-							break;
+							return RESULT_WARN_DATA_REPLACED;
 						}
 					}
 				}
 			}
 			else
 			{
-				const HiCode code(address,data,compare,useCompare);
+				const HiCode code = {address,data,compare,useCompare,NULL};
 
-				HiCodes::iterator it(hiCodes.begin());
+				HiCode* it = hiCodes.Begin();
 
-				for (HiCodes::const_iterator end(hiCodes.end()); ; ++it)
+				for (const HiCode* const end=hiCodes.End(); ; ++it)
 				{
 					if (it == end || it->address > address)
 					{
-						it = hiCodes.insert( it, code );
+						it = hiCodes.Insert( it, code );
 						break;
 					}
 					else if (it->address == address)
 					{
-						if (*it == code)
+						if (it->data == code.data && it->useCompare == code.useCompare && (!code.useCompare || it->compare == code.compare))
 						{
 							return RESULT_NOP;
 						}
 						else
 						{
-							*it = code;
-							break;
+							it->data = code.data;
+							it->compare = code.compare;
+							it->useCompare = code.useCompare;
+							return RESULT_WARN_DATA_REPLACED;
 						}
 					}
 				}
@@ -132,16 +114,16 @@ namespace Nes
 
 		Result Cheats::DeleteCode(dword index)
 		{
-			if (loCodes.size() > index)
+			if (loCodes.Size() > index)
 			{
-				loCodes.erase( loCodes.begin() + index );
+				loCodes.Erase( loCodes.Begin() + index );
 				return RESULT_OK;
 			}
-			else if (hiCodes.size() > (index -= loCodes.size()))
+			else if (hiCodes.Size() > (index -= loCodes.Size()))
 			{
-				HiCodes::iterator it( hiCodes.begin() + index );
+				HiCode* const it = hiCodes.Begin() + index;
 				cpu.Unlink( it->address, this, &Cheats::Peek_Wizard, &Cheats::Poke_Wizard );
-				hiCodes.erase( it );
+				hiCodes.Erase( it );
 				return RESULT_OK;
 			}
 			else
@@ -152,7 +134,10 @@ namespace Nes
 
 		void Cheats::Reset()
 		{
-			for (HiCodes::iterator it(hiCodes.begin()), end(hiCodes.end()); it != end; ++it)
+			loCodes.Defrag();
+			hiCodes.Defrag();
+
+			for (HiCode *it=hiCodes.Begin(), *const end=hiCodes.End(); it != end; ++it)
 				Map( *it );
 		}
 
@@ -163,90 +148,115 @@ namespace Nes
 
 		void Cheats::ClearCodes()
 		{
-			loCodes.clear();
+			loCodes.Destroy();
 
-			for (HiCodes::iterator it(hiCodes.begin()), end(hiCodes.end()); it != end; ++it)
+			for (const HiCode *it=hiCodes.Begin(), *const end=hiCodes.End(); it != end; ++it)
 				cpu.Unlink( it->address, this, &Cheats::Peek_Wizard, &Cheats::Poke_Wizard );
 
-			hiCodes.clear();
+			hiCodes.Destroy();
 		}
 
 		Result Cheats::GetCode
 		(
 			dword index,
-			u16* const address,
-			u8* const data,
-			u8* const compare,
+			ushort* const address,
+			uchar* const data,
+			uchar* const compare,
 			bool* const useCompare
 		)   const
 		{
-			const LoCode* code;
+			if (loCodes.Size() > index)
+			{
+				const LoCode* NST_RESTRICT code = loCodes.Begin() + index;
 
-			if (loCodes.size() > index)
-			{
-				code = &loCodes[index];
+				if (address)
+					*address = code->address;
+
+				if (data)
+					*data = code->data;
+
+				if (compare)
+					*compare = code->compare;
+
+				if (useCompare)
+					*useCompare = code->useCompare;
 			}
-			else if (hiCodes.size() > (index -= loCodes.size()))
+			else if (hiCodes.Size() > (index -= loCodes.Size()))
 			{
-				code = &hiCodes[index];
+				const HiCode* NST_RESTRICT code = hiCodes.Begin() + index;
+
+				if (address)
+					*address = code->address;
+
+				if (data)
+					*data = code->data;
+
+				if (compare)
+					*compare = code->compare;
+
+				if (useCompare)
+					*useCompare = code->useCompare;
 			}
 			else
 			{
 				return RESULT_ERR_INVALID_PARAM;
 			}
 
-			if (address)
-				*address = code->address;
-
-			if (data)
-				*data = code->data;
-
-			if (compare)
-				*compare = code->compare;
-
-			if (useCompare)
-				*useCompare = code->useCompare;
-
 			return RESULT_OK;
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
 		void Cheats::BeginFrame() const
 		{
-			for (LoCodes::const_iterator it(loCodes.begin()), end(loCodes.end()); it != end; ++it)
-				cpu.PatchSystemRam( it->address, it->data, it->compare, it->useCompare );
+			for (const LoCode* NST_RESTRICT it=loCodes.Begin(), *const end=loCodes.End(); it != end; ++it)
+			{
+				const uint address = it->address & (Cpu::RAM_SIZE-1);
+
+				if (!it->useCompare || *cpu.SystemRam(address) == it->compare)
+					*cpu.SystemRam(address) = it->data;
+			}
 		}
 
-		inline bool Cheats::HiCode::operator < (const HiCode& code) const
+		inline bool Cheats::HiCode::operator < (const Cheats::HiCode& c) const
 		{
-			return address < code.address;
+			return address < c.address;
+		}
+
+		inline bool Cheats::HiCode::operator < (Address a) const
+		{
+			return address < a;
+		}
+
+		inline bool operator < (Address a,const Cheats::HiCode& c)
+		{
+			return a < c.address;
 		}
 
 		NES_PEEK(Cheats,Wizard)
 		{
-			NST_ASSERT( address >= 0x2000U );
+			NST_ASSERT( address >= 0x2000 );
 
-			const HiCode& code = *std::lower_bound( &hiCodes.front(), &hiCodes.back() + 1, HiCode(address) );
+			const HiCode* const NST_RESTRICT code = std::lower_bound( hiCodes.Begin(), hiCodes.End(), address );
 
-			if (code.useCompare)
+			if (code->useCompare)
 			{
-				const uint data = code.port->Peek( address );
+				const uint data = code->port->Peek( address );
 
-				if (code.compare != data)
+				if (code->compare != data)
 					return data;
 			}
 
-			return code.data;
+			return code->data;
 		}
 
 		NES_POKE(Cheats,Wizard)
 		{
-			NST_ASSERT( address >= 0x2000U );
+			NST_ASSERT( address >= 0x2000 );
 
-			return std::lower_bound( &hiCodes.front(), &hiCodes.back() + 1, HiCode(address) )->port->Poke( address, data );
+			return std::lower_bound( hiCodes.Begin(), hiCodes.End(), address )->port->Poke( address, data );
 		}
 	}
 }

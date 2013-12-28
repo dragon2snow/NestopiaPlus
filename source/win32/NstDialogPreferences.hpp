@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -83,7 +83,7 @@ namespace Nestopia
 			class Association;
 
 			ibool OnInitDialog          (Param&);
-			ibool OnEraseBkgnd          (Param&);
+			ibool OnPaint               (Param&);
 			ibool OnCmdDefault          (Param&);
 			ibool OnCmdStyle            (Param&);
 			ibool OnCmdMenuColorDefault (Param&);
@@ -95,15 +95,13 @@ namespace Nestopia
 
 			struct Settings : Collection::BitSet
 			{
-				struct MenuLook
+				Priority priority;
+
+				struct
 				{
 					COLORREF color;
-					ibool enabled;
-				};
-
-				Priority priority;
-				MenuLook menuLookDesktop;
-				MenuLook menuLookFullscreen;
+					bool enabled;
+				}   menuLookDesktop, menuLookFullscreen;
 			};
 
 			Settings settings;

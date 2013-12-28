@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -24,20 +24,20 @@
 
 #include <new>
 #include "../NstMachine.hpp"
+#include "../NstStream.hpp"
 #include "../NstCartridge.hpp"
-#include "../NstLog.hpp"
 #include "../NstImageDatabase.hpp"
 #include "../NstCartridgeInes.hpp"
 #include "NstApiMachine.hpp"
-
-#ifdef NST_PRAGMA_OPTIMIZE
-#pragma optimize("s", on)
-#endif
 
 namespace Nes
 {
 	namespace Api
 	{
+		#ifdef NST_MSVC_OPTIMIZE
+		#pragma optimize("s", on)
+		#endif
+
 		Cartridge::Setup::Setup() throw()
 		{
 			Clear();
@@ -68,6 +68,10 @@ namespace Nes
 			Clear();
 		}
 
+		Cartridge::Info::~Info() throw()
+		{
+		}
+
 		void Cartridge::Info::Clear() throw()
 		{
 			name.clear();
@@ -90,55 +94,50 @@ namespace Nes
 
 		Result NST_CALL Cartridge::ReadNesHeader(Setup& setup,const void* const data,const ulong length) throw()
 		{
-			return Core::Cartridge::Ines::ReadHeader( setup, data, length );
+			return Core::Cartridge::Ines::ReadHeader( setup, static_cast<const byte*>(data), length );
 		}
 
 		Result NST_CALL Cartridge::WriteNesHeader(const Setup& setup,void* data,ulong length) throw()
 		{
-			return Core::Cartridge::Ines::WriteHeader( setup, data, length );
-		}
-
-		Cartridge::Database Cartridge::GetDatabase() throw()
-		{
-			return Database(emulator.imageDatabase);
+			return Core::Cartridge::Ines::WriteHeader( setup, static_cast<byte*>(data), length );
 		}
 
 		bool Cartridge::Database::IsLoaded() const throw()
 		{
-			return imageDatabase != NULL;
+			return emulator.imageDatabase;
 		}
 
 		bool Cartridge::Database::IsEnabled() const throw()
 		{
-			return imageDatabase && imageDatabase->Enabled();
+			return emulator.imageDatabase && emulator.imageDatabase->Enabled();
 		}
 
 		bool Cartridge::Database::Create()
 		{
-			if (imageDatabase == NULL)
-				imageDatabase = new (std::nothrow) Core::ImageDatabase;
+			if (emulator.imageDatabase == NULL)
+				emulator.imageDatabase = new (std::nothrow) Core::ImageDatabase;
 
-			return imageDatabase != NULL;
+			return emulator.imageDatabase;
 		}
 
 		Result Cartridge::Database::Load(std::istream& stream) throw()
 		{
-			return Create() ? imageDatabase->Load( &stream ) : RESULT_ERR_OUT_OF_MEMORY;
+			return Create() ? emulator.imageDatabase->Load( &stream ) : RESULT_ERR_OUT_OF_MEMORY;
 		}
 
 		void Cartridge::Database::Unload() throw()
 		{
-			if (imageDatabase)
-				imageDatabase->Unload();
+			if (emulator.imageDatabase)
+				emulator.imageDatabase->Unload();
 		}
 
 		Result Cartridge::Database::Enable(bool state) throw()
 		{
 			if (Create())
 			{
-				if (bool(imageDatabase->Enabled()) != state)
+				if (emulator.imageDatabase->Enabled() != state)
 				{
-					imageDatabase->Enable( state );
+					emulator.imageDatabase->Enable( state );
 					return RESULT_OK;
 				}
 
@@ -158,81 +157,81 @@ namespace Nes
 
 		Cartridge::Database::Entry Cartridge::Database::FindEntry(ulong crc) const throw()
 		{
-			return imageDatabase ? imageDatabase->Search( crc ) : NULL;
+			return emulator.imageDatabase ? emulator.imageDatabase->Search( crc ) : NULL;
 		}
 
 		Cartridge::Database::Entry Cartridge::Database::FindEntry(const void* file,ulong length) const throw()
 		{
-			return imageDatabase ? Core::Cartridge::SearchDatabase( *imageDatabase, file, length ) : NULL;
+			return emulator.imageDatabase ? Core::Cartridge::Ines::SearchDatabase( *emulator.imageDatabase, static_cast<const byte*>(file), length ) : NULL;
 		}
 
 		System Cartridge::Database::GetSystem(Entry entry) const throw()
 		{
-			return imageDatabase && entry ? imageDatabase->GetSystem( entry ) : SYSTEM_HOME;
+			return emulator.imageDatabase && entry ? emulator.imageDatabase->GetSystem( entry ) : SYSTEM_HOME;
 		}
 
 		Region Cartridge::Database::GetRegion(Entry entry) const throw()
 		{
-			return imageDatabase && entry ? imageDatabase->GetRegion( entry ) : REGION_NTSC;
+			return emulator.imageDatabase && entry ? emulator.imageDatabase->GetRegion( entry ) : REGION_NTSC;
 		}
 
 		Cartridge::Mirroring Cartridge::Database::GetMirroring(Entry entry) const throw()
 		{
-			return imageDatabase && entry ? imageDatabase->GetMirroring( entry ) : MIRROR_HORIZONTAL;
+			return emulator.imageDatabase && entry ? emulator.imageDatabase->GetMirroring( entry ) : MIRROR_HORIZONTAL;
 		}
 
 		ulong Cartridge::Database::GetCrc(Entry entry) const throw()
 		{
-			return imageDatabase && entry ? imageDatabase->Crc( entry ) : 0;
+			return emulator.imageDatabase && entry ? emulator.imageDatabase->Crc( entry ) : 0;
 		}
 
 		ulong Cartridge::Database::GetPrgRom(Entry entry) const throw()
 		{
-			return imageDatabase && entry ? imageDatabase->PrgRom( entry ) : 0;
+			return emulator.imageDatabase && entry ? emulator.imageDatabase->PrgRom( entry ) : 0;
 		}
 
 		ulong Cartridge::Database::GetWrkRam(Entry entry) const throw()
 		{
-			return imageDatabase && entry ? imageDatabase->WrkRam( entry ) : 0;
+			return emulator.imageDatabase && entry ? emulator.imageDatabase->WrkRam( entry ) : 0;
 		}
 
 		ulong Cartridge::Database::GetWrkRamBacked(Entry entry) const throw()
 		{
-			return imageDatabase && entry ? imageDatabase->WrkRamBacked( entry ) : 0;
+			return emulator.imageDatabase && entry ? emulator.imageDatabase->WrkRamBacked( entry ) : 0;
 		}
 
 		ulong Cartridge::Database::GetChrRom(Entry entry) const throw()
 		{
-			return imageDatabase && entry ? imageDatabase->ChrRom( entry ) : 0;
+			return emulator.imageDatabase && entry ? emulator.imageDatabase->ChrRom( entry ) : 0;
 		}
 
 		ulong Cartridge::Database::GetChrRam(Entry entry) const throw()
 		{
-			return imageDatabase && entry ? imageDatabase->ChrRam( entry ) : 0;
+			return emulator.imageDatabase && entry ? emulator.imageDatabase->ChrRam( entry ) : 0;
 		}
 
 		ulong Cartridge::Database::GetChrRamBacked(Entry entry) const throw()
 		{
-			return imageDatabase && entry ? imageDatabase->ChrRamBacked( entry ) : 0;
+			return emulator.imageDatabase && entry ? emulator.imageDatabase->ChrRamBacked( entry ) : 0;
 		}
 
 		uint Cartridge::Database::GetMapper(Entry entry) const throw()
 		{
-			return imageDatabase && entry ? imageDatabase->Mapper( entry ) : 0;
+			return emulator.imageDatabase && entry ? emulator.imageDatabase->Mapper( entry ) : 0;
 		}
 
 		bool Cartridge::Database::HasTrainer(Entry entry) const throw()
 		{
-			return imageDatabase && entry && imageDatabase->Trainer( entry );
+			return emulator.imageDatabase && entry ? emulator.imageDatabase->Trainer( entry ) : false;
 		}
 
 		Cartridge::Condition Cartridge::Database::GetCondition(Entry entry) const throw()
 		{
-			return imageDatabase && entry ? imageDatabase->Condition( entry ) : DUMP_UNKNOWN;
+			return emulator.imageDatabase && entry ? emulator.imageDatabase->GetCondition( entry ) : DUMP_UNKNOWN;
 		}
+
+		#ifdef NST_MSVC_OPTIMIZE
+		#pragma optimize("", on)
+		#endif
 	}
 }
-
-#ifdef NST_PRAGMA_OPTIMIZE
-#pragma optimize("", on)
-#endif

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,9 +25,7 @@
 #include <algorithm>
 #include "NstResourceString.hpp"
 #include "NstIoScreen.hpp"
-#include "NstManagerEmulator.hpp"
 #include "NstManagerPaths.hpp"
-#include "NstWindowMenu.hpp"
 #include "NstDialogAutoSaver.hpp"
 #include "NstManagerSaveStates.hpp"
 #include "NstWindowMain.hpp"
@@ -69,15 +67,12 @@ namespace Nestopia
 
 		SaveStates::SaveStates(Emulator& e,const Configuration&,Window::Menu& m,const Paths& p,const Window::Main& w)
 		:
-		emulator        ( e ),
-		menu            ( m ),
+		Manager         ( e, m, this, &SaveStates::OnEmuEvent ),
 		window          ( w ),
 		paths           ( p ),
 		autoSaveEnabled ( false ),
 		autoSaver       ( new Window::AutoSaver(paths) )
 		{
-			emulator.Events().Add( this, &SaveStates::OnEmuEvent );
-
 			static const Window::Menu::CmdHandler::Entry<SaveStates> commands[] =
 			{
 				{ IDM_FILE_LOAD_NST,                     &SaveStates::OnCmdStateLoad        },
@@ -113,12 +108,11 @@ namespace Nestopia
 		SaveStates::~SaveStates()
 		{
 			ToggleAutoSaver( false );
-			emulator.Events().Remove( this );
 		}
 
 		void SaveStates::UpdateMenuTexts() const
 		{
-			ibool useSeconds = false;
+			bool useSeconds = false;
 
 			for (const Slot* a=slots; a != slots+NUM_SLOTS-1; ++a)
 			{
@@ -166,14 +160,17 @@ namespace Nestopia
 			{
 				case Emulator::EVENT_POWER_ON:
 				case Emulator::EVENT_POWER_OFF:
+				case Emulator::EVENT_NETPLAY_POWER_ON:
+				case Emulator::EVENT_NETPLAY_POWER_OFF:
 
-					if (emulator.Is( Nes::Machine::GAME ))
+					if (emulator.Is(Nes::Machine::GAME))
 					{
-						const ibool on = (event == Emulator::EVENT_POWER_ON);
+						const bool single = (event == Emulator::EVENT_POWER_ON);
+						const bool on = (single || event == Emulator::EVENT_NETPLAY_POWER_ON);
 
-						menu[ IDM_FILE_SAVE_NST ].Enable( on );
+						menu[ IDM_FILE_SAVE_NST ].Enable( single );
 						menu[ IDM_POS_FILE ][ IDM_POS_FILE_QUICKSAVESTATE ].Enable( on );
-						menu[ IDM_OPTIONS_AUTOSAVER_START ].Enable( on );
+						menu[ IDM_OPTIONS_AUTOSAVER_START ].Enable( single );
 
 						for (uint i=IDM_FILE_QUICK_SAVE_STATE_SLOT_OLDEST; i <= IDM_FILE_QUICK_SAVE_STATE_SLOT_9; ++i)
 							menu[i].Enable( on );
@@ -183,18 +180,22 @@ namespace Nestopia
 					break;
 
 				case Emulator::EVENT_LOAD:
+				case Emulator::EVENT_NETPLAY_LOAD:
 
-					if (emulator.Is( Nes::Machine::GAME ))
+					if (emulator.Is(Nes::Machine::GAME))
 					{
-						menu[ IDM_FILE_LOAD_NST ].Enable();
-						menu[ IDM_POS_FILE ][ IDM_POS_FILE_QUICKLOADSTATE ].Enable();
+						const bool single = (event == Emulator::EVENT_LOAD);
+
+						menu[ IDM_FILE_LOAD_NST ].Enable( single );
+						menu[ IDM_POS_FILE ][ IDM_POS_FILE_QUICKLOADSTATE ].Enable( single );
 
 						if (paths.SaveSlotImportingEnabled())
-							ImportSlots();
+							ImportSlots( single );
 					}
 					break;
 
 				case Emulator::EVENT_UNLOAD:
+				case Emulator::EVENT_NETPLAY_UNLOAD:
 
 					menu[ IDM_FILE_LOAD_NST ].Disable();
 					menu[ IDM_POS_FILE ][ IDM_POS_FILE_QUICKLOADSTATE ].Disable();
@@ -238,12 +239,15 @@ namespace Nestopia
 			}
 		}
 
-		void SaveStates::SaveToSlot(const uint index,const ibool notify)
+		void SaveStates::SaveToSlot(const uint index,const bool notify)
 		{
 			if (emulator.SaveState( slots[index].data, paths.UseStateCompression(), Emulator::STICKY ))
 			{
-				menu[ IDM_FILE_QUICK_LOAD_STATE_SLOT_1 + index ].Enable();
-				menu[ IDM_FILE_QUICK_LOAD_STATE_SLOT_NEWEST ].Enable();
+				if (!emulator.IsNetplaying())
+				{
+					menu[ IDM_FILE_QUICK_LOAD_STATE_SLOT_1 + index ].Enable();
+					menu[ IDM_FILE_QUICK_LOAD_STATE_SLOT_NEWEST ].Enable();
+				}
 
 				slots[index].time.Set();
 
@@ -262,7 +266,7 @@ namespace Nestopia
 			UpdateMenuTexts();
 		}
 
-		void SaveStates::LoadFromSlot(const uint index,const ibool notify)
+		void SaveStates::LoadFromSlot(const uint index,const bool notify)
 		{
 			if (emulator.LoadState( slots[index].data, Emulator::STICKY ))
 			{
@@ -297,9 +301,9 @@ namespace Nestopia
 			paths.Save( slots[index].data.Ptr(), slots[index].data.Size(), Paths::File::SLOTS, path );
 		}
 
-		void SaveStates::ImportSlots()
+		void SaveStates::ImportSlots(const bool canLoad)
 		{
-			ibool anyLoaded = false;
+			bool anyLoaded = false;
 
 			Path path( emulator.GetImagePath().Target().File() );
 			NST_ASSERT( path.Length() );
@@ -319,8 +323,11 @@ namespace Nestopia
 					slots[i].data.Import( file.data );
 					slots[i].time.Set( file.name.Ptr() );
 
-					menu[ IDM_FILE_QUICK_LOAD_STATE_SLOT_1 + i ].Enable();
-					menu[ IDM_FILE_QUICK_LOAD_STATE_SLOT_NEWEST ].Enable();
+					if (canLoad)
+					{
+						menu[ IDM_FILE_QUICK_LOAD_STATE_SLOT_1 + i ].Enable();
+						menu[ IDM_FILE_QUICK_LOAD_STATE_SLOT_NEWEST ].Enable();
+					}
 				}
 			}
 
@@ -393,7 +400,7 @@ namespace Nestopia
 
 		void SaveStates::OnCmdAutoSaverStart(uint)
 		{
-			ToggleAutoSaver( autoSaveEnabled ^ true );
+			ToggleAutoSaver( !autoSaveEnabled );
 			Application::Instance::GetMainWindow().Post( Application::Instance::WM_NST_COMMAND_RESUME );
 		}
 
@@ -426,14 +433,14 @@ namespace Nestopia
 				}
 			}
 
-			return autoSaveEnabled != false;
+			return autoSaveEnabled;
 		}
 
-		void SaveStates::ToggleAutoSaver(const ibool enable)
+		void SaveStates::ToggleAutoSaver(const bool enable)
 		{
 			menu[ IDM_OPTIONS_AUTOSAVER_START ].Text() << Resource::String(enable ? IDS_TEXT_STOP : IDS_TEXT_START);
 
-			if (bool(autoSaveEnabled) != bool(enable))
+			if (autoSaveEnabled != enable)
 			{
 				autoSaveEnabled = enable;
 				Io::Screen() << Resource::String( enable ? IDS_AUTOSAVER_START : IDS_AUTOSAVER_STOP );

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,15 +25,17 @@
 #ifndef NST_API_EMULATOR_H
 #define NST_API_EMULATOR_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
+#ifndef NST_BASE_H
+#include "../NstBase.hpp"
+#endif
+
+#ifdef NST_PRAGMA_ONCE
 #pragma once
 #endif
 
-#ifdef _MSC_VER
+#if NST_MSVC >= 1200
 #pragma warning( push )
 #endif
-
-#include "../NstCore.hpp"
 
 namespace Nes
 {
@@ -64,7 +66,7 @@ namespace Nes
 		public:
 
 			Emulator();
-			~Emulator();
+			~Emulator() throw();
 
 			Result Execute
 			(
@@ -72,6 +74,8 @@ namespace Nes
 				Core::Sound::Output*,
 				Core::Input::Controllers*
 			)   throw();
+
+			ulong Frame() const throw();
 
 		private:
 
@@ -87,7 +91,7 @@ namespace Nes
 	}
 }
 
-#ifdef _MSC_VER
+#if NST_MSVC >= 1200
 #pragma warning( pop )
 #endif
 

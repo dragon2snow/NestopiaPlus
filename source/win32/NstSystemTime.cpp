@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -55,7 +55,7 @@ namespace Nestopia
 			SetLocal( &local );
 		}
 
-		ibool Time::Set(tstring const path)
+		bool Time::Set(tstring const path)
 		{
 			NST_ASSERT( path && *path );
 
@@ -114,7 +114,7 @@ namespace Nestopia
 			);
 		}
 
-		ibool Time::Almost(const Time& time) const
+		bool Time::Almost(const Time& time) const
 		{
 			return
 			(
@@ -126,7 +126,7 @@ namespace Nestopia
 			);
 		}
 
-		HeapString Time::ToString(const ibool useSeconds) const
+		HeapString Time::ToString(const bool useSeconds) const
 		{
 			char buffer[64];
 			buffer[0] = '\0';
@@ -135,12 +135,12 @@ namespace Nestopia
 			(
 				buffer,
 				"%02u/%02u/%u  %02u:%02u:%02u",
-				uint(month),
-				uint(day),
-				uint(year),
-				uint(hour),
-				uint(minute),
-				uint(second)
+				uint( month  ),
+				uint( day    ),
+				uint( year   ),
+				uint( hour   ),
+				uint( minute ),
+				uint( second )
 			);
 
 			if (!useSeconds)

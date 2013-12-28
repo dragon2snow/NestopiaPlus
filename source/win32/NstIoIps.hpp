@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -49,9 +49,9 @@ namespace Nestopia
 				ERR_EMPTY = IDS_FILE_ERR_EMPTY
 			};
 
-			typedef Collection::Vector<u8> PatchData;
+			typedef Collection::Vector<uchar> PatchData;
 
-			static void Create(const void*,const void*,uint,PatchData&);
+			static bool Create(const void*,const void*,uint,PatchData&);
 
 			void Parse (const void*,uint);
 			void Patch (void*,uint) const;
@@ -74,7 +74,7 @@ namespace Nestopia
 			{
 				uint offset;
 				uint length;
-				u8* data;
+				uchar* data;
 				uint fill;
 			};
 
@@ -87,7 +87,7 @@ namespace Nestopia
 
 		public:
 
-			ibool Loaded() const
+			bool Loaded() const
 			{
 				return blocks.Size() > 0;
 			}

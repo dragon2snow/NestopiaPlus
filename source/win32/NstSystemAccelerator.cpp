@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -22,6 +22,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
+#include "language/resource.h"
 #include "NstApplicationException.hpp"
 #include "NstObjectPod.hpp"
 #include "NstCollectionVector.hpp"
@@ -63,14 +64,14 @@ namespace Nestopia
 			return 0;
 		}
 
-		ibool Accelerator::Get(Entries& entries) const
+		bool Accelerator::Get(Entries& entries) const
 		{
 			entries.Resize( Size() );
 
 			if (entries.Size())
 			{
-				if (::CopyAcceleratorTable( handle, entries.Ptr(), entries.Size() ) != (int) entries.Size())
-					throw Application::Exception(_T("CopyAcceleratorTable() failed!"));
+				if (::CopyAcceleratorTable( handle, entries.Ptr(), entries.Size() ) != int(entries.Size()))
+					throw Application::Exception( IDS_FAILED, _T("CopyAcceleratorTable()") );
 
 				return true;
 			}
@@ -96,7 +97,7 @@ namespace Nestopia
 				}
 
 				if (actualSize && (handle = ::CreateAcceleratorTable( actualEntries.Ptr(), actualSize )) == 0)
-					throw Application::Exception(_T("CreateAcceleratorTable() failed!"));
+					throw Application::Exception( IDS_FAILED, _T("CreateAcceleratorTable()") );
 			}
 		}
 
@@ -134,7 +135,7 @@ namespace Nestopia
 					ptr = table.heap.Ptr();
 				}
 
-				if (table.size == (uint) ::CopyAcceleratorTable( handle, ptr, table.size ))
+				if (table.size == ::CopyAcceleratorTable( handle, ptr, table.size ))
 					return ptr;
 			}
 

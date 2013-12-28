@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -97,14 +97,14 @@ namespace Nestopia
 				return *this;
 			}
 
-			ibool operator == (const Point& p) const { return x == p.x && y == p.y; }
-			ibool operator != (const Point& p) const { return x != p.x || y != p.y; }
-			ibool operator <  (const Point& p) const { return x * y <  p.x * p.y;   }
-			ibool operator >  (const Point& p) const { return x * y >  p.x * p.y;   }
-			ibool operator <= (const Point& p) const { return x * y <= p.x * p.y;   }
-			ibool operator >= (const Point& p) const { return x * y >= p.x * p.y;   }
+			bool operator == (const Point& p) const { return x == p.x && y == p.y; }
+			bool operator != (const Point& p) const { return x != p.x || y != p.y; }
+			bool operator <  (const Point& p) const { return x * y <  p.x * p.y;   }
+			bool operator >  (const Point& p) const { return x * y >  p.x * p.y;   }
+			bool operator <= (const Point& p) const { return x * y <= p.x * p.y;   }
+			bool operator >= (const Point& p) const { return x * y >= p.x * p.y;   }
 
-			ibool operator ! () const
+			bool operator ! () const
 			{
 				return (x | y) == 0;
 			}

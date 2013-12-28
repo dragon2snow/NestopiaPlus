@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,15 +25,18 @@
 #ifndef NST_API_FDS_H
 #define NST_API_FDS_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
-#pragma once
-#endif
-
 #include <iosfwd>
 #include <vector>
 #include "NstApi.hpp"
 
-#ifdef _MSC_VER
+#ifdef NST_PRAGMA_ONCE
+#pragma once
+#endif
+
+#if NST_ICC >= 810
+#pragma warning( push )
+#pragma warning( disable : 304 444 )
+#elif NST_MSVC >= 1200
 #pragma warning( push )
 #pragma warning( disable : 4512 )
 #endif
@@ -83,13 +86,14 @@ namespace Nes
 
 			struct DiskData
 			{
-				DiskData();
+				DiskData() throw();
+				~DiskData() throw();
 
-				typedef std::vector<u8> Data;
+				typedef std::vector<uchar> Data;
 
 				struct File
 				{
-					File();
+					File() throw();
 
 					enum Type
 					{
@@ -99,12 +103,12 @@ namespace Nes
 						TYPE_NMT
 					};
 
-					u8 id;
-					u8 index;
-					u16 address;
+					uchar id;
+					uchar index;
+					ushort address;
 					Type type;
 					Data data;
-					char name[9];
+					char name[12];
 				};
 
 				typedef std::vector<File> Files;
@@ -113,7 +117,7 @@ namespace Nes
 				Data raw;
 			};
 
-			Result GetDiskData(uint,DiskData&);
+			Result GetDiskData(uint,DiskData&) const throw();
 
 			enum Motor
 			{
@@ -149,7 +153,7 @@ namespace Nes
 	}
 }
 
-#ifdef _MSC_VER
+#if NST_MSVC >= 1200 || NST_ICC >= 810
 #pragma warning( pop )
 #endif
 

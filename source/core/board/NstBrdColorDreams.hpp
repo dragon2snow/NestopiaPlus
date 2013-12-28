@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,7 +25,7 @@
 #ifndef NST_BOARDS_COLORDREAMS_H
 #define NST_BOARDS_COLORDREAMS_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
+#ifdef NST_PRAGMA_ONCE
 #pragma once
 #endif
 
@@ -35,7 +35,7 @@ namespace Nes
 	{
 		namespace Boards
 		{
-			class NST_NO_VTABLE ColorDreams : public Mapper
+			class ColorDreams : public Mapper
 			{
 			protected:
 
@@ -46,12 +46,13 @@ namespace Nes
 				};
 
 				ColorDreams(Context&,Type);
+				~ColorDreams() {}
 
 			private:
 
 				void SubReset(bool);
 
-				NES_DECL_POKE( Prg )
+				NES_DECL_POKE( Prg );
 
 				const Type type;
 			};

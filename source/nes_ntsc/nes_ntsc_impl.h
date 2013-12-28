@@ -1,3 +1,4 @@
+/* nes_ntsc 0.2.2. http://www.slack.net/~ant/ */
 
 /* Common implementation of NTSC filters */
 
@@ -10,82 +11,53 @@ General Public License as published by the Free Software Foundation; either
 version 2.1 of the License, or (at your option) any later version. This
 module is distributed in the hope that it will be useful, but WITHOUT ANY
 WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License for
-more details. You should have received a copy of the GNU Lesser General
-Public License along with this module; if not, write to the Free Software
-Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA */
+FOR A PARTICULAR PURPOSE. See the GNU Lesser General Public License for more
+details. You should have received a copy of the GNU Lesser General Public
+License along with this module; if not, write to the Free Software Foundation,
+Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA */
 
-/* #define DISABLE_CORRECTION 1 */
+#define DISABLE_CORRECTION 0
 
-#ifndef gamma_size
-	#if NTSC_STANDARD_INIT
-		#define gamma_size 256
-	#else
-		#define gamma_size 1
-	#endif
-#endif
-
-#ifndef rgb_bits
-	#define rgb_bits 8
-#endif
+#undef PI
+#define PI 3.14159265358979323846f
 
 #ifndef LUMA_CUTOFF
 	#define LUMA_CUTOFF 0.20
 #endif
-
+#ifndef gamma_size
+	#define gamma_size 1
+#endif
+#ifndef rgb_bits
+	#define rgb_bits 8
+#endif
 #ifndef artifacts_max
 	#define artifacts_max (artifacts_mid * 1.5f)
 #endif
-
 #ifndef fringing_max
 	#define fringing_max (fringing_mid * 2)
 #endif
-
-#ifndef burst_count
-	#define burst_count 1
+#ifndef STD_HUE_CONDITION
+	#define STD_HUE_CONDITION( setup ) 1
 #endif
 
-#ifndef rescale_in
-	#define rescale_in  1
-	#define rescale_out 1
-#endif
+#define ext_decoder_hue     (std_decoder_hue + 15)
+#define rgb_unit            (1 << rgb_bits)
+#define rgb_offset          (rgb_unit * 2 + 0.5f)
 
-#ifndef std_decoder_hue
-	#define std_decoder_hue 0
-#endif
-
-#define ext_decoder_hue (std_decoder_hue + 15)
-
-#define NTSC_NAME2_( p, n ) p##_ntsc_##n
-#define NTSC_NAME_( p, n )  NTSC_NAME2_( p, n )
-#define NTSC_NAME( name )   NTSC_NAME_( ntsc_prefix, name )
-
-#define rgb_unit        (1 << rgb_bits)
-#define burst_size      (NTSC_NAME( entry_size ) / burst_count)
-#define ntsc_pixels     NTSC_NAME( pixels )
-
-#define rgb_offset (rgb_unit * 2 + 0.5f)
-
-#define NTSC_CLAMP( io ) \
-	NTSC_CLAMP_( io, (8 - rgb_bits) )
-
+enum { burst_size  = nes_ntsc_entry_size / burst_count };
 enum { kernel_half = 16 };
 enum { kernel_size = kernel_half * 2 + 1 };
 
-typedef struct ntsc_impl_t
+typedef struct init_t
 {
-	float to_float [gamma_size];
 	float to_rgb [burst_count * 6];
+	float to_float [gamma_size];
 	float contrast;
 	float brightness;
 	float artifacts;
 	float fringing;
-	float hue_warping;
 	float kernel [rescale_out * kernel_size * 2];
-} ntsc_impl_t;
-
-#undef PI
-#define PI 3.14159265358979323846f
+} init_t;
 
 #define ROTATE_IQ( i, q, sin_b, cos_b ) {\
 	float t;\
@@ -94,7 +66,7 @@ typedef struct ntsc_impl_t
 	i = t;\
 }
 
-static void init_ntsc_filters( ntsc_impl_t* impl, NTSC_NAME( setup_t ) const* setup )
+static void init_filters( init_t* impl, nes_ntsc_setup_t const* setup )
 {
 #if rescale_out > 1
 	float kernels [kernel_size * 2];
@@ -201,6 +173,7 @@ static void init_ntsc_filters( ntsc_impl_t* impl, NTSC_NAME( setup_t ) const* se
 	{
 		float weight = 1.0f;
 		float* out = impl->kernel;
+		int n = rescale_out;
 		do
 		{
 			float remain = 0;
@@ -214,7 +187,7 @@ static void init_ntsc_filters( ntsc_impl_t* impl, NTSC_NAME( setup_t ) const* se
 				remain = cur - m;
 			}
 		}
-		while ( out < &impl->kernel [rescale_out * kernel_size * 2] );
+		while ( --n );
 	}
 	#endif
 }
@@ -222,10 +195,14 @@ static void init_ntsc_filters( ntsc_impl_t* impl, NTSC_NAME( setup_t ) const* se
 static float const default_decoder [6] =
 	{ 0.956f, 0.621f, -0.272f, -0.647f, -1.105f, 1.702f };
 
-static void init_ntsc_impl( ntsc_impl_t* impl, NTSC_NAME( setup_t ) const* setup )
+static void init( init_t* impl, nes_ntsc_setup_t const* setup )
 {
 	impl->brightness = (float) setup->brightness * (0.5f * rgb_unit) + rgb_offset;
 	impl->contrast   = (float) setup->contrast   * (0.5f * rgb_unit) + rgb_unit;
+	#ifdef default_palette_contrast
+		if ( !setup->palette )
+			impl->contrast *= default_palette_contrast;
+	#endif
 	
 	impl->artifacts = (float) setup->artifacts;
 	if ( impl->artifacts > 0 )
@@ -237,7 +214,7 @@ static void init_ntsc_impl( ntsc_impl_t* impl, NTSC_NAME( setup_t ) const* setup
 		impl->fringing *= fringing_max - fringing_mid;
 	impl->fringing = impl->fringing * fringing_mid + fringing_mid;
 	
-	init_ntsc_filters( impl, setup );
+	init_filters( impl, setup );
 	
 	/* generate gamma table */
 	if ( gamma_size > 1 )
@@ -259,7 +236,8 @@ static void init_ntsc_impl( ntsc_impl_t* impl, NTSC_NAME( setup_t ) const* setup
 		if ( !decoder )
 		{
 			decoder = default_decoder;
-			hue += PI / 180 * (std_decoder_hue - ext_decoder_hue);
+			if ( STD_HUE_CONDITION( setup ) )
+				hue += PI / 180 * (std_decoder_hue - ext_decoder_hue);
 		}
 		
 		{
@@ -307,7 +285,7 @@ static void init_ntsc_impl( ntsc_impl_t* impl, NTSC_NAME( setup_t ) const* setup
 #define PACK_RGB( r, g, b ) ((r) << 21 | (g) << 11 | (b) << 1)
 
 enum { rgb_kernel_size = burst_size / alignment_count };
-enum { ntsc_rgb_bias = rgb_unit * 2 * ntsc_rgb_builder };
+enum { rgb_bias = rgb_unit * 2 * nes_ntsc_rgb_builder };
 
 typedef struct pixel_info_t
 {
@@ -331,13 +309,14 @@ typedef struct pixel_info_t
 		(1.0f - (((ntsc) + 100) & 2))
 #endif
 
-extern pixel_info_t const ntsc_pixels [alignment_count];
+extern pixel_info_t const nes_ntsc_pixels [alignment_count];
 
 /* Generate pixel at all burst phases and column alignments */
-static void gen_kernel( ntsc_impl_t* impl, float y, float i, float q, ntsc_rgb_t* out )
+static void gen_kernel( init_t* impl, float y, float i, float q, nes_ntsc_rgb_t* out )
 {
 	/* generate for each scanline burst phase */
 	float const* to_rgb = impl->to_rgb;
+	int burst_remain = burst_count;
 	y -= rgb_offset;
 	do
 	{
@@ -345,7 +324,8 @@ static void gen_kernel( ntsc_impl_t* impl, float y, float i, float q, ntsc_rgb_t
 		Convolve these with kernels which: filter respective components, apply
 		sharpening, and rescale horizontally. Convert resulting yiq to rgb and pack
 		into integer. Based on algorithm by NewRisingSun. */
-		pixel_info_t const* pixel = ntsc_pixels;
+		pixel_info_t const* pixel = nes_ntsc_pixels;
+		int alignment_remain = alignment_count;
 		do
 		{
 			/* negate is -1 when composite starts at odd multiple of 2 */
@@ -366,6 +346,7 @@ static void gen_kernel( ntsc_impl_t* impl, float y, float i, float q, ntsc_rgb_t
 			
 			float const* k = &impl->kernel [pixel->offset];
 			int n;
+			++pixel;
 			for ( n = rgb_kernel_size; n; --n )
 			{
 				float i = k[0]*ic0 + k[2]*ic2;
@@ -374,17 +355,17 @@ static void gen_kernel( ntsc_impl_t* impl, float y, float i, float q, ntsc_rgb_t
 				          k[kernel_size+2]*yc2 + k[kernel_size+3]*yc3 + rgb_offset;
 				if ( rescale_out <= 1 )
 					k--;
-				else if ( k >= &impl->kernel [kernel_size * 2 * (rescale_out - 1)] )
-					k -= kernel_size * 2 * (rescale_out - 1) + 2;
-				else
+				else if ( k < &impl->kernel [kernel_size * 2 * (rescale_out - 1)] )
 					k += kernel_size * 2 - 1;
+				else
+					k -= kernel_size * 2 * (rescale_out - 1) + 2;
 				{
 					int r, g, b = YIQ_TO_RGB( y, i, q, to_rgb, int, r, g );
-					*out++ = PACK_RGB( r, g, b ) - ntsc_rgb_bias;
+					*out++ = PACK_RGB( r, g, b ) - rgb_bias;
 				}
 			}
 		}
-		while ( pixel++ < &ntsc_pixels [alignment_count - 1] );
+		while ( alignment_count > 1 && --alignment_remain );
 		
 		if ( burst_count <= 1 )
 			break;
@@ -393,41 +374,20 @@ static void gen_kernel( ntsc_impl_t* impl, float y, float i, float q, ntsc_rgb_t
 		
 		ROTATE_IQ( i, q, -0.866025f, -0.5f ); /* -120 degrees */
 	}
-	while ( to_rgb < &impl->to_rgb [burst_count * 6] );
+	while ( --burst_remain );
 }
 
-/* only used by NES/SNES filters */
-static void merge_kernel_fields( ntsc_rgb_t* io )
-{
-	if ( burst_count == 3 )
-	{
-		int n;
-		for ( n = burst_size; n; --n )
-		{
-			ntsc_rgb_t p0 = io [burst_size * 0] + ntsc_rgb_bias;
-			ntsc_rgb_t p1 = io [burst_size * 1] + ntsc_rgb_bias;
-			ntsc_rgb_t p2 = io [burst_size * 2] + ntsc_rgb_bias;
-			/* merge colors without losing precision */
-			io [burst_size * 0] =
-					((p0 + p1 - ((p0 ^ p1) & ntsc_rgb_builder)) >> 1) - ntsc_rgb_bias;
-			io [burst_size * 1] =
-					((p1 + p2 - ((p1 ^ p2) & ntsc_rgb_builder)) >> 1) - ntsc_rgb_bias;
-			io [burst_size * 2] =
-					((p2 + p0 - ((p2 ^ p0) & ntsc_rgb_builder)) >> 1) - ntsc_rgb_bias;
-			++io;
-		}
-	}
-}
+static void correct_errors( nes_ntsc_rgb_t color, nes_ntsc_rgb_t* out );
 
 #if DISABLE_CORRECTION
-	#define CORRECT_ERROR( a ) { out [i] += ntsc_rgb_bias; }
-	#define DISTRIBUTE_ERROR( a, b, c ) { out [i] += ntsc_rgb_bias; }
+	#define CORRECT_ERROR( a ) { out [i] += rgb_bias; }
+	#define DISTRIBUTE_ERROR( a, b, c ) { out [i] += rgb_bias; }
 #else
 	#define CORRECT_ERROR( a ) { out [a] += error; }
 	#define DISTRIBUTE_ERROR( a, b, c ) {\
-		ntsc_rgb_t fourth = (error + 2 * ntsc_rgb_builder) >> 2;\
-		fourth &= (ntsc_rgb_bias >> 1) - ntsc_rgb_builder;\
-		fourth -= ntsc_rgb_bias >> 2;\
+		nes_ntsc_rgb_t fourth = (error + 2 * nes_ntsc_rgb_builder) >> 2;\
+		fourth &= (rgb_bias >> 1) - nes_ntsc_rgb_builder;\
+		fourth -= rgb_bias >> 2;\
 		out [a] += fourth;\
 		out [b] += fourth;\
 		out [c] += fourth;\
@@ -435,86 +395,45 @@ static void merge_kernel_fields( ntsc_rgb_t* io )
 	}
 #endif
 
-static void correct_errors( ntsc_rgb_t color, ntsc_rgb_t* out );
-
-/* only used by palette-based filters (TI, VIC2) */
-#if NTSC_STANDARD_INIT
-void NTSC_NAME( init )( NTSC_NAME( t )* ntsc, NTSC_NAME( setup_t ) const* setup )
-{
-	ntsc_impl_t impl;
-	if ( !setup )
-		setup = &NTSC_NAME( composite );
-	init_ntsc_impl( &impl, setup );
-	
-	{
-		int n = NTSC_NAME( palette_size );
-		ntsc_rgb_t* kernel_out = (ntsc ? ntsc->table [0] : 0);
-		unsigned char* palette_out = setup->palette_out;
-		unsigned char const* palette = setup->palette;
-		if ( !palette )
-			palette = default_palette [0];
-		
-		do
-		{
-			float r = impl.to_float [*palette++];
-			float g = impl.to_float [*palette++];
-			float b = impl.to_float [*palette++];
-			
-			float y, i, q = RGB_TO_YIQ( r, g, b, y, i );
-			
-			{
-				int r, g, b = YIQ_TO_RGB( y, i, q, impl.to_rgb, int, r, g );
-				ntsc_rgb_t rgb = PACK_RGB( r, g, b );
-				
-				if ( palette_out )
-				{
-					ntsc_rgb_t clamped = rgb;
-					NTSC_CLAMP( clamped );
-					*palette_out++ = (unsigned char) (clamped >> 21);
-					*palette_out++ = (unsigned char) (clamped >> 11);
-					*palette_out++ = (unsigned char) (clamped >>  1);
-				}
-				
-				if ( kernel_out )
-				{
-					gen_kernel( &impl, y, i, q, kernel_out );
-					#if burst_count > 1
-						if ( setup->merge_fields )
-							merge_fields( kernel_out );
-					#endif
-					correct_errors( rgb, kernel_out );
-					kernel_out += burst_size;
-				}
-			}
-		}
-		while ( --n );
-	}
+#define RGB_PALETTE_OUT( rgb, out_ )\
+{\
+	unsigned char* out = (out_);\
+	nes_ntsc_rgb_t clamped = (rgb);\
+	NES_NTSC_CLAMP_( clamped, (8 - rgb_bits) );\
+	out [0] = (unsigned char) (clamped >> 21);\
+	out [1] = (unsigned char) (clamped >> 11);\
+	out [2] = (unsigned char) (clamped >>  1);\
 }
-#endif
 
 /* blitter related */
 
-#ifdef HAVE_CONFIG_H
-	#include "config.h"
-#endif
-
 #ifndef restrict
-	#define restrict
+	#if defined (__GNUC__)
+		#define restrict __restrict__
+	#elif defined (_MSC_VER) && _MSC_VER > 1300
+		#define restrict __restrict
+	#else
+		/* no support for restricted pointers */
+		#define restrict
+	#endif
 #endif
 
 #include <limits.h>
 
-#if UINT_MAX == 0xFFFFFFFF
-	typedef unsigned int  ntsc_uint32_t;
-#elif ULONG_MAX == 0xFFFFFFFF
-	typedef unsigned long ntsc_uint32_t;
-#else
-	#error "Need 32-bit int type"
-#endif
+#if NES_NTSC_OUT_DEPTH <= 16
+	#if USHRT_MAX == 0xFFFF
+		typedef unsigned short nes_ntsc_out_t;
+	#else
+		#error "Need 16-bit int type"
+	#endif
 
-#if USHRT_MAX == 0xFFFF
-	typedef unsigned short ntsc_uint16_t;
 #else
-	#error "Need 16-bit int type"
-#endif
+	#if UINT_MAX == 0xFFFFFFFF
+		typedef unsigned int  nes_ntsc_out_t;
+	#elif ULONG_MAX == 0xFFFFFFFF
+		typedef unsigned long nes_ntsc_out_t;
+	#else
+		#error "Need 32-bit int type"
+	#endif
 
+#endif

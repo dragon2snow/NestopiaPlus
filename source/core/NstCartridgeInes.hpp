@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,7 +25,7 @@
 #ifndef NST_CARTRIDGE_INES_H
 #define NST_CARTRIDGE_INES_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
+#ifdef NST_PRAGMA_ONCE
 #pragma once
 #endif
 
@@ -33,6 +33,8 @@ namespace Nes
 {
 	namespace Core
 	{
+		class Log;
+
 		class Cartridge::Ines
 		{
 		public:
@@ -50,40 +52,39 @@ namespace Nes
 
 			enum
 			{
-				TRAINER_BEGIN  = 0x1000U,
-				TRAINER_END    = 0x1200U,
-				TRAINER_LENGTH = 0x0200U
+				TRAINER_BEGIN  = 0x1000,
+				TRAINER_END    = 0x1200,
+				TRAINER_LENGTH = 0x0200
 			};
 
-			static Result ReadHeader(Api::Cartridge::Setup&,const void*,ulong);
-			static Result WriteHeader(const Api::Cartridge::Setup&,void*,ulong);
+			static Result ReadHeader(Api::Cartridge::Setup&,const byte*,ulong);
+			static Result WriteHeader(const Api::Cartridge::Setup&,byte*,ulong);
 
-			static ImageDatabase::Handle SearchDatabase(const ImageDatabase&,const u8*,ulong);
+			static ImageDatabase::Handle SearchDatabase(const ImageDatabase&,const byte*,ulong);
 
 		private:
 
 			enum
 			{
 				VS_MAPPER_99 = 99,
-				VS_MAPPER_151 = 151
+				VS_MAPPER_151 = 151,
+				MIN_CRC_SEARCH_STRIDE = NST_MIN(dword(SIZE_8K),dword(TRAINER_LENGTH)),
+				MAX_CRC_SEARCH_LENGTH = TRAINER_LENGTH + SIZE_16K * 0xFFFUL + SIZE_8K * 0xFFFUL
 			};
 
-			void Import();
-			void TryDatabase();
+			Result Collect();
+			dword  Process();
+			dword  Repair(Log&);
 
 			Result result;
 
 			Stream::In stream;
-			Log log;
 
 			Ram& prg;
 			Ram& chr;
 			Ram& wrk;
 
 			Api::Cartridge::Info& info;
-
-			dword prgSkip;
-			dword chrSkip;
 
 			const ImageDatabase* const database;
 			ImageDatabase::Handle& databaseHandle;

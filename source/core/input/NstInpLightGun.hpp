@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,7 +25,7 @@
 #ifndef NST_INPUT_LIGHTGUN_H
 #define NST_INPUT_LIGHTGUN_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
+#ifdef NST_PRAGMA_ONCE
 #pragma once
 #endif
 
@@ -45,6 +45,8 @@ namespace Nes
 
 			private:
 
+				~LightGun() {}
+
 				void Reset();
 				void Initialize(bool);
 				uint Poll();
@@ -52,7 +54,7 @@ namespace Nes
 				uint Peek(uint);
 				uint GetHitPixel() const;
 				void LoadState(State::Loader&,dword);
-				void SaveState(State::Saver&,uchar) const;
+				void SaveState(State::Saver&,byte) const;
 
 				enum
 				{
@@ -67,7 +69,7 @@ namespace Nes
 				uint fire;
 				Ppu& ppu;
 
-				static const u8 lightMap[Video::Screen::PALETTE];
+				static const byte lightMap[Video::Screen::PALETTE];
 			};
 		}
 	}

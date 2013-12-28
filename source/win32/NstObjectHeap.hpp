@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -33,7 +33,7 @@ namespace Nestopia
 {
 	namespace Object
 	{
-		template<typename T,uint N=0U> class Heap
+		template<typename T,uint N=0> class Heap
 		{
 			T* const array;
 
@@ -58,7 +58,7 @@ namespace Nestopia
 			}
 		};
 
-		template<typename T> class Heap<T,0U>
+		template<typename T> class Heap<T,0>
 		{
 			T& ref;
 
@@ -93,7 +93,7 @@ namespace Nestopia
 		};
 
 		template<>
-		class Heap<void,0U>
+		class Heap<void,0>
 		{
 			void* const ref;
 

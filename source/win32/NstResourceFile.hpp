@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -33,7 +33,7 @@ namespace Nestopia
 {
 	namespace Resource
 	{
-		class File : public Generic
+		class File : Generic
 		{
 		public:
 

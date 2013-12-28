@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -37,17 +37,17 @@ namespace Nestopia
 		{
 			return
 			(
-				Name() << HexString( ( u32 ) Data1,    true ) << '-'
-                       << HexString( ( u16 ) Data2,    true ) << '-'
-                       << HexString( ( u16 ) Data3,    true ) << '-'
-                       << HexString( ( u8  ) Data4[0], true )
-                       << HexString( ( u8  ) Data4[1], true ) << '-'
-                       << HexString( ( u8  ) Data4[2], true )
-                       << HexString( ( u8  ) Data4[3], true )
-                       << HexString( ( u8  ) Data4[4], true )
-                       << HexString( ( u8  ) Data4[5], true )
-                       << HexString( ( u8  ) Data4[6], true )
-                       << HexString( ( u8  ) Data4[7], true )
+				Name() << HexString( 32, Data1,   true ) << '-'
+                       << HexString( 16, Data2,   true ) << '-'
+                       << HexString( 16, Data3,   true ) << '-'
+                       << HexString( 8, Data4[0], true )
+                       << HexString( 8, Data4[1], true ) << '-'
+                       << HexString( 8, Data4[2], true )
+                       << HexString( 8, Data4[3], true )
+                       << HexString( 8, Data4[4], true )
+                       << HexString( 8, Data4[5], true )
+                       << HexString( 8, Data4[6], true )
+                       << HexString( 8, Data4[7], true )
 			);
 		}
 
@@ -76,11 +76,11 @@ namespace Nestopia
 					)
 						throw ERR_INVALID_STRING;
 
-					Data1    = ( u32 ) ConvertData( text(  0, 8 ) );
-					Data2    = ( u16 ) ConvertData( text(  9, 4 ) );
-					Data3    = ( u16 ) ConvertData( text( 14, 4 ) );
-					Data4[0] = ( u8  ) ConvertData( text( 19, 2 ) );
-					Data4[1] = ( u8  ) ConvertData( text( 21, 2 ) );
+					Data1    = ConvertData( text(  0, 8 ) );
+					Data2    = ConvertData( text(  9, 4 ) );
+					Data3    = ConvertData( text( 14, 4 ) );
+					Data4[0] = ConvertData( text( 19, 2 ) );
+					Data4[1] = ConvertData( text( 21, 2 ) );
 
 					for (uint i=2; i < 8; ++i)
 						Data4[i] = ConvertData( text( 20 + i * 2, 2 ) );

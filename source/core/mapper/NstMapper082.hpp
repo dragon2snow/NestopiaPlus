@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,7 +25,7 @@
 #ifndef NST_MAPPER_82_H
 #define NST_MAPPER_82_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
+#ifdef NST_PRAGMA_ONCE
 #pragma once
 #endif
 
@@ -37,25 +37,27 @@ namespace Nes
 		{
 		public:
 
-			Mapper82(Context& c)
+			explicit Mapper82(Context& c)
 			: Mapper(c,PROM_MAX_512K|CROM_MAX_256K) {}
 
 		private:
+
+			~Mapper82() {}
 
 			void SubReset(bool);
 			void SubSave(State::Saver&) const;
 			void SubLoad(State::Loader&);
 
-			NES_DECL_POKE( 7EF0 )
-			NES_DECL_POKE( 7EF1 )
-			NES_DECL_POKE( 7EF2 )
-			NES_DECL_POKE( 7EF3 )
-			NES_DECL_POKE( 7EF4 )
-			NES_DECL_POKE( 7EF5 )
-			NES_DECL_POKE( 7EF6 )
-			NES_DECL_POKE( 7EFA )
-			NES_DECL_POKE( 7EFB )
-			NES_DECL_POKE( 7EFC )
+			NES_DECL_POKE( 7EF0 );
+			NES_DECL_POKE( 7EF1 );
+			NES_DECL_POKE( 7EF2 );
+			NES_DECL_POKE( 7EF3 );
+			NES_DECL_POKE( 7EF4 );
+			NES_DECL_POKE( 7EF5 );
+			NES_DECL_POKE( 7EF6 );
+			NES_DECL_POKE( 7EFA );
+			NES_DECL_POKE( 7EFB );
+			NES_DECL_POKE( 7EFC );
 
 			uint swapOffset;
 		};

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -83,7 +83,7 @@ namespace Nestopia
 						return index;
 					}
 
-					ibool Valid() const
+					bool Valid() const
 					{
 						return index >= 0;
 					}
@@ -107,13 +107,13 @@ namespace Nestopia
 				ListBox(HWND hWnd,uint id)
 				: Generic( hWnd, id ) {}
 
-				Item  Add(tstring) const;
-				Item  Insert(uint,tstring) const;
-				Item  Selection() const;
-				ibool AnySelection() const;
-				void  Reserve(uint) const;
-				uint  Size() const;
-				void  Clear() const;
+				Item Add(tstring) const;
+				Item Insert(uint,tstring) const;
+				Item Selection() const;
+				bool AnySelection() const;
+				void Reserve(uint) const;
+				uint Size() const;
+				void Clear() const;
 
 				template<typename T>
 				void Add(T* list,uint count) const

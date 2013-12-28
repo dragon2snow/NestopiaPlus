@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -38,7 +38,7 @@ namespace Nestopia
 	{
 		class Paths;
 
-		class Files
+		class Files : Manager
 		{
 		public:
 
@@ -55,12 +55,10 @@ namespace Nestopia
 				Window::Main&
 			);
 
-			~Files();
-
 		private:
 
 			void Open(tstring=NULL,uint=0) const;
-			ibool Close() const;
+			bool Close() const;
 			void AutoStart() const;
 
 			ibool OnMsgDropFiles (Window::Param&);
@@ -74,8 +72,6 @@ namespace Nestopia
 
 			void OnEmuEvent (Emulator::Event);
 
-			Emulator& emulator;
-			const Window::Menu& menu;
 			const Paths& paths;
 			const Preferences& preferences;
 			Movie& movie;

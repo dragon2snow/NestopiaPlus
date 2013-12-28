@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -34,13 +34,13 @@ namespace Nestopia
 {
 	namespace Window
 	{
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("t", on)
 		#endif
 
 		tstring Launcher::List::Strings::GetMapper(const uint value)
 		{
-			if (value-1U < 4095U)
+			if (value-1 < 4095)
 			{
 				uint count = mappers.Size();
 
@@ -64,12 +64,12 @@ namespace Nestopia
 			}
 		}
 
-		tstring Launcher::List::Strings::GetSize(u32 value)
+		tstring Launcher::List::Strings::GetSize(uint value)
 		{
 			return value ? sizes(value).Ptr() : _T("-");
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
@@ -94,7 +94,6 @@ namespace Nestopia
 		style            ( STYLE ),
 		finder           ( dialog ),
 		paths            ( cfg ),
-		files            ( database ),
 		columns          ( cfg ),
 		pathManager      ( p )
 		{
@@ -119,6 +118,8 @@ namespace Nestopia
 
 		void Launcher::List::operator = (const Control::ListView& listView)
 		{
+			files.Load( imageDatabase );
+
 			typeFilter = 0;
 
 			ctrl = listView;
@@ -146,10 +147,10 @@ namespace Nestopia
 
 			if (dropFiles.Inside( ctrl.GetHandle() ))
 			{
-				ibool anyInserted = false;
+				uint anyInserted = false;
 
 				for (uint i=0, n=dropFiles.Size(); i < n; ++i)
-					anyInserted |= files.Insert( imageDatabase, dropFiles[i] );
+					anyInserted |= uint(files.Insert( imageDatabase, dropFiles[i] ));
 
 				if (anyInserted && !Optimize())
 					Redraw();
@@ -162,7 +163,7 @@ namespace Nestopia
 				Redraw();
 		}
 
-		void Launcher::List::Save(Configuration& cfg,ibool saveFiles)
+		void Launcher::List::Save(Configuration& cfg,bool saveFiles)
 		{
 			paths.Save( cfg );
 			columns.Save( cfg );
@@ -170,8 +171,8 @@ namespace Nestopia
 			if (saveFiles)
 				files.Save( imageDatabase );
 
-			cfg["launcher show gridlines"].YesNo() = (style & LVS_EX_GRIDLINES);
-			cfg["launcher use image database"].YesNo() = (useImageDatabase != NULL);
+			cfg["launcher show gridlines"].YesNo() = style & LVS_EX_GRIDLINES;
+			cfg["launcher use image database"].YesNo() = useImageDatabase;
 		}
 
 		void Launcher::List::SetColors(const uint bg,const uint fg,const Updater redraw) const
@@ -214,7 +215,7 @@ namespace Nestopia
 			}
 		}
 
-		ibool Launcher::List::Optimize()
+		bool Launcher::List::Optimize()
 		{
 			if (files.ShouldDefrag())
 			{
@@ -226,7 +227,7 @@ namespace Nestopia
 			return false;
 		}
 
-		ibool Launcher::List::CanRefresh() const
+		bool Launcher::List::CanRefresh() const
 		{
 			return
 			(
@@ -250,7 +251,7 @@ namespace Nestopia
 			}
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("t", on)
 		#endif
 
@@ -407,7 +408,7 @@ namespace Nestopia
 			}
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
@@ -437,7 +438,7 @@ namespace Nestopia
 
 			for (uint i=0, j=1; i < columns.Count(); ++i)
 			{
-				if (uint(array[i]) != firstSortColumn)
+				if (firstSortColumn != array[i])
 					order[j++] = columns.GetType( array[i] );
 			}
 		}
@@ -649,7 +650,7 @@ namespace Nestopia
 				const int selection = ctrl.Selection().GetIndex();
 				const uint wrap = selection > 0 ? selection : 0;
 				uint index = wrap;
-				ibool found;
+				bool found;
 
 				HeapString item;
 
@@ -662,7 +663,7 @@ namespace Nestopia
 					}
 					else
 					{
-						if (uint(--index) == ~0U)
+						if (--index == ~0U)
 							index = count - 1;
 					}
 
@@ -674,11 +675,11 @@ namespace Nestopia
 					}
 					else if (flags & Finder::MATCHCASE)
 					{
-						found = (::StrStr( item.Ptr(), string.Ptr() ) != NULL);
+						found = ::StrStr( item.Ptr(), string.Ptr() );
 					}
 					else
 					{
-						found = (::StrStrI( item.Ptr(), string.Ptr() ) != NULL);
+						found = ::StrStrI( item.Ptr(), string.Ptr() );
 					}
 				}
 				while (!found && index != wrap);

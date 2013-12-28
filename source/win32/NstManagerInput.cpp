@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -27,9 +27,8 @@
 #include "NstIoScreen.hpp"
 #include "NstSystemKeyboard.hpp"
 #include "NstResourceString.hpp"
-#include "NstWindowMenu.hpp"
 #include "NstWindowParam.hpp"
-#include "NstManagerEmulator.hpp"
+#include "NstManager.hpp"
 #include "NstDialogInput.hpp"
 #include "NstManagerInput.hpp"
 
@@ -49,6 +48,7 @@ namespace Nestopia
 			typedef Nes::Input::Controllers::Zapper            Zapper;
 			typedef Nes::Input::Controllers::Paddle            Paddle;
 			typedef Nes::Input::Controllers::PowerPad          PowerPad;
+			typedef Nes::Input::Controllers::PowerGlove        PowerGlove;
 			typedef Nes::Input::Controllers::Mouse             Mouse;
 			typedef Nes::Input::Controllers::OekaKidsTablet    OekaKidsTablet;
 			typedef Nes::Input::Controllers::HyperShot         HyperShot;
@@ -71,6 +71,7 @@ namespace Nestopia
 			static bool NST_CALLBACK PollZapper            (UserData,Zapper&);
 			static bool NST_CALLBACK PollPaddle            (UserData,Paddle&);
 			static bool NST_CALLBACK PollPowerPad          (UserData,PowerPad&);
+			static bool NST_CALLBACK PollPowerGlove        (UserData,PowerGlove&);
 			static bool NST_CALLBACK PollMouse             (UserData,Mouse&);
 			static bool NST_CALLBACK PollOekaKidsTablet    (UserData,OekaKidsTablet&);
 			static bool NST_CALLBACK PollHyperShot         (UserData,HyperShot&);
@@ -91,7 +92,7 @@ namespace Nestopia
 
 		private:
 
-			static void PollCursor(UserData,uint&,uint&,uint&);
+			static void PollCursor(UserData,uint&,uint&,uint&,uint* = NULL);
 		};
 
 		const Resource::Cursor Input::Cursor::gun( IDC_CURSOR_GUN  );
@@ -123,11 +124,18 @@ namespace Nestopia
 
 		void Input::Cursor::Acquire(Emulator& emulator)
 		{
-			ibool autoHide = false;
+			bool autoHide = false;
+			bool usesRButton = false;
 
 			if (Nes::Input(emulator).IsControllerConnected( Nes::Input::ZAPPER ))
 			{
 				hCursor = gun;
+				usesRButton = true;
+			}
+			else if (Nes::Input(emulator).IsControllerConnected( Nes::Input::POWERGLOVE ))
+			{
+				hCursor = NULL;
+				usesRButton = true;
 			}
 			else if
 			(
@@ -151,7 +159,7 @@ namespace Nestopia
 			router[ WM_MOUSEMOVE   ].Set( this, autoHide ? &Cursor::OnMouseMove : &Cursor::OnNop );
 			router[ WM_LBUTTONDOWN ].Set( this, autoHide ? &Cursor::OnLButtonDown: &Cursor::OnNop );
 			router[ WM_LBUTTONUP   ].Set( this, autoHide ? &Cursor::OnButtonUp : &Cursor::OnNop );
-			router[ WM_RBUTTONDOWN ].Set( this, autoHide ? &Cursor::OnRButtonDown : hCursor != gun ? &Cursor::OnRButtonDownNop : &Cursor::OnNop );
+			router[ WM_RBUTTONDOWN ].Set( this, autoHide ? &Cursor::OnRButtonDown : usesRButton ? &Cursor::OnNop : &Cursor::OnRButtonDownNop );
 			router[ WM_RBUTTONUP   ].Set( this, autoHide ? &Cursor::OnButtonUp : &Cursor::OnNop );
 
 			hCurrent = hCursor;
@@ -172,7 +180,7 @@ namespace Nestopia
 			router[ WM_RBUTTONUP   ].Set( this, &Cursor::OnNop            );
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("t", on)
 		#endif
 
@@ -246,7 +254,7 @@ namespace Nestopia
 			return !keys.Empty() && window.Focused();
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
@@ -342,7 +350,7 @@ namespace Nestopia
 			Destroy();
 		}
 
-		ibool Input::ClipBoard::CanPaste() const
+		bool Input::ClipBoard::CanPaste() const
 		{
 			return Empty() && ::IsClipboardFormatAvailable( CF_TEXT );
 		}
@@ -352,14 +360,14 @@ namespace Nestopia
 			paste = CanPaste();
 		}
 
-		uint Input::ClipBoard::Query(const u8* const NST_RESTRICT keyboard,const Type type)
+		uint Input::ClipBoard::Query(const uchar* const NST_RESTRICT keyboard,const Type type)
 		{
-			const ibool p = paste;
+			const bool prev = paste;
 			paste = false;
 
 			if (Empty())
 			{
-				if (p || (keyboard[DIK_F12] & 0x80))
+				if (prev || (keyboard[DIK_F12] & 0x80U))
 				{
 					if (::IsClipboardFormatAvailable( CF_UNICODETEXT ) && ::OpenClipboard( Application::Instance::GetMainWindow() ))
 					{
@@ -524,18 +532,18 @@ namespace Nestopia
 			}
 			else
 			{
-				if (keyboard[DIK_ESCAPE] & 0x80)
+				if (keyboard[DIK_ESCAPE] & 0x80U)
 					Clear();
 			}
 
 			return Length();
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("t", on)
 		#endif
 
-		ibool Input::CmdKeys::ForcePoll()
+		bool Input::CmdKeys::ForcePoll()
 		{
 			NST_ASSERT( keys.Size() );
 
@@ -624,7 +632,7 @@ namespace Nestopia
 			}
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
@@ -634,13 +642,12 @@ namespace Nestopia
 			Window::Menu& m,
 			Emulator& e,
 			const Configuration& cfg,
-			const Screening& i,
-			const Screening& o
+			const Screening& si,
+			const Screening& so
 		)
 		:
-		rects        ( i, o ),
-		menu         ( m ),
-		emulator     ( e ),
+		Manager      ( e, m, this, &Input::OnEmuEvent ),
+		rects        ( si, so ),
 		polled       ( false ),
 		cursor       ( w ),
 		directInput  ( w ),
@@ -658,6 +665,7 @@ namespace Nestopia
 				{ IDM_MACHINE_INPUT_PORT1_ZAPPER,            &Input::OnCmdMachinePort                 },
 				{ IDM_MACHINE_INPUT_PORT1_PADDLE,            &Input::OnCmdMachinePort                 },
 				{ IDM_MACHINE_INPUT_PORT1_POWERPAD,          &Input::OnCmdMachinePort                 },
+				{ IDM_MACHINE_INPUT_PORT1_POWERGLOVE,        &Input::OnCmdMachinePort                 },
 				{ IDM_MACHINE_INPUT_PORT1_MOUSE,             &Input::OnCmdMachinePort                 },
 				{ IDM_MACHINE_INPUT_PORT1_ROB,               &Input::OnCmdMachinePort                 },
 				{ IDM_MACHINE_INPUT_PORT2_UNCONNECTED,       &Input::OnCmdMachinePort                 },
@@ -668,6 +676,7 @@ namespace Nestopia
 				{ IDM_MACHINE_INPUT_PORT2_ZAPPER,            &Input::OnCmdMachinePort                 },
 				{ IDM_MACHINE_INPUT_PORT2_PADDLE,            &Input::OnCmdMachinePort                 },
 				{ IDM_MACHINE_INPUT_PORT2_POWERPAD,          &Input::OnCmdMachinePort                 },
+				{ IDM_MACHINE_INPUT_PORT2_POWERGLOVE,        &Input::OnCmdMachinePort                 },
 				{ IDM_MACHINE_INPUT_PORT2_MOUSE,             &Input::OnCmdMachinePort                 },
 				{ IDM_MACHINE_INPUT_PORT2_ROB,               &Input::OnCmdMachinePort                 },
 				{ IDM_MACHINE_INPUT_PORT3_UNCONNECTED,       &Input::OnCmdMachinePort                 },
@@ -703,6 +712,8 @@ namespace Nestopia
 				{ IDM_OPTIONS_INPUT,                         &Input::OnCmdOptionsInput                }
 			};
 
+			menu.Commands().Add( this, commands );
+
 			static const Window::Menu::PopupHandler::Entry<Input> popups[] =
 			{
 				{ Window::Menu::PopupHandler::Pos<IDM_POS_MACHINE,IDM_POS_MACHINE_INPUT,IDM_POS_MACHINE_INPUT_PORT1>::ID,   &Input::OnMenuPort1    },
@@ -713,9 +724,7 @@ namespace Nestopia
 				{ Window::Menu::PopupHandler::Pos<IDM_POS_MACHINE,IDM_POS_MACHINE_EXT,IDM_POS_MACHINE_EXT_KEYBOARD>::ID,    &Input::OnMenuKeyboard }
 			};
 
-			menu.Commands().Add( this, commands );
 			menu.PopupRouter().Add( this, popups );
-			emulator.Events().Add( this, &Input::OnEmuEvent );
 
 			{
 				HeapString name;
@@ -729,6 +738,7 @@ namespace Nestopia
 			Controllers::Zapper::callback.Set            ( &Callbacks::PollZapper,            &rects );
 			Controllers::Paddle::callback.Set            ( &Callbacks::PollPaddle,            &rects );
 			Controllers::PowerPad::callback.Set          ( &Callbacks::PollPowerPad,          this   );
+			Controllers::PowerGlove::callback.Set        ( &Callbacks::PollPowerGlove,        this   );
 			Controllers::Mouse::callback.Set             ( &Callbacks::PollMouse,             &rects );
 			Controllers::OekaKidsTablet::callback.Set    ( &Callbacks::PollOekaKidsTablet,    &rects );
 			Controllers::HyperShot::callback.Set         ( &Callbacks::PollHyperShot,         this   );
@@ -791,11 +801,12 @@ namespace Nestopia
 						case 0:
 						case 1:
 
-                                 if (type == _T( "zapper"   )) { controller = Nes::Input::ZAPPER;   break; }
-							else if (type == _T( "paddle"   )) { controller = Nes::Input::PADDLE;   break; }
-							else if (type == _T( "powerpad" )) { controller = Nes::Input::POWERPAD; break; }
-							else if (type == _T( "mouse"    )) { controller = Nes::Input::MOUSE;    break; }
-							else if (type == _T( "rob"      )) { controller = Nes::Input::ROB;      break; }
+                                 if (type == _T( "zapper"     )) { controller = Nes::Input::ZAPPER;     break; }
+							else if (type == _T( "paddle"     )) { controller = Nes::Input::PADDLE;     break; }
+							else if (type == _T( "powerpad"   )) { controller = Nes::Input::POWERPAD;   break; }
+							else if (type == _T( "powerglove" )) { controller = Nes::Input::POWERGLOVE; break; }
+							else if (type == _T( "mouse"      )) { controller = Nes::Input::MOUSE;      break; }
+							else if (type == _T( "rob"        )) { controller = Nes::Input::ROB;        break; }
 
 						case 2:
 						case 3:
@@ -827,6 +838,8 @@ namespace Nestopia
 							else if (type == _T( "toprider"          )) controller = Nes::Input::TOPRIDER;
 							else if (type == _T( "pokkunmoguraa"     )) controller = Nes::Input::POKKUNMOGURAA;
 							else if (type == _T( "partytap"          )) controller = Nes::Input::PARTYTAP;
+
+							break;
 					}
 
 					emulator.ConnectController( i, controller );
@@ -838,7 +851,30 @@ namespace Nestopia
 
 		Input::~Input()
 		{
-			emulator.Events().Remove( this );
+			typedef Nes::Input::Controllers Controllers;
+
+			Controllers::Pad::callback.Unset();
+			Controllers::Zapper::callback.Unset();
+			Controllers::Paddle::callback.Unset();
+			Controllers::PowerPad::callback.Unset();
+			Controllers::PowerGlove::callback.Unset();
+			Controllers::Mouse::callback.Unset();
+			Controllers::OekaKidsTablet::callback.Unset();
+			Controllers::HyperShot::callback.Unset();
+			Controllers::FamilyTrainer::callback.Unset();
+			Controllers::FamilyKeyboard::callback.Unset();
+			Controllers::SuborKeyboard::callback.Unset();
+			Controllers::DoremikkoKeyboard::callback.Unset();
+			Controllers::HoriTrack::callback.Unset();
+			Controllers::Pachinko::callback.Unset();
+			Controllers::CrazyClimber::callback.Unset();
+			Controllers::Mahjong::callback.Unset();
+			Controllers::ExcitingBoxing::callback.Unset();
+			Controllers::TopRider::callback.Unset();
+			Controllers::PokkunMoguraa::callback.Unset();
+			Controllers::PartyTap::callback.Unset();
+			Controllers::VsSystem::callback.Unset();
+			Controllers::KaraokeStudio::callback.Unset();
 		}
 
 		void Input::Save(Configuration& cfg) const
@@ -868,6 +904,7 @@ namespace Nestopia
 						case Nes::Input::ZAPPER:            type = _T( "zapper"            ); break;
 						case Nes::Input::PADDLE:            type = _T( "paddle"            ); break;
 						case Nes::Input::POWERPAD:          type = _T( "powerpad"          ); break;
+						case Nes::Input::POWERGLOVE:        type = _T( "powerglove"        ); break;
 						case Nes::Input::MOUSE:             type = _T( "mouse"             ); break;
 						case Nes::Input::ROB:               type = _T( "rob"               ); break;
 						case Nes::Input::FAMILYTRAINER:     type = _T( "familytrainer"     ); break;
@@ -1031,15 +1068,14 @@ namespace Nestopia
 					break;
 
 				case Emulator::EVENT_LOAD:
+				case Emulator::EVENT_UNLOAD:
 
-					if (emulator.Is(Nes::Machine::GAME))
-					{
-						if (menu[IDM_MACHINE_INPUT_AUTOSELECT].Checked())
-							emulator.AutoSelectControllers();
+					if (menu[IDM_MACHINE_INPUT_AUTOSELECT].Checked())
+						emulator.AutoSelectControllers();
 
-						if (menu[IDM_MACHINE_INPUT_ADAPTER_AUTO].Checked())
-							Nes::Input(emulator).AutoSelectAdapter();
-					}
+					if (menu[IDM_MACHINE_INPUT_ADAPTER_AUTO].Checked())
+						Nes::Input(emulator).AutoSelectAdapter();
+
 					break;
 
 				case Emulator::EVENT_NETPLAY_LOAD:
@@ -1053,7 +1089,7 @@ namespace Nestopia
 				case Emulator::EVENT_NETPLAY_MODE_ON:
 				case Emulator::EVENT_NETPLAY_MODE_OFF:
 				{
-					const ibool state = (event == Emulator::EVENT_NETPLAY_MODE_OFF);
+					const bool state = (event == Emulator::EVENT_NETPLAY_MODE_OFF);
 
 					menu[IDM_MACHINE_INPUT_AUTOSELECT].Enable( state );
 					menu[IDM_POS_MACHINE][IDM_POS_MACHINE_INPUT][IDM_POS_MACHINE_INPUT_EXP].Enable( state );
@@ -1064,12 +1100,14 @@ namespace Nestopia
 					menu[ IDM_MACHINE_INPUT_PORT1_ZAPPER      ].Enable( state );
 					menu[ IDM_MACHINE_INPUT_PORT1_PADDLE      ].Enable( state );
 					menu[ IDM_MACHINE_INPUT_PORT1_POWERPAD    ].Enable( state );
+					menu[ IDM_MACHINE_INPUT_PORT1_POWERGLOVE  ].Enable( state );
 					menu[ IDM_MACHINE_INPUT_PORT1_MOUSE       ].Enable( state );
 					menu[ IDM_MACHINE_INPUT_PORT1_ROB         ].Enable( state );
 					menu[ IDM_MACHINE_INPUT_PORT2_UNCONNECTED ].Enable( state );
 					menu[ IDM_MACHINE_INPUT_PORT2_ZAPPER      ].Enable( state );
 					menu[ IDM_MACHINE_INPUT_PORT2_PADDLE      ].Enable( state );
 					menu[ IDM_MACHINE_INPUT_PORT2_POWERPAD    ].Enable( state );
+					menu[ IDM_MACHINE_INPUT_PORT2_POWERGLOVE  ].Enable( state );
 					menu[ IDM_MACHINE_INPUT_PORT2_MOUSE       ].Enable( state );
 					menu[ IDM_MACHINE_INPUT_PORT2_ROB         ].Enable( state );
 					menu[ IDM_MACHINE_INPUT_PORT3_UNCONNECTED ].Enable( state );
@@ -1103,6 +1141,7 @@ namespace Nestopia
 				{ 0, Nes::Input::ZAPPER            },
 				{ 0, Nes::Input::PADDLE            },
 				{ 0, Nes::Input::POWERPAD          },
+				{ 0, Nes::Input::POWERGLOVE        },
 				{ 0, Nes::Input::MOUSE             },
 				{ 0, Nes::Input::ROB               },
 				{ 1, Nes::Input::UNCONNECTED       },
@@ -1113,6 +1152,7 @@ namespace Nestopia
 				{ 1, Nes::Input::ZAPPER            },
 				{ 1, Nes::Input::PADDLE            },
 				{ 1, Nes::Input::POWERPAD          },
+				{ 1, Nes::Input::POWERGLOVE        },
 				{ 1, Nes::Input::MOUSE             },
 				{ 1, Nes::Input::ROB               },
 				{ 2, Nes::Input::UNCONNECTED       },
@@ -1178,16 +1218,17 @@ namespace Nestopia
 
 			switch (Nes::Input(emulator).GetConnectedController(0))
 			{
-				case Nes::Input::PAD1:     id = IDM_MACHINE_INPUT_PORT1_PAD1;        break;
-				case Nes::Input::PAD2:     id = IDM_MACHINE_INPUT_PORT1_PAD2;        break;
-				case Nes::Input::PAD3:     id = IDM_MACHINE_INPUT_PORT1_PAD3;        break;
-				case Nes::Input::PAD4:     id = IDM_MACHINE_INPUT_PORT1_PAD4;        break;
-				case Nes::Input::ZAPPER:   id = IDM_MACHINE_INPUT_PORT1_ZAPPER;      break;
-				case Nes::Input::PADDLE:   id = IDM_MACHINE_INPUT_PORT1_PADDLE;      break;
-				case Nes::Input::POWERPAD: id = IDM_MACHINE_INPUT_PORT1_POWERPAD;    break;
-				case Nes::Input::MOUSE:    id = IDM_MACHINE_INPUT_PORT1_MOUSE;       break;
-				case Nes::Input::ROB:      id = IDM_MACHINE_INPUT_PORT1_ROB;         break;
-				default:                   id = IDM_MACHINE_INPUT_PORT1_UNCONNECTED; break;
+				case Nes::Input::PAD1:       id = IDM_MACHINE_INPUT_PORT1_PAD1;        break;
+				case Nes::Input::PAD2:       id = IDM_MACHINE_INPUT_PORT1_PAD2;        break;
+				case Nes::Input::PAD3:       id = IDM_MACHINE_INPUT_PORT1_PAD3;        break;
+				case Nes::Input::PAD4:       id = IDM_MACHINE_INPUT_PORT1_PAD4;        break;
+				case Nes::Input::ZAPPER:     id = IDM_MACHINE_INPUT_PORT1_ZAPPER;      break;
+				case Nes::Input::PADDLE:     id = IDM_MACHINE_INPUT_PORT1_PADDLE;      break;
+				case Nes::Input::POWERPAD:   id = IDM_MACHINE_INPUT_PORT1_POWERPAD;    break;
+				case Nes::Input::POWERGLOVE: id = IDM_MACHINE_INPUT_PORT1_POWERGLOVE;  break;
+				case Nes::Input::MOUSE:      id = IDM_MACHINE_INPUT_PORT1_MOUSE;       break;
+				case Nes::Input::ROB:        id = IDM_MACHINE_INPUT_PORT1_ROB;         break;
+				default:                     id = IDM_MACHINE_INPUT_PORT1_UNCONNECTED; break;
 			}
 
 			param.menu[id].Check( IDM_MACHINE_INPUT_PORT1_UNCONNECTED, IDM_MACHINE_INPUT_PORT1_ROB );
@@ -1199,16 +1240,17 @@ namespace Nestopia
 
 			switch (Nes::Input(emulator).GetConnectedController(1))
 			{
-				case Nes::Input::PAD1:     id = IDM_MACHINE_INPUT_PORT2_PAD1;        break;
-				case Nes::Input::PAD2:     id = IDM_MACHINE_INPUT_PORT2_PAD2;        break;
-				case Nes::Input::PAD3:     id = IDM_MACHINE_INPUT_PORT2_PAD3;        break;
-				case Nes::Input::PAD4:     id = IDM_MACHINE_INPUT_PORT2_PAD4;        break;
-				case Nes::Input::ZAPPER:   id = IDM_MACHINE_INPUT_PORT2_ZAPPER;      break;
-				case Nes::Input::PADDLE:   id = IDM_MACHINE_INPUT_PORT2_PADDLE;      break;
-				case Nes::Input::POWERPAD: id = IDM_MACHINE_INPUT_PORT2_POWERPAD;    break;
-				case Nes::Input::MOUSE:    id = IDM_MACHINE_INPUT_PORT2_MOUSE;       break;
-				case Nes::Input::ROB:      id = IDM_MACHINE_INPUT_PORT2_ROB;         break;
-				default:                   id = IDM_MACHINE_INPUT_PORT2_UNCONNECTED; break;
+				case Nes::Input::PAD1:       id = IDM_MACHINE_INPUT_PORT2_PAD1;        break;
+				case Nes::Input::PAD2:       id = IDM_MACHINE_INPUT_PORT2_PAD2;        break;
+				case Nes::Input::PAD3:       id = IDM_MACHINE_INPUT_PORT2_PAD3;        break;
+				case Nes::Input::PAD4:       id = IDM_MACHINE_INPUT_PORT2_PAD4;        break;
+				case Nes::Input::ZAPPER:     id = IDM_MACHINE_INPUT_PORT2_ZAPPER;      break;
+				case Nes::Input::PADDLE:     id = IDM_MACHINE_INPUT_PORT2_PADDLE;      break;
+				case Nes::Input::POWERPAD:   id = IDM_MACHINE_INPUT_PORT2_POWERPAD;    break;
+				case Nes::Input::POWERGLOVE: id = IDM_MACHINE_INPUT_PORT2_POWERGLOVE;  break;
+				case Nes::Input::MOUSE:      id = IDM_MACHINE_INPUT_PORT2_MOUSE;       break;
+				case Nes::Input::ROB:        id = IDM_MACHINE_INPUT_PORT2_ROB;         break;
+				default:                     id = IDM_MACHINE_INPUT_PORT2_UNCONNECTED; break;
 			}
 
 			param.menu[id].Check( IDM_MACHINE_INPUT_PORT2_UNCONNECTED, IDM_MACHINE_INPUT_PORT2_ROB );
@@ -1285,7 +1327,7 @@ namespace Nestopia
 			);
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("t", on)
 		#endif
 
@@ -1358,43 +1400,46 @@ namespace Nestopia
 
 		bool NST_CALLBACK Input::Callbacks::PollZapper(UserData data,Zapper& zapper)
 		{
-			POINT mouse;
-			::GetCursorPos( &mouse );
-
-			const Rects& rects = *static_cast<Rects*>(data);
-
-			Window::Rect output;
-			rects.getOutput( output );
-
-			if (output.Inside( mouse ))
+			if (Application::Instance::GetMainWindow().Active())
 			{
-				if (!(::GetAsyncKeyState( Cursor::secondaryButtonId ) & 0x8000U))
-				{
-					zapper.fire = ::GetAsyncKeyState( Cursor::primaryButtonId ) & 0x8000U;
+				POINT mouse;
+				::GetCursorPos( &mouse );
 
-					if (zapper.x != ~0U)
-					{
-						Window::Rect input;
-						rects.getInput( input );
+				const Rects& rects = *static_cast<Rects*>(data);
 
-						zapper.x = uint(input.left) + (uint(mouse.x) - uint(output.left)) * (uint(input.Width())-1) / uint(output.Width());
-						zapper.y = uint(input.top) + (uint(mouse.y) - uint(output.top)) * (uint(input.Height())-1) / uint(output.Height());
-					}
-					else if (zapper.fire) // gun off-screen unlock
-					{
-						zapper.x = ~1U;
-					}
-				}
-				else // gun off-screen lock
+				Window::Rect output;
+				rects.getOutput( output );
+
+				if (output.Inside( mouse ))
 				{
-					zapper.fire = true;
-					zapper.y = zapper.x = ~0U;
+					if (!(::GetAsyncKeyState( Cursor::secondaryButtonId ) & 0x8000U))
+					{
+						zapper.fire = ::GetAsyncKeyState( Cursor::primaryButtonId ) & 0x8000U;
+
+						if (zapper.x != ~0U)
+						{
+							Window::Rect input;
+							rects.getInput( input );
+
+							zapper.x = input.left + (mouse.x - output.left) * (uint(input.Width())-1) / output.Width();
+							zapper.y = input.top + (mouse.y - output.top) * (uint(input.Height())-1) / output.Height();
+						}
+						else if (zapper.fire) // gun off-screen unlock
+						{
+							zapper.x = ~1U;
+						}
+					}
+					else // gun off-screen lock
+					{
+						zapper.fire = true;
+						zapper.y = zapper.x = ~0U;
+					}
+
+					return true;
 				}
 			}
-			else
-			{
-				zapper.fire = false;
-			}
+
+			zapper.fire = false;
 
 			return true;
 		}
@@ -1414,13 +1459,16 @@ namespace Nestopia
 				Window::Rect input;
 				rects.getInput( input );
 
-				paddle.x = uint(input.left) + (uint(mouse.x) - uint(output.left)) * (uint(input.Width())-1) / uint(output.Width());
-				paddle.button = ::GetAsyncKeyState( Cursor::primaryButtonId ) & 0x8000U;
+				paddle.x = input.left + (mouse.x - output.left) * (uint(input.Width())-1) / output.Width();
+
+				if (Application::Instance::GetMainWindow().Active())
+				{
+					paddle.button = ::GetAsyncKeyState( Cursor::primaryButtonId ) & 0x8000U;
+					return true;
+				}
 			}
-			else
-			{
-				paddle.button = false;
-			}
+
+			paddle.button = false;
 
 			return true;
 		}
@@ -1444,7 +1492,69 @@ namespace Nestopia
 			return true;
 		}
 
-		void Input::Callbacks::PollCursor(UserData data,uint& x,uint& y,uint& button)
+		bool NST_CALLBACK Input::Callbacks::PollPowerGlove(UserData data,PowerGlove& glove)
+		{
+			Input& input = *static_cast<Input*>(data);
+
+			input.CheckPoll();
+
+			const Key* const NST_RESTRICT keys = input.dialog->GetSettings().GetKeys(Settings::POWERGLOVE_KEYS);
+
+			uint pad = 0;
+
+			keys[ Settings::POWERGLOVE_KEY_SELECT ].GetState( pad, PowerGlove::SELECT );
+			keys[ Settings::POWERGLOVE_KEY_START  ].GetState( pad, PowerGlove::START  );
+
+			glove.buttons = pad;
+
+			if (keys[Settings::POWERGLOVE_KEY_MOVE_IN].GetState())
+			{
+				glove.distance = PowerGlove::DISTANCE_IN;
+			}
+			else if (keys[Settings::POWERGLOVE_KEY_MOVE_OUT].GetState())
+			{
+				glove.distance = PowerGlove::DISTANCE_OUT;
+			}
+			else
+			{
+				glove.distance = 0;
+			}
+
+			if (keys[Settings::POWERGLOVE_KEY_ROLL_LEFT].GetState())
+			{
+				glove.wrist = PowerGlove::ROLL_LEFT;
+			}
+			else if (keys[Settings::POWERGLOVE_KEY_ROLL_RIGHT].GetState())
+			{
+				glove.wrist = PowerGlove::ROLL_RIGHT;
+			}
+			else
+			{
+				glove.wrist = 0;
+			}
+
+			uint buttons[2], x=0, y=0;
+			PollCursor( &input.rects, x, y, buttons[0], buttons+1 );
+			glove.x = x;
+			glove.y = y;
+
+			if (buttons[0])
+			{
+				glove.gesture = PowerGlove::GESTURE_FIST;
+			}
+			else if (buttons[1])
+			{
+				glove.gesture = PowerGlove::GESTURE_FINGER;
+			}
+			else
+			{
+				glove.gesture = PowerGlove::GESTURE_OPEN;
+			}
+
+			return true;
+		}
+
+		void Input::Callbacks::PollCursor(UserData data,uint& x,uint& y,uint& lbutton,uint* rbutton)
 		{
 			POINT mouse;
 			::GetCursorPos( &mouse );
@@ -1459,14 +1569,24 @@ namespace Nestopia
 				Window::Rect input;
 				rects.getInput( input );
 
-				x = uint(input.left) + (uint(mouse.x) - uint(output.left)) * (uint(input.Width())-1) / uint(output.Width());
-				y = uint(input.top) + (uint(mouse.y) - uint(output.top)) * (uint(input.Height())-1) / uint(output.Height());
-				button = ::GetAsyncKeyState( Cursor::primaryButtonId ) & 0x8000U;
+				x = input.left + (mouse.x - output.left) * (uint(input.Width())-1) / output.Width();
+				y = input.top + (mouse.y - output.top) * (uint(input.Height())-1) / output.Height();
+
+				if (Application::Instance::GetMainWindow().Active())
+				{
+					lbutton = ::GetAsyncKeyState( Cursor::primaryButtonId ) & 0x8000U;
+
+					if (rbutton)
+						*rbutton = ::GetAsyncKeyState( Cursor::secondaryButtonId ) & 0x8000U;
+
+					return;
+				}
 			}
-			else
-			{
-				button = 0;
-			}
+
+			lbutton = 0;
+
+			if (rbutton)
+				*rbutton = 0;
 		}
 
 		bool NST_CALLBACK Input::Callbacks::PollMouse(UserData data,Mouse& mouse)
@@ -1500,7 +1620,7 @@ namespace Nestopia
 			keys[ Settings::HORITRACK_KEY_LEFT   ].GetState( buttons, HoriTrack::BUTTON_LEFT   );
 			keys[ Settings::HORITRACK_KEY_RIGHT  ].GetState( buttons, HoriTrack::BUTTON_RIGHT  );
 
-			static ibool speed = false;
+			static bool speed = false;
 
 			if (keys[Settings::HORITRACK_KEY_SPEED].GetToggle( speed ))
 			{
@@ -1508,7 +1628,7 @@ namespace Nestopia
 				Io::Screen() << Resource::String((horiTrack.mode & HoriTrack::MODE_LOWSPEED) ? IDS_SCREEN_HORITRACK_SPEED_LOW : IDS_SCREEN_HORITRACK_SPEED_HIGH);
 			}
 
-			static ibool orientation = false;
+			static bool orientation = false;
 
 			if (keys[Settings::HORITRACK_KEY_ORIENTATION].GetToggle( orientation ))
 			{
@@ -1520,7 +1640,7 @@ namespace Nestopia
 
 			uint mouseButton;
 			PollCursor( &input.rects, horiTrack.x, horiTrack.y, mouseButton );
-			horiTrack.buttons = (horiTrack.buttons & (HoriTrack::BUTTON_A^0xFF)) | (mouseButton ? HoriTrack::BUTTON_A : 0);
+			horiTrack.buttons = (horiTrack.buttons & (HoriTrack::BUTTON_A^0xFFU)) | (mouseButton ? HoriTrack::BUTTON_A : 0);
 
 			return true;
 		}
@@ -1636,15 +1756,15 @@ namespace Nestopia
 
 			input.CheckPoll();
 
-			const u8* const NST_RESTRICT buffer = input.directInput.GetKeyboardBuffer();
+			const uchar* const NST_RESTRICT buffer = input.directInput.GetKeyboardBuffer();
 
 			uint key = 0;
 
-			#define NST_2(a,b) (a | (u16(b) << 8))
+			#define NST_2(a,b) (a | (uint(b) << 8))
 
 			if (input.clipBoard.Query( buffer, ClipBoard::FAMILY ))
 			{
-				static const u16 asciiMap[FamilyKeyboard::NUM_PARTS][FamilyKeyboard::NUM_MODES][4] =
+				static const ushort asciiMap[FamilyKeyboard::NUM_PARTS][FamilyKeyboard::NUM_MODES][4] =
 				{
 					{
 						{ 0, '\r', NST_2('[','['|0x80), NST_2(']',']'|0x80) },
@@ -1699,13 +1819,13 @@ namespace Nestopia
 
 				for (uint i=0; i < 4; ++i)
 				{
-					if (uint(asciiMap[part][mode][i] & 0xFF) == next)
+					if ((asciiMap[part][mode][i] & 0xFFU) == next)
 					{
 						key |= 1U << (i+1);
 						++input.clipBoard;
 						break;
 					}
-					else if (uint(asciiMap[part][mode][i] >> 8) == next)
+					else if ((asciiMap[part][mode][i] >> 8) == next)
 					{
 						if (input.clipBoard.Shifted())
 						{
@@ -1722,7 +1842,7 @@ namespace Nestopia
 			}
 			else
 			{
-				static const u16 dikMap[FamilyKeyboard::NUM_PARTS][FamilyKeyboard::NUM_MODES][4] =
+				static const ushort dikMap[FamilyKeyboard::NUM_PARTS][FamilyKeyboard::NUM_MODES][4] =
 				{
 					{
 						{ DIK_F8, NST_2(DIK_RETURN,DIK_NUMPADENTER), DIK_LBRACKET, DIK_RBRACKET },
@@ -1763,14 +1883,14 @@ namespace Nestopia
 				};
 
 				if (part == 7 && mode == 1)
-					key |= (::GetKeyState(VK_CAPITAL) & 0x0001) << 2;
+					key |= (::GetKeyState(VK_CAPITAL) & 0x0001U) << 2;
 
 				for (uint i=0; i < 4; ++i)
 				{
 					const uint pushed = 0x80 &
 					(
-						buffer[dikMap[part][mode][i] & 0xFF] |
-						buffer[dikMap[part][mode][i] >>   8]
+						buffer[dikMap[part][mode][i] & 0xFFU] |
+						buffer[dikMap[part][mode][i] >>    8]
 					);
 
 					key |= pushed >> ( 7 - ( i + 1 ) );
@@ -1790,15 +1910,15 @@ namespace Nestopia
 
 			input.CheckPoll();
 
-			const u8* const NST_RESTRICT buffer = input.directInput.GetKeyboardBuffer();
+			const uchar* const NST_RESTRICT buffer = input.directInput.GetKeyboardBuffer();
 
 			uint key = 0;
 
-			#define NST_2(a,b) (a | (u16(b) << 8))
+			#define NST_2(a,b) (a | (uint(b) << 8))
 
 			if (input.clipBoard.Query( buffer, ClipBoard::SUBOR ))
 			{
-				static const u16 asciiMap[SuborKeyboard::NUM_PARTS][SuborKeyboard::NUM_MODES][4] =
+				static const ushort asciiMap[SuborKeyboard::NUM_PARTS][SuborKeyboard::NUM_MODES][4] =
 				{
 					{
 						{ NST_2('4','$'), 'g', 'f', 'c' },
@@ -1849,13 +1969,13 @@ namespace Nestopia
 
 				for (uint i=0; i < 4; ++i)
 				{
-					if (uint(asciiMap[part][mode][i] & 0xFF) == next)
+					if ((asciiMap[part][mode][i] & 0xFFU) == next)
 					{
 						key |= 1U << (i+1);
 						++input.clipBoard;
 						break;
 					}
-					else if (uint(asciiMap[part][mode][i] >> 8) == next)
+					else if ((asciiMap[part][mode][i] >> 8) == next)
 					{
 						if (input.clipBoard.Shifted())
 						{
@@ -1872,7 +1992,7 @@ namespace Nestopia
 			}
 			else
 			{
-				static const u16 dikMap[SuborKeyboard::NUM_PARTS][SuborKeyboard::NUM_MODES][4] =
+				static const ushort dikMap[SuborKeyboard::NUM_PARTS][SuborKeyboard::NUM_MODES][4] =
 				{
 					{
 						{ NST_2(DIK_4,DIK_NUMPAD4), DIK_G, DIK_F, DIK_C },
@@ -1918,10 +2038,10 @@ namespace Nestopia
 
 				for (uint i=0; i < 4; ++i)
 				{
-					const uint pushed = 0x80 &
+					const uint pushed = 0x80U &
 					(
-						buffer[dikMap[part][mode][i] & 0xFF] |
-						buffer[dikMap[part][mode][i] >>   8]
+						buffer[dikMap[part][mode][i] & 0xFFU] |
+						buffer[dikMap[part][mode][i] >>    8]
 					);
 
 					key |= pushed >> ( 7 - ( i + 1 ) );
@@ -1941,7 +2061,7 @@ namespace Nestopia
 
 			input.CheckPoll();
 
-			const u8* const NST_RESTRICT keyboard = input.directInput.GetKeyboardBuffer();
+			const uchar* const NST_RESTRICT keyboard = input.directInput.GetKeyboardBuffer();
 
 			uint keys = 0;
 
@@ -1951,8 +2071,8 @@ namespace Nestopia
 
 					if (mode == DoremikkoKeyboard::MODE_B)
 					{
-						if (keyboard[ DIK_Z ] & 0x80) keys |= DoremikkoKeyboard::MODE_B_0;
-						if (keyboard[ DIK_S ] & 0x80) keys |= DoremikkoKeyboard::MODE_B_1;
+						if (keyboard[ DIK_Z ] & 0x80U) keys |= DoremikkoKeyboard::MODE_B_0;
+						if (keyboard[ DIK_S ] & 0x80U) keys |= DoremikkoKeyboard::MODE_B_1;
 					}
 					break;
 
@@ -1960,15 +2080,15 @@ namespace Nestopia
 
 					if (mode == DoremikkoKeyboard::MODE_A)
 					{
-						if (keyboard[ DIK_X ] & 0x80) keys |= DoremikkoKeyboard::MODE_A_0;
-						if (keyboard[ DIK_D ] & 0x80) keys |= DoremikkoKeyboard::MODE_A_1;
-						if (keyboard[ DIK_C ] & 0x80) keys |= DoremikkoKeyboard::MODE_A_2;
-						if (keyboard[ DIK_V ] & 0x80) keys |= DoremikkoKeyboard::MODE_A_3;
+						if (keyboard[ DIK_X ] & 0x80U) keys |= DoremikkoKeyboard::MODE_A_0;
+						if (keyboard[ DIK_D ] & 0x80U) keys |= DoremikkoKeyboard::MODE_A_1;
+						if (keyboard[ DIK_C ] & 0x80U) keys |= DoremikkoKeyboard::MODE_A_2;
+						if (keyboard[ DIK_V ] & 0x80U) keys |= DoremikkoKeyboard::MODE_A_3;
 					}
 					else
 					{
-						if (keyboard[ DIK_G ] & 0x80) keys |= DoremikkoKeyboard::MODE_B_0;
-						if (keyboard[ DIK_B ] & 0x80) keys |= DoremikkoKeyboard::MODE_B_1;
+						if (keyboard[ DIK_G ] & 0x80U) keys |= DoremikkoKeyboard::MODE_B_0;
+						if (keyboard[ DIK_B ] & 0x80U) keys |= DoremikkoKeyboard::MODE_B_1;
 					}
 					break;
 
@@ -1976,15 +2096,15 @@ namespace Nestopia
 
 					if (mode == DoremikkoKeyboard::MODE_A)
 					{
-						if (keyboard[ DIK_H ] & 0x80) keys |= DoremikkoKeyboard::MODE_A_0;
-						if (keyboard[ DIK_N ] & 0x80) keys |= DoremikkoKeyboard::MODE_A_1;
-						if (keyboard[ DIK_J ] & 0x80) keys |= DoremikkoKeyboard::MODE_A_2;
-						if (keyboard[ DIK_M ] & 0x80) keys |= DoremikkoKeyboard::MODE_A_3;
+						if (keyboard[ DIK_H ] & 0x80U) keys |= DoremikkoKeyboard::MODE_A_0;
+						if (keyboard[ DIK_N ] & 0x80U) keys |= DoremikkoKeyboard::MODE_A_1;
+						if (keyboard[ DIK_J ] & 0x80U) keys |= DoremikkoKeyboard::MODE_A_2;
+						if (keyboard[ DIK_M ] & 0x80U) keys |= DoremikkoKeyboard::MODE_A_3;
 					}
 					else
 					{
-						if (keyboard[ DIK_COMMA ] & 0x80) keys |= DoremikkoKeyboard::MODE_B_0;
-						if (keyboard[ DIK_L     ] & 0x80) keys |= DoremikkoKeyboard::MODE_B_1;
+						if (keyboard[ DIK_COMMA ] & 0x80U) keys |= DoremikkoKeyboard::MODE_B_0;
+						if (keyboard[ DIK_L     ] & 0x80U) keys |= DoremikkoKeyboard::MODE_B_1;
 					}
 					break;
 
@@ -1992,15 +2112,15 @@ namespace Nestopia
 
 					if (mode == DoremikkoKeyboard::MODE_A)
 					{
-						if (keyboard[ DIK_PERIOD    ] & 0x80) keys |= DoremikkoKeyboard::MODE_A_0;
-						if (keyboard[ DIK_SEMICOLON ] & 0x80) keys |= DoremikkoKeyboard::MODE_A_1;
-						if (keyboard[ DIK_SLASH     ] & 0x80) keys |= DoremikkoKeyboard::MODE_A_2;
-						if (keyboard[ DIK_Q         ] & 0x80) keys |= DoremikkoKeyboard::MODE_A_3;
+						if (keyboard[ DIK_PERIOD    ] & 0x80U) keys |= DoremikkoKeyboard::MODE_A_0;
+						if (keyboard[ DIK_SEMICOLON ] & 0x80U) keys |= DoremikkoKeyboard::MODE_A_1;
+						if (keyboard[ DIK_SLASH     ] & 0x80U) keys |= DoremikkoKeyboard::MODE_A_2;
+						if (keyboard[ DIK_Q         ] & 0x80U) keys |= DoremikkoKeyboard::MODE_A_3;
 					}
 					else
 					{
-						if (keyboard[ DIK_2 ] & 0x80) keys |= DoremikkoKeyboard::MODE_B_0;
-						if (keyboard[ DIK_W ] & 0x80) keys |= DoremikkoKeyboard::MODE_B_1;
+						if (keyboard[ DIK_2 ] & 0x80U) keys |= DoremikkoKeyboard::MODE_B_0;
+						if (keyboard[ DIK_W ] & 0x80U) keys |= DoremikkoKeyboard::MODE_B_1;
 					}
 					break;
 
@@ -2008,15 +2128,15 @@ namespace Nestopia
 
 					if (mode == DoremikkoKeyboard::MODE_A)
 					{
-						if (keyboard[ DIK_3 ] & 0x80) keys |= DoremikkoKeyboard::MODE_A_0;
-						if (keyboard[ DIK_E ] & 0x80) keys |= DoremikkoKeyboard::MODE_A_1;
-						if (keyboard[ DIK_4 ] & 0x80) keys |= DoremikkoKeyboard::MODE_A_2;
-						if (keyboard[ DIK_R ] & 0x80) keys |= DoremikkoKeyboard::MODE_A_3;
+						if (keyboard[ DIK_3 ] & 0x80U) keys |= DoremikkoKeyboard::MODE_A_0;
+						if (keyboard[ DIK_E ] & 0x80U) keys |= DoremikkoKeyboard::MODE_A_1;
+						if (keyboard[ DIK_4 ] & 0x80U) keys |= DoremikkoKeyboard::MODE_A_2;
+						if (keyboard[ DIK_R ] & 0x80U) keys |= DoremikkoKeyboard::MODE_A_3;
 					}
 					else
 					{
-						if (keyboard[ DIK_T ] & 0x80) keys |= DoremikkoKeyboard::MODE_B_0;
-						if (keyboard[ DIK_6 ] & 0x80) keys |= DoremikkoKeyboard::MODE_B_1;
+						if (keyboard[ DIK_T ] & 0x80U) keys |= DoremikkoKeyboard::MODE_B_0;
+						if (keyboard[ DIK_6 ] & 0x80U) keys |= DoremikkoKeyboard::MODE_B_1;
 					}
 					break;
 
@@ -2024,15 +2144,15 @@ namespace Nestopia
 
 					if (mode == DoremikkoKeyboard::MODE_A)
 					{
-						if (keyboard[ DIK_Y ] & 0x80) keys |= DoremikkoKeyboard::MODE_A_0;
-						if (keyboard[ DIK_7 ] & 0x80) keys |= DoremikkoKeyboard::MODE_A_1;
-						if (keyboard[ DIK_U ] & 0x80) keys |= DoremikkoKeyboard::MODE_A_2;
-						if (keyboard[ DIK_I ] & 0x80) keys |= DoremikkoKeyboard::MODE_A_3;
+						if (keyboard[ DIK_Y ] & 0x80U) keys |= DoremikkoKeyboard::MODE_A_0;
+						if (keyboard[ DIK_7 ] & 0x80U) keys |= DoremikkoKeyboard::MODE_A_1;
+						if (keyboard[ DIK_U ] & 0x80U) keys |= DoremikkoKeyboard::MODE_A_2;
+						if (keyboard[ DIK_I ] & 0x80U) keys |= DoremikkoKeyboard::MODE_A_3;
 					}
 					else
 					{
-						if (keyboard[ DIK_9 ] & 0x80) keys |= DoremikkoKeyboard::MODE_B_0;
-						if (keyboard[ DIK_O ] & 0x80) keys |= DoremikkoKeyboard::MODE_B_1;
+						if (keyboard[ DIK_9 ] & 0x80U) keys |= DoremikkoKeyboard::MODE_B_0;
+						if (keyboard[ DIK_O ] & 0x80U) keys |= DoremikkoKeyboard::MODE_B_1;
 					}
 					break;
 
@@ -2040,10 +2160,10 @@ namespace Nestopia
 
 					if (mode == DoremikkoKeyboard::MODE_A)
 					{
-						if (keyboard[ DIK_0     ] & 0x80) keys |= DoremikkoKeyboard::MODE_A_0;
-						if (keyboard[ DIK_P     ] & 0x80) keys |= DoremikkoKeyboard::MODE_A_1;
-						if (keyboard[ DIK_MINUS ] & 0x80) keys |= DoremikkoKeyboard::MODE_A_2;
-						if (keyboard[ DIK_AT    ] & 0x80) keys |= DoremikkoKeyboard::MODE_A_3;
+						if (keyboard[ DIK_0     ] & 0x80U) keys |= DoremikkoKeyboard::MODE_A_0;
+						if (keyboard[ DIK_P     ] & 0x80U) keys |= DoremikkoKeyboard::MODE_A_1;
+						if (keyboard[ DIK_MINUS ] & 0x80U) keys |= DoremikkoKeyboard::MODE_A_2;
+						if (keyboard[ DIK_AT    ] & 0x80U) keys |= DoremikkoKeyboard::MODE_A_3;
 					}
 					break;
 			}
@@ -2093,7 +2213,7 @@ namespace Nestopia
 					keys[ Settings::MAHJONG_KEY_START  ].GetState( buttons, Mahjong::PART_3_START  );
 					keys[ Settings::MAHJONG_KEY_KAN    ].GetState( buttons, Mahjong::PART_3_KAN    );
 					keys[ Settings::MAHJONG_KEY_PON    ].GetState( buttons, Mahjong::PART_3_PON    );
-					keys[ Settings::MAHJONG_KEY_CHII   ].GetState( buttons, Mahjong::PART_3_CHII   );
+					keys[ Settings::MAHJONG_KEY_CHI    ].GetState( buttons, Mahjong::PART_3_CHI    );
 					keys[ Settings::MAHJONG_KEY_REACH  ].GetState( buttons, Mahjong::PART_3_REACH  );
 					keys[ Settings::MAHJONG_KEY_RON    ].GetState( buttons, Mahjong::PART_3_RON    );
 					break;
@@ -2126,10 +2246,10 @@ namespace Nestopia
 
 				case ExcitingBoxing::PART_2:
 
-					keys[ Settings::EXCITINGBOXING_KEY_STRAIGHT   ].GetState( buttons, ExcitingBoxing::PART_2_STRAIGHT   );
-					keys[ Settings::EXCITINGBOXING_KEY_RIGHT_JABB ].GetState( buttons, ExcitingBoxing::PART_2_RIGHT_JABB );
-					keys[ Settings::EXCITINGBOXING_KEY_BODY       ].GetState( buttons, ExcitingBoxing::PART_2_BODY       );
-					keys[ Settings::EXCITINGBOXING_KEY_LEFT_JABB  ].GetState( buttons, ExcitingBoxing::PART_2_LEFT_JABB  );
+					keys[ Settings::EXCITINGBOXING_KEY_STRAIGHT  ].GetState( buttons, ExcitingBoxing::PART_2_STRAIGHT  );
+					keys[ Settings::EXCITINGBOXING_KEY_RIGHT_JAB ].GetState( buttons, ExcitingBoxing::PART_2_RIGHT_JAB );
+					keys[ Settings::EXCITINGBOXING_KEY_BODY      ].GetState( buttons, ExcitingBoxing::PART_2_BODY      );
+					keys[ Settings::EXCITINGBOXING_KEY_LEFT_JAB  ].GetState( buttons, ExcitingBoxing::PART_2_LEFT_JAB  );
 					break;
 			}
 
@@ -2260,7 +2380,7 @@ namespace Nestopia
 			return true;
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 	}

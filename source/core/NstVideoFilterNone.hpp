@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,7 +25,7 @@
 #ifndef NST_VIDEO_FILTER_NONE_H
 #define NST_VIDEO_FILTER_NONE_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
+#ifdef NST_PRAGMA_ONCE
 #pragma once
 #endif
 
@@ -37,24 +37,23 @@ namespace Nes
 		{
 			class Renderer::FilterNone : public Renderer::Filter
 			{
-				template<typename T>
-				NST_FORCE_INLINE void BlitAligned(const Input&,const Output&) const;
+			public:
 
-				template<typename T>
-				NST_FORCE_INLINE void BlitUnaligned(const Input&,const Output&) const;
+				explicit FilterNone(const RenderState&);
 
-				template<typename T>
-				void BlitType(const Input&,const Output&) const;
+				static bool Check(const RenderState&);
+
+			private:
+
+				~FilterNone() {}
 
 				void Blit(const Input&,const Output&,uint);
 
-			public:
+				template<typename T>
+				void BlitAligned(const Input&,const Output&,uint) const;
 
-				const u8 paletteOffset;
-
-				FilterNone(const RenderState&);
-
-				static bool Check(const RenderState&);
+				template<typename T>
+				void BlitUnaligned(const Input&,const Output&,uint) const;
 			};
 		}
 	}

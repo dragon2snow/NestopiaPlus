@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -31,7 +31,7 @@ namespace Nes
 	{
 		namespace Input
 		{
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("s", on)
 			#endif
 
@@ -44,22 +44,26 @@ namespace Nes
 			void CrazyClimber::Reset()
 			{
 				shifter = 1;
-				stream[RIGHT] = stream[LEFT] = 0;
-				state[RIGHT] = state[LEFT] = 0;
+
+				stream[LEFT] = 0;
+				stream[RIGHT] = 0;
+
+				state[LEFT] = 0;
+				state[RIGHT] = 0;
 			}
 
-			void CrazyClimber::SaveState(State::Saver& state,const uchar id) const
+			void CrazyClimber::SaveState(State::Saver& state,const byte id) const
 			{
-				state.Begin('C','C',id,'\0').Write8( shifter ^ 1 ).End();
+				state.Begin( AsciiId<'C','C'>::R(0,0,id) ).Write8( shifter ^ 1 ).End();
 			}
 
 			void CrazyClimber::LoadState(State::Loader& state,const dword id)
 			{
-				if (id == NES_STATE_CHUNK_ID('C','C','\0','\0'))
+				if (id == AsciiId<'C','C'>::V)
 					shifter = ~state.Read8() & 0x1;
 			}
 
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("", on)
 			#endif
 
@@ -91,10 +95,10 @@ namespace Nes
 							for (uint i=0; i < 2; ++i)
 							{
 								if ((state[i] & (BUTTON_LEFT|BUTTON_RIGHT)) == (BUTTON_LEFT|BUTTON_RIGHT))
-									state[i] &= (BUTTON_LEFT|BUTTON_RIGHT) ^ 0xFF;
+									state[i] &= (BUTTON_LEFT|BUTTON_RIGHT) ^ 0xFFU;
 
 								if ((state[i] & (BUTTON_UP|BUTTON_DOWN)) == (BUTTON_UP|BUTTON_DOWN))
-									state[i] &= (BUTTON_UP|BUTTON_DOWN) ^ 0xFF;
+									state[i] &= (BUTTON_UP|BUTTON_DOWN) ^ 0xFFU;
 							}
 						}
 					}

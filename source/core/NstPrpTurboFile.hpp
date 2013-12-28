@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,43 +25,33 @@
 #ifndef NST_PRP_TURBOFILE_H
 #define NST_PRP_TURBOFILE_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
+#ifdef NST_PRAGMA_ONCE
 #pragma once
 #endif
-
-#include "NstChecksumMd5.hpp"
 
 namespace Nes
 {
 	namespace Core
 	{
-		class Cpu;
-
-		namespace State
-		{
-			class Saver;
-			class Loader;
-		}
-
 		namespace Peripherals
 		{
-			class NST_NO_VTABLE TurboFile
+			class TurboFile
 			{
 			public:
 
-				TurboFile(Cpu&);
-				~TurboFile();
+				explicit TurboFile(Cpu&);
 
 				void Reset();
-				void SaveState(State::Saver&) const;
+				void PowerOff() const;
+				void SaveState(State::Saver&,const dword) const;
 				void LoadState(State::Loader&);
 
 			private:
 
-				NES_DECL_POKE( 4016 )
-				NES_DECL_PEEK( 4016 )
-				NES_DECL_POKE( 4017 )
-				NES_DECL_PEEK( 4017 )
+				NES_DECL_POKE( 4016 );
+				NES_DECL_PEEK( 4016 );
+				NES_DECL_POKE( 4017 );
+				NES_DECL_PEEK( 4017 );
 
 				enum
 				{
@@ -81,13 +71,14 @@ namespace Nes
 				uint old;
 				uint out;
 
-				u8 ram[SIZE];
-				Checksum::Md5::Key checksum;
+				byte ram[SIZE];
 
 				Io::Port p4016;
 				Io::Port p4017;
 
 				Cpu& cpu;
+
+				File file;
 			};
 		}
 	}

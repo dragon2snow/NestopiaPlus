@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -22,9 +22,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include <new>
 #include "NstMachine.hpp"
-#include "NstImage.hpp"
 #include "NstCartridge.hpp"
 #include "NstCheats.hpp"
 #include "NstNsf.hpp"
@@ -39,7 +37,7 @@ namespace Nes
 {
 	namespace Core
 	{
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("s", on)
 		#endif
 
@@ -47,12 +45,13 @@ namespace Nes
 		:
 		state         (Api::Machine::NTSC),
 		frame         (0),
-		extPort       (new Input::AdapterTwo( new Input::Pad(cpu,0), new Input::Pad(cpu,1) )),
+		extPort       (new Input::AdapterTwo( *new Input::Pad(cpu,0), *new Input::Pad(cpu,1) )),
 		expPort       (new Input::Device( cpu )),
 		image         (NULL),
 		cheats        (NULL),
-		ppu           (cpu),
-		imageDatabase (NULL)
+		imageDatabase (NULL),
+		padding       (NULL),
+		ppu           (cpu)
 		{
 		}
 
@@ -65,44 +64,78 @@ namespace Nes
 			delete expPort;
 
 			for (uint ports=extPort->NumPorts(), i=0; i < ports; ++i)
-				delete extPort->GetDevice(i);
+				delete &extPort->GetDevice(i);
 
 			delete extPort;
 		}
 
 		Result Machine::Load(StdStream stream,uint type)
 		{
-			NST_ASSERT( image == NULL );
+			Unload();
 
 			Image::Context context
 			(
-				image,
-				(Image::Type) type,
+				static_cast<Image::Type>(type),
 				cpu,
 				ppu,
 				stream,
 				imageDatabase
 			);
 
-			const Result result = Image::Load( context );
+			image = Image::Load( context );
 
-			if (NES_SUCCEEDED(result))
-				UpdateColorMode();
+			switch (image->GetType())
+			{
+				case Image::CARTRIDGE:
 
-			return result;
+					state |= Api::Machine::CARTRIDGE;
+
+					switch (static_cast<const Cartridge*>(image)->GetInfo().setup.system)
+					{
+						case SYSTEM_VS:
+
+							state |= Api::Machine::VS;
+							break;
+
+						case SYSTEM_PC10:
+
+							state |= Api::Machine::PC10;
+							break;
+					}
+					break;
+
+				case Image::DISK:
+
+					state |= Api::Machine::DISK;
+					break;
+
+				case Image::SOUND:
+
+					state |= Api::Machine::SOUND;
+					break;
+			}
+
+			UpdateColorMode();
+
+			return context.result;
 		}
 
-		void Machine::Unload()
+		bool Machine::Unload()
 		{
-			tracker.Unload();
-			frame = 0;
+			if (!image)
+				return true;
 
-			if (image)
-			{
-				image->Flush( false, false );
-				Image::Unload( image );
-				UpdateColorMode();
-			}
+			const bool saved = PowerOff();
+
+			state &= (Api::Machine::NTSC|Api::Machine::PAL);
+
+			tracker.Unload();
+			UpdateColorMode();
+
+			Image::Unload( image );
+			image = NULL;
+
+			return saved;
 		}
 
 		Result Machine::UpdateColorMode()
@@ -148,36 +181,36 @@ namespace Nes
 			return renderer.SetPaletteType( paletteType );
 		}
 
-		Result Machine::PowerOn()
+		bool Machine::PowerOff()
 		{
-			return Reset( true );
+			if (state & Api::Machine::ON)
+			{
+				state &= ~uint(Api::Machine::ON);
+				frame = 0;
+
+				ppu.ClearScreen();
+				cpu.GetApu().ClearBuffers();
+
+				if (image)
+					return image->PowerOff();
+			}
+
+			return true;
 		}
 
-		void Machine::PowerOff()
+		void Machine::Reset(const bool hard)
 		{
-			frame = 0;
-
-			ppu.ClearScreen();
-			cpu.GetApu().ClearBuffers();
-
-			if (image)
-				image->Flush( false, tracker.MovieIsInserted() );
-		}
-
-		Result Machine::Reset(const bool hard)
-		{
-			frame = 0;
-
 			try
 			{
+				frame = 0;
 				cpu.Boot();
 
 				if (!(state & Api::Machine::SOUND))
 				{
 					InitializeInputDevices();
 
-					cpu.Map( 0x4016U ).Set( this, &Machine::Peek_4016, &Machine::Poke_4016 );
-					cpu.Map( 0x4017U ).Set( this, &Machine::Peek_4017, &Machine::Poke_4017 );
+					cpu.Map( 0x4016 ).Set( this, &Machine::Peek_4016, &Machine::Poke_4016 );
+					cpu.Map( 0x4017 ).Set( this, &Machine::Peek_4017, &Machine::Poke_4017 );
 
 					extPort->Reset();
 					expPort->Reset();
@@ -193,32 +226,27 @@ namespace Nes
 						cheats->Reset();
 
 					tracker.Reset( hard );
-
-					return image ? image->Flush( true, tracker.MovieIsInserted() ) : RESULT_OK;
 				}
 				else
 				{
 					image->Reset( true );
 					cpu.Reset( true );
-					return RESULT_OK;
 				}
-			}
-			catch (Result result)
-			{
-				return result;
-			}
-			catch (const std::bad_alloc&)
-			{
-				return RESULT_ERR_OUT_OF_MEMORY;
+
+				state |= Api::Machine::ON;
 			}
 			catch (...)
 			{
-				return RESULT_ERR_GENERIC;
+				PowerOff();
+				throw;
 			}
 		}
 
 		void Machine::SetMode(const Mode mode)
 		{
+			state &= ~uint(Api::Machine::PAL|Api::Machine::NTSC);
+			state |= (mode == MODE_NTSC ? Api::Machine::NTSC : Api::Machine::PAL);
+
 			cpu.SetMode( mode );
 			ppu.SetMode( mode );
 
@@ -230,260 +258,202 @@ namespace Nes
 
 		void Machine::InitializeInputDevices() const
 		{
-			if (image && image->GetType() == Image::CARTRIDGE)
+			if (state & Api::Machine::GAME)
 			{
-				const bool arcade = (static_cast<const Cartridge*>(image)->GetInfo().setup.system == SYSTEM_VS);
+				const bool arcade = state & Api::Machine::VS;
 
 				extPort->Initialize( arcade );
 				expPort->Initialize( arcade );
 			}
 		}
 
-		Result Machine::SaveState(StdStream stream,bool compress,bool internal)
+		void Machine::SaveState(State::Saver& saver) const
 		{
-			if ((state & (Api::Machine::GAME|Api::Machine::ON)) > Api::Machine::ON)
+			NST_ASSERT( (state & (Api::Machine::GAME|Api::Machine::ON)) > Api::Machine::ON );
+
+			saver.Begin( AsciiId<'N','S','T'>::V | 0x1AUL << 24 );
+
+			saver.Begin( AsciiId<'N','F','O'>::V ).Write32( image->GetPrgCrc() ).Write32( frame ).End();
+
+			cpu.SaveState( saver, AsciiId<'C','P','U'>::V );
+			ppu.SaveState( saver, AsciiId<'P','P','U'>::V );
+			cpu.GetApu().SaveState( saver, AsciiId<'A','P','U'>::V );
+			image->SaveState( saver, AsciiId<'I','M','G'>::V );
+
+			saver.Begin( AsciiId<'P','R','T'>::V );
+
+			if (extPort->NumPorts() == 4)
 			{
-				try
-				{
-					State::Saver saver( stream, compress, internal );
-
-					saver.Begin('N','S','T',0x1A);
-					{
-						saver.Begin('N','F','O','\0').Write32( image->GetPrgCrc() ).Write32( frame ).End();
-
-						cpu.SaveState( State::Saver::Subset(saver,'C','P','U','\0').Ref() );
-						ppu.SaveState( State::Saver::Subset(saver,'P','P','U','\0').Ref() );
-						cpu.GetApu().SaveState( State::Saver::Subset(saver,'A','P','U','\0').Ref() );
-						image->SaveState( State::Saver::Subset(saver,'I','M','G','\0').Ref() );
-
-						saver.Begin('P','R','T','\0');
-						{
-							if (extPort->NumPorts() == 4)
-							{
-								static_cast<const Input::AdapterFour*>(extPort)->SaveState
-								(
-									saver, NES_STATE_CHUNK_ID('4','S','C','\0')
-								);
-							}
-
-							for (uint i=0; i < extPort->NumPorts(); ++i)
-								extPort->GetDevice( i )->SaveState( saver, '0' + i );
-
-							expPort->SaveState( saver, 'X' );
-						}
-						saver.End();
-					}
-					saver.End();
-
-					return RESULT_OK;
-				}
-				catch (Result result)
-				{
-					return result;
-				}
-				catch (const std::bad_alloc&)
-				{
-					return RESULT_ERR_OUT_OF_MEMORY;
-				}
-				catch (...)
-				{
-					return RESULT_ERR_GENERIC;
-				}
+				static_cast<const Input::AdapterFour*>(extPort)->SaveState
+				(
+					saver, AsciiId<'4','S','C'>::V
+				);
 			}
 
-			return RESULT_ERR_NOT_READY;
+			for (uint i=0; i < extPort->NumPorts(); ++i)
+				extPort->GetDevice( i ).SaveState( saver, Ascii<'0'>::V + i );
+
+			expPort->SaveState( saver, Ascii<'X'>::V );
+
+			saver.End();
+
+			saver.End();
 		}
 
-		Result Machine::LoadState(StdStream stream,bool checkCrc)
+		bool Machine::LoadState(State::Loader& loader)
 		{
-			if ((state & (Api::Machine::GAME|Api::Machine::ON)) <= Api::Machine::ON)
-				return RESULT_ERR_NOT_READY;
+			NST_ASSERT( (state & (Api::Machine::GAME|Api::Machine::ON)) > Api::Machine::ON );
 
 			try
 			{
-				State::Loader loader( stream );
-
-				if (loader.Begin() != NES_STATE_CHUNK_ID('N','S','T',0x1A))
-					return RESULT_ERR_INVALID_FILE;
-
-				loader.DigIn();
+				if (loader.Begin() != (AsciiId<'N','S','T'>::V | 0x1AUL << 24))
+					throw RESULT_ERR_INVALID_FILE;
 
 				while (const dword id = loader.Begin())
 				{
 					switch (id)
 					{
-						case NES_STATE_CHUNK_ID('N','F','O','\0'):
+						case AsciiId<'N','F','O'>::V:
 						{
 							const dword crc = loader.Read32();
 
 							if
 							(
-								checkCrc && !(state & Api::Machine::DISK) &&
+								loader.CheckCrc() && !(state & Api::Machine::DISK) &&
 								crc && crc != image->GetPrgCrc() &&
 								Api::User::questionCallback( Api::User::QUESTION_NST_PRG_CRC_FAIL_CONTINUE ) == Api::User::ANSWER_NO
 							)
 							{
-								loader.End();
-								loader.DigOut();
-								return RESULT_ERR_INVALID_CRC;
+								for (uint i=0; i < 2; ++i)
+									loader.End();
+
+								return false;
 							}
 
 							frame = loader.Read32();
 							break;
 						}
 
-						case NES_STATE_CHUNK_ID('C','P','U','\0'):
+						case AsciiId<'C','P','U'>::V:
 
-							cpu.LoadState( State::Loader::Subset(loader).Ref() );
+							cpu.LoadState( loader );
 							break;
 
-						case NES_STATE_CHUNK_ID('P','P','U','\0'):
+						case AsciiId<'P','P','U'>::V:
 
-							ppu.LoadState( State::Loader::Subset(loader).Ref() );
+							ppu.LoadState( loader );
 							break;
 
-						case NES_STATE_CHUNK_ID('A','P','U','\0'):
+						case AsciiId<'A','P','U'>::V:
 
-							cpu.GetApu().LoadState( State::Loader::Subset(loader).Ref() );
+							cpu.GetApu().LoadState( loader );
 							break;
 
-						case NES_STATE_CHUNK_ID('I','M','G','\0'):
+						case AsciiId<'I','M','G'>::V:
 
-							image->LoadState( State::Loader::Subset(loader).Ref() );
+							image->LoadState( loader );
 							break;
 
-						case NES_STATE_CHUNK_ID('P','R','T','\0'):
+						case AsciiId<'P','R','T'>::V:
 
 							extPort->Reset();
 							expPort->Reset();
 
-							loader.DigIn();
-
 							while (const dword subId = loader.Begin())
 							{
-								if (subId == NES_STATE_CHUNK_ID('4','S','C','\0'))
+								if (subId == AsciiId<'4','S','C'>::V)
 								{
 									if (extPort->NumPorts() == 4)
-									{
-										static_cast<Input::AdapterFour*>(extPort)->LoadState
-										(
-											State::Loader::Subset(loader).Ref()
-										);
-									}
+										static_cast<Input::AdapterFour*>(extPort)->LoadState( loader );
 								}
 								else switch (const uint index = (subId >> 16 & 0xFF))
 								{
-									case '2':
-									case '3':
+									case Ascii<'2'>::V:
+									case Ascii<'3'>::V:
 
 										if (extPort->NumPorts() != 4)
 											break;
 
-									case '0':
-									case '1':
+									case Ascii<'0'>::V:
+									case Ascii<'1'>::V:
 
-										extPort->GetDevice( index - '0' )->LoadState
-										(
-											State::Loader::Subset(loader).Ref(), subId & 0xFF00FFFFUL
-										);
+										extPort->GetDevice( index - Ascii<'0'>::V ).LoadState( loader, subId & 0xFF00FFFF );
 										break;
 
-									case 'X':
+									case Ascii<'X'>::V:
 
-										expPort->LoadState
-										(
-											State::Loader::Subset(loader).Ref(), subId & 0xFF00FFFFUL
-										);
+										expPort->LoadState( loader, subId & 0xFF00FFFF );
 										break;
 								}
 
 								loader.End();
 							}
-
-							loader.DigOut();
 							break;
 					}
 
 					loader.End();
 				}
 
-				loader.DigOut();
-
-				return RESULT_OK;
-			}
-			catch (Result result)
-			{
-				return result;
-			}
-			catch (const std::bad_alloc&)
-			{
-				return RESULT_ERR_OUT_OF_MEMORY;
+				loader.End();
 			}
 			catch (...)
 			{
-				return RESULT_ERR_GENERIC;
+				PowerOff();
+				throw;
 			}
+
+			return true;
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
-		Result Machine::ExecuteFrame
+		void Machine::ExecuteFrame
 		(
 			Video::Output* const video,
 			Sound::Output* const sound,
 			Input::Controllers* const input
 		)
 		{
-			NST_ASSERT( (state & (Api::Machine::IMAGE|Api::Machine::ON)) > Api::Machine::ON );
+			NST_ASSERT( state & Api::Machine::ON );
 
-			try
+			if (!(state & Api::Machine::SOUND))
 			{
-				if (!(state & Api::Machine::SOUND))
-				{
-					if (state & Api::Machine::CARTRIDGE)
-						static_cast<Cartridge*>(image)->BeginFrame( Api::Input(*this), input );
+				if (state & Api::Machine::CARTRIDGE)
+					static_cast<Cartridge*>(image)->BeginFrame( Api::Input(*this), input );
 
-					extPort->BeginFrame( input );
-					expPort->BeginFrame( input );
+				extPort->BeginFrame( input );
+				expPort->BeginFrame( input );
 
-					ppu.BeginFrame( video != NULL );
+				ppu.BeginFrame();
 
-					if (cheats)
-						cheats->BeginFrame();
+				if (cheats)
+					cheats->BeginFrame();
 
-					cpu.BeginFrame( sound );
-					cpu.ExecuteFrame();
-					ppu.EndFrame();
+				cpu.BeginFrame( sound );
+				cpu.ExecuteFrame();
+				ppu.EndFrame();
 
-					if (video)
-						renderer.Blit( *video, ppu.GetScreen(), ppu.GetBurstPhase() );
+				if (video)
+					renderer.Blit( *video, ppu.GetScreen(), ppu.GetBurstPhase() );
 
-					cpu.EndFrame();
+				cpu.EndFrame();
 
-					if (image)
-						image->VSync();
-
-					++frame;
-				}
-				else
-				{
-					static_cast<Nsf*>(image)->BeginFrame();
-
-					cpu.BeginFrame( sound );
-					cpu.ExecuteFrame();
-					cpu.EndFrame();
-
+				if (image)
 					image->VSync();
-				}
 
-				return RESULT_OK;
+				++frame;
 			}
-			catch (...)
+			else
 			{
-				PowerOff();
-				return RESULT_ERR_GENERIC;
+				static_cast<Nsf*>(image)->BeginFrame();
+
+				cpu.BeginFrame( sound );
+				cpu.ExecuteFrame();
+				cpu.EndFrame();
+
+				image->VSync();
 			}
 		}
 

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,11 +25,11 @@
 #ifndef NST_FPUPRECISION_H
 #define NST_FPUPRECISION_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
+#include <cfloat>
+
+#ifdef NST_PRAGMA_ONCE
 #pragma once
 #endif
-
-#include <cfloat>
 
 namespace Nes
 {
@@ -37,7 +37,7 @@ namespace Nes
 	{
 		class FpuPrecision
 		{
-		#if defined(_WIN32) && defined(_MCW_PC) && defined(_PC_24) && defined(_PC_53)
+		#if defined(NST_WIN32) && defined(_MCW_PC) && defined(_PC_24) && defined(_PC_53)
 
 			const uint ctrl;
 

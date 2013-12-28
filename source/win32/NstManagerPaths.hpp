@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -30,7 +30,7 @@
 #include "language/resource.h"
 #include "NstObjectHeap.hpp"
 #include "NstCollectionBitSet.hpp"
-#include "NstManagerEmulator.hpp"
+#include "NstManager.hpp"
 
 namespace Nestopia
 {
@@ -42,13 +42,12 @@ namespace Nestopia
 
 	namespace Window
 	{
-		class Menu;
 		class Paths;
 	}
 
 	namespace Managers
 	{
-		class Paths
+		class Paths : Manager
 		{
 		public:
 
@@ -57,6 +56,9 @@ namespace Nestopia
 
 			struct File
 			{
+				File();
+				~File();
+
 				typedef Collection::Buffer Data;
 				typedef HeapString Text;
 				typedef Collection::BitSet Types;
@@ -91,25 +93,22 @@ namespace Nestopia
 
 				enum
 				{
-					FILEID_INES    = 0x1A53454E,
-					FILEID_UNIF    = 0x46494E55,
-					FILEID_FDS     = 0x1A534446,
-					FILEID_NSF     = 0x4D53454E,
-					FILEID_IPS     = 0x43544150,
-					FILEID_NST     = 0x1A54534E,
-					FILEID_NSV     = 0x1A56534E,
-					FILEID_ZIP     = 0x04034B50,
-					FILEID_RAR     = 0x21726152,
-					FILEID_7Z      = 0xAFBC7A37,
-					FILEID_FDS_RAW = 0x494E2A01
+					ID_INES    = NST_FOURCC('N','E','S',0x1A),
+					ID_UNIF    = NST_FOURCC('U','N','I','F'),
+					ID_FDS     = NST_FOURCC('F','D','S',0x1A),
+					ID_NSF     = NST_FOURCC('N','E','S','M'),
+					ID_IPS     = NST_FOURCC('P','A','T','C'),
+					ID_NST     = NST_FOURCC('N','S','T',0x1A),
+					ID_NSV     = NST_FOURCC('N','S','V',0x1A),
+					ID_ZIP     = NST_FOURCC('P','K',0x03,0x04),
+					ID_RAR     = NST_FOURCC('R','a','r','!'),
+					ID_7Z      = NST_FOURCC('7','z',0xBC,0xAF),
+					ID_FDS_RAW = NST_FOURCC(0x01,0x2A,0x4E,0x49)
 				};
 
 				Type type;
 				Path name;
 				Data data;
-
-				File()
-				: type(NONE) {}
 			};
 
 			enum Method
@@ -134,19 +133,19 @@ namespace Nestopia
 			void Save(Configuration&) const;
 
 			void FixFile(File::Type,Path&) const;
-			ibool FindFile(Path&) const;
-			ibool LocateFile(Path&,File::Types) const;
+			bool FindFile(Path&) const;
+			bool LocateFile(Path&,File::Types) const;
 
 			Path GetIpsPath(const Path&,File::Type) const;
 			Path GetSavePath(const Path&,File::Type) const;
 			Path GetScreenShotPath() const;
 			Path GetSamplesPath() const;
 
-			ibool SaveSlotExportingEnabled() const;
-			ibool SaveSlotImportingEnabled() const;
-			ibool UseStateCompression() const;
+			bool SaveSlotExportingEnabled() const;
+			bool SaveSlotImportingEnabled() const;
+			bool UseStateCompression() const;
 
-			ibool CheckFile
+			bool CheckFile
 			(
 				Path&,
 				File::Types,
@@ -176,7 +175,7 @@ namespace Nestopia
 				Alert=NOISY
 			)   const;
 
-			ibool Save
+			bool Save
 			(
 				const void*,
 				uint,
@@ -229,8 +228,6 @@ namespace Nestopia
 				File::Types
 			);
 
-			Emulator& emulator;
-			const Window::Menu& menu;
 			mutable Path recentDirs[NUM_RECENT_DIRS];
 			Object::Heap<Window::Paths> dialog;
 

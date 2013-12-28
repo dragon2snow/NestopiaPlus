@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -90,73 +90,92 @@ namespace Nestopia
 			buffer.Import( vector );
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("t", on)
 		#endif
 
 		Stream::Input::Buffer::int_type Stream::Input::Buffer::underflow()
 		{
-			NST_ASSERT( pos <= vector.Size() );
+			NST_VERIFY( pos <= vector.Size() );
 			return pos < vector.Size() ? vector[pos] : traits_type::eof();
 		}
 
 		Stream::Input::Buffer::int_type Stream::Input::Buffer::uflow()
 		{
-			NST_ASSERT( pos <= vector.Size() );
+			NST_VERIFY( pos <= vector.Size() );
 			return pos < vector.Size() ? vector[pos++] : traits_type::eof();
 		}
 
 		std::streamsize Stream::Input::Buffer::xsgetn(char* output,std::streamsize count)
 		{
-			NST_ASSERT( pos <= vector.Size() );
+			NST_ASSERT( count >= 0 );
+			NST_VERIFY( count + pos <= vector.Size() + 1 );
 
-			if (pos + count <= vector.Size())
-			{
-				std::memcpy( output, vector.Ptr() + pos, count );
-				pos += count;
-				return count;
-			}
+			if (count + pos > vector.Size())
+				count = pos < vector.Size() ? vector.Size() - pos : 0;
 
-			return 0;
+			std::memcpy( output, vector.Ptr() + pos, count );
+			pos += count;
+
+			return count;
 		}
 
-		std::streampos Stream::Input::Buffer::seekoff
-		(
-			std::streamoff offset,
-			std::ios::seekdir dir,
-			std::ios::openmode mode
-		)
+	#if NST_MSVC >= 1400
+
+		std::streamsize Stream::Input::Buffer::_Xsgetn_s(char* output,std::size_t,std::streamsize count)
 		{
-			NST_ASSERT
-			(
-				(mode == std::ios::in) &&
-				(dir == std::ios::beg || dir == std::ios::cur || dir == std::ios::end)
-			);
+			return Buffer::xsgetn( output, count );
+		}
+
+	#endif
+
+		std::streampos Stream::Input::Buffer::seekoff(std::streamoff off,std::ios::seekdir dir,std::ios::openmode mode)
+		{
+			NST_ASSERT( (mode == std::ios::in) && (dir == std::ios::beg || dir == std::ios::cur || dir == std::ios::end) );
 
 			if (dir == std::ios::cur)
 			{
-				offset += (long) pos;
+				off += int(pos);
 			}
 			else if (dir == std::ios::end)
 			{
-				offset += (long) vector.Size();
+				off += int(vector.Size());
 			}
 
-			pos = offset;
+			NST_VERIFY( off >= 0 && off <= vector.Size() );
 
-			NST_ASSERT( pos <= vector.Size() );
-
-			return offset;
+			if (off >= 0 && off <= vector.Size())
+			{
+				pos = off;
+				return off;
+			}
+			else
+			{
+				pos = BAD_POS;
+				return std::streamoff(-1);
+			}
 		}
 
-		std::streampos Stream::Input::Buffer::seekpos(std::streampos offset,std::ios::openmode mode)
+		std::streampos Stream::Input::Buffer::seekpos(std::streampos p,std::ios::openmode mode)
 		{
-			NST_ASSERT( (mode == std::ios::in) && (int(offset) >= 0 && uint(offset) <= vector.Size()) );
-			pos = offset;
-			return offset;
+			const std::streamoff off(p);
+
+			NST_ASSERT( mode == std::ios::out && off >= 0 );
+			NST_VERIFY( vector.Size() >= off );
+
+			if (vector.Size() >= off)
+			{
+				pos = off;
+				return off;
+			}
+			else
+			{
+				pos = BAD_POS;
+				return std::streamoff(-1);
+			}
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
@@ -174,6 +193,10 @@ namespace Nestopia
 
 		Stream::Input::Input(Collection::Buffer& input)
 		: std::istream(&buffer), buffer(input) {}
+
+		Stream::Input::~Input()
+		{
+		}
 
 		Stream::Input& Stream::Input::operator = (const File& file)
 		{
@@ -242,77 +265,112 @@ namespace Nestopia
 
 		void Stream::Output::Buffer::Export(Collection::Buffer& input)
 		{
-			vector.ShrinkTo( pos );
+			NST_VERIFY( pos != BAD_POS );
+
+			vector.SetTo( pos == BAD_POS ? 0 : pos );
 			pos = 0;
 			input.Import( vector );
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("t", on)
 		#endif
 
 		Stream::Output::Buffer::int_type Stream::Output::Buffer::overflow(int_type c)
 		{
-			if (c != traits_type::eof())
+			if (!traits_type::eq_int_type(traits_type::eof(),c))
 			{
-				vector.PushBack( char(c) );
-				c = traits_type::not_eof(c);
+				if (vector.Size() > pos)
+				{
+					vector[pos++] = c;
+				}
+				else if (vector.Size() == pos)
+				{
+					++pos;
+					vector.PushBack( c );
+				}
+				else
+				{
+					c = traits_type::eof();
+				}
 			}
 
 			return c;
 		}
 
-		std::streamsize Stream::Output::Buffer::xsputn(const char* data,std::streamsize count)
+		std::streamsize Stream::Output::Buffer::xsputn(const char* input,std::streamsize count)
 		{
-			if (pos + count > vector.Size())
-			{
-				vector.Reserve( (pos + count) * 2 );
-				vector.ShrinkTo( pos + count );
-			}
+			NST_ASSERT( count >= 0 );
+			NST_VERIFY( pos != BAD_POS );
 
-			std::memcpy( vector.Ptr() + pos, data, count );
-			pos += count;
+			if (pos != BAD_POS)
+			{
+				const uint cur = pos;
+				pos += count;
+
+				if (pos > vector.Capacity())
+					vector.Reserve( pos * 2 );
+
+				if (pos > vector.Size())
+					vector.SetTo( pos );
+
+				std::memcpy( vector.Ptr() + cur, input, count );
+			}
+			else
+			{
+				count = 0;
+			}
 
 			return count;
 		}
 
-		std::streampos Stream::Output::Buffer::seekoff
-		(
-			std::streamoff offset,
-			std::ios::seekdir dir,
-			std::ios::openmode mode
-		)
+		std::streampos Stream::Output::Buffer::seekoff(std::streamoff off,std::ios::seekdir dir,std::ios::openmode mode)
 		{
-			NST_ASSERT
-			(
-				(mode == std::ios::out) &&
-				(dir == std::ios::beg || dir == std::ios::cur || dir == std::ios::end)
-			);
+			NST_ASSERT( (mode == std::ios::out) && (dir == std::ios::beg || dir == std::ios::cur || dir == std::ios::end) );
 
 			if (dir == std::ios::cur)
 			{
-				offset += (long) pos;
+				off += int(pos);
 			}
 			else if (dir == std::ios::end)
 			{
-				offset += (long) vector.Size();
+				off += int(vector.Size());
 			}
 
-			pos = offset;
+			NST_VERIFY( off >= 0 && off <= vector.Size() );
 
-			NST_ASSERT( pos <= vector.Size() );
-
-			return pos;
+			if (off >= 0 && off <= vector.Size())
+			{
+				pos = off;
+				return off;
+			}
+			else
+			{
+				pos = BAD_POS;
+				return std::streamoff(-1);
+			}
 		}
 
 		std::streampos Stream::Output::Buffer::seekpos(std::streampos p,std::ios::openmode mode)
 		{
-			NST_ASSERT( (mode == std::ios::out) && (int(p) >= 0 && uint(p) <= vector.Size()) );
-			pos = p;
-			return p;
+			const std::streamoff off(p);
+
+			NST_ASSERT( mode == std::ios::out && off >= 0 );
+			NST_VERIFY( vector.Size() >= off );
+
+			if (vector.Size() >= off)
+			{
+				pos = off;
+				return off;
+			}
+			else
+			{
+				pos = BAD_POS;
+				return std::streamoff(-1);
+			}
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
@@ -324,6 +382,10 @@ namespace Nestopia
 
 		Stream::Output::Output(const File& file)
 		: std::ostream(&buffer), buffer(file) {}
+
+		Stream::Output::~Output()
+		{
+		}
 
 		Stream::Output& Stream::Output::operator = (const File& file)
 		{

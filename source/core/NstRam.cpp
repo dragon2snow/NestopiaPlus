@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -24,17 +24,17 @@
 
 #include <cstdlib>
 #include <cstring>
-#include "NstCore.hpp"
+#include "NstAssert.hpp"
 #include "NstRam.hpp"
-
-#ifdef NST_PRAGMA_OPTIMIZE
-#pragma optimize("s", on)
-#endif
 
 namespace Nes
 {
 	namespace Core
 	{
+		#ifdef NST_MSVC_OPTIMIZE
+		#pragma optimize("s", on)
+		#endif
+
 		Ram::Ram()
 		:
 		mem      ( NULL  ),
@@ -43,7 +43,7 @@ namespace Nes
 		writable ( false ),
 		readable ( false ),
 		internal ( false ),
-		pad      ( 0     )
+		padding  ( false )
 		{}
 
 		Ram::~Ram()
@@ -57,7 +57,7 @@ namespace Nes
 			mask = 0;
 			size = 0;
 
-			if (u8* const tmp = mem)
+			if (byte* const tmp = mem)
 			{
 				mem = NULL;
 
@@ -69,7 +69,7 @@ namespace Nes
 			}
 		}
 
-		void Ram::Set(dword s,u8* m)
+		void Ram::Set(dword s,byte* m)
 		{
 			NST_ASSERT( s != 1 );
 
@@ -96,7 +96,7 @@ namespace Nes
 				}
 				else
 				{
-					m = static_cast<u8*>(std::realloc( internal ? mem : NULL, mask+1 ));
+					m = static_cast<byte*>(std::realloc( internal ? mem : NULL, mask+1 ));
 
 					if (m)
 					{
@@ -117,7 +117,7 @@ namespace Nes
 			}
 		}
 
-		void Ram::Set(bool r,bool w,dword s,u8* m)
+		void Ram::Set(bool r,bool w,dword s,byte* m)
 		{
 			Set( s, m );
 			readable = r;
@@ -126,7 +126,7 @@ namespace Nes
 
 		void Ram::Fill(uint value)
 		{
-			NST_ASSERT( bool(mem) == bool(size) );
+			NST_ASSERT( bool(mem) == bool(size) && value <= 0xFF );
 			std::memset( mem, value, size );
 		}
 
@@ -141,9 +141,9 @@ namespace Nes
 					std::memcpy( mem + next, mem + begin, NST_MIN(end-next,block) );
 			}
 		}
+
+		#ifdef NST_MSVC_OPTIMIZE
+		#pragma optimize("", on)
+		#endif
 	}
 }
-
-#ifdef NST_PRAGMA_OPTIMIZE
-#pragma optimize("", on)
-#endif

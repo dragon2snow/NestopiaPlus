@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -29,7 +29,7 @@ namespace Nes
 {
 	namespace Core
 	{
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("s", on)
 		#endif
 
@@ -44,15 +44,15 @@ namespace Nes
 
 			Map( 0x8000U, 0xFFFFU, &Mapper236::Peek_Prg, &Mapper236::Poke_Prg );
 
-			NES_CALL_POKE(Mapper236,Prg,0x8000,0x00);
-			NES_CALL_POKE(Mapper236,Prg,0xC000,0x00);
+			NES_DO_POKE(Prg,0x8000,0x00);
+			NES_DO_POKE(Prg,0xC000,0x00);
 		}
 
 		void Mapper236::SubLoad(State::Loader& state)
 		{
 			while (const dword chunk = state.Begin())
 			{
-				if (chunk == NES_STATE_CHUNK_ID('R','E','G','\0'))
+				if (chunk == AsciiId<'R','E','G'>::V)
 				{
 					mode = state.Read8();
 					title = mode & 0xF;
@@ -65,27 +65,27 @@ namespace Nes
 
 		void Mapper236::SubSave(State::Saver& state) const
 		{
-			state.Begin('R','E','G','\0').Write8( (mode << 4) | title ).End();
+			state.Begin( AsciiId<'R','E','G'>::V ).Write8( (mode << 4) | title ).End();
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
 		NES_PEEK(Mapper236,Prg)
 		{
-			return prg.Peek( mode ? (address & 0x7FF0) | title : address - 0x8000U );
+			return prg.Peek( mode ? (address & 0x7FF0) | title : address - 0x8000 );
 		}
 
 		NES_POKE(Mapper236,Prg)
 		{
 			uint banks[2] =
 			{
-				prg.GetBank<SIZE_16K,0x0000U>(),
-				prg.GetBank<SIZE_16K,0x4000U>()
+				prg.GetBank<SIZE_16K,0x0000>(),
+				prg.GetBank<SIZE_16K,0x4000>()
 			};
 
-			if (address < 0xC000U)
+			if (address < 0xC000)
 			{
 				ppu.SetMirroring( (address & 0x20) ? Ppu::NMT_HORIZONTAL : Ppu::NMT_VERTICAL );
 
@@ -96,7 +96,7 @@ namespace Nes
 				}
 				else
 				{
-					chr.SwapBank<SIZE_8K,0x0000U>( address & 0x7 );
+					chr.SwapBank<SIZE_8K,0x0000>( address & 0x7 );
 					return;
 				}
 			}
@@ -108,7 +108,7 @@ namespace Nes
 				case 0x30: mode = 0x0; banks[0] = (banks[0] & 0x38) | (address & 0x7); banks[1] = banks[0] | 0x0; break;
 			}
 
-			prg.SwapBanks<SIZE_16K,0x0000U>( banks[0], banks[1] );
+			prg.SwapBanks<SIZE_16K,0x0000>( banks[0], banks[1] );
 		}
 	}
 }

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -22,8 +22,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstWindowMenu.hpp"
-#include "NstManagerEmulator.hpp"
+#include "NstManager.hpp"
 #include "NstManagerRecentFiles.hpp"
 
 namespace Nestopia
@@ -43,9 +42,7 @@ namespace Nestopia
 		);
 
 		RecentFiles::RecentFiles(Emulator& e,const Configuration& cfg,Window::Menu& m)
-		:
-		emulator ( e ),
-		menu     ( m )
+		: Manager(e,m,this,&RecentFiles::OnEmuEvent)
 		{
 			static const Window::Menu::CmdHandler::Entry<RecentFiles> commands[] =
 			{
@@ -62,9 +59,7 @@ namespace Nestopia
 				{ IDM_FILE_RECENT_CLEAR, &RecentFiles::OnClear }
 			};
 
-			m.Commands().Add( this, commands );
-			emulator.Events().Add( this, &RecentFiles::OnLoad );
-
+			menu.Commands().Add( this, commands );
 			menu[IDM_FILE_RECENT_LOCK].Check( cfg["files recent locked"] == Configuration::YES );
 
 			uint count = 0;
@@ -91,11 +86,6 @@ namespace Nestopia
 
 			for (count += IDM_FILE_RECENT_1; count <= IDM_FILE_RECENT_9; ++count)
 				menu[count].Remove();
-		}
-
-		RecentFiles::~RecentFiles()
-		{
-			emulator.Events().Remove( this );
 		}
 
 		void RecentFiles::Save(Configuration& cfg) const
@@ -146,7 +136,7 @@ namespace Nestopia
 			}
 		}
 
-		void RecentFiles::OnLoad(Emulator::Event event)
+		void RecentFiles::OnEmuEvent(Emulator::Event event)
 		{
 			switch (event)
 			{

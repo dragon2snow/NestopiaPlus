@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,7 +25,7 @@
 #ifndef NST_INPUT_DEVICE_H
 #define NST_INPUT_DEVICE_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
+#ifdef NST_PRAGMA_ONCE
 #pragma once
 #endif
 
@@ -52,7 +52,7 @@ namespace Nes
 
 			public:
 
-				Device(const Cpu& c,Type t=Api::Input::UNCONNECTED)
+				explicit Device(const Cpu& c,Type t=Api::Input::UNCONNECTED)
 				: type(t), input(NULL), cpu(c) {}
 
 				virtual ~Device() {}
@@ -60,7 +60,7 @@ namespace Nes
 				virtual void Initialize(bool) {}
 				virtual void Reset() {}
 				virtual void LoadState(State::Loader&,dword) {}
-				virtual void SaveState(State::Saver&,uchar) const {}
+				virtual void SaveState(State::Saver&,byte) const {}
 
 				virtual void BeginFrame(Controllers* i)
 				{

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -23,6 +23,7 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 
 #include <process.h>
+#include "language/resource.h"
 #include "NstApplicationException.hpp"
 #include "NstSystemThread.hpp"
 
@@ -51,7 +52,7 @@ namespace Nestopia
 				NULL == (hExit  = ::CreateEvent( NULL, false, false, NULL )) ||
 				NULL == (hAbort = ::CreateEvent( NULL, false, false, NULL ))
 			)
-				throw Application::Exception(_T("::CreateEvent() failed!"));
+				throw Application::Exception( IDS_FAILED, _T("CreateEvent()") );
 
 			class Entry
 			{
@@ -66,7 +67,7 @@ namespace Nestopia
 				Entry(const Callback& c,int p,HANDLE e,HANDLE x,Terminator t)
 				: callback(c), priority(p), hEnter(e), hExit(x), terminator(t) {}
 
-				static void NST_CDECL Run(void* data)
+				static void WINAPIV Run(void* data)
 				{
 					const Entry local( *static_cast<Entry*>(data) );
 
@@ -92,7 +93,7 @@ namespace Nestopia
 			Entry entry( callback, priority, hEnter, hExit, Terminator(hAbort) );
 
 			if (!::_beginthread( Entry::Run, 0, &entry ))
-				throw Application::Exception(_T("::_beginthread() failed!"));
+				throw Application::Exception( IDS_FAILED, _T("_beginthread()") );
 
 			::WaitForSingleObject( hEnter, INFINITE );
 		}
@@ -112,7 +113,7 @@ namespace Nestopia
 			if (HANDLE const handle = hAbort)
 			{
 				hAbort = NULL;
-				::CloseHandle( hAbort );
+				::CloseHandle( handle );
 			}
 
 			if (HANDLE const handle = hEnter)

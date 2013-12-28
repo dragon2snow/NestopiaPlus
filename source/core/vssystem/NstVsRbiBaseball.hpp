@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,7 +25,7 @@
 #ifndef NST_VS_RBIBASEBALL_H
 #define NST_VS_RBIBASEBALL_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
+#ifdef NST_PRAGMA_ONCE
 #pragma once
 #endif
 
@@ -33,21 +33,23 @@ namespace Nes
 {
 	namespace Core
 	{
-		class VsRbiBaseball : public VsSystem
+		class Cartridge::VsSystem::RbiBaseball : public Cartridge::VsSystem
 		{
 		public:
 
-			VsRbiBaseball(Context& c)
+			explicit RbiBaseball(Context& c)
 			: VsSystem(c) {}
 
 		private:
+
+			~RbiBaseball() {}
 
 			void Reset();
 			void SubSave(State::Saver&) const;
 			void SubLoad(State::Loader&,dword);
 
-			NES_DECL_PEEK( 5E00 )
-			NES_DECL_PEEK( 5E01 )
+			NES_DECL_PEEK( 5E00 );
+			NES_DECL_PEEK( 5E01 );
 
 			uint counter;
 		};

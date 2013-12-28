@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -22,15 +22,12 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#ifdef _MSC_VER
-#pragma comment(lib,"version")
-#endif
-
-#include <cstdlib>
-#include <cstring>
-#include <cstdio>
 #include "NstObjectHeap.hpp"
 #include "NstResourceVersion.hpp"
+
+#if NST_MSVC
+#pragma comment(lib,"version")
+#endif
 
 namespace Nestopia
 {

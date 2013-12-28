@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -22,8 +22,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstWindowMenu.hpp"
-#include "NstManagerEmulator.hpp"
+#include "NstManager.hpp"
 #include "NstDialogImageInfo.hpp"
 #include "NstManagerImageInfo.hpp"
 
@@ -32,15 +31,8 @@ namespace Nestopia
 	namespace Managers
 	{
 		ImageInfo::ImageInfo(Emulator& e,Window::Menu& m)
-		: emulator(e), menu(m)
+		: Manager(e,m,this,&ImageInfo::OnEmuEvent,IDM_VIEW_IMAGE_INFO,&ImageInfo::OnCmd)
 		{
-			m.Commands().Add( IDM_VIEW_IMAGE_INFO, this, &ImageInfo::OnCmd );
-			emulator.Events().Add( this, &ImageInfo::OnEmuEvent );
-		}
-
-		ImageInfo::~ImageInfo()
-		{
-			emulator.Events().Remove( this );
 		}
 
 		void ImageInfo::OnCmd(uint)

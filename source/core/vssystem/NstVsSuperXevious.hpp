@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,7 +25,7 @@
 #ifndef NST_VS_SUPERXEVIOUS_H
 #define NST_VS_SUPERXEVIOUS_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
+#ifdef NST_PRAGMA_ONCE
 #pragma once
 #endif
 
@@ -33,21 +33,23 @@ namespace Nes
 {
 	namespace Core
 	{
-		class VsSuperXevious : public VsSystem
+		class Cartridge::VsSystem::SuperXevious : public Cartridge::VsSystem
 		{
 		public:
 
-			VsSuperXevious(Context& c)
+			explicit SuperXevious(Context& c)
 			: VsSystem(c) {}
 
 		private:
 
+			~SuperXevious() {}
+
 			void Reset();
 
-			NES_DECL_PEEK( 54FF )
-			NES_DECL_PEEK( 5678 )
-			NES_DECL_PEEK( 578F )
-			NES_DECL_PEEK( 5567 )
+			NES_DECL_PEEK( 54FF );
+			NES_DECL_PEEK( 5678 );
+			NES_DECL_PEEK( 578F );
+			NES_DECL_PEEK( 5567 );
 
 			uint protection;
 		};

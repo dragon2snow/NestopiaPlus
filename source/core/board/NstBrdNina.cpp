@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -31,7 +31,7 @@ namespace Nes
 	{
 		namespace Boards
 		{
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("s", on)
 			#endif
 
@@ -43,18 +43,18 @@ namespace Nes
 
 			void Nina::SubReset(bool)
 			{
-				for (uint i=0x4100U; i < 0x6000U; i += 0x200)
+				for (uint i=0x4100; i < 0x6000; i += 0x200)
 					Map( i+0x00, i+0xFF, type == TYPE_003_006_STD ? &Nina::Poke_4100 : &Nina::Poke_4100_Nmt );
 			}
 
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("", on)
 			#endif
 
 			void Nina::Update(const uint data)
 			{
-				prg.SwapBank<SIZE_32K,0x0000U>( data >> 3 & 0x7 );
-				chr.SwapBank<SIZE_8K,0x0000U>( (data >> 3 & 0x8) | (data & 0x7) );
+				prg.SwapBank<SIZE_32K,0x0000>( data >> 3 & 0x7 );
+				chr.SwapBank<SIZE_8K,0x0000>( (data >> 3 & 0x8) | (data & 0x7) );
 			}
 
 			NES_POKE(Nina,4100)

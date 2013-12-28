@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -32,7 +32,7 @@ namespace Nes
 	{
 		namespace Boards
 		{
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("s", on)
 			#endif
 
@@ -40,28 +40,28 @@ namespace Nes
 			{
 				Mmc3::SubReset( hard );
 
-				for (uint i=0x0000U; i < 0x2000U; i += 0x2)
+				for (uint i=0x0000; i < 0x2000; i += 0x2)
 				{
-					Map( 0x8000U + i, &Kof97::Poke_8000 );
-					Map( 0x8001U + i, &Kof97::Poke_8001 );
-					Map( 0xC000U + i, &Kof97::Poke_C000 );
-					Map( 0xC001U + i, &Kof97::Poke_C001 );
+					Map( 0x8000 + i, &Kof97::Poke_8000 );
+					Map( 0x8001 + i, &Kof97::Poke_8001 );
+					Map( 0xC000 + i, &Kof97::Poke_C000 );
+					Map( 0xC001 + i, &Kof97::Poke_C001 );
 				}
 
 				Map( 0x9000U, &Kof97::Poke_8001 );
 				Map( 0xA000U, &Kof97::Poke_8000 );
 				Map( 0xD000U, &Kof97::Poke_C001 );
 
-				for (uint i=0x0000U; i < 0x1000U; i += 0x2)
+				for (uint i=0x0000; i < 0x1000; i += 0x2)
 				{
-					Map( 0xE000U + i, &Kof97::Poke_E000 );
-					Map( 0xE001U + i, &Kof97::Poke_E001 );
+					Map( 0xE000 + i, &Kof97::Poke_E000 );
+					Map( 0xE001 + i, &Kof97::Poke_E001 );
 				}
 
 				Map( 0xF000U, &Kof97::Poke_E001 );
 			}
 
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("", on)
 			#endif
 
@@ -79,32 +79,32 @@ namespace Nes
 
 			NES_POKE(Kof97,8000)
 			{
-				NES_CALL_POKE(Mmc3,8000,0x8000U,Unscramble(data));
+				Mmc3::NES_DO_POKE(8000,0x8000,Unscramble(data));
 			}
 
 			NES_POKE(Kof97,8001)
 			{
-				NES_CALL_POKE(Mmc3,8001,0x8001U,Unscramble(data));
+				Mmc3::NES_DO_POKE(8001,0x8001,Unscramble(data));
 			}
 
 			NES_POKE(Kof97,C000)
 			{
-				NES_CALL_POKE(Mmc3,C000,0xC000U,Unscramble(data));
+				Mmc3::NES_DO_POKE(C000,0xC000,Unscramble(data));
 			}
 
 			NES_POKE(Kof97,C001)
 			{
-				NES_CALL_POKE(Mmc3,C001,0xC001U,Unscramble(data));
+				Mmc3::NES_DO_POKE(C001,0xC001,Unscramble(data));
 			}
 
 			NES_POKE(Kof97,E000)
 			{
-				NES_CALL_POKE(Mmc3,E000,0xE000U,Unscramble(data));
+				Mmc3::NES_DO_POKE(E000,0xE000,Unscramble(data));
 			}
 
 			NES_POKE(Kof97,E001)
 			{
-				NES_CALL_POKE(Mmc3,E001,0xE001U,Unscramble(data));
+				Mmc3::NES_DO_POKE(E001,0xE001,Unscramble(data));
 			}
 		}
 	}

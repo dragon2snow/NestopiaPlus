@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -46,7 +46,7 @@ namespace Nestopia
 
 		public:
 
-			DirectInput(HWND);
+			explicit DirectInput(HWND);
 			~DirectInput();
 
 			enum
@@ -86,11 +86,12 @@ namespace Nestopia
 
 			class Key;
 
-			void  Acquire();
-			void  Unacquire();
-			void  Poll();
-			void  Build(const Key*,uint);
-			ibool MapKey(Key&,tstring,const System::Guid* = NULL,uint=0) const;
+			void Acquire();
+			void Unacquire();
+			void Calibrate(bool);
+			void Poll();
+			void Build(const Key*,uint);
+			bool MapKey(Key&,tstring,const System::Guid* = NULL,uint=0) const;
 			const HeapString GetKeyName(const Key&) const;
 
 			void BeginScanMode(HWND) const;
@@ -105,11 +106,11 @@ namespace Nestopia
 
 			public:
 
-				ibool MapVirtualKey(uint,uint,uint,uint);
-				ibool MapVirtualKey(GenericString);
-				ibool GetVirtualKey(ACCEL&) const;
-				ibool IsVirtualKey() const;
-				ibool GetToggle(ibool&) const;
+				bool MapVirtualKey(uint,uint,uint,uint);
+				bool MapVirtualKey(GenericString);
+				bool GetVirtualKey(ACCEL&) const;
+				bool IsVirtualKey() const;
+				bool GetToggle(bool&) const;
 
 			private:
 
@@ -126,7 +127,7 @@ namespace Nestopia
 				Key()
 				: data(NULL), code(KeyNone) {}
 
-				ibool operator == (const Key& key) const
+				bool operator == (const Key& key) const
 				{
 					return data == key.data && code == key.code;
 				}
@@ -137,9 +138,9 @@ namespace Nestopia
 					code = KeyNone;
 				}
 
-				ibool Assigned() const
+				bool Assigned() const
 				{
-					return data != NULL;
+					return data;
 				}
 
 				uint GetState() const
@@ -162,7 +163,7 @@ namespace Nestopia
 
 			public:
 
-				Base(HWND);
+				explicit Base(HWND);
 				~Base();
 
 				IDirectInput8& com;
@@ -173,29 +174,29 @@ namespace Nestopia
 			{
 			public:
 
-				void Enable(ibool);
+				void Enable(bool);
 
 			protected:
 
-				Device(IDirectInputDevice8&);
+				explicit Device(IDirectInputDevice8&);
 				~Device();
 
-				ibool Acquire(void*,uint);
-				void  Unacquire();
+				bool Acquire(void*,uint);
+				void Unacquire();
 
-				ibool enabled;
 				IDirectInputDevice8& com;
+				bool enabled;
 			};
 
 			class Keyboard : public Device
 			{
 			public:
 
-				Keyboard(Base&);
+				explicit Keyboard(Base&);
 
 				enum
 				{
-					MAX_KEYS = NUM_KEYBOARD_KEYS,
+					MAX_KEYS = NUM_KEYBOARD_KEYS
 				};
 
 				void Acquire();
@@ -203,15 +204,15 @@ namespace Nestopia
 
 				NST_FORCE_INLINE void Poll();
 
-				ibool Map(Key&,tstring) const;
-				ibool Map(Key&,uint) const;
+				bool Map(Key&,tstring) const;
+				bool Map(Key&,uint) const;
 
 				void BeginScanMode(HWND) const;
-				ibool Scan(u8 (&)[MAX_KEYS]) const;
+				bool Scan(uchar (&)[MAX_KEYS]) const;
 				ScanResult Scan(Key&) const;
 				void EndScanMode() const;
 
-				ibool Assigned(const Key&) const;
+				bool Assigned(const Key&) const;
 				tstring GetName(const Key&) const;
 
 			private:
@@ -239,7 +240,7 @@ namespace Nestopia
 
 			public:
 
-				const u8* GetBuffer() const
+				const uchar* GetBuffer() const
 				{
 					return buffer;
 				}
@@ -267,17 +268,18 @@ namespace Nestopia
 
 				void Acquire();
 				void Unacquire();
+				void Calibrate(bool);
 
 				NST_FORCE_INLINE void Poll();
 
-				ibool Map(Key&,tstring) const;
+				bool Map(Key&,tstring) const;
 
 				void BeginScanMode() const;
-				ibool Scan(Key&) const;
+				bool Scan(Key&) const;
 				void EndScanMode() const;
 
-				ibool Assigned(const Key&) const;
-				ibool SetAxisDeadZone(uint);
+				bool Assigned(const Key&) const;
+				bool SetAxisDeadZone(uint);
 				tstring GetName(const Key&) const;
 
 			private:
@@ -330,21 +332,19 @@ namespace Nestopia
 					long lRx;
 					long lRy;
 					long lRz;
-					ibool must;
 
 				public:
 
 					Calibrator();
 
-					void Reset(DIJOYSTATE&);
-
+					inline void Reset(DIJOYSTATE&,bool);
 					inline void Fix(DIJOYSTATE&) const;
 				};
 
 				const Caps caps;
 				Object::Pod<DIJOYSTATE> state;
-				mutable Calibrator calibrator;
-				ibool scanEnabled;
+				Calibrator calibrator;
+				bool scanEnabled;
 				uint deadZone;
 				uint axes;
 
@@ -383,12 +383,12 @@ namespace Nestopia
 					return axes;
 				}
 
-				void ScanEnable(ibool enable)
+				void ScanEnable(bool enable)
 				{
 					scanEnabled = enable;
 				}
 
-				ibool ScanEnabled() const
+				bool ScanEnabled() const
 				{
 					return scanEnabled;
 				}
@@ -399,7 +399,7 @@ namespace Nestopia
 					axes = flags;
 				}
 
-				void SetScannerAxes(uint flags,ibool on)
+				void SetScannerAxes(uint flags,bool on)
 				{
 					NST_ASSERT( flags <= AXIS_ALL );
 					axes = (on ? axes | flags : axes & ~flags);
@@ -425,7 +425,7 @@ namespace Nestopia
 
 		public:
 
-			ibool MapKeyboard(Key& key,uint code) const
+			bool MapKeyboard(Key& key,uint code) const
 			{
 				key.Unmap();
 				return keyboard.Map( key, code );
@@ -436,13 +436,13 @@ namespace Nestopia
 				return joysticks.Size();
 			}
 
-			ibool JoystickScanEnabled(uint index) const
+			bool JoystickScanEnabled(uint index) const
 			{
 				NST_ASSERT( index < joysticks.Size() );
 				return joysticks[index].ScanEnabled();
 			}
 
-			void ScanEnableJoystick(uint index,ibool enable)
+			void ScanEnableJoystick(uint index,bool enable)
 			{
 				NST_ASSERT( index < joysticks.Size() );
 				joysticks[index].ScanEnable( enable );
@@ -460,7 +460,13 @@ namespace Nestopia
 				return joysticks[index].GetName();
 			}
 
-			ibool SetAxisDeadZone(uint index,uint deadZone)
+			void Calibrate(uint index,bool full)
+			{
+				NST_ASSERT( index < joysticks.Size() );
+				joysticks[index].Calibrate( full );
+			}
+
+			bool SetAxisDeadZone(uint index,uint deadZone)
 			{
 				NST_ASSERT( index < joysticks.Size() );
 				return joysticks[index].SetAxisDeadZone( deadZone );
@@ -484,7 +490,7 @@ namespace Nestopia
 				return joysticks[index].SetScannerAxes( axes );
 			}
 
-			void SetScannerAxes(uint index,uint axes,ibool state)
+			void SetScannerAxes(uint index,uint axes,bool state)
 			{
 				NST_ASSERT( index < joysticks.Size() );
 				return joysticks[index].SetScannerAxes( axes, state );
@@ -496,12 +502,12 @@ namespace Nestopia
 				return joysticks[index].GetScannerAxes();
 			}
 
-			const u8* GetKeyboardBuffer() const
+			const uchar* GetKeyboardBuffer() const
 			{
 				return keyboard.GetBuffer();
 			}
 
-			ibool AnyPressed() const
+			bool AnyPressed() const
 			{
 				Key key;
 				return ScanKey( key ) != SCAN_NO_KEY;

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -27,11 +27,9 @@
 
 #pragma once
 
-#include "NstWindowMenu.hpp"
 #include "NstWindowStatusBar.hpp"
 #include "NstObjectHeap.hpp"
 #include "NstDirect2d.hpp"
-#include "NstManagerEmulator.hpp"
 #include "../core/api/NstApiNsf.hpp"
 
 namespace Nestopia
@@ -45,7 +43,7 @@ namespace Nestopia
 	{
 		class Paths;
 
-		class Video
+		class Video : Manager
 		{
 			typedef DirectX::Direct2D::Adapter::Modes::const_iterator Mode;
 
@@ -73,7 +71,7 @@ namespace Nestopia
 			void LoadPalette(const Path&);
 			void SavePalette(Path&) const;
 			const Rect& GetInputRect() const;
-			ibool MustClearFrameScreen() const;
+			bool MustClearFrameScreen() const;
 
 			Point GetDisplayMode() const;
 
@@ -92,16 +90,16 @@ namespace Nestopia
 				SCREEN_TEXT_DURATION = 2250
 			};
 
-			ibool SwitchFullscreen(Mode);
-			void  ToggleFps(ibool);
-			void  UpdateScreen();
-			void  UpdateDialogBoxMode();
-			void  UpdateMenuScreenSizes(const Point) const;
-			void  UpdateFieldMergingState() const;
-			void  ResetScreenRect(uint);
-			uint  CalculateWindowScale() const;
-			uint  CalculateFullscreenScale() const;
-			ibool WindowMatched() const;
+			bool SwitchFullscreen(Mode);
+			void ToggleFps(bool);
+			void UpdateScreen();
+			void UpdateDialogBoxMode();
+			void UpdateMenuScreenSizes(const Point) const;
+			void UpdateFieldMergingState() const;
+			void ResetScreenRect(uint);
+			uint CalculateWindowScale() const;
+			uint CalculateFullscreenScale() const;
+			bool WindowMatched() const;
 
 			NST_NO_INLINE void RepairScreen();
 
@@ -153,16 +151,14 @@ namespace Nestopia
 				uint songTextOffset;
 			};
 
-			Emulator& emulator;
 			Window::Custom& window;
-			const Window::Menu& menu;
 			Fps fps;
 			Window::StatusBar statusBar;
 			DirectX::Direct2D direct2d;
 			Object::Heap<Window::Video> dialog;
 			Nes::Video::Output nesOutput;
 			Nsf nsf;
-			ibool sizingMoving;
+			bool sizingMoving;
 			const Paths& paths;
 			const uint childWindowSwitchCount;
 
@@ -173,17 +169,17 @@ namespace Nestopia
 				return direct2d.ValidScreen() ? &nesOutput : NULL;
 			}
 
-			ibool Windowed() const
+			bool Windowed() const
 			{
 				return direct2d.Windowed();
 			}
 
-			ibool Fullscreen() const
+			bool Fullscreen() const
 			{
 				return !Windowed();
 			}
 
-			ibool ThrottleRequired(uint speed) const
+			bool ThrottleRequired(uint speed) const
 			{
 				return direct2d.ThrottleRequired( speed );
 			}
@@ -210,7 +206,7 @@ namespace Nestopia
 					RepairScreen();
 			}
 
-			ibool ModernGPU() const
+			bool ModernGPU() const
 			{
 				return direct2d.ModernGPU();
 			}

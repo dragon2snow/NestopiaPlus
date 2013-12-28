@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -44,16 +44,14 @@ namespace Nestopia
 
 			class ButtonParam
 			{
-				friend struct Param;
-
 				const uint wParam;
+
+			public:
 
 				explicit ButtonParam(uint w)
 				: wParam(w) {}
 
-			public:
-
-				ibool Clicked() const
+				bool Clicked() const
 				{
 					return HIWORD(wParam) == BN_CLICKED;
 				}
@@ -66,16 +64,14 @@ namespace Nestopia
 
 			class ListBoxParam
 			{
-				friend struct Param;
-
 				const uint wParam;
+
+			public:
 
 				explicit ListBoxParam(uint w)
 				: wParam(w) {}
 
-			public:
-
-				ibool SelectionChanged() const
+				bool SelectionChanged() const
 				{
 					return HIWORD(wParam) == LBN_SELCHANGE;
 				}
@@ -88,21 +84,19 @@ namespace Nestopia
 
 			class ComboBoxParam
 			{
-				friend struct Param;
-
 				const uint wParam;
+
+			public:
 
 				explicit ComboBoxParam(uint w)
 				: wParam(w) {}
 
-			public:
-
-				ibool SelectionChanged() const
+				bool SelectionChanged() const
 				{
 					return HIWORD(wParam) == CBN_SELCHANGE;
 				}
 
-				ibool DropingDown() const
+				bool DropingDown() const
 				{
 					return HIWORD(wParam) == CBN_DROPDOWN;
 				}
@@ -115,26 +109,24 @@ namespace Nestopia
 
 			class EditParam
 			{
-				friend struct Param;
-
 				const uint wParam;
+
+			public:
 
 				explicit EditParam(uint w)
 				: wParam(w) {}
 
-			public:
-
-				ibool SetFocus() const
+				bool SetFocus() const
 				{
 					return HIWORD(wParam) == EN_SETFOCUS;
 				}
 
-				ibool KillFocus() const
+				bool KillFocus() const
 				{
 					return HIWORD(wParam) == EN_KILLFOCUS;
 				}
 
-				ibool Changed() const
+				bool Changed() const
 				{
 					return HIWORD(wParam) == EN_CHANGE;
 				}
@@ -147,14 +139,12 @@ namespace Nestopia
 
 			class SliderParam
 			{
-				friend struct Param;
-
 				const Param& param;
+
+			public:
 
 				explicit SliderParam(const Param& p)
 				: param(p) {}
-
-			public:
 
 				uint Scroll() const;
 
@@ -163,7 +153,7 @@ namespace Nestopia
 					return ::GetDlgCtrlID( reinterpret_cast<HWND>(param.lParam) );
 				}
 
-				ibool Released() const
+				bool Released() const
 				{
 					return LOWORD(param.wParam) == SB_ENDSCROLL;
 				}
@@ -171,16 +161,14 @@ namespace Nestopia
 
 			class CursorParam
 			{
-				friend struct Param;
-
 				const Param& param;
+
+			public:
 
 				explicit CursorParam(const Param& p)
 				: param(p) {}
 
-			public:
-
-				ibool Inside(uint id) const
+				bool Inside(uint id) const
 				{
 					return reinterpret_cast<HWND>(param.wParam) == ::GetDlgItem( param.hWnd, id );
 				}
@@ -188,36 +176,34 @@ namespace Nestopia
 
 			class ActivatorParam
 			{
-				friend struct Param;
-
 				const Param& param;
+
+			public:
 
 				explicit ActivatorParam(const Param& p)
 				: param(p) {}
 
-			public:
-
-				ibool Leaving() const
+				bool Leaving() const
 				{
 					return LOWORD(param.wParam) == WA_INACTIVE;
 				}
 
-				ibool Entering() const
+				bool Entering() const
 				{
 					return !Leaving();
 				}
 
-				ibool InsideApplication() const
+				bool InsideApplication() const
 				{
 					return param.lParam && ::IsChild( param.hWnd, reinterpret_cast<HWND>(param.lParam) );
 				}
 
-				ibool OutsideApplication() const
+				bool OutsideApplication() const
 				{
 					return !InsideApplication();
 				}
 
-				ibool Minimized() const
+				bool Minimized() const
 				{
 					return HIWORD(param.wParam);
 				}

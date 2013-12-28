@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -22,6 +22,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
+#include <cstring>
 #include "../NstMapper.hpp"
 #include "NstBrdMmc3.hpp"
 #include "NstBrdMmc3Waixing.hpp"
@@ -32,7 +33,7 @@ namespace Nes
 	{
 		namespace Boards
 		{
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("s", on)
 			#endif
 
@@ -49,19 +50,19 @@ namespace Nes
 				Map( 0x5000U, 0x5FFFU, &Mmc3Waixing::Peek_ExRam, &Mmc3Waixing::Poke_ExRam );
 				Map( WRK_PEEK_POKE );
 
-				for (uint i=0xA000U; i < 0xC000U; i += 0x2)
+				for (uint i=0xA000; i < 0xC000; i += 0x2)
 					Map( i, NMT_SWAP_VH01 );
 			}
 
 			void Mmc3Waixing::BaseLoad(State::Loader& state,const dword id)
 			{
-				NST_VERIFY( id == NES_STATE_CHUNK_ID('T','M','3','\0') );
+				NST_VERIFY( id == (AsciiId<'T','M','3'>::V) );
 
-				if (id == NES_STATE_CHUNK_ID('T','M','3','\0'))
+				if (id == AsciiId<'T','M','3'>::V)
 				{
 					while (const dword chunk = state.Begin())
 					{
-						if (chunk == NES_STATE_CHUNK_ID('R','A','M','\0'))
+						if (chunk == AsciiId<'R','A','M'>::V)
 							state.Uncompress( exRam );
 
 						state.End();
@@ -71,10 +72,10 @@ namespace Nes
 
 			void Mmc3Waixing::BaseSave(State::Saver& state) const
 			{
-				state.Begin('T','M','3','\0').Begin('R','A','M','\0').Compress( exRam ).End().End();
+				state.Begin( AsciiId<'T','M','3'>::V ).Begin( AsciiId<'R','A','M'>::V ).Compress( exRam ).End().End();
 			}
 
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("", on)
 			#endif
 
@@ -89,14 +90,14 @@ namespace Nes
 
 				const uint swap = (regs.ctrl0 & Regs::CTRL0_XOR_CHR) << 5;
 
-				SwapChr( 0x0000U ^ swap, (banks.chr[0] << 1) | 0 );
-				SwapChr( 0x0400U ^ swap, (banks.chr[0] << 1) | 1 );
-				SwapChr( 0x0800U ^ swap, (banks.chr[1] << 1) | 0 );
-				SwapChr( 0x0C00U ^ swap, (banks.chr[1] << 1) | 1 );
-				SwapChr( 0x1000U ^ swap,  banks.chr[2]           );
-				SwapChr( 0x1400U ^ swap,  banks.chr[3]           );
-				SwapChr( 0x1800U ^ swap,  banks.chr[4]           );
-				SwapChr( 0x1C00U ^ swap,  banks.chr[5]           );
+				SwapChr( 0x0000 ^ swap, banks.chr[0] << 1 | 0 );
+				SwapChr( 0x0400 ^ swap, banks.chr[0] << 1 | 1 );
+				SwapChr( 0x0800 ^ swap, banks.chr[1] << 1 | 0 );
+				SwapChr( 0x0C00 ^ swap, banks.chr[1] << 1 | 1 );
+				SwapChr( 0x1000 ^ swap, banks.chr[2]          );
+				SwapChr( 0x1400 ^ swap, banks.chr[3]          );
+				SwapChr( 0x1800 ^ swap, banks.chr[4]          );
+				SwapChr( 0x1C00 ^ swap, banks.chr[5]          );
 			}
 
 			NES_PEEK(Mmc3Waixing,ExRam)

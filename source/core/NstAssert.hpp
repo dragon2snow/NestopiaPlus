@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -22,33 +22,42 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#ifndef NST_TYPES_H
-#error Do not include NstAssert.hpp directly!
+#ifndef NST_ASSERT_H
+#define NST_ASSERT_H
+
+#ifndef NST_CORE_H
+#include "NstCore.hpp"
 #endif
 
-#ifndef NDEBUG
+#ifdef NST_PRAGMA_ONCE
+#pragma once
+#endif
 
- #ifdef _WIN32
+#if defined(NDEBUG)
 
-  #ifndef NST_HALT
-   #ifdef _MSC_VER
-	#if (_MSC_VER >= 1300)
-     #define NST_HALT __debugbreak()
-	#else
-     #define NST_HALT __asm {int 3} NST_NOP
-	#endif
-   #else
-	#include <cstdlib>
-	#define NST_HALT std::abort()
-   #endif
+  #define NST_DEBUG_MSG(msg_) NST_NOP()
+  #define NST_ASSERT_MSG(expr_,msg_) NST_ASSUME(expr_)
+  #define NST_VERIFY_MSG(expr_,msg_) NST_NOP()
+
+#elif defined(NST_WIN32)
+
+  #if NST_GCC >= 200 || NST_MWERKS >= 0x3000
+   #define NST_FUNC_NAME __PRETTY_FUNCTION__
+  #elif NST_MSVC >= 1300
+   #define NST_FUNC_NAME __FUNCTION__
+  #elif NST_BCC >= 0x550
+   #define NST_FUNC_NAME __FUNC__
+  #else
+   #define NST_FUNC_NAME 0
   #endif
 
-  #ifndef NST_FUNCTION_NAME
-   #if defined(_MSC_VER) && (_MSC_VER >= 1300)
-	#define NST_FUNCTION_NAME __FUNCTION__
-   #else
-	#define NST_FUNCTION_NAME 0
-   #endif
+  #if NST_MSVC >= 1300
+   #define NST_HALT() __debugbreak()
+  #elif NST_MSVC >= 1200 && defined(_M_IX86)
+   #define NST_HALT() __asm {int 3} NST_NOP()
+  #else
+   #include <cstdlib>
+   #define NST_HALT() std::abort()
   #endif
 
   namespace Nes
@@ -57,65 +66,58 @@
       {
           NST_NO_INLINE uint NST_CALL Issue
           (
-              cstring,
-              cstring,
-              cstring,
-              cstring,
+              const char*,
+              const char*,
+              const char*,
+              const char*,
               int
           );
       }
   }
 
-  #define NST_DEBUG_MSG(msg_)                                                             \
-  {                                                                                       \
-      static bool ignore_ = false;                                                        \
-                                                                                          \
-      if (!ignore_)                                                                       \
-      {                                                                                   \
-          switch (Nes::Assertion::Issue(0,msg_,__FILE__,NST_FUNCTION_NAME,__LINE__))      \
-          {                                                                               \
-              case 0: NST_HALT; break;                                                    \
-              case 1: ignore_ = true; break;                                              \
-          }                                                                               \
-      }                                                                                   \
-  }                                                                                       \
-  NST_NOP
+  #define NST_DEBUG_MSG(msg_)                                                         \
+  {                                                                                   \
+      static bool ignore_ = false;                                                    \
+                                                                                      \
+      if (!ignore_)                                                                   \
+      {                                                                               \
+          switch (Nes::Assertion::Issue(0,msg_,__FILE__,NST_FUNC_NAME,__LINE__))      \
+          {                                                                           \
+              case 0: NST_HALT(); break;                                              \
+              case 1: ignore_ = true; break;                                          \
+          }                                                                           \
+      }                                                                               \
+  }                                                                                   \
+  NST_NOP()
 
-  #define NST_ASSERT_MSG(expr_,msg_)                                                      \
-  {                                                                                       \
-      static bool ignore_ = false;                                                        \
-                                                                                          \
-      if (!ignore_ && !(expr_))                                                           \
-      {                                                                                   \
-          switch (Nes::Assertion::Issue(#expr_,msg_,__FILE__,NST_FUNCTION_NAME,__LINE__)) \
-          {                                                                               \
-              case 0: NST_HALT; break;                                                    \
-              case 1: ignore_ = true; break;                                              \
-          }                                                                               \
-      }                                                                                   \
-  }                                                                                       \
-  NST_NOP
+  #define NST_ASSERT_MSG(expr_,msg_)                                                  \
+  {                                                                                   \
+      static bool ignore_ = false;                                                    \
+                                                                                      \
+      if (!ignore_ && !(expr_))                                                       \
+      {                                                                               \
+          switch (Nes::Assertion::Issue(#expr_,msg_,__FILE__,NST_FUNC_NAME,__LINE__)) \
+          {                                                                           \
+              case 0: NST_HALT(); break;                                              \
+              case 1: ignore_ = true; break;                                          \
+          }                                                                           \
+      }                                                                               \
+  }                                                                                   \
+  NST_NOP()
 
   #define NST_VERIFY_MSG(expr_,msg_) NST_ASSERT_MSG(expr_,msg_)
 
- #else
-
-  #include <cassert>
-  #define NST_DEBUG_MSG(msg_) NST_NOP
-  #define NST_ASSERT_MSG(expr_,msg_) assert( expr_ )
-  #define NST_VERIFY_MSG(expr_,msg_) NST_NOP
-
- #endif
-
 #else
 
- #define NST_DEBUG_MSG(msg_) NST_NOP
- #define NST_ASSERT_MSG(expr_,msg_) NST_ASSUME(expr_)
- #define NST_VERIFY_MSG(expr_,msg_) NST_NOP
+  #include <cassert>
+
+  #define NST_DEBUG_MSG(msg_) NST_NOP()
+  #define NST_ASSERT_MSG(expr_,msg_) assert( !!(expr_) )
+  #define NST_VERIFY_MSG(expr_,msg_) NST_NOP()
 
 #endif
 
 #define NST_ASSERT(expr_) NST_ASSERT_MSG(expr_,0)
 #define NST_VERIFY(expr_) NST_VERIFY_MSG(expr_,0)
 
-#define NST_COMPILE_ASSERT(expr_) typedef char Nestopia_compile_time_assertion_at_line_##__LINE__[(expr_) ? 1 : -1]
+#endif

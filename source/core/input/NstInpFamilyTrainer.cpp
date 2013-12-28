@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -31,7 +31,7 @@ namespace Nes
 	{
 		namespace Input
 		{
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("s", on)
 			#endif
 
@@ -47,18 +47,18 @@ namespace Nes
 				state = ~0U;
 			}
 
-			void FamilyTrainer::SaveState(State::Saver& state,const uchar id) const
+			void FamilyTrainer::SaveState(State::Saver& state,const byte id) const
 			{
-				state.Begin('F','T',id,'\0').Write8( output ).End();
+				state.Begin( AsciiId<'F','T'>::R(0,0,id) ).Write8( output ).End();
 			}
 
 			void FamilyTrainer::LoadState(State::Loader& state,const dword id)
 			{
-				if (id == NES_STATE_CHUNK_ID('F','T','\0','\0'))
+				if (id == AsciiId<'F','T'>::V)
 					output = state.Read8() & 0x1E;
 			}
 
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("", on)
 			#endif
 
@@ -69,20 +69,20 @@ namespace Nes
 
 				if (Controllers::FamilyTrainer::callback( trainer ))
 				{
-					static const u16 lut[Controllers::FamilyTrainer::NUM_SIDE_A_BUTTONS] =
+					static const word lut[Controllers::FamilyTrainer::NUM_SIDE_A_BUTTONS] =
 					{
-						( 1U <<  1 ) ^ 0x1FFFU,
-						( 1U <<  2 ) ^ 0x1FFFU,
-						( 1U <<  3 ) ^ 0x1FFFU,
-						( 1U <<  4 ) ^ 0x1FFFU,
-						( 1U <<  5 ) ^ 0x1FFFU,
-						( 1U <<  6 ) ^ 0x1FFFU,
-						( 1U <<  7 ) ^ 0x1FFFU,
-						( 1U <<  8 ) ^ 0x1FFFU,
-						( 1U <<  9 ) ^ 0x1FFFU,
-						( 1U << 10 ) ^ 0x1FFFU,
-						( 1U << 11 ) ^ 0x1FFFU,
-						( 1U << 12 ) ^ 0x1FFFU
+						1U <<  1 ^ 0x1FFF,
+						1U <<  2 ^ 0x1FFF,
+						1U <<  3 ^ 0x1FFF,
+						1U <<  4 ^ 0x1FFF,
+						1U <<  5 ^ 0x1FFF,
+						1U <<  6 ^ 0x1FFF,
+						1U <<  7 ^ 0x1FFF,
+						1U <<  8 ^ 0x1FFF,
+						1U <<  9 ^ 0x1FFF,
+						1U << 10 ^ 0x1FFF,
+						1U << 11 ^ 0x1FFF,
+						1U << 12 ^ 0x1FFF
 					};
 
 					uint bits = ~0U;
@@ -93,7 +93,7 @@ namespace Nes
 							bits &= lut[i];
 					}
 
-					static const uchar index[Controllers::FamilyTrainer::NUM_SIDE_B_BUTTONS] =
+					static const byte index[Controllers::FamilyTrainer::NUM_SIDE_B_BUTTONS] =
 					{
 						2,1,7,6,5,4,10,9
 					};

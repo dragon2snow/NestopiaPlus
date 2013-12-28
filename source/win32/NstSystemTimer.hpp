@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -37,7 +37,7 @@ namespace Nestopia
 		{
 		public:
 
-			typedef u64 Value;
+			typedef qword Value;
 
 			enum Type
 			{
@@ -47,7 +47,7 @@ namespace Nestopia
 
 			explicit Timer(Type=MULTIMEDIA);
 
-			ibool Reset(Type);
+			bool  Reset(Type);
 			Value Elapsed() const;
 			void  Wait(Value,Value);
 
@@ -79,7 +79,7 @@ namespace Nestopia
 
 		public:
 
-			static ibool HasPerformanceCounter()
+			static bool HasPerformanceCounter()
 			{
 				return settings.pfFrequency != 0;
 			}

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -52,7 +52,7 @@ namespace Nestopia
 			static const String::Heap<char>& GetVersion();
 
 			static uint NumChildWindows();
-			static void ShowChildWindows(uint=true);
+			static void ShowChildWindows(bool=true);
 			static Window::Generic GetChildWindow(uint=0);
 			static Window::Generic GetMainWindow();
 			static Window::Generic GetActiveWindow();
@@ -105,7 +105,11 @@ namespace Nestopia
 			private:
 
 				typedef Object::Delegate2<void,Event,const void*> Callback;
-				typedef Collection::Vector<Callback> Callbacks;
+
+				struct Callbacks : Collection::Vector<Callback>
+				{
+					~Callbacks();
+				};
 
 				static void Add(const Callback&);
 
@@ -159,14 +163,14 @@ namespace Nestopia
 			class Locker
 			{
 				HWND const hWnd;
-				const ibool enabled;
+				const bool enabled;
 
 			public:
 
 				Locker();
 				~Locker();
 
-				ibool CheckInput(int) const;
+				bool CheckInput(int) const;
 			};
 		};
 	}

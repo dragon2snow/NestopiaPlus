@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -31,7 +31,7 @@ namespace Nes
 	{
 		namespace Boards
 		{
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("s", on)
 			#endif
 
@@ -68,7 +68,7 @@ namespace Nes
 
 			Mmc1::Mmc1(Context& c,Board b,Revision rev)
 			:
-			Mapper   (c,BoardToWRam(b) | PROM_MAX_512K|CROM_MAX_128K),
+			Mapper   (c,BoardToWRam(b) | (PROM_MAX_512K|CROM_MAX_128K)),
 			revision (rev)
 			{
 			}
@@ -86,7 +86,7 @@ namespace Nes
 
 			void Mmc1::SubReset(const bool hard)
 			{
-				if (wrk.RamSize() >= SIZE_8K && revision != REV_A)
+				if (wrk.Size() >= SIZE_8K && revision != REV_A)
 					Map( WRK_SAFE_PEEK_POKE );
 
 				Map( 0x8000U, 0xFFFFU, &Mmc1::Poke_Prg );
@@ -104,17 +104,17 @@ namespace Nes
 
 			void Mmc1::BaseLoad(State::Loader& state,dword id)
 			{
-				NST_VERIFY( id == NES_STATE_CHUNK_ID('M','M','1','\0') );
+				NST_VERIFY( id == (AsciiId<'M','M','1'>::V) );
 
 				serial.ready = 0;
 
-				if (id == NES_STATE_CHUNK_ID('M','M','1','\0'))
+				if (id == AsciiId<'M','M','1'>::V)
 				{
 					while (const dword chunk = state.Begin())
 					{
-						if (chunk == NES_STATE_CHUNK_ID('R','E','G','\0'))
+						if (chunk == AsciiId<'R','E','G'>::V)
 						{
-							const State::Loader::Data<4+2> data( state );
+							State::Loader::Data<4+2> data( state );
 
 							for (uint i=0; i < 4; ++i)
 								regs[i] = data[i] & 0x1F;
@@ -130,7 +130,7 @@ namespace Nes
 
 			void Mmc1::BaseSave(State::Saver& state) const
 			{
-				const u8 data[4+2] =
+				const byte data[4+2] =
 				{
 					regs[0],
 					regs[1],
@@ -140,19 +140,19 @@ namespace Nes
 					serial.shifter
 				};
 
-				state.Begin('M','M','1','\0').Begin('R','E','G','\0').Write( data ).End().End();
+				state.Begin( AsciiId<'M','M','1'>::V ).Begin( AsciiId<'R','E','G'>::V ).Write( data ).End().End();
 			}
 
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("", on)
 			#endif
 
 			void Mmc1::UpdatePrg()
 			{
-				prg.SwapBanks<SIZE_16K,0x0000U>
+				prg.SwapBanks<SIZE_16K,0x0000>
 				(
-					(regs[CHR0] & 0x10) | ((regs[PRG0] | 0x0) & ((regs[CTRL] & CTRL_PRG_SWAP_16K) ? (regs[CTRL] & CTRL_PRG_SWAP_LOW) ? 0xF : 0x0 : 0xE)),
-					(regs[CHR0] & 0x10) | ((regs[PRG0] & 0xF) | ((regs[CTRL] & CTRL_PRG_SWAP_16K) ? (regs[CTRL] & CTRL_PRG_SWAP_LOW) ? 0xF : 0x0 : 0x1))
+					(regs[CHR0] & 0x10U) | ((regs[PRG0] | 0x0U) & ((regs[CTRL] & uint(CTRL_PRG_SWAP_16K)) ? (regs[CTRL] & uint(CTRL_PRG_SWAP_LOW)) ? 0xF : 0x0 : 0xE)),
+					(regs[CHR0] & 0x10U) | ((regs[PRG0] & 0xFU) | ((regs[CTRL] & uint(CTRL_PRG_SWAP_16K)) ? (regs[CTRL] & uint(CTRL_PRG_SWAP_LOW)) ? 0xF : 0x0 : 0x1))
 				);
 			}
 
@@ -160,30 +160,30 @@ namespace Nes
 			{
 				wrk.Source().SetSecurity
 				(
-					~regs[PRG0] & PRG0_WRAM_DISABLED,
-					~regs[PRG0] & PRG0_WRAM_DISABLED
+					~uint(regs[PRG0]) & PRG0_WRAM_DISABLED,
+					~uint(regs[PRG0]) & PRG0_WRAM_DISABLED
 				);
 
 				if (wrk.Source().Size() >= SIZE_16K)
-					wrk.SwapBank<SIZE_8K,0x0000U>( regs[CHR0] >> (2 + (wrk.Source().Size() == SIZE_16K)) );
+					wrk.SwapBank<SIZE_8K,0x0000>( regs[CHR0] >> (2 + (wrk.Source().Size() == SIZE_16K)) );
 			}
 
 			void Mmc1::UpdateChr() const
 			{
 				ppu.Update();
 
-				const uint mode = regs[CTRL] >> 4 & 0x1;
+				const uint mode = regs[CTRL] >> 4 & 0x1U;
 
-				chr.SwapBanks<SIZE_4K,0x0000U>
+				chr.SwapBanks<SIZE_4K,0x0000>
 				(
 					regs[CHR0] & (0x1E | mode),
-					regs[CHR0+mode] & 0x1F | (mode^1)
+					regs[CHR0+mode] & 0x1FU | (mode^1)
 				);
 			}
 
 			void Mmc1::UpdateNmt()
 			{
-				static const uchar lut[4][4] =
+				static const byte lut[4][4] =
 				{
 					{0,0,0,0},
 					{1,1,1,1},
@@ -191,7 +191,7 @@ namespace Nes
 					{0,0,1,1}
 				};
 
-				ppu.SetMirroring( lut[regs[CTRL] & CTRL_MIRRORING] );
+				ppu.SetMirroring( lut[regs[CTRL] & uint(CTRL_MIRRORING)] );
 			}
 
 			void Mmc1::UpdateRegisters(const uint index)
@@ -202,7 +202,7 @@ namespace Nes
 				{
 					UpdatePrg();
 
-					if (wrk.HasRam())
+					if (wrk.Available())
 						UpdateWrk();
 				}
 
@@ -244,9 +244,9 @@ namespace Nes
 						serial.buffer = 0;
 						serial.shifter = 0;
 
-						if ((regs[CTRL] & CTRL_RESET) != CTRL_RESET)
+						if ((regs[CTRL] & uint(CTRL_RESET)) != CTRL_RESET)
 						{
-							regs[CTRL] |= CTRL_RESET;
+							regs[CTRL] |= uint(CTRL_RESET);
 							UpdateRegisters( CTRL );
 						}
 					}

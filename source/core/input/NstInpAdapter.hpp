@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,7 +25,7 @@
 #ifndef NST_INPUT_ADAPTER_H
 #define NST_INPUT_ADAPTER_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
+#ifdef NST_PRAGMA_ONCE
 #pragma once
 #endif
 
@@ -42,9 +42,10 @@ namespace Nes
 				typedef Api::Input::Adapter Type;
 				Type type;
 
+				explicit Adapter(Type);
+
 			public:
 
-				Adapter(Type);
 				virtual ~Adapter() {}
 
 				virtual void Reset() = 0;
@@ -53,8 +54,8 @@ namespace Nes
 				virtual void Poke(uint) = 0;
 				virtual uint Peek(uint) = 0;
 				virtual uint NumPorts() const = 0;
-				virtual Device* GetDevice(uint) const = 0;
-				virtual Device* Connect(uint,Device*) = 0;
+				virtual Device& GetDevice(uint) const = 0;
+				virtual Device& Connect(uint,Device&) = 0;
 				virtual void SetType(Type);
 
 				Type GetType() const
@@ -65,32 +66,37 @@ namespace Nes
 
 			class AdapterTwo : public Adapter
 			{
+				~AdapterTwo() {}
+
 				void Reset();
 				void BeginFrame(Controllers*);
 				void Initialize(bool);
 				void Poke(uint);
 				uint Peek(uint);
 				uint NumPorts() const;
-				Device* GetDevice(uint) const;
-				Device* Connect(uint,Device*);
+				Device& GetDevice(uint) const;
+				Device& Connect(uint,Device&);
 
 				Device* devices[2];
 
 			public:
 
-				AdapterTwo(Device*,Device*,Type=Api::Input::ADAPTER_NES);
+				AdapterTwo(Device&,Device&,Type=Api::Input::ADAPTER_NES);
 			};
 
 			class AdapterFour : public Adapter
 			{
+				~AdapterFour() {}
+
 				void Reset();
 				void BeginFrame(Controllers*);
 				void Initialize(bool);
 				uint Peek(uint);
 				void Poke(uint);
 				uint NumPorts() const;
-				Device* GetDevice(uint) const;
-				Device* Connect(uint,Device*);
+				Device& GetDevice(uint) const;
+				Device& Connect(uint,Device&);
+				void SetType(Type);
 
 				uint increaser;
 				uint count[2];
@@ -98,9 +104,8 @@ namespace Nes
 
 			public:
 
-				AdapterFour(Device*,Device*,Device*,Device*,Type=Api::Input::ADAPTER_NES);
+				AdapterFour(Device&,Device&,Device&,Device&,Type=Api::Input::ADAPTER_NES);
 
-				void SetType(Type);
 				void SaveState(State::Saver&,dword) const;
 				void LoadState(State::Loader&);
 			};

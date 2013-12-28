@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,13 +25,13 @@
 #ifndef NST_CPU_H
 #define NST_CPU_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
-#pragma once
-#endif
-
+#include "NstAssert.hpp"
 #include "NstIoMap.hpp"
 #include "NstApu.hpp"
-#include "NstVector.hpp"
+
+#ifdef NST_PRAGMA_ONCE
+#pragma once
+#endif
 
 namespace Nes
 {
@@ -47,36 +47,21 @@ namespace Nes
 
 			enum
 			{
+				CYCLE_MAX    = Cycle(~0UL),
 				CLK_NTSC     = 39375000UL,
 				CLK_NTSC_DIV = 11,
 				CLK_PAL      = 35468950UL,
 				CLK_PAL_DIV  = 8,
 				MC_MUL       = 6,
-				MC_NTSC      = dword(CLK_NTSC) * MC_MUL,
-				MC_PAL       = dword(CLK_PAL) * MC_MUL,
+				MC_NTSC      = CLK_NTSC * dword(MC_MUL),
+				MC_PAL       = CLK_PAL * dword(MC_MUL),
 				MC_DIV_NTSC  = 12,
 				MC_DIV_PAL   = 16,
-				RESET_CYCLES = 7
-			};
-
-			enum
-			{
-				RAM_SIZE = SIZE_2K
-			};
-
-			enum
-			{
-				NMI_VECTOR   = 0xFFFAU,
-				RESET_VECTOR = 0xFFFCU,
-				IRQ_VECTOR   = 0xFFFEU
-			};
-
-			enum
-			{
-				IRQ_FRAME = b01000000,
-				IRQ_EXT   = b00000001,
-				IRQ_DMC   = b10000000,
-				IRQ_ANY   = b11000001
+				RAM_SIZE     = SIZE_2K,
+				IRQ_FRAME    = b01000000,
+				IRQ_EXT      = b00000001,
+				IRQ_DMC      = b10000000,
+				IRQ_ANY      = b11000001
 			};
 
 			enum CycleType
@@ -89,54 +74,48 @@ namespace Nes
 
 			enum Level
 			{
-				LEVEL_LOW = 1,
-				LEVEL_HIGH = 9,
+				LEVEL_LOW     = 1,
+				LEVEL_HIGH    = 9,
 				LEVEL_HIGHEST = 10
 			};
 
-			typedef const u8 (&SystemRam)[RAM_SIZE];
-
 			void Boot();
-			void Reset(bool=false);
-			void BeginFrame(Sound::Output* const);
+			void Reset(bool);
+			void BeginFrame(Sound::Output*);
 			void EndFrame();
 
 			void DoNMI(Cycle);
 			void DoIRQ(uint,Cycle);
 
-			uint Peek(uint);
-			void Poke(uint,uint);
+			uint Peek(uint) const;
+			void Poke(uint,uint) const;
 
 			void SetMode(Mode);
 			void AddHook(const Hook&);
 			void RemoveHook(const Hook&);
 
-			void SaveState (State::Saver&) const;
-			void LoadState (State::Loader&);
+			void SaveState(State::Saver&,dword) const;
+			void LoadState(State::Loader&);
 
 		private:
 
-			typedef Vector<Hook> Hooks;
-
 			enum
 			{
-				INT_CYCLES = 7,
-				BRK_CYCLES = 7,
-				RTI_CYCLES = 6,
-				RTS_CYCLES = 6,
-				PHA_CYCLES = 3,
-				PHP_CYCLES = 3,
-				PLA_CYCLES = 4,
-				PLP_CYCLES = 4,
-				JSR_CYCLES = 6,
+				NMI_VECTOR     = 0xFFFA,
+				RESET_VECTOR   = 0xFFFC,
+				IRQ_VECTOR     = 0xFFFE,
+				RESET_CYCLES   = 7,
+				INT_CYCLES     = 7,
+				BRK_CYCLES     = 7,
+				RTI_CYCLES     = 6,
+				RTS_CYCLES     = 6,
+				PHA_CYCLES     = 3,
+				PHP_CYCLES     = 3,
+				PLA_CYCLES     = 4,
+				PLP_CYCLES     = 4,
+				JSR_CYCLES     = 6,
 				JMP_ABS_CYCLES = 3,
 				JMP_IND_CYCLES = 5,
-				OP_RTI = 0x40,
-				NUM_OPCODES = 256
-			};
-
-			enum
-			{
 				SAVE_INT_NMI   = b00000001,
 				SAVE_INT_FRAME = b00000010,
 				SAVE_INT_DMC   = b00000100,
@@ -145,17 +124,17 @@ namespace Nes
 				SAVE_PAL       = b10000000
 			};
 
-			static void TryLogMsg(cstring,uint,uint);
+			static void TryLogMsg(cstring,uint,dword);
 
-			template<size_t N>
-			static inline void LogMsg(const char (&)[N],uint);
+			template<uint N>
+			static inline void LogMsg(const char (&)[N],dword);
 
-			NES_DECL_POKE( Nop      )
-			NES_DECL_PEEK( Nop      )
-			NES_DECL_POKE( Overflow )
-			NES_DECL_PEEK( Overflow )
-			NES_DECL_PEEK( Jam_1    )
-			NES_DECL_PEEK( Jam_2    )
+			NES_DECL_POKE( Nop      );
+			NES_DECL_PEEK( Nop      );
+			NES_DECL_POKE( Overflow );
+			NES_DECL_PEEK( Overflow );
+			NES_DECL_PEEK( Jam_1    );
+			NES_DECL_PEEK( Jam_2    );
 
 			void DoISR(uint);
 			void Clock();
@@ -169,7 +148,7 @@ namespace Nes
 			inline uint FetchZpg16(uint) const;
 
 			inline void Push8(uint);
-			inline void Push16(uint);
+			NST_FORCE_INLINE void Push16(uint);
 			inline uint Pull8();
 			inline uint Pull16();
 
@@ -197,7 +176,7 @@ namespace Nes
 			inline uint Zpg_RW  (uint&);
 			inline uint ZpgX_RW (uint&);
 			inline uint ZpgY_RW (uint&);
-			uint Abs_RW  (uint&);
+			uint Abs_RW (uint&);
 			inline uint AbsY_RW (uint&);
 			inline uint AbsX_RW (uint&);
 			inline uint IndX_RW (uint&);
@@ -387,17 +366,6 @@ namespace Nes
 
 			class Linker
 			{
-			public:
-
-				Linker();
-				~Linker();
-
-				void Clear();
-				const Io::Port* Add(Address,uint,const Io::Port&,IoMap&);
-				void Remove(Address,const Io::Port&,IoMap&);
-
-			private:
-
 				struct Chain : Io::Port
 				{
 					Chain(const Port&,uint,uint=0);
@@ -408,27 +376,34 @@ namespace Nes
 				};
 
 				Chain* chain;
+
+			public:
+
+				Linker();
+				~Linker();
+
+				void Clear();
+				const Io::Port* Add(Address,uint,const Io::Port&,IoMap&);
+				void Remove(Address,const Io::Port&,IoMap&);
 			};
 
 			struct Ram
 			{
-				void Clear();
+				typedef byte (&Ref)[RAM_SIZE];
+				typedef const byte (&ConstRef)[RAM_SIZE];
+
 				void Reset();
 
-				NES_DECL_PEEK( Ram )
-				NES_DECL_POKE( Ram )
+				NES_DECL_PEEK( Ram_0 );
+				NES_DECL_POKE( Ram_0 );
+				NES_DECL_PEEK( Ram_1 );
+				NES_DECL_POKE( Ram_1 );
+				NES_DECL_PEEK( Ram_2 );
+				NES_DECL_POKE( Ram_2 );
+				NES_DECL_PEEK( Ram_3 );
+				NES_DECL_POKE( Ram_3 );
 
-				struct Page
-				{
-					u8 zero[0x100];
-					u8 stack[0x100];
-				};
-
-				union
-				{
-					u8 mem[RAM_SIZE];
-					Page page;
-				};
+				byte mem[RAM_SIZE];
 			};
 
 			struct Cycles
@@ -441,8 +416,10 @@ namespace Nes
 				inline void NextRound(Cycle);
 
 				Cycle count;
-				u8 clock[8];
+				byte clock[8];
 				Cycle round;
+
+				static const byte clocks[2][8];
 			};
 
 			struct Flags
@@ -474,13 +451,40 @@ namespace Nes
 				void Reset();
 				void Jam();
 
-				inline uint Clock(Cycle);
-				inline void EndFrame(Cycle);
+				NST_FORCE_INLINE uint Clock(Cycle);
+				NST_FORCE_INLINE void EndFrame(Cycle);
 
 				Cycle nmiClock;
 				Cycle irqClock;
 				uint source;
 				uint low;
+			};
+
+			class Hooks
+			{
+			public:
+
+				Hooks();
+				~Hooks();
+
+				void Add(const Hook&);
+				void Remove(const Hook&);
+
+				inline void Clear();
+				inline const Hook* Ptr() const;
+
+			private:
+
+				Hook* hooks;
+				uint size;
+				uint capacity;
+
+			public:
+
+				uint Size() const
+				{
+					return size;
+				}
 			};
 
 			uint pc;
@@ -492,19 +496,36 @@ namespace Nes
 			Flags flags;
 			Interrupt interrupt;
 			Cycle frameClock;
+			ibool jammed;
 			Ram ram;
 			Hooks hooks;
-			ibool jammed;
 			Mode mode;
 			Linker linker;
+			const dword padding;
 			qword ticks;
 			Apu apu;
 			IoMap map;
 
-			static void (Cpu::*const opcodes[NUM_OPCODES])();
+			static void (Cpu::*const opcodes[0x100])();
 			static dword logged;
 
 		public:
+
+			Apu& GetApu()
+			{
+				return apu;
+			}
+
+			const Apu& GetApu() const
+			{
+				return apu;
+			}
+
+			void SetupFrame(Cycle count)
+			{
+				frameClock = count;
+				cycles.round = NST_MIN(cycles.round,count);
+			}
 
 			void ExecuteFrame()
 			{
@@ -514,11 +535,6 @@ namespace Nes
 					case 1:  Run1(); break;
 					default: Run2(); break;
 				}
-			}
-
-			Apu& GetApu()
-			{
-				return apu;
 			}
 
 			void DoNMI()
@@ -536,7 +552,7 @@ namespace Nes
 				interrupt.low &= ~line;
 
 				if (!interrupt.low)
-					interrupt.irqClock = NES_CYCLE_MAX;
+					interrupt.irqClock = CYCLE_MAX;
 			}
 
 			void SetLine(uint line=IRQ_EXT,ibool state=true)
@@ -572,12 +588,6 @@ namespace Nes
 				return mode;
 			}
 
-			void SetupFrame(Cycle count)
-			{
-				frameClock = count;
-				cycles.round = NST_MIN(cycles.round,count);
-			}
-
 			void StealCycles(Cycle count)
 			{
 				cycles.count += count;
@@ -588,19 +598,9 @@ namespace Nes
 				return cycles.count;
 			}
 
-			Cycle GetAutoClockCycles() const
-			{
-				return cycles.count / (mode == MODE_NTSC ? MC_DIV_NTSC : MC_DIV_PAL);
-			}
-
 			Cycle GetMasterClockFrameCycles() const
 			{
 				return frameClock;
-			}
-
-			Cycle GetAutoClockFrameCycles() const
-			{
-				return frameClock / (mode == MODE_NTSC ? MC_DIV_NTSC : MC_DIV_PAL);
 			}
 
 			Cycle GetMasterClockCycle(uint cpuCycle) const
@@ -609,35 +609,27 @@ namespace Nes
 				return cycles.clock[cpuCycle-1];
 			}
 
-			uint GetFrameTime() const
+			byte* SystemRam(uint i)
 			{
-				return cycles.count * (MC_DIV_NTSC*1000UL) / (mode == MODE_NTSC ? MC_NTSC : MC_PAL);
+				return ram.mem + i;
 			}
 
-			SystemRam GetSystemRam() const
+			Ram::Ref SystemRam()
 			{
 				return ram.mem;
 			}
 
-			void PatchSystemRam(u16 address,u8 data,u8 compare,bool useCompare)
+			Ram::ConstRef SystemRam() const
 			{
-				address &= RAM_SIZE-1;
-
-				if (!useCompare || ram.mem[address] == compare)
-					ram.mem[address] = data;
+				return ram.mem;
 			}
 
-			void ClearSystemRam()
-			{
-				ram.Clear();
-			}
-
-			IoMap::Port Map(Address address)
+			Io::Port& Map(Address address)
 			{
 				return map( address );
 			}
 
-			IoMap::Ports Map(Address first,Address last)
+			IoMap::Section Map(Address first,Address last)
 			{
 				return map( first, last );
 			}
@@ -654,7 +646,7 @@ namespace Nes
 				linker.Remove( address, Io::Port(t,u,v), map );
 			}
 
-			bool OnOddCycle() const
+			bool IsOddCycle() const
 			{
 				return (ticks + cycles.count) % cycles.clock[1] != 0;
 			}

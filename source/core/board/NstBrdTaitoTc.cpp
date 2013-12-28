@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -32,7 +32,7 @@ namespace Nes
 	{
 		namespace Boards
 		{
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("s", on)
 			#endif
 
@@ -53,41 +53,41 @@ namespace Nes
 				if (irq)
 					irq->Reset( hard, hard || irq->IsLineEnabled() );
 
-				for (uint i=0x0000U; i < 0x1000U; i += 0x4)
+				for (uint i=0x0000; i < 0x1000; i += 0x4)
 				{
 					if (irq)
 					{
-						Map( 0x8000U + i, PRG_SWAP_8K_0 );
-						Map( 0xC000U + i, &TaitoTc::Poke_C000 );
-						Map( 0xC001U + i, &TaitoTc::Poke_C001 );
-						Map( 0xC002U + i, &TaitoTc::Poke_C002 );
-						Map( 0xC003U + i, &TaitoTc::Poke_C003 );
-						Map( 0xE000U + i, &TaitoTc::Poke_E000 );
+						Map( 0x8000 + i, PRG_SWAP_8K_0 );
+						Map( 0xC000 + i, &TaitoTc::Poke_C000 );
+						Map( 0xC001 + i, &TaitoTc::Poke_C001 );
+						Map( 0xC002 + i, &TaitoTc::Poke_C002 );
+						Map( 0xC003 + i, &TaitoTc::Poke_C003 );
+						Map( 0xE000 + i, &TaitoTc::Poke_E000 );
 					}
 					else
 					{
-						Map( 0x8000U + i, &TaitoTc::Poke_8000 );
+						Map( 0x8000 + i, &TaitoTc::Poke_8000 );
 					}
 
-					Map( 0x8001U + i, PRG_SWAP_8K_1 );
-					Map( 0x8002U + i, CHR_SWAP_2K_0 );
-					Map( 0x8003U + i, CHR_SWAP_2K_1 );
-					Map( 0xA000U + i, CHR_SWAP_1K_4 );
-					Map( 0xA001U + i, CHR_SWAP_1K_5 );
-					Map( 0xA002U + i, CHR_SWAP_1K_6 );
-					Map( 0xA003U + i, CHR_SWAP_1K_7 );
+					Map( 0x8001 + i, PRG_SWAP_8K_1 );
+					Map( 0x8002 + i, CHR_SWAP_2K_0 );
+					Map( 0x8003 + i, CHR_SWAP_2K_1 );
+					Map( 0xA000 + i, CHR_SWAP_1K_4 );
+					Map( 0xA001 + i, CHR_SWAP_1K_5 );
+					Map( 0xA002 + i, CHR_SWAP_1K_6 );
+					Map( 0xA003 + i, CHR_SWAP_1K_7 );
 				}
 			}
 
 			void TaitoTc::BaseLoad(State::Loader& state,const dword id)
 			{
-				NST_VERIFY( id == NES_STATE_CHUNK_ID('T','T','C','\0') );
+				NST_VERIFY( id == (AsciiId<'T','T','C'>::V) );
 
-				if (id == NES_STATE_CHUNK_ID('T','T','C','\0'))
+				if (id == AsciiId<'T','T','C'>::V)
 				{
 					while (const dword chunk = state.Begin())
 					{
-						if (chunk == NES_STATE_CHUNK_ID('I','R','Q','\0'))
+						if (chunk == AsciiId<'I','R','Q'>::V)
 						{
 							NST_VERIFY( irq );
 
@@ -102,21 +102,21 @@ namespace Nes
 
 			void TaitoTc::BaseSave(State::Saver& state) const
 			{
-				state.Begin('T','T','C','\0');
+				state.Begin( AsciiId<'T','T','C'>::V );
 
 				if (irq)
-					irq->unit.SaveState( State::Saver::Subset(state,'I','R','Q','\0').Ref() );
+					irq->unit.SaveState( state, AsciiId<'I','R','Q'>::V );
 
 				state.End();
 			}
 
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("", on)
 			#endif
 
 			NES_POKE(TaitoTc,8000)
 			{
-				prg.SwapBank<SIZE_8K,0x0000U>( data );
+				prg.SwapBank<SIZE_8K,0x0000>( data );
 				ppu.SetMirroring( (data & 0x40) ? Ppu::NMT_HORIZONTAL : Ppu::NMT_VERTICAL );
 			}
 

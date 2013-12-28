@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -30,7 +30,7 @@ namespace Nes
 {
 	namespace Core
 	{
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("s", on)
 		#endif
 
@@ -68,9 +68,9 @@ namespace Nes
 		{
 			while (const dword chunk = state.Begin())
 			{
-				if (chunk == NES_STATE_CHUNK_ID('I','R','Q','\0'))
+				if (chunk == AsciiId<'I','R','Q'>::V)
 				{
-					const State::Loader::Data<3> data( state );
+					State::Loader::Data<3> data( state );
 
 					irq.unit.enabled = data[0] & 0x1;
 					irq.unit.toggle = data[0] >> 1 & 0x1;
@@ -83,17 +83,17 @@ namespace Nes
 
 		void Mapper67::SubSave(State::Saver& state) const
 		{
-			const u8 data[3] =
+			const byte data[3] =
 			{
-				(irq.unit.enabled ? 0x1 : 0x0) | (irq.unit.toggle ? 0x2 : 0x0),
+				(irq.unit.enabled ? 0x1U : 0x0U) | (irq.unit.toggle ? 0x2U : 0x0U),
 				irq.unit.count & 0xFF,
 				irq.unit.count >> 8
 			};
 
-			state.Begin('I','R','Q','\0').Write( data ).End();
+			state.Begin( AsciiId<'I','R','Q'>::V ).Write( data ).End();
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
@@ -102,9 +102,9 @@ namespace Nes
 			irq.Update();
 
 			if (irq.unit.toggle ^= 1)
-				irq.unit.count = (irq.unit.count & 0x00FFU) | (data << 8);
+				irq.unit.count = (irq.unit.count & 0x00FF) | data << 8;
 			else
-				irq.unit.count = (irq.unit.count & 0xFF00U) | (data << 0);
+				irq.unit.count = (irq.unit.count & 0xFF00) | data << 0;
 		}
 
 		NES_POKE(Mapper67,D800)
@@ -121,7 +121,7 @@ namespace Nes
 			if (enabled && count && !--count)
 			{
 				enabled = false;
-				count = 0xFFFFU;
+				count = 0xFFFF;
 				return true;
 			}
 

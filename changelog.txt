@@ -1,4 +1,58 @@
 ----------------------------------------------------------------
+1.36
+----------------------------------------------------------------
+
+Shell:
+
+ Additions:
+ 
+  - Joystick calibrate button in the input dialog.
+
+ Changes:
+  
+  - Now possible to make save states (slots only) during netplay.
+  - Some error messages more descriptive.
+  - Log file now enabled by default.
+  - Lazy loading of some resources, notably the launcher file database.
+  - Various aesthetic GUI fixes and improvements.
+  - Refactoring.
+
+ Fixes:
+  
+  - Lightgun trigger no longer registered if screen is occluded by a window.
+  - Various things, subtle and not-so-subtle.
+
+Core:
+
+ Additions:
+
+  - Power Glove peripheral support.
+  - Mapper 38, 108 and 173. Info from Ca4He3.
+  - UNIF boards: TF1201, KS7038 and GS-2004. Info from Ca4He3.
+  - Mapper 150 reset-triggered DIP switch toggling.
+  - Database entries.
+
+ Changes:
+ 
+  - Speed optimizations (NO accuracy trade-off).
+  - blargg's nes_ntsc updated to version 0.2.2.
+  - HSB/RGB calculation method. 
+  - 8bit video mode rendering removed.
+  - 2xSaI filters removed. Use hqx or ScaleX instead.
+  - Even stricter ANSI/ISO compliance.
+  - More compiler options and detections through the preprocessor. Refer
+    to "NstApiConfig.hpp" as starting point for porting work.
+  - Board names. Info from Pongbashi.
+  - Refactoring.
+
+ Fixes:
+ 
+  - Mapper 234.
+  - Mapper 242. Fixes "Dragon Quest VIII (Ch)".
+  - Database entries.
+  - Various things, subtle and not-so-subtle.
+
+----------------------------------------------------------------
 1.35
 ----------------------------------------------------------------
 

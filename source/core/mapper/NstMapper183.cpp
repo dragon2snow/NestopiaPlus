@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -30,7 +30,7 @@ namespace Nes
 {
 	namespace Core
 	{
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("s", on)
 		#endif
 
@@ -58,34 +58,19 @@ namespace Nes
 
 			for (uint i=0x0000; i < 0x0800; i += 0x10)
 			{
-				Map( 0x8800U + i, 0x8803U + i, PRG_SWAP_8K_0 );
-				Map( 0x9800U + i, 0x9803U + i, NMT_SWAP_VH01 );
-				Map( 0xA000U + i, 0xA003U + i, PRG_SWAP_8K_2 );
-				Map( 0xA800U + i, 0xA803U + i, PRG_SWAP_8K_1 );
+				Map( 0x8800 + i, 0x8803 + i, PRG_SWAP_8K_0 );
+				Map( 0x9800 + i, 0x9803 + i, NMT_SWAP_VH01 );
+				Map( 0xA000 + i, 0xA003 + i, PRG_SWAP_8K_2 );
+				Map( 0xA800 + i, 0xA803 + i, PRG_SWAP_8K_1 );
 			}
 
 			for (uint i=0x000; i < 0x1000; i += 0x10)
 			{
-				Map( 0xB000U + i, 0xB003U + i, &Mapper183::Poke_B000 );
-				Map( 0xB004U + i, 0xB007U + i, &Mapper183::Poke_B004 );
-				Map( 0xB008U + i, 0xB00BU + i, &Mapper183::Poke_B008 );
-				Map( 0xB00CU + i, 0xB00FU + i, &Mapper183::Poke_B00C );
-				Map( 0xC000U + i, 0xC003U + i, &Mapper183::Poke_C000 );
-				Map( 0xC004U + i, 0xC007U + i, &Mapper183::Poke_C004 );
-				Map( 0xC008U + i, 0xC00BU + i, &Mapper183::Poke_C008 );
-				Map( 0xC00CU + i, 0xC00FU + i, &Mapper183::Poke_C00C );
-				Map( 0xD000U + i, 0xD003U + i, &Mapper183::Poke_D000 );
-				Map( 0xD004U + i, 0xD007U + i, &Mapper183::Poke_D004 );
-				Map( 0xD008U + i, 0xD00BU + i, &Mapper183::Poke_D008 );
-				Map( 0xD00CU + i, 0xD00FU + i, &Mapper183::Poke_D00C );
-				Map( 0xE000U + i, 0xE003U + i, &Mapper183::Poke_E000 );
-				Map( 0xE004U + i, 0xE007U + i, &Mapper183::Poke_E004 );
-				Map( 0xE008U + i, 0xE00BU + i, &Mapper183::Poke_E008 );
-				Map( 0xE00CU + i, 0xE00FU + i, &Mapper183::Poke_E00C );
-				Map( 0xF000U + i, 0xF003U + i, &Mapper183::Poke_F000 );
-				Map( 0xF004U + i, 0xF007U + i, &Mapper183::Poke_F004 );
-				Map( 0xF008U + i, 0xF00BU + i, &Mapper183::Poke_F008 );
-				Map( 0xF00CU + i, 0xF00FU + i, &Mapper183::Poke_F00C );
+				Map( 0xB000 + i, 0xE00F + i, &Mapper183::Poke_B000 );
+				Map( 0xF000 + i, 0xF003 + i, &Mapper183::Poke_F000 );
+				Map( 0xF004 + i, 0xF007 + i, &Mapper183::Poke_F004 );
+				Map( 0xF008 + i, 0xF00B + i, &Mapper183::Poke_F008 );
+				Map( 0xF00C + i, 0xF00F + i, &Mapper183::Poke_F00C );
 			}
 		}
 
@@ -93,9 +78,9 @@ namespace Nes
 		{
 			while (const dword chunk = state.Begin())
 			{
-				if (chunk == NES_STATE_CHUNK_ID('I','R','Q','\0'))
+				if (chunk == AsciiId<'I','R','Q'>::V)
 				{
-					const State::Loader::Data<2> data( state );
+					State::Loader::Data<2> data( state );
 
 					irq.unit.enabled = data[0] & 0x1;
 					irq.unit.count[1] = data[1];
@@ -107,10 +92,10 @@ namespace Nes
 
 		void Mapper183::SubSave(State::Saver& state) const
 		{
-			state.Begin('I','R','Q','\0').Write16( (irq.unit.enabled != false) | ((irq.unit.count[1] & 0xFF) << 8) ).End();
+			state.Begin( AsciiId<'I','R','Q'>::V ).Write16( (irq.unit.enabled != false) | (irq.unit.count[1] & 0xFF) << 8 ).End();
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
@@ -123,22 +108,13 @@ namespace Nes
 			return enabled && (++count[1] & 0xFF) == 0;
 		}
 
-		NES_POKE(Mapper183,B000) { ppu.Update(); chr.SwapBank<SIZE_1K,0x0000U>( (chr.GetBank<SIZE_1K,0x0000U>() & 0xF0) | ((data & 0xF) << 0) ); }
-		NES_POKE(Mapper183,B004) { ppu.Update(); chr.SwapBank<SIZE_1K,0x0000U>( (chr.GetBank<SIZE_1K,0x0000U>() & 0x0F) | ((data & 0xF) << 4) ); }
-		NES_POKE(Mapper183,B008) { ppu.Update(); chr.SwapBank<SIZE_1K,0x0400U>( (chr.GetBank<SIZE_1K,0x0400U>() & 0xF0) | ((data & 0xF) << 0) ); }
-		NES_POKE(Mapper183,B00C) { ppu.Update(); chr.SwapBank<SIZE_1K,0x0400U>( (chr.GetBank<SIZE_1K,0x0400U>() & 0x0F) | ((data & 0xF) << 4) ); }
-		NES_POKE(Mapper183,C000) { ppu.Update(); chr.SwapBank<SIZE_1K,0x0800U>( (chr.GetBank<SIZE_1K,0x0800U>() & 0xF0) | ((data & 0xF) << 0) ); }
-		NES_POKE(Mapper183,C004) { ppu.Update(); chr.SwapBank<SIZE_1K,0x0800U>( (chr.GetBank<SIZE_1K,0x0800U>() & 0x0F) | ((data & 0xF) << 4) ); }
-		NES_POKE(Mapper183,C008) { ppu.Update(); chr.SwapBank<SIZE_1K,0x0C00U>( (chr.GetBank<SIZE_1K,0x0C00U>() & 0xF0) | ((data & 0xF) << 0) ); }
-		NES_POKE(Mapper183,C00C) { ppu.Update(); chr.SwapBank<SIZE_1K,0x0C00U>( (chr.GetBank<SIZE_1K,0x0C00U>() & 0x0F) | ((data & 0xF) << 4) ); }
-		NES_POKE(Mapper183,D000) { ppu.Update(); chr.SwapBank<SIZE_1K,0x1000U>( (chr.GetBank<SIZE_1K,0x1000U>() & 0xF0) | ((data & 0xF) << 0) ); }
-		NES_POKE(Mapper183,D004) { ppu.Update(); chr.SwapBank<SIZE_1K,0x1000U>( (chr.GetBank<SIZE_1K,0x1000U>() & 0x0F) | ((data & 0xF) << 4) ); }
-		NES_POKE(Mapper183,D008) { ppu.Update(); chr.SwapBank<SIZE_1K,0x1400U>( (chr.GetBank<SIZE_1K,0x1400U>() & 0xF0) | ((data & 0xF) << 0) ); }
-		NES_POKE(Mapper183,D00C) { ppu.Update(); chr.SwapBank<SIZE_1K,0x1400U>( (chr.GetBank<SIZE_1K,0x1400U>() & 0x0F) | ((data & 0xF) << 4) ); }
-		NES_POKE(Mapper183,E000) { ppu.Update(); chr.SwapBank<SIZE_1K,0x1800U>( (chr.GetBank<SIZE_1K,0x1800U>() & 0xF0) | ((data & 0xF) << 0) ); }
-		NES_POKE(Mapper183,E004) { ppu.Update(); chr.SwapBank<SIZE_1K,0x1800U>( (chr.GetBank<SIZE_1K,0x1800U>() & 0x0F) | ((data & 0xF) << 4) ); }
-		NES_POKE(Mapper183,E008) { ppu.Update(); chr.SwapBank<SIZE_1K,0x1C00U>( (chr.GetBank<SIZE_1K,0x1C00U>() & 0xF0) | ((data & 0xF) << 0) ); }
-		NES_POKE(Mapper183,E00C) { ppu.Update(); chr.SwapBank<SIZE_1K,0x1C00U>( (chr.GetBank<SIZE_1K,0x1C00U>() & 0x0F) | ((data & 0xF) << 4) ); }
+		NES_POKE(Mapper183,B000)
+		{
+			ppu.Update();
+			const uint part = address & 0x4;
+			address = ((address - 0x3000) >> 1 | (address << 7)) & 0x1C00;
+			chr.SwapBank<SIZE_1K>( address, (chr.GetBank<SIZE_1K>(address) & 0xF0 >> part) | (data & 0x0F) << part );
+		}
 
 		NES_POKE(Mapper183,F000)
 		{

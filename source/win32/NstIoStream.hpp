@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -47,6 +47,7 @@ namespace Nestopia
 				Input();
 				explicit Input(const File&);
 				explicit Input(Collection::Buffer&); // invalidates input vector
+				~Input();
 
 				Input& operator = (const File&);
 				Input& operator = (Collection::Buffer&); // invalidates input vector
@@ -68,6 +69,11 @@ namespace Nestopia
 
 				private:
 
+					enum
+					{
+						BAD_POS = 0x7FFFFFFF
+					};
+
 					void Clear();
 					void Initialize ();
 					void Initialize (const File&);
@@ -81,6 +87,10 @@ namespace Nestopia
 					std::streamsize xsgetn(char*,std::streamsize);
 					std::streampos seekoff(std::streamoff,std::ios::seekdir,std::ios::openmode);
 					std::streampos seekpos(std::streampos,std::ios::openmode);
+
+				#if NST_MSVC >= 1400 // ugh
+					std::streamsize _Xsgetn_s(char*,std::size_t,std::streamsize);
+				#endif
 				};
 
 				Buffer buffer;
@@ -100,6 +110,7 @@ namespace Nestopia
 				Output();
 				explicit Output(const File&);
 				explicit Output(Collection::Buffer&); // Invalidates input vector
+				~Output();
 
 				Output& operator = (const File&);
 				Output& operator = (Collection::Buffer&); // invalidates input vector
@@ -120,6 +131,11 @@ namespace Nestopia
 					void Export(Collection::Buffer&); // invalidates stream buffer
 
 				private:
+
+					enum
+					{
+						BAD_POS = 0x7FFFFFFF
+					};
 
 					void Initialize ();
 					void Initialize (const File&);

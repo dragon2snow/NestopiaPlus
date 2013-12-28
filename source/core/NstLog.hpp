@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,11 +25,21 @@
 #ifndef NST_LOG_H
 #define NST_LOG_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
+#ifndef NST_CORE_H
+#include "NstCore.hpp"
+#endif
+
+#ifdef NST_PRAGMA_ONCE
 #pragma once
 #endif
 
-#include "NstCore.hpp"
+#ifndef NST_LINEBREAK
+#ifdef NST_WIN32
+#define NST_LINEBREAK "\r\n"
+#else
+#define NST_LINEBREAK "\n"
+#endif
+#endif
 
 namespace Nes
 {
@@ -42,18 +52,16 @@ namespace Nes
 			Log();
 			~Log();
 
-			class Hex
+			struct Hex
 			{
-				friend class Log;
-
 				const dword value;
 				cstring const format;
 
-			public:
-
-				Hex(u32 v) : value(v), format("%08X") {}
-				Hex(u16 v) : value(v), format("%04X") {}
-				Hex(u8  v) : value(v), format("%02X") {}
+				Hex(uint n,dword v)
+				:
+				value  (v),
+				format (n == 8 ? "%02X" : n == 16 ? "%04X" : "%08X")
+				{}
 			};
 
 			Log& operator << (char);
@@ -64,23 +72,24 @@ namespace Nes
 
 		private:
 
-			void Append(cstring,size_t);
+			void Append(cstring,ulong);
 
 			struct Object;
-			Object& object;
+			Object* const object;
 
 		public:
 
-			Log& operator << (schar  i) { return operator << ( (long)  i ); }
-			Log& operator << (uchar  i) { return operator << ( (ulong) i ); }
-			Log& operator << (short  i) { return operator << ( (long)  i ); }
-			Log& operator << (ushort i) { return operator << ( (ulong) i ); }
-			Log& operator << (int    i) { return operator << ( (long)  i ); }
-			Log& operator << (uint   i) { return operator << ( (ulong) i ); }
+			Log& operator << (schar  i) { return operator << ( long  (i) ); }
+			Log& operator << (uchar  i) { return operator << ( ulong (i) ); }
+			Log& operator << (short  i) { return operator << ( long  (i) ); }
+			Log& operator << (ushort i) { return operator << ( ulong (i) ); }
+			Log& operator << (int    i) { return operator << ( long  (i) ); }
+			Log& operator << (uint   i) { return operator << ( ulong (i) ); }
 
 			static void Flush(cstring,dword);
+			static bool Available();
 
-			template<size_t N>
+			template<dword N>
 			static void Flush(const char (&c)[N])
 			{
 				NST_COMPILE_ASSERT( N );

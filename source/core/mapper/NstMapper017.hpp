@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,7 +25,7 @@
 #ifndef NST_MAPPER_17_H
 #define NST_MAPPER_17_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
+#ifdef NST_PRAGMA_ONCE
 #pragma once
 #endif
 
@@ -35,15 +35,19 @@ namespace Nes
 	{
 		class Mapper17 : public Boards::Ffe
 		{
+		public:
+
+			explicit Mapper17(Context& c)
+			: Ffe(c,c.attribute == ATR_IRQ_OFFSET ? F8_XXX_1 : F8_XXX_0) {}
+
+		private:
+
+			~Mapper17() {}
+
 			enum
 			{
 				ATR_IRQ_OFFSET = 1
 			};
-
-		public:
-
-			Mapper17(Context& c)
-			: Ffe(c,c.attribute == ATR_IRQ_OFFSET ? F8_XXX_1 : F8_XXX_0) {}
 		};
 	}
 }

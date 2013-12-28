@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,10 +25,6 @@
 #include "NstWindowCustom.hpp"
 #include "NstCtrlListView.hpp"
 #include <CommCtrl.h>
-
-#ifdef __INTEL_COMPILER
-#pragma warning( disable : 279 )
-#endif
 
 namespace Nestopia
 {
@@ -146,22 +142,22 @@ namespace Nestopia
 				return lvItem.lParam;
 			}
 
-			ibool ListView::Item::Delete() const
+			bool ListView::Item::Delete() const
 			{
 				return index != ~0U ? ListView_DeleteItem( control, index ) : false;
 			}
 
-			void ListView::Item::Select(const ibool state) const
+			void ListView::Item::Select(const bool state) const
 			{
 				ListView_SetItemState( control, index, state ? LVIS_SELECTED : 0, LVIS_SELECTED );
 			}
 
-			void ListView::Item::Check(const ibool state) const
+			void ListView::Item::Check(const bool state) const
 			{
 				ListView_SetCheckState( control, index, state );
 			}
 
-			ibool ListView::Item::Checked() const
+			bool ListView::Item::Checked() const
 			{
 				return ListView_GetCheckState( control, index );
 			}
@@ -176,7 +172,7 @@ namespace Nestopia
 				return Item( control, ListView_GetNextItem( control, -1, LVNI_SELECTED ) );
 			}
 
-			int ListView::Add(GenericString text,const LPARAM data,const ibool checked) const
+			int ListView::Add(GenericString text,const LPARAM data,const bool checked) const
 			{
 				HeapString tmp;
 
@@ -248,7 +244,7 @@ namespace Nestopia
 				ListView_SetTextBkColor( control, color );
 			}
 
-			ibool ListView::HitTest(const uint x,const uint y) const
+			bool ListView::HitTest(const uint x,const uint y) const
 			{
 				LVHITTESTINFO lvHitTestInfo;
 

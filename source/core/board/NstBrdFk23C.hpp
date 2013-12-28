@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,7 +25,7 @@
 #ifndef NST_BOARDS_FK23C_H
 #define NST_BOARDS_FK23C_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
+#ifdef NST_PRAGMA_ONCE
 #pragma once
 #endif
 
@@ -39,13 +39,15 @@ namespace Nes
 			{
 			public:
 
-				Fk23C(Context&);
+				explicit Fk23C(Context&);
 
 			private:
 
+				~Fk23C() {}
+
 				enum
 				{
-					CRC_4_IN_1 = 0x38BA830EUL
+					CRC_4_IN_1 = 0x38BA830E
 				};
 
 				void SubReset(bool);
@@ -55,10 +57,10 @@ namespace Nes
 				void UpdatePrg();
 				void UpdateChr() const;
 
-				NES_DECL_POKE( 5001 )
-				NES_DECL_POKE( Prg  )
+				NES_DECL_POKE( 5001 );
+				NES_DECL_POKE( Prg  );
 
-				u8 exRegs[8];
+				byte exRegs[8];
 				uint unromChr;
 				uint dipSwitch;
 				const uint dipMask;

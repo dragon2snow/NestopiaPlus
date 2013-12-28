@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,11 +25,11 @@
 #ifndef NST_IO_MAP_H
 #define NST_IO_MAP_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
+#include "NstIoPort.hpp"
+
+#ifdef NST_PRAGMA_ONCE
 #pragma once
 #endif
-
-#include "NstIoPort.hpp"
 
 namespace Nes
 {
@@ -37,85 +37,87 @@ namespace Nes
 	{
 		namespace Io
 		{
-			template<dword SIZE> class Map
+			template<dword N> class Map
 			{
-			protected:
+			public:
 
 				enum
 				{
+					SIZE = N,
 					OVERFLOW_SIZE = 0x100,
-					JAM_OPCODE = 0x02
+					FULL_SIZE = SIZE + OVERFLOW_SIZE
 				};
 
-				Io::Port ports[SIZE + OVERFLOW_SIZE];
+			protected:
+
+				Port ports[FULL_SIZE];
 
 			public:
 
-				typedef Io::Port& Port;
-
-				class Ports
+				class Section
 				{
-					friend class Map;
-
-					Io::Port* const begin;
-					const Io::Port* const end;
-
-					Ports(Io::Port* b,const Io::Port* e)
-					: begin(b), end(e) {}
+					Port* NST_RESTRICT port;
+					const Port* const end;
 
 				public:
 
+					Section(Port* b,const Port* e)
+					: port(b), end(e) {}
+
 					template<typename A,typename B,typename C>
-					void Set(A a,B b,C c) const
+					void Set(A a,B b,C c)
 					{
-						for (Io::Port* port=begin; port != end; ++port)
+						do
+						{
 							port->Set( a, b, c );
+						}
+						while (++port != end);
 					}
 
 					template<typename A,typename B>
-					void Set(A a,B b) const
+					void Set(A a,B b)
 					{
-						for (Io::Port* port=begin; port != end; ++port)
+						do
+						{
 							port->Set( a, b );
+						}
+						while (++port != end);
 					}
 
 					template<typename A>
-					void Set(A a) const
+					void Set(A a)
 					{
-						for (Io::Port* port=begin; port != end; ++port)
+						do
+						{
 							port->Set( a );
+						}
+						while (++port != end);
 					}
 				};
 
 				template<typename A,typename B,typename C>
 				Map(A a,B b,C c)
 				{
-					for (dword i=SIZE; i < SIZE + OVERFLOW_SIZE; ++i)
+					for (dword i=SIZE; i < FULL_SIZE; ++i)
 						ports[i].Set( a, b, c );
 				}
 
-				Io::Port& operator [] (Address address)
+				const Port& operator [] (Address address) const
 				{
-					NST_ASSERT( address < SIZE + OVERFLOW_SIZE );
+					NST_ASSERT( address < FULL_SIZE );
 					return ports[address];
 				}
 
-				const Io::Port& operator [] (Address address) const
+				Port& operator () (Address address)
 				{
-					NST_ASSERT( address < SIZE + OVERFLOW_SIZE );
+					NST_ASSERT( address < FULL_SIZE );
 					return ports[address];
 				}
 
-				Port operator () (Address address)
-				{
-					NST_ASSERT( address < SIZE + OVERFLOW_SIZE );
-					return ports[address];
-				}
-
-				Ports operator () (Address first,Address last)
+				Section operator () (Address first,Address last)
 				{
 					NST_ASSERT( first <= last && last < SIZE );
-					return Ports( ports + first, ports + last + 1 );
+					return Section( ports + first, ports + last + 1 );
 				}
 			};
 		}

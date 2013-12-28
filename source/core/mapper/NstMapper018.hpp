@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,7 +25,7 @@
 #ifndef NST_MAPPER_18_H
 #define NST_MAPPER_18_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
+#ifdef NST_PRAGMA_ONCE
 #pragma once
 #endif
 
@@ -42,10 +42,11 @@ namespace Nes
 		{
 		public:
 
-			Mapper18(Context&);
-			~Mapper18();
+			explicit Mapper18(Context&);
 
 		private:
+
+			~Mapper18();
 
 			static Sound::Player* DetectSound(dword,Cpu&);
 
@@ -65,37 +66,37 @@ namespace Nes
 			template<uint MASK,uint SHIFT> void SwapPrg(uint,uint);
 			template<uint MASK,uint SHIFT> void SwapChr(uint,uint) const;
 
-			NES_DECL_POKE( 8000 )
-			NES_DECL_POKE( 8001 )
-			NES_DECL_POKE( 8002 )
-			NES_DECL_POKE( 8003 )
-			NES_DECL_POKE( 9000 )
-			NES_DECL_POKE( 9001 )
-			NES_DECL_POKE( 9002 )
-			NES_DECL_POKE( 9003 )
-			NES_DECL_POKE( A000 )
-			NES_DECL_POKE( A001 )
-			NES_DECL_POKE( A002 )
-			NES_DECL_POKE( A003 )
-			NES_DECL_POKE( B000 )
-			NES_DECL_POKE( B001 )
-			NES_DECL_POKE( B002 )
-			NES_DECL_POKE( B003 )
-			NES_DECL_POKE( C000 )
-			NES_DECL_POKE( C001 )
-			NES_DECL_POKE( C002 )
-			NES_DECL_POKE( C003 )
-			NES_DECL_POKE( D000 )
-			NES_DECL_POKE( D001 )
-			NES_DECL_POKE( D002 )
-			NES_DECL_POKE( D003 )
-			NES_DECL_POKE( E000 )
-			NES_DECL_POKE( E001 )
-			NES_DECL_POKE( E002 )
-			NES_DECL_POKE( E003 )
-			NES_DECL_POKE( F000 )
-			NES_DECL_POKE( F001 )
-			NES_DECL_POKE( F003 )
+			NES_DECL_POKE( 8000 );
+			NES_DECL_POKE( 8001 );
+			NES_DECL_POKE( 8002 );
+			NES_DECL_POKE( 8003 );
+			NES_DECL_POKE( 9000 );
+			NES_DECL_POKE( 9001 );
+			NES_DECL_POKE( 9002 );
+			NES_DECL_POKE( 9003 );
+			NES_DECL_POKE( A000 );
+			NES_DECL_POKE( A001 );
+			NES_DECL_POKE( A002 );
+			NES_DECL_POKE( A003 );
+			NES_DECL_POKE( B000 );
+			NES_DECL_POKE( B001 );
+			NES_DECL_POKE( B002 );
+			NES_DECL_POKE( B003 );
+			NES_DECL_POKE( C000 );
+			NES_DECL_POKE( C001 );
+			NES_DECL_POKE( C002 );
+			NES_DECL_POKE( C003 );
+			NES_DECL_POKE( D000 );
+			NES_DECL_POKE( D001 );
+			NES_DECL_POKE( D002 );
+			NES_DECL_POKE( D003 );
+			NES_DECL_POKE( E000 );
+			NES_DECL_POKE( E001 );
+			NES_DECL_POKE( E002 );
+			NES_DECL_POKE( E003 );
+			NES_DECL_POKE( F000 );
+			NES_DECL_POKE( F001 );
+			NES_DECL_POKE( F003 );
 
 			struct Irq
 			{

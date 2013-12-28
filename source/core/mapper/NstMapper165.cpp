@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -31,7 +31,7 @@ namespace Nes
 {
 	namespace Core
 	{
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("s", on)
 		#endif
 
@@ -40,7 +40,8 @@ namespace Nes
 
 		void Mapper165::SubReset(bool)
 		{
-			selector[1] = 0, selector[0] = 0;
+			selector[1] = 0;
+			selector[0] = 0;
 
 			chr.SetAccessor( 0, this, &Mapper165::Access_Chr_0000 );
 			chr.SetAccessor( 1, this, &Mapper165::Access_Chr_1000 );
@@ -50,14 +51,14 @@ namespace Nes
 
 		void Mapper165::SubSave(State::Saver& state) const
 		{
-			state.Begin('L','T','C','\0').Write8( selector[0] | selector[1] ).End();
+			state.Begin( AsciiId<'L','T','C'>::V ).Write8( selector[0] | selector[1] ).End();
 		}
 
 		void Mapper165::SubLoad(State::Loader& state)
 		{
 			while (const dword chunk = state.Begin())
 			{
-				if (chunk == NES_STATE_CHUNK_ID('L','T','C','\0'))
+				if (chunk == AsciiId<'L','T','C'>::V)
 				{
 					const uint data = state.Read8();
 					selector[0] = data << 0 & 0x1;
@@ -68,18 +69,18 @@ namespace Nes
 			}
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
 		void Mapper165::SwapChrLo() const
 		{
-			chr.Source( banks.chr[selector[0]] == 0 ).SwapBank<SIZE_4K,0x0000U>( banks.chr[selector[0]] >> 1 );
+			chr.Source( banks.chr[selector[0]] == 0 ).SwapBank<SIZE_4K,0x0000>( banks.chr[selector[0]] >> 1 );
 		}
 
 		void Mapper165::SwapChrHi() const
 		{
-			chr.Source( banks.chr[selector[1]] == 0 ).SwapBank<SIZE_4K,0x1000U>( banks.chr[selector[1]] >> 2 );
+			chr.Source( banks.chr[selector[1]] == 0 ).SwapBank<SIZE_4K,0x1000>( banks.chr[selector[1]] >> 2 );
 		}
 
 		void Mapper165::UpdateChr() const

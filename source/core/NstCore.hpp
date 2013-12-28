@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,52 +25,297 @@
 #ifndef NST_CORE_H
 #define NST_CORE_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
+#include <cstddef>
+#include <climits>
+
+#ifndef NST_BASE_H
+#include "NstBase.hpp"
+#endif
+
+#ifdef NST_PRAGMA_ONCE
 #pragma once
 #endif
 
-#include "NstTypes.hpp"
-
-#if CHAR_BIT != 8
-#error unsupported platform!
+#if defined(_WIN32) || defined(WIN32) || defined(__WIN32__)
+#define NST_WIN32
 #endif
 
-#ifdef __INTEL_COMPILER
-#pragma warning( disable : 304 373 383 444 810 869 981 1682 1683 )
-#elif defined(_MSC_VER)
-#pragma warning( disable : 4100 4244 4511 4512 4800 4996 )
-#endif
+#if NST_MSVC
 
-#ifdef _MSC_VER
-
- #define NES_IO_CALL __fastcall
-
- #if defined(NST_PROFILER) && defined(NST_X86)
- inline void __stdcall GetCpuTicks(unsigned __int64* ticks)
- {
-     __asm
-     {
-         cpuid
-         rdtsc
-         mov esi, ticks
-         mov DWORD PTR [esi+0], eax
-         mov DWORD PTR [esi+4], edx
-     }
- }
+ #if !defined(NDEBUG) && !defined(_DEBUG)
+ #define NDEBUG
  #endif
-// #elif defined(__GNUC__) && defined(__i386__)
-//  #define NES_IO_CALL __attribute__((regparm(3)))
-#else
- #define NES_IO_CALL
+
+ #pragma warning( disable : 4018 4100 4127 4244 4245 4308 4310 4512 4800 4996 )
+
+ #if NST_MSVC >= 800
+
+  #ifdef NST_WIN32
+  #define NES_IO_CALL __fastcall
+  #endif
+
+  #if NST_MSVC >= 1200
+
+   #ifdef NDEBUG
+   #define NST_MSVC_OPTIMIZE
+   #pragma inline_depth( 255 )
+   #pragma inline_recursion( on )
+   #endif
+
+   #ifdef NDEBUG
+   #define NST_FORCE_INLINE __forceinline
+   #endif
+
+   #if NST_MSVC >= 1300
+
+	#ifndef NST_NO_INLINE
+	#define NST_NO_INLINE __declspec(noinline)
+	#endif
+
+	#ifndef NST_ASSUME
+	#define NST_ASSUME(x_) __assume(x_)
+	#endif
+
+	#define NST_UNREACHABLE default: __assume(0);
+	#define NST_NO_VTABLE __declspec(novtable)
+
+	#if defined(NDEBUG) && !defined(NST_TAILCALL_OPTIMIZE) && !NST_ICC
+	#define NST_TAILCALL_OPTIMIZE
+	#endif
+
+	#if NST_MSVC >= 1400
+
+     #ifndef NST_RESTRICT
+     #define NST_RESTRICT __restrict
+     #endif
+
+	#endif
+
+   #endif
+
+  #endif
+
+ #endif
+
+#elif NST_GCC
+
+ #if NST_GCC >= 291
+
+  #ifndef NST_RESTRICT
+  #define NST_RESTRICT __restrict__
+  #endif
+
+  #if NST_GCC >= 301
+
+   #ifndef NST_NO_INLINE
+   #define NST_NO_INLINE __attribute__((noinline))
+   #endif
+
+  #endif
+
+ #endif
+
 #endif
 
-#define NST_PI  3.1415926535897932384626433832795
-#define NST_DEG 0.0174532925199432957692369076848
+#if NST_ICC
+
+ #pragma warning( disable : 11 304 373 383 444 810 869 981 1418 1572 1599 1786 )
+
+ #if !defined(NST_RESTRICT) && NST_ICC >= 810
+ #define NST_RESTRICT restrict
+ #endif
+
+#endif
+
+#define NST_NOP() ((void)0)
+
+#ifndef NST_FORCE_INLINE
+#define NST_FORCE_INLINE inline
+#endif
+
+#ifndef NST_NO_INLINE
+#define NST_NO_INLINE
+#endif
+
+#ifndef NST_ASSUME
+#define NST_ASSUME(x_) NST_NOP()
+#endif
+
+#ifndef NST_NO_VTABLE
+#define NST_NO_VTABLE
+#endif
+
+#ifndef NST_RESTRICT
+#define NST_RESTRICT
+#endif
+
+#ifndef NST_UNREACHABLE
+#define NST_UNREACHABLE
+#endif
+
+#ifndef NES_IO_CALL
+#define NES_IO_CALL
+#endif
+
+#define NST_MIN(x_,y_) ((x_) < (y_) ? (x_) : (y_))
+#define NST_MAX(x_,y_) ((x_) < (y_) ? (y_) : (x_))
+#define NST_CLAMP(t_,x_,y_) ((t_) < (x_) ? (x_) : (t_) > (y_) ? (y_) : (t_))
+
+#define NST_COMMA ,
+
+#define NST_CAT_NEXT(x_,y_) x_##y_
+#define NST_CAT(x_,y_) NST_CAT_NEXT(x_,y_)
+
+#define NST_COMPILE_ASSERT(expr_) typedef char NST_CAT(Nestopia_assertion_at_line_,__LINE__)[(expr_) ? 1 : -1]
 
 namespace Nes
 {
+	#if UCHAR_MAX >= 0xFF
+	typedef unsigned char byte;
+	#else
+	#error Unsupported plattform!
+	#endif
+
+	#if UCHAR_MAX >= 0xFFFF
+	typedef unsigned char word;
+	#elif USHRT_MAX >= 0xFFFF
+	typedef unsigned short word;
+	#elif UINT_MAX >= 0xFFFF
+	typedef unsigned int word;
+	#else
+	#error Unsupported plattform!
+	#endif
+
+	#if SCHAR_MAX >= 32767 && SCHAR_MIN <= -32767
+	typedef signed char iword;
+	#elif SHRT_MAX >= 32767 && SHRT_MIN <= -32767
+	typedef signed short iword;
+	#elif INT_MAX >= 32767 && INT_MIN <= -32767
+	typedef signed int iword;
+	#else
+	#error Unsupported plattform!
+	#endif
+
+	#if UCHAR_MAX >= 0xFFFFFFFF
+	typedef unsigned char dword;
+	#elif USHRT_MAX >= 0xFFFFFFFF
+	typedef unsigned short dword;
+	#elif UINT_MAX >= 0xFFFFFFFF
+	typedef unsigned int dword;
+	#elif ULONG_MAX >= 0xFFFFFFFF
+	typedef unsigned long dword;
+	#else
+	#error Unsupported plattform!
+	#endif
+
+	#if SCHAR_MAX >= 2147483647 && SCHAR_MIN <= -2147483647
+	typedef signed char idword;
+	#elif SHRT_MAX >= 2147483647 && SHRT_MIN <= -2147483647
+	typedef signed short idword;
+	#elif INT_MAX >= 2147483647 && INT_MIN <= -2147483647
+	typedef signed int idword;
+	#elif LONG_MAX >= 2147483647 && LONG_MIN <= -2147483647
+	typedef signed long idword;
+	#else
+	#error Unsupported plattform!
+	#endif
+
 	namespace Core
 	{
+		typedef const char* cstring;
+		typedef uint ibool;
+		typedef uint Data;
+		typedef uint Address;
+		typedef dword Cycle;
+
+		template<typename T,dword N>
+		char(& array(T(&)[N]))[N];
+
+		namespace Helper
+		{
+			template<ulong W> struct CountBits
+			{
+				enum { VALUE = 1 + CountBits<W / 2>::VALUE };
+			};
+
+			template<> struct CountBits<1UL>
+			{
+				enum { VALUE = 1 };
+			};
+
+			template<typename T,bool>
+			struct ShiftSigned
+			{
+				static long Left(T v,uint c)
+				{
+					return v << c;
+				}
+
+				static long Right(T v,uint c)
+				{
+					return v >> c;
+				}
+			};
+
+			template<typename T>
+			struct ShiftSigned<T,false>
+			{
+				static long Left(T v,uint c)
+				{
+					return (v >= 0) ? +long(ulong(v) << c) : -long(ulong(-v) << c);
+				}
+
+				static long Right(T v,uint c)
+				{
+					return (v >= 0) ? +long(ulong(v) >> c) : -long(ulong(-v) >> c);
+				}
+			};
+
+			template<typename T,bool>
+			struct SignExtend8
+			{
+				static T Convert(T v)
+				{
+					return schar(v);
+				}
+			};
+
+			template<typename T>
+			struct SignExtend8<T,false>
+			{
+				static T Convert(T v)
+				{
+					return (v & 1U << 7) ? (v | ~0UL << 7) : v;
+				}
+			};
+		}
+
+		template<ulong V> struct ValueBits
+		{
+			enum { VALUE = Helper::CountBits<V>::VALUE };
+		};
+
+		template<typename T>
+		inline long signed_shl(T v,uint c)
+		{
+			enum {NATIVE = T(-7) << 1 == -14};
+			return Helper::ShiftSigned<T,NATIVE>::Left( v, c );
+		}
+
+		template<typename T>
+		inline long signed_shr(T v,uint c)
+		{
+			enum {NATIVE = T(-7) >> 1 == -4 || T(-7) >> 1 == -3};
+			return Helper::ShiftSigned<T,NATIVE>::Right( v, c );
+		}
+
+		template<typename T>
+		inline T sign_extend_8(T v)
+		{
+			enum {NATIVE = CHAR_BIT == 8 && UCHAR_MAX == 0xFF && SCHAR_MIN == -128 && SCHAR_MAX == 127 && T(-2) == T(~1UL)};
+			return Helper::SignExtend8<T,NATIVE>::Convert( v );
+		}
+
 		enum Mode
 		{
 			MODE_NTSC,
@@ -79,95 +324,413 @@ namespace Nes
 
 		enum
 		{
-			SIZE_1K    = 0x400U,
-			SIZE_2K    = 0x800U,
-			SIZE_4K    = 0x1000U,
-			SIZE_8K    = 0x2000U,
-			SIZE_16K   = 0x4000U,
-			SIZE_32K   = 0x8000U,
-			SIZE_40K   = 0xA000U,
-			SIZE_64K   = 0x10000UL,
-			SIZE_128K  = 0x20000UL,
-			SIZE_256K  = 0x40000UL,
-			SIZE_512K  = 0x80000UL,
-			SIZE_1024K = 0x100000UL,
-			SIZE_2048K = 0x200000UL,
-			SIZE_4096K = 0x200000UL
+			SIZE_1K    = 0x400,
+			SIZE_2K    = 0x800,
+			SIZE_4K    = 0x1000,
+			SIZE_8K    = 0x2000,
+			SIZE_16K   = 0x4000,
+			SIZE_32K   = 0x8000,
+			SIZE_40K   = 0xA000,
+			SIZE_64K   = 0x10000,
+			SIZE_128K  = 0x20000,
+			SIZE_256K  = 0x40000,
+			SIZE_512K  = 0x80000,
+			SIZE_1024K = 0x100000,
+			SIZE_2048K = 0x200000,
+			SIZE_3072K = 0x300000,
+			SIZE_4096K = 0x400000
 		};
 
 		typedef void* StdStream;
+
+		template<char T>
+		struct Ascii
+		{
+			enum
+			{
+				V = ( T >= 'a' && T <= 'z') ? T - 'a' + 0x61 :
+					( T >= 'A' && T <= 'Z') ? T - 'A' + 0x41 :
+					( T >= '0' && T <= '9') ? T - '0' + 0x30 :
+					( T == '\0' ) ? 0x00 :
+					( T == ' '  ) ? 0x20 :
+					( T == '!'  ) ? 0x21 :
+					( T == '#'  ) ? 0x23 :
+					( T == '%'  ) ? 0x25 :
+					( T == '^'  ) ? 0x5E :
+					( T == '&'  ) ? 0x26 :
+					( T == '*'  ) ? 0x2A :
+					( T == '('  ) ? 0x28 :
+					( T == ')'  ) ? 0x29 :
+					( T == '-'  ) ? 0x2D :
+					( T == '_'  ) ? 0x5F :
+					( T == '+'  ) ? 0x2B :
+					( T == '='  ) ? 0x3D :
+					( T == '~'  ) ? 0x7E :
+					( T == '['  ) ? 0x5B :
+					( T == ']'  ) ? 0x5D :
+					( T == '\\' ) ? 0x5C :
+					( T == '|'  ) ? 0x7C :
+					( T == ';'  ) ? 0x3B :
+					( T == ':'  ) ? 0x3A :
+					( T == '\'' ) ? 0x27 :
+					( T == '\"' ) ? 0x22 :
+					( T == '{'  ) ? 0x7B :
+					( T == '}'  ) ? 0x7D :
+					( T == ','  ) ? 0x2C :
+					( T == '.'  ) ? 0x2E :
+					( T == '<'  ) ? 0x3C :
+					( T == '>'  ) ? 0x3E :
+					( T == '/'  ) ? 0x2F :
+					( T == '?'  ) ? 0x3F :
+					( T == '\a' ) ? 0x07 :
+					( T == '\b' ) ? 0x08 :
+					( T == '\t' ) ? 0x09 :
+					( T == '\v' ) ? 0x0b :
+					( T == '\n' ) ? 0x0a :
+					( T == '\r' ) ? 0x0d :
+					( T == '\f' ) ? 0x0c :
+					( T == '\b' ) ? 0x08 : 0xFF
+			};
+
+			NST_COMPILE_ASSERT( V != 0xFF );
+		};
+
+		template<char A,char B,char C=0,char D=0>
+		struct AsciiId
+		{
+			enum
+			{
+				V =
+				(
+					dword( Ascii<A>::V ) <<  0 |
+					dword( Ascii<B>::V ) <<  8 |
+					dword( Ascii<C>::V ) << 16 |
+					dword( Ascii<D>::V ) << 24
+				)
+			};
+
+			static dword R(byte a,byte b=0,byte c=0,byte d=0)
+			{
+				return
+				(
+					dword( Ascii<A>::V + a ) <<  0 |
+					dword( Ascii<B>::V + b ) <<  8 |
+					dword( Ascii<C>::V + c ) << 16 |
+					dword( Ascii<D>::V + d ) << 24
+				);
+			}
+		};
 	}
 
-	enum PpuType
+#if defined(NST_U64)
+
+	typedef NST_U64 qword;
+	#define NST_NATIVE_QWORD
+
+#elif (ULONG_MAX > 0xFFFFFFFF) && (ULONG_MAX / 0xFFFFFFFF - 1 > 0xFFFFFFFF)
+
+	typedef unsigned long qword;
+	#define NST_NATIVE_QWORD
+
+#elif defined(ULLONG_MAX) && (ULLONG_MAX > 0xFFFFFFFF) && (ULLONG_MAX / 0xFFFFFFFF - 1 > 0xFFFFFFFF)
+
+	#if NST_GCC
+	__extension__ typedef unsigned long long qword;
+	#else
+	typedef unsigned long long qword;
+	#endif
+	#define NST_NATIVE_QWORD
+
+#elif defined(_UI64_MAX) && (NST_MSVC >= 900 || NST_BCB >= 0x530)
+
+	typedef unsigned __int64 qword;
+	#define NST_NATIVE_QWORD
+
+#else
+
+	class qword
 	{
-		PPU_RP2C02,
-		PPU_RP2C03B,
-		PPU_RP2C03G,
-		PPU_RP2C04_0001,
-		PPU_RP2C04_0002,
-		PPU_RP2C04_0003,
-		PPU_RP2C04_0004,
-		PPU_RC2C03B,
-		PPU_RC2C03C,
-		PPU_RC2C05_01,
-		PPU_RC2C05_02,
-		PPU_RC2C05_03,
-		PPU_RC2C05_04,
-		PPU_RC2C05_05
+		void Multiply(qword);
+		static void Divide(qword&,const qword,bool);
+		void Shl(uint);
+		void Shr(uint);
+
+		enum
+		{
+			LO_MASK = 0xFFFFFFFF,
+			LO_MSB  = 0x80000000
+		};
+
+		dword lo;
+		dword hi;
+
+	public:
+
+		qword() {}
+
+		qword(dword v)
+		: lo(v), hi(0) {}
+
+		qword(dword msdw,dword lsdw)
+		: lo(lsdw), hi(msdw) {}
+
+		qword(const qword& v)
+		: lo(v.lo), hi(v.hi) {}
+
+		template<typename V>
+		qword& operator = (const V& v)
+		{
+			lo = v;
+			hi = 0;
+			return *this;
+		}
+
+		qword& operator = (const qword& v)
+		{
+			lo = v.lo;
+			hi = v.hi;
+			return *this;
+		}
+
+		template<typename V>
+		qword& operator += (const V& v)
+		{
+			dword t = lo;
+			lo = (lo + v) & LO_MASK;
+			hi = (hi + (t > lo)) & LO_MASK;
+			return *this;
+		}
+
+		template<typename V>
+		qword& operator -= (const V& v)
+		{
+			dword t = lo;
+			lo = (lo - v) & LO_MASK;
+			hi = (hi - (t < lo)) & LO_MASK;
+			return *this;
+		}
+
+		qword operator ++ (int)
+		{
+			qword t;
+			t.lo = lo;
+			lo = (lo + 1) & LO_MASK;
+			t.hi = hi;
+			hi = (hi + (t.lo > lo)) & LO_MASK;
+			return t;
+		}
+
+		qword& operator ++ ()
+		{
+			dword t = lo;
+			lo = (lo + 1) & LO_MASK;
+			hi = (hi + (t > lo)) & LO_MASK;
+			return *this;
+		}
+
+		qword operator -- (int)
+		{
+			qword t;
+			t.lo = lo;
+			lo = (lo - 1) & LO_MASK;
+			t.hi = hi;
+			hi = (hi - (t.lo < lo)) & LO_MASK;
+			return t;
+		}
+
+		qword& operator -- ()
+		{
+			dword t = lo;
+			lo = (lo - 1) & LO_MASK;
+			hi = (hi - (t < lo)) & LO_MASK;
+			return *this;
+		}
+
+		template<typename V>
+		qword& operator *= (const V& v)
+		{
+			if (!(((lo | v) & 0xFFFF0000) | hi))
+				lo = (lo * v) & LO_MASK;
+			else
+				Multiply( qword(v) );
+
+			return *this;
+		}
+
+		template<typename V>
+		qword& operator /= (const V& v)
+		{
+			if (!hi)
+				lo /= v;
+			else
+				Divide( *this, qword(v), false );
+
+			return *this;
+		}
+
+		template<typename V>
+		qword& operator %= (const V& v)
+		{
+			if (!hi)
+				lo %= v;
+			else
+				Divide( *this, qword(v), true );
+
+			return *this;
+		}
+
+		template<typename V> qword operator + (const V& v) const { return qword(*this) += v; }
+		template<typename V> qword operator - (const V& v) const { return qword(*this) -= v; }
+		template<typename V> qword operator * (const V& v) const { return qword(*this) *= v; }
+		template<typename V> qword operator / (const V& v) const { return qword(*this) /= v; }
+		template<typename V> qword operator % (const V& v) const { return qword(*this) %= v; }
+
+		template<typename V> qword& operator |= (const V& v) { lo |= v;         return *this; }
+		template<typename V> qword& operator &= (const V& v) { lo &= v; hi = 0; return *this; }
+		template<typename V> qword& operator ^= (const V& v) { lo ^= v;         return *this; }
+
+		template<typename V> qword operator | (const V& v) const { return qword( hi, lo | v ); }
+		template<typename V> qword operator & (const V& v) const { return qword(     lo & v ); }
+		template<typename V> qword operator ^ (const V& v) const { return qword( hi, lo ^ v ); }
+
+		template<typename V> qword& operator >>= (const V& v) { Shr(v); return *this; }
+		template<typename V> qword& operator <<= (const V& v) { Shl(v); return *this; }
+
+		template<typename V> qword operator >> (const V& v) const { return qword(*this) >>= v; }
+		template<typename V> qword operator << (const V& v) const { return qword(*this) <<= v; }
+
+		qword operator ~() const
+		{
+			return qword( hi ^ LO_MASK, lo ^ LO_MASK );
+		}
+
+		template<typename V>
+		bool operator == (const V& v) const
+		{
+			return !((lo - v) | hi);
+		}
+
+		template<typename V>
+		bool operator < (const V& v) const
+		{
+			return (lo < v && !hi);
+		}
+
+		template<typename V>
+		bool operator <= (const V& v) const
+		{
+			return (lo <= v && !hi);
+		}
+
+		template<typename V>
+		bool operator != (const V& v) const
+		{
+			return !(*this == v);
+		}
+
+		template<typename V>
+		bool operator > (const V& v) const
+		{
+			return !(*this <= v);
+		}
+
+		template<typename V>
+		bool operator >= (const V& v) const
+		{
+			return !(*this < v);
+		}
+
+		bool operator !() const
+		{
+			return !(lo|hi);
+		}
+
+		operator bool() const
+		{
+			return (lo|hi);
+		}
+
+		operator int    () const { return lo; }
+		operator uint   () const { return lo; }
+		operator char   () const { return lo; }
+		operator schar  () const { return lo; }
+		operator uchar  () const { return lo; }
+		operator short  () const { return lo; }
+		operator ushort () const { return lo; }
+		operator long   () const { return lo; }
+		operator ulong  () const { return lo; }
 	};
 
-	enum System
+	template<>
+	inline qword& qword::operator += (const qword& v)
 	{
-		SYSTEM_HOME,
-		SYSTEM_VS,
-		SYSTEM_PC10
-	};
+		dword t = lo;
+		lo = (lo + v.lo) & LO_MASK;
+		hi = (hi + (t > lo) + v.hi) & LO_MASK;
+		return *this;
+	}
 
-	enum Region
+	template<>
+	inline qword& qword::operator -= (const qword& v)
 	{
-		REGION_NTSC = 1,
-		REGION_PAL,
-		REGION_BOTH
-	};
+		dword t = lo;
+		lo = (lo - v.lo) & LO_MASK;
+		hi = (hi - ((t < lo) + v.hi)) & LO_MASK;
+		return *this;
+	}
 
-	enum
+	template<>
+	inline qword& qword::operator *= (const qword& v)
 	{
-		FPS_NTSC = 60,
-		FPS_PAL  = 50
-	};
+		Multiply( v );
+		return *this;
+	}
 
-	enum Result
+	template<>
+	inline qword& qword::operator /= (const qword& v)
 	{
-		RESULT_ERR_INVALID_MAPPER           = -15,
-		RESULT_ERR_MISSING_BIOS             = -14,
-		RESULT_ERR_UNSUPPORTED_SOUND_CHIP   = -13,
-		RESULT_ERR_UNSUPPORTED_GAME         = -12,
-		RESULT_ERR_UNSUPPORTED_MAPPER       = -11,
-		RESULT_ERR_UNSUPPORTED_VSSYSTEM     = -10,
-		RESULT_ERR_UNSUPPORTED_FILE_VERSION =  -9,
-		RESULT_ERR_UNSUPPORTED              =  -8,
-		RESULT_ERR_INVALID_CRC              =  -7,
-		RESULT_ERR_CORRUPT_FILE             =  -6,
-		RESULT_ERR_INVALID_FILE             =  -5,
-		RESULT_ERR_INVALID_PARAM            =  -4,
-		RESULT_ERR_NOT_READY                =  -3,
-		RESULT_ERR_OUT_OF_MEMORY            =  -2,
-		RESULT_ERR_GENERIC                  =  -1,
-		RESULT_OK                           =   0,
-		RESULT_NOP                          =  +1,
-		RESULT_WARN_UNSUPPORTED             =  +2,
-		RESULT_WARN_BAD_DUMP                =  +3,
-		RESULT_WARN_BAD_PROM                =  +4,
-		RESULT_WARN_BAD_CROM                =  +5,
-		RESULT_WARN_BAD_FILE_HEADER         =  +6,
-		RESULT_WARN_BATTERY_NOT_SAVED       =  +7,
-		RESULT_WARN_BATTERY_NOT_LOADED      =  +8,
-		RESULT_WARN_ENCRYPTED_ROM           =  +9,
-		RESULT_WARN_INCORRECT_FILE_HEADER   = +10
-	};
+		if (hi | v.hi)
+			Divide( *this, v, false );
+		else
+			lo /= v.lo;
+
+		return *this;
+	}
+
+	template<>
+	inline qword& qword::operator %= (const qword& v)
+	{
+		Divide( *this, v, true );
+		return *this;
+	}
+
+	template<> inline qword& qword::operator |= (const qword& v) { lo |= v.lo; hi |= v.hi; return *this; }
+	template<> inline qword& qword::operator &= (const qword& v) { lo &= v.lo; hi &= v.hi; return *this; }
+	template<> inline qword& qword::operator ^= (const qword& v) { lo ^= v.lo; hi ^= v.hi; return *this; }
+
+	template<> inline qword qword::operator | (const qword& v) const { return qword( hi | v.hi, lo | v.lo ); }
+	template<> inline qword qword::operator & (const qword& v) const { return qword( hi & v.hi, lo & v.lo ); }
+	template<> inline qword qword::operator ^ (const qword& v) const { return qword( hi ^ v.hi, lo ^ v.lo ); }
+
+	template<>
+	inline bool qword::operator == (const qword& v) const
+	{
+		return !((lo - v.lo) | (hi - v.hi));
+	}
+
+	template<>
+	inline bool qword::operator < (const qword& v) const
+	{
+		return (hi < v.hi) || (lo < v.lo && hi == v.hi);
+	}
+
+	template<>
+	inline bool qword::operator <= (const qword& v) const
+	{
+		return (hi < v.hi) || (hi == v.hi ? (lo <= v.lo) : false);
+	}
+
+#endif
 }
-
-#define NES_FAILED(x_) ((x_) < Nes::RESULT_OK)
-#define NES_SUCCEEDED(x_) ((x_) >= Nes::RESULT_OK)
 
 #endif

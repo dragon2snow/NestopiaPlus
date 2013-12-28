@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 // Copyright (C) 2003 MaxSt ( maxst@hiend3d.com )
 //
 // This file is part of Nestopia.
@@ -25,14 +25,14 @@
 
 switch
 (
-	(b.w[4] != b.w[0] && ((yuv5 - lut.yuv[b.w[0]]) & Lut::YUV_MASK) ? 0x01 : 0x0) |
-	(b.w[4] != b.w[1] && ((yuv5 - lut.yuv[b.w[1]]) & Lut::YUV_MASK) ? 0x02 : 0x0) |
-	(b.w[4] != b.w[2] && ((yuv5 - lut.yuv[b.w[2]]) & Lut::YUV_MASK) ? 0x04 : 0x0) |
-	(b.w[4] != b.w[3] && ((yuv5 - lut.yuv[b.w[3]]) & Lut::YUV_MASK) ? 0x08 : 0x0) |
-	(b.w[4] != b.w[5] && ((yuv5 - lut.yuv[b.w[5]]) & Lut::YUV_MASK) ? 0x10 : 0x0) |
-	(b.w[4] != b.w[6] && ((yuv5 - lut.yuv[b.w[6]]) & Lut::YUV_MASK) ? 0x20 : 0x0) |
-	(b.w[4] != b.w[7] && ((yuv5 - lut.yuv[b.w[7]]) & Lut::YUV_MASK) ? 0x40 : 0x0) |
-	(b.w[4] != b.w[8] && ((yuv5 - lut.yuv[b.w[8]]) & Lut::YUV_MASK) ? 0x80 : 0x0)
+	(b.w[4] != b.w[0] && ((yuv5 - lut.yuv[b.w[0]]) & Lut::YUV_MASK) ? 0x01U : 0x0U) |
+	(b.w[4] != b.w[1] && ((yuv5 - lut.yuv[b.w[1]]) & Lut::YUV_MASK) ? 0x02U : 0x0U) |
+	(b.w[4] != b.w[2] && ((yuv5 - lut.yuv[b.w[2]]) & Lut::YUV_MASK) ? 0x04U : 0x0U) |
+	(b.w[4] != b.w[3] && ((yuv5 - lut.yuv[b.w[3]]) & Lut::YUV_MASK) ? 0x08U : 0x0U) |
+	(b.w[4] != b.w[5] && ((yuv5 - lut.yuv[b.w[5]]) & Lut::YUV_MASK) ? 0x10U : 0x0U) |
+	(b.w[4] != b.w[6] && ((yuv5 - lut.yuv[b.w[6]]) & Lut::YUV_MASK) ? 0x20U : 0x0U) |
+	(b.w[4] != b.w[7] && ((yuv5 - lut.yuv[b.w[7]]) & Lut::YUV_MASK) ? 0x40U : 0x0U) |
+	(b.w[4] != b.w[8] && ((yuv5 - lut.yuv[b.w[8]]) & Lut::YUV_MASK) ? 0x80U : 0x0U)
 )
 #define PIXEL00_0     dst[0][0] = b.c[4];
 #define PIXEL00_10    dst[0][0] = Interpolate1<R,G,B>( b.c[4], b.c[0] );

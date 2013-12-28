@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -31,7 +31,7 @@ namespace Nes
 	{
 		namespace Input
 		{
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("s", on)
 			#endif
 
@@ -44,24 +44,25 @@ namespace Nes
 			void PowerPad::Reset()
 			{
 				shifter = 2;
-				state = stream = (0x55FFUL << 3);
+				stream = 0x55FFUL << 3;
+				state = 0x55FFUL << 3;
 			}
 
-			void PowerPad::SaveState(State::Saver& state,const uchar id) const
+			void PowerPad::SaveState(State::Saver& state,const byte id) const
 			{
-				state.Begin('P','P',id,'\0').Write8( shifter >> 1 ^ 0x1 ).Write16( stream >> 3 ^ 0x55FFU ).End();
+				state.Begin( AsciiId<'P','P'>::R(0,0,id) ).Write8( shifter >> 1 ^ 0x1 ).Write16( stream >> 3 ^ 0x55FFU ).End();
 			}
 
 			void PowerPad::LoadState(State::Loader& state,const dword id)
 			{
-				if (id == NES_STATE_CHUNK_ID('P','P','\0','\0'))
+				if (id == AsciiId<'P','P'>::V)
 				{
 					shifter = (~state.Read8() & 0x1) << 1;
 					stream = ((state.Read16() & 0x55FFUL) ^ 0x55FFUL) << 3;
 				}
 			}
 
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("", on)
 			#endif
 
@@ -88,18 +89,18 @@ namespace Nes
 						{
 							static const dword lut[Controllers::PowerPad::NUM_SIDE_A_BUTTONS] =
 							{
-								( 0x02UL << 4  ) | ( 0x00UL      ),
-								( 0x01UL << 3  ) | ( 0x00UL      ),
-								( 0x00UL       ) | ( 0x02UL << 5 ),
-								( 0x00UL       ) | ( 0x01UL << 4 ),
-								( 0x04UL << 5  ) | ( 0x00UL      ),
-								( 0x10UL << 7  ) | ( 0x00UL      ),
-								( 0x80UL << 10 ) | ( 0x00UL      ),
-								( 0x00UL       ) | ( 0x08UL << 7 ),
-								( 0x08UL << 6  ) | ( 0x00UL      ),
-								( 0x20UL << 8  ) | ( 0x00UL      ),
-								( 0x40UL << 9  ) | ( 0x00UL      ),
-								( 0x00UL       ) | ( 0x04UL << 6 )
+								( 0x02UL << 4  | 0x00UL      ),
+								( 0x01UL << 3  | 0x00UL      ),
+								( 0x00UL       | 0x02UL << 5 ),
+								( 0x00UL       | 0x01UL << 4 ),
+								( 0x04UL << 5  | 0x00UL      ),
+								( 0x10UL << 7  | 0x00UL      ),
+								( 0x80UL << 10 | 0x00UL      ),
+								( 0x00UL       | 0x08UL << 7 ),
+								( 0x08UL << 6  | 0x00UL      ),
+								( 0x20UL << 8  | 0x00UL      ),
+								( 0x40UL << 9  | 0x00UL      ),
+								( 0x00UL       | 0x04UL << 6 )
 							};
 
 							data = 0;
@@ -110,7 +111,7 @@ namespace Nes
 									data |= lut[i];
 							}
 
-							static const uchar index[Controllers::PowerPad::NUM_SIDE_B_BUTTONS] =
+							static const byte index[Controllers::PowerPad::NUM_SIDE_B_BUTTONS] =
 							{
 								2,1,7,6,5,4,10,9
 							};

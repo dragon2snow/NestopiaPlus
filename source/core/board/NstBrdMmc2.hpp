@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,7 +25,7 @@
 #ifndef NST_BOARDS_MMC2_H
 #define NST_BOARDS_MMC2_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
+#ifdef NST_PRAGMA_ONCE
 #pragma once
 #endif
 
@@ -35,12 +35,14 @@ namespace Nes
 	{
 		namespace Boards
 		{
-			class NST_NO_VTABLE Mmc2 : public Mapper
+			class Mmc2 : public Mapper
 			{
 			protected:
 
-				Mmc2(Context& c)
+				explicit Mmc2(Context& c)
 				: Mapper(c,CROM_MAX_1024K|WRAM_DEFAULT) {}
+
+				~Mmc2() {}
 
 				void SubReset(bool);
 
@@ -50,13 +52,13 @@ namespace Nes
 				void BaseLoad(State::Loader&,dword);
 				void UpdateChr() const;
 
-				NES_DECL_POKE( B000 )
-				NES_DECL_POKE( C000 )
-				NES_DECL_POKE( D000 )
-				NES_DECL_POKE( E000 )
+				NES_DECL_POKE( B000 );
+				NES_DECL_POKE( C000 );
+				NES_DECL_POKE( D000 );
+				NES_DECL_POKE( E000 );
 
-				NES_DECL_ACCESSOR( Chr_0000 )
-				NES_DECL_ACCESSOR( Chr_1000 )
+				NES_DECL_ACCESSOR( Chr_0000 );
+				NES_DECL_ACCESSOR( Chr_1000 );
 
 				uint selector[2];
 				uint banks[2][2];

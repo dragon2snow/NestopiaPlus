@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -62,8 +62,8 @@ namespace Nestopia
 			Launcher(const Nes::Cartridge::Database&,const Managers::Paths&,const Configuration&);
 			~Launcher();
 
-			void Save(Configuration&,ibool,ibool);
-			void Open(ibool);
+			void Save(Configuration&,bool,bool);
+			void Open(bool);
 			void Synchronize(HWND) const;
 			void Close();
 
@@ -77,7 +77,7 @@ namespace Nestopia
 				CMD_ENTER = 1
 			};
 
-			void UpdateItemCount(u32) const;
+			void UpdateItemCount(uint) const;
 			void OnNoSelection() const;
 
 			ibool OnInitDialog (Param&);
@@ -127,15 +127,15 @@ namespace Nestopia
 					REPAINT
 				};
 
-				void  Add(tstring);
-				void  Close();
-				void  Save(Configuration&,ibool);
-				void  Sort(uint=0);
-				ibool CanRefresh() const;
-				void  Refresh();
-				void  Insert(const Param&);
-				void  SetColors(uint,uint,Updater=DONT_REPAINT) const;
-				void  OnGetDisplayInfo(LPARAM);
+				void Add(tstring);
+				void Close();
+				void Save(Configuration&,bool);
+				void Sort(uint=0);
+				bool CanRefresh() const;
+				void Refresh();
+				void Insert(const Param&);
+				void SetColors(uint,uint,Updater=DONT_REPAINT) const;
+				void OnGetDisplayInfo(LPARAM);
 
 				class Paths
 				{
@@ -150,7 +150,7 @@ namespace Nestopia
 						struct Folder
 						{
 							Path path;
-							ibool incSubDir;
+							bool incSubDir;
 						};
 
 						typedef std::vector<Folder> Folders;
@@ -169,7 +169,7 @@ namespace Nestopia
 							};
 
 							explicit Include(bool a=false)
-							: Collection::BitSet( Nes::b10111111 | (a << 6) ) {}
+							: Collection::BitSet( (0xFF^0x40) | uint(a) << 6 ) {}
 						};
 
 						Include include;
@@ -228,18 +228,18 @@ namespace Nestopia
 
 						explicit Strings(uint=0);
 
-						typedef u32 Index;
+						typedef uint Index;
 
 						enum
 						{
 							NONE = -1
 						};
 
-						int   Find(GenericString) const;
-						void  Clear();
-						uint  Count() const;
-						ibool Import(const Io::File&,uint,ibool);
-						void  Export(const Io::File&) const;
+						int  Find(GenericString) const;
+						void Clear();
+						uint Count() const;
+						bool Import(const Io::File&,uint,bool);
+						void Export(const Io::File&) const;
 
 						template<typename T>
 						Index operator << (const T& t)
@@ -273,14 +273,15 @@ namespace Nestopia
 						}
 					};
 
-					explicit Files(const Nes::Cartridge::Database&);
+					Files();
 
-					void  Save(const Nes::Cartridge::Database&);
-					void  Refresh(const Paths::Settings&,const Nes::Cartridge::Database&);
-					ibool Insert(const Nes::Cartridge::Database&,GenericString);
-					void  Clear();
-					ibool ShouldDefrag() const;
-					void  Defrag();
+					void Load(const Nes::Cartridge::Database&);
+					void Save(const Nes::Cartridge::Database&);
+					void Refresh(const Paths::Settings&,const Nes::Cartridge::Database&);
+					bool Insert(const Nes::Cartridge::Database&,GenericString);
+					void Clear();
+					bool ShouldDefrag() const;
+					void Defrag();
 
 					class Entry
 					{
@@ -332,6 +333,17 @@ namespace Nestopia
 
 						explicit Entry(uint=0);
 
+						enum
+						{
+							ATR_MIRRORING = 0x07,
+							ATR_BATTERY   = 0x08,
+							ATR_TRAINER   = 0x10,
+							ATR_VS        = 0x20,
+							ATR_PAL       = 0x40,
+							ATR_NTSC      = 0x80,
+							ATR_NTSC_PAL  = ATR_PAL|ATR_NTSC
+						};
+
 						Strings::Index file;
 						Strings::Index path;
 						Strings::Index name;
@@ -339,38 +351,12 @@ namespace Nestopia
 
 						Nes::Cartridge::Database::Entry dBaseEntry;
 
-						u16 pRom;
-						u16 cRom;
-						u16 wRam;
-						u16 mapper;
-						u8 type;
-
-						enum
-						{
-							FLAGS_NTSC_PAL = 0x40|0x80
-						};
-
-						#pragma pack(push,1)
-
-						struct Bits
-						{
-							u8 mirroring : 3;
-							u8 battery   : 1;
-							u8 trainer   : 1;
-							u8 vs        : 1;
-							u8 pal       : 1;
-							u8 ntsc      : 1;
-						};
-
-						#pragma pack(pop)
-
-						NST_COMPILE_ASSERT( sizeof(Bits) == 1 );
-
-						union
-						{
-							u8 flags;
-							Bits bits;
-						};
+						ushort pRom;
+						ushort cRom;
+						ushort wRam;
+						ushort mapper;
+						uchar type;
+						uchar attributes;
 
 					public:
 
@@ -434,29 +420,29 @@ namespace Nestopia
 							return mapper;
 						}
 
-						ibool GetBattery() const
+						bool GetBattery() const
 						{
-							return bits.battery;
+							return attributes & ATR_BATTERY;
 						}
 
-						ibool GetTrainer() const
+						bool GetTrainer() const
 						{
-							return bits.trainer;
+							return attributes & ATR_TRAINER;
 						}
 
 						uint GetMirroring() const
 						{
-							return bits.mirroring;
+							return attributes & ATR_MIRRORING;
 						}
 
-						ibool GetBattery(const Nes::Cartridge::Database* db) const
+						bool GetBattery(const Nes::Cartridge::Database* db) const
 						{
-							return dBaseEntry && db ? db->GetWrkRamBacked( dBaseEntry ) : bits.battery;
+							return dBaseEntry && db ? db->GetWrkRamBacked( dBaseEntry ) : (attributes & ATR_BATTERY);
 						}
 
-						ibool GetTrainer(const Nes::Cartridge::Database* db) const
+						bool GetTrainer(const Nes::Cartridge::Database* db) const
 						{
-							return dBaseEntry && db ? db->HasTrainer( dBaseEntry ) : bits.trainer;
+							return dBaseEntry && db ? db->HasTrainer( dBaseEntry ) : (attributes & ATR_TRAINER);
 						}
 
 						uint GetMapper(const Nes::Cartridge::Database* db) const
@@ -481,34 +467,15 @@ namespace Nestopia
 
 					enum
 					{
+						HEADER_ID = NST_FOURCC('n','s','d',0),
+						HEADER_MAX_ENTRIES = 0xFFFFF,
+						HEADER_VERSION = 3,
+						HEADER_FLAGS_UTF16 = 0x1,
 						GARBAGE_THRESHOLD = 127
 					};
 
-					#pragma pack(push,1)
-
-					struct Header
-					{
-						enum
-						{
-							ID = NST_FOURCC('n','s','d',0),
-							MAX_ENTRIES = 0xFFFFF,
-							VERSION = 3,
-							FLAGS_UTF16 = 0x1
-						};
-
-						u32 id;
-						u32 version;
-						u32 stringSize;
-						u32 numStrings;
-						u32 numEntries;
-						u32 flags;
-					};
-
-					#pragma pack(pop)
-
-					NST_COMPILE_ASSERT( sizeof(Header) == 24 );
-
-					ibool dirty;
+					ushort dirty;
+					ushort loaded;
 					Strings strings;
 					Entries entries;
 
@@ -625,7 +592,7 @@ namespace Nestopia
 				public:
 
 					tstring GetMapper(uint);
-					tstring GetSize(u32);
+					tstring GetSize(uint);
 					void Flush();
 
 				private:
@@ -637,13 +604,13 @@ namespace Nestopia
 
 					struct SizeString : String::Stack<10+1,tchar>
 					{
-						explicit SizeString(u32 i)
+						explicit SizeString(uint i)
 						{
 							(*this) << i << 'k';
 						}
 					};
 
-					typedef Collection::Map<u32,SizeString,true> Sizes;
+					typedef Collection::Map<uint,SizeString,true> Sizes;
 					typedef Collection::Vector<ValueString> Mappers;
 
 					Sizes sizes;
@@ -660,13 +627,13 @@ namespace Nestopia
 					)
 				};
 
-				void  ReloadListColumns() const;
-				void  UpdateColumnOrder();
-				void  UpdateSortColumnOrder(uint);
-				void  Redraw();
-				int   Sorter(const void*,const void*);
-				void  OnFind(GenericString,uint);
-				ibool Optimize();
+				void ReloadListColumns() const;
+				void UpdateColumnOrder();
+				void UpdateSortColumnOrder(uint);
+				void Redraw();
+				int  Sorter(const void*,const void*);
+				void OnFind(GenericString,uint);
+				bool Optimize();
 
 				void OnCmdEditFind         (uint);
 				void OnCmdEditInsert       (uint);
@@ -710,26 +677,26 @@ namespace Nestopia
 					Redraw();
 				}
 
-				ibool DatabaseCorrectionEnabled() const
+				bool DatabaseCorrectionEnabled() const
 				{
-					return useImageDatabase != NULL;
+					return useImageDatabase;
 				}
 
-				ibool ToggleDatabase()
+				bool ToggleDatabase()
 				{
 					useImageDatabase = (useImageDatabase ? NULL : &imageDatabase);
 					ctrl.Redraw();
-					return useImageDatabase != NULL;
+					return useImageDatabase;
 				}
 
-				ibool ToggleGrids()
+				bool ToggleGrids()
 				{
 					style ^= LVS_EX_GRIDLINES;
 					ctrl.StyleEx() = style;
 					return style & LVS_EX_GRIDLINES;
 				}
 
-				ibool HitTest(const Point& point) const
+				bool HitTest(const Point& point) const
 				{
 					return ctrl.HitTest( point.x, point.y );
 				}
@@ -840,7 +807,7 @@ namespace Nestopia
 				void ChangeColor(COLORREF&);
 
 				ibool OnInitDialog          (Param&);
-				ibool OnEraseBkgnd          (Param&);
+				ibool OnPaint               (Param&);
 				ibool OnCmdChangeBackground (Param&);
 				ibool OnCmdChangeForeground (Param&);
 				ibool OnCmdDefault          (Param&);

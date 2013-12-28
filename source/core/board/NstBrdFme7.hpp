@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,7 +25,7 @@
 #ifndef NST_BOARDS_FME7_H
 #define NST_BOARDS_FME7_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
+#ifdef NST_PRAGMA_ONCE
 #pragma once
 #endif
 
@@ -35,26 +35,31 @@ namespace Nes
 	{
 		namespace Boards
 		{
-			class NST_NO_VTABLE Fme7 : public Mapper
+			class Fme7 : public Mapper
 			{
+			protected:
+
+				explicit Fme7(Context&);
+				~Fme7();
+
 			public:
 
 				class Sound : public Apu::Channel
 				{
 				public:
 
-					Sound(Cpu&,bool=true);
+					explicit Sound(Cpu&,bool=true);
 					~Sound();
 
 					void Poke_E000(uint);
 
 					void LoadState(State::Loader&);
-					void SaveState(State::Saver&) const;
+					void SaveState(State::Saver&,dword) const;
 
 				protected:
 
 					void Reset();
-					void UpdateContext(uint,const u8 (&)[MAX_CHANNELS]);
+					void UpdateContext(uint,const byte (&)[MAX_CHANNELS]);
 					Sample GetSample();
 
 				private:
@@ -72,7 +77,7 @@ namespace Nes
 
 						void Reset(uint);
 						void UpdateContext(uint);
-						void SaveState(State::Saver&) const;
+						void SaveState(State::Saver&,dword) const;
 						void LoadState(State::Loader&,uint);
 
 						void WriteReg0(uint,uint);
@@ -85,15 +90,15 @@ namespace Nes
 
 						void UpdateFrequency(uint);
 
-						u8    holding;
-						u8    hold;
-						u8    alternate;
-						u8    attack;
-						iword timer;
-						dword frequency;
-						uint  count;
-						uint  volume;
-						uint  length;
+						byte   holding;
+						byte   hold;
+						byte   alternate;
+						byte   attack;
+						idword timer;
+						dword  frequency;
+						uint   count;
+						uint   volume;
+						uint   length;
 					};
 
 					class Noise
@@ -104,7 +109,7 @@ namespace Nes
 
 						void Reset(uint);
 						void UpdateContext(uint);
-						void SaveState(State::Saver&) const;
+						void SaveState(State::Saver&,dword) const;
 						void LoadState(State::Loader&,uint);
 
 						void WriteReg(uint,uint);
@@ -115,7 +120,7 @@ namespace Nes
 
 						void UpdateFrequency(uint);
 
-						iword timer;
+						idword timer;
 						dword frequency;
 						dword rng;
 						dword dc;
@@ -130,7 +135,7 @@ namespace Nes
 
 						void Reset(uint);
 						void UpdateContext(uint);
-						void SaveState(State::Saver&) const;
+						void SaveState(State::Saver&,dword) const;
 						void LoadState(State::Loader&,uint);
 
 						void WriteReg0(uint,uint);
@@ -144,13 +149,13 @@ namespace Nes
 
 						void UpdateFrequency(uint);
 
-						iword timer;
+						idword timer;
 						dword frequency;
-						uint  status;
-						uint  ctrl;
-						uint  volume;
+						uint status;
+						uint ctrl;
+						uint volume;
 						dword dc;
-						uint  length;
+						uint length;
 					};
 
 					Apu& apu;
@@ -162,7 +167,7 @@ namespace Nes
 					Apu::DcBlocker dcBlocker;
 					const ibool hooked;
 
-					static const u16 levels[32];
+					static const word levels[32];
 
 				public:
 
@@ -171,11 +176,6 @@ namespace Nes
 						regSelect = data;
 					}
 				};
-
-			protected:
-
-				Fme7(Context&);
-				~Fme7();
 
 			private:
 
@@ -192,10 +192,10 @@ namespace Nes
 				Device QueryDevice(DeviceType);
 				void VSync();
 
-				NES_DECL_POKE( 8000  )
-				NES_DECL_POKE( A000  )
-				NES_DECL_POKE( C000  )
-				NES_DECL_POKE( E000  )
+				NES_DECL_POKE( 8000  );
+				NES_DECL_POKE( A000  );
+				NES_DECL_POKE( C000  );
+				NES_DECL_POKE( E000  );
 
 				struct Irq
 				{

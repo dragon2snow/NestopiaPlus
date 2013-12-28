@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -28,9 +28,8 @@
 #pragma once
 
 #include "NstApplicationInstance.hpp"
-#include "NstManagerEmulator.hpp"
-#include "NstManagerLogfile.hpp"
 #include "NstManagerPaths.hpp"
+#include "NstManagerLogfile.hpp"
 #include "NstManagerPreferences.hpp"
 #include "NstManagerLauncher.hpp"
 #include "NstManagerMachine.hpp"
@@ -60,7 +59,7 @@ namespace Nestopia
 		{
 		public:
 
-			Main(int);
+			explicit Main(int);
 			~Main();
 
 			int Run();
@@ -70,8 +69,8 @@ namespace Nestopia
 			void Save();
 			void Exit();
 
-			ibool FirstUnloadOnExit();
-			ibool OkToExit() const;
+			bool FirstUnloadOnExit();
+			bool OkToExit() const;
 
 			ibool OnWinClose           (Window::Param&);
 			ibool OnWinQueryEndSession (Window::Param&);

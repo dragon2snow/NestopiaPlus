@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -113,7 +113,7 @@ namespace Nestopia
 				if (string.Empty())
 					break;
 
-				for (Types::Iterator it = available.Begin(); it != available.End(); ++it)
+				for (Types::Iterator it(available.Begin()), end(available.End()); it != end; ++it)
 				{
 					if (string == cfgStrings[*it])
 					{
@@ -147,7 +147,7 @@ namespace Nestopia
 
 		void Launcher::List::Columns::Save(Configuration& cfg) const
 		{
-			for (uint i=0; i < selected.Size(); ++i)
+			for (uint i=0, n=selected.Size(); i < n; ++i)
 				cfg[CfgName(i)] = cfgStrings[selected[i]];
 		}
 
@@ -174,15 +174,15 @@ namespace Nestopia
 			Control::ListBox list( dialog.ListBox(IDC_LAUNCHER_COLUMNSELECT_SELECTED) );
 			list.Reserve( selected.Size() );
 
-			for (uint i=0; i != selected.Size(); ++i)
-				list.Add( Resource::String( IDS_LAUNCHER_COLUMN_FILE + selected[i] ) );
+			for (Types::ConstIterator it(selected.Begin()), end(selected.End()); it != end; ++it)
+				list.Add( Resource::String( IDS_LAUNCHER_COLUMN_FILE + *it ) );
 
 			list[0].Select();
 			list = dialog.ListBox(IDC_LAUNCHER_COLUMNSELECT_AVAILABLE);
 			list.Reserve( available.Size() );
 
-			for (uint i=0; i < available.Size(); ++i)
-				list.Add( Resource::String( IDS_LAUNCHER_COLUMN_FILE + available[i]) );
+			for (Types::ConstIterator it(available.Begin()), end(available.End()); it != end; ++it)
+				list.Add( Resource::String( IDS_LAUNCHER_COLUMN_FILE + *it ) );
 
 			list[0].Select();
 			return true;
@@ -306,7 +306,7 @@ namespace Nestopia
 
 				cSrc[sSrc].Remove();
 
-				if (cSrc.Size() > (uint) sSrc)
+				if (cSrc.Size() > sSrc)
 					cSrc[sSrc].Select();
 
 				UpdateButtonRemove();

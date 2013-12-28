@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -30,7 +30,7 @@ namespace Nes
 {
 	namespace Core
 	{
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("s", on)
 		#endif
 
@@ -55,7 +55,7 @@ namespace Nes
 		{
 			while (const dword chunk = state.Begin())
 			{
-				if (chunk == NES_STATE_CHUNK_ID('R','E','G','\0'))
+				if (chunk == AsciiId<'R','E','G'>::V)
 				{
 					state.Read( regs.buffer );
 					regs.select = state.Read8();
@@ -67,10 +67,10 @@ namespace Nes
 
 		void Mapper208::SubSave(State::Saver& state) const
 		{
-			state.Begin('R','E','G','\0').Write( regs.buffer ).Write8( regs.select ).End();
+			state.Begin( AsciiId<'R','E','G'>::V ).Write( regs.buffer ).Write8( regs.select ).End();
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
@@ -81,7 +81,7 @@ namespace Nes
 
 		NES_POKE(Mapper208,4800)
 		{
-			prg.SwapBank<SIZE_32K,0x0000U>( (data & 0x1) | (data >> 3 & 0x2) );
+			prg.SwapBank<SIZE_32K,0x0000>( (data & 0x1) | (data >> 3 & 0x2) );
 		}
 
 		NES_POKE(Mapper208,5000)
@@ -91,7 +91,7 @@ namespace Nes
 
 		NES_POKE(Mapper208,5800)
 		{
-			static const u8 lut[256] =
+			static const byte lut[256] =
 			{
 				0x59,0x59,0x59,0x59,0x59,0x59,0x59,0x59,0x59,0x49,0x19,0x09,0x59,0x49,0x19,0x09,
 				0x59,0x59,0x59,0x59,0x59,0x59,0x59,0x59,0x51,0x41,0x11,0x01,0x51,0x41,0x11,0x01,

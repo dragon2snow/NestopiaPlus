@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -26,10 +26,6 @@
 #include "../NstVideoRenderer.hpp"
 #include "NstApiVideo.hpp"
 
-#ifdef NST_PRAGMA_OPTIMIZE
-#pragma optimize("s", on)
-#endif
-
 namespace Nes
 {
 	namespace Core
@@ -43,7 +39,9 @@ namespace Nes
 
 	namespace Api
 	{
-		Video::Palette::UpdateCaller Video::Palette::updateCallback;
+		#ifdef NST_MSVC_OPTIMIZE
+		#pragma optimize("s", on)
+		#endif
 
 		void Video::EnableUnlimSprites(bool state) throw()
 		{
@@ -157,10 +155,9 @@ namespace Nes
 
 		Result Video::SetRenderState(const RenderState& state) throw()
 		{
-			emulator.ppu.EnableEmphasis( state.bits.count != 8 );
 			const Result result = emulator.renderer.SetState( state );
 
-			if (result == RESULT_OK)
+			if (NES_SUCCEEDED(result) && result != RESULT_NOP)
 				emulator.UpdateColorMode();
 
 			return result;
@@ -245,63 +242,63 @@ namespace Nes
 			return emulator.renderer.GetDecoder();
 		}
 
-		Result Video::SetPaletteMode(const Palette::Mode paletteMode)
+		Result Video::Palette::SetMode(const Mode mode) throw()
 		{
 			return emulator.UpdateColorMode
 			(
-				paletteMode == Palette::MODE_RGB    ? Core::Machine::COLORMODE_RGB :
-				paletteMode == Palette::MODE_CUSTOM ? Core::Machine::COLORMODE_CUSTOM :
-                                                      Core::Machine::COLORMODE_YUV
+				mode == MODE_RGB    ? Core::Machine::COLORMODE_RGB :
+				mode == MODE_CUSTOM ? Core::Machine::COLORMODE_CUSTOM :
+                                      Core::Machine::COLORMODE_YUV
 			);
 		}
 
-		Video::Palette::Mode Video::GetPaletteMode() const
+		Video::Palette::Mode Video::Palette::GetMode() const throw()
 		{
 			switch (emulator.renderer.GetPaletteType())
 			{
 				case Core::Video::Renderer::PALETTE_YUV:
-					return Palette::MODE_YUV;
+					return MODE_YUV;
 
 				case Core::Video::Renderer::PALETTE_CUSTOM:
-					return Palette::MODE_CUSTOM;
+					return MODE_CUSTOM;
 			}
 
-			return Palette::MODE_RGB;
+			return MODE_RGB;
 		}
 
-		Video::Palette::Mode Video::GetDefaultPaletteMode() const
+		Video::Palette::Mode Video::Palette::GetDefaultMode() const throw()
 		{
 			NST_COMPILE_ASSERT( Core::Video::Renderer::DEFAULT_PALETTE == Core::Video::Renderer::PALETTE_YUV );
-			return Palette::MODE_YUV;
+			return MODE_YUV;
 		}
 
-		Result Video::SetCustomPalette(Palette::Colors colors,Palette::CustomType type)
+		Result Video::Palette::SetCustom(Colors colors,CustomType type) throw()
 		{
-			return emulator.renderer.LoadCustomPalette( colors, type == Palette::EXT_PALETTE );
+			return emulator.renderer.LoadCustomPalette( colors, type == EXT_PALETTE );
 		}
 
-		uint Video::GetCustomPalette(u8 (*colors)[3],Palette::CustomType type) const
+		uint Video::Palette::GetCustom(uchar (*colors)[3],CustomType type) const throw()
 		{
-			return emulator.renderer.SaveCustomPalette( colors, type == Palette::EXT_PALETTE );
+			return emulator.renderer.SaveCustomPalette( colors, type == EXT_PALETTE );
 		}
 
-		void Video::ResetCustomPalette()
+		void Video::Palette::ResetCustom() throw()
 		{
 			return emulator.renderer.ResetCustomPalette();
 		}
 
-		Video::Palette::CustomType Video::GetCustomPaletteType() const
+		Video::Palette::CustomType Video::Palette::GetCustomType() const throw()
 		{
-			return emulator.renderer.HasCustomPaletteEmphasis() ? Palette::EXT_PALETTE : Palette::STD_PALETTE;
+			return emulator.renderer.HasCustomPaletteEmphasis() ? EXT_PALETTE : STD_PALETTE;
 		}
 
-		Video::Palette::Colors Video::GetPaletteColors() const
+		Video::Palette::Colors Video::Palette::GetColors() const throw()
 		{
 			return emulator.renderer.GetPalette();
 		}
+
+		#ifdef NST_MSVC_OPTIMIZE
+		#pragma optimize("", on)
+		#endif
 	}
 }
-
-#ifdef NST_PRAGMA_OPTIMIZE
-#pragma optimize("", on)
-#endif

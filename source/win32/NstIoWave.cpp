@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -190,8 +190,8 @@ namespace Nestopia
 		{
 			NST_ASSERT( handle );
 
-			const char* input = static_cast<const char*>(data);
-			const char* const end = input + length;
+			const uchar* input = static_cast<const uchar*>(data);
+			const uchar* const end = input + length;
 
 			while (input != end)
 			{
@@ -214,8 +214,8 @@ namespace Nestopia
 		{
 			NST_ASSERT( handle && data );
 
-			char* output = static_cast<char*>(data);
-			const char* const end = output + chunkData.cksize;
+			uchar* output = static_cast<uchar*>(data);
+			const uchar* const end = output + chunkData.cksize;
 
 			while (output != end)
 			{

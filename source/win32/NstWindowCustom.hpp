@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -55,19 +55,19 @@ namespace Nestopia
 
 		private:
 
-			typedef Object::Delegate<ibool> TimerCallback;
+			typedef Object::Delegate<uint> TimerCallback;
 
 			struct Timer : TimerCallback
 			{
 				Timer(const TimerCallback&);
 
-				ibool active;
+				bool active;
 			};
 
 			typedef Collection::Vector<Timer> Timers;
 
 			void StartTimer(TimerCallback,uint) const;
-			ibool StopTimer(TimerCallback) const;
+			bool StopTimer(TimerCallback) const;
 
 			static void CALLBACK TimerProc(HWND,uint,UINT_PTR,DWORD);
 
@@ -87,7 +87,7 @@ namespace Nestopia
 			}
 
 			template<typename Data,typename Code>
-			ibool StopTimer(Data* data,Code code) const
+			bool StopTimer(Data* data,Code code) const
 			{
 				return StopTimer( TimerCallback(data,code) );
 			}

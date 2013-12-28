@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -41,7 +41,7 @@ namespace Nestopia
 			Configuration();
 			~Configuration();
 
-			void Reset(ibool=true);
+			void Reset(bool=true);
 
 			enum State
 			{
@@ -148,7 +148,7 @@ namespace Nestopia
 					YesNoProxy(HeapString& s)
 					: string(s) {}
 
-					void operator = (ibool);
+					void operator = (bool);
 				};
 
 				class OnOffProxy
@@ -160,7 +160,7 @@ namespace Nestopia
 					OnOffProxy(HeapString& s)
 					: string(s) {}
 
-					void operator = (ibool);
+					void operator = (bool);
 				};
 
 				template<typename T>
@@ -200,39 +200,35 @@ namespace Nestopia
 			enum
 			{
 				UTF16_LE = 0xFEFF,
-				UTF16_BE = 0xFFFE
+				UTF16_BE = 0xFFFE,
+				HINTED_SIZE = 415
 			};
-
-			void Parse(tstring,uint);
 
 			enum Error
 			{
 				ERR_PARSING
 			};
 
-			enum
-			{
-				HINTED_SIZE = 415
-			};
+			void Parse(tstring,uint);
 
 			struct Command : String::Heap<char>
 			{
-				mutable ibool referenced;
+				mutable bool referenced;
 
 				template<typename T>
 				Command(const T& t)
 				: String::Heap<char>(t), referenced(false) {}
 			};
 
-			typedef Collection::Map< Command, HeapString > Items;
+			typedef Collection::Map<Command,HeapString> Items;
 
 			Items items;
 			HeapString startupFile;
-			ibool save;
+			bool save;
 
 		public:
 
-			void EnableSaving(ibool enable=true)
+			void EnableSaving(bool enable=true)
 			{
 				save = enable;
 			}

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -79,7 +79,7 @@ namespace Nestopia
 			Update();
 		}
 
-		ibool Dialog::ModelessDialogs::Remove(HWND const hWnd)
+		bool Dialog::ModelessDialogs::Remove(HWND const hWnd)
 		{
 			if (Instances::Iterator const instance = instances.Find( hWnd ))
 			{
@@ -91,7 +91,7 @@ namespace Nestopia
 			return false;
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("t", on)
 		#endif
 
@@ -126,12 +126,12 @@ namespace Nestopia
 			return false;
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
 		Dialog::Dialog(const uint i)
-		: id(i) {}
+		: id(i), noTaskbarWindow(NULL) {}
 
 		INT_PTR Dialog::Open(const Type type)
 		{
@@ -149,7 +149,7 @@ namespace Nestopia
 			{
 				for (uint i=0; i < 3; ++i)
 				{
-					static const u8 idc[3] = {IDOK,IDCANCEL,IDABORT};
+					static const uchar idc[3] = {IDOK,IDCANCEL,IDABORT};
 
 					if (!cmdHandler( idc[i] ))
 						cmdHandler.Add( idc[i], this, &Dialog::OnClose );
@@ -189,7 +189,7 @@ namespace Nestopia
 			);
 
 			if (hWnd == NULL)
-				throw Application::Exception(_T("CreateDialogParam() failed!"));
+				throw Application::Exception( IDS_FAILED, _T("CreateDialogParam()") );
 
 			ModelessDialogs::Add( hWnd );
 
@@ -248,7 +248,7 @@ namespace Nestopia
 			hWnd = NULL;
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("t", on)
 		#endif
 
@@ -260,14 +260,14 @@ namespace Nestopia
 			return false;
 		}
 
-		BOOL CALLBACK Dialog::DlgProc(HWND hWnd,uint uMsg,WPARAM wParam,LPARAM lParam)
+		BOOL CALLBACK Dialog::DlgProc(HWND const hWnd,const uint uMsg,WPARAM const wParam,LPARAM const lParam)
 		{
 			if (uMsg == WM_INITDIALOG && lParam)
 				reinterpret_cast<Dialog*>(lParam)->Fetch( hWnd );
 
-			ibool ret = false;
+			BOOL ret = false;
 
-			for (Instances::Iterator it=instances.Begin(), end=instances.End(); it != end; ++it)
+			for (Instances::Iterator it(instances.Begin()), end(instances.End()); it != end; ++it)
 			{
 				Dialog& dialog = **it;
 
@@ -289,7 +289,7 @@ namespace Nestopia
 			return ret;
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 	}

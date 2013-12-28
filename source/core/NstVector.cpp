@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -23,39 +23,47 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 
 #include <cstdlib>
-#include "NstCore.hpp"
+#include <cstring>
+#include <new>
 #include "NstVector.hpp"
 
 namespace Nes
 {
 	namespace Core
 	{
-		void* BaseVector::Allocate(dword size)
-		{
-			if (size)
-			{
-				if (void* mem = std::malloc( size ))
-					return mem;
-				else
-					throw RESULT_ERR_OUT_OF_MEMORY;
-			}
-
-			return NULL;
-		}
-
-		void* BaseVector::Reallocate(void* mem,dword size)
+		void* Vector<void>::Malloc(dword size)
 		{
 			NST_ASSERT( size );
 
-			if (NULL == (mem = (std::realloc( mem, size ))))
-				throw RESULT_ERR_OUT_OF_MEMORY;
-
-			return mem;
+			if (void* mem = std::malloc( size ))
+				return mem;
+			else
+				throw std::bad_alloc();
 		}
 
-		void BaseVector::Free(void* mem)
+		void* Vector<void>::Realloc(void* mem,dword size)
+		{
+			NST_ASSERT( size );
+
+			if (NULL != (mem = std::realloc( mem, size )))
+				return mem;
+			else
+				throw std::bad_alloc();
+		}
+
+		void Vector<void>::Free(void* mem)
 		{
 			std::free( mem );
+		}
+
+		void Vector<void>::Copy(void* dst,const void* src,dword size)
+		{
+			std::memcpy( dst, src, size );
+		}
+
+		void Vector<void>::Move(void* dst,const void* src,dword size)
+		{
+			std::memmove( dst, src, size );
 		}
 	}
 }

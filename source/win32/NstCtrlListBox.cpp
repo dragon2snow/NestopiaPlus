@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -72,7 +72,7 @@ namespace Nestopia
 				return Item( control, ListBox_GetCurSel( control ) );
 			}
 
-			ibool ListBox::AnySelection() const
+			bool ListBox::AnySelection() const
 			{
 				return ListBox_GetCurSel( control ) != LB_ERR;
 			}

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -29,11 +29,11 @@ namespace Nes
 {
 	namespace Core
 	{
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("s", on)
 		#endif
 
-		void Mapper96::SubReset(const bool hard)
+		void Mapper96::SubReset(bool)
 		{
 			nmt.SetAccessor( 0, 0, this, &Mapper96::Access_Name_2000 );
 			nmt.SetAccessor( 1, 0, this, &Mapper96::Access_Name_2400 );
@@ -42,19 +42,19 @@ namespace Nes
 
 			Map( 0x8000U, 0xFFFFU, &Mapper96::Poke_Prg );
 
-			p2006 = cpu.Map( 0x2006U );
+			p2006 = cpu.Map( 0x2006 );
 
-			for (uint i=0x2006U; i < 0x4000U; i += 0x8)
+			for (uint i=0x2006; i < 0x4000; i += 0x8)
 				cpu.Map( i ).Set( this, &Mapper96::Peek_2006, &Mapper96::Poke_2006 );
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
 		void Mapper96::UpdateLatch(const uint bank) const
 		{
-			chr.SwapBank<SIZE_4K,0x0000U>( (chr.GetBank<SIZE_4K,0x0000U>() & 0x4) | (bank >> 8) );
+			chr.SwapBank<SIZE_4K,0x0000>( (chr.GetBank<SIZE_4K,0x0000>() & 0x4) | (bank >> 8) );
 		}
 
 		NES_ACCESSOR(Mapper96,Name_2000)
@@ -93,14 +93,14 @@ namespace Nes
 			address = ppu.GetVRamAddress();
 
 			if ((address & 0x3000) == 0x2000)
-				UpdateLatch( address & 0x0300U );
+				UpdateLatch( address & 0x0300 );
 		}
 
 		NES_POKE(Mapper96,Prg)
 		{
 			ppu.Update();
-			prg.SwapBank<SIZE_32K,0x0000U>( data );
-			chr.SwapBanks<SIZE_4K,0x0000U>( (data & 0x4) | (chr.GetBank<SIZE_4K,0x0000U>() & 0x3), (data & 0x4) | 0x3 );
+			prg.SwapBank<SIZE_32K,0x0000>( data );
+			chr.SwapBanks<SIZE_4K,0x0000>( (data & 0x4) | (chr.GetBank<SIZE_4K,0x0000>() & 0x3), (data & 0x4) | 0x3 );
 		}
 	}
 }

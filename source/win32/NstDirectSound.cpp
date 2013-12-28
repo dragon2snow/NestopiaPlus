@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -22,39 +22,50 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#ifdef _MSC_VER
-#pragma comment(lib,"dsound")
-#endif
-
 #include "NstIoLog.hpp"
 #include "NstDirectSound.hpp"
 #include <Shlwapi.h>
+
+#if NST_MSVC
+#pragma comment(lib,"dsound")
+#endif
 
 namespace Nestopia
 {
 	namespace DirectX
 	{
-		DirectSound::Settings::Settings(HWND h)
-		: hWnd(h), deviceId(0), priority(false), buggyDriver(false) {}
+		DirectSound::Device::Device(HWND h)
+		: hWnd(h), id(0), priority(false), buggy(false) {}
 
-		DirectSound::DirectSound(HWND const hWnd)
-		: settings( hWnd )
+		DirectSound::Adapter::Adapter()
+		: buggy(false) {}
+
+		DirectSound::SoundAdapters::SoundAdapters()
 		{
 			Io::Log() << "DirectSound: initializing..\r\n";
 
-			if (FAILED(::DirectSoundEnumerate( EnumAdapter, &adapters )) || adapters.empty())
-				EnumAdapter( NULL, _T("Primary Sound Driver"), NULL, &adapters );
+			if (FAILED(::DirectSoundEnumerate( Enumerator, &list )) || list.empty())
+				Enumerator( NULL, _T("Primary Sound Driver"), NULL, &list );
 
-			for (Adapters::const_iterator it(adapters.begin()), end(adapters.end()); it != end; ++it)
+			bool report = true;
+
+			for (Adapters::iterator it(list.begin()), end(list.end()); it != end; ++it)
 			{
 				if (::StrStrI( it->name.Ptr(), _T("E-DSP Wave") ))
 				{
-					settings.buggyDriver = true;
-					Io::Log() << "DirectSound: warning, possibly buggy drivers!! activating stupid-mode..\r\n";
-					break;
+					it->buggy = true;
+
+					if (report)
+					{
+						report = false;
+						Io::Log() << "DirectSound: warning, possibly buggy drivers!! activating stupid-mode..\r\n";
+					}
 				}
 			}
 		}
+
+		DirectSound::DirectSound(HWND const hWnd)
+		: device( hWnd ) {}
 
 		DirectSound::~DirectSound()
 		{
@@ -67,7 +78,7 @@ namespace Nestopia
 			device.Release();
 		}
 
-		BOOL CALLBACK DirectSound::EnumAdapter(LPGUID guid,LPCTSTR desc,LPCTSTR,LPVOID context)
+		BOOL CALLBACK DirectSound::SoundAdapters::Enumerator(LPGUID const guid,LPCTSTR const desc,LPCTSTR,LPVOID const context)
 		{
 			Io::Log() << "DirectSound: enumerating device - name: "
                       << (desc && *desc ? desc : _T("unknown"))
@@ -95,7 +106,7 @@ namespace Nestopia
 			return true;
 		}
 
-		tstring DirectSound::Update
+		cstring DirectSound::Update
 		(
 			const uint deviceId,
 			const uint rate,
@@ -103,37 +114,38 @@ namespace Nestopia
 			const Channels channels,
 			const uint latency,
 			const Pool pool,
-			const ibool globalFocus
+			const bool globalFocus
 		)
 		{
-			NST_ASSERT( deviceId < adapters.size() );
+			NST_ASSERT( deviceId < adapters.list.size() );
 
-			if (settings.deviceId != deviceId || device == NULL)
+			if (device.id != deviceId || device == NULL)
 			{
-				settings.deviceId = deviceId;
+				device.id = deviceId;
 
 				Destroy();
 
-				if (FAILED(::DirectSoundCreate8( &adapters[deviceId].guid, &device, NULL )))
-					return _T("::DirectSoundCreate8() failed!");
+				if (FAILED(::DirectSoundCreate8( &adapters.list[device.id].guid, &device, NULL )))
+					return "DirectSoundCreate8()";
 
-				Io::Log() << "DirectSound: creating device #" << deviceId << "\r\n";
+				Io::Log() << "DirectSound: creating device #" << device.id << "\r\n";
 
-				settings.priority = SUCCEEDED(device->SetCooperativeLevel( settings.hWnd, DSSCL_PRIORITY ));
+				device.priority = SUCCEEDED(device->SetCooperativeLevel( device.hWnd, DSSCL_PRIORITY ));
+				device.buggy = adapters.list[device.id].buggy;
 
-				if (!settings.priority)
+				if (!device.priority)
 				{
 					Io::Log() << "DirectSound: warning, IDirectSound8::SetCooperativeLevel( DSSCL_PRIORITY ) failed! Retrying with DSSCL_NORMAL..\r\n";
 
-					if (FAILED(device->SetCooperativeLevel( settings.hWnd, DSSCL_NORMAL )))
+					if (FAILED(device->SetCooperativeLevel( device.hWnd, DSSCL_NORMAL )))
 					{
 						device.Release();
-						return _T("IDirectSound8::SetCooperativeLevel() failed!");
+						return "IDirectSound8::SetCooperativeLevel()";
 					}
 				}
 			}
 
-			if (tstring errMsg = buffer.Update( **device, settings.priority, rate, bits, channels, latency, pool, globalFocus ))
+			if (cstring errMsg = buffer.Update( **device, device.priority, rate, bits, channels, latency, pool, globalFocus ))
 			{
 				Destroy();
 				return errMsg;
@@ -142,11 +154,18 @@ namespace Nestopia
 			return NULL;
 		}
 
+		void DirectSound::StopStream()
+		{
+			buffer.StopStream( device.buggy ? *device : NULL, device.priority );
+		}
+
+		DirectSound::Buffer::Com::Com()
+		: writePos(0) {}
+
 		DirectSound::Buffer::Settings::Settings()
 		: size(0), pool(POOL_HARDWARE), globalFocus(false) {}
 
 		DirectSound::Buffer::Buffer()
-		: writeOffset(0)
 		{
 			waveFormat.wFormatTag = WAVE_FORMAT_PCM;
 		}
@@ -165,7 +184,7 @@ namespace Nestopia
 			}
 		}
 
-		tstring DirectSound::Buffer::Create(IDirectSound8& device,const bool priority)
+		cstring DirectSound::Buffer::Create(IDirectSound8& device,const bool priority)
 		{
 			Release();
 
@@ -223,17 +242,17 @@ namespace Nestopia
 					}
 
 					if (FAILED(device.CreateSoundBuffer( &desc, &oldCom, NULL )))
-						return _T("IDirectSound8::CreateSoundBuffer() failed! Sound will be disabled!");
+						return "IDirectSound8::CreateSoundBuffer()";
 				}
 			}
 
 			if (FAILED(oldCom->QueryInterface( IID_IDirectSoundBuffer8, reinterpret_cast<void**>(&com) )))
-				return _T("IDirectSoundBuffer::QueryInterface() failed! Sound will be disabled!");
+				return "IDirectSoundBuffer::QueryInterface()";
 
 			return NULL;
 		}
 
-		tstring DirectSound::Buffer::Update
+		cstring DirectSound::Buffer::Update
 		(
 			IDirectSound8& device,
 			const bool priority,
@@ -255,7 +274,7 @@ namespace Nestopia
 				waveFormat.nChannels == channels &&
 				settings.size == size &&
 				settings.pool == pool &&
-				bool(settings.globalFocus) == globalFocus
+				settings.globalFocus == globalFocus
 			)
 				return NULL;
 
@@ -309,7 +328,7 @@ namespace Nestopia
 					com->Unlock( data, size, NULL, 0 );
 				}
 
-				writeOffset = 0;
+				com.writePos = 0;
 				com->SetCurrentPosition( 0 );
 				const HRESULT hResult = com->Play( 0, 0, DSBPLAY_LOOPING );
 
@@ -328,41 +347,5 @@ namespace Nestopia
 					com->Stop();
 			}
 		}
-
-		#ifdef NST_PRAGMA_OPTIMIZE
-		#pragma optimize("t", on)
-		#endif
-
-		ibool DirectSound::Buffer::LockStream(void** data,uint* size)
-		{
-			DWORD pos;
-
-			if (SUCCEEDED(com->GetCurrentPosition( &pos, NULL )))
-			{
-				pos = (pos > writeOffset ? pos - writeOffset : pos + settings.size - writeOffset);
-
-				DWORD bytes[2];
-
-				if (SUCCEEDED(com->Lock( writeOffset, pos, data+0, bytes+0, data+1, bytes+1, 0 )))
-				{
-					writeOffset = (writeOffset + pos) % settings.size;
-
-					size[0] = bytes[0] / waveFormat.nBlockAlign;
-					size[1] = bytes[1] / waveFormat.nBlockAlign;
-
-					return true;
-				}
-			}
-
-			com->Stop();
-
-			NST_DEBUG_MSG("DirectSound::Buffer::Lock() failed!");
-
-			return false;
-		}
-
-		#ifdef NST_PRAGMA_OPTIMIZE
-		#pragma optimize("", on)
-		#endif
 	}
 }

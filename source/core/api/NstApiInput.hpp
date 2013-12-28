@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,13 +25,16 @@
 #ifndef NST_API_INPUT_H
 #define NST_API_INPUT_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
+#include "NstApi.hpp"
+
+#ifdef NST_PRAGMA_ONCE
 #pragma once
 #endif
 
-#include "NstApi.hpp"
-
-#ifdef _MSC_VER
+#if NST_ICC >= 810
+#pragma warning( push )
+#pragma warning( disable : 304 444 )
+#elif NST_MSVC >= 1200
 #pragma warning( push )
 #pragma warning( disable : 4512 )
 #endif
@@ -45,7 +48,7 @@ namespace Nes
 			enum
 			{
 				NUM_PADS = 4,
-				NUM_CONTROLLERS = 23
+				NUM_CONTROLLERS = 24
 			};
 
 			class Controllers
@@ -155,6 +158,43 @@ namespace Nes
 					typedef bool (NST_CALLBACK *PollCallback) (void*,PowerPad&);
 
 					static PollCaller1<PowerPad> callback;
+				};
+
+				struct PowerGlove
+				{
+					PowerGlove() throw();
+
+					enum
+					{
+						DISTANCE_IN  =  1,
+						DISTANCE_OUT = -1,
+						ROLL_LEFT    = -1,
+						ROLL_RIGHT   =  1
+					};
+
+					enum Gesture
+					{
+						GESTURE_OPEN   = 0x00,
+						GESTURE_FINGER = 0x0F,
+						GESTURE_FIST   = 0xFF
+					};
+
+					enum
+					{
+						SELECT = 0x1,
+						START  = 0x2
+					};
+
+					uchar x;
+					uchar y;
+					schar distance;
+					schar wrist;
+					Gesture gesture;
+					uint buttons;
+
+					typedef bool (NST_CALLBACK *PollCallback) (void*,PowerGlove&);
+
+					static PollCaller1<PowerGlove> callback;
 				};
 
 				struct Mouse
@@ -416,7 +456,7 @@ namespace Nes
 						PART_3_SELECT = 0x40,
 						PART_3_KAN    = 0x20,
 						PART_3_PON    = 0x10,
-						PART_3_CHII   = 0x08,
+						PART_3_CHI    = 0x08,
 						PART_3_REACH  = 0x04,
 						PART_3_RON    = 0x02,
 						NUM_PARTS     = 3
@@ -443,9 +483,9 @@ namespace Nes
 						PART_1_LEFT_HOOK  = 0x02,
 						PART_2            = 0x02,
 						PART_2_STRAIGHT   = 0x10,
-						PART_2_RIGHT_JABB = 0x08,
+						PART_2_RIGHT_JAB  = 0x08,
 						PART_2_BODY       = 0x04,
-						PART_2_LEFT_JABB  = 0x02,
+						PART_2_LEFT_JAB   = 0x02,
 						NUM_PARTS         = 2
 					};
 
@@ -552,6 +592,7 @@ namespace Nes
 				Zapper zapper;
 				Paddle paddle;
 				PowerPad powerPad;
+				PowerGlove powerGlove;
 				Mouse mouse;
 				FamilyTrainer familyTrainer;
 				FamilyKeyboard familyKeyboard;
@@ -605,6 +646,7 @@ namespace Nes
 				ZAPPER,
 				PADDLE,
 				POWERPAD,
+				POWERGLOVE,
 				MOUSE,
 				ROB,
 				FAMILYTRAINER,
@@ -649,7 +691,7 @@ namespace Nes
 	}
 }
 
-#ifdef _MSC_VER
+#if NST_MSVC >= 1200 || NST_ICC >= 810
 #pragma warning( pop )
 #endif
 

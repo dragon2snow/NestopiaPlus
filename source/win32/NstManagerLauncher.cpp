@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -27,7 +27,7 @@
 #include "NstWindowParam.hpp"
 #include "NstResourceFile.hpp"
 #include "NstIoStream.hpp"
-#include "NstManagerEmulator.hpp"
+#include "NstManager.hpp"
 #include "NstDialogLauncher.hpp"
 #include "NstManagerLauncher.hpp"
 #include "../core/api/NstApiCartridge.hpp"
@@ -38,8 +38,7 @@ namespace Nestopia
 	{
 		Launcher::Launcher(Emulator& e,const Configuration& cfg,Window::Menu& m,const Paths& paths,Window::Custom& window)
 		:
-		emulator   ( e ),
-		menu       ( m ),
+		Manager    ( e, m, this, &Launcher::OnEmuEvent ),
 		fullscreen ( false ),
 		dialog     ( new Window::Launcher(Nes::Cartridge(ImportDatabase(e)).GetDatabase(),paths,cfg) )
 		{
@@ -53,15 +52,13 @@ namespace Nestopia
 			};
 
 			window.Messages().Hooks().Add( this, hooks );
-			m.Commands().Add( IDM_FILE_LAUNCHER, this, &Launcher::OnMenu );
+			menu.Commands().Add( IDM_FILE_LAUNCHER, this, &Launcher::OnMenu );
 
 			Application::Instance::Events::Add( this, &Launcher::OnAppEvent );
-			emulator.Events().Add( this, &Launcher::OnEmuEvent );
 		}
 
 		Launcher::~Launcher()
 		{
-			emulator.Events().Remove( this );
 		}
 
 		Nes::Emulator& Launcher::ImportDatabase(Nes::Emulator& emulator)
@@ -77,7 +74,7 @@ namespace Nestopia
 			return emulator;
 		}
 
-		void Launcher::Save(Configuration& cfg,ibool saveSize,ibool saveFiles) const
+		void Launcher::Save(Configuration& cfg,bool saveSize,bool saveFiles) const
 		{
 			dialog->Save( cfg, saveSize, saveFiles );
 		}

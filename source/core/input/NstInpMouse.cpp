@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -31,7 +31,7 @@ namespace Nes
 	{
 		namespace Input
 		{
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("s", on)
 			#endif
 
@@ -48,28 +48,28 @@ namespace Nes
 				state = 0;
 			}
 
-			void Mouse::SaveState(State::Saver& state,const uchar id) const
+			void Mouse::SaveState(State::Saver& state,const byte id) const
 			{
-				const u8 data[2] =
+				const byte data[2] =
 				{
 					strobe, stream ^ 0xFF
 				};
 
-				state.Begin('M','S',id,'\0').Write( data ).End();
+				state.Begin( AsciiId<'M','S'>::R(0,0,id) ).Write( data ).End();
 			}
 
 			void Mouse::LoadState(State::Loader& state,const dword id)
 			{
-				if (id == NES_STATE_CHUNK_ID('M','S','\0','\0'))
+				if (id == AsciiId<'M','S'>::V)
 				{
-					const State::Loader::Data<2> data( state );
+					State::Loader::Data<2> data( state );
 
 					strobe = data[0] & 0x1;
 					stream = data[1] ^ 0xFF;
 				}
 			}
 
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("", on)
 			#endif
 

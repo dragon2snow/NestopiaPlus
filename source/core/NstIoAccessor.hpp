@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,7 +25,7 @@
 #ifndef NST_IO_ACCESSOR_H
 #define NST_IO_ACCESSOR_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
+#ifdef NST_PRAGMA_ONCE
 #pragma once
 #endif
 
@@ -35,7 +35,7 @@ namespace Nes
 	{
 		namespace Io
 		{
-		#ifndef NST_FPTR_MEM_MAP
+		#ifndef NST_NO_FASTDELEGATE
 
 			class Accessor
 			{
@@ -72,16 +72,21 @@ namespace Nes
 					return (*component.*function)( address );
 				}
 
-				bool SameComponent(const void* ptr) const
+				bool operator == (const void* ptr) const
 				{
 					return static_cast<const void*>(component) == ptr;
 				}
+
+				template<typename T> struct Type
+				{
+					typedef Data (NES_IO_CALL T::*Function)(Address);
+				};
 			};
 
-			#define NES_DECL_ACCESSOR(a_) Data NES_IO_CALL Access_##a_(Address);
-			#define NES_DECL_ACCESSOR_TEMPLATE(t_,n_,a_) template<t_ n_> Data NES_IO_CALL Access_##a_(Address);
-			#define NES_ACCESSOR_TYPE(o_,n_) Data (NES_IO_CALL o_::*n_)(Address)
+			#define NES_DECL_ACCESSOR(a_) Data NES_IO_CALL Access_##a_(Address)
+			#define NES_DECL_ACCESSOR_T(t_,n_,a_) template<t_ n_> NES_DECL_ACCESSOR(a_)
 			#define NES_ACCESSOR(o_,a_) Data NES_IO_CALL o_::Access_##a_(Address address)
+			#define NES_ACCESSOR_T(t_,n_,o_,a_) template<t_ n_> NES_ACCESSOR(o_,a_)
 
 		#else
 
@@ -94,12 +99,6 @@ namespace Nes
 				Function function;
 
 			public:
-
-				template<typename>
-				struct Type
-				{
-					typedef Function Definition;
-				};
 
 				Accessor() {}
 
@@ -120,46 +119,46 @@ namespace Nes
 					return function( component, address );
 				}
 
-				bool SameComponent(const void* ptr) const
+				bool operator == (const void* ptr) const
 				{
 					return component == ptr;
 				}
+
+				template<typename T> struct Type
+				{
+					typedef Data (NES_IO_CALL *Function)(Component,Address);
+				};
 			};
 
-			#define NES_DECL_ACCESSOR(a_)                                                                     \
-                                                                                                              \
-				Data NES_IO_CALL Access_Member_##a_(Address);                                                 \
-                                                                                                              \
-				template<typename T>                                                                          \
-				static Data Access_Type_##a_(void* instance,Address address,Data (NES_IO_CALL T::*)(Address)) \
-				{                                                                                             \
-					return static_cast<T*>(instance)->Access_Member_##a_( address );                          \
-				}                                                                                             \
-                                                                                                              \
-				static Data NES_IO_CALL Access_##a_(void* instance,Address address)                           \
-				{                                                                                             \
-					return Access_Type_##a_( instance, address, &Access_Member_##a_ );                        \
-				}
+			#define NES_DECL_ACCESSOR(a_)                                          \
+                                                                                   \
+				Data NES_IO_CALL Access_M_##a_(Address);                           \
+				static Data NES_IO_CALL Access_##a_(void*,Address)
 
-			#define NES_DECL_ACCESSOR_TEMPLATE(t_,n_,a_)                                                      \
-                                                                                                              \
-				template<t_ n_>                                                                               \
-				Data NES_IO_CALL Access_Member_##a_(Address);                                                 \
-                                                                                                              \
-				template<t_ n_,typename X>                                                                    \
-				static Data Access_Type_##a_(void* instance,Address address,Data (NES_IO_CALL X::*)(Address)) \
-				{                                                                                             \
-					return static_cast<X*>(instance)->Access_Member_##a_<n_>( address );                      \
-				}                                                                                             \
-                                                                                                              \
-				template<t_ n_>                                                                               \
-				static Data NES_IO_CALL Access_##a_(void* instance,Address address)                           \
-				{                                                                                             \
-					return Access_Type_##a_<n_>( instance, address, &Access_Member_##a_<n_> );                \
-				}
+			#define NES_DECL_ACCESSOR_T(t_,n_,a_)                                  \
+                                                                                   \
+				template<t_ n_> Data NES_IO_CALL Access_M_##a_(Address);           \
+				template<t_ n_> static Data NES_IO_CALL Access_##a_(void*,Address)
 
-			#define NES_ACCESSOR(o_,a_) Data NES_IO_CALL o_::Access_Member_##a_(Address address)
-			#define NES_ACCESSOR_TYPE(o_,n_) Data (NES_IO_CALL *n_)(void*,Address)
+			#define NES_ACCESSOR(o_,a_)                                            \
+                                                                                   \
+				Data NES_IO_CALL o_::Access_##a_(void* p_,Address i_)              \
+				{                                                                  \
+					return static_cast<o_*>(p_)->Access_M_##a_(i_);                \
+				}                                                                  \
+                                                                                   \
+				Data NES_IO_CALL o_::Access_M_##a_(Address address)
+
+			#define NES_ACCESSOR_T(t_,n_,o_,a_)                                    \
+                                                                                   \
+				template<t_ n_>                                                    \
+				Data NES_IO_CALL o_::Access_##a_(void* p_,Address i_)              \
+				{                                                                  \
+					return static_cast<o_*>(p_)->Access_M_##a_<n_>(i_);            \
+				}                                                                  \
+                                                                                   \
+				template<t_ n_>                                                    \
+				Data NES_IO_CALL o_::Access_M_##a_(Address address)
 
 		#endif
 		}

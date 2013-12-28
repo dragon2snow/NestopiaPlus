@@ -1,4 +1,3 @@
-
 /* Measures performance of blitter, useful for improving a custom blitter.
 NOTE: This assumes that the process is getting 100% CPU time; you might need to
 arrange for this or else the performance will be reported lower than it really is. */
@@ -53,6 +52,7 @@ int main()
 		free( data );
 	}
 	
+	getchar();
 	return 0;
 }
 
@@ -84,4 +84,3 @@ static int time_blitter( void )
 	
 	return 1;
 }
-

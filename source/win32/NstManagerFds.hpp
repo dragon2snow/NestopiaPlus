@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -27,7 +27,6 @@
 
 #pragma once
 
-#include "NstWindowMenu.hpp"
 #include "../core/api/NstApiFds.hpp"
 
 namespace Nestopia
@@ -41,7 +40,7 @@ namespace Nestopia
 	{
 		class Paths;
 
-		class Fds
+		class Fds : Manager
 		{
 		public:
 
@@ -65,9 +64,7 @@ namespace Nestopia
 			void OnCmdEjectDisk  (uint);
 			void OnCmdOptions    (uint);
 
-			Emulator& emulator;
-			ibool master;
-			const Window::Menu& menu;
+			bool master;
 			Object::Heap<Window::Fds> dialog;
 		};
 	}

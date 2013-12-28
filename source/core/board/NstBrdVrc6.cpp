@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -22,7 +22,6 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include <cstdlib>
 #include "../NstMapper.hpp"
 #include "../NstClock.hpp"
 #include "NstBrdVrc6.hpp"
@@ -33,7 +32,7 @@ namespace Nes
 	{
 		namespace Boards
 		{
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("s", on)
 			#endif
 
@@ -110,33 +109,33 @@ namespace Nes
 			{
 				irq.Reset( hard, hard ? false : irq.IsLineEnabled() );
 
-				for (dword i=0x8000U; i <= 0xFFFFUL; ++i)
+				for (dword i=0x8000; i <= 0xFFFF; ++i)
 				{
-					switch ((type == TYPE_NORMAL ? i : ((i & 0xFFFCU) | (i >> 1 & 0x1) | (i << 1 & 0x2))) & 0xF003U)
+					switch ((type == TYPE_NORMAL ? i : ((i & 0xFFFC) | (i >> 1 & 0x1) | (i << 1 & 0x2))) & 0xF003)
 					{
-						case 0x8000U: Map( i, PRG_SWAP_16K_0   ); break;
-						case 0x9000U: Map( i, &Vrc6::Poke_9000 ); break;
-						case 0x9001U: Map( i, &Vrc6::Poke_9001 ); break;
-						case 0x9002U: Map( i, &Vrc6::Poke_9002 ); break;
-						case 0xA000U: Map( i, &Vrc6::Poke_A000 ); break;
-						case 0xA001U: Map( i, &Vrc6::Poke_A001 ); break;
-						case 0xA002U: Map( i, &Vrc6::Poke_A002 ); break;
-						case 0xB000U: Map( i, &Vrc6::Poke_B000 ); break;
-						case 0xB001U: Map( i, &Vrc6::Poke_B001 ); break;
-						case 0xB002U: Map( i, &Vrc6::Poke_B002 ); break;
-						case 0xB003U: Map( i, &Vrc6::Poke_B003 ); break;
-						case 0xC000U: Map( i, PRG_SWAP_8K_2    ); break;
-						case 0xD000U: Map( i, CHR_SWAP_1K_0    ); break;
-						case 0xD001U: Map( i, CHR_SWAP_1K_1    ); break;
-						case 0xD002U: Map( i, CHR_SWAP_1K_2    ); break;
-						case 0xD003U: Map( i, CHR_SWAP_1K_3    ); break;
-						case 0xE000U: Map( i, CHR_SWAP_1K_4    ); break;
-						case 0xE001U: Map( i, CHR_SWAP_1K_5    ); break;
-						case 0xE002U: Map( i, CHR_SWAP_1K_6    ); break;
-						case 0xE003U: Map( i, CHR_SWAP_1K_7    ); break;
-						case 0xF000U: Map( i, &Vrc6::Poke_F000 ); break;
-						case 0xF001U: Map( i, &Vrc6::Poke_F001 ); break;
-						case 0xF002U: Map( i, &Vrc6::Poke_F002 ); break;
+						case 0x8000: Map( i, PRG_SWAP_16K_0   ); break;
+						case 0x9000: Map( i, &Vrc6::Poke_9000 ); break;
+						case 0x9001: Map( i, &Vrc6::Poke_9001 ); break;
+						case 0x9002: Map( i, &Vrc6::Poke_9002 ); break;
+						case 0xA000: Map( i, &Vrc6::Poke_A000 ); break;
+						case 0xA001: Map( i, &Vrc6::Poke_A001 ); break;
+						case 0xA002: Map( i, &Vrc6::Poke_A002 ); break;
+						case 0xB000: Map( i, &Vrc6::Poke_B000 ); break;
+						case 0xB001: Map( i, &Vrc6::Poke_B001 ); break;
+						case 0xB002: Map( i, &Vrc6::Poke_B002 ); break;
+						case 0xB003: Map( i, &Vrc6::Poke_B003 ); break;
+						case 0xC000: Map( i, PRG_SWAP_8K_2    ); break;
+						case 0xD000: Map( i, CHR_SWAP_1K_0    ); break;
+						case 0xD001: Map( i, CHR_SWAP_1K_1    ); break;
+						case 0xD002: Map( i, CHR_SWAP_1K_2    ); break;
+						case 0xD003: Map( i, CHR_SWAP_1K_3    ); break;
+						case 0xE000: Map( i, CHR_SWAP_1K_4    ); break;
+						case 0xE001: Map( i, CHR_SWAP_1K_5    ); break;
+						case 0xE002: Map( i, CHR_SWAP_1K_6    ); break;
+						case 0xE003: Map( i, CHR_SWAP_1K_7    ); break;
+						case 0xF000: Map( i, &Vrc6::Poke_F000 ); break;
+						case 0xF001: Map( i, &Vrc6::Poke_F001 ); break;
+						case 0xF002: Map( i, &Vrc6::Poke_F002 ); break;
 					}
 				}
 			}
@@ -163,9 +162,9 @@ namespace Nes
 				frequency = ((waveLength + 1UL) << FRQ_SHIFT) * fixed;
 			}
 
-			void Vrc6::Sound::UpdateContext(uint,const u8 (&volumes)[MAX_CHANNELS])
+			void Vrc6::Sound::UpdateContext(uint,const byte (&outputLevels)[MAX_CHANNELS])
 			{
-				outputVolume = volumes[Apu::CHANNEL_VRC6];
+				outputVolume = outputLevels[Apu::CHANNEL_VRC6];
 
 				square[0].UpdateContext( fixed );
 				square[1].UpdateContext( fixed );
@@ -175,22 +174,22 @@ namespace Nes
 
 			void Vrc6::BaseLoad(State::Loader& state,const dword id)
 			{
-				NST_VERIFY( id == NES_STATE_CHUNK_ID('V','R','6','\0') );
+				NST_VERIFY( id == (AsciiId<'V','R','6'>::V) );
 
-				if (id == NES_STATE_CHUNK_ID('V','R','6','\0'))
+				if (id == AsciiId<'V','R','6'>::V)
 				{
 					while (const dword chunk = state.Begin())
 					{
 						switch (chunk)
 						{
-							case NES_STATE_CHUNK_ID('I','R','Q','\0'):
+							case AsciiId<'I','R','Q'>::V:
 
-								irq.LoadState( State::Loader::Subset(state).Ref() );
+								irq.LoadState( state );
 								break;
 
-							case NES_STATE_CHUNK_ID('S','N','D','\0'):
+							case AsciiId<'S','N','D'>::V:
 
-								sound.LoadState( State::Loader::Subset(state).Ref() );
+								sound.LoadState( state );
 								break;
 						}
 
@@ -201,17 +200,23 @@ namespace Nes
 
 			void Vrc6::BaseSave(State::Saver& state) const
 			{
-				state.Begin('V','R','6','\0');
-				irq.SaveState(   State::Saver::Subset(state,'I','R','Q','\0').Ref() );
-				sound.SaveState( State::Saver::Subset(state,'S','N','D','\0').Ref() );
+				state.Begin( AsciiId<'V','R','6'>::V );
+
+				irq.SaveState( state, AsciiId<'I','R','Q'>::V );
+				sound.SaveState( state, AsciiId<'S','N','D'>::V );
+
 				state.End();
 			}
 
-			void Vrc6::Sound::SaveState(State::Saver& state) const
+			void Vrc6::Sound::SaveState(State::Saver& state,const dword id) const
 			{
-				square[0].SaveState( State::Saver::Subset(state,'S','Q','0','\0').Ref() );
-				square[1].SaveState( State::Saver::Subset(state,'S','Q','1','\0').Ref() );
-				saw.SaveState(       State::Saver::Subset(state,'S','A','W','\0').Ref() );
+				state.Begin( id );
+
+				square[0].SaveState( state, AsciiId<'S','Q','0'>::V );
+				square[1].SaveState( state, AsciiId<'S','Q','1'>::V );
+				saw.SaveState( state, AsciiId<'S','A','W'>::V );
+
+				state.End();
 			}
 
 			void Vrc6::Sound::LoadState(State::Loader& state)
@@ -220,19 +225,19 @@ namespace Nes
 				{
 					switch (chunk)
 					{
-						case NES_STATE_CHUNK_ID('S','Q','0','\0'):
+						case AsciiId<'S','Q','0'>::V:
 
-							square[0].LoadState( State::Loader::Subset(state).Ref(), fixed );
+							square[0].LoadState( state, fixed );
 							break;
 
-						case NES_STATE_CHUNK_ID('S','Q','1','\0'):
+						case AsciiId<'S','Q','1'>::V:
 
-							square[1].LoadState( State::Loader::Subset(state).Ref(), fixed );
+							square[1].LoadState( state, fixed );
 							break;
 
-						case NES_STATE_CHUNK_ID('S','A','W','\0'):
+						case AsciiId<'S','A','W'>::V:
 
-							saw.LoadState( State::Loader::Subset(state).Ref(), fixed );
+							saw.LoadState( state, fixed );
 							break;
 					}
 
@@ -240,32 +245,32 @@ namespace Nes
 				}
 			}
 
-			void Vrc6::Sound::Square::SaveState(State::Saver& state) const
+			void Vrc6::Sound::Square::SaveState(State::Saver& state,const dword id) const
 			{
-				const u8 data[4] =
+				const byte data[4] =
 				{
-					(enabled ? 0x1 : 0x0) | (digitized ? 0x2 : 0x0),
+					(enabled ? 0x1U : 0x0U) | (digitized ? 0x2U : 0x0U),
 					waveLength & 0xFF,
 					waveLength >> 8,
 					(duty - 1) | ((volume / VOLUME) << 3)
 				};
 
-				state.Begin('R','E','G','\0').Write( data ).End();
+				state.Begin( id ).Begin( AsciiId<'R','E','G'>::V ).Write( data ).End().End();
 			}
 
 			void Vrc6::Sound::Square::LoadState(State::Loader& state,const uint fixed)
 			{
 				while (const dword chunk = state.Begin())
 				{
-					if (chunk == NES_STATE_CHUNK_ID('R','E','G','\0'))
+					if (chunk == AsciiId<'R','E','G'>::V)
 					{
-						const State::Loader::Data<4> data( state );
+						State::Loader::Data<4> data( state );
 
-						enabled = data[0] & b01;
-						digitized = data[0] & b10;
-						waveLength = data[1] | ((data[2] & b1111) << 8);
-						duty = (data[3] & b111) + 1;
-						volume = (data[3] >> 3 & b1111) * VOLUME;
+						enabled = data[0] & 0x1;
+						digitized = data[0] & 0x2;
+						waveLength = data[1] | (data[2] << 8 & 0xF00);
+						duty = (data[3] & 0x7) + 1;
+						volume = (data[3] >> 3 & 0xF) * VOLUME;
 
 						timer = 0;
 						step = 0;
@@ -277,29 +282,29 @@ namespace Nes
 				}
 			}
 
-			void Vrc6::Sound::Saw::SaveState(State::Saver& state) const
+			void Vrc6::Sound::Saw::SaveState(State::Saver& state,const dword id) const
 			{
-				const u8 data[3] =
+				const byte data[3] =
 				{
 					(enabled != 0) | (phase << 1),
 					waveLength & 0xFF,
 					waveLength >> 8
 				};
 
-				state.Begin('R','E','G','\0').Write( data ).End();
+				state.Begin( id ).Begin( AsciiId<'R','E','G'>::V ).Write( data ).End().End();
 			}
 
 			void Vrc6::Sound::Saw::LoadState(State::Loader& state,const uint fixed)
 			{
 				while (const dword chunk = state.Begin())
 				{
-					if (chunk == NES_STATE_CHUNK_ID('R','E','G','\0'))
+					if (chunk == AsciiId<'R','E','G'>::V)
 					{
-						const State::Loader::Data<3> data( state );
+						State::Loader::Data<3> data( state );
 
-						enabled = data[0] & b1;
-						phase = data[0] >> 1 & b111111;
-						waveLength = data[1] | ((data[2] & b1111) << 8);
+						enabled = data[0] & 0x1;
+						phase = data[0] >> 1 & 0x3F;
+						waveLength = data[1] | (data[2] << 8 & 0xF00);
 
 						timer = 0;
 						step = 0;
@@ -312,7 +317,7 @@ namespace Nes
 				}
 			}
 
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("", on)
 			#endif
 
@@ -327,7 +332,7 @@ namespace Nes
 
 			NST_FORCE_INLINE void Vrc6::Sound::Square::WriteReg1(const uint data,const dword fixed)
 			{
-				waveLength &= REG2_WAVELENGTH_HIGH << 8;
+				waveLength &= uint(REG2_WAVELENGTH_HIGH) << 8;
 				waveLength |= data;
 				frequency = (waveLength + 1U) * fixed;
 				active = CanOutput();
@@ -350,7 +355,7 @@ namespace Nes
 
 			NST_FORCE_INLINE void Vrc6::Sound::Saw::WriteReg1(const uint data,const dword fixed)
 			{
-				waveLength &= REG2_WAVELENGTH_HIGH << 8;
+				waveLength &= uint(REG2_WAVELENGTH_HIGH) << 8;
 				waveLength |= data;
 				frequency = ((waveLength + 1UL) << FRQ_SHIFT) * fixed;
 				active = CanOutput();
@@ -418,7 +423,7 @@ namespace Nes
 				if (active)
 				{
 					dword sum = timer;
-					timer -= iword(rate);
+					timer -= idword(rate);
 
 					if (timer >= 0)
 					{
@@ -436,7 +441,7 @@ namespace Nes
 							if (step < duty)
 								sum += NST_MIN(dword(-timer),frequency);
 
-							timer += iword(frequency);
+							timer += idword(frequency);
 						}
 						while (timer < 0);
 
@@ -454,7 +459,7 @@ namespace Nes
 				if (active)
 				{
 					dword sum = timer;
-					timer -= iword(rate);
+					timer -= idword(rate);
 
 					if (timer >= 0)
 					{
@@ -475,7 +480,7 @@ namespace Nes
 							amp = (amp + phase) & 0xFF;
 							sum += NST_MIN(dword(-timer),frequency) * amp;
 
-							timer += iword(frequency);
+							timer += idword(frequency);
 						}
 						while (timer < 0);
 

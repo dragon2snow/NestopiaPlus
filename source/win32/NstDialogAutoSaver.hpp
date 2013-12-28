@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -38,6 +38,7 @@ namespace Nestopia
 		public:
 
 			explicit AutoSaver(const Managers::Paths&);
+			~AutoSaver();
 
 			enum
 			{
@@ -55,7 +56,7 @@ namespace Nestopia
 				Settings();
 
 				uint interval;
-				ibool notify;
+				bool notify;
 				Path stateFile;
 			};
 
@@ -80,7 +81,7 @@ namespace Nestopia
 				return settings.interval * 60 * 1000;
 			}
 
-			ibool ShouldNotify() const
+			bool ShouldNotify() const
 			{
 				return settings.notify;
 			}

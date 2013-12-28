@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,13 +25,16 @@
 #ifndef NST_API_CHEATS_H
 #define NST_API_CHEATS_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
+#include "NstApi.hpp"
+
+#ifdef NST_PRAGMA_ONCE
 #pragma once
 #endif
 
-#include "NstApi.hpp"
-
-#ifdef _MSC_VER
+#if NST_ICC >= 810
+#pragma warning( push )
+#pragma warning( disable : 444 )
+#elif NST_MSVC >= 1200
 #pragma warning( push )
 #pragma warning( disable : 4512 )
 #endif
@@ -42,6 +45,8 @@ namespace Nes
 	{
 		class Cheats : public Base
 		{
+			struct Lut;
+
 		public:
 
 			template<typename T>
@@ -50,28 +55,28 @@ namespace Nes
 
 			struct Code
 			{
-				u16 address;
-				u8 value;
-				u8 compare;
+				ushort address;
+				uchar value;
+				uchar compare;
 				bool useCompare;
 
-				Code(u16 a=0,u8 v=0,u8 c=0,bool u=false)
+				explicit Code(ushort a=0,uchar v=0,uchar c=0,bool u=false)
 				: address(a), value(v), compare(c), useCompare(u) {}
 			};
 
 			Result SetCode (const Code&) throw();
-			Result GetCode (dword,Code&) const throw();
-			Result GetCode (dword,u16*,u8*,u8*,bool*) const throw();
-			Result DeleteCode (dword) throw();
-			dword  NumCodes () const throw();
+			Result GetCode (ulong,Code&) const throw();
+			Result GetCode (ulong,ushort*,uchar*,uchar*,bool*) const throw();
+			Result DeleteCode (ulong) throw();
+			ulong  NumCodes () const throw();
 			Result ClearCodes () throw();
 
 			enum
 			{
-				RAM_SIZE = Core::SIZE_2K
+				RAM_SIZE = 0x800
 			};
 
-			typedef const u8 (&Ram)[RAM_SIZE];
+			typedef const uchar (&Ram)[RAM_SIZE];
 
 			Ram GetRam() const throw();
 
@@ -84,7 +89,7 @@ namespace Nes
 	}
 }
 
-#ifdef _MSC_VER
+#if NST_MSVC >= 1200 || NST_ICC >= 810
 #pragma warning( pop )
 #endif
 

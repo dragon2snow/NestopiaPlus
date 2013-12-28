@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -38,6 +38,7 @@ namespace Nestopia
 		public:
 
 			TapeRecorder(const Configuration&,const Managers::Paths&);
+			~TapeRecorder();
 
 			void Save(Configuration&) const;
 			const Path GetCustomFile() const;
@@ -54,15 +55,14 @@ namespace Nestopia
 			ibool OnCmdClear        (Param&);
 			ibool OnCmdOk           (Param&);
 
-			struct Settings
-			{
-				ibool useImageNaming;
-				Path customFile;
-			};
-
 			Dialog dialog;
 			const Managers::Paths& paths;
-			Settings settings;
+
+			struct
+			{
+				bool useImageNaming;
+				Path customFile;
+			}   settings;
 
 		public:
 
@@ -71,7 +71,7 @@ namespace Nestopia
 				dialog.Open();
 			}
 
-			ibool UseImageNaming() const
+			bool UseImageNaming() const
 			{
 				return settings.useImageNaming;
 			}

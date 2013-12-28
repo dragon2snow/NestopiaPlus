@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -22,6 +22,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
+#include "language/resource.h"
 #include "NstApplicationException.hpp"
 #include "NstWindowCustom.hpp"
 #include "NstWindowParam.hpp"
@@ -74,7 +75,7 @@ namespace Nestopia
 			window.Destroy();
 		}
 
-		void StatusBar::Enable(const ibool enable,const ibool show)
+		void StatusBar::Enable(const bool enable,const bool show)
 		{
 			NST_ASSERT( bool(parent) );
 
@@ -96,7 +97,7 @@ namespace Nestopia
 					);
 
 					if (window == NULL)
-						throw Application::Exception(_T("CreateWindowEx() failed!"));
+						throw Application::Exception( IDS_FAILED, _T("CreateWindowEx()") );
 
 					width.Calculate( window );
 					Update();

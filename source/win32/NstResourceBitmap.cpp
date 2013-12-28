@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -22,6 +22,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
+#include "language/resource.h"
 #include "NstApplicationException.hpp"
 #include "NstResourceBitmap.hpp"
 
@@ -33,7 +34,7 @@ namespace Nestopia
 		: handle(::LoadBitmap(::GetModuleHandle(NULL),MAKEINTRESOURCE(id)))
 		{
 			if (!handle)
-				throw Application::Exception(_T("LoadBitmap() failed!"));
+				throw Application::Exception( IDS_FAILED, _T("LoadBitmap()") );
 		}
 
 		Bitmap::~Bitmap ()

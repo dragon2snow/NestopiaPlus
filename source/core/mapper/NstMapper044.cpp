@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -30,7 +30,7 @@ namespace Nes
 {
 	namespace Core
 	{
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("s", on)
 		#endif
 
@@ -41,7 +41,7 @@ namespace Nes
 
 			Mmc3::SubReset( hard );
 
-			for (uint i=0xA001U; i < 0xC000U; i += 0x2)
+			for (uint i=0xA001; i < 0xC000; i += 0x2)
 				Map( i, &Mapper44::Poke_A001 );
 		}
 
@@ -49,7 +49,7 @@ namespace Nes
 		{
 			while (const dword chunk = state.Begin())
 			{
-				if (chunk == NES_STATE_CHUNK_ID('R','E','G','\0'))
+				if (chunk == AsciiId<'R','E','G'>::V)
 				{
 					exReg = state.Read8();
 					exReg = NST_MIN(exReg & 7,6);
@@ -61,10 +61,10 @@ namespace Nes
 
 		void Mapper44::SubSave(State::Saver& state) const
 		{
-			state.Begin('R','E','G','\0').Write8( exReg ).End();
+			state.Begin( AsciiId<'R','E','G'>::V ).Write8( exReg ).End();
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
@@ -86,10 +86,10 @@ namespace Nes
 			const uint base = exReg << 4;
 			const uint mask = (exReg >= 6) ? 0x1F : 0x0F;
 
-			prg.SwapBank<SIZE_8K>( 0x0000U ^ swap, base | (banks.prg[0] & mask) );
-			prg.SwapBank<SIZE_8K>( 0x2000U,        base | (banks.prg[1] & mask) );
-			prg.SwapBank<SIZE_8K>( 0x4000U ^ swap, base | (mask-1)              );
-			prg.SwapBank<SIZE_8K>( 0x6000U,        base | mask                  );
+			prg.SwapBank<SIZE_8K>( 0x0000 ^ swap, base | (banks.prg[0] & mask) );
+			prg.SwapBank<SIZE_8K>( 0x2000,        base | (banks.prg[1] & mask) );
+			prg.SwapBank<SIZE_8K>( 0x4000 ^ swap, base | (mask-1)              );
+			prg.SwapBank<SIZE_8K>( 0x6000,        base | mask                  );
 		}
 
 		void Mapper44::UpdateChr() const
@@ -102,14 +102,14 @@ namespace Nes
 
 			chr.SwapBanks<SIZE_2K>
 			(
-				0x0000U ^ swap,
+				0x0000 ^ swap,
 				base >> 1 | (banks.chr[0] & mask >> 1),
 				base >> 1 | (banks.chr[1] & mask >> 1)
 			);
 
 			chr.SwapBanks<SIZE_1K>
 			(
-				0x1000U ^ swap,
+				0x1000 ^ swap,
 				base | (banks.chr[2] & mask),
 				base | (banks.chr[3] & mask),
 				base | (banks.chr[4] & mask),

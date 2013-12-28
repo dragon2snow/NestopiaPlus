@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -31,15 +31,15 @@ namespace Nes
 	{
 		namespace Boards
 		{
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("s", on)
 			#endif
 
-			void Ws::SubReset(const bool)
+			void Ws::SubReset(bool)
 			{
 				reg = 0x00;
 
-				for (uint i=0x6000U; i < 0x7000U; i += 0x2)
+				for (uint i=0x6000; i < 0x7000; i += 0x2)
 				{
 					Map( i + 0x0, &Ws::Poke_6000 );
 					Map( i + 0x1, &Ws::Poke_6001 );
@@ -50,7 +50,7 @@ namespace Nes
 			{
 				while (const dword chunk = state.Begin())
 				{
-					if (chunk == NES_STATE_CHUNK_ID('R','E','G','\0'))
+					if (chunk == AsciiId<'R','E','G'>::V)
 						reg = state.Read8() & 0x20;
 
 					state.End();
@@ -59,10 +59,10 @@ namespace Nes
 
 			void Ws::SubSave(State::Saver& state) const
 			{
-				state.Begin('R','E','G','\0').Write8( reg ).End();
+				state.Begin( AsciiId<'R','E','G'>::V ).Write8( reg ).End();
 			}
 
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("", on)
 			#endif
 
@@ -71,7 +71,7 @@ namespace Nes
 				if (!reg)
 				{
 					reg = data & 0x20;
-					prg.SwapBanks<SIZE_16K,0x0000U>( data & ~(~data >> 3 & 0x1), data | (~data >> 3 & 0x1) );
+					prg.SwapBanks<SIZE_16K,0x0000>( data & ~(~data >> 3 & 0x1), data | (~data >> 3 & 0x1) );
 					ppu.SetMirroring( (data & 0x10) ? Ppu::NMT_HORIZONTAL : Ppu::NMT_VERTICAL );
 				}
 			}
@@ -81,7 +81,7 @@ namespace Nes
 				if (!reg)
 				{
 					ppu.Update();
-					chr.SwapBank<SIZE_8K,0x0000U>( data );
+					chr.SwapBank<SIZE_8K,0x0000>( data );
 				}
 			}
 		}

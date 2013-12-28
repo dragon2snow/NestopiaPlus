@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -23,21 +23,21 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 
 #include "../NstMapper.hpp"
+#include "../NstCrc32.hpp"
 #include "NstMapper053.hpp"
-#include "../NstChecksumCrc32.hpp"
 
 namespace Nes
 {
 	namespace Core
 	{
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("s", on)
 		#endif
 
 		Mapper53::Mapper53(Context& c)
 		:
 		Mapper     (c,CROM_MAX_8K|WRAM_NONE),
-		epromFirst (c.prg.Size() >= SIZE_32K && Checksum::Crc32::Compute(c.prg.Mem(),SIZE_32K) == EPROM_CRC)
+		epromFirst (c.prg.Size() >= SIZE_32K && Crc32::Compute(c.prg.Mem(),SIZE_32K) == EPROM_CRC)
 		{
 		}
 
@@ -45,7 +45,9 @@ namespace Nes
 		{
 			if (hard)
 			{
-				regs[0] = regs[1] = 0;
+				regs[0] = 0;
+				regs[1] = 0;
+
 				UpdatePrg();
 			}
 
@@ -58,10 +60,11 @@ namespace Nes
 		{
 			while (const dword chunk = state.Begin())
 			{
-				if (chunk == NES_STATE_CHUNK_ID('R','E','G','\0'))
+				if (chunk == AsciiId<'R','E','G'>::V)
 				{
 					{
-						const State::Loader::Data<2> data( state );
+						State::Loader::Data<2> data( state );
+
 						regs[0] = data[0];
 						regs[1] = data[1];
 					}
@@ -75,10 +78,10 @@ namespace Nes
 
 		void Mapper53::SubSave(State::Saver& state) const
 		{
-			state.Begin('R','E','G','\0').Write16( regs[0] | (regs[1] << 8) ).End();
+			state.Begin( AsciiId<'R','E','G'>::V ).Write16( regs[0] | uint(regs[1]) << 8 ).End();
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
@@ -86,12 +89,12 @@ namespace Nes
 		{
 			const uint r = regs[0] << 3 & 0x78;
 
-			wrk.SwapBank<SIZE_8K,0x0000U>
+			wrk.SwapBank<SIZE_8K,0x0000>
 			(
 				(r << 1 | 0xF) + (epromFirst ? 0x4 : 0x0)
 			);
 
-			prg.SwapBanks<SIZE_16K,0x0000U>
+			prg.SwapBanks<SIZE_16K,0x0000>
 			(
 				(regs[0] & 0x10) ? (r | (regs[1] & 0x7)) + (epromFirst ? 0x2 : 0x0) : epromFirst ? 0x00 : 0x80,
 				(regs[0] & 0x10) ? (r | (0xFF    & 0x7)) + (epromFirst ? 0x2 : 0x0) : epromFirst ? 0x01 : 0x81

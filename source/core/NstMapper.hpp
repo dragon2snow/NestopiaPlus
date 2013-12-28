@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,14 +25,13 @@
 #ifndef NST_MAPPER_H
 #define NST_MAPPER_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
-#pragma once
-#endif
-
-#include "NstState.hpp"
-#include "NstMemory.hpp"
 #include "NstCpu.hpp"
 #include "NstPpu.hpp"
+#include "NstState.hpp"
+
+#ifdef NST_PRAGMA_ONCE
+#pragma once
+#endif
 
 namespace Nes
 {
@@ -87,13 +86,13 @@ namespace Nes
 			};
 
 			static Mapper* Create(Context&);
-			virtual ~Mapper();
+			static void Destroy(Mapper*);
 
 			void Reset     (bool);
-			void SaveState (State::Saver&) const;
+			void SaveState (State::Saver&,dword) const;
 			void LoadState (State::Loader&);
 
-			virtual void Flush(bool) {}
+			virtual void PowerOff() {}
 			virtual void VSync() {}
 
 			typedef void* Device;
@@ -125,55 +124,61 @@ namespace Nes
 				EXT_6035052,
 				EXT_A65AS,
 				EXT_EDU2000,
-				NUM_EXT_MAPPERS = 14
+				EXT_TF1201,
+				EXT_KS7032,
+				EXT_GS2004,
+				NUM_EXT_MAPPERS = 17
 			};
 
 			static cstring GetBoard(uint);
 
 		protected:
 
+			Mapper(Context&,uint=0);
+			virtual ~Mapper();
+
 			enum
 			{
-				PROM_DEFAULT   = 0  << 0,
-				PROM_MAX_16K   = 1  << 0,
-				PROM_MAX_32K   = 2  << 0,
-				PROM_MAX_64K   = 3  << 0,
-				PROM_MAX_128K  = 4  << 0,
-				PROM_MAX_256K  = 5  << 0,
-				PROM_MAX_512K  = 6  << 0,
-				PROM_MAX_1024K = 7  << 0,
-				PROM_SETTINGS  = 7  << 0,
-				CROM_DEFAULT   = 0  << 3,
-				CROM_NONE      = 1  << 3,
-				CROM_MAX_8K    = 2  << 3,
-				CROM_MAX_16K   = 3  << 3,
-				CROM_MAX_32K   = 4  << 3,
-				CROM_MAX_64K   = 5  << 3,
-				CROM_MAX_128K  = 6  << 3,
-				CROM_MAX_256K  = 7  << 3,
-				CROM_MAX_512K  = 8  << 3,
-				CROM_MAX_1024K = 9  << 3,
-				CROM_SETTINGS  = 15 << 3,
-				CRAM_DEFAULT   = 0  << 7,
-				CRAM_1K        = 1  << 7,
-				CRAM_2K        = 2  << 7,
-				CRAM_4K        = 3  << 7,
-				CRAM_8K        = 4  << 7,
-				CRAM_16K       = 5  << 7,
-				CRAM_32K       = 6  << 7,
-				CRAM_SETTINGS  = 7  << 7,
-				WRAM_AUTO      = 0  << 10,
-				WRAM_DEFAULT   = 1  << 10,
-				WRAM_NONE      = 2  << 10,
-				WRAM_1K        = 3  << 10,
-				WRAM_2K        = 4  << 10,
-				WRAM_4K        = 5  << 10,
-				WRAM_8K        = 6  << 10,
-				WRAM_16K       = 7  << 10,
-				WRAM_32K       = 8  << 10,
-				WRAM_40K       = 9  << 10,
-				WRAM_64K       = 10 << 10,
-				WRAM_SETTINGS  = 15 << 10
+				PROM_DEFAULT   = 0U  << 0,
+				PROM_MAX_16K   = 1U  << 0,
+				PROM_MAX_32K   = 2U  << 0,
+				PROM_MAX_64K   = 3U  << 0,
+				PROM_MAX_128K  = 4U  << 0,
+				PROM_MAX_256K  = 5U  << 0,
+				PROM_MAX_512K  = 6U  << 0,
+				PROM_MAX_1024K = 7U  << 0,
+				PROM_SETTINGS  = 7U  << 0,
+				CROM_DEFAULT   = 0U  << 3,
+				CROM_NONE      = 1U  << 3,
+				CROM_MAX_8K    = 2U  << 3,
+				CROM_MAX_16K   = 3U  << 3,
+				CROM_MAX_32K   = 4U  << 3,
+				CROM_MAX_64K   = 5U  << 3,
+				CROM_MAX_128K  = 6U  << 3,
+				CROM_MAX_256K  = 7U  << 3,
+				CROM_MAX_512K  = 8U  << 3,
+				CROM_MAX_1024K = 9U  << 3,
+				CROM_SETTINGS  = 15U << 3,
+				CRAM_DEFAULT   = 0U  << 7,
+				CRAM_1K        = 1U  << 7,
+				CRAM_2K        = 2U  << 7,
+				CRAM_4K        = 3U  << 7,
+				CRAM_8K        = 4U  << 7,
+				CRAM_16K       = 5U  << 7,
+				CRAM_32K       = 6U  << 7,
+				CRAM_SETTINGS  = 7U  << 7,
+				WRAM_AUTO      = 0U  << 10,
+				WRAM_DEFAULT   = 1U  << 10,
+				WRAM_NONE      = 2U  << 10,
+				WRAM_1K        = 3U  << 10,
+				WRAM_2K        = 4U  << 10,
+				WRAM_4K        = 5U  << 10,
+				WRAM_8K        = 6U  << 10,
+				WRAM_16K       = 7U  << 10,
+				WRAM_32K       = 8U  << 10,
+				WRAM_40K       = 9U  << 10,
+				WRAM_64K       = 10U << 10,
+				WRAM_SETTINGS  = 15U << 10
 			};
 
 			enum PrgMapping
@@ -231,7 +236,7 @@ namespace Nes
 				NOP_PEEK_POKE
 			};
 
-			Mapper(Context&,uint=0);
+			void Map(WrkMapping) const;
 
 			typedef Memory<SIZE_32K,SIZE_8K,2> Prg;
 			typedef Ppu::ChrMem Chr;
@@ -239,14 +244,14 @@ namespace Nes
 
 			struct Wrk : Memory<SIZE_8K,SIZE_8K,2>
 			{
-				bool HasRam() const
+				bool Available() const
 				{
 					return Source(0).Mem() != Source(1).Mem();
 				}
 
-				dword RamSize() const
+				dword Size() const
 				{
-					return HasRam() ? Source(0).Size() : 0;
+					return Available() ? Source(0).Size() : 0;
 				}
 			};
 
@@ -256,8 +261,71 @@ namespace Nes
 			Chr& chr;
 			Nmt& nmt;
 			Wrk wrk;
-			const u16 id;
-			const u16 mirroring;
+			const word id;
+			const word mirroring;
+
+		private:
+
+			dword GetStateName() const;
+
+			virtual void SubReset(bool) = 0;
+			virtual void SubSave(State::Saver&) const {}
+			virtual void SubLoad(State::Loader&) {}
+			virtual void BaseSave(State::Saver&) const {}
+			virtual void BaseLoad(State::Loader&,dword) {}
+
+			NES_DECL_PEEK( Prg_8 );
+			NES_DECL_PEEK( Prg_A );
+			NES_DECL_PEEK( Prg_C );
+			NES_DECL_PEEK( Prg_E );
+
+			NES_DECL_POKE( Prg_8k_0  );
+			NES_DECL_POKE( Prg_8k_1  );
+			NES_DECL_POKE( Prg_8k_2  );
+			NES_DECL_POKE( Prg_8k_3  );
+			NES_DECL_POKE( Prg_16k_0 );
+			NES_DECL_POKE( Prg_16k_1 );
+			NES_DECL_POKE( Prg_32k   );
+
+			NES_DECL_POKE( Chr_1k_0 );
+			NES_DECL_POKE( Chr_1k_1 );
+			NES_DECL_POKE( Chr_1k_2 );
+			NES_DECL_POKE( Chr_1k_3 );
+			NES_DECL_POKE( Chr_1k_4 );
+			NES_DECL_POKE( Chr_1k_5 );
+			NES_DECL_POKE( Chr_1k_6 );
+			NES_DECL_POKE( Chr_1k_7 );
+			NES_DECL_POKE( Chr_2k_0 );
+			NES_DECL_POKE( Chr_2k_1 );
+			NES_DECL_POKE( Chr_2k_2 );
+			NES_DECL_POKE( Chr_2k_3 );
+			NES_DECL_POKE( Chr_4k_0 );
+			NES_DECL_POKE( Chr_4k_1 );
+			NES_DECL_POKE( Chr_8k   );
+
+			NES_DECL_PEEK( Wrk_6 );
+			NES_DECL_POKE( Wrk_6 );
+			NES_DECL_PEEK( Wrk_Safe_6 );
+			NES_DECL_POKE( Wrk_Safe_6 );
+
+			NES_DECL_POKE( Nmt_Hv );
+			NES_DECL_POKE( Nmt_Vh );
+			NES_DECL_POKE( Nmt_Vh01 );
+			NES_DECL_POKE( Nmt_Hv01 );
+
+			NES_DECL_PEEK( Nop );
+			NES_DECL_POKE( Nop );
+
+			struct Setup;
+			static const Setup setup[256+NUM_EXT_MAPPERS];
+
+		protected:
+
+			void SetMirroringHV(uint data) { NES_DO_POKE(Nmt_Hv,0,data); }
+			void SetMirroringVH(uint data) { NES_DO_POKE(Nmt_Vh,0,data); }
+
+			void SetMirroringVH01(uint data) { NES_DO_POKE(Nmt_Vh01,0,data); }
+			void SetMirroringHV01(uint data) { NES_DO_POKE(Nmt_Hv01,0,data); }
 
 			template<typename T>
 			void Map(uint first,uint last,T t) const
@@ -282,71 +350,6 @@ namespace Nes
 			{
 				cpu.Map( address ).Set( t, u );
 			}
-
-			void Map(WrkMapping) const;
-
-		private:
-
-			NES_DECL_PEEK( Prg_8 )
-			NES_DECL_PEEK( Prg_A )
-			NES_DECL_PEEK( Prg_C )
-			NES_DECL_PEEK( Prg_E )
-
-			NES_DECL_POKE( Prg_8k_0  )
-			NES_DECL_POKE( Prg_8k_1  )
-			NES_DECL_POKE( Prg_8k_2  )
-			NES_DECL_POKE( Prg_8k_3  )
-			NES_DECL_POKE( Prg_16k_0 )
-			NES_DECL_POKE( Prg_16k_1 )
-			NES_DECL_POKE( Prg_32k   )
-
-			NES_DECL_POKE( Chr_1k_0 )
-			NES_DECL_POKE( Chr_1k_1 )
-			NES_DECL_POKE( Chr_1k_2 )
-			NES_DECL_POKE( Chr_1k_3 )
-			NES_DECL_POKE( Chr_1k_4 )
-			NES_DECL_POKE( Chr_1k_5 )
-			NES_DECL_POKE( Chr_1k_6 )
-			NES_DECL_POKE( Chr_1k_7 )
-			NES_DECL_POKE( Chr_2k_0 )
-			NES_DECL_POKE( Chr_2k_1 )
-			NES_DECL_POKE( Chr_2k_2 )
-			NES_DECL_POKE( Chr_2k_3 )
-			NES_DECL_POKE( Chr_4k_0 )
-			NES_DECL_POKE( Chr_4k_1 )
-			NES_DECL_POKE( Chr_8k   )
-
-			NES_DECL_PEEK( Wrk_6 )
-			NES_DECL_POKE( Wrk_6 )
-			NES_DECL_PEEK( Wrk_Safe_6 )
-			NES_DECL_POKE( Wrk_Safe_6 )
-
-			NES_DECL_POKE( Nmt_Hv )
-			NES_DECL_POKE( Nmt_Vh )
-			NES_DECL_POKE( Nmt_Vh01 )
-			NES_DECL_POKE( Nmt_Hv01 )
-
-			NES_DECL_PEEK( Nop )
-			NES_DECL_POKE( Nop )
-
-			dword GetStateName() const;
-
-			virtual void SubReset(bool) = 0;
-			virtual void SubSave(State::Saver&) const {}
-			virtual void SubLoad(State::Loader&) {}
-			virtual void BaseSave(State::Saver&) const {}
-			virtual void BaseLoad(State::Loader&,dword) {}
-
-			struct Setup;
-			static const Setup setup[256+NUM_EXT_MAPPERS];
-
-		protected:
-
-			void SetMirroringHV(uint data) { NES_CALL_POKE(Mapper,Nmt_Hv,0,data); }
-			void SetMirroringVH(uint data) { NES_CALL_POKE(Mapper,Nmt_Vh,0,data); }
-
-			void SetMirroringVH01(uint data) { NES_CALL_POKE(Mapper,Nmt_Vh01,0,data); }
-			void SetMirroringHV01(uint data) { NES_CALL_POKE(Mapper,Nmt_Hv01,0,data); }
 		};
 
 		template<>

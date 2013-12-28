@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -34,7 +34,7 @@ namespace Nes
 		{
 			uint Pad::mic;
 
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("s", on)
 			#endif
 
@@ -62,21 +62,21 @@ namespace Nes
 				mic = 0;
 			}
 
-			void Pad::SaveState(State::Saver& state,const uchar id) const
+			void Pad::SaveState(State::Saver& state,const byte id) const
 			{
-				const u8 data[2] =
+				const byte data[2] =
 				{
 					strobe, stream ^ 0xFF
 				};
 
-				state.Begin('P','D',id,'\0').Write( data ).End();
+				state.Begin( AsciiId<'P','D'>::R(0,0,id) ).Write( data ).End();
 			}
 
 			void Pad::LoadState(State::Loader& state,const dword id)
 			{
-				if (id == NES_STATE_CHUNK_ID('P','D','\0','\0'))
+				if (id == AsciiId<'P','D'>::V)
 				{
-					const State::Loader::Data<2> data( state );
+					State::Loader::Data<2> data( state );
 
 					strobe = data[0] & 0x1;
 					stream = data[1] ^ 0xFF;
@@ -85,7 +85,7 @@ namespace Nes
 				}
 			}
 
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("", on)
 			#endif
 
@@ -100,7 +100,7 @@ namespace Nes
 
 			void Pad::Poll()
 			{
-				const uint nextStamp = cpu.GetMasterClockCycles() / 0x10000UL;
+				const uint nextStamp = cpu.GetMasterClockCycles() / 0x10000;
 				NST_VERIFY( input == NULL || timeStamp <= nextStamp );
 
 				if (timeStamp <= nextStamp)
@@ -127,10 +127,10 @@ namespace Nes
 							if (!pad.allowSimulAxes)
 							{
 								if ((buttons & (UP|DOWN)) == (UP|DOWN))
-									buttons &= (UP|DOWN) ^ 0xFF;
+									buttons &= (UP|DOWN) ^ 0xFFU;
 
 								if ((buttons & (LEFT|RIGHT)) == (LEFT|RIGHT))
-									buttons &= (LEFT|RIGHT) ^ 0xFF;
+									buttons &= (LEFT|RIGHT) ^ 0xFFU;
 							}
 
 							state = buttons;
@@ -148,7 +148,7 @@ namespace Nes
 					const uint data = stream;
 					stream >>= 1;
 
-					return (~data & 0x1) | (mic & (~port << 2));
+					return (~data & 0x1) | (mic & ~port << 2);
 				}
 				else
 				{

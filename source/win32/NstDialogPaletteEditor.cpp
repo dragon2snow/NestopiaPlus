@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -22,7 +22,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include <utility>
+#include <algorithm>
 #include "NstWindowUser.hpp"
 #include "NstWindowParam.hpp"
 #include "NstApplicationInstance.hpp"
@@ -45,7 +45,7 @@ namespace Nestopia
 			IDC_PALETTE_EDITOR_B_VALUE == IDC_PALETTE_EDITOR_R_VALUE + 2
 		);
 
-		ibool PaletteEditor::showHex = false;
+		bool PaletteEditor::showHex = false;
 
 		struct PaletteEditor::Handlers
 		{
@@ -56,7 +56,7 @@ namespace Nestopia
 		const MsgHandler::Entry<PaletteEditor> PaletteEditor::Handlers::messages[] =
 		{
 			{ WM_INITDIALOG,  &PaletteEditor::OnInitDialog  },
-			{ WM_ERASEBKGND,  &PaletteEditor::OnEraseBkgnd  },
+			{ WM_PAINT,       &PaletteEditor::OnPaint       },
 			{ WM_LBUTTONDOWN, &PaletteEditor::OnLButtonDown },
 			{ WM_HSCROLL,     &PaletteEditor::OnHScroll     }
 		};
@@ -117,12 +117,12 @@ namespace Nestopia
 			data[pos][0] = STOP;
 		}
 
-		ibool PaletteEditor::History::CanUndo() const
+		bool PaletteEditor::History::CanUndo() const
 		{
 			return data[(pos-1) & (LENGTH-1)][0] != STOP;
 		}
 
-		ibool PaletteEditor::History::CanRedo() const
+		bool PaletteEditor::History::CanRedo() const
 		{
 			return data[pos][0] != STOP;
 		}
@@ -131,7 +131,7 @@ namespace Nestopia
 		{
 			NST_ASSERT( CanUndo() );
 
-			u8 palette[64][3];
+			uchar palette[64][3];
 			emulator.GetPalette().GetCustom( palette, Nes::Video::Palette::STD_PALETTE );
 
 			pos = (pos-1) & (LENGTH-1);
@@ -147,7 +147,7 @@ namespace Nestopia
 		{
 			NST_ASSERT( CanRedo() );
 
-			u8 palette[64][3];
+			uchar palette[64][3];
 			emulator.GetPalette().GetCustom( palette, Nes::Video::Palette::STD_PALETTE );
 
 			const uint index = data[pos][0];
@@ -190,7 +190,7 @@ namespace Nestopia
 			return true;
 		}
 
-		ibool PaletteEditor::OnEraseBkgnd(Param&)
+		ibool PaletteEditor::OnPaint(Param&)
 		{
 			UpdateColors();
 			return false;
@@ -203,7 +203,7 @@ namespace Nestopia
 				class Bitmap : BITMAPINFO
 				{
 					RGBQUAD nesColor;
-					u8 pixels[BMP_COLOR_WIDTH * BMP_COLOR_HEIGHT];
+					uchar pixels[BMP_COLOR_WIDTH * BMP_COLOR_HEIGHT];
 
 				public:
 
@@ -222,7 +222,7 @@ namespace Nestopia
 							std::memset( pixels + y, 1, BMP_COLOR_WIDTH-2 );
 					}
 
-					void Draw(HDC const hdc,const u8 (*NST_RESTRICT palette)[3],const uint selected)
+					void Draw(HDC const hdc,const uchar (*NST_RESTRICT palette)[3],const uint selected)
 					{
 						const RGBQUAD selectColors[2] =
 						{
@@ -297,7 +297,7 @@ namespace Nestopia
 					index -= IDC_PALETTE_EDITOR_R_SLIDER;
 
 					const uint color = dialog.Slider( IDC_PALETTE_EDITOR_R_SLIDER+index ).Position();
-					const u8 (*NST_RESTRICT colors)[3] = emulator.GetPalette().GetColors();
+					const uchar (*NST_RESTRICT colors)[3] = emulator.GetPalette().GetColors();
 
 					if (color != colors[colorSelect][index])
 					{
@@ -308,12 +308,12 @@ namespace Nestopia
 						}
 
 						if (showHex)
-							dialog.Control( IDC_PALETTE_EDITOR_R_VALUE+index ).Text() << HexString( (u8) color, true ).Ptr();
+							dialog.Control( IDC_PALETTE_EDITOR_R_VALUE+index ).Text() << HexString( 8, color, true ).Ptr();
 						else
 							dialog.Control( IDC_PALETTE_EDITOR_R_VALUE+index ).Text() << color;
 
 						{
-							u8 custom[64][3];
+							uchar custom[64][3];
 							std::memcpy( custom, colors, 64 * 3 );
 							custom[colorSelect][index] = color;
 							emulator.GetPalette().SetCustom( custom );
@@ -395,8 +395,8 @@ namespace Nestopia
 
 				if (tmp.Length())
 				{
-					u8 emphPalette[8*64][3];
-					const u8 (*palette)[3];
+					uchar emphPalette[8*64][3];
+					const uchar (*palette)[3];
 
 					if
 					(
@@ -438,7 +438,7 @@ namespace Nestopia
 			return true;
 		}
 
-		void PaletteEditor::UpdateMode(const ibool forceUpdate)
+		void PaletteEditor::UpdateMode(const bool forceUpdate)
 		{
 			Nes::Video::Palette::Mode mode;
 
@@ -457,7 +457,7 @@ namespace Nestopia
 
 			if (emulator.GetPalette().SetMode( mode ) != Nes::RESULT_NOP || forceUpdate)
 			{
-				const ibool custom = (mode == Nes::Video::Palette::MODE_CUSTOM);
+				const bool custom = (mode == Nes::Video::Palette::MODE_CUSTOM);
 
 				for (uint i=0; i < 3; ++i)
 					dialog.Slider( IDC_PALETTE_EDITOR_R_SLIDER+i ).Enable( custom );
@@ -474,11 +474,11 @@ namespace Nestopia
 		void PaletteEditor::UpdateColor()
 		{
 			if (showHex)
-				dialog.Edit( IDC_PALETTE_EDITOR_INDEX ) << HexString( (u8) colorSelect, true ).Ptr();
+				dialog.Edit( IDC_PALETTE_EDITOR_INDEX ) << HexString( 8, colorSelect, true ).Ptr();
 			else
 				dialog.Edit( IDC_PALETTE_EDITOR_INDEX ) << colorSelect;
 
-			const u8 (&colors)[3] = emulator.GetPalette().GetColors()[colorSelect];
+			const uchar (&colors)[3] = emulator.GetPalette().GetColors()[colorSelect];
 
 			for (uint i=0; i < 3; ++i)
 			{
@@ -486,7 +486,7 @@ namespace Nestopia
 				dialog.Slider( IDC_PALETTE_EDITOR_R_SLIDER+i ).Position() = color;
 
 				if (showHex)
-					dialog.Control( IDC_PALETTE_EDITOR_R_VALUE+i ).Text() << HexString( (u8) color, true ).Ptr();
+					dialog.Control( IDC_PALETTE_EDITOR_R_VALUE+i ).Text() << HexString( 8, color, true ).Ptr();
 				else
 					dialog.Control( IDC_PALETTE_EDITOR_R_VALUE+i ).Text() << color;
 			}

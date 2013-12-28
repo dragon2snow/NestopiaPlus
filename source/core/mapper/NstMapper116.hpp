@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,7 +25,7 @@
 #ifndef NST_MAPPER_116_H
 #define NST_MAPPER_116_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
+#ifdef NST_PRAGMA_ONCE
 #pragma once
 #endif
 
@@ -37,9 +37,11 @@ namespace Nes
 		{
 		public:
 
-			Mapper116(Context&);
+			explicit Mapper116(Context&);
 
 		private:
+
+			~Mapper116() {}
 
 			void SubReset(bool);
 			void SubSave(State::Saver&) const;
@@ -61,58 +63,40 @@ namespace Nes
 			void Poke_Mmc3_C000(uint,uint);
 			void Poke_Mmc3_E000(uint,uint);
 
-			NES_DECL_POKE( 4100 )
-			NES_DECL_POKE( 8000 )
-			NES_DECL_POKE( 9000 )
-			NES_DECL_POKE( A000 )
-			NES_DECL_POKE( B000 )
-			NES_DECL_POKE( C000 )
-			NES_DECL_POKE( D000 )
-			NES_DECL_POKE( E000 )
-			NES_DECL_POKE( F000 )
+			NES_DECL_POKE( 4100 );
+			NES_DECL_POKE( 8000 );
+			NES_DECL_POKE( 9000 );
+			NES_DECL_POKE( A000 );
+			NES_DECL_POKE( B000 );
+			NES_DECL_POKE( C000 );
+			NES_DECL_POKE( D000 );
+			NES_DECL_POKE( E000 );
+			NES_DECL_POKE( F000 );
 
 			uint mode;
 
-			struct Vrc2
+			struct
 			{
-				u8 chr[8];
-				u8 prg[2];
-				u8 nmt;
-				u8 pad;
-			};
+				byte chr[8];
+				byte prg[2];
+				byte nmt;
+				byte padding;
+			}   vrc2;
 
-			struct Mmc3
+			struct
 			{
-				u8 banks[10];
-				u8 ctrl;
-				u8 nmt;
-			};
+				byte banks[10];
+				byte ctrl;
+				byte nmt;
+			}   mmc3;
 
-			struct Mmc1
+			struct
 			{
-				u8 regs[4];
-				u8 buffer;
-				u8 shifter;
-				u8 pad[2];
-			};
-
-			union
-			{
-				Vrc2 vrc2;
-				u8 blockVrc2[8+2+1];
-			};
-
-			union
-			{
-				Mmc3 mmc3;
-				u8 blockMmc3[10+1+1];
-			};
-
-			union
-			{
-				Mmc1 mmc1;
-				u8 blockMmc1[4+1+1];
-			};
+				byte regs[4];
+				byte buffer;
+				byte shifter;
+				byte padding[2];
+			}   mmc1;
 
 			Boards::Mmc3::Irq irq;
 		};

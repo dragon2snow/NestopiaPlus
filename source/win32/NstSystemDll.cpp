@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -28,7 +28,7 @@ namespace Nestopia
 {
 	namespace System
 	{
-		ibool Dll::Load(tstring file)
+		bool Dll::Load(tstring file)
 		{
 			NST_ASSERT( file && *file );
 
@@ -37,7 +37,7 @@ namespace Nestopia
 
 			hModule = ::LoadLibrary( file );
 
-			return hModule != NULL;
+			return hModule;
 		}
 	}
 }

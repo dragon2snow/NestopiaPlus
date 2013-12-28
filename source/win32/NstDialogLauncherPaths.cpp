@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -109,7 +109,7 @@ namespace Nestopia
 
 			String::Heap<char> type;
 
-			for (uint i=0; i < settings.folders.size(); ++i)
+			for (uint i=0, n=settings.folders.size(); i < n; ++i)
 			{
 				type = "launcher search path ";
 				type << (i+1);
@@ -142,7 +142,7 @@ namespace Nestopia
 			listView.StyleEx() = LVS_EX_CHECKBOXES;
 			listView.Reserve( settings.folders.size() );
 
-			for (Settings::Folders::const_iterator it(settings.folders.begin()); it != settings.folders.end(); ++it)
+			for (Settings::Folders::const_iterator it(settings.folders.begin()), end(settings.folders.end()); it != end; ++it)
 				listView.Add( it->path, LPARAM(0), it->incSubDir );
 
 			return true;
@@ -194,7 +194,7 @@ namespace Nestopia
 				const Control::ListView listView( dialog.ListView(IDC_LAUNCHER_PATHS_LIST) );
 				settings.folders.resize( listView.Size() );
 
-				for (uint i=0; i < settings.folders.size(); ++i)
+				for (uint i=0, n=settings.folders.size(); i < n; ++i)
 				{
 					listView[i].Text() >> settings.folders[i].path;
 					settings.folders[i].incSubDir = listView[i].Checked();

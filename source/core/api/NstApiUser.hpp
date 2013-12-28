@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,21 +25,20 @@
 #ifndef NST_API_USER_H
 #define NST_API_USER_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
-#pragma once
-#endif
-
 #include <vector>
 #include <string>
 #include "NstApi.hpp"
 
-#ifdef _MSC_VER
-#pragma warning( push )
-#ifdef __INTEL_COMPILER
-#pragma warning( disable : 304 444 )
-#else
-#pragma warning( disable : 4512 )
+#ifdef NST_PRAGMA_ONCE
+#pragma once
 #endif
+
+#if NST_ICC >= 810
+#pragma warning( push )
+#pragma warning( disable : 304 444 )
+#elif NST_MSVC >= 1200
+#pragma warning( push )
+#pragma warning( disable : 4512 )
 #endif
 
 namespace Nes
@@ -102,9 +101,9 @@ namespace Nes
 			};
 
 			typedef std::string String;
-			typedef std::vector<u8> FileData;
+			typedef std::vector<uchar> FileData;
 
-			typedef void   ( NST_CALLBACK *LogCallback      ) (UserData,const char*,dword);
+			typedef void   ( NST_CALLBACK *LogCallback      ) (UserData,const char*,ulong);
 			typedef void   ( NST_CALLBACK *EventCallback    ) (UserData,Event,const void*);
 			typedef void   ( NST_CALLBACK *InputCallback    ) (UserData,Input,const char*,String&);
 			typedef Answer ( NST_CALLBACK *QuestionCallback ) (UserData,Question);
@@ -119,13 +118,13 @@ namespace Nes
 
 		struct User::LogCaller : Core::UserCallback<User::LogCallback>
 		{
-			void operator () (const char* text,dword length) const
+			void operator () (const char* text,ulong length) const
 			{
 				if (function)
 					function( userdata, text, length );
 			}
 
-			template<size_t N>
+			template<ulong N>
 			void operator () (const char (&c)[N]) const
 			{
 				(*this)( c, N-1 );
@@ -134,7 +133,7 @@ namespace Nes
 
 		struct User::EventCaller : Core::UserCallback<User::EventCallback>
 		{
-			void operator () (Event event,const void* data=NULL) const
+			void operator () (Event event,const void* data=0) const
 			{
 				if (function)
 					function( userdata, event, data );
@@ -169,7 +168,7 @@ namespace Nes
 	}
 }
 
-#ifdef _MSC_VER
+#if NST_MSVC >= 1200 || NST_ICC >= 810
 #pragma warning( pop )
 #endif
 

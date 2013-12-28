@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -48,6 +48,7 @@ namespace Nestopia
 		public:
 
 			Sound(Managers::Emulator&,const Adapters&,const Managers::Paths&,const Configuration&);
+			~Sound();
 
 			void Save(Configuration&) const;
 			uint GetVolume(uint) const;
@@ -68,16 +69,8 @@ namespace Nestopia
 
 			struct Handlers;
 
-			struct Settings
-			{
-				uint adapter;
-				uint latency;
-				DirectX::DirectSound::Pool pool;
-				u8 volumes[NUM_CHANNELS];
-			};
-
 			uint GetDefaultAdapter() const;
-			void Enable(ibool) const;
+			void Enable(bool) const;
 			void ResetVolumeSliders() const;
 			void UpdateVolumeReset() const;
 
@@ -90,16 +83,24 @@ namespace Nestopia
 
 			const Adapters& adapters;
 			Nes::Sound nes;
-			Settings settings;
+
+			struct
+			{
+				uint adapter;
+				uint latency;
+				DirectX::DirectSound::Pool pool;
+				uchar volumes[NUM_CHANNELS];
+			}   settings;
+
 			Dialog dialog;
 
 			struct ChannelLut
 			{
 				cstring cfg;
-				u16 ctrlSlider;
-				u16 ctrlValue;
-				u16 ctrlText;
-				u16 channel;
+				ushort ctrlSlider;
+				ushort ctrlValue;
+				ushort ctrlText;
+				ushort channel;
 			};
 
 			static const ChannelLut channelLut[NUM_CHANNELS];
@@ -111,6 +112,7 @@ namespace Nestopia
 			public:
 
 				explicit Recorder(const Managers::Paths&);
+				~Recorder();
 
 				const Path WaveFile() const;
 
@@ -151,7 +153,7 @@ namespace Nestopia
 				return recorder;
 			}
 
-			ibool SoundEnabled() const
+			bool SoundEnabled() const
 			{
 				return settings.adapter != UINT_MAX && nes.IsAudible();
 			}

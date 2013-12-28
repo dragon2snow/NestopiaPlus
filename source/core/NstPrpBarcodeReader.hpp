@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,7 +25,7 @@
 #ifndef NST_PRP_BARCODEREADER_H
 #define NST_PRP_BARCODEREADER_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
+#ifdef NST_PRAGMA_ONCE
 #pragma once
 #endif
 
@@ -33,12 +33,6 @@ namespace Nes
 {
 	namespace Core
 	{
-		namespace State
-		{
-			class Saver;
-			class Loader;
-		}
-
 		namespace Peripherals
 		{
 			class NST_NO_VTABLE BarcodeReader
@@ -57,6 +51,7 @@ namespace Nes
 			protected:
 
 				BarcodeReader();
+				~BarcodeReader() {}
 
 				enum
 				{
@@ -70,25 +65,23 @@ namespace Nes
 
 			private:
 
-				virtual bool SubTransfer(cstring,uint,u8*) = 0;
+				virtual bool SubTransfer(cstring,uint,byte*) = 0;
 
-				const u8* stream;
-				u8 data[MAX_DATA_LENGTH];
+				const byte* stream;
+				byte data[MAX_DATA_LENGTH];
 
 			protected:
 
-				virtual ~BarcodeReader() {}
-
 				uint Fetch()
 				{
-					uint data = *stream;
-					stream += (data != END);
-					return data;
+					uint next = *stream;
+					stream += (next != END);
+					return next;
 				}
 
 				uint Latch() const
 				{
-					return (stream != data) ? *(stream-1) : 0x00;
+					return (stream != data) ? stream[-1] : 0x00;
 				}
 
 			public:

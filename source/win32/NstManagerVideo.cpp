@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -30,15 +30,11 @@
 #include "NstManagerVideo.hpp"
 #include "NstIoScreen.hpp"
 
-#ifdef __INTEL_COMPILER
-#pragma warning( disable : 279 )
-#endif
-
 namespace Nestopia
 {
 	namespace Managers
 	{
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("t", on)
 		#endif
 
@@ -60,7 +56,7 @@ namespace Nestopia
 			}
 		};
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
@@ -152,9 +148,8 @@ namespace Nestopia
 			const Configuration& cfg
 		)
 		:
-		emulator               ( e ),
+		Manager                ( e, m, this, &Video::OnEmuEvent, &Video::OnAppEvent ),
 		window                 ( w ),
-		menu                   ( m ),
 		statusBar              ( w, STATUSBAR_WIDTH ),
 		direct2d               ( w ),
 		dialog                 ( new Window::Video( e, direct2d.GetAdapters(), p, cfg ) ),
@@ -176,6 +171,8 @@ namespace Nestopia
 				{ WM_EXITSIZEMOVE,  &Video::OnExitSizeMove  }
 			};
 
+			w.Messages().Add( this, messages, hooks );
+
 			static const Window::Menu::CmdHandler::Entry<Video> commands[] =
 			{
 				{ IDM_OPTIONS_VIDEO,                    &Video::OnCmdOptionsVideo            },
@@ -196,17 +193,15 @@ namespace Nestopia
 				{ IDM_VIEW_FPS,                         &Video::OnCmdViewFps                 }
 			};
 
+			menu.Commands().Add( this, commands );
+
 			static const Window::Menu::PopupHandler::Entry<Video> popups[] =
 			{
 				{ Window::Menu::PopupHandler::Pos<IDM_POS_VIEW,IDM_POS_VIEW_SCREENSIZE>::ID, &Video::OnMenuScreenSizes },
 				{ Window::Menu::PopupHandler::Pos<IDM_POS_MACHINE,IDM_POS_MACHINE_OPTIONS>::ID, &Video::OnMenuUnlimSprites }
 			};
 
-			m.Commands().Add( this, commands );
-			m.PopupRouter().Add( this, popups );
-			w.Messages().Add( this, messages, hooks );
-			emulator.Events().Add( this, &Video::OnEmuEvent );
-			Instance::Events::Add( this, &Video::OnAppEvent );
+			menu.PopupRouter().Add( this, popups );
 
 			Io::Screen::SetCallback( this, &Video::OnScreenText );
 
@@ -244,10 +239,10 @@ namespace Nestopia
 
 		Video::~Video()
 		{
-			emulator.Events().Remove( this );
-			Instance::Events::Remove( this );
-
 			Io::Screen::UnsetCallback();
+
+			Nes::Video::Output::lockCallback.Unset();
+			Nes::Video::Output::unlockCallback.Unset();
 
 			window.Messages().Remove( this );
 			window.StopTimer( this, &Video::OnTimerText );
@@ -336,7 +331,7 @@ namespace Nestopia
 
 			if (Windowed())
 			{
-				const ibool enable = menu[IDM_VIEW_STATUSBAR].ToggleCheck();
+				const bool enable = menu[IDM_VIEW_STATUSBAR].ToggleCheck();
 				menu[IDM_VIEW_FPS].Enable( enable );
 
 				Point size;
@@ -378,7 +373,7 @@ namespace Nestopia
 
 			if (Fullscreen() || statusBar.Enabled())
 			{
-				const ibool enable = menu[IDM_VIEW_FPS].ToggleCheck();
+				const bool enable = menu[IDM_VIEW_FPS].ToggleCheck();
 
 				if (emulator.Running() && emulator.Is(Nes::Machine::GAME))
 					ToggleFps( enable );
@@ -387,7 +382,7 @@ namespace Nestopia
 
 		void Video::OnCmdMachineUnlimitedSprites(uint)
 		{
-			const ibool enable = !Nes::Video(emulator).AreUnlimSpritesEnabled();
+			const bool enable = !Nes::Video(emulator).AreUnlimSpritesEnabled();
 			Nes::Video(emulator).EnableUnlimSprites( enable );
 			Io::Screen() << Resource::String(enable ? IDS_SCREEN_NOSPRITELIMIT_ON : IDS_SCREEN_NOSPRITELIMIT_OFF );
 		}
@@ -455,7 +450,7 @@ namespace Nestopia
 				}
 			}
 
-			ibool check;
+			bool check;
 
 			if (scale == Window::Video::SCREEN_STRETCHED)
 			{
@@ -481,7 +476,7 @@ namespace Nestopia
 			param.menu[IDM_MACHINE_OPTIONS_UNLIMITEDSPRITES].Check( Nes::Video(emulator).AreUnlimSpritesEnabled() );
 		}
 
-		ibool Video::WindowMatched() const
+		bool Video::WindowMatched() const
 		{
 			const Point output( window.PictureCoordinates() );
 			const Point input( dialog->GetNesRect().Size() );
@@ -549,11 +544,11 @@ namespace Nestopia
 			return true;
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("t", on)
 		#endif
 
-		ibool Video::MustClearFrameScreen() const
+		bool Video::MustClearFrameScreen() const
 		{
 			return Fullscreen() && (dialog->GetFullscreenScale() != Window::Video::SCREEN_STRETCHED || dialog->TvAspect());
 		}
@@ -648,29 +643,54 @@ namespace Nestopia
 		{
 			if (emulator.Is(Nes::Machine::ON,Nes::Machine::GAME))
 			{
-				static HeapString string( Resource::String(IDS_TEXT_FPS) << ": " );
-
+				class FpsString : HeapString
 				{
-					uint current = emulator.GetFrame();
+					const uint offset;
 
-					uint delta = current - fps.frame;
-					fps.frame = current;
+				public:
 
-					current = delta / (Fps::UPDATE_INTERVAL / 1000);
-					delta = delta % (Fps::UPDATE_INTERVAL / 1000) ? '5' : '0';
+					FpsString()
+					:
+					HeapString (Resource::String(IDS_TEXT_FPS) << ": xxx.x"),
+					offset     (Length() - 5)
+					{
+					}
 
-					string(5) = NST_MIN(current,999);
-					string << '.' << tchar(delta);
-				}
+					void Update(uint fps)
+					{
+						const char dec[] = {'.',fps % (Fps::UPDATE_INTERVAL/1000) ? '5' : '0','\0'};
+						fps /= (Fps::UPDATE_INTERVAL/1000);
+
+						(*this)(offset) = NST_MIN(fps,999);
+						Append( dec, 2 );
+					}
+
+					GenericString Number() const
+					{
+						return (*this)(offset);
+					}
+
+					tstring Full() const
+					{
+						return Ptr();
+					}
+				};
+
+				static FpsString fpsString;
+
+				const uint prev = fps.frame;
+				fps.frame = emulator.Frame();
+
+				fpsString.Update( fps.frame - prev );
 
 				if (Fullscreen())
 				{
-					direct2d.DrawFps( string(5) );
+					direct2d.DrawFps( fpsString.Number() );
 					return true;
 				}
 				else if (statusBar.Enabled())
 				{
-					statusBar.Text(Window::StatusBar::SECOND_FIELD) << string.Ptr();
+					statusBar.Text(Window::StatusBar::SECOND_FIELD) << fpsString.Full();
 					return true;
 				}
 			}
@@ -678,7 +698,26 @@ namespace Nestopia
 			return false;
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		void Video::OnScreenText(const GenericString& text,const uint time)
+		{
+			if (Fullscreen())
+			{
+				direct2d.DrawMsg( text );
+				window.Redraw();
+			}
+			else if (statusBar.Enabled())
+			{
+				statusBar.Text(Window::StatusBar::FIRST_FIELD) << text.Ptr();
+			}
+			else
+			{
+				return;
+			}
+
+			window.StartTimer( this, &Video::OnTimerText, time ? time : SCREEN_TEXT_DURATION );
+		}
+
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
@@ -693,15 +732,15 @@ namespace Nestopia
 			}
 		}
 
-		ibool Video::SwitchFullscreen(Mode mode)
+		bool Video::SwitchFullscreen(Mode mode)
 		{
-			const ibool prevFullscreen = Fullscreen();
-			const ibool toggleMenu = menu.Visible() && direct2d.CanSwitchFullscreen( mode );
+			const bool prevFullscreen = Fullscreen();
+			const bool toggleMenu = menu.Visible() && direct2d.CanSwitchFullscreen( mode );
 
 			if (toggleMenu)
 				menu.Hide();
 
-			const ibool switched = direct2d.SwitchFullscreen( mode );
+			const bool switched = direct2d.SwitchFullscreen( mode );
 
 			if (switched && prevFullscreen && dialog->GetFullscreenScale() != Window::Video::SCREEN_STRETCHED)
 				dialog->SetFullscreenScale( Window::Video::SCREEN_MATCHED );
@@ -887,13 +926,13 @@ namespace Nestopia
 			);
 		}
 
-		void Video::ToggleFps(const ibool enable)
+		void Video::ToggleFps(const bool enable)
 		{
 			if (enable)
 			{
 				NST_ASSERT( Fullscreen() || statusBar.Enabled() );
 
-				fps.frame = emulator.GetFrame();
+				fps.frame = emulator.Frame();
 
 				if (statusBar.Enabled())
 					statusBar.Text(Window::StatusBar::SECOND_FIELD) << (Resource::String(IDS_TEXT_FPS) << ": ").Ptr();
@@ -975,7 +1014,7 @@ namespace Nestopia
 				case Emulator::EVENT_MODE_PAL:
 
 					if (Windowed() && WindowMatched())
-						window.PostCommand( IDM_VIEW_WINDOWSIZE_1X + CalculateWindowScale() );
+						window.SendCommand( IDM_VIEW_WINDOWSIZE_1X + CalculateWindowScale() );
 					else
 						window.Redraw();
 
@@ -1023,32 +1062,5 @@ namespace Nestopia
 					break;
 			}
 		}
-
-		#ifdef NST_PRAGMA_OPTIMIZE
-		#pragma optimize("t", on)
-		#endif
-
-		void Video::OnScreenText(const GenericString& text,const uint time)
-		{
-			if (Fullscreen())
-			{
-				direct2d.DrawMsg( text );
-				window.Redraw();
-			}
-			else if (statusBar.Enabled())
-			{
-				statusBar.Text(Window::StatusBar::FIRST_FIELD) << text.Ptr();
-			}
-			else
-			{
-				return;
-			}
-
-			window.StartTimer( this, &Video::OnTimerText, time ? time : SCREEN_TEXT_DURATION );
-		}
-
-		#ifdef NST_PRAGMA_OPTIMIZE
-		#pragma optimize("", on)
-		#endif
 	}
 }

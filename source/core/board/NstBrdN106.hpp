@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,7 +25,7 @@
 #ifndef NST_BOARDS_N106_H
 #define NST_BOARDS_N106_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
+#ifdef NST_PRAGMA_ONCE
 #pragma once
 #endif
 
@@ -35,28 +35,39 @@ namespace Nes
 	{
 		namespace Boards
 		{
-			class NST_NO_VTABLE N106 : public Mapper
+			class N106 : public Mapper
 			{
+			protected:
+
+				enum Type
+				{
+					TYPE_PLAIN,
+					TYPE_ADD_ONS
+				};
+
+				N106(Context&,Type);
+				~N106();
+
 			public:
 
 				class Sound : public Apu::Channel
 				{
 				public:
 
-					Sound(Cpu&,bool=true);
+					explicit Sound(Cpu&,bool=true);
 					~Sound();
 
 					void Poke_4800(uint);
 					uint Peek_4800();
 					void Poke_F800(uint);
 
-					void SaveState(State::Saver&) const;
+					void SaveState(State::Saver&,dword) const;
 					void LoadState(State::Loader&);
 
 				protected:
 
 					void Reset();
-					void UpdateContext(Cycle,const u8 (&w)[MAX_CHANNELS]);
+					void UpdateContext(uint,const byte (&w)[MAX_CHANNELS]);
 					Sample GetSample();
 
 				private:
@@ -83,7 +94,7 @@ namespace Nes
 
 						void Reset();
 
-						inline dword GetSample(Cycle,Cycle,const u8 (&)[0x100]);
+						inline dword GetSample(Cycle,Cycle,const byte (&)[0x100]);
 
 						inline void SetFrequency  (uint);
 						inline void SetWaveLength (uint);
@@ -119,8 +130,8 @@ namespace Nes
 					uint exIncrease;
 					uint startChannel;
 
-					u8 wave[0x100];
-					u8 exRam[0x80];
+					byte wave[0x100];
+					byte exRam[0x80];
 
 					BaseChannel channels[NUM_CHANNELS];
 
@@ -128,17 +139,6 @@ namespace Nes
 
 					const ibool hooked;
 				};
-
-			protected:
-
-				enum Type
-				{
-					TYPE_PLAIN,
-					TYPE_ADD_ONS
-				};
-
-				N106(Context&,Type);
-				~N106();
 
 			private:
 
@@ -149,28 +149,28 @@ namespace Nes
 				void SwapNmt(uint,uint) const;
 				void VSync();
 
-				NES_DECL_PEEK( 4800 )
-				NES_DECL_POKE( 4800 )
-				NES_DECL_PEEK( 5000 )
-				NES_DECL_POKE( 5000 )
-				NES_DECL_PEEK( 5800 )
-				NES_DECL_POKE( 5800 )
-				NES_DECL_POKE( 8000 )
-				NES_DECL_POKE( 8800 )
-				NES_DECL_POKE( 9000 )
-				NES_DECL_POKE( 9800 )
-				NES_DECL_POKE( A000 )
-				NES_DECL_POKE( A800 )
-				NES_DECL_POKE( B000 )
-				NES_DECL_POKE( B800 )
-				NES_DECL_POKE( C000 )
-				NES_DECL_POKE( C800 )
-				NES_DECL_POKE( D000 )
-				NES_DECL_POKE( D800 )
-				NES_DECL_POKE( E000 )
-				NES_DECL_POKE( E800 )
-				NES_DECL_POKE( F000 )
-				NES_DECL_POKE( F800 )
+				NES_DECL_PEEK( 4800 );
+				NES_DECL_POKE( 4800 );
+				NES_DECL_PEEK( 5000 );
+				NES_DECL_POKE( 5000 );
+				NES_DECL_PEEK( 5800 );
+				NES_DECL_POKE( 5800 );
+				NES_DECL_POKE( 8000 );
+				NES_DECL_POKE( 8800 );
+				NES_DECL_POKE( 9000 );
+				NES_DECL_POKE( 9800 );
+				NES_DECL_POKE( A000 );
+				NES_DECL_POKE( A800 );
+				NES_DECL_POKE( B000 );
+				NES_DECL_POKE( B800 );
+				NES_DECL_POKE( C000 );
+				NES_DECL_POKE( C800 );
+				NES_DECL_POKE( D000 );
+				NES_DECL_POKE( D800 );
+				NES_DECL_POKE( E000 );
+				NES_DECL_POKE( E800 );
+				NES_DECL_POKE( F000 );
+				NES_DECL_POKE( F800 );
 
 				uint reg;
 

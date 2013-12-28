@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -23,7 +23,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 
 #include <cstdio>
-#include <cstring>
 #include "../NstMapper.hpp"
 #include "../board/NstBrdMmc1.hpp"
 #include "NstMapper105.hpp"
@@ -33,7 +32,7 @@ namespace Nes
 {
 	namespace Core
 	{
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("s", on)
 		#endif
 
@@ -134,7 +133,7 @@ namespace Nes
 
 		uint Mapper105::CartSwitches::GetTime() const
 		{
-			static const u16 lut[16] =
+			static const word lut[16] =
 			{
 				300, // 5.001 * 60
 				318, // 5.316 * 60
@@ -179,17 +178,17 @@ namespace Nes
 
 			Mmc1::SubReset( hard );
 
-			prg.SwapBank<SIZE_16K,0x4000U>( 1 );
+			prg.SwapBank<SIZE_16K,0x4000>( 1 );
 		}
 
 		void Mapper105::SubLoad(State::Loader& state)
 		{
-			irqEnabled = (regs[1] & IRQ_DISABLE) ^ IRQ_DISABLE;
+			irqEnabled = (regs[1] & uint(IRQ_DISABLE)) ^ IRQ_DISABLE;
 			frames = 1;
 
 			while (const dword chunk = state.Begin())
 			{
-				if (chunk == NES_STATE_CHUNK_ID('T','I','M','\0'))
+				if (chunk == AsciiId<'T','I','M'>::V)
 				{
 					seconds = state.Read32();
 					seconds = NST_CLAMP(seconds,1,time);
@@ -201,10 +200,10 @@ namespace Nes
 
 		void Mapper105::SubSave(State::Saver& state) const
 		{
-			state.Begin('T','I','M','\0').Write32( seconds ).End();
+			state.Begin( AsciiId<'T','I','M'>::V ).Write32( seconds ).End();
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
@@ -214,30 +213,30 @@ namespace Nes
 
 			if (index != 2)
 			{
-				if (regs[1] & 0x8)
+				if (regs[1] & 0x8U)
 				{
-					switch (regs[0] & 0xC)
+					switch (regs[0] & 0xCU)
 					{
 						case 0x0:
 						case 0x4:
 
-							prg.SwapBank<SIZE_32K,0x0000U>( 0x4 | (regs[3] >> 1 & 0x3) );
+							prg.SwapBank<SIZE_32K,0x0000>( 0x4 | (regs[3] >> 1 & 0x3U) );
 							break;
 
 						case 0x8:
 
-							prg.SwapBanks<SIZE_16K,0x0000U>( 0x8, 0x8 | (regs[3] & 0x7) );
+							prg.SwapBanks<SIZE_16K,0x0000>( 0x8, 0x8 | (regs[3] & 0x7U) );
 							break;
 
 						case 0xC:
 
-							prg.SwapBanks<SIZE_16K,0x0000U>( 0x8 | (regs[3] & 0x7), 0xF );
+							prg.SwapBanks<SIZE_16K,0x0000>( 0x8 | (regs[3] & 0x7U), 0xF );
 							break;
 					}
 				}
 				else
 				{
-					prg.SwapBank<SIZE_32K,0x0000U>( regs[1] >> 1 & 0x3 );
+					prg.SwapBank<SIZE_32K,0x0000>( regs[1] >> 1 & 0x3U );
 				}
 
 				UpdateWrk();
@@ -248,7 +247,7 @@ namespace Nes
 				}
 				else
 				{
-					const uint state = (regs[1] & IRQ_DISABLE) ^ IRQ_DISABLE;
+					const uint state = (regs[1] & uint(IRQ_DISABLE)) ^ IRQ_DISABLE;
 
 					if (irqEnabled != state)
 					{

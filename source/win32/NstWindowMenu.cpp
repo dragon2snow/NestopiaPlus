@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -32,7 +32,7 @@ namespace Nestopia
 	{
 		Menu::Instances::Translator Menu::Instances::translator = Menu::Instances::TranslateNone;
 		Menu::Instances::Menus Menu::Instances::menus;
-		ibool Menu::Instances::acceleratorsEnabled = true;
+		bool Menu::Instances::acceleratorsEnabled = true;
 
 		void Menu::Instances::Update()
 		{
@@ -44,7 +44,7 @@ namespace Nestopia
 
 		void Menu::Instances::Update(Menu* const menu)
 		{
-			const ibool useful = menu->acceleratorEnabled && menu->accelerator.Enabled();
+			const bool useful = menu->acceleratorEnabled && menu->accelerator.Enabled();
 
 			if (Instances::Menus::Iterator const instance = menus.Find( menu ))
 			{
@@ -73,7 +73,7 @@ namespace Nestopia
 			}
 		}
 
-		void Menu::Instances::EnableAccelerators(const ibool enable)
+		void Menu::Instances::EnableAccelerators(const bool enable)
 		{
 			acceleratorsEnabled = enable;
 			Update();
@@ -83,23 +83,23 @@ namespace Nestopia
 		{
 			NST_ASSERT
 			(
-				( ( ( levels >>  0 ) & 0xFF ) < IDM_OFFSET ) &&
-				( ( ( levels >>  8 ) & 0xFF ) < IDM_OFFSET ) &&
-				( ( ( levels >> 16 ) & 0xFF ) < IDM_OFFSET ) &&
-				( ( ( levels >> 24 ) & 0xFF ) < IDM_OFFSET )
+				((levels >>  0 & 0xFF) < IDM_OFFSET) &&
+				((levels >>  8 & 0xFF) < IDM_OFFSET) &&
+				((levels >> 16 & 0xFF) < IDM_OFFSET) &&
+				((levels >> 24 & 0xFF) < IDM_OFFSET)
 			);
 
 			HMENU hMenu = menu.handle;
 			uint pos = levels & 0xFF;
 
-			if ( levels & 0x0000FF00U ) { hMenu = ::GetSubMenu( hMenu, pos ); pos = (( levels >>  8 ) - 1) & 0xFF; }
-			if ( levels & 0x00FF0000U ) { hMenu = ::GetSubMenu( hMenu, pos ); pos = (( levels >> 16 ) - 2) & 0xFF; }
-			if ( levels & 0xFF000000U ) { hMenu = ::GetSubMenu( hMenu, pos ); pos = (( levels >> 24 ) - 3) & 0xFF; }
+			if ( levels & 0x0000FF00 ) { hMenu = ::GetSubMenu( hMenu, pos ); pos = (( levels >>  8 ) - 1) & 0xFF; }
+			if ( levels & 0x00FF0000 ) { hMenu = ::GetSubMenu( hMenu, pos ); pos = (( levels >> 16 ) - 2) & 0xFF; }
+			if ( levels & 0xFF000000 ) { hMenu = ::GetSubMenu( hMenu, pos ); pos = (( levels >> 24 ) - 3) & 0xFF; }
 
 			return Key( menu.window, hMenu, pos );
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("t", on)
 		#endif
 
@@ -134,7 +134,7 @@ namespace Nestopia
 			return false;
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
@@ -145,7 +145,7 @@ namespace Nestopia
 		acceleratorEnabled ( true )
 		{
 			if (!handle)
-				throw Application::Exception(_T("LoadMenu() failed!"));
+				throw Application::Exception( IDS_FAILED, _T("LoadMenu()") );
 		}
 
 		Menu::~Menu()
@@ -202,14 +202,14 @@ namespace Nestopia
 			Instances::Remove( this );
 		}
 
-		ibool Menu::Toggle() const
+		bool Menu::Toggle() const
 		{
-			const ibool set = !Visible();
+			const bool set = !Visible();
 			Show( set );
 			return set;
 		}
 
-		void Menu::EnableAccelerator(const ibool enable)
+		void Menu::EnableAccelerator(const bool enable)
 		{
 			if (acceleratorEnabled != enable)
 			{
@@ -228,7 +228,7 @@ namespace Nestopia
 			Unhook();
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("t", on)
 		#endif
 
@@ -256,7 +256,7 @@ namespace Nestopia
 			return true;
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
@@ -306,12 +306,12 @@ namespace Nestopia
 			return NST_MAX(numItems,0);
 		}
 
-		ibool Menu::Visible() const
+		bool Menu::Visible() const
 		{
 			return window && *window && handle == ::GetMenu( *window );
 		}
 
-		void Menu::Show(const ibool show) const
+		void Menu::Show(const bool show) const
 		{
 			if (window && *window)
 				::SetMenu( *window, show ? static_cast<HMENU>(handle) : NULL );
@@ -421,7 +421,7 @@ namespace Nestopia
 			Redraw();
 		}
 
-		void Menu::ToggleModeless(ibool modeless) const
+		void Menu::ToggleModeless(bool modeless) const
 		{
 			MENUINFO info;
 
@@ -516,11 +516,11 @@ namespace Nestopia
 			}
 		}
 
-		ibool Menu::Item::Enable(const ibool enable) const
+		bool Menu::Item::Enable(const bool enable) const
 		{
 			if (hMenu)
 			{
-				ibool result = (::EnableMenuItem( hMenu, pos, (enable ? MF_ENABLED : MF_GRAYED) | Flag() ) == MF_ENABLED);
+				bool result = (::EnableMenuItem( hMenu, pos, (enable ? MF_ENABLED : MF_GRAYED) | Flag() ) == MF_ENABLED);
 				Redraw( window );
 				return result;
 			}
@@ -528,18 +528,18 @@ namespace Nestopia
 			return false;
 		}
 
-		ibool Menu::Item::Enabled() const
+		bool Menu::Item::Enabled() const
 		{
 			if (hMenu)
 			{
 				const uint state = ::GetMenuState( hMenu, pos, Flag() );
-				return state != uint(-1) && !(state & (MF_DISABLED|MF_GRAYED));
+				return state != ~0U && !(state & (MF_DISABLED|MF_GRAYED));
 			}
 
 			return false;
 		}
 
-		ibool Menu::Item::Check(const ibool check) const
+		bool Menu::Item::Check(const bool check) const
 		{
 			return (hMenu ? ::CheckMenuItem( hMenu, pos, (check ? MF_CHECKED : MF_UNCHECKED) | Flag() ) == MF_CHECKED : false);
 		}
@@ -552,7 +552,7 @@ namespace Nestopia
 				::CheckMenuRadioItem( hMenu, first, last, pos, Flag() );
 		}
 
-		void Menu::Item::Check(const uint first,const uint last,const ibool check) const
+		void Menu::Item::Check(const uint first,const uint last,const bool check) const
 		{
 			NST_ASSERT( first <= last && pos >= first && pos <= last );
 
@@ -567,13 +567,13 @@ namespace Nestopia
 			}
 		}
 
-		ibool Menu::Item::Checked() const
+		bool Menu::Item::Checked() const
 		{
 			const uint state = (hMenu ? ::GetMenuState( hMenu, pos, Flag() ) : 0U);
-			return state != uint(-1) && (state & MF_CHECKED);
+			return state != ~0U && (state & MF_CHECKED);
 		}
 
-		ibool Menu::Item::Exists() const
+		bool Menu::Item::Exists() const
 		{
 			return hMenu && ::GetMenuState( hMenu, pos, Flag() ) != uint(-1);
 		}
@@ -595,7 +595,7 @@ namespace Nestopia
 			return 0;
 		}
 
-		ibool Menu::Item::Stream::GetFullString(tchar* string,uint length) const
+		bool Menu::Item::Stream::GetFullString(tchar* string,uint length) const
 		{
 			if (item.hMenu)
 			{

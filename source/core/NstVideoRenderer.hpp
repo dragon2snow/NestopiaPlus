@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,12 +25,12 @@
 #ifndef NST_VIDEO_RENDERER_H
 #define NST_VIDEO_RENDERER_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
-#pragma once
-#endif
-
 #include "api/NstApiVideo.hpp"
 #include "NstVideoScreen.hpp"
+
+#ifdef NST_PRAGMA_ONCE
+#pragma once
+#endif
 
 namespace Nes
 {
@@ -78,12 +78,12 @@ namespace Nes
 				Result SetDecoder(const Decoder&);
 
 				Result SetPaletteType(PaletteType);
-				Result LoadCustomPalette(const u8 (*)[3],bool);
+				Result LoadCustomPalette(const byte (*)[3],bool);
 				void   ResetCustomPalette();
 
 				void EnableFieldMerging(bool);
 
-				typedef u8 PaletteEntries[PALETTE][3];
+				typedef byte PaletteEntries[PALETTE][3];
 
 				const PaletteEntries& GetPalette();
 
@@ -99,8 +99,8 @@ namespace Nes
 					~Palette();
 
 					Result SetType(PaletteType);
-					Result LoadCustom(const u8 (*)[3],bool);
-					uint   SaveCustom(u8 (*)[3],bool) const;
+					Result LoadCustom(const byte (*)[3],bool);
+					uint   SaveCustom(byte (*)[3],bool) const;
 					bool   ResetCustom();
 					void   Update(int,int,int,int);
 					Result SetDecoder(const Decoder&);
@@ -111,10 +111,9 @@ namespace Nes
 
 					struct Constants
 					{
-						static const uchar tints[8];
+						static const double pi;
+						static const double deg;
 						static const double levels[2][4];
-						static const double attenMul;
-						static const double attenSub;
 					};
 
 					struct Custom
@@ -124,24 +123,23 @@ namespace Nes
 
 						bool EnableEmphasis(bool);
 
-						u8 palette[64][3];
-						u8 (*emphasis)[64][3];
+						byte palette[64][3];
+						byte (*emphasis)[64][3];
 					};
 
 					void Generate(int,int,int,int);
 					void Build(int,int,int,int);
 
-					static void ToPAL(const double (&)[3],u8 (&)[3]);
-					static void ToHSV(double,double,double,double&,double&,double&);
-					static void ToRGB(double,double,double,double&,double&,double&);
+					static void GenerateEmphasis(uint,double,double&,double&,double&);
+					static void Store(const double (&)[3],byte (&)[3]);
 
 					PaletteType type;
 					Custom* custom;
 					Decoder decoder;
-					u8 palette[64*8][3];
+					byte palette[64*8][3];
 
-					static const u8 pc10Palette[64][3];
-					static const u8 vsPalette[4][64][3];
+					static const byte pc10Palette[64][3];
+					static const byte vsPalette[4][64][3];
 
 				public:
 
@@ -162,14 +160,10 @@ namespace Nes
 				};
 
 				class FilterNone;
+				class FilterNtsc;
 				class FilterScanlines;
-				template<uint BITS> class FilterNtsc;
 
-				#ifndef NST_NO_2XSAI
-				class Filter2xSaI;
-				#endif
-
-				#ifndef NST_NO_SCALE2X
+				#ifndef NST_NO_SCALEX
 				class FilterScaleX;
 				#endif
 
@@ -181,7 +175,7 @@ namespace Nes
 				{
 					struct Format
 					{
-						Format(const RenderState::Bits::Mask&);
+						explicit Format(const RenderState::Bits::Mask&);
 
 						dword left[3];
 						dword right[3];
@@ -189,19 +183,14 @@ namespace Nes
 
 				protected:
 
-					template<uint BITS>
-					struct OutPixel
-					{
-						typedef u16 Type;
-					};
+					explicit Filter(const RenderState&);
 
 				public:
 
-					Filter(const RenderState&);
 					virtual ~Filter() {}
 
 					virtual void Blit(const Input&,const Output&,uint) = 0;
-					virtual void Transform(const u8 (&)[PALETTE][3],u32 (&)[PALETTE]) const;
+					virtual void Transform(const byte (&)[PALETTE][3],Input::Palette&) const;
 
 					const uint bpp;
 					const Format format;
@@ -221,24 +210,24 @@ namespace Nes
 					};
 
 					RenderState::Filter filter;
-					u16 width;
-					u16 height;
-					u8 update;
-					i8 brightness;
-					i8 saturation;
-					i8 hue;
-					i8 contrast;
-					i8 sharpness;
-					i8 resolution;
-					i8 bleed;
-					i8 artifacts;
-					i8 fringing;
-					u8 scanlines;
-					u8 fieldMerging;
+					word width;
+					word height;
+					byte update;
+					schar brightness;
+					schar saturation;
+					schar hue;
+					schar contrast;
+					schar sharpness;
+					schar resolution;
+					schar bleed;
+					schar artifacts;
+					schar fringing;
+					byte scanlines;
+					byte fieldMerging;
 					RenderState::Bits::Mask mask;
 				};
 
-				Result SetLevel(i8&,int,uint=State::UPDATE_PALETTE|State::UPDATE_FILTER);
+				Result SetLevel(schar&,int,uint=State::UPDATE_PALETTE|State::UPDATE_FILTER);
 
 				Filter* filter;
 				State state;
@@ -334,7 +323,7 @@ namespace Nes
 
 				bool IsFieldMergingEnabled() const
 				{
-					return state.fieldMerging & State::FIELD_MERGING_USER;
+					return state.fieldMerging & uint(State::FIELD_MERGING_USER);
 				}
 
 				PaletteType GetPaletteType() const
@@ -347,7 +336,7 @@ namespace Nes
 					return palette.HasCustomEmphasis();
 				}
 
-				uint SaveCustomPalette(u8 (*colors)[3],bool emphasis) const
+				uint SaveCustomPalette(byte (*colors)[3],bool emphasis) const
 				{
 					return palette.SaveCustom( colors, emphasis );
 				}
@@ -359,14 +348,8 @@ namespace Nes
 
 				bool IsReady() const
 				{
-					return filter != NULL;
+					return filter;
 				}
-			};
-
-			template<>
-			struct Renderer::Filter::OutPixel<32U>
-			{
-				typedef u32 Type;
 			};
 		}
 	}

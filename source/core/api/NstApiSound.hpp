@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,13 +25,16 @@
 #ifndef NST_API_SOUND_H
 #define NST_API_SOUND_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
+#include "NstApi.hpp"
+
+#ifdef NST_PRAGMA_ONCE
 #pragma once
 #endif
 
-#include "NstApi.hpp"
-
-#ifdef _MSC_VER
+#if NST_ICC >= 810
+#pragma warning( push )
+#pragma warning( disable : 304 444 )
+#elif NST_MSVC >= 1200
 #pragma warning( push )
 #pragma warning( disable : 4512 )
 #endif
@@ -51,13 +54,13 @@ namespace Nes
 
 				enum
 				{
-					MAX_LENGTH = 0x8000U
+					MAX_LENGTH = 0x8000
 				};
 
 				void* samples[2];
 				uint length[2];
 
-				Output(void* s0=NULL,uint l0=0,void* s1=NULL,uint l1=0)
+				explicit Output(void* s0=0,uint l0=0,void* s1=0,uint l1=0)
 				{
 					samples[0] = s0;
 					samples[1] = s1;
@@ -101,9 +104,6 @@ namespace Nes
 					MOERO_PRO_YAKYUU_88,
 					MOERO_PRO_TENNIS,
 					TERAO_NO_DOSUKOI_OOZUMOU,
-					MOE_PRO_90_KANDOU_HEN,
-					MOE_PRO_SAIKYOU_HEN,
-					SHIN_MOERO_PRO_YAKYUU,
 					AEROBICS_STUDIO
 				};
 
@@ -113,13 +113,10 @@ namespace Nes
 					MOERO_PRO_YAKYUU_88_SAMPLES = 20,
 					MOERO_PRO_TENNIS_SAMPLES = 19,
 					TERAO_NO_DOSUKOI_OOZUMOU_SAMPLES = 6,
-					MOE_PRO_90_KANDOU_HEN_SAMPLES = 20,
-					MOE_PRO_SAIKYOU_HEN_SAMPLES = 20,
-					SHIN_MOERO_PRO_YAKYUU_SAMPLES = 20,
 					AEROBICS_STUDIO_SAMPLES = 8
 				};
 
-				virtual Result Load(uint,const void*,dword,bool,uint,dword) throw() = 0;
+				virtual Result Load(uint,const void*,ulong,bool,uint,ulong) throw() = 0;
 
 				typedef void (NST_CALLBACK *LoadCallback) (void*,Type,Loader&);
 
@@ -181,19 +178,18 @@ namespace Nes
 			};
 
 			Result  SetSampleRate(ulong) throw();
+			ulong   GetSampleRate() const throw();
 			Result  SetSampleBits(uint) throw();
-			Result  SetVolume(uint,uint) throw();
-			Result  SetSpeed(uint) throw();
-			void    SetAutoTranspose(bool) throw();
+			uint    GetSampleBits() const throw();
 			void    SetSpeaker(Speaker) throw();
+			Speaker GetSpeaker() const throw();
+			Result  SetVolume(uint,uint) throw();
+			uint    GetVolume(uint) const throw();
+			Result  SetSpeed(uint) throw();
+			uint    GetSpeed() const throw();
+			void    SetAutoTranspose(bool) throw();
 			bool    IsAutoTransposing() const throw();
 			bool    IsAudible() const throw();
-			ulong   GetSampleRate() const throw();
-			uint    GetSampleBits() const throw();
-			uint    GetVolume(uint) const throw();
-			uint    GetSpeed() const throw();
-			uint    GetLatency() const throw();
-			Speaker GetSpeaker() const throw();
 			void    EmptyBuffer() throw();
 
 			typedef Core::Sound::Output Output;
@@ -202,7 +198,7 @@ namespace Nes
 	}
 }
 
-#ifdef _MSC_VER
+#if NST_MSVC >= 1200 || NST_ICC >= 810
 #pragma warning( pop )
 #endif
 

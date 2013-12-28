@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -22,23 +22,24 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#ifdef _MSC_VER
-#pragma comment(lib,"vfw32")
-#endif
-
 #include "NstObjectPod.hpp"
 #include "NstWindowUser.hpp"
+#include "NstManager.hpp"
 #include "NstManagerAviConverter.hpp"
 #include "NstManagerMovie.hpp"
 
-#ifdef _MSC_VER
+#if NST_MSVC
+#pragma comment(lib,"vfw32")
+#endif
+
+#if NST_MSVC >= 1200
 #pragma warning( push )
 #pragma warning( disable : 4201 )
 #endif
 
 #include <vfw.h>
 
-#ifdef _MSC_VER
+#if NST_MSVC >= 1200
 #pragma warning( pop )
 #endif
 
@@ -47,7 +48,7 @@ namespace Nestopia
 	namespace Managers
 	{
 		AviConverter::AviConverter(Emulator& e,std::fstream& stream)
-		: emulator(e), on(e.Is( Nes::Machine::ON ))
+		: emulator(e), on(e.Is(Nes::Machine::ON))
 		{
 			Nes::Video::Output::lockCallback.Get( nesVideoLockFunc, nesVideoLockData );
 			Nes::Video::Output::unlockCallback.Get( nesVideoUnlockFunc, nesVideoUnlockData );
@@ -55,11 +56,11 @@ namespace Nestopia
 			Nes::Sound::Output::unlockCallback.Get( nesSoundUnlockFunc, nesSoundUnlockData );
 			Nes::Movie::stateCallback.Get( nesMovieStateFunc, nesMovieStateData );
 
-			Nes::Video::Output::lockCallback.Set( NULL, NULL );
-			Nes::Video::Output::unlockCallback.Set( NULL, NULL );
-			Nes::Sound::Output::lockCallback.Set( NULL, NULL );
-			Nes::Sound::Output::unlockCallback.Set( NULL, NULL );
-			Nes::Movie::stateCallback.Set( NULL, NULL );
+			Nes::Video::Output::lockCallback.Unset();
+			Nes::Video::Output::unlockCallback.Unset();
+			Nes::Sound::Output::lockCallback.Unset();
+			Nes::Sound::Output::unlockCallback.Unset();
+			Nes::Movie::stateCallback.Unset();
 
 			Nes::Video(emulator).GetRenderState( renderState );
 
@@ -201,7 +202,7 @@ namespace Nestopia
 					return stream;
 				}
 
-				ibool SetFormat(void* info,uint size) const
+				bool SetFormat(void* info,uint size) const
 				{
 					NST_ASSERT( stream && info && size );
 

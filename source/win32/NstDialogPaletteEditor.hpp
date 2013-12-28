@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -28,7 +28,6 @@
 #pragma once
 
 #include "NstWindowDialog.hpp"
-#include "NstManagerEmulator.hpp"
 
 namespace Nestopia
 {
@@ -61,7 +60,7 @@ namespace Nestopia
 
 			struct Settings
 			{
-				Settings(Nes::Video);
+				explicit Settings(Nes::Video);
 
 				void Restore(Nes::Video) const;
 
@@ -70,7 +69,7 @@ namespace Nestopia
 				uint brightness;
 				uint saturation;
 				uint hue;
-				u8 palette[8*64][3];
+				uchar palette[8*64][3];
 			};
 
 			class History
@@ -79,12 +78,12 @@ namespace Nestopia
 
 				History();
 
-				void  Reset();
-				void  Add(uint,uint);
-				ibool CanUndo() const;
-				ibool CanRedo() const;
-				uint  Undo(Nes::Video);
-				uint  Redo(Nes::Video);
+				void Reset();
+				void Add(uint,uint);
+				bool CanUndo() const;
+				bool CanRedo() const;
+				uint Undo(Nes::Video);
+				uint Redo(Nes::Video);
 
 			private:
 
@@ -95,15 +94,15 @@ namespace Nestopia
 				};
 
 				uint pos;
-				u8 data[LENGTH][2];
+				uchar data[LENGTH][2];
 			};
 
-			void UpdateMode(ibool=false);
+			void UpdateMode(bool=false);
 			void UpdateColor();
 			void UpdateColors();
 
 			ibool OnInitDialog  (Param&);
-			ibool OnEraseBkgnd  (Param&);
+			ibool OnPaint       (Param&);
 			ibool OnLButtonDown (Param&);
 			ibool OnHScroll     (Param&);
 			ibool OnCmdHex      (Param&);
@@ -122,7 +121,7 @@ namespace Nestopia
 			History history;
 			const Settings settings;
 
-			static ibool showHex;
+			static bool showHex;
 
 		public:
 

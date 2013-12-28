@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -43,17 +43,17 @@ namespace Nestopia
 			explicit Menu(uint);
 			~Menu();
 
-			void  Hook(Custom&);
-			void  Unhook();
-			uint  Height() const;
-			ibool Visible() const;
-			void  Show(ibool=true) const;
-			ibool Toggle() const;
-			void  EnableAccelerator(ibool);
-			void  SetKeys(const ACCEL*,uint);
-			void  SetColor(COLORREF) const;
-			void  ResetColor() const;
-			void  ToggleModeless(ibool) const;
+			void Hook(Custom&);
+			void Unhook();
+			uint Height() const;
+			bool Visible() const;
+			void Show(bool=true) const;
+			bool Toggle() const;
+			void EnableAccelerator(bool);
+			void SetKeys(const ACCEL*,uint);
+			void SetColor(COLORREF) const;
+			void ResetColor() const;
+			void ToggleModeless(bool) const;
 
 			class Item;
 
@@ -83,9 +83,9 @@ namespace Nestopia
 
 					const Item& item;
 
-					uint  GetLength() const;
-					ibool GetFullString(tchar*,uint) const;
-					void  SetFullString(tstring) const;
+					uint GetLength() const;
+					bool GetFullString(tchar*,uint) const;
+					void SetFullString(tstring) const;
 
 					template<typename T>
 					void GetFullString(T& string) const
@@ -102,7 +102,7 @@ namespace Nestopia
 					void operator << (const GenericString&) const;
 
 					template<typename T>
-					ibool operator >> (T& string) const
+					uint operator >> (T& string) const
 					{
 						GetFullString( string );
 						string.FirstOf( '\t' ).Clear();
@@ -122,28 +122,28 @@ namespace Nestopia
 
 				Type GetType() const;
 
-				ibool Enable (ibool=true) const;
-				ibool Check  (ibool=true) const;
-				void  Check  (uint,uint,ibool) const;
-				void  Check  (uint,uint) const;
+				bool Enable (bool=true) const;
+				bool Check  (bool=true) const;
+				void Check  (uint,uint,bool) const;
+				void Check  (uint,uint) const;
 
-				ibool Enabled () const;
-				ibool Checked () const;
+				bool Enabled () const;
+				bool Checked () const;
 
-				ibool Disabled  () const { return !Enabled(); }
-				ibool Unchecked () const { return !Checked(); }
+				bool Disabled  () const { return !Enabled(); }
+				bool Unchecked () const { return !Checked(); }
 
-				ibool ToggleCheck()  const { return !Check( Unchecked() ); }
-				ibool ToggleEnable() const { return !Enable( Disabled() ); }
+				bool ToggleCheck()  const { return !Check( Unchecked() ); }
+				bool ToggleEnable() const { return !Enable( Disabled() ); }
 
-				ibool Disable () const { return Enable (false); }
-				ibool Uncheck () const { return Check  (false); }
+				bool Disable () const { return Enable (false); }
+				bool Uncheck () const { return Check  (false); }
 
 				uint GetCommand() const;
 				void Remove() const;
 				void Clear() const;
 				uint NumItems() const;
-				ibool Exists() const;
+				bool Exists() const;
 
 				Stream Text() const
 				{
@@ -185,7 +185,7 @@ namespace Nestopia
 					HMENU const hKey;
 					const Item item;
 
-					Key(const Custom* w,HMENU h=NULL,uint p=0)
+					explicit Key(const Custom* w,HMENU h=NULL,uint p=0)
 					: hKey(::GetSubMenu(h,p)), item(w,h,p) {}
 
 					operator HMENU() const
@@ -200,7 +200,7 @@ namespace Nestopia
 
 				template<uint A,uint B=UINT_MAX,uint C=UINT_MAX,uint D=UINT_MAX> struct Pos
 				{
-					enum { ID = A | ((B + 1) << 8) | ((C + 2) << 16) | ((D + 3) << 24) };
+					enum { ID = A | (B + 1) << 8 | (C + 2) << 16 | (D + 3) << 24 };
 				};
 
 				template<uint A> struct Pos<A,UINT_MAX,UINT_MAX,UINT_MAX>
@@ -210,20 +210,20 @@ namespace Nestopia
 
 				template<uint A,uint B> struct Pos<A,B,UINT_MAX,UINT_MAX>
 				{
-					enum { ID = A | ((B + 1) << 8) };
+					enum { ID = A | (B + 1) << 8 };
 				};
 
 				template<uint A,uint B,uint C> struct Pos<A,B,C,UINT_MAX>
 				{
-					enum { ID = A | ((B + 1) << 8) | ((C + 2) << 16) };
+					enum { ID = A | (B + 1) << 8 | (C + 2) << 16 };
 				};
 
 				struct Param
 				{
 					Item menu;
-					ibool show;
+					bool show;
 
-					Param(const Item& i,ibool s)
+					Param(const Item& i,bool s)
 					: menu(i), show(s) {}
 				};
 
@@ -277,7 +277,7 @@ namespace Nestopia
 			CmdHandler cmdHandler;
 			MsgHandler::Callback cmdCallback;
 			PopupHandler::Handler popupHandler;
-			ibool acceleratorEnabled;
+			bool acceleratorEnabled;
 
 			class Instances
 			{
@@ -285,7 +285,7 @@ namespace Nestopia
 
 				static void Update(Menu*);
 				static void Remove(Menu*);
-				static void EnableAccelerators(ibool);
+				static void EnableAccelerators(bool);
 
 			private:
 
@@ -299,7 +299,7 @@ namespace Nestopia
 
 				static Translator translator;
 				static Menus menus;
-				static ibool acceleratorsEnabled;
+				static bool acceleratorsEnabled;
 
 			public:
 
@@ -351,7 +351,7 @@ namespace Nestopia
 				return Instances::TransAccelerator( msg );
 			}
 
-			static void EnableAccelerators(ibool enable)
+			static void EnableAccelerators(bool enable)
 			{
 				Instances::EnableAccelerators( enable );
 			}

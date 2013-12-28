@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -22,24 +22,23 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "../NstStream.hpp"
 #include "../NstMachine.hpp"
-#include "../NstImage.hpp"
-#include "NstApiMachine.hpp"
+#include "NstApiTapeRecorder.hpp"
 #include "NstApiMovie.hpp"
-
-#ifdef NST_PRAGMA_OPTIMIZE
-#pragma optimize("s", on)
-#endif
 
 namespace Nes
 {
 	namespace Api
 	{
+		#ifdef NST_MSVC_OPTIMIZE
+		#pragma optimize("s", on)
+		#endif
+
 		Movie::StateCaller Movie::stateCallback;
 
 		Result Movie::Play(std::istream& stream,CallbackMode mode) throw()
 		{
+			Api::TapeRecorder(emulator).Stop();
 			return emulator.tracker.MoviePlay( emulator, &stream, mode == ENABLE_CALLBACK );
 		}
 
@@ -82,9 +81,9 @@ namespace Nes
 		{
 			return emulator.tracker.MovieIsInserted();
 		}
+
+		#ifdef NST_MSVC_OPTIMIZE
+		#pragma optimize("", on)
+		#endif
 	}
 }
-
-#ifdef NST_PRAGMA_OPTIMIZE
-#pragma optimize("", on)
-#endif

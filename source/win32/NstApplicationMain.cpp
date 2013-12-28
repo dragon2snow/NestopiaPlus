@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -113,7 +113,7 @@ namespace Nestopia
 			return exitCode;
 		}
 
-		ibool Main::FirstUnloadOnExit()
+		bool Main::FirstUnloadOnExit()
 		{
 			return
 			(
@@ -122,7 +122,7 @@ namespace Nestopia
 			);
 		}
 
-		ibool Main::OkToExit() const
+		bool Main::OkToExit() const
 		{
 			return
 			(

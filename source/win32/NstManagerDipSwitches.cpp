@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -22,7 +22,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstWindowMenu.hpp"
+#include "NstManager.hpp"
 #include "NstDialogDipSwitches.hpp"
 #include "NstManagerDipSwitches.hpp"
 
@@ -31,15 +31,8 @@ namespace Nestopia
 	namespace Managers
 	{
 		DipSwitches::DipSwitches(Emulator& e,Window::Menu& m)
-		: emulator(e), menu(m)
+		: Manager(e,m,this,&DipSwitches::OnEmuEvent,IDM_MACHINE_EXT_DIPSWITCHES,&DipSwitches::OnMenuCmd)
 		{
-			m.Commands().Add( IDM_MACHINE_EXT_DIPSWITCHES, this, &DipSwitches::OnMenuCmd );
-			emulator.Events().Add( this, &DipSwitches::OnEmuEvent );
-		}
-
-		DipSwitches::~DipSwitches()
-		{
-			emulator.Events().Remove( this );
 		}
 
 		void DipSwitches::OnMenuCmd(uint)

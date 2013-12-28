@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -27,7 +27,6 @@
 #include "NstResourceString.hpp"
 #include "NstWindowParam.hpp"
 #include "NstManagerPaths.hpp"
-#include "NstManagerEmulator.hpp"
 #include "NstDialogSound.hpp"
 #include "../core/api/NstApiSound.hpp"
 
@@ -35,6 +34,20 @@ namespace Nestopia
 {
 	namespace Window
 	{
+		NST_COMPILE_ASSERT
+		(
+			IDC_SOUND_8_BIT         == IDC_SOUND_SAMPLE_RATE + 1 &&
+			IDC_SOUND_16_BIT        == IDC_SOUND_SAMPLE_RATE + 2 &&
+			IDC_SOUND_LATENCY       == IDC_SOUND_SAMPLE_RATE + 3 &&
+			IDC_SOUND_LATENCY_ONE   == IDC_SOUND_SAMPLE_RATE + 4 &&
+			IDC_SOUND_LATENCY_TEN   == IDC_SOUND_SAMPLE_RATE + 5 &&
+			IDC_SOUND_MONO          == IDC_SOUND_SAMPLE_RATE + 6 &&
+			IDC_SOUND_STEREO        == IDC_SOUND_SAMPLE_RATE + 7 &&
+			IDC_SOUND_POOL_SYSTEM   == IDC_SOUND_SAMPLE_RATE + 8 &&
+			IDC_SOUND_POOL_HARDWARE == IDC_SOUND_SAMPLE_RATE + 9 &&
+			IDC_SOUND_ADJUST_PITCH  == IDC_SOUND_SAMPLE_RATE + 10
+		);
+
 		const Sound::ChannelLut Sound::channelLut[NUM_CHANNELS] =
 		{
 			{ "sound master volume",       IDC_SOUND_MASTER_SLIDER,   IDC_SOUND_MASTER_VALUE,   IDC_SOUND_MASTER_TEXT,   0                            },
@@ -97,12 +110,12 @@ namespace Nestopia
 
 			switch (uint rate = cfg["sound sample rate"])
 			{
-				case 11025U:
-				case 22050U:
-				case 44100U:
-				case 48000U:
-				case 88200U:
-				case 96000U:
+				case 11025:
+				case 22050:
+				case 44100:
+				case 48000:
+				case 88200:
+				case 96000:
 
 					nes.SetSampleRate( rate );
 					break;
@@ -122,7 +135,7 @@ namespace Nestopia
 
 			for (uint i=0; i < NUM_CHANNELS; ++i)
 			{
-				uint volume = cfg[channelLut[i].cfg].Default( (uint) DEFAULT_VOLUME );
+				uint volume = cfg[channelLut[i].cfg].Default( uint(DEFAULT_VOLUME) );
 
 				if (volume > VOLUME_MAX)
 					volume = DEFAULT_VOLUME;
@@ -135,10 +148,14 @@ namespace Nestopia
 
 			settings.pool = (GenericString(cfg["sound pool"]) == _T("system") ? DirectSound::POOL_SYSTEM : DirectSound::POOL_HARDWARE);
 
-			settings.latency = cfg[ "sound buffers" ].Default( (uint) DEFAULT_LATENCY );
+			settings.latency = cfg[ "sound buffers" ].Default( uint(DEFAULT_LATENCY) );
 
 			if (settings.latency > LATENCY_MAX)
 				settings.latency = DEFAULT_LATENCY;
+		}
+
+		Sound::~Sound()
+		{
 		}
 
 		void Sound::Save(Configuration& cfg) const
@@ -156,7 +173,7 @@ namespace Nestopia
 			cfg[ "sound pool"         ] = (settings.pool == DirectSound::POOL_HARDWARE ? _T("hardware") : _T("system"));
 
 			for (uint i=0; i < NUM_CHANNELS; ++i)
-				cfg[channelLut[i].cfg] = (uint) settings.volumes[i];
+				cfg[channelLut[i].cfg] = uint(settings.volumes[i]);
 		}
 
 		uint Sound::GetVolume(const uint channel) const
@@ -191,10 +208,10 @@ namespace Nestopia
 
 					comboBox.Add( Resource::String(IDS_NONE) );
 
-					for (Adapters::const_iterator it(adapters.begin()); it != adapters.end(); ++it)
+					for (Adapters::const_iterator it(adapters.begin()), end(adapters.end()); it != end; ++it)
 						comboBox.Add( it->name.Ptr() );
 
-					comboBox[settings.adapter+1U].Select();
+					comboBox[settings.adapter+1].Select();
 				}
 
 				{
@@ -212,17 +229,17 @@ namespace Nestopia
 
 					switch (nes.GetSampleRate())
 					{
-						case 11025U: index = 0; break;
-						case 22050U: index = 1; break;
-						case 48000U: index = 3; break;
-						case 88200U: index = 4; break;
-						case 96000U: index = 5; break;
-						default:     index = 2; break;
+						case 11025: index = 0; break;
+						case 22050: index = 1; break;
+						case 48000: index = 3; break;
+						case 88200: index = 4; break;
+						case 96000: index = 5; break;
+						default:    index = 2; break;
 					}
 
 					const Control::ComboBox comboBox( dialog.ComboBox(IDC_SOUND_SAMPLE_RATE) );
 
-					comboBox.Add( rates, NST_COUNT(rates) );
+					comboBox.Add( rates, sizeof(array(rates)) );
 					comboBox[index].Select();
 				}
 
@@ -235,7 +252,7 @@ namespace Nestopia
 					const Control::Slider control( dialog.Slider(channelLut[i].ctrlSlider) );
 					control.SetRange( 0, VOLUME_MAX );
 					control.Position() = VOLUME_MAX - settings.volumes[i];
-					dialog.Edit( channelLut[i].ctrlValue ) << (uint) settings.volumes[i];
+					dialog.Edit( channelLut[i].ctrlValue ) << uint(settings.volumes[i]);
 				}
 
 				{
@@ -262,19 +279,10 @@ namespace Nestopia
 			return true;
 		}
 
-		void Sound::Enable(const ibool state) const
+		void Sound::Enable(const bool state) const
 		{
-			dialog.Control( IDC_SOUND_SAMPLE_RATE   ).Enable( state );
-			dialog.Control( IDC_SOUND_8_BIT         ).Enable( state );
-			dialog.Control( IDC_SOUND_16_BIT        ).Enable( state );
-			dialog.Control( IDC_SOUND_LATENCY       ).Enable( state );
-			dialog.Control( IDC_SOUND_LATENCY_ONE   ).Enable( state );
-			dialog.Control( IDC_SOUND_LATENCY_TEN   ).Enable( state );
-			dialog.Control( IDC_SOUND_MONO          ).Enable( state );
-			dialog.Control( IDC_SOUND_STEREO        ).Enable( state );
-			dialog.Control( IDC_SOUND_ADJUST_PITCH  ).Enable( state );
-			dialog.Control( IDC_SOUND_POOL_HARDWARE ).Enable( state );
-			dialog.Control( IDC_SOUND_POOL_SYSTEM   ).Enable( state );
+			for (uint i=IDC_SOUND_SAMPLE_RATE; i <= IDC_SOUND_ADJUST_PITCH; ++i)
+				dialog.Control( i ).Enable( state );
 
 			for (uint i=0; i < NUM_CHANNELS; ++i)
 			{
@@ -294,7 +302,7 @@ namespace Nestopia
 			for (uint i=0; i < NUM_CHANNELS; ++i)
 			{
 				dialog.Slider( channelLut[i].ctrlSlider ).Position() = VOLUME_MAX-DEFAULT_VOLUME;
-				dialog.Edit( channelLut[i].ctrlValue ) << (uint) DEFAULT_VOLUME;
+				dialog.Edit( channelLut[i].ctrlValue ) << uint(DEFAULT_VOLUME);
 			}
 
 			dialog.Control( IDC_SOUND_RESET_SLIDERS ).Disable();
@@ -421,6 +429,10 @@ namespace Nestopia
 
 		Sound::Recorder::Recorder(const Managers::Paths& p)
 		: dialog(IDD_SOUND_RECORDER,this,Handlers::messages,Handlers::commands), paths(p) {}
+
+		Sound::Recorder::~Recorder()
+		{
+		}
 
 		const Path Sound::Recorder::WaveFile() const
 		{

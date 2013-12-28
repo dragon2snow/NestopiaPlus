@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -66,7 +66,7 @@ namespace Nestopia
 					void Align() const;
 					void Clear() const;
 
-					template<typename T,size_t N>
+					template<typename T,uint N>
 					void Set(const T (&list)[N]) const
 					{
 						Clear();
@@ -140,11 +140,11 @@ namespace Nestopia
 					Item(Window::Generic w,uint i)
 					: control(w), index(i) {}
 
-					ibool Delete() const;
-					void  Select(ibool=true) const;
-					void  Show() const;
-					void  Check(ibool=true) const;
-					ibool Checked() const;
+					bool Delete() const;
+					void Select(bool=true) const;
+					void Show() const;
+					void Check(bool=true) const;
+					bool Checked() const;
 
 					uint GetIndex() const
 					{
@@ -170,15 +170,15 @@ namespace Nestopia
 
 			public:
 
-				uint  Size() const;
-				void  Clear() const;
-				void  Reserve(uint) const;
-				int   Add(GenericString = GenericString(),LPARAM=0,ibool=false) const;
-				Item  Selection() const;
-				void  SetBkColor(uint) const;
-				void  SetTextColor(uint) const;
-				void  SetTextBkColor(uint) const;
-				ibool HitTest(uint,uint) const;
+				uint Size() const;
+				void Clear() const;
+				void Reserve(uint) const;
+				int  Add(GenericString = GenericString(),LPARAM=0,bool=false) const;
+				Item Selection() const;
+				void SetBkColor(uint) const;
+				void SetTextColor(uint) const;
+				void SetTextBkColor(uint) const;
+				bool HitTest(uint,uint) const;
 
 				ListView(HWND hWnd=NULL)
 				: Generic( hWnd ) {}
@@ -207,7 +207,7 @@ namespace Nestopia
 					Sort( SortFunction(data,code) );
 				}
 
-				int Add(GenericString name,const void* const data,const ibool checked=false) const
+				int Add(GenericString name,const void* const data,const bool checked=false) const
 				{
 					return Add( name, reinterpret_cast<LPARAM>(data), checked );
 				}

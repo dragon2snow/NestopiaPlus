@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,7 +25,7 @@
 #ifndef NST_BOARDS_MMC5_H
 #define NST_BOARDS_MMC5_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
+#ifdef NST_PRAGMA_ONCE
 #pragma once
 #endif
 
@@ -35,44 +35,58 @@ namespace Nes
 	{
 		namespace Boards
 		{
-			class NST_NO_VTABLE Mmc5 : public Mapper
+			class Mmc5 : public Mapper
 			{
+			protected:
+
+				enum Board
+				{
+					BRD_GENERIC,
+					BRD_ELROM,
+					BRD_EKROM,
+					BRD_ETROM,
+					BRD_EWROM
+				};
+
+				Mmc5(Context&,Board);
+				~Mmc5() {}
+
 			public:
 
 				class Sound : public Apu::Channel
 				{
 				public:
 
-					Sound(Cpu&,bool=true);
+					explicit Sound(Cpu&,bool=true);
 					~Sound();
 
-					void SaveState(State::Saver&) const;
+					void SaveState(State::Saver&,dword) const;
 					void LoadState(State::Loader&);
 
 				protected:
 
 					void Reset();
-					void UpdateContext(uint,const u8 (&w)[MAX_CHANNELS]);
+					void UpdateContext(uint,const byte (&w)[MAX_CHANNELS]);
 					Cycle Clock();
 					Sample GetSample();
 
 				private:
 
-					NES_DECL_POKE( 5000 )
-					NES_DECL_POKE( 5002 )
-					NES_DECL_POKE( 5003 )
-					NES_DECL_POKE( 5004 )
-					NES_DECL_POKE( 5006 )
-					NES_DECL_POKE( 5007 )
-					NES_DECL_POKE( 5011 )
-					NES_DECL_POKE( 5010 )
-					NES_DECL_PEEK( 5015 )
-					NES_DECL_POKE( 5015 )
-					NES_DECL_PEEK( 5205 )
-					NES_DECL_POKE( 5205 )
-					NES_DECL_PEEK( 5206 )
-					NES_DECL_POKE( 5206 )
-					NES_DECL_PEEK( Nop  )
+					NES_DECL_POKE( 5000 );
+					NES_DECL_POKE( 5002 );
+					NES_DECL_POKE( 5003 );
+					NES_DECL_POKE( 5004 );
+					NES_DECL_POKE( 5006 );
+					NES_DECL_POKE( 5007 );
+					NES_DECL_POKE( 5011 );
+					NES_DECL_POKE( 5010 );
+					NES_DECL_PEEK( 5015 );
+					NES_DECL_POKE( 5015 );
+					NES_DECL_PEEK( 5205 );
+					NES_DECL_POKE( 5205 );
+					NES_DECL_PEEK( 5206 );
+					NES_DECL_POKE( 5206 );
+					NES_DECL_PEEK( Nop  );
 
 					enum
 					{
@@ -99,7 +113,7 @@ namespace Nes
 
 						void UpdateContext(uint);
 
-						void SaveState(State::Saver&) const;
+						void SaveState(State::Saver&,dword) const;
 						void LoadState(State::Loader&,dword);
 
 					private:
@@ -114,12 +128,12 @@ namespace Nes
 							DUTY_SHIFT           = 6
 						};
 
-						uint  waveLength;
-						ibool active;
-						Cycle frequency;
-						iword timer;
-						uint  step;
-						uint  duty;
+						uint   waveLength;
+						ibool  active;
+						Cycle  frequency;
+						idword timer;
+						uint   step;
+						uint   duty;
 
 						Apu::LengthCounter lengthCounter;
 						Apu::Envelope envelope;
@@ -143,7 +157,7 @@ namespace Nes
 						NST_FORCE_INLINE void WriteReg0(uint);
 						NST_FORCE_INLINE void WriteReg1(uint);
 
-						void SaveState(State::Saver&) const;
+						void SaveState(State::Saver&,dword) const;
 						void LoadState(State::Loader&);
 
 					private:
@@ -175,25 +189,22 @@ namespace Nes
 					const ibool hooked;
 				};
 
-			protected:
-
-				enum Board
-				{
-					BRD_GENERIC,
-					BRD_ELROM,
-					BRD_EKROM,
-					BRD_ETROM,
-					BRD_EWROM
-				};
-
-				Mmc5(Context&,Board);
-
-				void SubReset(bool);
-
 			private:
+
+				enum
+				{
+					NT_CIRAM_0,
+					NT_CIRAM_1,
+					NT_EXRAM,
+					NT_FILL,
+					NT_ZERO,
+					AT_FILL,
+					AT_EXRAM
+				};
 
 				static uint BoardToWRam(Board,dword);
 
+				void SubReset(bool);
 				void VBlank();
 				void HDummy();
 				void HActive0();
@@ -222,53 +233,53 @@ namespace Nes
 				uint GetSpliterAttribute() const;
 				uint GetSpliterPattern(uint) const;
 
-				NES_DECL_HOOK( CpuUpdate )
-				NES_DECL_HOOK( PpuBgMode )
-				NES_DECL_HOOK( PpuSpMode )
+				NES_DECL_HOOK( CpuUpdate );
+				NES_DECL_HOOK( PpuBgMode );
+				NES_DECL_HOOK( PpuSpMode );
 
-				NES_DECL_ACCESSOR_TEMPLATE( uint, NT, Nt         )
-				NES_DECL_ACCESSOR_TEMPLATE( uint, NT, NtExt      )
-				NES_DECL_ACCESSOR_TEMPLATE( uint, NT, NtSplit    )
-				NES_DECL_ACCESSOR_TEMPLATE( uint, NT, NtExtSplit )
-				NES_DECL_ACCESSOR_TEMPLATE( uint, AT, AtSplit    )
+				NES_DECL_ACCESSOR_T( uint, NT, Nt         );
+				NES_DECL_ACCESSOR_T( uint, NT, NtExt      );
+				NES_DECL_ACCESSOR_T( uint, NT, NtSplit    );
+				NES_DECL_ACCESSOR_T( uint, NT, NtExtSplit );
+				NES_DECL_ACCESSOR_T( uint, AT, AtSplit    );
 
-				NES_DECL_ACCESSOR( CRom         )
-				NES_DECL_ACCESSOR( CRomExt      )
-				NES_DECL_ACCESSOR( CRomSplit    )
-				NES_DECL_ACCESSOR( CRomExtSplit )
+				NES_DECL_ACCESSOR( CRom         );
+				NES_DECL_ACCESSOR( CRomExt      );
+				NES_DECL_ACCESSOR( CRomSplit    );
+				NES_DECL_ACCESSOR( CRomExtSplit );
 
-				NES_DECL_POKE( 2001 )
-				NES_DECL_PEEK( 2001 )
+				NES_DECL_POKE( 2001 );
+				NES_DECL_PEEK( 2001 );
 
-				NES_DECL_POKE( 5100 )
-				NES_DECL_POKE( 5101 )
-				NES_DECL_POKE( 5102 )
-				NES_DECL_POKE( 5103 )
-				NES_DECL_POKE( 5104 )
-				NES_DECL_POKE( 5105 )
-				NES_DECL_POKE( 5106 )
-				NES_DECL_POKE( 5107 )
-				NES_DECL_POKE( 5113 )
-				NES_DECL_POKE( 5114 )
-				NES_DECL_POKE( 5120 )
-				NES_DECL_POKE( 5128 )
-				NES_DECL_POKE( 5130 )
-				NES_DECL_POKE( 5200 )
-				NES_DECL_POKE( 5201 )
-				NES_DECL_POKE( 5202 )
-				NES_DECL_POKE( 5203 )
-				NES_DECL_PEEK( 5204 )
-				NES_DECL_POKE( 5204 )
-				NES_DECL_PEEK( 5C00 )
-				NES_DECL_POKE( 5C00 )
-				NES_DECL_PEEK( 6000 )
-				NES_DECL_POKE( 6000 )
-				NES_DECL_PEEK( 8000 )
-				NES_DECL_POKE( 8000 )
-				NES_DECL_PEEK( A000 )
-				NES_DECL_POKE( A000 )
-				NES_DECL_PEEK( C000 )
-				NES_DECL_POKE( C000 )
+				NES_DECL_POKE( 5100 );
+				NES_DECL_POKE( 5101 );
+				NES_DECL_POKE( 5102 );
+				NES_DECL_POKE( 5103 );
+				NES_DECL_POKE( 5104 );
+				NES_DECL_POKE( 5105 );
+				NES_DECL_POKE( 5106 );
+				NES_DECL_POKE( 5107 );
+				NES_DECL_POKE( 5113 );
+				NES_DECL_POKE( 5114 );
+				NES_DECL_POKE( 5120 );
+				NES_DECL_POKE( 5128 );
+				NES_DECL_POKE( 5130 );
+				NES_DECL_POKE( 5200 );
+				NES_DECL_POKE( 5201 );
+				NES_DECL_POKE( 5202 );
+				NES_DECL_POKE( 5203 );
+				NES_DECL_PEEK( 5204 );
+				NES_DECL_POKE( 5204 );
+				NES_DECL_PEEK( 5C00 );
+				NES_DECL_POKE( 5C00 );
+				NES_DECL_PEEK( 6000 );
+				NES_DECL_POKE( 6000 );
+				NES_DECL_PEEK( 8000 );
+				NES_DECL_POKE( 8000 );
+				NES_DECL_PEEK( A000 );
+				NES_DECL_POKE( A000 );
+				NES_DECL_PEEK( C000 );
+				NES_DECL_POKE( C000 );
 
 				struct Flow
 				{
@@ -280,9 +291,9 @@ namespace Nes
 					Phase phase;
 					uint scanline;
 
-					static const Cycle vSync[2];
-					static const Cycle hDummy[2][2];
-					static const Cycle hSync[2];
+					static const dword vSync[2];
+					static const dword hDummy[2][2];
+					static const dword hSync[2];
 				};
 
 				struct Irq
@@ -346,7 +357,7 @@ namespace Nes
 
 				struct Banks
 				{
-					Banks(uint);
+					explicit Banks(uint);
 
 					void Reset();
 
@@ -381,7 +392,7 @@ namespace Nes
 
 					class Wrk
 					{
-						u8 banks[8];
+						byte banks[8];
 
 					public:
 
@@ -396,13 +407,13 @@ namespace Nes
 					};
 
 					uint nmt;
-					u16 chrA[8];
-					u16 chrB[4];
+					word chrA[8];
+					word chrB[4];
 					dword chrHigh;
 					LastChr lastChr;
 					FetchMode fetchMode;
 					uint security;
-					u8 prg[4];
+					byte prg[4];
 					const Wrk wrk;
 				};
 
@@ -413,7 +424,7 @@ namespace Nes
 					uint tile;
 					uint attribute;
 
-					static const u8 squared[4];
+					static const byte squared[4];
 				};
 
 				struct Spliter
@@ -441,22 +452,22 @@ namespace Nes
 					void Reset(bool);
 
 					uint tile;
-					u8 mem[SIZE_1K];
+					byte mem[SIZE_1K];
 				};
 
 				Flow flow;
 				Irq irq;
 				Regs regs;
 				Banks banks;
-				const u8* ciRam[2];
+				const byte* ciRam[2];
 				Filler filler;
 				Spliter spliter;
 				Io::Port p2001;
 				ExRam exRam;
 				Sound sound;
 
-				static NES_ACCESSOR_TYPE(Mmc5,const chrMethods[8]);
-				static NES_ACCESSOR_TYPE(Mmc5,const nmtMethods[8][4][2]);
+				static const Io::Accessor::Type<Mmc5>::Function chrMethods[8];
+				static const Io::Accessor::Type<Mmc5>::Function nmtMethods[8][4][2];
 			};
 		}
 	}

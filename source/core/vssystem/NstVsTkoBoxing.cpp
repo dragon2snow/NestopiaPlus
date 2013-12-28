@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -22,8 +22,8 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "../NstState.hpp"
 #include "../NstCpu.hpp"
+#include "../NstState.hpp"
 #include "../vssystem/NstVsSystem.hpp"
 #include "../vssystem/NstVsTkoBoxing.hpp"
 
@@ -31,41 +31,42 @@ namespace Nes
 {
 	namespace Core
 	{
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("s", on)
 		#endif
 
-		void VsTkoBoxing::Reset()
+		void Cartridge::VsSystem::TkoBoxing::Reset()
 		{
-			cpu.Map( 0x5E00U ).Set( &VsTkoBoxing::Peek_5E00 );
-			cpu.Map( 0x5E01U ).Set( &VsTkoBoxing::Peek_5E01 );
+			cpu.Map( 0x5E00 ).Set( &TkoBoxing::Peek_5E00 );
+			cpu.Map( 0x5E01 ).Set( &TkoBoxing::Peek_5E01 );
 
 			counter = 0;
 		}
 
-		void VsTkoBoxing::SubSave(State::Saver& state) const
+		void Cartridge::VsSystem::TkoBoxing::SubSave(State::Saver& state) const
 		{
-			state.Begin('T','K','O','\0').Write8( counter & 0x1F ).End();
+			state.Begin( AsciiId<'T','K','O'>::V ).Write8( counter & 0x1F ).End();
 		}
 
-		void VsTkoBoxing::SubLoad(State::Loader& state,const dword id)
+		void Cartridge::VsSystem::TkoBoxing::SubLoad(State::Loader& state,const dword id)
 		{
-			if (id == NES_STATE_CHUNK_ID('T','K','O','\0'))
+			if (id == AsciiId<'T','K','O'>::V)
 				counter = state.Read8() & 0x1F;
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
-		NES_PEEK(VsTkoBoxing,5E00)
+		NES_PEEK(Cartridge::VsSystem::TkoBoxing,5E00)
 		{
-			return counter = 0;
+			counter = 0;
+			return 0;
 		}
 
-		NES_PEEK(VsTkoBoxing,5E01)
+		NES_PEEK(Cartridge::VsSystem::TkoBoxing,5E01)
 		{
-			static const uchar securityData[32] =
+			static const byte securityData[32] =
 			{
 				0xFF, 0xBF, 0xB7, 0x97, 0x97, 0x17, 0x57, 0x4F,
 				0x6F, 0x6B, 0xEB, 0xA9, 0xB1, 0x90, 0x94, 0x14,

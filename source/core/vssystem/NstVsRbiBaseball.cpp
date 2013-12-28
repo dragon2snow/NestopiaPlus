@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -22,8 +22,8 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "../NstState.hpp"
 #include "../NstCpu.hpp"
+#include "../NstState.hpp"
 #include "../vssystem/NstVsSystem.hpp"
 #include "../vssystem/NstVsRbiBaseball.hpp"
 
@@ -31,40 +31,40 @@ namespace Nes
 {
 	namespace Core
 	{
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("s", on)
 		#endif
 
-		void VsRbiBaseball::Reset()
+		void Cartridge::VsSystem::RbiBaseball::Reset()
 		{
-			cpu.Map( 0x5E00U ).Set( &VsRbiBaseball::Peek_5E00 );
-			cpu.Map( 0x5E01U ).Set( &VsRbiBaseball::Peek_5E01 );
+			cpu.Map( 0x5E00 ).Set( &RbiBaseball::Peek_5E00 );
+			cpu.Map( 0x5E01 ).Set( &RbiBaseball::Peek_5E01 );
 
 			counter = 0;
 		}
 
-		void VsRbiBaseball::SubSave(State::Saver& state) const
+		void Cartridge::VsSystem::RbiBaseball::SubSave(State::Saver& state) const
 		{
-			state.Begin('R','B','I','\0').Write8( counter & 0xFF ).End();
+			state.Begin( AsciiId<'R','B','I'>::V ).Write8( counter & 0xFF ).End();
 		}
 
-		void VsRbiBaseball::SubLoad(State::Loader& state,const dword id)
+		void Cartridge::VsSystem::RbiBaseball::SubLoad(State::Loader& state,const dword id)
 		{
-			if (id == NES_STATE_CHUNK_ID('R','B','I','\0'))
+			if (id == AsciiId<'R','B','I'>::V)
 				counter = state.Read8();
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
-		NES_PEEK(VsRbiBaseball,5E00)
+		NES_PEEK(Cartridge::VsSystem::RbiBaseball,5E00)
 		{
 			counter = 0;
 			return 0x00;
 		}
 
-		NES_PEEK(VsRbiBaseball,5E01)
+		NES_PEEK(Cartridge::VsSystem::RbiBaseball,5E01)
 		{
 			return (counter++ == 0x9) ? 0x6F : 0xB4;
 		}

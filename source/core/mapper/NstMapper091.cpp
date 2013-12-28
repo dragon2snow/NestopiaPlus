@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -30,7 +30,7 @@ namespace Nes
 {
 	namespace Core
 	{
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("s", on)
 		#endif
 
@@ -44,16 +44,16 @@ namespace Nes
 		{
 			irq.Reset( hard, hard || irq.IsLineEnabled() );
 
-			for (uint i=0x0000U; i < 0x1000U; i += 0x4)
+			for (uint i=0x0000; i < 0x1000; i += 0x4)
 			{
-				Map( 0x6000U + i, CHR_SWAP_2K_0 );
-				Map( 0x6001U + i, CHR_SWAP_2K_1 );
-				Map( 0x6002U + i, CHR_SWAP_2K_2 );
-				Map( 0x6003U + i, CHR_SWAP_2K_3 );
-				Map( 0x7000U + i, PRG_SWAP_8K_0 );
-				Map( 0x7001U + i, PRG_SWAP_8K_1 );
-				Map( 0x7002U + i, &Mapper91::Poke_7002 );
-				Map( 0x7003U + i, &Mapper91::Poke_7003 );
+				Map( 0x6000 + i, CHR_SWAP_2K_0 );
+				Map( 0x6001 + i, CHR_SWAP_2K_1 );
+				Map( 0x6002 + i, CHR_SWAP_2K_2 );
+				Map( 0x6003 + i, CHR_SWAP_2K_3 );
+				Map( 0x7000 + i, PRG_SWAP_8K_0 );
+				Map( 0x7001 + i, PRG_SWAP_8K_1 );
+				Map( 0x7002 + i, &Mapper91::Poke_7002 );
+				Map( 0x7003 + i, &Mapper91::Poke_7003 );
 			}
 		}
 
@@ -61,7 +61,7 @@ namespace Nes
 		{
 			while (const dword chunk = state.Begin())
 			{
-				if (chunk == NES_STATE_CHUNK_ID('I','R','Q','\0'))
+				if (chunk == AsciiId<'I','R','Q'>::V)
 					irq.unit.LoadState( state );
 
 				state.End();
@@ -70,10 +70,10 @@ namespace Nes
 
 		void Mapper91::SubSave(State::Saver& state) const
 		{
-			irq.unit.SaveState( State::Saver::Subset(state,'I','R','Q','\0').Ref() );
+			irq.unit.SaveState( state, AsciiId<'I','R','Q'>::V );
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 

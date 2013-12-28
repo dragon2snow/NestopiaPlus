@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -23,7 +23,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 
 #include "NstCore.hpp"
-#include "api/NstApiVideo.hpp"
 #include "NstVideoRenderer.hpp"
 #include "NstVideoFilterNone.hpp"
 
@@ -33,105 +32,82 @@ namespace Nes
 	{
 		namespace Video
 		{
-			#ifdef NST_PRAGMA_OPTIMIZE
+			template<typename T>
+			void Renderer::FilterNone::BlitAligned(const Input& input,const Output& output,uint) const
+			{
+				const Input::Pixel* NST_RESTRICT src = input.pixels;
+				T* NST_RESTRICT dst = static_cast<T*>(output.pixels);
+
+				for (uint prefetched=src[0], i=PIXELS; i; --i)
+				{
+					const dword reg = input.palette[prefetched];
+					prefetched = *(++src);
+					*dst++ = reg;
+				}
+			}
+
+			template<typename T>
+			void Renderer::FilterNone::BlitUnaligned(const Input& input,const Output& output,uint) const
+			{
+				const Input::Pixel* NST_RESTRICT src = input.pixels;
+				T* NST_RESTRICT dst = static_cast<T*>(output.pixels);
+
+				const long pad = output.pitch - WIDTH * sizeof(T);
+
+				for (uint prefetched=src[0], y=HEIGHT, x=WIDTH; y; --y, x=WIDTH)
+				{
+					do
+					{
+						const dword reg = input.palette[prefetched];
+						prefetched = *(++src);
+						*dst++ = reg;
+					}
+					while (--x);
+
+					dst = reinterpret_cast<T*>(reinterpret_cast<byte*>(dst) + pad);
+				}
+			}
+
+			void Renderer::FilterNone::Blit(const Input& input,const Output& output,uint phase)
+			{
+				if (bpp == 32)
+				{
+					if (output.pitch == WIDTH * sizeof(dword))
+						BlitAligned<dword>( input, output, phase );
+					else
+						BlitUnaligned<dword>( input, output, phase );
+				}
+				else
+				{
+					if (output.pitch == WIDTH * sizeof(word))
+						BlitAligned<word>( input, output, phase );
+					else
+						BlitUnaligned<word>( input, output, phase );
+				}
+			}
+
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("s", on)
 			#endif
 
 			Renderer::FilterNone::FilterNone(const RenderState& state)
-			: Filter(state), paletteOffset(state.paletteOffset)
+			: Filter(state)
 			{
+				NST_COMPILE_ASSERT( Video::Screen::PIXELS_PADDING >= 1 );
 			}
 
 			bool Renderer::FilterNone::Check(const RenderState& state)
 			{
 				return
 				(
-					(state.bits.count == 8 || state.bits.count == 16 || state.bits.count == 32) &&
+					(state.bits.count == 16 || state.bits.count == 32) &&
 					(state.width == WIDTH && state.height == HEIGHT)
 				);
 			}
 
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("", on)
 			#endif
-
-			template<typename T>
-			NST_FORCE_INLINE void Renderer::FilterNone::BlitAligned(const Input& input,const Output& output) const
-			{
-				T* const NST_RESTRICT dst = static_cast<T*>(output.pixels);
-
-				for (uint i=0; i < PIXELS; ++i)
-					dst[i] = input.palette[input.pixels[i]];
-			}
-
-			template<>
-			NST_FORCE_INLINE void Renderer::FilterNone::BlitAligned<u8>(const Input& input,const Output& output) const
-			{
-				u8* const NST_RESTRICT dst = static_cast<u8*>(output.pixels);
-
-				const uint offset = paletteOffset;
-
-				for (uint i=0; i < PIXELS; ++i)
-					dst[i] = offset + input.pixels[i];
-			}
-
-			template<typename T>
-			NST_FORCE_INLINE void Renderer::FilterNone::BlitUnaligned(const Input& input,const Output& output) const
-			{
-				const u16* NST_RESTRICT src = input.pixels;
-				T* NST_RESTRICT dst = static_cast<T*>(output.pixels);
-
-				const long pitch = output.pitch;
-
-				for (uint y=0; y < HEIGHT; ++y)
-				{
-					for (uint x=0; x < WIDTH; ++x)
-						dst[x] = input.palette[src[x]];
-
-					dst = reinterpret_cast<T*>(reinterpret_cast<u8*>(dst) + pitch);
-					src += WIDTH;
-				}
-			}
-
-			template<>
-			NST_FORCE_INLINE void Renderer::FilterNone::BlitUnaligned<u8>(const Input& input,const Output& output) const
-			{
-				const u16* NST_RESTRICT src = input.pixels;
-				u8* NST_RESTRICT dst = static_cast<u8*>(output.pixels);
-
-				const long pitch = output.pitch;
-				const uint offset = paletteOffset;
-
-				for (uint y=0; y < HEIGHT; ++y)
-				{
-					for (uint x=0; x < WIDTH; ++x)
-						dst[x] = offset + src[x];
-
-					dst += pitch;
-					src += WIDTH;
-				}
-			}
-
-			template<typename T>
-			NST_FORCE_INLINE void Renderer::FilterNone::BlitType(const Input& input,const Output& output) const
-			{
-				if (output.pitch == WIDTH * sizeof(T))
-					BlitAligned<T>( input, output );
-				else
-					BlitUnaligned<T>( input, output );
-			}
-
-			void Renderer::FilterNone::Blit(const Input& input,const Output& output,uint)
-			{
-				switch (bpp)
-				{
-					case 32: BlitType< u32 >( input, output ); break;
-					case 16: BlitType< u16 >( input, output ); break;
-					case  8: BlitType< u8  >( input, output ); break;
-
-					NST_UNREACHABLE
-				}
-			}
 		}
 	}
 }

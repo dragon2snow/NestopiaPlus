@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -70,13 +70,13 @@ namespace Nestopia
 				NUM_EXTENSIONS = 5
 			};
 
-			Association(ibool=false);
+			Association(bool=false);
 			~Association();
 
 			void Create(uint,uint);
 			void Delete(uint);
 			void Update(uint,uint);
-			ibool Enabled(uint) const;
+			bool Enabled(uint) const;
 
 		private:
 
@@ -89,23 +89,23 @@ namespace Nestopia
 			};
 
 			System::Registry registry;
-			ibool refresh;
-			ibool updated;
-			const ibool notify;
+			bool refresh;
+			bool updated;
+			const bool notify;
 
 			static tstring const keyNames[NUM_EXTENSIONS][NUM_KEYTYPES];
 		};
 
 		tstring const Preferences::Association::keyNames[NUM_EXTENSIONS][NUM_KEYTYPES] =
 		{
-			{ _T( ".nes" ), _T( "Nestopia.nes" ), _T( "Nestopia iNes File"                ) },
+			{ _T( ".nes" ), _T( "Nestopia.nes" ), _T( "Nestopia iNES File"                ) },
 			{ _T( ".unf" ), _T( "Nestopia.unf" ), _T( "Nestopia UNIF File"                ) },
 			{ _T( ".fds" ), _T( "Nestopia.fds" ), _T( "Nestopia Famicom Disk System File" ) },
 			{ _T( ".nsf" ), _T( "Nestopia.nsf" ), _T( "Nestopia NES Sound File"           ) },
 			{ _T( ".nsp" ), _T( "Nestopia.nsp" ), _T( "Nestopia Script File"              ) }
 		};
 
-		Preferences::Association::Association(ibool n)
+		Preferences::Association::Association(bool n)
 		: refresh(false), updated(false), notify(n) {}
 
 		Preferences::Association::~Association()
@@ -123,7 +123,7 @@ namespace Nestopia
 			}
 		}
 
-		ibool Preferences::Association::Enabled(uint index) const
+		bool Preferences::Association::Enabled(uint index) const
 		{
 			HeapString tmp;
 			return (registry[keyNames[index][EXTENSION]] >> tmp) && (tmp == keyNames[index][NAME]);
@@ -156,7 +156,7 @@ namespace Nestopia
 		{
 			// ".extension" will point to "nestopia.extension"
 
-			const ibool tmp = updated;
+			const bool tmp = updated;
 			updated = false;
 
 			if (registry[keyNames[index][EXTENSION]] << keyNames[index][NAME])
@@ -183,7 +183,7 @@ namespace Nestopia
 
 		void Preferences::Association::Delete(const uint index)
 		{
-			ibool log = false;
+			bool log = false;
 
 			// remove ".extension" (if default) and "nestopia.extension"
 
@@ -220,8 +220,8 @@ namespace Nestopia
 
 		const MsgHandler::Entry<Preferences> Preferences::Handlers::messages[] =
 		{
-			{ WM_INITDIALOG, &Preferences::OnInitDialog },
-			{ WM_PAINT,      &Preferences::OnEraseBkgnd }
+			{ WM_INITDIALOG, &Preferences::OnInitDialog  },
+			{ WM_PAINT,      &Preferences::OnPaint       }
 		};
 
 		const MsgHandler::Entry<Preferences> Preferences::Handlers::commands[] =
@@ -269,7 +269,7 @@ namespace Nestopia
 			settings[ CONFIRM_RESET            ] = ( cfg[ "preferences confirm machine reset"    ] == Configuration::YES );
 			settings[ AUTOCORRECT_IMAGES       ] = ( cfg[ "preferences autocorrect images"       ] != Configuration::NO  );
 			settings[ ALLOW_MULTIPLE_INSTANCES ] = ( cfg[ "preferences allow multiple instances" ] == Configuration::YES );
-			settings[ SAVE_LOGFILE             ] = ( cfg[ "preferences save logfile"             ] == Configuration::YES );
+			settings[ SAVE_LOGFILE             ] = ( cfg[ "preferences save logfile"             ] != Configuration::NO  );
 			settings[ SAVE_SETTINGS            ] = ( cfg[ "preferences save settings"            ] != Configuration::NO  );
 			settings[ SAVE_LAUNCHER            ] = ( cfg[ "preferences save launcher files"      ] != Configuration::NO  );
 			settings[ SAVE_CHEATS              ] = ( cfg[ "preferences save cheats"              ] != Configuration::NO  );
@@ -282,8 +282,8 @@ namespace Nestopia
 			settings.menuLookDesktop.enabled    = ( cfg[ "preferences default desktop menu color"    ] == Configuration::NO );
 			settings.menuLookFullscreen.enabled = ( cfg[ "preferences default fullscreen menu color" ] == Configuration::NO );
 
-			settings.menuLookDesktop.color    = cfg[ "preferences desktop menu color"    ].Default( (uint) DEFAULT_DESKTOP_MENU_COLOR );
-			settings.menuLookFullscreen.color = cfg[ "preferences fullscreen menu color" ].Default( (uint) DEFAULT_FULLSCREEN_MENU_COLOR );
+			settings.menuLookDesktop.color    = cfg[ "preferences desktop menu color"    ].Default( uint(DEFAULT_DESKTOP_MENU_COLOR) );
+			settings.menuLookFullscreen.color = cfg[ "preferences fullscreen menu color" ].Default( uint(DEFAULT_FULLSCREEN_MENU_COLOR) );
 
 			{
 				const GenericString priority( cfg[ "preferences priority" ] );
@@ -335,8 +335,8 @@ namespace Nestopia
 			cfg[ "preferences default desktop menu color"    ].YesNo() = !settings.menuLookDesktop.enabled;
 			cfg[ "preferences default fullscreen menu color" ].YesNo() = !settings.menuLookFullscreen.enabled;
 
-			cfg[ "preferences desktop menu color"    ] = HexString( (u32) settings.menuLookDesktop.color );
-			cfg[ "preferences fullscreen menu color" ] = HexString( (u32) settings.menuLookFullscreen.color );
+			cfg[ "preferences desktop menu color"    ] = HexString( 32, settings.menuLookDesktop.color );
+			cfg[ "preferences fullscreen menu color" ] = HexString( 32, settings.menuLookFullscreen.color );
 
 			tstring const priority =
 			(
@@ -432,7 +432,7 @@ namespace Nestopia
 			}
 		}
 
-		ibool Preferences::OnEraseBkgnd(Param&)
+		ibool Preferences::OnPaint(Param&)
 		{
 			UpdateColors();
 			return false;
@@ -500,7 +500,7 @@ namespace Nestopia
 			dialog.CheckBox( IDC_PREFERENCES_CONFIRM_RESET         ).Check( false );
 			dialog.CheckBox( IDC_PREFERENCES_USE_ROM_DATABASE      ).Check( true  );
 			dialog.CheckBox( IDC_PREFERENCES_MULTIPLE_INSTANCES    ).Check( false );
-			dialog.CheckBox( IDC_PREFERENCES_SAVE_LOGFILE          ).Check( false );
+			dialog.CheckBox( IDC_PREFERENCES_SAVE_LOGFILE          ).Check( true  );
 			dialog.CheckBox( IDC_PREFERENCES_SAVE_LAUNCHER         ).Check( true  );
 			dialog.CheckBox( IDC_PREFERENCES_SAVE_CHEATCODES       ).Check( true  );
 			dialog.CheckBox( IDC_PREFERENCES_SAVE_NETPLAY_GAMELIST ).Check( true  );

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -23,6 +23,7 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 
 #include "NstWindowParam.hpp"
+#include "NstManagerEmulator.hpp"
 #include "NstDialogDipSwitches.hpp"
 
 namespace Nestopia
@@ -67,13 +68,9 @@ namespace Nestopia
 		DipSwitches::DipSwitches(Managers::Emulator& emulator)
 		:
 		dialog      (IDD_DIPSWITCHES,this,Handlers::messages,Handlers::commands),
-		dipSwitches (Nes::DipSwitches(emulator))
+		dipSwitches (emulator)
 		{
 		}
-
-		#ifdef IDC_DIPSWITCHES_9
-		#error Must update dipswitch dialog fields!
-		#endif
 
 		ibool DipSwitches::OnInitDialog(Param&)
 		{
@@ -81,7 +78,7 @@ namespace Nestopia
 
 			Point delta;
 
-			for (uint i=0; i < MAX_DIPS; ++i)
+			for (uint i=0, canModify=dipSwitches.CanModify(); i < MAX_DIPS; ++i)
 			{
 				Control::ComboBox valueField( dialog.ComboBox(IDC_DIPSWITCHES_1 + i) );
 				Control::Generic textField( dialog.Control(IDC_DIPSWITCHES_1_TEXT + i) );
@@ -94,6 +91,12 @@ namespace Nestopia
 						valueField.Add( HeapString(dipSwitches.GetValueName(i,j)).Ptr() );
 
 					valueField[dipSwitches.GetValue(i)].Select();
+
+					if (!canModify)
+					{
+						valueField.Disable();
+						textField.Disable();
+					}
 				}
 				else
 				{
@@ -139,8 +142,11 @@ namespace Nestopia
 		{
 			if (param.Button().Clicked())
 			{
-				for (uint i=0, n=dipSwitches.NumDips(); i < n; ++i)
-					dipSwitches.SetValue( i, dialog.ComboBox( IDC_DIPSWITCHES_1 + i ).Selection().GetIndex() );
+				if (dipSwitches.CanModify())
+				{
+					for (uint i=0, n=dipSwitches.NumDips(); i < n; ++i)
+						dipSwitches.SetValue( i, dialog.ComboBox( IDC_DIPSWITCHES_1 + i ).Selection().GetIndex() );
+				}
 
 				dialog.Close();
 			}

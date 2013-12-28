@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -28,7 +28,6 @@
 #pragma once
 
 #include "NstObjectHeap.hpp"
-#include "NstWindowMenu.hpp"
 
 namespace Nestopia
 {
@@ -41,7 +40,7 @@ namespace Nestopia
 	{
 		class Paths;
 
-		class TapeRecorder
+		class TapeRecorder : Manager
 		{
 		public:
 
@@ -61,8 +60,6 @@ namespace Nestopia
 			void OnCmdStop(uint);
 			void OnMenuTape(Window::Menu::PopupHandler::Param&);
 
-			Emulator& emulator;
-			const Window::Menu& menu;
 			Object::Heap<Window::TapeRecorder> dialog;
 		};
 	}

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -22,18 +22,8 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include <cstdlib>
-#include "NstCore.hpp"
-
-#ifndef NST_NO_ZLIB
-#ifdef _WIN32
-#define WIN32_LEAN_AND_MEAN
-#define ZLIB_WINAPI
-#endif
-#include "../zlib/zlib.h"
-#endif
-
 #include "NstState.hpp"
+#include "NstZlib.hpp"
 
 namespace Nes
 {
@@ -47,7 +37,7 @@ namespace Nes
 				ZLIB_COMPRESSION
 			};
 
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("s", on)
 			#endif
 
@@ -55,7 +45,7 @@ namespace Nes
 			: stream(p), chunks(CHUNK_RESERVE), useCompression(c), internal(i)
 			{
 				chunks.SetTo(1);
-				chunks[0] = 0;
+				chunks.Front() = 0;
 			}
 
 			Saver::~Saver()
@@ -63,133 +53,139 @@ namespace Nes
 				NST_VERIFY( chunks.Size() == 1 );
 			}
 
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("", on)
 			#endif
 
 			Saver& Saver::Begin(dword id)
 			{
 				stream.Write32( id );
-				chunks << stream.GetPos();
 				stream.Write32( 0 );
+				chunks.Append( 0 );
 
 				return *this;
 			}
 
 			Saver& Saver::End()
 			{
-				NST_VERIFY( chunks.Back() );
+				NST_ASSERT( chunks.Size() > 1 );
 
-				const dword offset = chunks.Pop();
-				const dword pos = stream.GetPos();
+				const dword written = chunks.Pop();
+				chunks.Back() += 4 + 4 + written;
 
-				stream.SetPos( offset );
-				stream.Write32( pos - (offset + 4) );
-				stream.SetPos( pos );
+				stream.Seek( -idword(written + 4) );
+				stream.Write32( written );
+				stream.Seek( written );
 
 				return *this;
 			}
 
 			Saver& Saver::Write8(uint data)
 			{
+				chunks.Back() += 1;
 				stream.Write8( data );
 				return *this;
 			}
 
 			Saver& Saver::Write16(uint data)
 			{
+				chunks.Back() += 2;
 				stream.Write16( data );
 				return *this;
 			}
 
 			Saver& Saver::Write32(dword data)
 			{
+				chunks.Back() += 4;
 				stream.Write32( data );
 				return *this;
 			}
 
-			Saver& Saver::Write(const void* data,dword length)
+			Saver& Saver::Write(const byte* data,dword length)
 			{
+				chunks.Back() += length;
 				stream.Write( data, length );
 				return *this;
 			}
 
-			Saver& Saver::Compress(const u8* const data,const dword length)
+			Saver& Saver::Compress(const byte* const data,const dword length)
 			{
 				NST_VERIFY( length );
 
-              #ifndef NST_NO_ZLIB
-
-				if (useCompression && length > 1)
+				if (Zlib::AVAILABLE && useCompression && length > 1)
 				{
-					ulong compression = length - 1;
-					Vector<u8> buffer( compression );
+					Vector<byte> buffer( length - 1 );
 
-					if (compress2( buffer.Begin(), &compression, data, length, Z_BEST_COMPRESSION ) == Z_OK && compression)
+					if (const dword compressed = Zlib::Compress( data, length, buffer.Begin(), buffer.Size(), Zlib::BEST_COMPRESSION ))
 					{
+						chunks.Back() += 1 + compressed;
 						stream.Write8( ZLIB_COMPRESSION );
-						stream.Write( buffer.Begin(), compression );
+						stream.Write( buffer.Begin(), compressed );
 						return *this;
 					}
 				}
 
-              #endif
-
+				chunks.Back() += 1 + length;
 				stream.Write8( NO_COMPRESSION );
 				stream.Write( data, length );
 
 				return *this;
 			}
 
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("s", on)
 			#endif
 
-			Loader::Loader(StdStream p)
-			: stream(p)
+			Loader::Loader(StdStream p,bool c)
+			: stream(p), chunks(CHUNK_RESERVE), checkCrc(c)
 			{
+				chunks.SetTo(0);
 			}
 
 			Loader::~Loader()
 			{
+				NST_VERIFY( chunks.Size() <= 1 );
 			}
 
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("", on)
 			#endif
 
-			void Loader::DigIn()
-			{
-				lengths << chunks.Back();
-			}
-
-			void Loader::DigOut()
-			{
-				lengths.Pop();
-			}
-
 			dword Loader::Begin()
 			{
-				dword id = 0;
+				if (chunks.Size() && !chunks.Back())
+					return 0;
 
-				if (lengths.Size() == 0 || stream.GetPos() != lengths.Back())
+				const dword id = stream.Read32();
+				const dword length = stream.Read32();
+
+				if (chunks.Size())
 				{
-					id = stream.Read32();
-					const dword length = stream.Read32();
-					chunks << (stream.GetPos() + length);
+					if (chunks.Back() >= 4+4+length)
+						chunks.Back() -= 4+4+length;
+					else
+						throw RESULT_ERR_CORRUPT_FILE;
 				}
+
+				chunks.Append( length );
 
 				return id;
 			}
 
 			void Loader::End()
 			{
-				stream.SetPos( chunks.Pop() );
+				if (const dword remaining = chunks.Pop())
+				{
+					NST_DEBUG_MSG("unreferenced state chunk data!");
+					stream.Seek( remaining );
+				}
 			}
 
 			void Loader::CheckRead(dword length)
 			{
-				if (stream.GetPos() + length > chunks.Back())
+				if (chunks.Back() >= length)
+					chunks.Back() -= length;
+				else
 					throw RESULT_ERR_CORRUPT_FILE;
 			}
 
@@ -211,13 +207,13 @@ namespace Nes
 				return stream.Read32();
 			}
 
-			void Loader::Read(u8* const data,const dword length)
+			void Loader::Read(byte* const data,const dword length)
 			{
 				CheckRead( length );
 				stream.Read( data, length );
 			}
 
-			void Loader::Uncompress(u8* const data,const dword length)
+			void Loader::Uncompress(byte* const data,const dword length)
 			{
 				NST_VERIFY( length );
 
@@ -229,22 +225,19 @@ namespace Nes
 						break;
 
 					case ZLIB_COMPRESSION:
-					{
-                      #ifndef NST_NO_ZLIB
 
-						const Vector<u8> buffer( chunks.Back() - stream.GetPos() );
-						Read( buffer.Begin(), buffer.Size() );
+						if (!Zlib::AVAILABLE)
+						{
+							throw RESULT_ERR_UNSUPPORTED;
+						}
+						else if (chunks.Back())
+						{
+							Vector<byte> buffer( chunks.Back() );
+							Read( buffer.Begin(), buffer.Size() );
 
-						ulong uncompressed = length;
-
-						if (uncompress( data, &uncompressed, buffer.Begin(), buffer.Size() ) == Z_OK && uncompressed == length)
-							break;
-                      #else
-
-						throw RESULT_ERR_UNSUPPORTED;
-
-                      #endif
-					}
+							if (Zlib::Uncompress( buffer.Begin(), buffer.Size(), data, length ))
+								break;
+						}
 
 					default:
 

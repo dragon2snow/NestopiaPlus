@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -30,14 +30,17 @@ namespace Nes
 {
 	namespace Core
 	{
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("s", on)
 		#endif
 
 		void Mapper52::SubReset(const bool hard)
 		{
 			if (hard)
-				exRegs[1] = exRegs[0] = 0x00;
+			{
+				exRegs[0] = 0;
+				exRegs[1] = 0;
+			}
 
 			Mmc3::SubReset( hard );
 
@@ -48,9 +51,9 @@ namespace Nes
 		{
 			while (const dword chunk = state.Begin())
 			{
-				if (chunk == NES_STATE_CHUNK_ID('R','E','G','\0'))
+				if (chunk == AsciiId<'R','E','G'>::V)
 				{
-					const State::Loader::Data<2> data( state );
+					State::Loader::Data<2> data( state );
 
 					exRegs[0] = data[0];
 					exRegs[1] = data[1];
@@ -62,16 +65,16 @@ namespace Nes
 
 		void Mapper52::SubSave(State::Saver& state) const
 		{
-			const u8 data[2] =
+			const byte data[2] =
 			{
 				exRegs[0],
 				exRegs[1]
 			};
 
-			state.Begin('R','E','G','\0').Write( data ).End();
+			state.Begin( AsciiId<'R','E','G'>::V ).Write( data ).End();
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
@@ -82,7 +85,7 @@ namespace Nes
 				NST_VERIFY( wrk.Writable(0) );
 
 				if (wrk.Writable(0))
-					wrk[0][address - 0x6000U] = data;
+					wrk[0][address - 0x6000] = data;
 			}
 			else
 			{
@@ -104,7 +107,7 @@ namespace Nes
 
 			const uint i = (regs.ctrl0 & Regs::CTRL0_XOR_PRG) >> 5;
 
-			prg.SwapBanks<SIZE_8K,0x0000U>
+			prg.SwapBanks<SIZE_8K,0x0000>
 			(
 				(banks.prg[i]   & r[0]) | r[1],
 				(banks.prg[1]   & r[0]) | r[1],
@@ -127,14 +130,14 @@ namespace Nes
 
 			chr.SwapBanks<SIZE_2K>
 			(
-				0x0000U ^ swap,
+				0x0000 ^ swap,
 				(banks.chr[0] & r[0] >> 1) | (r[1] >> 1),
 				(banks.chr[1] & r[0] >> 1) | (r[1] >> 1)
 			);
 
 			chr.SwapBanks<SIZE_1K>
 			(
-				0x1000U ^ swap,
+				0x1000 ^ swap,
 				(banks.chr[2] & r[0]) | r[1],
 				(banks.chr[3] & r[0]) | r[1],
 				(banks.chr[4] & r[0]) | r[1],

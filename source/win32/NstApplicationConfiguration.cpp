@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -27,20 +27,16 @@
 #include "NstWindowUser.hpp"
 #include "NstApplicationInstance.hpp"
 
-#ifdef __INTEL_COMPILER
-#pragma warning( disable : 111 279 )
-#endif
-
 namespace Nestopia
 {
 	namespace Application
 	{
-		void Configuration::Value::YesNoProxy::operator = (ibool i)
+		void Configuration::Value::YesNoProxy::operator = (bool i)
 		{
 			string.Assign( i ? "yes" : "no", i ? 3 : 2 );
 		}
 
-		void Configuration::Value::OnOffProxy::operator = (ibool i)
+		void Configuration::Value::OnOffProxy::operator = (bool i)
 		{
 			string.Assign( i ? "on" : "off", i ? 2 : 3 );
 		}
@@ -175,12 +171,12 @@ namespace Nestopia
 				HeapString buffer;
 				buffer << header1 << Instance::GetVersion() << header2;
 
-				for (Items::ConstIterator it=items.Begin(), end=items.End(); it != end; ++it)
+				for (Items::ConstIterator it(items.Begin()), end(items.End()); it != end; ++it)
 					buffer << '-' << it->key << " : " << it->value << "\r\n";
 
 				try
 				{
-					Io::File( Instance::GetExePath(_T("nestopia.cfg")), Io::File::DUMP ).WriteText( buffer.Ptr(), buffer.Length() );
+					Io::File( Instance::GetExePath(_T("nestopia.cfg")), Io::File::DUMP|Io::File::WRITE_THROUGH ).WriteText( buffer.Ptr(), buffer.Length() );
 				}
 				catch (Io::File::Exception)
 				{
@@ -191,15 +187,15 @@ namespace Nestopia
 			Reset( false );
 		}
 
-		void Configuration::Reset(const ibool notify)
+		void Configuration::Reset(const bool notify)
 		{
-			for (Items::Iterator it(items.Begin()); it != items.End(); ++it)
+			for (Items::Iterator it(items.Begin()), end(items.End()); it != end; ++it)
 			{
 				if (notify && !it->key.referenced)
 					Io::Log() << "Configuration: warning, unused/invalid parameter: \"" << it->key << "\"\r\n";
 
 				it->key.Command::~Command();
-				it->value.Heap::~Heap();
+				it->value.HeapString::~HeapString();
 			}
 
 			items.Destroy();
@@ -269,7 +265,7 @@ namespace Nestopia
 					for (range[1] = it++; range[1][-1] == ' '; --range[1]);
 				}
 
-				ibool ParseQuoted(tstring (&range)[2])
+				bool ParseQuoted(tstring (&range)[2])
 				{
 					if (*it == '\"')
 					{
@@ -333,7 +329,7 @@ namespace Nestopia
 						items( stream(ranges[0][0],ranges[0][1]) ).Assign( ranges[1][0], ranges[1][1] - ranges[1][0] );
 				}
 
-				operator ibool ()
+				operator bool ()
 				{
 					for (;;)
 					{

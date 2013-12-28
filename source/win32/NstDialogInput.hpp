@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -71,8 +71,9 @@ namespace Nestopia
 			ibool OnCmdAutoFireDefault  (Param&);
 			ibool OnCmdJoysticks        (Param&);
 			ibool OnCmdJoystickEnable   (Param&);
-			ibool OnCmdDefault          (Param&);
+			ibool OnCmdCalibrate        (Param&);
 			ibool OnCmdJoysticksDefault (Param&);
+			ibool OnCmdDefault          (Param&);
 
 			void UpdateKeyMap    (uint) const;
 			void UpdateKeyNames  (uint) const;
@@ -93,6 +94,7 @@ namespace Nestopia
 					TYPE_PAD3,
 					TYPE_PAD4,
 					TYPE_POWERPAD,
+					TYPE_POWERGLOVE,
 					TYPE_HORITRACK,
 					TYPE_PACHINKO,
 					TYPE_CRAZYCLIMBER,
@@ -157,7 +159,16 @@ namespace Nestopia
 					POWERPAD_NUM_SIDE_B_KEYS = Nes::Input::Controllers::PowerPad::NUM_SIDE_B_BUTTONS,
 					POWERPAD_NUM_KEYS = POWERPAD_NUM_SIDE_A_KEYS + POWERPAD_NUM_SIDE_B_KEYS,
 
-					HORITRACK_KEYS = POWERPAD_KEYS + POWERPAD_NUM_KEYS,
+					POWERGLOVE_KEYS = POWERPAD_KEYS + POWERPAD_NUM_KEYS,
+					POWERGLOVE_KEY_SELECT = 0,
+					POWERGLOVE_KEY_START,
+					POWERGLOVE_KEY_MOVE_IN,
+					POWERGLOVE_KEY_MOVE_OUT,
+					POWERGLOVE_KEY_ROLL_LEFT,
+					POWERGLOVE_KEY_ROLL_RIGHT,
+					POWERGLOVE_NUM_KEYS,
+
+					HORITRACK_KEYS = POWERGLOVE_KEYS + POWERGLOVE_NUM_KEYS,
 					HORITRACK_KEY_A = 0,
 					HORITRACK_KEY_B,
 					HORITRACK_KEY_SELECT,
@@ -211,7 +222,7 @@ namespace Nestopia
 					MAHJONG_KEY_SELECT,
 					MAHJONG_KEY_KAN,
 					MAHJONG_KEY_PON,
-					MAHJONG_KEY_CHII,
+					MAHJONG_KEY_CHI,
 					MAHJONG_KEY_REACH,
 					MAHJONG_KEY_RON,
 					MAHJONG_NUM_KEYS,
@@ -219,8 +230,8 @@ namespace Nestopia
 					EXCITINGBOXING_KEYS = MAHJONG_KEYS + MAHJONG_NUM_KEYS,
 					EXCITINGBOXING_KEY_LEFT_HOOK = 0,
 					EXCITINGBOXING_KEY_RIGHT_HOOK,
-					EXCITINGBOXING_KEY_LEFT_JABB,
-					EXCITINGBOXING_KEY_RIGHT_JABB,
+					EXCITINGBOXING_KEY_LEFT_JAB,
+					EXCITINGBOXING_KEY_RIGHT_JAB,
 					EXCITINGBOXING_KEY_STRAIGHT,
 					EXCITINGBOXING_KEY_BODY,
 					EXCITINGBOXING_KEY_LEFT_MOVE,
@@ -358,7 +369,7 @@ namespace Nestopia
 				void Clear();
 				void Clear(uint);
 
-				#pragma pack(push,1)
+			#pragma pack(push,1)
 
 				struct Type
 				{
@@ -379,7 +390,7 @@ namespace Nestopia
 					cstring cfgName;
 				};
 
-				#pragma pack(pop)
+			#pragma pack(pop)
 
 				enum
 				{
@@ -390,7 +401,7 @@ namespace Nestopia
 					CTRL = 0x400
 				};
 
-				ibool Map(uint,const Key&);
+				bool Map(uint,const Key&);
 				inline void Unmap(uint);
 
 				static inline const Mapping& GetMapping(uint,uint);
@@ -398,7 +409,7 @@ namespace Nestopia
 
 				Key keys[NUM_KEYS];
 				uint autoFireSpeed;
-				ibool allowSimulAxes;
+				bool allowSimulAxes;
 
 				static const Type types[OFFSET_COUNT];
 				static const Mapping map[NUM_KEYS];
@@ -439,7 +450,7 @@ namespace Nestopia
 					return autoFireSpeed;
 				}
 
-				ibool AllowSimulAxes() const
+				bool AllowSimulAxes() const
 				{
 					return allowSimulAxes;
 				}
@@ -448,7 +459,7 @@ namespace Nestopia
 		private:
 
 			void SelectNextMapKey();
-			ibool MapSelectedKey(const Settings::Key&);
+			bool MapSelectedKey(const Settings::Key&);
 
 			Nes::Input nes;
 			DirectX::DirectInput& directInput;

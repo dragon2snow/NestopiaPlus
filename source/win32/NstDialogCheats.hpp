@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -47,6 +47,7 @@ namespace Nestopia
 		public:
 
 			Cheats(Managers::Emulator&,const Configuration&,const Managers::Paths&);
+			~Cheats();
 
 			typedef Nes::Cheats::Code Mem;
 
@@ -106,11 +107,15 @@ namespace Nestopia
 					explicit Code(const Mem&);
 
 					void CheckDesc();
-					inline bool operator == (uint) const;
 
-					ibool enabled;
+					bool enabled;
 					Mem mem;
 					HeapString desc;
+
+					bool operator == (uint address) const
+					{
+						return mem.address == address;
+					}
 				};
 
 				struct Codes : Collection::Vector<Code>
@@ -204,16 +209,16 @@ namespace Nestopia
 					NO_FILTER = 0xFFFF
 				};
 
-				ibool hex;
-				u16 filter;
-				u8 a;
-				u8 b;
-				u8 ram[Nes::Cheats::RAM_SIZE];
+				ushort filter;
+				uchar a;
+				uchar b;
+				bool hex;
+				uchar ram[Nes::Cheats::RAM_SIZE];
 			};
 
 			void AddSearchEntry(Control::ListView,uint) const;
 			void UpdateSearchList() const;
-			void UpdateHexView(ibool);
+			void UpdateHexView(bool);
 			void UpdateInput() const;
 
 			void OnCodeItemChanged (const NMHDR&);
@@ -229,12 +234,12 @@ namespace Nestopia
 			ibool OnCodeCmdType       (Param&);
 			ibool OnCodeSearchType    (Param&);
 
-			uint  GetSearchValue (uint) const;
-			void  SetSearchValue (uint,uint) const;
-			ibool GetRawCode     (Mem&) const;
-			void  SetRawCode     (const Mem&) const;
-			ibool GetGenieCode   (Mem&) const;
-			ibool GetRockyCode   (Mem&) const;
+			uint GetSearchValue (uint) const;
+			void SetSearchValue (uint,uint) const;
+			bool GetRawCode     (Mem&) const;
+			void SetRawCode     (const Mem&) const;
+			bool GetGenieCode   (Mem&) const;
+			bool GetRockyCode   (Mem&) const;
 
 			Dialog mainDialog;
 			CodeDialog codeDialog;
@@ -269,7 +274,7 @@ namespace Nestopia
 				return (type ? tempList : staticList).Size();
 			}
 
-			ibool CodeEnabled(uint type,uint i) const
+			bool CodeEnabled(uint type,uint i) const
 			{
 				return (type ? tempList : staticList)[i].enabled;
 			}

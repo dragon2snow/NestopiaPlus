@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -22,10 +22,9 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstWindowMenu.hpp"
 #include "NstDialogAbout.hpp"
 #include "NstDialogLicense.hpp"
-#include "NstManagerEmulator.hpp"
+#include "NstManager.hpp"
 #include "NstManagerHelp.hpp"
 #include <ShellAPI.h>
 
@@ -34,7 +33,7 @@ namespace Nestopia
 	namespace Managers
 	{
 		Help::Help(Emulator& e,Window::Menu& m)
-		: emulator(e), menu(m)
+		: Manager(e,m,this,&Help::OnEmuEvent)
 		{
 			static const Window::Menu::CmdHandler::Entry<Help> commands[] =
 			{
@@ -43,15 +42,8 @@ namespace Nestopia
 				{ IDM_HELP_LICENSE, &Help::OnCmdLicense }
 			};
 
-			m.Commands().Add( this, commands );
-			emulator.Events().Add( this, &Help::OnEmuEvent );
-
-			m[IDM_HELP_HELP].Enable( Application::Instance::GetExePath(_T("readme.html")).FileExists() );
-		}
-
-		Help::~Help()
-		{
-			emulator.Events().Remove( this );
+			menu.Commands().Add( this, commands );
+			menu[IDM_HELP_HELP].Enable( Application::Instance::GetExePath(_T("readme.html")).FileExists() );
 		}
 
 		void Help::OnCmdHelp(uint)
@@ -84,7 +76,7 @@ namespace Nestopia
 				case Emulator::EVENT_NETPLAY_MODE_ON:
 				case Emulator::EVENT_NETPLAY_MODE_OFF:
 				{
-					const ibool state = (event == Emulator::EVENT_NETPLAY_MODE_OFF);
+					const bool state = (event == Emulator::EVENT_NETPLAY_MODE_OFF);
 
 					menu[IDM_HELP_ABOUT].Enable( state );
 					menu[IDM_HELP_LICENSE].Enable( state );

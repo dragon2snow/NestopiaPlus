@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,62 +25,62 @@
 #ifndef NST_CHEATS_H
 #define NST_CHEATS_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
-#pragma once
+#ifndef NST_VECTOR_H
+#include "NstVector.hpp"
 #endif
 
-#include <vector>
+#ifdef NST_PRAGMA_ONCE
+#pragma once
+#endif
 
 namespace Nes
 {
 	namespace Core
 	{
-		class Cpu;
-
 		class Cheats
 		{
 		public:
 
-			Cheats(Cpu&);
+			explicit Cheats(Cpu&);
 			~Cheats();
 
 			void Reset();
 			void BeginFrame() const;
 			void ClearCodes();
 
-			Result GetCode (dword,u16*,u8*,u8*,bool*) const;
-			Result SetCode (u16,u8,u8,bool,bool);
+			Result GetCode (dword,ushort*,uchar*,uchar*,bool*) const;
+			Result SetCode (word,byte,byte,bool,bool);
 			Result DeleteCode (dword);
 
 		private:
 
-			NES_DECL_PEEK( Wizard )
-			NES_DECL_POKE( Wizard )
+			NES_DECL_PEEK( Wizard );
+			NES_DECL_POKE( Wizard );
 
 			struct LoCode
 			{
-				LoCode(u16=0,u8=0,u8=0,bool=false);
-
-				bool operator == (const LoCode&) const;
-
-				u16 address;
-				u8 data;
-				u8 compare;
-				bool useCompare;
+				word address;
+				byte data;
+				byte compare;
+				ibool useCompare;
 			};
 
-			struct HiCode : LoCode
+			struct HiCode
 			{
-				HiCode(u16=0,u8=0,u8=0,bool=false);
-				inline HiCode(uint);
-
 				inline bool operator < (const HiCode&) const;
+				inline bool operator < (Address) const;
 
+				word address;
+				byte data;
+				byte compare;
+				ibool useCompare;
 				const Io::Port* port;
 			};
 
-			typedef std::vector<LoCode> LoCodes;
-			typedef std::vector<HiCode> HiCodes;
+			inline friend bool operator < (Address,const HiCode&);
+
+			typedef Vector<LoCode> LoCodes;
+			typedef Vector<HiCode> HiCodes;
 
 			void Map(HiCode&);
 
@@ -92,7 +92,7 @@ namespace Nes
 
 			dword NumCodes() const
 			{
-				return loCodes.size() + hiCodes.size();
+				return loCodes.Size() + hiCodes.Size();
 			}
 		};
 	}

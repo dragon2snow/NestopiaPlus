@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,7 +25,7 @@
 #ifndef NST_TRACKER_MOVIE_H
 #define NST_TRACKER_MOVIE_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
+#ifdef NST_PRAGMA_ONCE
 #pragma once
 #endif
 
@@ -35,19 +35,19 @@ namespace Nes
 	{
 		class Tracker::Movie
 		{
-			typedef Result (Machine::*EmuLoadState)(StdStream,bool);
-			typedef Result (Machine::*EmuSaveState)(StdStream,bool,bool);
-			typedef Result (Machine::*EmuReset)(bool);
+			typedef bool (Machine::*EmuLoadState)(State::Loader&);
+			typedef void (Machine::*EmuSaveState)(State::Saver&) const;
+			typedef void (Machine::*EmuReset)(bool);
 
 		public:
 
 			Movie(Machine&,EmuReset,EmuLoadState,EmuSaveState,Cpu&,dword);
 			~Movie();
 
-			Result Play(StdStream,bool);
-			Result Record(StdStream,bool,bool);
-			void   Stop();
-			void   Cut();
+			bool Play(StdStream,bool);
+			bool Record(StdStream,bool,bool);
+			void Stop();
+			void Cut();
 
 			bool Reset(bool);
 			bool BeginFrame(dword);
@@ -65,7 +65,9 @@ namespace Nes
 				MAX_FRAME_READS = 64,
 				LOCK_BIT        = 0x80,
 				LOCK_SIZE_BIT   = 0x40,
-				OPEN_BUS        = 0x40
+				OPEN_BUS        = 0x40,
+				NO_FRAME        = dword(~0UL),
+				VALID_FRAME     = dword(~1UL)
 			};
 
 			enum Status
@@ -78,12 +80,12 @@ namespace Nes
 			class Player;
 			class Recorder;
 
-			NES_DECL_PEEK( 4016_Record )
-			NES_DECL_PEEK( 4017_Record )
-			NES_DECL_PEEK( 4016_Play   )
-			NES_DECL_PEEK( 4017_Play   )
-			NES_DECL_POKE( 4016        )
-			NES_DECL_POKE( 4017        )
+			NES_DECL_PEEK( 4016_Record );
+			NES_DECL_PEEK( 4017_Record );
+			NES_DECL_PEEK( 4016_Play   );
+			NES_DECL_PEEK( 4017_Play   );
+			NES_DECL_POKE( 4016        );
+			NES_DECL_POKE( 4017        );
 
 			const Io::Port* ports[2];
 			Cpu& cpu;

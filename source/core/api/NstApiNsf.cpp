@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -27,14 +27,14 @@
 #include "NstApiMachine.hpp"
 #include "NstApiNsf.hpp"
 
-#ifdef NST_PRAGMA_OPTIMIZE
-#pragma optimize("s", on)
-#endif
-
 namespace Nes
 {
 	namespace Api
 	{
+		#ifdef NST_MSVC_OPTIMIZE
+		#pragma optimize("s", on)
+		#endif
+
 		const char* Nsf::GetName() const throw()
 		{
 			if (emulator.Is(Machine::SOUND))
@@ -62,34 +62,15 @@ namespace Nes
 		uint Nsf::GetChips() const throw()
 		{
 			if (emulator.Is(Machine::SOUND))
-			{
-				NST_COMPILE_ASSERT
-				(
-					CHIP_VRC6 == Core::Nsf::CHIP_VRC6  &&
-					CHIP_VRC7 == Core::Nsf::CHIP_VRC7  &&
-					CHIP_FDS  == Core::Nsf::CHIP_FDS   &&
-					CHIP_MMC5 == Core::Nsf::CHIP_MMC5  &&
-					CHIP_N106 == Core::Nsf::CHIP_N106  &&
-					CHIP_S5B  == Core::Nsf::CHIP_S5B
-				);
-
-				return (Chip) static_cast<const Core::Nsf*>(emulator.image)->GetChips();
-			}
+				return static_cast<const Core::Nsf*>(emulator.image)->GetChips();
 
 			return 0;
 		}
 
 		Nsf::TuneMode Nsf::GetMode() const throw()
 		{
-			NST_COMPILE_ASSERT
-			(
-				TUNE_MODE_NTSC == Core::Nsf::TUNE_MODE_NTSC &&
-				TUNE_MODE_PAL  == Core::Nsf::TUNE_MODE_PAL &&
-				TUNE_MODE_BOTH == Core::Nsf::TUNE_MODE_BOTH
-			);
-
 			if (emulator.Is(Machine::SOUND))
-				return (TuneMode) static_cast<const Core::Nsf*>(emulator.image)->GetTuneMode();
+				return static_cast<TuneMode>(static_cast<const Core::Nsf*>(emulator.image)->GetTuneMode());
 
 			return TUNE_MODE_NTSC;
 		}
@@ -201,9 +182,9 @@ namespace Nes
 		{
 			return emulator.Is(Machine::SOUND) && static_cast<Core::Nsf*>(emulator.image)->UsesBankSwitching();
 		}
+
+		#ifdef NST_MSVC_OPTIMIZE
+		#pragma optimize("", on)
+		#endif
 	}
 }
-
-#ifdef NST_PRAGMA_OPTIMIZE
-#pragma optimize("", on)
-#endif

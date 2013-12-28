@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -30,7 +30,7 @@ namespace Nes
 {
 	namespace Core
 	{
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("s", on)
 		#endif
 
@@ -43,10 +43,12 @@ namespace Nes
 				step = 1;
 			}
 		}
+
 		Mapper83::Mapper83(Context& c)
 		:
-		Mapper (c,WRAM_DEFAULT),
-		irq    (c.cpu)
+		Mapper   (c,WRAM_DEFAULT),
+		irq      (c.cpu),
+		language (c.attribute == ATR_LANGUAGE_SELECT ? 0xFF : 0x00)
 		{}
 
 		void Mapper83::SubReset(const bool hard)
@@ -61,10 +63,10 @@ namespace Nes
 					regs.prg[i] = 0;
 
 				regs.pr8 = 0;
-				title = 0xFF;
+				dipSwitch = 0xFF;
 			}
 
-			title ^= 0xFF;
+			dipSwitch ^= language;
 
 			UpdatePrg();
 
@@ -74,7 +76,7 @@ namespace Nes
 			if (!wrk.Source().Writable())
 				Map( 0x6000U, 0x7FFFU, &Mapper83::Peek_6000 );
 
-			for (uint i=0x8000U; i < 0x9000U; i += 0x400)
+			for (uint i=0x8000; i < 0x9000; i += 0x400)
 			{
 				Map( i+0x000, i+0x0FF, &Mapper83::Poke_8000 );
 				Map( i+0x100, i+0x1FF, &Mapper83::Poke_8100 );
@@ -101,9 +103,9 @@ namespace Nes
 				}
 			}
 
-			Map( 0xB000, &Mapper83::Poke_8000 );
-			Map( 0xB0FF, &Mapper83::Poke_8000 );
-			Map( 0xB100, &Mapper83::Poke_8000 );
+			Map( 0xB000U, &Mapper83::Poke_8000 );
+			Map( 0xB0FFU, &Mapper83::Poke_8000 );
+			Map( 0xB100U, &Mapper83::Poke_8000 );
 		}
 
 		void Mapper83::SubLoad(State::Loader& state)
@@ -112,31 +114,31 @@ namespace Nes
 			{
 				switch (chunk)
 				{
-					case NES_STATE_CHUNK_ID('R','E','G','\0'):
+					case AsciiId<'R','E','G'>::V:
 
 						regs.ctrl = state.Read8();
 						state.Read( regs.prg );
 						break;
 
-					case NES_STATE_CHUNK_ID('P','R','8','\0'):
+					case AsciiId<'P','R','8'>::V:
 
 						regs.pr8 = state.Read8();
 						break;
 
-					case NES_STATE_CHUNK_ID('I','R','Q','\0'):
+					case AsciiId<'I','R','Q'>::V:
 					{
-						const State::Loader::Data<3> data( state );
+						State::Loader::Data<3> data( state );
 
 						irq.unit.enabled = data[0] & 0x1;
 						irq.unit.step = (data[0] & 0x2) ? ~0U : 1U;
-						irq.unit.count = data[1] | (data[2] << 8);
+						irq.unit.count = data[1] | data[2] << 8;
 
 						break;
 					}
 
-					case NES_STATE_CHUNK_ID('L','A','N','\0'):
+					case AsciiId<'L','A','N'>::V:
 
-						title = (state.Read8() & 0x1) ? 0xFF : 0x00;
+						dipSwitch = (state.Read8() & 0x1) ? 0xFF : 0x00;
 						break;
 				}
 
@@ -147,7 +149,7 @@ namespace Nes
 		void Mapper83::SubSave(State::Saver& state) const
 		{
 			{
-				const u8 data[1+5] =
+				const byte data[1+5] =
 				{
 					regs.ctrl,
 					regs.prg[0],
@@ -157,47 +159,47 @@ namespace Nes
 					regs.prg[4]
 				};
 
-				state.Begin('R','E','G','\0').Write( data ).End();
+				state.Begin( AsciiId<'R','E','G'>::V ).Write( data ).End();
 			}
 
-			state.Begin('P','R','8','\0').Write8( regs.pr8 ).End();
+			state.Begin( AsciiId<'P','R','8'>::V ).Write8( regs.pr8 ).End();
 
 			{
-				const u8 data[3] =
+				const byte data[3] =
 				{
-					(irq.unit.enabled ? 0x1 : 0x0) |
-					(irq.unit.step == 1  ? 0x0 : 0x2),
+					(irq.unit.enabled ? 0x1U : 0x0U) |
+					(irq.unit.step == 1  ? 0x0U : 0x2U),
 					irq.unit.count & 0xFF,
 					irq.unit.count >> 8
 				};
 
-				state.Begin('I','R','Q','\0').Write( data ).End();
+				state.Begin( AsciiId<'I','R','Q'>::V ).Write( data ).End();
 			}
 
-			state.Begin('L','A','N','\0').Write8( title & 0x1 ).End();
+			state.Begin( AsciiId<'L','A','N'>::V ).Write8( dipSwitch & 0x1 ).End();
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
 		void Mapper83::UpdatePrg()
 		{
-			if (regs.ctrl & 0x10)
+			if (regs.ctrl & 0x10U)
 			{
-				prg.SwapBanks<SIZE_8K,0x0000U>( regs.prg[0], regs.prg[1] );
-				prg.SwapBank<SIZE_8K,0x4000U>( regs.prg[2] );
+				prg.SwapBanks<SIZE_8K,0x0000>( regs.prg[0], regs.prg[1] );
+				prg.SwapBank<SIZE_8K,0x4000>( regs.prg[2] );
 			}
 			else
 			{
-				prg.SwapBank<SIZE_16K,0x0000U>( regs.prg[4] & 0x3F );
-				prg.SwapBank<SIZE_16K,0x4000U>( (regs.prg[4] & 0x30) | 0x0F );
+				prg.SwapBank<SIZE_16K,0x0000>( regs.prg[4] & 0x3FU );
+				prg.SwapBank<SIZE_16K,0x4000>( (regs.prg[4] & 0x30U) | 0x0F );
 			}
 		}
 
 		NES_PEEK(Mapper83,5000)
 		{
-			return title;
+			return dipSwitch;
 		}
 
 		NES_PEEK(Mapper83,5100)
@@ -212,12 +214,12 @@ namespace Nes
 
 		NES_PEEK(Mapper83,6000)
 		{
-			NST_VERIFY( regs.ctrl & 0x20 );
+			NST_VERIFY( regs.ctrl & 0x20U );
 
-			if (regs.ctrl & 0x20)
+			if (regs.ctrl & 0x20U)
 			{
-				const uint bank = (regs.ctrl & 0x10) ? 0x1F : regs.prg[3];
-				return *prg.Source().Mem( (bank << 13) | (address & 0x1FFFU) );
+				const uint bank = (regs.ctrl & 0x10U) ? 0x1F : regs.prg[3];
+				return *prg.Source().Mem( (bank << 13) | (address & 0x1FFF) );
 			}
 			else
 			{
@@ -255,22 +257,22 @@ namespace Nes
 		NES_POKE(Mapper83,8200)
 		{
 			irq.Update();
-			irq.unit.count = (irq.unit.count & 0xFF00U) | data;
+			irq.unit.count = (irq.unit.count & 0xFF00) | data;
 			irq.ClearIRQ();
 		}
 
 		NES_POKE(Mapper83,8201)
 		{
 			irq.Update();
-			irq.unit.count = (irq.unit.count & 0x00FFU) | (data << 8);
-			irq.unit.enabled = regs.ctrl & 0x80;
+			irq.unit.count = (irq.unit.count & 0x00FF) | (data << 8);
+			irq.unit.enabled = regs.ctrl & 0x80U;
 			irq.ClearIRQ();
 		}
 
 		NES_POKE(Mapper83,8310_0)
 		{
 			ppu.Update();
-			chr.SwapBank<SIZE_1K>( (address & 0x7) << 10, (regs.prg[4] << 4 & 0x300) | data );
+			chr.SwapBank<SIZE_1K>( (address & 0x7) << 10, (regs.prg[4] << 4 & 0x300U) | data );
 		}
 
 		NES_POKE(Mapper83,8310_1)
@@ -294,7 +296,7 @@ namespace Nes
 		{
 			if (enabled && count)
 			{
-				count = (count + step) & 0xFFFFU;
+				count = (count + step) & 0xFFFF;
 
 				if (!count)
 				{

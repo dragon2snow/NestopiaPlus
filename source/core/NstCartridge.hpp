@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,24 +25,20 @@
 #ifndef NST_CARTRIDGE_H
 #define NST_CARTRIDGE_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
-#pragma once
-#endif
-
 #include "NstRam.hpp"
 #include "NstImage.hpp"
+#include "NstFile.hpp"
 #include "api/NstApiCartridge.hpp"
-#include "NstChecksumMd5.hpp"
+
+#ifdef NST_PRAGMA_ONCE
+#pragma once
+#endif
 
 namespace Nes
 {
 	namespace Core
 	{
 		class Mapper;
-		class Cpu;
-		class Ppu;
-		class ImageDatabase;
-		class VsSystem;
 
 		namespace Peripherals
 		{
@@ -54,48 +50,50 @@ namespace Nes
 		{
 		public:
 
-			Cartridge(Context&,Result&);
-			~Cartridge();
+			explicit Cartridge(Context&);
+
+			void BeginFrame(const Api::Input&,Input::Controllers*);
 
 			typedef Api::Cartridge::Info Info;
-
-			void Reset(bool);
-			void LoadState(State::Loader&);
-			void SaveState(State::Saver&) const;
-			void BeginFrame(const Api::Input&,Input::Controllers*);
-			void VSync();
-
-			Mode GetMode() const;
-			uint GetDesiredController(uint) const;
-			uint GetDesiredAdapter() const;
-			ExternalDevice QueryExternalDevice(ExternalDeviceType);
-			PpuType QueryPpu(bool);
-
-			static const void* SearchDatabase(const ImageDatabase&,const void*,ulong);
 
 			class Ines;
 			class Unif;
 
 		private:
 
+			~Cartridge();
+
+			class VsSystem;
+
+			void Reset(bool);
+			bool PowerOff() const;
+			void LoadState(State::Loader&);
+			void SaveState(State::Saver&,dword) const;
 			void Destroy();
+			void VSync();
+
+			Mode GetMode() const;
+			uint GetDesiredController(uint) const;
+			uint GetDesiredAdapter() const;
 			void DetectControllers(uint);
-			void ResetWrkRam(uint);
+			ExternalDevice QueryExternalDevice(ExternalDeviceType);
+			PpuType QueryPpu(bool);
 
-			void LoadBattery();
-			Result SaveBattery(bool) const;
-
-			Result Flush(bool,bool) const;
-
-			struct Wrk : Ram
+			class Wrk : public Ram
 			{
 				enum
 				{
-					MIN_BATTERY_SIZE = SIZE_1K,
-					GARBAGE = 0xFF
+					GARBAGE = 0x00,
+					MIN_BATTERY_SIZE = SIZE_1K
 				};
 
-				mutable Checksum::Md5::Key ramCheckSum;
+				File file;
+
+			public:
+
+				void Reset(const Info&,bool);
+				void Load(const Info&);
+				void Save(const Info&) const;
 			};
 
 			Mapper* mapper;
@@ -117,11 +115,6 @@ namespace Nes
 			dword GetPrgCrc() const
 			{
 				return info.prgCrc;
-			}
-
-			bool IsVS() const
-			{
-				return vs != NULL;
 			}
 		};
 	}

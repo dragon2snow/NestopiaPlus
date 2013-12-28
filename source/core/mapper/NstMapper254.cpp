@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -30,7 +30,7 @@ namespace Nes
 {
 	namespace Core
 	{
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("s", on)
 		#endif
 
@@ -40,7 +40,7 @@ namespace Nes
 
 			Mmc3::SubReset( hard );
 
-			for (uint i=0x8000U; i < 0xA000U; i += 0x2)
+			for (uint i=0x8000; i < 0xA000; i += 0x2)
 				Map( i, &Mapper254::Poke_8000 );
 
 			Map( WRK_POKE );
@@ -51,7 +51,7 @@ namespace Nes
 		{
 			while (const dword chunk = state.Begin())
 			{
-				if (chunk == NES_STATE_CHUNK_ID('R','E','G','\0'))
+				if (chunk == AsciiId<'R','E','G'>::V)
 					security = (state.Read8() & 0x1) ? ~0U : 0U;
 
 				state.End();
@@ -60,22 +60,22 @@ namespace Nes
 
 		void Mapper254::SubSave(State::Saver& state) const
 		{
-			state.Begin('R','E','G','\0').Write8( security & 0x1 ).End();
+			state.Begin( AsciiId<'R','E','G'>::V ).Write8( security & 0x1 ).End();
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
 		NES_PEEK(Mapper254,Wrk)
 		{
-			return wrk[0][address - 0x6000U] ^ (regs.ctrl1 & security);
+			return wrk[0][address - 0x6000] ^ (regs.ctrl1 & security);
 		}
 
 		NES_POKE(Mapper254,8000)
 		{
 			security = 0U;
-			NES_CALL_POKE(Mmc3,8000,address,data);
+			Mmc3::NES_DO_POKE(8000,address,data);
 		}
 	}
 }

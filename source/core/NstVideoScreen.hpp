@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,7 +25,7 @@
 #ifndef NST_VIDEO_SCREEN_H
 #define NST_VIDEO_SCREEN_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
+#ifdef NST_PRAGMA_ONCE
 #pragma once
 #endif
 
@@ -45,16 +45,16 @@ namespace Nes
 				{
 					WIDTH = 256,
 					HEIGHT = 240,
-					PIXELS = dword(WIDTH) * HEIGHT,
+					PIXELS = uint(WIDTH) * HEIGHT,
+					PIXELS_PADDING = 2,
 					PALETTE = 64 * 8
 				};
 
-				typedef u16 Pixel;
-				typedef u16 Pixels[PIXELS];
-				typedef u32 Palette[PALETTE];
+				typedef word Pixel;
+				typedef dword Palette[PALETTE];
 
-				Pixels pixels;
 				Palette palette;
+				Pixel pixels[uint(PIXELS)+PIXELS_PADDING];
 			};
 		}
 	}

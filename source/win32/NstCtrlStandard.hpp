@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -39,7 +39,7 @@ namespace Nestopia
 			{
 			public:
 
-				ibool FixedFont() const;
+				bool FixedFont() const;
 				Point GetMaxTextSize() const;
 
 			protected:
@@ -57,7 +57,7 @@ namespace Nestopia
 					NST_VERIFY( control );
 				}
 
-				void Enable(ibool state=true) const
+				void Enable(bool state=true) const
 				{
 					control.Enable( state );
 				}
@@ -67,7 +67,7 @@ namespace Nestopia
 					Enable( false );
 				}
 
-				ibool Enabled() const
+				bool Enabled() const
 				{
 					return control.Enabled();
 				}
@@ -127,19 +127,19 @@ namespace Nestopia
 
 				NotificationHandler(uint,MsgHandler&);
 
-				template<typename T,size_t N>
+				template<typename T,uint N>
 				NotificationHandler(uint,MsgHandler&,T*,const Entry<T>(&)[N]);
 
 				~NotificationHandler();
 
-				template<typename T,size_t N>
+				template<typename T,uint N>
 				void Add(T* data,const Entry<T>(&entries)[N])
 				{
 					Add( data, entries, N );
 				}
 			};
 
-			template<typename T,size_t N>
+			template<typename T,uint N>
 			NotificationHandler::NotificationHandler
 			(
 				const uint id,

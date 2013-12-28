@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -22,17 +22,18 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#ifdef _MSC_VER
-#pragma comment(lib,"dinput8")
-#pragma comment(lib,"dxguid")
-#endif
-
+#include "language/resource.h"
 #include "NstApplicationException.hpp"
 #include "NstApplicationInstance.hpp"
 #include "NstSystemKeyboard.hpp"
 #include "NstDirectInput.hpp"
 #include "NstIoScreen.hpp"
 #include "NstIoLog.hpp"
+
+#if NST_MSVC
+#pragma comment(lib,"dinput8")
+#pragma comment(lib,"dxguid")
+#endif
 
 namespace Nestopia
 {
@@ -84,7 +85,7 @@ namespace Nestopia
 			{ KeyPovLeft,  DIJOFS_POV(3),    AXIS_POV_3,    _T("-p3x") }
 		};
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("t", on)
 		#endif
 
@@ -126,11 +127,11 @@ namespace Nestopia
 		{
 			keyboard.Poll();
 
-			for (Joysticks::Iterator it=joysticks.Begin(), end=joysticks.End(); it != end; ++it)
+			for (Joysticks::Iterator it(joysticks.Begin()), end(joysticks.End()); it != end; ++it)
 				it->Poll();
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
@@ -149,7 +150,7 @@ namespace Nestopia
 			IDirectInput8* com;
 
 			if (FAILED(::DirectInput8Create( ::GetModuleHandle(NULL), DIRECTINPUT_VERSION, IID_IDirectInput8, reinterpret_cast<void**>(&com), NULL )))
-				throw Application::Exception(_T("DirectInput8Create() failed!"));
+				throw Application::Exception( IDS_FAILED, _T("DirectInput8Create()") );
 
 			return *com;
 		}
@@ -157,12 +158,10 @@ namespace Nestopia
 		DirectInput::DirectInput(HWND const hWnd)
 		: base(hWnd), keyboard(base)
 		{
-			Io::Log logfile;
-
 			if (SUCCEEDED(base.com.EnumDevices( DI8DEVCLASS_GAMECTRL, EnumJoysticks, this, DIEDFL_ATTACHEDONLY )))
-				logfile << "DirectInput: found " << joysticks.Size() << " attached joystick(s)\r\n";
+				Io::Log() << "DirectInput: found " << joysticks.Size() << " attached joystick(s)\r\n";
 			else
-				logfile << "DirectInput: IDirectInput8::EnumDevices() failed! No joysticks can be used!\r\n";
+				Io::Log() << "DirectInput: IDirectInput8::EnumDevices() failed! No joysticks can be used!\r\n";
 		}
 
 		DirectInput::~DirectInput()
@@ -171,7 +170,7 @@ namespace Nestopia
 				joysticks[--i].Joystick::~Joystick();
 		}
 
-		BOOL CALLBACK DirectInput::EnumJoysticks(LPCDIDEVICEINSTANCE instance,LPVOID context)
+		BOOL CALLBACK DirectInput::EnumJoysticks(LPCDIDEVICEINSTANCE const instance,LPVOID const context)
 		{
 			if (instance)
 			{
@@ -209,7 +208,7 @@ namespace Nestopia
 		{
 			keyboard.Acquire();
 
-			for (Joysticks::Iterator it=joysticks.Begin(), end=joysticks.End(); it != end; ++it)
+			for (Joysticks::Iterator it(joysticks.Begin()), end(joysticks.End()); it != end; ++it)
 				it->Acquire();
 		}
 
@@ -217,15 +216,21 @@ namespace Nestopia
 		{
 			keyboard.Unacquire();
 
-			for (Joysticks::Iterator it=joysticks.Begin(), end=joysticks.End(); it != end; ++it)
+			for (Joysticks::Iterator it(joysticks.Begin()), end(joysticks.End()); it != end; ++it)
 				it->Unacquire();
+		}
+
+		void DirectInput::Calibrate(bool full)
+		{
+			for (Joysticks::Iterator it(joysticks.Begin()), end(joysticks.End()); it != end; ++it)
+				it->Calibrate( full );
 		}
 
 		void DirectInput::BeginScanMode(HWND hWnd) const
 		{
 			keyboard.BeginScanMode( hWnd );
 
-			for (Joysticks::ConstIterator it=joysticks.Begin(), end=joysticks.End(); it != end; ++it)
+			for (Joysticks::ConstIterator it(joysticks.Begin()), end(joysticks.End()); it != end; ++it)
 				it->BeginScanMode();
 		}
 
@@ -233,7 +238,7 @@ namespace Nestopia
 		{
 			keyboard.EndScanMode();
 
-			for (Joysticks::ConstIterator it=joysticks.Begin(), end=joysticks.End(); it != end; ++it)
+			for (Joysticks::ConstIterator it(joysticks.Begin()), end(joysticks.End()); it != end; ++it)
 				it->EndScanMode();
 		}
 
@@ -241,7 +246,7 @@ namespace Nestopia
 		{
 			keyboard.Enable( false );
 
-			for (const Key *it=keys, *end=keys+count; it != end; ++it)
+			for (const Key *it=keys, *const end=keys+count; it != end; ++it)
 			{
 				if (keyboard.Assigned( *it ))
 				{
@@ -250,11 +255,11 @@ namespace Nestopia
 				}
 			}
 
-			for (Joysticks::Iterator it=joysticks.Begin(), end=joysticks.End(); it != end; ++it)
+			for (Joysticks::Iterator it(joysticks.Begin()), end(joysticks.End()); it != end; ++it)
 			{
 				it->Enable( false );
 
-				for (const Key *jt=keys, *jend=keys+count; jt != jend; ++jt)
+				for (const Key *jt=keys, *const jend=keys+count; jt != jend; ++jt)
 				{
 					if (it->Assigned( *jt ))
 					{
@@ -273,7 +278,7 @@ namespace Nestopia
 			{
 				if (scan == SCAN_NO_KEY)
 				{
-					for (Joysticks::ConstIterator it=joysticks.Begin(), end=joysticks.End(); it != end; ++it)
+					for (Joysticks::ConstIterator it(joysticks.Begin()), end(joysticks.End()); it != end; ++it)
 					{
 						if (it->Scan( key ))
 							return SCAN_GOOD_KEY;
@@ -286,7 +291,7 @@ namespace Nestopia
 			return scan;
 		}
 
-		ibool DirectInput::MapKey(Key& key,tstring const name,const System::Guid* const guids,const uint numGuids) const
+		bool DirectInput::MapKey(Key& key,tstring const name,const System::Guid* const guids,const uint numGuids) const
 		{
 			key.Unmap();
 
@@ -319,7 +324,7 @@ namespace Nestopia
 					{
 						const System::Guid& guid = guids[index];
 
-						for (Joysticks::ConstIterator it=joysticks.Begin(), end=joysticks.End(); it != end; ++it)
+						for (Joysticks::ConstIterator it(joysticks.Begin()), end(joysticks.End()); it != end; ++it)
 						{
 							if (it->GetGuid() == guid)
 								return it->Map( key, name + (name[7] == ' ' ? 8 : 9) );
@@ -380,12 +385,12 @@ namespace Nestopia
 			com.Release();
 		}
 
-		void DirectInput::Device::Enable(ibool enable)
+		void DirectInput::Device::Enable(bool enable)
 		{
 			enabled = enable;
 		}
 
-		ibool DirectInput::Device::Acquire(void* const data,const uint size)
+		bool DirectInput::Device::Acquire(void* const data,const uint size)
 		{
 			return enabled && SUCCEEDED(com.Acquire()) && SUCCEEDED(com.Poll()) && SUCCEEDED(com.GetDeviceState( size, data ));
 		}
@@ -411,18 +416,18 @@ namespace Nestopia
 			IDirectInputDevice8* com;
 
 			if (FAILED(base.CreateDevice( GUID_SysKeyboard, &com, NULL )))
-				throw Application::Exception(_T("IDirectInput8::CreateDevice() failed!"));
+				throw Application::Exception( IDS_FAILED, _T("IDirectInput8::CreateDevice()") );
 
 			if (FAILED(com->SetDataFormat( &c_dfDIKeyboard )))
 			{
 				com->Release();
-				throw Application::Exception(_T("IDirectInputDevice8::SetDataFormat() failed!"));
+				throw Application::Exception( IDS_FAILED, _T("IDirectInputDevice8::SetDataFormat()") );
 			}
 
 			return *com;
 		}
 
-		BOOL CALLBACK DirectInput::Keyboard::EnumObjects(LPCDIDEVICEOBJECTINSTANCE obj,LPVOID)
+		BOOL CALLBACK DirectInput::Keyboard::EnumObjects(LPCDIDEVICEOBJECTINSTANCE const obj,LPVOID)
 		{
 			NST_VERIFY( obj->dwOfs < MAX_KEYS && *obj->tszName );
 
@@ -443,10 +448,10 @@ namespace Nestopia
 		void DirectInput::Keyboard::SetCooperativeLevel(HWND const hWnd,const DWORD flags) const
 		{
 			if (FAILED(com.SetCooperativeLevel( hWnd, flags )))
-				throw Application::Exception(_T("IDirectInputDevice8::SetCooperativeLevel() failed!"));
+				throw Application::Exception( IDS_FAILED, _T("IDirectInputDevice8::SetCooperativeLevel()") );
 		}
 
-		ibool DirectInput::Keyboard::Map(Key& key,tstring name) const
+		bool DirectInput::Keyboard::Map(Key& key,tstring name) const
 		{
 			for (uint i=0; i < MAX_KEYS; ++i)
 			{
@@ -457,7 +462,7 @@ namespace Nestopia
 			return false;
 		}
 
-		ibool DirectInput::Keyboard::Map(Key& key,const uint code) const
+		bool DirectInput::Keyboard::Map(Key& key,const uint code) const
 		{
 			if (code && code <= 0xFF && code != DIK_LWIN)
 			{
@@ -482,7 +487,7 @@ namespace Nestopia
 			SetCooperativeLevel( hWnd, COOPERATIVE_FLAGS );
 		}
 
-		ibool DirectInput::Keyboard::Scan(u8 (&data)[MAX_KEYS]) const
+		bool DirectInput::Keyboard::Scan(uchar (&data)[MAX_KEYS]) const
 		{
 			if (SUCCEEDED(com.Poll()) && SUCCEEDED(com.GetDeviceState( MAX_KEYS, data )))
 				return true;
@@ -494,17 +499,15 @@ namespace Nestopia
 
 		DirectInput::ScanResult DirectInput::Keyboard::Scan(Key& key) const
 		{
-			u8 data[MAX_KEYS];
+			uchar data[MAX_KEYS];
 
 			if (Scan( data ))
 			{
-				NST_COMPILE_ASSERT( MAX_KEYS % 4 == 0 );
-
-				for (uint i=0; i < MAX_KEYS; i += 4)
+				for (uint i=0; i < MAX_KEYS; ++i)
 				{
-					if (const u32 mask = (*reinterpret_cast<u32*>(data+i) & 0x80808080U))
+					if (data[i] & 0x80U)
 					{
-						switch (const uint dik = (i + ((mask & 0x80U) ? 0 : (mask & 0x8000U) ? 1 : (mask & 0x800000U) ? 2 : 3)))
+						switch (i)
 						{
 							case DIK_CAPITAL:
 							case DIK_NUMLOCK:
@@ -514,7 +517,7 @@ namespace Nestopia
 								continue;
 
 							default:
-								return Map( key, dik ) ? SCAN_GOOD_KEY : SCAN_INVALID_KEY;
+								return Map( key, i ) ? SCAN_GOOD_KEY : SCAN_INVALID_KEY;
 						}
 					}
 				}
@@ -545,7 +548,7 @@ namespace Nestopia
 			}
 		}
 
-		ibool DirectInput::Keyboard::Assigned(const Key& key) const
+		bool DirectInput::Keyboard::Assigned(const Key& key) const
 		{
 			return key.data >= buffer && key.data < (buffer + Buffer::SIZE);
 		}
@@ -594,13 +597,12 @@ namespace Nestopia
 
 		DirectInput::Joystick::Calibrator::Calibrator()
 		:
-		lX   (0),
-		lY   (0),
-		lZ   (0),
-		lRx  (0),
-		lRy  (0),
-		lRz  (0),
-		must (true)
+		lX  (0),
+		lY  (0),
+		lZ  (0),
+		lRx (0),
+		lRy (0),
+		lRz (0)
 		{}
 
 		DirectInput::Joystick::Caps::Context::Context(Caps& c,IDirectInputDevice8& d)
@@ -635,7 +637,7 @@ namespace Nestopia
 			return *com;
 		}
 
-		BOOL CALLBACK DirectInput::Joystick::Caps::EnumObjectsProc(LPCDIDEVICEOBJECTINSTANCE info,LPVOID ref)
+		BOOL CALLBACK DirectInput::Joystick::Caps::EnumObjectsProc(LPCDIDEVICEOBJECTINSTANCE const info,LPVOID const ref)
 		{
 			Context& context = *static_cast<Context*>(ref);
 
@@ -723,7 +725,7 @@ namespace Nestopia
 			return DIENUM_CONTINUE;
 		}
 
-		ibool DirectInput::Joystick::SetAxisDeadZone(const uint value)
+		bool DirectInput::Joystick::SetAxisDeadZone(const uint value)
 		{
 			NST_ASSERT( value <= DEADZONE_MAX );
 
@@ -754,7 +756,7 @@ namespace Nestopia
 		void DirectInput::Joystick::Acquire()
 		{
 			if (Device::Acquire( &state, sizeof(state) ))
-				calibrator.Reset( state );
+				calibrator.Fix( state );
 			else
 				Clear();
 		}
@@ -765,21 +767,27 @@ namespace Nestopia
 			Clear();
 		}
 
-		void DirectInput::Joystick::Calibrator::Reset(DIJOYSTATE& state)
+		inline void DirectInput::Joystick::Calibrator::Reset(DIJOYSTATE& state,bool full)
 		{
-			if (must)
+			lX = full ? state.lX : 0;
+			lY = full ? state.lY : 0;
+			lZ = state.lZ;
+			lRx = state.lRx;
+			lRy = state.lRy;
+			lRz = state.lRz;
+		}
+
+		void DirectInput::Joystick::Calibrate(bool full)
+		{
+			if (SUCCEEDED(com.Acquire()))
 			{
-				must = false;
+				Object::Pod<DIJOYSTATE> tmp;
 
-				lX = state.lX;
-				lY = state.lY;
-				lZ = state.lZ;
-				lRx = state.lRx;
-				lRy = state.lRy;
-				lRz = state.lRz;
+				if (SUCCEEDED(com.Poll()) && SUCCEEDED(com.GetDeviceState( sizeof(tmp), &tmp )))
+					calibrator.Reset( tmp, full );
+
+				com.Unacquire();
 			}
-
-			Fix( state );
 		}
 
 		void DirectInput::Joystick::BeginScanMode() const
@@ -792,17 +800,17 @@ namespace Nestopia
 			com.Unacquire();
 		}
 
-		ibool DirectInput::Joystick::Scan(Key& key) const
+		bool DirectInput::Joystick::Scan(Key& key) const
 		{
 			DIJOYSTATE tmp;
 
 			if (scanEnabled && SUCCEEDED(com.Poll()) && SUCCEEDED(com.GetDeviceState( sizeof(tmp), &tmp )))
 			{
-				calibrator.Reset( tmp );
+				calibrator.Fix( tmp );
 
 				for (uint i=0; i < Caps::NUM_BUTTONS; ++i)
 				{
-					if (tmp.rgbButtons[i] & 0x80)
+					if (tmp.rgbButtons[i] & 0x80U)
 					{
 						key.data = state.rgbButtons + i;
 						key.code = KeyDown;
@@ -829,7 +837,7 @@ namespace Nestopia
 			return false;
 		}
 
-		ibool DirectInput::Joystick::Map(Key& key,tstring const name) const
+		bool DirectInput::Joystick::Map(Key& key,tstring const name) const
 		{
 			if (*name)
 			{
@@ -869,7 +877,7 @@ namespace Nestopia
 			return false;
 		}
 
-		ibool DirectInput::Joystick::Assigned(const Key& key) const
+		bool DirectInput::Joystick::Assigned(const Key& key) const
 		{
 			return
 			(
@@ -915,9 +923,7 @@ namespace Nestopia
 				case DIERR_UNPLUGGED:
 
 					Enable( false );
-					Clear();
 					Io::Screen() << _T("Error! Joystick unplugged!");
-					break;
 
 				default:
 
@@ -926,31 +932,29 @@ namespace Nestopia
 			}
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("t", on)
 		#endif
 
 		uint DirectInput::KeyDown(const void* const data)
 		{
-			return 0U - (uint(*static_cast<const BYTE*>(data)) >> 7);
+			return 0U - (*static_cast<const BYTE*>(data) >> 7);
 		}
 
 		uint DirectInput::KeyPosDir(const void* const data)
 		{
-		#ifdef NST_SIGN_SHIFT
-			return (uint) (-*static_cast<const long*>(data) >> (sizeof(long) * CHAR_BIT - 1));
-		#else
-			return (*static_cast<const long*>(data) > 0) ? ~0U : 0U;
-		#endif
+			if (LONG_MIN >> (sizeof(long) * CHAR_BIT - 1) == ~0UL)
+				return (-*static_cast<const long*>(data) >> (sizeof(long) * CHAR_BIT - 1));
+			else
+				return (*static_cast<const long*>(data) > 0) ? ~0U : 0U;
 		}
 
 		uint DirectInput::KeyNegDir(const void* const data)
 		{
-		#ifdef NST_SIGN_SHIFT
-			return (uint) (*static_cast<const long*>(data) >> (sizeof(long) * CHAR_BIT - 1));
-		#else
-			return (*static_cast<const long*>(data) < 0) ? ~0U : 0U;
-		#endif
+			if (LONG_MIN >> (sizeof(long) * CHAR_BIT - 1) == ~0UL)
+				return (*static_cast<const long*>(data) >> (sizeof(long) * CHAR_BIT - 1));
+			else
+				return (*static_cast<const long*>(data) < 0) ? ~0U : 0U;
 		}
 
 		uint DirectInput::KeyPovUp(const void* const data)
@@ -999,10 +1003,10 @@ namespace Nestopia
 
 		uint DirectInput::KeyNone(const void* const)
 		{
-			return 0U;
+			return 0;
 		}
 
-		ibool DirectInput::Key::GetToggle(ibool& prev) const
+		bool DirectInput::Key::GetToggle(bool& prev) const
 		{
 			if (GetState())
 			{
@@ -1020,11 +1024,11 @@ namespace Nestopia
 			return false;
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
-		ibool DirectInput::Key::MapVirtualKey(const uint code,const uint vk1,const uint vk2,const uint vk3)
+		bool DirectInput::Key::MapVirtualKey(const uint code,const uint vk1,const uint vk2,const uint vk3)
 		{
 			Unmap();
 
@@ -1091,7 +1095,7 @@ namespace Nestopia
 			return true;
 		}
 
-		ibool DirectInput::Key::MapVirtualKey(GenericString name)
+		bool DirectInput::Key::MapVirtualKey(GenericString name)
 		{
 			Unmap();
 
@@ -1123,12 +1127,12 @@ namespace Nestopia
 			return MapVirtualKey( System::Keyboard::GetKey( name ), vk[0], vk[1], vk[2] );
 		}
 
-		ibool DirectInput::Key::IsVirtualKey() const
+		bool DirectInput::Key::IsVirtualKey() const
 		{
 			return (code == KeyNone && data);
 		}
 
-		ibool DirectInput::Key::GetVirtualKey(ACCEL& accel) const
+		bool DirectInput::Key::GetVirtualKey(ACCEL& accel) const
 		{
 			if (code == KeyNone && data)
 			{

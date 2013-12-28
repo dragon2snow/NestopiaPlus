@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,21 +25,19 @@
 #ifndef NST_VSSYSTEM_H
 #define NST_VSSYSTEM_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
-#pragma once
-#endif
-
 #include "../api/NstApiInput.hpp"
 #include "../NstDipSwitches.hpp"
+#include "../NstCartridge.hpp"
+
+#ifdef NST_PRAGMA_ONCE
+#pragma once
+#endif
 
 namespace Nes
 {
 	namespace Core
 	{
-		class Ppu;
-		class Cpu;
-
-		class VsSystem
+		class Cartridge::VsSystem
 		{
 		public:
 
@@ -52,10 +50,10 @@ namespace Nes
 			};
 
 			static VsSystem* Create(Cpu&,Ppu&,PpuType,Mode,dword,bool);
-			virtual ~VsSystem();
+			static void Destroy(VsSystem*);
 
 			void Reset(bool);
-			void SaveState(State::Saver&) const;
+			void SaveState(State::Saver&,dword) const;
 			void LoadState(State::Loader&);
 			void EnableYuvConversion(bool);
 
@@ -63,9 +61,14 @@ namespace Nes
 
 			struct Context;
 
-			VsSystem(Context&);
+			explicit VsSystem(Context&);
+			virtual ~VsSystem();
 
 		private:
+
+			class RbiBaseball;
+			class SuperXevious;
+			class TkoBoxing;
 
 			virtual void Reset() {}
 			virtual void SubSave(State::Saver&) const {}
@@ -109,22 +112,22 @@ namespace Nes
 				COIN_1               = Input::Controllers::VsSystem::COIN_1,
 				COIN_2               = Input::Controllers::VsSystem::COIN_2,
 				COIN                 = COIN_1|COIN_2,
-				STATUS_4016_MASK     = (DIPSWITCH_4016_MASK << DIPSWITCH_4016_SHIFT) | COIN,
-				STATUS_4017_MASK     = (DIPSWITCH_4017_MASK << DIPSWITCH_4017_SHIFT)
+				STATUS_4016_MASK     = uint(DIPSWITCH_4016_MASK) << DIPSWITCH_4016_SHIFT | COIN,
+				STATUS_4017_MASK     = uint(DIPSWITCH_4017_MASK) << DIPSWITCH_4017_SHIFT
 			};
 
-			NES_DECL_PEEK( Nop  )
-			NES_DECL_POKE( Nop  )
-			NES_DECL_PEEK( 2002_RC2C05_01_04 )
-			NES_DECL_PEEK( 2002_RC2C05_02    )
-			NES_DECL_PEEK( 2002_RC2C05_03    )
-			NES_DECL_POKE( 2002 )
-			NES_DECL_PEEK( 4016 )
-			NES_DECL_POKE( 4016 )
-			NES_DECL_PEEK( 4017 )
-			NES_DECL_POKE( 4017 )
-			NES_DECL_PEEK( 4020 )
-			NES_DECL_POKE( 4020 )
+			NES_DECL_PEEK( Nop  );
+			NES_DECL_POKE( Nop  );
+			NES_DECL_PEEK( 2002_RC2C05_01_04 );
+			NES_DECL_PEEK( 2002_RC2C05_02    );
+			NES_DECL_PEEK( 2002_RC2C05_03    );
+			NES_DECL_POKE( 2002 );
+			NES_DECL_PEEK( 4016 );
+			NES_DECL_POKE( 4016 );
+			NES_DECL_PEEK( 4017 );
+			NES_DECL_POKE( 4017 );
+			NES_DECL_PEEK( 4020 );
+			NES_DECL_POKE( 4020 );
 
 		protected:
 
@@ -168,17 +171,15 @@ namespace Nes
 			};
 
 			InputMapper* const inputMapper;
-
 			Io::Port p4016;
 			Io::Port p4017;
-
-			uint coin;
 			VsDipSwitches dips;
-			const PpuType ppuType;
-			ibool yuvConvert;
 			Io::Port p2002;
+			uint coin;
+			const PpuType ppuType;
+			ibool yuvMapping;
 
-			static const u8 colorMaps[4][64];
+			static const byte yuvMaps[4][0x40];
 
 		public:
 

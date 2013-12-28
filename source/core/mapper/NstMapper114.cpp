@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -30,7 +30,7 @@ namespace Nes
 {
 	namespace Core
 	{
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("s", on)
 		#endif
 
@@ -54,9 +54,9 @@ namespace Nes
 		{
 			while (const dword chunk = state.Begin())
 			{
-				if (chunk == NES_STATE_CHUNK_ID('R','E','G','\0'))
+				if (chunk == AsciiId<'R','E','G'>::V)
 				{
-					const State::Loader::Data<2> data( state );
+					State::Loader::Data<2> data( state );
 
 					exRegs[0] = data[0];
 					exRegs[1] = data[1] & 0x1;
@@ -68,16 +68,16 @@ namespace Nes
 
 		void Mapper114::SubSave(State::Saver& state) const
 		{
-			const u8 data[2] =
+			const byte data[2] =
 			{
 				exRegs[0],
 				exRegs[1]
 			};
 
-			state.Begin('R','E','G','\0').Write( data ).End();
+			state.Begin( AsciiId<'R','E','G'>::V ).Write( data ).End();
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
@@ -88,7 +88,7 @@ namespace Nes
 			if (data & 0x80)
 			{
 				data &= 0x1F;
-				prg.SwapBanks<SIZE_16K,0x0000U>( data, data );
+				prg.SwapBanks<SIZE_16K,0x0000>( data, data );
 			}
 			else
 			{
@@ -98,12 +98,12 @@ namespace Nes
 
 		NES_POKE(Mapper114,A000)
 		{
-			static const u8 security[8] = {0,3,1,5,6,7,2,4};
+			static const byte security[8] = {0,3,1,5,6,7,2,4};
 
 			data = (data & 0xC0) | security[data & 0x07];
 			exRegs[1] = true;
 
-			NES_CALL_POKE(Mmc3,8000,0x8000U,data);
+			Mmc3::NES_DO_POKE(8000,0x8000,data);
 		}
 
 		NES_POKE(Mapper114,C000)
@@ -111,15 +111,15 @@ namespace Nes
 			if (exRegs[1] && ((exRegs[0] & 0x80) == 0 || (regs.ctrl0 & Regs::CTRL0_MODE) < 6))
 			{
 				exRegs[1] = false;
-				NES_CALL_POKE(Mmc3,8001,0x8001U,data);
+				Mmc3::NES_DO_POKE(8001,0x8001,data);
 			}
 		}
 
 		NES_POKE(Mapper114,E003)
 		{
-			NES_CALL_POKE(Mmc3,E001,0xE001U,data);
-			NES_CALL_POKE(Mmc3,C000,0xC000U,data);
-			NES_CALL_POKE(Mmc3,C001,0xC001U,data);
+			Mmc3::NES_DO_POKE(E001,0xE001,data);
+			Mmc3::NES_DO_POKE(C000,0xC000,data);
+			Mmc3::NES_DO_POKE(C001,0xC001,data);
 		}
 	}
 }

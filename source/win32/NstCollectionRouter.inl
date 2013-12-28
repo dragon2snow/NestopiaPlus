@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -30,10 +30,10 @@ Router<Output,Input,Key>::Router(KeyParam key,Data* const data,Code code)
 }
 
 template<typename Output,typename Input,typename Key> template<typename Data,typename Array>
-Router<Output,Input,Key>::Router(Data* const data,const Array& array)
+Router<Output,Input,Key>::Router(Data* const data,const Array& arr)
 : hooks(NULL)
 {
-	Add( data, array, NST_COUNT(array) );
+	Add( data, arr, sizeof(array(arr)) );
 }
 
 template<typename Output,typename Input,typename Key>
@@ -59,7 +59,7 @@ Output Router<Output,Input,Key>::Hook::Invoke(Input input)
 template<typename Output,typename Input,typename Key>
 void Router<Output,Input,Key>::Add(KeyParam key,const Callback& callback)
 {
-	ibool found;
+	bool found;
 	Callback& item = items( key, found );
 
 	if (found)
@@ -171,11 +171,17 @@ void Router<Output,Input,Key>::RemoveAll(const void* const data)
 }
 
 template<typename Output,typename Input,typename Key>
+void Router<Output,Input,Key>::Defrag()
+{
+	items.Defrag();
+}
+
+template<typename Output,typename Input,typename Key>
 void Router<Output,Input,Key>::AddHook(KeyParam key,const typename Hook::Item& newItem)
 {
 	Hook* hook;
 
-	ibool found;
+	bool found;
 	Callback& callback = items( key, found );
 
 	if (found && callback.template CodePtr<Hook>() == &Hook::Invoke)
@@ -211,7 +217,7 @@ void Router<Output,Input,Key>::AddHook(KeyParam key,const typename Hook::Item& n
 }
 
 template<typename Output,typename Input,typename Key>
-ibool Router<Output,Input,Key>::RemoveHook(Item* const mainItem,Hook* const hook,typename Hook::Item* const hookItem)
+bool Router<Output,Input,Key>::RemoveHook(Item* const mainItem,Hook* const hook,typename Hook::Item* const hookItem)
 {
 	NST_ASSERT( mainItem );
 
@@ -272,14 +278,13 @@ void Router<Output,Input,Key>::RemoveHooks(const void* const data)
 			{
 				typename Hook::Item* const hookItem = hook->items.At(i);
 
-				if (hookItem->VoidPtr() == data)
-				{
-					if (RemoveHook( mainItem, hook, hookItem ))
-						break;
-				}
-				else
+				if (hookItem->VoidPtr() != data)
 				{
 					++i;
+				}
+				else if (RemoveHook( mainItem, hook, hookItem ))
+				{
+					break;
 				}
 			}
 		}

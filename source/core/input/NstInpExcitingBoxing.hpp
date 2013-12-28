@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,7 +25,7 @@
 #ifndef NST_INPUT_EXCITINGBOXING_H
 #define NST_INPUT_EXCITINGBOXING_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
+#ifdef NST_PRAGMA_ONCE
 #pragma once
 #endif
 
@@ -39,14 +39,16 @@ namespace Nes
 			{
 			public:
 
-				ExcitingBoxing(const Cpu&);
+				explicit ExcitingBoxing(const Cpu&);
 
 			private:
+
+				~ExcitingBoxing() {}
 
 				void Reset();
 				void Poke(uint);
 				uint Peek(uint);
-				void SaveState(State::Saver&,uchar) const;
+				void SaveState(State::Saver&,byte) const;
 
 				uint state;
 			};

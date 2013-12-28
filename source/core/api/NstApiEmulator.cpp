@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -22,6 +22,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
+#include <new>
 #include "../NstMachine.hpp"
 #include "NstApiEmulator.hpp"
 
@@ -29,7 +30,7 @@ namespace Nes
 {
 	namespace Api
 	{
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("s", on)
 		#endif
 
@@ -38,12 +39,12 @@ namespace Nes
 		{
 		}
 
-		Emulator::~Emulator()
+		Emulator::~Emulator() throw()
 		{
 			delete &machine;
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
@@ -54,7 +55,30 @@ namespace Nes
 			Core::Input::Controllers* input
 		)   throw()
 		{
-			return machine.tracker.Execute( machine, video, sound, input );
+			try
+			{
+				return machine.tracker.Execute( machine, video, sound, input );
+			}
+			catch (Result result)
+			{
+				machine.PowerOff();
+				return result;
+			}
+			catch (std::bad_alloc&)
+			{
+				machine.PowerOff();
+				return RESULT_ERR_OUT_OF_MEMORY;
+			}
+			catch (...)
+			{
+				machine.PowerOff();
+				return RESULT_ERR_GENERIC;
+			}
+		}
+
+		ulong Emulator::Frame() const throw()
+		{
+			return machine.tracker.Frame();
 		}
 	}
 }

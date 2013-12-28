@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -29,16 +29,16 @@ namespace Nes
 {
 	namespace Core
 	{
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("s", on)
 		#endif
 
-		void Mapper228::SubReset(const bool hard)
+		void Mapper228::SubReset(bool)
 		{
 			Map( 0x8000U, 0xFFFFU, &Mapper228::Poke_Prg );
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
@@ -49,15 +49,15 @@ namespace Nes
 			if (address & 0x20)
 			{
 				bank = (bank << 2) | (address >> 5 & 0x2);
-				prg.SwapBanks<SIZE_16K,0x0000U>( bank, bank );
+				prg.SwapBanks<SIZE_16K,0x0000>( bank, bank );
 			}
 			else
 			{
-				prg.SwapBank<SIZE_32K,0x0000U>( bank );
+				prg.SwapBank<SIZE_32K,0x0000>( bank );
 			}
 
-			ppu.SetMirroring( (address & 0x2000U) ? Ppu::NMT_HORIZONTAL : Ppu::NMT_VERTICAL );
-			chr.SwapBank<SIZE_8K,0x0000U>( (address << 2 & 0x3C) | (data & 0x03) );
+			ppu.SetMirroring( (address & 0x2000) ? Ppu::NMT_HORIZONTAL : Ppu::NMT_VERTICAL );
+			chr.SwapBank<SIZE_8K,0x0000>( (address << 2 & 0x3C) | (data & 0x03) );
 		}
 	}
 }

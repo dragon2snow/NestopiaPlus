@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,11 +25,11 @@
 #ifndef NST_IMAGEDATABASE_H
 #define NST_IMAGEDATABASE_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
+#include "api/NstApiCartridge.hpp"
+
+#ifdef NST_PRAGMA_ONCE
 #pragma once
 #endif
-
-#include "api/NstApiCartridge.hpp"
 
 namespace Nes
 {
@@ -49,14 +49,10 @@ namespace Nes
 
 			Handle Search(dword) const;
 
-			dword WrkRam       (Handle) const;
-			dword WrkRamBacked (Handle) const;
-			dword ChrRam       (Handle) const;
-
-			Api::Cartridge::Condition Condition (Handle) const;
-
 			System GetSystem(Handle) const;
 			Region GetRegion(Handle) const;
+
+			Api::Cartridge::Condition GetCondition(Handle) const;
 
 			enum
 			{
@@ -80,13 +76,14 @@ namespace Nes
 				INPUT_TOPRIDER,
 				INPUT_PAD_SWAP,
 				INPUT_ROB,
+				INPUT_POWERGLOVE,
 
 				INPUT_EX_TURBOFILE = 1
 			};
 
 		private:
 
-			#ifdef _MSC_VER
+			#if NST_MSVC
 			#pragma pack(push,1)
 			#endif
 
@@ -94,39 +91,41 @@ namespace Nes
 			{
 				enum
 				{
-					FLAGS_PAL       = 0x0001U,
-					FLAGS_NTSC      = 0x0002U,
-					FLAGS_VS        = 0x0004U,
-					FLAGS_P10       = 0x0008U,
-					FLAGS_MIRRORING = 0x0070U,
-					FLAGS_TRAINER   = 0x0100U,
-					FLAGS_BAD       = 0x0200U,
-					FLAGS_ENCRYPTED = 0x0800U,
+					FLAGS_PAL       = 0x0001,
+					FLAGS_NTSC      = 0x0002,
+					FLAGS_VS        = 0x0004,
+					FLAGS_P10       = 0x0008,
+					FLAGS_MIRRORING = 0x0070,
+					FLAGS_TRAINER   = 0x0100,
+					FLAGS_BAD       = 0x0200,
+					FLAGS_PRG_HI    = 0x0400,
+					FLAGS_ENCRYPTED = 0x0800,
 
 					FLAGS_MIRRORING_SHIFT = 4,
+					FLAGS_PRG_HI_SHIFT = 2,
 
 					INPUT_BITS = 0x1F,
 					INPUT_EX_SHIFT = 5
 				};
 
-				u32 crc;
-				u8 prgSize;
-				u8 prgSkip;
-				u8 chrSize;
-				u8 chrSkip;
-				u8 wrkSize;
-				u8 mapper;
-				u8 attribute;
-				u8 input;
-				u16 flags;
+				dword crc;
+				byte prgSize;
+				byte prgSkip;
+				byte chrSize;
+				byte chrSkip;
+				byte wrkSize;
+				byte mapper;
+				byte attribute;
+				byte input;
+				word flags;
 
-				operator u32 () const
+				operator dword () const
 				{
 					return crc;
 				}
 			};
 
-			#ifdef _MSC_VER
+			#if NST_MSVC
 			#pragma pack(pop)
 			#endif
 
@@ -136,7 +135,7 @@ namespace Nes
 			dword numEntries;
 			Ref entries;
 
-			static const u32 ramLut[16];
+			static const dword ramSizes[16];
 
 		public:
 
@@ -145,28 +144,35 @@ namespace Nes
 				enabled = state;
 			}
 
-			ibool Enabled() const
+			bool Enabled() const
 			{
 				return enabled;
 			}
 
-			Api::Cartridge::Mirroring GetMirroring(Handle h) const
+			dword PrgRom(Handle h) const
 			{
-				return (Api::Cartridge::Mirroring) ((static_cast<Ref>(h)->flags & Entry::FLAGS_MIRRORING) >> Entry::FLAGS_MIRRORING_SHIFT);
+				return (static_cast<Ref>(h)->prgSize | ((static_cast<Ref>(h)->flags & uint(Entry::FLAGS_PRG_HI)) >> Entry::FLAGS_PRG_HI_SHIFT)) * dword(SIZE_16K);
 			}
 
-			dword Crc          (Handle h) const { return static_cast<Ref>(h)->crc;                            }
-			dword PrgRom       (Handle h) const { return static_cast<Ref>(h)->prgSize * SIZE_16K;             }
-			dword PrgRomSkip   (Handle h) const { return static_cast<Ref>(h)->prgSkip * SIZE_16K;             }
-			dword ChrRom       (Handle h) const { return static_cast<Ref>(h)->chrSize * SIZE_8K;              }
-			dword ChrRomSkip   (Handle h) const { return static_cast<Ref>(h)->chrSkip * SIZE_8K;              }
-			dword ChrRamBacked (Handle)   const { return 0;                                                   }
-			uint  Mapper       (Handle h) const { return static_cast<Ref>(h)->mapper;                         }
-			uint  Attribute    (Handle h) const { return static_cast<Ref>(h)->attribute;                      }
-			uint  Input        (Handle h) const { return static_cast<Ref>(h)->input & Entry::INPUT_BITS;      }
-			uint  InputEx      (Handle h) const { return static_cast<Ref>(h)->input >> Entry::INPUT_EX_SHIFT; }
-			ibool Trainer      (Handle h) const { return static_cast<Ref>(h)->flags & Entry::FLAGS_TRAINER;   }
-			ibool Encrypted    (Handle h) const { return static_cast<Ref>(h)->flags & Entry::FLAGS_ENCRYPTED; }
+			Api::Cartridge::Mirroring GetMirroring(Handle h) const
+			{
+				return static_cast<Api::Cartridge::Mirroring>(((static_cast<Ref>(h)->flags & uint(Entry::FLAGS_MIRRORING)) >> Entry::FLAGS_MIRRORING_SHIFT));
+			}
+
+			dword Crc          (Handle h) const { return static_cast<Ref>(h)->crc;                                  }
+			dword PrgRomSkip   (Handle h) const { return static_cast<Ref>(h)->prgSkip * dword(SIZE_16K);            }
+			dword ChrRom       (Handle h) const { return static_cast<Ref>(h)->chrSize * dword(SIZE_8K);             }
+			dword ChrRomSkip   (Handle h) const { return static_cast<Ref>(h)->chrSkip * dword(SIZE_8K);             }
+			dword ChrRam       (Handle h) const { return static_cast<Ref>(h)->chrSize ? 0 : SIZE_8K;                }
+			dword ChrRamBacked (Handle)   const { return 0;                                                         }
+			dword WrkRam       (Handle h) const { return ramSizes[static_cast<Ref>(h)->wrkSize >> 4];               }
+			dword WrkRamBacked (Handle h) const { return ramSizes[static_cast<Ref>(h)->wrkSize & 0xFU];             }
+			uint  Mapper       (Handle h) const { return static_cast<Ref>(h)->mapper;                               }
+			uint  Attribute    (Handle h) const { return static_cast<Ref>(h)->attribute;                            }
+			uint  Input        (Handle h) const { return static_cast<Ref>(h)->input & uint(Entry::INPUT_BITS);      }
+			uint  InputEx      (Handle h) const { return static_cast<Ref>(h)->input >> Entry::INPUT_EX_SHIFT;       }
+			bool  Trainer      (Handle h) const { return static_cast<Ref>(h)->flags & uint(Entry::FLAGS_TRAINER);   }
+			bool  Encrypted    (Handle h) const { return static_cast<Ref>(h)->flags & uint(Entry::FLAGS_ENCRYPTED); }
 		};
 	}
 }

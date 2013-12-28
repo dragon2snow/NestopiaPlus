@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -41,7 +41,7 @@ namespace Nestopia
 		const MsgHandler::Entry<Launcher::Colors> Launcher::Colors::Handlers::messages[] =
 		{
 			{ WM_INITDIALOG, &Colors::OnInitDialog },
-			{ WM_ERASEBKGND, &Colors::OnEraseBkgnd }
+			{ WM_PAINT,      &Colors::OnPaint      }
 		};
 
 		const MsgHandler::Entry<Launcher::Colors> Launcher::Colors::Handlers::commands[] =
@@ -57,14 +57,14 @@ namespace Nestopia
 		foreground (20,33,74,53),
 		dialog     (IDD_LAUNCHER_COLORS,this,Handlers::messages,Handlers::commands)
 		{
-			background.color = cfg["launcher color background"].Default( (uint) DEF_BACKGROUND_COLOR );
-			foreground.color = cfg["launcher color foreground"].Default( (uint) DEF_FOREGROUND_COLOR );
+			background.color = cfg["launcher color background"].Default( uint(DEF_BACKGROUND_COLOR) );
+			foreground.color = cfg["launcher color foreground"].Default( uint(DEF_FOREGROUND_COLOR) );
 		}
 
 		void Launcher::Colors::Save(Configuration& cfg) const
 		{
-			cfg[ "launcher color foreground" ] = HexString( (u32) foreground.color );
-			cfg[ "launcher color background" ] = HexString( (u32) background.color );
+			cfg[ "launcher color foreground" ] = HexString( 32, foreground.color );
+			cfg[ "launcher color background" ] = HexString( 32, background.color );
 		}
 
 		void Launcher::Colors::UpdateColor(const Type& type) const
@@ -115,7 +115,7 @@ namespace Nestopia
 			return true;
 		}
 
-		ibool Launcher::Colors::OnEraseBkgnd(Param&)
+		ibool Launcher::Colors::OnPaint(Param&)
 		{
 			UpdateColors();
 			return false;

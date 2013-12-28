@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -47,15 +47,13 @@ namespace Nestopia
 
 			class Bit
 			{
-				friend class BitSet;
-
 				Bits& bits;
 				const Bits mask;
 
+			public:
+
 				Bit(Bits& b,Bits m)
 				: bits(b), mask(m) {}
-
-			public:
 
 				operator bool () const
 				{

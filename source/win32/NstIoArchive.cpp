@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -22,10 +22,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#ifdef _MSC_VER
-#pragma comment(lib,"zlibstat")
-#endif
-
+#include <new>
 #include "NstApplicationInstance.hpp"
 #include "NstWindowParam.hpp"
 #include "NstWindowDialog.hpp"
@@ -40,20 +37,15 @@
 #include "../unrar/unrar.h"
 #include "../7zip/IArchive.h"
 
+#if NST_MSVC
+#pragma comment(lib,"zlibstat")
+#endif
+
 DEFINE_GUID(CLSID_CFormat7z,0x23170F69,0x40C1,0x278A,0x10,0x00,0x00,0x01,0x10,0x07,0x00,0x00);
 
-#ifdef __INTEL_COMPILER
-#pragma warning( push )
-#pragma warning( disable : 193 )
-#endif
-
 #define ZLIB_WINAPI
-#define ZCALLBACK NST_CDECL
+#define ZCALLBACK WINAPIV
 #include "../zlib/unzip.h"
-
-#ifdef __INTEL_COMPILER
-#pragma warning( pop )
-#endif
 
 namespace Nestopia
 {
@@ -72,26 +64,26 @@ namespace Nestopia
 
 			virtual ~Codec() {}
 
-			virtual ibool Build(Items&) = 0;
-			virtual uint  Extract(uint,void*,uint) = 0;
+			virtual bool Build(Items&) = 0;
+			virtual uint Extract(uint,void*,uint) = 0;
 		};
 
 		class Archive::UnZip : public Codec
 		{
 			struct Stream
 			{
-				const char* const buffer;
+				const uchar* const buffer;
 				uint pos;
 				const uint size;
 
 				Stream(const void* b=NULL,uint s=0)
-				: buffer(static_cast<const char*>(b)), pos(0), size(s) {}
+				: buffer(static_cast<const uchar*>(b)), pos(0), size(s) {}
 			};
 
 			Stream stream;
 			void* const handle;
 
-			ibool Build(Items& files)
+			bool Build(Items& files)
 			{
 				uint numFiles;
 
@@ -148,7 +140,7 @@ namespace Nestopia
 						const int extracted = ::unzReadCurrentFile( handle, buffer, size );
 						::unzCloseCurrentFile( handle );
 
-						if (extracted == (int) size)
+						if (extracted == int(size))
 							return size;
 					}
 				}
@@ -166,7 +158,7 @@ namespace Nestopia
 
 			static ulong ZCALLBACK OnWrite(voidpf,voidpf,const void*,ulong)
 			{
-				return 0UL;
+				return 0;
 			}
 
 			static int ZCALLBACK OnClose(voidpf,voidpf stream)
@@ -195,7 +187,7 @@ namespace Nestopia
 				}
 				else
 				{
-					return 0UL;
+					return 0;
 				}
 			}
 
@@ -204,7 +196,7 @@ namespace Nestopia
 				if (const Stream* const stream = static_cast<const Stream*>( object ))
 					return stream->pos;
 				else
-					return -1L;
+					return -1;
 			}
 
 			static long ZCALLBACK OnStreamSeek(voidpf,voidpf object,ulong distance,int origin)
@@ -241,7 +233,7 @@ namespace Nestopia
 					}
 				}
 
-				return 0UL;
+				return 0;
 			}
 
 			static long ZCALLBACK OnFileTell(voidpf,voidpf file)
@@ -250,7 +242,7 @@ namespace Nestopia
 				{
 					try
 					{
-						return (long) static_cast<const File*>(file)->Position();
+						return long (static_cast<const File*>(file)->Position());
 					}
 					catch (...)
 					{
@@ -401,7 +393,7 @@ namespace Nestopia
 
 			void* Open(uint);
 			uint  Extract(uint,void*,uint);
-			ibool Build(Items&);
+			bool  Build(Items&);
 
 			Path path;
 		};
@@ -432,7 +424,7 @@ namespace Nestopia
 			return dll.OpenArchiveEx( &data );
 		}
 
-		ibool Archive::UnRar::Build(Items& files)
+		bool Archive::UnRar::Build(Items& files)
 		{
 			if (void* const handle = Open( RAR_OM_LIST ))
 			{
@@ -489,10 +481,10 @@ namespace Nestopia
 			{
 				static int PASCAL OnRead(uchar* input,int size)
 				{
-					if (input && size > 0 && uint(size) <= stream.size)
+					if (input && size > 0 && size <= stream.size)
 					{
-						std::memcpy( stream.buffer + stream.pos, input, (uint) size );
-						stream.pos += (uint) size;
+						std::memcpy( stream.buffer + stream.pos, input, size );
+						stream.pos += size;
 						return 1;
 					}
 					else
@@ -577,7 +569,7 @@ namespace Nestopia
 
 			static IInArchive* Create();
 
-			class InStream : public IInStream, public IStreamGetSize
+			class InStream : public IInStream, private IStreamGetSize
 			{
 				ulong refCount;
 
@@ -655,7 +647,7 @@ namespace Nestopia
 					{
 						try
 						{
-							origin = file.Seek( (File::Offset) origin, (int) offset );
+							origin = file.Seek( File::Offset(origin), int(offset) );
 						}
 						catch (File::Exception)
 						{
@@ -681,7 +673,7 @@ namespace Nestopia
 
 			class InMemStream : public InStream
 			{
-				const char* const buffer;
+				const uchar* const buffer;
 				uint pos;
 
 				HRESULT STDMETHODCALLTYPE Read(void* data,UInt32 length,UInt32* save)
@@ -728,14 +720,14 @@ namespace Nestopia
 			public:
 
 				InMemStream(const void* b,uint s)
-				: InStream(s), buffer(static_cast<const char*>(b)), pos(0) {}
+				: InStream(s), buffer(static_cast<const uchar*>(b)), pos(0) {}
 			};
 
 			class OutStream : public IArchiveExtractCallback
 			{
 				class SeqStream : public ISequentialOutStream
 				{
-					char* const output;
+					uchar* const output;
 					uint pos;
 					const uint size;
 					ulong refCount;
@@ -781,7 +773,7 @@ namespace Nestopia
 				public:
 
 					SeqStream(void* d,uint s)
-					: output(static_cast<char*>(d)), pos(0), size(s), refCount(0) {}
+					: output(static_cast<uchar*>(d)), pos(0), size(s), refCount(0) {}
 
 					uint Size() const
 					{
@@ -859,10 +851,10 @@ namespace Nestopia
 				}
 			};
 
-			void  Open();
-			void  Close();
-			ibool Build(Items&);
-			uint  Extract(uint,void*,uint);
+			void Open();
+			void Close();
+			bool Build(Items&);
+			uint Extract(uint,void*,uint);
 		};
 
 		IInArchive* Archive::Un7zip::Create()
@@ -928,7 +920,7 @@ namespace Nestopia
 			archive.Release();
 		}
 
-		ibool Archive::Un7zip::Build(Items& files)
+		bool Archive::Un7zip::Build(Items& files)
 		{
 			UInt32 numFiles;
 
@@ -981,7 +973,7 @@ namespace Nestopia
 			OutStream outStream( index, data, size );
 			const UInt32 indices[1] = {index};
 
-			if (SUCCEEDED(archive.Extract( indices, NST_COUNT(indices), 0, &outStream )) && outStream.Size() == size)
+			if (SUCCEEDED(archive.Extract( indices, sizeof(array(indices)), 0, &outStream )) && outStream.Size() == size)
 				return size;
 			else
 				return 0;
@@ -1009,27 +1001,29 @@ namespace Nestopia
 			Close();
 		}
 
-		ibool Archive::Open(const File& file)
+		bool Archive::Open(const File& file)
 		{
 			Close();
 			return Open( &file, NULL, 0 );
 		}
 
-		ibool Archive::Open(const void* raw,uint size)
+		bool Archive::Open(const void* raw,uint size)
 		{
 			Close();
 			return Open( NULL, raw, size );
 		}
 
-		ibool Archive::Open(const File* const file,const void* const raw,uint size)
+		bool Archive::Open(const File* const file,const void* const raw,uint size)
 		{
 			try
 			{
 				if (raw)
 				{
-					if (size >= sizeof(u32))
+					if (size >= 4)
 					{
-						switch (*static_cast<const u32*>(raw))
+						const uchar* const mem = static_cast<const uchar*>(raw);
+
+						switch (NST_FOURCC(mem[0],mem[1],mem[2],mem[3]))
 						{
 							case FILE_ID_ZIP:
 
@@ -1043,7 +1037,7 @@ namespace Nestopia
 						}
 					}
 				}
-				else switch (file->Peek<u32>())
+				else switch (file->Peek32())
 				{
 					case FILE_ID_ZIP:
 
@@ -1188,7 +1182,7 @@ namespace Nestopia
 
 			if (filter.count)
 			{
-				for (Items::const_iterator it(files.begin()); it != files.end(); ++it)
+				for (Items::const_iterator it(files.begin()), end(files.end()); it != end; ++it)
 				{
 					const GenericString extension( it->GetName().Extension() );
 
@@ -1207,7 +1201,7 @@ namespace Nestopia
 			{
 				listBox.Reserve( files.size() );
 
-				for (Items::const_iterator it(files.begin()); it != files.end(); ++it)
+				for (Items::const_iterator it(files.begin()), end(files.end()); it != end; ++it)
 				{
 					hScrollBar.Update( it->GetName().Ptr(), it->GetName().Length() );
 					listBox.Add( it->GetName().Ptr() ).Data() = it - files.begin();

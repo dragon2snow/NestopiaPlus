@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -23,6 +23,7 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 
 #include "NstWindowParam.hpp"
+#include "NstManagerEmulator.hpp"
 #include "NstDialogBarcodeReader.hpp"
 
 namespace Nestopia
@@ -64,16 +65,20 @@ namespace Nestopia
 			if (code.Length())
 				edit << code.Ptr();
 
+			if (!barcodeReader.CanTransfer())
+			{
+				edit.Disable();
+				dialog.Control( IDC_BARCODE_RANDOM ).Disable();
+				dialog.Control( IDC_BARCODE_TRANSFER ).Disable();
+			}
+
 			return true;
 		}
 
 		ibool BarcodeReader::OnCmdDigits(Param& param)
 		{
 			if (param.Edit().Changed())
-			{
 				dialog.Edit( IDC_BARCODE_DIGITS ) >> code;
-				dialog.Control( IDC_BARCODE_TRANSFER ).Enable( barcodeReader.IsDigitsSupported( code.Length() ) );
-			}
 
 			return true;
 		}
@@ -93,7 +98,7 @@ namespace Nestopia
 
 		ibool BarcodeReader::OnCmdTransfer(Param& param)
 		{
-			if (param.Button().Clicked())
+			if (param.Button().Clicked() && barcodeReader.IsDigitsSupported( code.Length() ))
 			{
 				barcodeReader.Transfer( code.Ptr(), code.Length() );
 				dialog.Close();

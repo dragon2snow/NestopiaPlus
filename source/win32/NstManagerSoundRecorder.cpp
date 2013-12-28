@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -26,8 +26,7 @@
 #include "NstIoScreen.hpp"
 #include "NstWindowParam.hpp"
 #include "NstWindowUser.hpp"
-#include "NstWindowMenu.hpp"
-#include "NstManagerEmulator.hpp"
+#include "NstManager.hpp"
 #include "NstDialogSound.hpp"
 #include "NstManagerSound.hpp"
 #include "NstManagerSoundRecorder.hpp"
@@ -43,11 +42,10 @@ namespace Nestopia
 			Emulator& e
 		)
 		:
+		Manager   ( e, m, this, &Recorder::OnEmuEvent ),
 		recording ( false ),
 		file      ( Io::Wave::MODE_WRITE ),
-		dialog    ( d ),
-		menu      ( m ),
-		emulator  ( e )
+		dialog    ( d )
 		{
 			static const Window::Menu::CmdHandler::Entry<Sound::Recorder> commands[] =
 			{
@@ -57,16 +55,14 @@ namespace Nestopia
 				{ IDM_FILE_SOUND_RECORDER_REWIND, &Recorder::OnCmdRewind }
 			};
 
-			m.Commands().Add( this, commands );
-			emulator.Events().Add( this, &Recorder::OnEmuEvent );
+			menu.Commands().Add( this, commands );
 		}
 
 		Sound::Recorder::~Recorder()
 		{
-			emulator.Events().Remove( this );
 		}
 
-		ibool Sound::Recorder::CanRecord() const
+		bool Sound::Recorder::CanRecord() const
 		{
 			return
 			(
@@ -137,8 +133,8 @@ namespace Nestopia
 
 		void Sound::Recorder::UpdateMenu() const
 		{
-			const ibool canRecord = CanRecord();
-			NST_ASSERT( bool(recording) <= bool(canRecord) );
+			const bool canRecord = CanRecord();
+			NST_ASSERT( recording <= canRecord );
 
 			menu[ IDM_FILE_SOUND_RECORDER_START  ].Enable( canRecord && !recording );
 			menu[ IDM_FILE_SOUND_RECORDER_STOP   ].Enable( recording );

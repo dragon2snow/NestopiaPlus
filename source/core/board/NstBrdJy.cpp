@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -23,7 +23,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 
 #include "../NstMapper.hpp"
-#include "../NstClock.hpp"
 #include "NstBrdJy.hpp"
 
 namespace Nes
@@ -32,7 +31,7 @@ namespace Nes
 	{
 		namespace Boards
 		{
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("s", on)
 			#endif
 
@@ -50,7 +49,7 @@ namespace Nes
 			Jy::Irq::M2::M2(Irq& irq)
 			: base(irq) {}
 
-			#ifdef _MSC_VER
+			#if NST_MSVC >= 1200
 			#pragma warning( push )
 			#pragma warning( disable : 4355 )
 			#endif
@@ -58,7 +57,7 @@ namespace Nes
 			Jy::Irq::Irq(Cpu& cpu,Ppu& ppu)
 			: a12(cpu,ppu,0,Clock::A12<A12>::NO_IRQ_DELAY,*this), m2(cpu,*this) {}
 
-			#ifdef _MSC_VER
+			#if NST_MSVC >= 1200
 			#pragma warning( pop )
 			#endif
 
@@ -86,7 +85,7 @@ namespace Nes
 					prg[i] = 0xFF;
 
 				for (uint i=0; i < 8; ++i)
-					chr[i] = 0xFFFFU;
+					chr[i] = 0xFFFF;
 
 				for (uint i=0; i < 4; ++i)
 					nmt[i] = 0x00;
@@ -120,10 +119,10 @@ namespace Nes
 
 			void Jy::SubReset(bool)
 			{
-				for (uint i=0x5000U; i < 0x5800U; i += 0x4)
+				for (uint i=0x5000; i < 0x5800; i += 0x4)
 					Map( i, &Jy::Peek_5000 );
 
-				for (uint i=0x5800U; i < 0x6000U; i += 0x4)
+				for (uint i=0x5800; i < 0x6000; i += 0x4)
 				{
 					cpu.Map( i + 0x0 ).Set( &regs, &Jy::Regs::Peek_5800, &Jy::Regs::Poke_5800 );
 					cpu.Map( i + 0x1 ).Set( &regs, &Jy::Regs::Peek_5801, &Jy::Regs::Poke_5801 );
@@ -135,26 +134,26 @@ namespace Nes
 				Map( 0x9000U, 0x9FFFU, &Jy::Poke_9000 );
 				Map( 0xA000U, 0xAFFFU, &Jy::Poke_A000 );
 
-				for (uint i=0x0000U; i < 0x1000U; i += 0x8)
+				for (uint i=0x0000; i < 0x1000; i += 0x8)
 				{
-					Map( 0xB000U + i, 0xB003U + i, &Jy::Poke_B000 );
-					Map( 0xB004U + i, 0xB007U + i, &Jy::Poke_B004 );
+					Map( 0xB000 + i, 0xB003 + i, &Jy::Poke_B000 );
+					Map( 0xB004 + i, 0xB007 + i, &Jy::Poke_B004 );
 
-					Map( 0xC000U + i, &Jy::Poke_C000 );
-					Map( 0xC001U + i, &Jy::Poke_C001 );
-					Map( 0xC002U + i, &Jy::Poke_C002 );
-					Map( 0xC003U + i, &Jy::Poke_C003 );
-					Map( 0xC004U + i, &Jy::Poke_C004 );
-					Map( 0xC005U + i, &Jy::Poke_C005 );
-					Map( 0xC006U + i, &Jy::Poke_C006 );
+					Map( 0xC000 + i, &Jy::Poke_C000 );
+					Map( 0xC001 + i, &Jy::Poke_C001 );
+					Map( 0xC002 + i, &Jy::Poke_C002 );
+					Map( 0xC003 + i, &Jy::Poke_C003 );
+					Map( 0xC004 + i, &Jy::Poke_C004 );
+					Map( 0xC005 + i, &Jy::Poke_C005 );
+					Map( 0xC006 + i, &Jy::Poke_C006 );
 				}
 
-				for (uint i=0x0000U; i < 0x1000U; i += 0x4)
+				for (uint i=0x0000; i < 0x1000; i += 0x4)
 				{
-					Map( 0xD000U + i, &Jy::Poke_D000 );
-					Map( 0xD001U + i, &Jy::Poke_D001 );
-					Map( 0xD002U + i, &Jy::Poke_D002 );
-					Map( 0xD003U + i, &Jy::Poke_D003 );
+					Map( 0xD000 + i, &Jy::Poke_D000 );
+					Map( 0xD001 + i, &Jy::Poke_D001 );
+					Map( 0xD002 + i, &Jy::Poke_D002 );
+					Map( 0xD003 + i, &Jy::Poke_D003 );
 				}
 
 				regs.Reset();
@@ -178,17 +177,17 @@ namespace Nes
 
 			void Jy::BaseLoad(State::Loader& state,const dword id)
 			{
-				NST_VERIFY( id == NES_STATE_CHUNK_ID('B','T','K','\0') );
+				NST_VERIFY( id == (AsciiId<'B','T','K'>::V) );
 
-				if (id == NES_STATE_CHUNK_ID('B','T','K','\0'))
+				if (id == AsciiId<'B','T','K'>::V)
 				{
 					while (const dword chunk = state.Begin())
 					{
 						switch (chunk)
 						{
-							case NES_STATE_CHUNK_ID('R','E','G','\0'):
+							case AsciiId<'R','E','G'>::V:
 							{
-								const State::Loader::Data<35> data( state );
+								State::Loader::Data<35> data( state );
 
 								regs.ctrl[0] = data[0];
 								regs.ctrl[1] = data[1];
@@ -201,18 +200,18 @@ namespace Nes
 								banks.prg[1] = data[8];
 								banks.prg[2] = data[9];
 								banks.prg[3] = data[10];
-								banks.chr[0] = data[11] | (data[12] << 8);
-								banks.chr[1] = data[13] | (data[14] << 8);
-								banks.chr[2] = data[15] | (data[16] << 8);
-								banks.chr[3] = data[17] | (data[18] << 8);
-								banks.chr[4] = data[19] | (data[20] << 8);
-								banks.chr[5] = data[21] | (data[22] << 8);
-								banks.chr[6] = data[23] | (data[24] << 8);
-								banks.chr[7] = data[25] | (data[26] << 8);
-								banks.nmt[0] = data[27] | (data[28] << 8);
-								banks.nmt[1] = data[29] | (data[30] << 8);
-								banks.nmt[2] = data[31] | (data[32] << 8);
-								banks.nmt[3] = data[33] | (data[34] << 8);
+								banks.chr[0] = data[11] | data[12] << 8;
+								banks.chr[1] = data[13] | data[14] << 8;
+								banks.chr[2] = data[15] | data[16] << 8;
+								banks.chr[3] = data[17] | data[18] << 8;
+								banks.chr[4] = data[19] | data[20] << 8;
+								banks.chr[5] = data[21] | data[22] << 8;
+								banks.chr[6] = data[23] | data[24] << 8;
+								banks.chr[7] = data[25] | data[26] << 8;
+								banks.nmt[0] = data[27] | data[28] << 8;
+								banks.nmt[1] = data[29] | data[30] << 8;
+								banks.nmt[2] = data[31] | data[32] << 8;
+								banks.nmt[3] = data[33] | data[34] << 8;
 
 								UpdatePrg();
 								UpdateExChr();
@@ -222,7 +221,7 @@ namespace Nes
 								break;
 							}
 
-							case NES_STATE_CHUNK_ID('L','A','T','\0'):
+							case AsciiId<'L','A','T'>::V:
 
 								NST_VERIFY( cartSwitches.IsPpuLatched() );
 
@@ -236,12 +235,12 @@ namespace Nes
 								}
 								break;
 
-							case NES_STATE_CHUNK_ID('I','R','Q','\0'):
+							case AsciiId<'I','R','Q'>::V:
 							{
-								u8 data[5];
+								byte data[5];
 								state.Read( data );
 
-								irq.enabled   = data[0] & 0x1;
+								irq.enabled   = data[0] & 0x1U;
 								irq.mode      = data[1];
 								irq.prescaler = data[2];
 								irq.count     = data[3];
@@ -260,10 +259,10 @@ namespace Nes
 
 			void Jy::BaseSave(State::Saver& state) const
 			{
-				state.Begin('B','T','K','\0');
+				state.Begin( AsciiId<'B','T','K'>::V );
 
 				{
-					const u8 data[35] =
+					const byte data[35] =
 					{
 						regs.ctrl[0],
 						regs.ctrl[1],
@@ -302,14 +301,14 @@ namespace Nes
 						banks.nmt[3] >> 8
 					};
 
-					state.Begin('R','E','G','\0').Write( data ).End();
+					state.Begin( AsciiId<'R','E','G'>::V ).Write( data ).End();
 				}
 
 				if (cartSwitches.IsPpuLatched())
-					state.Begin('L','A','T','\0').Write8( banks.chrLatch[0] | banks.chrLatch[1] << 3 ).End();
+					state.Begin( AsciiId<'L','A','T'>::V ).Write8( banks.chrLatch[0] | banks.chrLatch[1] << 3 ).End();
 
 				{
-					const u8 data[5] =
+					const byte data[5] =
 					{
 						irq.enabled != 0,
 						irq.mode,
@@ -318,7 +317,7 @@ namespace Nes
 						irq.flip
 					};
 
-					state.Begin('I','R','Q','\0').Write( data ).End();
+					state.Begin( AsciiId<'I','R','Q'>::V ).Write( data ).End();
 				}
 
 				state.End();
@@ -381,7 +380,7 @@ namespace Nes
 				else
 				{
 					NST_ASSERT( value < 3 );
-					data = (data & ~uint(DIPSWITCH_NMT)) | value;
+					data = (data & ~uint(DIPSWITCH_NMT)) | (value << 0);
 				}
 
 				return prev != data;
@@ -395,7 +394,7 @@ namespace Nes
 					return Mapper::QueryDevice( type );
 			}
 
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("", on)
 			#endif
 
@@ -448,12 +447,12 @@ namespace Nes
 			{
 				return
 				(
-					((bank & 0x01) << 6) |
-					((bank & 0x02) << 4) |
-					((bank & 0x04) << 2) |
-					((bank & 0x10) >> 2) |
-					((bank & 0x20) >> 4) |
-					((bank & 0x40) >> 6)
+					(bank & 0x01) << 6 |
+					(bank & 0x02) << 4 |
+					(bank & 0x04) << 2 |
+					(bank & 0x10) >> 2 |
+					(bank & 0x20) >> 4 |
+					(bank & 0x40) >> 6
 				);
 			}
 
@@ -510,7 +509,7 @@ namespace Nes
 
 				if (address == 0xFD8 || address == 0xFE8)
 				{
-					banks.chrLatch[1] = address >> 4 & (0x2|0x4);
+					banks.chrLatch[1] = address >> 4 & (0x2U|0x4U);
 
 					if ((regs.ctrl[0] & Regs::CTRL0_CHR_MODE) == Regs::CTRL0_CHR_SWAP_4K)
 						UpdateChrLatch();
@@ -535,7 +534,7 @@ namespace Nes
 			NES_PEEK(Jy,6000)
 			{
 				NST_VERIFY( banks.prg6 );
-				return banks.prg6 ? banks.prg6[address - 0x6000U] : (address >> 8);
+				return banks.prg6 ? banks.prg6[address - 0x6000] : (address >> 8);
 			}
 
 			NES_POKE(Jy,8000)
@@ -553,7 +552,7 @@ namespace Nes
 			NES_POKE(Jy,9000)
 			{
 				address &= 0x7;
-				data |= banks.chr[address] & 0xFF00U;
+				data |= banks.chr[address] & 0xFF00;
 
 				if (banks.chr[address] != data)
 				{
@@ -565,7 +564,7 @@ namespace Nes
 			NES_POKE(Jy,A000)
 			{
 				address &= 0x7;
-				data = (data << 8) | (banks.chr[address] & 0x00FFU);
+				data = data << 8 | (banks.chr[address] & 0x00FF);
 
 				if (banks.chr[address] != data)
 				{
@@ -577,7 +576,7 @@ namespace Nes
 			NES_POKE(Jy,B000)
 			{
 				address &= 0x3;
-				data |= banks.nmt[address] & 0xFF00U;
+				data |= banks.nmt[address] & 0xFF00;
 
 				if (banks.nmt[address] != data)
 				{
@@ -589,7 +588,7 @@ namespace Nes
 			NES_POKE(Jy,B004)
 			{
 				address &= 0x3;
-				data = (data << 8) | (banks.nmt[address] & 0x00FFU);
+				data = data << 8 | (banks.nmt[address] & 0x00FU);
 
 				if (banks.nmt[address] != data)
 				{
@@ -726,12 +725,12 @@ namespace Nes
 
 					switch (regs.ctrl[0] & Regs::CTRL0_PRG_MODE)
 					{
-						case Regs::CTRL0_PRG_SWAP_32K:  bank = (bank << 2) | 0x3; break;
-						case Regs::CTRL0_PRG_SWAP_16K:  bank = (bank << 1) | 0x1; break;
+						case Regs::CTRL0_PRG_SWAP_32K:  bank = bank << 2 | 0x3; break;
+						case Regs::CTRL0_PRG_SWAP_16K:  bank = bank << 1 | 0x1; break;
 						case Regs::CTRL0_PRG_SWAP_8K_R: bank = banks.Unscramble( bank ); break;
 					}
 
-					banks.prg6 = prg.Source().Mem( ((bank & 0x3F) | exPrg) * SIZE_8K );
+					banks.prg6 = prg.Source().Mem( ((bank & 0x3FUL) | exPrg) * SIZE_8K );
 				}
 
 				const uint last = (regs.ctrl[0] & Regs::CTRL0_PRG_NOT_LAST) ? banks.prg[3] : 0x3F;
@@ -740,7 +739,7 @@ namespace Nes
 				{
 					case Regs::CTRL0_PRG_SWAP_32K:
 
-						prg.SwapBank<SIZE_32K,0x0000U>
+						prg.SwapBank<SIZE_32K,0x0000>
 						(
 							(last & 0xF) | (exPrg >> 2)
 						);
@@ -748,7 +747,7 @@ namespace Nes
 
 					case Regs::CTRL0_PRG_SWAP_16K:
 
-						prg.SwapBanks<SIZE_16K,0x0000U>
+						prg.SwapBanks<SIZE_16K,0x0000>
 						(
 							(banks.prg[1] & 0x1F) | (exPrg >> 1),
 							(last         & 0x1F) | (exPrg >> 1)
@@ -757,7 +756,7 @@ namespace Nes
 
 					case Regs::CTRL0_PRG_SWAP_8K:
 
-						prg.SwapBanks<SIZE_8K,0x0000U>
+						prg.SwapBanks<SIZE_8K,0x0000>
 						(
 							(banks.prg[0] & 0x3F) | exPrg,
 							(banks.prg[1] & 0x3F) | exPrg,
@@ -768,7 +767,7 @@ namespace Nes
 
 					case Regs::CTRL0_PRG_SWAP_8K_R:
 
-						prg.SwapBanks<SIZE_8K,0x0000U>
+						prg.SwapBanks<SIZE_8K,0x0000>
 						(
 							(banks.Unscramble( banks.prg[0] ) & 0x3F) | exPrg,
 							(banks.Unscramble( banks.prg[1] ) & 0x3F) | exPrg,
@@ -783,8 +782,8 @@ namespace Nes
 			{
 				if (regs.ctrl[3] & Regs::CTRL3_NO_EX_CHR)
 				{
-					banks.exChr.mask = 0xFFFFU;
-					banks.exChr.bank = 0x0000U;
+					banks.exChr.mask = 0xFFFF;
+					banks.exChr.bank = 0x0000;
 				}
 				else
 				{
@@ -803,7 +802,7 @@ namespace Nes
 				{
 					case Regs::CTRL0_CHR_SWAP_8K:
 
-						chr.SwapBank<SIZE_8K,0x0000U>
+						chr.SwapBank<SIZE_8K,0x0000>
 						(
 							(banks.chr[0] & banks.exChr.mask) | banks.exChr.bank
 						);
@@ -816,7 +815,7 @@ namespace Nes
 
 					case Regs::CTRL0_CHR_SWAP_2K:
 
-						chr.SwapBanks<SIZE_2K,0x0000U>
+						chr.SwapBanks<SIZE_2K,0x0000>
 						(
 							(banks.chr[0] & banks.exChr.mask) | banks.exChr.bank,
 							(banks.chr[2] & banks.exChr.mask) | banks.exChr.bank,
@@ -827,7 +826,7 @@ namespace Nes
 
 					case Regs::CTRL0_CHR_SWAP_1K:
 
-						chr.SwapBanks<SIZE_1K,0x0000U>
+						chr.SwapBanks<SIZE_1K,0x0000>
 						(
 							(banks.chr[0] & banks.exChr.mask) | banks.exChr.bank,
 							(banks.chr[1] & banks.exChr.mask) | banks.exChr.bank,
@@ -846,7 +845,7 @@ namespace Nes
 			{
 				NST_ASSERT( (regs.ctrl[0] & Regs::CTRL0_CHR_MODE) == Regs::CTRL0_CHR_SWAP_4K );
 
-				chr.SwapBanks<SIZE_4K,0x0000U>
+				chr.SwapBanks<SIZE_4K,0x0000>
 				(
 					(banks.chr[banks.chrLatch[0]] & banks.exChr.mask) | banks.exChr.bank,
 					(banks.chr[banks.chrLatch[1]] & banks.exChr.mask) | banks.exChr.bank

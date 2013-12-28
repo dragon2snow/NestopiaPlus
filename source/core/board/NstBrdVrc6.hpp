@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,7 +25,7 @@
 #ifndef NST_BOARDS_VRC_H
 #define NST_BOARDS_VRC_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
+#ifdef NST_PRAGMA_ONCE
 #pragma once
 #endif
 
@@ -37,15 +37,26 @@ namespace Nes
 	{
 		namespace Boards
 		{
-			class NST_NO_VTABLE Vrc6 : public Mapper
+			class Vrc6 : public Mapper
 			{
+			protected:
+
+				enum Type
+				{
+					TYPE_NORMAL,
+					TYPE_SWAP_A0_A1
+				};
+
+				Vrc6(Context&,Type);
+				~Vrc6() {}
+
 			public:
 
 				class Sound : public Apu::Channel
 				{
 				public:
 
-					Sound(Cpu&,bool=true);
+					explicit Sound(Cpu&,bool=true);
 					~Sound();
 
 					void WriteSquareReg0 (uint,uint);
@@ -55,29 +66,29 @@ namespace Nes
 					void WriteSawReg1    (uint);
 					void WriteSawReg2    (uint);
 
-					void SaveState(State::Saver&) const;
+					void SaveState(State::Saver&,dword) const;
 					void LoadState(State::Loader&);
 
 				protected:
 
 					void Reset();
-					void UpdateContext(uint,const u8 (&w)[MAX_CHANNELS]);
+					void UpdateContext(uint,const byte (&w)[MAX_CHANNELS]);
 					Sample GetSample();
 
 				private:
 
-					class NST_NO_VTABLE BaseChannel
+					class BaseChannel
 					{
 					protected:
 
 						void Reset();
 
-						ibool enabled;
-						uint  waveLength;
-						ibool active;
-						iword timer;
-						Cycle frequency;
-						uint  step;
+						ibool  enabled;
+						uint   waveLength;
+						ibool  active;
+						idword timer;
+						Cycle  frequency;
+						uint   step;
 					};
 
 					class Square : BaseChannel
@@ -90,10 +101,10 @@ namespace Nes
 
 						NST_FORCE_INLINE dword GetSample(Cycle);
 						NST_FORCE_INLINE void WriteReg0(uint);
-						NST_FORCE_INLINE void WriteReg1(uint,uint);
-						NST_FORCE_INLINE void WriteReg2(uint,uint);
+						NST_FORCE_INLINE void WriteReg1(uint,dword);
+						NST_FORCE_INLINE void WriteReg2(uint,dword);
 
-						void SaveState(State::Saver&) const;
+						void SaveState(State::Saver&,dword) const;
 						void LoadState(State::Loader&,uint);
 
 						void UpdateContext(uint);
@@ -134,10 +145,10 @@ namespace Nes
 
 						NST_FORCE_INLINE dword GetSample(Cycle);
 						NST_FORCE_INLINE void WriteReg0(uint);
-						NST_FORCE_INLINE void WriteReg1(uint,uint);
-						NST_FORCE_INLINE void WriteReg2(uint,uint);
+						NST_FORCE_INLINE void WriteReg1(uint,dword);
+						NST_FORCE_INLINE void WriteReg2(uint,dword);
 
-						void SaveState(State::Saver&) const;
+						void SaveState(State::Saver&,dword) const;
 						void LoadState(State::Loader&,uint);
 
 						void UpdateContext(uint);
@@ -172,16 +183,6 @@ namespace Nes
 					const ibool hooked;
 				};
 
-			protected:
-
-				enum Type
-				{
-					TYPE_NORMAL,
-					TYPE_SWAP_A0_A1
-				};
-
-				Vrc6(Context&,Type);
-
 			private:
 
 				void SubReset(bool);
@@ -189,19 +190,19 @@ namespace Nes
 				void BaseLoad(State::Loader&,dword);
 				void VSync();
 
-				NES_DECL_POKE( 9000 )
-				NES_DECL_POKE( 9001 )
-				NES_DECL_POKE( 9002 )
-				NES_DECL_POKE( A000 )
-				NES_DECL_POKE( A001 )
-				NES_DECL_POKE( A002 )
-				NES_DECL_POKE( B000 )
-				NES_DECL_POKE( B001 )
-				NES_DECL_POKE( B002 )
-				NES_DECL_POKE( B003 )
-				NES_DECL_POKE( F000 )
-				NES_DECL_POKE( F001 )
-				NES_DECL_POKE( F002 )
+				NES_DECL_POKE( 9000 );
+				NES_DECL_POKE( 9001 );
+				NES_DECL_POKE( 9002 );
+				NES_DECL_POKE( A000 );
+				NES_DECL_POKE( A001 );
+				NES_DECL_POKE( A002 );
+				NES_DECL_POKE( B000 );
+				NES_DECL_POKE( B001 );
+				NES_DECL_POKE( B002 );
+				NES_DECL_POKE( B003 );
+				NES_DECL_POKE( F000 );
+				NES_DECL_POKE( F001 );
+				NES_DECL_POKE( F002 );
 
 				Vrc4::Irq irq;
 				Sound sound;

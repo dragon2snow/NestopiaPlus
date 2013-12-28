@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -22,13 +22,9 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include <cstring>
+#include <algorithm>
 #include "NstCore.hpp"
 #include "NstVideoScreen.hpp"
-
-#ifdef NST_PRAGMA_OPTIMIZE
-#pragma optimize("s", on)
-#endif
 
 namespace Nes
 {
@@ -36,19 +32,24 @@ namespace Nes
 	{
 		namespace Video
 		{
+			#ifdef NST_MSVC_OPTIMIZE
+			#pragma optimize("s", on)
+			#endif
+
 			Screen::Screen()
 			{
+				std::fill( palette, palette + sizeof(array(palette)), dword(0) );
 				Clear();
 			}
 
 			void Screen::Clear()
 			{
-				std::memset( pixels, 0, sizeof(pixels) );
+				std::fill( pixels, pixels + sizeof(array(pixels)), Pixel(0) );
 			}
+
+			#ifdef NST_MSVC_OPTIMIZE
+			#pragma optimize("", on)
+			#endif
 		}
 	}
 }
-
-#ifdef NST_PRAGMA_OPTIMIZE
-#pragma optimize("", on)
-#endif

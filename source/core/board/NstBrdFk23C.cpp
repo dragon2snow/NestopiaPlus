@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -23,7 +23,7 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 
 #include "../NstMapper.hpp"
-#include "../NstChecksumCrc32.hpp"
+#include "../NstCrc32.hpp"
 #include "NstBrdMmc3.hpp"
 #include "NstBrdFk23C.hpp"
 
@@ -33,14 +33,14 @@ namespace Nes
 	{
 		namespace Boards
 		{
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("s", on)
 			#endif
 
 			Fk23C::Fk23C(Context& c)
 			:
 			Mmc3    (c,BRD_GENERIC,PROM_MAX_1024K|CROM_MAX_1024K|WRAM_DEFAULT),
-			dipMask (Checksum::Crc32::Compute(c.prg.Mem(),c.prg.Size()) == CRC_4_IN_1 ? 0x1 : 0x7)
+			dipMask (Crc32::Compute(c.prg.Mem(),c.prg.Size()) == CRC_4_IN_1 ? 0x1 : 0x7)
 			{}
 
 			void Fk23C::SubReset(const bool hard)
@@ -50,8 +50,12 @@ namespace Nes
 				else
 					dipSwitch = (dipSwitch + 1) & dipMask;
 
-				exRegs[3] = exRegs[2] = exRegs[1] = exRegs[0] = 0x00;
-				exRegs[7] = exRegs[6] = exRegs[5] = exRegs[4] = 0xFF;
+				for (uint i=0; i < 4; ++i)
+					exRegs[i] = 0x00;
+
+				for (uint i=4; i < 8; ++i)
+					exRegs[i] = 0xFF;
+
 				unromChr = 0x0;
 
 				Mmc3::SubReset( hard );
@@ -64,9 +68,9 @@ namespace Nes
 			{
 				while (const dword chunk = state.Begin())
 				{
-					if (chunk == NES_STATE_CHUNK_ID('R','E','G','\0'))
+					if (chunk == AsciiId<'R','E','G'>::V)
 					{
-						const State::Loader::Data<9> data( state );
+						State::Loader::Data<9> data( state );
 
 						for (uint i=0; i < 8; ++i)
 							exRegs[i] = data[i];
@@ -81,7 +85,7 @@ namespace Nes
 
 			void Fk23C::SubSave(State::Saver& state) const
 			{
-				const u8 data[] =
+				const byte data[] =
 				{
 					exRegs[0],
 					exRegs[1],
@@ -94,39 +98,39 @@ namespace Nes
 					unromChr | dipSwitch << 2
 				};
 
-				state.Begin('R','E','G','\0').Write( data ).End();
+				state.Begin( AsciiId<'R','E','G'>::V ).Write( data ).End();
 			}
 
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("", on)
 			#endif
 
 			void Fk23C::UpdatePrg()
 			{
-				if ((exRegs[0] & 0x7) == 4)
+				if ((exRegs[0] & 0x7U) == 4)
 				{
-					prg.SwapBank<SIZE_32K,0x0000U>( exRegs[1] >> 1 );
+					prg.SwapBank<SIZE_32K,0x0000>( exRegs[1] >> 1 );
 				}
-				else if ((exRegs[0] & 0x7) == 3)
+				else if ((exRegs[0] & 0x7U) == 3)
 				{
-					prg.SwapBanks<SIZE_16K,0x0000U>( exRegs[1], exRegs[1] );
+					prg.SwapBanks<SIZE_16K,0x0000>( exRegs[1], exRegs[1] );
 				}
 				else
 				{
 					const uint exBanks[2] =
 					{
-						(exRegs[0] & 0x2) ? 0x3F >> (exRegs[0] & 0x3) : 0xFF,
-						(exRegs[0] & 0x2) ? exRegs[1] << 1 : 0x00
+						(exRegs[0] & 0x2U) ? 0x3FU >> (exRegs[0] & 0x3U) : 0xFF,
+						(exRegs[0] & 0x2U) ? exRegs[1] << 1 : 0x00
 					};
 
 					const uint i = (regs.ctrl0 & Regs::CTRL0_XOR_PRG) >> 5;
 
-					prg.SwapBanks<SIZE_8K,0x0000U>
+					prg.SwapBanks<SIZE_8K,0x0000>
 					(
 						(banks.prg[i] & exBanks[0]) | exBanks[1],
 						(banks.prg[1] & exBanks[0]) | exBanks[1],
-						(exRegs[3] & 0x2) ? exRegs[4] : (banks.prg[i^2] & exBanks[0]) | exBanks[1],
-						(exRegs[3] & 0x2) ? exRegs[5] : (banks.prg[3]   & exBanks[0]) | exBanks[1]
+						(exRegs[3] & 0x2U) ? exRegs[4] : (banks.prg[i^2] & exBanks[0]) | exBanks[1],
+						(exRegs[3] & 0x2U) ? exRegs[5] : (banks.prg[3]   & exBanks[0]) | exBanks[1]
 					);
 				}
 			}
@@ -135,23 +139,23 @@ namespace Nes
 			{
 				ppu.Update();
 
-				if (exRegs[0] & 0x40)
+				if (exRegs[0] & 0x40U)
 				{
-					chr.SwapBank<SIZE_8K,0x0000U>( exRegs[2] | unromChr );
+					chr.SwapBank<SIZE_8K,0x0000>( exRegs[2] | unromChr );
 				}
 				else
 				{
-					uint base = (exRegs[2] & 0x7F) << 2;
+					uint base = (exRegs[2] & 0x7FU) << 2;
 					const uint swap = (regs.ctrl0 & Regs::CTRL0_XOR_CHR) << 5;
 
-					chr.SwapBanks<SIZE_2K>( 0x0000U ^ swap, base | banks.chr[0], base | banks.chr[1] );
+					chr.SwapBanks<SIZE_2K>( 0x0000 ^ swap, base | banks.chr[0], base | banks.chr[1] );
 					base <<= 1;
-					chr.SwapBanks<SIZE_1K>( 0x1000U ^ swap, base | banks.chr[2], base | banks.chr[3], base | banks.chr[4], base | banks.chr[5] );
+					chr.SwapBanks<SIZE_1K>( 0x1000 ^ swap, base | banks.chr[2], base | banks.chr[3], base | banks.chr[4], base | banks.chr[5] );
 
-					if (exRegs[3] & 0x2)
+					if (exRegs[3] & 0x2U)
 					{
-						chr.SwapBank<SIZE_1K,0x0400U>( base | exRegs[6] );
-						chr.SwapBank<SIZE_1K,0x0C00U>( base | exRegs[7] );
+						chr.SwapBank<SIZE_1K,0x0400>( base | exRegs[6] );
+						chr.SwapBank<SIZE_1K,0x0C00>( base | exRegs[7] );
 					}
 				}
 			}
@@ -168,34 +172,34 @@ namespace Nes
 
 			NES_POKE(Fk23C,Prg)
 			{
-				if (exRegs[0] & 0x40)
+				if (exRegs[0] & 0x40U)
 				{
-					unromChr = (exRegs[0] & 0x20) ? 0x0 : data & 0x3;
+					unromChr = (exRegs[0] & 0x20U) ? 0x0 : data & 0x3;
 					Fk23C::UpdateChr();
 				}
 				else switch (address & 0xE001)
 				{
-					case 0x8000: NES_CALL_POKE(Mmc3,8000,address,data); break;
+					case 0x8000: Mmc3::NES_DO_POKE(8000,address,data); break;
 					case 0x8001:
 
-						if (exRegs[3] << 2 & regs.ctrl0 & 0x8)
+						if (exRegs[3] << 2 & (regs.ctrl0 & 0x8))
 						{
-							exRegs[4 | (regs.ctrl0 & 3)] = data;
+							exRegs[4 | regs.ctrl0 & 0x3] = data;
 							Fk23C::UpdatePrg();
 							Fk23C::UpdateChr();
 						}
 						else
 						{
-							NES_CALL_POKE(Mmc3,8001,address,data);
+							Mmc3::NES_DO_POKE(8001,address,data);
 						}
 						break;
 
 					case 0xA000:
-					case 0xA001: NES_CALL_POKE(Mmc3,A001,address,data); break;
-					case 0xC000: NES_CALL_POKE(Mmc3,C000,address,data); break;
-					case 0xC001: NES_CALL_POKE(Mmc3,C001,address,data); break;
-					case 0xE000: NES_CALL_POKE(Mmc3,E000,address,data); break;
-					case 0xE001: NES_CALL_POKE(Mmc3,E001,address,data); break;
+					case 0xA001: Mmc3::NES_DO_POKE(A001,address,data); break;
+					case 0xC000: Mmc3::NES_DO_POKE(C000,address,data); break;
+					case 0xC001: Mmc3::NES_DO_POKE(C001,address,data); break;
+					case 0xE000: Mmc3::NES_DO_POKE(E000,address,data); break;
+					case 0xE001: Mmc3::NES_DO_POKE(E001,address,data); break;
 
 					NST_UNREACHABLE
 				}

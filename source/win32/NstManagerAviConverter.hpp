@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -27,7 +27,6 @@
 
 #pragma once
 
-#include "NstManagerEmulator.hpp"
 #include "../core/api/NstApiMovie.hpp"
 
 namespace Nestopia
@@ -49,13 +48,13 @@ namespace Nestopia
 			{
 				MAX_FILE_SIZE = 0x40000000,
 				VIDEO_BPP = 16,
-				VIDEO_R_MASK = Nes::b11111 << 10,
-				VIDEO_G_MASK = Nes::b11111 << 5,
-				VIDEO_B_MASK = Nes::b11111 << 0
+				VIDEO_R_MASK = 0x1FU << 10,
+				VIDEO_G_MASK = 0x1FU << 5,
+				VIDEO_B_MASK = 0x1FU << 0
 			};
 
 			Emulator& emulator;
-			const ibool on;
+			const bool on;
 
 			Nes::Video::RenderState renderState;
 			Nes::Video::Output::LockCallback nesVideoLockFunc;

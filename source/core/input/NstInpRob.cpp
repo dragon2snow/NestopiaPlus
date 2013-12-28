@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -32,7 +32,7 @@ namespace Nes
 	{
 		namespace Input
 		{
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("s", on)
 			#endif
 
@@ -51,9 +51,9 @@ namespace Nes
 				code = 0;
 			}
 
-			void Rob::SaveState(State::Saver& saver,const uchar id) const
+			void Rob::SaveState(State::Saver& saver,const byte id) const
 			{
-				u8 data[6] =
+				byte data[6] =
 				{
 					strobe,
 					stream ^ 0xFF,
@@ -63,17 +63,17 @@ namespace Nes
 					code >> 8
 				};
 
-				while (!(shifter & (1U << data[3])))
+				while (!(shifter & 1U << data[3]))
 					++data[3];
 
-				saver.Begin('R','O',id,'\0').Write( data ).End();
+				saver.Begin( AsciiId<'R','O'>::R(0,0,id) ).Write( data ).End();
 			}
 
 			void Rob::LoadState(State::Loader& loader,const dword id)
 			{
-				if (id == NES_STATE_CHUNK_ID('R','O','\0','\0'))
+				if (id == AsciiId<'R','O'>::V)
 				{
-					const State::Loader::Data<6> data( loader );
+					State::Loader::Data<6> data( loader );
 
 					strobe = data[0] & 0x1;
 					stream = data[1] ^ 0xFF;
@@ -83,7 +83,7 @@ namespace Nes
 				}
 			}
 
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("", on)
 			#endif
 
@@ -129,7 +129,7 @@ namespace Nes
 				}
 			}
 
-			uint Rob::Peek(uint port)
+			uint Rob::Peek(uint)
 			{
 				if (strobe == 0)
 				{

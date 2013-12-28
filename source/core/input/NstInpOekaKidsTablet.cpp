@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -31,7 +31,7 @@ namespace Nes
 	{
 		namespace Input
 		{
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("s", on)
 			#endif
 
@@ -49,12 +49,12 @@ namespace Nes
 				bits   = 0;
 			}
 
-			void OekaKidsTablet::SaveState(State::Saver& state,const uchar id) const
+			void OekaKidsTablet::SaveState(State::Saver& state,const byte id) const
 			{
-				state.Begin('O','T',id,'\0').End();
+				state.Begin( AsciiId<'O','T'>::R(0,0,id) ).End();
 			}
 
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("", on)
 			#endif
 
@@ -81,14 +81,14 @@ namespace Nes
 						{
 							if (tablet.x <= 255 && tablet.y <= 239)
 							{
-								data = tablet.y * 256UL / 240;
+								dword data = tablet.y * 256U / 240;
 
 								if (data > 12)
 									data = (data - 12) << 2;
 								else
 									data = 0;
 
-								data |= ((tablet.x * 240UL / 256) + 8) << 10;
+								data |= (tablet.x * 240U / 256 + 8UL) << 10;
 
 								if (tablet.button)
 								{

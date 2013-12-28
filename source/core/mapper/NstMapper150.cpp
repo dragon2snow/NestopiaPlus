@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -29,21 +29,28 @@ namespace Nes
 {
 	namespace Core
 	{
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("s", on)
 		#endif
 
 		void Mapper150::SubReset(const bool hard)
 		{
 			if (hard)
-				command = 0x00;
-
-			for (uint i=0x4100U; i < 0x6000U; ++i)
 			{
-				switch (i & 0x4101U)
+				command = 0;
+				dip = 1;
+			}
+			else
+			{
+				dip ^= 1;
+			}
+
+			for (uint i=0x4100; i < 0x6000; ++i)
+			{
+				switch (i & 0x4101)
 				{
-					case 0x4100U: Map( i, &Mapper150::Poke_4100 ); break;
-					case 0x4101U: Map( i, &Mapper150::Poke_4101 ); break;
+					case 0x4100: Map( i, &Mapper150::Peek_4100, &Mapper150::Poke_4100 ); break;
+					case 0x4101: Map( i, &Mapper150::Peek_4100, &Mapper150::Poke_4101 ); break;
 				}
 			}
 		}
@@ -52,8 +59,18 @@ namespace Nes
 		{
 			while (const dword chunk = state.Begin())
 			{
-				if (chunk == NES_STATE_CHUNK_ID('R','E','G','\0'))
-					command = state.Read8();
+				switch (chunk)
+				{
+					case AsciiId<'R','E','G'>::V:
+
+						command = state.Read8();
+						break;
+
+					case AsciiId<'D','I','P'>::V:
+
+						dip = state.Read8() & 0x1;
+						break;
+				}
 
 				state.End();
 			}
@@ -61,12 +78,18 @@ namespace Nes
 
 		void Mapper150::SubSave(State::Saver& state) const
 		{
-			state.Begin('R','E','G','\0').Write8( command ).End();
+			state.Begin( AsciiId<'R','E','G'>::V ).Write8( command ).End();
+			state.Begin( AsciiId<'D','I','P'>::V ).Write8( dip ).End();
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
+
+		NES_PEEK(Mapper150,4100)
+		{
+			return (~(command & 0x7) & 0x3F) ^ dip;
+		}
 
 		NES_POKE(Mapper150,4100)
 		{
@@ -82,12 +105,12 @@ namespace Nes
 				case 0x2:
 
 					banks[0] = data & 0x1;
-					banks[1] = (chr.GetBank<SIZE_8K,0x0000U>() & ~0x8U) | (data << 3 & 0x8);
+					banks[1] = (chr.GetBank<SIZE_8K,0x0000>() & ~0x8U) | (data << 3 & 0x8);
 					break;
 
 				case 0x4:
 
-					banks[1] = (chr.GetBank<SIZE_8K,0x0000U>() & ~0x4U) | (data << 2 & 0x4);
+					banks[1] = (chr.GetBank<SIZE_8K,0x0000>() & ~0x4U) | (data << 2 & 0x4);
 					break;
 
 				case 0x5:
@@ -97,12 +120,12 @@ namespace Nes
 
 				case 0x6:
 
-					banks[1] = (chr.GetBank<SIZE_8K,0x0000U>() & ~0x3U) | (data << 0 & 0x3);
+					banks[1] = (chr.GetBank<SIZE_8K,0x0000>() & ~0x3U) | (data << 0 & 0x3);
 					break;
 
 				case 0x7:
 				{
-					static const u8 mirroring[4][4] =
+					static const byte lut[4][4] =
 					{
 						{0,1,0,1},
 						{0,0,1,1},
@@ -110,19 +133,18 @@ namespace Nes
 						{0,0,0,0}
 					};
 
-					ppu.SetMirroring( mirroring[data >> 1 & 0x3] );
+					ppu.SetMirroring( lut[data >> 1 & 0x3] );
+					return;
 				}
-
-				default: return;
 			}
 
 			if (banks[0] != ~0U)
-				prg.SwapBank<SIZE_32K,0x0000U>( banks[0] );
+				prg.SwapBank<SIZE_32K,0x0000>( banks[0] );
 
 			if (banks[1] != ~0U)
 			{
 				ppu.Update();
-				chr.SwapBank<SIZE_8K,0x0000U>( banks[1] );
+				chr.SwapBank<SIZE_8K,0x0000>( banks[1] );
 			}
 		}
 	}

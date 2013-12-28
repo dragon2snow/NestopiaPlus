@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -32,7 +32,7 @@ namespace Nes
 	{
 		namespace Peripherals
 		{
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("s", on)
 			#endif
 
@@ -51,8 +51,8 @@ namespace Nes
 			{
 				if (IsTransferring())
 				{
-					state.Begin('P','T','R','\0').Write8( stream - data ).End();
-					state.Begin('D','A','T','\0').Compress( data ).End();
+					state.Begin( AsciiId<'P','T','R'>::V ).Write8( stream - data ).End();
+					state.Begin( AsciiId<'D','A','T'>::V ).Compress( data ).End();
 				}
 			}
 
@@ -60,12 +60,12 @@ namespace Nes
 			{
 				switch (chunk)
 				{
-					case NES_STATE_CHUNK_ID('P','T','R','\0'):
+					case AsciiId<'P','T','R'>::V:
 
 						stream = data + (state.Read8() & (MAX_DATA_LENGTH-1));
 						break;
 
-					case NES_STATE_CHUNK_ID('D','A','T','\0'):
+					case AsciiId<'D','A','T'>::V:
 
 						state.Uncompress( data );
 						data[MAX_DATA_LENGTH-1] = END;
@@ -79,7 +79,7 @@ namespace Nes
 				return (string && length && SubTransfer( string, length, data ));
 			}
 
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("", on)
 			#endif
 		}

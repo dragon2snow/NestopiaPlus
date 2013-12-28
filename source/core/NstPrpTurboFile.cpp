@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -22,49 +22,32 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include <vector>
-#include "NstState.hpp"
+#include <cstring>
 #include "NstCpu.hpp"
+#include "NstState.hpp"
+#include "NstFile.hpp"
 #include "NstPrpTurboFile.hpp"
-#include "api/NstApiUser.hpp"
 
 namespace Nes
 {
 	namespace Core
 	{
-		#ifdef NST_PRAGMA_OPTIMIZE
-		#pragma optimize("s", on)
-		#endif
-
 		namespace Peripherals
 		{
+			#ifdef NST_MSVC_OPTIMIZE
+			#pragma optimize("s", on)
+			#endif
+
 			TurboFile::TurboFile(Cpu& c)
 			: cpu(c)
 			{
-				std::vector<u8> data;
-				Api::User::fileIoCallback( Api::User::FILE_LOAD_TURBOFILE, data );
-				const ulong size = NST_MIN(SIZE,data.size());
-
-				if (size)
-					std::memcpy( ram, &data.front(), size );
-
-				std::memset( ram + size, 0, SIZE - size );
-				checksum = Checksum::Md5::Compute( ram, SIZE );
+				std::memset( ram, 0, SIZE );
+				file.Load( File::LOAD_TURBOFILE, ram, SIZE );
 			}
 
-			TurboFile::~TurboFile()
+			void TurboFile::PowerOff() const
 			{
-				if (checksum != Checksum::Md5::Compute( ram, SIZE ))
-				{
-					try
-					{
-						std::vector<u8> data( ram, ram + SIZE );
-						Api::User::fileIoCallback( Api::User::FILE_SAVE_TURBOFILE, data );
-					}
-					catch (...)
-					{
-					}
-				}
+				file.Save( File::SAVE_TURBOFILE, ram, SIZE );
 			}
 
 			void TurboFile::Reset()
@@ -74,27 +57,31 @@ namespace Nes
 				old = 0x00;
 				out = 0x00;
 
-				p4016 = cpu.Map( 0x4016U );
-				p4017 = cpu.Map( 0x4017U );
+				p4016 = cpu.Map( 0x4016 );
+				p4017 = cpu.Map( 0x4017 );
 
-				cpu.Map( 0x4016U ).Set( this, &TurboFile::Peek_4016, &TurboFile::Poke_4016 );
-				cpu.Map( 0x4017U ).Set( this, &TurboFile::Peek_4017, &TurboFile::Poke_4017 );
+				cpu.Map( 0x4016 ).Set( this, &TurboFile::Peek_4016, &TurboFile::Poke_4016 );
+				cpu.Map( 0x4017 ).Set( this, &TurboFile::Peek_4017, &TurboFile::Poke_4017 );
 			}
 
-			void TurboFile::SaveState(State::Saver& state) const
+			void TurboFile::SaveState(State::Saver& state,const dword id) const
 			{
+				state.Begin( id );
+
 				uint count;
 				for (count=0; bit && bit != (1U << count); ++count);
 
-				const u8 data[3] =
+				const byte data[3] =
 				{
 					pos & 0xFF,
 					pos >> 8,
 					count | (old << 1) | (out << 2)
 				};
 
-				state.Begin('R','E','G','\0').Write( data ).End();
-				state.Begin('R','A','M','\0').Compress( ram ).End();
+				state.Begin( AsciiId<'R','E','G'>::V ).Write( data ).End();
+				state.Begin( AsciiId<'R','A','M'>::V ).Compress( ram ).End();
+
+				state.End();
 			}
 
 			void TurboFile::LoadState(State::Loader& state)
@@ -103,11 +90,11 @@ namespace Nes
 				{
 					switch (chunk)
 					{
-						case NES_STATE_CHUNK_ID('R','E','G','\0'):
+						case AsciiId<'R','E','G'>::V:
 						{
-							const State::Loader::Data<3> data( state );
+							State::Loader::Data<3> data( state );
 
-							pos = data[0] | ((data[1] & 0x1F) << 8);
+							pos = data[0] | (data[1] << 8 & 0x1F00);
 							bit = 1U << (data[2] & 0x7);
 							old = data[2] >> 1 & WRITE_BIT;
 							out = data[2] >> 2 & READ_BIT;
@@ -115,7 +102,7 @@ namespace Nes
 							break;
 						}
 
-						case NES_STATE_CHUNK_ID('R','A','M','\0'):
+						case AsciiId<'R','A','M'>::V:
 
 							state.Uncompress( ram );
 							break;
@@ -125,7 +112,7 @@ namespace Nes
 				}
 			}
 
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("", on)
 			#endif
 

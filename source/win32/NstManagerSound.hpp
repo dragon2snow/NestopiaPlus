@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -43,7 +43,7 @@ namespace Nestopia
 		class Paths;
 		class Preferences;
 
-		class Sound
+		class Sound : Manager
 		{
 		public:
 
@@ -58,22 +58,20 @@ namespace Nestopia
 
 			void OnMenuOptionsSound(uint);
 			void OnEmuEvent(Emulator::Event);
-			void Disable(tstring=NULL);
+			void Disable(cstring=NULL);
 			void UpdateSettings();
-			ibool CanRunInBackground() const;
+			bool CanRunInBackground() const;
 
 			struct Callbacks;
 			class Recorder;
 
 			Nes::Sound::Output* emuOutput;
-			Emulator& emulator;
 			const Paths& paths;
 			const Preferences& preferences;
 			Nes::Sound::Output output;
 			DirectX::DirectSound directSound;
 			Object::Heap<Window::Sound> dialog;
 			Object::Heap<Recorder> recorder;
-			const Window::Menu& menu;
 
 		public:
 

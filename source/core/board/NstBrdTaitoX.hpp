@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,7 +25,7 @@
 #ifndef NST_BOARDS_TAITOX_H
 #define NST_BOARDS_TAITOX_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
+#ifdef NST_PRAGMA_ONCE
 #pragma once
 #endif
 
@@ -35,7 +35,7 @@ namespace Nes
 	{
 		namespace Boards
 		{
-			class NST_NO_VTABLE TaitoX : public Mapper
+			class TaitoX : public Mapper
 			{
 			protected:
 
@@ -46,16 +46,17 @@ namespace Nes
 				};
 
 				TaitoX(Context&,Type);
+				~TaitoX() {}
 
 			private:
 
 				void SubReset(bool);
 				void SwapChr(uint,uint) const;
 
-				NES_DECL_POKE( 7EF0_0 )
-				NES_DECL_POKE( 7EF0_1 )
-				NES_DECL_POKE( 7EF1_0 )
-				NES_DECL_POKE( 7EF1_1 )
+				NES_DECL_POKE( 7EF0_0 );
+				NES_DECL_POKE( 7EF0_1 );
+				NES_DECL_POKE( 7EF1_0 );
+				NES_DECL_POKE( 7EF1_1 );
 
 				const Type type;
 			};

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,7 +25,7 @@
 #ifndef NST_IO_PORT_H
 #define NST_IO_PORT_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
+#ifdef NST_PRAGMA_ONCE
 #pragma once
 #endif
 
@@ -35,7 +35,7 @@ namespace Nes
 	{
 		namespace Io
 		{
-		#ifndef NST_FPTR_MEM_MAP
+		#ifndef NST_NO_FASTDELEGATE
 
 			class Port
 			{
@@ -107,7 +107,7 @@ namespace Nes
 					(*component.*writer)( address, data );
 				}
 
-				bool SameComponent(const void* ptr) const
+				bool operator == (const void* ptr) const
 				{
 					return static_cast<const void*>(component) == ptr;
 				}
@@ -118,14 +118,14 @@ namespace Nes
 				}
 			};
 
-			#define NES_DECL_PEEK(a_) Data NES_IO_CALL Peek_##a_(Address);
-			#define NES_DECL_POKE(a_) void NES_IO_CALL Poke_##a_(Address,Data);
+			#define NES_DECL_PEEK(a_) Data NES_IO_CALL Peek_##a_(Address)
+			#define NES_DECL_POKE(a_) void NES_IO_CALL Poke_##a_(Address,Data)
 
 			#define NES_PEEK(o_,a_) Data NES_IO_CALL o_::Peek_##a_(Address address)
 			#define NES_POKE(o_,a_) void NES_IO_CALL o_::Poke_##a_(Address address,Data data)
 
-			#define NES_CALL_POKE(o_,a_,p_,d_) o_::Poke_##a_(p_,d_)
-			#define NES_CALL_PEEK(o_,a_,p_)    o_::Peek_##a_(p_)
+			#define NES_DO_POKE(a_,p_,d_) Poke_##a_(p_,d_)
+			#define NES_DO_PEEK(a_,p_)    Peek_##a_(p_)
 
 		#else
 
@@ -183,7 +183,7 @@ namespace Nes
 					writer( component, address, data );
 				}
 
-				bool SameComponent(const void* ptr) const
+				bool operator == (const void* ptr) const
 				{
 					return component == ptr;
 				}
@@ -194,41 +194,36 @@ namespace Nes
 				}
 			};
 
-			#define NES_DECL_PEEK(a_)                                                                       \
-																											\
-				Data NES_IO_CALL Peek_Member_##a_(Address);                                                 \
-																											\
-				template<typename T>                                                                        \
-				static Data Peek_Type_##a_(void* instance,Address address,Data (NES_IO_CALL T::*)(Address)) \
-				{                                                                                           \
-					return static_cast<T*>(instance)->Peek_Member_##a_( address );                          \
-				}                                                                                           \
-																											\
-				static Data NES_IO_CALL Peek_##a_(void* instance,Address address)                           \
-				{                                                                                           \
-					return Peek_Type_##a_( instance, address, &Peek_Member_##a_ );                          \
-				}
+			#define NES_DECL_PEEK(a_)                                       \
+																			\
+				Data NES_IO_CALL Peek_M_##a_(Address);                      \
+				static Data NES_IO_CALL Peek_##a_(void*,Address)
 
-			#define NES_DECL_POKE(a_)                                                                                      \
-                                                                                                                           \
-				void NES_IO_CALL Poke_Member_##a_(Address,Data);                                                           \
-                                                                                                                           \
-				template<typename T>                                                                                       \
-				static void Poke_Type_##a_(void* instance,Address address,Data data,void (NES_IO_CALL T::*)(Address,Data)) \
-				{                                                                                                          \
-					static_cast<T*>(instance)->Poke_Member_##a_( address, data );                                          \
-				}                                                                                                          \
-                                                                                                                           \
-				static void NES_IO_CALL Poke_##a_(void* instance,Address address,Data data)                                \
-				{                                                                                                          \
-					Poke_Type_##a_( instance, address, data, &Poke_Member_##a_ );                                          \
-				}
+			#define NES_DECL_POKE(a_)                                       \
+																			\
+				void NES_IO_CALL Poke_M_##a_(Address,Data);                 \
+				static void NES_IO_CALL Poke_##a_(void*,Address,Data)
 
-			#define NES_PEEK(o_,a_) Data NES_IO_CALL o_::Peek_Member_##a_(Address address)
-			#define NES_POKE(o_,a_) void NES_IO_CALL o_::Poke_Member_##a_(Address address,Data data)
+			#define NES_PEEK(o_,a_)                                         \
+																			\
+				Data NES_IO_CALL o_::Peek_##a_(void* p_,Address i_)         \
+				{                                                           \
+					return static_cast<o_*>(p_)->Peek_M_##a_(i_);           \
+				}                                                           \
+																			\
+				Data NES_IO_CALL o_::Peek_M_##a_(Address address)
 
-			#define NES_CALL_POKE(o_,a_,p_,d_) o_::Poke_Member_##a_( p_, d_ )
-			#define NES_CALL_PEEK(o_,a_,p_)    o_::Peek_Member_##a_( p_)
+			#define NES_POKE(o_,a_)                                         \
+																			\
+				void NES_IO_CALL o_::Poke_##a_(void* p_,Address i_,Data j_) \
+				{                                                           \
+					static_cast<o_*>(p_)->Poke_M_##a_(i_,j_);               \
+				}                                                           \
+																			\
+				void NES_IO_CALL o_::Poke_M_##a_(Address address,Data data)
+
+			#define NES_DO_POKE(a_,p_,d_) Poke_M_##a_(p_,d_)
+			#define NES_DO_PEEK(a_,p_)    Peek_M_##a_(p_)
 
 		#endif
 		}

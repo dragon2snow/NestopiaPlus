@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -23,88 +23,111 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 
 #include <cstdio>
+#include <new>
+#include "NstAssert.hpp"
 #include "NstLog.hpp"
 #include "api/NstApiUser.hpp"
-
-#ifdef NST_PRAGMA_OPTIMIZE
-#pragma optimize("s", on)
-#endif
 
 namespace Nes
 {
 	namespace Core
 	{
+		#ifdef NST_MSVC_OPTIMIZE
+		#pragma optimize("s", on)
+		#endif
+
 		struct Log::Object
 		{
 			std::string string;
 		};
 
 		Log::Log()
-		: object( *new Object )
+		: object( Api::User::logCallback.IsSet() ? new (std::nothrow) Object : NULL )
 		{
 		}
 
 		Log::~Log()
 		{
-			Api::User::logCallback( object.string.c_str(), object.string.size() );
-			delete &object;
+			if (object)
+			{
+				Api::User::logCallback( object->string.c_str(), object->string.size() );
+				delete object;
+			}
 		}
 
-		void Log::Append(cstring c,size_t n)
+		bool Log::Available()
 		{
-			object.string.append( c, n );
+			return Api::User::logCallback.IsSet();
+		}
+
+		void Log::Append(cstring c,ulong n)
+		{
+			object->string.append( c, n );
 		}
 
 		Log& Log::operator << (long value)
 		{
-			char buffer[16];
+			if (object)
+			{
+				char buffer[24];
 
-			const int length = std::sprintf( buffer, "%li", value );
-			NST_VERIFY( length > 0 );
+				const int length = std::sprintf( buffer, "%li", value );
+				NST_VERIFY( length > 0 );
 
-			if (length > 0)
-				Append( buffer, length );
+				if (length > 0)
+					Append( buffer, length );
+			}
 
 			return *this;
 		}
 
 		Log& Log::operator << (ulong value)
 		{
-			char buffer[16];
+			if (object)
+			{
+				char buffer[24];
 
-			const int length = std::sprintf( buffer, "%lu", value );
-			NST_VERIFY( length > 0 );
+				const int length = std::sprintf( buffer, "%lu", value );
+				NST_VERIFY( length > 0 );
 
-			if (length > 0)
-				Append( buffer, length );
+				if (length > 0)
+					Append( buffer, length );
+			}
 
 			return *this;
 		}
 
 		Log& Log::operator << (cstring c)
 		{
-			object.string.append( c );
+			if (object)
+				object->string.append( c );
+
 			return *this;
 		}
 
 		Log& Log::operator << (char c)
 		{
-			object.string.append( 1, c );
+			if (object)
+				object->string.append( 1, c );
+
 			return *this;
 		}
 
 		Log& Log::operator << (const Hex& hex)
 		{
-			char buffer[16];
+			if (object)
+			{
+				char buffer[16];
 
-			buffer[0] = '0';
-			buffer[1] = 'x';
+				buffer[0] = '0';
+				buffer[1] = 'x';
 
-			const int length = std::sprintf( buffer + 2, hex.format, hex.value );
-			NST_VERIFY( length > 0 );
+				const int length = std::sprintf( buffer + 2, hex.format, hex.value );
+				NST_VERIFY( length > 0 );
 
-			if (length > 0)
-				Append( buffer, 2 + length );
+				if (length > 0)
+					Append( buffer, 2 + length );
+			}
 
 			return *this;
 		}
@@ -113,9 +136,9 @@ namespace Nes
 		{
 			Api::User::logCallback( string, length );
 		}
+
+		#ifdef NST_MSVC_OPTIMIZE
+		#pragma optimize("", on)
+		#endif
 	}
 }
-
-#ifdef NST_PRAGMA_OPTIMIZE
-#pragma optimize("", on)
-#endif

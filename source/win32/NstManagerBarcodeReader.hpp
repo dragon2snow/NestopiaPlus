@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -31,7 +31,7 @@ namespace Nestopia
 {
 	namespace Managers
 	{
-		class BarcodeReader
+		class BarcodeReader : Manager
 		{
 		public:
 
@@ -43,8 +43,6 @@ namespace Nestopia
 			void OnEmuEvent(Emulator::Event);
 			void OnMenuCmd(uint);
 
-			Emulator& emulator;
-			const Window::Menu& menu;
 			String::Heap<char> lastCode;
 		};
 	}

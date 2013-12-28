@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -46,6 +46,7 @@ namespace Nestopia
 				EXISTING = 0x08,
 				SEQUENTIAL_ACCESS = 0x10,
 				RANDOM_ACCESS = 0x20,
+				WRITE_THROUGH = 0x40,
 				COLLECT = READ|EXISTING|SEQUENTIAL_ACCESS,
 				DUMP = WRITE|EMPTY|SEQUENTIAL_ACCESS
 			};
@@ -81,7 +82,6 @@ namespace Nestopia
 
 			File();
 			File(GenericString,uint);
-
 			~File();
 
 			void Open(GenericString,uint);
@@ -93,22 +93,29 @@ namespace Nestopia
 			uint Size() const;
 
 			void Write    (const void*,uint) const;
+			void Write8   (uint) const;
+			void Write16  (uint) const;
+			void Write32  (uint) const;
 			void Read     (void*,uint) const;
 			uint ReadSome (void*,uint) const;
+			uint Read8    () const;
+			uint Read16   () const;
+			uint Read32   () const;
 			void Peek     (void*,uint) const;
 			void Peek     (uint,void*,uint) const;
+			uint Peek8    () const;
+			uint Peek16   () const;
+			uint Peek32   () const;
 
-			void ReadText (String::Heap<char>&,uint=UINT_MAX) const;
-			void ReadText (String::Heap<wchar_t>&,uint=UINT_MAX) const;
-			void WriteText (cstring,uint,ibool=false) const;
-			void WriteText (wstring,uint,ibool=false) const;
+			void ReadText (String::Heap<char>&) const;
+			void ReadText (String::Heap<wchar_t>&) const;
+			void WriteText (cstring,uint,bool=false) const;
+			void WriteText (wstring,uint,bool=false) const;
 
-			static void ParseText (const void*,uint,String::Heap<char>&);
-			static void ParseText (const void*,uint,String::Heap<wchar_t>&);
+			static void ParseText (cstring,uint,String::Heap<char>&);
+			static void ParseText (cstring,uint,String::Heap<wchar_t>&);
 
 		private:
-
-			static void EndianSwap(void*,void*);
 
 			class Proxy
 			{
@@ -152,7 +159,8 @@ namespace Nestopia
 				template<typename T>
 				const StreamProxy& operator << (const T& buffer) const
 				{
-					file.Write( buffer.Ptr(), buffer.Length() * sizeof(buffer[0]) );
+					NST_COMPILE_ASSERT( sizeof(buffer[0]) == sizeof(char) );
+					file.Write( buffer.Ptr(), buffer.Length() );
 					return *this;
 				}
 
@@ -171,47 +179,12 @@ namespace Nestopia
 
 			bool IsOpen() const
 			{
-				return handle != NULL;
+				return handle;
 			}
 
 			const Path& GetName() const
 			{
 				return name;
-			}
-
-			template<typename T>
-			const File& operator << (const T& t) const
-			{
-				Write( &t, sizeof(t) );
-				return *this;
-			}
-
-			template<typename T>
-			const File& operator >> (T& t) const
-			{
-				Read( &t, sizeof(t) );
-				return *this;
-			}
-
-			template<typename T>
-			const File& Peek(T& t) const
-			{
-				Peek( &t, sizeof(t) );
-				return *this;
-			}
-
-			template<typename T> T Read() const
-			{
-				T t;
-				Read( &t, sizeof(t) );
-				return t;
-			}
-
-			template<typename T> T Peek() const
-			{
-				T t;
-				Peek( &t, sizeof(t) );
-				return t;
 			}
 
 			StreamProxy Stream() const
@@ -229,7 +202,7 @@ namespace Nestopia
 				Seek( BEGIN );
 			}
 
-			static ibool Delete(tstring);
+			static bool Delete(tstring);
 		};
 	}
 }

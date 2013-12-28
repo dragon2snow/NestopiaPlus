@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -93,7 +93,7 @@ namespace Nestopia
 			public:
 
 				static void Add(HWND);
-				static ibool Remove(HWND);
+				static bool Remove(HWND);
 
 			private:
 
@@ -135,9 +135,9 @@ namespace Nestopia
 				return id;
 			}
 
-			ibool IsOpen() const
+			bool IsOpen() const
 			{
-				return hWnd != NULL;
+				return hWnd;
 			}
 
 			MsgHandler& Commands()
@@ -156,7 +156,7 @@ namespace Nestopia
 				ModelessDialogs::Add( hWnd );
 			}
 
-			static ibool UnregisterModeless(HWND hWnd)
+			static bool UnregisterModeless(HWND hWnd)
 			{
 				NST_ASSERT( hWnd );
 				return ModelessDialogs::Remove( hWnd );

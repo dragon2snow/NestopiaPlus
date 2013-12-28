@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -22,7 +22,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstManagerEmulator.hpp"
+#include "NstManager.hpp"
 #include "NstManagerTapeRecorder.hpp"
 #include "NstDialogTapeRecorder.hpp"
 #include "../core/api/NstApiTapeRecorder.hpp"
@@ -33,9 +33,8 @@ namespace Nestopia
 	{
 		TapeRecorder::TapeRecorder(Emulator& e,const Configuration& cfg,Window::Menu& m,const Paths& paths)
 		:
-		dialog   (new Window::TapeRecorder(cfg,paths)),
-		emulator (e),
-		menu     (m)
+		Manager ( e, m, this, &TapeRecorder::OnEmuEvent ),
+		dialog  ( new Window::TapeRecorder(cfg,paths) )
 		{
 			static const Window::Menu::CmdHandler::Entry<TapeRecorder> commands[] =
 			{
@@ -45,19 +44,18 @@ namespace Nestopia
 				{ IDM_MACHINE_EXT_TAPE_STOP,   &TapeRecorder::OnCmdStop   }
 			};
 
+			menu.Commands().Add( this, commands );
+
 			static const Window::Menu::PopupHandler::Entry<TapeRecorder> popups[] =
 			{
 				{ Window::Menu::PopupHandler::Pos<IDM_POS_MACHINE,IDM_POS_MACHINE_EXT,IDM_POS_MACHINE_EXT_TAPE>::ID, &TapeRecorder::OnMenuTape }
 			};
 
-			m.Commands().Add( this, commands );
-			m.PopupRouter().Add( this, popups );
-			emulator.Events().Add( this, &TapeRecorder::OnEmuEvent );
+			menu.PopupRouter().Add( this, popups );
 		}
 
 		TapeRecorder::~TapeRecorder()
 		{
-			emulator.Events().Remove( this );
 		}
 
 		void TapeRecorder::Save(Configuration& cfg) const
@@ -104,11 +102,11 @@ namespace Nestopia
 		void TapeRecorder::OnMenuTape(Window::Menu::PopupHandler::Param& param)
 		{
 			const Nes::TapeRecorder tapeRecorder( emulator );
-			const ibool stopped = tapeRecorder.IsStopped();
+			const bool stopped = tapeRecorder.IsStopped();
 
 			param.menu[ IDM_MACHINE_EXT_TAPE_PLAY   ].Enable( stopped && tapeRecorder.CanPlay() );
-			param.menu[ IDM_MACHINE_EXT_TAPE_RECORD ].Enable( stopped && tapeRecorder.IsConnected() );
-			param.menu[ IDM_MACHINE_EXT_TAPE_STOP   ].Enable( !stopped );
+			param.menu[ IDM_MACHINE_EXT_TAPE_RECORD ].Enable( stopped && tapeRecorder.CanRecord() );
+			param.menu[ IDM_MACHINE_EXT_TAPE_STOP   ].Enable( !stopped && tapeRecorder.CanStop() );
 		}
 
 		void TapeRecorder::OnEmuEvent(Emulator::Event event)

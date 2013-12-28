@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -32,7 +32,7 @@ namespace Nes
 	{
 		namespace Boards
 		{
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("s", on)
 			#endif
 
@@ -64,7 +64,7 @@ namespace Nes
 					Map( 0x9000U, 0x9FFFU, NMT_SWAP_VH01 );
 					Map( 0xA000U, 0xAFFFU, PRG_SWAP_8K_1 );
 
-					for (uint i=0x0000U; i < 0x1000U; i += 0x4)
+					for (uint i=0x0000; i < 0x1000; i += 0x4)
 					{
 						Map( 0xB000 + i, &Vrc4::Poke_B0_A );
 						Map( 0xB001 + i, &Vrc4::Poke_B1_A );
@@ -88,9 +88,9 @@ namespace Nes
 
 					if (type == TYPE_2A)
 					{
-						for (dword i=0x9000U; i <= 0xFFFFU; ++i)
+						for (dword i=0x9000; i <= 0xFFFF; ++i)
 						{
-							switch ((i | (i >> 5 & 0xF)) & 0xF006U)
+							switch ((i | (i >> 5 & 0xF)) & 0xF006)
 							{
 								case 0x9000:
 								case 0x9002: Map( i, NMT_SWAP_VH01    ); break;
@@ -121,9 +121,9 @@ namespace Nes
 					}
 					else if (type == TYPE_B)
 					{
-						for (dword i=0x9000U; i <= 0xFFFFU; ++i)
+						for (dword i=0x9000; i <= 0xFFFF; ++i)
 						{
-							switch (((i | (i >> 2) | (i >> 4) | (i >> 6)) & 0x3) | (i & 0xF000U))
+							switch (((i | (i >> 2) | (i >> 4) | (i >> 6)) & 0x3) | (i & 0xF000))
 							{
 								case 0x9000:
 								case 0x9001: Map( i, NMT_SWAP_VH01    ); break;
@@ -154,9 +154,9 @@ namespace Nes
 					}
 					else
 					{
-						for (dword i=0x9000U; i <= 0xFFFFU; ++i)
+						for (dword i=0x9000; i <= 0xFFFF; ++i)
 						{
-							switch ((i | (i >> 2 & 0x3)) & 0xF003U)
+							switch ((i | (i >> 2 & 0x3)) & 0xF003)
 							{
 								case 0x9000:
 								case 0x9002: Map( i, NMT_SWAP_VH01    ); break;
@@ -190,15 +190,15 @@ namespace Nes
 
 			void Vrc4::BaseLoad(State::Loader& state,const dword id)
 			{
-				NST_ASSERT( id == NES_STATE_CHUNK_ID('V','R','4','\0') );
+				NST_VERIFY( id == (AsciiId<'V','R','4'>::V) );
 
-				if (id == NES_STATE_CHUNK_ID('V','R','4','\0'))
+				if (id == AsciiId<'V','R','4'>::V)
 				{
 					while (const dword chunk = state.Begin())
 					{
 						switch (chunk)
 						{
-							case NES_STATE_CHUNK_ID('R','E','G','\0'):
+							case AsciiId<'R','E','G'>::V:
 
 								NST_VERIFY( type != TYPE_A );
 
@@ -207,12 +207,12 @@ namespace Nes
 
 								break;
 
-							case NES_STATE_CHUNK_ID('I','R','Q','\0'):
+							case AsciiId<'I','R','Q'>::V:
 
 								NST_VERIFY( type != TYPE_A );
 
 								if (type != TYPE_A)
-									irq->LoadState( State::Loader::Subset(state).Ref() );
+									irq->LoadState( state );
 
 								break;
 						}
@@ -224,12 +224,12 @@ namespace Nes
 
 			void Vrc4::BaseSave(State::Saver& state) const
 			{
-				state.Begin('V','R','4','\0');
+				state.Begin( AsciiId<'V','R','4'>::V );
 
 				if (type != TYPE_A)
 				{
-					state.Begin('R','E','G','\0').Write8( prgSwap ).End();
-					irq->SaveState( State::Saver::Subset(state,'I','R','Q','\0').Ref() );
+					state.Begin( AsciiId<'R','E','G'>::V ).Write8( prgSwap ).End();
+					irq->SaveState( state, AsciiId<'I','R','Q'>::V );
 				}
 
 				state.End();
@@ -237,18 +237,18 @@ namespace Nes
 
 			void Vrc4::Irq::LoadState(State::Loader& state)
 			{
-				const State::Loader::Data<5> data( state );
+				State::Loader::Data<5> data( state );
 
 				unit.ctrl = data[0] & (BaseIrq::ENABLE_1|BaseIrq::NO_PPU_SYNC);
 				EnableLine( data[0] & BaseIrq::ENABLE_0 );
 				unit.latch = data[1];
-				unit.count[0] = NST_MIN(340,data[2] | (data[3] << 8));
+				unit.count[0] = NST_MIN(340,data[2] | data[3] << 8);
 				unit.count[1] = data[4];
 			}
 
-			void Vrc4::Irq::SaveState(State::Saver& state) const
+			void Vrc4::Irq::SaveState(State::Saver& state,const dword id) const
 			{
-				const u8 data[5] =
+				const byte data[5] =
 				{
 					unit.ctrl | (IsLineEnabled() ? BaseIrq::ENABLE_0 : 0),
 					unit.latch,
@@ -257,16 +257,16 @@ namespace Nes
 					unit.count[1]
 				};
 
-				state.Write( data );
+				state.Begin( id ).Write( data ).End();
 			}
 
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("", on)
 			#endif
 
 			NES_POKE(Vrc4,8)
 			{
-				prg.SwapBank<SIZE_8K>( (prgSwap << 13), data );
+				prg.SwapBank<SIZE_8K>( prgSwap << 13, data );
 			}
 
 			NES_POKE(Vrc4,9)
@@ -277,10 +277,10 @@ namespace Nes
 				{
 					prgSwap = data;
 
-					prg.SwapBanks<SIZE_8K,0x0000U>
+					prg.SwapBanks<SIZE_8K,0x0000>
 					(
-						prg.GetBank<SIZE_8K,0x4000U>(),
-						prg.GetBank<SIZE_8K,0x0000U>()
+						prg.GetBank<SIZE_8K,0x4000>(),
+						prg.GetBank<SIZE_8K,0x0000>()
 					);
 				}
 			}
@@ -291,38 +291,38 @@ namespace Nes
 				chr.SwapBank<SIZE_1K>( address, data >> 1 );
 			}
 
-			NES_POKE(Vrc4,B0_A) { SwapChrA( 0x0000U, data ); }
-			NES_POKE(Vrc4,B1_A) { SwapChrA( 0x0400U, data ); }
-			NES_POKE(Vrc4,C0_A) { SwapChrA( 0x0800U, data ); }
-			NES_POKE(Vrc4,C1_A) { SwapChrA( 0x0C00U, data ); }
-			NES_POKE(Vrc4,D0_A) { SwapChrA( 0x1000U, data ); }
-			NES_POKE(Vrc4,D1_A) { SwapChrA( 0x1400U, data ); }
-			NES_POKE(Vrc4,E0_A) { SwapChrA( 0x1800U, data ); }
-			NES_POKE(Vrc4,E1_A) { SwapChrA( 0x1C00U, data ); }
+			NES_POKE(Vrc4,B0_A) { SwapChrA( 0x0000, data ); }
+			NES_POKE(Vrc4,B1_A) { SwapChrA( 0x0400, data ); }
+			NES_POKE(Vrc4,C0_A) { SwapChrA( 0x0800, data ); }
+			NES_POKE(Vrc4,C1_A) { SwapChrA( 0x0C00, data ); }
+			NES_POKE(Vrc4,D0_A) { SwapChrA( 0x1000, data ); }
+			NES_POKE(Vrc4,D1_A) { SwapChrA( 0x1400, data ); }
+			NES_POKE(Vrc4,E0_A) { SwapChrA( 0x1800, data ); }
+			NES_POKE(Vrc4,E1_A) { SwapChrA( 0x1C00, data ); }
 
-			template<uchar MASK,uchar SHIFT>
+			template<uint MASK,uint SHIFT>
 			void Vrc4::SwapChrB(const uint address,const uint data) const
 			{
 				ppu.Update();
 				chr.SwapBank<SIZE_1K>( address, (chr.GetBank<SIZE_1K>(address) & MASK) | ((data & 0xF) << SHIFT) );
 			}
 
-			NES_POKE(Vrc4,B0_B) { SwapChrB<0xF0,0>( 0x0000U, data ); }
-			NES_POKE(Vrc4,B1_B) { SwapChrB<0x0F,4>( 0x0000U, data ); }
-			NES_POKE(Vrc4,B2_B) { SwapChrB<0xF0,0>( 0x0400U, data ); }
-			NES_POKE(Vrc4,B3_B) { SwapChrB<0x0F,4>( 0x0400U, data ); }
-			NES_POKE(Vrc4,C0_B) { SwapChrB<0xF0,0>( 0x0800U, data ); }
-			NES_POKE(Vrc4,C1_B) { SwapChrB<0x0F,4>( 0x0800U, data ); }
-			NES_POKE(Vrc4,C2_B) { SwapChrB<0xF0,0>( 0x0C00U, data ); }
-			NES_POKE(Vrc4,C3_B) { SwapChrB<0x0F,4>( 0x0C00U, data ); }
-			NES_POKE(Vrc4,D0_B) { SwapChrB<0xF0,0>( 0x1000U, data ); }
-			NES_POKE(Vrc4,D1_B) { SwapChrB<0x0F,4>( 0x1000U, data ); }
-			NES_POKE(Vrc4,D2_B) { SwapChrB<0xF0,0>( 0x1400U, data ); }
-			NES_POKE(Vrc4,D3_B) { SwapChrB<0x0F,4>( 0x1400U, data ); }
-			NES_POKE(Vrc4,E0_B) { SwapChrB<0xF0,0>( 0x1800U, data ); }
-			NES_POKE(Vrc4,E1_B) { SwapChrB<0x0F,4>( 0x1800U, data ); }
-			NES_POKE(Vrc4,E2_B) { SwapChrB<0xF0,0>( 0x1C00U, data ); }
-			NES_POKE(Vrc4,E3_B) { SwapChrB<0x0F,4>( 0x1C00U, data ); }
+			NES_POKE(Vrc4,B0_B) { SwapChrB<0xF0,0>( 0x0000, data ); }
+			NES_POKE(Vrc4,B1_B) { SwapChrB<0x0F,4>( 0x0000, data ); }
+			NES_POKE(Vrc4,B2_B) { SwapChrB<0xF0,0>( 0x0400, data ); }
+			NES_POKE(Vrc4,B3_B) { SwapChrB<0x0F,4>( 0x0400, data ); }
+			NES_POKE(Vrc4,C0_B) { SwapChrB<0xF0,0>( 0x0800, data ); }
+			NES_POKE(Vrc4,C1_B) { SwapChrB<0x0F,4>( 0x0800, data ); }
+			NES_POKE(Vrc4,C2_B) { SwapChrB<0xF0,0>( 0x0C00, data ); }
+			NES_POKE(Vrc4,C3_B) { SwapChrB<0x0F,4>( 0x0C00, data ); }
+			NES_POKE(Vrc4,D0_B) { SwapChrB<0xF0,0>( 0x1000, data ); }
+			NES_POKE(Vrc4,D1_B) { SwapChrB<0x0F,4>( 0x1000, data ); }
+			NES_POKE(Vrc4,D2_B) { SwapChrB<0xF0,0>( 0x1400, data ); }
+			NES_POKE(Vrc4,D3_B) { SwapChrB<0x0F,4>( 0x1400, data ); }
+			NES_POKE(Vrc4,E0_B) { SwapChrB<0xF0,0>( 0x1800, data ); }
+			NES_POKE(Vrc4,E1_B) { SwapChrB<0x0F,4>( 0x1800, data ); }
+			NES_POKE(Vrc4,E2_B) { SwapChrB<0xF0,0>( 0x1C00, data ); }
+			NES_POKE(Vrc4,E3_B) { SwapChrB<0x0F,4>( 0x1C00, data ); }
 
 			void Vrc4::Irq::WriteLatch0(const uint data)
 			{
@@ -333,7 +333,7 @@ namespace Nes
 			void Vrc4::Irq::WriteLatch1(const uint data)
 			{
 				Update();
-				unit.latch = (unit.latch & 0x0F) | ((data & 0xF) << 4);
+				unit.latch = (unit.latch & 0x0F) | (data & 0xF) << 4;
 			}
 
 			void Vrc4::Irq::Toggle(const uint data)

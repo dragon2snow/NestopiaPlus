@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -29,7 +29,7 @@ namespace Nestopia
 {
 	namespace Managers
 	{
-		class Sound::Recorder
+		class Sound::Recorder : Manager
 		{
 		public:
 
@@ -47,7 +47,7 @@ namespace Nestopia
 			void Close();
 
 			void OnEmuEvent(Emulator::Event);
-			ibool CanRecord() const;
+			bool CanRecord() const;
 
 			void OnCmdFile   (uint);
 			void OnCmdRecord (uint);
@@ -61,19 +61,17 @@ namespace Nestopia
 				BIG_SIZE = ONE_MB * 200
 			};
 
-			ibool recording;
+			bool recording;
 			Io::Wave file;
 			uint size;
 			uint nextSmallSizeNotification;
 			uint nextBigSizeNotification;
 			Window::Sound::Recorder& dialog;
-			const Window::Menu& menu;
-			Emulator& emulator;
 			Object::Pod<WAVEFORMATEX> waveFormat;
 
 		public:
 
-			ibool IsRecording() const
+			bool IsRecording() const
 			{
 				return recording;
 			}

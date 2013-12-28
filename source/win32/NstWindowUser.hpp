@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -44,19 +44,19 @@ namespace Nestopia
 				CONFIRM
 			};
 
-			void  Fail    (uint,uint=0);
-			void  Fail    (tstring,uint=0);
-			void  Fail    (tstring,tstring);
-			void  Warn    (uint,uint=0);
-			void  Warn    (tstring,uint=0);
-			void  Warn    (tstring,tstring);
-			void  Inform  (uint,uint=0);
-			void  Inform  (tstring,uint=0);
-			void  Inform  (tstring,tstring);
-			ibool Confirm (uint,uint=0);
-			ibool Confirm (tstring,uint=0);
-			ibool Confirm (tstring,tstring);
-			ibool Input   (HeapString&,tstring,tstring=NULL);
+			void Fail    (uint,uint=0);
+			void Fail    (tstring,uint=0);
+			void Fail    (tstring,tstring);
+			void Warn    (uint,uint=0);
+			void Warn    (tstring,uint=0);
+			void Warn    (tstring,tstring);
+			void Inform  (uint,uint=0);
+			void Inform  (tstring,uint=0);
+			void Inform  (tstring,tstring);
+			bool Confirm (uint,uint=0);
+			bool Confirm (tstring,uint=0);
+			bool Confirm (tstring,tstring);
+			bool Input   (HeapString&,tstring,tstring=NULL);
 		}
 	}
 }

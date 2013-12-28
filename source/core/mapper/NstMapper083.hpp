@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,7 +25,7 @@
 #ifndef NST_MAPPER_83_H
 #define NST_MAPPER_83_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
+#ifdef NST_PRAGMA_ONCE
 #pragma once
 #endif
 
@@ -37,9 +37,16 @@ namespace Nes
 		{
 		public:
 
-			Mapper83(Context&);
+			explicit Mapper83(Context&);
 
 		private:
+
+			~Mapper83() {}
+
+			enum
+			{
+				ATR_LANGUAGE_SELECT = 1
+			};
 
 			void SubReset(bool);
 			void SubSave(State::Saver&) const;
@@ -47,24 +54,17 @@ namespace Nes
 			void UpdatePrg();
 			void VSync();
 
-			NES_DECL_PEEK( 5000   )
-			NES_DECL_PEEK( 5100   )
-			NES_DECL_POKE( 5100   )
-			NES_DECL_PEEK( 6000   )
-			NES_DECL_POKE( 8000   )
-			NES_DECL_POKE( 8100   )
-			NES_DECL_POKE( 8200   )
-			NES_DECL_POKE( 8201   )
-			NES_DECL_POKE( 8300   )
-			NES_DECL_POKE( 8310_0 )
-			NES_DECL_POKE( 8310_1 )
-
-			struct Regs
-			{
-				u16 ctrl;
-				u8 prg[5];
-				u8 pr8;
-			};
+			NES_DECL_PEEK( 5000   );
+			NES_DECL_PEEK( 5100   );
+			NES_DECL_POKE( 5100   );
+			NES_DECL_PEEK( 6000   );
+			NES_DECL_POKE( 8000   );
+			NES_DECL_POKE( 8100   );
+			NES_DECL_POKE( 8200   );
+			NES_DECL_POKE( 8201   );
+			NES_DECL_POKE( 8300   );
+			NES_DECL_POKE( 8310_0 );
+			NES_DECL_POKE( 8310_1 );
 
 			struct Irq
 			{
@@ -76,9 +76,16 @@ namespace Nes
 				uint step;
 			};
 
-			Regs regs;
+			struct
+			{
+				word ctrl;
+				byte prg[5];
+				byte pr8;
+			}   regs;
+
 			Clock::M2<Irq> irq;
-			uint title;
+			uint dipSwitch;
+			const uint language;
 		};
 	}
 }

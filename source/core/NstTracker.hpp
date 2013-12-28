@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,7 +25,7 @@
 #ifndef NST_TRACKER_H
 #define NST_TRACKER_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
+#ifdef NST_PRAGMA_ONCE
 #pragma once
 #endif
 
@@ -55,9 +55,10 @@ namespace Nes
 			class Movie;
 			class Rewinder;
 
+			dword frame;
+			ibool rewinderSound;
 			Rewinder* rewinder;
 			Movie* movie;
-			ibool rewinderSound;
 
 		public:
 
@@ -67,8 +68,8 @@ namespace Nes
 			void   Reset(bool);
 			Result Execute(Machine&,Video::Output*,Sound::Output*,Input::Controllers*);
 			void   Flush();
+			Result Flush(Result);
 			void   Unload();
-			uint   GetSoundLatency(const Apu&) const;
 			bool   IsLocked() const;
 
 			Result RewinderEnable(Machine*);
@@ -89,7 +90,7 @@ namespace Nes
 
 			bool RewinderIsEnabled() const
 			{
-				return rewinder != NULL;
+				return rewinder;
 			}
 
 			bool RewinderIsSoundEnabled() const
@@ -99,7 +100,12 @@ namespace Nes
 
 			bool MovieIsInserted() const
 			{
-				return movie != NULL;
+				return movie;
+			}
+
+			dword Frame() const
+			{
+				return frame;
 			}
 		};
 	}

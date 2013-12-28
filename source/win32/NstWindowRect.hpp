@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -106,7 +106,7 @@ namespace Nestopia
 				return *this;
 			}
 
-			ibool operator == (const Rect& r) const
+			bool operator == (const Rect& r) const
 			{
 				return
 				(
@@ -117,7 +117,7 @@ namespace Nestopia
 				);
 			}
 
-			ibool operator != (const Rect& r) const
+			bool operator != (const Rect& r) const
 			{
 				return
 				(
@@ -128,7 +128,7 @@ namespace Nestopia
 				);
 			}
 
-			ibool operator ! () const
+			bool operator ! () const
 			{
 				return (right | bottom | left | top) == 0;
 			}
@@ -143,17 +143,17 @@ namespace Nestopia
 				return (&left)[i];
 			}
 
-			ibool Inside(const Point& p) const
+			bool Inside(const Point& p) const
 			{
 				return p.x >= left && p.x < right && p.y >= top && p.y < bottom;
 			}
 
-			ibool Valid() const
+			bool Valid() const
 			{
 				return left <= right && top <= bottom;
 			}
 
-			ibool Visible() const
+			bool Visible() const
 			{
 				return right - left > 0 && bottom - top > 0;
 			}
@@ -414,10 +414,10 @@ namespace Nestopia
 				return bottom - top;
 			}
 
-			ibool operator <  (const Rect& r) const { return Width() * Height() <  r.Width() * r.Height(); }
-			ibool operator >  (const Rect& r) const { return Width() * Height() >  r.Width() * r.Height(); }
-			ibool operator <= (const Rect& r) const { return Width() * Height() <= r.Width() * r.Height(); }
-			ibool operator >= (const Rect& r) const { return Width() * Height() >= r.Width() * r.Height(); }
+			bool operator <  (const Rect& r) const { return Width() * Height() <  r.Width() * r.Height(); }
+			bool operator >  (const Rect& r) const { return Width() * Height() >  r.Width() * r.Height(); }
+			bool operator <= (const Rect& r) const { return Width() * Height() <= r.Width() * r.Height(); }
+			bool operator >= (const Rect& r) const { return Width() * Height() >= r.Width() * r.Height(); }
 
 			Rect operator * (const Rect& r) const
 			{

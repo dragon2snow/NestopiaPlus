@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -33,6 +33,7 @@
 #include "../input/NstInpLightGun.hpp"
 #include "../input/NstInpPaddle.hpp"
 #include "../input/NstInpPowerPad.hpp"
+#include "../input/NstInpPowerGlove.hpp"
 #include "../input/NstInpMouse.hpp"
 #include "../input/NstInpFamilyTrainer.hpp"
 #include "../input/NstInpFamilyKeyboard.hpp"
@@ -49,17 +50,13 @@
 #include "../input/NstInpPokkunMoguraa.hpp"
 #include "../input/NstInpPartyTap.hpp"
 #include "../input/NstInpRob.hpp"
-#include "../NstMapper.hpp"
-#include "../NstClock.hpp"
-#include "../board/NstBrdBandai.hpp"
-#include "NstApiMachine.hpp"
-
-#ifdef NST_PRAGMA_OPTIMIZE
-#pragma optimize("s", on)
-#endif
 
 namespace Nes
 {
+	#ifdef NST_MSVC_OPTIMIZE
+	#pragma optimize("s", on)
+	#endif
+
 	namespace Core
 	{
 		namespace Input
@@ -68,6 +65,7 @@ namespace Nes
 			Controllers::PollCaller1< Controllers::Zapper            > Controllers::Zapper::callback;
 			Controllers::PollCaller1< Controllers::Paddle            > Controllers::Paddle::callback;
 			Controllers::PollCaller1< Controllers::PowerPad          > Controllers::PowerPad::callback;
+			Controllers::PollCaller1< Controllers::PowerGlove        > Controllers::PowerGlove::callback;
 			Controllers::PollCaller1< Controllers::Mouse             > Controllers::Mouse::callback;
 			Controllers::PollCaller1< Controllers::FamilyTrainer     > Controllers::FamilyTrainer::callback;
 			Controllers::PollCaller3< Controllers::FamilyKeyboard    > Controllers::FamilyKeyboard::callback;
@@ -90,6 +88,15 @@ namespace Nes
 			{
 				std::fill( sideA, sideA + NUM_SIDE_A_BUTTONS, false );
 				std::fill( sideB, sideB + NUM_SIDE_B_BUTTONS, false );
+			}
+
+			Controllers::PowerGlove::PowerGlove() throw()
+			{
+				x = 0;
+				y = 0;
+				distance = 0;
+				wrist = 0;
+				gesture = GESTURE_OPEN;
 			}
 
 			Controllers::FamilyTrainer::FamilyTrainer() throw()
@@ -120,23 +127,109 @@ namespace Nes
 		{
 			Core::Input::Device* old = NULL;
 
-			try
+			switch (port)
 			{
-				switch (port)
-				{
-					case PORT_1:
-					case PORT_2:
+				case PORT_1:
+				case PORT_2:
+
+					if (emulator.extPort->GetDevice( port ).GetType() == type)
 					{
-						if (emulator.extPort->GetDevice( port )->GetType() == type)
+						return RESULT_NOP;
+					}
+					else switch (type)
+					{
+						case UNCONNECTED:
+
+							old = new (std::nothrow) Core::Input::Device( emulator.cpu );
+							break;
+
+						case PAD1:
+						case PAD2:
+						case PAD3:
+						case PAD4:
+
+							old = new (std::nothrow) Core::Input::Pad( emulator.cpu, uint(type) - PAD1 );
+							break;
+
+						case ZAPPER:
+
+							old = new (std::nothrow) Core::Input::LightGun( emulator.cpu, emulator.ppu );
+							break;
+
+						case PADDLE:
+
+							old = new (std::nothrow) Core::Input::Paddle( emulator.cpu, false );
+							break;
+
+						case POWERPAD:
+
+							old = new (std::nothrow) Core::Input::PowerPad( emulator.cpu );
+							break;
+
+						case POWERGLOVE:
+
+							old = new (std::nothrow) Core::Input::PowerGlove( emulator.cpu );
+							break;
+
+						case MOUSE:
+
+							old = new (std::nothrow) Core::Input::Mouse( emulator.cpu );
+							break;
+
+						case ROB:
+
+							old = new (std::nothrow) Core::Input::Rob( emulator.cpu, emulator.ppu );
+							break;
+
+						default: return RESULT_ERR_INVALID_PARAM;
+					}
+
+					if (old)
+						old = &emulator.extPort->Connect( port, *old );
+					else
+						return RESULT_ERR_OUT_OF_MEMORY;
+
+					break;
+
+				case PORT_3:
+				case PORT_4:
+
+					if (emulator.extPort->NumPorts() > 2)
+					{
+						if (emulator.extPort->GetDevice( port ).GetType() == type)
+						{
 							return RESULT_NOP;
-
-						Core::Input::Device* device;
-
-						switch (type)
+						}
+						else switch (type)
 						{
 							case UNCONNECTED:
 
-								device = new Core::Input::Device( emulator.cpu );
+								if (emulator.extPort->GetDevice( port == PORT_3 ? PORT_4 : PORT_3 ).GetType() == UNCONNECTED)
+								{
+									Core::Input::Adapter* const adapter = new (std::nothrow) Core::Input::AdapterTwo
+									(
+										emulator.extPort->GetDevice(0),
+										emulator.extPort->GetDevice(1),
+										emulator.extPort->GetType()
+									);
+
+									if (adapter == NULL)
+										return RESULT_ERR_OUT_OF_MEMORY;
+
+									for (uint i=2; i < 4; ++i)
+										delete &emulator.extPort->GetDevice(i);
+
+									delete emulator.extPort;
+									emulator.extPort = adapter;
+								}
+								else if (NULL != (old = new (std::nothrow) Core::Input::Device( emulator.cpu )))
+								{
+									old = &emulator.extPort->Connect( port, *old );
+								}
+								else
+								{
+									return RESULT_ERR_OUT_OF_MEMORY;
+								}
 								break;
 
 							case PAD1:
@@ -144,174 +237,109 @@ namespace Nes
 							case PAD3:
 							case PAD4:
 
-								device = new Core::Input::Pad(  emulator.cpu, uint(type) - PAD1 );
-								break;
-
-							case ZAPPER:
-
-								device = new Core::Input::LightGun( emulator.cpu, emulator.ppu );
-								break;
-
-							case PADDLE:
-
-								device = new Core::Input::Paddle( emulator.cpu, false );
-								break;
-
-							case POWERPAD:
-
-								device = new Core::Input::PowerPad( emulator.cpu );
-								break;
-
-							case MOUSE:
-
-								device = new Core::Input::Mouse( emulator.cpu );
-								break;
-
-							case ROB:
-
-								device = new Core::Input::Rob( emulator.cpu, emulator.ppu );
+								if (NULL != (old = new (std::nothrow) Core::Input::Pad( emulator.cpu, uint(type) - PAD1 )))
+								{
+									old = &emulator.extPort->Connect( port, *old );
+								}
+								else
+								{
+									return RESULT_ERR_OUT_OF_MEMORY;
+								}
 								break;
 
 							default: return RESULT_ERR_INVALID_PARAM;
 						}
-
-						old = emulator.extPort->Connect( port, device );
-						break;
 					}
-
-					case PORT_3:
-					case PORT_4:
-
-						if (emulator.extPort->NumPorts() > 2)
+					else
+					{
+						switch (type)
 						{
-							if (emulator.extPort->GetDevice( port )->GetType() == type)
+							case UNCONNECTED:
+
 								return RESULT_NOP;
 
-							switch (type)
+							case PAD1:
+							case PAD2:
+							case PAD3:
+							case PAD4:
 							{
-								case UNCONNECTED:
+								Core::Input::Device* const devices[2] =
+								{
+									new (std::nothrow) Core::Input::Device( emulator.cpu ),
+									new (std::nothrow) Core::Input::Pad( emulator.cpu, uint(type) - PAD1 )
+								};
 
-									if (emulator.extPort->GetDevice( port == PORT_3 ? PORT_4 : PORT_3 )->GetType() == UNCONNECTED)
-									{
-										Core::Input::Adapter* const adapter = new Core::Input::AdapterTwo
+								Core::Input::Adapter* adapter;
+
+								if
+								(
+									devices[0] && devices[1] && NULL !=
+									(
+										adapter = new (std::nothrow) Core::Input::AdapterFour
 										(
 											emulator.extPort->GetDevice(0),
 											emulator.extPort->GetDevice(1),
+											*devices[port == PORT_3],
+											*devices[port != PORT_3],
 											emulator.extPort->GetType()
-										);
-
-										for (uint i=2; i < 4; ++i)
-											delete emulator.extPort->GetDevice(i);
-
-										delete emulator.extPort;
-										emulator.extPort = adapter;
-									}
-									else
-									{
-										old = emulator.extPort->Connect( port, new Core::Input::Device( emulator.cpu ) );
-									}
-									break;
-
-								case PAD1:
-								case PAD2:
-								case PAD3:
-								case PAD4:
-
-									old = emulator.extPort->Connect( port, new Core::Input::Pad( emulator.cpu, uint(type) - PAD1 ) );
-									break;
-
-								default: return RESULT_ERR_INVALID_PARAM;
-							}
-						}
-						else
-						{
-							switch (type)
-							{
-								case UNCONNECTED:
-
-									return RESULT_NOP;
-
-								case PAD1:
-								case PAD2:
-								case PAD3:
-								case PAD4:
-								{
-									Core::Input::Device* const devices[2] =
-									{
-										new (std::nothrow) Core::Input::Device( emulator.cpu ),
-										new (std::nothrow) Core::Input::Pad( emulator.cpu, uint(type) - PAD1 )
-									};
-
-									Core::Input::Adapter* adapter;
-
-									if
-									(
-										devices[0] && devices[1] && NULL !=
-										(
-											adapter = new (std::nothrow) Core::Input::AdapterFour
-											(
-												emulator.extPort->GetDevice(0),
-												emulator.extPort->GetDevice(1),
-												devices[port == PORT_3],
-												devices[port != PORT_3],
-												emulator.extPort->GetType()
-											)
 										)
 									)
-									{
-										delete emulator.extPort;
-										emulator.extPort = adapter;
-									}
-									else
-									{
-										delete devices[0];
-										delete devices[1];
-
-										return RESULT_ERR_OUT_OF_MEMORY;
-									}
-									break;
+								)
+								{
+									delete emulator.extPort;
+									emulator.extPort = adapter;
 								}
+								else
+								{
+									delete devices[0];
+									delete devices[1];
 
-								default: return RESULT_ERR_INVALID_PARAM;
+									return RESULT_ERR_OUT_OF_MEMORY;
+								}
+								break;
 							}
-						}
-						break;
 
-					case EXPANSION_PORT:
-
-						if (emulator.expPort->GetType() == type)
-							return RESULT_NOP;
-
-						old = emulator.expPort;
-
-						switch (type)
-						{
-							case UNCONNECTED:       emulator.expPort = new Core::Input::Device( emulator.cpu );            break;
-							case PADDLE:            emulator.expPort = new Core::Input::Paddle( emulator.cpu, true );      break;
-							case FAMILYTRAINER:     emulator.expPort = new Core::Input::FamilyTrainer( emulator.cpu );     break;
-							case FAMILYKEYBOARD:    emulator.expPort = new Core::Input::FamilyKeyboard( emulator.cpu );    break;
-							case SUBORKEYBOARD:     emulator.expPort = new Core::Input::SuborKeyboard( emulator.cpu );     break;
-							case DOREMIKKOKEYBOARD: emulator.expPort = new Core::Input::DoremikkoKeyboard( emulator.cpu ); break;
-							case HORITRACK:         emulator.expPort = new Core::Input::HoriTrack( emulator.cpu );         break;
-							case PACHINKO:          emulator.expPort = new Core::Input::Pachinko( emulator.cpu );          break;
-							case OEKAKIDSTABLET:    emulator.expPort = new Core::Input::OekaKidsTablet( emulator.cpu );    break;
-							case HYPERSHOT:         emulator.expPort = new Core::Input::HyperShot( emulator.cpu );         break;
-							case CRAZYCLIMBER:      emulator.expPort = new Core::Input::CrazyClimber( emulator.cpu );      break;
-							case MAHJONG:           emulator.expPort = new Core::Input::Mahjong( emulator.cpu );           break;
-							case EXCITINGBOXING:    emulator.expPort = new Core::Input::ExcitingBoxing( emulator.cpu );    break;
-							case TOPRIDER:          emulator.expPort = new Core::Input::TopRider( emulator.cpu );          break;
-							case POKKUNMOGURAA:     emulator.expPort = new Core::Input::PokkunMoguraa( emulator.cpu );     break;
-							case PARTYTAP:          emulator.expPort = new Core::Input::PartyTap( emulator.cpu );          break;
 							default: return RESULT_ERR_INVALID_PARAM;
 						}
-						break;
+					}
+					break;
 
-					default: return RESULT_ERR_INVALID_PARAM;
-				}
-			}
-			catch (const std::bad_alloc&)
-			{
-				return RESULT_ERR_OUT_OF_MEMORY;
+				case EXPANSION_PORT:
+
+					if (emulator.expPort->GetType() == type)
+					{
+						return RESULT_NOP;
+					}
+					else switch (type)
+					{
+						case UNCONNECTED:       old = new (std::nothrow) Core::Input::Device( emulator.cpu );            break;
+						case PADDLE:            old = new (std::nothrow) Core::Input::Paddle( emulator.cpu, true );      break;
+						case FAMILYTRAINER:     old = new (std::nothrow) Core::Input::FamilyTrainer( emulator.cpu );     break;
+						case FAMILYKEYBOARD:    old = new (std::nothrow) Core::Input::FamilyKeyboard( emulator.cpu );    break;
+						case SUBORKEYBOARD:     old = new (std::nothrow) Core::Input::SuborKeyboard( emulator.cpu );     break;
+						case DOREMIKKOKEYBOARD: old = new (std::nothrow) Core::Input::DoremikkoKeyboard( emulator.cpu ); break;
+						case HORITRACK:         old = new (std::nothrow) Core::Input::HoriTrack( emulator.cpu );         break;
+						case PACHINKO:          old = new (std::nothrow) Core::Input::Pachinko( emulator.cpu );          break;
+						case OEKAKIDSTABLET:    old = new (std::nothrow) Core::Input::OekaKidsTablet( emulator.cpu );    break;
+						case HYPERSHOT:         old = new (std::nothrow) Core::Input::HyperShot( emulator.cpu );         break;
+						case CRAZYCLIMBER:      old = new (std::nothrow) Core::Input::CrazyClimber( emulator.cpu );      break;
+						case MAHJONG:           old = new (std::nothrow) Core::Input::Mahjong( emulator.cpu );           break;
+						case EXCITINGBOXING:    old = new (std::nothrow) Core::Input::ExcitingBoxing( emulator.cpu );    break;
+						case TOPRIDER:          old = new (std::nothrow) Core::Input::TopRider( emulator.cpu );          break;
+						case POKKUNMOGURAA:     old = new (std::nothrow) Core::Input::PokkunMoguraa( emulator.cpu );     break;
+						case PARTYTAP:          old = new (std::nothrow) Core::Input::PartyTap( emulator.cpu );          break;
+
+						default: return RESULT_ERR_INVALID_PARAM;
+					}
+
+					if (old)
+						std::swap( old, emulator.expPort );
+					else
+						return RESULT_ERR_OUT_OF_MEMORY;
+
+					break;
+
+				default: return RESULT_ERR_INVALID_PARAM;
 			}
 
 			delete old;
@@ -334,7 +362,7 @@ namespace Nes
 
 			if (emulator.image)
 			{
-				type = (Type) emulator.image->GetDesiredController( port );
+				type = static_cast<Type>(emulator.image->GetDesiredController( port ));
 			}
 			else switch (port)
 			{
@@ -348,7 +376,7 @@ namespace Nes
 
 		void Input::AutoSelectAdapter() throw()
 		{
-			ConnectAdapter( emulator.image ? (Adapter) emulator.image->GetDesiredAdapter() : ADAPTER_NES );
+			ConnectAdapter( emulator.image ? static_cast<Adapter>(emulator.image->GetDesiredAdapter()) : ADAPTER_NES );
 		}
 
 		Input::Type Input::GetConnectedController(uint port) const throw()
@@ -357,7 +385,7 @@ namespace Nes
 				return emulator.expPort->GetType();
 
 			if (port < emulator.extPort->NumPorts())
-				return emulator.extPort->GetDevice( port )->GetType();
+				return emulator.extPort->GetDevice( port ).GetType();
 
 			return UNCONNECTED;
 		}
@@ -374,15 +402,15 @@ namespace Nes
 
 			for (uint ports=emulator.extPort->NumPorts(), i=0; i < ports; ++i)
 			{
-				if (emulator.extPort->GetDevice(i)->GetType() == type)
+				if (emulator.extPort->GetDevice(i).GetType() == type)
 					return true;
 			}
 
 			return false;
 		}
 	}
-}
 
-#ifdef NST_PRAGMA_OPTIMIZE
-#pragma optimize("", on)
-#endif
+	#ifdef NST_MSVC_OPTIMIZE
+	#pragma optimize("", on)
+	#endif
+}

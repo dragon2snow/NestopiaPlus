@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -22,10 +22,10 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include <vector>
-#include "NstState.hpp"
 #include "NstCpu.hpp"
 #include "NstHook.hpp"
+#include "NstState.hpp"
+#include "NstFile.hpp"
 #include "NstPrpDataRecorder.hpp"
 #include "api/NstApiUser.hpp"
 
@@ -35,62 +35,47 @@ namespace Nes
 	{
 		namespace Peripherals
 		{
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("s", on)
 			#endif
 
-			NST_COMPILE_ASSERT( MODE_NTSC == 0 && MODE_PAL == 1 );
-
-			const Cycle DataRecorder::clocks[2][2] =
+			const dword DataRecorder::clocks[2][2] =
 			{
-				{ Cpu::CLK_NTSC_DIV * 16U, Cpu::MC_NTSC * 16U / dword(CLOCK) },
-				{ Cpu::CLK_PAL_DIV * 320U, qword(Cpu::MC_PAL) * 320U / dword(CLOCK) }
+				{ Cpu::CLK_NTSC_DIV * 16, Cpu::MC_NTSC * (16UL/1) / (CLOCK/1)   },
+				{ Cpu::CLK_PAL_DIV * 320, Cpu::MC_PAL * (320UL/16) / (CLOCK/16) }
 			};
 
 			DataRecorder::DataRecorder(Cpu& c)
-			: cpu(c), cycles(NES_CYCLE_MAX), status(STOPPED), loaded(false) {}
-
-			void DataRecorder::Load()
+			: cpu(c), cycles(Cpu::CYCLE_MAX), status(STOPPED), loaded(false)
 			{
-				NST_ASSERT( !loaded );
-
-				loaded = true;
-
-				std::vector<u8> data;
-				Api::User::fileIoCallback( Api::User::FILE_LOAD_TAPE, data );
-
-				if (ulong size = data.size())
-				{
-					if (size > SIZE_4096K)
-						size = SIZE_4096K;
-
-					stream.Resize( size );
-					std::memcpy( stream.Begin(), &data.front(), size );
-					checksum = Checksum::Md5::Compute( stream.Begin(), size );
-				}
+				NST_COMPILE_ASSERT( MODE_NTSC == 0 && MODE_PAL == 1 );
 			}
 
 			DataRecorder::~DataRecorder()
 			{
 				Stop();
-
-				if (stream.Size() && checksum != Checksum::Md5::Compute( stream.Begin(), stream.Size() ))
-				{
-					try
-					{
-						std::vector<u8> data( stream.Begin(), stream.End() );
-						Api::User::fileIoCallback( Api::User::FILE_SAVE_TAPE, data );
-					}
-					catch (...)
-					{
-					}
-				}
 			}
 
-			void DataRecorder::SaveState(State::Saver& state) const
+			void DataRecorder::Reset()
+			{
+				Stop();
+				cycles = Cpu::CYCLE_MAX;
+			}
+
+			void DataRecorder::PowerOff()
+			{
+				Reset();
+
+				if (stream.Size())
+					file.Save( File::SAVE_TAPE, stream.Begin(), stream.Size() );
+			}
+
+			void DataRecorder::SaveState(State::Saver& state,const dword id) const
 			{
 				if (stream.Size())
 				{
+					state.Begin( id );
+
 					if (status != STOPPED)
 					{
 						const dword p = (status == PLAYING ? pos : 0);
@@ -103,7 +88,7 @@ namespace Nes
 
 						c /= cpu.GetMasterClockCycle(1);
 
-						const u8 data[] =
+						const byte data[] =
 						{
 							status,
 							in,
@@ -118,38 +103,38 @@ namespace Nes
 							c >> 24 & 0xFF
 						};
 
-						state.Begin('R','E','G','\0').Write( data ).End();
+						state.Begin( AsciiId<'R','E','G'>::V ).Write( data ).End();
 					}
 
-					state.Begin('D','A','T','\0').Write32( stream.Size() ).Compress( stream.Begin(), stream.Size() ).End();
+					state.Begin( AsciiId<'D','A','T'>::V ).Write32( stream.Size() ).Compress( stream.Begin(), stream.Size() ).End();
+
+					state.End();
 				}
 			}
 
 			void DataRecorder::LoadState(State::Loader& state)
 			{
 				Stop();
-				pos = 0;
-				stream.Destroy();
 
 				while (const dword chunk = state.Begin())
 				{
 					switch (chunk)
 					{
-						case NES_STATE_CHUNK_ID('R','E','G','\0'):
+						case AsciiId<'R','E','G'>::V:
 						{
 							loaded = true;
-							const State::Loader::Data<11> data( state );
+							State::Loader::Data<11> data( state );
 
 							status = (data[0] == 1 ? PLAYING : data[0] == 2 ? RECORDING : STOPPED);
 							in = data[1] & 0x2;
 							out = data[2];
 
 							if (status == PLAYING)
-								pos = data[3] | (data[4] << 8) | (data[5] << 16) | (data[6] << 24);
+								pos = data[3] | data[4] << 8 | dword(data[5]) << 16 | dword(data[6]) << 24;
 
 							if (status != STOPPED)
 							{
-								cycles  = data[7] | (data[8] << 8) | (data[9] << 16) | (data[10] << 24);
+								cycles  = data[7] | data[8] << 8 | dword(data[9]) << 16 | dword(data[10]) << 24;
 								cycles *= cpu.GetMasterClockCycle(1) * clocks[cpu.GetMode()][0];
 								cycles += cpu.GetMasterClockCycles() * clocks[cpu.GetMode()][0];
 							}
@@ -157,19 +142,21 @@ namespace Nes
 							break;
 						}
 
-						case NES_STATE_CHUNK_ID('D','A','T','\0'):
-
+						case AsciiId<'D','A','T'>::V:
+						{
 							loaded = true;
+							const dword size = state.Read32();
 
-							if (const dword size = state.Read32())
+							NST_VERIFY( size > 0 && size <= MAX_LENGTH );
+
+							if (size > 0 && size <= MAX_LENGTH)
 							{
-								if (size <= SIZE_4096K)
-								{
-									stream.Resize( size );
-									state.Uncompress( stream.Begin(), size );
-								}
+								stream.Resize( size );
+								state.Uncompress( stream.Begin(), size );
 							}
+
 							break;
+						}
 					}
 
 					state.End();
@@ -178,10 +165,34 @@ namespace Nes
 				if (status != STOPPED)
 				{
 					if (stream.Size() && pos < stream.Size() && cycles <= clocks[cpu.GetMode()][1] * 2)
-						Prepare();
+					{
+						Start();
+					}
 					else
-						Stop();
+					{
+						status = STOPPED;
+						cycles = Cpu::CYCLE_MAX-1UL;
+					}
 				}
+			}
+
+			bool DataRecorder::CanPlay()
+			{
+				if (!loaded)
+				{
+					loaded = true;
+
+					try
+					{
+						file.Load( File::LOAD_TAPE, stream, MAX_LENGTH );
+					}
+					catch (...)
+					{
+						stream.Destroy();
+					}
+				}
+
+				return stream.Size();
 			}
 
 			Result DataRecorder::Record()
@@ -199,9 +210,7 @@ namespace Nes
 				cycles = 0;
 				stream.Destroy();
 
-				Prepare();
-
-				Api::User::eventCallback( Api::User::EVENT_TAPE_RECORDING, NULL );
+				Start();
 
 				return RESULT_OK;
 			}
@@ -211,66 +220,62 @@ namespace Nes
 				if (status == PLAYING)
 					return RESULT_NOP;
 
-				if (status == RECORDING)
-					return RESULT_ERR_NOT_READY;
-
-				if (!loaded)
-					Load();
-
-				if (!stream.Size())
+				if (status == RECORDING || !CanPlay())
 					return RESULT_ERR_NOT_READY;
 
 				status = PLAYING;
 				pos = 0;
 				in = 0;
+				out = 0;
 				cycles = 0;
 
-				Prepare();
-
-				Api::User::eventCallback( Api::User::EVENT_TAPE_PLAYING, NULL );
+				Start();
 
 				return RESULT_OK;
 			}
 
-			void DataRecorder::Prepare()
+			void DataRecorder::Start()
 			{
 				p4016 = cpu.Link( 0x4016, Cpu::LEVEL_LOW, this, &DataRecorder::Peek_4016, &DataRecorder::Poke_4016 );
 				cpu.AddHook( Hook(this,&DataRecorder::Hook_Tape) );
+				Api::User::eventCallback( status == PLAYING ? Api::User::EVENT_TAPE_PLAYING : Api::User::EVENT_TAPE_RECORDING, NULL );
 			}
 
-			void DataRecorder::Stop()
+			Result DataRecorder::Stop()
 			{
-				if (status != STOPPED)
-				{
-					status = STOPPED;
-					cycles = NES_CYCLE_MAX - 1;
-					cpu.Unlink( 0x4016, this, &DataRecorder::Peek_4016, &DataRecorder::Poke_4016 );
-					Api::User::eventCallback( Api::User::EVENT_TAPE_STOPPED, NULL );
-				}
+				if (status == STOPPED)
+					return RESULT_NOP;
+
+				status = STOPPED;
+				cycles = Cpu::CYCLE_MAX-1UL;
+				cpu.Unlink( 0x4016, this, &DataRecorder::Peek_4016, &DataRecorder::Poke_4016 );
+				Api::User::eventCallback( Api::User::EVENT_TAPE_STOPPED, NULL );
+
+				return RESULT_OK;
 			}
 
 			void DataRecorder::VSync()
 			{
-				if (cycles != NES_CYCLE_MAX)
-				{
-					if (cycles != NES_CYCLE_MAX-1)
-					{
-						const Cycle frame = cpu.GetMasterClockFrameCycles() * clocks[cpu.GetMode()][0];
+				if (cycles == Cpu::CYCLE_MAX)
+					return;
 
-						if (cycles > frame)
-							cycles -= frame;
-						else
-							cycles = 0;
-					}
+				if (cycles != Cpu::CYCLE_MAX-1UL)
+				{
+					const Cycle frame = cpu.GetMasterClockFrameCycles() * clocks[cpu.GetMode()][0];
+
+					if (cycles > frame)
+						cycles -= frame;
 					else
-					{
-						cycles = NES_CYCLE_MAX;
-						cpu.RemoveHook( Hook(this,&DataRecorder::Hook_Tape) );
-					}
+						cycles = 0;
+				}
+				else
+				{
+					cycles = Cpu::CYCLE_MAX;
+					cpu.RemoveHook( Hook(this,&DataRecorder::Hook_Tape) );
 				}
 			}
 
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("", on)
 			#endif
 
@@ -303,9 +308,9 @@ namespace Nes
 					{
 						NST_ASSERT( status == RECORDING );
 
-						if (stream.Size() < SIZE_4096K)
+						if (stream.Size() < MAX_LENGTH)
 						{
-							stream << ((out & 0x7) == 0x7 ? 0x90 : 0x70);
+							stream.Append( (out & 0x7) == 0x7 ? 0x90 : 0x70 );
 						}
 						else
 						{

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 // Copyright (C) 2001, 2002, 2003, 2004 Andrea Mazzoleni
 //
 // This file is part of Nestopia.
@@ -27,7 +27,6 @@
 
 #ifndef NST_NO_SCALEX
 
-#include "api/NstApiVideo.hpp"
 #include "NstVideoRenderer.hpp"
 #include "NstVideoFilterScaleX.hpp"
 
@@ -37,32 +36,13 @@ namespace Nes
 	{
 		namespace Video
 		{
-			#ifdef NST_PRAGMA_OPTIMIZE
-			#pragma optimize("s", on)
-			#endif
-
-			Renderer::FilterScaleX::FilterScaleX(const RenderState& state)
-			:
-			Filter (state),
-			type   (state.filter)
+			void Renderer::FilterScaleX::Blit(const Input& input,const Output& output,uint phase)
 			{
+				(*this.*path)( input, output, phase );
 			}
-
-			bool Renderer::FilterScaleX::Check(const RenderState& state)
-			{
-				return (state.bits.count == 16 || state.bits.count == 32) && (state.scanlines == 0) &&
-				(
-					(state.filter == RenderState::FILTER_SCALE2X && state.width == WIDTH*2 && state.height == HEIGHT*2) ||
-					(state.filter == RenderState::FILTER_SCALE3X && state.width == WIDTH*3 && state.height == HEIGHT*3)
-				);
-			}
-
-			#ifdef NST_PRAGMA_OPTIMIZE
-			#pragma optimize("", on)
-			#endif
 
 			template<typename T,int PREV,int NEXT>
-			NST_FORCE_INLINE T* Renderer::FilterScaleX::Blit2xBorder(T* NST_RESTRICT dst,const u16* NST_RESTRICT src,const u32 (&palette)[PALETTE]) const
+			NST_FORCE_INLINE T* Renderer::FilterScaleX::Blit2xBorder(T* NST_RESTRICT dst,const Input::Pixel* NST_RESTRICT src,const Input::Palette& palette) const
 			{
 				{
 					dword p[4] =
@@ -83,7 +63,7 @@ namespace Nes
 				src += 1;
 				dst += 2;
 
-				for (uint x=0; x < WIDTH-2; ++x)
+				for (uint x=WIDTH-2; x; --x)
 				{
 					const dword p[4] =
 					{
@@ -131,7 +111,7 @@ namespace Nes
 			}
 
 			template<typename T,int PREV,int NEXT>
-			NST_FORCE_INLINE T* Renderer::FilterScaleX::Blit3xBorder(T* NST_RESTRICT dst,const u16* NST_RESTRICT src,const u32 (&palette)[PALETTE]) const
+			NST_FORCE_INLINE T* Renderer::FilterScaleX::Blit3xBorder(T* NST_RESTRICT dst,const Input::Pixel* NST_RESTRICT src,const Input::Palette& palette) const
 			{
 				{
 					const dword p = palette[src[0]];
@@ -147,7 +127,7 @@ namespace Nes
 				src += 1;
 				dst += 3;
 
-				for (uint x=0; x < WIDTH-2; ++x)
+				for (uint x=WIDTH-2; x; --x)
 				{
 					const dword p[5] =
 					{
@@ -180,9 +160,9 @@ namespace Nes
 			}
 
 			template<typename T>
-			NST_FORCE_INLINE T* Renderer::FilterScaleX::Blit3xCenter(T* NST_RESTRICT dst,const u16* NST_RESTRICT src,const u32 (&palette)[PALETTE]) const
+			NST_FORCE_INLINE T* Renderer::FilterScaleX::Blit3xCenter(T* NST_RESTRICT dst,const Input::Pixel* NST_RESTRICT src,const Input::Palette& palette) const
 			{
-				for (uint x=0; x < WIDTH; ++x)
+				for (uint x=WIDTH; x; --x)
 				{
 					const dword p = palette[*src++];
 
@@ -197,83 +177,95 @@ namespace Nes
 			}
 
 			template<typename T,int PREV,int NEXT>
-			NST_FORCE_INLINE T* Renderer::FilterScaleX::Blit2xLine(T* dst,const u16* const src,const u32 (&palette)[PALETTE],const long pad) const
+			NST_FORCE_INLINE T* Renderer::FilterScaleX::Blit2xLine(T* dst,const Input::Pixel* const src,const Input::Palette& palette,const long pad) const
 			{
-				dst = reinterpret_cast<T*>(reinterpret_cast<u8*>(Blit2xBorder<T,PREV,NEXT>( dst, src, palette )) + pad);
-				dst = reinterpret_cast<T*>(reinterpret_cast<u8*>(Blit2xBorder<T,NEXT,PREV>( dst, src, palette )) + pad);
+				dst = reinterpret_cast<T*>(reinterpret_cast<byte*>(Blit2xBorder<T,PREV,NEXT>( dst, src, palette )) + pad);
+				dst = reinterpret_cast<T*>(reinterpret_cast<byte*>(Blit2xBorder<T,NEXT,PREV>( dst, src, palette )) + pad);
 
 				return dst;
 			}
 
 			template<typename T,int PREV,int NEXT>
-			NST_FORCE_INLINE T* Renderer::FilterScaleX::Blit3xLine(T* dst,const u16* const src,const u32 (&palette)[PALETTE],const long pad) const
+			NST_FORCE_INLINE T* Renderer::FilterScaleX::Blit3xLine(T* dst,const Input::Pixel* const src,const Input::Palette& palette,const long pad) const
 			{
-				dst = reinterpret_cast<T*>(reinterpret_cast<u8*>(Blit3xBorder<T,PREV,NEXT>( dst, src, palette )) + pad);
-				dst = reinterpret_cast<T*>(reinterpret_cast<u8*>(Blit3xCenter<T>( dst, src, palette )) + pad);
-				dst = reinterpret_cast<T*>(reinterpret_cast<u8*>(Blit3xBorder<T,NEXT,PREV>( dst, src, palette )) + pad);
+				dst = reinterpret_cast<T*>(reinterpret_cast<byte*>(Blit3xBorder<T,PREV,NEXT>( dst, src, palette )) + pad);
+				dst = reinterpret_cast<T*>(reinterpret_cast<byte*>(Blit3xCenter<T>( dst, src, palette )) + pad);
+				dst = reinterpret_cast<T*>(reinterpret_cast<byte*>(Blit3xBorder<T,NEXT,PREV>( dst, src, palette )) + pad);
 
 				return dst;
 			}
 
 			template<typename T>
-			NST_FORCE_INLINE void Renderer::FilterScaleX::Blit2x(const Input& input,const Output& output) const
+			void Renderer::FilterScaleX::Blit2x(const Input& input,const Output& output,uint) const
 			{
-				const u16* src = input.pixels;
+				const Input::Pixel* src = input.pixels;
 				T* dst = static_cast<T*>(output.pixels);
 				const long pad = output.pitch - long(sizeof(T) * WIDTH*2);
 
-				dst = Blit2xLine<T,-0,+WIDTH>( dst, src, input.palette, pad );
+				dst = Blit2xLine<T,0,WIDTH>( dst, src, input.palette, pad );
 
-				for (uint y=0; y < HEIGHT-2; ++y)
-					dst = Blit2xLine<T,-WIDTH,+WIDTH>( dst, src += WIDTH, input.palette, pad );
+				for (uint y=HEIGHT-2; y; --y)
+					dst = Blit2xLine<T,-WIDTH,WIDTH>( dst, src += WIDTH, input.palette, pad );
 
-				Blit2xLine<T,-WIDTH,+0>( dst, src + WIDTH, input.palette, pad );
+				Blit2xLine<T,-WIDTH,0>( dst, src + WIDTH, input.palette, pad );
 			}
 
 			template<typename T>
-			NST_FORCE_INLINE void Renderer::FilterScaleX::Blit3x(const Input& input,const Output& output) const
+			void Renderer::FilterScaleX::Blit3x(const Input& input,const Output& output,uint) const
 			{
-				const u16* src = input.pixels;
+				const Input::Pixel* src = input.pixels;
 				T* dst = static_cast<T*>(output.pixels);
 				const long pad = output.pitch - long(sizeof(T) * WIDTH*3);
 
-				dst = Blit3xLine<T,-0,+WIDTH>( dst, src, input.palette, pad );
+				dst = Blit3xLine<T,0,WIDTH>( dst, src, input.palette, pad );
 
-				for (uint y=0; y < HEIGHT-2; ++y)
-					dst = Blit3xLine<T,-WIDTH,+WIDTH>( dst, src += WIDTH, input.palette, pad );
+				for (uint y=HEIGHT-2; y; --y)
+					dst = Blit3xLine<T,-WIDTH,WIDTH>( dst, src += WIDTH, input.palette, pad );
 
-				Blit3xLine<T,-WIDTH,+0>( dst, src + WIDTH, input.palette, pad );
+				Blit3xLine<T,-WIDTH,0>( dst, src + WIDTH, input.palette, pad );
 			}
 
-			template<typename T>
-			NST_FORCE_INLINE void Renderer::FilterScaleX::BlitType(const Input& input,const Output& output) const
+			#ifdef NST_MSVC_OPTIMIZE
+			#pragma optimize("s", on)
+			#endif
+
+			Renderer::FilterScaleX::Path Renderer::FilterScaleX::GetPath(const RenderState& state)
 			{
-				switch (type)
+				if (state.filter == RenderState::FILTER_SCALE2X)
 				{
-					case RenderState::FILTER_SCALE2X:
-
-						Blit2x<T>( input, output );
-						break;
-
-					case RenderState::FILTER_SCALE3X:
-
-						Blit3x<T>( input, output );
-						break;
-
-						NST_UNREACHABLE
+					if (state.bits.count == 32)
+						return &FilterScaleX::Blit2x<dword>;
+					else
+						return &FilterScaleX::Blit2x<word>;
+				}
+				else
+				{
+					if (state.bits.count == 32)
+						return &FilterScaleX::Blit3x<dword>;
+					else
+						return &FilterScaleX::Blit3x<word>;
 				}
 			}
 
-			void Renderer::FilterScaleX::Blit(const Input& input,const Output& output,uint)
+			Renderer::FilterScaleX::FilterScaleX(const RenderState& state)
+			:
+			Filter (state),
+			path   (GetPath(state))
 			{
-				switch (bpp)
-				{
-					case 32: BlitType<u32>( input, output ); break;
-					case 16: BlitType<u16>( input, output ); break;
-
-					NST_UNREACHABLE
-				}
 			}
+
+			bool Renderer::FilterScaleX::Check(const RenderState& state)
+			{
+				return (state.bits.count == 16 || state.bits.count == 32) && (state.scanlines == 0) &&
+				(
+					(state.filter == RenderState::FILTER_SCALE2X && state.width == WIDTH*2 && state.height == HEIGHT*2) ||
+					(state.filter == RenderState::FILTER_SCALE3X && state.width == WIDTH*3 && state.height == HEIGHT*3)
+				);
+			}
+
+			#ifdef NST_MSVC_OPTIMIZE
+			#pragma optimize("", on)
+			#endif
 		}
 	}
 }

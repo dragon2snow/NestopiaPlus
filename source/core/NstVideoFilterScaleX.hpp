@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 // Copyright (C) 2001, 2002, 2003, 2004 Andrea Mazzoleni
 //
 // This file is part of Nestopia.
@@ -26,7 +26,7 @@
 #ifndef NST_VIDEO_FILTER_SCALEX_H
 #define NST_VIDEO_FILTER_SCALEX_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
+#ifdef NST_PRAGMA_ONCE
 #pragma once
 #endif
 
@@ -38,39 +38,44 @@ namespace Nes
 		{
 			class Renderer::FilterScaleX: public Renderer::Filter
 			{
-				template<typename T,int PREV,int NEXT>
-				NST_FORCE_INLINE T* Blit2xBorder(T* NST_RESTRICT,const u16* NST_RESTRICT,const u32 (&)[PALETTE]) const;
+			public:
 
-				template<typename T,int PREV,int NEXT>
-				NST_FORCE_INLINE T* Blit3xBorder(T* NST_RESTRICT,const u16* NST_RESTRICT,const u32 (&)[PALETTE]) const;
+				explicit FilterScaleX(const RenderState&);
 
-				template<typename T>
-				NST_FORCE_INLINE T* Blit3xCenter(T* NST_RESTRICT,const u16* NST_RESTRICT,const u32 (&)[PALETTE]) const;
+				static bool Check(const RenderState&);
 
-				template<typename T,int PREV,int NEXT>
-				NST_FORCE_INLINE T* Blit2xLine(T*,const u16*,const u32 (&)[PALETTE],long) const;
+			private:
 
-				template<typename T,int PREV,int NEXT>
-				NST_FORCE_INLINE T* Blit3xLine(T*,const u16*,const u32 (&)[PALETTE],long) const;
+				~FilterScaleX() {}
 
-				template<typename T>
-				NST_FORCE_INLINE void Blit2x(const Input&,const Output&) const;
+				typedef void (FilterScaleX::*Path)(const Input&,const Output&,uint) const;
 
-				template<typename T>
-				NST_FORCE_INLINE void Blit3x(const Input&,const Output&) const;
-
-				template<typename T>
-				NST_FORCE_INLINE void BlitType(const Input&,const Output&) const;
-
-				const RenderState::Filter type;
+				static Path GetPath(const RenderState&);
 
 				void Blit(const Input&,const Output&,uint);
 
-			public:
+				template<typename T,int PREV,int NEXT>
+				NST_FORCE_INLINE T* Blit2xBorder(T* NST_RESTRICT,const Input::Pixel* NST_RESTRICT,const Input::Palette&) const;
 
-				FilterScaleX(const RenderState&);
+				template<typename T,int PREV,int NEXT>
+				NST_FORCE_INLINE T* Blit3xBorder(T* NST_RESTRICT,const Input::Pixel* NST_RESTRICT,const Input::Palette&) const;
 
-				static bool Check(const RenderState&);
+				template<typename T>
+				NST_FORCE_INLINE T* Blit3xCenter(T* NST_RESTRICT,const Input::Pixel* NST_RESTRICT,const Input::Palette&) const;
+
+				template<typename T,int PREV,int NEXT>
+				NST_FORCE_INLINE T* Blit2xLine(T*,const Input::Pixel*,const Input::Palette&,long) const;
+
+				template<typename T,int PREV,int NEXT>
+				NST_FORCE_INLINE T* Blit3xLine(T*,const Input::Pixel*,const Input::Palette&,long) const;
+
+				template<typename T>
+				void Blit2x(const Input&,const Output&,uint) const;
+
+				template<typename T>
+				void Blit3x(const Input&,const Output&,uint) const;
+
+				const Path path;
 			};
 		}
 	}

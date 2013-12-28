@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,7 +25,7 @@
 #ifndef NST_BOARDS_TAITOTC_H
 #define NST_BOARDS_TAITOTC_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
+#ifdef NST_PRAGMA_ONCE
 #pragma once
 #endif
 
@@ -35,7 +35,7 @@ namespace Nes
 	{
 		namespace Boards
 		{
-			class NST_NO_VTABLE TaitoTc : public Mapper
+			class TaitoTc : public Mapper
 			{
 			protected:
 
@@ -55,12 +55,12 @@ namespace Nes
 				void BaseLoad(State::Loader&,dword);
 				void VSync();
 
-				NES_DECL_POKE( 8000 )
-				NES_DECL_POKE( C000 )
-				NES_DECL_POKE( C001 )
-				NES_DECL_POKE( C002 )
-				NES_DECL_POKE( C003 )
-				NES_DECL_POKE( E000 )
+				NES_DECL_POKE( 8000 );
+				NES_DECL_POKE( C000 );
+				NES_DECL_POKE( C001 );
+				NES_DECL_POKE( C002 );
+				NES_DECL_POKE( C003 );
+				NES_DECL_POKE( E000 );
 
 				Mmc3::Irq* const irq;
 			};

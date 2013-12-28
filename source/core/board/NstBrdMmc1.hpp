@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,7 +25,7 @@
 #ifndef NST_BOARDS_MMC1_H
 #define NST_BOARDS_MMC1_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
+#ifdef NST_PRAGMA_ONCE
 #pragma once
 #endif
 
@@ -74,7 +74,8 @@ namespace Nes
 					REV_C
 				};
 
-				Mmc1(Context&,Board=BRD_GENERIC,Revision=REV_B);
+				explicit Mmc1(Context&,Board=BRD_GENERIC,Revision=REV_B);
+				~Mmc1() {}
 
 				void SubReset(bool);
 				void UpdatePrg();
@@ -111,7 +112,7 @@ namespace Nes
 				void ResetRegisters();
 				virtual void UpdateRegisters(uint);
 
-				NES_DECL_POKE( Prg )
+				NES_DECL_POKE( Prg );
 
 				struct Serial
 				{
@@ -130,7 +131,7 @@ namespace Nes
 
 			protected:
 
-				u8 regs[4];
+				byte regs[4];
 
 				const Revision revision;
 			};

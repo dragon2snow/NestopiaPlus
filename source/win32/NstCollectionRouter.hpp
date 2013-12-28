@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -65,6 +65,7 @@ namespace Nestopia
 
 			NST_NO_INLINE void Remove(const void*);
 			void RemoveAll(const void*);
+			void Defrag();
 
 			template<typename Match>
 			const Callback* Find(const Match&,const Key** = NULL) const;
@@ -106,10 +107,10 @@ namespace Nestopia
 				: next(NULL) {}
 			};
 
-			NST_NO_INLINE void  AddHook(KeyParam,const typename Hook::Item&);
-			NST_NO_INLINE ibool RemoveHook(Item* const,Hook*,typename Hook::Item*);
-			NST_NO_INLINE void  RemoveHook(KeyParam,const typename Hook::Item&);
-			NST_NO_INLINE void  RemoveHooks(const void*);
+			NST_NO_INLINE void AddHook(KeyParam,const typename Hook::Item&);
+			NST_NO_INLINE bool RemoveHook(Item* const,Hook*,typename Hook::Item*);
+			NST_NO_INLINE void RemoveHook(KeyParam,const typename Hook::Item&);
+			NST_NO_INLINE void RemoveHooks(const void*);
 
 			class HookRouter
 			{
@@ -134,7 +135,7 @@ namespace Nestopia
 				template<typename Data,typename Hooks>
 				void Add(Data* data,const Hooks& hooks)
 				{
-					Add( data, hooks, NST_COUNT(hooks) );
+					Add( data, hooks, sizeof(array(hooks)) );
 				}
 
 				void Remove(const void* data)
@@ -173,15 +174,15 @@ namespace Nestopia
 			}
 
 			template<typename Data,typename Array>
-			void Add(Data* data,const Array& array)
+			void Add(Data* data,const Array& arr)
 			{
-				Add( data, array, NST_COUNT(array) );
+				Add( data, arr, sizeof(array(arr)) );
 			}
 
 			template<typename Data,typename Array,typename HookArray>
-			void Add(Data* data,const Array& array,const HookArray& hookArray)
+			void Add(Data* data,const Array& arr,const HookArray& hookArray)
 			{
-				Add( data, array, NST_COUNT(array) );
+				Add( data, arr, sizeof(array(arr)) );
 				Hooks().Add( data, hookArray );
 			}
 
@@ -192,9 +193,9 @@ namespace Nestopia
 			}
 
 			template<typename Data,typename Array>
-			void Set(Data* data,const Array& array)
+			void Set(Data* data,const Array& arr)
 			{
-				Set( data, array, NST_COUNT(array) );
+				Set( data, arr, sizeof(array(arr)) );
 			}
 
 			template<typename Data,typename Code>

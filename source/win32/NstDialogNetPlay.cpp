@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -28,7 +28,6 @@
 #include "NstWindowParam.hpp"
 #include "NstWindowDropFiles.hpp"
 #include "NstManagerPaths.hpp"
-#include "NstManagerEmulator.hpp"
 #include "NstDialogNetPlay.hpp"
 #include "../core/api/NstApiCartridge.hpp"
 #include <CommCtrl.h>
@@ -73,7 +72,7 @@ namespace Nestopia
 
 		Netplay::Games::~Games()
 		{
-			for (Iterator it=Begin(), end=End(); it != end; ++it)
+			for (Iterator it(Begin()), end(End()); it != end; ++it)
 				it->Path::~Path();
 		}
 
@@ -96,13 +95,17 @@ namespace Nestopia
 			Array().Erase( it );
 		}
 
-		Netplay::Netplay(Managers::Emulator& e,const Managers::Paths& p,ibool fullscreen)
+		Netplay::Netplay(Managers::Emulator& e,const Managers::Paths& p,bool fullscreen)
 		:
 		dialog        ( IDD_NETPLAY, this, Handlers::messages, Handlers::commands ),
 		doFullscreen  ( fullscreen ),
 		paths         ( p ),
 		emulator      ( e ),
 		notifications ( IDC_NETPLAY_GAMELIST, dialog.Messages(), this, Handlers::notifications )
+		{
+		}
+
+		Netplay::~Netplay()
 		{
 		}
 
@@ -116,15 +119,18 @@ namespace Nestopia
 			}
 			catch (Io::File::Exception id)
 			{
+				Io::Log log;
+
 				if (id == Io::File::ERR_NOT_FOUND)
 				{
-					Io::Log() << "Netplay: game list file \"netplaylist.dat\" not present..\r\n";
+					log << "Netplay: game list file \"netplaylist.dat\" not present..\r\n";
 				}
 				else
 				{
-					Io::Log() << "Netplay: warning, couldn't load game list \"netplaylist.dat\"!\r\n";
+					log << "Netplay: warning, couldn't load game list \"netplaylist.dat\"!\r\n";
 					games.state = Games::DIRTY;
 				}
+
 				return;
 			}
 
@@ -169,12 +175,12 @@ namespace Nestopia
 				{
 					HeapString text;
 
-					for (Games::ConstIterator it=games.Begin(), end=games.End(); it != end; ++it)
+					for (Games::ConstIterator it(games.Begin()), end(games.End()); it != end; ++it)
 						text << *it << "\r\n";
 
 					try
 					{
-						Io::File( path, Io::File::DUMP ).WriteText( text.Ptr(), text.Length() );
+						Io::File( path, Io::File::DUMP|Io::File::WRITE_THROUGH ).WriteText( text.Ptr(), text.Length() );
 						log << "Netplay: saved game list to \"netplaylist.dat\"\r\n";
 					}
 					catch (Io::File::Exception)
@@ -217,7 +223,7 @@ namespace Nestopia
 				Control::ListView list( dialog.ListView( IDC_NETPLAY_GAMELIST ) );
 				list.Reserve( games.Size() );
 
-				for (Games::ConstIterator it=games.Begin(), end=games.End(); it != end; ++it)
+				for (Games::ConstIterator it(games.Begin()), end(games.End()); it != end; ++it)
 					list.Add( it->Target().File().Ptr() );
 			}
 
@@ -254,7 +260,10 @@ namespace Nestopia
 		ibool Netplay::OnDefault(Param& param)
 		{
 			if (param.Button().Clicked())
-				dialog.CheckBox( IDC_NETPLAY_PLAY_FULLSCREEN ).Check( doFullscreen = false );
+			{
+				doFullscreen = false;
+				dialog.CheckBox( IDC_NETPLAY_PLAY_FULLSCREEN ).Check( false );
+			}
 
 			return true;
 		}

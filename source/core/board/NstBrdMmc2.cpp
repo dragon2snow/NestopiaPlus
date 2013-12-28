@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -31,7 +31,7 @@ namespace Nes
 	{
 		namespace Boards
 		{
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("s", on)
 			#endif
 
@@ -39,8 +39,13 @@ namespace Nes
 			{
 				if (hard)
 				{
-					selector[1] = selector[0] = 0;
-					banks[1][1] = banks[1][0] = banks[0][1] = banks[0][0] = 0;
+					selector[0] = 0;
+					selector[1] = 0;
+
+					banks[0][0] = 0;
+					banks[0][1] = 0;
+					banks[1][0] = 0;
+					banks[1][1] = 0;
 				}
 
 				chr.SetAccessor( 0, this, &Mmc2::Access_Chr_0000 );
@@ -56,20 +61,21 @@ namespace Nes
 
 			void Mmc2::BaseLoad(State::Loader& state,const dword id)
 			{
-				NST_VERIFY( id == NES_STATE_CHUNK_ID('M','M','2','\0') );
+				NST_VERIFY( id == (AsciiId<'M','M','2'>::V) );
 
-				if (id == NES_STATE_CHUNK_ID('M','M','2','\0'))
+				if (id == AsciiId<'M','M','2'>::V)
 				{
-					while (const dword id = state.Begin())
+					while (const dword subId = state.Begin())
 					{
-						if (id == NES_STATE_CHUNK_ID('R','E','G','\0'))
+						if (subId == AsciiId<'R','E','G'>::V)
 						{
-							const State::Loader::Data<4+1> data( state );
+							State::Loader::Data<4+1> data( state );
 
 							banks[0][0] = data[0];
 							banks[0][1] = data[1];
 							banks[1][0] = data[2];
 							banks[1][1] = data[3];
+
 							selector[0] = data[4] >> 0 & 0x1;
 							selector[1] = data[4] >> 1 & 0x1;
 						}
@@ -81,19 +87,19 @@ namespace Nes
 
 			void Mmc2::BaseSave(State::Saver& state) const
 			{
-				const u8 data[4+1] =
+				const byte data[4+1] =
 				{
 					banks[0][0],
 					banks[0][1],
 					banks[1][0],
 					banks[1][1],
-					selector[0] | (selector[1] << 1)
+					selector[0] | selector[1] << 1
 				};
 
-				state.Begin('M','M','2','\0').Begin('R','E','G','\0').Write( data ).End().End();
+				state.Begin( AsciiId<'M','M','2'>::V ).Begin( AsciiId<'R','E','G'>::V ).Write( data ).End().End();
 			}
 
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("", on)
 			#endif
 
@@ -108,7 +114,7 @@ namespace Nes
 					default: return data;
 				}
 
-				chr.SwapBank<SIZE_4K,0x0000U>( banks[0][selector[0]] );
+				chr.SwapBank<SIZE_4K,0x0000>( banks[0][selector[0]] );
 
 				return data;
 			}
@@ -124,14 +130,14 @@ namespace Nes
 					default: return data;
 				}
 
-				chr.SwapBank<SIZE_4K,0x1000U>( banks[1][selector[1]] );
+				chr.SwapBank<SIZE_4K,0x1000>( banks[1][selector[1]] );
 
 				return data;
 			}
 
 			void Mmc2::UpdateChr() const
 			{
-				chr.SwapBanks<SIZE_4K,0x0000U>( banks[0][selector[0]], banks[1][selector[1]] );
+				chr.SwapBanks<SIZE_4K,0x0000>( banks[0][selector[0]], banks[1][selector[1]] );
 			}
 
 			NES_POKE(Mmc2,B000)

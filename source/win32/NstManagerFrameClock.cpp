@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -26,8 +26,7 @@
 #include "NstIoScreen.hpp"
 #include "NstIoLog.hpp"
 #include "NstResourceString.hpp"
-#include "NstManagerEmulator.hpp"
-#include "NstWindowMenu.hpp"
+#include "NstManager.hpp"
 #include "NstDialogFrameClock.hpp"
 #include "NstManagerFrameClock.hpp"
 #include "../core/api/NstApiRewinder.hpp"
@@ -38,26 +37,22 @@ namespace Nestopia
 	{
 		FrameClock::FrameClock(Window::Menu& m,Emulator& e,const Configuration& cfg,bool modernGPU)
 		:
-		emulator ( e ),
-		menu     ( m ),
-		dialog   ( new Window::FrameClock(cfg,modernGPU) )
+		Manager ( e, m, this, &FrameClock::OnEmuEvent, IDM_OPTIONS_TIMING, &FrameClock::OnMenuOptionsTiming ),
+		dialog  ( new Window::FrameClock(cfg,modernGPU) )
 		{
-			Io::Log() << "Timer: performance counter ";
+			UpdateSettings();
+
+			Io::Log log;
+			log << "Timer: performance counter ";
 
 			if (System::Timer::HasPerformanceCounter())
-				Io::Log() << "present (" << uint(System::Timer::GetPerformanceCounterFrequency()) << " hz)\r\n";
+				log << "present (" << uint(System::Timer::GetPerformanceCounterFrequency()) << " hz)\r\n";
 			else
-				Io::Log() << "not present\r\n";
-
-			m.Commands().Add( IDM_OPTIONS_TIMING, this, &FrameClock::OnMenuOptionsTiming );
-			emulator.Events().Add( this, &FrameClock::OnEmuEvent );
-
-			UpdateSettings();
+				log << "not present\r\n";
 		}
 
 		FrameClock::~FrameClock()
 		{
-			emulator.Events().Remove( this );
 		}
 
 		void FrameClock::OnMenuOptionsTiming(uint)
@@ -75,7 +70,7 @@ namespace Nestopia
 		{
 			UpdateRewinderState();
 
-			settings.autoFrameSkip = bool(dialog->UseAutoFrameSkip());
+			settings.autoFrameSkip = dialog->UseAutoFrameSkip();
 			settings.maxFrameSkips = dialog->GetMaxFrameSkips();
 
 			emulator.ResetSpeed
@@ -88,7 +83,7 @@ namespace Nestopia
 			ResetTimer();
 		}
 
-		void FrameClock::UpdateRewinderState(ibool force) const
+		void FrameClock::UpdateRewinderState(bool force) const
 		{
 			if (NES_SUCCEEDED(Nes::Rewinder(emulator).Enable( force && dialog->UseRewinder() )))
 				Nes::Rewinder(emulator).EnableSound( !dialog->NoRewindSound() );
@@ -96,8 +91,8 @@ namespace Nestopia
 
 		void FrameClock::ResetTimer()
 		{
-			timer.Reset( dialog->UsePerformanceCounter() ? System::Timer::PERFORMANCE : System::Timer::MULTIMEDIA );
 			counter = 0;
+			timer.Reset( dialog->UsePerformanceCounter() ? System::Timer::PERFORMANCE : System::Timer::MULTIMEDIA );
 		}
 
 		void FrameClock::OnEmuEvent(Emulator::Event event)
@@ -116,7 +111,7 @@ namespace Nestopia
 
 					if (dialog->UseDefaultRewindSpeed() || Rewinder(emulator).GetDirection() == Rewinder::FORWARD)
 					{
-						settings.autoFrameSkip = bool(dialog->UseAutoFrameSkip());
+						settings.autoFrameSkip = dialog->UseAutoFrameSkip();
 						emulator.SetSpeed( Emulator::DEFAULT_SPEED );
 					}
 					else
@@ -161,7 +156,7 @@ namespace Nestopia
 
 					if (!emulator.Speeding())
 					{
-						settings.autoFrameSkip = bool(dialog->UseAutoFrameSkip());
+						settings.autoFrameSkip = dialog->UseAutoFrameSkip();
 						emulator.SetSpeed( Emulator::DEFAULT_SPEED );
 					}
 
@@ -177,11 +172,11 @@ namespace Nestopia
 			}
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("t", on)
 		#endif
 
-		uint FrameClock::Synchronize(const ibool throttle,uint skips)
+		uint FrameClock::Synchronize(const bool throttle,uint skips)
 		{
 			System::Timer::Value current( timer.Elapsed() );
 
@@ -219,7 +214,7 @@ namespace Nestopia
 			return 0;
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 	}

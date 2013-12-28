@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -28,7 +28,6 @@
 #pragma once
 
 #include "NstWindowDialog.hpp"
-#include "NstManagerEmulator.hpp"
 #include "../core/api/NstApiDipSwitches.hpp"
 
 namespace Nestopia
@@ -45,9 +44,13 @@ namespace Nestopia
 
 			struct Handlers;
 
+			#ifdef IDC_DIPSWITCHES_9
+			#error Must update dipswitch dialog fields!
+			#endif
+
 			enum
 			{
-				MAX_DIPS = 8
+				MAX_DIPS = IDC_DIPSWITCHES_8+1-IDC_DIPSWITCHES_1
 			};
 
 			ibool OnInitDialog (Param&);

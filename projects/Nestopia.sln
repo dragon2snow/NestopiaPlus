@@ -32,4 +32,7 @@ Global
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		AMDCaProjectFile = D:\Programming\Nestopia\projects\CodeAnalyst\nestopia.caw
+	EndGlobalSection
 EndGlobal

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -22,7 +22,6 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstCore.hpp"
 #include "NstCpu.hpp"
 #include "NstSoundPcm.hpp"
 
@@ -32,7 +31,7 @@ namespace Nes
 	{
 		namespace Sound
 		{
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("s", on)
 			#endif
 
@@ -52,7 +51,7 @@ namespace Nes
 				if (data == NULL || length == 0 || bits == 0 || rate == 0)
 					return RESULT_ERR_INVALID_PARAM;
 
-				if ((bits != 8 && bits != 16) || (rate < 8000U || rate > 96000UL))
+				if ((bits != 8 && bits != 16) || (rate < 8000 || rate > 96000))
 					return RESULT_ERR_UNSUPPORTED;
 
 				return RESULT_OK;
@@ -63,24 +62,25 @@ namespace Nes
 				wave.data = NULL;
 			}
 
-			void Pcm::UpdateContext(uint,const u8 (&)[MAX_CHANNELS])
+			void Pcm::UpdateContext(uint,const byte (&)[MAX_CHANNELS])
 			{
 				wave.data = NULL;
 			}
 
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("", on)
 			#endif
 
-			void Pcm::Play(const i16* w,dword l,dword r)
+			void Pcm::Play(const iword* w,dword l,dword r)
 			{
 				NST_ASSERT( NES_SUCCEEDED(CanDo(w,l,16,r)) );
+
+				pos = 0;
 
 				wave.data = w;
 				wave.length = l;
 				wave.rate = r;
 
-				pos = 0;
 				rate = cpu.GetApu().GetSampleRate();
 			}
 
@@ -88,7 +88,7 @@ namespace Nes
 			{
 				if (wave.data)
 				{
-					const uint i = pos / rate;
+					const dword i = pos / rate;
 
 					if (i < wave.length)
 					{

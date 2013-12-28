@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -31,7 +31,7 @@ namespace Nes
 	{
 		namespace Boards
 		{
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("s", on)
 			#endif
 
@@ -107,24 +107,24 @@ namespace Nes
 
 				irq.Reset( hard, hard || irq.IsLineEnabled() );
 
-				for (uint i=0x0000U; i < 0x2000U; i += 0x2)
+				for (uint i=0x0000; i < 0x2000; i += 0x2)
 				{
-					Map( 0x8000U + i, &Mmc3::Poke_8000 );
-					Map( 0x8001U + i, &Mmc3::Poke_8001 );
-					Map( 0xA001U + i, &Mmc3::Poke_A001 );
-					Map( 0xC000U + i, &Mmc3::Poke_C000 );
-					Map( 0xC001U + i, &Mmc3::Poke_C001 );
-					Map( 0xE000U + i, &Mmc3::Poke_E000 );
-					Map( 0xE001U + i, &Mmc3::Poke_E001 );
+					Map( 0x8000 + i, &Mmc3::Poke_8000 );
+					Map( 0x8001 + i, &Mmc3::Poke_8001 );
+					Map( 0xA001 + i, &Mmc3::Poke_A001 );
+					Map( 0xC000 + i, &Mmc3::Poke_C000 );
+					Map( 0xC001 + i, &Mmc3::Poke_C001 );
+					Map( 0xE000 + i, &Mmc3::Poke_E000 );
+					Map( 0xE001 + i, &Mmc3::Poke_E001 );
 				}
 
 				if (mirroring != Ppu::NMT_FOURSCREEN)
 				{
-					for (uint i=0xA000U; i < 0xC000U; i += 0x2)
+					for (uint i=0xA000; i < 0xC000; i += 0x2)
 						Map( i, NMT_SWAP_HV );
 				}
 
-				if (wrk.RamSize() >= SIZE_8K)
+				if (wrk.Size() >= SIZE_8K)
 					Map( WRK_SAFE_PEEK_POKE );
 
 				UpdatePrg();
@@ -133,7 +133,7 @@ namespace Nes
 
 			void Mmc3::BaseIrq::LoadState(State::Loader& state)
 			{
-				const State::Loader::Data<3> data( state );
+				State::Loader::Data<3> data( state );
 
 				enabled = data[0] & 0x1;
 				reload = data[0] & 0x2;
@@ -141,31 +141,31 @@ namespace Nes
 				latch = data[2];
 			}
 
-			void Mmc3::BaseIrq::SaveState(State::Saver& state) const
+			void Mmc3::BaseIrq::SaveState(State::Saver& state,const dword id) const
 			{
-				const u8 data[3] =
+				const byte data[3] =
 				{
-					(enabled ? 0x1 : 0x0) | (reload ? 0x2 : 0x0),
+					(enabled ? 0x1U : 0x0U) | (reload ? 0x2U : 0x0U),
 					count,
 					latch
 				};
 
-				state.Write( data );
+				state.Begin( id ).Write( data ).End();
 			}
 
 			void Mmc3::BaseLoad(State::Loader& state,const dword id)
 			{
-				NST_VERIFY( id == NES_STATE_CHUNK_ID('M','M','3','\0') );
+				NST_VERIFY( id == (AsciiId<'M','M','3'>::V) );
 
-				if (id == NES_STATE_CHUNK_ID('M','M','3','\0'))
+				if (id == AsciiId<'M','M','3'>::V)
 				{
 					while (const dword chunk = state.Begin())
 					{
 						switch (chunk)
 						{
-							case NES_STATE_CHUNK_ID('R','E','G','\0'):
+							case AsciiId<'R','E','G'>::V:
 							{
-								const State::Loader::Data<12> data( state );
+								State::Loader::Data<12> data( state );
 
 								regs.ctrl0 = data[0];
 								regs.ctrl1 = data[1];
@@ -183,7 +183,7 @@ namespace Nes
 								break;
 							}
 
-							case NES_STATE_CHUNK_ID('I','R','Q','\0'):
+							case AsciiId<'I','R','Q'>::V:
 
 								irq.unit.LoadState( state );
 								break;
@@ -196,10 +196,10 @@ namespace Nes
 
 			void Mmc3::BaseSave(State::Saver& state) const
 			{
-				state.Begin('M','M','3','\0');
+				state.Begin( AsciiId<'M','M','3'>::V );
 
 				{
-					const u8 data[12] =
+					const byte data[12] =
 					{
 						regs.ctrl0,
 						regs.ctrl1,
@@ -215,14 +215,15 @@ namespace Nes
 						banks.chr[5]
 					};
 
-					state.Begin('R','E','G','\0').Write( data ).End();
+					state.Begin( AsciiId<'R','E','G'>::V ).Write( data ).End();
 				}
 
-				irq.unit.SaveState( State::Saver::Subset(state,'I','R','Q','\0').Ref() );
+				irq.unit.SaveState( state, AsciiId<'I','R','Q'>::V );
+
 				state.End();
 			}
 
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("", on)
 			#endif
 
@@ -240,19 +241,26 @@ namespace Nes
 
 			NES_POKE(Mmc3,8001)
 			{
-				address = (regs.ctrl0 & Regs::CTRL0_MODE);
+				address = regs.ctrl0 & Regs::CTRL0_MODE;
 
-				if (address < 2)
-					data >>= 1;
-
-				if (bankBlock[address] != data)
+				if (address < 6)
 				{
-					bankBlock[address] = data;
+					if (address < 2)
+						data >>= 1;
 
-					if (address < 6)
+					if (banks.chr[address] != data)
+					{
+						banks.chr[address] = data;
 						UpdateChr();
-					else
+					}
+				}
+				else
+				{
+					if (banks.prg[address-6] != data)
+					{
+						banks.prg[address-6] = data;
 						UpdatePrg();
+					}
 				}
 			}
 
@@ -295,7 +303,7 @@ namespace Nes
 			{
 				const uint i = (regs.ctrl0 & Regs::CTRL0_XOR_PRG) >> 5;
 
-				prg.SwapBanks<SIZE_8K,0x0000U>( banks.prg[i], banks.prg[1], banks.prg[i^2], banks.prg[3] );
+				prg.SwapBanks<SIZE_8K,0x0000>( banks.prg[i], banks.prg[1], banks.prg[i^2], banks.prg[3] );
 			}
 
 			void Mmc3::UpdateChr() const
@@ -304,8 +312,8 @@ namespace Nes
 
 				const uint swap = (regs.ctrl0 & Regs::CTRL0_XOR_CHR) << 5;
 
-				chr.SwapBanks<SIZE_2K>( 0x0000U ^ swap, banks.chr[0], banks.chr[1] );
-				chr.SwapBanks<SIZE_1K>( 0x1000U ^ swap, banks.chr[2], banks.chr[3], banks.chr[4], banks.chr[5] );
+				chr.SwapBanks<SIZE_2K>( 0x0000 ^ swap, banks.chr[0], banks.chr[1] );
+				chr.SwapBanks<SIZE_1K>( 0x1000 ^ swap, banks.chr[2], banks.chr[3], banks.chr[4], banks.chr[5] );
 			}
 
 			void Mmc3::VSync()

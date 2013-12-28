@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -30,7 +30,7 @@ namespace Nes
 {
 	namespace Core
 	{
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("s", on)
 		#endif
 
@@ -41,25 +41,25 @@ namespace Nes
 			Map( 0x8000U, 0xFFFFU, &Mapper250::Poke_Prg );
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
 		NES_POKE(Mapper250,Prg)
 		{
 			data = address & 0xFF;
-			address = (address & 0xE000U) | (address >> 10 & 0x1);
+			address = (address & 0xE000) | (address >> 10 & 0x1);
 
 			switch (address)
 			{
-				case 0x8000U: NES_CALL_POKE( Mmc3, 8000, address, data ); break;
-				case 0x8001U: NES_CALL_POKE( Mmc3, 8001, address, data ); break;
-				case 0xA000U: SetMirroringHV( data );                     break;
-				case 0xA001U: NES_CALL_POKE( Mmc3, A001, address, data ); break;
-				case 0xC000U: NES_CALL_POKE( Mmc3, C000, address, data ); break;
-				case 0xC001U: NES_CALL_POKE( Mmc3, C001, address, data ); break;
-				case 0xE000U: NES_CALL_POKE( Mmc3, E000, address, data ); break;
-				case 0xE001U: NES_CALL_POKE( Mmc3, E001, address, data ); break;
+				case 0x8000: Mmc3::NES_DO_POKE( 8000, address, data ); break;
+				case 0x8001: Mmc3::NES_DO_POKE( 8001, address, data ); break;
+				case 0xA000: SetMirroringHV( data );                   break;
+				case 0xA001: Mmc3::NES_DO_POKE( A001, address, data ); break;
+				case 0xC000: Mmc3::NES_DO_POKE( C000, address, data ); break;
+				case 0xC001: Mmc3::NES_DO_POKE( C001, address, data ); break;
+				case 0xE000: Mmc3::NES_DO_POKE( E000, address, data ); break;
+				case 0xE001: Mmc3::NES_DO_POKE( E001, address, data ); break;
 			}
 		}
 	}

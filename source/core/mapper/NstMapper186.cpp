@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -22,6 +22,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
+#include <cstring>
 #include "../NstMapper.hpp"
 #include "NstMapper186.hpp"
 
@@ -29,7 +30,7 @@ namespace Nes
 {
 	namespace Core
 	{
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("s", on)
 		#endif
 
@@ -57,7 +58,7 @@ namespace Nes
 		{
 			while (const dword chunk = state.Begin())
 			{
-				if (chunk == NES_STATE_CHUNK_ID('R','A','M','\0'))
+				if (chunk == AsciiId<'R','A','M'>::V)
 					state.Uncompress( ram );
 
 				state.End();
@@ -66,10 +67,10 @@ namespace Nes
 
 		void Mapper186::SubSave(State::Saver& state) const
 		{
-			state.Begin('R','A','M','\0').Compress( ram ).End();
+			state.Begin( AsciiId<'R','A','M'>::V ).Compress( ram ).End();
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
@@ -90,17 +91,17 @@ namespace Nes
 
 		NES_POKE(Mapper186,4200)
 		{
-			wrk.SwapBank<SIZE_8K,0x0000U>( data >> 6 );
+			wrk.SwapBank<SIZE_8K,0x0000>( data >> 6 );
 		}
 
 		NES_PEEK(Mapper186,4400)
 		{
-			return ram[address - 0x4400U];
+			return ram[address - 0x4400];
 		}
 
 		NES_POKE(Mapper186,4400)
 		{
-			ram[address - 0x4400U] = data;
+			ram[address - 0x4400] = data;
 		}
 	}
 }

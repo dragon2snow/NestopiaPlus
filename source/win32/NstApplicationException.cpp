@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -36,18 +36,25 @@ namespace Nestopia
 		{
 			try
 			{
-				if (msg)
+				if (id)
 				{
-					Window::User::Fail( msg );
-				}
-				else if (id)
-				{
-					const HeapString& string = Resource::String( id );
+					Resource::String string( id );
 
 					if (string.Length())
+					{
+						if (msg)
+							string.Invoke( msg );
+
 						Window::User::Fail( string.Ptr() );
+					}
 					else
+					{
 						throw;
+					}
+				}
+				else if (msg)
+				{
+					Window::User::Fail( msg );
 				}
 				else
 				{

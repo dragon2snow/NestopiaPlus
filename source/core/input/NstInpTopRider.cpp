@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -31,7 +31,7 @@ namespace Nes
 	{
 		namespace Input
 		{
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("s", on)
 			#endif
 
@@ -43,17 +43,23 @@ namespace Nes
 
 			void TopRider::Reset()
 			{
-				stream[1] = stream[0] = state[1] = state[0] = 0;
+				state[0] = 0;
+				state[1] = 0;
+				stream[0] = 0;
+				stream[1] = 0;
 				strobe = 0;
-				pos = accel = brake = buttons = 0;
+				buttons = 0;
+				brake = 0;
+				accel = 0;
+				pos = 0;
 			}
 
-			void TopRider::SaveState(State::Saver& state,const uchar id) const
+			void TopRider::SaveState(State::Saver& state,const byte id) const
 			{
-				state.Begin('T','R',id,'\0').End();
+				state.Begin( AsciiId<'T','R'>::R(0,0,id) ).End();
 			}
 
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("", on)
 			#endif
 
@@ -66,7 +72,7 @@ namespace Nes
 					uint data = input->topRider.buttons;
 
 					if ((data & STEERING) == STEERING)
-						data &= STEERING ^ 0xFF;
+						data &= STEERING ^ 0xFFU;
 
                          if ( !(data & STEERING) ) pos += (pos > 0 ? -1 : pos < 0 ? +1 : 0);
 					else if ( data & STEER_LEFT  ) pos -= (pos > -MAX_STEER);
@@ -78,7 +84,7 @@ namespace Nes
 					if (data & ACCEL) accel += (accel < MAX_ACCEL);
 					else              accel -= (accel > 0);
 
-					buttons &= (0x80|0x40);
+					buttons &= (0x80U|0x40U);
 
 					if (data & SHIFT_GEAR)
 					{
@@ -90,7 +96,7 @@ namespace Nes
 					}
 					else
 					{
-						buttons &= 0x40 ^ 0xFF;
+						buttons &= 0x40U ^ 0xFFU;
 					}
 
 					buttons |=
@@ -104,15 +110,15 @@ namespace Nes
 
 					if (pos > 0)
 					{
-                             if (pos > DEADZONE_MAX) data = (0x20 | 0x080);
-						else if (pos > DEADZONE_MID) data = (0x20 | 0x000);
-						else if (pos > DEADZONE_MIN) data = (0x00 | 0x080);
+                             if (pos > DEADZONE_MAX) data = (0x20U | 0x080U);
+						else if (pos > DEADZONE_MID) data = (0x20U | 0x000U);
+						else if (pos > DEADZONE_MIN) data = (0x00U | 0x080U);
 					}
 					else
 					{
-                             if (pos < -DEADZONE_MAX) data = (0x40 | 0x100);
-						else if (pos < -DEADZONE_MID) data = (0x40 | 0x000);
-						else if (pos < -DEADZONE_MIN) data = (0x00 | 0x100);
+                             if (pos < -DEADZONE_MAX) data = (0x40U | 0x100U);
+						else if (pos < -DEADZONE_MID) data = (0x40U | 0x000U);
+						else if (pos < -DEADZONE_MIN) data = (0x00U | 0x100U);
 					}
 
 					state[0] = data | ((buttons & 0x01) << (4+7))  | ((buttons & 0x80) << (4-1));
@@ -138,8 +144,12 @@ namespace Nes
 				}
 				else
 				{
-					pos = accel = brake = buttons = 0;
-					state[1] = state[0] = 0;
+					buttons = 0;
+					brake = 0;
+					accel = 0;
+					pos = 0;
+					state[0] = 0;
+					state[1] = 0;
 				}
 			}
 

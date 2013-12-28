@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,12 +25,9 @@
 #ifndef NST_SOUND_RENDERER_H
 #define NST_SOUND_RENDERER_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
+#ifdef NST_PRAGMA_ONCE
 #pragma once
 #endif
-
-#include <cstring>
-#include "api/NstApiSound.hpp"
 
 namespace Nes
 {
@@ -38,26 +35,28 @@ namespace Nes
 	{
 		namespace Sound
 		{
+			typedef idword Sample;
+
 			class Buffer
 			{
 			public:
 
-				Buffer(uint);
+				explicit Buffer(uint);
+				~Buffer();
 
 				enum
 				{
-					SIZE = 0x8000U,
+					SIZE = 0x8000,
 					MASK = SIZE-1
 				};
 
 				struct Block
 				{
-					const i16* data;
+					const iword* data;
 					uint start;
 					uint length;
 
-					Block(uint l)
-					: length(l) {}
+					inline explicit Block(uint);
 				};
 
 				void Reset(uint,bool=true);
@@ -76,22 +75,20 @@ namespace Nes
 					T* NST_RESTRICT dst;
 					const T* const end;
 
-					BaseRenderer(void* samples,uint length,bool stereo=false)
-					:
-					dst (static_cast<T*>(samples)),
-					end (static_cast<const T*>(samples) + (length << (uint) stereo))
-					{}
+					inline BaseRenderer(void*,uint);
 
 				public:
 
-					operator bool () const
-					{
-						return dst != end;
-					}
+					inline operator bool () const;
 				};
 
 				struct History
 				{
+					template<typename T>
+					inline void operator >> (T&) const;
+
+					inline void operator << (Sample);
+
 					enum
 					{
 						SIZE = 0x40,
@@ -99,165 +96,66 @@ namespace Nes
 					};
 
 					uint pos;
-					i16 buffer[SIZE];
-
-					template<typename T>
-					void operator >> (T& sample) const
-					{
-						sample = buffer[pos & MASK];
-					}
-
-					void operator << (Apu::Sample sample)
-					{
-						buffer[pos++ & MASK] = sample;
-					}
+					iword buffer[SIZE];
 				};
 
-				i16 output[SIZE];
 				uint pos;
 				uint start;
+				iword* const NST_RESTRICT output;
 
 			public:
+
+				inline void operator << (const Sample);
 
 				History history;
-
-				void operator << (const Apu::Sample sample)
-				{
-					const uint p = pos;
-					pos = (pos + 1) & MASK;
-					output[p] = sample;
-				}
-
-				uint Latency() const
-				{
-					return (dword(pos) + SIZE - start) & MASK;
-				}
 			};
 
 			template<>
-			class Buffer::Renderer<i16,0U> : public Buffer::BaseRenderer<i16>
+			class Buffer::Renderer<iword,0U> : public Buffer::BaseRenderer<iword>
 			{
 			public:
 
-				Renderer(void* samples,uint length)
-				: BaseRenderer<i16>(samples,length) {}
+				inline Renderer(void*,uint,const History&);
 
-				NST_FORCE_INLINE void operator << (Apu::Sample sample)
-				{
-					*dst++ = sample;
-				}
-
-				NST_FORCE_INLINE bool operator << (const Block& block)
-				{
-					NST_ASSERT( uint(end - dst) >= block.length );
-
-					if (block.length)
-					{
-						if (block.start + block.length <= SIZE)
-						{
-							std::memcpy( dst, block.data + block.start, sizeof(i16) * block.length );
-						}
-						else
-						{
-							const uint chunk = SIZE - block.start;
-							std::memcpy( dst, block.data + block.start, sizeof(i16) * chunk );
-							std::memcpy( dst + chunk, block.data, sizeof(i16) * ((block.start + block.length) - SIZE) );
-						}
-
-						dst += block.length;
-					}
-
-					return dst != end;
-				}
+				inline void operator << (Sample);
+				NST_FORCE_INLINE bool operator << (const Block&);
 			};
 
 			template<>
-			class Buffer::Renderer<i16,1U> : public Buffer::BaseRenderer<i16>
+			class Buffer::Renderer<iword,1U> : public Buffer::BaseRenderer<iword>
 			{
 				History& history;
 
 			public:
 
-				Renderer(void* samples,uint length,History& h)
-				: BaseRenderer<i16>(samples,length,true), history(h) {}
+				inline Renderer(void*,uint,History&);
 
-				NST_FORCE_INLINE void operator << (Apu::Sample sample)
-				{
-					history >> dst[0];
-					history << sample;
-					dst[1] = sample;
-					dst += 2;
-				}
-
-				NST_FORCE_INLINE bool operator << (Block& block)
-				{
-					NST_ASSERT( uint(end - dst) >= block.length );
-
-					block.length += block.start;
-
-					for (uint i=block.start; i < block.length; ++i)
-						(*this) << (Apu::Sample) block.data[i & MASK];
-
-					return dst != end;
-				}
+				inline void operator << (Sample);
+				NST_FORCE_INLINE bool operator << (Block&);
 			};
 
 			template<>
-			class Buffer::Renderer<u8,0U> : public Buffer::BaseRenderer<u8>
+			class Buffer::Renderer<byte,0U> : public Buffer::BaseRenderer<byte>
 			{
 			public:
 
-				Renderer(void* samples,uint length)
-				: BaseRenderer<u8>(samples,length) {}
+				inline Renderer(void*,uint,const History&);
 
-				NST_FORCE_INLINE void operator << (Apu::Sample sample)
-				{
-					*dst++ = dword(sample + 32768L) >> 8;
-				}
-
-				NST_FORCE_INLINE bool operator << (Block& block)
-				{
-					NST_ASSERT( uint(end - dst) >= block.length );
-
-					block.length += block.start;
-
-					for (uint i=block.start; i < block.length; ++i)
-						(*this) << (Apu::Sample) block.data[i & MASK];
-
-					return dst != end;
-				}
+				inline void operator << (Sample);
+				NST_FORCE_INLINE bool operator << (Block&);
 			};
 
 			template<>
-			class Buffer::Renderer<u8,1U> : public Buffer::BaseRenderer<u8>
+			class Buffer::Renderer<byte,1U> : public Buffer::BaseRenderer<byte>
 			{
 				History& history;
 
 			public:
 
-				Renderer(void* samples,uint length,History& h)
-				: BaseRenderer<u8>(samples,length,true), history(h) {}
+				inline Renderer(void*,uint,History&);
 
-				NST_FORCE_INLINE void operator << (Apu::Sample sample)
-				{
-					history >> dst[0];
-					sample = dword(sample + 32768L) >> 8;
-					history << sample;
-					dst[1] = sample;
-					dst += 2;
-				}
-
-				NST_FORCE_INLINE bool operator << (Block& block)
-				{
-					NST_ASSERT( uint(end - dst) >= block.length );
-
-					block.length += block.start;
-
-					for (uint i=block.start; i < block.length; ++i)
-						(*this) << (Apu::Sample) block.data[i & MASK];
-
-					return dst != end;
-				}
+				inline void operator << (Sample);
+				NST_FORCE_INLINE bool operator << (Block&);
 			};
 		}
 	}

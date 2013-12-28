@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,7 +25,7 @@
 #ifndef NST_IO_LINE_H
 #define NST_IO_LINE_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
+#ifdef NST_PRAGMA_ONCE
 #pragma once
 #endif
 
@@ -35,7 +35,7 @@ namespace Nes
 	{
 		namespace Io
 		{
-		#ifndef NST_FPTR_MEM_MAP
+		#ifndef NST_NO_FASTDELEGATE
 
 			class Line
 			{
@@ -75,7 +75,7 @@ namespace Nes
 
 				bool InUse() const
 				{
-					return component != NULL;
+					return component;
 				}
 
 				void Toggle(Cycle cycle) const
@@ -83,14 +83,15 @@ namespace Nes
 					(*component.*toggler)( cycle );
 				}
 
-				bool SameComponent(const void* ptr) const
+				bool operator == (const void* ptr) const
 				{
 					return static_cast<const void*>(component) == ptr;
 				}
 			};
 
-			#define NES_DECL_LINE(a_) void NES_IO_CALL Line_##a_(Cycle);
+			#define NES_DECL_LINE(a_) void NES_IO_CALL Line_##a_(Cycle)
 			#define NES_LINE(o_,a_) void NES_IO_CALL o_::Line_##a_(Cycle cycle)
+			#define NES_LINE_T(t_,o_,a_) t_ NES_LINE(o_,a_)
 
 		#else
 
@@ -126,7 +127,7 @@ namespace Nes
 
 				bool InUse() const
 				{
-					return component != NULL;
+					return component;
 				}
 
 				void Toggle(Cycle cycle) const
@@ -134,28 +135,34 @@ namespace Nes
 					toggler( component, cycle );
 				}
 
-				bool SameComponent(const void* ptr) const
+				bool operator == (const void* ptr) const
 				{
 					return component == ptr;
 				}
 			};
 
-			#define NES_DECL_LINE(a_)                                                                 \
-                                                                                                      \
-				void NES_IO_CALL Line_Member_##a_(Cycle);                                             \
-                                                                                                      \
-				template<typename T>                                                                  \
-				static void Line_Type_##a_(void* instance,Cycle cycle,void (NES_IO_CALL T::*)(Cycle)) \
-				{                                                                                     \
-					static_cast<T*>(instance)->Line_Member_##a_( cycle );                             \
-				}                                                                                     \
-                                                                                                      \
-				static void NES_IO_CALL Line_##a_(void* instance,Cycle cycle)                         \
-				{                                                                                     \
-					Line_Type_##a_( instance, cycle, &Line_Member_##a_ );                             \
-				}
+			#define NES_DECL_LINE(a_)                                \
+                                                                     \
+				void NES_IO_CALL Line_M_##a_(Cycle);                 \
+				static void NES_IO_CALL Line_##a_(void*,Cycle)
 
-			#define NES_LINE(o_,a_) void NES_IO_CALL o_::Line_Member_##a_(Cycle cycle)
+			#define NES_LINE(o_,a_)                                  \
+                                                                     \
+				void NES_IO_CALL o_::Line_##a_(void* p_,Cycle c_)    \
+				{                                                    \
+					static_cast<o_*>(p_)->Line_M_##a_(c_);           \
+				}                                                    \
+                                                                     \
+				void NES_IO_CALL o_::Line_M_##a_(Cycle cycle)
+
+			#define NES_LINE_T(t_,o_,a_)                             \
+                                                                     \
+				t_ void NES_IO_CALL o_::Line_##a_(void* p_,Cycle c_) \
+				{                                                    \
+					static_cast<o_*>(p_)->Line_M_##a_(c_);           \
+				}                                                    \
+                                                                     \
+				t_ void NES_IO_CALL o_::Line_M_##a_(Cycle cycle)
 
 		#endif
 		}

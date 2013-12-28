@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,7 +25,7 @@
 #ifndef NST_BOARDS_VRC7_H
 #define NST_BOARDS_VRC7_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
+#ifdef NST_PRAGMA_ONCE
 #pragma once
 #endif
 
@@ -35,33 +35,38 @@ namespace Nes
 	{
 		namespace Boards
 		{
-			class NST_NO_VTABLE Vrc7 : public Mapper
+			class Vrc7 : public Mapper
 			{
+			protected:
+
+				explicit Vrc7(Context&);
+				~Vrc7() {}
+
 			public:
 
 				class Sound : public Apu::Channel
 				{
 				public:
 
-					Sound(Cpu&,bool=true);
+					explicit Sound(Cpu&,bool=true);
 					~Sound();
 
 					void WriteReg0(uint);
 					void WriteReg1(uint);
 
-					void SaveState(State::Saver&) const;
+					void SaveState(State::Saver&,dword) const;
 					void LoadState(State::Loader&);
 
 				protected:
 
 					void Reset();
-					void UpdateContext(uint,const u8 (&w)[MAX_CHANNELS]);
+					void UpdateContext(uint,const byte (&w)[MAX_CHANNELS]);
 					Sample GetSample();
 
 				private:
 
 					void ResetClock();
-					void UpdateContext();
+					void RefreshContext();
 
 					enum
 					{
@@ -81,7 +86,7 @@ namespace Nes
 						DB2LIN_SIZE    = 0x400,
 						TL_SIZE        = 0x40,
 						FEEDBACK_SHIFT = 8,
-						CLOCK_DIV      = 3579545UL / 72,
+						CLOCK_DIV      = 3579545 / 72,
 						CLOCK_RATE     = (1UL << 31) / CLOCK_DIV,
 						PG_PHASE_RANGE = (1UL << 18) - 1,
 						EG_BEGIN       = 1UL << 22
@@ -89,6 +94,7 @@ namespace Nes
 
 					static const dword PITCH_RATE;
 					static const dword AMP_RATE;
+					static const double PI_2;
 
 					class Tables
 					{
@@ -110,15 +116,15 @@ namespace Nes
 
 					private:
 
-						u16 pitch[PITCH_SIZE];
-						u8  amp[AMP_SIZE];
-						u8  lin2log[LIN2LOG_SIZE];
-						u32 adr[2][16][16];
-						u16 wave[2][WAVE_SIZE];
-						i16 db2lin[DB2LIN_SIZE];
-						u8  sl[2][8][2];
-						u8  tl[16][8][TL_SIZE][4];
-						u32 phase[512][8][16];
+						word  pitch[PITCH_SIZE];
+						byte  amp[AMP_SIZE];
+						byte  lin2log[LIN2LOG_SIZE];
+						dword adr[2][16][16];
+						word  wave[2][WAVE_SIZE];
+						iword db2lin[DB2LIN_SIZE];
+						byte  sl[2][8][2];
+						byte  tl[16][8][TL_SIZE][4];
+						dword phase[512][8][16];
 					};
 
 					enum
@@ -134,7 +140,7 @@ namespace Nes
 
 						void Reset();
 						void Update(const Tables&);
-						void SaveState(State::Saver&) const;
+						void SaveState(State::Saver&,dword) const;
 						void LoadState(State::Loader&,const Tables&);
 
 						NST_FORCE_INLINE void WriteReg0 (uint,const Tables&);
@@ -199,10 +205,10 @@ namespace Nes
 							enum { CUSTOM };
 
 							uint instrument;
-							u8 tone[8];
-							u8 custom[8];
+							byte tone[8];
+							byte custom[8];
 
-							static const u8 preset[15][8];
+							static const byte preset[15][8];
 						};
 
 						enum
@@ -212,35 +218,33 @@ namespace Nes
 							NUM_SLOTS
 						};
 
-						struct Slot
-						{
-							struct Eg
-							{
-								Mode mode;
-								dword phase;
-								dword counter;
-							};
-
-							struct Pg
-							{
-								dword phase;
-								dword counter;
-							};
-
-							Pg pg;
-							Eg eg;
-							uint tl;
-							uint sl;
-							Sample output;
-						};
-
 						uint frequency;
 						uint key;
 						uint sustain;
 						uint block;
 						uint volume;
 						Patch patch;
-						Slot slots[NUM_SLOTS];
+
+						struct
+						{
+							struct
+							{
+								dword phase;
+								dword counter;
+							}   pg;
+
+							struct
+							{
+								Mode mode;
+								dword phase;
+								dword counter;
+							}   eg;
+
+							uint tl;
+							uint sl;
+							Sample output;
+						}   slots[NUM_SLOTS];
+
 						Sample feedback;
 					};
 
@@ -261,10 +265,6 @@ namespace Nes
 					const ibool hooked;
 				};
 
-			protected:
-
-				Vrc7(Context&);
-
 			private:
 
 				void SubReset(bool);
@@ -272,12 +272,12 @@ namespace Nes
 				void BaseLoad(State::Loader&,dword);
 				void VSync();
 
-				NES_DECL_POKE( 9010 )
-				NES_DECL_POKE( 9030 )
-				NES_DECL_POKE( E000 )
-				NES_DECL_POKE( E008 )
-				NES_DECL_POKE( F000 )
-				NES_DECL_POKE( F008 )
+				NES_DECL_POKE( 9010 );
+				NES_DECL_POKE( 9030 );
+				NES_DECL_POKE( E000 );
+				NES_DECL_POKE( E008 );
+				NES_DECL_POKE( F000 );
+				NES_DECL_POKE( F008 );
 
 				Vrc4::Irq irq;
 				Sound sound;

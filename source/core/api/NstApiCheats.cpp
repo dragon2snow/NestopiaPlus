@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -28,29 +28,29 @@
 #include "NstApiCheats.hpp"
 #include "NstApiMachine.hpp"
 
-#ifdef NST_PRAGMA_OPTIMIZE
-#pragma optimize("s", on)
-#endif
-
 namespace Nes
 {
 	namespace Api
 	{
+		#ifdef NST_MSVC_OPTIMIZE
+		#pragma optimize("s", on)
+		#endif
+
 		Result NST_CALL Cheats::GameGenieEncode(const Code& code,char (&characters)[9]) throw()
 		{
-			if (code.address < 0x8000U)
+			if (code.address < 0x8000)
 				return RESULT_ERR_INVALID_PARAM;
 
-			const u8 codes[8] =
+			const byte codes[8] =
 			{
-				(code.value   >>  0 & (0x1|0x2|0x4)) | (code.value   >> 4 & 0x8),
-				(code.value   >>  4 & (0x1|0x2|0x4)) | (code.address >> 4 & 0x8),
-				(code.address >>  4 & (0x1|0x2|0x4)) | (code.useCompare ? 0x8 : 0x0),
-				(code.address >> 12 & (0x1|0x2|0x4)) | (code.address >> 0 & 0x8),
-				(code.address >>  0 & (0x1|0x2|0x4)) | (code.address >> 8 & 0x8),
-				(code.address >>  8 & (0x1|0x2|0x4)) | ((code.useCompare ? code.compare : code.value) & 0x8),
-				(code.useCompare ? ((code.compare >> 0 & (0x1|0x2|0x4)) | (code.compare >> 4 & 0x8)) : 0),
-				(code.useCompare ? ((code.compare >> 4 & (0x1|0x2|0x4)) | (code.value   >> 0 & 0x8)) : 0)
+				(code.value   >>  0 & 0x7U) | (code.value   >> 4 & 0x8U),
+				(code.value   >>  4 & 0x7U) | (code.address >> 4 & 0x8U),
+				(code.address >>  4 & 0x7U) | (code.useCompare   ? 0x8U : 0x0U),
+				(code.address >> 12 & 0x7U) | (code.address >> 0 & 0x8U),
+				(code.address >>  0 & 0x7U) | (code.address >> 8 & 0x8U),
+				(code.address >>  8 & 0x7U) | ((code.useCompare ? code.compare : code.value) & 0x8U),
+				(code.useCompare ? ((code.compare >> 0 & 0x7U) | (code.compare >> 4 & 0x8U)) : 0),
+				(code.useCompare ? ((code.compare >> 4 & 0x7U) | (code.value   >> 0 & 0x8U)) : 0)
 			};
 
 			uint i = code.useCompare ? 8 : 6;
@@ -77,7 +77,7 @@ namespace Nes
 			if (characters == NULL)
 				return RESULT_ERR_INVALID_PARAM;
 
-			u8 codes[8];
+			byte codes[8];
 
 			uint length = 6;
 
@@ -105,89 +105,94 @@ namespace Nes
 					default: return RESULT_ERR_INVALID_PARAM;
 				}
 
-				if ((i == 2) && (codes[2] & 0x8))
+				if (i == 2 && codes[2] & 0x8U)
 					length = 8;
 			}
 
-			code.address = 0x8000U |
+			code.address = 0x8000 |
 			(
-				( ( codes[4] & 0x1 ) << 0x0 ) |
-				( ( codes[4] & 0x2 ) << 0x0 ) |
-				( ( codes[4] & 0x4 ) << 0x0 ) |
-				( ( codes[3] & 0x8 ) << 0x0 ) |
-				( ( codes[2] & 0x1 ) << 0x4 ) |
-				( ( codes[2] & 0x2 ) << 0x4 ) |
-				( ( codes[2] & 0x4 ) << 0x4 ) |
-				( ( codes[1] & 0x8 ) << 0x4 ) |
-				( ( codes[5] & 0x1 ) << 0x8 ) |
-				( ( codes[5] & 0x2 ) << 0x8 ) |
-				( ( codes[5] & 0x4 ) << 0x8 ) |
-				( ( codes[4] & 0x8 ) << 0x8 ) |
-				( ( codes[3] & 0x1 ) << 0xC ) |
-				( ( codes[3] & 0x2 ) << 0xC ) |
-				( ( codes[3] & 0x4 ) << 0xC )
+				( codes[4] & 0x1U ) << 0x0 |
+				( codes[4] & 0x2U ) << 0x0 |
+				( codes[4] & 0x4U ) << 0x0 |
+				( codes[3] & 0x8U ) << 0x0 |
+				( codes[2] & 0x1U ) << 0x4 |
+				( codes[2] & 0x2U ) << 0x4 |
+				( codes[2] & 0x4U ) << 0x4 |
+				( codes[1] & 0x8U ) << 0x4 |
+				( codes[5] & 0x1U ) << 0x8 |
+				( codes[5] & 0x2U ) << 0x8 |
+				( codes[5] & 0x4U ) << 0x8 |
+				( codes[4] & 0x8U ) << 0x8 |
+				( codes[3] & 0x1U ) << 0xC |
+				( codes[3] & 0x2U ) << 0xC |
+				( codes[3] & 0x4U ) << 0xC
 			);
 
 			code.value =
 			(
-				( ( codes[0] & 0x1 ) << 0x0 ) |
-				( ( codes[0] & 0x2 ) << 0x0 ) |
-				( ( codes[0] & 0x4 ) << 0x0 ) |
-				( ( codes[1] & 0x1 ) << 0x4 ) |
-				( ( codes[1] & 0x2 ) << 0x4 ) |
-				( ( codes[1] & 0x4 ) << 0x4 ) |
-				( ( codes[0] & 0x8 ) << 0x4 )
+				( codes[0] & 0x1U ) << 0x0 |
+				( codes[0] & 0x2U ) << 0x0 |
+				( codes[0] & 0x4U ) << 0x0 |
+				( codes[1] & 0x1U ) << 0x4 |
+				( codes[1] & 0x2U ) << 0x4 |
+				( codes[1] & 0x4U ) << 0x4 |
+				( codes[0] & 0x8U ) << 0x4
 			);
 
 			if (length == 8)
 			{
 				code.useCompare = true;
-				code.value |= codes[7] & 0x8;
+				code.value |= codes[7] & 0x8U;
 				code.compare =
 				(
-					( ( codes[6] & 0x1 ) << 0x0 ) |
-					( ( codes[6] & 0x2 ) << 0x0 ) |
-					( ( codes[6] & 0x4 ) << 0x0 ) |
-					( ( codes[5] & 0x8 ) << 0x0 ) |
-					( ( codes[7] & 0x1 ) << 0x4 ) |
-					( ( codes[7] & 0x2 ) << 0x4 ) |
-					( ( codes[7] & 0x4 ) << 0x4 ) |
-					( ( codes[6] & 0x8 ) << 0x4 )
+					( codes[6] & 0x1U ) << 0x0 |
+					( codes[6] & 0x2U ) << 0x0 |
+					( codes[6] & 0x4U ) << 0x0 |
+					( codes[5] & 0x8U ) << 0x0 |
+					( codes[7] & 0x1U ) << 0x4 |
+					( codes[7] & 0x2U ) << 0x4 |
+					( codes[7] & 0x4U ) << 0x4 |
+					( codes[6] & 0x8U ) << 0x4
 				);
 			}
 			else
 			{
 				code.useCompare = false;
-				code.value |= codes[5] & 0x8;
+				code.value |= codes[5] & 0x8U;
 				code.compare = 0x00;
 			}
 
 			return RESULT_OK;
 		}
 
+		struct Cheats::Lut
+		{
+			static const byte rocky[];
+		};
+
+		const byte Cheats::Lut::rocky[] =
+		{
+			3,  13, 14,  1,  6,  9,  5,  0,
+			12,  7,  2,  8, 10, 11,  4, 19,
+			21, 23, 22, 20, 17, 16, 18, 29,
+			31, 24, 26, 25, 30, 27, 28
+		};
+
 		Result NST_CALL Cheats::ProActionRockyEncode(const Code& code,char (&characters)[9]) throw()
 		{
-			if (code.address < 0x8000U || !code.useCompare)
+			if (code.address < 0x8000 || !code.useCompare)
 				return RESULT_ERR_INVALID_PARAM;
 
-			const dword input = (code.address & 0x7FFFU) | (code.compare << 16) | (code.value << 24);
+			const dword input = (code.address & 0x7FFFU) | dword(code.compare) << 16 | dword(code.value) << 24;
 			dword output = 0;
 
-			for (u32 i=31, key=0xFCBDD274UL; i--; key <<= 1)
+			for (dword i=31, key=0xFCBDD274; i--; key = key << 1 & 0xFFFFFFFF)
 			{
-				static const uchar scrambled[] =
-				{
-					3,  13, 14,  1,  6,  9,  5,  0,
-					12,  7,  2,  8, 10, 11,  4, 19,
-					21, 23, 22, 20, 17, 16, 18, 29,
-					31, 24, 26, 25, 30, 27, 28
-				};
-
-				const uint ctrl = input >> scrambled[i] & 0x1;
+				const uint ctrl = input >> Lut::rocky[i] & 0x1;
 				output |= (key >> 31 ^ ctrl) << (i+1);
 
 				if (ctrl)
-					key ^= 0xB8309722UL;
+					key ^= 0xB8309722;
 			}
 
 			characters[8] = '\0';
@@ -233,24 +238,16 @@ namespace Nes
 				input |= num << (i * 4);
 			}
 
-			for (dword i=31, key=0xFCBDD274UL; i--; input <<= 1, key <<= 1)
+			for (dword i=31, key=0xFCBDD274; i--; input <<= 1, key <<= 1)
 			{
-				if ((key ^ input) & 0x80000000UL)
+				if ((key ^ input) & 0x80000000)
 				{
-					static const uchar scrambled[] =
-					{
-						3,  13, 14,  1,  6,  9,  5,  0,
-						12,  7,  2,  8, 10, 11,  4, 19,
-						21, 23, 22, 20, 17, 16, 18, 29,
-						31, 24, 26, 25, 30, 27, 28
-					};
-
-					output |= 1UL << scrambled[i];
-					key ^= 0xB8309722UL;
+					output |= 1UL << Lut::rocky[i];
+					key ^= 0xB8309722;
 				}
 			}
 
-			code.address    = (output & 0x7FFFU) | 0x8000U;
+			code.address    = output & 0x7FFF | 0x8000;
 			code.compare    = output >> 16 & 0xFF;
 			code.value      = output >> 24 & 0xFF;
 			code.useCompare = true;
@@ -284,7 +281,7 @@ namespace Nes
 			}
 		}
 
-		Result Cheats::DeleteCode(const dword index) throw()
+		Result Cheats::DeleteCode(const ulong index) throw()
 		{
 			if (emulator.cheats)
 			{
@@ -301,25 +298,22 @@ namespace Nes
 			}
 		}
 
-		dword Cheats::NumCodes() const throw()
+		ulong Cheats::NumCodes() const throw()
 		{
 			return emulator.cheats ? emulator.cheats->NumCodes() : 0;
 		}
 
-		Result Cheats::GetCode(dword index,Code& code) const throw()
-		{
-			if (emulator.cheats)
-				return emulator.cheats->GetCode( index, &code.address, &code.value, &code.compare, &code.useCompare );
-			else
-				return RESULT_ERR_INVALID_PARAM;
-		}
-
-		Result Cheats::GetCode(dword index,u16* address,u8* value,u8* compare,bool* useCompare) const throw()
+		Result Cheats::GetCode(ulong index,ushort* address,uchar* value,uchar* compare,bool* useCompare) const throw()
 		{
 			if (emulator.cheats)
 				return emulator.cheats->GetCode( index, address, value, compare, useCompare );
 			else
 				return RESULT_ERR_INVALID_PARAM;
+		}
+
+		Result Cheats::GetCode(ulong index,Code& code) const throw()
+		{
+			return GetCode( index, &code.address, &code.value, &code.compare, &code.useCompare );
 		}
 
 		Result Cheats::ClearCodes() throw()
@@ -339,12 +333,12 @@ namespace Nes
 
 		Cheats::Ram Cheats::GetRam() const throw()
 		{
-			return emulator.cpu.GetSystemRam();
+			return emulator.cpu.SystemRam();
 		}
+
+		#ifdef NST_MSVC_OPTIMIZE
+		#pragma optimize("", on)
+		#endif
 	}
 }
-
-#ifdef NST_PRAGMA_OPTIMIZE
-#pragma optimize("", on)
-#endif
 

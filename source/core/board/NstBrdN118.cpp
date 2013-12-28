@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -31,7 +31,7 @@ namespace Nes
 	{
 		namespace Boards
 		{
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("s", on)
 			#endif
 
@@ -46,7 +46,7 @@ namespace Nes
 				if (hard)
 					reg = 0;
 
-				for (dword i=0x8000U; i <= 0xFFFFU; i += 0x2)
+				for (dword i=0x8000; i <= 0xFFFF; i += 0x2)
 				{
 					Map( i + 0x0, &N118::Poke_8000 );
 					Map( i + 0x1, &N118::Poke_8001 );
@@ -55,13 +55,13 @@ namespace Nes
 
 			void N118::BaseLoad(State::Loader& state,const dword id)
 			{
-				NST_VERIFY( id == NES_STATE_CHUNK_ID('N','M','8','\0') );
+				NST_VERIFY( id == (AsciiId<'M','M','8'>::V) );
 
-				if (id == NES_STATE_CHUNK_ID('N','M','8','\0'))
+				if (id == AsciiId<'N','M','8'>::V)
 				{
 					while (const dword chunk = state.Begin())
 					{
-						if (chunk == NES_STATE_CHUNK_ID('R','E','G','\0'))
+						if (chunk == AsciiId<'R','E','G'>::V)
 							reg = state.Read8();
 
 						state.End();
@@ -71,10 +71,10 @@ namespace Nes
 
 			void N118::BaseSave(State::Saver& state) const
 			{
-				state.Begin('N','M','8','\0').Begin('R','E','G','\0').Write8( reg ).End().End();
+				state.Begin( AsciiId<'N','M','8'>::V ).Begin( AsciiId<'R','E','G'>::V ).Write8( reg ).End().End();
 			}
 
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("", on)
 			#endif
 
@@ -98,7 +98,7 @@ namespace Nes
 						ppu.Update();
 
 					if (index > 0x1)
-						chr.SwapBank<SIZE_1K>( (index << 10) + 0x800U, data | 0x40 );
+						chr.SwapBank<SIZE_1K>( (index << 10) + 0x800, data | 0x40 );
 					else
 						chr.SwapBank<SIZE_2K>( index << 11, data >> 1 );
 				}

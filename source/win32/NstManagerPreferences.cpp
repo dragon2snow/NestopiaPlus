@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -22,8 +22,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstWindowMenu.hpp"
-#include "NstManagerEmulator.hpp"
+#include "NstManager.hpp"
 #include "NstDialogPreferences.hpp"
 #include "NstManagerPreferences.hpp"
 
@@ -60,20 +59,16 @@ namespace Nestopia
 		);
 
 		Preferences::Preferences(Emulator& e,const Configuration& cfg,Window::Menu& m)
-		: emulator(e), menu(m), dialog( new Window::Preferences(e,cfg) ), inFullscreen(false)
+		:
+		Manager      ( e, m, this, &Preferences::OnEmuEvent, IDM_OPTIONS_PREFERENCES, &Preferences::OnCmdOptions, &Preferences::OnAppEvent ),
+		dialog       ( new Window::Preferences(e,cfg) ),
+		inFullscreen ( false )
 		{
-			m.Commands().Add( IDM_OPTIONS_PREFERENCES, this, &Preferences::OnCmdOptions );
-
-			Instance::Events::Add( this, &Preferences::OnAppEvent );
-			emulator.Events().Add( this, &Preferences::OnEmuEvent );
-
 			UpdateSettings();
 		}
 
 		Preferences::~Preferences()
 		{
-			emulator.Events().Remove( this );
-			Instance::Events::Remove( this );
 		}
 
 		void Preferences::Save(Configuration& cfg) const

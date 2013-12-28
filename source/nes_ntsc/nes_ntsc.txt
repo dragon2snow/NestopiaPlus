@@ -1,4 +1,4 @@
-nes_ntsc 0.2.1: NES NTSC Video Filter
+nes_ntsc 0.2.2: NES NTSC Video Filter
 -------------------------------------
 Author  : Shay Green <gblargg@gmail.com>
 Website : http://www.slack.net/~ant/
@@ -14,33 +14,35 @@ and call nes_ntsc_init(), then call nes_ntsc_blit() to perform
 filtering. You can call nes_ntsc_init() at any time to change image
 parameters.
 
-Nes_ntsc_blit() reads NES pixels and writes RGB pixels (16-bit by
-default). The NES pixels are raw palette values (0 to 0x3F) stored in
-the 8-bit unsigned char type. If your emulator outputs RGB pixels and
-can't easily be made to output raw NES palette indicies, use my
-snes_ntsc library instead, which accepts 16-bit RGB pixels and will
-produce the same result as this library. If you use snes_ntsc, read the
-burst phase section below since it still applies.
+nes_ntsc_blit() reads NES pixels and writes RGB pixels (16-bit by
+default). The NES pixels are 6-bit raw palette values (0 to 0x3F). Edit
+nes_ntsc_config.h to change this.
 
-For support of the three color emphasis bits at the top of PPU register
-0x2001, use nes_ntsc_emph_t, nes_ntsc_init_emph(), and
-nes_ntsc_blit_emph(). Input pixels must be stored in the 16-bit unsigned
-short type to allow for the three emphasis bits stored just above the
-6-bit palette index (9 bits per pixel):
+
+Color Emphasis Support
+----------------------
+Support for the three color emphasis bits in PPU register $2001 can be
+enabled in nes_ntsc_config.h. By default, support is disabled and a
+64-color palette is used. If enabled, a 512-color palette is used and
+the three color emphasis bits from PPU $2001 are stored in bits 6-8 (bit
+mask 0x1C0) of the input pixels to the blitter. Form the index as
+follows:
 
     index = (ppu_2001 << 1 & 0x1C0) | (palette_index & 0x3F).
 
 
-RGB Palette Generation
-----------------------
-An RGB palette can be generated for use in a normal blitter, either 64
-colors (192 bytes) or including all 8 color emphasis combinations to
-result in 512 colors (1536 bytes). The 64-color version matches the
-format of the common NES .pal file. In your nes_ntsc_setup_t structure,
-point palette_out to a buffer to hold the palette, then call
-nes_ntsc_init() (nes_ntsc_init_emph() for the 512-color version). If you
-only need the palette and aren't going to be using the NTSC filter, pass
-0 for the first parameter.
+RGB Palettes
+------------
+An RGB palette can be generated for use in a normal blitter. If color
+emphasis is disabled, it's 64 colors (192 bytes); if enabled, it's 512
+colors (1536 bytes). In your nes_ntsc_setup_t structure, point
+palette_out to a buffer to hold the palette, then call nes_ntsc_init().
+If you only need the palette and aren't going to be using the NTSC
+filter, pass 0 for the first parameter.
+
+A custom source RGB palette can also be used to replace the standard NES
+color generation hardware. See the palette and base_palette members of
+nes_ntsc_setup_t in nes_ntsc.h for more.
 
 
 Image Parameters
@@ -65,6 +67,16 @@ edges of pixels surrounded by black. (Color) fringing affects how much
 color fringing occurs around the edges of bright objects, especially
 white text on a black background.
 
+When using custom settings, initialize your nes_ntsc_setup_t using one
+of the standard setups before customizing it. This will ensure that all
+fields are properly initialized, including any added in future releases
+of the library that your current code can't even know about.
+
+	nes_ntsc_setup_t setup;
+	setup = nes_ntsc_composite; /* do this first */
+	setup.sharpness = custom_sharpness;
+	nes_ntsc_init( ntsc, &setup );
+
 
 Image Size
 ----------
@@ -82,40 +94,6 @@ NES_NTSC_IN_WIDTH( NES_NTSC_OUT_WIDTH( in_width ) ) to find what a given
 in_width would be rounded down to.
 
 
-Pixel Format
-------------
-The pixel formats the library uses can be configured by ensuring that
-certain macros are defined while compiling the library source.
-
-The RGB bit depth of output pixels is set by NES_NTSC_OUT_DEPTH:
-
-	#define NES_NTSC_OUT_DEPTH 15 /* 15-bit RGB */
-	#define NES_NTSC_OUT_DEPTH 16 /* 16-bit RGB (default) */
-	#define NES_NTSC_OUT_DEPTH 24 /* 24-bit RGB */
-	#define NES_NTSC_OUT_DEPTH 32 /* 24-bit RGB (same as 24) */
-
-There are various ways of defining the macros. If you're using the
-common "config.h" file with HAVE_CONFIG_H #defined globally, this
-library can use it from there. Otherwise, use one of the two examples
-below, which show how to set 32-bit RGB output pixels.
-
-A simple way is to define the macro then #include the library source
-directly into one of your other source files:
-	
-	#include "nes_ntsc.h"
-	
-	/* your code which uses nes_ntsc */
-	...
-	
-	#define NES_NTSC_OUT_DEPTH 32
-	#include "nes_ntsc.c"
-
-Another way is to define the macro in your compiler's command-line
-options. The exact syntax depends on your compiler, but this is common:
-
-	-DNES_NTSC_OUT_DEPTH=32
-
-
 Burst Phase
 -----------
 The burst_phase parameter to nes_ntsc_blit() should generally toggle
@@ -130,7 +108,8 @@ is the starting row (0 through 239). For example, if burst_phase is 1
 for the current frame and you make two calls to nes_ntsc_blit() to blit
 rows 0 to 100, then rows 101 to 239, for the first call you should pass
 1 for burst_phase, and for the second call you should pass 0 for
-burst_phase: (1 + 101) % 3 = 0.
+burst_phase: (1 + 101) % 3 = 0. Do the same regardless of the
+merge_fields setting.
 
 For more accurate burst_phase operation, it should be adjusted at the
 beginning of a frame based on the length of scanline 20: if 341 clocks
@@ -189,43 +168,40 @@ difference. It might be best to simply allow the user to choose when to
 enable this option.
 
 Note that when you have merge_fields set to 1, you should always pass 0
-for the burst_phase parameter to nes_ntsc_blit(). If you don't, you'll
-still get some flicker.
+for the burst_phase parameter to nes_ntsc_blit() (unless doing partial
+screen updates). If you don't, you'll still get some flicker.
 
 
 Custom Blitter
 --------------
-You can write your own blitter, allowing customization of how NES pixels
-are obtained (you might want to run through a palette first), the format
-of output pixels (15, 16, or 32-bit RGB), optimizations for your
-platform, and additional effects like efficient scanline doubling during
-blitting.
+You can write your own blitter, allowing customization of how input
+pixels are obtained, the format of output pixels (15, 16, or 32-bit
+RGB), optimizations for your platform, and additional effects like
+efficient scanline doubling during blitting.
 
 Macros are included in nes_ntsc.h for writing your blitter so that your
 code can be carried over without changes to improved versions of the
-library. The default blitters at the end of nes_ntsc.c show how to use
-the macros. For an example of a flexible blitter written in C++ and
-optimized for the x86 architecture, refer to Nestopia 1.28's
-NstVideoFilterNtsc.hpp.
+library. The default blitter at the end of nes_ntsc.c shows how to use
+the macros. Contact me for further assistance.
 
 The NES_NTSC_BEGIN_ROW macro allows starting up to three pixels. The
 first pixel is cut off; its use is in specifying a background color
 other than black for the sliver on the left edge. The next two pixels
 can be used to handle the extra one or two pixels not handled by the
-main chunks of three pixels. For example if you want to blit 257 NES
+main chunks of three pixels. For example if you want to blit 257 input
 pixels on a row (for whatever odd reason), you would start the first two
-with NES_NTSC_BEGIN_ROW( ... nes_ntsc_black, nes_in [0], nes_in [1] ),
-then do the remaining 255 in chunks of three (255 / 3 = 85.0).
+with NES_NTSC_BEGIN_ROW( ... nes_ntsc_black, line_in [0], line_in [1] ),
+then do the remaining 255 in chunks of three (255 is divisible by 3).
 
 
 Limitations
 -----------
 The library's horizontal rescaling is too wide by about 3% in order to
 allow a much more optimal implementation. This means that a 256 pixel
-wide NES image should appear as 581 output pixels, but with this library
-appears as 602 output pixels. TV aspect ratios probably vary by this
-much anyway. If you really need unscaled output, contact me and I'll see
-about adding it.
+wide input image should appear as 581 output pixels, but with this
+library appears as 602 output pixels. TV aspect ratios probably vary by
+this much anyway. If you really need unscaled output, contact me and
+I'll see about adding it.
 
 
 Thanks

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,7 +25,7 @@
 #ifndef NST_IMAGE_H
 #define NST_IMAGE_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
+#ifdef NST_PRAGMA_ONCE
 #pragma once
 #endif
 
@@ -67,31 +67,32 @@ namespace Nes
 
 			struct Context
 			{
-				Image*& image;
 				const Type type;
 				Cpu& cpu;
 				Ppu& ppu;
 				StdStream const stream;
 				const ImageDatabase* const database;
+				Result result;
 
-				Context(Image*& i,Type t,Cpu& c,Ppu& p,StdStream s,const ImageDatabase* d=NULL)
-				: image(i), type(t), cpu(c), ppu(p), stream(s), database(d) {}
+				Context(Type t,Cpu& c,Ppu& p,StdStream s,const ImageDatabase* d=NULL)
+				: type(t), cpu(c), ppu(p), stream(s), database(d), result(RESULT_OK) {}
 			};
 
-			static Result Load(Context&);
-			static void Unload(Image*&);
+			static Image* Load(Context&);
+			static void Unload(Image*);
 
 			virtual void Reset(bool) = 0;
 
-			virtual Result Flush(bool,bool) const
+			virtual bool PowerOff() const
 			{
-				return RESULT_OK;
+				return true;
 			}
 
 			virtual void VSync() {}
 
 			virtual void LoadState(State::Loader&) {}
-			virtual void SaveState(State::Saver&) const {}
+			virtual void SaveState(State::Saver&,dword) const {}
+
 			virtual uint GetDesiredController(uint) const;
 			virtual uint GetDesiredAdapter() const;
 
@@ -115,8 +116,17 @@ namespace Nes
 
 		protected:
 
-			Image(Type);
+			explicit Image(Type);
 			virtual ~Image() {}
+
+			enum
+			{
+				INES_ID    = AsciiId<'N','E','S'>::V | 0x1AUL << 24,
+				UNIF_ID    = AsciiId<'U','N','I','F'>::V,
+				FDS_ID     = AsciiId<'F','D','S'>::V | 0x1AUL << 24,
+				FDS_RAW_ID = 0x494E2A01,
+				NSF_ID     = AsciiId<'N','E','S','M'>::V
+			};
 
 		private:
 

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,7 +25,7 @@
 #ifndef NST_BOARDS_MMC3_H
 #define NST_BOARDS_MMC3_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
+#ifdef NST_PRAGMA_ONCE
 #pragma once
 #endif
 
@@ -45,7 +45,7 @@ namespace Nes
 
 					void Reset(bool);
 					void LoadState(State::Loader&);
-					void SaveState(State::Saver&) const;
+					void SaveState(State::Saver&,dword) const;
 
 				private:
 
@@ -57,7 +57,7 @@ namespace Nes
 
 				public:
 
-					BaseIrq(bool p=false)
+					explicit BaseIrq(bool p=false)
 					: persistant(p) {}
 
 					ibool Signal()
@@ -135,17 +135,18 @@ namespace Nes
 					REV_C
 				};
 
-				Mmc3(Context&,Board=BRD_GENERIC,uint=WRAM_AUTO,Revision=REV_B);
+				explicit Mmc3(Context&,Board=BRD_GENERIC,uint=WRAM_AUTO,Revision=REV_B);
+				~Mmc3() {}
 
 				void SubReset(bool);
 
-				NES_DECL_POKE( 8000 )
-				NES_DECL_POKE( 8001 )
-				NES_DECL_POKE( A001 )
-				NES_DECL_POKE( C000 )
-				NES_DECL_POKE( C001 )
-				NES_DECL_POKE( E000 )
-				NES_DECL_POKE( E001 )
+				NES_DECL_POKE( 8000 );
+				NES_DECL_POKE( 8001 );
+				NES_DECL_POKE( A001 );
+				NES_DECL_POKE( C000 );
+				NES_DECL_POKE( C001 );
+				NES_DECL_POKE( E000 );
+				NES_DECL_POKE( E001 );
 
 				virtual void UpdatePrg();
 				virtual void UpdateChr() const;
@@ -177,16 +178,9 @@ namespace Nes
 				};
 
 				Regs regs;
-
-				union
-				{
-					Banks banks;
-					uint bankBlock[10];
-				};
+				Banks banks;
 
 			private:
-
-				NST_COMPILE_ASSERT( sizeof(Banks) == sizeof(uint) * 10 );
 
 				static uint BoardToWRam(Board,uint);
 

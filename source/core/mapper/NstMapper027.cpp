@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -31,14 +31,14 @@ namespace Nes
 {
 	namespace Core
 	{
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("s", on)
 		#endif
 
 		Mapper27::Mapper27(Context& c)
-		: 
-		Mapper (c,WRAM_DEFAULT), 
-		irq    (c.cpu) 
+		:
+		Mapper (c,WRAM_DEFAULT),
+		irq    (c.cpu)
 		{}
 
 		void Mapper27::SubReset(const bool hard)
@@ -48,35 +48,35 @@ namespace Nes
 
 			irq.Reset( hard, hard ? false : irq.IsLineEnabled() );
 
-			for (dword i=0x8000U; i <= 0xFFFFU; ++i)
+			for (dword i=0x8000; i <= 0xFFFF; ++i)
 			{
-				switch (i & 0xF0CFU)
+				switch (i & 0xF0CF)
 				{
-					case 0x8000U: Map( i, &Mapper27::Poke_8  ); break;
-					case 0x9000U: Map( i, NMT_SWAP_VH01      ); break;
-					case 0x9002U:
-					case 0x9080U: Map( i, &Mapper27::Poke_9  ); break;
-					case 0xA000U: Map( i, PRG_SWAP_8K_1      ); break;
-					case 0xB000U: Map( i, &Mapper27::Poke_B0 ); break;
-					case 0xB001U: Map( i, &Mapper27::Poke_B1 ); break;
-					case 0xB002U: Map( i, &Mapper27::Poke_B2 ); break;
-					case 0xB003U: Map( i, &Mapper27::Poke_B3 ); break;
-					case 0xC000U: Map( i, &Mapper27::Poke_C0 ); break;
-					case 0xC001U: Map( i, &Mapper27::Poke_C1 ); break;
-					case 0xC002U: Map( i, &Mapper27::Poke_C2 ); break;
-					case 0xC003U: Map( i, &Mapper27::Poke_C3 ); break;
-					case 0xD000U: Map( i, &Mapper27::Poke_D0 ); break;
-					case 0xD001U: Map( i, &Mapper27::Poke_D1 ); break;
-					case 0xD002U: Map( i, &Mapper27::Poke_D2 ); break;
-					case 0xD003U: Map( i, &Mapper27::Poke_D3 ); break;
-					case 0xE000U: Map( i, &Mapper27::Poke_E0 ); break;
-					case 0xE001U: Map( i, &Mapper27::Poke_E1 ); break;
-					case 0xE002U: Map( i, &Mapper27::Poke_E2 ); break;
-					case 0xE003U: Map( i, &Mapper27::Poke_E3 ); break;
-					case 0xF000U: Map( i, &Mapper27::Poke_F0 ); break;
-					case 0xF001U: Map( i, &Mapper27::Poke_F1 ); break;
-					case 0xF002U: Map( i, &Mapper27::Poke_F2 ); break;
-					case 0xF003U: Map( i, &Mapper27::Poke_F3 ); break;
+					case 0x8000: Map( i, &Mapper27::Poke_8  ); break;
+					case 0x9000: Map( i, NMT_SWAP_VH01      ); break;
+					case 0x9002:
+					case 0x9080: Map( i, &Mapper27::Poke_9  ); break;
+					case 0xA000: Map( i, PRG_SWAP_8K_1      ); break;
+					case 0xB000: Map( i, &Mapper27::Poke_B0 ); break;
+					case 0xB001: Map( i, &Mapper27::Poke_B1 ); break;
+					case 0xB002: Map( i, &Mapper27::Poke_B2 ); break;
+					case 0xB003: Map( i, &Mapper27::Poke_B3 ); break;
+					case 0xC000: Map( i, &Mapper27::Poke_C0 ); break;
+					case 0xC001: Map( i, &Mapper27::Poke_C1 ); break;
+					case 0xC002: Map( i, &Mapper27::Poke_C2 ); break;
+					case 0xC003: Map( i, &Mapper27::Poke_C3 ); break;
+					case 0xD000: Map( i, &Mapper27::Poke_D0 ); break;
+					case 0xD001: Map( i, &Mapper27::Poke_D1 ); break;
+					case 0xD002: Map( i, &Mapper27::Poke_D2 ); break;
+					case 0xD003: Map( i, &Mapper27::Poke_D3 ); break;
+					case 0xE000: Map( i, &Mapper27::Poke_E0 ); break;
+					case 0xE001: Map( i, &Mapper27::Poke_E1 ); break;
+					case 0xE002: Map( i, &Mapper27::Poke_E2 ); break;
+					case 0xE003: Map( i, &Mapper27::Poke_E3 ); break;
+					case 0xF000: Map( i, &Mapper27::Poke_F0 ); break;
+					case 0xF001: Map( i, &Mapper27::Poke_F1 ); break;
+					case 0xF002: Map( i, &Mapper27::Poke_F2 ); break;
+					case 0xF003: Map( i, &Mapper27::Poke_F3 ); break;
 				}
 			}
 		}
@@ -87,14 +87,14 @@ namespace Nes
 			{
 				switch (chunk)
 				{
-					case NES_STATE_CHUNK_ID('R','E','G','\0'):
+					case AsciiId<'R','E','G'>::V:
 
 						prgSwap = state.Read8() & 0x2;
 						break;
 
-					case NES_STATE_CHUNK_ID('I','R','Q','\0'):
+					case AsciiId<'I','R','Q'>::V:
 
-						irq.LoadState( State::Loader::Subset(state).Ref() );
+						irq.LoadState( state );
 						break;
 				}
 
@@ -104,17 +104,17 @@ namespace Nes
 
 		void Mapper27::SubSave(State::Saver& state) const
 		{
-			state.Begin('R','E','G','\0').Write8( prgSwap ).End();
-			irq.SaveState( State::Saver::Subset(state,'I','R','Q','\0').Ref() );
+			state.Begin( AsciiId<'R','E','G'>::V ).Write8( prgSwap ).End();
+			irq.SaveState( state, AsciiId<'I','R','Q'>::V );
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
 		NES_POKE(Mapper27,8)
 		{
-			prg.SwapBank<SIZE_8K>( (prgSwap << 13), data );
+			prg.SwapBank<SIZE_8K>( prgSwap << 13, data );
 		}
 
 		NES_POKE(Mapper27,9)
@@ -125,37 +125,37 @@ namespace Nes
 			{
 				prgSwap = data;
 
-				prg.SwapBanks<SIZE_8K,0x0000U>
+				prg.SwapBanks<SIZE_8K,0x0000>
 				(
-					prg.GetBank<SIZE_8K,0x4000U>(),
-					prg.GetBank<SIZE_8K,0x0000U>()
+					prg.GetBank<SIZE_8K,0x4000>(),
+					prg.GetBank<SIZE_8K,0x0000>()
 				);
 			}
 		}
 
-		template<ushort MASK,uchar BITS,uchar SHIFT>
+		template<uint MASK,uint BITS,uint SHIFT>
 		void Mapper27::SwapChr(const uint address,const uint data) const
 		{
 			ppu.Update();
-			chr.SwapBank<SIZE_1K>( address, (chr.GetBank<SIZE_1K>(address) & MASK) | ((data & BITS) << SHIFT) );
+			chr.SwapBank<SIZE_1K>( address, (chr.GetBank<SIZE_1K>(address) & MASK) | (data & BITS) << SHIFT );
 		}
 
-		NES_POKE(Mapper27,B0) { SwapChr<0xFF0,0x0F,0>( 0x0000U, data ); }
-		NES_POKE(Mapper27,B1) { SwapChr<0x00F,0xFF,4>( 0x0000U, data ); }
-		NES_POKE(Mapper27,B2) { SwapChr<0xFF0,0x0F,0>( 0x0400U, data ); }
-		NES_POKE(Mapper27,B3) { SwapChr<0x00F,0xFF,4>( 0x0400U, data ); }
-		NES_POKE(Mapper27,C0) { SwapChr<0xFF0,0x0F,0>( 0x0800U, data ); }
-		NES_POKE(Mapper27,C1) { SwapChr<0x00F,0xFF,4>( 0x0800U, data ); }
-		NES_POKE(Mapper27,C2) { SwapChr<0xFF0,0x0F,0>( 0x0C00U, data ); }
-		NES_POKE(Mapper27,C3) { SwapChr<0x00F,0xFF,4>( 0x0C00U, data ); }
-		NES_POKE(Mapper27,D0) { SwapChr<0xFF0,0x0F,0>( 0x1000U, data ); }
-		NES_POKE(Mapper27,D1) { SwapChr<0x00F,0xFF,4>( 0x1000U, data ); }
-		NES_POKE(Mapper27,D2) { SwapChr<0xFF0,0x0F,0>( 0x1400U, data ); }
-		NES_POKE(Mapper27,D3) { SwapChr<0x00F,0xFF,4>( 0x1400U, data ); }
-		NES_POKE(Mapper27,E0) { SwapChr<0xFF0,0x0F,0>( 0x1800U, data ); }
-		NES_POKE(Mapper27,E1) { SwapChr<0x00F,0xFF,4>( 0x1800U, data ); }
-		NES_POKE(Mapper27,E2) { SwapChr<0xFF0,0x0F,0>( 0x1C00U, data ); }
-		NES_POKE(Mapper27,E3) { SwapChr<0x00F,0xFF,4>( 0x1C00U, data ); }
+		NES_POKE(Mapper27,B0) { SwapChr<0xFF0,0x0F,0>( 0x0000, data ); }
+		NES_POKE(Mapper27,B1) { SwapChr<0x00F,0xFF,4>( 0x0000, data ); }
+		NES_POKE(Mapper27,B2) { SwapChr<0xFF0,0x0F,0>( 0x0400, data ); }
+		NES_POKE(Mapper27,B3) { SwapChr<0x00F,0xFF,4>( 0x0400, data ); }
+		NES_POKE(Mapper27,C0) { SwapChr<0xFF0,0x0F,0>( 0x0800, data ); }
+		NES_POKE(Mapper27,C1) { SwapChr<0x00F,0xFF,4>( 0x0800, data ); }
+		NES_POKE(Mapper27,C2) { SwapChr<0xFF0,0x0F,0>( 0x0C00, data ); }
+		NES_POKE(Mapper27,C3) { SwapChr<0x00F,0xFF,4>( 0x0C00, data ); }
+		NES_POKE(Mapper27,D0) { SwapChr<0xFF0,0x0F,0>( 0x1000, data ); }
+		NES_POKE(Mapper27,D1) { SwapChr<0x00F,0xFF,4>( 0x1000, data ); }
+		NES_POKE(Mapper27,D2) { SwapChr<0xFF0,0x0F,0>( 0x1400, data ); }
+		NES_POKE(Mapper27,D3) { SwapChr<0x00F,0xFF,4>( 0x1400, data ); }
+		NES_POKE(Mapper27,E0) { SwapChr<0xFF0,0x0F,0>( 0x1800, data ); }
+		NES_POKE(Mapper27,E1) { SwapChr<0x00F,0xFF,4>( 0x1800, data ); }
+		NES_POKE(Mapper27,E2) { SwapChr<0xFF0,0x0F,0>( 0x1C00, data ); }
+		NES_POKE(Mapper27,E3) { SwapChr<0x00F,0xFF,4>( 0x1C00, data ); }
 
 		NES_POKE(Mapper27,F0)
 		{

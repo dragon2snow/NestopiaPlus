@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -24,28 +24,26 @@
 
 #include <cstring>
 #include "NstLog.hpp"
-#include "NstChecksumCrc32.hpp"
-#include "NstState.hpp"
+#include "NstCrc32.hpp"
 #include "NstImageDatabase.hpp"
+#include "NstMapper.hpp"
 #include "NstCartridge.hpp"
 #include "NstCartridgeInes.hpp"
 #include "NstCartridgeUnif.hpp"
-#include "NstMapper.hpp"
 #include "mapper/NstMapper188.hpp"
 #include "vssystem/NstVsSystem.hpp"
 #include "NstPrpTurboFile.hpp"
 #include "NstPrpDataRecorder.hpp"
-#include "api/NstApiUser.hpp"
 
 namespace Nes
 {
 	namespace Core
 	{
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("s", on)
 		#endif
 
-		Cartridge::Cartridge(Context& context,Result& result)
+		Cartridge::Cartridge(Context& context)
 		:
 		Image        (CARTRIDGE),
 		mapper       (NULL),
@@ -59,21 +57,21 @@ namespace Nes
 
 				switch (Stream::In(context.stream).Peek32())
 				{
-					case 0x1A53454EUL: result = Ines( context.stream, prg, chr, wrk, info, context.database, databaseHandle ).GetResult(); break;
-					case 0x46494E55UL: result = Unif( context.stream, prg, chr, wrk, info, context.database, databaseHandle ).GetResult(); break;
+					case INES_ID: context.result = Ines( context.stream, prg, chr, wrk, info, context.database, databaseHandle ).GetResult(); break;
+					case UNIF_ID: context.result = Unif( context.stream, prg, chr, wrk, info, context.database, databaseHandle ).GetResult(); break;
 					default: throw RESULT_ERR_INVALID_FILE;
 				}
 
 				if (context.database && databaseHandle)
 				{
-					info.condition = context.database->Condition(databaseHandle);
+					info.condition = context.database->GetCondition(databaseHandle);
 
 					if (info.condition == Api::Cartridge::DUMP_BAD)
-						result = RESULT_WARN_BAD_DUMP;
+						context.result = RESULT_WARN_BAD_DUMP;
 
 					if (context.database->Encrypted(databaseHandle))
 					{
-						result = RESULT_WARN_ENCRYPTED_ROM;
+						context.result = RESULT_WARN_ENCRYPTED_ROM;
 						Log::Flush( "Cartridge: file is encrypted!" NST_LINEBREAK );
 					}
 
@@ -82,8 +80,8 @@ namespace Nes
 
 					if (context.database->InputEx(databaseHandle) == ImageDatabase::INPUT_EX_TURBOFILE)
 					{
-						Log::Flush( "Cartridge: Turbo File storage device present" NST_LINEBREAK );
 						turboFile = new Peripherals::TurboFile( context.cpu );
+						Log::Flush( "Cartridge: Turbo File storage device present" NST_LINEBREAK );
 					}
 				}
 
@@ -123,18 +121,16 @@ namespace Nes
 					info.setup.wrkRam = wrk.Size() - info.setup.wrkRamBacked;
 				}
 
-				if (wrk.Size())
-				{
-					ResetWrkRam( 0 );
-					LoadBattery();
-				}
+				wrk.Reset( info, false );
+				wrk.Load( info );
 
-				info.crc = info.prgCrc = Checksum::Crc32::Compute( prg.Mem(), prg.Size() );
+				info.prgCrc = Crc32::Compute( prg.Mem(), prg.Size() );
+				info.crc = info.prgCrc;
 
 				if (chr.Size())
 				{
-					info.chrCrc = Checksum::Crc32::Compute( chr.Mem(), chr.Size() );
-					info.crc = Checksum::Crc32::Compute( chr.Mem(), chr.Size(), info.crc );
+					info.chrCrc = Crc32::Compute( chr.Mem(), chr.Size() );
+					info.crc = Crc32::Compute( chr.Mem(), chr.Size(), info.crc );
 				}
 
 				if (info.setup.system == SYSTEM_VS)
@@ -154,7 +150,7 @@ namespace Nes
 
 					info.setup.ppu = vs->GetPpuType();
 				}
-				else if (info.setup.system != SYSTEM_PC10)
+				else if (info.setup.system == SYSTEM_HOME)
 				{
 					dataRecorder = new Peripherals::DataRecorder(context.cpu);
 				}
@@ -170,18 +166,13 @@ namespace Nes
 		{
 			delete dataRecorder;
 			delete turboFile;
-			delete vs;
-			delete mapper;
+			VsSystem::Destroy( vs );
+			Mapper::Destroy( mapper );
 		}
 
 		Cartridge::~Cartridge()
 		{
 			Destroy();
-		}
-
-		Result Cartridge::Flush(bool power,bool movie) const
-		{
-			return movie ? RESULT_OK : SaveBattery( power );
 		}
 
 		uint Cartridge::GetDesiredController(uint port) const
@@ -336,13 +327,18 @@ namespace Nes
 
 					info.controllers[1] = Api::Input::ROB;
 					break;
+
+				case ImageDatabase::INPUT_POWERGLOVE:
+
+					info.controllers[0] = Api::Input::POWERGLOVE;
+					break;
 			}
 		}
 
 		void Cartridge::Reset(const bool hard)
 		{
-			if (hard && info.setup.wrkRam)
-				ResetWrkRam( info.setup.wrkRamBacked );
+			if (hard)
+				wrk.Reset( info, true );
 
 			mapper->Reset( hard );
 
@@ -356,72 +352,85 @@ namespace Nes
 				dataRecorder->Reset();
 		}
 
-		void Cartridge::ResetWrkRam(uint i)
+		bool Cartridge::PowerOff() const
 		{
-			NST_ASSERT( info.setup.wrkRamBacked+info.setup.wrkRam == wrk.Size() && (i == 0 || i == info.setup.wrkRamBacked) );
+			try
+			{
+				if (mapper)
+					mapper->PowerOff();
 
-			for (const uint n=NST_MIN(wrk.Size(),Ines::TRAINER_BEGIN), openBus=info.setup.wrkRamAuto; i < n; ++i)
-				wrk[i] = openBus ? (0x6000U + i) >> 8 : Wrk::GARBAGE;
+				wrk.Save( info );
 
-			if (i < Ines::TRAINER_END && info.setup.trainer)
-				i = Ines::TRAINER_END;
+				if (turboFile)
+					turboFile->PowerOff();
 
-			for (const uint n=NST_MIN(wrk.Size(),0x2000U), openBus=info.setup.wrkRamAuto; i < n; ++i)
-				wrk[i] = openBus ? (0x6000U + i) >> 8 : Wrk::GARBAGE;
+				if (dataRecorder)
+					dataRecorder->PowerOff();
 
-			if (i < wrk.Size())
-				std::memset( wrk.Mem() + i, Wrk::GARBAGE, wrk.Size() - i );
+				return true;
+			}
+			catch (...)
+			{
+				return false;
+			}
 		}
 
-		void Cartridge::SaveState(State::Saver& state) const
+		void Cartridge::SaveState(State::Saver& state,const dword id) const
 		{
-			mapper->SaveState( State::Saver::Subset(state,'M','P','R','\0').Ref() );
+			state.Begin( id );
+
+			mapper->SaveState( state, AsciiId<'M','P','R'>::V );
 
 			if (vs)
-				vs->SaveState( State::Saver::Subset(state,'V','S','S','\0').Ref() );
+				vs->SaveState( state, AsciiId<'V','S','S'>::V );
 
 			if (turboFile)
-				turboFile->SaveState( State::Saver::Subset(state,'T','B','F','\0').Ref() );
+				turboFile->SaveState( state, AsciiId<'T','B','F'>::V );
 
-			if (dataRecorder && dataRecorder->CanSaveState())
-				dataRecorder->SaveState( State::Saver::Subset(state,'D','R','C','\0').Ref() );
+			if (dataRecorder)
+				dataRecorder->SaveState( state, AsciiId<'D','R','C'>::V );
+
+			state.End();
 		}
 
 		void Cartridge::LoadState(State::Loader& state)
 		{
+			if (dataRecorder)
+				dataRecorder->Stop();
+
 			while (const dword chunk = state.Begin())
 			{
 				switch (chunk)
 				{
-					case NES_STATE_CHUNK_ID('M','P','R','\0'):
+					case AsciiId<'M','P','R'>::V:
 
-						mapper->LoadState( State::Loader::Subset(state).Ref() );
+						mapper->LoadState( state );
 						break;
 
-					case NES_STATE_CHUNK_ID('V','S','S','\0'):
+					case AsciiId<'V','S','S'>::V:
 
 						NST_VERIFY( vs );
 
 						if (vs)
-							vs->LoadState( State::Loader::Subset(state).Ref() );
+							vs->LoadState( state );
 
 						break;
 
-					case NES_STATE_CHUNK_ID('T','B','F','\0'):
+					case AsciiId<'T','B','F'>::V:
 
 						NST_VERIFY( turboFile );
 
 						if (turboFile)
-							turboFile->LoadState( State::Loader::Subset(state).Ref() );
+							turboFile->LoadState( state );
 
 						break;
 
-					case NES_STATE_CHUNK_ID('D','R','C','\0'):
+					case AsciiId<'D','R','C'>::V:
 
 						NST_VERIFY( dataRecorder );
 
 						if (dataRecorder)
-							dataRecorder->LoadState( State::Loader::Subset(state).Ref() );
+							dataRecorder->LoadState( state );
 
 						break;
 				}
@@ -430,64 +439,42 @@ namespace Nes
 			}
 		}
 
-		void Cartridge::LoadBattery()
+		void Cartridge::Wrk::Reset(const Info& info,const bool preserveBattery)
 		{
-			NST_ASSERT( info.setup.wrkRamBacked+info.setup.wrkRam == wrk.Size() && wrk.ramCheckSum.IsNull() );
+			NST_ASSERT( info.setup.wrkRamBacked+info.setup.wrkRam == Size() );
 
-			if (info.setup.wrkRamBacked >= Wrk::MIN_BATTERY_SIZE)
+			uint i = (preserveBattery ? info.setup.wrkRamBacked : 0);
+
+			for (const uint n=NST_MIN(Size(),Ines::TRAINER_BEGIN), openBus=info.setup.wrkRamAuto; i < n; ++i)
+				(*this)[i] = openBus ? (0x6000 + i) >> 8 : GARBAGE;
+
+			if (i < Ines::TRAINER_END && info.setup.trainer)
+				i = Ines::TRAINER_END;
+
+			for (const uint n=NST_MIN(Size(),0x2000), openBus=info.setup.wrkRamAuto; i < n; ++i)
+				(*this)[i] = openBus ? (0x6000 + i) >> 8 : GARBAGE;
+
+			if (i < Size())
+				std::memset( Mem() + i, GARBAGE, Size() - i );
+		}
+
+		void Cartridge::Wrk::Load(const Info& info)
+		{
+			NST_ASSERT( info.setup.wrkRamBacked+info.setup.wrkRam == Size() );
+
+			if (info.setup.wrkRamBacked >= MIN_BATTERY_SIZE)
 			{
-				Api::User::FileData data;
-				Api::User::fileIoCallback( Api::User::FILE_LOAD_BATTERY, data );
-
-				if (ulong size = data.size())
-				{
-					if (size != info.setup.wrkRamBacked)
-					{
-						if (size > info.setup.wrkRamBacked)
-							size = info.setup.wrkRamBacked;
-
-						Log::Flush( "Cartridge: warning, save file and W-RAM size mismatch!" NST_LINEBREAK );
-					}
-
-					std::memcpy( wrk.Mem(), &data.front(), size );
-				}
-
-				wrk.ramCheckSum = Checksum::Md5::Compute( wrk.Mem(), info.setup.wrkRamBacked );
+				if (!file.Load( File::LOAD_BATTERY, Mem(), info.setup.wrkRamBacked ))
+					Log::Flush( "Cartridge: warning, save file and W-RAM size mismatch!" NST_LINEBREAK );
 			}
 		}
 
-		Result Cartridge::SaveBattery(bool power) const
+		void Cartridge::Wrk::Save(const Info& info) const
 		{
-			if (mapper)
-				mapper->Flush( power );
+			NST_ASSERT( info.setup.wrkRamBacked+info.setup.wrkRam == Size() );
 
-			NST_ASSERT( info.setup.wrkRamBacked+info.setup.wrkRam == wrk.Size() );
-
-			if (info.setup.wrkRamBacked >= Wrk::MIN_BATTERY_SIZE)
-			{
-				const Checksum::Md5::Key key( Checksum::Md5::Compute( wrk.Mem(), info.setup.wrkRamBacked ) );
-
-				if (wrk.ramCheckSum != key)
-				{
-					try
-					{
-						Api::User::FileData vector( wrk.Mem(), wrk.Mem() + info.setup.wrkRamBacked );
-						Api::User::fileIoCallback( Api::User::FILE_SAVE_BATTERY, vector );
-						wrk.ramCheckSum = key;
-					}
-					catch (...)
-					{
-						return RESULT_WARN_BATTERY_NOT_SAVED;
-					}
-				}
-			}
-
-			return RESULT_OK;
-		}
-
-		const void* Cartridge::SearchDatabase(const ImageDatabase& database,const void* file,ulong length)
-		{
-			return Ines::SearchDatabase( database, static_cast<const u8*>(file), length );
+			if (info.setup.wrkRamBacked >= MIN_BATTERY_SIZE)
+				file.Save( File::SAVE_BATTERY, Mem(), info.setup.wrkRamBacked );
 		}
 
 		PpuType Cartridge::QueryPpu(bool yuvConversion)
@@ -503,7 +490,7 @@ namespace Nes
 			return info.setup.region == REGION_PAL ? MODE_PAL : MODE_NTSC;
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 

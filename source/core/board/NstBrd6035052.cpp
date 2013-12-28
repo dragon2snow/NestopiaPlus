@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -32,7 +32,7 @@ namespace Nes
 	{
 		namespace Boards
 		{
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("s", on)
 			#endif
 
@@ -49,7 +49,7 @@ namespace Nes
 			{
 				while (const dword chunk = state.Begin())
 				{
-					if (chunk == NES_STATE_CHUNK_ID('R','E','G','\0'))
+					if (chunk == AsciiId<'R','E','G'>::V)
 						security = state.Read8() & 0x3;
 
 					state.End();
@@ -58,10 +58,10 @@ namespace Nes
 
 			void Unl6035052::SubSave(State::Saver& state) const
 			{
-				state.Begin('R','E','G','\0').Write8( security ).End();
+				state.Begin( AsciiId<'R','E','G'>::V ).Write8( security ).End();
 			}
 
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("", on)
 			#endif
 

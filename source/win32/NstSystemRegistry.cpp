@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -22,14 +22,14 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#ifdef _MSC_VER
-#pragma comment(lib,"shlwapi")
-#endif
-
 #include "NstCollectionVector.hpp"
 #include "NstSystemRegistry.hpp"
 #include <Shlwapi.h>
 #include <ShlObj.h>
+
+#if NST_MSVC
+#pragma comment(lib,"shlwapi")
+#endif
 
 namespace Nestopia
 {
@@ -54,7 +54,7 @@ namespace Nestopia
 			::SHChangeNotify( SHCNE_ASSOCCHANGED, SHCNF_IDLIST, NULL, NULL );
 		}
 
-		ibool Registry::Key::operator << (const GenericString dataName) const
+		bool Registry::Key::operator << (const GenericString dataName) const
 		{
 			NST_ASSERT( dataName.NullTerminated() );
 
@@ -105,7 +105,7 @@ namespace Nestopia
 			return true;
 		}
 
-		ibool Registry::Key::operator >> (HeapString& string) const
+		bool Registry::Key::operator >> (HeapString& string) const
 		{
 			string.Clear();
 
@@ -146,7 +146,7 @@ namespace Nestopia
 			return true;
 		}
 
-		ibool Registry::Key::Delete() const
+		bool Registry::Key::Delete() const
 		{
 			long result;
 
@@ -182,7 +182,7 @@ namespace Nestopia
 			return true;
 		}
 
-		ibool Registry::Key::Delete(const GenericString dataName) const
+		bool Registry::Key::Delete(const GenericString dataName) const
 		{
 			NST_ASSERT( dataName.NullTerminated() );
 

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -29,7 +29,6 @@
 
 #include <fstream>
 #include "NstObjectHeap.hpp"
-#include "NstWindowMenu.hpp"
 
 namespace Nestopia
 {
@@ -50,7 +49,7 @@ namespace Nestopia
 	{
 		class Paths;
 
-		class Movie
+		class Movie : Manager
 		{
 		public:
 
@@ -63,27 +62,27 @@ namespace Nestopia
 				QUIET
 			};
 
-			ibool Load(const Path&,Alert);
+			bool Load(const Path&,Alert);
 			void Save(Io::Nsp::Context&) const;
 
 		private:
 
 			enum Pos
 			{
-				REWINDED,
+				REWOUND,
 				FORWARDED
 			};
 
 			struct Callbacks;
 
-			void  Close (Pos=REWINDED,ibool=true);
-			ibool Open  (std::fstream::openmode);
+			void Close (Pos=REWOUND,bool=true);
+			bool Open  (std::fstream::openmode);
 
-			ibool CanPlay    () const;
-			ibool CanRecord  () const;
-			ibool CanStop    () const;
-			ibool CanRewind  () const;
-			ibool CanForward () const;
+			bool CanPlay    () const;
+			bool CanRecord  () const;
+			bool CanStop    () const;
+			bool CanRewind  () const;
+			bool CanForward () const;
 
 			void OnEmuEvent     (Emulator::Event);
 			void OnMenuView     (Window::Menu::PopupHandler::Param&);
@@ -95,10 +94,8 @@ namespace Nestopia
 			void OnCmdForward   (uint);
 			void OnCmdExportAvi (uint);
 
-			Emulator& emulator;
 			Pos pos;
 			std::fstream stream;
-			const Window::Menu& menu;
 			Object::Heap<Window::Movie> dialog;
 			const Paths& paths;
 		};

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -42,7 +42,7 @@ namespace Nestopia
 			StatusBar(Custom&,uint);
 			~StatusBar();
 
-			void Enable(ibool=true,ibool=true);
+			void Enable(bool=true,bool=true);
 			void Show() const;
 			uint Height() const;
 			uint GetMaxMessageLength() const;
@@ -69,7 +69,7 @@ namespace Nestopia
 					DEF_FIRST_WIDTH = 10
 				};
 
-				inline Width(uint);
+				inline explicit Width(uint);
 
 				void Calculate(HWND);
 
@@ -84,9 +84,9 @@ namespace Nestopia
 
 		public:
 
-			ibool Enabled() const
+			bool Enabled() const
 			{
-				return window != NULL;
+				return window;
 			}
 
 			void Disable()
@@ -96,15 +96,13 @@ namespace Nestopia
 
 			class Stream
 			{
-				friend class StatusBar;
-
 				const Generic window;
 				const uint field;
 
+			public:
+
 				Stream(Generic w,uint f)
 				: window(w), field(f) {}
-
-			public:
 
 				void operator << (tstring) const;
 				void Clear() const;

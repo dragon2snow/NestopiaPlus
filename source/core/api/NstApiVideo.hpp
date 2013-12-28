@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,13 +25,16 @@
 #ifndef NST_API_VIDEO_H
 #define NST_API_VIDEO_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
+#include "NstApi.hpp"
+
+#ifdef NST_PRAGMA_ONCE
 #pragma once
 #endif
 
-#include "NstApi.hpp"
-
-#ifdef _MSC_VER
+#if NST_ICC >= 810
+#pragma warning( push )
+#pragma warning( disable : 304 444 )
+#elif NST_MSVC >= 1200
 #pragma warning( push )
 #pragma warning( disable : 4512 )
 #endif
@@ -42,8 +45,6 @@ namespace Nes
 	{
 		namespace Video
 		{
-			class Renderer;
-
 			class Output
 			{
 				struct Locker;
@@ -62,7 +63,7 @@ namespace Nes
 				void* pixels;
 				long pitch;
 
-				Output(void* v=NULL,long p=0)
+				Output(void* v=0,long p=0)
 				: pixels(v), pitch(p) {}
 
 				typedef bool (NST_CALLBACK *LockCallback) (void*,Output&);
@@ -181,8 +182,7 @@ namespace Nes
 
 			struct Decoder
 			{
-				Decoder() {}
-				Decoder(DecoderPreset) throw();
+				Decoder(DecoderPreset=DECODER_CANONICAL) throw();
 
 				bool operator == (const Decoder&) const throw();
 
@@ -194,34 +194,26 @@ namespace Nes
 					NUM_AXES
 				};
 
-				struct Axis
+				struct
 				{
 					uint angle;
 					float gain;
-				};
+				}   axes[NUM_AXES];
 
-				Axis axes[NUM_AXES];
 				bool boostYellow;
 			};
 
 			Result SetDecoder(const Decoder&) throw();
 			const Decoder& GetDecoder() const throw();
 
-			class Palette;
-			friend class Palette;
-
 			class Palette
 			{
-				friend class Video;
-
-				struct UpdateCaller;
-
-				Video& video;
-
-				Palette(Video& v)
-				: video(v) {}
+				Core::Machine& emulator;
 
 			public:
+
+				Palette(Core::Machine& e)
+				: emulator(e) {}
 
 				enum
 				{
@@ -242,38 +234,21 @@ namespace Nes
 					MODE_CUSTOM
 				};
 
-				typedef const u8 (*Colors)[3];
+				typedef const uchar (*Colors)[3];
 
-				inline Mode       GetMode() const throw();
-				inline Mode       GetDefaultMode() const throw();
-				inline Result     SetCustom(Colors,CustomType=STD_PALETTE) throw();
-				inline uint       GetCustom(u8 (*)[3],CustomType) const throw();
-				inline void       ResetCustom() throw();
-				inline CustomType GetCustomType() const throw();
-				inline Colors     GetColors() const throw();
-				inline Result     SetMode(Mode) throw();
-
-				typedef void (NST_CALLBACK *UpdateCallback) (UserData,Colors);
-
-				static UpdateCaller updateCallback;
+				Mode       GetMode() const throw();
+				Mode       GetDefaultMode() const throw();
+				Result     SetCustom(Colors,CustomType=STD_PALETTE) throw();
+				uint       GetCustom(uchar (*)[3],CustomType) const throw();
+				void       ResetCustom() throw();
+				CustomType GetCustomType() const throw();
+				Colors     GetColors() const throw();
+				Result     SetMode(Mode) throw();
 			};
-
-		private:
-
-			Palette::Mode GetPaletteMode() const;
-			Palette::Mode GetDefaultPaletteMode() const;
-			Result SetCustomPalette(Palette::Colors,Palette::CustomType);
-			uint GetCustomPalette(u8 (*)[3],Palette::CustomType) const;
-			void ResetCustomPalette();
-			Palette::CustomType GetCustomPaletteType() const;
-			Palette::Colors GetPaletteColors() const;
-			Result SetPaletteMode(Palette::Mode);
-
-		public:
 
 			Palette GetPalette()
 			{
-				return *this;
+				return emulator;
 			}
 
 			struct RenderState
@@ -286,11 +261,10 @@ namespace Nes
 					};
 
 					Mask mask;
-					uchar count;
+					uint count;
 				};
 
 				Bits bits;
-				uchar paletteOffset;
 				ushort width;
 				ushort height;
 
@@ -306,12 +280,7 @@ namespace Nes
 				{
 					FILTER_NONE,
 					FILTER_NTSC
-				#ifndef NST_NO_2XSAI
-					,FILTER_2XSAI
-					,FILTER_SUPER_2XSAI
-					,FILTER_SUPER_EAGLE
-				#endif
-				#ifndef NST_NO_SCALE2X
+				#ifndef NST_NO_SCALEX
 					,FILTER_SCALE2X
 					,FILTER_SCALE3X
 				#endif
@@ -325,12 +294,7 @@ namespace Nes
 				enum Scale
 				{
 					SCALE_NONE_SCANLINES = 2,
-				#ifndef NST_NO_2XSAI
-					SCALE_2XSAI = 2,
-					SCALE_SUPER_2XSAI = 2,
-					SCALE_SUPER_EAGLE = 2,
-				#endif
-				#ifndef NST_NO_SCALE2X
+				#ifndef NST_NO_SCALEX
 					SCALE_SCALE2X = 2,
 					SCALE_SCALE3X = 3,
 				#endif
@@ -347,59 +311,10 @@ namespace Nes
 			Result SetRenderState(const RenderState&) throw();
 			Result GetRenderState(RenderState&) const throw();
 		};
-
-		inline Video::Palette::Mode Video::Palette::GetMode() const throw()
-		{
-			return video.GetPaletteMode();
-		}
-
-		inline Video::Palette::Mode Video::Palette::GetDefaultMode() const throw()
-		{
-			return video.GetDefaultPaletteMode();
-		}
-
-		inline Result Video::Palette::SetCustom(Colors colors,CustomType type) throw()
-		{
-			return video.SetCustomPalette( colors, type );
-		}
-
-		inline uint Video::Palette::GetCustom(u8 (*colors)[3],CustomType type) const throw()
-		{
-			return video.GetCustomPalette( colors, type );
-		}
-
-		inline void Video::Palette::ResetCustom() throw()
-		{
-			video.ResetCustomPalette();
-		}
-
-		inline Video::Palette::CustomType Video::Palette::GetCustomType() const throw()
-		{
-			return video.GetCustomPaletteType();
-		}
-
-		inline Video::Palette::Colors Video::Palette::GetColors() const throw()
-		{
-			return video.GetPaletteColors();
-		}
-
-		inline Result Video::Palette::SetMode(Mode mode) throw()
-		{
-			return video.SetPaletteMode( mode );
-		}
-
-		struct Video::Palette::UpdateCaller : Core::UserCallback<Video::Palette::UpdateCallback>
-		{
-			void operator () (Colors colors) const
-			{
-				if (function)
-					function( userdata, colors );
-			}
-		};
 	}
 }
 
-#ifdef _MSC_VER
+#if NST_MSVC >= 1200 || NST_ICC >= 810
 #pragma warning( pop )
 #endif
 

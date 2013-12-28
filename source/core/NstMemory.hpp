@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,36 +25,87 @@
 #ifndef NST_MEMORY_H
 #define NST_MEMORY_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
+#include "NstRam.hpp"
+
+#ifdef NST_PRAGMA_ONCE
 #pragma once
 #endif
-
-#include "NstState.hpp"
-#include "NstRam.hpp"
 
 namespace Nes
 {
 	namespace Core
 	{
+		template<typename T> class Pointer
+		{
+		protected:
+
+			T* const ptr;
+
+		public:
+
+			explicit Pointer(T* t)
+			: ptr(t) {}
+
+			~Pointer()
+			{
+				delete ptr;
+			}
+
+			T* operator -> () const
+			{
+				return ptr;
+			}
+
+			operator T* () const
+			{
+				return ptr;
+			}
+		};
+
 		namespace State
 		{
 			class Saver;
 			class Loader;
 		}
 
-		class BaseMemory
+		template<dword SPACE,uint U,uint V>
+		class Memory;
+
+		template<>
+		class Memory<0,0,0>
 		{
 		protected:
 
-			template<uint W> struct GetBlockShift
+			enum
 			{
-				enum { VALUE = 1 + GetBlockShift<W / 2>::VALUE };
+				MAX_SOURCES = 2
 			};
+
+			void SaveState
+			(
+				State::Saver&,
+				dword,
+				const Ram* NST_RESTRICT,
+				uint,
+				uint,
+				const byte* NST_RESTRICT,
+				uint
+			)   const;
+
+			bool LoadState
+			(
+				State::Loader&,
+				Ram* NST_RESTRICT,
+				uint,
+				uint,
+				byte* NST_RESTRICT,
+				uint
+			)   const;
 
 			template<uint N> struct Pages
 			{
-				u8* mem[N];
-				u8 ref[N];
+				byte* mem[N];
+				byte ref[N];
 			};
 
 			template<uint OFFSET,uint COUNT,uint SIZE,uint I=COUNT>
@@ -64,7 +115,7 @@ namespace Nes
 				static NST_FORCE_INLINE void SwapBank
 				(
 					Pages* const NST_RESTRICT pages,
-					u8* const NST_RESTRICT mem,
+					byte* const NST_RESTRICT mem,
 					const dword mask,
 					const dword bank,
 					const uint offset=0,
@@ -81,7 +132,7 @@ namespace Nes
 				static NST_FORCE_INLINE void SwapBanks
 				(
 					Pages* const NST_RESTRICT pages,
-					u8* const NST_RESTRICT mem,
+					byte* const NST_RESTRICT mem,
 					const dword mask,
 					const dword bank0,
 					const dword bank1,
@@ -96,7 +147,7 @@ namespace Nes
 				static NST_FORCE_INLINE void SwapBanks
 				(
 					Pages* const NST_RESTRICT pages,
-					u8* const NST_RESTRICT mem,
+					byte* const NST_RESTRICT mem,
 					const dword mask,
 					const dword bank0,
 					const dword bank1,
@@ -115,7 +166,7 @@ namespace Nes
 				static NST_FORCE_INLINE void SwapBanks
 				(
 					Pages* const NST_RESTRICT pages,
-					u8* const NST_RESTRICT mem,
+					byte* const NST_RESTRICT mem,
 					const dword mask,
 					const dword bank0,
 					const dword bank1,
@@ -141,34 +192,28 @@ namespace Nes
 		};
 
 		template<>
-		struct BaseMemory::GetBlockShift<1U>
+		struct Memory<0,0,0>::Pages<1>
 		{
-			enum { VALUE = 0 };
+			byte* mem[1];
+			dword ref[1];
 		};
 
 		template<>
-		struct BaseMemory::Pages<1U>
+		struct Memory<0,0,0>::Pages<2>
 		{
-			u8* mem[1];
-			u32 ref[1];
-		};
-
-		template<>
-		struct BaseMemory::Pages<2U>
-		{
-			u8* mem[2];
-			u16 ref[2];
+			byte* mem[2];
+			word ref[2];
 		};
 
 		template<uint OFFSET,uint COUNT,uint SIZE>
-		struct BaseMemory::Unroller<OFFSET,COUNT,SIZE,0U>
+		struct Memory<0,0,0>::Unroller<OFFSET,COUNT,SIZE,0U>
 		{
 			template<typename Pages>
-			static NST_FORCE_INLINE void SwapBank(Pages*,u8*,dword,dword,uint,uint) {}
+			static NST_FORCE_INLINE void SwapBank(Pages*,byte*,dword,dword,uint,uint) {}
 		};
 
 		template<dword SPACE,uint U,uint V=1>
-		class Memory : BaseMemory
+		class Memory : Memory<0,0,0>
 		{
 		public:
 
@@ -184,45 +229,45 @@ namespace Nes
 				((SPACE & (SPACE-1)) == 0) &&
 				((U & (U-1)) == 0) &&
 				(SPACE % U == 0) &&
-				(V == 1 || V == 2)
+				(V >= 1 && V <= MAX_SOURCES)
 			);
 
 			enum
 			{
 				MEM_PAGE_SIZE = U,
-				MEM_PAGE_SHIFT = GetBlockShift<MEM_PAGE_SIZE>::VALUE,
+				MEM_PAGE_SHIFT = ValueBits<MEM_PAGE_SIZE>::VALUE-1,
 				MEM_PAGE_MASK = MEM_PAGE_SIZE - 1,
 				MEM_NUM_PAGES = SPACE / U
 			};
 
-			typedef BaseMemory::Pages<MEM_NUM_PAGES> Pages;
+			typedef Memory<0,0,0>::Pages<MEM_NUM_PAGES> Pages;
 
 			Pages pages;
 			Ram sources[NUM_SOURCES];
 
 		public:
 
-			ibool Readable(uint page) const
+			bool Readable(uint page) const
 			{
 				return sources[pages.ref[page]].Readable();
 			}
 
-			ibool Writable(uint page) const
+			bool Writable(uint page) const
 			{
 				return sources[pages.ref[page]].Writable();
 			}
 
-			const u8& Peek(uint address) const
+			const byte& Peek(uint address) const
 			{
 				return pages.mem[address >> MEM_PAGE_SHIFT][address & MEM_PAGE_MASK];
 			}
 
-			u8* operator [] (uint page)
+			byte* operator [] (uint page)
 			{
 				return pages.mem[page];
 			}
 
-			const u8* operator [] (uint page) const
+			const byte* operator [] (uint page) const
 			{
 				return pages.mem[page];
 			}
@@ -260,20 +305,19 @@ namespace Nes
 			template<uint SIZE>
 			void SwapBanks(uint,dword,dword,dword,dword,dword,dword,dword,dword);
 
-			void SaveState(State::Saver&,uint) const;
+			void SaveState(State::Saver&,dword,uint) const;
 			void LoadState(State::Loader&,uint);
-
-			class SourceProxy;
-			friend class SourceProxy;
 
 			class SourceProxy
 			{
+				typedef Memory<SPACE,U,V> Ref;
+
 				const uint source;
-				Memory& ref;
+				Ref& ref;
 
 			public:
 
-				SourceProxy(uint s,Memory& r)
+				SourceProxy(uint s,Ref& r)
 				: source(s), ref(r)
 				{
 					NST_ASSERT( s < NUM_SOURCES );
@@ -301,17 +345,17 @@ namespace Nes
 					ref.sources[source].WriteEnable( write );
 				}
 
-				ibool Readable() const
+				bool Readable() const
 				{
 					return ref.sources[source].Readable();
 				}
 
-				ibool Writable() const
+				bool Writable() const
 				{
 					return ref.sources[source].Writable();
 				}
 
-				const SourceProxy& Set(u8* mem,dword size,bool read,bool write) const
+				const SourceProxy& Set(byte* mem,dword size,bool read,bool write) const
 				{
 					ref.sources[source].Set( read, write, size, mem );
 					return *this;
@@ -333,7 +377,7 @@ namespace Nes
 					ref.sources[source].Fill( value );
 				}
 
-				u8* Mem(dword offset=0) const
+				byte* Mem(dword offset=0) const
 				{
 					return ref.sources[source].Mem(offset);
 				}
@@ -348,7 +392,7 @@ namespace Nes
 					return ref.sources[source].Masking();
 				}
 
-				ibool Internal() const
+				bool Internal() const
 				{
 					return ref.sources[source].Internal();
 				}
@@ -377,7 +421,7 @@ namespace Nes
 			{
 			}
 
-			Memory(u8* mem,dword size,bool read,bool write)
+			Memory(byte* mem,dword size,bool read,bool write)
 			{
 				Source().Set( mem, size, read, write );
 			}
@@ -393,7 +437,7 @@ namespace Nes
 				NST_COMPILE_ASSERT( SIZE && (SIZE % MEM_PAGE_SIZE == 0) && (SPACE >= ADDRESS + SIZE) );
 
 				enum {MEM_PAGE = ADDRESS >> MEM_PAGE_SHIFT};
-				return dword(pages.mem[MEM_PAGE] - sources[pages.ref[MEM_PAGE]].Mem()) >> GetBlockShift<SIZE>::VALUE;
+				return dword(pages.mem[MEM_PAGE] - sources[pages.ref[MEM_PAGE]].Mem()) >> (ValueBits<SIZE>::VALUE-1);
 			}
 
 			template<uint SIZE>
@@ -403,7 +447,7 @@ namespace Nes
 				NST_ASSERT( SPACE >= address + SIZE );
 
 				address >>= MEM_PAGE_SHIFT;
-				return dword(pages.mem[address] - sources[pages.ref[address]].Mem()) >> GetBlockShift<SIZE>::VALUE;
+				return dword(pages.mem[address] - sources[pages.ref[address]].Mem()) >> (ValueBits<SIZE>::VALUE-1);
 			}
 		};
 
@@ -414,12 +458,12 @@ namespace Nes
 
 			enum
 			{
-				MEM_OFFSET = GetBlockShift<SIZE>::VALUE,
+				MEM_OFFSET = ValueBits<SIZE>::VALUE-1,
 				MEM_PAGE_BEGIN = ADDRESS / MEM_PAGE_SIZE,
 				MEM_PAGE_COUNT = SIZE / MEM_PAGE_SIZE
 			};
 
-			BaseMemory::Unroller<MEM_PAGE_BEGIN,MEM_PAGE_COUNT,MEM_PAGE_SIZE>::SwapBank
+			Memory<0,0,0>::Unroller<MEM_PAGE_BEGIN,MEM_PAGE_COUNT,MEM_PAGE_SIZE>::SwapBank
 			(
 				&pages,
 				sources[0].Mem(),
@@ -436,11 +480,11 @@ namespace Nes
 
 			enum
 			{
-				MEM_OFFSET = GetBlockShift<SIZE>::VALUE,
+				MEM_OFFSET = ValueBits<SIZE>::VALUE-1,
 				MEM_PAGE_COUNT = SIZE / MEM_PAGE_SIZE
 			};
 
-			BaseMemory::Unroller<0,MEM_PAGE_COUNT,MEM_PAGE_SIZE>::SwapBank
+			Memory<0,0,0>::Unroller<0,MEM_PAGE_COUNT,MEM_PAGE_SIZE>::SwapBank
 			(
 				&pages,
 				sources[0].Mem(),
@@ -457,12 +501,12 @@ namespace Nes
 
 			enum
 			{
-				MEM_OFFSET = GetBlockShift<SIZE>::VALUE,
+				MEM_OFFSET = ValueBits<SIZE>::VALUE-1,
 				MEM_PAGE_BEGIN = ADDRESS / MEM_PAGE_SIZE,
 				MEM_PAGE_COUNT = SIZE / MEM_PAGE_SIZE
 			};
 
-			BaseMemory::Unroller<MEM_PAGE_BEGIN,MEM_PAGE_COUNT,MEM_PAGE_SIZE>::SwapBanks
+			Memory<0,0,0>::Unroller<MEM_PAGE_BEGIN,MEM_PAGE_COUNT,MEM_PAGE_SIZE>::SwapBanks
 			(
 				&pages,
 				sources[0].Mem(),
@@ -479,12 +523,12 @@ namespace Nes
 
 			enum
 			{
-				MEM_OFFSET = GetBlockShift<SIZE>::VALUE,
+				MEM_OFFSET = ValueBits<SIZE>::VALUE-1,
 				MEM_PAGE_BEGIN = ADDRESS / MEM_PAGE_SIZE,
 				MEM_PAGE_COUNT = SIZE / MEM_PAGE_SIZE
 			};
 
-			BaseMemory::Unroller<MEM_PAGE_BEGIN,MEM_PAGE_COUNT,MEM_PAGE_SIZE>::SwapBanks
+			Memory<0,0,0>::Unroller<MEM_PAGE_BEGIN,MEM_PAGE_COUNT,MEM_PAGE_SIZE>::SwapBanks
 			(
 				&pages,
 				sources[0].Mem(),
@@ -503,12 +547,12 @@ namespace Nes
 
 			enum
 			{
-				MEM_OFFSET = GetBlockShift<SIZE>::VALUE,
+				MEM_OFFSET = ValueBits<SIZE>::VALUE-1,
 				MEM_PAGE_BEGIN = ADDRESS / MEM_PAGE_SIZE,
 				MEM_PAGE_COUNT = SIZE / MEM_PAGE_SIZE
 			};
 
-			BaseMemory::Unroller<MEM_PAGE_BEGIN,MEM_PAGE_COUNT,MEM_PAGE_SIZE>::SwapBanks
+			Memory<0,0,0>::Unroller<MEM_PAGE_BEGIN,MEM_PAGE_COUNT,MEM_PAGE_SIZE>::SwapBanks
 			(
 				&pages,
 				sources[0].Mem(),
@@ -532,11 +576,11 @@ namespace Nes
 
 			enum
 			{
-				MEM_OFFSET = GetBlockShift<SIZE>::VALUE,
+				MEM_OFFSET = ValueBits<SIZE>::VALUE-1,
 				MEM_PAGE_COUNT = SIZE / MEM_PAGE_SIZE
 			};
 
-			BaseMemory::Unroller<0,MEM_PAGE_COUNT,MEM_PAGE_SIZE>::SwapBanks
+			Memory<0,0,0>::Unroller<0,MEM_PAGE_COUNT,MEM_PAGE_SIZE>::SwapBanks
 			(
 				&pages,
 				sources[0].Mem(),
@@ -555,11 +599,11 @@ namespace Nes
 
 			enum
 			{
-				MEM_OFFSET = GetBlockShift<SIZE>::VALUE,
+				MEM_OFFSET = ValueBits<SIZE>::VALUE-1,
 				MEM_PAGE_COUNT = SIZE / MEM_PAGE_SIZE
 			};
 
-			BaseMemory::Unroller<0,MEM_PAGE_COUNT,MEM_PAGE_SIZE>::SwapBanks
+			Memory<0,0,0>::Unroller<0,MEM_PAGE_COUNT,MEM_PAGE_SIZE>::SwapBanks
 			(
 				&pages,
 				sources[0].Mem(),
@@ -580,11 +624,11 @@ namespace Nes
 
 			enum
 			{
-				MEM_OFFSET = GetBlockShift<SIZE>::VALUE,
+				MEM_OFFSET = ValueBits<SIZE>::VALUE-1,
 				MEM_PAGE_COUNT = SIZE / MEM_PAGE_SIZE
 			};
 
-			BaseMemory::Unroller<0,MEM_PAGE_COUNT,MEM_PAGE_SIZE>::SwapBanks
+			Memory<0,0,0>::Unroller<0,MEM_PAGE_COUNT,MEM_PAGE_SIZE>::SwapBanks
 			(
 				&pages,
 				sources[0].Mem(),
@@ -608,12 +652,12 @@ namespace Nes
 
 			enum
 			{
-				MEM_OFFSET = GetBlockShift<SIZE>::VALUE,
+				MEM_OFFSET = ValueBits<SIZE>::VALUE-1,
 				MEM_PAGE_BEGIN = ADDRESS / MEM_PAGE_SIZE,
 				MEM_PAGE_COUNT = SIZE / MEM_PAGE_SIZE
 			};
 
-			BaseMemory::Unroller<MEM_PAGE_BEGIN,MEM_PAGE_COUNT,MEM_PAGE_SIZE>::SwapBank
+			Memory<0,0,0>::Unroller<MEM_PAGE_BEGIN,MEM_PAGE_COUNT,MEM_PAGE_SIZE>::SwapBank
 			(
 				&ref.pages,
 				ref.sources[source].Mem(),
@@ -632,11 +676,11 @@ namespace Nes
 
 			enum
 			{
-				MEM_OFFSET = GetBlockShift<SIZE>::VALUE,
+				MEM_OFFSET = ValueBits<SIZE>::VALUE-1,
 				MEM_PAGE_COUNT = SIZE / MEM_PAGE_SIZE
 			};
 
-			BaseMemory::Unroller<0,MEM_PAGE_COUNT,MEM_PAGE_SIZE>::SwapBank
+			Memory<0,0,0>::Unroller<0,MEM_PAGE_COUNT,MEM_PAGE_SIZE>::SwapBank
 			(
 				&ref.pages,
 				ref.sources[source].Mem(),
@@ -648,94 +692,36 @@ namespace Nes
 		}
 
 		template<dword SPACE,uint U,uint V>
-		void Memory<SPACE,U,V>::SaveState(State::Saver& state,const uint sourceMask) const
+		void Memory<SPACE,U,V>::SaveState(State::Saver& state,const dword id,const uint sourceMask) const
 		{
+			byte pageData[MEM_NUM_PAGES*3];
+
+			for (uint i=0; i < MEM_NUM_PAGES; ++i)
 			{
-				u8 data[NUM_SOURCES];
+				const uint bank = GetBank<MEM_PAGE_SIZE>( i * MEM_PAGE_SIZE );
 
-				for (uint i=0; i < NUM_SOURCES; ++i)
-					data[i] = (sources[i].Readable() ? 0x1 : 0x0) | (sources[i].Writable() ? 0x2 : 0x0);
-
-				state.Begin('A','C','C','\0').Write( data ).End();
+				pageData[i*3+0] = pages.ref[i];
+				pageData[i*3+1] = bank & 0xFF;
+				pageData[i*3+2] = bank >> 8;
 			}
 
-			for (uint i=0; i < NUM_SOURCES; ++i)
-			{
-				if (sourceMask & (1U << i))
-					state.Begin('R','M','0'+i,'\0').Compress( sources[i].Mem(), sources[i].Size() ).End();
-			}
-
-			{
-				u8 data[MEM_NUM_PAGES*3];
-
-				for (uint i=0; i < MEM_NUM_PAGES; ++i)
-				{
-					const uint bank = GetBank<MEM_PAGE_SIZE>( i * MEM_PAGE_SIZE );
-
-					data[i*3+0] = pages.ref[i];
-					data[i*3+1] = bank & 0xFF;
-					data[i*3+2] = bank >> 8;
-				}
-
-				state.Begin('B','N','K','\0').Write( data ).End();
-			}
+			Memory<0,0,0>::SaveState( state, id, sources, NUM_SOURCES, sourceMask, pageData, MEM_NUM_PAGES );
 		}
 
 		template<dword SPACE,uint U,uint V>
 		void Memory<SPACE,U,V>::LoadState(State::Loader& state,const uint sourceMask)
 		{
-			while (const dword chunk = state.Begin())
+			byte pageData[MEM_NUM_PAGES*3];
+
+			if (Memory<0,0,0>::LoadState( state, sources, NUM_SOURCES, sourceMask, pageData, MEM_NUM_PAGES ))
 			{
-				switch (chunk)
+				for (uint i=0; i < MEM_NUM_PAGES; ++i)
 				{
-					case NES_STATE_CHUNK_ID('A','C','C','\0'):
-					{
-						const State::Loader::Data<NUM_SOURCES> data( state );
-
-						for (uint i=0; i < NUM_SOURCES; ++i)
-						{
-							sources[i].ReadEnable( data[i] & 0x1 );
-							sources[i].WriteEnable( data[i] & 0x2 );
-						}
-
-						break;
-					}
-
-					case NES_STATE_CHUNK_ID('B','N','K','\0'):
-					{
-						const State::Loader::Data<MEM_NUM_PAGES*3> data( state );
-
-						for (uint i=0; i < MEM_NUM_PAGES; ++i)
-						{
-							if (data[i*3+0] < NUM_SOURCES)
-							{
-								Source( data[i*3+0] ).SwapBank<MEM_PAGE_SIZE>( i * MEM_PAGE_SIZE, data[i*3+1] | (data[i*3+2] << 8) );
-							}
-							else
-							{
-								throw RESULT_ERR_CORRUPT_FILE;
-							}
-						}
-
-						break;
-					}
-
-					default:
-
-						for (uint i=0; i < NUM_SOURCES; ++i)
-						{
-							if (chunk == NES_STATE_CHUNK_ID('R','M','0'+i,'\0'))
-							{
-								if (sourceMask & (1U << i))
-									state.Uncompress( sources[i].Mem(), sources[i].Size() );
-
-								break;
-							}
-						}
-						break;
+					if (pageData[i*3+0] < NUM_SOURCES)
+						Source( pageData[i*3+0] ).SwapBank<MEM_PAGE_SIZE>( i * MEM_PAGE_SIZE, pageData[i*3+1] | uint(pageData[i*3+2]) << 8 );
+					else
+						throw RESULT_ERR_CORRUPT_FILE;
 				}
-
-				state.End();
 			}
 		}
 	}

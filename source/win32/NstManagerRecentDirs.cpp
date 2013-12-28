@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -22,8 +22,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstWindowMenu.hpp"
-#include "NstManagerEmulator.hpp"
+#include "NstManager.hpp"
 #include "NstManagerRecentDirs.hpp"
 
 namespace Nestopia
@@ -39,9 +38,7 @@ namespace Nestopia
 		);
 
 		RecentDirs::RecentDirs(Emulator& e,const Configuration& cfg,Window::Menu& m)
-		:
-		emulator ( e ),
-		menu     ( m )
+		: Manager (e,m,this,&RecentDirs::OnEmuEvent)
 		{
 			static const Window::Menu::CmdHandler::Entry<RecentDirs> commands[] =
 			{
@@ -54,9 +51,7 @@ namespace Nestopia
 				{ IDM_FILE_RECENT_DIR_CLEAR, &RecentDirs::OnClear }
 			};
 
-			m.Commands().Add( this, commands );
-			emulator.Events().Add( this, &RecentDirs::OnLoad );
-
+			menu.Commands().Add( this, commands );
 			menu[IDM_FILE_RECENT_DIR_LOCK].Check( cfg["files recent dir locked"] == Configuration::YES );
 
 			uint count = 0;
@@ -83,11 +78,6 @@ namespace Nestopia
 
 			for (count += IDM_FILE_RECENT_DIR_1; count <= IDM_FILE_RECENT_DIR_5; ++count)
 				menu[count].Remove();
-		}
-
-		RecentDirs::~RecentDirs()
-		{
-			emulator.Events().Remove( this );
 		}
 
 		void RecentDirs::Save(Configuration& cfg) const
@@ -138,7 +128,7 @@ namespace Nestopia
 			}
 		}
 
-		void RecentDirs::OnLoad(Emulator::Event event)
+		void RecentDirs::OnEmuEvent(Emulator::Event event)
 		{
 			switch (event)
 			{

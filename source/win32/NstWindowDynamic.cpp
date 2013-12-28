@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -22,6 +22,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
+#include "language/resource.h"
 #include "NstObjectPod.hpp"
 #include "NstApplicationException.hpp"
 #include "NstWindowParam.hpp"
@@ -65,7 +66,7 @@ namespace Nestopia
 			winClass.hIconSm       = create.hIcon;
 
 			if (!RegisterClassEx( &winClass ))
-				throw Application::Exception(_T("RegisterClassEx() failed!"));
+				throw Application::Exception( IDS_FAILED, _T("RegisterClassEx()") );
 
 			className = create.className;
 
@@ -86,7 +87,7 @@ namespace Nestopia
 			);
 
 			if (!hWnd)
-				throw Application::Exception(_T("CreateWindowEx() failed!"));
+				throw Application::Exception( IDS_FAILED, _T("CreateWindowEx()") );
 		}
 
 		void Dynamic::Destroy()
@@ -110,7 +111,7 @@ namespace Nestopia
 			const LONG_PTR ptr = reinterpret_cast<LONG_PTR>( instances.Size() == 1 ? WndProcSingle : WndProcMulti );
 
 			if (!::SetWindowLongPtr( hWnd, GWLP_WNDPROC, ptr ))
-				throw Application::Exception( _T("SetWindowLongPtr() failed!") );
+				throw Application::Exception( IDS_FAILED, _T("SetWindowLongPtr()") );
 		}
 
 		ibool Dynamic::OnNcDestroy(Param&)
@@ -127,11 +128,11 @@ namespace Nestopia
 			return false;
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("t", on)
 		#endif
 
-		LRESULT CALLBACK Dynamic::WndProcSingle(HWND hWnd,uint uMsg,WPARAM wParam,LPARAM lParam)
+		LRESULT CALLBACK Dynamic::WndProcSingle(HWND const hWnd,const uint uMsg,WPARAM const wParam,LPARAM const lParam)
 		{
 			if (const MsgHandler::Item* const item = instances.Front()->msgHandler( uMsg ))
 			{
@@ -144,7 +145,7 @@ namespace Nestopia
 			return ::DefWindowProc( hWnd, uMsg, wParam, lParam );
 		}
 
-		LRESULT CALLBACK Dynamic::WndProcMulti(HWND hWnd,uint uMsg,WPARAM wParam,LPARAM lParam)
+		LRESULT CALLBACK Dynamic::WndProcMulti(HWND const hWnd,const uint uMsg,WPARAM const wParam,LPARAM const lParam)
 		{
 			Instances::ConstIterator instance;
 
@@ -161,11 +162,11 @@ namespace Nestopia
 			return ::DefWindowProc( hWnd, uMsg, wParam, lParam );
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
-		LRESULT CALLBACK Dynamic::WndProcCreate(HWND hWnd,uint uMsg,WPARAM wParam,LPARAM lParam)
+		LRESULT CALLBACK Dynamic::WndProcCreate(HWND const hWnd,const uint uMsg,WPARAM const wParam,LPARAM const lParam)
 		{
 			if (uMsg == WM_CREATE && lParam)
 			{

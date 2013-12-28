@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -22,6 +22,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
+#include "language/resource.h"
 #include "NstApplicationException.hpp"
 #include "NstWindowCustom.hpp"
 
@@ -29,36 +30,44 @@ namespace Nestopia
 {
 	namespace Window
 	{
+		Custom::Timers Custom::timers;
+
 		Custom::Timer::Timer(const TimerCallback& t)
 		: TimerCallback(t) {}
-
-		Custom::Timers Custom::timers;
 
 		void Custom::StartTimer(const TimerCallback timer,const uint duration) const
 		{
 			NST_ASSERT( hWnd );
 
-			uint id;
+			uint id = 0;
 
-			for (id=0; id < timers.Size() && timers[id] != timer; ++id);
-
-			if (timers.Size() == id)
-				timers.PushBack( timer );
+			for (Timers::ConstIterator it(timers.Begin()), end(timers.End()); ; ++it, ++id)
+			{
+				if (it == end)
+				{
+					timers.PushBack( timer );
+					break;
+				}
+				else if (*it == timer)
+				{
+					break;
+				}
+			}
 
 			timers[id].active = true;
 
 			if (!::SetTimer( hWnd, id, duration, &TimerProc ))
-				throw Application::Exception(_T("SetTimer() failed!"));
+				throw Application::Exception( IDS_FAILED, _T("SetTimer()") );
 		}
 
-		ibool Custom::StopTimer(const TimerCallback timer) const
+		bool Custom::StopTimer(const TimerCallback timer) const
 		{
-			for (uint id=0; id < timers.Size(); ++id)
+			for (Timers::Iterator it(timers.Begin()), end(timers.End()); it != end; ++it)
 			{
-				if (timers[id] == timer && timers[id].active)
+				if (*it == timer && it->active)
 				{
-					timers[id].active = false;
-					::KillTimer( hWnd, id );
+					it->active = false;
+					::KillTimer( hWnd, it - timers.Begin() );
 					return true;
 				}
 			}
@@ -66,7 +75,11 @@ namespace Nestopia
 			return false;
 		}
 
-		void CALLBACK Custom::TimerProc(HWND hWnd,uint,UINT_PTR id,DWORD)
+		#ifdef NST_MSVC_OPTIMIZE
+		#pragma optimize("t", on)
+		#endif
+
+		void CALLBACK Custom::TimerProc(HWND const hWnd,uint,const UINT_PTR id,DWORD)
 		{
 			NST_ASSERT( id < timers.Size() );
 
@@ -85,5 +98,9 @@ namespace Nestopia
 				}
 			}
 		}
+
+		#ifdef NST_MSVC_OPTIMIZE
+		#pragma optimize("t", on)
+		#endif
 	}
 }

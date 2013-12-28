@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,10 +25,9 @@
 #include "NstApplicationException.hpp"
 #include "NstResourceVersion.hpp"
 #include "NstIoLog.hpp"
-#include "NstWindowMenu.hpp"
 #include "NstWindowUser.hpp"
 #include "NstDialogLanguage.hpp"
-#include "NstManagerEmulator.hpp"
+#include "NstManager.hpp"
 #include "NstManagerLanguage.hpp"
 
 namespace Nestopia
@@ -36,11 +35,8 @@ namespace Nestopia
 	namespace Managers
 	{
 		Language::Language(Emulator& e,Window::Menu& m)
-		: menu(m), emulator(e)
+		: Manager(e,m,this,&Language::OnEmuEvent,IDM_OPTIONS_LANGUAGE,&Language::OnCmd)
 		{
-			m.Commands().Add( IDM_OPTIONS_LANGUAGE, this, &Language::OnCmd );
-			emulator.Events().Add( this, &Language::OnEmuEvent );
-
 			const Resource::Version version( Application::Instance::GetLanguage().GetResourcePath().Ptr(), Resource::Version::PRODUCT );
 
 			if (version != Application::Instance::GetVersion() && !Window::User::Confirm( IDS_INCOMPATIBLE_RESOURCE ))
@@ -53,11 +49,6 @@ namespace Nestopia
                       << '.'
                       << Resource::Version( Application::Instance::GetLanguage().GetResourcePath().Ptr(), Resource::Version::FILE )
                       << "\r\n";
-		}
-
-		Language::~Language()
-		{
-			emulator.Events().Remove( this );
 		}
 
 		void Language::OnCmd(uint)

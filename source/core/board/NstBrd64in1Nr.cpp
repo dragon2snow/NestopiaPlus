@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -31,7 +31,7 @@ namespace Nes
 	{
 		namespace Boards
 		{
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("s", on)
 			#endif
 
@@ -50,43 +50,43 @@ namespace Nes
 
 			void Bmc64In1Nr::SubSave(State::Saver& state) const
 			{
-				state.Begin('R','E','G','\0').Write( regs ).End();
+				state.Begin( AsciiId<'R','E','G'>::V ).Write( regs ).End();
 			}
 
 			void Bmc64In1Nr::SubLoad(State::Loader& state)
 			{
 				while (const dword chunk = state.Begin())
 				{
-					if (chunk == NES_STATE_CHUNK_ID('R','E','G','\0'))
+					if (chunk == AsciiId<'R','E','G'>::V)
 						state.Read( regs );
 
 					state.End();
 				}
 			}
 
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("", on)
 			#endif
 
 			void Bmc64In1Nr::Update()
 			{
-				uint bank = regs[1] & 0x1F;
+				uint bank = regs[1] & 0x1FU;
 
-				if (regs[0] & regs[1] & 0x80)
+				if (regs[0] & 0x80U & regs[1])
 				{
-					prg.SwapBank<SIZE_32K,0x0000U>( bank );
+					prg.SwapBank<SIZE_32K,0x0000>( bank );
 				}
 				else
 				{
-					bank = (bank << 1) | (regs[1] >> 6 & 0x1);
-					prg.SwapBank<SIZE_16K,0x4000U>( bank );
+					bank = (bank << 1) | (regs[1] >> 6 & 0x1U);
+					prg.SwapBank<SIZE_16K,0x4000>( bank );
 
-					if (regs[0] & 0x80)
-						prg.SwapBank<SIZE_16K,0x0000U>( bank );
+					if (regs[0] & 0x80U)
+						prg.SwapBank<SIZE_16K,0x0000>( bank );
 				}
 
-				ppu.SetMirroring( (regs[0] & 0x20) ? Ppu::NMT_HORIZONTAL : Ppu::NMT_VERTICAL );
-				chr.SwapBank<SIZE_8K,0x0000U>( (regs[2] << 2) | (regs[0] >> 1 & 0x3) );
+				ppu.SetMirroring( (regs[0] & 0x20U) ? Ppu::NMT_HORIZONTAL : Ppu::NMT_VERTICAL );
+				chr.SwapBank<SIZE_8K,0x0000>( (regs[2] << 2) | (regs[0] >> 1 & 0x3U) );
 			}
 
 			NES_POKE(Bmc64In1Nr,5000)

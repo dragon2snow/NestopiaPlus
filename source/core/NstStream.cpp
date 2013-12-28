@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -22,8 +22,8 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include <string>
 #include <iostream>
+#include "NstVector.hpp"
 #include "NstStream.hpp"
 
 namespace Nes
@@ -32,70 +32,191 @@ namespace Nes
 	{
 		namespace Stream
 		{
-			static void SeekG(StdStream stream,long offset,std::istream::seekdir dir)
+			void In::SafeRead(byte* data,dword size)
 			{
-				if (static_cast<std::istream*>(stream)->seekg( offset, dir ).fail())
-					throw RESULT_ERR_CORRUPT_FILE;
+				static_cast<std::istream*>(stream)->read( reinterpret_cast<char*>(data), size );
 			}
 
-			static void SeekP(StdStream stream,long offset,std::ostream::seekdir dir)
-			{
-				if (static_cast<std::ostream*>(stream)->seekp( offset, dir ).fail())
-					throw RESULT_ERR_CORRUPT_FILE;
-			}
-
-			int In::Peek()
-			{
-				return static_cast<std::istream*>(stream)->peek();
-			}
-
-			void In::SetPos(ulong pos)
-			{
-				SeekG( stream, pos, std::ios::beg );
-			}
-
-			ulong In::GetPos()
-			{
-				return static_cast<std::istream*>(stream)->tellg();
-			}
-
-			void In::Seek(long distance)
-			{
-				SeekG( stream, distance, std::ios::cur );
-			}
-
-			void In::Read(void* data,ulong size)
+			void In::Read(byte* data,dword size)
 			{
 				NST_ASSERT( data && size );
 
-				if (static_cast<std::istream*>(stream)->read( static_cast<char*>(data), size ).fail())
+				SafeRead( data, size );
+
+				if (!*static_cast<std::istream*>(stream))
 					throw RESULT_ERR_CORRUPT_FILE;
 			}
 
 			uint In::Read8()
 			{
-				u8 data;
+				byte data;
 				Read( &data, 1 );
 				return data;
 			}
 
 			uint In::Read16()
 			{
-				u8 data[2];
+				byte data[2];
 				Read( data, 2 );
-				return data[0] | (data[1] << 8);
+				return data[0] | uint(data[1]) << 8;
 			}
 
 			dword In::Read32()
 			{
-				u8 data[4];
+				byte data[4];
 				Read( data, 4 );
-				return data[0] | (data[1] << 8) | (data[2] << 16) | (data[3] << 24);
+				return data[0] | uint(data[1]) << 8 | dword(data[2]) << 16 | dword(data[3]) << 24;
 			}
+
+			uint In::SafeRead8()
+			{
+				byte data;
+				SafeRead( &data, 1 );
+				return *static_cast<std::istream*>(stream) ? data : ~0U;
+			}
+
+			#ifdef NST_MSVC_OPTIMIZE
+			#pragma optimize("s", on)
+			#endif
+
+			void In::Seek(idword distance)
+			{
+				std::istream& ref = *static_cast<std::istream*>(stream);
+
+				if (!ref.bad())
+					ref.clear();
+
+				if (!ref.seekg( distance, std::ios::cur ))
+					throw RESULT_ERR_CORRUPT_FILE;
+			}
+
+			dword In::AsciiToC(char* NST_RESTRICT dst,const byte* NST_RESTRICT src,dword length)
+			{
+				const char* const dstEnd = dst + length;
+				const byte* srcEnd = src;
+
+				for (const byte* end=src+length; srcEnd != end && *srcEnd; )
+					++srcEnd;
+
+				while (srcEnd != src && srcEnd[-1] == Ascii<' '>::V)
+					--srcEnd;
+
+				while (src != srcEnd && *src && *src == Ascii<' '>::V)
+					++src;
+
+				while (src != srcEnd)
+				{
+					const byte b = *src++;
+					char c;
+
+					if (b >= Ascii<'a'>::V && b <= Ascii<'z'>::V)
+					{
+						c = b - Ascii<'a'>::V + 'a';
+					}
+					else if (b >= Ascii<'A'>::V && b <= Ascii<'Z'>::V)
+					{
+						c = b - Ascii<'A'>::V + 'A';
+					}
+					else if (b >= Ascii<'0'>::V && b <= Ascii<'9'>::V)
+					{
+						c = b - Ascii<'0'>::V + '0';
+					}
+					else switch (b)
+					{
+						case Ascii< '\0' >::V: c = '\0'; break;
+						case Ascii< ' '  >::V: c = ' ' ; break;
+						case Ascii< '!'  >::V: c = '!' ; break;
+						case Ascii< '#'  >::V: c = '#' ; break;
+						case Ascii< '%'  >::V: c = '%' ; break;
+						case Ascii< '^'  >::V: c = '^' ; break;
+						case Ascii< '&'  >::V: c = '&' ; break;
+						case Ascii< '*'  >::V: c = '*' ; break;
+						case Ascii< '('  >::V: c = '(' ; break;
+						case Ascii< ')'  >::V: c = ')' ; break;
+						case Ascii< '-'  >::V: c = '-' ; break;
+						case Ascii< '_'  >::V: c = '_' ; break;
+						case Ascii< '+'  >::V: c = '+' ; break;
+						case Ascii< '='  >::V: c = '=' ; break;
+						case Ascii< '~'  >::V: c = '~' ; break;
+						case Ascii< '['  >::V: c = '[' ; break;
+						case Ascii< ']'  >::V: c = ']' ; break;
+						case Ascii< '\\' >::V: c = '\\'; break;
+						case Ascii< '|'  >::V: c = '|' ; break;
+						case Ascii< ';'  >::V: c = ';' ; break;
+						case Ascii< ':'  >::V: c = ':' ; break;
+						case Ascii< '\'' >::V: c = '\''; break;
+						case Ascii< '\"' >::V: c = '\"'; break;
+						case Ascii< '{'  >::V: c = '{' ; break;
+						case Ascii< '}'  >::V: c = '}' ; break;
+						case Ascii< ','  >::V: c = ',' ; break;
+						case Ascii< '.'  >::V: c = '.' ; break;
+						case Ascii< '<'  >::V: c = '<' ; break;
+						case Ascii< '>'  >::V: c = '>' ; break;
+						case Ascii< '/'  >::V: c = '/' ; break;
+						case Ascii< '?'  >::V: c = '?' ; break;
+
+						case Ascii< '\a' >::V:
+						case Ascii< '\b' >::V:
+						case Ascii< '\t' >::V:
+						case Ascii< '\v' >::V:
+						case Ascii< '\n' >::V:
+						case Ascii< '\r' >::V:
+						case Ascii< '\f' >::V:
+
+							NST_DEBUG_MSG("invalid stream character!");
+							continue;
+
+						default:
+
+							NST_DEBUG_MSG("unknown stream character!");
+
+							c = b - (CHAR_MIN < 0 ? 0x100 : 0);
+							break;
+					}
+
+					*dst++ = c;
+				}
+
+				length -= dstEnd - dst;
+
+				while (dst != dstEnd)
+					*dst++ = '\0';
+
+				return length;
+			}
+
+			void In::Read(char* dst,dword size)
+			{
+				NST_ASSERT( dst && size );
+
+				Vector<byte> buffer( size );
+				Read( buffer.Begin(), size );
+				AsciiToC( dst, buffer.Begin(), size );
+			}
+
+			dword In::Read(Vector<char>& string)
+			{
+				Vector<byte> buffer;
+				buffer.Reserve( 32 );
+
+				for (uint c; (c=Read8()) != '\0'; buffer.Append(c));
+
+				string.Resize( buffer.Size() + 1 );
+				string.SetTo( AsciiToC( string.Begin(), buffer.Begin(), buffer.Size() ) + 1 );
+				string.Back() = '\0';
+
+				return buffer.Size() + 1;
+			}
+
+			#ifdef NST_MSVC_OPTIMIZE
+			#pragma optimize("", on)
+			#endif
 
 			uint In::Peek8()
 			{
-				return (uint) Peek();
+				const uint data = Read8();
+				Seek( -1 );
+				return data;
 			}
 
 			uint In::Peek16()
@@ -112,74 +233,36 @@ namespace Nes
 				return data;
 			}
 
-			void In::Validate(u8 check)
-			{
-				if (Read8() != check)
-					throw RESULT_ERR_CORRUPT_FILE;
-			}
-
-			void In::Validate(u16 check)
-			{
-				if (Read16() != check)
-					throw RESULT_ERR_CORRUPT_FILE;
-			}
-
-			void In::Validate(u32 check)
-			{
-				if (Read32() != check)
-					throw RESULT_ERR_CORRUPT_FILE;
-			}
-
 			bool In::Eof()
 			{
-				return
-				(
-					(static_cast<std::istream*>(stream)->rdstate() & std::istream::eofbit) ||
-					Peek() == std::char_traits<char>::eof()
-				);
+				std::istream& ref = *static_cast<std::istream*>(stream);
+				return ref.eof() || (ref.peek(), ref.eof());
 			}
 
-			ulong In::Length()
-			{
-				const ulong current = GetPos();
-
-				SeekG( stream, 0, std::ios::end );
-
-				const ulong length = GetPos() - current;
-
-				SetPos( current );
-
-				return length;
-			}
-
-			ulong In::ReadString(void* string)
-			{
-				if (std::getline( *static_cast<std::istream*>(stream), *static_cast<std::string*>(string), '\0' ).fail())
-					throw RESULT_ERR_CORRUPT_FILE;
-
-				return static_cast<std::string*>(string)->length();
-			}
-
-			void Out::Write(const void* data,ulong size)
+			void Out::Write(const byte* data,dword size)
 			{
 				NST_VERIFY( data && size );
 
-				if (static_cast<std::ostream*>(stream)->write( static_cast<cstring>(data), size ).fail())
+				if (!static_cast<std::ostream*>(stream)->write( reinterpret_cast<const char*>(data), size ))
 					throw RESULT_ERR_CORRUPT_FILE;
 			}
 
 			void Out::Write8(const uint data)
 			{
-				const u8 d = data;
+				NST_VERIFY( data <= 0xFF );
+
+				const byte d = data & 0xFF;
 				Write( &d, 1 );
 			}
 
 			void Out::Write16(const uint data)
 			{
-				const u8 d[2] =
+				NST_VERIFY( data <= 0xFFFF );
+
+				const byte d[2] =
 				{
-					data & 0xFF,
-					data >> 8
+					data >> 0 & 0xFF,
+					data >> 8 & 0xFF
 				};
 
 				Write( d, 2 );
@@ -187,44 +270,57 @@ namespace Nes
 
 			void Out::Write32(const dword data)
 			{
-				const u8 d[4] =
+				NST_VERIFY( data <= 0xFFFFFFFF );
+
+				const byte d[4] =
 				{
-					data & 0xFF,
+					data >>  0 & 0xFF,
 					data >>  8 & 0xFF,
 					data >> 16 & 0xFF,
-					data >> 24
+					data >> 24 & 0xFF
 				};
 
 				Write( d, 4 );
 			}
 
-			void Out::Seek(long distance)
+			#ifdef NST_MSVC_OPTIMIZE
+			#pragma optimize("s", on)
+			#endif
+
+			void Out::Clear()
 			{
-				SeekP( stream, distance, std::ios::cur );
+				std::ostream& ref = *static_cast<std::ostream*>(stream);
+
+				if (!ref.bad())
+					ref.clear();
 			}
 
-			void Out::SetPos(ulong pos)
+			void Out::Seek(idword distance)
 			{
-				SeekP( stream, pos, std::ios::beg );
+				Clear();
+
+				if (!static_cast<std::ostream*>(stream)->seekp( distance, std::ios::cur ))
+					throw RESULT_ERR_CORRUPT_FILE;
 			}
 
-			ulong Out::GetPos()
+			bool Out::SeekEnd()
 			{
-				return static_cast<std::ostream*>(stream)->tellp();
+				Clear();
+
+				std::ostream& ref = *static_cast<std::ostream*>(stream);
+
+				const std::streampos pos( ref.tellp() );
+				ref.seekp( 0, std::ios::end );
+				const bool advanced = !(pos == ref.tellp());
+
+				Clear();
+
+				return advanced;
 			}
 
-			ulong Out::Length()
-			{
-				const ulong current = GetPos();
-
-				SeekP( stream, 0, std::ios::end );
-
-				const ulong length = GetPos() - current;
-
-				SetPos( current );
-
-				return length;
-			}
+			#ifdef NST_MSVC_OPTIMIZE
+			#pragma optimize("", on)
+			#endif
 		}
 	}
 }

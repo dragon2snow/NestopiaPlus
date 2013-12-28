@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -61,6 +61,7 @@ namespace Nestopia
 			};
 
 			Video(Managers::Emulator&,const Adapters&,const Managers::Paths&,const Configuration&);
+			~Video();
 
 			void Save(Configuration&) const;
 			void LoadGamePalette(const Path&);
@@ -122,7 +123,7 @@ namespace Nestopia
 				Path lockedPalette;
 				Nes::Video::Palette::Mode lockedMode;
 				int screenCurvature;
-				u8 fullscreenScale;
+				uchar fullscreenScale;
 				bool autoPalette;
 				bool autoHz;
 				bool tvAspect;
@@ -175,7 +176,7 @@ namespace Nestopia
 				dialog.Open();
 			}
 
-			ibool IsOpen() const
+			bool IsOpen() const
 			{
 				return dialog.IsOpen();
 			}
@@ -230,22 +231,22 @@ namespace Nestopia
 				settings.fullscreenScale = scale;
 			}
 
-			ibool UseAutoFrequency() const
+			bool UseAutoFrequency() const
 			{
 				return settings.autoHz;
 			}
 
-			ibool UseAutoFieldMerging() const
+			bool UseAutoFieldMerging() const
 			{
 				return settings.filters[Filter::TYPE_NTSC].attributes[Filter::ATR_FIELDMERGING] == Filter::ATR_FIELDMERGING_AUTO;
 			}
 
-			ibool EnableFieldMerging() const
+			bool EnableFieldMerging() const
 			{
 				return settings.filters[Filter::TYPE_NTSC].attributes[Filter::ATR_FIELDMERGING] == Filter::ATR_FIELDMERGING_ON;
 			}
 
-			ibool PutTextureInVideoMemory() const
+			bool PutTextureInVideoMemory() const
 			{
 				return settings.texMem == Settings::TEXMEM_VIDMEM;
 			}

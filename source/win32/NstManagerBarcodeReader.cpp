@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -22,7 +22,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstWindowMenu.hpp"
+#include "NstManager.hpp"
 #include "NstDialogBarcodeReader.hpp"
 #include "NstManagerBarcodeReader.hpp"
 
@@ -31,15 +31,12 @@ namespace Nestopia
 	namespace Managers
 	{
 		BarcodeReader::BarcodeReader(Emulator& e,Window::Menu& m)
-		: emulator(e), menu(m)
+		: Manager(e,m,this,&BarcodeReader::OnEmuEvent,IDM_MACHINE_EXT_BARCODE,&BarcodeReader::OnMenuCmd)
 		{
-			m.Commands().Add( IDM_MACHINE_EXT_BARCODE, this, &BarcodeReader::OnMenuCmd );
-			emulator.Events().Add( this, &BarcodeReader::OnEmuEvent );
 		}
 
 		BarcodeReader::~BarcodeReader()
 		{
-			emulator.Events().Remove( this );
 		}
 
 		void BarcodeReader::OnMenuCmd(uint)

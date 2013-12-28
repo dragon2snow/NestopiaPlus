@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -40,14 +40,14 @@ namespace Nestopia
 
 	namespace Managers
 	{
-		class Launcher
+		class Launcher : Manager
 		{
 		public:
 
 			Launcher(Emulator&,const Configuration&,Window::Menu&,const Paths&,Window::Custom&);
 			~Launcher();
 
-			void Save(Configuration&,ibool,ibool) const;
+			void Save(Configuration&,bool,bool) const;
 
 		private:
 
@@ -68,10 +68,8 @@ namespace Nestopia
 
 			static Nes::Emulator& ImportDatabase(Nes::Emulator&);
 
-			Emulator& emulator;
-			const Window::Menu& menu;
 			Collection::BitSet state;
-			ibool fullscreen;
+			bool fullscreen;
 			Object::Heap<Window::Launcher> dialog;
 		};
 	}

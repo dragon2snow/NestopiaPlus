@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -29,14 +29,17 @@ namespace Nes
 {
 	namespace Core
 	{
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("s", on)
 		#endif
 
 		void Mapper226::SubReset(const bool hard)
 		{
 			if (hard)
-				regs[1] = regs[0] = 0;
+			{
+				regs[0] = 0;
+				regs[1] = 0;
+			}
 
 			Map( 0x8000U, 0xFFFFU, &Mapper226::Poke_Prg );
 		}
@@ -45,9 +48,10 @@ namespace Nes
 		{
 			while (const dword chunk = state.Begin())
 			{
-				if (chunk == NES_STATE_CHUNK_ID('R','E','G','\0'))
+				if (chunk == AsciiId<'R','E','G'>::V)
 				{
-					const State::Loader::Data<2> data( state );
+					State::Loader::Data<2> data( state );
+
 					regs[0] = data[0];
 					regs[1] = data[1];
 				}
@@ -58,10 +62,10 @@ namespace Nes
 
 		void Mapper226::SubSave(State::Saver& state) const
 		{
-			state.Begin('R','E','G','\0').Write16( regs[0] | (regs[1] << 8) ).End();
+			state.Begin( AsciiId<'R','E','G'>::V ).Write16( regs[0] | uint(regs[1]) << 8 ).End();
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
@@ -79,11 +83,11 @@ namespace Nes
 			if (regs[0] & 0x20)
 			{
 				bank = (bank << 1) | (regs[0] & 0x1);
-				prg.SwapBanks<SIZE_16K,0x0000U>( bank, bank );
+				prg.SwapBanks<SIZE_16K,0x0000>( bank, bank );
 			}
 			else
 			{
-				prg.SwapBank<SIZE_32K,0x0000U>( bank );
+				prg.SwapBank<SIZE_32K,0x0000>( bank );
 			}
 
 			ppu.SetMirroring( (regs[0] & 0x40) ? Ppu::NMT_VERTICAL : Ppu::NMT_HORIZONTAL );

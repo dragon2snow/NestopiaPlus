@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -22,84 +22,56 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include <new>
 #include "NstStream.hpp"
 #include "NstCartridge.hpp"
 #include "NstFds.hpp"
 #include "NstNsf.hpp"
 
-#ifdef NST_PRAGMA_OPTIMIZE
-#pragma optimize("s", on)
-#endif
-
 namespace Nes
 {
 	namespace Core
 	{
+		#ifdef NST_MSVC_OPTIMIZE
+		#pragma optimize("s", on)
+		#endif
+
 		Image::Image(Type t)
 		: type(t) {}
 
-		Result Image::Load(Context& context)
+		Image* Image::Load(Context& context)
 		{
-			NST_ASSERT( context.image == NULL );
-
-			Result result;
-
-			try
+			switch (Stream::In(context.stream).Peek32())
 			{
-				switch (Stream::In(context.stream).Peek32())
-				{
-					case 0x1A53454EUL: // ines
-					case 0x46494E55UL: // unif
+				case INES_ID:
+				case UNIF_ID:
 
-						if (context.type == CARTRIDGE || context.type == UNKNOWN)
-						{
-							result = RESULT_OK;
-							context.image = new Cartridge (context,result);
-							return result;
-						}
-						break;
+					if (context.type == CARTRIDGE || context.type == UNKNOWN)
+						return new Cartridge (context);
 
-					case 0x1A534446UL: // fds
-					case 0x494E2A01UL: //
+					break;
 
-						if (context.type == DISK || context.type == UNKNOWN)
-							context.image = new Fds (context);
+				case FDS_ID:
+				case FDS_RAW_ID:
 
-						break;
+					if (context.type == DISK || context.type == UNKNOWN)
+						return new Fds (context);
 
-					case 0x4D53454EUL:
+					break;
 
-						if (context.type == SOUND || context.type == UNKNOWN)
-							context.image = new Nsf (context);
+				case NSF_ID:
 
-						break;
-				}
+					if (context.type == SOUND || context.type == UNKNOWN)
+						return new Nsf (context);
 
-				return context.image ? RESULT_OK : RESULT_ERR_INVALID_FILE;
-			}
-			catch (Result r)
-			{
-				result = r;
-			}
-			catch (const std::bad_alloc&)
-			{
-				result = RESULT_ERR_OUT_OF_MEMORY;
-			}
-			catch (...)
-			{
-				result = RESULT_ERR_GENERIC;
+					break;
 			}
 
-			Unload( context.image );
-
-			return result;
+			throw RESULT_ERR_INVALID_FILE;
 		}
 
-		void Image::Unload(Image*& image)
+		void Image::Unload(Image* image)
 		{
 			delete image;
-			image = NULL;
 		}
 
 		uint Image::GetDesiredController(uint port) const
@@ -116,9 +88,9 @@ namespace Nes
 		{
 			return Api::Input::ADAPTER_NES;
 		}
+
+		#ifdef NST_MSVC_OPTIMIZE
+		#pragma optimize("", on)
+		#endif
 	}
 }
-
-#ifdef NST_PRAGMA_OPTIMIZE
-#pragma optimize("", on)
-#endif

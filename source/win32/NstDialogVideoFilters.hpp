@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -39,10 +39,8 @@ namespace Nestopia
 
 			enum Type
 			{
-				TYPE_NONE,
-				TYPE_SCANLINES,
+				TYPE_STD,
 				TYPE_NTSC,
-				TYPE_2XSAI,
 				TYPE_SCALEX,
 				TYPE_HQX,
 				NUM_TYPES
@@ -53,9 +51,6 @@ namespace Nestopia
 				ATR_FIELDMERGING_AUTO = 0,
 				ATR_FIELDMERGING_ON,
 				ATR_FIELDMERGING_OFF,
-				ATR_2XSAI = 0,
-				ATR_SUPER2XSAI,
-				ATR_SUPEREAGLE,
 				ATR_SCALEAX = 0,
 				ATR_SCALE2X,
 				ATR_SCALE3X,
@@ -77,12 +72,13 @@ namespace Nestopia
 
 			struct Settings
 			{
-				void Reset(Type);
+				void Reset();
 
-				i8 attributes[8];
+				schar attributes[8];
 			};
 
 			VideoFilters(Nes::Video,uint,Settings&,uint,bool,Nes::Video::Palette::Mode);
+			~VideoFilters();
 
 			static Type Load(const Configuration&,Settings (&)[NUM_TYPES],Nes::Video,uint,bool,Nes::Video::Palette::Mode);
 			static void Save(Configuration&,const Settings (&)[NUM_TYPES],Nes::Video,Type);
@@ -108,11 +104,11 @@ namespace Nestopia
 				Backup(const Settings&,const Nes::Video);
 
 				const Settings settings;
-				const i8 sharpness;
-				const i8 resolution;
-				const i8 bleed;
-				const i8 artifacts;
-				const i8 fringing;
+				const schar sharpness;
+				const schar resolution;
+				const schar bleed;
+				const schar artifacts;
+				const schar fringing;
 				bool restore;
 			};
 
@@ -124,7 +120,6 @@ namespace Nestopia
 			ibool OnCmdBilinear   (Param&);
 			ibool OnCmdNtscTuning (Param&);
 			ibool OnCmdNtscCable  (Param&);
-			ibool OnCmd2xSaI      (Param&);
 			ibool OnCmdScaleX     (Param&);
 			ibool OnCmdHqX        (Param&);
 
@@ -136,7 +131,7 @@ namespace Nestopia
 			Settings& settings;
 			Backup backup;
 			const uint maxScreenSize;
-			const ibool canDoBilinear;
+			const bool canDoBilinear;
 			const Nes::Video::Palette::Mode paletteMode;
 			Nes::Video nes;
 			Dialog dialog;

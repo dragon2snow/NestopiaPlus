@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -43,7 +43,8 @@ namespace Nestopia
 		{
 		public:
 
-			Netplay(Managers::Emulator&,const Managers::Paths&,ibool);
+			Netplay(Managers::Emulator&,const Managers::Paths&,bool);
+			~Netplay();
 
 			void SaveFile() const;
 
@@ -53,7 +54,8 @@ namespace Nestopia
 
 				typedef int (WINAPI *Callback)(char*);
 
-				Chat(Callback);
+				explicit Chat(Callback);
+				~Chat();
 
 				void Close();
 				void Open();
@@ -120,7 +122,7 @@ namespace Nestopia
 			void OnDeleteItem  (const NMHDR&);
 
 			Dialog dialog;
-			ibool doFullscreen;
+			bool doFullscreen;
 			const Managers::Paths& paths;
 			Managers::Emulator& emulator;
 			const Control::NotificationHandler notifications;
@@ -128,12 +130,12 @@ namespace Nestopia
 
 		public:
 
-			ibool Open()
+			bool Open()
 			{
 				return dialog.Open() == LAUNCH;
 			}
 
-			ibool ShouldGoFullscreen() const
+			bool ShouldGoFullscreen() const
 			{
 				return doFullscreen;
 			}

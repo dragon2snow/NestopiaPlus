@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -38,6 +38,7 @@ namespace Nestopia
 		public:
 
 			Fds(Managers::Emulator&,const Configuration&,const Managers::Paths&);
+			~Fds();
 
 			void Save(Configuration&) const;
 			void QueryBiosFile();
@@ -55,12 +56,6 @@ namespace Nestopia
 
 			struct Handlers;
 
-			struct Settings
-			{
-				Led led;
-				Path bios;
-			};
-
 			void SubmitBios();
 
 			ibool OnInitDialog (Param&);
@@ -70,7 +65,13 @@ namespace Nestopia
 			ibool OnCmdOk      (Param&);
 
 			Dialog dialog;
-			Settings settings;
+
+			struct
+			{
+				Led led;
+				Path bios;
+			}   settings;
+
 			Managers::Emulator& emulator;
 			const Managers::Paths& paths;
 

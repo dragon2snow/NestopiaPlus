@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -22,76 +22,60 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
+#include <new>
 #include "../NstMachine.hpp"
-#include "../NstCartridge.hpp"
 #include "../NstImage.hpp"
+#include "../NstState.hpp"
 #include "NstApiMachine.hpp"
-#include "NstApiMovie.hpp"
-#include "NstApiRewinder.hpp"
 
 namespace Nes
 {
 	namespace Api
 	{
-		uint Machine::Is(uint what) const throw()
+		uint Machine::Is(uint a) const throw()
 		{
-			return emulator.state & what;
+			return emulator.Is( a );
 		}
 
-		uint Machine::Is(uint what,uint that) const throw()
+		bool Machine::Is(uint a,uint b) const throw()
 		{
-			return (emulator.state & what) && (emulator.state & that);
+			return emulator.Is( a, b );
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		bool Machine::IsLocked() const throw()
+		{
+			return emulator.tracker.IsLocked();
+		}
+
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("s", on)
 		#endif
 
 		Result Machine::Load(std::istream& stream,uint type)
 		{
-			const ibool power = emulator.state & ON;
+			Result result;
 
-			Unload();
+			const bool on = Is(ON);
 
-			Result result = emulator.Load( &stream, type );
-
-			if (NES_SUCCEEDED(result))
+			try
 			{
-				switch (emulator.image->GetType())
-				{
-					case Core::Image::DISK:
-
-						emulator.state |= DISK;
-						break;
-
-					case Core::Image::SOUND:
-
-						emulator.state |= SOUND;
-						break;
-
-					default:
-
-						emulator.state |= CARTRIDGE;
-
-						if (static_cast<const Core::Cartridge*>(emulator.image)->IsVS())
-						{
-							emulator.state |= VS;
-						}
-						else if (static_cast<const Core::Cartridge*>(emulator.image)->GetInfo().setup.system == SYSTEM_PC10)
-						{
-							emulator.state |= PC10;
-						}
-						break;
-				}
-
-				if (power)
-				{
-					Result tmp = Power( true );
-
-					if (result > tmp)
-						result = tmp;
-				}
+				result = emulator.Load( &stream, type );
 			}
+			catch (Result result)
+			{
+				return result;
+			}
+			catch (const std::bad_alloc&)
+			{
+				return RESULT_ERR_OUT_OF_MEMORY;
+			}
+			catch (...)
+			{
+				return RESULT_ERR_GENERIC;
+			}
+
+			if (on)
+				Power( true );
 
 			return result;
 		}
@@ -118,74 +102,76 @@ namespace Nes
 
 		Result Machine::Unload() throw()
 		{
-			if (emulator.state & IMAGE)
-			{
-				if (emulator.state & ON)
-					emulator.PowerOff();
+			if (!Is(IMAGE))
+				return RESULT_NOP;
 
-				if (emulator.image)
-					emulator.Unload();
-
-				emulator.state &= (NTSC|PAL);
-
+			if (emulator.Unload())
 				return RESULT_OK;
-			}
-
-			return RESULT_NOP;
+			else
+				return RESULT_WARN_SAVEDATA_LOST;
 		}
 
 		Result Machine::Power(const bool on) throw()
 		{
+			if (on == bool(Is(ON)))
+				return RESULT_NOP;
+
 			if (on)
 			{
-				if (emulator.state & IMAGE)
+				try
 				{
-					if (!(emulator.state & ON))
-					{
-						Result result = emulator.PowerOn();
-
-						if (NES_SUCCEEDED(result))
-							emulator.state |= ON;
-
-						return result;
-					}
+					emulator.Reset( true );
 				}
-				else
+				catch (Result result)
 				{
-					return RESULT_ERR_NOT_READY;
+					return result;
+				}
+				catch (const std::bad_alloc&)
+				{
+					return RESULT_ERR_OUT_OF_MEMORY;
+				}
+				catch (...)
+				{
+					return RESULT_ERR_GENERIC;
 				}
 			}
 			else
 			{
-				if (emulator.state & ON)
-				{
-					emulator.state &= ~uint(ON);
-					emulator.PowerOff();
-					return RESULT_OK;
-				}
+				if (!emulator.PowerOff())
+					return RESULT_WARN_SAVEDATA_LOST;
 			}
 
-			return RESULT_NOP;
+			return RESULT_OK;
 		}
 
 		Result Machine::Reset(const bool hard) throw()
 		{
-			if ((emulator.state & ON) && !emulator.tracker.IsLocked())
+			if (!Is(ON) || IsLocked())
+				return RESULT_ERR_NOT_READY;
+
+			try
 			{
-				Result result = emulator.Reset( hard );
-
-				if (NES_FAILED(result))
-					Unload();
-
+				emulator.Reset( hard );
+			}
+			catch (Result result)
+			{
 				return result;
 			}
+			catch (const std::bad_alloc&)
+			{
+				return RESULT_ERR_OUT_OF_MEMORY;
+			}
+			catch (...)
+			{
+				return RESULT_ERR_GENERIC;
+			}
 
-			return RESULT_ERR_NOT_READY;
+			return RESULT_OK;
 		}
 
 		Machine::Mode Machine::GetMode() const throw()
 		{
-			return (Mode) (emulator.state & (NTSC|PAL));
+			return static_cast<Mode>(Is(NTSC|PAL));
 		}
 
 		Machine::Mode Machine::GetDesiredMode() const throw()
@@ -193,40 +179,72 @@ namespace Nes
 			return (!emulator.image || emulator.image->GetMode() == Core::MODE_NTSC) ? NTSC : PAL;
 		}
 
-		Result Machine::SetMode(Mode mode) throw()
+		Result Machine::SetMode(const Mode mode) throw()
 		{
-			if (mode != NTSC && mode != PAL)
-				return RESULT_ERR_INVALID_PARAM;
+			if (mode == GetMode())
+				return RESULT_NOP;
 
-			const Core::Mode m = (mode == NTSC ? Core::MODE_NTSC : Core::MODE_PAL);
+			emulator.SetMode( mode == PAL ? Core::MODE_PAL : Core::MODE_NTSC );
 
-			if (m != emulator.cpu.GetMode())
-			{
-				emulator.state = (emulator.state & ~uint(PAL|NTSC)) | mode;
-				emulator.SetMode( m );
-				return RESULT_OK;
-			}
-
-			return RESULT_NOP;
+			return RESULT_OK;
 		}
 
 		Result Machine::LoadState(std::istream& stream) throw()
 		{
-			if (!emulator.tracker.MovieIsInserted() && !emulator.tracker.IsRewinding())
-			{
-				Api::Rewinder(emulator).Reset();
-				return emulator.LoadState( &stream );
-			}
+			if (!Is(GAME,ON) || IsLocked())
+				return RESULT_ERR_NOT_READY;
 
-			return RESULT_ERR_NOT_READY;
+			try
+			{
+				emulator.tracker.Flush();
+				Core::State::Loader loader( &stream, true );
+
+				if (emulator.LoadState( loader ))
+					return RESULT_OK;
+				else
+					return RESULT_ERR_INVALID_CRC;
+			}
+			catch (Result result)
+			{
+				return result;
+			}
+			catch (std::bad_alloc&)
+			{
+				return RESULT_ERR_OUT_OF_MEMORY;
+			}
+			catch (...)
+			{
+				return RESULT_ERR_GENERIC;
+			}
 		}
 
 		Result Machine::SaveState(std::ostream& stream,Compression compression) const throw()
 		{
-			return emulator.SaveState( &stream, compression != NO_COMPRESSION, false );
+			if (!Is(GAME,ON))
+				return RESULT_ERR_NOT_READY;
+
+			try
+			{
+				Core::State::Saver saver( &stream, compression != NO_COMPRESSION, false );
+				emulator.SaveState( saver );
+			}
+			catch (Result result)
+			{
+				return result;
+			}
+			catch (std::bad_alloc&)
+			{
+				return RESULT_ERR_OUT_OF_MEMORY;
+			}
+			catch (...)
+			{
+				return RESULT_ERR_GENERIC;
+			}
+
+			return RESULT_OK;
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 	}

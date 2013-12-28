@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -30,7 +30,7 @@ namespace Nes
 {
 	namespace Core
 	{
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("s", on)
 		#endif
 
@@ -47,7 +47,7 @@ namespace Nes
 			Map( 0x5000U, 0x57FFU, &Mapper123::Peek_5000 );
 			Map( 0x5800U, 0x5FFFU, &Mapper123::Peek_5000, &Mapper123::Poke_5800 );
 
-			for (uint i=0x8000U; i < 0x9000U; i += 0x2)
+			for (uint i=0x8000; i < 0x9000; i += 0x2)
 				Map( i, &Mapper123::Poke_8000 );
 		}
 
@@ -55,9 +55,9 @@ namespace Nes
 		{
 			while (const dword chunk = state.Begin())
 			{
-				if (chunk == NES_STATE_CHUNK_ID('R','E','G','\0'))
+				if (chunk == AsciiId<'R','E','G'>::V)
 				{
-					const State::Loader::Data<2> data( state );
+					State::Loader::Data<2> data( state );
 
 					exRegs[0] = data[0];
 					exRegs[1] = data[1];
@@ -69,16 +69,16 @@ namespace Nes
 
 		void Mapper123::SubSave(State::Saver& state) const
 		{
-			const u8 data[2] =
+			const byte data[2] =
 			{
 				exRegs[0],
 				exRegs[1]
 			};
 
-			state.Begin('R','E','G','\0').Write( data ).End();
+			state.Begin( AsciiId<'R','E','G'>::V ).Write( data ).End();
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
@@ -106,7 +106,7 @@ namespace Nes
 					data = (exRegs[0] & 0x5) | (exRegs[0] >> 2 & 0x2) | (exRegs[0] >> 2 & 0x8);
 					address = exRegs[0] >> 1 & 0x1;
 
-					prg.SwapBanks<SIZE_16K,0x0000U>( data & ~address, data | address );
+					prg.SwapBanks<SIZE_16K,0x0000>( data & ~address, data | address );
 				}
 				else
 				{
@@ -117,8 +117,8 @@ namespace Nes
 
 		NES_POKE(Mapper123,8000)
 		{
-			static const u8 security[8] = {0,3,1,5,6,7,2,4};
-			NES_CALL_POKE( Mmc3, 8000, address, (data & 0xC0) | security[data & 0x07] );
+			static const byte security[8] = {0,3,1,5,6,7,2,4};
+			Mmc3::NES_DO_POKE(8000,address,(data & 0xC0) | security[data & 0x07]);
 		}
 	}
 }

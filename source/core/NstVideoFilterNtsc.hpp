@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,15 +25,13 @@
 #ifndef NST_VIDEO_FILTER_NTSC_H
 #define NST_VIDEO_FILTER_NTSC_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
+#include "../nes_ntsc/nes_ntsc.h"
+
+#ifdef NST_PRAGMA_ONCE
 #pragma once
 #endif
 
-#include <cmath>
-#include "NstFpuPrecision.hpp"
-#include "../nes_ntsc/nes_ntsc.h"
-
-#ifdef _MSC_VER
+#if NST_MSVC >= 1200
 #pragma warning( push )
 #pragma warning( disable : 4127 )
 #endif
@@ -44,218 +42,59 @@ namespace Nes
 	{
 		namespace Video
 		{
-			struct FilterNtscState
-			{
-				const Api::Video::RenderState& renderState;
-				const u8 (&palette)[Renderer::PALETTE][3];
-				const i8 sharpness;
-				const i8 resolution;
-				const i8 bleed;
-				const i8 artifacts;
-				const i8 fringing;
-				const bool fieldMerging;
-
-				FilterNtscState
-				(
-					const Api::Video::RenderState& r,
-					const u8 (&p)[Renderer::PALETTE][3],
-					i8 s,
-					i8 e,
-					i8 b,
-					i8 a,
-					i8 f,
-					bool m
-				)
-				:
-				renderState  (r),
-				palette      (p),
-				sharpness    (s),
-				resolution   (e),
-				bleed        (b),
-				artifacts    (a),
-				fringing     (f),
-				fieldMerging (m)
-				{}
-			};
-
-			template<uint BITS>
 			class Renderer::FilterNtsc : public Renderer::Filter
 			{
+			public:
+
+				FilterNtsc(const RenderState&,const byte (&)[PALETTE][3],schar,schar,schar,schar,schar,bool);
+
+				static bool Check(const RenderState&);
+
+			private:
+
+				~FilterNtsc() {}
+
 				enum
 				{
-					BPP = BITS,
 					NTSC_WIDTH = 602,
-					NTSC_HEIGHT = HEIGHT * 2,
-					R_MASK = BPP == 32 ? 0xFF0000 : BPP == 16 ? 0xF800 : 0x7C00,
-					G_MASK = BPP == 32 ? 0x00FF00 : BPP == 16 ? 0x07E0 : 0x03E0,
-					B_MASK = BPP == 32 ? 0x0000FF : BPP == 16 ? 0x001F : 0x001F,
-					RB_MASK = R_MASK|B_MASK,
-					S_SHIFT = BPP == 32 ? 8 : 5,
-					DEF_BLACK = 15
+					NTSC_HEIGHT = HEIGHT * 2
 				};
+
+				typedef void (FilterNtsc::*Path)(const Input&,const Output&,uint) const;
+
+				static Path GetPath(const RenderState&);
 
 				void Blit(const Input&,const Output&,uint);
 
-				class Lut : public nes_ntsc_emph_t
+				template<typename T,uint BITS>
+				void BlitType(const Input&,const Output&,uint) const;
+
+				class Lut : public nes_ntsc_t
 				{
-					static uint GetBlack(const u8 (&p)[Renderer::PALETTE][3])
+					enum
 					{
-						uint index = DEF_BLACK;
-						double intensity = 1.0;
+						DEF_BLACK = 15
+					};
 
-						for (uint i=0; i < NST_MIN(64,Renderer::PALETTE); ++i)
-						{
-							const double v =
-							(
-								p[i][0] / 255.0 * 0.30 +
-								p[i][1] / 255.0 * 0.59 +
-								p[i][2] / 255.0 * 0.11
-							);
-
-							if (intensity > v)
-							{
-								intensity = v;
-								index = i;
-							}
-						}
-
-						return index;
-					}
+					static inline uint GetBlack(const byte (&)[PALETTE][3]);
 
 				public:
 
+					Lut(const byte (&)[PALETTE][3],schar,schar,schar,schar,schar,bool);
+
 					const uint noFieldMerging;
 					const uint black;
-
-					Lut(const FilterNtscState& state)
-					: noFieldMerging(state.fieldMerging ? 0U : ~0U), black(GetBlack( state.palette ))
-					{
-						FpuPrecision precision;
-
-						nes_ntsc_setup_t setup;
-
-						setup.hue = 0.0833;
-						setup.saturation = 0.0;
-						setup.contrast = 0.0;
-						setup.brightness = 0.0;
-						setup.sharpness = state.sharpness / 100.0;
-						setup.gamma = 0.2667;
-						setup.resolution = state.resolution / 100.0;
-						setup.artifacts = state.artifacts / 100.0;
-						setup.fringing = state.fringing / 100.0;
-						setup.bleed = state.bleed / 100.0;
-						setup.merge_fields = state.fieldMerging;
-						setup.decoder_matrix = NULL;
-						setup.palette = reinterpret_cast<const uchar*>(state.palette);
-						setup.palette_out = NULL;
-
-						::nes_ntsc_init_emph( this, &setup );
-					}
 				};
 
+				const Path path;
 				const Lut lut;
 				const uint scanlines;
-
-			public:
-
-				FilterNtsc(const FilterNtscState&);
-
-				static bool Check(const RenderState&);
 			};
-
-			template<uint BITS>
-			Renderer::FilterNtsc<BITS>::FilterNtsc(const FilterNtscState& state)
-			:
-			Filter    ( state.renderState ),
-			lut       ( state ),
-			scanlines ( (100-state.renderState.scanlines) * (BPP == 32 ? 256 : 32) / 100 )
-			{
-			}
-
-			template<uint BITS>
-			bool Renderer::FilterNtsc<BITS>::Check(const RenderState& state)
-			{
-				return
-				(
-					( state.bits.count  == (BPP == 32 ? 32 : 16) ) &&
-					( state.bits.mask.r == R_MASK                ) &&
-					( state.bits.mask.g == G_MASK                ) &&
-					( state.bits.mask.b == B_MASK                ) &&
-					( state.width       == NTSC_WIDTH            ) &&
-					( state.height      == NTSC_HEIGHT           ) &&
-					( state.scanlines   <= 100                   )
-				);
-			}
-
-			template<uint BITS>
-			void Renderer::FilterNtsc<BITS>::Blit(const Input& input,const Output& output,uint phase)
-			{
-				NST_ASSERT( phase < 3 );
-
-				typedef typename OutPixel<BPP>::Type Pixel;
-
-				Pixel buffer[NTSC_WIDTH];
-
-				const u16* NST_RESTRICT src = input.pixels;
-				Pixel* NST_RESTRICT dst = static_cast<Pixel*>(output.pixels);
-				const long pad = output.pitch - NTSC_WIDTH * sizeof(Pixel);
-
-				phase &= lut.noFieldMerging;
-
-				for (uint y=0; y < HEIGHT; ++y)
-				{
-					NES_NTSC_BEGIN_ROW( &lut, phase, lut.black, lut.black, *src++ );
-
-					Pixel* NST_RESTRICT cache = buffer;
-
-					for (uint x=0; x < NTSC_WIDTH/7-1; ++x)
-					{
-						NES_NTSC_COLOR_IN( 0, src[0] );
-						NES_NTSC_RGB_OUT( 0, dst[0]=cache[0], BPP );
-						NES_NTSC_RGB_OUT( 1, dst[1]=cache[1], BPP );
-
-						NES_NTSC_COLOR_IN( 1, src[1] );
-						NES_NTSC_RGB_OUT( 2, dst[2]=cache[2], BPP );
-						NES_NTSC_RGB_OUT( 3, dst[3]=cache[3], BPP );
-
-						NES_NTSC_COLOR_IN( 2, src[2] );
-						NES_NTSC_RGB_OUT( 4, dst[4]=cache[4], BPP );
-						NES_NTSC_RGB_OUT( 5, dst[5]=cache[5], BPP );
-						NES_NTSC_RGB_OUT( 6, dst[6]=cache[6], BPP );
-
-						src += 3;
-						dst += 7;
-						cache += 7;
-					}
-
-					NES_NTSC_COLOR_IN( 0, lut.black );
-					NES_NTSC_RGB_OUT( 0, dst[0]=cache[0], BPP );
-					NES_NTSC_RGB_OUT( 1, dst[1]=cache[1], BPP );
-
-					NES_NTSC_COLOR_IN( 1, lut.black );
-					NES_NTSC_RGB_OUT( 2, dst[2]=cache[2], BPP );
-					NES_NTSC_RGB_OUT( 3, dst[3]=cache[3], BPP );
-
-					NES_NTSC_COLOR_IN( 2, lut.black );
-					NES_NTSC_RGB_OUT( 4, dst[4]=cache[4], BPP );
-					NES_NTSC_RGB_OUT( 5, dst[5]=cache[5], BPP );
-					NES_NTSC_RGB_OUT( 6, dst[6]=cache[6], BPP );
-
-					dst = reinterpret_cast<Pixel*>(reinterpret_cast<u8*>(dst) + pad + 7 * sizeof(Pixel));
-					cache = buffer;
-
-					for (uint x=0, scale=scanlines; x < NTSC_WIDTH; ++x, ++cache)
-						*dst++ = (scale * (*cache & G_MASK) >> S_SHIFT & G_MASK) | (scale * (*cache & RB_MASK) >> S_SHIFT & RB_MASK);
-
-					dst = reinterpret_cast<Pixel*>(reinterpret_cast<u8*>(dst) + pad);
-					phase = (phase + 1) % 3;
-				}
-			}
 		}
 	}
 }
 
-#ifdef _MSC_VER
+#if NST_MSVC >= 1200
 #pragma warning( pop )
 #endif
 

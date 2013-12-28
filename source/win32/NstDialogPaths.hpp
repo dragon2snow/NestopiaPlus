@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -75,6 +75,7 @@ namespace Nestopia
 			};
 
 			explicit Paths(const Configuration&);
+			~Paths();
 
 			void Save(Configuration&) const;
 			const GenericString GetScreenShotExtension() const;
@@ -98,7 +99,7 @@ namespace Nestopia
 				ScreenShotFormat screenShotFormat;
 			};
 
-			void Update(ibool) const;
+			void Update(bool) const;
 			void UpdateDirectory(uint);
 			void UpdateLastVisited() const;
 
@@ -120,7 +121,7 @@ namespace Nestopia
 				dialog.Open();
 			}
 
-			ibool GetSetting(uint flag) const
+			bool GetSetting(uint flag) const
 			{
 				return settings.flags[flag];
 			}

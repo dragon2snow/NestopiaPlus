@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -24,7 +24,6 @@
 
 #include "NstWindowParam.hpp"
 #include "NstManagerPaths.hpp"
-#include "NstManagerEmulator.hpp"
 #include "NstDialogTapeRecorder.hpp"
 #include "NstApplicationInstance.hpp"
 
@@ -59,6 +58,10 @@ namespace Nestopia
 			paths.FixFile( Managers::Paths::File::TAPE, settings.customFile );
 		}
 
+		TapeRecorder::~TapeRecorder()
+		{
+		}
+
 		void TapeRecorder::Save(Configuration& cfg) const
 		{
 			cfg["files use image tape name"].YesNo() = settings.useImageNaming;
@@ -82,7 +85,7 @@ namespace Nestopia
 
 		void TapeRecorder::Update() const
 		{
-			const ibool unchecked = !dialog.CheckBox(IDC_TAPE_RECORDER_USE_IMAGENAME).Checked();
+			const bool unchecked = !dialog.CheckBox(IDC_TAPE_RECORDER_USE_IMAGENAME).Checked();
 
 			dialog.Control( IDC_TAPE_RECORDER_FILE   ).Enable( unchecked );
 			dialog.Control( IDC_TAPE_RECORDER_BROWSE ).Enable( unchecked );

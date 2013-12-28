@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -31,7 +31,7 @@ namespace Nes
 {
 	namespace Core
 	{
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("s", on)
 		#endif
 
@@ -41,17 +41,17 @@ namespace Nes
 
 			Mmc3Waixing::SubReset( hard );
 
-			for (uint i=0x0000U; i < 0x2000U; i += 0x2)
-				Map( i + 0x8001U, &Mapper199::Poke_8001 );
+			for (uint i=0x0000; i < 0x2000; i += 0x2)
+				Map( i + 0x8001, &Mapper199::Poke_8001 );
 		}
 
 		void Mapper199::SubLoad(State::Loader& state)
 		{
 			while (const dword chunk = state.Begin())
 			{
-				if (chunk == NES_STATE_CHUNK_ID('E','C','H','\0'))
+				if (chunk == AsciiId<'E','C','H'>::V)
 				{
-					const State::Loader::Data<2> data( state );
+					State::Loader::Data<2> data( state );
 
 					exChr[0] = data[0];
 					exChr[1] = data[1];
@@ -63,11 +63,11 @@ namespace Nes
 
 		void Mapper199::SubSave(State::Saver& state) const
 		{
-			const u8 data[] = { exChr[0], exChr[1] };
-			state.Begin('E','C','H','\0').Write( data ).End();
+			const byte data[] = { exChr[0], exChr[1] };
+			state.Begin( AsciiId<'E','C','H'>::V ).Write( data ).End();
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
@@ -108,7 +108,7 @@ namespace Nes
 
 		uint Mapper199::GetChrSource(uint bank) const
 		{
-			return bank - 8U <= 1U;
+			return bank - 8 <= 1;
 		}
 
 		void Mapper199::UpdateChr() const
@@ -117,14 +117,14 @@ namespace Nes
 
 			const uint swap = (regs.ctrl0 & Regs::CTRL0_XOR_CHR) << 5;
 
-			chr.Source( banks.chr[0] <= 7 ).SwapBank<SIZE_1K>( 0x0000U ^ swap, banks.chr[0] );
-			chr.Source( exChr[0]     <= 7 ).SwapBank<SIZE_1K>( 0x0400U ^ swap, exChr[0]     );
-			chr.Source( banks.chr[1] <= 7 ).SwapBank<SIZE_1K>( 0x0800U ^ swap, banks.chr[1] );
-			chr.Source( exChr[1]     <= 7 ).SwapBank<SIZE_1K>( 0x0C00U ^ swap, exChr[1]     );
-			chr.Source( banks.chr[2] <= 7 ).SwapBank<SIZE_1K>( 0x1000U ^ swap, banks.chr[2] );
-			chr.Source( banks.chr[3] <= 7 ).SwapBank<SIZE_1K>( 0x1400U ^ swap, banks.chr[3] );
-			chr.Source( banks.chr[4] <= 7 ).SwapBank<SIZE_1K>( 0x1800U ^ swap, banks.chr[4] );
-			chr.Source( banks.chr[5] <= 7 ).SwapBank<SIZE_1K>( 0x1C00U ^ swap, banks.chr[5] );
+			chr.Source( banks.chr[0] <= 7 ).SwapBank<SIZE_1K>( 0x0000 ^ swap, banks.chr[0] );
+			chr.Source( exChr[0]     <= 7 ).SwapBank<SIZE_1K>( 0x0400 ^ swap, exChr[0]     );
+			chr.Source( banks.chr[1] <= 7 ).SwapBank<SIZE_1K>( 0x0800 ^ swap, banks.chr[1] );
+			chr.Source( exChr[1]     <= 7 ).SwapBank<SIZE_1K>( 0x0C00 ^ swap, exChr[1]     );
+			chr.Source( banks.chr[2] <= 7 ).SwapBank<SIZE_1K>( 0x1000 ^ swap, banks.chr[2] );
+			chr.Source( banks.chr[3] <= 7 ).SwapBank<SIZE_1K>( 0x1400 ^ swap, banks.chr[3] );
+			chr.Source( banks.chr[4] <= 7 ).SwapBank<SIZE_1K>( 0x1800 ^ swap, banks.chr[4] );
+			chr.Source( banks.chr[5] <= 7 ).SwapBank<SIZE_1K>( 0x1C00 ^ swap, banks.chr[5] );
 		}
 	}
 }

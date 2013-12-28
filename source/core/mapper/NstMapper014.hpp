@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,7 +25,7 @@
 #ifndef NST_MAPPER_14_H
 #define NST_MAPPER_14_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
+#ifdef NST_PRAGMA_ONCE
 #pragma once
 #endif
 
@@ -37,10 +37,12 @@ namespace Nes
 		{
 		public:
 
-			Mapper14(Context& c)
+			explicit Mapper14(Context& c)
 			: Mmc3(c,BRD_GENERIC,CROM_MAX_512K|PROM_MAX_512K) {}
 
 		private:
+
+			~Mapper14() {}
 
 			void SubReset(bool);
 			void SubLoad(State::Loader&);
@@ -49,12 +51,12 @@ namespace Nes
 			void UpdatePrg();
 			void UpdateChr() const;
 
-			NES_DECL_POKE( Prg )
+			NES_DECL_POKE( Prg );
 
-			u8 exMode;
-			u8 exPrg[2];
-			u8 exChr[8];
-			u8 exNmt;
+			byte exMode;
+			byte exPrg[2];
+			byte exChr[8];
+			byte exNmt;
 		};
 	}
 }

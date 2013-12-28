@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -31,7 +31,7 @@ namespace Nes
 	{
 		namespace Boards
 		{
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("s", on)
 			#endif
 
@@ -45,28 +45,29 @@ namespace Nes
 			{
 				Map( 0x8000U, 0xFFFFU, &Subor::Poke_Prg );
 
-				regs[3] = regs[2] = regs[1] = regs[0] = 0;
+				for (uint i=0; i < 4; ++i)
+					regs[i] = 0;
 
-				NES_CALL_POKE(Subor,Prg,0x8000U,0x00);
+				NES_DO_POKE(Prg,0x8000,0x00);
 			}
 
 			void Subor::SubSave(State::Saver& state) const
 			{
-				state.Begin('R','E','G','\0').Write( regs ).End();
+				state.Begin( AsciiId<'R','E','G'>::V ).Write( regs ).End();
 			}
 
 			void Subor::SubLoad(State::Loader& state)
 			{
 				while (const dword chunk = state.Begin())
 				{
-					if (chunk == NES_STATE_CHUNK_ID('R','E','G','\0'))
+					if (chunk == AsciiId<'R','E','G'>::V)
 						state.Read( regs );
 
 					state.End();
 				}
 			}
 
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("", on)
 			#endif
 
@@ -76,17 +77,18 @@ namespace Nes
 
 				uint banks[2] =
 				{
-					(regs[0] ^ regs[1]) << 1 & 0x20,
-					(regs[2] ^ regs[3]) << 0 & 0x1F
+					(uint(regs[0]) ^ regs[1]) << 1 & 0x20,
+					(uint(regs[2]) ^ regs[3]) << 0 & 0x1F
 				};
 
-				if (regs[1] & 0x8)
+				if (regs[1] & 0x8U)
 				{
-					banks[1] = banks[0] = banks[0] + (banks[1] & 0xFE);
+					banks[0] += banks[1] & 0xFE;
+					banks[1] = banks[0];
 					banks[0] += mode ^ 1;
 					banks[1] += mode ^ 0;
 				}
-				else if (regs[1] & 0x4)
+				else if (regs[1] & 0x4U)
 				{
 					banks[1] = banks[0] + banks[1];
 					banks[0] = 0x1F;
@@ -97,7 +99,7 @@ namespace Nes
 					banks[1] = mode ? 0x07 : 0x20;
 				}
 
-				prg.SwapBanks<SIZE_16K,0x0000U>( banks[0], banks[1] );
+				prg.SwapBanks<SIZE_16K,0x0000>( banks[0], banks[1] );
 			}
 		}
 	}

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -29,7 +29,7 @@ namespace Nes
 {
 	namespace Core
 	{
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("s", on)
 		#endif
 
@@ -42,13 +42,16 @@ namespace Nes
 		void Mapper32::SubReset(const bool hard)
 		{
 			if (hard)
-				regs[1] = regs[0] = 0;
+			{
+				regs[0] = 0;
+				regs[1] = 0;
+			}
 
 			Map( 0x8000U, 0x8FFFU, &Mapper32::Poke_8000 );
 			Map( 0x9000U, 0x9FFFU, &Mapper32::Poke_9000 );
 			Map( 0xA000U, 0xAFFFU, PRG_SWAP_8K_1 );
 
-			for (uint i=0xB000U; i < 0xC000U; i += 0x8)
+			for (uint i=0xB000; i < 0xC000; i += 0x8)
 			{
 				Map( i + 0x0, CHR_SWAP_1K_0 );
 				Map( i + 0x1, CHR_SWAP_1K_1 );
@@ -68,9 +71,9 @@ namespace Nes
 		{
 			while (const dword chunk = state.Begin())
 			{
-				if (chunk == NES_STATE_CHUNK_ID('B','N','K','\0'))
+				if (chunk == AsciiId<'B','N','K'>::V)
 				{
-					const State::Loader::Data<2> data( state );
+					State::Loader::Data<2> data( state );
 
 					regs[0] = data[0];
 					regs[1] = data[1];
@@ -82,17 +85,17 @@ namespace Nes
 
 		void Mapper32::SubSave(State::Saver& state) const
 		{
-			state.Begin('B','N','K','\0').Write16( regs[0] | (regs[1] << 8) ).End();
+			state.Begin( AsciiId<'B','N','K'>::V ).Write16( regs[0] | regs[1] << 8 ).End();
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
 		void Mapper32::UpdatePrg()
 		{
-			prg.SwapBank<SIZE_8K,0x0000U>( (regs[1] & 0x2) ? ~1U : regs[0] );
-			prg.SwapBank<SIZE_8K,0x4000U>( (regs[1] & 0x2) ? regs[0] : ~1U );
+			prg.SwapBank<SIZE_8K,0x0000>( (regs[1] & 0x2) ? ~1U : regs[0] );
+			prg.SwapBank<SIZE_8K,0x4000>( (regs[1] & 0x2) ? regs[0] : ~1U );
 		}
 
 		NES_POKE(Mapper32,8000)

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -31,7 +31,7 @@ namespace Nes
 	{
 		namespace Input
 		{
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("s", on)
 			#endif
 
@@ -43,19 +43,19 @@ namespace Nes
 				type = t;
 			}
 
-			AdapterTwo::AdapterTwo(Device* a,Device* b,Type t)
+			AdapterTwo::AdapterTwo(Device& a,Device& b,Type t)
 			: Adapter(t)
 			{
-				devices[0] = a;
-				devices[1] = b;
+				devices[0] = &a;
+				devices[1] = &b;
 			}
 
-			Device* AdapterTwo::Connect(uint port,Device* device)
+			Device& AdapterTwo::Connect(uint port,Device& device)
 			{
 				NST_ASSERT( port < 2 );
 
-				Device* old = devices[port];
-				devices[port] = device;
+				Device& old = *devices[port];
+				devices[port] = &device;
 
 				return old;
 			}
@@ -72,7 +72,7 @@ namespace Nes
 					devices[i]->Reset();
 			}
 
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("", on)
 			#endif
 
@@ -81,10 +81,10 @@ namespace Nes
 				return 2;
 			}
 
-			Device* AdapterTwo::GetDevice(uint port) const
+			Device& AdapterTwo::GetDevice(uint port) const
 			{
 				NST_ASSERT( port < 2 );
-				return devices[port];
+				return *devices[port];
 			}
 
 			void AdapterTwo::BeginFrame(Controllers* input)
@@ -105,27 +105,28 @@ namespace Nes
 				return devices[line]->Peek( line );
 			}
 
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("s", on)
 			#endif
 
-			AdapterFour::AdapterFour(Device* a,Device* b,Device* c,Device* d,Type t)
+			AdapterFour::AdapterFour(Device& a,Device& b,Device& c,Device& d,Type t)
 			: Adapter(t), increaser(1)
 			{
-				count[1] = count[0] = 0;
+				count[0] = 0;
+				count[1] = 0;
 
-				devices[0] = a;
-				devices[1] = b;
-				devices[2] = c;
-				devices[3] = d;
+				devices[0] = &a;
+				devices[1] = &b;
+				devices[2] = &c;
+				devices[3] = &d;
 			}
 
-			Device* AdapterFour::Connect(uint port,Device* device)
+			Device& AdapterFour::Connect(uint port,Device& device)
 			{
 				NST_ASSERT( port < 4 );
 
-				Device* old = devices[port];
-				devices[port] = device;
+				Device& old = *devices[port];
+				devices[port] = &device;
 
 				return old;
 			}
@@ -139,7 +140,9 @@ namespace Nes
 			void AdapterFour::Reset()
 			{
 				increaser = 1;
-				count[1] = count[0] = 0;
+
+				count[0] = 0;
+				count[1] = 0;
 
 				for (uint i=0; i < 4; ++i)
 					devices[i]->Reset();
@@ -151,7 +154,8 @@ namespace Nes
 				{
 					type = t;
 					increaser = 1;
-					count[1] = count[0] = 0;
+					count[0] = 0;
+					count[1] = 0;
 				}
 			}
 
@@ -159,7 +163,7 @@ namespace Nes
 			{
 				if (type == Api::Input::ADAPTER_NES)
 				{
-					const u8 data[3] =
+					const byte data[3] =
 					{
 						increaser ^ 1, count[0], count[1]
 					};
@@ -172,15 +176,15 @@ namespace Nes
 			{
 				if (type == Api::Input::ADAPTER_NES)
 				{
-					const State::Loader::Data<3> data( state );
+					State::Loader::Data<3> data( state );
 
 					increaser = ~data[0] & 0x1;
-					count[0] = data[1] <= 20 ? data[1] : 0;
-					count[1] = data[2] <= 20 ? data[2] : 0;
+					count[0] = (data[1] <= 20) ? data[1] : 0;
+					count[1] = (data[2] <= 20) ? data[2] : 0;
 				}
 			}
 
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("", on)
 			#endif
 
@@ -189,10 +193,10 @@ namespace Nes
 				return 4;
 			}
 
-			Device* AdapterFour::GetDevice(uint port) const
+			Device& AdapterFour::GetDevice(uint port) const
 			{
 				NST_ASSERT( port < 4 );
-				return devices[port];
+				return *devices[port];
 			}
 
 			void AdapterFour::BeginFrame(Controllers* input)
@@ -208,7 +212,10 @@ namespace Nes
 					increaser = ~data & 0x1;
 
 					if (!increaser)
-						count[1] = count[0] = 0;
+					{
+						count[0] = 0;
+						count[1] = 0;
+					}
 				}
 
 				for (uint i=0; i < 4; ++i)

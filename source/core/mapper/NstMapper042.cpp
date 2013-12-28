@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -30,7 +30,7 @@ namespace Nes
 {
 	namespace Core
 	{
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("s", on)
 		#endif
 
@@ -52,12 +52,12 @@ namespace Nes
 
 			Map( WRK_PEEK );
 
-			for (uint i=0x0000U; i < 0x2000U; i += 0x4)
+			for (uint i=0x0000; i < 0x2000; i += 0x4)
 			{
-				Map( 0x8000U + i, CHR_SWAP_8K          );
-				Map( 0xE000U + i, &Mapper42::Poke_E000 );
-				Map( 0xE001U + i, &Mapper42::Poke_E001 );
-				Map( 0xE002U + i, &Mapper42::Poke_E002 );
+				Map( 0x8000 + i, CHR_SWAP_8K          );
+				Map( 0xE000 + i, &Mapper42::Poke_E000 );
+				Map( 0xE001 + i, &Mapper42::Poke_E001 );
+				Map( 0xE002 + i, &Mapper42::Poke_E002 );
 			}
 		}
 
@@ -65,11 +65,12 @@ namespace Nes
 		{
 			while (const dword chunk = state.Begin())
 			{
-				if (chunk == NES_STATE_CHUNK_ID('I','R','Q','\0'))
+				if (chunk == AsciiId<'I','R','Q'>::V)
 				{
-					const State::Loader::Data<3> data( state );
+					State::Loader::Data<3> data( state );
+
 					irq.EnableLine( data[0] & 0x1 );
-					irq.unit.count = data[1] | ((data[2] & 0x7F) << 8);
+					irq.unit.count = data[1] | (data[2] << 8 & 0x7F00);
 				}
 
 				state.End();
@@ -78,23 +79,23 @@ namespace Nes
 
 		void Mapper42::SubSave(State::Saver& state) const
 		{
-			const u8 data[3] =
+			const byte data[3] =
 			{
 				irq.IsLineEnabled() ? 0x1 : 0x0,
 				irq.unit.count >> 0 & 0xFF,
 				irq.unit.count >> 8 & 0x7F
 			};
 
-			state.Begin('I','R','Q','\0').Write( data ).End();
+			state.Begin( AsciiId<'I','R','Q'>::V ).Write( data ).End();
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
 		NES_POKE(Mapper42,E000)
 		{
-			wrk.SwapBank<SIZE_8K,0x0000U>(data & 0xF);
+			wrk.SwapBank<SIZE_8K,0x0000>(data & 0xF);
 		}
 
 		NES_POKE(Mapper42,E001)
@@ -117,9 +118,9 @@ namespace Nes
 		{
 			const uint prev = count++;
 
-			if ((count & 0x6000U) != (prev & 0x6000U))
+			if ((count & 0x6000) != (prev & 0x6000))
 			{
-				if ((count & 0x6000U) == 0x6000U)
+				if ((count & 0x6000) == 0x6000)
 					return true;
 				else
 					cpu.ClearIRQ();

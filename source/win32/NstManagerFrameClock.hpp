@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -38,7 +38,7 @@ namespace Nestopia
 
 	namespace Managers
 	{
-		class FrameClock
+		class FrameClock : Manager
 		{
 		public:
 
@@ -53,8 +53,8 @@ namespace Nestopia
 
 			void OnEmuEvent(Emulator::Event);
 			void OnMenuOptionsTiming(uint);
-			uint Synchronize(ibool,uint);
-			void UpdateRewinderState(ibool=true) const;
+			uint Synchronize(bool,uint);
+			void UpdateRewinderState(bool=true) const;
 			void UpdateSettings();
 			void ResetTimer();
 
@@ -63,18 +63,16 @@ namespace Nestopia
 				MAX_SPEED_NO_FRAMESKIP = 60
 			};
 
-			struct Settings
-			{
-				u8 autoFrameSkip;
-				u8 maxFrameSkips;
-				u16 refreshRate;
-			};
-
 			System::Timer timer;
 			System::Timer::Value counter;
-			Settings settings;
-			Emulator& emulator;
-			const Window::Menu& menu;
+
+			struct
+			{
+				uchar autoFrameSkip;
+				uchar maxFrameSkips;
+				ushort refreshRate;
+			}   settings;
+
 			Object::Heap<Window::FrameClock> dialog;
 
 		public:
@@ -86,7 +84,7 @@ namespace Nestopia
 
 			void SoundSynchronize()
 			{
-				Synchronize( true, 0U );
+				Synchronize( true, 0 );
 			}
 
 			void StartEmulation()

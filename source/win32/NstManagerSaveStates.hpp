@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -39,7 +39,7 @@ namespace Nestopia
 
 	namespace Managers
 	{
-		class SaveStates
+		class SaveStates : Manager
 		{
 		public:
 
@@ -63,14 +63,14 @@ namespace Nestopia
 				Collection::Buffer data;
 			};
 
-			void ImportSlots();
+			void ImportSlots(bool);
 			void ExportSlot(uint);
 			void UpdateMenuTexts() const;
 
-			void SaveToSlot(uint,ibool=true);
-			void LoadFromSlot(uint,ibool=true);
+			void SaveToSlot(uint,bool=true);
+			void LoadFromSlot(uint,bool=true);
 
-			void ToggleAutoSaver(ibool);
+			void ToggleAutoSaver(bool);
 
 			void OnEmuEvent(Emulator::Event);
 			uint OnTimerAutoSave();
@@ -84,11 +84,9 @@ namespace Nestopia
 			void OnCmdAutoSaverOptions (uint);
 			void OnCmdAutoSaverStart   (uint);
 
-			Emulator& emulator;
-			Window::Menu& menu;
 			const Window::Main& window;
 			const Paths& paths;
-			ibool autoSaveEnabled;
+			bool autoSaveEnabled;
 			Object::Heap<Window::AutoSaver> autoSaver;
 			Slot slots[NUM_SLOTS];
 		};

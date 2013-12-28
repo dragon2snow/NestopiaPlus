@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -38,7 +38,7 @@ typename Set<T>::Item& Set<T>::LocateItem(Key key)
 }
 
 template<typename T> template<typename Key>
-typename Set<T>::Item& Set<T>::GetItem(Key key,ibool& found)
+typename Set<T>::Item& Set<T>::GetItem(Key key,bool& found)
 {
 	const uint pos = LowerBound<Key>( key );
 	found = pos != array.Size() && array[pos] == key;
@@ -55,6 +55,6 @@ typename Set<T>::Item& Set<T>::GetItem(Key key,ibool& found)
 template<typename T> template<typename Key>
 typename Set<T>::Item& Set<T>::GetItem(Key key)
 {
-	ibool found;
+	bool found;
 	return GetItem<Key>( key, found );
 }

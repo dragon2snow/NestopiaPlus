@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,12 +25,17 @@
 #ifndef NST_CLOCK_H
 #define NST_CLOCK_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
-#pragma once
+#ifndef NST_CPU_H
+#include "NstCpu.hpp"
 #endif
 
-#include "NstCpu.hpp"
+#ifndef NST_PPU_H
 #include "NstPpu.hpp"
+#endif
+
+#ifdef NST_PRAGMA_ONCE
+#pragma once
+#endif
 
 namespace Nes
 {
@@ -43,7 +48,7 @@ namespace Nes
 			{
 			public:
 
-				M2(Cpu&);
+				explicit M2(Cpu&);
 
 				template<typename Param>
 				M2(Cpu&,Param&);
@@ -61,7 +66,7 @@ namespace Nes
 
 			protected:
 
-				NES_DECL_HOOK( Signaled )
+				NES_DECL_HOOK( Signaled );
 
 				Cycle count;
 				Cpu& cpu;
@@ -73,7 +78,8 @@ namespace Nes
 
 				ibool EnableLine(ibool enable)
 				{
-					return enabled = enable;
+					enabled = enable;
+					return enable;
 				}
 
 				ibool IsLineEnabled() const
@@ -83,7 +89,7 @@ namespace Nes
 
 				void Update()
 				{
-					NES_CALL_HOOK(M2,Signaled);
+					M2::NES_DO_HOOK( Signaled );
 				}
 
 				void ClearIRQ() const
@@ -121,10 +127,7 @@ namespace Nes
 				cpu.AddHook( Hook(this,&M2::Hook_Signaled) );
 			}
 
-			template<typename Unit,uint Divider>
-			#define NES_M2_FUNC_T M2<Unit,Divider> // template comma vs. macro comma
-			NES_HOOK(NES_M2_FUNC_T,Signaled)
-			#undef NES_M2_FUNC_T
+			NES_HOOK_T(template<typename Unit NST_COMMA uint Divider>,M2<Unit NST_COMMA Divider>,Signaled)
 			{
 				NST_COMPILE_ASSERT( Divider <= 8 );
 
@@ -169,13 +172,13 @@ namespace Nes
 
 			private:
 
-				NES_DECL_LINE( Signaled )
+				NES_DECL_LINE( Signaled );
 
 				struct Base
 				{
 					NST_COMPILE_ASSERT( MODE_NTSC == 0 && MODE_PAL == 1 );
 
-					Base(uint);
+					explicit Base(uint);
 					Cycle clock[2];
 				};
 
@@ -195,7 +198,7 @@ namespace Nes
 
 			public:
 
-				void EnableLine(const ibool enable)
+				void EnableLine(bool enable)
 				{
 					if (enable)
 						ppu.ConnectA12( this, &A12::Line_Signaled );
@@ -203,7 +206,7 @@ namespace Nes
 						ppu.DisconnectA12();
 				}
 
-				ibool IsLineEnabled() const
+				bool IsLineEnabled() const
 				{
 					return ppu.IsA12Connected();
 				}
@@ -250,8 +253,7 @@ namespace Nes
 				ppu.EnableCpuSynchronization();
 			}
 
-			template<typename Unit>
-			NES_LINE(A12<Unit>,Signaled)
+			NES_LINE_T(template<typename Unit>,A12<Unit>,Signaled)
 			{
 				const Cycle target = count;
 				count = cycle + duration;

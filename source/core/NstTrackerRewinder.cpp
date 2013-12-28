@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -22,19 +22,15 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include <new>
+#include <cstdlib>
+#include <cstring>
 #include <string>
+#include <algorithm>
 #include "NstMachine.hpp"
+#include "NstState.hpp"
 #include "NstTrackerRewinder.hpp"
 #include "api/NstApiRewinder.hpp"
-
-#ifndef NST_NO_ZLIB
-#ifdef _WIN32
-#define WIN32_LEAN_AND_MEAN
-#define ZLIB_WINAPI
-#endif
-#include "../zlib/zlib.h"
-#endif
+#include "NstZlib.hpp"
 
 namespace Nes
 {
@@ -42,8 +38,6 @@ namespace Nes
 	{
 		class Tracker::Rewinder::ReverseVideo::Mutex
 		{
-			friend class ReverseVideo;
-
 			Ppu& ppu;
 			Video::Screen::Pixel* const pixels;
 
@@ -52,16 +46,46 @@ namespace Nes
 			Mutex(const ReverseVideo& r)
 			: ppu(r.ppu), pixels(r.ppu.GetOutputPixels()) {}
 
+			void Flush(Video::Screen::Pixel* src) const
+			{
+				std::memcpy( pixels, src, Video::Screen::PIXELS * sizeof(Video::Screen::Pixel) );
+			}
+
 			~Mutex()
 			{
 				ppu.SetOutputPixels( pixels );
 			}
 		};
 
+		class Tracker::Rewinder::ReverseVideo::Buffer
+		{
+			typedef Video::Screen::Pixel Pixel;
+
+			enum
+			{
+				PIXELS    = Video::Screen::PIXELS,
+				SIZE      = PIXELS * dword(NUM_FRAMES),
+				FULL_SIZE = dword(SIZE) + Video::Screen::PIXELS_PADDING
+			};
+
+			Pixel pixels[FULL_SIZE];
+
+		public:
+
+			Buffer()
+			{
+				std::fill( pixels + SIZE, pixels + FULL_SIZE, Pixel(0) );
+			}
+
+			Pixel* operator [] (dword i)
+			{
+				NST_ASSERT( i < NUM_FRAMES );
+				return pixels + (PIXELS * i);
+			}
+		};
+
 		class Tracker::Rewinder::ReverseSound::Mutex
 		{
-			friend class ReverseSound;
-
 			Output::LockCallback funcLock;
 			void* userLock;
 			Output::UnlockCallback funcUnlock;
@@ -77,6 +101,17 @@ namespace Nes
 				Output::unlockCallback.Set( NULL, NULL );
 			}
 
+			bool Lock(Output& output) const
+			{
+				return funcLock ? funcLock( userLock, output ) : true;
+			}
+
+			void Unlock(Output& output) const
+			{
+				if (funcUnlock)
+					funcUnlock( userUnlock, output );
+			}
+
 			~Mutex()
 			{
 				Output::lockCallback.Set( funcLock, userLock );
@@ -84,15 +119,15 @@ namespace Nes
 			}
 		};
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("s", on)
 		#endif
 
 		Tracker::Rewinder::ReverseVideo::ReverseVideo(Ppu& p)
 		:
-		ppu      (p),
 		pingpong (1),
 		frame    (0),
+		ppu      (p),
 		buffer   (NULL)
 		{}
 
@@ -140,6 +175,29 @@ namespace Nes
 			LinkPorts( false );
 		}
 
+		void Tracker::Rewinder::LinkPorts(bool on)
+		{
+			for (uint i=0; i < 2; ++i)
+			{
+				cpu.Unlink( 0x4016+i, this, &Rewinder::Peek_Port_Get, &Rewinder::Poke_Port );
+				cpu.Unlink( 0x4016+i, this, &Rewinder::Peek_Port_Put, &Rewinder::Poke_Port );
+			}
+
+			if (on)
+			{
+				for (uint i=0; i < 2; ++i)
+					ports[i] = cpu.Link( 0x4016+i, Cpu::LEVEL_HIGHEST, this, rewinding ? &Rewinder::Peek_Port_Get : &Rewinder::Peek_Port_Put, &Rewinder::Poke_Port );
+			}
+		}
+
+		Tracker::Rewinder::Key::Key()
+		{
+		}
+
+		Tracker::Rewinder::Key::~Key()
+		{
+		}
+
 		void Tracker::Rewinder::Key::Input::Reset()
 		{
 			pos = BAD_POS;
@@ -173,28 +231,25 @@ namespace Nes
 			LinkPorts( on );
 		}
 
-		ibool Tracker::Rewinder::ReverseVideo::Begin()
+		void Tracker::Rewinder::ReverseVideo::Begin()
 		{
 			pingpong = 1;
 			frame = 0;
 
 			if (buffer == NULL)
-				buffer = new (std::nothrow) Video::Screen::Pixels [NUM_FRAMES];
-
-			return buffer != NULL;
+				buffer = new Buffer;
 		}
 
 		void Tracker::Rewinder::ReverseVideo::End()
 		{
-			delete [] buffer;
+			delete buffer;
 			buffer = NULL;
 		}
 
-		ibool Tracker::Rewinder::ReverseSound::Begin()
+		void Tracker::Rewinder::ReverseSound::Begin()
 		{
 			good = true;
 			index = 0;
-			return true;
 		}
 
 		void Tracker::Rewinder::ReverseSound::End()
@@ -211,21 +266,23 @@ namespace Nes
 				End();
 		}
 
-		ibool Tracker::Rewinder::ReverseSound::Update()
+		bool Tracker::Rewinder::ReverseSound::Update()
 		{
+			const dword old = (bits == 16 ? size * sizeof(iword) : size * sizeof(byte));
+
 			bits = apu.GetSampleBits();
 			rate = apu.GetSampleRate();
 			stereo = apu.InStereo();
+			size = rate << (stereo+1);
 
-			const dword minSize = SampleSize() * rate * 2;
-			NST_ASSERT( minSize );
+			const dword total = (bits == 16 ? size * sizeof(iword) : size * sizeof(byte));
+			NST_ASSERT( total );
 
-			if (!buffer || size != minSize)
+			if (!buffer || total != old)
 			{
-				if (u8* const next = static_cast<u8*>(std::realloc( buffer, minSize )))
+				if (void* const next = std::realloc( buffer, total ))
 				{
 					buffer = next;
-					size = minSize;
 				}
 				else
 				{
@@ -236,15 +293,18 @@ namespace Nes
 				}
 			}
 
-			Clear();
-
 			good = true;
 			index = 0;
+
+			if (bits == 16)
+				std::fill( static_cast<iword*>(buffer), static_cast<iword*>(buffer) + size, iword(0) );
+			else
+				std::memset( buffer, 0x80, size );
 
 			return true;
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
@@ -255,7 +315,7 @@ namespace Nes
 
 		inline void Tracker::Rewinder::Key::Input::BeginForward()
 		{
-			const ulong hint = pos;
+			const dword hint = pos;
 			pos = 0;
 			buffer.Clear();
 
@@ -269,28 +329,23 @@ namespace Nes
 			{
 				pos = buffer.Size();
 
-			#ifndef NST_NO_ZLIB
-				if (pos >= MIN_COMPRESSION_SIZE)
+				if (Zlib::AVAILABLE && pos >= MIN_COMPRESSION_SIZE)
 				{
-					{
-						ulong size = pos - 1;
-						Buffer tmp( size );
+					Buffer tmp( pos - 1 );
 
-						if (compress( tmp.Begin(), &size, buffer.Begin(), buffer.Size() ) == Z_OK)
-						{
-							NST_ASSERT( size < pos );
-							tmp.SetTo( size );
-							Buffer::Swap( tmp, buffer );
-						}
-						else
-						{
-							NST_DEBUG_MSG("compress() in Tracker::Rewinder::Key::Input failed!");
-						}
+					if (const dword size = Zlib::Compress( buffer.Begin(), buffer.Size(), tmp.Begin(), tmp.Size(), Zlib::NORMAL_COMPRESSION ))
+					{
+						NST_ASSERT( size < pos );
+						tmp.SetTo( size );
+						Buffer::Swap( tmp, buffer );
+					}
+					else
+					{
+						NST_DEBUG_MSG("compress() in Tracker::Rewinder::Key::Input failed!");
 					}
 
 					buffer.Defrag();
 				}
-			#endif
 
 				return true;
 			}
@@ -298,30 +353,22 @@ namespace Nes
 			return false;
 		}
 
-		bool Tracker::Rewinder::Key::Input::BeginBackward()
+		void Tracker::Rewinder::Key::Input::BeginBackward()
 		{
-			ulong size = pos;
+			dword size = pos;
 			pos = 0;
 
-		#ifndef NST_NO_ZLIB
-			if (size > buffer.Size())
+			if (Zlib::AVAILABLE && size > buffer.Size())
 			{
 				Buffer tmp( size );
+				size = Zlib::Uncompress( buffer.Begin(), buffer.Size(), tmp.Begin(), tmp.Size() );
 
-				if (uncompress( tmp.Begin(), &size, buffer.Begin(), buffer.Size() ) == Z_OK)
-				{
-					NST_VERIFY( size == tmp.Size() );
-					Buffer::Swap( tmp, buffer );
-				}
-				else
-				{
-					NST_DEBUG_MSG("uncompress() in Tracker::Rewinder::Key::Input failed!");
-					return false;
-				}
+				if (!size)
+					throw RESULT_ERR_CORRUPT_FILE;
+
+				NST_VERIFY( size == tmp.Size() );
+				Buffer::Swap( tmp, buffer );
 			}
-		#endif
-
-			return true;
 		}
 
 		inline void Tracker::Rewinder::Key::Input::EndBackward()
@@ -329,17 +376,12 @@ namespace Nes
 			pos = 0;
 		}
 
-		inline bool Tracker::Rewinder::Key::Input::ResumeForward()
+		inline void Tracker::Rewinder::Key::Input::ResumeForward()
 		{
-			if (pos != BAD_POS)
-			{
-				ulong size = pos;
-				pos = 0;
-				buffer.Resize( size );
-				return true;
-			}
-
-			return false;
+			NST_VERIFY( pos != BAD_POS );
+			dword size = pos;
+			pos = 0;
+			buffer.Resize( size != BAD_POS ? size : 0 );
 		}
 
 		inline bool Tracker::Rewinder::Key::Input::CanRewind() const
@@ -353,7 +395,7 @@ namespace Nes
 			{
 				try
 				{
-					buffer << data;
+					buffer.Append( data );
 				}
 				catch (...)
 				{
@@ -389,33 +431,30 @@ namespace Nes
 			return input.CanRewind();
 		}
 
-		inline bool Tracker::Rewinder::Key::ResumeForward()
+		inline void Tracker::Rewinder::Key::ResumeForward()
 		{
-			return input.ResumeForward();
+			input.ResumeForward();
 		}
 
-		bool Tracker::Rewinder::Key::BeginForward(Machine& emulator,EmuSaveState saveState,EmuLoadState loadState)
+		void Tracker::Rewinder::Key::BeginForward(Machine& emulator,EmuSaveState saveState,EmuLoadState loadState)
 		{
-			NST_ASSERT( !(bool(saveState) && bool(loadState)) );
+			NST_ASSERT( !saveState || !loadState );
 
 			input.BeginForward();
 
 			if (saveState)
 			{
+				stream.clear();
 				stream.seekp( 0, std::stringstream::beg );
 				stream.clear();
 
-				return NES_SUCCEEDED((emulator.*saveState)( &static_cast<std::ostream&>(stream), false, true ));
+				State::Saver saver( &static_cast<std::ostream&>(stream), false, true );
+				(emulator.*saveState)( saver );
 			}
 			else if (loadState)
 			{
-				stream.seekg( 0, std::stringstream::beg );
-				stream.clear();
-
-				return NES_SUCCEEDED((emulator.*loadState)( &static_cast<std::istream&>(stream), false ));
+				TurnForward( emulator, loadState );
 			}
-
-			return true;
 		}
 
 		void Tracker::Rewinder::Key::EndForward()
@@ -424,18 +463,22 @@ namespace Nes
 				Reset();
 		}
 
-		bool Tracker::Rewinder::Key::TurnForward(Machine& emulator,EmuLoadState loadState)
+		void Tracker::Rewinder::Key::TurnForward(Machine& emulator,EmuLoadState loadState)
 		{
+			stream.clear();
 			stream.seekg( 0, std::stringstream::beg );
 			stream.clear();
 
-			return NES_SUCCEEDED((emulator.*loadState)( &static_cast<std::istream&>(stream), false ));
+			State::Loader loader( &static_cast<std::istream&>(stream), false );
+			(emulator.*loadState)( loader );
 		}
 
-		bool Tracker::Rewinder::Key::BeginBackward(Machine& emulator,EmuLoadState loadState)
+		void Tracker::Rewinder::Key::BeginBackward(Machine& emulator,EmuLoadState loadState)
 		{
 			NST_VERIFY( CanRewind() );
-			return TurnForward( emulator, loadState ) && input.BeginBackward();
+
+			TurnForward( emulator, loadState );
+			input.BeginBackward();
 		}
 
 		inline void Tracker::Rewinder::Key::EndBackward()
@@ -453,9 +496,9 @@ namespace Nes
 			return input.Get();
 		}
 
-		inline Tracker::Rewinder::Key* Tracker::Rewinder::PrevKey(Key* key)
+		inline Tracker::Rewinder::Key* Tracker::Rewinder::PrevKey(Key* k)
 		{
-			return (key != keys ? key-1 : keys+LAST_KEY);
+			return (k != keys ? k-1 : keys+LAST_KEY);
 		}
 
 		inline Tracker::Rewinder::Key* Tracker::Rewinder::PrevKey()
@@ -463,9 +506,9 @@ namespace Nes
 			return PrevKey( key );
 		}
 
-		inline Tracker::Rewinder::Key* Tracker::Rewinder::NextKey(Key* key)
+		inline Tracker::Rewinder::Key* Tracker::Rewinder::NextKey(Key* k)
 		{
-			return (key != keys+LAST_KEY ? key+1 : keys);
+			return (k != keys+LAST_KEY ? k+1 : keys);
 		}
 
 		inline Tracker::Rewinder::Key* Tracker::Rewinder::NextKey()
@@ -473,36 +516,16 @@ namespace Nes
 			return NextKey( key );
 		}
 
-		void Tracker::Rewinder::LinkPorts(bool on)
-		{
-			for (uint i=0; i < 2; ++i)
-			{
-				cpu.Unlink( 0x4016+i, this, &Rewinder::Peek_Port_Get, &Rewinder::Poke_Port );
-				cpu.Unlink( 0x4016+i, this, &Rewinder::Peek_Port_Put, &Rewinder::Poke_Port );
-			}
-
-			if (on)
-			{
-				for (uint i=0; i < 2; ++i)
-					ports[i] = cpu.Link( 0x4016+i, Cpu::LEVEL_HIGHEST, this, rewinding ? &Rewinder::Peek_Port_Get : &Rewinder::Peek_Port_Put, &Rewinder::Poke_Port );
-			}
-		}
-
-		void Tracker::Rewinder::ReverseSound::Clear() const
-		{
-			std::memset( buffer, bits == 16 ? 0x00 : 0x80, size );
-		}
-
 		inline void Tracker::Rewinder::ReverseVideo::Flush(const Mutex& mutex)
 		{
-			std::memcpy( mutex.pixels, buffer[frame], sizeof(buffer[frame]) );
+			mutex.Flush( (*buffer)[frame] );
 		}
 
 		void Tracker::Rewinder::ReverseVideo::Store()
 		{
 			NST_ASSERT( frame < NUM_FRAMES && (pingpong == 1U-0U || pingpong == 0U-1U) );
 
-			ppu.SetOutputPixels( buffer[frame] );
+			ppu.SetOutputPixels( (*buffer)[frame] );
 			frame += pingpong;
 
 			if (frame == NUM_FRAMES)
@@ -517,164 +540,181 @@ namespace Nes
 			}
 		}
 
-		Sound::Output* Tracker::Rewinder::ReverseSound::Store()
+		template<typename T>
+		NST_FORCE_INLINE Sound::Output* Tracker::Rewinder::ReverseSound::StoreType()
 		{
-			NST_COMPILE_ASSERT( NUM_FRAMES % 2 == 0 );
-
-			if (!enabled || !good)
-				return NULL;
-
-			if (!buffer || bits != apu.GetSampleBits() || rate != apu.GetSampleRate() || bool(stereo) != bool(apu.InStereo()))
-			{
-				if (!Update())
-					return NULL;
-			}
+			NST_ASSERT( index <= NUM_FRAMES+LAST_FRAME );
 
 			switch (index++)
 			{
 				case 0:
 
-					output.samples[0] = buffer;
-					output.length[0] = rate / NUM_FRAMES;
-					input = buffer + (size / 1);
+					*output.length = rate / NUM_FRAMES;
+					*output.samples = buffer;
+					input = static_cast<T*>(buffer) + (size / 1);
 					break;
 
 				case LAST_FRAME:
 
-					output.samples[0] = static_cast<u8*>(output.samples[0]) + (output.length[0] * SampleSize());
-					output.length[0] = (buffer + (size / 2) - static_cast<u8*>(output.samples[0])) / SampleSize();
+					*output.samples = static_cast<T*>(*output.samples) + (*output.length << stereo);
+					*output.length = dword(static_cast<T*>(buffer) + (size / 2) - static_cast<T*>(*output.samples)) >> stereo;
 					break;
 
 				case NUM_FRAMES:
 
-					output.samples[0] = buffer + (size / 2);
-					output.length[0] = rate / NUM_FRAMES;
-					input = buffer + (size / 2);
+					*output.length = rate / NUM_FRAMES;
+					*output.samples = static_cast<T*>(buffer) + (size / 2);
+					input = *output.samples;
 					break;
 
 				case NUM_FRAMES+LAST_FRAME:
 
 					index = 0;
-					output.samples[0] = static_cast<u8*>(output.samples[0]) + (output.length[0] * SampleSize());
-					output.length[0] = (buffer + (size / 1) - static_cast<u8*>(output.samples[0])) / SampleSize();
+					*output.samples = static_cast<T*>(*output.samples) + (*output.length << stereo);
+					*output.length = dword(static_cast<T*>(buffer) + (size / 1) - static_cast<T*>(*output.samples)) >> stereo;
 					break;
 
 				default:
 
-					output.samples[0] = static_cast<u8*>(output.samples[0]) + (output.length[0] * SampleSize());
+					*output.samples = static_cast<T*>(*output.samples) + (*output.length << stereo);
 					break;
 			}
 
 			return &output;
 		}
 
-		void Tracker::Rewinder::ReverseSound::Flush(Output* const target,const Mutex& mutex)
+		Sound::Output* Tracker::Rewinder::ReverseSound::Store()
 		{
-			if (target && (!mutex.funcLock || mutex.funcLock( mutex.userLock, *target )))
-			{
-				if (bits == 16)
-					ReverseCopy<i16>( *target );
-				else
-					ReverseCopy<u8>( *target );
+			NST_COMPILE_ASSERT( NUM_FRAMES % 2 == 0 );
 
-				if (mutex.funcUnlock)
-					mutex.funcUnlock( mutex.userUnlock, *target );
+			if (!buffer || (bits ^ apu.GetSampleBits()) | (rate ^ apu.GetSampleRate()) | (stereo ^ uint(bool(apu.InStereo()))))
+			{
+				if (!enabled || !good || !Update())
+					return NULL;
 			}
+
+			return bits == 16 ? StoreType<iword>() : StoreType<byte>();
+		}
+
+		template<typename T,int SILENCE>
+		void Tracker::Rewinder::ReverseSound::ReverseSilence(const Output& target) const
+		{
+			for (uint i=0; i < 2; ++i)
+				std::fill( static_cast<T*>(target.samples[i]), static_cast<T*>(target.samples[i]) + (target.length[i] << stereo), SILENCE );
 		}
 
 		template<typename T>
-		void Tracker::Rewinder::ReverseSound::ReverseCopy(const Output& target)
+		const void* Tracker::Rewinder::ReverseSound::ReverseCopy(const Output& target) const
 		{
+			const T* NST_RESTRICT src = static_cast<const T*>(input);
+
 			for (uint i=0; i < 2; ++i)
 			{
-				if (const uint length = target.length[i])
+				if (const dword length = (target.length[i] << stereo))
 				{
-					T* dst = static_cast<T*>(target.samples[i]);
+					T* NST_RESTRICT dst = static_cast<T*>(target.samples[i]);
+					T* const dstEnd = dst + length;
 
-					if (enabled && good)
-					{
-						const T* const dstEnd = dst + (length << stereo);
+					for (const T* const srcEnd = dword(src - static_cast<const T*>(buffer)) >= length ? src - length : static_cast<const T*>(buffer); src != srcEnd; )
+						*dst++ = *--src;
 
-						const T* src = reinterpret_cast<const T*>(input);
-						const T* const srcEnd = reinterpret_cast<const T*>(buffer);
-
-						while (dst != dstEnd && src-- != srcEnd)
-							*dst++ = *src;
-
-						input = reinterpret_cast<const u8*>(src + 1);
-						const T last = src[1];
-
-						while (dst != dstEnd)
-							*dst++ = last;
-					}
-					else
-					{
-						std::memset( dst, sizeof(T) == sizeof(u8) ? 0x80 : 0x00, (length << stereo) * sizeof(T) );
-					}
+					const T last( *src );
+					std::fill( dst, dstEnd, last );
 				}
+			}
+
+			return src;
+		}
+
+		void Tracker::Rewinder::ReverseSound::Flush(Output* const target,const Mutex& mutex)
+		{
+			if (target && mutex.Lock( *target ))
+			{
+				if (enabled & good)
+				{
+					input = (bits == 16) ? ReverseCopy<iword>( *target ) : ReverseCopy<byte>( *target );
+				}
+				else
+				{
+					if (bits == 16)
+						ReverseSilence<iword,0>( *target );
+					else
+						ReverseSilence<byte,0x80>( *target );
+				}
+
+				mutex.Unlock( *target );
 			}
 		}
 
-		Result Tracker::Rewinder::Execute(Video::Output* videoOut,Sound::Output* soundOut,Input::Controllers* inputOut)
+		void Tracker::Rewinder::Execute(Video::Output* videoOut,Sound::Output* soundOut,Input::Controllers* inputOut)
 		{
-			if (uturn)
-				ChangeDirection();
-
-			NST_ASSERT( frame < NUM_FRAMES );
-
-			if (!rewinding)
+			try
 			{
-				if (++frame == NUM_FRAMES)
-				{
-					frame = 0;
-					key->EndForward();
-					key = NextKey();
-					key->BeginForward( emulator, emuSaveState, NULL );
-				}
-			}
-			else
-			{
-				if (++frame == NUM_FRAMES)
-				{
-					frame = 0;
-					key->EndBackward();
+				if (uturn)
+					ChangeDirection();
 
-					Key* const prev = PrevKey();
+				NST_ASSERT( frame < NUM_FRAMES );
 
-					if (!prev->CanRewind())
+				if (!rewinding)
+				{
+					if (++frame == NUM_FRAMES)
 					{
-						rewinding = false;
-
-						key->Invalidate();
+						frame = 0;
+						key->EndForward();
 						key = NextKey();
-						key->BeginForward( emulator, NULL, emuLoadState );
-
-						LinkPorts();
-
-						return (emulator.*emuExecute)( videoOut, soundOut, inputOut );
+						key->BeginForward( emulator, emuSaveState, NULL );
 					}
-
-					if (!prev->BeginBackward( emulator, emuLoadState ))
-					{
-						Reset();
-						return (emulator.*emuExecute)( videoOut, soundOut, inputOut );
-					}
-
-					key = prev;
 				}
+				else
+				{
+					if (++frame == NUM_FRAMES)
+					{
+						frame = 0;
+						key->EndBackward();
 
-				const ReverseVideo::Mutex videoMutex( video );
-				video.Flush( videoMutex );
-				video.Store();
+						Key* const prev = PrevKey();
 
-				const ReverseSound::Mutex soundMutex;
-				sound.Flush( soundOut, soundMutex );
-				soundOut = sound.Store();
+						if (prev->CanRewind())
+						{
+							prev->BeginBackward( emulator, emuLoadState );
+							key = prev;
+						}
+						else
+						{
+							rewinding = false;
 
-				return (emulator.*emuExecute)( videoOut, soundOut, inputOut );
+							key->Invalidate();
+							key = NextKey();
+							key->BeginForward( emulator, NULL, emuLoadState );
+
+							Api::Rewinder::stateCallback( Api::Rewinder::STOPPED );
+
+							LinkPorts();
+						}
+					}
+
+					if (rewinding)
+					{
+						const ReverseVideo::Mutex videoMutex( video );
+						video.Flush( videoMutex );
+						video.Store();
+
+						const ReverseSound::Mutex soundMutex;
+						sound.Flush( soundOut, soundMutex );
+						soundOut = sound.Store();
+
+						(emulator.*emuExecute)( videoOut, soundOut, inputOut );
+						return;
+					}
+				}
+			}
+			catch (...)
+			{
+				Reset();
+				throw;
 			}
 
-			return (emulator.*emuExecute)( videoOut, soundOut, inputOut );
+			(emulator.*emuExecute)( videoOut, soundOut, inputOut );
 		}
 
 		void Tracker::Rewinder::ChangeDirection()
@@ -686,22 +726,14 @@ namespace Nes
 			if (rewinding)
 			{
 				for (uint i=frame; i < LAST_FRAME; ++i)
-				{
-					if (NES_FAILED((emulator.*emuExecute)( NULL, NULL, NULL )))
-					{
-						Reset();
-						return;
-					}
-				}
+					(emulator.*emuExecute)( NULL, NULL, NULL );
 
 				NextKey()->Invalidate();
 
-				if (!video.Begin() || !sound.Begin() || !key->BeginBackward( emulator, emuLoadState ))
-				{
-					Reset();
-					return;
-				}
+				video.Begin();
+				sound.Begin();
 
+				key->BeginBackward( emulator, emuLoadState );
 				LinkPorts();
 
 				{
@@ -711,12 +743,7 @@ namespace Nes
 					for (uint i=0; i < NUM_FRAMES; ++i)
 					{
 						video.Store();
-
-						if (NES_FAILED((emulator.*emuExecute)( NULL, sound.Store(), NULL )))
-						{
-							Reset();
-							return;
-						}
+						(emulator.*emuExecute)( NULL, sound.Store(), NULL );
 					}
 				}
 
@@ -725,11 +752,10 @@ namespace Nes
 
 				while (align--)
 				{
-					if (NES_FAILED(Execute( NULL, NULL, NULL )) || !rewinding)
-					{
-						Reset();
-						return;
-					}
+					Execute( NULL, NULL, NULL );
+
+					if (!rewinding)
+						throw RESULT_ERR_CORRUPT_FILE;
 				}
 
 				Api::Rewinder::stateCallback( Api::Rewinder::REWINDING );
@@ -742,26 +768,13 @@ namespace Nes
 					{
 						frame = 0;
 						key = NextKey();
-
-						if (!key->TurnForward( emulator, emuLoadState ))
-						{
-							Reset();
-							return;
-						}
+						key->TurnForward( emulator, emuLoadState );
 					}
 
-					if (NES_FAILED((emulator.*emuExecute)( NULL, NULL, NULL )))
-					{
-						Reset();
-						return;
-					}
+					(emulator.*emuExecute)( NULL, NULL, NULL );
 				}
 
-				if (!key->ResumeForward())
-				{
-					Reset();
-					return;
-				}
+				key->ResumeForward();
 
 				LinkPorts();
 

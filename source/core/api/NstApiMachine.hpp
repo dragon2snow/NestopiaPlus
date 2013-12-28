@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,14 +25,17 @@
 #ifndef NST_API_MACHINE_H
 #define NST_API_MACHINE_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
-#pragma once
-#endif
-
 #include <iosfwd>
 #include "NstApi.hpp"
 
-#ifdef _MSC_VER
+#ifdef NST_PRAGMA_ONCE
+#pragma once
+#endif
+
+#if NST_ICC >= 810
+#pragma warning( push )
+#pragma warning( disable : 444 )
+#elif NST_MSVC >= 1200
 #pragma warning( push )
 #pragma warning( disable : 4512 )
 #endif
@@ -90,7 +93,9 @@ namespace Nes
 			Result SaveState (std::ostream&,Compression=USE_COMPRESSION) const throw();
 
 			uint Is (uint) const throw();
-			uint Is (uint,uint) const throw();
+			bool Is (uint,uint) const throw();
+
+			bool IsLocked() const throw();
 
 		private:
 
@@ -99,7 +104,7 @@ namespace Nes
 	}
 }
 
-#ifdef _MSC_VER
+#if NST_MSVC >= 1200 || NST_ICC >= 810
 #pragma warning( pop )
 #endif
 

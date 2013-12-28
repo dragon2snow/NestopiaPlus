@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -35,13 +35,12 @@ namespace Nestopia
 {
 	namespace Window
 	{
-		class Menu;
 		class Preferences;
 	}
 
 	namespace Managers
 	{
-		class Preferences
+		class Preferences : Manager
 		{
 		public:
 
@@ -82,27 +81,24 @@ namespace Nestopia
 
 			typedef Application::Instance Instance;
 
-			struct Settings
-			{
-				Collection::BitSet flags;
-				Priority priority;
-			};
-
 			void UpdateSettings();
 			void UpdateMenuColor() const;
 			void OnCmdOptions(uint);
 			void OnEmuEvent(Emulator::Event);
 			void OnAppEvent(Instance::Event,const void*);
 
-			Settings settings;
-			Emulator& emulator;
-			const Window::Menu& menu;
+			struct
+			{
+				Collection::BitSet flags;
+				Priority priority;
+			}   settings;
+
 			Object::Heap<Window::Preferences> dialog;
-			ibool inFullscreen;
+			bool inFullscreen;
 
 		public:
 
-			ibool operator [] (Type type) const
+			bool operator [] (Type type) const
 			{
 				return settings.flags[type];
 			}

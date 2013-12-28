@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -30,7 +30,7 @@ namespace Nes
 {
 	namespace Core
 	{
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("s", on)
 		#endif
 
@@ -49,20 +49,20 @@ namespace Nes
 		{
 			irq.Reset( true, true );
 
-			for (uint i=0x0000U; i < 0x1000U; i += 0x4)
+			for (uint i=0x0000; i < 0x1000; i += 0x4)
 			{
-				Map( 0x8000U + i, PRG_SWAP_8K_0 );
-				Map( 0x9000U + i, NMT_SWAP_HV   );
-				Map( 0xA000U + i, PRG_SWAP_8K_1 );
-				Map( 0xB000U + i, CHR_SWAP_1K_0 );
-				Map( 0xB002U + i, CHR_SWAP_1K_1 );
-				Map( 0xC000U + i, CHR_SWAP_1K_2 );
-				Map( 0xC002U + i, CHR_SWAP_1K_3 );
-				Map( 0xD000U + i, CHR_SWAP_1K_4 );
-				Map( 0xD002U + i, CHR_SWAP_1K_5 );
-				Map( 0xE000U + i, CHR_SWAP_1K_6 );
-				Map( 0xE002U + i, CHR_SWAP_1K_7 );
-				Map( 0xF000U + i, &Mapper222::Poke_F000 );
+				Map( 0x8000 + i, PRG_SWAP_8K_0 );
+				Map( 0x9000 + i, NMT_SWAP_HV   );
+				Map( 0xA000 + i, PRG_SWAP_8K_1 );
+				Map( 0xB000 + i, CHR_SWAP_1K_0 );
+				Map( 0xB002 + i, CHR_SWAP_1K_1 );
+				Map( 0xC000 + i, CHR_SWAP_1K_2 );
+				Map( 0xC002 + i, CHR_SWAP_1K_3 );
+				Map( 0xD000 + i, CHR_SWAP_1K_4 );
+				Map( 0xD002 + i, CHR_SWAP_1K_5 );
+				Map( 0xE000 + i, CHR_SWAP_1K_6 );
+				Map( 0xE002 + i, CHR_SWAP_1K_7 );
+				Map( 0xF000 + i, &Mapper222::Poke_F000 );
 			}
 		}
 
@@ -70,7 +70,7 @@ namespace Nes
 		{
 			while (const dword chunk = state.Begin())
 			{
-				if (chunk == NES_STATE_CHUNK_ID('I','R','Q','\0'))
+				if (chunk == AsciiId<'I','R','Q'>::V)
 					irq.unit.count = state.Read8();
 
 				state.End();
@@ -79,10 +79,10 @@ namespace Nes
 
 		void Mapper222::SubSave(State::Saver& state) const
 		{
-			state.Begin('I','R','Q','\0').Write8( irq.unit.count ).End();
+			state.Begin( AsciiId<'I','R','Q'>::V ).Write8( irq.unit.count ).End();
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -30,14 +30,17 @@ namespace Nes
 {
 	namespace Core
 	{
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("s", on)
 		#endif
 
 		void Mapper12::SubReset(const bool hard)
 		{
 			if (hard)
-				exRegs[0] = exRegs[1] = 0;
+			{
+				exRegs[0] = 0;
+				exRegs[1] = 0;
+			}
 
 			Mmc3::SubReset( hard );
 
@@ -49,7 +52,7 @@ namespace Nes
 		{
 			while (const dword chunk = state.Begin())
 			{
-				if (chunk == NES_STATE_CHUNK_ID('R','E','G','\0'))
+				if (chunk == AsciiId<'R','E','G'>::V)
 				{
 					const uint data = state.Read8();
 					exRegs[0] = (data & 0x01) << 8;
@@ -62,10 +65,10 @@ namespace Nes
 
 		void Mapper12::SubSave(State::Saver& state) const
 		{
-			state.Begin('R','E','G','\0').Write8( (exRegs[0] >> 8 & 0x01) | (exRegs[1] >> 4 & 0x10) ).End();
+			state.Begin( AsciiId<'R','E','G'>::V ).Write8( (exRegs[0] >> 8 & 0x01) | (exRegs[1] >> 4 & 0x10) ).End();
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
@@ -94,8 +97,8 @@ namespace Nes
 				exRegs[regs.ctrl0 >> 7 ^ 1]
 			};
 
-			chr.SwapBanks<SIZE_2K>( 0x0000U ^ swap, base[0] + banks.chr[0], base[0] + banks.chr[1] );
-			chr.SwapBanks<SIZE_1K>( 0x1000U ^ swap, base[1] + banks.chr[2], base[1] + banks.chr[3], base[1] + banks.chr[4], base[1] + banks.chr[5] );
+			chr.SwapBanks<SIZE_2K>( 0x0000 ^ swap, base[0] + banks.chr[0], base[0] + banks.chr[1] );
+			chr.SwapBanks<SIZE_1K>( 0x1000 ^ swap, base[1] + banks.chr[2], base[1] + banks.chr[3], base[1] + banks.chr[4], base[1] + banks.chr[5] );
 		}
 	}
 }

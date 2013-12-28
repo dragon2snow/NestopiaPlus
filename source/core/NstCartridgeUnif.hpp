@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,7 +25,7 @@
 #ifndef NST_CARTRIDGE_UNIF_H
 #define NST_CARTRIDGE_UNIF_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
+#ifdef NST_PRAGMA_ONCE
 #pragma once
 #endif
 
@@ -50,31 +50,43 @@ namespace Nes
 
 		private:
 
-			void  Import();
-			dword ComputeCrc() const;
-			void  CopyRom();
-			bool  NewChunk(bool&);
+			class Boards;
 
-			ulong ReadName       ();
-			ulong ReadComment    ();
-			ulong ReadString     (cstring,std::string&);
-			ulong ReadDumper     ();
-			ulong ReadSystem     ();
-			ulong ReadRomCrc     (uint,uint);
-			ulong ReadRomData    (uint,uint,ulong);
-			ulong ReadBattery    ();
-			ulong ReadMapper     ();
-			ulong ReadMirroring  ();
-			ulong ReadController ();
-			ulong ReadChrRam     ();
+			void CopyRom();
+			void CheckImageDatabase(const ImageDatabase*,ImageDatabase::Handle&);
 
-			bool CheckMapper();
-			void CheckImageDatabase();
+			static bool NewChunk(byte&,dword);
+			static cstring ChunkName(char (&)[5],dword);
+
+			void  ReadHeader     ();
+			void  ReadChunks     ();
+			dword ReadName       ();
+			dword ReadComment    ();
+			dword ReadString     (cstring,Vector<char>*);
+			dword ReadDumper     ();
+			dword ReadSystem     ();
+			dword ReadRomCrc     (uint,uint);
+			dword ReadRomData    (uint,uint,dword);
+			dword ReadBattery    ();
+			dword ReadMapper     ();
+			dword ReadMirroring  ();
+			dword ReadController ();
+			dword ReadChrRam     () const;
+			dword ReadUnknown    (dword) const;
 
 			enum
 			{
 				HEADER_RESERVED_LENGTH = 24,
-				NO_MAPPER = SHRT_MAX
+				MAX_ROM_SIZE = SIZE_16K * 0x1000UL
+			};
+
+			struct Rom
+			{
+				Rom();
+
+				dword crc;
+				dword truncated;
+				Ram rom;
 			};
 
 			struct Dump
@@ -87,51 +99,19 @@ namespace Nes
 				};
 
 				char name[NAME_LENGTH];
-				uint day;
-				uint month;
-				uint year;
+				byte day;
+				byte month;
+				word year;
 				char agent[AGENT_LENGTH];
 			};
 
 			Stream::In stream;
-			Log log;
-
 			Ram& prg;
 			Ram& chr;
-			Ram& wrk;
-
 			Api::Cartridge::Info& info;
-
-			const ImageDatabase* const database;
-			ImageDatabase::Handle& databaseHandle;
-
-			dword crc;
-
-			Result result;
-
-			struct Rom
-			{
-				Rom();
-
-				dword crc;
-				Ram rom;
-
-				static const char id[16];
-			};
-
 			Rom roms[2][16];
-
-			struct Board
-			{
-				bool operator < (const Board&) const;
-
-				cstring name;
-				u16 mapper;
-				u16 wrkRam;
-			};
-
-			static bool sorted;
-			static Board boards[];
+			ibool knownBoard;
+			Result result;
 
 		public:
 

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -68,7 +68,8 @@ namespace Nestopia
 			IDC_INPUT_JOYSTICKS_DEADZONE      == IDC_INPUT_JOYSTICKS + 14 &&
 			IDC_INPUT_JOYSTICKS_DEADZONE_NUM  == IDC_INPUT_JOYSTICKS + 15 &&
 			IDC_INPUT_JOYSTICKS_DEADZONE_TEXT == IDC_INPUT_JOYSTICKS + 16 &&
-			IDC_INPUT_JOYSTICKS_DEFAULT       == IDC_INPUT_JOYSTICKS + 17 &&
+			IDC_INPUT_JOYSTICKS_CALIBRATE     == IDC_INPUT_JOYSTICKS + 17 &&
+			IDC_INPUT_JOYSTICKS_DEFAULT       == IDC_INPUT_JOYSTICKS + 18 &&
 
 			IDM_MACHINE_INPUT_PORT1_PAD1                == IDM_MACHINE_INPUT_PORT1_UNCONNECTED +  1 &&
 			IDM_MACHINE_INPUT_PORT1_PAD2                == IDM_MACHINE_INPUT_PORT1_UNCONNECTED +  2 &&
@@ -77,44 +78,46 @@ namespace Nestopia
 			IDM_MACHINE_INPUT_PORT1_ZAPPER              == IDM_MACHINE_INPUT_PORT1_UNCONNECTED +  5 &&
 			IDM_MACHINE_INPUT_PORT1_PADDLE              == IDM_MACHINE_INPUT_PORT1_UNCONNECTED +  6 &&
 			IDM_MACHINE_INPUT_PORT1_POWERPAD            == IDM_MACHINE_INPUT_PORT1_UNCONNECTED +  7 &&
-			IDM_MACHINE_INPUT_PORT1_MOUSE               == IDM_MACHINE_INPUT_PORT1_UNCONNECTED +  8 &&
-			IDM_MACHINE_INPUT_PORT1_ROB                 == IDM_MACHINE_INPUT_PORT1_UNCONNECTED +  9 &&
-			IDM_MACHINE_INPUT_PORT2_UNCONNECTED         == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 10 &&
-			IDM_MACHINE_INPUT_PORT2_PAD1                == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 11 &&
-			IDM_MACHINE_INPUT_PORT2_PAD2                == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 12 &&
-			IDM_MACHINE_INPUT_PORT2_PAD3                == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 13 &&
-			IDM_MACHINE_INPUT_PORT2_PAD4                == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 14 &&
-			IDM_MACHINE_INPUT_PORT2_ZAPPER              == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 15 &&
-			IDM_MACHINE_INPUT_PORT2_PADDLE              == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 16 &&
-			IDM_MACHINE_INPUT_PORT2_POWERPAD            == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 17 &&
-			IDM_MACHINE_INPUT_PORT2_MOUSE               == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 18 &&
-			IDM_MACHINE_INPUT_PORT2_ROB                 == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 19 &&
-			IDM_MACHINE_INPUT_PORT3_UNCONNECTED         == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 20 &&
-			IDM_MACHINE_INPUT_PORT3_PAD1                == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 21 &&
-			IDM_MACHINE_INPUT_PORT3_PAD2                == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 22 &&
-			IDM_MACHINE_INPUT_PORT3_PAD3                == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 23 &&
-			IDM_MACHINE_INPUT_PORT3_PAD4                == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 24 &&
-			IDM_MACHINE_INPUT_PORT4_UNCONNECTED         == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 25 &&
-			IDM_MACHINE_INPUT_PORT4_PAD1                == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 26 &&
-			IDM_MACHINE_INPUT_PORT4_PAD2                == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 27 &&
-			IDM_MACHINE_INPUT_PORT4_PAD3                == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 28 &&
-			IDM_MACHINE_INPUT_PORT4_PAD4                == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 29 &&
-			IDM_MACHINE_INPUT_EXP_UNCONNECTED           == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 30 &&
-			IDM_MACHINE_INPUT_EXP_FAMILYTRAINER         == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 31 &&
-			IDM_MACHINE_INPUT_EXP_FAMILYBASICKEYBOARD   == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 32 &&
-			IDM_MACHINE_INPUT_EXP_SUBORKEYBOARD         == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 33 &&
-			IDM_MACHINE_INPUT_EXP_DOREMIKKOKEYBOARD     == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 34 &&
-			IDM_MACHINE_INPUT_EXP_HORITRACK             == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 35 &&
-			IDM_MACHINE_INPUT_EXP_PACHINKO              == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 36 &&
-			IDM_MACHINE_INPUT_EXP_PADDLE                == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 37 &&
-			IDM_MACHINE_INPUT_EXP_OEKAKIDSTABLET        == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 38 &&
-			IDM_MACHINE_INPUT_EXP_HYPERSHOT             == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 39 &&
-			IDM_MACHINE_INPUT_EXP_CRAZYCLIMBER          == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 40 &&
-			IDM_MACHINE_INPUT_EXP_MAHJONG               == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 41 &&
-			IDM_MACHINE_INPUT_EXP_EXCITINGBOXING        == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 42 &&
-			IDM_MACHINE_INPUT_EXP_TOPRIDER              == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 43 &&
-			IDM_MACHINE_INPUT_EXP_POKKUNMOGURAA         == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 44 &&
-			IDM_MACHINE_INPUT_EXP_PARTYTAP              == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 45
+			IDM_MACHINE_INPUT_PORT1_POWERGLOVE          == IDM_MACHINE_INPUT_PORT1_UNCONNECTED +  8 &&
+			IDM_MACHINE_INPUT_PORT1_MOUSE               == IDM_MACHINE_INPUT_PORT1_UNCONNECTED +  9 &&
+			IDM_MACHINE_INPUT_PORT1_ROB                 == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 10 &&
+			IDM_MACHINE_INPUT_PORT2_UNCONNECTED         == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 11 &&
+			IDM_MACHINE_INPUT_PORT2_PAD1                == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 12 &&
+			IDM_MACHINE_INPUT_PORT2_PAD2                == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 13 &&
+			IDM_MACHINE_INPUT_PORT2_PAD3                == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 14 &&
+			IDM_MACHINE_INPUT_PORT2_PAD4                == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 15 &&
+			IDM_MACHINE_INPUT_PORT2_ZAPPER              == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 16 &&
+			IDM_MACHINE_INPUT_PORT2_PADDLE              == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 17 &&
+			IDM_MACHINE_INPUT_PORT2_POWERPAD            == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 18 &&
+			IDM_MACHINE_INPUT_PORT2_POWERGLOVE          == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 19 &&
+			IDM_MACHINE_INPUT_PORT2_MOUSE               == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 20 &&
+			IDM_MACHINE_INPUT_PORT2_ROB                 == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 21 &&
+			IDM_MACHINE_INPUT_PORT3_UNCONNECTED         == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 22 &&
+			IDM_MACHINE_INPUT_PORT3_PAD1                == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 23 &&
+			IDM_MACHINE_INPUT_PORT3_PAD2                == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 24 &&
+			IDM_MACHINE_INPUT_PORT3_PAD3                == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 25 &&
+			IDM_MACHINE_INPUT_PORT3_PAD4                == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 26 &&
+			IDM_MACHINE_INPUT_PORT4_UNCONNECTED         == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 27 &&
+			IDM_MACHINE_INPUT_PORT4_PAD1                == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 28 &&
+			IDM_MACHINE_INPUT_PORT4_PAD2                == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 29 &&
+			IDM_MACHINE_INPUT_PORT4_PAD3                == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 30 &&
+			IDM_MACHINE_INPUT_PORT4_PAD4                == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 31 &&
+			IDM_MACHINE_INPUT_EXP_UNCONNECTED           == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 32 &&
+			IDM_MACHINE_INPUT_EXP_FAMILYTRAINER         == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 33 &&
+			IDM_MACHINE_INPUT_EXP_FAMILYBASICKEYBOARD   == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 34 &&
+			IDM_MACHINE_INPUT_EXP_SUBORKEYBOARD         == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 35 &&
+			IDM_MACHINE_INPUT_EXP_DOREMIKKOKEYBOARD     == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 36 &&
+			IDM_MACHINE_INPUT_EXP_HORITRACK             == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 37 &&
+			IDM_MACHINE_INPUT_EXP_PACHINKO              == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 38 &&
+			IDM_MACHINE_INPUT_EXP_PADDLE                == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 39 &&
+			IDM_MACHINE_INPUT_EXP_OEKAKIDSTABLET        == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 40 &&
+			IDM_MACHINE_INPUT_EXP_HYPERSHOT             == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 41 &&
+			IDM_MACHINE_INPUT_EXP_CRAZYCLIMBER          == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 42 &&
+			IDM_MACHINE_INPUT_EXP_MAHJONG               == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 43 &&
+			IDM_MACHINE_INPUT_EXP_EXCITINGBOXING        == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 44 &&
+			IDM_MACHINE_INPUT_EXP_TOPRIDER              == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 45 &&
+			IDM_MACHINE_INPUT_EXP_POKKUNMOGURAA         == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 46 &&
+			IDM_MACHINE_INPUT_EXP_PARTYTAP              == IDM_MACHINE_INPUT_PORT1_UNCONNECTED + 47
 		);
 
 		const Input::Settings::Type Input::Settings::types[OFFSET_COUNT] =
@@ -124,6 +127,7 @@ namespace Nestopia
 			{ PAD3_KEYS,           IDS_INPUT_KEY_SECTION_PAD3           },
 			{ PAD4_KEYS,           IDS_INPUT_KEY_SECTION_PAD4           },
 			{ POWERPAD_KEYS,       IDS_INPUT_KEY_SECTION_POWERPAD       },
+			{ POWERGLOVE_KEYS,     IDS_INPUT_KEY_SECTION_POWERGLOVE     },
 			{ HORITRACK_KEYS,      IDS_INPUT_KEY_SECTION_HORITRACK      },
 			{ PACHINKO_KEYS,       IDS_INPUT_KEY_SECTION_PACHINKO       },
 			{ CRAZYCLIMBER_KEYS,   IDS_INPUT_KEY_SECTION_CRAZYCLIMBER   },
@@ -212,6 +216,13 @@ namespace Nestopia
 			{ POWERPAD_KEYS + POWERPAD_KEY_SIDE_B_11, DIK_N, IDS_INPUT_POWERPAD_KEY_SIDE_B_11, "input powerpad side b 11" },
 			{ POWERPAD_KEYS + POWERPAD_KEY_SIDE_B_10, DIK_M, IDS_INPUT_POWERPAD_KEY_SIDE_B_10, "input powerpad side b 10" },
 
+			{ POWERGLOVE_KEYS + POWERGLOVE_KEY_SELECT,     DIK_RSHIFT, IDS_INPUT_POWERGLOVE_KEY_SELECT,     "input powerglove select"     },
+			{ POWERGLOVE_KEYS + POWERGLOVE_KEY_START,      DIK_RETURN, IDS_INPUT_POWERGLOVE_KEY_START,      "input powerglove start"      },
+			{ POWERGLOVE_KEYS + POWERGLOVE_KEY_MOVE_IN,    DIK_A,      IDS_INPUT_POWERGLOVE_KEY_MOVE_IN,    "input powerglove move in"    },
+			{ POWERGLOVE_KEYS + POWERGLOVE_KEY_MOVE_OUT,   DIK_Z,      IDS_INPUT_POWERGLOVE_KEY_MOVE_OUT,   "input powerglove move out"   },
+			{ POWERGLOVE_KEYS + POWERGLOVE_KEY_ROLL_LEFT,  DIK_X,      IDS_INPUT_POWERGLOVE_KEY_ROLL_LEFT,  "input powerglove roll left"  },
+			{ POWERGLOVE_KEYS + POWERGLOVE_KEY_ROLL_RIGHT, DIK_C,      IDS_INPUT_POWERGLOVE_KEY_ROLL_RIGHT, "input powerglove roll right" },
+
 			{ HORITRACK_KEYS + HORITRACK_KEY_LEFT,        DIK_LEFT,   IDS_INPUT_HORITRACK_KEY_LEFT,        "input horitrack left"        },
 			{ HORITRACK_KEYS + HORITRACK_KEY_UP,          DIK_UP,     IDS_INPUT_HORITRACK_KEY_UP,          "input horitrack up"          },
 			{ HORITRACK_KEYS + HORITRACK_KEY_RIGHT,       DIK_RIGHT,  IDS_INPUT_HORITRACK_KEY_RIGHT,       "input horitrack right"       },
@@ -259,14 +270,14 @@ namespace Nestopia
 			{ MAHJONG_KEYS + MAHJONG_KEY_SELECT, DIK_X, IDS_INPUT_MAHJONG_KEY_SELECT, "input mahjong select" },
 			{ MAHJONG_KEYS + MAHJONG_KEY_KAN,    DIK_C, IDS_INPUT_MAHJONG_KEY_KAN,    "input mahjong kan"    },
 			{ MAHJONG_KEYS + MAHJONG_KEY_PON,    DIK_V, IDS_INPUT_MAHJONG_KEY_PON,    "input mahjong pon"    },
-			{ MAHJONG_KEYS + MAHJONG_KEY_CHII,   DIK_B, IDS_INPUT_MAHJONG_KEY_CHII,   "input mahjong chii"   },
+			{ MAHJONG_KEYS + MAHJONG_KEY_CHI,    DIK_B, IDS_INPUT_MAHJONG_KEY_CHI,    "input mahjong chi"    },
 			{ MAHJONG_KEYS + MAHJONG_KEY_REACH,  DIK_N, IDS_INPUT_MAHJONG_KEY_REACH,  "input mahjong reach"  },
 			{ MAHJONG_KEYS + MAHJONG_KEY_RON,    DIK_M, IDS_INPUT_MAHJONG_KEY_RON,    "input mahjong ron"    },
 
 			{ EXCITINGBOXING_KEYS + EXCITINGBOXING_KEY_LEFT_HOOK,  DIK_K,      IDS_INPUT_EXCITINGBOXING_KEY_LEFT_HOOK,  "input excitingboxing left hook"  },
 			{ EXCITINGBOXING_KEYS + EXCITINGBOXING_KEY_RIGHT_HOOK, DIK_L,      IDS_INPUT_EXCITINGBOXING_KEY_RIGHT_HOOK, "input excitingboxing right hook" },
-			{ EXCITINGBOXING_KEYS + EXCITINGBOXING_KEY_LEFT_JABB,  DIK_COMMA,  IDS_INPUT_EXCITINGBOXING_KEY_LEFT_JABB,  "input excitingboxing left jabb"  },
-			{ EXCITINGBOXING_KEYS + EXCITINGBOXING_KEY_RIGHT_JABB, DIK_PERIOD, IDS_INPUT_EXCITINGBOXING_KEY_RIGHT_JABB, "input excitingboxing right jabb" },
+			{ EXCITINGBOXING_KEYS + EXCITINGBOXING_KEY_LEFT_JAB,   DIK_COMMA,  IDS_INPUT_EXCITINGBOXING_KEY_LEFT_JAB,   "input excitingboxing left jab"   },
+			{ EXCITINGBOXING_KEYS + EXCITINGBOXING_KEY_RIGHT_JAB,  DIK_PERIOD, IDS_INPUT_EXCITINGBOXING_KEY_RIGHT_JAB,  "input excitingboxing right jab"  },
 			{ EXCITINGBOXING_KEYS + EXCITINGBOXING_KEY_STRAIGHT,   DIK_UP,     IDS_INPUT_EXCITINGBOXING_KEY_STRAIGHT,   "input excitingboxing straight"   },
 			{ EXCITINGBOXING_KEYS + EXCITINGBOXING_KEY_BODY,       DIK_DOWN,   IDS_INPUT_EXCITINGBOXING_KEY_BODY,       "input excitingboxing body"       },
 			{ EXCITINGBOXING_KEYS + EXCITINGBOXING_KEY_LEFT_MOVE,  DIK_LEFT,   IDS_INPUT_EXCITINGBOXING_KEY_LEFT_MOVE,  "input excitingboxing left move"  },
@@ -376,30 +387,31 @@ namespace Nestopia
 
 		const MsgHandler::Entry<Input> Input::Handlers::commands[] =
 		{
-			{ IDC_INPUT_MAP,               &Input::OnCmdDblClk           },
-			{ IDC_INPUT_DEVICES,           &Input::OnCmdDevice           },
-			{ IDC_INPUT_JOYSTICKS,         &Input::OnCmdJoysticks        },
-			{ IDC_INPUT_SET,               &Input::OnCmdSet              },
-			{ IDC_INPUT_SETALL,            &Input::OnCmdSetAll           },
-			{ IDC_INPUT_CLEAR,             &Input::OnCmdClear            },
-			{ IDC_INPUT_CLEARALL,          &Input::OnCmdClearAll         },
-			{ IDC_INPUT_JOYSTICKS_ENABLE,  &Input::OnCmdJoystickEnable   },
-			{ IDC_INPUT_JOYSTICKS_X,       &Input::OnCmdJoystickAxis     },
-			{ IDC_INPUT_JOYSTICKS_Y,       &Input::OnCmdJoystickAxis     },
-			{ IDC_INPUT_JOYSTICKS_Z,       &Input::OnCmdJoystickAxis     },
-			{ IDC_INPUT_JOYSTICKS_RX,      &Input::OnCmdJoystickAxis     },
-			{ IDC_INPUT_JOYSTICKS_RY,      &Input::OnCmdJoystickAxis     },
-			{ IDC_INPUT_JOYSTICKS_RZ,      &Input::OnCmdJoystickAxis     },
-			{ IDC_INPUT_JOYSTICKS_S0,      &Input::OnCmdJoystickAxis     },
-			{ IDC_INPUT_JOYSTICKS_S1,      &Input::OnCmdJoystickAxis     },
-			{ IDC_INPUT_JOYSTICKS_POV0,    &Input::OnCmdJoystickAxis     },
-			{ IDC_INPUT_JOYSTICKS_POV1,    &Input::OnCmdJoystickAxis     },
-			{ IDC_INPUT_JOYSTICKS_POV2,    &Input::OnCmdJoystickAxis     },
-			{ IDC_INPUT_JOYSTICKS_POV3,    &Input::OnCmdJoystickAxis     },
-			{ IDC_INPUT_JOYSTICKS_DEFAULT, &Input::OnCmdJoysticksDefault },
-			{ IDC_INPUT_DEFAULT,           &Input::OnCmdDefault          },
-			{ IDC_INPUT_DEFAULT_CATEGORY,  &Input::OnCmdDefaultCategory  },
-			{ IDC_INPUT_AUTOFIRE_DEFAULT,  &Input::OnCmdAutoFireDefault  }
+			{ IDC_INPUT_MAP,                 &Input::OnCmdDblClk           },
+			{ IDC_INPUT_DEVICES,             &Input::OnCmdDevice           },
+			{ IDC_INPUT_JOYSTICKS,           &Input::OnCmdJoysticks        },
+			{ IDC_INPUT_SET,                 &Input::OnCmdSet              },
+			{ IDC_INPUT_SETALL,              &Input::OnCmdSetAll           },
+			{ IDC_INPUT_CLEAR,               &Input::OnCmdClear            },
+			{ IDC_INPUT_CLEARALL,            &Input::OnCmdClearAll         },
+			{ IDC_INPUT_JOYSTICKS_ENABLE,    &Input::OnCmdJoystickEnable   },
+			{ IDC_INPUT_JOYSTICKS_X,         &Input::OnCmdJoystickAxis     },
+			{ IDC_INPUT_JOYSTICKS_Y,         &Input::OnCmdJoystickAxis     },
+			{ IDC_INPUT_JOYSTICKS_Z,         &Input::OnCmdJoystickAxis     },
+			{ IDC_INPUT_JOYSTICKS_RX,        &Input::OnCmdJoystickAxis     },
+			{ IDC_INPUT_JOYSTICKS_RY,        &Input::OnCmdJoystickAxis     },
+			{ IDC_INPUT_JOYSTICKS_RZ,        &Input::OnCmdJoystickAxis     },
+			{ IDC_INPUT_JOYSTICKS_S0,        &Input::OnCmdJoystickAxis     },
+			{ IDC_INPUT_JOYSTICKS_S1,        &Input::OnCmdJoystickAxis     },
+			{ IDC_INPUT_JOYSTICKS_POV0,      &Input::OnCmdJoystickAxis     },
+			{ IDC_INPUT_JOYSTICKS_POV1,      &Input::OnCmdJoystickAxis     },
+			{ IDC_INPUT_JOYSTICKS_POV2,      &Input::OnCmdJoystickAxis     },
+			{ IDC_INPUT_JOYSTICKS_POV3,      &Input::OnCmdJoystickAxis     },
+			{ IDC_INPUT_JOYSTICKS_CALIBRATE, &Input::OnCmdCalibrate        },
+			{ IDC_INPUT_JOYSTICKS_DEFAULT,   &Input::OnCmdJoysticksDefault },
+			{ IDC_INPUT_DEFAULT,             &Input::OnCmdDefault          },
+			{ IDC_INPUT_DEFAULT_CATEGORY,    &Input::OnCmdDefaultCategory  },
+			{ IDC_INPUT_AUTOFIRE_DEFAULT,    &Input::OnCmdAutoFireDefault  }
 		};
 
 		Input::Settings::Settings()
@@ -443,7 +455,7 @@ namespace Nestopia
 			keys[index].Unmap();
 		}
 
-		ibool Input::Settings::Map(const uint index,const Key& key)
+		bool Input::Settings::Map(const uint index,const Key& key)
 		{
 			NST_ASSERT( index < NUM_KEYS );
 
@@ -528,7 +540,7 @@ namespace Nestopia
 		dialog      ( IDD_INPUT, this, Handlers::messages, Handlers::commands )
 		{
 			settings.Clear();
-			settings.autoFireSpeed = cfg["input autofire speed"].Default( (uint) Settings::AUTOFIRE_DEFAULT_SPEED );
+			settings.autoFireSpeed = cfg["input autofire speed"].Default( uint(Settings::AUTOFIRE_DEFAULT_SPEED) );
 			settings.allowSimulAxes = (cfg["input allow simultaneous axes"] == Configuration::YES);
 
 			if (settings.autoFireSpeed > Settings::AUTOFIRE_MAX_SPEED)
@@ -537,32 +549,85 @@ namespace Nestopia
 			System::Guid joyGuids[DirectX::DirectInput::MAX_JOYSTICKS];
 			uint maxGuids = 0;
 
+			if (const uint numJoysticks = directInput.NumJoysticks())
 			{
-				String::Stack<16,char> deviceIndex( "input device xx" );
-				NST_COMPILE_ASSERT( DirectX::DirectInput::MAX_JOYSTICKS <= 99 );
-
-				for (uint i=0; i < DirectX::DirectInput::MAX_JOYSTICKS; ++i)
 				{
-					deviceIndex(13) = i;
-					const GenericString string( cfg[deviceIndex] );
+					uchar joyRefs[DirectX::DirectInput::MAX_JOYSTICKS];
 
-					if (string.Length())
+					String::Stack<16,char> deviceIndex( "input device xx" );
+					NST_COMPILE_ASSERT( DirectX::DirectInput::MAX_JOYSTICKS <= 99 );
+
+					for (uint i=0; i < DirectX::DirectInput::MAX_JOYSTICKS; ++i)
 					{
-						joyGuids[i] = string;
-						maxGuids = i + 1;
+						deviceIndex(13) = i;
+						const GenericString string( cfg[deviceIndex] );
+
+						if (string.Length())
+						{
+							joyGuids[i] = string;
+							joyRefs[i] = 1;
+							maxGuids = i + 1;
+
+							for (uint j=0; j < numJoysticks; ++j)
+							{
+								if (joyGuids[i] == directInput.GetJoystickGuid(j))
+								{
+									joyRefs[i] = 2 + j;
+									break;
+								}
+							}
+						}
+						else
+						{
+							joyRefs[i] = 0;
+						}
+					}
+
+					for (uint i=0, remap=false; i < maxGuids; ++i)
+					{
+						if (joyRefs[i] == 1)
+						{
+							if (!remap && !Window::User::Confirm( IDS_INPUT_JOY_GUID_MISMATCH ))
+								break;
+
+							remap = true;
+
+							for (uint j=0; j < numJoysticks; ++j)
+							{
+								bool referenced = false;
+
+								for (uint k=0; k < maxGuids; ++k)
+								{
+									if (joyRefs[k] - 2U == j)
+									{
+										referenced = true;
+										break;
+									}
+								}
+
+								if (!referenced)
+								{
+									joyRefs[i] = 2 + j;
+									break;
+								}
+							}
+
+							if (joyRefs[i] < 2)
+								joyRefs[i] = 2;
+
+							joyGuids[i] = directInput.GetJoystickGuid( joyRefs[i] - 2 );
+						}
 					}
 				}
-			}
 
-			{
 				String::Stack<32,char> joyIndex("input joy xx");
 
-				for (uint i=0, n=directInput.NumJoysticks(); i < maxGuids; ++i)
+				for (uint i=0; i < maxGuids; ++i)
 				{
 					joyIndex(10) = i;
 					const uint joyOffset = joyIndex.Length();
 
-					for (uint j=0; j < n; ++j)
+					for (uint j=0; j < numJoysticks; ++j)
 					{
 						if (joyGuids[i] == directInput.GetJoystickGuid(j))
 						{
@@ -570,7 +635,7 @@ namespace Nestopia
 							directInput.ScanEnableJoystick( j, cfg[joyIndex] != Configuration::NO );
 
 							joyIndex(joyOffset) = " deadzone";
-							uint deadzone = cfg[joyIndex].Default( (uint) DirectX::DirectInput::DEFAULT_DEADZONE );
+							uint deadzone = cfg[joyIndex].Default( uint(DirectX::DirectInput::DEFAULT_DEADZONE) );
 
 							if (deadzone > DirectX::DirectInput::DEADZONE_MAX)
 								deadzone = DirectX::DirectInput::DEFAULT_DEADZONE;
@@ -587,7 +652,7 @@ namespace Nestopia
 								"x","y","z","rx","ry","rz","z0","z1","p0","p1","p2","p3"
 							};
 
-							for (uint k=0; k < NST_COUNT(names); ++k)
+							for (uint k=0; k < sizeof(array(names)); ++k)
 							{
 								joyIndex(joyOffset2) = names[k];
 
@@ -671,7 +736,7 @@ namespace Nestopia
 						"x","y","z","rx","ry","rz","z0","z1","p0","p1","p2","p3"
 					};
 
-					for (uint j=0, axes=directInput.GetScannerAxes(i); j < NST_COUNT(names); ++j)
+					for (uint j=0, axes=directInput.GetScannerAxes(i); j < sizeof(array(names)); ++j)
 					{
 						joyIndex(joyOffset2) = names[j];
 						cfg[joyIndex].YesNo() = (axes & (1U << j));
@@ -810,7 +875,7 @@ namespace Nestopia
 		{
 			NST_ASSERT( directInput.NumJoysticks() );
 
-			const ibool enabled = directInput.JoystickScanEnabled( type );
+			const bool enabled = directInput.JoystickScanEnabled( type );
 			dialog.CheckBox(IDC_INPUT_JOYSTICKS_ENABLE).Check( enabled );
 
 			{
@@ -965,6 +1030,14 @@ namespace Nestopia
 		{
 			if (param.Button().Clicked())
 				dialog.Slider( IDC_INPUT_AUTOFIRE_SLIDER ).Position() = Settings::AUTOFIRE_DEFAULT_SPEED;
+
+			return true;
+		}
+
+		ibool Input::OnCmdCalibrate(Param& param)
+		{
+			if (param.Button().Clicked())
+				directInput.Calibrate( dialog.ComboBox(IDC_INPUT_JOYSTICKS).Selection().GetIndex(), true );
 
 			return true;
 		}
@@ -1135,9 +1208,9 @@ namespace Nestopia
 					{
 						const uint vKeys[3] =
 						{
-							(::GetAsyncKeyState( VK_SHIFT   ) & 0x8000) ? VK_SHIFT   : 0,
-							(::GetAsyncKeyState( VK_CONTROL ) & 0x8000) ? VK_CONTROL : 0,
-							(::GetAsyncKeyState( VK_MENU    ) & 0x8000) ? VK_MENU    : 0
+							(::GetAsyncKeyState( VK_SHIFT   ) & 0x8000U) ? VK_SHIFT   : 0,
+							(::GetAsyncKeyState( VK_CONTROL ) & 0x8000U) ? VK_CONTROL : 0,
+							(::GetAsyncKeyState( VK_MENU    ) & 0x8000U) ? VK_MENU    : 0
 						};
 
 						Settings::Key key;
@@ -1225,7 +1298,7 @@ namespace Nestopia
 			keyBox[index < keyBox.Size() ? index : 0].Select();
 		}
 
-		ibool Input::MapSelectedKey(const Settings::Key& key)
+		bool Input::MapSelectedKey(const Settings::Key& key)
 		{
 			const uint index = Settings::GetMapping( dialog.ListBox(IDC_INPUT_DEVICES).Selection().GetIndex(), dialog.ListBox(IDC_INPUT_MAP).Selection().GetIndex() ).index;
 

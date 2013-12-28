@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -49,7 +49,7 @@ namespace Nestopia
 		Logfile::Logfile()
 		: dialog(IDD_LOGFILE,this,Handlers::messages,Handlers::commands) {}
 
-		ibool Logfile::Open(tstring const string)
+		bool Logfile::Open(tstring const string)
 		{
 			clear = false;
 

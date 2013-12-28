@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -29,7 +29,7 @@ namespace Nes
 {
 	namespace Core
 	{
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("s", on)
 		#endif
 
@@ -40,14 +40,14 @@ namespace Nes
 
 		void Mapper185::SubSave(State::Saver& state) const
 		{
-			state.Begin('O','P','B','\0').Write8( chr.SameComponent(0,this) ? 0x1 : 0x0 ).End();
+			state.Begin( AsciiId<'O','P','B'>::V ).Write8( chr.SameComponent(0,this) ? 0x1 : 0x0 ).End();
 		}
 
 		void Mapper185::SubLoad(State::Loader& state)
 		{
 			while (const dword chunk = state.Begin())
 			{
-				if (chunk == NES_STATE_CHUNK_ID('O','P','B','\0'))
+				if (chunk == AsciiId<'O','P','B'>::V)
 				{
 					if (state.Read8() & 0x1)
 						chr.SetAccessors( this, &Mapper185::Access_Chr, &Mapper185::Access_Chr );
@@ -59,7 +59,7 @@ namespace Nes
 			}
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
@@ -72,7 +72,7 @@ namespace Nes
 		{
 			ppu.Update();
 
-			chr.SwapBank<SIZE_8K,0x0000U>( data );
+			chr.SwapBank<SIZE_8K,0x0000>( data );
 
 			if (chr.SameComponent( 0, this ))
 				chr.ResetAccessors();

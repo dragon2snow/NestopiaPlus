@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -30,7 +30,7 @@ namespace Nes
 {
 	namespace Core
 	{
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("s", on)
 		#endif
 
@@ -49,11 +49,11 @@ namespace Nes
 		void Mapper50::SubReset(const bool hard)
 		{
 			if (hard)
-				prg.SwapBanks<SIZE_8K,0x0000U>( 8, 9, 0, 11 );
+				prg.SwapBanks<SIZE_8K,0x0000>( 8, 9, 0, 11 );
 
 			irq.Reset( hard, hard ? false : irq.IsLineEnabled() );
 
-			for (uint i=0x4020U; i < 0x6000U; i += 0x80)
+			for (uint i=0x4020; i < 0x6000; i += 0x80)
 				Map( i+0x00, i+0x20, (i & 0x100) ? &Mapper50::Poke_4120 : &Mapper50::Poke_4020 );
 
 			Map( 0x6000U, 0x7FFFU, &Mapper50::Peek_wRom );
@@ -63,11 +63,12 @@ namespace Nes
 		{
 			while (const dword chunk = state.Begin())
 			{
-				if (chunk == NES_STATE_CHUNK_ID('I','R','Q','\0'))
+				if (chunk == AsciiId<'I','R','Q'>::V)
 				{
-					const State::Loader::Data<3> data( state );
+					State::Loader::Data<3> data( state );
+
 					irq.EnableLine( data[0] & 0x1 );
-					irq.unit.count = data[1] | (data[2] << 8);
+					irq.unit.count = data[1] | data[2] << 8;
 				}
 
 				state.End();
@@ -76,28 +77,28 @@ namespace Nes
 
 		void Mapper50::SubSave(State::Saver& state) const
 		{
-			const u8 data[3] =
+			const byte data[3] =
 			{
 				irq.IsLineEnabled() ? 0x1 : 0x0,
 				irq.unit.count & 0xFF,
 				irq.unit.count >> 8
 			};
 
-			state.Begin('I','R','Q','\0').Write( data ).End();
+			state.Begin( AsciiId<'I','R','Q'>::V ).Write( data ).End();
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
 		NES_PEEK(Mapper50,wRom)
 		{
-			return *prg.Source().Mem( (SIZE_128K-SIZE_8K-0x6000U) + address );
+			return *prg.Source().Mem( (SIZE_128K-SIZE_8K-0x6000) + address );
 		}
 
 		NES_POKE(Mapper50,4020)
 		{
-			prg.SwapBank<SIZE_8K,0x4000U>
+			prg.SwapBank<SIZE_8K,0x4000>
 			(
 				(data << 0 & 0x8) |
 				(data << 2 & 0x4) |
@@ -114,7 +115,7 @@ namespace Nes
 
 		ibool Mapper50::Irq::Signal()
 		{
-			return ++count == 0x1000U;
+			return ++count == 0x1000;
 		}
 
 		void Mapper50::VSync()

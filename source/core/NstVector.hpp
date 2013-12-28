@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,34 +25,59 @@
 #ifndef NST_VECTOR_H
 #define NST_VECTOR_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
-#pragma once
+#ifndef NST_ASSERT_H
+#include "NstAssert.hpp"
 #endif
 
-#include <cstring>
+#ifdef NST_PRAGMA_ONCE
+#pragma once
+#endif
 
 namespace Nes
 {
 	namespace Core
 	{
-		class BaseVector
-		{
-		protected:
+		template<typename T>
+		class Vector;
 
-			static void* Allocate(dword);
-			static void* Reallocate(void*,dword);
+		template<>
+		class Vector<void>
+		{
+		public:
+
+			static void* Malloc(dword);
+			static void* Realloc(void*,dword);
 			static void  Free(void*);
+			static void  Copy(void*,const void*,dword);
+			static void  Move(void*,const void*,dword);
+
+			template<typename T>
+			static void Copy(T& dst,const T& src)
+			{
+				Copy( &dst, &src, sizeof(T) );
+			}
 		};
 
+		template<> inline void Vector<void>::Copy(char&   dst,const char&   src) { dst = src; }
+		template<> inline void Vector<void>::Copy(schar&  dst,const schar&  src) { dst = src; }
+		template<> inline void Vector<void>::Copy(uchar&  dst,const uchar&  src) { dst = src; }
+		template<> inline void Vector<void>::Copy(short&  dst,const short&  src) { dst = src; }
+		template<> inline void Vector<void>::Copy(ushort& dst,const ushort& src) { dst = src; }
+		template<> inline void Vector<void>::Copy(int&    dst,const int&    src) { dst = src; }
+		template<> inline void Vector<void>::Copy(uint&   dst,const uint&   src) { dst = src; }
+		template<> inline void Vector<void>::Copy(long&   dst,const long&   src) { dst = src; }
+		template<> inline void Vector<void>::Copy(ulong&  dst,const ulong&  src) { dst = src; }
+
 		template<typename T>
-		class Vector : BaseVector
+		class Vector
 		{
 			T* data;
 			dword size;
 			dword capacity;
 
 			void MakeRoom(dword);
-			void MakeMoreRoom(dword);
+
+			typedef Vector<void> Allocator;
 
 		public:
 
@@ -62,14 +87,15 @@ namespace Nes
 			explicit Vector(dword);
 			Vector(const Vector&);
 
-			void operator << (const T&);
 			bool operator == (const Vector&) const;
 
 			void Reserve(dword);
 			void Resize(dword);
 			void Expand(dword);
 			void Assign(const T*,dword);
+			void Append(const T&);
 			void Append(const T*,dword);
+			T*   Insert(T*,const T&);
 			void Erase(T*,dword=1);
 			void Destroy();
 			void Defrag();
@@ -78,7 +104,7 @@ namespace Nes
 
 			~Vector()
 			{
-				BaseVector::Free( data );
+				Allocator::Free( data );
 			}
 
 			void operator = (const Vector& vector)
@@ -153,39 +179,32 @@ namespace Nes
 
 		template<typename T>
 		Vector<T>::Vector(const dword count)
-		: data(static_cast<T*>(BaseVector::Allocate(count * sizeof(T)))), size(count), capacity(count)
+		: data(count ? static_cast<T*>(Allocator::Malloc(count * sizeof(T))) : NULL), size(count), capacity(count)
 		{
 		}
 
 		template<typename T>
 		Vector<T>::Vector(const Vector<T>& v)
-		: data(static_cast<T*>(BaseVector::Allocate(v.size * sizeof(T)))), size(v.size), capacity(v.size)
+		: data(v.size ? static_cast<T*>(Allocator::Malloc(v.size * sizeof(T))) : NULL), size(v.size), capacity(v.size)
 		{
-			std::memcpy( data, v.data, v.size * sizeof(T) );
+			Copy( data, v.data, v.size * sizeof(T) );
 		}
 
 		template<typename T>
 		void Vector<T>::MakeRoom(const dword count)
 		{
-			void* const tmp = data;
-			data = NULL;
-			BaseVector::Free( tmp );
-			data = static_cast<T*>(BaseVector::Allocate( (capacity=count) * sizeof(T) ));
+			NST_ASSERT( count );
+			data = static_cast<T*>(Allocator::Realloc( data, count * sizeof(T) ));
+			capacity = count;
 		}
 
 		template<typename T>
-		void Vector<T>::MakeMoreRoom(const dword count)
-		{
-			data = static_cast<T*>(BaseVector::Reallocate( data, (capacity=count) * sizeof(T) ));
-		}
-
-		template<typename T>
-		void Vector<T>::operator << (const T& value)
+		void Vector<T>::Append(const T& value)
 		{
 			if (size == capacity)
-				MakeMoreRoom( capacity = (size + 1) * 2 );
+				MakeRoom( (size + 1) * 2 );
 
-			data[size++] = value;
+			Allocator::Copy( data[size++], value );
 		}
 
 		template<typename T>
@@ -194,19 +213,33 @@ namespace Nes
 			if (capacity < inSize)
 				MakeRoom( inSize );
 
-			std::memcpy( data, inData, (size=inSize) * sizeof(T) );
+			Allocator::Copy( data, inData, (size=inSize) * sizeof(T) );
 		}
 
 		template<typename T>
 		void Vector<T>::Append(const T* const NST_RESTRICT inData,const dword inSize)
 		{
 			if (capacity < size + inSize)
-				MakeMoreRoom( (size * 2) + inSize );
+				MakeRoom( (size * 2) + inSize );
 
 			void* const tmp = data + size;
 			size += inSize;
 
-			std::memcpy( tmp, inData, inSize * sizeof(T) );
+			Allocator::Copy( tmp, inData, inSize * sizeof(T) );
+		}
+
+		template<typename T>
+		T* Vector<T>::Insert(T* it,const T& value)
+		{
+			const dword pos = it - data;
+
+			if (size++ == capacity)
+				MakeRoom( size * 2 );
+
+			Allocator::Move( data+pos+1, data+pos, (size - (pos+1)) * sizeof(T) );
+			Allocator::Copy( data[pos], value );
+
+			return data+pos;
 		}
 
 		template<typename T>
@@ -216,41 +249,59 @@ namespace Nes
 
 			const dword s = size;
 			size -= count;
-			std::memmove( it, it + count, (s - (it-data + count)) * sizeof(T) );
+			Allocator::Move( it, it + count, (s - ((it-data) + count)) * sizeof(T) );
 		}
 
 		template<typename T>
 		void Vector<T>::Reserve(dword count)
 		{
 			if (capacity < count)
-				MakeMoreRoom( count );
+				MakeRoom( count );
 		}
 
 		template<typename T>
 		void Vector<T>::Resize(dword count)
 		{
-			size = count;
 			Reserve( count );
+			size = count;
 		}
 
 		template<typename T>
 		void Vector<T>::Expand(dword count)
 		{
+			Reserve( size + count );
 			size += count;
-			Reserve( size );
 		}
 
 		template<typename T>
 		void Vector<T>::Defrag()
 		{
-			if (size < capacity)
-				MakeMoreRoom( size );
+			if (size)
+			{
+				MakeRoom( size );
+			}
+			else
+			{
+				void* const tmp = data;
+				data = NULL;
+				capacity = 0;
+				Allocator::Free( tmp );
+			}
 		}
 
 		template<typename T>
-		bool Vector<T>::operator == (const Vector<T>& vector) const
+		bool Vector<T>::operator == (const Vector& vector) const
 		{
-			return size == vector.size && std::memcmp( data, vector.data, size * sizeof(T) ) == 0;
+			if (size != vector.size)
+				return false;
+
+			for (const T *a=data, *b=vector.data, *const end=data+size; a != end; ++a, ++b)
+			{
+				if (!(*a == *b))
+					return false;
+			}
+
+			return true;
 		}
 
 		template<typename T>
@@ -261,7 +312,7 @@ namespace Nes
 				data = NULL;
 				size = 0;
 				capacity = 0;
-				BaseVector::Free( tmp );
+				Allocator::Free( tmp );
 			}
 		}
 

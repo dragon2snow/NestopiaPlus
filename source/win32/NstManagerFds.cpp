@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -26,8 +26,7 @@
 #include "NstObjectHeap.hpp"
 #include "NstIoScreen.hpp"
 #include "NstSystemKeyboard.hpp"
-#include "NstWindowMenu.hpp"
-#include "NstManagerEmulator.hpp"
+#include "NstManager.hpp"
 #include "NstManagerFds.hpp"
 #include "NstDialogFds.hpp"
 
@@ -84,11 +83,12 @@ namespace Nestopia
 
 		Fds::Fds(Emulator& e,const Configuration& cfg,Window::Menu& m,const Paths& paths)
 		:
-		emulator ( e ),
+		Manager  ( e, m, this, &Fds::OnEmuEvent ),
 		master   ( false ),
-		menu     ( m ),
 		dialog   ( new Window::Fds(e,cfg,paths) )
 		{
+			Nes::Fds::diskChangeCallback.Set( Callbacks::OnDiskChange, this );
+
 			static const Window::Menu::CmdHandler::Entry<Fds> commands[] =
 			{
 				{ IDM_MACHINE_EXT_FDS_INSERT_DISK_1_SIDE_A, &Fds::OnCmdInsertDisk },
@@ -112,26 +112,22 @@ namespace Nestopia
 				{ IDM_MACHINE_EXT_FDS_OPTIONS,              &Fds::OnCmdOptions    }
 			};
 
+			menu.Commands().Add( this, commands );
+
 			static const Window::Menu::PopupHandler::Entry<Fds> popups[] =
 			{
 				{ Window::Menu::PopupHandler::Pos<IDM_POS_MACHINE,IDM_POS_MACHINE_EXT,IDM_POS_MACHINE_EXT_FDS,IDM_POS_MACHINE_EXT_FDS_INSERTDISK>::ID, &Fds::OnMenuInsert }
 			};
 
-			Nes::Fds::diskChangeCallback.Set( Callbacks::OnDiskChange, this );
-
-			m.Commands().Add( this, commands );
-			m.PopupRouter().Add( this, popups );
-			emulator.Events().Add( this, &Fds::OnEmuEvent );
+			menu.PopupRouter().Add( this, popups );
 
 			UpdateSettings();
 		}
 
 		Fds::~Fds()
 		{
-			Nes::Fds::diskChangeCallback.Set( NULL, NULL );
-			Nes::Fds::diskAccessLampCallback.Set( NULL, NULL );
-
-			emulator.Events().Remove( this );
+			Nes::Fds::diskChangeCallback.Unset();
+			Nes::Fds::diskAccessLampCallback.Unset();
 		}
 
 		void Fds::Save(Configuration& cfg) const
@@ -153,7 +149,7 @@ namespace Nestopia
 
 		void Fds::OnDiskChange(const Nes::Fds::Event event,const uint disk,const uint side) const
 		{
-			const ibool inserted = (event == Nes::Fds::DISK_INSERT);
+			const bool inserted = (event == Nes::Fds::DISK_INSERT);
 
 			menu[IDM_MACHINE_EXT_FDS_CHANGE_SIDE].Enable( inserted && master && Nes::Fds(emulator).CanChangeDiskSide() );
 			menu[IDM_MACHINE_EXT_FDS_EJECT_DISK].Enable( inserted && master );

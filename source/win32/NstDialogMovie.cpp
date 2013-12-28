@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -52,12 +52,16 @@ namespace Nestopia
 		Movie::Movie(const Managers::Paths& p)
 		: dialog(IDD_MOVIE,this,Handlers::messages,Handlers::commands), paths(p) {}
 
+		Movie::~Movie()
+		{
+		}
+
 		const Path Movie::GetMovieFile() const
 		{
 			return Application::Instance::GetFullPath( movieFile );
 		}
 
-		ibool Movie::SetMovieFile(const Path& file)
+		bool Movie::SetMovieFile(const Path& file)
 		{
 			const Path old( movieFile );
 			movieFile = file;

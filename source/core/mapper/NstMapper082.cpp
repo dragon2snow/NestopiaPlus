@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -29,14 +29,14 @@ namespace Nes
 {
 	namespace Core
 	{
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("s", on)
 		#endif
 
 		void Mapper82::SubReset(const bool hard)
 		{
 			if (hard)
-				swapOffset = 0x0000U;
+				swapOffset = 0x0000;
 
 			Map( 0x7EF0U, &Mapper82::Poke_7EF0 );
 			Map( 0x7EF1U, &Mapper82::Poke_7EF1 );
@@ -54,7 +54,7 @@ namespace Nes
 		{
 			while (const dword chunk = state.Begin())
 			{
-				if (chunk == NES_STATE_CHUNK_ID('R','E','G','\0'))
+				if (chunk == AsciiId<'R','E','G'>::V)
 					swapOffset = (state.Read8() & 0x2) << 11;
 
 				state.End();
@@ -63,47 +63,47 @@ namespace Nes
 
 		void Mapper82::SubSave(State::Saver& state) const
 		{
-			state.Begin('R','E','G','\0').Write8( swapOffset >> 11 ).End();
+			state.Begin( AsciiId<'R','E','G'>::V ).Write8( swapOffset >> 11 ).End();
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
 		NES_POKE(Mapper82,7EF0)
 		{
 			ppu.Update();
-			chr.SwapBank<SIZE_2K>( swapOffset | 0x0000U, data >> 1 );
+			chr.SwapBank<SIZE_2K>( swapOffset | 0x0000, data >> 1 );
 		}
 
 		NES_POKE(Mapper82,7EF1)
 		{
 			ppu.Update();
-			chr.SwapBank<SIZE_2K>( swapOffset | 0x0800U, data >> 1 );
+			chr.SwapBank<SIZE_2K>( swapOffset | 0x0800, data >> 1 );
 		}
 
 		NES_POKE(Mapper82,7EF2)
 		{
 			ppu.Update();
-			chr.SwapBank<SIZE_1K>( swapOffset ^ 0x1000U, data );
+			chr.SwapBank<SIZE_1K>( swapOffset ^ 0x1000, data );
 		}
 
 		NES_POKE(Mapper82,7EF3)
 		{
 			ppu.Update();
-			chr.SwapBank<SIZE_1K>( swapOffset ^ 0x1400U, data );
+			chr.SwapBank<SIZE_1K>( swapOffset ^ 0x1400, data );
 		}
 
 		NES_POKE(Mapper82,7EF4)
 		{
 			ppu.Update();
-			chr.SwapBank<SIZE_1K>( swapOffset ^ 0x1800U, data );
+			chr.SwapBank<SIZE_1K>( swapOffset ^ 0x1800, data );
 		}
 
 		NES_POKE(Mapper82,7EF5)
 		{
 			ppu.Update();
-			chr.SwapBank<SIZE_1K>( swapOffset ^ 0x1C00U, data );
+			chr.SwapBank<SIZE_1K>( swapOffset ^ 0x1C00, data );
 		}
 
 		NES_POKE(Mapper82,7EF6)
@@ -112,8 +112,8 @@ namespace Nes
 			ppu.SetMirroring( (data & 0x1) ? Ppu::NMT_VERTICAL : Ppu::NMT_HORIZONTAL );
 		}
 
-		NES_POKE(Mapper82,7EFA) { prg.SwapBank<SIZE_8K,0x0000U>(data >> 2); }
-		NES_POKE(Mapper82,7EFB) { prg.SwapBank<SIZE_8K,0x2000U>(data >> 2); }
-		NES_POKE(Mapper82,7EFC) { prg.SwapBank<SIZE_8K,0x4000U>(data >> 2); }
+		NES_POKE(Mapper82,7EFA) { prg.SwapBank<SIZE_8K,0x0000>(data >> 2); }
+		NES_POKE(Mapper82,7EFB) { prg.SwapBank<SIZE_8K,0x2000>(data >> 2); }
+		NES_POKE(Mapper82,7EFC) { prg.SwapBank<SIZE_8K,0x4000>(data >> 2); }
 	}
 }

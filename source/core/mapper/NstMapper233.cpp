@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -29,7 +29,7 @@ namespace Nes
 {
 	namespace Core
 	{
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("s", on)
 		#endif
 
@@ -42,26 +42,26 @@ namespace Nes
 			else
 				games ^= 0x20;
 
-			NES_CALL_POKE(Mapper233,Prg,0x8000U,0x00);
+			NES_DO_POKE(Prg,0x8000,0x00);
 		}
 
 		void Mapper233::SubSave(State::Saver& state) const
 		{
-			state.Begin('R','E','G','\0').Write8( games >> 5 ).End();
+			state.Begin( AsciiId<'R','E','G'>::V ).Write8( games >> 5 ).End();
 		}
 
 		void Mapper233::SubLoad(State::Loader& state)
 		{
 			while (const dword chunk = state.Begin())
 			{
-				if (chunk == NES_STATE_CHUNK_ID('R','E','G','\0'))
+				if (chunk == AsciiId<'R','E','G'>::V)
 					games = (state.Read8() & 0x1) << 5;
 
 				state.End();
 			}
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
@@ -70,11 +70,11 @@ namespace Nes
 			const uint bank = data & 0x1F;
 
 			if (data & 0x20)
-				prg.SwapBanks<SIZE_16K,0x0000U>( games | bank, games | bank );
+				prg.SwapBanks<SIZE_16K,0x0000>( games | bank, games | bank );
 			else
-				prg.SwapBank<SIZE_32K,0x0000U>( games >> 1 | bank >> 1 );
+				prg.SwapBank<SIZE_32K,0x0000>( games >> 1 | bank >> 1 );
 
-			static const uchar lut[4][4] =
+			static const byte lut[4][4] =
 			{
 				{0,0,0,0},
 				{0,1,0,1},

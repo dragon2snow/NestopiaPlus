@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -30,7 +30,7 @@ namespace Nes
 {
 	namespace Core
 	{
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("s", on)
 		#endif
 
@@ -47,12 +47,12 @@ namespace Nes
 
 			irq.Reset( hard, hard || irq.IsLineEnabled() );
 
-			for (uint i=0x0000U; i < 0x1000U; i += 0x4)
+			for (uint i=0x0000; i < 0x1000; i += 0x4)
 			{
-				Map( 0x8001U + i, NMT_SWAP_HV );
-				Map( 0xA000U + i, &Mapper182::Poke_A000 );
-				Map( 0xC000U + i, &Mapper182::Poke_C000 );
-				Map( 0xE003U + i, &Mapper182::Poke_E003 );
+				Map( 0x8001 + i, NMT_SWAP_HV );
+				Map( 0xA000 + i, &Mapper182::Poke_A000 );
+				Map( 0xC000 + i, &Mapper182::Poke_C000 );
+				Map( 0xE003 + i, &Mapper182::Poke_E003 );
 			}
 		}
 
@@ -62,12 +62,12 @@ namespace Nes
 			{
 				switch (chunk)
 				{
-					case NES_STATE_CHUNK_ID('R','E','G','\0'):
+					case AsciiId<'R','E','G'>::V:
 
 						command = state.Read8();
 						break;
 
-					case NES_STATE_CHUNK_ID('I','R','Q','\0'):
+					case AsciiId<'I','R','Q'>::V:
 
 						irq.unit.LoadState( state );
 						break;
@@ -79,11 +79,11 @@ namespace Nes
 
 		void Mapper182::SubSave(State::Saver& state) const
 		{
-			state.Begin('R','E','G','\0').Write8( command ).End();
-			irq.unit.SaveState( State::Saver::Subset(state,'I','R','Q','\0').Ref() );
+			state.Begin( AsciiId<'R','E','G'>::V ).Write8( command ).End();
+			irq.unit.SaveState( state, AsciiId<'I','R','Q'>::V );
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
@@ -98,14 +98,14 @@ namespace Nes
 
 			switch (command & 0x7)
 			{
-				case 0x0: chr.SwapBank<SIZE_2K,0x0000U>(data >> 1);  break;
-				case 0x1: chr.SwapBank<SIZE_1K,0x1400U>(data);       break;
-				case 0x2: chr.SwapBank<SIZE_2K,0x0800U>(data >> 1);  break;
-				case 0x3: chr.SwapBank<SIZE_1K,0x1C00U>(data);       break;
-				case 0x4: prg.SwapBank<SIZE_8K,0x0000U>(data);       break;
-				case 0x5: prg.SwapBank<SIZE_8K,0x2000U>(data);       break;
-				case 0x6: chr.SwapBank<SIZE_1K,0x1000U>(data);       break;
-				case 0x7: chr.SwapBank<SIZE_1K,0x1800U>(data);       break;
+				case 0x0: chr.SwapBank<SIZE_2K,0x0000>(data >> 1);  break;
+				case 0x1: chr.SwapBank<SIZE_1K,0x1400>(data);       break;
+				case 0x2: chr.SwapBank<SIZE_2K,0x0800>(data >> 1);  break;
+				case 0x3: chr.SwapBank<SIZE_1K,0x1C00>(data);       break;
+				case 0x4: prg.SwapBank<SIZE_8K,0x0000>(data);       break;
+				case 0x5: prg.SwapBank<SIZE_8K,0x2000>(data);       break;
+				case 0x6: chr.SwapBank<SIZE_1K,0x1000>(data);       break;
+				case 0x7: chr.SwapBank<SIZE_1K,0x1800>(data);       break;
 			}
 		}
 

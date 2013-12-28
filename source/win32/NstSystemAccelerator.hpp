@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -42,7 +42,7 @@ namespace Nestopia
 
 			uint Size() const;
 			void Set(const ACCEL*,uint);
-			ibool Get(Entries&) const;
+			bool Get(Entries&) const;
 			void Clear();
 
 			static const HeapString GetKeyName(const ACCEL&);
@@ -68,12 +68,12 @@ namespace Nestopia
 					::DestroyAcceleratorTable( handle );
 			}
 
-			ibool Enabled() const
+			bool Enabled() const
 			{
-				return handle != NULL;
+				return handle;
 			}
 
-			ibool Translate(MSG& msg) const
+			bool Translate(MSG& msg) const
 			{
 				NST_ASSERT( handle );
 				return ::TranslateAccelerator( msg.hwnd, handle, &msg );

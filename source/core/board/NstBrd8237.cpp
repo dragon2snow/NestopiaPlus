@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -32,7 +32,7 @@ namespace Nes
 	{
 		namespace Boards
 		{
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("s", on)
 			#endif
 
@@ -61,13 +61,13 @@ namespace Nes
 			{
 				while (const dword chunk = state.Begin())
 				{
-					if (chunk == NES_STATE_CHUNK_ID('R','E','G','\0'))
+					if (chunk == AsciiId<'R','E','G'>::V)
 					{
-						const State::Loader::Data<2> data( state );
+						State::Loader::Data<2> data( state );
 
 						exRegs[0] = data[0];
-						exRegs[1] = (data[1] & 0x4) << 6;
-						exRegs[2] = (data[1] & 0x1);
+						exRegs[1] = data[1] << 6 & 0x100;
+						exRegs[2] = data[1] & 0x1;
 					}
 
 					state.End();
@@ -76,16 +76,16 @@ namespace Nes
 
 			void Unl8237::SubSave(State::Saver& state) const
 			{
-				const u8 data[2] =
+				const byte data[2] =
 				{
 					exRegs[0],
-					(exRegs[1] >> 6) | exRegs[2],
+					exRegs[1] >> 6 | exRegs[2],
 				};
 
-				state.Begin('R','E','G','\0').Write( data ).End();
+				state.Begin( AsciiId<'R','E','G'>::V ).Write( data ).End();
 			}
 
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("", on)
 			#endif
 
@@ -96,9 +96,9 @@ namespace Nes
 					const uint bank = exRegs[0] & 0xF;
 
 					if (exRegs[0] & 0x20)
-						prg.SwapBank<SIZE_32K,0x0000U>( bank >> 1 );
+						prg.SwapBank<SIZE_32K,0x0000>( bank >> 1 );
 					else
-						prg.SwapBanks<SIZE_16K,0x0000U>( bank, bank );
+						prg.SwapBanks<SIZE_16K,0x0000>( bank, bank );
 				}
 				else
 				{
@@ -114,14 +114,14 @@ namespace Nes
 
 				chr.SwapBanks<SIZE_2K>
 				(
-					0x0000U ^ swap,
+					0x0000 ^ swap,
 					exRegs[1] >> 1 | banks.chr[0],
 					exRegs[1] >> 1 | banks.chr[1]
 				);
 
 				chr.SwapBanks<SIZE_1K>
 				(
-					0x1000U ^ swap,
+					0x1000 ^ swap,
 					exRegs[1] | banks.chr[2],
 					exRegs[1] | banks.chr[3],
 					exRegs[1] | banks.chr[4],
@@ -156,12 +156,12 @@ namespace Nes
 
 			NES_POKE(Unl8237,A000)
 			{
-				static const u8 lut[8] = {0,2,6,1,7,3,4,5};
+				static const byte lut[8] = {0,2,6,1,7,3,4,5};
 
 				data = (data & 0xC0) | lut[data & 0x07];
 				exRegs[2] = true;
 
-				NES_CALL_POKE(Mmc3,8000,0x8000U,data);
+				Mmc3::NES_DO_POKE(8000,0x8000,data);
 			}
 
 			NES_POKE(Unl8237,C000)
@@ -169,15 +169,15 @@ namespace Nes
 				if (exRegs[2])
 				{
 					exRegs[2] = false;
-					NES_CALL_POKE(Mmc3,8001,0x8001U,data);
+					Mmc3::NES_DO_POKE(8001,0x8001,data);
 				}
 			}
 
 			NES_POKE(Unl8237,F000)
 			{
-				NES_CALL_POKE(Mmc3,E001,0xE001U,data);
-				NES_CALL_POKE(Mmc3,C000,0xC000U,data);
-				NES_CALL_POKE(Mmc3,C001,0xC001U,data);
+				Mmc3::NES_DO_POKE(E001,0xE001,data);
+				Mmc3::NES_DO_POKE(C000,0xC000,data);
+				Mmc3::NES_DO_POKE(C001,0xC001,data);
 			}
 		}
 	}

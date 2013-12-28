@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -30,7 +30,7 @@ namespace Nes
 {
 	namespace Core
 	{
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("s", on)
 		#endif
 
@@ -43,7 +43,7 @@ namespace Nes
 		void Mapper40::SubReset(const bool hard)
 		{
 			if (hard)
-				prg.SwapBanks<SIZE_8K,0x0000U>( 4, 5, 0, 7 );
+				prg.SwapBanks<SIZE_8K,0x0000>( 4, 5, 0, 7 );
 
 			irq.Reset( hard, true );
 
@@ -57,11 +57,12 @@ namespace Nes
 		{
 			while (const dword chunk = state.Begin())
 			{
-				if (chunk == NES_STATE_CHUNK_ID('I','R','Q','\0'))
+				if (chunk == AsciiId<'I','R','Q'>::V)
 				{
 					State::Loader::Data<3> data( state );
-					irq.unit.enabled = data[0] & 0x1;
-					irq.unit.count = data[1] | ((data[2] & 0xF) << 8);
+
+					irq.unit.enabled = data[0] & 0x1U;
+					irq.unit.count = data[1] | (data[2] << 8 & 0xF00);
 				}
 
 				state.End();
@@ -70,17 +71,17 @@ namespace Nes
 
 		void Mapper40::SubSave(State::Saver& state) const
 		{
-			const u8 data[3] =
+			const byte data[3] =
 			{
 				irq.unit.enabled != 0,
 				irq.unit.count & 0xFF,
 				irq.unit.count >> 8
 			};
 
-			state.Begin('I','R','Q','\0').Write( data ).End();
+			state.Begin( AsciiId<'I','R','Q'>::V ).Write( data ).End();
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
@@ -97,7 +98,7 @@ namespace Nes
 		{
 			if (enabled)
 			{
-				count = (count + 1) & 0xFFFU;
+				count = (count + 1) & 0xFFF;
 
 				if (!count)
 				{
@@ -111,7 +112,7 @@ namespace Nes
 
 		NES_PEEK(Mapper40,6000)
 		{
-			return *prg.Source().Mem( (SIZE_64K-SIZE_16K-0x6000U) + address );
+			return *prg.Source().Mem( (SIZE_64K-SIZE_16K-0x6000) + address );
 		}
 
 		NES_POKE(Mapper40,8000)
@@ -129,7 +130,7 @@ namespace Nes
 
 		NES_POKE(Mapper40,E000)
 		{
-			prg.SwapBank<SIZE_8K,0x4000U>(data & 0x7);
+			prg.SwapBank<SIZE_8K,0x4000>(data & 0x7);
 		}
 
 		void Mapper40::VSync()

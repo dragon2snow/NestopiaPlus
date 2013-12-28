@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -23,6 +23,7 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 
 #include "NstIoFile.hpp"
+#include "NstCollectionVector.hpp"
 #include <Windows.h>
 
 namespace Nestopia
@@ -80,7 +81,11 @@ namespace Nestopia
 																	OPEN_EXISTING
 				),
 				(
-					((mode & WRITE) ? FILE_ATTRIBUTE_NORMAL : 0) |
+					(
+						(mode & (WRITE|WRITE_THROUGH)) == (WRITE)               ? (FILE_ATTRIBUTE_NORMAL) :
+						(mode & (WRITE|WRITE_THROUGH)) == (WRITE|WRITE_THROUGH) ? (FILE_ATTRIBUTE_NORMAL|FILE_FLAG_WRITE_THROUGH) : 0
+					)
+					|
 					(
 						(mode & (READ|RANDOM_ACCESS))     == (READ|RANDOM_ACCESS)     ? FILE_FLAG_RANDOM_ACCESS :
 						(mode & (READ|SEQUENTIAL_ACCESS)) == (READ|SEQUENTIAL_ACCESS) ? FILE_FLAG_SEQUENTIAL_SCAN : 0
@@ -143,6 +148,24 @@ namespace Nestopia
 			}
 		}
 
+		void File::Write8(uint data) const
+		{
+			const uchar buffer = data;
+			Write( &buffer, 1 );
+		}
+
+		void File::Write16(uint data) const
+		{
+			const uchar buffer[] = { data & 0xFF, data >> 8 };
+			Write( buffer, 2 );
+		}
+
+		void File::Write32(uint data) const
+		{
+			const uchar buffer[] = { data & 0xFF, data >> 8 & 0xFF, data >> 16 & 0xFF, data >> 24 };
+			Write( buffer, 4 );
+		}
+
 		void File::Read(void* const data,const uint size) const
 		{
 			NST_ASSERT( IsOpen() && bool(data) >= bool(size) );
@@ -188,6 +211,27 @@ namespace Nestopia
 			Position() = pos;
 		}
 
+		uint File::Peek8() const
+		{
+			uchar buffer;
+			Peek( &buffer, 1 );
+			return buffer;
+		}
+
+		uint File::Peek16() const
+		{
+			uchar buffer[2];
+			Peek( buffer, 2 );
+			return buffer[0] | uint(buffer[1]) << 8;
+		}
+
+		uint File::Peek32() const
+		{
+			uchar buffer[4];
+			Peek( buffer, 4 );
+			return buffer[0] | uint(buffer[1]) << 8 | uint(buffer[2]) << 16 | uint(buffer[3]) << 24;
+		}
+
 		uint File::Seek(const Offset offset,const int distance) const
 		{
 			NST_ASSERT( IsOpen() );
@@ -198,6 +242,27 @@ namespace Nestopia
 				throw ERR_SEEK;
 
 			return pos;
+		}
+
+		uint File::Read8() const
+		{
+			uchar buffer;
+			Read( &buffer, 1 );
+			return buffer;
+		}
+
+		uint File::Read16() const
+		{
+			uchar buffer[2];
+			Read( buffer, 2 );
+			return buffer[0] | buffer[1] << 8;
+		}
+
+		uint File::Read32() const
+		{
+			uchar buffer[4];
+			Read( buffer, 4 );
+			return buffer[0] | buffer[1] << 8 | uint(buffer[2]) << 16 | uint(buffer[3]) << 24;
 		}
 
 		uint File::Size() const
@@ -238,71 +303,46 @@ namespace Nestopia
 			::FlushFileBuffers( handle );
 		}
 
-		void File::EndianSwap(void* const begin,void* const end)
+		void File::ReadText(String::Heap<char>& string) const
 		{
-			for (u8 *p=static_cast<u8*>(begin), *e=static_cast<u8*>(end); p != e; p += 2)
-			{
-				u8 tmp = p[0];
-				p[0] = p[1];
-				p[1] = tmp;
-			}
-		}
-
-		void File::ReadText(String::Heap<char>& string,uint length) const
-		{
-			const uint maxLength = Size() - Position();
-			string.Resize( NST_MIN(length,maxLength) );
+			string.Resize( Size() - Position() );
 
 			if (string.Length())
 				Read( string.Ptr(), string.Length() );
 		}
 
-		void File::ReadText(String::Heap<wchar_t>& string,uint length) const
+		void File::ReadText(String::Heap<wchar_t>& string) const
 		{
-			NST_COMPILE_ASSERT( sizeof(wchar_t) == sizeof(u16) );
-
-			const uint maxLength = Size() - Position();
-			length = NST_MIN(length,maxLength);
-			const uint utf = (length >= 2 ? Peek<u16>() : 0);
-
-			if (utf == UTF16_LE || utf == UTF16_BE)
-			{
-				length = (length-2) / 2;
-				string.Resize( length );
-				Seek( CURRENT, 2 );
-
-				if (length)
-				{
-					Read( string.Ptr(), length * 2 );
-
-					if (utf == UTF16_BE)
-						EndianSwap( string.Ptr(), string.Ptr() + length );
-				}
-			}
-			else
-			{
-				String::Heap<char> tmp;
-				ReadText( tmp );
-				string = tmp;
-			}
+			String::Heap<char> buffer;
+			ReadText( buffer );
+			ParseText( buffer.Ptr(), buffer.Length(), string );
 		}
 
-		void File::WriteText(cstring const string,const uint length,ibool) const
+		void File::WriteText(cstring const string,const uint length,bool) const
 		{
 			Write( string, length );
 		}
 
-		void File::WriteText(wstring const string,const uint length,ibool forceUnicode) const
+		void File::WriteText(wstring string,uint length,bool forceUnicode) const
 		{
-			NST_COMPILE_ASSERT( sizeof(wchar_t) == sizeof(u16) );
-
 			if (length)
 			{
 				if (forceUnicode || String::Generic<wchar_t>(string,length).Wide())
 				{
-					const u16 utf = UTF16_LE;
-					Write( &utf, sizeof(u16) );
-					Write( string, length * sizeof(wchar_t) );
+					Collection::Buffer buffer( length * 2 + 2 );
+					char* NST_RESTRICT dst = buffer.Ptr();
+
+					*dst++ = UTF16_LE & 0xFF;
+					*dst++ = UTF16_LE >> 8;
+
+					do
+					{
+						*dst++ = *string & 0xFF;
+						*dst++ = *string++ >> 8;
+					}
+					while (--length);
+
+					Write( buffer.Ptr(), buffer.Size() );
 				}
 				else
 				{
@@ -312,46 +352,60 @@ namespace Nestopia
 			}
 		}
 
-		void File::ParseText(const void* src,uint size,String::Heap<char>& dst)
+		void File::ParseText(cstring src,const uint length,String::Heap<char>& string)
 		{
-			if (size)
-				dst.Assign( static_cast<const char*>(src), size );
-			else
-				dst.Clear();
+			string.Assign( src, length );
 		}
 
-		void File::ParseText(const void* src,uint size,String::Heap<wchar_t>& dst)
+		void File::ParseText(cstring src,const uint length,String::Heap<wchar_t>& string)
 		{
-			const uint utf = (size >= 2 ? *static_cast<const u16*>(src) : 0);
-
-			if (utf == UTF16_LE || utf == UTF16_BE)
+			if (length)
 			{
-				size = (size-2) / 2;
-				dst.Resize( size );
+				const uint utf = (length >= 2) ? (src[0] | uint(src[1]) << 8) : 0;
 
-				if (size)
+				if (utf == UTF16_LE || utf == UTF16_BE)
 				{
-					dst.Assign( static_cast<const wchar_t*>(src) + 1, size );
+					NST_VERIFY( length > 2 && length % 2 == 0 );
 
-					if (utf == UTF16_BE)
-						EndianSwap( dst.Ptr(), dst.Ptr() + size );
+					string.Resize( length / 2 - 1 );
+
+					if (string.Length())
+					{
+						wchar_t* NST_RESTRICT dst = string.Ptr();
+						const wchar_t* const end = dst + string.Length();
+
+						if (utf == UTF16_LE)
+						{
+							do
+							{
+								src += 2;
+								*dst++ = src[0] | src[1] << 8;
+							}
+							while (dst != end);
+						}
+						else
+						{
+							do
+							{
+								src += 2;
+								*dst++ = src[1] | src[0] << 8;
+							}
+							while (dst != end);
+						}
+					}
 				}
 				else
 				{
-					dst.Clear();
+					string.Assign( src, length );
 				}
-			}
-			else if (size)
-			{
-				dst.Assign( static_cast<const char*>(src), size );
 			}
 			else
 			{
-				dst.Clear();
+				string.Clear();
 			}
 		}
 
-		ibool File::Delete(tstring const path)
+		bool File::Delete(tstring const path)
 		{
 			NST_ASSERT( path && *path );
 			return ::DeleteFile( path );

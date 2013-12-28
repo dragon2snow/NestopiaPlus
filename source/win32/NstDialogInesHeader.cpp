@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -47,8 +47,8 @@ namespace Nestopia
 			ibool OnInitDialog  (Param&);
 			ibool OnCmdOk       (Param&);
 
-			Dialog dialog;
 			uint& size;
+			Dialog dialog;
 
 		public:
 
@@ -95,7 +95,7 @@ namespace Nestopia
 			{
 				Io::File file( loadPath, Io::File::COLLECT );
 
-				if (file.Size() >= HEADER_SIZE && file.Peek<u32>() == HEADER_ID)
+				if (file.Size() >= HEADER_SIZE && file.Peek32() == HEADER_ID)
 				{
 					file.Stream() >> buffer;
 					return 0;
@@ -127,7 +127,7 @@ namespace Nestopia
 			{
 				Io::File file( savePath, Io::File::READ|Io::File::WRITE );
 
-				if (file.Size() == 0 || file.Peek<u32>() == HEADER_ID)
+				if (file.Size() == 0 || file.Peek32() == HEADER_ID)
 				{
 					file.Stream() << buffer;
 					return 0;
@@ -193,7 +193,7 @@ namespace Nestopia
 			};
 
 			Control::ComboBox combo( dialog.ComboBox( IDC_INES_HEADER_VS_PPU_LIST ) );
-			combo.Add( vsPPU, NST_COUNT(vsPPU) );
+			combo.Add( vsPPU, sizeof(array(vsPPU)) );
 			combo[0].Select();
 
 			static const tstring vsModes[] =
@@ -205,13 +205,13 @@ namespace Nestopia
 			};
 
 			combo = dialog.ComboBox( IDC_INES_HEADER_VS_MODE_LIST );
-			combo.Add( vsModes, NST_COUNT(vsModes) );
+			combo.Add( vsModes, sizeof(array(vsModes)) );
 			combo[0].Select();
 
 			dialog.Edit( IDC_INES_HEADER_MAPPER_BASE_VALUE ).Limit( 3 );
 			dialog.Edit( IDC_INES_HEADER_MAPPER_SUB_VALUE ).Limit( 2 );
 
-			dialog.Control( IDC_INES_HEADER_DETECT ).Enable( dbEntry != NULL );
+			dialog.Control( IDC_INES_HEADER_DETECT ).Enable( dbEntry );
 
 			Nes::Api::Cartridge::Setup setup;
 			Nes::Api::Cartridge::ReadNesHeader( setup, header, HEADER_SIZE );
@@ -220,7 +220,7 @@ namespace Nestopia
 			return true;
 		}
 
-		ibool InesHeader::OkToSave(const uint fileSize) const
+		bool InesHeader::OkToSave(const uint fileSize) const
 		{
 			const uint saveSize =
 			(
@@ -233,7 +233,7 @@ namespace Nestopia
 			return saveSize <= fileSize || User::Confirm( IDS_INES_HEADER_UNSAFE );
 		}
 
-		ibool InesHeader::SaveHeader(Header& save) const
+		bool InesHeader::SaveHeader(Header& save) const
 		{
 			Nes::Api::Cartridge::Setup setup;
 
@@ -304,25 +304,25 @@ namespace Nestopia
 			if (setup.version && !(dialog.Edit( IDC_INES_HEADER_MAPPER_SUB_VALUE ) >> setup.subMapper))
 				return false;
 
-			setup.trainer = bool(dialog.CheckBox( IDC_INES_HEADER_TRAINER ).Checked());
+			setup.trainer = dialog.CheckBox( IDC_INES_HEADER_TRAINER ).Checked();
 
 			if (NES_FAILED(Nes::Api::Cartridge::WriteNesHeader( setup, save, HEADER_SIZE )))
 				return false;
 
-			u8 reserved[HEADER_SIZE];
+			uchar reserved[HEADER_SIZE];
 			std::memset( reserved, 0, sizeof(reserved) );
 
 			if (setup.version)
 			{
-				reserved[8] = header[8] & 0x0E;
-				reserved[12] = header[12] & 0xFC;
+				reserved[8] = header[8] & 0x0EU;
+				reserved[12] = header[12] & 0xFCU;
 
 				std::memcpy( reserved+14, header+14, HEADER_SIZE-14 );
 			}
 			else
 			{
-				reserved[7] = header[7] & 0x02;
-				reserved[9] = header[9] & 0xFE;
+				reserved[7] = header[7] & 0x02U;
+				reserved[9] = header[9] & 0xFEU;
 
 				std::memcpy( reserved+10, header+10, HEADER_SIZE-10 );
 			}
@@ -348,8 +348,8 @@ namespace Nestopia
 			dialog.RadioButton( IDC_INES_HEADER_TYPE_STD ).Check( !setup.version );
 			dialog.RadioButton( IDC_INES_HEADER_TYPE_EXT ).Check(  setup.version );
 
-			dialog.Edit( IDC_INES_HEADER_MAPPER_BASE_VALUE ).Text() << setup.mapper;
-			dialog.Edit( IDC_INES_HEADER_MAPPER_SUB_VALUE ).Text() << setup.subMapper;
+			dialog.Edit( IDC_INES_HEADER_MAPPER_BASE_VALUE ).Text() << uint(setup.mapper);
+			dialog.Edit( IDC_INES_HEADER_MAPPER_SUB_VALUE ).Text() << uint(setup.subMapper);
 
 			dialog.RadioButton( IDC_INES_HEADER_FOURSCREEN ).Check( setup.mirroring == Nes::Api::Cartridge::MIRROR_FOURSCREEN );
 			dialog.RadioButton( IDC_INES_HEADER_VERTICAL   ).Check( setup.mirroring == Nes::Api::Cartridge::MIRROR_VERTICAL   );
@@ -392,12 +392,12 @@ namespace Nestopia
 			setup.chrRamBacked = database.GetChrRamBacked(dbEntry);
 			setup.mirroring = database.GetMirroring(dbEntry);
 			setup.mapper = database.GetMapper(dbEntry);
-			setup.trainer = bool(database.HasTrainer(dbEntry));
+			setup.trainer = database.HasTrainer(dbEntry);
 		}
 
 		void InesHeader::UpdateVersion() const
 		{
-			const ibool v2 = dialog.RadioButton( IDC_INES_HEADER_TYPE_EXT ).Checked();
+			const bool v2 = dialog.RadioButton( IDC_INES_HEADER_TYPE_EXT ).Checked();
 
 			if (!v2 && dialog.RadioButton( IDC_INES_HEADER_SYSTEM_PC10 ).Checked())
 			{
@@ -428,7 +428,7 @@ namespace Nestopia
 
 		void InesHeader::UpdateSystem() const
 		{
-			const ibool vsExt =
+			const bool vsExt =
 			(
 				dialog.RadioButton( IDC_INES_HEADER_SYSTEM_VS ).Checked() &&
 				dialog.RadioButton( IDC_INES_HEADER_TYPE_EXT ).Checked()
@@ -550,7 +550,7 @@ namespace Nestopia
 				size = dialog.ComboBox(IDC_INES_HEADER_WRKRAM_LIST).Selection().Data();
 				uint save = dialog.ComboBox(IDC_INES_HEADER_WRKRAM_BACKED_LIST).Selection().Data();
 
-				const ibool v2 = dialog.RadioButton( IDC_INES_HEADER_TYPE_EXT ).Checked();
+				const bool v2 = dialog.RadioButton( IDC_INES_HEADER_TYPE_EXT ).Checked();
 
 				if (dialog.ComboBox(IDC_INES_HEADER_WRKRAM_BACKED_LIST).Size() == 2)
 				{

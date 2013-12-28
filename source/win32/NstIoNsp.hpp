@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -46,6 +46,7 @@ namespace Nestopia
 			struct Context
 			{
 				Context();
+				~Context();
 
 				void Reset();
 
@@ -60,14 +61,14 @@ namespace Nestopia
 				{
 					typedef HeapString Desc;
 
-					u16 address;
-					u8 value;
-					u8 compare;
+					ushort address;
+					uchar value;
+					uchar compare;
 					bool useCompare;
 					bool enabled;
 					Desc desc;
 
-					ibool operator == (u16 a) const
+					bool operator == (ushort a) const
 					{
 						return address == a;
 					}
@@ -108,12 +109,12 @@ namespace Nestopia
 
 				class Parser;
 
-				static ibool Match (tstring,tstring (&)[2]);
-				static ibool ParseFile (tstring,tstring (&)[2][2],Path&);
-				static ibool ParsePort (tstring,tstring (&)[2][2],uint&);
-				static ibool ParseMode (tstring,tstring (&)[2][2],uint&);
-				static ibool ParseGenie (tstring,tstring (&)[2][2],Context::Cheats&,bool=false);
-				static ibool ParseCheat (tstring,tstring (&)[2][2],Context::Cheats&);
+				static bool Match (tstring,tstring (&)[2]);
+				static bool ParseFile (tstring,tstring (&)[2][2],Path&);
+				static bool ParsePort (tstring,tstring (&)[2][2],uint&);
+				static bool ParseMode (tstring,tstring (&)[2][2],uint&);
+				static bool ParseGenie (tstring,tstring (&)[2][2],Context::Cheats&,bool=false);
+				static bool ParseCheat (tstring,tstring (&)[2][2],Context::Cheats&);
 
 				static void Skip(tstring&,tstring);
 

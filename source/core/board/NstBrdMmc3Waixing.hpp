@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,7 +25,7 @@
 #ifndef NST_BOARDS_MMC3WAIXING_H
 #define NST_BOARDS_MMC3WAIXING_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
+#ifdef NST_PRAGMA_ONCE
 #pragma once
 #endif
 
@@ -35,27 +35,28 @@ namespace Nes
 	{
 		namespace Boards
 		{
-			class Mmc3Waixing : public Mmc3
+			class NST_NO_VTABLE Mmc3Waixing : public Mmc3
 			{
 			protected:
 
-				Mmc3Waixing(Context&,uint=0);
+				explicit Mmc3Waixing(Context&,uint=0);
+				~Mmc3Waixing() {}
 
 				void SubReset(bool);
-				void UpdateChr() const;
 
 			private:
 
+				void UpdateChr() const;
 				void BaseSave(State::Saver&) const;
 				void BaseLoad(State::Loader&,dword);
 				void SwapChr(uint,uint) const;
 
 				virtual uint GetChrSource(uint) const = 0;
 
-				NES_DECL_PEEK( ExRam )
-				NES_DECL_POKE( ExRam )
+				NES_DECL_PEEK( ExRam );
+				NES_DECL_POKE( ExRam );
 
-				u8 exRam[0x1000];
+				byte exRam[0x1000];
 			};
 		}
 	}

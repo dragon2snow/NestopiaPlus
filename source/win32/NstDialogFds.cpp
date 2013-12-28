@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -27,7 +27,6 @@
 #include "NstIoStream.hpp"
 #include "NstWindowParam.hpp"
 #include "NstManagerPaths.hpp"
-#include "NstManagerEmulator.hpp"
 #include "NstDialogFds.hpp"
 #include "../core/api/NstApiFds.hpp"
 
@@ -103,6 +102,10 @@ namespace Nestopia
 
 			if (settings.bios.Length())
 				SubmitBios();
+		}
+
+		Fds::~Fds()
+		{
 		}
 
 		void Fds::Save(Configuration& cfg) const
@@ -226,7 +229,7 @@ namespace Nestopia
 				(
 					dialog.RadioButton( IDC_FDS_SAVEDISABLE ).Checked() ? Managers::Emulator::DISKIMAGE_SAVE_DISABLED :
 					dialog.RadioButton( IDC_FDS_SAVETOIPS   ).Checked() ? Managers::Emulator::DISKIMAGE_SAVE_TO_IPS :
-																			Managers::Emulator::DISKIMAGE_SAVE_TO_IMAGE
+                                                                          Managers::Emulator::DISKIMAGE_SAVE_TO_IMAGE
 				);
 
 				settings.led =
@@ -235,7 +238,7 @@ namespace Nestopia
 					dialog.RadioButton( IDC_FDS_LED_NUMLOCK    ).Checked() ? LED_NUM_LOCK :
 					dialog.RadioButton( IDC_FDS_LED_CAPSLOCK   ).Checked() ? LED_CAPS_LOCK :
 					dialog.RadioButton( IDC_FDS_LED_SCROLLLOCK ).Checked() ? LED_SCROLL_LOCK :
-                                                                               LED_DISABLED
+                                                                             LED_DISABLED
 				);
 
 				Path path;

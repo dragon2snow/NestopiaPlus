@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -24,8 +24,7 @@
 
 #include "NstObjectHeap.hpp"
 #include "NstIoNsp.hpp"
-#include "NstManagerEmulator.hpp"
-#include "NstWindowMenu.hpp"
+#include "NstManager.hpp"
 #include "NstManagerCheats.hpp"
 #include "NstDialogCheats.hpp"
 
@@ -35,18 +34,14 @@ namespace Nestopia
 	{
 		Cheats::Cheats(Emulator& e,const Configuration& cfg,Window::Menu& m,const Paths& paths)
 		:
-		emulator ( e ),
-		menu     ( m ),
-		dialog   ( new Window::Cheats(e,cfg,paths) )
+		Manager ( e, m, this, &Cheats::OnEmuEvent, IDM_OPTIONS_CHEATS, &Cheats::OnCmdOptions ),
+		dialog  ( new Window::Cheats(e,cfg,paths) )
 		{
-			m.Commands().Add( IDM_OPTIONS_CHEATS, this, &Cheats::OnCmdOptions );
-			emulator.Events().Add( this, &Cheats::OnEmuEvent );
 			UpdateCodes();
 		}
 
 		Cheats::~Cheats()
 		{
-			emulator.Events().Remove( this );
 		}
 
 		void Cheats::Save(Configuration& cfg) const

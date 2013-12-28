@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,35 +25,53 @@
 #ifndef NST_PPU_H
 #define NST_PPU_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
-#pragma once
+#ifndef NST_IO_PORT_H
+#include "NstIoPort.hpp"
 #endif
 
-#include "NstIoPort.hpp"
 #include "NstIoAccessor.hpp"
 #include "NstIoLine.hpp"
 #include "NstHook.hpp"
 #include "NstMemory.hpp"
 #include "NstVideoScreen.hpp"
 
+#ifdef NST_PRAGMA_ONCE
+#pragma once
+#endif
+
 namespace Nes
 {
 	namespace Core
 	{
-		namespace State
-		{
-			class Loader;
-			class Saver;
-		}
-
-		class Cpu;
-
 		class Ppu
 		{
 		public:
 
-			Ppu(Cpu&);
-			~Ppu();
+			explicit Ppu(Cpu&);
+
+			enum
+			{
+				SL_VACTIVE      = 240,
+				SL_VINT_NTSC    = 20,
+				SL_VINT_PAL     = 70,
+				SL_VSLEEP       = 1,
+				SL_VDUMMY       = 1,
+				SL_VBLANK_NTSC  = SL_VSLEEP + SL_VINT_NTSC + SL_VDUMMY,
+				SL_VBLANK_PAL   = SL_VSLEEP + SL_VINT_PAL + SL_VDUMMY,
+				SL_VSYNC_NTSC   = SL_VACTIVE + SL_VBLANK_NTSC,
+				SL_VSYNC_PAL    = SL_VACTIVE + SL_VBLANK_PAL,
+				MC_DIV_NTSC     = 4,
+				MC_DIV_PAL      = 5,
+				CC_IO           = 2,
+				CC_HACTIVE      = CC_IO * 4 * 32,
+				CC_HBLANK       = CC_IO * 4 * 8 + CC_IO * 4 * 2 + CC_IO * 2 + 1,
+				CC_HSYNC        = CC_HACTIVE + CC_HBLANK,
+				CC_VINT_NTSC    = CC_HSYNC * dword( SL_VINT_NTSC  ),
+				CC_VINT_PAL     = CC_HSYNC * dword( SL_VINT_PAL   ),
+				CC_FRAME_0_NTSC = CC_HSYNC * dword( SL_VSYNC_NTSC ),
+				CC_FRAME_1_NTSC = CC_HSYNC * dword( SL_VSYNC_NTSC ) - 1,
+				CC_FRAME_PAL    = CC_HSYNC * dword( SL_VSYNC_PAL  )
+			};
 
 			enum Mirroring
 			{
@@ -65,68 +83,33 @@ namespace Nes
 				NMT_CONTROLLED
 			};
 
-			enum
-			{
-				MC_DIV_NTSC = 4,
-				MC_DIV_PAL  = 5
-			};
-
-			enum
-			{
-				SCANLINES_VACTIVE     = 240,
-				SCANLINES_VINT_NTSC   = 20,
-				SCANLINES_VINT_PAL    = 70,
-				SCANLINES_VSLEEP      = 1,
-				SCANLINES_VDUMMY      = 1,
-				SCANLINES_VBLANK_NTSC = SCANLINES_VSLEEP + SCANLINES_VINT_NTSC + SCANLINES_VDUMMY,
-				SCANLINES_VBLANK_PAL  = SCANLINES_VSLEEP + SCANLINES_VINT_PAL + SCANLINES_VDUMMY,
-				SCANLINES_VSYNC_NTSC  = SCANLINES_VACTIVE + SCANLINES_VBLANK_NTSC,
-				SCANLINES_VSYNC_PAL   = SCANLINES_VACTIVE + SCANLINES_VBLANK_PAL
-			};
-
-			enum
-			{
-				CC_IO           = 2,
-				CC_HACTIVE      = CC_IO * 4 * 32,
-				CC_HBLANK       = CC_IO * 4 * 8 + CC_IO * 4 * 2 + CC_IO * 2 + 1,
-				CC_HSYNC        = CC_HACTIVE + CC_HBLANK,
-				CC_VINT_NTSC    = CC_HSYNC * SCANLINES_VINT_NTSC,
-				CC_VINT_PAL     = CC_HSYNC * SCANLINES_VINT_PAL,
-				CC_FRAME_0_NTSC = CC_HSYNC * SCANLINES_VSYNC_NTSC,
-				CC_FRAME_1_NTSC = CC_HSYNC * SCANLINES_VSYNC_NTSC - 1,
-				CC_FRAME_PAL    = CC_HSYNC * SCANLINES_VSYNC_PAL
-			};
-
 			void Reset(bool=false);
 			void ClearScreen();
-			void BeginFrame(ibool);
+			void BeginFrame();
 			void Update(Cycle=0);
 			void EndFrame();
 
 			void SetMode(Mode);
 			void SetMirroring(uint);
-			void SetMirroring(const uchar (&)[4]);
-			void SetYuvMap(const u8*,bool);
+			void SetMirroring(const byte (&)[4]);
+			void SetYuvMap(const byte*,bool);
 			void SetBgHook(const Hook&);
 			void SetSpHook(const Hook&);
 
 			void EnableCpuSynchronization();
 
 			void LoadState(State::Loader&);
-			void SaveState(State::Saver&) const;
+			void SaveState(State::Saver&,dword) const;
 
-			void  EnableUnlimSprites(ibool);
-			ibool AreUnlimSpritesEnabled() const;
-			void  EnableEmphasis(ibool);
-			uint  SolidColors() const;
+			void EnableUnlimSprites(bool);
+			bool AreUnlimSpritesEnabled() const;
+			uint SolidColors() const;
 
 			class ChrMem : public Memory<SIZE_8K,SIZE_1K,2>
 			{
-				friend class Ppu;
+				NES_DECL_ACCESSOR( Pattern );
 
-				NES_DECL_ACCESSOR( Pattern )
-
-				NST_FORCE_INLINE uint FetchPattern(uint) const;
+			protected:
 
 				Io::Accessor accessors[2];
 
@@ -152,21 +135,18 @@ namespace Nes
 				bool SameComponent(uint i,const void* ptr) const
 				{
 					NST_ASSERT( i < 2 );
-					return accessors[i].SameComponent( ptr );
+					return accessors[i] == ptr;
 				}
 			};
 
 			class NmtMem : public Memory<SIZE_4K,SIZE_1K,2>
 			{
-				friend class Ppu;
+				NES_DECL_ACCESSOR( Name_2000 );
+				NES_DECL_ACCESSOR( Name_2400 );
+				NES_DECL_ACCESSOR( Name_2800 );
+				NES_DECL_ACCESSOR( Name_2C00 );
 
-				NES_DECL_ACCESSOR( Name_2000 )
-				NES_DECL_ACCESSOR( Name_2400 )
-				NES_DECL_ACCESSOR( Name_2800 )
-				NES_DECL_ACCESSOR( Name_2C00 )
-
-				NST_FORCE_INLINE uint FetchName(uint) const;
-				NST_FORCE_INLINE uint FetchAttribute(uint) const;
+			protected:
 
 				Io::Accessor accessors[4][2];
 
@@ -207,41 +187,54 @@ namespace Nes
 				bool SameComponent(uint i,uint j,const void* ptr) const
 				{
 					NST_ASSERT( i < 4 && j < 2 );
-					return accessors[i][j].SameComponent( ptr );
+					return accessors[i][j] == ptr;
 				}
 			};
 
 		private:
 
+			struct Chr : ChrMem
+			{
+				NST_FORCE_INLINE uint FetchPattern(uint) const;
+			};
+
+			struct Nmt : NmtMem
+			{
+				NST_FORCE_INLINE uint FetchName(uint) const;
+				NST_FORCE_INLINE uint FetchAttribute(uint) const;
+			};
+
 			typedef void (Ppu::*Phase)();
 
 			enum
 			{
-				WARM_UP_FRAMES = 2,
+				WARM_UP_FRAMES  = 2,
 				SCANLINE_HDUMMY = -1,
 				SCANLINE_VBLANK = 255
 			};
 
-			NES_DECL_POKE( 2000 )
-			NES_DECL_PEEK( 2002 )
-			NES_DECL_POKE( 2001 )
-			NES_DECL_POKE( 2003 )
-			NES_DECL_PEEK( 2004 )
-			NES_DECL_POKE( 2004 )
-			NES_DECL_POKE( 2005 )
-			NES_DECL_POKE( 2006 )
-			NES_DECL_PEEK( 2007 )
-			NES_DECL_POKE( 2007 )
-			NES_DECL_PEEK( 2xxx )
-			NES_DECL_POKE( 2xxx )
-			NES_DECL_PEEK( 4014 )
-			NES_DECL_POKE( 4014 )
+			NES_DECL_POKE( 2000 );
+			NES_DECL_PEEK( 2002 );
+			NES_DECL_POKE( 2001 );
+			NES_DECL_POKE( 2003 );
+			NES_DECL_PEEK( 2004 );
+			NES_DECL_POKE( 2004 );
+			NES_DECL_POKE( 2005 );
+			NES_DECL_POKE( 2006 );
+			NES_DECL_PEEK( 2007 );
+			NES_DECL_POKE( 2007 );
+			NES_DECL_PEEK( 2xxx );
+			NES_DECL_POKE( 2xxx );
+			NES_DECL_PEEK( 4014 );
+			NES_DECL_POKE( 4014 );
 
-			NES_DECL_HOOK( Sync )
-			NES_DECL_HOOK( Nop )
+			NES_DECL_HOOK( Sync );
+			NES_DECL_HOOK( Nop  );
 
 			inline bool IsDead() const;
 			inline void UpdateScrollAddress(uint);
+			inline uint Coloring() const;
+			inline uint Emphasis() const;
 
 			NST_FORCE_INLINE uint FetchName() const;
 			NST_FORCE_INLINE uint FetchAttribute() const;
@@ -249,6 +242,9 @@ namespace Nes
 
 			void UpdateStates();
 			void LoadSprite();
+			void UpdatePalette();
+
+			NST_FORCE_INLINE void LoadTiles();
 			NST_FORCE_INLINE void RenderPixel();
 
 			void WarmUp();
@@ -279,62 +275,38 @@ namespace Nes
 			void HBlankBg6();
 			void HBlankBg7();
 
-			struct Cycles
-			{
-				Cycle spriteOverflow;
-				Cycle count;
-				u8    one;
-				u8    four;
-				u8    eight;
-				u8    six;
-				Cycle round;
-			};
-
 			struct Regs
 			{
 				enum
 				{
-					CTRL0_NAME_OFFSET = b00000011,
-					CTRL0_INC32       = b00000100,
-					CTRL0_SP_OFFSET   = b00001000,
-					CTRL0_BG_OFFSET   = b00010000,
-					CTRL0_SP8X16      = b00100000,
-					CTRL0_NMI         = b10000000
-				};
-
-				enum
-				{
-					CTRL1_MONOCHROME     = b00000001,
-					CTRL1_BG_NO_CLIPPING = b00000010,
-					CTRL1_SP_NO_CLIPPING = b00000100,
-					CTRL1_BG_ENABLED     = b00001000,
-					CTRL1_SP_ENABLED     = b00010000,
-					CTRL1_BG_COLOR       = b11100000,
-					CTRL1_BG_COLOR_R     = b00100000,
-					CTRL1_BG_COLOR_G     = b01000000,
-					CTRL1_BG_COLOR_B     = b10000000,
-					CTRL1_BG_COLOR_SHIFT = 5
-				};
-
-				enum
-				{
-					STATUS_LATCH       = b00011111,
-					STATUS_SP_OVERFLOW = b00100000,
-					STATUS_SP_ZERO_HIT = b01000000,
-					STATUS_VBLANK      = b10000000,
-					STATUS_BITS        = b11100000,
-					STATUS_VBLANKING   = 0x100
-				};
-
-				enum
-				{
-					FRAME_ODD = CTRL1_BG_ENABLED|CTRL1_SP_ENABLED
+					CTRL0_NAME_OFFSET     = b00000011,
+					CTRL0_INC32           = b00000100,
+					CTRL0_SP_OFFSET       = b00001000,
+					CTRL0_BG_OFFSET       = b00010000,
+					CTRL0_SP8X16          = b00100000,
+					CTRL0_NMI             = b10000000,
+					CTRL1_MONOCHROME      = b00000001,
+					CTRL1_BG_NO_CLIPPING  = b00000010,
+					CTRL1_SP_NO_CLIPPING  = b00000100,
+					CTRL1_BG_ENABLED      = b00001000,
+					CTRL1_SP_ENABLED      = b00010000,
+					CTRL1_FULL_BG_ENABLED = CTRL1_BG_ENABLED|CTRL1_BG_NO_CLIPPING,
+					CTRL1_FULL_SP_ENABLED = CTRL1_SP_ENABLED|CTRL1_SP_NO_CLIPPING,
+					CTRL1_EMPHASIS        = b11100000,
+					STATUS_LATCH          = b00011111,
+					STATUS_SP_OVERFLOW    = b00100000,
+					STATUS_SP_ZERO_HIT    = b01000000,
+					STATUS_VBLANK         = b10000000,
+					STATUS_BITS           = b11100000,
+					STATUS_VBLANKING      = 0x100,
+					FRAME_ODD             = CTRL1_BG_ENABLED|CTRL1_SP_ENABLED
 				};
 
 				uint ctrl0;
 				uint ctrl1;
 				uint status;
 				uint frame;
+				uint oam;
 			};
 
 			struct Scroll
@@ -351,9 +323,9 @@ namespace Nes
 					NAME_HIGH = 0x0800
 				};
 
-				inline void ResetX();
-				inline void ClockX();
-				inline void ClockY();
+				NST_FORCE_INLINE void ResetX();
+				NST_FORCE_INLINE void ClockX();
+				NST_FORCE_INLINE void ClockY();
 
 				uint address;
 				uint toggle;
@@ -363,50 +335,18 @@ namespace Nes
 				uint pattern;
 			};
 
-			struct Io
-			{
-				uint enabled;
-				uint address;
-				uint pattern;
-				uint latch;
-				uint buffer;
-				Core::Io::Line a12;
-			};
-
 			struct Tiles
 			{
-				NST_FORCE_INLINE void Load();
+				Tiles();
 
-				u8 pattern[2];
-				u8 attribute;
-				u8 pad;
-
-				uint index;
-
-				union
-				{
-					u8 pixels[16];
-					u32 block[4];
-				};
-
-				uint show;
-				uint clip;
-			};
-
-			struct Output
-			{
-				Output(Video::Screen::Pixels&);
-
-				uint index;
-				uint emphasis;
-				uint coloring;
-				u16* target;
-				uint next;
-				uint emphasisMask;
-				u16* pixels;
-				uint burstPhase;
-
-				static u16 dummy[4];
+				byte pattern[2];
+				byte attribute;
+				byte index;
+				byte pixels[16];
+				uint mask;
+				byte show[2];
+				const byte padding0;
+				const byte padding1;
 			};
 
 			struct Palette
@@ -420,29 +360,36 @@ namespace Nes
 					MONO          = 0x30
 				};
 
-				u8 ram[SIZE];
-				u8 map[COLORS];
+				byte ram[SIZE];
+			};
+
+			struct Output
+			{
+				explicit Output(Video::Screen::Pixel*);
+
+				uint index;
+				Video::Screen::Pixel* target;
+				Video::Screen::Pixel* pixels;
+				uint burstPhase;
+				word palette[Palette::SIZE];
 			};
 
 			struct Oam
 			{
-				enum
-				{
-					SIZE = 0x100,
-					NUM_SPRITES = SIZE / 4,
-					OFFSET_TO_0_1 = b11111000,
-					STD_LINE_SPRITES = 8,
-					MAX_LINE_SPRITES = 32,
-					DMA_CYCLES = 512 + 1,
-					GARBAGE = 0xFF
-				};
+				Oam();
 
 				enum
 				{
-					COLOR  = b00000011,
-					BEHIND = b00100000,
-					X_FLIP = b01000000,
-					Y_FLIP = b10000000
+					SIZE             = 0x100,
+					OFFSET_TO_0_1    = b11111000,
+					STD_LINE_SPRITES = 8,
+					MAX_LINE_SPRITES = 32,
+					DMA_CYCLES       = 512 + 1,
+					GARBAGE          = 0xFF,
+					COLOR            = b00000011,
+					BEHIND           = b00100000,
+					X_FLIP           = b01000000,
+					Y_FLIP           = b10000000
 				};
 
 				struct Buffer
@@ -454,38 +401,35 @@ namespace Nes
 						TILE_LSB  = b00000001
 					};
 
-					u8 tile;
-					u8 x;
-					u8 attribute;
-					u8 comparitor;
+					byte tile;
+					byte x;
+					byte attribute;
+					byte comparitor;
 				};
 
 				struct Output
 				{
-					u8 x;
-					u8 behind;
-					u8 zero;
-					u8 palette;
-
-					union
-					{
-						u8 pixels[8];
-						u32 block[2];
-					};
+					byte x;
+					byte behind;
+					byte zero;
+					byte palette;
+					byte pixels[8];
 				};
 
 				Output* visible;
 				Buffer* evaluated;
 				const Buffer* loaded;
 				const Buffer* limit;
-				uint show;
-				uint clip;
+
+				uint mask;
+				byte show[2];
+				const byte padding0;
+				const byte padding1;
 
 				Output output[MAX_LINE_SPRITES];
 				Buffer buffer[MAX_LINE_SPRITES];
 
-				uint address;
-				u8 ram[SIZE];
+				byte ram[SIZE];
 			};
 
 			struct NameTable
@@ -496,42 +440,58 @@ namespace Nes
 					GARBAGE = 0x00
 				};
 
-				u8 ram[SIZE];
+				byte ram[SIZE];
 			};
 
-			struct YuvMap
+			struct TileLut
 			{
-				YuvMap(const u8*);
+				TileLut();
 
-				u8 colors[Palette::COLORS];
+				byte block[0x400][4];
 			};
 
 			Cpu& cpu;
-			Cycles cycles;
+
+			struct
+			{
+				Cycle spriteOverflow;
+				byte  one;
+				byte  four;
+				byte  eight;
+				byte  six;
+				Cycle count;
+				Cycle round;
+			}   cycles;
+
 			Phase phase;
-			Io io;
+
+			struct
+			{
+				uint enabled;
+				uint address;
+				uint pattern;
+				uint latch;
+				uint buffer;
+				Core::Io::Line a12;
+			}   io;
+
 			Regs regs;
 			Scroll scroll;
 			Tiles tiles;
-			ChrMem chrMem;
-			NmtMem nmtMem;
 			uint stage;
+			Chr chr;
+			Nmt nmt;
 			int scanline;
 			Output output;
 			Hook bgHook;
 			Hook spHook;
-			Palette palette;
+			const byte* rgbMap;
+			const byte* yuvMap;
 			Oam oam;
+			Palette palette;
 			NameTable nameTable;
-			const YuvMap* yuvMap;
+			const TileLut tileLut;
 			Video::Screen screen;
-
-			static void LogMsg(cstring,uint,uint);
-
-			template<size_t N>
-			static inline void LogMsg(const char (&)[N],uint);
-
-			static dword logged;
 
 		public:
 
@@ -581,12 +541,12 @@ namespace Nes
 				return screen;
 			}
 
-			u16* GetOutputPixels()
+			Video::Screen::Pixel* GetOutputPixels()
 			{
 				return output.pixels;
 			}
 
-			void SetOutputPixels(u16* pixels)
+			void SetOutputPixels(Video::Screen::Pixel* pixels)
 			{
 				NST_ASSERT( pixels );
 				output.pixels = pixels;
@@ -597,10 +557,10 @@ namespace Nes
 				return palette;
 			}
 
-			uint GetYuvPixel(uint i) const
+			uint GetPixel(uint i) const
 			{
 				NST_ASSERT( i < Video::Screen::PIXELS );
-				return yuvMap ? yuvMap->colors[output.pixels[i] & 0x3F] : output.pixels[i];
+				return output.pixels[i];
 			}
 
 			uint GetPixelCycles() const
@@ -608,14 +568,20 @@ namespace Nes
 				return output.index;
 			}
 
+			uint GetYuvColor(uint i) const
+			{
+				NST_ASSERT( i < Palette::COLORS );
+				return yuvMap ? yuvMap[i] : i;
+			}
+
 			ChrMem& GetChrMem()
 			{
-				return chrMem;
+				return chr;
 			}
 
 			NmtMem& GetNmtMem()
 			{
-				return nmtMem;
+				return nmt;
 			}
 
 			Cycle GetOneCycle() const

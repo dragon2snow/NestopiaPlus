@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -23,7 +23,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 
 #include <cstdio>
-#include <cstring>
 #include "NstLog.hpp"
 #include "NstMapper.hpp"
 #include "board/NstBrdMmc1.hpp"
@@ -61,6 +60,10 @@
 #include "board/NstBrdA65AS.hpp"
 #include "board/NstBrdEdu2000.hpp"
 #include "board/NstBrdSubor.hpp"
+#include "board/NstBrdTf1201.hpp"
+#include "board/NstBrd22211.hpp"
+#include "board/NstBrdKs7032.hpp"
+#include "board/NstBrdGs2004.hpp"
 #include "mapper/NstMapper000.hpp"
 #include "mapper/NstMapper001.hpp"
 #include "mapper/NstMapper002.hpp"
@@ -92,6 +95,7 @@
 #include "mapper/NstMapper033.hpp"
 #include "mapper/NstMapper034.hpp"
 #include "mapper/NstMapper037.hpp"
+#include "mapper/NstMapper038.hpp"
 #include "mapper/NstMapper039.hpp"
 #include "mapper/NstMapper040.hpp"
 #include "mapper/NstMapper041.hpp"
@@ -151,6 +155,7 @@
 #include "mapper/NstMapper101.hpp"
 #include "mapper/NstMapper105.hpp"
 #include "mapper/NstMapper107.hpp"
+#include "mapper/NstMapper108.hpp"
 #include "mapper/NstMapper112.hpp"
 #include "mapper/NstMapper113.hpp"
 #include "mapper/NstMapper114.hpp"
@@ -193,6 +198,7 @@
 #include "mapper/NstMapper170.hpp"
 #include "mapper/NstMapper171.hpp"
 #include "mapper/NstMapper172.hpp"
+#include "mapper/NstMapper173.hpp"
 #include "mapper/NstMapper180.hpp"
 #include "mapper/NstMapper182.hpp"
 #include "mapper/NstMapper183.hpp"
@@ -259,11 +265,11 @@ namespace Nes
 {
 	namespace Core
 	{
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("s", on)
 		#endif
 
-		#ifdef _MSC_VER
+		#if NST_MSVC
 		#pragma pack(push,1)
 		#endif
 
@@ -292,12 +298,12 @@ namespace Nes
 			};
 
 			cstring board;
-			uchar prg : 3;
-			uchar nmt : 3;
-			uchar nmtd : 2;
+			byte prg : 3;
+			byte nmt : 3;
+			byte nmtd : 2;
 		};
 
-		#ifdef _MSC_VER
+		#if NST_MSVC
 		#pragma pack(pop)
 		#endif
 
@@ -317,7 +323,7 @@ namespace Nes
 			{ "COLOR DREAMS",                          Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 011
 			{ "BTL REX DBZ5",                          Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 012
 			{ "CPROM",                                 Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 013
-			{ "SL1632",                                Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 014
+			{ "SOMERI TEAM SL1632",                    Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 014
 			{ "BMC CONTRA 100-IN-1",                   Setup::PRG_0123_32K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 015
 			{ "BANDAI +24C02",                         Setup::PRG_01XX_16K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 016
 			{ "FFE F8xxx/SMxxxx",                      Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 017
@@ -341,7 +347,7 @@ namespace Nes
 			{ "",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 035
 			{ "",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 036
 			{ "ZZ",                                    Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 037
-			{ "",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 038
+			{ "BIT CORP 74138/74161",                  Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 038
 			{ "BMC STUDY & GAME 32-IN-1",              Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 039
 			{ "BTL SMB2",                              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 040
 			{ "CALTRON 6-IN-1",                        Setup::PRG_0123_32K, Setup::NMT_HORIZONTAL, Setup::NMT_HORIZONTAL }, // 041
@@ -353,13 +359,13 @@ namespace Nes
 			{ "QJ",                                    Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 047
 			{ "TAITO TC190V",                          Setup::PRG_0XXX_24K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 048
 			{ "BMC SUPER HiK 4-IN-1",                  Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 049
-			{ "BTL SMB2 (alt)",                        Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 050
+			{ "BTL SMB2 (LF-36) (alt)",                Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 050
 			{ "BMC BALL GAMES 11-IN-1",                Setup::PRG_0123_32K, Setup::NMT_HORIZONTAL, Setup::NMT_HORIZONTAL }, // 051
 			{ "BMC MARIO PARTY 7-IN-1",                Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 052
 			{ "BMC SUPERVISION 16-IN-1",               Setup::PRG_DEFAULT,  Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 053
 			{ "BMC NOVELDIAMOND 9999999-IN-1",         Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 054
 			{ "BTL MARIO1-MALEE2",                     Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 055
-			{ "BTL SMB3",                              Setup::PRG_012X_8K,  Setup::NMT_HORIZONTAL, Setup::NMT_HORIZONTAL }, // 056
+			{ "KAISER BTL SMB3 (KS-202)",              Setup::PRG_012X_8K,  Setup::NMT_HORIZONTAL, Setup::NMT_HORIZONTAL }, // 056
 			{ "BMC GK-54/GK-L01A/GK-L02A",             Setup::PRG_0101_16K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 057
 			{ "GK-192",                                Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 058
 			{ "BMC T3H53",                             Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 059
@@ -394,7 +400,7 @@ namespace Nes
 			{ "NAMCOT 118",                            Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 088
 			{ "SUNSOFT2",                              Setup::PRG_01XX_16K, Setup::NMT_ZERO,       Setup::NMT_ZERO       }, // 089
 			{ "J.Y.COMPANY +EXT.MIRR.OFF",             Setup::PRG_DEFAULT,  Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 090
-			{ "BTL SF3",                               Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 091
+			{ "BTL SF3/MKR",                           Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 091
 			{ "JALECO",                                Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 092
 			{ "SUNSOFT1 / SUNSOFT2",                   Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 093
 			{ "CAPCOM 74HC161/32",                     Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 094
@@ -402,7 +408,7 @@ namespace Nes
 			{ "BANDAI 74HC161/32",                     Setup::PRG_0123_32K, Setup::NMT_ZERO,       Setup::NMT_ZERO       }, // 096
 			{ "IREM 74HC161/32",                       Setup::PRG_XX01_16K, Setup::NMT_HORIZONTAL, Setup::NMT_HORIZONTAL }, // 097
 			{ "",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 098
-			{ "VS-SYSTEM +D2.CHR/PRG",                 Setup::PRG_0123_32K, Setup::NMT_FOURSCREEN, Setup::NMT_FOURSCREEN }, // 099
+			{ "VS.SYSTEM +D2.CHR/PRG",                 Setup::PRG_0123_32K, Setup::NMT_FOURSCREEN, Setup::NMT_FOURSCREEN }, // 099
 			{ "",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 100
 			{ "JALECO 74HC161/32",                     Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 101
 			{ "",                                      Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 102
@@ -411,7 +417,7 @@ namespace Nes
 			{ "EVENT",                                 Setup::PRG_DEFAULT,  Setup::NMT_ZERO,       Setup::NMT_ZERO       }, // 105
 			{ "",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 106
 			{ "MAGICSERIES",                           Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 107
-			{ "",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 108
+			{ "WHIRLWIND MANU. 2706",                  Setup::PRG_XXXX_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 108
 			{ "",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 109
 			{ "",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 110
 			{ "",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 111
@@ -445,7 +451,7 @@ namespace Nes
 			{ "S8259B",                                Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 139
 			{ "JALECO JF-xx",                          Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 140
 			{ "S8259A",                                Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 141
-			{ "KS 202",                                Setup::PRG_012X_8K,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 142
+			{ "KAISER BTL SMB2 (KS-202)",              Setup::PRG_012X_8K,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 142
 			{ "TCA01",                                 Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 143
 			{ "AGCI 50282",                            Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 144
 			{ "SA72007",                               Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 145
@@ -454,7 +460,7 @@ namespace Nes
 			{ "SA0037",                                Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 148
 			{ "SA0036",                                Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 149
 			{ "S74LS374N",                             Setup::PRG_0123_32K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 150
-			{ "KONAMI VS-SYSTEM",                      Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 151
+			{ "KONAMI VS.SYSTEM",                      Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 151
 			{ "BANDAI 74161/32 +MIRR",                 Setup::PRG_01XX_16K, Setup::NMT_ZERO,       Setup::NMT_ZERO       }, // 152
 			{ "BANDAI +WRAM",                          Setup::PRG_01XX_16K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 153
 			{ "NAMCOT 118 +A0.D6.MIRR",                Setup::PRG_01XX_16K, Setup::NMT_ZERO,       Setup::NMT_ZERO       }, // 154
@@ -475,8 +481,8 @@ namespace Nes
 			{ "N625092",                               Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 169
 			{ "FUJIYA NROM +SECURITY",                 Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 170
 			{ "KAISER KS7058",                         Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 171
-			{ "IDEA-TEK CNROM +SECURITY",              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 172
-			{ "",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 173
+			{ "IDEA-TEK 22211",                        Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 172
+			{ "NEI-HU (IDEA-TEK) 22211",               Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 173
 			{ "",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 174
 			{ "",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 175
 			{ "",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 176
@@ -511,7 +517,7 @@ namespace Nes
 			{ "BMC 15/3-IN-1",                         Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 205
 			{ "DE1ROM",                                Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 206
 			{ "TAITO X-005 +MIRR",                     Setup::PRG_012X_8K,  Setup::NMT_HORIZONTAL, Setup::NMT_HORIZONTAL }, // 207
-			{ "GOUDER BTL SF4",                        Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 208
+			{ "GOUDER 37017",                          Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 208
 			{ "J.Y.COMPANY +EXT.MIRR.CTRL",            Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 209
 			{ "NAMCOT",                                Setup::PRG_012X_8K,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 210
 			{ "J.Y.COMPANY +EXT.MIRR.ON",              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 211
@@ -545,7 +551,7 @@ namespace Nes
 			{ "",                                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 239
 			{ "SUPERTONE / C&E",                       Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 240
 			{ "MXMDHTWO / TXC",                        Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 241
-			{ "WAIXING ZHAN SHI",                      Setup::PRG_0123_32K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 242
+			{ "WAIXING ZHAN SHI",                      Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 242
 			{ "SACHEN 74LS374N",                       Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 243
 			{ "C&E DECATHLON",                         Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 244
 			{ "WAIXING MMC3 +EX.PRG",                  Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 245
@@ -572,7 +578,10 @@ namespace Nes
 			{ "BMC FK23C",                             Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // Ext. 266
 			{ "603-5052",                              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // Ext. 267
 			{ "A65AS",                                 Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // Ext. 268
-			{ "EDU2000",                               Setup::PRG_DEFAULT,  Setup::NMT_ZERO,       Setup::NMT_ZERO       }  // Ext. 269
+			{ "EDU2000",                               Setup::PRG_DEFAULT,  Setup::NMT_ZERO,       Setup::NMT_ZERO       }, // Ext. 269
+			{ "TF1201",                                Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // Ext. 270
+			{ "KS7032",                                Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // Ext. 271
+			{ "GS-2004",                               Setup::PRG_XXXX_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }  // Ext. 272
 		};
 
 		Mapper* Mapper::Create(Context& context)
@@ -610,6 +619,7 @@ namespace Nes
 				case  33: return new Mapper33  ( context );
 				case  34: return new Mapper34  ( context );
 				case  37: return new Mapper37  ( context );
+				case  38: return new Mapper38  ( context );
 				case  39: return new Mapper39  ( context );
 				case  40: return new Mapper40  ( context );
 				case  41: return new Mapper41  ( context );
@@ -669,6 +679,7 @@ namespace Nes
 				case 101: return new Mapper101 ( context );
 				case 105: return new Mapper105 ( context );
 				case 107: return new Mapper107 ( context );
+				case 108: return new Mapper108 ( context );
 				case 112: return new Mapper112 ( context );
 				case 113: return new Mapper113 ( context );
 				case 114: return new Mapper114 ( context );
@@ -711,6 +722,7 @@ namespace Nes
 				case 170: return new Mapper170 ( context );
 				case 171: return new Mapper171 ( context );
 				case 172: return new Mapper172 ( context );
+				case 173: return new Mapper173 ( context );
 				case 180: return new Mapper180 ( context );
 				case 182: return new Mapper182 ( context );
 				case 183: return new Mapper183 ( context );
@@ -787,9 +799,17 @@ namespace Nes
 				case EXT_6035052:      return new Boards::Unl6035052   ( context );
 				case EXT_A65AS:        return new Boards::A65AS        ( context );
 				case EXT_EDU2000:      return new Boards::Edu2000      ( context );
+				case EXT_TF1201:       return new Boards::Tf1201       ( context );
+				case EXT_KS7032:       return new Boards::Ks7032       ( context );
+				case EXT_GS2004:       return new Boards::Gs2004       ( context );
 
 				default: throw RESULT_ERR_UNSUPPORTED_MAPPER;
 			}
+		}
+
+		void Mapper::Destroy(Mapper* mapper)
+		{
+			delete mapper;
 		}
 
 		Mapper::Mapper(Context& context,const uint settings)
@@ -933,45 +953,48 @@ namespace Nes
 			wrk.Source(1).Set( prg.Source().Mem(), prg.Source().Size(), true, false );
 			prg.Source(1).Set( wrk.Source().Mem(), wrk.Source().Size(), true, context.wrk.Size() != 0 );
 
-			Log log;
-
-			char buffer[16];
-			cstring title = buffer;
-
-			if (id <= 255)
-				std::sprintf( buffer, "Mapper %u: ", id );
-			else
-				title = "Mapper: ";
-
-			if (*GetBoard( id ))
-				log << title << GetBoard( id ) << NST_LINEBREAK;
-
-			log << title << (prg.Source().Size() / SIZE_1K) << "k PRG-ROM" NST_LINEBREAK
-				<< title << (chr.Source().Size() / SIZE_1K) << (context.chr.Size() ? "k CHR-ROM" NST_LINEBREAK : "k CHR-RAM" NST_LINEBREAK);
-
-			if (chrRomDiscarded)
-				log << title << chrRomDiscarded;
-
-			if (chr.Source(1).Internal())
-				log << title << (chr.Source(1).Size() / SIZE_1K) << "k CHR-RAM" NST_LINEBREAK;
-
-			if (context.wrk.Size())
-				log << title << (context.wrk.Size() / SIZE_1K) << (context.wrkAuto ? "k auto W-RAM" NST_LINEBREAK : "k W-RAM" NST_LINEBREAK);
-
-			cstring type;
-
-			switch (mirroring)
+			if (Log::Available())
 			{
-				case Ppu::NMT_HORIZONTAL: type = "horizontal";        break;
-				case Ppu::NMT_VERTICAL:   type = "vertical";          break;
-				case Ppu::NMT_FOURSCREEN: type = "four-screen";       break;
-				case Ppu::NMT_ZERO:       type = "$2000";             break;
-				case Ppu::NMT_ONE:        type = "$2400";             break;
-				case Ppu::NMT_CONTROLLED: type = "mapper controlled"; break;
-				default:                  type = "unknown";           break;
-			}
+				Log log;
 
-			log << title << type << " mirroring" NST_LINEBREAK;
+				char buffer[16];
+				cstring title = buffer;
+
+				if (id <= 255)
+					std::sprintf( buffer, "Mapper %u: ", uint(id) );
+				else
+					title = "Mapper: ";
+
+				if (*GetBoard( id ))
+					log << title << GetBoard( id ) << NST_LINEBREAK;
+
+				log << title << (prg.Source().Size() / SIZE_1K) << "k PRG-ROM" NST_LINEBREAK
+					<< title << (chr.Source().Size() / SIZE_1K) << (context.chr.Size() ? "k CHR-ROM" NST_LINEBREAK : "k CHR-RAM" NST_LINEBREAK);
+
+				if (chrRomDiscarded)
+					log << title << chrRomDiscarded;
+
+				if (chr.Source(1).Internal())
+					log << title << (chr.Source(1).Size() / SIZE_1K) << "k CHR-RAM" NST_LINEBREAK;
+
+				if (context.wrk.Size())
+					log << title << (context.wrk.Size() / SIZE_1K) << (context.wrkAuto ? "k auto W-RAM" NST_LINEBREAK : "k W-RAM" NST_LINEBREAK);
+
+				cstring type;
+
+				switch (mirroring)
+				{
+					case Ppu::NMT_HORIZONTAL: type = "horizontal";        break;
+					case Ppu::NMT_VERTICAL:   type = "vertical";          break;
+					case Ppu::NMT_FOURSCREEN: type = "four-screen";       break;
+					case Ppu::NMT_ZERO:       type = "$2000";             break;
+					case Ppu::NMT_ONE:        type = "$2400";             break;
+					case Ppu::NMT_CONTROLLED: type = "mapper controlled"; break;
+					default:                  type = "unknown";           break;
+				}
+
+				log << title << type << " mirroring" NST_LINEBREAK;
+			}
 		}
 
 		Mapper::~Mapper()
@@ -985,23 +1008,23 @@ namespace Nes
 
 		void Mapper::Reset(const bool hard)
 		{
-			cpu.Map( 0x4018U, 0x5FFFU ).Set( this, &Mapper::Peek_Nop, &Mapper::Poke_Nop );
+			cpu.Map( 0x4018, 0x5FFF ).Set( this, &Mapper::Peek_Nop, &Mapper::Poke_Nop );
 
-			if (wrk.RamSize() >= SIZE_8K)
-				cpu.Map( 0x6000U, 0x7FFFU ).Set( this, &Mapper::Peek_Wrk_6, &Mapper::Poke_Wrk_6 );
+			if (wrk.Size() >= SIZE_8K)
+				cpu.Map( 0x6000, 0x7FFF ).Set( this, &Mapper::Peek_Wrk_6, &Mapper::Poke_Wrk_6 );
 			else
-				cpu.Map( 0x6000U, 0x7FFFU ).Set( this, &Mapper::Peek_Nop, &Mapper::Poke_Nop );
+				cpu.Map( 0x6000, 0x7FFF ).Set( this, &Mapper::Peek_Nop, &Mapper::Poke_Nop );
 
-			cpu.Map( 0x8000U, 0x9FFFU ).Set( this, &Mapper::Peek_Prg_8, &Mapper::Poke_Nop );
-			cpu.Map( 0xA000U, 0xBFFFU ).Set( this, &Mapper::Peek_Prg_A, &Mapper::Poke_Nop );
-			cpu.Map( 0xC000U, 0xDFFFU ).Set( this, &Mapper::Peek_Prg_C, &Mapper::Poke_Nop );
-			cpu.Map( 0xE000U, 0xFFFFU ).Set( this, &Mapper::Peek_Prg_E, &Mapper::Poke_Nop );
+			cpu.Map( 0x8000, 0x9FFF ).Set( this, &Mapper::Peek_Prg_8, &Mapper::Poke_Nop );
+			cpu.Map( 0xA000, 0xBFFF ).Set( this, &Mapper::Peek_Prg_A, &Mapper::Poke_Nop );
+			cpu.Map( 0xC000, 0xDFFF ).Set( this, &Mapper::Peek_Prg_C, &Mapper::Poke_Nop );
+			cpu.Map( 0xE000, 0xFFFF ).Set( this, &Mapper::Peek_Prg_E, &Mapper::Poke_Nop );
 
 			cpu.ClearIRQ();
 
 			if (hard)
 			{
-				NST_ASSERT( id < NST_COUNT(setup) );
+				NST_ASSERT( id < sizeof(array(setup)) );
 
 				if (chr.Source(0).Internal() || chr.Source(1).Internal())
 					chr.Source( !chr.Source(0).Internal() ).Fill( 0x00 );
@@ -1019,7 +1042,7 @@ namespace Nes
 						{  0U,  1U,  2U, ~0U }  // PRG_012X_8K
 					};
 
-					prg.SwapBanks<SIZE_8K,0x0000U>
+					prg.SwapBanks<SIZE_8K,0x0000>
 					(
 						defPrg[setup[id].prg][0],
 						defPrg[setup[id].prg][1],
@@ -1029,7 +1052,7 @@ namespace Nes
 				}
 
 				{
-					static const uchar defNmt[] =
+					static const byte defNmt[] =
 					{
 						Ppu::NMT_VERTICAL,
 						Ppu::NMT_HORIZONTAL,
@@ -1045,8 +1068,8 @@ namespace Nes
 					);
 				}
 
-				chr.SwapBank<SIZE_8K,0x0000U>(0);
-				wrk.SwapBank<SIZE_8K,0x0000U>(0);
+				chr.SwapBank<SIZE_8K,0x0000>(0);
+				wrk.SwapBank<SIZE_8K,0x0000>(0);
 			}
 
 			SubReset( hard );
@@ -1069,7 +1092,7 @@ namespace Nes
 		{
 			if (id <= 255)
 			{
-				return NES_STATE_CHUNK_ID('0' + (id / 100U),'0' + (id % 100U / 10U),'0' + (id % 10U),'\0');
+				return AsciiId<'0','0','0'>::R( id / 100U, id % 100U / 10, id % 10U );
 			}
 			else
 			{
@@ -1088,41 +1111,55 @@ namespace Nes
 					EXT_FK23C        == 266 &&
 					EXT_6035052      == 267 &&
 					EXT_A65AS        == 268 &&
-					EXT_EDU2000      == 269
+					EXT_EDU2000      == 269 &&
+					EXT_TF1201       == 270 &&
+					EXT_KS7032       == 271 &&
+					EXT_GS2004       == 272
 				);
 
 				static const dword chunks[] =
 				{
-					NES_STATE_CHUNK_ID('S','2','4','\0'),
-					NES_STATE_CHUNK_ID('8','1','5','\0'),
-					NES_STATE_CHUNK_ID('8','2','3','\0'),
-					NES_STATE_CHUNK_ID('W','S','4','\0'),
-					NES_STATE_CHUNK_ID('D','0','1','\0'),
-					NES_STATE_CHUNK_ID('C','2','1','\0'),
-					NES_STATE_CHUNK_ID('K','O','F','\0'),
-					NES_STATE_CHUNK_ID('6','4','N','\0'),
-					NES_STATE_CHUNK_ID('S','H','R','\0'),
-					NES_STATE_CHUNK_ID('T','2','6','\0'),
-					NES_STATE_CHUNK_ID('F','K','2','\0'),
-					NES_STATE_CHUNK_ID('6','0','3','\0'),
-					NES_STATE_CHUNK_ID('A','6','5','\0'),
-					NES_STATE_CHUNK_ID('E','D','U','\0')
+					AsciiId<'S','2','4'>::V,
+					AsciiId<'8','1','5'>::V,
+					AsciiId<'8','2','3'>::V,
+					AsciiId<'W','S','4'>::V,
+					AsciiId<'D','0','1'>::V,
+					AsciiId<'C','2','1'>::V,
+					AsciiId<'K','O','F'>::V,
+					AsciiId<'6','4','N'>::V,
+					AsciiId<'S','H','R'>::V,
+					AsciiId<'T','2','6'>::V,
+					AsciiId<'F','K','2'>::V,
+					AsciiId<'6','0','3'>::V,
+					AsciiId<'A','6','5'>::V,
+					AsciiId<'E','D','U'>::V,
+					AsciiId<'T','F','1'>::V,
+					AsciiId<'K','S','7'>::V,
+					AsciiId<'G','S','2'>::V
 				};
 
-				NST_COMPILE_ASSERT( NUM_EXT_MAPPERS == NST_COUNT(chunks) );
+				NST_COMPILE_ASSERT( NUM_EXT_MAPPERS == sizeof(array(chunks)) );
 
 				return chunks[id - 256];
 			}
 		}
 
-		void Mapper::SaveState(State::Saver& state) const
+		void Mapper::SaveState(State::Saver& state,const dword chunk) const
 		{
-			prg.SaveState( State::Saver::Subset(state,'P','R','G','\0').Ref(), b00 );
-			chr.SaveState( State::Saver::Subset(state,'C','H','R','\0').Ref(), chr.Source(0).Internal() ? b01 : chr.Source(1).Internal() ? b10 : b00 );
-			nmt.SaveState( State::Saver::Subset(state,'N','M','T','\0').Ref(), nmt.Source(0).Internal() ? b01 : nmt.Source(1).Internal() ? b10 : b00 );
-			wrk.SaveState( State::Saver::Subset(state,'W','R','K','\0').Ref(), wrk.HasRam() ? b01 : b00 );
+			state.Begin( chunk );
+
+			prg.SaveState( state, AsciiId<'P','R','G'>::V, 0x0 );
+			chr.SaveState( state, AsciiId<'C','H','R'>::V, chr.Source(0).Internal() ? 0x1 : chr.Source(1).Internal() ? 0x2 : 0x0 );
+			nmt.SaveState( state, AsciiId<'N','M','T'>::V, nmt.Source(0).Internal() ? 0x1 : nmt.Source(1).Internal() ? 0x2 : 0x0 );
+			wrk.SaveState( state, AsciiId<'W','R','K'>::V, wrk.Available() ? 0x1 : 0x0 );
+
 			BaseSave( state );
-			SubSave( State::Saver::Subset(state,GetStateName()).Ref() );
+
+			state.Begin( GetStateName() );
+			SubSave( state );
+			state.End();
+
+			state.End();
 		}
 
 		void Mapper::LoadState(State::Loader& state)
@@ -1133,33 +1170,33 @@ namespace Nes
 			{
 				if (chunk == name)
 				{
-					SubLoad( State::Loader::Subset(state).Ref() );
+					SubLoad( state );
 				}
 				else switch (chunk)
 				{
-					case NES_STATE_CHUNK_ID('P','R','G','\0'):
+					case AsciiId<'P','R','G'>::V:
 
-						prg.LoadState( State::Loader::Subset(state).Ref(), b00 );
+						prg.LoadState( state, 0x0 );
 						break;
 
-					case NES_STATE_CHUNK_ID('C','H','R','\0'):
+					case AsciiId<'C','H','R'>::V:
 
-						chr.LoadState( State::Loader::Subset(state).Ref(), chr.Source(0).Internal() ? b01 : chr.Source(1).Internal() ? b10 : b00 );
+						chr.LoadState( state, chr.Source(0).Internal() ? 0x1 : chr.Source(1).Internal() ? 0x2 : 0x0 );
 						break;
 
-					case NES_STATE_CHUNK_ID('N','M','T','\0'):
+					case AsciiId<'N','M','T'>::V:
 
-						nmt.LoadState( State::Loader::Subset(state).Ref(), nmt.Source(0).Internal() ? b01 : nmt.Source(1).Internal() ? b10 : b00 );
+						nmt.LoadState( state, nmt.Source(0).Internal() ? 0x1 : nmt.Source(1).Internal() ? 0x2 : 0x0 );
 						break;
 
-					case NES_STATE_CHUNK_ID('W','R','K','\0'):
+					case AsciiId<'W','R','K'>::V:
 
-						wrk.LoadState( State::Loader::Subset(state).Ref(), wrk.HasRam() ? b01 : b00 );
+						wrk.LoadState( state, wrk.Available() ? 0x1 : 0x0 );
 						break;
 
 					default:
 
-						BaseLoad( State::Loader::Subset(state).Ref(), chunk );
+						BaseLoad( state, chunk );
 						break;
 				}
 
@@ -1169,52 +1206,52 @@ namespace Nes
 
 		cstring Mapper::GetBoard(uint i)
 		{
-			return i < NST_COUNT(setup) ? setup[i].board : "";
+			return i < sizeof(array(setup)) ? setup[i].board : "";
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
-		NES_PEEK(Mapper,Prg_8) { return prg[0][address - 0x8000U]; }
-		NES_PEEK(Mapper,Prg_A) { return prg[1][address - 0xA000U]; }
-		NES_PEEK(Mapper,Prg_C) { return prg[2][address - 0xC000U]; }
-		NES_PEEK(Mapper,Prg_E) { return prg[3][address - 0xE000U]; }
+		NES_PEEK(Mapper,Prg_8) { return prg[0][address - 0x8000]; }
+		NES_PEEK(Mapper,Prg_A) { return prg[1][address - 0xA000]; }
+		NES_PEEK(Mapper,Prg_C) { return prg[2][address - 0xC000]; }
+		NES_PEEK(Mapper,Prg_E) { return prg[3][address - 0xE000]; }
 
-		NES_POKE(Mapper,Prg_8k_0)  { prg.SwapBank<SIZE_8K,0x0000U>( data ); }
-		NES_POKE(Mapper,Prg_8k_1)  { prg.SwapBank<SIZE_8K,0x2000U>( data ); }
-		NES_POKE(Mapper,Prg_8k_2)  { prg.SwapBank<SIZE_8K,0x4000U>( data ); }
-		NES_POKE(Mapper,Prg_8k_3)  { prg.SwapBank<SIZE_8K,0x6000U>( data ); }
-		NES_POKE(Mapper,Prg_16k_0) { prg.SwapBank<SIZE_16K,0x0000U>( data ); }
-		NES_POKE(Mapper,Prg_16k_1) { prg.SwapBank<SIZE_16K,0x4000U>( data ); }
-		NES_POKE(Mapper,Prg_32k)   { prg.SwapBank<SIZE_32K,0x0000U>( data ); }
+		NES_POKE(Mapper,Prg_8k_0)  { prg.SwapBank<SIZE_8K,0x0000>( data ); }
+		NES_POKE(Mapper,Prg_8k_1)  { prg.SwapBank<SIZE_8K,0x2000>( data ); }
+		NES_POKE(Mapper,Prg_8k_2)  { prg.SwapBank<SIZE_8K,0x4000>( data ); }
+		NES_POKE(Mapper,Prg_8k_3)  { prg.SwapBank<SIZE_8K,0x6000>( data ); }
+		NES_POKE(Mapper,Prg_16k_0) { prg.SwapBank<SIZE_16K,0x0000>( data ); }
+		NES_POKE(Mapper,Prg_16k_1) { prg.SwapBank<SIZE_16K,0x4000>( data ); }
+		NES_POKE(Mapper,Prg_32k)   { prg.SwapBank<SIZE_32K,0x0000>( data ); }
 
-		NES_POKE(Mapper,Chr_1k_0) { ppu.Update(); chr.SwapBank<SIZE_1K,0x0000U>( data ); }
-		NES_POKE(Mapper,Chr_1k_1) { ppu.Update(); chr.SwapBank<SIZE_1K,0x0400U>( data ); }
-		NES_POKE(Mapper,Chr_1k_2) { ppu.Update(); chr.SwapBank<SIZE_1K,0x0800U>( data ); }
-		NES_POKE(Mapper,Chr_1k_3) { ppu.Update(); chr.SwapBank<SIZE_1K,0x0C00U>( data ); }
-		NES_POKE(Mapper,Chr_1k_4) { ppu.Update(); chr.SwapBank<SIZE_1K,0x1000U>( data ); }
-		NES_POKE(Mapper,Chr_1k_5) { ppu.Update(); chr.SwapBank<SIZE_1K,0x1400U>( data ); }
-		NES_POKE(Mapper,Chr_1k_6) { ppu.Update(); chr.SwapBank<SIZE_1K,0x1800U>( data ); }
-		NES_POKE(Mapper,Chr_1k_7) { ppu.Update(); chr.SwapBank<SIZE_1K,0x1C00U>( data ); }
-		NES_POKE(Mapper,Chr_2k_0) { ppu.Update(); chr.SwapBank<SIZE_2K,0x0000U>( data ); }
-		NES_POKE(Mapper,Chr_2k_1) { ppu.Update(); chr.SwapBank<SIZE_2K,0x0800U>( data ); }
-		NES_POKE(Mapper,Chr_2k_2) { ppu.Update(); chr.SwapBank<SIZE_2K,0x1000U>( data ); }
-		NES_POKE(Mapper,Chr_2k_3) { ppu.Update(); chr.SwapBank<SIZE_2K,0x1800U>( data ); }
-		NES_POKE(Mapper,Chr_4k_0) { ppu.Update(); chr.SwapBank<SIZE_4K,0x0000U>( data ); }
-		NES_POKE(Mapper,Chr_4k_1) { ppu.Update(); chr.SwapBank<SIZE_4K,0x1000U>( data ); }
-		NES_POKE(Mapper,Chr_8k)   { ppu.Update(); chr.SwapBank<SIZE_8K,0x0000U>( data ); }
+		NES_POKE(Mapper,Chr_1k_0) { ppu.Update(); chr.SwapBank<SIZE_1K,0x0000>( data ); }
+		NES_POKE(Mapper,Chr_1k_1) { ppu.Update(); chr.SwapBank<SIZE_1K,0x0400>( data ); }
+		NES_POKE(Mapper,Chr_1k_2) { ppu.Update(); chr.SwapBank<SIZE_1K,0x0800>( data ); }
+		NES_POKE(Mapper,Chr_1k_3) { ppu.Update(); chr.SwapBank<SIZE_1K,0x0C00>( data ); }
+		NES_POKE(Mapper,Chr_1k_4) { ppu.Update(); chr.SwapBank<SIZE_1K,0x1000>( data ); }
+		NES_POKE(Mapper,Chr_1k_5) { ppu.Update(); chr.SwapBank<SIZE_1K,0x1400>( data ); }
+		NES_POKE(Mapper,Chr_1k_6) { ppu.Update(); chr.SwapBank<SIZE_1K,0x1800>( data ); }
+		NES_POKE(Mapper,Chr_1k_7) { ppu.Update(); chr.SwapBank<SIZE_1K,0x1C00>( data ); }
+		NES_POKE(Mapper,Chr_2k_0) { ppu.Update(); chr.SwapBank<SIZE_2K,0x0000>( data ); }
+		NES_POKE(Mapper,Chr_2k_1) { ppu.Update(); chr.SwapBank<SIZE_2K,0x0800>( data ); }
+		NES_POKE(Mapper,Chr_2k_2) { ppu.Update(); chr.SwapBank<SIZE_2K,0x1000>( data ); }
+		NES_POKE(Mapper,Chr_2k_3) { ppu.Update(); chr.SwapBank<SIZE_2K,0x1800>( data ); }
+		NES_POKE(Mapper,Chr_4k_0) { ppu.Update(); chr.SwapBank<SIZE_4K,0x0000>( data ); }
+		NES_POKE(Mapper,Chr_4k_1) { ppu.Update(); chr.SwapBank<SIZE_4K,0x1000>( data ); }
+		NES_POKE(Mapper,Chr_8k)   { ppu.Update(); chr.SwapBank<SIZE_8K,0x0000>( data ); }
 
 		NES_POKE(Mapper,Wrk_6)
 		{
 			NST_VERIFY( wrk.Writable(0) );
-			wrk[0][address - 0x6000U] = data;
+			wrk[0][address - 0x6000] = data;
 		}
 
 		NES_PEEK(Mapper,Wrk_6)
 		{
 			NST_VERIFY( wrk.Readable(0) );
-			return wrk[0][address - 0x6000U];
+			return wrk[0][address - 0x6000];
 		}
 
 		NES_POKE(Mapper,Wrk_Safe_6)
@@ -1222,13 +1259,13 @@ namespace Nes
 			NST_VERIFY( wrk.Writable(0) );
 
 			if (wrk.Writable(0))
-				wrk[0][address - 0x6000U] = data;
+				wrk[0][address - 0x6000] = data;
 		}
 
 		NES_PEEK(Mapper,Wrk_Safe_6)
 		{
 			NST_VERIFY( wrk.Readable(0) );
-			return wrk.Readable(0) ? wrk[0][address - 0x6000U] : (address >> 8);
+			return wrk.Readable(0) ? wrk[0][address - 0x6000] : (address >> 8);
 		}
 
 		NES_POKE(Mapper,Nmt_Hv)
@@ -1249,7 +1286,7 @@ namespace Nes
 
 		NES_POKE(Mapper,Nmt_Vh01)
 		{
-			static const uchar lut[4][4] =
+			static const byte lut[4][4] =
 			{
 				{0,1,0,1},
 				{0,0,1,1},
@@ -1262,7 +1299,7 @@ namespace Nes
 
 		NES_POKE(Mapper,Nmt_Hv01)
 		{
-			static const uchar lut[4][4] =
+			static const byte lut[4][4] =
 			{
 				{0,0,1,1},
 				{0,1,0,1},

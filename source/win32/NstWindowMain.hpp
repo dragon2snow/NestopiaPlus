@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -37,7 +37,7 @@ namespace Nestopia
 {
 	namespace Window
 	{
-		class Main
+		class Main : Managers::Manager
 		{
 		public:
 
@@ -61,54 +61,51 @@ namespace Nestopia
 
 		private:
 
-			enum
-			{
-				CLASS_STYLE =
-				(
-					CS_HREDRAW |
-					CS_VREDRAW
-				),
-
-				WIN_STYLE =
-				(
-					WS_OVERLAPPED |
-					WS_CAPTION |
-					WS_SYSMENU |
-					WS_MINIMIZEBOX |
-					WS_MAXIMIZEBOX |
-					WS_THICKFRAME |
-					WS_CLIPCHILDREN
-				),
-
-				WIN_EXSTYLE =
-				(
-					WS_EX_ACCEPTFILES |
-					WS_EX_CLIENTEDGE
-				),
-			};
-
-			struct State
-			{
-				inline State();
-
-				ibool menu;
-				ibool maximized;
-				Rect rect;
-			};
-
 			struct MainWindow : Dynamic
 			{
 				MainWindow(const Configuration&,const Menu&);
+
+				enum
+				{
+					CLASS_STYLE =
+					(
+						CS_HREDRAW |
+						CS_VREDRAW
+					),
+
+					WIN_STYLE =
+					(
+						WS_OVERLAPPED |
+						WS_CAPTION |
+						WS_SYSMENU |
+						WS_MINIMIZEBOX |
+						WS_MAXIMIZEBOX |
+						WS_THICKFRAME |
+						WS_CLIPCHILDREN
+					),
+
+					WIN_EXSTYLE =
+					(
+						WS_EX_ACCEPTFILES |
+						WS_EX_CLIENTEDGE
+					)
+				};
+
+				bool menu;
+				bool maximized;
+				Rect rect;
+
+				static const tchar name[];
 			};
 
-			inline ibool Fullscreen() const;
-			inline ibool Windowed() const;
+			inline bool Fullscreen() const;
+			inline bool Windowed() const;
 
-			ibool CanRunInBackground();
-			ibool ToggleMenu();
+			bool CanRunInBackground();
+			bool ToggleMenu();
 
-			ibool OnStartEmulation();
-			void  OnStopEmulation();
+			bool OnStartEmulation();
+			void OnStopEmulation();
 
 			void OnReturnInputScreen(Rect&);
 			void OnReturnOutputScreen(Rect&);
@@ -133,15 +130,10 @@ namespace Nestopia
 
 			const Managers::Preferences& preferences;
 			MainWindow window;
-			const Menu& menu;
-			Managers::Emulator& emulator;
 			Managers::Video video;
 			Managers::Sound sound;
 			Managers::Input input;
 			Managers::FrameClock frameClock;
-			State state;
-
-			static const tchar windowName[];
 
 		public:
 

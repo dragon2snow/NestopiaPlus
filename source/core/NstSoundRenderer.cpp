@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -22,7 +22,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstCore.hpp"
+#include <algorithm>
 #include "NstCpu.hpp"
 #include "NstSoundRenderer.hpp"
 
@@ -32,53 +32,35 @@ namespace Nes
 	{
 		namespace Sound
 		{
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("s", on)
 			#endif
 
 			Buffer::Buffer(uint bits)
+			: output(new iword [SIZE])
 			{
 				Reset( bits, true );
 			}
 
-			void Buffer::Reset(uint bits,const bool clear)
+			Buffer::~Buffer()
+			{
+				delete [] output;
+			}
+
+			void Buffer::Reset(uint bits,bool clear)
 			{
 				pos = start = 0;
 				history.pos = 0;
 
-				bits = (bits == 16 ? 0 : 0x80);
-
-				for (uint i=0; i < History::SIZE; ++i)
-					history.buffer[i] = bits;
+				std::fill( history.buffer, history.buffer+History::SIZE, iword(bits == 16 ? 0 : 0x80) );
 
 				if (clear)
-				{
-					for (uint i=0; i < SIZE; ++i)
-						output[i] = 0;
-				}
+					std::fill( output, output+SIZE, iword(0) );
 			}
 
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("", on)
 			#endif
-
-			void Buffer::operator >> (Block& block)
-			{
-				NST_ASSERT( block.length );
-
-				const uint delta = Latency();
-
-				block.data = output;
-				block.start = start;
-
-				if (block.length > delta)
-					block.length = delta;
-
-				start = (start + block.length) & MASK;
-
-				if (start == pos)
-					start = pos = 0;
-			}
 		}
 	}
 }

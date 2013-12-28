@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -29,7 +29,7 @@ namespace Nes
 {
 	namespace Core
 	{
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("s", on)
 		#endif
 
@@ -48,9 +48,9 @@ namespace Nes
 				prgBank = 0;
 			}
 
-			void SaveState(State::Saver& state)
+			void SaveState(State::Saver& state,const dword id)
 			{
-				state.Write8( prgBank ).Write16( counter );
+				state.Begin( id ).Write8( prgBank ).Write16( counter ).End();
 			}
 
 			void LoadState(State::Loader& state)
@@ -76,7 +76,7 @@ namespace Nes
 
 			uint End()
 			{
-				return (prgBank & 0x8) && counter < SIGNAL && ++counter == SIGNAL ? (prgBank & 0x7) | 0x10 : 0;
+				return (prgBank & 0x8 && counter < SIGNAL && ++counter == SIGNAL) ? (prgBank & 0x7 | 0x10) : 0;
 			}
 		};
 
@@ -112,7 +112,7 @@ namespace Nes
 			if (doubleCassette)
 			{
 				doubleCassette->Reset();
-				prg.SwapBanks<SIZE_16K,0x0000U>( 0x0, 0x7 );
+				prg.SwapBanks<SIZE_16K,0x0000>( 0x0, 0x7 );
 
 				Map( 0x6000U,          &Mapper68::Poke_6000 );
 				Map( 0x8000U, 0xBFFFU, &Mapper68::Peek_8000 );
@@ -130,9 +130,9 @@ namespace Nes
 			{
 				switch (chunk)
 				{
-					case NES_STATE_CHUNK_ID('R','E','G','\0'):
+					case AsciiId<'R','E','G'>::V:
 					{
-						const State::Loader::Data<3> data( state );
+						State::Loader::Data<3> data( state );
 
 						regs.ctrl = data[0];
 						regs.nmt[0] = data[1] | Regs::BANK_OFFSET;
@@ -141,7 +141,7 @@ namespace Nes
 						break;
 					}
 
-					case NES_STATE_CHUNK_ID('D','B','C','\0'):
+					case AsciiId<'D','B','C'>::V:
 
 						NST_VERIFY( doubleCassette );
 
@@ -157,24 +157,20 @@ namespace Nes
 
 		void Mapper68::SubSave(State::Saver& state) const
 		{
-			const u8 data[3] =
+			const byte data[3] =
 			{
 				regs.ctrl,
 				regs.nmt[0] & ~uint(Regs::BANK_OFFSET),
 				regs.nmt[1] & ~uint(Regs::BANK_OFFSET)
 			};
 
-			state.Begin('R','E','G','\0').Write( data ).End();
+			state.Begin( AsciiId<'R','E','G'>::V ).Write( data ).End();
 
 			if (doubleCassette)
-			{
-				state.Begin('D','B','C','\0');
-				doubleCassette->SaveState( state );
-				state.End();
-			}
+				doubleCassette->SaveState( state, AsciiId<'D','B','C'>::V );
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
@@ -182,7 +178,7 @@ namespace Nes
 		{
 			ppu.Update();
 
-			static const uchar select[4][4] =
+			static const byte select[4][4] =
 			{
 				{0,1,0,1},
 				{0,0,1,1},
@@ -191,7 +187,7 @@ namespace Nes
 			};
 
 			const uint isCrom = (regs.ctrl & Regs::CTRL_CROM) >> 4;
-			const uchar (&index)[4] = select[regs.ctrl & Regs::CTRL_MIRRORING];
+			const byte (&index)[4] = select[regs.ctrl & Regs::CTRL_MIRRORING];
 
 			for (uint i=0; i < 4; ++i)
 				nmt.Source( isCrom ).SwapBank<SIZE_1K>( i * SIZE_1K, isCrom ? regs.nmt[index[i]] : index[i] );
@@ -200,15 +196,15 @@ namespace Nes
 		NES_POKE(Mapper68,6000)
 		{
 			if (data == 0x00)
-				prg.SwapBank<SIZE_16K,0x0000U>( doubleCassette->Begin() );
+				prg.SwapBank<SIZE_16K,0x0000>( doubleCassette->Begin() );
 		}
 
 		NES_PEEK(Mapper68,8000)
 		{
 			if (const uint bank = doubleCassette->End())
-				prg.SwapBank<SIZE_16K,0x0000U>( bank & 0xF );
+				prg.SwapBank<SIZE_16K,0x0000>( bank & 0xF );
 
-			return prg.Peek( address - 0x8000U );
+			return prg.Peek( address - 0x8000 );
 		}
 
 		NES_POKE(Mapper68,C000)
@@ -231,7 +227,7 @@ namespace Nes
 
 		NES_POKE(Mapper68,F000)
 		{
-			prg.SwapBank<SIZE_16K,0x0000U>( doubleCassette->Swap(data) );
+			prg.SwapBank<SIZE_16K,0x0000>( doubleCassette->Swap(data) );
 		}
 	}
 }

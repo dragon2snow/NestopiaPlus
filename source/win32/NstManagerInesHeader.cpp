@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -22,8 +22,6 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstWindowMenu.hpp"
-#include "NstManagerEmulator.hpp"
 #include "NstManagerPaths.hpp"
 #include "../core/api/NstApiCartridge.hpp"
 #include "NstDialogInesHeader.hpp"
@@ -35,22 +33,9 @@ namespace Nestopia
 	{
 		InesHeader::InesHeader(Emulator& e,Window::Menu& m,const Paths& p)
 		:
-		emulator ( e ),
-		menu     ( m ),
-		paths    ( p )
+		Manager ( e, m, this, &InesHeader::OnEmuEvent, IDM_FILE_EDIT_INES_HEADER, &InesHeader::OnCmdEditInesHeader ),
+		paths   ( p )
 		{
-			static const Window::Menu::CmdHandler::Entry<InesHeader> commands[] =
-			{
-				{ IDM_FILE_EDIT_INES_HEADER, &InesHeader::OnCmdEditInesHeader }
-			};
-
-			m.Commands().Add( this, commands );
-			emulator.Events().Add( this, &InesHeader::OnEmuEvent );
-		}
-
-		InesHeader::~InesHeader()
-		{
-			emulator.Events().Remove( this );
 		}
 
 		void InesHeader::OnCmdEditInesHeader(uint)

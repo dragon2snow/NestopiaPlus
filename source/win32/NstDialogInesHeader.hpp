@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -56,13 +56,13 @@ namespace Nestopia
 
 			enum
 			{
-				OTHER_SIZE     = 0x40000000UL,
+				OTHER_SIZE     = 0x40000000,
 				OTHER_SIZE_DIV = SIZETYPE_STD_8K|SIZETYPE_STD_16K,
 				HEADER_SIZE    = 16,
-				HEADER_ID      = 0x1A53454EUL
+				HEADER_ID      = NST_FOURCC('N','E','S',0x1A)
 			};
 
-			typedef u8 Header[HEADER_SIZE];
+			typedef uchar Header[HEADER_SIZE];
 
 			static uint Import(const Path&,Collection::Buffer&);
 			static uint Export(const Path&,const Collection::Buffer&);
@@ -72,10 +72,10 @@ namespace Nestopia
 			void UpdateSystem() const;
 			void UpdateSizes(uint,SizeType,uint) const;
 
-			void  DetectHeader(Nes::Api::Cartridge::Setup&) const;
-			ibool SaveHeader(Header&) const;
-			uint  GetMaxSize(uint) const;
-			ibool OkToSave(uint) const;
+			void DetectHeader(Nes::Api::Cartridge::Setup&) const;
+			bool SaveHeader(Header&) const;
+			uint GetMaxSize(uint) const;
+			bool OkToSave(uint) const;
 
 			ibool OnInitDialog   (Param&);
 			ibool OnCmdFileType  (Param&);

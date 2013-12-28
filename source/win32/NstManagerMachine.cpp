@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,7 +25,7 @@
 #include "NstResourceString.hpp"
 #include "NstWindowUser.hpp"
 #include "NstIoScreen.hpp"
-#include "NstManagerEmulator.hpp"
+#include "NstManager.hpp"
 #include "NstManagerPreferences.hpp"
 #include "NstManagerMachine.hpp"
 
@@ -40,7 +40,9 @@ namespace Nestopia
 		);
 
 		Machine::Machine(Emulator& e,const Configuration& cfg,Window::Menu& m,const Preferences& p)
-		: emulator(e), menu(m), preferences(p)
+		:
+		Manager     ( e, m, this, &Machine::OnEmuEvent ),
+		preferences ( p )
 		{
 			static const Window::Menu::CmdHandler::Entry<Machine> commands[] =
 			{
@@ -53,14 +55,14 @@ namespace Nestopia
 				{ IDM_MACHINE_SYSTEM_PAL,  &Machine::OnCmdSystem  }
 			};
 
+			menu.Commands().Add( this, commands );
+
 			static const Window::Menu::PopupHandler::Entry<Machine> popups[] =
 			{
 				{ Window::Menu::PopupHandler::Pos<IDM_POS_MACHINE,IDM_POS_MACHINE_SYSTEM>::ID, &Machine::OnMenuSystem }
 			};
 
-			m.Commands().Add( this, commands );
-			m.PopupRouter().Add( this, popups );
-			emulator.Events().Add( this, &Machine::OnEmuEvent );
+			menu.PopupRouter().Add( this, popups );
 
 			const GenericString type( cfg["machine region"] );
 			const uint id = (type == _T("ntsc") ? IDM_MACHINE_SYSTEM_NTSC : type == _T("pal") ? IDM_MACHINE_SYSTEM_PAL : IDM_MACHINE_SYSTEM_AUTO);
@@ -73,16 +75,11 @@ namespace Nestopia
 				emulator.SetMode( id == IDM_MACHINE_SYSTEM_NTSC ? Nes::Machine::NTSC : Nes::Machine::PAL );
 		}
 
-		Machine::~Machine()
-		{
-			emulator.Events().Remove( this );
-		}
-
 		void Machine::Save(Configuration& cfg) const
 		{
 			cfg[ "machine region" ] = menu[IDM_MACHINE_SYSTEM_AUTO].Checked() ? _T( "auto" ) :
-                                      emulator.Is(Nes::Machine::NTSC) ?           _T( "ntsc" ) :
-                                                                                  _T( "pal"  );
+                                      emulator.Is(Nes::Machine::NTSC) ?         _T( "ntsc" ) :
+																				_T( "pal"  );
 		}
 
 		void Machine::OnCmdPower(uint)
@@ -123,7 +120,7 @@ namespace Nestopia
 
 		void Machine::OnCmdPause(uint)
 		{
-			const ibool state = !emulator.Paused();
+			const bool state = !emulator.Paused();
 
 			if (emulator.Pause( state ))
 				Io::Screen() << Resource::String(state ? IDS_SCREEN_PAUSE : IDS_SCREEN_RESUME);
@@ -169,7 +166,7 @@ namespace Nestopia
 				case Emulator::EVENT_POWER_ON:
 				case Emulator::EVENT_POWER_OFF:
 				{
-					const ibool state = (event == Emulator::EVENT_POWER_ON);
+					const bool state = (event == Emulator::EVENT_POWER_ON);
 
 					menu[ IDM_MACHINE_POWER ].Text() << Resource::String( state ? IDS_MENU_POWER_OFF : IDS_MENU_POWER_ON);
 					menu[ IDM_MACHINE_RESET_SOFT ].Enable( state );
@@ -181,7 +178,7 @@ namespace Nestopia
 				case Emulator::EVENT_NETPLAY_POWER_ON:
 				case Emulator::EVENT_NETPLAY_POWER_OFF:
 				{
-					const ibool state = (event == Emulator::EVENT_NETPLAY_POWER_ON && emulator.GetPlayer() == 1);
+					const bool state = (event == Emulator::EVENT_NETPLAY_POWER_ON && emulator.GetPlayer() == 1);
 
 					menu[ IDM_MACHINE_RESET_SOFT ].Enable( state );
 					menu[ IDM_MACHINE_RESET_HARD ].Enable( state );
@@ -201,7 +198,7 @@ namespace Nestopia
 
 				case Emulator::EVENT_NETPLAY_UNLOAD:
 				{
-					const ibool state = (event == Emulator::EVENT_NETPLAY_UNLOAD);
+					const bool state = (event == Emulator::EVENT_NETPLAY_UNLOAD);
 
 					menu[ IDM_MACHINE_SYSTEM_AUTO ].Enable( state );
 					menu[ IDM_MACHINE_SYSTEM_NTSC ].Enable( state );

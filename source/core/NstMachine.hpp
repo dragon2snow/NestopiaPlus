@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,15 +25,14 @@
 #ifndef NST_MACHINE_H
 #define NST_MACHINE_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
-#pragma once
-#endif
-
-#include "NstCore.hpp"
 #include "NstCpu.hpp"
 #include "NstPpu.hpp"
 #include "NstTracker.hpp"
 #include "NstVideoRenderer.hpp"
+
+#ifdef NST_PRAGMA_ONCE
+#pragma once
+#endif
 
 namespace Nes
 {
@@ -67,17 +66,12 @@ namespace Nes
 			Machine();
 			~Machine();
 
-			Result ExecuteFrame
+			void ExecuteFrame
 			(
 				Video::Output*,
 				Sound::Output*,
 				Input::Controllers*
 			);
-
-			enum
-			{
-				OPEN_BUS = 0x40
-			};
 
 			enum ColorMode
 			{
@@ -86,41 +80,54 @@ namespace Nes
 				COLORMODE_CUSTOM
 			};
 
-			Result Load (StdStream,uint);
-			void   Unload ();
-			Result PowerOn ();
-			void   PowerOff ();
-			Result Reset (bool);
-			void   SetMode (Mode);
-			Result LoadState (StdStream,bool=true);
-			Result SaveState (StdStream,bool,bool);
-			void   InitializeInputDevices () const;
-			Result UpdateColorMode ();
-			Result UpdateColorMode (ColorMode);
+			Result Load(StdStream,uint);
+			bool   Unload();
+			bool   PowerOff();
+			void   Reset(bool);
+			void   SetMode(Mode);
+			bool   LoadState(State::Loader&);
+			void   SaveState(State::Saver&) const;
+			void   InitializeInputDevices() const;
+			Result UpdateColorMode();
+			Result UpdateColorMode(ColorMode);
+
+		private:
+
+			enum
+			{
+				OPEN_BUS = 0x40
+			};
+
+			NES_DECL_POKE( 4016 );
+			NES_DECL_PEEK( 4016 );
+			NES_DECL_POKE( 4017 );
+			NES_DECL_PEEK( 4017 );
 
 			uint state;
-			ulong frame;
+
+		public:
+
+			dword frame;
 			Input::Adapter* extPort;
 			Input::Device* expPort;
 			Image* image;
 			Cheats* cheats;
 			ImageDatabase* imageDatabase;
+			const void* const padding;
 			Tracker tracker;
 			Cpu cpu;
 			Ppu ppu;
 			Video::Renderer renderer;
 
-			uint Is(uint what) const
+			uint Is(uint a) const
 			{
-				return state & what;
+				return state & a;
 			}
 
-		private:
-
-			NES_DECL_POKE( 4016 )
-			NES_DECL_PEEK( 4016 )
-			NES_DECL_POKE( 4017 )
-			NES_DECL_PEEK( 4017 )
+			bool Is(uint a,uint b) const
+			{
+				return (state & a) && (state & b);
+			}
 		};
 	}
 }

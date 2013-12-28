@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -23,9 +23,9 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 
 #include "../NstLog.hpp"
-#include "../NstState.hpp"
 #include "../NstCpu.hpp"
 #include "../NstPpu.hpp"
+#include "../NstState.hpp"
 #include "NstVsSystem.hpp"
 #include "NstVsRbiBaseball.hpp"
 #include "NstVsTkoBoxing.hpp"
@@ -35,7 +35,7 @@ namespace Nes
 {
 	namespace Core
 	{
-		const u8 VsSystem::colorMaps[4][64] =
+		const byte Cartridge::VsSystem::yuvMaps[4][0x40] =
 		{
 			{
 				0x35, 0x23, 0x16, 0x22, 0x1C, 0x09, 0x2D, 0x15,
@@ -79,11 +79,11 @@ namespace Nes
 			}
 		};
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("s", on)
 		#endif
 
-		class VsSystem::Dip
+		class Cartridge::VsSystem::Dip
 		{
 			class Proxy;
 
@@ -101,20 +101,17 @@ namespace Nes
 
 		public:
 
-			class Value
+			struct Value
 			{
-				friend class Dip;
-				friend class Proxy;
-
 				cstring const name;
 				const uint data;
 				const uint selection;
 
-			public:
-
 				Value(cstring n,uint d,uint s=0)
 				: name(n), data(d), selection(s) {}
 			};
+
+			void operator = (const Value&);
 
 		private:
 
@@ -155,16 +152,6 @@ namespace Nes
 				delete [] settings;
 			}
 
-			void operator = (const Value& value)
-			{
-				NST_ASSERT( settings == NULL && value.data && value.selection < value.data );
-
-				name = value.name;
-				size = value.data;
-				selection = value.selection;
-				settings = new Setting [size];
-			}
-
 			uint Size() const
 			{
 				return size;
@@ -193,11 +180,23 @@ namespace Nes
 			}
 		};
 
-		VsSystem::VsDipSwitches::VsDipSwitches(Dip*& old,uint n)
+		void Cartridge::VsSystem::Dip::operator = (const Value& value)
+		{
+			NST_ASSERT( settings == NULL && value.data && value.selection < value.data );
+
+			name = value.name;
+			size = value.data;
+			selection = value.selection;
+			settings = new Setting [size];
+		}
+
+		Cartridge::VsSystem::VsDipSwitches::VsDipSwitches(Dip*& old,uint n)
 		: table(old), size(n)
 		{
 			old = NULL;
-			regs[1] = regs[0] = 0x00;
+
+			regs[0] = 0;
+			regs[1] = 0;
 
 			for (uint i=0; i < n; ++i)
 			{
@@ -206,52 +205,52 @@ namespace Nes
 			}
 		}
 
-		VsSystem::VsDipSwitches::~VsDipSwitches()
+		Cartridge::VsSystem::VsDipSwitches::~VsDipSwitches()
 		{
 			delete [] table;
 		}
 
-		inline void VsSystem::VsDipSwitches::Reset()
+		inline void Cartridge::VsSystem::VsDipSwitches::Reset()
 		{
 			coinTimer = 0;
 			regs[0] &= ~uint(COIN);
 		}
 
-		inline uint VsSystem::VsDipSwitches::Reg(uint i) const
+		inline uint Cartridge::VsSystem::VsDipSwitches::Reg(uint i) const
 		{
 			return regs[i];
 		}
 
-		uint VsSystem::VsDipSwitches::NumDips() const
+		uint Cartridge::VsSystem::VsDipSwitches::NumDips() const
 		{
 			return size;
 		}
 
-		uint VsSystem::VsDipSwitches::NumValues(uint dip) const
+		uint Cartridge::VsSystem::VsDipSwitches::NumValues(uint dip) const
 		{
 			NST_ASSERT( dip < size );
 			return table[dip].Size();
 		}
 
-		cstring VsSystem::VsDipSwitches::GetDipName(uint dip) const
+		cstring Cartridge::VsSystem::VsDipSwitches::GetDipName(uint dip) const
 		{
 			NST_ASSERT( dip < size );
 			return table[dip].Name();
 		}
 
-		cstring VsSystem::VsDipSwitches::GetValueName(uint dip,uint value) const
+		cstring Cartridge::VsSystem::VsDipSwitches::GetValueName(uint dip,uint value) const
 		{
 			NST_ASSERT( dip < size && value < table[dip].Size() );
 			return table[dip][value].Name();
 		}
 
-		uint VsSystem::VsDipSwitches::GetValue(uint dip) const
+		uint Cartridge::VsSystem::VsDipSwitches::GetValue(uint dip) const
 		{
 			NST_ASSERT( dip < size );
 			return table[dip].Selection();
 		}
 
-		bool VsSystem::VsDipSwitches::SetValue(uint dip,uint value)
+		bool Cartridge::VsSystem::VsDipSwitches::SetValue(uint dip,uint value)
 		{
 			NST_ASSERT( dip < size && value < table[dip].Size() );
 
@@ -273,11 +272,11 @@ namespace Nes
 			return false;
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
-		void VsSystem::VsDipSwitches::BeginFrame(Input::Controllers* const input)
+		void Cartridge::VsSystem::VsDipSwitches::BeginFrame(Input::Controllers* const input)
 		{
 			if (!coinTimer)
 			{
@@ -298,11 +297,11 @@ namespace Nes
 			}
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("s", on)
 		#endif
 
-		struct VsSystem::Context
+		struct Cartridge::VsSystem::Context
 		{
 			Dip* dips;
 			uint numDips;
@@ -331,7 +330,7 @@ namespace Nes
 			}
 		};
 
-		VsSystem* VsSystem::Create
+		Cartridge::VsSystem* Cartridge::VsSystem::Create
 		(
 			Cpu& cpu,
 			Ppu& ppu,
@@ -345,25 +344,25 @@ namespace Nes
 			{
 				// VS. Dual-System Games are unsupported
 
-				case 0xB90497AAUL: // Tennis
-				case 0x2A909613UL: // Tennis (alt)
-				case 0xBC202DB6UL: // Tennis P2
-				case 0x008A9C16UL: // Wrecking Crew P1
-				case 0x30C42B1EUL: // Wrecking Crew P2
-				case 0xAD407F52UL: // Balloon Fight P1
-				case 0x6AD67502UL: // Balloon Fight P2
-				case 0x18A93B7BUL: // Mahjong (J)
-				case 0xA2AD7D61UL: // Mahjong (J) (alt)
-				case 0xA9A4A6C5UL: // Mahjong (J) P1
-				case 0x78D1D213UL: // Mahjong (J) P2
-				case 0x13A91937UL: // Baseball P1
-				case 0xC4DD2523UL: // Baseball P1 (alt 1)
-				case 0xB5853830UL: // Baseball P1 (alt 2)
-				case 0x968A6E9DUL: // Baseball P2
-				case 0xF64D7252UL: // Baseball P2 (alt 1)
-				case 0xF5DEBF88UL: // Baseball P2 (alt 2)
-				case 0xF42DAB14UL: // Ice Climber P1
-				case 0x7D6B764FUL: // Ice Climber P2
+				case 0xB90497AA: // Tennis
+				case 0x2A909613: // Tennis (alt)
+				case 0xBC202DB6: // Tennis P2
+				case 0x008A9C16: // Wrecking Crew P1
+				case 0x30C42B1E: // Wrecking Crew P2
+				case 0xAD407F52: // Balloon Fight P1
+				case 0x6AD67502: // Balloon Fight P2
+				case 0x18A93B7B: // Mahjong (J)
+				case 0xA2AD7D61: // Mahjong (J) (alt)
+				case 0xA9A4A6C5: // Mahjong (J) P1
+				case 0x78D1D213: // Mahjong (J) P2
+				case 0x13A91937: // Baseball P1
+				case 0xC4DD2523: // Baseball P1 (alt 1)
+				case 0xB5853830: // Baseball P1 (alt 2)
+				case 0x968A6E9D: // Baseball P2
+				case 0xF64D7252: // Baseball P2 (alt 1)
+				case 0xF5DEBF88: // Baseball P2 (alt 2)
+				case 0xF42DAB14: // Ice Climber P1
+				case 0x7D6B764F: // Ice Climber P2
 
 					Log::Flush( "VsSystem: error, Dual-System games are not supported" NST_LINEBREAK );
 					throw RESULT_ERR_UNSUPPORTED_VSSYSTEM;
@@ -377,7 +376,7 @@ namespace Nes
 
 				switch (prgCrc)
 				{
-					case 0xEB2DBA63UL: // TKO Boxing
+					case 0xEB2DBA63: // TKO Boxing
 
 						context.SetDips(7);
 						context.dips[0]    = Dip::Value( "Coinage",            4, 0 );
@@ -408,7 +407,7 @@ namespace Nes
 						context.mode = MODE_TKO;
 						break;
 
-					case 0x135ADF7CUL: // RBI Baseball
+					case 0x135ADF7C: // RBI Baseball
 
 						context.SetDips(4);
 						context.dips[0]    = Dip::Value( "Coinage",                4, 0 );
@@ -435,7 +434,7 @@ namespace Nes
 						context.mode = MODE_RBI;
 						break;
 
-					case 0xED588F00UL: // Duck Hunt
+					case 0xED588F00: // Duck Hunt
 
 						context.SetDips(4);
 						context.dips[0]    = Dip::Value( "Coinage",             8, 0 );
@@ -463,7 +462,7 @@ namespace Nes
 
 						break;
 
-					case 0x16D3F469UL: // Ninja Jajamaru Kun (J)
+					case 0x16D3F469: // Ninja Jajamaru Kun (J)
 
 						context.SetDips(5);
 						context.dips[0]    = Dip::Value( "Coinage",             8, 0 );
@@ -493,7 +492,7 @@ namespace Nes
 						context.inputMapper = InputMapper::TYPE_3;
 						break;
 
-					case 0x8850924BUL: // Tetris
+					case 0x8850924B: // Tetris
 
 						context.SetDips(6);
 						context.dips[0]    = Dip::Value( "Coinage",            4, 0 );
@@ -521,7 +520,7 @@ namespace Nes
 						context.inputMapper = InputMapper::TYPE_2;
 						break;
 
-					case 0x8C0C2DF5UL: // Top Gun
+					case 0x8C0C2DF5: // Top Gun
 
 						context.SetDips(5);
 						context.dips[0]    = Dip::Value( "Coinage",             8, 0 );
@@ -552,7 +551,7 @@ namespace Nes
 						context.inputMapper = InputMapper::TYPE_1;
 						break;
 
-					case 0x70901B25UL: // Slalom
+					case 0x70901B25: // Slalom
 
 						context.SetDips(5);
 						context.dips[0]    = Dip::Value( "Coinage",             8, 0 );
@@ -583,7 +582,7 @@ namespace Nes
 						context.inputMapper = InputMapper::TYPE_1;
 						break;
 
-					case 0xCF36261EUL: // Super Sky Kid
+					case 0xCF36261E: // Super Sky Kid
 
 						context.SetDips(5);
 						context.dips[0]    = Dip::Value( "Unknown",            2, 0 );
@@ -610,7 +609,7 @@ namespace Nes
 						context.inputMapper = InputMapper::TYPE_3;
 						break;
 
-					case 0xE1AA8214UL: // Star Luster
+					case 0xE1AA8214: // Star Luster
 
 						context.SetDips(6);
 						context.dips[0]    = Dip::Value( "Coinage",            4, 0 );
@@ -638,7 +637,7 @@ namespace Nes
 						context.inputMapper = InputMapper::TYPE_1;
 						break;
 
-					case 0xD5D7EAC4UL: // Dr. Mario
+					case 0xD5D7EAC4: // Dr. Mario
 
 						context.SetDips(5);
 						context.dips[0]    = Dip::Value( "Drop Rate Increases After", 4, 0 );
@@ -667,8 +666,8 @@ namespace Nes
 						context.inputMapper = InputMapper::TYPE_2;
 						break;
 
-					case 0xFFBEF374UL: // Castlevania
-					case 0xBAB3DDB9UL: // -||- bad
+					case 0xFFBEF374: // Castlevania
+					case 0xBAB3DDB9: // -||- bad
 
 						context.SetDips(4);
 						context.dips[0]    = Dip::Value( "Coinage",            8, 0 );
@@ -696,7 +695,7 @@ namespace Nes
 						context.inputMapper = InputMapper::TYPE_1;
 						break;
 
-					case 0xE2C0A2BEUL: // Platoon
+					case 0xE2C0A2BE: // Platoon
 
 						context.SetDips(6);
 						context.dips[0]    = Dip::Value( "Unknown",            2, 0 );
@@ -728,8 +727,8 @@ namespace Nes
 						context.inputMapper = InputMapper::TYPE_1;
 						break;
 
-					case 0xCBE85490UL: // Excitebike
-					case 0x29155E0CUL: // Excitebike (alt)
+					case 0xCBE85490: // Excitebike
+					case 0x29155E0C: // Excitebike (alt)
 
 						context.SetDips(4);
 						context.dips[0]    = Dip::Value( "Coinage",                  8, 0 );
@@ -753,7 +752,7 @@ namespace Nes
 						context.dips[3][0] = Dip::Value( "Normal",                   0x00 );
 						context.dips[3][1] = Dip::Value( "Hard",                     0x40 );
 
-						if (prgCrc == 0x29155E0CUL)
+						if (prgCrc == 0x29155E0C)
 							context.ppuType = PPU_RP2C04_0004;
 						else
 							context.ppuType = PPU_RP2C04_0003;
@@ -761,7 +760,7 @@ namespace Nes
 						context.inputMapper = InputMapper::TYPE_1;
 						break;
 
-					case 0x07138C06UL: // Clu Clu Land
+					case 0x07138C06: // Clu Clu Land
 
 						context.SetDips(5);
 						context.dips[0]    = Dip::Value( "Coinage",            8, 0 );
@@ -792,8 +791,8 @@ namespace Nes
 						context.inputMapper = InputMapper::TYPE_2;
 						break;
 
-					case 0x43A357EFUL: // Ice Climber
-					case 0xD4EB5923UL: // -||-
+					case 0x43A357EF: // Ice Climber
+					case 0xD4EB5923: // -||-
 
 						context.SetDips(4);
 						context.dips[0]    = Dip::Value( "Coinage",              8, 0 );
@@ -819,17 +818,17 @@ namespace Nes
 
 						context.ppuType = PPU_RP2C04_0004;
 
-						if (prgCrc == 0x43A357EFUL)
+						if (prgCrc == 0x43A357EF)
 							context.inputMapper = InputMapper::TYPE_2;
 						else
 							context.inputMapper = InputMapper::TYPE_4;
 
 						break;
 
-					case 0x737DD1BFUL: // Super Mario Bros
-					case 0x4BF3972DUL: // -||-
-					case 0x8B60CC58UL: // -||-
-					case 0x8192C804UL: // -||-
+					case 0x737DD1BF: // Super Mario Bros
+					case 0x4BF3972D: // -||-
+					case 0x8B60CC58: // -||-
+					case 0x8192C804: // -||-
 
 						context.SetDips(5);
 						context.dips[0]    = Dip::Value( "Coinage",            8, 0 );
@@ -860,8 +859,8 @@ namespace Nes
 						context.inputMapper = InputMapper::TYPE_1;
 						break;
 
-					case 0xEC461DB9UL: // Pinball
-					case 0xE528F651UL: // -||- (alt)
+					case 0xEC461DB9: // Pinball
+					case 0xE528F651: // -||- (alt)
 
 						context.SetDips(5);
 						context.dips[0]    = Dip::Value( "Coinage",            8, 0 );
@@ -888,7 +887,7 @@ namespace Nes
 						context.dips[4][0] = Dip::Value( "Normal",             0x00 );
 						context.dips[4][1] = Dip::Value( "Fast",               0x80 );
 
-						if (prgCrc == 0xEC461DB9UL)
+						if (prgCrc == 0xEC461DB9)
 						{
 							context.ppuType = PPU_RP2C04_0001;
 							context.inputMapper = InputMapper::TYPE_1;
@@ -899,7 +898,7 @@ namespace Nes
 						}
 						break;
 
-					case 0xAE8063EFUL: // Mach Rider - Fighting Course
+					case 0xAE8063EF: // Mach Rider - Fighting Course
 
 						context.SetDips(5);
 						context.dips[0]    = Dip::Value( "Coinage",            8, 0 );
@@ -928,8 +927,8 @@ namespace Nes
 						context.inputMapper = InputMapper::TYPE_1;
 						break;
 
-					case 0x0B65A917UL: // Mach Rider
-					case 0x8A6A9848UL: // -||-
+					case 0x0B65A917: // Mach Rider
+					case 0x8A6A9848: // -||-
 
 						context.SetDips(5);
 						context.dips[0]    = Dip::Value( "Coinage",            8, 0 );
@@ -960,7 +959,7 @@ namespace Nes
 						context.inputMapper = InputMapper::TYPE_1;
 						break;
 
-					case 0x46914E3EUL: // Soccer
+					case 0x46914E3E: // Soccer
 
 						context.SetDips(3);
 						context.dips[0]    = Dip::Value( "Coinage",            8, 0 );
@@ -987,8 +986,8 @@ namespace Nes
 						context.inputMapper = InputMapper::TYPE_2;
 						break;
 
-					case 0x70433F2CUL: // Battle City
-					case 0x8D15A6E6UL: // -||- bad
+					case 0x70433F2C: // Battle City
+					case 0x8D15A6E6: // -||- bad
 
 						context.SetDips(7);
 						context.dips[0]    = Dip::Value( "Credits for 2 Players", 2, 1 );
@@ -1019,7 +1018,7 @@ namespace Nes
 						context.inputMapper = InputMapper::TYPE_2;
 						break;
 
-					case 0xD99A2087UL: // Gradius
+					case 0xD99A2087: // Gradius
 
 						context.SetDips(5);
 						context.dips[0]    = Dip::Value( "Coinage",            8, 0 );
@@ -1050,7 +1049,7 @@ namespace Nes
 						context.inputMapper = InputMapper::TYPE_2;
 						break;
 
-					case 0x1E438D52UL: // Goonies
+					case 0x1E438D52: // Goonies
 
 						context.SetDips(6);
 						context.dips[0]    = Dip::Value( "Coinage",            8, 0 );
@@ -1082,7 +1081,7 @@ namespace Nes
 						context.inputMapper = InputMapper::TYPE_1;
 						break;
 
-					case 0xFF5135A3UL: // Hogan's Alley
+					case 0xFF5135A3: // Hogan's Alley
 
 						context.SetDips(4);
 						context.dips[0]    = Dip::Value( "Coinage",            8, 0 );
@@ -1111,7 +1110,7 @@ namespace Nes
 						context.ppuType = PPU_RP2C04_0001;
 						break;
 
-					case 0x17AE56BEUL: // Freedom Force
+					case 0x17AE56BE: // Freedom Force
 
 						context.SetDips(6);
 						context.dips[0]    = Dip::Value( "Coinage",            8, 0 );
@@ -1142,7 +1141,7 @@ namespace Nes
 						context.ppuType = PPU_RP2C04_0001;
 						break;
 
-					case 0xC99EC059UL: // Raid on Bungeling Bay
+					case 0xC99EC059: // Raid on Bungeling Bay
 
 						context.SetDips(6);
 						context.dips[0]    = Dip::Value( "Coinage",            8, 0 );
@@ -1174,9 +1173,9 @@ namespace Nes
 						context.inputMapper = InputMapper::TYPE_4;
 						break;
 
-					case 0xF9D3B0A3UL: // Super Xevious
-					case 0x66BB838FUL: // -||-
-					case 0x9924980AUL: // -||-
+					case 0xF9D3B0A3: // Super Xevious
+					case 0x66BB838F: // -||-
+					case 0x9924980A: // -||-
 
 						context.SetDips(6);
 						context.dips[0]    = Dip::Value( "Unknown",            2, 0 );
@@ -1207,12 +1206,12 @@ namespace Nes
 						context.mode = MODE_XEV;
 						break;
 
-					case 0xCC2C4B5DUL: // Golf (J)
-					case 0x86167220UL: // Lady Golf
+					case 0xCC2C4B5D: // Golf (J)
+					case 0x86167220: // Lady Golf
 
 						context.ppuType = PPU_RP2C04_0002;
 
-					case 0xA93A5AEEUL: // Golf
+					case 0xA93A5AEE: // Golf
 
 						context.SetDips(5);
 						context.dips[0]    = Dip::Value( "Coinage",                 8, 0 );
@@ -1242,7 +1241,7 @@ namespace Nes
 						context.inputMapper = InputMapper::TYPE_2;
 						break;
 
-					case 0xCA85E56DUL: // Mighty Bomb Jack
+					case 0xCA85E56D: // Mighty Bomb Jack
 
 						context.SetDips(5);
 						context.dips[0]    = Dip::Value( "Coinage",            8, 0 );
@@ -1321,35 +1320,40 @@ namespace Nes
 						context.mode = mode;
 						break;
 				}
+
+				if (!correctData)
+				{
+					if (ppuType != PPU_RP2C02)
+						context.ppuType = ppuType;
+
+					context.mode = mode;
+				}
+
+				switch (context.mode)
+				{
+					case MODE_RBI: return new RbiBaseball  ( context );
+					case MODE_TKO: return new TkoBoxing    ( context );
+					case MODE_XEV: return new SuperXevious ( context );
+					default:       return new VsSystem     ( context );
+				}
 			}
 			catch (...)
 			{
 				delete [] context.dips;
 				throw;
 			}
-
-			if (!correctData)
-			{
-				if (ppuType != PPU_RP2C02)
-					context.ppuType = ppuType;
-
-				context.mode = mode;
-			}
-
-			switch (context.mode)
-			{
-				case MODE_RBI: return new VsRbiBaseball  ( context );
-				case MODE_TKO: return new VsTkoBoxing    ( context );
-				case MODE_XEV: return new VsSuperXevious ( context );
-				default:       return new VsSystem       ( context );
-			}
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		void Cartridge::VsSystem::Destroy(Cartridge::VsSystem* vsSystem)
+		{
+			delete vsSystem;
+		}
+
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
-		struct VsSystem::InputMapper::Type1 : InputMapper
+		struct Cartridge::VsSystem::InputMapper::Type1 : InputMapper
 		{
 			void Fix(Pad (&pads)[4],const uint (&ports)[2]) const
 			{
@@ -1363,7 +1367,7 @@ namespace Nes
 			}
 		};
 
-		struct VsSystem::InputMapper::Type2 : InputMapper
+		struct Cartridge::VsSystem::InputMapper::Type2 : InputMapper
 		{
 			void Fix(Pad (&pads)[4],const uint (&ports)[2]) const
 			{
@@ -1377,7 +1381,7 @@ namespace Nes
 			}
 		};
 
-		struct VsSystem::InputMapper::Type3 : InputMapper
+		struct Cartridge::VsSystem::InputMapper::Type3 : InputMapper
 		{
 			void Fix(Pad (&pads)[4],const uint (&ports)[2]) const
 			{
@@ -1391,7 +1395,7 @@ namespace Nes
 			}
 		};
 
-		struct VsSystem::InputMapper::Type4 : InputMapper
+		struct Cartridge::VsSystem::InputMapper::Type4 : InputMapper
 		{
 			void Fix(Pad (&pads)[4],const uint (&ports)[2]) const
 			{
@@ -1405,7 +1409,7 @@ namespace Nes
 			}
 		};
 
-		struct VsSystem::InputMapper::Type5 : InputMapper
+		struct Cartridge::VsSystem::InputMapper::Type5 : InputMapper
 		{
 			void Fix(Pad (&pads)[4],const uint (&ports)[2]) const
 			{
@@ -1419,7 +1423,7 @@ namespace Nes
 			}
 		};
 
-		void VsSystem::InputMapper::Begin(const Api::Input input,Input::Controllers* const controllers)
+		void Cartridge::VsSystem::InputMapper::Begin(const Api::Input input,Input::Controllers* const controllers)
 		{
 			Input::Controllers::Pad::callback.Get( userCallback, userData );
 
@@ -1441,16 +1445,16 @@ namespace Nes
 			}
 		}
 
-		void VsSystem::InputMapper::End() const
+		void Cartridge::VsSystem::InputMapper::End() const
 		{
 			Input::Controllers::Pad::callback.Set( userCallback, userData );
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("s", on)
 		#endif
 
-		VsSystem::InputMapper* VsSystem::InputMapper::Create(Type type)
+		Cartridge::VsSystem::InputMapper* Cartridge::VsSystem::InputMapper::Create(Type type)
 		{
 			switch (type)
 			{
@@ -1464,84 +1468,72 @@ namespace Nes
 			return NULL;
 		}
 
-		VsSystem::VsSystem(Context& context)
+		Cartridge::VsSystem::VsSystem(Context& context)
 		:
-		cpu           (context.cpu),
-		ppu           (context.ppu),
-		inputMapper   (InputMapper::Create( context.inputMapper )),
-		dips          (context.dips,context.numDips),
-		ppuType       (context.ppuType),
-		yuvConvert    (false)
+		cpu         (context.cpu),
+		ppu         (context.ppu),
+		inputMapper (InputMapper::Create( context.inputMapper )),
+		dips        (context.dips,context.numDips),
+		ppuType     (context.ppuType),
+		yuvMapping  (false)
 		{
+			NST_COMPILE_ASSERT
+			(
+				PPU_RP2C04_0002 == PPU_RP2C04_0001+1 &&
+				PPU_RP2C04_0003 == PPU_RP2C04_0001+2 &&
+				PPU_RP2C04_0004 == PPU_RP2C04_0001+3 &&
+				PPU_RC2C05_02   == PPU_RC2C05_01+1   &&
+				PPU_RC2C05_03   == PPU_RC2C05_01+2   &&
+				PPU_RC2C05_04   == PPU_RC2C05_01+3   &&
+				PPU_RC2C05_05   == PPU_RC2C05_01+4
+			);
 		}
 
-		VsSystem::~VsSystem()
+		Cartridge::VsSystem::~VsSystem()
 		{
 			delete inputMapper;
 		}
 
-		void VsSystem::EnableYuvConversion(bool enable)
+		void Cartridge::VsSystem::EnableYuvConversion(bool enable)
 		{
-			yuvConvert = enable;
+			const uint type = uint(ppuType) - PPU_RP2C04_0001;
 
-			ppu.SetYuvMap
-			(
-				ppuType == PPU_RP2C04_0001 ? colorMaps[0] :
-				ppuType == PPU_RP2C04_0002 ? colorMaps[1] :
-				ppuType == PPU_RP2C04_0003 ? colorMaps[2] :
-				ppuType == PPU_RP2C04_0004 ? colorMaps[3] :
-                                             NULL,
-				enable
-			);
+			if (type < 4 && bool(yuvMapping) != enable)
+			{
+				yuvMapping = enable;
+				ppu.SetYuvMap( yuvMaps[type], enable );
+			}
 		}
 
-		void VsSystem::Reset(bool)
+		void Cartridge::VsSystem::Reset(bool)
 		{
-			EnableYuvConversion( yuvConvert );
-
-			switch (ppuType)
-			{
-				case PPU_RC2C05_01:
-				case PPU_RC2C05_04:
-
-					p2002 = cpu.Map( 0x2002U );
-
-					for (uint i=0x2002U; i < 0x4000U; i += 0x8)
-						cpu.Map( i ).Set( this, &VsSystem::Peek_2002_RC2C05_01_04, &VsSystem::Poke_2002 );
-
-					break;
-
-				case PPU_RC2C05_02:
-
-					p2002 = cpu.Map( 0x2002U );
-
-					for (uint i=0x2002U; i < 0x4000U; i += 0x8)
-						cpu.Map( i ).Set( this, &VsSystem::Peek_2002_RC2C05_02, &VsSystem::Poke_2002 );
-
-					break;
-
-				case PPU_RC2C05_03:
-
-					p2002 = cpu.Map( 0x2002U );
-
-					for (uint i=0x2002U; i < 0x4000U; i += 0x8)
-						cpu.Map( i ).Set( this, &VsSystem::Peek_2002_RC2C05_03, &VsSystem::Poke_2002 );
-
-					break;
-			}
-
-			switch (ppuType)
+			switch (const uint type = ppuType)
 			{
 				case PPU_RC2C05_01:
 				case PPU_RC2C05_02:
 				case PPU_RC2C05_03:
 				case PPU_RC2C05_04:
+
+					p2002 = cpu.Map( 0x2002 );
+
+					for (uint i=0x2002; i < 0x4000; i += 0x8)
+					{
+						cpu.Map( i ).Set
+						(
+							this,
+							type == PPU_RC2C05_03 ? &VsSystem::Peek_2002_RC2C05_03 :
+							type == PPU_RC2C05_02 ? &VsSystem::Peek_2002_RC2C05_02 :
+													&VsSystem::Peek_2002_RC2C05_01_04,
+							&VsSystem::Poke_2002
+						);
+					}
+
 				case PPU_RC2C05_05:
 				{
-					const Io::Port p2000( cpu.Map( 0x2000U ) );
-					const Io::Port p2001( cpu.Map( 0x2001U ) );
+					const Io::Port p2000( cpu.Map( 0x2000 ) );
+					const Io::Port p2001( cpu.Map( 0x2001 ) );
 
-					for (uint i=0x2000U; i < 0x4000U; i += 0x8)
+					for (uint i=0x2000; i < 0x4000; i += 0x8)
 					{
 						cpu.Map( i + 0x0 ) = p2001;
 						cpu.Map( i + 0x1 ) = p2000;
@@ -1549,31 +1541,43 @@ namespace Nes
 
 					break;
 				}
+
+				case PPU_RP2C04_0001:
+				case PPU_RP2C04_0002:
+				case PPU_RP2C04_0003:
+				case PPU_RP2C04_0004:
+
+					ppu.SetYuvMap( yuvMaps[type - PPU_RP2C04_0001], yuvMapping );
+					break;
 			}
 
 			dips.Reset();
 
 			coin = 0;
 
-			p4016 = cpu.Map( 0x4016U );
-			p4017 = cpu.Map( 0x4017U );
+			p4016 = cpu.Map( 0x4016 );
+			p4017 = cpu.Map( 0x4017 );
 
-			cpu.Map( 0x4016U ).Set( this, &VsSystem::Peek_4016, &VsSystem::Poke_4016 );
-			cpu.Map( 0x4017U ).Set( this, &VsSystem::Peek_4017, &VsSystem::Poke_4017 );
-			cpu.Map( 0x4020U ).Set( this, &VsSystem::Peek_4020, &VsSystem::Poke_4020 );
+			cpu.Map( 0x4016 ).Set( this, &VsSystem::Peek_4016, &VsSystem::Poke_4016 );
+			cpu.Map( 0x4017 ).Set( this, &VsSystem::Peek_4017, &VsSystem::Poke_4017 );
+			cpu.Map( 0x4020 ).Set( this, &VsSystem::Peek_4020, &VsSystem::Poke_4020 );
 
-			cpu.Map( 0x5000U, 0x5FFFU ).Set( this, &VsSystem::Peek_Nop, &VsSystem::Poke_Nop );
+			cpu.Map( 0x5000, 0x5FFF ).Set( this, &VsSystem::Peek_Nop, &VsSystem::Poke_Nop );
 
 			Reset();
 		}
 
-		void VsSystem::SaveState(State::Saver& state) const
+		void Cartridge::VsSystem::SaveState(State::Saver& state,const dword id) const
 		{
+			state.Begin( id );
+
 			state.Write8( coin );
 			SubSave( state );
+
+			state.End();
 		}
 
-		void VsSystem::LoadState(State::Loader& state)
+		void Cartridge::VsSystem::LoadState(State::Loader& state)
 		{
 			coin = state.Read8();
 
@@ -1584,65 +1588,65 @@ namespace Nes
 			}
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
-		NES_PEEK(VsSystem,Nop)
+		NES_PEEK(Cartridge::VsSystem,Nop)
 		{
 			return address >> 8;
 		}
 
-		NES_POKE(VsSystem,Nop)
+		NES_POKE(Cartridge::VsSystem,Nop)
 		{
 		}
 
-		NES_PEEK(VsSystem,2002_RC2C05_01_04)
+		NES_PEEK(Cartridge::VsSystem,2002_RC2C05_01_04)
 		{
-			return (p2002.Peek( 0x2002 ) & 0xC0) | 0x1B;
+			return p2002.Peek( address ) & 0xC0 | 0x1B;
 		}
 
-		NES_PEEK(VsSystem,2002_RC2C05_02)
+		NES_PEEK(Cartridge::VsSystem,2002_RC2C05_02)
 		{
-			return (p2002.Peek( 0x2002 ) & 0xC0) | 0x3D;
+			return p2002.Peek( address ) & 0xC0 | 0x3D;
 		}
 
-		NES_PEEK(VsSystem,2002_RC2C05_03)
+		NES_PEEK(Cartridge::VsSystem,2002_RC2C05_03)
 		{
-			return (p2002.Peek( 0x2002 ) & 0xC0) | 0x1C;
+			return p2002.Peek( address ) & 0xC0 | 0x1C;
 		}
 
-		NES_POKE(VsSystem,2002)
+		NES_POKE(Cartridge::VsSystem,2002)
 		{
 			p2002.Poke( address, data );
 		}
 
-		NES_PEEK(VsSystem,4016)
+		NES_PEEK(Cartridge::VsSystem,4016)
 		{
-			return (p4016.Peek( 0x4016 ) & ~uint(STATUS_4016_MASK)) | dips.Reg(0);
+			return dips.Reg(0) | p4016.Peek( address ) & (STATUS_4016_MASK^0xFFU);
 		}
 
-		NES_POKE(VsSystem,4016)
+		NES_POKE(Cartridge::VsSystem,4016)
 		{
 			p4016.Poke( address, data );
 		}
 
-		NES_PEEK(VsSystem,4017)
+		NES_PEEK(Cartridge::VsSystem,4017)
 		{
-			return (p4017.Peek( 0x4017 ) & ~uint(STATUS_4017_MASK)) | dips.Reg(1);
+			return dips.Reg(1) | p4017.Peek( address ) & (STATUS_4017_MASK^0xFFU);
 		}
 
-		NES_POKE(VsSystem,4017)
+		NES_POKE(Cartridge::VsSystem,4017)
 		{
 			p4017.Poke( address, data );
 		}
 
-		NES_PEEK(VsSystem,4020)
+		NES_PEEK(Cartridge::VsSystem,4020)
 		{
 			return coin;
 		}
 
-		NES_POKE(VsSystem,4020)
+		NES_POKE(Cartridge::VsSystem,4020)
 		{
 			coin = data;
 		}

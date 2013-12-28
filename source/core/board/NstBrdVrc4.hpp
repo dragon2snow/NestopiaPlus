@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,7 +25,7 @@
 #ifndef NST_BOARDS_VRC4_H
 #define NST_BOARDS_VRC4_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
+#ifdef NST_PRAGMA_ONCE
 #pragma once
 #endif
 
@@ -35,8 +35,23 @@ namespace Nes
 	{
 		namespace Boards
 		{
-			class NST_NO_VTABLE Vrc4 : public Mapper
+			class Vrc4 : public Mapper
 			{
+			protected:
+
+				enum Type
+				{
+					TYPE_2A,
+					TYPE_A,
+					TYPE_B,
+					TYPE_Y
+				};
+
+				Vrc4(Context&,Type);
+				~Vrc4();
+
+			private:
+
 				struct BaseIrq
 				{
 					void Reset(bool);
@@ -47,7 +62,7 @@ namespace Nes
 						ENABLE_0    = 0x2,
 						ENABLE_1    = 0x1,
 						NO_PPU_SYNC = 0x4,
-						CTRL        = 0x1|0x2|0x4
+						CTRL        = 0x1U|0x2U|0x4U
 					};
 
 					uint ctrl;
@@ -64,24 +79,11 @@ namespace Nes
 					void Toggle(uint);
 					void Toggle();
 					void LoadState(State::Loader&);
-					void SaveState(State::Saver&) const;
+					void SaveState(State::Saver&,dword) const;
 
-					Irq(Cpu& cpu)
+					explicit Irq(Cpu& cpu)
 					: Clock::M2<BaseIrq>(cpu) {}
 				};
-
-			protected:
-
-				enum Type
-				{
-					TYPE_2A,
-					TYPE_A,
-					TYPE_B,
-					TYPE_Y
-				};
-
-				Vrc4(Context&,Type);
-				~Vrc4();
 
 			private:
 
@@ -91,39 +93,39 @@ namespace Nes
 				void VSync();
 				void SwapChrA(uint,uint) const;
 
-				template<uchar MASK,uchar SHIFT>
+				template<uint MASK,uint SHIFT>
 				void SwapChrB(uint,uint) const;
 
-				NES_DECL_POKE( 8    )
-				NES_DECL_POKE( 9    )
-				NES_DECL_POKE( B0_A )
-				NES_DECL_POKE( B0_B )
-				NES_DECL_POKE( B1_A )
-				NES_DECL_POKE( B1_B )
-				NES_DECL_POKE( B2_B )
-				NES_DECL_POKE( B3_B )
-				NES_DECL_POKE( C0_A )
-				NES_DECL_POKE( C0_B )
-				NES_DECL_POKE( C1_A )
-				NES_DECL_POKE( C1_B )
-				NES_DECL_POKE( C2_B )
-				NES_DECL_POKE( C3_B )
-				NES_DECL_POKE( D0_A )
-				NES_DECL_POKE( D0_B )
-				NES_DECL_POKE( D1_A )
-				NES_DECL_POKE( D1_B )
-				NES_DECL_POKE( D2_B )
-				NES_DECL_POKE( D3_B )
-				NES_DECL_POKE( E0_A )
-				NES_DECL_POKE( E0_B )
-				NES_DECL_POKE( E1_A )
-				NES_DECL_POKE( E1_B )
-				NES_DECL_POKE( E2_B )
-				NES_DECL_POKE( E3_B )
-				NES_DECL_POKE( F0   )
-				NES_DECL_POKE( F1   )
-				NES_DECL_POKE( F2   )
-				NES_DECL_POKE( F3   )
+				NES_DECL_POKE( 8    );
+				NES_DECL_POKE( 9    );
+				NES_DECL_POKE( B0_A );
+				NES_DECL_POKE( B0_B );
+				NES_DECL_POKE( B1_A );
+				NES_DECL_POKE( B1_B );
+				NES_DECL_POKE( B2_B );
+				NES_DECL_POKE( B3_B );
+				NES_DECL_POKE( C0_A );
+				NES_DECL_POKE( C0_B );
+				NES_DECL_POKE( C1_A );
+				NES_DECL_POKE( C1_B );
+				NES_DECL_POKE( C2_B );
+				NES_DECL_POKE( C3_B );
+				NES_DECL_POKE( D0_A );
+				NES_DECL_POKE( D0_B );
+				NES_DECL_POKE( D1_A );
+				NES_DECL_POKE( D1_B );
+				NES_DECL_POKE( D2_B );
+				NES_DECL_POKE( D3_B );
+				NES_DECL_POKE( E0_A );
+				NES_DECL_POKE( E0_B );
+				NES_DECL_POKE( E1_A );
+				NES_DECL_POKE( E1_B );
+				NES_DECL_POKE( E2_B );
+				NES_DECL_POKE( E3_B );
+				NES_DECL_POKE( F0   );
+				NES_DECL_POKE( F1   );
+				NES_DECL_POKE( F2   );
+				NES_DECL_POKE( F3   );
 
 				Irq* const irq;
 				uint prgSwap;

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -22,16 +22,16 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#ifdef _MSC_VER
-#pragma comment(lib,"d3d9")
-#pragma comment(lib,"d3dx9")
-#endif
-
 #include "language/resource.h"
 #include "NstIoLog.hpp"
 #include "NstApplicationException.hpp"
 #include "NstDirect2D.hpp"
 #include "NstIoScreen.hpp"
+
+#if NST_MSVC
+#pragma comment(lib,"d3d9")
+#pragma comment(lib,"d3dx9")
+#endif
 
 namespace Nestopia
 {
@@ -72,11 +72,13 @@ namespace Nestopia
 
 		IDirect3D9& Direct2D::Base::Create()
 		{
-			if (IDirect3D9* com = ::Direct3DCreate9( D3D_SDK_VERSION ))
+			IDirect3D9* com;
+
+			if (NULL != (com = ::Direct3DCreate9( D3D_SDK_VERSION )))
 			{
 				return *com;
 			}
-			else if (IDirect3D9* com = ::Direct3DCreate9( D3D9b_SDK_VERSION )) // unofficial, it may work, it may not work
+			else if (NULL != (com = ::Direct3DCreate9( D3D9b_SDK_VERSION ))) // unofficial, it may work, it may not work
 			{
 				return *com;
 			}
@@ -238,18 +240,18 @@ namespace Nestopia
 			switch (format)
 			{
 				case D3DFMT_X8R8G8B8:
-				case D3DFMT_A8R8G8B8:    r = 0x00FF0000UL; g = 0x0000FF00UL; b = 0x000000FFUL; break;
+				case D3DFMT_A8R8G8B8:    r = 0x00FF0000; g = 0x0000FF00; b = 0x000000FF; break;
 				case D3DFMT_X8B8G8R8:
-				case D3DFMT_A8B8G8R8:    r = 0x000000FFUL; g = 0x0000FF00UL; b = 0x00FF0000UL; break;
-				case D3DFMT_A2R10G10B10: r = 0x3FF00000UL; g = 0x000FFC00UL; b = 0x000003FFUL; break;
-				case D3DFMT_A2B10G10R10: r = 0x000003FFUL; g = 0x000FFC00UL; b = 0x3FF00000UL; break;
-				case D3DFMT_R5G6B5:      r = 0xF800UL;     g = 0x07E0UL;     b = 0x001FUL;     break;
+				case D3DFMT_A8B8G8R8:    r = 0x000000FF; g = 0x0000FF00; b = 0x00FF0000; break;
+				case D3DFMT_A2R10G10B10: r = 0x3FF00000; g = 0x000FFC00; b = 0x000003FF; break;
+				case D3DFMT_A2B10G10R10: r = 0x000003FF; g = 0x000FFC00; b = 0x3FF00000; break;
+				case D3DFMT_R5G6B5:      r = 0xF800;     g = 0x07E0;     b = 0x001F;     break;
 				case D3DFMT_X1R5G5B5:
-				case D3DFMT_A1R5G5B5:    r = 0x7C00UL;     g = 0x03E0UL;     b = 0x001FUL;     break;
+				case D3DFMT_A1R5G5B5:    r = 0x7C00;     g = 0x03E0;     b = 0x001F;     break;
 				case D3DFMT_X4R4G4B4:
-				case D3DFMT_A4R4G4B4:    r = 0x0F00UL;     g = 0x00F0UL;     b = 0x000FUL;     break;
-				case D3DFMT_A8R3G3B2:    r = 0x00E0UL;     g = 0x001CUL;     b = 0x0003UL;     break;
-				default:                 r = 0;            g = 0;            b = 0;            break;
+				case D3DFMT_A4R4G4B4:    r = 0x0F00;     g = 0x00F0;     b = 0x000F;     break;
+				case D3DFMT_A8R3G3B2:    r = 0x00E0;     g = 0x001C;     b = 0x0003;     break;
+				default:                 r = 0;          g = 0;          b = 0;          break;
 			}
 		}
 
@@ -355,7 +357,7 @@ namespace Nestopia
 			width = nfo.Width();
 		}
 
-		void Direct2D::Device::Fonts::Destroy(const ibool newDevice)
+		void Direct2D::Device::Fonts::Destroy(const bool newDevice)
 		{
 			width = 0;
 
@@ -382,11 +384,11 @@ namespace Nestopia
 			nfo.OnLost();
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("t", on)
 		#endif
 
-		inline ibool Direct2D::Device::Fonts::Font::CanDraw() const
+		inline bool Direct2D::Device::Fonts::Font::CanDraw() const
 		{
 			return length && com != NULL;
 		}
@@ -444,7 +446,7 @@ namespace Nestopia
 			}
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
@@ -561,16 +563,16 @@ namespace Nestopia
 			LogDisplaySwitch();
 		}
 
-		ibool Direct2D::Device::GetDisplayMode(D3DDISPLAYMODE& displayMode) const
+		bool Direct2D::Device::GetDisplayMode(D3DDISPLAYMODE& displayMode) const
 		{
 			IDirect3D9* base;
 
 			if (SUCCEEDED(com->GetDirect3D( &base )))
 			{
-				const ibool result = SUCCEEDED(base->GetAdapterDisplayMode( ordinal, &displayMode ));
+				const HRESULT hResult = base->GetAdapterDisplayMode( ordinal, &displayMode );
 				base->Release();
 
-				if (result)
+				if (SUCCEEDED(hResult))
 					return true;
 			}
 
@@ -647,15 +649,15 @@ namespace Nestopia
 			}
 			else if (!presentation.Windowed)
 			{
-				if (timing.frameRate * 4U == rate && intervalFour)
+				if (timing.frameRate * 4 == rate && intervalFour)
 				{
 					return D3DPRESENT_INTERVAL_FOUR;
 				}
-				else if (timing.frameRate * 3U == rate && intervalThree)
+				else if (timing.frameRate * 3 == rate && intervalThree)
 				{
 					return D3DPRESENT_INTERVAL_THREE;
 				}
-				else if (timing.frameRate * 2U == rate && intervalTwo)
+				else if (timing.frameRate * 2 == rate && intervalTwo)
 				{
 					return D3DPRESENT_INTERVAL_TWO;
 				}
@@ -708,33 +710,34 @@ namespace Nestopia
 					buffers = presentation.BackBufferCount;
 					Io::Log() << "Direct3D: Warning! IDirect3DDevice9::Reset() failed, retrying with one back-buffer only..\r\n";
 				}
-				else
-				{
-					throw Application::Exception(_T("IDirect3DDevice9::Reset() failed!"));
-				}
+				else throw Application::Exception
+				(
+					IDS_FAILED,
+					hResult == D3DERR_INVALIDCALL         ? _T( "IDirect3DDevice9::Reset() (code: D3DERR_INVALIDCALL)"         ) :
+					hResult == D3DERR_OUTOFVIDEOMEMORY    ? _T( "IDirect3DDevice9::Reset() (code: D3DERR_OUTOFVIDEOMEMORY)"    ) :
+					hResult == D3DERR_DRIVERINTERNALERROR ? _T( "IDirect3DDevice9::Reset() (code: D3DERR_DRIVERINTERNALERROR)" ) :
+					hResult == E_OUTOFMEMORY              ? _T( "IDirect3DDevice9::Reset() (code: E_OUTOFMEMORY)"              ) :
+															_T( "IDirect3DDevice9::Reset()"                                    )
+				);
 			}
 
 			NST_ASSERT( !presentation.Windowed || !presentation.Flags );
 
 			if (presentation.Flags == D3DPRESENTFLAG_LOCKABLE_BACKBUFFER && FAILED(com->SetDialogBoxMode( true )))
-				throw Application::Exception(_T("IDirect3DDevice9::SetDialogBoxMode() failed!"));
+				throw Application::Exception( IDS_FAILED, _T("IDirect3DDevice9::SetDialogBoxMode()") );
 
 			Prepare();
 			fonts.OnReset();
 
 			if (presentation.PresentationInterval != oldInterval)
 			{
-				cstring msg;
-
-				switch (presentation.PresentationInterval)
-				{
-					case D3DPRESENT_INTERVAL_IMMEDIATE: msg = "Direct3D: disabling VSYNC\r\n";                  break;
-					case D3DPRESENT_INTERVAL_TWO:       msg = "Direct3D: enabling VSYNC on second refresh\r\n"; break;
-					case D3DPRESENT_INTERVAL_THREE:     msg = "Direct3D: enabling VSYNC on third refresh\r\n";  break;
-					default:                            msg = "Direct3D: enabling VSYNC\r\n";                   break;
-				}
-
-				Io::Log() << msg;
+				Io::Log() <<
+				(
+					presentation.PresentationInterval == D3DPRESENT_INTERVAL_IMMEDIATE ? "Direct3D: disabling VSYNC\r\n" :
+					presentation.PresentationInterval == D3DPRESENT_INTERVAL_TWO       ? "Direct3D: enabling VSYNC on second refresh\r\n" :
+					presentation.PresentationInterval == D3DPRESENT_INTERVAL_THREE     ? "Direct3D: enabling VSYNC on third refresh\r\n" :
+                                                                                         "Direct3D: enabling VSYNC\r\n"
+				);
 			}
 
 			if (!presentation.Windowed && ::GetMenu( presentation.hDeviceWindow ))
@@ -775,7 +778,7 @@ namespace Nestopia
 			com->SetTextureStageState( 0, D3DTSS_COLOROP, D3DTOP_SELECTARG1 );
 
 			if (FAILED(com->SetFVF( VertexBuffer::FVF )))
-				throw Application::Exception(_T("IDirect3DDevice9::SetFVF() failed!"));
+				throw Application::Exception( IDS_FAILED, _T("IDirect3DDevice9::SetFVF()") );
 		}
 
 		uint Direct2D::Device::GetMaxMessageLength() const
@@ -783,11 +786,11 @@ namespace Nestopia
 			return fonts.Width() ? (presentation.BackBufferWidth - fonts.Width() * 7) / fonts.Width() : 64;
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("t", on)
 		#endif
 
-		HRESULT Direct2D::Device::RenderScreen(const uint state,const uint numIndexedStrips,const uint numVertices) const
+		NST_FORCE_INLINE HRESULT Direct2D::Device::RenderScreen(const uint state,const uint numIndexedStrips,const uint numVertices) const
 		{
 			HRESULT hResult = com->BeginScene();
 
@@ -808,7 +811,7 @@ namespace Nestopia
 			return hResult;
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
@@ -816,6 +819,7 @@ namespace Nestopia
 		{
 			NST_ASSERT( FAILED(lastError) );
 
+			uint id = 0;
 			tstring msg;
 
 			switch (lastError)
@@ -840,7 +844,8 @@ namespace Nestopia
 
 						default:
 
-							msg = _T("IDirect3DDevice9::TestCooperativeLevel() failed!");
+							id = IDS_FAILED;
+							msg = _T("IDirect3DDevice9::TestCooperativeLevel()");
 							break;
 					}
 
@@ -865,15 +870,15 @@ namespace Nestopia
 					break;
 			}
 
-			throw Application::Exception( msg );
+			throw Application::Exception( id, msg );
 		}
 
-		ibool Direct2D::Device::CanToggleDialogBoxMode(bool enable) const
+		bool Direct2D::Device::CanToggleDialogBoxMode(bool enable) const
 		{
 			return !presentation.Windowed && bool(presentation.Flags) != enable;
 		}
 
-		ibool Direct2D::Device::CanSwitchFullscreen(const Mode& mode) const
+		bool Direct2D::Device::CanSwitchFullscreen(const Mode& mode) const
 		{
 			return
 			(
@@ -944,21 +949,21 @@ namespace Nestopia
 		{
 			NST_ASSERT( presentation.Windowed && client.x > 0 && client.y > 0 );
 
-			presentation.BackBufferWidth = uint(client.x);
-			presentation.BackBufferHeight = uint(client.y);
+			presentation.BackBufferWidth = client.x;
+			presentation.BackBufferHeight = client.y;
 
-			if (SUCCEEDED(hResult) || hResult == NST_E_INVALID_RECT)
+			if (SUCCEEDED(hResult) || hResult == INVALID_RECT)
 				hResult = Reset();
 
 			return hResult;
 		}
 
-		ibool Direct2D::Device::ResetFrameRate(uint frameRate,bool vsync,bool tripleBuffering,const Base& base)
+		bool Direct2D::Device::ResetFrameRate(uint frameRate,bool vsync,bool tripleBuffering,const Base& base)
 		{
 			timing.frameRate = frameRate;
 			timing.vsync = vsync;
 
-			ibool update = false;
+			bool update = false;
 
 			if (timing.tripleBuffering != tripleBuffering)
 			{
@@ -989,6 +994,11 @@ namespace Nestopia
 
 		Direct2D::VertexBuffer::Vertex::Vertex()
 		: z(0.f), rhw(1.f) {}
+
+		inline uint Direct2D::VertexBuffer::NumVertices() const
+		{
+			return vertices.size();
+		}
 
 		void Direct2D::VertexBuffer::Update
 		(
@@ -1086,7 +1096,7 @@ namespace Nestopia
 			}
 		}
 
-		HRESULT Direct2D::VertexBuffer::Validate(IDirect3DDevice9& device,ibool dirty)
+		HRESULT Direct2D::VertexBuffer::Validate(IDirect3DDevice9& device,bool dirty)
 		{
 			if (com == NULL)
 			{
@@ -1103,7 +1113,7 @@ namespace Nestopia
 				if (SUCCEEDED(hResult))
 				{
 					if (FAILED(device.SetStreamSource( 0, *com, 0, sizeof(Vertex) )))
-						throw Application::Exception(_T("IDirect3DDevice9::SetStreamSource() failed!"));
+						throw Application::Exception( IDS_FAILED, _T("IDirect3DDevice9::SetStreamSource()") );
 
 					dirty = true;
 				}
@@ -1113,7 +1123,7 @@ namespace Nestopia
 				}
 				else
 				{
-					throw Application::Exception(_T("IDirect3DDevice9::CreateVertexBuffer() failed!"));
+					throw Application::Exception( IDS_FAILED, _T("IDirect3DDevice9::CreateVertexBuffer()") );
 				}
 			}
 
@@ -1133,7 +1143,7 @@ namespace Nestopia
 				}
 				else
 				{
-					throw Application::Exception(_T("IDirect3DVertexBuffer9::Lock() failed!"));
+					throw Application::Exception( IDS_FAILED, _T("IDirect3DVertexBuffer9::Lock()") );
 				}
 			}
 
@@ -1146,6 +1156,11 @@ namespace Nestopia
 		Direct2D::IndexBuffer::~IndexBuffer()
 		{
 			Invalidate();
+		}
+
+		inline uint Direct2D::IndexBuffer::NumStrips() const
+		{
+			return strips;
 		}
 
 		void Direct2D::IndexBuffer::Update(uint p)
@@ -1175,7 +1190,7 @@ namespace Nestopia
 			}
 		}
 
-		HRESULT Direct2D::IndexBuffer::Validate(IDirect3DDevice9& device,ibool dirty)
+		HRESULT Direct2D::IndexBuffer::Validate(IDirect3DDevice9& device,bool dirty)
 		{
 			if (strips)
 			{
@@ -1183,7 +1198,7 @@ namespace Nestopia
 				{
 					const HRESULT hResult = device.CreateIndexBuffer
 					(
-						(((patches * 2 + 1) * patches) + 1) * sizeof(u16),
+						(((patches * 2 + 1) * patches) + 1) * sizeof(WORD),
 						D3DUSAGE_WRITEONLY,
 						D3DFMT_INDEX16,
 						D3DPOOL_DEFAULT,
@@ -1194,7 +1209,7 @@ namespace Nestopia
 					if (SUCCEEDED(hResult))
 					{
 						if (FAILED(device.SetIndices( *com )))
-							throw Application::Exception(_T("IDirect3DDevice9::SetIndices() failed!"));
+							throw Application::Exception( IDS_FAILED, _T("IDirect3DDevice9::SetIndices()") );
 
 						dirty = true;
 					}
@@ -1204,7 +1219,7 @@ namespace Nestopia
 					}
 					else
 					{
-						throw Application::Exception(_T("IDirect3DDevice9::CreateIndexBuffer() failed!"));
+						throw Application::Exception( IDS_FAILED, _T("IDirect3DDevice9::CreateIndexBuffer()") );
 					}
 				}
 
@@ -1215,7 +1230,7 @@ namespace Nestopia
 
 					if (SUCCEEDED(hResult))
 					{
-						u16* NST_RESTRICT data = static_cast<u16*>(ptr);
+						WORD* NST_RESTRICT data = static_cast<WORD*>(ptr);
 
 						for (uint p=0, i=0, n=patches+1;;)
 						{
@@ -1255,7 +1270,7 @@ namespace Nestopia
 					}
 					else
 					{
-						throw Application::Exception(_T("IDirect3DIndexBuffer9::Lock() failed!"));
+						throw Application::Exception( IDS_FAILED, _T("IDirect3DIndexBuffer9::Lock()") );
 					}
 				}
 			}
@@ -1269,9 +1284,9 @@ namespace Nestopia
 
 		Direct2D::Texture::Texture(const D3DFORMAT backBufferFormat)
 		:
-		size      (256),
 		width     (256),
 		height    (256),
+		size      (256),
 		useVidMem (true),
 		lockFlags (D3DLOCK_NOSYSLOCK),
 		format    (backBufferFormat),
@@ -1292,8 +1307,8 @@ namespace Nestopia
 		{
 			NST_ASSERT( screen.x > 0 && screen.y > 0 );
 
-			width = (uint) screen.x;
-			height = (uint) screen.y;
+			width = screen.x;
+			height = screen.y;
 			filter = f;
 
 			uint pow = NST_MAX(width,height);
@@ -1306,7 +1321,7 @@ namespace Nestopia
 			pow |= pow >> 16;
 			++pow;
 
-			if (size != pow || bool(useVidMem) != wantVidMem)
+			if (size != pow || useVidMem != wantVidMem)
 			{
 				size = pow;
 				useVidMem = wantVidMem;
@@ -1351,7 +1366,7 @@ namespace Nestopia
 					Object::Pod<D3DSURFACE_DESC> desc;
 
 					if (FAILED(com->GetLevelDesc( 0, &desc )))
-						throw Application::Exception(_T("IDirect3DDevice9::GetLevelDesc() failed!"));
+						throw Application::Exception( IDS_FAILED, _T("IDirect3DDevice9::GetLevelDesc()") );
 
 					format = desc.Format;
 					lockFlags = (desc.Usage & D3DUSAGE_DYNAMIC) ? (D3DLOCK_DISCARD|D3DLOCK_NOSYSLOCK) : D3DLOCK_NOSYSLOCK;
@@ -1359,13 +1374,11 @@ namespace Nestopia
 					if (desc.Height < size || desc.Width < size)
 						throw Application::Exception(_T("Maximum texture dimension too small!"));
 
-					const uint bpp = GetBitsPerPixel();
-
-					if (!bpp)
+					if (!GetBitsPerPixel())
 						throw Application::Exception(_T("Unsupported bits-per-pixel format!"));
 
 					if (FAILED(device.SetTexture( 0, *com )))
-						throw Application::Exception(_T("IDirect3DDevice9::SetTexture() failed!"));
+						throw Application::Exception( IDS_FAILED, _T("IDirect3DDevice9::SetTexture()") );
 				}
 				else if (hResult == D3DERR_DEVICELOST)
 				{
@@ -1373,7 +1386,7 @@ namespace Nestopia
 				}
 				else
 				{
-					throw Application::Exception(_T("IDirect3DDevice9::CreateTexture() failed!"));
+					throw Application::Exception( IDS_FAILED, _T("IDirect3DDevice9::CreateTexture()") );
 				}
 			}
 
@@ -1387,7 +1400,7 @@ namespace Nestopia
 			return D3D_OK;
 		}
 
-		ibool Direct2D::Texture::SaveToFile(tstring const file,const D3DXIMAGE_FILEFORMAT type) const
+		bool Direct2D::Texture::SaveToFile(tstring const file,const D3DXIMAGE_FILEFORMAT type) const
 		{
 			NST_ASSERT( file && *file && width && height );
 
@@ -1445,32 +1458,34 @@ namespace Nestopia
 
 					for (uint y=0; y < height; ++y)
 					{
-						const u16* NST_RESTRICT src = static_cast<u16*>(srcLock.pBits);
-						u8* NST_RESTRICT dst = static_cast<u8*>(dstLock.pBits);
+						const WORD* NST_RESTRICT src = static_cast<WORD*>(srcLock.pBits);
+						BYTE* NST_RESTRICT dst = static_cast<BYTE*>(dstLock.pBits);
 
-						for (const u8* const end=dst+width*3; dst != end; dst += 3, ++src)
+						for (const BYTE* const end=dst+width*3; dst != end; dst += 3, ++src)
 						{
-							dst[0] = *src << 3 & 0xFF;
-							dst[1] = *src >> 5 << g & 0xFF;
-							dst[2] = *src >> b << 3 & 0xFF;
+							const uint p = *src;
+
+							dst[0] = p << 3 & 0xFF;
+							dst[1] = p >> 5 << g & 0xFF;
+							dst[2] = p >> b << 3 & 0xFF;
 						}
 
-						srcLock.pBits = static_cast<u8*>(srcLock.pBits) + srcLock.Pitch;
-						dstLock.pBits = static_cast<u8*>(dstLock.pBits) + dstLock.Pitch;
+						srcLock.pBits = static_cast<BYTE*>(srcLock.pBits) + srcLock.Pitch;
+						dstLock.pBits = static_cast<BYTE*>(dstLock.pBits) + dstLock.Pitch;
 					}
 				}
 				else
 				{
 					for (uint y=0; y < height; ++y)
 					{
-						const u8* NST_RESTRICT src = static_cast<u8*>(srcLock.pBits);
-						u8* NST_RESTRICT dst = static_cast<u8*>(dstLock.pBits);
+						const BYTE* NST_RESTRICT src = static_cast<BYTE*>(srcLock.pBits);
+						BYTE* NST_RESTRICT dst = static_cast<BYTE*>(dstLock.pBits);
 
-						for (const u8* const end=dst+width*3; dst != end; dst += 3, src += 4)
+						for (const BYTE* const end=dst+width*3; dst != end; dst += 3, src += 4)
 							std::memcpy( dst, src, 3 );
 
-						srcLock.pBits = static_cast<u8*>(srcLock.pBits) + srcLock.Pitch;
-						dstLock.pBits = static_cast<u8*>(dstLock.pBits) + dstLock.Pitch;
+						srcLock.pBits = static_cast<BYTE*>(srcLock.pBits) + srcLock.Pitch;
+						dstLock.pBits = static_cast<BYTE*>(dstLock.pBits) + dstLock.Pitch;
 					}
 				}
 
@@ -1492,6 +1507,10 @@ namespace Nestopia
 		lastResult ( D3D_OK )
 		{
 			ValidateObjects();
+		}
+
+		Direct2D::~Direct2D()
+		{
 		}
 
 		void Direct2D::InvalidateObjects()
@@ -1517,22 +1536,36 @@ namespace Nestopia
 			}
 		}
 
+		#ifdef NST_MSVC_OPTIMIZE
+		#pragma optimize("t", on)
+		#endif
+
+		void Direct2D::RenderScreen(uint state)
+		{
+			if (SUCCEEDED(lastResult))
+				lastResult = device.RenderScreen( state, indexBuffer.NumStrips(), vertexBuffer.NumVertices() );
+		}
+
+		#ifdef NST_MSVC_OPTIMIZE
+		#pragma optimize("", on)
+		#endif
+
 		void Direct2D::SelectAdapter(const Adapters::const_iterator adapter)
 		{
 			if (device.GetOrdinal() != adapter->ordinal)
 			{
 				InvalidateObjects();
 				device.Create( base, *adapter );
-				lastResult = NST_E_INVALID_RECT;
+				lastResult = INVALID_RECT;
 			}
 		}
 
-		ibool Direct2D::CanSwitchFullscreen(const Adapter::Modes::const_iterator mode) const
+		bool Direct2D::CanSwitchFullscreen(const Adapter::Modes::const_iterator mode) const
 		{
 			return device.CanSwitchFullscreen( *mode );
 		}
 
-		ibool Direct2D::SwitchFullscreen(const Adapter::Modes::const_iterator mode)
+		bool Direct2D::SwitchFullscreen(const Adapter::Modes::const_iterator mode)
 		{
 			if (CanSwitchFullscreen( mode ))
 			{
@@ -1546,7 +1579,7 @@ namespace Nestopia
 			return false;
 		}
 
-		ibool Direct2D::SwitchWindowed()
+		bool Direct2D::SwitchWindowed()
 		{
 			if (!device.GetPresentation().Windowed)
 			{
@@ -1560,7 +1593,7 @@ namespace Nestopia
 			return false;
 		}
 
-		void Direct2D::EnableDialogBoxMode(const ibool enable)
+		void Direct2D::EnableDialogBoxMode(const bool enable)
 		{
 			if (device.CanToggleDialogBoxMode( enable ))
 			{
@@ -1570,9 +1603,9 @@ namespace Nestopia
 			}
 		}
 
-		ibool Direct2D::Reset()
+		bool Direct2D::Reset()
 		{
-			if (FAILED(lastResult) && lastResult != NST_E_INVALID_RECT)
+			if (FAILED(lastResult) && lastResult != INVALID_RECT)
 			{
 				InvalidateObjects();
 				lastResult = device.Repair( lastResult );
@@ -1593,9 +1626,9 @@ namespace Nestopia
 
 				if
 				(
-					(uint(client.x) != device.GetPresentation().BackBufferWidth) ||
-					(uint(client.y) != device.GetPresentation().BackBufferHeight) ||
-					lastResult == NST_E_INVALID_RECT
+					client.x != device.GetPresentation().BackBufferWidth ||
+					client.y != device.GetPresentation().BackBufferHeight ||
+					lastResult == INVALID_RECT
 				)
 				{
 					InvalidateObjects();
@@ -1606,7 +1639,7 @@ namespace Nestopia
 			}
 			else
 			{
-				lastResult = NST_E_INVALID_RECT;
+				lastResult = INVALID_RECT;
 			}
 		}
 
@@ -1616,7 +1649,7 @@ namespace Nestopia
 			const float clipping[4],
 			const int screenCurvature,
 			const Adapter::Filter filter,
-			const ibool useVidMem
+			const bool useVidMem
 		)
 		{
 			const Point::Picture picture( device.GetPresentation().hDeviceWindow );
@@ -1632,9 +1665,9 @@ namespace Nestopia
 
 				if
 				(
-					(uint(client.x) != device.GetPresentation().BackBufferWidth) ||
-					(uint(client.y) != device.GetPresentation().BackBufferHeight) ||
-					lastResult == NST_E_INVALID_RECT
+					client.x != device.GetPresentation().BackBufferWidth ||
+					client.y != device.GetPresentation().BackBufferHeight ||
+					lastResult == INVALID_RECT
 				)
 				{
 					InvalidateObjects();
@@ -1645,7 +1678,7 @@ namespace Nestopia
 			}
 			else
 			{
-				lastResult = NST_E_INVALID_RECT;
+				lastResult = INVALID_RECT;
 			}
 		}
 
@@ -1656,7 +1689,7 @@ namespace Nestopia
 			const float clipping[4],
 			const int screenCurvature,
 			const Adapter::Filter filter,
-			const ibool useVidMem
+			const bool useVidMem
 		)
 		{
 			NST_ASSERT( picture.Width() && picture.Height() );
@@ -1667,7 +1700,7 @@ namespace Nestopia
 			ValidateObjects();
 		}
 
-		void Direct2D::UpdateFrameRate(const uint frameRate,const ibool vsync,const ibool tripleBuffering)
+		void Direct2D::UpdateFrameRate(const uint frameRate,const bool vsync,const bool tripleBuffering)
 		{
 			if (device.ResetFrameRate( frameRate, vsync, tripleBuffering, base ))
 			{

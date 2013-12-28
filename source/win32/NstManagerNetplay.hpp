@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -38,8 +38,8 @@ namespace Nestopia
 			Netplay(Emulator&,const Configuration&,Window::Menu&,const Paths&,Window::Custom&);
 			~Netplay();
 
-			void Save(Configuration&,ibool) const;
-			ibool Close() const;
+			void Save(Configuration&,bool) const;
+			bool Close() const;
 
 		private:
 
@@ -56,7 +56,7 @@ namespace Nestopia
 			Window::Menu& menu;
 			Window::Custom& window;
 			const Paths& paths;
-			const ibool doFullscreen;
+			const bool doFullscreen;
 		};
 	}
 }

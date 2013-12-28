@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -53,7 +53,7 @@ namespace Nestopia
 			: data(reinterpret_cast<Data>(d)), code(reinterpret_cast<Code>(c))
 			{
 				NST_COMPILE_ASSERT( sizeof(code) == sizeof(c) );
-				NST_ASSERT( bool(data) == bool(code) );
+				NST_ASSERT( !data == !code );
 			}
 
 			Output operator()(Input input) const
@@ -65,18 +65,18 @@ namespace Nestopia
 			void Set(T* d,Output (T::*c)(Input))
 			{
 				NST_COMPILE_ASSERT( sizeof(code) == sizeof(c) );
-				NST_ASSERT( bool(data) == bool(code) );
+				NST_ASSERT( !data == !code );
 
 				data = reinterpret_cast<Data>(d);
 				code = reinterpret_cast<Code>(c);
 			}
 
-			ibool operator == (const Delegate& delegate) const
+			bool operator == (const Delegate& delegate) const
 			{
 				return code == delegate.code && data == delegate.data;
 			}
 
-			ibool operator != (const Delegate& delegate) const
+			bool operator != (const Delegate& delegate) const
 			{
 				return code != delegate.code || data != delegate.data;
 			}
@@ -146,7 +146,7 @@ namespace Nestopia
 			: data(reinterpret_cast<Data>(d)), code(reinterpret_cast<Code>(c))
 			{
 				NST_COMPILE_ASSERT( sizeof(code) == sizeof(c) );
-				NST_ASSERT( bool(data) == bool(code) );
+				NST_ASSERT( !data == !code );
 			}
 
 			Output operator () () const
@@ -158,18 +158,18 @@ namespace Nestopia
 			void Set(T* d,Output (T::*c)())
 			{
 				NST_COMPILE_ASSERT( sizeof(code) == sizeof(c) );
-				NST_ASSERT( bool(data) == bool(code) );
+				NST_ASSERT( !data == !code );
 
 				data = reinterpret_cast<Data>(d);
 				code = reinterpret_cast<Code>(c);
 			}
 
-			ibool operator == (const Delegate& delegate) const
+			bool operator == (const Delegate& delegate) const
 			{
 				return code == delegate.code && data == delegate.data;
 			}
 
-			ibool operator != (const Delegate& delegate) const
+			bool operator != (const Delegate& delegate) const
 			{
 				return code != delegate.code || data != delegate.data;
 			}
@@ -241,7 +241,7 @@ namespace Nestopia
 			: data(reinterpret_cast<Data>(d)), code(reinterpret_cast<Code>(c))
 			{
 				NST_COMPILE_ASSERT( sizeof(code) == sizeof(c) );
-				NST_ASSERT( bool(data) == bool(code) );
+				NST_ASSERT( !data == !code );
 			}
 
 			Output operator () (Param1 param1,Param2 param2) const
@@ -253,18 +253,18 @@ namespace Nestopia
 			void Set(T* d,Output (T::*c)(Param1,Param2))
 			{
 				NST_COMPILE_ASSERT( sizeof(code) == sizeof(c) );
-				NST_ASSERT( bool(data) == bool(code) );
+				NST_ASSERT( !data == !code );
 
 				data = reinterpret_cast<Data>(d);
 				code = reinterpret_cast<Code>(c);
 			}
 
-			ibool operator == (const Delegate2& delegate) const
+			bool operator == (const Delegate2& delegate) const
 			{
 				return code == delegate.code && data == delegate.data;
 			}
 
-			ibool operator != (const Delegate2& delegate) const
+			bool operator != (const Delegate2& delegate) const
 			{
 				return code != delegate.code || data != delegate.data;
 			}

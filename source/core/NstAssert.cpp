@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -22,46 +22,41 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#if !defined(NDEBUG) && defined(_WIN32)
+#include <cstdlib>
+#include "NstCore.hpp"
+
+#if !defined(NDEBUG) && defined(NST_WIN32)
 
 #include <cstdio>
 #include <cstring>
-#include <cstdlib>
 #include <new>
 
+#ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
+#endif
 
 #include <Windows.h>
-#include <tchar.h>
-#include "NstTypes.hpp"
 
-#ifdef _MSC_VER
-#pragma warning( push )
-#ifdef __INTEL_COMPILER
-#pragma warning( disable : 981 )
+#ifdef _UNICODE
+#define NST_MESSAGEBOX MessageBoxA
 #else
-#pragma warning( disable : 4996 )
-#endif
-#endif
-
-#ifdef NST_PRAGMA_OPTIMIZE
-#pragma optimize("s", on)
+#define NST_MESSAGEBOX MessageBox
 #endif
 
 namespace Nes
 {
 	namespace Assertion
 	{
-		uint NST_CALL Issue
+		NST_NO_INLINE uint NST_CALL Issue
 		(
-			cstring const expression,
-			cstring const msg,
-			cstring const file,
-			cstring const function,
-			const int line
+			const char* expression,
+			const char* msg,
+			const char* file,
+			const char* function,
+			int line
 		)
 		{
-			const ulong length =
+			const std::size_t length =
 			(
 				(msg ?        std::strlen(msg)        :  0) +
 				(expression ? std::strlen(expression) : 16) +
@@ -70,103 +65,60 @@ namespace Nes
 				64 + 1
 			);
 
-			static const TCHAR title[] = _T("Nestopia Debug Assertion!");
-			static const char breakpoint[] = "break point";
-			static const char unknown[] = "unknown";
-
-			char* const buffer = new (std::nothrow) char [length];
-
-			#ifdef _UNICODE
-			wchar_t* const message = new (std::nothrow) wchar_t [length];
-			#else
-			const char* const message = buffer;
-			#endif
-
-			if (!buffer || !message)
+			if (char* const buffer = new (std::nothrow) char [length])
 			{
-				::MessageBox
+				std::sprintf
+				(
+					buffer,
+					msg ? "%s, Expression: %s\n\n File: %s\n Function: %s\n Line: %i" :
+                          "%sExpression: %s\n\n File: %s\n Function: %s\n Line: %i",
+					msg ? msg : "",
+					expression ? expression : "break point",
+					file,
+					function ? function : "unknown",
+					line
+				);
+
+				int result = NST_MESSAGEBOX
 				(
 					::GetActiveWindow(),
-					_T("Out of memory!"),
-					title,
+					buffer,
+					"Nestopia Debug Assertion!",
+					MB_ABORTRETRYIGNORE|MB_SETFOREGROUND|MB_TOPMOST
+				);
+
+				delete [] buffer;
+
+				if (result != IDABORT)
+					return result == IDIGNORE ? 1 : 2;
+
+				result = NST_MESSAGEBOX
+				(
+					::GetActiveWindow(),
+					"break into the debugger?",
+					"Nestopia Debug Assertion!",
+					MB_YESNO|MB_SETFOREGROUND|MB_TOPMOST
+				);
+
+				if (result == IDNO)
+					::FatalExit( EXIT_FAILURE );
+			}
+			else
+			{
+				NST_MESSAGEBOX
+				(
+					::GetActiveWindow(),
+					"Out of memory!",
+					"Nestopia Debug Assertion!",
 					MB_OK|MB_ICONERROR|MB_SETFOREGROUND|MB_TOPMOST
 				);
 
 				::FatalExit( EXIT_FAILURE );
 			}
 
-			if (msg)
-			{
-				std::sprintf
-				(
-					buffer,
-					"%s, Expression: %s\n\n File: %s\n Function: %s\n Line: %i",
-					msg,
-					expression ? expression : breakpoint,
-					file,
-					function ? function : unknown,
-					line
-				);
-			}
-			else
-			{
-				std::sprintf
-				(
-					buffer,
-					"Expression: %s\n\n File: %s\n Function: %s\n Line: %i",
-					expression ? expression : breakpoint,
-					file,
-					function ? function : unknown,
-					line
-				);
-			}
-
-			#ifdef _UNICODE
-			std::mbstowcs( message, buffer, std::strlen(buffer) + 1 );
-			delete [] buffer;
-			#endif
-
-			int result = ::MessageBox
-			(
-				::GetActiveWindow(),
-				message,
-				title,
-				MB_ABORTRETRYIGNORE|MB_SETFOREGROUND|MB_TOPMOST
-			);
-
-			delete [] message;
-
-			if (result != IDABORT)
-				return result == IDIGNORE ? 1 : 2;
-
-			result = ::MessageBox
-			(
-				::GetActiveWindow(),
-				_T("break into the debugger?"),
-				title,
-				MB_YESNO|MB_SETFOREGROUND|MB_TOPMOST
-			);
-
-			if (result == IDNO)
-				::FatalExit( EXIT_FAILURE );
-
 			return 0;
 		}
 	}
 }
-
-#ifdef NST_PRAGMA_OPTIMIZE
-#pragma optimize("", on)
-#endif
-
-#ifdef _MSC_VER
-#pragma warning( pop )
-#endif
-
-#else
-
-#if defined(NDEBUG) && defined(_MSC_VER) && defined(__MSVC_RUNTIME_CHECKS)
-#error turn off RTCx compiler options!
-#endif
 
 #endif

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -44,13 +44,13 @@ namespace Nestopia
 			: key(t) {}
 
 			template<typename T>
-			ibool operator == (const T& t) const
+			bool operator == (const T& t) const
 			{
 				return key == t;
 			}
 
 			template<typename T>
-			ibool operator < (const T& t) const
+			bool operator < (const T& t) const
 			{
 				return key < t;
 			}
@@ -67,13 +67,13 @@ namespace Nestopia
 			: key(t), value(t) {}
 
 			template<typename T>
-			ibool operator == (const T& t) const
+			bool operator == (const T& t) const
 			{
 				return key == t;
 			}
 
 			template<typename T>
-			ibool operator < (const T& t) const
+			bool operator < (const T& t) const
 			{
 				return key < t;
 			}
@@ -115,7 +115,7 @@ namespace Nestopia
 			}
 
 			template<typename T>
-			Value& operator () (const T& key,ibool& found)
+			Value& operator () (const T& key,bool& found)
 			{
 				return set( key, found ).value;
 			}
@@ -228,7 +228,7 @@ namespace Nestopia
 				return set.Capacity();
 			}
 
-			ibool Empty() const
+			bool Empty() const
 			{
 				return set.Empty();
 			}

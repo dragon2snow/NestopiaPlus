@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -29,17 +29,17 @@ namespace Nes
 {
 	namespace Core
 	{
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("s", on)
 		#endif
 
-		void Mapper227::SubReset(const bool hard)
+		void Mapper227::SubReset(bool)
 		{
-			NES_CALL_POKE(Mapper227,Prg,0x8000U,0x00);
+			NES_DO_POKE(Prg,0x8000,0x00);
 			Map( 0x8000U, 0xFFFFU, &Mapper227::Poke_Prg );
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
@@ -49,16 +49,16 @@ namespace Nes
 
 			if (address & 0x1)
 			{
-				prg.SwapBank<SIZE_32K,0x0000U>( bank );
+				prg.SwapBank<SIZE_32K,0x0000>( bank );
 			}
 			else
 			{
 				const uint offset = (bank << 1) | (address >> 2 & 0x1);
-				prg.SwapBanks<SIZE_16K,0x0000U>( offset, offset );
+				prg.SwapBanks<SIZE_16K,0x0000>( offset, offset );
 			}
 
 			if (!(address & 0x80))
-				prg.SwapBank<SIZE_16K,0x4000U>( ((address & 0x200) ? 0x7 : 0x0) | (bank << 1 & 0x38) );
+				prg.SwapBank<SIZE_16K,0x4000>( ((address & 0x200) ? 0x7 : 0x0) | (bank << 1 & 0x38) );
 
 			ppu.SetMirroring( (address & 0x2) ? Ppu::NMT_HORIZONTAL : Ppu::NMT_VERTICAL );
 		}

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -31,7 +31,7 @@ namespace Nes
 	{
 		namespace Input
 		{
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("s", on)
 			#endif
 
@@ -49,12 +49,12 @@ namespace Nes
 				stream = 0;
 			}
 
-			void PartyTap::SaveState(State::Saver& state,const uchar id) const
+			void PartyTap::SaveState(State::Saver& state,const byte id) const
 			{
-				state.Begin('P','T',id,'\0').End();
+				state.Begin( AsciiId<'P','T'>::R(0,0,id) ).End();
 			}
 
-			#ifdef NST_PRAGMA_OPTIMIZE
+			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("", on)
 			#endif
 

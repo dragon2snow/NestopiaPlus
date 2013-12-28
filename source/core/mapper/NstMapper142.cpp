@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -30,7 +30,7 @@ namespace Nes
 {
 	namespace Core
 	{
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("s", on)
 		#endif
 
@@ -69,17 +69,17 @@ namespace Nes
 			{
 				switch (chunk)
 				{
-					case NES_STATE_CHUNK_ID('R','E','G','\0'):
+					case AsciiId<'R','E','G'>::V:
 
 						ctrl = state.Read8();
 						break;
 
-					case NES_STATE_CHUNK_ID('I','R','Q','\0'):
+					case AsciiId<'I','R','Q'>::V:
 					{
-						const State::Loader::Data<3> data( state );
+						State::Loader::Data<3> data( state );
 
 						irq.unit.enabled = data[0] & 0x1;
-						irq.unit.count = data[1] | (data[2] << 8);
+						irq.unit.count = data[1] | data[2] << 8;
 
 						break;
 					}
@@ -91,44 +91,44 @@ namespace Nes
 
 		void Mapper142::SubSave(State::Saver& state) const
 		{
-			state.Begin('R','E','G','\0').Write8( ctrl ).End();
+			state.Begin( AsciiId<'R','E','G'>::V ).Write8( ctrl ).End();
 
-			const u8 data[3] =
+			const byte data[3] =
 			{
 				irq.unit.enabled ? 0x1 : 0x0,
 				irq.unit.count & 0xFF,
 				irq.unit.count >> 8
 			};
 
-			state.Begin('I','R','Q','\0').Write( data ).End();
+			state.Begin( AsciiId<'I','R','Q'>::V ).Write( data ).End();
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
 		NES_POKE(Mapper142,8000)
 		{
 			irq.Update();
-			irq.unit.count = (irq.unit.count & 0xFFF0U) | ((data & 0xF) << 0);
+			irq.unit.count = (irq.unit.count & 0xFFF0) | (data & 0xF) << 0;
 		}
 
 		NES_POKE(Mapper142,9000)
 		{
 			irq.Update();
-			irq.unit.count = (irq.unit.count & 0xFF0FU) | ((data & 0xF) << 4);
+			irq.unit.count = (irq.unit.count & 0xFF0F) | (data & 0xF) << 4;
 		}
 
 		NES_POKE(Mapper142,A000)
 		{
 			irq.Update();
-			irq.unit.count = (irq.unit.count & 0xF0FFU) | ((data & 0xF) << 8);
+			irq.unit.count = (irq.unit.count & 0xF0FF) | (data & 0xF) << 8;
 		}
 
 		NES_POKE(Mapper142,B000)
 		{
 			irq.Update();
-			irq.unit.count = (irq.unit.count & 0x0FFFU) | ((data & 0xF) << 12);
+			irq.unit.count = (irq.unit.count & 0x0FFF) | (data & 0xF) << 12;
 		}
 
 		NES_POKE(Mapper142,C000)
@@ -145,7 +145,7 @@ namespace Nes
 
 		NES_POKE(Mapper142,F000)
 		{
-			address = (ctrl & 0xF) - 1U;
+			address = (ctrl & 0xF) - 1;
 
 			if (address < 3)
 			{
@@ -153,13 +153,13 @@ namespace Nes
 			}
 			else if (address < 4)
 			{
-				wrk.SwapBank<SIZE_8K,0x0000U>( data );
+				wrk.SwapBank<SIZE_8K,0x0000>( data );
 			}
 		}
 
 		ibool Mapper142::Irq::Signal()
 		{
-			if (enabled && count++ == 0xFFFFU)
+			if (enabled && count++ == 0xFFFF)
 			{
 				enabled = false;
 				count = 0;

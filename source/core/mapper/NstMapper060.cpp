@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -29,15 +29,15 @@ namespace Nes
 {
 	namespace Core
 	{
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("s", on)
 		#endif
 
 		Mapper60::Mapper60(Context& c)
 		:
 		Mapper       (c,PROM_MAX_128K|CROM_MAX_64K|WRAM_DEFAULT),
-		resetTrigger (c.attribute == ATR_RESET_TRIGGER),
-		menu         (0)
+		menu         (0),
+		resetTrigger (c.attribute == ATR_RESET_TRIGGER)
 		{}
 
 		void Mapper60::SubReset(const bool hard)
@@ -51,13 +51,13 @@ namespace Nes
 				else
 					menu = (menu + 1) & 0x3;
 
-				chr.SwapBank<SIZE_8K,0x0000U>( menu );
-				prg.SwapBanks<SIZE_16K,0x0000U>( menu, menu );
+				chr.SwapBank<SIZE_8K,0x0000>( menu );
+				prg.SwapBanks<SIZE_16K,0x0000>( menu, menu );
 			}
 			else
 			{
 				Map( 0x8000U, 0xFFFFU, &Mapper60::Peek_Prg, &Mapper60::Poke_Prg );
-				NES_CALL_POKE(Mapper60,Prg,0x8000U,0x00);
+				NES_DO_POKE(Prg,0x8000,0x00);
 			}
 		}
 
@@ -65,7 +65,7 @@ namespace Nes
 		{
 			while (const dword chunk = state.Begin())
 			{
-				if (chunk == NES_STATE_CHUNK_ID('R','E','G','\0'))
+				if (chunk == AsciiId<'R','E','G'>::V)
 				{
 					latch = state.Read8();
 					menu = latch & 0x3;
@@ -78,24 +78,24 @@ namespace Nes
 
 		void Mapper60::SubSave(State::Saver& state) const
 		{
-			state.Begin('R','E','G','\0').Write8( latch >> 1 | menu ).End();
+			state.Begin( AsciiId<'R','E','G'>::V ).Write8( latch >> 1 | menu ).End();
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
+		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
 		NES_PEEK(Mapper60,Prg)
 		{
-			return !latch ? prg.Peek( address - 0x8000U ) : menu;
+			return !latch ? prg.Peek( address - 0x8000 ) : menu;
 		}
 
 		NES_POKE(Mapper60,Prg)
 		{
 			latch = address & 0x100;
 			ppu.SetMirroring( (address & 0x8) ? Ppu::NMT_HORIZONTAL : Ppu::NMT_VERTICAL );
-			prg.SwapBanks<SIZE_16K,0x0000U>( (address >> 4) & ~(~address >> 7 & 0x1), (address >> 4) | (~address >> 7 & 0x1) );
-			chr.SwapBank<SIZE_8K,0x0000U>( address );
+			prg.SwapBanks<SIZE_16K,0x0000>( (address >> 4) & ~(~address >> 7 & 0x1), (address >> 4) | (~address >> 7 & 0x1) );
+			chr.SwapBank<SIZE_8K,0x0000>( address );
 		}
 	}
 }

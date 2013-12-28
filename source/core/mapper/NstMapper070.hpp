@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,7 +25,7 @@
 #ifndef NST_MAPPER_70_H
 #define NST_MAPPER_70_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
+#ifdef NST_PRAGMA_ONCE
 #pragma once
 #endif
 
@@ -37,9 +37,11 @@ namespace Nes
 		{
 		public:
 
-			Mapper70(Context&);
+			explicit Mapper70(Context&);
 
 		private:
+
+			~Mapper70() {}
 
 			void SubReset(bool);
 
@@ -48,9 +50,9 @@ namespace Nes
 				ATR_LIGHTGUN = 1
 			};
 
-			NES_DECL_PEEK( SpaceShadow )
-			NES_DECL_POKE( SpaceShadow )
-			NES_DECL_POKE( Prg )
+			NES_DECL_PEEK( SpaceShadow );
+			NES_DECL_POKE( SpaceShadow );
+			NES_DECL_POKE( Prg );
 
 			Io::Port p4016;
 			const ibool useGun;

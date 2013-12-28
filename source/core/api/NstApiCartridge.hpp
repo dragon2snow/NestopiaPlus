@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -25,26 +25,21 @@
 #ifndef NST_API_CARTRIDGE_H
 #define NST_API_CARTRIDGE_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
-#pragma once
-#endif
-
 #include <iosfwd>
 #include <string>
 #include "NstApiInput.hpp"
 
-#ifdef _MSC_VER
+#ifdef NST_PRAGMA_ONCE
+#pragma once
+#endif
+
+#if NST_MSVC >= 1200
 #pragma warning( push )
 #pragma warning( disable : 4512 )
 #endif
 
 namespace Nes
 {
-	namespace Core
-	{
-		class ImageDatabase;
-	}
-
 	namespace Api
 	{
 		class Cartridge : public Base
@@ -102,16 +97,14 @@ namespace Nes
 
 			class Database
 			{
-				friend class Cartridge;
-
-				Core::ImageDatabase*& imageDatabase;
-
-				Database(Core::ImageDatabase*& idb)
-				: imageDatabase(idb) {}
+				Core::Machine& emulator;
 
 				bool Create();
 
 			public:
+
+				Database(Core::Machine& e)
+				: emulator(e) {}
 
 				typedef const void* Entry;
 
@@ -138,11 +131,15 @@ namespace Nes
 				bool      HasTrainer      (Entry) const throw();
 			};
 
-			Database GetDatabase() throw();
+			Database GetDatabase() throw()
+			{
+				return emulator;
+			}
 
 			struct Info
 			{
 				Info() throw();
+				~Info() throw();
 
 				void Clear() throw();
 
@@ -163,7 +160,7 @@ namespace Nes
 	}
 }
 
-#ifdef _MSC_VER
+#if NST_MSVC >= 1200
 #pragma warning( pop )
 #endif
 

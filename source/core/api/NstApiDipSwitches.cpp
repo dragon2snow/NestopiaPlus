@@ -2,7 +2,7 @@
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2006 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
 //
@@ -27,14 +27,14 @@
 #include "../NstImage.hpp"
 #include "NstApiDipSwitches.hpp"
 
-#ifdef NST_PRAGMA_OPTIMIZE
-#pragma optimize("s", on)
-#endif
-
 namespace Nes
 {
 	namespace Api
 	{
+		#ifdef NST_MSVC_OPTIMIZE
+		#pragma optimize("s", on)
+		#endif
+
 		Core::DipSwitches* DipSwitches::Query() const
 		{
 			if (emulator.image)
@@ -44,6 +44,11 @@ namespace Nes
 			}
 
 			return NULL;
+		}
+
+		bool DipSwitches::CanModify() const throw()
+		{
+			return !emulator.tracker.IsLocked() && Query();
 		}
 
 		uint DipSwitches::NumDips() const throw()
@@ -82,7 +87,6 @@ namespace Nes
 			{
 				if (dipSwitches->NumDips() > dip && dipSwitches->NumValues( dip ) > value)
 					return dipSwitches->GetValueName( dip, value );
-
 			}
 
 			return NULL;
@@ -101,17 +105,31 @@ namespace Nes
 
 		Result DipSwitches::SetValue(uint dip,uint value) throw()
 		{
-			if (Core::DipSwitches* const dipSwitches = Query())
+			if (!emulator.tracker.IsLocked())
 			{
-				if (dipSwitches->NumDips() > dip && dipSwitches->NumValues( dip ) > value)
-					return dipSwitches->SetValue( dip, value ) ? RESULT_OK : RESULT_NOP;
+				if (Core::DipSwitches* const dipSwitches = Query())
+				{
+					if (dip >= dipSwitches->NumDips() || value >= dipSwitches->NumValues( dip ))
+					{
+						return RESULT_ERR_INVALID_PARAM;
+					}
+					else if (dipSwitches->SetValue( dip, value ))
+					{
+						emulator.tracker.Flush();
+						return RESULT_OK;
+					}
+					else
+					{
+						return RESULT_NOP;
+					}
+				}
 			}
 
 			return RESULT_ERR_NOT_READY;
 		}
+
+		#ifdef NST_MSVC_OPTIMIZE
+		#pragma optimize("", on)
+		#endif
 	}
 }
-
-#ifdef NST_PRAGMA_OPTIMIZE
-#pragma optimize("", on)
-#endif
