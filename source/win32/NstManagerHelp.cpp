@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -54,7 +54,7 @@ namespace Nestopia
 		m.Commands().Add( this, commands );
 		emulator.Events().Add( this, &Help::OnEmuEvent );
 
-		m[IDM_HELP_HELP].Enable( Io::File::FileExist( Application::Instance::GetPath("readme.html") ) );
+		m[IDM_HELP_HELP].Enable( Io::File::FileExist( Application::Instance::GetPath(_T("readme.html")).Ptr() ) );
 	}
 
 	Help::~Help()
@@ -67,8 +67,8 @@ namespace Nestopia
 		::ShellExecute
 		( 
 	     	NULL, 
-			"open", 
-			Application::Instance::GetPath("readme.html"), 
+			_T("open"), 
+			Application::Instance::GetPath(_T("readme.html")).Ptr(), 
 			NULL, 
 			NULL, 
 			SW_SHOWNORMAL 

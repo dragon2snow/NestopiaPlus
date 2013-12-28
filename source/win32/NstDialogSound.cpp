@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -138,9 +138,7 @@ namespace Nestopia
 		}
 
 		settings.pitch = (cfg["sound adjust pitch"] == Configuration::YES);
-		
-		const String::Heap& string = cfg["sound output"];
-		settings.stereo = (string == "stereo");
+		settings.stereo = (GenericString(cfg["sound output"]) == _T("stereo"));
 
 		for (uint i=0; i < NST_COUNT(channelLut); ++i)
 			settings.channels[channelLut[i].index] = (cfg[channelLut[i].cfg] != Configuration::NO);
@@ -176,7 +174,7 @@ namespace Nestopia
 		cfg[ "sound sample bits"  ] = settings.bits;
 		cfg[ "sound buffers"      ] = settings.latency;
 		cfg[ "sound volume"       ] = settings.volume;
-		cfg[ "sound output"       ] = (settings.stereo ? "stereo" : "mono");
+		cfg[ "sound output"       ] = (settings.stereo ? _T("stereo") : _T("mono"));
 		cfg[ "sound adjust pitch" ].YesNo() = settings.pitch;
 
 		for (uint i=0; i < NST_COUNT(channelLut); ++i)
@@ -200,15 +198,20 @@ namespace Nestopia
 			const Control::ComboBox comboBox( dialog.ComboBox(IDC_SOUND_DEVICE) );
 
 			for (Adapters::const_iterator it(adapters.begin()); it != adapters.end(); ++it)
-				comboBox.Add( it->name );
+				comboBox.Add( it->name.Ptr() );
 
 			comboBox[settings.adapter].Select();
 		}
 
 		{
-			static const char rates[][6] =
+			static const tchar rates[][6] =
 			{
-				"11025","22050","44100","48000","88200","96000"
+				_T("11025"), 
+				_T("22050"), 
+				_T("44100"), 
+				_T("48000"),
+				_T("88200"),
+				_T("96000")
 			};
 
 			uint index;
@@ -388,7 +391,7 @@ namespace Nestopia
 
 	ibool Sound::Recorder::OnInitDialog(Param&)
 	{
-		dialog.Edit( IDC_SOUND_CAPTURE_FILE ) << waveFile;
+		dialog.Edit( IDC_SOUND_CAPTURE_FILE ) << waveFile.Ptr();
 		dialog.Edit( IDC_SOUND_CAPTURE_FILE ).Limit( _MAX_PATH );
 
 		return TRUE;
@@ -405,7 +408,11 @@ namespace Nestopia
 	ibool Sound::Recorder::OnCmdBrowse(Param& param)
 	{
 		if (param.Button().IsClicked())	
-			dialog.Edit(IDC_SOUND_CAPTURE_FILE).Try() << paths.BrowseSave( Managers::Paths::File::WAVE, waveFile );
+		{
+			Path tmp;
+			dialog.Edit(IDC_SOUND_CAPTURE_FILE) >> tmp;
+			dialog.Edit(IDC_SOUND_CAPTURE_FILE).Try() << paths.BrowseSave( Managers::Paths::File::WAVE, Managers::Paths::SUGGEST, tmp ).Ptr();
+		}
 
 		return TRUE;
 	}
@@ -415,20 +422,7 @@ namespace Nestopia
 		if (param.Button().IsClicked())
 		{
 			dialog.Edit(IDC_SOUND_CAPTURE_FILE) >> waveFile;
-
-			if (waveFile.File().Size())
-			{
-				if (waveFile.Directory().Empty())
-					waveFile.Directory() = paths.GetDefaultDirectory( Managers::Paths::File::WAVE );
-
-				if (waveFile.Extension().Empty())
-					waveFile.Extension() = "wav";
-			}
-			else
-			{
-				waveFile.Clear();
-			}
-
+			paths.FixFile( Managers::Paths::File::WAVE, waveFile );
 			dialog.Close();
 		}
 

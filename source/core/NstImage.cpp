@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -106,6 +106,16 @@ namespace Nes
 		{
 			delete image;
 			image = NULL;
+		}
+
+		uint Image::GetDesiredController(uint port) const
+		{
+			switch (port)
+			{
+				case Api::Input::PORT_1: return Api::Input::PAD1;
+				case Api::Input::PORT_2: return Api::Input::PAD2;
+				default: return Api::Input::UNCONNECTED;
+			}
 		}
 	}
 }

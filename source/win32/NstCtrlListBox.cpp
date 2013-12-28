@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -42,7 +42,7 @@ namespace Nestopia
 		ListBox_SetItemData( item.control, item.index, data );
 	}
 
-	void ListBox::Item::TextProxy::operator << (cstring const string) const
+	void ListBox::Item::TextProxy::operator << (tstring const string) const
 	{
 		NST_ASSERT( string );
 
@@ -70,13 +70,13 @@ namespace Nestopia
 		return Item( control, ListBox_GetCurSel( control ) );
 	}
 
-	ListBox::Item ListBox::Add(cstring const text) const
+	ListBox::Item ListBox::Add(tstring const text) const
 	{
 		NST_ASSERT( text );
 		return Item( control, ListBox_AddString( control, text ) );
 	}
 
-	ListBox::Item ListBox::Insert(const uint index,cstring const text) const
+	ListBox::Item ListBox::Insert(const uint index,tstring const text) const
 	{
 		NST_ASSERT( text );
 		return Item( control, ListBox_InsertString( control, index, text ) );

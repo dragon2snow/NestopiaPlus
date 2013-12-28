@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -102,10 +102,10 @@ namespace Nestopia
 
 	void FrameClock::Save(Configuration& cfg) const
 	{
-		cfg[ "timer speed"                ] = settings.speed;
-		cfg[ "timer alternative speed"    ] = settings.altSpeed;
-		cfg[ "timer rewind speed"         ] = settings.rewindSpeed;
-		cfg[ "timer max frame skips"      ] = settings.maxFrameSkips;
+		cfg[ "timer speed"                ] = (uint) settings.speed;
+		cfg[ "timer alternative speed"    ] = (uint) settings.altSpeed;
+		cfg[ "timer rewind speed"         ] = (uint) settings.rewindSpeed;
+		cfg[ "timer max frame skips"      ] = (uint) settings.maxFrameSkips;
 		cfg[ "timer auto frame skip"      ].YesNo() = settings.autoFrameSkip;
 		cfg[ "timer vsync"                ].YesNo() = settings.vsync;
 		cfg[ "timer triple buffering"     ].YesNo() = settings.tripleBuffering;

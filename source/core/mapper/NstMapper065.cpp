@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -35,11 +35,7 @@ namespace Nes
         #endif
 	
 		Mapper65::Mapper65(Context& c)
-		: 
-		Mapper  (c), 
-        irq     (c.cpu),
-		pRomCrc (c.pRomCrc)
-		{}
+		: Mapper(c), irq(c.cpu) {}
 	
 		void Mapper65::Irq::Reset(const bool hard)
 		{
@@ -55,9 +51,7 @@ namespace Nes
 		{
 			irq.Reset( hard, true );
 	
-			// Kaiketsu Yanchamaru 3
-			Map( 0x9000U, pRomCrc == 0xE30B7F64UL ? &Mapper65::Poke_9000_1 : &Mapper65::Poke_9000_0 );
-			
+			Map( 0x9001U, &Mapper65::Poke_9001 );			
 			Map( 0x9003U, &Mapper65::Poke_9003 );
 			Map( 0x9004U, &Mapper65::Poke_9004 );
 			Map( 0x9005U, &Mapper65::Poke_9005 );
@@ -111,14 +105,9 @@ namespace Nes
         #pragma optimize("", on)
         #endif
 	
-		NES_POKE(Mapper65,9000_0) 
+		NES_POKE(Mapper65,9001) 
 		{ 
-			ppu.SetMirroring( (data & 0x40) ? Ppu::NMT_VERTICAL : Ppu::NMT_HORIZONTAL );
-		}
-
-		NES_POKE(Mapper65,9000_1) 
-		{ 
-			ppu.SetMirroring( (data & 0x40) ? Ppu::NMT_HORIZONTAL : Ppu::NMT_VERTICAL );
+			ppu.SetMirroring( (data & 0x80) ? Ppu::NMT_HORIZONTAL : Ppu::NMT_VERTICAL );
 		}
 	
 		NES_POKE(Mapper65,9003) 

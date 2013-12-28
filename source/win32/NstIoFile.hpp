@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -52,6 +52,12 @@ namespace Nestopia
 
 			enum
 			{
+				UTF16_LE = 0xFEFF,
+				UTF16_BE = 0xFFFE
+			};
+
+			enum
+			{
 				MAX_SIZE = 0x7FFFFFFF
 			};
 
@@ -74,11 +80,11 @@ namespace Nestopia
 			};
 
 			File();
-			File(String::Generic,uint);
+			File(GenericString,uint);
 
 			~File();
 
-			void Open(String::Generic,uint);
+			void Open(GenericString,uint);
 			void Close();
 			uint Seek(Offset,int=0) const;
 			void Truncate() const;
@@ -92,7 +98,17 @@ namespace Nestopia
 			void Peek     (void*,uint) const;
 			void Peek     (uint,void*,uint) const;
 
+			void ReadText (String::Heap<char>&,uint=UINT_MAX) const;
+			void ReadText (String::Heap<wchar_t>&,uint=UINT_MAX) const;
+			void WriteText (cstring,uint,ibool=FALSE) const;
+			void WriteText (wstring,uint,ibool=FALSE) const;
+
+			static void ParseText (const void*,uint,String::Heap<char>&);
+			static void ParseText (const void*,uint,String::Heap<wchar_t>&);
+
 		private:
+
+			static void EndianSwap(void*,void*);
 
 			class Proxy
 			{
@@ -136,7 +152,7 @@ namespace Nestopia
 				template<typename T>
 				const StreamProxy& operator << (const T& buffer) const
 				{
-					file.Write( buffer, buffer.Size() );
+					file.Write( buffer.Ptr(), buffer.Length() * sizeof(buffer[0]) );
 					return *this;
 				}
 
@@ -144,35 +160,12 @@ namespace Nestopia
 				{
 					NST_COMPILE_ASSERT( sizeof(buffer[0]) == sizeof(char) );
 					buffer.Resize( file.Size() - file.Position() );
-					file.Read( buffer, buffer.Size() );
-				}
-			};
-
-			class TextProxy
-			{
-				const File& file;
-
-			public:
-
-				TextProxy(const File& f)
-				: file(f) {}
-
-				const TextProxy& operator << (const String::Anything& string) const
-				{
-					file.Write( string, string.Size() );
-					return *this;
-				}
-
-				template<typename T> void operator >> (T& string) const
-				{
-					NST_COMPILE_ASSERT( sizeof(string[0]) == 1 );
-					string.Resize( file.Size() - file.Position() );
-					file.Read( static_cast<char*>(string), string.Size() );
+					file.Read( buffer.Ptr(), buffer.Length() );
 				}
 			};
 
 			void* handle;
-			String::Path<false> name;
+			Path name;
 
 		public:
 
@@ -181,7 +174,7 @@ namespace Nestopia
 				return handle != reinterpret_cast<void*>(-1);
 			}
 
-			const String::Path<false>& GetName() const
+			const Path& GetName() const
 			{
 				return name;
 			}
@@ -226,11 +219,6 @@ namespace Nestopia
 				return *this;
 			}
 
-			TextProxy Text() const
-			{
-				return *this;
-			}
-
 			Proxy Position() const
 			{
 				return *this;
@@ -241,10 +229,10 @@ namespace Nestopia
 				Seek( BEGIN );
 			}
 
-			static ibool FileExist     (cstring);
-			static ibool DirExist      (cstring);
-			static ibool Delete        (cstring);
-			static ibool FileProtected (cstring);
+			static ibool FileExist     (tstring);
+			static ibool DirExist      (tstring);
+			static ibool Delete        (tstring);
+			static ibool FileProtected (tstring);
 		};
 	}
 }

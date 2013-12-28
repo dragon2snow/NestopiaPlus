@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -47,6 +47,8 @@ namespace Nes
 			void UpdatePrg();
 			void VSync();
 
+			NES_DECL_PEEK( 5100   )
+			NES_DECL_POKE( 5100   )
 			NES_DECL_PEEK( 6000   )
 			NES_DECL_POKE( 8000   )
 			NES_DECL_POKE( 8100   )
@@ -58,8 +60,9 @@ namespace Nes
 
 			struct Regs
 			{
-				uint ctrl;
-				uint prg[5];
+				u16 ctrl;
+				u8 prg[5];
+				u8 pr8;
 			};
 
 			struct Irq
@@ -73,6 +76,7 @@ namespace Nes
 
 			Regs regs;
 			Clock::M2<Irq> irq;
+			const ibool irqStep;
 		};
 	}
 }

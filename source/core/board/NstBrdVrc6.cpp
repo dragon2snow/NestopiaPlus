@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -164,31 +164,38 @@ namespace Nes
 				saw.UpdateContext( fixed );
 			}
 	
-			void Vrc6::LoadState(State::Loader& state)
+			void Vrc6::BaseLoad(State::Loader& state,const dword id)
 			{
-				while (const dword chunk = state.Begin())
+				NST_VERIFY( id == NES_STATE_CHUNK_ID('V','R','6','\0') );
+
+				if (id == NES_STATE_CHUNK_ID('V','R','6','\0'))
 				{
-					switch (chunk)
+					while (const dword chunk = state.Begin())
 					{
-						case NES_STATE_CHUNK_ID('I','R','Q','\0'):
+						switch (chunk)
+						{
+							case NES_STATE_CHUNK_ID('I','R','Q','\0'):
 						
-							irq.LoadState( State::Loader::Subset(state).Ref() );
-							break;
-					
-						case NES_STATE_CHUNK_ID('S','N','D','\0'):
-					
-							sound.LoadState( State::Loader::Subset(state).Ref() );
-							break;
+								irq.LoadState( State::Loader::Subset(state).Ref() );
+								break;
+						
+							case NES_STATE_CHUNK_ID('S','N','D','\0'):
+						
+								sound.LoadState( State::Loader::Subset(state).Ref() );
+								break;
+						}
+
+						state.End();
 					}
-	
-					state.End();
 				}
 			}
 	
-			void Vrc6::SaveState(State::Saver& state) const
+			void Vrc6::BaseSave(State::Saver& state) const
 			{
+				state.Begin('V','R','6','\0');
 				irq.SaveState(   State::Saver::Subset(state,'I','R','Q','\0').Ref() );
 				sound.SaveState( State::Saver::Subset(state,'S','N','D','\0').Ref() );
+				state.End();
 			}
 	
 			void Vrc6::Sound::SaveState(State::Saver& state) const

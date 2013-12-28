@@ -50,6 +50,20 @@ IDC_CURSOR_GUN          CURSOR                  "gun.cur"
 
 IDB_LAUNCHERTREE_CLOSED BITMAP                  "FolderClosed.bmp"
 IDB_LAUNCHERTREE_OPEN   BITMAP                  "FolderOpen.bmp"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// IMAGEDATABASE
+//
+
+IDR_IMAGEDATABASE       IMAGEDATABASE           "ImageDatabase.zip"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// MOEPROSAMPLES
+//
+
+IDR_MOEPROSAMPLES       MOEPROSAMPLES           "MoeProSamples.zip"
 #endif    // Neutral resources
 /////////////////////////////////////////////////////////////////////////////
 
@@ -305,20 +319,36 @@ BEGIN
         BOTTOMMARGIN, 96
     END
 
-    IDD_INPUT_KEYPRESS, DIALOG
-    BEGIN
-        LEFTMARGIN, 7
-        RIGHTMARGIN, 112
-        TOPMARGIN, 7
-        BOTTOMMARGIN, 78
-    END
-
     IDD_INESHEADER, DIALOG
     BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 292
         TOPMARGIN, 7
         BOTTOMMARGIN, 176
+    END
+
+    IDD_BARCODE, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 112
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 59
+    END
+
+    IDD_TAPE_RECORDER, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 244
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 64
+    END
+
+    IDD_PALETTE_EDITOR, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 260
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 167
     END
 END
 #endif    // APSTUDIO_INVOKED
@@ -337,10 +367,10 @@ BEGIN
     GROUPBOX        "",IDC_STATIC,7,7,147,148
     LTEXT           "Nestopia x.xx",IDC_ABOUT_NAMEVERSION,57,15,47,13
     ICON            IDI_PROGRAM,IDC_STATIC,70,28,20,20
-    CTEXT           "Copyright (C) 2003-2005 Martin Freij\nunder the terms and conditions of the\nGNU General Public License.",IDC_STATIC,14,48,133,28
+    CTEXT           "Copyright (C) 2003-2006 Martin Freij\nunder the terms and conditions of the\nGNU General Public License.",IDC_STATIC,14,48,133,28
     CTEXT           "http://www.gnu.org",IDC_ABOUT_GNU,45,73,71,11,SS_NOTIFY
     LTEXT           "Home",IDC_STATIC,70,86,20,10
-    CTEXT           "*under construction*",IDC_ABOUT_URL2,39,94,81,12,SS_NOTIFY | WS_DISABLED
+    CTEXT           "http://nestopia.sourceforge.net",IDC_ABOUT_URL2,29,94,106,12,SS_NOTIFY
     LTEXT           "Project",IDC_STATIC,68,107,24,10
     CTEXT           "http://sourceforge.net/projects/nestopia",IDC_ABOUT_URL1,13,115,133,12,SS_NOTIFY
     DEFPUSHBUTTON   "OK",IDC_ABOUT_OK,62,135,37,13
@@ -500,7 +530,7 @@ BEGIN
     CONTROL         "Cheat List",IDC_PREFERENCES_SAVE_CHEATCODES,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,297,140,46,10
     CONTROL         "Window Position",IDC_PREFERENCES_SAVE_WINDOWPOS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,170,157,67,10
     GROUPBOX        "Application Priority",IDC_STATIC,7,166,101,36
-    COMBOBOX        IDC_PREFERENCES_PRIORITY,14,182,84,46,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_PREFERENCES_PRIORITY,14,182,84,46,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     PUSHBUTTON      "Default",IDC_PREFERENCES_DEFAULT,192,187,50,15
     DEFPUSHBUTTON   "OK",IDC_PREFERENCES_OK,249,187,50,15
     PUSHBUTTON      "Cancel",IDC_PREFERENCES_CANCEL,306,187,50,15
@@ -516,7 +546,7 @@ BEGIN
     EDITTEXT        IDC_PATHS_IMAGE,13,17,235,13,ES_AUTOHSCROLL
     PUSHBUTTON      "Browse..",IDC_PATHS_IMAGE_BROWSE,257,17,36,13
     CONTROL         "Last visited",IDC_PATHS_IMAGE_LAST,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,13,33,52,10
-    GROUPBOX        "Cartridge Data",IDC_STATIC,6,51,294,41,BS_LEFT | WS_GROUP
+    GROUPBOX        "Save Data",IDC_STATIC,6,51,294,41,BS_LEFT | WS_GROUP
     EDITTEXT        IDC_PATHS_BATTERY,13,62,235,13,ES_AUTOHSCROLL
     PUSHBUTTON      "Browse..",IDC_PATHS_BATTERY_BROWSE,256,62,37,13
     CONTROL         "Read-only",IDC_PATHS_BATTERY_PROTECT,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,13,79,49,10
@@ -684,18 +714,8 @@ BEGIN
     LISTBOX         IDC_INPUT_KEYS,90,18,92,229,LBS_NOINTEGRALHEIGHT | LBS_NOSEL | WS_VSCROLL | WS_TABSTOP
     GROUPBOX        "Mapping",IDC_STATIC,194,7,105,276
     LISTBOX         IDC_INPUT_MAP,198,18,95,229,LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
-    LTEXT           "Slow",IDC_STATIC,91,254,15,8
-    CONTROL         "",IDC_INPUT_AUTOFIRE_SLIDER,"msctls_trackbar32",TBS_AUTOTICKS | TBS_BOTH | WS_TABSTOP,105,248,59,20
-    LTEXT           "Fast",IDC_STATIC,166,254,17,8
-    CTEXT           "Auto-Fire",IDC_STATIC,117,269,33,8
-    PUSHBUTTON      "Default",IDC_INPUT_AUTOFIRE_DEFAULT,153,268,32,12
-    PUSHBUTTON      "Set",IDC_INPUT_SET,198,255,32,12
-    PUSHBUTTON      "Set All",IDC_INPUT_SETALL,231,255,32,12
-    PUSHBUTTON      "Delete",IDC_INPUT_CLEAR,198,268,32,12
-    PUSHBUTTON      "Clear",IDC_INPUT_CLEARALL,231,268,32,12
-    PUSHBUTTON      "Default",IDC_INPUT_DEFAULT_CATEGORY,263,268,32,12
     GROUPBOX        "Joysticks",IDC_STATIC,302,7,117,276
-    COMBOBOX        IDC_INPUT_JOYSTICKS,306,17,106,56,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_INPUT_JOYSTICKS,306,17,106,56,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     CONTROL         "Enable",IDC_INPUT_JOYSTICKS_ENABLE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,309,47,37,10
     CONTROL         "X - axis",IDC_INPUT_JOYSTICKS_X,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,309,61,39,10
     CONTROL         "Y - axis",IDC_INPUT_JOYSTICKS_Y,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,309,75,39,10
@@ -713,7 +733,20 @@ BEGIN
     CTEXT           "50",IDC_INPUT_JOYSTICKS_DEADZONE_NUM,392,236,17,11,SS_SUNKEN
     LTEXT           "Dead-Zone",IDC_STATIC,331,250,37,8
     PUSHBUTTON      "Default",IDC_INPUT_JOYSTICKS_DEFAULT,380,268,32,12
-    LTEXT           "",IDC_INPUT_KEYPRESS_TEXT,7,284,270,14,WS_BORDER,WS_EX_CLIENTEDGE
+    LTEXT           "Slow",IDC_STATIC,91,254,15,8
+    CONTROL         "",IDC_INPUT_AUTOFIRE_SLIDER,"msctls_trackbar32",TBS_AUTOTICKS | TBS_BOTH | WS_TABSTOP,105,248,59,20
+    LTEXT           "Fast",IDC_STATIC,166,254,17,8
+    CTEXT           "Auto-Fire",IDC_STATIC,117,269,33,8
+    PUSHBUTTON      "Default",IDC_INPUT_AUTOFIRE_DEFAULT,153,268,32,12
+    PUSHBUTTON      "Set",IDC_INPUT_SET,198,255,32,12
+    PUSHBUTTON      "Set All",IDC_INPUT_SETALL,231,255,32,12
+    PUSHBUTTON      "Delete",IDC_INPUT_CLEAR,198,268,32,12
+    PUSHBUTTON      "Clear",IDC_INPUT_CLEARALL,231,268,32,12
+    PUSHBUTTON      "Default",IDC_INPUT_DEFAULT_CATEGORY,263,268,32,12
+    LTEXT           "",IDC_INPUT_KEYPRESS_TEXT,7,285,132,13,WS_BORDER,WS_EX_CLIENTEDGE
+    GROUPBOX        "",IDC_STATIC,143,281,156,17
+    CONTROL         "Allow up/down && left/right simultaneously",IDC_INPUT_ALLOW_SIMUL_AXES,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,149,287,145,11
     PUSHBUTTON      "Default",IDC_INPUT_DEFAULT,302,284,54,14
     DEFPUSHBUTTON   "OK",IDC_INPUT_OK,365,284,54,14
 END
@@ -768,15 +801,16 @@ BEGIN
     CTEXT           "128",IDC_GRAPHICS_COLORS_HUE_VAL,381,87,17,11,SS_SUNKEN | NOT WS_GROUP
     PUSHBUTTON      "Reset",IDC_GRAPHICS_COLORS_RESET,363,112,35,13
     GROUPBOX        "Palette",IDC_STATIC,7,141,279,46
-    RADIOBUTTON     "NTSC/PAL emulated",IDC_GRAPHICS_PALETTE_EMULATED,14,152,75,10,WS_TABSTOP
-    RADIOBUTTON     "Default Internal",IDC_GRAPHICS_PALETTE_INTERNAL,100,152,65,10,WS_TABSTOP
+    RADIOBUTTON     "Emulated",IDC_GRAPHICS_PALETTE_EMULATED,14,152,47,10,WS_TABSTOP
+    RADIOBUTTON     "Internal",IDC_GRAPHICS_PALETTE_INTERNAL,73,152,40,10,WS_TABSTOP
     RADIOBUTTON     "Custom",IDC_GRAPHICS_PALETTE_CUSTOM,14,169,35,10,WS_TABSTOP
     EDITTEXT        IDC_GRAPHICS_PALETTE_PATH,53,168,147,12,ES_AUTOHSCROLL | ES_READONLY | NOT WS_TABSTOP
     PUSHBUTTON      "Browse..",IDC_GRAPHICS_PALETTE_BROWSE,205,168,34,12
     PUSHBUTTON      "Clear",IDC_GRAPHICS_PALETTE_CLEAR,244,168,34,12
-    PUSHBUTTON      "Default",IDC_GRAPHICS_DEFAULT,297,171,49,16
-    CONTROL         "Auto-set to best match",IDC_GRAPHICS_AUTO_HZ,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,300,150,89,15
+    PUSHBUTTON      "Editor..",IDC_GRAPHICS_PALETTE_EDITOR,205,151,72,12
     GROUPBOX        "Monitor Frequency",IDC_STATIC,291,141,114,26
+    CONTROL         "Auto-set to best match",IDC_GRAPHICS_AUTO_HZ,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,300,150,89,15
+    PUSHBUTTON      "Default",IDC_GRAPHICS_DEFAULT,297,171,49,16
 END
 
 IDD_CHEATS_ADDCODE DIALOGEX 0, 0, 224, 290
@@ -872,6 +906,8 @@ STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSM
 CAPTION "Dipswitches"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
+    DEFPUSHBUTTON   "OK",IDC_DIPSWITCHES_OK,138,159,50,14
+    PUSHBUTTON      "Cancel",IDC_DIPSWITCHES_CANCEL,196,159,50,14
     GROUPBOX        "",IDC_STATIC,7,7,239,147
     LTEXT           "unknown",IDC_DIPSWITCHES_1_TEXT,14,20,67,8
     COMBOBOX        IDC_DIPSWITCHES_1,87,17,142,47,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
@@ -889,8 +925,6 @@ BEGIN
     COMBOBOX        IDC_DIPSWITCHES_7,87,119,142,40,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     LTEXT           "unknown",IDC_DIPSWITCHES_8_TEXT,14,139,68,8
     COMBOBOX        IDC_DIPSWITCHES_8,87,136,142,44,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    DEFPUSHBUTTON   "OK",IDC_DIPSWITCHES_OK,138,159,50,14
-    PUSHBUTTON      "Cancel",IDC_DIPSWITCHES_CANCEL,196,159,50,14
 END
 
 IDD_COMPRESSED_FILE DIALOGEX 0, 0, 210, 155
@@ -927,12 +961,6 @@ BEGIN
     PUSHBUTTON      "Browse..",IDC_AUTOSAVE_BROWSE,165,51,34,13
     PUSHBUTTON      "Clear",IDC_AUTOSAVE_CLEAR,203,51,34,13
     DEFPUSHBUTTON   "OK",IDC_AUTOSAVE_OK,135,82,50,14
-END
-
-IDD_INPUT_KEYPRESS DIALOGEX 0, 0, 119, 85
-STYLE DS_SETFONT | DS_FIXEDSYS | WS_POPUP
-FONT 8, "MS Shell Dlg", 400, 0, 0x1
-BEGIN
 END
 
 IDD_INESHEADER DIALOGEX 0, 0, 299, 183
@@ -978,7 +1006,60 @@ BEGIN
     LTEXT           "Byte 15",IDC_STATIC,217,133,32,10
     PUSHBUTTON      "Original",IDC_INESHEADER_ORIGINAL,7,162,63,14
     PUSHBUTTON      "Detect",IDC_INESHEADER_DETECT,81,162,63,14
-    PUSHBUTTON      "Save..",IDC_INESHEADER_SAVE,155,162,63,14
+    PUSHBUTTON      "Save As..",IDC_INESHEADER_SAVE,155,162,63,14
+END
+
+IDD_BARCODE DIALOGEX 0, 0, 119, 66
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Barcode Reader"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "Transfer",IDC_BARCODE_TRANSFER,62,45,50,14
+    GROUPBOX        "Digits",IDC_STATIC,7,7,105,31
+    EDITTEXT        IDC_BARCODE_DIGITS,14,18,91,12,ES_AUTOHSCROLL | ES_NUMBER
+    PUSHBUTTON      "Random",IDC_BARCODE_RANDOM,7,45,50,14
+END
+
+IDD_TAPE_RECORDER DIALOGEX 0, 0, 251, 71
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Tape Recorder"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "OK",IDC_TAPE_RECORDER_OK,138,50,50,14
+    PUSHBUTTON      "Cancel",IDC_TAPE_RECORDER_CANCEL,194,50,50,14
+    GROUPBOX        "Tape File",IDC_STATIC,7,7,237,30
+    EDITTEXT        IDC_TAPE_RECORDER_FILE,16,18,147,13,ES_AUTOHSCROLL
+    PUSHBUTTON      "Browse..",IDC_TAPE_RECORDER_BROWSE,167,18,34,13
+    PUSHBUTTON      "Clear",IDC_TAPE_RECORDER_CLEAR,205,18,34,13
+    GROUPBOX        "",IDC_STATIC,7,43,114,22
+    CONTROL         "Use image file naming",IDC_TAPE_RECORDER_USE_IMAGENAME,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,50,82,12
+END
+
+IDD_PALETTE_EDITOR DIALOGEX 0, 0, 267, 174
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Palette Editor"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    GROUPBOX        "",IDC_STATIC,7,67,253,58
+    CTEXT           "R",IDC_STATIC,14,75,11,12,SS_SUNKEN
+    CONTROL         "",IDC_PALETTE_EDITOR_R_SLIDER,"msctls_trackbar32",TBS_BOTH | TBS_NOTICKS | WS_TABSTOP,27,75,204,12,WS_EX_STATICEDGE
+    CTEXT           "0",IDC_PALETTE_EDITOR_R_VALUE,235,75,18,12,SS_SUNKEN
+    CTEXT           "G",IDC_STATIC,14,91,11,12,SS_SUNKEN
+    CONTROL         "",IDC_PALETTE_EDITOR_G_SLIDER,"msctls_trackbar32",TBS_BOTH | TBS_NOTICKS | WS_TABSTOP,27,91,204,12,WS_EX_STATICEDGE
+    CTEXT           "0",IDC_PALETTE_EDITOR_G_VALUE,235,91,18,12,SS_SUNKEN
+    CTEXT           "B",IDC_STATIC,14,107,11,12,SS_SUNKEN
+    CONTROL         "",IDC_PALETTE_EDITOR_B_SLIDER,"msctls_trackbar32",TBS_BOTH | TBS_NOTICKS | WS_TABSTOP,27,107,204,12,WS_EX_STATICEDGE
+    CTEXT           "0",IDC_PALETTE_EDITOR_B_VALUE,235,107,18,12,SS_SUNKEN
+    CONTROL         "Custom",IDC_PALETTE_EDITOR_USER,"Button",BS_AUTORADIOBUTTON,15,136,40,10
+    CONTROL         "Internal",IDC_PALETTE_EDITOR_INTERNAL,"Button",BS_AUTORADIOBUTTON,64,136,41,10
+    CONTROL         "Emulated",IDC_PALETTE_EDITOR_GENERATED,"Button",BS_AUTORADIOBUTTON,114,136,45,10
+    PUSHBUTTON      "Undo",IDC_PALETTE_EDITOR_UNDO,7,153,42,14
+    PUSHBUTTON      "Redo",IDC_PALETTE_EDITOR_REDO,59,153,42,14
+    PUSHBUTTON      "Reset",IDC_PALETTE_EDITOR_RESET,112,153,42,14
+    PUSHBUTTON      "Save As..",IDC_PALETTE_EDITOR_SAVE,165,153,42,14
+    DEFPUSHBUTTON   "Cancel",IDC_PALETTE_EDITOR_CANCEL,218,153,42,14
+    GROUPBOX        "",IDC_STATIC,7,127,253,24
 END
 
 
@@ -991,16 +1072,16 @@ IDR_MENU_LAUNCHER MENU
 BEGIN
     POPUP "&File"
     BEGIN
-        MENUITEM "&Run\tReturn",                IDM_LAUNCHER_FILE_RUN
+        MENUITEM "&Run",                        IDM_LAUNCHER_FILE_RUN
         MENUITEM SEPARATOR
-        MENUITEM "R&efresh\t F5",               IDM_LAUNCHER_FILE_REFRESH
+        MENUITEM "R&efresh",                    IDM_LAUNCHER_FILE_REFRESH
     END
     POPUP "&Edit"
     BEGIN
-        MENUITEM "&Find\tF3",                   IDM_LAUNCHER_EDIT_FIND
+        MENUITEM "&Find",                       IDM_LAUNCHER_EDIT_FIND
         MENUITEM SEPARATOR
-        MENUITEM "&Insert...\tInsert",          IDM_LAUNCHER_EDIT_INSERT
-        MENUITEM "&Delete\tDelete",             IDM_LAUNCHER_EDIT_REMOVE
+        MENUITEM "&Insert...",                  IDM_LAUNCHER_EDIT_INSERT
+        MENUITEM "&Delete",                     IDM_LAUNCHER_EDIT_REMOVE
         MENUITEM SEPARATOR
         MENUITEM "&Clear",                      IDM_LAUNCHER_EDIT_CLEAR
     END
@@ -1052,27 +1133,27 @@ BEGIN
         END
         POPUP "Quick Sa&ve State", GRAYED
         BEGIN
-            MENUITEM "Slot &1",                     IDM_FILE_QUICK_SAVE_STATE_SLOT_1
-            MENUITEM "Slot &2",                     IDM_FILE_QUICK_SAVE_STATE_SLOT_2
-            MENUITEM "Slot &3",                     IDM_FILE_QUICK_SAVE_STATE_SLOT_3
-            MENUITEM "Slot &4",                     IDM_FILE_QUICK_SAVE_STATE_SLOT_4
-            MENUITEM "Slot &5",                     IDM_FILE_QUICK_SAVE_STATE_SLOT_5
-            MENUITEM "Slot &6",                     IDM_FILE_QUICK_SAVE_STATE_SLOT_6
-            MENUITEM "Slot &7",                     IDM_FILE_QUICK_SAVE_STATE_SLOT_7
-            MENUITEM "Slot &8",                     IDM_FILE_QUICK_SAVE_STATE_SLOT_8
-            MENUITEM "Slot &9",                     IDM_FILE_QUICK_SAVE_STATE_SLOT_9
-            MENUITEM "&Next",                       IDM_FILE_QUICK_SAVE_STATE_SLOT_NEXT
+            MENUITEM "Slot &1",                     IDM_FILE_QUICK_SAVE_STATE_SLOT_1, GRAYED
+            MENUITEM "Slot &2",                     IDM_FILE_QUICK_SAVE_STATE_SLOT_2, GRAYED
+            MENUITEM "Slot &3",                     IDM_FILE_QUICK_SAVE_STATE_SLOT_3, GRAYED
+            MENUITEM "Slot &4",                     IDM_FILE_QUICK_SAVE_STATE_SLOT_4, GRAYED
+            MENUITEM "Slot &5",                     IDM_FILE_QUICK_SAVE_STATE_SLOT_5, GRAYED
+            MENUITEM "Slot &6",                     IDM_FILE_QUICK_SAVE_STATE_SLOT_6, GRAYED
+            MENUITEM "Slot &7",                     IDM_FILE_QUICK_SAVE_STATE_SLOT_7, GRAYED
+            MENUITEM "Slot &8",                     IDM_FILE_QUICK_SAVE_STATE_SLOT_8, GRAYED
+            MENUITEM "Slot &9",                     IDM_FILE_QUICK_SAVE_STATE_SLOT_9, GRAYED
+            MENUITEM "&Next",                       IDM_FILE_QUICK_SAVE_STATE_SLOT_NEXT, GRAYED
         END
         MENUITEM SEPARATOR
-        MENUITEM "Edit iNes Header...",         IDM_FILE_EDIT_INES_HEADER
+        MENUITEM "Edit iNes &Header...",        IDM_FILE_EDIT_INES_HEADER
         MENUITEM SEPARATOR
         MENUITEM "Save Scr&eenshot",            IDM_FILE_SAVE_SCREENSHOT, GRAYED
-        POPUP "So&und Recorder"
+        POPUP "Sound &Recorder"
         BEGIN
             MENUITEM "&File...",                    IDM_FILE_SOUND_RECORDER_FILE
             MENUITEM "&Record",                     IDM_FILE_SOUND_RECORDER_START, GRAYED
             MENUITEM "&Stop",                       IDM_FILE_SOUND_RECORDER_STOP, GRAYED
-            MENUITEM "&Rewind",                     IDM_FILE_SOUND_RECORDER_REWIND, GRAYED
+            MENUITEM "R&ewind",                     IDM_FILE_SOUND_RECORDER_REWIND, GRAYED
         END
         POPUP "&Movie Player"
         BEGIN
@@ -1082,11 +1163,13 @@ BEGIN
             MENUITEM "&Stop",                       IDM_FILE_MOVIE_STOP, GRAYED
             MENUITEM "R&ewind",                     IDM_FILE_MOVIE_REWIND, GRAYED
             MENUITEM "F&orward",                    IDM_FILE_MOVIE_FORWARD, GRAYED
+            MENUITEM SEPARATOR
+            MENUITEM "&Export to AVI...",           IDM_FILE_MOVIE_EXPORT_AVI, GRAYED
         END
         MENUITEM SEPARATOR
         MENUITEM "Lau&ncher...",                IDM_FILE_LAUNCHER
         MENUITEM SEPARATOR
-        POPUP "&Recent Files"
+        POPUP "Recent &Files"
         BEGIN
             MENUITEM ".",                           IDM_FILE_RECENT_1
             MENUITEM ".",                           IDM_FILE_RECENT_2
@@ -1101,7 +1184,7 @@ BEGIN
             MENUITEM "&Lock",                       IDM_FILE_RECENT_LOCK
             MENUITEM "&Clear",                      IDM_FILE_RECENT_CLEAR
         END
-        POPUP "Recent Directories"
+        POPUP "Recent &Directories"
         BEGIN
             MENUITEM ".",                           IDM_FILE_RECENT_DIR_1
             MENUITEM ".",                           IDM_FILE_RECENT_DIR_2
@@ -1118,7 +1201,7 @@ BEGIN
     POPUP "&Machine"
     BEGIN
         MENUITEM "&Power on",                   IDM_MACHINE_POWER, GRAYED
-        POPUP "&Reset", GRAYED
+        POPUP "&Reset"
         BEGIN
             MENUITEM "&Soft",                       IDM_MACHINE_RESET_SOFT, GRAYED
             MENUITEM "&Hard",                       IDM_MACHINE_RESET_HARD, GRAYED
@@ -1167,43 +1250,63 @@ BEGIN
             END
             POPUP "&Expansion Port"
             BEGIN
-                MENUITEM "&Unconnected",                IDM_MACHINE_INPUT_SPECIAL_UNCONNECTED
-                MENUITEM "&Family Basic Keyboard",      IDM_MACHINE_INPUT_SPECIAL_FAMILYBASICKEYBOARD
-                MENUITEM "&Arkanoid Paddle",            IDM_MACHINE_INPUT_SPECIAL_PADDLE
-                MENUITEM "&Oeka Kids Tablet",           IDM_MACHINE_INPUT_SPECIAL_OEKAKIDSTABLET
-                MENUITEM "&Hyper Shot",                 IDM_MACHINE_INPUT_SPECIAL_HYPERSHOT
-                MENUITEM "&Crazy Climber",              IDM_MACHINE_INPUT_SPECIAL_CRAZYCLIMBER
-                MENUITEM "&Mahjong",                    IDM_MACHINE_INPUT_SPECIAL_MAHJONG
-                MENUITEM "&Exciting Boxing",            IDM_MACHINE_INPUT_SPECIAL_EXCITINGBOXING
-                MENUITEM "&Top Rider",                  IDM_MACHINE_INPUT_SPECIAL_TOPRIDER
-                MENUITEM "&Pokkun Moguraa",             IDM_MACHINE_INPUT_SPECIAL_POKKUNMOGURAA
+                MENUITEM "&Unconnected",                IDM_MACHINE_INPUT_EXP_UNCONNECTED
+                MENUITEM "&Family Trainer",             IDM_MACHINE_INPUT_EXP_FAMILYTRAINER
+                MENUITEM "Family &Keyboard",            IDM_MACHINE_INPUT_EXP_FAMILYBASICKEYBOARD
+                MENUITEM "&Subor Keyboard",             IDM_MACHINE_INPUT_EXP_SUBORKEYBOARD
+                MENUITEM "&Doremikko Keyboard",         IDM_MACHINE_INPUT_EXP_DOREMIKKOKEYBOARD
+                MENUITEM "&Arkanoid Paddle",            IDM_MACHINE_INPUT_EXP_PADDLE
+                MENUITEM "&Oeka Kids Tablet",           IDM_MACHINE_INPUT_EXP_OEKAKIDSTABLET
+                MENUITEM "&Hyper Shot",                 IDM_MACHINE_INPUT_EXP_HYPERSHOT
+                MENUITEM "&Crazy Climber Controller",   IDM_MACHINE_INPUT_EXP_CRAZYCLIMBER
+                MENUITEM "&Mahjong Controller",         IDM_MACHINE_INPUT_EXP_MAHJONG
+                MENUITEM "&Exciting Boxing Bop Bag",    IDM_MACHINE_INPUT_EXP_EXCITINGBOXING
+                MENUITEM "&Top Rider Controller",       IDM_MACHINE_INPUT_EXP_TOPRIDER
+                MENUITEM "&Pokkun Moguraa Controller",  IDM_MACHINE_INPUT_EXP_POKKUNMOGURAA
+                MENUITEM "Pa&rty Tap",                  IDM_MACHINE_INPUT_EXP_PARTYTAP
             END
         END
-        POPUP "&Disk System"
+        POPUP "&External"
         BEGIN
-            POPUP "&Insert", GRAYED
+            POPUP "&Disk System"
             BEGIN
-                MENUITEM ".",                           IDM_MACHINE_FDS_INSERT_DISK_1_SIDE_A
-                MENUITEM ".",                           IDM_MACHINE_FDS_INSERT_DISK_1_SIDE_B
-                MENUITEM ".",                           IDM_MACHINE_FDS_INSERT_DISK_2_SIDE_A
-                MENUITEM ".",                           IDM_MACHINE_FDS_INSERT_DISK_2_SIDE_B
-                MENUITEM ".",                           IDM_MACHINE_FDS_INSERT_DISK_3_SIDE_A
-                MENUITEM ".",                           IDM_MACHINE_FDS_INSERT_DISK_3_SIDE_B
-                MENUITEM ".",                           IDM_MACHINE_FDS_INSERT_DISK_4_SIDE_A
-                MENUITEM ".",                           IDM_MACHINE_FDS_INSERT_DISK_4_SIDE_B
-                MENUITEM ".",                           IDM_MACHINE_FDS_INSERT_DISK_5_SIDE_A
-                MENUITEM ".",                           IDM_MACHINE_FDS_INSERT_DISK_5_SIDE_B
-                MENUITEM ".",                           IDM_MACHINE_FDS_INSERT_DISK_6_SIDE_A
-                MENUITEM ".",                           IDM_MACHINE_FDS_INSERT_DISK_6_SIDE_B
-                MENUITEM ".",                           IDM_MACHINE_FDS_INSERT_DISK_7_SIDE_A
-                MENUITEM ".",                           IDM_MACHINE_FDS_INSERT_DISK_7_SIDE_B
-                MENUITEM ".",                           IDM_MACHINE_FDS_INSERT_DISK_8_SIDE_A
-                MENUITEM ".",                           IDM_MACHINE_FDS_INSERT_DISK_8_SIDE_B
+                POPUP "&Insert", GRAYED
+                BEGIN
+                    MENUITEM ".",                           IDM_MACHINE_EXT_FDS_INSERT_DISK_1_SIDE_A
+                    MENUITEM ".",                           IDM_MACHINE_EXT_FDS_INSERT_DISK_1_SIDE_B
+                    MENUITEM ".",                           IDM_MACHINE_EXT_FDS_INSERT_DISK_2_SIDE_A
+                    MENUITEM ".",                           IDM_MACHINE_EXT_FDS_INSERT_DISK_2_SIDE_B
+                    MENUITEM ".",                           IDM_MACHINE_EXT_FDS_INSERT_DISK_3_SIDE_A
+                    MENUITEM ".",                           IDM_MACHINE_EXT_FDS_INSERT_DISK_3_SIDE_B
+                    MENUITEM ".",                           IDM_MACHINE_EXT_FDS_INSERT_DISK_4_SIDE_A
+                    MENUITEM ".",                           IDM_MACHINE_EXT_FDS_INSERT_DISK_4_SIDE_B
+                    MENUITEM ".",                           IDM_MACHINE_EXT_FDS_INSERT_DISK_5_SIDE_A
+                    MENUITEM ".",                           IDM_MACHINE_EXT_FDS_INSERT_DISK_5_SIDE_B
+                    MENUITEM ".",                           IDM_MACHINE_EXT_FDS_INSERT_DISK_6_SIDE_A
+                    MENUITEM ".",                           IDM_MACHINE_EXT_FDS_INSERT_DISK_6_SIDE_B
+                    MENUITEM ".",                           IDM_MACHINE_EXT_FDS_INSERT_DISK_7_SIDE_A
+                    MENUITEM ".",                           IDM_MACHINE_EXT_FDS_INSERT_DISK_7_SIDE_B
+                    MENUITEM ".",                           IDM_MACHINE_EXT_FDS_INSERT_DISK_8_SIDE_A
+                    MENUITEM ".",                           IDM_MACHINE_EXT_FDS_INSERT_DISK_8_SIDE_B
+                END
+                MENUITEM "&Change Side",                IDM_MACHINE_EXT_FDS_CHANGE_SIDE, GRAYED
+                MENUITEM "&Eject",                      IDM_MACHINE_EXT_FDS_EJECT_DISK, GRAYED
+                MENUITEM SEPARATOR
+                MENUITEM "&Options...",                 IDM_MACHINE_EXT_FDS_OPTIONS
             END
-            MENUITEM "&Change Side",                IDM_MACHINE_FDS_CHANGE_SIDE, GRAYED
-            MENUITEM "&Eject",                      IDM_MACHINE_FDS_EJECT_DISK, GRAYED
-            MENUITEM SEPARATOR
-            MENUITEM "&Options...",                 IDM_MACHINE_FDS_OPTIONS
+            POPUP "&Keyboard"
+            BEGIN
+                MENUITEM "&Paste Text",                 IDM_MACHINE_EXT_KEYBOARD_PASTE, GRAYED
+            END
+            POPUP "&Tape Recorder"
+            BEGIN
+                MENUITEM "&File...",                    IDM_MACHINE_EXT_TAPE_FILE
+                MENUITEM "&Record",                     IDM_MACHINE_EXT_TAPE_RECORD, GRAYED
+                MENUITEM "&Play",                       IDM_MACHINE_EXT_TAPE_PLAY, GRAYED
+                MENUITEM "&Stop",                       IDM_MACHINE_EXT_TAPE_STOP, GRAYED
+            END
+            MENUITEM "&Barcode Reader...",          IDM_MACHINE_EXT_BARCODE, GRAYED
+            MENUITEM "DIP &Switches...",            IDM_MACHINE_EXT_DIPSWITCHES, GRAYED
         END
         POPUP "&NSF Player"
         BEGIN
@@ -1219,14 +1322,13 @@ BEGIN
         END
         POPUP "R&egion"
         BEGIN
-            MENUITEM "&Auto\t",                     IDM_MACHINE_SYSTEM_AUTO, CHECKED
-            MENUITEM "&NTSC\t",                     IDM_MACHINE_SYSTEM_NTSC
-            MENUITEM "&PAL\t",                      IDM_MACHINE_SYSTEM_PAL
+            MENUITEM "&Auto",                       IDM_MACHINE_SYSTEM_AUTO
+            MENUITEM "&NTSC",                       IDM_MACHINE_SYSTEM_NTSC
+            MENUITEM "&PAL",                        IDM_MACHINE_SYSTEM_PAL
         END
         POPUP "&Options"
         BEGIN
             MENUITEM "No &Sprite Limit",            IDM_MACHINE_OPTIONS_UNLIMITEDSPRITES
-            MENUITEM "&DIP Switches...",            IDM_MACHINE_OPTIONS_DIPSWITCHES, GRAYED
         END
         MENUITEM SEPARATOR
         MENUITEM "P&ause",                      IDM_MACHINE_PAUSE, GRAYED
@@ -1295,8 +1397,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 0,1,2,3
- PRODUCTVERSION 0,1,2,3
+ FILEVERSION 0,1,2,4
+ PRODUCTVERSION 0,1,2,4
  FILEFLAGSMASK 0x17L
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1312,11 +1414,11 @@ BEGIN
         BLOCK "040904b0"
         BEGIN
             VALUE "FileDescription", "Nestopia - NES / Famicom emulator"
-            VALUE "FileVersion", "1.23"
-            VALUE "LegalCopyright", "Copyright (C) Martin Freij 2003-2005"
+            VALUE "FileVersion", "1.24"
+            VALUE "LegalCopyright", "Copyright (C) Martin Freij 2003-2006"
             VALUE "OriginalFilename", "Nestopia.exe"
             VALUE "ProductName", "Nestopia"
-            VALUE "ProductVersion", "1.23"
+            VALUE "ProductVersion", "1.24"
         END
     END
     BLOCK "VarFileInfo"
@@ -1332,13 +1434,6 @@ END
 //
 
 IDR_LICENCE             LICENCE                 "copying.txt"
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// IMAGEDATABASE
-//
-
-IDR_IMAGEDATABASE       IMAGEDATABASE           "ImageDatabase.zip"
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -1379,8 +1474,26 @@ END
 
 STRINGTABLE 
 BEGIN
+    IDS_SCREEN_UNLOADED     "Unloaded"
+    IDS_SCREEN_POWER_ON     "Power on.."
+    IDS_SCREEN_POWER_OFF    "Power off.."
+    IDS_SCREEN_RESET_HARD   "Hard reset.."
+    IDS_SCREEN_RESET_SOFT   "Soft reset.."
+    IDS_SCREEN_NTSC         "Switched to NTSC.."
+    IDS_SCREEN_PAL          "Switched to PAL.."
+    IDS_SCREEN_PAUSE        "Emulation paused.."
+    IDS_SCREEN_RESUME       "Emulation resumed.."
+    IDS_SCREEN_SCREENSHOT_SAVED_TO "Screenshot saved to"
+    IDS_SCREEN_DISK_1_SIDE_A_INSERTED "Disk 1, Side A inserted.."
+    IDS_SCREEN_DISK_1_SIDE_B_INSERTED "Disk 1, Side B inserted.."
+    IDS_SCREEN_DISK_2_SIDE_A_INSERTED "Disk 2, Side A inserted.."
+    IDS_SCREEN_DISK_2_SIDE_B_INSERTED "Disk 2, Side B inserted.."
     IDS_SCREEN_DISK_3_SIDE_A_INSERTED "Disk 3, Side A inserted.."
     IDS_SCREEN_DISK_3_SIDE_B_INSERTED "Disk 3, Side B inserted.."
+END
+
+STRINGTABLE 
+BEGIN
     IDS_SCREEN_DISK_4_SIDE_A_INSERTED "Disk 4, Side A inserted.."
     IDS_SCREEN_DISK_4_SIDE_B_INSERTED "Disk 4, Side B inserted.."
     IDS_SCREEN_DISK_5_SIDE_A_INSERTED "Disk 5, Side A inserted.."
@@ -1395,12 +1508,12 @@ BEGIN
     IDS_SCREEN_DISK_2_EJECTED "Disk 2 ejected.."
     IDS_SCREEN_DISK_3_EJECTED "Disk 3 ejected.."
     IDS_SCREEN_DISK_4_EJECTED "Disk 4 ejected.."
+    IDS_SCREEN_DISK_5_EJECTED "Disk 5 ejected.."
+    IDS_SCREEN_DISK_6_EJECTED "Disk 6 ejected.."
 END
 
 STRINGTABLE 
 BEGIN
-    IDS_SCREEN_DISK_5_EJECTED "Disk 5 ejected.."
-    IDS_SCREEN_DISK_6_EJECTED "Disk 6 ejected.."
     IDS_SCREEN_DISK_7_EJECTED "Disk 7 ejected.."
     IDS_SCREEN_DISK_8_EJECTED "Disk 8 ejected.."
     IDS_SCREEN_SAVE_STATE_TO "Saved state to"
@@ -1415,12 +1528,12 @@ BEGIN
     IDS_SCREEN_SLOT_8       "slot 8"
     IDS_SCREEN_SLOT_9       "slot 9"
     IDS_SCREEN_CPU_JAM      "CPU jam!"
+    IDS_SCREEN_SOUND_RECORDER_RESUME "Sound recording resumed.."
+    IDS_SCREEN_SOUND_RECORDER_START "Sound recording started.."
 END
 
 STRINGTABLE 
 BEGIN
-    IDS_SCREEN_SOUND_RECORDER_RESUME "Sound recording resumed.."
-    IDS_SCREEN_SOUND_RECORDER_START "Sound recording started.."
     IDS_SCREEN_SOUND_RECORDER_STOP "Sound recording stopped.."
     IDS_SCREEN_SOUND_RECORDER_WRITTEN "MB written to WAVE file.."
     IDS_SCREEN_FDS_LED      "Accessing disk.."
@@ -1438,6 +1551,8 @@ BEGIN
                             "File already exists. Do you want to combine the data?"
     IDS_CHEATS_EXPORTEXISTING_ERROR 
                             "Couldn't read the file, old data will be replaced!"
+    IDS_CHEATS_INVALID_CODE "Invalid code!"
+    IDS_CHEAT_CODE          "Code"
 END
 
 STRINGTABLE 
@@ -1465,28 +1580,6 @@ END
 
 STRINGTABLE 
 BEGIN
-    IDS_SCREEN_UNLOADED     "Unloaded"
-    IDS_SCREEN_POWER_ON     "Power on.."
-    IDS_SCREEN_POWER_OFF    "Power off.."
-    IDS_SCREEN_RESET_HARD   "Hard reset.."
-    IDS_SCREEN_RESET_SOFT   "Soft reset.."
-    IDS_SCREEN_NTSC         "Switched to NTSC.."
-    IDS_SCREEN_PAL          "Switched to PAL.."
-    IDS_SCREEN_PAUSE        "Emulation paused.."
-    IDS_SCREEN_RESUME       "Emulation resumed.."
-    IDS_SCREEN_UNLIMITED_SPRITES_ENABLED "Unlimited sprites enabled.."
-    IDS_SCREEN_UNLIMITED_SPRITES_DISABLED "Unlimited sprites disabled.."
-    IDS_SCREEN_SCREENSHOT_SAVED_TO "Screenshot saved to"
-    IDS_SCREEN_DISK_1_SIDE_A_INSERTED "Disk 1, Side A inserted.."
-    IDS_SCREEN_DISK_1_SIDE_B_INSERTED "Disk 1, Side B inserted.."
-    IDS_SCREEN_DISK_2_SIDE_A_INSERTED "Disk 2, Side A inserted.."
-    IDS_SCREEN_DISK_2_SIDE_B_INSERTED "Disk 2, Side B inserted.."
-END
-
-STRINGTABLE 
-BEGIN
-    IDS_CHEATS_INVALID_CODE "Invalid code!"
-    IDS_CHEAT_CODE          "Code"
     IDS_CHEAT_ADDRESS       "Address"
     IDS_CHEAT_VALUE         "Value"
     IDS_CHEAT_COMPARE       "Compare"
@@ -1495,23 +1588,23 @@ BEGIN
     IDS_SCRIPT_NOTHING      "There's nothing that can be loaded from the script!"
     IDS_DIALOG_INPUT_KEY_RESERVED "This key is reserved!"
     IDS_DIALOG_INPUT_PRESS_ANY_KEY_MENU 
-                            "Press any key, combine with Alt/Shift/Ctrl if needed.."
-    IDS_DIALOG_INPUT_PRESS_ANY_KEY_MISSING 
-                            "The key(s) must be combined with another!"
+                            "Press any key, Alt/Shift/Ctrl optional"
+    IDS_DIALOG_VIDEO_INVALID_PALETTE 
+                            "Invalid palette file! Must be at least 192 bytes long!"
     IDS_DIALOG_INPUT_PRESS_ANY_KEY_INVALID "Invalid key!"
     IDS_DIALOG_INPUT_PRESS_ANY_KEY_EMU "Press any key or joystick button.."
     IDS_DIALOG_INPUT_DUPLICATE_KEYS "Key already assigned!"
     IDS_DIALOGS_PREFERENCES_REGISTRYUPDATED 
                             "The registry was succesfully updated. If you wish to remove Nestopia from your system make sure you have all the file association buttons unchecked before deleting the files."
     IDS_DIALOGS_PREFERENCES_REGISTRYUPDATED_TITLE "Registry Updated"
+    IDS_MACHINE_POWER_OFF_TITLE "Power off Machine"
+    IDS_MACHINE_RESET_TITLE "Reset Machine"
 END
 
 STRINGTABLE 
 BEGIN
-    IDS_MACHINE_POWER_OFF_TITLE "Power OFF Machine"
-    IDS_MACHINE_RESET_TITLE "Reset Machine"
-    IDS_CARTRIDGE_LOAD_FAILED "Couldn't load cartridge save data!"
-    IDS_CARTRIDGE_SAVE_FAILED "Couldn't save cartridge save data!"
+    IDS_CARTRIDGE_LOAD_FAILED "Couldn't load the image data!"
+    IDS_CARTRIDGE_SAVE_FAILED "Couldn't save the image data!"
     IDS_INVALID_LAUNCHERFILE 
                             "Launcher database file is either damaged or not compatible with this version of Nestopia!"
     IDS_PRIORITY_NORMAL     "Normal"
@@ -1526,12 +1619,12 @@ BEGIN
     IDS_FDS_IPSDATASAVE_FAILED "Couldn't save the FDS data to the IPS file!"
     IDS_FDS_SAVE_FAILED     "Couldn't update the FDS image file! "
     IDS_FDS_DISK_1_SIDE_A   "Disk 1 Side A"
+    IDS_FDS_DISK_1_SIDE_B   "Disk 1 Side B"
+    IDS_FDS_DISK_2_SIDE_A   "Disk 2 Side A"
 END
 
 STRINGTABLE 
 BEGIN
-    IDS_FDS_DISK_1_SIDE_B   "Disk 1 Side B"
-    IDS_FDS_DISK_2_SIDE_A   "Disk 2 Side A"
     IDS_FDS_DISK_2_SIDE_B   "Disk 2 Side B"
     IDS_FDS_DISK_3_SIDE_A   "Disk 3 Side A"
     IDS_FDS_DISK_3_SIDE_B   "Disk 3 Side B"
@@ -1547,12 +1640,12 @@ BEGIN
     IDS_FDS_DISK_8_SIDE_B   "Disk 8 Side B"
     IDS_FDS_FILE_SAVE_QUESTION 
                             "FDS image file doesn't exist (could be inside an archive), recreate and save the changes to a new file?"
+    IDS_FDS_CHOOSE_SAVEFILE "Couldn't find the file for the current loaded FDS image (it may be inside an archive). To save the changes specify a new path and filename."
+    IDS_FDS_ERR_INVALIDBIOS "Invalid FDS BIOS file!"
 END
 
 STRINGTABLE 
 BEGIN
-    IDS_FDS_CHOOSE_SAVEFILE "Couldn't find the file for the current loaded FDS image (it may be inside an archive). To save the changes specify a new path and filename."
-    IDS_FDS_ERR_INVALIDBIOS "Invalid FDS BIOS file!"
     IDS_SCREENSHOT_SAVE_FAILED "Screenshot saving failed!"
     IDS_SCREENSHOT_UNSUPPORTED_FORMAT "Unsupported bitmap format!"
     IDS_WAVE_ERR_OPEN       "Couldn't open WAVE file!"
@@ -1567,6 +1660,8 @@ BEGIN
     IDS_MENU_5X             "&5X"
     IDS_MENU_6X             "&6X"
     IDS_MENU_7X             "&7X"
+    IDS_MENU_8X             "&8X"
+    IDS_MENU_9X             "&9X"
 END
 
 STRINGTABLE 
@@ -1594,8 +1689,6 @@ END
 
 STRINGTABLE 
 BEGIN
-    IDS_MENU_8X             "&8X"
-    IDS_MENU_9X             "&9X"
     IDS_VIDEO_FILTER_NONE   "None"
     IDS_VIDEO_FILTER_BILINEAR "Bilinear"
     IDS_VIDEO_FILTER_SCANLINES_BRIGHT "Scanlines (bright)"
@@ -1610,15 +1703,27 @@ BEGIN
     IDS_VIDEO_FILTER_HQ2X   "Hq2x"
     IDS_VIDEO_FILTER_HQ3X   "Hq3x"
     IDS_INESHEADER_INVALID  "One or more fields are invalid!"
+    IDS_INESHEADER_UNSAFE   "Image may not work with the current header data. Save anyway?"
+    IDS_EMU_MOVIE_SAVE_IMAGEDATA "Do you want to update the save data file?"
 END
 
 STRINGTABLE 
 BEGIN
-    IDS_INESHEADER_UNSAFE   "Image may not work with the current header data. Save anyway?"
-    IDS_EMU_MOVIE_SAVE_BATTERY "Do you want to update the battery file?"
     IDS_EMU_MOVIE_SAVE_FDS  "Do you want to update the FDS/IPS file?"
-    IDS_DIALOG_VIDEO_INVALID_PALETTE 
-                            "Invalid palette file! Must be at least 192 bytes long!"
+    IDS_EMU_MOVIE_SAVE_TURBOFILE "Do you want to update the turbo file?"
+    IDS_EMU_MOVIE_SAVE_TAPE "Do you want to update the tape file?"
+    IDS_EMU_MOVIE_SAVE_EEPROM "Do you want to update the EEPROM file?"
+    IDS_SCREEN_TAPE_RECORDING "Recording to tape.."
+    IDS_SCREEN_TAPE_PLAYING "Playing tape.."
+    IDS_SCREEN_TAPE_STOPPED "Tape stopped.."
+    IDS_AVI_WRITE_ERR       "AVI conversion error!"
+    IDS_AVI_WRITE_INFO      "AVI conversion will now begin. This may take several minutes. Press ESC at any time to abort."
+    IDS_AVI_WRITE_ABORT     "AVI conversion aborted!"
+    IDS_AVI_WRITE_FINISHED  "AVI conversion finished!"
+    IDS_SCREEN_NOSPRITELIMIT_ON "No Sprite Limit: ON"
+    IDS_SCREEN_NOSPRITELIMIT_OFF "No Sprite Limit: OFF"
+    IDS_SCREEN_TEXT_PASTE_1 "Pasting"
+    IDS_SCREEN_TEXT_PASTE_2 "characters.."
 END
 
 #endif    // English (U.S.) resources

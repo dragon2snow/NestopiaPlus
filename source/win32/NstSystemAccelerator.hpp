@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -46,9 +46,7 @@ namespace Nestopia
 			ibool Get(Entries&) const;
 			void Clear();
 
-			typedef String::Smart<32> KeyName;
-
-			static KeyName GetKeyName(const ACCEL&);
+			static const HeapString GetKeyName(const ACCEL&);
 
 			ACCEL operator [] (uint) const;
 
@@ -84,7 +82,7 @@ namespace Nestopia
 
 			void Set(Entries& entries)
 			{
-				Set( entries, entries.Size() );
+				Set( entries.Ptr(), entries.Size() );
 			}
 		};
 	}

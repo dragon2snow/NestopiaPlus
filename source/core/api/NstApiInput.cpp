@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -34,7 +34,10 @@
 #include "../input/NstInpLightGun.hpp"
 #include "../input/NstInpPaddle.hpp"
 #include "../input/NstInpPowerPad.hpp"
-#include "../input/NstInpKeyboard.hpp"
+#include "../input/NstInpFamilyTrainer.hpp"
+#include "../input/NstInpFamilyKeyboard.hpp"
+#include "../input/NstInpSuborKeyboard.hpp"
+#include "../input/NstInpDoremikkoKeyboard.hpp"
 #include "../input/NstInpOekaKidsTablet.hpp"
 #include "../input/NstInpHyperShot.hpp"
 #include "../input/NstInpCrazyClimber.hpp"
@@ -42,7 +45,11 @@
 #include "../input/NstInpExcitingBoxing.hpp"
 #include "../input/NstInpTopRider.hpp"
 #include "../input/NstInpPokkunMoguraa.hpp"
+#include "../input/NstInpPartyTap.hpp"
 #include "../NstIoAdapter.hpp"
+#include "../NstMapper.hpp"
+#include "../NstClock.hpp"
+#include "../board/NstBrdBandai.hpp"
 
 #ifdef NST_PRAGMA_OPTIMIZE
 #pragma optimize("s", on)
@@ -54,19 +61,23 @@ namespace Nes
 	{
 		namespace Input
 		{
-			Controllers::PollCaller2< Controllers::Pad            > Controllers::Pad::callback;
-			Controllers::PollCaller1< Controllers::Zapper         > Controllers::Zapper::callback;
-			Controllers::PollCaller1< Controllers::Paddle         > Controllers::Paddle::callback;
-			Controllers::PollCaller1< Controllers::PowerPad       > Controllers::PowerPad::callback;
-			Controllers::PollCaller3< Controllers::Keyboard       > Controllers::Keyboard::callback;
-			Controllers::PollCaller1< Controllers::VsSystem       > Controllers::VsSystem::callback;
-			Controllers::PollCaller1< Controllers::OekaKidsTablet > Controllers::OekaKidsTablet::callback;
-			Controllers::PollCaller1< Controllers::HyperShot      > Controllers::HyperShot::callback;
-			Controllers::PollCaller1< Controllers::CrazyClimber   > Controllers::CrazyClimber::callback;
-			Controllers::PollCaller2< Controllers::Mahjong        > Controllers::Mahjong::callback;
-			Controllers::PollCaller2< Controllers::ExcitingBoxing > Controllers::ExcitingBoxing::callback;
-			Controllers::PollCaller1< Controllers::TopRider       > Controllers::TopRider::callback;
-			Controllers::PollCaller2< Controllers::PokkunMoguraa  > Controllers::PokkunMoguraa::callback;
+			Controllers::PollCaller2< Controllers::Pad               > Controllers::Pad::callback;
+			Controllers::PollCaller1< Controllers::Zapper            > Controllers::Zapper::callback;
+			Controllers::PollCaller1< Controllers::Paddle            > Controllers::Paddle::callback;
+			Controllers::PollCaller1< Controllers::PowerPad          > Controllers::PowerPad::callback;
+			Controllers::PollCaller1< Controllers::FamilyTrainer     > Controllers::FamilyTrainer::callback;
+			Controllers::PollCaller3< Controllers::FamilyKeyboard    > Controllers::FamilyKeyboard::callback;
+			Controllers::PollCaller3< Controllers::SuborKeyboard     > Controllers::SuborKeyboard::callback;
+			Controllers::PollCaller3< Controllers::DoremikkoKeyboard > Controllers::DoremikkoKeyboard::callback;
+			Controllers::PollCaller1< Controllers::VsSystem          > Controllers::VsSystem::callback;
+			Controllers::PollCaller1< Controllers::OekaKidsTablet    > Controllers::OekaKidsTablet::callback;
+			Controllers::PollCaller1< Controllers::HyperShot         > Controllers::HyperShot::callback;
+			Controllers::PollCaller1< Controllers::CrazyClimber      > Controllers::CrazyClimber::callback;
+			Controllers::PollCaller2< Controllers::Mahjong           > Controllers::Mahjong::callback;
+			Controllers::PollCaller2< Controllers::ExcitingBoxing    > Controllers::ExcitingBoxing::callback;
+			Controllers::PollCaller1< Controllers::TopRider          > Controllers::TopRider::callback;
+			Controllers::PollCaller2< Controllers::PokkunMoguraa     > Controllers::PokkunMoguraa::callback;
+			Controllers::PollCaller1< Controllers::PartyTap          > Controllers::PartyTap::callback;
 
 			Controllers::PowerPad::PowerPad()
 			{ 
@@ -74,7 +85,18 @@ namespace Nes
 				std::fill( sideB, sideB + NUM_SIDE_B_BUTTONS, false );
 			}
 
-			Controllers::Keyboard::Keyboard() 
+			Controllers::FamilyTrainer::FamilyTrainer()
+			{ 
+				std::fill( sideA, sideA + NUM_SIDE_A_BUTTONS, false );
+				std::fill( sideB, sideB + NUM_SIDE_B_BUTTONS, false );
+			}
+
+			Controllers::FamilyKeyboard::FamilyKeyboard() 
+			{ 
+				std::memset( parts, 0x00, sizeof(parts) );
+			}
+
+			Controllers::SuborKeyboard::SuborKeyboard() 
 			{ 
 				std::memset( parts, 0x00, sizeof(parts) );
 			}
@@ -245,16 +267,20 @@ namespace Nes
 	
 						switch (type)
 						{
-							case UNCONNECTED:	 emulator.expPort = new Core::Input::Device;         break;
-							case PADDLE:         emulator.expPort = new Core::Input::Paddle( true ); break;
-							case KEYBOARD:       emulator.expPort = new Core::Input::Keyboard;       break;
-							case OEKAKIDSTABLET: emulator.expPort = new Core::Input::OekaKidsTablet; break;
-							case HYPERSHOT:      emulator.expPort = new Core::Input::HyperShot;      break;
-							case CRAZYCLIMBER:   emulator.expPort = new Core::Input::CrazyClimber;   break;
-							case MAHJONG:        emulator.expPort = new Core::Input::Mahjong;        break;
-							case EXCITINGBOXING: emulator.expPort = new Core::Input::ExcitingBoxing; break;
-							case TOPRIDER:       emulator.expPort = new Core::Input::TopRider;       break;
-							case POKKUNMOGURAA:  emulator.expPort = new Core::Input::PokkunMoguraa;  break;
+							case UNCONNECTED:	    emulator.expPort = new Core::Input::Device;            break;
+							case PADDLE:            emulator.expPort = new Core::Input::Paddle( true );    break;
+							case FAMILYTRAINER:     emulator.expPort = new Core::Input::FamilyTrainer;     break;
+							case FAMILYKEYBOARD:    emulator.expPort = new Core::Input::FamilyKeyboard;    break;
+							case SUBORKEYBOARD:     emulator.expPort = new Core::Input::SuborKeyboard;     break;
+							case DOREMIKKOKEYBOARD: emulator.expPort = new Core::Input::DoremikkoKeyboard; break;
+							case OEKAKIDSTABLET:    emulator.expPort = new Core::Input::OekaKidsTablet;    break;
+							case HYPERSHOT:         emulator.expPort = new Core::Input::HyperShot;         break;
+							case CRAZYCLIMBER:      emulator.expPort = new Core::Input::CrazyClimber;      break;
+							case MAHJONG:           emulator.expPort = new Core::Input::Mahjong;           break;
+							case EXCITINGBOXING:    emulator.expPort = new Core::Input::ExcitingBoxing;    break;
+							case TOPRIDER:          emulator.expPort = new Core::Input::TopRider;          break;
+							case POKKUNMOGURAA:     emulator.expPort = new Core::Input::PokkunMoguraa;     break;
+							case PARTYTAP:          emulator.expPort = new Core::Input::PartyTap;          break;
 							default: return RESULT_ERR_INVALID_PARAM;
 						}
 						break;
@@ -279,10 +305,10 @@ namespace Nes
 				return RESULT_ERR_INVALID_PARAM;
 			
 			Type type;
-	
-			if (emulator.Is( Machine::CARTRIDGE ))
+
+			if (emulator.image)
 			{
-				type = static_cast<const Core::Cartridge*>(emulator.image)->GetInfo().controllers[port];
+				type = (Type) emulator.image->GetDesiredController( port );
 			}
 			else switch (port)
 			{
@@ -290,7 +316,7 @@ namespace Nes
 				case PORT_2: type = PAD2;        break;
 				default:     type = UNCONNECTED; break;
 			}
-	
+
 			return ConnectController( port, type );
 		}
 	

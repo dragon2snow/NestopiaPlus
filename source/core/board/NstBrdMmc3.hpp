@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -110,10 +110,7 @@ namespace Nes
 		
 					Irq(Cpu&,Ppu&,IrqDelay=NO_IRQ_DELAY,bool=false);
 				};
-		
-				void SaveState(State::Saver&) const;
-				void LoadState(State::Loader&);
-		
+
 			protected:
 		
 				Mmc3(Context&,uint=WRAM_AUTO|CRAM_NONE,bool=false);
@@ -174,6 +171,8 @@ namespace Nes
 		
 				NST_COMPILE_ASSERT( sizeof(Banks) == sizeof(uint) * 10 );
 		
+				void BaseSave(State::Saver&) const;
+				void BaseLoad(State::Loader&,dword);
 				void VSync();
 		
 				Irq irq;

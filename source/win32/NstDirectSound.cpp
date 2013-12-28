@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -42,7 +42,7 @@ namespace Nestopia
 		Io::Log() << "DirectSound: initializing..\r\n";
 
 		if (FAILED(::DirectSoundEnumerate( EnumAdapter, &adapters )) || adapters.empty())
-			EnumAdapter( NULL, "Primary Sound Driver", NULL, &adapters );
+			EnumAdapter( NULL, _T("Primary Sound Driver"), NULL, &adapters );
 	}
 
 	DirectSound::~DirectSound()
@@ -56,12 +56,12 @@ namespace Nestopia
 		device.Release();
 	}
 
-	BOOL CALLBACK DirectSound::EnumAdapter(LPGUID guid,LPCSTR desc,LPCSTR,LPVOID context)
+	BOOL CALLBACK DirectSound::EnumAdapter(LPGUID guid,LPCTSTR desc,LPCTSTR,LPVOID context)
 	{
 		Io::Log() << "DirectSound: enumerating device - name: "
-    		      << (desc && *desc ? desc : "unknown")
+    		      << (desc && *desc ? desc : _T("unknown"))
      	      	  << ", GUID: "
-			      << (guid ? System::Guid( *guid ).GetString() : "unspecified")
+			      << (guid ? System::Guid( *guid ).GetString() : _T("unspecified"))
 			      << "\r\n";
 
 		ComInterface<IDirectSound8> device;
@@ -84,7 +84,7 @@ namespace Nestopia
 		return TRUE;
 	}
 
-	cstring DirectSound::Update
+	tstring DirectSound::Update
 	(
      	const uint deviceId,
 		const uint rate,
@@ -104,7 +104,7 @@ namespace Nestopia
 			Destroy();
 
 			if (FAILED(::DirectSoundCreate8( &adapters[deviceId].guid, &device, NULL )))
-				return "::DirectSoundCreate8() failed!";
+				return _T("::DirectSoundCreate8() failed!");
 
 			Io::Log() << "DirectSound: creating device #" << deviceId << "\r\n";
 
@@ -117,7 +117,7 @@ namespace Nestopia
 				if (FAILED(device->SetCooperativeLevel( settings.hWnd, DSSCL_NORMAL )))
 				{
 					device.Release();
-					return "IDirectSound8::SetCooperativeLevel() failed!";
+					return _T("IDirectSound8::SetCooperativeLevel() failed!");
 				}
 			}
 		}
@@ -125,7 +125,7 @@ namespace Nestopia
 		return buffer.Update( *device, settings.priority, rate, bits, channels, speed, latency, volume );
 	}
 
-	cstring DirectSound::UpdateSpeed(const uint speed,const uint latency)
+	tstring DirectSound::UpdateSpeed(const uint speed,const uint latency)
 	{
 		NST_ASSERT( device != NULL );
 		return buffer.UpdateSpeed( *device, settings.priority, speed, latency );
@@ -154,7 +154,7 @@ namespace Nestopia
 		}
 	}
 
-	cstring DirectSound::Buffer::Create(IDirectSound8& device,const ibool priority)
+	tstring DirectSound::Buffer::Create(IDirectSound8& device,const ibool priority)
 	{
 		Release();
 
@@ -193,10 +193,10 @@ namespace Nestopia
 			ComInterface<IDirectSoundBuffer> oldie;
 
 			if (FAILED(device.CreateSoundBuffer( &desc, &oldie, NULL )))
-				return "IDirectSound8::CreateSoundBuffer() failed!";
+				return _T("IDirectSound8::CreateSoundBuffer() failed!");
 
 			if (FAILED(oldie->QueryInterface( IID_IDirectSoundBuffer8, reinterpret_cast<void**>(&com) )))
-				return "IDirectSoundBuffer::QueryInterface() failed!";
+				return _T("IDirectSoundBuffer::QueryInterface() failed!");
 		}
 
 		if (settings.volume != VOLUME_MAX)
@@ -229,7 +229,7 @@ namespace Nestopia
 		com->SetVolume( volume );
 	}
 
-	cstring DirectSound::Buffer::Update
+	tstring DirectSound::Buffer::Update
 	(
 		IDirectSound8& device,
 		const ibool priority,
@@ -275,7 +275,7 @@ namespace Nestopia
 		return Create( device, priority );
 	}
 
-	cstring DirectSound::Buffer::UpdateSpeed
+	tstring DirectSound::Buffer::UpdateSpeed
 	(
      	IDirectSound8& device,
 		const ibool priority,

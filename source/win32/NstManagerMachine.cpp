@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -44,9 +44,9 @@ namespace Nestopia
 			{ IDM_MACHINE_RESET_SOFT,  &Machine::OnCmdReset   },
 			{ IDM_MACHINE_RESET_HARD,  &Machine::OnCmdReset   },
 			{ IDM_MACHINE_PAUSE,	   &Machine::OnCmdPause   },
+			{ IDM_MACHINE_SYSTEM_AUTO, &Machine::OnCmdSystem  },
 			{ IDM_MACHINE_SYSTEM_NTSC, &Machine::OnCmdSystem  },
-			{ IDM_MACHINE_SYSTEM_PAL,  &Machine::OnCmdSystem  },
-			{ IDM_MACHINE_SYSTEM_AUTO, &Machine::OnCmdSystem  }
+			{ IDM_MACHINE_SYSTEM_PAL,  &Machine::OnCmdSystem  }
 		};
 
 		m.Commands().Add( this, commands );
@@ -90,6 +90,8 @@ namespace Nestopia
 			if (emulator.Reset( hard == IDM_MACHINE_RESET_HARD ))
 				Io::Screen() << Resource::String(hard == IDM_MACHINE_RESET_HARD ? IDS_SCREEN_RESET_HARD : IDS_SCREEN_RESET_SOFT);
 		}
+
+		Application::Instance::Post( Application::Instance::WM_NST_COMMAND_RESUME );
 	}
 
 	void Machine::OnCmdPause(uint)
@@ -102,9 +104,7 @@ namespace Nestopia
 
 	void Machine::OnCmdSystem(uint id)
 	{
-		menu[ IDM_MACHINE_SYSTEM_NTSC ].Check( id == IDM_MACHINE_SYSTEM_NTSC );
-		menu[ IDM_MACHINE_SYSTEM_PAL  ].Check( id == IDM_MACHINE_SYSTEM_PAL  );
-		menu[ IDM_MACHINE_SYSTEM_AUTO ].Check( id == IDM_MACHINE_SYSTEM_AUTO );
+		menu[id].Check( IDM_MACHINE_SYSTEM_AUTO, IDM_MACHINE_SYSTEM_PAL );
 
 		if (id == IDM_MACHINE_SYSTEM_AUTO)
 			id = emulator.AutoSetMode();
@@ -116,6 +116,8 @@ namespace Nestopia
 			id = emulator.Is(Nes::Machine::NTSC) ? IDS_SCREEN_NTSC : IDS_SCREEN_PAL;
 			Io::Screen() << Resource::String(id);
 		}
+
+		Application::Instance::Post( Application::Instance::WM_NST_COMMAND_RESUME );
 	}
 
 	void Machine::OnEmuEvent(Emulator::Event event)
@@ -125,11 +127,9 @@ namespace Nestopia
 			case Emulator::EVENT_MODE_NTSC:
 			case Emulator::EVENT_MODE_PAL:
 
-				if (menu[ IDM_MACHINE_SYSTEM_AUTO ].IsUnchecked())
-				{
-					menu[ IDM_MACHINE_SYSTEM_NTSC ].Check( event == Emulator::EVENT_MODE_NTSC );
-					menu[ IDM_MACHINE_SYSTEM_PAL  ].Check( event == Emulator::EVENT_MODE_PAL  );
-				}
+				if (menu[IDM_MACHINE_SYSTEM_AUTO].IsUnchecked())
+					menu[event == Emulator::EVENT_MODE_NTSC ? IDM_MACHINE_SYSTEM_NTSC : IDM_MACHINE_SYSTEM_PAL].Check( IDM_MACHINE_SYSTEM_AUTO, IDM_MACHINE_SYSTEM_PAL );
+
 				break;
 
 			case Emulator::EVENT_PAUSE:
@@ -147,7 +147,6 @@ namespace Nestopia
 				menu[ IDM_MACHINE_RESET_SOFT ].Enable( state );
 				menu[ IDM_MACHINE_RESET_HARD ].Enable( state );
 				menu[ IDM_MACHINE_PAUSE ].Enable( state );
-				menu[ IDM_POS_MACHINE ][ IDM_POS_MACHINE_RESET ].Enable( state );
 				break;
 			}
 
@@ -158,7 +157,6 @@ namespace Nestopia
 
 				menu[ IDM_MACHINE_RESET_SOFT ].Enable( state );
 				menu[ IDM_MACHINE_RESET_HARD ].Enable( state );
-				menu[ IDM_POS_MACHINE ][ IDM_POS_MACHINE_RESET ].Enable( event == Emulator::EVENT_NETPLAY_POWER_ON );
 				break;
 			}
 

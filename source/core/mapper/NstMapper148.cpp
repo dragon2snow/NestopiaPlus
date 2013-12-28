@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -23,9 +23,8 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 
 #include "../NstMapper.hpp"
-#include "../board/NstBrdMmc3.hpp"
 #include "NstMapper148.hpp"
-
+		  
 namespace Nes
 {
 	namespace Core
@@ -34,34 +33,20 @@ namespace Nes
         #pragma optimize("s", on)
         #endif
 	
-		void Mapper148::SubReset(bool hard)
+		void Mapper148::SubReset(bool)
 		{
-			Mmc3::SubReset( hard );
+			Map( 0x8000U, 0xFFFFU, &Mapper148::Poke_pRom );
 		}
 	
         #ifdef NST_PRAGMA_OPTIMIZE
         #pragma optimize("", on)
         #endif
 	
-		void Mapper148::SwapChr(const uint address,const uint bank) const
-		{
-			chr.Source( (bank & 0x80) >> 7 ).SwapBank<NES_1K>( address, bank & 0x7F ); 
-		}
-	
-		void Mapper148::UpdateChr() const
+		NES_POKE(Mapper148,pRom)
 		{
 			ppu.Update();
-	
-			const uint swap = (regs.ctrl0 & Regs::CTRL0_XOR_CHR) << 5;
-	
-			SwapChr( 0x0000U ^ swap, (banks.chr[0] << 1) | 0 ); 
-			SwapChr( 0x0400U ^ swap, (banks.chr[0] << 1) | 1 ); 
-			SwapChr( 0x0800U ^ swap, (banks.chr[1] << 1) | 0 ); 
-			SwapChr( 0x0C00U ^ swap, (banks.chr[1] << 1) | 1 ); 
-			SwapChr( 0x1000U ^ swap,  banks.chr[2]           ); 
-			SwapChr( 0x1400U ^ swap,  banks.chr[3]           ); 
-			SwapChr( 0x1800U ^ swap,  banks.chr[4]           ); 
-			SwapChr( 0x1C00U ^ swap,  banks.chr[5]           ); 
+			prg.SwapBank<SIZE_32K,0x0000U>( (data >> 3) & 0x1 );
+			chr.SwapBank<SIZE_8K,0x0000U>( data & 0x7 );
 		}
 	}
 }

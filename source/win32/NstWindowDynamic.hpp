@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -35,16 +35,18 @@ namespace Nestopia
 	{				 
 		class Dynamic : public Custom
 		{
+			HeapString className;
+
 		public:
 
 			struct Context
 			{
-				cstring className;
+				tstring className;
 				DWORD classStyle;
 				HCURSOR hCursor;
 				HICON hIcon;
 				HBRUSH hBackground;
-				cstring windowName;
+				tstring windowName;
 				DWORD winStyle;
 				DWORD exStyle;
 				int x;
@@ -81,6 +83,7 @@ namespace Nestopia
 			~Dynamic();
 
 			void Create(Context&);
+			void Destroy();
 
 		private:
 

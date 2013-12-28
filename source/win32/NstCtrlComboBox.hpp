@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -92,7 +92,7 @@ namespace Nestopia
 				ComboBox(HWND hWnd,uint id)
 				: Generic( hWnd, id ) {}
 
-				Item Add(cstring const) const;
+				Item Add(tstring) const;
 				void Clear() const;
 				Item Selection() const;
 				uint Size() const;

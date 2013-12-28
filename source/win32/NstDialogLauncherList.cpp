@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -27,50 +27,51 @@
 #include "NstDialogFind.hpp"
 #include "NstManagerPaths.hpp"
 #include "NstDialogLauncher.hpp"
+#include <Shlwapi.h>
 
 namespace Nestopia
 {
 	using namespace Window;
 
-	const char Launcher::List::Strings::mappers[256][4] =
+	const tchar Launcher::List::Strings::mappers[256][4] =
 	{
-		"-","1","2","3","4","5","6","7","8","9",
-		"10","11","12","13","14","15","16","17","18","19",
-		"20","21","22","23","24","25","26","27","28","29",
-		"30","31","32","33","34","35","36","37","38","39",
-		"40","41","42","43","44","45","46","47","48","49",
-		"50","51","52","53","54","55","56","57","58","59",
-		"60","61","62","63","64","65","66","67","68","69",
-		"70","71","72","73","74","75","76","77","78","79",
-		"80","81","82","83","84","85","86","87","88","89",
-		"90","91","92","93","94","95","96","97","98","99",
-		"100","101","102","103","104","105","106","107","108","109",
-		"110","111","112","113","114","115","116","117","118","119",
-		"120","121","122","123","124","125","126","127","128","129",
-		"130","131","132","133","134","135","136","137","138","139",
-		"140","141","142","143","144","145","146","147","148","149",
-		"150","151","152","153","154","155","156","157","158","159",
-		"160","161","162","163","164","165","166","167","168","169",
-		"170","171","172","173","174","175","176","177","178","179",
-		"180","181","182","183","184","185","186","187","188","189",
-		"190","191","192","193","194","195","196","197","198","199",
-		"200","201","202","203","204","205","206","207","208","209",
-		"210","211","212","213","214","215","216","217","218","219",
-		"220","221","222","223","224","225","226","227","228","229",
-		"230","231","232","233","234","235","236","237","238","239",
-		"240","241","242","243","244","245","246","247","248","249",
-		"250","251","252","253","254","255"
+		_T("-"),_T("1"),_T("2"),_T("3"),_T("4"),_T("5"),_T("6"),_T("7"),_T("8"),_T("9"),
+		_T("10"),_T("11"),_T("12"),_T("13"),_T("14"),_T("15"),_T("16"),_T("17"),_T("18"),_T("19"),
+		_T("20"),_T("21"),_T("22"),_T("23"),_T("24"),_T("25"),_T("26"),_T("27"),_T("28"),_T("29"),
+		_T("30"),_T("31"),_T("32"),_T("33"),_T("34"),_T("35"),_T("36"),_T("37"),_T("38"),_T("39"),
+		_T("40"),_T("41"),_T("42"),_T("43"),_T("44"),_T("45"),_T("46"),_T("47"),_T("48"),_T("49"),
+		_T("50"),_T("51"),_T("52"),_T("53"),_T("54"),_T("55"),_T("56"),_T("57"),_T("58"),_T("59"),
+		_T("60"),_T("61"),_T("62"),_T("63"),_T("64"),_T("65"),_T("66"),_T("67"),_T("68"),_T("69"),
+		_T("70"),_T("71"),_T("72"),_T("73"),_T("74"),_T("75"),_T("76"),_T("77"),_T("78"),_T("79"),
+		_T("80"),_T("81"),_T("82"),_T("83"),_T("84"),_T("85"),_T("86"),_T("87"),_T("88"),_T("89"),
+		_T("90"),_T("91"),_T("92"),_T("93"),_T("94"),_T("95"),_T("96"),_T("97"),_T("98"),_T("99"),
+		_T("100"),_T("101"),_T("102"),_T("103"),_T("104"),_T("105"),_T("106"),_T("107"),_T("108"),_T("109"),
+		_T("110"),_T("111"),_T("112"),_T("113"),_T("114"),_T("115"),_T("116"),_T("117"),_T("118"),_T("119"),
+		_T("120"),_T("121"),_T("122"),_T("123"),_T("124"),_T("125"),_T("126"),_T("127"),_T("128"),_T("129"),
+		_T("130"),_T("131"),_T("132"),_T("133"),_T("134"),_T("135"),_T("136"),_T("137"),_T("138"),_T("139"),
+		_T("140"),_T("141"),_T("142"),_T("143"),_T("144"),_T("145"),_T("146"),_T("147"),_T("148"),_T("149"),
+		_T("150"),_T("151"),_T("152"),_T("153"),_T("154"),_T("155"),_T("156"),_T("157"),_T("158"),_T("159"),
+		_T("160"),_T("161"),_T("162"),_T("163"),_T("164"),_T("165"),_T("166"),_T("167"),_T("168"),_T("169"),
+		_T("170"),_T("171"),_T("172"),_T("173"),_T("174"),_T("175"),_T("176"),_T("177"),_T("178"),_T("179"),
+		_T("180"),_T("181"),_T("182"),_T("183"),_T("184"),_T("185"),_T("186"),_T("187"),_T("188"),_T("189"),
+		_T("190"),_T("191"),_T("192"),_T("193"),_T("194"),_T("195"),_T("196"),_T("197"),_T("198"),_T("199"),
+		_T("200"),_T("201"),_T("202"),_T("203"),_T("204"),_T("205"),_T("206"),_T("207"),_T("208"),_T("209"),
+		_T("210"),_T("211"),_T("212"),_T("213"),_T("214"),_T("215"),_T("216"),_T("217"),_T("218"),_T("219"),
+		_T("220"),_T("221"),_T("222"),_T("223"),_T("224"),_T("225"),_T("226"),_T("227"),_T("228"),_T("229"),
+		_T("230"),_T("231"),_T("232"),_T("233"),_T("234"),_T("235"),_T("236"),_T("237"),_T("238"),_T("239"),
+		_T("240"),_T("241"),_T("242"),_T("243"),_T("244"),_T("245"),_T("246"),_T("247"),_T("248"),_T("249"),
+		_T("250"),_T("251"),_T("252"),_T("253"),_T("254"),_T("255")
 	};
 
-	inline cstring Launcher::List::Strings::GetMapper(uint index) const
+	inline tstring Launcher::List::Strings::GetMapper(uint index) const
 	{
 		NST_ASSERT( index < 256 );
 		return mappers[index];
 	}
 
-	cstring Launcher::List::Strings::GetSize(u32 value)
+	tstring Launcher::List::Strings::GetSize(u32 value)
 	{					   
-		return value ? (cstring) sizes(value) : "-";
+		return value ? sizes(value).Ptr() : _T("-");
 	}
 
 	inline void Launcher::List::Strings::Flush()
@@ -155,7 +156,7 @@ namespace Nestopia
 		}
 	}
 
-	void Launcher::List::Add(cstring const fileName)
+	void Launcher::List::Add(tstring const fileName)
 	{
 		if (files.Insert( imageDatabase, fileName ) && !Optimize())
 			Redraw();
@@ -204,7 +205,7 @@ namespace Nestopia
 				for (uint i=0; i < count; ++i)
 				{
 					if (files[i].GetType() & typeFilter)
-						ctrl.Add( String::Generic(), &files[i] );
+						ctrl.Add( GenericString(), &files[i] );
 				}
 
 				Sort();
@@ -261,7 +262,7 @@ namespace Nestopia
 			{
 				case Columns::TYPE_FILE:		 
 			
-					item.pszText = const_cast<char*>( entry.GetFile(files.GetStrings()) ); 
+					item.pszText = const_cast<tchar*>( entry.GetFile(files.GetStrings()) ); 
 					break;
 			
 				case Columns::TYPE_SYSTEM:
@@ -276,35 +277,35 @@ namespace Nestopia
 						Files::Entry::SYSTEM_NTSC_PAL == 5
 					);
 			
-					static const char lut[][9] =
+					static const tchar lut[][9] =
 					{
-						"-",
-						"pc10",
-						"vs",
-						"pal",
-						"ntsc",
-						"ntsc/pal"
+						_T( "-"        ),
+						_T( "pc10"     ),
+						_T( "vs"       ),
+						_T( "pal"      ),
+						_T( "ntsc"     ),
+						_T( "ntsc/pal" )
 					};
 			
-					item.pszText = const_cast<char*>( lut[entry.GetSystem( useImageDatabase )] );
+					item.pszText = const_cast<tchar*>( lut[entry.GetSystem( useImageDatabase )] );
 					break;
 				}
 			
 				case Columns::TYPE_BATTERY:	 
 			
-					item.pszText = const_cast<char*>
+					item.pszText = const_cast<tchar*>
 					( 
 						(entry.GetType() & (Files::Entry::NES|Files::Entry::UNF)) ?
-						entry.GetBattery( useImageDatabase ) ? "yes" : "no" : "-"
+						entry.GetBattery( useImageDatabase ) ? _T("yes") : _T("no") : _T("-")
 					); 
 					break;
 			
 				case Columns::TYPE_TRAINER:	 
 			
-					item.pszText = const_cast<char*>
+					item.pszText = const_cast<tchar*>
 					( 
 						(entry.GetType() & Files::Entry::NES) ?
-						entry.GetTrainer( useImageDatabase ) ? "yes" : "no" : "-"
+						entry.GetTrainer( useImageDatabase ) ? _T("yes") : _T("no") : _T("-")
 					); 
 					break;
 			
@@ -321,60 +322,60 @@ namespace Nestopia
 						Files::Entry::MIRROR_CONTROLLED == 6
 					);
 			
-					static const char lut[][11] =
+					static const tchar lut[][11] =
 					{
-						"-",
-						"horizontal",
-						"vertical",
-						"zero",
-						"one",
-						"fourscreen",
-						"controlled"
+						_T( "-"          ),
+						_T( "horizontal" ),
+						_T( "vertical"   ),
+						_T( "zero"       ),
+						_T( "one"        ),
+						_T( "fourscreen" ),
+						_T( "controlled" )
 					};
 			
-					item.pszText = const_cast<char*>( lut[entry.GetMirroring( useImageDatabase )] );
+					item.pszText = const_cast<tchar*>( lut[entry.GetMirroring( useImageDatabase )] );
 					break;
 				}
 			
 				case Columns::TYPE_NAME:		 
 			
-					item.pszText = const_cast<char*>( entry.GetName( files.GetStrings(), useImageDatabase ) ); 
+					item.pszText = const_cast<tchar*>( entry.GetName( files.GetStrings(), useImageDatabase ) ); 
 					break;
 			
 				case Columns::TYPE_MAKER:
 			
-					item.pszText = const_cast<char*>( entry.GetMaker( files.GetStrings(), useImageDatabase ) ); 
+					item.pszText = const_cast<tchar*>( entry.GetMaker( files.GetStrings() ) ); 
 					break;
 			
 				case Columns::TYPE_FOLDER:
 			
-					item.pszText = const_cast<char*>( entry.GetPath( files.GetStrings() ) ); 
+					item.pszText = const_cast<tchar*>( entry.GetPath( files.GetStrings() ) ); 
 					break;
 			
 				case Columns::TYPE_PROM:
 			
-					item.pszText = const_cast<char*>( strings.GetSize(entry.GetPRom(useImageDatabase)) ); 
+					item.pszText = const_cast<tchar*>( strings.GetSize(entry.GetPRom(useImageDatabase)) ); 
 					break;	
 			
 				case Columns::TYPE_CROM:		 
 			
 					if (const uint cRom = entry.GetCRom( useImageDatabase ))
-						item.pszText = const_cast<char*>( strings.GetSize( cRom ) ); 
+						item.pszText = const_cast<tchar*>( strings.GetSize( cRom ) ); 
 					else
-						item.pszText = const_cast<char*>( "-" ); 
+						item.pszText = const_cast<tchar*>( _T("-") ); 
 					break;	
 			
 				case Columns::TYPE_MAPPER:	
 			
-					item.pszText = const_cast<char*>( strings.GetMapper(entry.GetMapper( useImageDatabase )) );
+					item.pszText = const_cast<tchar*>( strings.GetMapper(entry.GetMapper( useImageDatabase )) );
 					break;	
 			
 				case Columns::TYPE_WRAM:	
 			
 					if (const uint wRam = entry.GetWRam( useImageDatabase ))
-						item.pszText = const_cast<char*>( strings.GetSize( wRam ) ); 
+						item.pszText = const_cast<tchar*>( strings.GetSize( wRam ) ); 
 					else
-						item.pszText = const_cast<char*>( "-" ); 
+						item.pszText = const_cast<tchar*>( _T("-") ); 
 					break;
 			}
 		}
@@ -425,13 +426,13 @@ namespace Nestopia
 		const Files::Entry& a = *static_cast<const Files::Entry*>( obj1 );
 		const Files::Entry& b = *static_cast<const Files::Entry*>( obj2 );
 
-		for (uint i=0; i < columns.Count(); ++i)
+		for (uint i=0, n=columns.Count(); i < n; ++i)
 		{
 			switch (order[i])
 			{
 				case Columns::TYPE_FILE:
 			
-					if (const int ret = String::Compare( a.GetFile(files.GetStrings()), b.GetFile(files.GetStrings()) ))
+					if (const int ret = ::StrCmp( a.GetFile(files.GetStrings()), b.GetFile(files.GetStrings()) ))
 						return ret;
 			
 					continue;
@@ -550,7 +551,7 @@ namespace Nestopia
 			
 				case Columns::TYPE_NAME:
 				{
-					cstring const names[] =
+					tstring const names[] =
 					{
 						a.GetName( files.GetStrings(), useImageDatabase ), 
 						b.GetName( files.GetStrings(), useImageDatabase )
@@ -559,7 +560,7 @@ namespace Nestopia
 					if (names[0][0] != '-' && names[1][0] == '-') return -1;
 					if (names[0][0] == '-' && names[1][0] != '-') return +1;
 			
-					if (const int ret = String::Compare( names[0], names[1] ))
+					if (const int ret = ::StrCmp( names[0], names[1] ))
 						return ret;
 			
 					continue;
@@ -567,16 +568,16 @@ namespace Nestopia
 			
 				case Columns::TYPE_MAKER:
 				{
-					cstring const names[] =
+					tstring const names[] =
 					{
-						a.GetMaker( files.GetStrings(), useImageDatabase ), 
-						b.GetMaker( files.GetStrings(), useImageDatabase )
+						a.GetMaker( files.GetStrings() ), 
+						b.GetMaker( files.GetStrings() )
 					};
 			
 					if (names[0][0] != '-' && names[1][0] == '-') return -1;
 					if (names[0][0] == '-' && names[1][0] != '-') return +1;
 			
-					if (const int ret = String::Compare( names[0], names[1] ))
+					if (const int ret = ::StrCmp( names[0], names[1] ))
 						return ret;
 			
 					continue;
@@ -584,7 +585,7 @@ namespace Nestopia
 			
 				case Columns::TYPE_FOLDER:
 			
-					if (const int ret = String::Compare( a.GetPath(files.GetStrings()), b.GetPath(files.GetStrings()) ))
+					if (const int ret = ::StrCmp( a.GetPath(files.GetStrings()), b.GetPath(files.GetStrings()) ))
 						return ret;
 			
 					continue;
@@ -594,11 +595,11 @@ namespace Nestopia
 		return 0;
 	}
 
-	void Launcher::List::OnFind(const String::Generic string,uint flags)
+	void Launcher::List::OnFind(GenericString string,const uint flags)
 	{
 		const uint count = ctrl.Size();
 
-		if (count > 1 && string.Size())
+		if (count > 1 && string.Length())
 		{
 			const uint column = ctrl.Columns().GetIndex(0);
 			const int selection = ctrl.Selection().GetIndex();
@@ -606,7 +607,7 @@ namespace Nestopia
 			uint index = wrap;
 			ibool found;
 
-			String::Smart<256> item;
+			HeapString item;
 
 			do
 			{
@@ -625,17 +626,15 @@ namespace Nestopia
 
 				if (flags & Finder::WHOLEWORD)
 				{
-					if (flags & Finder::MATCHCASE)
-						found = (std::strcmp( item, string ) == 0);
-					else
-						found = (item == string);
+					found = item.Length() == string.Length() && ::StrIsIntlEqual( (flags & Finder::MATCHCASE), item.Ptr(), string.Ptr(), string.Length() );
+				}
+				else if (flags & Finder::MATCHCASE)
+				{					
+					found = (::StrStr( item.Ptr(), string.Ptr() ) != NULL);
 				}
 				else
 				{
-					if (flags & Finder::MATCHCASE)
-						found = (std::strstr( item, string ) != NULL);
-					else
-						found = item.Has( string );
+					found = (::StrStrI( item.Ptr(), string.Ptr() ) != NULL);
 				}
 			}
 			while (!found && index != wrap);
@@ -673,7 +672,7 @@ namespace Nestopia
 			)
 		};
 
-		Add( pathManager.BrowseLoad( FILE_TYPES ) );
+		Add( pathManager.BrowseLoad( FILE_TYPES ).Ptr() );
 	}
 
 	void Launcher::List::OnCmdEditDelete(uint) 

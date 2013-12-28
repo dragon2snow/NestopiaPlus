@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -27,7 +27,7 @@
 #include "NstLog.hpp"
 #include "NstCrc32.hpp"
 #include "NstImageDatabase.hpp"
-#include "NstINes.hpp"
+#include "NstInes.hpp"
 
 #ifdef NST_PRAGMA_OPTIMIZE
 #pragma optimize("s", on)
@@ -85,7 +85,7 @@ namespace Nes
 			if (!info.pRom || stream.Length() < info.pRom)
 				throw RESULT_ERR_CORRUPT_FILE;
 
-			wRam.Set( info.wRam ? info.wRam : info.trained ? NES_8K : 0 );
+			wRam.Set( info.wRam ? info.wRam : info.trained ? SIZE_8K : 0 );
 
 			if (info.trained)
 				stream.Read( wRam.Mem(TRAINER_OFFSET), TRAINER_LENGTH );
@@ -170,13 +170,13 @@ namespace Nes
 				info.system = Api::Cartridge::SYSTEM_NTSC;
 			}
 
-			info.pRom = NES_16K * header.num16kPRomBanks;
-			info.cRom = NES_8K * header.num8kCRomBanks;
-			info.wRam = NES_8K * header.num8kWRamBanks;
+			info.pRom = SIZE_16K * header.num16kPRomBanks;
+			info.cRom = SIZE_8K * header.num8kCRomBanks;
+			info.wRam = SIZE_8K * header.num8kWRamBanks;
 
-			log << "Ines: " << (info.pRom / NES_1K) << "k PRG-ROM set" NST_LINEBREAK
-			       "Ines: " << (info.cRom / NES_1K) << "k CHR-ROM set" NST_LINEBREAK
-			       "Ines: " << (info.wRam / NES_1K) << "k WRAM set" NST_LINEBREAK;   
+			log << "Ines: " << (info.pRom / SIZE_1K) << "k PRG-ROM set" NST_LINEBREAK
+			       "Ines: " << (info.cRom / SIZE_1K) << "k CHR-ROM set" NST_LINEBREAK
+			       "Ines: " << (info.wRam / SIZE_1K) << "k WRAM set" NST_LINEBREAK;   
 		}
 
 		void Ines::TryDatabase()
@@ -221,9 +221,9 @@ namespace Nes
 				if (info.pRom > pRom || stream.Length() >= total)
 				{
 					log << "changed PRG-ROM size: "
-						<< (info.pRom / NES_1K)
+						<< (info.pRom / SIZE_1K)
 						<< "k to: "
-						<< (pRom / NES_1K)
+						<< (pRom / SIZE_1K)
 						<< "k" NST_LINEBREAK;
 
 					info.pRom = pRom;
@@ -231,9 +231,9 @@ namespace Nes
 				else
 				{
 					log << "wanted to change PRG-ROM size: "
-						<< (info.pRom / NES_1K)
+						<< (info.pRom / SIZE_1K)
 						<< "k to: "
-						<< (pRom / NES_1K)
+						<< (pRom / SIZE_1K)
 						<< "k but couldn't" NST_LINEBREAK;
 				}
 
@@ -254,9 +254,9 @@ namespace Nes
 				if (info.cRom > cRom || stream.Length() >= total)
 				{
 					log << "changed CHR-ROM size: "
-						<< (info.cRom / NES_1K)
+						<< (info.cRom / SIZE_1K)
 						<< "k to: "
-						<< (cRom / NES_1K)
+						<< (cRom / SIZE_1K)
 						<< "k" NST_LINEBREAK;
 
 					info.cRom = cRom;
@@ -264,9 +264,9 @@ namespace Nes
 				else
 				{
 					log << "wanted to change CHR-ROM size: "
-						<< (info.cRom / NES_1K)
+						<< (info.cRom / SIZE_1K)
 						<< "k to: "
-						<< (cRom / NES_1K)
+						<< (cRom / SIZE_1K)
 						<< "k but couldn't" NST_LINEBREAK;
 				}
 
@@ -282,9 +282,9 @@ namespace Nes
 			{
 				log << title
 					<< "changed WRAM size: "
-					<< (info.wRam / NES_1K)
+					<< (info.wRam / SIZE_1K)
 					<< "k to: "
-				  	<< (wRam / NES_1K)
+				  	<< (wRam / SIZE_1K)
 					<< "k" NST_LINEBREAK;
 
 				info.wRam = wRam;

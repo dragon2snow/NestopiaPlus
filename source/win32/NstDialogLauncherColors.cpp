@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -31,7 +31,7 @@ namespace Nestopia
 {
 	using namespace Window;
 
-	inline Launcher::Colors::Type::Type(const int l,const int t,const int r,const int b)
+	inline Launcher::Colors::Type::Type(int l,int t,int r,int b)
 	: rect(l,t,r,b) {}
 
 	struct Launcher::Colors::Handlers
@@ -65,8 +65,8 @@ namespace Nestopia
 
 	void Launcher::Colors::Save(Configuration& cfg) const
 	{
-		cfg[ "launcher color foreground" ] = String::Hex( (u32) foreground.color );
-		cfg[ "launcher color background" ] = String::Hex( (u32) background.color );
+		cfg[ "launcher color foreground" ] = HexString( (u32) foreground.color );
+		cfg[ "launcher color background" ] = HexString( (u32) background.color );
 	}
 
 	void Launcher::Colors::Paint(const Type& type) const

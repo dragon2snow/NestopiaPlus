@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -45,7 +45,7 @@ namespace Nestopia
 		timers[id].active = TRUE;
 
 		if (!::SetTimer( hWnd, id, duration, &TimerProc ))
-			throw Application::Exception("SetTimer() failed!");
+			throw Application::Exception(_T("SetTimer() failed!"));
 	}
 
 	ibool Custom::StopTimer(const TimerCallback timer) const

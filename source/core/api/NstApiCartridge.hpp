@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -103,18 +103,18 @@ namespace Nes
 				Entry  FindEntry(ulong) const;
 				Entry  FindEntry(const void*,ulong,ulong=0) const;
 	
-				cstring   GetName      (Entry) const;
-				System    GetSystem    (Entry) const; 
-				Mirroring GetMirroring (Entry) const; 
-				ulong     GetCrc       (Entry) const; 
-				ulong     GetPRomCrc   (Entry) const; 
-				ulong     GetPRomSize  (Entry) const; 
-				ulong     GetCRomSize  (Entry) const; 
-				ulong     GetWRamSize  (Entry) const; 
-				uint      GetMapper    (Entry) const; 
-				bool      HasBattery   (Entry) const; 
-				bool      HasTrainer   (Entry) const; 
-				bool      IsBad        (Entry) const; 
+				const char* GetName      (Entry) const;
+				System      GetSystem    (Entry) const; 
+				Mirroring   GetMirroring (Entry) const; 
+				ulong       GetCrc       (Entry) const; 
+				ulong       GetPRomCrc   (Entry) const; 
+				ulong       GetPRomSize  (Entry) const; 
+				ulong       GetCRomSize  (Entry) const; 
+				ulong       GetWRamSize  (Entry) const; 
+				uint        GetMapper    (Entry) const; 
+				bool        HasBattery   (Entry) const; 
+				bool        HasTrainer   (Entry) const; 
+				bool        IsBad        (Entry) const; 
 			};
 	
 			Database GetDatabase();

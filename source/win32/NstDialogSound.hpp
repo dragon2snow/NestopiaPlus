@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -136,7 +136,7 @@ namespace Nestopia
 
 				Dialog dialog;
 				const Managers::Paths& paths;
-				String::Path<false> waveFile;
+				Path waveFile;
 
 			public:
 
@@ -145,7 +145,7 @@ namespace Nestopia
 					dialog.Open();
 				}
 
-				const String::Path<false>& WaveFile() const
+				const Path& WaveFile() const
 				{
 					return waveFile;
 				}

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -28,9 +28,7 @@
 #include "NstWindowUser.hpp"
 #include "NstResourceString.hpp"
 #include "NstApplicationConfiguration.hpp"
-#include "NstWindowParam.hpp"
-#include "NstManagerPaths.hpp"
-#include "NstManagerEmulator.hpp"
+#include "NstDialogPaletteEditor.hpp"
 #include "NstDialogVideo.hpp"
 
 #ifdef __INTEL_COMPILER
@@ -39,6 +37,29 @@
 
 namespace Nestopia
 {
+	NST_COMPILE_ASSERT
+	(
+       	IDC_GRAPHICS_NTSC_TOP    == IDC_GRAPHICS_NTSC_LEFT + 1 && 
+		IDC_GRAPHICS_NTSC_RIGHT  == IDC_GRAPHICS_NTSC_LEFT + 2 &&
+		IDC_GRAPHICS_NTSC_BOTTOM == IDC_GRAPHICS_NTSC_LEFT + 3 &&
+		IDC_GRAPHICS_PAL_LEFT    == IDC_GRAPHICS_NTSC_LEFT + 4 &&  
+		IDC_GRAPHICS_PAL_TOP     == IDC_GRAPHICS_NTSC_LEFT + 5 &&    
+		IDC_GRAPHICS_PAL_RIGHT   == IDC_GRAPHICS_NTSC_LEFT + 6 &&  
+		IDC_GRAPHICS_PAL_BOTTOM  == IDC_GRAPHICS_NTSC_LEFT + 7
+	);
+
+	NST_COMPILE_ASSERT
+	(
+		IDC_GRAPHICS_16_BIT == IDC_GRAPHICS_8_BIT + 1 &&
+		IDC_GRAPHICS_32_BIT == IDC_GRAPHICS_8_BIT + 2
+	);
+
+	NST_COMPILE_ASSERT
+	(
+		IDC_GRAPHICS_NESTEXTURE_VIDMEM == IDC_GRAPHICS_NESTEXTURE_AUTO + 1 &&
+		IDC_GRAPHICS_NESTEXTURE_SYSMEM == IDC_GRAPHICS_NESTEXTURE_AUTO + 2
+	);
+
 	using namespace Window;
 
 	Video::Settings::Settings()
@@ -77,6 +98,7 @@ namespace Nestopia
 		{ IDC_GRAPHICS_COLORS_RESET,      &Video::OnCmdColorsReset },
 		{ IDC_GRAPHICS_PALETTE_BROWSE,    &Video::OnCmdPalBrowse   },
 		{ IDC_GRAPHICS_PALETTE_CLEAR,     &Video::OnCmdPalClear    },
+		{ IDC_GRAPHICS_PALETTE_EDITOR,    &Video::OnCmdPalEditor   },
 		{ IDC_GRAPHICS_AUTO_HZ,			  &Video::OnCmdAutoHz      },
 		{ IDC_GRAPHICS_DEFAULT,           &Video::OnCmdDefault     },
 		{ IDC_GRAPHICS_OK,                &Video::OnCmdOk          }
@@ -119,16 +141,16 @@ namespace Nestopia
 			settings.mode = GetDefaultMode();
 
 		{
-			const String::Heap& type = cfg["video filter"];
+			const GenericString type( cfg["video filter"] );
 
 		    settings.filter = FILTER_NONE;
 
-			if (type == "bilinear")
+			if (type == _T("bilinear"))
 			{
 				if (settings.adapter->filters & Adapter::FILTER_BILINEAR)
 					settings.filter = FILTER_BILINEAR;
 			}
-			else if (type == "tv soft")
+			else if (type == _T("tv soft"))
 			{
 				if 
 				(
@@ -137,20 +159,20 @@ namespace Nestopia
 				)
 					settings.filter = FILTER_TV_SOFT;
 			}
-			else if (type == "scanlines bright")
+			else if (type == _T("scanlines bright"))
 			{
 				settings.filter = FILTER_SCANLINES_BRIGHT;
 			}
-			else if (type == "scanlines dark")
+			else if (type == _T("scanlines dark"))
 			{
 				settings.filter = FILTER_SCANLINES_DARK;
 			}
-			else if (type == "scale3x")
+			else if (type == _T("scale3x"))
 			{
 				if (settings.adapter->maxScreenSize >= NST_MAX(NES_HEIGHT * 4,NES_WIDTH * 4))
 					settings.filter = FILTER_SCALE3X;
 			}
-			else if (type == "hq3x")
+			else if (type == _T("hq3x"))
 			{
 				if (settings.adapter->maxScreenSize >= NST_MAX(NES_HEIGHT * 4,NES_WIDTH * 4))
 					settings.filter = FILTER_HQ3X;
@@ -159,25 +181,25 @@ namespace Nestopia
 			{
 				settings.filter =
 				(
-					type == "tv harsh"    ? FILTER_TV_HARSH :
-					type == "2xsai"       ? FILTER_2XSAI :
-					type == "super 2xsai" ? FILTER_SUPER_2XSAI :
-					type == "super eagle" ? FILTER_SUPER_EAGLE :
-					type == "scale2x"     ? FILTER_SCALE2X :
-				    type == "hq2x"		  ? FILTER_HQ2X :
-				                            FILTER_NONE
+					type == _T("tv harsh"    ) ? FILTER_TV_HARSH :
+					type == _T("2xsai"       ) ? FILTER_2XSAI :
+					type == _T("super 2xsai" ) ? FILTER_SUPER_2XSAI :
+					type == _T("super eagle" ) ? FILTER_SUPER_EAGLE :
+					type == _T("scale2x"     ) ? FILTER_SCALE2X :
+				    type == _T("hq2x"		) ? FILTER_HQ2X :
+				                                    FILTER_NONE
 				);
 			}
 		}
 
 		{
-			const String::Heap& type = cfg["video texture location"];
+			const GenericString type( cfg["video texture location"] );
 
-			if (type == "vidmem")
+			if (type == _T("vidmem"))
 			{
 				settings.texMem = Settings::TEXMEM_VIDMEM;
 			}
-			else if (type == "sysmem")
+			else if (type == _T("sysmem"))
 			{
 				settings.texMem = Settings::TEXMEM_SYSMEM;
 			}
@@ -212,18 +234,16 @@ namespace Nestopia
 		}
 
 		settings.palette = cfg["video palette file"];
-
-		if (settings.palette.Size())
-			ImportPalette( Managers::Paths::QUIETLY );
+		ImportPalette( settings.palette, Managers::Paths::QUIETLY );
 
 		{
-			const String::Heap& type = cfg["video palette"];
+			const GenericString type( cfg["video palette"] );
 
 			nes.GetPalette().SetMode
 			( 
-		    	type == "emulated" ?                          Nes::Video::Palette::EMULATED :
-				type == "custom" && settings.palette.Size() ? Nes::Video::Palette::CUSTOM :
-				                                              Nes::Video::Palette::INTERNAL
+		    	type == _T("emulated") ?                            Nes::Video::Palette::EMULATED :
+				type == _T("custom") && settings.palette.Length() ? Nes::Video::Palette::CUSTOM :
+				                                                    Nes::Video::Palette::INTERNAL
 			);
 		}
 
@@ -249,43 +269,43 @@ namespace Nestopia
 		}
 
 		{
-			static cstring const names[] =
+			static tstring const names[] =
 			{
-				"none",            
-				"bilinear",
-				"scanlines bright",
-				"scanlines dark",
-				"tv soft",
-				"tv harsh",
-				"2xsai",           
-				"super 2xsai",
-				"super eagle",     
-				"scale2x",         
-				"scale3x",
-				"hq2x",
-				"hq3x"
+				_T( "none"             ),            
+				_T( "bilinear"         ),
+				_T( "scanlines bright" ),
+				_T( "scanlines dark"   ),
+				_T( "tv soft"          ),
+				_T( "tv harsh"         ),
+				_T( "2xsai"            ),           
+				_T( "super 2xsai"      ),
+				_T( "super eagle"      ),     
+				_T( "scale2x"          ),         
+				_T( "scale3x"          ),
+				_T( "hq2x"             ),
+				_T( "hq3x"			  )
 			};
 
 			cfg[ "video filter" ] = names[settings.filter];
 		}
 
 		{
-			static cstring const names[] =
+			static tstring const names[] =
 			{
-				"auto","vidmem","sysmem"
+				_T("auto"), _T("vidmem"), _T("sysmem")
 			};
 
 			cfg[ "video texture location" ] = names[settings.texMem];
 		}
 
 		{
-			String::Generic name;
+			GenericString name;
 
 			switch (nes.GetPalette().GetMode())
 			{
-				case Nes::Video::Palette::EMULATED: name = "emulated"; break;
-				case Nes::Video::Palette::CUSTOM:   name = "custom";   break;
-				default:                            name = "internal"; break;
+				case Nes::Video::Palette::EMULATED: name = _T("emulated"); break;
+				case Nes::Video::Palette::CUSTOM:   name = _T("custom");   break;
+				default:                            name = _T("internal"); break;
 			}
 
 			cfg[ "video palette" ] = name;
@@ -304,6 +324,42 @@ namespace Nestopia
 		cfg[ "video color saturation"       ] = nes.GetSaturation();
 		cfg[ "video color hue"              ] = nes.GetHue();
 		cfg[ "video auto display frequency" ].YesNo() = settings.autoHz;
+	}
+
+	void Video::LoadGamePalette(const Path& path)
+	{
+		if (path.Length())
+		{
+			settings.lockedPalette = path;
+			settings.lockedMode = nes.GetPalette().GetMode();
+			nes.GetPalette().SetMode( Nes::Video::Palette::CUSTOM );
+			ImportPalette( settings.lockedPalette, Managers::Paths::QUIETLY );
+		}
+	}
+
+	void Video::UnloadGamePalette()
+	{
+		if (settings.lockedPalette.Length())
+		{
+			settings.lockedPalette.Destroy();
+			nes.GetPalette().SetMode( settings.lockedMode );
+			ImportPalette( settings.palette, Managers::Paths::QUIETLY );
+		}
+	}
+
+	void Video::SavePalette(Path& path) const
+	{
+		if (nes.GetPalette().GetMode() == Nes::Video::Palette::CUSTOM)
+		{
+			if (settings.lockedPalette.Length())
+			{
+				path = settings.lockedPalette;
+			}
+			else if (settings.palette.Length())
+			{
+				path = settings.palette;
+			}
+		}
 	}
 
 	Video::Modes::const_iterator Video::GetDialogMode() const
@@ -384,30 +440,30 @@ namespace Nestopia
 
 			for (Adapters::const_iterator it(adapters.begin()); it != adapters.end(); ++it)
 			{
-				comboBox.Add( it->name );
+				comboBox.Add( it->name.Ptr() );
 
 				if (settings.adapter == it)
 					comboBox[comboBox.Size() - 1].Select();
 			}
 		}
-  
-		NST_COMPILE_ASSERT
-		(		   
-			IDC_GRAPHICS_NTSC_TOP    - IDC_GRAPHICS_NTSC_LEFT == 1 && 
-			IDC_GRAPHICS_NTSC_RIGHT  - IDC_GRAPHICS_NTSC_LEFT == 2 &&
-			IDC_GRAPHICS_NTSC_BOTTOM - IDC_GRAPHICS_NTSC_LEFT == 3 &&
-			IDC_GRAPHICS_PAL_LEFT    - IDC_GRAPHICS_NTSC_LEFT == 4 &&  
-			IDC_GRAPHICS_PAL_TOP     - IDC_GRAPHICS_NTSC_LEFT == 5 &&    
-			IDC_GRAPHICS_PAL_RIGHT   - IDC_GRAPHICS_NTSC_LEFT == 6 &&  
-			IDC_GRAPHICS_PAL_BOTTOM  - IDC_GRAPHICS_NTSC_LEFT == 7 
-		);
-        
+          
 		for (uint i=IDC_GRAPHICS_NTSC_LEFT; i <= IDC_GRAPHICS_PAL_BOTTOM; ++i)
 			dialog.Edit( i ).Limit( 3 );
 
 		dialog.Slider( IDC_GRAPHICS_COLORS_BRIGHTNESS ).SetRange( 0, 255 );
 		dialog.Slider( IDC_GRAPHICS_COLORS_SATURATION ).SetRange( 0, 255 );
 		dialog.Slider( IDC_GRAPHICS_COLORS_HUE        ).SetRange( 0, 255 );
+
+		if (settings.lockedPalette.Length())
+		{
+			dialog.Control( IDC_GRAPHICS_PALETTE_PATH     ).Disable();
+			dialog.Control( IDC_GRAPHICS_PALETTE_BROWSE   ).Disable();
+			dialog.Control( IDC_GRAPHICS_PALETTE_CLEAR    ).Disable();
+			dialog.Control( IDC_GRAPHICS_PALETTE_EDITOR   ).Disable();
+			dialog.Control( IDC_GRAPHICS_PALETTE_INTERNAL ).Disable();
+			dialog.Control( IDC_GRAPHICS_PALETTE_EMULATED ).Disable();
+			dialog.Control( IDC_GRAPHICS_PALETTE_CUSTOM   ).Disable();
+		}
 
 		UpdateColors();
 		UpdateTexMem();
@@ -471,12 +527,6 @@ namespace Nestopia
 
 	ibool Video::OnCmdBitDepth(Param& param)
 	{
-		NST_COMPILE_ASSERT
-		(
-			IDC_GRAPHICS_16_BIT - IDC_GRAPHICS_8_BIT == 1 &&
-			IDC_GRAPHICS_32_BIT - IDC_GRAPHICS_8_BIT == 2
-		);
-
 		if (param.Button().IsClicked())
 			UpdateBitDepth( 8U << (param.Button().GetId() - IDC_GRAPHICS_8_BIT) );
 
@@ -498,12 +548,6 @@ namespace Nestopia
 
 	ibool Video::OnCmdTexMem(Param& param)
 	{
-		NST_COMPILE_ASSERT
-		(
-     		IDC_GRAPHICS_NESTEXTURE_VIDMEM - IDC_GRAPHICS_NESTEXTURE_AUTO == 1 &&
-			IDC_GRAPHICS_NESTEXTURE_SYSMEM - IDC_GRAPHICS_NESTEXTURE_AUTO == 2
-		);
-
 		if (param.Button().IsClicked())
 		{
 			settings.texMem = (Settings::TexMem) (param.Button().GetId() - IDC_GRAPHICS_NESTEXTURE_AUTO);
@@ -552,7 +596,7 @@ namespace Nestopia
 	{
 		if (param.Button().IsClicked())
 		{
-			const Managers::Paths::TmpPath file
+			const Path file
 			(
 				paths.BrowseLoad
 				( 
@@ -561,12 +605,13 @@ namespace Nestopia
 				)
 			);
 
-			if (file.Size())
+			if (file.Length())
 			{
 				settings.palette = file;
 				
-				ImportPalette( Managers::Paths::NOISY );
-				UpdatePalette();
+				ImportPalette( settings.palette, Managers::Paths::NOISY );
+				UpdatePalette();				
+				UpdateScreen( param.hWnd );
 			}
 		}
 
@@ -577,15 +622,42 @@ namespace Nestopia
 	{
 		if (param.Button().IsClicked())
 		{
-			if (settings.palette.Size())
+			if (settings.palette.Length())
 			{
 				settings.palette.Destroy();
 
-				nes.GetPalette().SetMode( Nes::Video::Palette::INTERNAL );
+				if (nes.GetPalette().GetMode() == Nes::Video::Palette::CUSTOM )
+					nes.GetPalette().SetMode( Nes::Video::Palette::INTERNAL );
 
 				UpdatePalette();
 				UpdateScreen( param.hWnd );
 			}
+		}
+
+		return TRUE;
+	}
+
+	ibool Video::OnCmdPalEditor(Param& param)
+	{
+		if (param.Button().IsClicked())
+		{
+			if (settings.palette.Empty())
+				nes.GetPalette().ResetCustom();
+
+			{
+				const Path path( PaletteEditor( nes, paths, settings.palette ).GetPaletteFile() );
+
+				if (settings.palette.Empty() && path.Length())
+					settings.palette = path;
+			}
+
+			if (settings.palette.Length())
+			{
+				ImportPalette( settings.palette, Managers::Paths::QUIETLY );
+				UpdatePalette();
+			}
+
+			UpdateScreen( param.hWnd );
 		}
 
 		return TRUE;
@@ -617,7 +689,9 @@ namespace Nestopia
 			settings.texMem = Settings::TEXMEM_AUTO;
 			UpdateTexMem();
 
-			nes.GetPalette().SetMode( Nes::Video::Palette::INTERNAL );
+			if (settings.lockedPalette.Empty())
+				nes.GetPalette().SetMode( Nes::Video::Palette::INTERNAL );
+
 			UpdatePalette();
 
 			settings.autoHz = FALSE;
@@ -682,8 +756,8 @@ namespace Nestopia
 
 	void Video::UpdatePalette() const
 	{
-		dialog.Control( IDC_GRAPHICS_PALETTE_CUSTOM ).Enable( settings.palette.Size() );
-		dialog.Edit( IDC_GRAPHICS_PALETTE_PATH ) << settings.palette;
+		dialog.Control( IDC_GRAPHICS_PALETTE_CUSTOM ).Enable( settings.lockedPalette.Empty() && settings.palette.Length() );
+		dialog.Edit( IDC_GRAPHICS_PALETTE_PATH ) << (settings.lockedPalette.Length() ? settings.lockedPalette.Ptr() : settings.palette.Ptr());
 
 		const Nes::Video::Palette::Mode mode = nes.GetPalette().GetMode();
 
@@ -692,34 +766,26 @@ namespace Nestopia
 		dialog.RadioButton( IDC_GRAPHICS_PALETTE_CUSTOM   ).Check( mode == Nes::Video::Palette::CUSTOM   );
 	}
 
-	void Video::ImportPalette(Managers::Paths::Alert alert)
+	void Video::ImportPalette(Path& palette,Managers::Paths::Alert alert)
 	{
-		NST_ASSERT( settings.palette.Size() );
-
-		Managers::Paths::File file;
-
-		enum 
+		if (palette.Length())
 		{
-			FILE_TYPES =
+			Managers::Paths::File file;
+
+			if
 			(
-		    	Managers::Paths::File::PALETTE |
-		    	Managers::Paths::File::ARCHIVE
+				!paths.Load( file, Managers::Paths::File::PALETTE|Managers::Paths::File::ARCHIVE, palette, alert ) || file.data.Size() < 64*3 ||
+				NES_FAILED(nes.GetPalette().SetCustom( reinterpret_cast<Nes::Video::Palette::Colors>(file.data.Begin()) ))
 			)
-		};
+			{
+				if (alert == Managers::Paths::QUIETLY)
+					Io::Log() << "Video: warning, custom palette file: \"" << palette << "\" invalid or not found!\r\n";
+				else
+					Window::User::Fail( IDS_DIALOG_VIDEO_INVALID_PALETTE );
 
-		if
-		(
-			!paths.Load( file, FILE_TYPES, settings.palette, alert ) || file.data.Size() < 64 * 3 ||
-			NES_FAILED(nes.GetPalette().SetCustom( reinterpret_cast<Nes::Video::Palette::Colors>(file.data.Begin()) ))
-		)
-		{
-			if (alert == Managers::Paths::QUIETLY)
-				Io::Log() << "Video: warning, custom palette file: \"" << settings.palette << "\" invalid or not found!\r\n";
-			else
-				Window::User::Fail( IDS_DIALOG_VIDEO_INVALID_PALETTE );
-
-			settings.palette.Destroy();
-			nes.GetPalette().SetMode( Nes::Video::Palette::INTERNAL );
+				palette.Destroy();
+				nes.GetPalette().SetMode( Nes::Video::Palette::INTERNAL );
+			}
 		}
 	}
 
@@ -769,12 +835,14 @@ namespace Nestopia
 		comboBox.Clear();
 
 		uint idx=0;
+		HeapString string;
 
 		for (Modes::const_iterator it(settings.adapter->modes.begin()), end(settings.adapter->modes.end()); it != end; ++it, ++idx)
 		{
 			if (settings.mode->bpp == it->bpp)
 			{
-				comboBox.Add( String::Smart<16>() << it->width << 'x' << it->height ).Data() = idx;
+				string.Clear();
+				comboBox.Add( (string << it->width << 'x' << it->height).Ptr() ).Data() = idx;
 
 				if (settings.mode->width == it->width && settings.mode->height == it->height)
 					comboBox[comboBox.Size() - 1].Select();

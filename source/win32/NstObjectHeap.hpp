@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -27,7 +27,7 @@
 
 #pragma once
 
-#include "NstObjectReference.hpp"
+#include "NstMain.hpp"
 
 namespace Nestopia
 {
@@ -58,25 +58,37 @@ namespace Nestopia
 			}
 		};
 
-		template<typename T> class Heap<T,0U> : public Reference<T>
+		template<typename T> class Heap<T,0U>
 		{
+			T& ref;
+
 			Heap(const Heap&);
 			void operator = (const Heap&);
 
 		public:
 
 			Heap()
-			: Reference<T>(*(new T)) {}
+			: ref(*(new T)) {}
 
 			explicit Heap(T* t)
-			: Reference<T>(*t) 
+			: ref(*t) 
 			{
 				NST_ASSERT(t); 
 			}
 
 			~Heap()
 			{
-				delete &reference;
+				delete &ref;
+			}
+
+			T& operator * () const
+			{
+				return ref;
+			}
+
+			T* operator -> () const
+			{
+				return &ref;
 			}
 		};
 	}

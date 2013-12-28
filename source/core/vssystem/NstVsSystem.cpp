@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -193,23 +193,93 @@ namespace Nes
 			}
 		};
 
-		inline VsSystem::Dips::Dips(Dip*& old,uint n)
+		VsSystem::VsDipSwitches::VsDipSwitches(Dip*& old,uint n)
 		: table(old), size(n) 
 		{
 			old = NULL;
+			regs[1] = regs[0] = 0x00;
+
+			for (uint i=0; i < n; ++i)
+			{
+				regs[0] |= (table[i][table[i].Selection()] & DIPSWITCH_4016_MASK) << DIPSWITCH_4016_SHIFT;
+				regs[1] |= (table[i][table[i].Selection()] & DIPSWITCH_4017_MASK) << DIPSWITCH_4017_SHIFT;
+			}
 		}
 
-		VsSystem::Dips::~Dips()
+		VsSystem::VsDipSwitches::~VsDipSwitches()
 		{
 			delete [] table;
 		}
 
-		inline VsSystem::Dip& VsSystem::Dips::operator [] (uint i) const
+		inline void VsSystem::VsDipSwitches::Reset()
 		{
-			NST_ASSERT( i < size );
-			return table[i];
+			regs[0] &= ~uint(COIN);
 		}
-	
+
+		inline uint VsSystem::VsDipSwitches::Reg(uint i) const
+		{
+			return regs[i];
+		}
+
+		uint VsSystem::VsDipSwitches::NumDips() const
+		{ 
+			return size; 
+		}
+
+		uint VsSystem::VsDipSwitches::NumValues(uint dip) const
+		{ 
+			NST_ASSERT( dip < size );
+			return table[dip].Size(); 
+		}
+
+		cstring VsSystem::VsDipSwitches::GetDipName(uint dip) const
+		{ 
+			NST_ASSERT( dip < size );
+			return table[dip].Name(); 
+		}
+
+		cstring VsSystem::VsDipSwitches::GetValueName(uint dip,uint value) const
+		{ 
+			NST_ASSERT( dip < size && value < table[dip].Size() );
+			return table[dip][value].Name();
+		}
+
+		uint VsSystem::VsDipSwitches::GetValue(uint dip) const
+		{ 
+			NST_ASSERT( dip < size );
+			return table[dip].Selection(); 
+		}
+
+		bool VsSystem::VsDipSwitches::SetValue(uint dip,uint value)
+		{ 
+			NST_ASSERT( dip < size && value < table[dip].Size() );
+
+			const uint old = table[dip].Selection();
+
+			if (old != value)
+			{
+				regs[0] &= ~((table[dip][old] & DIPSWITCH_4016_MASK) << DIPSWITCH_4016_SHIFT);
+				regs[1] &= ~((table[dip][old] & DIPSWITCH_4017_MASK) << DIPSWITCH_4017_SHIFT);
+
+				table[dip].Select( value );
+
+				regs[0] |= (table[dip][value] & DIPSWITCH_4016_MASK) << DIPSWITCH_4016_SHIFT;
+				regs[1] |= (table[dip][value] & DIPSWITCH_4017_MASK) << DIPSWITCH_4017_SHIFT;
+
+				return true;
+			}
+
+			return false;
+		}
+
+		void VsSystem::VsDipSwitches::BeginFrame(Input::Controllers* const input)
+		{
+			regs[0] &= ~uint(COIN);
+
+			if (input && Input::Controllers::VsSystem::callback( input->vsSystem ))
+				regs[0] |= input->vsSystem.insertCoin & COIN;
+		}				  
+
 		struct VsSystem::Context
 		{
 			Dip* dips;
@@ -1062,15 +1132,6 @@ namespace Nes
 		securityPpu   (context.securityPpu),
 		swapPorts     (context.swapPorts)
 		{
-			regs[0] = 0x00;
-			regs[1] = 0x00;
-	
-			for (uint i=0; i < dips.Size(); ++i)
-			{
-				regs[0] |= (dips[i][dips[i].Selection()] & DIPSWITCH_4016_MASK) << DIPSWITCH_4016_SHIFT;
-				regs[1] |= (dips[i][dips[i].Selection()] & DIPSWITCH_4017_MASK) << DIPSWITCH_4017_SHIFT;
-			}
-	
 			if (securityColor)
 				Log::Flush( "VsSystem: scrambled color table present" NST_LINEBREAK );
 	
@@ -1110,9 +1171,10 @@ namespace Nes
 				}
 			}
 	
+			dips.Reset();
+
 			coin = 0;
-			regs[0] &= ~uint(COIN);
-	
+			
 			p4016 = cpu.Map( 0x4016U );
 			p4017 = cpu.Map( 0x4017U );
 	
@@ -1124,31 +1186,6 @@ namespace Nes
 			Reset();
 		}
 	
-		Result VsSystem::SetDipSwitchValue(const uint i,const uint j)
-		{
-			if (i < dips.Size() && j < dips[i].Size())
-			{
-				const uint x = dips[i].Selection();
-
-				if (x != j)
-				{
-					regs[0] &= ~((dips[i][x] & DIPSWITCH_4016_MASK) << DIPSWITCH_4016_SHIFT);
-					regs[1] &= ~((dips[i][x] & DIPSWITCH_4017_MASK) << DIPSWITCH_4017_SHIFT);
-
-					dips[i].Select( j );
-
-					regs[0] |= (dips[i][j] & DIPSWITCH_4016_MASK) << DIPSWITCH_4016_SHIFT;
-					regs[1] |= (dips[i][j] & DIPSWITCH_4017_MASK) << DIPSWITCH_4017_SHIFT;
-
-					return RESULT_OK;
-				}
-
-				return RESULT_NOP;
-			}
-
-			return RESULT_ERR_INVALID_PARAM;
-		}
-
 		void VsSystem::SaveState(State::Saver& state) const
 		{
 			state.Write8( coin );
@@ -1165,39 +1202,11 @@ namespace Nes
 				state.End();
 			}
 		}
-	
+
         #ifdef NST_PRAGMA_OPTIMIZE
         #pragma optimize("", on)
         #endif
 	
-		void VsSystem::BeginFrame(Input::Controllers* const input)
-		{
-			regs[0] &= ~uint(COIN);
-
-			if (input && Input::Controllers::VsSystem::callback( input->vsSystem ))
-				regs[0] |= input->vsSystem.insertCoin & COIN;
-		}
-
-		uint VsSystem::NumDipSwitchValues(uint i) const
-		{ 
-			return i < dips.Size() ? dips[i].Size() : 0; 
-		}
-
-		cstring VsSystem::GetDipSwitchName(uint i) const
-		{ 
-			return i < dips.Size() ? dips[i].Name() : NULL; 
-		}
-
-		cstring VsSystem::GetDipSwitchValueName(uint i,uint j) const
-		{ 
-			return i < dips.Size() && j < dips[i].Size() ? dips[i][j].Name() : NULL;
-		}
-
-		int VsSystem::GetDipSwitchValue(uint i) const
-		{ 
-			return i < dips.Size() ? (int) dips[i].Selection() : -1; 
-		}
-
 		NES_PEEK(VsSystem,Nop)
 		{
 			return 0x50;
@@ -1239,12 +1248,12 @@ namespace Nes
 	
 		NES_PEEK(VsSystem,4016)
 		{
-			return (p4016.Peek( 0x4016 ) & ~uint(STATUS_4016_MASK)) | regs[0];
+			return (p4016.Peek( 0x4016 ) & ~uint(STATUS_4016_MASK)) | dips.Reg(0);
 		}
 
 		NES_PEEK(VsSystem,4016_Swap)
 		{
-			return (p4017.Peek( 0x4017 ) & ~uint(STATUS_4016_MASK)) | regs[0];
+			return (p4017.Peek( 0x4017 ) & ~uint(STATUS_4016_MASK)) | dips.Reg(0);
 		}
 
 		NES_POKE(VsSystem,4016)
@@ -1254,12 +1263,12 @@ namespace Nes
 	
 		NES_PEEK(VsSystem,4017)
 		{
-			return (p4017.Peek( 0x4017 ) & ~uint(STATUS_4017_MASK)) | regs[1];
+			return (p4017.Peek( 0x4017 ) & ~uint(STATUS_4017_MASK)) | dips.Reg(1);
 		}
 
 		NES_PEEK(VsSystem,4017_Swap)
 		{
-			return (p4016.Peek( 0x4016 ) & ~uint(STATUS_4017_MASK)) | regs[1];
+			return (p4016.Peek( 0x4016 ) & ~uint(STATUS_4017_MASK)) | dips.Reg(1);
 		}
 
 		NES_POKE(VsSystem,4017)

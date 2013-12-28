@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -54,6 +54,8 @@ namespace Nes
 
 		public:
 
+			typedef T Type;
+
 			Vector();
 			explicit Vector(dword);
 			~Vector();
@@ -66,6 +68,8 @@ namespace Nes
 			void Expand(dword);
 			void Assign(const T*,dword);
 			void Append(const T*,dword);
+			void Erase(T*,dword=1);
+			void Destroy();
 
 			void operator = (const Vector& vector)
 			{
@@ -192,6 +196,16 @@ namespace Nes
 		}
 
 		template<typename T>
+		void Vector<T>::Erase(T* it,dword count)
+		{
+			NST_ASSERT( size >= count );
+
+			const dword s = size;
+			size -= count;
+			std::memmove( it, it + count, (s - (it-data + count)) * sizeof(T) );
+		}
+
+		template<typename T>
 		void Vector<T>::Reserve(dword count)
 		{
 			if (capacity < count)
@@ -216,6 +230,18 @@ namespace Nes
 		bool Vector<T>::operator == (const Vector<T>& vector) const
 		{
 			return size == vector.size && std::memcmp( data, vector.data, size * sizeof(T) ) == 0;
+		}
+
+		template<typename T>
+		void Vector<T>::Destroy()
+		{
+			if (T* const tmp = data)
+			{
+				data = NULL;
+				size = 0;
+				capacity = 0;
+				std::free( tmp );
+			}
 		}
 	}
 }

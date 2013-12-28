@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -41,7 +41,7 @@ namespace Nestopia
 
 		public:
 
-			Guid(const String::Generic&);
+			Guid(const GenericString&);
 
 			enum 
 			{
@@ -59,8 +59,8 @@ namespace Nestopia
 				ERR_INVALID_STRING
 			};
 
-			static ulong ConvertData(String::Generic);
-			void FromString(String::Generic);
+			static ulong ConvertData(GenericString);
+			void FromString(GenericString);
 
 		public:
 
@@ -75,7 +75,7 @@ namespace Nestopia
 				return *this;
 			}
 
-			Guid& operator = (const String::Generic& string)
+			Guid& operator = (const GenericString& string)
 			{
 				FromString( string );
 				return *this;

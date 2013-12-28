@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -77,19 +77,21 @@ namespace Nestopia
 
 			static void Register
 			(
-				cstring,
+				tstring,
 				uint,
 				WNDPROC,
 				HCURSOR,
 				HBRUSH,
 				HICON
 			);
+
+			static void Unregister(tstring);
             
 			static Generic Create
 			(
 				DWORD,
-				cstring,
-				cstring,
+				tstring,
+				tstring,
 				DWORD,
 				uint,
 				uint,
@@ -103,7 +105,7 @@ namespace Nestopia
 			Generic(HWND h=NULL)
 			: hWnd(h) {}
 
-			explicit Generic(cstring className)
+			explicit Generic(tstring className)
 			: hWnd(::FindWindow( className, NULL )) 
 			{
 				NST_ASSERT( className && *className );
@@ -243,17 +245,55 @@ namespace Nestopia
 			{
 				HWND const hWnd;
 
+				int GetTextLength(const char*) const
+				{
+					return ::GetWindowTextLengthA( hWnd );
+				}
+
+				int GetTextLength(const wchar_t*) const
+				{
+					return ::GetWindowTextLengthW( hWnd );
+				}
+
+				int GetText(char* string,uint maxLength) const
+				{
+					return ::GetWindowTextA( hWnd, string, maxLength + 1 );
+				}
+
+				int GetText(wchar_t* string,uint maxLength) const
+				{
+					return ::GetWindowTextW( hWnd, string, maxLength + 1 );
+				}
+
 			public:
 
 				Stream(Generic w)
 				: hWnd(w.hWnd) {}
 
-				void operator << (const String::Anything& string) const
+				void operator << (const char* string) const
 				{
-					::SetWindowText( hWnd, string );
+					NST_ASSERT( string );
+					::SetWindowTextA( hWnd, string );
 				}
 
-				template<typename T> uint operator >> (T&) const;
+				void operator << (const wchar_t* string) const
+				{
+					NST_ASSERT( string );
+					::SetWindowTextW( hWnd, string );
+				}
+
+				void operator << (int value) const
+				{
+					operator << (ValueString(value).Ptr());
+				}
+
+				void operator << (uint value) const
+				{
+					operator << (ValueString(value).Ptr());
+				}
+
+				template<typename T> 
+				uint operator >> (T&) const;
 
 				uint operator >> (long&) const;
 				uint operator >> (ulong&) const;
@@ -267,7 +307,7 @@ namespace Nestopia
 
 				void Clear() const
 				{
-					::SetWindowText( hWnd, "" );
+					::SetWindowText( hWnd, _T("") );
 				}
 			};
 
@@ -290,11 +330,18 @@ namespace Nestopia
 		template<typename T>
 		uint Generic::Stream::operator >> (T& string) const
 		{
-			uint size = ::GetWindowTextLength( hWnd );
-			string.Reserve( size );
-			size = ::GetWindowText( hWnd, string, size + 1 );
-			string.ShrinkTo( size );
-			return size;
+			const int size = GetTextLength( string.Ptr() );
+
+			if (size > 0)
+			{
+				string.Resize( size );
+
+				if (GetText( string.Ptr(), string.Length() ) > 0)
+					return string.Validate();
+			}
+
+			string.Clear();
+			return 0;
 		}
 	}
 }

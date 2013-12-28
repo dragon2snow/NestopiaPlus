@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -32,7 +32,7 @@ namespace Nes
 {
 	namespace Api
 	{
-		Result Cheats::GameGenieEncode(const Code& code,char (&characters)[9])
+		Result NST_CALL Cheats::GameGenieEncode(const Code& code,char (&characters)[9])
 		{ 
 			if (code.address < 0x8000U)
 				return RESULT_ERR_INVALID_PARAM;
@@ -68,7 +68,7 @@ namespace Nes
 			return RESULT_OK;
 		}
 	
-		Result Cheats::GameGenieDecode(cstring const characters,Code& code)
+		Result NST_CALL Cheats::GameGenieDecode(const char* const characters,Code& code)
 		{ 
 			if (characters == NULL)
 				return RESULT_ERR_INVALID_PARAM;
@@ -161,7 +161,7 @@ namespace Nes
 			return RESULT_OK;
 		}
 
-		Result Cheats::ProActionRockyEncode(const Code& code,char (&characters)[9])
+		Result NST_CALL Cheats::ProActionRockyEncode(const Code& code,char (&characters)[9])
 		{
 			if (code.address < 0x8000U || !code.useCompare)
 				return RESULT_ERR_INVALID_PARAM;
@@ -197,7 +197,7 @@ namespace Nes
 			return RESULT_OK;
 		}
 
-		Result Cheats::ProActionRockyDecode(cstring characters,Code& code)
+		Result NST_CALL Cheats::ProActionRockyDecode(const char* const characters,Code& code)
 		{
 			if (characters == NULL)
 				return RESULT_ERR_INVALID_PARAM;

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -36,7 +36,7 @@ namespace Nestopia
 	: handle(ImageList_Create(x,y,ILC_COLOR16,0,2))
 	{
 		if (!handle)
-			throw Application::Exception("ImageList_Create() failed!");
+			throw Application::Exception(_T("ImageList_Create() failed!"));
 
 		try
 		{
@@ -45,7 +45,7 @@ namespace Nestopia
 				ImageList_Add( static_cast<HIMAGELIST>(handle), Resource::Bitmap( selected   ), NULL ) == -1 ||
 				ImageList_Add( static_cast<HIMAGELIST>(handle), Resource::Bitmap( unselected ), NULL ) == -1
 			)
-				throw Application::Exception("ImageList_Add() failed!");
+				throw Application::Exception(_T("ImageList_Add() failed!"));
 		}
 		catch (const Application::Exception& exception)
 		{
@@ -72,15 +72,15 @@ namespace Nestopia
 		TreeView_SetImageList( control, static_cast<HIMAGELIST>(imageList.handle), TVSIL_NORMAL );
 	}
 
-	void TreeView::Add(const String::Generic text) const
+	void TreeView::Add(const GenericString text) const
 	{
 		TVINSERTSTRUCT tv; 
 
 		tv.hParent = TVI_ROOT;
 		tv.hInsertAfter = TVI_LAST;
 		tv.item.mask = TVIF_TEXT;
-		tv.item.pszText = const_cast<char*>( static_cast<cstring>(text) ); 
-		tv.item.cchTextMax = text.Size();
+		tv.item.pszText = const_cast<tchar*>( text.Ptr() ); 
+		tv.item.cchTextMax = text.Length();
 
 		if (TreeView_GetImageList( control, TVSIL_NORMAL ))
 		{

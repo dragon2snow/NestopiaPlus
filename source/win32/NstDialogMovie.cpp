@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -56,33 +56,17 @@ namespace Nestopia
 	{
 	}
 
-	void Movie::FixFile()
+	ibool Movie::SetMovieFile(const Path& file)
 	{
-		if (movieFile.File().Size())
-		{
-			if (movieFile.Directory().Empty())
-				movieFile.Directory() = paths.GetDefaultDirectory( Managers::Paths::File::MOVIE );
-
-			if (movieFile.Extension().Empty())
-				movieFile.Extension() = "nsv";
-		}
-		else
-		{
-			movieFile.Clear();
-		}
-	}
-
-	ibool Movie::SetMovieFile(const MovieFile& file)
-	{
-		const MovieFile old( movieFile );
+		const Path old( movieFile );
 		movieFile = file;
-		FixFile();
+		paths.FixFile( Managers::Paths::File::MOVIE, movieFile );
 		return movieFile != old;
 	}
 
 	ibool Movie::OnInitDialog(Param&)
 	{
-		dialog.Edit(IDC_MOVIE_FILE) << movieFile;
+		dialog.Edit(IDC_MOVIE_FILE) << movieFile.Ptr();
 
 		return TRUE;
 	}
@@ -97,8 +81,12 @@ namespace Nestopia
 
 	ibool Movie::OnCmdBrowse(Param& param)
 	{
-		if (param.Button().IsClicked())	
-			dialog.Edit(IDC_MOVIE_FILE).Try() << paths.BrowseSave( Managers::Paths::File::MOVIE, movieFile );
+		if (param.Button().IsClicked())
+		{
+			Path tmp;
+			dialog.Edit(IDC_MOVIE_FILE).Text() >> tmp;
+			dialog.Edit(IDC_MOVIE_FILE).Try() << paths.BrowseSave( Managers::Paths::File::MOVIE, Managers::Paths::SUGGEST, tmp ).Ptr();
+		}
 
 		return TRUE;
 	}
@@ -108,7 +96,7 @@ namespace Nestopia
 		if (param.Button().IsClicked())
 		{
 			dialog.Edit(IDC_MOVIE_FILE) >> movieFile;
-			FixFile();
+			paths.FixFile( Managers::Paths::File::MOVIE, movieFile );
 			dialog.Close();
 		}
 

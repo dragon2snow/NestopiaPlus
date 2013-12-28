@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -47,9 +47,9 @@ namespace Nestopia
 					: edit(e) {}
 
 					template<typename T>
-					void operator << (const T& t) const
+					void operator << (const T* t) const
 					{
-						if (t.Size())
+						if (*t)
 							edit.Text() << t;
 					}
 

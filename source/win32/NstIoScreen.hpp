@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -39,12 +39,12 @@ namespace Nestopia
 
 	namespace Io
 	{
-		class Screen : String::Smart<_MAX_PATH>
+		class Screen : HeapString
 		{
 			friend class Managers::Video;
 
-			typedef String::Smart<_MAX_PATH> Text;
-			typedef Object::Delegate<void,const String::Generic&> Callback;
+			typedef HeapString Text;
+			typedef Object::Delegate<void,const GenericString&> Callback;
 
 			Screen(const Screen&);
 			void operator = (const Screen&);

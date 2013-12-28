@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -55,42 +55,42 @@ namespace Nestopia
 			{
 			public:
 
-				ibool operator << (String::Generic) const;
-				ibool operator >> (String::Heap&) const;
+				ibool operator << (const GenericString) const;
+				ibool operator >> (HeapString&) const;
 
 				void Delete() const;
-				void Delete(String::Generic) const;
+				void Delete(const GenericString) const;
 
 			private:
 
 				struct AutoKey;
 
 				const uint count;
-				cstring stack[MAX_STACK];
+				tstring stack[MAX_STACK];
 
 			public:
 
-				Key(const Key& parent,cstring name)
+				Key(const Key& parent,tstring name)
 				: count(parent.count + 1)
 				{
 					NST_ASSERT( count <= MAX_STACK );
-					std::memcpy( stack, parent.stack, parent.count * sizeof(char*) );
+					std::memcpy( stack, parent.stack, parent.count * sizeof(tchar*) );
 					stack[parent.count] = name;
 				}
 
 				Key(const Key& parent)
 				: count(parent.count)
 				{
-					std::memcpy( stack, parent.stack, parent.count * sizeof(char*) );
+					std::memcpy( stack, parent.stack, parent.count * sizeof(tchar*) );
 				}
 
-				Key(cstring name) 
+				Key(tstring name) 
 				: count(1)
 				{
 					stack[0] = name;
 				}
 
-				Key operator [] (cstring name) const
+				Key operator [] (tstring name) const
 				{
 					return Key( *this, name );
 				}
@@ -98,7 +98,7 @@ namespace Nestopia
 
 		public:
 
-			Key operator [] (cstring name) const
+			Key operator [] (tstring name) const
 			{
 				return name;
 			}

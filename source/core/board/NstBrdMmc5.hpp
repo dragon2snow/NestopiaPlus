@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -38,9 +38,6 @@ namespace Nes
 			class NST_NO_VTABLE Mmc5 : public Mapper
 			{
 			public:
-	
-				void SaveState(State::Saver&) const;
-				void LoadState(State::Loader&);
 
 				class Sound : Apu::Channel
 				{
@@ -191,6 +188,8 @@ namespace Nes
 				void HActive0();
 				void HActiveX();	
 				void VSync();
+				void BaseSave(State::Saver&) const;
+				void BaseLoad(State::Loader&,dword);
 
 				template<uint ADDRESS>
 				void SwapPrg8Ex(uint);
@@ -430,7 +429,7 @@ namespace Nes
 					void Reset(bool);
 
 					uint tile;
-					u8 mem[NES_1K];
+					u8 mem[SIZE_1K];
 				};
 		
 				Flow flow;

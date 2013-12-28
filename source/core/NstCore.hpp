@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -49,18 +49,8 @@
 #define NES_IO_CALL
 #endif
 
-#define NES_1K    0x400U
-#define NES_2K    0x800U
-#define NES_4K    0x1000U
-#define NES_8K    0x2000U
-#define NES_16K   0x4000U
-#define NES_32K   0x8000U
-#define NES_40K   0xA000U
-#define NES_64K   0x10000UL
-#define NES_128K  0x20000UL
-#define NES_256K  0x40000UL
-#define NES_512K  0x80000UL
-#define NES_1024K 0x100000UL
+#define NST_PI  3.1415926535897932384626433832795
+#define NST_DEG 0.0174532925199432957692369076848
 
 namespace Nes
 {
@@ -70,6 +60,24 @@ namespace Nes
 		{
 			MODE_NTSC,
 			MODE_PAL
+		};
+
+		enum
+		{
+			SIZE_1K    = 0x400U,
+			SIZE_2K    = 0x800U,
+			SIZE_4K    = 0x1000U,
+			SIZE_8K    = 0x2000U,
+			SIZE_16K   = 0x4000U,
+			SIZE_32K   = 0x8000U,
+			SIZE_40K   = 0xA000U,
+			SIZE_64K   = 0x10000UL,
+			SIZE_128K  = 0x20000UL,
+			SIZE_256K  = 0x40000UL,
+			SIZE_512K  = 0x80000UL,
+			SIZE_1024K = 0x100000UL,
+			SIZE_2048K = 0x200000UL,
+			SIZE_4096K = 0x200000UL
 		};
 
 		typedef void* StdStream;

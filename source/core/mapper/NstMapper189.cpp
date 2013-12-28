@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -51,7 +51,7 @@ namespace Nes
 			}
 	
 			if (hard)
-				prg.SwapBank<NES_32K,0x0000U>(0);
+				prg.SwapBank<SIZE_32K,0x0000U>(0);
 		}
 	
         #ifdef NST_PRAGMA_OPTIMIZE
@@ -60,12 +60,12 @@ namespace Nes
 	
 		NES_POKE(Mapper189,4100)
 		{
-			prg.SwapBank<NES_32K,0x0000U>( data >> 4 );
+			prg.SwapBank<SIZE_32K,0x0000U>( data >> 4 );
 		}
 	
 		NES_POKE(Mapper189,6100)
 		{
-			prg.SwapBank<NES_32K,0x0000U>( data & 0x3 );
+			prg.SwapBank<SIZE_32K,0x0000U>( data & 0x3 );
 		}
 	
 		NES_POKE(Mapper189,8000)
@@ -79,12 +79,12 @@ namespace Nes
 	
 			switch (regs.ctrl0)
 			{
-				case 0: chr.SwapBank<NES_2K,0x0000U>(data >> 1); break;
-				case 1: chr.SwapBank<NES_2K,0x0800U>(data >> 1); break;
-				case 2: chr.SwapBank<NES_1K,0x1000U>(data);      break;
-				case 3: chr.SwapBank<NES_1K,0x1400U>(data);      break;
-				case 4: chr.SwapBank<NES_1K,0x1800U>(data);      break;
-				case 5: chr.SwapBank<NES_1K,0x1C00U>(data);      break;
+				case 0: chr.SwapBank<SIZE_2K,0x0000U>(data >> 1); break;
+				case 1: chr.SwapBank<SIZE_2K,0x0800U>(data >> 1); break;
+				case 2: chr.SwapBank<SIZE_1K,0x1000U>(data);      break;
+				case 3: chr.SwapBank<SIZE_1K,0x1400U>(data);      break;
+				case 4: chr.SwapBank<SIZE_1K,0x1800U>(data);      break;
+				case 5: chr.SwapBank<SIZE_1K,0x1C00U>(data);      break;
 			}
 		}
 	}

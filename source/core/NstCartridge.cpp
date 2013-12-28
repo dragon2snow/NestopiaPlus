@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -33,6 +33,8 @@
 #include "NstUnif.hpp"
 #include "NstMapper.hpp"
 #include "vssystem/NstVsSystem.hpp"
+#include "NstTurboFile.hpp"
+#include "NstDataRecorder.hpp"
 #include "api/NstApiUser.hpp"
 
 namespace Nes
@@ -45,11 +47,13 @@ namespace Nes
 	
 		Cartridge::Cartridge(Context& context,Result& result)
 		:
-		Image      (CARTRIDGE),
-		mapper     (NULL),
-		vs         (NULL),
-		wRamAuto   (false),
-		batteryCrc (0)
+		Image        (CARTRIDGE),
+		mapper       (NULL),
+		vs           (NULL),
+		turboFile    (NULL),
+		dataRecorder (NULL),
+		wRamAuto     (false),
+		batteryCrc   (0)
 		{
         	result = RESULT_OK;
 		
@@ -67,7 +71,11 @@ namespace Nes
 				result = RESULT_WARN_ENCRYPTED_ROM;
 	
 			DetectControllers();
+			DetectTurboFile( context );
 	
+			if (vs == NULL)
+				dataRecorder = new DataRecorder(context.cpu);
+
 			if (!InitInfo( context.database ))
 			{
 				if (result == RESULT_OK)
@@ -82,8 +90,8 @@ namespace Nes
 			if (info.system == Api::Cartridge::SYSTEM_VS)
 				vs = VsSystem::Create( context.cpu, context.ppu, info.pRomCrc );
 	
-			pRom.Arrange( NES_16K );
-			cRom.Arrange( NES_8K );
+			pRom.Arrange( SIZE_16K );
+			cRom.Arrange( SIZE_8K );
 
 			Mapper::Context settings
 			(
@@ -116,6 +124,8 @@ namespace Nes
 	
 		Cartridge::~Cartridge()
 		{
+			delete dataRecorder;
+			delete turboFile;
 			VsSystem::Destroy( vs );
 			Mapper::Destroy( mapper );
 		}
@@ -145,6 +155,37 @@ namespace Nes
 			return true;
 		}
 		
+		uint Cartridge::GetDesiredController(uint port) const
+		{
+			NST_ASSERT( port < Api::Input::NUM_CONTROLLERS );
+			return info.controllers[port];
+		}
+
+		Cartridge::ExternalDevice Cartridge::QueryExternalDevice(ExternalDeviceType type)
+		{
+			switch (type)
+			{
+				case EXT_TURBO_FILE:
+					return turboFile;
+
+				case EXT_DATA_RECORDER:
+					return dataRecorder;
+
+				case EXT_DIP_SWITCHES:
+
+					if (vs)
+						return &vs->GetDipSwiches();
+					else
+						return mapper->QueryDevice( Mapper::DEVICE_DIP_SWITCHES );
+
+				case EXT_BARCODE_READER:
+					return mapper->QueryDevice( Mapper::DEVICE_BARCODE_READER );
+
+				default:
+					return Image::QueryExternalDevice( type );
+			}
+		}
+
 		void Cartridge::DetectControllers()
 		{
 			switch (info.pRomCrc)
@@ -227,43 +268,77 @@ namespace Nes
 					break;
 			
 				case 0xBC5F6C94UL: // Athletic World (U)
-				case 0x8C8FA83BUL: // Athletic World (J)
-				case 0xF8DA2506UL: // Aerobics Studio (J)
-				case 0xCA26A0F1UL: // Dai Undoukai (J)
 				case 0xD836A90BUL: // Dance Aerobics (U)
-				case 0x28068B8CUL: // Fuuun Takeshi Jou 2 (J)
-				case 0x7E704A14UL: // Jogging Race (J)
-				case 0x10BB8F9AUL: // Manhattan Police (J)
-				case 0xAD3DF455UL: // Meiro Dai Sakusen (J)
-				case 0x2330A5D3UL: // Rairai Kyonshiizu (J)
-				case 0x8A5B72C0UL: // Running Stadium (J)
 				case 0xFD37CA4CUL: // Short Order - Eggsplode (U)
 				case 0x96C4CE38UL: // -||-
 				case 0x29292EE4UL: // -||-
 				case 0x987DCDA3UL: // Street Cop (U)
-				case 0x59794F2DUL: // Totsugeki Fuuun Takeshi Jou (J)
-			
+				case 0xDD978A90UL: // Stadium Events (U)
+				case 0xD06CEB9AUL: // Stadium Events (E)
+				case 0x2D76A271UL: // World Track Meet (U)
+				case 0xF210E68FUL: // Super Team Games (U)
+
 					info.controllers[0] = Api::Input::PAD1;
 					info.controllers[1] = Api::Input::POWERPAD;
 					info.controllers[2] = Api::Input::UNCONNECTED;
 					info.controllers[3] = Api::Input::UNCONNECTED;
 					info.controllers[4] = Api::Input::UNCONNECTED;
 					break;
-			
+
+				case 0xF8DA2506UL: // Aerobics Studio (J)
+				case 0x8C8FA83BUL: // Athletic World (J)
+				case 0xCA26A0F1UL: // Dai Undoukai (J)
+				case 0x28068B8CUL: // Fuuun Takeshi Jou 2 (J)
+				case 0x7E704A14UL: // Jogging Race (J)
+				case 0x10BB8F9AUL: // Manhattan Police (J)
+				case 0xAD3DF455UL: // Meiro Dai Sakusen (J)
+				case 0x2330A5D3UL: // Rairai Kyonshiizu (J)
+				case 0xB8C54977UL: // -||-
+				case 0x8A5B72C0UL: // Running Stadium (J)
+				case 0x59794F2DUL: // Totsugeki Fuuun Takeshi Jou (J)
+
+					info.controllers[0] = Api::Input::PAD1;
+					info.controllers[1] = Api::Input::UNCONNECTED;
+					info.controllers[2] = Api::Input::UNCONNECTED;
+					info.controllers[3] = Api::Input::UNCONNECTED;
+					info.controllers[4] = Api::Input::FAMILYTRAINER;
+					break;
+
 				case 0xF9DEF527UL: // Family Basic (Ver 2.0)
 				case 0xDE34526EUL: // Family Basic (Ver 2.1a)
 				case 0xF050B611UL: // Family Basic (Ver 3)
 				case 0x3AAEED3FUL: // Family Basic (Ver 3) (Alt)
-				case 0x903A95EBUL: // Magistr v1.0
-				case 0x7BDD12F3UL: // Simbas v1.0
+				case 0x2D6B7E5AUL: // Playbox BASIC
 
 					info.controllers[0] = Api::Input::PAD1;
 					info.controllers[1] = Api::Input::PAD2;
 					info.controllers[2] = Api::Input::UNCONNECTED;
 					info.controllers[3] = Api::Input::UNCONNECTED;
-					info.controllers[4] = Api::Input::KEYBOARD;
+					info.controllers[4] = Api::Input::FAMILYKEYBOARD;
 					break;
-			
+
+				case 0x903A95EBUL: // Magistr v1.0
+				case 0x7BDD12F3UL: // Simbas v1.0
+				case 0x1460EC7BUL: // Subor v1.0
+				case 0x82F1FB96UL: // Subor v1.0 (Russian)
+				case 0x589B6B0DUL: // Supor v2.0
+				case 0x41401C6DUL: // Supor v4.0
+				case 0x41EF9AC4UL: // -||-
+				case 0x5E073A1BUL: // Supor English (Chinese)
+				case 0x8b265862UL: // -||-
+				case 0xABB2F974UL: // Study and Game 32-in-1
+				case 0xD5D6EAC4UL: // Edu (Asia)
+				case 0x368C19A8UL: // LIKO Study Cartridge
+				case 0x543AB532UL: // LIKO Color Lines
+				case 0xB066111AUL: // Text Editor (Russian)
+
+					info.controllers[0] = Api::Input::PAD1;
+					info.controllers[1] = Api::Input::PAD2;
+					info.controllers[2] = Api::Input::UNCONNECTED;
+					info.controllers[3] = Api::Input::UNCONNECTED;
+					info.controllers[4] = Api::Input::SUBORKEYBOARD;
+					break;
+
 				case 0x3B997543UL: // Gauntlet 2 (E)
 				case 0x2C609B52UL: // Gauntlet 2 (U)
 				case 0x1352F1B9UL: // Greg Norman's Golf Power (U) 
@@ -372,6 +447,18 @@ namespace Nes
 					info.controllers[3] = Api::Input::UNCONNECTED;
 					info.controllers[4] = Api::Input::POKKUNMOGURAA;
 					break;
+
+				case 0xE44001D8UL: // Casino Derby
+				case 0xD9F45BE9UL: // Gimmi a Break - Shijou Saikyou no Quiz Ou Ketteisen
+				case 0x1545BD13UL: // Gimmi a Break - Shijou Saikyou no Quiz Ou Ketteisen 2
+				case 0xC1BA8BB9UL: // Project Q
+
+					info.controllers[0] = Api::Input::PAD1;
+					info.controllers[1] = Api::Input::UNCONNECTED;
+					info.controllers[2] = Api::Input::UNCONNECTED;
+					info.controllers[3] = Api::Input::UNCONNECTED;
+					info.controllers[4] = Api::Input::PARTYTAP;
+					break;
 			}	
 		}
 	
@@ -438,6 +525,40 @@ namespace Nes
 					break;
 			}
 		}
+
+		void Cartridge::DetectTurboFile(Context& context)
+		{
+			NST_ASSERT( turboFile == NULL );
+
+			switch (info.pRomCrc)
+			{
+				case 0xE792DE94UL: // Best Play - Pro Yakyuu (J)
+				case 0x042F17C4UL: // -||-
+				case 0xF79D684AUL: // -||-
+				case 0xC2EF3422UL: // Best Play - Pro Yakyuu 2 (J)
+				case 0xCB810E8FUL: // -||-
+				case 0x236CBA4DUL: // -||-
+				case 0x974E8840UL: // Best Play - Pro Yakyuu '90 (J)
+				case 0xB8747ABFUL: // Best Play - Pro Yakyuu Special (J)
+				case 0xF7D51D87UL: // -||-
+				case 0xE3C2C174UL: // -||-
+				case 0x9FA1C11FUL: // Castle Excellent (J)
+				case 0x0B0D4D1BUL: // Derby Stallion - Zenkoku Ban (J)
+				case 0x728C3D98UL: // Downtown - Nekketsu Monogatari (J)
+				case 0xD68A6F33UL: // Dungeon Kid (J)
+				case 0x3A51EB04UL: // Fleet Commander (J)
+				case 0x7C46998BUL: // Haja no Fuuin (J)
+				case 0x7E5D2F1AUL: // Itadaki Street - Watashi no Mise ni Yottette (J)
+				case 0xCEE5857BUL: // Ninjara Hoi! (J)
+				case 0xCB8F9273UL: // -||-
+				case 0x50EC5E8BUL: // Wizardry - Legacy of Llylgamyn (J)
+				case 0x343E9146UL: // Wizardry - Proving Grounds of the Mad Overlord (J)
+				case 0x33D07E45UL: // Wizardry - The Knight of Diamonds (J)
+
+					turboFile = new TurboFile( context.cpu );
+					break;
+			}
+		}
 	
 		bool Cartridge::DetectEncryption()
 		{
@@ -464,7 +585,7 @@ namespace Nes
 	
 		void Cartridge::ResetWRam()
 		{
-			NST_ASSERT( (wRam.Size() % NES_8K) == 0 );
+			NST_ASSERT( (wRam.Size() % SIZE_8K) == 0 );
 
 			if (wRam.Size())
 			{
@@ -485,11 +606,16 @@ namespace Nes
 			if (hard && !info.battery)
 				ResetWRam();
 
-			NST_ASSERT( mapper );
 			mapper->Reset( hard );
 	
 			if (vs)
 				vs->Reset( hard );
+
+			if (turboFile)
+				turboFile->Reset();
+
+			if (dataRecorder)
+				dataRecorder->Reset();
 		}
 	
 		void Cartridge::SaveState(State::Saver& state) const
@@ -498,6 +624,12 @@ namespace Nes
 	
 			if (vs)
 				vs->SaveState( State::Saver::Subset(state,'V','S','S','\0').Ref() );
+
+			if (turboFile)
+				turboFile->SaveState( State::Saver::Subset(state,'T','B','F','\0').Ref() );
+
+			if (dataRecorder)
+				dataRecorder->SaveState( State::Saver::Subset(state,'D','R','C','\0').Ref() );
 		}
 	
 		void Cartridge::LoadState(State::Loader& state)
@@ -517,7 +649,23 @@ namespace Nes
 
 						if (vs)
 							vs->LoadState( State::Loader::Subset(state).Ref() );
-	
+
+					case NES_STATE_CHUNK_ID('T','B','F','\0'): 
+
+						NST_VERIFY( turboFile );
+
+						if (turboFile)
+							turboFile->LoadState( State::Loader::Subset(state).Ref() );
+
+						break;
+
+					case NES_STATE_CHUNK_ID('D','R','C','\0'):
+
+						NST_VERIFY( dataRecorder );
+
+						if (dataRecorder)
+							dataRecorder->LoadState( State::Loader::Subset(state).Ref() );
+
 						break;
 				}
 	
@@ -536,14 +684,14 @@ namespace Nes
 			{
 				ulong pad = 0;
 	
-				if (size > NES_8K * 0xFFUL)
+				if (size > SIZE_8K * 0xFFUL)
 				{
-					size = NES_8K * 0xFFUL;
+					size = SIZE_8K * 0xFFUL;
 					Log::Flush( "Cartridge: warning, save data size is too big! Only the first 2040k will be used!" NST_LINEBREAK );
 				}
 				else
 				{
-					pad = size % NES_8K;
+					pad = size % SIZE_8K;
 	
 					if (pad)
 						Log::Flush( "Cartridge: warning, save data size is not evenly divisible by 8k!" NST_LINEBREAK );
@@ -552,7 +700,7 @@ namespace Nes
 				if (wRam.Size() < size)
 				{
 					// Current WRAM size is too small. Resize and do zero-padding.
-					wRam.Set( size + (pad ? NES_8K - pad : 0) );
+					wRam.Set( size + (pad ? SIZE_8K - pad : 0) );
 					std::memset( wRam.Mem(size), 0x00, wRam.Size() - size );
 				}
 	
@@ -618,8 +766,10 @@ namespace Nes
 	
 		void Cartridge::VSync()
 		{
-			NST_ASSERT( mapper );
 			mapper->VSync();
+
+			if (dataRecorder)
+				dataRecorder->VSync();
 		}
 	
 		Mode Cartridge::GetMode() const

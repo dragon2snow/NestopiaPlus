@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -73,19 +73,10 @@ namespace Nestopia
 			ibool OnCmdDefault          (Param&);
 			ibool OnCmdJoysticksDefault (Param&);
 			ibool OnCmdOk               (Param&);
-			ibool OnScanInitDialog      (Param&);
-			ibool OnScanKeyDown         (Param&);
-			ibool OnScanTimer           (Param&);
-			ibool OnScanDestroy         (Param&);
 
 			void UpdateKeyMap    (uint) const;
 			void UpdateKeyNames  (uint) const;
 			void UpdateJoysticks (uint) const;
-
-			ibool UpdateInputScanner (HWND);
-
-			void PollCmdKey (HWND);
-			void PollEmuKey (HWND);
 
 		public:
 
@@ -106,6 +97,7 @@ namespace Nestopia
 					TYPE_MAHJONG,
 					TYPE_EXCITINGBOXING,
 					TYPE_POKKUNMOGURAA,
+					TYPE_PARTYTAP,
 					TYPE_EMULATION,
 					TYPE_FILE,
 					TYPE_MACHINE,
@@ -129,6 +121,7 @@ namespace Nestopia
 					PAD_KEY_RIGHT,
 					PAD_KEY_AUTOFIRE_A,
 					PAD_KEY_AUTOFIRE_B,
+					PAD_KEY_MIC,
 					PAD_NUM_KEYS,
 
 					PAD1_KEYS = PAD_KEYS,
@@ -222,7 +215,16 @@ namespace Nestopia
 					POKKUNMOGURAA_KEY_ROW_3_4,
 					POKKUNMOGURAA_NUM_KEYS,
 
-					EMULATION_KEYS = POKKUNMOGURAA_KEYS + POKKUNMOGURAA_NUM_KEYS,
+					PARTYTAP_KEYS = POKKUNMOGURAA_KEYS + POKKUNMOGURAA_NUM_KEYS,
+					PARTYTAP_UNIT_1 = 0,
+					PARTYTAP_UNIT_2,
+					PARTYTAP_UNIT_3,
+					PARTYTAP_UNIT_4,
+					PARTYTAP_UNIT_5,
+					PARTYTAP_UNIT_6,
+					PARTYTAP_NUM_KEYS,
+
+					EMULATION_KEYS = PARTYTAP_KEYS + PARTYTAP_NUM_KEYS,
 					EMULATION_KEY_ALT_SPEED = 0,
 					EMULATION_KEY_REWIND,
 					EMULATION_KEY_INSERT_COIN_1, 
@@ -327,7 +329,7 @@ namespace Nestopia
 				struct Type
 				{
 					uchar offset;
-					cstring name;
+					tstring name;
 				};
 
 				struct Mapping
@@ -339,7 +341,7 @@ namespace Nestopia
 
 					uchar index;
 					ushort key;
-					cstring dlgName;
+					tstring dlgName;
 					cstring cfgName;
 				};
 
@@ -362,6 +364,7 @@ namespace Nestopia
 
 				Key keys[NUM_KEYS];
 				uint autoFireSpeed;
+				ibool allowSimulAxes;
 
 				static const Type types[OFFSET_COUNT];
 				static const Mapping map[NUM_KEYS];
@@ -401,6 +404,11 @@ namespace Nestopia
 				{
 					return autoFireSpeed;
 				}
+
+				ibool AllowSimulAxes() const
+				{
+					return allowSimulAxes;
+				}
 			};
 
 		private:
@@ -412,23 +420,6 @@ namespace Nestopia
 			DirectX::DirectInput& directInput;
 			Settings settings;
 			Dialog dialog;
-
-			struct Timer
-			{
-				enum 
-				{
-					ID = 666,
-					RATE = 50,
-					CLOCK = 1000,
-					START = 5000,
-					SECOND = 1000
-				};
-
-				int remaining;
-				int clock;
-			};
-
-			Timer timer;
 
 		public:
 

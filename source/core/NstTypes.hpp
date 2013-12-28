@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -184,6 +184,8 @@ namespace Nes
 
 #include "NstInteger.hpp"
 #include "NstAssert.hpp"
+
+#define NES_CYCLE_MAX (~dword(0))
 
 namespace Nes
 {

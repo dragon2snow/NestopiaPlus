@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -172,8 +172,6 @@ namespace Nes
 			Renderer::Hq2x Renderer::hq2x;
 
           #endif
-
-            #define NES_PIXELS (WIDTH * HEIGHT)
 
 			Result Renderer::SetState(const Api::Video::RenderState& input)
 			{
@@ -504,12 +502,12 @@ namespace Nes
 				{
 					if (const uint offset = state.paletteOffset)
 					{
-						for (uint i=0; i < NES_PIXELS; ++i)
+						for (uint i=0; i < PIXELS; ++i)
 							dst[i] = offset + screen[i];
 					}
 					else
 					{
-						for (uint i=0; i < NES_PIXELS; ++i)
+						for (uint i=0; i < PIXELS; ++i)
 							dst[i] = screen[i];
 					}
 				}
@@ -548,7 +546,7 @@ namespace Nes
 			{
 				NST_ASSERT( state.scale == 1 );
 		
-				for (uint i=0; i < NES_PIXELS; ++i)
+				for (uint i=0; i < PIXELS; ++i)
 					dst[i] = palette[screen[i]];
 			}
 		

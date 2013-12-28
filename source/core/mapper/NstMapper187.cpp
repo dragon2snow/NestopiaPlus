@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -41,7 +41,6 @@ namespace Nes
 				exCtrl = 0;
 				exMode = false;
 				exLast = 0;
-				hack = true;
 			}
 	
 			Mmc3::SubReset( hard );
@@ -96,15 +95,15 @@ namespace Nes
 				const uint bank = exCtrl & 0x1F;
 
 				if (exCtrl & 0x20)
-					prg.SwapBank<NES_32K,0x0000U>( bank >> 2 );
+					prg.SwapBank<SIZE_32K,0x0000U>( bank >> 2 );
 				else
-					prg.SwapBanks<NES_16K,0x0000U>( bank, bank );
+					prg.SwapBanks<SIZE_16K,0x0000U>( bank, bank );
 			}
 			else
 			{
 				const uint i = (regs.ctrl0 & Regs::CTRL0_XOR_PRG) >> 5;
 
-				prg.SwapBanks<NES_8K,0x0000U>( banks.prg[i], banks.prg[1], banks.prg[i^2], banks.prg[3] );
+				prg.SwapBanks<SIZE_8K,0x0000U>( banks.prg[i], banks.prg[1], banks.prg[i^2], banks.prg[3] );
 			}
 		}
 
@@ -114,8 +113,8 @@ namespace Nes
 
 			const uint swap = (regs.ctrl0 & Regs::CTRL0_XOR_CHR) << 5;
 
-			chr.SwapBanks<NES_2K>( 0x0000U ^ swap, banks.chr[0] | 0x80, banks.chr[1] | 0x80 ); 
-			chr.SwapBanks<NES_1K>( 0x1000U ^ swap, banks.chr[2], banks.chr[3], banks.chr[4], banks.chr[5] ); 
+			chr.SwapBanks<SIZE_2K>( 0x0000U ^ swap, banks.chr[0] | 0x80, banks.chr[1] | 0x80 ); 
+			chr.SwapBanks<SIZE_1K>( 0x1000U ^ swap, banks.chr[2], banks.chr[3], banks.chr[4], banks.chr[5] ); 
 		}
 
 		NES_PEEK(Mapper187,5000)
@@ -142,16 +141,6 @@ namespace Nes
 		NES_POKE(Mapper187,5001)
 		{
 			exLast = data;
-
-			if (hack)
-			{
-				hack = false;
-
-				// Sonic 3D Blast 6 will not work unless APU 
-				// frame IRQ's are disabled on power-on
-
-				cpu.Poke( 0x4017, 0x40 ); 
-			}
 		}
 
 		NES_POKE(Mapper187,8000)
@@ -171,7 +160,7 @@ namespace Nes
 			exMode = false;
 
 			if (data == 0x28 || data == 0x2A || data == 0x06)
-				prg.SwapBanks<NES_8K,0x2000U>( data == 0x2A ? 0x0F : 0x1F, data == 0x06 ? 0x1F : 0x17 );
+				prg.SwapBanks<SIZE_8K,0x2000U>( data == 0x2A ? 0x0F : 0x1F, data == 0x06 ? 0x1F : 0x17 );
 		}
 	}
 }

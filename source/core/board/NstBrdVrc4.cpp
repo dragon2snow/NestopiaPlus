@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -189,42 +189,51 @@ namespace Nes
 				}
 			}
 		
-			void Vrc4::LoadState(State::Loader& state)
+			void Vrc4::BaseLoad(State::Loader& state,const dword id)
 			{
-				while (const dword chunk = state.Begin())
+				NST_ASSERT( id == NES_STATE_CHUNK_ID('V','R','4','\0') );
+
+				if (id == NES_STATE_CHUNK_ID('V','R','4','\0'))
 				{
-					switch (chunk)
+					while (const dword chunk = state.Begin())
 					{
-						case NES_STATE_CHUNK_ID('R','E','G','\0'):
+						switch (chunk)
+						{
+							case NES_STATE_CHUNK_ID('R','E','G','\0'):
+						
+								NST_VERIFY( type != TYPE_A );
+						
+								if (type != TYPE_A)
+									prgSwap = state.Read8() & 0x2;
+						
+								break;
+						
+							case NES_STATE_CHUNK_ID('I','R','Q','\0'):
+						
+								NST_VERIFY( type != TYPE_A );
+						
+								if (type != TYPE_A)
+									irq->LoadState( State::Loader::Subset(state).Ref() );
+						
+								break;
+						}
 
-							NST_VERIFY( type != TYPE_A );
-
-							if (type != TYPE_A)
-								prgSwap = state.Read8() & 0x2;
-							
-							break;
-					
-						case NES_STATE_CHUNK_ID('I','R','Q','\0'):
-
-							NST_VERIFY( type != TYPE_A );
-
-							if (type != TYPE_A)
-								irq->LoadState( State::Loader::Subset(state).Ref() );
-
-							break;
+						state.End();
 					}
-
-					state.End();
 				}
 			}
 		
-			void Vrc4::SaveState(State::Saver& state) const
+			void Vrc4::BaseSave(State::Saver& state) const
 			{
+				state.Begin('V','R','4','\0');
+
 				if (type != TYPE_A)
 				{
 					state.Begin('R','E','G','\0').Write8( prgSwap ).End();
 					irq->SaveState( State::Saver::Subset(state,'I','R','Q','\0').Ref() );
 				}
+
+				state.End();
 			}
 		
 			void Vrc4::Irq::LoadState(State::Loader& state)
@@ -258,7 +267,7 @@ namespace Nes
 		
 			NES_POKE(Vrc4,8)
 			{
-				prg.SwapBank<NES_8K>( (prgSwap << 13), data );
+				prg.SwapBank<SIZE_8K>( (prgSwap << 13), data );
 			}
 	
 			NES_POKE(Vrc4,9) 
@@ -269,10 +278,10 @@ namespace Nes
 				{
 					prgSwap = data;
 					
-					prg.SwapBanks<NES_8K,0x0000U>
+					prg.SwapBanks<SIZE_8K,0x0000U>
 					( 
-				     	prg.GetBank<NES_8K,0x4000U>(), 
-						prg.GetBank<NES_8K,0x0000U>() 
+				     	prg.GetBank<SIZE_8K,0x4000U>(), 
+						prg.GetBank<SIZE_8K,0x0000U>() 
 					);
 				}
 			}
@@ -280,7 +289,7 @@ namespace Nes
 			void Vrc4::SwapChrA(const uint address,const uint data) const
 			{
 				ppu.Update(); 
-				chr.SwapBank<NES_1K>( address, data >> 1 );
+				chr.SwapBank<SIZE_1K>( address, data >> 1 );
 			}
 
 			NES_POKE(Vrc4,B0_A) { SwapChrA( 0x0000U, data ); }
@@ -296,7 +305,7 @@ namespace Nes
 			void Vrc4::SwapChrB(const uint address,const uint data) const
 			{
 				ppu.Update(); 
-				chr.SwapBank<NES_1K>( address, (chr.GetBank<NES_1K>(address) & MASK) | ((data & 0xF) << SHIFT) );
+				chr.SwapBank<SIZE_1K>( address, (chr.GetBank<SIZE_1K>(address) & MASK) | ((data & 0xF) << SHIFT) );
 			}
 
 			NES_POKE(Vrc4,B0_B) { SwapChrB<0xF0,0>( 0x0000U, data ); }

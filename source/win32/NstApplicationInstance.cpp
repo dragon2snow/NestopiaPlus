@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -35,11 +35,11 @@
 #define _WIN32_DCOM
 #include <ObjBase.h>
 
-#define NST_MENU_CLASS_NAME "#32768" // name for menus as documented on MSDN
-#define NST_APP_CLASS_NAME "Nestopia"
+#define NST_MENU_CLASS_NAME   _T("#32768") // name for menus as documented on MSDN
+#define NST_APP_CLASS_NAME    _T("Nestopia")
 #define NST_STATUS_CLASS_NAME STATUSCLASSNAME
-#define NST_IME_CLASS_NAME "IME"
-#define NST_APP_MUTEX_NAME "Nestopia Mutex"
+#define NST_IME_CLASS_NAME    _T("IME")
+#define NST_APP_MUTEX_NAME    _T("Nestopia Mutex")
 
 namespace Nestopia
 {
@@ -53,7 +53,7 @@ namespace Nestopia
 		{
 			Paths();
 
-			String::Path<false> path;
+			Path path;
 		};
 
 		struct Hooks
@@ -79,8 +79,8 @@ namespace Nestopia
 		};
 
 		HINSTANCE const hInstance;
-		const Resource::Version version;
 		const Paths paths;
+		const Resource::Version version;
 		Hooks hooks;
 	};
 
@@ -89,9 +89,17 @@ namespace Nestopia
 
 	Instance::Global::Paths::Paths()
 	{
-		String::Path<true> buffer;
-		buffer.ShrinkTo( ::GetModuleFileName( NULL, buffer, buffer.Capacity() ) );
-		path = buffer;
+		uint length;
+
+		do 
+		{
+			path.Reserve( path.Capacity() + 255 );
+			length = ::GetModuleFileName( NULL, path.Ptr(), path.Capacity() );
+		} 
+		while (length == path.Capacity());
+
+		path.ShrinkTo( length );
+		path.Defrag();
 	}
 
 	Instance::Global::Hooks::Hooks(HINSTANCE const hInstance)
@@ -119,14 +127,14 @@ namespace Nestopia
 			{
 				enum
 				{
-					LENGTH = NST_MAX( NST_COUNT(NST_APP_CLASS_NAME) - 1,
-             		     	 NST_MAX( NST_COUNT(NST_STATUS_CLASS_NAME) - 1, NST_COUNT(NST_MENU_CLASS_NAME) - 1 ))
+					MAX_LENGTH = NST_MAX( NST_COUNT(NST_APP_CLASS_NAME) - 1,
+             		     	     NST_MAX( NST_COUNT(NST_STATUS_CLASS_NAME) - 1, NST_COUNT(NST_MENU_CLASS_NAME) - 1 ))
 				};
 
-				String::Stack<LENGTH> name;
-				name.ShrinkTo( ::GetClassName( hWnd, name, LENGTH+1 ) );
+				String::Stack<MAX_LENGTH,tchar> name;
+				name.ShrinkTo( ::GetClassName( hWnd, name.Ptr(), MAX_LENGTH+1 ) );
 
-				if (name.ExactEqual( NST_MENU_CLASS_NAME ) || name.ExactEqual( NST_STATUS_CLASS_NAME ) || name.ExactEqual( NST_IME_CLASS_NAME ))
+				if (name.IsEqual( NST_MENU_CLASS_NAME ) || name.IsEqual( NST_STATUS_CLASS_NAME ) || name.IsEqual( NST_IME_CLASS_NAME ))
 					return;
 
 				if (window)
@@ -134,7 +142,7 @@ namespace Nestopia
 					children.PushBack( hWnd );
 					Events::Signal( EVENT_SYSTEM_BUSY );
 				}
-				else if (name.ExactEqual( NST_APP_CLASS_NAME ))
+				else if (name.IsEqual( NST_APP_CLASS_NAME ))
 				{
 					window = hWnd;
 				}
@@ -216,7 +224,8 @@ namespace Nestopia
 	Instance::Global::Global()
 	: 
 	hInstance ( ::GetModuleHandle(NULL) ),
-	hooks     ( hInstance )
+	hooks     ( hInstance ),
+	version   ( paths.path.Ptr() )
 	{
 	}
 
@@ -225,25 +234,64 @@ namespace Nestopia
 		return global.hInstance;
 	}
 
-	String::Generic Instance::GetVersion()
+	const String::Generic<char> Instance::GetVersion()
 	{
 		return global.version;
 	}
 
-	const String::Path<false>& Instance::GetPath()
+	const Path& Instance::GetPath()
 	{
 		return global.paths.path;
 	}
 
-	const String::Path<true> Instance::GetPath(const String::Generic file)
+	const Path Instance::GetPath(const GenericString file)
 	{
-		return String::Path<true>( global.paths.path.Directory(), file, "" );
+		return Path( global.paths.path.Directory(), file );
 	}
 
-	void Instance::Launch(const String::Generic file,const uint flags)
+	const Path Instance::GetTmpPath(GenericString file)
 	{
-		NST_ASSERT( global.hooks.window && file.Size() && file.IsNullTerminated() );
-		Window::Generic(global.hooks.window).CopyData( file, file.Size() + 1, flags, global.hooks.window );
+		Path tmp, path;
+		tmp.Reserve( 255 );
+		
+		if (uint length = ::GetTempPath( tmp.Capacity() + 1, tmp.Ptr() ))
+		{
+			if (length > tmp.Capacity() + 1)
+			{
+				tmp.Reserve( length - 1 );
+				length = ::GetTempPath( length, tmp.Ptr() );
+			}
+
+			if (length)
+			{
+				path.Reserve( NST_MAX(length,255) );
+				length = ::GetLongPathName( tmp.Ptr(), path.Ptr(), path.Capacity() + 1 );
+
+				if (length > path.Capacity() + 1)
+				{
+					path.Reserve( length - 1 );
+					length = ::GetLongPathName( tmp.Ptr(), path.Ptr(), path.Capacity() + 1 );
+				}
+
+				path.ShrinkTo( length );
+			}
+		}
+
+		if (path.Empty())
+			path << ".\\";
+
+		if (file.Empty())
+			file = _T("nestopia.tmp");
+
+		path << file;
+
+		return path;
+	}
+
+	void Instance::Launch(const GenericString file,const uint flags)
+	{
+		NST_ASSERT( global.hooks.window && file.Length() && file.IsNullTerminated() );
+		Window::Generic(global.hooks.window).CopyData( file.Ptr(), (file.Length() + 1) * sizeof(tchar), flags, global.hooks.window );
 	}
   
 	void Instance::Events::Add(const Callback& callback)
@@ -254,9 +302,7 @@ namespace Nestopia
 
 	void Instance::Events::Signal(const Event event,const void* param)
 	{
-		Callbacks::ConstIterator const end = callbacks.End();
-
-		for (Callbacks::ConstIterator it=callbacks.Begin(); it != end; ++it)
+		for (Callbacks::ConstIterator it=callbacks.Begin(), end=callbacks.End(); it != end; ++it)
 			(*it)( event, param );
 	}
 
@@ -295,9 +341,7 @@ namespace Nestopia
 
 	ibool Instance::IsAnyChildWindowVisible()
 	{
-		Global::Hooks::Children::ConstIterator const end = global.hooks.children.End();
-
-		for (Global::Hooks::Children::ConstIterator it = global.hooks.children.Begin(); it != end; ++it)
+		for (Global::Hooks::Children::ConstIterator it=global.hooks.children.Begin(), end=global.hooks.children.End(); it != end; ++it)
 		{
 			if (::IsWindowVisible( *it ))
 				return TRUE;
@@ -309,23 +353,53 @@ namespace Nestopia
 	void Instance::ShowChildWindows(uint state)
 	{
 		state = (state ? SW_SHOWNA : SW_HIDE);
-		Global::Hooks::Children::ConstIterator const end = global.hooks.children.End();
 
-		for (Global::Hooks::Children::ConstIterator it = global.hooks.children.Begin(); it != end; ++it)
+		for (Global::Hooks::Children::ConstIterator it=global.hooks.children.Begin(), end=global.hooks.children.End(); it != end; ++it)
 			::ShowWindow( *it, state );
+	}
+
+	void Instance::Post(uint id)
+	{
+		Window::Generic(GetMainWindow()).Post( id, 0, 0 );
 	}
 
 	Instance::Waiter::Waiter()
 	: hCursor(::SetCursor(Resource::Cursor::GetWait())) {}
 
-	Instance::Instance(cstring const cmdLine)
-	: cfg(cmdLine)
+	Instance::Locker::Locker()
+	: hWnd(GetMainWindow()), enabled(::IsWindowEnabled(hWnd))
+	{
+		::EnableWindow( hWnd, FALSE );
+		::LockWindowUpdate( hWnd );
+	}
+
+	ibool Instance::Locker::CheckInput(int vKey) const
+	{
+		if (::GetAsyncKeyState( vKey ) & 0x8000)
+		{
+			while (::GetAsyncKeyState( vKey ) & 0x8000)
+				::Sleep( 10 );
+
+			return TRUE;
+		}
+
+		return FALSE;
+	}
+
+	Instance::Locker::~Locker()
+	{
+		::LockWindowUpdate( NULL );
+		::EnableWindow( hWnd, enabled );
+		for (MSG msg;::PeekMessage( &msg, NULL, 0, 0, PM_REMOVE|PM_QS_INPUT ););
+	}
+
+	Instance::Instance()
 	{
 		if (global.paths.path.Empty())
-			throw Exception("::GetModuleFileName() failed!");
+			throw Exception(_T("::GetModuleFileName() failed!"));
 
 		if (global.hooks.handle == NULL)
-			throw Exception("SetWindowsHookEx() failed!");
+			throw Exception(_T("SetWindowsHookEx() failed!"));
 
 		if (static_cast<const Configuration&>(cfg)["preferences allow multiple instances"] != Configuration::YES)
 		{
@@ -339,8 +413,8 @@ namespace Nestopia
 				{
 					window.Activate( FALSE );
 
-					if (const uint size = cfg.GetStartupFile().Size())
-						window.CopyData( cfg.GetStartupFile(), size + 1 );
+					if (const uint size = cfg.GetStartupFile().Length())
+						window.CopyData( cfg.GetStartupFile().Ptr(), size + 1 );
 				}
 
 				throw Exception::QUIT_SUCCESS;
@@ -348,7 +422,7 @@ namespace Nestopia
 		}
 
 		if (FAILED(::CoInitializeEx( NULL, COINIT_APARTMENTTHREADED )))
-			throw Exception("::CoInitializeEx() failed!");
+			throw Exception(_T("::CoInitializeEx() failed!"));
 
 		Window::Struct<INITCOMMONCONTROLSEX> initCtrlEx;
 		initCtrlEx.dwICC = ICC_WIN95_CLASSES;

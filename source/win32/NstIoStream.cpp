@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -83,7 +83,7 @@ namespace Nestopia
 		try
 		{
 			Collection::Buffer buffer( file.Size() );
-			file.Peek( 0, buffer, buffer.Size() );
+			file.Peek( 0, buffer.Ptr(), buffer.Size() );
 			Initialize( buffer );
 		}
 		catch (File::Exception)
@@ -248,7 +248,7 @@ namespace Nestopia
 		{
 			pos = 0;
 			vector.Resize( file.Size() );
-			file.Peek( 0, vector, vector.Size() );
+			file.Peek( 0, vector.Ptr(), vector.Size() );
 		}
 		catch (File::Exception)
 		{		
@@ -286,7 +286,7 @@ namespace Nestopia
 			vector.ShrinkTo( pos + count );
 		}
 
-		std::memcpy( vector + pos, data, count );
+		std::memcpy( vector.Ptr() + pos, data, count );
 		pos += count;
 
 		return count;

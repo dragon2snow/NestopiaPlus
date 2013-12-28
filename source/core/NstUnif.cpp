@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -102,30 +102,39 @@ namespace Nes
 			{"EWROM",                  5},	 
 			{"AOROM",                  7},   	
 			{"PNROM",                  9},  // MMC2	
-			{"TC-U01-1.5M",            11}, // Color Dreams
-			{"SA-016-1M",              11}, 
 			{"CPROM",                  13}, 
 			{"BNROM",                  34}, 	
 			{"1991SUPERHIK7IN1",       45},
+			{"SUPERHIK8IN1",           45},
 			{"1992BALLGAMES11IN1",     51},
 			{"MARIO7IN1",              52},
 			{"SUPERVISION16IN1",       53},
 			{"STUDYGAME32IN1",         58},
 			{"RESET4IN1",              60},
 			{"GNROM",                  66}, 
-			{"SA-72007",               113},
 			{"SA-72008",               133},
-			{"SACHEN-74LS374N",        134},
-			{"SACHEN-8259A",           135},
+			{"SACHEN-8259D",           137},
+			{"SACHEN-8259B",           138},
+			{"SACHEN-8259C",           139},
+			{"SACHEN-8259A",           141},
+			{"SA-NROM",                143},
+			{"SA-72007",               145},
+			{"SA-016-1M",              146}, 
+			{"TC-U01-1.5M",            147},
+			{"SA-0037",                148},
+			{"SA-0036",                149},
+			{"SACHEN-74LS374N",        150},
 			{"DEIROM",                 206},
 			{"GOLDENGAME150IN1",       235},
 			{"SUPER24IN1SC03",         Mapper::EXT_SUPER24IN1},
 			{"MARIO1-MALEE2",          Mapper::EXT_MARIO1MALEE2},
 			{"NOVELDIAMOND9999999IN1", Mapper::EXT_NOVELDIAMOND},
+			{"8157",                   Mapper::EXT_8157},
 			{"8237",                   Mapper::EXT_8237},
 			{"WS",                     Mapper::EXT_WS},
 			{"DREAMTECH01",            Mapper::EXT_DREAMTECH01},
-			{"H2288",                  Mapper::EXT_H2288}
+			{"H2288",                  Mapper::EXT_H2288},
+			{"CC-21",                  Mapper::EXT_CC21}
 		};
 	
 		bool Unif::Board::operator < (const Board& board) const
@@ -431,7 +440,7 @@ namespace Nes
 				if (char(id) == Rom::id[i])
 				{
 					cstring const name = (type ? "Unif: CHR-ROM " : "Unif: PRG-ROM ");
-					log << name << char(id) << " data, " << (length / NES_1K) << "k" NST_LINEBREAK;
+					log << name << char(id) << " data, " << (length / SIZE_1K) << "k" NST_LINEBREAK;
 	
 					LinearMemory& rom = roms[type][i].rom;
 	

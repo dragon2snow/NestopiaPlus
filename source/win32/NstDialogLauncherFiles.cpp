@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -22,11 +22,8 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#ifdef _MSC_VER
-#pragma warning( push )
-#pragma warning( disable : 4800 )
-#endif
-
+#include <map>
+#include <set>
 #include "NstWindowUser.hpp"
 #include "NstIoFile.hpp"
 #include "NstIoArchive.hpp"
@@ -72,11 +69,11 @@ namespace Nestopia
 			const Nes::Cartridge::Database&
 		);
 
-		ibool Add(const String::Generic);
+		ibool Add(const GenericString);
 
 	protected:
 
-		void ReadFile(cstring const,const Dialog&);
+		void ReadFile(tstring const,const Dialog&);
 
 		enum Stop
 		{
@@ -88,16 +85,16 @@ namespace Nestopia
 			PATH_NOT_ADDED
 		};
 
-		struct Path
+		struct PathInfo
 		{
-			String::Path<false> string;
+			Path string;
 			ibool incSubDir;
 			uint reference;
 		};
 
 		const Include include;
 		uint compressed;
-		Path path;
+		PathInfo path;
 		Strings strings;
 		Entries entries;
 		Strings& saveStrings;
@@ -205,9 +202,9 @@ namespace Nestopia
 			throw STOP_SEARCH;
 	}
 
-	ibool Launcher::List::Files::Inserter::Add(const String::Generic fileName)
+	ibool Launcher::List::Files::Inserter::Add(const GenericString fileName)
 	{
-		NST_ASSERT( fileName.Size() && fileName.Size() <= _MAX_PATH );
+		NST_ASSERT( fileName.Length() && fileName.Length() <= _MAX_PATH );
 
 		if (entries.Size() == Header::MAX_ENTRIES)
 			return FALSE;
@@ -251,14 +248,14 @@ namespace Nestopia
 		return FALSE;
 	}
 
-	void Launcher::List::Files::Inserter::ReadFile(cstring const fileName,const Dialog& dialog)
+	void Launcher::List::Files::Inserter::ReadFile(tstring const fileName,const Dialog& dialog)
 	{
 		path.string.File() = fileName;
 
 		if (Parser const parser = GetParser())
 		{
 			if (dialog)
-				dialog.Control( IDC_LAUNCHER_FILESEARCH_FILE ).Text() << path.string;
+				dialog.Control( IDC_LAUNCHER_FILESEARCH_FILE ).Text() << path.string.Ptr();
 
 			compressed = 0;
 			buffer.Clear();
@@ -290,7 +287,7 @@ namespace Nestopia
 
 	ibool Launcher::List::Files::Inserter::PrepareFile(const uint minSize,const uint fileId)
 	{
-		NST_ASSERT( path.string.Size() && minSize && minSize >= bool(fileId) * 4U );
+		NST_ASSERT( path.string.Length() && minSize && minSize >= bool(fileId) * 4U );
 
 		if (buffer.Empty())
 		{
@@ -300,7 +297,7 @@ namespace Nestopia
 			if (size >= minSize && (!fileId || fileId == file.Peek<u32>()))
 			{
 				buffer.Resize( size );
-				file.Read( buffer, size );
+				file.Read( buffer.Ptr(), size );
 				return TRUE;
 			}
 
@@ -353,7 +350,7 @@ namespace Nestopia
 				const Header& header = reinterpret_cast<const Header&>( buffer.Front() );
 
 				if (header.reserved1 | header.reserved2)
-					std::memset( buffer + 7, 0x00, sizeof(Header) - 7 );
+					std::memset( buffer.Ptr() + 7, 0x00, sizeof(Header) - 7 );
 
 				Entry entry( Entry::NES | compressed );
 
@@ -379,7 +376,7 @@ namespace Nestopia
 				entry.bits.vs      = ( header.flags & INES_VS      ) != 0;
 				entry.bits.pal     = ( header.pal & INES_PAL       ) != 0;
 
-				entry.dBaseEntry = imageDatabase.FindEntry( buffer, buffer.Size(), entry.pRom + entry.cRom );
+				entry.dBaseEntry = imageDatabase.FindEntry( buffer.Ptr(), buffer.Size(), entry.pRom + entry.cRom );
 
 				AddEntry( entry );
 			}
@@ -433,7 +430,7 @@ namespace Nestopia
 						case NST_FOURCC('P','R','G','E'):
 						case NST_FOURCC('P','R','G','F'):
 					
-							entry.pRom = (u16) ((pRom += reinterpret_cast<const u32&>(it[4])) / NES_1K);
+							entry.pRom = (u16) ((pRom += reinterpret_cast<const u32&>(it[4])) / Nes::Core::SIZE_1K);
 							break;
 					
 						case NST_FOURCC('C','H','R','0'):
@@ -453,7 +450,7 @@ namespace Nestopia
 						case NST_FOURCC('C','H','R','E'):
 						case NST_FOURCC('C','H','R','F'):
 					
-							entry.cRom = (u16) ((cRom += reinterpret_cast<const u32&>(it[4])) / NES_1K);
+							entry.cRom = (u16) ((cRom += reinterpret_cast<const u32&>(it[4])) / Nes::Core::SIZE_1K);
 							break;
 					
 						case NST_FOURCC('T','V','C','I'):
@@ -511,7 +508,7 @@ namespace Nestopia
 			{
 				Entry entry( Entry::FDS | compressed );
 
-				entry.pRom = (u16) ((buffer.Size() - (hasHeader ? 16 : 0)) / NES_1K);
+				entry.pRom = (u16) ((buffer.Size() - (hasHeader ? 16 : 0)) / Nes::Core::SIZE_1K);
 				entry.wRam = 32;
 				entry.bits.ntsc = TRUE;
 
@@ -558,7 +555,7 @@ namespace Nestopia
 
 				Entry entry( Entry::NSF | compressed );
 
-				entry.pRom = (u16) ((buffer.Size() - sizeof(Header)) / NES_1K);
+				entry.pRom = (u16) ((buffer.Size() - sizeof(Header)) / Nes::Core::SIZE_1K);
 
 				switch (header.mode & 0x3)
 				{
@@ -575,10 +572,10 @@ namespace Nestopia
 				}
 
 				header.pad2[0] = '\0'; // in case string is not terminated
-				entry.name = (strings << (cstring) header.name);
+				entry.name = (strings << header.name);
 
 				header.pad3[0] = '\0'; // in case string is not terminated
-				entry.maker = (strings << (cstring) header.maker);
+				entry.maker = (strings << header.maker);
 
 				AddEntry( entry );
 			}
@@ -637,11 +634,11 @@ namespace Nestopia
 		}
 
 		const Io::Archive archive( file );
-		const uint length = path.string.Size();
+		const uint length = path.string.Length();
 
 		for (uint i=0; i < archive.NumFiles(); ++i)
 		{
-			NST_VERIFY( archive[i].GetName().Size() );
+			NST_VERIFY( archive[i].GetName().Length() );
 
 			// will look like: "archive.zip <image.nes>"
 			path.string << " <" << archive[i].GetName();
@@ -653,7 +650,7 @@ namespace Nestopia
 				path.string << '>';
 				buffer.Resize( archive[i].Size() );
 
-				if (archive[i].Uncompress( buffer ))
+				if (archive[i].Uncompress( buffer.Ptr() ))
 					(*this.*parser)();
 			}
 
@@ -706,7 +703,7 @@ namespace Nestopia
 			ABORT_SEARCH
 		};
 
-		typedef Collection::Set<u32> SearchedPaths;
+		typedef std::set<HeapString> SearchedPaths;
 
 		ibool OnInitDialog (Param&);
 		ibool OnCmdAbort   (Param&);
@@ -714,7 +711,7 @@ namespace Nestopia
 		ibool IsPathUnique();
 		void  Start(System::Thread::Interrupt);
 		void  Search(System::Thread::Interrupt);
-		void  ReadPath(cstring const,System::Thread::Interrupt);
+		void  ReadPath(tstring const,System::Thread::Interrupt);
 
 		const Settings::Folders& folders;
 		SearchedPaths searchedPaths;
@@ -766,7 +763,7 @@ namespace Nestopia
 		{
 			for (Settings::Folders::const_iterator it(folders.begin()); it != folders.end(); ++it)
 			{
-				if (it->path.Size())
+				if (it->path.Length())
 				{
 					path.string = it->path;
 
@@ -823,14 +820,14 @@ namespace Nestopia
 
 	void Launcher::List::Files::Searcher::Search(System::Thread::Interrupt interrupt)
 	{
-		NST_ASSERT( path.string.Size() );
+		NST_ASSERT( path.string.Length() );
 
 		struct FileFinder
 		{
 			WIN32_FIND_DATA data;
 			HANDLE const handle;
 
-			FileFinder(cstring path)
+			FileFinder(tstring path)
 			: handle(::FindFirstFile( path, &data )) {}
 
 			~FileFinder()
@@ -840,9 +837,9 @@ namespace Nestopia
 			}
 		};
 
-		path.string.File() = "*.*";
+		path.string.File() = _T("*.*");
 
-		FileFinder findFile( path.string );
+		FileFinder findFile( path.string.Ptr() );
 
 		path.string.File().Clear();
 
@@ -867,11 +864,20 @@ namespace Nestopia
 
 	ibool Launcher::List::Files::Searcher::IsPathUnique()
 	{
-		NST_ASSERT( path.string.Size() );
-		return searchedPaths.Insert( Nes::Core::Crc32::Compute( path.string, path.string.Size() + 1 ) ) != NULL;
+		NST_ASSERT( path.string.Length() );
+
+		SearchedPaths::iterator it( searchedPaths.lower_bound( path.string ) );
+
+		if (it == searchedPaths.end() || *it != path.string)
+		{
+			searchedPaths.insert( it, path.string );
+			return TRUE;
+		}
+
+		return FALSE;
 	}
 
-	void Launcher::List::Files::Searcher::ReadPath(cstring const subDir,System::Thread::Interrupt interrupt)
+	void Launcher::List::Files::Searcher::ReadPath(tstring const subDir,System::Thread::Interrupt interrupt)
 	{
 		NST_ASSERT( subDir );
 
@@ -894,7 +900,7 @@ namespace Nestopia
 	Launcher::List::Files::Files(const Nes::Cartridge::Database& imageDatabase)
 	: dirty(FALSE)
 	{
-		const String::Path<true> fileName( Application::Instance::GetPath("launcher.nsd") );
+		const Path fileName( Application::Instance::GetPath(_T("launcher.nsd")) );
 
 		try
 		{
@@ -909,7 +915,7 @@ namespace Nestopia
 				header.version != Header::VERSION ||
 				!header.numEntries || header.numEntries > Header::MAX_ENTRIES ||
 				!header.numStrings || !header.stringSize ||
-				!strings.Import( file, header.stringSize ) ||
+				!strings.Import( file, header.stringSize, header.flags & Header::FLAGS_UTF16 ) ||
 				strings.Count() != header.numStrings
 			)
 				throw ERR_CORRUPT_DATA;
@@ -1012,7 +1018,7 @@ namespace Nestopia
 		{
 			Io::Log log;
 
-			const String::Path<true> fileName( Application::Instance::GetPath("launcher.nsd") );
+			const Path fileName( Application::Instance::GetPath(_T("launcher.nsd")) );
 
 			NST_ASSERT( bool(entries.Size()) <= bool(strings.Size()) );
 
@@ -1032,6 +1038,7 @@ namespace Nestopia
 						header.numEntries = entries.Size();
 						header.numStrings = strings.Count();
 						header.stringSize = strings.Size();
+						header.flags = (strings.IsUTF16() ? Header::FLAGS_UTF16 : 0);
 
 						file << header;
 					}
@@ -1041,7 +1048,7 @@ namespace Nestopia
 					Collection::Buffer buffer;
 					buffer.Reserve( entries.Size() * sizeof(Entry) );
 
-					for (Entries::ConstIterator it=entries.Begin(); it != entries.End(); ++it)
+					for (Entries::ConstIterator it=entries.Begin(), end=entries.End(); it != end; ++it)
 					{
 						NST_ASSERT( it->type );
 
@@ -1095,9 +1102,9 @@ namespace Nestopia
 					log << "Launcher: warning, couldn't save database to \"launcher.nsd\"!\r\n";
 				}
 			}
-			else if (fileName.FileExist())
+			else if (Io::File::FileExist( fileName.Ptr() ))
 			{
-				if (Io::File::Delete( fileName ))
+				if (Io::File::Delete( fileName.Ptr() ))
 					log << "Launcher: empty database, deleted \"launcher.nsd\"\r\n";
 				else
 					log << "Launcher: warning, couldn't delete \"launcher.nsd\"!\r\n";
@@ -1107,7 +1114,7 @@ namespace Nestopia
 
 	void Launcher::List::Files::Defrag()
 	{
-		typedef Collection::Map<String::Generic,uint> References;
+		typedef Collection::Map<GenericString,uint> References;
 
 		References references;
 
@@ -1116,7 +1123,7 @@ namespace Nestopia
 			Entries tmp;
 			tmp.Reserve( entries.Size() );
 
-			for (Entries::ConstIterator it=entries.Begin(); it != entries.End(); ++it)
+			for (Entries::ConstIterator it=entries.Begin(), end=entries.End(); it != end; ++it)
 			{
 				if (it->type)
 				{
@@ -1156,11 +1163,11 @@ namespace Nestopia
 		}
 	}
 
-	ibool Launcher::List::Files::Insert(const Nes::Cartridge::Database& imageDatabase,const String::Generic fileName)
+	ibool Launcher::List::Files::Insert(const Nes::Cartridge::Database& imageDatabase,const GenericString fileName)
 	{
 		return dirty |=
 		(
-			fileName.Size() &&
+			fileName.Length() &&
 			Inserter( strings, entries, Paths::Settings::Include(true), imageDatabase ).Add( fileName )
 		);
 	}
@@ -1198,8 +1205,91 @@ namespace Nestopia
 		dirty = TRUE;
 		Searcher( strings, entries, settings, imageDatabase ).Search();
 	}
+
+    #ifdef NST_PRAGMA_OPTIMIZE
+    #pragma optimize("t", on)
+    #endif
+
+	tstring Launcher::List::Files::Entry::GetName(const Strings& strings,const Nes::Cartridge::Database* db) const 
+	{ 
+		if (name || !dBaseEntry || !db)
+			return GetName( strings );
+
+		cstring const dbName = db->GetName( dBaseEntry );
+
+		if (*dbName)
+		{
+			static std::map<ULONG_PTR,HeapString> dbNames;
+			HeapString& string = dbNames[reinterpret_cast<ULONG_PTR>(dbName)];
+			return (string.Empty() ? string=dbName : string).Ptr();
+		}
+
+		return _T("-");
+	}
+
+	uint Launcher::List::Files::Entry::GetSystem() const
+	{
+		if (bits.vs)
+		{
+			return SYSTEM_VS;
+		}
+		else if (bits.ntsc && bits.pal)
+		{
+			return SYSTEM_NTSC_PAL;
+		}
+		else if (bits.ntsc)
+		{
+			return SYSTEM_NTSC;
+		}
+		else if (bits.pal)
+		{
+			return SYSTEM_PAL;
+		}
+
+		return SYSTEM_UNKNOWN;
+	}
+
+	uint Launcher::List::Files::Entry::GetMirroring(const Nes::Cartridge::Database* db) const
+	{
+		if (dBaseEntry && db)
+		{
+			uint m = db->GetMirroring( dBaseEntry );
+
+			return 
+			(
+				m == Nes::Cartridge::MIRROR_HORIZONTAL ? MIRROR_HORIZONTAL : 
+				m == Nes::Cartridge::MIRROR_VERTICAL   ? MIRROR_VERTICAL : 
+				m == Nes::Cartridge::MIRROR_FOURSCREEN ? MIRROR_FOURSCREEN :
+				m == Nes::Cartridge::MIRROR_ZERO       ? MIRROR_ZERO : 
+				m == Nes::Cartridge::MIRROR_ONE        ? MIRROR_ONE : 
+				                                         MIRROR_CONTROLLED
+			);
+		}
+
+		return bits.mirroring;
+	}
+
+	uint Launcher::List::Files::Entry::GetSystem(const Nes::Cartridge::Database* db) const
+	{
+		if (dBaseEntry && db)
+		{
+			Nes::Cartridge::System s = db->GetSystem( dBaseEntry );
+
+			return 
+			(
+				s == Nes::Cartridge::SYSTEM_VS       ? SYSTEM_VS : 
+				s == Nes::Cartridge::SYSTEM_PC10     ? SYSTEM_PC10 :
+				s == Nes::Cartridge::SYSTEM_PAL      ? SYSTEM_PAL :
+				s == Nes::Cartridge::SYSTEM_NTSC_PAL ? SYSTEM_NTSC_PAL :
+				                                       SYSTEM_NTSC
+			);
+		}
+
+		return GetSystem();
+	}
+
+    #ifdef NST_PRAGMA_OPTIMIZE
+    #pragma optimize("", on)
+    #endif
 }
 
-#ifdef _MSC_VER
-#pragma warning( pop )
-#endif

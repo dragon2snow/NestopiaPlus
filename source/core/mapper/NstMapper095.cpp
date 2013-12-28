@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -84,14 +84,14 @@ namespace Nes
 	
 			switch (command)
 			{
-				case 0x0: chr.SwapBank<NES_2K,0x0000U>(data >> 1); break;
-				case 0x1: chr.SwapBank<NES_2K,0x0800U>(data >> 1); break;
-				case 0x2: chr.SwapBank<NES_1K,0x1000U>(data);      break;
-				case 0x3: chr.SwapBank<NES_1K,0x1400U>(data);      break;
-				case 0x4: chr.SwapBank<NES_1K,0x1800U>(data);      break;
-				case 0x5: chr.SwapBank<NES_1K,0x1C00U>(data);      break;
-				case 0x6: prg.SwapBank<NES_8K,0x0000U>(data);      break;
-				case 0x7: prg.SwapBank<NES_8K,0x2000U>(data);      break;
+				case 0x0: chr.SwapBank<SIZE_2K,0x0000U>(data >> 1); break;
+				case 0x1: chr.SwapBank<SIZE_2K,0x0800U>(data >> 1); break;
+				case 0x2: chr.SwapBank<SIZE_1K,0x1000U>(data);      break;
+				case 0x3: chr.SwapBank<SIZE_1K,0x1400U>(data);      break;
+				case 0x4: chr.SwapBank<SIZE_1K,0x1800U>(data);      break;
+				case 0x5: chr.SwapBank<SIZE_1K,0x1C00U>(data);      break;
+				case 0x6: prg.SwapBank<SIZE_8K,0x0000U>(data);      break;
+				case 0x7: prg.SwapBank<SIZE_8K,0x2000U>(data);      break;
 			}
 		}
 	}

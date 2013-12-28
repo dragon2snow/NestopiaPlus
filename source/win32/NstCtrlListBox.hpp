@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -61,28 +61,10 @@ namespace Nestopia
 						TextProxy(const Item& i)
 						: item(i) {}
 
-						void operator << (cstring) const;
+						void operator << (tstring) const;
 
 						template<typename T>
-						uint operator >> (T& string) const
-						{
-							NST_VERIFY( item.control );
-
-							int size = item.control.Send( LB_GETTEXTLEN, item.index, 0 );
-
-							if (size > 0)
-							{
-								string.Reserve( size );
-								size = item.control.Send( LB_GETTEXT, item.index, static_cast<char*>(string) );
-							}
-
-							if (size < 0)
-								size = 0;
-
-							string.ShrinkTo( size );
-
-							return size;
-						}
+						uint operator >> (T&) const;
 					};
 
 					const Window::Generic control;
@@ -125,8 +107,8 @@ namespace Nestopia
 				ListBox(HWND hWnd,uint id)
 				: Generic( hWnd, id ) {}
 
-				Item Add(cstring) const;
-				Item Insert(uint,cstring) const;
+				Item Add(tstring) const;
+				Item Insert(uint,tstring) const;
 				Item Selection() const;
 				void Reserve(uint) const;
 				uint Size() const;
@@ -146,6 +128,25 @@ namespace Nestopia
 					return Item( control, i );
 				}
 			};
+
+			template<typename T>
+			uint ListBox::Item::TextProxy::operator >> (T& string) const
+			{
+				NST_VERIFY( item.control );
+
+				const int size = item.control.Send( LB_GETTEXTLEN, item.index, 0 );
+
+				if (size > 0)
+				{
+					string.Resize( size );
+
+					if (item.control.Send( LB_GETTEXT, item.index, static_cast<tchar*>(string.Ptr()) ) > 0)
+						return string.Validate();
+				}
+
+				string.Clear();
+				return 0;
+			}
 		}
 	}
 }

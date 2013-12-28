@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -195,20 +195,20 @@ namespace Nes
 				if (speed)
 					sampleRate = sampleRate * FPS_NTSC / speed;
 
-				while (++i < 512 && u64(NES_MASTER_CLOCK_NTSC) * i % sampleRate);
+				while (++i < 512 && u64(Cpu::MC_NTSC) * i % sampleRate);
 
-				rate = u64(NES_MASTER_CLOCK_NTSC) * i / sampleRate;
-				fixed = NES_NTSC_CLOCK_DIV * i; 
+				rate = u64(Cpu::MC_NTSC) * i / sampleRate;
+				fixed = Cpu::CLK_NTSC_DIV * i; 
 			}
 			else
 			{
 				if (speed)
 					sampleRate = sampleRate * FPS_PAL / speed;
 
-				while (++i < 512 && u64(NES_MASTER_CLOCK_PAL) * i % sampleRate);
+				while (++i < 512 && u64(Cpu::MC_PAL) * i % sampleRate);
 
-				rate = u64(NES_MASTER_CLOCK_PAL) * i / sampleRate;
-				fixed = NES_PAL_CLOCK_DIV * i; 
+				rate = u64(Cpu::MC_PAL) * i / sampleRate;
+				fixed = Cpu::CLK_PAL_DIV * i; 
 			}
 		}
 	
@@ -399,20 +399,20 @@ namespace Nes
 				if (context.transpose && context.speed)
 					sampleRate = sampleRate * FPS_NTSC / context.speed;
 
-				while (++i < 0x1000 && u64(NES_MASTER_CLOCK_NTSC) * (i+1) / sampleRate <= 0x7FFFFUL && u64(NES_MASTER_CLOCK_NTSC) * i % sampleRate);
+				while (++i < 0x1000 && u64(Cpu::MC_NTSC) * (i+1) / sampleRate <= 0x7FFFFUL && u64(Cpu::MC_NTSC) * i % sampleRate);
 
-				rate = u64(NES_MASTER_CLOCK_NTSC) * i / sampleRate;
-				fixed = i * NES_NTSC_CLOCK_DIV * Cpu::MC_DIV_NTSC; 
+				rate = u64(Cpu::MC_NTSC) * i / sampleRate;
+				fixed = i * Cpu::CLK_NTSC_DIV * Cpu::MC_DIV_NTSC; 
 			}
 			else
 			{
 				if (context.transpose && context.speed)
 					sampleRate = sampleRate * FPS_PAL / context.speed;
 
-				while (++i < 0x1000 && u64(NES_MASTER_CLOCK_PAL) * (i+1) / sampleRate <= 0x7FFFFUL && u64(NES_MASTER_CLOCK_PAL) * i % sampleRate);
+				while (++i < 0x1000 && u64(Cpu::MC_PAL) * (i+1) / sampleRate <= 0x7FFFFUL && u64(Cpu::MC_PAL) * i % sampleRate);
 
-				rate = u64(NES_MASTER_CLOCK_PAL) * i / sampleRate;
-				fixed = i * NES_PAL_CLOCK_DIV * Cpu::MC_DIV_PAL; 
+				rate = u64(Cpu::MC_PAL) * i / sampleRate;
+				fixed = i * Cpu::CLK_PAL_DIV * Cpu::MC_DIV_PAL; 
 			}
 		}
 

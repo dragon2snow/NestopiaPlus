@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -55,10 +55,16 @@ namespace Nestopia
 		return ::DragQueryFile( reinterpret_cast<HDROP>(param.wParam), 0xFFFFFFFF, NULL, 0 );
 	}
 
-	Param::DropFilesParam::FileName Param::DropFilesParam::operator [] (const uint i) const
-	{
-		FileName file;
-		file.ShrinkTo( ::DragQueryFile( reinterpret_cast<HDROP>(param.wParam), i, file, file.Capacity() ) );
+	Path Param::DropFilesParam::operator [] (const uint i) const
+	{		
+		Path file;
+
+		if (const uint length = ::DragQueryFile( reinterpret_cast<HDROP>(param.wParam), i, NULL, 0 ))
+		{
+			file.Resize( length );
+			::DragQueryFile( reinterpret_cast<HDROP>(param.wParam), i, file.Ptr(), length + 1 );
+		}
+
 		return file;
 	}
 }

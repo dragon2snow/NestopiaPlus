@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -115,7 +115,7 @@ namespace Nestopia
 		window.Show( SW_SHOWNA );
 	}
 
-	void StatusBar::Stream::operator << (cstring text) const
+	void StatusBar::Stream::operator << (tstring text) const
 	{
 		if (window)
 			window.Send( SB_SETTEXT, field|0, text );
@@ -123,7 +123,7 @@ namespace Nestopia
 
 	void StatusBar::Stream::Clear() const
 	{
-		operator << ("");
+		operator << (_T(""));
 	}
 
     #ifdef NST_PRAGMA_OPTIMIZE

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -27,6 +27,7 @@
 
 #pragma once
 
+#include <vector>
 #include "NstCollectionVector.hpp"
 #include "NstObjectDelegate.hpp"
 #include "NstString.hpp"
@@ -35,6 +36,7 @@
 #include "../core/api/NstApiVideo.hpp"
 #include "../core/api/NstApiSound.hpp"
 #include "../core/api/NstApiInput.hpp"
+#include "../core/api/NstApiUser.hpp"
 
 namespace Nes
 {
@@ -142,8 +144,6 @@ namespace Nestopia
 				EVENT_PORT5_CONTROLLER
 			};
 
-			typedef String::Path<false> Path;
-
 			void  Stop();
 			void  Resume();
 			void  Wait();
@@ -237,6 +237,7 @@ namespace Nestopia
 					Path start;
 					Path image;
 					Path save;
+					Path tape;
 				};
 
 				struct Fds
@@ -279,15 +280,14 @@ namespace Nestopia
 			};
 
 			ibool IsDiskImage(const Collection::Buffer&) const;
-			ibool UsesSaveData();
 			ibool UsesBaseSpeed() const;
 			void  EnableNetplay(const Netplay::Callback&,uint,uint);
 			void  Unpause();
 
-			template<typename T> void LoadCartridgeData(T&) const;
-			void SaveCartridgeData(const void*,uint);
+			void LoadImageData(std::vector<u8>&,Nes::User::File);
+			void SaveImageData(const std::vector<u8>&,Nes::User::File) const;
 			void LoadDiskData(Collection::Buffer&);
-			void SaveDiskData(const void*,uint);
+			void SaveDiskData(const std::vector<u8>&) const;
 
 			State state;
 			EventHandler events;

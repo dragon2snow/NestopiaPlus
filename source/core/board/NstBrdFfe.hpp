@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -37,11 +37,6 @@ namespace Nes
 		{
 			class NST_NO_VTABLE Ffe : public Mapper
 			{
-			public:
-		
-				void SaveState(State::Saver&) const;
-				void LoadState(State::Loader&);
-		
 			protected:
 		
 				enum Type
@@ -57,6 +52,8 @@ namespace Nes
 			private:
 		
 				void SubReset(bool);
+				void BaseSave(State::Saver&) const;
+				void BaseLoad(State::Loader&,dword);
 				void VSync();
 
 				static uint GetIrqBase(dword);

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -33,17 +33,24 @@ namespace Nestopia
 {
 	using namespace Window;
 
-	const Browser::Path Browser::OpenFile(cstring const filter,const Path dir,const Path ext)
+	const Path Browser::OpenFile(tchar* const filter,const Path dir,const Path ext)
 	{
+		for (uint i=0; filter[i]; ++i)
+		{
+			if (filter[i] == '\t')
+				filter[i] = '\0';
+		}
+
 		Path path;
+		path.Reserve( MAX_PATH*2 );
 
 		Object::Pod<OPENFILENAME> ofn;
 
 		ofn.lStructSize     = sizeof(ofn);
 		ofn.hwndOwner       = Application::Instance::GetActiveWindow();
-		ofn.lpstrFile       = path;
+		ofn.lpstrFile       = path.Ptr();
 		ofn.nMaxFile        = path.Capacity();
-		ofn.lpstrInitialDir	= dir.Size() ? static_cast<cstring>(dir) : ".";
+		ofn.lpstrInitialDir	= dir.Length() ? dir.Ptr() : _T(".");
 		ofn.Flags           = OFN_EXPLORER|OFN_FILEMUSTEXIST|OFN_HIDEREADONLY;
 
 		if (filter)
@@ -52,8 +59,8 @@ namespace Nestopia
 			ofn.nFilterIndex = 1;
 		}
 
-		if (ext.Size())
-			ofn.lpstrDefExt = ext;
+		if (ext.Length())
+			ofn.lpstrDefExt = ext.Ptr();
 
 		if (::GetOpenFileName( &ofn ))
 			path.Validate();
@@ -63,25 +70,41 @@ namespace Nestopia
 		return path;
 	}
 
-	const Browser::Path Browser::SaveFile(cstring const filter,const Path dir,const Path ext,Path path)
+	const Path Browser::SaveFile(tchar* const filter,Path initial)
 	{		
+		Path path;
+		path.Reserve( MAX_PATH*2 );
+
+		const Path extension( initial.Extension() );
+
+		if (initial.File().Length() && initial.File()[0] != '.')
+			path = initial.File();
+
+		initial.File().Clear();
+
 		Object::Pod<OPENFILENAME> ofn;
 
 		ofn.lStructSize     = sizeof(ofn);
 		ofn.hwndOwner       = Application::Instance::GetActiveWindow();
-		ofn.lpstrFile       = path;
+		ofn.lpstrFile       = path.Ptr();
 		ofn.nMaxFile        = path.Capacity();
-		ofn.lpstrInitialDir	= dir.Size() ? static_cast<cstring>(dir) : ".";
+		ofn.lpstrInitialDir	= initial.Length() ? initial.Ptr() : _T(".");
 		ofn.Flags           = OFN_EXPLORER|OFN_PATHMUSTEXIST|OFN_HIDEREADONLY;
 
 		if (filter)
 		{
+			for (uint i=0; filter[i]; ++i)
+			{
+				if (filter[i] == '\t')
+					filter[i] = '\0';
+			}
+
 			ofn.lpstrFilter = filter;
 			ofn.nFilterIndex = 1;
 		}
 
-		if (ext.Size())
-			ofn.lpstrDefExt = ext;
+		if (extension.Length())
+			ofn.lpstrDefExt = extension.Ptr();
 
 		if (::GetSaveFileName( &ofn ))
 			path.Validate();
@@ -91,20 +114,21 @@ namespace Nestopia
 		return path;
 	}
 
-	const Browser::Path Browser::SelectDirectory()
+	const Path Browser::SelectDirectory()
 	{
 		Path path;
+		path.Reserve( MAX_PATH*2 );
 
 		Object::Pod<BROWSEINFO> bi;
-
+									
 		bi.hwndOwner	  = Application::Instance::GetActiveWindow();
-		bi.pszDisplayName = path;
+		bi.pszDisplayName = path.Ptr();
 		bi.ulFlags		  = BIF_RETURNONLYFSDIRS;
 
 		if (LPITEMIDLIST const idl = ::SHBrowseForFolder( &bi ))
 		{
-			if (::SHGetPathFromIDList( idl, path ) && path.Validate())
-				path.Directory().Validate();
+			if (::SHGetPathFromIDList( idl, path.Ptr() ) && path.Validate())
+				path.CheckSlash();
 			else
 				path.Clear();
 

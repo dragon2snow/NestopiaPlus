@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -68,14 +68,12 @@ namespace Nestopia
 		{
 			const Control::Edit edit( dialog.Edit(IDC_CHAT_EDIT) );
 
-			edit.Text() >> text;
-
-			if (text.Size())
+			if (edit.Text() >> text)
 			{
 				text.Trim();
 
-				if (text.Size())
-					::kailleraChatSend( text );
+				if (text.Length())
+					::kailleraChatSend( text.Ptr() );
 
 				edit.Text().Clear();
 			}

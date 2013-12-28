@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -51,10 +51,10 @@ namespace Nestopia
 
 	ibool Licence::OnInitDialog(Param&)
 	{
-		const Resource::File file( IDR_LICENCE, "Licence" );
+		const Resource::File file( IDR_LICENCE, _T("Licence") );
 
 		if (file.GetSize())
-			dialog.Control( IDC_LICENCE_EDIT ).Text() << static_cast<cstring>( file.GetData() );
+			dialog.Control( IDC_LICENCE_EDIT ).Text() << HeapString( static_cast<cstring>(file.GetData()), file.GetSize() ).Ptr();
 
 		return TRUE;
 	}

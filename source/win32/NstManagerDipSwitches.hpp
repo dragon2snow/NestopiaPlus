@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -29,11 +29,6 @@
 
 namespace Nestopia
 {
-	namespace Window
-	{
-		class DipSwitches;
-	}
-
 	namespace Managers
 	{
 		class DipSwitches
@@ -46,11 +41,10 @@ namespace Nestopia
 		private:
 
 			void OnEmuEvent(Emulator::Event);
-			void OnCmd(uint);
+			void OnMenuCmd(uint);
 
 			Emulator& emulator;
 			const Window::Menu& menu;
-			Object::Heap<Window::DipSwitches> dialog;
 		};
 	}
 }

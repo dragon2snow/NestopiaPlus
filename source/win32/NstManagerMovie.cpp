@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -21,7 +21,7 @@
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
 ////////////////////////////////////////////////////////////////////////////////////////
-
+#include <iostream>
 #include "NstIoFile.hpp"
 #include "NstIoLog.hpp"
 #include "NstIoScreen.hpp"
@@ -29,10 +29,9 @@
 #include "NstResourceString.hpp"
 #include "NstWindowUser.hpp"
 #include "NstDialogMovie.hpp"
-#include "NstManagerEmulator.hpp"
+#include "NstManagerAviConverter.hpp"
 #include "NstManagerPaths.hpp"
 #include "NstManagerMovie.hpp"
-#include "../core/api/NstApiMovie.hpp"
 #include "../core/api/NstApiRewinder.hpp"
 
 namespace Nestopia
@@ -96,27 +95,29 @@ namespace Nestopia
 				}
 
 				Io::Screen() << Resource::String( Nes::Movie(movie.emulator).IsPlaying() ? IDS_EMU_ERR_MOVIE_PLAY : IDS_EMU_ERR_MOVIE_REC )
-						     << ' ' 
+						     << ' '
 						     << Resource::String( msg );	
 			}
 		}
 	};
 
-	Movie::Movie(Emulator& e,Window::Menu& m,const Paths& paths)
+	Movie::Movie(Emulator& e,Window::Menu& m,const Paths& p)
 	: 
 	emulator (e), 
 	pos      (REWINDED),
 	menu     (m), 
-	dialog   (new Window::Movie(paths))
+	dialog   (new Window::Movie(p)),
+	paths    (p)
 	{
 		static const Window::Menu::CmdHandler::Entry<Movie> commands[] =
 		{
-			{ IDM_FILE_MOVIE_FILE,    &Movie::OnCmdFile    },
-			{ IDM_FILE_MOVIE_RECORD,  &Movie::OnCmdRecord  },
-			{ IDM_FILE_MOVIE_PLAY,    &Movie::OnCmdPlay    },
-			{ IDM_FILE_MOVIE_STOP,    &Movie::OnCmdStop    },
-			{ IDM_FILE_MOVIE_REWIND,  &Movie::OnCmdRewind  },
-			{ IDM_FILE_MOVIE_FORWARD, &Movie::OnCmdForward }
+			{ IDM_FILE_MOVIE_FILE,       &Movie::OnCmdFile      },
+			{ IDM_FILE_MOVIE_RECORD,     &Movie::OnCmdRecord    },
+			{ IDM_FILE_MOVIE_PLAY,       &Movie::OnCmdPlay      },
+			{ IDM_FILE_MOVIE_STOP,       &Movie::OnCmdStop      },
+			{ IDM_FILE_MOVIE_REWIND,     &Movie::OnCmdRewind    },
+			{ IDM_FILE_MOVIE_FORWARD,    &Movie::OnCmdForward   },
+			{ IDM_FILE_MOVIE_EXPORT_AVI, &Movie::OnCmdExportAvi }
 		};
 
 		static const Window::Menu::PopupHandler::Entry<Movie> popups[] =
@@ -142,8 +143,8 @@ namespace Nestopia
 		(
     		emulator.Is( Nes::Machine::GAME ) &&
 			Nes::Movie( emulator ).IsStopped() &&
-			dialog->GetMovieFile().Size() &&
-			Io::File::FileExist( dialog->GetMovieFile() )
+			dialog->GetMovieFile().Length() &&
+			Io::File::FileExist( dialog->GetMovieFile().Ptr() )
 		);
 	}
 
@@ -153,8 +154,8 @@ namespace Nestopia
 		(
 			emulator.Is( Nes::Machine::GAME ) &&
 			Nes::Movie( emulator ).IsStopped() &&
-			dialog->GetMovieFile().Size() &&
-			!Io::File::FileProtected( dialog->GetMovieFile() )
+			dialog->GetMovieFile().Length() &&
+			!Io::File::FileProtected( dialog->GetMovieFile().Ptr() )
 		);
 	}
 
@@ -175,33 +176,34 @@ namespace Nestopia
 	     	pos != FORWARDED && 
 			emulator.Is( Nes::Machine::GAME ) &&
 			Nes::Movie( emulator ).IsStopped() &&
-			dialog->GetMovieFile().Size() &&
-			Io::File::FileExist( dialog->GetMovieFile() ) &&
-			!Io::File::FileProtected( dialog->GetMovieFile() )
+			dialog->GetMovieFile().Length() &&
+			Io::File::FileExist( dialog->GetMovieFile().Ptr() ) &&
+			!Io::File::FileProtected( dialog->GetMovieFile().Ptr() )
 		);
 	}
 
     void Movie::OnMenuView(Window::Menu::PopupHandler::Param& param)
 	{
-		param.menu[ IDM_FILE_MOVIE_PLAY    ].Enable( CanPlay()    );
-		param.menu[ IDM_FILE_MOVIE_RECORD  ].Enable( CanRecord()  );
-		param.menu[ IDM_FILE_MOVIE_STOP    ].Enable( CanStop()    );
-		param.menu[ IDM_FILE_MOVIE_REWIND  ].Enable( CanRewind()  );
-		param.menu[ IDM_FILE_MOVIE_FORWARD ].Enable( CanForward() );
+		param.menu[ IDM_FILE_MOVIE_PLAY       ].Enable( CanPlay()    );
+		param.menu[ IDM_FILE_MOVIE_RECORD     ].Enable( CanRecord()  );
+		param.menu[ IDM_FILE_MOVIE_STOP       ].Enable( CanStop()    );
+		param.menu[ IDM_FILE_MOVIE_REWIND     ].Enable( CanRewind()  );
+		param.menu[ IDM_FILE_MOVIE_FORWARD    ].Enable( CanForward() );
+		param.menu[ IDM_FILE_MOVIE_EXPORT_AVI ].Enable( CanPlay()    );
 	}
 
 	ibool Movie::Open(const std::fstream::open_mode mode)
 	{
-		NST_ASSERT( dialog->GetMovieFile().Size() && !stream.is_open() );
+		NST_ASSERT( dialog->GetMovieFile().Length() && !stream.is_open() );
 
 		stream.clear();
-		stream.open( dialog->GetMovieFile(), mode | std::fstream::binary );
+		stream.open( dialog->GetMovieFile().Ptr(), mode | std::fstream::binary );
 
 		if (stream.is_open())
 			return TRUE;
 		
 		Io::Screen() << Resource::String( (mode & std::fstream::out) ? IDS_EMU_ERR_MOVIE_REC : IDS_EMU_ERR_MOVIE_PLAY )
-			         << ' ' 
+			         << ' '
 			         << Resource::String( IDS_FILE_ERR_OPEN );		
 
 		return FALSE;
@@ -218,9 +220,9 @@ namespace Nestopia
 		}
 	}
 
-	ibool Movie::Load(const Paths::Path& fileName,const Alert alert)
+	ibool Movie::Load(const Path& fileName,const Alert alert)
 	{
-		if (fileName.Archive().Size())
+		if (fileName.Archive().Length())
 		{
 			Nes::Movie(emulator).Eject();
 
@@ -248,7 +250,7 @@ namespace Nestopia
 
 	void Movie::OnCmdFile(uint)
 	{
-		const Paths::Path old( dialog->GetMovieFile() );
+		const Path old( dialog->GetMovieFile() );
 		dialog->Open();
 		
 		if (old != dialog->GetMovieFile())
@@ -287,11 +289,13 @@ namespace Nestopia
 					}
 				
 					Io::Screen() << Resource::String( IDS_EMU_ERR_MOVIE_REC )
-					         	 << ' ' 
+					         	 << ' '
 								 << Resource::String( msg );		
 				}
 			}
 		}
+
+		Application::Instance::Post( Application::Instance::WM_NST_COMMAND_RESUME );
 	}
 
 	void Movie::OnCmdPlay(uint)
@@ -333,10 +337,35 @@ namespace Nestopia
 						}
 
 						Io::Screen() << Resource::String( IDS_EMU_ERR_MOVIE_PLAY )
-							         << ' ' 
+							         << ' '
 							         << Resource::String( msg );	
 					}
 				}			
+			}
+		}
+
+		Application::Instance::Post( Application::Instance::WM_NST_COMMAND_RESUME );
+	}
+
+	void Movie::OnCmdExportAvi(uint)
+	{
+		if (CanPlay())
+		{
+			if (Nes::Rewinder(emulator).IsEnabled())
+			{
+				Io::Screen() << Resource::String( IDS_EMU_ERR_MOVIE_REWINDER );
+			}
+			else if (Open( std::fstream::in ))
+			{
+				if (const uint ids = AviConverter( emulator, stream ).Record( paths.BrowseSave( Paths::File::AVI, Paths::SUGGEST, dialog->GetMovieFile() ) ))
+				{
+					if (ids == IDS_AVI_WRITE_ABORT || ids == IDS_AVI_WRITE_FINISHED)
+						Window::User::Inform( ids );
+					else
+						Window::User::Fail( ids );
+				}
+
+				Close( REWINDED );
 			}
 		}
 	}
@@ -344,6 +373,7 @@ namespace Nestopia
 	void Movie::OnCmdStop(uint)
 	{
 		Nes::Movie(emulator).Eject();
+		Application::Instance::Post( Application::Instance::WM_NST_COMMAND_RESUME );
 	}
 
 	void Movie::OnCmdRewind(uint)
@@ -353,6 +383,8 @@ namespace Nestopia
 			pos = REWINDED;
 			Io::Screen() << Resource::String( IDS_SCREEN_MOVIE_REWINDED );
 		}
+
+		Application::Instance::Post( Application::Instance::WM_NST_COMMAND_RESUME );
 	}
 
 	void Movie::OnCmdForward(uint)
@@ -362,6 +394,8 @@ namespace Nestopia
 			pos = FORWARDED;
 			Io::Screen() << Resource::String( IDS_SCREEN_MOVIE_FORWARDED );		
 		}
+
+		Application::Instance::Post( Application::Instance::WM_NST_COMMAND_RESUME );
 	}
 
 	void Movie::OnEmuEvent(Emulator::Event event)
@@ -373,6 +407,13 @@ namespace Nestopia
 
 				menu[IDM_POS_FILE][IDM_POS_FILE_MOVIE].Enable( event == Emulator::EVENT_NETPLAY_MODE_OFF );
 				break;
+
+			case Emulator::EVENT_POWER_OFF:
+
+				if (Nes::Movie(emulator).IsPlaying())
+					Nes::Movie(emulator).Eject();
+
+				break;				
 		}
 	}
 }

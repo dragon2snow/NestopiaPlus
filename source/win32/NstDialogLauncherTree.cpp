@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -40,14 +40,14 @@ namespace Nestopia
 
 		ctrl.SetImageList( imageList );
 
-		ctrl.Add( "All Files"     );
-		ctrl.Add( "NES Files"     );
-		ctrl.Add( "UNIF Files"    );
-		ctrl.Add( "FDS Files"     );
-		ctrl.Add( "NSF Files"     );
-		ctrl.Add( "IPS Files"     );
-		ctrl.Add( "NSP Files"     );
-		ctrl.Add( "Archive Files" );
+		ctrl.Add( _T( "All Files"     ) );
+		ctrl.Add( _T( "NES Files"     ) );
+		ctrl.Add( _T( "UNIF Files"    ) );
+		ctrl.Add( _T( "FDS Files"     ) );
+		ctrl.Add( _T( "NSF Files"     ) );
+		ctrl.Add( _T( "IPS Files"     ) );
+		ctrl.Add( _T( "NSP Files"     ) );
+		ctrl.Add( _T( "Archive Files" ) );
 
 		ctrl[selection].Select();
 	}

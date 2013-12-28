@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -198,13 +198,13 @@ namespace Nes
 
 		void Mapper64::UpdatePrg()
 		{
-			prg.SwapBanks<NES_8K,0x0000U>
+			prg.SwapBanks<SIZE_8K,0x0000U>
 			( 
 		     	regs.prg[(regs.ctrl & 0x40) ? 2 : 0], 
 				regs.prg[(regs.ctrl & 0x40) ? 0 : 1]
 			);
 
-			prg.SwapBank<NES_8K,0x4000U>
+			prg.SwapBank<SIZE_8K,0x4000U>
 			( 
 				regs.prg[(regs.ctrl & 0x40) ? 1 : 2] 
 			);
@@ -217,11 +217,11 @@ namespace Nes
 			const uint offset = (regs.ctrl & 0x80) << 5;
 
 			if (regs.ctrl & 0x20)
-				chr.SwapBanks<NES_1K>( offset, regs.chr[0], regs.chr[6], regs.chr[1], regs.chr[7] );
+				chr.SwapBanks<SIZE_1K>( offset, regs.chr[0], regs.chr[6], regs.chr[1], regs.chr[7] );
 			else
-				chr.SwapBanks<NES_2K>( offset, regs.chr[0] >> 1, regs.chr[1] >> 1 );
+				chr.SwapBanks<SIZE_2K>( offset, regs.chr[0] >> 1, regs.chr[1] >> 1 );
 
-			chr.SwapBanks<NES_1K>( offset ^ 0x1000U, regs.chr[2], regs.chr[3], regs.chr[4], regs.chr[5] );
+			chr.SwapBanks<SIZE_1K>( offset ^ 0x1000U, regs.chr[2], regs.chr[3], regs.chr[4], regs.chr[5] );
 		}
 
 		NES_POKE(Mapper64,8000)

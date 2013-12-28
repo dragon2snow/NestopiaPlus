@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -28,6 +28,8 @@
 #pragma once
 
 #include "NstWindowDialog.hpp"
+#include "NstManagerEmulator.hpp"
+#include "../core/api/NstApiDipSwitches.hpp"
 
 namespace Nestopia
 {
@@ -38,9 +40,6 @@ namespace Nestopia
 		public:
 
 			explicit DipSwitches(Managers::Emulator&);
-
-			uint NumDips() const;
-			void Open();
 
 		private:
 
@@ -56,7 +55,7 @@ namespace Nestopia
 			ibool OnCmdOk      (Param&);
 
 			Dialog dialog;
-			Managers::Emulator& emulator;
+			Nes::DipSwitches dipSwitches;
 		};
 	}
 }

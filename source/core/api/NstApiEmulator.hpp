@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -65,6 +65,7 @@ namespace Nes
 		class Cheats;
 		class ImageDatabase;
 		class Movie;
+		class BarcodeReader;
 		class Rewinder;
 	}
 
@@ -97,6 +98,8 @@ namespace Nes
 			friend class Cheats;
 			friend class GameGenie;
 			friend class DipSwitches;
+			friend class BarcodeReader;
+			friend class TapeRecorder;
 			friend class Rewinder;
 	
 			enum

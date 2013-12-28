@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -38,12 +38,10 @@ namespace Nestopia
 		{
 		public:
 
-			typedef String::Path<false> Directory;
-
 			enum Type
 			{
 				DIR_IMAGE,
-				DIR_DATA,
+				DIR_SAVE,
 				DIR_STATE,
 				DIR_SCRIPT,
 				DIR_IPS,
@@ -79,7 +77,7 @@ namespace Nestopia
 			~Paths();
 
 			void Save(Configuration&) const;
-			String::Generic GetScreenShotExtension() const;
+			GenericString GetScreenShotExtension() const;
 
 		private:
 
@@ -101,12 +99,12 @@ namespace Nestopia
 				};
 
 				Flags flags;
-				Directory dirs[NUM_DIRS][2];
+				Path dirs[NUM_DIRS][2];
 				ScreenShotFormat screenShotFormat;
 			};
 
 			void Update(ibool);
-			void CreateFolder(Directory&,String::Generic) const;
+			void CreateFolder(Path&,GenericString) const;
 
 			ibool OnInitDialog (Param&);
 			ibool OnCmdBrowse  (Param&);
@@ -119,13 +117,23 @@ namespace Nestopia
 
 			struct Lut
 			{
-				ushort type;
-				ushort dlg;
-				cstring cfg;
+				struct A
+				{
+					ushort type;
+					ushort dlg;
+					cstring cfg;
+				};
 
-				static const Lut dirs[NUM_DIRS];
-				static const Lut flags[NUM_FLAGS];
-				static const Lut screenShots[NUM_SCREENSHOTS];
+				struct B
+				{
+					ushort type;
+					ushort dlg;
+					tstring cfg;
+				};
+
+				static const A dirs[NUM_DIRS];
+				static const A flags[NUM_FLAGS];
+				static const B screenShots[NUM_SCREENSHOTS];
 			};
 
 		public:
@@ -135,7 +143,7 @@ namespace Nestopia
 				dialog.Open();
 			}
 
-			const Directory& GetDirectory(Type type) const
+			const Path& GetDirectory(Type type) const
 			{
 				return settings.dirs[type][ACTIVE];
 			}

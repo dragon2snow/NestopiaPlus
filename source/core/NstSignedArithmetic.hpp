@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -34,37 +34,6 @@ namespace Nes
 	namespace Core
 	{
 		template<typename T,bool> 
-		struct SignDivider
-		{
-			static T Divide(T a,T b)
-			{
-				return a / b;
-			}
-		};
-
-		template<typename T> 
-		struct SignDivider<T,false>
-		{
-			static T Divide(T a,T b)
-			{
-				const ulong c = 
-				(
-					ulong(a >= 0 ? a : -a) /
-					ulong(b >= 0 ? b : -b)
-				);
-
-				return (a >= 0 && b >= 0) || (a < 0 && b < 0) ? +T(c) : -T(c);
-			}
-		};
-
-		template<typename T>
-		inline T sign_div(T a,T b)
-		{
-			enum {SUPPORTED = -2L / 1L == -2L && 2L / -1L == -2L};
-			return SignDivider<T,SUPPORTED>::Divide( a, b );
-		}
-
-		template<typename T,bool> 
 		struct SignShifter
 		{
 			static T Left(T value,uint count) 
@@ -93,14 +62,14 @@ namespace Nes
 		};
 
 		template<typename T>
-		inline long sign_shl(T value,uint count)
+		inline T sign_shl(T value,uint count)
 		{
 			enum {SUPPORTED = (-7 << 1 == -14)};
 			return SignShifter<T,SUPPORTED>::Left( value, count );
 		}
 
 		template<typename T>
-		inline long sign_shr(T value,uint count)
+		inline T sign_shr(T value,uint count)
 		{
 			enum {SUPPORTED = ((-7 >> 1 == -4) || (-7 >> 1 == -3))};
 			return SignShifter<T,SUPPORTED>::Right( value, count );

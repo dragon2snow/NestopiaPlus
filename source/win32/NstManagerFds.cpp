@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -33,74 +33,6 @@
 
 namespace Nestopia
 {
-	NST_COMPILE_ASSERT
-	(
-		( IDM_MACHINE_FDS_INSERT_DISK_1_SIDE_B - IDM_MACHINE_FDS_INSERT_DISK_1_SIDE_A ) == 1  && 
-		( IDM_MACHINE_FDS_INSERT_DISK_2_SIDE_A - IDM_MACHINE_FDS_INSERT_DISK_1_SIDE_A ) == 2  &&  
-		( IDM_MACHINE_FDS_INSERT_DISK_2_SIDE_B - IDM_MACHINE_FDS_INSERT_DISK_1_SIDE_A ) == 3  && 
-		( IDM_MACHINE_FDS_INSERT_DISK_3_SIDE_A - IDM_MACHINE_FDS_INSERT_DISK_1_SIDE_A ) == 4  && 
-		( IDM_MACHINE_FDS_INSERT_DISK_3_SIDE_B - IDM_MACHINE_FDS_INSERT_DISK_1_SIDE_A ) == 5  && 
-		( IDM_MACHINE_FDS_INSERT_DISK_4_SIDE_A - IDM_MACHINE_FDS_INSERT_DISK_1_SIDE_A ) == 6  && 
-		( IDM_MACHINE_FDS_INSERT_DISK_4_SIDE_B - IDM_MACHINE_FDS_INSERT_DISK_1_SIDE_A ) == 7  && 
-		( IDM_MACHINE_FDS_INSERT_DISK_5_SIDE_A - IDM_MACHINE_FDS_INSERT_DISK_1_SIDE_A ) == 8  && 
-		( IDM_MACHINE_FDS_INSERT_DISK_5_SIDE_B - IDM_MACHINE_FDS_INSERT_DISK_1_SIDE_A ) == 9  &&
-		( IDM_MACHINE_FDS_INSERT_DISK_6_SIDE_A - IDM_MACHINE_FDS_INSERT_DISK_1_SIDE_A ) == 10 &&
-		( IDM_MACHINE_FDS_INSERT_DISK_6_SIDE_B - IDM_MACHINE_FDS_INSERT_DISK_1_SIDE_A ) == 11 &&
-		( IDM_MACHINE_FDS_INSERT_DISK_7_SIDE_A - IDM_MACHINE_FDS_INSERT_DISK_1_SIDE_A ) == 12 &&
-		( IDM_MACHINE_FDS_INSERT_DISK_7_SIDE_B - IDM_MACHINE_FDS_INSERT_DISK_1_SIDE_A ) == 13 &&
-		( IDM_MACHINE_FDS_INSERT_DISK_8_SIDE_A - IDM_MACHINE_FDS_INSERT_DISK_1_SIDE_A ) == 14 &&
-		( IDM_MACHINE_FDS_INSERT_DISK_8_SIDE_B - IDM_MACHINE_FDS_INSERT_DISK_1_SIDE_A ) == 15
-	);
-
-	NST_COMPILE_ASSERT
-	(
-		( IDS_FDS_DISK_1_SIDE_B - IDS_FDS_DISK_1_SIDE_A ) == 1  &&
-		( IDS_FDS_DISK_2_SIDE_A - IDS_FDS_DISK_1_SIDE_A ) == 2  &&
-		( IDS_FDS_DISK_2_SIDE_B - IDS_FDS_DISK_1_SIDE_A ) == 3  &&
-		( IDS_FDS_DISK_3_SIDE_A - IDS_FDS_DISK_1_SIDE_A ) == 4  &&
-		( IDS_FDS_DISK_3_SIDE_B - IDS_FDS_DISK_1_SIDE_A ) == 5  &&
-		( IDS_FDS_DISK_4_SIDE_A - IDS_FDS_DISK_1_SIDE_A ) == 6  &&
-		( IDS_FDS_DISK_4_SIDE_B - IDS_FDS_DISK_1_SIDE_A ) == 7  &&
-		( IDS_FDS_DISK_5_SIDE_A - IDS_FDS_DISK_1_SIDE_A ) == 8  &&
-		( IDS_FDS_DISK_5_SIDE_B - IDS_FDS_DISK_1_SIDE_A ) == 9  &&
-		( IDS_FDS_DISK_6_SIDE_A - IDS_FDS_DISK_1_SIDE_A ) == 10 &&
-		( IDS_FDS_DISK_6_SIDE_B - IDS_FDS_DISK_1_SIDE_A ) == 11 &&
-		( IDS_FDS_DISK_7_SIDE_A - IDS_FDS_DISK_1_SIDE_A ) == 12 &&
-		( IDS_FDS_DISK_7_SIDE_B - IDS_FDS_DISK_1_SIDE_A ) == 13 &&
-		( IDS_FDS_DISK_8_SIDE_A - IDS_FDS_DISK_1_SIDE_A ) == 14 &&
-		( IDS_FDS_DISK_8_SIDE_B - IDS_FDS_DISK_1_SIDE_A ) == 15
-	);
-
-	NST_COMPILE_ASSERT
-	(
-		( IDS_SCREEN_DISK_1_SIDE_B_INSERTED - IDS_SCREEN_DISK_1_SIDE_A_INSERTED ) == 1  &&
-		( IDS_SCREEN_DISK_2_SIDE_A_INSERTED - IDS_SCREEN_DISK_1_SIDE_A_INSERTED ) == 2  &&
-		( IDS_SCREEN_DISK_2_SIDE_B_INSERTED - IDS_SCREEN_DISK_1_SIDE_A_INSERTED ) == 3  &&
-		( IDS_SCREEN_DISK_3_SIDE_A_INSERTED - IDS_SCREEN_DISK_1_SIDE_A_INSERTED ) == 4  &&
-		( IDS_SCREEN_DISK_3_SIDE_B_INSERTED - IDS_SCREEN_DISK_1_SIDE_A_INSERTED ) == 5  &&
-		( IDS_SCREEN_DISK_4_SIDE_A_INSERTED - IDS_SCREEN_DISK_1_SIDE_A_INSERTED ) == 6  &&
-		( IDS_SCREEN_DISK_4_SIDE_B_INSERTED - IDS_SCREEN_DISK_1_SIDE_A_INSERTED ) == 7  &&
-		( IDS_SCREEN_DISK_5_SIDE_A_INSERTED - IDS_SCREEN_DISK_1_SIDE_A_INSERTED ) == 8  &&
-		( IDS_SCREEN_DISK_5_SIDE_B_INSERTED - IDS_SCREEN_DISK_1_SIDE_A_INSERTED ) == 9  &&
-		( IDS_SCREEN_DISK_6_SIDE_A_INSERTED - IDS_SCREEN_DISK_1_SIDE_A_INSERTED ) == 10 &&
-		( IDS_SCREEN_DISK_6_SIDE_B_INSERTED - IDS_SCREEN_DISK_1_SIDE_A_INSERTED ) == 11 &&
-		( IDS_SCREEN_DISK_7_SIDE_A_INSERTED - IDS_SCREEN_DISK_1_SIDE_A_INSERTED ) == 12 &&
-		( IDS_SCREEN_DISK_7_SIDE_B_INSERTED - IDS_SCREEN_DISK_1_SIDE_A_INSERTED ) == 13 &&
-		( IDS_SCREEN_DISK_8_SIDE_A_INSERTED - IDS_SCREEN_DISK_1_SIDE_A_INSERTED ) == 14 &&
-		( IDS_SCREEN_DISK_8_SIDE_B_INSERTED - IDS_SCREEN_DISK_1_SIDE_A_INSERTED ) == 15
-	);
-
-	NST_COMPILE_ASSERT
-	(
-		( IDS_SCREEN_DISK_2_EJECTED - IDS_SCREEN_DISK_1_EJECTED ) == 1 &&
-		( IDS_SCREEN_DISK_3_EJECTED - IDS_SCREEN_DISK_1_EJECTED ) == 2 &&
-		( IDS_SCREEN_DISK_4_EJECTED - IDS_SCREEN_DISK_1_EJECTED ) == 3 &&
-		( IDS_SCREEN_DISK_5_EJECTED - IDS_SCREEN_DISK_1_EJECTED ) == 4 &&
-		( IDS_SCREEN_DISK_6_EJECTED - IDS_SCREEN_DISK_1_EJECTED ) == 5 &&
-		( IDS_SCREEN_DISK_7_EJECTED - IDS_SCREEN_DISK_1_EJECTED ) == 6 &&
-		( IDS_SCREEN_DISK_8_EJECTED - IDS_SCREEN_DISK_1_EJECTED ) == 7
-	);
-
 	using namespace Managers;
 
 	struct Fds::Callbacks
@@ -127,7 +59,7 @@ namespace Nestopia
 
 		static void NST_CALLBACK OnDiskAccessScreen(Nes::Fds::UserData,bool on)
 		{
-			Io::Screen() << (on ? Resource::String(IDS_SCREEN_FDS_LED) : "");
+			Io::Screen() << (on ? Resource::String(IDS_SCREEN_FDS_LED) : _T(""));
 		}
 	};
 
@@ -140,33 +72,39 @@ namespace Nestopia
 	{
 		static const Window::Menu::CmdHandler::Entry<Fds> commands[] =
 		{
-			{ IDM_MACHINE_FDS_INSERT_DISK_1_SIDE_A,	&Fds::OnCmdInsertDisk },
-			{ IDM_MACHINE_FDS_INSERT_DISK_1_SIDE_B,	&Fds::OnCmdInsertDisk },
-			{ IDM_MACHINE_FDS_INSERT_DISK_2_SIDE_A,	&Fds::OnCmdInsertDisk },
-			{ IDM_MACHINE_FDS_INSERT_DISK_2_SIDE_B,	&Fds::OnCmdInsertDisk },
-			{ IDM_MACHINE_FDS_INSERT_DISK_3_SIDE_A,	&Fds::OnCmdInsertDisk },
-			{ IDM_MACHINE_FDS_INSERT_DISK_3_SIDE_B,	&Fds::OnCmdInsertDisk },
-			{ IDM_MACHINE_FDS_INSERT_DISK_4_SIDE_A,	&Fds::OnCmdInsertDisk },
-			{ IDM_MACHINE_FDS_INSERT_DISK_4_SIDE_B,	&Fds::OnCmdInsertDisk },
-			{ IDM_MACHINE_FDS_INSERT_DISK_5_SIDE_A,	&Fds::OnCmdInsertDisk },
-			{ IDM_MACHINE_FDS_INSERT_DISK_5_SIDE_B,	&Fds::OnCmdInsertDisk },
-			{ IDM_MACHINE_FDS_INSERT_DISK_6_SIDE_A,	&Fds::OnCmdInsertDisk },
-			{ IDM_MACHINE_FDS_INSERT_DISK_6_SIDE_B,	&Fds::OnCmdInsertDisk },
-			{ IDM_MACHINE_FDS_INSERT_DISK_7_SIDE_A,	&Fds::OnCmdInsertDisk },
-			{ IDM_MACHINE_FDS_INSERT_DISK_7_SIDE_B,	&Fds::OnCmdInsertDisk },
-			{ IDM_MACHINE_FDS_INSERT_DISK_8_SIDE_A,	&Fds::OnCmdInsertDisk },
-			{ IDM_MACHINE_FDS_INSERT_DISK_8_SIDE_B,	&Fds::OnCmdInsertDisk },
-			{ IDM_MACHINE_FDS_CHANGE_SIDE,          &Fds::OnCmdChangeSide },
-			{ IDM_MACHINE_FDS_EJECT_DISK,			&Fds::OnCmdEjectDisk  },
-			{ IDM_MACHINE_FDS_OPTIONS,				&Fds::OnCmdOptions    }
+			{ IDM_MACHINE_EXT_FDS_INSERT_DISK_1_SIDE_A,	&Fds::OnCmdInsertDisk },
+			{ IDM_MACHINE_EXT_FDS_INSERT_DISK_1_SIDE_B,	&Fds::OnCmdInsertDisk },
+			{ IDM_MACHINE_EXT_FDS_INSERT_DISK_2_SIDE_A,	&Fds::OnCmdInsertDisk },
+			{ IDM_MACHINE_EXT_FDS_INSERT_DISK_2_SIDE_B,	&Fds::OnCmdInsertDisk },
+			{ IDM_MACHINE_EXT_FDS_INSERT_DISK_3_SIDE_A,	&Fds::OnCmdInsertDisk },
+			{ IDM_MACHINE_EXT_FDS_INSERT_DISK_3_SIDE_B,	&Fds::OnCmdInsertDisk },
+			{ IDM_MACHINE_EXT_FDS_INSERT_DISK_4_SIDE_A,	&Fds::OnCmdInsertDisk },
+			{ IDM_MACHINE_EXT_FDS_INSERT_DISK_4_SIDE_B,	&Fds::OnCmdInsertDisk },
+			{ IDM_MACHINE_EXT_FDS_INSERT_DISK_5_SIDE_A,	&Fds::OnCmdInsertDisk },
+			{ IDM_MACHINE_EXT_FDS_INSERT_DISK_5_SIDE_B,	&Fds::OnCmdInsertDisk },
+			{ IDM_MACHINE_EXT_FDS_INSERT_DISK_6_SIDE_A,	&Fds::OnCmdInsertDisk },
+			{ IDM_MACHINE_EXT_FDS_INSERT_DISK_6_SIDE_B,	&Fds::OnCmdInsertDisk },
+			{ IDM_MACHINE_EXT_FDS_INSERT_DISK_7_SIDE_A,	&Fds::OnCmdInsertDisk },
+			{ IDM_MACHINE_EXT_FDS_INSERT_DISK_7_SIDE_B,	&Fds::OnCmdInsertDisk },
+			{ IDM_MACHINE_EXT_FDS_INSERT_DISK_8_SIDE_A,	&Fds::OnCmdInsertDisk },
+			{ IDM_MACHINE_EXT_FDS_INSERT_DISK_8_SIDE_B,	&Fds::OnCmdInsertDisk },
+			{ IDM_MACHINE_EXT_FDS_CHANGE_SIDE,          &Fds::OnCmdChangeSide },
+			{ IDM_MACHINE_EXT_FDS_EJECT_DISK,			&Fds::OnCmdEjectDisk  },
+			{ IDM_MACHINE_EXT_FDS_OPTIONS,				&Fds::OnCmdOptions    }
+		};
+
+		static const Window::Menu::PopupHandler::Entry<Fds> popups[] =
+		{	  
+			{ Window::Menu::PopupHandler::Pos<IDM_POS_MACHINE,IDM_POS_MACHINE_EXT,IDM_POS_MACHINE_EXT_FDS,IDM_POS_MACHINE_EXT_FDS_INSERTDISK>::ID, &Fds::OnMenuInsert }
 		};
 
 		Nes::Fds::diskChangeCallback.Set( Callbacks::OnDiskChange, this );
 
 		m.Commands().Add( this, commands );
+		m.PopupRouter().Add( this, popups );
 		emulator.Events().Add( this, &Fds::OnEmuEvent );
 
-		menu[IDM_POS_MACHINE][IDM_POS_MACHINE_FDS][IDM_POS_MACHINE_FDS_INSERTDISK].Clear();
+		menu[IDM_POS_MACHINE][IDM_POS_MACHINE_EXT][IDM_POS_MACHINE_EXT_FDS][IDM_POS_MACHINE_EXT_FDS_INSERTDISK].Clear();
 
 		UpdateSettings();
 	}
@@ -202,28 +140,39 @@ namespace Nestopia
 
 		disk = disk * 2 + side;
 
-		menu[IDM_MACHINE_FDS_INSERT_DISK_1_SIDE_A + disk].Check( inserted );
-		menu[IDM_MACHINE_FDS_CHANGE_SIDE].Enable( inserted && master );
-		menu[IDM_MACHINE_FDS_EJECT_DISK].Enable( inserted && master );
+		menu[IDM_MACHINE_EXT_FDS_CHANGE_SIDE].Enable( inserted && master );
+		menu[IDM_MACHINE_EXT_FDS_EJECT_DISK].Enable( inserted && master );
 
 		Io::Screen() << Resource::String( inserted ? (IDS_SCREEN_DISK_1_SIDE_A_INSERTED + disk) : (IDS_SCREEN_DISK_1_EJECTED + disk / 2) );
 	}
 
+	void Fds::OnMenuInsert(Window::Menu::PopupHandler::Param& param)
+	{
+		const Nes::Fds fds(emulator);
+		const int disk = fds.GetCurrentDisk();
+
+		if (disk != Nes::Fds::NO_DISK)
+			param.menu[ IDM_MACHINE_EXT_FDS_INSERT_DISK_1_SIDE_A + (disk * 2) + fds.GetCurrentDiskSide() ].Check( IDM_MACHINE_EXT_FDS_INSERT_DISK_1_SIDE_A, IDM_MACHINE_EXT_FDS_INSERT_DISK_1_SIDE_A + (fds.GetNumDisks() * 2) );
+	}
+
 	void Fds::OnCmdInsertDisk(uint disk)
 	{
-		disk -= IDM_MACHINE_FDS_INSERT_DISK_1_SIDE_A;
+		disk -= IDM_MACHINE_EXT_FDS_INSERT_DISK_1_SIDE_A;
 
 		Nes::Fds(emulator).InsertDisk( disk / 2, disk % 2 );
+		Application::Instance::Post( Application::Instance::WM_NST_COMMAND_RESUME );
 	}
 
 	void Fds::OnCmdChangeSide(uint)
 	{
 		Nes::Fds(emulator).ChangeSide();
+		Application::Instance::Post( Application::Instance::WM_NST_COMMAND_RESUME );
 	}
 
 	void Fds::OnCmdEjectDisk(uint) 
 	{
 		Nes::Fds(emulator).EjectDisk();
+		Application::Instance::Post( Application::Instance::WM_NST_COMMAND_RESUME );
 	} 
 
 	void Fds::OnCmdOptions(uint) 
@@ -243,7 +192,7 @@ namespace Nestopia
 				{
 					master = (event == Emulator::EVENT_LOAD || emulator.GetPlayer() == 1);
 		
-					const Window::Menu::Item subMenu( menu[IDM_POS_MACHINE][IDM_POS_MACHINE_FDS][IDM_POS_MACHINE_FDS_INSERTDISK] );
+					const Window::Menu::Item subMenu( menu[IDM_POS_MACHINE][IDM_POS_MACHINE_EXT][IDM_POS_MACHINE_EXT_FDS][IDM_POS_MACHINE_EXT_FDS_INSERTDISK] );
 		
 					subMenu.Enable();
 					subMenu.Clear();
@@ -257,12 +206,12 @@ namespace Nestopia
 						menu.Insert
 						( 
 							subMenu[i], 
-							IDM_MACHINE_FDS_INSERT_DISK_1_SIDE_A + i, 
+							IDM_MACHINE_EXT_FDS_INSERT_DISK_1_SIDE_A + i, 
 							Resource::String(IDS_FDS_DISK_1_SIDE_A + i) 
 						);
 
 						if (!master)
-							menu[IDM_MACHINE_FDS_INSERT_DISK_1_SIDE_A + i].Disable();
+							menu[IDM_MACHINE_EXT_FDS_INSERT_DISK_1_SIDE_A + i].Disable();
 					}
 		
 					fds.InsertDisk( 0, 0 );
@@ -272,14 +221,14 @@ namespace Nestopia
 			case Emulator::EVENT_UNLOAD:
 			case Emulator::EVENT_NETPLAY_UNLOAD:
 		
-				menu[IDM_POS_MACHINE][IDM_POS_MACHINE_FDS][IDM_POS_MACHINE_FDS_INSERTDISK].Clear();
-				menu[IDM_POS_MACHINE][IDM_POS_MACHINE_FDS][IDM_POS_MACHINE_FDS_INSERTDISK].Disable();
+				menu[IDM_POS_MACHINE][IDM_POS_MACHINE_EXT][IDM_POS_MACHINE_EXT_FDS][IDM_POS_MACHINE_EXT_FDS_INSERTDISK].Clear();
+				menu[IDM_POS_MACHINE][IDM_POS_MACHINE_EXT][IDM_POS_MACHINE_EXT_FDS][IDM_POS_MACHINE_EXT_FDS_INSERTDISK].Disable();
 				break;
 
 			case Emulator::EVENT_NETPLAY_MODE_ON:
 			case Emulator::EVENT_NETPLAY_MODE_OFF:
 
-				menu[IDM_MACHINE_FDS_OPTIONS].Enable( event == Emulator::EVENT_NETPLAY_MODE_OFF );
+				menu[IDM_MACHINE_EXT_FDS_OPTIONS].Enable( event == Emulator::EVENT_NETPLAY_MODE_OFF );
 				break;
 		}
 	}

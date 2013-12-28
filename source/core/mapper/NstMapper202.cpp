@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -47,8 +47,8 @@ namespace Nes
 			ppu.SetMirroring( (address & 0x1) ? Ppu::NMT_HORIZONTAL : Ppu::NMT_VERTICAL );
 	
 			const uint bank = (address >> 1) & 0x7;
-			prg.SwapBanks<NES_16K,0x0000U>( bank, bank + ((address & 0xC) == 0xC) );
-			chr.SwapBank<NES_8K,0x0000U>( bank );
+			prg.SwapBanks<SIZE_16K,0x0000U>( bank, bank + ((address & 0xC) == 0xC) );
+			chr.SwapBank<SIZE_8K,0x0000U>( bank );
 		}
 	}
 }

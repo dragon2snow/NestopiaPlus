@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -334,21 +334,21 @@ namespace Nestopia
 	{
 	public:
 
-		UnRar(const String::Path<false>&);
+		UnRar(const Path&);
 
 	private:
 
-		String::Path<false> path; 
+		Path path; 
 
 		void* Open(uint);
 		uint  Extract(uint,void*,uint);
 		ibool Build(Items&);
 	};
 
-	Archive::UnRar::UnRar(const String::Path<false>& string)
+	Archive::UnRar::UnRar(const Path& string)
 	: path(string) 
 	{
-		static System::Dll dll("unrar.dll");
+		static System::Dll dll(_T("unrar.dll"));
 
 		if (!dll.IsSupported())
 			throw ERR_DLL;
@@ -356,17 +356,19 @@ namespace Nestopia
 
 	void* Archive::UnRar::Open(uint mode)
 	{
-		RAROpenArchiveData data;
+		Object::Pod<RAROpenArchiveDataEx> data;
 
-		data.ArcName = path;
-		data.CmtBuf = NULL;
-		data.CmtBufSize = 0;
-		data.CmtSize = 0;
-		data.CmtState = 0;
+    #ifdef UNICODE
+		data.ArcName = NULL;
+		data.ArcNameW = path.Ptr();
+    #else
+		data.ArcName = path.Ptr();
+		data.ArcNameW = NULL;
+    #endif
 		data.OpenMode = mode;
-		data.OpenResult = 0;
+		data.CmtBuf = NULL;
 
-		return ::RAROpenArchive( &data );
+		return ::RAROpenArchiveEx( &data );
 	}
 
 	ibool Archive::UnRar::Build(Items& files)
@@ -453,26 +455,22 @@ namespace Nestopia
 					}
 					else
 					{
-						char path[_MAX_PATH+16];
-						char oem[_MAX_PATH+16];
-						
-						// hmm, doesn't seem to be any way of saving 
-						// the uncompressed RAR file into memory only.
+						Path path( Application::Instance::GetTmpPath() );
 
-						if 
-						(
-					    	::GetTempPath( _MAX_PATH, oem ) && 
-							::GetLongPathName( oem, path, _MAX_PATH ) &&
-							std::strcat( path, "nestopia.tmp" ) &&
-							::CharToOem( path, oem ) &&
-							::RARProcessFile( handle, RAR_EXTRACT, NULL, oem ) == 0 
-						)
+                    #ifdef UNICODE
+						if (::RARProcessFileW( handle, RAR_EXTRACT, NULL, path.Ptr() ) == 0)
+                    #else
+						Path oem;
+						oem.Resize( path.Length() );
+
+						if (::CharToOemA( path.Ptr(), oem.Ptr() ) && ::RARProcessFile( handle, RAR_EXTRACT, NULL, oem.Ptr() ) == 0)
+                    #endif
 						{
 							if (stream.pos == stream.size)
 								extracted = size;
 
-							if (!Io::File::Delete( path ))
-								Io::Log() << "Archive: warning, couldn't delete temporary RAR file: " << cstring(path) << '!';
+							if (!Io::File::Delete( path.Ptr() ))
+								Io::Log() << "Archive: warning, couldn't delete temporary RAR file: " << path << '!';
 						}
 
 						break;
@@ -795,7 +793,7 @@ namespace Nestopia
 
 	IInArchive* Archive::Un7zip::Create()
 	{
-		static System::Dll dll("7zxa.dll");
+		static System::Dll dll(_T("7zxa.dll"));
 
 		if (!dll.IsSupported())
 			throw ERR_DLL;
@@ -1032,7 +1030,7 @@ namespace Nestopia
 		return codec->Extract( index, data, size );
 	}
 
-	uint Archive::Find(const String::Generic name) const
+	uint Archive::Find(const GenericString name) const
 	{
 		for (uint i=0, n=files.size(); i < n; ++i)
 		{
@@ -1050,7 +1048,7 @@ namespace Nestopia
 		Gui
 		(
 			const Items&,
-			const String::Generic* =NULL,
+			const GenericString* =NULL,
 			const uint=0
 		);
 
@@ -1069,10 +1067,10 @@ namespace Nestopia
 
 		struct Filter
 		{
-			const String::Generic* const extensions;
+			const GenericString* const extensions;
 			const uint count;
 
-			Filter(const String::Generic* e,const uint c)
+			Filter(const GenericString* e,const uint c)
 			: extensions(e), count(c) {}
 		};
 
@@ -1097,7 +1095,7 @@ namespace Nestopia
 		{ IDC_COMPRESSED_FILE_CANCEL, &Gui::OnCmdCancel }
 	};
 
-	Archive::Gui::Gui(const Items& f,const String::Generic* e,const uint c)
+	Archive::Gui::Gui(const Items& f,const GenericString* e,const uint c)
 	: 
 	dialog ( IDD_COMPRESSED_FILE, this, Handlers::messages, Handlers::commands ), 
 	files  ( f ),
@@ -1119,13 +1117,13 @@ namespace Nestopia
 		{
 			for (Items::const_iterator it(files.begin()); it != files.end(); ++it)
 			{
-				const String::Generic extension( it->GetName().Extension() );
+				const GenericString extension( it->GetName().Extension() );
 
 				for (uint i=0; i < filter.count; ++i)
 				{
 					if (filter.extensions[i] == extension)
 					{
-						listBox.Add( it->GetName() ).Data() = it - files.begin();
+						listBox.Add( it->GetName().Ptr() ).Data() = it - files.begin();
 						break;
 					}
 				}
@@ -1136,7 +1134,7 @@ namespace Nestopia
 			listBox.Reserve( files.size() );
 
 			for (Items::const_iterator it(files.begin()); it != files.end(); ++it)
-				listBox.Add( it->GetName() ).Data() = it - files.begin();
+				listBox.Add( it->GetName().Ptr() ).Data() = it - files.begin();
 		}
 
 		NST_VERIFY( listBox.Size() );
@@ -1163,7 +1161,7 @@ namespace Nestopia
 		return files.size() > 1 ? Gui( files ).Open() : files.size() ? 0 : NO_FILES;
 	}
 
-	uint Archive::UserSelect(const String::Generic* const filter,const uint count) const
+	uint Archive::UserSelect(const GenericString* const filter,const uint count) const
 	{
 		if (filter && count)
 		{
@@ -1171,7 +1169,7 @@ namespace Nestopia
 
 			for (Items::const_iterator it(files.begin()); it != files.end(); ++it)
 			{
-				const String::Generic extension( it->GetName().Extension() );
+				const GenericString extension( it->GetName().Extension() );
 
 				for (uint i=0; i < count; ++i)
 				{

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -60,7 +60,7 @@ namespace Nestopia
 				ERR_FINALIZE = IDS_WAVE_ERR_FINALIZE
 			};
 
-			void Open(String::Generic,const WAVEFORMATEX&);
+			void Open(const GenericString,const WAVEFORMATEX&);
 			void Write(const void*,uint);
 			void Close();
 
@@ -83,7 +83,7 @@ namespace Nestopia
 			MMCKINFO chunkRiff;
 			MMCKINFO chunkData;
 			MMIOINFO output;
-			String::Path<false> fileName;
+			Path fileName;
 
 		public:
 
@@ -92,7 +92,7 @@ namespace Nestopia
 				return handle != NULL;
 			}
 
-			const String::Path<false>& GetName() const
+			const Path& GetName() const
 			{
 				return fileName;
 			}

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -49,10 +49,10 @@ namespace Nes
 		}
 
 		Cheats::HiCode::HiCode(u16 a,u8 d,u8 c,bool u)
-		: LoCode(a,d,c,u) {}
+		: LoCode(a,d,c,u), port(NULL) {}
 
 		inline Cheats::HiCode::HiCode(uint address)
-		: LoCode(address,0,0,0) {}
+		: LoCode(address,0,0,0), port(NULL) {}
 
 		Cheats::Cheats(Cpu& c)
 		: cpu(c) {}
@@ -140,10 +140,7 @@ namespace Nes
 			else if (hiCodes.size() > (index -= loCodes.size()))
 			{
 				HiCodes::iterator it( hiCodes.begin() + index );
-
-				if (cpu.Map( it->address ).SameComponent( this ))
-					cpu.Map( it->address ) = it->port;
-
+				cpu.Unlink( it->address, this, &Cheats::Peek_Wizard, &Cheats::Poke_Wizard );
 				hiCodes.erase( it );
 				return RESULT_OK;
 			}
@@ -161,11 +158,7 @@ namespace Nes
 
 		void Cheats::Map(HiCode& code)
 		{
-			if (!cpu.Map( code.address ).SameComponent( this ))
-			{
-				code.port = cpu.Map( code.address );
-				cpu.Map( code.address ).Set( this, &Cheats::Peek_Wizard, &Cheats::Poke_Wizard );
-			}
+			code.port = cpu.Link( code.address, Cpu::LEVEL_HIGH, this, &Cheats::Peek_Wizard, &Cheats::Poke_Wizard );
 		}
 
 		void Cheats::ClearCodes()
@@ -173,10 +166,7 @@ namespace Nes
 			loCodes.clear();
 
 			for (HiCodes::iterator it(hiCodes.begin()), end(hiCodes.end()); it != end; ++it)
-			{
-				if (cpu.Map( it->address ).SameComponent( this ))
-					cpu.Map( it->address ) = it->port;
-			}
+				cpu.Unlink( it->address, this, &Cheats::Peek_Wizard, &Cheats::Poke_Wizard );
 
 			hiCodes.clear();
 		}
@@ -243,7 +233,7 @@ namespace Nes
 
 			if (code.useCompare)
 			{
-				const uint data = code.port.Peek( address );
+				const uint data = code.port->Peek( address );
 
 				if (code.compare != data)
 					return data;
@@ -256,7 +246,7 @@ namespace Nes
 		{
 			NST_ASSERT( address >= 0x2000U );
 
-			return std::lower_bound( &hiCodes.front(), &hiCodes.back() + 1, HiCode(address) )->port.Poke( address, data );
+			return std::lower_bound( &hiCodes.front(), &hiCodes.back() + 1, HiCode(address) )->port->Poke( address, data );
 		}
 	}
 }

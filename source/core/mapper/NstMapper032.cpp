@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -82,7 +82,7 @@ namespace Nes
 	
 		NES_POKE(Mapper32,8000)
 		{
-			prg.SwapBank<NES_8K>( pRomOffset, data );
+			prg.SwapBank<SIZE_8K>( pRomOffset, data );
 		}
 	
 		NES_POKE(Mapper32,9000)
@@ -94,7 +94,7 @@ namespace Nes
 		NES_POKE(Mapper32,B006) 
 		{ 
 			ppu.Update(); 
-			chr.SwapBank<NES_1K,0x1800U>(data); 
+			chr.SwapBank<SIZE_1K,0x1800U>(data); 
 	
 			if (pRomCrc == 0xC0FED437UL && (data & 0x40)) // Major League
 			{
@@ -106,7 +106,7 @@ namespace Nes
 		NES_POKE(Mapper32,B007) 
 		{ 
 			ppu.Update(); 
-			chr.SwapBank<NES_1K,0x1C00U>(data); 
+			chr.SwapBank<SIZE_1K,0x1C00U>(data); 
 	
 			if (pRomCrc == 0xC0FED437UL && (data & 0x40)) // Major League
 				ppu.SetMirroring( Ppu::NMT_ZERO );

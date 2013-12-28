@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -28,23 +28,13 @@
 
 namespace Nestopia
 {
-	ibool Resource::Generic::Load(const uint id,cstring type)
+	ibool Resource::Generic::LoadData(const uint id,tstring const type)
 	{
 		data = NULL;
 		size = 0;
 
 		if (HINSTANCE const hInstance = ::GetModuleHandle( NULL ))
 		{
-			String::Smart<64> buffer;
-
-			// make sure the string (if pointer) resides on the stack
-
-			if (!IS_INTRESOURCE( type ))
-			{
-				buffer = type;
-				type = buffer;
-			}
-
 			if (HRSRC const hResource = ::FindResource( hInstance, MAKEINTRESOURCE(id), type ))
 			{
 				if (HGLOBAL const hGlobal = ::LoadResource( hInstance, hResource ))

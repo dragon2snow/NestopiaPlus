@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -119,6 +119,7 @@ namespace Nestopia
 		public:
 
 			typedef T Item;
+			typedef T Type;
 			typedef T* Iterator;
 			typedef const T* ConstIterator;
 
@@ -192,12 +193,22 @@ namespace Nestopia
 				Base::Erase( offset, offset + count );
 			}
 
-			operator Item* ()
+			Item& operator [] (uint i)
+			{
+				return static_cast<Item*>(data)[i];
+			}
+
+			const Item& operator [] (uint i) const
+			{
+				return static_cast<Item*>(data)[i];
+			}
+
+			Item* Ptr()
 			{
 				return static_cast<Item*>(data);
 			}
 
-			operator const Item* () const
+			const Item* Ptr() const
 			{
 				return static_cast<const Item*>(data);
 			}
@@ -277,6 +288,11 @@ namespace Nestopia
 				return size / ITEM_SIZE;
 			}
 
+			uint Length() const
+			{
+				return Size();
+			}
+
 			uint Capacity() const
 			{
 				NST_ASSERT( capacity % ITEM_SIZE == 0 );
@@ -335,7 +351,7 @@ namespace Nestopia
 		{
 			ConstIterator const end = End();
 
-			for (ConstIterator it = (*this); it != end; ++it)
+			for (ConstIterator it = Ptr(); it != end; ++it)
 				if (*it == value)
 					return it;
 

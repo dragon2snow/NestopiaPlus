@@ -55,9 +55,9 @@
 				UsePrecompiledHeader="0"
 				WarningLevel="4"
 				Detect64BitPortabilityProblems="false"
-				DebugInformationFormat="4"
+				DebugInformationFormat="3"
 				CallingConvention="1"
-				OmitDefaultLibName="false"
+				OmitDefaultLibName="true"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -125,6 +125,7 @@
 				RuntimeLibrary="0"
 				BufferSecurityCheck="false"
 				EnableFunctionLevelLinking="true"
+				EnableEnhancedInstructionSet="0"
 				DefaultCharIsUnsigned="true"
 				TreatWChar_tAsBuiltInType="true"
 				RuntimeTypeInfo="false"
@@ -135,7 +136,7 @@
 				Detect64BitPortabilityProblems="false"
 				DebugInformationFormat="0"
 				CallingConvention="1"
-				OmitDefaultLibName="false"
+				OmitDefaultLibName="true"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -176,6 +177,14 @@
 			>
 			<File
 				RelativePath="..\source\core\api\NstApi.hpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\api\NstApiBarcodeReader.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\api\NstApiBarcodeReader.hpp"
 				>
 			</File>
 			<File
@@ -268,6 +277,14 @@
 			</File>
 			<File
 				RelativePath="..\source\core\api\NstApiSound.hpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\api\NstApiTapeRecorder.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\api\NstApiTapeRecorder.hpp"
 				>
 			</File>
 			<File
@@ -931,19 +948,15 @@
 				>
 			</File>
 			<File
-				RelativePath="..\source\core\mapper\NstMapper134.cpp"
+				RelativePath="..\source\core\mapper\NstMapper137.hpp"
 				>
 			</File>
 			<File
-				RelativePath="..\source\core\mapper\NstMapper134.hpp"
+				RelativePath="..\source\core\mapper\NstMapper138.hpp"
 				>
 			</File>
 			<File
-				RelativePath="..\source\core\mapper\NstMapper135.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\source\core\mapper\NstMapper135.hpp"
+				RelativePath="..\source\core\mapper\NstMapper139.hpp"
 				>
 			</File>
 			<File
@@ -955,6 +968,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\source\core\mapper\NstMapper141.hpp"
+				>
+			</File>
+			<File
 				RelativePath="..\source\core\mapper\NstMapper142.cpp"
 				>
 			</File>
@@ -963,7 +980,57 @@
 				>
 			</File>
 			<File
+				RelativePath="..\source\core\mapper\NstMapper143.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\mapper\NstMapper143.hpp"
+				>
+			</File>
+			<File
 				RelativePath="..\source\core\mapper\NstMapper144.hpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\mapper\NstMapper145.cpp"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						ObjectFile="$(IntDir)\$(InputName)1.obj"
+						XMLDocumentationFileName="$(IntDir)\$(InputName)1.xdc"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						ObjectFile="$(IntDir)\$(InputName)1.obj"
+						XMLDocumentationFileName="$(IntDir)\$(InputName)1.xdc"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath="..\source\core\mapper\NstMapper145.hpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\mapper\NstMapper146.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\mapper\NstMapper146.hpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\mapper\NstMapper147.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\mapper\NstMapper147.hpp"
 				>
 			</File>
 			<File
@@ -972,6 +1039,22 @@
 			</File>
 			<File
 				RelativePath="..\source\core\mapper\NstMapper148.hpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\mapper\NstMapper149.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\mapper\NstMapper149.hpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\mapper\NstMapper150.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\mapper\NstMapper150.hpp"
 				>
 			</File>
 			<File
@@ -1124,6 +1207,14 @@
 			</File>
 			<File
 				RelativePath="..\source\core\mapper\NstMapper189.hpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\mapper\NstMapper191.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\mapper\NstMapper191.hpp"
 				>
 			</File>
 			<File
@@ -1507,6 +1598,14 @@
 			Name="Board"
 			>
 			<File
+				RelativePath="..\source\core\board\NstBrd8157.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\board\NstBrd8157.hpp"
+				>
+			</File>
+			<File
 				RelativePath="..\source\core\board\NstBrd8237.cpp"
 				>
 			</File>
@@ -1528,6 +1627,14 @@
 			</File>
 			<File
 				RelativePath="..\source\core\board\NstBrdBtlTek2A.hpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\board\NstBrdCc21.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\board\NstBrdCc21.hpp"
 				>
 			</File>
 			<File
@@ -1635,6 +1742,14 @@
 				>
 			</File>
 			<File
+				RelativePath="..\source\core\board\NstBrdS8259.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\board\NstBrdS8259.hpp"
+				>
+			</File>
+			<File
 				RelativePath="..\source\core\board\NstBrdSuper24In1.cpp"
 				>
 			</File>
@@ -1707,6 +1822,14 @@
 				>
 			</File>
 			<File
+				RelativePath="..\source\core\input\NstInpDoremikkoKeyboard.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\input\NstInpDoremikkoKeyboard.hpp"
+				>
+			</File>
+			<File
 				RelativePath="..\source\core\input\NstInpExcitingBoxing.cpp"
 				>
 			</File>
@@ -1715,19 +1838,27 @@
 				>
 			</File>
 			<File
+				RelativePath="..\source\core\input\NstInpFamilyKeyboard.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\input\NstInpFamilyKeyboard.hpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\input\NstInpFamilyTrainer.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\input\NstInpFamilyTrainer.hpp"
+				>
+			</File>
+			<File
 				RelativePath="..\source\core\input\NstInpHyperShot.cpp"
 				>
 			</File>
 			<File
 				RelativePath="..\source\core\input\NstInpHyperShot.hpp"
-				>
-			</File>
-			<File
-				RelativePath="..\source\core\input\NstInpKeyboard.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\source\core\input\NstInpKeyboard.hpp"
 				>
 			</File>
 			<File
@@ -1771,6 +1902,14 @@
 				>
 			</File>
 			<File
+				RelativePath="..\source\core\input\NstInpPartyTap.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\input\NstInpPartyTap.hpp"
+				>
+			</File>
+			<File
 				RelativePath="..\source\core\input\NstInpPokkunMoguraa.cpp"
 				>
 			</File>
@@ -1784,6 +1923,14 @@
 			</File>
 			<File
 				RelativePath="..\source\core\input\NstInpPowerPad.hpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\input\NstInpSuborKeyboard.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\input\NstInpSuborKeyboard.hpp"
 				>
 			</File>
 			<File
@@ -1813,6 +1960,14 @@
 		</File>
 		<File
 			RelativePath="..\source\core\NstAssert.hpp"
+			>
+		</File>
+		<File
+			RelativePath="..\source\core\NstBarcodeReader.cpp"
+			>
+		</File>
+		<File
+			RelativePath="..\source\core\NstBarcodeReader.hpp"
 			>
 		</File>
 		<File
@@ -1861,6 +2016,18 @@
 		</File>
 		<File
 			RelativePath="..\source\core\NstCrc32.hpp"
+			>
+		</File>
+		<File
+			RelativePath="..\source\core\NstDataRecorder.cpp"
+			>
+		</File>
+		<File
+			RelativePath="..\source\core\NstDataRecorder.hpp"
+			>
+		</File>
+		<File
+			RelativePath="..\source\core\NstDipSwitches.hpp"
 			>
 		</File>
 		<File
@@ -1996,6 +2163,14 @@
 			>
 		</File>
 		<File
+			RelativePath="..\source\core\NstSoundWave.cpp"
+			>
+		</File>
+		<File
+			RelativePath="..\source\core\NstSoundWave.hpp"
+			>
+		</File>
+		<File
 			RelativePath="..\source\core\NstState.cpp"
 			>
 		</File>
@@ -2009,6 +2184,14 @@
 		</File>
 		<File
 			RelativePath="..\source\core\NstStream.hpp"
+			>
+		</File>
+		<File
+			RelativePath="..\source\core\NstTurboFile.cpp"
+			>
+		</File>
+		<File
+			RelativePath="..\source\core\NstTurboFile.hpp"
 			>
 		</File>
 		<File

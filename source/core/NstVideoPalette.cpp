@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -37,8 +37,6 @@
 #pragma optimize("s", on)
 #endif
 
-#define NES_DEG 0.0174532925199432957692369076848
-
 namespace Nes
 {
 	namespace Core
@@ -67,14 +65,14 @@ namespace Nes
 
 			const double Palette::emphasis[8][3] =
 			{
-				{1.000, 1.000, 1.000},
-				{1.239, 0.915, 0.743},
-				{0.794, 1.086, 0.882},
-				{1.019, 0.980, 0.653},
-				{0.905, 1.026, 1.277},
-				{1.023, 0.908, 0.979},
-				{0.741, 0.987, 1.001},
-				{0.750, 0.750, 0.750}
+				{1.00,1.00,1.00},
+				{1.00,0.80,0.81},
+				{0.78,0.94,0.66},
+				{0.79,0.77,0.63},
+				{0.82,0.83,1.12},
+				{0.81,0.71,0.87},
+				{0.68,0.79,0.79},
+				{0.70,0.70,0.70}
 			};
 		
 			Palette::Palette()
@@ -198,6 +196,16 @@ namespace Nes
 		
 				return RESULT_OK;
 			}
+
+			void Palette::ResetCustomColors()
+			{
+				if (custom)
+				{
+					for (uint i=0; i < 64; ++i)
+						for (uint j=0; j < 3; ++j)
+							custom[i][j] = defaultPalette[i][j];
+				}
+			}
 		
 			Result Palette::SetType(const Type t)
 			{
@@ -218,9 +226,7 @@ namespace Nes
 						return RESULT_ERR_OUT_OF_MEMORY;
 					}
 		
-					for (uint i=0; i < 64; ++i)
-						for (uint j=0; j < 3; ++j)
-							custom[i][j] = defaultPalette[i][j];
+					ResetCustomColors();
 				}
 		
 				type = t;
@@ -340,7 +346,7 @@ namespace Nes
 									break;
 							}
 		
-							const double h = NES_DEG * angle;
+							const double h = NST_DEG * angle;
 							const double i = s * std::sin( h );
 							const double q = s * std::cos( h );
 		
@@ -360,7 +366,7 @@ namespace Nes
 	}
 }
 
-#undef NES_DEG
+#undef NST_DEG
 
 #ifdef NST_PRAGMA_OPTIMIZE
 #pragma optimize("", on)

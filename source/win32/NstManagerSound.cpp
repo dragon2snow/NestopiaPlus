@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -23,6 +23,7 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 
 #include "resource/resource.h"
+#include "NstResourceFile.hpp"
 #include "NstObjectHeap.hpp"
 #include "NstApplicationException.hpp"
 #include "NstManagerEmulator.hpp"
@@ -35,12 +36,12 @@ namespace Nestopia
 {
 	using namespace Managers;
 
-    #ifdef NST_PRAGMA_OPTIMIZE
-    #pragma optimize("t", on)
-    #endif
-
 	struct Sound::Callbacks
 	{
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("t", on)
+        #endif
+
 		static bool NST_CALLBACK Lock(Nes::Sound::UserData data,Nes::Sound::Output&)
 		{
 			Sound& sound = *static_cast<Sound*>(data);
@@ -72,11 +73,32 @@ namespace Nestopia
 			if (nes.GetLatency() >= sound.directSound.NumSamples() * 2)
 				nes.EmptyBuffer();
 		}
-	};
 
-    #ifdef NST_PRAGMA_OPTIMIZE
-    #pragma optimize("", on)
-    #endif
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("", on)
+        #endif
+
+		static void NST_CALLBACK Load(Nes::Sound::UserData,Nes::Sound::Loader::Type type,Nes::Sound::Loader& loader)
+		{
+			typedef Nes::Sound::Loader Loader;
+
+			switch (type)
+			{
+				case Loader::MOERO_PRO_YAKYUU:
+				{
+					NST_COMPILE_ASSERT( Loader::MOERO_PRO_YAKYUU_SAMPLES == 16 );
+					Collection::Buffer sounds[Loader::MOERO_PRO_YAKYUU_SAMPLES];
+				
+					if (Resource::File( IDR_MOEPROSAMPLES, _T("MoeProSamples") ).Uncompress( sounds, Loader::MOERO_PRO_YAKYUU_SAMPLES ))
+					{
+						for (uint i=0; i < Loader::MOERO_PRO_YAKYUU_SAMPLES; ++i)
+							loader.Load( i, reinterpret_cast<const u8*>(sounds[i].Ptr()), sounds[i].Length(), 22050U );
+					}
+					break;
+				}
+			}
+		}
+	};
 
 	Sound::Sound
 	(
@@ -98,6 +120,7 @@ namespace Nestopia
 
 		Nes::Sound::Output::lockCallback.Set( &Callbacks::Lock, this );
 		Nes::Sound::Output::unlockCallback.Set( &Callbacks::Unlock, this );
+		Nes::Sound::Loader::loadCallback.Set( &Callbacks::Load, this );
 
 		UpdateSettings();
 	}
@@ -121,7 +144,7 @@ namespace Nestopia
 				if (emuOutput)
 				{
 					const uint speed = emulator.GetSpeed();
-					cstring const errMsg = directSound.UpdateSpeed( speed, GetLatency() );
+					tstring const errMsg = directSound.UpdateSpeed( speed, GetLatency() );
 
 					if (errMsg == NULL)
 					{
@@ -168,7 +191,7 @@ namespace Nestopia
 
 	void Sound::UpdateSettings()
 	{
-		cstring errMsg = NULL;
+		tstring errMsg = NULL;
 
 		if (dialog->IsSoundEnabled())
 		{
@@ -208,7 +231,7 @@ namespace Nestopia
 		Disable( errMsg );
 	}
 
-	void Sound::Disable(cstring const errMsg)
+	void Sound::Disable(tstring const errMsg)
 	{
 		emuOutput = NULL;
 		Nes::Sound( emulator ).EnableChannels( Nes::Sound::NO_CHANNELS );

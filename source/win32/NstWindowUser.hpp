@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -28,14 +28,10 @@
 #pragma once
 
 #include "NstMain.hpp"
+#include "NstString.hpp"
 
 namespace Nestopia
 {
-	namespace String
-	{
-		class Heap;
-	}
-
 	namespace Window
 	{
 		namespace User
@@ -53,8 +49,7 @@ namespace Nestopia
 			void  Inform  (uint,uint=0);
 			ibool Confirm (uint,uint=0);
 			ibool Issue   (Type,uint,uint=0);
-			ibool Input   (String::Heap&,cstring,cstring=0);
-			ibool Input   (String::Heap&,uint,uint=0);
+			ibool Input   (HeapString&,tstring,tstring=0);
 		}
 	}
 }

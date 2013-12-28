@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -75,6 +75,9 @@ namespace Nestopia
 			~Video();
 
 			void Save(Configuration&) const;
+			void LoadGamePalette(const Path&);
+			void UnloadGamePalette();
+			void SavePalette(Path&) const;
 
 			ibool PutTextureInVideoMemory() const;
 			Modes::const_iterator GetDialogMode() const;
@@ -105,7 +108,9 @@ namespace Nestopia
 				TexMem texMem;
 				Modes::const_iterator mode;
 				Rects rects;
-				String::Path<false> palette;
+				Path palette;
+				Path lockedPalette;
+				Nes::Video::Palette::Mode lockedMode;
 				ibool autoHz;
 			};
 
@@ -121,6 +126,7 @@ namespace Nestopia
 			ibool OnCmdPalType     (Param&);
 			ibool OnCmdPalBrowse   (Param&);
 			ibool OnCmdPalClear    (Param&);
+			ibool OnCmdPalEditor   (Param&);
 			ibool OnCmdAutoHz      (Param&);
 			ibool OnCmdDefault     (Param&);
 			ibool OnCmdOk          (Param&);
@@ -134,7 +140,7 @@ namespace Nestopia
 			void UpdateTexMemEnable() const;
 			void UpdateRects() const;
 			void UpdatePalette() const;
-			void ImportPalette(Managers::Paths::Alert);
+			void ImportPalette(Path&,Managers::Paths::Alert);
 			void ValidateRects();
 
 			void ResetDevice();

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -45,6 +45,7 @@ namespace Nes
 		}
 
 		class ImageDatabase;
+		class BarcodeReader;
 		class Cpu;
 		class Ppu;
 
@@ -58,6 +59,16 @@ namespace Nes
 				CARTRIDGE = 0x1,
 				DISK      = 0x2,
 				SOUND     = 0x4
+			};
+
+			typedef void* ExternalDevice;
+
+			enum ExternalDeviceType
+			{
+				EXT_DIP_SWITCHES = 1,
+				EXT_DATA_RECORDER,
+				EXT_BARCODE_READER,
+				EXT_TURBO_FILE
 			};
 
 			struct Context
@@ -88,6 +99,7 @@ namespace Nes
 			virtual void LoadState(State::Loader&) {}
 			virtual void SaveState(State::Saver&) const {}
 			virtual void BeginFrame(Input::Controllers*) {}
+			virtual	uint GetDesiredController(uint) const;
 
 			virtual Mode GetMode() const = 0;
 			virtual void SetMode(Mode) {}
@@ -95,6 +107,11 @@ namespace Nes
 			virtual dword GetPrgCrc() const
 			{
 				return 0;
+			}
+
+			virtual ExternalDevice QueryExternalDevice(ExternalDeviceType)
+			{
+				return NULL;
 			}
 
 		protected:

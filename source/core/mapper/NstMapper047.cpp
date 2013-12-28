@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -89,10 +89,10 @@ namespace Nes
 				patch ? (exReg == 0x2 ? 0xF : 0x7) : (banks.prg[3] & 0xF)
 			};
 
-			prg.SwapBank<NES_8K>( 0x0000U ^ swap, base | (banks.prg[0] & 0xF) );
-			prg.SwapBank<NES_8K>( 0x2000U,        base | (banks.prg[1] & 0xF) );
-			prg.SwapBank<NES_8K>( 0x4000U ^ swap, base | hack[0] );
-			prg.SwapBank<NES_8K>( 0x6000U,        base | hack[1] );	
+			prg.SwapBank<SIZE_8K>( 0x0000U ^ swap, base | (banks.prg[0] & 0xF) );
+			prg.SwapBank<SIZE_8K>( 0x2000U,        base | (banks.prg[1] & 0xF) );
+			prg.SwapBank<SIZE_8K>( 0x4000U ^ swap, base | hack[0] );
+			prg.SwapBank<SIZE_8K>( 0x6000U,        base | hack[1] );	
 		}
 
 		void Mapper47::UpdateChr() const
@@ -102,14 +102,14 @@ namespace Nes
 			const uint base = patch ? ((exReg & 0x2) << 6) : (exReg << 7);
 			const uint swap = (regs.ctrl0 & Regs::CTRL0_XOR_CHR) << 5;
 
-			chr.SwapBanks<NES_2K>
+			chr.SwapBanks<SIZE_2K>
 			( 
 		       	0x0000U ^ swap, 
 				(base >> 1) | (banks.chr[0] & 0x3F),
 				(base >> 1) | (banks.chr[1] & 0x3F)
 			); 
 			
-			chr.SwapBanks<NES_1K>
+			chr.SwapBanks<SIZE_1K>
 			( 
 		     	0x1000U ^ swap, 
 				base | (banks.chr[2] & 0x7F),

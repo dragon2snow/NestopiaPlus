@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -31,6 +31,7 @@
 #include "NstFds.hpp"
 #include "api/NstApiFds.hpp"
 #include "api/NstApiUser.hpp"
+#include "api/NstApiInput.hpp"
 #include "NstSignedArithmetic.hpp"
 
 namespace Nes
@@ -44,7 +45,7 @@ namespace Nes
 		Fds::Bios::Instance::Instance()
 		: loaded(false)	
 		{
-			std::memset( rom, 0x00, NES_8K );
+			std::memset( rom, 0x00, SIZE_8K );
 		}
 
 		Fds::Bios::Instance Fds::Bios::instance;
@@ -59,7 +60,7 @@ namespace Nes
 
 				try
 				{
-					if (stream.Length() < NES_8K)
+					if (stream.Length() < SIZE_8K)
 						throw RESULT_ERR_CORRUPT_FILE;
 	
 					long offset = 0;
@@ -67,9 +68,9 @@ namespace Nes
 					if (stream.Read32() == 0x1A53454EUL)
 					{
 						// locate last bank
-						const ulong romOffset = (stream.Read8() * NES_16K);
+						const ulong romOffset = (stream.Read8() * SIZE_16K);
 	
-						if (romOffset < NES_8K) 
+						if (romOffset < SIZE_8K) 
 							throw RESULT_ERR_CORRUPT_FILE;
 	
 						stream.Seek( 1 );
@@ -77,7 +78,7 @@ namespace Nes
 						if (stream.Read8() & 0x4) // trainer (unlikely but just in case)
 							offset = 512;
 	
-						offset += (16 - (4+1+1+1)) + (romOffset - NES_8K);
+						offset += (16 - (4+1+1+1)) + (romOffset - SIZE_8K);
 					}
 					else
 					{
@@ -85,11 +86,11 @@ namespace Nes
 					}
 	
 					stream.Seek( offset );
-					stream.Read( instance.rom, NES_8K );
+					stream.Read( instance.rom, SIZE_8K );
 	
 					instance.loaded = true;
 	
-					switch (Crc32::Compute( instance.rom, NES_8K ))
+					switch (Crc32::Compute( instance.rom, SIZE_8K ))
 					{
 						case 0x5E607DCFUL: // standard
 						case 0x4DF24A6CUL: // twinsys
@@ -118,7 +119,7 @@ namespace Nes
 			}
 			else
 			{
-				std::memset( instance.rom, 0x00, NES_8K );
+				std::memset( instance.rom, 0x00, SIZE_8K );
 			}
 	
 			return RESULT_OK;
@@ -129,7 +130,7 @@ namespace Nes
 			try
 			{
 				if (instance.loaded)
-					Stream::Out(stream).Write( instance.rom, NES_8K );
+					Stream::Out(stream).Write( instance.rom, SIZE_8K );
 				else
 					return RESULT_ERR_NOT_READY;
 			}
@@ -240,6 +241,14 @@ namespace Nes
 				throw;
 			}
 
+			sides.id =
+			(
+				( sides.data[0][0x0F] << 24 ) | 
+				( sides.data[0][0x10] << 16 ) | 
+				( sides.data[0][0x11] <<  8 ) | 
+				( sides.data[0][0x12] <<  0 )
+			);
+
 			sides.crc = Crc32::Compute( sides.data, sides.count * SIDE_SIZE );
 
 			return sides;
@@ -298,23 +307,31 @@ namespace Nes
 
 		Fds::Fds(Context& context)
 		: 
-		Image  (DISK),
-		disks  (context.stream),
-		irq    (context.cpu),
-		cpu    (context.cpu), 
-		ppu    (context.ppu),
-		sound  (context.cpu)
+		Image (DISK),
+		disks (context.stream),
+		irq   (context.cpu),
+		cpu   (context.cpu), 
+		ppu   (context.ppu),
+		sound (context.cpu)
 		{
 			if (!Bios::IsLoaded())
 				throw RESULT_ERR_MISSING_BIOS;
 
-			ppu.GetChrMem().Source().Set( NES_8K, true, true );
+			ppu.GetChrMem().Source().Set( SIZE_8K, true, true );
 		}
 	
 		Fds::~Fds()
 		{
 			EjectDisk();
 			disks.sides.Save();
+		}
+
+		uint Fds::GetDesiredController(const uint port) const
+		{
+			if (port == Api::Input::EXPANSION_PORT)
+				return (disks.sides.id == 0xA4445245UL) ? Api::Input::DOREMIKKOKEYBOARD : Api::Input::UNCONNECTED;
+			else
+				return Image::GetDesiredController( port );
 		}
 
 		void Fds::Regs::Reset()
@@ -363,7 +380,7 @@ namespace Nes
 
 				ram.Reset();
 				ppu.GetChrMem().Source().Clear();
-				ppu.GetChrMem().SwapBank<NES_8K,0x0000U>( 0 );
+				ppu.GetChrMem().SwapBank<SIZE_8K,0x0000U>( 0 );
 			}
 
 			cpu.ClearIRQ(); 
@@ -557,7 +574,7 @@ namespace Nes
 
 					case NES_STATE_CHUNK_ID('C','H','R','\0'):
 
-						state.Uncompress( ppu.GetChrMem().Source().Mem(), NES_8K );
+						state.Uncompress( ppu.GetChrMem().Source().Mem(), SIZE_8K );
 						break;
 
 					case NES_STATE_CHUNK_ID('D','S','K','\0'):
@@ -652,7 +669,7 @@ namespace Nes
 			}
 
 			{
-				state.Begin('C','H','R','\0').Compress( ppu.GetChrMem().Source().Mem(), NES_8K ).End();
+				state.Begin('C','H','R','\0').Compress( ppu.GetChrMem().Source().Mem(), SIZE_8K ).End();
 			}
 
 			{
@@ -1313,8 +1330,8 @@ namespace Nes
 			{
 				static const dword clocks[2][2] =
 				{			
-					{ NES_MASTER_CLOCK_NTSC, Cpu::MC_DIV_NTSC * NES_NTSC_CLOCK_DIV * 0x10000UL },
-					{ NES_MASTER_CLOCK_PAL,  Cpu::MC_DIV_PAL  * NES_PAL_CLOCK_DIV  * 0x10000UL }
+					{ Cpu::MC_NTSC, Cpu::MC_DIV_NTSC * Cpu::CLK_NTSC_DIV * 0x10000UL },
+					{ Cpu::MC_PAL,  Cpu::MC_DIV_PAL  * Cpu::CLK_PAL_DIV  * 0x10000UL }
 				};
 
 				const dword pos = wave.pos;	
@@ -1323,11 +1340,11 @@ namespace Nes
 				if (wave.pos < pos)
 					wave.volume = envelopes.units[VOLUME].Output();
 	
-				sample = sign_div( Sample(wave.volume) * Sample(volume) * wave.table[(wave.pos / cpu.GetApu().GetSampleRate()) & 0x3F], 30 );
+				sample = Sample(wave.volume) * Sample(volume) * wave.table[(wave.pos / cpu.GetApu().GetSampleRate()) & 0x3F] / 30;
 			} 
 	
-			amp = sign_div( amp * 2 + sample, 3 );
-	
+			amp = (amp * 2 + sample) / 3;
+
 			return amp;
 		}
 

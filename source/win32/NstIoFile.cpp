@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -40,7 +40,7 @@ namespace Nestopia
 	File::File()
 	: handle(INVALID_HANDLE_VALUE) {}
 
-	File::File(const String::Generic fileName,const uint mode)
+	File::File(const GenericString fileName,const uint mode)
 	: handle(INVALID_HANDLE_VALUE)
 	{
 		Open( fileName, mode );
@@ -51,7 +51,7 @@ namespace Nestopia
 		Close();
 	}
 
-	void File::Open(const String::Generic n,const uint mode)
+	void File::Open(const GenericString n,const uint mode)
 	{
 		NST_ASSERT( (mode & (WRITE|READ)) && ((mode & WRITE) || !(mode & EMPTY)) );
 
@@ -64,7 +64,7 @@ namespace Nestopia
 
 		handle = ::CreateFile
 		( 
-       		n.IsNullTerminated() ? static_cast<cstring>(name) : static_cast<cstring>(String::Path<true>(name)), 
+       		name.Ptr(), 
 			(
 				((mode & READ)  ? GENERIC_READ  : 0) | 
 				((mode & WRITE) ? GENERIC_WRITE : 0)
@@ -227,7 +227,120 @@ namespace Nestopia
 		::FlushFileBuffers( handle );
 	}
 
-	ibool File::FileExist(cstring const path)
+	void File::EndianSwap(void* const begin,void* const end)
+	{
+		for (u8 *p=static_cast<u8*>(begin), *e=static_cast<u8*>(end); p != e; p += 2)
+		{
+			u8 tmp = p[0];
+			p[0] = p[1];
+			p[1] = tmp;
+		}
+	}
+
+	void File::ReadText(String::Heap<char>& string,uint length) const
+	{
+		const uint maxLength = Size() - Position();
+		string.Resize( NST_MIN(length,maxLength) );
+
+		if (string.Length())
+			Read( string.Ptr(), string.Length() );
+	}
+
+	void File::ReadText(String::Heap<wchar_t>& string,uint length) const
+	{
+		NST_COMPILE_ASSERT( sizeof(wchar_t) == sizeof(u16) );
+
+		const uint maxLength = Size() - Position();
+		length = NST_MIN(length,maxLength);
+		const uint utf = (length >= 2 ? Peek<u16>() : 0);
+
+		if (utf == UTF16_LE || utf == UTF16_BE)
+		{
+			length = (length-2) / 2;
+			string.Resize( length );
+			Seek( CURRENT, 2 );
+
+			if (length)
+			{
+				Read( string.Ptr(), length * 2 );
+
+				if (utf == UTF16_BE)
+					EndianSwap( string.Ptr(), string.Ptr() + length );
+			}
+		}
+		else
+		{
+			String::Heap<char> tmp;
+			ReadText( tmp );
+			string = tmp;
+		}
+	}
+
+	void File::WriteText(cstring const string,const uint length,ibool) const
+	{
+		Write( string, length );
+	}
+
+	void File::WriteText(wstring const string,const uint length,ibool forceUnicode) const
+	{
+		NST_COMPILE_ASSERT( sizeof(wchar_t) == sizeof(u16) );
+
+		if (length)
+		{
+			if (forceUnicode || String::Generic<wchar_t>(string,length).Wide())
+			{
+				const u16 utf = UTF16_LE;				
+				Write( &utf, sizeof(u16) );
+				Write( string, length * sizeof(wchar_t) );
+			}
+			else
+			{
+				const String::Heap<char> tmp( string, length );
+				Write( tmp.Ptr(), tmp.Length() );
+			}
+		}
+	}
+
+	void File::ParseText(const void* src,uint size,String::Heap<char>& dst)
+	{
+		if (size)
+			dst.Assign( static_cast<const char*>(src), size );
+		else
+			dst.Clear();
+	}
+
+	void File::ParseText(const void* src,uint size,String::Heap<wchar_t>& dst)
+	{
+		const uint utf = (size >= 2 ? *static_cast<const u16*>(src) : 0);
+
+		if (utf == UTF16_LE || utf == UTF16_BE)
+		{
+			size = (size-2) / 2;
+			dst.Resize( size );
+
+			if (size)
+			{
+				dst.Assign( static_cast<const wchar_t*>(src) + 1, size );
+
+				if (utf == UTF16_BE)
+					EndianSwap( dst.Ptr(), dst.Ptr() + size );
+			}
+			else
+			{
+				dst.Clear();
+			}
+		}
+		else if (size)
+		{
+			dst.Assign( static_cast<const char*>(src), size );
+		}		
+		else
+		{
+			dst.Clear();
+		}
+	}
+
+	ibool File::FileExist(tstring const path)
 	{
 		NST_ASSERT( path );
 
@@ -240,7 +353,7 @@ namespace Nestopia
 		return FALSE;
 	}
 
-	ibool File::FileProtected(cstring const path)
+	ibool File::FileProtected(tstring const path)
 	{
 		NST_ASSERT( path );
 
@@ -253,13 +366,13 @@ namespace Nestopia
 		return FALSE;
 	}
 
-	ibool File::DirExist(cstring const path)
+	ibool File::DirExist(tstring const path)
 	{
 		NST_ASSERT( path );
 		return *path && ::GetFileAttributes( path ) != INVALID_FILE_ATTRIBUTES;
 	}
 
-	ibool File::Delete(cstring const file)
+	ibool File::Delete(tstring const file)
 	{
 		NST_ASSERT( file && *file );
 		return ::DeleteFile( file );

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -61,7 +61,7 @@ namespace Nestopia
 
 	ibool AutoSaver::OnInitDialog(Param&)
 	{
-		dialog.Edit(IDC_AUTOSAVE_FILE) << settings.stateFile;
+		dialog.Edit(IDC_AUTOSAVE_FILE) << settings.stateFile.Ptr();
 		dialog.Edit(IDC_AUTOSAVE_TIME).Limit(2);
 		dialog.Edit(IDC_AUTOSAVE_TIME) << settings.interval;
 		dialog.CheckBox(IDC_AUTOSAVE_ENABLE_MSG).Check( settings.notify );
@@ -80,7 +80,11 @@ namespace Nestopia
 	ibool AutoSaver::OnCmdBrowse(Param& param)
 	{
 		if (param.Button().IsClicked())	
-			dialog.Edit(IDC_AUTOSAVE_FILE).Try() << paths.BrowseSave( Managers::Paths::File::STATE );
+		{
+			Path tmp;
+			dialog.Edit(IDC_AUTOSAVE_FILE) >> tmp;
+			dialog.Edit(IDC_AUTOSAVE_FILE).Try() << paths.BrowseSave( Managers::Paths::File::STATE, Managers::Paths::SUGGEST, tmp ).Ptr();
+		}
 
 		return TRUE;
 	}
@@ -92,6 +96,7 @@ namespace Nestopia
 			dialog.Edit(IDC_AUTOSAVE_FILE) >> settings.stateFile;
 			dialog.Edit(IDC_AUTOSAVE_TIME) >> settings.interval;
 			settings.notify = dialog.CheckBox(IDC_AUTOSAVE_ENABLE_MSG).IsChecked();
+			paths.FixFile( Managers::Paths::File::STATE, settings.stateFile );
 			dialog.Close();
 		}
 

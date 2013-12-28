@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -28,6 +28,13 @@
 #pragma once
 
 #include "../core/NstTypes.hpp"
+#include <tchar.h>
+
+#ifdef UNICODE
+#include <cwchar>
+#elif defined(_MBCS)
+#error Multibyte characters not supported!
+#endif
 
 #ifdef _MSC_VER
 
@@ -75,7 +82,6 @@
 #define NOKEYSTATES       
 #define NORASTEROPS       
 #define NOATOM            
-#define NOCLIPBOARD       
 #define NOCOLOR           
 #define NOKERNEL          
 #define NOMEMMGR          
@@ -121,6 +127,7 @@ namespace Nestopia
 	typedef unsigned short ushort;
 	typedef unsigned int uint;
 	typedef unsigned long ulong;
+	typedef TCHAR tchar;
 	
 	using Nes::u8;
 	using Nes::i8;
@@ -132,6 +139,8 @@ namespace Nestopia
 
 	typedef uint ibool;
 	typedef const char* cstring;
+	typedef const wchar_t* wstring;
+	typedef const TCHAR* tstring;
 
 	namespace Application
 	{
@@ -202,15 +211,20 @@ namespace Nestopia
 		IDM_POS_MACHINE_INPUT_PORT2 = 2,
 		IDM_POS_MACHINE_INPUT_PORT3 = 3,
 		IDM_POS_MACHINE_INPUT_PORT4 = 4,
-		IDM_POS_MACHINE_INPUT_SPECIAL = 5,
-		IDM_POS_MACHINE_FDS = 4,
-		IDM_POS_MACHINE_FDS_INSERTDISK = 0,
+		IDM_POS_MACHINE_INPUT_EXP = 5,
+		IDM_POS_MACHINE_EXT = 4,
+		IDM_POS_MACHINE_EXT_FDS = 0,
+		IDM_POS_MACHINE_EXT_KEYBOARD = 1,
+		IDM_POS_MACHINE_EXT_TAPE = 2,
+		IDM_POS_MACHINE_EXT_FDS_INSERTDISK = 0,
 		IDM_POS_MACHINE_NSF = 5,
 		IDM_POS_MACHINE_NSF_OPTIONS = 5,
 		IDM_POS_VIEW = 3,
 		IDM_POS_VIEW_SCREENSIZE = 3,    
 		IDM_POS_OPTIONS = 4,
-		IDM_POS_OPTIONS_AUTOSAVER = 7
+		IDM_POS_OPTIONS_AUTOSAVER = 7,
+		IDM_POS_OPTIONS_AUTOSAVER_OPTIONS = 0,
+		IDM_POS_OPTIONS_AUTOSAVER_START
 	};
 }
 

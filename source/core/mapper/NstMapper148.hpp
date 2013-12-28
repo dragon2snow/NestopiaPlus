@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -33,18 +33,18 @@ namespace Nes
 {
 	namespace Core
 	{
-		class Mapper148 : public Boards::Mmc3
+		class Mapper148 : public Mapper
 		{
 		public:
 
 			Mapper148(Context& c)
-			: Mmc3(c,WRAM_8K|CRAM_2K) {}
+			: Mapper(c) {}
 
 		private:
 
-			void SubReset(bool);   
-			void UpdateChr() const;
-			void SwapChr(uint,uint) const;
+			void SubReset(bool);
+
+			NES_DECL_POKE( pRom	)
 		};
 	}
 }

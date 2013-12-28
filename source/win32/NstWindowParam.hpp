@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -128,6 +128,11 @@ namespace Nestopia
 					return HIWORD(wParam) == EN_KILLFOCUS;
 				}
 
+				ibool Changed() const
+				{
+					return HIWORD(wParam) == EN_CHANGE;
+				}
+
 				uint GetId() const
 				{
 					return LOWORD(wParam);
@@ -150,6 +155,11 @@ namespace Nestopia
 				ibool IsControl(uint id) const
 				{
 					return reinterpret_cast<HWND>(param.lParam) == ::GetDlgItem( param.hWnd, id );
+				}
+
+				ibool Released() const
+				{
+					return LOWORD(param.wParam) == SB_ENDSCROLL;
 				}
 			};
 
@@ -218,12 +228,10 @@ namespace Nestopia
 
 			public:
 
-				typedef String::Path<true> FileName;
-
 				uint Size() const;
 				ibool IsInside(HWND) const;
 
-				FileName operator [] (uint) const;
+				Path operator [] (uint) const;
 			};
 
 			class CopyDataParam

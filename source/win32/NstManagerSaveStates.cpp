@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -35,31 +35,6 @@
 namespace Nestopia
 {
 	using namespace Managers;
-
-	NST_COMPILE_ASSERT
-	(
-		IDM_FILE_QUICK_LOAD_STATE_SLOT_1 - IDM_FILE_QUICK_LOAD_STATE_SLOT_LAST == 1 &&	 
-		IDM_FILE_QUICK_LOAD_STATE_SLOT_2 - IDM_FILE_QUICK_LOAD_STATE_SLOT_LAST == 2 &&
-		IDM_FILE_QUICK_LOAD_STATE_SLOT_3 - IDM_FILE_QUICK_LOAD_STATE_SLOT_LAST == 3 &&	 
-		IDM_FILE_QUICK_LOAD_STATE_SLOT_4 - IDM_FILE_QUICK_LOAD_STATE_SLOT_LAST == 4 &&	 
-		IDM_FILE_QUICK_LOAD_STATE_SLOT_5 - IDM_FILE_QUICK_LOAD_STATE_SLOT_LAST == 5 &&	 
-		IDM_FILE_QUICK_LOAD_STATE_SLOT_6 - IDM_FILE_QUICK_LOAD_STATE_SLOT_LAST == 6 &&	 
-		IDM_FILE_QUICK_LOAD_STATE_SLOT_7 - IDM_FILE_QUICK_LOAD_STATE_SLOT_LAST == 7 &&	 
-		IDM_FILE_QUICK_LOAD_STATE_SLOT_8 - IDM_FILE_QUICK_LOAD_STATE_SLOT_LAST == 8 &&	 
-		IDM_FILE_QUICK_LOAD_STATE_SLOT_9 - IDM_FILE_QUICK_LOAD_STATE_SLOT_LAST == 9
-	);
-
-	NST_COMPILE_ASSERT
-	(
-	    IDS_SCREEN_SLOT_2 - IDS_SCREEN_SLOT_1 == 1 &&
-		IDS_SCREEN_SLOT_3 - IDS_SCREEN_SLOT_1 == 2 &&
-		IDS_SCREEN_SLOT_4 - IDS_SCREEN_SLOT_1 == 3 &&
-		IDS_SCREEN_SLOT_5 - IDS_SCREEN_SLOT_1 == 4 &&
-		IDS_SCREEN_SLOT_6 - IDS_SCREEN_SLOT_1 == 5 &&
-		IDS_SCREEN_SLOT_7 - IDS_SCREEN_SLOT_1 == 6 &&
-		IDS_SCREEN_SLOT_8 - IDS_SCREEN_SLOT_1 == 7 &&
-		IDS_SCREEN_SLOT_9 - IDS_SCREEN_SLOT_1 == 8
-	);
 
 	SaveStates::SaveStates(Emulator& e,const Configuration&,Window::Menu& m,const Paths& p,const Window::Main& w)
 	: 
@@ -171,8 +146,7 @@ namespace Nestopia
 	{	
 		if (emulator.SaveState( slots[index], paths.UseStateCompression(), Emulator::STICKY ))
 		{
-			menu[ IDM_FILE_QUICK_SAVE_STATE_SLOT_1 + lastSaveSlot ].Uncheck();
-			menu[ IDM_FILE_QUICK_SAVE_STATE_SLOT_1 + index ].Check();
+			menu[ IDM_FILE_QUICK_SAVE_STATE_SLOT_1 + index ].Check( IDM_FILE_QUICK_SAVE_STATE_SLOT_1, IDM_FILE_QUICK_SAVE_STATE_SLOT_9 );
 			menu[ IDM_FILE_QUICK_LOAD_STATE_SLOT_1 + index ].Enable();
 			menu[ IDM_FILE_QUICK_LOAD_STATE_SLOT_LAST ].Enable();
 
@@ -184,7 +158,7 @@ namespace Nestopia
 			if (notify)
 			{
 				Io::Screen() << Resource::String(IDS_SCREEN_SAVE_STATE_TO) 
-				         	 << ' ' 
+				         	 << ' '
 							 << Resource::String(IDS_SCREEN_SLOT_1 + index);
 			}
 		}
@@ -205,17 +179,17 @@ namespace Nestopia
 		}
 	}
 
-	void SaveStates::Load(Collection::Buffer& data,const String::Generic name) const
+	void SaveStates::Load(Collection::Buffer& data,const GenericString name) const
 	{
 		if (emulator.LoadState( data ))
 		{
 			const uint length = window.GetMaxMessageLength(); 
 
-			if (name.Size() && length > 20)
+			if (name.Length() && length > 20)
 			{
 				Io::Screen() << Resource::String( IDS_SCREEN_LOAD_STATE_FROM )
-					         << " \"" 
-							 << String::Path<true>::Compact( name, length - 18 )
+					         << " \""
+							 << Path::Compact( name, length - 18 )
 							 << '\"';
 			}
 
@@ -225,23 +199,23 @@ namespace Nestopia
 
 	void SaveStates::ExportSlot(const uint index)
 	{
-		Paths::TmpPath path( emulator.GetImagePath().Target().File() );
-		NST_ASSERT( slots[index].Size() && path.Size() );
+		Path path( emulator.GetImagePath().Target().File() );
+		NST_ASSERT( slots[index].Size() && path.Length() );
 		
-		path.Extension() = "ns1";
-		path.Back() = (char) ('1' + index);
+		path.Extension() = _T("ns1");
+		path.Back() = (tchar) ('1' + index);
 		
-		paths.Save( slots[index], slots[index].Size(), Paths::File::SLOTS, path );
+		paths.Save( slots[index].Ptr(), slots[index].Size(), Paths::File::SLOTS, path );
 	}
 
 	void SaveStates::ImportSlots()
 	{
 		uint last = UINT_MAX;
 
-		Paths::TmpPath path( emulator.GetImagePath().Target().File() );
-		NST_ASSERT( path.Size() );
+		Path path( emulator.GetImagePath().Target().File() );
+		NST_ASSERT( path.Length() );
 
-		path.Extension() = "ns1";
+		path.Extension() = _T("ns1");
 
 		Paths::File file;
 
@@ -261,7 +235,7 @@ namespace Nestopia
 		{
 			lastSaveSlot = last;
 
-			menu[ IDM_FILE_QUICK_SAVE_STATE_SLOT_1 + last ].Check();
+			menu[ IDM_FILE_QUICK_SAVE_STATE_SLOT_1 + last ].Check( IDM_FILE_QUICK_SAVE_STATE_SLOT_1, IDM_FILE_QUICK_SAVE_STATE_SLOT_9 );
 			menu[ IDM_FILE_QUICK_LOAD_STATE_SLOT_LAST ].Enable();
 		}
 	}
@@ -277,8 +251,8 @@ namespace Nestopia
 			if (length > 20)
 			{
 				Io::Screen() << Resource::String( IDS_SCREEN_LOAD_STATE_FROM )
-					         << " \"" 
-							 << String::Path<true>::Compact( file.name, length - 18 )
+					         << " \""
+							 << Path::Compact( file.name, length - 18 )
 							 << '\"';
 			}
 			
@@ -288,21 +262,21 @@ namespace Nestopia
 
 	void SaveStates::OnCmdStateSave(uint)
 	{
-		const Paths::TmpPath path( paths.BrowseSave( Paths::File::STATE ) );
+		const Path path( paths.BrowseSave( Paths::File::STATE, Paths::SUGGEST ) );
 
-		if (path.Size())
+		if (path.Length())
 		{
 			Collection::Buffer buffer;
 
-			if (emulator.SaveState( buffer, paths.UseStateCompression() ) && paths.Save( buffer, buffer.Size(), Paths::File::STATE, path ))
+			if (emulator.SaveState( buffer, paths.UseStateCompression() ) && paths.Save( buffer.Ptr(), buffer.Size(), Paths::File::STATE, path ))
 			{
 				const uint length = window.GetMaxMessageLength(); 
 
 				if (length > 20)
 				{
 					Io::Screen() << Resource::String( IDS_SCREEN_SAVE_STATE_TO ) 
-						         << " \"" 
-								 << String::Path<true>::Compact( path, length - 18 )
+						         << " \""
+								 << Path::Compact( path, length - 18 )
 								 << '\"';
 				}
 			}
@@ -312,21 +286,25 @@ namespace Nestopia
 	void SaveStates::OnCmdSlotSave(uint id)
 	{
 		SaveToSlot( id - IDM_FILE_QUICK_SAVE_STATE_SLOT_1 );
+		Application::Instance::Post( Application::Instance::WM_NST_COMMAND_RESUME );
 	}
 
 	void SaveStates::OnCmdNextSlotSave(uint)
 	{
 		SaveToSlot( lastSaveSlot + 1 <= SLOT_9 ? lastSaveSlot + 1 : SLOT_1 );
+		Application::Instance::Post( Application::Instance::WM_NST_COMMAND_RESUME );
 	}
 
 	void SaveStates::OnCmdSlotLoad(uint id)
 	{
 		LoadFromSlot( id - IDM_FILE_QUICK_LOAD_STATE_SLOT_1 );
+		Application::Instance::Post( Application::Instance::WM_NST_COMMAND_RESUME );
 	}
 
 	void SaveStates::OnCmdLastSlotLoad(uint)
 	{
 		LoadFromSlot( lastSaveSlot );
+		Application::Instance::Post( Application::Instance::WM_NST_COMMAND_RESUME );
 	}
 
 	void SaveStates::OnCmdAutoSaverOptions(uint)
@@ -338,20 +316,21 @@ namespace Nestopia
 	void SaveStates::OnCmdAutoSaverStart(uint)
 	{
 		ToggleAutoSaver( autoSaveEnabled ^ TRUE );
+		Application::Instance::Post( Application::Instance::WM_NST_COMMAND_RESUME );
 	}
 
 	ibool SaveStates::OnTimerAutoSave()
 	{
 		if (autoSaveEnabled)
 		{
-			if (autoSaver->GetStateFile().Size())
+			if (autoSaver->GetStateFile().Length())
 			{
 				Collection::Buffer buffer;
 
 				if 
 				(
 			       	emulator.SaveState( buffer, paths.UseStateCompression(), Emulator::STICKY ) &&
-					paths.Save( buffer, buffer.Size(), Paths::File::STATE, autoSaver->GetStateFile(), Paths::STICKY, IDS_EMU_ERR_SAVE_STATE ) &&
+					paths.Save( buffer.Ptr(), buffer.Size(), Paths::File::STATE, autoSaver->GetStateFile(), Paths::STICKY ) &&
 					autoSaver->ShouldNotify()
 				)
 				{
@@ -360,8 +339,8 @@ namespace Nestopia
 					if (length > 20)
 					{
 						Io::Screen() << Resource::String( IDS_SCREEN_SAVE_STATE_TO )
-							         << " \"" 
-									 << String::Path<true>::Compact( autoSaver->GetStateFile(), length - 18 )
+							         << " \""
+									 << Path::Compact( autoSaver->GetStateFile(), length - 18 )
 									 << '\"';
 					}
 				}

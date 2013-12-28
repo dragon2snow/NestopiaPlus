@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -29,10 +29,6 @@
 #include "NstHook.hpp"
 #include "NstCpu.hpp"
 #include "api/NstApiUser.hpp"
-
-#ifdef _MSC_VER
-#pragma warning( disable : 4355 )
-#endif
 
 namespace Nes
 {
@@ -114,19 +110,19 @@ namespace Nes
 	
 		inline uint Cpu::IoMap::Peek8(const uint address) const
 		{
-			NST_ASSERT( address < (NES_64K + OVERFLOW_SIZE) );
+			NST_ASSERT( address < (SIZE_64K + OVERFLOW_SIZE) );
 			return ports[address].Peek( address );
 		}
 	
 		inline uint Cpu::IoMap::Peek16(const uint address) const
 		{
-			NST_ASSERT( (address + 1) < (NES_64K + OVERFLOW_SIZE) );
+			NST_ASSERT( (address + 1) < (SIZE_64K + OVERFLOW_SIZE) );
 			return u8(ports[address].Peek( address )) | (u8(ports[address + 1].Peek( address + 1 )) << 8);
 		}
 	
 		inline void Cpu::IoMap::Poke8(const uint address,const uint data) const
 		{
-			NST_ASSERT( address < (NES_64K + OVERFLOW_SIZE) );
+			NST_ASSERT( address < (SIZE_64K + OVERFLOW_SIZE) );
 			ports[address].Poke( address, data );
 		}
 
@@ -140,8 +136,40 @@ namespace Nes
 	
 		template<typename T,typename U>
 		Cpu::IoMap::IoMap(Cpu* cpu,T peek,U poke)
-		: Io::Map<NES_64K>( cpu, peek, poke ) {}
+		: Io::Map<SIZE_64K>( cpu, peek, poke ) {}
 	
+		Cpu::Linker::Chain::Chain(const Port& p,uint a,uint l)
+		: Port(p), address(a), level(l) {}
+
+		Cpu::Linker::Linker()
+		: chain(NULL) {}
+
+		Cpu::Linker::~Linker()
+		{
+			Clear();
+		}
+
+		void Cpu::Linker::Clear()
+		{
+			if (Chain* next = chain)
+			{
+				chain = NULL;
+
+				do
+				{
+					Chain* tmp = next->next;
+					delete next;
+					next = tmp;
+				}
+				while (next);
+			}
+		}
+
+        #ifdef _MSC_VER
+        #pragma warning( push )
+        #pragma warning( disable : 4355 )
+        #endif
+
 		Cpu::Cpu()
 		:
 		map        (*new IoMap( this, &Cpu::Peek_Overflow, &Cpu::Poke_Overflow )),
@@ -151,7 +179,11 @@ namespace Nes
 		{
 			Boot();
 		}
-	
+
+        #ifdef _MSC_VER
+        #pragma warning( pop )
+        #endif
+
 		Cpu::Cycles::Cycles()
 		: count(0)
 		{
@@ -166,6 +198,8 @@ namespace Nes
 	
 		void Cpu::Boot()
 		{
+			linker.Clear();
+
 			map( 0x0000U, 0x1FFFU ).Set( &ram, &Cpu::Ram::Peek_Ram, &Cpu::Ram::Poke_Ram );
 			map( 0x2000U, 0xFFFFU ).Set( this, &Cpu::Peek_Nop,      &Cpu::Poke_Nop      );
 			map( 0xFFFCU          ).Set( this, &Cpu::Peek_Jam_1,    &Cpu::Poke_Nop      );
@@ -174,6 +208,106 @@ namespace Nes
 			hooks.Clear();
 		}
 	
+		const Io::Port* Cpu::Linker::Add(const Address address,const uint level,const Io::Port& port,IoMap& map)
+		{
+			NST_ASSERT( level );
+
+			Chain* const entry = new Chain( port, address, level );
+
+			for (Chain *it=chain, *prev=NULL; it; prev=it, it=it->next)
+			{
+				if (it->address == address)
+				{
+					NST_ASSERT( it->next && it->next->address == address );
+
+					if (level > it->level)
+					{
+						entry->next = it;
+
+						if (prev)
+							prev->next = entry;
+						else
+							chain = entry;
+
+						map[address] = port;						
+						
+						return it;
+					}
+					else for (;;)
+					{
+						it = it->next;
+
+						NST_ASSERT( level != it->level );
+
+						if (level > it->level)
+						{
+							const Chain tmp( *it );
+							*it = *entry;
+							it->next = entry;
+							*entry = tmp;
+							
+							return entry;
+						}
+					}
+				}
+			}
+			
+			entry->next = new Chain( map[address], address );
+			entry->next->next = NULL;
+
+			map[address] = port;
+
+			if (Chain* it = chain)
+			{
+				while (it->next)
+					it = it->next;
+
+				it->next = entry;
+			}
+			else
+			{
+				chain = entry;
+			}
+
+			return entry->next;
+		}
+
+		void Cpu::Linker::Remove(const Address address,const Io::Port& port,IoMap& map)
+		{
+			for (Chain *it=chain, *prev=NULL; it; prev=it, it=it->next)
+			{
+				if (it->address == address && static_cast<Io::Port&>(*it) == port)
+				{
+					const Chain* const next = it->next;
+					
+					NST_ASSERT( it->level && next && next->address == address );
+
+					*it = *next;
+					delete next;
+
+					if (map[address] == port)
+						map[address] = *it;
+
+					if (it->level == 0)
+					{
+						if (prev == NULL)
+						{
+							it = it->next;
+							delete chain;
+							chain = it;
+						}
+						else if (prev->address != address)
+						{
+							prev->next = it->next;
+							delete it;
+						}
+					}
+					
+					break;
+				}
+			}
+		}
+
 		void Cpu::SetMode(const Mode m)
 		{
 			if (mode != m)
@@ -192,6 +326,18 @@ namespace Nes
 					return;
 
 			hooks << hook;
+		}
+
+		void Cpu::RemoveHook(const Hook& hook)
+		{
+			for (uint i=0; i < hooks.Size(); ++i)
+			{
+				if (hooks[i] == hook)
+				{
+					hooks.Erase( hooks.Begin() + i );
+					return;
+				}
+			}
 		}
 	
 		void Cpu::Cycles::Update(const Mode mode)

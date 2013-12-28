@@ -1,4 +1,64 @@
 ----------------------------------------------------------------
+1.24
+----------------------------------------------------------------
+
+Windows Port:
+
+ Additions:
+
+  - Unicode support. Win98/Me users need to obtain the Unicode Layer DLL (unicows.dll) from Microsoft's
+    site and place it in the same directory as Nestopia.
+
+    Evil hotlink: http://download.microsoft.com/download/b/7/5/b75eace3-00e2-4aa0-9a6f-0b6882c71642/unicows.exe
+
+  - Palette editor (video options dialog).
+  - NSV movie to AVI converter.
+  - Several new NSP file commands.
+  - Clipboard text can now be pasted into the screen through the menu or F12 when the Family Basic or 
+    Subor keyboard is in use.
+
+ Changes:
+
+  - Original kailleraclient.dll replaced with Anti3D's version.
+  - Localized keyboard layout names.
+  - Better DirectInput to Family Basic keyboard mapping.
+  - Default save file path is now .\save instead of .\cartridge for consistency as some of the new save file 
+    types aren't technically part of a cartridge.
+  - Various aestetic fixes.
+
+ Fixes:
+   
+  - Menu->File->Sound Recorder->Rewind command is now disabled during recording.
+  - Workaround for the notorious VC8 iostream memory leak bug.
+
+Emulation Core:
+
+ Additions:
+
+  - VRC7 sound chip (Lagrange Point).
+  - Mappers 137,138,139,141,143,145,146,147,148 and 149. Info from CaH4e3.
+  - UNIF boards 8157 and CC-21. Info from CaH4e3.
+  - Family Trainer, Subor Keyboard, Doremikko Keyboard (partial) and Party Tap expansion port devices.
+  - Turbo File using *.tf as file extension (some games by ASCII).
+  - Data Recorder using *.tp as file extension (Family Basic, Mach Rider, Excitebike, others).
+  - Datach Joint ROM System and Barcode Battler.
+  - 24C01+24C02 serial EEPROM for mapper 16 and 157.
+  - Secondary controller pad microphone via button press.
+  - Sound samples for Moero!! Pro Yakyuu.
+  - Option for allowing up/down and left/right button presses simultaneously.
+  - Some game database entries.
+ 
+ Fixes:
+
+  - FME-07 sound pitch.
+  - Mappers 76 and 83.
+  - Longer delay for FDS block-start reads. Fixes Time Twist.
+  - Some game database entries.
+  - NSF player bug with some FDS songs.
+  - Frame IRQ disabled by default (hack) for King of Fighters 97/98 and Sonic 3D Blast 6.
+  - Coefficients for the color emphasis modes. Info from Quietust.
+
+----------------------------------------------------------------
 1.23
 ----------------------------------------------------------------
 

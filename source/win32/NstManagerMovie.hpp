@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -60,7 +60,7 @@ namespace Nestopia
 				QUIET
 			};
 
-			ibool Load(const Paths::Path&,Alert);
+			ibool Load(const Path&,Alert);
 			void Save(Io::Nsp::Context&) const;
 
 		private:
@@ -82,20 +82,22 @@ namespace Nestopia
 			ibool CanRewind  () const;
 			ibool CanForward () const;
 
-			void OnEmuEvent   (Emulator::Event);
-			void OnMenuView   (Window::Menu::PopupHandler::Param&);
-			void OnCmdFile    (uint);
-			void OnCmdRecord  (uint);
-			void OnCmdPlay    (uint);
-			void OnCmdStop    (uint);
-			void OnCmdRewind  (uint);
-			void OnCmdForward (uint);
+			void OnEmuEvent     (Emulator::Event);
+			void OnMenuView     (Window::Menu::PopupHandler::Param&);
+			void OnCmdFile      (uint);
+			void OnCmdRecord    (uint);
+			void OnCmdPlay      (uint);
+			void OnCmdStop      (uint);
+			void OnCmdRewind    (uint);
+			void OnCmdForward   (uint);
+			void OnCmdExportAvi (uint);
 
 			Emulator& emulator;
 			Pos pos;
 			std::fstream stream;
 			const Window::Menu& menu;
 			Object::Heap<Window::Movie> dialog;
+			const Paths& paths;
 		};
 	}
 }

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -29,6 +29,8 @@
 #pragma once
 #endif
 
+#include "../NstDipSwitches.hpp"
+
 namespace Nes
 {
 	namespace Core
@@ -39,27 +41,34 @@ namespace Nes
 
 			Mapper105(Context&);
 
-			uint NumDipSwitches() const
-			{ 
-				return 2; 
-			}
-
-			uint NumDipSwitchValues(uint j) const
-			{ 
-				return j == 0 ? 16 : j == 1 ? 2 : 0; 
-			}
-
-			cstring GetDipSwitchName(uint) const;
-			cstring GetDipSwitchValueName(uint,uint) const;
-
-			int GetDipSwitchValue(uint) const;
-			Result SetDipSwitchValue(uint,uint);
-
 		private:
+
+			class CartSwitches : public DipSwitches
+			{
+			public:
+
+				CartSwitches();
+
+				uint GetTime() const;
+				inline bool ShowTime() const;
+
+			private:
+
+				uint NumDips() const;
+				uint NumValues(uint) const;
+				cstring GetDipName(uint) const;
+				cstring GetValueName(uint,uint) const;
+				uint GetValue(uint) const;
+				bool SetValue(uint,uint);
+
+				uint time;
+				ibool showTime;
+			};
 
 			void SubReset(bool);
 			void SubSave(State::Saver&) const;
 			void SubLoad(State::Loader&);
+			Device QueryDevice(DeviceType);
 
 			void UpdatePrg();
 			void UpdateTimer();
@@ -85,8 +94,7 @@ namespace Nes
 			uint frames;
 			dword seconds;
 			dword time;
-			uint dipValue;
-			ibool displayTime;
+			CartSwitches cartSwitches;
 			char text[32];
 		};
 	}

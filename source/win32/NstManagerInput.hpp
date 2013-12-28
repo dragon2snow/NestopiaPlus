@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -70,13 +70,13 @@ namespace Nestopia
 			void UpdateDevices();
 			void UpdateSettings();
 			void OnEmuEvent(Emulator::Event);
-
+			void OnMenuKeyboard(Window::Menu::PopupHandler::Param&);
 			void OnCmdMachineAutoSelectController(uint);
 			void OnCmdMachinePort(uint);
+			void OnCmdMachineKeyboardPaste(uint);
 			void OnCmdOptionsInput(uint);
 
 			void ForcePoll();
-
 			inline void AutoPoll();
 
 			struct Callbacks;
@@ -141,13 +141,44 @@ namespace Nestopia
 				}
 			};
 
-			struct AutoFire
+			class ClipBoard : String::Heap<char>
 			{
-				inline AutoFire();
-				inline ibool Signaled() const;
+				uint pos;
+				u8 releasing;
+				u8 hold;
+				bool shifted;
+				bool paste;
 
+			public:
+
+				ClipBoard();
+
+				enum Type
+				{
+					FAMILY,
+					SUBOR
+				};
+
+				uint Query(const u8* NST_RESTRICT,Type);
+				ibool CanPaste() const;
+				void Paste();
+				void Clear();
+				void operator ++ ();
+				inline uint operator * ();
+				inline bool Shifted() const;
+				inline void Shift();
+			};
+
+			class AutoFire
+			{
 				uint step;
 				uint signal;
+
+			public:
+
+				inline AutoFire();
+				inline bool Signaled() const;
+				void operator = (uint);
 
 				void Step()
 				{
@@ -165,6 +196,7 @@ namespace Nestopia
 			Nes::Input::Controllers nesControllers;
 			DirectX::DirectInput directInput;
 			Object::Heap<Window::Input> dialog;
+			ClipBoard clipBoard;
 
 		public:
 

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -27,7 +27,7 @@
 
 #pragma once
 
-#include "NstMain.hpp"
+#include "NstString.hpp"
 
 namespace Nestopia
 {
@@ -43,9 +43,9 @@ namespace Nestopia
 				NONE = 0
 			};
 
-			static uint DikKey(cstring);
-			static uint VikKey(cstring);
-			
+			static uint GetKey(const GenericString);			
+			static const GenericString GetName(uint);
+
 			enum Indicator
 			{
 				CAPS_LOCK = 0x14,
@@ -57,69 +57,12 @@ namespace Nestopia
 
 		private:
 
-			enum 
+			struct KeyName : HeapString
 			{
-				VIK,
-				DIK,
-				NUM_SETS
+				void Set(uint);
 			};
 
-        #pragma pack(push,1)
-
-			struct Key
-			{
-				inline ibool operator < (const Key&) const;
-
-				cstring name;
-				uchar vik;
-				uchar dik;
-			};
-
-        #pragma pack(pop)
-
-			static const Key* Locate(cstring);
-
-			static const Key keys[];
-			static const uchar table[NUM_SETS][NUM_KEYS];
-			static const uchar converter[NUM_SETS][NUM_KEYS];
-
-		public:
-
-			static cstring VikName(uint key)
-			{
-				NST_ASSERT( key < NUM_KEYS );
-				return keys[table[VIK][key]].name;
-			}
-
-			static cstring DikName(uint key)
-			{
-				NST_ASSERT( key < NUM_KEYS );
-				return keys[table[DIK][key]].name;
-			}
-
-			static uint VikToDik(uint key)
-			{
-				NST_ASSERT( key < NUM_KEYS );
-				return converter[VIK][key];
-			}
-
-			static uint DikToVik(uint key)
-			{
-				NST_ASSERT( key < NUM_KEYS );
-				return converter[DIK][key];
-			}
-
-			static ibool DikValid(uint key)
-			{
-				NST_ASSERT( key < NUM_KEYS );
-				return key != 0;
-			}
-
-			static ibool VikValid(uint key)
-			{
-				NST_ASSERT( key < NUM_KEYS );
-				return key != 0;
-			}
+			static KeyName keyNames[NUM_KEYS];
 		};
 	}
 }

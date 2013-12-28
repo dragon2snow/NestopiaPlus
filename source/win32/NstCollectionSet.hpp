@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -134,14 +134,24 @@ namespace Nestopia
 				return array;
 			}
 
-			operator Item* ()
+			Item* Ptr()
 			{
-				return array;
+				return array.Ptr();
 			}
 
-			operator const Item* () const
+			const Item* Ptr() const
 			{
-				return array;
+				return array.Ptr();
+			}
+
+			Item& operator [] (uint i)
+			{
+				return array[i];
+			}
+
+			const Item& operator [] (uint i) const
+			{
+				return array[i];
 			}
 
 			Iterator Begin()

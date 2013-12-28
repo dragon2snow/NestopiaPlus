@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -54,27 +54,32 @@ namespace Nes
 				Map( 0xF000U, 0xFFFFU, NMT_SWAP_HV );
 			}
 	
-			void Mmc2::LoadState(State::Loader& state)
+			void Mmc2::BaseLoad(State::Loader& state,const dword id)
 			{
-				while (const dword id = state.Begin())
-				{
-					if (id == NES_STATE_CHUNK_ID('R','E','G','\0'))
-					{
-						const State::Loader::Data<4+1> data( state );
+				NST_VERIFY( id == NES_STATE_CHUNK_ID('M','M','2','\0') );
 
-						banks[0][0] = data[0];
-						banks[0][1] = data[1];
-						banks[1][0] = data[2];
-						banks[1][1] = data[3];	
-						selector[0] = (data[4] >> 0) & 0x1;
-						selector[1] = (data[4] >> 1) & 0x1;
+				if (id == NES_STATE_CHUNK_ID('M','M','2','\0'))
+				{
+					while (const dword id = state.Begin())
+					{
+						if (id == NES_STATE_CHUNK_ID('R','E','G','\0'))
+						{
+							const State::Loader::Data<4+1> data( state );
+
+							banks[0][0] = data[0];
+							banks[0][1] = data[1];
+							banks[1][0] = data[2];
+							banks[1][1] = data[3];	
+							selector[0] = (data[4] >> 0) & 0x1;
+							selector[1] = (data[4] >> 1) & 0x1;
+						}
+
+						state.End();
 					}
-	
-					state.End();
 				}
 			}
 	
-			void Mmc2::SaveState(State::Saver& state) const
+			void Mmc2::BaseSave(State::Saver& state) const
 			{
 				const u8 data[4+1] =
 				{
@@ -85,7 +90,7 @@ namespace Nes
 					selector[0] | (selector[1] << 1)
 				};
 
-				state.Begin('R','E','G','\0').Write( data ).End();
+				state.Begin('M','M','2','\0').Begin('R','E','G','\0').Write( data ).End().End();
 			}
 
             #ifdef NST_PRAGMA_OPTIMIZE
@@ -107,7 +112,7 @@ namespace Nes
 					default: return data;
 				}
 	
-				chr.SwapBank<NES_4K,0x0000U>( banks[0][selector[0]] );
+				chr.SwapBank<SIZE_4K,0x0000U>( banks[0][selector[0]] );
 	
 				return data;
 			}
@@ -123,14 +128,14 @@ namespace Nes
 					default: return data;
 				}
 	
-				chr.SwapBank<NES_4K,0x1000U>( banks[1][selector[1]] );
+				chr.SwapBank<SIZE_4K,0x1000U>( banks[1][selector[1]] );
 	
 				return data;
 			}
 
 			void Mmc2::UpdateChr() const
 			{
-				chr.SwapBanks<NES_4K,0x0000U>( banks[0][selector[0]], banks[1][selector[1]] );
+				chr.SwapBanks<SIZE_4K,0x0000U>( banks[0][selector[0]], banks[1][selector[1]] );
 			}
 
 			NES_POKE(Mmc2,B000)

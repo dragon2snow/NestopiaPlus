@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -52,7 +52,7 @@ namespace Nestopia
 				const Key key;
 
 				template<typename T>
-				explicit KeyStorage(const T& t)
+				KeyStorage(const T& t)
 				: key(t) {}
 
 				template<typename T>
@@ -74,7 +74,7 @@ namespace Nestopia
 				Value value;
 
 				template<typename T>
-				explicit EntryStorage(const T& t)
+				EntryStorage(const T& t)
 				: KeyStorage(t), value(t) {}
 			};
 
@@ -84,7 +84,7 @@ namespace Nestopia
 				Value value;
 
 				template<typename T>
-				explicit EntryStorage(const T& t)
+				EntryStorage(const T& t)
 				: KeyStorage(t) {}
 			};
 
@@ -147,14 +147,24 @@ namespace Nestopia
 				return set.Array();
 			}
 
-			operator Entry* ()
+			Entry* Ptr()
 			{
-				return set;
+				return set.Ptr();
 			}
 
-			operator const Entry* () const
+			const Entry* Ptr() const
 			{
-				return set;
+				return set.Ptr();
+			}
+
+			Entry& operator [] (uint i)
+			{
+				return set[i];
+			}
+
+			const Entry& operator [] (uint i) const
+			{
+				return set[i];
 			}
 
 			Iterator Begin()

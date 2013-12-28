@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -131,7 +131,7 @@ namespace Nes
 			return imageDatabase ? Core::Cartridge::SearchDatabase( *imageDatabase, data, size, altsize ) : NULL;
 		}
 	
-		cstring Cartridge::Database::GetName(Entry entry) const 
+		const char* Cartridge::Database::GetName(Entry entry) const 
 		{ 
 			return imageDatabase && entry ? imageDatabase->Name( entry ) : NULL;
 		}

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -37,7 +37,9 @@
 #include "NstManagerMachine.hpp"
 #include "NstManagerNetplay.hpp"
 #include "NstManagerFds.hpp"
+#include "NstManagerTapeRecorder.hpp"
 #include "NstManagerDipSwitches.hpp"
+#include "NstManagerBarcodeReader.hpp"
 #include "NstManagerNsf.hpp"
 #include "NstManagerMovie.hpp"
 #include "NstManagerSaveStates.hpp"
@@ -58,7 +60,7 @@ namespace Nestopia
 		{
 		public:
 
-			Main(cstring,int);
+			Main(int);
 			~Main();
 
 			int Run();
@@ -89,7 +91,9 @@ namespace Nestopia
 			const Managers::Netplay netplay;			 
 			const Managers::Launcher launcher;		 
 			const Managers::Fds fds;
+			const Managers::TapeRecorder tapeRecorder;
 			const Managers::DipSwitches dipSwitches;
+			const Managers::BarcodeReader barcodeReader;
 			const Managers::Nsf nsf;					 
 			Managers::Movie movie;				 
 			const Managers::Cheats cheats;			 

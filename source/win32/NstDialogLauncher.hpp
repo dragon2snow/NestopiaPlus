@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -121,7 +121,7 @@ namespace Nestopia
 					REPAINT
 				};
 
-				void  Add(cstring);
+				void  Add(tstring);
 				void  Close();
 				void  Save(Configuration&,ibool);
 				void  Sort(uint=0);
@@ -144,7 +144,7 @@ namespace Nestopia
 					{
 						struct Folder
 						{
-							String::Path<false> path;
+							Path path;
 							ibool incSubDir;
 						};
 
@@ -218,6 +218,8 @@ namespace Nestopia
 
 					class Strings
 					{
+						HeapString container;
+
 					public:
 
 						explicit Strings(uint=0);
@@ -229,28 +231,33 @@ namespace Nestopia
 							NONE = -1
 						};
 
-						Index operator << (String::Generic);
-
-						int   Find(String::Generic) const;
+						int   Find(GenericString) const;
 						void  Clear();
 						uint  Count() const;
-						ibool Import(const Io::File&,uint);
+						ibool Import(const Io::File&,uint,ibool);
 						void  Export(const Io::File&) const;
 
-					private:
-
-						Collection::Vector<char> container;
-
-					public:
-
-						cstring operator [] (uint i) const
+						template<typename T>
+						Index operator << (const T& t)
 						{
-							return container + i;
+							uint pos = container.Length();
+							container << t << '\0';
+							return pos;
+						}
+
+						tstring operator [] (uint i) const
+						{
+							return container.Ptr() + i;
+						}
+
+						bool IsUTF16() const
+						{
+							return container.Wide();
 						}
 
 						uint Size() const
 						{
-							return container.Size();
+							return container.Length() * (IsUTF16() ? 2 : 1);
 						}
 					};
 
@@ -259,7 +266,7 @@ namespace Nestopia
 
 					void  Save(const Nes::Cartridge::Database&);
 					void  Refresh(const Paths::Settings&,const Nes::Cartridge::Database&);
-					ibool Insert(const Nes::Cartridge::Database&,String::Generic); 
+					ibool Insert(const Nes::Cartridge::Database&,GenericString); 
 					void  Clear();
 					ibool ShouldDefrag() const;
 					void  Defrag();
@@ -304,6 +311,11 @@ namespace Nestopia
 							SYSTEM_NTSC,
 							SYSTEM_NTSC_PAL
 						};
+
+						tstring GetName(const Strings&,const Nes::Cartridge::Database*) const;
+						uint GetSystem() const;
+						uint GetMirroring(const Nes::Cartridge::Database*) const;
+						uint GetSystem(const Nes::Cartridge::Database*) const;
 
 					private:
 
@@ -356,41 +368,24 @@ namespace Nestopia
 							return (Type) type;
 						}
 
-						cstring GetPath(const Strings& strings) const
+						tstring GetPath(const Strings& strings) const
 						{
 							return strings[path];
 						}
 
-						cstring GetFile(const Strings& strings) const
+						tstring GetFile(const Strings& strings) const
 						{
 							return strings[file];
 						}
 
-						cstring GetName(const Strings& strings) const
+						tstring GetName(const Strings& strings) const
 						{
 							return strings[name];
 						}
 
-						cstring GetMaker(const Strings& strings) const
+						tstring GetMaker(const Strings& strings) const
 						{
 							return strings[maker];
-						}
-
-						cstring GetName(const Strings& strings,const Nes::Cartridge::Database* db) const 
-						{ 
-							if (!dBaseEntry || !db)
-								return GetName( strings );
-
-							cstring name = db->GetName( dBaseEntry );
-							return *name ? name : "-";
-						}
-
-						cstring GetMaker(const Strings& strings,const Nes::Cartridge::Database* db) const 
-						{ 
-							if (!dBaseEntry || !db)
-								return GetMaker( strings );
-
-							return "-";
 						}
 
 						uint GetPRom() const 
@@ -410,17 +405,17 @@ namespace Nestopia
 
 						uint GetPRom(const Nes::Cartridge::Database* db) const 
 						{ 
-							return dBaseEntry && db ? db->GetPRomSize( dBaseEntry ) / NES_1K : pRom; 
+							return dBaseEntry && db ? db->GetPRomSize( dBaseEntry ) / Nes::Core::SIZE_1K : pRom; 
 						}
 
 						uint GetCRom(const Nes::Cartridge::Database* db) const 
 						{ 
-							return dBaseEntry && db ? db->GetCRomSize( dBaseEntry ) / NES_1K : cRom; 
+							return dBaseEntry && db ? db->GetCRomSize( dBaseEntry ) / Nes::Core::SIZE_1K : cRom; 
 						}
 
 						uint GetWRam(const Nes::Cartridge::Database* db) const 
 						{ 
-							return dBaseEntry && db ? db->GetWRamSize( dBaseEntry ) / NES_1K : wRam; 
+							return dBaseEntry && db ? db->GetWRamSize( dBaseEntry ) / Nes::Core::SIZE_1K : wRam; 
 						}
 
 						uint GetMapper() const 
@@ -443,28 +438,6 @@ namespace Nestopia
 							return bits.mirroring; 
 						}
 
-						uint GetSystem() const
-						{
-							if (bits.vs)
-							{
-								return SYSTEM_VS;
-							}
-							else if (bits.ntsc && bits.pal)
-							{
-								return SYSTEM_NTSC_PAL;
-							}
-							else if (bits.ntsc)
-							{
-								return SYSTEM_NTSC;
-							}
-							else if (bits.pal)
-							{
-								return SYSTEM_PAL;
-							}
-
-							return SYSTEM_UNKNOWN;
-						}
-
 						ibool GetBattery(const Nes::Cartridge::Database* db) const 
 						{ 
 							return dBaseEntry && db ? db->HasBattery( dBaseEntry ) : bits.battery; 
@@ -478,45 +451,6 @@ namespace Nestopia
 						uint GetMapper(const Nes::Cartridge::Database* db) const 
 						{ 
 							return dBaseEntry && db ? db->GetMapper( dBaseEntry ) : mapper;  
-						}
-
-						uint GetMirroring(const Nes::Cartridge::Database* db) const
-						{
-							if (dBaseEntry && db)
-							{
-								uint m = db->GetMirroring( dBaseEntry );
-
-								return 
-								(
-     								m == Nes::Cartridge::MIRROR_HORIZONTAL ? MIRROR_HORIZONTAL : 
-									m == Nes::Cartridge::MIRROR_VERTICAL   ? MIRROR_VERTICAL : 
-     					     		m == Nes::Cartridge::MIRROR_FOURSCREEN ? MIRROR_FOURSCREEN :
-     								m == Nes::Cartridge::MIRROR_ZERO       ? MIRROR_ZERO : 
-     								m == Nes::Cartridge::MIRROR_ONE        ? MIRROR_ONE : 
-					                                              		     MIRROR_CONTROLLED
-								);
-							}
-
-							return bits.mirroring;
-						}
-
-						uint GetSystem(const Nes::Cartridge::Database* db) const
-						{
-							if (dBaseEntry && db)
-							{
-								Nes::Cartridge::System s = db->GetSystem( dBaseEntry );
-
-								return 
-								(
-									s == Nes::Cartridge::SYSTEM_VS       ? SYSTEM_VS : 
-						    		s == Nes::Cartridge::SYSTEM_PC10     ? SYSTEM_PC10 :
-					     			s == Nes::Cartridge::SYSTEM_PAL      ? SYSTEM_PAL :
-					     			s == Nes::Cartridge::SYSTEM_NTSC_PAL ? SYSTEM_NTSC_PAL :
-					    	                                        	   SYSTEM_NTSC
-								);
-							}
-
-							return GetSystem();
 						}
 					};
 
@@ -542,7 +476,8 @@ namespace Nestopia
 						{
 							ID = NST_FOURCC('n','s','d',0),
 							MAX_ENTRIES = 0xFFFFF,
-							VERSION = 1
+							VERSION = 2,
+							FLAGS_UTF16 = 0x1
 						};
 
 						u32 id;
@@ -550,11 +485,12 @@ namespace Nestopia
 						u32 stringSize;
 						u32 numStrings;
 						u32 numEntries;
+						u32 flags;
 					};
 
                #pragma pack(pop)
 
-					NST_COMPILE_ASSERT( sizeof(Header) == 20 );
+					NST_COMPILE_ASSERT( sizeof(Header) == 24 );
 
 					ibool dirty;
 					Strings strings;
@@ -572,9 +508,13 @@ namespace Nestopia
 						return entries[i];
 					}
 
-					void Disable(Entry* entry) const
+					void Disable(Entry* entry)
 					{
-						entry->type = 0;
+						if (entry->type)
+						{
+							entry->type = 0;
+							dirty = TRUE;
+						}
 					}
 
 					const Strings& GetStrings() const
@@ -645,7 +585,7 @@ namespace Nestopia
 					Types selected;
 					Dialog dialog;
 
-					static cstring const strings[NUM_STRING_STYLES][NUM_TYPES]; 
+					static tstring const strings[NUM_STRING_STYLES][NUM_TYPES]; 
 
 				public:
 
@@ -659,7 +599,7 @@ namespace Nestopia
 						return Type(selected[i]);
 					}
 
-					cstring GetString(uint i) const
+					tstring GetString(uint i) const
 					{ 
 						return strings[GUI][selected[i]]; 
 					}
@@ -676,13 +616,13 @@ namespace Nestopia
 				{
 				public:
 
-					cstring GetSize(u32);
-					inline cstring GetMapper(uint) const;
+					tstring GetSize(u32);
+					inline tstring GetMapper(uint) const;
 					inline void Flush();
 
 				private:
 
-					struct SizeString : String::Stack<10+1>
+					struct SizeString : String::Stack<10+1,tchar>
 					{
 						explicit SizeString(u32 i)
 						{
@@ -692,7 +632,7 @@ namespace Nestopia
 
 					Collection::Map<u32,SizeString,true> sizes;
 
-					static const char mappers[256][4];
+					static const tchar mappers[256][4];
 				};
 
 				enum 
@@ -710,7 +650,7 @@ namespace Nestopia
 				void  UpdateSortColumnOrder(uint);
 				void  Redraw();
 				int   Sorter(const void*,const void*);
-				void  OnFind(String::Generic,uint);
+				void  OnFind(GenericString,uint);
 				ibool Optimize();
 
 				void OnCmdEditFind         (uint); 

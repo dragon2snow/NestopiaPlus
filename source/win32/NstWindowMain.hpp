@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -27,7 +27,6 @@
 
 #pragma once
 
-#include "NstObjectStack.hpp"
 #include "NstWindowDynamic.hpp"
 #include "NstWindowMenu.hpp"
 #include "NstManagerVideo.hpp"
@@ -65,6 +64,8 @@ namespace Nestopia
 			int  Run();
 			void Save(Configuration& cfg) const;
 			uint GetMaxMessageLength() const;
+			void Load(const Io::Nsp::Context&);
+			void Save(Io::Nsp::Context&) const;
 
 		private:
 
@@ -120,6 +121,11 @@ namespace Nestopia
 				Rect rect;
 			};
 
+			struct MainWindow : Dynamic
+			{
+				MainWindow(const Configuration&,const Menu&);
+			};
+
 			void  UpdateScreenSize(Point) const;
 			uint  CalculateScreenScale() const;
 			ibool IsScreenMatched(Nes::Machine::Mode) const;
@@ -143,6 +149,7 @@ namespace Nestopia
 			ibool OnNclButton         (Param&);
 			ibool OnDisplayChange     (Param&);
 			ibool OnPowerBroadCast    (Param&);
+			ibool OnCommandResume     (Param&);
 
 			void OnCmdViewScreenSize 	(uint);
 			void OnCmdViewSwitchScreen	(uint);
@@ -154,29 +161,25 @@ namespace Nestopia
 			void OnAppEvent(Application::Instance::Event,const void*);
 
 			const Managers::Preferences& preferences;
-
-			Dynamic window;
+			MainWindow window;
 			const Menu& menu;
-
-			Managers::Emulator& emulator;
-
-			Object::Stack<Managers::FrameClock> frameClock;
-			Object::Stack<Managers::Sound> sound;
-			Object::Stack<Managers::Input> input;
-			Object::Stack<Managers::Video> video;
-
+			Managers::Emulator& emulator;			
+			Managers::Video video;
+			Managers::Sound sound;
+			Managers::Input input;
+			Managers::FrameClock frameClock;
 			State state;
 
-			static const char windowName[];
+			static const tchar windowName[];
 
 			ibool IsFullscreen() const
 			{
-				return video->IsFullscreen();
+				return video.IsFullscreen();
 			}
 
 			ibool IsWindowed() const
 			{
-				return video->IsWindowed();
+				return video.IsWindowed();
 			}
 
 		public:

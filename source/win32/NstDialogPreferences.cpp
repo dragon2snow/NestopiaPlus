@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -36,6 +36,14 @@
 
 namespace Nestopia
 {
+	NST_COMPILE_ASSERT
+	(
+		IDC_PREFERENCES_ASSOCIATE_UNF == IDC_PREFERENCES_ASSOCIATE_NES + 1 &&
+		IDC_PREFERENCES_ASSOCIATE_FDS == IDC_PREFERENCES_ASSOCIATE_NES + 2 &&
+		IDC_PREFERENCES_ASSOCIATE_NSF == IDC_PREFERENCES_ASSOCIATE_NES + 3 &&
+		IDC_PREFERENCES_ASSOCIATE_NSP == IDC_PREFERENCES_ASSOCIATE_NES + 4
+	);
+
 	using namespace Window;
 
 	struct Preferences::MenuColorWindow
@@ -78,10 +86,10 @@ namespace Nestopia
 		};
 
 		System::Registry registry;
-		String::Heap tmpString;
+		HeapString tmpString;
 
 		static uchar cache[NUM_EXTENSIONS];
-		static cstring const keyNames[NUM_EXTENSIONS][NUM_KEYTYPES];
+		static tstring const keyNames[NUM_EXTENSIONS][NUM_KEYTYPES];
 
 	public:
 
@@ -96,13 +104,13 @@ namespace Nestopia
 		UNCACHED, UNCACHED, UNCACHED, UNCACHED, UNCACHED
 	};
 
-	cstring const Preferences::Association::keyNames[NUM_EXTENSIONS][NUM_KEYTYPES] =
+	tstring const Preferences::Association::keyNames[NUM_EXTENSIONS][NUM_KEYTYPES] =
 	{
-		{ ".nes", "Nestopia.nes", "Nestopia iNes File"                },
-		{ ".unf", "Nestopia.unf", "Nestopia UNIF File"                },
-		{ ".fds", "Nestopia.fds", "Nestopia Famicom Disk System File" },
-		{ ".nsf", "Nestopia.nsf", "Nestopia NES Sound File"           },
-		{ ".nsp", "Nestopia.nsp", "Nestopia Script File"              }
+		{ _T( ".nes" ), _T( "Nestopia.nes" ), _T( "Nestopia iNes File"                ) },
+		{ _T( ".unf" ), _T( "Nestopia.unf" ), _T( "Nestopia UNIF File"                ) },
+		{ _T( ".fds" ), _T( "Nestopia.fds" ), _T( "Nestopia Famicom Disk System File" ) },
+		{ _T( ".nsf" ), _T( "Nestopia.nsf" ), _T( "Nestopia NES Sound File"           ) },
+		{ _T( ".nsp" ), _T( "Nestopia.nsp" ), _T( "Nestopia Script File"              ) }
 	};
 
 	Preferences::Association::Association()
@@ -110,7 +118,7 @@ namespace Nestopia
 		if (*cache == UNCACHED)
 		{
 			for (uint i=0; i < NUM_EXTENSIONS; ++i)
-				cache[i] = (registry[keyNames[i][EXTENSION]] >> tmpString) && (keyNames[i][NAME] == tmpString);
+				cache[i] = (registry[keyNames[i][EXTENSION]] >> tmpString) && (tmpString == keyNames[i][NAME]);
 		}
 	}
 
@@ -121,12 +129,12 @@ namespace Nestopia
 		// "nestopia.extension\DefaultIcon" <- "drive:\directory\nestopia.exe, icon"
 
 		tmpString = Application::Instance::GetPath();
-		registry[keyNames[index][NAME]]["DefaultIcon"] << (tmpString << ',' << (ICON_OFFSET + index));
+		registry[keyNames[index][NAME]][_T("DefaultIcon")] << (tmpString << ',' << (ICON_OFFSET + index));
 
 		// "nestopia.extension\Shell\Open\Command" <- "drive:\directory\nestopia.exe "%1"
 
-		tmpString.ShrinkTo( Application::Instance::GetPath().Size() );
-		registry[keyNames[index][NAME]]["Shell\\Open\\Command"] << (tmpString << " \"%1\"");
+		tmpString.ShrinkTo( Application::Instance::GetPath().Length() );
+		registry[keyNames[index][NAME]][_T("Shell\\Open\\Command")] << (tmpString << _T(" \"%1\""));
 	}
 
 	void Preferences::Association::Create(const uint index)
@@ -207,14 +215,6 @@ namespace Nestopia
 			SAVE_WINDOWPOS           == IDC_PREFERENCES_SAVE_WINDOWPOS        - IDC_PREFERENCES_STARTUP_FULLSCREEN
 		);
 
-		NST_COMPILE_ASSERT
-		(
-			IDC_PREFERENCES_ASSOCIATE_UNF - IDC_PREFERENCES_ASSOCIATE_NES == 1 &&
-			IDC_PREFERENCES_ASSOCIATE_FDS - IDC_PREFERENCES_ASSOCIATE_NES == 2 &&
-			IDC_PREFERENCES_ASSOCIATE_NSF - IDC_PREFERENCES_ASSOCIATE_NES == 3 &&
-			IDC_PREFERENCES_ASSOCIATE_NSP - IDC_PREFERENCES_ASSOCIATE_NES == 4
-		);
-
 		settings[ AUTOSTART_EMULATION      ] = ( cfg[ "preferences autostart emulation"      ] != Configuration::NO  );
 		settings[ RUN_IN_BACKGROUND        ] = ( cfg[ "preferences run in background"        ] == Configuration::YES ); 
 		settings[ START_IN_FULLSCREEN      ] = ( cfg[ "preferences start in fullscreen"      ] == Configuration::YES ); 
@@ -237,13 +237,13 @@ namespace Nestopia
 		settings.menuLookDesktop.color    = cfg[ "preferences desktop menu color"    ].Default( (uint) DEFAULT_DESKTOP_MENU_COLOR );
 		settings.menuLookFullscreen.color = cfg[ "preferences fullscreen menu color" ].Default( (uint) DEFAULT_FULLSCREEN_MENU_COLOR );
 
-		const String::Heap& priority = cfg[ "preferences priority" ];
+		const GenericString priority( cfg[ "preferences priority" ] );
 
-		if (priority == "high")
+		if (priority == _T("high"))
 		{
 			settings.priority = PRIORITY_HIGH;
 		}
-		else if (priority == "above normal")
+		else if (priority == _T("above normal"))
 		{
 			settings.priority = PRIORITY_ABOVE_NORMAL;
 		}
@@ -288,14 +288,14 @@ namespace Nestopia
 		cfg[ "preferences default desktop menu color"    ].YesNo() = !settings.menuLookDesktop.enabled;
 		cfg[ "preferences default fullscreen menu color" ].YesNo() = !settings.menuLookFullscreen.enabled;
 
-		cfg[ "preferences desktop menu color"    ] = String::Hex( (u32) settings.menuLookDesktop.color );
-		cfg[ "preferences fullscreen menu color" ] = String::Hex( (u32) settings.menuLookFullscreen.color );
+		cfg[ "preferences desktop menu color"    ] = HexString( (u32) settings.menuLookDesktop.color );
+		cfg[ "preferences fullscreen menu color" ] = HexString( (u32) settings.menuLookFullscreen.color );
 
-		cstring const priority = 
+		tstring const priority = 
 		(
-	       	settings.priority == PRIORITY_HIGH         ? "high" : 
-       		settings.priority == PRIORITY_ABOVE_NORMAL ? "above normal" : 
-		                                                 "normal"
+	       	settings.priority == PRIORITY_HIGH         ? _T( "high"         ) : 
+       		settings.priority == PRIORITY_ABOVE_NORMAL ? _T( "above normal" ) : 
+		                                                 _T( "normal"	    )
 		);
 
 		cfg[ "preferences priority" ] = priority;

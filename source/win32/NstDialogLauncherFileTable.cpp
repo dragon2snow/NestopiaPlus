@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -31,38 +31,25 @@ namespace Nestopia
 	using namespace Window;
 
 	Launcher::List::Files::Strings::Strings(const uint reserve)
-	: container( NST_MAX(2,reserve) )
 	{
-		container[0] = '-';
-		container[1] = '\0';
-
-		container.Resize( 2 );
+		container.Reserve( 2 + reserve );
+		container.Assign( _T("-\0"), 2 );
 	}
 
-	Launcher::List::Files::Strings::Index Launcher::List::Files::Strings::operator << (const String::Generic string)
+	int Launcher::List::Files::Strings::Find(const GenericString needle) const
 	{
-		const uint index = container.Size();
-
-		container.Append( string, string.Size() + 1 );
-		container.Back() = '\0';
-
-		return index;
-	}
-
-	int Launcher::List::Files::Strings::Find(const String::Generic needle) const
-	{
-		cstring it = container.Begin();
-		cstring const end = container.End();
+		tstring it = container.Ptr();
+		tstring const end = it + container.Length();
 		NST_ASSERT( *(end-1) == '\0' );
 
 		do
 		{
-			const String::Generic string( it );
-
+			const GenericString string( it );
+		
 			if (needle == string)
-				return it - container;
-
-			it += string.Size() + 1;
+				return it - container.Ptr();
+		
+			it += string.Length() + 1;
 		}
 		while (it != end);
 
@@ -71,31 +58,51 @@ namespace Nestopia
 
 	uint Launcher::List::Files::Strings::Count() const
 	{
-		return std::count( container.Begin(), container.End(), '\0' );
+		return std::count( container.Ptr(), container.Ptr() + container.Length(), _T('\0') );
 	}
 
 	void Launcher::List::Files::Strings::Clear()
 	{
-		container.Resize( 2 );
+		container.ShrinkTo( 2 );
 		container.Defrag();
 	}
 
-	ibool Launcher::List::Files::Strings::Import(const Io::File& file,const uint size)
+	ibool Launcher::List::Files::Strings::Import(const Io::File& file,const uint size,const ibool utf16)
 	{
-		NST_ASSERT( size );
+		if (size >= 2)
+		{
+			if (utf16)
+			{
+				container.Resize( size / 2 );
+				file.Read( container.Ptr(), container.Length() * sizeof(tchar) );
+			}
+			else
+			{
+				String::Heap<char> tmp;
+				tmp.Resize( size );
+				file.Read( tmp.Ptr(), tmp.Length() );
+				container = tmp;
+			}
 
-		if (size < 2)
-			return FALSE;
+			if (container[0] == '-' && container[1] == '\0')
+				return TRUE;
+		}
 
-		container.Resize( size );
-		file.Read( container, size );
-
-		return container[0] == '-' && container[1] == '\0' && container.Back() == '\0';
+		return FALSE;
 	}
 
 	void Launcher::List::Files::Strings::Export(const Io::File& file) const
 	{
-		NST_ASSERT( container.Size() >= 2 );
-		file.Stream() << container;
+		NST_ASSERT( container.Length() >= 2 );
+		
+		if (IsUTF16())
+		{		
+			file.Write( container.Ptr(), container.Length() * sizeof(tchar) );
+		}
+		else
+		{
+			const String::Heap<char> tmp( container );
+			file.Write( tmp.Ptr(), tmp.Length() );
+		}
 	}
 }

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -38,9 +38,11 @@ namespace Nestopia
 
 	namespace Io
 	{
-		class Log : String::Smart<_MAX_PATH>
+		class Log : HeapString
 		{
 			friend class Managers::Logfile;
+
+			typedef HeapString Text;
 
 			Log(const Log&);
 			void operator = (const Log&);
@@ -50,7 +52,7 @@ namespace Nestopia
 				inline Callbacker();
 
 				void* data;
-				void (NST_CALL *code)(void*,cstring,uint);
+				void (NST_CALL *code)(void*,tstring,uint);
 			};
 
 			static Callbacker callbacker;
@@ -65,7 +67,7 @@ namespace Nestopia
 			template<typename T>
 			Log& operator << (const T& t)
 			{
-				String::Smart<_MAX_PATH>::operator << (t);
+				Text::operator << (t);
 				return *this;
 			}
 		};

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -127,44 +127,51 @@ namespace Nes
 				state.Write( data );
 			}
 		
-			void Mmc3::LoadState(State::Loader& state)
+			void Mmc3::BaseLoad(State::Loader& state,const dword id)
 			{
-				while (const dword chunk = state.Begin())
+				NST_VERIFY( id == NES_STATE_CHUNK_ID('M','M','3','\0') );
+				
+				if (id == NES_STATE_CHUNK_ID('M','M','3','\0'))
 				{
-					switch (chunk)
+					while (const dword chunk = state.Begin())
 					{
-						case NES_STATE_CHUNK_ID('R','E','G','\0'):
+						switch (chunk)
 						{
-							const State::Loader::Data<12> data( state );
-		
-							regs.ctrl0 = data[0];
-							regs.ctrl1 = data[1];
-							banks.prg[0] = data[2];
-							banks.prg[1] = data[3];
-							banks.prg[2] = data[4];
-							banks.prg[3] = data[5];
-							banks.chr[0] = data[6];
-							banks.chr[1] = data[7];
-							banks.chr[2] = data[8];
-							banks.chr[3] = data[9];
-							banks.chr[4] = data[10];
-							banks.chr[5] = data[11];
-		
-							break;
+							case NES_STATE_CHUNK_ID('R','E','G','\0'):
+							{
+								const State::Loader::Data<12> data( state );
+						
+								regs.ctrl0 = data[0];
+								regs.ctrl1 = data[1];
+								banks.prg[0] = data[2];
+								banks.prg[1] = data[3];
+								banks.prg[2] = data[4];
+								banks.prg[3] = data[5];
+								banks.chr[0] = data[6];
+								banks.chr[1] = data[7];
+								banks.chr[2] = data[8];
+								banks.chr[3] = data[9];
+								banks.chr[4] = data[10];
+								banks.chr[5] = data[11];
+						
+								break;
+							}
+						
+							case NES_STATE_CHUNK_ID('I','R','Q','\0'):
+						
+								irq.unit.LoadState( state );
+								break;
 						}
-		
-						case NES_STATE_CHUNK_ID('I','R','Q','\0'):
-		
-							irq.unit.LoadState( state );
-							break;
+
+						state.End();
 					}
-		
-					state.End();
 				}
 			}
 		
-			void Mmc3::SaveState(State::Saver& state) const
+			void Mmc3::BaseSave(State::Saver& state) const
 			{
+				state.Begin('M','M','3','\0');
+
 				{
 					const u8 data[12] =
 					{
@@ -182,10 +189,11 @@ namespace Nes
 						banks.chr[5]
 					};
 
-					state.Begin('R','E','G','\0').Write( data ).End();
+					state.Begin('R','E','G','\0').Write( data ).End().End();
 				}
 		
 				irq.unit.SaveState( State::Saver::Subset(state,'I','R','Q','\0').Ref() );
+				state.End();
 			}
 
             #ifdef NST_PRAGMA_OPTIMIZE
@@ -265,7 +273,7 @@ namespace Nes
 			{
 				const uint i = (regs.ctrl0 & Regs::CTRL0_XOR_PRG) >> 5;
 		
-				prg.SwapBanks<NES_8K,0x0000U>( banks.prg[i], banks.prg[1], banks.prg[i^2], banks.prg[3] );
+				prg.SwapBanks<SIZE_8K,0x0000U>( banks.prg[i], banks.prg[1], banks.prg[i^2], banks.prg[3] );
 			}
 		
             void Mmc3::UpdateChr() const
@@ -274,8 +282,8 @@ namespace Nes
 		
 				const uint swap = (regs.ctrl0 & Regs::CTRL0_XOR_CHR) << 5;
 		
-				chr.SwapBanks<NES_2K>( 0x0000U ^ swap, banks.chr[0], banks.chr[1] ); 
-				chr.SwapBanks<NES_1K>( 0x1000U ^ swap, banks.chr[2], banks.chr[3], banks.chr[4], banks.chr[5] ); 
+				chr.SwapBanks<SIZE_2K>( 0x0000U ^ swap, banks.chr[0], banks.chr[1] ); 
+				chr.SwapBanks<SIZE_1K>( 0x1000U ^ swap, banks.chr[2], banks.chr[3], banks.chr[4], banks.chr[5] ); 
 			}
 		
 			void Mmc3::VSync()

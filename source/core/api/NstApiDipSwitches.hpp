@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -38,10 +38,17 @@
 
 namespace Nes
 {
+	namespace Core
+	{
+		class DipSwitches;
+	}
+
 	namespace Api
 	{
 		class DipSwitches : public Base
 		{
+			Core::DipSwitches* Query() const;
+
 		public:
 
 			DipSwitches(Emulator& e)
@@ -55,8 +62,8 @@ namespace Nes
 			uint NumDips() const;
 			uint NumValues(uint) const;
 
-			cstring GetDipName(uint) const;
-			cstring GetValueName(uint,uint) const;
+			const char* GetDipName(uint) const;
+			const char* GetValueName(uint,uint) const;
 
 			int GetValue(uint) const;		
 			Result SetValue(uint,uint);

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -38,7 +38,7 @@ namespace Nestopia
 
 	struct Logfile::Callbacks
 	{
-		static void NST_CALLBACK DoOutput(Nes::User::UserData data,cstring text,uint length)
+		static void NST_CALLBACK DoOutput(Nes::User::UserData data,tstring text,uint length)
 		{
 			NST_ASSERT( data && text );
 
@@ -58,12 +58,25 @@ namespace Nestopia
 						log.Open();
 					}
 
-					log.file.Write( text, length );
+					log.file.Write( text, length * sizeof(tchar) );
 				}
 				catch (Io::File::Exception)
 				{
 					log.Close();
 				}
+			}
+		}
+
+		static void NST_CALLBACK DoCharOutput(Nes::User::UserData data,cstring text,uint length)
+		{
+			NST_ASSERT( data && text );
+
+			Logfile& log = *static_cast<Logfile*>(data);
+
+			if (length && log.preferences[Preferences::SAVE_LOGFILE])
+			{
+				const HeapString string( text, length );
+				DoOutput( data, string.Ptr(), string.Length() );
 			}
 		}
 	};
@@ -79,7 +92,7 @@ namespace Nestopia
 
 		Io::Log::callbacker.data = this;
 		Io::Log::callbacker.code = &Callbacks::DoOutput;
-		Nes::User::logCallback.Set( &Callbacks::DoOutput, this );
+		Nes::User::logCallback.Set( &Callbacks::DoCharOutput, this );
 	}
 
 	Logfile::~Logfile()
@@ -111,10 +124,10 @@ namespace Nestopia
 			{
 				file.Rewind();
 
-				String::Heap string;
-				file.Text() >> string;
+				HeapString string;
+				file.ReadText( string );
 
-				if (Window::Logfile().Open( string ))
+				if (Window::Logfile().Open( string.Ptr() ))
 					file.Truncate( msgOffset );
 			}
 			catch (Io::File::Exception)
@@ -128,14 +141,17 @@ namespace Nestopia
 	{
 		file.Open
 		( 
-			Application::Instance::GetPath("nestopia.log"),
+			Application::Instance::GetPath(_T("nestopia.log")),
 			Io::File::READ|Io::File::WRITE|Io::File::EMPTY 
 		);
 
-		file.Text() << "Nestopia log file version " 
-			        << Application::Instance::GetVersion() 
-			        << "\r\n-----------------------------------\r\n\r\n";
+		HeapString text;
+		
+		text << "Nestopia log file version "
+			 << Application::Instance::GetVersion() 
+			 << "\r\n-----------------------------------\r\n\r\n";
 
+		file.WriteText( text.Ptr(), text.Length(), TRUE );
 		msgOffset = file.Position();
 
 		menu[IDM_VIEW_LOGFILE].Enable();

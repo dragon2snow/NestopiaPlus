@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -59,7 +59,7 @@ namespace Nestopia
 					ColumnsProxy(Window::Generic w)
 					: control(w) {}
 
-					void Insert(uint,cstring) const;
+					void Insert(uint,tstring) const;
 					void GetOrder(int*,uint) const;
 					uint GetIndex(uint) const;
 					void Align() const;
@@ -79,7 +79,12 @@ namespace Nestopia
 				{
 					class TextProxy
 					{
-						typedef String::Smart<_MAX_PATH> Buffer; 
+						typedef HeapString Buffer; 
+
+						enum
+						{
+							BLOCK_SIZE = 255
+						};
 
 						const Item& item;
 						const uint index;
@@ -91,7 +96,7 @@ namespace Nestopia
 						TextProxy(const Item& i,uint s)
 						: item(i), index(s) {}
 
-						void operator << (cstring) const;
+						void operator << (tstring) const;
 
 						template<typename T>
 						uint operator >> (T& string) const
@@ -99,7 +104,7 @@ namespace Nestopia
 							Buffer buffer;
 							GetText( buffer );
 							string = buffer;
-							return string.Size();
+							return string.Length();
 						}
 					};
 
@@ -167,7 +172,7 @@ namespace Nestopia
 				uint  Size() const;
 				void  Clear() const;
 				void  Reserve(uint) const;
-				int   Add(String::Generic=String::Generic(),LPARAM=0,ibool=FALSE) const;
+				int   Add(GenericString = GenericString(),LPARAM=0,ibool=FALSE) const;
 				Item  Selection() const;
 				void  SetBkColor(uint) const;
 				void  SetTextColor(uint) const;
@@ -201,7 +206,7 @@ namespace Nestopia
 					Sort( SortFunction(data,code) );
 				}
 
-				int Add(String::Generic name,const void* const data,const ibool checked=FALSE) const
+				int Add(GenericString name,const void* const data,const ibool checked=FALSE) const
 				{
 					return Add( name, reinterpret_cast<LPARAM>(data), checked );
 				}

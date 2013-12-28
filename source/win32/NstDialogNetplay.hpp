@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -37,8 +37,6 @@ namespace Nestopia
 		{
 		public:
 
-			typedef String::Generic Game;
-
 			Netplay(const Configuration&,Managers::Emulator&,const Managers::Paths&);
 			~Netplay();
 
@@ -61,21 +59,19 @@ namespace Nestopia
 				ibool OnCommand (Param&);
 
 				Dialog dialog;
-				String::Heap text;
+				String::Heap<char> text;
 			};
 
 		private:
 
 			struct Handlers;
 
-			typedef String::Path<false> Path;
-
 			enum 
 			{
 				LAUNCH = 0xB00B
 			};
 
-			struct Games : Collection::Map<Path,Game>
+			struct Games : Collection::Map< Path, HeapString >
 			{
 				Games();
 				~Games();
@@ -104,7 +100,7 @@ namespace Nestopia
 				ibool fullscreen;
 			};
 
-			String::Generic GetDatabaseName(const Path&) const;
+			String::Generic<char> GetDatabaseName(const Path&) const;
 
 			void LoadFile();
 			void SaveFile() const;
@@ -150,20 +146,20 @@ namespace Nestopia
 				return games.Size();
 			}
 
-			Game GetGame(const uint i) const
+			GenericString GetGame(const uint i) const
 			{
-				if (settings.useDatabase && games[i].value.Size())
+				if (settings.useDatabase && games[i].value.Length())
 					return games[i].value;
 				else
      				return games[i].key.Target().File();
 			}
 
-			cstring GetPath(cstring const game) const
+			tstring GetPath(tstring const game) const
 			{
 				for (uint i=0; i < games.Size(); ++i)
 				{
 					if (GetGame(i) == game)
-						return games[i].key;
+						return games[i].key.Ptr();
 				}
 
 				return NULL;

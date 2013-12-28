@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -39,15 +39,15 @@ namespace Nestopia
 		{
 		public:
 
-			explicit Instance(cstring);
+			Instance();
 			~Instance();
 
 			static HINSTANCE GetHandle();
 
-			static const String::Path<false>& GetPath();
-			static const String::Path<true> GetPath(String::Generic);
-
-			static String::Generic GetVersion();
+			static const Path& GetPath();
+			static const Path GetPath(const GenericString);
+			static const Path GetTmpPath(GenericString = GenericString());
+			static const String::Generic<char> GetVersion();
 
 			static HWND  GetActiveWindow();
 			static uint  NumChildWindows();
@@ -55,12 +55,13 @@ namespace Nestopia
 			static HWND  GetChildWindow(uint);
 			static ibool IsAnyChildWindowVisible();
 			static HWND  GetMainWindow();
+			static void  Post(uint);
 
-			static void Launch(String::Generic,uint=0);
+			static void Launch(const GenericString,uint=0);
 
 			enum
 			{
-				WM_NST_OPEN = WM_APP + 54
+				WM_NST_COMMAND_RESUME = WM_APP + 55
 			};
 
 			enum Event
@@ -123,9 +124,9 @@ namespace Nestopia
 				return cfg;
 			}
 
-			static cstring GetClassName()
+			static tstring GetClassName()
 			{
-				return "Nestopia";
+				return _T("Nestopia");
 			}
 
 			class Waiter
@@ -140,6 +141,19 @@ namespace Nestopia
 				{
 					::SetCursor( hCursor );
 				}
+			};
+
+			class Locker
+			{
+				HWND const hWnd;
+				const ibool enabled;
+
+			public:
+
+				Locker();
+				~Locker();
+				
+				ibool CheckInput(int) const;
 			};
 		};
 	}

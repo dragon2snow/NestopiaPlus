@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -120,10 +120,10 @@ namespace Nes
 
 					default:
 
-						if ( size > NES_40K ) return WRAM_64K|WRAM_RESTRICT;
-						if ( size > NES_32K ) return WRAM_40K|WRAM_RESTRICT;
-						if ( size > NES_16K ) return WRAM_32K|WRAM_RESTRICT;
-						if ( size > NES_8K  ) return WRAM_16K|WRAM_RESTRICT;
+						if ( size > SIZE_40K ) return WRAM_64K|WRAM_RESTRICT;
+						if ( size > SIZE_32K ) return WRAM_40K|WRAM_RESTRICT;
+						if ( size > SIZE_16K ) return WRAM_32K|WRAM_RESTRICT;
+						if ( size > SIZE_8K  ) return WRAM_16K|WRAM_RESTRICT;
 
 						return WRAM_8K|WRAM_RESTRICT;
 				}
@@ -164,7 +164,7 @@ namespace Nes
 					{0,1,2,3,4,5,6,7}
 				};
 
-				std::memcpy( banks, access[s==NES_16K ? 2 : s==NES_32K ? 3 : s==NES_40K ? 4 : s==NES_64K ? 5 : s ? 1 : 0], 8 );
+				std::memcpy( banks, access[s==SIZE_16K ? 2 : s==SIZE_32K ? 3 : s==SIZE_40K ? 4 : s==SIZE_64K ? 5 : s ? 1 : 0], 8 );
 			}
 
 			Mmc5::Banks::Banks(uint wrkSize)
@@ -325,7 +325,7 @@ namespace Nes
 					cpu.Map( i ).Set( this, &Mmc5::Peek_2001, &Mmc5::Poke_2001 );
 
 				for (uint i=0; i < 2; ++i)
-					ciRam[i] = nmt.Source().Mem(NES_1K * i);
+					ciRam[i] = nmt.Source().Mem(SIZE_1K * i);
 
 				exRam.Reset( hard );				
 				flow.Reset();
@@ -365,8 +365,10 @@ namespace Nes
 					square[i].UpdateContext( fixed );
 			}
 
-			void Mmc5::SaveState(State::Saver& state) const
+			void Mmc5::BaseSave(State::Saver& state) const
 			{
+				state.Begin('M','M','5','\0');
+
 				{
 					const u8 data[32] =
 					{
@@ -418,85 +420,90 @@ namespace Nes
 				}
 
 				state.Begin('R','A','M','\0').Compress( exRam.mem ).End();
-
 				sound.SaveState( State::Saver::Subset(state,'S','N','D','\0').Ref() );
+				state.End();
 			}
 
-			void Mmc5::LoadState(State::Loader& state)
+			void Mmc5::BaseLoad(State::Loader& state,const dword id)
 			{
-				while (const dword chunk = state.Begin())
+				NST_VERIFY( id == NES_STATE_CHUNK_ID('M','M','5','\0') );
+
+				if (id == NES_STATE_CHUNK_ID('M','M','5','\0'))
 				{
-					switch (chunk)
+					while (const dword chunk = state.Begin())
 					{
-						case NES_STATE_CHUNK_ID('R','E','G','\0'):
+						switch (chunk)
 						{
-							const State::Loader::Data<32> data( state );
-
-							regs.prgMode = (data[0] >> 0) & Regs::PRG_MODE;
-							regs.chrMode = (data[0] >> 2) & Regs::CHR_MODE;
-							regs.exRamMode = (data[0] >> 4) & Regs::EXRAM_MODE;
-
-							for (uint i=0; i < 4; ++i)
-								banks.prg[i] = data[1+i];
-
-							banks.security = data[5] & (Banks::READABLE_6|Banks::WRITABLE_6|Regs::WRK_WRITABLE_A|Regs::WRK_WRITABLE_B);
-							banks.nmt = data[6];
-
-							for (uint i=0; i < 8; ++i)
-								banks.chrA[i] = data[7+i] | ((data[19+(i/4)] & Regs::CHR_HIGH) << 8);
-
-							for (uint i=0; i < 4; ++i)
-								banks.chrB[i] = data[15+i] | ((data[21+(i/4)] & Regs::CHR_HIGH) << 8);
-
-							banks.chrHigh = (data[22] & Regs::CHR_HIGH) << 6;
-							banks.lastChr = (data[22] & 0x80) ? Banks::LAST_CHR_B : Banks::LAST_CHR_A;
-							
-							filler.tile = data[23];
-							filler.attribute = Filler::squared[data[24] & 0x3];
-							
-							exRam.tile = data[25];
-							
-							spliter.ctrl = data[26];
-							spliter.yStart = NST_MIN(data[27],239);
-							spliter.chrBank = data[28] << 12;
-							spliter.tile = (data[29] & 0x1F) | ((data[24] & 0xF8) << 2);
-							spliter.x = data[30] & 0x1F;
-							spliter.y = NST_MIN(data[31],239);
-
-							UpdatePrg();
-							
-							if (banks.lastChr == Banks::LAST_CHR_A)
-								UpdateChrA();
-							else
-								UpdateChrB();
-
-							UpdateRenderMethod();
-							break;
+							case NES_STATE_CHUNK_ID('R','E','G','\0'):
+							{
+								const State::Loader::Data<32> data( state );
+						
+								regs.prgMode = (data[0] >> 0) & Regs::PRG_MODE;
+								regs.chrMode = (data[0] >> 2) & Regs::CHR_MODE;
+								regs.exRamMode = (data[0] >> 4) & Regs::EXRAM_MODE;
+						
+								for (uint i=0; i < 4; ++i)
+									banks.prg[i] = data[1+i];
+						
+								banks.security = data[5] & (Banks::READABLE_6|Banks::WRITABLE_6|Regs::WRK_WRITABLE_A|Regs::WRK_WRITABLE_B);
+								banks.nmt = data[6];
+						
+								for (uint i=0; i < 8; ++i)
+									banks.chrA[i] = data[7+i] | ((data[19+(i/4)] & Regs::CHR_HIGH) << 8);
+						
+								for (uint i=0; i < 4; ++i)
+									banks.chrB[i] = data[15+i] | ((data[21+(i/4)] & Regs::CHR_HIGH) << 8);
+						
+								banks.chrHigh = (data[22] & Regs::CHR_HIGH) << 6;
+								banks.lastChr = (data[22] & 0x80) ? Banks::LAST_CHR_B : Banks::LAST_CHR_A;
+						
+								filler.tile = data[23];
+								filler.attribute = Filler::squared[data[24] & 0x3];
+						
+								exRam.tile = data[25];
+						
+								spliter.ctrl = data[26];
+								spliter.yStart = NST_MIN(data[27],239);
+								spliter.chrBank = data[28] << 12;
+								spliter.tile = (data[29] & 0x1F) | ((data[24] & 0xF8) << 2);
+								spliter.x = data[30] & 0x1F;
+								spliter.y = NST_MIN(data[31],239);
+						
+								UpdatePrg();
+						
+								if (banks.lastChr == Banks::LAST_CHR_A)
+									UpdateChrA();
+								else
+									UpdateChrB();
+						
+								UpdateRenderMethod();
+								break;
+							}
+						
+							case NES_STATE_CHUNK_ID('I','R','Q','\0'):
+							{
+								const State::Loader::Data<2> data( state );
+						
+								NST_VERIFY( !(data[0] & Irq::FRAME) );
+						
+								irq.state = data[0] & (Irq::HIT|Irq::ENABLED); 
+								irq.target = data[1];
+								break;
+							}
+						
+							case NES_STATE_CHUNK_ID('R','A','M','\0'):
+						
+								state.Uncompress( exRam.mem );
+								break;
+						
+							case NES_STATE_CHUNK_ID('S','N','D','\0'):
+						
+								sound.LoadState( State::Loader::Subset(state).Ref() );
+								break;
 						}
-		
-						case NES_STATE_CHUNK_ID('I','R','Q','\0'):
-						{
-							const State::Loader::Data<2> data( state );
 
-							NST_VERIFY( !(data[0] & Irq::FRAME) );
-
-							irq.state = data[0] & (Irq::HIT|Irq::ENABLED); 
-							irq.target = data[1];
-							break;
-						}
-
-						case NES_STATE_CHUNK_ID('R','A','M','\0'):
-
-							state.Uncompress( exRam.mem );
-							break;
-
-						case NES_STATE_CHUNK_ID('S','N','D','\0'):
-
-							sound.LoadState( State::Loader::Subset(state).Ref() );
-							break;
+						state.End();
 					}
-		
-					state.End();
 				}
 			}
 		
@@ -784,8 +791,8 @@ namespace Nes
 			{
 				enum
 				{
-					ROM = (uint(Banks::READABLE_8) << (ADDRESS / NES_8K)),
-					RAM = (uint(Banks::WRITABLE_8) << (ADDRESS / NES_8K)) | ROM
+					ROM = (uint(Banks::READABLE_8) << (ADDRESS / SIZE_8K)),
+					RAM = (uint(Banks::WRITABLE_8) << (ADDRESS / SIZE_8K)) | ROM
 				};
 
 				// GCC goes banana without the explicit cast
@@ -793,12 +800,12 @@ namespace Nes
 				if (bank & Regs::PRG_ROM_SELECT)
 				{	   
 					banks.security = (banks.security & ~uint(RAM)) | ROM;
-					static_cast<Prg::SourceProxy>(prg.Source(0)).SwapBank<NES_8K,ADDRESS>( bank & Regs::PRG_ROM_BANK );
+					static_cast<Prg::SourceProxy>(prg.Source(0)).SwapBank<SIZE_8K,ADDRESS>( bank & Regs::PRG_ROM_BANK );
 				}
 				else if (Banks::Wrk::INVALID != (bank = banks.wrk[bank & Regs::PRG_RAM_BANK]))
 				{
 					banks.security |= RAM;
-					static_cast<Prg::SourceProxy>(prg.Source(1)).SwapBank<NES_8K,ADDRESS>( bank );
+					static_cast<Prg::SourceProxy>(prg.Source(1)).SwapBank<SIZE_8K,ADDRESS>( bank );
 				}
 				else
 				{
@@ -822,7 +829,7 @@ namespace Nes
                		case Regs::PRG_MODE_32K: 
 						
 						banks.security = (banks.security & ~uint(RAM_8_A_C)) | ROM_8_A_C;
-						prg.SwapBank<NES_32K,0x0000U>( banks.prg[3] >> 2 ); 
+						prg.SwapBank<SIZE_32K,0x0000U>( banks.prg[3] >> 2 ); 
 						break;
 				
 					case Regs::PRG_MODE_16K:
@@ -830,7 +837,7 @@ namespace Nes
 						banks.security = (banks.security & ~uint(RAM_C)) | ROM_C;
 						SwapPrg8Ex<0x0000U>( banks.prg[1] & 0xFE ); 
 						SwapPrg8Ex<0x2000U>( banks.prg[1] | 0x01 ); 
-						prg.SwapBank<NES_16K,0x4000U>( banks.prg[3] >> 1 ); 
+						prg.SwapBank<SIZE_16K,0x4000U>( banks.prg[3] >> 1 ); 
 						break;
 				
 					case Regs::PRG_MODE_16K_8K:
@@ -838,7 +845,7 @@ namespace Nes
 						SwapPrg8Ex<0x0000U>( banks.prg[1] & 0xFE ); 
 						SwapPrg8Ex<0x2000U>( banks.prg[1] | 0x01 ); 
 						SwapPrg8Ex<0x4000U>( banks.prg[2] ); 
-						prg.SwapBank<NES_8K,0x6000U>( banks.prg[3] ); 
+						prg.SwapBank<SIZE_8K,0x6000U>( banks.prg[3] ); 
 						break;
 				
 					case Regs::PRG_MODE_8K:
@@ -846,7 +853,7 @@ namespace Nes
 						SwapPrg8Ex<0x0000U>( banks.prg[0] ); 
 						SwapPrg8Ex<0x2000U>( banks.prg[1] ); 
 						SwapPrg8Ex<0x4000U>( banks.prg[2] ); 
-						prg.SwapBank<NES_8K,0x6000U>( banks.prg[3] ); 
+						prg.SwapBank<SIZE_8K,0x6000U>( banks.prg[3] ); 
 						break;
 				}
 			}
@@ -857,23 +864,23 @@ namespace Nes
 				{
 					case Regs::CHR_MODE_8K:
 				
-						chr.SwapBank<NES_8K,0x0000U>( banks.chrA[7] ); 
+						chr.SwapBank<SIZE_8K,0x0000U>( banks.chrA[7] ); 
 						break;						   
 				
 					case Regs::CHR_MODE_4K:					   
 				
-						chr.SwapBanks<NES_4K,0x0000U>( banks.chrA[3], banks.chrA[7] ); 
+						chr.SwapBanks<SIZE_4K,0x0000U>( banks.chrA[3], banks.chrA[7] ); 
 						break;						   
 				
 					case Regs::CHR_MODE_2K:					   
 				
-						chr.SwapBanks<NES_2K,0x0000U>( banks.chrA[1], banks.chrA[3], banks.chrA[5], banks.chrA[7] ); 
+						chr.SwapBanks<SIZE_2K,0x0000U>( banks.chrA[1], banks.chrA[3], banks.chrA[5], banks.chrA[7] ); 
 						break;						   
 				
 					case Regs::CHR_MODE_1K:					   
 				
-						chr.SwapBanks<NES_1K,0x0000U>( banks.chrA[0], banks.chrA[1], banks.chrA[2], banks.chrA[3] ); 
-						chr.SwapBanks<NES_1K,0x1000U>( banks.chrA[4], banks.chrA[5], banks.chrA[6], banks.chrA[7] ); 
+						chr.SwapBanks<SIZE_1K,0x0000U>( banks.chrA[0], banks.chrA[1], banks.chrA[2], banks.chrA[3] ); 
+						chr.SwapBanks<SIZE_1K,0x1000U>( banks.chrA[4], banks.chrA[5], banks.chrA[6], banks.chrA[7] ); 
 						break;
 				}
 			}
@@ -884,23 +891,23 @@ namespace Nes
 				{
 					case Regs::CHR_MODE_8K:
 				
-						chr.SwapBank<NES_8K,0x0000U>( banks.chrB[3] ); 
+						chr.SwapBank<SIZE_8K,0x0000U>( banks.chrB[3] ); 
 						break;						   
 				
 					case Regs::CHR_MODE_4K:					   
 				
-						chr.SwapBanks<NES_4K,0x0000U>( banks.chrB[3], banks.chrB[3] ); 
+						chr.SwapBanks<SIZE_4K,0x0000U>( banks.chrB[3], banks.chrB[3] ); 
 						break;						   
 				
 					case Regs::CHR_MODE_2K:					   
 				
-						chr.SwapBanks<NES_2K,0x0000U>( banks.chrB[1], banks.chrB[3], banks.chrB[1], banks.chrB[3] );
+						chr.SwapBanks<SIZE_2K,0x0000U>( banks.chrB[1], banks.chrB[3], banks.chrB[1], banks.chrB[3] );
 						break;						   
 				
 					case Regs::CHR_MODE_1K:					   
 				
-						chr.SwapBanks<NES_1K,0x0000U>( banks.chrB[0], banks.chrB[1], banks.chrB[2], banks.chrB[3] ); 
-						chr.SwapBanks<NES_1K,0x1000U>( banks.chrB[0], banks.chrB[1], banks.chrB[2], banks.chrB[3] ); 
+						chr.SwapBanks<SIZE_1K,0x0000U>( banks.chrB[0], banks.chrB[1], banks.chrB[2], banks.chrB[3] ); 
+						chr.SwapBanks<SIZE_1K,0x1000U>( banks.chrB[0], banks.chrB[1], banks.chrB[2], banks.chrB[3] ); 
 						break;
 				}
 			}
@@ -1168,7 +1175,7 @@ namespace Nes
 					nmtMethods[method][(bank >> 6) & Regs::NMT_MODE]
 				);
 
-				for (uint address=0; address < NES_4K; address += NES_1K, bank >>= 2)
+				for (uint address=0; address < SIZE_4K; address += SIZE_1K, bank >>= 2)
 				{
 					static const u8 securities[4][4][2] =
 					{
@@ -1178,7 +1185,7 @@ namespace Nes
 						{ {0,0}, {0,1}, {0,0}, {0,0} }
 					};
 
-					nmt.Source( securities[regs.exRamMode][bank & Regs::NMT_MODE][0] ).SwapBank<NES_1K>
+					nmt.Source( securities[regs.exRamMode][bank & Regs::NMT_MODE][0] ).SwapBank<SIZE_1K>
 					( 
 					    address,
 				     	securities[regs.exRamMode][bank & Regs::NMT_MODE][1] 
@@ -1405,7 +1412,7 @@ namespace Nes
 				if (data != Banks::Wrk::INVALID)
 				{
 					banks.security |= Banks::READABLE_6|Banks::WRITABLE_6;
-					wrk.SwapBank<NES_8K,0x0000U>( data );
+					wrk.SwapBank<SIZE_8K,0x0000U>( data );
 				}
 				else
 				{

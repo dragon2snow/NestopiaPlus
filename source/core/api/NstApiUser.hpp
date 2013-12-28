@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -75,14 +75,23 @@ namespace Nes
 			enum Event
 			{
 				EVENT_CPU_JAM = 1,
-				EVENT_DISPLAY_TIMER
+				EVENT_DISPLAY_TIMER,
+				EVENT_TAPE_PLAYING,
+				EVENT_TAPE_RECORDING,
+				EVENT_TAPE_STOPPED
 			};
 	
 			enum File
 			{
 				FILE_LOAD_BATTERY = 1,
 				FILE_SAVE_BATTERY,
-				FILE_SAVE_FDS
+				FILE_SAVE_FDS,
+				FILE_LOAD_EEPROM,
+				FILE_SAVE_EEPROM,
+				FILE_LOAD_TAPE,
+				FILE_SAVE_TAPE,
+				FILE_LOAD_TURBOFILE,
+				FILE_SAVE_TURBOFILE
 			};
 	
 			enum Input
@@ -93,9 +102,9 @@ namespace Nes
 			typedef std::string String;
 			typedef std::vector<u8> FileData;
 	
-			typedef void   ( NST_CALLBACK *LogCallback      ) (UserData,cstring,dword);
+			typedef void   ( NST_CALLBACK *LogCallback      ) (UserData,const char*,dword);
 			typedef void   ( NST_CALLBACK *EventCallback    ) (UserData,Event,const void*);
-			typedef void   ( NST_CALLBACK *InputCallback    ) (UserData,Input,cstring,String&);
+			typedef void   ( NST_CALLBACK *InputCallback    ) (UserData,Input,const char*,String&);
 			typedef Answer ( NST_CALLBACK *QuestionCallback ) (UserData,Question);
 			typedef void   ( NST_CALLBACK *FileIoCallback   ) (UserData,File,FileData&);
 	
@@ -108,7 +117,7 @@ namespace Nes
 
 		struct User::LogCaller : Core::UserCallback<User::LogCallback>
 		{
-			void operator () (cstring text,dword length) const			
+			void operator () (const char* text,dword length) const			
 			{
 				if (function)
 					function( userdata, text, length );
@@ -132,7 +141,7 @@ namespace Nes
 
 		struct User::InputCaller : Core::UserCallback<User::InputCallback>
 		{
-			void operator () (Input what,cstring info,String& answer) const
+			void operator () (Input what,const char* info,String& answer) const
 			{
 				if (function)
 					function( userdata, what, info, answer );

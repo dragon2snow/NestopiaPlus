@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -38,7 +38,7 @@ namespace Nestopia
 		{
 		public:
 
-			explicit Configuration(String::Generic);
+			Configuration();
 			~Configuration();
 
 			void Reset(ibool=TRUE);
@@ -53,57 +53,31 @@ namespace Nestopia
 
 		private:
 
-			class ConstValue
+			class ConstValue : public GenericString
 			{
 			public:
 
-				ibool operator == (State) const;
+				ConstValue(const GenericString& g)
+				: Generic(g) {}
 
-			private:
+				bool operator == (State) const;
 
-				const String::Heap& string;
-
-			public:
-
-				ConstValue(const String::Heap& s)
-				: string(s) {}
-
-				operator bool () const 
-				{
-					return string.Size() != 0;
-				}
-
-				ibool operator ! () const
-				{
-					return string.Empty();
-				}
-
-				uint Size() const
-				{
-					return string.Size();
-				}
-  
-				operator cstring () const 
-				{
-					return string;
-				}
-
-				const String::Heap& GetString() const
-				{
-					return string;
+				bool operator != (State state) const 
+				{ 
+					return !(*this == state); 
 				}
 
 				operator long () const 
 				{ 
 					long i; 
-					string >> i; 
+					*this >> i; 
 					return i; 
 				}
 
 				operator ulong () const 
 				{ 
 					ulong i; 
-					string >> i; 
+					*this >> i; 
 					return i; 
 				}
 
@@ -113,27 +87,27 @@ namespace Nestopia
 				operator ushort () const { return ( ushort ) operator ulong (); }
 				operator int    () const { return ( int    ) operator long  (); }
 				operator uint   () const { return ( uint   ) operator ulong (); }
-
-				cstring Default(cstring d) const 
+	  
+				tstring Default(tstring d) const 
 				{ 
-					return string.Size() ? string : d;
+					return Length() ? Ptr() : d;
 				}
 
-				char Default(char d) const 
+				tchar Default(tchar d) const 
 				{
-					return string.Size() ? string[0] : d;
+					return Length() ? Front() : d;
 				}
 
 				long Default(long d) const
 				{
 					long i;
-					return (string >> i) ? i : d;
+					return (*this >> i) ? i : d;
 				}
 
 				ulong Default(ulong d) const
 				{
 					ulong i;
-					return (string >> i) ? i : d;
+					return (*this >> i) ? i : d;
 				}
 
 				schar  Default( schar  i ) const { return ( schar  ) Default( ( long  ) i ); }
@@ -142,41 +116,36 @@ namespace Nestopia
 				ushort Default( ushort i ) const { return ( ushort ) Default( ( ulong ) i ); }
 				int    Default( int    i ) const { return ( int    ) Default( ( long  ) i ); }
 				uint   Default( uint   i ) const { return ( uint   ) Default( ( ulong ) i ); }
-
-				ibool operator != (State state) const 
-				{ 
-					return !(*this == state); 
-				}
 			};
 
 			class Value
 			{
-				String::Heap& string;
+				HeapString& string;
 
 			public:
 
-				Value(String::Heap& s)
+				Value(HeapString& s)
 				: string(s)	{}
 
 				class QuoteProxy
 				{
-					String::Heap& string;
+					HeapString& string;
 
 				public:
 
-					QuoteProxy(String::Heap& s)
+					QuoteProxy(HeapString& s)
 					: string(s) {}
 
-					void operator = (const String::Anything&);
+					void operator = (const GenericString&);
 				};
 
 				class YesNoProxy
 				{
-					String::Heap& string;
+					HeapString& string;
 
 				public:
 
-					YesNoProxy(String::Heap& s)
+					YesNoProxy(HeapString& s)
 					: string(s) {}
 
 					void operator = (ibool);
@@ -184,33 +153,23 @@ namespace Nestopia
 
 				class OnOffProxy
 				{
-					String::Heap& string;
+					HeapString& string;
 
 				public:
 
-					OnOffProxy(String::Heap& s)
+					OnOffProxy(HeapString& s)
 					: string(s) {}
 
 					void operator = (ibool);
 				};
 
-				void operator = (const String::Anything& input)
+				template<typename T>
+				void operator = (const T& t)
 				{
-					string = input;
+					string << t;
 				}
 
-				Value& operator << (const String::Anything& input)
-				{
-					string << input;
-					return *this;
-				}
-
-				uint Size() const
-				{
-					return string.Size();
-				}
-
-				String::Heap& GetString()
+				HeapString& GetString()
 				{
 					return string;
 				}
@@ -233,12 +192,18 @@ namespace Nestopia
 
 		public:
 
-			Value operator [] (cstring);
-			ConstValue operator [] (cstring) const throw();
+			Value operator [] (const String::Generic<char>);
+			const ConstValue operator [] (const String::Generic<char>) const;
 
 		private:
 
-			void Parse(cstring,uint,String::Heap* = NULL);
+			enum
+			{
+				UTF16_LE = 0xFEFF,
+				UTF16_BE = 0xFFFE
+			};
+
+			void Parse(tstring,uint,HeapString* = NULL);
 
 			enum Exception
 			{
@@ -247,25 +212,23 @@ namespace Nestopia
 
 			enum
 			{
-				HINTED_SIZE = 356
+				HINTED_SIZE = 350
 			};
 
-			struct Command : String::Heap
+			struct Command : String::Heap<char>
 			{
 				mutable ibool referenced;
 
 				template<typename T> 
 				Command(const T& t)
-				: String::Heap(t), referenced(FALSE) {}
+				: String::Heap<char>(t), referenced(FALSE) {}
 			};
 
-			typedef Collection::Map<Command,String::Heap> Items;
+			typedef Collection::Map< Command, HeapString > Items;
 
 			Items items;
-			String::Heap startupFile;
+			HeapString startupFile;
 			ibool save;
-
-			static const String::Heap nullString;
 
 		public:
 
@@ -274,7 +237,7 @@ namespace Nestopia
 				save = enable;
 			}
 
-			const String::Heap& GetStartupFile() const
+			const HeapString& GetStartupFile() const
 			{
 				return startupFile;
 			}

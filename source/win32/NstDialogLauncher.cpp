@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -24,6 +24,7 @@
 
 #include "NstApplicationInstance.hpp"
 #include "NstApplicationException.hpp"
+#include "NstSystemKeyboard.hpp"
 #include "NstDialogLauncher.hpp"
 
 namespace Nestopia
@@ -87,6 +88,23 @@ namespace Nestopia
 		dialog.Commands().Add( CMD_ENTER, this, &Launcher::OnCmdEnter );
 		listNotifications.Add( this, Handlers::listNotifications );
 		treeNotifications.Add( this, Handlers::treeNotifications );
+
+		HeapString name;
+
+		for (uint i=0; i < 5; ++i)
+		{
+			static const u16 keys[5][2] =
+			{
+				{ IDM_LAUNCHER_FILE_RUN,     VK_RETURN },
+				{ IDM_LAUNCHER_FILE_REFRESH, VK_F5     },
+				{ IDM_LAUNCHER_EDIT_FIND,    VK_F3     },
+				{ IDM_LAUNCHER_EDIT_INSERT,  VK_INSERT },
+				{ IDM_LAUNCHER_EDIT_REMOVE,  VK_DELETE }
+			};
+
+			menu[keys[i][0]].Text() >> name;
+			menu[keys[i][0]].Text() << (name << '\t' << System::Keyboard::GetName( keys[i][1] ));
+		}
 	}
 
 	Launcher::~Launcher()
@@ -179,7 +197,7 @@ namespace Nestopia
 	{
 		menu[IDM_LAUNCHER_EDIT_FIND].Enable( count != 0 );
 
-		statusBar.Text(StatusBar::SECOND_FIELD) << (String::Stack<24>(" Files: ") << count);
+		statusBar.Text(StatusBar::SECOND_FIELD) << (String::Stack<20,tchar>(_T(" Files: ")) << count).Ptr();
 	}
 
 	void Launcher::OnListGetDisplayInfo(const NMHDR& nmhdr)
@@ -220,15 +238,15 @@ namespace Nestopia
 				if (const List::Files::Entry* const entry = list[nmlv.iItem])
 				{
 					{
-						String::Path<true> path( entry->GetPath(list.GetStrings()), entry->GetFile(list.GetStrings()), "" );
+						Path path( entry->GetPath(list.GetStrings()), entry->GetFile(list.GetStrings()) );
 
-						if (path.Size() > _MAX_PATH)
+						if (path.Length() > _MAX_PATH)
 						{
 							path.ShrinkTo( _MAX_PATH-3 );
 							path << "...";
 						}
 
-						statusBar.Text(StatusBar::FIRST_FIELD) << path;
+						statusBar.Text(StatusBar::FIRST_FIELD) << path.Ptr();
 					}
 
 					menu[IDM_LAUNCHER_FILE_RUN].Enable();
@@ -279,7 +297,7 @@ namespace Nestopia
 		{
 			Application::Instance::Launch
 			(
-				String::Path<true>( entry->GetPath(list.GetStrings()), entry->GetFile(list.GetStrings()), "" )
+				Path( entry->GetPath(list.GetStrings()), entry->GetFile(list.GetStrings()) )
 			);
 		}
 	}

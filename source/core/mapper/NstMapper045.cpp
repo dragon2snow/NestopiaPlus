@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -42,8 +42,6 @@ namespace Nes
 					exRegs[i] = 0;
 			}
 	
-			hack = true;
-
 			Mmc3::SubReset( hard );
 	
 			Map( 0x6000U, 0x7FFFU, &Mapper45::Poke_6000 );
@@ -85,16 +83,6 @@ namespace Nes
 
 		NES_POKE(Mapper45,6000)
 		{
-			if (hack)
-			{
-				hack = false;
-
-				// King of Fighters will not work unless APU 
-				// frame IRQ's are disabled on power-on
-
-				cpu.Poke( 0x4017, 0x40 );
-			}
-
 			if (!(exRegs[3] & 0x40))
 			{
 				exRegs[exRegs[4]] = data;
@@ -110,7 +98,7 @@ namespace Nes
 			const uint r = (exRegs[3] & 0x3F) ^ 0x3F;
 			const uint i = (regs.ctrl0 & Regs::CTRL0_XOR_PRG) >> 5;
 	
-			prg.SwapBanks<NES_8K,0x0000U>
+			prg.SwapBanks<SIZE_8K,0x0000U>
 			( 
 		    	(banks.prg[i]   & r) | exRegs[1],
 				(banks.prg[1]   & r) | exRegs[1],
@@ -137,7 +125,7 @@ namespace Nes
 	
 			const uint swap = (regs.ctrl0 & Regs::CTRL0_XOR_CHR) << 5;
 	
-			chr.SwapBanks<NES_1K>
+			chr.SwapBanks<SIZE_1K>
 			( 
 		     	0x0000U ^ swap, 
 				(((banks.chr[0] << 1) | 0) & r[0]) | r[1],
@@ -146,7 +134,7 @@ namespace Nes
 				(((banks.chr[1] << 1) | 1) & r[0]) | r[1]
 			); 
 	  
-			chr.SwapBanks<NES_1K>
+			chr.SwapBanks<SIZE_1K>
 			( 
 		     	0x1000U ^ swap, 
 				(banks.chr[2] & r[0]) | r[1],

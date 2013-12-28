@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -68,6 +68,8 @@ namespace Nestopia
 			void SetFullscreenScale(uint);
 			void Save(Configuration&) const;
 			uint GetMaxMessageLength() const;
+			void LoadPalette(const Path&);
+			void SavePalette(Path&) const;
 			
 			static Point GetDisplayMode();
 			
@@ -108,7 +110,7 @@ namespace Nestopia
 			void  OnMenuToggleStatusBar  (uint);
 			void  OnMenuToggleFps        (uint);
 
-			void  OnScreenText(const String::Generic&);
+			void  OnScreenText(const GenericString&);
 
 			ibool OnTimerFps();
 			ibool OnTimerText();
@@ -134,7 +136,7 @@ namespace Nestopia
 				void Load (Nes::Nsf);
 				void Update (Nes::Nsf);
 
-				String::Heap text;
+				HeapString text;
 				uint songTextOffset;
 			};
 

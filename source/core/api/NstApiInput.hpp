@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -45,7 +45,7 @@ namespace Nes
 			enum
 			{
 				NUM_PADS = 4,
-				NUM_CONTROLLERS = 15
+				NUM_CONTROLLERS = 19
 			};
 
 			class Controllers
@@ -95,10 +95,17 @@ namespace Nes
 						RIGHT  = b10000000
 					};
 
+					enum
+					{
+						MIC = 0x4
+					};
+
 					uint buttons;
+					uint mic;
+					bool allowSimulAxes;
 
 					Pad()
-					: buttons(0) {}
+					: buttons(0), mic(0), allowSimulAxes(false) {}
 
 					typedef bool (NST_CALLBACK *PollCallback) (void*,Pad&,uint);
 
@@ -150,9 +157,44 @@ namespace Nes
 					static PollCaller1<PowerPad> callback;
 				};
 
-				struct Keyboard
+				struct FamilyTrainer
 				{
-					Keyboard();
+					FamilyTrainer();
+
+					enum 
+					{
+						NUM_SIDE_A_BUTTONS = 12,
+						NUM_SIDE_B_BUTTONS = 8
+					};
+
+					bool sideA[NUM_SIDE_A_BUTTONS];
+					bool sideB[NUM_SIDE_B_BUTTONS];
+
+					typedef bool (NST_CALLBACK *PollCallback) (void*,FamilyTrainer&);
+
+					static PollCaller1<FamilyTrainer> callback;
+				};
+
+				struct FamilyKeyboard
+				{
+					FamilyKeyboard();
+
+					enum 
+					{
+						NUM_PARTS = 9,
+						NUM_MODES = 2
+					};
+
+					uchar parts[NUM_PARTS];
+
+					typedef bool (NST_CALLBACK *PollCallback) (void*,FamilyKeyboard&,uint,uint);
+
+					static PollCaller3<FamilyKeyboard> callback;
+				};
+
+				struct SuborKeyboard
+				{
+					SuborKeyboard();
 
 					enum 
 					{
@@ -162,9 +204,40 @@ namespace Nes
 
 					uchar parts[NUM_PARTS];
 
-					typedef bool (NST_CALLBACK *PollCallback) (void*,Keyboard&,uint,uint);
+					typedef bool (NST_CALLBACK *PollCallback) (void*,SuborKeyboard&,uint,uint);
 
-					static PollCaller3<Keyboard> callback;
+					static PollCaller3<SuborKeyboard> callback;
+				};
+
+				struct DoremikkoKeyboard
+				{
+					enum
+					{
+						PART_1   = 1,
+						PART_2   = 2,
+						PART_3   = 3,
+						PART_4   = 4,
+						PART_5   = 5,
+						PART_6   = 6,
+						PART_7   = 7,
+						MODE_A   = 0,
+						MODE_A_0 = 0x02,
+						MODE_A_1 = 0x04,
+						MODE_A_2 = 0x08,
+						MODE_A_3 = 0x10,
+						MODE_B   = 1,
+						MODE_B_0 = 0x02,
+						MODE_B_1 = 0x04
+					};
+
+					uint keys;
+
+					DoremikkoKeyboard()
+					: keys(0) {}
+
+					typedef bool (NST_CALLBACK *PollCallback) (void*,DoremikkoKeyboard&,uint,uint);
+
+					static PollCaller3<DoremikkoKeyboard> callback;
 				};
 
 				struct VsSystem
@@ -356,11 +429,36 @@ namespace Nes
 					static PollCaller2<PokkunMoguraa> callback;
 				};
 
+				struct PartyTap
+				{
+					enum
+					{
+						UNIT_1 = 0x04,
+						UNIT_2 = 0x08,
+						UNIT_3 = 0x10,
+						UNIT_4 = 0x20,
+						UNIT_5 = 0x40,
+						UNIT_6 = 0x80
+					};
+
+					uint units;
+
+					PartyTap()
+					: units(0) {}
+
+					typedef bool (NST_CALLBACK *PollCallback) (void*,PartyTap&);
+
+					static PollCaller1<PartyTap> callback;
+				};
+
 				Pad pad[NUM_PADS];
 				Zapper zapper;
 				Paddle paddle;
-				PowerPad powerPad;		
-				Keyboard keyboard;
+				PowerPad powerPad;
+				FamilyTrainer familyTrainer;
+				FamilyKeyboard familyKeyboard;
+				SuborKeyboard suborKeyboard;
+				DoremikkoKeyboard doremikkoKeyboard;
 				VsSystem vsSystem;
 				OekaKidsTablet oekaKidsTablet;
 				HyperShot hyperShot;
@@ -369,6 +467,7 @@ namespace Nes
 				ExcitingBoxing excitingBoxing;
 				TopRider topRider;
 				PokkunMoguraa pokkunMoguraa;
+				PartyTap partyTap;
 			};
 		}
 	}
@@ -397,15 +496,19 @@ namespace Nes
 				PAD4,
 				ZAPPER,     
 				PADDLE,     
-				POWERPAD,   
-				KEYBOARD,
+				POWERPAD,
+				FAMILYTRAINER,
+				FAMILYKEYBOARD,
+				SUBORKEYBOARD,
+				DOREMIKKOKEYBOARD,
 				OEKAKIDSTABLET,
 				HYPERSHOT,
 				CRAZYCLIMBER,
 				MAHJONG,
 				EXCITINGBOXING,
 				TOPRIDER,
-				POKKUNMOGURAA
+				POKKUNMOGURAA,
+				PARTYTAP
 			};
 
 			enum

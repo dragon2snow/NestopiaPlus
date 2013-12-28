@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -33,26 +33,11 @@ namespace Nestopia
 {
 	using Resource::Version;
 
-	Version::Version(cstring path)
-	: string("x.xx")
+	Version::Version(tstring const path)
 	{
-		char buffer[_MAX_PATH+1];
+		NST_ASSERT( path );
 
-		if (path == NULL)
-		{
-			path = buffer;
-
-			if (!::GetModuleFileName( NULL, buffer, _MAX_PATH ))
-				return;
-		}
-
-		if (InitInfo( path ))
-			InitString( info.dwFileVersionMS, info.dwFileVersionLS );
-	}
-
-	ibool Version::InitInfo(cstring const path)
-	{
-		ibool result = FALSE;
+		char buffer[] = "xx.xx";
 
 		if (uint size = ::GetFileVersionInfoSize( path, 0 ))
 		{
@@ -60,29 +45,29 @@ namespace Nestopia
 
 			if (::GetFileVersionInfo( path, 0, size, data ))
 			{
-				char type[] = "\\";
+				tchar type[] = _T("\\");
 				void* ptr;
 
 				if (::VerQueryValue( data, type, &ptr, &size ) && size == sizeof(info))
 				{
 					info = *static_cast<const VS_FIXEDFILEINFO*>(ptr);
-					result = TRUE;
+
+					char* string = buffer;
+
+					if (HIWORD(info.dwFileVersionMS))
+						*string++ = (char) ('0' + HIWORD(info.dwFileVersionMS));
+
+					string[0] = (char) ('0' + LOWORD(info.dwFileVersionMS));
+					string[1] = '.';
+					string[2] = (char) ('0' + HIWORD(info.dwFileVersionLS));
+					string[3] = (char) ('0' + LOWORD(info.dwFileVersionLS));
+					string[4] = '\0';
 				}
 			}
 
 			operator delete (data);
 		}
 
-		return result;
-	}
-
-	void Version::InitString(uint ms,uint ls)
-	{
-		string.Clear();
-
-		if (HIWORD(ms))
-			string = char('0' + HIWORD(ms));
-
-		string << char('0' + LOWORD(ms)) << '.' << char('0' + HIWORD(ls)) << char('0' + LOWORD(ls));
+		Heap::operator = (buffer);
 	}
 }

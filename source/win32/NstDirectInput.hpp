@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -32,7 +32,6 @@
 #include "NstDirectX.hpp"
 #include "NstObjectPod.hpp"
 #include "NstObjectHeap.hpp"
-#include "NstObjectStack.hpp"
 #include "NstCollectionVector.hpp"
 #include <dinput.h>
 
@@ -80,13 +79,12 @@ namespace Nestopia
 			};
 
 			class Key;
-			typedef String::Stack<64> KeyName;
 
 			void Acquire();
 			void Unacquire();
 			void Optimize(const Key*,uint);
-			ibool MapKey(Key&,cstring,const System::Guid* = NULL,uint=0) const;
-			KeyName GetKeyName(const Key&) const;
+			ibool MapKey(Key&,tstring,const System::Guid* = NULL,uint=0) const;
+			const HeapString GetKeyName(const Key&) const;
 
 			void BeginScanMode(HWND);
 			ScanResult ScanKey(Key&);
@@ -100,9 +98,9 @@ namespace Nestopia
 
 			public:
 
-				ibool MapVirtualKey(uint,uint,uint,uint);
-				ibool MapVirtualKey(cstring);
-				ibool GetVirtualKey(ACCEL&) const;
+				ibool MapVirtKey(uint,uint,uint,uint);
+				ibool MapVirtKey(GenericString);
+				ibool GetVirtKey(ACCEL&) const;
 
 			private:
 
@@ -178,17 +176,19 @@ namespace Nestopia
 				NST_NO_INLINE void Acquire();
 				void Unacquire();
 
+				ibool Map(Key&,tstring) const;
 				ibool Map(Key&,uint) const;
 				ibool Scan(u8 (&)[MAX_KEYS]);
 				ScanResult Scan(Key&);
 				void SetCooperativeLevel(HWND,DWORD=COOPERATIVE_FLAGS) const;
 				ibool IsAssigned(const Key&) const;
-				cstring GetName(const Key&) const;
+				tstring GetName(const Key&) const;
 				inline void Use(ibool);
 				inline ibool InUse() const;
 
 			private:
 
+				static BOOL CALLBACK EnumObjects(LPCDIDEVICEOBJECTINSTANCE,LPVOID);
 				static IDirectInputDevice8& Create(IDirectInput8&);
 
 				void Clear();
@@ -198,6 +198,8 @@ namespace Nestopia
 				ibool inUse;
 				IDirectInputDevice8& com;
 				Buffer buffer;
+
+				static HeapString keyNames[MAX_KEYS];
 
 			public:
 
@@ -237,11 +239,11 @@ namespace Nestopia
 				NST_NO_INLINE void Acquire();
 				void Unacquire();
 
-				ibool Map(Key&,cstring) const;
+				ibool Map(Key&,tstring) const;
 				ibool Scan(Key&);
 				ibool IsAssigned(const Key&) const;
 				ibool SetAxisDeadZone(uint);
-				cstring GetName(const Key&) const;
+				tstring GetName(const Key&) const;
 				inline void Use(ibool);
 				inline ibool InUse() const;
 
@@ -284,7 +286,7 @@ namespace Nestopia
 
 					uint axes;
 					const System::Guid guid;
-					const String::Heap name;
+					const HeapString name;
 				};
 
 				ibool enabled;
@@ -310,7 +312,7 @@ namespace Nestopia
 					return caps.guid;
 				}
 
-				const String::Heap& GetName() const
+				const HeapString& GetName() const
 				{
 					return caps.name;
 				}
@@ -361,7 +363,7 @@ namespace Nestopia
 				}
 			};
 
-			typedef Collection::Vector< Object::Stack<Joystick> > Joysticks;
+			typedef Collection::Vector<Joystick> Joysticks;
 
 			static BOOL CALLBACK EnumJoysticks(LPCDIDEVICEINSTANCE,LPVOID);
 
@@ -380,7 +382,7 @@ namespace Nestopia
 
 		public:
 
-			ibool ScanKeyboard(u8 (&buffer)[256])
+			ibool ScanKeyboard(u8 (&buffer)[Keyboard::MAX_KEYS])
 			{
 				return keyboard.Scan( buffer );
 			}
@@ -399,61 +401,61 @@ namespace Nestopia
 			ibool IsJoystickEnabled(uint index) const
 			{
 				NST_ASSERT( index < joysticks.Size() );
-				return joysticks[index]->IsEnabled();
+				return joysticks[index].IsEnabled();
 			}
 
 			void EnableJoystick(uint index,ibool enable)
 			{
 				NST_ASSERT( index < joysticks.Size() );
-				joysticks[index]->Enable( enable );
+				joysticks[index].Enable( enable );
 			}
 
 			const System::Guid& GetJoystickGuid(uint index) const
 			{
 				NST_ASSERT( index < joysticks.Size() );
-				return joysticks[index]->GetGuid();
+				return joysticks[index].GetGuid();
 			}
 
-			const String::Heap& GetJoystickName(uint index) const
+			const HeapString& GetJoystickName(uint index) const
 			{
 				NST_ASSERT( index < joysticks.Size() );
-				return joysticks[index]->GetName();
+				return joysticks[index].GetName();
 			}
 
 			ibool SetAxisDeadZone(uint index,uint deadZone)
 			{
 				NST_ASSERT( index < joysticks.Size() );
-				return joysticks[index]->SetAxisDeadZone( deadZone );
+				return joysticks[index].SetAxisDeadZone( deadZone );
 			}
 
 			uint GetAxisDeadZone(uint index) const
 			{
 				NST_ASSERT( index < joysticks.Size() );
-				return joysticks[index]->GetAxisDeadZone();
+				return joysticks[index].GetAxisDeadZone();
 			}
 
 			uint GetAvailableAxes(uint index) const
 			{
 				NST_ASSERT( index < joysticks.Size() );
-				return joysticks[index]->GetAvailableAxes();
+				return joysticks[index].GetAvailableAxes();
 			}
 
 			void SetScannerAxes(uint index,uint axes)
 			{
 				NST_ASSERT( index < joysticks.Size() );
-				return joysticks[index]->SetScannerAxes( axes );
+				return joysticks[index].SetScannerAxes( axes );
 			}
 
 			void SetScannerAxes(uint index,uint axes,ibool state)
 			{
 				NST_ASSERT( index < joysticks.Size() );
-				return joysticks[index]->SetScannerAxes( axes, state );
+				return joysticks[index].SetScannerAxes( axes, state );
 			}
 
 			uint GetScannerAxes(uint index) const
 			{
 				NST_ASSERT( index < joysticks.Size() );
-				return joysticks[index]->GetScannerAxes();
+				return joysticks[index].GetScannerAxes();
 			}
 
 			const u8* GetKeyboardBuffer() const
@@ -472,7 +474,7 @@ namespace Nestopia
 				keyboard.Poll();
 
 				for (Joysticks::Iterator it=joysticks.Begin(), end=joysticks.End(); it != end; ++it)
-					(*it)->Poll();
+					it->Poll();
 			}
 		};
 	}

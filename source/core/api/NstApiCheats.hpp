@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -67,18 +67,18 @@ namespace Nes
 
 			enum
 			{
-				RAM_SIZE = NES_2K
+				RAM_SIZE = Core::SIZE_2K
 			};
 
 			typedef const u8 (&Ram)[RAM_SIZE];
 
 			Ram GetRam() const;
 
-			static Result GameGenieEncode(const Code&,char (&)[9]);
-			static Result GameGenieDecode(cstring,Code&);
+			static Result NST_CALL GameGenieEncode(const Code&,char (&)[9]);
+			static Result NST_CALL GameGenieDecode(const char*,Code&);
 			
-			static Result ProActionRockyEncode(const Code&,char (&)[9]);
-			static Result ProActionRockyDecode(cstring,Code&);
+			static Result NST_CALL ProActionRockyEncode(const Code&,char (&)[9]);
+			static Result NST_CALL ProActionRockyDecode(const char*,Code&);
 		};
 	}
 }

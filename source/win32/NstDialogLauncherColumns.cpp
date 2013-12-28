@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -29,39 +29,39 @@ namespace Nestopia
 {
 	using namespace Window;
 
-	cstring const Launcher::List::Columns::strings[NUM_STRING_STYLES][NUM_TYPES] =
+	tstring const Launcher::List::Columns::strings[NUM_STRING_STYLES][NUM_TYPES] =
 	{
 		{
 			// gui naming
 
-			"File",
-			"System",
-			"Mapper",
-			"pRom",
-			"cRom",
-			"wRam",
-			"Battery",
-			"Trainer",
-			"Mirroring",
-			"Name",
-			"Maker",
-			"Folder"
+			_T( "File"      ),
+			_T( "System"    ),
+			_T( "Mapper"    ),
+			_T( "pRom"      ),
+			_T( "cRom"      ),
+			_T( "wRam"      ),
+			_T( "Battery"   ),
+			_T( "Trainer"   ),
+			_T( "Mirroring" ),
+			_T( "Name"      ),
+			_T( "Maker"     ),
+			_T( "Folder"    )
 		},
 		{
 			// cfg naming
 
-			"file",
-			"system",
-			"mapper",
-			"prom",
-			"crom",
-			"wram",
-			"battery",
-			"trainer",
-			"mirroring",
-			"name",
-			"maker",
-			"folder"
+			_T( "file"	   ),
+			_T( "system"	   ),
+			_T( "mapper"	   ),
+			_T( "prom"	   ),
+			_T( "crom"	   ),
+			_T( "wram"	   ),
+			_T( "battery"   ),
+			_T( "trainer"   ),
+			_T( "mirroring" ),
+			_T( "name"	   ),
+			_T( "maker"	   ),
+			_T( "folder"	   )
 		}
 	};
 
@@ -111,7 +111,7 @@ namespace Nestopia
 
 		for (uint i=0; i < NUM_TYPES; ++i)
 		{
-			const String::Heap& string = cfg[CfgName(i)];
+			const GenericString string( cfg[CfgName(i)] );
 
 			if (string.Empty())
 				break;
@@ -253,7 +253,7 @@ namespace Nestopia
 	{
 		if (param.Button().IsClicked())
 		{
-			String::Smart<32> text;
+			HeapString text;
 
 			for (uint i=0; i < 2; ++i)
 			{
@@ -302,16 +302,16 @@ namespace Nestopia
 
 		if (sSrc >= 0 && (iDst == IDC_LAUNCHER_COLUMNSELECT_SELECTED || cSrc.Size() > 1))
 		{
-			String::Smart<32> text;
+			HeapString text;
 			cSrc[sSrc].Text() >> text;
 
 			const Control::ListBox cDst( dialog.ListBox(iDst) );
 			const int sDst = cDst.Selection().GetIndex();
 
 			if (sDst >= 0)
-				cDst.Insert( sDst + 1, text ).Select();
+				cDst.Insert( sDst + 1, text.Ptr() ).Select();
 			else
-				cDst.Add( text );
+				cDst.Add( text.Ptr() );
 
 			cSrc[sSrc].Remove();
 

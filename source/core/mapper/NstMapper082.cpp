@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -73,37 +73,37 @@ namespace Nes
 		NES_POKE(Mapper82,7EF0)
 		{
 			ppu.Update();	
-			chr.SwapBank<NES_2K>( swapOffset | 0x0000U, data >> 1 );
+			chr.SwapBank<SIZE_2K>( swapOffset | 0x0000U, data >> 1 );
 		}
 	
 		NES_POKE(Mapper82,7EF1)
 		{
 			ppu.Update();
-			chr.SwapBank<NES_2K>( swapOffset | 0x0800U, data >> 1 );
+			chr.SwapBank<SIZE_2K>( swapOffset | 0x0800U, data >> 1 );
 		}
 	
 		NES_POKE(Mapper82,7EF2) 
 		{ 
 			ppu.Update(); 
-			chr.SwapBank<NES_1K>( swapOffset ^ 0x1000U, data );
+			chr.SwapBank<SIZE_1K>( swapOffset ^ 0x1000U, data );
 		}
 	
 		NES_POKE(Mapper82,7EF3) 
 		{ 
 			ppu.Update(); 
-			chr.SwapBank<NES_1K>( swapOffset ^ 0x1400U, data );
+			chr.SwapBank<SIZE_1K>( swapOffset ^ 0x1400U, data );
 		}
 	
 		NES_POKE(Mapper82,7EF4) 
 		{ 
 			ppu.Update(); 
-			chr.SwapBank<NES_1K>( swapOffset ^ 0x1800U, data );
+			chr.SwapBank<SIZE_1K>( swapOffset ^ 0x1800U, data );
 		}
 	
 		NES_POKE(Mapper82,7EF5) 
 		{ 
 			ppu.Update(); 
-			chr.SwapBank<NES_1K>( swapOffset ^ 0x1C00U, data );
+			chr.SwapBank<SIZE_1K>( swapOffset ^ 0x1C00U, data );
 		}
 	
 		NES_POKE(Mapper82,7EF6)
@@ -112,8 +112,8 @@ namespace Nes
 			ppu.SetMirroring( (data & 0x1) ? Ppu::NMT_VERTICAL : Ppu::NMT_HORIZONTAL );
 		}
 	
-		NES_POKE(Mapper82,7EFA) { prg.SwapBank<NES_8K,0x0000U>(data >> 2); }
-		NES_POKE(Mapper82,7EFB) { prg.SwapBank<NES_8K,0x2000U>(data >> 2); }
-		NES_POKE(Mapper82,7EFC) { prg.SwapBank<NES_8K,0x4000U>(data >> 2); }
+		NES_POKE(Mapper82,7EFA) { prg.SwapBank<SIZE_8K,0x0000U>(data >> 2); }
+		NES_POKE(Mapper82,7EFB) { prg.SwapBank<SIZE_8K,0x2000U>(data >> 2); }
+		NES_POKE(Mapper82,7EFC) { prg.SwapBank<SIZE_8K,0x4000U>(data >> 2); }
 	}
 }

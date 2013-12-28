@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -28,7 +28,6 @@
 #pragma once
 
 #include "resource/resource.h"
-#include "NstObjectReference.hpp"
 #include "NstResourceMenu.hpp"
 #include "NstSystemAccelerator.hpp"
 #include "NstWindowCustom.hpp"
@@ -58,7 +57,7 @@ namespace Nestopia
 
 			class Item;
 
-			void Insert(const Item&,uint,String::Generic) const;
+			void Insert(const Item&,uint,GenericString) const;
 
 		private:
 
@@ -79,14 +78,14 @@ namespace Nestopia
 					const Item& item;
 
 					uint  GetLength() const;
-					ibool GetFullString(char*,uint) const;
-					void  SetFullString(cstring) const;
+					ibool GetFullString(tchar*,uint) const;
+					void  SetFullString(tstring) const;
 
 					template<typename T>
 					void GetFullString(T& string) const
 					{
 						string.Resize( GetLength() );
-						GetFullString( string, string.Size() );
+						GetFullString( string.Ptr(), string.Length() );
 					}
 
 					Stream(const Item& i)
@@ -94,14 +93,14 @@ namespace Nestopia
 
 				public:
 
-					void operator << (const String::Anything&) const;
+					void operator << (const GenericString&) const;
 
 					template<typename T>
 					ibool operator >> (T& string) const
 					{
 						GetFullString( string );
-						string.FirstOf( '\t' ).Erase();
-						return string.Size();
+						string.FirstOf( '\t' ).Clear();
+						return string.Length();
 					}
 				};
 
@@ -119,6 +118,8 @@ namespace Nestopia
 
 				ibool Enable (ibool=TRUE) const;
 				ibool Check  (ibool=TRUE) const;
+				void  Check  (uint,uint,ibool) const;
+				void  Check  (uint,uint) const;
 
 				ibool IsEnabled () const;
 				ibool IsChecked () const;

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -284,12 +284,10 @@ namespace Nes
 		{
 			if (status != STOPPED)
 			{
+				cpu.Unlink( 0x4016, this, status == PLAYING ? &Movie::Peek_4016_Play : &Movie::Peek_4016_Record, &Movie::Poke_4016 );
+				cpu.Unlink( 0x4017, this, status == PLAYING ? &Movie::Peek_4017_Play : &Movie::Peek_4017_Record, &Movie::Poke_4017 );
+
 				status = STOPPED;
-
-				NST_ASSERT( cpu.Map(0x4016).SameComponent(this) && cpu.Map(0x4017).SameComponent(this) );
-
-				for (uint i=0; i < 2; ++i)
-					cpu.Map( 0x4016 + i ) = ports[i];
 
 				if (NES_SUCCEEDED(result))
 				{
@@ -472,20 +470,12 @@ namespace Nes
 	
 		void Movie::SaveCpuPorts()
 		{
-			NST_ASSERT
-			( 
-		       	status != STOPPED && 
-				!cpu.Map( 0x4016 ).SameComponent( this ) && 
-				!cpu.Map( 0x4017 ).SameComponent( this ) 
-			);
-
-			ports[0] = cpu.Map( 0x4016 );
-			ports[1] = cpu.Map( 0x4017 );
+			NST_ASSERT( status != STOPPED );
 
 			const bool recording = (status == RECORDING);
 
-			cpu.Map( 0x4016 ).Set( this, recording ? &Movie::Peek_4016_Record : &Movie::Peek_4016_Play, &Movie::Poke_4016 );
-			cpu.Map( 0x4017 ).Set( this, recording ? &Movie::Peek_4017_Record : &Movie::Peek_4017_Play, &Movie::Poke_4017 );
+			ports[0] = cpu.Link( 0x4016, Cpu::LEVEL_HIGHEST, this, recording ? &Movie::Peek_4016_Record : &Movie::Peek_4016_Play, &Movie::Poke_4016 );
+			ports[1] = cpu.Link( 0x4017, Cpu::LEVEL_HIGHEST, this, recording ? &Movie::Peek_4017_Record : &Movie::Peek_4017_Play, &Movie::Poke_4017 );
 		}
 
 		NST_FORCE_INLINE void Movie::Recorder::Port::Flush(State::Saver& state,const uint index)
@@ -974,7 +964,7 @@ namespace Nes
 
 		NES_PEEK(Movie,4016_Record)
 		{
-			return recorder->WritePort( 0, ports[0].Peek( 0x4016 ) );
+			return recorder->WritePort( 0, ports[0]->Peek( 0x4016 ) );
 		}
 	
 		NES_PEEK(Movie,4016_Play)
@@ -984,7 +974,7 @@ namespace Nes
 	
 		NES_PEEK(Movie,4017_Record)
 		{
-			return recorder->WritePort( 1, ports[1].Peek( 0x4017 ) );
+			return recorder->WritePort( 1, ports[1]->Peek( 0x4017 ) );
 		}
 	
 		NES_PEEK(Movie,4017_Play)
@@ -994,12 +984,12 @@ namespace Nes
 	
 		NES_POKE(Movie,4016)
 		{
-			ports[0].Poke( address, data );
+			ports[0]->Poke( address, data );
 		}
 	
 		NES_POKE(Movie,4017)
 		{
-			ports[1].Poke( address, data );
+			ports[1]->Poke( address, data );
 		}
 	}
 }

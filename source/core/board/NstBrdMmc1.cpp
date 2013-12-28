@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -101,28 +101,33 @@ namespace Nes
 				}
 			}
 		
-			void Mmc1::LoadState(State::Loader& state)
+			void Mmc1::BaseLoad(State::Loader& state,dword id)
 			{
+				NST_VERIFY( id == NES_STATE_CHUNK_ID('M','M','1','\0') );
+
 				serial.time = -2;
-		
-				while (const dword chunk = state.Begin())
+
+				if (id == NES_STATE_CHUNK_ID('M','M','1','\0'))
 				{
-					if (chunk == NES_STATE_CHUNK_ID('R','E','G','\0'))
+					while (const dword chunk = state.Begin())
 					{
-						const State::Loader::Data<4+2> data( state );
-					
-						for (uint i=0; i < 4; ++i)
-							regs[i] = data[i] & 0x1F;
-					
-						serial.buffer = data[4] & 0x1F;
-						serial.shifter = NST_MIN(data[5],5);
+						if (chunk == NES_STATE_CHUNK_ID('R','E','G','\0'))
+						{
+							const State::Loader::Data<4+2> data( state );
+
+							for (uint i=0; i < 4; ++i)
+								regs[i] = data[i] & 0x1F;
+
+							serial.buffer = data[4] & 0x1F;
+							serial.shifter = NST_MIN(data[5],5);
+						}
+
+						state.End();
 					}
-		
-					state.End();
 				}
 			}
 		
-			void Mmc1::SaveState(State::Saver& state) const
+			void Mmc1::BaseSave(State::Saver& state) const
 			{
 				const u8 data[4+2] =
 				{
@@ -134,7 +139,7 @@ namespace Nes
 					serial.shifter
 				};
 
-				state.Begin('R','E','G','\0').Write( data ).End();
+				state.Begin('M','M','1','\0').Begin('R','E','G','\0').Write( data ).End().End();
 			}
 
             #ifdef NST_PRAGMA_OPTIMIZE
@@ -147,12 +152,12 @@ namespace Nes
 				
 			void Mmc1::UpdatePrg()
 			{
-				const uint base = (prg.Source().Size() < NES_512K) ? 0 : (regs[PRG1] & PRG1_256K_BANK);
+				const uint base = (prg.Source().Size() < SIZE_512K) ? 0 : (regs[PRG1] & PRG1_256K_BANK);
 				const uint bank = regs[PRG0] & PRG0_BANK;
 		
 				if (regs[CTRL] & CTRL_PRG_SWAP_16K) 
 				{
-					prg.SwapBanks<NES_16K,0x0000U>
+					prg.SwapBanks<SIZE_16K,0x0000U>
 					( 
 				     	base | ((regs[CTRL] & CTRL_PRG_SWAP_LOW) ? bank : 0x0),
 						base | ((regs[CTRL] & CTRL_PRG_SWAP_LOW) ? 0xF : bank)
@@ -160,7 +165,7 @@ namespace Nes
 				}
 				else
 				{
-					prg.SwapBank<NES_32K,0x0000U>( (base | bank) >> 1 );
+					prg.SwapBank<SIZE_32K,0x0000U>( (base | bank) >> 1 );
 				}
 			}
 		
@@ -168,7 +173,7 @@ namespace Nes
 			{
 				ppu.Update();
 
-				chr.SwapBanks<NES_4K,0x0000U>
+				chr.SwapBanks<SIZE_4K,0x0000U>
 				( 
 			     	(regs[CTRL] & CTRL_CHR_SWAP_4K) ? regs[CHR0] : regs[CHR0] & 0x1E, 
 					(regs[CTRL] & CTRL_CHR_SWAP_4K) ? regs[CHR1] : regs[CHR0] | 0x01
@@ -197,7 +202,7 @@ namespace Nes
 		
 			void Mmc1::UpdateRegister1()
 			{
-				if (prg.Source().Size() >= NES_512K)
+				if (prg.Source().Size() >= SIZE_512K)
 					UpdatePrg();
 		
 				UpdateChr();

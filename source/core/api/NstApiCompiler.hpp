@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -38,7 +38,7 @@
 //                           (has no effect with MSVC and ICC, or any other compiler that support the long long integer type)
 //
 // #define NST_CALL	- compiler specific calling convention for global functions
-//                    placed between return type and name e.g void NST_CALLBACK Access();
+//                    placed between return type and name e.g void NST_CALLBACK Function();
 //                    standard conventions on win32 are cdecl, fastcall and stdcall
 //
 // #define NST_LINEBREAK - string for line breaks. if not defined defaults to "\r\n" on win32 or else "\n"

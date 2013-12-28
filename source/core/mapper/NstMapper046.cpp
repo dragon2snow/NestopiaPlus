@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -46,15 +46,15 @@ namespace Nes
 		NES_POKE(Mapper46,6000) 
 		{
 			ppu.Update();
-			prg.SwapBank<NES_32K,0x0000U>( (prg.GetBank<NES_32K,0x0000U>() & 0x1) | ((data << 1) & 0x1E) );
-			chr.SwapBank<NES_8K,0x0000U>(  (chr.GetBank<NES_8K,0x0000U>()  & 0x7) | ((data >> 1) & 0x78) );
+			prg.SwapBank<SIZE_32K,0x0000U>( (prg.GetBank<SIZE_32K,0x0000U>() & 0x1) | ((data << 1) & 0x1E) );
+			chr.SwapBank<SIZE_8K,0x0000U>(  (chr.GetBank<SIZE_8K,0x0000U>()  & 0x7) | ((data >> 1) & 0x78) );
 		}
 	
 		NES_POKE(Mapper46,8000) 
 		{
 			ppu.Update();
-			prg.SwapBank<NES_32K,0x0000U>( ((data >> 0) & 0x1) | (prg.GetBank<NES_32K,0x0000U>() & 0x1E) );
-			chr.SwapBank<NES_8K,0x0000U>(  ((data >> 4) & 0x7) | (chr.GetBank<NES_8K,0x0000U>()  & 0x78) );
+			prg.SwapBank<SIZE_32K,0x0000U>( ((data >> 0) & 0x1) | (prg.GetBank<SIZE_32K,0x0000U>() & 0x1E) );
+			chr.SwapBank<SIZE_8K,0x0000U>(  ((data >> 4) & 0x7) | (chr.GetBank<SIZE_8K,0x0000U>()  & 0x78) );
 		}
 	}
 }

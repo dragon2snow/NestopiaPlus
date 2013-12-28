@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -48,18 +48,18 @@ namespace Nestopia
 
 	uint Generic::Stream::operator >> (ulong& value) const
 	{
-		String::Stack<16> string;
-		string.ShrinkTo( ::GetWindowText( hWnd, string, 16+1 ) );
+		String::Stack<16,tchar> string;
+		string.ShrinkTo( ::GetWindowText( hWnd, string.Ptr(), 16+1 ) );
 		string >> value;
-		return string.Size();
+		return string.Length();
 	}
 
 	uint Generic::Stream::operator >> (long& value) const
 	{
-		String::Stack<16> string;
-		string.ShrinkTo( ::GetWindowText( hWnd, string, 16+1 ) );
+		String::Stack<16,tchar> string;
+		string.ShrinkTo( ::GetWindowText( hWnd, string.Ptr(), 16+1 ) );
 		string >> value;
-		return string.Size();
+		return string.Length();
 	}
 
 	void Generic::SetStyle(long style) const
@@ -271,7 +271,7 @@ namespace Nestopia
 
 	void Generic::Register
 	(
-		cstring const className,
+		tstring const className,
 		const uint classStyle,
 		WNDPROC const wndProc,
 		HCURSOR const hCursor,
@@ -294,14 +294,21 @@ namespace Nestopia
 		winClass.hIconSm       = hIcon;
 
 		if (!RegisterClassEx( &winClass ))
-			throw Application::Exception("RegisterClassEx() failed!");
+			throw Application::Exception(_T("RegisterClassEx() failed!"));
+	}
+
+	void Generic::Unregister(tstring className)
+	{
+		NST_ASSERT( className && *className );
+
+		::UnregisterClass( className, Application::Instance::GetHandle() );
 	}
 
 	Generic Generic::Create
 	(
 		const DWORD exStyle,
-		cstring const className,
-		cstring const windowName,
+		tstring const className,
+		tstring const windowName,
 		const DWORD style,
 		const uint x,
 		const uint y,
@@ -331,7 +338,7 @@ namespace Nestopia
 		);
 
 		if (!hWnd)
-			throw Application::Exception("CreateWindowEx() failed!");
+			throw Application::Exception(_T("CreateWindowEx() failed!"));
 
 		return hWnd;
 	}

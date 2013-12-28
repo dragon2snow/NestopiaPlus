@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -75,7 +75,8 @@ namespace Nestopia
 			}
 		};
 
-		String::Smart<512> text;
+		HeapString text;
+		text.Reserve( 479 );
 
 		switch (emulator.Is(Nes::Machine::CARTRIDGE|Nes::Machine::DISK|Nes::Machine::SOUND))
 		{
@@ -86,14 +87,14 @@ namespace Nestopia
 				cstring const mode =
 				(
 					info.system == Nes::Cartridge::SYSTEM_NTSC_PAL ? "NTSC/PAL" :
-					info.system == Nes::Cartridge::SYSTEM_PAL      ? "PAL" :
-					info.system == Nes::Cartridge::SYSTEM_VS       ? "VS" :
-					info.system == Nes::Cartridge::SYSTEM_PC10     ? "PC10" :
-		                                                         	 "NTSC"
+					info.system == Nes::Cartridge::SYSTEM_PAL      ? "PAL"      :
+					info.system == Nes::Cartridge::SYSTEM_VS       ? "VS"       :
+					info.system == Nes::Cartridge::SYSTEM_PC10     ? "PC10"     :
+		                                                         	 "NTSC"	   
 				);
 
-				text << "File:       "	   << emulator.GetImagePath()
-					 << "\r\ncrc:        " << String::Hex( (u32) info.crc );
+				text << "File:       "     << emulator.GetImagePath()
+					 << "\r\ncrc:        " << HexString( (u32) info.crc );
 
 				if (info.name.size())
 					 text << "\r\nName:       " << info.name.c_str();
@@ -101,34 +102,34 @@ namespace Nestopia
 				if (info.maker.size())
 					text << "\r\nMaker:      " << info.maker.c_str();
 
-			    text << "\r\nSystem:     " << mode
+			    text << "\r\nRegion:     " << mode
 					 << "\r\nBoard:      " << info.board.c_str()
 					 << "\r\nMapper:     " << info.mapper
 					 << "\r\nPRG-ROM:    " << (uint) (info.pRom / 1024U) << "k ";
 
 				if (info.pRom)
-					text << "crc: " << String::Hex( (u32) info.pRomCrc );
+					text << "crc: " << HexString( (u32) info.pRomCrc );
 
 				text << "\r\nCHR-ROM:    " << (uint) (info.cRom / 1024U) << "k ";
 
 				if (info.cRom)
-					text << "crc: " << String::Hex( (u32) info.cRomCrc );
+					text << "crc: " << HexString( (u32) info.cRomCrc );
 
 				cstring const mirroring =
 				(
-					info.mirroring == Nes::Cartridge::MIRROR_HORIZONTAL ? "horizontal" :
-					info.mirroring == Nes::Cartridge::MIRROR_VERTICAL   ? "vertical" :
-					info.mirroring == Nes::Cartridge::MIRROR_FOURSCREEN ? "four-screen" :
-					info.mirroring == Nes::Cartridge::MIRROR_ZERO       ? "$2000" :
-					info.mirroring == Nes::Cartridge::MIRROR_ONE        ? "$2400" :
+					info.mirroring == Nes::Cartridge::MIRROR_HORIZONTAL ? "horizontal"        :
+					info.mirroring == Nes::Cartridge::MIRROR_VERTICAL   ? "vertical"          :
+					info.mirroring == Nes::Cartridge::MIRROR_FOURSCREEN ? "four-screen"       :
+					info.mirroring == Nes::Cartridge::MIRROR_ZERO       ? "$2000"             :
+					info.mirroring == Nes::Cartridge::MIRROR_ONE        ? "$2400"             :
 					info.mirroring == Nes::Cartridge::MIRROR_CONTROLLED ? "mapper controlled" :
-					                                                      "unknown"
+					                                                      "unknown"			 
 				);
 
 				cstring const condition =
 				(
-					info.condition == Nes::Cartridge::YES ? "good" : 
-		     		info.condition == Nes::Cartridge::NO  ? "bad" : 
+					info.condition == Nes::Cartridge::YES ? "good"    :
+		     		info.condition == Nes::Cartridge::NO  ? "bad"     : 
 		                                               		"unknown"
 				);
 
@@ -161,12 +162,12 @@ namespace Nestopia
 
 				cstring const mode =
 				(
-					nsf.GetMode() == Nes::Nsf::TUNE_MODE_NTSC ? "NTSC" :
-			       	nsf.GetMode() == Nes::Nsf::TUNE_MODE_PAL  ? "PAL" :
+					nsf.GetMode() == Nes::Nsf::TUNE_MODE_NTSC ? "NTSC"     :
+			       	nsf.GetMode() == Nes::Nsf::TUNE_MODE_PAL  ? "PAL"      :
 			                                                	"NTSC/PAL"
 				);
 
-				text << "File:           "	   << emulator.GetImagePath();
+				text << "File:           " << emulator.GetImagePath();
 
 				if (*nsf.GetName())
 					text << "\r\nName:           " << nsf.GetName();
@@ -177,7 +178,7 @@ namespace Nestopia
 				if (*nsf.GetMaker())
 					text << "\r\nMaker:          " << nsf.GetMaker();
 
-				text << "\r\nSystem:         " << mode
+				text << "\r\nRegion:         " << mode
 					 << "\r\nSongs:          " << nsf.GetNumSongs()
 					 << "\r\nStarting Song   " << (nsf.GetStartingSong() + 1)
 					 << "\r\nExtra Chips:   ";
@@ -197,16 +198,16 @@ namespace Nestopia
 				}
 
 				text << "\r\nBank Switching: " << State::Get( nsf.UsesBankSwitching() )
-					 << "\r\nLoad Address:   " << String::Hex( (u16) nsf.GetLoadAddress() )
-					 << "\r\nInit Address:   " << String::Hex( (u16) nsf.GetInitAddress() )
-					 << "\r\nPlay Address:   " << String::Hex( (u16) nsf.GetPlayAddress() );
+					 << "\r\nLoad Address:   " << HexString( (u16) nsf.GetLoadAddress() )
+					 << "\r\nInit Address:   " << HexString( (u16) nsf.GetInitAddress() )
+					 << "\r\nPlay Address:   " << HexString( (u16) nsf.GetPlayAddress() );
 
 				break;
 			}
 		}
 
-		if (text.Size())
-			dialog.Edit(IDC_ROM_INFO_EDIT) << text;
+		if (text.Length())
+			dialog.Edit(IDC_ROM_INFO_EDIT) << text.Ptr();
 
 		return TRUE;
 	}

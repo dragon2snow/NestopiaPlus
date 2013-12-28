@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -36,9 +36,9 @@ namespace Nestopia
 		{
 			class InputDialog
 			{
-				cstring const text;
-				cstring const title;
-				String::Heap& response;
+				tstring const text;
+				tstring const title;
+				HeapString& response;
 				Dialog dialog;
 
 				ibool OnInitDialog(Param&)
@@ -48,8 +48,8 @@ namespace Nestopia
 					if (text)
 						dialog.Edit(IDC_USERINPUT_TEXT) << text;
 
-					if (response.Size())
-						dialog.Edit(IDC_USERINPUT_EDIT) << response;
+					if (response.Length())
+						dialog.Edit(IDC_USERINPUT_EDIT) << response.Ptr();
 
 					return TRUE;
 				}
@@ -69,7 +69,7 @@ namespace Nestopia
 
 			public:
 
-				InputDialog(cstring const t,cstring const i,String::Heap& r)
+				InputDialog(tstring const t,tstring const i,HeapString& r)
 				: text(t), title(i), response(r), dialog(IDD_USERINPUT) 
 				{
 					dialog.Messages().Add( WM_INITDIALOG, this, &InputDialog::OnInitDialog );
@@ -160,14 +160,9 @@ namespace Nestopia
 				return Confirm( textId, titleId );
 			}
 
-			ibool Input (String::Heap& response,cstring const text,cstring const title)
+			ibool Input (HeapString& response,tstring const text,tstring const title)
 			{
 				return InputDialog( text, title ? title : Resource::String(IDS_TITLE_NESTOPIA), response ).Open();
-			}
-
-			ibool Input (String::Heap& response,const uint textId,const uint titleId)
-			{
-				return Input( response, Resource::String(textId), Resource::String(titleId ? titleId : IDS_TITLE_NESTOPIA) );
 			}
 		}
 	}

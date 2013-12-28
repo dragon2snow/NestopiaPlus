@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -51,10 +51,10 @@ namespace Nestopia
 	{
 		static const Window::Menu::CmdHandler::Entry<Sound::Recorder> commands[] =
 		{
-			{ IDM_FILE_SOUND_RECORDER_FILE,   &Recorder::OnMenuFile   },
-			{ IDM_FILE_SOUND_RECORDER_START,  &Recorder::OnMenuRecord },
-			{ IDM_FILE_SOUND_RECORDER_STOP,   &Recorder::OnMenuStop   },
-			{ IDM_FILE_SOUND_RECORDER_REWIND, &Recorder::OnMenuRewind }
+			{ IDM_FILE_SOUND_RECORDER_FILE,   &Recorder::OnCmdFile   },
+			{ IDM_FILE_SOUND_RECORDER_START,  &Recorder::OnCmdRecord },
+			{ IDM_FILE_SOUND_RECORDER_STOP,   &Recorder::OnCmdStop   },
+			{ IDM_FILE_SOUND_RECORDER_REWIND, &Recorder::OnCmdRewind }
 		};
 
 		m.Commands().Add( this, commands );
@@ -70,7 +70,7 @@ namespace Nestopia
 	{
 		return 
 		(
-			dialog.WaveFile().Size() &&
+			dialog.WaveFile().Length() &&
 			waveFormat.nSamplesPerSec && 
 			waveFormat.wBitsPerSample &&
 			emulator.Is(Nes::Machine::ON)
@@ -110,7 +110,7 @@ namespace Nestopia
 
 	void Sound::Recorder::OnEmuEvent(Emulator::Event event)
 	{
-		if (dialog.WaveFile().Size())
+		if (dialog.WaveFile().Length())
 		{
 			switch (event)
 			{
@@ -142,10 +142,10 @@ namespace Nestopia
 
 		menu[ IDM_FILE_SOUND_RECORDER_START  ].Enable( canRecord && !recording );
 		menu[ IDM_FILE_SOUND_RECORDER_STOP   ].Enable( recording );
-		menu[ IDM_FILE_SOUND_RECORDER_REWIND ].Enable( canRecord );
+		menu[ IDM_FILE_SOUND_RECORDER_REWIND ].Enable( canRecord && !recording );
 	}
 
-	void Sound::Recorder::OnMenuFile(uint)
+	void Sound::Recorder::OnCmdFile(uint)
 	{
 		dialog.Open();
 
@@ -158,9 +158,11 @@ namespace Nestopia
 		}
 	}
 
-	void Sound::Recorder::OnMenuRecord(uint)
+	void Sound::Recorder::OnCmdRecord(uint)
 	{
-		NST_ASSERT( !recording && dialog.WaveFile().Size() );
+		NST_ASSERT( !recording && dialog.WaveFile().Length() );
+
+		Application::Instance::Post( Application::Instance::WM_NST_COMMAND_RESUME );
 
 		if (!file.IsOpen())
 		{
@@ -185,14 +187,15 @@ namespace Nestopia
 		UpdateMenu();
 	}
 
-	void Sound::Recorder::OnMenuStop(uint)
+	void Sound::Recorder::OnCmdStop(uint)
 	{
 		recording = FALSE;
 		UpdateMenu();
 		Io::Screen() << Resource::String(IDS_SCREEN_SOUND_RECORDER_STOP);
+		Application::Instance::Post( Application::Instance::WM_NST_COMMAND_RESUME );
 	}
 
-	void Sound::Recorder::OnMenuRewind(uint)
+	void Sound::Recorder::OnCmdRewind(uint)
 	{
 		try
 		{
@@ -204,6 +207,7 @@ namespace Nestopia
 		}
 
 		UpdateMenu();
+		Application::Instance::Post( Application::Instance::WM_NST_COMMAND_RESUME );
 	}
 
 	void Sound::Recorder::Flush(const Nes::Sound::Output& output)

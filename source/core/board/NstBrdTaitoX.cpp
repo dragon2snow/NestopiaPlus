@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -58,7 +58,7 @@ namespace Nes
 			void TaitoX::SwapChr(const uint address,const uint data) const
 			{
 				ppu.Update();
-				chr.SwapBank<NES_2K>( address, (data >> 1) & 0x3F );
+				chr.SwapBank<SIZE_2K>( address, (data >> 1) & 0x3F );
 			}
 		
 			NES_POKE(TaitoX,7EF0_0)
@@ -69,7 +69,7 @@ namespace Nes
 			NES_POKE(TaitoX,7EF0_1)
 			{
 				SwapChr( 0x0000U, data );
-				nmt.SwapBanks<NES_1K,0x0000U>( data >> 7, data >> 7 );
+				nmt.SwapBanks<SIZE_1K,0x0000U>( data >> 7, data >> 7 );
 			}
 
 			NES_POKE(TaitoX,7EF1_0)
@@ -80,7 +80,7 @@ namespace Nes
 			NES_POKE(TaitoX,7EF1_1)
 			{
 				SwapChr( 0x0800U, data );
-				nmt.SwapBanks<NES_1K,0x0800U>( data >> 7, data >> 7 );
+				nmt.SwapBanks<SIZE_1K,0x0800U>( data >> 7, data >> 7 );
 			}
 		}
 	}

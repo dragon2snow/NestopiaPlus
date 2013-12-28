@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -139,7 +139,7 @@ namespace Nestopia
 		}
 
 		text << "\r\nSong: ";
-		songTextOffset = text.Size();
+		songTextOffset = text.Length();
 
 		Update( emulator );
 	}
@@ -245,6 +245,16 @@ namespace Nestopia
 		dialog->Save( cfg );
 	}
 
+	void Video::LoadPalette(const Path& path)
+	{
+		dialog->LoadGamePalette( path );
+	}
+
+	void Video::SavePalette(Path& path) const
+	{
+		dialog->SavePalette( path );
+	}
+
 	Video::Point Video::GetDisplayMode()
 	{
 		return Point( ::GetSystemMetrics( SM_CXSCREEN ), ::GetSystemMetrics( SM_CYSCREEN ) );
@@ -327,15 +337,16 @@ namespace Nestopia
 	{
 		const ibool enable = !menu[IDM_MACHINE_OPTIONS_UNLIMITEDSPRITES].ToggleCheck();
 		Nes::Video(emulator).EnableUnlimSprites( enable );
-		Io::Screen() << Resource::String(enable ? IDS_SCREEN_UNLIMITED_SPRITES_ENABLED : IDS_SCREEN_UNLIMITED_SPRITES_DISABLED);
+		Io::Screen() << Resource::String(enable ? IDS_SCREEN_NOSPRITELIMIT_ON : IDS_SCREEN_NOSPRITELIMIT_OFF );
+		Application::Instance::Post( Application::Instance::WM_NST_COMMAND_RESUME );
 	}
 
 	void Video::OnMenuSaveScreenShot(uint)
 	{
-		const Paths::TmpPath path( paths.GetScreenShotPath() );
+		const Path path( paths.GetScreenShotPath() );
 		Direct2D::ScreenShotResult result;
 
-		result = direct2d.SaveScreenShot( path, path.Extension().Id() );
+		result = direct2d.SaveScreenShot( path.Ptr(), path.Extension().Id() );
 
 		if (result == Direct2D::SCREENSHOT_OK)
 		{
@@ -344,8 +355,8 @@ namespace Nestopia
 			if (length > 22)
 			{
 				Io::Screen() << Resource::String(IDS_SCREEN_SCREENSHOT_SAVED_TO) 
-					         << " \"" 
-							 << String::Path<true>::Compact( path, length - 20 ) 
+					         << " \""
+							 << Path::Compact( path, length - 20 ) 
 							 << '\"';
 			}
 		}
@@ -458,7 +469,7 @@ namespace Nestopia
 	{
 		if (emulator.Is(Nes::Machine::ON,Nes::Machine::GAME))
 		{
-			String::Stack<16> string("FPS: ");
+			String::Stack<16,tchar> string( _T("FPS: ") );
 
 			{
 				uint current = emulator.GetFrame();
@@ -470,7 +481,7 @@ namespace Nestopia
 				delta = delta % (Fps::UPDATE_INTERVAL / 1000) ? '5' : '0';
 
 				string(5) = NST_MIN(current,999);
-				string << '.' << (char) (delta);
+				string << '.' << (tchar) (delta);
 			}
 
 			if (IsFullscreen())
@@ -480,7 +491,7 @@ namespace Nestopia
 			}
 			else if (statusBar.IsEnabled())
 			{
-				statusBar.Text(Window::StatusBar::SECOND_FIELD) << string;
+				statusBar.Text(Window::StatusBar::SECOND_FIELD) << string.Ptr();
 				return TRUE;
 			}
 		}
@@ -735,9 +746,9 @@ namespace Nestopia
 			fps.frame = emulator.GetFrame();
 
 			if (statusBar.IsEnabled())
-				statusBar.Text(Window::StatusBar::SECOND_FIELD) << "FPS: ";
+				statusBar.Text(Window::StatusBar::SECOND_FIELD) << _T("FPS: ");
 			else
-				direct2d.DrawFps( "0.0" );
+				direct2d.DrawFps( _T("0.0") );
 
 			window.StartTimer( this, &Video::OnTimerFps, Fps::UPDATE_INTERVAL );
 		}
@@ -818,11 +829,19 @@ namespace Nestopia
 					direct2d.DrawNfo( nsf.text );
 				}
 				break;
-		
+
 			case Emulator::EVENT_NETPLAY_LOAD:
+
+				menu[IDM_MACHINE_OPTIONS_UNLIMITEDSPRITES].Disable();
+				break;
+
 			case Emulator::EVENT_NETPLAY_UNLOAD:
 
-				menu[IDM_MACHINE_OPTIONS_UNLIMITEDSPRITES].Enable( event == Emulator::EVENT_NETPLAY_UNLOAD );
+				menu[IDM_MACHINE_OPTIONS_UNLIMITEDSPRITES].Enable();
+
+			case Emulator::EVENT_UNLOAD:
+
+				dialog->UnloadGamePalette();
 				break;
 
 			case Emulator::EVENT_NETPLAY_MODE_ON:
@@ -833,7 +852,7 @@ namespace Nestopia
 		}
 	}
 
-	void Video::OnScreenText(const String::Generic& text)
+	void Video::OnScreenText(const GenericString& text)
 	{
 		if (IsFullscreen())
 		{
@@ -842,7 +861,7 @@ namespace Nestopia
 		}
 		else if (statusBar.IsEnabled())
 		{
-			statusBar.Text(Window::StatusBar::FIRST_FIELD) << text;
+			statusBar.Text(Window::StatusBar::FIRST_FIELD) << text.Ptr();
 		}
 		else
 		{

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -145,7 +145,7 @@ namespace Nestopia
 		);
 
 		if (hWnd == NULL)
-			throw Application::Exception("CreateDialogParam() failed!");
+			throw Application::Exception(_T("CreateDialogParam() failed!"));
 
 		ModelessDialogs::Add( hWnd );
 
@@ -215,9 +215,7 @@ namespace Nestopia
 
 		ibool ret = FALSE;
 
-		Instances::ConstIterator const end = instances.End();
-
-		for (Instances::Iterator it=instances.Begin(); it != end; ++it)
+		for (Instances::Iterator it=instances.Begin(), end=instances.End(); it != end; ++it)
 		{
 			Dialog& dialog = **it;
 

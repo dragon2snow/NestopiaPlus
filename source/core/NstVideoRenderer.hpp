@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -55,6 +55,7 @@ namespace Nes
 					HEIGHT_1 = HEIGHT,
 					HEIGHT_2 = HEIGHT * 2,
 					HEIGHT_3 = HEIGHT * 3,
+					PIXELS = ulong(WIDTH) * HEIGHT,
 					PALETTE_ENTRIES = 64 * 8
 				};
 		

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -34,29 +34,30 @@ namespace Nestopia
 {
 	using Application::Main;
 
-	Main::Main(cstring const cmdLine,const int cmdShow)
+	Main::Main(const int cmdShow)
 	: 
-	instance    ( cmdLine ),
-	menu        ( IDR_MENU ),
-	preferences ( emulator, instance.GetConfiguration(), menu ),
-	logfile     ( emulator, menu, preferences ),
-	paths       ( emulator, instance.GetConfiguration(), menu ),
-	recentFiles ( emulator, instance.GetConfiguration(), menu ),
-	recentDirs  ( emulator, instance.GetConfiguration(), menu ),
-	window      ( emulator, instance.GetConfiguration(), menu, paths, preferences, cmdShow ),
-	machine     ( emulator, menu, preferences ),
-	netplay		( emulator, instance.GetConfiguration(), menu, paths, window.Get() ),
-	launcher    ( emulator, instance.GetConfiguration(), menu, paths, window.Get() ),
-	fds			( emulator, instance.GetConfiguration(), menu, paths ),
-	dipSwitches ( emulator, menu ),
-	nsf			( emulator, instance.GetConfiguration(), menu ),
-	movie		( emulator, menu, paths ),
-	cheats		( emulator, instance.GetConfiguration(), menu, paths ),
-	saveStates	( emulator, instance.GetConfiguration(), menu, paths, window ),
-	imageInfo   ( emulator, menu ),
-	help        ( emulator, menu ),
-	inesHeader  ( emulator, menu, paths ),
-	files       ( emulator, menu, paths, preferences, movie, cheats, saveStates, window )
+	menu          ( IDR_MENU ),
+	preferences   ( emulator, instance.GetConfiguration(), menu ),
+	logfile       ( emulator, menu, preferences ),
+	paths         ( emulator, instance.GetConfiguration(), menu ),
+	recentFiles   ( emulator, instance.GetConfiguration(), menu ),
+	recentDirs    ( emulator, instance.GetConfiguration(), menu ),
+	window        ( emulator, instance.GetConfiguration(), menu, paths, preferences, cmdShow ),
+	machine       ( emulator, menu, preferences ),
+	netplay		  ( emulator, instance.GetConfiguration(), menu, paths, window.Get() ),
+	launcher      ( emulator, instance.GetConfiguration(), menu, paths, window.Get() ),
+	fds			  ( emulator, instance.GetConfiguration(), menu, paths ),
+	tapeRecorder  ( emulator, instance.GetConfiguration(), menu, paths ),
+	dipSwitches   ( emulator, menu ),
+	barcodeReader ( emulator, menu ),
+	nsf			  ( emulator, instance.GetConfiguration(), menu ),
+	movie		  ( emulator, menu, paths ),
+	cheats		  ( emulator, instance.GetConfiguration(), menu, paths ),
+	saveStates	  ( emulator, instance.GetConfiguration(), menu, paths, window ),
+	imageInfo     ( emulator, menu ),
+	help          ( emulator, menu ),
+	inesHeader    ( emulator, menu, paths ),
+	files         ( emulator, menu, paths, preferences, movie, tapeRecorder, cheats, saveStates, window )
 	{
 		static const Window::MsgHandler::Entry<Main> messages[] =
 		{
@@ -69,7 +70,7 @@ namespace Nestopia
 
 		instance.GetConfiguration().Reset();
 
-		if (instance.GetConfiguration().GetStartupFile().Size())
+		if (instance.GetConfiguration().GetStartupFile().Length())
 			Instance::Launch( instance.GetConfiguration().GetStartupFile() );
 	}
 
@@ -82,15 +83,16 @@ namespace Nestopia
 	{
 		Configuration& cfg = instance.GetConfiguration();
 
-		preferences.Save ( cfg );
-		recentFiles.Save ( cfg );
-		recentDirs.Save  ( cfg );
-		paths.Save       ( cfg );
-		launcher.Save    ( cfg, preferences[Managers::Preferences::SAVE_LAUNCHER] );
-		netplay.Save     ( cfg, preferences[Managers::Preferences::SAVE_NETPLAY_GAMELIST] );
-		fds.Save         ( cfg );
-		nsf.Save         ( cfg );
-		window.Save      ( cfg );
+		preferences.Save  ( cfg );
+		recentFiles.Save  ( cfg );
+		recentDirs.Save   ( cfg );
+		paths.Save        ( cfg );
+		launcher.Save     ( cfg, preferences[Managers::Preferences::SAVE_LAUNCHER] );
+		netplay.Save      ( cfg, preferences[Managers::Preferences::SAVE_NETPLAY_GAMELIST] );
+		fds.Save          ( cfg );
+		tapeRecorder.Save ( cfg );
+		nsf.Save          ( cfg );
+		window.Save       ( cfg );
 
 		if (preferences[Managers::Preferences::SAVE_CHEATS])
 			cheats.Save( cfg );

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -31,18 +31,6 @@ namespace Nestopia
 {
 	using namespace Managers;
 
-	NST_COMPILE_ASSERT
-	(
-		IDM_FILE_RECENT_2 == IDM_FILE_RECENT_1 + 1 &&
-		IDM_FILE_RECENT_3 == IDM_FILE_RECENT_1 + 2 &&
-		IDM_FILE_RECENT_4 == IDM_FILE_RECENT_1 + 3 &&
-		IDM_FILE_RECENT_5 == IDM_FILE_RECENT_1 + 4 &&
-		IDM_FILE_RECENT_6 == IDM_FILE_RECENT_1 + 5 &&
-		IDM_FILE_RECENT_7 == IDM_FILE_RECENT_1 + 6 &&
-		IDM_FILE_RECENT_8 == IDM_FILE_RECENT_1 + 7 &&
-		IDM_FILE_RECENT_9 == IDM_FILE_RECENT_1 + 8
-	);
-
 	RecentFiles::RecentFiles(Emulator& e,const Configuration& cfg,Window::Menu& m)
 	: 
 	emulator ( e ),
@@ -68,17 +56,17 @@ namespace Nestopia
 
 		uint count = 0;
 
-		String::Stack<16> index( "files recent x" );
-		Name name( "&x " );
+		String::Stack<16,char> index( "files recent x" );
+		Name name( _T("&x ") );
 
 		for (uint i=0; i < MAX_FILES; ++i)
 		{
 			index.Back() = (char) ('1' + i);
-			const String::Heap& file = cfg[index];
+			const GenericString file( cfg[index] );
 
-			if (file.Size())
+			if (file.Length())
 			{
-				name[1] = (char) ('1' + count);
+				name[1] = (tchar) ('1' + count);
 				name(3) = file;
 				menu[IDM_FILE_RECENT_1 + count++].Text() << name;
 			}
@@ -97,7 +85,7 @@ namespace Nestopia
 
 	void RecentFiles::Save(Configuration& cfg) const
 	{
-		String::Stack<16> index( "files recent x" );
+		String::Stack<16,char> index( "files recent x" );
 		Name file;
 
 		for (uint i=0; i < MAX_FILES && menu[IDM_FILE_RECENT_1 + i].Text() >> file; ++i)
@@ -162,7 +150,7 @@ namespace Nestopia
 		
 					Add( IDM_FILE_RECENT_1, Name("&1 ") << emulator.GetStartPath() );
 		
-					for (uint i=0; i < MAX_FILES-1 && items[i].Size(); ++i)
+					for (uint i=0; i < MAX_FILES-1 && items[i].Length(); ++i)
 						Add( IDM_FILE_RECENT_2 + i, items[i] );
 		
 					menu[IDM_FILE_RECENT_CLEAR].Enable();

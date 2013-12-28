@@ -20,7 +20,7 @@
 			OutputDirectory="$(SolutionDir)DebugOut\"
 			IntermediateDirectory="Debug\Win32\"
 			ConfigurationType="1"
-			CharacterSet="0"
+			CharacterSet="1"
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
@@ -55,9 +55,9 @@
 				UsePrecompiledHeader="0"
 				WarningLevel="4"
 				Detect64BitPortabilityProblems="false"
-				DebugInformationFormat="4"
+				DebugInformationFormat="3"
 				CallingConvention="1"
-				OmitDefaultLibName="true"
+				OmitDefaultLibName="false"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
@@ -70,9 +70,12 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
+				LinkLibraryDependencies="false"
+				AdditionalDependencies="unicows.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib $(NOINHERIT)"
 				OutputFile="$(OutDir)\Nestopia.exe"
 				LinkIncremental="2"
 				AdditionalLibraryDirectories="$(SolutionDir)\..\lib"
+				IgnoreAllDefaultLibraries="false"
 				IgnoreDefaultLibraryNames="libc"
 				DelayLoadDLLs="unrar.dll;kailleraclient.dll"
 				GenerateDebugInformation="true"
@@ -110,7 +113,7 @@
 			OutputDirectory="$(SolutionDir)ReleaseOut\"
 			IntermediateDirectory="Release\Win32\"
 			ConfigurationType="1"
-			CharacterSet="0"
+			CharacterSet="1"
 			WholeProgramOptimization="1"
 			>
 			<Tool
@@ -141,6 +144,7 @@
 				RuntimeLibrary="0"
 				BufferSecurityCheck="false"
 				EnableFunctionLevelLinking="true"
+				EnableEnhancedInstructionSet="0"
 				DefaultCharIsUnsigned="true"
 				RuntimeTypeInfo="false"
 				UsePrecompiledHeader="0"
@@ -163,12 +167,15 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				LinkLibraryDependencies="true"
+				LinkLibraryDependencies="false"
+				AdditionalDependencies="unicows.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib $(NOINHERIT)"
+				ShowProgress="0"
 				OutputFile="$(OutDir)\Nestopia.exe"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories="$(SolutionDir)..\lib"
 				GenerateManifest="true"
 				AdditionalManifestDependencies=""
+				IgnoreAllDefaultLibraries="false"
 				IgnoreDefaultLibraryNames="libc"
 				DelayLoadDLLs="unrar.dll;kailleraclient.dll"
 				GenerateDebugInformation="false"
@@ -399,6 +406,14 @@
 					>
 				</File>
 				<File
+					RelativePath="..\source\win32\NstDialogBarcodeReader.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\source\win32\NstDialogBarcodeReader.hpp"
+					>
+				</File>
+				<File
 					RelativePath="..\source\win32\NstDialogBrowse.cpp"
 					>
 				</File>
@@ -543,6 +558,14 @@
 					>
 				</File>
 				<File
+					RelativePath="..\source\win32\NstDialogPaletteEditor.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\source\win32\NstDialogPaletteEditor.hpp"
+					>
+				</File>
+				<File
 					RelativePath="..\source\win32\NstDialogPaths.cpp"
 					>
 				</File>
@@ -564,6 +587,14 @@
 				</File>
 				<File
 					RelativePath="..\source\win32\NstDialogSound.hpp"
+					>
+				</File>
+				<File
+					RelativePath="..\source\win32\NstDialogTapeRecorder.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\source\win32\NstDialogTapeRecorder.hpp"
 					>
 				</File>
 				<File
@@ -651,6 +682,22 @@
 		<Filter
 			Name="Managers"
 			>
+			<File
+				RelativePath="..\source\win32\NstManagerAviConverter.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\win32\NstManagerAviConverter.hpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\win32\NstManagerBarcodeReader.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\win32\NstManagerBarcodeReader.hpp"
+				>
+			</File>
 			<File
 				RelativePath="..\source\win32\NstManagerCheats.cpp"
 				>
@@ -844,6 +891,14 @@
 				>
 			</File>
 			<File
+				RelativePath="..\source\win32\NstManagerTapeRecorder.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\win32\NstManagerTapeRecorder.hpp"
+				>
+			</File>
+			<File
 				RelativePath="..\source\win32\NstManagerVideo.cpp"
 				>
 			</File>
@@ -973,14 +1028,6 @@
 			</File>
 			<File
 				RelativePath="..\source\win32\NstObjectPointer.hpp"
-				>
-			</File>
-			<File
-				RelativePath="..\source\win32\NstObjectReference.hpp"
-				>
-			</File>
-			<File
-				RelativePath="..\source\win32\NstObjectStack.hpp"
 				>
 			</File>
 		</Filter>
@@ -1120,6 +1167,10 @@
 				</File>
 				<File
 					RelativePath="..\source\win32\resource\ImageDatabase.zip"
+					>
+				</File>
+				<File
+					RelativePath="..\source\win32\resource\MoeProSamples.zip"
 					>
 				</File>
 			</Filter>

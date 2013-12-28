@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -54,7 +54,7 @@ namespace Nestopia
 
 			void OnMenuOptionsSound(uint);
 			void OnEmuEvent(Emulator::Event);
-			void Disable(cstring=NULL);
+			void Disable(tstring=NULL);
 			void UpdateSettings();
 			uint GetLatency() const;
 

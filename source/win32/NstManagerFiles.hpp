@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -46,7 +46,8 @@ namespace Nestopia
 				Window::Menu&,
 				const Paths&,
 				const Preferences&,
-				Movie&,			 
+				Movie&,
+				const TapeRecorder&,
 				const Cheats&,
 				const SaveStates&,
 				Window::Main&
@@ -56,7 +57,7 @@ namespace Nestopia
 
 		private:
 
-			void Open(cstring=NULL,uint=0) const;
+			void Open(tstring=NULL,uint=0) const;
 			ibool Close() const;
 			void AutoStart() const;
 
@@ -74,10 +75,11 @@ namespace Nestopia
 			const Window::Menu& menu;
 			const Paths& paths;
 			const Preferences& preferences;
-			Movie& movie;				 
+			Movie& movie;
+			const TapeRecorder& tapeRecorder;
 			const Cheats& cheats;			 
 			const SaveStates& saveStates;
-			const Window::Main& window;
+			Window::Main& window;
 		};
 	}
 }

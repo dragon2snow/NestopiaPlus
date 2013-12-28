@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -44,7 +44,11 @@ namespace Nes
 		}
 
 		Mapper83::Mapper83(Context& c)
-		: Mapper(c,WRAM_NONE), irq(c.cpu) {}
+		: 
+		Mapper  (c,c.battery ? WRAM_AUTO : WRAM_NONE), 
+		irq     (c.cpu), 
+		irqStep (c.pRomCrc != 0x881F3623UL) // Street Blaster II Pro
+		{}
 	
 		void Mapper83::SubReset(const bool hard)
 		{
@@ -56,28 +60,33 @@ namespace Nes
 
 				for (uint i=0; i < 5; ++i)
 					regs.prg[i] = 0;
+
+				regs.pr8 = 0;
 			}
 
 			UpdatePrg();
 
-  			Map( 0x6000U, 0x7FFFU, &Mapper83::Peek_6000 );
+			Map( 0x5100U, 0x51FF, &Mapper83::Peek_5100, &Mapper83::Poke_5100 );
+
+			if (!wrk.Source().IsWritable())
+				Map( 0x6000U, 0x7FFFU, &Mapper83::Peek_6000 );
 
 			for (uint i=0x8000U; i < 0x9000U; i += 0x400)
 			{
 				Map( i+0x000, i+0x0FF, &Mapper83::Poke_8000 );
 				Map( i+0x100, i+0x1FF, &Mapper83::Poke_8100 );
 				
-				for (uint j=i+0x00; j < i+0x100; j += 0x02)
+				for (uint j=i+0x00, n=i+0x100; j < n; j += 0x02)
 				{
 					Map( j+0x200, &Mapper83::Poke_8200 );
 					Map( j+0x201, &Mapper83::Poke_8201 );
 				}
 				
-				for (uint j=i+0x00; j < i+0x100; j += 0x20)
+				for (uint j=i+0x00, n=i+0x100; j < n; j += 0x20)
 				{
 					Map( j+0x300, j+0x30F, &Mapper83::Poke_8300 );		
 
-					if (chr.Source().Size() == NES_512K)
+					if (chr.Source().Size() == SIZE_512K)
 					{
 						Map( j+0x310, j+0x311, &Mapper83::Poke_8310_1 );
 						Map( j+0x316, j+0x317, &Mapper83::Poke_8310_1 );
@@ -88,6 +97,10 @@ namespace Nes
 					}			  
 				}
 			}
+
+			Map( 0xB000, &Mapper83::Poke_8000 );		
+			Map( 0xB0FF, &Mapper83::Poke_8000 );		
+			Map( 0xB100, &Mapper83::Poke_8000 );		
 		}
 	
 		void Mapper83::SubLoad(State::Loader& state)
@@ -97,16 +110,15 @@ namespace Nes
 				switch (chunk)
 				{
 					case NES_STATE_CHUNK_ID('R','E','G','\0'):
-					{
-						const State::Loader::Data<1+5> data( state );
-
-						regs.ctrl = data[0];
-
-						for (uint i=0; i < 5; ++i)
-							regs.prg[i] = data[1+i] & 0x1F;
-
+					
+						regs.ctrl = state.Read8();
+						state.Read( regs.prg );
 						break;
-					}
+
+					case NES_STATE_CHUNK_ID('P','R','8','\0'):
+					
+						regs.pr8 = state.Read8();
+						break;					
 
 					case NES_STATE_CHUNK_ID('I','R','Q','\0'):
 					{
@@ -140,6 +152,8 @@ namespace Nes
 				state.Begin('R','E','G','\0').Write( data ).End();
 			}
 
+			state.Begin('P','R','8','\0').Write8( regs.pr8 ).End();
+	  
 			{
 				const u8 data[3] =
 				{
@@ -161,16 +175,24 @@ namespace Nes
 		{
 			if (regs.ctrl & 0x10)
 			{
-				prg.SwapBanks<NES_8K,0x0000U>( regs.prg[0], regs.prg[1] );
-				prg.SwapBank<NES_8K,0x4000U>( regs.prg[2] );
+				prg.SwapBanks<SIZE_8K,0x0000U>( regs.prg[0], regs.prg[1] );
+				prg.SwapBank<SIZE_8K,0x4000U>( regs.prg[2] );
 			}
 			else 
 			{
-				prg.SwapBank<NES_16K,0x0000U>( regs.prg[4] );
-
-				if (!(regs.ctrl & 0x8))
-					prg.SwapBank<NES_8K,0x4000U>( 0x1E );
+				prg.SwapBank<SIZE_16K,0x0000U>( regs.prg[4] & 0x3F );
+				prg.SwapBank<SIZE_16K,0x4000U>( (regs.prg[4] & 0x30) | 0x0F );
 			}
+		}
+
+		NES_PEEK(Mapper83,5100)
+		{
+			return regs.pr8;
+		}
+
+		NES_POKE(Mapper83,5100)
+		{
+			regs.pr8 = data;
 		}
 
 		NES_PEEK(Mapper83,6000)
@@ -202,13 +224,13 @@ namespace Nes
 			const uint diff = data ^ regs.ctrl;
 			regs.ctrl = data;
 
-			if (diff & 0x18)
+			if (diff & 0x10)
 				UpdatePrg();
 
 			if (diff & 0xC0)
 			{
 				irq.Update();
-				irq.unit.step = (data & 0x40) ? ~0U : 1U;
+				irq.unit.step = ((data & 0x40) && irqStep ? ~0U : 1U);
 				irq.EnableLine( data & 0x80 );
 			}
 
@@ -243,13 +265,13 @@ namespace Nes
 		NES_POKE(Mapper83,8310_0) 
 		{
 			ppu.Update();
-			chr.SwapBank<NES_1K>( (address & 0x7) << 10, data );
+			chr.SwapBank<SIZE_1K>( (address & 0x7) << 10, data | ((regs.prg[4] & 0x30) << 4) );
 		}
 
 		NES_POKE(Mapper83,8310_1) 
 		{
 			ppu.Update();
-			chr.SwapBank<NES_2K>( (address & 0x3) << 11, data );
+			chr.SwapBank<SIZE_2K>( (address & 0x3) << 11, data );
 		}
 
 		NES_POKE(Mapper83,8300) 

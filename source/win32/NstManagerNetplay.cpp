@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -28,7 +28,6 @@
 #include "NstIoScreen.hpp"
 #include "NstSystemDll.hpp"
 #include "NstResourceString.hpp"
-#include "NstResourceVersion.hpp"
 #include "NstWindowMenu.hpp"
 #include "NstWindowCustom.hpp"
 #include "NstWindowUser.hpp"
@@ -177,7 +176,7 @@ namespace Nestopia
 			Input input;
 			uint player;
 			uint players;
-			String::Path<false> game;
+			Path game;
 		};
 
 		struct Callbacks;
@@ -283,9 +282,9 @@ namespace Nestopia
 		{
 			static NST_NO_INLINE ibool IsKaillera(const Window::Generic window)
 			{
-				String::Smart<64> name;
+				HeapString name;
 				window.Text() >> name;
-				return name.Size() >= 8 && name(0,8) == "Kaillera";
+				return name.Length() >= 8 && name(0,8) == _T("Kaillera");
 			}
 
 		public:
@@ -421,23 +420,23 @@ namespace Nestopia
 	{
 		{ IDM_MACHINE_RESET_SOFT,				&Command::OnReset      },
 		{ IDM_MACHINE_RESET_HARD,				&Command::OnReset      },
-		{ IDM_MACHINE_FDS_INSERT_DISK_1_SIDE_A,	&Command::OnInsertDisk },
-		{ IDM_MACHINE_FDS_INSERT_DISK_1_SIDE_B,	&Command::OnInsertDisk },
-		{ IDM_MACHINE_FDS_INSERT_DISK_2_SIDE_A,	&Command::OnInsertDisk },
-		{ IDM_MACHINE_FDS_INSERT_DISK_2_SIDE_B,	&Command::OnInsertDisk },
-		{ IDM_MACHINE_FDS_INSERT_DISK_3_SIDE_A,	&Command::OnInsertDisk },
-		{ IDM_MACHINE_FDS_INSERT_DISK_3_SIDE_B,	&Command::OnInsertDisk },
-		{ IDM_MACHINE_FDS_INSERT_DISK_4_SIDE_A,	&Command::OnInsertDisk },
-		{ IDM_MACHINE_FDS_INSERT_DISK_4_SIDE_B,	&Command::OnInsertDisk },
-		{ IDM_MACHINE_FDS_INSERT_DISK_5_SIDE_A,	&Command::OnInsertDisk },
-		{ IDM_MACHINE_FDS_INSERT_DISK_5_SIDE_B,	&Command::OnInsertDisk },
-		{ IDM_MACHINE_FDS_INSERT_DISK_6_SIDE_A,	&Command::OnInsertDisk },
-		{ IDM_MACHINE_FDS_INSERT_DISK_6_SIDE_B,	&Command::OnInsertDisk },
-		{ IDM_MACHINE_FDS_INSERT_DISK_7_SIDE_A,	&Command::OnInsertDisk },
-		{ IDM_MACHINE_FDS_INSERT_DISK_7_SIDE_B,	&Command::OnInsertDisk },
-		{ IDM_MACHINE_FDS_INSERT_DISK_8_SIDE_A,	&Command::OnInsertDisk },
-		{ IDM_MACHINE_FDS_INSERT_DISK_8_SIDE_B,	&Command::OnInsertDisk },
-		{ IDM_MACHINE_FDS_EJECT_DISK,			&Command::OnEjectDisk  }
+		{ IDM_MACHINE_EXT_FDS_INSERT_DISK_1_SIDE_A,	&Command::OnInsertDisk },
+		{ IDM_MACHINE_EXT_FDS_INSERT_DISK_1_SIDE_B,	&Command::OnInsertDisk },
+		{ IDM_MACHINE_EXT_FDS_INSERT_DISK_2_SIDE_A,	&Command::OnInsertDisk },
+		{ IDM_MACHINE_EXT_FDS_INSERT_DISK_2_SIDE_B,	&Command::OnInsertDisk },
+		{ IDM_MACHINE_EXT_FDS_INSERT_DISK_3_SIDE_A,	&Command::OnInsertDisk },
+		{ IDM_MACHINE_EXT_FDS_INSERT_DISK_3_SIDE_B,	&Command::OnInsertDisk },
+		{ IDM_MACHINE_EXT_FDS_INSERT_DISK_4_SIDE_A,	&Command::OnInsertDisk },
+		{ IDM_MACHINE_EXT_FDS_INSERT_DISK_4_SIDE_B,	&Command::OnInsertDisk },
+		{ IDM_MACHINE_EXT_FDS_INSERT_DISK_5_SIDE_A,	&Command::OnInsertDisk },
+		{ IDM_MACHINE_EXT_FDS_INSERT_DISK_5_SIDE_B,	&Command::OnInsertDisk },
+		{ IDM_MACHINE_EXT_FDS_INSERT_DISK_6_SIDE_A,	&Command::OnInsertDisk },
+		{ IDM_MACHINE_EXT_FDS_INSERT_DISK_6_SIDE_B,	&Command::OnInsertDisk },
+		{ IDM_MACHINE_EXT_FDS_INSERT_DISK_7_SIDE_A,	&Command::OnInsertDisk },
+		{ IDM_MACHINE_EXT_FDS_INSERT_DISK_7_SIDE_B,	&Command::OnInsertDisk },
+		{ IDM_MACHINE_EXT_FDS_INSERT_DISK_8_SIDE_A,	&Command::OnInsertDisk },
+		{ IDM_MACHINE_EXT_FDS_INSERT_DISK_8_SIDE_B,	&Command::OnInsertDisk },
+		{ IDM_MACHINE_EXT_FDS_EJECT_DISK,			&Command::OnEjectDisk  }
 	};
 
 	void Netplay::Kaillera::Command::Capture()
@@ -582,7 +581,7 @@ namespace Nestopia
 
 	void Netplay::Kaillera::Command::OnInsertDisk(uint idm)
 	{
-		idm -= IDM_MACHINE_FDS_INSERT_DISK_1_SIDE_A;
+		idm -= IDM_MACHINE_EXT_FDS_INSERT_DISK_1_SIDE_A;
 		command = (PACKET_INSERT_DISK_SIDE_A + (idm % 2)) | ((idm / 2) << PACKET_DATA_SHIFT);
 	}
 
@@ -614,7 +613,7 @@ namespace Nestopia
 				NST_VERIFY( data < 16 );
 		
 				if (data < 16)
-					menuCallbacks[CALLBACK_INSERT_DISK + data](IDM_MACHINE_FDS_INSERT_DISK_1_SIDE_A + data);
+					menuCallbacks[CALLBACK_INSERT_DISK + data](IDM_MACHINE_EXT_FDS_INSERT_DISK_1_SIDE_A + data);
 		
 				break;
 		
@@ -622,7 +621,7 @@ namespace Nestopia
 		
 				NST_VERIFY( data == 0 );
 
-				menuCallbacks[CALLBACK_EJECT_DISK](IDM_MACHINE_FDS_EJECT_DISK);
+				menuCallbacks[CALLBACK_EJECT_DISK](IDM_MACHINE_EXT_FDS_EJECT_DISK);
 				break;
 
 			case PACKET_STARTUP:
@@ -691,11 +690,11 @@ namespace Nestopia
 		instance->emulator.ConnectController( 3, Nes::Input::PAD4 );
 		instance->emulator.ConnectController( 4, Nes::Input::UNCONNECTED );
 
+		for (uint i=0; i < NST_COUNT(Handler::entries); i += 5)
+			instance->menu[Handler::entries[i+1].idm].Check( Handler::entries[i].idm, Handler::entries[i+4].idm );
+
 		for (uint i=0; i < NST_COUNT(Handler::entries); ++i)
-		{
-			instance->menu[Handler::entries[i].idm].Check( (i % 5) == 1 );
 			menuCallbacks[i] = instance->menu.Commands()[Handler::entries[i].idm].Replace( this, Handler::entries[i].function );
-		}
 
 		Nes::Input::Controllers::Pad::callback.Get( pollCallback.code, pollCallback.data );
 		Nes::Input::Controllers::Pad::callback.Set( NULL, NULL );
@@ -705,7 +704,9 @@ namespace Nestopia
 	{
 		for (uint i=0; i < NST_COUNT(Handler::entries); ++i)
 		{
-			instance->menu[Handler::entries[i].idm].Check( instance->emulator.GetController(i % 5) == Handler::entries[i].type );
+			if (instance->emulator.GetController(i % 5) == Handler::entries[i].type)
+				instance->menu[Handler::entries[i].idm].Check( Handler::entries[i/5*5].idm, Handler::entries[i/5*5+4].idm );
+
 			instance->menu.Commands()[Handler::entries[i].idm] = menuCallbacks[i];
 		}
 
@@ -770,7 +771,7 @@ namespace Nestopia
 		Window::Custom& w
 	)
 	: 
-	Dll      ( "kailleraclient.dll" ), 
+	Dll      ( _T("kailleraclient.dll") ), 
 	emulator ( e ),
 	menu     ( m ), 
 	window   ( w )
@@ -807,7 +808,7 @@ namespace Nestopia
 
 			if (*version)
 			{
-				log << "Kaillera: loaded \"kailleraclient.dll\" version " << cstring(version) << "\r\n";
+				log << "Kaillera: loaded \"kailleraclient.dll\" version " << version << "\r\n";
 
 				if (std::strcmp( version, "0.9" ))
 					log << "Kaillera: warning, the loaded DLL file may be incompatible with Nestopia!\r\n";
@@ -853,24 +854,18 @@ namespace Nestopia
 
 		NST_ASSERT( dialog->GetNumGames() );
 
-		Collection::Buffer strings;
+		String::Heap<char> strings;
 
 		for (uint i=0, n=dialog->GetNumGames(); i < n; ++i)
-		{
-			const Window::Netplay::Game& game = dialog->GetGame( i );
-			strings.Append( game, game.Size() );
-			strings.PushBack( '\0' );
-		}
+			strings << dialog->GetGame(i) << '\0';
 
-		strings.PushBack( '\0' );
-
-		String::Smart<16> appName;
-		appName << "Nestopia " << Resource::Version();
+		String::Heap<char> name;
+		name << "Nestopia " << Application::Instance::GetVersion();
 
 		kailleraInfos info;
 
-		info.appName               = appName;
-		info.gameList              = strings;
+		info.appName               = name.Ptr();
+		info.gameList              = strings.Ptr();
 		info.gameCallback          = Callbacks::Start;
 		info.chatReceivedCallback  = Callbacks::ChatRecieve;
 		info.clientDroppedCallback = Callbacks::ClientDrop;
@@ -887,7 +882,7 @@ namespace Nestopia
 		{
 			static bool IsVersion6()
 			{
-				Nestopia::System::Dll comctl32("comctl32.dll");
+				Nestopia::System::Dll comctl32(_T("comctl32.dll"));
 
 				if (comctl32.IsSupported())
 				{
@@ -910,7 +905,7 @@ namespace Nestopia
 
 		if (isVersion6)
 		{
-			System::Dll uxtheme("uxtheme.dll");
+			System::Dll uxtheme(_T("uxtheme.dll"));
 
 			if (uxtheme.IsSupported())
 			{
@@ -938,7 +933,7 @@ namespace Nestopia
 	{
 		if (visualStyles)
 		{
-			System::Dll uxtheme("uxtheme.dll");
+			System::Dll uxtheme(_T("uxtheme.dll"));
 
 			if (uxtheme.IsSupported())
 			{
@@ -1017,7 +1012,7 @@ namespace Nestopia
 
 		Application::Instance::Launch
 		( 
-			dialog->GetPath(network.game), 
+       		dialog->GetPath(network.game.Ptr()), 
 			Paths::File::GAME|Paths::File::ARCHIVE 
 		);
 

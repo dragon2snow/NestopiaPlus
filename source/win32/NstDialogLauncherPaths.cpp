@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -76,8 +76,8 @@ namespace Nestopia
 
 		NST_COMPILE_ASSERT( LIMIT <= 999 );
 
-		String::Stack<32> type("launcher search path ");
-		String::Path<true> path;
+		String::Stack<32,char> type("launcher search path ");
+		Path path;
 
 		for (uint i=0; i < LIMIT; ++i)
 		{
@@ -110,14 +110,14 @@ namespace Nestopia
 		cfg[ "launcher search any file extension" ].YesNo() = settings.include[ Settings::Include::ANY     ];
 		cfg[ "launcher search no duplicate files" ].YesNo() = settings.include[ Settings::Include::UNIQUE  ];
 
-		String::Smart<32+_MAX_PATH> type;
+		String::Heap<char> type;
 
 		for (uint i=0; i < settings.folders.size(); ++i)
 		{
 			type = "launcher search path ";
 			type << (i+1);
 
-			NST_ASSERT( settings.folders[i].path.Size() );
+			NST_ASSERT( settings.folders[i].path.Length() );
 			cfg[type].Quote() = settings.folders[i].path;
 
 			type << " subs";
@@ -155,9 +155,9 @@ namespace Nestopia
 	{ 
 		if (param.Button().IsClicked() && dialog.ListView( IDC_LAUNCHER_PATHS_LIST ).Size() < LIMIT)
 		{
-			const Browser::Path dir( Browser::SelectDirectory() );
+			const Path dir( Browser::SelectDirectory() );
 
-			if (dir.Size())
+			if (dir.Length())
 				dialog.ListView( IDC_LAUNCHER_PATHS_LIST ).Add( dir );
 		}
 

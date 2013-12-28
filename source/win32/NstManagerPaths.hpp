@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -56,12 +56,10 @@ namespace Nestopia
 			Paths(Emulator&,const Configuration&,Window::Menu&);
 			~Paths();
 
-			typedef String::Path<false> Path;
-			typedef String::Path<true> TmpPath;
-
 			struct File
-			{
+			{								
 				typedef Collection::Buffer Data;
+				typedef HeapString Text;
 				typedef Collection::BitSet Types;
 
 				enum Type
@@ -72,15 +70,17 @@ namespace Nestopia
 					FDS     = 0x0004,
 					NSF     = 0x0008,
 					BATTERY = 0x0010,
-					STATE   = 0x0020,
-					SLOTS   = 0x0040,
-					IPS     = 0x0080,
-					MOVIE   = 0x0100,
-					SCRIPT  = 0x0200,
-					ROM     = 0x0400,
-					PALETTE = 0x0800,
-					WAVE    = 0x1000,
-					ARCHIVE = 0x2000
+					TAPE    = 0x0020,
+					STATE   = 0x0040,
+					SLOTS   = 0x0080,
+					IPS     = 0x0100,
+					MOVIE   = 0x0200,
+					SCRIPT  = 0x0400,
+					ROM     = 0x0800,
+					PALETTE = 0x1000,
+					WAVE    = 0x2000,
+					AVI		= 0x4000,
+					ARCHIVE = 0x8000
 				};
 
 				enum
@@ -102,8 +102,7 @@ namespace Nestopia
 					FILEID_ZIP     = 0x04034B50,
 					FILEID_RAR     = 0x21726152,
 					FILEID_7Z      = 0xAFBC7A37,
-					FILEID_FDS_RAW = 0x494E2A01,
-					FILEID_WAV     = 0x46464952
+					FILEID_FDS_RAW = 0x494E2A01
 				};
 
 				Type type;
@@ -112,6 +111,12 @@ namespace Nestopia
 
 				File()
 				: type(NONE) {}
+			};
+
+			enum Method
+			{
+				DONT_SUGGEST,
+				SUGGEST
 			};
 
 			enum Alert
@@ -123,12 +128,13 @@ namespace Nestopia
 
 			void Save(Configuration&) const;
 			
+			void FixFile(File::Type,Path&) const;
 			ibool FindFile(Path&) const;
 			ibool LocateFile(Path&,File::Types) const;
 			
-			TmpPath GetIpsPath(const Path&,File::Type) const;
-			TmpPath GetSavePath(const Path&,File::Type) const;
-			TmpPath GetScreenShotPath() const;
+			Path GetIpsPath(const Path&,File::Type) const;
+			Path GetSavePath(const Path&,File::Type) const;
+			Path GetScreenShotPath() const;
 
 			ibool SaveSlotExportingEnabled() const;
 			ibool SaveSlotImportingEnabled() const;
@@ -142,39 +148,37 @@ namespace Nestopia
 				uint=IDS_TITLE_ERROR
 			)   const;
 
-			TmpPath BrowseLoad
+			Path BrowseLoad
 			(
 		     	File::Types,
-				String::Generic=String::Generic()
+				GenericString = GenericString()
 			)   const;
-
-			TmpPath BrowseSave
+					
+			Path BrowseSave
 			(
 		     	File::Types,
-				String::Generic=String::Generic(),
-				String::Generic=String::Generic()
+				Method = DONT_SUGGEST,
+				GenericString = GenericString()
 			)   const;
-
+				
 			File::Type Load
 			(
 		    	File&,
 				File::Types,
-				String::Generic=String::Generic(),
-				Alert=NOISY,
-				uint=IDS_TITLE_ERROR
+				GenericString = GenericString(),
+				Alert=NOISY
 			)   const;
-
+					
 			ibool Save
 			(
        			const void*,
 				uint,
 				File::Type,
-				String::Generic=String::Generic(),
-				Alert=NOISY,
-				uint=IDS_TITLE_ERROR
+				Path,
+				Alert=NOISY
 			)   const;
-
-			const String::Generic GetDefaultDirectory(File::Types) const;
+							
+			const GenericString GetDefaultDirectory(File::Types) const;
 
 		private:
 
@@ -190,10 +194,10 @@ namespace Nestopia
 			void OnMenu(uint);
 			void OnEmuEvent(Emulator::Event);
 
-			static cstring GetDefaultExtension(File::Types);
+			static tstring GetDefaultExtension(File::Types);
 			
 			void UpdateSettings();
-			void UpdateRecentDirectory(const TmpPath&,File::Types) const;
+			void UpdateRecentDirectory(const Path&,File::Types) const;
 			
 			static File::Type CheckFile
 			(
@@ -214,7 +218,7 @@ namespace Nestopia
 		     	const Io::Archive&,
 				Path&,
 				File::Data*,
-				const String::Generic&,
+				const GenericString&,
 				File::Types
 			);
 

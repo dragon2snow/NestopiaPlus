@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -34,7 +34,7 @@ namespace Nestopia
 {
 	using Window::Control::ListView;
 
-	void ListView::ColumnsProxy::Insert(const uint index,cstring const text) const
+	void ListView::ColumnsProxy::Insert(const uint index,tstring const text) const
 	{
 		NST_ASSERT( text );
 
@@ -42,7 +42,7 @@ namespace Nestopia
 
 		lvColumn.mask = LVCF_FMT|LVCF_TEXT;
 		lvColumn.fmt = LVCFMT_LEFT;
-		lvColumn.pszText = const_cast<char*>( text );
+		lvColumn.pszText = const_cast<tchar*>( text );
 
 		ListView_InsertColumn( control, index, &lvColumn );
 	}
@@ -92,9 +92,9 @@ namespace Nestopia
 		ListView_SetExtendedListViewStyle( control, style );
 	}
 
-	void ListView::Item::TextProxy::operator << (cstring const text) const
+	void ListView::Item::TextProxy::operator << (tstring const text) const
 	{
-		ListView_SetItemText( item.control, item.index, index, const_cast<char*>(text) );
+		ListView_SetItemText( item.control, item.index, index, const_cast<tchar*>(text) );
 	}
 
 	void ListView::Item::TextProxy::GetText(Buffer& buffer) const
@@ -106,14 +106,14 @@ namespace Nestopia
 
 		do
 		{
-			buffer.Grow( _MAX_PATH );
+			buffer.Resize( buffer.Length() + BLOCK_SIZE );
 
-			lvItem.cchTextMax = buffer.Size() + 1;
-			lvItem.pszText = buffer;
+			lvItem.cchTextMax = buffer.Length() + 1;
+			lvItem.pszText = buffer.Ptr();
 
 			lvItem.cchTextMax = ::SendMessage( item.control, LVM_GETITEMTEXT, item.index, reinterpret_cast<LPARAM>(&lvItem) );
 		}
-		while (*buffer.End() != '\0');
+		while (*(buffer.Ptr() + buffer.Length()));
 
 		buffer.ShrinkTo( lvItem.cchTextMax );
 	}
@@ -174,22 +174,22 @@ namespace Nestopia
 		return Item( control, ListView_GetNextItem( control, -1, LVNI_SELECTED ) );
 	}
 
-	int ListView::Add(String::Generic text,const LPARAM data,const ibool checked) const
+	int ListView::Add(GenericString text,const LPARAM data,const ibool checked) const
 	{
-		String::Smart<_MAX_PATH> tmp;
+		HeapString tmp;
 
 		LVITEM lvItem;
 
-		if (text.Size())
+		if (text.Length())
 		{
 			if (text.IsNullTerminated())
 			{
-				lvItem.pszText = const_cast<char*>(static_cast<cstring>(text));
+				lvItem.pszText = const_cast<tchar*>(text.Ptr());
 			}
 			else
 			{
 				tmp = text;
-				lvItem.pszText = tmp;
+				lvItem.pszText = tmp.Ptr();
 			}
 		}
 		else

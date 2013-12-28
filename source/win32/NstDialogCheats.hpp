@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -88,7 +88,7 @@ namespace Nestopia
 
 				void Add(const Mem&,Generic::Stream);
 				void Load(const Io::Nsp::Context&);
-				void Import(String::Generic=String::Generic());
+				void Import(GenericString =GenericString());
 				void InitDialog(Dialog&,uint);
 
 			private:
@@ -112,7 +112,7 @@ namespace Nestopia
 
 					ibool enabled;
 					Mem mem;
-					String::Heap desc;
+					HeapString desc;
 				};
 						   
 				struct Codes : Collection::Vector<Code>

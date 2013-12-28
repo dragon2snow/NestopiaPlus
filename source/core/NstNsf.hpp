@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -77,7 +77,7 @@ namespace Nes
 
 			void InitSong();
 
-			typedef Memory<NES_32K,NES_4K> Prg;
+			typedef Memory<SIZE_32K,SIZE_4K> Prg;
 
 			enum 
 			{
@@ -154,6 +154,9 @@ namespace Nes
 			NES_DECL_POKE( Vrc6_B000 )
 			NES_DECL_POKE( Vrc6_B001 )
 			NES_DECL_POKE( Vrc6_B002 )
+
+			NES_DECL_POKE( Vrc7_9010 )
+			NES_DECL_POKE( Vrc7_9030 )
 
 			NES_DECL_PEEK( N106_48 )
 			NES_DECL_POKE( N106_48 )
@@ -263,7 +266,7 @@ namespace Nes
 			Speed      speed;
 			TuneMode   tuneMode;
 			u8         banks[8];
-			u8         ram[NES_8K];
+			u8         ram[SIZE_8K];
 
 		public:
 

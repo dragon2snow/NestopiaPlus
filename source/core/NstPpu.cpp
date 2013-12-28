@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -280,6 +280,7 @@ namespace Nes
 		}
 	
         #ifdef _MSC_VER
+        #pragma warning( push )
         #pragma warning( disable : 4355 )
         #endif
 
@@ -290,7 +291,7 @@ namespace Nes
 		}
 
         #ifdef _MSC_VER
-        #pragma warning( default : 4355 )
+        #pragma warning( pop )
         #endif
 
 		Ppu::~Ppu()
@@ -348,13 +349,13 @@ namespace Nes
 			if (chrMem.Source().Empty())
 			{
 				chrMem.Source().Set( nameTable.ram, NameTable::SIZE, true, false );
-				chrMem.SwapBanks<NES_2K,0x0000>(0,0,0,0);
+				chrMem.SwapBanks<SIZE_2K,0x0000>(0,0,0,0);
 			}
 	
 			if (nmtMem.Source().Empty())
 			{
 				nmtMem.Source().Set( nameTable.ram, NameTable::SIZE, true, true );
-				nmtMem.SwapBanks<NES_2K,0x0000>(0,0);
+				nmtMem.SwapBanks<SIZE_2K,0x0000>(0,0);
 			}
 	
 			chrMem.ResetAccessors();
@@ -737,7 +738,7 @@ namespace Nes
 				{0,1,0,1}  // controlled, default to vertical 
 			};
 	
-			nmtMem.SwapBanks<NES_1K,0x0000U>
+			nmtMem.SwapBanks<SIZE_1K,0x0000U>
 			( 
 		    	banks[type][0],
 				banks[type][1],
@@ -752,7 +753,7 @@ namespace Nes
 	
 			NST_ASSERT( banks[0] < 4 && banks[1] < 4 && banks[2] < 4 && banks[3] < 4 );
 	
-			nmtMem.SwapBanks<NES_1K,0x0000U>
+			nmtMem.SwapBanks<SIZE_1K,0x0000U>
 			( 
 		       	banks[0], 
 				banks[1], 
@@ -1297,8 +1298,8 @@ namespace Nes
 	
 					if (x)
 					{
-						// first two bits of sprite->zero and sprite->behind are masked if true
-						// (for minimizing branching)
+						// first two bits of sprite->zero and sprite->behind booleans 
+						// are masked if true (for minimizing branching)
 	
 						if (pixel & sprite->zero)
 							regs.status |= Regs::STATUS_SP_ZERO_HIT;

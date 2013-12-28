@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -91,18 +91,17 @@ namespace Nes
 
 			enum
 			{
-				CC_IO        = 2,
-				CC_HACTIVE   = CC_IO * 4 * 32,
-				CC_HBLANK    = CC_IO * 4 * 8 + CC_IO * 4 * 2 + CC_IO * 2 + 1,
-				CC_HSYNC     = CC_HACTIVE + CC_HBLANK,
-				CC_VINT_NTSC = CC_HSYNC * SCANLINES_VINT_NTSC,
-				CC_VINT_PAL  = CC_HSYNC * SCANLINES_VINT_PAL
+				CC_IO           = 2,
+				CC_HACTIVE      = CC_IO * 4 * 32,
+				CC_HBLANK       = CC_IO * 4 * 8 + CC_IO * 4 * 2 + CC_IO * 2 + 1,
+				CC_HSYNC        = CC_HACTIVE + CC_HBLANK,
+				CC_VINT_NTSC    = CC_HSYNC * SCANLINES_VINT_NTSC,
+				CC_VINT_PAL     = CC_HSYNC * SCANLINES_VINT_PAL,
+				CC_FRAME_0_NTSC = CC_HSYNC * SCANLINES_VSYNC_NTSC,
+				CC_FRAME_1_NTSC = CC_HSYNC * SCANLINES_VSYNC_NTSC - 1,
+				CC_FRAME_PAL    = CC_HSYNC * SCANLINES_VSYNC_PAL
 			};
-
-			static const Cycle CC_FRAME_0_NTSC = (Cycle) CC_HSYNC * SCANLINES_VSYNC_NTSC;
-			static const Cycle CC_FRAME_1_NTSC = (Cycle) CC_HSYNC * SCANLINES_VSYNC_NTSC - 1;
-			static const Cycle CC_FRAME_PAL    = (Cycle) CC_HSYNC * SCANLINES_VSYNC_PAL;
-  
+			
 			void Reset(bool=false);
 			void SetMode(Mode);
 			void SetMirroring(uint);
@@ -114,7 +113,7 @@ namespace Nes
 			void LoadState(State::Loader&);
 			void SaveState(State::Saver&) const;
 
-			class ChrMem : public Memory<NES_8K,NES_1K,2>
+			class ChrMem : public Memory<SIZE_8K,SIZE_1K,2>
 			{
 				friend class Ppu;
 
@@ -144,7 +143,7 @@ namespace Nes
 				}
 			};
 
-			class NmtMem : public Memory<NES_4K,NES_1K,2>
+			class NmtMem : public Memory<SIZE_4K,SIZE_1K,2>
 			{
 				friend class Ppu;
 
@@ -474,7 +473,7 @@ namespace Nes
 			{
 				enum
 				{
-					SIZE = NES_2K,
+					SIZE = SIZE_2K,
 					GARBAGE = 0x00
 				};
 

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -47,20 +47,25 @@ namespace Nes
 				}
 			}
 		
-			void N118::LoadState(State::Loader& state)
+			void N118::BaseLoad(State::Loader& state,const dword id)
 			{
-				while (const dword chunk = state.Begin())
+				NST_VERIFY( id == NES_STATE_CHUNK_ID('N','M','8','\0') );
+
+				if (id == NES_STATE_CHUNK_ID('N','M','8','\0'))
 				{
-					if (chunk == NES_STATE_CHUNK_ID('R','E','G','\0'))
-						reg = state.Read8();
-		
-					state.End();
+					while (const dword chunk = state.Begin())
+					{
+						if (chunk == NES_STATE_CHUNK_ID('R','E','G','\0'))
+							reg = state.Read8();
+
+						state.End();
+					}
 				}
 			}
 		
-			void N118::SaveState(State::Saver& state) const
+			void N118::BaseSave(State::Saver& state) const
 			{
-				state.Begin('R','E','G','\0').Write8( reg ).End();
+				state.Begin('N','M','8','\0').Begin('R','E','G','\0').Write8( reg ).End().End();
 			}
 		
             #ifdef NST_PRAGMA_OPTIMIZE
@@ -85,16 +90,16 @@ namespace Nes
 		
 					if (index > 0x1)
 					{
-						chr.SwapBank<NES_1K>( (index << 10) + 0x800U, data | 0x40 );
+						chr.SwapBank<SIZE_1K>( (index << 10) + 0x800U, data | 0x40 );
 					}
 					else
 					{
-						chr.SwapBank<NES_2K>( index << 11, data >> 1 );
+						chr.SwapBank<SIZE_2K>( index << 11, data >> 1 );
 					}
 				}
 				else 
 				{
-					prg.SwapBank<NES_8K>( (index - 0x6) << 13, data );
+					prg.SwapBank<SIZE_8K>( (index - 0x6) << 13, data );
 				}
 			}
 		}

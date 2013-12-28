@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -46,7 +46,7 @@ namespace Nestopia
 	: handle(::CreateEvent(NULL,FALSE,FALSE,NULL))
 	{
 		if (handle == NULL)
-			throw Application::Exception("::CreateEvent() failed!");
+			throw Application::Exception(_T("::CreateEvent() failed!"));
 	}
 
 	inline Thread::Event::~Event()
@@ -92,7 +92,7 @@ namespace Nestopia
 		handle = reinterpret_cast<HANDLE>(::_beginthreadex( NULL, stack, Starter, &initializer, 0, &id ));
 
 		if (handle == NULL)
-			throw Application::Exception("::_beginthreadex() failed!");
+			throw Application::Exception(_T("::_beginthreadex() failed!"));
 
 		synchronizer.Wait();
 
@@ -194,7 +194,7 @@ namespace Nestopia
 		
 				throw Application::Exception
 				( 
-					reinterpret_cast<cstring>(param.lParam), 
+					reinterpret_cast<tstring>(param.lParam), 
 					static_cast<Application::Exception::Type>(HIWORD(param.wParam))
 				);
 		

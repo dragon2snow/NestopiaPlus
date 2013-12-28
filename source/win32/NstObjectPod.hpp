@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -27,6 +27,7 @@
 
 #pragma once
 
+#include <cstring>
 #include "NstMain.hpp"
 
 namespace Nestopia
@@ -69,22 +70,22 @@ namespace Nestopia
 				return *this;
 			}
 
-			ibool operator == (const T& type) const
+			bool operator == (const T& type) const
 			{
 				return Compare( type ) == 0;
 			}
 
-			ibool operator != (const T& type) const
+			bool operator != (const T& type) const
 			{
 				return Compare( type ) != 0;
 			}
 
-			ibool operator < (const T& type) const
+			bool operator < (const T& type) const
 			{
 				return Compare( type ) < 0;
 			}
 
-			ibool operator > (const T& type) const
+			bool operator > (const T& type) const
 			{
 				return Compare( type ) > 0;
 			}

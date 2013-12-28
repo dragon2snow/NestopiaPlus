@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 //				
@@ -51,6 +51,7 @@ namespace Nes
 			Result EjectDisk();
 			
 			void VSync();
+			uint GetDesiredController(uint) const;
 			
 			void LoadState(State::Loader&);
 			void SaveState(State::Saver&) const;
@@ -72,7 +73,7 @@ namespace Nes
 					NES_DECL_PEEK( Rom )
 					NES_DECL_POKE( Nop )
 
-					u8 rom[NES_8K];
+					u8 rom[SIZE_8K];
 					ibool loaded;
 				};
 
@@ -304,6 +305,7 @@ namespace Nes
 					u8 (*data)[SIDE_SIZE];
 					uint count;
 					const u8* header;
+					dword id;
 					dword crc;
 				};
 
@@ -375,7 +377,7 @@ namespace Nes
 				NES_DECL_PEEK( Ram )
 				NES_DECL_POKE( Ram )
 
-				u8 mem[NES_32K];
+				u8 mem[SIZE_32K];
 			};
 
 			struct Irq
@@ -400,7 +402,7 @@ namespace Nes
 					enum
 					{
 						FAST = 150,
-						SLOW = 200
+						SLOW = 255
 					};
 
 					uint count;
@@ -436,7 +438,7 @@ namespace Nes
 			Ppu& ppu;
 			Ram ram;
 			Sound sound;
-
+		
 		public:
 
 			Mode GetMode() const

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -27,1845 +27,2055 @@
 
 #pragma once
 
+#include "NstMain.hpp"
 #include <cstdlib>
 #include <cstring>
-#include "NstMain.hpp"
+#include <cwchar>
+#include <windows.h>
 
 namespace Nestopia
 {
 	namespace String
-	{			
-		int Compare(cstring,cstring) throw();
-		int Compare(cstring,cstring,uint) throw();
-		int CompareNonNull(cstring,cstring,uint) throw();
-		int CompareNonNull(cstring,cstring,uint,uint) throw();
-
-		namespace Private
+	{
+		class Base
 		{
-			uint Length (cstring) throw();
-			uint Copy   (char* NST_RESTRICT,const char* NST_RESTRICT) throw();
-			void Insert (char* NST_RESTRICT,uint,uint,const char* NST_RESTRICT,uint) throw();
-			void Erase  (char*,uint,uint,uint) throw();
-			uint Remove (char*,uint,int) throw();
+			template<typename T>
+			static bool ToUnsigned(const T* NST_RESTRICT,uint,u32&);
 
-			uint FindFirstOf      (int,cstring,uint) throw();
-			uint FindAfterFirstOf (int,cstring,uint) throw();
-			uint FindFirstNotOf   (int,cstring,uint) throw();
-			uint FindLastOf       (int,cstring,uint) throw();
-			uint FindAfterLastOf  (int,cstring,uint) throw();
-			uint FindLastNotOf    (int,cstring,uint) throw();
+			template<typename T> static void AppendSigned(T&,i32);
+			template<typename T> static void AppendUnsigned(T&,u32);
 
-			void MakeLowerCase (char* NST_RESTRICT,uint) throw();
-			void MakeUpperCase (char* NST_RESTRICT,uint) throw();
-
-			ibool ToUnsigned (const char* NST_RESTRICT,u32&) throw();	
-			char* FromSigned (char (&)[12],i32) throw();
-			char* FromUnsigned (char (&)[12],u32) throw();
-
-			uint Trim (char*,uint) throw();
-			cstring Find (cstring,cstring,uint) throw();
-
-			uint ExtensionId (const char* NST_RESTRICT) throw();
-			ibool FileExist (cstring);
-			ibool DirExist (cstring);
-
-			template<typename A,bool X=false> struct Comparer
+			static int Compare(const char* t,int n,const char* u,int m)           
 			{
-				template<typename B>
-				static ibool IsEqual(const A& a,const B& b)
-				{ 
-					return a.Size() == b.Size() && Compare( a, b, a.Size() ) == 0; 
-				}
+				return ::CompareStringA( LOCALE_INVARIANT, NORM_IGNORECASE, t, n, u, m ) - 2;
+			}
 
-				template<>
-				static ibool IsEqual(const A& a,const char* const& b)
-				{ 
-					return Compare( a, b ) == 0; 
-				}
-
-				template<>
-				static ibool IsEqual(const A& a,char* const& b)
-				{ 
-					return Compare( a, b ) == 0; 
-				}
-
-				template<size_t N>
-				static ibool IsEqual(const A& a,const char (&b)[N])
-				{ 
-					return a.Size() == N-1 && Compare( a, b ) == 0; 
-				}
-
-				template<typename B>
-				static ibool IsLess(const A& a,const B& b)
-				{
-					return CompareNonNull( b, a, b.Size() ) > 0; 
-				}
-
-				template<>
-				static ibool IsLess(const A& a,const char* const& b)
-				{
-					return Compare( a, b ) < 0; 
-				}
-
-				template<>
-				static ibool IsLess(const A& a,char* const& b)
-				{
-					return Compare( a, b ) < 0; 
-				}
-
-				template<size_t N>
-				static ibool IsLess(const A& a,const char (&b)[N])
-				{
-					return Compare( a, b ) < 0; 
-				}
-
-				template<typename B>
-				static ibool IsLessOrEqual(const A& a,const B& b)
-				{
-					return CompareNonNull( b, a, b.Size() ) > 0; 
-				}
-
-				template<>
-				static ibool IsLessOrEqual(const A& a,const char* const& b)
-				{
-					return Compare( a, b ) <= 0; 
-				}
-
-				template<>
-				static ibool IsLessOrEqual(const A& a,char* const& b)
-				{
-					return Compare( a, b ) <= 0; 
-				}
-
-				template<size_t N>
-				static ibool IsLessOrEqual(const A& a,const char (&b)[N])
-				{
-					return Compare( a, b ) <= 0; 
-				}
-			};
-
-			template<typename A> struct Comparer<A,true>
+			static int Compare(const wchar_t* t,int n,const wchar_t* u,int m)           
 			{
-				template<typename B>
-				static ibool IsEqual(const A& a,const B& b)
-				{ 
-					return a.Size() == b.Size() && Compare( a, b, a.Size() ) == 0; 
-				}
+				return ::CompareStringW( LOCALE_INVARIANT, NORM_IGNORECASE, t, n, u, m ) - 2;
+			}
 
-				template<>
-				static ibool IsEqual(const A& a,const char* const& b)
-				{ 
-					return CompareNonNull( a, b, a.Size() ) == 0; 
-				}
+			static int CompareCase(const char* t,int n,const char* u,int m)           
+			{
+				return ::CompareStringA( LOCALE_INVARIANT, 0, t, n, u, m ) - 2;
+			}
 
-				template<>
-				static ibool IsEqual(const A& a,char* const& b)
-				{ 
-					return CompareNonNull( a, b, a.Size() ) == 0; 
-				}
+			static int CompareCase(const wchar_t* t,int n,const wchar_t* u,int m)           
+			{
+				return ::CompareStringW( LOCALE_INVARIANT, 0, t, n, u, m ) - 2;
+			}
 
-				template<size_t N>
-				static ibool IsEqual(const A& a,const char (&b)[N])
-				{ 
-					return a.Size() == N-1 && Compare( a, b, N-1 ) == 0; 
-				}
-
-				template<typename B>
-				static ibool IsLess(const A& a,const B& b)
-				{
-					return CompareNonNull( a, b, a.Size(), b.Size() ) < 0; 
-				}
-
-				template<>
-				static ibool IsLess(const A& a,const char* const& b)
-				{
-					return CompareNonNull( a, b, a.Size() ) < 0; 
-				}
-
-				template<>
-				static ibool IsLess(const A& a,char* const& b)
-				{
-					return CompareNonNull( a, b, a.Size() ) < 0; 
-				}
-
-				template<size_t N>
-				static ibool IsLess(const A& a,const char (&b)[N])
-				{
-					return CompareNonNull( a, b, a.Size() ) < 0; 
-				}
-
-				template<typename B>
-				static ibool IsLessOrEqual(const A& a,const B& b)
-				{
-					return CompareNonNull( a, b, a.Size(), b.Size() ) <= 0; 
-				}
-
-				template<>
-				static ibool IsLessOrEqual(const A& a,const char* const& b)
-				{
-					return CompareNonNull( a, b, a.Size() ) <= 0; 
-				}
-
-				template<>
-				static ibool IsLessOrEqual(const A& a,char* const& b)
-				{
-					return CompareNonNull( a, b, a.Size() ) <= 0; 
-				}
-
-				template<size_t N>
-				static ibool IsLessOrEqual(const A& a,const char (&b)[N])
-				{
-					return CompareNonNull( a, b, a.Size() ) <= 0; 
-				}
-			};
-		}
-
-		class Generic
-		{
 		protected:
 
-			cstring string;
-			uint size;
+			enum
+			{
+				MAX_INT_LENGTH = 12
+			};
 
-			static const char empty = '\0';
+			template<typename T> static T* FromUnsigned(T (&)[MAX_INT_LENGTH],u32);
+			template<typename T> static T* FromSigned(T (&)[MAX_INT_LENGTH],i32);
 
-			enum Nop {NOP};
-			explicit Generic(Nop) {}
+			template<typename T> static void AssignSigned(T&,i32);
+			template<typename T> static void AssignUnsigned(T&,u32);
+
+			template<typename T,typename U>
+			static bool ConvertToUnsigned(const T&,U&);
+
+			static uint Length(const char* str)
+			{
+				return std::strlen( str );
+			}
+
+			static uint Length(const wchar_t* str)
+			{
+				return std::wcslen( str );
+			}
+
+			static void Copy(char* NST_RESTRICT a,const char* NST_RESTRICT b,uint n)
+			{
+				std::memcpy( a, b, n );
+			}
+
+			static void Copy(wchar_t* NST_RESTRICT a,const wchar_t* NST_RESTRICT b,uint n)
+			{
+				std::wmemcpy( a, b, n );
+			}
+
+			static void Copy(wchar_t* NST_RESTRICT a,const char* NST_RESTRICT b,uint n)
+			{
+				for (uint i=0; i < n; ++i)
+					a[i] = b[i];
+			}
+  
+			static void Copy(char* NST_RESTRICT a,const wchar_t* NST_RESTRICT b,uint n)
+			{
+				for (uint i=0; i < n; ++i)
+					a[i] = (char) b[i];
+			}
+
+			static void Move(char* a,const char* b,uint n)
+			{
+				std::memmove( a, b, n );
+			}
+
+			static void Move(wchar_t* a,const wchar_t* b,uint n)
+			{
+				std::wmemmove( a, b, n );
+			}
+
+			template<typename T>
+			static typename const T::Type* GetPtr(const T& t)
+			{
+				return t.Ptr();
+			}
+
+			template<typename T>
+			static const T* GetPtr(T* const& t)
+			{
+				return t;
+			}
+
+			template<typename T>
+			static const T* GetPtr(const T* const& t)
+			{
+				return t;
+			}
+
+			template<typename T,size_t N>
+			static const T* GetPtr(const T (&t)[N])
+			{
+				return t;
+			}
+
+			template<typename T>
+			static uint GetLength(const T& t)
+			{
+				return t.Length();
+			}
+
+			template<typename T>
+			static uint GetLength(T* const& t)
+			{
+				return Length(t);
+			}
+
+			template<typename T>
+			static uint GetLength(const T* const& t)
+			{
+				return Length(t);
+			}
+
+			template<typename T,size_t N>
+			static uint GetLength(const T (&t)[N])
+			{
+				return Length(t);
+			}
+
+			template<typename T,typename U>
+			static bool IsEqual(const T& t,const U& u)
+			{ 
+				return t.Length() == u.Length() && !Compare( t.Ptr(), t.Length(), u.Ptr(), u.Length() );
+			}
+
+			template<typename T,typename U>
+			static bool IsEqual(const T& t,const U*& u)
+			{ 
+				return !Compare( t.Ptr(), t.Length(), u, -1 );
+			}
+
+			template<typename T,typename U>
+			static bool IsEqual(const T& t,const U* const& u)
+			{ 
+				return !Compare( t.Ptr(), t.Length(), u, -1 );
+			}
+
+			template<typename T,typename U,size_t N>
+			static bool IsEqual(const T& t,const U (&u)[N])
+			{ 
+				return !Compare( t.Ptr(), t.Length(), u, -1 );
+			}
+
+			template<typename T,typename U>
+			static bool IsCaseEqual(const T& t,const U& u)
+			{ 
+				return t.Length() == u.Length() && !CompareCase( t.Ptr(), t.Length(), u.Ptr(), u.Length() );
+			}
+
+			template<typename T,typename U>
+			static bool IsCaseEqual(const T& t,const U*& u)
+			{ 
+				return !CompareCase( t.Ptr(), t.Length(), u, -1 );
+			}
+
+			template<typename T,typename U>
+			static bool IsCaseEqual(const T& t,const U* const& u)
+			{ 
+				return !CompareCase( t.Ptr(), t.Length(), u, -1 );
+			}
+
+			template<typename T,typename U,size_t N>
+			static bool IsCaseEqual(const T& t,const U (&u)[N])
+			{ 
+				return !CompareCase( t.Ptr(), t.Length(), u, -1 );
+			}
+
+			template<typename T,typename U>
+			static int Compare(const T& t,const U& u)
+			{ 
+				return Compare( t.Ptr(), t.Length(), u.Ptr(), u.Length() );
+			}
+
+			template<typename T,typename U>
+			static int Compare(const T& t,const U*& u)
+			{ 
+				return Compare( t.Ptr(), t.Length(), u, -1 );
+			}
+
+			template<typename T,typename U>
+			static int Compare(const T& t,const U* const& u)
+			{ 
+				return Compare( t.Ptr(), t.Length(), u, -1 );
+			}
+
+			template<typename T,typename U,size_t N>
+			static int Compare(const T& t,const U (&u)[N])
+			{ 
+				return Compare( t.Ptr(), t.Length(), u, -1 );
+			}
+
+			static bool Wide(const char*,uint)
+			{
+				return false;
+			}
+
+			static bool Wide(const wchar_t* t,uint n)
+			{
+				for (uint i=0; i < n; ++i)
+				{
+					if (t[i] > 0xFF)
+						return true;
+				}
+
+				return false;
+			}
+
+			template<typename T,typename U>
+			static void Append(T& t,const U& u)
+			{
+				t.Append( GetPtr(u), GetLength(u) );
+			}
+
+			template<typename T>
+			static void Append(T& t,char c)
+			{
+				const T::Type v = c;
+				t.Append( &v, 1 );
+			}
+
+			template<typename T>
+			static void Append(T& t,wchar_t c)
+			{
+				t.Append( &c, 1 );
+			}
+
+			template<typename T> static void Append(T& t,int    i) { AppendSigned   ( t, i ); }
+			template<typename T> static void Append(T& t,uint   i) { AppendUnsigned ( t, i ); }
+			template<typename T> static void Append(T& t,schar  i) { AppendSigned   ( t, i ); }
+			template<typename T> static void Append(T& t,uchar  i) { AppendUnsigned ( t, i ); }
+			template<typename T> static void Append(T& t,short  i) { AppendSigned   ( t, i ); }
+			template<typename T> static void Append(T& t,ushort i) { AppendUnsigned ( t, i ); }
+			template<typename T> static void Append(T& t,long   i) { AppendSigned   ( t, i ); }
+			template<typename T> static void Append(T& t,ulong  i) { AppendUnsigned ( t, i ); }
+		};
+
+		template<typename T>
+		T* Base::FromUnsigned(T (&buffer)[MAX_INT_LENGTH],u32 number)
+		{
+			T* it = buffer + MAX_INT_LENGTH-1;
+
+			*it = '\0';
+
+			do 
+			{
+				*--it = (T) ((number % 10) + '0');
+			} 
+			while (number /= 10);
+
+			return it;
+		}
+
+		template<typename T>
+		T* Base::FromSigned(T (&buffer)[MAX_INT_LENGTH],const i32 number)
+		{
+			uint value = (uint) (number >= 0 ? number : -number);
+
+			T* it = buffer + MAX_INT_LENGTH-1;
+
+			*it = '\0';
+
+			do 
+			{
+				*--it = (T) ((value % 10) + '0');
+			} 
+			while (value /= 10);
+
+			if (number < 0)
+				*--it = '-';
+
+			return it;
+		}
+
+		template<typename T>
+		void Base::AssignUnsigned(T& t,const u32 i)
+		{
+			T::Type buffer[MAX_INT_LENGTH];
+			const T::Type* const offset = FromUnsigned( buffer, i );
+			t.Assign( offset, buffer + MAX_INT_LENGTH-1 - offset );
+		}
+
+		template<typename T>
+		void Base::AssignSigned(T& t,const i32 i)
+		{
+			T::Type buffer[MAX_INT_LENGTH];
+			const T::Type* const offset = FromUnsigned( buffer, i );
+			t.Assign( offset, buffer + MAX_INT_LENGTH-1 - offset );
+		}
+
+		template<typename T>
+		void Base::AppendUnsigned(T& t,const u32 i)
+		{
+			T::Type buffer[MAX_INT_LENGTH];
+			const T::Type* const offset = FromUnsigned( buffer, i );
+			t.Append( offset, buffer + MAX_INT_LENGTH-1 - offset );
+		}
+
+		template<typename T>
+		void Base::AppendSigned(T& t,const i32 i)
+		{
+			T::Type buffer[MAX_INT_LENGTH];
+			const T::Type* const offset = FromUnsigned( buffer, i );
+			t.Append( offset, buffer + MAX_INT_LENGTH-1 - offset );
+		}
+
+		template<typename T>
+		bool Base::ToUnsigned(const T* NST_RESTRICT string,const uint length,u32& result)
+		{
+			result = 0;
+
+			if (length)
+			{
+				bool neg = false;
+				uint base = 10;
+				uint maxvalue = 0xFFFFFFFFU / 10U;
+				const T* end = string + length;
+
+				switch (*string)
+				{
+					case '-': neg = true;
+					case '+': ++string; break;		
+					case '0':
+								
+						if (++string != end)
+						{
+							base = 16;
+							maxvalue = 0xFFFFFFFFU / 16U;
+							const T digit = *string++;
+
+							if (digit == 'x' || digit == 'X')
+								break;
+							else
+								return false;
+						}
+						else
+						{
+							return true;
+						}
+				}
+
+				if (string != end)
+				{
+					uint value = 0;
+
+					do
+					{
+						const T digit = *string++;
+						uint num;
+
+						if (digit >= '0' && digit <= '9')
+						{
+							num = digit - '0';
+						}
+						else if (digit >= 'A' && digit <= 'F' && base == 16)
+						{
+							num = digit - 'A' + 10;
+						}
+						else if (digit >= 'a' && digit <= 'f' && base == 16)
+						{
+							num = digit - 'a' + 10;
+						}
+						else
+						{
+							return false;
+						}
+
+						if (value < maxvalue || (value == maxvalue && num <= 0xFFFFFFFFU % base)) 
+							value = value * base + num;
+						else 
+							return false;
+					}
+					while (string != end);
+
+					result = neg ? uint(-int(value)) : value;
+
+					return true;
+				}
+			}
+
+			return false;
+		}
+
+		template<typename T,typename U>
+		bool Base::ConvertToUnsigned(const T& string,U& value)
+		{
+			u32 u; 
+			const bool r = ToUnsigned( string.Ptr(), string.Length(), u ); 
+			value = (U) u; 
+			return r;
+		}
+  
+		template<typename T=tchar,bool I=false>
+		class Generic : protected Base
+		{
+		public:
+
+			typedef T Type;
+
+			enum
+			{
+				TYPE_SIZE = sizeof(Type)
+			};
+
+		protected:
+			
+			const Type* string;
+			uint length;
+
+			static const Type empty = '\0';
+
+			enum DoNothing {NOP};
+			Generic(DoNothing) {}
 
 		public:
 
 			Generic()
-			: string(&empty), size(0) {}
+			: string(&empty), length(0)	{}
 
-			template<typename T> 
+			Generic(const Type* t,uint l)
+			: string(t), length(l) { NST_ASSERT( t ); }
+
+			template<typename T>
 			Generic(const T& t)
-			: string(t), size(t.Size()) {}
-
-			template<> 
-			Generic(const char* const& c)
-			: string(c), size(Private::Length(c)) {}
-
-			template<> 
-			Generic(char* const& c)
-			: string(c), size(Private::Length(c)) {}
-
-			template<size_t N>
-			Generic(const char (&c)[N])
-			: string(c), size(N-1) {}
-
-			template<>
-			Generic(const char& c)
-			: string(&c), size(1) {}
-
-			Generic(cstring c,uint s)
-			: string(c), size(s) {}
+			: string(Base::GetPtr(t)), length(Base::GetLength(t)) {}
 
 			template<typename T>
 			Generic& operator = (const T& t)
 			{
-				string = t;
-				size = t.Size();
+				string = Base::GetPtr(t);
+				length = Base::GetLength(t);
 				return *this;
 			}
 
-			template<>
-			Generic& operator = (const char* const& c)
+			template<typename U>
+			bool operator >> (U& t) const
 			{
-				string = c;
-				size = Private::Length( c );
-				return *this;
+				return Base::ConvertToUnsigned( *this, t );
 			}
 
-			template<>
-			Generic& operator = (char* const& c)
+			uint Length() const
 			{
-				string = c;
-				size = Private::Length( c );
-				return *this;
+				return length;
 			}
 
-			template<size_t N>
-			Generic& operator = (const char (&c)[N])
+			bool Empty() const
 			{
-				string = c;
-				size = N-1;
-				return *this;
+				return !length;
 			}
 
-			template<>
-			Generic& operator = (const char& c)
+			const Type& Front() const
 			{
-				string = &c;
-				size = 1;
-				return *this;
+				NST_ASSERT( length );
+				return string[0];
 			}
 
-			void Reset()
+			const Type& Back() const
 			{
-				string = &empty;
-				size = 0;
+				NST_ASSERT( length );
+				return string[length-1];
 			}
 
-			operator cstring () const
+			bool IsNullTerminated() const
+			{
+				return string[length] == '\0';
+			}
+
+			const Type* Ptr() const
 			{
 				return string;
 			}
 
-			uint Size() const
+			const Type& operator [] (uint i) const
 			{
-				return size;
+				return string[i];
 			}
 
-			ibool Empty() const
+			bool Wide() const
 			{
-				return !size;
+				return Base::Wide( Ptr(), Length() );
 			}
 
-			int Back() const
+			Generic operator () (uint p) const
 			{
-				NST_ASSERT( size );
-				return string[size-1];
+				NST_ASSERT( p <= length );
+				return Generic( string + p, length - p );
 			}
 
-			ibool IsNullTerminated() const
+			Generic operator () (uint p,uint l) const
 			{
-				return string[size] == '\0';
+				NST_ASSERT( p + l <= length );
+				return Generic( string + p, l );
 			}
 
-			template<typename T> ibool operator == (const T& t) const { return  Private::Comparer<Generic,true>::IsEqual       ( *this, t ); }
-			template<typename T> ibool operator != (const T& t) const { return !Private::Comparer<Generic,true>::IsEqual       ( *this, t ); }
-			template<typename T> ibool operator <  (const T& t) const { return  Private::Comparer<Generic,true>::IsLess        ( *this, t ); }
-			template<typename T> ibool operator <= (const T& t) const { return  Private::Comparer<Generic,true>::IsLessOrEqual ( *this, t ); }
-			template<typename T> ibool operator >  (const T& t) const { return !Private::Comparer<Generic,true>::IsLessOrEqual ( *this, t ); }
-			template<typename T> ibool operator >= (const T& t) const { return !Private::Comparer<Generic,true>::IsLess        ( *this, t ); }
-
-			friend ibool operator == (const char* c,const Generic& s) { return s == c; }
-			friend ibool operator != (const char* c,const Generic& s) { return s != c; }
-			friend ibool operator <  (const char* c,const Generic& s) { return s >= c; }
-			friend ibool operator <= (const char* c,const Generic& s) { return s >  c; }
-			friend ibool operator >  (const char* c,const Generic& s) { return s <= c; }
-			friend ibool operator >= (const char* c,const Generic& s) { return s <  c; }
-
-			friend ibool operator == (char* c,const Generic& s) { return s == c; }
-			friend ibool operator != (char* c,const Generic& s) { return s != c; }
-			friend ibool operator <  (char* c,const Generic& s) { return s >= c; }
-			friend ibool operator <= (char* c,const Generic& s) { return s >  c; }
-			friend ibool operator >  (char* c,const Generic& s) { return s <= c; }
-			friend ibool operator >= (char* c,const Generic& s) { return s <  c; }
-
-			Generic operator () (uint pos) const
-			{
-				return Generic( string + pos, size - pos );
+			template<typename T> 
+			bool IsEqual(const T& t) const 
+			{ 
+				return Base::IsCaseEqual( *this, t );
 			}
 
-			Generic operator () (uint pos,uint length) const
-			{
-				return Generic( string + pos, length );
-			}
+			template<typename U> bool operator == (const U& t) const { return  Base::IsEqual( *this, t );      }
+			template<typename U> bool operator != (const U& t) const { return !Base::IsEqual( *this, t );      }
+			template<typename U> bool operator <  (const U& t) const { return  Base::Compare( *this, t ) <  0; }
+			template<typename U> bool operator <= (const U& t) const { return  Base::Compare( *this, t ) <= 0; }
+			template<typename U> bool operator >  (const U& t) const { return  Base::Compare( *this, t ) >  0; }
+			template<typename U> bool operator >= (const U& t) const { return  Base::Compare( *this, t ) >= 0; }
 		};
 
-		class Anything : public Generic
-		{									  
-			Anything(const Anything&);
-			void operator = (const Anything&);
+		template<typename T>
+		class Generic<T,true> : public Generic<T,false>
+		{	
+			void Copy(const Generic&);
 
-			char buffer[12];
+			Type buffer[MAX_INT_LENGTH];
 
 			void SetValue(i32 number)
 			{
-				string = Private::FromSigned( buffer, number ); 
-				size = buffer + 11 - string; 
+				string = Base::FromSigned( buffer, number ); 
+				length = buffer + MAX_INT_LENGTH-1 - string; 
 			}
 
 			void SetValue(u32 number)
 			{
-				string = Private::FromUnsigned( buffer, number ); 
-				size = buffer + 11 - string; 
+				string = Base::FromUnsigned( buffer, number ); 
+				length = buffer + MAX_INT_LENGTH-1 - string; 
 			}
 
 		public:
 
-			template<typename T> 
-			Anything(const T& t)
-			: Generic(t) {}
-
-			Anything( schar  i ) : Generic(NOP) { SetValue( (i32) i ); } 
-			Anything( uchar  i ) : Generic(NOP) { SetValue( (u32) i ); } 
-			Anything( short  i ) : Generic(NOP) { SetValue( (i32) i ); } 
-			Anything( ushort i ) : Generic(NOP) { SetValue( (u32) i ); } 
-			Anything( int    i ) : Generic(NOP) { SetValue( (i32) i ); } 
-			Anything( uint   i ) : Generic(NOP) { SetValue( (u32) i ); } 
-			Anything( long   i ) : Generic(NOP) { SetValue( (i32) i ); } 
-			Anything( ulong  i ) : Generic(NOP) { SetValue( (u32) i ); } 
-
-			template<typename T>
-			Anything& operator = (const T& t)
+			Generic(const Generic& g)
+			: Generic<T,false>(NOP)
 			{
-				Generic::operator = (t);
+				Copy( g );
+			}
+
+			template<typename U> 
+			Generic(const U& t)
+			: Generic<T,false>(t) {}
+
+			Generic(Type c)
+			: Generic<T,false>(NOP) 
+			{
+				string = buffer;
+				length = 1;
+				buffer[0] = c;
+				buffer[1] = '\0';
+			}
+
+			Generic( schar  i ) : Generic<T,false>(NOP) { SetValue( (i32) i ); } 
+			Generic( uchar  i ) : Generic<T,false>(NOP) { SetValue( (u32) i ); } 
+			Generic( short  i ) : Generic<T,false>(NOP) { SetValue( (i32) i ); } 
+			Generic( ushort i ) : Generic<T,false>(NOP) { SetValue( (u32) i ); } 
+			Generic( int    i ) : Generic<T,false>(NOP) { SetValue( (i32) i ); } 
+			Generic( uint   i ) : Generic<T,false>(NOP) { SetValue( (u32) i ); } 
+			Generic( long   i ) : Generic<T,false>(NOP) { SetValue( (i32) i ); } 
+			Generic( ulong  i ) : Generic<T,false>(NOP) { SetValue( (u32) i ); } 
+
+			Generic& operator = (const Generic& g)
+			{
+				Copy( g );
 				return *this;
 			}
 
-			Anything& operator = ( schar  i ) { SetValue( (i32) i ); return *this; }
-			Anything& operator = ( uchar  i ) { SetValue( (u32) i ); return *this; }
-			Anything& operator = ( short  i ) { SetValue( (i32) i ); return *this; }
-			Anything& operator = ( ushort i ) { SetValue( (u32) i ); return *this; }
-			Anything& operator = ( int    i ) { SetValue( (i32) i ); return *this; }
-			Anything& operator = ( uint   i ) { SetValue( (u32) i ); return *this; }
-			Anything& operator = ( long   i ) { SetValue( (i32) i ); return *this; }
-			Anything& operator = ( ulong  i ) { SetValue( (u32) i ); return *this; }
+			template<typename U>
+			Generic& operator = (const U& t)
+			{
+				Generic<T,false>::operator = (t);
+				return *this;
+			}
+
+			Generic& operator = (Type c)
+			{
+				string = buffer;
+				length = 1;
+				buffer[0] = c;
+				buffer[1] = '\0';
+				return *this;
+			}
+
+			Generic& operator = ( schar  i ) { SetValue( (i32) i ); return *this; }
+			Generic& operator = ( uchar  i ) { SetValue( (u32) i ); return *this; }
+			Generic& operator = ( short  i ) { SetValue( (i32) i ); return *this; }
+			Generic& operator = ( ushort i ) { SetValue( (u32) i ); return *this; }
+			Generic& operator = ( int    i ) { SetValue( (i32) i ); return *this; }
+			Generic& operator = ( uint   i ) { SetValue( (u32) i ); return *this; }
+			Generic& operator = ( long   i ) { SetValue( (i32) i ); return *this; }
+			Generic& operator = ( ulong  i ) { SetValue( (u32) i ); return *this; }
 		};
 
-		namespace Private
+		template<typename T=tchar>
+		class Num : public Generic<T,true>
 		{
-			template<typename T> class Subset1;
-			template<typename T> class Subset2;
-			template<uint N,bool B> class Base;
+		public:
 
-			class Dynamic
+			Num(uint v)
+			: Generic(v) {}
+
+			Num(int v)
+			: Generic(v) {}
+
+			Num& operator = (uint v)
 			{
-			protected:
+				Generic::operator = (v);
+				return *this;
+			}
 
-				static char empty[4];
-
-				explicit Dynamic(uint,char* = empty);
-				explicit Dynamic(const char* NST_RESTRICT,char* = empty);
-				Dynamic(uint,char*,uint);
-				Dynamic(const char* NST_RESTRICT,char*,uint);
-				Dynamic(const Dynamic&,char*,uint);
-
-				void Destroy(char* = empty,uint=0);
-				void Defrag(char* = empty,uint=0);
-				void AssignTerminated(const char* NST_RESTRICT,char* = empty);
-				void AppendTerminated(const char* NST_RESTRICT,char* = empty);
-				void Assign(const char* NST_RESTRICT,uint,char* = empty);
-				void Append(const char* NST_RESTRICT,uint,char* = empty);
-				void Insert(uint,const char* NST_RESTRICT,uint,char* = empty);
-				void Insert(uint,uint,char* = empty);
-				void Parse(const char* NST_RESTRICT,uint,char* = empty);
-
-				char* data;
-				uint capacity;
-				uint size;
-
-			private:
-
-				inline void Reset(uint,char*);
-
-				NST_NO_INLINE void Allocate(uint,char*);
-				NST_NO_INLINE void Reallocate(uint,char*);
-
-			protected:
-
-				explicit Dynamic(char* stack=empty,uint minimum=0)
-				: data(stack), capacity(minimum), size(0) {}
-
-				void Reserve(uint request,char* stack=empty)
-				{
-					if (capacity < request)
-						Reallocate( request, stack );
-				}
-
-			public:
-
-				uint Capacity() const
-				{
-					return capacity;
-				}
-			};
-
-			template<uint N,bool B> class Basic
+			Num& operator = (int v)
 			{
-				template<typename T> friend class Subset1;
-				template<typename T> friend class Subset2;
+				Generic::operator = (v);
+				return *this;
+			}
+		};
 
-				NST_COMPILE_ASSERT( N >= 8 );
+		template<typename T>
+		void Generic<T,true>::Copy(const Generic& g)
+		{
+			length = g.length;
 
-				enum
-				{
-					STACK_SIZE = (N + 7) & ~3U,
-					STACK_CAPACITY = N
-				};
-
-			protected:
-
-				uint size;
-
-				union
-				{
-					char data[STACK_SIZE];
-					u32 empty;
-				};
-
-				Basic()
-				: size(0), empty('\0') {}
-
-				explicit Basic(const Basic& basic)
-				: size(basic.size)
-				{
-					NST_ASSERT( basic.size <= STACK_CAPACITY );
-					std::memcpy( data, basic.data, (basic.size + 4) & ~3U );
-					NST_ASSERT( data[size] == '\0' );
-				}
-
-				explicit Basic(const char* NST_RESTRICT string)
-				{
-					size = Private::Copy( data, string );
-					NST_ASSERT( size <= STACK_CAPACITY );
-				}
-
-				explicit Basic(uint length)
-				: size(length)  
-				{
-				}
-
-				void operator = (const Basic& basic)
-				{
-					NST_ASSERT( basic.size <= STACK_CAPACITY );
-					size = basic.size;
-					std::memcpy( data, basic.data, (basic.size + 4) & ~3U );
-					NST_ASSERT( data[size] == '\0' );
-				}
-
-				void AssignTerminated(const char* NST_RESTRICT string)
-				{
-					size = Private::Copy( data, string );
-					NST_ASSERT( size <= STACK_CAPACITY );
-				}
-
-				void AppendTerminated(const char* NST_RESTRICT string)
-				{
-					size += Private::Copy( data + size, string );
-					NST_ASSERT( size <= STACK_CAPACITY );
-				}
-
-				void Insert(uint pos,const char* NST_RESTRICT string,uint length)
-				{
-					NST_ASSERT( size + length <= STACK_CAPACITY );
-					uint old = size; size += length;
-					Private::Insert( data, old, pos, string, length );
-				}
-
-			public:
-
-				void Assign(const char* NST_RESTRICT string,uint length)
-				{
-					NST_ASSERT( length <= STACK_CAPACITY );
-					std::memcpy( data, string, size=length );
-					data[length] = '\0';
-				}
-
-				void Append(const char* NST_RESTRICT string,uint length)
-				{
-					NST_ASSERT( size + length <= STACK_CAPACITY );
-					char* offset = data + size; size += length;
-					std::memcpy( offset, string, length );
-					offset[length] = '\0';
-				}
-
-				void Resize(uint length)
-				{
-					NST_ASSERT( length <= STACK_CAPACITY );
-					data[size = length] = '\0';
-				}
-
-				void Destroy()
-				{
-					size = 0;
-					empty = '\0';
-				}
-
-				uint Capacity() const
-				{
-					return STACK_CAPACITY;
-				}
-			};
-
-			template<> class Basic<0U,false> : public Dynamic
+			if (g.string < g.buffer || g.string >= g.buffer + MAX_INT_LENGTH)
 			{
-				template<typename T> friend class Subset1;
-				template<typename T> friend class Subset2;
-
-			protected:
-
-				Basic() {}
-
-				explicit Basic(const Basic&);
-				explicit Basic(cstring);
-				explicit Basic(uint);
-
-				~Basic()
-				{
-					if (data != empty)
-						delete [] data;
-				}
-
-				void operator = (const Basic&);
-
-				void AssignTerminated(cstring);
-				void AppendTerminated(cstring);
-
-			public:
-
-				void Append(cstring,uint);
-				void Assign(cstring,uint);
-				void Reserve(uint);
-				void Resize(uint);
-				void Defrag();
-				void Destroy();
-				char* Export();
-			};
-
-			template<uint N> class Basic<N,true> : public Dynamic
+				string = g.string;
+			}
+			else
 			{
-				template<typename T> friend class Subset1;
-				template<typename T> friend class Subset2;
-
-				NST_COMPILE_ASSERT( N >= 8 );
-
-				enum
-				{
-					STACK_SIZE = (N + 7) & ~3U,
-					STACK_CAPACITY = N
-				};
-
-				union
-				{
-					char stack[STACK_SIZE];
-					u32 terminate;
-				};
-
-			protected:
-
-				Basic()
-				: Dynamic(stack,STACK_CAPACITY), terminate('\0') {}
-
-				explicit Basic(const Basic& basic)
-				: Dynamic(basic,stack,STACK_CAPACITY) {}
-
-				explicit Basic(cstring string)
-				: Dynamic(string,stack,STACK_CAPACITY) {}
-
-				explicit Basic(uint length)
-				: Dynamic(length,stack,STACK_CAPACITY) {}
-
-				~Basic()
-				{
-					if (data != stack)
-						delete [] data;
-				}
-
-				void operator = (const Basic& basic)
-				{
-					Dynamic::Assign( basic.data, basic.size, stack );
-				}
-
-				void AssignTerminated(cstring string)
-				{
-					Dynamic::AssignTerminated( string, stack );
-				}
-
-				void AppendTerminated(cstring string)
-				{
-					Dynamic::AppendTerminated( string, stack );
-				}
-
-				void Insert(uint pos,cstring string,uint length)
-				{
-					Dynamic::Insert( pos, string, length, stack );
-				}
-
-				void Parse(cstring string,uint length)
-				{
-					Dynamic::Parse( string, length, stack );
-				}
-
-			public:
-
-				void Assign(cstring string,uint length)
-				{
-					Dynamic::Assign( string, length, stack );
-				}
-
-				void Append(cstring string,uint length)
-				{
-					Dynamic::Append( string, length, stack );
-				}
-
-				void Reserve(uint length)
-				{
-					Dynamic::Reserve( length, stack );
-				}
-
-				void Resize(uint length)
-				{
-					Reserve( length );
-					data[size = length] = '\0';
-				}
-
-				void Defrag()
-				{
-					Dynamic::Defrag( stack, STACK_CAPACITY );
-				}
-
-				void Destroy()
-				{
-					terminate = '\0';
-					Dynamic::Destroy( stack, STACK_CAPACITY );
-				}
-			};
-
-			template<typename T> class Subset2
-			{
-				template<uint N,bool B> friend class Base;
-				template<typename A,bool X> friend struct Comparer;
-
-				friend class Generic;
-				friend class Anything;
-
-			protected:
-
-				T& string;
-				const uint pos;
-				const uint length;
-
-				operator char* ()
-				{
-					return string.data + pos;
-				}
-
-				operator cstring () const
-				{
-					return string.data + pos;
-				}
-
-				void Erase()
-				{
-					if (length)
-					{
-						uint size = string.size; string.size -= length;
-						Private::Erase( string.data, size, pos, length );
-					}
-				}
-
-				void Insert(cstring input,uint length)
-				{
-					string.Insert( pos, input, length );
-				}
-
-				void Replace(cstring input,uint length)
-				{
-					Erase();
-					Insert( input, length );
-				}
-
-			public:
-
-				Subset2(T& s,uint p,uint l)
-				: string(s), pos(p), length(l) {}
-
-				void MakeLowerCase()
-				{
-					Private::MakeLowerCase( string.data + pos, length );
-				}
-
-				void MakeUpperCase()
-				{
-					Private::MakeLowerCase( string.data + pos, length );
-				}
-
-				char& Back()
-				{
-					NST_ASSERT( length && pos + length <= string.size );
-					return string.data[pos+length-1];
-				}
-
-				const char& Back() const
-				{
-					NST_ASSERT( length && pos + length <= string.size );
-					return string.data[pos+length-1];
-				}
-
-				uint Size() const
-				{
-					return length;
-				}
-
-				ibool Empty() const
-				{
-					return !length;
-				}
-
-				Subset2<T> operator () (uint p,uint l)
-				{
-					NST_ASSERT( pos + p + l <= string.size );
-					return Subset2<T>( string, pos + p, l );
-				}
-
-				Subset2<T> operator () (uint p)
-				{
-					NST_ASSERT( pos + p <= string.size );
-					return Subset2<T>( string, pos + p, length - p );
-				}
-
-				template<typename U> ibool operator == (const U& u) const { return  Comparer<Subset2,true>::IsEqual       ( *this, u ); }
-				template<typename U> ibool operator != (const U& u) const { return !Comparer<Subset2,true>::IsEqual       ( *this, u ); }
-				template<typename U> ibool operator <  (const U& u) const { return  Comparer<Subset2,true>::IsLess        ( *this, u ); }
-				template<typename U> ibool operator <= (const U& u) const { return  Comparer<Subset2,true>::IsLessOrEqual ( *this, u ); }
-				template<typename U> ibool operator >  (const U& u) const { return !Comparer<Subset2,true>::IsLessOrEqual ( *this, u ); }
-				template<typename U> ibool operator >= (const U& u) const { return !Comparer<Subset2,true>::IsLess        ( *this, u ); }
-
-				friend ibool operator == (const char* c,const Subset2& s) { return s == c; }
-				friend ibool operator != (const char* c,const Subset2& s) { return s != c; }
-				friend ibool operator <  (const char* c,const Subset2& s) { return s >= c; }
-				friend ibool operator <= (const char* c,const Subset2& s) { return s >  c; }
-				friend ibool operator >  (const char* c,const Subset2& s) { return s <= c; }
-				friend ibool operator >= (const char* c,const Subset2& s) { return s <  c; }
-
-				friend ibool operator == (char* c,const Subset2& s) { return s == c; }
-				friend ibool operator != (char* c,const Subset2& s) { return s != c; }
-				friend ibool operator <  (char* c,const Subset2& s) { return s >= c; }
-				friend ibool operator <= (char* c,const Subset2& s) { return s >  c; }
-				friend ibool operator >  (char* c,const Subset2& s) { return s <= c; }
-				friend ibool operator >= (char* c,const Subset2& s) { return s <  c; }
-			};
-
-			template<typename T> class Subset1
-			{
-			protected:
-
-				T& string;
-				const uint pos;
-
-				void Erase()
-				{
-					string.data[string.size = pos] = '\0';
-				}
-
-				void Insert(cstring input,uint length)
-				{
-					string.Insert( pos, input, length );
-				}
-
-				void Replace(cstring input,uint length)
-				{
-					Erase();
-					string.Append( input, length );
-				}
-
-			public:
-
-				Subset1(T& s,uint p)
-				: string(s), pos(p) {}
-
-				void MakeLowerCase()
-				{
-					Private::MakeLowerCase( string.data + pos, string.size - pos );
-				}
-
-				void MakeUpperCase()
-				{
-					Private::MakeLowerCase( string.data + pos, string.size - pos );
-				}
-
-				uint Size() const
-				{
-					return string.size - pos;
-				}
-
-				ibool Empty() const
-				{
-					return pos == string.size;
-				}
-
-				operator char* ()
-				{
-					return string.data + pos;
-				}
-
-				operator cstring () const
-				{
-					return string.data + pos;
-				}
-
-				char& Back()
-				{
-					NST_ASSERT( string.size && pos < string.size );
-					return string.data[string.size-1];
-				}
-
-				const char& Back() const
-				{
-					NST_ASSERT( string.size && pos < string.size );
-					return string.data[string.size-1];
-				}
-
-				Subset2<T> operator () (uint p,uint l)
-				{
-					NST_ASSERT( pos + p + l <= string.size );
-					return Subset2<T>( string, pos + p, l );
-				}
-
-				Subset1 operator () (uint p)
-				{
-					NST_ASSERT( pos + p <= string.size );
-					return Subset1( string, pos + p );
-				}
-
-				template<typename U> ibool operator == (const U& u) const { return  Comparer<Subset1>::IsEqual       ( *this, u ); }
-				template<typename U> ibool operator != (const U& u) const { return !Comparer<Subset1>::IsEqual       ( *this, u ); }
-				template<typename U> ibool operator <  (const U& u) const { return  Comparer<Subset1>::IsLess        ( *this, u ); }
-				template<typename U> ibool operator <= (const U& u) const { return  Comparer<Subset1>::IsLessOrEqual ( *this, u ); }
-				template<typename U> ibool operator >  (const U& u) const { return !Comparer<Subset1>::IsLessOrEqual ( *this, u ); }
-				template<typename U> ibool operator >= (const U& u) const { return !Comparer<Subset1>::IsLess        ( *this, u ); }
-
-				friend ibool operator == (const char* c,const Subset1& s) { return s == c; }
-				friend ibool operator != (const char* c,const Subset1& s) { return s != c; }
-				friend ibool operator <  (const char* c,const Subset1& s) { return s >= c; }
-				friend ibool operator <= (const char* c,const Subset1& s) { return s >  c; }
-				friend ibool operator >  (const char* c,const Subset1& s) { return s <= c; }
-				friend ibool operator >= (const char* c,const Subset1& s) { return s <  c; }
-
-				friend ibool operator == (char* c,const Subset1& s) { return s == c; }
-				friend ibool operator != (char* c,const Subset1& s) { return s != c; }
-				friend ibool operator <  (char* c,const Subset1& s) { return s >= c; }
-				friend ibool operator <= (char* c,const Subset1& s) { return s >  c; }
-				friend ibool operator >  (char* c,const Subset1& s) { return s <= c; }
-				friend ibool operator >= (char* c,const Subset1& s) { return s <  c; }
-			};
-
-			template<uint N,bool B> class Base : public Basic<N,B>
-			{
-				typedef Basic<N,B> Simple;
-
-			public:
-
-				class Sub1 : public Subset1<Simple>
-				{
-					friend class Base<N,B>;
-
-					Sub1(Simple& s,uint p)
-					: Subset1<Simple>(s,p) {}
-
-				public:
-
-					Sub1& operator << (const Anything& input)
-					{
-						Insert( input, input.Size() );
-						return *this;
-					}
-
-					Sub1& operator = (const Anything& input)
-					{
-						Replace( input, input.Size() );
-						return *this;
-					}
-
-					using Subset1<Simple>::Erase;
-				};
-
-				class Sub2 : public Subset2<Simple>
-				{
-					friend class Base<N,B>;
-
-					Sub2(Simple& s,uint p,uint l)
-					: Subset2<Simple>(s,p,l) {}
-
-				public:
-
-					Sub2& operator = (const Anything& input)
-					{
-						Replace( input, input.Size() );
-						return *this;
-					}
-
-					using Subset2<Simple>::Erase;
-				};
-
-			protected:
-
-				Base() {}			
-
-				Base(const Base& base)
-				: Simple( base )
-				{
-				}
-
-				template<typename T> 
-				Base(const T& t)
-				: Simple( t.Size() )
-				{
-					std::memcpy( data, static_cast<cstring>(t), size );
-					data[size] = '\0';
-				}
-
-				template<> 
-				Base(const char* const& c)
-				: Simple( c )
-				{
-				}
-
-				template<> 
-				Base(char* const& c)
-				: Simple( c )
-				{
-				}
-
-				template<size_t N> 
-				Base(const char (&c)[N])
-				: Simple( N-1 )
-				{
-					std::memcpy( data, c, N );
-					NST_ASSERT( c[N-1] == '\0' );
-				}
-
-				Base(char c)
-				: Simple( 1 )
-				{
-					data[0] = c;
-					data[1]	= '\0';
-				}				   
-
-				Base(cstring c,uint n)
-				: Simple( n )
-				{
-					std::memcpy( data, c, n );
-					data[n] = '\0';
-				}
-
-				template<typename T>
-				void Assign(const T& t)
-				{
-					Simple::Assign( t, t.Size() );
-				}
-
-				template<>
-				void Assign(const char* const& c)
-				{
-					Simple::AssignTerminated( c );
-				}
-
-				template<>
-				void Assign(char* const& c)
-				{
-					Simple::AssignTerminated( c );
-				}
-
-				template<size_t N>
-				void Assign(const char (&c)[N])
-				{
-					Simple::Assign( c, N-1 );
-				}
-
-				void Assign(char c)
-				{
-					Simple::Assign( &c, 1 );
-				}
-
-				template<typename T>
-				void Append(const T& t)
-				{
-					Simple::Append( t, t.Size() );
-				}
-
-				template<>
-				void Append(const char* const& c)
-				{
-					Simple::AppendTerminated( c );
-				}
-
-				template<>
-				void Append(char* const& c)
-				{
-					Simple::AppendTerminated( c );
-				}
-
-				template<size_t N>
-				void Append(const char (&c)[N])
-				{
-					Simple::Append( c, N-1 );
-				}
-
-				void Append(char c)
-				{
-					Simple::Append( &c, 1 );
-				}
-
-				void Append(int i)
-				{
-					char buffer[12];
-					cstring string = Private::FromSigned( buffer, i );
-					Append( string, buffer + 11 - string );
-				}
-
-				void Append(uint i)
-				{
-					char buffer[12];
-					cstring string = Private::FromUnsigned( buffer, i );
-					Append( string, buffer + 11 - string );
-				}
-
-				void Append(schar  i) { Append( ( int  ) i ); }
-				void Append(uchar  i) { Append( ( uint ) i ); }
-				void Append(short  i) { Append( ( int  ) i ); }
-				void Append(ushort i) { Append( ( uint ) i ); }
-				void Append(long   i) { Append( ( int  ) i ); }
-				void Append(ulong  i) { Append( ( uint ) i ); }
-
-				ibool ToInteger( schar&  i ) const { u32 u; ibool r = Private::ToUnsigned( data, u ); i = ( schar  ) u; return r; }
-				ibool ToInteger( uchar&  i ) const { u32 u; ibool r = Private::ToUnsigned( data, u ); i = ( uchar  ) u; return r; }
-				ibool ToInteger( short&  i ) const { u32 u; ibool r = Private::ToUnsigned( data, u ); i = ( short  ) u; return r; }
-				ibool ToInteger( ushort& i ) const { u32 u; ibool r = Private::ToUnsigned( data, u ); i = ( ushort ) u; return r; }
-				ibool ToInteger( int&    i ) const { u32 u; ibool r = Private::ToUnsigned( data, u ); i = ( int    ) u; return r; }
-				ibool ToInteger( uint&   i ) const { u32 u; ibool r = Private::ToUnsigned( data, u ); i = ( uint   ) u; return r; }
-				ibool ToInteger( long&   i ) const { u32 u; ibool r = Private::ToUnsigned( data, u ); i = ( long   ) u; return r; }
-				ibool ToInteger( ulong&  i ) const { u32 u; ibool r = Private::ToUnsigned( data, u ); i = ( ulong  ) u; return r; }
-
-			public:
-
-				using Simple::Assign;
-				using Simple::Append;
-
-				template<size_t N>
-				ibool ExactEqual(const char (&string)[N]) const
-				{
-					return size == N-1 && std::memcmp( data, string, N-1 ) == 0;
-				}
-
-				void ShrinkTo(uint count)
-				{
-					NST_ASSERT( Capacity() >= count );
-					data[size = count] = '\0';
-				}
-
-				void Shrink(uint length=1)
-				{
-					NST_ASSERT( size >= length );
-					data[size -= length] = '\0';
-				}
-
-				void Grow(uint length=1)
-				{
-					Resize( size + length );
-				}
-
-				void Remove(const int c)
-				{
-					size = Private::Remove( data, size, c );
-				}
-
-				void Trim()
-				{
-					size = Private::Trim( data, size );
-				}
-
-				uint Size() const													 
-				{
-					return size;
-				}
-
-				ibool Empty() const
-				{
-					return !size;
-				}
-
-				void Clear()
-				{
-					data[size = 0] = '\0';
-				}
-
-				uint Validate()
-				{
-					return size = Length(data);
-				}
-
-				char& Front()
-				{
-					NST_ASSERT( size );
-					return *data;
-				}
-
-				const char& Front() const
-				{
-					NST_ASSERT( size );
-					return *data;
-				}
-
-				char& Back()
-				{
-					NST_ASSERT( size );
-					return data[size - 1];
-				}
-
-				const char& Back() const
-				{
-					NST_ASSERT( size );
-					return data[size - 1];
-				}
-
-				char* Begin()
-				{
-					return data;
-				}
-
-				const char* Begin() const
-				{
-					return data;
-				}
-
-				char* End()
-				{
-					return data + size;
-				}
-
-				const char* End() const
-				{
-					return data + size;
-				}
-
-				operator char* ()
-				{
-					return data;
-				}
-
-				operator cstring () const
-				{
-					return data;
-				}
-
-				template<typename T> ibool operator == (const T& t) const { return  Comparer<Base>::IsEqual       ( *this, t ); }
-				template<typename T> ibool operator != (const T& t) const { return !Comparer<Base>::IsEqual       ( *this, t ); }
-				template<typename T> ibool operator <  (const T& t) const { return  Comparer<Base>::IsLess        ( *this, t ); }
-				template<typename T> ibool operator <= (const T& t) const { return  Comparer<Base>::IsLessOrEqual ( *this, t ); }
-				template<typename T> ibool operator >  (const T& t) const { return !Comparer<Base>::IsLessOrEqual ( *this, t ); }
-				template<typename T> ibool operator >= (const T& t) const { return !Comparer<Base>::IsLess        ( *this, t ); }
-
-				friend ibool operator == (const char* c,const Base& b) { return b == c; }
-				friend ibool operator != (const char* c,const Base& b) { return b != c; }
-				friend ibool operator <  (const char* c,const Base& b) { return b >= c; }
-				friend ibool operator <= (const char* c,const Base& b) { return b >  c; }
-				friend ibool operator >  (const char* c,const Base& b) { return b <= c; }
-				friend ibool operator >= (const char* c,const Base& b) { return b <  c; }
-
-				friend ibool operator == (char* c,const Base& b) { return b == c; }
-				friend ibool operator != (char* c,const Base& b) { return b != c; }
-				friend ibool operator <  (char* c,const Base& b) { return b >= c; }
-				friend ibool operator <= (char* c,const Base& b) { return b >  c; }
-				friend ibool operator >  (char* c,const Base& b) { return b <= c; }
-				friend ibool operator >= (char* c,const Base& b) { return b <  c; }
-
-				Sub1 operator () (uint pos)
-				{
-					return Sub1( *this, pos );
-				}
-
-				const Generic operator () (uint pos) const
-				{
-					return Generic( data + pos, size - pos );
-				}
-
-				Sub2 operator () (uint pos,uint length)
-				{
-					return Sub2( *this, pos, length );
-				}
-
-				const Generic operator () (uint pos,uint length) const
-				{
-					return Generic( data + pos, length );
-				}
-
-				Sub2 Find(const Generic needle)
-				{
-					cstring offset = Private::Find( data, needle, needle.Size() );
-
-					return Sub2
-					( 
-						*this,
-						offset ? offset - data : size, 
-						offset ? length : 0 
-					);
-				}
-
-				const Generic Find(const Generic needle) const
-				{
-					cstring offset = Private::Find( data, needle, needle.Size() );
-
-					return Generic
-					( 
-						offset ? offset : data + size, 
-						offset ? needle.Size() : 0 
-					);
-				}
-
-				ibool Has(const Generic needle) const
-				{
-					return Private::Find( data, needle, needle.Size() ) != NULL;
-				}
-
-				uint FindFirstOf      (int c) const { return Private::FindFirstOf      ( c, data, size ); }
-				uint FindFirstNotOf   (int c) const { return Private::FindFirstNotOf   ( c, data, size ); }
-				uint FindLastOf       (int c) const { return Private::FindLastOf       ( c, data, size ); }
-				uint FindLastNotOf    (int c) const { return Private::FindLastNotOf    ( c, data, size ); }
-				uint FindAfterFirstOf (int c) const { return Private::FindAfterFirstOf ( c, data, size ); }
-				uint FindAfterLastOf  (int c) const { return Private::FindAfterLastOf  ( c, data, size ); }
-
-				Sub1 FirstOf      (int c) { return Sub1( *this, FindFirstOf      (c) ); }
-				Sub1 AfterFirstOf (int c) { return Sub1( *this, FindAfterFirstOf (c) ); }
-				Sub1 FirstNotOf   (int c) { return Sub1( *this, FindFirstNotOf   (c) ); }
-				Sub1 AfterLastOf  (int c) { return Sub1( *this, FindAfterLastOf  (c) ); }
-				Sub1 LastOf       (int c) { return Sub1( *this, FindLastOf       (c) ); }
-				Sub1 LastNotOf    (int c) { return Sub1( *this, FindLastNotOf    (c) ); }
-
-				const Generic FirstOf      (int c) const { uint p = FindFirstOf      (c); return Generic( data + p, size - p ); }
-				const Generic AfterFirstOf (int c) const { uint p = FindAfterFirstOf (c); return Generic( data + p, size - p ); }
-				const Generic FirstNotOf   (int c) const { uint p = FindFirstNotOf   (c); return Generic( data + p, size - p ); }
-				const Generic LastOf       (int c) const { uint p = FindLastOf       (c); return Generic( data + p, size - p ); }
-				const Generic AfterLastOf  (int c) const { uint p = FindAfterLastOf  (c); return Generic( data + p, size - p ); }
-				const Generic LastNotOf    (int c) const { uint p = FindLastNotOf    (c); return Generic( data + p, size - p ); }
-
-				void MakeLowerCase()
-				{
-					Private::MakeLowerCase( data, size );
-				}
-
-				void MakeUpperCase()
-				{
-					Private::MakeLowerCase( data, size );
-				}
-			};
+				string = buffer + (g.string - g.buffer);
+				Base::Copy( buffer, g.buffer, MAX_INT_LENGTH );
+			}
 		}
 
-		template<uint N>
-		class Stack : public Private::Base<N,false>
+		template<typename T>
+		class Sub : protected Base
 		{
-			typedef Private::Base<N,false> Base;
+		public:
+
+			typedef typename T::Type Type;
+
+			enum
+			{
+				TYPE_SIZE = typename T::TYPE_SIZE
+			};
+
+			template<typename U> 
+			void Assign(const U* NST_RESTRICT,uint);
+
+		protected:
+
+			T& string;
+			uint offset;
+			uint length;
 
 		public:
 
-			Stack() {}
+			Sub(T& t,uint o)
+			: string(t), offset(o), length(t.Length() - offset) 
+			{
+				NST_ASSERT( offset + length <= string.Length() );
+			}
 
-			Stack(const Stack& s)
-			: Base(static_cast<const Base&>(s)) {}
+			Sub(T& t,uint o,uint l)
+			: string(t), offset(o), length(l) 
+			{
+				NST_ASSERT( offset + length <= string.Length() );
+			}
+
+			template<typename U>
+			Sub& operator = (const U& t)
+			{
+				Assign( Base::GetPtr(t), Base::GetLength(t) );
+				return *this;
+			}
+  
+			Sub& operator = (Type c)
+			{
+				Assign( &c, 1 ); 
+				return *this; 
+			}
+
+			Sub& operator = (int    i) { Base::AssignSigned   ( *this, i ); return *this; }
+			Sub& operator = (uint   i) { Base::AssignUnsigned ( *this, i ); return *this; }
+			Sub& operator = (schar  i) { Base::AssignSigned   ( *this, i ); return *this; }
+			Sub& operator = (uchar  i) { Base::AssignUnsigned ( *this, i ); return *this; }
+			Sub& operator = (short  i) { Base::AssignSigned   ( *this, i ); return *this; }
+			Sub& operator = (ushort i) { Base::AssignUnsigned ( *this, i ); return *this; }
+			Sub& operator = (long   i) { Base::AssignSigned   ( *this, i ); return *this; }
+			Sub& operator = (ulong  i) { Base::AssignUnsigned ( *this, i ); return *this; }
+
+			template<typename U>
+			bool operator >> (U& t) const
+			{
+				return Base::ConvertToUnsigned( *this, t );
+			}
+
+			void Clear()
+			{
+				if (const uint n = length)
+				{
+					length = 0;
+					string.Erase( offset, n );
+				}
+			}
+
+			uint Length() const
+			{
+				return length;
+			}
+
+			bool Empty() const
+			{
+				return !length;
+			}
+
+			Type* Ptr()
+			{
+				return string.Ptr() + offset;
+			}
+
+			const Type* Ptr() const
+			{
+				return string.Ptr() + offset;
+			}
+
+			Type& operator [] (uint i)
+			{
+				NST_ASSERT( i < length );
+				return string[offset+i];
+			}
+
+			const Type& operator [] (uint i) const
+			{
+				NST_ASSERT( i < length );
+				return string[offset+i];
+			}
+
+			Type& Front()
+			{
+				NST_ASSERT( length );
+				return string[offset];
+			}
+
+			const Type& Front() const
+			{
+				NST_ASSERT( length );
+				return string[offset];
+			}
+
+			Type& Back()
+			{
+				NST_ASSERT( length );
+				return string[offset+length-1];
+			}
+
+			const Type& Back() const
+			{
+				NST_ASSERT( length );
+				return string[offset+length-1];
+			}
+
+			bool Wide() const
+			{
+				return Base::Wide( Ptr(), Length() );
+			}
+
+			Generic<Type> operator () (uint p) const
+			{
+				NST_ASSERT( p <= length );
+				return Generic<Type>( string.Ptr() + offset + p, length - p );
+			}
+
+			Generic<Type> operator () (uint p,uint l) const
+			{
+				NST_ASSERT( p + l <= length );
+				return Generic<Type>( string.Ptr() + offset + p, l );
+			}
 
 			template<typename T> 
-			Stack(const T& t)
-			: Base(t) {}
-
-			Stack(cstring c,uint l)
-			: Base(c,l) {}
-
-			template<typename T>
-			Stack& operator = (const T& t)
-			{
-				Assign( t );
-				return *this;
-			}
-
-			template<typename T>
-			Stack& operator << (const T& t)
-			{
-				Append( t );
-				return *this;
-			}
-
-			template<typename T>
-			ibool operator >> (T& t) const
-			{
-				return ToInteger( t );
-			}
-		};
-
-		class Heap : public Private::Base<0,false>
-		{
-			typedef Private::Base<0,false> Base;
-
-		public:
-
-			Heap() {}
-
-			Heap(const Heap& h)
-			: Base(static_cast<const Base&>(h)) {}
-
-			template<typename T> 
-			Heap(const T& t)
-			: Base(t) {}
-
-			Heap(cstring c,uint l)
-			: Base(c,l) {}
-
-			template<typename T>
-			Heap& operator = (const T& t)
-			{
-				Assign( t );
-				return *this;
-			}
-
-			template<typename T>
-			Heap& operator << (const T& t)
-			{
-				Append( t );
-				return *this;
-			}
-
-			template<typename T>
-			ibool operator >> (T& t) const
-			{
-				return ToInteger( t );
-			}
-		};
-
-		template<uint N>
-		class Smart : public Private::Base<N,true>
-		{
-			typedef Private::Base<N,true> Base;
-
-		public:
-
-			Smart() {}
-
-			Smart(const Smart& s)
-			: Base(static_cast<const Base&>(s)) {}
-
-			template<typename T> 
-			Smart(const T& t)
-			: Base(t) {}
-
-			Smart(cstring c,uint l)
-			: Base(c,l) {}
-
-			template<typename T>
-			Smart& operator = (const T& t)
-			{
-				Assign( t );
-				return *this;
-			}
-
-			template<typename T>
-			Smart& operator << (const T& t)
-			{
-				Append( t );
-				return *this;
-			}
-
-			template<typename T>
-			ibool operator >> (T& t) const
-			{
-				return ToInteger( t );
-			}
-		};
-
-		template<uint N=0>
-		class Stream : protected Private::Base<N,N ? true : false>
-		{
-			typedef Private::Base<N,N ? true : false> Base;
-
-		public:
-
-			Stream() {}
-
-			Stream(const Generic& string)
-			{
-				Parse( string, string.Size() );
-			}
-
-			Stream(cstring string,uint length)
-			{
-				Parse( string, length );
-			}
-
-			const Generic operator () (cstring begin,cstring end) const
+			bool IsEqual(const T& t) const 
 			{ 
-				return Generic( begin, end - begin ); 
+				return Base::IsCaseEqual( *this, t );
 			}
 
-			using Base::Size;
-
-			operator cstring () const
-			{
-				return data;
-			}
+			template<typename U> bool operator == (const U& t) const { return  Base::IsEqual( *this, t );      }
+			template<typename U> bool operator != (const U& t) const { return !Base::IsEqual( *this, t );      }
+			template<typename U> bool operator <  (const U& t) const { return  Base::Compare( *this, t ) <  0; }
+			template<typename U> bool operator <= (const U& t) const { return  Base::Compare( *this, t ) <= 0; }
+			template<typename U> bool operator >  (const U& t) const { return  Base::Compare( *this, t ) >  0; }
+			template<typename U> bool operator >= (const U& t) const { return  Base::Compare( *this, t ) >= 0; }
 		};
 
-		template<bool B=false>
-		class Path : public Private::Base<B ? _MAX_PATH : 0, B ? true : false>
+		template<typename T> template<typename U>
+		void Sub<T>::Assign(const U* NST_RESTRICT const t,const uint n)
 		{
-			typedef Private::Base<B ? _MAX_PATH : 0,B ? true : false> Base;
+			const uint l = length;
+			length = n;
+			string.Erase( offset, l );
+			string.Insert( offset, t, n );
+		}
 
+		template<uint N,typename T=tchar>
+		class Stack : Base
+		{
 		public:
 
-			Path(Generic,Generic,Generic);
+			typedef T Type;
+			typedef Sub< Stack<N,Type> > SubString;
 
-			void Set(Generic,Generic,Generic);
-
-			static Path Compact(Generic,uint);
+			enum
+			{
+				TYPE_SIZE = sizeof(Type),
+				MAX_LENGTH = N
+			};
+			
+			template<typename U> void Assign(const U* NST_RESTRICT,uint);
+			template<typename U> void Append(const U* NST_RESTRICT,uint);
+			template<typename U> void Insert(const uint,const U* NST_RESTRICT,uint);
+			void Erase(uint,uint);
 
 		private:
 
-			uint FindDirectory() const;
-			uint FindExtension() const;
-			uint FindArchive() const;
-			void FindFileInArchive(uint (&)[2]) const;
+			template<typename U> void Assign(const U* NST_RESTRICT);
+			template<typename U> void Append(const U* NST_RESTRICT);
 
+			enum
+			{
+				STACK_LENGTH = (N + 4U) & ~3U
+			};
+
+			uint length;
+
+			union
+			{
+				Type string[STACK_LENGTH];
+				u32 empty;
+			};
+
+		public:
+
+			Stack()
+			: length(0), empty(0) {}
+
+			Stack(const Stack& t)
+			{
+				Assign( t.Ptr(), t.Length() );
+			}
+
+			template<typename U>
+			Stack(const U* u,uint n)
+			{
+				Assign( u, n );
+			}
+
+			template<typename U>
+			Stack(const U& t)
+			{
+				Assign( t.Ptr(), t.Length() );
+			}
+
+			template<typename U>
+			Stack(const U* const& t)
+			{
+				Assign( t );
+			}
+
+			template<typename U>
+			Stack(U* const& t)
+			{
+				Assign( t );
+			}
+
+			template<typename U,size_t N>
+			Stack(const U (&t)[N])
+			{
+				Assign( t );
+			}
+
+			Stack& operator = (const Stack& t)
+			{
+				Assign( t.Ptr(), t.Length() );
+				return *this;
+			}
+
+			template<typename U>
+			Stack& operator = (const U& t)
+			{
+				Assign( t.Ptr(), t.Length() );
+				return *this;
+			}
+
+			template<typename U>
+			Stack& operator = (const U* const& t)
+			{
+				Assign( t );
+				return *this;
+			}
+
+			template<typename U>
+			Stack& operator = (U* const& t)
+			{
+				Assign( t );
+				return *this;
+			}
+
+			template<typename U,size_t N>
+			Stack& operator = (const U (&t)[N])
+			{
+				Assign( t );
+				return *this;
+			}
+
+			template<typename U>
+			Stack& operator << (const U& t)
+			{
+				Base::Append( *this, t );
+				return *this;
+			}
+
+			template<typename U>
+			bool operator >> (U& t) const
+			{
+				return Base::ConvertToUnsigned( *this, t );
+			}
+
+			uint Length() const
+			{
+				return length;
+			}
+
+			bool Empty() const
+			{
+				return !length;
+			}
+
+			Type* Ptr()
+			{
+				return string;
+			}
+
+			const Type* Ptr() const
+			{
+				return string;
+			}
+
+			Type& operator [] (uint i)
+			{
+				NST_ASSERT( i < MAX_LENGTH );
+				return string[i];
+			}
+
+			const Type& operator [] (uint i) const
+			{
+				NST_ASSERT( i < MAX_LENGTH );
+				return string[i];
+			}
+
+			Type& At(uint i)
+			{
+				NST_ASSERT( i < MAX_LENGTH );
+				return string[i];
+			}
+
+			const Type& At(uint i) const
+			{
+				NST_ASSERT( i < MAX_LENGTH );
+				return string[i];
+			}
+
+			Type& Front()
+			{
+				NST_ASSERT( length );
+				return string[0];
+			}
+
+			const Type& Front() const
+			{
+				NST_ASSERT( length );
+				return string[0];
+			}
+
+			Type& Back()
+			{
+				NST_ASSERT( length );
+				return string[length-1];
+			}
+
+			const Type& Back() const
+			{
+				NST_ASSERT( length );
+				return string[length-1];
+			}
+
+			void Clear()
+			{
+				length = 0;
+				empty = 0;
+			}
+
+			bool Wide() const
+			{
+				return Base::Wide( Ptr(), Length() );
+			}
+
+			uint Validate()
+			{
+				return length = Base::Length(string);
+			}
+
+			void Resize(uint n)
+			{
+				NST_ASSERT( n <= MAX_LENGTH );
+				string[length=n] = '\0';
+			}
+
+			void ShrinkTo(uint n)
+			{
+				Resize( n );
+			}
+  
+			Generic<Type> operator () (uint p) const
+			{
+				NST_ASSERT( p <= length );
+				return Generic<Type>( string + p, length - p );
+			}
+
+			Generic<Type> operator () (uint p,uint l) const
+			{
+				NST_ASSERT( p + l <= length );
+				return Generic<Type>( string + p, l );
+			}
+
+			SubString operator () (uint p)
+			{
+				NST_ASSERT( p <= length );
+				return SubString( *this, p, length - p );
+			}
+
+			SubString operator () (uint p,uint l)
+			{
+				NST_ASSERT( p + l <= length );
+				return SubString( *this, p, l );
+			}
+
+			template<typename T> 
+			bool IsEqual(const T& t) const 
+			{ 
+				return Base::IsCaseEqual( *this, t );
+			}
+
+			template<typename U> bool operator == (const U& t) const { return  Base::IsEqual( *this, t );      }
+			template<typename U> bool operator != (const U& t) const { return !Base::IsEqual( *this, t );      }
+			template<typename U> bool operator <  (const U& t) const { return  Base::Compare( *this, t ) <  0; }
+			template<typename U> bool operator <= (const U& t) const { return  Base::Compare( *this, t ) <= 0; }
+			template<typename U> bool operator >  (const U& t) const { return  Base::Compare( *this, t ) >  0; }
+			template<typename U> bool operator >= (const U& t) const { return  Base::Compare( *this, t ) >= 0; }
+		};
+
+		template<uint N,typename T> template<typename U>
+		void Stack<N,T>::Assign(const U* NST_RESTRICT const t)
+		{
+			NST_ASSERT( Base::Length(t) <= MAX_LENGTH );
+
+			uint i = ~0U;
+			Type c;
+
+			do 
+			{
+				++i;
+				string[i] = c = t[i];
+			} 
+			while (c);
+
+			length = i;
+		}
+
+		template<uint N,typename T> template<typename U>
+		void Stack<N,T>::Assign(const U* NST_RESTRICT const t,const uint n)
+		{
+			NST_ASSERT( t && n <= MAX_LENGTH );
+
+			length = n;
+			Base::Copy( string, t, n );
+			string[n] = '\0';
+		}
+
+		template<uint N,typename T> template<typename U>
+		void Stack<N,T>::Append(const U* NST_RESTRICT const t)
+		{
+			NST_ASSERT( length + Base::Length(t) <= MAX_LENGTH );
+
+			uint i = length - 1U;
+			Type c;
+
+			do 
+			{
+				++i;
+				string[i] = c = t[i];
+			} 
+			while (c);
+
+			length = i;
+		}
+
+		template<uint N,typename T> template<typename U>
+		void Stack<N,T>::Append(const U* NST_RESTRICT const t,const uint n)
+		{
+			NST_ASSERT( t && length + n <= MAX_LENGTH );
+
+			Type* const offset = string + length; 
+			length += n;
+			Base::Copy( offset, t, n );
+			offset[n] = '\0';
+		}
+
+		template<uint N,typename T>
+		void Stack<N,T>::Erase(const uint p,const uint n)
+		{
+			NST_ASSERT( p + n <= length );
+			
+			const uint l = length;
+			length -= n;
+			Base::Move( string + p, string + p + n, (l + 1) - (p + n) );
+		}
+
+		template<uint N,typename T> template<typename U>
+		void Stack<N,T>::Insert(const uint pos,const U* NST_RESTRICT const t,const uint n)
+		{
+			NST_ASSERT( length + n <= MAX_LENGTH );
+
+			if (n)
+			{
+				const uint p = length;
+				length += n;
+				Base::Move( string + pos + n, string + pos, p + 1 - pos );
+				Base::Copy( string + pos, t, n );
+			}
+		}
+
+		template<typename T=tchar>
+		class Heap : Base
+		{
+		public:
+
+			typedef T Type;
+			typedef Sub< Heap<Type> > SubString;
+
+			enum
+			{
+				TYPE_SIZE = sizeof(Type)
+			};
+
+			template<typename U> void Assign(const U* NST_RESTRICT,uint);
+			template<typename U> void Append(const U* NST_RESTRICT,uint);
+			template<typename U> void Insert(uint,const U* NST_RESTRICT,uint);
+
+			void Reserve(uint);
+			void Resize(uint);
+			void Defrag();
+			void Destroy();
+			void Erase(uint,uint);
+			uint Remove(Type);
+			uint Trim();			
+
+		private:
+
+			template<typename U> void Init(const U* NST_RESTRICT,uint);
+			template<typename U> void Assign(const U* NST_RESTRICT);
+			template<typename U> void Append(const U* NST_RESTRICT);
+
+			Type* string;
+			uint length;
+			uint capacity;
+
+			static Type empty[4];
+
+			void Allocate(const uint size)
+			{
+				NST_ASSERT( size && size+1 );
+				string = (Type*) std::malloc( (size+1) * TYPE_SIZE );
+			}
+
+			void Reallocate(const uint size)
+			{
+				NST_ASSERT( size && size+1 );
+				string = (Type*) std::realloc( string, (size+1) * TYPE_SIZE );
+			}
+
+			void Free()
+			{
+				Type* tmp = string;
+				string = empty;
+				std::free( tmp );
+			}
+							   
+			template<typename U>
+			void Copy(const U* NST_RESTRICT const t,const uint n)
+			{
+				NST_ASSERT( t );
+				Base::Copy( string, t, n );
+				string[n] = '\0';
+			}
+
+		public:
+
+			Heap()
+			: string(empty), length(0), capacity(0) 
+			{
+				NST_ASSERT( !*empty );
+			}
+
+			Heap(const Heap& t)
+			{
+				Init( t.Ptr(), t.Length() );
+			}
+
+			template<typename U>
+			Heap(const U& t)
+			{
+				Init( Base::GetPtr(t), Base::GetLength(t) );
+			}
+
+			template<typename U>
+			Heap(const U* t,uint n)
+			{
+				Init( t, n );
+			}
+
+			~Heap()
+			{
+				if (capacity)
+					std::free( string );
+			}
+
+			Heap& operator = (const Heap& t)
+			{
+				Assign( t.Ptr(), t.Length() );
+				return *this;
+			}
+
+			template<typename U>
+			Heap& operator = (const U& t)
+			{
+				Assign( Base::GetPtr(t), Base::GetLength(t) );
+				return *this;
+			}
+
+			template<typename U>
+			Heap& operator << (const U& t)
+			{
+				Base::Append( *this, t );
+				return *this;
+			}
+
+			template<typename U>
+			bool operator >> (U& t) const
+			{
+				return Base::ConvertToUnsigned( *this, t );
+			}
+
+			template<typename U>
+			void Insert(const uint pos,const U& t)
+			{
+				Insert( pos, Base::GetPtr(t), Base::GetLength(t) );
+			}
+
+			void ShrinkTo(uint n)
+			{
+				NST_ASSERT( capacity >= n );
+				string[length = n] = '\0';
+			}
+
+			void Clear()
+			{
+				string[length = 0] = '\0';
+			}
+
+			uint Validate()
+			{
+				return length = Base::Length(string);
+			}
+
+			uint Length() const
+			{
+				return length;
+			}
+
+			uint Capacity() const
+			{
+				return capacity;
+			}
+
+			bool Empty() const
+			{
+				return !length;
+			}
+
+			Type* Ptr()
+			{
+				return string;
+			}
+
+			const Type* Ptr() const
+			{
+				return string;
+			}
+
+			Type& operator [] (uint i)
+			{
+				return string[i];
+			}
+
+			const Type& operator [] (uint i) const
+			{
+				return string[i];
+			}
+
+			Type& At(uint i)
+			{
+				return string[i];
+			}
+
+			const Type& At(uint i) const
+			{
+				return string[i];
+			}
+
+			Type& Front()
+			{
+				NST_ASSERT( length );
+				return string[0];
+			}
+
+			const Type& Front() const
+			{
+				NST_ASSERT( length );
+				return string[0];
+			}
+
+			Type& Back()
+			{
+				NST_ASSERT( length );
+				return string[length-1];
+			}
+
+			const Type& Back() const
+			{
+				NST_ASSERT( length );
+				return string[length-1];
+			}
+
+			bool Wide() const
+			{
+				return Base::Wide( Ptr(), Length() );
+			}
+
+			Generic<Type> operator () (uint p) const
+			{
+				NST_ASSERT( p <= length );
+				return Generic<Type>( string + p, length - p );
+			}
+
+			Generic<Type> operator () (uint p,uint l) const
+			{
+				NST_ASSERT( p + l <= length );
+				return Generic<Type>( string + p, l );
+			}
+
+			SubString operator () (uint p)
+			{
+				NST_ASSERT( p <= length );
+				return SubString( *this, p, length - p );
+			}
+
+			SubString operator () (uint p,uint l)
+			{
+				NST_ASSERT( p + l <= length );
+				return SubString( *this, p, l );
+			}
+
+			uint FindFirstOf(const Type c,const uint length)
+			{
+				for (uint i=0; i < length; ++i)
+					if (string[i] == c)
+						return i;
+
+				return length;
+			}
+
+			uint FindFirstOf(const Type c)
+			{
+				return FindFirstOf( c, length );
+			}
+
+			uint FindFirstNotOf(const Type c,const uint length)
+			{
+				for (uint i=0; i < length; ++i)
+					if (string[i] != c)
+						return i;
+
+				return length;
+			}
+
+			uint FindLastOf(const Type c,const uint length)
+			{
+				for (uint i=length; i; )
+					if (string[--i] == c)
+						return i;
+
+				return length;
+			}
+
+			uint FindLastNotOf(const Type c,const uint length)
+			{
+				for (uint i=length; i; )
+					if (string[--i] != c)
+						return i;
+
+				return length;
+			}
+
+			SubString FirstOf(Type c) 
+			{ 
+				uint first = FindFirstOf(c,length);
+				return SubString( *this, first, length - first ); 
+			}
+
+			template<typename U> bool operator == (const U& t) const { return  Base::IsEqual( *this, t );      }
+			template<typename U> bool operator != (const U& t) const { return !Base::IsEqual( *this, t );      }
+			template<typename U> bool operator <  (const U& t) const { return  Base::Compare( *this, t ) <  0; }
+			template<typename U> bool operator <= (const U& t) const { return  Base::Compare( *this, t ) <= 0; }
+			template<typename U> bool operator >  (const U& t) const { return  Base::Compare( *this, t ) >  0; }
+			template<typename U> bool operator >= (const U& t) const { return  Base::Compare( *this, t ) >= 0; }
+		};
+
+		template<typename T>
+		typename Heap<T>::Type typename Heap<T>::empty[4] = {'\0','\0','\0','\0'};
+
+		template<typename T> template<typename U>
+		void Heap<T>::Init(const U* NST_RESTRICT const t,const uint n)
+		{
+			NST_ASSERT( t && !*empty );
+
+			if (0 != (capacity = length = n))
+			{
+				Allocate( n );
+				Copy( t, n );
+			}
+			else
+			{
+				string = empty;
+			}
+		}
+
+		template<typename T>
+		void Heap<T>::Reserve(const uint n)
+		{
+			if (capacity < n)
+			{
+				uint prev = capacity;
+				capacity = n;
+
+				if (prev)
+				{
+					Reallocate( n );
+				}
+				else
+				{
+					Allocate( n );
+					string[0] = '\0';
+				}
+			}
+		}
+
+		template<typename T>
+		void Heap<T>::Resize(uint n)
+		{
+			Reserve( n );
+			string[length = n] = '\0';
+		}
+
+		template<typename T>
+		void Heap<T>::Destroy()
+		{
+			if (capacity)
+			{
+				length = capacity = 0;
+				Free();
+			}
+		}
+
+		template<typename T> template<typename U>
+		void Heap<T>::Assign(const U* NST_RESTRICT t,uint n)
+		{		
+			Resize( n );
+			Copy( t, n );
+		}
+
+		template<typename T> template<typename U>
+		void Heap<T>::Assign(const U* NST_RESTRICT t)
+		{
+			Assign( t, Base::Length(t) );
+		}
+
+		template<typename T> template<typename U>
+		void Heap<T>::Append(const U* NST_RESTRICT t,uint n)
+		{	
+			if (capacity < length + n)
+			{
+				uint prev = capacity;
+				capacity = capacity * 2 + n;
+
+				if (prev)
+					Reallocate( capacity );
+				else
+					Allocate( capacity );
+			}
+
+			Type* const offset = string + length;
+			length += n;
+			Base::Copy( offset, t, n );
+			offset[n] = '\0';
+		}
+
+		template<typename T> template<typename U>
+		void Heap<T>::Append(const U* NST_RESTRICT t)
+		{
+			Append( t, Base::Length(t) );
+		}
+
+		template<typename T> template<typename U>
+		void Heap<T>::Insert(const uint pos,const U* NST_RESTRICT const t,const uint n)
+		{
+			if (n)
+			{
+				if (capacity >= length + n)
+				{
+					Base::Move( string + pos + n, string + pos, length + 1 - pos );
+				}
+				else
+				{
+					capacity = NST_MAX(capacity * 2,length + n);
+
+					Type* const next = (Type*) std::malloc( (capacity+1) * TYPE_SIZE );
+
+					Base::Copy( next, string, pos );
+					Base::Copy( next + pos + n, string + pos, length + 1 - pos );
+
+					if (string != empty)
+						std::free( string );
+
+					string = next;
+				}
+
+				length += n;
+				Base::Copy( string + pos, t, n );
+			}
+		}
+
+		template<typename T>
+		void Heap<T>::Erase(const uint p,const uint n)
+		{
+			NST_ASSERT( p + n <= length );
+
+			const uint l = length;
+			length -= n;
+			Base::Move( string + p, string + p + n, (l + 1) - (p + n) );
+		}
+
+		template<typename T>
+		uint Heap<T>::Remove(const Type c)
+		{
+			NST_ASSERT( c != '\0' );
+
+			if (length)
+			{
+				Type* it = string;
+				const Type* next = string;
+				const Type* const end = string + length;
+
+				do
+				{
+					if (*next != c)
+						*it++ = *next;
+				}
+				while (++next != end);
+
+				const uint p = it - string;
+				string[length = p] = '\0';
+				return p;
+			}
+
+			return 0;
+		}
+
+		template<typename T>
+		void Heap<T>::Defrag()
+		{
+			if (capacity != length)
+			{
+				capacity = length;
+
+				if (length)
+					Reallocate( length );
+				else
+					Free();
+			}
+		}
+
+		template<typename T>
+		uint Heap<T>::Trim()
+		{
+			uint last = FindLastNotOf( ' ', length );
+
+			if (last != length)
+			{
+				if (uint first = FindFirstNotOf( ' ', ++last ))
+				{
+					last -= first;
+					Base::Move( string, string + first, last );
+				}
+			}
+			else
+			{
+				last = 0;
+			}
+
+			string[last] = '\0';
+
+			return last;
+		}
+
+		template<typename T=tchar>
+		class Path : public Heap<T>
+		{
 		public:
 
 			Path() {}
 
+			Path(Generic<Type>,Generic<Type>,Generic<Type> = Generic<Type>());
+
 			Path(const Path& p)
-			: Base(static_cast<const Base&>(p)) {}
+			: Heap(static_cast<const Heap&>(p)) {}
 
-			template<typename T> 
-			Path(const T& t)
-			: Base(t) {}
+			template<typename U> 
+			Path(const U& t)
+			: Heap(t) {}
 
-			Path(cstring c,uint l)
-			: Base(c,l) {}
-
-			template<typename T>
-			Path& operator = (const T& t)
+			Path& operator = (const Path& t)
 			{
-				Assign( t );
+				Heap::operator = (static_cast<const Heap&>(t));
 				return *this;
 			}
 
-			template<typename T>
-			Path& operator << (const T& t)
+			template<typename U>
+			Path& operator = (const U& t)
 			{
-				Append( t );
+				Heap::operator = (t);
 				return *this;
 			}
+
+			template<typename U>
+			Path& operator << (const U& t)
+			{
+				Heap::operator << (t);
+				return *this;
+			}
+
+			void Set(Generic<Type>,Generic<Type>,Generic<Type> = Generic<Type>());
+			void CheckSlash();
+
+			static const Path Compact(Generic<Type>,uint);
 
 		private:
 
-			class DirectorySub : public Private::Subset2<Path>
+			static ibool Compact(T*,const T*,uint);
+
+			uint FindDirectory() const;
+			void FindExtension(uint (&)[2]) const;
+			uint FindArchive() const;
+			void FindFileInArchive(uint (&)[2]) const;
+			static uint ExtensionId(const Type* NST_RESTRICT,uint);
+
+			class DirectorySub : public SubString
 			{		
 			public:
 
 				DirectorySub(Path& path,uint length)
-				: Private::Subset2<Path>( path, 0, length ) {}
+				: SubString( path, 0, length ) {}
 
-				void operator = (Generic);
-				void operator += (Generic);
+				void operator  = (Generic<Type>);
+				void operator += (Generic<Type>);
 				void operator -= (uint);
-
-				void Validate();
-
-				void Clear()
-				{
-					Erase();
-				}
 			};
 
-			class FileSub : public Private::Subset1<Path>
+			class ExtensionSub : public SubString
 			{
 			public:
 
-				FileSub(Path& path,uint pos)
-				: Private::Subset1<Path>( path, pos ) {}
+				ExtensionSub(Path& path,uint pos,uint length)
+				: SubString( path, pos, length ) {}
 
-				void operator = (const Generic& input)
-				{
-					Replace( input, input.Size() );
-				}
-
-				void Clear()
-				{
-					Erase();
-				}
-			};
-
-			class ExtensionSub : public Private::Subset1<Path>
-			{
-				void Set(const char* NST_RESTRICT,uint);
-
-			public:
-
-				ExtensionSub(Path& path,uint pos)
-				: Private::Subset1<Path>( path, pos ) {}
-
-				void operator = (const Generic& input)
-				{
-					Set( input, input.Size() );
-				}
-
-				uint Id() const
-				{
-					return string.size >= 3 ? Private::ExtensionId( string.data + pos ) : 0;
-				}
-
+				void Assign(const Type* NST_RESTRICT,uint);
 				void Clear();
+
+				template<typename U>
+				void operator = (const U& t)
+				{
+					Assign( Base::GetPtr(t), Base::GetLength(t) );
+				}
+
+				uint Id() const
+				{
+					return ExtensionId( Ptr(), Length() );
+				}
 			};
 
-			class ConstExtensionSub : public Generic
+			class ConstExtensionSub : public Generic<Type>
 			{
 			public:
 
-				ConstExtensionSub(cstring string,uint length)
+				ConstExtensionSub(const Type* string,uint length)
 				: Generic( string, length ) {}
 
 				uint Id() const
 				{
-					return size >= 3 ? Private::ExtensionId( string ) : 0;
+					return ExtensionId( Ptr(), Length() );
 				}
 			};
 
-			class ArchiveFileSub : public Generic
+			class ArchiveFileSub : public Generic<Type>
 			{
 			public:
 
-				ArchiveFileSub(cstring string,uint length)
+				ArchiveFileSub(const Type* string,uint length)
 				: Generic( string, length ) {}
 
-				Generic File() const
+				const Generic File() const
 				{
-					for (uint i=size; i; )
+					for (uint i=length; i; )
 					{
 						switch (string[--i])
 						{
-				    		case '\\':
-				    		case '/': return Generic( string + i + 1, size - (i + 1) );
+							case '\\':
+							case '/': return Generic( string + i + 1, length - (i + 1) );
 						}
 					}
 
-					return Generic( string, size );
+					return *this;
 				}
 			};
 
 		public:
-
+  
 			DirectorySub Directory()
 			{
 				return DirectorySub( *this, FindDirectory() );
 			}
 
-			const Generic Directory() const
+			const Generic<Type> Directory() const
 			{
-				return Generic( data, FindDirectory() );
+				return Generic<Type>( Ptr(), FindDirectory() );
 			}
-
-			FileSub File()
+  
+			SubString File()
 			{
-				return FileSub( *this, FindDirectory() );
+				return SubString( *this, FindDirectory() );
 			}
-
-			const Generic File() const
+  
+			const Generic<Type> File() const
 			{
 				uint p = FindDirectory();
-				return Generic( data + p, size - p );
+				return Generic<Type>( Ptr() + p, Length() - p );
 			}
-
+  
 			ExtensionSub Extension()
 			{
-				return ExtensionSub( *this, FindExtension() );
+				uint p[2];
+				FindExtension( p );
+				return ExtensionSub( *this, p[0], p[1] );
 			}
 
-			ConstExtensionSub Extension() const
+			const ConstExtensionSub Extension() const
 			{
-				uint p = FindExtension();
-				return ConstExtensionSub( data + p, size - p );
+				uint p[2];
+				FindExtension( p );
+				return ConstExtensionSub( Ptr() + p[0], p[1] );
 			}
-
-			Generic Archive() const
+  
+			const Generic<Type> Archive() const
 			{
-				return Generic( data, FindArchive() );
+				return Generic<Type>( Ptr(), FindArchive() );
 			}
 
 			ArchiveFileSub FileInArchive() const
 			{
-				uint range[2];
-				FindFileInArchive( range );
-				return ArchiveFileSub( data + range[0], range[1] );
+				uint p[2];
+				FindFileInArchive( p );
+				return ArchiveFileSub( Ptr() + p[0], p[1] );
 			}
-
+  
 			ArchiveFileSub Target() const
 			{
-				ArchiveFileSub archive( FileInArchive() );
+				const ArchiveFileSub archive( FileInArchive() );
 
-				if (archive.Size())
+				if (archive.Length())
 					return archive;
-				
-				return ArchiveFileSub( data, size );
-			}
 
-			ibool FileExist() const
-			{
-				return Private::FileExist( data );
-			}
-
-			ibool DirExist() const
-			{
-				return Private::DirExist( data );
+				return ArchiveFileSub( Ptr(), Length() );
 			}
 		};
 
-		template<bool B>
-		Path<B>::Path(const Generic dir,const Generic file,const Generic ext)
+		template<typename T>
+		Path<T>::Path(const Generic<Type> dir,const Generic<Type> file,const Generic<Type> ext)
 		{
 			Set( dir, file, ext );
 		}
 
-		template<bool B>
-		void Path<B>::Set(const Generic dir,const Generic file,const Generic ext)
+		template<typename T>
+		void Path<T>::Set(const Generic<Type> dir,const Generic<Type> file,const Generic<Type> ext)
 		{
 			Clear();
-			Reserve( dir.Size() + file.Size() + ext.Size() );
+			Reserve( dir.Length() + file.Length() + ext.Length() );
 
 			Directory() = dir;
 			File() = file;
 
-			if (ext.Size())
+			if (ext.Length())
 				Extension() = ext;
 		}
+	  
+	    template<typename T>
+	    void Path<T>::CheckSlash()
+	    {
+			if (Length() && Back() != '\\' && Back() != '/')
+				operator << ('\\');
+	    }
 
-		template<bool B>
-		uint Path<B>::FindDirectory() const
+		template<typename T>
+		uint Path<T>::FindDirectory() const
 		{
-			for (uint i=size; i; )
+			for (uint i=Length(); i; )
 			{
-				switch (data[--i])
+				switch (At(--i))
 				{
-		     		case '\\':
-		    		case '/': return i + 1;
-					case '>': while (i && data[--i] != '<'); break;
+					case '\\':
+					case '/': return i + 1;
+					case '>': while (i && At(--i) != '<'); break;
 				}
 			}
 
 			return 0;
 		}
 
-		template<bool B>
-		uint Path<B>::FindExtension() const
+		template<typename T>
+		void Path<T>::FindExtension(uint (&p)[2]) const
 		{
-			for (uint i=size; i; )
+			p[1] = Length();
+
+			for (uint i=Length(); i; )
 			{
-				switch (data[--i])
+				switch (At(--i))
 				{
-			    	case '.': return i + 1;
-		    		case '\\':
-		     		case '/': return size;
-					case '>': while (i && data[--i] != '<'); break;
+					case '.': 
+						
+						p[0] = i + 1;
+						p[1] -= p[0];
+						return;
+
+					case '\\':
+					case '/': 
+
+						i = 0;
+						break;
+
+					case '>': 
+						
+						while (i && At(--i) != '<');
+
+						if (i && At(i-1) == ' ')
+							--i;
+
+						p[1] = i;
+						break;
 				}
 			}
 
-			return size;
+			p[0] = p[1];
+			p[1] = 0;
 		}
 
-		template<bool B>
-		uint Path<B>::FindArchive() const
+		template<typename T>
+		uint Path<T>::FindArchive() const
 		{
-			ibool paired = FALSE;
-
-			for (uint i=size; i; )
+			for (uint i=Length(); i; )
 			{
-				switch (data[--i])
+				if (At(--i) == '>')
 				{
-    				case '>': 
-						
-						paired = TRUE; 
-						break;
-
-					case '<': 
-						
-						if (paired)
+					while (i)
+					{
+						if (At(--i) == '<')
 						{
-							while (i && data[i-1] == ' ')
+							if (i && At(i-1) == ' ')
 								--i;
 
 							return i;
 						}
-						return 0;
+					}					
+					break;
 				}
 			}
-
+				
 			return 0;
 		}
 
-		template<bool B>
-		void Path<B>::FindFileInArchive(uint (&ranges)[2]) const
+		template<typename T>
+		void Path<T>::FindFileInArchive(uint (&p)[2]) const
 		{
-			uint end = 0;
-			ranges[0] = 0, ranges[1] = 0;
-
-			for (uint i=size; i; )
+			for (uint i=Length(); i; )
 			{
-				switch (data[--i])
+				if (At(--i) == '>')
 				{
-    				case '>': 
-						
-						while (i && data[i-1] == ' ')
-							--i;
+					p[1] = i;
 
-						end = i; 
-						break;
-
-					case '<': 
-						
-						if (end)
+					while (i)
+					{
+						if (At(--i) == '<')
 						{
-							while (data[++i] == ' ');
-							
-							ranges[0] = i;
-							ranges[1] = end - i;
+							p[0] = i + 1;
+							p[1] -= p[0];
+
+							return;
 						}
-						return;
+					}					
+					break;
+				}
+			}
+
+			p[0] = Length();
+			p[1] = 0;
+		}
+
+		template<typename T>
+		uint Path<T>::ExtensionId(const Type* NST_RESTRICT const string,uint length)
+		{
+			uint id = 0;
+
+			if (length >= 3)
+			{
+				if (length > 4)
+					length = 4;
+
+				for (uint i=0; i < length; ++i)
+				{
+					const Type c = string[i];
+					
+					uint v;
+
+					if (c >= 'a' && c <= 'z')
+					{
+						v = c;
+					}
+					else if (c >= 'A' && c <= 'Z')
+					{
+						v = c - 'A' + 'a';
+					}
+					else if (c >= '0' && c <= '9')
+					{
+						v = c;
+					}
+					else
+					{
+						return 0;
+					}
+
+					id |= v << (8 * i);
+				}
+			}
+
+			return id;
+		}
+
+		template<typename T>
+		void Path<T>::DirectorySub::operator = (const Generic<Type> t)
+		{
+			Clear();
+
+			if (t.Length())
+			{
+				string.Insert( 0, t.Ptr(), t.Length() );
+				length = t.Length();
+
+				if (t.Back() != '\\' && t.Back() != '/')
+				{
+					const Type c = '\\';
+					string.Insert( length++, &c, 1 );
 				}
 			}
 		}
 
-		template<bool B>
-		void Path<B>::DirectorySub::operator = (const Generic input)
+		template<typename T>
+		void Path<T>::DirectorySub::operator += (const Generic<Type> t)
 		{
-			NST_ASSERT( pos == 0 );
-
-			Clear();
-
-			if (input.Size())
+			if (t.Length())
 			{
-				const ibool putSlash = input.Back() != '\\' && input.Back() != '/';
+				string.Insert( length, t.Ptr(), t.Length() );
+				length += t.Length();
 
-				Insert( NULL, input.Size() + putSlash );
-				std::memcpy( string.data, input, input.Size() );
-
-				if (putSlash)
-					string.data[input.Size()] = '\\';
+				if (t.Back() != '\\' && t.Back() != '/')
+				{
+					const Type c = '\\';
+					string.Insert( length++, &c, 1 );
+				}
 			}
 		}
 
-		template<bool B>
-		void Path<B>::DirectorySub::operator += (const Generic input)
+		template<typename T>
+		void Path<T>::DirectorySub::operator -= (uint subs)
 		{
-			NST_ASSERT( pos == 0 );
-
-			if (input.Size())
-			{
-				const ibool putSlash = input.Back() != '\\' && input.Back() != '/';
-
-				string.Insert( length, NULL, input.Size() + putSlash );
-				std::memcpy( string.data + length, input, input.Size() );
-
-				if (putSlash)
-					string.data[length + input.Size()] = '\\';
-			}
-		}
-
-		template<bool B>
-		void Path<B>::DirectorySub::Validate()
-		{
-			if (length < string.size)
-				string << '\\';
-		}
-
-		template<bool B>
-		void Path<B>::DirectorySub::operator -= (uint subs)
-		{
-			if (subs && length && (string.data[length-1] == '\\' || string.data[length-1] == '/'))
+			if (subs && length && (Back() == '\\' || Back() == '/'))
 			{
 				uint i = length - 1;
-				uint offset = ~0U;
+				uint p = ~0U;
 
 				do
 				{
-					if (string.data[--i] == '\\' || string.data[i] == '/')
+					if (string.At(--i) == '\\' || string.At(i) == '/')
 					{
-						offset = i;
+						p = i;
 
 						if (!--subs)
 							break;
@@ -1873,69 +2083,159 @@ namespace Nestopia
 				}
 				while (i);
 
-				if (offset != ~0U)
+				if (p != ~0U)
 				{
-					uint size = string.size; string.size -= length - offset - 1;
-					Private::Erase( string.data, size, offset, length - offset - 1 );
+					const uint n = length;
+					length = ++p;
+					string.Erase( p, n - p );
 				}
 			}
 		}
 
-		template<bool B>
-		void Path<B>::ExtensionSub::Clear()
+		template<typename T>
+		void Path<T>::ExtensionSub::Clear()
 		{
-			if (pos != string.size)
-				string.data[string.size = (pos-1)] = '\0';
+			const uint dot = (offset && string[offset-1] == '.');
+			const uint n = length;
+			length = 0;
+			string.Erase( offset -= dot, n + dot );
 		}
 
-		template<bool B>
-		void Path<B>::ExtensionSub::Set(const char* NST_RESTRICT input,uint length)
+		template<typename T>
+		void Path<T>::ExtensionSub::Assign(const Type* NST_RESTRICT t,uint n)
 		{
-			if (*input == '.')
-			{
-				++input;
-				--length;
-			}
+			Clear();
 
-			const uint offset = (pos != string.size ? pos-1 : pos);
-			string.Resize( offset + bool(length) + length );
-
-			if (length)
+			if (n)
 			{
-				string.data[offset] = '.';
-				std::memcpy( string.data + offset + 1, input, length );
+				if (*t == '.')
+				{
+					++t;
+					--n;
+				}
+
+				if (n)
+				{
+					length = n;
+					const Type c = '.';
+					string.Insert( offset++, &c, 1 );
+					string.Insert( offset, t, n );
+				}
 			}
 		}
 
+		template<typename T>
+		const Path<T> Path<T>::Compact(const Generic<Type> t,const uint maxLength)
+		{
+			Path path;
+
+			if (t.Length())
+			{
+				path.Reserve( maxLength );
+
+				if (Compact( path.Ptr(), Path<>(t).Ptr(), maxLength ))
+					path.Validate();
+				else
+					path.Clear();
+			}
+
+			return path;
+		}
+
+		template<typename T=tchar>
 		class Hex
 		{
 		public:
 
-			explicit Hex(u32,bool=false) throw();
-			explicit Hex(u16,bool=false) throw();
-			explicit Hex(u8,bool=false) throw();
+			typedef T Type;
+
+			enum
+			{
+				TYPE_SIZE = sizeof(Type)
+			};
+
+			explicit Hex(u32,bool=false);
+			explicit Hex(u16,bool=false);
+			explicit Hex(u8,bool=false);
 
 		private:
 
-			char buffer[12];
-			cstring const string;
+			Type buffer[12];
+			const Type* const string;
 			const uint length;
 
-			void Convert(uint,uint) throw();
+			void Convert(uint,uint);
 
 		public:
 
-			operator cstring () const
+			const Type* Ptr() const
 			{
 				return string;
 			}
 
-			uint Size() const
+			uint Length() const
 			{
 				return length;
 			}
 		};
+
+		template<typename T>
+		void Hex<T>::Convert(uint number,const uint length)
+		{
+			Type* it = buffer + length;
+
+			*it = '\0';
+
+			static const Type lut[] = 
+			{
+				'0','1','2','3','4','5','6','7',
+				'8','9','A','B','C','D','E','F'
+			};
+
+			do 
+			{
+				*--it = lut[number % 16];
+				number /= 16;
+			} 
+			while (it != buffer + 2);
+
+			*--it = 'x';
+			*--it = '0';
+		}
+
+		template<typename T>
+		Hex<T>::Hex(const u32 i,const bool n0x)
+		: 
+		string(n0x ? buffer + 2 : buffer), 
+		length(n0x ? 8 : 2+8) 
+		{ 
+			Convert( i, 2+8 ); 
+		}
+
+		template<typename T>
+		Hex<T>::Hex(const u16 i,const bool n0x)
+		: 
+		string(n0x ? buffer + 2 : buffer), 
+		length(n0x ? 4 : 2+4) 
+		{ 
+			Convert( i, 2+4 ); 
+		}
+
+		template<typename T>
+		Hex<T>::Hex(const u8 i,const bool n0x)
+		: 
+		string(n0x ? buffer + 2 : buffer), 
+		length(n0x ? 2 : 2+2) 
+		{ 
+			Convert( i, 2+2 ); 
+		}
 	}
+
+	typedef String::Heap<tchar>         HeapString;
+	typedef String::Generic<tchar>      GenericString;
+	typedef String::Generic<tchar,true> ValueString;
+	typedef String::Hex<tchar>          HexString;
+	typedef String::Path<tchar>         Path;
 }
 
 #endif

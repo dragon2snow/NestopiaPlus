@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -135,7 +135,7 @@ namespace Nes
 				Map( 0xF000U, 0xF7FFU, &N106::Poke_F000 );
 	
 				if (!chr.Source().Internal())
-					chr.SwapBank<NES_8K,0x0000U>( ~0U );
+					chr.SwapBank<SIZE_8K,0x0000U>( ~0U );
 		
 				if (chips)
 				{
@@ -204,45 +204,51 @@ namespace Nes
 				}
 			}
 	
-			void N106::LoadState(State::Loader& state)
+			void N106::BaseLoad(State::Loader& state,const dword id)
 			{
-				while (const dword chunk = state.Begin())
+				NST_VERIFY( id == NES_STATE_CHUNK_ID('N','M','6','\0') );
+
+				if (id == NES_STATE_CHUNK_ID('N','M','6','\0'))
 				{
-					switch (chunk)
+					while (const dword chunk = state.Begin())
 					{
-    					case NES_STATE_CHUNK_ID('R','E','G','\0'):
+						switch (chunk)
+						{
+							case NES_STATE_CHUNK_ID('R','E','G','\0'):
 						
-							reg = state.Read8();
-							break;
-	
-				    	case NES_STATE_CHUNK_ID('I','R','Q','\0'):
+								reg = state.Read8();
+								break;
 						
-							NST_VERIFY( chips );
-	
-							if (chips)
-							{
-								const State::Loader::Data<3> data( state );
-								chips->irq.unit.enabled = data[0] & 0x1;
-								chips->irq.unit.count = data[1] | ((data[2] & 0x7F) << 8);
-							}
-							break;
-	
-						case NES_STATE_CHUNK_ID('S','N','D','\0'):
-	
-							NST_VERIFY( chips );
-	
-							if (chips)
-     	 						chips->sound.LoadState( State::Loader::Subset(state).Ref() );
-	
-							break;
+							case NES_STATE_CHUNK_ID('I','R','Q','\0'):
+						
+								NST_VERIFY( chips );
+						
+								if (chips)
+								{
+									const State::Loader::Data<3> data( state );
+									chips->irq.unit.enabled = data[0] & 0x1;
+									chips->irq.unit.count = data[1] | ((data[2] & 0x7F) << 8);
+								}
+								break;
+						
+							case NES_STATE_CHUNK_ID('S','N','D','\0'):
+						
+								NST_VERIFY( chips );
+						
+								if (chips)
+									chips->sound.LoadState( State::Loader::Subset(state).Ref() );
+						
+								break;
+						}
+
+						state.End();
 					}
-	
-					state.End();
 				}
 			}
 	
-			void N106::SaveState(State::Saver& state) const
+			void N106::BaseSave(State::Saver& state) const
 			{
+				state.Begin('N','M','6','\0');
 				state.Begin('R','E','G','\0').Write8( reg ).End();
 	
 				if (chips)
@@ -258,6 +264,8 @@ namespace Nes
 	
 					chips->sound.SaveState( State::Saver::Subset(state,'S','N','D','\0').Ref() );
 				}
+
+				state.End();
 			}
 	
             #ifdef NST_PRAGMA_OPTIMIZE
@@ -350,8 +358,8 @@ namespace Nes
 			{
 				rate =
 				(
-					(u64(mode == MODE_NTSC ? NES_MASTER_CLOCK_NTSC : NES_MASTER_CLOCK_PAL) * (1UL << SPEED_SHIFT)) /
-					(apu.GetSampleRate() * 45UL * (mode == MODE_NTSC ? NES_NTSC_CLOCK_DIV : NES_PAL_CLOCK_DIV))
+     				(u64(mode == MODE_NTSC ? Cpu::MC_NTSC : Cpu::MC_PAL) * (1UL << SPEED_SHIFT)) /
+					(apu.GetSampleRate() * 45UL * (mode == MODE_NTSC ? Cpu::CLK_NTSC_DIV : Cpu::CLK_PAL_DIV))
 				);
 			}
 	
@@ -472,7 +480,7 @@ namespace Nes
 			void N106::SwapChr(const uint address,const uint data,uint reg) const
 			{
 				ppu.Update(); 
-				chr.Source( data >= 0xE0U && reg == 0x00 ).SwapBank<NES_1K>( address, data );
+				chr.Source( data >= 0xE0U && reg == 0x00 ).SwapBank<SIZE_1K>( address, data );
 			}
 	
 			NES_POKE(N106,8000) { SwapChr( 0x0000U, data, reg & 0x40 ); }
@@ -487,7 +495,7 @@ namespace Nes
 			void N106::SwapNmt(const uint address,const uint data) const
 			{
 				ppu.Update(); 		
-				nmt.Source( data < 0xE0U ).SwapBank<NES_1K>( address, data & (data >= 0xE0U ? 0x01 : 0x0FF) );
+				nmt.Source( data < 0xE0U ).SwapBank<SIZE_1K>( address, data & (data >= 0xE0U ? 0x01 : 0x0FF) );
 			}
 	
 			NES_POKE(N106,C000) { SwapNmt( 0x0000U, data ); }
@@ -497,18 +505,18 @@ namespace Nes
 	
 			NES_POKE(N106,E000) 
 			{ 
-				prg.SwapBank<NES_8K,0x0000U>( data & 0x3F ); 
+				prg.SwapBank<SIZE_8K,0x0000U>( data & 0x3F ); 
 			}
 	
 			NES_POKE(N106,E800) 
 			{
 				reg = data;
-				prg.SwapBank<NES_8K,0x2000U>( data & 0x3F );
+				prg.SwapBank<SIZE_8K,0x2000U>( data & 0x3F );
 			}
 	
 			NES_POKE(N106,F000) 
 			{ 
-				prg.SwapBank<NES_8K,0x4000U>( data & 0x3F ); 
+				prg.SwapBank<SIZE_8K,0x4000U>( data & 0x3F ); 
 			}
 	
 			void N106::Sound::Poke_F800(const uint data)

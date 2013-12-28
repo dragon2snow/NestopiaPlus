@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -76,7 +76,10 @@ namespace Nestopia
 	Netplay::Games::~Games()
 	{
 		for (Iterator it=Begin(); it != End(); ++it)
+		{
 			it->key.Path::~Path();
+			it->value.Heap::~Heap();
+		}
 	}
 
 	Netplay::Games::Iterator Netplay::Games::Add(const Path& path)
@@ -95,6 +98,7 @@ namespace Nestopia
 		state = DIRTY;
 		Iterator const it = At( index );		
 		it->key.Path::~Path();
+		it->value.Heap::~Heap();
 		Array().Erase( it );
 	}
 
@@ -124,13 +128,11 @@ namespace Nestopia
 
 	void Netplay::LoadFile()
 	{
-		const String::Path<true> path( Application::Instance::GetPath("netplaylist.dat") );
-
-		String::Heap text;
+		HeapString text;
 
 		try
 		{
-			Io::File( path, Io::File::COLLECT ).Text() >> text;
+			Io::File( Application::Instance::GetPath(_T("netplaylist.dat")), Io::File::COLLECT ).ReadText( text );
 		}
 		catch (Io::File::Exception id)
 		{
@@ -148,17 +150,17 @@ namespace Nestopia
 
 		text << '\n';
 
-		String::Path<true> game;
+		Path path;
 
-		for (cstring it=text,offset=text; *it; )
+		for (tstring it=text.Ptr(),offset=text.Ptr(); *it; )
 		{
 			if (*it == '\r' || *it == '\n')
 			{
 				if (const uint length = it - offset)
 				{
-					game.Assign( offset, length );
-					game.Trim();
-					Add( game );
+					path.Assign( offset, length );
+					path.Trim();
+					Add( path );
 				}
 
 				do 
@@ -181,17 +183,18 @@ namespace Nestopia
 		if (games.state == Games::DIRTY)
 		{
 			Io::Log log;
-			const String::Path<false> path( Application::Instance::GetPath("netplaylist.dat") );
+			const Path path( Application::Instance::GetPath(_T("netplaylist.dat")) );
 
 			if (games.Size())
 			{
+				HeapString text;
+
+				for (Games::ConstIterator it=games.Begin(), end=games.End(); it != end; ++it)
+					text << it->key << "\r\n";
+
 				try
 				{
-					const Io::File file( path, Io::File::DUMP );
-
-					for (Games::ConstIterator it=games.Begin(); it != games.End(); ++it)
-						file.Text() << it->key << "\r\n";
-
+					Io::File( path, Io::File::DUMP ).WriteText( text.Ptr(), text.Length() );
 					log << "Netplay: saved game list to \"netplaylist.dat\"\r\n";
 				}
 				catch (Io::File::Exception)
@@ -199,9 +202,9 @@ namespace Nestopia
 					log << "Netplay: warning, couldn't save game list to \"netplaylist.dat\"!\r\n";
 				}
 			}
-			else if (path.FileExist())
+			else if (Io::File::FileExist( path.Ptr() ))
 			{
-				if (Io::File::Delete( path ))
+				if (Io::File::Delete( path.Ptr() ))
 					log << "Netplay: game list empty, deleted \"netplaylist.dat\"\r\n";
 				else
 					log << "Netplay: warning, couldn't delete \"netplaylist.dat\"!\r\n";
@@ -209,11 +212,11 @@ namespace Nestopia
 		}
 	}
 
-	String::Generic Netplay::GetDatabaseName(const Path& path) const
+	String::Generic<char> Netplay::GetDatabaseName(const Path& path) const
 	{
 		NST_VERIFY( Nes::Cartridge(emulator).GetDatabase().IsLoaded() );
 
-		String::Generic string;
+		String::Generic<char> string;
 		Collection::Buffer buffer;
 
 		try
@@ -250,18 +253,18 @@ namespace Nestopia
 			{
 				Nes::Cartridge::Database::Entry entry = Nes::Cartridge(emulator).GetDatabase().FindEntry
 				(
-					Nes::Core::Crc32::Compute( buffer + sizeof(Header), size )
+					Nes::Core::Crc32::Compute( buffer.Ptr() + sizeof(Header), size )
 				);
 
 				if (!entry)
 				{
-					const uint fixed = (header.num16kPRomBanks * NES_16K) + (header.num8kCRomBanks + NES_8K);
+					const uint fixed = (header.num16kPRomBanks * Nes::Core::SIZE_16K) + (header.num8kCRomBanks + Nes::Core::SIZE_8K);
 
 					if (fixed && fixed <= size)
 					{
 						entry = Nes::Cartridge(emulator).GetDatabase().FindEntry
 						(
-							Nes::Core::Crc32::Compute( buffer + sizeof(Header), fixed )
+							Nes::Core::Crc32::Compute( buffer.Ptr() + sizeof(Header), fixed )
 						);
 					}
 				}
@@ -280,8 +283,8 @@ namespace Nestopia
 		{
 			TYPES = Managers::Paths::File::GAME|Managers::Paths::File::ARCHIVE		
 		};
-		
-		if (path.Size() && games.Size() < Games::LIMIT && paths.CheckFile( path, TYPES ))
+
+		if (path.Length() && games.Size() < Games::LIMIT && paths.CheckFile( path, TYPES ))
 		{
 			if (Games::Iterator game = games.Add( path ))
 			{
@@ -308,8 +311,8 @@ namespace Nestopia
 			Control::ListView list( dialog.ListView( IDC_NETPLAY_GAMELIST ) );
 			list.Reserve( games.Size() );
 
-			for (Games::ConstIterator it=games.Begin(); it != games.End(); ++it)
-				list.Add( it->key.Target().File() );
+			for (Games::ConstIterator it=games.Begin(), end=games.End(); it != end; ++it)
+				list.Add( it->key.Target().File().Ptr() );
 		}
 
 		dialog.CheckBox( IDC_NETPLAY_CLEAR ).Enable( games.Size() );

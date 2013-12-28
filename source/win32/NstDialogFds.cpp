@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -76,37 +76,37 @@ namespace Nestopia
 	Fds::Fds(Managers::Emulator& e,const Configuration& cfg,const Managers::Paths& p)
 	: dialog(IDD_FDS,this,Handlers::messages,Handlers::commands), emulator(e), paths(p)
 	{
-		const String::Heap& method = cfg["files fds save"];
+		const GenericString method( cfg["files fds save"] );
 
 		emulator.SetDiskImageSaveMethod
 		(
-			( method == "disable" ) ? Managers::Emulator::DISKIMAGE_SAVE_DISABLED :
-	     	( method == "image"   ) ? Managers::Emulator::DISKIMAGE_SAVE_TO_IMAGE :
-	                                  Managers::Emulator::DISKIMAGE_SAVE_TO_IPS
+			( method == _T("disable") ) ? Managers::Emulator::DISKIMAGE_SAVE_DISABLED :
+	     	( method == _T("image")   ) ? Managers::Emulator::DISKIMAGE_SAVE_TO_IMAGE :
+	                                      Managers::Emulator::DISKIMAGE_SAVE_TO_IPS
 		);
 
-		const String::Heap& led = cfg["files fds led"];
+		const GenericString led( cfg["files fds led"] );
 
 	    settings.led =
 		(
-       		( led == "numlock"    ) ? LED_NUM_LOCK :
-      		( led == "capslock"   ) ? LED_CAPS_LOCK :
-			( led == "scrolllock" ) ? LED_SCROLL_LOCK :
-			( led == "disable"    ) ? LED_DISABLED :
-			                          LED_SCREEN
+       		( led == _T("numlock"    )) ? LED_NUM_LOCK :
+      		( led == _T("capslock"   )) ? LED_CAPS_LOCK :
+			( led == _T("scrolllock" )) ? LED_SCROLL_LOCK :
+			( led == _T("disable"    )) ? LED_DISABLED :
+			                                 LED_SCREEN
 		);
 
 		settings.bios = cfg["files fds bios"];
 
 		if (settings.bios.Empty())
 		{
-			settings.bios.File() = "disksys.rom";
+			settings.bios.File() = _T("disksys.rom");
 
 			if (!paths.FindFile( settings.bios ))
 				settings.bios.Clear();
 		}
 
-		if (settings.bios.Size())
+		if (settings.bios.Length())
 			SubmitBios();
 	}
 
@@ -120,24 +120,24 @@ namespace Nestopia
 
 		cfg["files fds save"] =
 		(
-			( emulator.GetDiskImageSaveMethod() == Managers::Emulator::DISKIMAGE_SAVE_TO_IMAGE ) ? "image" :
-	     	( emulator.GetDiskImageSaveMethod() == Managers::Emulator::DISKIMAGE_SAVE_TO_IPS   ) ? "ips" : 
-	                                                                                               "disable"		                             
+			( emulator.GetDiskImageSaveMethod() == Managers::Emulator::DISKIMAGE_SAVE_TO_IMAGE ) ? _T("image") :
+	     	( emulator.GetDiskImageSaveMethod() == Managers::Emulator::DISKIMAGE_SAVE_TO_IPS   ) ? _T("ips") : 
+	                                                                                               _T("disable")
 		);
 
 		cfg["files fds led"] =
 		(
-		    ( settings.led == LED_SCREEN      ) ? "screen" :
-		    ( settings.led == LED_NUM_LOCK    ) ? "numlock" :
-			( settings.led == LED_CAPS_LOCK   ) ? "capslock" :
-			( settings.led == LED_SCROLL_LOCK ) ? "scrolllock" :
-												  "disable"
+		    ( settings.led == LED_SCREEN      ) ? _T("screen") :
+		    ( settings.led == LED_NUM_LOCK    ) ? _T("numlock") :
+			( settings.led == LED_CAPS_LOCK   ) ? _T("capslock") :
+			( settings.led == LED_SCROLL_LOCK ) ? _T("scrolllock") :
+												  _T("disable")
 		);
 	}
 
 	void Fds::SubmitBios()
 	{
-		NST_ASSERT( settings.bios.Size() );
+		NST_ASSERT( settings.bios.Length() );
 
 		Managers::Paths::File file;
 
@@ -162,7 +162,7 @@ namespace Nestopia
 			Managers::Emulator::DISKIMAGE_SAVE_TO_IPS   == IDC_FDS_SAVETOIPS   - IDC_FDS_SAVEDISABLE
 		);
 
-		dialog.Edit( IDC_FDS_BIOS ) << settings.bios;
+		dialog.Edit( IDC_FDS_BIOS ) << settings.bios.Ptr();
 		dialog.RadioButton( IDC_FDS_SAVEDISABLE + emulator.GetDiskImageSaveMethod() ).Check();
 
 		const uint id =
@@ -216,7 +216,7 @@ namespace Nestopia
 	ibool Fds::OnCmdBrowse(Param& param)
 	{
 		if (param.Button().IsClicked())
-			dialog.Edit(IDC_FDS_BIOS).Try() << paths.BrowseLoad( BIOS_FILE_TYPES );
+			dialog.Edit(IDC_FDS_BIOS).Try() << paths.BrowseLoad( BIOS_FILE_TYPES ).Ptr();
 
 		return TRUE;
 	}
@@ -241,7 +241,7 @@ namespace Nestopia
 			                                                               LED_DISABLED
 			);
 
-			String::Path<true> path;
+			Path path;
 			dialog.Edit( IDC_FDS_BIOS ) >> path;
 
 			if (settings.bios != path)

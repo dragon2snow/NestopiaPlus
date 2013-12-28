@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -30,14 +30,6 @@ namespace Nestopia
 {
 	using namespace Managers;
 
-	NST_COMPILE_ASSERT
-	(
-		IDM_FILE_RECENT_DIR_2 == IDM_FILE_RECENT_DIR_1 + 1 &&
-		IDM_FILE_RECENT_DIR_3 == IDM_FILE_RECENT_DIR_1 + 2 &&
-		IDM_FILE_RECENT_DIR_4 == IDM_FILE_RECENT_DIR_1 + 3 &&
-		IDM_FILE_RECENT_DIR_5 == IDM_FILE_RECENT_DIR_1 + 4
-	);
-
 	RecentDirs::RecentDirs(Emulator& e,const Configuration& cfg,Window::Menu& m)
 	: 
 	emulator ( e ),
@@ -59,17 +51,17 @@ namespace Nestopia
 
 		uint count = 0;
 
-		String::Stack<24> index( "files recent dir x" );
-		Name name( "&x " );
+		String::Stack<24,char> index( "files recent dir x" );
+		Name name( _T("&x ") );
 
 		for (uint i=0; i < MAX_DIRS; ++i)
 		{
 			index.Back() = (char) ('1' + i);
-			const String::Heap& dir = cfg[index];
+			const GenericString dir( cfg[index] );
 
-			if (dir.Size())
+			if (dir.Length())
 			{
-				name[1] = (char) ('1' + count);
+				name[1] = (tchar) ('1' + count);
 				name(3) = dir;
 				menu[IDM_FILE_RECENT_DIR_1 + count++].Text() << name;
 			}
@@ -88,7 +80,7 @@ namespace Nestopia
 
 	void RecentDirs::Save(Configuration& cfg) const
 	{
-		String::Stack<24> index( "files recent dir x" );
+		String::Stack<24,char> index( "files recent dir x" );
 		Name dir;
 
 		for (uint i=0; i < MAX_DIRS && menu[IDM_FILE_RECENT_DIR_1 + i].Text() >> dir; ++i)
@@ -141,7 +133,7 @@ namespace Nestopia
 				if (menu[IDM_FILE_RECENT_DIR_LOCK].IsUnchecked())
 				{
 					Name items[MAX_DIRS];
-					const String::Generic curDir( emulator.GetStartPath().Directory() );
+					const GenericString curDir( emulator.GetStartPath().Directory() );
 			
 					for (uint i=IDM_FILE_RECENT_DIR_1, j=0; i <= IDM_FILE_RECENT_DIR_5 && menu[i].Text() >> items[j]; ++i)
 					{
@@ -151,7 +143,7 @@ namespace Nestopia
 			
 					Add( IDM_FILE_RECENT_DIR_1, Name("&1 ") << curDir );
 			
-					for (uint i=0; i < MAX_DIRS-1 && items[i].Size(); ++i)
+					for (uint i=0; i < MAX_DIRS-1 && items[i].Length(); ++i)
 						Add( IDM_FILE_RECENT_DIR_2 + i, items[i] );
 			
 					menu[IDM_FILE_RECENT_DIR_CLEAR].Enable();

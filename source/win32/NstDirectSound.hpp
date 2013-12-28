@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -66,13 +66,13 @@ namespace Nestopia
 				LATENCY_MAX = 10
 			};
 
-			cstring Update(uint,uint,uint,Channels,uint,uint,uint);
-			cstring UpdateSpeed(uint,uint);
+			tstring Update(uint,uint,uint,Channels,uint,uint,uint);
+			tstring UpdateSpeed(uint,uint);
 			void    Destroy();
 
 		private:
 
-			static BOOL CALLBACK EnumAdapter(LPGUID,LPCSTR,LPCSTR,LPVOID);
+			static BOOL CALLBACK EnumAdapter(LPGUID,LPCTSTR,LPCTSTR,LPVOID);
 
 			class Buffer
 			{
@@ -81,8 +81,8 @@ namespace Nestopia
 				Buffer();
 				~Buffer();
 
-				cstring Update(IDirectSound8&,ibool,uint,uint,Channels,uint,uint,uint);
-				cstring UpdateSpeed(IDirectSound8&,ibool,uint,uint);
+				tstring Update(IDirectSound8&,ibool,uint,uint,Channels,uint,uint,uint);
+				tstring UpdateSpeed(IDirectSound8&,ibool,uint,uint);
 				void    StartStream();
 				ibool   LockStream(void*&,uint&);
 				void    Release();
@@ -91,7 +91,7 @@ namespace Nestopia
 
 				static uint CalculateSize(uint,uint,uint,uint);
 
-				cstring Create(IDirectSound8&,ibool);
+				tstring Create(IDirectSound8&,ibool);
 				void UpdateVolume() const;
 
 				enum

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -91,16 +91,31 @@ namespace Nes
 			void SaveState (State::Saver&) const;
 			void LoadState (State::Loader&);
 
+			typedef void* Device;
+
+			enum DeviceType
+			{
+				DEVICE_DIP_SWITCHES = 1,
+				DEVICE_BARCODE_READER
+			};
+
+			virtual Device QueryDevice(DeviceType)
+			{
+				return NULL;
+			}
+
 			enum
 			{
 				EXT_SUPER24IN1 = 256,
 				EXT_MARIO1MALEE2,
 				EXT_NOVELDIAMOND,
+				EXT_8157,
 				EXT_8237,
 				EXT_WS,
 				EXT_DREAMTECH01,
 				EXT_H2288,
-				NUM_EXT_MAPPERS = 7
+				EXT_CC21,
+				NUM_EXT_MAPPERS = 9
 			};
 
 			static cstring GetBoard(uint);
@@ -130,92 +145,6 @@ namespace Nes
 				CRAM_SIZES    = CRAM_1K|CRAM_2K|CRAM_4K|CRAM_8K|CRAM_16K|CRAM_32K,
 				CMEM_SETTINGS = 0x7F00
 			};
-
-			typedef Memory<NES_32K,NES_8K,2> Prg;
-			typedef Ppu::ChrMem Chr;
-			typedef Ppu::NmtMem Nmt;
-			
-			struct Wrk : Memory<NES_8K,NES_8K,2>
-			{
-				bool HasRam() const
-				{
-					return Source(0).Mem() != Source(1).Mem();
-				}
-
-				dword RamSize() const
-				{
-					return HasRam() ? Source(0).Size() : 0;
-				}
-			};
-
-			Mapper(Context&,uint=WRAM_AUTO|CRAM_NONE);
-			virtual ~Mapper();
-
-			Prg prg;
-			Cpu& cpu;
-			Ppu& ppu;
-			Chr& chr;
-			Nmt& nmt;
-			Wrk wrk;
-			const Ppu::Mirroring mirroring;
-			const uint id;
-
-		private:
-
-			dword GetStateName() const;
-
-			virtual void SubReset(bool) {}
-			virtual void SubSave(State::Saver&) const {}
-			virtual void SubLoad(State::Loader&) {}
-
-		protected:
-
-			NES_DECL_PEEK( Wrk_6 )
-			NES_DECL_POKE( Wrk_6 )
-			NES_DECL_PEEK( Wrk_Bus_6 )
-			NES_DECL_POKE( Wrk_Bus_6 )
-
-			NES_DECL_PEEK( Prg_8 )
-			NES_DECL_PEEK( Prg_A )
-			NES_DECL_PEEK( Prg_C )
-			NES_DECL_PEEK( Prg_E )
-
-			NES_DECL_POKE( Prg_8k_0 )
-			NES_DECL_POKE( Prg_8k_1 )
-			NES_DECL_POKE( Prg_8k_2 )
-			NES_DECL_POKE( Prg_8k_3 )
-			NES_DECL_POKE( Prg_16k  )
-			NES_DECL_POKE( Prg_32k  )
-
-			NES_DECL_POKE( Chr_1k_0 )
-			NES_DECL_POKE( Chr_1k_1 )
-			NES_DECL_POKE( Chr_1k_2 )
-			NES_DECL_POKE( Chr_1k_3 )
-			NES_DECL_POKE( Chr_1k_4 )
-			NES_DECL_POKE( Chr_1k_5 )
-			NES_DECL_POKE( Chr_1k_6 )
-			NES_DECL_POKE( Chr_1k_7 )
-			NES_DECL_POKE( Chr_2k_0 )
-			NES_DECL_POKE( Chr_2k_1 )
-			NES_DECL_POKE( Chr_2k_2 )
-			NES_DECL_POKE( Chr_2k_3 )
-			NES_DECL_POKE( Chr_4k_0 )
-			NES_DECL_POKE( Chr_4k_1 )
-			NES_DECL_POKE( Chr_8k   )
-
-			NES_DECL_POKE( Nmt_Hv   )
-			NES_DECL_POKE( Nmt_Vh   )
-			NES_DECL_POKE( Nmt_Vh01 )
-
-			NES_DECL_PEEK( Nop )
-			NES_DECL_POKE( Nop )
-
-		private:
-
-			struct Setup;
-			static const Setup setup[256+NUM_EXT_MAPPERS];
-
-		protected:
 
 			enum PrgMapping
 			{
@@ -270,6 +199,35 @@ namespace Nes
 				NOP_PEEK_POKE
 			};
 
+			Mapper(Context&,uint=WRAM_AUTO|CRAM_NONE);
+			virtual ~Mapper();
+
+			typedef Memory<SIZE_32K,SIZE_8K,2> Prg;
+			typedef Ppu::ChrMem Chr;
+			typedef Ppu::NmtMem Nmt;
+			
+			struct Wrk : Memory<SIZE_8K,SIZE_8K,2>
+			{
+				bool HasRam() const
+				{
+					return Source(0).Mem() != Source(1).Mem();
+				}
+
+				dword RamSize() const
+				{
+					return HasRam() ? Source(0).Size() : 0;
+				}
+			};
+
+			Prg prg;
+			Cpu& cpu;
+			Ppu& ppu;
+			Chr& chr;
+			Nmt& nmt;
+			Wrk wrk;
+			const u16 id;
+			const u8 mirroring;
+
 			template<typename T>
 			void Map(uint first,uint last,T t) const
 			{
@@ -296,76 +254,66 @@ namespace Nes
 
 			void Map(WRamMapping) const;
 
+			NES_DECL_POKE( Nmt_Hv )
+			NES_DECL_POKE( Nmt_Vh )
+
+		private:
+
+			NES_DECL_POKE( Nmt_Vh01 )
+
+			NES_DECL_PEEK( Wrk_6 )
+			NES_DECL_POKE( Wrk_6 )
+			NES_DECL_PEEK( Wrk_Bus_6 )
+			NES_DECL_POKE( Wrk_Bus_6 )
+
+			NES_DECL_PEEK( Prg_8 )
+			NES_DECL_PEEK( Prg_A )
+			NES_DECL_PEEK( Prg_C )
+			NES_DECL_PEEK( Prg_E )
+
+			NES_DECL_PEEK( NoFrameIrq )
+
+			NES_DECL_POKE( Prg_8k_0 )
+			NES_DECL_POKE( Prg_8k_1 )
+			NES_DECL_POKE( Prg_8k_2 )
+			NES_DECL_POKE( Prg_8k_3 )
+			NES_DECL_POKE( Prg_16k  )
+			NES_DECL_POKE( Prg_32k  )
+
+			NES_DECL_POKE( Chr_1k_0 )
+			NES_DECL_POKE( Chr_1k_1 )
+			NES_DECL_POKE( Chr_1k_2 )
+			NES_DECL_POKE( Chr_1k_3 )
+			NES_DECL_POKE( Chr_1k_4 )
+			NES_DECL_POKE( Chr_1k_5 )
+			NES_DECL_POKE( Chr_1k_6 )
+			NES_DECL_POKE( Chr_1k_7 )
+			NES_DECL_POKE( Chr_2k_0 )
+			NES_DECL_POKE( Chr_2k_1 )
+			NES_DECL_POKE( Chr_2k_2 )
+			NES_DECL_POKE( Chr_2k_3 )
+			NES_DECL_POKE( Chr_4k_0 )
+			NES_DECL_POKE( Chr_4k_1 )
+			NES_DECL_POKE( Chr_8k   )
+
+			NES_DECL_PEEK( Nop )
+			NES_DECL_POKE( Nop )
+
+			const u8 noStartingFrameIrq;
+
+			static bool CheckNoStartingFrameIrq(dword);
+			dword GetStateName() const;
+
+			virtual void SubReset(bool) {}
+			virtual void SubSave(State::Saver&) const {}
+			virtual void SubLoad(State::Loader&) {}
+			virtual void BaseSave(State::Saver&) const {}
+			virtual void BaseLoad(State::Loader&,dword) {}
+
+			struct Setup;
+			static const Setup setup[256+NUM_EXT_MAPPERS];
+
 		public:
-
-			enum
-			{
-				MMC1_00 = 1,
-				MMC1_01 = 105,
-				MMC1_02 = 155,
-
-				MMC2_00 = 9,
-				MMC2_01 = 10,
-
-				MMC3_00 = 4,
-				MMC3_01 = 12,
-				MMC3_02 = 44,
-				MMC3_03 = 45,
-				MMC3_04 = 47,
-				MMC3_05 = 49,
-				MMC3_06 = 52,
-				MMC3_07 = 74,
-				MMC3_08 = 100,
-				MMC3_09 = 114,
-				MMC3_10 = 115,
-				MMC3_11 = 118,
-				MMC3_12 = 119,
-				MMC3_13 = 158,
-				MMC3_14 = 165,
-				MMC3_15 = 187,
-				MMC3_16 = 189,
-				MMC3_17 = 215,
-				MMC3_18 = 217,
-				MMC3_19 = 245,
-				MMC3_20 = 249,
-				MMC3_21 = 250,
-				MMC3_22 = 254,
-				MMC3_23 = EXT_SUPER24IN1,
-				MMC3_24 = EXT_8237,
-				MMC3_25 = EXT_H2288,
-
-				MMC5_00 = 5,
-
-				N106_00 = 19,
-				N106_01 = 210,
-
-				N118_00 = 88,
-				N118_01 = 154,
-
-				VRC6_00 = 24,
-				VRC6_01 = 26,
-
-				VRC7_00 = 85,
-
-				FME07_00 = 69,
-
-				BANDAI_00 = 16,
-				BANDAI_01 = 153,
-				BANDAI_02 = 157,
-
-				TAITOTC_00 = 33,
-				TAITOTC_01 = 48,
-
-				TAITOX_00 = 80,
-				TAITOX_01 = 207,
-
-				FFE_00 = 6,
-				FFE_01 = 8,
-				FFE_02 = 17,
-
-				BTLTEK2A_00 = 90,
-				BTLTEK2A_01 = 209
-			};
 
 			virtual void VSync() 
 			{

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -37,18 +37,18 @@ namespace Nestopia
 		Message()
 		: id(0), allocated(FALSE), next(NULL) {}
 
-		Message(uint i,cstring backup)
+		Message(uint i,tstring const backup)
 		: id(i), string(backup), allocated(FALSE), next(NULL)
 		{
-			char buffer[MAX_MSG_LENGTH];	
+			tchar buffer[MAX_MSG_LENGTH];	
 
 			if (uint length = ::LoadString( ::GetModuleHandle(NULL), i, buffer, MAX_MSG_LENGTH-1 ))
 			{
-				if (char* const block = new (std::nothrow) char [++length])
+				if (tchar* const block = new (std::nothrow) tchar [++length])
 				{
 					string = block;
 					allocated = TRUE;
-					std::memcpy( block, buffer, length );
+					std::memcpy( block, buffer, length * sizeof(tchar) );
 				}
 			}
 		}
@@ -62,7 +62,7 @@ namespace Nestopia
 		}
 
 		const uint id;
-		cstring string;
+		tstring string;
 		ibool allocated;
 		Message* next;
 
@@ -70,12 +70,12 @@ namespace Nestopia
 
 	public:
 
-		static cstring GetString(const uint,cstring const);
+		static tstring GetString(const uint,tstring);
 	};
 
 	Exception::Message Exception::Message::list;
 
-	cstring Exception::Message::GetString(const uint id,cstring const backup)
+	tstring Exception::Message::GetString(const uint id,tstring const backup)
 	{
 		Message* node = &list;
 
@@ -92,7 +92,7 @@ namespace Nestopia
 		return node->next->string;
 	}
 
-	cstring Exception::GetMessageText() const
+	tstring Exception::GetMessageText() const
 	{
 		if (msg && *msg)
 			return msg;
@@ -102,11 +102,11 @@ namespace Nestopia
 			return Message::GetString
 			( 
 				msgId != NO_ID ? msgId : IDS_ERR_GENERIC, 
-				"Unhandled error! Call the Ghostbusters!" 
+				_T("Unhandled error! Call the Ghostbusters!")
 			);
 		}
 
-		cstring warning = "Unknown warning, just click OK to continue.";
+		tstring warning = _T("Unknown warning, just click OK to continue.");
 
 		if (msgId != NO_ID)
 			warning = Message::GetString( msgId, warning );
@@ -119,10 +119,10 @@ namespace Nestopia
 		if (final && type == UNSTABLE)
 			return;
 
-		cstring message = GetMessageText();
+		tstring message = GetMessageText();
 
 		uint flags;
-		char buffer[MAX_MSG_LENGTH * 2 + 8];
+		tchar buffer[MAX_MSG_LENGTH * 2 + 8];
 
 		switch (type)
 		{
@@ -135,14 +135,14 @@ namespace Nestopia
 			{
 				flags = MB_YESNO|MB_ICONWARNING|MB_SETFOREGROUND|MB_TOPMOST;
 	
-				cstring const unstable = Message::GetString
+				tstring const unstable = Message::GetString
 				( 
-					IDS_UNSTABLE, "application is unstable! Sure you want to continue?"
+					IDS_UNSTABLE, _T("application is unstable! Sure you want to continue?")
 				);
 	
-				std::strcpy( buffer, message );
-				std::strcat( buffer, "\r\n\r\n" );
-				std::strcat( buffer, unstable );
+				::_tcscpy( buffer, message );
+				::_tcscat( buffer, _T("\r\n\r\n") );
+				::_tcscat( buffer, unstable );
 	
 				message = buffer;
 				break;
@@ -154,10 +154,10 @@ namespace Nestopia
 				break;
 		}
 
-		cstring const caption = Message::GetString
+		tstring const caption = Message::GetString
 		(
 			type == CRITICAL ? IDS_TITLE_ERROR : IDS_TITLE_WARNING,
-			type == CRITICAL ? "Nestopia Error" : "Nestopia Warning"
+			type == CRITICAL ? _T("Nestopia Error") : _T("Nestopia Warning")
 		);
 
 		const int result = ::MessageBox( ::GetActiveWindow(), message, caption, flags );

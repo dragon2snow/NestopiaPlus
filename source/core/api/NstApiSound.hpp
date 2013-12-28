@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -57,8 +57,8 @@ namespace Nes
 				void* samples;
 				uint length;
 
-				Output()
-				: samples(NULL), length(0) {}
+				Output(void* s=NULL,uint l=0)
+				: samples(s), length(l) {}
 
 				typedef bool (NST_CALLBACK *LockCallback) (void*,Output&);
 				typedef void (NST_CALLBACK *UnlockCallback) (void*,Output&);
@@ -81,6 +81,38 @@ namespace Nes
 				{
 					if (function)
 						function( userdata, output );
+				}
+			};
+
+			class Loader
+			{
+				struct Callbacker;
+
+			public:
+
+				enum Type
+				{
+					MOERO_PRO_YAKYUU = 1
+				};
+
+				enum
+				{
+					MOERO_PRO_YAKYUU_SAMPLES = 16
+				};
+
+				virtual Result Load(uint,const u8*,dword,dword) = 0;
+
+				typedef void (NST_CALLBACK *LoadCallback) (void*,Type,Loader&);
+
+				static Callbacker loadCallback;
+			};
+
+			struct Loader::Callbacker : UserCallback<Loader::LoadCallback>
+			{
+				void operator () (Type type,Loader& loader) const
+				{
+					if (function)
+						function( userdata, type, loader );
 				}
 			};
 		}
@@ -136,6 +168,7 @@ namespace Nes
 			void    EmptyBuffer();
 	
 			typedef Core::Sound::Output Output;
+			typedef Core::Sound::Loader Loader;
 		};
 	}
 }

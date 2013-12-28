@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -121,9 +121,9 @@ namespace Nes
 
 			dword Crc        (Handle h) const { return static_cast<Ref>(h)->crc;                          }
 			dword pRomCrc    (Handle h) const { return static_cast<Ref>(h)->pRomCrc;                      }
-			dword pRomSize   (Handle h) const { return static_cast<Ref>(h)->pRomSize * NES_16K;           }
-			dword cRomSize   (Handle h) const { return static_cast<Ref>(h)->cRomSize * NES_8K;            }
-			dword wRamSize   (Handle h) const { return static_cast<Ref>(h)->wRamSize * NES_8K;            }	
+			dword pRomSize   (Handle h) const { return static_cast<Ref>(h)->pRomSize * SIZE_16K;           }
+			dword cRomSize   (Handle h) const { return static_cast<Ref>(h)->cRomSize * SIZE_8K;            }
+			dword wRamSize   (Handle h) const { return static_cast<Ref>(h)->wRamSize * SIZE_8K;            }	
 			uint  Mapper     (Handle h) const { return static_cast<Ref>(h)->mapper;                       }
 			ibool HasBattery (Handle h) const { return static_cast<Ref>(h)->flags & Entry::FLAGS_BATTERY; }
 			ibool HasTrainer (Handle h) const { return static_cast<Ref>(h)->flags & Entry::FLAGS_TRAINER; }

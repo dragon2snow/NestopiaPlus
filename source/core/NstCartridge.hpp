@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -42,6 +42,8 @@ namespace Nes
 		class Ppu;
 		class ImageDatabase;
 		class VsSystem;
+		class TurboFile;
+		class DataRecorder;
 
 		class Cartridge : public Image
 		{
@@ -53,22 +55,23 @@ namespace Nes
 			typedef Api::Cartridge::Info Info;
 
 			void Reset(bool);
-
 			void LoadState(State::Loader&);
 			void SaveState(State::Saver&) const;
-
-			void VSync();
-
-			Mode GetMode() const;
 			void BeginFrame(Input::Controllers*);
+			void VSync();
+			
+			Mode GetMode() const;
+			uint GetDesiredController(uint) const;						
+			ExternalDevice QueryExternalDevice(ExternalDeviceType);
 
 			static const void* SearchDatabase(const ImageDatabase&,const void*,ulong,ulong);
 
 		private:
 
-			void DetectVS();
-			bool DetectEncryption();
 			void DetectControllers();
+			void DetectVS();
+			void DetectTurboFile(Context&);
+			bool DetectEncryption();
 
 			bool InitInfo(const ImageDatabase*);
 			void ResetWRam();
@@ -78,6 +81,8 @@ namespace Nes
 
 			Mapper* mapper;
 			VsSystem* vs;
+			TurboFile* turboFile;
+			DataRecorder* dataRecorder;
 			LinearMemory pRom;
 			LinearMemory cRom;
 			LinearMemory wRam;
@@ -95,28 +100,6 @@ namespace Nes
 			const Info& GetInfo() const
 			{ 
 				return info; 
-			}
-
-			Mapper& GetMapper()
-			{
-				NST_ASSERT( mapper );
-				return *mapper; 
-			}
-
-			const Mapper& GetMapper() const
-			{ 
-				NST_ASSERT( mapper );
-				return *mapper; 
-			}
-
-			VsSystem* GetVsSystem()
-			{ 
-				return vs; 
-			}
-
-			const VsSystem* GetVsSystem() const
-			{ 
-				return vs; 
 			}
 
 			dword GetPrgCrc() const

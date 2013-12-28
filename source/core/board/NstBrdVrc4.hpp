@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -57,9 +57,6 @@ namespace Nes
 
 			public:
 
-				void SaveState(State::Saver&) const;
-				void LoadState(State::Loader&);
-
 				struct Irq : Clock::M2<BaseIrq>
 				{
 					void WriteLatch0(uint);
@@ -89,6 +86,8 @@ namespace Nes
 			private:
 
 				void SubReset(bool);
+				void BaseSave(State::Saver&) const;
+				void BaseLoad(State::Loader&,dword);
 				void VSync();
 				void SwapChrA(uint,uint) const;
 				

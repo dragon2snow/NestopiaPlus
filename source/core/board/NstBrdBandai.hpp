@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -37,11 +37,6 @@ namespace Nes
 		{
 			class NST_NO_VTABLE Bandai : public Mapper
 			{
-			public:
-		
-				void SaveState(State::Saver&) const;
-				void LoadState(State::Loader&);
-		
 			protected:
 		
 				enum Type
@@ -52,19 +47,34 @@ namespace Nes
 				};
 		
 				Bandai(Context&,Type);
+				~Bandai();
 		
 			private:
-		
+
+				class DatachJointSystem;
+
+				template<uint N> class E24C0X;				
+				static bool HasEEPROM(uint,Type,dword);
+
 				void SubReset(bool);
+				void BaseSave(State::Saver&) const;
+				void BaseLoad(State::Loader&,dword);
 				void VSync();
+				Device QueryDevice(DeviceType);
 		
-				NES_DECL_POKE( 0 )
-				NES_DECL_POKE( 8 )
-				NES_DECL_POKE( A )
-				NES_DECL_POKE( B )
-				NES_DECL_POKE( C )
-				NES_DECL_POKE( D )
-		
+				NES_DECL_PEEK( 6000_A1 )
+				NES_DECL_PEEK( 6000_A2 )
+				NES_DECL_PEEK( 6000_C  )
+				NES_DECL_POKE( 8000_B  )
+				NES_DECL_POKE( 8008_B  )
+				NES_DECL_POKE( 8000_C  )
+				NES_DECL_POKE( 800A    )
+				NES_DECL_POKE( 800B    )
+				NES_DECL_POKE( 800C    )
+				NES_DECL_POKE( 800D_A1 )
+				NES_DECL_POKE( 800D_A2 )
+				NES_DECL_POKE( 800D_C  )
+
 				struct Irq
 				{
 					void Reset(bool);
@@ -75,6 +85,9 @@ namespace Nes
 				};
 		
 				Clock::M2<Irq> irq;
+				DatachJointSystem* const datach;
+				E24C0X<128>* const e24C01;
+				E24C0X<256>* const e24C02;
 				const Type type;
 			};
 		}

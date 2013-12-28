@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -33,19 +33,6 @@
 #include "NstApu.hpp"
 #include "NstVector.hpp"
 
-#define NES_CYCLE_MAX (~dword(0))
-
-#define NES_MASTER_CLOCK_MUL 6
-
-#define NES_NTSC_CLOCK 39375000UL
-#define NES_PAL_CLOCK  35468950UL
-
-#define NES_NTSC_CLOCK_DIV 11
-#define NES_PAL_CLOCK_DIV   8
-
-#define NES_MASTER_CLOCK_NTSC ( NES_NTSC_CLOCK * NES_MASTER_CLOCK_MUL )
-#define NES_MASTER_CLOCK_PAL  ( NES_PAL_CLOCK  * NES_MASTER_CLOCK_MUL )
-
 namespace Nes
 {
 	namespace Core
@@ -61,14 +48,28 @@ namespace Nes
 
 			enum
 			{
-				RAM_SIZE = NES_2K
+				CLK_NTSC     = 39375000UL,
+				CLK_NTSC_DIV = 11,
+				CLK_PAL      = 35468950UL,
+				CLK_PAL_DIV  = 8,
+				MC_MUL       = 6,
+				MC_NTSC      = ulong(CLK_NTSC) * MC_MUL,
+				MC_PAL       = ulong(CLK_PAL) * MC_MUL,
+				MC_DIV_NTSC  = 12,
+				MC_DIV_PAL   = 16,
+				RESET_CYCLES = 7
 			};
 
 			enum
 			{
-				MC_DIV_NTSC  = 12,
-				MC_DIV_PAL   = 16,
-				RESET_CYCLES = 7
+				RAM_SIZE = SIZE_2K
+			};
+
+			enum
+			{
+				NMI_VECTOR   = 0xFFFAU,
+				RESET_VECTOR = 0xFFFCU,
+				IRQ_VECTOR   = 0xFFFEU
 			};
 
 			enum
@@ -87,6 +88,13 @@ namespace Nes
 				CYCLE_AUTO
 			};
 
+			enum Level
+			{
+				LEVEL_LOW = 1,
+				LEVEL_HIGH = 9,
+				LEVEL_HIGHEST = 10
+			};
+
 			typedef const u8 (&SystemRam)[RAM_SIZE];
 
 			void Boot();
@@ -102,18 +110,14 @@ namespace Nes
 
 			void SetMode(Mode);
 			void AddHook(const Hook&);
+			void RemoveHook(const Hook&);
 
 			void SaveState (State::Saver&) const;
 			void LoadState (State::Loader&);
 
 		private:
 
-			enum
-			{
-				NMI_VECTOR   = 0xFFFAU,
-				RESET_VECTOR = 0xFFFCU,
-				IRQ_VECTOR   = 0xFFFEU
-			};
+			typedef Vector<Hook> Hooks;
 
 			enum
 			{
@@ -147,7 +151,7 @@ namespace Nes
 
 			template<size_t N>
 			static inline void LogMsg(const char (&)[N],uint);
-  
+
 			NES_DECL_POKE( Nop      )
 			NES_DECL_PEEK( Nop      )
 			NES_DECL_POKE( Overflow )
@@ -186,16 +190,16 @@ namespace Nes
 			inline uint Zpg_R  ();
 			inline uint ZpgX_R ();
 			inline uint ZpgY_R ();
-			       uint Abs_R  ();
+			uint Abs_R  ();
 			inline uint AbsX_R ();
 			inline uint AbsY_R ();
-			       uint IndX_R ();
-			       uint IndY_R ();
+			uint IndX_R ();
+			uint IndY_R ();
 
 			inline uint Zpg_RW  (uint&);
 			inline uint ZpgX_RW (uint&);
 			inline uint ZpgY_RW (uint&);
-			       uint Abs_RW  (uint&);
+			uint Abs_RW  (uint&);
 			inline uint AbsY_RW (uint&);
 			inline uint AbsX_RW (uint&);
 			inline uint IndX_RW (uint&);
@@ -373,7 +377,7 @@ namespace Nes
 			void op0xF8(); void op0xF9(); void op0xFA(); void op0xFB(); 
 			void op0xFC(); void op0xFD(); void op0xFE(); void op0xFF();
 
-			struct IoMap : Io::Map<NES_64K>
+			struct IoMap : Io::Map<SIZE_64K>
 			{
 				template<typename T,typename U>
 				IoMap(Cpu*,T,U);
@@ -381,6 +385,31 @@ namespace Nes
 				inline uint Peek8(uint) const;
 				inline uint Peek16(uint) const;
 				inline void Poke8(uint,uint) const;
+			};
+
+			class Linker
+			{
+			public:
+
+				Linker();
+				~Linker();
+				
+				void Clear();
+				const Io::Port* Add(Address,uint,const Io::Port&,IoMap&);
+				void Remove(Address,const Io::Port&,IoMap&);
+
+			private:
+
+		    	struct Chain : Io::Port
+	    	   	{
+	    			Chain(const Port&,uint,uint=0);
+
+	    			uint address;
+	    			uint level;
+	    			Chain* next;
+	    		};
+
+				Chain* chain;
 			};
 
 			struct Ram
@@ -467,10 +496,11 @@ namespace Nes
 			Interrupt interrupt;
 			Cycle frameClock;
 			Ram ram;
-			Vector<Hook> hooks;
+			Hooks hooks;
 			ibool jammed;
 			Mode mode;
 			u64 ticks;
+			Linker linker;
 			Apu apu;
 
 			static void (Cpu::*const opcodes[NUM_OPCODES])();
@@ -607,6 +637,18 @@ namespace Nes
 			IoMap::Ports Map(Address first,Address last)
 			{
 				return map( first, last );
+			}
+
+			template<typename T,typename U,typename V>
+			const Io::Port* Link(Address address,uint level,T t,U u,V v)
+			{
+				return linker.Add( address, level, Io::Port(t,u,v), map );
+			}
+
+			template<typename T,typename U,typename V>
+			void Unlink(Address address,T t,U u,V v)
+			{					
+				linker.Remove( address, Io::Port(t,u,v), map );
 			}
 
 			bool OnOddCycle() const

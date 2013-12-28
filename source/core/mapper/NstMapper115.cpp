@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -83,7 +83,7 @@ namespace Nes
 			Mmc3::UpdatePrg();
 
 			if (exRegs[0] & 0x80)
-				prg.SwapBank<NES_16K,0x0000U>( exRegs[0] & 0x07 );
+				prg.SwapBank<SIZE_16K,0x0000U>( exRegs[0] & 0x07 );
 		}
 
 		void Mapper115::UpdateChr() const
@@ -93,7 +93,7 @@ namespace Nes
 			const uint swap = (regs.ctrl0 & Regs::CTRL0_XOR_CHR) << 5;
 			uint high = (exRegs[1] & 0x1) << 7;
 
-			chr.SwapBanks<NES_2K>
+			chr.SwapBanks<SIZE_2K>
 			( 
 		    	0x0000U ^ swap, 
 				banks.chr[0] | high, 
@@ -102,7 +102,7 @@ namespace Nes
 			
 			high <<= 1;
 
-			chr.SwapBanks<NES_1K>
+			chr.SwapBanks<SIZE_1K>
 			( 
 		     	0x1000U ^ swap, 
 				banks.chr[2] | high, 

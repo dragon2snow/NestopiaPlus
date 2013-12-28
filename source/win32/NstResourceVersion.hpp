@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -35,24 +35,15 @@ namespace Nestopia
 {
 	namespace Resource
 	{
-		class Version : Sealed
+		class Version : public String::Heap<char>
 		{
 		public:
 
-			explicit Version(cstring=NULL);
-
-			enum 
-			{
-				MAX_SIZE = 8
-			};
+			explicit Version(tstring);
 
 		private:				 
 
-			ibool InitInfo(cstring);
-			void InitString(uint,uint);
-
 			Object::Pod<VS_FIXEDFILEINFO> info;
-			Nestopia::String::Stack<MAX_SIZE> string;
 
 		public:
 
@@ -63,12 +54,7 @@ namespace Nestopia
 
 			operator cstring () const
 			{
-				return string; 
-			}
-
-			uint Size() const
-			{
-				return string.Size();
+				return Ptr();
 			}
 		};
 	}

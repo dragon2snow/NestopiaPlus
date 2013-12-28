@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -28,7 +28,7 @@ namespace Nestopia
 {
 	using System::Guid;
 
-	Guid::Guid(const String::Generic& string)
+	Guid::Guid(const GenericString& string)
 	{
 		FromString( string );
 	}
@@ -37,33 +37,33 @@ namespace Nestopia
 	{
 		return
 		(
-			Name() << String::Hex( ( u32 ) Data1,    true ) << '-'
-				   << String::Hex( ( u16 ) Data2,    true ) << '-'
-				   << String::Hex( ( u16 ) Data3,    true ) << '-'
-				   << String::Hex( ( u8  ) Data4[0], true ) 
-				   << String::Hex( ( u8  ) Data4[1], true ) << '-'
-				   << String::Hex( ( u8  ) Data4[2], true )
-				   << String::Hex( ( u8  ) Data4[3], true ) 
-				   << String::Hex( ( u8  ) Data4[4], true ) 
-				   << String::Hex( ( u8  ) Data4[5], true ) 
-				   << String::Hex( ( u8  ) Data4[6], true )
-				   << String::Hex( ( u8  ) Data4[7], true )
+			Name() << HexString( ( u32 ) Data1,    true ) << '-'
+				   << HexString( ( u16 ) Data2,    true ) << '-'
+				   << HexString( ( u16 ) Data3,    true ) << '-'
+				   << HexString( ( u8  ) Data4[0], true ) 
+				   << HexString( ( u8  ) Data4[1], true ) << '-'
+				   << HexString( ( u8  ) Data4[2], true )
+				   << HexString( ( u8  ) Data4[3], true ) 
+				   << HexString( ( u8  ) Data4[4], true ) 
+				   << HexString( ( u8  ) Data4[5], true ) 
+				   << HexString( ( u8  ) Data4[6], true )
+				   << HexString( ( u8  ) Data4[7], true )
 		);
 	}
 
-	ulong Guid::ConvertData(const String::Generic slice)
+	ulong Guid::ConvertData(const GenericString slice)
 	{
 		uint value;
 
-		if (!((String::Stack<2+8>("0x") << slice) >> value))
+		if (!((String::Stack<2+8>(_T("0x")) << slice) >> value))
 			throw ERR_INVALID_STRING;
 
 		return value;
 	}
 
-	void Guid::FromString(const String::Generic text)
+	void Guid::FromString(const GenericString text)
 	{
-		if (text.Size() == STRING_LENGTH)
+		if (text.Length() == STRING_LENGTH)
 		{
 			try
 			{

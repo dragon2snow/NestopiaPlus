@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -120,22 +120,22 @@ namespace Nes
 			return enabled && (++count[1] & 0xFF) == 0;
 		}
 
-		NES_POKE(Mapper183,B000) { ppu.Update(); chr.SwapBank<NES_1K,0x0000U>( (chr.GetBank<NES_1K,0x0000U>() & 0xF0) | ((data & 0xF) << 0) ); }
-		NES_POKE(Mapper183,B004) { ppu.Update(); chr.SwapBank<NES_1K,0x0000U>( (chr.GetBank<NES_1K,0x0000U>() & 0x0F) | ((data & 0xF) << 4) ); }
-		NES_POKE(Mapper183,B008) { ppu.Update(); chr.SwapBank<NES_1K,0x0400U>( (chr.GetBank<NES_1K,0x0400U>() & 0xF0) | ((data & 0xF) << 0) ); }
-		NES_POKE(Mapper183,B00C) { ppu.Update(); chr.SwapBank<NES_1K,0x0400U>( (chr.GetBank<NES_1K,0x0400U>() & 0x0F) | ((data & 0xF) << 4) ); }
-		NES_POKE(Mapper183,C000) { ppu.Update(); chr.SwapBank<NES_1K,0x0800U>( (chr.GetBank<NES_1K,0x0800U>() & 0xF0) | ((data & 0xF) << 0) ); }
-		NES_POKE(Mapper183,C004) { ppu.Update(); chr.SwapBank<NES_1K,0x0800U>( (chr.GetBank<NES_1K,0x0800U>() & 0x0F) | ((data & 0xF) << 4) ); }
-		NES_POKE(Mapper183,C008) { ppu.Update(); chr.SwapBank<NES_1K,0x0C00U>( (chr.GetBank<NES_1K,0x0C00U>() & 0xF0) | ((data & 0xF) << 0) ); }
-		NES_POKE(Mapper183,C00C) { ppu.Update(); chr.SwapBank<NES_1K,0x0C00U>( (chr.GetBank<NES_1K,0x0C00U>() & 0x0F) | ((data & 0xF) << 4) ); }
-		NES_POKE(Mapper183,D000) { ppu.Update(); chr.SwapBank<NES_1K,0x1000U>( (chr.GetBank<NES_1K,0x1000U>() & 0xF0) | ((data & 0xF) << 0) ); }
-		NES_POKE(Mapper183,D004) { ppu.Update(); chr.SwapBank<NES_1K,0x1000U>( (chr.GetBank<NES_1K,0x1000U>() & 0x0F) | ((data & 0xF) << 4) ); }
-		NES_POKE(Mapper183,D008) { ppu.Update(); chr.SwapBank<NES_1K,0x1400U>( (chr.GetBank<NES_1K,0x1400U>() & 0xF0) | ((data & 0xF) << 0) ); }
-		NES_POKE(Mapper183,D00C) { ppu.Update(); chr.SwapBank<NES_1K,0x1400U>( (chr.GetBank<NES_1K,0x1400U>() & 0x0F) | ((data & 0xF) << 4) ); }
-		NES_POKE(Mapper183,E000) { ppu.Update(); chr.SwapBank<NES_1K,0x1800U>( (chr.GetBank<NES_1K,0x1800U>() & 0xF0) | ((data & 0xF) << 0) ); }
-		NES_POKE(Mapper183,E004) { ppu.Update(); chr.SwapBank<NES_1K,0x1800U>( (chr.GetBank<NES_1K,0x1800U>() & 0x0F) | ((data & 0xF) << 4) ); }
-		NES_POKE(Mapper183,E008) { ppu.Update(); chr.SwapBank<NES_1K,0x1C00U>( (chr.GetBank<NES_1K,0x1C00U>() & 0xF0) | ((data & 0xF) << 0) ); }
-		NES_POKE(Mapper183,E00C) { ppu.Update(); chr.SwapBank<NES_1K,0x1C00U>( (chr.GetBank<NES_1K,0x1C00U>() & 0x0F) | ((data & 0xF) << 4) ); }
+		NES_POKE(Mapper183,B000) { ppu.Update(); chr.SwapBank<SIZE_1K,0x0000U>( (chr.GetBank<SIZE_1K,0x0000U>() & 0xF0) | ((data & 0xF) << 0) ); }
+		NES_POKE(Mapper183,B004) { ppu.Update(); chr.SwapBank<SIZE_1K,0x0000U>( (chr.GetBank<SIZE_1K,0x0000U>() & 0x0F) | ((data & 0xF) << 4) ); }
+		NES_POKE(Mapper183,B008) { ppu.Update(); chr.SwapBank<SIZE_1K,0x0400U>( (chr.GetBank<SIZE_1K,0x0400U>() & 0xF0) | ((data & 0xF) << 0) ); }
+		NES_POKE(Mapper183,B00C) { ppu.Update(); chr.SwapBank<SIZE_1K,0x0400U>( (chr.GetBank<SIZE_1K,0x0400U>() & 0x0F) | ((data & 0xF) << 4) ); }
+		NES_POKE(Mapper183,C000) { ppu.Update(); chr.SwapBank<SIZE_1K,0x0800U>( (chr.GetBank<SIZE_1K,0x0800U>() & 0xF0) | ((data & 0xF) << 0) ); }
+		NES_POKE(Mapper183,C004) { ppu.Update(); chr.SwapBank<SIZE_1K,0x0800U>( (chr.GetBank<SIZE_1K,0x0800U>() & 0x0F) | ((data & 0xF) << 4) ); }
+		NES_POKE(Mapper183,C008) { ppu.Update(); chr.SwapBank<SIZE_1K,0x0C00U>( (chr.GetBank<SIZE_1K,0x0C00U>() & 0xF0) | ((data & 0xF) << 0) ); }
+		NES_POKE(Mapper183,C00C) { ppu.Update(); chr.SwapBank<SIZE_1K,0x0C00U>( (chr.GetBank<SIZE_1K,0x0C00U>() & 0x0F) | ((data & 0xF) << 4) ); }
+		NES_POKE(Mapper183,D000) { ppu.Update(); chr.SwapBank<SIZE_1K,0x1000U>( (chr.GetBank<SIZE_1K,0x1000U>() & 0xF0) | ((data & 0xF) << 0) ); }
+		NES_POKE(Mapper183,D004) { ppu.Update(); chr.SwapBank<SIZE_1K,0x1000U>( (chr.GetBank<SIZE_1K,0x1000U>() & 0x0F) | ((data & 0xF) << 4) ); }
+		NES_POKE(Mapper183,D008) { ppu.Update(); chr.SwapBank<SIZE_1K,0x1400U>( (chr.GetBank<SIZE_1K,0x1400U>() & 0xF0) | ((data & 0xF) << 0) ); }
+		NES_POKE(Mapper183,D00C) { ppu.Update(); chr.SwapBank<SIZE_1K,0x1400U>( (chr.GetBank<SIZE_1K,0x1400U>() & 0x0F) | ((data & 0xF) << 4) ); }
+		NES_POKE(Mapper183,E000) { ppu.Update(); chr.SwapBank<SIZE_1K,0x1800U>( (chr.GetBank<SIZE_1K,0x1800U>() & 0xF0) | ((data & 0xF) << 0) ); }
+		NES_POKE(Mapper183,E004) { ppu.Update(); chr.SwapBank<SIZE_1K,0x1800U>( (chr.GetBank<SIZE_1K,0x1800U>() & 0x0F) | ((data & 0xF) << 4) ); }
+		NES_POKE(Mapper183,E008) { ppu.Update(); chr.SwapBank<SIZE_1K,0x1C00U>( (chr.GetBank<SIZE_1K,0x1C00U>() & 0xF0) | ((data & 0xF) << 0) ); }
+		NES_POKE(Mapper183,E00C) { ppu.Update(); chr.SwapBank<SIZE_1K,0x1C00U>( (chr.GetBank<SIZE_1K,0x1C00U>() & 0x0F) | ((data & 0xF) << 4) ); }
 		
 		NES_POKE(Mapper183,F000) 
 		{

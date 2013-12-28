@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -79,26 +79,35 @@ namespace Nes
 				}
 			}
 	
-			void TaitoTc::LoadState(State::Loader& state)
+			void TaitoTc::BaseLoad(State::Loader& state,const dword id)
 			{
-				while (const dword chunk = state.Begin())
+				NST_VERIFY( id == NES_STATE_CHUNK_ID('T','T','C','\0') );
+
+				if (id == NES_STATE_CHUNK_ID('T','T','C','\0'))
 				{
-					if (chunk == NES_STATE_CHUNK_ID('I','R','Q','\0'))
+					while (const dword chunk = state.Begin())
 					{
-						NST_VERIFY( irq );
-	
-						if (irq)
-							irq->unit.LoadState( state );
+						if (chunk == NES_STATE_CHUNK_ID('I','R','Q','\0'))
+						{
+							NST_VERIFY( irq );
+
+							if (irq)
+								irq->unit.LoadState( state );
+						}
+
+						state.End();
 					}
-	
-					state.End();
 				}
 			}
 	
-			void TaitoTc::SaveState(State::Saver& state) const
+			void TaitoTc::BaseSave(State::Saver& state) const
 			{
+				state.Begin('T','T','C','\0');
+
 				if (irq)
 					irq->unit.SaveState( State::Saver::Subset(state,'I','R','Q','\0').Ref() );
+
+				state.End();
 			}
 	
             #ifdef NST_PRAGMA_OPTIMIZE
@@ -107,7 +116,7 @@ namespace Nes
 	
 			NES_POKE(TaitoTc,8000) 
 			{
-				prg.SwapBank<NES_8K,0x0000U>( data );
+				prg.SwapBank<SIZE_8K,0x0000U>( data );
 				ppu.SetMirroring( (data & 0x40) ? Ppu::NMT_HORIZONTAL : Ppu::NMT_VERTICAL );
 			}
 	

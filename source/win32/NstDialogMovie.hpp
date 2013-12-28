@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -40,15 +40,11 @@ namespace Nestopia
 			explicit Movie(const Managers::Paths&);
 			~Movie();
 
-			typedef String::Path<false> MovieFile;
-
-			ibool SetMovieFile(const MovieFile&);
+			ibool SetMovieFile(const Path&);
 
 		private:
 
 			struct Handlers;
-
-			void FixFile();
 
 			ibool OnInitDialog (Param&);
 			ibool OnCmdBrowse  (Param&);
@@ -58,7 +54,7 @@ namespace Nestopia
 
 			Dialog dialog;
 			const Managers::Paths& paths;
-			MovieFile movieFile;
+			Path movieFile;
 
 		public:
 
@@ -67,7 +63,7 @@ namespace Nestopia
 				dialog.Open();
 			}
 
-			const MovieFile& GetMovieFile() const
+			const Path& GetMovieFile() const
 			{
 				return movieFile;
 			}

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -59,6 +59,8 @@ namespace Nestopia
 			create.hIcon
 		);
 
+		className = create.className;
+
 		Generic::Create
 		(
 			create.exStyle,
@@ -75,7 +77,18 @@ namespace Nestopia
 		);
 
 		if (hWnd == NULL)
-			throw Application::Exception("CreateWindowEx() failed!");
+			throw Application::Exception(_T("CreateWindowEx() failed!"));
+	}
+
+	void Dynamic::Destroy()
+	{
+		Custom::Destroy();
+
+		if (className.Length())
+		{
+			Unregister( className.Ptr() );
+			className.Clear();
+		}
 	}
 
 	void Dynamic::OnCreate(HWND const handle)
@@ -88,7 +101,7 @@ namespace Nestopia
 		const LONG_PTR ptr = reinterpret_cast<LONG_PTR>( instances.Size() == 1 ? WndProcSingle : WndProcMulti );
 
 		if (!::SetWindowLongPtr( hWnd, GWLP_WNDPROC, ptr ))
-			throw Application::Exception("SetWindowLongPtr() failed!");
+			throw Application::Exception(_T("SetWindowLongPtr() failed!"));
 	}
 
 	ibool Dynamic::OnNcDestroy(Param&)
@@ -97,7 +110,7 @@ namespace Nestopia
 
 		Instances::Iterator instance; 
 
-		for (instance = instances; (*instance)->hWnd != hWnd; ++instance);
+		for (instance = instances.Ptr(); (*instance)->hWnd != hWnd; ++instance);
 
 		instances.Erase( instance );
 		hWnd = NULL;
@@ -126,7 +139,7 @@ namespace Nestopia
 	{
 		Instances::ConstIterator instance; 
 
-		for (instance = instances; (*instance)->hWnd != hWnd; ++instance);
+		for (instance = instances.Ptr(); (*instance)->hWnd != hWnd; ++instance);
 
 		if (const MsgHandler::Item* const item = (*instance)->msgHandler( uMsg ))
 		{

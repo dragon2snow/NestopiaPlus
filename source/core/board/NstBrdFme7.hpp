@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -38,10 +38,7 @@ namespace Nes
 			class NST_NO_VTABLE Fme07 : public Mapper
 			{
 			public:
-		
-				void SaveState(State::Saver&) const;
-				void LoadState(State::Loader&);
-		
+
 				class Sound : Apu::Channel
 				{
 				public:
@@ -100,7 +97,7 @@ namespace Nes
 		
 						enum 
 						{
-							FRQ_SHIFT = 3,
+							FRQ_SHIFT = 4,
 							MAX_WAVELENGTH = REG0_WAVELENGTH_LOW | (uint(REG1_WAVELENGTH_HIGH) << 8)
 						};
 		
@@ -137,10 +134,16 @@ namespace Nes
 			protected:
 		
 				Fme07(Context&);
+				~Fme07();
 		
 			private:
 		
+				class BarcodeWorld;
+
 				void SubReset(bool);
+				void BaseSave(State::Saver&) const;
+				void BaseLoad(State::Loader&,dword);
+				Device QueryDevice(DeviceType);
 				void VSync();
 		
 				NES_DECL_POKE( 8000  )
@@ -160,6 +163,7 @@ namespace Nes
 				uint command;
 				Clock::M2<Irq> irq;
 				Sound sound;
+				BarcodeWorld* const barcodeWorld;
 			};
 		}
 	}

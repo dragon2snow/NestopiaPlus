@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -88,7 +88,7 @@ namespace Nes
 			NES_DECL_POKE( 4016        )
 			NES_DECL_POKE( 4017        )
 
-			Io::Port ports[2];
+			const Io::Port* ports[2];
 			Cpu& cpu;
 			Status status;
 			Player* player;

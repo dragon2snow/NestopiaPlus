@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -62,7 +62,7 @@ namespace Nestopia
 	{
 		Collection::Buffer buffer;
 
-		if (Resource::File( IDR_IMAGEDATABASE, "ImageDatabase" ).Uncompress( buffer ))
+		if (Resource::File( IDR_IMAGEDATABASE, _T("ImageDatabase") ).Uncompress( buffer ))
 		{
 			Io::Stream::Input stream( buffer );
 			Nes::Cartridge( emulator ).GetDatabase().Load( stream );

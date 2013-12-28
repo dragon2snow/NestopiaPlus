@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -25,6 +25,7 @@
 #include <cstdlib>
 #include "../NstMapper.hpp"
 #include "../NstClock.hpp"
+#include "../NstBarcodeReader.hpp"
 #include "NstBrdFme7.hpp"
 		   
 namespace Nes
@@ -37,6 +38,52 @@ namespace Nes
             #pragma optimize("s", on)
             #endif
 		
+			class Fme07::BarcodeWorld : public BarcodeReader
+			{
+				bool SubTransfer(cstring,uint,u8*);
+
+				NES_DECL_PEEK( 4017 )
+				NES_DECL_POKE( 4017 )
+
+				Io::Port p4017;
+
+				enum
+				{
+					NUM_DIGITS = 13
+				};
+
+				bool IsDigitsSupported(uint count) const
+				{
+					return count == NUM_DIGITS;
+				}
+
+			public:
+
+				void Reset(Cpu& cpu)
+				{
+					BarcodeReader::Reset();
+
+					p4017 = cpu.Map( 0x4017 );
+					cpu.Map( 0x4017 ).Set( this, &BarcodeWorld::Peek_4017, &BarcodeWorld::Poke_4017 );
+				}
+
+				void SaveState(State::Saver& state) const
+				{
+					BarcodeReader::SaveState( state );
+				}
+
+				void LoadState(State::Loader& state)
+				{
+					BarcodeReader::Reset();
+
+					while (const dword chunk = state.Begin())
+					{
+						BarcodeReader::LoadState( state, chunk );
+						state.End();
+					}
+				}
+			};
+
 			const u16 Fme07::Sound::Square::voltages[16] = 
 			{
 				// 16 levels, 3dB per step
@@ -56,11 +103,25 @@ namespace Nes
 	
 			Fme07::Fme07(Context& c)
 			: 
-			Mapper (c,WRAM_8K),
-			irq    (c.cpu),
-			sound  (c.cpu)
+			Mapper       (c,WRAM_8K),
+			irq          (c.cpu),
+			sound        (c.cpu),
+			barcodeWorld (c.pRomCrc == 0x67898319UL ? new BarcodeWorld : NULL)
 			{}
 		
+			Fme07::~Fme07()
+			{
+				delete barcodeWorld;
+			}
+
+			Fme07::Device Fme07::QueryDevice(DeviceType type)
+			{
+				if (type == DEVICE_BARCODE_READER && barcodeWorld)
+					return barcodeWorld;
+				else
+					return Mapper::QueryDevice( type );
+			}
+
 			void Fme07::Irq::Reset(const bool hard)
 			{
 				if (hard)
@@ -96,6 +157,9 @@ namespace Nes
 
 				irq.Reset( hard, hard ? false : irq.IsLineEnabled() );
 
+				if (barcodeWorld)
+					barcodeWorld->Reset( cpu );
+
 				Map( WRK_PEEK );		
 				Map( WRK_POKE_BUS );		
 				Map( 0x8000U, 0x9FFFU, &Fme07::Poke_8000 );
@@ -122,40 +186,53 @@ namespace Nes
 				return enabled && waveLength;
 			}
 
-			void Fme07::LoadState(State::Loader& state)
+			void Fme07::BaseLoad(State::Loader& state,const dword id)
 			{
-				while (const dword chunk = state.Begin())
+				NST_ASSERT( id == NES_STATE_CHUNK_ID('F','M','7','\0') );
+
+				if (id == NES_STATE_CHUNK_ID('F','M','7','\0'))
 				{
-					switch (chunk)
+					while (const dword chunk = state.Begin())
 					{
-						case NES_STATE_CHUNK_ID('R','E','G','\0'):
-
-							command = state.Read8();
-							break;
-
-     					case NES_STATE_CHUNK_ID('I','R','Q','\0'):
+						switch (chunk)
 						{
-							const State::Loader::Data<3> data( state );
-
-							irq.EnableLine( data[0] & 0x80 );
-							irq.unit.enabled = data[0] & 0x01;
-							irq.unit.count = data[1] | (data[2] << 8);
-
-							break;
+							case NES_STATE_CHUNK_ID('R','E','G','\0'):
+						
+								command = state.Read8();
+								break;
+						
+							case NES_STATE_CHUNK_ID('I','R','Q','\0'):
+							{
+								const State::Loader::Data<3> data( state );
+						
+								irq.EnableLine( data[0] & 0x80 );
+								irq.unit.enabled = data[0] & 0x01;
+								irq.unit.count = data[1] | (data[2] << 8);
+						
+								break;
+							}
+						
+							case NES_STATE_CHUNK_ID('S','N','D','\0'):
+						
+								sound.LoadState( State::Loader::Subset(state).Ref() );
+								break;
+						
+							case NES_STATE_CHUNK_ID('B','R','C','\0'):
+						
+								if (barcodeWorld)
+									barcodeWorld->LoadState( State::Loader::Subset(state).Ref() );
+						
+								break;
 						}
 
-						case NES_STATE_CHUNK_ID('S','N','D','\0'):
-
-							sound.LoadState( State::Loader::Subset(state).Ref() );
-							break;
+						state.End();
 					}
-
-					state.End();
 				}
 			}
 		
-			void Fme07::SaveState(State::Saver& state) const
+			void Fme07::BaseSave(State::Saver& state) const
 			{
+				state.Begin('F','M','7','\0');
 				state.Begin('R','E','G','\0').Write8( command ).End();
 
 				{
@@ -170,6 +247,11 @@ namespace Nes
 				}
 
 				sound.SaveState( State::Saver::Subset(state,'S','N','D','\0').Ref() );
+
+				if (barcodeWorld && barcodeWorld->IsTransferring())
+					barcodeWorld->SaveState( State::Saver::Subset(state,'B','R','C','\0').Ref() );
+
+				state.End();
 			}
 				
 			void Fme07::Sound::SaveState(State::Saver& state) const
@@ -257,9 +339,65 @@ namespace Nes
 				}
 			}
 
+			bool Fme07::BarcodeWorld::SubTransfer(cstring const string,const uint length,u8* NST_RESTRICT stream)
+			{
+				NST_COMPILE_ASSERT( MAX_DATA_LENGTH >= 191 );
+
+				if (length != NUM_DIGITS)
+					return false;
+
+				const u8 code[20] =
+				{
+					string[0],
+					string[1],
+					string[2],
+					string[3],
+					string[4],
+					string[5],
+					string[6],
+					string[7],
+					string[8],
+					string[9],
+					string[10],
+					string[11],
+					string[12],
+					'S',
+					'U',
+					'N',
+					'S',
+					'O',
+					'F',
+					'T'				
+				};
+
+				*stream++ = 0x04;
+
+				for (uint i=0; i < 20; ++i)
+				{
+					*stream++ = 0x04;
+
+					for (uint j=0x01, c=code[i]; j != 0x100; j <<= 1)
+						*stream++ = (c & j) ? 0x00 : 0x04;
+
+					*stream++ = 0x00;
+				}
+
+				return true;
+			}
+
             #ifdef NST_PRAGMA_OPTIMIZE
             #pragma optimize("", on)
             #endif
+
+			NES_POKE(Fme07::BarcodeWorld,4017)
+			{
+				p4017.Poke( address, data );
+			}
+
+			NES_PEEK(Fme07::BarcodeWorld,4017)
+			{
+				return (IsTransferring() ? Fetch() : 0x00) | p4017.Peek( address );
+			}
 
 			NES_POKE(Fme07,8000) 
 			{ 
@@ -280,13 +418,13 @@ namespace Nes
 					case 0x7:
 			
 						ppu.Update();
-						chr.SwapBank<NES_1K>( bank << 10, data );
+						chr.SwapBank<SIZE_1K>( bank << 10, data );
 						break;
 		
 					case 0x8:
 
 						if (!(data & 0x40) || (data & 0x80))
-							wrk.Source( !(data & 0x40) ).SwapBank<NES_8K,0x0000U>( data );
+							wrk.Source( !(data & 0x40) ).SwapBank<SIZE_8K,0x0000U>( data );
 
 						break;
 			
@@ -294,7 +432,7 @@ namespace Nes
 					case 0xA:
 					case 0xB:
 		
-						prg.SwapBank<NES_8K>( (command - 0x9) << 13, data );
+						prg.SwapBank<SIZE_8K>( (command - 0x9) << 13, data );
 						break;
 			
 					case 0xC:

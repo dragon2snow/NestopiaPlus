@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -22,12 +22,39 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
+#include "NstIoFile.hpp"
 #include "NstIoNsp.hpp"
+#include "NstApplicationInstance.hpp"
 #include "../core/api/NstApiCheats.hpp"
 #include "../core/api/NstApiMachine.hpp"
 
 namespace Nestopia
 {
+	NST_COMPILE_ASSERT
+	(
+		Nes::Input::UNCONNECTED	      ==  0 &&
+		Nes::Input::PAD1		      ==  1 &&
+		Nes::Input::PAD2		      ==  2 &&
+		Nes::Input::PAD3		      ==  3 &&
+		Nes::Input::PAD4		      ==  4 &&
+		Nes::Input::ZAPPER		      ==  5 &&
+		Nes::Input::PADDLE		      ==  6 &&
+		Nes::Input::POWERPAD	      ==  7 &&
+		Nes::Input::FAMILYTRAINER     ==  8 &&
+		Nes::Input::FAMILYKEYBOARD    ==  9 &&
+		Nes::Input::SUBORKEYBOARD     == 10 &&
+		Nes::Input::DOREMIKKOKEYBOARD == 11 &&
+		Nes::Input::OEKAKIDSTABLET    == 12 &&
+		Nes::Input::HYPERSHOT	      == 13 &&
+		Nes::Input::CRAZYCLIMBER      == 14 &&
+		Nes::Input::MAHJONG		      == 15 &&
+		Nes::Input::EXCITINGBOXING    == 16 &&
+		Nes::Input::TOPRIDER	      == 17 &&
+		Nes::Input::POKKUNMOGURAA     == 18 &&
+		Nes::Input::PARTYTAP          == 19 &&
+		Nes::Input::NUM_CONTROLLERS   == 19
+	);
+
 	using Io::Nsp::Context;
 
 	Context::Context()
@@ -48,6 +75,8 @@ namespace Nestopia
 		save.Clear();
 		state.Clear();
 		movie.Clear();
+		tape.Clear();
+		palette.Clear();
 		
 		for (uint i=0; i < NUM_CONTROLLER_PORTS; ++i)
 			controllers[i] = UNKNOWN;
@@ -57,71 +86,53 @@ namespace Nestopia
 		cheats.clear();
 	}
 
-	NST_COMPILE_ASSERT
-	(
-		Nes::Input::UNCONNECTED	    ==  0 &&
-		Nes::Input::PAD1		    ==  1 &&
-		Nes::Input::PAD2		    ==  2 &&
-		Nes::Input::PAD3		    ==  3 &&
-		Nes::Input::PAD4		    ==  4 &&
-		Nes::Input::ZAPPER		    ==  5 &&
-		Nes::Input::PADDLE		    ==  6 &&
-		Nes::Input::POWERPAD	    ==  7 &&
-		Nes::Input::KEYBOARD	    ==  8 &&
-		Nes::Input::OEKAKIDSTABLET  ==  9 &&
-		Nes::Input::HYPERSHOT	    == 10 &&
-		Nes::Input::CRAZYCLIMBER    == 11 &&
-		Nes::Input::MAHJONG		    == 12 &&
-		Nes::Input::EXCITINGBOXING  == 13 &&
-		Nes::Input::TOPRIDER	    == 14 &&
-		Nes::Input::POKKUNMOGURAA   == 15 &&
-		Nes::Input::NUM_CONTROLLERS == 15
-	);
-
 	using Io::Nsp::File;
 
-	cstring const File::controllerNames[] =
+	tstring const File::controllerNames[] =
 	{
-		"unconnected",
-		"pad1",
-		"pad2",
-		"pad3",
-		"pad4",
-		"zapper",
-		"paddle",
-		"powerpad",
-		"keyboard",
-		"oekakidstablet",
-		"hypershot",
-		"crazyclimber",
-		"mahjong",
-		"excitingboxing",
-		"toprider",
-		"pokkunmoguraa"
+		_T( "unconnected"		),
+		_T( "pad1"				),
+		_T( "pad2"				),
+		_T( "pad3"				),
+		_T( "pad4"				),
+		_T( "zapper"			),
+		_T( "paddle"			),
+		_T( "powerpad"			),
+		_T( "familytrainer" 	),
+		_T( "familykeyboard"	),
+		_T( "suborkeyboard"	    ),
+		_T( "doremikkokeyboard" ),
+		_T( "oekakidstablet"	),
+		_T( "hypershot"			),
+		_T( "crazyclimber"		),
+		_T( "mahjong"			),
+		_T( "excitingboxing"	),
+		_T( "toprider"			),
+		_T( "pokkunmoguraa"		),
+		_T( "partytap"		    )
 	};
 
 	void File::Save(Output& output,const Context& context) const
 	{
-		NST_COMPILE_ASSERT
-		( 
-			Context::NUM_CONTROLLER_PORTS == 5 &&
-			Context::NUM_CONTROLLERS == 15
-		);
+		NST_COMPILE_ASSERT( Context::NUM_CONTROLLER_PORTS == 5 && Context::NUM_CONTROLLERS == 19 );
 
 		output << "//\r\n"
-				  "// Generated Nestopia Script File. Version 1.23\r\n"
+       			  "// Generated Nestopia Script File. Version " << Application::Instance::GetVersion() << "\r\n"
 				  "//\r\n"
 				  "// Syntax:\r\n"
 				  "//\r\n"
 				  "//  -ROM / -IMAGE <filename>\r\n"
-				  "//  -SAV / -SAVE  <filename>\r\n"
+				  "//  -SAVE <filename>\r\n"
+				  "//  -TAPE <filename>\r\n"
 				  "//  -STATE <filename>\r\n"
 				  "//  -MOVIE <filename>\r\n"
 				  "//  -IPS <filename>\r\n"
+				  "//  -PALETTE <filename>\r\n"
 				  "//  -MODE <ntsc/pal>\r\n"
-				  "//  -PORT1..PORT5 <unconnected,pad1,pad2,pad3,pad4,zapper,paddle,powerpad,\r\n"
-				  "//                 keyboard,oekakidstablet,hypershot,crazyclimber,mahjong,\r\n"
-				  "//                 excitingboxing,toprider,pokkunmoguraa>\r\n"
+				  "//  -PORT1..PORT5 <unconnected,pad1,pad2,pad3,pad4,zapper,paddle,powerpad,familytrainer,\r\n"
+				  "//                 familykeyboard,suborkeyboard,doremikkokeyboard,oekakidstablet,\r\n"
+				  "//                 hypershot,crazyclimber,mahjong,excitingboxing,toprider,\r\n"
+				  "//                 pokkunmoguraa,partytap>\r\n"
 				  "//\r\n"
 				  "//  -GENIE <code> <on,off> (description)\r\n"
 				  "//  -CHEAT <address> <value> (compare value) <on,off> (description)\r\n"
@@ -131,24 +142,30 @@ namespace Nestopia
 				  "//\r\n"
 				  "// Example:\r\n"
 				  "//\r\n"
-				  "//  -IMAGE C:\\games\\bringbacknestacos.nes // C style comment\r\n"
+				  "//  -IMAGE C:\\games\\monkey island 3 (a).nes // C style comment\r\n"
 				  "//  -MODE ntsc\r\n"
 				  "//  -PORT1 pad1\r\n"
 				  "//  -PORT2 unconnected\r\n"
 				  "//  -GENIE SXIOPO on infinite plumbers\r\n"
 				  "//\r\n\r\n";
 				  
-		if (context.image.Size())
+		if (context.image.Length())
 			output << "-IMAGE " << context.image << "\r\n";
 
-		if (context.ips.Size())
+		if (context.ips.Length())
 			output << "-IPS " << context.ips << "\r\n";
 
-		if (context.save.Size())
+		if (context.save.Length())
 			output << "-SAVE " << context.save << "\r\n";
 
-		if (context.movie.Size())
+		if (context.movie.Length())
 			output << "-MOVIE " << context.movie << "\r\n";
+
+		if (context.tape.Length())
+			output << "-TAPE " << context.tape << "\r\n";
+
+		if (context.palette.Length())
+			output << "-PALETTE " << context.palette << "\r\n";
 
 		if (context.mode != Context::UNKNOWN)
 			output << "-MODE " << (context.mode == Nes::Machine::PAL ? "pal\r\n" : "ntsc\r\n");
@@ -159,19 +176,19 @@ namespace Nestopia
 				output << "-PORT" << (i+1) << ' ' << controllerNames[context.controllers[i]] << "\r\n";
 		}
 
-		for (Context::Cheats::const_iterator it(context.cheats.begin()); it != context.cheats.end(); ++it)
+		for (Context::Cheats::const_iterator it(context.cheats.begin()), end(context.cheats.end()); it != end; ++it)
 		{
 			output << "-CHEAT " 
-				   << String::Hex( (u16) it->address )
+				   << HexString( (u16) it->address )
 				   << ' '
-				   << String::Hex( (u8) it->value );
+				   << HexString( (u8) it->value );
 
 			if (it->useCompare)
-				output << ' ' << String::Hex( (u8) it->compare );
+				output << ' ' << HexString( (u8) it->compare );
 				   
 		    output << (it->enabled ? " on" : " off");
 
-			if (it->desc.Size())
+			if (it->desc.Length())
 			{
 				output << ' ' << it->desc;
 			}
@@ -180,7 +197,7 @@ namespace Nestopia
 				char characters[9];
 
 				if (NES_SUCCEEDED(Nes::Cheats::GameGenieEncode( Nes::Cheats::Code(it->address,it->value,it->compare,it->useCompare), characters )))
-					output << " (" << cstring(characters) << ')';
+					output << " (" << characters << ')';
 			}
 
 			output << "\r\n";
@@ -191,7 +208,7 @@ namespace Nestopia
 	{
 	public:
 
-		Parser(cstring,cstring const);
+		Parser(tstring,tstring const);
 
 	private:
 
@@ -201,8 +218,8 @@ namespace Nestopia
 				++it;
 		}
 
-		cstring it;
-		cstring buffer;
+		tstring it;
+		tstring buffer;
 
 	public:
 
@@ -242,7 +259,7 @@ namespace Nestopia
 			return FALSE;
 		}
 
-		void ReadType(cstring (&range)[2])
+		void ReadType(tstring (&range)[2])
 		{
 			SkipSpace();
 
@@ -257,7 +274,7 @@ namespace Nestopia
 				throw ERR_SYNTAX;
 		}
 
-		void ReadValue(cstring (&range)[2])
+		void ReadValue(tstring (&range)[2])
 		{
 			SkipSpace();
 
@@ -276,39 +293,30 @@ namespace Nestopia
 		}
 	};
 
-	File::Parser::Parser(cstring begin,cstring const end)
+	File::Parser::Parser(tstring begin,tstring const end)
 	{
-		char* output = new char [(end - begin) + 1];
+		tchar* output = new tchar [(end - begin) + 1];
 		buffer = output, it = output;
 
 		while (begin != end)
 		{
-			const int character = *begin++;
+			const uint c = (uint) *begin++;
 
-			if
-			(
-				character != '\t' &&
-				character != '\v' &&
-				character != '\b' &&
-				character != '\f' &&
-				character != '\a' &&
-				character != '\r' &&
-				character != '\0'
-			)
-				*output++ = (char) character;
+			if (c > 31 || c == '\n')
+				*output++ = (tchar) c;
 		}
 
 		*output = '\0';
 	}
 
-	ibool File::Match(cstring const type,cstring (&values)[2])
+	ibool File::Match(tstring const type,tstring (&values)[2])
 	{
-		return String::Compare( type, values[0], values[1] - values[0] ) == 0;
+		return ::_tcsnicmp( type, values[0], values[1] - values[0] ) == 0;
 	}
 
-	void File::Skip(cstring& in,cstring const end)
+	void File::Skip(tstring& in,tstring const end)
 	{
-		cstring it = in;
+		tstring it = in;
 
 		while (it < end && *it != ' ')
 			++it;
@@ -319,7 +327,7 @@ namespace Nestopia
 		in = it;
 	}
 
-	ibool File::ParseFile(cstring const type,cstring (&values)[2][2],Context::Path& file)
+	ibool File::ParseFile(tstring const type,tstring (&values)[2][2],Path& file)
 	{
 		if (Match( type, values[0] ))
 		{
@@ -335,7 +343,7 @@ namespace Nestopia
 		return FALSE;
 	}
 
-	ibool File::ParsePort(cstring const type,cstring (&values)[2][2],uint& controller)
+	ibool File::ParsePort(tstring const type,tstring (&values)[2][2],uint& controller)
 	{
 		if (Match( type, values[0] ))
 		{
@@ -354,16 +362,16 @@ namespace Nestopia
 		return FALSE;
 	}
 
-	ibool File::ParseMode(cstring const type,cstring (&values)[2][2],uint& mode)
+	ibool File::ParseMode(tstring const type,tstring (&values)[2][2],uint& mode)
 	{
 		if (Match( type, values[0] ))
 		{
-			if (Match( "ntsc", values[1] ))
+			if (Match( _T("ntsc"), values[1] ))
 			{
 				mode = Nes::Machine::NTSC;
 				return TRUE;
 			}
-			else if (Match( "pal", values[1] ))
+			else if (Match( _T("pal"), values[1] ))
 			{
 				mode = Nes::Machine::PAL;
 				return TRUE;
@@ -375,20 +383,20 @@ namespace Nestopia
 		return FALSE;
 	}
 
-	ibool File::ParseGenie(cstring const type,cstring (&values)[2][2],Context::Cheats& cheats,const bool shortcut)
+	ibool File::ParseGenie(tstring const type,tstring (&values)[2][2],Context::Cheats& cheats,const bool shortcut)
 	{
 		if (shortcut || Match( type, values[0] ))
 		{
 			cheats.push_back( Context::Cheat() );
 			Context::Cheat& cheat = cheats.back();
 
-			cstring it = values[1][0];
-			cstring const end = values[1][1];
+			tstring it = values[1][0];
+			tstring const end = values[1][1];
 
 			{
 				Nes::Cheats::Code code;
 
-				if (NES_FAILED(Nes::Cheats::GameGenieDecode( it, code )))
+				if (NES_FAILED(Nes::Cheats::GameGenieDecode( String::Stack<8,char>(it,NST_MIN(8,end-it)).Ptr(), code )))
 					throw ERR_SYNTAX;
 
 				cheat.address = code.address;
@@ -417,7 +425,7 @@ namespace Nestopia
 		return FALSE;
 	}
 
-	ibool File::ParseCheat(cstring const type,cstring (&values)[2][2],Context::Cheats& cheats)
+	ibool File::ParseCheat(tstring const type,tstring (&values)[2][2],Context::Cheats& cheats)
 	{
 		if (Match( type, values[0] ))
 		{
@@ -428,19 +436,16 @@ namespace Nestopia
 					return ParseGenie( type, values, cheats, true );
 			}
 
-			const String::Heap string( values[1][0], values[1][1] - values[1][0] );
+			const HeapString string( values[1][0], values[1][1] - values[1][0] );
 
 			cheats.push_back( Context::Cheat() );
 			Context::Cheat& cheat = cheats.back();
 
-			char state[4];
-			state[0] = '\0';
-
-			char desc[256];
-			desc[0] = '\0';
+			String::Stack<3,tchar> state;
+			String::Stack<255,tchar> desc;
 
 			int address=INT_MAX, value=INT_MAX, compare=INT_MAX;
-			int count = std::sscanf( string, "%x %x %x %3s %255[^\0]", &address, &value, &compare, state, desc );
+			int count = ::_stscanf( string.Ptr(), _T("%x %x %x %3s %255[^\0]"), &address, &value, &compare, state.Ptr(), desc.Ptr() );
 
 			if (count > 2 && compare >= 0x00 && compare <= 0xFF)
 			{
@@ -451,7 +456,7 @@ namespace Nestopia
 			{
 				cheat.useCompare = false;
 				cheat.compare = 0x00;
-				count = std::sscanf( string, "%*s %*s %3s %255[^\0]", state, desc );
+				count = ::_stscanf( string.Ptr(), _T("%*s %*s %3s %255[^\0]"), state.Ptr(), desc.Ptr() );
 			}
 			else
 			{
@@ -464,19 +469,12 @@ namespace Nestopia
 			cheat.address = (u16) address;
 			cheat.value = (u8) value;
 			
-			cheat.enabled = 
-			(
-			   	(state[0] != 'o' && state[0] != 'O') || 
-				(state[1] != 'f' && state[1] != 'F') || 
-				(state[2] != 'f' && state[2] != 'F') || 
-				(state[3] != '\0')
-			);
+			state.Validate();
+			cheat.enabled = (state != _T("off"));
 		
-			if (*desc)
-			{
-				cheat.desc = (cstring) desc;
-				cheat.desc.Trim();
-			}
+			desc.Validate();
+			cheat.desc = desc;
+			cheat.desc.Trim();
 
 			return TRUE;
 		}
@@ -486,32 +484,37 @@ namespace Nestopia
 
 	void File::Load(const Input input,Context& context) const
 	{
-		for (Parser parser( input, input + input.Size() ); parser.Check(); parser.NextLine())
+		HeapString buffer;
+		Nestopia::Io::File::ParseText( input.Ptr(), input.Length(), buffer );
+
+		for (Parser parser( buffer.Ptr(), buffer.Ptr() + buffer.Length() ); parser.Check(); parser.NextLine())
 		{
 			if (parser.CheckType())
 			{
-				cstring values[2][2];
+				tstring values[2][2];
 		
 				parser.ReadType( values[0] );
 				parser.ReadValue( values[1] );
 		
 				if 
 				(
-					!ParseCheat( "CHEAT ",  values, context.cheats         ) &&
-					!ParseGenie( "GENIE ",  values, context.cheats         ) &&
-					!ParsePort( "PORT1 ",   values, context.controllers[0] ) &&
-					!ParsePort( "PORT2 ",   values, context.controllers[1] ) &&
-					!ParsePort( "PORT3 ",   values, context.controllers[2] ) &&
-					!ParsePort( "PORT4 ",   values, context.controllers[3] ) &&
-					!ParsePort( "PORT5 ",   values, context.controllers[4] ) &&
-					!ParseFile( "ROM ",     values, context.image          ) &&
-					!ParseFile( "IMAGE ",   values, context.image          ) &&
-					!ParseFile( "SAV ",     values, context.save           ) &&
-					!ParseFile( "SAVE ",    values, context.save           ) &&
-					!ParseMode( "MODE ",    values, context.mode           ) &&
-					!ParseFile( "STATE ",   values, context.state          ) &&
-					!ParseFile( "MOVIE ",   values, context.movie          ) &&
-					!ParseFile( "IPS ",     values, context.ips            )
+					!ParseCheat( _T( "CHEAT "   ), values, context.cheats         ) &&
+					!ParseGenie( _T( "GENIE "   ), values, context.cheats         ) &&
+					!ParsePort(  _T( "PORT1 "   ), values, context.controllers[0] ) &&
+					!ParsePort(  _T( "PORT2 "   ), values, context.controllers[1] ) &&
+					!ParsePort(  _T( "PORT3 "   ), values, context.controllers[2] ) &&
+					!ParsePort(  _T( "PORT4 "   ), values, context.controllers[3] ) &&
+					!ParsePort(  _T( "PORT5 "   ), values, context.controllers[4] ) &&
+					!ParseFile(  _T( "ROM "     ), values, context.image          ) &&
+					!ParseFile(  _T( "IMAGE "   ), values, context.image          ) &&
+					!ParseFile(  _T( "SAV "     ), values, context.save           ) &&
+					!ParseFile(  _T( "SAVE "    ), values, context.save           ) &&
+					!ParseMode(  _T( "MODE "    ), values, context.mode           ) &&
+					!ParseFile(  _T( "STATE "   ), values, context.state          ) &&
+					!ParseFile(  _T( "MOVIE "   ), values, context.movie          ) &&
+					!ParseFile(  _T( "IPS "     ), values, context.ips            ) &&
+					!ParseFile(  _T( "TAPE "    ), values, context.tape           ) &&
+					!ParseFile(  _T( "PALETTE " ), values, context.palette        ) 
 				)
 					throw ERR_SYNTAX;
 			}

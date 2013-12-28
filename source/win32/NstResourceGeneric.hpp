@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -38,9 +38,17 @@ namespace Nestopia
 			const void* data;
 			uint size;
 
-		public:
+			ibool LoadData(uint,tstring);
 
-			ibool Load(uint,cstring);
+		protected:
+
+			template<size_t N>
+			ibool Load(uint id,const tchar (&type)[N])
+			{
+				return LoadData( id, type );
+			}
+
+		public:
 
 			const void* GetData() const
 			{

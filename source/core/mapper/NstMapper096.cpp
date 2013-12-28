@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -54,7 +54,7 @@ namespace Nes
 	
 		void Mapper96::UpdateLatch(const uint bank) const
 		{
-			chr.SwapBank<NES_4K,0x0000U>( (chr.GetBank<NES_4K,0x0000U>() & 0x4) | (bank >> 8) );
+			chr.SwapBank<SIZE_4K,0x0000U>( (chr.GetBank<SIZE_4K,0x0000U>() & 0x4) | (bank >> 8) );
 		}
 	
 		NES_ACCESSOR(Mapper96,Name_2000)
@@ -99,8 +99,8 @@ namespace Nes
 		NES_POKE(Mapper96,Prg)
 		{
 			ppu.Update();
-			prg.SwapBank<NES_32K,0x0000U>( data & 0x3 );
-			chr.SwapBanks<NES_4K,0x0000U>( (data & 0x4) | (chr.GetBank<NES_4K,0x0000U>() & 0x3), (data & 0x4) | 0x3 );
+			prg.SwapBank<SIZE_32K,0x0000U>( data & 0x3 );
+			chr.SwapBanks<SIZE_4K,0x0000U>( (data & 0x4) | (chr.GetBank<SIZE_4K,0x0000U>() & 0x3), (data & 0x4) | 0x3 );
 		}
 	}
 }

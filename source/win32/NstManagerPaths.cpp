@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -71,7 +71,7 @@ namespace Nestopia
 
 		for (uint i=0; i < NUM_RECENT_DIRS; ++i)
 		{
-			if (recentDirs[i].DirExist())
+			if (Io::File::DirExist( recentDirs[i].Ptr() ))
 				cfg[recentDirCfgNames[i]].Quote() = recentDirs[i];
 		}
 	}
@@ -119,41 +119,43 @@ namespace Nestopia
 
 	ibool Paths::LocateFile(Path& path,const File::Types types) const
 	{
-		NST_ASSERT( path.File().Size() );
+		NST_ASSERT( path.File().Length() );
 
 		struct Lut
 		{
 			uint type;
-			char extension[4];
+			tchar extension[4];
 		};
 
-		static const Lut lut[15] =
+		static const Lut lut[17] =
 		{
-			{ File::INES,			   "nes" },
-			{ File::UNIF,			   "unf" },
-			{ File::FDS,			   "fds" },
-			{ File::NSF,			   "nsf" },
-			{ File::BATTERY,		   "sav" },
-			{ File::STATE|File::SLOTS, "nst" },
-			{ File::IPS,			   "ips" },
-			{ File::MOVIE,			   "nsv" },
-			{ File::SCRIPT,			   "nsp" },
-			{ File::ROM,			   "rom" },
-			{ File::PALETTE,		   "pal" },
-			{ File::WAVE,			   "wav" },
-			{ File::ARCHIVE,           "zip" },
-			{ File::ARCHIVE,           "rar" },
-			{ File::ARCHIVE,           "7z"  }
+			{ File::INES,			   _T( "nes" ) },
+			{ File::UNIF,			   _T( "unf" ) },
+			{ File::FDS,			   _T( "fds" ) },
+			{ File::NSF,			   _T( "nsf" ) },
+			{ File::BATTERY,		   _T( "sav" ) },
+			{ File::TAPE,     		   _T( "tp"  ) },
+			{ File::STATE|File::SLOTS, _T( "nst" ) },
+			{ File::IPS,			   _T( "ips" ) },
+			{ File::MOVIE,			   _T( "nsv" ) },
+			{ File::SCRIPT,			   _T( "nsp" ) },
+			{ File::ROM,			   _T( "rom" ) },
+			{ File::PALETTE,		   _T( "pal" ) },
+			{ File::WAVE,			   _T( "wav" ) },
+			{ File::AVI,			   _T( "avi" ) },
+			{ File::ARCHIVE,           _T( "zip" ) },
+			{ File::ARCHIVE,           _T( "rar" ) },
+			{ File::ARCHIVE,           _T( "7z"  ) }
 		};
 
-		for (uint i=0; i < 15; ++i)
+		for (uint i=0; i < NST_COUNT(lut); ++i)
 		{
 			if (types( lut[i].type ))
 			{
 				path.Directory() = GetDefaultDirectory( lut[i].type ); 
 				path.Extension() = lut[i].extension; 
 				
-				if (path.FileExist()) 
+				if (Io::File::FileExist( path.Ptr() )) 
 					return TRUE;
 			}
 		}
@@ -163,18 +165,18 @@ namespace Nestopia
 
 	ibool Paths::FindFile(Path& path) const
 	{
-		NST_ASSERT( path.File().Size() );
+		NST_ASSERT( path.File().Length() );
 
 		path.Directory() = Application::Instance::GetPath().Directory();
 
-		if (path.FileExist())
+		if (Io::File::FileExist( path.Ptr() ))
 			return TRUE;
 
 		for (uint i=0; i < Window::Paths::NUM_DIRS; ++i)
 		{
 			path.Directory() = dialog->GetDirectory( (Window::Paths::Type) i );
 
-			if (path.FileExist())
+			if (Io::File::FileExist( path.Ptr() ))
 				return TRUE;
 		}
 
@@ -182,7 +184,7 @@ namespace Nestopia
 		{
 			path.Directory() = recentDirs[i];
 
-			if (path.FileExist())
+			if (Io::File::FileExist( path.Ptr() ))
 				return TRUE;
 		}
 
@@ -191,71 +193,74 @@ namespace Nestopia
 		return FALSE;
 	}
 
-	void Paths::UpdateRecentDirectory(const TmpPath& path,const File::Types types) const
+	void Paths::UpdateRecentDirectory(const Path& path,const File::Types types) const
 	{
-		NST_ASSERT( path.Size() );
+		NST_ASSERT( path.Length() );
 
 		if (types( File::IMAGE|File::SCRIPT ))
 			recentDirs[ types(File::IMAGE) ? RECENT_DIR_IMAGE : RECENT_DIR_SCRIPT ] = path.Directory();
 	}
 
-	Paths::TmpPath Paths::GetScreenShotPath() const
+	Path Paths::GetScreenShotPath() const
 	{
-		TmpPath path;
+		Path path;
 
 		path.Directory() = dialog->GetDirectory( Window::Paths::DIR_SCREENSHOT );
 		path.File() = emulator.GetImagePath().Target().File();
 		path.Extension().Clear();
 
-		const uint offset = path.Size() + 1;
-		path << "_xx." << dialog->GetScreenShotExtension();
+		const uint offset = path.Length() + 1;
+		path << _T("_xx.") << dialog->GetScreenShotExtension();
 
 		for (uint i=1; i < 100; ++i)
 		{
-			path[offset+0] = (char) ('0' + (i / 10));
-			path[offset+1] = (char) ('0' + (i % 10));
+			path[offset+0] = (tchar) ('0' + (i / 10));
+			path[offset+1] = (tchar) ('0' + (i % 10));
 
-			if (!path.FileExist())
+			if (!Io::File::FileExist( path.Ptr() ))
 				break;
 		}
 
 		return path;
 	}
 
-	cstring Paths::GetDefaultExtension(const File::Types types)
+	tstring Paths::GetDefaultExtension(const File::Types types)
 	{
 		return
 		(
-			types( File::INES              ) ? "nes" :
-			types( File::UNIF              ) ? "unf" :
-			types( File::FDS               ) ? "fds" :
-			types( File::NSF               ) ? "nsf" :
-			types( File::BATTERY           ) ? "sav" :
-			types( File::STATE|File::SLOTS ) ? "nst" :
-			types( File::IPS               ) ? "ips" :
-			types( File::MOVIE             ) ? "nsv" :
-			types( File::SCRIPT            ) ? "nsp" :
-			types( File::ROM               ) ? "rom" :
-			types( File::PALETTE           ) ? "pal" :
-			types( File::WAVE              ) ? "wav" :
-			types( File::ARCHIVE           ) ? "zip" : ""
+			types( File::INES              ) ? _T( "nes" ) :
+			types( File::UNIF              ) ? _T( "unf" ) :
+			types( File::FDS               ) ? _T( "fds" ) :
+			types( File::NSF               ) ? _T( "nsf" ) :
+			types( File::BATTERY           ) ? _T( "sav" ) :
+			types( File::TAPE              ) ? _T( "tp"  ) :
+			types( File::STATE|File::SLOTS ) ? _T( "nst" ) :
+			types( File::IPS               ) ? _T( "ips" ) :
+			types( File::MOVIE             ) ? _T( "nsv" ) :
+			types( File::SCRIPT            ) ? _T( "nsp" ) :
+			types( File::ROM               ) ? _T( "rom" ) :
+			types( File::PALETTE           ) ? _T( "pal" ) :
+			types( File::WAVE              ) ? _T( "wav" ) :
+			types( File::AVI               ) ? _T( "avi" ) :
+			types( File::ARCHIVE           ) ? _T( "zip" ) : 
+			                                   _T( ""    )
 		);
 	}
 
-	const String::Generic Paths::GetDefaultDirectory(const File::Types types) const
+	const GenericString Paths::GetDefaultDirectory(const File::Types types) const
 	{
 		Window::Paths::Type type;
 
 		if (types( File::IMAGE|File::ROM ))
 		{
-			if (dialog->GetSetting(Window::Paths::USE_LAST_IMAGE_DIR) && recentDirs[RECENT_DIR_IMAGE].DirExist())
+			if (dialog->GetSetting(Window::Paths::USE_LAST_IMAGE_DIR) && Io::File::DirExist( recentDirs[RECENT_DIR_IMAGE].Ptr() ))
 				return recentDirs[RECENT_DIR_IMAGE]; 
 
 			type = Window::Paths::DIR_IMAGE;
 		}
 		else if (types( File::SCRIPT ))
 		{
-			if (dialog->GetSetting(Window::Paths::USE_LAST_SCRIPT_DIR) && recentDirs[RECENT_DIR_SCRIPT].DirExist())
+			if (dialog->GetSetting(Window::Paths::USE_LAST_SCRIPT_DIR) && Io::File::DirExist( recentDirs[RECENT_DIR_SCRIPT].Ptr() ))
 				return recentDirs[RECENT_DIR_SCRIPT]; 
 	
 			type = Window::Paths::DIR_SCRIPT;
@@ -264,9 +269,9 @@ namespace Nestopia
 		{
 			type = Window::Paths::DIR_STATE;
 		}
-		else if (types( File::BATTERY ))
+		else if (types( File::BATTERY|File::TAPE ))
 		{
-			type = Window::Paths::DIR_DATA;
+			type = Window::Paths::DIR_SAVE;
 		}
 		else if (types( File::IPS ))
 		{
@@ -305,7 +310,7 @@ namespace Nestopia
 		return FALSE;
 	}
 
-	Paths::TmpPath Paths::BrowseLoad(const File::Types types,const String::Generic dir) const
+	Path Paths::BrowseLoad(const File::Types types,const GenericString dir) const
 	{
 		NST_ASSERT( types.Word() );
 
@@ -313,13 +318,13 @@ namespace Nestopia
 		(
 			Window::Browser::OpenFile
 			(
-				Filter( types ),
-				dir.Size() ? dir : GetDefaultDirectory( types ),
+				Filter( types ).Ptr(),
+				dir.Length() ? dir : GetDefaultDirectory( types ),
 				GetDefaultExtension( types )
 			)
 		);
 
-		if (path.Size())
+		if (path.Length())
 		{
 			UpdateRecentDirectory( path, types );
 			CheckFile( path, types, NOISY );
@@ -328,46 +333,62 @@ namespace Nestopia
 		return path;
 	}
 
-	Paths::TmpPath Paths::BrowseSave(const File::Types types,const String::Generic dir,const String::Generic name) const
+	Path Paths::BrowseSave(const File::Types types,const Method method,const GenericString initPath) const
 	{
 		NST_ASSERT( types.Word() );
 
-		const TmpPath path
-		(
-			Window::Browser::SaveFile
-			(
-				Filter( types ),
-				dir.Size() ? dir : GetDefaultDirectory( types ),
-				GetDefaultExtension( types ),
-				name
-			)
-		);
+		Path path( initPath );
 
-		if (path.Size())
+		if (path.Directory().Empty())
+			path.Directory() = GetDefaultDirectory( types );
+
+		if (method == SUGGEST && path.File().Empty())
+			path.File() = emulator.GetImagePath().Target().File();
+
+		path.Extension() = GetDefaultExtension( types );
+		path = Window::Browser::SaveFile( Filter(types).Ptr(), path );
+
+		if (path.Length())
 			UpdateRecentDirectory( path, types );
 
 		return path;
 	}
 
-	Paths::TmpPath Paths::GetSavePath(const Path& image,const File::Type type) const
+	void Paths::FixFile(const File::Type type,Path& path) const
 	{
-		NST_ASSERT( image.Size() );
+		if (path.File().Length())
+		{
+			if (path.Directory().Empty())
+				path.Directory() = GetDefaultDirectory( type );
 
-		TmpPath save;
+			if (path.Extension().Empty())
+				path.Extension() = GetDefaultExtension( type );
+		}
+		else
+		{
+			path.Clear();
+		}
+	}
+
+	Path Paths::GetSavePath(const Path& image,const File::Type type) const
+	{
+		NST_ASSERT( image.Length() );
+
+		Path save;
 
 		if (type & File::GAME)
 		{
-			String::Generic dir, ext;
+			GenericString dir, ext;
 
 			if (type & File::CARTRIDGE)
 			{
-				dir = dialog->GetDirectory( Window::Paths::DIR_DATA );
-				ext = "sav";
+				dir = dialog->GetDirectory( Window::Paths::DIR_SAVE );
+				ext = _T("sav");
 			}
 			else
 			{
 				dir = dialog->GetDirectory( Window::Paths::DIR_IPS );
-				ext = "ips";
+				ext = _T("ips");
 			}
 
 			save.Set( dir, image.Target().File(), ext );
@@ -376,12 +397,12 @@ namespace Nestopia
 		return save;
 	}
 
-	Paths::TmpPath Paths::GetIpsPath(const Path& image,const File::Type type) const
+	Path Paths::GetIpsPath(const Path& image,const File::Type type) const
 	{
-		TmpPath ips;
+		Path ips;
 
 		if ((type & File::INES) && dialog->GetSetting( Window::Paths::IPS_AUTO_PATCH ))
-			ips.Set( dialog->GetDirectory( Window::Paths::DIR_IPS ), image.Target().File(), "ips" );
+			ips.Set( dialog->GetDirectory( Window::Paths::DIR_IPS ), image.Target().File(), _T("ips") );
 
 		return ips;
 	}
@@ -390,12 +411,11 @@ namespace Nestopia
 	(
        	File& file,
 		const File::Types types,
-		const String::Generic path,
-		const Alert alert,
-		const uint title
+		const GenericString path,
+		const Alert alert
 	)   const
 	{
-		if (path.Size())
+		if (path.Length())
 		{
 			file.name = path;
 
@@ -405,10 +425,10 @@ namespace Nestopia
 		else
 		{
 			file.name = BrowseLoad( types );
-
-			if (file.name.Empty())
-				return File::NONE;
 		}
+
+		if (file.name.Empty() || (alert == QUIETLY && !Io::File::FileExist( file.name.Ptr() )))
+			return File::NONE;
 
 		try
 		{
@@ -419,11 +439,11 @@ namespace Nestopia
 		{
 			if (alert == NOISY)
 			{
-				Window::User::Fail( ids, title );
+				Window::User::Fail( ids, IDS_TITLE_ERROR );
 			}
 			else if (alert == STICKY)
 			{
-				Io::Screen() << Resource::String(title) << ' ' << Resource::String(ids);
+				Io::Screen() << Resource::String(IDS_TITLE_ERROR) << ' ' << Resource::String(ids);
 			}
 
 			file.type = File::NONE;
@@ -443,57 +463,47 @@ namespace Nestopia
      	const void* const data,
 		const uint size,
 		const File::Type type,
-		const String::Generic name,
-		const Alert alert,
-		const uint title
+		Path path,
+		const Alert alert
 	)   const
-	{
-		TmpPath path;
-
-		if (name.Size())
-		{
-			path = name;
-
-			if (path.Directory().Empty())
-				path.Directory() = GetDefaultDirectory( type );
-		}
-		else
-		{
-			path = BrowseSave( type );
-
-			if (path.Empty())
-				return FALSE;
-		}
+	{	
+		if (path.Directory().Empty())
+			path.Directory() = GetDefaultDirectory( type );
 
 		try
 		{
-			Io::File( path, Io::File::DUMP ).Write( data, size );
+			const Io::File file( path, Io::File::DUMP );
+
+			if (type == File::SCRIPT)
+				file.WriteText( static_cast<const tchar*>(data), size );
+			else
+				file.Write( data, size );
+
+			return TRUE;
 		}
 		catch (Io::File::Exception ids)
 		{
 			if (alert == NOISY)
 			{
-				Window::User::Fail( ids, title );
+				Window::User::Fail( ids, IDS_TITLE_ERROR );
 			}
 			else if (alert == STICKY)
 			{
-				Io::Screen() << Resource::String(title) << ' ' << Resource::String(ids);
+				Io::Screen() << Resource::String(IDS_TITLE_ERROR) << ' ' << Resource::String(ids);
 			}
 
 			return FALSE;
 		}
-
-		return TRUE;
 	}
 
 	Paths::File::Type Paths::LoadFromFile(Path& path,File::Data* const data,const File::Types types)
 	{
-		NST_ASSERT( path.Size() );
+		NST_ASSERT( path.Length() );
 
-		const String::Generic fileInArchive( path.FileInArchive() );
-		String::Generic filePath( path );
+		const GenericString fileInArchive( path.FileInArchive() );
+		GenericString filePath( path );
 
-		if (fileInArchive.Size())
+		if (fileInArchive.Length())
 			filePath = path.Archive();
 
 		try
@@ -508,7 +518,7 @@ namespace Nestopia
 			if (type == File::ARCHIVE)
 				return LoadFromArchive( Io::Archive(file), path, data, fileInArchive, types );
 
-			if (fileInArchive.Size())
+			if (fileInArchive.Length())
 				throw IDS_FILE_ERR_INVALID;
 			
 			if (data)
@@ -527,50 +537,52 @@ namespace Nestopia
        	const Io::Archive& archive,
 		Path& path,
 		File::Data* const data,
-		const String::Generic& fileInArchive,
+		const GenericString& fileInArchive,
 		const File::Types types
 	)
 	{
 		uint index;
 
-		if (fileInArchive.Size())
+		if (fileInArchive.Length())
 		{
 			index = archive.Find( fileInArchive );
 		}
 		else
 		{
 			uint count = 0;
-			String::Generic filter[22];
+			GenericString filter[22];
 
-			if (types( File::INES    )) filter[count++] = "nes";
-			if (types( File::FDS     )) filter[count++] = "fds";
-			if (types( File::NSF     )) filter[count++] = "nsf";
-			if (types( File::BATTERY )) filter[count++] = "sav";
-			if (types( File::STATE   )) filter[count++] = "nst";
-			if (types( File::SCRIPT  )) filter[count++] = "nsp";
-			if (types( File::MOVIE   )) filter[count++] = "nsv";
-			if (types( File::IPS     )) filter[count++] = "ips";
-			if (types( File::ROM     )) filter[count++] = "rom";
-			if (types( File::PALETTE )) filter[count++] = "pal";
-			if (types( File::WAVE    )) filter[count++] = "wav";
+			if (types( File::INES    )) filter[count++] = _T( "nes" );
+			if (types( File::FDS     )) filter[count++] = _T( "fds" );
+			if (types( File::NSF     )) filter[count++] = _T( "nsf" );
+			if (types( File::BATTERY )) filter[count++] = _T( "sav" );
+			if (types( File::TAPE    )) filter[count++] = _T( "tp"  );
+			if (types( File::STATE   )) filter[count++] = _T( "nst" );
+			if (types( File::SCRIPT  )) filter[count++] = _T( "nsp" );
+			if (types( File::MOVIE   )) filter[count++] = _T( "nsv" );
+			if (types( File::IPS     )) filter[count++] = _T( "ips" );
+			if (types( File::ROM     )) filter[count++] = _T( "rom" );
+			if (types( File::PALETTE )) filter[count++] = _T( "pal" );
+			if (types( File::WAVE    )) filter[count++] = _T( "wav" );
+			if (types( File::AVI     )) filter[count++] = _T( "avi" );
 
 			if (types( File::UNIF )) 
 			{
-				filter[count++] = "unf";
-				filter[count++] = "unif";
+				filter[count++] = _T( "unf"  );
+				filter[count++] = _T( "unif" );
 			}
 
 			if (types( File::SLOTS ))
 			{
-				filter[count++] = "ns1";
-				filter[count++] = "ns2";
-				filter[count++] = "ns3";
-				filter[count++] = "ns4";
-				filter[count++] = "ns5";
-				filter[count++] = "ns6";
-				filter[count++] = "ns7";
-				filter[count++] = "ns8";
-				filter[count++] = "ns9";
+				filter[count++] = _T( "ns1" );
+				filter[count++] = _T( "ns2" );
+				filter[count++] = _T( "ns3" );
+				filter[count++] = _T( "ns4" );
+				filter[count++] = _T( "ns5" );
+				filter[count++] = _T( "ns6" );
+				filter[count++] = _T( "ns7" );
+				filter[count++] = _T( "ns8" );
+				filter[count++] = _T( "ns9" );
 			}
 
 			// If more than one file in the archive let the user choose which to load,
@@ -594,7 +606,7 @@ namespace Nestopia
 		{
 			data->Resize( archive[index].Size() );
 
-			if (data->Size() < 4 || !archive[index].Uncompress( *data ))
+			if (data->Size() < 4 || !archive[index].Uncompress( data->Ptr() ))
 				throw IDS_FILE_ERR_INVALID;
 
 			type = CheckFile
@@ -609,7 +621,7 @@ namespace Nestopia
 		}
 	
 		if (fileInArchive.Empty())
-			path << " <" << archive[index].GetName() << '>'; 
+			path << _T(" <") << archive[index].GetName() << '>';
 
 		return type;
 	}
@@ -628,7 +640,6 @@ namespace Nestopia
 			case File::FILEID_IPS:     if (types( File::IPS               )) type = File::IPS;     break;
 			case File::FILEID_NSV:	   if (types( File::MOVIE             )) type = File::MOVIE;   break;
 			case File::FILEID_NST:	   if (types( File::STATE|File::SLOTS )) type = File::STATE;   break;
-			case File::FILEID_WAV:	   if (types( File::WAVE              )) type = File::WAVE;    break;
 			case File::FILEID_ZIP:
 			case File::FILEID_7Z:
 			case File::FILEID_RAR:     if (types( File::ARCHIVE           )) type = File::ARCHIVE; break;
@@ -639,11 +650,13 @@ namespace Nestopia
 				{
 					// raw or text file, need to investigate the file extension
 		
-					case NST_FOURCC('n','s','p','\0'): if (types( File::SCRIPT  )) type = File::SCRIPT;  break;
-					case NST_FOURCC('s','a','v','\0'): if (types( File::BATTERY )) type = File::BATTERY; break;
-					case NST_FOURCC('r','o','m','\0'): if (types( File::ROM     )) type = File::ROM;     break;
-					case NST_FOURCC('p','a','l','\0'): if (types( File::PALETTE )) type = File::PALETTE; break;
-					case NST_FOURCC('w','a','v','\0'): if (types( File::WAVE    )) type = File::WAVE;    break;
+					case NST_FOURCC('n','s','p','\0'):  if (types( File::SCRIPT  )) type = File::SCRIPT;  break;
+					case NST_FOURCC('s','a','v','\0'):  if (types( File::BATTERY )) type = File::BATTERY; break;
+					case NST_FOURCC('t','p','\0','\0'): if (types( File::TAPE    )) type = File::TAPE;    break;
+					case NST_FOURCC('r','o','m','\0'):  if (types( File::ROM     )) type = File::ROM;     break;
+					case NST_FOURCC('p','a','l','\0'):  if (types( File::PALETTE )) type = File::PALETTE; break;
+					case NST_FOURCC('w','a','v','\0'):  if (types( File::WAVE    )) type = File::WAVE;    break;
+					case NST_FOURCC('a','v','i','\0'):  if (types( File::AVI     )) type = File::AVI;     break;
 
 					case NST_FOURCC('n','e','s','\0'):
 					case NST_FOURCC('u','n','f','\0'):
@@ -686,6 +699,7 @@ namespace Nestopia
 							{
 								case File::SCRIPT:  type = File::SCRIPT;  break;
 								case File::BATTERY: type = File::BATTERY; break;
+								case File::TAPE:    type = File::TAPE;    break;
 								case File::PALETTE: type = File::PALETTE; break;
 							}
 						}

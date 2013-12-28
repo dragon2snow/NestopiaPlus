@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -69,16 +69,16 @@ namespace Nes
 				CHIP_FME07 = 0x20
 			};
 	
-			cstring  GetName         () const;
-			cstring  GetArtist       () const;
-			cstring  GetMaker        () const;
-			TuneMode GetMode         () const;
-			uint     GetInitAddress  () const;
-			uint     GetLoadAddress  () const;
-			uint     GetPlayAddress  () const;
-			uint     GetNumSongs     () const;
-			int      GetCurrentSong  () const;
-			int      GetStartingSong () const;
+			const char* GetName         () const;
+			const char* GetArtist       () const;
+			const char* GetMaker        () const;
+			TuneMode    GetMode         () const;
+			uint        GetInitAddress  () const;
+			uint        GetLoadAddress  () const;
+			uint        GetPlayAddress  () const;
+			uint        GetNumSongs     () const;
+			int         GetCurrentSong  () const;
+			int         GetStartingSong () const;
 	
 			uint GetChips() const;
 			bool IsPlaying() const;

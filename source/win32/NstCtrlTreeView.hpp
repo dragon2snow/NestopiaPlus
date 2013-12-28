@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -79,7 +79,7 @@ namespace Nestopia
 				};
 
 				void SetImageList(const ImageList&) const;
-				void Add(String::Generic) const;
+				void Add(GenericString) const;
 				Item Selection() const;
 				void SetBackgroundColor(uint) const;
 				void SetTextColor(uint) const;

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -145,7 +145,7 @@ namespace Nestopia
 	acceleratorEnabled ( TRUE )
 	{
 		if (!handle)
-			throw Application::Exception("LoadMenu() failed!");
+			throw Application::Exception(_T("LoadMenu() failed!"));
 	}
 
 	Menu::~Menu()
@@ -330,7 +330,7 @@ namespace Nestopia
 
 		if (count)
 		{
-			String::Smart<96> string;
+			HeapString string;
 
 			for (uint i=0; i < count; ++i)
 			{
@@ -345,7 +345,7 @@ namespace Nestopia
 						if (accel[i].fVirt && accel[i].key)
 							string << '\t' << System::Accelerator::GetKeyName( accel[i] );
 
-						item.Text().SetFullString( string );
+						item.Text().SetFullString( string.Ptr() );
 					}
 				}
 			}
@@ -356,13 +356,13 @@ namespace Nestopia
 		Instances::Update( this );
 	}					
 
-	void Menu::Insert(const Item& item,const uint cmd,String::Generic name) const
+	void Menu::Insert(const Item& item,const uint cmd,GenericString name) const
 	{
 		NST_ASSERT( cmd >= IDM_OFFSET );
 
 		if (item.hMenu)
 		{
-			String::Smart<96> string;
+			HeapString string;
 
 			const ACCEL accel( accelerator[cmd] );
 
@@ -370,7 +370,7 @@ namespace Nestopia
 			{
 				string << name << '\t' << System::Accelerator::GetKeyName( accel );
 
-				if (string.Size() > name.Size() + 1)
+				if (string.Length() > name.Length() + 1)
 					name = string;
 			}
 
@@ -379,7 +379,7 @@ namespace Nestopia
 			info.cbSize = sizeof(info);
 			info.fMask = MIIM_STRING|MIIM_ID;
 			info.wID = cmd;
-			info.dwTypeData = const_cast<char*>(static_cast<cstring>(name));
+			info.dwTypeData = const_cast<tchar*>(name.Ptr());
 
 			::InsertMenuItem( item.hMenu, item.pos, item.pos < IDM_OFFSET, &info );
 		}
@@ -525,6 +525,29 @@ namespace Nestopia
 		return (hMenu ? ::CheckMenuItem( hMenu, pos, (check ? MF_CHECKED : MF_UNCHECKED) | Flag() ) == MF_CHECKED : FALSE);
 	}
 
+	void Menu::Item::Check(const uint first,const uint last) const
+	{
+		NST_ASSERT( first <= last && pos >= first && pos <= last );
+
+		if (hMenu)
+			::CheckMenuRadioItem( hMenu, first, last, pos, Flag() );
+	}
+
+	void Menu::Item::Check(const uint first,const uint last,const ibool check) const
+	{
+		NST_ASSERT( first <= last && pos >= first && pos <= last );
+
+		if (check)
+		{
+			Check( first, last );
+		}
+		else if (hMenu)
+		{
+			for (uint i = first, state = MF_UNCHECKED | Flag(); i <= last; ++i)
+				::CheckMenuItem( hMenu, i, state );
+		}
+	}
+
 	ibool Menu::Item::IsChecked() const
 	{
 		const uint state = (hMenu ? ::GetMenuState( hMenu, pos, Flag() ) : 0U);
@@ -553,7 +576,7 @@ namespace Nestopia
 		return 0;
 	}
 
-	ibool Menu::Item::Stream::GetFullString(char* string,uint length) const
+	ibool Menu::Item::Stream::GetFullString(tchar* string,uint length) const
 	{
 		if (item.hMenu)
 		{
@@ -570,7 +593,7 @@ namespace Nestopia
 		return FALSE;
 	}
 
-	void Menu::Item::Stream::SetFullString(cstring string) const
+	void Menu::Item::Stream::SetFullString(tstring string) const
 	{
 		if (item.hMenu)
 		{
@@ -578,17 +601,17 @@ namespace Nestopia
 
 			info.cbSize = sizeof(info);
 			info.fMask = MIIM_STRING;
-			info.dwTypeData = const_cast<char*>(string);
+			info.dwTypeData = const_cast<tchar*>(string);
 
 			::SetMenuItemInfo( item.hMenu, item.pos, item.pos < IDM_OFFSET, &info );
 		}
 	}
 
-	void Menu::Item::Stream::operator << (const String::Anything& input) const
+	void Menu::Item::Stream::operator << (const GenericString& input) const
 	{
-		String::Smart<96> string;
+		HeapString string;
 		GetFullString( string );
 		string( 0, string.FindFirstOf('\t') ) = input;
-		SetFullString( string );
+		SetFullString( string.Ptr() );
 	}
 }

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -71,7 +71,7 @@ namespace Nestopia
 		if (IDirect3D9* com = ::Direct3DCreate9( D3D_SDK_VERSION ))
 			return *com;
 		else
-			throw Application::Exception("::Direct3DCreate9() failed! Upgrade to DirectX 9.0c or better!");
+			throw Application::Exception(_T("::Direct3DCreate9() failed! Upgrade to DirectX 9.0c or better!"));
 	}
 
 	const Direct2D::Adapters Direct2D::Base::EnumerateAdapters(IDirect3D9& d3d)
@@ -190,7 +190,7 @@ namespace Nestopia
 		}
 
 		if (adapters.empty())
-			throw Application::Exception("Found no valid display adapter!");
+			throw Application::Exception(_T("Found no valid display adapter!"));
 
 		return adapters;
 	}
@@ -292,7 +292,7 @@ namespace Nestopia
 			OUT_DEFAULT_PRECIS,
 			DEFAULT_QUALITY,
 			DEFAULT_PITCH|FF_DONTCARE,
-			arial ? "Arial" : "System",
+			arial ? _T("Arial") : _T("System"),
 			&com
 		);
 	}
@@ -325,13 +325,13 @@ namespace Nestopia
 			com->OnLostDevice();
 	}
 
-	void Direct2D::Device::Fonts::Font::Update(const String::Generic& newstring)
+	void Direct2D::Device::Fonts::Font::Update(const GenericString& newstring)
 	{
 		string = newstring;
-		length = newstring.Size();
+		length = newstring.Length();
 
 		if (length && com)
-			com->PreloadText( string, string.Size() );
+			com->PreloadText( string.Ptr(), string.Length() );
 	}
 
 	void Direct2D::Device::Fonts::Create(const Device& device)
@@ -385,7 +385,7 @@ namespace Nestopia
 
 	inline void Direct2D::Device::Fonts::Font::Draw(const D3DCOLOR color,const DWORD flags,Rect rect) const
 	{
-		com->DrawText( NULL, string, length, &rect, flags, color );
+		com->DrawText( NULL, string.Ptr(), length, &rect, flags, color );
 	}
 
 	NST_FORCE_INLINE void Direct2D::Device::Fonts::Render(const D3DPRESENT_PARAMETERS& presentation,const uint state) const
@@ -507,7 +507,7 @@ namespace Nestopia
 			}
 			else if (hResult == D3DERR_DEVICELOST)
 			{
-				throw Application::Exception("Can't start! Direct3D is busy!");
+				throw Application::Exception(_T("Can't start! Direct3D is busy!"));
 			}
 			else if (buffers != presentation.BackBufferCount)
 			{
@@ -526,7 +526,7 @@ namespace Nestopia
 			}
 			else
 			{
-				throw Application::Exception("IDirect3DDevice9::CreateDevice() failed!");
+				throw Application::Exception(_T("IDirect3D9::CreateDevice() failed!"));
 			}
 		}
 
@@ -665,7 +665,6 @@ namespace Nestopia
 
 			if (SUCCEEDED(hResult))
 			{
-//				Io::Screen() << GetMaxMessageLength();
 				break;
 			}
 			else if (hResult == D3DERR_DEVICELOST)
@@ -679,12 +678,12 @@ namespace Nestopia
 			}
 			else
 			{
-				throw Application::Exception("IDirect3DDevice9::Reset() failed!");
+				throw Application::Exception(_T("IDirect3DDevice9::Reset() failed!"));
 			}
 		}
 
 		if ((presentation.Flags & D3DPRESENTFLAG_LOCKABLE_BACKBUFFER) && FAILED(com->SetDialogBoxMode( TRUE )))
-			throw Application::Exception("IDirect3DDevice9::SetDialogBoxMode() failed!");
+			throw Application::Exception(_T("IDirect3DDevice9::SetDialogBoxMode() failed!"));
 
 		Prepare();
 		fonts.OnReset();
@@ -738,7 +737,7 @@ namespace Nestopia
 		com->SetTextureStageState( 0, D3DTSS_COLOROP, D3DTOP_SELECTARG1 );
 
 		if (FAILED(com->SetFVF( VertexBuffer::FVF )))
-			throw Application::Exception("IDirect3DDevice9::SetFVF() failed!");
+			throw Application::Exception(_T("IDirect3DDevice9::SetFVF() failed!"));
 	}
 
 	uint Direct2D::Device::GetMaxMessageLength() const
@@ -774,7 +773,7 @@ namespace Nestopia
 	{
 		NST_ASSERT( FAILED(lastError) );
 
-		cstring msg;
+		tstring msg;
 
 		switch (lastError)
 		{
@@ -793,33 +792,33 @@ namespace Nestopia
 				
 					case D3DERR_DRIVERINTERNALERROR:
 						
-						msg = "Video driver error! Contact your adapter manufacturer!";
+						msg = _T("Video driver error! Contact your adapter manufacturer!");
 						break;
 				
 					default:
 						
-						msg = "IDirect3DDevice9::TestCooperativeLevel() failed!";
+						msg = _T("IDirect3DDevice9::TestCooperativeLevel() failed!");
 						break;
 				}
 
 			case D3DERR_DRIVERINTERNALERROR:
 				
-				msg = "Video driver error! Contact your adapter manufacturer!";
+				msg = _T("Video driver error! Contact your adapter manufacturer!");
 				break;
 
 			case E_OUTOFMEMORY:
 
-				msg = "Out of memory!";
+				msg = _T("Out of memory!");
 				break;
 
 			case D3DERR_OUTOFVIDEOMEMORY:				
 				
-				msg = "Out of video memory!";
+				msg = _T("Out of video memory!");
 				break;
 
 			default:
 				
-				msg = "Unknown Direct3D error!";
+				msg = _T("Unknown Direct3D error!");
 				break;
 		}
 
@@ -852,7 +851,7 @@ namespace Nestopia
 		presentation.Flags = 0;
 
 		if (FAILED(Reset()))
-			throw Application::Exception("Couldn't switch display mode!");
+			throw Application::Exception(_T("Couldn't switch display mode!"));
 
 		fonts.Create( *this );
 		LogDisplaySwitch();
@@ -878,7 +877,7 @@ namespace Nestopia
 		presentation.Flags = 0;
 
 		if (FAILED(Reset()))
-			throw Application::Exception("Couldn't switch display mode!");
+			throw Application::Exception(_T("Couldn't switch display mode!"));
 
 		LogDisplaySwitch();
 	}
@@ -994,7 +993,7 @@ namespace Nestopia
 			if (SUCCEEDED(hResult))
 			{
 				if (FAILED(device.SetStreamSource( 0, com, 0, sizeof(Vertex) )))
-					throw Application::Exception("IDirect3DDevice9::SetStreamSource() failed!");
+					throw Application::Exception(_T("IDirect3DDevice9::SetStreamSource() failed!"));
 
 				dirty = TRUE;
 			}
@@ -1004,7 +1003,7 @@ namespace Nestopia
 			}
 			else
 			{
-				throw Application::Exception("IDirect3DDevice9::CreateVertexBuffer() failed!");
+				throw Application::Exception(_T("IDirect3DDevice9::CreateVertexBuffer() failed!"));
 			}
 		}
 
@@ -1024,7 +1023,7 @@ namespace Nestopia
 			}
 			else
 			{
-				throw Application::Exception("IDirect3DVertexBuffer9::Lock() failed!");
+				throw Application::Exception(_T("IDirect3DVertexBuffer9::Lock() failed!"));
 			}
 		}
 
@@ -1123,21 +1122,21 @@ namespace Nestopia
 				Object::Pod<D3DSURFACE_DESC> desc;
 
 				if (FAILED(com->GetLevelDesc( 0, &desc )))
-					throw Application::Exception("IDirect3DDevice9::GetLevelDesc() failed!");
+					throw Application::Exception(_T("IDirect3DDevice9::GetLevelDesc() failed!"));
 
 				format = desc.Format;
 				lockFlags = (desc.Usage & D3DUSAGE_DYNAMIC) ? (D3DLOCK_DISCARD|D3DLOCK_NOSYSLOCK) : D3DLOCK_NOSYSLOCK;
 
 				if (desc.Height < size || desc.Width < size)
-					throw Application::Exception("Maximum texture dimension too small!");
+					throw Application::Exception(_T("Maximum texture dimension too small!"));
 
 				const uint bpp = GetBitsPerPixel();
 
 				if (!bpp)
-					throw Application::Exception("Unsupported bit-per-pixel format!");
+					throw Application::Exception(_T("Unsupported bit-per-pixel format!"));
 
 				if (FAILED(device.SetTexture( 0, com )))
-					throw Application::Exception("IDirect3DDevice9::SetTexture() failed!");
+					throw Application::Exception(_T("IDirect3DDevice9::SetTexture() failed!"));
 			}
 			else if (hResult == D3DERR_DEVICELOST) 
 			{	
@@ -1145,7 +1144,7 @@ namespace Nestopia
 			}
 			else
 			{
-				throw Application::Exception("IDirect3DDevice9::CreateTexture() failed!");
+				throw Application::Exception(_T("IDirect3DDevice9::CreateTexture() failed!"));
 			}
 		}
 
@@ -1157,7 +1156,7 @@ namespace Nestopia
 		return D3D_OK;
 	}
 
-	ibool Direct2D::Texture::SaveToFile(cstring const file,const D3DXIMAGE_FILEFORMAT type) const
+	ibool Direct2D::Texture::SaveToFile(tstring const file,const D3DXIMAGE_FILEFORMAT type) const
 	{
 		NST_ASSERT( file && *file && width && height );
 
@@ -1340,7 +1339,7 @@ namespace Nestopia
 		}
 	}
 
-	Direct2D::ScreenShotResult Direct2D::SaveScreenShot(cstring const file,const uint ext) const
+	Direct2D::ScreenShotResult Direct2D::SaveScreenShot(tstring const file,const uint ext) const
 	{
 		NST_ASSERT( file && *file );
 

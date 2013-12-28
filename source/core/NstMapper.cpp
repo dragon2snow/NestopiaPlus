@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -42,13 +42,16 @@
 #include "board/NstBrdColorDreams.hpp"
 #include "board/NstBrdBtlTek2A.hpp"
 #include "board/NstBrdFfe.hpp"
+#include "board/NstBrdS8259.hpp"
 #include "board/NstBrdMario1Malee2.hpp"
 #include "board/NstBrdSuper24In1.hpp"
 #include "board/NstBrdNovelDiamond.hpp"
+#include "board/NstBrd8157.hpp"
 #include "board/NstBrd8237.hpp"
 #include "board/NstBrdWs.hpp"
 #include "board/NstBrdDreamTech01.hpp"
 #include "board/NstBrdH2288.hpp"
+#include "board/NstBrdCc21.hpp"
 #include "mapper/NstMapper000.hpp"
 #include "mapper/NstMapper001.hpp"
 #include "mapper/NstMapper002.hpp"
@@ -141,12 +144,20 @@
 #include "mapper/NstMapper118.hpp"
 #include "mapper/NstMapper119.hpp"
 #include "mapper/NstMapper133.hpp"
-#include "mapper/NstMapper134.hpp"
-#include "mapper/NstMapper135.hpp"
+#include "mapper/NstMapper137.hpp"
+#include "mapper/NstMapper138.hpp"
+#include "mapper/NstMapper139.hpp"
 #include "mapper/NstMapper140.hpp"
+#include "mapper/NstMapper141.hpp"
 #include "mapper/NstMapper142.hpp"
+#include "mapper/NstMapper143.hpp"
 #include "mapper/NstMapper144.hpp"
+#include "mapper/NstMapper145.hpp"
+#include "mapper/NstMapper146.hpp"
+#include "mapper/NstMapper147.hpp"
 #include "mapper/NstMapper148.hpp"
+#include "mapper/NstMapper149.hpp"
+#include "mapper/NstMapper150.hpp"
 #include "mapper/NstMapper151.hpp"
 #include "mapper/NstMapper152.hpp"
 #include "mapper/NstMapper153.hpp"
@@ -168,6 +179,7 @@
 #include "mapper/NstMapper187.hpp"
 #include "mapper/NstMapper188.hpp"
 #include "mapper/NstMapper189.hpp"
+#include "mapper/NstMapper191.hpp"
 #include "mapper/NstMapper193.hpp"
 #include "mapper/NstMapper198.hpp"
 #include "mapper/NstMapper200.hpp"
@@ -336,7 +348,7 @@ namespace Nes
 			{ "KONAMI VRC3",		              Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 073
 			{ "MMC3 TAIWAN",                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 074
 			{ "JALECO SS8805 / KONAMI VRC1",      Setup::PRG_012X_8K,  Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 075
-			{ "NAMCO 109",		                  Setup::PRG_01XX_16K, Setup::NMT_HORIZONTAL, Setup::NMT_HORIZONTAL }, // 076
+			{ "NAMCO 109",		                  Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 076
 			{ "IREM",				              Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 077
 			{ "IREM 74HC161/32",                  Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 078
 			{ "NINA-06 / NINA-03",	              Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 079
@@ -393,24 +405,24 @@ namespace Nes
 			{ "",					              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 130	
 			{ "",					              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 131	
 			{ "",					              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 132	
-			{ "SACHEN JOVIAL RACE",	              Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 133			 
-			{ "SACHEN-74LS374N",                  Setup::PRG_0123_32K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 134	
-			{ "SA-72008",			      	      Setup::PRG_0123_32K, Setup::NMT_ZERO,       Setup::NMT_ZERO       }, // 135	
+			{ "SA72008",        	              Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 133
+			{ "",                                 Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 134	
+			{ "",       			      	      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 135	
 			{ "",					              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 136	
-			{ "",					              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 137	
-			{ "",					              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 138	
-			{ "",					              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 139	
+			{ "S8259D",		                      Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 137	
+			{ "S8259C",		                      Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 138	
+			{ "S8259B",		                      Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 139	
 			{ "JALECO",			                  Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 140			 
-			{ "SACHEN",			                  Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 141	
+			{ "S8259A",	                          Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 141	
 			{ "BTL KS 202 (SMB2J)",               Setup::PRG_012X_8K,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 142	
-			{ "SACHEN",			                  Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 143	
+			{ "TCA01",                            Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 143
 			{ "AGCI 50282",		                  Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 144			 
-			{ "",					              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 145	
-			{ "",					              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 146	
-			{ "",					              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 147	
-			{ "MMC3 TAIWAN (alt)",	              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 148	
-			{ "",					              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 149	
-			{ "",					              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 150	
+			{ "SA72007",			              Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 145	
+			{ "SA0161M",			              Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 146
+			{ "TCU01",				              Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 147	
+			{ "SA0037",          	              Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 148	
+			{ "SA0036",				              Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 149	
+			{ "S74LS374N",                        Setup::PRG_0123_32K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 150	
 			{ "KONAMI VS-SYSTEM",                 Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 151			 
 			{ "BANDAI 74161/32 +MIRR",            Setup::PRG_01XX_16K, Setup::NMT_ZERO,       Setup::NMT_ZERO       }, // 152			 
 			{ "BANDAI +WRAM",                     Setup::PRG_01XX_16K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 153			 
@@ -426,8 +438,8 @@ namespace Nes
 			{ "",					              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 163	
 			{ "FINAL FANTASY V",	              Setup::PRG_XXXX_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 164	
 			{ "FIRE EMBLEM",		              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 165			 
-			{ "",		                          Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 166	
-			{ "",		                          Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 167	
+			{ "",                                 Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 166	
+			{ "",                                 Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 167	
 			{ "",					              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 168	
 			{ "",					              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 169	
 			{ "",	       			              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 170	
@@ -451,9 +463,9 @@ namespace Nes
 			{ "BANDAI KARAOKE STUDIO",            Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 188			 
 			{ "SF2 YOKO VERSION",                 Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 189			 
 			{ "",					              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 190	
-			{ "",					              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 191	
+			{ "MMC3 TAIWAN",		              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 191
 			{ "",					              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 192	
-			{ "MEGA SOFT (NTDEC)",                Setup::PRG_0XXX_24K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 193			 
+			{ "MEGA SOFT (NTDEC)",                Setup::PRG_0XXX_24K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 193
 			{ "",					              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 194	
 			{ "",					              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 195	
 			{ "",					              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 196	
@@ -516,199 +528,206 @@ namespace Nes
 			{ "",					              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 253
 			{ "PIKACHU Y2K",		              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 254
 			{ "BMC (110-IN-1)",                   Setup::PRG_0123_32K, Setup::NMT_VERTICAL,   Setup::NMT_VERTICAL   }, // 255
-			{ "MARIO1MALEE2",                     Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // Ext. 256
-			{ "SUPER 24-IN-1",					  Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // Ext. 257
+			{ "SUPER 24-IN-1",					  Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // Ext. 256
+			{ "MARIO1MALEE2",                     Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // Ext. 257
 			{ "BMC NOVELDIAMOND (9999999-IN-1)",  Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // Ext. 258
-			{ "UNL 8237",                         Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // Ext. 259
-			{ "BMC WS",                           Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // Ext. 260
-			{ "DREAMTECH-01",                     Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // Ext. 261
-			{ "H2288",                            Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }  // Ext. 262
+			{ "8157",                             Setup::PRG_0101_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // Ext. 259
+			{ "8237",                             Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // Ext. 260
+			{ "WS",                               Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // Ext. 261
+			{ "DREAMTECH-01",                     Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // Ext. 262
+			{ "H2288",                            Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // Ext. 263
+			{ "CC21",                             Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }  // Ext. 264
 		};
 
 		Mapper* Mapper::Create(Context& context)
 		{
-			Mapper* mapper = NULL;
-	
 			switch (context.id)
 			{
-				case   0: mapper = new Mapper0   ( context ); break;
-				case   1: mapper = new Mapper1   ( context ); break;
-				case   2: mapper = new Mapper2   ( context ); break;
-				case   3: mapper = new Mapper3   ( context ); break;
-				case   4: mapper = new Mapper4   ( context ); break;
-				case   5: mapper = new Mapper5   ( context ); break;
-				case   6: mapper = new Mapper6   ( context ); break;
-				case   7: mapper = new Mapper7   ( context ); break;
-				case   8: mapper = new Mapper8   ( context ); break;
-				case   9: mapper = new Mapper9   ( context ); break;
-				case  10: mapper = new Mapper10  ( context ); break;
-				case  11: mapper = new Mapper11  ( context ); break;
-				case  12: mapper = new Mapper12  ( context ); break;
-				case  13: mapper = new Mapper13  ( context ); break;
-				case  15: mapper = new Mapper15  ( context ); break;
-				case  16: mapper = new Mapper16  ( context ); break;
-				case  17: mapper = new Mapper17  ( context ); break;
-				case  18: mapper = new Mapper18  ( context ); break;
-				case  19: mapper = new Mapper19  ( context ); break;
-				case  21: mapper = new Mapper21  ( context ); break;
-				case  22: mapper = new Mapper22  ( context ); break;
-				case  23: mapper = new Mapper23  ( context ); break;
-				case  24: mapper = new Mapper24  ( context ); break;
-				case  25: mapper = new Mapper25  ( context ); break;
-				case  26: mapper = new Mapper26  ( context ); break;
-				case  32: mapper = new Mapper32  ( context ); break;
-				case  33: mapper = new Mapper33  ( context ); break;
-				case  34: mapper = new Mapper34  ( context ); break;
-				case  40: mapper = new Mapper40  ( context ); break;
-				case  41: mapper = new Mapper41  ( context ); break;
-				case  42: mapper = new Mapper42  ( context ); break;
-				case  44: mapper = new Mapper44  ( context ); break;
-				case  45: mapper = new Mapper45  ( context ); break;
-				case  46: mapper = new Mapper46  ( context ); break;
-				case  47: mapper = new Mapper47  ( context ); break;
-				case  48: mapper = new Mapper48  ( context ); break;
-				case  49: mapper = new Mapper49  ( context ); break;
-				case  50: mapper = new Mapper50  ( context ); break;
-				case  51: mapper = new Mapper51  ( context ); break;
-				case  52: mapper = new Mapper52  ( context ); break;
-				case  53: mapper = new Mapper53  ( context ); break;
-				case  56: mapper = new Mapper56  ( context ); break;
-				case  57: mapper = new Mapper57  ( context ); break;
-				case  58: mapper = new Mapper58  ( context ); break;
-				case  60: mapper = new Mapper60  ( context ); break;
-				case  61: mapper = new Mapper61  ( context ); break;
-				case  62: mapper = new Mapper62  ( context ); break;
-				case  64: mapper = new Mapper64  ( context ); break;
-				case  65: mapper = new Mapper65  ( context ); break;
-				case  66: mapper = new Mapper66  ( context ); break;
-				case  67: mapper = new Mapper67  ( context ); break;
-				case  68: mapper = new Mapper68  ( context ); break;
-				case  69: mapper = new Mapper69  ( context ); break;
-				case  70: mapper = new Mapper70  ( context ); break;
-				case  71: mapper = new Mapper71  ( context ); break;
-				case  72: mapper = new Mapper72  ( context ); break;
-				case  73: mapper = new Mapper73  ( context ); break;
-				case  74: mapper = new Mapper74  ( context ); break;
-				case  75: mapper = new Mapper75  ( context ); break;
-				case  76: mapper = new Mapper76  ( context ); break;
-				case  77: mapper = new Mapper77  ( context ); break;
-				case  78: mapper = new Mapper78  ( context ); break;
-				case  79: mapper = new Mapper79  ( context ); break;
-				case  80: mapper = new Mapper80  ( context ); break;
-				case  82: mapper = new Mapper82  ( context ); break;
-				case  83: mapper = new Mapper83  ( context ); break;
-				case  85: mapper = new Mapper85  ( context ); break;
-				case  86: mapper = new Mapper86  ( context ); break;
-				case  87: mapper = new Mapper87  ( context ); break;
-				case  88: mapper = new Mapper88  ( context ); break;
-				case  89: mapper = new Mapper89  ( context ); break;
-				case  90: mapper = new Mapper90  ( context ); break;
-				case  91: mapper = new Mapper91  ( context ); break;
-				case  92: mapper = new Mapper92  ( context ); break;
-				case  93: mapper = new Mapper93  ( context ); break;
-				case  94: mapper = new Mapper94  ( context ); break;
-				case  95: mapper = new Mapper95  ( context ); break;
-				case  96: mapper = new Mapper96  ( context ); break;
-				case  97: mapper = new Mapper97  ( context ); break;
-				case  99: mapper = new Mapper99  ( context ); break;
-				case 100: mapper = new Mapper100 ( context ); break;
-				case 101: mapper = new Mapper101 ( context ); break;
-				case 105: mapper = new Mapper105 ( context ); break;
-				case 107: mapper = new Mapper107 ( context ); break;
-				case 112: mapper = new Mapper112 ( context ); break;
-				case 113: mapper = new Mapper113 ( context ); break;
-				case 114: mapper = new Mapper114 ( context ); break;
-				case 115: mapper = new Mapper115 ( context ); break;
-				case 117: mapper = new Mapper117 ( context ); break;
-				case 118: mapper = new Mapper118 ( context ); break;
-				case 119: mapper = new Mapper119 ( context ); break;
-				case 133: mapper = new Mapper133 ( context ); break;
-				case 134: mapper = new Mapper134 ( context ); break;
-				case 135: mapper = new Mapper135 ( context ); break;
-				case 140: mapper = new Mapper140 ( context ); break;
-				case 142: mapper = new Mapper142 ( context ); break;
-				case 144: mapper = new Mapper144 ( context ); break;
-				case 148: mapper = new Mapper148 ( context ); break;
-				case 151: mapper = new Mapper151 ( context ); break;
-				case 152: mapper = new Mapper152 ( context ); break;
-				case 153: mapper = new Mapper153 ( context ); break;
-				case 154: mapper = new Mapper154 ( context ); break;
-				case 155: mapper = new Mapper155 ( context ); break;
-				case 156: mapper = new Mapper156 ( context ); break;
-				case 157: mapper = new Mapper157 ( context ); break;
-				case 158: mapper = new Mapper158 ( context ); break;
-				case 160: mapper = new Mapper160 ( context ); break;
-				case 164: mapper = new Mapper164 ( context ); break;
-				case 165: mapper = new Mapper165 ( context ); break;
-				case 180: mapper = new Mapper180 ( context ); break;
-				case 181: mapper = new Mapper181 ( context ); break;
-				case 182: mapper = new Mapper182 ( context ); break;
-				case 183: mapper = new Mapper183 ( context ); break;
-				case 184: mapper = new Mapper184 ( context ); break;
-				case 185: mapper = new Mapper185 ( context ); break;
-				case 186: mapper = new Mapper186 ( context ); break;
-				case 187: mapper = new Mapper187 ( context ); break;
-				case 188: mapper = new Mapper188 ( context ); break;
-				case 189: mapper = new Mapper189 ( context ); break;
-				case 193: mapper = new Mapper193 ( context ); break;
-				case 198: mapper = new Mapper198 ( context ); break;
-				case 200: mapper = new Mapper200 ( context ); break;
-				case 201: mapper = new Mapper201 ( context ); break;
-				case 202: mapper = new Mapper202 ( context ); break;
-				case 203: mapper = new Mapper203 ( context ); break;
-				case 204: mapper = new Mapper204 ( context ); break;
-				case 205: mapper = new Mapper205 ( context ); break;
-				case 206: mapper = new Mapper206 ( context ); break;
-				case 207: mapper = new Mapper207 ( context ); break;
-				case 208: mapper = new Mapper208 ( context ); break;
-				case 209: mapper = new Mapper209 ( context ); break;
-				case 210: mapper = new Mapper210 ( context ); break;
-				case 211: mapper = new Mapper211 ( context ); break;
-				case 212: mapper = new Mapper212 ( context ); break;
-				case 213: mapper = new Mapper213 ( context ); break;
-				case 215: mapper = new Mapper215 ( context ); break;
-				case 216: mapper = new Mapper216 ( context ); break;
-				case 217: mapper = new Mapper217 ( context ); break;
-				case 222: mapper = new Mapper222 ( context ); break;
-				case 225: mapper = new Mapper225 ( context ); break;
-				case 226: mapper = new Mapper226 ( context ); break;
-				case 227: mapper = new Mapper227 ( context ); break;
-				case 228: mapper = new Mapper228 ( context ); break;
-				case 229: mapper = new Mapper229 ( context ); break;
-				case 230: mapper = new Mapper230 ( context ); break;
-				case 231: mapper = new Mapper231 ( context ); break;
-				case 232: mapper = new Mapper232 ( context ); break;
-				case 233: mapper = new Mapper233 ( context ); break;
-				case 234: mapper = new Mapper234 ( context ); break;
-				case 235: mapper = new Mapper235 ( context ); break;
-				case 240: mapper = new Mapper240 ( context ); break;
-				case 241: mapper = new Mapper241 ( context ); break;
-				case 242: mapper = new Mapper242 ( context ); break;
-				case 243: mapper = new Mapper243 ( context ); break;
-				case 244: mapper = new Mapper244 ( context ); break;
-				case 245: mapper = new Mapper245 ( context ); break;
-				case 246: mapper = new Mapper246 ( context ); break;
-				case 248: mapper = new Mapper248 ( context ); break;
-				case 249: mapper = new Mapper249 ( context ); break;
-				case 250: mapper = new Mapper250 ( context ); break;
-				case 252: mapper = new Mapper252 ( context ); break;
-				case 254: mapper = new Mapper254 ( context ); break;
-				case 255: mapper = new Mapper255 ( context ); break;
+				case   0: return new Mapper0   ( context );
+				case   1: return new Mapper1   ( context );
+				case   2: return new Mapper2   ( context );
+				case   3: return new Mapper3   ( context );
+				case   4: return new Mapper4   ( context );
+				case   5: return new Mapper5   ( context );
+				case   6: return new Mapper6   ( context );
+				case   7: return new Mapper7   ( context );
+				case   8: return new Mapper8   ( context );
+				case   9: return new Mapper9   ( context );
+				case  10: return new Mapper10  ( context );
+				case  11: return new Mapper11  ( context );
+				case  12: return new Mapper12  ( context );
+				case  13: return new Mapper13  ( context );
+				case  15: return new Mapper15  ( context );
+				case  16: return new Mapper16  ( context );
+				case  17: return new Mapper17  ( context );
+				case  18: return new Mapper18  ( context );
+				case  19: return new Mapper19  ( context );
+				case  21: return new Mapper21  ( context );
+				case  22: return new Mapper22  ( context );
+				case  23: return new Mapper23  ( context );
+				case  24: return new Mapper24  ( context );
+				case  25: return new Mapper25  ( context );
+				case  26: return new Mapper26  ( context );
+				case  32: return new Mapper32  ( context );
+				case  33: return new Mapper33  ( context );
+				case  34: return new Mapper34  ( context );
+				case  40: return new Mapper40  ( context );
+				case  41: return new Mapper41  ( context );
+				case  42: return new Mapper42  ( context );
+				case  44: return new Mapper44  ( context );
+				case  45: return new Mapper45  ( context );
+				case  46: return new Mapper46  ( context );
+				case  47: return new Mapper47  ( context );
+				case  48: return new Mapper48  ( context );
+				case  49: return new Mapper49  ( context );
+				case  50: return new Mapper50  ( context );
+				case  51: return new Mapper51  ( context );
+				case  52: return new Mapper52  ( context );
+				case  53: return new Mapper53  ( context );
+				case  56: return new Mapper56  ( context );
+				case  57: return new Mapper57  ( context );
+				case  58: return new Mapper58  ( context );
+				case  60: return new Mapper60  ( context );
+				case  61: return new Mapper61  ( context );
+				case  62: return new Mapper62  ( context );
+				case  64: return new Mapper64  ( context );
+				case  65: return new Mapper65  ( context );
+				case  66: return new Mapper66  ( context );
+				case  67: return new Mapper67  ( context );
+				case  68: return new Mapper68  ( context );
+				case  69: return new Mapper69  ( context );
+				case  70: return new Mapper70  ( context );
+				case  71: return new Mapper71  ( context );
+				case  72: return new Mapper72  ( context );
+				case  73: return new Mapper73  ( context );
+				case  74: return new Mapper74  ( context );
+				case  75: return new Mapper75  ( context );
+				case  76: return new Mapper76  ( context );
+				case  77: return new Mapper77  ( context );
+				case  78: return new Mapper78  ( context );
+				case  79: return new Mapper79  ( context );
+				case  80: return new Mapper80  ( context );
+				case  82: return new Mapper82  ( context );
+				case  83: return new Mapper83  ( context );
+				case  85: return new Mapper85  ( context );
+				case  86: return new Mapper86  ( context );
+				case  87: return new Mapper87  ( context );
+				case  88: return new Mapper88  ( context );
+				case  89: return new Mapper89  ( context );
+				case  90: return new Mapper90  ( context );
+				case  91: return new Mapper91  ( context );
+				case  92: return new Mapper92  ( context );
+				case  93: return new Mapper93  ( context );
+				case  94: return new Mapper94  ( context );
+				case  95: return new Mapper95  ( context );
+				case  96: return new Mapper96  ( context );
+				case  97: return new Mapper97  ( context );
+				case  99: return new Mapper99  ( context );
+				case 100: return new Mapper100 ( context );
+				case 101: return new Mapper101 ( context );
+				case 105: return new Mapper105 ( context );
+				case 107: return new Mapper107 ( context );
+				case 112: return new Mapper112 ( context );
+				case 113: return new Mapper113 ( context );
+				case 114: return new Mapper114 ( context );
+				case 115: return new Mapper115 ( context );
+				case 117: return new Mapper117 ( context );
+				case 118: return new Mapper118 ( context );
+				case 119: return new Mapper119 ( context );
+				case 133: return new Mapper133 ( context );
+				case 137: return new Mapper137 ( context );
+				case 138: return new Mapper138 ( context );
+				case 139: return new Mapper139 ( context );
+				case 140: return new Mapper140 ( context );
+				case 141: return new Mapper141 ( context );
+				case 142: return new Mapper142 ( context );
+				case 143: return new Mapper143 ( context );
+				case 144: return new Mapper144 ( context );
+				case 145: return new Mapper145 ( context );
+				case 146: return new Mapper146 ( context );
+				case 147: return new Mapper147 ( context );
+				case 148: return new Mapper148 ( context );
+				case 149: return new Mapper149 ( context );
+				case 150: return new Mapper150 ( context );
+				case 151: return new Mapper151 ( context );
+				case 152: return new Mapper152 ( context );
+				case 153: return new Mapper153 ( context );
+				case 154: return new Mapper154 ( context );
+				case 155: return new Mapper155 ( context );
+				case 156: return new Mapper156 ( context );
+				case 157: return new Mapper157 ( context );
+				case 158: return new Mapper158 ( context );
+				case 160: return new Mapper160 ( context );
+				case 164: return new Mapper164 ( context );
+				case 165: return new Mapper165 ( context );
+				case 180: return new Mapper180 ( context );
+				case 181: return new Mapper181 ( context );
+				case 182: return new Mapper182 ( context );
+				case 183: return new Mapper183 ( context );
+				case 184: return new Mapper184 ( context );
+				case 185: return new Mapper185 ( context );
+				case 186: return new Mapper186 ( context );
+				case 187: return new Mapper187 ( context );
+				case 188: return new Mapper188 ( context );
+				case 189: return new Mapper189 ( context );
+				case 191: return new Mapper191 ( context );
+				case 193: return new Mapper193 ( context );
+				case 198: return new Mapper198 ( context );
+				case 200: return new Mapper200 ( context );
+				case 201: return new Mapper201 ( context );
+				case 202: return new Mapper202 ( context );
+				case 203: return new Mapper203 ( context );
+				case 204: return new Mapper204 ( context );
+				case 205: return new Mapper205 ( context );
+				case 206: return new Mapper206 ( context );
+				case 207: return new Mapper207 ( context );
+				case 208: return new Mapper208 ( context );
+				case 209: return new Mapper209 ( context );
+				case 210: return new Mapper210 ( context );
+				case 211: return new Mapper211 ( context );
+				case 212: return new Mapper212 ( context );
+				case 213: return new Mapper213 ( context );
+				case 215: return new Mapper215 ( context );
+				case 216: return new Mapper216 ( context );
+				case 217: return new Mapper217 ( context );
+				case 222: return new Mapper222 ( context );
+				case 225: return new Mapper225 ( context );
+				case 226: return new Mapper226 ( context );
+				case 227: return new Mapper227 ( context );
+				case 228: return new Mapper228 ( context );
+				case 229: return new Mapper229 ( context );
+				case 230: return new Mapper230 ( context );
+				case 231: return new Mapper231 ( context );
+				case 232: return new Mapper232 ( context );
+				case 233: return new Mapper233 ( context );
+				case 234: return new Mapper234 ( context );
+				case 235: return new Mapper235 ( context );
+				case 240: return new Mapper240 ( context );
+				case 241: return new Mapper241 ( context );
+				case 242: return new Mapper242 ( context );
+				case 243: return new Mapper243 ( context );
+				case 244: return new Mapper244 ( context );
+				case 245: return new Mapper245 ( context );
+				case 246: return new Mapper246 ( context );
+				case 248: return new Mapper248 ( context );
+				case 249: return new Mapper249 ( context );
+				case 250: return new Mapper250 ( context );
+				case 252: return new Mapper252 ( context );
+				case 254: return new Mapper254 ( context );
+				case 255: return new Mapper255 ( context );
 			
-				case EXT_SUPER24IN1:   mapper = new Boards::Super24In1   ( context ); break;
-				case EXT_MARIO1MALEE2: mapper = new Boards::Mario1Malee2 ( context ); break;
-				case EXT_NOVELDIAMOND: mapper = new Boards::NovelDiamond ( context ); break;
-				case EXT_8237:         mapper = new Boards::Unl8237      ( context ); break;
-				case EXT_WS:           mapper = new Boards::Ws           ( context ); break;
-				case EXT_DREAMTECH01:  mapper = new Boards::DreamTech01  ( context ); break;
-				case EXT_H2288:        mapper = new Boards::H2288        ( context ); break;
+				case EXT_SUPER24IN1:   return new Boards::Super24In1   ( context );
+				case EXT_MARIO1MALEE2: return new Boards::Mario1Malee2 ( context );
+				case EXT_NOVELDIAMOND: return new Boards::NovelDiamond ( context );
+				case EXT_8157:         return new Boards::Unl8157      ( context );
+				case EXT_8237:         return new Boards::Unl8237      ( context );
+				case EXT_WS:           return new Boards::Ws           ( context );
+				case EXT_DREAMTECH01:  return new Boards::DreamTech01  ( context );
+				case EXT_H2288:        return new Boards::H2288        ( context );
+				case EXT_CC21:         return new Boards::Cc21         ( context );
 			
 				default: throw RESULT_ERR_UNSUPPORTED_MAPPER;
 			}
-	
-			NST_ASSERT( mapper );
-	
-			return mapper;
 		}
 	
 		void Mapper::Destroy(Mapper*& mapper)
@@ -717,15 +736,29 @@ namespace Nes
 			mapper = NULL;
 		}
 
+		bool Mapper::CheckNoStartingFrameIrq(dword prgCrc)
+		{
+			switch (prgCrc)
+			{
+		    	case 0xC428F142UL: // KOF97
+				case 0x0A1969BEUL: // KOF98 (Super HiK 7-in-1)
+				case 0xF7968840UL: // Sonic 3D Blast 6
+					return true;
+			}
+
+			return false;
+		}
+
 		Mapper::Mapper(Context& context,const uint settings)
 		:
-		prg       (context.pRom.Mem(),context.pRom.Size(),true,false),
-		cpu       (context.cpu),
-		ppu       (context.ppu),
-		chr       (context.ppu.GetChrMem()),
-		nmt       (context.ppu.GetNmtMem()),
-		mirroring (context.mirroring),
-		id        (context.id)
+		prg                (context.pRom.Mem(),context.pRom.Size(),true,false),
+		cpu                (context.cpu),
+		ppu                (context.ppu),
+		chr                (context.ppu.GetChrMem()),
+		nmt                (context.ppu.GetNmtMem()),
+		mirroring          (context.mirroring),
+		noStartingFrameIrq (CheckNoStartingFrameIrq( context.pRomCrc )),
+		id                 (context.id)
 		{
 			const bool cRomDiscarded = (settings & CROM_NONE) && context.cRom.Size();
 								
@@ -739,9 +772,9 @@ namespace Nes
 				chr.Source(0).Set( context.cRom.Mem(), context.cRom.Size(), true, false );
 				chr.Source(1).Set( context.cRom.Mem(), context.cRom.Size(), true, false );
 			}
-			else if (cRamSize < NES_8K)
+			else if (cRamSize < SIZE_8K)
 			{
-				cRamSize = NES_8K;
+				cRamSize = SIZE_8K;
 			}
 	
 			if (cRamSize)
@@ -753,11 +786,11 @@ namespace Nes
 			}
 
 			if (mirroring == Ppu::NMT_FOURSCREEN)
-				nmt.Source().Set( NES_4K, true, true );
+				nmt.Source().Set( SIZE_4K, true, true );
 			
 			nmt.Source(1).Set( chr.Source().Mem(), chr.Source().Size(), true, context.cRom.Size() == 0 );
 
-			NST_ASSERT( context.wRam.Size() % NES_8K == 0 );
+			NST_ASSERT( context.wRam.Size() % SIZE_8K == 0 );
 
 			context.wRamAuto = false;
 
@@ -767,12 +800,12 @@ namespace Nes
 			
 					context.wRamAuto = context.wRam.Empty();
 			
-					if (context.wRam.Empty() || (!context.battery && context.wRam.Size() != NES_8K))
+					if (context.wRam.Empty() || (!context.battery && context.wRam.Size() != SIZE_8K))
 					{
-						context.wRam.Set( NES_8K );
+						context.wRam.Set( SIZE_8K );
 			
 						if (context.wRamAuto)
-							std::memset( context.wRam.Mem(), 0x00, NES_8K );
+							std::memset( context.wRam.Mem(), 0x00, SIZE_8K );
 					}					
 					break;
 			
@@ -783,7 +816,7 @@ namespace Nes
 			
 				default:
 				{
-					const dword size = (settings & WRAM_SIZES) * NES_8K;
+					const dword size = (settings & WRAM_SIZES) * SIZE_8K;
 					const dword curr = context.wRam.Size(); 
 			
 					if (curr < size)
@@ -825,17 +858,17 @@ namespace Nes
 			if (*GetBoard( id ))
 				log << title << GetBoard( id ) << NST_LINEBREAK;
 			
-			log << title << (prg.Source().Size() / NES_1K) << "k PRG-ROM" NST_LINEBREAK
-				<< title << (chr.Source().Size() / NES_1K) << (context.cRom.Size() ? "k CHR-ROM" NST_LINEBREAK : "k CHR-RAM" NST_LINEBREAK);
+			log << title << (prg.Source().Size() / SIZE_1K) << "k PRG-ROM" NST_LINEBREAK
+				<< title << (chr.Source().Size() / SIZE_1K) << (context.cRom.Size() ? "k CHR-ROM" NST_LINEBREAK : "k CHR-RAM" NST_LINEBREAK);
 	
 			if (cRomDiscarded)
 				log << title << "warning, CHR-ROM discarded!" NST_LINEBREAK;
 	
 			if (chr.Source(1).Internal())
-				log << title << (chr.Source(1).Size() / NES_1K) << "k CHR-RAM" NST_LINEBREAK; 
+				log << title << (chr.Source(1).Size() / SIZE_1K) << "k CHR-RAM" NST_LINEBREAK; 
 	
 			if (context.wRam.Size())
-				log << title << (context.wRam.Size() / NES_1K) << ((settings & WRAM_SIZES) ? "k WRAM" NST_LINEBREAK : "k auto WRAM" NST_LINEBREAK);
+				log << title << (context.wRam.Size() / SIZE_1K) << ((settings & WRAM_SIZES) ? "k WRAM" NST_LINEBREAK : "k auto WRAM" NST_LINEBREAK);
 	
 			cstring type;
 	
@@ -865,19 +898,20 @@ namespace Nes
 		void Mapper::Reset(const bool hard)
 		{
 			cpu.Map( 0x4018U, 0x5FFFU ).Set( this, &Mapper::Peek_Nop, &Mapper::Poke_Nop );
-
-			cpu.Map( 0x6000U, 0x7FFFU ).Set
-			( 
-		     	this, 
-				wrk.HasRam() ? &Mapper::Peek_Wrk_6 : &Mapper::Peek_Nop, 
-				wrk.HasRam() ? &Mapper::Poke_Wrk_6 : &Mapper::Poke_Nop
-			);
-
+			
+			if (wrk.HasRam())
+				cpu.Map( 0x6000U, 0x7FFFU ).Set( this, &Mapper::Peek_Wrk_6, &Mapper::Poke_Wrk_6 );
+			else
+				cpu.Map( 0x6000U, 0x7FFFU ).Set( this, &Mapper::Peek_Nop, &Mapper::Poke_Nop );
+			
 			cpu.Map( 0x8000U, 0x9FFFU ).Set( this, &Mapper::Peek_Prg_8, &Mapper::Poke_Nop );
 			cpu.Map( 0xA000U, 0xBFFFU ).Set( this, &Mapper::Peek_Prg_A, &Mapper::Poke_Nop );
 			cpu.Map( 0xC000U, 0xDFFFU ).Set( this, &Mapper::Peek_Prg_C, &Mapper::Poke_Nop );
 			cpu.Map( 0xE000U, 0xFFFFU ).Set( this, &Mapper::Peek_Prg_E, &Mapper::Poke_Nop );
-	
+
+			if (noStartingFrameIrq)
+				Map( Cpu::RESET_VECTOR, &Mapper::Peek_NoFrameIrq );
+
 			cpu.ClearIRQ();
 
 			if (hard)
@@ -900,7 +934,7 @@ namespace Nes
 						{  0U,  1U,  2U, ~0U }	// PRG_012X_8K
 					};										 
 
-					prg.SwapBanks<NES_8K,0x0000U>
+					prg.SwapBanks<SIZE_8K,0x0000U>
 					( 
 						defPrg[setup[id].prg][0],
 						defPrg[setup[id].prg][1],
@@ -925,8 +959,8 @@ namespace Nes
 					);
 				}
 
-				chr.SwapBank<NES_8K,0x0000U>(0);
-				wrk.SwapBank<NES_8K,0x0000U>(0);
+				chr.SwapBank<SIZE_8K,0x0000U>(0);
+				wrk.SwapBank<SIZE_8K,0x0000U>(0);
 			}
 
 			SubReset( hard );
@@ -947,24 +981,42 @@ namespace Nes
 
 		dword Mapper::GetStateName() const
 		{
-			NST_COMPILE_ASSERT( NUM_EXT_MAPPERS == 7 );
-
 			if (id <= 255)
 			{
-				return NES_STATE_CHUNK_ID('0' + (id / 100),'0' + (id % 100 / 10),'0' + (id % 10),'\0');
+				return NES_STATE_CHUNK_ID('0' + (id / 100U),'0' + (id % 100U / 10U),'0' + (id % 10U),'\0');
 			}
-			else switch (id)
+			else
 			{
-				case EXT_MARIO1MALEE2: return NES_STATE_CHUNK_ID('M','M','2','\0');
-				case EXT_SUPER24IN1:   return NES_STATE_CHUNK_ID('S','2','4','\0');
-				case EXT_NOVELDIAMOND: return NES_STATE_CHUNK_ID('N','O','V','\0');
-				case EXT_8237:         return NES_STATE_CHUNK_ID('8','2','3','\0');
-				case EXT_WS:           return NES_STATE_CHUNK_ID('W','S','4','\0');
-				case EXT_DREAMTECH01:  return NES_STATE_CHUNK_ID('D','0','1','\0');
-				case EXT_H2288:        return NES_STATE_CHUNK_ID('H','2','2','\0');
+				NST_COMPILE_ASSERT
+				(
+					EXT_SUPER24IN1   == 256	&&
+					EXT_MARIO1MALEE2 == 257	&&
+					EXT_NOVELDIAMOND == 258	&&
+					EXT_8157         == 259	&&
+					EXT_8237         == 260	&&
+					EXT_WS           == 261	&&
+					EXT_DREAMTECH01  == 262	&&
+					EXT_H2288        == 263	&&
+					EXT_CC21         == 264
+				);
+
+				static const dword chunks[] =
+				{
+					NES_STATE_CHUNK_ID('S','2','4','\0'),
+					NES_STATE_CHUNK_ID('M','M','2','\0'),
+					NES_STATE_CHUNK_ID('N','O','V','\0'),
+					NES_STATE_CHUNK_ID('8','1','5','\0'),
+					NES_STATE_CHUNK_ID('8','2','3','\0'),
+					NES_STATE_CHUNK_ID('W','S','4','\0'),
+					NES_STATE_CHUNK_ID('D','0','1','\0'),
+					NES_STATE_CHUNK_ID('H','2','2','\0'),
+					NES_STATE_CHUNK_ID('C','2','1','\0')
+				};
+
+				NST_COMPILE_ASSERT( NUM_EXT_MAPPERS == NST_COUNT(chunks) );
+
+				return chunks[id - 256];
 			}
-			
-			return NES_STATE_CHUNK_ID('X','X','X','\0');
 		}
 	
 		void Mapper::SaveState(State::Saver& state) const
@@ -972,113 +1024,8 @@ namespace Nes
 			prg.SaveState( State::Saver::Subset(state,'P','R','G','\0').Ref(), b00 );
 			chr.SaveState( State::Saver::Subset(state,'C','H','R','\0').Ref(), chr.Source(0).Internal() ? b01 : chr.Source(1).Internal() ? b10 : b00 );
 			nmt.SaveState( State::Saver::Subset(state,'N','M','T','\0').Ref(), nmt.Source(0).Internal() ? b01 : nmt.Source(1).Internal() ? b10 : b00 );
-			wrk.SaveState( State::Saver::Subset(state,'W','R','K','\0').Ref(), wrk.HasRam() ? b01 : b00 );
-
-			switch (id)
-			{
-     			case MMC1_00:
-       			case MMC1_01:
-				case MMC1_02:
-
-					static_cast<const Boards::Mmc1*>(this)->SaveState( State::Saver::Subset(state,'M','M','1','\0').Ref() );
-					break;
-
-				case MMC2_00:
-				case MMC2_01:
-
-					static_cast<const Boards::Mmc2*>(this)->SaveState( State::Saver::Subset(state,'M','M','2','\0').Ref() );
-					break;
-
-				case MMC3_00:
-				case MMC3_01:
-				case MMC3_02:
-				case MMC3_03:
-				case MMC3_04:
-				case MMC3_05:
-				case MMC3_06:
-				case MMC3_07:
-				case MMC3_08:
-				case MMC3_09:
-				case MMC3_10:
-				case MMC3_11:
-				case MMC3_12:
-				case MMC3_13:
-				case MMC3_14:
-				case MMC3_15:
-				case MMC3_16:
-				case MMC3_17:
-				case MMC3_18:
-				case MMC3_19:
-				case MMC3_20:
-				case MMC3_21:
-				case MMC3_22:
-				case MMC3_23:
-				case MMC3_24:
-				case MMC3_25:
-
-					static_cast<const Boards::Mmc3*>(this)->SaveState( State::Saver::Subset(state,'M','M','3','\0').Ref() );
-					break;
-
-				case MMC5_00:
-
-					static_cast<const Boards::Mmc5*>(this)->SaveState( State::Saver::Subset(state,'M','M','5','\0').Ref() );
-					break;
-
-				case N106_00:
-				case N106_01:
-
-					static_cast<const Boards::N106*>(this)->SaveState( State::Saver::Subset(state,'N','M','6','\0').Ref() );
-					break;
-
-				case N118_00:
-				case N118_01:
-
-					static_cast<const Boards::N118*>(this)->SaveState( State::Saver::Subset(state,'N','M','8','\0').Ref() );
-					break;
-
-				case VRC6_00:
-				case VRC6_01:
-
-					static_cast<const Boards::Vrc6*>(this)->SaveState( State::Saver::Subset(state,'V','R','6','\0').Ref() );
-					break;
-
-				case VRC7_00:
-
-					static_cast<const Boards::Vrc7*>(this)->SaveState( State::Saver::Subset(state,'V','R','7','\0').Ref() );
-					break;
-
-				case BANDAI_00:
-				case BANDAI_01:
-				case BANDAI_02:
-
-					static_cast<const Boards::Bandai*>(this)->SaveState( State::Saver::Subset(state,'B','A','N','\0').Ref() );
-					break;
-
-				case FME07_00:
-
-					static_cast<const Boards::Fme07*>(this)->SaveState( State::Saver::Subset(state,'F','M','7','\0').Ref() );
-					break;
-
-				case TAITOTC_00:
-				case TAITOTC_01:
-
-					static_cast<const Boards::TaitoTc*>(this)->SaveState( State::Saver::Subset(state,'T','T','C','\0').Ref() );
-					break;
-
-				case FFE_00:
-				case FFE_01:
-				case FFE_02:
-
-					static_cast<const Boards::Ffe*>(this)->SaveState( State::Saver::Subset(state,'F','F','E','\0').Ref() );
-					break;
-
-				case BTLTEK2A_00:
-				case BTLTEK2A_01:
-
-					static_cast<const Boards::BtlTek2A*>(this)->SaveState( State::Saver::Subset(state,'B','T','K','\0').Ref() );
-					break;
-			}
-
+			wrk.SaveState( State::Saver::Subset(state,'W','R','K','\0').Ref(), wrk.HasRam() ? b01 : b00 );			
+			BaseSave( state );
 			SubSave( State::Saver::Subset(state,GetStateName()).Ref() );
 		}
 	
@@ -1114,172 +1061,9 @@ namespace Nes
 						wrk.LoadState( State::Loader::Subset(state).Ref(), wrk.HasRam() ? b01 : b00 );
 						break;
 
-					case NES_STATE_CHUNK_ID('M','M','1','\0'):
+					default:
 
-						switch (id)
-						{
-							case MMC1_00:
-							case MMC1_01:
-							case MMC1_02:
-
-								static_cast<Boards::Mmc1*>(this)->LoadState( State::Loader::Subset(state).Ref() );
-								break;
-						}
-						break;
-
-					case NES_STATE_CHUNK_ID('M','M','2','\0'):
-
-						switch (id)
-						{
-							case MMC2_00:
-							case MMC2_01:
-
-								static_cast<Boards::Mmc2*>(this)->LoadState( State::Loader::Subset(state).Ref() );
-								break;
-						}
-						break;
-
-					case NES_STATE_CHUNK_ID('M','M','3','\0'):
-
-						switch (id)
-						{
-							case MMC3_00:
-							case MMC3_01:
-							case MMC3_02:
-							case MMC3_03:
-							case MMC3_04:
-							case MMC3_05:
-							case MMC3_06:
-							case MMC3_07:
-							case MMC3_08:
-							case MMC3_09:
-							case MMC3_10:
-							case MMC3_11:
-							case MMC3_12:
-							case MMC3_13:
-							case MMC3_14:
-							case MMC3_15:
-							case MMC3_16:
-							case MMC3_17:
-							case MMC3_18:
-							case MMC3_19:
-							case MMC3_20:
-							case MMC3_21:
-							case MMC3_22:
-							case MMC3_23:
-							case MMC3_24:
-							case MMC3_25:
-
-								static_cast<Boards::Mmc3*>(this)->LoadState( State::Loader::Subset(state).Ref() );
-								break;
-						}
-						break;
-
-					case NES_STATE_CHUNK_ID('M','M','5','\0'):
-
-						if (id == MMC5_00)
-							static_cast<Boards::Mmc5*>(this)->LoadState( State::Loader::Subset(state).Ref() );
-
-						break;
-
-					case NES_STATE_CHUNK_ID('N','M','6','\0'):
-
-						switch (id)
-						{
-							case N106_00:
-							case N106_01:
-
-								static_cast<Boards::N106*>(this)->LoadState( State::Loader::Subset(state).Ref() );
-								break;
-						}
-						break;
-
-					case NES_STATE_CHUNK_ID('N','M','8','\0'):
-
-						switch (id)
-						{
-							case N118_00:
-							case N118_01:
-
-								static_cast<Boards::N118*>(this)->LoadState( State::Loader::Subset(state).Ref() );
-								break;
-						}
-						break;
-
-					case NES_STATE_CHUNK_ID('V','R','6','\0'):
-
-						switch (id)
-						{
-							case VRC6_00:
-							case VRC6_01:
-						
-								static_cast<Boards::Vrc6*>(this)->LoadState( State::Loader::Subset(state).Ref() );
-								break;
-						}
-						break;
-
-					case NES_STATE_CHUNK_ID('V','R','7','\0'):
-
-						if (id == VRC7_00)
-							static_cast<Boards::Vrc7*>(this)->LoadState( State::Loader::Subset(state).Ref() );
-						
-						break;
-
-					case NES_STATE_CHUNK_ID('F','M','7','\0'):
-
-						if (id == FME07_00)
-							static_cast<Boards::Fme07*>(this)->LoadState( State::Loader::Subset(state).Ref() );
-						
-						break;
-
-					case NES_STATE_CHUNK_ID('B','A','N','\0'):
-
-						switch (id)
-						{
-     						case BANDAI_00:
-     						case BANDAI_01:
-							case BANDAI_02:
-
-								static_cast<Boards::Bandai*>(this)->LoadState( State::Loader::Subset(state).Ref() );
-								break;
-						}
-						break;
-
-					case NES_STATE_CHUNK_ID('T','T','C','\0'):
-
-						switch (id)
-						{
-     						case TAITOTC_00:
-     						case TAITOTC_01:
-
-								static_cast<Boards::TaitoTc*>(this)->LoadState( State::Loader::Subset(state).Ref() );
-								break;
-						}
-						break;
-
-					case NES_STATE_CHUNK_ID('F','F','E','\0'):
-
-						switch (id)
-						{
-     						case FFE_00:
-     						case FFE_01:
-							case FFE_02:
-
-								static_cast<Boards::Ffe*>(this)->LoadState( State::Loader::Subset(state).Ref() );
-								break;
-						}
-						break;
-
-					case NES_STATE_CHUNK_ID('B','T','K','\0'):
-
-						switch (id)
-						{
-     						case BTLTEK2A_00:
-							case BTLTEK2A_01:
-
-								static_cast<Boards::BtlTek2A*>(this)->LoadState( State::Loader::Subset(state).Ref() );
-								break;
-						}
+						BaseLoad( State::Loader::Subset(state).Ref(), chunk );
 						break;
 				}
 	
@@ -1287,7 +1071,7 @@ namespace Nes
 			}
 		}
 
-		cstring Mapper::GetBoard(const uint i)
+		cstring Mapper::GetBoard(uint i)
 		{ 
 			return i < NST_COUNT(setup) ? setup[i].board : ""; 
 		}
@@ -1326,29 +1110,39 @@ namespace Nes
 		NES_PEEK(Mapper,Prg_A) { return prg[1][address - 0xA000U]; }
 		NES_PEEK(Mapper,Prg_C) { return prg[2][address - 0xC000U]; }
 		NES_PEEK(Mapper,Prg_E) { return prg[3][address - 0xE000U]; }
-		
-		NES_POKE(Mapper,Prg_8k_0) { prg.SwapBank<NES_8K,0x0000U>( data ); }
-		NES_POKE(Mapper,Prg_8k_1) { prg.SwapBank<NES_8K,0x2000U>( data ); }
-		NES_POKE(Mapper,Prg_8k_2) { prg.SwapBank<NES_8K,0x4000U>( data ); }
-		NES_POKE(Mapper,Prg_8k_3) { prg.SwapBank<NES_8K,0x6000U>( data ); }
-		NES_POKE(Mapper,Prg_16k)  { prg.SwapBank<NES_16K,0x0000U>( data ); }
-		NES_POKE(Mapper,Prg_32k)  { prg.SwapBank<NES_32K,0x0000U>( data ); }
 
-		NES_POKE(Mapper,Chr_1k_0) { ppu.Update(); chr.SwapBank<NES_1K,0x0000U>( data ); }
-		NES_POKE(Mapper,Chr_1k_1) { ppu.Update(); chr.SwapBank<NES_1K,0x0400U>( data ); }
-		NES_POKE(Mapper,Chr_1k_2) { ppu.Update(); chr.SwapBank<NES_1K,0x0800U>( data ); }
-		NES_POKE(Mapper,Chr_1k_3) { ppu.Update(); chr.SwapBank<NES_1K,0x0C00U>( data ); }
-		NES_POKE(Mapper,Chr_1k_4) { ppu.Update(); chr.SwapBank<NES_1K,0x1000U>( data ); }
-		NES_POKE(Mapper,Chr_1k_5) { ppu.Update(); chr.SwapBank<NES_1K,0x1400U>( data ); }
-		NES_POKE(Mapper,Chr_1k_6) { ppu.Update(); chr.SwapBank<NES_1K,0x1800U>( data ); }
-		NES_POKE(Mapper,Chr_1k_7) { ppu.Update(); chr.SwapBank<NES_1K,0x1C00U>( data ); }
-		NES_POKE(Mapper,Chr_2k_0) { ppu.Update(); chr.SwapBank<NES_2K,0x0000U>( data ); }
-		NES_POKE(Mapper,Chr_2k_1) { ppu.Update(); chr.SwapBank<NES_2K,0x0800U>( data ); }
-		NES_POKE(Mapper,Chr_2k_2) { ppu.Update(); chr.SwapBank<NES_2K,0x1000U>( data ); }
-		NES_POKE(Mapper,Chr_2k_3) { ppu.Update(); chr.SwapBank<NES_2K,0x1800U>( data ); }
-		NES_POKE(Mapper,Chr_4k_0) { ppu.Update(); chr.SwapBank<NES_4K,0x0000U>( data ); }
-		NES_POKE(Mapper,Chr_4k_1) { ppu.Update(); chr.SwapBank<NES_4K,0x1000U>( data ); }
-		NES_POKE(Mapper,Chr_8k)   { ppu.Update(); chr.SwapBank<NES_8K,0x0000U>( data ); }
+		NES_PEEK(Mapper,NoFrameIrq)
+		{
+			NST_ASSERT( address == Cpu::RESET_VECTOR );
+
+			cpu.Poke( 0x4017, 0x40 );			
+			Map( Cpu::RESET_VECTOR, &Mapper::Peek_Prg_E );
+			
+			return prg.Peek( Cpu::RESET_VECTOR - 0x8000U );
+		}
+
+		NES_POKE(Mapper,Prg_8k_0) { prg.SwapBank<SIZE_8K,0x0000U>( data ); }
+		NES_POKE(Mapper,Prg_8k_1) { prg.SwapBank<SIZE_8K,0x2000U>( data ); }
+		NES_POKE(Mapper,Prg_8k_2) { prg.SwapBank<SIZE_8K,0x4000U>( data ); }
+		NES_POKE(Mapper,Prg_8k_3) { prg.SwapBank<SIZE_8K,0x6000U>( data ); }
+		NES_POKE(Mapper,Prg_16k)  { prg.SwapBank<SIZE_16K,0x0000U>( data ); }
+		NES_POKE(Mapper,Prg_32k)  { prg.SwapBank<SIZE_32K,0x0000U>( data ); }
+
+		NES_POKE(Mapper,Chr_1k_0) { ppu.Update(); chr.SwapBank<SIZE_1K,0x0000U>( data ); }
+		NES_POKE(Mapper,Chr_1k_1) { ppu.Update(); chr.SwapBank<SIZE_1K,0x0400U>( data ); }
+		NES_POKE(Mapper,Chr_1k_2) { ppu.Update(); chr.SwapBank<SIZE_1K,0x0800U>( data ); }
+		NES_POKE(Mapper,Chr_1k_3) { ppu.Update(); chr.SwapBank<SIZE_1K,0x0C00U>( data ); }
+		NES_POKE(Mapper,Chr_1k_4) { ppu.Update(); chr.SwapBank<SIZE_1K,0x1000U>( data ); }
+		NES_POKE(Mapper,Chr_1k_5) { ppu.Update(); chr.SwapBank<SIZE_1K,0x1400U>( data ); }
+		NES_POKE(Mapper,Chr_1k_6) { ppu.Update(); chr.SwapBank<SIZE_1K,0x1800U>( data ); }
+		NES_POKE(Mapper,Chr_1k_7) { ppu.Update(); chr.SwapBank<SIZE_1K,0x1C00U>( data ); }
+		NES_POKE(Mapper,Chr_2k_0) { ppu.Update(); chr.SwapBank<SIZE_2K,0x0000U>( data ); }
+		NES_POKE(Mapper,Chr_2k_1) { ppu.Update(); chr.SwapBank<SIZE_2K,0x0800U>( data ); }
+		NES_POKE(Mapper,Chr_2k_2) { ppu.Update(); chr.SwapBank<SIZE_2K,0x1000U>( data ); }
+		NES_POKE(Mapper,Chr_2k_3) { ppu.Update(); chr.SwapBank<SIZE_2K,0x1800U>( data ); }
+		NES_POKE(Mapper,Chr_4k_0) { ppu.Update(); chr.SwapBank<SIZE_4K,0x0000U>( data ); }
+		NES_POKE(Mapper,Chr_4k_1) { ppu.Update(); chr.SwapBank<SIZE_4K,0x1000U>( data ); }
+		NES_POKE(Mapper,Chr_8k)   { ppu.Update(); chr.SwapBank<SIZE_8K,0x0000U>( data ); }
 
 		NES_POKE(Mapper,Nmt_Hv)  
 		{

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -31,10 +31,12 @@ namespace Nes
 	{
 		namespace Input
 		{
+			uint Pad::mic;
+
             #ifdef NST_PRAGMA_OPTIMIZE
             #pragma optimize("s", on)
-            #endif
-		
+            #endif		
+
 			Pad::Pad(uint i)
 			: 
 			Device          (Type(uint(Api::Input::PAD1) + i)),
@@ -133,6 +135,7 @@ namespace Nes
 			{
 				input = i;
 				state = 0;
+				mic = 0;
 			}
 
 			void Pad::Poll()
@@ -144,6 +147,7 @@ namespace Nes
 
 				if (Controllers::Pad::callback( pad, type - Api::Input::PAD1 ))
 				{
+					mic |= pad.mic;
 					register uint buttons = pad.buttons;
 
 					if (swapSelectStart)
@@ -160,24 +164,27 @@ namespace Nes
 						LEFT  =	Controllers::Pad::LEFT
 					};
 
-					if ((buttons & (UP|DOWN)) == (UP|DOWN))
-						buttons &= (UP|DOWN) ^ 0xFF;
+					if (!pad.allowSimulAxes)
+					{
+						if ((buttons & (UP|DOWN)) == (UP|DOWN))
+							buttons &= (UP|DOWN) ^ 0xFF;
 
-					if ((buttons & (LEFT|RIGHT)) == (LEFT|RIGHT))
-						buttons &= (LEFT|RIGHT) ^ 0xFF;
+						if ((buttons & (LEFT|RIGHT)) == (LEFT|RIGHT))
+							buttons &= (LEFT|RIGHT) ^ 0xFF;
+					}
 
 					state = buttons;
 				}
 			}
 
-			uint Pad::Peek(uint)
+			uint Pad::Peek(uint port)
 			{
 				if (strobe == 0)
 				{
 					const uint data = stream;
 					stream >>= 1;
 					
-					return ~data & 0x1;
+					return (~data & 0x1) | (mic & (~port << 2));
 				}
 				else
 				{

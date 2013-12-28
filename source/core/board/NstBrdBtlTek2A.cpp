@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -36,12 +36,15 @@ namespace Nes
             #pragma optimize("s", on)
             #endif
 
+			BtlTek2A::CartSwitches::CartSwitches(uint d)
+			: data(d) {}
+
 			BtlTek2A::BtlTek2A(Context& c,const DefaultDipSwitch d)
 			: 
-			Mapper    (c,WRAM_NONE),
-			hack      (c.pRomCrc == 0xCE4BA157UL || c.pRomCrc == 0xC0E02729UL), // 42-in-1 & Super Mario World
-			irq       (c.cpu,c.ppu),
-			dipswitch (d == DEFAULT_DIPSWITCH_EXT_MIRRORING ? DIPSWITCH_MIRROR : 0)
+			Mapper       (c,WRAM_NONE),
+			hack         (c.pRomCrc == 0xCE4BA157UL || c.pRomCrc == 0xC0E02729UL), // 42-in-1 & Super Mario World
+			irq          (c.cpu,c.ppu),
+			cartSwitches (d == DEFAULT_DIPSWITCH_EXT_MIRRORING ? DIPSWITCH_MIRROR : 0)
 			{}
 		
 			void BtlTek2A::Regs::Reset(const ibool hack)
@@ -132,72 +135,79 @@ namespace Nes
 				UpdateNmt();
 			}
 		
-			void BtlTek2A::LoadState(State::Loader& state)
+			void BtlTek2A::BaseLoad(State::Loader& state,const dword id)
 			{
-				while (const dword chunk = state.Begin())
+				NST_VERIFY( id == NES_STATE_CHUNK_ID('B','T','K','\0') );
+
+				if (id == NES_STATE_CHUNK_ID('B','T','K','\0'))
 				{
-					switch (chunk)
+					while (const dword chunk = state.Begin())
 					{
-     	 				case NES_STATE_CHUNK_ID('R','E','G','\0'):
+						switch (chunk)
 						{
-							const State::Loader::Data<35> data( state );
-		
-							regs.ctrl[0] = data[0];
-							regs.ctrl[1] = data[1];
-							regs.ctrl[2] = data[2];
-							regs.ctrl[3] = data[3];
-							regs.mul[0]	 = data[4];
-							regs.mul[1]	 = data[5];
-							regs.tmp	 = data[6];
-							banks.prg[0] = data[7];
-							banks.prg[1] = data[8];
-							banks.prg[2] = data[9];
-							banks.prg[3] = data[10];
-							banks.chr[0] = data[11] | (data[12] << 8);
-							banks.chr[1] = data[13] | (data[14] << 8);
-							banks.chr[2] = data[15] | (data[16] << 8);
-							banks.chr[3] = data[17] | (data[18] << 8);
-							banks.chr[4] = data[19] | (data[20] << 8);
-							banks.chr[5] = data[21] | (data[22] << 8);
-							banks.chr[6] = data[23] | (data[24] << 8);
-							banks.chr[7] = data[25] | (data[26] << 8);
-							banks.nmt[0] = data[27] | (data[28] << 8);
-							banks.nmt[1] = data[29] | (data[30] << 8);
-							banks.nmt[2] = data[31] | (data[32] << 8);
-							banks.nmt[3] = data[33] | (data[34] << 8);
-		
-							UpdatePrg();
-							UpdateExChr();
-							UpdateChr();
-							UpdateNmt();
-		
-							break;
+					     	case NES_STATE_CHUNK_ID('R','E','G','\0'):
+							{
+								const State::Loader::Data<35> data( state );
+
+								regs.ctrl[0] = data[0];
+								regs.ctrl[1] = data[1];
+								regs.ctrl[2] = data[2];
+								regs.ctrl[3] = data[3];
+								regs.mul[0]	 = data[4];
+								regs.mul[1]	 = data[5];
+								regs.tmp	 = data[6];
+								banks.prg[0] = data[7];
+								banks.prg[1] = data[8];
+								banks.prg[2] = data[9];
+								banks.prg[3] = data[10];
+								banks.chr[0] = data[11] | (data[12] << 8);
+								banks.chr[1] = data[13] | (data[14] << 8);
+								banks.chr[2] = data[15] | (data[16] << 8);
+								banks.chr[3] = data[17] | (data[18] << 8);
+								banks.chr[4] = data[19] | (data[20] << 8);
+								banks.chr[5] = data[21] | (data[22] << 8);
+								banks.chr[6] = data[23] | (data[24] << 8);
+								banks.chr[7] = data[25] | (data[26] << 8);
+								banks.nmt[0] = data[27] | (data[28] << 8);
+								banks.nmt[1] = data[29] | (data[30] << 8);
+								banks.nmt[2] = data[31] | (data[32] << 8);
+								banks.nmt[3] = data[33] | (data[34] << 8);
+
+								UpdatePrg();
+								UpdateExChr();
+								UpdateChr();
+								UpdateNmt();
+
+								break;
+							}
+
+					     	case NES_STATE_CHUNK_ID('I','R','Q','\0'):
+							{
+								u8 data[5];
+								state.Read( data );
+
+								irq.unit.enabled   = data[0] & 0x1;
+								irq.unit.mode      = data[1];
+								irq.unit.prescaler = data[2];
+								irq.unit.count     = data[3];
+								irq.unit.flip      = data[4];
+
+								irq.unit.scale = (irq.unit.mode & Irq::MODE_SCALE_3BIT) ? 0x7 : 0xFF;					
+								irq.EnableLine( irq.unit.IsEnabled() );
+
+								break;
+							}
 						}
-		
-						case NES_STATE_CHUNK_ID('I','R','Q','\0'):
-						{
-							u8 data[5];
-							state.Read( data );
-		
-							irq.unit.enabled   = data[0] & 0x1;
-							irq.unit.mode      = data[1];
-							irq.unit.prescaler = data[2];
-							irq.unit.count     = data[3];
-							irq.unit.flip      = data[4];
-		
-							irq.unit.scale = (irq.unit.mode & Irq::MODE_SCALE_3BIT) ? 0x7 : 0xFF;					
-							irq.EnableLine( irq.unit.IsEnabled() );
-		
-							break;
-						}
+
+						state.End();
 					}
-		
-					state.End();
 				}
 			}
 		
-			void BtlTek2A::SaveState(State::Saver& state) const
+			void BtlTek2A::BaseSave(State::Saver& state) const
 			{
+				state.Begin('B','T','K','\0');
+
 				{
 					const u8 data[35] =
 					{						
@@ -253,61 +263,90 @@ namespace Nes
 		
 					state.Begin('I','R','Q','\0').Write( data ).End();
 				}
+
+				state.End();
 			}
 		
-			cstring BtlTek2A::GetDipSwitchName(const uint i) const
+			uint BtlTek2A::CartSwitches::NumDips() const
+			{
+				return 2;
+			}
+
+			uint BtlTek2A::CartSwitches::NumValues(uint i) const
+			{
+				NST_ASSERT( i < 2 );
+				return (i == 0) ? 4 : 2;
+			}
+
+			cstring BtlTek2A::CartSwitches::GetDipName(uint dip) const
 			{ 
-				return i == 0 ? "Game Selection" : i == 1 ? "Extended Mirroring" : NULL;
+				NST_ASSERT( dip < 2 );
+				return (dip == 0) ? "Game Selection" : "Extended Mirroring";
 			}
 		
-			cstring BtlTek2A::GetDipSwitchValueName(const uint i,const uint j) const
+			cstring BtlTek2A::CartSwitches::GetValueName(uint dip,uint value) const
 			{
-             	if (i == 0) 
-					return j == 0 ? "1" : j == 1 ? "2" : j == 2 ? "3" : j == 3 ? "4" : NULL;
-		
-				if (i == 1)
-              		return j == 0 ? "off" : j == 1 ? "on" : NULL;
-					
-				return NULL;
-			}
-		
-			int BtlTek2A::GetDipSwitchValue(const uint i) const
-			{
-				if (i == 0)
-					return dipswitch >> 6;
-		
-				if (i == 1)
-              		return dipswitch & DIPSWITCH_MIRROR;
-		
-				return -1;
-			}
-		
-			Result BtlTek2A::SetDipSwitchValue(const uint i,const uint j)
-			{
-             	if (i == 0)
+				NST_ASSERT( dip < 2 );
+
+             	if (dip == 0) 
 				{
-					if (j < 4)
-					{
-						dipswitch = (dipswitch & ~uint(DIPSWITCH_GAME)) | (j << 6);
-						return RESULT_OK;
-					}
+					NST_ASSERT( value < 4 );
+					return (value == 0) ? "1" : (value == 1) ? "2" : (value == 2) ? "3" : "4";
 				}
-				else if (i == 1)
+				else
 				{
-					if (j < 2)
-					{
-						dipswitch = (dipswitch & ~uint(DIPSWITCH_MIRROR) | j);
-						return RESULT_OK;
-					}
+					NST_ASSERT( value < 2 );
+              		return (value == 0) ? "off" : "on";
 				}
-		
-				return RESULT_ERR_INVALID_PARAM;
 			}
 		
+			uint BtlTek2A::CartSwitches::GetValue(uint dip) const
+			{
+				NST_ASSERT( dip < 2 );
+
+				if (dip == 0)
+					return data >> 6;		
+				else
+              		return data & DIPSWITCH_MIRROR;
+			}
+		
+			bool BtlTek2A::CartSwitches::SetValue(uint dip,uint value)
+			{
+				NST_ASSERT( dip < 2 );
+
+				const uint prev = data;
+
+             	if (dip == 0)
+				{
+					NST_ASSERT( value < 4 );
+					data = (data & ~uint(DIPSWITCH_GAME)) | (value << 6);
+				}
+				else
+				{
+					NST_ASSERT( value < 2 );
+					data = (data & ~uint(DIPSWITCH_MIRROR) | value);
+				}
+
+				return prev != data;
+			}
+		
+			BtlTek2A::Device BtlTek2A::QueryDevice(DeviceType type)
+			{
+				if (type == DEVICE_DIP_SWITCHES)
+					return &cartSwitches;
+				else
+					return Mapper::QueryDevice( type );
+			}
+
             #ifdef NST_PRAGMA_OPTIMIZE
             #pragma optimize("", on)
             #endif
 		  
+			inline uint BtlTek2A::CartSwitches::GetSetting() const
+			{
+				return data;
+			}
+
 			inline ibool BtlTek2A::Irq::Signal()
 			{
 				NST_ASSERT
@@ -351,7 +390,7 @@ namespace Nes
 		
 			NES_PEEK(BtlTek2A,5000) 
 			{ 
-				return (dipswitch & DIPSWITCH_GAME) | ((address >> 8) & ~uint(DIPSWITCH_GAME)); 
+				return (cartSwitches.GetSetting() & DIPSWITCH_GAME) | ((address >> 8) & ~uint(DIPSWITCH_GAME)); 
 			}
 		
 			NES_POKE(BtlTek2A::Regs,5800) { mul[0] = data; }
@@ -577,17 +616,17 @@ namespace Nes
 					{
 						case Regs::CTRL0_PRG_SWAP_32K:
 					
-							prg.SwapBank<NES_32K,0x0000U>( last );
+							prg.SwapBank<SIZE_32K,0x0000U>( last );
 							break;
 					
 						case Regs::CTRL0_PRG_SWAP_16K:
 				
-							prg.SwapBanks<NES_16K,0x0000U>( banks.prg[1] | exPrg, last );
+							prg.SwapBanks<SIZE_16K,0x0000U>( banks.prg[1] | exPrg, last );
 							break;
 								
 						case Regs::CTRL0_PRG_SWAP_8K:
 				
-							prg.SwapBanks<NES_8K,0x0000U>
+							prg.SwapBanks<SIZE_8K,0x0000U>
 							( 
             				   	banks.prg[0] | exPrg,
 								banks.prg[1] | exPrg,
@@ -598,7 +637,7 @@ namespace Nes
 
 						case Regs::CTRL0_PRG_SWAP_8K_R:
 
-							prg.SwapBanks<NES_8K,0x0000U>
+							prg.SwapBanks<SIZE_8K,0x0000U>
 							( 
 						     	banks.Unscramble( banks.prg[0] ) | exPrg,
 								banks.Unscramble( banks.prg[1] ) | exPrg,
@@ -610,7 +649,7 @@ namespace Nes
 				}
 				else
 				{
-					prg.SwapBanks<NES_8K,0x0000U>
+					prg.SwapBanks<SIZE_8K,0x0000U>
 					( 
      					exPrg | ((regs.ctrl[0] & Regs::CTRL0_PRG_MODE) == Regs::CTRL0_PRG_SWAP_16K ? ((banks.prg[0] & 0x1F) << 1) | 0x0 : banks.prg[0]),
 						exPrg | ((regs.ctrl[0] & Regs::CTRL0_PRG_MODE) == Regs::CTRL0_PRG_SWAP_16K ? ((banks.prg[0] & 0x1F) << 1) | 0x1 : banks.prg[1]),
@@ -644,7 +683,7 @@ namespace Nes
 				{
 					case Regs::CTRL0_CHR_SWAP_8K:
 				
-						chr.SwapBank<NES_8K,0x0000U>
+						chr.SwapBank<SIZE_8K,0x0000U>
 						( 
 					     	(banks.chr[0] & banks.exChr.mask) | banks.exChr.bank 
 						);
@@ -652,7 +691,7 @@ namespace Nes
 				
 					case Regs::CTRL0_CHR_SWAP_4K:
 				
-						chr.SwapBanks<NES_4K,0x0000U>
+						chr.SwapBanks<SIZE_4K,0x0000U>
 						( 
 					     	(banks.chr[0] & banks.exChr.mask) | banks.exChr.bank,
 							(banks.chr[4] & banks.exChr.mask) | banks.exChr.bank
@@ -661,7 +700,7 @@ namespace Nes
 				
 					case Regs::CTRL0_CHR_SWAP_2K:
 				
-						chr.SwapBanks<NES_2K,0x0000U>
+						chr.SwapBanks<SIZE_2K,0x0000U>
 						( 
 					     	(banks.chr[0] & banks.exChr.mask) | banks.exChr.bank,
 							(banks.chr[2] & banks.exChr.mask) | banks.exChr.bank,
@@ -672,7 +711,7 @@ namespace Nes
 				
 					case Regs::CTRL0_CHR_SWAP_1K:
 				
-						chr.SwapBanks<NES_1K,0x0000U>
+						chr.SwapBanks<SIZE_1K,0x0000U>
 						( 
 					     	(banks.chr[0] & banks.exChr.mask) | banks.exChr.bank, 
 							(banks.chr[1] & banks.exChr.mask) | banks.exChr.bank,
@@ -680,7 +719,7 @@ namespace Nes
 							(banks.chr[3] & banks.exChr.mask) | banks.exChr.bank
 						);
 		
-						chr.SwapBanks<NES_1K,0x1000U>
+						chr.SwapBanks<SIZE_1K,0x1000U>
 						( 
 					       	(banks.chr[4] & banks.exChr.mask) | banks.exChr.bank, 
 							(banks.chr[5] & banks.exChr.mask) | banks.exChr.bank,
@@ -693,12 +732,12 @@ namespace Nes
 		
 			void BtlTek2A::UpdateNmt() const
 			{		
-				if ((regs.ctrl[0] & Regs::CTRL0_NMT_CHR) && (dipswitch & 0x1))
+				if ((regs.ctrl[0] & Regs::CTRL0_NMT_CHR) && (cartSwitches.GetSetting() & 0x1))
 				{
 					ppu.Update();
 
 					for (uint i=0; i < 4; ++i)
-						nmt.Source( (regs.ctrl[0] & Regs::CTRL0_NMT_CHR_ROM) || ((banks.nmt[i] ^ regs.ctrl[2]) & Regs::CTRL2_NMT_USE_RAM) ).SwapBank<NES_1K>( i * 0x0400, banks.nmt[i] );
+						nmt.Source( (regs.ctrl[0] & Regs::CTRL0_NMT_CHR_ROM) || ((banks.nmt[i] ^ regs.ctrl[2]) & Regs::CTRL2_NMT_USE_RAM) ).SwapBank<SIZE_1K>( i * 0x0400, banks.nmt[i] );
 				}
 				else
 				{

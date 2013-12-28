@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -97,7 +97,7 @@ namespace Nes
 		void Mapper252::SwapChr(const uint address,const uint data) const
 		{
 			ppu.Update(); 
-			chr.SwapBank<NES_1K>( address, (chr.GetBank<NES_1K>(address) & MASK) | (data & 0xF) << SHIFT );
+			chr.SwapBank<SIZE_1K>( address, (chr.GetBank<SIZE_1K>(address) & MASK) | (data & 0xF) << SHIFT );
 		}
 
 		NES_POKE(Mapper252,B000) { SwapChr<0xF0,0>( 0x0000U, data ); }

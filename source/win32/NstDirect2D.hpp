@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -138,7 +138,7 @@ namespace Nestopia
 				SCREENSHOT_ERROR
 			};
 
-			ScreenShotResult SaveScreenShot(cstring,uint) const;
+			ScreenShotResult SaveScreenShot(tstring,uint) const;
 
 		private:
 
@@ -243,7 +243,7 @@ namespace Nestopia
 
 						void Create(const Device&);
 						void Destroy();
-						void Update(const String::Generic&);
+						void Update(const GenericString&);
 						uint GetWidth() const;
 						void OnReset() const;
 						void OnLost() const;
@@ -254,7 +254,7 @@ namespace Nestopia
 					private:
 
 						ComInterface<ID3DXFont> com;
-						String::Heap string;
+						HeapString string;
 						uint length;
 
 					public:
@@ -272,7 +272,7 @@ namespace Nestopia
 
 				public:
 					
-					void UpdateFps(const String::Generic& string)
+					void UpdateFps(const GenericString& string)
 					{
 						fps.Update( string );
 					}
@@ -282,7 +282,7 @@ namespace Nestopia
 						fps.Clear();
 					}
 					
-					void UpdateMsg(const String::Generic& string)
+					void UpdateMsg(const GenericString& string)
 					{
 						msg.Update( string );
 					}
@@ -292,7 +292,7 @@ namespace Nestopia
 						msg.Clear();
 					}
 
-					void UpdateNfo(const String::Generic& string)
+					void UpdateNfo(const GenericString& string)
 					{
 						nfo.Update( string );
 					}
@@ -339,7 +339,7 @@ namespace Nestopia
 					return presentation;
 				}
 
-				void DrawFps(const String::Generic& string)
+				void DrawFps(const GenericString& string)
 				{
 					fonts.UpdateFps( string );
 				}
@@ -349,7 +349,7 @@ namespace Nestopia
 					fonts.ClearFps();
 				}
 
-				void DrawMsg(const String::Generic& string)
+				void DrawMsg(const GenericString& string)
 				{
 					fonts.UpdateMsg( string );
 				}
@@ -359,7 +359,7 @@ namespace Nestopia
 					fonts.ClearMsg();
 				}
 
-				void DrawNfo(const String::Generic& string)
+				void DrawNfo(const GenericString& string)
 				{
 					fonts.UpdateNfo( string );
 				}
@@ -441,7 +441,7 @@ namespace Nestopia
 
 				HRESULT Validate(IDirect3DDevice9&,const Adapter&,D3DFORMAT);
 				void Invalidate();
-				ibool SaveToFile(cstring,D3DXIMAGE_FILEFORMAT) const;
+				ibool SaveToFile(tstring,D3DXIMAGE_FILEFORMAT) const;
 
 			private:
 
@@ -581,7 +581,7 @@ namespace Nestopia
 				}
 			}
 
-			void DrawFps(const String::Generic& string)
+			void DrawFps(const GenericString& string)
 			{
 				device.DrawFps( string );
 			}
@@ -591,7 +591,7 @@ namespace Nestopia
 				device.ClearFps();
 			}
 
-			void DrawMsg(const String::Generic& string)
+			void DrawMsg(const GenericString& string)
 			{
 				device.DrawMsg( string );
 			}
@@ -601,7 +601,7 @@ namespace Nestopia
 				device.ClearMsg();
 			}
 
-			void DrawNfo(const String::Generic& string)
+			void DrawNfo(const GenericString& string)
 			{
 				device.DrawNfo( string );
 			}

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -37,7 +37,7 @@ namespace Nestopia
 		return ComboBox_GetItemData( item.control, item.index );
 	}
 
-	void ComboBox::Item::DataProxy::operator = (const Value data) const
+	void ComboBox::Item::DataProxy::operator = (Value data) const
 	{
 		ComboBox_SetItemData( item.control, item.index, data );
 	}
@@ -47,7 +47,7 @@ namespace Nestopia
 		ComboBox_SetCurSel( control, index );
 	}
 
-	ComboBox::Item ComboBox::Add(cstring const name) const 
+	ComboBox::Item ComboBox::Add(tstring name) const 
 	{
 		NST_ASSERT( name );
 		return Item( control, ComboBox_AddString( control, name ) );

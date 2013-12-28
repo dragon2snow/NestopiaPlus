@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -69,8 +69,8 @@ namespace Nestopia
 
 		if (entries.Size())
 		{
-			if (::CopyAcceleratorTable( handle, entries, entries.Size() ) != (int) entries.Size())
-				throw Application::Exception("CopyAcceleratorTable() failed!");
+			if (::CopyAcceleratorTable( handle, entries.Ptr(), entries.Size() ) != (int) entries.Size())
+				throw Application::Exception(_T("CopyAcceleratorTable() failed!"));
 
 			return TRUE;
 		}
@@ -95,34 +95,25 @@ namespace Nestopia
 					actualEntries[actualSize++] = entries[i];
 			}
 
-			if (actualSize && (handle = ::CreateAcceleratorTable( actualEntries, actualSize )) == 0)
-				throw Application::Exception("CreateAcceleratorTable() failed!");
+			if (actualSize && (handle = ::CreateAcceleratorTable( actualEntries.Ptr(), actualSize )) == 0)
+				throw Application::Exception(_T("CreateAcceleratorTable() failed!"));
 		}
 	}
 
-	Accelerator::KeyName Accelerator::GetKeyName(const ACCEL& accel)
+	const HeapString Accelerator::GetKeyName(const ACCEL& accel)
 	{
-		KeyName name;
-		String::Generic shortCut;
+		HeapString name;
 
-		switch (accel.fVirt & ~FVIRTKEY)
-		{
-			case FALT:				   shortCut = "Alt+";            break;
-			case FSHIFT:			   shortCut = "Shift+";          break;
-			case FCONTROL:			   shortCut = "Ctrl+";           break;
-			case FCONTROL|FALT:        shortCut = "Ctrl+Alt+";       break;
-			case FCONTROL|FSHIFT:      shortCut = "Ctrl+Shift+";     break;
-			case FALT|FSHIFT:		   shortCut = "Alt+Shift+";      break;
-			case FCONTROL|FALT|FSHIFT: shortCut = "Ctrl+Alt+Shift+"; break;
-		}
+		if (accel.fVirt & FCONTROL)
+			name << System::Keyboard::GetName( VK_CONTROL ) << '+';
 
-		if (shortCut.Size())
-			name = shortCut;
+		if (accel.fVirt & FALT)
+			name << System::Keyboard::GetName( VK_MENU ) << '+';
 
-		name << Keyboard::VikName( accel.key );
+		if (accel.fVirt & FSHIFT)
+			name << System::Keyboard::GetName( VK_SHIFT ) << '+';
 
-		if (name.Size() > shortCut.Size() + 1)
-			name( shortCut.Size() + 1 ).MakeLowerCase();
+		name << System::Keyboard::GetName( accel.key );
 
 		return name;
 	}
@@ -140,7 +131,7 @@ namespace Nestopia
 			else
 			{
 				table.heap.Resize( table.size + 1 );
-				ptr = table.heap;
+				ptr = table.heap.Ptr();
 			}
 
 			if (table.size == (uint) ::CopyAcceleratorTable( handle, ptr, table.size ))

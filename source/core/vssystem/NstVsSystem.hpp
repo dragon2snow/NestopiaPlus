@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -30,6 +30,7 @@
 #endif
 
 #include "../api/NstApiInput.hpp"
+#include "../NstDipSwitches.hpp"
 
 namespace Nes
 {
@@ -46,15 +47,8 @@ namespace Nes
 			static void Destroy(VsSystem*&);
 
 			void Reset(bool);
-			void BeginFrame(Input::Controllers*);
 			void SaveState(State::Saver&) const;
 			void LoadState(State::Loader&);
-
-			uint NumDipSwitchValues(uint) const;
-			cstring GetDipSwitchName(uint) const;
-			cstring GetDipSwitchValueName(uint,uint) const;
-			int GetDipSwitchValue(uint) const;
-			Result SetDipSwitchValue(uint,uint);
 
 		protected:
 
@@ -71,22 +65,30 @@ namespace Nes
 
 			class Dip;
 
-			class Dips
+			class VsDipSwitches : public DipSwitches
 			{
-				Dip* const table;
-				const uint size;
-
 			public:
 
-				inline Dips(Dip*&,uint);
-				~Dips();
+				VsDipSwitches(Dip*&,uint);
+				~VsDipSwitches();
 
-				inline Dip& operator [] (uint) const;
+				inline uint Reg(uint) const;
+				inline void Reset();
+				
+				void BeginFrame(Input::Controllers*);
 
-				uint Size() const
-				{
-					return size;
-				}
+			private:
+
+				uint NumDips() const;
+				uint NumValues(uint) const;
+				cstring GetDipName(uint) const;
+				cstring GetValueName(uint,uint) const;
+				uint GetValue(uint) const;
+				bool SetValue(uint,uint);
+
+				Dip* const table;
+				const uint size;
+				uint regs[2];
 			};
 
 			enum
@@ -132,9 +134,8 @@ namespace Nes
 			Io::Port p4016;
 			Io::Port p4017;
 
-			uint regs[2];
 			uint coin;
-			Dips dips;
+			VsDipSwitches dips;
 			const uint securityPpu;
 			const ibool swapPorts;
 			Io::Port p2002;
@@ -143,9 +144,14 @@ namespace Nes
 
 		public:
 
-			uint NumDipSwitches() const
-			{ 
-				return dips.Size(); 
+			void BeginFrame(Input::Controllers* input)
+			{
+				dips.BeginFrame( input );
+			}
+
+			DipSwitches& GetDipSwiches()
+			{
+				return dips;
 			}
 		};
 	}

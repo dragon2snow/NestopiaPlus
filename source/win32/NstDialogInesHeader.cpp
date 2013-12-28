@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -32,8 +32,26 @@
 
 namespace Nestopia
 {
+	NST_COMPILE_ASSERT
+	(
+		IDC_INESHEADER_CHRROM == IDC_INESHEADER_PRGROM + 1 &&
+		IDC_INESHEADER_WRKRAM == IDC_INESHEADER_PRGROM + 2 &&
+		IDC_INESHEADER_MAPPER == IDC_INESHEADER_PRGROM + 3
+	);
+
+	NST_COMPILE_ASSERT
+	(
+		IDC_INESHEADER_RESERVED_1 == IDC_INESHEADER_RESERVED_0 + 1 &&
+		IDC_INESHEADER_RESERVED_2 == IDC_INESHEADER_RESERVED_0 + 2 &&
+		IDC_INESHEADER_RESERVED_3 == IDC_INESHEADER_RESERVED_0 + 3 &&
+		IDC_INESHEADER_RESERVED_4 == IDC_INESHEADER_RESERVED_0 + 4 &&
+		IDC_INESHEADER_RESERVED_5 == IDC_INESHEADER_RESERVED_0 + 5 &&
+		IDC_INESHEADER_RESERVED_6 == IDC_INESHEADER_RESERVED_0 + 6 &&
+		IDC_INESHEADER_RESERVED_7 == IDC_INESHEADER_RESERVED_0 + 7
+	);
+
 	using namespace Window;
-  
+
 	struct InesHeader::Handlers
 	{
 		static const MsgHandler::Entry<InesHeader> messages[];
@@ -122,7 +140,7 @@ namespace Nestopia
 
 	void InesHeader::Open(const Path& p)
 	{
-		if (p.Size())
+		if (p.Length())
 		{
 			{
 				Collection::Buffer buffer;
@@ -134,13 +152,13 @@ namespace Nestopia
 				}
 
 				imageSize = buffer.Size() - sizeof(Header);
-				std::memcpy( &header, buffer, sizeof(Header) );
+				std::memcpy( &header, buffer.Ptr(), sizeof(Header) );
 
 				dbEntry = database.FindEntry
 				( 
-					buffer, 
+					buffer.Ptr(), 
 					buffer.Size(), 
-					header.num16kPRomBanks * NES_16K + header.num8kCRomBanks * NES_8K
+					header.num16kPRomBanks * Nes::Core::SIZE_16K + header.num8kCRomBanks * Nes::Core::SIZE_8K
 				);
 			}
 
@@ -156,30 +174,12 @@ namespace Nestopia
      		(header.pal & ~Header::PAL) || 
 			*reinterpret_cast<const u32*>(header.reserved+0) || 
 			*reinterpret_cast<const u16*>(header.reserved+4) ||
-			(header.num16kPRomBanks * NES_16K + header.num8kCRomBanks * NES_8K + ((header.flags & Header::TRAINER) ? 0x200 : 0x000) > imageSize)
+			(header.num16kPRomBanks * Nes::Core::SIZE_16K + header.num8kCRomBanks * Nes::Core::SIZE_8K + ((header.flags & Header::TRAINER) ? 0x200U : 0x000U) > imageSize)
 		);
 	}
 
 	ibool InesHeader::OnInitDialog(Param&)
 	{
-		NST_COMPILE_ASSERT
-		(
-			IDC_INESHEADER_CHRROM - IDC_INESHEADER_PRGROM == 1 &&
-			IDC_INESHEADER_WRKRAM - IDC_INESHEADER_PRGROM == 2 &&
-			IDC_INESHEADER_MAPPER - IDC_INESHEADER_PRGROM == 3
-		);
-
-		NST_COMPILE_ASSERT
-		(
-    		IDC_INESHEADER_RESERVED_1 - IDC_INESHEADER_RESERVED_0 == 1 &&
-			IDC_INESHEADER_RESERVED_2 - IDC_INESHEADER_RESERVED_0 == 2 &&
-			IDC_INESHEADER_RESERVED_3 - IDC_INESHEADER_RESERVED_0 == 3 &&
-			IDC_INESHEADER_RESERVED_4 - IDC_INESHEADER_RESERVED_0 == 4 &&
-			IDC_INESHEADER_RESERVED_5 - IDC_INESHEADER_RESERVED_0 == 5 &&
-			IDC_INESHEADER_RESERVED_6 - IDC_INESHEADER_RESERVED_0 == 6 &&
-			IDC_INESHEADER_RESERVED_7 - IDC_INESHEADER_RESERVED_0 == 7
-		);
-
 		dialog.Control( IDC_INESHEADER_DETECT ).Enable( dbEntry != NULL );
 		
 		for (uint i=IDC_INESHEADER_PRGROM; i <= IDC_INESHEADER_MAPPER; ++i)
@@ -201,7 +201,7 @@ namespace Nestopia
 
 		for (uint i=IDC_INESHEADER_PRGROM; i <= IDC_INESHEADER_MAPPER; ++i)
 		{
-			String::Smart<16> string;
+			HeapString string;
 			uint data;
 
 			if (!(dialog.Edit( i ).Text() >> string) || !(string >> data) || data > 0xFF)
@@ -236,12 +236,12 @@ namespace Nestopia
 
 		for (uint i=IDC_INESHEADER_RESERVED_0; i <= IDC_INESHEADER_RESERVED_7; ++i)
 		{
-			String::Smart<16> string;
+			HeapString string;
 
 			if (!(dialog.Edit( i ).Text() >> string))
 				return FALSE;
 
-			string(0) << "0x";
+			string.Insert( 0, _T("0x") );
 			
 			uint data;
 
@@ -297,20 +297,20 @@ namespace Nestopia
 		dialog.RadioButton( IDC_INESHEADER_VERTICAL   ).Check( (header.flags & (Header::FOURSCREEN|Header::VERTICAL)) == Header::VERTICAL );
 		dialog.RadioButton( IDC_INESHEADER_FOURSCREEN ).Check( (header.flags & Header::FOURSCREEN) == Header::FOURSCREEN );
 
-		dialog.Edit( IDC_INESHEADER_RESERVED_0 ).Text() << String::Hex( (u8) ((header.flags & 0x0E00) >> 9), true );
-		dialog.Edit( IDC_INESHEADER_RESERVED_1 ).Text() << String::Hex( (u8) ((header.pal & 0xFE) >> 1), true );
+		dialog.Edit( IDC_INESHEADER_RESERVED_0 ).Text() << HexString( (u8) ((header.flags & 0x0E00) >> 9), true ).Ptr();
+		dialog.Edit( IDC_INESHEADER_RESERVED_1 ).Text() << HexString( (u8) ((header.pal & 0xFE) >> 1), true ).Ptr();
 
 		for (uint i=IDC_INESHEADER_RESERVED_2; i <= IDC_INESHEADER_RESERVED_7; ++i)
-			dialog.Edit( i ).Text() << String::Hex( (u8) header.reserved[i-IDC_INESHEADER_RESERVED_2], true );
+			dialog.Edit( i ).Text() << HexString( (u8) header.reserved[i-IDC_INESHEADER_RESERVED_2], true ).Ptr();
 	}
 
 	void InesHeader::UpdateDetect() const
 	{
 		if (dbEntry)
 		{
-			dialog.Edit( IDC_INESHEADER_PRGROM ).Text() << (database.GetPRomSize(dbEntry) / NES_16K);
-			dialog.Edit( IDC_INESHEADER_CHRROM ).Text() << (database.GetCRomSize(dbEntry) / NES_8K);
-			dialog.Edit( IDC_INESHEADER_WRKRAM ).Text() << (database.GetWRamSize(dbEntry) / NES_8K);
+			dialog.Edit( IDC_INESHEADER_PRGROM ).Text() << (uint) (database.GetPRomSize(dbEntry) / Nes::Core::SIZE_16K);
+			dialog.Edit( IDC_INESHEADER_CHRROM ).Text() << (uint) (database.GetCRomSize(dbEntry) / Nes::Core::SIZE_8K);
+			dialog.Edit( IDC_INESHEADER_WRKRAM ).Text() << (uint) (database.GetWRamSize(dbEntry) / Nes::Core::SIZE_8K);
 
 			dialog.Edit( IDC_INESHEADER_MAPPER ).Text() << database.GetMapper(dbEntry);
 
@@ -372,7 +372,7 @@ namespace Nestopia
 			if (IsBad( saveHeader, imageSize ) && !User::Confirm( IDS_INESHEADER_UNSAFE ))
 				return TRUE;
 
-			const Path savePath( paths.BrowseSave( Managers::Paths::File::INES, path->Directory(), path->File() ) );
+			const Path savePath( paths.BrowseSave( Managers::Paths::File::INES, Managers::Paths::DONT_SUGGEST, *path ) );
 
 			if (savePath.Empty())
 				return TRUE;
@@ -383,7 +383,7 @@ namespace Nestopia
 			if (result == 0)
 			{
 				NST_ASSERT( buffer.Size() >= sizeof(Header) );
-				std::memcpy( buffer, &saveHeader, sizeof(Header) );
+				std::memcpy( buffer.Ptr(), &saveHeader, sizeof(Header) );
 
 				result = Export( savePath, buffer );
 

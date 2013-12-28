@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -35,8 +35,6 @@ namespace Nestopia
 {
 	using Application::Configuration;
 
-	const String::Heap Configuration::nullString;
-
 	void Configuration::Value::YesNoProxy::operator = (ibool i)
 	{
 		string.Assign( i ? "yes" : "no", i ? 3 : 2 );
@@ -47,48 +45,48 @@ namespace Nestopia
 		string.Assign( i ? "on" : "off", i ? 2 : 3 );
 	}
 
-	void Configuration::Value::QuoteProxy::operator = (const String::Anything& input)
+	void Configuration::Value::QuoteProxy::operator = (const GenericString& input)
 	{
-		string.Reserve( 2 + input.Size() );
-		string = '\"';
-		string << input << '\"';
+		string.Clear();
+		string.Reserve( 2 + input.Length() );
+		string << '\"' << input << '\"';
 	}
 
-	ibool Configuration::ConstValue::operator == (State state) const
+	bool Configuration::ConstValue::operator == (State state) const
 	{
 		NST_ASSERT( state < 4 );
 
-		static const char yesNoOnOff[4][4] = 
+		static const tchar yesNoOnOff[4][4] = 
 		{
-			"yes","no","on","off"
+			_T("yes"), _T("no"), _T("on"), _T("off")
 		};
 
-		return string == (cstring) yesNoOnOff[state];	
+		return Generic::operator == (yesNoOnOff[state]);
 	}
 
-	Configuration::Configuration(const String::Generic cmdLine)
+	Configuration::Configuration()
 	: save(FALSE)
 	{
 		items.Reserve( HINTED_SIZE );
 
 		try
 		{
-			String::Heap buffer;
+			HeapString buffer;
 
 			try
 			{
-				Io::File( Instance::GetPath("nestopia.cfg"), Io::File::COLLECT ).Text() >> buffer;
+				Io::File( Instance::GetPath(_T("nestopia.cfg")), Io::File::COLLECT ).ReadText( buffer );
 			}
 			catch (Io::File::Exception)
 			{
 				buffer.Clear();
 			}
 
-			if (buffer.Size())
+			if (buffer.Length())
 			{
 				try
 				{
-					Parse( buffer, buffer.Size() );
+					Parse( buffer.Ptr(), buffer.Length() );
 				}
 				catch (Exception)
 				{
@@ -97,11 +95,18 @@ namespace Nestopia
 				}
 			}
 
-			if (cmdLine.Size())
+			if (const tchar* ptr = ::GetCommandLine())
 			{
+				if (*ptr == '\"')
+				{
+					while (*++ptr && *ptr != '\"');
+					ptr += (*ptr && *ptr == '\"');
+				}
+
 				try
 				{
-					Parse( cmdLine, cmdLine.Size(), &startupFile );
+					const GenericString cmdLine( ptr ); 
+					Parse( cmdLine.Ptr(), cmdLine.Length(), &startupFile );
 				}
 				catch (Exception)
 				{
@@ -112,7 +117,7 @@ namespace Nestopia
 		catch (...)
 		{
 			Reset( FALSE );
-			Application::Exception( "Configuration::Load() error!", Application::Exception::UNSTABLE ).Issue();
+			Application::Exception( _T("Configuration::Load() error!"), Application::Exception::UNSTABLE ).Issue();
 		}
 	}
 
@@ -120,29 +125,30 @@ namespace Nestopia
 	{
 		if (save)
 		{
+			static const char header1[] = 
+			(
+				"/////////////////////////////////////////////////////////////////////////////\r\n"
+				"//\r\n"
+				"// Nestopia Configuration File. Version "
+			);
+		
+			static const char header2[] =
+			(
+				"\r\n"
+				"//\r\n"
+				"/////////////////////////////////////////////////////////////////////////////\r\n"
+				"\r\n"
+			);
+		
+			HeapString buffer;
+			buffer << header1 << Instance::GetVersion() << header2;
+		
+			for (Items::ConstIterator it=items.Begin(), end=items.End(); it != end; ++it)
+				buffer << '-' << it->key << " : " << it->value << "\r\n";
+		
 			try
 			{
-				const Io::File file( Instance::GetPath("nestopia.cfg"), Io::File::DUMP );
-
-				static const char header1[] =
-				(
-					"/////////////////////////////////////////////////////////////////////////////\r\n"
-					"//\r\n"
-					"// Nestopia Configuration File. Version "
-				);
-
-				static const char header2[] =
-				(
-					"\r\n"
-					"//\r\n"
-					"/////////////////////////////////////////////////////////////////////////////\r\n"
-					"\r\n"
-				);
-
-				file.Text() << header1 << Instance::GetVersion() << header2;
-
-				for (Items::ConstIterator it(items.Begin()); it != items.End(); ++it)
-					file.Text() << '-' << it->key << " : " << it->value << "\r\n";
+				Io::File( Instance::GetPath(_T("nestopia.cfg")), Io::File::DUMP ).WriteText( buffer.Ptr(), buffer.Length() );
 			}
 			catch (Io::File::Exception)
 			{
@@ -171,12 +177,55 @@ namespace Nestopia
     #pragma optimize("t", on)
     #endif
 
-	void Configuration::Parse(cstring string,uint length,String::Heap* file)
+	void Configuration::Parse(tstring string,uint length,HeapString* file)
 	{
 		class CommandLine
 		{
-			const String::Stream<false> stream;
-			cstring it;
+			class Stream : public HeapString
+			{
+			public:
+
+				Stream(const tchar* NST_RESTRICT src,const uint length)
+				{
+					if (length)
+					{
+						Reserve( length * 2 );
+
+						Type* dst = Ptr();
+						const Type* const end = src + length;
+
+						do
+						{
+							const Type ch = *src++;
+
+							if (ch > 31)
+							{
+								*dst++ = ch;
+							}
+							else if (ch == '\n')
+							{
+								*dst++ = '\r';
+								*dst++ = '\n';
+							}
+							else if (ch == '\t')
+							{
+								*dst++ = ' ';
+							}
+						}
+						while (src != end);
+
+						ShrinkTo( dst - Ptr() );
+					}
+				}
+
+				const Nestopia::String::Heap<char> operator () (tstring begin,tstring end) const
+				{
+					return Nestopia::String::Heap<Type>::operator () (begin-Ptr(),end-begin);
+				}
+			};
+
+			const Stream stream;
+			tstring it;
 
 			void Skip(int ch)
 			{
@@ -184,7 +233,7 @@ namespace Nestopia
 					++it;
 			}
 
-			void Parse(cstring (&range)[2],int breaker)
+			void Parse(tstring (&range)[2],int breaker)
 			{
 				for (range[0] = it; *it != breaker; ++it)
 					if (!*it) throw ERR_PARSING;
@@ -192,7 +241,7 @@ namespace Nestopia
 				for (range[1] = it++; range[1][-1] == ' '; --range[1]);
 			}
 
-			ibool ParseQuoted(cstring (&range)[2])
+			ibool ParseQuoted(tstring (&range)[2])
 			{
 				if (*it == '\"') 
 				{
@@ -206,7 +255,7 @@ namespace Nestopia
 				return FALSE;
 			}
 
-			void Parse(cstring (&range)[2])
+			void Parse(tstring (&range)[2])
 			{
 				if (!ParseQuoted( range ))
 				{
@@ -235,14 +284,14 @@ namespace Nestopia
 
 		public:
 
-			CommandLine(cstring string,uint length,String::Heap* file)
-			: stream(string,length), it(stream) 
+			CommandLine(tstring string,uint length,HeapString* file)
+			: stream(string,length), it(stream.Ptr()) 
 			{
 				if (file)
 				{
 					Skip(' ');
 
-					cstring range[2];
+					tstring range[2];
 
 					if (ParseQuoted( range ) && range[0] != range[1])
 						file->Assign( range[0], range[1] - range[0] );
@@ -253,7 +302,7 @@ namespace Nestopia
 			{
 				NST_ASSERT( *(it-1) == '-' );
 
-				cstring ranges[2][2];
+				tstring ranges[2][2];
 
 				Skip(' ');
 				Parse( ranges[0], ':' );
@@ -305,20 +354,22 @@ namespace Nestopia
 		for (CommandLine stream(string,length,file); stream; stream >> items);
 	}
 
-	Configuration::Value Configuration::operator [] (cstring const name)
+	Configuration::Value Configuration::operator [] (const String::Generic<char> name)
 	{
 		return items( name );
 	}
 
-	Configuration::ConstValue Configuration::operator [] (cstring const name) const throw()
+	const Configuration::ConstValue Configuration::operator [] (const String::Generic<char> name) const
 	{
+		GenericString match;
+
 		if (const Items::Entry* entry = items.Find( name ))
 		{
 			entry->key.referenced = TRUE;
-			return entry->value;
+			match = entry->value;
 		}
 
-		return nullString;
+		return match;
 	}
 
     #ifdef NST_PRAGMA_OPTIMIZE										   

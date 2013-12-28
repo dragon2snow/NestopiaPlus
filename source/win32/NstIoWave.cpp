@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -64,14 +64,14 @@ namespace Nestopia
 			throw ERR_OPEN;
 	}
 
-	void Wave::Open(const String::Generic name,const WAVEFORMATEX& waveFormat)
+	void Wave::Open(const GenericString name,const WAVEFORMATEX& waveFormat)
 	{
 		NST_ASSERT( waveFormat.wFormatTag == WAVE_FORMAT_PCM );
 
 		Close();
 
 		fileName = name;
-		handle = ::mmioOpen( fileName, NULL, OPEN_FLAGS );
+		handle = ::mmioOpen( fileName.Ptr(), NULL, OPEN_FLAGS );
 
 		if (!handle)
 			throw ERR_OPEN;
@@ -175,7 +175,7 @@ namespace Nestopia
 
 	void Wave::Abort()
 	{
-		NST_ASSERT( handle && fileName.Size() );
+		NST_ASSERT( handle && fileName.Length() );
 
 		::mmioClose( handle, 0 );
 		handle = NULL;

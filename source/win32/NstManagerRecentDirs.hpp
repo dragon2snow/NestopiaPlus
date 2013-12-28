@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -35,8 +35,6 @@ namespace Nestopia
 		{
 		public:
 
-			typedef String::Path<true> Directory;
-
 			RecentDirs(Emulator&,const Configuration&,Window::Menu&);
 			~RecentDirs();
 
@@ -46,11 +44,10 @@ namespace Nestopia
 
 			enum
 			{
-				MAX_DIRS = 5,
-				MAX_NAME = 3 + _MAX_PATH
+				MAX_DIRS = 5
 			};
   
-			typedef String::Smart<MAX_NAME> Name;
+			typedef HeapString Name;
 	
 			void OnMenu(uint);
 			void OnLock(uint);

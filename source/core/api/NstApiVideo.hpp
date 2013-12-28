@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -60,8 +60,8 @@ namespace Nes
 				void* pixels;
 				long pitch;
 
-				Output()
-				: pixels(NULL), pitch(0) {}
+				Output(void* v=NULL,long p=0)
+				: pixels(v), pitch(p) {}
 
 				typedef bool (NST_CALLBACK *LockCallback) (void*,Output&);
 				typedef void (NST_CALLBACK *UnlockCallback) (void*,Output&);
@@ -148,6 +148,7 @@ namespace Nes
 				Mode   GetMode() const;
 				Mode   GetDefaultMode() const;
 				Result SetCustom(Colors);
+				void   ResetCustom();
 				Colors GetColors() const;
 
 				typedef void (NST_CALLBACK *UpdateCallback) (UserData,Colors);

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -36,7 +36,7 @@ namespace Nes
 {
 	namespace Api
 	{
-		cstring Nsf::GetName() const
+		const char* Nsf::GetName() const
 		{
 			if (emulator.Is(Machine::SOUND))
 				return static_cast<const Core::Nsf*>(emulator.image)->GetName();
@@ -44,7 +44,7 @@ namespace Nes
 			return "";
 		}
 	
-		cstring Nsf::GetArtist() const
+		const char* Nsf::GetArtist() const
 		{
 			if (emulator.Is(Machine::SOUND))
 				return static_cast<const Core::Nsf*>(emulator.image)->GetArtist();
@@ -52,7 +52,7 @@ namespace Nes
 			return "";
 		}
 	
-		cstring Nsf::GetMaker() const
+		const char* Nsf::GetMaker() const
 		{
 			if (emulator.Is(Machine::SOUND))
 				return static_cast<const Core::Nsf*>(emulator.image)->GetMaker();

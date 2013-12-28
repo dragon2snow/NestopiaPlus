@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -25,7 +25,6 @@
 #include "NstObjectHeap.hpp"
 #include "NstWindowMenu.hpp"
 #include "NstDialogDipSwitches.hpp"
-#include "NstManagerEmulator.hpp"
 #include "NstManagerDipSwitches.hpp"
 
 namespace Nestopia
@@ -33,9 +32,9 @@ namespace Nestopia
 	using namespace Managers;
 
 	DipSwitches::DipSwitches(Emulator& e,Window::Menu& m)
-	: emulator(e), menu(m), dialog( new Window::DipSwitches(emulator) )
+	: emulator(e), menu(m)
 	{
-		m.Commands().Add( IDM_MACHINE_OPTIONS_DIPSWITCHES, this, &DipSwitches::OnCmd );
+		m.Commands().Add( IDM_MACHINE_EXT_DIPSWITCHES, this, &DipSwitches::OnMenuCmd );
 		emulator.Events().Add( this, &DipSwitches::OnEmuEvent );
 	}
 
@@ -44,9 +43,9 @@ namespace Nestopia
 		emulator.Events().Remove( this );
 	}
 
-	void DipSwitches::OnCmd(uint)
+	void DipSwitches::OnMenuCmd(uint)
 	{
-		dialog->Open();
+		Window::DipSwitches dialog( emulator );
 	}
 
 	void DipSwitches::OnEmuEvent(Emulator::Event event)
@@ -56,7 +55,11 @@ namespace Nestopia
 			case Emulator::EVENT_LOAD:
 			case Emulator::EVENT_UNLOAD:
 		
-				menu[IDM_MACHINE_OPTIONS_DIPSWITCHES].Enable( event == Emulator::EVENT_LOAD && dialog->NumDips() );
+				menu[IDM_MACHINE_EXT_DIPSWITCHES].Enable
+				( 
+			     	event == Emulator::EVENT_LOAD && 
+					Nes::DipSwitches(emulator).NumDips() 
+				);
 				break;
 		}
 	}

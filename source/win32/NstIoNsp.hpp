@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -59,7 +59,7 @@ namespace Nestopia
 
 				struct Cheat
 				{
-					typedef String::Heap Desc;
+					typedef HeapString Desc;
 
 					u16 address;
 					u8 value;
@@ -75,13 +75,14 @@ namespace Nestopia
 				};
 
 				typedef std::vector<Cheat> Cheats;
-				typedef String::Path<false> Path;
 
 				Path image;
 				Path ips;
 				Path save;
 				Path state;
 				Path movie;
+				Path tape;
+				Path palette;
 				uint controllers[NUM_CONTROLLER_PORTS];
 				uint mode;
 				Cheats cheats;
@@ -97,8 +98,8 @@ namespace Nestopia
 					ERR_SYNTAX = IDS_ERR_SYNTAX
 				};
 
-				typedef String::Generic Input;
-				typedef String::Heap Output;
+				typedef String::Generic<char> Input;
+				typedef HeapString Output;
 				typedef Output Buffer;
 
 				void Load(const Input,Context&) const;
@@ -108,16 +109,16 @@ namespace Nestopia
 
 				class Parser;
 
-				static ibool Match (cstring,cstring (&)[2]);
-				static ibool ParseFile (cstring,cstring (&)[2][2],Context::Path&);
-				static ibool ParsePort (cstring,cstring (&)[2][2],uint&);
-				static ibool ParseMode (cstring,cstring (&)[2][2],uint&);
-				static ibool ParseGenie (cstring,cstring (&)[2][2],Context::Cheats&,bool=false);
-				static ibool ParseCheat (cstring,cstring (&)[2][2],Context::Cheats&);
+				static ibool Match (tstring,tstring (&)[2]);
+				static ibool ParseFile (tstring,tstring (&)[2][2],Path&);
+				static ibool ParsePort (tstring,tstring (&)[2][2],uint&);
+				static ibool ParseMode (tstring,tstring (&)[2][2],uint&);
+				static ibool ParseGenie (tstring,tstring (&)[2][2],Context::Cheats&,bool=false);
+				static ibool ParseCheat (tstring,tstring (&)[2][2],Context::Cheats&);
 
-				static void Skip(cstring&,cstring);
+				static void Skip(tstring&,tstring);
 
-				static cstring const controllerNames[];
+				static tstring const controllerNames[];
 			};
 		}
 	}

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -29,6 +29,24 @@
 
 namespace Nestopia
 {
+	NST_COMPILE_ASSERT
+	(
+		IDC_PATHS_BATTERY_BROWSE     == IDC_PATHS_IMAGE_BROWSE + 1 &&
+		IDC_PATHS_NSP_BROWSE         == IDC_PATHS_IMAGE_BROWSE + 2 &&
+		IDC_PATHS_NST_BROWSE         == IDC_PATHS_IMAGE_BROWSE + 3 &&
+		IDC_PATHS_IPS_BROWSE         == IDC_PATHS_IMAGE_BROWSE + 4 &&
+		IDC_PATHS_SCREENSHOTS_BROWSE == IDC_PATHS_IMAGE_BROWSE + 5
+	);
+
+	NST_COMPILE_ASSERT
+	(
+		IDC_PATHS_BATTERY     == IDC_PATHS_IMAGE + 1 &&
+		IDC_PATHS_NSP         == IDC_PATHS_IMAGE + 2 &&
+		IDC_PATHS_NST         == IDC_PATHS_IMAGE + 3 &&
+		IDC_PATHS_IPS         == IDC_PATHS_IMAGE + 4 &&
+		IDC_PATHS_SCREENSHOTS == IDC_PATHS_IMAGE + 5
+	);
+
 	using namespace Window;
 
 	inline Paths::Settings::Flags::Flags()
@@ -45,17 +63,17 @@ namespace Nestopia
 	Paths::Settings::Settings()
 	: screenShotFormat(SCREENSHOT_PNG) {}
 
-	const Paths::Lut Paths::Lut::dirs[NUM_DIRS] =
+	const Paths::Lut::A Paths::Lut::dirs[NUM_DIRS] =
 	{
-		{ DIR_IMAGE,	  IDC_PATHS_IMAGE,		 "files path image"    	     },
-		{ DIR_DATA,       IDC_PATHS_BATTERY,	 "files path cartridge data" },
-		{ DIR_STATE,	  IDC_PATHS_NST,	     "files path state"          },
-		{ DIR_SCRIPT,	  IDC_PATHS_NSP,		 "files path script"         },
-		{ DIR_IPS,		  IDC_PATHS_IPS,		 "files path ips"		     },
-		{ DIR_SCREENSHOT, IDC_PATHS_SCREENSHOTS, "files path screenshot"     }	
+		{ DIR_IMAGE,	  IDC_PATHS_IMAGE,		 "files path image"    	 },
+		{ DIR_SAVE,       IDC_PATHS_BATTERY,	 "files path save"       },
+		{ DIR_STATE,	  IDC_PATHS_NST,	     "files path state"      },
+		{ DIR_SCRIPT,	  IDC_PATHS_NSP,		 "files path script"     },
+		{ DIR_IPS,		  IDC_PATHS_IPS,		 "files path ips"		 },
+		{ DIR_SCREENSHOT, IDC_PATHS_SCREENSHOTS, "files path screenshot" }	
 	};
 
-	const Paths::Lut Paths::Lut::flags[NUM_FLAGS] =
+	const Paths::Lut::A Paths::Lut::flags[NUM_FLAGS] =
 	{
 		{ USE_LAST_IMAGE_DIR,	   IDC_PATHS_IMAGE_LAST,      "files use last image path"  },
 		{ USE_LAST_SCRIPT_DIR,	   IDC_PATHS_NSP_LAST,        "files use last script path" },
@@ -66,11 +84,11 @@ namespace Nestopia
 		{ COMPRESS_STATES,		   IDC_PATHS_NST_COMPRESS,    "files compress states"	   }
 	};
 
-	const Paths::Lut Paths::Lut::screenShots[NUM_SCREENSHOTS] =
+	const Paths::Lut::B Paths::Lut::screenShots[NUM_SCREENSHOTS] =
 	{
-		{ SCREENSHOT_PNG,  IDC_PATHS_SCREENSHOTS_PNG,  "png" },
-		{ SCREENSHOT_JPEG, IDC_PATHS_SCREENSHOTS_JPEG, "jpg" },
-		{ SCREENSHOT_BMP,  IDC_PATHS_SCREENSHOTS_BMP,  "bmp" }
+		{ SCREENSHOT_PNG,  IDC_PATHS_SCREENSHOTS_PNG,  _T( "png" ) },
+		{ SCREENSHOT_JPEG, IDC_PATHS_SCREENSHOTS_JPEG, _T( "jpg" ) },
+		{ SCREENSHOT_BMP,  IDC_PATHS_SCREENSHOTS_BMP,  _T( "bmp" ) }
 	};
 
 	struct Paths::Handlers
@@ -102,11 +120,11 @@ namespace Nestopia
 	{
 		settings.dirs[ DIR_IMAGE ][ DEFAULT ] = Application::Instance::GetPath().Directory();
 
-		CreateFolder( settings.dirs[ DIR_DATA       ][ DEFAULT ], "cartridge\\"   );
-		CreateFolder( settings.dirs[ DIR_STATE      ][ DEFAULT ], "states\\"      );
-		CreateFolder( settings.dirs[ DIR_IPS        ][ DEFAULT ], "ips\\"         );
-		CreateFolder( settings.dirs[ DIR_SCRIPT     ][ DEFAULT ], "scripts\\"     );
-		CreateFolder( settings.dirs[ DIR_SCREENSHOT ][ DEFAULT ], "screenshots\\" );
+		CreateFolder( settings.dirs[ DIR_SAVE       ][ DEFAULT ], _T( "save\\"        ) );
+		CreateFolder( settings.dirs[ DIR_STATE      ][ DEFAULT ], _T( "states\\"      ) );
+		CreateFolder( settings.dirs[ DIR_IPS        ][ DEFAULT ], _T( "ips\\"         ) );
+		CreateFolder( settings.dirs[ DIR_SCRIPT     ][ DEFAULT ], _T( "scripts\\"     ) );
+		CreateFolder( settings.dirs[ DIR_SCREENSHOT ][ DEFAULT ], _T( "screenshots\\" ) );
 
 		for (uint i=0; i < NUM_DIRS; ++i)
 		{
@@ -114,8 +132,8 @@ namespace Nestopia
 
 			settings.dirs[type][ACTIVE] = cfg[Lut::dirs[i].cfg];
 
-			if (settings.dirs[type][ACTIVE].Size())
-				settings.dirs[type][ACTIVE].Directory().Validate();
+			if (settings.dirs[type][ACTIVE].Length())
+				settings.dirs[type][ACTIVE].CheckSlash();
 			else
 				settings.dirs[type][ACTIVE] = settings.dirs[type][DEFAULT];
 		}
@@ -132,9 +150,9 @@ namespace Nestopia
 			}
 		}
 
-		const String::Heap& format = cfg["files screenshot format"];
+		const GenericString format( cfg["files screenshot format"] );
 
-		if (format.Size())
+		if (format.Length())
 		{
 			for (uint i=0; i < NUM_SCREENSHOTS; ++i)
 			{
@@ -162,31 +180,31 @@ namespace Nestopia
 		cfg["files screenshot format"] = Lut::screenShots[settings.screenShotFormat].cfg;
 	}
 
-	void Paths::CreateFolder(Directory& dir,const String::Generic name) const
+	void Paths::CreateFolder(Path& dir,const GenericString name) const
 	{
-		NST_ASSERT( name.Size() && *name != '\\' && *name != '/' );
+		NST_ASSERT( name.Length() && name[0] != '\\' && name[0] != '/' );
 
 		dir = Application::Instance::GetPath().Directory();
 		dir << name;
 
-		if (!::CreateDirectory( dir, NULL ) && ::GetLastError() != ERROR_ALREADY_EXISTS)
-			dir.Shrink( name.Size() );
+		if (!::CreateDirectory( dir.Ptr(), NULL ) && ::GetLastError() != ERROR_ALREADY_EXISTS)
+			dir.ShrinkTo( name.Length() );
 	}
 
-	String::Generic Paths::GetScreenShotExtension() const
+	GenericString Paths::GetScreenShotExtension() const
 	{
 		switch (settings.screenShotFormat)
 		{
-			case SCREENSHOT_JPEG: return "jpg";
-			case SCREENSHOT_BMP:  return "bmp";
-			default:              return "png";
+			case SCREENSHOT_JPEG: return _T("jpg");
+			case SCREENSHOT_BMP:  return _T("bmp");
+			default:              return _T("png");
 		}
 	}
 
 	void Paths::Update(const ibool reset)
 	{
 		for (uint i=0; i < NUM_DIRS; ++i)
-			dialog.Edit( Lut::dirs[i].dlg ) << settings.dirs[Lut::dirs[i].type][reset ? DEFAULT : ACTIVE];
+			dialog.Edit( Lut::dirs[i].dlg ) << settings.dirs[Lut::dirs[i].type][reset ? DEFAULT : ACTIVE].Ptr();
 
 		Settings::Flags flags;
 
@@ -224,19 +242,10 @@ namespace Nestopia
 
 	ibool Paths::OnCmdBrowse(Param& param)
 	{
-		NST_COMPILE_ASSERT
-		(
-			IDC_PATHS_BATTERY_BROWSE - IDC_PATHS_IMAGE_BROWSE     == IDC_PATHS_BATTERY - IDC_PATHS_IMAGE &&
-			IDC_PATHS_NSP_BROWSE - IDC_PATHS_IMAGE_BROWSE         == IDC_PATHS_NSP - IDC_PATHS_IMAGE &&
-			IDC_PATHS_NST_BROWSE - IDC_PATHS_IMAGE_BROWSE         == IDC_PATHS_NST - IDC_PATHS_IMAGE &&
-			IDC_PATHS_IPS_BROWSE - IDC_PATHS_IMAGE_BROWSE         == IDC_PATHS_IPS - IDC_PATHS_IMAGE &&
-			IDC_PATHS_SCREENSHOTS_BROWSE - IDC_PATHS_IMAGE_BROWSE == IDC_PATHS_SCREENSHOTS - IDC_PATHS_IMAGE
-		);
-
 		if (param.Button().IsClicked())
 		{
 			const uint id = IDC_PATHS_IMAGE + param.Button().GetId() - IDC_PATHS_IMAGE_BROWSE;
-			dialog.Edit( id ).Try() << Browser::SelectDirectory();
+			dialog.Edit( id ).Try() << Browser::SelectDirectory().Ptr();
 		}
 
 		return TRUE;
@@ -258,8 +267,8 @@ namespace Nestopia
 
 			dialog.Edit( Lut::dirs[i].dlg ) >> settings.dirs[type][ACTIVE];
 
-			if (settings.dirs[type][ACTIVE].Size())
-				settings.dirs[type][ACTIVE].Directory().Validate();
+			if (settings.dirs[type][ACTIVE].Length())
+				settings.dirs[type][ACTIVE].CheckSlash();
 			else
 				settings.dirs[type][ACTIVE] = settings.dirs[type][DEFAULT];
 		}

@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -30,6 +30,7 @@
 #endif
 
 #include "../NstClock.hpp"
+#include "../NstDipSwitches.hpp"
 
 namespace Nes
 {
@@ -39,11 +40,6 @@ namespace Nes
 		{
 			class NST_NO_VTABLE BtlTek2A : public Mapper
 			{
-			public:
-		
-				void SaveState(State::Saver&) const;
-				void LoadState(State::Loader&);
-		
 			protected:
 		
 				enum DefaultDipSwitch
@@ -56,6 +52,26 @@ namespace Nes
 				
 			private:
 		
+				class CartSwitches : public DipSwitches
+				{
+				public:
+
+					CartSwitches(uint);
+
+					inline uint GetSetting() const;
+
+				private:
+
+					uint NumDips() const;
+					uint NumValues(uint) const;
+					cstring GetDipName(uint) const;
+					cstring GetValueName(uint,uint) const;
+					uint GetValue(uint) const;
+					bool SetValue(uint,uint);
+
+					uint data;
+				};
+
 				enum
 				{
 					DIPSWITCH_MIRROR = b00000001,
@@ -63,10 +79,13 @@ namespace Nes
 				};
 
 				void SubReset(bool);
+				void BaseSave(State::Saver&) const;
+				void BaseLoad(State::Loader&,dword);
 				void UpdatePrg();
 				void UpdateChr() const;
 				void UpdateExChr();
 				void UpdateNmt() const;
+				Device QueryDevice(DeviceType);
 				void VSync();
 		
 				NES_DECL_PEEK( 5000 )
@@ -186,25 +205,7 @@ namespace Nes
 				Banks banks;
 				const ibool hack;
 				Clock::A12<Irq> irq;
-				uint dipswitch;
-				
-			public:
-		
-				uint NumDipSwitches() const
-				{ 
-					return 2; 
-				}
-		
-				uint NumDipSwitchValues(uint i) const
-				{ 
-					return i == 0 ? 4 : i == 1 ? 2 : 0; 
-				}
-		
-				cstring GetDipSwitchName(uint) const;
-				cstring GetDipSwitchValueName(uint,uint) const;
-		
-				int GetDipSwitchValue(uint) const;
-				Result SetDipSwitchValue(uint,uint);
+				CartSwitches cartSwitches;
 			};
 		}
 	}

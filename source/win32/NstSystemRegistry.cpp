@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -53,7 +53,7 @@ namespace Nestopia
 		::SHChangeNotify( SHCNE_ASSOCCHANGED, SHCNF_IDLIST, NULL, NULL );	
 	}
 
-	ibool Registry::Key::operator << (const String::Generic dataName) const
+	ibool Registry::Key::operator << (const GenericString dataName) const
 	{
 		NST_ASSERT( dataName.IsNullTerminated() );
 
@@ -87,8 +87,8 @@ namespace Nestopia
 			NULL, 
 			0, 
 			REG_SZ, 
-			reinterpret_cast<const BYTE*>(static_cast<cstring>(dataName)),
-			dataName.Size() + 1 
+			reinterpret_cast<const BYTE*>(dataName.Ptr()),
+			(dataName.Length() + 1) * sizeof(tchar)
 		);
 
 		if (result != ERROR_SUCCESS)
@@ -97,7 +97,7 @@ namespace Nestopia
 		return TRUE;
 	}
 
-	ibool Registry::Key::operator >> (String::Heap& string) const
+	ibool Registry::Key::operator >> (HeapString& string) const
 	{
 		string.Clear();
 
@@ -121,12 +121,15 @@ namespace Nestopia
 
 		DWORD type = 0, size = 0;
 
-		if (::RegQueryValueEx( keys[count].handle, NULL, NULL, &type, NULL, &size ) != ERROR_SUCCESS || type != REG_SZ || size <= 1)
+		if (::RegQueryValueEx( keys[count].handle, NULL, NULL, &type, NULL, &size ) != ERROR_SUCCESS || type != REG_SZ)
 			return FALSE;
 
-		string.Resize( size-1 );
+		if (size <= 1)
+			return FALSE;
 
-		if (::RegQueryValueEx( keys[count].handle, NULL, NULL, NULL, reinterpret_cast<BYTE*>(&string.Front()), &size ) != ERROR_SUCCESS)
+		string.Resize( (size-1) / sizeof(tchar) );
+
+		if (::RegQueryValueEx( keys[count].handle, NULL, NULL, NULL, reinterpret_cast<BYTE*>(string.Ptr()), &size ) != ERROR_SUCCESS)
 		{
 			string.Clear();
 			return FALSE;
@@ -162,7 +165,7 @@ namespace Nestopia
 		::SHDeleteKey( keys[last].handle, stack[last] );
 	}
 
-	void Registry::Key::Delete(const String::Generic dataName) const
+	void Registry::Key::Delete(const GenericString dataName) const
 	{
 		NST_ASSERT( dataName.IsNullTerminated() );
 
@@ -188,14 +191,14 @@ namespace Nestopia
 
 		enum {PAD_TO_CHECK_REAL_LENGTH = 1};
 
-		Collection::Vector<char> storedData( dataName.Size() + 1 + PAD_TO_CHECK_REAL_LENGTH );
+		Collection::Vector<tchar> storedData( dataName.Length() + 1 + PAD_TO_CHECK_REAL_LENGTH );
 
 		for (uint i=0; ; ++i)
 		{
 			DWORD storedType;
-			char storedValue[260+1];
-			DWORD storedValueSize = 260+1;
-			DWORD storedDataSize = storedData.Size();
+			tchar storedValue[260+1];
+			DWORD storedValueSize = sizeof(storedValue);
+			DWORD storedDataSize = storedData.Size() * sizeof(tchar);
 
 			result = ::RegEnumValue
 			( 
@@ -215,8 +218,8 @@ namespace Nestopia
 			if 
 			(
 				storedType == REG_SZ && 
-				storedDataSize == storedData.Size() - PAD_TO_CHECK_REAL_LENGTH &&
-				std::memcmp( storedData, dataName, storedDataSize ) == 0
+				storedDataSize == (storedData.Size() - PAD_TO_CHECK_REAL_LENGTH) * sizeof(tchar) &&
+				std::memcmp( storedData.Ptr(), dataName.Ptr(), storedDataSize * sizeof(tchar) ) == 0
 			)
 			{
 				if (storedValueSize)

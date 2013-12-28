@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -23,11 +23,11 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 
 #include "NstObjectHeap.hpp"
+#include "NstIoFile.hpp"
 #include "NstIoScreen.hpp"
 #include "NstIoLog.hpp"
 #include "NstIoIps.hpp"
 #include "NstIoNsp.hpp"
-#include "NstIoFile.hpp"
 #include "NstResourceString.hpp"
 #include "NstWindowUser.hpp"
 #include "NstWindowParam.hpp"
@@ -38,6 +38,7 @@
 #include "NstManagerPreferences.hpp"
 #include "NstManagerPaths.hpp"
 #include "NstManagerMovie.hpp"
+#include "NstManagerTapeRecorder.hpp"
 #include "NstManagerSaveStates.hpp"
 #include "NstManagerCheats.hpp"
 #include "NstManagerFiles.hpp"
@@ -53,20 +54,22 @@ namespace Nestopia
 		Window::Menu& m,
 		const Paths& p,
 		const Preferences& r,
-		Movie& o,			 
+		Movie& o,
+		const TapeRecorder& t,
 		const Cheats& c,
 		const SaveStates& s,
 		Window::Main& w
 	)
 	: 
-	emulator    ( e ),
-	menu        ( m ),
-	paths       ( p ),
-	preferences ( r ),
-	movie       ( o ),
-	cheats      ( c ),
-	saveStates  ( s ),
-	window      ( w )
+	emulator     ( e ),
+	menu         ( m ),
+	paths        ( p ),
+	preferences  ( r ),
+	movie        ( o ),
+	tapeRecorder ( t ),
+	cheats       ( c ),
+	saveStates   ( s ),
+	window       ( w )
 	{
 		static const Window::MsgHandler::Entry<Files> messages[] =
 		{
@@ -92,7 +95,7 @@ namespace Nestopia
 		emulator.Events().Remove( this );
 	}
 
-	void Files::Open(cstring const name,uint types) const
+	void Files::Open(tstring const name,uint types) const
 	{
 		emulator.Wait();
 
@@ -113,7 +116,7 @@ namespace Nestopia
 			);
 		}
 
-		Paths::TmpPath path;
+		Path path;
 
 		if (name)
 		{
@@ -190,7 +193,7 @@ namespace Nestopia
 
 				try
 				{
-					ips.Parse( file.data, file.data.Size() );
+					ips.Parse( file.data.Ptr(), file.data.Size() );
 				}
 				catch (Io::Ips::Exception id)
 				{
@@ -269,7 +272,7 @@ namespace Nestopia
 			if (context.ips.Empty())
 				context.ips = paths.GetIpsPath( context.image, file.type );
 
-			if (Io::File::FileExist( context.ips ))
+			if (Io::File::FileExist( context.ips.Ptr() ))
 			{
 				Paths::File input;
 
@@ -277,7 +280,7 @@ namespace Nestopia
 				{
 					try
 					{
-						ips.Parse( input.data, input.data.Size() );
+						ips.Parse( input.data.Ptr(), input.data.Size() );
 					}
 					catch (...)
 					{
@@ -296,7 +299,7 @@ namespace Nestopia
 		{
 			try
 			{
-				ips.Patch( file.data, file.data.Size() );
+				ips.Patch( file.data.Ptr(), file.data.Size() );
 				Io::Log() << "Emulator: patched \"" << context.image << "\" with \"" << context.ips << "\"\r\n";
 			}
 			catch (...)
@@ -308,19 +311,24 @@ namespace Nestopia
 		if (context.save.Empty())
 			context.save = paths.GetSavePath( context.image, file.type );
 
+		if (context.tape.Empty())
+			context.tape = tapeRecorder.GetFile( context.save );
+
+		window.Load( context );
+
 		if (!emulator.Load( file.data, file.name, context, !preferences[Preferences::SUPPRESS_WARNINGS] ))
 			return;
 		
 		if (context.mode == Io::Nsp::Context::UNKNOWN && menu[IDM_MACHINE_SYSTEM_AUTO].IsChecked())
 			emulator.AutoSetMode();
 
-		if (context.state.Size())
+		if (context.state.Length())
 		{
 			if (paths.Load( file, Paths::File::STATE|Paths::File::ARCHIVE, context.state ))
 				saveStates.Load( file.data, file.name );
 		}
 
-		if (context.movie.Size())
+		if (context.movie.Length())
 			movie.Load( context.movie, Movie::QUIET );
 
 		cheats.Load( context );
@@ -362,7 +370,7 @@ namespace Nestopia
 	ibool Files::OnMsgDropFiles(Window::Param& param)
 	{
 		if (menu[IDM_FILE_OPEN].IsEnabled())
-			Open( param.DropFiles()[0] );
+			Open( param.DropFiles()[0].Ptr() );
 
 		return TRUE;
 	}
@@ -370,7 +378,7 @@ namespace Nestopia
 	ibool Files::OnMsgCopyData(Window::Param& param)
 	{
 		if (param.CopyData().FromWindow() == window.Get() || menu[IDM_FILE_OPEN].IsEnabled())
-			Open( static_cast<cstring>(param.CopyData().GetData()), param.CopyData().GetType() );
+			Open( static_cast<tstring>(param.CopyData().GetData()), param.CopyData().GetType() );
 
 		param.lResult = TRUE;
 		return TRUE;
@@ -400,20 +408,15 @@ namespace Nestopia
 			emulator.Save( context );
 			movie.Save( context );
 			cheats.Save( context );
+			window.Save( context );
 
 			Io::Nsp::File::Output output;
+			Io::Nsp::File().Save( output, context );
 
-			try
-			{
-				Io::Nsp::File().Save( output, context );
-			}
-			catch (Io::Nsp::File::Exception ids)
-			{
-				Window::User::Fail( ids );
-				return;
-			}
+			const Path path( paths.BrowseSave( Paths::File::SCRIPT, Paths::SUGGEST ) );
 
-			paths.Save( output, output.Size(), Paths::File::SCRIPT );
+			if (path.Length())
+				paths.Save( output.Ptr(), output.Length(), Paths::File::SCRIPT, path );
 		}
 	}
 
@@ -432,8 +435,8 @@ namespace Nestopia
 				if (length > 10)
 				{
 					Io::Screen() << Resource::String( IDS_SCREEN_LOADED ) 
-						         << " \"" 
-								 << String::Path<true>::Compact( emulator.GetImagePath().Target(), length - 9 ) 
+						         << " \""
+								 << Path::Compact( emulator.GetImagePath().Target(), length - 9 ) 
 								 << '\"';
 				}
 				break;
@@ -450,8 +453,8 @@ namespace Nestopia
 				if (length > 12)
 				{
 					Io::Screen() << Resource::String( IDS_SCREEN_UNLOADED ) 
-						         << " \"" 
-								 << String::Path<true>::Compact( emulator.GetImagePath().Target(), length - 11 ) 
+						         << " \""
+								 << Path::Compact( emulator.GetImagePath().Target(), length - 11 ) 
 								 << '\"';
 				}				
 				break;

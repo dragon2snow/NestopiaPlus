@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -49,7 +49,7 @@ namespace Nestopia
 			ibool Open(const File&);
 			ibool Open(const void*,uint);
 			void  Close();
-			uint  Find(String::Generic) const;
+			uint  Find(GenericString) const;
 
 			enum 
 			{
@@ -62,7 +62,7 @@ namespace Nestopia
 			};
 
 			uint UserSelect() const;
-			uint UserSelect(const String::Generic*,uint) const;
+			uint UserSelect(const GenericString*,uint) const;
 
 		private:
 
@@ -77,7 +77,7 @@ namespace Nestopia
 			class Item
 			{
 				Codec* codec;
-				String::Path<false> name;
+				Path name;
 				uint size;
 				uint index;
 
@@ -92,7 +92,7 @@ namespace Nestopia
 					return size;
 				}
 
-				const String::Path<false>& GetName() const
+				const Path& GetName() const
 				{
 					return name;
 				}

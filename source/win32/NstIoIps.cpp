@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -276,9 +276,8 @@ namespace Nestopia
 		NST_ASSERT( target && size );
 
 		Object::Backup backup( target, size );
-		Blocks::ConstIterator const end = blocks.End();
 
-		for (Blocks::ConstIterator it = blocks.Begin(); it != end; ++it)
+		for (Blocks::ConstIterator it=blocks.Begin(), end=blocks.End(); it != end; ++it)
 		{
 			NST_ASSERT( it->length );
 

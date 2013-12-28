@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -78,33 +78,33 @@ namespace Nes
 			{
 				case 0x0: 
 
-					prg.SwapBank<NES_32K,0x0000U>( 0x0 );
-					chr.SwapBank<NES_8K,0x0000U>( 0x3 );
+					prg.SwapBank<SIZE_32K,0x0000U>( 0x0 );
+					chr.SwapBank<SIZE_8K,0x0000U>( 0x3 );
 					break;
 
 				case 0x2:
 
-					chr.SwapBank<NES_8K,0x0000U>( (chr.GetBank<NES_8K,0x0000U>() & 0x7) | ((data & 0x1) << 3) );
+					chr.SwapBank<SIZE_8K,0x0000U>( (chr.GetBank<SIZE_8K,0x0000U>() & 0x7) | ((data & 0x1) << 3) );
 					break;
 
 				case 0x4: 
 
-					chr.SwapBank<NES_8K,0x0000U>( (chr.GetBank<NES_8K,0x0000U>() & 0xE) | (data & 0x1) );
+					chr.SwapBank<SIZE_8K,0x0000U>( (chr.GetBank<SIZE_8K,0x0000U>() & 0xE) | (data & 0x1) );
 					break;
 
 				case 0x5: 
 				
-					prg.SwapBank<NES_32K,0x0000U>( data & 0x1 );
+					prg.SwapBank<SIZE_32K,0x0000U>( data & 0x1 );
 					break;
 
 				case 0x6: 
 				
-					chr.SwapBank<NES_8K,0x0000U>( (chr.GetBank<NES_8K,0x0000U>() & 0x9) | ((data & 0x3) << 1) );
+					chr.SwapBank<SIZE_8K,0x0000U>( (chr.GetBank<SIZE_8K,0x0000U>() & 0x9) | ((data & 0x3) << 1) );
 					break;
 
 				case 0x7: 
 		  
-					nmt.SwapBank<NES_1K,0x0000U>( data & 0x1 );
+					nmt.SwapBank<SIZE_1K,0x0000U>( data & 0x1 );
 					break;
 			}
 		}

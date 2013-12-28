@@ -2,7 +2,7 @@
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -100,7 +100,7 @@ namespace Nes
 						Map( 0x8000U, 0xFFFFU, &Ffe::Poke_Prg_F3 );
 
 						if (hard)
-							prg.SwapBank<NES_16K,0x4000U>(1);
+							prg.SwapBank<SIZE_16K,0x4000U>(1);
 
 						break;
 		
@@ -109,7 +109,7 @@ namespace Nes
 						Map( 0x8000U, 0xFFFFU, &Ffe::Poke_Prg_F4 );
 
 						if (hard)
-							prg.SwapBank<NES_16K,0x4000U>(7);
+							prg.SwapBank<SIZE_16K,0x4000U>(7);
 
 						break;
 		
@@ -132,41 +132,48 @@ namespace Nes
 				}
 			}
 		
-			void Ffe::LoadState(State::Loader& state)
+			void Ffe::BaseLoad(State::Loader& state,const dword id)
 			{
-				while (const dword chunk = state.Begin())
+				NST_VERIFY( id == NES_STATE_CHUNK_ID('F','F','E','\0') );
+
+				if (id == NES_STATE_CHUNK_ID('F','F','E','\0'))
 				{
-					switch (chunk)
+					while (const dword chunk = state.Begin())
 					{
-						case NES_STATE_CHUNK_ID('R','E','G','\0'):
+						switch (chunk)
+						{
+							case NES_STATE_CHUNK_ID('R','E','G','\0'):
+						
+								NST_VERIFY( type == F4_XXX );
+						
+								if (type == F4_XXX)
+									mode = state.Read8() & 0x1;
+						
+								break;
+						
+							case NES_STATE_CHUNK_ID('I','R','Q','\0'):
+						
+								NST_VERIFY( irq );
+						
+								if (irq)
+								{
+									const State::Loader::Data<3> data( state );
+						
+									irq->unit.enabled = data[0] & 0x1;
+									irq->unit.count = data[1] | (data[2] << 8);
+								}
+								break;
+						}
 
-							NST_VERIFY( type == F4_XXX );
-
-							if (type == F4_XXX)
-								mode = state.Read8() & 0x1;
-
-							break;
-
-						case NES_STATE_CHUNK_ID('I','R','Q','\0'):
-
-							NST_VERIFY( irq );
-
-							if (irq)
-							{
-								const State::Loader::Data<3> data( state );
-
-								irq->unit.enabled = data[0] & 0x1;
-								irq->unit.count = data[1] | (data[2] << 8);
-							}
-							break;
+						state.End();
 					}
-		
-					state.End();
 				}
 			}
 		
-			void Ffe::SaveState(State::Saver& state) const
+			void Ffe::BaseSave(State::Saver& state) const
 			{
+				state.Begin('F','F','E','\0');
+
 				if (type == F4_XXX)
 					state.Begin('R','E','G','\0').Write8( mode ).End();
 
@@ -181,6 +188,8 @@ namespace Nes
 
 					state.Begin('I','R','Q','\0').Write( data ).End();
 				}
+
+				state.End();
 			}
 		
             #ifdef NST_PRAGMA_OPTIMIZE
@@ -234,8 +243,8 @@ namespace Nes
 			NES_POKE(Ffe,Prg_F3)
 			{
 				ppu.Update();
-				prg.SwapBank<NES_16K,0x0000U>( data >> 3 );
-				chr.SwapBank<NES_8K,0x0000U>( data & 0x7 );
+				prg.SwapBank<SIZE_16K,0x0000U>( data >> 3 );
+				chr.SwapBank<SIZE_8K,0x0000U>( data & 0x7 );
 			}
 		
 			NES_POKE(Ffe,Prg_F4) 
@@ -244,11 +253,11 @@ namespace Nes
 
 				if (mode || chr.Source(0).IsWritable())
 				{
-					prg.SwapBank<NES_16K,0x0000U>( data >> 2 );
+					prg.SwapBank<SIZE_16K,0x0000U>( data >> 2 );
 					data &= 0x3;
 				}
 
-				chr.Source( mode ).SwapBank<NES_8K,0x0000U>( data );
+				chr.Source( mode ).SwapBank<SIZE_8K,0x0000U>( data );
 			}
 
 			void Ffe::VSync()
