@@ -215,15 +215,17 @@ namespace Nes
 				Reset();
 			}
 
-			Vrc7::Sound::Sound(Cpu& cpu)
-			: apu(cpu.GetApu())	
+			Vrc7::Sound::Sound(Cpu& cpu,bool hook)
+			: apu(cpu.GetApu()), hooked(hook)
 			{
-				apu.HookChannel( this );
+				if (hook)
+					apu.HookChannel( this );
 			}
 
 			Vrc7::Sound::~Sound()
 			{
-				apu.ReleaseChannel();
+				if (hooked)
+					apu.ReleaseChannel();
 			}
 
 			Vrc7::Vrc7(Context& c)
@@ -459,6 +461,7 @@ namespace Nes
 
 			NES_POKE(Vrc7,9030) 
 			{
+				cpu.GetApu().Update();
 				sound.WriteReg1( data );
 			}
 
@@ -767,8 +770,6 @@ namespace Nes
 
 			void Vrc7::Sound::WriteReg1(const uint data)
 			{
-				apu.Update();
-
 				switch (reg)
 				{
 					case 0x00:

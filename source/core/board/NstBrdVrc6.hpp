@@ -41,11 +41,11 @@ namespace Nes
 			{
 			public:
 
-				class Sound : Apu::Channel
+				class Sound : public Apu::Channel
 				{
 				public:
 		
-					Sound(Cpu&);
+					Sound(Cpu&,bool=true);
 					~Sound();
 		
 					void WriteSquareReg0 (uint,uint);
@@ -58,12 +58,14 @@ namespace Nes
 					void SaveState(State::Saver&) const;
 					void LoadState(State::Loader&);
 		
-				private:
-		
+				protected:
+
 					void Reset();
 					void UpdateContext(uint);
 					Sample GetSample();
-		
+
+				private:
+				
 					class NST_NO_VTABLE BaseChannel
 					{
 					protected:
@@ -166,6 +168,7 @@ namespace Nes
 					Apu& apu;
 					Square square[2];
 					Saw saw;
+					const ibool hooked;
 				};
 		
 			protected:

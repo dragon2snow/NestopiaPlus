@@ -80,6 +80,7 @@ namespace Nestopia
 		const Paths paths;
 		const Resource::Version version;
 		Hooks hooks;
+		IconStyle iconStyle;
 	};
 
 	Instance::Global Instance::global;
@@ -223,7 +224,8 @@ namespace Nestopia
 	: 
 	hInstance ( ::GetModuleHandle(NULL) ),
 	hooks     ( hInstance ),
-	version   ( paths.path.Ptr() )
+	version   ( paths.path.Ptr() ),
+	iconStyle ( ICONSTYLE_NES )
 	{
 	}
 
@@ -335,6 +337,16 @@ namespace Nestopia
 	{
 		HWND const hWnd = ::GetActiveWindow();
 		return hWnd ? hWnd : global.hooks.window;
+	}
+
+	Instance::IconStyle Instance::GetIconStyle()
+	{
+		return global.iconStyle;
+	}
+
+	void Instance::SetIconStyle(IconStyle style)
+	{
+		global.iconStyle = style;
 	}
 
 	ibool Instance::IsAnyChildWindowVisible()

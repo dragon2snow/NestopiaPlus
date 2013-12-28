@@ -319,7 +319,7 @@ namespace Nestopia
 		Application::Instance::Post( Application::Instance::WM_NST_COMMAND_RESUME );
 	}
 
-	ibool SaveStates::OnTimerAutoSave()
+	uint SaveStates::OnTimerAutoSave()
 	{
 		if (autoSaveEnabled)
 		{
@@ -351,7 +351,7 @@ namespace Nestopia
 			}
 		}
 
-		return autoSaveEnabled;
+		return autoSaveEnabled != FALSE;
 	}
 
 	void SaveStates::ToggleAutoSaver(const ibool enable)

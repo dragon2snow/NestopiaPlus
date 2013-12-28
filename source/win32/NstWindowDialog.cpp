@@ -25,6 +25,7 @@
 #include "NstWindowDialog.hpp"
 #include "NstApplicationException.hpp"
 #include "NstApplicationInstance.hpp"
+#include "NstResourceIcon.hpp"
 #include "NstWindowParam.hpp"
 
 namespace Nestopia
@@ -171,6 +172,11 @@ namespace Nestopia
 	Dialog::~Dialog()
 	{
 		Close();
+	}
+
+	void Dialog::SetItemIcon(uint item,uint id) const
+	{
+		::SendDlgItemMessage( hWnd, item, STM_SETIMAGE, IMAGE_ICON, (LPARAM) (HICON) Resource::Icon(id) );
 	}
 
 	ibool Dialog::OnClose(Param&)

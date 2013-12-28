@@ -212,7 +212,7 @@ namespace Nestopia
 
 			enum
 			{
-				HINTED_SIZE = 360
+				HINTED_SIZE = 370
 			};
 
 			struct Command : String::Heap<char>

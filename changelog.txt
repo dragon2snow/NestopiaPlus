@@ -1,4 +1,45 @@
 ----------------------------------------------------------------
+1.27
+----------------------------------------------------------------
+
+Windows:
+
+ Additions:
+
+  - Any input key may now be mapped to a joystick.
+  - Alternative set of icons provided by Pongbashi.
+
+ Changes:
+
+  - Auto-monitor-frequency setting is now applied after exiting the dialog.
+
+ Fixes:
+
+  - Grayed Power-off menu item.
+  - Controllers in netplay.
+
+Emulator:
+
+ Additions:
+
+  - Mapper 102 (SUNSOFT-3R) for "Shanghai (redump)".
+  - RP2C03B/RC2C05-03 palette. Info from Kevtris.
+  - Color decoder control via R-Y/G-Y/B-Y angle+gain. Comes with three presets.
+  - Support for NSF files that use more than one external soundchip.
+
+ Changes:
+
+  - More accurate NES chroma/luma coefficients. Info from Blargg.
+
+ Fixes:
+
+  - Mapper 83. Fixes intro in "World Heroes 2".
+  - Mapper 185. Patch for "Seicross (redump)".
+  - APU triangle step-sequencer reset bug.
+  - Some NSF player bugs.
+  - Some database entries.
+
+----------------------------------------------------------------
 1.26
 ----------------------------------------------------------------
 

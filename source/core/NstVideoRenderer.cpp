@@ -51,24 +51,24 @@ namespace Nes
 	{
 		namespace Video
 		{
-			const u8 Renderer::Palette::defaultPalette[64][3] =
+			const u8 Renderer::Palette::rgbPalette[64][3] =
 			{
-				{0x68,0x68,0x68}, {0x00,0x12,0x99}, {0x1A,0x08,0xAA}, {0x51,0x02,0x9A}, 
-				{0x7E,0x00,0x69}, {0x8E,0x00,0x1C}, {0x7E,0x03,0x01}, {0x51,0x18,0x00}, 
-				{0x2F,0x22,0x02}, {0x01,0x4E,0x00}, {0x00,0x5A,0x00}, {0x00,0x50,0x1C}, 
-				{0x00,0x40,0x61}, {0x00,0x00,0x00}, {0x00,0x00,0x00}, {0x00,0x00,0x00}, 
-				{0xB9,0xB9,0xB9}, {0x0C,0x5C,0xD7}, {0x50,0x35,0xF0}, {0x89,0x19,0xE0}, 
-				{0xBB,0x0C,0xB3}, {0xCE,0x0C,0x61}, {0xC0,0x2B,0x0E}, {0x95,0x4D,0x01}, 
-				{0x8B,0x74,0x00}, {0x1F,0x8B,0x00}, {0x01,0x98,0x0C}, {0x00,0x93,0x4B}, 
-				{0x00,0x81,0x9B}, {0x00,0x00,0x00}, {0x00,0x00,0x00}, {0x00,0x00,0x00},
-				{0xFF,0xFF,0xFF}, {0x63,0xB4,0xFF}, {0x9B,0x91,0xFF}, {0xD3,0x77,0xFF}, 
-				{0xEF,0x6A,0xFF}, {0xF9,0x68,0xC0}, {0xF9,0x7D,0x6C}, {0xED,0x9B,0x2D}, 
-				{0xE7,0xC7,0x36}, {0x7C,0xDA,0x1C}, {0x4B,0xE8,0x47}, {0x35,0xE5,0x91}, 
-				{0x3F,0xD9,0xDD}, {0x60,0x60,0x60}, {0x00,0x00,0x00}, {0x00,0x00,0x00}, 
-				{0xFF,0xFF,0xFF}, {0xAC,0xE7,0xFF}, {0xD5,0xCD,0xFF}, {0xED,0xBA,0xFF}, 
-				{0xF8,0xB0,0xFF}, {0xFE,0xB0,0xEC}, {0xFD,0xC7,0xBF}, {0xF9,0xE1,0xA3}, 
-				{0xE8,0xEB,0x7C}, {0xBB,0xF3,0x82}, {0x99,0xF7,0xA2}, {0x8A,0xF5,0xD0}, 
-				{0x92,0xF4,0xF1}, {0xBE,0xBE,0xBE}, {0x00,0x00,0x00}, {0x00,0x00,0x00} 
+				{0x78,0x78,0x78}, {0x00,0x38,0x98}, {0x00,0x00,0xD8}, {0x78,0x58,0xD8},
+				{0x98,0x00,0x78}, {0xB8,0x00,0x78}, {0xB8,0x38,0x00}, {0x98,0x58,0x00},
+				{0x78,0x58,0x00}, {0x38,0x58,0x00}, {0x00,0x78,0x38}, {0x00,0x98,0x00},
+				{0x00,0x58,0x58}, {0x00,0x00,0x00}, {0x00,0x00,0x00}, {0x00,0x00,0x00},
+				{0xB8,0xB8,0xB8}, {0x00,0x78,0xD8}, {0x00,0x58,0xFF}, {0x98,0x00,0xFF},
+				{0xB8,0x00,0xFF}, {0xFF,0x00,0x98}, {0xFF,0x00,0x00}, {0xD8,0x78,0x00},
+				{0x98,0x78,0x00}, {0x38,0x98,0x00}, {0x00,0x98,0x00}, {0x00,0xB8,0x78},
+				{0x00,0x98,0x98}, {0x00,0x00,0x00}, {0x00,0x00,0x00}, {0x00,0x00,0x00},
+				{0xFF,0xFF,0xFF}, {0x78,0xB8,0xFF}, {0x98,0x98,0xFF}, {0xD8,0x78,0xFF},
+				{0xFF,0x00,0xFF}, {0xFF,0x78,0xFF}, {0xFF,0x98,0x00}, {0xFF,0xB8,0x00},
+				{0xD8,0xD8,0x00}, {0x78,0xD8,0x00}, {0x00,0xFF,0x00}, {0x58,0xFF,0xD8},
+				{0x00,0xFF,0xFF}, {0x4F,0x4F,0x4F}, {0x00,0x00,0x00}, {0x00,0x00,0x00}, 
+				{0xFF,0xFF,0xFF}, {0xB8,0xD8,0xFF}, {0xD8,0xB8,0xFF}, {0xFF,0xB8,0xFF},
+				{0xFF,0x98,0xFF}, {0xFF,0xB8,0xB8}, {0xFF,0xD8,0x98}, {0xFF,0xFF,0x58},
+				{0xFF,0xFF,0x78}, {0xB8,0xFF,0x58}, {0x98,0xFF,0x78}, {0x58,0xFF,0xD8},
+				{0x98,0xD8,0xFF}, {0xA4,0xA4,0xA4}, {0x00,0x00,0x00}, {0x00,0x00,0x00}
 			};
 
 			const double Renderer::Palette::emphasis[8][3] =
@@ -88,13 +88,31 @@ namespace Nes
             #endif
 
 			Renderer::Palette::Palette()
-			: type(PALETTE_INTERNAL), custom(NULL) {}
+			: type(PALETTE_YUV), custom(NULL) 
+			{
+				SetDecoder( Api::Video::DECODER_CANONICAL );
+			}
 		
 			Renderer::Palette::~Palette()
 			{
 				delete custom;
 			}
 		
+			Result Renderer::Palette::SetDecoder(const Decoder& d)
+			{
+				if (decoder == d)
+					return RESULT_NOP;
+
+				for (uint i=0; i < 3; ++i)
+				{
+					if (d.axes[i].angle >= 360 || d.axes[i].gain > 2.0)
+						return RESULT_ERR_INVALID_PARAM;
+				}
+
+				decoder = d;
+				return RESULT_OK;
+			}
+
 			void Renderer::Palette::ToHSV(double r,double g,double b,double& h,double& s,double& v)
 			{
 				const double min = NST_MIN( r, NST_MIN( g, b ));
@@ -176,7 +194,7 @@ namespace Nes
 			{
 				if (custom)
 				{
-					std::memcpy( custom->palette, defaultPalette, 64*3 );
+					std::memcpy( custom->palette, rgbPalette, 64*3 );
 					return true;
 				}
 
@@ -201,15 +219,15 @@ namespace Nes
 				return RESULT_OK;
 			}
 		
-			void Renderer::Palette::ComputeCustom(const uint brightness,const uint saturation,uint hu)
+			void Renderer::Palette::Build(const int b,const int s,int hue)
 			{
-				NST_ASSERT( type == PALETTE_CUSTOM || type == PALETTE_INTERNAL );
+				NST_ASSERT( type == PALETTE_CUSTOM || type == PALETTE_RGB );
 
-				const double bri = (int(brightness) - 128) / 255.0;
-				const double sat = (((int(saturation) - 128) / 255.0) * 2) + 1;
-				const int hue = (int(hu) - 128) / 4;
+				const double brightness = (b - 128) / 256.0;
+				const double saturation = s / 128.0;
+				hue = (hue - 128) / 4;
 				
-				const u8 (*const from)[3] = (type == PALETTE_CUSTOM ? custom->palette : defaultPalette);
+				const u8 (*const from)[3] = (type == PALETTE_CUSTOM ? custom->palette : rgbPalette);
 				NST_ASSERT( from );
 		
 				for (uint i=0; i < 8; ++i)
@@ -227,9 +245,9 @@ namespace Nes
 		
 						ToHSV( rgb[0], rgb[1], rgb[2], h, s, v );
 		
-						s *= sat;
-						v += bri;
-						h -= hue;
+						s *= saturation;
+						v += brightness;
+						h += hue;
 		
 						if (h >= 360.0)
 						{
@@ -251,72 +269,69 @@ namespace Nes
 				}
 			}
 		
-			void Renderer::Palette::ComputeTV(const uint brightness,const uint saturation,uint hue)
+			void Renderer::Palette::Generate(const int b,const int s,int hue)
 			{
-				NST_ASSERT( type == PALETTE_EMULATE );
+				NST_ASSERT( type == PALETTE_YUV );
 		
-				const double sat = saturation / 256.0;
-				const double bri = (int(brightness) - 128) / 256.0;
-				hue = HUE_OFFSET - ((int(hue) - 128) / 4);
-
+				const double saturation = s / 128.0;
+				const double brightness = (b - 128) / 256.0;
+				hue = HUE_OFFSET + (hue - 128) / 4;
+					
 				for (uint index=0; index < 8; ++index)
 				{
-					for (uint voltage=0; voltage < 4; ++voltage)
+					for (uint level=0; level < 4; ++level)
 					{
-						for (uint phase=0, angle=0; phase < 16; ++phase)
+						for (uint phase=0; phase < 16; ++phase)
 						{
-							double s;
-							double y = voltage * 0.375;
+							double y=0.0, u=0.0, v=0.0;
 
-							switch (phase)
+							if (phase-1U < 12)
 							{
-								case 0: 
-							
-									s = 0.0; 
-									y += 0.5;
-									break;
-							
-								case 13: 
-							
-									angle = 0;
-									s = 0.0; 
-									y -= 0.5;
-									break;
-							
-								case 14:
-								case 15: 
-							
-									s = 0.0;
-									y = 0.0;
-									break;
-							
-								case 1:
-							
-									angle = hue;
-							
-								default: 
-							
-									angle += HUE_ROTATION;
-							
-									if (angle >= 360)
-										angle -= 360;
-							
-									s = sat;
-									break;
+								static const double chroma[4] = 
+								{ 
+									0.26, 0.33, 0.34, 0.14
+								};
+
+								const double angle = ((int(phase) - 3) * (360/12) + hue) * NST_DEG;
+
+								v = std::sin( angle ) * chroma[level]; 
+								u = std::cos( angle ) * chroma[level]; 
+
+								if (decoder.boostYellow)
+								{								 
+									const double yellowness = v - u; 
+
+									if (yellowness > 0.0) 
+									{ 
+										v = v + yellowness * (level / 4.0); 
+										u = u - yellowness * (level / 4.0); 
+									} 
+								}
+
+								v *= saturation; 
+								u *= saturation; 
 							}
 
-							const double h = NST_DEG * angle;
-							const double i = s * std::sin( h );
-							const double q = s * std::cos( h );
-		
-							const double rgb[] = 
+							if (phase < 14)
 							{
-								bri + ( emphasis[index][0] * (y + 0.956 * i + 0.621 * q) ),
-								bri + ( emphasis[index][1] * (y - 0.272 * i - 0.647 * q) ), 
-								bri + ( emphasis[index][2] * (y - 1.105 * i + 1.702 * q) ) 
+								static const double luma[3][4] = 
+								{
+									{ 0.39, 0.67, 1.00, 1.00 },
+									{ 0.14, 0.34, 0.66, 0.86 },
+									{-0.12, 0.00, 0.31, 0.72 }
+								};
+
+								y = luma[phase == 0 ? 0 : phase < 13 ? 1 : 2][level];
+							}
+
+							const double rgb[3] =
+							{
+								(y + std::sin( decoder.axes[0].angle * NST_DEG ) * decoder.axes[0].gain * 2 * v + std::cos( decoder.axes[0].angle * NST_DEG ) * decoder.axes[0].gain * 2 * u) * emphasis[index][0] + brightness, 
+								(y + std::sin( decoder.axes[1].angle * NST_DEG ) * decoder.axes[1].gain * 2 * v + std::cos( decoder.axes[1].angle * NST_DEG ) * decoder.axes[1].gain * 2 * u) * emphasis[index][1] + brightness, 
+								(y + std::sin( decoder.axes[2].angle * NST_DEG ) * decoder.axes[2].gain * 2 * v + std::cos( decoder.axes[2].angle * NST_DEG ) * decoder.axes[2].gain * 2 * u) * emphasis[index][2] + brightness
 							};
-		
-							ToPAL( rgb, palette[(index * 64) + (voltage * 16) + phase] );
+
+							ToPAL( rgb, palette[(index * 64) + (level * 16) + phase] );
 						}
 					}
 				}
@@ -324,7 +339,7 @@ namespace Nes
 
 			void Renderer::Palette::Update(uint brightness,uint saturation,uint hue)
 			{
-				(*this.*(type == PALETTE_EMULATE ? &Palette::ComputeTV : &Palette::ComputeCustom))( brightness, saturation, hue );
+				(*this.*(type == PALETTE_YUV ? &Palette::Generate : &Palette::Build))( brightness, saturation, hue );
 			}
 
 			inline const Renderer::PaletteEntries& Renderer::Palette::Get() const
@@ -362,8 +377,6 @@ namespace Nes
 
 			void Renderer::Filter::Transform(const u8 (&src)[PALETTE][3],u32 (&dst)[PALETTE]) const
 			{
-				NST_ASSERT( src );
-
 				if (bpp >= 16)
 				{
 					for (uint i=0; i < PALETTE; ++i)
@@ -479,15 +492,15 @@ namespace Nes
 
 						if (FilterNtsc<32>::Check( renderState ))
 						{
-							filter = new (std::nothrow) FilterNtsc<32>( renderState, scanlines, state.brightness, state.saturation, state.hue );
+							filter = new (std::nothrow) FilterNtsc<32>( renderState, scanlines, state.brightness, state.saturation, state.hue, palette.GetDecoder() );
 						}
 						else if (FilterNtsc<16>::Check( renderState ))
 						{
-							filter = new (std::nothrow) FilterNtsc<16>( renderState, scanlines, state.brightness, state.saturation, state.hue );
+							filter = new (std::nothrow) FilterNtsc<16>( renderState, scanlines, state.brightness, state.saturation, state.hue, palette.GetDecoder() );
 						}
 						else if (FilterNtsc<15>::Check( renderState ))
 						{
-							filter = new (std::nothrow) FilterNtsc<15>( renderState, scanlines, state.brightness, state.saturation, state.hue );
+							filter = new (std::nothrow) FilterNtsc<15>( renderState, scanlines, state.brightness, state.saturation, state.hue, palette.GetDecoder() );
 						}
 						break;
 					}
@@ -550,6 +563,16 @@ namespace Nes
 				state.update |= State::UPDATE_PALETTE|State::UPDATE_FILTER;
 
 				return RESULT_OK;
+			}
+
+			Result Renderer::SetDecoder(const Decoder& decoder)
+			{
+				const Result result = palette.SetDecoder( decoder );
+
+				if (result == RESULT_OK && palette.GetType() == PALETTE_YUV)
+					state.update |= State::UPDATE_PALETTE|State::UPDATE_FILTER;
+
+				return result;
 			}
 
 			Result Renderer::SetPaletteType(PaletteType type)

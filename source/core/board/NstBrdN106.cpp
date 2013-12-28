@@ -55,15 +55,17 @@ namespace Nes
 				: irq(cpu), sound(cpu) {}
 			};
 	
-			N106::Sound::Sound(Cpu& c)
-			: apu(c.GetApu())
+			N106::Sound::Sound(Cpu& c,bool hook)
+			: apu(c.GetApu()), hooked(hook)
 			{
-				apu.HookChannel( this );
+				if (hook)
+					apu.HookChannel( this );
 			}
 	
 			N106::Sound::~Sound()
 			{
-				apu.ReleaseChannel();
+				if (hooked)
+					apu.ReleaseChannel();
 			}
 	
 			N106::N106(Context& c,const Type type)

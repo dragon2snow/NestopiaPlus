@@ -38,6 +38,7 @@ namespace Nes
 		public:
 
 			LinearMemory(dword);
+			LinearMemory(const u8*,dword);
 			LinearMemory(const LinearMemory&);
 
 			void operator =  (const LinearMemory&);

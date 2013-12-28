@@ -170,16 +170,19 @@ namespace Nes
 			0xFF
 		};
 
-		Fds::Sound::Sound(Cpu& c)
-		: cpu(c)
+		Fds::Sound::Sound(Cpu& c,bool hook)
+		: cpu(c), hooked(hook)
 		{
 			ResetChannel();
-			cpu.GetApu().HookChannel( this );
+
+			if (hook)
+				cpu.GetApu().HookChannel( this );
 		}
 	
 		Fds::Sound::~Sound()
 		{
-			cpu.GetApu().ReleaseChannel();
+			if (hooked)
+				cpu.GetApu().ReleaseChannel();
 		}
 
 		const Fds::Disks::Sides Fds::Disks::Create(StdStream input)

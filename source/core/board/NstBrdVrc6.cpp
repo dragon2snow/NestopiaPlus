@@ -47,15 +47,17 @@ namespace Nes
 				Reset(); 
 			}
 	
-			Vrc6::Sound::Sound(Cpu& cpu)
-			: apu(cpu.GetApu())
+			Vrc6::Sound::Sound(Cpu& cpu,bool hook)
+			: apu(cpu.GetApu()), hooked(hook)
 			{
-				apu.HookChannel( this );
+				if (hook)
+					apu.HookChannel( this );
 			}
 	
 			Vrc6::Sound::~Sound()
 			{
-				apu.ReleaseChannel();
+				if (hooked)
+					apu.ReleaseChannel();
 			}
 	
 			Vrc6::Vrc6(Context& c,const Type t)

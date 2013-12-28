@@ -57,6 +57,13 @@ namespace Nestopia
 	{
 		NST_ASSERT( dataName.IsNullTerminated() );
 
+		{
+			HeapString tmp;
+
+			if ((*this >> tmp) && tmp == dataName)
+				return FALSE;
+		}
+
 		long result;
 
 		AutoKey keys[MAX_STACK+1];	
@@ -138,7 +145,7 @@ namespace Nestopia
 		return TRUE;
 	}
 
-	void Registry::Key::Delete() const
+	ibool Registry::Key::Delete() const
 	{
 		long result;
 
@@ -159,13 +166,22 @@ namespace Nestopia
 			);
 
 			if (result != ERROR_SUCCESS)
-				return;
+				return FALSE;
+		}
+
+		{
+			HeapString tmp;
+
+			if (!(*this >> tmp))
+				return FALSE;
 		}
 
 		::SHDeleteKey( keys[last].handle, stack[last] );
+		
+		return TRUE;
 	}
 
-	void Registry::Key::Delete(const GenericString dataName) const
+	ibool Registry::Key::Delete(const GenericString dataName) const
 	{
 		NST_ASSERT( dataName.IsNullTerminated() );
 
@@ -186,7 +202,7 @@ namespace Nestopia
 			);
 
 			if (result != ERROR_SUCCESS)
-				return;
+				return FALSE;
 		}
 
 		enum {PAD_TO_CHECK_REAL_LENGTH = 1};
@@ -232,8 +248,11 @@ namespace Nestopia
 					// selected as default, delete whole key
 					::SHDeleteKey( keys[count-1].handle, stack[count-1] );
 				}
-				break;
+				
+				return TRUE;
 			}
 		}
+
+		return FALSE;
 	}
 }

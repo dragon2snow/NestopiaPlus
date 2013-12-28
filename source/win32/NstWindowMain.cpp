@@ -56,7 +56,7 @@ namespace Nestopia
 		context.className   = Application::Instance::GetClassName();
 		context.classStyle  = CLASS_STYLE;
 		context.hBackground = (HBRUSH) ::GetStockObject( NULL_BRUSH );
-		context.hIcon       = Resource::Icon( IDI_WINDOW );
+		context.hIcon       = Resource::Icon( Application::Instance::GetIconStyle() == Application::Instance::ICONSTYLE_NES ? IDI_PAD : IDI_PAD_J );
 		context.windowName  = windowName;
 		context.winStyle    = WIN_STYLE;
 		context.exStyle     = WIN_EXSTYLE;

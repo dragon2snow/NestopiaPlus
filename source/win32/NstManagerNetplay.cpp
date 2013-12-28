@@ -38,6 +38,7 @@
 #include "NstDialogNetplay.hpp"
 #include "NstManagerNetplay.hpp"
 #include "../kaillera/kailleraclient.h"
+#include "../core/api/NstApiFds.hpp"
 #include <Shlwapi.h>
 
 #ifndef WM_THEMECHANGED
@@ -56,8 +57,7 @@ namespace Nestopia
 			MASTER              = 1,
 			WM_NST_OPEN_CLIENT	= WM_APP + 57,
 			WM_NST_CLOSE_CLIENT = WM_APP + 58,
-			WM_NST_START_GAME   = WM_APP + 59,
-			WM_NST_GAME_COMMAND = WM_APP + 60
+			WM_NST_START_GAME   = WM_APP + 59
 		};
 
 		class Command
@@ -69,8 +69,7 @@ namespace Nestopia
 			void Begin();
 			void End();
 			uint GetCode();
-
-			static void Dispatch(const uint,Nes::Input::Controllers&);
+			void Dispatch(const uint,Nes::Input::Controllers&) const;
 
 		private:
 
@@ -80,10 +79,11 @@ namespace Nestopia
 
 			enum
 			{
-				CALLBACK_RESET       = 0,
-				CALLBACK_INSERT_DISK = CALLBACK_RESET + 2,
-				CALLBACK_EJECT_DISK  = CALLBACK_INSERT_DISK + 8*2,
-				NUM_CALLBACKS        = CALLBACK_EJECT_DISK + 1
+				CALLBACK_RESET            = 0,
+				CALLBACK_INSERT_DISK      = CALLBACK_RESET + 2,
+				CALLBACK_EJECT_DISK       = CALLBACK_INSERT_DISK + 8*2,
+				CALLBACK_CHANGE_DISK_SIDE = CALLBACK_EJECT_DISK + 1,
+				NUM_CALLBACKS             = CALLBACK_CHANGE_DISK_SIDE + 1
 			};
 
 			enum
@@ -120,11 +120,10 @@ namespace Nestopia
 				ibool noSpriteLimit;
 			};
 
-			ibool OnMessage(Window::Param&);
-
 			void OnReset      (uint);
 			void OnInsertDisk (uint);
 			void OnEjectDisk  (uint);
+			void OnDiskSide   (uint);
 			
 			uint command;
 			MenuCallback menuCallbacks[NUM_CALLBACKS];
@@ -138,25 +137,10 @@ namespace Nestopia
 
 			void Capture();
 			void Release() const;
-			uint GetCode() const;
+			void Begin();
+			void UpdatePorts(uint);
 
 		private:
-
-			struct Handler;
-			typedef Window::Menu::CmdHandler CmdHandler;
-			typedef CmdHandler::Callback MenuCallback;
-
-			enum
-			{
-				NUM_MENU_CALLBACKS = 4 * 5
-			};
-
-			void SelectPort(const uint,const uint);
-
-			void OnPort1 (uint);
-			void OnPort2 (uint);
-			void OnPort3 (uint);
-			void OnPort4 (uint);
 
 			struct PollCallback
 			{
@@ -164,9 +148,31 @@ namespace Nestopia
 				Nes::Input::Controllers::Pad::PollCallback code;
 			};
 
-			uint padIndex;
+			uint pads[4];
 			PollCallback pollCallback;
-			MenuCallback menuCallbacks[NUM_MENU_CALLBACKS];
+			Nes::Input::Type normalSetup[5];
+
+		public:
+
+			void Dispatch(const uint port,const uint packet,Nes::Input::Controllers& controllers) const
+			{
+				NST_ASSERT( port < 4 );
+				controllers.pad[pads[port]].buttons = packet;
+			}
+
+			uint GetCode() const
+			{
+				if (instance->network.player <= 4)
+				{
+					Nes::Input::Controllers::Pad pad;
+					pollCallback.code( pollCallback.data, pad, pads[instance->network.player-1] );
+					return pad.buttons;
+				}
+				else
+				{
+					return 0;
+				}
+			}
 		};
 
 		struct Network
@@ -418,8 +424,8 @@ namespace Nestopia
 
 	const Window::Menu::CmdHandler::Entry<Netplay::Kaillera::Command> Netplay::Kaillera::Command::Handler::messages[] =
 	{
-		{ IDM_MACHINE_RESET_SOFT,				&Command::OnReset      },
-		{ IDM_MACHINE_RESET_HARD,				&Command::OnReset      },
+		{ IDM_MACHINE_RESET_SOFT,				    &Command::OnReset      },
+		{ IDM_MACHINE_RESET_HARD,				    &Command::OnReset      },
 		{ IDM_MACHINE_EXT_FDS_INSERT_DISK_1_SIDE_A,	&Command::OnInsertDisk },
 		{ IDM_MACHINE_EXT_FDS_INSERT_DISK_1_SIDE_B,	&Command::OnInsertDisk },
 		{ IDM_MACHINE_EXT_FDS_INSERT_DISK_2_SIDE_A,	&Command::OnInsertDisk },
@@ -436,13 +442,12 @@ namespace Nestopia
 		{ IDM_MACHINE_EXT_FDS_INSERT_DISK_7_SIDE_B,	&Command::OnInsertDisk },
 		{ IDM_MACHINE_EXT_FDS_INSERT_DISK_8_SIDE_A,	&Command::OnInsertDisk },
 		{ IDM_MACHINE_EXT_FDS_INSERT_DISK_8_SIDE_B,	&Command::OnInsertDisk },
-		{ IDM_MACHINE_EXT_FDS_EJECT_DISK,			&Command::OnEjectDisk  }
+		{ IDM_MACHINE_EXT_FDS_EJECT_DISK,			&Command::OnEjectDisk  },
+		{ IDM_MACHINE_EXT_FDS_CHANGE_SIDE,			&Command::OnDiskSide   }
 	};
 
 	void Netplay::Kaillera::Command::Capture()
 	{
-		instance->window.Messages().Add( WM_NST_GAME_COMMAND, this, &Command::OnMessage );
-
 		CmdHandler& menu = instance->menu.Commands();
 
 		for (uint i=0; i < NST_COUNT(Handler::messages); ++i)
@@ -451,8 +456,6 @@ namespace Nestopia
 
 	void Netplay::Kaillera::Command::Release() const
 	{
-		instance->window.Messages().Remove( this );
-
 		CmdHandler& menu = instance->menu.Commands();
 
 		for (uint i=0; i < NST_COUNT(Handler::messages); ++i)
@@ -518,7 +521,7 @@ namespace Nestopia
 		}
 	}
 
-	void Netplay::Kaillera::Command::Dispatch(const uint packet,Nes::Input::Controllers& controllers)
+	void Netplay::Kaillera::Command::Dispatch(const uint packet,Nes::Input::Controllers& controllers) const
 	{
 		if (packet)
 		{
@@ -532,7 +535,54 @@ namespace Nestopia
 			}
 			else
 			{
-				instance->window.Post( WM_NST_GAME_COMMAND, packet, 0 );
+				uint data = packet >> PACKET_DATA_SHIFT;
+			
+				switch (packet & PACKET_TYPE)
+				{
+					case PACKET_RESET:              
+				
+						NST_VERIFY( data < 2 );
+			
+						if (data < 2)
+							menuCallbacks[CALLBACK_RESET + data](IDM_MACHINE_RESET_SOFT + data);
+				
+						break;
+				
+					case PACKET_INSERT_DISK_SIDE_A: 
+					case PACKET_INSERT_DISK_SIDE_B: 
+				
+						data = data * 2 + ((packet & PACKET_TYPE) == PACKET_INSERT_DISK_SIDE_B);
+			
+						NST_VERIFY( data < 16 );
+				
+						if (data < 16)
+							menuCallbacks[CALLBACK_INSERT_DISK + data](IDM_MACHINE_EXT_FDS_INSERT_DISK_1_SIDE_A + data);
+				
+						break;
+				
+					case PACKET_EJECT_DISK:         
+				
+						NST_VERIFY( data == 0 );
+			
+						menuCallbacks[CALLBACK_EJECT_DISK](IDM_MACHINE_EXT_FDS_EJECT_DISK);
+						break;
+			
+					case PACKET_STARTUP:
+			
+						if (instance->network.player != MASTER)
+						{
+							instance->window.SendCommand
+							( 
+       	   	   					(data & PACKET_DATA_SYSTEM) == PACKET_DATA_SYSTEM_NTSC ? IDM_MACHINE_SYSTEM_NTSC :
+     	 	 					(data & PACKET_DATA_SYSTEM) == PACKET_DATA_SYSTEM_PAL  ? IDM_MACHINE_SYSTEM_PAL  :
+							                                                             IDM_MACHINE_SYSTEM_AUTO
+							);
+			
+						    if (bool(settings.noSpriteLimit) != bool(data & PACKET_DATA_NO_SPRITE_LIMIT))
+								Nes::Video(instance->emulator).EnableUnlimSprites( !settings.noSpriteLimit );
+						}
+						break;
+				}
 			}
 		}
 	}
@@ -590,111 +640,18 @@ namespace Nestopia
 		command = PACKET_EJECT_DISK;
 	}
 
-	ibool Netplay::Kaillera::Command::OnMessage(Window::Param& param)
+	void Netplay::Kaillera::Command::OnDiskSide(uint)
 	{
-		uint data = param.wParam >> PACKET_DATA_SHIFT;
+		const int disk = Nes::Fds(instance->emulator).GetCurrentDisk();
 
-		switch (param.wParam & PACKET_TYPE)
-		{
-			case PACKET_RESET:              
-		
-				NST_VERIFY( data < 2 );
-
-				if (data < 2)
-					menuCallbacks[CALLBACK_RESET + data](IDM_MACHINE_RESET_SOFT + data);
-		
-				break;
-		
-			case PACKET_INSERT_DISK_SIDE_A: 
-			case PACKET_INSERT_DISK_SIDE_B: 
-		
-				data = data * 2 + ((param.wParam & PACKET_TYPE) == PACKET_INSERT_DISK_SIDE_B);
-
-				NST_VERIFY( data < 16 );
-		
-				if (data < 16)
-					menuCallbacks[CALLBACK_INSERT_DISK + data](IDM_MACHINE_EXT_FDS_INSERT_DISK_1_SIDE_A + data);
-		
-				break;
-		
-			case PACKET_EJECT_DISK:         
-		
-				NST_VERIFY( data == 0 );
-
-				menuCallbacks[CALLBACK_EJECT_DISK](IDM_MACHINE_EXT_FDS_EJECT_DISK);
-				break;
-
-			case PACKET_STARTUP:
-
-				if (instance->network.player != MASTER)
-				{
-					instance->window.SendCommand
-					( 
-       					(data & PACKET_DATA_SYSTEM) == PACKET_DATA_SYSTEM_NTSC ? IDM_MACHINE_SYSTEM_NTSC :
-     					(data & PACKET_DATA_SYSTEM) == PACKET_DATA_SYSTEM_PAL  ? IDM_MACHINE_SYSTEM_PAL  :
-					                                                             IDM_MACHINE_SYSTEM_AUTO
-					);
-
-				    if (bool(settings.noSpriteLimit) != bool(data & PACKET_DATA_NO_SPRITE_LIMIT))
-						Nes::Video(instance->emulator).EnableUnlimSprites( !settings.noSpriteLimit );
-				}
-				break;
-		}
-
-		return TRUE;
+		if (disk != Nes::Fds::NO_DISK)
+			command = (PACKET_INSERT_DISK_SIDE_A + (Nes::Fds(instance->emulator).GetCurrentDiskSide() ^ 1)) | (uint(disk) << PACKET_DATA_SHIFT);
 	}
-
-	struct Netplay::Kaillera::Input::Handler
-	{
-		struct Entry
-		{
-			ushort idm;
-			ushort type;
-			void (Input::*function)(uint);
-		};
-
-		static const Entry entries[];
-	};
-
-	const Netplay::Kaillera::Input::Handler::Entry Netplay::Kaillera::Input::Handler::entries[] =
-	{
-		{ IDM_MACHINE_INPUT_PORT1_UNCONNECTED, Nes::Input::UNCONNECTED, &Input::OnPort1 },
-		{ IDM_MACHINE_INPUT_PORT1_PAD1,        Nes::Input::PAD1,        &Input::OnPort1 },
-		{ IDM_MACHINE_INPUT_PORT1_PAD2,        Nes::Input::PAD2,        &Input::OnPort1 },
-		{ IDM_MACHINE_INPUT_PORT1_PAD3,        Nes::Input::PAD3,        &Input::OnPort1 },
-		{ IDM_MACHINE_INPUT_PORT1_PAD4,        Nes::Input::PAD4,        &Input::OnPort1 },
-		{ IDM_MACHINE_INPUT_PORT2_UNCONNECTED, Nes::Input::UNCONNECTED, &Input::OnPort2 },
-		{ IDM_MACHINE_INPUT_PORT2_PAD1,        Nes::Input::PAD1,        &Input::OnPort2 },
-		{ IDM_MACHINE_INPUT_PORT2_PAD2,        Nes::Input::PAD2,        &Input::OnPort2 },
-		{ IDM_MACHINE_INPUT_PORT2_PAD3,        Nes::Input::PAD3,        &Input::OnPort2 },
-		{ IDM_MACHINE_INPUT_PORT2_PAD4,        Nes::Input::PAD4,        &Input::OnPort2 },
-		{ IDM_MACHINE_INPUT_PORT3_UNCONNECTED, Nes::Input::UNCONNECTED, &Input::OnPort3 },
-		{ IDM_MACHINE_INPUT_PORT3_PAD1,        Nes::Input::PAD1,        &Input::OnPort3 },
-		{ IDM_MACHINE_INPUT_PORT3_PAD2,        Nes::Input::PAD2,        &Input::OnPort3 },
-		{ IDM_MACHINE_INPUT_PORT3_PAD3,        Nes::Input::PAD3,        &Input::OnPort3 },
-		{ IDM_MACHINE_INPUT_PORT3_PAD4,        Nes::Input::PAD4,        &Input::OnPort3 },
-		{ IDM_MACHINE_INPUT_PORT4_UNCONNECTED, Nes::Input::UNCONNECTED, &Input::OnPort4 },
-		{ IDM_MACHINE_INPUT_PORT4_PAD1,        Nes::Input::PAD1,        &Input::OnPort4 },
-		{ IDM_MACHINE_INPUT_PORT4_PAD2,        Nes::Input::PAD2,        &Input::OnPort4 },
-		{ IDM_MACHINE_INPUT_PORT4_PAD3,        Nes::Input::PAD3,        &Input::OnPort4 },
-		{ IDM_MACHINE_INPUT_PORT4_PAD4,        Nes::Input::PAD4,        &Input::OnPort4 }
-	};
 
 	void Netplay::Kaillera::Input::Capture()
 	{
-		padIndex = 0;
-
-		instance->emulator.ConnectController( 0, Nes::Input::PAD1 );
-		instance->emulator.ConnectController( 1, Nes::Input::PAD2 );
-		instance->emulator.ConnectController( 2, Nes::Input::PAD3 );
-		instance->emulator.ConnectController( 3, Nes::Input::PAD4 );
-		instance->emulator.ConnectController( 4, Nes::Input::UNCONNECTED );
-
-		for (uint i=0; i < NST_COUNT(Handler::entries); i += 5)
-			instance->menu[Handler::entries[i+1].idm].Check( Handler::entries[i].idm, Handler::entries[i+4].idm );
-
-		for (uint i=0; i < NST_COUNT(Handler::entries); ++i)
-			menuCallbacks[i] = instance->menu.Commands()[Handler::entries[i].idm].Replace( this, Handler::entries[i].function );
+		for (uint i=0; i < 5; ++i)
+			normalSetup[i] = instance->emulator.GetController( i );
 
 		Nes::Input::Controllers::Pad::callback.Get( pollCallback.code, pollCallback.data );
 		Nes::Input::Controllers::Pad::callback.Set( NULL, NULL );
@@ -702,62 +659,79 @@ namespace Nestopia
 
 	void Netplay::Kaillera::Input::Release() const
 	{
-		for (uint i=0; i < NST_COUNT(Handler::entries); ++i)
-		{
-			if (instance->emulator.GetController(i % 5) == Handler::entries[i].type)
-				instance->menu[Handler::entries[i].idm].Check( Handler::entries[i/5*5].idm, Handler::entries[i/5*5+4].idm );
+		Nes::Input::Controllers::Pad::callback.Set( pollCallback.code, pollCallback.data );
 
-			instance->menu.Commands()[Handler::entries[i].idm] = menuCallbacks[i];
+		for (uint i=0; i < 5; ++i)
+			instance->emulator.ConnectController( i, normalSetup[i] );
+	}
+
+	void Netplay::Kaillera::Input::Begin()
+	{
+		if (instance->network.player <= 4)
+		{
+			Nes::Input::Type defaultPad;
+
+			switch (normalSetup[0])
+			{
+				case Nes::Input::PAD2:
+				case Nes::Input::PAD3:
+				case Nes::Input::PAD4:
+
+					defaultPad = normalSetup[0];
+					break;
+
+				default:
+
+					defaultPad = Nes::Input::PAD1;
+					break;
+			}
+
+			instance->emulator.ConnectController( instance->network.player-1, defaultPad );
+			UpdatePorts( instance->network.player-1 );
+		}
+		else for (uint i=0; i < 4; ++i)
+		{
+			pads[i] = i;
+			instance->emulator.ConnectController( i, (Nes::Input::Type) (Nes::Input::PAD1+i) );
 		}
 
-		Nes::Input::Controllers::Pad::callback.Set( pollCallback.code, pollCallback.data );
+		for (uint i=instance->network.players; i < 4; ++i)
+			instance->emulator.ConnectController( i, Nes::Input::UNCONNECTED );
+
+		instance->emulator.ConnectController( 4, Nes::Input::UNCONNECTED );
 	}
 
-	void Netplay::Kaillera::Input::SelectPort(const uint offset,const uint idm)
+	void Netplay::Kaillera::Input::UpdatePorts(const uint port)
 	{
-		instance->menu[offset + padIndex].Uncheck();
-		instance->menu[idm].Check();
-		padIndex = idm - offset;
+		if (port == instance->network.player-1)
+		{
+			switch (const Nes::Input::Type type = instance->emulator.GetController( port ))
+			{
+				case Nes::Input::PAD1:
+				case Nes::Input::PAD2:
+				case Nes::Input::PAD3:
+				case Nes::Input::PAD4:
+			
+					pads[port] = type - Nes::Input::PAD1;
+					break;
+			
+				default:
+			
+					pads[port] = 0;
+					instance->emulator.ConnectController( port, Nes::Input::PAD1 );
+					return;
+			}
+
+			for (uint i=1; i < 4; ++i)
+				pads[(port+i) & 3] = (pads[port] + i) & 3;
+
+			for (uint i=0, n=NST_MIN(4,instance->network.players); i < n; ++i)
+			{
+				if (i != port)
+					instance->emulator.ConnectController( i, (Nes::Input::Type) (Nes::Input::PAD1 + pads[i]) );
+			}
+		}
 	}
-
-	void Netplay::Kaillera::Input::OnPort1(uint idm)
-	{
-		SelectPort( IDM_MACHINE_INPUT_PORT1_PAD1, idm );
-	}
-
-	void Netplay::Kaillera::Input::OnPort2(uint idm)
-	{
-		SelectPort( IDM_MACHINE_INPUT_PORT2_PAD1, idm );
-	}
-
-	void Netplay::Kaillera::Input::OnPort3(uint idm)
-	{
-		SelectPort( IDM_MACHINE_INPUT_PORT3_PAD1, idm );
-	}
-
-	void Netplay::Kaillera::Input::OnPort4(uint idm)
-	{
-		SelectPort( IDM_MACHINE_INPUT_PORT4_PAD1, idm );
-	}
-
-    #ifdef NST_PRAGMA_OPTIMIZE
-    #pragma optimize("t", on)
-    #endif
-
-	uint Netplay::Kaillera::Input::GetCode() const
-	{
-		Nes::Input::Controllers::Pad pad;
-		const uint index = padIndex;
-
-		if (index < 4)
-			pollCallback.code( pollCallback.data, pad, index );
-
-		return pad.buttons;
-	}
-
-    #ifdef NST_PRAGMA_OPTIMIZE
-    #pragma optimize("", on)
-    #endif
 
 	Netplay::Kaillera* Netplay::Kaillera::instance = NULL;
 	Netplay::Kaillera::Client::Instance Netplay::Kaillera::Client::instance;
@@ -1038,18 +1012,16 @@ namespace Nestopia
 
 		if (network.connected)
 		{
-			uchar packets[MAX_PLAYERS][2];
+			u8 packets[MAX_PLAYERS][2];
 
 			packets[0][0] = (u8) network.input.GetCode();
 			packets[0][1] = (u8) network.command.GetCode();
 
 			if (::kailleraModifyPlayValues( packets, 2 ) != -1)
 			{
-				const uint ports = NST_MIN( 4, network.players );
-
-				for (uint i=0; i < ports; ++i)
+				for (uint i=0, ports=NST_MIN(4,network.players); i < ports; ++i)
 				{
-					controllers->pad[i].buttons = packets[i][0];
+					network.input.Dispatch( i, packets[i][0], *controllers );
 					network.command.Dispatch( packets[i][1], *controllers );
 				}
 			}
@@ -1151,8 +1123,19 @@ namespace Nestopia
 						window.SendCommand( IDM_VIEW_SWITCH_SCREEN );
 
 					network.command.Begin();
+					network.input.Begin();
 					enableCallback = window.Messages()[WM_ENABLE].Replace( this, &Kaillera::OnEnable );
 				}
+				break;
+
+			case Emulator::EVENT_PORT1_CONTROLLER:
+			case Emulator::EVENT_PORT2_CONTROLLER:
+			case Emulator::EVENT_PORT3_CONTROLLER:
+			case Emulator::EVENT_PORT4_CONTROLLER:
+
+				if (network.connected)
+					network.input.UpdatePorts( event - Emulator::EVENT_PORT1_CONTROLLER );
+
 				break;
 
     		case Emulator::EVENT_NETPLAY_POWER_OFF:
@@ -1167,7 +1150,7 @@ namespace Nestopia
 					if (dialog->ShouldGoFullscreen())
 						window.SendCommand( IDM_VIEW_SWITCH_SCREEN );
 
-					network.command.End();
+					network.command.End();					
 					window.Messages()[WM_ENABLE] = enableCallback;
 
 					Client::Show();

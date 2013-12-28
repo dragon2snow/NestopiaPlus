@@ -609,7 +609,7 @@ namespace Nestopia
 		window.Redraw();
 	}
 
-	ibool Video::OnTimerText()
+	uint Video::OnTimerText()
 	{
 		if (IsFullscreen())
 		{
@@ -624,7 +624,7 @@ namespace Nestopia
 		return FALSE;
 	}
 
-	ibool Video::OnTimerFps()
+	uint Video::OnTimerFps()
 	{
 		if (emulator.Is(Nes::Machine::ON,Nes::Machine::GAME))
 		{
@@ -781,7 +781,7 @@ namespace Nestopia
 			NST_ASSERT( renderState.bits.mask.r && renderState.bits.mask.g && renderState.bits.mask.b );
 		
 			Rect nesScreen;
-			dialog->GetRenderState( renderState, nesScreen, Nes::Machine(emulator).GetMode(), window );
+			dialog->GetRenderState( renderState, nesScreen, window );
 			NST_ASSERT( direct2d.GetAdapter().maxScreenSize >= NST_MAX(renderState.width,renderState.height) );
 
 			Nes::Video(emulator).SetRenderState( renderState );
@@ -935,6 +935,10 @@ namespace Nestopia
 
 			case Emulator::EVENT_LOAD:
 		
+				if (emulator.Is(Nes::Machine::GAME))
+				{
+					dialog->UpdatePaletteMode();
+				}
 				if (emulator.Is(Nes::Machine::SOUND))
 				{
 					nsf.Load( Nes::Nsf(emulator) );
@@ -943,6 +947,9 @@ namespace Nestopia
 				break;
 
 			case Emulator::EVENT_NETPLAY_LOAD:
+
+				if (emulator.Is(Nes::Machine::GAME))
+					dialog->UpdatePaletteMode();
 
 				menu[IDM_MACHINE_OPTIONS_UNLIMITEDSPRITES].Disable();
 				break;

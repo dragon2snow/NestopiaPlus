@@ -40,6 +40,13 @@ namespace Nes
 			Set( s ); 
 		}
 
+		LinearMemory::LinearMemory(const u8* m,dword s)
+		: mem(NULL), size(0)
+		{ 
+			Set( s ); 
+			std::memcpy( mem, m, s );
+		}
+
 		LinearMemory::LinearMemory(const LinearMemory& m)
 		: mem(NULL), size(0)
 		{ 

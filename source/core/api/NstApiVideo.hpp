@@ -119,6 +119,41 @@ namespace Nes
 	
 			Result Blit(Output&);
 
+			enum DecoderPreset
+			{
+				DECODER_CANONICAL,
+				DECODER_CONSUMER,
+				DECODER_ALTERNATIVE
+			};
+
+			struct Decoder
+			{
+				Decoder() {}
+				Decoder(DecoderPreset);
+
+				bool operator == (const Decoder&) const;
+
+				enum
+				{
+					AXIS_RY,
+					AXIS_GY,
+					AXIS_BY,
+					NUM_AXES
+				};
+
+				struct Axis
+				{
+					uint angle;
+					float gain;
+				};
+
+				Axis axes[NUM_AXES];
+				bool boostYellow;
+			};
+
+			Result SetDecoder(const Decoder&);
+			const Decoder& GetDecoder() const;
+
 			class Palette
 			{
 				friend class Video;
@@ -139,9 +174,9 @@ namespace Nes
 
 				enum Mode
 				{
-					INTERNAL,
-					CUSTOM,
-					EMULATED
+					MODE_YUV,
+					MODE_RGB,
+					MODE_CUSTOM
 				};
 
 				typedef const u8 (*Colors)[3];

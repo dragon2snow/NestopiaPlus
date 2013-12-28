@@ -58,8 +58,8 @@ namespace Nestopia
 				ibool operator << (const GenericString) const;
 				ibool operator >> (HeapString&) const;
 
-				void Delete() const;
-				void Delete(const GenericString) const;
+				ibool Delete() const;
+				ibool Delete(const GenericString) const;
 
 			private:
 

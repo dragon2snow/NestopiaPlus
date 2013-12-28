@@ -879,6 +879,14 @@
 				>
 			</File>
 			<File
+				RelativePath="..\source\core\mapper\NstMapper102.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\mapper\NstMapper102.hpp"
+				>
+			</File>
+			<File
 				RelativePath="..\source\core\mapper\NstMapper105.cpp"
 				>
 			</File>
@@ -1005,24 +1013,6 @@
 			<File
 				RelativePath="..\source\core\mapper\NstMapper145.cpp"
 				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						ObjectFile="$(IntDir)\$(InputName)1.obj"
-						XMLDocumentationFileName="$(IntDir)\$(InputName)1.xdc"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						ObjectFile="$(IntDir)\$(InputName)1.obj"
-						XMLDocumentationFileName="$(IntDir)\$(InputName)1.xdc"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="..\source\core\mapper\NstMapper145.hpp"

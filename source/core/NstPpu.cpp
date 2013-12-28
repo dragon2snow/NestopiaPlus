@@ -981,6 +981,8 @@ namespace Nes
 		{
 			UpdateLatency();
 	
+			NST_VERIFY( IsDead()  );
+
 			io.latch = data;
 			address = scroll.address;
 
@@ -1010,6 +1012,8 @@ namespace Nes
 		NES_PEEK(Ppu,2007)
 		{
 			Update();
+
+			NST_VERIFY( IsDead() );
 
 			address = scroll.address & 0x3FFF;
 			

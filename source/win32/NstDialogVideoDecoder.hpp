@@ -22,30 +22,44 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#ifndef NST_MAPPER_185_H
-#define NST_MAPPER_185_H
+#ifndef NST_DIALOG_VIDEODECODER_H
+#define NST_DIALOG_VIDEODECODER_H
 
-#ifdef NST_PRAGMA_ONCE_SUPPORT
 #pragma once
-#endif
 
-namespace Nes
+#include "NstWindowDialog.hpp"
+#include "NstWindowParam.hpp"
+#include "NstManagerEmulator.hpp"
+
+namespace Nestopia
 {
-	namespace Core
+	namespace Window
 	{
-		class Mapper185 : public Mapper
+		class VideoDecoder
 		{
 		public:
 
-			Mapper185(Context&);
+			VideoDecoder(Nes::Video);
+			~VideoDecoder();
 
 		private:
 
-			void SubReset(bool);
+			struct Handlers;
 
-			NES_DECL_POKE( Prg )
+			void Update() const;
+			void Redraw() const;
 
-			const uint compare;
+			ibool OnInitDialog     (Param&);
+			ibool OnHScroll        (Param&);
+			ibool OnCmdGain	       (Param&);
+			ibool OnCmdBoostYellow (Param&);
+			ibool OnCmdPreset      (Param&);
+			ibool OnCmdOk          (Param&);
+			ibool OnCmdCancel      (Param&);
+
+			Dialog dialog;
+			Nes::Video nes;
+			Nes::Video::Decoder final;
 		};
 	}
 }

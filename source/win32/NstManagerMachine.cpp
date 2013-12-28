@@ -181,6 +181,7 @@ namespace Nestopia
 				break;
 			}
 
+			case Emulator::EVENT_LOAD:
 			case Emulator::EVENT_UNLOAD:
 
 				menu[ IDM_MACHINE_POWER ].Enable( event == Emulator::EVENT_LOAD );

@@ -67,7 +67,8 @@ namespace Nes
 					int,
 					int,
 					uint,
-					int
+					int,
+					const Api::Video::Decoder&
 				);
 			};
 
@@ -120,7 +121,7 @@ namespace Nes
 					i32 rgbPhases[PHASE_COUNT][6];
 					u8 toInt[COLOR_RANGE * 5];
 
-					Lut(uint brightness,uint saturation,uint hue)
+					Lut(uint brightness,uint saturation,uint hue,const Api::Video::Decoder& decoder)
 					{
 						BaseFilterNtscLut::Build
 						( 
@@ -130,7 +131,8 @@ namespace Nes
 							COLOR_RANGE, 
 							brightness, 
 							saturation, 
-							hue 
+							hue,
+							decoder
 						);
 					}
 				};
@@ -163,16 +165,16 @@ namespace Nes
 
 			public:
 
-				FilterNtsc(const RenderState&,uint,uint,uint,uint);
+				FilterNtsc(const RenderState&,uint,uint,uint,uint,const Api::Video::Decoder&);
 
 				static bool Check(const RenderState&);
 			};
 
 			template<uint BITS>
-			Renderer::FilterNtsc<BITS>::FilterNtsc(const RenderState& state,uint lines,uint brightness,uint saturation,uint hue)
+			Renderer::FilterNtsc<BITS>::FilterNtsc(const RenderState& state,uint lines,uint brightness,uint saturation,uint hue,const Api::Video::Decoder& decoder)
 			: 
 			Filter    ( state ), 
-			lut       ( brightness, saturation, hue ),
+			lut       ( brightness, saturation, hue, decoder ),
 			scanlines ( lines )
 			{
 				std::memset( composite, 0, sizeof(composite) );

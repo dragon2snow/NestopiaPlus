@@ -47,16 +47,14 @@ namespace Nestopia
 
 			enum
 			{
-				NES_WIDTH      = Nes::Video::Output::WIDTH,
-				NES_HEIGHT     = Nes::Video::Output::HEIGHT,
-				NES_CLIP	   = 8,
-				NTSC_WIDTH	   = Nes::Video::Output::NTSC_WIDTH,
-				NTSC_HEIGHT	   = Nes::Video::Output::NTSC_HEIGHT,
-				NTSC_CLIP	   = 8,
-				DEFAULT_WIDTH  = 640,
-				DEFAULT_HEIGHT = 480,
-				DEFAULT_BPP    = 16,
-				SCREEN_MATCHED = 8,
+				NES_WIDTH        = Nes::Video::Output::WIDTH,
+				NES_HEIGHT       = Nes::Video::Output::HEIGHT,
+				NTSC_WIDTH	     = Nes::Video::Output::NTSC_WIDTH,
+				NTSC_HEIGHT	     = Nes::Video::Output::NTSC_HEIGHT,
+				DEFAULT_WIDTH    = 640,
+				DEFAULT_HEIGHT   = 480,
+				DEFAULT_BPP      = 16,
+				SCREEN_MATCHED   = 8,
 				SCREEN_STRETCHED = INT_MAX
 			};
 
@@ -67,8 +65,9 @@ namespace Nestopia
 			void LoadGamePalette(const Path&);
 			void UnloadGamePalette();
 			void SavePalette(Path&) const;
+			void UpdatePaletteMode() const;
 
-			void GetRenderState(Nes::Video::RenderState&,Rect&,Nes::Machine::Mode,const Window::Generic) const;
+			void GetRenderState(Nes::Video::RenderState&,Rect&,const Window::Generic) const;
 			const Rect GetNesRect(const Nes::Machine::Mode) const;
 			ibool PutTextureInVideoMemory() const;
 			Modes::const_iterator GetDialogMode() const;
@@ -79,6 +78,15 @@ namespace Nestopia
 
 			uint GetFullscreenScaleMethod() const;
 			void UpdateFullscreenScaleMethod(uint);
+			Nes::Video::Palette::Mode GetDesiredPaletteMode() const;
+
+			enum
+			{
+				NTSC_CLIP_TOP = 8,
+				NTSC_CLIP_BOTTOM = NES_HEIGHT - 8,
+				PAL_CLIP_TOP = 1,
+				PAL_CLIP_BOTTOM = NES_HEIGHT - 0
+			};
 
 			enum FilterType
 			{
@@ -140,6 +148,7 @@ namespace Nestopia
 				Path palette;
 				Path lockedPalette;
 				Nes::Video::Palette::Mode lockedMode;
+				ibool autoPalette;
 				ibool autoHz;
 			};
 
@@ -153,6 +162,7 @@ namespace Nestopia
 			ibool OnCmdTexMem         (Param&);
 			ibool OnCmdBitDepth       (Param&);
 			ibool OnCmdRam            (Param&);
+			ibool OnCmdColorsAdvanced (Param&);
 			ibool OnCmdColorsReset    (Param&);
 			ibool OnCmdPalType        (Param&);
 			ibool OnCmdPalBrowse      (Param&);
@@ -184,7 +194,7 @@ namespace Nestopia
 
 			Settings settings;
 			const Adapters& adapters;
-			Nes::Video nes;
+			Managers::Emulator& nes;
 			Dialog dialog;
 			const Managers::Paths& paths;
 

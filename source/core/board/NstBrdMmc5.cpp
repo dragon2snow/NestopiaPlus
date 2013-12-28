@@ -139,15 +139,17 @@ namespace Nes
 				Reset(); 
 			}
 
-			Mmc5::Sound::Sound(Cpu& c)
-			: cpu(c)
+			Mmc5::Sound::Sound(Cpu& c,bool hook)
+			: cpu(c), hooked(hook)
 			{
-				cpu.GetApu().HookChannel( this );
+				if (hook)
+					cpu.GetApu().HookChannel( this );
 			}
 			
 			Mmc5::Sound::~Sound()
 			{
-				cpu.GetApu().ReleaseChannel();
+				if (hooked)
+					cpu.GetApu().ReleaseChannel();
 			}
 
 			Mmc5::Banks::Wrk::Wrk(dword s)

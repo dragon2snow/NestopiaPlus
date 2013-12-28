@@ -3,7 +3,7 @@
 // Nestopia - NES / Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
-// Copyright (C) 2003 MaxSt ( maxst@hiend3d.com )
+// Copyright (C) 2006 Shay Green
 //
 // This file is part of Nestopia.
 // 
@@ -48,8 +48,9 @@ namespace Nes
 				u8* const NST_RESTRICT toInt,
 				const int colorRange,
 				int brightness,
-				const uint iSaturation,
-				const int iHue
+				const uint sat,
+				int hue,
+				const Api::Video::Decoder& decoder
 			)
 			{
 				brightness = colorRange*2 - ((brightness - 128) / (256 / (colorRange-1)));
@@ -57,87 +58,70 @@ namespace Nes
 				for (int i=0, n=colorRange*5; i < n; ++i)
 					toInt[i] = NST_CLAMP(i-brightness,0,colorRange-1);
 
-				double hue;
+				const double saturation = sat / 128.0;
+				hue = (hue - 128) / 4 + 33;
 
-				if (iHue != 128)
-					hue = (iHue - 128) / 512.0 * NST_PI;
-				else
-					hue = 0.0;
+				double rgb[3][2];
 
-				const double saturation = iSaturation / 128.0;
+				for (uint i=0; i < 3; ++i)
+				{
+					rgb[i][0] = std::sin( decoder.axes[i].angle * NST_DEG ) * decoder.axes[i].gain * 2;
+					rgb[i][1] = std::cos( decoder.axes[i].angle * NST_DEG ) * decoder.axes[i].gain * 2;
+				}
 
 				for (uint phase=0; phase < PHASE_COUNT; ++phase)
 				{
 					{
-						const double angle = NST_PI / -12 * int(phase * 8 + 1) + hue;
-						const double s = std::sin( angle ) * saturation;
-						const double c = std::cos( angle ) * saturation;
+						const double angle = (int(phase * 8 + 1) * -15 + hue) * NST_DEG;
+						const double v = std::sin( angle ) * saturation;
+						const double u = std::cos( angle ) * saturation;
 
-						for (uint i=0; i < 6; i += 2)
+						for (uint i=0; i < 3; ++i)
 						{
-							static const double rgb[6] = {0.956,0.621,-0.272,-0.647,-1.105,1.702};
-
-							rgbPhases[phase][i+0] = (rgb[i+0] * c - rgb[i+1] * s) * FIXED_MUL;
-							rgbPhases[phase][i+1] = (rgb[i+0] * s + rgb[i+1] * c) * FIXED_MUL;
+							rgbPhases[phase][i*2+0] = (rgb[i][0] * u - rgb[i][1] * v) * FIXED_MUL;
+							rgbPhases[phase][i*2+1] = (rgb[i][0] * v + rgb[i][1] * u) * FIXED_MUL;
 						}
 					}
 
-					for (uint c=0; c < PALETTE_SIZE; ++c)
+					for (uint level=0; level < 4; ++level)
 					{
-						const uint ph = c & 0xF;
-
-						double y = (c >> 4) * 0.375;
-
-						if (ph == 0)
+						for (uint index=0; index < 16; ++index)
 						{
-							y += 0.5;
-						}
-						else if (ph == 0xD)
-						{
-							y -= 0.5;
-						}
-						else if (ph > 0xD)
-						{
-							y = 0.0;
-						}
+							double y=0.0, i=0.0, q=0.0;
 
-						double i=0.0, q=0.0;
-
-						if (ph-1U < 0xCU)
-						{
-							const double angle = NST_PI / 6 * (int(phase * 4 + ph) - 3);
-
-							i = std::sin( angle ) / 2;
-							q = std::cos( angle ) / 2;
-						}
-
-						const double v[] =
-						{
-							y + i,
-							y + q,
-							y - i,
-							y - q
-						};
-
-						for (uint j=0; j < 4; ++j)
-						{
-							if (v[j] >= 1.2)
+							if (index-1U < 12)
 							{
-								nesPhases[phase][c][j] = 1.2 * (colorRange * FIXED_MUL);
-							}
-							else if (v[j] <= -0.2)
-							{
-								nesPhases[phase][c][j] = -0.2 * (colorRange * FIXED_MUL);
-							}
-							else
-							{
-								nesPhases[phase][c][j] = v[j] * (colorRange * FIXED_MUL);
+								static const double chroma[4] = 
+								{ 
+									0.26, 0.33, 0.34, 0.14
+								};
+
+								const double angle = ((int(phase * 4 + index) - 3) * (360/12)) * NST_DEG;
+
+								i = std::sin( angle ) * chroma[level]; 
+								q = std::cos( angle ) * chroma[level]; 
 							}
 
-							if (j >= 2)
-								nesPhases[phase][c][j] = -nesPhases[phase][c][j];
+							if (index < 14)
+							{
+								static const double luma[3][4] = 
+								{
+									{ 0.39, 0.67, 1.00, 1.00 },
+									{ 0.14, 0.34, 0.66, 0.86 },
+									{-0.12, 0.00, 0.31, 0.72 }
+								};
+
+								y = luma[index == 0 ? 0 : index < 13 ? 1 : 2][level];
+							}
+
+							i32 (&dst)[4] = nesPhases[phase][(level * 16) + index];
+
+							dst[0] = (y + i) * (colorRange * FIXED_MUL);
+							dst[1] = (y + q) * (colorRange * FIXED_MUL);
+							dst[2] = (i - y) * (colorRange * FIXED_MUL);
+							dst[3] = (q - y) * (colorRange * FIXED_MUL);
 						}
-					}	
+					}
 				}
 			}
 		}

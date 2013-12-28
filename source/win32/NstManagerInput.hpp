@@ -69,12 +69,19 @@ namespace Nestopia
 
 			void UpdateDevices();
 			void UpdateSettings();
+			void UpdateJoystickKeys(ibool);
 			void OnEmuEvent(Emulator::Event);
 			void OnMenuKeyboard(Window::Menu::PopupHandler::Param&);
+			void OnMenuPort1(Window::Menu::PopupHandler::Param&);
+			void OnMenuPort2(Window::Menu::PopupHandler::Param&);
+			void OnMenuPort3(Window::Menu::PopupHandler::Param&);
+			void OnMenuPort4(Window::Menu::PopupHandler::Param&);
+			void OnMenuExpPort(Window::Menu::PopupHandler::Param&); 
 			void OnCmdMachineAutoSelectController(uint);
 			void OnCmdMachinePort(uint);
 			void OnCmdMachineKeyboardPaste(uint);
 			void OnCmdOptionsInput(uint);
+			ibool OnTimerJoystick();
 
 			void ForcePoll();
 			inline void AutoPoll();
@@ -141,6 +148,37 @@ namespace Nestopia
 				}
 			};
 
+			struct JoystickKey : DirectX::DirectInput::Key
+			{
+				uint cmd;
+
+				JoystickKey(const Key& k,uint c)
+				: Key(k), cmd(c) {}
+			};
+
+			class JoystickKeys : Collection::Vector<JoystickKey>
+			{
+				uint OnTimer();
+
+				enum
+				{
+					POLL_RAPID = 200,
+					POLL_REST = 1000
+				};
+
+				Window::Custom& window;
+				DirectX::DirectInput& directInput;
+				uint clock;
+
+			public:
+
+				JoystickKeys(Window::Custom&,DirectX::DirectInput&);
+
+				void Clear();
+				void Add(const DirectX::DirectInput::Key&,uint);
+				void Update();
+			};
+
 			class ClipBoard : String::Heap<wchar_t>
 			{
 				uint pos;
@@ -196,6 +234,7 @@ namespace Nestopia
 			Nes::Input::Controllers nesControllers;
 			DirectX::DirectInput directInput;
 			Object::Heap<Window::Input> dialog;
+			JoystickKeys joystickKeys;
 			ClipBoard clipBoard;
 
 		public:

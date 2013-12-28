@@ -119,6 +119,12 @@ namespace Nestopia
 
 				menu[ IDM_MACHINE_EXT_TAPE_FILE ].Enable( event == Emulator::EVENT_UNLOAD );
 				break;
+
+			case Emulator::EVENT_NETPLAY_MODE_ON:
+			case Emulator::EVENT_NETPLAY_MODE_OFF:
+
+				menu[IDM_POS_MACHINE][IDM_POS_MACHINE_EXT][IDM_POS_MACHINE_EXT_TAPE].Enable( event == Emulator::EVENT_NETPLAY_MODE_OFF );
+				break;
 		}
 	}
 }

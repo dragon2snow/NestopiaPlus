@@ -1156,7 +1156,6 @@ namespace Nes
 			}
 			else if (amp)
 			{
-				step = 0x7;
 				amp = DcRemover::Damp( amp );
 			}
 	

@@ -77,6 +77,8 @@ namespace Nes
 
 			void InitSong();
 
+			inline uint FetchLast(uint) const;
+
 			typedef Memory<SIZE_32K,SIZE_4K> Prg;
 
 			enum 
@@ -84,10 +86,16 @@ namespace Nes
 				JAM	= 0x02,
 				JMP = 0x4C,
 				JSR = 0x20,
+				SEI = 0x78,
 				LDA = 0xA9,
-				LDX = 0xA2
+				LDX = 0xA2,
+				TXS = 0x9A
 			};
 
+			NES_DECL_PEEK( 38EC )
+			NES_DECL_PEEK( 38ED )
+			NES_DECL_PEEK( 38EE )
+			NES_DECL_PEEK( 38EF )
 			NES_DECL_PEEK( 38F0 )
 			NES_DECL_PEEK( 38F1 )
 			NES_DECL_PEEK( 38F2 )
@@ -107,8 +115,6 @@ namespace Nes
 
 			NES_DECL_POKE( 4017 )
 
-			NES_DECL_POKE( 5FF6 )
-			NES_DECL_POKE( 5FF7 )
 			NES_DECL_POKE( 5FF8 )
 			NES_DECL_POKE( 5FF9 )
 			NES_DECL_POKE( 5FFA )
@@ -118,13 +124,24 @@ namespace Nes
 			NES_DECL_POKE( 5FFE )
 			NES_DECL_POKE( 5FFF )
 
+			NES_DECL_POKE( Fds_5FF6 )
+			NES_DECL_POKE( Fds_5FF7 )
+			NES_DECL_POKE( Fds_5FF8 )
+			NES_DECL_POKE( Fds_5FF9 )
+			NES_DECL_POKE( Fds_5FFA )
+			NES_DECL_POKE( Fds_5FFB )
+			NES_DECL_POKE( Fds_5FFC )
+			NES_DECL_POKE( Fds_5FFD )
+			NES_DECL_POKE( Fds_5FFE )
+			NES_DECL_POKE( Fds_5FFF )
+
 			NES_DECL_PEEK( Ram   )
 			NES_DECL_POKE( Ram   )
 			NES_DECL_PEEK( ExRam )
 			NES_DECL_POKE( ExRam )
+			NES_DECL_PEEK( Fds   )
+			NES_DECL_POKE( Fds   )
 
-			NES_DECL_PEEK( Prg_6 )
-			NES_DECL_PEEK( Prg_7 )
 			NES_DECL_PEEK( Prg_8 )
 			NES_DECL_PEEK( Prg_9 )
 			NES_DECL_PEEK( Prg_A )
@@ -133,17 +150,6 @@ namespace Nes
 			NES_DECL_PEEK( Prg_D )
 			NES_DECL_PEEK( Prg_E )
 			NES_DECL_PEEK( Prg_F )
-
-			NES_DECL_POKE( Prg_6 )
-			NES_DECL_POKE( Prg_7 )
-			NES_DECL_POKE( Prg_8 )
-			NES_DECL_POKE( Prg_9 )
-			NES_DECL_POKE( Prg_A )
-			NES_DECL_POKE( Prg_B )
-			NES_DECL_POKE( Prg_C )
-			NES_DECL_POKE( Prg_D )
-			NES_DECL_POKE( Prg_E )
-			NES_DECL_POKE( Prg_F )
 
 			NES_DECL_POKE( Vrc6_9000 )
 			NES_DECL_POKE( Vrc6_9001 )
@@ -179,7 +185,7 @@ namespace Nes
 				HEADER_RESERVED_LENGTH = 4
 			};
 
-			struct Chips;
+			class Chips;
 
 			struct Info
 			{

@@ -70,13 +70,13 @@ namespace Nes
 				void Reset(bool);
 				ibool Signal();
 
+				ibool enabled;
 				uint count;
 				uint step;
 			};
 
 			Regs regs;
 			Clock::M2<Irq> irq;
-			const ibool irqStep;
 		};
 	}
 }

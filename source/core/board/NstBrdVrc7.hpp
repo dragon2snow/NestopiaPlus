@@ -39,11 +39,11 @@ namespace Nes
 			{
 			public:
 
-				class Sound : Apu::Channel
+				class Sound : public Apu::Channel
 				{
 				public:
 
-					Sound(Cpu&);
+					Sound(Cpu&,bool=true);
 					~Sound();
 
 					void WriteReg0(uint);
@@ -52,12 +52,15 @@ namespace Nes
 					void SaveState(State::Saver&) const;
 					void LoadState(State::Loader&);
 
-				private:
+				protected:
 
 					void Reset();
-					void ResetClock();
 					void UpdateContext(uint);
 					Sample GetSample();
+
+				private:
+
+					void ResetClock();
 
 					enum
 					{
@@ -253,6 +256,8 @@ namespace Nes
 
 					OpllChannel channels[NUM_OPLL_CHANNELS];
 					const Tables tables;
+					
+					const ibool hooked;
 				};
 
 			protected:

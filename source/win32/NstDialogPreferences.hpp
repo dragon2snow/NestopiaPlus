@@ -92,9 +92,12 @@ namespace Nestopia
 			ibool OnPaint               (Param&);
 			ibool OnCmdDefault          (Param&);
 			ibool OnCmdCancel           (Param&);
+			ibool OnCmdStyle            (Param&);
 			ibool OnCmdMenuColorDefault (Param&);
 			ibool OnCmdMenuColorChange  (Param&);
 			ibool OnCmdOk               (Param&);
+
+			void UpdateIconStyle() const;
 
 			struct Settings : Collection::BitSet
 			{
@@ -108,6 +111,7 @@ namespace Nestopia
 			Managers::Emulator& emulator;
 
 			static MenuColorWindow menuColorWindows[2];
+			static const ushort icons[5][5];
 
 		public:
 

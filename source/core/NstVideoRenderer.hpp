@@ -38,6 +38,7 @@ namespace Nes
 			class Renderer
 			{
 				typedef Api::Video::RenderState RenderState;
+				typedef Api::Video::Decoder Decoder;
 
 			public:
 		
@@ -46,9 +47,9 @@ namespace Nes
 
 				enum PaletteType
 				{
-					PALETTE_INTERNAL,
-					PALETTE_CUSTOM,
-					PALETTE_EMULATE
+					PALETTE_YUV,
+					PALETTE_RGB,
+					PALETTE_CUSTOM
 				};
 
 				enum
@@ -60,12 +61,14 @@ namespace Nes
 					DEFAULT_HUE = 128,
 					DEFAULT_BRIGHTNESS = 128,
 					DEFAULT_SATURATION = 128,
-					DEFAULT_PALETTE = PALETTE_INTERNAL
+					DEFAULT_PALETTE = PALETTE_YUV
 				};
 
 				Result SetState(const RenderState&);
 				Result GetState(RenderState&) const;
 				void Blit(Output&);
+
+				Result SetDecoder(const Decoder&);
 
 				Result SetPaletteType(PaletteType);
 				Result LoadCustomPalette(const u8 (*)[3]);
@@ -92,6 +95,7 @@ namespace Nes
 					Result LoadCustom(const u8 (*)[3]);
 					bool   ResetCustom();
 					void   Update(uint,uint,uint);
+					Result SetDecoder(const Decoder&);
 
 					inline const PaletteEntries& Get() const;
 
@@ -99,8 +103,7 @@ namespace Nes
 
 					enum
 					{
-						HUE_OFFSET = 255,
-						HUE_ROTATION = 360 / 12
+						HUE_OFFSET = -15 + 33
 					};
 
 					struct Custom
@@ -108,8 +111,8 @@ namespace Nes
 						u8 palette[64][3];
 					};
 
-					void ComputeTV(uint,uint,uint);
-					void ComputeCustom(uint,uint,uint);
+					void Generate(int,int,int);
+					void Build(int,int,int);
 
 					static void ToPAL(const double (&)[3],u8 (&)[3]);
 					static void ToHSV(double,double,double,double&,double&,double&);
@@ -117,16 +120,22 @@ namespace Nes
 
 					PaletteType type;						
 					Custom* custom;
+					Decoder decoder;
 					u8 palette[64*8][3];
 
 					static const double emphasis[8][3];
-					static const u8 defaultPalette[64][3];
+					static const u8 rgbPalette[64][3];
 
 				public:
 
 					PaletteType GetType() const
 					{
 						return type;
+					}
+
+					const Decoder& GetDecoder() const
+					{
+						return decoder;
 					}
 				};
 
@@ -202,6 +211,7 @@ namespace Nes
 				State state;
 				Input input;
 				Palette palette;
+				Decoder decoder;
 
 			public:
 
@@ -238,6 +248,11 @@ namespace Nes
 				PaletteType GetPaletteType() const
 				{
 					return palette.GetType();
+				}
+
+				const Decoder& GetDecoder() const
+				{
+					return palette.GetDecoder();
 				}
   
 				Screen& GetScreen()

@@ -58,6 +58,15 @@ namespace Nestopia
 			static void  Post(uint);
 			static void  Launch(tstring,uint=0);
 
+			enum IconStyle
+			{
+				ICONSTYLE_NES,
+				ICONSTYLE_FAMICOM
+			};
+
+			static IconStyle GetIconStyle();
+			static void SetIconStyle(IconStyle);
+
 			enum
 			{
 				WM_NST_COMMAND_RESUME = WM_APP + 55,

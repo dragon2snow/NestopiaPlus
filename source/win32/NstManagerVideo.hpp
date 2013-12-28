@@ -120,9 +120,8 @@ namespace Nestopia
 			void OnMenuScreenSizes  (Window::Menu::PopupHandler::Param&);
 			void OnMenuUnlimSprites (Window::Menu::PopupHandler::Param&);
 			void OnScreenText (const GenericString&);
-
-			ibool OnTimerFps();
-			ibool OnTimerText();
+			uint OnTimerFps();
+			uint OnTimerText();
 
 			struct Callbacks;
 

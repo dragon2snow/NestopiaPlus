@@ -67,10 +67,19 @@ namespace Nestopia
 	{
 		NST_ASSERT( id < timers.Size() );
 
-		if (!timers[id]() && timers[id].active)
+		const uint next = timers[id]();
+
+		if (timers[id].active)
 		{
-			timers[id].active = FALSE;
-			::KillTimer( hWnd, id );
+			if (next == FALSE)
+			{
+				timers[id].active = FALSE;
+				::KillTimer( hWnd, id );
+			}
+			else if (next != TRUE)
+			{
+				::SetTimer( hWnd, id, next, &TimerProc );
+			}
 		}
 	}
 }

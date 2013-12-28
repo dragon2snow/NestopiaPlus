@@ -39,11 +39,11 @@ namespace Nes
 			{
 			public:
 
-				class Sound : Apu::Channel
+				class Sound : public Apu::Channel
 				{
 				public:
 		
-					Sound(Cpu&);
+					Sound(Cpu&,bool=true);
 					~Sound();
 		
 					void Poke_E000(uint);
@@ -51,6 +51,12 @@ namespace Nes
 					void LoadState(State::Loader&);
 					void SaveState(State::Saver&) const;
 		
+				protected:
+
+					void Reset();
+					void UpdateContext(uint);
+					Sample GetSample();
+
 				private:
 		
 					enum
@@ -58,9 +64,6 @@ namespace Nes
 						NUM_SQUARES = 3
 					};
 
-					void Reset();
-					void UpdateContext(uint);
-					Sample GetSample();
 					bool CanOutput() const;
 		
 					class Square
@@ -122,6 +125,7 @@ namespace Nes
 					Apu& apu;
 					uint regSelect;
 					Square squares[NUM_SQUARES];
+					const ibool hooked;
 
 				public:
 

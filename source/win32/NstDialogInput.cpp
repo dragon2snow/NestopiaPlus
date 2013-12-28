@@ -538,7 +538,6 @@ namespace Nestopia
 			}
 		}
 		
-		Settings::Key key;
 		HeapString keyName;
 
 		for (uint i=0; i < Settings::NUM_TYPES; ++i)
@@ -551,12 +550,12 @@ namespace Nestopia
 				while (tstring const quote=::StrStrI( keyName.Ptr(), _T("quotation") ))
 					keyName( quote - keyName.Ptr(), 9 ) = _T('\"');
 
+				Settings::Key key;
+
 				if (keyName.Length())
 				{
-					if (i < Settings::TYPE_COMMAND)
+					if (i < Settings::TYPE_COMMAND || !key.MapVirtKey( keyName ))
 						directInput.MapKey( key, keyName.Ptr(), joyGuids, maxGuids );
-					else
-						key.MapVirtKey( keyName );
 				}
 				else
 				{
@@ -986,7 +985,7 @@ namespace Nestopia
 				Destroy();
 			}
 
-			ibool OnTimer()
+			uint OnTimer()
 			{
 				timer.remaining -= Timer::RATE;
 
@@ -1016,36 +1015,40 @@ namespace Nestopia
 					timer.clock -= Timer::CLOCK;
 				}
 
+				DirectX::DirectInput::ScanMode scanMode;
+				
 				if (base.dialog.ListBox(IDC_INPUT_DEVICES).Selection().GetIndex() < Settings::TYPE_COMMAND)
+					scanMode = DirectX::DirectInput::SCAN_MODE_ALL;
+				else
+					scanMode = DirectX::DirectInput::SCAN_MODE_JOY;
+				
+				Settings::Key key;
+
+ 				switch (base.directInput.ScanKey( key, scanMode ))
 				{
-					Settings::Key key;
-
-					switch (base.directInput.ScanKey( key ))
-					{
-						case DirectX::DirectInput::SCAN_GOOD_KEY: 
-					
-							for (uint i=10; i && base.directInput.IsAnyPressed(); --i)
-								::Sleep( 100 );
-					
-							if (base.MapSelectedKey( key ))
-							{
-								Close( RESULT_OK );
-								return FALSE;
-							}
-							else
-							{
-								Close( RESULT_DUPLICATE );
-								return FALSE;
-							}
-							break;
-					
-						case DirectX::DirectInput::SCAN_INVALID_KEY: 
-					
-							Close( RESULT_INVALID );
+					case DirectX::DirectInput::SCAN_GOOD_KEY: 
+				
+						for (uint i=10; i && base.directInput.IsAnyPressed(); --i)
+							::Sleep( 100 );
+				
+						if (base.MapSelectedKey( key ))
+						{
+							Close( RESULT_OK );
 							return FALSE;
-					}
+						}
+						else
+						{
+							Close( RESULT_DUPLICATE );
+							return FALSE;
+						}
+						break;
+				
+					case DirectX::DirectInput::SCAN_INVALID_KEY: 
+				
+						Close( RESULT_INVALID );
+						return FALSE;
 				}
-
+				
 				return TRUE;
 			}
 
@@ -1076,28 +1079,31 @@ namespace Nestopia
 
 			ibool OnKeyDown(Param& param)
 			{
-				if (param.wParam != VK_SHIFT && param.wParam != VK_CONTROL && param.wParam != VK_MENU)
+				if (base.dialog.ListBox(IDC_INPUT_DEVICES).Selection().GetIndex() >= Settings::TYPE_COMMAND)
 				{
-					const uint vKeys[3] =
+					if (param.wParam != VK_SHIFT && param.wParam != VK_CONTROL && param.wParam != VK_MENU)
 					{
-						(::GetAsyncKeyState( VK_SHIFT   ) & 0x8000) ? VK_SHIFT   : 0,
-						(::GetAsyncKeyState( VK_CONTROL ) & 0x8000) ? VK_CONTROL : 0,
-						(::GetAsyncKeyState( VK_MENU    ) & 0x8000) ? VK_MENU    : 0
-					};
+						const uint vKeys[3] =
+						{
+							(::GetAsyncKeyState( VK_SHIFT   ) & 0x8000) ? VK_SHIFT   : 0,
+							(::GetAsyncKeyState( VK_CONTROL ) & 0x8000) ? VK_CONTROL : 0,
+							(::GetAsyncKeyState( VK_MENU    ) & 0x8000) ? VK_MENU    : 0
+						};
 
-					Settings::Key key;
+						Settings::Key key;
 
-					if (!key.MapVirtKey( param.wParam, vKeys[0], vKeys[1], vKeys[2] ))
-					{
-			       		Close( RESULT_INVALID );
-					}
-					else if (!base.MapSelectedKey( key ))
-					{
-			     		Close( RESULT_DUPLICATE );
-					}
-					else
-					{
-			     		Close( RESULT_OK );
+						if (!key.MapVirtKey( param.wParam, vKeys[0], vKeys[1], vKeys[2] ))
+						{
+							Close( RESULT_INVALID );
+						}
+						else if (!base.MapSelectedKey( key ))
+						{
+							Close( RESULT_DUPLICATE );
+						}
+						else
+						{
+							Close( RESULT_OK );
+						}
 					}
 				}
 

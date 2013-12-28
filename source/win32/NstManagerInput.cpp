@@ -242,9 +242,56 @@ namespace Nestopia
 		}
 	}
 
+	uint Input::JoystickKeys::OnTimer()
+	{
+		if (window.IsForeground())
+		{
+			directInput.PollJoysticks();
+
+			for (JoystickKeys::ConstIterator it=Begin(), end=End(); it != end; ++it)
+			{
+				if (it->GetState())
+				{
+					clock = POLL_RAPID;
+					window.PostCommand( it->cmd );
+					return POLL_REST;
+				}
+			}
+		}
+
+		uint next = clock;
+		clock = TRUE;
+
+		return next;
+	}
+
     #ifdef NST_PRAGMA_OPTIMIZE
     #pragma optimize("", on)
     #endif
+
+	Input::JoystickKeys::JoystickKeys(Window::Custom& w,DirectX::DirectInput& d)
+	: window(w), directInput(d), clock(TRUE) {}
+
+	void Input::JoystickKeys::Clear()
+	{
+		window.StopTimer( this, &JoystickKeys::OnTimer );
+		Destroy();
+	}
+
+	void Input::JoystickKeys::Add(const DirectX::DirectInput::Key& key,const uint cmd)
+	{
+		if (key.IsAssigned() && !key.IsVirtKey())
+			PushBack( JoystickKey(key,cmd) );
+	}
+
+	void Input::JoystickKeys::Update()
+	{
+		if (Size())
+		{
+			clock = TRUE;
+			window.StartTimer( this, &JoystickKeys::OnTimer, POLL_RAPID );
+		}
+	}
 
 	Input::Rects::Rects(const Screening& i,const Screening& o)
 	: getInput(i), getOutput(o) {}
@@ -526,7 +573,8 @@ namespace Nestopia
 	polled       ( FALSE ),
 	cursor       ( w ),
 	directInput  ( w ),
-	dialog       ( new Window::Input(directInput,e,cfg) )
+	dialog       ( new Window::Input(directInput,e,cfg) ),
+	joystickKeys ( w, directInput )
 	{
 		static const Window::Menu::CmdHandler::Entry<Input> commands[] =
 		{
@@ -577,6 +625,11 @@ namespace Nestopia
 
 		static const Window::Menu::PopupHandler::Entry<Input> popups[] =
 		{	  
+			{ Window::Menu::PopupHandler::Pos<IDM_POS_MACHINE,IDM_POS_MACHINE_INPUT,IDM_POS_MACHINE_INPUT_PORT1>::ID, &Input::OnMenuPort1 },
+			{ Window::Menu::PopupHandler::Pos<IDM_POS_MACHINE,IDM_POS_MACHINE_INPUT,IDM_POS_MACHINE_INPUT_PORT2>::ID, &Input::OnMenuPort2 },
+			{ Window::Menu::PopupHandler::Pos<IDM_POS_MACHINE,IDM_POS_MACHINE_INPUT,IDM_POS_MACHINE_INPUT_PORT3>::ID, &Input::OnMenuPort3 },
+			{ Window::Menu::PopupHandler::Pos<IDM_POS_MACHINE,IDM_POS_MACHINE_INPUT,IDM_POS_MACHINE_INPUT_PORT4>::ID, &Input::OnMenuPort4 },
+			{ Window::Menu::PopupHandler::Pos<IDM_POS_MACHINE,IDM_POS_MACHINE_INPUT,IDM_POS_MACHINE_INPUT_EXP>::ID, &Input::OnMenuExpPort },
 			{ Window::Menu::PopupHandler::Pos<IDM_POS_MACHINE,IDM_POS_MACHINE_EXT,IDM_POS_MACHINE_EXT_KEYBOARD>::ID, &Input::OnMenuKeyboard }
 		};
 
@@ -669,7 +722,6 @@ namespace Nestopia
 				}
 
 				emulator.ConnectController( i, controller );
-				OnEmuEvent( (Emulator::Event) (Emulator::EVENT_PORT1_CONTROLLER + i) );
 			}
 		}
 
@@ -747,14 +799,14 @@ namespace Nestopia
 		{
 			cursor.Acquire( emulator );
 
-			Window::Menu::EnableAccelerators
+		    Window::Menu::EnableAccelerators
 			( 
 		     	!Nes::Input(emulator).IsAnyControllerConnected
-				(
-			    	Nes::Input::FAMILYKEYBOARD,
-					Nes::Input::SUBORKEYBOARD,
-					Nes::Input::DOREMIKKOKEYBOARD
-				) 
+		     	(
+		        	Nes::Input::FAMILYKEYBOARD,
+     	   			Nes::Input::SUBORKEYBOARD,
+     				Nes::Input::DOREMIKKOKEYBOARD
+				)
 			);
 		}
 	}
@@ -828,15 +880,21 @@ namespace Nestopia
 			{ Settings::HELP_KEYS    + Settings::HELP_KEY_HELP,	       	         IDM_HELP_HELP      				  }
 		};
 
+		joystickKeys.Clear();
+
 		ACCEL accel[Settings::NUM_COMMAND_KEYS];
 
 		for (uint i=0; i < Settings::NUM_COMMAND_KEYS; ++i)
 		{
-			dialog->GetSettings().GetKey( lut[i][0] ).GetVirtKey( accel[i] );
+			const DirectX::DirectInput::Key& key = dialog->GetSettings().GetKey( lut[i][0] );
+
+			joystickKeys.Add( key, lut[i][1] );
+			key.GetVirtKey( accel[i] );
 			accel[i].cmd = lut[i][1];
 		}
 
 		menu.SetKeys( accel, Settings::NUM_COMMAND_KEYS );
+		joystickKeys.Update();
 	}
 
 	void Input::OnEmuEvent(Emulator::Event event)
@@ -844,109 +902,13 @@ namespace Nestopia
 		switch (event)
 		{			
 			case Emulator::EVENT_PORT1_CONTROLLER:
-			{
-				uint id;
-
-				switch (emulator.GetController(0))
-				{
-					case Nes::Input::PAD1:	   id = IDM_MACHINE_INPUT_PORT1_PAD1;        break;
-					case Nes::Input::PAD2:	   id = IDM_MACHINE_INPUT_PORT1_PAD2;        break;
-					case Nes::Input::PAD3:	   id = IDM_MACHINE_INPUT_PORT1_PAD3;        break;
-					case Nes::Input::PAD4:	   id = IDM_MACHINE_INPUT_PORT1_PAD4;        break;
-					case Nes::Input::ZAPPER:   id = IDM_MACHINE_INPUT_PORT1_ZAPPER;      break;
-					case Nes::Input::PADDLE:   id = IDM_MACHINE_INPUT_PORT1_PADDLE;      break;
-					case Nes::Input::POWERPAD: id = IDM_MACHINE_INPUT_PORT1_POWERPAD;    break;
-					default:				   id = IDM_MACHINE_INPUT_PORT1_UNCONNECTED; break;
-				}
-
-				menu[id].Check( IDM_MACHINE_INPUT_PORT1_UNCONNECTED, IDM_MACHINE_INPUT_PORT1_POWERPAD );		
-				UpdateDevices();
-				break;
-			}
-		
 			case Emulator::EVENT_PORT2_CONTROLLER:
-			{
-				uint id;
-
-				switch (emulator.GetController(1))
-				{
-					case Nes::Input::PAD1:	   id = IDM_MACHINE_INPUT_PORT2_PAD1;        break;         
-					case Nes::Input::PAD2:	   id = IDM_MACHINE_INPUT_PORT2_PAD2;        break;         
-					case Nes::Input::PAD3:	   id = IDM_MACHINE_INPUT_PORT2_PAD3;        break;         
-					case Nes::Input::PAD4:	   id = IDM_MACHINE_INPUT_PORT2_PAD4;        break;         
-					case Nes::Input::ZAPPER:   id = IDM_MACHINE_INPUT_PORT2_ZAPPER;      break;     
-					case Nes::Input::PADDLE:   id = IDM_MACHINE_INPUT_PORT2_PADDLE;      break;     
-					case Nes::Input::POWERPAD: id = IDM_MACHINE_INPUT_PORT2_POWERPAD;    break;     
-					default:	               id = IDM_MACHINE_INPUT_PORT2_UNCONNECTED; break;
-				}
-		
-				menu[id].Check( IDM_MACHINE_INPUT_PORT2_UNCONNECTED, IDM_MACHINE_INPUT_PORT2_POWERPAD );		
-				UpdateDevices();
-				break;
-			}
-		
 			case Emulator::EVENT_PORT3_CONTROLLER:
-			{
-				uint id;
-
-				switch (emulator.GetController(2))
-				{
-					case Nes::Input::PAD1: id = IDM_MACHINE_INPUT_PORT3_PAD1;        break;         
-					case Nes::Input::PAD2: id = IDM_MACHINE_INPUT_PORT3_PAD2;        break;         
-					case Nes::Input::PAD3: id = IDM_MACHINE_INPUT_PORT3_PAD3;        break;         
-					case Nes::Input::PAD4: id = IDM_MACHINE_INPUT_PORT3_PAD4;        break;         
-					default:	           id = IDM_MACHINE_INPUT_PORT3_UNCONNECTED; break;
-				}
-		
-				menu[id].Check( IDM_MACHINE_INPUT_PORT3_UNCONNECTED, IDM_MACHINE_INPUT_PORT3_PAD4 );		
-				UpdateDevices();
-				break;
-			}
-		
 			case Emulator::EVENT_PORT4_CONTROLLER:
-			{
-				uint id;
-
-				switch (emulator.GetController(3))
-				{
-					case Nes::Input::PAD1: id = IDM_MACHINE_INPUT_PORT4_PAD1;        break;         
-					case Nes::Input::PAD2: id = IDM_MACHINE_INPUT_PORT4_PAD2;        break;         
-					case Nes::Input::PAD3: id = IDM_MACHINE_INPUT_PORT4_PAD3;        break;         
-					case Nes::Input::PAD4: id = IDM_MACHINE_INPUT_PORT4_PAD4;        break;         
-					default:	           id = IDM_MACHINE_INPUT_PORT4_UNCONNECTED; break;
-				}
-		
-				menu[id].Check( IDM_MACHINE_INPUT_PORT4_UNCONNECTED, IDM_MACHINE_INPUT_PORT4_PAD4 );		
-				UpdateDevices();
-				break;
-			}
-		
 			case Emulator::EVENT_PORT5_CONTROLLER:
-			{
-				uint id;
-
-				switch (emulator.GetController(4))
-				{
-					case Nes::Input::FAMILYTRAINER:	    id = IDM_MACHINE_INPUT_EXP_FAMILYTRAINER;       break;      
-					case Nes::Input::FAMILYKEYBOARD:	id = IDM_MACHINE_INPUT_EXP_FAMILYBASICKEYBOARD; break;
-					case Nes::Input::SUBORKEYBOARD:	    id = IDM_MACHINE_INPUT_EXP_SUBORKEYBOARD;       break;      
-					case Nes::Input::DOREMIKKOKEYBOARD: id = IDM_MACHINE_INPUT_EXP_DOREMIKKOKEYBOARD;   break;  
-					case Nes::Input::PADDLE:			id = IDM_MACHINE_INPUT_EXP_PADDLE;              break;             
-					case Nes::Input::OEKAKIDSTABLET:	id = IDM_MACHINE_INPUT_EXP_OEKAKIDSTABLET;      break;     
-					case Nes::Input::HYPERSHOT:		    id = IDM_MACHINE_INPUT_EXP_HYPERSHOT;           break;          
-					case Nes::Input::CRAZYCLIMBER:	    id = IDM_MACHINE_INPUT_EXP_CRAZYCLIMBER;        break;       
-					case Nes::Input::MAHJONG:			id = IDM_MACHINE_INPUT_EXP_MAHJONG;             break;            
-					case Nes::Input::EXCITINGBOXING:	id = IDM_MACHINE_INPUT_EXP_EXCITINGBOXING;      break;     
-					case Nes::Input::TOPRIDER:		    id = IDM_MACHINE_INPUT_EXP_TOPRIDER;            break;           
-					case Nes::Input::POKKUNMOGURAA:	    id = IDM_MACHINE_INPUT_EXP_POKKUNMOGURAA;       break;      
-					case Nes::Input::PARTYTAP:		    id = IDM_MACHINE_INPUT_EXP_PARTYTAP;            break;           
-					default:		                    id = IDM_MACHINE_INPUT_EXP_UNCONNECTED;         break;        
-				}
-		
-				menu[id].Check( IDM_MACHINE_INPUT_EXP_UNCONNECTED, IDM_MACHINE_INPUT_EXP_PARTYTAP );		
+			
 				UpdateDevices();
 				break;
-			}
 
 			case Emulator::EVENT_LOAD:
 
@@ -956,16 +918,10 @@ namespace Nestopia
 				break;
 
     		case Emulator::EVENT_NETPLAY_LOAD:
+			case Emulator::EVENT_NETPLAY_UNLOAD:
 			
-				for (uint i=0; i < 4; ++i)
-					menu[IDM_POS_MACHINE][IDM_POS_MACHINE_INPUT][IDM_POS_MACHINE_INPUT_PORT1+i].Enable( emulator.GetPlayer() == (i+1) );
-
-				break;
-
-    		case Emulator::EVENT_NETPLAY_UNLOAD:
-
-				for (uint i=IDM_POS_MACHINE_INPUT_PORT1; i <= IDM_POS_MACHINE_INPUT_PORT4; ++i)
-					menu[IDM_POS_MACHINE][IDM_POS_MACHINE_INPUT][i].Enable();
+				for (uint i=0, enable=(event == Emulator::EVENT_NETPLAY_UNLOAD); i < 4; ++i)
+					menu[IDM_POS_MACHINE][IDM_POS_MACHINE_INPUT][IDM_POS_MACHINE_INPUT_PORT1+i].Enable( enable || emulator.GetPlayer() == (i+1) );
 
 				break;
 
@@ -976,7 +932,19 @@ namespace Nestopia
 
 				menu[IDM_MACHINE_INPUT_AUTOSELECT].Enable( state );
 				menu[IDM_POS_MACHINE][IDM_POS_MACHINE_INPUT][IDM_POS_MACHINE_INPUT_EXP].Enable( state );
+				menu[IDM_POS_MACHINE][IDM_POS_MACHINE_EXT][IDM_POS_MACHINE_EXT_KEYBOARD].Enable( state );
 				menu[IDM_OPTIONS_INPUT].Enable( state );
+
+				menu[ IDM_MACHINE_INPUT_PORT1_UNCONNECTED ].Enable( state );
+				menu[ IDM_MACHINE_INPUT_PORT1_ZAPPER	  ].Enable( state );
+				menu[ IDM_MACHINE_INPUT_PORT1_PADDLE	  ].Enable( state );
+				menu[ IDM_MACHINE_INPUT_PORT1_POWERPAD	  ].Enable( state );
+				menu[ IDM_MACHINE_INPUT_PORT2_UNCONNECTED ].Enable( state );
+				menu[ IDM_MACHINE_INPUT_PORT2_ZAPPER	  ].Enable( state );
+				menu[ IDM_MACHINE_INPUT_PORT2_PADDLE	  ].Enable( state );
+				menu[ IDM_MACHINE_INPUT_PORT2_POWERPAD	  ].Enable( state );
+				menu[ IDM_MACHINE_INPUT_PORT3_UNCONNECTED ].Enable( state );
+				menu[ IDM_MACHINE_INPUT_PORT4_UNCONNECTED ].Enable( state );
 				break;
 			}
 		}
@@ -1049,6 +1017,101 @@ namespace Nestopia
 	{		
 		clipBoard.Paste();
 		Application::Instance::Post( Application::Instance::WM_NST_COMMAND_RESUME );
+	}
+
+	void Input::OnMenuPort1(Window::Menu::PopupHandler::Param& param)
+	{
+		uint id;
+
+		switch (emulator.GetController(0))
+		{
+			case Nes::Input::PAD1:	   id = IDM_MACHINE_INPUT_PORT1_PAD1;        break;
+			case Nes::Input::PAD2:	   id = IDM_MACHINE_INPUT_PORT1_PAD2;        break;
+			case Nes::Input::PAD3:	   id = IDM_MACHINE_INPUT_PORT1_PAD3;        break;
+			case Nes::Input::PAD4:	   id = IDM_MACHINE_INPUT_PORT1_PAD4;        break;
+			case Nes::Input::ZAPPER:   id = IDM_MACHINE_INPUT_PORT1_ZAPPER;      break;
+			case Nes::Input::PADDLE:   id = IDM_MACHINE_INPUT_PORT1_PADDLE;      break;
+			case Nes::Input::POWERPAD: id = IDM_MACHINE_INPUT_PORT1_POWERPAD;    break;
+			default:				   id = IDM_MACHINE_INPUT_PORT1_UNCONNECTED; break;
+		}
+
+		param.menu[id].Check( IDM_MACHINE_INPUT_PORT1_UNCONNECTED, IDM_MACHINE_INPUT_PORT1_POWERPAD );		
+	}
+
+	void Input::OnMenuPort2(Window::Menu::PopupHandler::Param& param)
+	{
+		uint id;
+
+		switch (emulator.GetController(1))
+		{
+			case Nes::Input::PAD1:	   id = IDM_MACHINE_INPUT_PORT2_PAD1;        break;         
+			case Nes::Input::PAD2:	   id = IDM_MACHINE_INPUT_PORT2_PAD2;        break;         
+			case Nes::Input::PAD3:	   id = IDM_MACHINE_INPUT_PORT2_PAD3;        break;         
+			case Nes::Input::PAD4:	   id = IDM_MACHINE_INPUT_PORT2_PAD4;        break;         
+			case Nes::Input::ZAPPER:   id = IDM_MACHINE_INPUT_PORT2_ZAPPER;      break;     
+			case Nes::Input::PADDLE:   id = IDM_MACHINE_INPUT_PORT2_PADDLE;      break;     
+			case Nes::Input::POWERPAD: id = IDM_MACHINE_INPUT_PORT2_POWERPAD;    break;     
+			default:	               id = IDM_MACHINE_INPUT_PORT2_UNCONNECTED; break;
+		}
+		
+		param.menu[id].Check( IDM_MACHINE_INPUT_PORT2_UNCONNECTED, IDM_MACHINE_INPUT_PORT2_POWERPAD );		
+	}
+
+	void Input::OnMenuPort3(Window::Menu::PopupHandler::Param& param)
+	{
+		uint id;
+
+		switch (emulator.GetController(2))
+		{
+			case Nes::Input::PAD1: id = IDM_MACHINE_INPUT_PORT3_PAD1;        break;         
+			case Nes::Input::PAD2: id = IDM_MACHINE_INPUT_PORT3_PAD2;        break;         
+			case Nes::Input::PAD3: id = IDM_MACHINE_INPUT_PORT3_PAD3;        break;         
+			case Nes::Input::PAD4: id = IDM_MACHINE_INPUT_PORT3_PAD4;        break;         
+			default:	           id = IDM_MACHINE_INPUT_PORT3_UNCONNECTED; break;
+		}
+		
+		param.menu[id].Check( IDM_MACHINE_INPUT_PORT3_UNCONNECTED, IDM_MACHINE_INPUT_PORT3_PAD4 );		
+	}
+
+	void Input::OnMenuPort4(Window::Menu::PopupHandler::Param& param)
+	{
+		uint id;
+
+		switch (emulator.GetController(3))
+		{
+			case Nes::Input::PAD1: id = IDM_MACHINE_INPUT_PORT4_PAD1;        break;         
+			case Nes::Input::PAD2: id = IDM_MACHINE_INPUT_PORT4_PAD2;        break;         
+			case Nes::Input::PAD3: id = IDM_MACHINE_INPUT_PORT4_PAD3;        break;         
+			case Nes::Input::PAD4: id = IDM_MACHINE_INPUT_PORT4_PAD4;        break;         
+			default:	           id = IDM_MACHINE_INPUT_PORT4_UNCONNECTED; break;
+		}
+		
+		param.menu[id].Check( IDM_MACHINE_INPUT_PORT4_UNCONNECTED, IDM_MACHINE_INPUT_PORT4_PAD4 );		
+	}
+
+	void Input::OnMenuExpPort(Window::Menu::PopupHandler::Param& param) 
+	{
+		uint id;
+
+		switch (emulator.GetController(4))
+		{
+			case Nes::Input::FAMILYTRAINER:	    id = IDM_MACHINE_INPUT_EXP_FAMILYTRAINER;       break;      
+			case Nes::Input::FAMILYKEYBOARD:	id = IDM_MACHINE_INPUT_EXP_FAMILYBASICKEYBOARD; break;
+			case Nes::Input::SUBORKEYBOARD:	    id = IDM_MACHINE_INPUT_EXP_SUBORKEYBOARD;       break;      
+			case Nes::Input::DOREMIKKOKEYBOARD: id = IDM_MACHINE_INPUT_EXP_DOREMIKKOKEYBOARD;   break;  
+			case Nes::Input::PADDLE:			id = IDM_MACHINE_INPUT_EXP_PADDLE;              break;             
+			case Nes::Input::OEKAKIDSTABLET:	id = IDM_MACHINE_INPUT_EXP_OEKAKIDSTABLET;      break;     
+			case Nes::Input::HYPERSHOT:		    id = IDM_MACHINE_INPUT_EXP_HYPERSHOT;           break;          
+			case Nes::Input::CRAZYCLIMBER:	    id = IDM_MACHINE_INPUT_EXP_CRAZYCLIMBER;        break;       
+			case Nes::Input::MAHJONG:			id = IDM_MACHINE_INPUT_EXP_MAHJONG;             break;            
+			case Nes::Input::EXCITINGBOXING:	id = IDM_MACHINE_INPUT_EXP_EXCITINGBOXING;      break;     
+			case Nes::Input::TOPRIDER:		    id = IDM_MACHINE_INPUT_EXP_TOPRIDER;            break;           
+			case Nes::Input::POKKUNMOGURAA:	    id = IDM_MACHINE_INPUT_EXP_POKKUNMOGURAA;       break;      
+			case Nes::Input::PARTYTAP:		    id = IDM_MACHINE_INPUT_EXP_PARTYTAP;            break;           
+			default:		                    id = IDM_MACHINE_INPUT_EXP_UNCONNECTED;         break;        
+		}
+		
+		param.menu[id].Check( IDM_MACHINE_INPUT_EXP_UNCONNECTED, IDM_MACHINE_INPUT_EXP_PARTYTAP );		
 	}
 
 	void Input::OnMenuKeyboard(Window::Menu::PopupHandler::Param& param)

@@ -274,9 +274,9 @@ namespace Nestopia
 		}
 	}
 
-	DirectInput::ScanResult DirectInput::ScanKey(Key& key)
+	DirectInput::ScanResult DirectInput::ScanKey(Key& key,const ScanMode scanMode)
 	{
-		const ScanResult scan = keyboard.Scan( key );
+		const ScanResult scan = (scanMode == SCAN_MODE_ALL ? keyboard.Scan( key ) : SCAN_NO_KEY);
 
 		if (scan != SCAN_GOOD_KEY)
 		{
@@ -1029,6 +1029,11 @@ namespace Nestopia
 		}
 
 		return MapVirtKey( System::Keyboard::GetKey( name ), vk[0], vk[1], vk[2] );
+	}
+
+	ibool DirectInput::Key::IsVirtKey() const
+	{
+		return (code == KeyNone && data);
 	}
 
 	ibool DirectInput::Key::GetVirtKey(ACCEL& accel) const

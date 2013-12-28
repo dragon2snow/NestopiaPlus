@@ -64,6 +64,7 @@ namespace Nestopia
 
 			INT_PTR Open(Type=MODAL);
 			void Close(int=0);
+			void SetItemIcon(uint,uint) const;
 
 		private:
 

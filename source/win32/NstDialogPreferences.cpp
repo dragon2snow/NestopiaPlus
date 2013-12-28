@@ -63,11 +63,13 @@ namespace Nestopia
 			NUM_EXTENSIONS = 5
 		};
 
-		Association();
+		Association(ibool=FALSE);
+		~Association();
 
-		void Create(const uint);
-		void Delete(const uint);
-		void Update(const uint);
+		void Create(uint,uint);
+		void Delete(uint);
+		void Update(uint,uint);
+		ibool IsEnabled(uint) const;
 
 	private:
 
@@ -79,29 +81,12 @@ namespace Nestopia
 			NUM_KEYTYPES
 		};
 
-		enum
-		{
-			ICON_OFFSET = 2,
-			UNCACHED = UCHAR_MAX
-		};
-
 		System::Registry registry;
-		HeapString tmpString;
+		ibool refresh;
+		ibool updated;
+		const ibool notify;
 
-		static uchar cache[NUM_EXTENSIONS];
 		static tstring const keyNames[NUM_EXTENSIONS][NUM_KEYTYPES];
-
-	public:
-
-		bool IsEnabled(const uint index) const
-		{
-			return cache[index];
-		}
-	};
-
-	uchar Preferences::Association::cache[NUM_EXTENSIONS] =
-	{
-		UNCACHED, UNCACHED, UNCACHED, UNCACHED, UNCACHED
 	};
 
 	tstring const Preferences::Association::keyNames[NUM_EXTENSIONS][NUM_KEYTYPES] =
@@ -113,61 +98,112 @@ namespace Nestopia
 		{ _T( ".nsp" ), _T( "Nestopia.nsp" ), _T( "Nestopia Script File"              ) }
 	};
 
-	Preferences::Association::Association()
+	Preferences::Association::Association(ibool n)
+	: refresh(FALSE), updated(FALSE), notify(n) {}
+
+	Preferences::Association::~Association()
 	{
-		if (*cache == UNCACHED)
+		if (refresh)
+			System::Registry::UpdateAssociations();
+
+		if (notify && updated)
 		{
-			for (uint i=0; i < NUM_EXTENSIONS; ++i)
-				cache[i] = (registry[keyNames[i][EXTENSION]] >> tmpString) && (tmpString == keyNames[i][NAME]);
+			User::Inform
+			( 
+				IDS_DIALOGS_PREFERENCES_REGISTRYUPDATED, 
+				IDS_DIALOGS_PREFERENCES_REGISTRYUPDATED_TITLE 
+			);
 		}
 	}
 
-	void Preferences::Association::Update(const uint index)
+	ibool Preferences::Association::IsEnabled(uint index) const
 	{
-		cache[index] = TRUE;
-
-		// "nestopia.extension\DefaultIcon" <- "drive:\directory\nestopia.exe, icon"
-
-		tmpString = Application::Instance::GetPath();
-		registry[keyNames[index][NAME]][_T("DefaultIcon")] << (tmpString << ',' << (ICON_OFFSET + index));
-
-		// "nestopia.extension\Shell\Open\Command" <- "drive:\directory\nestopia.exe "%1"
-
-		tmpString.ShrinkTo( Application::Instance::GetPath().Length() );
-		registry[keyNames[index][NAME]][_T("Shell\\Open\\Command")] << (tmpString << _T(" \"%1\""));
+		HeapString tmp;
+		return (registry[keyNames[index][EXTENSION]] >> tmp) && (tmp == keyNames[index][NAME]);
 	}
 
-	void Preferences::Association::Create(const uint index)
+	void Preferences::Association::Update(const uint index,const uint icon)
+	{
+		if (IsEnabled( index ))
+		{
+			HeapString path( Application::Instance::GetPath() );
+
+			// "nestopia.extension\DefaultIcon" <- "drive:\directory\nestopia.exe,icon"
+
+			if (registry[keyNames[index][NAME]][_T("DefaultIcon")] << (path << ',' << icon))
+			{
+				refresh = TRUE;
+				updated = TRUE;
+			}
+
+			path.ShrinkTo( Application::Instance::GetPath().Length() );
+
+			// "nestopia.extension\Shell\Open\Command" <- "drive:\directory\nestopia.exe "%1"
+
+			if (registry[keyNames[index][NAME]][_T("Shell\\Open\\Command")] << (path << _T(" \"%1\"")))
+				updated = TRUE;
+		}
+	}
+
+	void Preferences::Association::Create(const uint index,const uint icon)
 	{
 		// ".extension" will point to "nestopia.extension"
 
-		registry[keyNames[index][EXTENSION]] << keyNames[index][NAME];
-		registry[keyNames[index][NAME]] << keyNames[index][DESCRIPTION];
+		const ibool tmp = updated;
+		updated = FALSE;
 
-		Update( index );
+		if (registry[keyNames[index][EXTENSION]] << keyNames[index][NAME])
+			updated = TRUE;
 
-		Io::Log() << "Preferences: creating registry keys: \"HKEY_CLASSES_ROOT\\" 
-			      << keyNames[index][EXTENSION] 
-			      << "\" and \"HKEY_CLASSES_ROOT\\" 
-				  << keyNames[index][NAME] 
-				  << "\"..\r\n";
+		if (registry[keyNames[index][NAME]] << keyNames[index][DESCRIPTION])
+			updated = TRUE;
+
+		Update( index, icon );
+
+		if (updated)
+		{
+			Io::Log() << "Preferences: creating registry keys: \"HKEY_CLASSES_ROOT\\" 
+				      << keyNames[index][EXTENSION] 
+				      << "\" and \"HKEY_CLASSES_ROOT\\" 
+					  << keyNames[index][NAME] 
+					  << "\"..\r\n";
+		}
+		else
+		{
+			updated = tmp;
+		}
 	}
 
 	void Preferences::Association::Delete(const uint index)
 	{
-		cache[index] = FALSE;
+		ibool log = FALSE;
 
 		// remove ".extension" (if default) and "nestopia.extension"
 
-		registry[keyNames[index][EXTENSION]].Delete( keyNames[index][NAME] );
-		registry[keyNames[index][NAME]].Delete();
+		if (registry[keyNames[index][EXTENSION]].Delete( keyNames[index][NAME] ))
+			refresh = updated = log = TRUE;
 
-		Io::Log() << "Preferences: deleting registry keys: \"HKEY_CLASSES_ROOT\\" 
-			      << keyNames[index][EXTENSION] 
-		       	  << "\" and \"HKEY_CLASSES_ROOT\\" 
-				  << keyNames[index][NAME] 
-				  << "\"..\r\n";
+		if (registry[keyNames[index][NAME]].Delete())
+			updated = log = TRUE;
+
+		if (log)
+		{
+			Io::Log() << "Preferences: deleting registry keys: \"HKEY_CLASSES_ROOT\\" 
+				      << keyNames[index][EXTENSION] 
+			       	  << "\" and \"HKEY_CLASSES_ROOT\\" 
+					  << keyNames[index][NAME] 
+					  << "\"..\r\n";
+		}
 	}
+
+	const ushort Preferences::icons[5][5] =
+	{
+		{ IDC_PREFERENCES_ICON_NES, IDI_NES, IDI_NES_J,  2,  3 },
+		{ IDC_PREFERENCES_ICON_UNF, IDI_UNF, IDI_UNF_J,  4,  5 },
+		{ IDC_PREFERENCES_ICON_FDS, IDI_FDS, IDI_FDS,    6,  6 },
+		{ IDC_PREFERENCES_ICON_NSF, IDI_NSF, IDI_NSF_J,  7,  8 },
+		{ IDC_PREFERENCES_ICON_NSP, IDI_NSP, IDI_NSP_J,  9, 10 }
+	};
 
 	struct Preferences::Handlers
 	{
@@ -183,6 +219,8 @@ namespace Nestopia
 
 	const MsgHandler::Entry<Preferences> Preferences::Handlers::commands[] =
 	{
+		{ IDC_PREFERENCES_STYLE_NES,                    &Preferences::OnCmdStyle            },
+		{ IDC_PREFERENCES_STYLE_FAMICOM,                &Preferences::OnCmdStyle            },
 		{ IDC_PREFERENCES_MENUCOLOR_DESKTOP_CHANGE,     &Preferences::OnCmdMenuColorChange  },
 		{ IDC_PREFERENCES_MENUCOLOR_FULLSCREEN_CHANGE,  &Preferences::OnCmdMenuColorChange  },
 		{ IDC_PREFERENCES_MENUCOLOR_DESKTOP_DEFAULT,    &Preferences::OnCmdMenuColorDefault },
@@ -231,36 +269,38 @@ namespace Nestopia
 		settings[ SAVE_NETPLAY_GAMELIST    ] = ( cfg[ "preferences save netplay list"        ] != Configuration::NO  ); 
 		settings[ SAVE_WINDOWPOS           ] = ( cfg[ "preferences save window"              ] == Configuration::YES ); 
 
+		Application::Instance::SetIconStyle( GenericString(cfg["preferences icon style"]) == _T("famicom") ? Application::Instance::ICONSTYLE_FAMICOM : Application::Instance::ICONSTYLE_NES );
+
 		settings.menuLookDesktop.enabled    = ( cfg[ "preferences default desktop menu color"    ] == Configuration::NO );
 		settings.menuLookFullscreen.enabled = ( cfg[ "preferences default fullscreen menu color" ] == Configuration::NO );
 
 		settings.menuLookDesktop.color    = cfg[ "preferences desktop menu color"    ].Default( (uint) DEFAULT_DESKTOP_MENU_COLOR );
 		settings.menuLookFullscreen.color = cfg[ "preferences fullscreen menu color" ].Default( (uint) DEFAULT_FULLSCREEN_MENU_COLOR );
 
-		const GenericString priority( cfg[ "preferences priority" ] );
+		{
+			const GenericString priority( cfg[ "preferences priority" ] );
 
-		if (priority == _T("high"))
-		{
-			settings.priority = PRIORITY_HIGH;
-		}
-		else if (priority == _T("above normal"))
-		{
-			settings.priority = PRIORITY_ABOVE_NORMAL;
-		}
-		else
-		{
-			settings.priority = PRIORITY_NORMAL;
-		}
-
-		Association association;
-
-		for (uint i=0; i < Association::NUM_EXTENSIONS; ++i)
-		{
-			if (association.IsEnabled( i ))
-				association.Update( i );
+			if (priority == _T("high"))
+			{
+				settings.priority = PRIORITY_HIGH;
+			}
+			else if (priority == _T("above normal"))
+			{
+				settings.priority = PRIORITY_ABOVE_NORMAL;
+			}
+			else
+			{
+				settings.priority = PRIORITY_NORMAL;
+			}
 		}
 
 		Nes::Cartridge(emulator).GetDatabase().Enable( settings[AUTOCORRECT_IMAGES] );
+
+		Association association;
+		const uint iconOffset = (Application::Instance::GetIconStyle() == Application::Instance::ICONSTYLE_NES ? 3 : 4);
+
+		for (uint i=0; i < Association::NUM_EXTENSIONS; ++i)
+			association.Update( i, icons[i][iconOffset] );
 	}
 
 	Preferences::~Preferences()
@@ -284,6 +324,8 @@ namespace Nestopia
 		cfg[ "preferences save cheats"              ].YesNo() = settings[ SAVE_CHEATS              ];
 		cfg[ "preferences save netplay list"        ].YesNo() = settings[ SAVE_NETPLAY_GAMELIST    ];
 		cfg[ "preferences save window"              ].YesNo() = settings[ SAVE_WINDOWPOS           ];
+
+		cfg[ "preferences icon style" ] = (Application::Instance::GetIconStyle() == Application::Instance::ICONSTYLE_NES ? _T("nes") : _T("famicom"));
 
 		cfg[ "preferences default desktop menu color"    ].YesNo() = !settings.menuLookDesktop.enabled;
 		cfg[ "preferences default fullscreen menu color" ].YesNo() = !settings.menuLookFullscreen.enabled;
@@ -328,10 +370,12 @@ namespace Nestopia
 				dialog.CheckBox( IDC_PREFERENCES_STARTUP_FULLSCREEN + i ).Check( settings[i] );
 		}
 
-		Association association;
+		{
+			Association association;
 
-		for (uint i=0; i < Association::NUM_EXTENSIONS; ++i)
-			dialog.CheckBox( IDC_PREFERENCES_ASSOCIATE_NES + i ).Check( association.IsEnabled(i) ); 
+			for (uint i=0; i < Association::NUM_EXTENSIONS; ++i)
+				dialog.CheckBox( IDC_PREFERENCES_ASSOCIATE_NES + i ).Check( association.IsEnabled(i) ); 
+		}
 
 		Control::ComboBox priorities( dialog.ComboBox( IDC_PREFERENCES_PRIORITY ) ); 
 
@@ -341,7 +385,19 @@ namespace Nestopia
 		
 		priorities[settings.priority].Select();
 
+		dialog.RadioButton( IDC_PREFERENCES_STYLE_NES ).Check( Application::Instance::GetIconStyle() == Application::Instance::ICONSTYLE_NES );
+		dialog.RadioButton( IDC_PREFERENCES_STYLE_FAMICOM ).Check( Application::Instance::GetIconStyle() == Application::Instance::ICONSTYLE_FAMICOM );
+		UpdateIconStyle();
+
 		return TRUE;
+	}
+
+	void Preferences::UpdateIconStyle() const
+	{		
+		const uint style = (dialog.RadioButton(IDC_PREFERENCES_STYLE_NES).IsChecked() ? 1 : 2);
+
+		for (uint i=0; i < 5; ++i)
+			dialog.SetItemIcon( icons[i][0], icons[i][style] );
 	}
 
 	ibool Preferences::OnPaint(Param&)	
@@ -373,6 +429,14 @@ namespace Nestopia
 		return FALSE;
 	}
   
+	ibool Preferences::OnCmdStyle(Param& param)
+	{
+		if (param.Button().IsClicked())
+			UpdateIconStyle();
+
+		return TRUE;
+	}
+
 	ibool Preferences::OnCmdMenuColorChange(Param& param)
 	{
 		if (param.Button().IsClicked())
@@ -472,31 +536,19 @@ namespace Nestopia
 
 			Nes::Cartridge(emulator).GetDatabase().Enable( settings[AUTOCORRECT_IMAGES] );
 
-			ibool altered = FALSE;
-			Association association;
+			Application::Instance::SetIconStyle( dialog.RadioButton(IDC_PREFERENCES_STYLE_NES).IsChecked() ? Application::Instance::ICONSTYLE_NES : Application::Instance::ICONSTYLE_FAMICOM );
 
-			for (uint i=0; i < Association::NUM_EXTENSIONS; ++i)
 			{
-				const bool checked = dialog.CheckBox( IDC_PREFERENCES_ASSOCIATE_NES + i ).IsChecked();
+				Association association( TRUE );
+				const uint iconOffset = (Application::Instance::GetIconStyle() == Application::Instance::ICONSTYLE_NES ? 3 : 4);
 
-				if (checked != association.IsEnabled( i ))
+				for (uint i=0; i < Association::NUM_EXTENSIONS; ++i)
 				{
-					altered = TRUE;
-
-					if (checked) association.Create( i );
-					else	 	 association.Delete( i );
+					if (dialog.CheckBox( IDC_PREFERENCES_ASSOCIATE_NES + i ).IsChecked()) 
+						association.Create( i, icons[i][iconOffset] );
+					else	 	 
+						association.Delete( i );
 				}
-			}
-
-			if (altered)
-			{
-				System::Registry::UpdateAssociations();
-
-				User::Inform
-				( 
-					IDS_DIALOGS_PREFERENCES_REGISTRYUPDATED, 
-					IDS_DIALOGS_PREFERENCES_REGISTRYUPDATED_TITLE
-				);
 			}
 
 			dialog.Close();

@@ -39,11 +39,11 @@ namespace Nes
 			{
 			public:
 	
-				class Sound : Apu::Channel
+				class Sound : public Apu::Channel
 				{
 				public:
 	
-					Sound(Cpu&);
+					Sound(Cpu&,bool=true);
 					~Sound();
 	
 					void Poke_4800(uint);
@@ -53,17 +53,19 @@ namespace Nes
 					void SaveState(State::Saver&) const;
 					void LoadState(State::Loader&);
 	
+				protected:
+
+					void Reset();
+					void UpdateContext(Cycle);
+					Sample GetSample();
+
 				private:
 	
-					void Reset();
 					inline void SetChannelState(uint);
 	
 					inline void WriteWave(uint);
 					inline dword FetchFrequency(uint) const;
-	
-					void UpdateContext(Cycle);
-					Sample GetSample();
-	
+		
 					enum
 					{
 						NUM_CHANNELS     = 8,
@@ -121,6 +123,8 @@ namespace Nes
 					u8 exRam[0x80];
 	
 					BaseChannel channels[NUM_CHANNELS];
+					
+					const ibool hooked;
 				};
 
 			protected:

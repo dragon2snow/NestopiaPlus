@@ -76,12 +76,13 @@
 				AdditionalDependencies="libcmtd.lib unicows.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib $(NOINHERIT)"
 				OutputFile="$(OutDir)\Nestopia.exe"
 				LinkIncremental="2"
-				AdditionalLibraryDirectories="$(SolutionDir)\..\lib"
+				AdditionalLibraryDirectories="$(SolutionDir)..\lib"
 				IgnoreAllDefaultLibraries="false"
 				IgnoreDefaultLibraryNames="libc"
 				DelayLoadDLLs="unrar.dll;kailleraclient.dll"
 				GenerateDebugInformation="true"
 				SubSystem="2"
+				OptimizeForWindows98="1"
 				SupportUnloadOfDelayLoadedDLL="true"
 				TargetMachine="1"
 			/>
@@ -616,6 +617,14 @@
 					RelativePath="..\source\win32\NstDialogVideo.hpp"
 					>
 				</File>
+				<File
+					RelativePath="..\source\win32\NstDialogVideoDecoder.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\source\win32\NstDialogVideoDecoder.hpp"
+					>
+				</File>
 			</Filter>
 			<Filter
 				Name="Controls"
@@ -1121,6 +1130,14 @@
 				Name="Icons"
 				>
 				<File
+					RelativePath="..\source\win32\resource\application.ico"
+					>
+				</File>
+				<File
+					RelativePath="..\source\win32\resource\application_j.ico"
+					>
+				</File>
+				<File
 					RelativePath="..\source\win32\resource\fds.ico"
 					>
 				</File>
@@ -1129,7 +1146,15 @@
 					>
 				</File>
 				<File
+					RelativePath="..\source\win32\resource\nes_j.ico"
+					>
+				</File>
+				<File
 					RelativePath="..\source\win32\resource\nsf.ico"
+					>
+				</File>
+				<File
+					RelativePath="..\source\win32\resource\nsf_j.ico"
 					>
 				</File>
 				<File
@@ -1137,7 +1162,7 @@
 					>
 				</File>
 				<File
-					RelativePath="..\source\win32\resource\program.ico"
+					RelativePath="..\source\win32\resource\nsp_j.ico"
 					>
 				</File>
 				<File
@@ -1145,7 +1170,15 @@
 					>
 				</File>
 				<File
+					RelativePath="..\source\win32\resource\unf_j.ico"
+					>
+				</File>
+				<File
 					RelativePath="..\source\win32\resource\window.ico"
+					>
+				</File>
+				<File
+					RelativePath="..\source\win32\resource\window_j.ico"
 					>
 				</File>
 			</Filter>

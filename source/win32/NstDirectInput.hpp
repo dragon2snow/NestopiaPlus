@@ -71,6 +71,12 @@ namespace Nestopia
 				DEFAULT_DEADZONE  = 50
 			};
 
+			enum ScanMode
+			{
+				SCAN_MODE_ALL,
+				SCAN_MODE_JOY
+			};
+
 			enum ScanResult
 			{
 				SCAN_INVALID_KEY = -1,
@@ -87,7 +93,7 @@ namespace Nestopia
 			const HeapString GetKeyName(const Key&) const;
 
 			void BeginScanMode(HWND);
-			ScanResult ScanKey(Key&);
+			ScanResult ScanKey(Key&,ScanMode=SCAN_MODE_ALL);
 			void EndScanMode();
 
 			class Key
@@ -101,6 +107,7 @@ namespace Nestopia
 				ibool MapVirtKey(uint,uint,uint,uint);
 				ibool MapVirtKey(GenericString);
 				ibool GetVirtKey(ACCEL&) const;
+				ibool IsVirtKey() const;
 
 			private:
 
@@ -511,12 +518,16 @@ namespace Nestopia
 				return ScanKey( key ) != SCAN_NO_KEY;
 			}
 
+			void PollJoysticks()
+			{
+				for (Joysticks::Iterator it=joysticks.Begin(), end=joysticks.End(); it != end; ++it)
+					it->Poll();
+			}
+
 			void Poll()
 			{
 				keyboard.Poll();
-
-				for (Joysticks::Iterator it=joysticks.Begin(), end=joysticks.End(); it != end; ++it)
-					it->Poll();
+				PollJoysticks();
 			}
 		};
 	}

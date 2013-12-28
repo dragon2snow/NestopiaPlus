@@ -844,7 +844,8 @@ namespace Nestopia
 	       	presentation.Windowed || 
 			presentation.BackBufferWidth != mode.width ||
 			presentation.BackBufferHeight != mode.height ||
-			presentation.BackBufferFormat != (mode.bpp == 16 ? D3DFMT_R5G6B5 : D3DFMT_X8R8G8B8)
+			presentation.BackBufferFormat != (mode.bpp == 16 ? D3DFMT_R5G6B5 : D3DFMT_X8R8G8B8) ||
+			presentation.FullScreen_RefreshRateInHz != GetDesiredPresentationRate( mode )
 		);
 	}
 

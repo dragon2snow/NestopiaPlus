@@ -91,29 +91,31 @@ namespace Nes
 				}
 			};
 
-			class Sound : Apu::Channel
+			class Sound : public Apu::Channel
 			{
 			public:
 		
-				Sound(Cpu&);
+				Sound(Cpu&,bool=true);
 				~Sound();
 		
 				void SaveState(State::Saver&) const;
 				void LoadState(State::Loader&);
 		
-			private:
-		
+			protected:
+
+				void Reset();
+				void UpdateContext(uint);
+				Sample GetSample();
 				Cycle Clock();
-		
+
+			private:
+				
 				bool CanOutput() const;
 				inline bool CanModulate() const;
 		
-				void Reset();
 				void ResetChannel();
-				void UpdateContext(uint);
 		
 				NST_FORCE_INLINE uint GetModulation() const;
-				Sample GetSample();
 		
 				NES_DECL_PEEK( Nop  )
 				NES_DECL_POKE( Nop  )
@@ -257,6 +259,8 @@ namespace Nes
 				uint status;
 		
 				static const u8 volumes[4];
+
+				const ibool hooked;
 			};
 
 		private:

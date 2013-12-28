@@ -57,7 +57,8 @@ namespace Nestopia
 
 	ibool About::OnInitDialog(Param&)
 	{
-		dialog.Control(IDC_ABOUT_NAMEVERSION).Text() << (String::Heap<char>() << "Nestopia " << Application::Instance::GetVersion()).Ptr();
+		dialog.SetItemIcon( IDC_ABOUT_ICON, Application::Instance::GetIconStyle() == Application::Instance::ICONSTYLE_NES ? IDI_APP : IDI_APP_J );
+		dialog.Control( IDC_ABOUT_NAMEVERSION ).Text() << (String::Heap<char>() << "Nestopia " << Application::Instance::GetVersion()).Ptr();
 		return TRUE;
 	}
 

@@ -38,22 +38,21 @@ namespace Nes
 		{
 			if (hard)
 			{
+				enabled = false;
 				count = 0;
 				step = 1;
 			}
 		}
-
 		Mapper83::Mapper83(Context& c)
 		: 
-		Mapper  (c,c.battery ? WRAM_AUTO : WRAM_NONE), 
-		irq     (c.cpu), 
-		irqStep (c.pRomCrc != 0x881F3623UL) // Street Blaster II Pro
+		Mapper (c,c.battery ? WRAM_AUTO : WRAM_NONE), 
+		irq    (c.cpu)
 		{}
 	
 		void Mapper83::SubReset(const bool hard)
 		{
-			irq.Reset( hard, hard ? false : irq.IsLineEnabled() );
-	
+			irq.Reset( hard, true );
+
 			if (hard)
 			{
 				regs.ctrl = 0;
@@ -100,7 +99,7 @@ namespace Nes
 
 			Map( 0xB000, &Mapper83::Poke_8000 );		
 			Map( 0xB0FF, &Mapper83::Poke_8000 );		
-			Map( 0xB100, &Mapper83::Poke_8000 );		
+			Map( 0xB100, &Mapper83::Poke_8000 );	
 		}
 	
 		void Mapper83::SubLoad(State::Loader& state)
@@ -124,7 +123,7 @@ namespace Nes
 					{
 						const State::Loader::Data<3> data( state );
 
-						irq.EnableLine( data[0] & 0x1 );
+						irq.unit.enabled = data[0] & 0x1;
 						irq.unit.step = (data[0] & 0x2) ? ~0U : 1U;
 						irq.unit.count = data[1] | (data[2] << 8);
 						
@@ -157,7 +156,7 @@ namespace Nes
 			{
 				const u8 data[3] =
 				{
-					(irq.IsLineEnabled() ? 0x1 : 0x0) | 
+					(irq.unit.enabled ? 0x1 : 0x0) | 
 					(irq.unit.step == 1  ? 0x0 : 0x2),
 					irq.unit.count & 0xFF,
 					irq.unit.count >> 8
@@ -218,7 +217,7 @@ namespace Nes
 				UpdatePrg();
 			}
 		}
-	
+						
 		NES_POKE(Mapper83,8100) 
 		{
 			const uint diff = data ^ regs.ctrl;
@@ -230,8 +229,7 @@ namespace Nes
 			if (diff & 0xC0)
 			{
 				irq.Update();
-				irq.unit.step = ((data & 0x40) && irqStep ? ~0U : 1U);
-				irq.EnableLine( data & 0x80 );
+				irq.unit.step = (data & 0x40) ? ~0U : 1U;
 			}
 
 			if (diff & 0x03)
@@ -259,6 +257,7 @@ namespace Nes
 		{
 			irq.Update();
 			irq.unit.count = (irq.unit.count & 0x00FFU) | (data << 8);
+			irq.unit.enabled = regs.ctrl & 0x80;
 			irq.ClearIRQ();
 		}
 
@@ -287,12 +286,15 @@ namespace Nes
 
 		ibool Mapper83::Irq::Signal()
 		{
-			if (count)
+			if (enabled && count)
 			{
 				count = (count + step) & 0xFFFFU;
 
 				if (!count)
+				{
+					enabled = false;
 					return true;
+				}
 			}
 
 			return false;

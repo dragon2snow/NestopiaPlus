@@ -74,7 +74,7 @@ namespace Nestopia
 			void ToggleAutoSaver(ibool);
 
 			void OnEmuEvent(Emulator::Event);			
-			ibool OnTimerAutoSave();
+			uint OnTimerAutoSave();
 
 			void OnCmdStateLoad        (uint);
 			void OnCmdStateSave        (uint);

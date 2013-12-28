@@ -42,9 +42,9 @@ namespace Nes
 	{
 		NST_COMPILE_ASSERT
 		(
-			Video::Palette::INTERNAL == Core::Video::Renderer::PALETTE_INTERNAL &&
-			Video::Palette::CUSTOM   == Core::Video::Renderer::PALETTE_CUSTOM   &&
-			Video::Palette::EMULATED == Core::Video::Renderer::PALETTE_EMULATE  
+			Video::Palette::MODE_YUV    == Core::Video::Renderer::PALETTE_YUV &&
+			Video::Palette::MODE_RGB    == Core::Video::Renderer::PALETTE_RGB &&
+			Video::Palette::MODE_CUSTOM == Core::Video::Renderer::PALETTE_CUSTOM
 		);
 
 		Video::Palette::UpdateCaller Video::Palette::updateCallback;
@@ -126,6 +126,69 @@ namespace Nes
 			return RESULT_ERR_NOT_READY;
 		}
 
+		Video::Decoder::Decoder(DecoderPreset preset)
+		{
+			switch (preset)
+			{
+				case DECODER_CONSUMER:
+
+					axes[0].angle = 105;
+					axes[0].gain  = 0.78f;
+					axes[1].angle = 236;
+					axes[1].gain  = 0.33f;
+					axes[2].angle = 0;
+					axes[2].gain  = 1.0f;
+					boostYellow   = false;
+					break;
+
+				case DECODER_ALTERNATIVE:
+
+					axes[0].angle = 90;
+					axes[0].gain  = 0.570f;
+					axes[1].angle = 236;
+					axes[1].gain  = 0.353f;
+					axes[2].angle = 0;
+					axes[2].gain  = 1.015f;
+					boostYellow   = true;
+					break;
+
+				default:
+
+					axes[0].angle = 90;
+					axes[0].gain  = 0.570f;
+					axes[1].angle = 236;
+					axes[1].gain  = 0.353f;
+					axes[2].angle = 0;
+					axes[2].gain  = 1.015f;
+					boostYellow   = false;
+					break;
+			}
+		}
+
+		bool Video::Decoder::operator == (const Decoder& decoder) const
+		{
+			for (uint i=0; i < NUM_AXES; ++i)
+			{
+				if (axes[i].angle != decoder.axes[i].angle || axes[i].gain != decoder.axes[i].gain)
+					return false;
+			}
+
+			if (boostYellow != decoder.boostYellow)
+				return false;
+
+			return true;
+		}
+
+		Result Video::SetDecoder(const Decoder& decoder)
+		{
+			return emulator.renderer.SetDecoder( decoder );
+		}
+
+		const Video::Decoder& Video::GetDecoder() const
+		{
+			return emulator.renderer.GetDecoder();
+		}
+
 		Video::Palette Video::GetPalette() const
 		{
 			return emulator.renderer;
@@ -133,7 +196,7 @@ namespace Nes
 
 		Result Video::Palette::SetMode(Mode mode)
 		{
-			if (mode == INTERNAL || mode == CUSTOM || mode == EMULATED)
+			if (mode == MODE_YUV || mode == MODE_RGB || mode == MODE_CUSTOM)
 				return renderer.SetPaletteType( (Core::Video::Renderer::PaletteType) mode );
 
 			return RESULT_ERR_INVALID_PARAM;

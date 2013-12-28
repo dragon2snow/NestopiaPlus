@@ -137,7 +137,7 @@ namespace Nestopia
 		list = dialog.ListView( IDC_LAUNCHER_LIST );
 		tree = dialog.TreeView( IDC_LAUNCHER_TREE );
 
-		dialog.SetIcon( IDI_WINDOW );
+		dialog.SetIcon( Application::Instance::GetIconStyle() == Application::Instance::ICONSTYLE_NES ? IDI_PAD : IDI_PAD_J );
 
 		margin = dialog.GetRectangle().Corner() - list.GetWindow().GetRectangle().Corner();
 

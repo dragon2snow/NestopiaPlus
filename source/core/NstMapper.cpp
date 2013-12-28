@@ -135,6 +135,7 @@
 #include "mapper/NstMapper099.hpp"
 #include "mapper/NstMapper100.hpp"
 #include "mapper/NstMapper101.hpp"
+#include "mapper/NstMapper102.hpp"
 #include "mapper/NstMapper105.hpp"
 #include "mapper/NstMapper107.hpp"
 #include "mapper/NstMapper112.hpp"
@@ -375,7 +376,7 @@ namespace Nes
 			{ "VS SYSTEM 8KB CHR SWITCH",         Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 099			 
 			{ "MMC3 HACK",	                      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 100			 
 			{ "JALECO 74HC161/32",		          Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 101			 
-			{ "",					              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 102	
+			{ "SUNSOFT 3-R",		              Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 102	
 			{ "",					              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 103	
 			{ "",					              Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 104	
 			{ "NES-EVENT",		                  Setup::PRG_DEFAULT,  Setup::NMT_ZERO,       Setup::NMT_ZERO       }, // 105			 
@@ -458,7 +459,7 @@ namespace Nes
 			{ "SUPER DONKEY KONG",                Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 182			 
 			{ "BTL SUIKAN PIPE",		          Setup::PRG_012X_8K,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 183	
 			{ "SUNSOFT 74HC161/32",	              Setup::PRG_01XX_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 184			 
-			{ "CROM WRITE-ENABLE",    		      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 185			 
+			{ "CROM WRITE-ENABLE",    		      Setup::PRG_0123_32K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 185			 
 			{ "STUDY BOX",   		              Setup::PRG_0101_16K, Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 186
 			{ "STREET FIGHTER ZERO 2 97",	      Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 187			 
 			{ "BANDAI KARAOKE STUDIO",            Setup::PRG_DEFAULT,  Setup::NMT_DEFAULT,    Setup::NMT_VERTICAL   }, // 188			 
@@ -627,6 +628,7 @@ namespace Nes
 				case  99: return new Mapper99  ( context );
 				case 100: return new Mapper100 ( context );
 				case 101: return new Mapper101 ( context );
+				case 102: return new Mapper102 ( context );
 				case 105: return new Mapper105 ( context );
 				case 107: return new Mapper107 ( context );
 				case 112: return new Mapper112 ( context );

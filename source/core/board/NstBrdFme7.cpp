@@ -90,15 +90,17 @@ namespace Nes
 				46,65,92,130,183,259,366,517,730,1031,1457,2057,2906,4105,5799,8191
 			};
 
-			Fme07::Sound::Sound(Cpu& cpu)
-			: apu(cpu.GetApu())
+			Fme07::Sound::Sound(Cpu& cpu,bool hook)
+			: apu(cpu.GetApu()), hooked(hook)
 			{
-				apu.HookChannel( this );
+				if (hook)
+					apu.HookChannel( this );
 			}
 		
 			Fme07::Sound::~Sound()
 			{
-				apu.ReleaseChannel();
+				if (hooked)
+					apu.ReleaseChannel();
 			}
 	
 			Fme07::Fme07(Context& c)
