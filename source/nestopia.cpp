@@ -39,6 +39,10 @@
 #define WIN32_LEAN_AND_MEAN
 #endif
 
+#ifndef VC_EXTRALEAN
+#define VC_EXTRALEAN
+#endif
+
 #include <Windows.h>
 #include "windows/NstApplication.h"
 #include "windows/NstFileManager.h"
@@ -66,7 +70,7 @@ BOOL AllowOnlyOneInstance()
 
 	CONFIGFILE cfg;
 
-	if (cfg.Load( filename, FALSE ) && cfg[ "preferences allow multiple instances" ] == "yes") 
+	if (cfg.Load( filename, FALSE ) && cfg["preferences allow multiple instances"] == "yes") 
 		return FALSE;
 
 	return TRUE;
@@ -78,46 +82,38 @@ BOOL AllowOnlyOneInstance()
 
 BOOL TooManyInstances(CHAR* const CmdLine)
 {
-	HANDLE hMutex = CreateMutex( NULL, TRUE, "Nestopia Instance" );
+	HANDLE hMutex = ::CreateMutex( NULL, TRUE, "Nestopia Instance" );
 
-	if (GetLastError() == ERROR_ALREADY_EXISTS) 
+	if (::GetLastError() == ERROR_ALREADY_EXISTS) 
 	{
-		HWND hWnd = FindWindow( NST_CLASS_NAME, NULL );
+		HWND hWnd = ::FindWindow( NST_CLASS_NAME, NULL );
 
-		if (hWnd)
+		if (hWnd && CmdLine)
 		{
-			if (IsIconic( hWnd ))
-				ShowWindow( hWnd, SW_RESTORE );
-
-			SetForegroundWindow( hWnd );
-
-			if (CmdLine)
+			for (CHAR* begin=CmdLine; *begin != '\0'; )
 			{
-				for (CHAR* begin=CmdLine; *begin != '\0'; )
+				if (*begin++ == '\"')
 				{
-					if (*begin++ == '\"')
+					while (*begin == ' ')
+						++begin;
+
+					for (const CHAR* end=begin+1; *end != '\0'; ++end)
 					{
-						while (*begin == ' ')
-							++begin;
-
-						for (const CHAR* end=begin+1; *end != '\0'; ++end)
+						if (*end == '\"')
 						{
-							if (*end == '\"')
-							{
-								for (--end; *end == ' '; --end);
-								
-								COPYDATASTRUCT cds;
+							for (--end; *end == ' '; --end);
+							
+							COPYDATASTRUCT cds;
 
-								cds.dwData = NST_WM_CMDLINE;
-								cds.lpData = PDX_CAST(PVOID,begin);
-								cds.cbData = end + 1 - begin;
+							cds.dwData = NST_WM_CMDLINE;
+							cds.lpData = PDX_CAST(PVOID,begin);
+							cds.cbData = end + 1 - begin;
 
-								SendMessage( hWnd, WM_COPYDATA, WPARAM(hWnd), LPARAM(LPVOID(&cds)) );
-								break;
-							}
+							::SendMessage( hWnd, WM_COPYDATA, WPARAM(hWnd), LPARAM(LPVOID(&cds)) );
+							break;
 						}
-						break;
 					}
+					break;
 				}
 			}
 		}
@@ -154,31 +150,31 @@ INT WINAPI WinMain(HINSTANCE hInstance,HINSTANCE,LPSTR CmdLine,INT iCmdShow)
 	}
 	catch (EXCEPTION)
 	{
-		MessageBox
+		::MessageBox
 		( 
 			NULL, 
-			EXCEPTION::Msg(), 
-			"Nestopia Error!",
+			EXCEPTION::Msg(),
+			UTILITIES::IdToString(IDS_APP_ERROR).String(),
 			MB_OK|MB_ICONERROR 
 		);
 	}
 	catch (const CHAR* msg)
 	{
-		MessageBox
+		::MessageBox
 		( 
 	     	NULL, 
 			msg, 
-			"Nestopia Error!",
+			UTILITIES::IdToString(IDS_APP_ERROR).String(),
 			MB_OK|MB_ICONERROR 
 		);
 	}
 	catch (...)
 	{
-		MessageBox
+		::MessageBox
 		(
 	       	NULL,
-			"Unhandled error! Call the Ghostbusters!",
-			"Nestopia Error!", 
+			UTILITIES::IdToString(IDS_APP_UNHANDLED_ERROR).String(),
+			UTILITIES::IdToString(IDS_APP_ERROR).String(),
 			MB_OK|MB_ICONERROR 
 		);
 	}

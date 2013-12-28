@@ -153,10 +153,12 @@ public:
 	inline friend BOOL operator != (CONSTITERATOR    a,const PDXSTRING& b) { return !(b == a);             }
 	inline friend BOOL operator != (const PDXSTRING& a,CONSTITERATOR    b) { return !(a == b);             }
 
-	BOOL operator <	 (const PDXSTRING&) const;
 	BOOL operator <	 (CONSTITERATOR)    const;
 	BOOL operator == (const PDXSTRING&) const;
 	BOOL operator == (CONSTITERATOR)    const;
+
+	inline BOOL operator < (const PDXSTRING& a) const
+	{ return (*this) < a.String(); }
 
 	BOOL ExactEqual (const PDXSTRING&) const;
 	BOOL ExactEqual (CONSTITERATOR)    const;

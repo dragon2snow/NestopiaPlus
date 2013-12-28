@@ -96,10 +96,10 @@ NES_POKE(MAPPER33,A003) { ppu.Update(); cRom.SwapBanks<n1k,0x1C00>(data); }
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-NES_POKE(MAPPER33,C000) { IrqLatch = data;       }
+NES_POKE(MAPPER33,C000) { IrqLatch = data;     }
 NES_POKE(MAPPER33,C001) { IrqCount = IrqLatch; }
-NES_POKE(MAPPER33,C002) { SetIrqEnable(FALSE);   }
-NES_POKE(MAPPER33,C003) { SetIrqEnable(TRUE);    }
+NES_POKE(MAPPER33,C002) { SetIrqEnable(TRUE);  }
+NES_POKE(MAPPER33,C003) { SetIrqEnable(FALSE); }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //

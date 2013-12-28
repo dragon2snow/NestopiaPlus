@@ -33,6 +33,7 @@ NES_NAMESPACE_BEGIN
 
 VOID MAPPER71::Reset()
 {
+	cpu.SetPort( 0x6000, 0x7FFF, this, Peek_Nop,  Poke_C000 );
 	cpu.SetPort( 0x9000, 0x9FFF, this, Peek_9000, Poke_9000 );
 	cpu.SetPort( 0xC000, 0xFFFF, this, Peek_pRom, Poke_C000 );
 }

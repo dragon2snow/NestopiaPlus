@@ -40,7 +40,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 
 #define NES_MASTER_CLOCK_FIXED 7
-
 #define NES_MASTER_CLOCK_MULTIPLIER    6
 #define NES_CPU_MASTER_CLOCK_DIV_NTSC 12
 #define NES_PPU_MASTER_CLOCK_DIV_NTSC  4
@@ -59,28 +58,28 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#define NES_CPU_TO_NTSC(_x_) ( (_x_) * NES_CPU_NTSC_FIXED )
-#define NES_PPU_TO_NTSC(_x_) ( (_x_) * NES_PPU_NTSC_FIXED )
-#define NES_CPU_TO_PAL(_x_)  ( (_x_) * NES_CPU_PAL_FIXED  )
-#define NES_PPU_TO_PAL(_x_)  ( (_x_) * NES_PPU_PAL_FIXED  )
+#define NES_CPU_TO_NTSC(x_) ( (x_) * NES_CPU_NTSC_FIXED )
+#define NES_PPU_TO_NTSC(x_) ( (x_) * NES_PPU_NTSC_FIXED )
+#define NES_CPU_TO_PAL(x_)  ( (x_) * NES_CPU_PAL_FIXED  )
+#define NES_PPU_TO_PAL(x_)  ( (x_) * NES_PPU_PAL_FIXED  )
 
-#define NES_NTSC_TO_CPU(_x_) ( (_x_) / NES_CPU_NTSC_FIXED )
-#define NES_NTSC_TO_PPU(_x_) ( (_x_) / NES_PPU_NTSC_FIXED )
-#define NES_PAL_TO_CPU(_x_)  ( (_x_) / NES_CPU_PAL_FIXED  )
-#define NES_PAL_TO_PPU(_x_)  ( (_x_) / NES_PPU_PAL_FIXED  )
+#define NES_NTSC_TO_CPU(x_) ( (x_) / NES_CPU_NTSC_FIXED )
+#define NES_NTSC_TO_PPU(x_) ( (x_) / NES_PPU_NTSC_FIXED )
+#define NES_PAL_TO_CPU(x_)  ( (x_) / NES_CPU_PAL_FIXED  )
+#define NES_PAL_TO_PPU(x_)  ( (x_) / NES_PPU_PAL_FIXED  )
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#define NES_PI  3.1415926535897932384626433832795L
-#define NES_DEG 0.017453292519943295769236907684886L
+#define NES_PI  3.1415926535897932384626433832795
+#define NES_DEG 0.017453292519943295769236907684886
 
 #define NES_FPS_NTSC 60
 #define NES_FPS_PAL  50
 
-#define NES_SUBCARRIER_REAL_NTSC 3579545.45454545454545454545L
-#define NES_SUBCARRIER_REAL_PAL  4433618.75000000000000000000L
+#define NES_SUBCARRIER_REAL_NTSC 3579545.45454545454545454545
+#define NES_SUBCARRIER_REAL_PAL  4433618.75000000000000000000
 
 #define NES_MASTER_CLOCK_HZ_REAL_NTSC ( NES_SUBCARRIER_REAL_NTSC * NES_MASTER_CLOCK_MULTIPLIER )
 #define NES_MASTER_CLOCK_HZ_REAL_PAL  ( NES_SUBCARRIER_REAL_PAL  * NES_MASTER_CLOCK_MULTIPLIER )
@@ -110,12 +109,16 @@
 #define NES_PPU_LN_VSYNC_NTSC  ( NES_PPU_LN_VACTIVE + NES_PPU_LN_VBLANK_NTSC			      )
 #define NES_PPU_LN_VSYNC_PAL   ( NES_PPU_LN_VACTIVE + NES_PPU_LN_VBLANK_PAL				      )
 
-#define NES_PPU_CC_PIXEL      1
-#define NES_PPU_CC_FETCH      2
-#define NES_PPU_CC_SPRITE_DMA 1536
-#define NES_PPU_CC_HACTIVE	  (NES_PPU_CC_FETCH * 4 * 32)
-#define NES_PPU_CC_HBLANK     ((NES_PPU_CC_FETCH * 4 * 8) + (NES_PPU_CC_FETCH * 4 * 2) + (NES_PPU_CC_FETCH * 2) + 1)
-#define NES_PPU_CC_HSYNC      (NES_PPU_CC_HACTIVE + NES_PPU_CC_HBLANK)
+#define NES_CPU_PPU_DMA_TRANSFERS 256
+#define NES_CPU_CC_PPU_DMA        (1+1)
+#define NES_CPU_MCC_PPU_DMA_NTSC  NES_CPU_TO_NTSC( NES_CPU_CC_PPU_DMA )
+#define NES_CPU_MCC_PPU_DMA_PAL   NES_CPU_TO_PAL( NES_CPU_CC_PPU_DMA )
+
+#define NES_PPU_CC_PIXEL   1
+#define NES_PPU_CC_FETCH   2
+#define NES_PPU_CC_HACTIVE (NES_PPU_CC_FETCH * 4 * 32)
+#define NES_PPU_CC_HBLANK  ((NES_PPU_CC_FETCH * 4 * 8) + (NES_PPU_CC_FETCH * 4 * 2) + (NES_PPU_CC_FETCH * 2) + 1)
+#define NES_PPU_CC_HSYNC   (NES_PPU_CC_HACTIVE + NES_PPU_CC_HBLANK)
 
 #define NES_PPU_CC_VINT_NTSC    ( NES_PPU_CC_HSYNC * NES_PPU_LN_VINT_NTSC   )
 #define NES_PPU_CC_VINT_PAL     ( NES_PPU_CC_HSYNC * NES_PPU_LN_VINT_PAL    )
@@ -123,8 +126,8 @@
 #define NES_PPU_CC_VBLANK_PAL   ( NES_PPU_CC_HSYNC * NES_PPU_LN_VBLANK_PAL  )
 #define NES_PPU_CC_FRAME_0_NTSC ( NES_PPU_CC_HSYNC * NES_PPU_LN_VSYNC_NTSC  ) 
 #define NES_PPU_CC_FRAME_0_PAL  ( NES_PPU_CC_HSYNC * NES_PPU_LN_VSYNC_PAL   )
-#define NES_PPU_CC_FRAME_1_NTSC ( ( NES_PPU_CC_HSYNC * NES_PPU_LN_VSYNC_NTSC ) - 1 )
-#define NES_PPU_CC_FRAME_1_PAL  ( ( NES_PPU_CC_HSYNC * NES_PPU_LN_VSYNC_PAL  ) - 1 )
+#define NES_PPU_CC_FRAME_1_NTSC ( NES_PPU_CC_FRAME_0_NTSC - 1               )
+#define NES_PPU_CC_FRAME_1_PAL  ( NES_PPU_CC_FRAME_0_PAL - 1                )
 
 /////////////////////////////////////////////////////////////////////////////////////////
 //

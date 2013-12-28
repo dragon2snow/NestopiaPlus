@@ -244,7 +244,7 @@ BEGIN
                     SS_NOTIFY
     LTEXT           "Home",IDC_STATIC,70,86,20,10
     LTEXT           "Project",IDC_STATIC,68,107,24,10
-    LTEXT           "Nestopia 1.07",IDC_STATIC,57,15,47,13
+    LTEXT           "Nestopia 1.08",IDC_STATIC,57,15,47,13
     ICON            IDI_PROGRAM,IDC_STATIC,70,28,20,20
 END
 
@@ -383,39 +383,39 @@ BEGIN
                     WS_GROUP
 END
 
-IDD_PREFERENCES DIALOGEX 0, 0, 354, 198
+IDD_PREFERENCES DIALOGEX 0, 0, 354, 207
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | 
     WS_SYSMENU
 CAPTION "Preferences"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    DEFPUSHBUTTON   "OK",IDC_PREFERENCES_OK,297,177,50,14
-    GROUPBOX        "Preferences",IDC_STATIC,7,7,208,161
+    DEFPUSHBUTTON   "OK",IDC_PREFERENCES_OK,297,186,50,14
+    GROUPBOX        "Preferences",IDC_STATIC,7,7,208,166
     CONTROL         "Begin emulation as soon as an image file has been loaded",
                     IDC_PREFERENCES_BEGIN_EMULATION,"Button",BS_AUTOCHECKBOX | 
                     WS_TABSTOP,14,19,198,11
     CONTROL         "Run in background",IDC_PREFERENCES_RUN_IN_BACKGROUND,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,34,78,11
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,33,78,11
     CONTROL         "Switch to fullscreen on startup",
                     IDC_PREFERENCES_STARTUP_FULLSCREEN,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,14,65,114,12
+                    BS_AUTOCHECKBOX | WS_TABSTOP,14,62,114,12
     CONTROL         "Disable not-so-important warning messages",
                     IDC_PREFERENCES_DISABLE_ROM_WARNINGS,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,14,81,156,12
-    CONTROL         "On exit; first deatch image file",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,14,77,156,12
+    CONTROL         "On exit; first detach image file",
                     IDC_PREFERENCES_CLOSE_POWER_OFF,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,14,97,114,12
+                    WS_TABSTOP,14,92,114,12
     CONTROL         "Confirm on exit",IDC_PREFERENCES_CONFIRM_EXIT,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,14,113,66,12
-    PUSHBUTTON      "Default",IDC_PREFERENCES_DEFAULT,170,177,50,14
+                    BS_AUTOCHECKBOX | WS_TABSTOP,14,122,66,12
+    PUSHBUTTON      "Default",IDC_PREFERENCES_DEFAULT,170,186,50,14
     CONTROL         "Logfile",IDC_PREFERENCES_SAVE_LOGFILE,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,291,145,36,12
+                    BS_AUTOCHECKBOX | WS_TABSTOP,271,142,36,12
     CONTROL         "Enable automatic thread priority control",
                     IDC_PREFERENCES_HIGH_PRIORITY,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,14,49,142,12
-    PUSHBUTTON      "Cancel",IDC_PREFERENCES_CANCEL,233,177,50,14
+                    WS_TABSTOP,14,47,142,12
+    PUSHBUTTON      "Cancel",IDC_PREFERENCES_CANCEL,233,186,50,14
     CONTROL         "Enable rom database",IDC_PREFERENCES_USE_ROM_DATABASE,
-                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,129,83,12
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,137,83,12
     GROUPBOX        "File Associations",IDC_STATIC,221,7,126,117
     CONTROL         ".NES",IDC_PREFERENCES_ASSOCIATE_NES,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,227,55,29,12
@@ -429,15 +429,20 @@ BEGIN
                     BS_AUTOCHECKBOX | WS_TABSTOP,272,100,29,12
     CONTROL         "Allow multiple application instances",
                     IDC_PREFERENCES_MULTIPLE_INSTANCES,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,14,145,128,12
-    GROUPBOX        "Save On Exit",IDC_STATIC,221,129,126,39
+                    BS_AUTOCHECKBOX | WS_TABSTOP,14,152,128,12
+    GROUPBOX        "Save On Exit",IDC_STATIC,221,129,126,43
     CONTROL         "Settings",IDC_PREFERENCES_SAVE_SETTINGS,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,235,145,40,12
+                    BS_AUTOCHECKBOX | WS_TABSTOP,227,142,40,12
     ICON            IDI_NES,IDC_STATIC,227,26,20,20
     ICON            IDI_UNF,IDC_STATIC,270,26,20,20
     ICON            IDI_FDS,IDC_STATIC,313,26,20,20
     ICON            IDI_NSF,IDC_STATIC,227,73,20,20
     ICON            IDI_NSP,IDC_STATIC,265,73,20,20
+    CONTROL         "Launcher Files",IDC_PREFERENCES_SAVE_LAUNCHER,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,227,156,60,12
+    CONTROL         "Confirm on machine reset/power off",
+                    IDC_PREFERENCES_CONFIRM_RESET,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,14,107,132,12
 END
 
 IDD_AUTO_SAVE DIALOGEX 0, 0, 251, 161
@@ -598,6 +603,104 @@ BEGIN
                     14,14,144,14
 END
 
+IDD_LAUNCHER DIALOGEX 0, 0, 408, 270
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_POPUP | 
+    WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
+EXSTYLE WS_EX_ACCEPTFILES
+CAPTION "Launcher"
+MENU IDR_LAUNCHER_MENU
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    CONTROL         "",IDC_LAUNCHER_LIST,"SysListView32",LVS_REPORT | 
+                    LVS_SHOWSELALWAYS | LVS_ALIGNLEFT | WS_TABSTOP,88,10,309,
+                    236,WS_EX_CLIENTEDGE
+    CONTROL         "",IDC_LAUNCHER_TREE,"SysTreeView32",TVS_DISABLEDRAGDROP | 
+                    TVS_SHOWSELALWAYS | TVS_NOSCROLL | TVS_FULLROWSELECT | 
+                    WS_BORDER | WS_TABSTOP,9,10,70,236,WS_EX_CLIENTEDGE
+END
+
+IDD_LAUNCHER_COLUMNSELECT DIALOGEX 0, 0, 205, 162
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION
+CAPTION "Select Columns"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "OK",IDC_LAUNCHER_COLUMNSELECT_OK,147,141,50,14
+    PUSHBUTTON      "Cancel",IDC_LAUNCHER_COLUMNSELECT_CANCEL,77,141,50,14
+    PUSHBUTTON      "Default",IDC_LAUNCHER_COLUMNSELECT_DEFAULT,7,141,50,14
+    LISTBOX         IDC_LAUNCHER_COLUMNSELECT_SELECTED,126,18,68,112,
+                    LBS_HASSTRINGS | LBS_NOINTEGRALHEIGHT | WS_VSCROLL | 
+                    WS_TABSTOP
+    LISTBOX         IDC_LAUNCHER_COLUMNSELECT_AVAILABLE,7,18,68,112,
+                    LBS_HASSTRINGS | LBS_NOINTEGRALHEIGHT | WS_VSCROLL | 
+                    WS_TABSTOP
+    PUSHBUTTON      "Remove",IDC_LAUNCHER_COLUMNSELECT_REMOVE,83,114,36,14
+    PUSHBUTTON      "Add",IDC_LAUNCHER_COLUMNSELECT_ADD,83,96,35,14
+    LTEXT           "Available Items:",IDC_STATIC,7,7,55,10
+    LTEXT           "Showed Items:",IDC_STATIC,126,7,52,10
+END
+
+IDD_LAUNCHER_PATHS DIALOGEX 0, 0, 277, 203
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION
+CAPTION "Search Paths"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "OK",IDC_LAUNCHER_PATHS_OK,220,182,50,14
+    PUSHBUTTON      "Cancel",IDC_LAUNCHER_PATHS_CANCEL,159,182,50,14
+    CONTROL         "",IDC_LAUNCHER_PATHS_LIST,"SysListView32",LVS_LIST | 
+                    LVS_SINGLESEL | LVS_SHOWSELALWAYS | LVS_ALIGNLEFT | 
+                    WS_BORDER | WS_TABSTOP,14,31,187,101,WS_EX_STATICEDGE
+    CONTROL         "NES files",IDC_LAUNCHER_PATHS_NES,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,220,30,44,11
+    CONTROL         "UNF files",IDC_LAUNCHER_PATHS_UNF,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,220,50,44,11
+    CONTROL         "FDS files",IDC_LAUNCHER_PATHS_FDS,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,220,70,44,11
+    CONTROL         "NSF files",IDC_LAUNCHER_PATHS_NSF,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,220,90,44,11
+    CONTROL         "NSP files",IDC_LAUNCHER_PATHS_NSP,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,220,110,44,11
+    GROUPBOX        "Files",IDC_STATIC,216,7,54,150
+    GROUPBOX        "Folders",IDC_STATIC,7,7,203,150
+    PUSHBUTTON      "Add",IDC_LAUNCHER_PATHS_ADD,15,137,48,14
+    PUSHBUTTON      "Remove",IDC_LAUNCHER_PATHS_REMOVE,85,137,48,14
+    CONTROL         "ZIP files",IDC_LAUNCHER_PATHS_ZIP,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,220,130,44,11
+    LTEXT           "Check the boxes to include sub-folders in the search",
+                    IDC_STATIC,14,22,169,8
+    PUSHBUTTON      "Clear All",IDC_LAUNCHER_PATHS_CLEAR,152,137,48,14
+    CONTROL         "Check all files regardless extension",
+                    IDC_LAUNCHER_PATHS_ALLFILES,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,14,167,124,10
+    GROUPBOX        "",IDC_STATIC,7,160,145,36
+    CONTROL         "Eliminate dublicate files",
+                    IDC_LAUNCHER_PATHS_UNIQUEFILES,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,14,179,90,10
+END
+
+IDD_LAUNCHER_FILESEARCH DIALOGEX 0, 0, 245, 51
+STYLE DS_SETFONT | DS_MODALFRAME | DS_SETFOREGROUND | DS_FIXEDSYS | WS_POPUP | 
+    WS_VISIBLE | WS_CAPTION
+CAPTION "Searching.."
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    PUSHBUTTON      "Abort",IDC_LAUNCHER_FILESEARCH_ABORT,97,29,50,15
+    LTEXT           "",IDC_LAUNCHER_FILESEARCH_FILE,7,7,231,17
+END
+
+IDD_LAUNCHER_COLORS DIALOGEX 0, 0, 124, 108
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | 
+    WS_SYSMENU
+CAPTION "Colors"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "OK",IDC_LAUNCHER_COLORS_OK,67,87,50,14
+    GROUPBOX        "Foreground Color",IDC_STATIC,7,7,110,34
+    PUSHBUTTON      "Default",IDC_LAUNCHER_COLORS_DEFAULT,7,87,50,14
+    PUSHBUTTON      "Change",IDC_LAUNCHER_COLORS_FG_CHANGE,60,20,38,12
+    GROUPBOX        "Background Color",IDC_STATIC,7,45,110,34
+    PUSHBUTTON      "Change",IDC_LAUNCHER_COLORS_BG_CHANGE,60,58,38,12
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -700,7 +803,7 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 347
         TOPMARGIN, 7
-        BOTTOMMARGIN, 191
+        BOTTOMMARGIN, 200
     END
 
     IDD_AUTO_SAVE, DIALOG
@@ -781,6 +884,46 @@ BEGIN
         RIGHTMARGIN, 167
         TOPMARGIN, 7
         BOTTOMMARGIN, 47
+    END
+
+    IDD_LAUNCHER, DIALOG
+    BEGIN
+        LEFTMARGIN, 9
+        RIGHTMARGIN, 397
+        TOPMARGIN, 10
+        BOTTOMMARGIN, 246
+    END
+
+    IDD_LAUNCHER_COLUMNSELECT, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 198
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 155
+    END
+
+    IDD_LAUNCHER_PATHS, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 270
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 196
+    END
+
+    IDD_LAUNCHER_FILESEARCH, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 238
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 44
+    END
+
+    IDD_LAUNCHER_COLORS, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 117
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 101
     END
 END
 #endif    // APSTUDIO_INVOKED
@@ -893,6 +1036,8 @@ BEGIN
             MENUITEM "R&ewind",                     IDM_FILE_MOVIE_REWIND
             MENUITEM "F&orward",                    IDM_FILE_MOVIE_FORWARD
         END
+        MENUITEM SEPARATOR
+        MENUITEM "Lau&ncher..\tAlt+L",          IDM_FILE_LAUNCHER
         MENUITEM SEPARATOR
         POPUP "&Recent Files"
         BEGIN
@@ -1080,6 +1225,57 @@ BEGIN
     END
 END
 
+IDR_LAUNCHER_MENU MENU 
+BEGIN
+    POPUP "&File"
+    BEGIN
+        MENUITEM "&Run\tEnter",                 IDM_LAUNCHER_RUN
+        MENUITEM SEPARATOR
+        MENUITEM "R&efresh",                    IDM_LAUNCHER_REFRESH
+    END
+    POPUP "&Edit"
+    BEGIN
+        MENUITEM "&Find",                       IDM_LAUNCHER_FIND
+        MENUITEM SEPARATOR
+        MENUITEM "&Add\tInsert",                IDM_LAUNCHER_ADD
+        MENUITEM "&Remove\tDelete",             IDM_LAUNCHER_REMOVE
+        MENUITEM "&Clear All",                  IDM_LAUNCHER_CLEAR_ALL
+    END
+    POPUP "&Options"
+    BEGIN
+        MENUITEM "&Paths..",                    IDM_LAUNCHER_PATHS
+        MENUITEM "&Columns..",                  IDM_LAUNCHER_COLUMNS
+        MENUITEM "Colors..",                    IDM_LAUNCHER_COLORS
+    END
+    POPUP "&View"
+    BEGIN
+        MENUITEM "Show &Grids",                 IDM_LAUNCHER_SHOWGRID
+        MENUITEM "Show &Database Corrected",    IDM_LAUNCHER_DATABASECORRECTED
+
+        MENUITEM SEPARATOR
+        MENUITEM "&Align Columns",              IDM_LAUNCHER_ALIGNCOLUMNS
+    END
+END
+
+IDR_LAUNCHER_POPUP_MENU MENU 
+BEGIN
+    POPUP ""
+    BEGIN
+        MENUITEM "&Run",                        IDM_LAUNCHER_RUN
+        MENUITEM SEPARATOR
+        MENUITEM "Find",                        IDM_LAUNCHER_FIND
+        MENUITEM SEPARATOR
+        MENUITEM "&Add",                        IDM_LAUNCHER_ADD
+        MENUITEM "&Remove",                     IDM_LAUNCHER_REMOVE
+        MENUITEM SEPARATOR
+        MENUITEM "Align &Columns",              IDM_LAUNCHER_ALIGNCOLUMNS
+        MENUITEM SEPARATOR
+        MENUITEM "Show &Grids",                 IDM_LAUNCHER_SHOWGRID
+        MENUITEM SEPARATOR
+        MENUITEM "R&efresh",                    IDM_LAUNCHER_REFRESH
+    END
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -1089,6 +1285,7 @@ END
 IDR_ACCELERATOR ACCELERATORS 
 BEGIN
     "C",            IDM_FILE_CLOSE,         VIRTKEY, ALT, NOINVERT
+    "L",            IDM_FILE_LAUNCHER,      VIRTKEY, ALT, NOINVERT
     "W",            IDM_FILE_LOAD_NSP,      VIRTKEY, SHIFT, CONTROL, 
                                                     NOINVERT
     "E",            IDM_FILE_LOAD_NST,      VIRTKEY, SHIFT, CONTROL, 
@@ -1130,6 +1327,8 @@ BEGIN
     "D",            IDM_FILE_SAVE_NST,      VIRTKEY, SHIFT, CONTROL, 
                                                     NOINVERT
     "E",            IDM_FILE_SAVE_SCREENSHOT, VIRTKEY, ALT, NOINVERT
+    "U",            IDM_MACHINE_OPTIONS_UNLIMITEDSPRITES, VIRTKEY, SHIFT, 
+                                                    NOINVERT
     "P",            IDM_MACHINE_PAUSE,      VIRTKEY, SHIFT, NOINVERT
     "F",            IDM_MACHINE_POWER_OFF,  VIRTKEY, SHIFT, NOINVERT
     "D",            IDM_MACHINE_POWER_ON,   VIRTKEY, SHIFT, NOINVERT
@@ -1149,8 +1348,6 @@ BEGIN
     "3",            IDM_VIEW_WINDOWSIZE_4X, VIRTKEY, ALT, NOINVERT
     "4",            IDM_VIEW_WINDOWSIZE_8X, VIRTKEY, ALT, NOINVERT
     "M",            IDM_VIEW_WINDOWSIZE_MAX, VIRTKEY, ALT, NOINVERT
-    "U",            IDM_MACHINE_OPTIONS_UNLIMITEDSPRITES, VIRTKEY, SHIFT, 
-                                                    NOINVERT
 END
 
 
@@ -1174,8 +1371,8 @@ IDR_ROMDATABASE1        ROMDATABASE             "RomDatabase.dat"
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 0,1,0,7
- PRODUCTVERSION 0,1,0,7
+ FILEVERSION 0,1,0,8
+ PRODUCTVERSION 0,1,0,8
  FILEFLAGSMASK 0x17L
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1191,11 +1388,11 @@ BEGIN
         BLOCK "040904b0"
         BEGIN
             VALUE "FileDescription", "NES / Famicom emulator"
-            VALUE "FileVersion", "1.07"
+            VALUE "FileVersion", "1.08"
             VALUE "LegalCopyright", "Copyright (C) Martin Freij 2003"
             VALUE "OriginalFilename", "Nestopia.exe"
             VALUE "ProductName", "Nestopia"
-            VALUE "ProductVersion", "1.07"
+            VALUE "ProductVersion", "1.08"
         END
     END
     BLOCK "VarFileInfo"
@@ -1204,6 +1401,14 @@ BEGIN
     END
 END
 
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Bitmap
+//
+
+IDB_FOLDER_CLOSED       BITMAP                  "FolderClosed.bmp"
+IDB_FOLDER_OPEN         BITMAP                  "FolderOpen.bmp"
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -1238,6 +1443,7 @@ BEGIN
     IDS_FILE_ZIP_TITLE      "Choose File"
     IDS_GAMEGENIE_FILE_KEEP_CODES_1_2 "Existing Codes"
     IDS_GAMEGENIE_FILE_KEEP_CODES_2_2 "Keep the existing codes in the file?"
+    IDS_FILE_SELECTDIR      "Select Directory"
     IDS_GAMEGENIE_INVALID   "Invalid code or code is already in the table!"
     IDS_GAMEGENIE_INVALID_FILE_1_2 "Invalid File!"
     IDS_GAMEGENIE_INVALID_FILE_2_2 
@@ -1287,6 +1493,15 @@ BEGIN
     IDS_GAMEGENIE_IMPORT_KEEP_2_2 "Keep the existing codes in the table?"
     IDS_CMDLINE_PARSE_ERROR "Parse error in the command line! Skipping it."
     IDS_CFGFILE_PARSE_ERROR "Parse error in the configuration file! Skipping it."
+    IDS_FILE_ADD            "Add File"
+    IDS_LAUNCHERFILES_LOAD_ERROR 
+                            "An error occured during launcher file database loading!"
+    IDS_LAUNCHERFILES_SAVE_ERROR 
+                            "An error occured during launcher file database saving!"
+    IDS_APP_MESSAGE         "Nestopia"
+    IDS_LAUNCHER_SEARCH_TEXT_NOT_FOUND "The specified text was not found."
+    IDS_APP_WARNING         "Nestopia Warning"
+    IDS_APP_ERROR           "Nestopia Error"
 END
 
 STRINGTABLE 
@@ -1295,6 +1510,22 @@ BEGIN
     IDS_APP_DETACH_IMAGE    "Detach Image File"
     IDS_APP_EXIT            "Exit Nestopia"
     IDS_APP_EXIT_CONFIRM    "Absolutely sure?"
+END
+
+STRINGTABLE 
+BEGIN
+    IDS_APP_SEARCH_ERROR    "An error occured during search!"
+    IDS_APP_UNHANDLED_ERROR "Unhandled error! Call the Ghostbusters!"
+    IDS_LAUNCHER_UNSUPPORTED_RES 
+                            "The launcher can not be activated with the current screen resolution."
+    IDS_MACHINE_CONFIRM_RESET "Are you sure you want to reset the machine?"
+    IDS_MACHINE_CONFIRM_POWER_OFF 
+                            "Are you sure you want to turn off the machine?"
+    IDS_MACHINE_CONFIRM_DETACH_IMAGE 
+                            "Are you sure you want to detach the image file?"
+    IDS_MACHINE_RESET       "Reset Machine"
+    IDS_MACHINE_POWER_OFF   "Power Off Machine"
+    IDS_MACHINE_DETACH_IMAGE "Detach Image File"
 END
 
 #endif    // English (U.S.) resources

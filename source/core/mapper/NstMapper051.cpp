@@ -33,6 +33,9 @@ NES_NAMESPACE_BEGIN
 
 VOID MAPPER51::Reset()
 {
+	if (cRom.Size())
+		EnableCartridgeCRam();
+
 	cpu.SetPort( 0x6000, 0x7FFF, this, Peek_6000, Poke_6000 );
 	cpu.SetPort( 0x8000, 0x9FFF, this, Peek_8000, Poke_8000 );
 	cpu.SetPort( 0xA000, 0xBFFF, this, Peek_A000, Poke_8000 );

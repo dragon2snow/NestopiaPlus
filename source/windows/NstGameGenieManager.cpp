@@ -26,6 +26,10 @@
 #define WIN32_LEAN_AND_MEAN
 #endif
 
+#ifndef VC_EXTRALEAN
+#define VC_EXTRALEAN
+#endif
+
 #include <Windows.h>
 #include <CommCtrl.h>
 #include "../NstNes.h"
@@ -245,7 +249,7 @@ PDXRESULT GAMEGENIEMANAGER::ClearCodes(const BOOL AskFirst)
 			if ((*i).enabled)
 			{
 				GAMEGENIECLOSE ggc( *this );
-				ggc.StartDialog();
+				ggc.StartDialog( hDlg ? hDlg : hWnd );
 				break;
 			}
 		}
@@ -488,7 +492,7 @@ VOID GAMEGENIEMANAGER::InitDialog()
 
 	ListView_SetExtendedListViewStyle( hList, LVS_EX_CHECKBOXES|LVS_EX_FULLROWSELECT );
 
-	LV_COLUMN column;
+	LVCOLUMN column;
 	PDXMemZero( column );
 
 	column.mask     = LVCF_FMT|LVCF_TEXT|LVCF_SUBITEM|LVCF_WIDTH;
@@ -625,7 +629,7 @@ VOID GAMEGENIEMANAGER::CreateCodeDialog()
 {
 	DialogBoxParam
 	( 
-     	::GetModuleHandle(NULL), 
+     	UTILITIES::GetInstance(), 
 		MAKEINTRESOURCE(IDD_GAMEGENIE_ADDCODE), 
 		hDlg, 
 		StaticCodeDialogProc,
@@ -723,7 +727,7 @@ VOID GAMEGENIEMANAGER::ExportCodes()
 		file.Seek( PDXFILE::BEGIN );
 
 		FILEEXISTDIALOG FileExistDialog;
-		FileExistDialog.StartDialog();
+		FileExistDialog.StartDialog( hDlg );
 
 		switch (FileExistDialog.Choice())
 		{

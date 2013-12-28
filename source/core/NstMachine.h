@@ -31,6 +31,7 @@
 #include "NstApu.h"
 #include "NstPpu.h"
 #include "NstPalette.h"
+#include "NstRomDatabase.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -117,6 +118,8 @@ public:
 
 	VOID GetGeneralContext(IO::GENERAL::CONTEXT&) const;
 	VOID SetGeneralContext(const IO::GENERAL::CONTEXT&);
+
+	const ROMDATABASE& GetRomDatabase() const;
 
 	enum INTERFACETYPE
 	{
@@ -224,6 +227,7 @@ private:
 	APU& apu;
 	CPU cpu;
 	PPU ppu;
+	const ROMDATABASE RomDatabase;
 };
 
 #include "NstMachine.inl"

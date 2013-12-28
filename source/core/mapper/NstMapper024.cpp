@@ -187,6 +187,8 @@ NES_POKE(MAPPER24,F001)
 
 	if (IsIrqEnabled())
 		IrqCount = (0x100 - IrqLatch) * 114;
+
+	cpu.ClearIRQ();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -196,6 +198,7 @@ NES_POKE(MAPPER24,F001)
 NES_POKE(MAPPER24,F002) 
 {
 	SetIrqEnable(IrqTmp);
+	cpu.ClearIRQ();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -209,7 +212,7 @@ VOID MAPPER24::IrqSync(const UINT delta)
 	if (IrqCount <= 0)
 	{
 		IrqCount = (0x100 - IrqLatch) * 114;
-		cpu.TryIRQ();
+		cpu.DoIRQ();
 	}
 }
 

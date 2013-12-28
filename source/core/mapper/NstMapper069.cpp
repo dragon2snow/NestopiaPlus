@@ -141,7 +141,7 @@ NES_POKE(MAPPER69,A000)
 
 		case 0xC:
 		{
-			static const UCHAR select[4][4] =
+			const UCHAR select[4][4] =
 			{
 				{0,1,0,1},
 				{0,0,1,1},

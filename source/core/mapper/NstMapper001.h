@@ -38,7 +38,7 @@ class MAPPER1 : public MAPPER
 public:
 
 	MAPPER1(CONTEXT& c)
-	: MAPPER(c,registers,&ResetCycles+1) {}
+	: MAPPER(c,registers,&reserved2+1) {}
 
 protected:
 
@@ -57,9 +57,6 @@ private:
 	VOID ProcessRegister2();
 	VOID ProcessRegister3();
 
-	VOID EndFrame()
-	{ cycles = 0; }
-
 	enum
 	{
 		PROM_SWAP_LOW = b00000100,
@@ -75,9 +72,9 @@ private:
 	UINT  latch;
 	UINT  count;
 	UINT  base;
-	ULONG cycles;
+	ULONG reserved1;
 	UINT  last;
-	ULONG ResetCycles;
+	ULONG reserved2;
 };
 
 NES_NAMESPACE_END

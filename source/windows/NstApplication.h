@@ -30,6 +30,9 @@
 #define application APPLICATION::GetSingleton()
 
 #define NST_WM_CMDLINE 1
+#define NST_WM_LAUNCHER_FILE 2
+#define NST_WM_LAUNCHER_ZIPPED_FILE 3
+
 #define NST_CLASS_NAME "Nestopia Window"
 #define NST_WINDOW_NAME "Nestopia"
 
@@ -57,6 +60,7 @@ class ROMINFO;
 class HELPMANAGER; 
 class USERINPUTMANAGER;
 class CONFIGFILE;
+class LAUNCHER;
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // window class
@@ -96,6 +100,7 @@ public:
 	MOVIEMANAGER&     GetMovieManager      ();
 	TIMERMANAGER&     GetTimerManager      ();
 	STATUSBAR&        GetStatusBar         ();
+	LAUNCHER&         GetLauncher          ();
 
 	NES::MODE GetNesMode() const;
 
@@ -126,7 +131,8 @@ private:
 	{
 		FILE_ALL,
 		FILE_NSP,
-		FILE_INPUT
+		FILE_INPUT,
+		FILE_ZIPPED
 	};
 
 	static LRESULT CALLBACK WndProc(HWND,UINT,WPARAM,LPARAM);
@@ -171,6 +177,7 @@ private:
 	PDX_NO_INLINE VOID OnPort(const UINT);
 	PDX_NO_INLINE VOID OnAutoSelectController();
 	PDX_NO_INLINE VOID OnActive();
+	PDX_NO_INLINE VOID OnDropFiles(WPARAM);
 	PDX_NO_INLINE VOID OnInactive(const BOOL=FALSE);
 	PDX_NO_INLINE BOOL OnCommand(const WPARAM);
 	PDX_NO_INLINE VOID OnPower(const BOOL);
@@ -190,6 +197,7 @@ private:
 
 	VOID OnMode(const UINT);
 	VOID OnRecent(const UINT);
+	VOID OnLauncher();
 	VOID OnLoadNsp();
 	VOID OnSaveNsp();
 	VOID OnLoadState();
@@ -254,6 +262,7 @@ private:
 	ROMINFO*            RomInfo;
 	HELPMANAGER*        HelpManager;
 	USERINPUTMANAGER*   UserInputManager;
+	LAUNCHER*           launcher;
 
 	PDXSTRING ScreenMsg;
 

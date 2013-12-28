@@ -36,7 +36,7 @@ VOID MAPPER34::Reset()
 	cpu.SetPort( 0x7FFD, this, Peek_Nop, Poke_7FFD );
 	cpu.SetPort( 0x7FFE, this, Peek_Nop, Poke_7FFE );
 	cpu.SetPort( 0x7FFF, this, Peek_Nop, Poke_7FFF );
-	
+
 	cpu.SetPort( 0x8000, 0x9FFF, this, Peek_8000, Poke_7FFD );
 	cpu.SetPort( 0xA000, 0xBFFF, this, Peek_A000, Poke_7FFD );
 	cpu.SetPort( 0xC000, 0xDFFF, this, Peek_C000, Poke_7FFD );

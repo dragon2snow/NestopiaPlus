@@ -52,12 +52,9 @@ public:
 
 	VOID SetMirroring(const MIRRORING);
 	VOID SetMirroring(const UINT,const UINT,const UINT,const UINT);
-	
 	VOID BeginFrame(IO::GFX* const);	
 	VOID EndFrame();
-
 	VOID Update();
-
 	VOID SetMode(const MODE);
 
 	PDXRESULT LoadState(PDXFILE&);
@@ -103,13 +100,6 @@ private:
 	enum
 	{
 		MARGIN = 8
-	};
-
-	enum
-	{
-		PROCESS_HACTIVE = 242,
-		PROCESS_HBLANK  = 691,
-		PROCESS_END     = 739
 	};
 
 	enum
@@ -172,41 +162,51 @@ private:
 		SP_Y_FLIP = b10000000
 	};
 
-	VOID Log(const CHAR* const,const UINT);
+	enum
+	{
+		PHASE_HDUMMY         = 1,
+		PHASE_HDUMMY_COUNT   = 32,
+		PHASE_HACTIVE        = 8,
+		PHASE_HACTIVE_COUNT  = 32,
+		PHASE_HACTIVE_END    = 22,
+		PHASE_HBLANK_0       = 23,
+		PHASE_HBLANK_0_COUNT = 8,
+		PHASE_HBLANK_END     = 38,
+		PHASE_VBLANK         = 39
+	};
+
 	VOID UpdateTmpVariables();
+	VOID UpdateLazy();
 	VOID WritePalRam(const UINT);
 
+	PDX_NO_INLINE VOID SkipLine();
+
+	VOID NextTile();
+	VOID NextLine();
+
+	VOID vBlankBegin();
+	VOID vBlankEnd();	
+	VOID FetchGarbageName();
+	VOID FetchGarbageAttribute();
+	VOID FetchGarbagePattern0();
+	VOID FetchGarbagePattern1();
+	VOID hDummyEnd();
 	VOID RenderPixel();
-	VOID RenderDummyPixels();
-
-	VOID FetchName();
-	VOID FetchAttribute();
-	VOID FetchPattern0();
-	VOID FetchPattern1();
-
-	VOID PreFetchBgName();
-	VOID PreFetchBgAttribute();
-	VOID PreFetchBgPattern0();
-	VOID PreFetchBgPattern1();
-
 	VOID FetchBgName();
 	VOID FetchBgAttribute();
 	VOID FetchBgPattern0();
 	VOID FetchBgPattern1();
-
-	VOID EvaluateSp();	
+	VOID hActiveEnd();
+	VOID EvaluateSp();
 	VOID FetchSpPattern0();
 	VOID FetchSpPattern1();
-	
-	VOID BeginHActive();
-	VOID EndHActive();	
-	VOID BeginVBlank();
-	VOID EndVBlank();
-	VOID EndHDummy();
-	VOID EndHBlank();
-	VOID EndVActive();
-	
-	VOID HSync();
+	VOID PrefetchBg0Name();
+	VOID PrefetchBg1Name();
+	VOID PrefetchBgAttribute();
+	VOID PrefetchBgPattern0(); 
+	VOID PrefetchBgPattern1();
+	VOID hBlankEnd();
+	VOID FrameEnd();
 
 	NES_DECL_POKE( 2000 );
 	NES_DECL_PEEK( 2002 );
@@ -236,19 +236,23 @@ private:
 
 	typedef VOID (PPU::*PROCESS)();
 
-	struct CYCLES
+	struct PPUCYCLES
 	{
 		enum 
 		{
 			WARM_UP = 0,
-			READY   = 2
+			READY   = 1
 		};
 
 		VOID Reset   (const BOOL,const BOOL=TRUE);
 		VOID SetMode (const BOOL,const BOOL=TRUE);
 
-		ULONG count;
+		UINT WarmUp;
+
+		ULONG vint;
+		ULONG frame;
 		ULONG fetch;
+		ULONG count;
 
 		union
 		{
@@ -256,9 +260,7 @@ private:
 			ULONG rest;
 		};
 
-		ULONG frame;
-		ULONG vint;
-		UINT WarmUp;
+		ULONG delay;
 	};
 
 	IO::GFX* screen;
@@ -277,11 +279,14 @@ private:
 	UINT ReadLatch;
 	UINT AddressIncrease;
 
-	const PROCESS* process;
-
 	PPU_MAP vRam;
 
-	CYCLES cycles;
+	PPUCYCLES cycles;
+
+	const PROCESS* PDX_RESTRICT process;
+	const PROCESS* phase;
+
+	UINT PhaseCount;
 
 	BOOL enabled;
 	UINT vRamAddress;
@@ -297,6 +302,7 @@ private:
 	UINT emphasis;
 	UINT monochrome;
 	UINT SpPatternAddress;	
+	BOOL CanSkipLine;
 
 	struct OUTPUT
 	{
@@ -310,12 +316,17 @@ private:
 
 	struct BG
 	{
-		UINT address;
+		UINT index;
+		UINT offset;
 		UINT name;
 		UINT attribute;
 		UINT pattern[2];
-		UINT index;
-		U8 pixels[16];
+
+		union
+		{
+			U8 pixels[16];
+			U32 u32Pixels[4];
+		};
 	};
 
 	struct SP
@@ -360,6 +371,8 @@ private:
 
 	CHIP<n4k,4> CiRam;
 
+	VOID Log(const CHAR* const,const UINT);
+
 	bool logged[4];
 
    #pragma pack(push,1)
@@ -384,7 +397,7 @@ private:
 
 	static const PROCESS processes[];
 
-	IO::GFX::PIXEL* const GarbageLine;
+	IO::GFX::PIXEL* GarbageLine;
 };
 
 #include "NstPpu.inl"

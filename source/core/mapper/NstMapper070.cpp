@@ -35,16 +35,15 @@ VOID MAPPER70::Reset()
 {
 	switch (pRomCrc)
 	{
-     	case 0xA59CA2EF: // Kamen Rider Club(J)
-		case 0x0CD00488: // Space Shadow(J)
-     	case 0x10BB8F9A: // Family Trainer - Manhattan Police(J)
+     	case 0xA59CA2EF: // Kamen Rider Kurabu (J)
+     	case 0x10BB8F9A: // Family Trainer - Manhattan Police (J)
 
-			cpu.SetPort( 0x8000, 0xFFFF, this, Peek_pRom, Poke_6000_1 );
+			cpu.SetPort( 0x8000, 0xFFFF, this, Peek_pRom, Poke_6000_2 );
 			break;
 
 		default:
 
-			cpu.SetPort( 0x8000, 0xFFFF, this, Peek_pRom, Poke_6000_2 );
+			cpu.SetPort( 0x8000, 0xFFFF, this, Peek_pRom, Poke_6000_1 );
 			break;
 	}
 }

@@ -34,18 +34,8 @@ NES_NAMESPACE_BEGIN
 MAPPER68::MAPPER68(CONTEXT& c)
 : 
 MAPPER (c,&status,CiRomBanks+2),
-CiRam  (n2k),
-CiRom  (NULL)
+CiRam  (n2k)
 {}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-MAPPER68::~MAPPER68() 
-{
-	delete CiRom;
-}
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -62,8 +52,7 @@ VOID MAPPER68::Reset()
 	cpu.SetPort( 0xE000, 0xEFFF, this, Peek_E000, Poke_E000 );
 	cpu.SetPort( 0xF000, 0xFFFF, this, Peek_F000, Poke_F000 );
 
-	delete CiRom; 
-	CiRom = new CIROM( cRom.Ram(), cRom.Size() );
+	CiRom.ReAssign( cRom.Ram(), cRom.Size() );
 
 	ppu.SetPort( 0x2000, 0x2FFF, this, Peek_CiRam, Poke_CiRam );
 
@@ -80,7 +69,7 @@ PDXRESULT MAPPER68::LoadState(PDXFILE& file)
 {
 	PDX_TRY(MAPPER::LoadState(file));
 	PDX_TRY(CiRam.LoadState(file));
-	return CiRom->LoadState(file);
+	return CiRom.LoadState(file);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -91,7 +80,7 @@ PDXRESULT MAPPER68::SaveState(PDXFILE& file) const
 {
 	PDX_TRY(MAPPER::SaveState(file));
 	PDX_TRY(CiRam.SaveState(file));
-	return CiRom->SaveState(file);
+	return CiRom.SaveState(file);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -127,17 +116,14 @@ NES_POKE(MAPPER68,F000)
 
 NES_PEEK(MAPPER68,CiRam) 
 { 
-	return CiRam[address - 0x2000];    
+	const UINT offset = address - 0x2000;
+	return (status & SELECT_CIROM) ? CiRom[offset] : CiRam[offset];
 }
 
 NES_POKE(MAPPER68,CiRam) 
 { 
-	CiRam[address - 0x2000] = data; 
-}
-
-NES_PEEK(MAPPER68,CiRom) 
-{ 
-	return (*CiRom)[address - 0x2000]; 
+	if (!(status & SELECT_CIROM))
+		CiRam[address - 0x2000] = data; 
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -146,6 +132,8 @@ NES_PEEK(MAPPER68,CiRom)
 
 VOID MAPPER68::UpdateMirroring()
 {
+	ppu.Update();
+
 	static const UCHAR select[4][4] =
 	{
 		{0,1,0,1},
@@ -158,12 +146,10 @@ VOID MAPPER68::UpdateMirroring()
 
 	if (status & SELECT_CIROM)
 	{
-		CiRom->SwapBanks<n1k,0x0000>( BANK_OFFSET + CiRomBanks[index[0]] );
-		CiRom->SwapBanks<n1k,0x0400>( BANK_OFFSET + CiRomBanks[index[1]] );
-		CiRom->SwapBanks<n1k,0x0800>( BANK_OFFSET + CiRomBanks[index[2]] );
-		CiRom->SwapBanks<n1k,0x0C00>( BANK_OFFSET + CiRomBanks[index[3]] );
-
-		ppu.SetPort( 0x2000, 0x2FFF, this, Peek_CiRom, Poke_Nop );
+		CiRom.SwapBanks<n1k,0x0000>( BANK_OFFSET + CiRomBanks[index[0]] );
+		CiRom.SwapBanks<n1k,0x0400>( BANK_OFFSET + CiRomBanks[index[1]] );
+		CiRom.SwapBanks<n1k,0x0800>( BANK_OFFSET + CiRomBanks[index[2]] );
+		CiRom.SwapBanks<n1k,0x0C00>( BANK_OFFSET + CiRomBanks[index[3]] );
 	}
 	else
 	{
@@ -171,8 +157,6 @@ VOID MAPPER68::UpdateMirroring()
 		CiRam.SwapBanks<n1k,0x0400>( index[1] );
 		CiRam.SwapBanks<n1k,0x0800>( index[2] );
 		CiRam.SwapBanks<n1k,0x0C00>( index[3] );
-
-		ppu.SetPort( 0x2000, 0x2FFF, this, Peek_CiRam, Poke_Nop );
 	}
 }
 

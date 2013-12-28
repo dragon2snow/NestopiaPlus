@@ -35,23 +35,9 @@ VOID MAPPER88::Reset()
 {
 	command = 0;
 
-	for (ULONG i=0x8000; i < 0xFFFF; ++i)
-	{
-		switch (i & 0x8001)
-		{
-     		case 0x8000: cpu.SetPort( i, this, Peek_pRom, Poke_8000 ); continue;
-     		case 0x8001: cpu.SetPort( i, this, Peek_pRom, Poke_8001 ); continue;
-		}
-	}
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_PEEK(MAPPER88,pRom)
-{
-	return pRom[address - 0x8000];
+    cpu.SetPort( 0x8000, this, Peek_pRom, Poke_8000 );
+    cpu.SetPort( 0x8001, this, Peek_pRom, Poke_8001 );
+	cpu.SetPort( 0xC000, this, Peek_pRom, Poke_C000 );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -61,7 +47,6 @@ NES_PEEK(MAPPER88,pRom)
 NES_POKE(MAPPER88,8000)
 {
 	command = data & 0x7;
-	ppu.SetMirroring( (data & 0x40) ? MIRROR_ONE : MIRROR_ZERO );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -84,6 +69,15 @@ NES_POKE(MAPPER88,8001)
      	case 0x6: pRom.SwapBanks<n8k,0x0000>( data );        return;
      	case 0x7: pRom.SwapBanks<n8k,0x2000>( data );        return;
 	}
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+NES_POKE(MAPPER88,C000)
+{
+	ppu.SetMirroring( (data & 0x40) ? MIRROR_ONE : MIRROR_ZERO );
 }
 
 NES_NAMESPACE_END

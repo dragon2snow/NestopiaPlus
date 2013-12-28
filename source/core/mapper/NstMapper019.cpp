@@ -59,7 +59,8 @@ VOID MAPPER19::Reset()
      	case 0xDD454208UL: // Hydlide 3 - Yami Kara no Houmonsha
      	case 0xB1B9E187UL: // Kaijuu Monogatari
      	case 0xAF15338FUL: // Mindseeker
-		
+		case 0x329FFF7AUL: // Battle Fleet
+
 			cpu.SetPort( 0x4800, 0x4FFF, this, Peek_480x, Poke_480x );
 			cpu.SetPort( 0xF800, 0xFFFF, this, Peek_F000, Poke_F80x );
 
@@ -100,14 +101,30 @@ VOID MAPPER19::Reset()
 			case 0xA800: cpu.SetPort( i, this, Peek_A000, Poke_A800 ); continue;
 			case 0xB000: cpu.SetPort( i, this, Peek_B000, Poke_B000 ); continue;
 			case 0xB800: cpu.SetPort( i, this, Peek_B000, Poke_B800 ); continue;
-			case 0xC000: cpu.SetPort( i, this, Peek_C000, Poke_C000 ); continue;
-			case 0xC800: cpu.SetPort( i, this, Peek_C000, Poke_C800 ); continue;
-			case 0xD000: cpu.SetPort( i, this, Peek_D000, Poke_D000 ); continue;
-			case 0xD800: cpu.SetPort( i, this, Peek_D000, Poke_D800 ); continue;
 			case 0xE000: cpu.SetPort( i, this, Peek_E000, Poke_E000 ); continue;
 			case 0xE800: cpu.SetPort( i, this, Peek_E000, Poke_E800 ); continue;
 			case 0xF000: cpu.SetPort( i, this, Peek_F000, Poke_F000 ); continue;
 		}
+	}
+
+	switch (pRomCrc)
+	{
+       	case 0xB62A7B71UL: // Family Circuit '91
+		case 0x14942C06UL: // Wagan Land 3
+			break;
+
+		default:
+
+			for (ULONG i=0xC000; i <= 0xDFFF; ++i)
+			{
+				switch (i & 0xF800)
+				{
+		     		case 0xC000: cpu.SetPort( i, this, Peek_C000, Poke_C000 ); continue;
+		     		case 0xC800: cpu.SetPort( i, this, Peek_C000, Poke_C800 ); continue;
+		       		case 0xD000: cpu.SetPort( i, this, Peek_D000, Poke_D000 ); continue;
+		       		case 0xD800: cpu.SetPort( i, this, Peek_D000, Poke_D800 ); continue;
+				}
+			}
 	}
 
 	ppu.SetPort( 0x0000, 0x03FF, this, Peek_vRam_0000, Poke_vRam_0000 );
@@ -331,6 +348,9 @@ NES_POKE(MAPPER19,E000)
 { 
 	apu.Update(); 
 	pRom.SwapBanks<n8k,0x0000>( data & 0x3F ); 
+
+	if (pRomCrc == 0x14942C06UL) // Wagan Land 3
+		ppu.SetMirroring( (data & 0x40) ? MIRROR_VERTICAL : MIRROR_ZERO );
 }
 
 NES_POKE(MAPPER19,E800) 
@@ -372,7 +392,7 @@ VOID MAPPER19::IrqSync(const UINT delta)
 	{
 		IrqCount = 0x7FFF;
 		SetIrqEnable(FALSE);
-		cpu.DoIRQ();
+		cpu.TryIRQ();
 	}
 }
 

@@ -38,8 +38,6 @@ VOID MAPPER4::Reset()
 
 	EnableIrqSync(IRQSYNC_PPU);
 
-	cpu.SetPort( 0x6000, 0x7FFF, this, Peek_wRam, Poke_wRam );
-
 	for (ULONG i=0x8000; i <= 0xFFFF; ++i)
 	{
 		switch (i & 0xE001)
@@ -57,6 +55,20 @@ VOID MAPPER4::Reset()
 
 	command = 0;
 	wRamEnable = 0;
+
+	switch (pRomCrc)
+	{
+		// MMC6B games doesn't seem to use the wRam enable bit the same way MMC3 does
+
+    	case 0xBEB88304UL: // Startropics (U)
+		case 0xAC74DD5CUL: // Startropics (E)
+		case 0x80FB117EUL: // Startropics 2 - Zoda's Revenge (U)
+			break; 
+
+		default:
+
+			cpu.SetPort( 0x6000, 0x7FFF, this, Peek_wRam, Poke_wRam );
+	}
 
 	pRomBanks[0] = 0;
 	pRomBanks[1] = 1;

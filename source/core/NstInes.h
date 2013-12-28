@@ -27,6 +27,8 @@
 #ifndef NST_INES_H
 #define NST_INES_H
 
+#include "NstRomDatabase.h"
+
 class PDXFILE;
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -35,18 +37,37 @@ class PDXFILE;
 
 NES_NAMESPACE_BEGIN
 
-class INES : public IMAGEFILE
+class INES
 {
 public:
 
-	PDXRESULT Import(CARTRIDGE* const,PDXFILE&,const IO::GENERAL::CONTEXT&);
+	PDXRESULT Import
+	(
+     	CARTRIDGE* const,
+		PDXFILE&,
+		const ROMDATABASE&,
+		const IO::GENERAL::CONTEXT&
+	);
 	
 private:
 
    #ifdef NES_USE_ROM_DATABASE
 
-	BOOL TryDatabase(PDXFILE&,PDXSTRING*);
-	const IMAGE* FindInDatabase(PDXFILE&,const TSIZE,const TSIZE,ULONG&) const;
+	BOOL TryDatabase
+	(
+       	PDXFILE&,
+		const ROMDATABASE&,
+		PDXSTRING*
+	);
+
+	ROMDATABASE::HANDLE FindInDatabase
+	(
+    	const ROMDATABASE&,
+       	PDXFILE&,
+		const TSIZE,
+		const TSIZE,
+		ULONG&
+	) const;
 
    #endif
 

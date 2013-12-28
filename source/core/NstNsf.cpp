@@ -137,7 +137,7 @@ PDXRESULT NSF::Load(PDXFILE& file)
 	if (!file.Read( pRom.Ram() + offset, pRom.Ram() + size ))
 		return MsgError("NSF file is corrupt!");
 
-	cpu.SetFrameCycles( NES_CPU_MCC_FRAME_NTSC );
+	cpu.SetupFrame( NES_CPU_MCC_FRAME_NTSC );
 
 	return PDX_OK;
 }

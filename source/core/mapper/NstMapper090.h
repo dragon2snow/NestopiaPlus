@@ -87,6 +87,7 @@ private:
 	NES_DECL_POKE( C002 );
 	NES_DECL_POKE( C003 );
 	NES_DECL_POKE( C005 );
+	NES_DECL_POKE( C006 );
 	NES_DECL_POKE( D000 );
 	NES_DECL_POKE( D001 );
 
@@ -124,11 +125,14 @@ private:
 	typedef CHIP<n4k,4> CIRAM;
 	typedef CHIP<n8k,1> EXROM;
 
+	BOOL mk3;
+
 	UINT status;
 	UINT mirror;
 	UINT AddressLatch;
 	UINT mul[2];
 	UINT latch;
+	UINT IrqOffset;
 
 	UINT pRomBanks[4];
 	PDXWORD cRomBanks[8];

@@ -38,7 +38,7 @@ class MAPPER119 : public MAPPER4
 public:
 
 	MAPPER119(CONTEXT& c)
-	: MAPPER4(c,SelectCRam,SelectCRam+6), cRam(n8k) {}
+	: MAPPER4(c,SelectCRam,SelectCRam+8), cRam(n8k) {}
 
 	PDXRESULT LoadState(PDXFILE&);
 	PDXRESULT SaveState(PDXFILE&) const;
@@ -47,11 +47,6 @@ protected:
 
 	VOID Reset();
 	VOID UpdateCRom();
-
-	enum
-	{
-		SELECT_CRAM = 0x40
-	};
 
 	NES_DECL_PEEK( 0000 );
 	NES_DECL_POKE( 0000 );
@@ -71,7 +66,7 @@ protected:
 	NES_DECL_POKE( 1C00 );
 
 	CRAM cRam;
-	UINT SelectCRam[6];
+	UINT SelectCRam[8];
 };
 
 NES_NAMESPACE_END

@@ -70,7 +70,7 @@
 				OutputFile="$(OutDir)/Nestopia.exe"
 				LinkIncremental="1"
 				SuppressStartupBanner="TRUE"
-				AdditionalLibraryDirectories=".\lib\;.\source\zlib\;"
+				AdditionalLibraryDirectories="..\lib\;.\source\zlib\;"
 				IgnoreAllDefaultLibraries="FALSE"
 				IgnoreDefaultLibraryNames="libc"
 				GenerateDebugInformation="TRUE"
@@ -82,7 +82,7 @@
 				TargetMachine="0"
 				AdditionalOptions="">
 				<IntelOptions
-					AllOptions="/NOLOGO /OUT:&quot;Debug/Nestopia.exe&quot; /INCREMENTAL:NO /LIBPATH:&quot;.\lib\\&quot; /LIBPATH:&quot;.\source\zlib\\&quot; /NODEFAULTLIB:&quot;libc&quot; /DEBUG /PDB:&quot;Debug/Nestopia.pdb&quot; /SUBSYSTEM:WINDOWS /OPT:REF /OPT:WIN98 /TLBID:1  kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib"
+					AllOptions="/NOLOGO /OUT:&quot;Debug/Nestopia.exe&quot; /INCREMENTAL:NO /LIBPATH:&quot;..\lib\\&quot; /LIBPATH:&quot;.\source\zlib\\&quot; /NODEFAULTLIB:&quot;libc&quot; /DEBUG /PDB:&quot;Debug/Nestopia.pdb&quot; /SUBSYSTEM:WINDOWS /OPT:REF /OPT:WIN98 /TLBID:1  kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib"
 					MSOriginalAdditionalOptions=""/>
 			</Tool>
 			<Tool
@@ -291,85 +291,17 @@
 			<File
 				RelativePath="..\source\windows\NstException.h"/>
 			<File
-				RelativePath="..\source\windows\NstFdsManager.cpp"/>
-			<File
-				RelativePath="..\source\windows\NstFdsManager.h"/>
-			<File
-				RelativePath="..\source\windows\NstFileManager.cpp"/>
-			<File
-				RelativePath="..\source\windows\NstFileManager.h"/>
-			<File
-				RelativePath="..\source\windows\NstFileManager.inl"/>
-			<File
-				RelativePath="..\source\windows\NstGameGenieManager.cpp"/>
-			<File
-				RelativePath="..\source\windows\NstGameGenieManager.h"/>
-			<File
-				RelativePath="..\source\windows\NstGraphicManager.cpp"/>
-			<File
-				RelativePath="..\source\windows\NstGraphicManager.h"/>
-			<File
-				RelativePath="..\source\windows\NstGraphicManager.inl"/>
-			<File
-				RelativePath="..\source\windows\NstHelpManager.cpp"/>
-			<File
-				RelativePath="..\source\windows\NstHelpManager.h"/>
-			<File
-				RelativePath="..\source\windows\NstInputManager.cpp"/>
-			<File
-				RelativePath="..\source\windows\NstInputManager.h"/>
-			<File
-				RelativePath="..\source\windows\NstLauncher.cpp"/>
-			<File
-				RelativePath="..\source\windows\NstLauncher.h"/>
-			<File
-				RelativePath="..\source\windows\NstLogFileManager.cpp"/>
-			<File
-				RelativePath="..\source\windows\NstLogFileManager.h"/>
-			<File
-				RelativePath="..\source\windows\NstManager.cpp"/>
-			<File
-				RelativePath="..\source\windows\NstManager.h"/>
-			<File
-				RelativePath="..\source\windows\NstMovieManager.cpp"/>
-			<File
-				RelativePath="..\source\windows\NstMovieManager.h"/>
-			<File
-				RelativePath="..\source\windows\NstPreferences.cpp"/>
-			<File
-				RelativePath="..\source\windows\NstPreferences.h"/>
-			<File
-				RelativePath="..\source\windows\NstRomInfo.cpp"/>
-			<File
-				RelativePath="..\source\windows\NstRomInfo.h"/>
-			<File
-				RelativePath="..\source\windows\NstSaveStateManager.cpp"/>
-			<File
-				RelativePath="..\source\windows\NstSaveStateManager.h"/>
-			<File
-				RelativePath="..\source\windows\NstSoundManager.cpp"/>
-			<File
-				RelativePath="..\source\windows\NstSoundManager.h"/>
-			<File
 				RelativePath="..\source\windows\NstStatusBar.cpp"/>
 			<File
 				RelativePath="..\source\windows\NstStatusBar.h"/>
 			<File
-				RelativePath="..\source\windows\NstTimerManager.cpp"/>
+				RelativePath="..\source\windows\NstUI.cpp"/>
 			<File
-				RelativePath="..\source\windows\NstTimerManager.h"/>
-			<File
-				RelativePath="..\source\windows\NstUserInputManager.cpp"/>
-			<File
-				RelativePath="..\source\windows\NstUserInputManager.h"/>
+				RelativePath="..\source\windows\NstUI.h"/>
 			<File
 				RelativePath="..\source\windows\NstUtilities.cpp"/>
 			<File
 				RelativePath="..\source\windows\NstUtilities.h"/>
-			<File
-				RelativePath="..\source\windows\NstVsDipswitchManager.cpp"/>
-			<File
-				RelativePath="..\source\windows\NstVsDipswitchManager.h"/>
 			<File
 				RelativePath="..\source\windows\NstWaveFile.cpp"/>
 			<File
@@ -494,6 +426,114 @@
 					<File
 						RelativePath="..\source\windows\resource\window.ico"/>
 				</Filter>
+				<Filter
+					Name="Bitmaps"
+					Filter="">
+					<File
+						RelativePath="..\source\windows\resource\FolderClosed.bmp"/>
+					<File
+						RelativePath="..\source\windows\resource\FolderOpen.bmp"/>
+				</Filter>
+			</Filter>
+			<Filter
+				Name="Launcher"
+				Filter="">
+				<File
+					RelativePath="..\source\windows\NstLauncher.cpp"/>
+				<File
+					RelativePath="..\source\windows\NstLauncher.h"/>
+				<File
+					RelativePath="..\source\windows\NstLauncherColors.cpp"/>
+				<File
+					RelativePath="..\source\windows\NstLauncherColors.h"/>
+				<File
+					RelativePath="..\source\windows\NstLauncherColumns.cpp"/>
+				<File
+					RelativePath="..\source\windows\NstLauncherColumns.h"/>
+				<File
+					RelativePath="..\source\windows\NstLauncherFileSearch.cpp"/>
+				<File
+					RelativePath="..\source\windows\NstLauncherFileSearch.h"/>
+				<File
+					RelativePath="..\source\windows\NstLauncherItemSearch.cpp"/>
+				<File
+					RelativePath="..\source\windows\NstLauncherItemSearch.h"/>
+				<File
+					RelativePath="..\source\windows\NstLauncherPaths.cpp"/>
+				<File
+					RelativePath="..\source\windows\NstLauncherPaths.h"/>
+			</Filter>
+			<Filter
+				Name="Dialogs"
+				Filter="">
+				<File
+					RelativePath="..\source\windows\NstFdsManager.cpp"/>
+				<File
+					RelativePath="..\source\windows\NstFdsManager.h"/>
+				<File
+					RelativePath="..\source\windows\NstFileManager.cpp"/>
+				<File
+					RelativePath="..\source\windows\NstFileManager.h"/>
+				<File
+					RelativePath="..\source\windows\NstFileManager.inl"/>
+				<File
+					RelativePath="..\source\windows\NstGameGenieManager.cpp"/>
+				<File
+					RelativePath="..\source\windows\NstGameGenieManager.h"/>
+				<File
+					RelativePath="..\source\windows\NstGraphicManager.cpp"/>
+				<File
+					RelativePath="..\source\windows\NstGraphicManager.h"/>
+				<File
+					RelativePath="..\source\windows\NstGraphicManager.inl"/>
+				<File
+					RelativePath="..\source\windows\NstHelpManager.cpp"/>
+				<File
+					RelativePath="..\source\windows\NstHelpManager.h"/>
+				<File
+					RelativePath="..\source\windows\NstInputManager.cpp"/>
+				<File
+					RelativePath="..\source\windows\NstInputManager.h"/>
+				<File
+					RelativePath="..\source\windows\NstLogFileManager.cpp"/>
+				<File
+					RelativePath="..\source\windows\NstLogFileManager.h"/>
+				<File
+					RelativePath="..\source\windows\NstManager.cpp"/>
+				<File
+					RelativePath="..\source\windows\NstManager.h"/>
+				<File
+					RelativePath="..\source\windows\NstMovieManager.cpp"/>
+				<File
+					RelativePath="..\source\windows\NstMovieManager.h"/>
+				<File
+					RelativePath="..\source\windows\NstPreferences.cpp"/>
+				<File
+					RelativePath="..\source\windows\NstPreferences.h"/>
+				<File
+					RelativePath="..\source\windows\NstRomInfo.cpp"/>
+				<File
+					RelativePath="..\source\windows\NstRomInfo.h"/>
+				<File
+					RelativePath="..\source\windows\NstSaveStateManager.cpp"/>
+				<File
+					RelativePath="..\source\windows\NstSaveStateManager.h"/>
+				<File
+					RelativePath="..\source\windows\NstSoundManager.cpp"/>
+				<File
+					RelativePath="..\source\windows\NstSoundManager.h"/>
+				<File
+					RelativePath="..\source\windows\NstTimerManager.cpp"/>
+				<File
+					RelativePath="..\source\windows\NstTimerManager.h"/>
+				<File
+					RelativePath="..\source\windows\NstUserInputManager.cpp"/>
+				<File
+					RelativePath="..\source\windows\NstUserInputManager.h"/>
+				<File
+					RelativePath="..\source\windows\NstVsDipswitchManager.cpp"/>
+				<File
+					RelativePath="..\source\windows\NstVsDipswitchManager.h"/>
 			</Filter>
 		</Filter>
 		<Filter
@@ -508,10 +548,6 @@
 			RelativePath="..\source\nestopia.cpp"/>
 		<File
 			RelativePath="..\source\NstNes.h"/>
-		<File
-			RelativePath="..\source\windows\NstUI.cpp"/>
-		<File
-			RelativePath="..\source\windows\NstUI.h"/>
 	</Files>
 	<Globals/>
 </VisualStudioProject>

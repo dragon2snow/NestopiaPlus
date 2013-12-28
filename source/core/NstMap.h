@@ -41,7 +41,7 @@ private:
 
 	enum
 	{
-		OVERFLOW_SIZE = 8,
+		OVERFLOW_SIZE = 16,
 		JAM_OPCODE = 0x02
 	};
 

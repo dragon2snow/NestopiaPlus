@@ -34,6 +34,7 @@ NES_NAMESPACE_BEGIN
 class MAPPER;
 class CPU;
 class PPU;
+class ROMDATABASE;
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // Cartridge class
@@ -46,7 +47,16 @@ public:
 	CARTRIDGE();
 	~CARTRIDGE();
 
-	PDX_NO_INLINE PDXRESULT Load(PDXFILE&,const PDXSTRING* const,CPU&,PPU&,const IO::GENERAL::CONTEXT&);
+	PDX_NO_INLINE PDXRESULT Load
+	(
+       	PDXFILE&,
+		const PDXSTRING* const,
+		CPU&,
+		PPU&,
+		const ROMDATABASE&,
+		const IO::GENERAL::CONTEXT&
+	);
+
 	PDX_NO_INLINE PDXRESULT Unload();
 	PDX_NO_INLINE PDXRESULT Reset(const BOOL);
 

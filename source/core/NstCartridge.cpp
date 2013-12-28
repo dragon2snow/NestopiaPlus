@@ -25,10 +25,10 @@
 #include "../paradox/PdxFile.h"
 #include "NstTypes.h"
 #include "NstCartridge.h"
-#include "NstImageFile.h"
 #include "NstInes.h"
 #include "NstUnif.h"
 #include "mapper/NstMappers.h"
+#include "NstRomDatabase.h"
 
 NES_NAMESPACE_BEGIN
 
@@ -55,7 +55,15 @@ CARTRIDGE::~CARTRIDGE()
 // load rom image
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT CARTRIDGE::Load(PDXFILE& ImageFile,const PDXSTRING* const save,CPU& cpu,PPU& ppu,const IO::GENERAL::CONTEXT& c)
+PDXRESULT CARTRIDGE::Load
+(
+    PDXFILE& ImageFile,
+	const PDXSTRING* const save,
+	CPU& cpu,
+	PPU& ppu,
+	const ROMDATABASE& RomDatabase,
+	const IO::GENERAL::CONTEXT& c
+)
 {
 	Unload();
 
@@ -66,12 +74,12 @@ PDXRESULT CARTRIDGE::Load(PDXFILE& ImageFile,const PDXSTRING* const save,CPU& cp
 	if (ImageFile.Peek<U32>() == 0x1A53454EUL)
 	{
 		INES ines;
-		PDX_TRY(ines.Import( this, ImageFile, context ));
+		PDX_TRY(ines.Import( this, ImageFile, RomDatabase, context ));
 	}
 	else
 	{
 		UNIF unif;
-		PDX_TRY(unif.Import( this, ImageFile, context ));
+		PDX_TRY(unif.Import( this, ImageFile, RomDatabase, context ));
 	}
 
 	if (info.system != SYSTEM_VS)

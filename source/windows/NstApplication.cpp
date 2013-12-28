@@ -26,11 +26,16 @@
 #define WIN32_LEAN_AND_MEAN
 #endif
 
+#ifndef VC_EXTRALEAN
+#define VC_EXTRALEAN
+#endif
+
 #pragma comment(lib,"comctl32")
 
 #include <Windows.h>
 #include <WindowsX.h>
 #include <CommCtrl.h>
+#include <ShellAPI.h>
 #include "NstGraphicManager.h"
 #include "NstFileManager.h"
 #include "NstTimerManager.h"
@@ -48,6 +53,7 @@
 #include "NstUserInputManager.h"
 #include "NstApplication.h"
 #include "NstCmdLine.h"
+#include "NstLauncher.h"
 
 #define NST_DELETE(x) delete x; x=NULL
 
@@ -157,7 +163,7 @@ PDX_COMPILE_ASSERT
 ////////////////////////////////////////////////////////////////////////////////////////
 
 #define NST_MENUSTATE(x) ((x) ? MF_ENABLED : MF_GRAYED)
-#define NST_WINDOWSTYLE	 (WS_OVERLAPPED|WS_CAPTION|WS_SYSMENU|WS_MINIMIZEBOX|WS_MAXIMIZEBOX|WS_THICKFRAME)
+#define NST_WINDOWSTYLE  (WS_OVERLAPPED|WS_CAPTION|WS_SYSMENU|WS_MINIMIZEBOX|WS_MAXIMIZEBOX|WS_THICKFRAME)
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // constructor
@@ -195,7 +201,8 @@ preferences			 (NULL),
 log					 (NULL),
 RomInfo				 (NULL),
 HelpManager			 (NULL),
-UserInputManager	 (NULL)
+UserInputManager	 (NULL),
+launcher             (NULL)
 {
 	::InitCommonControls();
 
@@ -224,7 +231,7 @@ UserInputManager	 (NULL)
 
 		hWnd = CreateWindowEx
 		(
-			0,
+			WS_EX_ACCEPTFILES,
 			NST_CLASS_NAME,
 			NST_WINDOW_NAME,
 			NST_WINDOWSTYLE,
@@ -258,6 +265,7 @@ UserInputManager	 (NULL)
 	RomInfo            = new ROMINFO;
 	HelpManager        = new HELPMANAGER;
 	UserInputManager   = new USERINPUTMANAGER;
+	launcher           = new LAUNCHER;
 
 	AcceleratorEnabled = bool(hAccel);
 
@@ -373,6 +381,7 @@ UserInputManager	 (NULL)
 		log->Create                ( ConfigFile );
 		RomInfo->Create            ( ConfigFile );
 		UserInputManager->Create   ( ConfigFile );
+		launcher->Create           ( ConfigFile );
 	}
 	
 	UpdateRecentFiles();
@@ -386,7 +395,7 @@ UserInputManager	 (NULL)
 	}
 	else
 	{
-		ShowWindow( hWnd, iCmdShow );
+		::ShowWindow( hWnd, iCmdShow );
 	}
 
 	if (CmdLineFile.Length())
@@ -436,6 +445,7 @@ APPLICATION::~APPLICATION()
 		if ( FdsManager       ) FdsManager->Destroy       ( ConfigFile );
 		if ( GameGenieManager ) GameGenieManager->Destroy ( ConfigFile );
 		if ( preferences      ) preferences->Destroy      ( ConfigFile );
+		if ( launcher         ) launcher->Destroy         ( ConfigFile );
 
 		if (ConfigFile)
 			InitConfigFile( file, CFG_SAVE );
@@ -456,6 +466,7 @@ APPLICATION::~APPLICATION()
 		hWnd = NULL;
 	}
 
+	NST_DELETE( launcher           );
 	NST_DELETE( StatusBar          );
 	NST_DELETE( TimerManager       );
 	NST_DELETE( GraphicManager     );
@@ -533,7 +544,13 @@ INT APPLICATION::Run()
 
 		if ((running ? ::PeekMessage( &msg, NULL, 0, 0, PM_REMOVE ) : ::GetMessage( &msg, NULL, 0, 0 )))
 		{
-			if (!AcceleratorEnabled || !::TranslateAccelerator( hWnd, hAccel, &msg ))
+			const BOOL translate =
+			(
+		     	!launcher->IsDlgMessage( msg ) &&
+				(!AcceleratorEnabled || !::TranslateAccelerator( hWnd, hAccel, &msg ))
+			);
+
+			if (translate)
 			{
 				::TranslateMessage( &msg );
 				::DispatchMessage( &msg );
@@ -775,6 +792,11 @@ LRESULT APPLICATION::MsgProc(const HWND hWnd,const UINT uMsg,const WPARAM wParam
 
 			break;
 
+		case WM_DROPFILES:
+
+			OnDropFiles( wParam );
+			return 0;
+
 		case WM_POWERBROADCAST:
 
 			switch (wParam)
@@ -809,6 +831,7 @@ BOOL APPLICATION::OnCommand(const WPARAM wParam)
 		case IDM_FILE_LOAD_NST:                    OnLoadState();                      return TRUE;
 		case IDM_FILE_SAVE_NSP:                    OnSaveNsp();                        return TRUE;
 		case IDM_FILE_SAVE_NST:                    OnSaveState();                      return TRUE;
+		case IDM_FILE_LAUNCHER:                    OnLauncher();                       return TRUE;
 		case IDM_FILE_QUIT:			               OnCloseWindow();                    return TRUE;
 		case IDM_FILE_SAVE_SCREENSHOT:             OnSaveScreenShot();                 return TRUE;
 		case IDM_FILE_SOUND_CAPTURE_FILE:		  
@@ -1102,6 +1125,7 @@ BOOL APPLICATION::OnCopyData(const LPARAM lParam)
 		switch (cds.dwData)
 		{
 	     	case NST_WM_CMDLINE:
+			case NST_WM_LAUNCHER_FILE:
      		
 				if (cds.cbData && cds.lpData)
 				{
@@ -1114,10 +1138,38 @@ BOOL APPLICATION::OnCopyData(const LPARAM lParam)
 					OnOpen( FILE_INPUT, PDX_CAST(const VOID*,filename.String()) );
 				}
 				return TRUE;
+
+			case NST_WM_LAUNCHER_ZIPPED_FILE:
+
+				if (cds.cbData == sizeof(PDXPAIR<PDXSTRING,PDXSTRING>) && cds.lpData)
+					OnOpen( FILE_ZIPPED, cds.lpData );
+
+				return TRUE;
 		}
 	}
 
 	return FALSE;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+VOID APPLICATION::OnDropFiles(WPARAM wParam)
+{
+	PDX_ASSERT( wParam );
+
+	PDXSTRING filename;
+	filename.Resize(MAX_PATH);
+	filename.Front() = '\0';
+
+	if (::DragQueryFile( HDROP(wParam), 0, filename.Begin(), MAX_PATH ))
+	{
+		filename.Validate();
+
+		if (filename.Length())
+			OnOpen( FILE_INPUT, PDX_CAST(const VOID*,filename.String()) );
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -1291,6 +1343,17 @@ VOID APPLICATION::OnOpen(const FILETYPE FileType,const VOID* const param)
 {
 	SoundManager->Clear();
 
+	if (::IsIconic( hWnd ))
+		::ShowWindow( hWnd, SW_RESTORE );
+
+	::SetForegroundWindow( hWnd );
+
+	if (preferences->ConfirmReset() && nes.IsOn())
+	{
+		if (!UI::MsgQuestion( IDS_MACHINE_DETACH_IMAGE, IDS_MACHINE_CONFIRM_DETACH_IMAGE ))
+			return;
+	}
+
 	const BOOL WasPAL = nes.IsPAL();
 	PDXRESULT result = PDX_FAILURE;
 
@@ -1326,7 +1389,17 @@ VOID APPLICATION::OnOpen(const FILETYPE FileType,const VOID* const param)
 				preferences->EmulateImmediately() 
 			); 
 			break;
-   		
+
+		case FILE_ZIPPED: 
+
+			result = FileManager->Load
+			( 
+				FILEMANAGER::COMMAND_ZIPPED_FILE, 
+				param,
+				preferences->EmulateImmediately() 
+			); 
+			break;
+
 		default: return;
 	}
 
@@ -1373,11 +1446,34 @@ VOID APPLICATION::OnOpen(const FILETYPE FileType,const VOID* const param)
 	}
 
 	SetThreadPriority( GetDesiredPriority() );
-	OnPaint();
 	UpdateWindowItems();
 
 	if (FileManager->UpdatedRecentFiles())
 		UpdateRecentFiles();
+
+	::InvalidateRect( hWnd, NULL, FALSE );
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+VOID APPLICATION::OnLauncher()
+{
+	if (!windowed && hMenu)
+		GraphicManager->EnableGDI( TRUE );
+
+	launcher->Open();
+  
+	if (!windowed && hMenu)
+	{
+		::LockWindowUpdate( hWnd );
+		::CheckMenuItem( hMenu, IDM_VIEW_MENU, MF_CHECKED );
+		::SetMenu( hWnd, hMenu );
+		hMenu = NULL;	
+		RefreshCursor();
+		::LockWindowUpdate( NULL );
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -1715,7 +1811,7 @@ VOID APPLICATION::UpdateWindowItems()
 		hSubMenu = ::GetSubMenu( hMenu, 0 );
 		::EnableMenuItem( hSubMenu, 6,  MF_BYPOSITION | NST_MENUSTATE( IsImageOn                     ) );
 		::EnableMenuItem( hSubMenu, 7,  MF_BYPOSITION | NST_MENUSTATE( IsImageOn                     ) );
-		::EnableMenuItem( hSubMenu, 13, MF_BYPOSITION | NST_MENUSTATE( FileManager->NumRecentFiles() ) );
+		::EnableMenuItem( hSubMenu, 15, MF_BYPOSITION | NST_MENUSTATE( FileManager->NumRecentFiles() ) );
 		
 		hSubMenu = ::GetSubMenu( hMenu, 1 );
 		::EnableMenuItem( hSubMenu, 0, MF_BYPOSITION | NST_MENUSTATE( IsOn || (IsLoaded && !IsOn) ) );
@@ -1797,6 +1893,13 @@ VOID APPLICATION::UpdateNsf()
 VOID APPLICATION::OnClose()
 {
 	SoundManager->Stop();
+
+	if (preferences->ConfirmReset() && nes.IsOn())
+	{
+		if (!UI::MsgQuestion( IDS_MACHINE_DETACH_IMAGE, IDS_MACHINE_CONFIRM_DETACH_IMAGE ))
+			return;
+	}
+
 	GameGenieManager->ClearCodes( TRUE );
 	nes.Unload();
 	UpdateWindowItems();
@@ -1842,6 +1945,12 @@ VOID APPLICATION::OnRecent(const UINT idm)
 
 VOID APPLICATION::OnPower(const BOOL state)
 {
+	if (preferences->ConfirmReset() && !state && nes.IsOn())
+	{
+		if (!UI::MsgQuestion( IDS_MACHINE_POWER_OFF, IDS_MACHINE_CONFIRM_POWER_OFF ))
+			return;
+	}
+
 	if (bool(nes.IsOn()) != bool(state))
 	{
 		SoundManager->Clear();		
@@ -1860,6 +1969,12 @@ VOID APPLICATION::OnPower(const BOOL state)
 
 VOID APPLICATION::OnReset(const BOOL state)
 {
+	if (preferences->ConfirmReset() && nes.IsOn())
+	{
+		if (!UI::MsgQuestion( IDS_MACHINE_RESET, IDS_MACHINE_CONFIRM_RESET ))
+			return;
+	}
+
 	SoundManager->Clear();
 	nes.Reset( state );
 	StartScreenMsg( 1500, (state ? "Hard" : "Soft"), " reset.." );
@@ -2040,12 +2155,20 @@ VOID APPLICATION::OnShowMenu()
 
 	if (hMenu)
 	{
+		::SetFocus( hWnd );
 		::LockWindowUpdate( hWnd );
+		
 		GraphicManager->EnableGDI( TRUE );
+		
 		::CheckMenuItem( hMenu, IDM_VIEW_MENU, MF_CHECKED );
 		::SetMenu( hWnd, hMenu );
+		
 		hMenu = NULL;	
 		RefreshCursor();
+
+		if (launcher->IsEnabled())
+			launcher->Activate();
+
 		::LockWindowUpdate( NULL );
 	}
 }
@@ -2060,13 +2183,22 @@ VOID APPLICATION::OnHideMenu()
 
 	if (!hMenu)
 	{
+		::SetFocus( hWnd );
+
+		if (launcher->IsEnabled())
+			launcher->Inactivate();
+
 		::LockWindowUpdate( hWnd );
-		GraphicManager->EnableGDI( FALSE );
+
 		hMenu = ::GetMenu( hWnd );
+		
 		::CheckMenuItem( hMenu, IDM_VIEW_MENU, MF_UNCHECKED );
 		::SetMenu( hWnd, NULL );	
+		
 		RefreshCursor();
+
 		::LockWindowUpdate( NULL );
+		GraphicManager->EnableGDI( FALSE );
 	}
 }
 
@@ -2436,8 +2568,13 @@ VOID APPLICATION::SwitchScreen()
 {
 	SoundManager->Clear();
 
+	const BOOL LauncherEnabled = launcher->IsEnabled();
+
 	if (windowed)					
 	{
+		if (LauncherEnabled)
+			launcher->Close();
+
 		PushWindow();
 		GraphicManager->SwitchToFullScreen();
 
@@ -2448,6 +2585,9 @@ VOID APPLICATION::SwitchScreen()
 	{
 		GraphicManager->SwitchToWindowed( rcScreen );
 		PopWindow();
+
+		if (LauncherEnabled)
+			launcher->Activate();
 	}
 
 	UpdateWindowSizes
@@ -2612,7 +2752,7 @@ VOID APPLICATION::UpdateRecentFiles()
 {
 	HMENU hSubMenu;
 	hSubMenu = ::GetSubMenu( GetMenu(),  0 );
-	hSubMenu = ::GetSubMenu( hSubMenu,  13 );
+	hSubMenu = ::GetSubMenu( hSubMenu,  15 );
 
 	while (::GetMenuItemCount( hSubMenu ))
 		::DeleteMenu( hSubMenu, 0, MF_BYPOSITION );

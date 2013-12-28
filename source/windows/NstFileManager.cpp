@@ -26,9 +26,12 @@
 #define WIN32_LEAN_AND_MEAN
 #endif
 
+#ifndef VC_EXTRALEAN
+#define VC_EXTRALEAN
+#endif
+
 #include <Windows.h>
 #include <WindowsX.h>
-#include <ShlObj.h>
 #include "../paradox/PdxFile.h"
 #include "../NstZipFile.h"
 #include "../NstNes.h"
@@ -302,7 +305,7 @@ BOOL FILEMANAGER::DialogProc(HWND h,UINT uMsg,WPARAM wParam,LPARAM)
 				{
 					PDXSTRING path;
 					
-					if (SelectPath( path, IDS_FILE_SELECT_IMAGE ))
+					if (UTILITIES::BrowseFolder( path, hDlg, IDS_FILE_SELECT_IMAGE ))
 						::SetDlgItemText( hDlg, IDC_PATHS_IMAGE, path.String() );
 
 					return TRUE;
@@ -312,7 +315,7 @@ BOOL FILEMANAGER::DialogProc(HWND h,UINT uMsg,WPARAM wParam,LPARAM)
 				{		
 					PDXSTRING path;
 
-					if (SelectPath( path, IDS_FILE_SELECT_BATTERY ))
+					if (UTILITIES::BrowseFolder( path, hDlg, IDS_FILE_SELECT_BATTERY ))
 						::SetDlgItemText( hDlg, IDC_PATHS_BATTERY, path.String() );
 
 					return TRUE;
@@ -322,7 +325,7 @@ BOOL FILEMANAGER::DialogProc(HWND h,UINT uMsg,WPARAM wParam,LPARAM)
 				{
 					PDXSTRING path;
 
-					if (SelectPath( path, IDS_FILE_SELECT_NST ))
+					if (UTILITIES::BrowseFolder( path, hDlg, IDS_FILE_SELECT_NST ))
 						::SetDlgItemText( hDlg, IDC_PATHS_NST, path.String() );
 
 					return TRUE;
@@ -332,7 +335,7 @@ BOOL FILEMANAGER::DialogProc(HWND h,UINT uMsg,WPARAM wParam,LPARAM)
 				{
 					PDXSTRING path;
 
-					if (SelectPath( path, IDS_FILE_SELECT_IPS ))
+					if (UTILITIES::BrowseFolder( path, hDlg, IDS_FILE_SELECT_IPS ))
 						::SetDlgItemText( hDlg, IDC_PATHS_IPS, path.String() );
 
 					return TRUE;
@@ -342,7 +345,7 @@ BOOL FILEMANAGER::DialogProc(HWND h,UINT uMsg,WPARAM wParam,LPARAM)
 				{
 					PDXSTRING path;
 
-					if (SelectPath( path, IDS_FILE_SELECT_NSP ))
+					if (UTILITIES::BrowseFolder( path, hDlg, IDS_FILE_SELECT_NSP ))
 						::SetDlgItemText( hDlg, IDC_PATHS_NSP, path.String() );
 
 					return TRUE;
@@ -471,53 +474,6 @@ const PDXSTRING& FILEMANAGER::GetNspPath()
 		NspPathLast = NspPath;
 
 	return NspPathLast;  
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-BOOL FILEMANAGER::SelectPath(PDXSTRING& path,const UINT TitleID)
-{
-	PDXSTRING title;
-
-	CHAR name[MAX_PATH+1];
-	name[0] = '\0';
-
-	BROWSEINFO bi;
-	PDXMemZero( bi );
-
-	bi.hwndOwner	  = hDlg;
-	bi.pszDisplayName = name;
-	bi.lpszTitle	  = UTILITIES::IdToString(TitleID,title);
-	bi.ulFlags		  = BIF_RETURNONLYFSDIRS;
-
-	LPITEMIDLIST idl = ::SHBrowseForFolder( &bi );
-
-	BOOL yep = FALSE;
-
-	if (idl)
-	{
-		if (::SHGetPathFromIDList( idl, name ) && name[0] != '\0')
-		{
-			path = name;
-
-			if (path.Back() != '\\' && path.Back() != '/')
-				path.InsertBack('\\');
-
-			yep = TRUE;
-		}
-
-		LPMALLOC pMalloc;
-
-		if (SUCCEEDED(::SHGetMalloc( &pMalloc ))) 
-		{
-			pMalloc->Free( idl );
-			pMalloc->Release();
-		}
-	}
-
-	return yep;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -1383,6 +1339,42 @@ PDXRESULT FILEMANAGER::LoadFile
 		{
 			PDX_ASSERT( param );
 			filename = PDX_CAST(const CHAR*,param);
+			break;
+		}
+
+		case COMMAND_ZIPPED_FILE:
+		{
+			PDX_ASSERT( param );
+			
+			typedef PDXPAIR<PDXSTRING,PDXSTRING> PAIR;
+			const PAIR* const pair = PDX_CAST(const PAIR*,param);
+			
+			filename = pair->First();
+
+			ZIPFILE ZipFile;
+
+			if (PDX_FAILED(ZipFile.Open( filename.String() )))
+				return PDX_FAILURE;
+
+			BOOL success = FALSE;
+			const TSIZE NumFiles = ZipFile.NumFiles();
+
+			PDXARRAY<CHAR> buffer;
+
+			for (TSIZE i=0; i < NumFiles; ++i)
+			{
+				if (pair->Second() == ZipFile.FileName( i ))
+				{
+					success = PDX_SUCCEEDED(ZipFile.Uncompress( i, buffer ));
+					break;
+				}
+			}
+
+			if (!success)
+				return PDX_FAILURE;
+
+			file.Hook( buffer, PDXFILE::INPUT, filename.String() );
+			buffer.UnHook();
 			break;
 		}
 

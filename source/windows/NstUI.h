@@ -40,7 +40,11 @@ namespace UI
 	PDXRESULT MsgWarning (const UINT);
 	PDXRESULT MsgWarning (const PDXSTRING&);
 	PDXRESULT MsgWarning (const CHAR* const); 
-	
+
+	PDXRESULT MsgInfo (const UINT);
+	PDXRESULT MsgInfo (const PDXSTRING&);
+	PDXRESULT MsgInfo (const CHAR* const); 
+
 	BOOL MsgQuestion (const UINT,const UINT);
 	BOOL MsgQuestion (const UINT,const PDXSTRING&);
 	BOOL MsgQuestion (const CHAR* const,const CHAR* const); 
@@ -52,8 +56,6 @@ namespace UI
 	BOOL MsgInput (const UINT,const UINT,PDXSTRING&);
 	BOOL MsgInput (const PDXSTRING&,const PDXSTRING&,PDXSTRING&);
 	BOOL MsgInput (const CHAR* const,const CHAR* const,PDXSTRING&);
-
-	VOID LogOutput (const PDXSTRING& msg);
 }
 
 #endif

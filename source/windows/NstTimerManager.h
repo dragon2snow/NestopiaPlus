@@ -71,11 +71,12 @@ private:
 
 	BOOL DialogProc(HWND,UINT,WPARAM,LPARAM);
 
-	PDX_NO_INLINE VOID SwitchToPFCounter();
-	PDX_NO_INLINE VOID SwitchToMMTimer();
+	VOID SwitchToPFCounter();
+	VOID SwitchToMMTimer();
+	VOID UpdateSettings(HWND);
+
 	PDX_NO_INLINE VOID ResetDialog();
 	PDX_NO_INLINE VOID UpdateDialog(HWND);
-	PDX_NO_INLINE VOID UpdateSettings(HWND);
 
 	const BOOL HasPFCounter;
 

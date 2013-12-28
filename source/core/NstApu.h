@@ -67,11 +67,10 @@ public:
 	VOID Poke_4015(const UINT);
 	VOID Poke_4017(const UINT);
 
-	LONG GetDmcFrequency()     const;
-	LONG GetDmcLengthCounter() const;
-	BOOL IsDmcLooped()         const;
-
-	TSIZE GetLatency() const;
+	LONG  GetDmcDmaCount()      const;
+	LONG  GetDmcLengthCounter() const;
+	BOOL  IsDmcLooping()        const;
+	TSIZE GetLatency()          const;
 
 	class CHANNEL
 	{
@@ -489,13 +488,13 @@ private:
 		inline BOOL IsEnabled() const
 		{ return enabled; }
 
-		inline LONG GetFrequency() const
-		{ return frequency << 3; }
+		inline LONG GetDmaCount() const
+		{ return DmaCount; }
 
 		inline LONG GetLengthCounter() const
 		{ return LoadedLengthCounter; }
 
-		inline BOOL IsLooped() const
+		inline BOOL IsLooping() const
 		{ return loop; }
 
 		LONG Sample();
@@ -514,6 +513,7 @@ private:
 		UINT address;
 		UINT LoadedAddress;	 
 		UINT output;
+		LONG DmaCount;
 		INT  LoadedLengthCounter;
 		BOOL loop;
 		CPU& cpu;

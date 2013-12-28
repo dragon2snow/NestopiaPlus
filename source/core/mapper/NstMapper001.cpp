@@ -59,9 +59,6 @@ VOID MAPPER1::Reset()
 	last  = 0;
 	base  = 0;
 
-	cycles = 0;
-	ResetCycles = cpu.IsPAL() ? NES_CPU_TO_PAL(2) : NES_CPU_TO_NTSC(2);
-
 	SetBanks();
 }
 
@@ -85,44 +82,55 @@ VOID MAPPER1::SetBanks()
 
 NES_POKE(MAPPER1,pRom)
 {
-	const ULONG elapsed = cpu.GetCycles<CPU::CYCLE_MASTER>();
-
-	if (elapsed >= cycles)
+	if (data & DATA_RESET)
 	{
-		if (data & DATA_RESET)
+		registers[0] |= REG0_RESET;
+
+		latch = 0;
+		count = 0;
+	}
+	else
+	{
+		const UINT index = (address & 0x7FFF) >> 13;
+
+		if (last != index)
 		{
-			cycles = elapsed + ResetCycles;
-			registers[0] |= REG0_RESET;
-			latch = 0;
+			last = index;
 			count = 0;
+			latch = 0;
 		}
-		else
+
+		latch |= (data & 0x1) << count;
+
+		if (++count == 5)
 		{
-			const UINT index = (address & 0x7FFF) >> 13;
+			registers[index] = latch;
 
-			if (last != index)
+			count = 0;
+			latch = 0;
+
+			switch (index)
 			{
-				last = index;
-				count = 0;
-				latch = 0;
-			}
+	 			case 0: 
 
-			latch |= (data & 0x1) << count;
+					ProcessRegister0();
+					ProcessRegister1();
+					return;
 
-			if (++count == 5)
-			{
-				registers[index] = latch;
+	 			case 1: 
+					
+					ProcessRegister1(); 
+					return;
 
-				count = 0;
-				latch = 0;
+	   			case 3: 
+					
+					ProcessRegister3(); 
+					return;
 
-				switch (index)
-				{
-	     			case 0: ProcessRegister0(); return;
-	     			case 1: ProcessRegister1(); return;
-	       			case 3: ProcessRegister3(); return;
-	     			case 2: ProcessRegister2(); return;
-				}
+	 			case 2: 
+					
+					ProcessRegister2(); 
+					return;
 			}
 		}
 	}
@@ -204,7 +212,6 @@ VOID MAPPER1::ProcessRegister2()
 ////////////////////////////////////////////////////////////////////////////////////////
 //
 ////////////////////////////////////////////////////////////////////////////////////////
-
 
 VOID MAPPER1::ProcessRegister3()
 {

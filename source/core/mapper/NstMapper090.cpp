@@ -55,6 +55,8 @@ MAPPER90::~MAPPER90()
 
 VOID MAPPER90::Reset()
 {
+	mk3 = (pRomCrc == 0x2A268152UL); // Mortal Kombat 3 - Special 56 Peoples
+
 	delete CiRom; CiRom = new CIROM( cRom.Ram(), cRom.Size() );
 	delete ExRom; ExRom = new EXROM( pRom.Ram(), pRom.Size() );
 
@@ -101,6 +103,10 @@ VOID MAPPER90::Reset()
 		cpu.SetPort( 0xC003 + i, this, Peek_C000, Poke_C003 );
 		cpu.SetPort( 0xC004 + i, this, Peek_C000, Poke_C003 );
 		cpu.SetPort( 0xC005 + i, this, Peek_C000, Poke_C005 );
+
+		if (mk3)
+			cpu.SetPort( 0xC006 + i, this, Peek_C000, Poke_C006 );
+
 		cpu.SetPort( 0xD000 + i, this, Peek_D000, Poke_D000 );
 		cpu.SetPort( 0xD001 + i, this, Peek_D000, Poke_D001 );
 	}
@@ -137,6 +143,7 @@ VOID MAPPER90::Reset()
 	mul[0]       = 0;
 	mul[1]       = 0;
 	latch        = 0;
+	IrqOffset    = 0;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -238,7 +245,20 @@ NES_POKE(MAPPER90,C003)
 
 NES_POKE(MAPPER90,C005) 
 {
-	IrqCount = IrqLatch = data;
+	if (mk3)
+	{
+		if (IrqOffset & 0x80) IrqCount = IrqLatch = data ^ (IrqOffset | 0x01);
+		else                  IrqCount = IrqLatch = data | (IrqOffset & 0x27);
+	}
+	else
+	{
+		IrqCount = IrqLatch = data;
+	}
+}
+
+NES_POKE(MAPPER90,C006) 
+{
+	IrqOffset = data;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -363,7 +383,7 @@ VOID MAPPER90::UpdateCiRom()
 {
 	ppu.Update();
 
-	if (status & SELECT_CIROM)
+	if ((status & SELECT_CIROM) && !mk3)
 	{
 		if (CiRomBanks[0].d == 0 || CiRomBanks[1].d == 1 || CiRomBanks[2].d == 2 || CiRomBanks[3].d == 3)
 		{

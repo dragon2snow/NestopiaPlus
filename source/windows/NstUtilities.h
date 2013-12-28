@@ -44,6 +44,8 @@ namespace UTILITIES
 		return string;
 	}
 
+	HINSTANCE GetInstance();
+
 	VOID ToGUID   (const CHAR* const,GUID&);
 	VOID FromGUID (const GUID&,PDXSTRING&);
 
@@ -72,6 +74,13 @@ namespace UTILITIES
 		ToGUID( string, guid );
 		return guid;
 	}
+
+	BOOL BrowseFolder
+	(
+       	PDXSTRING&,
+		HWND,
+		const UINT
+	);
 
 	BOOL BrowseOpenFile
 	(

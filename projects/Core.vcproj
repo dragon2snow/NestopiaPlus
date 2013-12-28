@@ -819,6 +819,16 @@
 			<File
 				RelativePath="..\source\core\sound\NstSndVrc6.h"/>
 		</Filter>
+		<Filter
+			Name="circuitry"
+			Filter="">
+			<File
+				RelativePath="..\source\core\NstChip.h"/>
+			<File
+				RelativePath="..\source\core\NstLine.h"/>
+			<File
+				RelativePath="..\source\core\NstMap.h"/>
+		</Filter>
 		<File
 			RelativePath="..\source\core\NstApu.cpp"/>
 		<File
@@ -829,8 +839,6 @@
 			RelativePath="..\source\core\NstCartridge.cpp"/>
 		<File
 			RelativePath="..\source\core\NstCartridge.h"/>
-		<File
-			RelativePath="..\source\core\NstChip.h"/>
 		<File
 			RelativePath="..\source\core\NstCpu.cpp"/>
 		<File
@@ -845,10 +853,6 @@
 			RelativePath="..\source\core\NstGameGenie.cpp"/>
 		<File
 			RelativePath="..\source\core\NstGameGenie.h"/>
-		<File
-			RelativePath="..\source\core\NstImageFile.cpp"/>
-		<File
-			RelativePath="..\source\core\NstImageFile.h"/>
 		<File
 			RelativePath="..\source\core\NstInes.cpp"/>
 		<File
@@ -885,8 +889,6 @@
 		<File
 			RelativePath="..\source\core\NstMachine.inl"/>
 		<File
-			RelativePath="..\source\core\NstMap.h"/>
-		<File
 			RelativePath="..\source\core\NstMovie.cpp"/>
 		<File
 			RelativePath="..\source\core\NstMovie.h"/>
@@ -912,6 +914,10 @@
 			RelativePath="..\source\core\NstPpu.h"/>
 		<File
 			RelativePath="..\source\core\NstPpu.inl"/>
+		<File
+			RelativePath="..\source\core\NstRomDatabase.cpp"/>
+		<File
+			RelativePath="..\source\core\NstRomDatabase.h"/>
 		<File
 			RelativePath="..\source\core\NstTypes.cpp"/>
 		<File

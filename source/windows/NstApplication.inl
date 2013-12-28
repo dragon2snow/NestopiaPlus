@@ -76,7 +76,8 @@ inline PREFERENCES&      APPLICATION::GetPreferences      () { return *preferenc
 inline MOVIEMANAGER&     APPLICATION::GetMovieManager     () { return *MovieManager;       }
 inline SOUNDMANAGER&     APPLICATION::GetSoundManager     () { return *SoundManager;       }
 inline TIMERMANAGER&     APPLICATION::GetTimerManager     () { return *TimerManager;       }
-inline USERINPUTMANAGER& APPLICATION::GetUserInputManager () { return *UserInputManager;    }
+inline USERINPUTMANAGER& APPLICATION::GetUserInputManager () { return *UserInputManager;   }
+inline LAUNCHER&         APPLICATION::GetLauncher         () { return *launcher;           }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //

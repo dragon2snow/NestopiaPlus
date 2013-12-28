@@ -26,6 +26,10 @@
 #define WIN32_LEAN_AND_MEAN
 #endif
 
+#ifndef VC_EXTRALEAN
+#define VC_EXTRALEAN
+#endif
+
 #include <Windows.h>
 #include "NstApplication.h"
 #include "NstSoundManager.h"
@@ -75,11 +79,11 @@ PDXRESULT MsgError(const CHAR* const msg)
 		application.GetGraphicManager().EnableGDI( TRUE );
 	}
 
-	MessageBox
+	::MessageBox
 	( 
      	IsInstanced ? application.GetHWnd() : NULL, 
 		msg, 
-		"Error!", 
+		UTILITIES::IdToString(IDS_APP_ERROR).String(), 
 		MB_OK|MB_ICONSTOP
 	);
 
@@ -103,12 +107,40 @@ PDXRESULT MsgWarning(const CHAR* const msg)
 		application.GetGraphicManager().EnableGDI( TRUE );
 	}
 
-	MessageBox
+	::MessageBox
 	( 
      	IsInstanced ? application.GetHWnd() : NULL, 
 		msg, 
-		"Warning!", 
-		MB_OK | MB_ICONEXCLAMATION 
+		UTILITIES::IdToString(IDS_APP_WARNING).String(), 
+		MB_OK|MB_ICONEXCLAMATION 
+	);
+
+	if (IsInstanced)
+		application.GetGraphicManager().EnableGDI( FALSE );	
+
+	return PDX_FAILURE;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+PDXRESULT MsgInfo(const CHAR* const msg) 
+{ 
+	const BOOL IsInstanced = APPLICATION::IsInstanced();
+
+	if (IsInstanced)
+	{
+		application.GetSoundManager().Clear();
+		application.GetGraphicManager().EnableGDI( TRUE );
+	}
+
+	::MessageBox
+	( 
+     	IsInstanced ? application.GetHWnd() : NULL, 
+		msg, 
+		UTILITIES::IdToString(IDS_APP_MESSAGE).String(), 
+		MB_OK|MB_ICONINFORMATION 
 	);
 
 	if (IsInstanced)
@@ -133,7 +165,7 @@ BOOL MsgQuestion(const CHAR* const title,const CHAR* const msg)
 
 	const BOOL yes = 
 	(
-     	MessageBox
+     	::MessageBox
      	( 
 	       	IsInstanced ? application.GetHWnd() : NULL, 
      		msg, 
@@ -178,32 +210,24 @@ BOOL MsgInput(const CHAR* const title,const CHAR* const msg,PDXSTRING& input)
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT MsgError(const UINT id)
-{
-	return MsgError( UTILITIES::IdToString(id).String() );
-}
+PDXRESULT MsgError   (const UINT id) { return MsgError   ( UTILITIES::IdToString( id ).String() ); }
+PDXRESULT MsgWarning (const UINT id) { return MsgWarning ( UTILITIES::IdToString( id ).String() ); }
+PDXRESULT MsgInfo    (const UINT id) { return MsgInfo    ( UTILITIES::IdToString( id ).String() ); }
 
-PDXRESULT MsgError(const PDXSTRING& msg)
-{
-	return MsgError( msg.String() );
-}
+PDXRESULT MsgError   (const PDXSTRING& msg) { return MsgError   ( msg.String() ); }
+PDXRESULT MsgWarning (const PDXSTRING& msg) { return MsgWarning ( msg.String() ); }
+PDXRESULT MsgInfo    (const PDXSTRING& msg) { return MsgInfo    ( msg.String() ); }
 
-PDXRESULT MsgWarning(const UINT id)
-{
-	return MsgWarning( UTILITIES::IdToString(id).String() );
-}
-
-PDXRESULT MsgWarning(const PDXSTRING& msg)
-{
-	return MsgWarning( msg.String() );
-}
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
 
 BOOL MsgQuestion(const UINT IdTitle,const UINT IdMsg)
 {
 	return MsgQuestion
 	( 
-     	UTILITIES::IdToString(IdTitle).String(), 
-		UTILITIES::IdToString(IdMsg).String()
+     	UTILITIES::IdToString( IdTitle ).String(), 
+		UTILITIES::IdToString( IdMsg ).String()
 	);
 }
 
@@ -212,9 +236,13 @@ BOOL MsgQuestion(const PDXSTRING& title,const PDXSTRING& msg)
 	return MsgQuestion( title.String(), msg.String() );
 }
 
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
 VOID MsgOutput(const UINT id)
 {
-	MsgOutput( UTILITIES::IdToString(id).String() );
+	MsgOutput( UTILITIES::IdToString( id ).String() );
 }
 
 VOID MsgOutput(const PDXSTRING& msg)
@@ -222,12 +250,16 @@ VOID MsgOutput(const PDXSTRING& msg)
 	MsgOutput( msg.String() );
 }
 
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
 BOOL MsgInput(const UINT IdTitle,const UINT IdMsg,PDXSTRING& res)
 {
 	return MsgInput
 	( 
-		UTILITIES::IdToString(IdTitle).String(), 
-		UTILITIES::IdToString(IdMsg).String(),
+		UTILITIES::IdToString( IdTitle ).String(), 
+		UTILITIES::IdToString( IdMsg ).String(),
 		res
 	);
 }

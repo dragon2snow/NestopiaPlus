@@ -38,8 +38,8 @@ VOID MAPPER10::Reset()
 
 	cpu.SetPort( 0xA000, 0xAFFF, this, Peek_A000, Poke_A000 );
 
-	pRom.SwapBanks<n16k,0x0000>(0);
-	pRom.SwapBanks<n16k,0x4000>(pRom.NumBanks<n16k>());
+	pRom.SwapBanks<n16k,0x0000>( 0 );
+	pRom.SwapBanks<n16k,0x4000>( pRom.NumBanks<n16k>() - 1 );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////

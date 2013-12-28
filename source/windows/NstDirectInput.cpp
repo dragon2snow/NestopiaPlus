@@ -26,6 +26,10 @@
 #define WIN32_LEAN_AND_MEAN
 #endif
 
+#ifndef VC_EXTRALEAN
+#define VC_EXTRALEAN
+#endif
+
 #include <Windows.h>
 #include "../paradox/PdxArray.h"
 #include "NstLogFileManager.h"
@@ -116,7 +120,7 @@ VOID DIRECTINPUT::Initialize(HWND h)
 
 	LOGFILE::Output("DIRECTINPUT: initializing");
 
-	if (FAILED(::DirectInput8Create(GetModuleHandle(NULL),DIRECTINPUT_VERSION,IID_IDirectInput8,PDX_CAST(LPVOID*,&device),NULL)) || !device)
+	if (FAILED(::DirectInput8Create(UTILITIES::GetInstance(),DIRECTINPUT_VERSION,IID_IDirectInput8,PDX_CAST(LPVOID*,&device),NULL)) || !device)
 		throw ("DirectInput8Create() failed!");
 
 	if (SUCCEEDED(device->EnumDevices(DI8DEVCLASS_GAMECTRL,EnumJoysticks,PDX_CAST(LPVOID,this),DIEDFL_ATTACHEDONLY)))

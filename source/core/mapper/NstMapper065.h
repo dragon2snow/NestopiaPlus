@@ -64,7 +64,7 @@ private:
 
 	VOID IrqSync(const UINT);
 
-	UINT another;
+	UINT type;
 };
 
 NES_NAMESPACE_END

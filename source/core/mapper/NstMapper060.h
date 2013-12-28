@@ -38,12 +38,14 @@ class MAPPER60 : public MAPPER
 public:
 
 	MAPPER60(CONTEXT& c)
-	: MAPPER(c) {}
+	: MAPPER(c), game(0) {}
 
 private:
 
 	VOID Reset();       
 	NES_DECL_POKE( pRom );
+
+	BOOL game;
 };
 
 NES_NAMESPACE_END

@@ -50,6 +50,21 @@ VOID MAPPER32::Reset()
 	}
 
 	pRomOffset = 0x0000;
+
+	switch (pRomCrc) 
+	{
+       	case 0xFD3FC292UL: // Ai Sensei no Oshiete - Watashi no Hoshi
+
+			
+			pRom.SwapBanks<n16k,0x0000>( 0xF );
+			pRom.SwapBanks<n16k,0x4000>( 0xF );
+			break;
+			
+		case 0xC0FED437UL: // Major League
+
+			ppu.SetMirroring( MIRROR_ZERO );
+			break;
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -92,7 +107,23 @@ NES_POKE(MAPPER32,B002) { ppu.Update(); cRom.SwapBanks<n1k,0x0800>(data); }
 NES_POKE(MAPPER32,B003) { ppu.Update(); cRom.SwapBanks<n1k,0x0C00>(data); }
 NES_POKE(MAPPER32,B004) { ppu.Update(); cRom.SwapBanks<n1k,0x1000>(data); }
 NES_POKE(MAPPER32,B005) { ppu.Update(); cRom.SwapBanks<n1k,0x1400>(data); }
-NES_POKE(MAPPER32,B006) { ppu.Update(); cRom.SwapBanks<n1k,0x1800>(data); }
-NES_POKE(MAPPER32,B007) { ppu.Update(); cRom.SwapBanks<n1k,0x1C00>(data); }
+
+NES_POKE(MAPPER32,B006) 
+{ 
+	ppu.Update(); 
+	cRom.SwapBanks<n1k,0x1800>(data); 
+
+	if (pRomCrc == 0xC0FED437UL && (data & 0x40)) // Major League
+		ppu.SetMirroring( 0, 0, 0, 1 );
+}
+
+NES_POKE(MAPPER32,B007) 
+{ 
+	ppu.Update(); 
+	cRom.SwapBanks<n1k,0x1C00>(data); 
+
+	if (pRomCrc == 0xC0FED437UL && (data & 0x40)) // Major League
+		ppu.SetMirroring( 0, 0, 0, 0 );
+}
 
 NES_NAMESPACE_END

@@ -26,6 +26,10 @@
 #define WIN32_LEAN_AND_MEAN
 #endif
 
+#ifndef VC_EXTRALEAN
+#define VC_EXTRALEAN
+#endif
+
 #include <Windows.h>
 #include <WindowsX.h>
 #include "../paradox/PdxFile.h"
@@ -895,7 +899,7 @@ VOID INPUTMANAGER::ScanInput()
 	
 	DialogBoxParam
 	( 
-    	::GetModuleHandle(NULL), 
+     	UTILITIES::GetInstance(), 
 		MAKEINTRESOURCE(IDD_INPUT_KEYPRESS), 
 		hDlg, 
 		StaticKeyPressDialogProc,

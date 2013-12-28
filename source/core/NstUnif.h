@@ -37,7 +37,9 @@ class PDXFILE;
 
 NES_NAMESPACE_BEGIN
 
-class UNIF : public IMAGEFILE
+class ROMDATABASE;
+
+class UNIF
 {
 public:
 
@@ -47,6 +49,7 @@ public:
 	(
        	CARTRIDGE* const,
 		PDXFILE&,
+		const ROMDATABASE&,
 		const IO::GENERAL::CONTEXT&
 	);
 	
@@ -63,6 +66,7 @@ private:
 
 	PDXRESULT CheckDatabase
 	(
+	    const ROMDATABASE&,
 		CARTRIDGE* const,
 		PDXFILE&,
 		const IO::GENERAL::CONTEXT&

@@ -47,17 +47,23 @@ VOID MAPPER62::Reset()
 
 NES_POKE(MAPPER62,pRom) 
 {
-	apu.Update();
-	ppu.Update();
-
-	switch (address & 0xFF00)
-	{
-     	case 0x8100: pRom.SwapBanks<n16k,0x0000>(data >> 1); break;
-    	case 0x8500: pRom.SwapBanks<n8k,0x0000> (data >> 0); break;
-     	case 0x8700: pRom.SwapBanks<n8k,0x2000> (data >> 0); break;
-	} 
+	ppu.SetMirroring( (address & 0x0080) ? MIRROR_HORIZONTAL : MIRROR_VERTICAL );
 	
-	cRom.SwapBanks<n8k,0x0000>(data >> 3);
+	cRom.SwapBanks<n8k,0x0000>( ((address & 0x1F) << 2) | (data & 0x3) );
+
+	apu.Update();
+											
+	const UINT bank = (address & 0x0040) | ((address & 0x3F00) >> 8);
+
+	if (address & 0x0020)
+	{
+		pRom.SwapBanks<n16k,0x0000>( bank );
+		pRom.SwapBanks<n16k,0x4000>( bank );
+	}
+	else
+	{
+		pRom.SwapBanks<n32k,0x0000>( bank >> 1);
+	}
 }
 
 NES_NAMESPACE_END

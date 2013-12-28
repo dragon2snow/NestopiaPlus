@@ -38,8 +38,16 @@ VOID MAPPER58::Reset()
 	cpu.SetPort( 0xC000, 0xDFFF, this, Peek_C000, Poke_pRom );
 	cpu.SetPort( 0xE000, 0xFFFF, this, Peek_E000, Poke_pRom );
 
-	pRom.SwapBanks<n16k,0x0000>(0);
-	pRom.SwapBanks<n16k,0x4000>(0);
+	if (pRomCrc == 0xABB2F974UL)
+	{
+		// Study and Game 32-in-1
+		pRom.SwapBanks<n32k,0x0000>(0);
+	}
+	else
+	{
+		pRom.SwapBanks<n16k,0x0000>(0);
+		pRom.SwapBanks<n16k,0x4000>(0);
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -49,19 +57,28 @@ VOID MAPPER58::Reset()
 NES_POKE(MAPPER58,pRom) 
 {
 	apu.Update();
-	ppu.SetMirroring( (data & 0x2) ? MIRROR_VERTICAL : MIRROR_HORIZONTAL );
 
-	if (address & 0x40)
+	if (pRomCrc == 0xABB2F974UL)
 	{
-		pRom.SwapBanks<n16k,0x0000>( address & 0x7 );
-		pRom.SwapBanks<n16k,0x4000>( address & 0x7 );
+		// Study and Game 32-in-1
+		pRom.SwapBanks<n32k,0x0000>( data & 0x1F );
 	}
 	else
 	{
-		pRom.SwapBanks<n32k,0x0000>( (address & 0x6) >> 1 );
-	}
+		ppu.SetMirroring( (data & 0x2) ? MIRROR_VERTICAL : MIRROR_HORIZONTAL );
 
-	cRom.SwapBanks<n8k,0x0000>( (address & 0x38) >> 3 );
+		if (address & 0x40)
+		{
+			pRom.SwapBanks<n16k,0x0000>( address & 0x7 );
+			pRom.SwapBanks<n16k,0x4000>( address & 0x7 );
+		}
+		else
+		{
+			pRom.SwapBanks<n32k,0x0000>( (address & 0x6) >> 1 );
+		}
+
+		cRom.SwapBanks<n8k,0x0000>( (address & 0x38) >> 3 );
+	}
 }
 
 NES_NAMESPACE_END

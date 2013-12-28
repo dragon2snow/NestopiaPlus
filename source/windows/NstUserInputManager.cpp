@@ -26,6 +26,10 @@
 #define WIN32_LEAN_AND_MEAN
 #endif
 
+#ifndef VC_EXTRALEAN
+#define VC_EXTRALEAN
+#endif
+
 #include <Windows.h>
 #include "../paradox/PdxString.h"
 #include "NstUserInputManager.h"

@@ -48,7 +48,7 @@ public:
 	virtual VOID Create  (CONFIGFILE* const) {}
 	virtual VOID Destroy (CONFIGFILE* const) {}
 
-	VOID StartDialog();
+	VOID StartDialog(HWND=NULL);
 
 	static TSIZE GetDlgItemText(HWND,const INT,PDXSTRING&,const INT=MAX_PATH);
 
@@ -56,6 +56,8 @@ protected:
 
 	MANAGER(const INT=NO_DIALOG);
 	virtual ~MANAGER() {}
+
+	VOID StartModelessDialog(HWND=NULL);
 
 	HWND const hWnd;
 	NES::MACHINE& nes;
@@ -66,6 +68,7 @@ private:
 	{ return TRUE; }
 
 	static BOOL CALLBACK StaticDialogProc(HWND,UINT,WPARAM,LPARAM);
+	static BOOL CALLBACK StaticModelessDialogProc(HWND,UINT,WPARAM,LPARAM);
 
 	const INT DialogID;
 };

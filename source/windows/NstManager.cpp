@@ -26,6 +26,10 @@
 #define WIN32_LEAN_AND_MEAN
 #endif
 
+#ifndef VC_EXTRALEAN
+#define VC_EXTRALEAN
+#endif
+
 #include <Windows.h>
 #include "../paradox/PdxFile.h"
 #include "NstManager.h"
@@ -49,16 +53,34 @@ DialogID (id)
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-VOID MANAGER::StartDialog()
+VOID MANAGER::StartDialog(HWND hParent)
 {
-	PDX_ASSERT( hWnd && DialogID != INT_MAX );
+	PDX_ASSERT( (hWnd || hParent) && DialogID != INT_MAX );
 
 	DialogBoxParam
 	(
-		::GetModuleHandle(NULL),
+    	UTILITIES::GetInstance(),
 		MAKEINTRESOURCE(DialogID),
-		hWnd,
+		(hParent ? hParent : hWnd),
 		StaticDialogProc,
+		PDX_CAST(LPARAM,this)
+	);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+VOID MANAGER::StartModelessDialog(HWND hParent)
+{
+	PDX_ASSERT( (hWnd || hParent) && DialogID != INT_MAX );
+
+	CreateDialogParam
+	(
+    	UTILITIES::GetInstance(),
+		MAKEINTRESOURCE(DialogID),
+		(hParent ? hParent : hWnd),
+		StaticModelessDialogProc,
 		PDX_CAST(LPARAM,this)
 	);
 }
@@ -110,6 +132,52 @@ BOOL CALLBACK MANAGER::StaticDialogProc(HWND hDlg,UINT uMsg,WPARAM wParam,LPARAM
 			if (stack.IsEmpty())
 				application.GetGraphicManager().EndDialogMode();
 		}
+	}
+
+	return GotIt;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+BOOL CALLBACK MANAGER::StaticModelessDialogProc(HWND hDlg,UINT uMsg,WPARAM wParam,LPARAM lParam)
+{
+	static PDXARRAY<PDXPAIR<HWND,MANAGER* const> > stack;
+
+	BOOL GotIt = FALSE;
+
+	if (uMsg == WM_INITDIALOG)
+	{
+		GotIt = TRUE;
+
+		if (stack.IsEmpty() || stack.Back().First() != hDlg)
+		{
+			if (stack.IsEmpty())
+			{
+				application.GetSoundManager().Clear();
+				application.GetTimerManager().Update();
+			}
+
+			stack.InsertBack( PDX::MakePair(hDlg,PDX_CAST(MANAGER* const,lParam)) );
+		}
+	}
+
+	if 
+	(
+     	stack.Size() && 
+		stack.Back().First() == hDlg && 
+		stack.Back().Second() && 
+		stack.Back().Second()->DialogProc( hDlg, uMsg, wParam, lParam )
+	)
+		GotIt = TRUE;
+
+	if (uMsg == WM_DESTROY)
+	{
+		GotIt = TRUE;
+
+		if (stack.Size() && stack.Back().First() == hDlg)
+			stack.EraseBack();
 	}
 
 	return GotIt;

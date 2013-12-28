@@ -26,13 +26,32 @@
 #define WIN32_LEAN_AND_MEAN
 #endif
 
+#ifndef VC_EXTRALEAN
+#define VC_EXTRALEAN
+#endif
+
 #include <cstdio>
 #include <Windows.h>
 #include <Commdlg.h>
+#include <ShlObj.h>
 #include "NstUtilities.h"
 #include "NstApplication.h"
 
 namespace UTILITIES {
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+HINSTANCE GetInstance()
+{
+	HINSTANCE hInstance = (APPLICATION::IsInstanced() ? application.GetInstance() : GetModuleHandle(NULL));
+
+	if (!hInstance)
+		throw ("GetModuleHandle() failed!");
+
+	return hInstance;
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -45,9 +64,7 @@ CHAR* IdToString(const UINT id,PDXSTRING& string,const TSIZE length)
 	string.Buffer().Resize( length + 1 );
 	string.Buffer().Front() = '\0';
 
-	HINSTANCE hInstance = (APPLICATION::IsInstanced() ? application.GetInstance() : GetModuleHandle(NULL));
-
-	::LoadString( hInstance, id, string.Begin(), length );
+	::LoadString( GetInstance(), id, string.Begin(), length );
 
 	string.Validate();	
 
@@ -201,9 +218,6 @@ BOOL ValidatePathName(PDXSTRING& path)
 
 BOOL ValidatePath(PDXSTRING& path)
 {
-	if (!ValidatePathName( path ))
-		return FALSE;
-	
 	const DWORD result = ::GetFileAttributes( path.String() );
 
 	if (result == INVALID_FILE_ATTRIBUTES)
@@ -317,6 +331,53 @@ VOID ToGUID(const CHAR* const string,GUID& guid)
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
+BOOL BrowseFolder(PDXSTRING& folder,HWND hWnd,const UINT TitleID)
+{
+	PDXSTRING title;
+
+	CHAR name[MAX_PATH+1];
+	name[0] = '\0';
+
+	BROWSEINFO bi;
+	PDXMemZero( bi );
+
+	bi.hwndOwner	  = hWnd;
+	bi.pszDisplayName = name;
+	bi.lpszTitle	  = IdToString( TitleID, title );
+	bi.ulFlags		  = BIF_RETURNONLYFSDIRS;
+
+	LPITEMIDLIST idl = ::SHBrowseForFolder( &bi );
+
+	BOOL yep = FALSE;
+
+	if (idl)
+	{
+		if (::SHGetPathFromIDList( idl, name ) && name[0] != '\0')
+		{
+			folder = name;
+
+			if (folder.Back() != '\\' && folder.Back() != '/')
+				folder.InsertBack('\\');
+
+			yep = TRUE;
+		}
+
+		LPMALLOC pMalloc;
+
+		if (SUCCEEDED(::SHGetMalloc( &pMalloc ))) 
+		{
+			pMalloc->Free( idl );
+			pMalloc->Release();
+		}
+	}
+
+	return yep;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
 BOOL BrowseOpenFile
 ( 
 	PDXSTRING& filename, 
@@ -327,7 +388,7 @@ BOOL BrowseOpenFile
 )
 {
 	PDXSTRING title;
-	UTILITIES::IdToString( titleID, title );
+	IdToString( titleID, title );
 	return BrowseOpenFile( filename, hWnd, title.String(), filter, path );
 }
 
@@ -401,7 +462,7 @@ BOOL BrowseSaveFile
 )
 {
 	PDXSTRING title;
-	UTILITIES::IdToString( titleID, title );
+	IdToString( titleID, title );
 	return BrowseSaveFile( filename, hWnd, title.String(), filter, path, DefExt );
 }
 

@@ -60,7 +60,7 @@ public:
 	PDXRESULT SetContext(const IO::NSF::CONTEXT&);
 
 	VOID SetMode(const MODE mode)
-	{ cpu.SetFrameCycles( mode == MODE_PAL ? NES_CPU_MCC_FRAME_PAL : NES_CPU_MCC_FRAME_NTSC); }
+	{ cpu.SetupFrame( mode == MODE_PAL ? NES_CPU_MCC_FRAME_PAL : NES_CPU_MCC_FRAME_NTSC ); }
 
 	inline BOOL IsPAL() const
 	{ return context.mode.pal; }

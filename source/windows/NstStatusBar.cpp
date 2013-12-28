@@ -22,6 +22,14 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+
+#ifndef VC_EXTRALEAN
+#define VC_EXTRALEAN
+#endif
+
 #include <cstdio>
 #include <Windows.h>
 #include <CommCtrl.h>
@@ -108,7 +116,7 @@ VOID STATUSBAR::Resize()
 {
 	if (hWnd)
 	{
-		SendMessage( hWnd, WM_SIZE, 0, 0 );
+		::SendMessage( hWnd, WM_SIZE, 0, 0 );
 		UpdateParts();
 	}
 }

@@ -46,7 +46,7 @@ protected:
 
 	NES_DECL_POKE( 8000 );
 	NES_DECL_POKE( 8001 );
-	NES_DECL_PEEK( pRom );
+	NES_DECL_POKE( C000 );
 
 	UINT command;
 };

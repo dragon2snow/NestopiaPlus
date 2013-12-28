@@ -26,7 +26,6 @@
 #include "../paradox/PdxFile.h"
 #include "mapper/NstMappers.h"
 #include "NstCartridge.h"
-#include "NstImageFile.h"
 #include "NstINes.h"
 
 NES_NAMESPACE_BEGIN
@@ -35,7 +34,13 @@ NES_NAMESPACE_BEGIN
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT INES::Import(CARTRIDGE* const c,PDXFILE& file,const IO::GENERAL::CONTEXT& context)
+PDXRESULT INES::Import
+(
+    CARTRIDGE* const c,
+	PDXFILE& file,
+	const ROMDATABASE& RomDatabase,
+	const IO::GENERAL::CONTEXT& context
+)
 {
 	PDX_ASSERT( c );
 
@@ -59,7 +64,7 @@ PDXRESULT INES::Import(CARTRIDGE* const c,PDXFILE& file,const IO::GENERAL::CONTE
 		PDXSTRING msg;
 
 		if (context.UseRomDatabase)
-			UsedDatabase = TryDatabase( file, context.DisableWarnings ? NULL : &msg );
+			UsedDatabase = TryDatabase( file, RomDatabase, (context.DisableWarnings ? NULL : &msg) );
 
       #endif
 
@@ -162,15 +167,19 @@ VOID INES::MessWithTheHeader(HEADER& header)
 
 #ifdef NES_USE_ROM_DATABASE
 
-const INES::IMAGE* INES::FindInDatabase(PDXFILE& file,const TSIZE offset,const TSIZE length,ULONG& crc) const
+ROMDATABASE::HANDLE INES::FindInDatabase
+(
+    const ROMDATABASE& RomDatabase,
+    PDXFILE& file,
+	const TSIZE offset,
+	const TSIZE length,
+	ULONG& crc
+) const
 {
 	if (file.Size() >= offset + length)
 	{
 		crc = PDXCRC32::Compute( file.At(offset), length );
-		IMAGEFILE::DATABASE::CONSTITERATOR iterator( database.Find( crc ) );
-
-		if (iterator != database.End())
-			return &(*iterator).Second();
+		return RomDatabase.GetHandle( crc );
 	}
 
 	return NULL;
@@ -180,41 +189,45 @@ const INES::IMAGE* INES::FindInDatabase(PDXFILE& file,const TSIZE offset,const T
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-BOOL INES::TryDatabase(PDXFILE& file,PDXSTRING* msg)
+BOOL INES::TryDatabase(PDXFILE& file,const ROMDATABASE& RomDatabase,PDXSTRING* msg)
 {
-	if (database.IsEmpty())
-		ImportDatabase();
-
 	ULONG crc;
 
-	const IMAGE* image = NULL;
+	ROMDATABASE::HANDLE handle = NULL;
 
 	TSIZE length = file.Size() - 0x10;
 
 	if (length)
-		image = FindInDatabase( file, 0x10, length, crc );
+		handle = FindInDatabase( RomDatabase, file, 0x10, length, crc );
 
-	if (!image)
+	if (!handle)
 	{
 		length = cartridge->info.pRom + cartridge->info.cRom;
 
 		if (length && length <= file.Size() - 0x10)
-			image = FindInDatabase( file, 0x10, length, crc );
+			handle = FindInDatabase( RomDatabase, file, 0x10, length, crc );
 	}
 
-	if (!image)
+	if (!handle)
 		return FALSE;
 
-	cartridge->info.name       = image->name;
-	cartridge->info.copyright  = image->copyright;
-	cartridge->info.crc        = crc;
-	cartridge->info.condition  = ( image->bad         ? IO::CARTRIDGE::BAD : IO::CARTRIDGE::GOOD );
-	cartridge->info.hacked     = ( image->hack 	      ? IO::CARTRIDGE::YES : IO::CARTRIDGE::NO   );
-	cartridge->info.translated = ( image->translation ? IO::CARTRIDGE::YES : IO::CARTRIDGE::NO   );
-	cartridge->info.licensed   = ( image->unlicensed  ? IO::CARTRIDGE::NO  : IO::CARTRIDGE::YES  );
-	cartridge->info.bootleg    = ( image->bootleg     ? IO::CARTRIDGE::YES : IO::CARTRIDGE::NO   );
+	{
+		const CHAR* const copyright = RomDatabase.Copyright( handle );
 
-	if (image->bad)
+		if (copyright)
+			cartridge->info.copyright = copyright;
+	}
+
+	cartridge->info.name = RomDatabase.Name( handle );
+	cartridge->info.crc = crc;
+
+	cartridge->info.condition  = ( RomDatabase.IsBad        ( handle ) ? IO::CARTRIDGE::BAD : IO::CARTRIDGE::GOOD );
+	cartridge->info.hacked     = ( RomDatabase.IsHacked     ( handle ) ? IO::CARTRIDGE::YES : IO::CARTRIDGE::NO   );
+	cartridge->info.translated = ( RomDatabase.IsTranslated ( handle ) ? IO::CARTRIDGE::YES : IO::CARTRIDGE::NO   );
+	cartridge->info.licensed   = ( RomDatabase.IsUnlicenced ( handle ) ? IO::CARTRIDGE::NO  : IO::CARTRIDGE::YES  );
+	cartridge->info.bootleg    = ( RomDatabase.IsBootleg    ( handle ) ? IO::CARTRIDGE::YES : IO::CARTRIDGE::NO   );
+
+	if (cartridge->info.condition == IO::CARTRIDGE::BAD)
 	{
 		LogOutput("INES DATABASE: warning, possibly bad dump!");
 
@@ -228,14 +241,16 @@ BOOL INES::TryDatabase(PDXFILE& file,PDXSTRING* msg)
 	{
 		PDXSTRING log("INES DATABASE: warning, ");
 
-		const TSIZE pRom = image->pRomSize * n16k;
+		const TSIZE pRom = RomDatabase.pRomSize( handle );
 		PDX_ASSERT( pRom );
+
+		const BOOL HasTrainer = RomDatabase.HasTrainer( handle );
 
 		if (cartridge->info.pRom != pRom)
 		{	
 			log.Resize( 24 );
 
-			const TSIZE total = (image->trainer ? 0x210 : 0x10) + pRom;
+			const TSIZE total = (HasTrainer ? 0x210 : 0x10) + pRom;
 
 			if (cartridge->info.pRom > pRom || !cartridge->info.pRom || file.Size() >= total)
 			{
@@ -267,13 +282,13 @@ BOOL INES::TryDatabase(PDXFILE& file,PDXSTRING* msg)
 			}
 		}
 
-		const TSIZE cRom = image->cRomSize * n8k;
+		const TSIZE cRom = RomDatabase.cRomSize( handle );
 
 		if (cartridge->info.cRom != cRom)
 		{
 			log.Resize( 24 );
 
-			const TSIZE total = (image->trainer ? 0x210 : 0x10) + cartridge->info.pRom + cRom;
+			const TSIZE total = (HasTrainer ? 0x210 : 0x10) + cartridge->info.pRom + cRom;
 
 			if (cartridge->info.cRom > cRom || file.Size() >= total)
 			{
@@ -305,7 +320,7 @@ BOOL INES::TryDatabase(PDXFILE& file,PDXSTRING* msg)
 			}
 		}
 
-		const TSIZE wRam = image->wRamSize * n8k;
+		const TSIZE wRam = RomDatabase.wRamSize( handle );
 
 		if (cartridge->info.wRam != wRam)
 		{
@@ -320,29 +335,35 @@ BOOL INES::TryDatabase(PDXFILE& file,PDXSTRING* msg)
 			cartridge->info.wRam = wRam;
 		}
 
-		if (cartridge->info.mapper != image->mapper)
+		const UINT mapper = RomDatabase.Mapper( handle );
+
+		if (cartridge->info.mapper != mapper)
 		{
 			log.Resize( 24 );
 			log << "changed mapper ";
 			log << cartridge->info.mapper;
 			log << " to ";
-			log << image->mapper;
+			log << mapper;
 			LogOutput( log );
 
-			cartridge->info.mapper = image->mapper;
+			cartridge->info.mapper = mapper;
 		}
 
-		if (bool(cartridge->info.battery) != bool(image->battery))
+		const BOOL HasBattery = RomDatabase.HasBattery( handle );
+
+		if (bool(cartridge->info.battery) != bool(HasBattery))
 		{
 			log.Resize( 24 );
-			log << (image->battery ? "enabled" : "disabled");
+			log << (HasBattery ? "enabled" : "disabled");
 			log << " battery RAM";
 			LogOutput( log );
 			
-			cartridge->info.battery = image->battery;
+			cartridge->info.battery = HasBattery;
 		}
 
-		if (cartridge->info.mirroring != MIRRORING(image->mirroring))
+		const MIRRORING mirroring = RomDatabase.Mirroring( handle );
+
+		if (cartridge->info.mirroring != mirroring)
 		{
 			PDX_COMPILE_ASSERT(MIRROR_HORIZONTAL < 3 && MIRROR_VERTICAL < 3 && MIRROR_FOURSCREEN < 3);
 
@@ -356,31 +377,27 @@ BOOL INES::TryDatabase(PDXFILE& file,PDXSTRING* msg)
 			log << "changed ";
 			log << types[cartridge->info.mirroring];
 			log << " to ";
-			log << types[image->mirroring];
+			log << types[UINT(mirroring)];
 			LogOutput( log );
 			
-			cartridge->info.mirroring = MIRRORING(image->mirroring);
+			cartridge->info.mirroring = mirroring;
 		}
   
-		if (bool(cartridge->info.trained) != bool(image->trainer))
+		if (bool(cartridge->info.trained) != bool(HasTrainer))
 		{
 			log.Resize( 24 );
-			log << (image->trainer ? "enabled" : "disabled");
+			log << (HasTrainer ? "enabled" : "disabled");
 			log << " trainer";
 			LogOutput( log );
 
-			cartridge->info.trained = image->trainer;
+			cartridge->info.trained = HasTrainer;
 		}
 	}
 
 	if (cartridge->info.copyright.IsEmpty())
 		cartridge->info.copyright = "unknown";
 
-	if      ( image->p10  ) cartridge->info.system = SYSTEM_PC10;
-	else if ( image->vs   ) cartridge->info.system = SYSTEM_VS;
-	else if ( image->ntsc ) cartridge->info.system = SYSTEM_NTSC;
-	else if ( image->pal  ) cartridge->info.system = SYSTEM_PAL;
-	else			  	    cartridge->info.system = SYSTEM_NTSC;
+	cartridge->info.system = RomDatabase.System( handle );
 
 	return TRUE;
 }

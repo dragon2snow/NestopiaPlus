@@ -1364,22 +1364,58 @@ VOID APU::NOISE::WriteReg0(const UINT data)
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
+#define NES_NOISE_PAL(x) ULONG(DOUBLE(x) * (NES_CPU_CLOCK_HZ_REAL_PAL / NES_CPU_CLOCK_HZ_REAL_NTSC))
+
 VOID APU::NOISE::WriteReg2(const UINT data) 
 {
-	static const USHORT table[] = 
+	static const ULONG table[2][16] = 
 	{
-		(0x002 * 2) + 1, (0x004 * 2) + 1, (0x008 * 2) + 1, (0x010 * 2) + 1,
-		(0x020 * 2) + 1, (0x030 * 2) + 1, (0x040 * 2) + 1, (0x050 * 2) + 1,
-		(0x065 * 2) + 1, (0x07F * 2) + 1, (0x0BE * 2) + 1, (0x0FE * 2) + 1,
-		(0x17D * 2) + 1, (0x1FC * 2) + 1, (0x3F9 * 2) + 1, (0x7F2 * 2) + 1
+		{
+    		NES_CPU_TO_NTSC( (0x002 * 2) + 1 ), 
+			NES_CPU_TO_NTSC( (0x004 * 2) + 1 ), 
+			NES_CPU_TO_NTSC( (0x008 * 2) + 1 ), 
+			NES_CPU_TO_NTSC( (0x010 * 2) + 1 ),
+       		NES_CPU_TO_NTSC( (0x020 * 2) + 1 ), 
+			NES_CPU_TO_NTSC( (0x030 * 2) + 1 ), 
+			NES_CPU_TO_NTSC( (0x040 * 2) + 1 ), 
+			NES_CPU_TO_NTSC( (0x050 * 2) + 1 ),
+       		NES_CPU_TO_NTSC( (0x065 * 2) + 1 ), 
+			NES_CPU_TO_NTSC( (0x07F * 2) + 1 ), 
+			NES_CPU_TO_NTSC( (0x0BE * 2) + 1 ), 
+			NES_CPU_TO_NTSC( (0x0FE * 2) + 1 ),
+       		NES_CPU_TO_NTSC( (0x17D * 2) + 1 ), 
+			NES_CPU_TO_NTSC( (0x1FC * 2) + 1 ), 
+			NES_CPU_TO_NTSC( (0x3F9 * 2) + 1 ), 
+			NES_CPU_TO_NTSC( (0x7F2 * 2) + 1 )
+		},
+		{													 
+       		NES_CPU_TO_PAL( NES_NOISE_PAL( (0x002 * 2) + 1 ) ), 
+			NES_CPU_TO_PAL( NES_NOISE_PAL( (0x004 * 2) + 1 ) ), 
+			NES_CPU_TO_PAL( NES_NOISE_PAL( (0x008 * 2) + 1 ) ), 
+			NES_CPU_TO_PAL( NES_NOISE_PAL( (0x010 * 2) + 1 ) ),
+	     	NES_CPU_TO_PAL( NES_NOISE_PAL( (0x020 * 2) + 1 ) ), 
+			NES_CPU_TO_PAL( NES_NOISE_PAL( (0x030 * 2) + 1 ) ), 
+			NES_CPU_TO_PAL( NES_NOISE_PAL( (0x040 * 2) + 1 ) ), 
+			NES_CPU_TO_PAL( NES_NOISE_PAL( (0x050 * 2) + 1 ) ),
+         	NES_CPU_TO_PAL( NES_NOISE_PAL( (0x065 * 2) + 1 ) ), 
+			NES_CPU_TO_PAL( NES_NOISE_PAL( (0x07F * 2) + 1 ) ), 
+			NES_CPU_TO_PAL( NES_NOISE_PAL( (0x0BE * 2) + 1 ) ), 
+			NES_CPU_TO_PAL( NES_NOISE_PAL( (0x0FE * 2) + 1 ) ),
+      		NES_CPU_TO_PAL( NES_NOISE_PAL( (0x17D * 2) + 1 ) ), 
+			NES_CPU_TO_PAL( NES_NOISE_PAL( (0x1FC * 2) + 1 ) ), 
+			NES_CPU_TO_PAL( NES_NOISE_PAL( (0x3F9 * 2) + 1 ) ), 
+			NES_CPU_TO_PAL( NES_NOISE_PAL( (0x7F2 * 2) + 1 ) )
+		}
 	};
 
 	REG2 reg;
 	reg.latch = data;
 
-	frequency = NES_APU_TO_FIXED(table[reg.SampleRate]);
+	frequency = table[pal][reg.SampleRate];
 	shifter = reg.Bit93Mode ? 8 : 13;
 }         
+
+#undef NES_NOISE_PAL
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -1521,9 +1557,10 @@ VOID APU::DMC::Reset()
 	LoadedLengthCounter = 1;
 	LoadedAddress = 0xC000;
 	output = 0;
+	DmaCount = 0;
 
 	cpu.SetLine(CPU::IRQ_DMC,FALSE);
-	cpu.DisableDmcCounter();
+	cpu.DisableDmcDmaClock();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -1537,20 +1574,26 @@ VOID APU::DMC::Toggle(const BOOL TurnOn)
 	if (TurnOn && !enabled)
 	{
 		BitCounter = 7;
-		LengthCounter = LoadedLengthCounter;
+		timer = -frequency;
 		address = LoadedAddress;
-		timer = 0;
+		LengthCounter = LoadedLengthCounter;
 		cpu.SetDmcLengthCounter(LoadedLengthCounter);
-		cpu.SetDmcCounter(0);
+		cpu.SetDmcDmaClock(DmaCount);
 	}
 
 	if (!(enabled = TurnOn))
-		cpu.DisableDmcCounter();
+		cpu.DisableDmcDmaClock();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
 ////////////////////////////////////////////////////////////////////////////////////////
+
+#define NES_FRQ_PAL(x_)      (ULONG(DOUBLE(x_) * (NES_CPU_CLOCK_HZ_REAL_PAL/NES_CPU_CLOCK_HZ_REAL_NTSC)) & 0xFF8)
+#define NES_DMC_PAL(x_)      NES_CPU_TO_PAL(NES_FRQ_PAL(x_)) >> 3
+#define NES_DMC_NTSC(x_)     NES_CPU_TO_NTSC(x_) >> 3
+#define NES_DMC_DMA_PAL(x_)  NES_CPU_TO_PAL(NES_FRQ_PAL(x_))
+#define NES_DMC_DMA_NTSC(x_) NES_CPU_TO_NTSC(x_)
 
 VOID APU::DMC::WriteReg0(const UINT data)
 {
@@ -1560,32 +1603,101 @@ VOID APU::DMC::WriteReg0(const UINT data)
 	loop = reg.loop;
 	cpu.SetLine(CPU::IRQ_DMC,reg.GenerateIrq);
 
-	static const USHORT table[2][16] = 
+	static const ULONG FreqTable[2][16] = 
 	{
-		{
-			0xD60, 0xBE0, 0xAA0, 0xA00,
-			0x8F0, 0x7F0, 0x710, 0x6B0,
-			0x5F0, 0x500, 0x470, 0x400,
-			0x350, 0x2A8, 0x240, 0x1B0
+		{				
+			NES_DMC_NTSC( 0xD60 ), 
+			NES_DMC_NTSC( 0xBE0 ), 
+			NES_DMC_NTSC( 0xAA0 ), 
+			NES_DMC_NTSC( 0xA00 ),
+			NES_DMC_NTSC( 0x8F0 ), 
+			NES_DMC_NTSC( 0x7F0 ),
+			NES_DMC_NTSC( 0x710 ), 
+			NES_DMC_NTSC( 0x6B0 ),
+			NES_DMC_NTSC( 0x5F0 ), 
+			NES_DMC_NTSC( 0x500 ), 
+			NES_DMC_NTSC( 0x470 ), 
+			NES_DMC_NTSC( 0x400 ),
+			NES_DMC_NTSC( 0x350 ), 
+			NES_DMC_NTSC( 0x2A8 ), 
+			NES_DMC_NTSC( 0x240 ), 
+			NES_DMC_NTSC( 0x1B0 )
 		},
 		{
-			0xD40, 0xBC0, 0xA80, 0x9E0,
-			0x8D0, 0x7D0, 0x6F0, 0x690,
-			0x5D0, 0x4E0, 0x450, 0x3E0,
-			0x330, 0x288, 0x220, 0x190
+			NES_DMC_PAL( 0xD60 ), 
+			NES_DMC_PAL( 0xBE0 ), 
+			NES_DMC_PAL( 0xAA0 ), 
+			NES_DMC_PAL( 0xA00 ),
+			NES_DMC_PAL( 0x8F0 ), 
+			NES_DMC_PAL( 0x7F0 ), 
+			NES_DMC_PAL( 0x710 ), 
+			NES_DMC_PAL( 0x6B0 ),
+			NES_DMC_PAL( 0x5F0 ), 
+			NES_DMC_PAL( 0x500 ), 
+			NES_DMC_PAL( 0x470 ), 
+			NES_DMC_PAL( 0x400 ),
+			NES_DMC_PAL( 0x350 ), 
+			NES_DMC_PAL( 0x2A8 ), 
+			NES_DMC_PAL( 0x240 ), 
+			NES_DMC_PAL( 0x1B0 )
 		}
 	};
 
-	frequency = NES_APU_TO_FIXED(table[pal][reg.frequency]); 
- 
+	static const ULONG DmaTable[2][16] =
+	{
+		{
+			NES_DMC_DMA_NTSC( 0xD60 - (0x00 ^ 0xF0) - 0x10 ), 
+			NES_DMC_DMA_NTSC( 0xBE0 - (0x10 ^ 0xF0) - 0x10 ), 
+			NES_DMC_DMA_NTSC( 0xAA0 - (0x20 ^ 0xF0) - 0x10 ), 
+			NES_DMC_DMA_NTSC( 0xA00 - (0x30 ^ 0xF0) - 0x10 ),
+			NES_DMC_DMA_NTSC( 0x8F0 - (0x40 ^ 0xF0) - 0x10 ), 
+			NES_DMC_DMA_NTSC( 0x7F0 - (0x50 ^ 0xF0) - 0x10 ), 
+			NES_DMC_DMA_NTSC( 0x710 - (0x60 ^ 0xF0) - 0x10 ), 
+			NES_DMC_DMA_NTSC( 0x6B0 - (0x70 ^ 0xF0) - 0x10 ),
+			NES_DMC_DMA_NTSC( 0x5F0 - (0x80 ^ 0xF0) - 0x10 ),
+			NES_DMC_DMA_NTSC( 0x500 - (0x90 ^ 0xF0) - 0x10 ), 
+			NES_DMC_DMA_NTSC( 0x470 - (0xA0 ^ 0xF0) - 0x10 ), 
+			NES_DMC_DMA_NTSC( 0x400 - (0xB0 ^ 0xF0) - 0x10 ),
+			NES_DMC_DMA_NTSC( 0x350 - (0xC0 ^ 0xF0) - 0x10 ), 
+			NES_DMC_DMA_NTSC( 0x2A8 - (0xD0 ^ 0xF0) - 0x02 ), 
+			NES_DMC_DMA_NTSC( 0x240 - (0xE0 ^ 0xF0) - 0x10 ), 
+			NES_DMC_DMA_NTSC( 0x1B0 - (0xF0 ^ 0xF0) - 0x10 )
+		},
+		{
+			NES_DMC_DMA_PAL( 0xD60 - (0x00 ^ 0xF0) - 0x10 ), 
+			NES_DMC_DMA_PAL( 0xBE0 - (0x10 ^ 0xF0) - 0x10 ), 
+			NES_DMC_DMA_PAL( 0xAA0 - (0x20 ^ 0xF0) - 0x10 ), 
+			NES_DMC_DMA_PAL( 0xA00 - (0x30 ^ 0xF0) - 0x10 ),
+			NES_DMC_DMA_PAL( 0x8F0 - (0x40 ^ 0xF0) - 0x10 ),
+			NES_DMC_DMA_PAL( 0x7F0 - (0x50 ^ 0xF0) - 0x10 ), 
+			NES_DMC_DMA_PAL( 0x710 - (0x60 ^ 0xF0) - 0x10 ), 
+			NES_DMC_DMA_PAL( 0x6B0 - (0x70 ^ 0xF0) - 0x10 ),
+			NES_DMC_DMA_PAL( 0x5F0 - (0x80 ^ 0xF0) - 0x10 ), 
+			NES_DMC_DMA_PAL( 0x500 - (0x90 ^ 0xF0) - 0x10 ), 
+			NES_DMC_DMA_PAL( 0x470 - (0xA0 ^ 0xF0) - 0x10 ), 
+			NES_DMC_DMA_PAL( 0x400 - (0xB0 ^ 0xF0) - 0x10 ),
+			NES_DMC_DMA_PAL( 0x350 - (0xC0 ^ 0xF0) - 0x10 ), 
+			NES_DMC_DMA_PAL( 0x2A8 - (0xD0 ^ 0xF0) - 0x02 ), 
+			NES_DMC_DMA_PAL( 0x240 - (0xE0 ^ 0xF0) - 0x10 ), 
+			NES_DMC_DMA_PAL( 0x1B0 - (0xF0 ^ 0xF0) - 0x10 )
+		}
+	};
+
+	frequency = FreqTable[pal][reg.frequency];
+	DmaCount = DmaTable[pal][reg.frequency];
+
 	if (enabled)
 	{
-		cpu.SetDmcCounter(frequency);
+		cpu.SetDmcDmaClock(DmaCount);
 		cpu.SetDmcLengthCounter(LengthCounter);
 	}
-
-	frequency >>= 3; 
 }
+
+#undef NES_FRQ_PAL        
+#undef NES_DMC_PAL     
+#undef NES_DMC_NTSC	   
+#undef NES_DMC_DMA_PAL 
+#undef NES_DMC_DMA_NTSC
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -1655,7 +1767,7 @@ LONG APU::DMC::Sample()
 				if (output < 0x7E)
 				{
 					output += 2;
-					amp    += NES_APU_OUTPUT(2);
+					amp += NES_APU_OUTPUT(2);
 				}
 			}
 			else
@@ -1663,7 +1775,7 @@ LONG APU::DMC::Sample()
 				if (output > 0x01)
 				{
 					output -= 2;
-					amp    -= NES_APU_OUTPUT(2);
+					amp -= NES_APU_OUTPUT(2);
 				}
 			}
 		}
@@ -1692,6 +1804,7 @@ PDXRESULT APU::DMC::LoadState(PDXFILE& file)
 	LoadedAddress       = header.LoadedAddress;
 	LoadedLengthCounter = header.LoadedLengthCounter;
 	loop                = header.loop ? 1 : 0;
+	DmaCount            = frequency << 3;
 
 	return PDX_OK;
 }

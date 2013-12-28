@@ -37,8 +37,18 @@ VOID MAPPER23::Reset()
 
 	MAPPER21* const m21 = PDX_STATIC_CAST(MAPPER21*,this);
 
-	// Akumajou Special - Boku Dracula Kun
-	const UINT mask = pRomCrc == 0x93794634UL ? 0xF00C : 0xFFFF;
+	UINT mask = 0xFFFF;
+
+	switch (pRomCrc)
+	{
+     	case 0x93794634UL: // Akumajou Special - Boku Dracula Kun
+		case 0xC7829DAEUL: // -||- (t.eng)
+		case 0x6A50B553UL: // -||- (b)
+		case 0x8C6237FDUL: // Kaiketsu Yanchamaru 2 - Karakuri Land
+			
+			mask = 0xF00C;
+			break;
+	}
 
 	for (ULONG i=0x8000; i <= 0xFFFF; ++i)
 	{

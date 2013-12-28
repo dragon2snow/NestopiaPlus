@@ -26,7 +26,7 @@
 #include "../paradox/PdxFile.h"
 #include "mapper/NstMappers.h"
 #include "NstCartridge.h"
-#include "NstImageFile.h"
+#include "NstRomDatabase.h"
 #include "NstUnif.h"
 
 NES_NAMESPACE_BEGIN
@@ -72,7 +72,7 @@ UNIF::UNIF()
 	boards[ "TL1ROM"          ] = 4;
 	boards[ "TLSROM"          ] = 4;
 	boards[ "B4"              ] = 4;
-	boards[ "HKROM"           ] = 4;	
+	boards[ "HKROM"           ] = 4;  // MMC6B	
 	boards[ "ELROM"           ] = 5;  // MMC5
 	boards[ "ETROM"           ] = 5;
 	boards[ "EWROM"           ] = 5;	
@@ -105,7 +105,7 @@ UNIF::UNIF()
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT UNIF::Import(CARTRIDGE* const cartridge,PDXFILE& file,const IO::GENERAL::CONTEXT& context)
+PDXRESULT UNIF::Import(CARTRIDGE* const cartridge,PDXFILE& file,const ROMDATABASE& RomDatabase,const IO::GENERAL::CONTEXT& context)
 {
 	PDX_ASSERT( cartridge );
 
@@ -141,7 +141,7 @@ PDXRESULT UNIF::Import(CARTRIDGE* const cartridge,PDXFILE& file,const IO::GENERA
 
 	CHUNK chunk;
 
-	static const CHAR DataIds[] = {'0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'};
+	const CHAR DataIds[] = {'0','1','2','3','4','5','6','7','8','9','A','B','C','D','E','F'};
 
 	BOOL DisableWarning = context.DisableWarnings;
 	BOOL success = TRUE;
@@ -548,7 +548,7 @@ PDXRESULT UNIF::Import(CARTRIDGE* const cartridge,PDXFILE& file,const IO::GENERA
    #ifdef NES_USE_ROM_DATABASE
 
 	if (context.UseRomDatabase)
-		CheckDatabase( cartridge, file, context );
+		CheckDatabase( RomDatabase, cartridge, file, context );
 
    #endif
 
@@ -596,31 +596,36 @@ PDXRESULT UNIF::Import(CARTRIDGE* const cartridge,PDXFILE& file,const IO::GENERA
 
 #ifdef NES_USE_ROM_DATABASE
 
-PDXRESULT UNIF::CheckDatabase(CARTRIDGE* const cartridge,PDXFILE& file,const IO::GENERAL::CONTEXT& context)
+PDXRESULT UNIF::CheckDatabase
+(
+    const ROMDATABASE& RomDatabase,
+    CARTRIDGE* const cartridge,
+	PDXFILE& file,
+	const IO::GENERAL::CONTEXT& context
+)
 {
-	if (database.IsEmpty())
-		ImportDatabase();
+	ROMDATABASE::HANDLE handle = RomDatabase.GetHandle( cartridge->info.crc );
 
-	IMAGEFILE::DATABASE::CONSTITERATOR iterator( database.Find( cartridge->info.crc ) );
+	if (!handle)
+		return PDX_FAILURE;
+	
+	cartridge->info.condition = (RomDatabase.IsBad( handle ) ? IO::CARTRIDGE::BAD : IO::CARTRIDGE::GOOD);
+	cartridge->info.mapper = RomDatabase.Mapper( handle );
 
-	if (iterator != database.End())
+	if (cartridge->info.board.IsEmpty())
+		cartridge->info.board = MAPPER::boards[cartridge->info.mapper];
+
+	const SYSTEM system = RomDatabase.System( handle );
+
+	if      (system == SYSTEM_VS)   cartridge->info.system = SYSTEM_VS;
+	else if (system == SYSTEM_PC10) cartridge->info.system = SYSTEM_PC10;
+
+	const TSIZE wRamSize = RomDatabase.wRamSize( handle );
+
+	if (cartridge->wRam.Size() < wRamSize)
 	{
-		const IMAGE& image = (*iterator).Second();
-
-		cartridge->info.condition = (image.bad ? IO::CARTRIDGE::BAD : IO::CARTRIDGE::GOOD);
-		cartridge->info.mapper = image.mapper;
-
-		if (cartridge->info.board.IsEmpty())
-			cartridge->info.board = MAPPER::boards[cartridge->info.mapper];
-
-		if      (image.vs)  cartridge->info.system = SYSTEM_VS;
-		else if (image.p10) cartridge->info.system = SYSTEM_PC10;
-
-		if (cartridge->wRam.Size() < image.wRamSize)
-		{
-			cartridge->info.wRam = image.wRamSize;
-			cartridge->wRam.Resize( image.wRamSize );
-		}
+		cartridge->info.wRam = wRamSize;
+		cartridge->wRam.Resize( wRamSize );
 	}
 
 	return PDX_OK;

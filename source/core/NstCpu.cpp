@@ -133,36 +133,9 @@ NES_NAMESPACE_BEGIN
 #define CPU_WRITE_BYTE(v,w)  map.Poke(v,w)
 #define CPU_WRITE_ZPG(v,w)   ram[v] = (w)
 #define CPU_READ_PCB()       (cache = map[PCD++])
-#define CPU_READ_PCW()       ((cache = map[PCD]) + ((cache = map[(++PCD)++]) << 8))
-#define CPU_EAT_CYCLES(n)    cycles += CycleTable[pal][(n)-1]
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-const ULONG CPU::CycleTable[2][8] =
-{
-	{
-		NES_CPU_TO_NTSC(1),
-		NES_CPU_TO_NTSC(2),
-		NES_CPU_TO_NTSC(3),
-		NES_CPU_TO_NTSC(4),
-		NES_CPU_TO_NTSC(5),
-		NES_CPU_TO_NTSC(6),
-		NES_CPU_TO_NTSC(7),
-		NES_CPU_TO_NTSC(8)
-	},
-	{
-		NES_CPU_TO_PAL(1),
-		NES_CPU_TO_PAL(2),
-		NES_CPU_TO_PAL(3),
-		NES_CPU_TO_PAL(4),
-		NES_CPU_TO_PAL(5),
-		NES_CPU_TO_PAL(6),
-		NES_CPU_TO_PAL(7),
-		NES_CPU_TO_PAL(8)
-	}
-};
+#define CPU_READ_PCW()       (map[PCD] + ((cache = map[(++PCD)++]) << 8))
+#define CPU_EAT_CYCLES(n)    cycles += CyclePtr[(n)-1]
+#define CPU_CYCLE(n)		 CyclePtr[(n)-1]
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // opcode function pointer table
@@ -205,11 +178,40 @@ const CPU::INSTRUCTION CPU::instructions[0x100] =
 };
 
 ////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+const ULONG CPU::CycleTable[2][8] =
+{
+	{
+		NES_CPU_TO_NTSC(1),
+		NES_CPU_TO_NTSC(2),
+		NES_CPU_TO_NTSC(3),
+		NES_CPU_TO_NTSC(4),
+		NES_CPU_TO_NTSC(5),
+		NES_CPU_TO_NTSC(6),
+		NES_CPU_TO_NTSC(7),
+		NES_CPU_TO_NTSC(8)
+	},
+	{
+		NES_CPU_TO_PAL(1),
+		NES_CPU_TO_PAL(2),
+		NES_CPU_TO_PAL(3),
+		NES_CPU_TO_PAL(4),
+		NES_CPU_TO_PAL(5),
+		NES_CPU_TO_PAL(6),
+		NES_CPU_TO_PAL(7),
+		NES_CPU_TO_PAL(8)
+	}
+};
+
+////////////////////////////////////////////////////////////////////////////////////////
 // constructor
 ////////////////////////////////////////////////////////////////////////////////////////
 
 CPU::CPU()
 :
+CyclePtr    (CycleTable[0]),
 FrameCycles (0),
 pal         (0),
 apu         (*this)
@@ -237,6 +239,7 @@ VOID CPU::SetMode(const MODE mode)
 {
 	cycles = 0;
 	pal = (mode == MODE_PAL ? 1 : 0);
+	CyclePtr = CycleTable[pal];
 	apu.SetMode( mode );
 }
 
@@ -283,7 +286,7 @@ NES_PEEK(CPU,jam_2)
 ////////////////////////////////////////////////////////////////////////////////////////
 
 inline UINT CPU::Acc()
-{ 
+{
 	CPU_EAT_CYCLES(2);
 	return AD;
 }
@@ -293,11 +296,9 @@ inline UINT CPU::Acc()
 ////////////////////////////////////////////////////////////////////////////////////////
 
 inline UINT CPU::rImm() 
-{ 
-	const UINT data = CPU_READ_PCB();
+{
 	CPU_EAT_CYCLES(2);
-
-	return data;
+	return CPU_READ_PCB();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -305,34 +306,34 @@ inline UINT CPU::rImm()
 ////////////////////////////////////////////////////////////////////////////////////////
 
 inline UINT CPU::rAbs() 
-{ 
-    const UINT data = CPU_READ_PCW();	
-	CPU_EAT_CYCLES(4);
+{
+	UINT data = CPU_READ_PCW();
+	CPU_EAT_CYCLES(3);
 
-	return CPU_READ_BYTE(data);
+	data = CPU_READ_BYTE(data);
+	CPU_EAT_CYCLES(1);
+	
+	return data;
 }
 
 inline UINT CPU::rwAbs(UINT& address) 
-{ 
-    const UINT tmp = CPU_READ_PCW();
-    CPU_EAT_CYCLES(4);
+{
+	address = CPU_READ_PCW();
+	CPU_EAT_CYCLES(3);
 
-	address = tmp;
-    const UINT data = CPU_READ_BYTE(tmp);
-
+	const UINT data = CPU_READ_BYTE(address);
 	CPU_EAT_CYCLES(1);
-	CPU_WRITE_BYTE(tmp,data);
+
+	CPU_WRITE_BYTE(address,data);
 	CPU_EAT_CYCLES(1);
 
 	return data;
 }
 
 inline UINT CPU::wAbs() 
-{ 
-    const UINT address = CPU_READ_PCW();
-    CPU_EAT_CYCLES(4);
-
-	return address;
+{
+	CPU_EAT_CYCLES(3);
+	return CPU_READ_PCW();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -340,270 +341,175 @@ inline UINT CPU::wAbs()
 ////////////////////////////////////////////////////////////////////////////////////////
 
 inline UINT CPU::rZpg() 
-{ 
-	UINT data = CPU_READ_PCB();
-	data = CPU_READ_ZPG_BYTE(data);  
-
+{
 	CPU_EAT_CYCLES(3);
-
-	return data;
+	return CPU_READ_ZPG_BYTE(map[PCD++]);  
 }
 
 inline UINT CPU::rwZpg(UINT& address)
 {
-	address = CPU_READ_PCB();
-	const UINT data = CPU_READ_ZPG_BYTE(address);  
+	CPU_EAT_CYCLES(4);
 	
-	CPU_EAT_CYCLES(5);
-
-	return data;
+	address = map[PCD++];
+	return CPU_READ_ZPG_BYTE(address);  
 }
 
 inline UINT CPU::wZpg()
 {
-	const UINT address = CPU_READ_PCB();	
+	CPU_EAT_CYCLES(2);
+	return CPU_READ_PCB();
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+// Zero page indexed addressing
+////////////////////////////////////////////////////////////////////////////////////////
+
+inline UINT CPU::rZpgReg(const UINT reg) 
+{
+	CPU_EAT_CYCLES(4);
+	return CPU_READ_ZPG_BYTE((reg + map[PCD++]) & 0xFF);  
+}
+
+inline UINT CPU::rwZpgReg(const UINT reg,UINT& address) 
+{
+	CPU_EAT_CYCLES(5);	
+
+	address = (reg + map[PCD++]) & 0xFF;
+	return CPU_READ_ZPG_BYTE(address);  
+}
+
+inline UINT CPU::wZpgReg(const UINT reg) 
+{
+	CPU_EAT_CYCLES(3);
+	return (reg + CPU_READ_PCB()) & 0xFF;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+// Zero page indexed addressing (X && Y)
+////////////////////////////////////////////////////////////////////////////////////////
+
+inline UINT CPU::rZpgX()               { return rZpgReg( XD );           }
+inline UINT CPU::rwZpgX(UINT& address) { return rwZpgReg( XD, address ); }
+inline UINT CPU::wZpgX()               { return wZpgReg( XD );           }
+inline UINT CPU::rZpgY()               { return rZpgReg( YD );           }
+inline UINT CPU::rwZpgY(UINT& address) { return rwZpgReg( YD, address ); }
+inline UINT CPU::wZpgY()               { return wZpgReg( YD );           }
+
+////////////////////////////////////////////////////////////////////////////////////////
+// Absolute indexed addressing
+////////////////////////////////////////////////////////////////////////////////////////
+
+inline UINT CPU::rAbsReg(const UINT reg)
+{
+	PDXWORD address;
+
+	address.d = CPU_READ_PCW();
+	address.b.l += reg;
 	CPU_EAT_CYCLES(3);
 
-	return address;
-}
+	UINT data = CPU_READ_BYTE(address.d);
+	CPU_EAT_CYCLES(1);
 
-////////////////////////////////////////////////////////////////////////////////////////
-// Zero page indexed addressing (X)
-////////////////////////////////////////////////////////////////////////////////////////
-
-inline UINT CPU::rZpgX() 
-{ 
-    UINT data = (XD + CPU_READ_PCB()) & 0xFF;
-	data = CPU_READ_ZPG_BYTE(data);  
-
-	CPU_EAT_CYCLES(4);
-
-	return data;
-}
-
-inline UINT CPU::rwZpgX(UINT& address) 
-{
-	UINT data = (XD + CPU_READ_PCB()) & 0xFF;
-	address = data;
-
-	data = CPU_READ_ZPG_BYTE(data);  
-	CPU_EAT_CYCLES(6);
-
-	return data;
-}
-
-inline UINT CPU::wZpgX() 
-{ 
-	const UINT data = (XD + CPU_READ_PCB()) & 0xFF;
-	CPU_EAT_CYCLES(4);
-
-	return data;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-// Zero page indexed addressing (Y)
-////////////////////////////////////////////////////////////////////////////////////////
-
-inline UINT CPU::rZpgY() 
-{ 
-    UINT data = (YD + CPU_READ_PCB()) & 0xFF;
-	data = CPU_READ_ZPG_BYTE(data);  
-
-	CPU_EAT_CYCLES(4);
-
-	return data;
-}
-
-inline UINT CPU::rwZpgY(UINT& address) 
-{ 
-	UINT data = (YD + CPU_READ_PCB()) & 0xFF;
-	address = data;
-
-	data = CPU_READ_ZPG_BYTE(data);  
-	CPU_EAT_CYCLES(6);
-
-	return data;
-}
-
-inline UINT CPU::wZpgY() 
-{ 
-	const UINT data = (YD + CPU_READ_PCB()) & 0xFF;
-	CPU_EAT_CYCLES(4);
-
-	return data;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-// Absolute indexed addressing (X)
-////////////////////////////////////////////////////////////////////////////////////////
-
-inline UINT CPU::rAbsX() 
-{ 
-	PDXWORD address;
-
-	address.d = CPU_READ_PCW();
-	address.b.l += XD;
-
-	CPU_EAT_CYCLES(4);
-	UINT data = CPU_READ_BYTE(address.d);      
-
-	if (XD > address.b.l)
+	if (reg > address.b.l)
 	{
 		++address.b.h;
 
-		CPU_EAT_CYCLES(1);
 		data = CPU_READ_BYTE(address.d);
+		CPU_EAT_CYCLES(1);
 	}
 
 	return data;
 }
 
-inline UINT CPU::rwAbsX(UINT& address) 
+inline UINT CPU::rwAbsReg(const UINT reg,UINT& address)
 {
-	PDXWORD tmp;
+	PDXWORD data;
 
-	tmp.d = CPU_READ_PCW();
-	tmp.b.l += XD;
+	data.d = CPU_READ_PCW();
+	data.b.l += reg;
+	CPU_EAT_CYCLES(3);
 
-	CPU_EAT_CYCLES(4);
-	CPU_READ_BYTE(tmp.d);
+	CPU_READ_BYTE(data.d);
 	CPU_EAT_CYCLES(1);
 
-	if (XD > tmp.b.l) 
-		++tmp.b.h;
-	
-	address = tmp.d;
-	const UINT data = CPU_READ_BYTE(tmp.d);
+	if (reg > data.b.l) 
+		++data.b.h;
 
-	CPU_EAT_CYCLES(1);
-	CPU_WRITE_BYTE(tmp.d,data);
+	address = data.d;
+	data.d = CPU_READ_BYTE(data.d);
 	CPU_EAT_CYCLES(1);
 
-	return data;
+	CPU_WRITE_BYTE(address,data.d);
+	CPU_EAT_CYCLES(1);
+
+	return data.d;
 }
 
-inline UINT CPU::wAbsX() 
+inline UINT CPU::wAbsReg(const UINT reg)
 {
 	PDXWORD address;
 
 	address.d = CPU_READ_PCW();
-	address.b.l += XD;
+	address.b.l += reg;
+	CPU_EAT_CYCLES(3);
 
-	CPU_EAT_CYCLES(4);
 	CPU_READ_BYTE(address.d);
 	CPU_EAT_CYCLES(1);
 
-	if (XD > address.b.l) 
+	if (reg > address.b.l)
 		++address.b.h;
-	
+
 	return address.d;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
-// Absolute indexed addressing (Y)
+// Absolute indexed addressing (X && Y)
 ////////////////////////////////////////////////////////////////////////////////////////
 
-inline UINT CPU::rAbsY() 
-{ 
-	PDXWORD address;
-
-	address.d = CPU_READ_PCW();
-	address.b.l += YD;
-
-	CPU_EAT_CYCLES(4);
-	UINT data = CPU_READ_BYTE(address.d);      
-
-	if (YD > address.b.l)
-	{
-		++address.b.h;
-
-		CPU_EAT_CYCLES(1);
-		data = CPU_READ_BYTE(address.d);
-	}
-
-	return data;
-}
-
-inline UINT CPU::rwAbsY(UINT& address) 
-{
-	PDXWORD tmp;
-
-	tmp.d = CPU_READ_PCW();
-	tmp.b.l += YD;
-
-	CPU_EAT_CYCLES(4);
-	CPU_READ_BYTE(tmp.d);
-	CPU_EAT_CYCLES(1);
-
-	if (YD > tmp.b.l) 
-		++tmp.b.h;
-	
-	address = tmp.d;
-	const UINT data = CPU_READ_BYTE(tmp.d);
-
-	CPU_EAT_CYCLES(1);
-	CPU_WRITE_BYTE(tmp.d,data);
-	CPU_EAT_CYCLES(1);
-
-	return data;
-}
-
-inline UINT CPU::wAbsY() 
-{
-	PDXWORD address;
-
-	address.d = CPU_READ_PCW();
-	address.b.l += YD;
-
-	CPU_EAT_CYCLES(4);
-	CPU_READ_BYTE(address.d);
-	CPU_EAT_CYCLES(1);
-
-	if (YD > address.b.l) 
-		++address.b.h;
-	
-	return address.d;
-}
+inline UINT CPU::rAbsX()               { return rAbsReg( XD );           }
+inline UINT CPU::rwAbsX(UINT& address) { return rwAbsReg( XD, address ); }										 
+inline UINT CPU::wAbsX()               { return wAbsReg( XD );           }
+inline UINT CPU::rAbsY()               { return rAbsReg( YD );           }
+inline UINT CPU::rwAbsY(UINT& address) { return rwAbsReg( YD, address ); }
+inline UINT CPU::wAbsY()               { return wAbsReg( YD );           }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // Indexed indirect addressing
 ////////////////////////////////////////////////////////////////////////////////////////
 
 inline UINT CPU::rIndX() 
-{ 
-	UINT data = (XD + CPU_READ_PCB()) & 0xFF;
+{
+	UINT data = (XD + map[PCD++]) & 0xFF;	
 	data = CPU_READ_ZPG_WORD(data);
+	CPU_EAT_CYCLES(5);
 
-	CPU_EAT_CYCLES(6);
+	data = CPU_READ_BYTE(data);      
+	CPU_EAT_CYCLES(1);
 
-	return CPU_READ_BYTE(data);      
+	return data;
 }
 
 inline UINT CPU::rwIndX(UINT& address) 
-{ 
-	UINT tmp = (XD + CPU_READ_PCB()) & 0xFF;
-	tmp = CPU_READ_ZPG_WORD(tmp);
+{
+	UINT data = (XD + map[PCD++]) & 0xFF;		
+	address = CPU_READ_ZPG_WORD(data);
+	CPU_EAT_CYCLES(5);
 
-	CPU_EAT_CYCLES(6);
-
-	address = tmp;
-	const UINT data = CPU_READ_BYTE(tmp);
-
+	data = CPU_READ_BYTE(address);      
 	CPU_EAT_CYCLES(1);
-	CPU_WRITE_BYTE(tmp,data);
+	
+	CPU_WRITE_BYTE(address,data);      
 	CPU_EAT_CYCLES(1);
 
 	return data;
 }
 
 inline UINT CPU::wIndX() 
-{ 
-	UINT data = (XD + CPU_READ_PCB()) & 0xFF;
-	data = CPU_READ_ZPG_WORD(data);
+{
+	CPU_EAT_CYCLES(5);
 
-	CPU_EAT_CYCLES(6);
-
-	return data;
+	const UINT data = (XD + map[PCD++]) & 0xFF;	
+	return CPU_READ_ZPG_WORD(data);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -611,62 +517,63 @@ inline UINT CPU::wIndX()
 ////////////////////////////////////////////////////////////////////////////////////////
 
 inline UINT CPU::rIndY() 
-{ 
+{
 	PDXWORD address;
 
-	address.d = CPU_READ_PCB();
+	address.d = map[PCD++];
 	address.d = CPU_READ_ZPG_WORD(address.d);
 	address.b.l += YD;
-
-	CPU_EAT_CYCLES(5);
+	CPU_EAT_CYCLES(4);
+	
 	UINT data = CPU_READ_BYTE(address.d);      
+	CPU_EAT_CYCLES(1);
 
 	if (YD > address.b.l)
 	{
 		++address.b.h;
 
-		CPU_EAT_CYCLES(1);
 		data = CPU_READ_BYTE(address.d);
+		CPU_EAT_CYCLES(1);
 	}
 
 	return data;
 }
 
 inline UINT CPU::rwIndY(UINT& address) 
-{ 
-	PDXWORD tmp;
+{
+	PDXWORD data;
 
-	tmp.d = CPU_READ_PCB();
-	tmp.d = CPU_READ_ZPG_WORD(tmp.d);
-	tmp.b.l += YD;
+	data.d = map[PCD++];
+	data.d = CPU_READ_ZPG_WORD(data.d);
+	data.b.l += YD;
+	CPU_EAT_CYCLES(4);
 
-	CPU_EAT_CYCLES(5);
-	CPU_READ_BYTE(tmp.d);      
+	CPU_READ_BYTE(data.d);
 	CPU_EAT_CYCLES(1);
 
-	if (YD > tmp.b.l)
-		++tmp.b.h;
+	if (YD > data.b.l)
+		++data.b.h;
 
-	address = tmp.d;
-	const UINT data = CPU_READ_BYTE(tmp.d);
-
-	CPU_EAT_CYCLES(1);
-	CPU_WRITE_BYTE(tmp.d,data);
+	address = data.d;
+	data.d = CPU_READ_BYTE(data.d);      
 	CPU_EAT_CYCLES(1);
 
-	return data;
+	CPU_WRITE_BYTE(address,data.d);
+	CPU_EAT_CYCLES(1);
+
+	return data.d;
 }
 
 inline UINT CPU::wIndY() 
-{ 
+{
 	PDXWORD address;
 
-	address.d = CPU_READ_PCB();
+	address.d = map[PCD++];
 	address.d = CPU_READ_ZPG_WORD(address.d);
 	address.b.l += YD;
+	CPU_EAT_CYCLES(4);
 
-	CPU_EAT_CYCLES(5);
-	CPU_READ_BYTE(address.d);      
+	CPU_READ_BYTE(address.d);
 	CPU_EAT_CYCLES(1);
 
 	if (YD > address.b.l)
@@ -679,25 +586,21 @@ inline UINT CPU::wIndY()
 // relative addressing
 ////////////////////////////////////////////////////////////////////////////////////////
 
-inline UINT CPU::Branch(const UINT taken)
+inline VOID CPU::Branch(const UINT taken)
 {
-	UINT count;
-
 	if (taken)
 	{
 		PDXWORD tmp;
 		tmp.d = CPU_READ_PCB();
 		tmp.w.l = PCW + PDX_CAST_REF(I8,tmp.b.l);
-		count = (PCH == tmp.b.h ? 3 : 4);
+		CPU_EAT_CYCLES(PCH == tmp.b.h ? 3 : 4);
 		PCD = tmp.d;
 	}
 	else
 	{
-		count = 2;
+		CPU_EAT_CYCLES(2);
 		++PCD;
 	}
-
-	return count;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -706,11 +609,13 @@ inline UINT CPU::Branch(const UINT taken)
 
 inline VOID CPU::sMem(const UINT address,const UINT data)
 {
+	CPU_EAT_CYCLES(1);
 	CPU_WRITE_BYTE(address,data);
 }
 
 inline VOID CPU::sZpg(const UINT address,const UINT data)
 {
+	CPU_EAT_CYCLES(1);
 	CPU_WRITE_ZPG(address,data);
 }
 
@@ -790,14 +695,14 @@ inline VOID CPU::Rti()
 	PCH = CPU_PULL();
 }   
 
-inline UINT CPU::Bcc() { return Branch(!FCD);              }           
-inline UINT CPU::Bcs() { return Branch(FCD);               }
-inline UINT CPU::Beq() { return Branch(!FZD);              }		      
-inline UINT CPU::Bmi() { return Branch(FND & FLAGS::N);    }
-inline UINT CPU::Bne() { return Branch(FZD);               }		      
-inline UINT CPU::Bpl() { return Branch(!(FND & FLAGS::N)); }		      
-inline UINT CPU::Bvc() { return Branch(!FVD);              }		      
-inline UINT CPU::Bvs() { return Branch(FVD);               }
+inline VOID CPU::Bcc() { Branch(!FCD);              }           
+inline VOID CPU::Bcs() { Branch(FCD);               }
+inline VOID CPU::Beq() { Branch(!FZD);              }		      
+inline VOID CPU::Bmi() { Branch(FND & FLAGS::N);    }
+inline VOID CPU::Bne() { Branch(FZD);               }		      
+inline VOID CPU::Bpl() { Branch(!(FND & FLAGS::N)); }		      
+inline VOID CPU::Bvc() { Branch(!FVD);              }		      
+inline VOID CPU::Bvs() { Branch(FVD);               }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // math operations (integrals only, there's no decimal support for the N2A03)
@@ -912,37 +817,27 @@ inline VOID CPU::Sed() { FDD = 1; }
 
 inline VOID CPU::Sei() 
 {
-	const UINT i = FID; 
-	FID = 1;
-
-	if (!i)
+	if (!FID)
 	{
     	// if the flag was previously cleared a delay of 
-		// one instruction will occur before interrupts will 
-		// be disabled
+		// one instruction will occur before interrupts gets 
+		// disabled
 
-		if (Step() != 0x40 && IntLow)
-		{
-			// The interrupt will only occur if the next 
-			// executed instruction was not RTI
-
-			DoISR();
-		}
+		FID = 1;
+		IntState |= I_DELAY_ON;
 	}
 }
 
 inline VOID CPU::Cli() 
 {
-	const UINT i = FID; 
-	FID = 0;
-
-	if (i)
+	if (FID)
 	{
     	// if the flag was not previously set a delay 
 		// of one instruction will occur before pending 
 		// interrupts are handled
 
-		Step();
+		FID = 0;
+		IntState |= I_DELAY_OFF;
 	}
 }
 
@@ -953,21 +848,15 @@ inline VOID CPU::Cli()
 inline VOID CPU::Plp() 
 {
 	const UINT i = FID;
-	flags.Unpack(CPU_PULL());          
+	flags.Unpack(CPU_PULL());  
 
-	if (bool(i) != bool(FID))
-	{
-    	// if the I flag was changed a delay of one instruction 
-		// will occur before using the new state
+	// if the I flag was changed a delay of one instruction 
+	// will occur before using the new flag
 
-		if (Step() != 0x40 && IntLow && !i)
-		{
-			// The interrupt will only occur if the next 
-			// executed instruction was not RTI
-
-			DoISR();
-		}
-	}
+	if (i && !FID)
+		IntState |= I_DELAY_OFF;
+	else if (!i && FID)
+		IntState |= I_DELAY_ON;
 }
 
 inline VOID CPU::Php() { CPU_PUSH(flags.Pack() | FLAGS::B); }           
@@ -1145,11 +1034,6 @@ VOID CPU::DoNMISR()
 {
 	if (!jammed)
 	{
-		// There's apparently some latency 
-		// before NMISR is taken..
-
-		Step();
-
 		CPU_PUSH(PCH);
 		CPU_PUSH(PCL);
 		CPU_PUSH(flags.Pack());
@@ -1232,10 +1116,12 @@ VOID CPU::Reset(const BOOL hard)
 	PCD = CPU_READ_WORD(RESET_VECTOR);
 	
 	cycles           = pal ? NES_CPU_TO_PAL(RESET_CYCLES) : NES_CPU_TO_NTSC(RESET_CYCLES);
-	FrameCounter     = LONG_MAX;
-	DmcCounter       = LONG_MAX;
+	FrameClock       = LONG_MAX;
+	DmcDmaClock      = LONG_MAX;
 	DmcLengthCounter = 0;
+	NmiClock         = 0;
 	IntLow           = 0;
+	IntState         = 0;
 	IntEn            = IRQ_FRAME|IRQ_EXT_1|IRQ_EXT_2;
 	status           = 0;
 	jammed           = FALSE;
@@ -1272,48 +1158,47 @@ VOID CPU::ResetLog()
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-VOID CPU::UpdateFrameCounter()
+VOID CPU::DoFrameIRQ()
 {
 	IntLow |= IRQ_FRAME;
-	FrameCounter += (pal ? NES_CPU_MCC_FRAME_PAL : NES_CPU_MCC_FRAME_NTSC);
+	FrameClock += (pal ? NES_CPU_MCC_FRAME_PAL : NES_CPU_MCC_FRAME_NTSC);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-VOID CPU::UpdateDmcCounter()
+VOID CPU::DoDmcDma()
 {
 	PDX_ASSERT(DmcLengthCounter);
 
 	apu.Update();
 
 	// Simulate a DMA byte transfer
-
-	CPU_EAT_CYCLES(DMA_CYCLES);
+	CPU_EAT_CYCLES(DMC_DMA_CYCLES);
 
 	if (!--DmcLengthCounter)
 	{
-		if (apu.IsDmcLooped())
+		if (apu.IsDmcLooping())
 		{
 			DmcLengthCounter = apu.GetDmcLengthCounter();
 		}
 		else 
 		{
-			DmcCounter = LONG_MAX;
+			DmcDmaClock = LONG_MAX;
 
 			PDX_ASSERT(!(IntEn & IRQ_DMC) || ((IntEn & IRQ_DMC) && (status & STATUS_INT_IRQ)));
 
-			// IRQ if 4010.7 and 4017.6 are set
+			// trigger IRQ if 4010.7 and 4017.6 are set
 
-			if (status & STATUS_INT_IRQ)
-				IntLow |= (IntEn & IRQ_DMC);
+			if ((IntEn & IRQ_DMC) && (status & STATUS_INT_IRQ))
+				IntLow |= IRQ_DMC;
 
 			return;
 		}
 	}
 
-	DmcCounter += apu.GetDmcFrequency();
+	DmcDmaClock += apu.GetDmcDmaCount();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -1345,13 +1230,9 @@ VOID CPU::Poke_4017(const UINT data)
 	IntLow &= ~IRQ_FRAME;
 	
 	if (status = (data & (STATUS_INT_IRQ|STATUS_EXT_IRQ)))
-	{
-		FrameCounter = LONG_MAX;
-	}
+		FrameClock = LONG_MAX;
 	else
-	{
-		FrameCounter = cycles + (pal ? NES_CPU_MCC_FRAME_PAL : NES_CPU_MCC_FRAME_NTSC);
-	}
+		FrameClock = cycles + (pal ? NES_CPU_MCC_FRAME_PAL : NES_CPU_MCC_FRAME_NTSC);
 
 	apu.Poke_4017( data );
 }
@@ -1366,103 +1247,148 @@ UINT CPU::Peek_4017()
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+VOID CPU::SetupFrame(const ULONG count)
+{
+	FrameCycles = count;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+VOID CPU::HandlePendingInterrupts()
+{
+	if ((IntLow & NMI) && (pal ? NES_PAL_TO_CPU(cycles) : NES_NTSC_TO_CPU(cycles)) > NmiClock)
+	{
+		IntLow &= ~NMI;
+		DoNMISR();
+	}	
+	else if (IntLow & IRQ_ANY)
+	{		
+		if ((!FID || (IntState & I_DELAY_ON)) && !(IntState & I_DELAY_OFF))
+		{
+			IntLow &= ~IRQ_TMP;
+			DoISR();
+		}
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
 // execute a frame
 ////////////////////////////////////////////////////////////////////////////////////////
 
 VOID CPU::Execute()
 {
 	const ULONG count = FrameCycles;
+	PDX_ASSERT( cycles < count );
 
 	switch (events.Size())
 	{
-     	case 0:
-   	    {
-			while (cycles < count)
-			{
-				{
-					const UINT opcode = CPU_READ_PCB();
-					(this->*instructions[opcode])();
-				}
-
-				if (cycles >= DmcCounter)
-					UpdateDmcCounter();
-
-				if (cycles >= FrameCounter)
-					UpdateFrameCounter();
-
-				if (IntLow)
-				{
-					IntLow &= ~IRQ_TMP;
-					if (!FID) DoISR();
-				}
-			}
-			break;
-		}
-
-		case 1:
-		{
-			const EVENT* const event = events.Begin();
-
-			while (cycles < count)
-			{
-				{
-					const UINT opcode = CPU_READ_PCB();
-					(this->*instructions[opcode])();
-				}
-
-				event->Execute();
-
-				if (cycles >= DmcCounter)
-					UpdateDmcCounter();
-
-				if (cycles >= FrameCounter)
-					UpdateFrameCounter();
-
-				if (IntLow)
-				{
-					IntLow &= ~IRQ_TMP;
-					if (!FID) DoISR();
-				}
-			}
-			break;
-		}
-
-		default:
-		{
-			while (cycles < count)
-			{
-				{
-					const UINT opcode = CPU_READ_PCB();
-					(this->*instructions[opcode])();
-				}
-
-				for (const EVENT* event=events.Begin(); event != events.End(); ++event)
-					event->Execute();
-
-				if (cycles >= DmcCounter)
-					UpdateDmcCounter();
-
-				if (cycles >= FrameCounter)
-					UpdateFrameCounter();
-
-				if (IntLow)
-				{
-					IntLow &= ~IRQ_TMP;
-					if (!FID) DoISR();
-				}
-			}
-		}
+     	case 0:	 Run0( count ); break;
+		case 1:	 Run1( count ); break;
+		default: Run2( count ); break;
 	}
 
 	apu.EndFrame();
 
 	cycles -= count;
 
-	if (DmcCounter != LONG_MAX)
-		DmcCounter -= count;
+	if (DmcDmaClock != LONG_MAX)
+		DmcDmaClock -= count;
 
-	if (FrameCounter != LONG_MAX)
-		FrameCounter -= count;
+	if (FrameClock != LONG_MAX)
+		FrameClock -= count;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+VOID CPU::Run0(const ULONG count)
+{
+	do
+	{
+		if (cycles >= DmcDmaClock)
+			DoDmcDma();
+
+		if (cycles >= FrameClock)
+			DoFrameIRQ();
+
+		if (IntLow)
+			HandlePendingInterrupts();
+
+		IntState = 0;
+
+		{
+			const UINT opcode = CPU_READ_PCB();
+			(this->*instructions[opcode])();
+		}
+	}
+	while (cycles < count);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+VOID CPU::Run1(const ULONG count)
+{
+	const EVENT& event = events.Front();
+
+	do
+	{
+		if (cycles >= DmcDmaClock)
+			DoDmcDma();
+
+		if (cycles >= FrameClock)
+			DoFrameIRQ();
+
+		if (IntLow)
+			HandlePendingInterrupts();
+
+		IntState = 0;
+
+		{
+			const UINT opcode = CPU_READ_PCB();
+			(this->*instructions[opcode])();
+		}
+
+		event.Execute();
+	}
+	while (cycles < count);
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+VOID CPU::Run2(const ULONG count)
+{
+	do
+	{
+		if (cycles >= DmcDmaClock)
+			DoDmcDma();
+
+		if (cycles >= FrameClock)
+			DoFrameIRQ();
+
+		if (IntLow)
+			HandlePendingInterrupts();
+
+		IntState = 0;
+
+		{
+			const UINT opcode = CPU_READ_PCB();
+			(this->*instructions[opcode])();
+		}
+
+		for (const EVENT* event=events.Begin(); event != events.End(); ++event)
+			event->Execute();
+	}
+	while (cycles < count);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////

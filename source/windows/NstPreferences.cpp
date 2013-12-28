@@ -79,10 +79,12 @@ VOID PREFERENCES::Create(CONFIGFILE* const ConfigFile)
 		nowarnings         = ( file[ "preferences warnings"                 ] == "no"  ? TRUE : FALSE );
 		closepoweroff      = ( file[ "preferences power off on exit"        ] == "yes" ? TRUE : FALSE );
 		confirmexit        = ( file[ "preferences confirm exit"             ] == "no"  ? FALSE : TRUE );
+		confirmreset       = ( file[ "preferences confirm machine reset"    ] == "yes" ? TRUE : FALSE );
 		usedatabase        = ( file[ "preferences use rom database"         ] == "no"  ? FALSE : TRUE );
 		multipleinstances  = ( file[ "preferences allow multiple instances" ] == "yes" ? TRUE : FALSE );
 		savelogfile        = ( file[ "preferences save logfile"             ] == "yes" ? TRUE : FALSE );
 		savesettings       = ( file[ "preferences save settings"            ] == "no"  ? FALSE : TRUE );
+		savelauncher       = ( file[ "preferences save launcher files"      ] == "no"  ? FALSE : TRUE );
 	}
 	else
 	{
@@ -112,10 +114,12 @@ VOID PREFERENCES::Destroy(CONFIGFILE* const ConfigFile)
 		file[ "preferences warnings"                 ] = ( nowarnings         ? "no" : "yes" );
 		file[ "preferences power off on exit"        ] = ( closepoweroff      ? "yes" : "no" );
 		file[ "preferences confirm exit"             ] = ( confirmexit        ? "yes" : "no" );
+		file[ "preferences confirm machine reset"    ] = ( confirmreset       ? "yes" : "no" );
 		file[ "preferences use rom database"         ] = ( usedatabase        ? "yes" : "no" );
 		file[ "preferences allow multiple instances" ] = ( multipleinstances  ? "yes" : "no" );
 		file[ "preferences save logfile"             ] = ( savelogfile        ? "yes" : "no" );
 		file[ "preferences save settings"            ] = ( savesettings       ? "yes" : "no" );
+		file[ "preferences save launcher files"      ] = ( savelauncher       ? "yes" : "no" );
 	}
 }
 
@@ -131,11 +135,13 @@ VOID PREFERENCES::Reset()
 	nowarnings         = FALSE;
 	closepoweroff      = FALSE;
 	confirmexit        = TRUE;
+	confirmreset       = FALSE;
 	prioritycontrol    = TRUE;
 	usedatabase        = TRUE;
 	multipleinstances  = FALSE;
 	savelogfile        = FALSE;
 	savesettings       = TRUE;
+	savelauncher       = TRUE;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -203,8 +209,10 @@ VOID PREFERENCES::UpdateDialog(HWND hDlg)
 	::CheckDlgButton( hDlg, IDC_PREFERENCES_DISABLE_ROM_WARNINGS, nowarnings         ? BST_CHECKED : BST_UNCHECKED );	
 	::CheckDlgButton( hDlg, IDC_PREFERENCES_CLOSE_POWER_OFF,      closepoweroff      ? BST_CHECKED : BST_UNCHECKED );	
 	::CheckDlgButton( hDlg, IDC_PREFERENCES_CONFIRM_EXIT,         confirmexit        ? BST_CHECKED : BST_UNCHECKED );	
+	::CheckDlgButton( hDlg, IDC_PREFERENCES_CONFIRM_RESET,        confirmreset       ? BST_CHECKED : BST_UNCHECKED );	
 	::CheckDlgButton( hDlg, IDC_PREFERENCES_SAVE_LOGFILE,         savelogfile        ? BST_CHECKED : BST_UNCHECKED );	
 	::CheckDlgButton( hDlg, IDC_PREFERENCES_SAVE_SETTINGS,        savesettings       ? BST_CHECKED : BST_UNCHECKED );	
+	::CheckDlgButton( hDlg, IDC_PREFERENCES_SAVE_LAUNCHER,        savelauncher       ? BST_CHECKED : BST_UNCHECKED );	
 	::CheckDlgButton( hDlg, IDC_PREFERENCES_USE_ROM_DATABASE,     usedatabase        ? BST_CHECKED : BST_UNCHECKED );	
 	::CheckDlgButton( hDlg, IDC_PREFERENCES_MULTIPLE_INSTANCES,   multipleinstances  ? BST_CHECKED : BST_UNCHECKED );	
 
@@ -232,8 +240,10 @@ VOID PREFERENCES::SetContext(HWND hDlg)
 		nowarnings         = ( ::IsDlgButtonChecked( hDlg, IDC_PREFERENCES_DISABLE_ROM_WARNINGS ) == BST_CHECKED );
 		closepoweroff      = ( ::IsDlgButtonChecked( hDlg, IDC_PREFERENCES_CLOSE_POWER_OFF      ) == BST_CHECKED );
 		confirmexit        = ( ::IsDlgButtonChecked( hDlg, IDC_PREFERENCES_CONFIRM_EXIT         ) == BST_CHECKED );
+		confirmreset       = ( ::IsDlgButtonChecked( hDlg, IDC_PREFERENCES_CONFIRM_RESET        ) == BST_CHECKED );
 		savelogfile        = ( ::IsDlgButtonChecked( hDlg, IDC_PREFERENCES_SAVE_LOGFILE         ) == BST_CHECKED );
 		savesettings       = ( ::IsDlgButtonChecked( hDlg, IDC_PREFERENCES_SAVE_SETTINGS        ) == BST_CHECKED );
+		savelauncher       = ( ::IsDlgButtonChecked( hDlg, IDC_PREFERENCES_SAVE_LAUNCHER        ) == BST_CHECKED );
 		usedatabase        = ( ::IsDlgButtonChecked( hDlg, IDC_PREFERENCES_USE_ROM_DATABASE     ) == BST_CHECKED );
 		multipleinstances  = ( ::IsDlgButtonChecked( hDlg, IDC_PREFERENCES_MULTIPLE_INSTANCES   ) == BST_CHECKED );
 
@@ -259,7 +269,7 @@ VOID PREFERENCES::SetContext(HWND hDlg)
 		if (updated)
 		{
 			::SHChangeNotify( SHCNE_ASSOCCHANGED, SHCNF_IDLIST, 0, 0 );	
-			::MessageBox( hDlg, UTILITIES::IdToString(IDS_APP_REGISTRY_SUCCESS).String(), "Registry Updated", MB_OK );
+			UI::MsgInfo(IDS_APP_REGISTRY_SUCCESS);
 		}
 	}
 

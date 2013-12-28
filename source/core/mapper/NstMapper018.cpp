@@ -37,35 +37,35 @@ VOID MAPPER18::Reset()
 	{
 		switch (i & 0xF003)
 		{
-			case 0x8000: cpu.SetPort( i, this, Peek_8000, Poke_8000 );
-			case 0x8001: cpu.SetPort( i, this, Peek_8000, Poke_8001 );
-			case 0x8002: cpu.SetPort( i, this, Peek_8000, Poke_8002 );
-			case 0x8003: cpu.SetPort( i, this, Peek_8000, Poke_8003 );
-			case 0x9000: cpu.SetPort( i, this, Peek_9000, Poke_9000 );
-			case 0x9001: cpu.SetPort( i, this, Peek_9000, Poke_9001 );
-			case 0xA000: cpu.SetPort( i, this, Peek_A000, Poke_A000 );
-			case 0xA001: cpu.SetPort( i, this, Peek_A000, Poke_A001 );
-			case 0xA002: cpu.SetPort( i, this, Peek_A000, Poke_A002 );
-			case 0xA003: cpu.SetPort( i, this, Peek_A000, Poke_A003 );
-			case 0xB000: cpu.SetPort( i, this, Peek_B000, Poke_B000 );
-			case 0xB001: cpu.SetPort( i, this, Peek_B000, Poke_B001 );
-			case 0xB002: cpu.SetPort( i, this, Peek_B000, Poke_B002 );
-			case 0xB003: cpu.SetPort( i, this, Peek_B000, Poke_B003 );
-			case 0xC000: cpu.SetPort( i, this, Peek_C000, Poke_C000 );
-			case 0xC001: cpu.SetPort( i, this, Peek_C000, Poke_C001 );
-			case 0xC002: cpu.SetPort( i, this, Peek_C000, Poke_C002 );
-			case 0xC003: cpu.SetPort( i, this, Peek_C000, Poke_C003 );
-			case 0xD000: cpu.SetPort( i, this, Peek_D000, Poke_D000 );
-			case 0xD001: cpu.SetPort( i, this, Peek_D000, Poke_D001 );
-			case 0xD002: cpu.SetPort( i, this, Peek_D000, Poke_D002 );
-			case 0xD003: cpu.SetPort( i, this, Peek_D000, Poke_D003 );
-			case 0xE000: cpu.SetPort( i, this, Peek_E000, Poke_E000 );
-			case 0xE001: cpu.SetPort( i, this, Peek_E000, Poke_E001 );
-			case 0xE002: cpu.SetPort( i, this, Peek_E000, Poke_E002 );
-			case 0xE003: cpu.SetPort( i, this, Peek_E000, Poke_E003 );
-			case 0xF000: cpu.SetPort( i, this, Peek_F000, Poke_F000 );
-			case 0xF001: cpu.SetPort( i, this, Peek_F000, Poke_F001 );
-			case 0xF002: cpu.SetPort( i, this, Peek_F000, Poke_F002 );
+			case 0x8000: cpu.SetPort( i, this, Peek_8000, Poke_8000 ); continue;
+			case 0x8001: cpu.SetPort( i, this, Peek_8000, Poke_8001 ); continue;
+			case 0x8002: cpu.SetPort( i, this, Peek_8000, Poke_8002 ); continue;
+			case 0x8003: cpu.SetPort( i, this, Peek_8000, Poke_8003 ); continue;
+			case 0x9000: cpu.SetPort( i, this, Peek_9000, Poke_9000 ); continue;
+			case 0x9001: cpu.SetPort( i, this, Peek_9000, Poke_9001 ); continue;
+			case 0xA000: cpu.SetPort( i, this, Peek_A000, Poke_A000 ); continue;
+			case 0xA001: cpu.SetPort( i, this, Peek_A000, Poke_A001 ); continue;
+			case 0xA002: cpu.SetPort( i, this, Peek_A000, Poke_A002 ); continue;
+			case 0xA003: cpu.SetPort( i, this, Peek_A000, Poke_A003 ); continue;
+			case 0xB000: cpu.SetPort( i, this, Peek_B000, Poke_B000 ); continue;
+			case 0xB001: cpu.SetPort( i, this, Peek_B000, Poke_B001 ); continue;
+			case 0xB002: cpu.SetPort( i, this, Peek_B000, Poke_B002 ); continue;
+			case 0xB003: cpu.SetPort( i, this, Peek_B000, Poke_B003 ); continue;
+			case 0xC000: cpu.SetPort( i, this, Peek_C000, Poke_C000 ); continue;
+			case 0xC001: cpu.SetPort( i, this, Peek_C000, Poke_C001 ); continue;
+			case 0xC002: cpu.SetPort( i, this, Peek_C000, Poke_C002 ); continue;
+			case 0xC003: cpu.SetPort( i, this, Peek_C000, Poke_C003 ); continue;
+			case 0xD000: cpu.SetPort( i, this, Peek_D000, Poke_D000 ); continue;
+			case 0xD001: cpu.SetPort( i, this, Peek_D000, Poke_D001 ); continue;
+			case 0xD002: cpu.SetPort( i, this, Peek_D000, Poke_D002 ); continue;
+			case 0xD003: cpu.SetPort( i, this, Peek_D000, Poke_D003 ); continue;
+			case 0xE000: cpu.SetPort( i, this, Peek_E000, Poke_E000 ); continue;
+			case 0xE001: cpu.SetPort( i, this, Peek_E000, Poke_E001 ); continue;
+			case 0xE002: cpu.SetPort( i, this, Peek_E000, Poke_E002 ); continue;
+			case 0xE003: cpu.SetPort( i, this, Peek_E000, Poke_E003 ); continue;
+			case 0xF000: cpu.SetPort( i, this, Peek_F000, Poke_F000 ); continue;
+			case 0xF001: cpu.SetPort( i, this, Peek_F000, Poke_F001 ); continue;
+			case 0xF002: cpu.SetPort( i, this, Peek_F000, Poke_F002 ); continue;
 		}
 	}
 
@@ -137,22 +137,12 @@ NES_POKE(MAPPER18,F001)
 
 NES_POKE(MAPPER18,F002) 
 {
-	static const UCHAR select[3][4] =
+	switch (data & 0x3)
 	{
-		{0,0,1,1},
-		{0,1,0,1},
-		{0,0,0,0},
-	};
-
-	const UCHAR* const index = select[data & 0x2];
-
-	ppu.SetMirroring
-	(
-     	index[0],
-		index[1],
-		index[2],
-		index[3]
-	);
+       	case 0:	 ppu.SetMirroring( MIRROR_HORIZONTAL ); break;
+		case 1:	 ppu.SetMirroring( MIRROR_VERTICAL   ); break;
+		default: ppu.SetMirroring( MIRROR_ZERO       ); break;
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -161,12 +151,12 @@ NES_POKE(MAPPER18,F002)
 
 VOID MAPPER18::IrqSync(const UINT delta)
 {
-	if ((IrqCount -= delta) <= 0)
+	if (IrqCount && (IrqCount -= delta) <= 0)
 	{
 		IrqCount = 0;
 		SetIrqEnable(FALSE);
 		cpu.DoIRQ();
-	}
+	}	   
 }
 
 NES_NAMESPACE_END

@@ -40,10 +40,10 @@ inline const APU& CPU::GetAPU() const
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-inline VOID CPU::DoNMI()
+inline VOID CPU::DoNMI(const ULONG cycle)
 {
-	if (IntEn & NMI)
-		DoNMISR();
+	IntLow |= NMI;
+	NmiClock = (pal ? NES_PAL_TO_CPU(cycle) : NES_NTSC_TO_CPU(cycle)) + 1;
 }
 
 inline VOID CPU::DoIRQ(const UINT line)
@@ -88,21 +88,24 @@ inline BOOL CPU::IsLine(const UINT line) const
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-inline VOID CPU::ResetCycles()
-{
-	cycles = 0;
-	FrameCounter = LONG_MAX;
-	DmcCounter = LONG_MAX;
-}
+inline UINT CPU::GetCache()  const { return cache;  }
+inline UINT CPU::GetStatus() const { return status; }
+inline BOOL CPU::IsPAL()     const { return pal;    }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-inline VOID CPU::SetFrameCycles(const ULONG count)
+inline VOID CPU::ResetCycles()
 {
-	FrameCycles = count;
+	cycles = 0;
+	FrameClock = LONG_MAX;
+	DmcDmaClock = LONG_MAX;
 }
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
 
 inline VOID CPU::AdvanceCycles(const ULONG count)
 { 
@@ -169,19 +172,20 @@ inline ULONG CPU::GetCycles<CPU::CYCLE_AUTO>() const
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
+inline VOID CPU::SetDmcDmaClock(const LONG count)
+{
+	DmcDmaClock = cycles + count;
+}
+
+inline VOID CPU::DisableDmcDmaClock()
+{
+	DmcDmaClock = LONG_MAX;
+}
+
 inline VOID CPU::SetDmcLengthCounter(const UINT count)
 {
+	PDX_ASSERT(count);
 	DmcLengthCounter = count;
-}
-
-inline VOID CPU::SetDmcCounter(const LONG count)
-{
-	DmcCounter = cycles + count;
-}
-
-inline VOID CPU::DisableDmcCounter()
-{
-	DmcCounter = LONG_MAX;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////

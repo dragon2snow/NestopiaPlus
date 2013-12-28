@@ -35,17 +35,21 @@ VOID MAPPER65::Reset()
 {
 	EnableIrqSync(IRQSYNC_COUNT);
 
-	if (pRomCrc == 0xE30B7F64UL)
+	switch (pRomCrc)
 	{
-		another = TRUE;
-		cpu.SetPort( 0x9001, this, Peek_9000, Poke_9001 );
-	}
-	else
-	{
-		another = FALSE;
-		cpu.SetPort( 0x9000, this, Peek_9000, Poke_9000 );
-		cpu.SetPort( 0x9003, this, Peek_9000, Poke_9003 );
-		cpu.SetPort( 0x9004, this, Peek_9000, Poke_9004 );
+     	case 0xE30B7F64UL: // Kaiketsu Yanchamaru 3
+
+			type = 1;
+			cpu.SetPort( 0x9001, this, Peek_9000, Poke_9001 );
+			break;
+
+		default:
+
+			type = 0;
+			cpu.SetPort( 0x9000, this, Peek_9000, Poke_9000 );
+			cpu.SetPort( 0x9003, this, Peek_9000, Poke_9003 );
+			cpu.SetPort( 0x9004, this, Peek_9000, Poke_9004 );
+			break;
 	}
 
 	cpu.SetPort( 0x8000, this, Peek_8000, Poke_8000 );
@@ -97,7 +101,7 @@ NES_POKE(MAPPER65,9001)
 
 NES_POKE(MAPPER65,9003) 
 { 
-	SetIrqEnable(data & 0x80);
+	SetIrqEnable( data & 0x80 );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -115,7 +119,7 @@ NES_POKE(MAPPER65,9004)
 
 NES_POKE(MAPPER65,9005) 
 {
-	if (another)
+	if (type)
 	{
 		SetIrqEnable(data);
 		IrqCount = data << 1;
@@ -132,13 +136,13 @@ NES_POKE(MAPPER65,9005)
 
 NES_POKE(MAPPER65,9006) 
 {
-	if (another)
+	if (type)
 	{
 		SetIrqEnable(TRUE);
 	}
 	else
 	{
-		IrqLatch = (IrqLatch & 0xFF00) | data;
+		IrqLatch = (IrqLatch & 0xFF00) | (data << 0);
 	}
 }
 
@@ -168,13 +172,11 @@ NES_POKE(MAPPER65,C000) { apu.Update(); pRom.SwapBanks<n8k,0x4000>(data); }
 
 VOID MAPPER65::IrqSync(const UINT delta)
 {
-	IrqCount -= delta;
-
-	if (IrqCount <= 0)
+	if ((IrqCount -= delta) <= -4)
 	{
 		SetIrqEnable(FALSE);
 
-		if (another)
+		if (!type)
 			IrqCount = 0xFFFF;
 
 		cpu.TryIRQ();

@@ -117,7 +117,7 @@ public:
 			delete [] ram;
 		}
 
-		ram = b;
+		ram = r;
 		size = s;
 		SetMask();
 	}

@@ -56,8 +56,8 @@ NES_POKE(MAPPER82,7EF0)
 {
 	ppu.Update();
 
-	if (SwapLow) cRom.SwapBanks<n2k,0x0000>( (data & 0xFE) >> 1 );
-	else         cRom.SwapBanks<n2k,0x1000>( (data & 0xFE) >> 1 );
+	if (!SwapLow) cRom.SwapBanks<n2k,0x0000>( data >> 1 );
+	else          cRom.SwapBanks<n2k,0x1000>( data >> 1 );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -68,8 +68,8 @@ NES_POKE(MAPPER82,7EF1)
 {
 	ppu.Update();
 
-	if (SwapLow) cRom.SwapBanks<n2k,0x0800>( (data & 0xFE) >> 1 );
-	else         cRom.SwapBanks<n2k,0x1800>( (data & 0xFE) >> 1 );
+	if (!SwapLow) cRom.SwapBanks<n2k,0x0800>( data >> 1 );
+	else          cRom.SwapBanks<n2k,0x1800>( data >> 1 );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////

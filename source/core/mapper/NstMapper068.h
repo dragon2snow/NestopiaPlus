@@ -38,7 +38,6 @@ class MAPPER68 : public MAPPER
 public:
 
 	MAPPER68(CONTEXT&);
-	~MAPPER68();
 
 	PDXRESULT LoadState(PDXFILE&);
 	PDXRESULT SaveState(PDXFILE&) const;
@@ -57,7 +56,6 @@ private:
 	NES_DECL_POKE( F000 );
 
 	NES_DECL_PEEK( CiRam );
-	NES_DECL_PEEK( CiRom );
 	NES_DECL_POKE( CiRam );
 
 	VOID UpdateMirroring();
@@ -73,8 +71,8 @@ private:
 	typedef CHIP<n4k,4> CIROM;
 	typedef CHIP<n4k,4> CIRAM;
 
-	CIROM* CiRom;
-	CIRAM  CiRam;
+	CIRAM CiRam;
+	CIROM CiRom;
 
 	UINT status;
 	UINT CiRomBanks[2];

@@ -76,10 +76,11 @@ PDXRESULT ZIPFILE::Open(const CHAR* const filename,const PDXARRAY<PDXSTRING>* co
 			break;
 
 		name = buffer;
-		BOOL yep = FALSE;
+		BOOL yep = TRUE;
 
 		if (extensions)
 		{
+			yep = FALSE;
 			name.GetFileExtension( match );
 
 			for (UINT i=0; i < extensions->Size(); ++i)

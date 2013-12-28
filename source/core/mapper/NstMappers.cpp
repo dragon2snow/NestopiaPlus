@@ -1024,7 +1024,7 @@ const CHAR* MAPPER::boards[256] =
 	"",					               // 031
 	"IREM G-101",		               // 032
 	"TAITO TC0190/TC0350",             // 033
-	"NINA-1 / BNROM",  	               // 034
+	"NINA-1 / NES-BNROM",              // 034
 	"",					               // 035
 	"",					               // 036
 	"",					               // 037

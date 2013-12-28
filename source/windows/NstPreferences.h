@@ -48,8 +48,10 @@ public:
 	inline BOOL StartUpFullScreen()      const { return fullscreen;         }
 	inline BOOL PowerOffOnClose()        const { return closepoweroff;      }
 	inline BOOL ConfirmExit()		     const { return confirmexit;        }
-	inline BOOL SaveLogFile()            const { return savelogfile;        }
+	inline BOOL ConfirmReset()           const { return confirmreset;       }
 	inline BOOL SaveSettings()           const { return savesettings;       }
+	inline BOOL SaveLauncher()           const { return savelauncher;       }
+	inline BOOL SaveLogFile()            const { return savelogfile;        }
 	inline BOOL NoWarnings()             const { return nowarnings;         }
 	inline BOOL ShowWarnings()           const { return !nowarnings;        }
 	inline BOOL UseDatabase()            const { return usedatabase;        }
@@ -77,10 +79,12 @@ private:
 	BOOL nowarnings;    
 	BOOL closepoweroff;
 	BOOL confirmexit;
+	BOOL confirmreset;
 	BOOL prioritycontrol;
 	BOOL usedatabase;
 	BOOL multipleinstances;
 	BOOL savesettings;
+	BOOL savelauncher;
 	BOOL savelogfile;
 
 	enum

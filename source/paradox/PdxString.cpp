@@ -231,24 +231,17 @@ PDXSTRING& PDXSTRING::Append(CONSTITERATOR begin,CONSTITERATOR end)
 
 VOID PDXSTRING::Validate()
 {
-	if (buffer.Size())
+	for (TSIZE i=0; i < buffer.Size(); ++i)
 	{
-		for (TSIZE i=0; i < buffer.Size(); ++i)
+		if (buffer[i] == '\0')
 		{
-			if (buffer[i] == '\0')
-			{
-				buffer.Resize(i+1);
-				buffer.Defrag();
-				return;
-			}
+			buffer.Resize(i+1);
+			buffer.Defrag();
+			return;
 		}
 	}
-	else
-	{
-		buffer.Grow();
-	}
 
-	buffer.Back() = '\0';
+	buffer.InsertBack('\0');
 	buffer.Defrag();
 }
 
@@ -401,23 +394,6 @@ BOOL PDXSTRING::operator == (const PDXSTRING& string) const
 			return FALSE;
 
 	return TRUE;
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////
-// Less than, NOT case-sensetive
-//////////////////////////////////////////////////////////////////////////////////////////////
-
-BOOL PDXSTRING::operator < (const PDXSTRING& string) const
-{
-	const LONG length = PDX_MIN(buffer.Size(),string.buffer.Size()) - 1;
-
-	for (LONG i=0; i < length; ++i)
-	{
-		if (converter.lower[buffer[i]] < converter.lower[string.buffer[i]]) return TRUE;
-		else if (converter.lower[buffer[i]] > converter.lower[string.buffer[i]]) return FALSE;
-	}
-
-	return buffer.Size() < string.Size();
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////

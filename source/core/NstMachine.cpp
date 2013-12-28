@@ -422,7 +422,7 @@ PDXRESULT MACHINE::LoadINES(PDXFILE& ImageFile,const PDXSTRING* const SaveFile)
 
 	cartridge = new CARTRIDGE;
 
-	if (PDX_FAILED(cartridge->Load( ImageFile, SaveFile, cpu, ppu, GeneralContext )))
+	if (PDX_FAILED(cartridge->Load( ImageFile, SaveFile, cpu, ppu, RomDatabase, GeneralContext )))
 	{
 		Unload();
 		return PDX_FAILURE;
@@ -455,7 +455,7 @@ PDXRESULT MACHINE::LoadUNIF(PDXFILE& ImageFile,const PDXSTRING* const SaveFile)
 
 	cartridge = new CARTRIDGE;
 
-	if (PDX_FAILED(cartridge->Load( ImageFile, SaveFile, cpu, ppu, GeneralContext )))
+	if (PDX_FAILED(cartridge->Load( ImageFile, SaveFile, cpu, ppu, RomDatabase, GeneralContext )))
 	{
 		Unload();
 		return PDX_FAILURE;
@@ -802,53 +802,61 @@ VOID MACHINE::Execute(IO::GFX* const gfx,IO::SFX* const sfx,IO::INPUT* const inp
 {
 	if (on && !paused)
 	{
-		if (nsf)
+		try
 		{
-			apu.BeginFrame( sfx );
-			nsf->Execute();
+			if (nsf)
+			{
+				apu.BeginFrame( sfx );
+				nsf->Execute();
+			}
+			else
+			{
+				if (gfx)
+				{
+					gfx->PaletteChanged = palette.Update();
+					gfx->palette = palette.GetData();
+				}
+
+				if (VsSystem)
+					VsSystem->BeginFrame( input );
+
+				for (UINT i=0; i < 4; ++i)
+				{
+					controller[i]->BeginFrame( input, gfx ); 
+					controller[i]->Poll();
+				}
+
+				if (expansion)
+				{
+					expansion->BeginFrame( input, gfx );
+					expansion->Poll();
+				}
+
+				if (movie)
+				{
+					if (PDX_FAILED(movie->ExecuteFrame()))
+						CloseMovie();
+				}
+
+				ppu.BeginFrame( gfx );
+				apu.BeginFrame( sfx );
+				cpu.Execute();
+				ppu.EndFrame();
+
+				if (cartridge)
+				{
+					cartridge->Mapper()->VSync();
+				}
+				else if (fds)
+				{
+					fds->VSync();
+				}
+			}
 		}
-		else
+		catch (...)
 		{
-			if (gfx)
-			{
-				gfx->PaletteChanged = palette.Update();
-				gfx->palette = palette.GetData();
-			}
-
-			if (VsSystem)
-				VsSystem->BeginFrame( input );
-
-			for (UINT i=0; i < 4; ++i)
-			{
-				controller[i]->BeginFrame( input, gfx ); 
-				controller[i]->Poll();
-			}
-
-			if (expansion)
-			{
-				expansion->BeginFrame( input, gfx );
-				expansion->Poll();
-			}
-
-			if (movie)
-			{
-				if (PDX_FAILED(movie->ExecuteFrame()))
-					CloseMovie();
-			}
-
-			ppu.BeginFrame( gfx );
-			apu.BeginFrame( sfx );
-			cpu.Execute();
-			ppu.EndFrame();
-
-			if (cartridge)
-			{
-				cartridge->Mapper()->VSync();
-			}
-			else if (fds)
-			{
-				fds->VSync();
-			}
+			MsgError("Generic emulation error!");
+			Power( FALSE );
 		}
 	}
 }

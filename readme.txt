@@ -1,5 +1,5 @@
 -----------------------------------------------------------------------------
-Nestopia 1.07 - NES/Famicom emulator
+Nestopia 1.08 - NES/Famicom emulator
 -----------------------------------------------------------------------------
 
 Nestopia is Copyright 2003 by Martin Freij
@@ -38,7 +38,7 @@ the pAPU generates sound or else they simply just wait until the end of the
 frame and then carry on. They all use the "master clock" as a cycle counter 
 base which eliminates the need for decimals alltogether. With this method 
 many games that rely on perfect timing work flawlessly on Nestopia (Mach Rider, 
-Slalom, Marble Maddness etc). However, in comparision to other emulators which 
+Slalom, Marble Madness etc). However, in comparision to other emulators which 
 are either scanline or tile based this is slower but if you're running it on.. 
 say a P4 or at least a very fast P3 there shouldn't be any notable speed loss. 
 
@@ -167,7 +167,7 @@ NSV  - Nestopia Movie File. Available commands are located in the menu. One note
 Command Line Parameters
 -----------------------------------------------------------------------------
 
-This is long so I'll just going to blurt it out.
+This is long so I'm just going to blurt it out.
 
 Nestopia.exe "<file>"
 
@@ -271,14 +271,28 @@ Nestopia.exe "<file>"
 -input powerpad side b 6              : <key,(joy device) button,...>
 -input powerpad side b 7              : <key,(joy device) button,...>
 -input powerpad side b 8              : <key,(joy device) button,...>
+-launcher color background            : <bgr in hex>
+-launcher color foreground            : <bgr in hex>
+-launcher columns                     : <number>
+-launcher column                      : <index> <type>
+-launcher search any file extension   : <yes,no>
+-launcher search files fds            : <yes,no>
+-launcher search files nes            : <yes,no>
+-launcher search files nsf            : <yes,no>
+-launcher search files nsp            : <yes,no>
+-launcher search files unf            : <yes,no>
+-launcher search files zip            : <yes,no>
+-launcher search no dublicate files   : <yes,no>
 -preferences allow multiple instances : <yes,no>
 -preferences auto priority control    : <yes,no>
 -preferences confirm exit             : <yes,no>
+-preferences confirm machine reset    : <yes,no>
 -preferences emulate at once          : <yes,no>
 -preferences fullscreen on start      : <yes,no>
 -preferences nsf in background        : <yes,no>
 -preferences power off on exit        : <yes,no>
 -preferences run in background        : <yes,no>
+-preferences save launcher files      : <yes,no>
 -preferences save logfile             : <yes,no>
 -preferences save settings            : <yes,no>
 -preferences use rom database         : <yes,no>
@@ -415,8 +429,9 @@ suggestions on what you can do to speed things up.
 
 - Enable auto frame-skip and uncheck the vsync button.
 
-- Keep the menu hidden when you're in fullscreen mode. Having it visible 
-  forces Nestopia to co-operate with GDI which adds extra overhead.
+- Keep the menu and any other window hidden when you're in fullscreen mode. 
+  Having them visible forces Nestopia to co-operate with GDI which adds extra 
+  overhead.
 
 - Set the display mode to 320*240 8 bit. 16/32 bit mode may be faster on newer 
   graphic cards so you may have to experiment with this.

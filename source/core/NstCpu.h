@@ -44,14 +44,14 @@ private:
 
 	enum
 	{
-		RESET_CYCLES = 6,
-		INT_CYCLES   = 7,
-		DMA_CYCLES   = 1,
-		NMI_VECTOR   = 0xFFFA,
-		RESET_VECTOR = 0xFFFC,
-		IRQ_VECTOR   = 0xFFFE,
-		RAM_SIZE     = 0x800,
-		STACK_OFFSET = 0x100
+		RESET_CYCLES   = 6,
+		INT_CYCLES     = 7,
+		DMC_DMA_CYCLES = 1,
+		NMI_VECTOR     = 0xFFFA,
+		RESET_VECTOR   = 0xFFFC,
+		IRQ_VECTOR     = 0xFFFE,
+		RAM_SIZE       = 0x800,
+		STACK_OFFSET   = 0x100
 	};
 
 	class EVENT
@@ -114,6 +114,7 @@ public:
 		IRQ_EXT_1 = b00000010,
 		IRQ_EXT_2 = b00001000,
 		IRQ_DMC   = b10000000,
+		IRQ_ANY   = b11001011,
 		NMI       = b00000100
 	};
 
@@ -159,13 +160,14 @@ public:
 	APU& GetAPU();
 	const APU& GetAPU() const;
 
-	VOID DoNMI();
+	VOID DoNMI(const ULONG);
 	VOID DoIRQ(const UINT=IRQ_EXT);
 	VOID ClearIRQ(const UINT=IRQ_EXT);
 	VOID TryIRQ();
 	VOID SetLine(const UINT=IRQ_EXT,const BOOL=TRUE);
 	BOOL IsLine(const UINT=IRQ_EXT) const;
 	BOOL IsIRQ(const UINT=IRQ_EXT) const;
+	VOID HandlePendingInterrupts();
 
 	VOID ClearRAM();
 
@@ -183,10 +185,10 @@ public:
 	template<CYCLETYPE>
 	ULONG GetFrameCycles() const;
 
-	VOID SetFrameCycles(const ULONG);
+	VOID SetupFrame(const ULONG);
+	VOID SetDmcDmaClock(const LONG);
+	VOID DisableDmcDmaClock();
 	VOID SetDmcLengthCounter(const UINT);
-	VOID SetDmcCounter(const LONG);
-	VOID DisableDmcCounter();
 
 	template<class OBJECT,class FUNCTION>
 	VOID SetEvent(OBJECT*,FUNCTION);
@@ -203,14 +205,9 @@ public:
 	PORT& GetPort(const UINT);
 	const PORT& GetPort(const UINT) const;
 
-	inline UINT GetCache() const
-	{ return cache; }
-
-	inline UINT GetStatus() const
-	{ return status; }
-
-	inline BOOL IsPAL() const
-	{ return pal; }
+	UINT GetCache() const;
+	UINT GetStatus() const;
+	BOOL IsPAL() const;
 
 	VOID SetMode(const MODE);
 
@@ -218,6 +215,13 @@ public:
 	UINT Peek_4017();
 
 private:
+
+	enum
+	{
+		I_DELAY_ON  = b00000001,
+		I_DELAY_OFF = b00000010,
+		LIC         = b00000100
+	};
 
 	VOID ResetLog();
 	VOID Log(const CHAR* const,const UINT);
@@ -237,13 +241,23 @@ private:
 	NES_DECL_PEEK( 4015 );
 
 	PDX_NO_INLINE VOID DoISR();
+	PDX_NO_INLINE VOID DoNMISR();
+	PDX_NO_INLINE VOID DoFrameIRQ();
+	PDX_NO_INLINE VOID DoDmcDma();
 
-	VOID DoNMISR();
+	VOID Run0 (const ULONG);
+	VOID Run1 (const ULONG);
+	VOID Run2 (const ULONG);
 
-	PDX_NO_INLINE VOID UpdateFrameCounter();
-	PDX_NO_INLINE VOID UpdateDmcCounter();
+	UINT rZpgReg  (const UINT);
+	UINT rwZpgReg (const UINT,UINT&);
+	UINT wZpgReg  (const UINT);
 
-	UINT Branch(const UINT);
+	UINT rAbsReg  (const UINT);
+	UINT rwAbsReg (const UINT,UINT&);
+	UINT wAbsReg  (const UINT);
+
+	VOID Branch(const UINT);
 
 	UINT Acc();
     #define rwAcc(p) Acc()
@@ -307,14 +321,14 @@ private:
 	VOID Rts    (); 
 	VOID Rti    (); 
 
-	UINT Bcc ();           
-	UINT Bcs ();
-	UINT Beq ();		      
-	UINT Bmi ();
-	UINT Bne ();		      
-	UINT Bpl ();		      
-	UINT Bvc ();		      
-	UINT Bvs ();
+	VOID Bcc ();           
+	VOID Bcs ();
+	VOID Beq ();		      
+	VOID Bmi ();
+	VOID Bne ();		      
+	VOID Bpl ();		      
+	VOID Bvc ();		      
+	VOID Bvs ();
 
 	VOID Adc (const UINT); 
 	VOID Sbc (const UINT); 
@@ -382,41 +396,13 @@ private:
 	VOID Brk (); 
 	VOID Jam (); 
 
-    #define NES_EAT_CYCLES(ticks) cycles += CycleTable[pal][(ticks)-1]
-
-	#define crImm	2
-	#define crZpg   3
-	#define crZpgX	4
-	#define crZpgY	4
-	#define crAbs	4
-	#define crAbsX	4
-	#define crAbsY	4
-	#define crIndX	6
-	#define crIndY	5
-    #define crwAcc  2
-	#define crwZpg	5
-	#define crwZpgX	6
-	#define crwZpgY	6
-	#define crwAbs	6
-	#define crwAbsY	7
-	#define crwAbsX	7
-	#define crwIndX	8
-	#define crwIndY	8
-	#define cwZpg	3
-	#define cwZpgX	4
-	#define cwZpgY	4
-	#define cwAbs	4
-	#define cwAbsX	5
-	#define cwAbsY	5
-	#define cwIndX	6
-	#define cwIndY	6
+    #define NES_EAT_CYCLES(ticks) cycles += CyclePtr[(ticks)-1]
 
     #define NES_I____(instr,hex)	       \
 								           \
 	PDX_NO_INLINE VOID op##hex()           \
 	{							           \
-		const UINT ticks = instr();        \
-	    NES_EAT_CYCLES(ticks);	           \
+		instr();                           \
 	}
 
     #define NES____C_(dummy,ticks,hex)     \
@@ -430,8 +416,8 @@ private:
 								           \
 	PDX_NO_INLINE VOID op##hex()           \
 	{							           \
-		instr();				           \
 	    NES_EAT_CYCLES(ticks);	           \
+		instr();				           \
 	}
 
     #define NES_IR___(instr,addr,hex)      \
@@ -727,33 +713,6 @@ private:
 	NES_I__C_( Tsx,        2, 0xBA )	 
 	NES_I__C_( Tya,        2, 0x98 )	 
 
-	#undef crImm
-	#undef crZpg  
-	#undef crZpgX
-	#undef crZpgY
-	#undef crAbs
-	#undef crAbsX
-	#undef crAbsY
-	#undef crIndX
-	#undef crIndY
-    #undef crwAcc 
-	#undef crwZpg
-	#undef crwZpgX
-	#undef crwZpgY
-	#undef crwAbs
-	#undef crwAbsY
-	#undef crwAbsX
-	#undef crwIndX
-	#undef crwIndY
-	#undef cwZpg
-	#undef cwZpgX
-	#undef cwZpgY
-	#undef cwAbs
-	#undef cwAbsX
-	#undef cwAbsY
-	#undef cwIndX
-	#undef cwIndY
-
     #undef rwAcc
     #undef sZpgX
     #undef sZpgY
@@ -824,31 +783,39 @@ private:
 		PDXWORD n;
 	};
 
+	LONG NmiClock;
+
+	UINT IntEn;
+	UINT IntLow;
+	UINT IntState;
+
+	const ULONG* PDX_RESTRICT CyclePtr;
+	ULONG cycles;	
+
+	UINT cache;
+
+	CPU_MAP map;
+
 	PDXWORD pc;
 	PDXWORD a;
 	PDXWORD x;
 	PDXWORD y;		  
 	PDXWORD sp;	
-
 	FLAGS flags;		  
+		
+	LONG FrameClock;
+	LONG DmcDmaClock;
+	UINT DmcLengthCounter;
 
-	CPU_MAP map;
-
-	UINT   cache;
-	UINT   pal;
-	ULONG  cycles;	
-	LONG   FrameCounter;
-	LONG   DmcCounter;
-	UINT   DmcLengthCounter;
-	UINT   IntLow;
-	UINT   IntEn;
 	EVENTS events;
-	ULONG  FrameCycles;
-	UINT   status;
-	BOOL   jammed;
+
+	UINT  status;
+	ULONG FrameCycles;
+	BOOL  jammed;
+	UINT  pal;
 
 	U8 ram[RAM_SIZE];
-
+	
 	APU apu;
 
 	bool logged[24];

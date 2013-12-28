@@ -1,4 +1,39 @@
 ----------------------------------------------------------------
+1.08
+----------------------------------------------------------------
+
+-Added a launcher.
+-Added support for drag-drop files.
+-Added some more options in the preferences dialog.
+-Changed so that relative paths are preserved.
+-Fixed mapper 1, glitches gone in "Air Fortress".
+-Fixed mapper 4, sound in "Startropics" & "Startropics 2 - Zoda's Revenge" works (MMC6B games which differs from MMC3).
+-Fixed mapper 10, "Fire Emblem" plus others work.
+-Fixed mapper 18, "Toukon Club" plus others work (minor glitches still there though).
+-Fixed mapper 19, "Family Circuit '91" and "Wagan Land 3" plus others work.
+-Fixed mapper 23, all valid versions of "Akumajou Special - Boku Dracula Kun" should now work.
+-Fixed mapper 32, "Ai Sensei no Oshiete - Watashi no Hoshi" and "Major League" works.
+-Fixed mapper 33, glitches gone in "Captain Saver".
+-Fixed mapper 51, "11-in-one Ball Games" works again.
+-Fixed mapper 58, "Study and Game 32-in-1" works.
+-Fixed mapper 60, "Reset Based 4-in-1" works.
+-Fixed mapper 62, "Super 700-in-1" works.
+-Fixed mapper 68, "Maharaja" works.
+-Fixed mapper 70, less glitches in "Gegege no Kitarou 2 - Youkai Gundan no Chousen".
+-Fixed mapper 82, glitches gone in "Kyuukyoku Harikiri Stadium 3" plus others.
+-Fixed mapper 87, "City Connection", "Ninja Jajamaru Kun" plus others work.
+-Fixed mapper 88, glitches gone in "Dragon Spirit - Aratanaru Densetsu" plus others.
+-Fixed mapper 90, less glitches in "Mortal Kombat 3 - Special 56 Peoples".
+-Fixed mapper 101, "Urusei Yatsura - Lum no Wedding Bell" works.
+-Fixed mapper 113, glitches gone in "16 Mahjang".
+-Fixed mapper 119, glitches gone in "Pinbot" and "Highspeed".
+-Fixed mapper 185, "Bird Week" works.
+-Fixed Game Genie bug (certain codes would either not work or crash the application).
+-Improved CPU/PPU synchronization. Screen shaking gone in many games ("Times of Lore", "Kick Master"). 
+-Tweaked the DMC and noise channel's output frequencies for PAL mode. PAL sound is now more accurate.
+-Tweaked the DMC DMA/IRQ counters. Most games relying on correctly timed DMC IRQ triggering should now work (Codemasters games, Ian Bell's Tank Demo).
+
+----------------------------------------------------------------
 1.07
 ----------------------------------------------------------------
 

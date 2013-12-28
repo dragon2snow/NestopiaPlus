@@ -472,14 +472,14 @@ VOID GAMEGENIE::CODE::Encode8(UINT* const codes) const
 	codes[1] |= (data & 0x40) >> 0x4;
 	codes[0] |= (data & 0x80) >> 0x4; 
 	
-	codes[6] |= (compare & 0x1) >> 0x0;
-	codes[6] |= (compare & 0x2) >> 0x0;
-	codes[6] |= (compare & 0x4) >> 0x0;
-	codes[5] |= (compare & 0x8) >> 0x0;
-	codes[7] |= (compare & 0x1) >> 0x4;
-	codes[7] |= (compare & 0x2) >> 0x4;
-	codes[7] |= (compare & 0x4) >> 0x4;
-	codes[6] |= (compare & 0x8) >> 0x4;  
+	codes[6] |= (compare & 0x01) >> 0x0;
+	codes[6] |= (compare & 0x02) >> 0x0;
+	codes[6] |= (compare & 0x04) >> 0x0;
+	codes[5] |= (compare & 0x08) >> 0x0;
+	codes[7] |= (compare & 0x10) >> 0x4;
+	codes[7] |= (compare & 0x20) >> 0x4;
+	codes[7] |= (compare & 0x40) >> 0x4;
+	codes[6] |= (compare & 0x80) >> 0x4;  
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
