@@ -36,10 +36,7 @@ BOOL CALLBACK DIRECTSOUND::EnumAdapters(LPGUID guid,LPCSTR desc,LPCSTR,LPVOID co
 	LPDIRECTSOUND8 device;
 
 	if (FAILED(DirectSoundCreate8(guid,&device,NULL)))
-	{
-		Error("DirectSoundCreate8() failed!");
 		return TRUE;
-	}
 
 	DSCAPS caps;
 	DIRECTX::InitStruct(caps);
@@ -47,7 +44,6 @@ BOOL CALLBACK DIRECTSOUND::EnumAdapters(LPGUID guid,LPCSTR desc,LPCSTR,LPVOID co
 	if (FAILED(device->GetCaps(&caps)))
 	{
 		device->Release();
-		Error("IDirectSound8::GetCaps() failed!");
 		return TRUE;
 	}
 
@@ -75,7 +71,7 @@ BOOL CALLBACK DIRECTSOUND::EnumAdapters(LPGUID guid,LPCSTR desc,LPCSTR,LPVOID co
 	for (UINT i=0; i < sizeof(rates) / sizeof(*rates); ++i)
 	{
 		if (rates[i] <= caps.dwMaxSecondarySampleRate && rates[i] >= caps.dwMinSecondarySampleRate)
-			adapter.SampleRates.InsertBack(rates[i]);
+			adapter.SampleRates.InsertBack( rates[i] );
 	}
 
 	if (!adapter.SampleRates.Size())
@@ -150,13 +146,21 @@ PDXRESULT DIRECTSOUND::Create(const GUID* const guid)
 	PDX_ASSERT(guid && hWnd);
 
 	if (PDX_FAILED(Destroy()))
-		return Error("Failed to release the DirectSound interface!");
+		return PDX_FAILURE;//Error("Failed to release the DirectSound interface!");
+
+	PDX_ASSERT(!device);
 
 	if (FAILED(DirectSoundCreate8(guid,&device,NULL)))
-		return Error("DirectSoundCreate8() failed!");
+	{
+		Destroy();
+		return PDX_FAILURE;//application.OnWarning("DirectSoundCreate8() failed!");
+	}
 
 	if (FAILED(device->SetCooperativeLevel(hWnd,DSSCL_PRIORITY)))
-		return Error("IDirectSound8::SetCooperativeLevel() failed!");
+	{
+		Destroy();
+		return PDX_FAILURE;//Error("IDirectSound8::SetCooperativeLevel() failed!");
+	}
 
 	LastOffset = 0;
 

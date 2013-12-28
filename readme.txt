@@ -1,5 +1,5 @@
 -----------------------------------------------------------------------------
-Nestopia 1.0 - NES/Famicom emulator
+Nestopia 1.01 - NES/Famicom emulator
 -----------------------------------------------------------------------------
 
 Nestopia is Copyright 2003 by Martin Freij

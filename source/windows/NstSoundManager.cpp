@@ -517,10 +517,31 @@ BOOL SOUNDMANAGER::UpdateSoundParameters()
 
 			if (PDX_FAILED(DIRECTSOUND::Create(&adapter.guid)))
 			{
-				enabled = FALSE;
-				context.enabled = FALSE;
-				nes->SetAudioContext( context );
-				return FALSE;
+				BOOL shit = TRUE;
+
+				for (UINT i=0; i < adapters.Size(); ++i)
+				{
+					if (SelectedAdapter != i)
+					{
+						SelectedAdapter = i;
+
+						if (PDX_SUCCEEDED(DIRECTSOUND::Create(&adapters[SelectedAdapter].guid)))
+						{
+							shit = FALSE;
+							break;
+						}
+					}
+				}
+
+				if (shit)
+				{
+					application.OnError("Failed to initialize DirectSound8!");
+					SelectedAdapter = 0;
+					enabled = FALSE;
+					context.enabled = FALSE;
+					nes->SetAudioContext( context );
+					return FALSE;
+				}
 			}
 		}
 
