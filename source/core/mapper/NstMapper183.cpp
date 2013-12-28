@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -25,15 +25,15 @@
 #include "../NstMapper.hpp"
 #include "../NstClock.hpp"
 #include "NstMapper183.hpp"
-	   
+
 namespace Nes
 {
 	namespace Core
 	{
-        #ifdef NST_PRAGMA_OPTIMIZE
-        #pragma optimize("s", on)
-        #endif
-	
+		#ifdef NST_PRAGMA_OPTIMIZE
+		#pragma optimize("s", on)
+		#endif
+
 		Mapper183::Mapper183(Context& c)
 		: Mapper(c,WRAM_NONE), irq(c.cpu) {}
 
@@ -70,11 +70,11 @@ namespace Nes
 				Map( 0xC000U + i, 0xC003U + i, &Mapper183::Poke_C000 );
 				Map( 0xC004U + i, 0xC007U + i, &Mapper183::Poke_C004 );
 				Map( 0xC008U + i, 0xC00BU + i, &Mapper183::Poke_C008 );
-				Map( 0xC00CU + i, 0xC00FU + i, &Mapper183::Poke_C00C );																																
+				Map( 0xC00CU + i, 0xC00FU + i, &Mapper183::Poke_C00C );
 				Map( 0xD000U + i, 0xD003U + i, &Mapper183::Poke_D000 );
 				Map( 0xD004U + i, 0xD007U + i, &Mapper183::Poke_D004 );
 				Map( 0xD008U + i, 0xD00BU + i, &Mapper183::Poke_D008 );
-				Map( 0xD00CU + i, 0xD00FU + i, &Mapper183::Poke_D00C );																
+				Map( 0xD00CU + i, 0xD00FU + i, &Mapper183::Poke_D00C );
 				Map( 0xE000U + i, 0xE003U + i, &Mapper183::Poke_E000 );
 				Map( 0xE004U + i, 0xE007U + i, &Mapper183::Poke_E004 );
 				Map( 0xE008U + i, 0xE00BU + i, &Mapper183::Poke_E008 );
@@ -107,13 +107,13 @@ namespace Nes
 			state.Begin('I','R','Q','\0').Write16( (irq.unit.enabled != false) | ((irq.unit.count[1] & 0xFF) << 8) ).End();
 		}
 
-        #ifdef NST_PRAGMA_OPTIMIZE
-        #pragma optimize("", on)
-        #endif
+		#ifdef NST_PRAGMA_OPTIMIZE
+		#pragma optimize("", on)
+		#endif
 
 		ibool Mapper183::Irq::Signal()
 		{
-			if (++count[0] < 114)			
+			if (++count[0] < 114)
 				return false;
 
 			count[0] = 0;
@@ -136,20 +136,20 @@ namespace Nes
 		NES_POKE(Mapper183,E004) { ppu.Update(); chr.SwapBank<SIZE_1K,0x1800U>( (chr.GetBank<SIZE_1K,0x1800U>() & 0x0F) | ((data & 0xF) << 4) ); }
 		NES_POKE(Mapper183,E008) { ppu.Update(); chr.SwapBank<SIZE_1K,0x1C00U>( (chr.GetBank<SIZE_1K,0x1C00U>() & 0xF0) | ((data & 0xF) << 0) ); }
 		NES_POKE(Mapper183,E00C) { ppu.Update(); chr.SwapBank<SIZE_1K,0x1C00U>( (chr.GetBank<SIZE_1K,0x1C00U>() & 0x0F) | ((data & 0xF) << 4) ); }
-		
-		NES_POKE(Mapper183,F000) 
+
+		NES_POKE(Mapper183,F000)
 		{
 			irq.Update();
 			irq.unit.count[1] = (irq.unit.count[1] & 0xF0) | ((data & 0xF) << 0);
 		}
 
-		NES_POKE(Mapper183,F004) 
+		NES_POKE(Mapper183,F004)
 		{
 			irq.Update();
 			irq.unit.count[1] = (irq.unit.count[1] & 0x0F) | ((data & 0xF) << 4);
 		}
 
-		NES_POKE(Mapper183,F008) 
+		NES_POKE(Mapper183,F008)
 		{
 			irq.Update();
 			irq.unit.enabled = data;
@@ -158,7 +158,7 @@ namespace Nes
 				irq.ClearIRQ();
 		}
 
-		NES_POKE(Mapper183,F00C) 
+		NES_POKE(Mapper183,F00C)
 		{
 		}
 

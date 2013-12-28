@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -50,8 +50,8 @@ namespace Nestopia
 			{
 				NES_WIDTH        = Nes::Video::Output::WIDTH,
 				NES_HEIGHT       = Nes::Video::Output::HEIGHT,
-				NTSC_WIDTH	     = Nes::Video::Output::NTSC_WIDTH,
-				NTSC_HEIGHT	     = Nes::Video::Output::NTSC_HEIGHT,
+				NTSC_WIDTH       = Nes::Video::Output::NTSC_WIDTH,
+				NTSC_HEIGHT      = Nes::Video::Output::NTSC_HEIGHT,
 				DEFAULT_WIDTH    = 640,
 				DEFAULT_HEIGHT   = 480,
 				DEFAULT_BPP      = 16,
@@ -66,7 +66,7 @@ namespace Nestopia
 			void LoadGamePalette(const Path&);
 			void UnloadGamePalette();
 			void SavePalette(Path&) const;
-			void UpdatePaletteMode() const;			
+			void UpdatePaletteMode() const;
 			void GetRenderState(Nes::Video::RenderState&,float[4],const Window::Generic) const;
 			ibool PutTextureInVideoMemory() const;
 			Modes::const_iterator GetDialogMode() const;
@@ -95,6 +95,9 @@ namespace Nestopia
 			struct Settings
 			{
 				Settings();
+				~Settings();
+
+				class Backup;
 
 				struct Rects
 				{
@@ -124,6 +127,7 @@ namespace Nestopia
 				bool autoPalette;
 				bool autoHz;
 				bool tvAspect;
+				const Backup* backup;
 			};
 
 			ibool OnInitDialog        (Param&);
@@ -132,7 +136,6 @@ namespace Nestopia
 			ibool OnCmdMode           (Param&);
 			ibool OnCmdFilter         (Param&);
 			ibool OnCmdFilterSettings (Param&);
-			ibool OnCmdTexMem         (Param&);
 			ibool OnCmdBitDepth       (Param&);
 			ibool OnCmdRam            (Param&);
 			ibool OnCmdColorsAdvanced (Param&);
@@ -141,16 +144,15 @@ namespace Nestopia
 			ibool OnCmdPalBrowse      (Param&);
 			ibool OnCmdPalClear       (Param&);
 			ibool OnCmdPalEditor      (Param&);
-			ibool OnCmdAutoHz         (Param&);
 			ibool OnCmdDefault        (Param&);
 			ibool OnCmdOk             (Param&);
+			ibool OnCmdCancel         (Param&);
 			ibool OnDestroy           (Param&);
 
 			void UpdateDevice(Mode);
 			void UpdateResolutions(Mode);
 			void UpdateFilters();
-			void UpdateTexMem() const;
-			void UpdateRects() const;
+			void UpdateRects(const Rect&,const Rect&) const;
 			void UpdateColors() const;
 			void UpdatePalette() const;
 			void ImportPalette(Path&,Managers::Paths::Alert);
@@ -176,11 +178,16 @@ namespace Nestopia
 				dialog.Open();
 			}
 
+			ibool IsOpen() const
+			{
+				return dialog.IsOpen();
+			}
+
 			const Rect& GetInputRect() const
 			{
-				return (Nes::Machine(nes).GetMode() == Nes::Machine::NTSC ? settings.rects.ntsc : settings.rects.pal);														
+				return (Nes::Machine(nes).GetMode() == Nes::Machine::NTSC ? settings.rects.ntsc : settings.rects.pal);
 			}
-  
+
 			bool ToggleTvAspect()
 			{
 				settings.tvAspect = !settings.tvAspect;

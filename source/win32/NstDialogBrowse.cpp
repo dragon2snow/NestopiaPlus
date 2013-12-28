@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -50,7 +50,7 @@ namespace Nestopia
 		ofn.hwndOwner       = Application::Instance::GetActiveWindow();
 		ofn.lpstrFile       = path.Ptr();
 		ofn.nMaxFile        = path.Capacity();
-		ofn.lpstrInitialDir	= dir.Length() ? dir.Ptr() : _T(".");
+		ofn.lpstrInitialDir = dir.Length() ? dir.Ptr() : _T(".");
 		ofn.Flags           = OFN_EXPLORER|OFN_FILEMUSTEXIST|OFN_HIDEREADONLY;
 
 		if (filter)
@@ -71,7 +71,7 @@ namespace Nestopia
 	}
 
 	const Path Browser::SaveFile(tchar* const filter,Path initial)
-	{		
+	{
 		Path path;
 		path.Reserve( MAX_PATH*2 );
 
@@ -88,7 +88,7 @@ namespace Nestopia
 		ofn.hwndOwner       = Application::Instance::GetActiveWindow();
 		ofn.lpstrFile       = path.Ptr();
 		ofn.nMaxFile        = path.Capacity();
-		ofn.lpstrInitialDir	= initial.Length() ? initial.Ptr() : _T(".");
+		ofn.lpstrInitialDir = initial.Length() ? initial.Ptr() : _T(".");
 		ofn.Flags           = OFN_EXPLORER|OFN_PATHMUSTEXIST|OFN_HIDEREADONLY;
 
 		if (filter)
@@ -120,21 +120,21 @@ namespace Nestopia
 		path.Reserve( MAX_PATH*2 );
 
 		Object::Pod<BROWSEINFO> bi;
-									
-		bi.hwndOwner	  = Application::Instance::GetActiveWindow();
+
+		bi.hwndOwner      = Application::Instance::GetActiveWindow();
 		bi.pszDisplayName = path.Ptr();
-		bi.ulFlags		  = BIF_RETURNONLYFSDIRS;
+		bi.ulFlags        = BIF_RETURNONLYFSDIRS;
 
 		if (LPITEMIDLIST const idl = ::SHBrowseForFolder( &bi ))
 		{
 			if (::SHGetPathFromIDList( idl, path.Ptr() ) && path.Validate())
-				path.CheckSlash();
+				path.MakePretty( true );
 			else
 				path.Clear();
 
 			IMalloc* pMalloc;
 
-			if (SUCCEEDED(::SHGetMalloc( &pMalloc ))) 
+			if (SUCCEEDED(::SHGetMalloc( &pMalloc )))
 			{
 				pMalloc->Free( idl );
 				pMalloc->Release();

@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -61,7 +61,6 @@ namespace Nestopia
 					Buffer();
 					explicit Buffer(const File&);
 					explicit Buffer(Collection::Buffer&);
-					~Buffer();
 
 					inline void operator = (const File&);
 					inline void operator = (Collection::Buffer&);
@@ -76,12 +75,11 @@ namespace Nestopia
 					void Initialize (Collection::Buffer&);
 
 					uint pos;
-					char* data;
-					uint size;
+					Collection::Buffer vector;
 
 					int_type underflow();
 					int_type uflow();
-					std::streamsize xsgetn(char*,std::streamsize); 
+					std::streamsize xsgetn(char*,std::streamsize);
 					std::streampos seekoff(std::streamoff,std::ios::seekdir,std::ios::openmode);
 					std::streampos seekpos(std::streampos,std::ios::openmode);
 				};
@@ -130,10 +128,10 @@ namespace Nestopia
 					void Initialize (Collection::Buffer&);
 
 					int_type overflow(int_type);
-					std::streamsize xsputn(const char*,std::streamsize); 
+					std::streamsize xsputn(const char*,std::streamsize);
 					std::streampos seekoff(std::streamoff,std::ios::seekdir,std::ios::openmode);
 					std::streampos seekpos(std::streampos,std::ios::openmode);
-	  
+
 					uint pos;
 					Collection::Buffer vector;
 				};

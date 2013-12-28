@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -40,7 +40,7 @@ namespace Nestopia
 	namespace DirectX
 	{
 		class DirectInput
-		{  
+		{
 			class Keyboard;
 			class Joystick;
 
@@ -61,10 +61,10 @@ namespace Nestopia
 				AXIS_RZ           = 0x020,
 				AXIS_SLIDER_0     = 0x040,
 				AXIS_SLIDER_1     = 0x080,
-				AXIS_POV_0	      = 0x100,
-				AXIS_POV_1	      = 0x200,
-				AXIS_POV_2	      = 0x400,
-				AXIS_POV_3	      = 0x800,
+				AXIS_POV_0        = 0x100,
+				AXIS_POV_1        = 0x200,
+				AXIS_POV_2        = 0x400,
+				AXIS_POV_3        = 0x800,
 				AXIS_ALL          = 0xFFF,
 				DEADZONE_MAX      = 100,
 				DEFAULT_AXES      = AXIS_X|AXIS_Y|AXIS_Z|AXIS_RX|AXIS_RY|AXIS_RZ|AXIS_POV_0|AXIS_POV_1|AXIS_POV_2|AXIS_POV_3,
@@ -108,6 +108,7 @@ namespace Nestopia
 				ibool MapVirtKey(GenericString);
 				ibool GetVirtKey(ACCEL&) const;
 				ibool IsVirtKey() const;
+				ibool GetToggle(ibool&) const;
 
 			private:
 
@@ -170,11 +171,11 @@ namespace Nestopia
 			class Keyboard
 			{
 			public:
-				
+
 				Keyboard(Base&);
 				~Keyboard();
 
-				enum 
+				enum
 				{
 					MAX_KEYS = NUM_KEYBOARD_KEYS,
 					COOPERATIVE_FLAGS = DISCL_FOREGROUND|DISCL_NONEXCLUSIVE|DISCL_NOWINKEY
@@ -234,11 +235,11 @@ namespace Nestopia
 					POV_CENTER    = 0xFFFF,
 					POV_UPRIGHT   =  45 * DI_DEGREES,
 					POV_DOWNRIGHT = 135 * DI_DEGREES,
-					POV_DOWNLEFT  =	225 * DI_DEGREES,
+					POV_DOWNLEFT  = 225 * DI_DEGREES,
 					POV_UPLEFT    = 315 * DI_DEGREES
 				};
 
-				enum Exception 
+				enum Exception
 				{
 					ERR_API
 				};
@@ -307,9 +308,9 @@ namespace Nestopia
 				private:
 
 					ibool must;
-					long lX; 
-					long lY; 
-					long lZ; 
+					long lX;
+					long lY;
+					long lZ;
 					long lRx;
 					long lRy;
 					long lRz;
@@ -341,7 +342,7 @@ namespace Nestopia
 				uint deadZone;
 				uint axes;
 
-				enum 
+				enum
 				{
 					TABLE_KEYS = 32
 				};
@@ -416,14 +417,14 @@ namespace Nestopia
 
 			static BOOL CALLBACK EnumJoysticks(LPCDIDEVICEINSTANCE,LPVOID);
 
-			static uint KeyDown     (const void* const) throw(); 
+			static uint KeyDown     (const void* const) throw();
 			static uint KeyNegDir   (const void* const) throw();
-			static uint KeyPosDir   (const void* const) throw();        
+			static uint KeyPosDir   (const void* const) throw();
 			static uint KeyPovUp    (const void* const) throw();
 			static uint KeyPovRight (const void* const) throw();
 			static uint KeyPovDown  (const void* const) throw();
 			static uint KeyPovLeft  (const void* const) throw();
-			static uint KeyNone     (const void* const) throw(); 
+			static uint KeyNone     (const void* const) throw();
 
 			Base base;
 			Keyboard keyboard;

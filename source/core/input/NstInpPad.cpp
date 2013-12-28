@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -33,9 +33,9 @@ namespace Nes
 		{
 			uint Pad::mic;
 
-            #ifdef NST_PRAGMA_OPTIMIZE
-            #pragma optimize("s", on)
-            #endif		
+			#ifdef NST_PRAGMA_OPTIMIZE
+			#pragma optimize("s", on)
+			#endif
 
 			Pad::Pad(uint i)
 			: Device(Type(uint(Api::Input::PAD1) + i))
@@ -43,7 +43,7 @@ namespace Nes
 				NST_ASSERT( i < 4 );
 
 				NST_COMPILE_ASSERT
-				( 
+				(
 					( Api::Input::PAD2 - Api::Input::PAD1 ) == 1 &&
 					( Api::Input::PAD3 - Api::Input::PAD1 ) == 2 &&
 					( Api::Input::PAD4 - Api::Input::PAD1 ) == 3
@@ -51,7 +51,7 @@ namespace Nes
 
 				Pad::Reset();
 			}
-		
+
 			void Pad::Reset()
 			{
 				strobe = 0;
@@ -61,7 +61,7 @@ namespace Nes
 
 			void Pad::SaveState(State::Saver& state,const uchar id) const
 			{
-				const u8 data[2] = 
+				const u8 data[2] =
 				{
 					strobe, stream ^ 0xFF
 				};
@@ -80,9 +80,9 @@ namespace Nes
 				}
 			}
 
-            #ifdef NST_PRAGMA_OPTIMIZE
-            #pragma optimize("", on)
-            #endif
+			#ifdef NST_PRAGMA_OPTIMIZE
+			#pragma optimize("", on)
+			#endif
 
 			void Pad::BeginFrame(Controllers* i)
 			{
@@ -94,7 +94,7 @@ namespace Nes
 			void Pad::Poll()
 			{
 				NST_ASSERT( input );
-				
+
 				Controllers::Pad& pad = input->pad[type - Api::Input::PAD1];
 				input = NULL;
 
@@ -108,7 +108,7 @@ namespace Nes
 						UP    = Controllers::Pad::UP,
 						RIGHT = Controllers::Pad::RIGHT,
 						DOWN  = Controllers::Pad::DOWN,
-						LEFT  =	Controllers::Pad::LEFT
+						LEFT  = Controllers::Pad::LEFT
 					};
 
 					if (!pad.allowSimulAxes)
@@ -130,7 +130,7 @@ namespace Nes
 				{
 					const uint data = stream;
 					stream >>= 1;
-					
+
 					return (~data & 0x1) | (mic & (~port << 2));
 				}
 				else
@@ -141,7 +141,7 @@ namespace Nes
 					return state & 0x1;
 				}
 			}
-		
+
 			void Pad::Poke(const uint data)
 			{
 				const uint prev = strobe;

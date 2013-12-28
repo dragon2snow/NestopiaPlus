@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -51,61 +51,61 @@ namespace Nestopia
 			{
 				switch (state)
 				{
-					case Nes::Movie::PLAYING:	
-						
-						msg = IDS_SCREEN_MOVIE_PLAY_STARTED; 
+					case Nes::Movie::PLAYING:
+
+						msg = IDS_SCREEN_MOVIE_PLAY_STARTED;
 						break;
 
-					case Nes::Movie::RECORDING: 
-						
-						msg = IDS_SCREEN_MOVIE_REC_STARTED; 
+					case Nes::Movie::RECORDING:
+
+						msg = IDS_SCREEN_MOVIE_REC_STARTED;
 						break;
 
-					case Nes::Movie::STOPPED_PLAYING:	
+					case Nes::Movie::STOPPED_PLAYING:
 
 						movie.Close( REWINDED );
-						msg = IDS_SCREEN_MOVIE_PLAY_STOPPED;						
+						msg = IDS_SCREEN_MOVIE_PLAY_STOPPED;
 						break;
 
-					case Nes::Movie::STOPPED_RECORDING:	
+					case Nes::Movie::STOPPED_RECORDING:
 
 						movie.Close( FORWARDED );
 						msg = IDS_SCREEN_MOVIE_REC_STOPPED;
 						break;
 
-					default: 
-						
+					default:
+
 						NST_DEBUG_MSG("Movie::Callbacks::OnState() unknown state!");
 						return;
 				}
 
 				Io::Screen() << Resource::String( msg );
 			}
-			else 
+			else
 			{
-				movie.Close( REWINDED, FALSE );
+				movie.Close( REWINDED, false );
 
 				switch (state)
 				{
-					case Nes::Movie::ERR_CORRUPT_FILE:		msg = IDS_FILE_ERR_CORRUPT;			break;
-					case Nes::Movie::ERR_OUT_OF_MEMORY:		msg = IDS_ERR_OUT_OF_MEMORY;		break;
-					case Nes::Movie::ERR_UNSUPPORTED_IMAGE:	msg = IDS_EMU_ERR_UNSUPPORTED_GAME;	break;
+					case Nes::Movie::ERR_CORRUPT_FILE:      msg = IDS_FILE_ERR_CORRUPT;         break;
+					case Nes::Movie::ERR_OUT_OF_MEMORY:     msg = IDS_ERR_OUT_OF_MEMORY;        break;
+					case Nes::Movie::ERR_UNSUPPORTED_IMAGE: msg = IDS_EMU_ERR_UNSUPPORTED_GAME; break;
 					case Nes::Movie::ERR_GENERIC:
-					default:                    			msg = IDS_ERR_GENERIC;				break;
+					default:                                msg = IDS_ERR_GENERIC;              break;
 				}
 
 				Io::Screen() << Resource::String( Nes::Movie(movie.emulator).IsPlaying() ? IDS_EMU_ERR_MOVIE_PLAY : IDS_EMU_ERR_MOVIE_REC )
-						     << ' '
-						     << Resource::String( msg );	
+                             << ' '
+                             << Resource::String( msg );
 			}
 		}
 	};
 
 	Movie::Movie(Emulator& e,Window::Menu& m,const Paths& p)
-	: 
-	emulator (e), 
+	:
+	emulator (e),
 	pos      (REWINDED),
-	menu     (m), 
+	menu     (m),
 	dialog   (new Window::Movie(p)),
 	paths    (p)
 	{
@@ -121,7 +121,7 @@ namespace Nestopia
 		};
 
 		static const Window::Menu::PopupHandler::Entry<Movie> popups[] =
-		{	  
+		{
 			{ Window::Menu::PopupHandler::Pos<IDM_POS_FILE,IDM_POS_FILE_MOVIE>::ID, &Movie::OnMenuView }
 		};
 
@@ -137,14 +137,14 @@ namespace Nestopia
 		Nes::Movie::stateCallback.Set( NULL, NULL );
 	}
 
-    ibool Movie::CanPlay() const
+	ibool Movie::CanPlay() const
 	{
 		return
 		(
-    		emulator.Is( Nes::Machine::GAME ) &&
+			emulator.Is( Nes::Machine::GAME ) &&
 			Nes::Movie( emulator ).IsStopped() &&
 			dialog->GetMovieFile().Length() &&
-			Io::File::FileExist( dialog->GetMovieFile().Ptr() )
+			dialog->GetMovieFile().FileExists()
 		);
 	}
 
@@ -155,7 +155,7 @@ namespace Nestopia
 			emulator.Is( Nes::Machine::GAME ) &&
 			Nes::Movie( emulator ).IsStopped() &&
 			dialog->GetMovieFile().Length() &&
-			!Io::File::FileProtected( dialog->GetMovieFile().Ptr() )
+			!dialog->GetMovieFile().FileProtected()
 		);
 	}
 
@@ -171,18 +171,18 @@ namespace Nestopia
 
 	ibool Movie::CanForward() const
 	{
-		return 
+		return
 		(
-	     	pos != FORWARDED && 
+			pos != FORWARDED &&
 			emulator.Is( Nes::Machine::GAME ) &&
 			Nes::Movie( emulator ).IsStopped() &&
 			dialog->GetMovieFile().Length() &&
-			Io::File::FileExist( dialog->GetMovieFile().Ptr() ) &&
-			!Io::File::FileProtected( dialog->GetMovieFile().Ptr() )
+			dialog->GetMovieFile().FileExists() &&
+			!dialog->GetMovieFile().FileProtected()
 		);
 	}
 
-    void Movie::OnMenuView(Window::Menu::PopupHandler::Param& param)
+	void Movie::OnMenuView(Window::Menu::PopupHandler::Param& param)
 	{
 		param.menu[ IDM_FILE_MOVIE_PLAY       ].Enable( CanPlay()    );
 		param.menu[ IDM_FILE_MOVIE_RECORD     ].Enable( CanRecord()  );
@@ -200,13 +200,13 @@ namespace Nestopia
 		stream.open( dialog->GetMovieFile().Ptr(), mode | std::fstream::binary );
 
 		if (stream.is_open())
-			return TRUE;
-		
-		Io::Screen() << Resource::String( (mode & std::fstream::out) ? IDS_EMU_ERR_MOVIE_REC : IDS_EMU_ERR_MOVIE_PLAY )
-			         << ' '
-			         << Resource::String( IDS_FILE_ERR_OPEN );		
+			return true;
 
-		return FALSE;
+		Io::Screen() << Resource::String( (mode & std::fstream::out) ? IDS_EMU_ERR_MOVIE_REC : IDS_EMU_ERR_MOVIE_PLAY )
+                     << ' '
+                     << Resource::String( IDS_FILE_ERR_OPEN );
+
+		return false;
 	}
 
 	void Movie::Close(Pos p,ibool ok)
@@ -233,16 +233,16 @@ namespace Nestopia
 			else
 				Io::Log() << "Movie: ignoring file, can't use it while it's archived..\r\n";
 
-			return FALSE;
+			return false;
 		}
 		else if (dialog->SetMovieFile( fileName ))
 		{
 			Nes::Movie(emulator).Eject();
 		}
 
-		return TRUE;
+		return true;
 	}
-  
+
 	void Movie::Save(Io::Nsp::Context& context) const
 	{
 		context.movie = dialog->GetMovieFile();
@@ -252,7 +252,7 @@ namespace Nestopia
 	{
 		const Path old( dialog->GetMovieFile() );
 		dialog->Open();
-		
+
 		if (old != dialog->GetMovieFile())
 			Nes::Movie(emulator).Eject();
 	}
@@ -261,7 +261,7 @@ namespace Nestopia
 	{
 		const ibool on = emulator.Is( Nes::Machine::ON );
 
-		if (CanRecord() && (on || emulator.Power( TRUE )))
+		if (CanRecord() && (on || emulator.Power( true )))
 		{
 			if (Nes::Rewinder(emulator).IsEnabled())
 			{
@@ -269,28 +269,28 @@ namespace Nestopia
 			}
 			else if (Open( (pos == REWINDED) ? (std::fstream::trunc|std::fstream::in|::std::fstream::out) : (std::fstream::in|std::fstream::out) ))
 			{
-				const Nes::Result result = Nes::Movie(emulator).Record( stream, pos == REWINDED ? Nes::Movie::CLEAN : Nes::Movie::APPEND );  
-			
+				const Nes::Result result = Nes::Movie(emulator).Record( stream, pos == REWINDED ? Nes::Movie::CLEAN : Nes::Movie::APPEND );
+
 				if (NES_FAILED(result))
 				{
-					Close( REWINDED, FALSE );
-			
+					Close( REWINDED, false );
+
 					if (!on)
-						emulator.Power( FALSE );
-				
+						emulator.Power( false );
+
 					uint msg;
-				
+
 					switch (result)
 					{
-						case Nes::RESULT_ERR_CORRUPT_FILE:  msg = IDS_FILE_ERR_CORRUPT;  break;  
-						case Nes::RESULT_ERR_INVALID_FILE:  msg = IDS_FILE_ERR_INVALID;  break;  
-						case Nes::RESULT_ERR_OUT_OF_MEMORY:	msg = IDS_ERR_OUT_OF_MEMORY; break;
-						default:							msg = IDS_EMU_ERR_GENERIC;   break;
+						case Nes::RESULT_ERR_CORRUPT_FILE:  msg = IDS_FILE_ERR_CORRUPT;  break;
+						case Nes::RESULT_ERR_INVALID_FILE:  msg = IDS_FILE_ERR_INVALID;  break;
+						case Nes::RESULT_ERR_OUT_OF_MEMORY: msg = IDS_ERR_OUT_OF_MEMORY; break;
+						default:                            msg = IDS_EMU_ERR_GENERIC;   break;
 					}
-				
+
 					Io::Screen() << Resource::String( IDS_EMU_ERR_MOVIE_REC )
-					         	 << ' '
-								 << Resource::String( msg );		
+                                 << ' '
+                                 << Resource::String( msg );
 				}
 			}
 		}
@@ -302,7 +302,7 @@ namespace Nestopia
 	{
 		const ibool on = emulator.Is( Nes::Machine::ON );
 
-		if (CanPlay() && (on || emulator.Power( TRUE )))
+		if (CanPlay() && (on || emulator.Power( true )))
 		{
 			if (Nes::Rewinder(emulator).IsEnabled())
 			{
@@ -318,10 +318,10 @@ namespace Nestopia
 				}
 				else
 				{
-					Close( REWINDED, FALSE );
+					Close( REWINDED, false );
 
 					if (!on)
-						emulator.Power( FALSE );
+						emulator.Power( false );
 
 					if (result != Nes::RESULT_ERR_INVALID_CRC)
 					{
@@ -329,18 +329,18 @@ namespace Nestopia
 
 						switch (result)
 						{
-							case Nes::RESULT_ERR_CORRUPT_FILE:             msg = IDS_FILE_ERR_CORRUPT;                 break;  
+							case Nes::RESULT_ERR_CORRUPT_FILE:             msg = IDS_FILE_ERR_CORRUPT;                 break;
 							case Nes::RESULT_ERR_INVALID_FILE:             msg = IDS_FILE_ERR_INVALID;                 break;
-							case Nes::RESULT_ERR_OUT_OF_MEMORY:	           msg = IDS_ERR_OUT_OF_MEMORY;                break;
+							case Nes::RESULT_ERR_OUT_OF_MEMORY:            msg = IDS_ERR_OUT_OF_MEMORY;                break;
 							case Nes::RESULT_ERR_UNSUPPORTED_FILE_VERSION: msg = IDS_EMU_ERR_UNSUPPORTED_FILE_VERSION; break;
-							default:						   	           msg = IDS_EMU_ERR_GENERIC;                  break;
+							default:                                       msg = IDS_EMU_ERR_GENERIC;                  break;
 						}
 
 						Io::Screen() << Resource::String( IDS_EMU_ERR_MOVIE_PLAY )
-							         << ' '
-							         << Resource::String( msg );	
+                                     << ' '
+                                     << Resource::String( msg );
 					}
-				}			
+				}
 			}
 		}
 
@@ -392,7 +392,7 @@ namespace Nestopia
 		if (CanForward())
 		{
 			pos = FORWARDED;
-			Io::Screen() << Resource::String( IDS_SCREEN_MOVIE_FORWARDED );		
+			Io::Screen() << Resource::String( IDS_SCREEN_MOVIE_FORWARDED );
 		}
 
 		Application::Instance::Post( Application::Instance::WM_NST_COMMAND_RESUME );
@@ -413,7 +413,7 @@ namespace Nestopia
 				if (Nes::Movie(emulator).IsPlaying())
 					Nes::Movie(emulator).Eject();
 
-				break;				
+				break;
 		}
 	}
 }

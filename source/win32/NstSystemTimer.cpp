@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -61,10 +61,10 @@ namespace Nestopia
 		{
 			TIMECAPS caps;
 
-			if 
+			if
 			(
-				::timeGetDevCaps( &caps, sizeof(caps) ) == TIMERR_NOERROR && 
-				caps.wPeriodMin && 
+				::timeGetDevCaps( &caps, sizeof(caps) ) == TIMERR_NOERROR &&
+				caps.wPeriodMin &&
 				::timeBeginPeriod( caps.wPeriodMin ) != TIMERR_NOCANDO
 			)
 				period = caps.wPeriodMin;
@@ -87,9 +87,9 @@ namespace Nestopia
 		threshold = THRESHOLD;
 		giveup = 0;
 
-		if 
+		if
 		(
-	     	desired == PERFORMANCE && 
+			desired == PERFORMANCE &&
 			HasPerformanceCounter() &&
 			::QueryPerformanceCounter( reinterpret_cast<LARGE_INTEGER*>(&start) )
 		)
@@ -105,16 +105,16 @@ namespace Nestopia
 		return type == desired;
 	}
 
-    #ifdef NST_PRAGMA_OPTIMIZE
-    #pragma optimize("t", on)
-    #endif
+	#ifdef NST_PRAGMA_OPTIMIZE
+	#pragma optimize("t", on)
+	#endif
 
 	Timer::Value Timer::Elapsed() const
 	{
 		if (type == PERFORMANCE)
 		{
 			Value time;
-			
+
 			if (::QueryPerformanceCounter( reinterpret_cast<LARGE_INTEGER*>(&time) ))
 				return time - start;
 			else
@@ -141,7 +141,7 @@ namespace Nestopia
 
 		if (milliSecs > settings.period + threshold)
 		{
-			::Sleep( milliSecs - threshold );		
+			::Sleep( milliSecs - threshold );
 			current = Elapsed();
 
 			if (current > target)
@@ -150,7 +150,7 @@ namespace Nestopia
 				giveup ^= 1;
 			}
 		}
-	  
+
 		if (type == PERFORMANCE)
 		{
 			while (current < target && ::QueryPerformanceCounter( reinterpret_cast<LARGE_INTEGER*>(&current) ))
@@ -163,7 +163,7 @@ namespace Nestopia
 		}
 	}
 
-    #ifdef NST_PRAGMA_OPTIMIZE
-    #pragma optimize("", on)
-    #endif
+	#ifdef NST_PRAGMA_OPTIMIZE
+	#pragma optimize("", on)
+	#endif
 }

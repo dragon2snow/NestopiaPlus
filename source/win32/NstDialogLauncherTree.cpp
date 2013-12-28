@@ -5,23 +5,25 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
+#include "resource/resource.h"
+#include "NstResourceString.hpp"
 #include "NstDialogLauncher.hpp"
 
 namespace Nestopia
@@ -29,7 +31,7 @@ namespace Nestopia
 	using namespace Window;
 
 	Launcher::Tree::Tree()
-	: 
+	:
 	imageList (16,16,IDB_LAUNCHERTREE_OPEN,IDB_LAUNCHERTREE_CLOSED),
 	selection (0)
 	{}
@@ -40,14 +42,14 @@ namespace Nestopia
 
 		ctrl.SetImageList( imageList );
 
-		ctrl.Add( _T( "All Files"     ) );
-		ctrl.Add( _T( "NES Files"     ) );
-		ctrl.Add( _T( "UNIF Files"    ) );
-		ctrl.Add( _T( "FDS Files"     ) );
-		ctrl.Add( _T( "NSF Files"     ) );
-		ctrl.Add( _T( "IPS Files"     ) );
-		ctrl.Add( _T( "NSP Files"     ) );
-		ctrl.Add( _T( "Archive Files" ) );
+		ctrl.Add( Resource::String( IDS_LAUNCHER_SECTION_ALL     ) );
+		ctrl.Add( Resource::String( IDS_LAUNCHER_SECTION_NES     ) );
+		ctrl.Add( Resource::String( IDS_LAUNCHER_SECTION_UNIF    ) );
+		ctrl.Add( Resource::String( IDS_LAUNCHER_SECTION_FDS     ) );
+		ctrl.Add( Resource::String( IDS_LAUNCHER_SECTION_NSF     ) );
+		ctrl.Add( Resource::String( IDS_LAUNCHER_SECTION_IPS     ) );
+		ctrl.Add( Resource::String( IDS_LAUNCHER_SECTION_NSP     ) );
+		ctrl.Add( Resource::String( IDS_LAUNCHER_SECTION_ARCHIVE ) );
 
 		ctrl[selection].Select();
 	}

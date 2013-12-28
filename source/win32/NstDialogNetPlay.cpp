@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -63,7 +63,7 @@ namespace Nestopia
 
 	const Control::NotificationHandler::Entry<Netplay> Netplay::Handlers::notifications[] =
 	{
-		{ LVN_KEYDOWN,     &Netplay::OnKeyDown	      },
+		{ LVN_KEYDOWN,     &Netplay::OnKeyDown        },
 		{ LVN_ITEMCHANGED, &Netplay::OnItemChanged    },
 		{ LVN_INSERTITEM,  &Netplay::OnInsertItem     },
 		{ LVN_DELETEITEM,  &Netplay::OnDeleteItem     }
@@ -92,31 +92,23 @@ namespace Nestopia
 	void Netplay::Games::Erase(uint index)
 	{
 		state = DIRTY;
-		Iterator const it = At( index );		
+		Iterator const it = At( index );
 		it->Path::~Path();
 		Array().Erase( it );
 	}
 
-	Netplay::Netplay(const Configuration& cfg,Managers::Emulator& e,const Managers::Paths& p)
-	: 
-	dialog        ( IDD_NETPLAY, this, Handlers::messages, Handlers::commands ), 
+	Netplay::Netplay(Managers::Emulator& e,const Managers::Paths& p,ibool fullscreen)
+	:
+	dialog        ( IDD_NETPLAY, this, Handlers::messages, Handlers::commands ),
+	doFullscreen  ( fullscreen ),
 	notifications ( IDC_NETPLAY_GAMELIST, dialog.Messages(), this, Handlers::notifications ),
 	paths         ( p ),
 	emulator      ( e )
 	{
-		settings.fullscreen = (cfg[ "netplay in fullscreen" ] == Configuration::YES);
 	}
 
 	Netplay::~Netplay()
 	{
-	}
-
-	void Netplay::Save(Configuration& cfg,const ibool saveGameList) const
-	{
-		cfg[ "netplay in fullscreen" ].YesNo() = settings.fullscreen;
-
-		if (saveGameList)
-			SaveFile();
 	}
 
 	void Netplay::LoadFile()
@@ -125,7 +117,7 @@ namespace Nestopia
 
 		try
 		{
-			Io::File( Application::Instance::GetPath(_T("netplaylist.dat")), Io::File::COLLECT ).ReadText( text );
+			Io::File( Application::Instance::GetExePath(_T("netplaylist.dat")), Io::File::COLLECT ).ReadText( text );
 		}
 		catch (Io::File::Exception id)
 		{
@@ -156,7 +148,7 @@ namespace Nestopia
 					Add( path );
 				}
 
-				do 
+				do
 				{
 					++it;
 				}
@@ -176,7 +168,7 @@ namespace Nestopia
 		if (games.state == Games::DIRTY)
 		{
 			Io::Log log;
-			const Path path( Application::Instance::GetPath(_T("netplaylist.dat")) );
+			const Path path( Application::Instance::GetExePath(_T("netplaylist.dat")) );
 
 			if (games.Size())
 			{
@@ -195,7 +187,7 @@ namespace Nestopia
 					log << "Netplay: warning, couldn't save game list to \"netplaylist.dat\"!\r\n";
 				}
 			}
-			else if (Io::File::FileExist( path.Ptr() ))
+			else if (path.FileExists())
 			{
 				if (Io::File::Delete( path.Ptr() ))
 					log << "Netplay: game list empty, deleted \"netplaylist.dat\"\r\n";
@@ -209,7 +201,7 @@ namespace Nestopia
 	{
 		enum
 		{
-			TYPES = Managers::Paths::File::GAME|Managers::Paths::File::ARCHIVE		
+			TYPES = Managers::Paths::File::GAME|Managers::Paths::File::ARCHIVE
 		};
 
 		if (path.Length() && games.Size() < Games::LIMIT && paths.CheckFile( path, TYPES ))
@@ -221,10 +213,10 @@ namespace Nestopia
 			}
 		}
 	}
-  
+
 	ibool Netplay::OnInitDialog(Param&)
 	{
-		dialog.CheckBox( IDC_NETPLAY_PLAY_FULLSCREEN ).Check( settings.fullscreen );
+		dialog.CheckBox( IDC_NETPLAY_PLAY_FULLSCREEN ).Check( doFullscreen );
 		dialog.CheckBox( IDC_NETPLAY_REMOVE ).Disable();
 
 		if (games.state == Games::UNINITIALIZED)
@@ -243,7 +235,7 @@ namespace Nestopia
 		dialog.CheckBox( IDC_NETPLAY_CLEAR ).Enable( games.Size() );
 		dialog.CheckBox( IDC_NETPLAY_LAUNCH ).Enable( games.Size() );
 
-		return TRUE;
+		return true;
 	}
 
 	ibool Netplay::OnAdd(Param& param)
@@ -251,15 +243,15 @@ namespace Nestopia
 		if (param.Button().IsClicked())
 			Add( paths.BrowseLoad(Managers::Paths::File::GAME|Managers::Paths::File::ARCHIVE) );
 
-		return TRUE;
+		return true;
 	}
 
-	ibool Netplay::OnRemove(Param& param) 
+	ibool Netplay::OnRemove(Param& param)
 	{
 		if (param.Button().IsClicked())
 			dialog.ListView( IDC_NETPLAY_GAMELIST ).Selection().Delete();
 
-		return TRUE;
+		return true;
 	}
 
 	ibool Netplay::OnClear(Param& param)
@@ -267,39 +259,39 @@ namespace Nestopia
 		if (param.Button().IsClicked())
 			dialog.ListView( IDC_NETPLAY_GAMELIST ).Clear();
 
-		return TRUE;
+		return true;
 	}
 
 	ibool Netplay::OnDefault(Param& param)
 	{
 		if (param.Button().IsClicked())
-			dialog.CheckBox( IDC_NETPLAY_PLAY_FULLSCREEN ).Check( settings.fullscreen = FALSE );
+			dialog.CheckBox( IDC_NETPLAY_PLAY_FULLSCREEN ).Check( doFullscreen = false );
 
-		return TRUE;
+		return true;
 	}
 
-	ibool Netplay::OnCancel(Param& param) 
+	ibool Netplay::OnCancel(Param& param)
 	{
 		if (param.Button().IsClicked())
 			dialog.Close();
 
-		return TRUE;
+		return true;
 	}
 
-	ibool Netplay::OnLaunch(Param& param)  
+	ibool Netplay::OnLaunch(Param& param)
 	{
 		if (param.Button().IsClicked())
 			dialog.Close( LAUNCH );
 
-		return TRUE;
+		return true;
 	}
 
 	ibool Netplay::OnFullscreen(Param& param)
 	{
 		if (param.Button().IsClicked())
-			settings.fullscreen = dialog.CheckBox( IDC_NETPLAY_PLAY_FULLSCREEN ).IsChecked();
+			doFullscreen = dialog.CheckBox( IDC_NETPLAY_PLAY_FULLSCREEN ).IsChecked();
 
-		return TRUE;
+		return true;
 	}
 
 	ibool Netplay::OnDropFiles(Param& param)
@@ -312,7 +304,7 @@ namespace Nestopia
 				Add( dropFiles[i] );
 		}
 
-		return TRUE;
+		return true;
 	}
 
 	void Netplay::OnKeyDown(const NMHDR& nmhdr)

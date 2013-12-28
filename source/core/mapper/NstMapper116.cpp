@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -25,21 +25,21 @@
 #include "../NstMapper.hpp"
 #include "../board/NstBrdMmc3.hpp"
 #include "NstMapper116.hpp"
-	
+
 namespace Nes
 {
 	namespace Core
 	{
-        #ifdef NST_PRAGMA_OPTIMIZE
-        #pragma optimize("s", on)
-        #endif
-	
+		#ifdef NST_PRAGMA_OPTIMIZE
+		#pragma optimize("s", on)
+		#endif
+
 		Mapper116::Mapper116(Context& c)
-		: 
+		:
 		Mapper (c),
 		irq    (c.cpu,c.ppu)
 		{}
-	
+
 		void Mapper116::SubReset(const bool hard)
 		{
 			irq.Reset( hard, hard || irq.IsLineEnabled() );
@@ -85,8 +85,8 @@ namespace Nes
 			Map( 0x8000U, 0x8FFFU, &Mapper116::Poke_8000 );
 			Map( 0x9000U, 0x9FFFU, &Mapper116::Poke_9000 );
 			Map( 0xA000U, 0xAFFFU, &Mapper116::Poke_A000 );
-			Map( 0xB000U, 0xBFFFU, &Mapper116::Poke_B000 );			
-			Map( 0xC000U, 0xCFFFU, &Mapper116::Poke_C000 );			
+			Map( 0xB000U, 0xBFFFU, &Mapper116::Poke_B000 );
+			Map( 0xC000U, 0xCFFFU, &Mapper116::Poke_C000 );
 			Map( 0xD000U, 0xDFFFU, &Mapper116::Poke_D000 );
 			Map( 0xE000U, 0xEFFFU, &Mapper116::Poke_E000 );
 			Map( 0xF000U, 0xFFFFU, &Mapper116::Poke_F000 );
@@ -95,7 +95,7 @@ namespace Nes
 			UpdateNmt();
 			UpdateChr();
 		}
-	
+
 		void Mapper116::SubLoad(State::Loader& state)
 		{
 			while (const dword chunk = state.Begin())
@@ -107,7 +107,7 @@ namespace Nes
 						mode = state.Read8();
 						break;
 
-       				case NES_STATE_CHUNK_ID('V','R','2','\0'):
+					case NES_STATE_CHUNK_ID('V','R','2','\0'):
 
 						state.Read( blockVrc2 );
 						break;
@@ -117,7 +117,7 @@ namespace Nes
 						state.Read( blockMmc3 );
 						break;
 
-     				case NES_STATE_CHUNK_ID('M','M','1','\0'):
+					case NES_STATE_CHUNK_ID('M','M','1','\0'):
 
 						state.Read( blockMmc1 );
 						break;
@@ -135,7 +135,7 @@ namespace Nes
 			UpdateNmt();
 			UpdateChr();
 		}
-	
+
 		void Mapper116::SubSave(State::Saver& state) const
 		{
 			state.Begin('R','E','G','\0').Write8( mode ).End();
@@ -144,10 +144,10 @@ namespace Nes
 			state.Begin('M','M','1','\0').Write( blockMmc1 ).End();
 			irq.unit.SaveState( State::Saver::Subset(state,'I','R','Q','\0').Ref() );
 		}
-	
-        #ifdef NST_PRAGMA_OPTIMIZE
-        #pragma optimize("", on)
-        #endif
+
+		#ifdef NST_PRAGMA_OPTIMIZE
+		#pragma optimize("", on)
+		#endif
 
 		void Mapper116::UpdatePrg()
 		{
@@ -158,7 +158,7 @@ namespace Nes
 					prg.SwapBanks<SIZE_8K,0x0000U>( vrc2.prg[0], vrc2.prg[1], 0x1E, 0x1F );
 					break;
 
-      			case 0x1:
+				case 0x1:
 				{
 					const uint i = (mmc3.ctrl & 0x40) >> 5;
 					prg.SwapBanks<SIZE_8K,0x0000U>( mmc3.banks[6+i], mmc3.banks[6+1], mmc3.banks[6+(i^2)], mmc3.banks[6+3] );
@@ -169,7 +169,7 @@ namespace Nes
 				{
 					const uint bank = mmc1.regs[3] & 0xF;
 
-					if (mmc1.regs[0] & 0x8) 
+					if (mmc1.regs[0] & 0x8)
 						prg.SwapBanks<SIZE_16K,0x0000U>( ((mmc1.regs[0] & 0x4) ? bank : 0x0), ((mmc1.regs[0] & 0x4) ? 0xF : bank) );
 					else
 						prg.SwapBank<SIZE_32K,0x0000U>( bank >> 1 );
@@ -187,15 +187,15 @@ namespace Nes
 			{
 				case 0x0:
 
-					chr.SwapBanks<SIZE_1K,0x0000U>( base|vrc2.chr[0], base|vrc2.chr[1], base|vrc2.chr[2], base|vrc2.chr[3] ); 
-					chr.SwapBanks<SIZE_1K,0x1000U>( base|vrc2.chr[4], base|vrc2.chr[5], base|vrc2.chr[6], base|vrc2.chr[7] ); 
+					chr.SwapBanks<SIZE_1K,0x0000U>( base|vrc2.chr[0], base|vrc2.chr[1], base|vrc2.chr[2], base|vrc2.chr[3] );
+					chr.SwapBanks<SIZE_1K,0x1000U>( base|vrc2.chr[4], base|vrc2.chr[5], base|vrc2.chr[6], base|vrc2.chr[7] );
 					break;
 
-       			case 0x1:
+				case 0x1:
 				{
 					const uint swap = (mmc3.ctrl & 0x80) << 5;
-					chr.SwapBanks<SIZE_2K>( 0x0000U ^ swap, (base >> 1)|mmc3.banks[0], (base >> 1)|mmc3.banks[1] ); 
-					chr.SwapBanks<SIZE_1K>( 0x1000U ^ swap, base|mmc3.banks[2], base|mmc3.banks[3], base|mmc3.banks[4], base|mmc3.banks[5] ); 
+					chr.SwapBanks<SIZE_2K>( 0x0000U ^ swap, (base >> 1)|mmc3.banks[0], (base >> 1)|mmc3.banks[1] );
+					chr.SwapBanks<SIZE_1K>( 0x1000U ^ swap, base|mmc3.banks[2], base|mmc3.banks[3], base|mmc3.banks[4], base|mmc3.banks[5] );
 					break;
 				}
 
@@ -226,7 +226,7 @@ namespace Nes
 
 					switch (mmc1.regs[0] & 0x3)
 					{
-       					case 0x0: nmt = Ppu::NMT_ZERO;       break;
+						case 0x0: nmt = Ppu::NMT_ZERO;       break;
 						case 0x1: nmt = Ppu::NMT_ONE;        break;
 						case 0x2: nmt = Ppu::NMT_VERTICAL;   break;
 						default:  nmt = Ppu::NMT_HORIZONTAL; break;
@@ -312,7 +312,7 @@ namespace Nes
 				address = mmc3.ctrl ^ data;
 				mmc3.ctrl = data;
 
-				if (address & 0x40) 
+				if (address & 0x40)
 					UpdatePrg();
 
 				if (address & (0x80|0x7))
@@ -372,7 +372,7 @@ namespace Nes
 				if (mmc1.shifter != 5)
 					return;
 
-				mmc1.shifter = 0;						
+				mmc1.shifter = 0;
 				data = mmc1.buffer;
 				mmc1.buffer = 0;
 
@@ -381,7 +381,7 @@ namespace Nes
 				if (mmc1.regs[address] != data)
 				{
 					mmc1.regs[address] = data;
-					
+
 					UpdatePrg();
 					UpdateNmt();
 					UpdateChr();
@@ -403,11 +403,11 @@ namespace Nes
 			}
 		}
 
-		NES_POKE(Mapper116,4100) 
-		{ 
+		NES_POKE(Mapper116,4100)
+		{
 			if (mode != data)
 			{
-				mode = data;				
+				mode = data;
 
 				if ((data & 0x3) != 1)
 					irq.unit.Disable( cpu );
@@ -418,82 +418,82 @@ namespace Nes
 			}
 		}
 
-		NES_POKE(Mapper116,8000) 
-		{ 
+		NES_POKE(Mapper116,8000)
+		{
 			switch (mode & 0x3)
 			{
-       			case 0x0: Poke_Vrc2_8000( address, data ); break;
+				case 0x0: Poke_Vrc2_8000( address, data ); break;
 				case 0x1: Poke_Mmc3_8000( address, data ); break;
 				case 0x2: Poke_Mmc1_8000( address, data ); break;
 			}
 		}
-	
-		NES_POKE(Mapper116,9000) 
-		{ 
+
+		NES_POKE(Mapper116,9000)
+		{
 			switch (mode & 0x3)
 			{
-       			case 0x0: Poke_Vrc2_9000( address, data ); break;
-     			case 0x1: Poke_Mmc3_8000( address, data ); break;
+				case 0x0: Poke_Vrc2_9000( address, data ); break;
+				case 0x1: Poke_Mmc3_8000( address, data ); break;
 				case 0x2: Poke_Mmc1_8000( address, data ); break;
 			}
 		}
 
-		NES_POKE(Mapper116,A000) 
-		{ 
+		NES_POKE(Mapper116,A000)
+		{
 			switch (mode & 0x3)
 			{
-       			case 0x0: Poke_Vrc2_8000( address, data ); break;
-     			case 0x1: Poke_Mmc3_A000( address, data ); break;
+				case 0x0: Poke_Vrc2_8000( address, data ); break;
+				case 0x1: Poke_Mmc3_A000( address, data ); break;
 				case 0x2: Poke_Mmc1_8000( address, data ); break;
 			}
 		}
 
-		NES_POKE(Mapper116,B000) 
-		{ 
+		NES_POKE(Mapper116,B000)
+		{
 			switch (mode & 0x3)
 			{
-       			case 0x0: Poke_Vrc2_B000( address, data ); break;
-     			case 0x1: Poke_Mmc3_A000( address, data ); break;
+				case 0x0: Poke_Vrc2_B000( address, data ); break;
+				case 0x1: Poke_Mmc3_A000( address, data ); break;
 				case 0x2: Poke_Mmc1_8000( address, data ); break;
 			}
 		}
 
-		NES_POKE(Mapper116,C000) 
-		{ 
+		NES_POKE(Mapper116,C000)
+		{
 			switch (mode & 0x3)
 			{
-       			case 0x0: Poke_Vrc2_B000( address, data ); break;
-     			case 0x1: Poke_Mmc3_C000( address, data ); break;
+				case 0x0: Poke_Vrc2_B000( address, data ); break;
+				case 0x1: Poke_Mmc3_C000( address, data ); break;
 				case 0x2: Poke_Mmc1_8000( address, data ); break;
 			}
 		}
 
-		NES_POKE(Mapper116,D000) 
-		{ 
+		NES_POKE(Mapper116,D000)
+		{
 			switch (mode & 0x3)
 			{
-       			case 0x0: Poke_Vrc2_B000( address, data ); break;
-     			case 0x1: Poke_Mmc3_C000( address, data ); break;
+				case 0x0: Poke_Vrc2_B000( address, data ); break;
+				case 0x1: Poke_Mmc3_C000( address, data ); break;
 				case 0x2: Poke_Mmc1_8000( address, data ); break;
 			}
 		}
 
-		NES_POKE(Mapper116,E000) 
-		{ 
+		NES_POKE(Mapper116,E000)
+		{
 			switch (mode & 0x3)
 			{
-       			case 0x0: Poke_Vrc2_B000( address, data ); break;
-     			case 0x1: Poke_Mmc3_E000( address, data ); break;
+				case 0x0: Poke_Vrc2_B000( address, data ); break;
+				case 0x1: Poke_Mmc3_E000( address, data ); break;
 				case 0x2: Poke_Mmc1_8000( address, data ); break;
 			}
 		}
 
-		NES_POKE(Mapper116,F000) 
-		{ 
+		NES_POKE(Mapper116,F000)
+		{
 			switch (mode & 0x3)
 			{
-       			case 0x0: break;
-     			case 0x1: Poke_Mmc3_E000( address, data ); break;
+				case 0x0: break;
+				case 0x1: Poke_Mmc3_E000( address, data ); break;
 				case 0x2: Poke_Mmc1_8000( address, data ); break;
 			}
 		}

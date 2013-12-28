@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -25,15 +25,15 @@
 #include "../NstMapper.hpp"
 #include "../NstClock.hpp"
 #include "NstMapper142.hpp"
-		 
+
 namespace Nes
 {
 	namespace Core
 	{
-        #ifdef NST_PRAGMA_OPTIMIZE
-        #pragma optimize("s", on)
-        #endif
-	
+		#ifdef NST_PRAGMA_OPTIMIZE
+		#pragma optimize("s", on)
+		#endif
+
 		Mapper142::Mapper142(Context& c)
 		: Mapper(c,WRAM_NONE), irq(c.cpu) {}
 
@@ -67,10 +67,10 @@ namespace Nes
 				switch (chunk)
 				{
 					case NES_STATE_CHUNK_ID('R','E','G','\0'):
-					
+
 						ctrl = state.Read8();
 						break;
-					
+
 					case NES_STATE_CHUNK_ID('I','R','Q','\0'):
 					{
 						const State::Loader::Data<3> data( state );
@@ -78,14 +78,14 @@ namespace Nes
 						irq.unit.enabled = data[0] & 0x1;
 						irq.unit.count = data[1] | (data[2] << 8);
 
-						break;					
+						break;
 					}
 				}
 
 				state.End();
 			}
 		}
-	
+
 		void Mapper142::SubSave(State::Saver& state) const
 		{
 			state.Begin('R','E','G','\0').Write8( ctrl ).End();
@@ -99,10 +99,10 @@ namespace Nes
 
 			state.Begin('I','R','Q','\0').Write( data ).End();
 		}
-	
-        #ifdef NST_PRAGMA_OPTIMIZE
-        #pragma optimize("", on)
-        #endif
+
+		#ifdef NST_PRAGMA_OPTIMIZE
+		#pragma optimize("", on)
+		#endif
 
 		NES_POKE(Mapper142,8000)
 		{
@@ -163,7 +163,7 @@ namespace Nes
 				count = 0;
 				return true;
 			}
-			
+
 			return false;
 		}
 

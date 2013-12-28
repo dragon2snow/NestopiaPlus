@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -37,16 +37,18 @@ namespace Nestopia
 		{
 		public:
 
-			Netplay(const Configuration&,Managers::Emulator&,const Managers::Paths&);
+			Netplay(Managers::Emulator&,const Managers::Paths&,ibool);
 			~Netplay();
 
-			void Save(Configuration&,ibool) const;
+			void SaveFile() const;
 
 			class Chat
 			{
 			public:
 
-				Chat();
+				typedef int (WINAPI *Callback)(char*);
+
+				Chat(Callback);
 
 				void Close();
 				void Open();
@@ -59,6 +61,7 @@ namespace Nestopia
 				ibool OnCommand (Param&);
 
 				Dialog dialog;
+				const Callback callback;
 				String::Heap<char> text;
 			};
 
@@ -66,7 +69,7 @@ namespace Nestopia
 
 			struct Handlers;
 
-			enum 
+			enum
 			{
 				LAUNCH = 0xB00B
 			};
@@ -94,21 +97,15 @@ namespace Nestopia
 				State state;
 			};
 
-			struct Settings
-			{
-				ibool fullscreen;
-			};
-
 			void LoadFile();
-			void SaveFile() const;
 			void Add(Path);
 
 			ibool OnInitDialog (Param&);
 			ibool OnAdd        (Param&);
-			ibool OnRemove     (Param&); 
-			ibool OnClear      (Param&);  
+			ibool OnRemove     (Param&);
+			ibool OnClear      (Param&);
 			ibool OnDefault    (Param&);
-			ibool OnCancel     (Param&); 
+			ibool OnCancel     (Param&);
 			ibool OnLaunch     (Param&);
 			ibool OnFullscreen (Param&);
 			ibool OnDropFiles  (Param&);
@@ -119,7 +116,7 @@ namespace Nestopia
 			void OnDeleteItem  (const NMHDR&);
 
 			Dialog dialog;
-			Settings settings;
+			ibool doFullscreen;
 			const Managers::Paths& paths;
 			Managers::Emulator& emulator;
 			const Control::NotificationHandler notifications;
@@ -134,7 +131,7 @@ namespace Nestopia
 
 			ibool ShouldGoFullscreen() const
 			{
-				return settings.fullscreen;
+				return doFullscreen;
 			}
 
 			uint GetNumGames() const
@@ -144,7 +141,7 @@ namespace Nestopia
 
 			GenericString GetGame(const uint i) const
 			{
-   				return games[i].Target().File();
+				return games[i].Target().File();
 			}
 
 			tstring GetPath(tstring const game) const

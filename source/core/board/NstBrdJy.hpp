@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -41,18 +41,18 @@ namespace Nes
 			class NST_NO_VTABLE Jy : public Mapper
 			{
 			protected:
-		
+
 				enum DefaultDipSwitch
 				{
 					DEFAULT_DIP_NMT_OFF,
 					DEFAULT_DIP_NMT_CONTROLLED,
 					DEFAULT_DIP_NMT_ON
 				};
-		
+
 				Jy(Context&,DefaultDipSwitch,bool=false);
-				
+
 			private:
-		
+
 				class CartSwitches : public DipSwitches
 				{
 				public:
@@ -91,7 +91,7 @@ namespace Nes
 				void UpdateNmt() const;
 				Device QueryDevice(DeviceType);
 				void VSync();
-	
+
 				NES_DECL_HOOK( PpuBg )
 				NES_DECL_HOOK( PpuSp )
 
@@ -116,7 +116,7 @@ namespace Nes
 				NES_DECL_POKE( D001 )
 				NES_DECL_POKE( D002 )
 				NES_DECL_POKE( D003 )
-						   
+
 				struct Regs
 				{
 					void Reset();
@@ -144,7 +144,7 @@ namespace Nes
 						CTRL3_EX_CHR_1      = b00011000,
 						CTRL3_EX_PRG        = b00000110
 					};
-				
+
 					NES_DECL_PEEK( 5001 )
 					NES_DECL_PEEK( 5800 )
 					NES_DECL_POKE( 5800 )
@@ -152,12 +152,12 @@ namespace Nes
 					NES_DECL_PEEK( 5801 )
 					NES_DECL_POKE( 5803 )
 					NES_DECL_PEEK( 5803 )
-		
+
 					uint mul[2];
 					uint tmp;
 					uint ctrl[4];
 				};
-		
+
 				struct Banks
 				{
 					void Reset();
@@ -169,15 +169,15 @@ namespace Nes
 						uint mask;
 						uint bank;
 					};
-		
+
 					uint prg[4];
 					uint chr[8];
 					uint nmt[4];
-					ExChr exChr;		
+					ExChr exChr;
 					const u8* prg6;
 					uint chrLatch[2];
 				};
-		
+
 				struct Irq
 				{
 					struct A12
@@ -218,11 +218,11 @@ namespace Nes
 						MODE_CPU_WRITE    = b00000011,
 						MODE_SCALE_3BIT   = b00000100,
 						MODE_SCALE_ADJUST = b00001000,
-						MODE_COUNT_ENABLE = b11000000,      
+						MODE_COUNT_ENABLE = b11000000,
 						MODE_COUNT_UP     = b01000000,
 						MODE_COUNT_DOWN   = b10000000
 					};
-		
+
 					uint enabled;
 					uint mode;
 					uint prescaler;

@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -70,12 +70,12 @@ namespace Nes
 		class Emulator
 		{
 		public:
-	
+
 			Emulator();
 			~Emulator();
-		
+
 		private:
-	
+
 			friend class Machine;
 			friend class Video;
 			friend class Sound;
@@ -90,10 +90,17 @@ namespace Nes
 			friend class TapeRecorder;
 			friend class Rewinder;
 			friend class Core::Tracker;
-	
+
 			enum
 			{
 				OPEN_BUS = 0x40
+			};
+
+			enum ColorMode
+			{
+				COLORMODE_YUV,
+				COLORMODE_RGB,
+				COLORMODE_CUSTOM
 			};
 
 			Result ExecuteFrame
@@ -112,13 +119,15 @@ namespace Nes
 			Result LoadState (Core::StdStream,bool=true);
 			Result SaveState (Core::StdStream,bool);
 			void   InitializeInputDevices () const;
-			bool   GoodSaveTime() const;
-	
+			Result UpdateColorMode ();
+			Result UpdateColorMode (ColorMode);
+			bool   GoodSaveTime () const;
+
 			NES_DECL_POKE( 4016 )
 			NES_DECL_PEEK( 4016 )
-			NES_DECL_POKE( 4017 )				    
+			NES_DECL_POKE( 4017 )
 			NES_DECL_PEEK( 4017 )
-		
+
 			uint state;
 			ulong frame;
 			Core::Input::Adapter* extPort;
@@ -130,7 +139,7 @@ namespace Nes
 			Core::Ppu ppu;
 			Core::Cheats* cheats;
 			Core::ImageDatabase* imageDatabase;
-	
+
 			uint Is(uint what) const
 			{
 				return state & what;

@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -23,17 +23,17 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 
 // --------------------------------------------------------------------
-// The following (piece of) code, (part of) the 2xSaI engine,          
-// copyright (c) 2001 by Derek Liauw Kie Fa.                           
-// Non-Commercial use of the engine is allowed and is encouraged,      
-// provided that appropriate credit be given and that this copyright   
-// notice will not be removed under any circumstance.                  
-// You may freely modify this code, but I request                      
-// that any improvements to the engine be submitted to me, so          
-// that I can implement these improvements in newer versions of        
-// the engine.                                                         
-// If you need more information, have any comments or suggestions,     
-// you can e-mail me. My e-mail: DerekL666@yahoo.com                   
+// The following (piece of) code, (part of) the 2xSaI engine,
+// copyright (c) 2001 by Derek Liauw Kie Fa.
+// Non-Commercial use of the engine is allowed and is encouraged,
+// provided that appropriate credit be given and that this copyright
+// notice will not be removed under any circumstance.
+// You may freely modify this code, but I request
+// that any improvements to the engine be submitted to me, so
+// that I can implement these improvements in newer versions of
+// the engine.
+// If you need more information, have any comments or suggestions,
+// you can e-mail me. My e-mail: DerekL666@yahoo.com
 // --------------------------------------------------------------------
 
 #include "NstCore.hpp"
@@ -50,12 +50,12 @@ namespace Nes
 	{
 		namespace Video
 		{
-            #ifdef NST_PRAGMA_OPTIMIZE
-            #pragma optimize("s", on)
-            #endif
+			#ifdef NST_PRAGMA_OPTIMIZE
+			#pragma optimize("s", on)
+			#endif
 
 			Renderer::Filter2xSaI::Filter2xSaI(const RenderState& state)
-			: 
+			:
 			Filter (state),
 			lsb0   (~((1UL << format.left[0]) | (1UL << format.left[1]) | (1UL << format.left[2]))),
 			lsb1   (~((3UL << format.left[0]) | (3UL << format.left[1]) | (3UL << format.left[2]))),
@@ -73,9 +73,9 @@ namespace Nes
 				);
 			}
 
-            #ifdef NST_PRAGMA_OPTIMIZE
-            #pragma optimize("", on)
-            #endif
+			#ifdef NST_PRAGMA_OPTIMIZE
+			#pragma optimize("", on)
+			#endif
 
 			inline dword Renderer::Filter2xSaI::Blend(dword a,dword b) const
 			{
@@ -97,9 +97,9 @@ namespace Nes
 				const u16* NST_RESTRICT src = input.screen;
 				const long pitch = output.pitch;
 
-				T* NST_RESTRICT dst[2] = 
+				T* NST_RESTRICT dst[2] =
 				{
-					static_cast<T*>(output.pixels), 
+					static_cast<T*>(output.pixels),
 					reinterpret_cast<T*>(reinterpret_cast<u8*>(output.pixels) + pitch)
 				};
 
@@ -121,14 +121,14 @@ namespace Nes
 						a =               input.palette[src[  0 ]];
 						b = x < WIDTH-1 ? input.palette[src[  1 ]] : 0;
 						k = x < WIDTH-2 ? input.palette[src[  2 ]] : 0;
-						
+
 						if (y < HEIGHT-1)
 						{
 							h = x > 0 ?       input.palette[src[ WIDTH-1 ]] : 0;
 							c =               input.palette[src[ WIDTH   ]];
 							d = x < WIDTH-1 ? input.palette[src[ WIDTH+1 ]] : 0;
 							l = x < WIDTH-2 ? input.palette[src[ WIDTH+2 ]] : 0;
-                            
+
 							if (y < HEIGHT-2)
 							{
 								m = x > 0 ?       input.palette[src[ WIDTH*2-1 ]] : 0;
@@ -157,7 +157,7 @@ namespace Nes
 							{
 								q[0] = Blend( a, b );
 							}
-					
+
 							if ((a == g && c == o) || (a == b && a == h && g != c && c == m))
 							{
 								q[1] = a;
@@ -166,7 +166,7 @@ namespace Nes
 							{
 								q[1] = Blend( a, c );
 							}
-							
+
 							q[2] = a;
 						}
 						else if (b == c && a != d)
@@ -188,7 +188,7 @@ namespace Nes
 							{
 								q[1] = Blend( a, c );
 							}
-							
+
 							q[2] = b;
 						}
 						else if (a == d && b == c)
@@ -203,10 +203,10 @@ namespace Nes
 							{
 								q[1] = Blend( a, c );
 								q[0] = Blend( a, b );
-								
-								const int result = 
+
+								const int result =
 								(
-							     	(a == g && a == e ? -1 : b == g && b == e ? +1 : 0) +
+									(a == g && a == e ? -1 : b == g && b == e ? +1 : 0) +
 									(b == k && b == f ? -1 : a == k && a == f ? +1 : 0) +
 									(b == h && b == n ? -1 : a == h && a == n ? +1 : 0) +
 									(a == l && a == o ? -1 : b == l && b == o ? +1 : 0)
@@ -274,9 +274,9 @@ namespace Nes
 				const u16* NST_RESTRICT src = input.screen;
 				const long pitch = output.pitch;
 
-				T* NST_RESTRICT dst[2] = 
+				T* NST_RESTRICT dst[2] =
 				{
-					static_cast<T*>(output.pixels), 
+					static_cast<T*>(output.pixels),
 					reinterpret_cast<T*>(reinterpret_cast<u8*>(output.pixels) + pitch)
 				};
 
@@ -305,7 +305,7 @@ namespace Nes
 							b =               input.palette[src[ WIDTH   ]];
 							c = x < WIDTH-1 ? input.palette[src[ WIDTH+1 ]] : 0;
 							o = x < WIDTH-2 ? input.palette[src[ WIDTH+2 ]] : 0;
-                            
+
 							if (y < HEIGHT-2)
 							{
 								g = x > 0 ?       input.palette[src[ WIDTH*2-1 ]] : 0;
@@ -335,9 +335,9 @@ namespace Nes
 						}
 						else if (e == c && b == f && e != f)
 						{
-							const int result = 
+							const int result =
 							(
-							 	(f == a && f == h ? -1 : e == a && e == h ? +1 : 0) +
+								(f == a && f == h ? -1 : e == a && e == h ? +1 : 0) +
 								(f == d && f == l ? -1 : e == d && e == l ? +1 : 0) +
 								(f == i && f == o ? -1 : e == i && e == o ? +1 : 0) +
 								(f == m && f == p ? -1 : e == m && e == p ? +1 : 0)
@@ -421,16 +421,16 @@ namespace Nes
 					dst[1] = reinterpret_cast<T*>(reinterpret_cast<u8*>(dst[0]) + pitch);
 				}
 			}
-				    
+
 			template<typename T>
 			NST_FORCE_INLINE void Renderer::Filter2xSaI::BlitSuperEagle(const Input& input,const Output& output) const
 			{
 				const u16* NST_RESTRICT src = input.screen;
 				const long pitch = output.pitch;
 
-				T* NST_RESTRICT dst[2] = 
+				T* NST_RESTRICT dst[2] =
 				{
-					static_cast<T*>(output.pixels), 
+					static_cast<T*>(output.pixels),
 					reinterpret_cast<T*>(reinterpret_cast<u8*>(output.pixels) + pitch)
 				};
 
@@ -457,11 +457,11 @@ namespace Nes
 							b =               input.palette[src[ WIDTH   ]];
 							c = x < WIDTH-1 ? input.palette[src[ WIDTH+1 ]] : 0;
 							k = x < WIDTH-2 ? input.palette[src[ WIDTH+2 ]] : 0;
-                            
+
 							if (y < HEIGHT-2)
 							{
 								g =               input.palette[src[ WIDTH*2   ]];
-					     		h = x < WIDTH-1 ? input.palette[src[ WIDTH*2+1 ]] : 0;
+								h = x < WIDTH-1 ? input.palette[src[ WIDTH*2+1 ]] : 0;
 							}
 							else
 							{
@@ -511,9 +511,9 @@ namespace Nes
 						}
 						else if (e == c && b == f && e != f)
 						{
-							const int result = 
+							const int result =
 							(
-							 	(f == a && f == g ? -1 : e == a && e == g ? +1 : 0) +
+								(f == a && f == g ? -1 : e == a && e == g ? +1 : 0) +
 								(f == d && f == i ? -1 : e == d && e == i ? +1 : 0) +
 								(f == h && f == k ? -1 : e == h && e == k ? +1 : 0) +
 								(f == j && f == l ? -1 : e == j && e == l ? +1 : 0)
@@ -570,7 +570,7 @@ namespace Nes
 
 			template<typename T>
 			NST_FORCE_INLINE void Renderer::Filter2xSaI::BlitType(const Input& input,const Output& output) const
-			{	
+			{
 				switch (type)
 				{
 					case RenderState::FILTER_2XSAI:
@@ -598,7 +598,7 @@ namespace Nes
 				{
 					case 32: BlitType< u32 >( input, output ); break;
 					case 16: BlitType< u16 >( input, output ); break;
-					
+
 					NST_UNREACHABLE
 				}
 			}

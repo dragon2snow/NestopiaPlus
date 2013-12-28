@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -31,22 +31,22 @@ namespace Nes
 	{
 		namespace Input
 		{
-            #ifdef NST_PRAGMA_OPTIMIZE
-            #pragma optimize("s", on)
-            #endif
-	
+			#ifdef NST_PRAGMA_OPTIMIZE
+			#pragma optimize("s", on)
+			#endif
+
 			PowerPad::PowerPad()
 			: Device(Api::Input::POWERPAD)
-			{ 
-				PowerPad::Reset(); 
+			{
+				PowerPad::Reset();
 			}
-	
+
 			void PowerPad::Reset()
 			{
 				shifter = 2;
 				stream = (0x55FFUL << 3);
 			}
-	
+
 			void PowerPad::SaveState(State::Saver& state,const uchar id) const
 			{
 				state.Begin('P','P',id,'\0').Write8( (shifter >> 1) ^ 0x1 ).Write16( (stream >> 3) ^ 0x55FFU ).End();
@@ -61,9 +61,9 @@ namespace Nes
 				}
 			}
 
-            #ifdef NST_PRAGMA_OPTIMIZE
-            #pragma optimize("", on)
-            #endif
+			#ifdef NST_PRAGMA_OPTIMIZE
+			#pragma optimize("", on)
+			#endif
 
 			void PowerPad::BeginFrame(Controllers* i)
 			{
@@ -94,17 +94,17 @@ namespace Nes
 						{
 							static const dword lut[Controllers::PowerPad::NUM_SIDE_A_BUTTONS] =
 							{
-								( 0x02UL << 4  ) | ( 0x00UL	     ),
-								( 0x01UL << 3  ) | ( 0x00UL	     ),
+								( 0x02UL << 4  ) | ( 0x00UL      ),
+								( 0x01UL << 3  ) | ( 0x00UL      ),
 								( 0x00UL       ) | ( 0x02UL << 5 ),
 								( 0x00UL       ) | ( 0x01UL << 4 ),
-								( 0x04UL << 5  ) | ( 0x00UL	     ),
-								( 0x10UL << 7  ) | ( 0x00UL	     ),
-								( 0x80UL << 10 ) | ( 0x00UL	     ),
+								( 0x04UL << 5  ) | ( 0x00UL      ),
+								( 0x10UL << 7  ) | ( 0x00UL      ),
+								( 0x80UL << 10 ) | ( 0x00UL      ),
 								( 0x00UL       ) | ( 0x08UL << 7 ),
-								( 0x08UL << 6  ) | ( 0x00UL	     ),
-								( 0x20UL << 8  ) | ( 0x00UL	     ),
-								( 0x40UL << 9  ) | ( 0x00UL	     ),
+								( 0x08UL << 6  ) | ( 0x00UL      ),
+								( 0x20UL << 8  ) | ( 0x00UL      ),
+								( 0x40UL << 9  ) | ( 0x00UL      ),
 								( 0x00UL       ) | ( 0x04UL << 6 )
 							};
 
@@ -116,7 +116,7 @@ namespace Nes
 									data |= lut[i];
 							}
 
-							static const uchar index[Controllers::PowerPad::NUM_SIDE_B_BUTTONS] = 
+							static const uchar index[Controllers::PowerPad::NUM_SIDE_B_BUTTONS] =
 							{
 								2,1,7,6,5,4,10,9
 							};

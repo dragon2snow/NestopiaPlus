@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -26,17 +26,17 @@
 #include "../NstClock.hpp"
 #include "../board/NstBrdVrc4.hpp"
 #include "NstMapper027.hpp"
-			  
+
 namespace Nes
 {
 	namespace Core
 	{
-        #ifdef NST_PRAGMA_OPTIMIZE
-        #pragma optimize("s", on)
-        #endif
+		#ifdef NST_PRAGMA_OPTIMIZE
+		#pragma optimize("s", on)
+		#endif
 
 		Mapper27::Mapper27(Context& c)
-		: Mapper(c), irq(c.cpu)	{}
+		: Mapper(c), irq(c.cpu) {}
 
 		void Mapper27::SubReset(const bool hard)
 		{
@@ -44,7 +44,7 @@ namespace Nes
 				prgSwap = 0;
 
 			irq.Reset( hard, hard ? false : irq.IsLineEnabled() );
-			
+
 			for (dword i=0x8000U; i <= 0xFFFFU; ++i)
 			{
 				switch (i & 0xF0CFU)
@@ -72,12 +72,12 @@ namespace Nes
 					case 0xE003U: Map( i, &Mapper27::Poke_E3 ); break;
 					case 0xF000U: Map( i, &Mapper27::Poke_F0 ); break;
 					case 0xF001U: Map( i, &Mapper27::Poke_F1 ); break;
-					case 0xF002U: Map( i, &Mapper27::Poke_F2 ); break;							
+					case 0xF002U: Map( i, &Mapper27::Poke_F2 ); break;
 					case 0xF003U: Map( i, &Mapper27::Poke_F3 ); break;
 				}
 			}
 		}
-		
+
 		void Mapper27::SubLoad(State::Loader& state)
 		{
 			while (const dword chunk = state.Begin())
@@ -85,47 +85,47 @@ namespace Nes
 				switch (chunk)
 				{
 					case NES_STATE_CHUNK_ID('R','E','G','\0'):
-				
-						prgSwap = state.Read8() & 0x2;					
+
+						prgSwap = state.Read8() & 0x2;
 						break;
-				
+
 					case NES_STATE_CHUNK_ID('I','R','Q','\0'):
-				
-						irq.LoadState( State::Loader::Subset(state).Ref() );					
+
+						irq.LoadState( State::Loader::Subset(state).Ref() );
 						break;
 				}
 
 				state.End();
 			}
 		}
-		
+
 		void Mapper27::SubSave(State::Saver& state) const
 		{
 			state.Begin('R','E','G','\0').Write8( prgSwap ).End();
 			irq.SaveState( State::Saver::Subset(state,'I','R','Q','\0').Ref() );
 		}
 
-        #ifdef NST_PRAGMA_OPTIMIZE
-        #pragma optimize("", on)
-        #endif
-		
+		#ifdef NST_PRAGMA_OPTIMIZE
+		#pragma optimize("", on)
+		#endif
+
 		NES_POKE(Mapper27,8)
 		{
 			prg.SwapBank<SIZE_8K>( (prgSwap << 13), data );
 		}
-	
-		NES_POKE(Mapper27,9) 
-		{ 
+
+		NES_POKE(Mapper27,9)
+		{
 			data &= 0x2;
 
 			if (prgSwap != data)
 			{
 				prgSwap = data;
-				
+
 				prg.SwapBanks<SIZE_8K,0x0000U>
-				( 
-			     	prg.GetBank<SIZE_8K,0x4000U>(), 
-					prg.GetBank<SIZE_8K,0x0000U>() 
+				(
+					prg.GetBank<SIZE_8K,0x4000U>(),
+					prg.GetBank<SIZE_8K,0x0000U>()
 				);
 			}
 		}
@@ -133,7 +133,7 @@ namespace Nes
 		template<ushort MASK,uchar BITS,uchar SHIFT>
 		void Mapper27::SwapChr(const uint address,const uint data) const
 		{
-			ppu.Update(); 
+			ppu.Update();
 			chr.SwapBank<SIZE_1K>( address, (chr.GetBank<SIZE_1K>(address) & MASK) | ((data & BITS) << SHIFT) );
 		}
 
@@ -154,29 +154,29 @@ namespace Nes
 		NES_POKE(Mapper27,E2) { SwapChr<0xFF0,0x0F,0>( 0x1C00U, data ); }
 		NES_POKE(Mapper27,E3) { SwapChr<0x00F,0xFF,4>( 0x1C00U, data ); }
 
-		NES_POKE(Mapper27,F0) 
-		{ 
+		NES_POKE(Mapper27,F0)
+		{
 			irq.WriteLatch0( data );
 		}
 
-		NES_POKE(Mapper27,F1) 
+		NES_POKE(Mapper27,F1)
 		{
 			irq.WriteLatch1( data );
 		}
 
-		NES_POKE(Mapper27,F2) 
+		NES_POKE(Mapper27,F2)
 		{
 			irq.Toggle( data );
 		}
 
 		NES_POKE(Mapper27,F3)
-		{ 
+		{
 			irq.Toggle();
 		}
-		
+
 		void Mapper27::VSync()
 		{
 			irq.VSync();
-		}		
+		}
 	}
 }

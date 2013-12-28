@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -71,13 +71,13 @@ namespace Nestopia
 
 			enum
 			{
-				CLASS_STYLE	=
+				CLASS_STYLE =
 				(
 					CS_HREDRAW |
 					CS_VREDRAW
 				),
 
-				WIN_STYLE = 
+				WIN_STYLE =
 				(
 					WS_OVERLAPPED |
 					WS_CAPTION |
@@ -90,19 +90,19 @@ namespace Nestopia
 
 				WIN_EXSTYLE =
 				(
-					WS_EX_ACCEPTFILES | 
+					WS_EX_ACCEPTFILES |
 					WS_EX_CLIENTEDGE
 				),
 
 				FULLSCREEN_STYLE =
 				(
-					WS_POPUP | 
+					WS_POPUP |
 					WS_VISIBLE
 				),
 
 				FULLSCREEN_EXSTYLE =
 				(
-			     	0
+					0
 				)
 			};
 
@@ -132,16 +132,16 @@ namespace Nestopia
 			ibool OnSysKeyDown        (Param&);
 			ibool OnCommand           (Param&);
 			ibool OnEnable            (Param&);
-			ibool OnEnterSizeMoveMenu (Param&);       
-			ibool OnExitSizeMoveMenu  (Param&);       
+			ibool OnEnterSizeMoveMenu (Param&);
+			ibool OnExitSizeMoveMenu  (Param&);
 			ibool OnActivate          (Param&);
 			ibool OnSysCommand        (Param&);
 			ibool OnNclButton         (Param&);
 			ibool OnPowerBroadCast    (Param&);
 			ibool OnCommandResume     (Param&);
 
-			void OnCmdViewSwitchScreen	(uint);
-			void OnCmdViewShowOnTop		(uint);
+			void OnCmdViewSwitchScreen  (uint);
+			void OnCmdViewShowOnTop     (uint);
 			void OnCmdViewShowMenu      (uint);
 
 			void OnEmuEvent(Managers::Emulator::Event);
@@ -150,7 +150,7 @@ namespace Nestopia
 			const Managers::Preferences& preferences;
 			MainWindow window;
 			const Menu& menu;
-			Managers::Emulator& emulator;			
+			Managers::Emulator& emulator;
 			Managers::Video video;
 			Managers::Sound sound;
 			Managers::Input input;

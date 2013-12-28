@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -51,7 +51,7 @@ namespace Nestopia
 
 			Input
 			(
-		     	Window::Custom&,
+				Window::Custom&,
 				Window::Menu&,
 				Emulator&,
 				const Configuration&,
@@ -76,7 +76,7 @@ namespace Nestopia
 			void OnMenuPort2(Window::Menu::PopupHandler::Param&);
 			void OnMenuPort3(Window::Menu::PopupHandler::Param&);
 			void OnMenuPort4(Window::Menu::PopupHandler::Param&);
-			void OnMenuExpPort(Window::Menu::PopupHandler::Param&); 
+			void OnMenuExpPort(Window::Menu::PopupHandler::Param&);
 			void OnCmdMachineAutoSelectController(uint);
 			void OnCmdMachinePort(uint);
 			void OnCmdMachineKeyboardPaste(uint);
@@ -106,11 +106,16 @@ namespace Nestopia
 				void Unacquire();
 				void AutoHide();
 
+				inline int GetWheel() const;
+
 			private:
 
 				enum
 				{
-					TIME_OUT = 3000
+					TIME_OUT    = 3000,
+					WHEEL_MIN   = -WHEEL_DELTA*30,
+					WHEEL_MAX   = +WHEEL_DELTA*30,
+					WHEEL_SCALE = 56
 				};
 
 				static inline DWORD NextTime();
@@ -124,12 +129,14 @@ namespace Nestopia
 				ibool OnLButtonDown       (Window::Param&);
 				ibool OnRButtonDown       (Window::Param&);
 				ibool OnButtonUp          (Window::Param&);
+				ibool OnWheel             (Window::Param&);
 				void  OnEnterSizeMoveMenu (Window::Param&);
 				void  OnExitSizeMoveMenu  (Window::Param&);
 
 				HCURSOR hCurrent;
 				HCURSOR hCursor;
 				LPARAM pos;
+				int wheel;
 				ibool autoHide;
 				DWORD deadline;
 				ibool inNonClient;
@@ -242,7 +249,7 @@ namespace Nestopia
 			Nes::Input::Controllers* GetOutput()
 			{
 				autoFire.Step();
-				polled ^= TRUE;
+				polled ^= true;
 
 				if (polled)
 					ForcePoll();

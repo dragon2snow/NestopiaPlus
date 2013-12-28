@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-//				
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -50,22 +50,22 @@ namespace Nes
 			void Reset(bool);
 			Result InsertDisk(uint,uint);
 			Result EjectDisk();
-			
+
 			void VSync();
 			uint GetDesiredController(uint) const;
-			
+
 			void LoadState(State::Loader&);
 			void SaveState(State::Saver&) const;
-			
+
 			class Bios
 			{
 				friend class Fds;
 
-            #ifndef NDEBUG
+			#ifndef NDEBUG
 
 				Bios() {}
 
-            #endif
+			#endif
 
 				struct Instance
 				{
@@ -94,13 +94,13 @@ namespace Nes
 			class Sound : public Apu::Channel
 			{
 			public:
-		
+
 				Sound(Cpu&,bool=true);
 				~Sound();
-		
+
 				void SaveState(State::Saver&) const;
 				void LoadState(State::Loader&);
-		
+
 			protected:
 
 				void Reset();
@@ -109,14 +109,14 @@ namespace Nes
 				Cycle Clock();
 
 			private:
-				
+
 				bool CanOutput() const;
 				inline bool CanModulate() const;
-		
+
 				void ResetChannel();
-		
+
 				NST_FORCE_INLINE uint GetModulation() const;
-		
+
 				NES_DECL_PEEK( Nop  )
 				NES_DECL_POKE( Nop  )
 				NES_DECL_PEEK( 4040 )
@@ -133,7 +133,7 @@ namespace Nes
 				NES_DECL_POKE( 408A )
 				NES_DECL_PEEK( 4090 )
 				NES_DECL_PEEK( 4092 )
-		
+
 				enum
 				{
 					REG2_WAVELENGTH_LOW      = b11111111,
@@ -142,32 +142,32 @@ namespace Nes
 					REG3_OUTPUT_DISABLE      = b10000000,
 					REG5_MOD_SWEEP           = b00111111,
 					REG5_MOD_NEGATE          = b01000000,
-					REG6_MOD_WAVELENGTH_LOW	 = b11111111,
+					REG6_MOD_WAVELENGTH_LOW  = b11111111,
 					REG7_MOD_WAVELENGTH_HIGH = b00001111,
 					REG7_MOD_WRITE_MODE      = b10000000,
 					REG8_MOD_DATA            = b00000111,
 					REG9_VOLUME              = b00000011,
 					REG9_WRITE_MODE          = b10000000
 				};
-		
+
 				enum
 				{
 					STATUS_OUTPUT_ENABLED    = REG3_OUTPUT_DISABLE,
 					STATUS_ENVELOPES_ENABLED = REG3_ENVELOPE_DISABLE
 				};
-		
+
 				class Envelope
 				{
 				public:
-		
+
 					void Reset();
 					void Write(uint);
-		
+
 					NST_FORCE_INLINE void Clock();
 
 					void SaveState(State::Saver&) const;
 					void LoadState(State::Loader&);
-		
+
 					enum
 					{
 						CTRL_COUNT   = b00111111,
@@ -176,38 +176,38 @@ namespace Nes
 					};
 
 				private:
-				
+
 					enum
 					{
 						GAIN_MAX = 0x20,
 						GAIN_MIN = 0x00
 					};
-		
+
 					uint ctrl;
 					uint counter;
 					uint gain;
-		
+
 				public:
-		
+
 					uint Gain() const
-					{ 
+					{
 						return gain;
 					}
-		
+
 					uint Output() const
-					{ 
+					{
 						return NST_MIN(gain,GAIN_MAX);
 					}
 				};
-		
+
 				struct Modulator
 				{
-					enum 
+					enum
 					{
 						TIMER_CARRY = (sizeof(dword) * CHAR_BIT) - 1,
 						SIZE = 0x20
 					};
-		
+
 					ibool active;
 					ibool writing;
 					uint pos;
@@ -218,47 +218,47 @@ namespace Nes
 
 					static const u8 steps[8];
 				};
-		
-				enum 
+
+				enum
 				{
 					VOLUME,
 					SWEEP
 				};
-		
+
 				struct Envelopes
 				{
 					enum {PULSE = 8};
-		
+
 					uint counter;
 					uint length;
 					Envelope units[2];
 				};
-		
+
 				struct Wave
 				{
-					enum 
+					enum
 					{
 						SIZE = 0x40
 					};
-		
+
 					ibool writing;
 					uint length;
 					dword pos;
 					uint volume;
 					u8 table[SIZE];
 				};
-		
+
 				Cpu& cpu;
-		
+
 				Wave wave;
 				Envelopes envelopes;
 				Modulator modulator;
-		
+
 				uint volume;
 				dword amp;
 				uint status;
 				Apu::DcBlocker dcBlocker;
-		
+
 				static const u8 volumes[4];
 
 				const ibool hooked;
@@ -293,7 +293,7 @@ namespace Nes
 				{
 					SIDE_SIZE = 65500U,
 					EJECTED   = 0xFFF,
-					MOUNTING  =	120
+					MOUNTING  = 120
 				};
 
 			private:
@@ -427,8 +427,8 @@ namespace Nes
 			{
 				IrqClock(Cpu&);
 
-				NES_DECL_POKE( 4020 ) 
-				NES_DECL_POKE( 4021 ) 
+				NES_DECL_POKE( 4020 )
+				NES_DECL_POKE( 4021 )
 				NES_DECL_POKE( 4022 )
 				NES_DECL_PEEK( 4030 )
 				NES_DECL_POKE( Nop  )
@@ -445,7 +445,7 @@ namespace Nes
 			Ppu& ppu;
 			Ram ram;
 			Sound sound;
-		
+
 		public:
 
 			Mode GetMode() const

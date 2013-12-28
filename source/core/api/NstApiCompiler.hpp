@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -28,7 +28,7 @@
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// #define NST_X86 - if targeting x86 processors. 
+// #define NST_X86 - if targeting x86 processors.
 //                   (has no effect if _M_IX86 or _X86_ is already defined)
 //
 // #define NST_PRAGMA_ONCE_SUPPORT - for compilers supporting "pragma once".
@@ -37,7 +37,7 @@
 // #define NST_U64_DEFINED - if native support for 64bit integers and can be reached from ::u64 in global namespace.
 //                           (has no effect with MSVC and ICC, or any other compiler that support the long long integer type)
 //
-// #define NST_CALL	- compiler specific calling convention for global functions
+// #define NST_CALL - compiler specific calling convention for global functions
 //                    placed between return type and name e.g void NST_CALLBACK Function();
 //                    standard conventions on win32 are cdecl, fastcall and stdcall
 //
@@ -52,9 +52,9 @@
 //                          (automatically enabled for ICC and GCC)
 //
 // #define NST_ASSUME(x) y(x) - optimization hint for the compiler, informs it that the condition will evaluate to true
-//								(automatically enabled for MSVC)
+//                              (automatically enabled for MSVC)
 //
-// #define NST_HALT x - win32 debug mode only. halts program execution. 
+// #define NST_HALT x - win32 debug mode only. halts program execution.
 //                      defaults to __debugbreak() or __asm {int 3} for MSVC and ICC, others: std::abort().
 //
 // #define NST_FUNCTION_NAME x - like __LINE__, expands to the current function name.
@@ -64,7 +64,7 @@
 //                            different class member function pointers.
 //
 // #define NST_TAILCALL_OPTIMIZE - define this if the compiler supports tail-call optimizations
-// 								   (automatically defined for MSVC and GCC)
+//                                 (automatically defined for MSVC and GCC)
 //
 // #define NST_NO_ZLIB - omit ZLib support, warning: if you do, compressed states and movie files can't be saved/loaded!
 //

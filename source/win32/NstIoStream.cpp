@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -32,7 +32,7 @@ namespace Nestopia
 	using Io::File;
 
 	Input::Buffer::Buffer()
-	: pos(0), data(NULL), size(0)
+	: pos(0)
 	{
 		Initialize();
 	}
@@ -47,11 +47,6 @@ namespace Nestopia
 	{
 		Initialize();
 		Initialize( buffer );
-	}
-
-	Input::Buffer::~Buffer()
-	{
-		delete [] static_cast<char*>(data);
 	}
 
 	inline void Input::Buffer::operator = (const File& file)
@@ -70,59 +65,56 @@ namespace Nestopia
 	{
 		setg( NULL, NULL, NULL );
 	}
-  
+
 	void Input::Buffer::Initialize(Collection::Buffer& buffer)
 	{
 		pos = 0;
-		size = buffer.Size();
-		data = buffer.Export();
+		vector.Import( buffer );
 	}
 
 	void Input::Buffer::Initialize(const File& file)
 	{
 		try
 		{
-			Collection::Buffer buffer( file.Size() );
-			file.Peek( 0, buffer.Ptr(), buffer.Size() );
-			Initialize( buffer );
+			pos = 0;
+			vector.Resize( file.Size() );
+			file.Peek( 0, vector.Ptr(), vector.Size() );
 		}
 		catch (File::Exception)
-		{		
+		{
 			// I/O failure
 		}
 	}
 
-	void Input::Buffer::Export(Collection::Buffer& vector)
+	void Input::Buffer::Export(Collection::Buffer& buffer)
 	{
 		pos = 0;
-		vector.Import( data, size );
-		data = NULL;
-		size = 0;
+		buffer.Import( vector );
 	}
 
-    #ifdef NST_PRAGMA_OPTIMIZE
-    #pragma optimize("t", on)
-    #endif
+	#ifdef NST_PRAGMA_OPTIMIZE
+	#pragma optimize("t", on)
+	#endif
 
 	Input::Buffer::int_type Input::Buffer::underflow()
 	{
-		NST_ASSERT( pos <= size );
-		return pos < size ? data[pos] : traits_type::eof();
+		NST_ASSERT( pos <= vector.Size() );
+		return pos < vector.Size() ? vector[pos] : traits_type::eof();
 	}
 
 	Input::Buffer::int_type Input::Buffer::uflow()
-	{	
-		NST_ASSERT( pos <= size );
-		return pos < size ? data[pos++] : traits_type::eof();
+	{
+		NST_ASSERT( pos <= vector.Size() );
+		return pos < vector.Size() ? vector[pos++] : traits_type::eof();
 	}
 
 	std::streamsize Input::Buffer::xsgetn(char* output,std::streamsize count)
 	{
-		NST_ASSERT( pos <= size );
+		NST_ASSERT( pos <= vector.Size() );
 
-		if (pos + count <= size)
+		if (pos + count <= vector.Size())
 		{
-			std::memcpy( output, data + pos, count );
+			std::memcpy( output, vector.Ptr() + pos, count );
 			pos += count;
 			return count;
 		}
@@ -138,7 +130,7 @@ namespace Nestopia
 	)
 	{
 		NST_ASSERT
-		( 
+		(
 			(mode == std::ios::in) &&
 			(dir == std::ios::beg || dir == std::ios::cur || dir == std::ios::end)
 		);
@@ -149,35 +141,33 @@ namespace Nestopia
 		}
 		else if (dir == std::ios::end)
 		{
-			offset += (long) size;
+			offset += (long) vector.Size();
 		}
 
 		pos = offset;
 
-		NST_ASSERT( pos <= size );
+		NST_ASSERT( pos <= vector.Size() );
 
 		return offset;
 	}
 
 	std::streampos Input::Buffer::seekpos(std::streampos offset,std::ios::openmode mode)
 	{
-		NST_ASSERT( (mode == std::ios::in) && (int(offset) >= 0 && uint(offset) <= size) );
+		NST_ASSERT( (mode == std::ios::in) && (int(offset) >= 0 && uint(offset) <= vector.Size()) );
 		pos = offset;
 		return offset;
 	}
 
-    #ifdef NST_PRAGMA_OPTIMIZE
-    #pragma optimize("", on)
-    #endif
+	#ifdef NST_PRAGMA_OPTIMIZE
+	#pragma optimize("", on)
+	#endif
 
 	void Input::Buffer::Clear()
 	{
-		delete [] data;
-		data = NULL;
-		size = 0;
 		pos = 0;
+		vector.Destroy();
 	}
-  
+
 	Input::Input()
 	: std::istream(&buffer) {}
 
@@ -235,7 +225,7 @@ namespace Nestopia
 	{
 		setp( NULL, NULL );
 	}
-  
+
 	void Output::Buffer::Initialize(Collection::Buffer& buffer)
 	{
 		pos = 0;
@@ -251,7 +241,7 @@ namespace Nestopia
 			file.Peek( 0, vector.Ptr(), vector.Size() );
 		}
 		catch (File::Exception)
-		{		
+		{
 			vector.Clear();
 		}
 	}
@@ -263,13 +253,13 @@ namespace Nestopia
 		input.Import( vector );
 	}
 
-    #ifdef NST_PRAGMA_OPTIMIZE
-    #pragma optimize("t", on)
-    #endif
+	#ifdef NST_PRAGMA_OPTIMIZE
+	#pragma optimize("t", on)
+	#endif
 
 	Output::Buffer::int_type Output::Buffer::overflow(int_type c)
 	{
-		if (c != traits_type::eof()) 
+		if (c != traits_type::eof())
 		{
 			vector.PushBack( char(c) );
 			c = traits_type::not_eof(c);
@@ -278,7 +268,7 @@ namespace Nestopia
 		return c;
 	}
 
-	std::streamsize Output::Buffer::xsputn(const char* data,std::streamsize count) 	
+	std::streamsize Output::Buffer::xsputn(const char* data,std::streamsize count)
 	{
 		if (pos + count > vector.Size())
 		{
@@ -300,7 +290,7 @@ namespace Nestopia
 	)
 	{
 		NST_ASSERT
-		( 
+		(
 			(mode == std::ios::out) &&
 			(dir == std::ios::beg || dir == std::ios::cur || dir == std::ios::end)
 		);
@@ -317,26 +307,26 @@ namespace Nestopia
 		pos = offset;
 
 		NST_ASSERT( pos <= vector.Size() );
-	  
+
 		return pos;
 	}
 
 	std::streampos Output::Buffer::seekpos(std::streampos p,std::ios::openmode mode)
 	{
 		NST_ASSERT( (mode == std::ios::out) && (int(p) >= 0 && uint(p) <= vector.Size()) );
-		pos = p;  
+		pos = p;
 		return p;
 	}
 
-    #ifdef NST_PRAGMA_OPTIMIZE
-    #pragma optimize("", on)
-    #endif
+	#ifdef NST_PRAGMA_OPTIMIZE
+	#pragma optimize("", on)
+	#endif
 
 	Output::Output()
-	: std::ostream(&buffer)	{}
+	: std::ostream(&buffer) {}
 
 	Output::Output(Collection::Buffer& vector)
-	: std::ostream(&buffer), buffer(vector)	{}
+	: std::ostream(&buffer), buffer(vector) {}
 
 	Output::Output(const File& file)
 	: std::ostream(&buffer), buffer(file) {}

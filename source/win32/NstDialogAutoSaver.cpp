@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -31,7 +31,7 @@ namespace Nestopia
 	using namespace Window;
 
 	AutoSaver::Settings::Settings()
-	: interval(1), notify(TRUE)	{}
+	: interval(1), notify(true) {}
 
 	struct AutoSaver::Handlers
 	{
@@ -66,7 +66,7 @@ namespace Nestopia
 		dialog.Edit(IDC_AUTOSAVE_TIME) << settings.interval;
 		dialog.CheckBox(IDC_AUTOSAVE_ENABLE_MSG).Check( settings.notify );
 
-		return TRUE;
+		return true;
 	}
 
 	ibool AutoSaver::OnCmdClear(Param& param)
@@ -74,19 +74,19 @@ namespace Nestopia
 		if (param.Button().IsClicked())
 			dialog.Edit(IDC_AUTOSAVE_FILE).Clear();
 
-		return TRUE;
+		return true;
 	}
 
 	ibool AutoSaver::OnCmdBrowse(Param& param)
 	{
-		if (param.Button().IsClicked())	
+		if (param.Button().IsClicked())
 		{
 			Path tmp;
 			dialog.Edit(IDC_AUTOSAVE_FILE) >> tmp;
 			dialog.Edit(IDC_AUTOSAVE_FILE).Try() << paths.BrowseSave( Managers::Paths::File::STATE, Managers::Paths::SUGGEST, tmp ).Ptr();
 		}
 
-		return TRUE;
+		return true;
 	}
 
 	ibool AutoSaver::OnCmdOk(Param& param)
@@ -100,7 +100,7 @@ namespace Nestopia
 			dialog.Close();
 		}
 
-		return TRUE;
+		return true;
 	}
 
 	ibool AutoSaver::OnCmdCancel(Param& param)
@@ -108,6 +108,6 @@ namespace Nestopia
 		if (param.Button().IsClicked())
 			dialog.Close();
 
-		return TRUE;
+		return true;
 	}
 }

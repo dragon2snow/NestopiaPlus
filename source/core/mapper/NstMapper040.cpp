@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -25,15 +25,15 @@
 #include "../NstMapper.hpp"
 #include "../NstClock.hpp"
 #include "NstMapper040.hpp"
-	   
+
 namespace Nes
 {
 	namespace Core
 	{
-        #ifdef NST_PRAGMA_OPTIMIZE
-        #pragma optimize("s", on)
-        #endif
-	
+		#ifdef NST_PRAGMA_OPTIMIZE
+		#pragma optimize("s", on)
+		#endif
+
 		Mapper40::Mapper40(Context& c)
 		: Mapper(c,WRAM_NONE), irq(c.cpu) {}
 
@@ -49,7 +49,7 @@ namespace Nes
 			Map( 0xA000U, 0xBFFFU, &Mapper40::Poke_A000 );
 			Map( 0xE000U, 0xFFFFU, &Mapper40::Poke_E000 );
 		}
-	
+
 		void Mapper40::SubLoad(State::Loader& state)
 		{
 			while (const dword chunk = state.Begin())
@@ -64,7 +64,7 @@ namespace Nes
 				state.End();
 			}
 		}
-	
+
 		void Mapper40::SubSave(State::Saver& state) const
 		{
 			const u8 data[3] =
@@ -76,11 +76,11 @@ namespace Nes
 
 			state.Begin('I','R','Q','\0').Write( data ).End();
 		}
-	
-        #ifdef NST_PRAGMA_OPTIMIZE
-        #pragma optimize("", on)
-        #endif
-	
+
+		#ifdef NST_PRAGMA_OPTIMIZE
+		#pragma optimize("", on)
+		#endif
+
 		void Mapper40::Irq::Reset(const bool hard)
 		{
 			if (hard)
@@ -111,24 +111,24 @@ namespace Nes
 			return *prg.Source().Mem( (0xC000U-0x6000U) + address );
 		}
 
-		NES_POKE(Mapper40,8000) 
+		NES_POKE(Mapper40,8000)
 		{
 			irq.Update();
 			irq.unit.Reset();
 			irq.ClearIRQ();
 		}
-	
-		NES_POKE(Mapper40,A000) 
-		{ 
+
+		NES_POKE(Mapper40,A000)
+		{
 			irq.Update();
 			irq.unit.enabled = true;
 		}
-	
-		NES_POKE(Mapper40,E000) 
-		{ 
+
+		NES_POKE(Mapper40,E000)
+		{
 			prg.SwapBank<SIZE_8K,0x4000U>(data & 0x7);
 		}
-	
+
 		void Mapper40::VSync()
 		{
 			irq.VSync();

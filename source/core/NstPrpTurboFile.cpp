@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -27,14 +27,14 @@
 #include "NstCpu.hpp"
 #include "NstPrpTurboFile.hpp"
 #include "api/NstApiUser.hpp"
-   
+
 namespace Nes
 {
 	namespace Core
 	{
-        #ifdef NST_PRAGMA_OPTIMIZE
-        #pragma optimize("s", on)
-        #endif
+		#ifdef NST_PRAGMA_OPTIMIZE
+		#pragma optimize("s", on)
+		#endif
 
 		namespace Peripherals
 		{
@@ -106,28 +106,28 @@ namespace Nes
 						case NES_STATE_CHUNK_ID('R','E','G','\0'):
 						{
 							const State::Loader::Data<3> data( state );
-				
+
 							pos = data[0] | ((data[1] & 0x1F) << 8);
 							bit = 1U << (data[2] & 0x7);
 							old = (data[2] >> 1) & WRITE_BIT;
 							out = (data[2] >> 2) & READ_BIT;
-				
+
 							break;
 						}
-				
+
 						case NES_STATE_CHUNK_ID('R','A','M','\0'):
-				
+
 							state.Uncompress( ram );
-							break;				
+							break;
 					}
 
 					state.End();
 				}
 			}
 
-            #ifdef NST_PRAGMA_OPTIMIZE
-            #pragma optimize("", on)
-            #endif
+			#ifdef NST_PRAGMA_OPTIMIZE
+			#pragma optimize("", on)
+			#endif
 
 			NES_POKE(TurboFile,4016)
 			{

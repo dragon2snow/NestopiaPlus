@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -30,6 +30,7 @@
 #include "NstResourceVersion.hpp"
 #include "NstApplicationException.hpp"
 #include "NstApplicationInstance.hpp"
+#include "NstApplicationLanguage.hpp"
 #include "NstWindowStruct.hpp"
 #include "NstWindowGeneric.hpp"
 #include <CommCtrl.h>
@@ -48,6 +49,7 @@ namespace Nestopia
 	struct Instance::Global
 	{
 		Global();
+		~Global();
 
 		struct Paths
 		{
@@ -78,9 +80,9 @@ namespace Nestopia
 			Children children;
 		};
 
-		HINSTANCE const hInstance;
 		const Paths paths;
 		const Resource::Version version;
+		Language* language;
 		Hooks hooks;
 		IconStyle iconStyle;
 	};
@@ -92,14 +94,15 @@ namespace Nestopia
 	{
 		uint length;
 
-		do 
+		do
 		{
 			path.Reserve( path.Capacity() + 255 );
 			length = ::GetModuleFileName( hInstance, path.Ptr(), path.Capacity() );
-		} 
+		}
 		while (length == path.Capacity());
 
 		path.ShrinkTo( length );
+		path.MakePretty();
 		path.Defrag();
 	}
 
@@ -115,9 +118,9 @@ namespace Nestopia
 			::UnhookWindowsHookEx( handle );
 	}
 
-    #ifdef NST_PRAGMA_OPTIMIZE
-    #pragma optimize("t", on)
-    #endif
+	#ifdef NST_PRAGMA_OPTIMIZE
+	#pragma optimize("t", on)
+	#endif
 
 	void Instance::Global::Hooks::OnCreate(const CREATESTRUCT& createStruct,HWND const hWnd)
 	{
@@ -129,7 +132,7 @@ namespace Nestopia
 				enum
 				{
 					MAX_LENGTH = NST_MAX( NST_COUNT(NST_APP_CLASS_NAME) - 1,
-             		     	     NST_MAX( NST_COUNT(NST_STATUS_CLASS_NAME) - 1, NST_COUNT(NST_MENU_CLASS_NAME) - 1 ))
+                                 NST_MAX( NST_COUNT(NST_STATUS_CLASS_NAME) - 1, NST_COUNT(NST_MENU_CLASS_NAME) - 1 ))
 				};
 
 				String::Stack<MAX_LENGTH,tchar> name;
@@ -153,7 +156,7 @@ namespace Nestopia
 				}
 			}
 
-			const Events::WindowCreateParam param = 
+			const Events::WindowCreateParam param =
 			{
 				hWnd,
 				createStruct.cx > 0 ? createStruct.cx : 0,
@@ -197,44 +200,69 @@ namespace Nestopia
 		switch (nCode)
 		{
 			case HCBT_CREATEWND:
-		
+
 				NST_ASSERT( lParam );
-		
+
 				if (const CREATESTRUCT* const createStruct = reinterpret_cast<const CBT_CREATEWND*>(lParam)->lpcs)
 					global.hooks.OnCreate( *createStruct, reinterpret_cast<HWND>(wParam) );
-		
+
 				return 0;
-		
+
 			case HCBT_DESTROYWND:
-		
+
 				NST_VERIFY( wParam );
-		
+
 				if (wParam)
 					global.hooks.OnDestroy( reinterpret_cast<HWND>(wParam) );
-		
+
 				return 0;
 		}
 
 		return (nCode < 0) ? ::CallNextHookEx( global.hooks.handle, nCode, wParam, lParam ) : 0;
 	}
 
-    #ifdef NST_PRAGMA_OPTIMIZE
-    #pragma optimize("", on)
-    #endif
+	#ifdef NST_PRAGMA_OPTIMIZE
+	#pragma optimize("", on)
+	#endif
 
 	Instance::Global::Global()
-	: 
-	hInstance ( ::GetModuleHandle(NULL) ),
-	paths     ( hInstance ),
-	hooks     ( hInstance ),
-	version   ( paths.path.Ptr() ),
+	:
+	paths     ( ::GetModuleHandle(NULL) ),
+	hooks     ( ::GetModuleHandle(NULL) ),
+	version   ( paths.path.Ptr(), Resource::Version::PRODUCT ),
+	language  ( NULL ),
 	iconStyle ( ICONSTYLE_NES )
 	{
 	}
 
-	HINSTANCE Instance::GetHandle()
+	Instance::Global::~Global()
 	{
-		return global.hInstance;
+		delete language;
+	}
+
+	ibool Instance::IsResourceLoaded()
+	{
+		return global.language != NULL;
+	}
+
+	HMODULE Instance::GetResourceHandle()
+	{
+		return global.language->GetResourceHandle();
+	}
+
+	const Path& Instance::GetResourcePath()
+	{
+		return global.language->GetResourcePath();
+	}
+
+	void Instance::UpdateResource(tstring path)
+	{
+		global.language->UpdateResource( path );
+	}
+
+	void Instance::EnumerateResources(ResourcePaths& paths)
+	{
+		global.language->EnumerateResources( paths );
 	}
 
 	const String::Generic<char> Instance::GetVersion()
@@ -242,45 +270,60 @@ namespace Nestopia
 		return global.version;
 	}
 
-	const Path& Instance::GetPath()
+	const Path& Instance::GetExePath()
 	{
 		return global.paths.path;
 	}
 
-	const Path Instance::GetPath(const GenericString file)
+	const Path Instance::GetExePath(const GenericString file)
 	{
 		return Path( global.paths.path.Directory(), file );
 	}
 
+	const Path Instance::GetLongPath(tstring const shortPath)
+	{
+		Path longPath;
+
+		longPath.Reserve( 255 );
+		uint length = ::GetLongPathName( shortPath, longPath.Ptr(), longPath.Capacity() + 1 );
+
+		if (length > longPath.Capacity() + 1)
+		{
+			longPath.Reserve( length - 1 );
+			length = ::GetLongPathName( shortPath, longPath.Ptr(), longPath.Capacity() + 1 );
+		}
+
+		if (!length)
+			return shortPath;
+
+		const tchar slashed = GenericString(shortPath).Back();
+
+		longPath.ShrinkTo( length );
+		longPath.MakePretty( slashed == '\\' || slashed == '/' );
+
+		return longPath;
+	}
+
 	const Path Instance::GetTmpPath(GenericString file)
 	{
-		Path tmp, path;
-		tmp.Reserve( 255 );
-		
-		if (uint length = ::GetTempPath( tmp.Capacity() + 1, tmp.Ptr() ))
+		Path path;
+		path.Reserve( 255 );
+
+		if (uint length = ::GetTempPath( path.Capacity() + 1, path.Ptr() ))
 		{
-			if (length > tmp.Capacity() + 1)
+			if (length > path.Capacity() + 1)
 			{
-				tmp.Reserve( length - 1 );
-				length = ::GetTempPath( length, tmp.Ptr() );
+				path.Reserve( length - 1 );
+				length = ::GetTempPath( path.Capacity() + 1, path.Ptr() );
 			}
 
 			if (length)
-			{
-				path.Reserve( NST_MAX(length,255) );
-				length = ::GetLongPathName( tmp.Ptr(), path.Ptr(), path.Capacity() + 1 );
-
-				if (length > path.Capacity() + 1)
-				{
-					path.Reserve( length - 1 );
-					length = ::GetLongPathName( tmp.Ptr(), path.Ptr(), path.Capacity() + 1 );
-				}
-
-				path.ShrinkTo( length );
-			}
+				path = GetLongPath( path.Ptr() );
 		}
 
-		if (path.Empty())
+		if (path.Length())
+			path.MakePretty( true );
+		else
 			path << ".\\";
 
 		if (file.Empty())
@@ -296,7 +339,7 @@ namespace Nestopia
 		NST_ASSERT( global.hooks.window );
 		Window::Generic(global.hooks.window).Send( WM_NST_LAUNCH, flags, file );
 	}
-  
+
 	void Instance::Events::Add(const Callback& callback)
 	{
 		NST_ASSERT( bool(callback) && !callbacks.Find( callback ) );
@@ -352,17 +395,6 @@ namespace Nestopia
 		global.iconStyle = style;
 	}
 
-	ibool Instance::IsAnyChildWindowVisible()
-	{
-		for (Global::Hooks::Children::ConstIterator it=global.hooks.children.Begin(), end=global.hooks.children.End(); it != end; ++it)
-		{
-			if (::IsWindowVisible( *it ))
-				return TRUE;
-		}
-
-		return FALSE;
-	}
-
 	void Instance::ShowChildWindows(uint state)
 	{
 		state = (state ? SW_SHOWNA : SW_HIDE);
@@ -382,7 +414,7 @@ namespace Nestopia
 	Instance::Locker::Locker()
 	: hWnd(GetMainWindow()), enabled(::IsWindowEnabled(hWnd))
 	{
-		::EnableWindow( hWnd, FALSE );
+		::EnableWindow( hWnd, false );
 		::LockWindowUpdate( hWnd );
 	}
 
@@ -393,10 +425,10 @@ namespace Nestopia
 			while (::GetAsyncKeyState( vKey ) & 0x8000)
 				::Sleep( 10 );
 
-			return TRUE;
+			return true;
 		}
 
-		return FALSE;
+		return false;
 	}
 
 	Instance::Locker::~Locker()
@@ -416,15 +448,15 @@ namespace Nestopia
 
 		if (static_cast<const Configuration&>(cfg)["preferences allow multiple instances"] != Configuration::YES)
 		{
-			::CreateMutex( NULL, TRUE, NST_APP_MUTEX_NAME );
+			::CreateMutex( NULL, true, NST_APP_MUTEX_NAME );
 
-			if (::GetLastError() == ERROR_ALREADY_EXISTS) 
+			if (::GetLastError() == ERROR_ALREADY_EXISTS)
 			{
 				const Window::Generic window( NST_APP_CLASS_NAME );
 
 				if (window)
 				{
-					window.Activate( FALSE );
+					window.Activate( false );
 
 					if (const uint length = cfg.GetStartupFile().Length())
 					{
@@ -448,10 +480,21 @@ namespace Nestopia
 		Window::Struct<INITCOMMONCONTROLSEX> initCtrlEx;
 		initCtrlEx.dwICC = ICC_WIN95_CLASSES;
 		::InitCommonControlsEx( &initCtrlEx );
+
+		NST_ASSERT( !global.language );
+		global.language = new Language( cfg );
 	}
 
 	Instance::~Instance()
 	{
 		::CoUninitialize();
+	}
+
+	void Instance::Save()
+	{
+		NST_VERIFY( global.language );
+
+		if (global.language)
+			global.language->Save( cfg );
 	}
 }

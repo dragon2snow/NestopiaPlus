@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -64,10 +64,11 @@ namespace Nes
 			void SaveState(State::Saver&) const;
 			void BeginFrame(const Api::Input&,Input::Controllers*);
 			void VSync();
-			
+
 			Mode GetMode() const;
-			uint GetDesiredController(uint) const;						
+			uint GetDesiredController(uint) const;
 			ExternalDevice QueryExternalDevice(ExternalDeviceType);
+			PpuType QueryPpu(bool);
 
 			static const void* SearchDatabase(const ImageDatabase&,const void*,ulong,ulong);
 
@@ -87,7 +88,7 @@ namespace Nes
 			void ResetWRam();
 
 			void LoadBattery();
-			Result SaveBattery() const;
+			Result SaveBattery(bool) const;
 
 			Mapper* mapper;
 			VsSystem* vs;
@@ -102,14 +103,14 @@ namespace Nes
 
 		public:
 
-			Result Flush() const
+			Result Flush(bool power) const
 			{
-				return SaveBattery();
+				return SaveBattery( power );
 			}
 
 			const Info& GetInfo() const
-			{ 
-				return info; 
+			{
+				return info;
 			}
 
 			dword GetPrgCrc() const
@@ -118,8 +119,8 @@ namespace Nes
 			}
 
 			bool IsVS() const
-			{ 
-				return vs != NULL; 
+			{
+				return vs != NULL;
 			}
 		};
 	}

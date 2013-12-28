@@ -17,8 +17,8 @@
 	<Configurations>
 		<Configuration
 			Name="Debug|Win32"
-			OutputDirectory="$(SolutionDir)DebugOut\"
-			IntermediateDirectory="Debug\Win32\"
+			OutputDirectory="$(SolutionDir)debugout\"
+			IntermediateDirectory="debug\win32\"
 			ConfigurationType="1"
 			CharacterSet="1"
 			>
@@ -74,16 +74,16 @@
 				Name="VCLinkerTool"
 				LinkLibraryDependencies="false"
 				AdditionalDependencies="libcmtd.lib unicows.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib $(NOINHERIT)"
-				OutputFile="$(OutDir)\Nestopia.exe"
+				OutputFile="$(OutDir)nestopia.exe"
 				LinkIncremental="2"
 				AdditionalLibraryDirectories="$(SolutionDir)..\lib"
 				IgnoreAllDefaultLibraries="false"
 				IgnoreDefaultLibraryNames="libc"
-				DelayLoadDLLs="unrar.dll;kailleraclient.dll"
+				DelayLoadDLLs=""
 				GenerateDebugInformation="true"
 				SubSystem="2"
 				OptimizeForWindows98="1"
-				SupportUnloadOfDelayLoadedDLL="true"
+				SupportUnloadOfDelayLoadedDLL="false"
 				TargetMachine="1"
 			/>
 			<Tool
@@ -113,8 +113,8 @@
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
-			OutputDirectory="$(SolutionDir)ReleaseOut\"
-			IntermediateDirectory="Release\Win32\"
+			OutputDirectory="$(SolutionDir)releaseout\"
+			IntermediateDirectory="release\win32\"
 			ConfigurationType="1"
 			CharacterSet="1"
 			WholeProgramOptimization="1"
@@ -153,7 +153,7 @@
 				RuntimeTypeInfo="false"
 				UsePrecompiledHeader="0"
 				AssemblerOutput="4"
-				AssemblerListingLocation="$(SolutionDir)Release\Win32\Asm\"
+				AssemblerListingLocation="$(SolutionDir)release\win32\asm\"
 				WarningLevel="4"
 				Detect64BitPortabilityProblems="false"
 				DebugInformationFormat="0"
@@ -174,20 +174,20 @@
 				LinkLibraryDependencies="false"
 				AdditionalDependencies="libcmt.lib unicows.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib $(NOINHERIT)"
 				ShowProgress="0"
-				OutputFile="$(OutDir)\Nestopia.exe"
+				OutputFile="$(OutDir)nestopia.exe"
 				LinkIncremental="1"
 				AdditionalLibraryDirectories="$(SolutionDir)..\lib"
 				GenerateManifest="true"
 				AdditionalManifestDependencies=""
 				IgnoreAllDefaultLibraries="false"
 				IgnoreDefaultLibraryNames="libc"
-				DelayLoadDLLs="unrar.dll;kailleraclient.dll"
+				DelayLoadDLLs=""
 				GenerateDebugInformation="false"
 				SubSystem="2"
 				OptimizeReferences="2"
 				EnableCOMDATFolding="2"
 				OptimizeForWindows98="1"
-				SupportUnloadOfDelayLoadedDLL="true"
+				SupportUnloadOfDelayLoadedDLL="false"
 				TargetMachine="1"
 			/>
 			<Tool
@@ -244,6 +244,14 @@
 			</File>
 			<File
 				RelativePath="..\source\win32\NstApplicationInstance.hpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\win32\NstApplicationLanguage.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\win32\NstApplicationLanguage.hpp"
 				>
 			</File>
 			<File
@@ -498,6 +506,14 @@
 					>
 				</File>
 				<File
+					RelativePath="..\source\win32\NstDialogLanguage.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\source\win32\NstDialogLanguage.hpp"
+					>
+				</File>
+				<File
 					RelativePath="..\source\win32\NstDialogLauncher.cpp"
 					>
 				</File>
@@ -534,11 +550,11 @@
 					>
 				</File>
 				<File
-					RelativePath="..\source\win32\NstDialogLicence.cpp"
+					RelativePath="..\source\win32\NstDialogLicense.cpp"
 					>
 				</File>
 				<File
-					RelativePath="..\source\win32\NstDialogLicence.hpp"
+					RelativePath="..\source\win32\NstDialogLicense.hpp"
 					>
 				</File>
 				<File
@@ -804,6 +820,14 @@
 			</File>
 			<File
 				RelativePath="..\source\win32\NstManagerInput.hpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\win32\NstManagerLanguage.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\win32\NstManagerLanguage.hpp"
 				>
 			</File>
 			<File
@@ -1131,9 +1155,21 @@
 				>
 			</File>
 			<File
-				RelativePath="..\source\win32\resource\Win32.rc"
+				RelativePath="..\source\win32\resource\win32.rc"
 				>
 			</File>
+			<Filter
+				Name="Bitmaps"
+				>
+				<File
+					RelativePath="..\source\win32\resource\FolderClosed.bmp"
+					>
+				</File>
+				<File
+					RelativePath="..\source\win32\resource\FolderOpen.bmp"
+					>
+				</File>
+			</Filter>
 			<Filter
 				Name="Icons"
 				>
@@ -1199,30 +1235,14 @@
 				</File>
 			</Filter>
 			<Filter
-				Name="Bitmaps"
-				>
-				<File
-					RelativePath="..\source\win32\resource\FolderClosed.bmp"
-					>
-				</File>
-				<File
-					RelativePath="..\source\win32\resource\FolderOpen.bmp"
-					>
-				</File>
-			</Filter>
-			<Filter
 				Name="Files"
 				>
 				<File
-					RelativePath="..\source\win32\resource\copying.txt"
+					RelativePath="..\source\win32\resource\copying.zip"
 					>
 				</File>
 				<File
 					RelativePath="..\source\win32\resource\ImageDatabase.zip"
-					>
-				</File>
-				<File
-					RelativePath="..\source\win32\resource\MoeProSamples.zip"
 					>
 				</File>
 			</Filter>
@@ -1276,6 +1296,14 @@
 			</File>
 			<File
 				RelativePath="..\source\win32\NstSystemThread.hpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\win32\NstSystemTime.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\win32\NstSystemTime.hpp"
 				>
 			</File>
 			<File

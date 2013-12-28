@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -53,10 +53,10 @@ namespace Nestopia
 	};
 
 	TapeRecorder::TapeRecorder(const Configuration& cfg,const Managers::Paths& p)
-	: dialog(IDD_TAPE_RECORDER,this,Handlers::messages,Handlers::commands), paths(p) 
+	: dialog(IDD_TAPE_RECORDER,this,Handlers::messages,Handlers::commands), paths(p)
 	{
 		settings.useImageNaming = (cfg["files use image tape name"] != Configuration::NO);
-		settings.customFile = cfg["files tape"];		
+		settings.customFile = cfg["files tape"];
 		paths.FixFile( Managers::Paths::File::TAPE, settings.customFile );
 	}
 
@@ -77,7 +77,7 @@ namespace Nestopia
 
 		Update();
 
-		return TRUE;
+		return true;
 	}
 
 	void TapeRecorder::Update() const
@@ -94,7 +94,7 @@ namespace Nestopia
 		if (param.Button().IsClicked())
 			Update();
 
-		return TRUE;
+		return true;
 	}
 
 	ibool TapeRecorder::OnCmdClear(Param& param)
@@ -102,7 +102,7 @@ namespace Nestopia
 		if (param.Button().IsClicked())
 			dialog.Edit(IDC_TAPE_RECORDER_FILE).Clear();
 
-		return TRUE;
+		return true;
 	}
 
 	ibool TapeRecorder::OnCmdBrowse(Param& param)
@@ -114,7 +114,7 @@ namespace Nestopia
 			dialog.Edit(IDC_TAPE_RECORDER_FILE).Try() << paths.BrowseSave( Managers::Paths::File::TAPE, Managers::Paths::SUGGEST, tmp ).Ptr();
 		}
 
-		return TRUE;
+		return true;
 	}
 
 	ibool TapeRecorder::OnCmdOk(Param& param)
@@ -127,7 +127,7 @@ namespace Nestopia
 			dialog.Close();
 		}
 
-		return TRUE;
+		return true;
 	}
 
 	ibool TapeRecorder::OnCmdCancel(Param& param)
@@ -135,6 +135,6 @@ namespace Nestopia
 		if (param.Button().IsClicked())
 			dialog.Close();
 
-		return TRUE;
+		return true;
 	}
 }

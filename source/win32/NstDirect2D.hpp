@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -40,7 +40,7 @@
 
 #define NST_E_INVALID_RECT MAKE_HRESULT( SEVERITY_ERROR, 0x123, 2 )
 
-namespace Nestopia									  
+namespace Nestopia
 {
 	namespace DirectX
 	{
@@ -51,11 +51,11 @@ namespace Nestopia
 			explicit Direct2D(HWND);
 
 			typedef Window::Rect Rect;
-			typedef Window::Point Point;		
+			typedef Window::Point Point;
 
 			struct Mode
 			{
-				typedef std::set<uchar> Rates; 
+				typedef std::set<uchar> Rates;
 
 				explicit Mode(uint=0,uint=0,uint=0);
 
@@ -71,7 +71,7 @@ namespace Nestopia
 				bool operator <  (const Mode&) const;
 
 				uint width, height, bpp;
-				Rates rates; 
+				Rates rates;
 
 				bool operator != (const Mode& mode) const
 				{
@@ -87,7 +87,7 @@ namespace Nestopia
 			struct Adapter : BaseAdapter
 			{
 				typedef std::set<Mode> Modes;
-				
+
 				enum DeviceType
 				{
 					DEVICE_HAL,
@@ -122,6 +122,7 @@ namespace Nestopia
 			};
 
 			void  SelectAdapter(const Adapters::const_iterator);
+			ibool CanSwitchFullscreen(const Adapter::Modes::const_iterator) const;
 			ibool SwitchFullscreen(const Adapter::Modes::const_iterator);
 			ibool SwitchWindowed();
 			void  UpdateWindowView();
@@ -203,7 +204,7 @@ namespace Nestopia
 				HRESULT Reset();
 
 				inline operator IDirect3DDevice9& () const;
-				
+
 			private:
 
 				void  Prepare() const;
@@ -234,7 +235,7 @@ namespace Nestopia
 					void Destroy(ibool);
 					void OnReset() const;
 					void OnLost() const;
-					
+
 					NST_FORCE_INLINE void Render(const D3DPRESENT_PARAMETERS&,uint) const;
 
 				private:
@@ -273,17 +274,17 @@ namespace Nestopia
 					uint width;
 
 				public:
-					
+
 					void UpdateFps(const GenericString& string)
 					{
 						fps.Update( string );
 					}
-					
+
 					void ClearFps()
 					{
 						fps.Clear();
 					}
-					
+
 					void UpdateMsg(const GenericString& string)
 					{
 						msg.Update( string );
@@ -335,7 +336,7 @@ namespace Nestopia
 				{
 					return com->Present( NULL, NULL, NULL, NULL );
 				}
-  
+
 				const D3DPRESENT_PARAMETERS& GetPresentation() const
 				{
 					return presentation;
@@ -378,9 +379,9 @@ namespace Nestopia
 
 				ibool IsThrottleRequired() const
 				{
-					return 
+					return
 					(
-				    	(presentation.PresentationInterval == D3DPRESENT_INTERVAL_IMMEDIATE) ||
+						(presentation.PresentationInterval == D3DPRESENT_INTERVAL_IMMEDIATE) ||
 						(presentation.PresentationInterval == D3DPRESENT_INTERVAL_ONE && presentation.FullScreen_RefreshRateInHz != timing.frameRate)
 					);
 				}
@@ -390,13 +391,13 @@ namespace Nestopia
 			{
 			public:
 
-				enum 
+				enum
 				{
 					FVF = D3DFVF_XYZRHW|D3DFVF_TEX1
 				};
 
 				void Update(const Rect&,const float[4],float);
-				HRESULT Validate(IDirect3DDevice9&,ibool=TRUE);
+				HRESULT Validate(IDirect3DDevice9&,ibool=true);
 				inline void Invalidate();
 
 			private:
@@ -406,16 +407,16 @@ namespace Nestopia
 					NUM_VERTICES = 4
 				};
 
-            #pragma pack(push,1)
-			
+			#pragma pack(push,1)
+
 				struct Vertex
 				{
 					Vertex();
-			
+
 					float x,y,z,rhw,u,v;
 				};
-				
-            #pragma pack(pop)
+
+			#pragma pack(pop)
 
 				NST_COMPILE_ASSERT( sizeof(Vertex) == 24 );
 
@@ -521,7 +522,7 @@ namespace Nestopia
 			{
 				return base.GetAdapter( device.GetOrdinal() );
 			}
-  
+
 			uint GetBitsPerPixel() const
 			{
 				return texture.GetBitsPerPixel();
@@ -539,9 +540,9 @@ namespace Nestopia
 
 			ibool LockScreen(void*& data,long& pitch)
 			{
-				if (SUCCEEDED(lastResult))				
+				if (SUCCEEDED(lastResult))
 					lastResult = texture.Lock( data, pitch );
-					
+
 				return SUCCEEDED(lastResult);
 			}
 

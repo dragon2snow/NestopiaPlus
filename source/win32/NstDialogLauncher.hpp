@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -58,7 +58,7 @@ namespace Nestopia
 			Launcher(const Nes::Cartridge::Database&,const Managers::Paths&,const Configuration&);
 			~Launcher();
 
-			void Save(Configuration&,ibool);
+			void Save(Configuration&,ibool,ibool);
 			void Open();
 			void Close();
 
@@ -81,15 +81,15 @@ namespace Nestopia
 			ibool OnCmdEnter   (Param&);
 			ibool OnDestroy    (Param&);
 
-			void OnCmdFileRun	            	(uint=0);
-			void OnCmdFileRefresh	            (uint);
-			void OnCmdViewShowGrids             (uint); 
-			void OnCmdViewShowDatabaseCorrected (uint); 
-			void OnCmdOptionsPaths              (uint); 
-			void OnCmdOptionsColors	            (uint);
+			void OnCmdFileRun                   (uint=0);
+			void OnCmdFileRefresh               (uint);
+			void OnCmdViewShowGrids             (uint);
+			void OnCmdViewShowDatabaseCorrected (uint);
+			void OnCmdOptionsPaths              (uint);
+			void OnCmdOptionsColors             (uint);
 
 			void OnListGetDisplayInfo    (const NMHDR&);
-			void OnListKeyDown		     (const NMHDR&);
+			void OnListKeyDown           (const NMHDR&);
 			void OnListColumnClick       (const NMHDR&);
 			void OnListItemActivate      (const NMHDR&);
 			void OnListItemChanged       (const NMHDR&);
@@ -116,7 +116,7 @@ namespace Nestopia
 				void operator = (const Control::ListView&);
 
 				enum Updater
-				{	 
+				{
 					DONT_REPAINT,
 					REPAINT
 				};
@@ -157,7 +157,7 @@ namespace Nestopia
 								NES,UNF,FDS,NSF,IPS,NSP,ARCHIVE,ANY,UNIQUE
 							};
 
-							enum						
+							enum
 							{
 								TYPES = NES|UNF|FDS|NSF|IPS|NSP,
 								FILES = TYPES|ARCHIVE
@@ -175,7 +175,7 @@ namespace Nestopia
 
 					struct Handlers;
 
-					enum 
+					enum
 					{
 						LIMIT = 999
 					};
@@ -226,7 +226,7 @@ namespace Nestopia
 
 						typedef u32 Index;
 
-						enum 
+						enum
 						{
 							NONE = -1
 						};
@@ -242,6 +242,14 @@ namespace Nestopia
 						{
 							uint pos = container.Length();
 							container << t << '\0';
+							return pos;
+						}
+
+						Index Import(cstring t)
+						{
+							uint pos = container.Length();
+							container.Import( t );
+							container << '\0';
 							return pos;
 						}
 
@@ -266,7 +274,7 @@ namespace Nestopia
 
 					void  Save(const Nes::Cartridge::Database&);
 					void  Refresh(const Paths::Settings&,const Nes::Cartridge::Database&);
-					ibool Insert(const Nes::Cartridge::Database&,GenericString); 
+					ibool Insert(const Nes::Cartridge::Database&,GenericString);
 					void  Clear();
 					ibool ShouldDefrag() const;
 					void  Defrag();
@@ -286,7 +294,7 @@ namespace Nestopia
 							FDS     = 0x04,
 							NSF     = 0x08,
 							IPS     = 0x10,
-							NSP	    = 0x20,
+							NSP     = 0x20,
 							ARCHIVE = 0x40,
 							ALL     = NES|UNF|FDS|NSF|IPS|NSP
 						};
@@ -297,7 +305,7 @@ namespace Nestopia
 							MIRROR_HORIZONTAL,
 							MIRROR_VERTICAL,
 							MIRROR_ZERO,
-							MIRROR_ONE,      
+							MIRROR_ONE,
 							MIRROR_FOURSCREEN,
 							MIRROR_CONTROLLED
 						};
@@ -339,9 +347,9 @@ namespace Nestopia
 							FLAGS_NTSC_PAL = 0x40|0x80
 						};
 
-                    #pragma pack(push,1)
+					#pragma pack(push,1)
 
-						struct Bits 
+						struct Bits
 						{
 							u8 mirroring : 3;
 							u8 battery   : 1;
@@ -351,7 +359,7 @@ namespace Nestopia
 							u8 ntsc      : 1;
 						};
 
-                    #pragma pack(pop)
+					#pragma pack(pop)
 
 						NST_COMPILE_ASSERT( sizeof(Bits) == 1 );
 
@@ -388,69 +396,69 @@ namespace Nestopia
 							return strings[maker];
 						}
 
-						uint GetPRom() const 
-						{ 
-							return pRom; 
-						}
-
-						uint GetCRom() const 
-						{ 
-							return cRom; 
-						}
-
-						uint GetWRam() const 
-						{ 
-							return wRam; 
-						}
-
-						uint GetPRom(const Nes::Cartridge::Database* db) const 
-						{ 
-							return dBaseEntry && db ? db->GetPRomSize( dBaseEntry ) / Nes::Core::SIZE_1K : pRom; 
-						}
-
-						uint GetCRom(const Nes::Cartridge::Database* db) const 
-						{ 
-							return dBaseEntry && db ? db->GetCRomSize( dBaseEntry ) / Nes::Core::SIZE_1K : cRom; 
-						}
-
-						uint GetWRam(const Nes::Cartridge::Database* db) const 
-						{ 
-							return dBaseEntry && db ? db->GetWRamSize( dBaseEntry ) / Nes::Core::SIZE_1K : wRam; 
-						}
-
-						uint GetMapper() const 
-						{ 
-							return mapper;         
-						}
-
-						ibool GetBattery() const 
-						{ 
-							return bits.battery;   
-						}
-
-						ibool GetTrainer() const 
-						{ 
-							return bits.trainer;   
-						}
-
-						uint GetMirroring() const 
-						{ 
-							return bits.mirroring; 
-						}
-
-						ibool GetBattery(const Nes::Cartridge::Database* db) const 
-						{ 
-							return dBaseEntry && db ? db->HasBattery( dBaseEntry ) : bits.battery; 
-						}
-
-						ibool GetTrainer(const Nes::Cartridge::Database* db) const 
+						uint GetPRom() const
 						{
-							return dBaseEntry && db ? db->HasTrainer( dBaseEntry ) : bits.trainer; 
+							return pRom;
 						}
 
-						uint GetMapper(const Nes::Cartridge::Database* db) const 
-						{ 
-							return dBaseEntry && db ? db->GetMapper( dBaseEntry ) : mapper;  
+						uint GetCRom() const
+						{
+							return cRom;
+						}
+
+						uint GetWRam() const
+						{
+							return wRam;
+						}
+
+						uint GetPRom(const Nes::Cartridge::Database* db) const
+						{
+							return dBaseEntry && db ? db->GetPRomSize( dBaseEntry ) / Nes::Core::SIZE_1K : pRom;
+						}
+
+						uint GetCRom(const Nes::Cartridge::Database* db) const
+						{
+							return dBaseEntry && db ? db->GetCRomSize( dBaseEntry ) / Nes::Core::SIZE_1K : cRom;
+						}
+
+						uint GetWRam(const Nes::Cartridge::Database* db) const
+						{
+							return dBaseEntry && db ? db->GetWRamSize( dBaseEntry ) / Nes::Core::SIZE_1K : wRam;
+						}
+
+						uint GetMapper() const
+						{
+							return mapper;
+						}
+
+						ibool GetBattery() const
+						{
+							return bits.battery;
+						}
+
+						ibool GetTrainer() const
+						{
+							return bits.trainer;
+						}
+
+						uint GetMirroring() const
+						{
+							return bits.mirroring;
+						}
+
+						ibool GetBattery(const Nes::Cartridge::Database* db) const
+						{
+							return dBaseEntry && db ? db->HasBattery( dBaseEntry ) : bits.battery;
+						}
+
+						ibool GetTrainer(const Nes::Cartridge::Database* db) const
+						{
+							return dBaseEntry && db ? db->HasTrainer( dBaseEntry ) : bits.trainer;
+						}
+
+						uint GetMapper(const Nes::Cartridge::Database* db) const
+						{
+							return dBaseEntry && db ? db->GetMapper( dBaseEntry ) : mapper;
 						}
 					};
 
@@ -472,7 +480,7 @@ namespace Nestopia
 
 					struct Header
 					{
-						enum 
+						enum
 						{
 							ID = NST_FOURCC('n','s','d',0),
 							MAX_ENTRIES = 0xFFFFF,
@@ -513,7 +521,7 @@ namespace Nestopia
 						if (entry->type)
 						{
 							entry->type = 0;
-							dirty = TRUE;
+							dirty = true;
 						}
 					}
 
@@ -556,13 +564,6 @@ namespace Nestopia
 
 					struct Handlers;
 
-					enum 
-					{
-						GUI,
-						CFG,
-						NUM_STRING_STYLES
-					};
-
 					static cstring CfgName(uint);
 
 					void Reset();
@@ -585,23 +586,23 @@ namespace Nestopia
 					Types selected;
 					Dialog dialog;
 
-					static tstring const strings[NUM_STRING_STYLES][NUM_TYPES]; 
+					static tstring const cfgStrings[NUM_TYPES];
 
 				public:
 
 					uint Count() const
-					{ 
-						return selected.Size(); 
+					{
+						return selected.Size();
 					}
 
 					Type GetType(uint i) const
-					{ 
+					{
 						return Type(selected[i]);
 					}
 
-					tstring GetString(uint i) const
-					{ 
-						return strings[GUI][selected[i]]; 
+					uint GetStringId(uint i) const
+					{
+						return IDS_LAUNCHER_COLUMN_FILE + selected[i];
 					}
 
 					void Open()
@@ -635,9 +636,9 @@ namespace Nestopia
 					static const tchar mappers[256][4];
 				};
 
-				enum 
+				enum
 				{
-					STYLE = 
+					STYLE =
 					(
 						LVS_EX_FULLROWSELECT |
 						LVS_EX_TWOCLICKACTIVATE |
@@ -653,12 +654,12 @@ namespace Nestopia
 				void  OnFind(GenericString,uint);
 				ibool Optimize();
 
-				void OnCmdEditFind         (uint); 
-				void OnCmdEditInsert       (uint); 
+				void OnCmdEditFind         (uint);
+				void OnCmdEditInsert       (uint);
 				void OnCmdEditDelete       (uint);
 				void OnCmdEditClear        (uint);
-				void OnCmdViewAlignColumns (uint); 
-				void OnCmdOptionsColumns   (uint); 
+				void OnCmdViewAlignColumns (uint);
+				void OnCmdOptionsColumns   (uint);
 
 				Control::ListView ctrl;
 
@@ -676,7 +677,7 @@ namespace Nestopia
 				Columns columns;
 				Strings strings;
 				const Managers::Paths& pathManager;
-				
+
 			public:
 
 				Generic GetWindow() const
@@ -853,6 +854,7 @@ namespace Nestopia
 			List list;
 			Point margin;
 			Colors colors;
+			Point initialSize;
 		};
 	}
 }

@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -38,9 +38,9 @@ namespace Nes
 {
 	namespace Core
 	{
-        #ifdef NST_PRAGMA_OPTIMIZE
-        #pragma optimize("s", on)
-        #endif
+		#ifdef NST_PRAGMA_OPTIMIZE
+		#pragma optimize("s", on)
+		#endif
 
 		class Nsf::Chips : Apu::Channel
 		{
@@ -254,31 +254,31 @@ namespace Nes
 			delete vrc7;
 			delete mmc5;
 		}
-	
+
 		void Nsf::Chips::Reset()
 		{
 			clock[2] = clock[1] = clock[0] = NES_CYCLE_MAX;
 
-			if ( mmc5 ) mmc5->Reset(); 				
+			if ( mmc5 ) mmc5->Reset();
 			if ( vrc6 ) vrc6->Reset();
-			if ( vrc7 ) vrc7->Reset();  
-			if ( fds  ) fds->Reset(); 
+			if ( vrc7 ) vrc7->Reset();
+			if ( fds  ) fds->Reset();
 			if ( s5b  ) s5b->Reset();
 			if ( n106 ) n106->Reset();
 		}
-		
+
 		void Nsf::Chips::UpdateContext(uint v,const u8 (&w)[MAX_CHANNELS])
 		{
 			clock[2] = clock[1] = clock[0] = NES_CYCLE_MAX;
 
-			if ( mmc5 ) mmc5->SetContext( rate, fixed, mode, w ); 				
+			if ( mmc5 ) mmc5->SetContext( rate, fixed, mode, w );
 			if ( vrc6 ) vrc6->SetContext( rate, fixed, mode, w );
-			if ( vrc7 ) vrc7->SetContext( rate, fixed, mode, w );  
-			if ( fds  ) fds->SetContext( rate, fixed, mode, w ); 
+			if ( vrc7 ) vrc7->SetContext( rate, fixed, mode, w );
+			if ( fds  ) fds->SetContext( rate, fixed, mode, w );
 			if ( s5b  ) s5b->SetContext( rate, fixed, mode, w );
 			if ( n106 ) n106->SetContext( rate, fixed, mode, w );
 		}
-		
+
 		Cycle Nsf::Chips::Clock()
 		{
 			if (!mmc5 && !fds)
@@ -305,23 +305,23 @@ namespace Nes
 			return
 			(
 				(mmc5 ? mmc5->GetSample() : 0) +
-				(vrc6 ? vrc6->GetSample() : 0) + 
-				(vrc7 ? vrc7->GetSample() : 0) + 
-				(fds  ? fds->GetSample()  : 0) +  
+				(vrc6 ? vrc6->GetSample() : 0) +
+				(vrc7 ? vrc7->GetSample() : 0) +
+				(fds  ? fds->GetSample()  : 0) +
 				(s5b  ? s5b->GetSample()  : 0) +
 				(n106 ? n106->GetSample() : 0)
 			);
 		}
-		
+
 		Nsf::Nsf(Context& context)
-		: 
+		:
 		Image    (SOUND),
 		cpu      (context.cpu),
 		chips    (NULL),
 		tuneMode (TUNE_MODE_NTSC)
 		{
 			Stream::In stream( context.stream );
-	
+
 			{
 				u8 data[5+1+2+6];
 				stream.Read( data );
@@ -341,15 +341,15 @@ namespace Nes
 
 				Log() << "Nsf: version " << data[5];
 			}
-	
+
 			{
-				char* const strings[3] = 
+				char* const strings[3] =
 				{
 					songs.info.name,
 					songs.info.artist,
 					songs.info.maker
 				};
-	
+
 				for (uint i=0; i < 3; ++i)
 				{
 					stream.Read( strings[i], 32 );
@@ -362,45 +362,45 @@ namespace Nes
 					}
 					while (j && strings[i][--j] == ' ');
 				}
-	
+
 				Log() << NST_LINEBREAK "Nsf: name: "   << strings[0]
-					  << NST_LINEBREAK "Nsf: artist: " << strings[1]
-					  << NST_LINEBREAK "Nsf: maker: "  << strings[2]
-					  << NST_LINEBREAK;
+                      << NST_LINEBREAK "Nsf: artist: " << strings[1]
+                      << NST_LINEBREAK "Nsf: maker: "  << strings[2]
+                      << NST_LINEBREAK;
 			}
-	
-			speed.ntsc = stream.Read16();	
+
+			speed.ntsc = stream.Read16();
 			stream.Read( banks );
 
 			addressing.bankSwitched = ((banks[0] | banks[1] | banks[2] | banks[3] | banks[4] | banks[5] | banks[6] | banks[7]) != 0);
 
 			speed.pal = stream.Read16();
 			songs.current = songs.start;
-	
-			Log() << "Nsf: starting song " 
-				  << (songs.start+1)
-				  << " of " 
-				  << songs.count;
-	
+
+			Log() << "Nsf: starting song "
+                  << (songs.start+1)
+                  << " of "
+                  << songs.count;
+
 			cstring string;
-	
+
 			switch (stream.Read8() & 0x3)
 			{
-         		case 0x0: tuneMode = TUNE_MODE_NTSC; string = NST_LINEBREAK "Nsf: NTSC mode" NST_LINEBREAK; break;
+				case 0x0: tuneMode = TUNE_MODE_NTSC; string = NST_LINEBREAK "Nsf: NTSC mode" NST_LINEBREAK; break;
 				case 0x1: tuneMode = TUNE_MODE_PAL;  string = NST_LINEBREAK "Nsf: PAL mode" NST_LINEBREAK; break;
 				default:  tuneMode = TUNE_MODE_BOTH; string = NST_LINEBREAK "Nsf: PAL/NTSC mode" NST_LINEBREAK; break;
 			}
-	
+
 			Log() << string;
-	
+
 			uint type = stream.Read8();
-	
+
 			if (!(type & CHIP_FDS) && addressing.load < 0x8000U)
 				throw RESULT_ERR_CORRUPT_FILE;
 
 			stream.Seek( HEADER_RESERVED_LENGTH );
 			ulong length = stream.Length();
-	
+
 			if (length > SIZE_1024K) // unrealistic
 			{
 				length = SIZE_1024K;
@@ -409,47 +409,47 @@ namespace Nes
 			{
 				throw RESULT_ERR_CORRUPT_FILE;
 			}
-	
+
 			{
 				const uint offset = addressing.load & 0xFFF;
-	
+
 				prg.Source().Set( offset + length, true, false ).Fill( JAM );
 				stream.Read( prg.Source().Mem() + offset, length );
 			}
-	
+
 			if (type & (CHIP_VRC6|CHIP_VRC7|CHIP_FDS|CHIP_MMC5|CHIP_N106|CHIP_S5B))
 				chips = new Chips (type,cpu);
 			else
 				Log() << "Nsf: no external sound chip present" NST_LINEBREAK;
 
 			Log() << "Nsf: " << (length / SIZE_1K) << (addressing.bankSwitched ? "k bank switched PRG-MEM" : "k flat PRG-MEM")
-				  << NST_LINEBREAK "Nsf: load address - " << Log::Hex( (u16) addressing.load )
-				  << NST_LINEBREAK "Nsf: init address - " << Log::Hex( (u16) addressing.init )
-				  << NST_LINEBREAK "Nsf: play address - " << Log::Hex( (u16) addressing.play ) 
-				  << NST_LINEBREAK; 
+                  << NST_LINEBREAK "Nsf: load address - " << Log::Hex( (u16) addressing.load )
+                  << NST_LINEBREAK "Nsf: init address - " << Log::Hex( (u16) addressing.init )
+                  << NST_LINEBREAK "Nsf: play address - " << Log::Hex( (u16) addressing.play )
+                  << NST_LINEBREAK;
 		}
-	
+
 		Nsf::~Nsf()
 		{
 			delete chips;
 		}
-	
+
 		void Nsf::SetMode(const Mode mode)
-		{ 
+		{
 			routine.nmi = Routine::NMI;
 
 			cpu.SetupFrame
-			( 
-		    	mode == MODE_NTSC ? Cycle(Apu::FRAME_CLOCK_NTSC) * 2 * Cpu::MC_DIV_NTSC : 
-			                        Cycle(Apu::FRAME_CLOCK_PAL) * 2 * Cpu::MC_DIV_PAL
+			(
+				mode == MODE_NTSC ? Cycle(Apu::FRAME_CLOCK_NTSC) * 2 * Cpu::MC_DIV_NTSC :
+									Cycle(Apu::FRAME_CLOCK_PAL) * 2 * Cpu::MC_DIV_PAL
 			);
 		}
-	
-		Mode Nsf::GetMode() const 
+
+		Mode Nsf::GetMode() const
 		{
 			return tuneMode == TUNE_MODE_PAL ? MODE_PAL : MODE_NTSC;
 		}
-	
+
 		uint Nsf::GetChips() const
 		{
 			uint type = 0;
@@ -462,13 +462,13 @@ namespace Nes
 				if ( chips->mmc5 ) type |= CHIP_MMC5;
 				if ( chips->n106 ) type |= CHIP_N106;
 				if ( chips->s5b  ) type |= CHIP_S5B;
-			}								
+			}
 
 			return type;
 		}
-	
+
 		void Nsf::Reset(bool)
-		{	
+		{
 			cpu.Map( 0x38ECU ).Set( this, &Nsf::Peek_38EC, &Nsf::Poke_Nop );
 			cpu.Map( 0x38EDU ).Set( this, &Nsf::Peek_38ED, &Nsf::Poke_Nop );
 			cpu.Map( 0x38EEU ).Set( this, &Nsf::Peek_38EE, &Nsf::Poke_Nop );
@@ -524,7 +524,7 @@ namespace Nes
 			else
 			{
 				cpu.Map( 0x6000U, 0x6FFFU ).Set( this, &Nsf::Peek_Ram,   &Nsf::Poke_Ram );
-				cpu.Map( 0x7000U, 0x7FFFU ).Set( this, &Nsf::Peek_Ram,   &Nsf::Poke_Ram );			
+				cpu.Map( 0x7000U, 0x7FFFU ).Set( this, &Nsf::Peek_Ram,   &Nsf::Poke_Ram );
 				cpu.Map( 0x8000U, 0x8FFFU ).Set( this, &Nsf::Peek_Prg_8, &Nsf::Poke_Nop );
 				cpu.Map( 0x9000U, 0x9FFFU ).Set( this, &Nsf::Peek_Prg_9, &Nsf::Poke_Nop );
 				cpu.Map( 0xA000U, 0xAFFFU ).Set( this, &Nsf::Peek_Prg_A, &Nsf::Poke_Nop );
@@ -578,7 +578,7 @@ namespace Nes
 
 			SetMode( cpu.GetMode() );
 		}
-	
+
 		Result Nsf::SelectSong(const uint song)
 		{
 			if (song < songs.count)
@@ -595,13 +595,13 @@ namespace Nes
 
 					return RESULT_OK;
 				}
-				
+
 				return RESULT_NOP;
 			}
 
 			return RESULT_ERR_INVALID_PARAM;
 		}
-	
+
 		Result Nsf::PlaySong()
 		{
 			if (!routine.playing)
@@ -613,7 +613,7 @@ namespace Nes
 
 			return RESULT_NOP;
 		}
-	
+
 		Result Nsf::StopSong()
 		{
 			if (routine.playing)
@@ -623,14 +623,14 @@ namespace Nes
 				cpu.GetApu().ClearBuffers();
 				return RESULT_OK;
 			}
-			
+
 			return RESULT_NOP;
 		}
-	
+
 		void Nsf::InitSong()
 		{
 			std::memset( ram, 0x00, SIZE_8K );
-	
+
 			if (chips && chips->mmc5)
 				std::memset( chips->mmc5->exRam, 0x00, SIZE_1K );
 
@@ -652,7 +652,7 @@ namespace Nes
 				for (dword i=0x6000U, j=0; i < 0x10000UL; j += (i >= (addressing.load & 0xF000U)), i += 0x1000U)
 					std::memcpy( chips->fds->ram + (i-0x6000U), prg.Source().Mem(j * 0x1000U), 0x1000U );
 			}
-	
+
 			if (fds)
 			{
 				cpu.Poke( 0x4089, 0x80 );
@@ -661,7 +661,7 @@ namespace Nes
 
 			cpu.GetApu().ClearBuffers();
 			cpu.ClearSystemRam();
-	
+
 			for (uint i=0x4000; i <= 0x4013; ++i)
 				cpu.Poke( i, 0x00 );
 
@@ -669,9 +669,9 @@ namespace Nes
 			cpu.Poke( 0x4017, 0xC0 );
 		}
 
-        #ifdef NST_PRAGMA_OPTIMIZE
-        #pragma optimize("", on)
-        #endif
+		#ifdef NST_PRAGMA_OPTIMIZE
+		#pragma optimize("", on)
+		#endif
 
 		void Nsf::BeginFrame()
 		{
@@ -707,129 +707,129 @@ namespace Nes
 			return routine.reset ? routine.reset &= Routine::RESET_A, 0x38 : FetchLast(0xFFD);
 		}
 
-		NES_PEEK(Nsf,38EC) 
-		{ 
+		NES_PEEK(Nsf,38EC)
+		{
 			NST_VERIFY( routine.playing );
 
 			InitSong();
 			return LDA;
 		}
 
-		NES_PEEK(Nsf,38ED) 
-		{ 
+		NES_PEEK(Nsf,38ED)
+		{
 			NST_VERIFY( routine.playing );
 			return songs.current;
 		}
 
-		NES_PEEK(Nsf,38EE) 
-		{ 
+		NES_PEEK(Nsf,38EE)
+		{
 			NST_VERIFY( routine.playing );
 			return LDX;
 		}
 
-		NES_PEEK(Nsf,38EF) 
-		{ 
+		NES_PEEK(Nsf,38EF)
+		{
 			NST_VERIFY( routine.playing );
 			return 0xFC;
 		}
 
-		NES_PEEK(Nsf,38F0) 
-		{ 
+		NES_PEEK(Nsf,38F0)
+		{
 			NST_VERIFY( routine.playing );
 			return TXS;
 		}
 
-		NES_PEEK(Nsf,38F1) 
-		{ 
+		NES_PEEK(Nsf,38F1)
+		{
 			NST_VERIFY( routine.playing );
 			return LDX;
 		}
 
-		NES_PEEK(Nsf,38F2) 
-		{ 
+		NES_PEEK(Nsf,38F2)
+		{
 			NST_VERIFY( routine.playing );
 			return cpu.GetMode() == MODE_PAL;
 		}
 
-		NES_PEEK(Nsf,38F3) 
-		{ 
+		NES_PEEK(Nsf,38F3)
+		{
 			NST_VERIFY( routine.playing );
 			return JSR;
 		}
 
-		NES_PEEK(Nsf,38F4) 
-		{ 
+		NES_PEEK(Nsf,38F4)
+		{
 			NST_VERIFY( routine.playing );
 			return addressing.init & 0xFF;
 		}
 
-		NES_PEEK(Nsf,38F5) 
-		{ 
+		NES_PEEK(Nsf,38F5)
+		{
 			NST_VERIFY( routine.playing );
 			return addressing.init >> 8;
 		}
 
-		NES_PEEK(Nsf,38F6) 
+		NES_PEEK(Nsf,38F6)
 		{
 			NST_VERIFY( routine.playing );
 			return SEI;
 		}
 
-		NES_PEEK(Nsf,38F7) 
-		{ 
+		NES_PEEK(Nsf,38F7)
+		{
 			NST_VERIFY( routine.playing );
 			routine.jmp = 0xFD;
 			return JMP;
 		}
 
-		NES_PEEK(Nsf,38F8) 
-		{ 
+		NES_PEEK(Nsf,38F8)
+		{
 			NST_VERIFY( routine.playing );
-			return 0xFD; 
+			return 0xFD;
 		}
 
-		NES_PEEK(Nsf,38F9) 
-		{ 
+		NES_PEEK(Nsf,38F9)
+		{
 			NST_VERIFY( routine.playing );
 			return 0x38;
 		}
 
-		NES_PEEK(Nsf,38FA) 
-		{ 
+		NES_PEEK(Nsf,38FA)
+		{
 			NST_VERIFY( routine.playing );
 			routine.jmp = 0xFD;
 			return JSR;
 		}
 
-		NES_PEEK(Nsf,38FB) 
-		{ 
+		NES_PEEK(Nsf,38FB)
+		{
 			NST_VERIFY( routine.playing );
-			return addressing.play & 0xFF; 
+			return addressing.play & 0xFF;
 		}
 
-		NES_PEEK(Nsf,38FC) 
-		{ 
+		NES_PEEK(Nsf,38FC)
+		{
 			NST_VERIFY( routine.playing );
 			return addressing.play >> 8;
 		}
 
-		NES_PEEK(Nsf,38FD) 
+		NES_PEEK(Nsf,38FD)
 		{
 			return JMP;
 		}
 
-		NES_PEEK(Nsf,38FE) 
+		NES_PEEK(Nsf,38FE)
 		{
 			return routine.jmp;
 		}
 
-		NES_PEEK(Nsf,38FF) 
+		NES_PEEK(Nsf,38FF)
 		{
 			return 0x38;
 		}
 
-		NES_POKE(Nsf,4017) 
-		{ 
+		NES_POKE(Nsf,4017)
+		{
 			cpu.GetApu().Poke_4017( data );
 		}
 
@@ -842,15 +842,15 @@ namespace Nes
 		NES_POKE(Nsf,5FFE) { prg.SwapBank<SIZE_4K,0x6000U>( data ); }
 		NES_POKE(Nsf,5FFF) { prg.SwapBank<SIZE_4K,0x7000U>( data ); }
 
-		NES_POKE(Nsf,Fds_5FF6) { std::memcpy( chips->fds->ram + (SIZE_4K*0), prg.Source().Mem(data * SIZE_4K), SIZE_4K ); } 
+		NES_POKE(Nsf,Fds_5FF6) { std::memcpy( chips->fds->ram + (SIZE_4K*0), prg.Source().Mem(data * SIZE_4K), SIZE_4K ); }
 		NES_POKE(Nsf,Fds_5FF7) { std::memcpy( chips->fds->ram + (SIZE_4K*1), prg.Source().Mem(data * SIZE_4K), SIZE_4K ); }
-		NES_POKE(Nsf,Fds_5FF8) { std::memcpy( chips->fds->ram + (SIZE_4K*2), prg.Source().Mem(data * SIZE_4K), SIZE_4K ); } 
+		NES_POKE(Nsf,Fds_5FF8) { std::memcpy( chips->fds->ram + (SIZE_4K*2), prg.Source().Mem(data * SIZE_4K), SIZE_4K ); }
 		NES_POKE(Nsf,Fds_5FF9) { std::memcpy( chips->fds->ram + (SIZE_4K*3), prg.Source().Mem(data * SIZE_4K), SIZE_4K ); }
-		NES_POKE(Nsf,Fds_5FFA) { std::memcpy( chips->fds->ram + (SIZE_4K*4), prg.Source().Mem(data * SIZE_4K), SIZE_4K ); } 
+		NES_POKE(Nsf,Fds_5FFA) { std::memcpy( chips->fds->ram + (SIZE_4K*4), prg.Source().Mem(data * SIZE_4K), SIZE_4K ); }
 		NES_POKE(Nsf,Fds_5FFB) { std::memcpy( chips->fds->ram + (SIZE_4K*5), prg.Source().Mem(data * SIZE_4K), SIZE_4K ); }
-		NES_POKE(Nsf,Fds_5FFC) { std::memcpy( chips->fds->ram + (SIZE_4K*6), prg.Source().Mem(data * SIZE_4K), SIZE_4K ); } 
+		NES_POKE(Nsf,Fds_5FFC) { std::memcpy( chips->fds->ram + (SIZE_4K*6), prg.Source().Mem(data * SIZE_4K), SIZE_4K ); }
 		NES_POKE(Nsf,Fds_5FFD) { std::memcpy( chips->fds->ram + (SIZE_4K*7), prg.Source().Mem(data * SIZE_4K), SIZE_4K ); }
-		NES_POKE(Nsf,Fds_5FFE) { std::memcpy( chips->fds->ram + (SIZE_4K*8), prg.Source().Mem(data * SIZE_4K), SIZE_4K ); } 
+		NES_POKE(Nsf,Fds_5FFE) { std::memcpy( chips->fds->ram + (SIZE_4K*8), prg.Source().Mem(data * SIZE_4K), SIZE_4K ); }
 		NES_POKE(Nsf,Fds_5FFF) { std::memcpy( chips->fds->ram + (SIZE_4K*9), prg.Source().Mem(data * SIZE_4K), SIZE_4K ); }
 
 		NES_PEEK(Nsf,Prg_8) { return prg[0][address - 0x8000U]; }

@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -59,7 +59,7 @@ namespace Nestopia
 
 			ibool OnInitDialog          (Param&);
 			ibool OnDestroy             (Param&);
-			ibool OnHScroll			    (Param&);
+			ibool OnHScroll             (Param&);
 			ibool OnCmdDblClk           (Param&);
 			ibool OnCmdDevice           (Param&);
 			ibool OnCmdSet              (Param&);
@@ -94,6 +94,8 @@ namespace Nestopia
 					TYPE_PAD3,
 					TYPE_PAD4,
 					TYPE_POWERPAD,
+					TYPE_HORITRACK,
+					TYPE_PACHINKO,
 					TYPE_CRAZYCLIMBER,
 					TYPE_MAHJONG,
 					TYPE_EXCITINGBOXING,
@@ -156,7 +158,31 @@ namespace Nestopia
 					POWERPAD_NUM_SIDE_B_KEYS = Nes::Input::Controllers::PowerPad::NUM_SIDE_B_BUTTONS,
 					POWERPAD_NUM_KEYS = POWERPAD_NUM_SIDE_A_KEYS + POWERPAD_NUM_SIDE_B_KEYS,
 
-					CRAZYCLIMBER_KEYS = POWERPAD_KEYS + POWERPAD_NUM_KEYS,
+					HORITRACK_KEYS = POWERPAD_KEYS + POWERPAD_NUM_KEYS,
+					HORITRACK_KEY_A = 0,
+					HORITRACK_KEY_B,
+					HORITRACK_KEY_SELECT,
+					HORITRACK_KEY_START,
+					HORITRACK_KEY_UP,
+					HORITRACK_KEY_DOWN,
+					HORITRACK_KEY_LEFT,
+					HORITRACK_KEY_RIGHT,
+					HORITRACK_KEY_SPEED,
+					HORITRACK_KEY_ORIENTATION,
+					HORITRACK_NUM_KEYS,
+
+					PACHINKO_KEYS = HORITRACK_KEYS + HORITRACK_NUM_KEYS,
+					PACHINKO_KEY_A = 0,
+					PACHINKO_KEY_B,
+					PACHINKO_KEY_SELECT,
+					PACHINKO_KEY_START,
+					PACHINKO_KEY_UP,
+					PACHINKO_KEY_DOWN,
+					PACHINKO_KEY_LEFT,
+					PACHINKO_KEY_RIGHT,
+					PACHINKO_NUM_KEYS,
+
+					CRAZYCLIMBER_KEYS = PACHINKO_KEYS + PACHINKO_NUM_KEYS,
 					CRAZYCLIMBER_KEY_LEFT_UP = 0,
 					CRAZYCLIMBER_KEY_LEFT_RIGHT,
 					CRAZYCLIMBER_KEY_LEFT_DOWN,
@@ -235,7 +261,7 @@ namespace Nestopia
 					EMULATION_KEYS = KARAOKESTUDIO_KEYS + KARAOKESTUDIO_NUM_KEYS,
 					EMULATION_KEY_ALT_SPEED = 0,
 					EMULATION_KEY_REWIND,
-					EMULATION_KEY_INSERT_COIN_1, 
+					EMULATION_KEY_INSERT_COIN_1,
 					EMULATION_KEY_INSERT_COIN_2,
 					EMULATION_NUM_KEYS,
 
@@ -332,12 +358,12 @@ namespace Nestopia
 				void Clear();
 				void Clear(uint);
 
-            #pragma pack(push,1)
+			#pragma pack(push,1)
 
 				struct Type
 				{
 					uchar offset;
-					tstring name;
+					ushort name;
 				};
 
 				struct Mapping
@@ -349,11 +375,11 @@ namespace Nestopia
 
 					uchar index;
 					ushort key;
-					tstring dlgName;
+					ushort dlgName;
 					cstring cfgName;
 				};
 
-            #pragma pack(pop)
+			#pragma pack(pop)
 
 				enum
 				{
@@ -390,7 +416,7 @@ namespace Nestopia
 					NST_ASSERT( index < NumTypeKeys(type) );
 					return keys[types[type].offset + index];
 				}
-  
+
 				const Key& GetKey(uint index) const
 				{
 					NST_ASSERT( index < NUM_KEYS );

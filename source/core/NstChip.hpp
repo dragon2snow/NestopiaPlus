@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -52,9 +52,9 @@ namespace Nes
 				void Set(u8*,dword);
 				void Destroy();
 				void Fill(int);
-				
+
 				static dword GetPower2(dword);
-		
+
 				u8* mem;
 				dword mask;
 				dword size;
@@ -63,7 +63,7 @@ namespace Nes
 				u8 internal;
 				const u8 pad;
 			};
-	
+
 			template<uint W> struct GetBlockShift
 			{
 				enum { VALUE = 1 + GetBlockShift<W / 2>::VALUE };
@@ -99,35 +99,35 @@ namespace Nes
 
 			NST_COMPILE_ASSERT
 			(
-			    ((SPACE & (SPACE-1)) == 0) &&
+				((SPACE & (SPACE-1)) == 0) &&
 				((U & (U-1)) == 0) &&
-		     	(SPACE % U == 0) && 
-				(V == 1 || V == 2) 
+				(SPACE % U == 0) &&
+				(V == 1 || V == 2)
 			);
-	
+
 			enum
 			{
-				MEM_PAGE_SIZE =	U,
+				MEM_PAGE_SIZE = U,
 				MEM_PAGE_SHIFT = GetBlockShift<MEM_PAGE_SIZE>::VALUE,
 				MEM_PAGE_MASK = MEM_PAGE_SIZE - 1,
 				MEM_NUM_PAGES = SPACE / U
 			};
-	
+
 			struct Pages
 			{
 				u8* mem[MEM_NUM_PAGES];
 				uchar ref[MEM_NUM_PAGES];
 			};
-	
+
 			Pages pages;
 			BaseMemory::Linear sources[NUM_SOURCES];
-	
-        #ifndef NDEBUG
+
+		#ifndef NDEBUG
 
 			Memory(const Memory&) {}
 			void operator = (const Memory&) {}
 
-        #endif
+		#endif
 
 		public:
 
@@ -143,37 +143,37 @@ namespace Nes
 
 			const u8& Peek(uint address) const
 			{
-				return pages.mem[address >> MEM_PAGE_SHIFT][address & MEM_PAGE_MASK]; 
+				return pages.mem[address >> MEM_PAGE_SHIFT][address & MEM_PAGE_MASK];
 			}
 
 			u8* operator [] (uint page)
 			{
-				return pages.mem[page]; 
+				return pages.mem[page];
 			}
 
 			const u8* operator [] (uint page) const
 			{
-				return pages.mem[page]; 
+				return pages.mem[page];
 			}
 
 			void Poke(uint address,uint data)
 			{
 				const uint page = address >> MEM_PAGE_SHIFT;
 				NST_VERIFY( IsWritable( page ) );
-	
+
 				if (IsWritable( page ))
 					pages.mem[page][address & MEM_PAGE_MASK] = data;
 			}
-  
+
 			template<uint SIZE,uint ADDRESS>
 			void SwapBank(dword);
-	
+
 			template<uint SIZE,uint ADDRESS>
 			void SwapBanks(dword,dword);
 
 			template<uint SIZE,uint ADDRESS>
 			void SwapBanks(dword,dword,dword,dword);
-	
+
 			template<uint SIZE>
 			void SwapBank(uint,dword);
 
@@ -188,7 +188,7 @@ namespace Nes
 
 			class SourceProxy;
 			class ConstSourceProxy;
-			
+
 			friend class SourceProxy;
 			friend class ConstSourceProxy;
 
@@ -196,11 +196,11 @@ namespace Nes
 			{
 				const uint source;
 				Memory& ref;
-	
+
 			public:
-	
+
 				SourceProxy(uint s,Memory& r)
-				: source(s), ref(r) 
+				: source(s), ref(r)
 				{
 					NST_ASSERT( s < NUM_SOURCES );
 				}
@@ -244,7 +244,7 @@ namespace Nes
 					ref.sources[source].writable = write;
 					return *this;
 				}
-	
+
 				const SourceProxy& Set(u8* mem,dword size,bool read,bool write) const
 				{
 					ref.sources[source].Set( mem, size );
@@ -252,57 +252,57 @@ namespace Nes
 					ref.sources[source].writable = write;
 					return *this;
 				}
-	
+
 				void Remove() const
 				{
 					ref.sources[source].Destroy();
 				}
-	
+
 				void Fill(int value) const
 				{
 					ref.sources[source].Fill( value );
 				}
-	
+
 				void Clear() const
 				{
 					ref.sources[source].Fill( 0x00 );
 				}
-	
+
 				u8* Mem() const
 				{
 					return ref.sources[source].mem;
 				}
-	
+
 				u8* Mem(dword offset) const
 				{
 					return ref.sources[source].mem + (offset & ref.sources[source].mask);
 				}
-	
+
 				dword Size() const
 				{
 					return ref.sources[source].size;
 				}
-	
+
 				ibool Internal() const
 				{
 					return ref.sources[source].internal;
 				}
-	
+
 				bool Empty() const
 				{
 					return ref.sources[source].size == 0;
 				}
 			};
-	
+
 			class ConstSourceProxy
 			{
 				const BaseMemory::Linear& ref;
-	
+
 			public:
-	
+
 				ConstSourceProxy(const BaseMemory::Linear& r)
 				: ref(r) {}
-	
+
 				const u8* Mem() const
 				{
 					return ref.mem;
@@ -312,17 +312,17 @@ namespace Nes
 				{
 					return ref.mem + (offset & ref.mask);
 				}
-	
+
 				dword Size() const
 				{
 					return ref.size;
 				}
-	
+
 				ibool Internal() const
 				{
 					return ref.internal;
 				}
-	
+
 				bool Empty() const
 				{
 					return ref.size == 0;
@@ -338,9 +338,9 @@ namespace Nes
 					return ref.writable;
 				}
 			};
-  
+
 		public:
-	
+
 			const SourceProxy Source(uint i=0)
 			{
 				NST_ASSERT( i < NUM_SOURCES );
@@ -352,16 +352,16 @@ namespace Nes
 				NST_ASSERT( i < NUM_SOURCES );
 				return ConstSourceProxy( sources[i] );
 			}
-  
+
 			Memory()
 			{
 			}
-	
+
 			Memory(dword size,bool read,bool write)
 			{
 				Source().Set( size, read, write );
 			}
-	
+
 			Memory(u8* mem,dword size,bool read,bool write)
 			{
 				Source().Set( mem, size, read, write );
@@ -383,58 +383,58 @@ namespace Nes
 				NST_ASSERT( SPACE >= address + SIZE );
 
 				address >>= MEM_PAGE_SHIFT;
-				return dword(pages.mem[address] - sources[pages.ref[address]].mem) >> GetBlockShift<SIZE>::VALUE; 
+				return dword(pages.mem[address] - sources[pages.ref[address]].mem) >> GetBlockShift<SIZE>::VALUE;
 			}
 		};
-	
+
 		template<dword SPACE,uint U,uint V> template<uint SIZE,uint ADDRESS>
 		void Memory<SPACE,U,V>::SwapBank(dword bank)
 		{
 			NST_COMPILE_ASSERT( (SPACE >= ADDRESS + SIZE) && SIZE && (SIZE % MEM_PAGE_SIZE == 0) );
-	
+
 			enum
 			{
 				MEM_OFFSET = GetBlockShift<SIZE>::VALUE,
 				MEM_PAGE_BEGIN = ADDRESS / MEM_PAGE_SIZE,
 				MEM_PAGE_END   = MEM_PAGE_BEGIN + (SIZE / MEM_PAGE_SIZE)
 			};
-	
+
 			bank <<= MEM_OFFSET;
-	
+
 			for (uint i=MEM_PAGE_BEGIN; i < MEM_PAGE_END; ++i, bank += MEM_PAGE_SIZE)
 			{
 				pages.mem[i] = sources[0].mem + (bank & sources[0].mask);
 				pages.ref[i] = 0;
 			}
 		}
-	
+
 		template<dword SPACE,uint U,uint V> template<uint SIZE>
 		void Memory<SPACE,U,V>::SwapBank(uint address,dword bank)
 		{
 			NST_COMPILE_ASSERT( SIZE && (SIZE % MEM_PAGE_SIZE == 0) );
 			NST_ASSERT( SPACE >= address + SIZE );
-	
+
 			enum
 			{
 				MEM_OFFSET = GetBlockShift<SIZE>::VALUE,
 				MEM_PAGE_COUNT = SIZE / MEM_PAGE_SIZE
 			};
-	
+
 			bank <<= MEM_OFFSET;
 			address >>= MEM_PAGE_SHIFT;
-	
+
 			for (uint i=0; i < MEM_PAGE_COUNT; ++i, bank += MEM_PAGE_SIZE)
 			{
 				pages.mem[address+i] = sources[0].mem + (bank & sources[0].mask);
 				pages.ref[address+i] = 0;
 			}
 		}
-	
+
 		template<dword SPACE,uint U,uint V> template<uint SIZE,uint ADDRESS>
 		void Memory<SPACE,U,V>::SwapBanks(dword bank0,dword bank1)
 		{
 			NST_COMPILE_ASSERT( (SPACE >= ADDRESS + SIZE * 2) && SIZE && (SIZE % MEM_PAGE_SIZE == 0) );
-	
+
 			enum
 			{
 				MEM_OFFSET = GetBlockShift<SIZE>::VALUE,
@@ -443,10 +443,10 @@ namespace Nes
 				BANK_0 = SIZE / MEM_PAGE_SIZE * 0,
 				BANK_1 = SIZE / MEM_PAGE_SIZE * 1
 			};
-	
+
 			bank0 <<= MEM_OFFSET;
 			bank1 <<= MEM_OFFSET;
-	
+
 			for (uint i=MEM_PAGE_BEGIN; i < MEM_PAGE_END; ++i)
 			{
 				pages.mem[BANK_0 + i] = sources[0].mem + (bank0 & sources[0].mask); bank0 += MEM_PAGE_SIZE;
@@ -460,7 +460,7 @@ namespace Nes
 		void Memory<SPACE,U,V>::SwapBanks(dword bank0,dword bank1,dword bank2,dword bank3)
 		{
 			NST_COMPILE_ASSERT( (SPACE >= ADDRESS + SIZE * 4) && SIZE && (SIZE % MEM_PAGE_SIZE == 0) );
-	
+
 			enum
 			{
 				MEM_OFFSET = GetBlockShift<SIZE>::VALUE,
@@ -471,12 +471,12 @@ namespace Nes
 				BANK_2 = SIZE / MEM_PAGE_SIZE * 2,
 				BANK_3 = SIZE / MEM_PAGE_SIZE * 3
 			};
-	
+
 			bank0 <<= MEM_OFFSET;
 			bank1 <<= MEM_OFFSET;
 			bank2 <<= MEM_OFFSET;
 			bank3 <<= MEM_OFFSET;
-	
+
 			for (uint i=MEM_PAGE_BEGIN; i < MEM_PAGE_END; ++i)
 			{
 				pages.mem[BANK_0 + i] = sources[0].mem + (bank0 & sources[0].mask); bank0 += MEM_PAGE_SIZE;
@@ -489,13 +489,13 @@ namespace Nes
 				pages.ref[BANK_3 + i] = 0;
 			}
 		}
-	
+
 		template<dword SPACE,uint U,uint V> template<uint SIZE>
 		void Memory<SPACE,U,V>::SwapBanks(uint address,dword bank0,dword bank1)
 		{
 			NST_COMPILE_ASSERT( SIZE && (SIZE % MEM_PAGE_SIZE == 0) );
 			NST_ASSERT( SPACE >= address + SIZE * 2 );
-	
+
 			enum
 			{
 				MEM_OFFSET = GetBlockShift<SIZE>::VALUE,
@@ -503,11 +503,11 @@ namespace Nes
 				BANK_0 = SIZE / MEM_PAGE_SIZE * 0,
 				BANK_1 = SIZE / MEM_PAGE_SIZE * 1
 			};
-	
+
 			bank0 <<= MEM_OFFSET;
 			bank1 <<= MEM_OFFSET;
 			address >>= MEM_PAGE_SHIFT;
-	
+
 			for (uint i=0; i < MEM_PAGE_COUNT; ++i)
 			{
 				pages.mem[BANK_0 + address + i] = sources[0].mem + (bank0 & sources[0].mask); bank0 += MEM_PAGE_SIZE;
@@ -522,7 +522,7 @@ namespace Nes
 		{
 			NST_COMPILE_ASSERT( SIZE && (SIZE % MEM_PAGE_SIZE == 0) );
 			NST_ASSERT( SPACE >= address + SIZE * 4 );
-	
+
 			enum
 			{
 				MEM_OFFSET = GetBlockShift<SIZE>::VALUE,
@@ -532,13 +532,13 @@ namespace Nes
 				BANK_2 = SIZE / MEM_PAGE_SIZE * 2,
 				BANK_3 = SIZE / MEM_PAGE_SIZE * 3
 			};
-	
+
 			bank0 <<= MEM_OFFSET;
 			bank1 <<= MEM_OFFSET;
 			bank2 <<= MEM_OFFSET;
 			bank3 <<= MEM_OFFSET;
 			address >>= MEM_PAGE_SHIFT;
-	
+
 			for (uint i=0; i < MEM_PAGE_COUNT; ++i)
 			{
 				pages.mem[BANK_0 + address + i] = sources[0].mem + (bank0 & sources[0].mask); bank0 += MEM_PAGE_SIZE;
@@ -556,7 +556,7 @@ namespace Nes
 		void Memory<SPACE,U,V>::SourceProxy::SwapBank(dword bank) const
 		{
 			NST_COMPILE_ASSERT( (SPACE >= ADDRESS + SIZE) && SIZE && (SIZE % MEM_PAGE_SIZE == 0) );
-	
+
 			enum
 			{
 				MEM_OFFSET = GetBlockShift<SIZE>::VALUE,
@@ -567,30 +567,30 @@ namespace Nes
 			};
 
 			bank <<= MEM_OFFSET;
-	
+
 			for (uint i=MEM_PAGE_BEGIN; i < MEM_PAGE_END; ++i, bank += MEM_PAGE_SIZE)
 			{
 				ref.pages.mem[i] = ref.sources[source].mem + (bank & ref.sources[source].mask);
 				ref.pages.ref[i] = source;
 			}
 		}
-	
+
 		template<dword SPACE,uint U,uint V> template<uint SIZE>
 		void Memory<SPACE,U,V>::SourceProxy::SwapBank(uint address,dword bank) const
 		{
 			NST_COMPILE_ASSERT( SIZE && (SIZE % MEM_PAGE_SIZE == 0) );
 			NST_ASSERT( SPACE >= address + SIZE );
-	
+
 			enum
 			{
 				MEM_OFFSET = GetBlockShift<SIZE>::VALUE,
 				MEM_PAGE_COUNT = SIZE / MEM_PAGE_SIZE,
 				WRITE_MASK = GetBlockMask<MEM_PAGE_COUNT>::VALUE
 			};
-	
+
 			address >>= MEM_PAGE_SHIFT;
 			bank <<= MEM_OFFSET;
-	
+
 			for (uint i=0; i < MEM_PAGE_COUNT; ++i, bank += MEM_PAGE_SIZE)
 			{
 				ref.pages.mem[address+i] = ref.sources[source].mem + (bank & ref.sources[source].mask);
@@ -665,7 +665,7 @@ namespace Nes
 							else
 							{
 								throw RESULT_ERR_CORRUPT_FILE;
-							}				
+							}
 						}
 
 						break;

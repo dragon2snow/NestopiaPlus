@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -89,32 +89,32 @@ namespace Nes
 		#endif
 
 		Tracker::Rewinder::ReverseVideo::ReverseVideo(Ppu& p)
-		: ppu(p) 
+		: ppu(p)
 		{
 			Reset();
 		}
 
 		Tracker::Rewinder::ReverseSound::ReverseSound(const Apu& a,bool e)
-		: 
+		:
 		enabled (e),
 		good    (false),
 		stereo  (false),
 		bits    (0),
 		rate    (0),
 		index   (0),
-		buffer  (NULL), 
-		size    (0), 
+		buffer  (NULL),
+		size    (0),
 		input   (NULL),
 		apu     (a)
 		{}
 
 		Tracker::Rewinder::Rewinder(Api::Emulator& e,EmuExecute x,EmuLoadState l,EmuSaveState s,Cpu& c,Ppu& p,bool b)
-		: 
+		:
 		emulator     (e),
 		emuExecute   (x),
-		emuLoadState (l), 
-		emuSaveState (s), 
-		cpu          (c), 
+		emuLoadState (l),
+		emuSaveState (s),
+		cpu          (c),
 		ppu          (p),
 		video        (p),
 		sound        (c.GetApu(),b),
@@ -136,7 +136,7 @@ namespace Nes
 		void Tracker::Rewinder::Key::Input::Reset()
 		{
 			pos = BAD_POS;
-			buffer.Destroy();			
+			buffer.Destroy();
 		}
 
 		void Tracker::Rewinder::Key::Reset()
@@ -210,7 +210,7 @@ namespace Nes
 			{
 				pos = buffer.Size();
 
-            #ifndef NST_NO_ZLIB
+			#ifndef NST_NO_ZLIB
 				if (pos >= MIN_COMPRESSION_SIZE)
 				{
 					ulong size = pos - 1;
@@ -227,8 +227,8 @@ namespace Nes
 						NST_DEBUG_MSG("compress2() in Tracker::Rewinder::Key::Input failed!");
 					}
 				}
-            #endif
-				
+			#endif
+
 				return true;
 			}
 
@@ -240,7 +240,7 @@ namespace Nes
 			ulong size = pos;
 			pos = 0;
 
-        #ifndef NST_NO_ZLIB
+		#ifndef NST_NO_ZLIB
 			if (size > buffer.Size())
 			{
 				const Buffer tmp( buffer );
@@ -251,7 +251,7 @@ namespace Nes
 
 				buffer.Defrag();
 			}
-        #endif
+		#endif
 
 			return true;
 		}
@@ -331,7 +331,7 @@ namespace Nes
 			NST_ASSERT( !(bool(saveState) && bool(loadState)) );
 
 			input.BeginForward();
-			
+
 			if (saveState)
 			{
 				stream.seekp( 0, std::stringstream::beg );
@@ -458,9 +458,9 @@ namespace Nes
 		{
 			NST_COMPILE_ASSERT( NUM_FRAMES % 2 == 0 );
 
-			if (!enabled || !good)			
+			if (!enabled || !good)
 				return NULL;
-			
+
 			if (bits != apu.GetSampleBits() || rate != apu.GetSampleRate() || bool(stereo) != bool(apu.InStereo()) || !buffer)
 			{
 				bits = apu.GetSampleBits();
@@ -490,10 +490,10 @@ namespace Nes
 			switch (index++)
 			{
 				case 0:
-					
+
 					output.samples = buffer;
-					output.length = rate / NUM_FRAMES; 
-					input = buffer + (size / 1); 
+					output.length = rate / NUM_FRAMES;
+					input = buffer + (size / 1);
 					break;
 
 				case LAST_FRAME:
@@ -502,16 +502,16 @@ namespace Nes
 					output.length = (buffer + (size / 2) - static_cast<u8*>(output.samples)) / SampleSize();
 					break;
 
-				case NUM_FRAMES: 
-					
+				case NUM_FRAMES:
+
 					output.samples = buffer + (size / 2);
-					output.length = rate / NUM_FRAMES; 
+					output.length = rate / NUM_FRAMES;
 					input = buffer + (size / 2);
 					break;
 
-				case NUM_FRAMES+LAST_FRAME: 
-					
-					index = 0; 
+				case NUM_FRAMES+LAST_FRAME:
+
+					index = 0;
 					output.samples = static_cast<u8*>(output.samples) + (output.length * SampleSize());
 					output.length = (buffer + (size / 1) - static_cast<u8*>(output.samples)) / SampleSize();
 					break;
@@ -521,7 +521,7 @@ namespace Nes
 					output.samples = static_cast<u8*>(output.samples) + (output.length * SampleSize());
 					break;
 			}
-			
+
 			return &output;
 		}
 
@@ -589,7 +589,7 @@ namespace Nes
 				{
 					frame = 0;
 					key->EndBackward();
-					
+
 					Key* const prev = PrevKey();
 
 					if (!prev->CanRewind())
@@ -615,7 +615,7 @@ namespace Nes
 				}
 
 				const ReverseVideo::Mutex videoMutex( video, video.GetScreen() );
-				video.Flush( videoMutex );						
+				video.Flush( videoMutex );
 				video.Store();
 
 				const ReverseSound::Mutex soundMutex;
@@ -673,7 +673,7 @@ namespace Nes
 						}
 					}
 				}
-		 
+
 				uint align = LAST_FRAME - frame;
 				frame = LAST_FRAME;
 
@@ -685,7 +685,7 @@ namespace Nes
 						return;
 					}
 				}
-		   
+
 				Api::Rewinder::stateCallback( Api::Rewinder::REWINDING );
 			}
 			else
@@ -695,8 +695,8 @@ namespace Nes
 					if (++frame == NUM_FRAMES)
 					{
 						frame = 0;
-						key = NextKey();						
-						
+						key = NextKey();
+
 						if (!key->TurnForward( emulator, emuLoadState ))
 						{
 							Reset();
@@ -741,7 +741,7 @@ namespace Nes
 		{
 			if (!rewinding)
 				return RESULT_NOP;
-			
+
 			if (uturn)
 				return RESULT_ERR_NOT_READY;
 

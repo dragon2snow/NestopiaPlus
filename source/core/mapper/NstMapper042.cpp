@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -30,13 +30,13 @@ namespace Nes
 {
 	namespace Core
 	{
-        #ifdef NST_PRAGMA_OPTIMIZE
-        #pragma optimize("s", on)
-        #endif
-	
+		#ifdef NST_PRAGMA_OPTIMIZE
+		#pragma optimize("s", on)
+		#endif
+
 		Mapper42::Mapper42(Context& c)
-		: 
-		Mapper (c,WRAM_NONE), 
+		:
+		Mapper (c,WRAM_NONE),
 		irq    (c.cpu,c.cpu)
 		{}
 
@@ -51,7 +51,7 @@ namespace Nes
 			irq.Reset( hard, hard ? false : irq.IsLineEnabled() );
 
 			Map( WRK_PEEK );
-	
+
 			for (uint i=0x0000U; i < 0x2000U; i += 0x4)
 			{
 				Map( 0x8000U + i, CHR_SWAP_8K          );
@@ -60,7 +60,7 @@ namespace Nes
 				Map( 0xE002U + i, &Mapper42::Poke_E002 );
 			}
 		}
-	
+
 		void Mapper42::SubLoad(State::Loader& state)
 		{
 			while (const dword chunk = state.Begin())
@@ -75,7 +75,7 @@ namespace Nes
 				state.End();
 			}
 		}
-	
+
 		void Mapper42::SubSave(State::Saver& state) const
 		{
 			const u8 data[3] =
@@ -87,23 +87,23 @@ namespace Nes
 
 			state.Begin('I','R','Q','\0').Write( data ).End();
 		}
-	
-        #ifdef NST_PRAGMA_OPTIMIZE
-        #pragma optimize("", on)
-        #endif
 
-		NES_POKE(Mapper42,E000) 
+		#ifdef NST_PRAGMA_OPTIMIZE
+		#pragma optimize("", on)
+		#endif
+
+		NES_POKE(Mapper42,E000)
 		{
 			wrk.SwapBank<SIZE_8K,0x0000U>(data & 0xF);
 		}
-	
-		NES_POKE(Mapper42,E001) 
-		{ 
+
+		NES_POKE(Mapper42,E001)
+		{
 			ppu.SetMirroring( (data & 0x8) ? Ppu::NMT_HORIZONTAL : Ppu::NMT_VERTICAL );
 		}
-	
-		NES_POKE(Mapper42,E002) 
-		{ 
+
+		NES_POKE(Mapper42,E002)
+		{
 			irq.Update();
 
 			if (!irq.EnableLine( data & 0x2 ))

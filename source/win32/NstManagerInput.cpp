@@ -5,23 +5,24 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
+#include "resource/resource.h"
 #include "NstResourceCursor.hpp"
 #include "NstObjectHeap.hpp"
 #include "NstIoLog.hpp"
@@ -60,6 +61,8 @@ namespace Nestopia
 		static bool NST_CALLBACK PollFamilyKeyboard    (UserData,Controllers::FamilyKeyboard&,uint,uint);
 		static bool NST_CALLBACK PollSuborKeyboard     (UserData,Controllers::SuborKeyboard&,uint,uint);
 		static bool NST_CALLBACK PollDoremikkoKeyboard (UserData,Controllers::DoremikkoKeyboard&,uint,uint);
+		static bool NST_CALLBACK PollHoriTrack         (UserData,Controllers::HoriTrack&);
+		static bool NST_CALLBACK PollPachinko          (UserData,Controllers::Pachinko&);
 		static bool NST_CALLBACK PollMahjong           (UserData,Controllers::Mahjong&,uint);
 		static bool NST_CALLBACK PollExcitingBoxing    (UserData,Controllers::ExcitingBoxing&,uint);
 		static bool NST_CALLBACK PollTopRider          (UserData,Controllers::TopRider&);
@@ -79,23 +82,25 @@ namespace Nestopia
 	const uint Input::Cursor::secondaryButtonId = ::GetSystemMetrics( SM_SWAPBUTTON ) ? VK_LBUTTON : VK_RBUTTON;
 
 	Input::Cursor::Cursor(Window::Custom& w)
-	: 
+	:
 	hCurrent    ( Resource::Cursor::GetArrow() ),
 	hCursor     ( Resource::Cursor::GetArrow() ),
 	pos         ( 0 ),
-	autoHide    ( FALSE ),
+	wheel       ( WHEEL_MAX ),
+	autoHide    ( false ),
 	deadline    ( ~DWORD(0) ),
-	inNonClient ( FALSE ),
+	inNonClient ( false ),
 	window      ( w )
 	{
 		static const Window::MsgHandler::Entry<Input::Cursor> messages[] =
 		{
-			{ WM_SETCURSOR,          &Cursor::OnSetCursor   },
-			{ WM_MOUSEMOVE,          &Cursor::OnNop         },
-			{ WM_LBUTTONDOWN,        &Cursor::OnNop         },
-			{ WM_RBUTTONDOWN,        &Cursor::OnRButtonDown },
-			{ WM_LBUTTONUP,          &Cursor::OnNop         },
-			{ WM_RBUTTONUP,          &Cursor::OnButtonUp    }
+			{ WM_SETCURSOR,   &Cursor::OnSetCursor   },
+			{ WM_MOUSEMOVE,   &Cursor::OnNop         },
+			{ WM_LBUTTONDOWN, &Cursor::OnNop         },
+			{ WM_RBUTTONDOWN, &Cursor::OnRButtonDown },
+			{ WM_LBUTTONUP,   &Cursor::OnNop         },
+			{ WM_RBUTTONUP,   &Cursor::OnButtonUp    },
+			{ WM_MOUSEWHEEL,  &Cursor::OnWheel       }
 		};
 
 		static const Window::MsgHandler::HookEntry<Input::Cursor> hooks[] =
@@ -114,26 +119,28 @@ namespace Nestopia
 		if (emulator.IsControllerConnected( Nes::Input::ZAPPER ))
 		{
 			hCursor = gun;
-			autoHide = FALSE;
+			autoHide = false;
 		}
-		else if 
+		else if
 		(
-			emulator.IsControllerConnected( Nes::Input::PADDLE ) || 
+			emulator.IsControllerConnected( Nes::Input::PADDLE ) ||
+			emulator.IsControllerConnected( Nes::Input::HORITRACK ) ||
+			emulator.IsControllerConnected( Nes::Input::PACHINKO ) ||
 			emulator.IsControllerConnected( Nes::Input::OEKAKIDSTABLET ) ||
 			emulator.IsControllerConnected( Nes::Input::MOUSE )
 		)
 		{
 			hCursor = NULL;
-			autoHide = FALSE;
+			autoHide = false;
 		}
 		else
 		{
 			hCursor = Resource::Cursor::GetArrow();
-			autoHide = TRUE;
+			autoHide = true;
 		}
 
 		hCurrent = hCursor;
-		inNonClient = FALSE;
+		inNonClient = false;
 
 		Window::MsgHandler& router = window.Messages();
 
@@ -144,7 +151,7 @@ namespace Nestopia
 
 	void Input::Cursor::Unacquire()
 	{
-		inNonClient = autoHide = FALSE;
+		inNonClient = autoHide = false;
 		hCurrent = hCursor = Resource::Cursor::GetArrow();
 
 		Window::MsgHandler& router = window.Messages();
@@ -154,9 +161,14 @@ namespace Nestopia
 		router[ WM_LBUTTONUP   ].Set( this, &Cursor::OnNop );
 	}
 
-    #ifdef NST_PRAGMA_OPTIMIZE
-    #pragma optimize("t", on)
-    #endif
+	#ifdef NST_PRAGMA_OPTIMIZE
+	#pragma optimize("t", on)
+	#endif
+
+	inline int Input::Cursor::GetWheel() const
+	{
+		return wheel / WHEEL_SCALE;
+	}
 
 	inline void Input::Cursor::Refresh()
 	{
@@ -177,19 +189,19 @@ namespace Nestopia
 
 	ibool Input::Cursor::OnNop(Window::Param&)
 	{
-		return TRUE;
+		return true;
 	}
 
 	ibool Input::Cursor::OnSetCursor(Window::Param& param)
 	{
 		if (LOWORD(param.lParam) == HTCLIENT)
-		{			   
-			param.lResult = TRUE;
+		{
+			param.lResult = true;
 			::SetCursor( hCurrent );
-			return TRUE;
+			return true;
 		}
 
-		return FALSE;
+		return false;
 	}
 
 	ibool Input::Cursor::OnMouseMove(Window::Param& param)
@@ -203,41 +215,49 @@ namespace Nestopia
 			deadline = NextTime();
 		}
 
-		return TRUE;
+		return true;
 	}
 
 	ibool Input::Cursor::OnLButtonDown(Window::Param&)
 	{
 		Refresh();
-		return TRUE;
+		return true;
 	}
 
 	ibool Input::Cursor::OnRButtonDown(Window::Param& param)
-	{						
+	{
 		Refresh();
 
 		if (hCursor != gun)
 			param.Window().SendCommand( IDM_VIEW_MENU );
 
-		return TRUE;
+		return true;
 	}
 
 	ibool Input::Cursor::OnButtonUp(Window::Param&)
 	{
 		Refresh();
 		UpdateTime();
-		return TRUE;
+		return true;
+	}
+
+	ibool Input::Cursor::OnWheel(Window::Param& param)
+	{
+		wheel += GET_WHEEL_DELTA_WPARAM(param.wParam);
+		wheel  = NST_CLAMP(wheel,WHEEL_MIN,WHEEL_MAX);
+
+		return true;
 	}
 
 	void Input::Cursor::OnEnterSizeMoveMenu(Window::Param&)
 	{
 		hCurrent = hCursor;
-		inNonClient = TRUE;
+		inNonClient = true;
 	}
 
 	void Input::Cursor::OnExitSizeMoveMenu(Window::Param&)
 	{
-		inNonClient = FALSE;
+		inNonClient = false;
 	}
 
 	void Input::Cursor::AutoHide()
@@ -269,17 +289,17 @@ namespace Nestopia
 		}
 
 		uint next = clock;
-		clock = TRUE;
+		clock = true;
 
 		return next;
 	}
 
-    #ifdef NST_PRAGMA_OPTIMIZE
-    #pragma optimize("", on)
-    #endif
+	#ifdef NST_PRAGMA_OPTIMIZE
+	#pragma optimize("", on)
+	#endif
 
 	Input::JoystickKeys::JoystickKeys(Window::Custom& w,DirectX::DirectInput& d)
-	: window(w), directInput(d), clock(TRUE) {}
+	: window(w), directInput(d), clock(true) {}
 
 	void Input::JoystickKeys::Clear()
 	{
@@ -297,7 +317,7 @@ namespace Nestopia
 	{
 		if (Size())
 		{
-			clock = TRUE;
+			clock = true;
 			window.StartTimer( this, &JoystickKeys::OnTimer, POLL_RAPID );
 		}
 	}
@@ -409,14 +429,14 @@ namespace Nestopia
 											case 0xFF79: p = 'r';  break;
 											case 0xFF7A: p = 't';  break;
 
-											case 0xFF9E: 
-												
+											case 0xFF9E:
+
 												if (Length())
 													Back() |= 0x100;
 
 												continue;
 
-											case 0xFF9F: 
+											case 0xFF9F:
 
 												if (Length())
 													Back() |= 0x80;
@@ -474,15 +494,15 @@ namespace Nestopia
 											case 0xFF61: p = ']';        break;
 											case 0xFF62: p = '[' | 0x80; break;
 											case 0xFF63: p = ']' | 0x80; break;
-											
-											default: continue;										
+
+											default: continue;
 										}
 
 										mode = true;
 									}
 									else
 									{
-										continue;										
+										continue;
 									}
 								}
 
@@ -505,13 +525,7 @@ namespace Nestopia
 					::CloseClipboard();
 
 					if (Length())
-					{
-						Io::Screen() << Resource::String(IDS_SCREEN_TEXT_PASTE_1) 
-							         << ' '
-							         << Length()
-									 << ' '
-									 << Resource::String(IDS_SCREEN_TEXT_PASTE_2);
-					}
+						Io::Screen() << Resource::String( IDS_SCREEN_TEXT_PASTE ).Invoke( Length() );
 				}
 			}
 		}
@@ -524,9 +538,9 @@ namespace Nestopia
 		return Length();
 	}
 
-    #ifdef NST_PRAGMA_OPTIMIZE
-    #pragma optimize("t", on)
-    #endif
+	#ifdef NST_PRAGMA_OPTIMIZE
+	#pragma optimize("t", on)
+	#endif
 
 	inline bool Input::AutoFire::Signaled() const
 	{
@@ -562,9 +576,9 @@ namespace Nestopia
 		}
 	}
 
-    #ifdef NST_PRAGMA_OPTIMIZE
-    #pragma optimize("", on)
-    #endif
+	#ifdef NST_PRAGMA_OPTIMIZE
+	#pragma optimize("", on)
+	#endif
 
 	Input::Input
 	(
@@ -575,11 +589,11 @@ namespace Nestopia
 		const Screening& i,
 		const Screening& o
 	)
-	: 
+	:
 	rects        ( i, o ),
 	menu         ( m ),
 	emulator     ( e ),
-	polled       ( FALSE ),
+	polled       ( false ),
 	cursor       ( w ),
 	directInput  ( w ),
 	dialog       ( new Window::Input(directInput,e,cfg) ),
@@ -587,55 +601,57 @@ namespace Nestopia
 	{
 		static const Window::Menu::CmdHandler::Entry<Input> commands[] =
 		{
-			{ IDM_MACHINE_INPUT_AUTOSELECT,	          	 &Input::OnCmdMachineAutoSelectController },
-			{ IDM_MACHINE_INPUT_PORT1_UNCONNECTED,		 &Input::OnCmdMachinePort				  },
-			{ IDM_MACHINE_INPUT_PORT1_PAD1,				 &Input::OnCmdMachinePort				  },
-			{ IDM_MACHINE_INPUT_PORT1_PAD2,				 &Input::OnCmdMachinePort				  },
-			{ IDM_MACHINE_INPUT_PORT1_PAD3,				 &Input::OnCmdMachinePort				  },
-			{ IDM_MACHINE_INPUT_PORT1_PAD4,				 &Input::OnCmdMachinePort				  },
-			{ IDM_MACHINE_INPUT_PORT1_ZAPPER,			 &Input::OnCmdMachinePort				  },
-			{ IDM_MACHINE_INPUT_PORT1_PADDLE,			 &Input::OnCmdMachinePort				  },
-			{ IDM_MACHINE_INPUT_PORT1_POWERPAD,			 &Input::OnCmdMachinePort				  },
-			{ IDM_MACHINE_INPUT_PORT1_MOUSE,			 &Input::OnCmdMachinePort				  },
-			{ IDM_MACHINE_INPUT_PORT2_UNCONNECTED,		 &Input::OnCmdMachinePort				  },
-			{ IDM_MACHINE_INPUT_PORT2_PAD1,				 &Input::OnCmdMachinePort				  },
-			{ IDM_MACHINE_INPUT_PORT2_PAD2,				 &Input::OnCmdMachinePort				  },
-			{ IDM_MACHINE_INPUT_PORT2_PAD3,				 &Input::OnCmdMachinePort				  },
-			{ IDM_MACHINE_INPUT_PORT2_PAD4,				 &Input::OnCmdMachinePort				  },
-			{ IDM_MACHINE_INPUT_PORT2_ZAPPER,			 &Input::OnCmdMachinePort				  },
-			{ IDM_MACHINE_INPUT_PORT2_PADDLE,			 &Input::OnCmdMachinePort				  },
-			{ IDM_MACHINE_INPUT_PORT2_POWERPAD,			 &Input::OnCmdMachinePort				  },
-			{ IDM_MACHINE_INPUT_PORT2_MOUSE,			 &Input::OnCmdMachinePort				  },
-			{ IDM_MACHINE_INPUT_PORT3_UNCONNECTED,		 &Input::OnCmdMachinePort				  },
-			{ IDM_MACHINE_INPUT_PORT3_PAD1,				 &Input::OnCmdMachinePort				  },
-			{ IDM_MACHINE_INPUT_PORT3_PAD2,				 &Input::OnCmdMachinePort				  },
-			{ IDM_MACHINE_INPUT_PORT3_PAD3,				 &Input::OnCmdMachinePort				  },
-			{ IDM_MACHINE_INPUT_PORT3_PAD4,				 &Input::OnCmdMachinePort				  },
-			{ IDM_MACHINE_INPUT_PORT4_UNCONNECTED,		 &Input::OnCmdMachinePort				  },
-			{ IDM_MACHINE_INPUT_PORT4_PAD1,				 &Input::OnCmdMachinePort				  },
-			{ IDM_MACHINE_INPUT_PORT4_PAD2,				 &Input::OnCmdMachinePort				  },
-			{ IDM_MACHINE_INPUT_PORT4_PAD3,				 &Input::OnCmdMachinePort				  },
-			{ IDM_MACHINE_INPUT_PORT4_PAD4,				 &Input::OnCmdMachinePort				  },
-			{ IDM_MACHINE_INPUT_EXP_UNCONNECTED,		 &Input::OnCmdMachinePort				  },
-			{ IDM_MACHINE_INPUT_EXP_FAMILYTRAINER,       &Input::OnCmdMachinePort				  },
-			{ IDM_MACHINE_INPUT_EXP_FAMILYBASICKEYBOARD, &Input::OnCmdMachinePort				  },
-			{ IDM_MACHINE_INPUT_EXP_SUBORKEYBOARD,       &Input::OnCmdMachinePort				  },
-			{ IDM_MACHINE_INPUT_EXP_DOREMIKKOKEYBOARD,   &Input::OnCmdMachinePort				  },
-			{ IDM_MACHINE_INPUT_EXP_PADDLE,				 &Input::OnCmdMachinePort				  },
-			{ IDM_MACHINE_INPUT_EXP_OEKAKIDSTABLET,		 &Input::OnCmdMachinePort				  },
-			{ IDM_MACHINE_INPUT_EXP_HYPERSHOT,			 &Input::OnCmdMachinePort				  },
-			{ IDM_MACHINE_INPUT_EXP_CRAZYCLIMBER,		 &Input::OnCmdMachinePort				  },
-			{ IDM_MACHINE_INPUT_EXP_MAHJONG,			 &Input::OnCmdMachinePort				  },
-			{ IDM_MACHINE_INPUT_EXP_EXCITINGBOXING,		 &Input::OnCmdMachinePort				  },
-			{ IDM_MACHINE_INPUT_EXP_TOPRIDER,			 &Input::OnCmdMachinePort				  },
-			{ IDM_MACHINE_INPUT_EXP_POKKUNMOGURAA,		 &Input::OnCmdMachinePort				  },
-			{ IDM_MACHINE_INPUT_EXP_PARTYTAP,	     	 &Input::OnCmdMachinePort				  },
-			{ IDM_MACHINE_EXT_KEYBOARD_PASTE,		     &Input::OnCmdMachineKeyboardPaste	      },
+			{ IDM_MACHINE_INPUT_AUTOSELECT,              &Input::OnCmdMachineAutoSelectController },
+			{ IDM_MACHINE_INPUT_PORT1_UNCONNECTED,       &Input::OnCmdMachinePort                 },
+			{ IDM_MACHINE_INPUT_PORT1_PAD1,              &Input::OnCmdMachinePort                 },
+			{ IDM_MACHINE_INPUT_PORT1_PAD2,              &Input::OnCmdMachinePort                 },
+			{ IDM_MACHINE_INPUT_PORT1_PAD3,              &Input::OnCmdMachinePort                 },
+			{ IDM_MACHINE_INPUT_PORT1_PAD4,              &Input::OnCmdMachinePort                 },
+			{ IDM_MACHINE_INPUT_PORT1_ZAPPER,            &Input::OnCmdMachinePort                 },
+			{ IDM_MACHINE_INPUT_PORT1_PADDLE,            &Input::OnCmdMachinePort                 },
+			{ IDM_MACHINE_INPUT_PORT1_POWERPAD,          &Input::OnCmdMachinePort                 },
+			{ IDM_MACHINE_INPUT_PORT1_MOUSE,             &Input::OnCmdMachinePort                 },
+			{ IDM_MACHINE_INPUT_PORT2_UNCONNECTED,       &Input::OnCmdMachinePort                 },
+			{ IDM_MACHINE_INPUT_PORT2_PAD1,              &Input::OnCmdMachinePort                 },
+			{ IDM_MACHINE_INPUT_PORT2_PAD2,              &Input::OnCmdMachinePort                 },
+			{ IDM_MACHINE_INPUT_PORT2_PAD3,              &Input::OnCmdMachinePort                 },
+			{ IDM_MACHINE_INPUT_PORT2_PAD4,              &Input::OnCmdMachinePort                 },
+			{ IDM_MACHINE_INPUT_PORT2_ZAPPER,            &Input::OnCmdMachinePort                 },
+			{ IDM_MACHINE_INPUT_PORT2_PADDLE,            &Input::OnCmdMachinePort                 },
+			{ IDM_MACHINE_INPUT_PORT2_POWERPAD,          &Input::OnCmdMachinePort                 },
+			{ IDM_MACHINE_INPUT_PORT2_MOUSE,             &Input::OnCmdMachinePort                 },
+			{ IDM_MACHINE_INPUT_PORT3_UNCONNECTED,       &Input::OnCmdMachinePort                 },
+			{ IDM_MACHINE_INPUT_PORT3_PAD1,              &Input::OnCmdMachinePort                 },
+			{ IDM_MACHINE_INPUT_PORT3_PAD2,              &Input::OnCmdMachinePort                 },
+			{ IDM_MACHINE_INPUT_PORT3_PAD3,              &Input::OnCmdMachinePort                 },
+			{ IDM_MACHINE_INPUT_PORT3_PAD4,              &Input::OnCmdMachinePort                 },
+			{ IDM_MACHINE_INPUT_PORT4_UNCONNECTED,       &Input::OnCmdMachinePort                 },
+			{ IDM_MACHINE_INPUT_PORT4_PAD1,              &Input::OnCmdMachinePort                 },
+			{ IDM_MACHINE_INPUT_PORT4_PAD2,              &Input::OnCmdMachinePort                 },
+			{ IDM_MACHINE_INPUT_PORT4_PAD3,              &Input::OnCmdMachinePort                 },
+			{ IDM_MACHINE_INPUT_PORT4_PAD4,              &Input::OnCmdMachinePort                 },
+			{ IDM_MACHINE_INPUT_EXP_UNCONNECTED,         &Input::OnCmdMachinePort                 },
+			{ IDM_MACHINE_INPUT_EXP_FAMILYTRAINER,       &Input::OnCmdMachinePort                 },
+			{ IDM_MACHINE_INPUT_EXP_FAMILYBASICKEYBOARD, &Input::OnCmdMachinePort                 },
+			{ IDM_MACHINE_INPUT_EXP_SUBORKEYBOARD,       &Input::OnCmdMachinePort                 },
+			{ IDM_MACHINE_INPUT_EXP_DOREMIKKOKEYBOARD,   &Input::OnCmdMachinePort                 },
+			{ IDM_MACHINE_INPUT_EXP_HORITRACK,           &Input::OnCmdMachinePort                 },
+			{ IDM_MACHINE_INPUT_EXP_PACHINKO,            &Input::OnCmdMachinePort                 },
+			{ IDM_MACHINE_INPUT_EXP_PADDLE,              &Input::OnCmdMachinePort                 },
+			{ IDM_MACHINE_INPUT_EXP_OEKAKIDSTABLET,      &Input::OnCmdMachinePort                 },
+			{ IDM_MACHINE_INPUT_EXP_HYPERSHOT,           &Input::OnCmdMachinePort                 },
+			{ IDM_MACHINE_INPUT_EXP_CRAZYCLIMBER,        &Input::OnCmdMachinePort                 },
+			{ IDM_MACHINE_INPUT_EXP_MAHJONG,             &Input::OnCmdMachinePort                 },
+			{ IDM_MACHINE_INPUT_EXP_EXCITINGBOXING,      &Input::OnCmdMachinePort                 },
+			{ IDM_MACHINE_INPUT_EXP_TOPRIDER,            &Input::OnCmdMachinePort                 },
+			{ IDM_MACHINE_INPUT_EXP_POKKUNMOGURAA,       &Input::OnCmdMachinePort                 },
+			{ IDM_MACHINE_INPUT_EXP_PARTYTAP,            &Input::OnCmdMachinePort                 },
+			{ IDM_MACHINE_EXT_KEYBOARD_PASTE,            &Input::OnCmdMachineKeyboardPaste        },
 			{ IDM_OPTIONS_INPUT,                         &Input::OnCmdOptionsInput                }
 		};
 
 		static const Window::Menu::PopupHandler::Entry<Input> popups[] =
-		{	  
+		{
 			{ Window::Menu::PopupHandler::Pos<IDM_POS_MACHINE,IDM_POS_MACHINE_INPUT,IDM_POS_MACHINE_INPUT_PORT1>::ID, &Input::OnMenuPort1 },
 			{ Window::Menu::PopupHandler::Pos<IDM_POS_MACHINE,IDM_POS_MACHINE_INPUT,IDM_POS_MACHINE_INPUT_PORT2>::ID, &Input::OnMenuPort2 },
 			{ Window::Menu::PopupHandler::Pos<IDM_POS_MACHINE,IDM_POS_MACHINE_INPUT,IDM_POS_MACHINE_INPUT_PORT3>::ID, &Input::OnMenuPort3 },
@@ -667,6 +683,8 @@ namespace Nestopia
 		Controllers::FamilyKeyboard::callback.Set    ( &Callbacks::PollFamilyKeyboard,    this   );
 		Controllers::SuborKeyboard::callback.Set     ( &Callbacks::PollSuborKeyboard,     this   );
 		Controllers::DoremikkoKeyboard::callback.Set ( &Callbacks::PollDoremikkoKeyboard, this   );
+		Controllers::HoriTrack::callback.Set         ( &Callbacks::PollHoriTrack,         this   );
+		Controllers::Pachinko::callback.Set          ( &Callbacks::PollPachinko,          this   );
 		Controllers::CrazyClimber::callback.Set      ( &Callbacks::PollCrazyClimber,      this   );
 		Controllers::Mahjong::callback.Set           ( &Callbacks::PollMahjong,           this   );
 		Controllers::ExcitingBoxing::callback.Set    ( &Callbacks::PollExcitingBoxing,    this   );
@@ -676,12 +694,12 @@ namespace Nestopia
 		Controllers::VsSystem::callback.Set          ( &Callbacks::PollVsSystem,          this   );
 		Controllers::KaraokeStudio::callback.Set     ( &Callbacks::PollKaraokeStudio,     this   );
 
-		menu[IDM_MACHINE_INPUT_AUTOSELECT].Check( cfg["machine autoselect controllers"] != Application::Configuration::NO );	
+		menu[IDM_MACHINE_INPUT_AUTOSELECT].Check( cfg["machine autoselect controllers"] != Application::Configuration::NO );
 
 		{
 			NST_COMPILE_ASSERT
 			(
-     			Emulator::EVENT_PORT2_CONTROLLER - Emulator::EVENT_PORT1_CONTROLLER == 1 &&
+				Emulator::EVENT_PORT2_CONTROLLER - Emulator::EVENT_PORT1_CONTROLLER == 1 &&
 				Emulator::EVENT_PORT3_CONTROLLER - Emulator::EVENT_PORT1_CONTROLLER == 2 &&
 				Emulator::EVENT_PORT4_CONTROLLER - Emulator::EVENT_PORT1_CONTROLLER == 3
 			);
@@ -700,7 +718,7 @@ namespace Nestopia
 					case 0:
 					case 1:
 
-						     if (type == _T( "zapper"   )) { controller = Nes::Input::ZAPPER;   break; }
+                             if (type == _T( "zapper"   )) { controller = Nes::Input::ZAPPER;   break; }
 						else if (type == _T( "paddle"   )) { controller = Nes::Input::PADDLE;   break; }
 						else if (type == _T( "powerpad" )) { controller = Nes::Input::POWERPAD; break; }
 						else if (type == _T( "mouse"    )) { controller = Nes::Input::MOUSE;    break; }
@@ -708,7 +726,7 @@ namespace Nestopia
 					case 2:
 					case 3:
 
-     						 if (type == _T( "pad1"        )) controller = Nes::Input::PAD1;
+                             if (type == _T( "pad1"        )) controller = Nes::Input::PAD1;
 						else if (type == _T( "pad2"        )) controller = Nes::Input::PAD2;
 						else if (type == _T( "pad3"        )) controller = Nes::Input::PAD3;
 						else if (type == _T( "pad4"        )) controller = Nes::Input::PAD4;
@@ -720,11 +738,13 @@ namespace Nestopia
 
 					case 4:
 
-       						 if (type == _T( "paddle"            )) controller = Nes::Input::PADDLE;
-       					else if (type == _T( "familytrainer"     )) controller = Nes::Input::FAMILYTRAINER;
-       					else if (type == _T( "familykeyboard"    )) controller = Nes::Input::FAMILYKEYBOARD;
+                             if (type == _T( "paddle"            )) controller = Nes::Input::PADDLE;
+						else if (type == _T( "familytrainer"     )) controller = Nes::Input::FAMILYTRAINER;
+						else if (type == _T( "familykeyboard"    )) controller = Nes::Input::FAMILYKEYBOARD;
 						else if (type == _T( "suborkeyboard"     )) controller = Nes::Input::SUBORKEYBOARD;
 						else if (type == _T( "doremikkokeyboard" )) controller = Nes::Input::DOREMIKKOKEYBOARD;
+						else if (type == _T( "horitrack"         )) controller = Nes::Input::HORITRACK;
+						else if (type == _T( "pachinko"          )) controller = Nes::Input::PACHINKO;
 						else if (type == _T( "oekakidstablet"    )) controller = Nes::Input::OEKAKIDSTABLET;
 						else if (type == _T( "hypershot"         )) controller = Nes::Input::HYPERSHOT;
 						else if (type == _T( "crazyclimber"      )) controller = Nes::Input::CRAZYCLIMBER;
@@ -760,7 +780,7 @@ namespace Nestopia
 
 				switch (Nes::Input(emulator).GetConnectedController( i ))
 				{
-    				case Nes::Input::PAD1:              type = _T( "pad1"              ); break;
+					case Nes::Input::PAD1:              type = _T( "pad1"              ); break;
 					case Nes::Input::PAD2:              type = _T( "pad2"              ); break;
 					case Nes::Input::PAD3:              type = _T( "pad3"              ); break;
 					case Nes::Input::PAD4:              type = _T( "pad4"              ); break;
@@ -772,6 +792,8 @@ namespace Nestopia
 					case Nes::Input::FAMILYKEYBOARD:    type = _T( "familykeyboard"    ); break;
 					case Nes::Input::SUBORKEYBOARD:     type = _T( "suborkeyboard"     ); break;
 					case Nes::Input::DOREMIKKOKEYBOARD: type = _T( "doremikkokeyboard" ); break;
+					case Nes::Input::HORITRACK:         type = _T( "horitrack"         ); break;
+					case Nes::Input::PACHINKO:          type = _T( "pachinko"          ); break;
 					case Nes::Input::OEKAKIDSTABLET:    type = _T( "oekakidstablet"    ); break;
 					case Nes::Input::HYPERSHOT:         type = _T( "hypershot"         ); break;
 					case Nes::Input::CRAZYCLIMBER:      type = _T( "crazyclimber"      ); break;
@@ -805,7 +827,7 @@ namespace Nestopia
 		clipBoard.Clear();
 		directInput.Unacquire();
 		cursor.Unacquire();
-		Window::Menu::EnableAccelerators( TRUE );
+		Window::Menu::EnableAccelerators( true );
 	}
 
 	void Input::UpdateDevices()
@@ -814,13 +836,13 @@ namespace Nestopia
 		{
 			cursor.Acquire( emulator );
 
-		    Window::Menu::EnableAccelerators
-			( 
-		     	!Nes::Input(emulator).IsAnyControllerConnected
-		     	(
-		        	Nes::Input::FAMILYKEYBOARD,
-     	   			Nes::Input::SUBORKEYBOARD,
-     				Nes::Input::DOREMIKKOKEYBOARD
+			Window::Menu::EnableAccelerators
+			(
+				!Nes::Input(emulator).IsAnyControllerConnected
+				(
+					Nes::Input::FAMILYKEYBOARD,
+					Nes::Input::SUBORKEYBOARD,
+					Nes::Input::DOREMIKKOKEYBOARD
 				)
 			);
 		}
@@ -839,60 +861,60 @@ namespace Nestopia
 
 		static const ushort lut[Settings::NUM_COMMAND_KEYS][2] =
 		{
-			{ Settings::FILE_KEYS    + Settings::FILE_KEY_OPEN,				     IDM_FILE_OPEN                        }, 
-			{ Settings::FILE_KEYS    + Settings::FILE_KEY_LOAD_SCRIPT,			 IDM_FILE_LOAD_NSP                    }, 
-			{ Settings::FILE_KEYS    + Settings::FILE_KEY_LOAD_STATE,			 IDM_FILE_LOAD_NST                    }, 
-			{ Settings::FILE_KEYS    + Settings::FILE_KEY_SAVE_SCRIPT,			 IDM_FILE_SAVE_NSP                    }, 
-			{ Settings::FILE_KEYS    + Settings::FILE_KEY_SAVE_STATE,			 IDM_FILE_SAVE_NST                    }, 
-			{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_LOAD_STATE_1,	 IDM_FILE_QUICK_LOAD_STATE_SLOT_1     }, 
-			{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_LOAD_STATE_2,	 IDM_FILE_QUICK_LOAD_STATE_SLOT_2     }, 
-			{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_LOAD_STATE_3,	 IDM_FILE_QUICK_LOAD_STATE_SLOT_3     }, 
-			{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_LOAD_STATE_4,	 IDM_FILE_QUICK_LOAD_STATE_SLOT_4     }, 
-			{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_LOAD_STATE_5,	 IDM_FILE_QUICK_LOAD_STATE_SLOT_5     }, 
-			{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_LOAD_STATE_6,	 IDM_FILE_QUICK_LOAD_STATE_SLOT_6     }, 
-			{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_LOAD_STATE_7,	 IDM_FILE_QUICK_LOAD_STATE_SLOT_7     }, 
-			{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_LOAD_STATE_8,	 IDM_FILE_QUICK_LOAD_STATE_SLOT_8     }, 
-			{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_LOAD_STATE_9,	 IDM_FILE_QUICK_LOAD_STATE_SLOT_9     }, 
-			{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_LOAD_LAST_STATE, IDM_FILE_QUICK_LOAD_STATE_SLOT_LAST  }, 
-			{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_SAVE_STATE_1,	 IDM_FILE_QUICK_SAVE_STATE_SLOT_1     }, 
-			{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_SAVE_STATE_2,	 IDM_FILE_QUICK_SAVE_STATE_SLOT_2     }, 
-			{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_SAVE_STATE_3,	 IDM_FILE_QUICK_SAVE_STATE_SLOT_3     }, 
-			{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_SAVE_STATE_4,	 IDM_FILE_QUICK_SAVE_STATE_SLOT_4     }, 
-			{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_SAVE_STATE_5,	 IDM_FILE_QUICK_SAVE_STATE_SLOT_5     }, 
-			{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_SAVE_STATE_6,	 IDM_FILE_QUICK_SAVE_STATE_SLOT_6     }, 
-			{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_SAVE_STATE_7,	 IDM_FILE_QUICK_SAVE_STATE_SLOT_7     }, 
-			{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_SAVE_STATE_8,	 IDM_FILE_QUICK_SAVE_STATE_SLOT_8     }, 
-			{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_SAVE_STATE_9,	 IDM_FILE_QUICK_SAVE_STATE_SLOT_9     }, 
-			{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_SAVE_NEXT_STATE, IDM_FILE_QUICK_SAVE_STATE_SLOT_NEXT  }, 
-			{ Settings::FILE_KEYS    + Settings::FILE_KEY_SAVE_SCREENSHOT,		 IDM_FILE_SAVE_SCREENSHOT		      }, 
-			{ Settings::FILE_KEYS    + Settings::FILE_KEY_LAUNCHER,				 IDM_FILE_LAUNCHER          		  }, 
-			{ Settings::FILE_KEYS    + Settings::FILE_KEY_EXIT,					 IDM_FILE_QUIT                	      }, 
-			{ Settings::MACHINE_KEYS + Settings::MACHINE_KEY_POWER, 			 IDM_MACHINE_POWER  			      }, 
-			{ Settings::MACHINE_KEYS + Settings::MACHINE_KEY_RESET_SOFT,		 IDM_MACHINE_RESET_SOFT		          }, 
-			{ Settings::MACHINE_KEYS + Settings::MACHINE_KEY_RESET_HARD,		 IDM_MACHINE_RESET_HARD		          }, 
-			{ Settings::MACHINE_KEYS + Settings::MACHINE_KEY_PAUSE,				 IDM_MACHINE_PAUSE		              }, 
-			{ Settings::MACHINE_KEYS + Settings::MACHINE_KEY_UNLIMITED_SPRITES,	 IDM_MACHINE_OPTIONS_UNLIMITEDSPRITES }, 
-			{ Settings::MACHINE_KEYS + Settings::MACHINE_KEY_CHANGE_DISK_SIDE,	 IDM_MACHINE_EXT_FDS_CHANGE_SIDE          }, 
-			{ Settings::NSF_KEYS     + Settings::NSF_KEY_PLAY,					 IDM_MACHINE_NSF_PLAY			      }, 
-			{ Settings::NSF_KEYS     + Settings::NSF_KEY_STOP,					 IDM_MACHINE_NSF_STOP			      }, 
-			{ Settings::NSF_KEYS     + Settings::NSF_KEY_NEXT,					 IDM_MACHINE_NSF_NEXT			      }, 
-			{ Settings::NSF_KEYS     + Settings::NSF_KEY_PREV,					 IDM_MACHINE_NSF_PREV			      }, 
-			{ Settings::VIEW_KEYS    + Settings::VIEW_KEY_SCREENSIZE_1X,		 IDM_VIEW_WINDOWSIZE_1X			      }, 
-			{ Settings::VIEW_KEYS    + Settings::VIEW_KEY_SCREENSIZE_2X,		 IDM_VIEW_WINDOWSIZE_2X 			  }, 
-			{ Settings::VIEW_KEYS    + Settings::VIEW_KEY_SCREENSIZE_3X,		 IDM_VIEW_WINDOWSIZE_3X 			  }, 
-			{ Settings::VIEW_KEYS    + Settings::VIEW_KEY_SCREENSIZE_4X,		 IDM_VIEW_WINDOWSIZE_4X 			  }, 
-			{ Settings::VIEW_KEYS    + Settings::VIEW_KEY_SCREENSIZE_5X,		 IDM_VIEW_WINDOWSIZE_5X			      }, 
-			{ Settings::VIEW_KEYS    + Settings::VIEW_KEY_SCREENSIZE_6X,		 IDM_VIEW_WINDOWSIZE_6X 			  }, 
-			{ Settings::VIEW_KEYS    + Settings::VIEW_KEY_SCREENSIZE_7X,		 IDM_VIEW_WINDOWSIZE_7X 			  }, 
-			{ Settings::VIEW_KEYS    + Settings::VIEW_KEY_SCREENSIZE_8X,		 IDM_VIEW_WINDOWSIZE_8X 			  }, 
-			{ Settings::VIEW_KEYS    + Settings::VIEW_KEY_SCREENSIZE_9X,		 IDM_VIEW_WINDOWSIZE_9X 			  }, 
-			{ Settings::VIEW_KEYS    + Settings::VIEW_KEY_SCREENSIZE_MAX,	     IDM_VIEW_WINDOWSIZE_MAX 			  }, 
-			{ Settings::VIEW_KEYS    + Settings::VIEW_KEY_SHOW_MENU,			 IDM_VIEW_MENU  			          }, 
-			{ Settings::VIEW_KEYS    + Settings::VIEW_KEY_SHOW_STATUSBAR,	     IDM_VIEW_STATUSBAR       			  }, 
-			{ Settings::VIEW_KEYS    + Settings::VIEW_KEY_SHOW_ONTOP,		     IDM_VIEW_ON_TOP     				  }, 
-			{ Settings::VIEW_KEYS    + Settings::VIEW_KEY_SHOW_FPS,			     IDM_VIEW_FPS        			      }, 
-			{ Settings::VIEW_KEYS    + Settings::VIEW_KEY_FULLSCREEN,		     IDM_VIEW_SWITCH_SCREEN				  },
-			{ Settings::HELP_KEYS    + Settings::HELP_KEY_HELP,	       	         IDM_HELP_HELP      				  }
+			{ Settings::FILE_KEYS    + Settings::FILE_KEY_OPEN,                  IDM_FILE_OPEN                        },
+			{ Settings::FILE_KEYS    + Settings::FILE_KEY_LOAD_SCRIPT,           IDM_FILE_LOAD_NSP                    },
+			{ Settings::FILE_KEYS    + Settings::FILE_KEY_LOAD_STATE,            IDM_FILE_LOAD_NST                    },
+			{ Settings::FILE_KEYS    + Settings::FILE_KEY_SAVE_SCRIPT,           IDM_FILE_SAVE_NSP                    },
+			{ Settings::FILE_KEYS    + Settings::FILE_KEY_SAVE_STATE,            IDM_FILE_SAVE_NST                    },
+			{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_LOAD_STATE_1,    IDM_FILE_QUICK_LOAD_STATE_SLOT_1     },
+			{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_LOAD_STATE_2,    IDM_FILE_QUICK_LOAD_STATE_SLOT_2     },
+			{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_LOAD_STATE_3,    IDM_FILE_QUICK_LOAD_STATE_SLOT_3     },
+			{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_LOAD_STATE_4,    IDM_FILE_QUICK_LOAD_STATE_SLOT_4     },
+			{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_LOAD_STATE_5,    IDM_FILE_QUICK_LOAD_STATE_SLOT_5     },
+			{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_LOAD_STATE_6,    IDM_FILE_QUICK_LOAD_STATE_SLOT_6     },
+			{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_LOAD_STATE_7,    IDM_FILE_QUICK_LOAD_STATE_SLOT_7     },
+			{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_LOAD_STATE_8,    IDM_FILE_QUICK_LOAD_STATE_SLOT_8     },
+			{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_LOAD_STATE_9,    IDM_FILE_QUICK_LOAD_STATE_SLOT_9     },
+			{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_LOAD_LAST_STATE, IDM_FILE_QUICK_LOAD_STATE_SLOT_NEWEST  },
+			{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_SAVE_STATE_1,    IDM_FILE_QUICK_SAVE_STATE_SLOT_1     },
+			{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_SAVE_STATE_2,    IDM_FILE_QUICK_SAVE_STATE_SLOT_2     },
+			{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_SAVE_STATE_3,    IDM_FILE_QUICK_SAVE_STATE_SLOT_3     },
+			{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_SAVE_STATE_4,    IDM_FILE_QUICK_SAVE_STATE_SLOT_4     },
+			{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_SAVE_STATE_5,    IDM_FILE_QUICK_SAVE_STATE_SLOT_5     },
+			{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_SAVE_STATE_6,    IDM_FILE_QUICK_SAVE_STATE_SLOT_6     },
+			{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_SAVE_STATE_7,    IDM_FILE_QUICK_SAVE_STATE_SLOT_7     },
+			{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_SAVE_STATE_8,    IDM_FILE_QUICK_SAVE_STATE_SLOT_8     },
+			{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_SAVE_STATE_9,    IDM_FILE_QUICK_SAVE_STATE_SLOT_9     },
+			{ Settings::FILE_KEYS    + Settings::FILE_KEY_QUICK_SAVE_NEXT_STATE, IDM_FILE_QUICK_SAVE_STATE_SLOT_OLDEST  },
+			{ Settings::FILE_KEYS    + Settings::FILE_KEY_SAVE_SCREENSHOT,       IDM_FILE_SAVE_SCREENSHOT             },
+			{ Settings::FILE_KEYS    + Settings::FILE_KEY_LAUNCHER,              IDM_FILE_LAUNCHER                    },
+			{ Settings::FILE_KEYS    + Settings::FILE_KEY_EXIT,                  IDM_FILE_QUIT                        },
+			{ Settings::MACHINE_KEYS + Settings::MACHINE_KEY_POWER,              IDM_MACHINE_POWER                    },
+			{ Settings::MACHINE_KEYS + Settings::MACHINE_KEY_RESET_SOFT,         IDM_MACHINE_RESET_SOFT               },
+			{ Settings::MACHINE_KEYS + Settings::MACHINE_KEY_RESET_HARD,         IDM_MACHINE_RESET_HARD               },
+			{ Settings::MACHINE_KEYS + Settings::MACHINE_KEY_PAUSE,              IDM_MACHINE_PAUSE                    },
+			{ Settings::MACHINE_KEYS + Settings::MACHINE_KEY_UNLIMITED_SPRITES,  IDM_MACHINE_OPTIONS_UNLIMITEDSPRITES },
+			{ Settings::MACHINE_KEYS + Settings::MACHINE_KEY_CHANGE_DISK_SIDE,   IDM_MACHINE_EXT_FDS_CHANGE_SIDE          },
+			{ Settings::NSF_KEYS     + Settings::NSF_KEY_PLAY,                   IDM_MACHINE_NSF_PLAY                 },
+			{ Settings::NSF_KEYS     + Settings::NSF_KEY_STOP,                   IDM_MACHINE_NSF_STOP                 },
+			{ Settings::NSF_KEYS     + Settings::NSF_KEY_NEXT,                   IDM_MACHINE_NSF_NEXT                 },
+			{ Settings::NSF_KEYS     + Settings::NSF_KEY_PREV,                   IDM_MACHINE_NSF_PREV                 },
+			{ Settings::VIEW_KEYS    + Settings::VIEW_KEY_SCREENSIZE_1X,         IDM_VIEW_WINDOWSIZE_1X               },
+			{ Settings::VIEW_KEYS    + Settings::VIEW_KEY_SCREENSIZE_2X,         IDM_VIEW_WINDOWSIZE_2X               },
+			{ Settings::VIEW_KEYS    + Settings::VIEW_KEY_SCREENSIZE_3X,         IDM_VIEW_WINDOWSIZE_3X               },
+			{ Settings::VIEW_KEYS    + Settings::VIEW_KEY_SCREENSIZE_4X,         IDM_VIEW_WINDOWSIZE_4X               },
+			{ Settings::VIEW_KEYS    + Settings::VIEW_KEY_SCREENSIZE_5X,         IDM_VIEW_WINDOWSIZE_5X               },
+			{ Settings::VIEW_KEYS    + Settings::VIEW_KEY_SCREENSIZE_6X,         IDM_VIEW_WINDOWSIZE_6X               },
+			{ Settings::VIEW_KEYS    + Settings::VIEW_KEY_SCREENSIZE_7X,         IDM_VIEW_WINDOWSIZE_7X               },
+			{ Settings::VIEW_KEYS    + Settings::VIEW_KEY_SCREENSIZE_8X,         IDM_VIEW_WINDOWSIZE_8X               },
+			{ Settings::VIEW_KEYS    + Settings::VIEW_KEY_SCREENSIZE_9X,         IDM_VIEW_WINDOWSIZE_9X               },
+			{ Settings::VIEW_KEYS    + Settings::VIEW_KEY_SCREENSIZE_MAX,        IDM_VIEW_WINDOWSIZE_MAX              },
+			{ Settings::VIEW_KEYS    + Settings::VIEW_KEY_SHOW_MENU,             IDM_VIEW_MENU                        },
+			{ Settings::VIEW_KEYS    + Settings::VIEW_KEY_SHOW_STATUSBAR,        IDM_VIEW_STATUSBAR                   },
+			{ Settings::VIEW_KEYS    + Settings::VIEW_KEY_SHOW_ONTOP,            IDM_VIEW_ON_TOP                      },
+			{ Settings::VIEW_KEYS    + Settings::VIEW_KEY_SHOW_FPS,              IDM_VIEW_FPS                         },
+			{ Settings::VIEW_KEYS    + Settings::VIEW_KEY_FULLSCREEN,            IDM_VIEW_SWITCH_SCREEN               },
+			{ Settings::HELP_KEYS    + Settings::HELP_KEY_HELP,                  IDM_HELP_HELP                        }
 		};
 
 		joystickKeys.Clear();
@@ -915,13 +937,13 @@ namespace Nestopia
 	void Input::OnEmuEvent(Emulator::Event event)
 	{
 		switch (event)
-		{			
+		{
 			case Emulator::EVENT_PORT1_CONTROLLER:
 			case Emulator::EVENT_PORT2_CONTROLLER:
 			case Emulator::EVENT_PORT3_CONTROLLER:
 			case Emulator::EVENT_PORT4_CONTROLLER:
 			case Emulator::EVENT_PORT5_CONTROLLER:
-			
+
 				UpdateDevices();
 				break;
 
@@ -932,9 +954,9 @@ namespace Nestopia
 
 				break;
 
-    		case Emulator::EVENT_NETPLAY_LOAD:
+			case Emulator::EVENT_NETPLAY_LOAD:
 			case Emulator::EVENT_NETPLAY_UNLOAD:
-			
+
 				for (uint i=0, enable=(event == Emulator::EVENT_NETPLAY_UNLOAD); i < 4; ++i)
 					menu[IDM_POS_MACHINE][IDM_POS_MACHINE_INPUT][IDM_POS_MACHINE_INPUT_PORT1+i].Enable( enable || emulator.GetPlayer() == (i+1) );
 
@@ -951,15 +973,15 @@ namespace Nestopia
 				menu[IDM_OPTIONS_INPUT].Enable( state );
 
 				menu[ IDM_MACHINE_INPUT_PORT1_UNCONNECTED ].Enable( state );
-				menu[ IDM_MACHINE_INPUT_PORT1_ZAPPER	  ].Enable( state );
-				menu[ IDM_MACHINE_INPUT_PORT1_PADDLE	  ].Enable( state );
-				menu[ IDM_MACHINE_INPUT_PORT1_POWERPAD	  ].Enable( state );
-				menu[ IDM_MACHINE_INPUT_PORT1_MOUSE  	  ].Enable( state );
+				menu[ IDM_MACHINE_INPUT_PORT1_ZAPPER      ].Enable( state );
+				menu[ IDM_MACHINE_INPUT_PORT1_PADDLE      ].Enable( state );
+				menu[ IDM_MACHINE_INPUT_PORT1_POWERPAD    ].Enable( state );
+				menu[ IDM_MACHINE_INPUT_PORT1_MOUSE       ].Enable( state );
 				menu[ IDM_MACHINE_INPUT_PORT2_UNCONNECTED ].Enable( state );
-				menu[ IDM_MACHINE_INPUT_PORT2_ZAPPER	  ].Enable( state );
-				menu[ IDM_MACHINE_INPUT_PORT2_PADDLE	  ].Enable( state );
-				menu[ IDM_MACHINE_INPUT_PORT2_POWERPAD	  ].Enable( state );
-				menu[ IDM_MACHINE_INPUT_PORT2_MOUSE  	  ].Enable( state );
+				menu[ IDM_MACHINE_INPUT_PORT2_ZAPPER      ].Enable( state );
+				menu[ IDM_MACHINE_INPUT_PORT2_PADDLE      ].Enable( state );
+				menu[ IDM_MACHINE_INPUT_PORT2_POWERPAD    ].Enable( state );
+				menu[ IDM_MACHINE_INPUT_PORT2_MOUSE       ].Enable( state );
 				menu[ IDM_MACHINE_INPUT_PORT3_UNCONNECTED ].Enable( state );
 				menu[ IDM_MACHINE_INPUT_PORT4_UNCONNECTED ].Enable( state );
 				break;
@@ -967,8 +989,8 @@ namespace Nestopia
 		}
 	}
 
-	void Input::OnCmdOptionsInput(uint) 
-	{ 
+	void Input::OnCmdOptionsInput(uint)
+	{
 		dialog->Open();
 		UpdateSettings();
 	}
@@ -979,43 +1001,45 @@ namespace Nestopia
 			emulator.AutoSelectControllers();
 	}
 
-	void Input::OnCmdMachinePort(uint id) 
+	void Input::OnCmdMachinePort(uint id)
 	{
 		static const uchar table[][2] =
 		{
 			{ 0, Nes::Input::UNCONNECTED       },
-			{ 0, Nes::Input::PAD1		       },
-			{ 0, Nes::Input::PAD2		       },
-			{ 0, Nes::Input::PAD3		       },
-			{ 0, Nes::Input::PAD4		       },
-			{ 0, Nes::Input::ZAPPER		       },
-			{ 0, Nes::Input::PADDLE		       },
-			{ 0, Nes::Input::POWERPAD	       },
-			{ 0, Nes::Input::MOUSE  	       },
+			{ 0, Nes::Input::PAD1              },
+			{ 0, Nes::Input::PAD2              },
+			{ 0, Nes::Input::PAD3              },
+			{ 0, Nes::Input::PAD4              },
+			{ 0, Nes::Input::ZAPPER            },
+			{ 0, Nes::Input::PADDLE            },
+			{ 0, Nes::Input::POWERPAD          },
+			{ 0, Nes::Input::MOUSE             },
 			{ 1, Nes::Input::UNCONNECTED       },
-			{ 1, Nes::Input::PAD1		       },
-			{ 1, Nes::Input::PAD2		       },
-			{ 1, Nes::Input::PAD3		       },
-			{ 1, Nes::Input::PAD4		       },
-			{ 1, Nes::Input::ZAPPER		       },
-			{ 1, Nes::Input::PADDLE		       },
-			{ 1, Nes::Input::POWERPAD	       },
-			{ 1, Nes::Input::MOUSE  	       },
+			{ 1, Nes::Input::PAD1              },
+			{ 1, Nes::Input::PAD2              },
+			{ 1, Nes::Input::PAD3              },
+			{ 1, Nes::Input::PAD4              },
+			{ 1, Nes::Input::ZAPPER            },
+			{ 1, Nes::Input::PADDLE            },
+			{ 1, Nes::Input::POWERPAD          },
+			{ 1, Nes::Input::MOUSE             },
 			{ 2, Nes::Input::UNCONNECTED       },
-			{ 2, Nes::Input::PAD1		       },
-			{ 2, Nes::Input::PAD2		       },
-			{ 2, Nes::Input::PAD3		       },
-			{ 2, Nes::Input::PAD4		       },
+			{ 2, Nes::Input::PAD1              },
+			{ 2, Nes::Input::PAD2              },
+			{ 2, Nes::Input::PAD3              },
+			{ 2, Nes::Input::PAD4              },
 			{ 3, Nes::Input::UNCONNECTED       },
-			{ 3, Nes::Input::PAD1		       },
-			{ 3, Nes::Input::PAD2		       },
-			{ 3, Nes::Input::PAD3		       },
-			{ 3, Nes::Input::PAD4		       },
+			{ 3, Nes::Input::PAD1              },
+			{ 3, Nes::Input::PAD2              },
+			{ 3, Nes::Input::PAD3              },
+			{ 3, Nes::Input::PAD4              },
 			{ 4, Nes::Input::UNCONNECTED       },
 			{ 4, Nes::Input::FAMILYTRAINER     },
 			{ 4, Nes::Input::FAMILYKEYBOARD    },
 			{ 4, Nes::Input::SUBORKEYBOARD     },
 			{ 4, Nes::Input::DOREMIKKOKEYBOARD },
+			{ 4, Nes::Input::HORITRACK         },
+			{ 4, Nes::Input::PACHINKO          },
 			{ 4, Nes::Input::PADDLE            },
 			{ 4, Nes::Input::OEKAKIDSTABLET    },
 			{ 4, Nes::Input::HYPERSHOT         },
@@ -1033,7 +1057,7 @@ namespace Nestopia
 	}
 
 	void Input::OnCmdMachineKeyboardPaste(uint)
-	{		
+	{
 		clipBoard.Paste();
 		Application::Instance::Post( Application::Instance::WM_NST_COMMAND_RESUME );
 	}
@@ -1044,18 +1068,18 @@ namespace Nestopia
 
 		switch (emulator.GetController(0))
 		{
-			case Nes::Input::PAD1:	   id = IDM_MACHINE_INPUT_PORT1_PAD1;        break;
-			case Nes::Input::PAD2:	   id = IDM_MACHINE_INPUT_PORT1_PAD2;        break;
-			case Nes::Input::PAD3:	   id = IDM_MACHINE_INPUT_PORT1_PAD3;        break;
-			case Nes::Input::PAD4:	   id = IDM_MACHINE_INPUT_PORT1_PAD4;        break;
+			case Nes::Input::PAD1:     id = IDM_MACHINE_INPUT_PORT1_PAD1;        break;
+			case Nes::Input::PAD2:     id = IDM_MACHINE_INPUT_PORT1_PAD2;        break;
+			case Nes::Input::PAD3:     id = IDM_MACHINE_INPUT_PORT1_PAD3;        break;
+			case Nes::Input::PAD4:     id = IDM_MACHINE_INPUT_PORT1_PAD4;        break;
 			case Nes::Input::ZAPPER:   id = IDM_MACHINE_INPUT_PORT1_ZAPPER;      break;
 			case Nes::Input::PADDLE:   id = IDM_MACHINE_INPUT_PORT1_PADDLE;      break;
 			case Nes::Input::POWERPAD: id = IDM_MACHINE_INPUT_PORT1_POWERPAD;    break;
 			case Nes::Input::MOUSE:    id = IDM_MACHINE_INPUT_PORT1_MOUSE;       break;
-			default:				   id = IDM_MACHINE_INPUT_PORT1_UNCONNECTED; break;
+			default:                   id = IDM_MACHINE_INPUT_PORT1_UNCONNECTED; break;
 		}
 
-		param.menu[id].Check( IDM_MACHINE_INPUT_PORT1_UNCONNECTED, IDM_MACHINE_INPUT_PORT1_MOUSE );		
+		param.menu[id].Check( IDM_MACHINE_INPUT_PORT1_UNCONNECTED, IDM_MACHINE_INPUT_PORT1_MOUSE );
 	}
 
 	void Input::OnMenuPort2(Window::Menu::PopupHandler::Param& param)
@@ -1064,18 +1088,18 @@ namespace Nestopia
 
 		switch (emulator.GetController(1))
 		{
-			case Nes::Input::PAD1:	   id = IDM_MACHINE_INPUT_PORT2_PAD1;        break;         
-			case Nes::Input::PAD2:	   id = IDM_MACHINE_INPUT_PORT2_PAD2;        break;         
-			case Nes::Input::PAD3:	   id = IDM_MACHINE_INPUT_PORT2_PAD3;        break;         
-			case Nes::Input::PAD4:	   id = IDM_MACHINE_INPUT_PORT2_PAD4;        break;         
-			case Nes::Input::ZAPPER:   id = IDM_MACHINE_INPUT_PORT2_ZAPPER;      break;     
-			case Nes::Input::PADDLE:   id = IDM_MACHINE_INPUT_PORT2_PADDLE;      break;     
-			case Nes::Input::POWERPAD: id = IDM_MACHINE_INPUT_PORT2_POWERPAD;    break;     
-			case Nes::Input::MOUSE:    id = IDM_MACHINE_INPUT_PORT2_MOUSE;       break;     
-			default:	               id = IDM_MACHINE_INPUT_PORT2_UNCONNECTED; break;
+			case Nes::Input::PAD1:     id = IDM_MACHINE_INPUT_PORT2_PAD1;        break;
+			case Nes::Input::PAD2:     id = IDM_MACHINE_INPUT_PORT2_PAD2;        break;
+			case Nes::Input::PAD3:     id = IDM_MACHINE_INPUT_PORT2_PAD3;        break;
+			case Nes::Input::PAD4:     id = IDM_MACHINE_INPUT_PORT2_PAD4;        break;
+			case Nes::Input::ZAPPER:   id = IDM_MACHINE_INPUT_PORT2_ZAPPER;      break;
+			case Nes::Input::PADDLE:   id = IDM_MACHINE_INPUT_PORT2_PADDLE;      break;
+			case Nes::Input::POWERPAD: id = IDM_MACHINE_INPUT_PORT2_POWERPAD;    break;
+			case Nes::Input::MOUSE:    id = IDM_MACHINE_INPUT_PORT2_MOUSE;       break;
+			default:                   id = IDM_MACHINE_INPUT_PORT2_UNCONNECTED; break;
 		}
-		
-		param.menu[id].Check( IDM_MACHINE_INPUT_PORT2_UNCONNECTED, IDM_MACHINE_INPUT_PORT2_MOUSE );		
+
+		param.menu[id].Check( IDM_MACHINE_INPUT_PORT2_UNCONNECTED, IDM_MACHINE_INPUT_PORT2_MOUSE );
 	}
 
 	void Input::OnMenuPort3(Window::Menu::PopupHandler::Param& param)
@@ -1084,14 +1108,14 @@ namespace Nestopia
 
 		switch (emulator.GetController(2))
 		{
-			case Nes::Input::PAD1: id = IDM_MACHINE_INPUT_PORT3_PAD1;        break;         
-			case Nes::Input::PAD2: id = IDM_MACHINE_INPUT_PORT3_PAD2;        break;         
-			case Nes::Input::PAD3: id = IDM_MACHINE_INPUT_PORT3_PAD3;        break;         
-			case Nes::Input::PAD4: id = IDM_MACHINE_INPUT_PORT3_PAD4;        break;         
-			default:	           id = IDM_MACHINE_INPUT_PORT3_UNCONNECTED; break;
+			case Nes::Input::PAD1: id = IDM_MACHINE_INPUT_PORT3_PAD1;        break;
+			case Nes::Input::PAD2: id = IDM_MACHINE_INPUT_PORT3_PAD2;        break;
+			case Nes::Input::PAD3: id = IDM_MACHINE_INPUT_PORT3_PAD3;        break;
+			case Nes::Input::PAD4: id = IDM_MACHINE_INPUT_PORT3_PAD4;        break;
+			default:               id = IDM_MACHINE_INPUT_PORT3_UNCONNECTED; break;
 		}
-		
-		param.menu[id].Check( IDM_MACHINE_INPUT_PORT3_UNCONNECTED, IDM_MACHINE_INPUT_PORT3_PAD4 );		
+
+		param.menu[id].Check( IDM_MACHINE_INPUT_PORT3_UNCONNECTED, IDM_MACHINE_INPUT_PORT3_PAD4 );
 	}
 
 	void Input::OnMenuPort4(Window::Menu::PopupHandler::Param& param)
@@ -1100,54 +1124,56 @@ namespace Nestopia
 
 		switch (emulator.GetController(3))
 		{
-			case Nes::Input::PAD1: id = IDM_MACHINE_INPUT_PORT4_PAD1;        break;         
-			case Nes::Input::PAD2: id = IDM_MACHINE_INPUT_PORT4_PAD2;        break;         
-			case Nes::Input::PAD3: id = IDM_MACHINE_INPUT_PORT4_PAD3;        break;         
-			case Nes::Input::PAD4: id = IDM_MACHINE_INPUT_PORT4_PAD4;        break;         
-			default:	           id = IDM_MACHINE_INPUT_PORT4_UNCONNECTED; break;
+			case Nes::Input::PAD1: id = IDM_MACHINE_INPUT_PORT4_PAD1;        break;
+			case Nes::Input::PAD2: id = IDM_MACHINE_INPUT_PORT4_PAD2;        break;
+			case Nes::Input::PAD3: id = IDM_MACHINE_INPUT_PORT4_PAD3;        break;
+			case Nes::Input::PAD4: id = IDM_MACHINE_INPUT_PORT4_PAD4;        break;
+			default:               id = IDM_MACHINE_INPUT_PORT4_UNCONNECTED; break;
 		}
-		
-		param.menu[id].Check( IDM_MACHINE_INPUT_PORT4_UNCONNECTED, IDM_MACHINE_INPUT_PORT4_PAD4 );		
+
+		param.menu[id].Check( IDM_MACHINE_INPUT_PORT4_UNCONNECTED, IDM_MACHINE_INPUT_PORT4_PAD4 );
 	}
 
-	void Input::OnMenuExpPort(Window::Menu::PopupHandler::Param& param) 
+	void Input::OnMenuExpPort(Window::Menu::PopupHandler::Param& param)
 	{
 		uint id;
 
 		switch (emulator.GetController(4))
 		{
-			case Nes::Input::FAMILYTRAINER:	    id = IDM_MACHINE_INPUT_EXP_FAMILYTRAINER;       break;      
-			case Nes::Input::FAMILYKEYBOARD:	id = IDM_MACHINE_INPUT_EXP_FAMILYBASICKEYBOARD; break;
-			case Nes::Input::SUBORKEYBOARD:	    id = IDM_MACHINE_INPUT_EXP_SUBORKEYBOARD;       break;      
-			case Nes::Input::DOREMIKKOKEYBOARD: id = IDM_MACHINE_INPUT_EXP_DOREMIKKOKEYBOARD;   break;  
-			case Nes::Input::PADDLE:			id = IDM_MACHINE_INPUT_EXP_PADDLE;              break;             
-			case Nes::Input::OEKAKIDSTABLET:	id = IDM_MACHINE_INPUT_EXP_OEKAKIDSTABLET;      break;     
-			case Nes::Input::HYPERSHOT:		    id = IDM_MACHINE_INPUT_EXP_HYPERSHOT;           break;          
-			case Nes::Input::CRAZYCLIMBER:	    id = IDM_MACHINE_INPUT_EXP_CRAZYCLIMBER;        break;       
-			case Nes::Input::MAHJONG:			id = IDM_MACHINE_INPUT_EXP_MAHJONG;             break;            
-			case Nes::Input::EXCITINGBOXING:	id = IDM_MACHINE_INPUT_EXP_EXCITINGBOXING;      break;     
-			case Nes::Input::TOPRIDER:		    id = IDM_MACHINE_INPUT_EXP_TOPRIDER;            break;           
-			case Nes::Input::POKKUNMOGURAA:	    id = IDM_MACHINE_INPUT_EXP_POKKUNMOGURAA;       break;      
-			case Nes::Input::PARTYTAP:		    id = IDM_MACHINE_INPUT_EXP_PARTYTAP;            break;           
-			default:		                    id = IDM_MACHINE_INPUT_EXP_UNCONNECTED;         break;        
+			case Nes::Input::FAMILYTRAINER:     id = IDM_MACHINE_INPUT_EXP_FAMILYTRAINER;       break;
+			case Nes::Input::FAMILYKEYBOARD:    id = IDM_MACHINE_INPUT_EXP_FAMILYBASICKEYBOARD; break;
+			case Nes::Input::SUBORKEYBOARD:     id = IDM_MACHINE_INPUT_EXP_SUBORKEYBOARD;       break;
+			case Nes::Input::DOREMIKKOKEYBOARD: id = IDM_MACHINE_INPUT_EXP_DOREMIKKOKEYBOARD;   break;
+			case Nes::Input::HORITRACK:         id = IDM_MACHINE_INPUT_EXP_HORITRACK;           break;
+			case Nes::Input::PACHINKO:          id = IDM_MACHINE_INPUT_EXP_PACHINKO;            break;
+			case Nes::Input::PADDLE:            id = IDM_MACHINE_INPUT_EXP_PADDLE;              break;
+			case Nes::Input::OEKAKIDSTABLET:    id = IDM_MACHINE_INPUT_EXP_OEKAKIDSTABLET;      break;
+			case Nes::Input::HYPERSHOT:         id = IDM_MACHINE_INPUT_EXP_HYPERSHOT;           break;
+			case Nes::Input::CRAZYCLIMBER:      id = IDM_MACHINE_INPUT_EXP_CRAZYCLIMBER;        break;
+			case Nes::Input::MAHJONG:           id = IDM_MACHINE_INPUT_EXP_MAHJONG;             break;
+			case Nes::Input::EXCITINGBOXING:    id = IDM_MACHINE_INPUT_EXP_EXCITINGBOXING;      break;
+			case Nes::Input::TOPRIDER:          id = IDM_MACHINE_INPUT_EXP_TOPRIDER;            break;
+			case Nes::Input::POKKUNMOGURAA:     id = IDM_MACHINE_INPUT_EXP_POKKUNMOGURAA;       break;
+			case Nes::Input::PARTYTAP:          id = IDM_MACHINE_INPUT_EXP_PARTYTAP;            break;
+			default:                            id = IDM_MACHINE_INPUT_EXP_UNCONNECTED;         break;
 		}
-		
-		param.menu[id].Check( IDM_MACHINE_INPUT_EXP_UNCONNECTED, IDM_MACHINE_INPUT_EXP_PARTYTAP );		
+
+		param.menu[id].Check( IDM_MACHINE_INPUT_EXP_UNCONNECTED, IDM_MACHINE_INPUT_EXP_PARTYTAP );
 	}
 
 	void Input::OnMenuKeyboard(Window::Menu::PopupHandler::Param& param)
 	{
 		param.menu[IDM_MACHINE_EXT_KEYBOARD_PASTE].Enable
-		( 
+		(
 			Nes::Input(emulator).IsAnyControllerConnected( Nes::Input::FAMILYKEYBOARD, Nes::Input::SUBORKEYBOARD ) &&
-			emulator.Is(Nes::Machine::GAME,Nes::Machine::ON) && 
-			clipBoard.CanPaste() 
+			emulator.Is(Nes::Machine::GAME,Nes::Machine::ON) &&
+			clipBoard.CanPaste()
 		);
 	}
 
-    #ifdef NST_PRAGMA_OPTIMIZE
-    #pragma optimize("t", on)
-    #endif
+	#ifdef NST_PRAGMA_OPTIMIZE
+	#pragma optimize("t", on)
+	#endif
 
 	void Input::ForcePoll()
 	{
@@ -1160,7 +1186,7 @@ namespace Nestopia
 	{
 		if (!polled)
 		{
-			polled = TRUE;
+			polled = true;
 			ForcePoll();
 		}
 	}
@@ -1168,10 +1194,10 @@ namespace Nestopia
 	bool NST_CALLBACK Input::Callbacks::PollPad(UserData data,Controllers::Pad& pad,uint index)
 	{
 		NST_COMPILE_ASSERT
-		( 
-			Settings::TYPE_PAD1 == 0 && 
-			Settings::TYPE_PAD2 == 1 && 
-			Settings::TYPE_PAD3 == 2 && 
+		(
+			Settings::TYPE_PAD1 == 0 &&
+			Settings::TYPE_PAD2 == 1 &&
+			Settings::TYPE_PAD3 == 2 &&
 			Settings::TYPE_PAD4 == 3
 		);
 
@@ -1199,10 +1225,10 @@ namespace Nestopia
 		}
 
 		pad.buttons = buttons;
-		
-		buttons = 0;		
+
+		buttons = 0;
 		keys[ Settings::PAD_KEY_MIC ].GetState( buttons, Controllers::Pad::MIC );
-		
+
 		pad.mic = buttons;
 
 		return true;
@@ -1232,18 +1258,18 @@ namespace Nestopia
 				}
 				else if (zapper.fire) // gun off-screen unlock
 				{
-					zapper.x = ~1U; 
+					zapper.x = ~1U;
 				}
 			}
 			else // gun off-screen lock
 			{
-				zapper.fire = TRUE;
+				zapper.fire = true;
 				zapper.y = zapper.x = ~0U;
 			}
 		}
 		else
 		{
-			zapper.fire = FALSE;
+			zapper.fire = false;
 		}
 
 		return true;
@@ -1267,7 +1293,7 @@ namespace Nestopia
 		}
 		else
 		{
-			paddle.button = FALSE;
+			paddle.button = false;
 		}
 
 		return true;
@@ -1325,11 +1351,78 @@ namespace Nestopia
 		return PollCursor( data, tablet.x, tablet.y, tablet.button );
 	}
 
+	bool NST_CALLBACK Input::Callbacks::PollHoriTrack(UserData data,Controllers::HoriTrack& horiTrack)
+	{
+		static_cast<Input*>(data)->AutoPoll();
+
+		const Key* const NST_RESTRICT keys = static_cast<const Input*>(data)->dialog->GetSettings().GetKeys(Settings::HORITRACK_KEYS);
+
+		uint buttons = 0;
+
+		keys[ Settings::HORITRACK_KEY_A      ].GetState( buttons, Controllers::HoriTrack::BUTTON_A      );
+		keys[ Settings::HORITRACK_KEY_B      ].GetState( buttons, Controllers::HoriTrack::BUTTON_B      );
+		keys[ Settings::HORITRACK_KEY_SELECT ].GetState( buttons, Controllers::HoriTrack::BUTTON_SELECT );
+		keys[ Settings::HORITRACK_KEY_START  ].GetState( buttons, Controllers::HoriTrack::BUTTON_START  );
+		keys[ Settings::HORITRACK_KEY_UP     ].GetState( buttons, Controllers::HoriTrack::BUTTON_UP     );
+		keys[ Settings::HORITRACK_KEY_DOWN   ].GetState( buttons, Controllers::HoriTrack::BUTTON_DOWN   );
+		keys[ Settings::HORITRACK_KEY_LEFT   ].GetState( buttons, Controllers::HoriTrack::BUTTON_LEFT   );
+		keys[ Settings::HORITRACK_KEY_RIGHT  ].GetState( buttons, Controllers::HoriTrack::BUTTON_RIGHT  );
+
+		static ibool speed = false;
+
+		if (keys[Settings::HORITRACK_KEY_SPEED].GetToggle( speed ))
+		{
+			horiTrack.mode ^= Controllers::HoriTrack::MODE_LOWSPEED;
+			Io::Screen() << Resource::String((horiTrack.mode & Controllers::HoriTrack::MODE_LOWSPEED) ? IDS_SCREEN_HORITRACK_SPEED_LOW : IDS_SCREEN_HORITRACK_SPEED_HIGH);
+		}
+
+		static ibool orientation = false;
+
+		if (keys[Settings::HORITRACK_KEY_ORIENTATION].GetToggle( orientation ))
+		{
+			horiTrack.mode ^= Controllers::HoriTrack::MODE_REVERSED;
+			Io::Screen() << Resource::String((horiTrack.mode & Controllers::HoriTrack::MODE_REVERSED) ? IDS_SCREEN_HORITRACK_ORIENTATION_RIGHT : IDS_SCREEN_HORITRACK_ORIENTATION_LEFT);
+		}
+
+		horiTrack.buttons = buttons;
+
+		uint mouseButton;
+		const bool result = PollCursor( &static_cast<Input*>(data)->rects, horiTrack.x, horiTrack.y, mouseButton );
+
+		if (mouseButton)
+			horiTrack.buttons |= Controllers::HoriTrack::BUTTON_A;
+
+		return result;
+	}
+
+	bool NST_CALLBACK Input::Callbacks::PollPachinko(UserData data,Controllers::Pachinko& pachinko)
+	{
+		static_cast<Input*>(data)->AutoPoll();
+
+		const Key* const NST_RESTRICT keys = static_cast<const Input*>(data)->dialog->GetSettings().GetKeys(Settings::PACHINKO_KEYS);
+
+		uint buttons = 0;
+
+		keys[ Settings::PACHINKO_KEY_A      ].GetState( buttons, Controllers::Pachinko::BUTTON_A      );
+		keys[ Settings::PACHINKO_KEY_B      ].GetState( buttons, Controllers::Pachinko::BUTTON_B      );
+		keys[ Settings::PACHINKO_KEY_SELECT ].GetState( buttons, Controllers::Pachinko::BUTTON_SELECT );
+		keys[ Settings::PACHINKO_KEY_START  ].GetState( buttons, Controllers::Pachinko::BUTTON_START  );
+		keys[ Settings::PACHINKO_KEY_UP     ].GetState( buttons, Controllers::Pachinko::BUTTON_UP     );
+		keys[ Settings::PACHINKO_KEY_DOWN   ].GetState( buttons, Controllers::Pachinko::BUTTON_DOWN   );
+		keys[ Settings::PACHINKO_KEY_LEFT   ].GetState( buttons, Controllers::Pachinko::BUTTON_LEFT   );
+		keys[ Settings::PACHINKO_KEY_RIGHT  ].GetState( buttons, Controllers::Pachinko::BUTTON_RIGHT  );
+
+		pachinko.buttons = buttons;
+		pachinko.throttle = static_cast<Input*>(data)->cursor.GetWheel();
+
+		return true;
+	}
+
 	bool NST_CALLBACK Input::Callbacks::PollHyperShot(UserData data,Controllers::HyperShot& hyperShot)
 	{
 		static_cast<Input*>(data)->AutoPoll();
 
-		const Key* const NST_RESTRICT keys[2] = 
+		const Key* const NST_RESTRICT keys[2] =
 		{
 			static_cast<const Input*>(data)->dialog->GetSettings().GetKeys(Settings::PAD1_KEYS),
 			static_cast<const Input*>(data)->dialog->GetSettings().GetKeys(Settings::PAD2_KEYS)
@@ -1408,13 +1501,13 @@ namespace Nestopia
 
 		uint key = 0;
 
-        #define NST_2(a,b) (a | (u16(b) << 8))
+		#define NST_2(a,b) (a | (u16(b) << 8))
 
 		if (input.clipBoard.Query( buffer, ClipBoard::FAMILY ))
 		{
 			static const u16 asciiMap[Controllers::FamilyKeyboard::NUM_PARTS][Controllers::FamilyKeyboard::NUM_MODES][4] =
 			{
-				{		
+				{
 					{ 0, '\r', NST_2('[','['|0x80), NST_2(']',']'|0x80) },
 					{ 0xFF, 0, '\\', 0 }
 				},
@@ -1489,17 +1582,17 @@ namespace Nestopia
 			}
 		}
 		else
-		{								   
+		{
 			static const u16 dikMap[Controllers::FamilyKeyboard::NUM_PARTS][Controllers::FamilyKeyboard::NUM_MODES][4] =
 			{
-				{		
+				{
 					{ DIK_F8, NST_2(DIK_RETURN,DIK_NUMPADENTER), DIK_LBRACKET, DIK_RBRACKET },
 					{ NST_2(DIK_KANA,DIK_F9), DIK_RSHIFT, NST_2(DIK_YEN,DIK_BACKSLASH), DIK_END }
 				},
-				{												 
+				{
 					{ DIK_F7, NST_2(DIK_GRAVE,DIK_AT), NST_2(DIK_APOSTROPHE,DIK_COLON), DIK_SEMICOLON },
 					{ NST_2(DIK_UNDERLINE,DIK_TAB), NST_2(DIK_SLASH,DIK_NUMPADSLASH), NST_2(DIK_MINUS,DIK_NUMPADMINUS), NST_2(DIK_EQUALS,DIK_CIRCUMFLEX) }
-				},							  
+				},
 				{
 					{ DIK_F6, DIK_O, DIK_L, DIK_K },
 					{ DIK_PERIOD, NST_2(DIK_COMMA,DIK_NUMPADCOMMA), DIK_P, NST_2(DIK_0,DIK_NUMPAD0) }
@@ -1545,7 +1638,7 @@ namespace Nestopia
 			}
 		}
 
-        #undef NST_2
+		#undef NST_2
 
 		keyboard.parts[part] = key;
 
@@ -1561,50 +1654,50 @@ namespace Nestopia
 
 		uint key = 0;
 
-        #define NST_2(a,b) (a | (u16(b) << 8))
+		#define NST_2(a,b) (a | (u16(b) << 8))
 
 		if (input.clipBoard.Query( buffer, ClipBoard::SUBOR ))
 		{
 			static const u16 asciiMap[Controllers::SuborKeyboard::NUM_PARTS][Controllers::SuborKeyboard::NUM_MODES][4] =
 			{
 				{
-					{ NST_2('4','$'), 'g', 'f', 'c' }, 
+					{ NST_2('4','$'), 'g', 'f', 'c' },
 					{ 0, 'e', NST_2('5','%'), 'v' }
-				}, 
+				},
 				{
-					{ NST_2('2','@'), 'd', 's', 0 }, 
+					{ NST_2('2','@'), 'd', 's', 0 },
 					{ 0, 'w', NST_2('3','#'), 'x' }
-				}, 
+				},
 				{
-					{ 0, 0, 0, 0 }, 
+					{ 0, 0, 0, 0 },
 					{ 0, 0, 0, 0 }
-				}, 
+				},
 				{
-					{ NST_2('9','('), 'i', 'l', NST_2(',','<') }, 
+					{ NST_2('9','('), 'i', 'l', NST_2(',','<') },
 					{ 0, 'o', NST_2('0',')'), NST_2('.','>') }
-				}, 
+				},
 				{
-					{ NST_2(']','}'), '\r', 0, 0 }, 
+					{ NST_2(']','}'), '\r', 0, 0 },
 					{ 0, NST_2('[','{'), NST_2('\\','|'), 0 }
-				}, 
+				},
 				{
-					{ 'q', 0, 'z', 0 }, 
+					{ 'q', 0, 'z', 0 },
 					{ 0, 'a', NST_2('1','!'), 0 }
-				}, 
+				},
 				{
-					{ NST_2('7','&'), 'y', 'k', 'm' }, 
+					{ NST_2('7','&'), 'y', 'k', 'm' },
 					{ 0, 'u', NST_2('8','*'), 'j' }
-				}, 
+				},
 				{
-					{ NST_2('-','_'), NST_2(';',':'), NST_2('\'','\"'), NST_2('/','?') }, 
+					{ NST_2('-','_'), NST_2(';',':'), NST_2('\'','\"'), NST_2('/','?') },
 					{ 0, 'p', NST_2('=','+'), 0 }
-				}, 
+				},
 				{
-					{ 't', 'h', 'n', ' ' }, 
+					{ 't', 'h', 'n', ' ' },
 					{ 0, 'r', NST_2('6','^'), 'b' }
-				}, 
-				{	
-					{ 0, 0, 0, 0 }, 
+				},
+				{
+					{ 0, 0, 0, 0 },
 					{ 0, 0, 0, 0 }
 				}
 			};
@@ -1642,43 +1735,43 @@ namespace Nestopia
 			static const u16 dikMap[Controllers::SuborKeyboard::NUM_PARTS][Controllers::SuborKeyboard::NUM_MODES][4] =
 			{
 				{
-					{ NST_2(DIK_4,DIK_NUMPAD4), DIK_G, DIK_F, DIK_C }, 
-     	 			{ DIK_F2, DIK_E, NST_2(DIK_5,DIK_NUMPAD5), DIK_V }
-				}, 
+					{ NST_2(DIK_4,DIK_NUMPAD4), DIK_G, DIK_F, DIK_C },
+					{ DIK_F2, DIK_E, NST_2(DIK_5,DIK_NUMPAD5), DIK_V }
+				},
 				{
-					{ NST_2(DIK_2,DIK_NUMPAD2), DIK_D, DIK_S, DIK_END }, 
+					{ NST_2(DIK_2,DIK_NUMPAD2), DIK_D, DIK_S, DIK_END },
 					{ DIK_F1, DIK_W, NST_2(DIK_3,DIK_NUMPAD3), DIK_X }
-				}, 
+				},
 				{
-					{ DIK_INSERT, DIK_BACK, DIK_NEXT, DIK_RIGHT }, 
+					{ DIK_INSERT, DIK_BACK, DIK_NEXT, DIK_RIGHT },
 					{ DIK_F8, DIK_PRIOR, DIK_DELETE, DIK_HOME }
-				}, 
+				},
 				{
-					{ NST_2(DIK_9,DIK_NUMPAD9), DIK_I, DIK_L, NST_2(DIK_COMMA,DIK_NUMPADCOMMA) }, 
+					{ NST_2(DIK_9,DIK_NUMPAD9), DIK_I, DIK_L, NST_2(DIK_COMMA,DIK_NUMPADCOMMA) },
 					{ DIK_F5, DIK_O, NST_2(DIK_0,DIK_NUMPAD0), DIK_PERIOD }
-				}, 
+				},
 				{
-					{ DIK_RBRACKET, NST_2(DIK_RETURN,DIK_NUMPADENTER), DIK_UP, DIK_LEFT }, 
+					{ DIK_RBRACKET, NST_2(DIK_RETURN,DIK_NUMPADENTER), DIK_UP, DIK_LEFT },
 					{ DIK_F7, DIK_LBRACKET, NST_2(DIK_BACKSLASH,DIK_YEN), DIK_DOWN }
-				}, 
+				},
 				{
-					{ DIK_Q, DIK_CAPITAL, DIK_Z, DIK_TAB }, 
+					{ DIK_Q, DIK_CAPITAL, DIK_Z, DIK_TAB },
 					{ DIK_ESCAPE, DIK_A, NST_2(DIK_1,DIK_NUMPAD1), NST_2(DIK_LCONTROL,DIK_RCONTROL) }
-				}, 
+				},
 				{
-					{ NST_2(DIK_7,DIK_NUMPAD7), DIK_Y, DIK_K, DIK_M }, 
+					{ NST_2(DIK_7,DIK_NUMPAD7), DIK_Y, DIK_K, DIK_M },
 					{ DIK_F4, DIK_U, NST_2(DIK_8,DIK_NUMPAD8), DIK_J }
-				}, 
+				},
 				{
-					{ NST_2(DIK_MINUS,DIK_NUMPADMINUS), DIK_SEMICOLON, NST_2(DIK_APOSTROPHE,DIK_COLON), NST_2(DIK_SLASH,DIK_NUMPADSLASH) }, 
+					{ NST_2(DIK_MINUS,DIK_NUMPADMINUS), DIK_SEMICOLON, NST_2(DIK_APOSTROPHE,DIK_COLON), NST_2(DIK_SLASH,DIK_NUMPADSLASH) },
 					{ DIK_F6, DIK_P, NST_2(DIK_EQUALS,DIK_CIRCUMFLEX), NST_2(DIK_LSHIFT,DIK_RSHIFT) }
-				}, 
+				},
 				{
-					{ DIK_T, DIK_H, DIK_N, DIK_SPACE }, 
+					{ DIK_T, DIK_H, DIK_N, DIK_SPACE },
 					{ DIK_F3, DIK_R, NST_2(DIK_6,DIK_NUMPAD6), DIK_B }
-				}, 
-				{	
-					{ NST_2(DIK_GRAVE,DIK_AT), 0, 0, 0 }, 
+				},
+				{
+					{ NST_2(DIK_GRAVE,DIK_AT), 0, 0, 0 },
 					{ 0, 0, 0, 0 }
 				}
 			};
@@ -1695,7 +1788,7 @@ namespace Nestopia
 			}
 		}
 
-        #undef NST_2
+		#undef NST_2
 
 		keyboard.parts[part] = key;
 
@@ -1714,17 +1807,17 @@ namespace Nestopia
 
 		switch (part)
 		{
-     		case Note::PART_1:
-			
+			case Note::PART_1:
+
 				if (mode == Note::MODE_B)
 				{
 					if (keyboard[ DIK_Z ] & 0x80) keys |= Note::MODE_B_0;
 					if (keyboard[ DIK_S ] & 0x80) keys |= Note::MODE_B_1;
-				}			
-		     	break;
-		
+				}
+				break;
+
 			case Note::PART_2:
-			
+
 				if (mode == Note::MODE_A)
 				{
 					if (keyboard[ DIK_X ] & 0x80) keys |= Note::MODE_A_0;
@@ -1736,11 +1829,11 @@ namespace Nestopia
 				{
 					if (keyboard[ DIK_G ] & 0x80) keys |= Note::MODE_B_0;
 					if (keyboard[ DIK_B ] & 0x80) keys |= Note::MODE_B_1;
-				}			
-	     		break;
-		
+				}
+				break;
+
 			case Note::PART_3:
-			
+
 				if (mode == Note::MODE_A)
 				{
 					if (keyboard[ DIK_H ] & 0x80) keys |= Note::MODE_A_0;
@@ -1752,11 +1845,11 @@ namespace Nestopia
 				{
 					if (keyboard[ DIK_COMMA ] & 0x80) keys |= Note::MODE_B_0;
 					if (keyboard[ DIK_L     ] & 0x80) keys |= Note::MODE_B_1;
-				}			
-     			break;
-		
+				}
+				break;
+
 			case Note::PART_4:
-			
+
 				if (mode == Note::MODE_A)
 				{
 					if (keyboard[ DIK_PERIOD    ] & 0x80) keys |= Note::MODE_A_0;
@@ -1768,11 +1861,11 @@ namespace Nestopia
 				{
 					if (keyboard[ DIK_2 ] & 0x80) keys |= Note::MODE_B_0;
 					if (keyboard[ DIK_W ] & 0x80) keys |= Note::MODE_B_1;
-				}			
-       			break;
-		
+				}
+				break;
+
 			case Note::PART_5:
-			
+
 				if (mode == Note::MODE_A)
 				{
 					if (keyboard[ DIK_3 ] & 0x80) keys |= Note::MODE_A_0;
@@ -1784,11 +1877,11 @@ namespace Nestopia
 				{
 					if (keyboard[ DIK_T ] & 0x80) keys |= Note::MODE_B_0;
 					if (keyboard[ DIK_6 ] & 0x80) keys |= Note::MODE_B_1;
-				}			
-     			break;
-		
+				}
+				break;
+
 			case Note::PART_6:
-	
+
 				if (mode == Note::MODE_A)
 				{
 					if (keyboard[ DIK_Y ] & 0x80) keys |= Note::MODE_A_0;
@@ -1800,9 +1893,9 @@ namespace Nestopia
 				{
 					if (keyboard[ DIK_9 ] & 0x80) keys |= Note::MODE_B_0;
 					if (keyboard[ DIK_O ] & 0x80) keys |= Note::MODE_B_1;
-				}			
-     			break;
-		
+				}
+				break;
+
 			case Note::PART_7:
 
 				if (mode == Note::MODE_A)
@@ -1811,9 +1904,9 @@ namespace Nestopia
 					if (keyboard[ DIK_P     ] & 0x80) keys |= Note::MODE_A_1;
 					if (keyboard[ DIK_MINUS ] & 0x80) keys |= Note::MODE_A_2;
 					if (keyboard[ DIK_AT    ] & 0x80) keys |= Note::MODE_A_3;
-				}			
-     			break;
-		}	
+				}
+				break;
+		}
 
 		doremikko.keys = keys;
 
@@ -1831,7 +1924,7 @@ namespace Nestopia
 		switch (part)
 		{
 			case Controllers::Mahjong::PART_1:
-		
+
 				keys[ Settings::MAHJONG_KEY_I ].GetState( buttons, Controllers::Mahjong::PART_1_I );
 				keys[ Settings::MAHJONG_KEY_J ].GetState( buttons, Controllers::Mahjong::PART_1_J );
 				keys[ Settings::MAHJONG_KEY_K ].GetState( buttons, Controllers::Mahjong::PART_1_K );
@@ -1839,9 +1932,9 @@ namespace Nestopia
 				keys[ Settings::MAHJONG_KEY_M ].GetState( buttons, Controllers::Mahjong::PART_1_M );
 				keys[ Settings::MAHJONG_KEY_N ].GetState( buttons, Controllers::Mahjong::PART_1_N );
 				break;
-		
+
 			case Controllers::Mahjong::PART_2:
-		
+
 				keys[ Settings::MAHJONG_KEY_A ].GetState( buttons, Controllers::Mahjong::PART_2_A );
 				keys[ Settings::MAHJONG_KEY_B ].GetState( buttons, Controllers::Mahjong::PART_2_B );
 				keys[ Settings::MAHJONG_KEY_C ].GetState( buttons, Controllers::Mahjong::PART_2_C );
@@ -1851,9 +1944,9 @@ namespace Nestopia
 				keys[ Settings::MAHJONG_KEY_G ].GetState( buttons, Controllers::Mahjong::PART_2_G );
 				keys[ Settings::MAHJONG_KEY_H ].GetState( buttons, Controllers::Mahjong::PART_2_H );
 				break;
-		
+
 			case Controllers::Mahjong::PART_3:
-		
+
 				keys[ Settings::MAHJONG_KEY_SELECT ].GetState( buttons, Controllers::Mahjong::PART_3_SELECT );
 				keys[ Settings::MAHJONG_KEY_START  ].GetState( buttons, Controllers::Mahjong::PART_3_START  );
 				keys[ Settings::MAHJONG_KEY_KAN    ].GetState( buttons, Controllers::Mahjong::PART_3_KAN    );
@@ -1878,9 +1971,9 @@ namespace Nestopia
 		uint buttons = 0;
 
 		switch (part)
-		{		
+		{
 			case Controllers::ExcitingBoxing::PART_1:
-		
+
 				keys[ Settings::EXCITINGBOXING_KEY_RIGHT_HOOK ].GetState( buttons, Controllers::ExcitingBoxing::PART_1_RIGHT_HOOK );
 				keys[ Settings::EXCITINGBOXING_KEY_RIGHT_MOVE ].GetState( buttons, Controllers::ExcitingBoxing::PART_1_RIGHT_MOVE );
 				keys[ Settings::EXCITINGBOXING_KEY_LEFT_MOVE  ].GetState( buttons, Controllers::ExcitingBoxing::PART_1_LEFT_MOVE  );
@@ -1893,7 +1986,7 @@ namespace Nestopia
 				keys[ Settings::EXCITINGBOXING_KEY_RIGHT_JABB ].GetState( buttons, Controllers::ExcitingBoxing::PART_2_RIGHT_JABB );
 				keys[ Settings::EXCITINGBOXING_KEY_BODY       ].GetState( buttons, Controllers::ExcitingBoxing::PART_2_BODY       );
 				keys[ Settings::EXCITINGBOXING_KEY_LEFT_JABB  ].GetState( buttons, Controllers::ExcitingBoxing::PART_2_LEFT_JABB  );
-				break;																							  
+				break;
 		}
 
 		excitingBoxing.buttons = buttons;
@@ -1937,7 +2030,7 @@ namespace Nestopia
 			keys[ Settings::POKKUNMOGURAA_KEY_ROW_1_2 ].GetState( buttons, Controllers::PokkunMoguraa::BUTTON_2 );
 			keys[ Settings::POKKUNMOGURAA_KEY_ROW_1_3 ].GetState( buttons, Controllers::PokkunMoguraa::BUTTON_3 );
 			keys[ Settings::POKKUNMOGURAA_KEY_ROW_1_4 ].GetState( buttons, Controllers::PokkunMoguraa::BUTTON_4 );
-		}																														   
+		}
 
 		if (row & Controllers::PokkunMoguraa::ROW_2)
 		{
@@ -2013,7 +2106,7 @@ namespace Nestopia
 		return true;
 	}
 
-    #ifdef NST_PRAGMA_OPTIMIZE
-    #pragma optimize("", on)
-    #endif
+	#ifdef NST_PRAGMA_OPTIMIZE
+	#pragma optimize("", on)
+	#endif
 }

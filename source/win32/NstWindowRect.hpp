@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -38,7 +38,7 @@ namespace Nestopia
 			Rect(int v=0)
 			{
 				left = v;
-				top = v; 
+				top = v;
 				right = v;
 				bottom = v;
 			}
@@ -54,7 +54,7 @@ namespace Nestopia
 			Rect(int l,int t,int r,int b)
 			{
 				left = l;
-				top = t; 
+				top = t;
 				right = r;
 				bottom = b;
 			}
@@ -62,7 +62,7 @@ namespace Nestopia
 			Rect(const RECT& r)
 			{
 				left = r.left;
-				top = r.top; 
+				top = r.top;
 				right = r.right;
 				bottom = r.bottom;
 			}
@@ -70,7 +70,7 @@ namespace Nestopia
 			Rect& Set(int l,int t,int r,int b)
 			{
 				left = l;
-				top = t; 
+				top = t;
 				right = r;
 				bottom = b;
 				return *this;
@@ -107,10 +107,10 @@ namespace Nestopia
 			{
 				return
 				(
-					right == r.right && 
+					right == r.right &&
 					bottom == r.bottom &&
-					left == r.left && 
-					top == r.top 
+					left == r.left &&
+					top == r.top
 				);
 			}
 
@@ -118,10 +118,10 @@ namespace Nestopia
 			{
 				return
 				(
-		     		right != r.right || 
+					right != r.right ||
 					bottom != r.bottom ||
 					left != r.left ||
-					top != r.top 
+					top != r.top
 				);
 			}
 
@@ -296,9 +296,9 @@ namespace Nestopia
 				Point operator + (const Point& p) const
 				{
 					return Point
-					( 
-						(r.right - r.left) + p.x, 
-						(r.bottom - r.top) + p.y 
+					(
+						(r.right - r.left) + p.x,
+						(r.bottom - r.top) + p.y
 					);
 				}
 
@@ -312,9 +312,9 @@ namespace Nestopia
 				Point operator - (const Point& p) const
 				{
 					return Point
-					( 
-						(r.right - r.left) - p.x, 
-						(r.bottom - r.top) - p.y 
+					(
+						(r.right - r.left) - p.x,
+						(r.bottom - r.top) - p.y
 					);
 				}
 
@@ -342,9 +342,9 @@ namespace Nestopia
 				CenterProxy operator = (const Point& p)
 				{
 					const Point size
-					( 
-						r.right - r.left, 
-						r.bottom - r.top 
+					(
+						r.right - r.left,
+						r.bottom - r.top
 					);
 
 					r.left = p.x - (size.x / 2);
@@ -358,9 +358,9 @@ namespace Nestopia
 				operator Point () const
 				{
 					return Point
-					( 
-						r.left + ((r.right - r.left) / 2), 
-						r.top  + ((r.bottom - r.top) / 2) 
+					(
+						r.left + ((r.right - r.left) / 2),
+						r.top  + ((r.bottom - r.top) / 2)
 					);
 				}
 			};
@@ -395,9 +395,9 @@ namespace Nestopia
 			Point Center() const
 			{
 				return Point
-				( 
-					left + ((right - left) / 2), 
-					top  + ((bottom - top) / 2) 
+				(
+					left + ((right - left) / 2),
+					top  + ((bottom - top) / 2)
 				);
 			}
 
@@ -440,7 +440,7 @@ namespace Nestopia
 			{
 				return Rect
 				(
-				    left * r.left,
+					left * r.left,
 					top * r.top,
 					right * r.right,
 					bottom * r.bottom
@@ -451,7 +451,7 @@ namespace Nestopia
 			{
 				return Rect
 				(
-				    left * v,
+					left * v,
 					top * v,
 					right * v,
 					bottom * v
@@ -462,7 +462,7 @@ namespace Nestopia
 			{
 				return Rect
 				(
-				    left * p.x,
+					left * p.x,
 					top * p.y,
 					right * p.x,
 					bottom * p.y
@@ -473,7 +473,7 @@ namespace Nestopia
 			{
 				return Rect
 				(
-				    left / v,
+					left / v,
 					top / v,
 					right / v,
 					bottom / v
@@ -484,7 +484,7 @@ namespace Nestopia
 			{
 				return Rect
 				(
-				    left / p.x,
+					left / p.x,
 					top / p.y,
 					right / p.x,
 					bottom / p.y
@@ -511,7 +511,7 @@ namespace Nestopia
 		{
 			Client(HWND);
 		};
-				
+
 		struct Rect::Picture : Rect
 		{
 			enum Space

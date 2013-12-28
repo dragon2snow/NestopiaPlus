@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -38,12 +38,12 @@ namespace Nes
 {
 	namespace Core
 	{
-        #ifdef NST_PRAGMA_OPTIMIZE
-        #pragma optimize("s", on)
-        #endif
+		#ifdef NST_PRAGMA_OPTIMIZE
+		#pragma optimize("s", on)
+		#endif
 
 		Fds::Bios::Instance::Instance()
-		: loaded(false)	
+		: loaded(false)
 		{
 			std::memset( rom, 0x00, SIZE_8K );
 		}
@@ -53,7 +53,7 @@ namespace Nes
 		Result Fds::Bios::Set(StdStream input)
 		{
 			instance.loaded = false;
-	
+
 			if (input)
 			{
 				Stream::In stream( input );
@@ -62,46 +62,46 @@ namespace Nes
 				{
 					if (stream.Length() < SIZE_8K)
 						throw RESULT_ERR_CORRUPT_FILE;
-	
+
 					long offset = 0;
-	
+
 					if (stream.Read32() == 0x1A53454EUL)
 					{
 						// locate last bank
 						const ulong romOffset = (stream.Read8() * SIZE_16K);
-	
-						if (romOffset < SIZE_8K) 
+
+						if (romOffset < SIZE_8K)
 							throw RESULT_ERR_CORRUPT_FILE;
-	
+
 						stream.Seek( 1 );
-	
+
 						if (stream.Read8() & 0x4) // trainer (unlikely but just in case)
 							offset = 512;
-	
+
 						offset += (16 - (4+1+1+1)) + (romOffset - SIZE_8K);
 					}
 					else
 					{
 						offset = -4;
 					}
-	
+
 					stream.Seek( offset );
 					stream.Read( instance.rom, SIZE_8K );
-	
+
 					instance.loaded = true;
-	
+
 					switch (Checksum::Crc32::Compute( instance.rom, SIZE_8K ))
 					{
 						case 0x5E607DCFUL: // standard
 						case 0x4DF24A6CUL: // twinsys
-				
+
 							Log::Flush( "Fds: BIOS ROM ok" NST_LINEBREAK );
 							break;
-				
+
 						default:
-				
+
 							Log::Flush( "Fds: warning, unknown BIOS ROM!" NST_LINEBREAK );
-				     		break;
+							break;
 					}
 				}
 				catch (Result result)
@@ -121,10 +121,10 @@ namespace Nes
 			{
 				std::memset( instance.rom, 0x00, SIZE_8K );
 			}
-	
+
 			return RESULT_OK;
 		}
-	
+
 		Result Fds::Bios::Get(StdStream stream)
 		{
 			try
@@ -142,15 +142,15 @@ namespace Nes
 			{
 				return RESULT_ERR_OUT_OF_MEMORY;
 			}
-			catch (...) 
+			catch (...)
 			{
 				return RESULT_ERR_GENERIC;
 			}
-	
+
 			return RESULT_OK;
 		}
 
-		const u8 Fds::Sound::volumes[4] = 
+		const u8 Fds::Sound::volumes[4] =
 		{
 			30 * 8,
 			20 * 8,
@@ -158,7 +158,7 @@ namespace Nes
 			12 * 8
 		};
 
-		const u8 Fds::Sound::Modulator::steps[8] = 
+		const u8 Fds::Sound::Modulator::steps[8] =
 		{
 			0x00,
 			0x01,
@@ -178,7 +178,7 @@ namespace Nes
 			if (hook)
 				cpu.GetApu().HookChannel( this );
 		}
-	
+
 		Fds::Sound::~Sound()
 		{
 			if (hooked)
@@ -194,7 +194,7 @@ namespace Nes
 			switch (stream.Read32())
 			{
 				case 0x1A534446UL:
-				
+
 					sides.count = stream.Read8();
 
 					if (sides.count && stream.Length() >= HEADER_RESERVED + (sides.count * SIDE_SIZE))
@@ -208,11 +208,11 @@ namespace Nes
 						throw RESULT_ERR_CORRUPT_FILE;
 					}
 					break;
-			
+
 				case 0x494E2A01UL:
-				
+
 					stream.Seek( -4 );
-			
+
 					if (ulong count = stream.Length())
 					{
 						if (count > SIDE_SIZE * 0xFF)
@@ -226,7 +226,7 @@ namespace Nes
 						throw RESULT_ERR_CORRUPT_FILE;
 					}
 					break;
-			
+
 				default: throw RESULT_ERR_INVALID_FILE;
 			}
 
@@ -246,9 +246,9 @@ namespace Nes
 
 			sides.id =
 			(
-				( sides.data[0][0x0F] << 24 ) | 
-				( sides.data[0][0x10] << 16 ) | 
-				( sides.data[0][0x11] <<  8 ) | 
+				( sides.data[0][0x0F] << 24 ) |
+				( sides.data[0][0x10] << 16 ) |
+				( sides.data[0][0x11] <<  8 ) |
 				( sides.data[0][0x12] <<  0 )
 			);
 
@@ -262,12 +262,12 @@ namespace Nes
 		{
 			if (!count || checksum == Checksum::Md5::Compute( data, count * SIDE_SIZE ))
 				return;
-	
+
 			try
 			{
-				std::vector<u8> image( (header ? HEADER_SIZE : 0) + (count * SIDE_SIZE) );	
+				std::vector<u8> image( (header ? HEADER_SIZE : 0) + (count * SIDE_SIZE) );
 				u8* it = &image.front();
-	
+
 				if (header)
 				{
 					NST_COMPILE_ASSERT( (HEADER_SIZE - HEADER_RESERVED) == (4+1) );
@@ -277,13 +277,13 @@ namespace Nes
 					it[2] = 0x53;
 					it[3] = 0x1A;
 					it[4] = count;
-	
+
 					std::memcpy( it + 5, header, HEADER_RESERVED );
 					it += HEADER_SIZE;
 				}
-	
+
 				std::memcpy( it, data, count * SIDE_SIZE );
-	
+
 				Api::User::fileIoCallback( Api::User::FILE_SAVE_FDS, image );
 			}
 			catch (const std::bad_alloc&)
@@ -295,7 +295,7 @@ namespace Nes
 		: Clock::M2<Irq>(cpu) {}
 
 		Fds::Disks::Disks(StdStream stream)
-		: 
+		:
 		data     (NULL),
 		current  (EJECTED),
 		mounting (0),
@@ -310,11 +310,11 @@ namespace Nes
 		}
 
 		Fds::Fds(Context& context)
-		: 
+		:
 		Image (DISK),
 		disks (context.stream),
 		irq   (context.cpu),
-		cpu   (context.cpu), 
+		cpu   (context.cpu),
 		ppu   (context.ppu),
 		sound (context.cpu)
 		{
@@ -323,7 +323,7 @@ namespace Nes
 
 			ppu.GetChrMem().Source().Set( SIZE_8K, true, true );
 		}
-	
+
 		Fds::~Fds()
 		{
 			EjectDisk();
@@ -352,7 +352,7 @@ namespace Nes
 			port = 0;
 			led = ~0U;
 		}
-		
+
 		void Fds::Ram::Reset()
 		{
 			std::memset( mem, 0x00, sizeof(mem) );
@@ -387,8 +387,8 @@ namespace Nes
 				ppu.GetChrMem().SwapBank<SIZE_8K,0x0000U>( 0 );
 			}
 
-			cpu.ClearIRQ(); 
-	
+			cpu.ClearIRQ();
+
 			cpu.Map( 0x4020U ).Set( &irq, &Fds::IrqClock::Peek_Nop,  &Fds::IrqClock::Poke_4020 );
 			cpu.Map( 0x4021U ).Set( &irq, &Fds::IrqClock::Peek_Nop,  &Fds::IrqClock::Poke_4021 );
 			cpu.Map( 0x4022U ).Set( &irq, &Fds::IrqClock::Peek_Nop,  &Fds::IrqClock::Poke_4022 );
@@ -404,10 +404,10 @@ namespace Nes
 
 			cpu.Map( 0x6000U, 0xDFFFU ).Set( &ram, &Fds::Ram::Peek_Ram, &Fds::Ram::Poke_Ram );
 			cpu.Map( 0xE000U, 0xFFFFU ).Set( &Bios::instance, &Bios::Instance::Peek_Rom, &Bios::Instance::Poke_Nop );
-		
+
 			Log() << "Fds: reset" NST_LINEBREAK "Fds: " << NumDisks() << " disk(s) present" NST_LINEBREAK;
 		}
-	
+
 		void Fds::Sound::Envelope::Reset()
 		{
 			ctrl = 0;
@@ -418,37 +418,37 @@ namespace Nes
 		void Fds::Sound::ResetChannel()
 		{
 			Apu::Channel::Reset();
-	
+
 			wave.writing = false;
 			wave.length = 0;
 			wave.pos = 0;
 			wave.volume = 0;
-	
+
 			modulator.active = false;
 			modulator.writing = false;
 			modulator.pos = 0;
 			modulator.length = 0;
 			modulator.timer = 0;
 			modulator.sweep = 0;
-	
+
 			envelopes.counter = 1;
 			envelopes.length = 0;
-	
+
 			envelopes.units[VOLUME].Reset();
 			envelopes.units[SWEEP].Reset();
-	
+
 			std::memset( wave.table, 0, Wave::SIZE );
 			std::memset( modulator.table, 0x00, Modulator::SIZE );
-	
+
 			status = 0;
 			volume = volumes[0];
 			amp = 0;
 		}
-	
+
 		void Fds::Sound::Reset()
 		{
 			cpu.Map( 0x4040U, 0x407FU ).Set( this, &Fds::Sound::Peek_4040, &Fds::Sound::Poke_4040 );
-			
+
 			cpu.Map( 0x4080U ).Set( this, &Fds::Sound::Peek_Nop,  &Fds::Sound::Poke_4080 );
 			cpu.Map( 0x4082U ).Set( this, &Fds::Sound::Peek_Nop,  &Fds::Sound::Poke_4082 );
 			cpu.Map( 0x4083U ).Set( this, &Fds::Sound::Peek_Nop,  &Fds::Sound::Poke_4083 );
@@ -461,17 +461,17 @@ namespace Nes
 			cpu.Map( 0x408AU ).Set( this, &Fds::Sound::Peek_Nop,  &Fds::Sound::Poke_408A );
 			cpu.Map( 0x4090U ).Set( this, &Fds::Sound::Peek_4090, &Fds::Sound::Poke_Nop  );
 			cpu.Map( 0x4092U ).Set( this, &Fds::Sound::Peek_4092, &Fds::Sound::Poke_Nop  );
-	
+
 			ResetChannel();
 			dcBlocker.Reset();
-	
+
 			cpu.GetApu().SetExternalClock( 0 );
 		}
 
 		void Fds::Sound::UpdateContext(uint,const u8 (&volumes)[MAX_CHANNELS])
 		{
 			NST_VERIFY( fixed <= 0xFFFFU && rate <= 0x7FFFFUL );
-			
+
 			outputVolume = volumes[Apu::CHANNEL_FDS] * 69 / DEFAULT_VOLUME;
 			amp = 0;
 			dcBlocker.Reset();
@@ -503,10 +503,10 @@ namespace Nes
 
 					return RESULT_OK;
 				}
-			
+
 				return RESULT_NOP;
 			}
-			
+
 			return RESULT_ERR_INVALID_PARAM;
 		}
 
@@ -600,7 +600,7 @@ namespace Nes
 							disks.mounting = data[3];
 							disks.data = disks.mounting ? NULL : disks.sides.data[disks.current];
 						}
-						else 
+						else
 						{
 							EjectDisk();
 
@@ -639,7 +639,7 @@ namespace Nes
 			io.led = ~0U;
 			irq.unit.drive.notify = regs.ctrl1 & Regs::CTRL1_DISK_IRQ_ENABLED;
 		}
-	
+
 		void Fds::SaveState(State::Saver& state) const
 		{
 			{
@@ -710,7 +710,7 @@ namespace Nes
 				sound.SaveState( State::Saver::Subset(state,'S','N','D','\0').Ref() );
 			}
 		}
-	
+
 		void Fds::Sound::SaveState(State::Saver& state) const
 		{
 			state.Begin('M','A','S','\0');
@@ -741,7 +741,7 @@ namespace Nes
 				{
 					state.Begin('W','A','V','\0').Compress( wave.table ).End();
 				}
-			}			
+			}
 			state.End();
 
 			envelopes.units[VOLUME].SaveState( State::Saver::Subset(state,'V','O','L','\0').Ref() );
@@ -750,7 +750,7 @@ namespace Nes
 			state.Begin('M','O','D','\0');
 			{
 				{
-					const u8 data[4] = 
+					const u8 data[4] =
 					{
 						modulator.length & 0xFF,
 						(modulator.length >> 8) | (modulator.writing ? REG7_MOD_WRITE_MODE : 0),
@@ -781,7 +781,7 @@ namespace Nes
 			}
 			state.End();
 		}
-	
+
 		void Fds::Sound::LoadState(State::Loader& state)
 		{
 			while (const dword chunk = state.Begin())
@@ -799,13 +799,13 @@ namespace Nes
 								case NES_STATE_CHUNK_ID('R','E','G','\0'):
 								{
 									const State::Loader::Data<6> data( state );
-					
-									status = 
+
+									status =
 									(
 										((data[0] & REG3_OUTPUT_DISABLE) ? 0 : STATUS_OUTPUT_ENABLED) |
 										((data[0] & REG3_ENVELOPE_DISABLE) ? 0 : STATUS_ENVELOPES_ENABLED)
 									);
-					
+
 									volume = volumes[data[1] & REG9_VOLUME];
 									wave.writing = data[1] & REG9_WRITE_MODE;
 									wave.length = data[2] | ((data[3] & REG3_WAVELENGTH_HIGH) << 8);
@@ -813,14 +813,14 @@ namespace Nes
 									envelopes.counter = data[5] + 1;
 									break;
 								}
-					
+
 								case NES_STATE_CHUNK_ID('W','A','V','\0'):
-								
+
 									state.Uncompress( wave.table );
-					
+
 									for (uint i=0; i < Wave::SIZE; ++i)
 										wave.table[i] &= 0x3F;
-					
+
 									break;
 							}
 
@@ -891,7 +891,7 @@ namespace Nes
 			modulator.active = CanModulate();
 			active = CanOutput();
 		}
-	
+
 		void Fds::Sound::Envelope::SaveState(State::Saver& state) const
 		{
 			const u8 data[3] =
@@ -913,21 +913,21 @@ namespace Nes
 			gain = data[2] & CTRL_COUNT;
 		}
 
-        #ifdef NST_PRAGMA_OPTIMIZE
-        #pragma optimize("", on)
-        #endif
-	
-        NES_PEEK(Fds,Nop)
-		{ 
+		#ifdef NST_PRAGMA_OPTIMIZE
+		#pragma optimize("", on)
+		#endif
+
+		NES_PEEK(Fds,Nop)
+		{
 			return OPEN_BUS;
 		}
 
 		NES_PEEK(Fds::IrqClock,Nop)
-		{ 
+		{
 			return OPEN_BUS;
 		}
 
-		NES_POKE(Fds,Nop)  
+		NES_POKE(Fds,Nop)
 		{
 		}
 
@@ -935,18 +935,18 @@ namespace Nes
 		{
 		}
 
-		NES_POKE(Fds::IrqClock,Nop)  
+		NES_POKE(Fds::IrqClock,Nop)
 		{
 		}
 
-		NES_PEEK(Fds::Ram,Ram) 
-		{ 
-			return mem[address - 0x6000U]; 
+		NES_PEEK(Fds::Ram,Ram)
+		{
+			return mem[address - 0x6000U];
 		}
 
-		NES_POKE(Fds::Ram,Ram) 
-		{ 
-			mem[address - 0x6000U] = data; 
+		NES_POKE(Fds::Ram,Ram)
+		{
+			mem[address - 0x6000U] = data;
 		}
 
 		NES_PEEK(Fds::Bios::Instance,Rom)
@@ -954,18 +954,18 @@ namespace Nes
 			return rom[address - 0xE000U];
 		}
 
-		NES_POKE(Fds::IrqClock,4020) 
-		{ 
+		NES_POKE(Fds::IrqClock,4020)
+		{
 			Update();
 			unit.latch = (unit.latch & 0xFF00U) | (data << 0);
 		}
-	
-		NES_POKE(Fds::IrqClock,4021) 
-		{ 
+
+		NES_POKE(Fds::IrqClock,4021)
+		{
 			Update();
 			unit.latch = (unit.latch & 0x00FFU) | (data << 8);
 		}
-	
+
 		void Fds::IrqClock::Clear(const Irq::Flag flag)
 		{
 			Update();
@@ -975,20 +975,20 @@ namespace Nes
 				ClearIRQ();
 		}
 
-		NES_POKE(Fds::IrqClock,4022) 
-		{ 
+		NES_POKE(Fds::IrqClock,4022)
+		{
 			Clear( Irq::PENDING_CTRL );
 			unit.ctrl = data;
 			unit.count = unit.latch;
 		}
-	
-		NES_POKE(Fds,4023) 
+
+		NES_POKE(Fds,4023)
 		{
 			regs.ctrl0 = data;
 		}
-	
-		NES_POKE(Fds,4024) 
-		{ 
+
+		NES_POKE(Fds,4024)
+		{
 			NST_VERIFY( regs.ctrl0 & Regs::CTRL0_DISK_ENABLED );
 
 			if (!(regs.ctrl1 & Regs::CTRL1_READ_MODE) && io.pos < 65000U && disks.data)
@@ -1003,11 +1003,11 @@ namespace Nes
 				}
 			}
 		}
-	
-		NES_POKE(Fds,4025) 
+
+		NES_POKE(Fds,4025)
 		{
 			irq.Clear( Irq::PENDING_DRIVE );
-	
+
 			irq.unit.drive.notify = data & Regs::CTRL1_DISK_IRQ_ENABLED;
 
 			if (disks.data)
@@ -1030,7 +1030,7 @@ namespace Nes
 					irq.unit.drive.count = Irq::Drive::SLOW;
 				}
 			}
-	
+
 			regs.ctrl1 = data;
 			ppu.SetMirroring( (data & Regs::CTRL1_MIRRORING_HORIZONTAL) ? Ppu::NMT_HORIZONTAL : Ppu::NMT_VERTICAL );
 		}
@@ -1039,9 +1039,9 @@ namespace Nes
 		{
 			io.port = data;
 		}
-		
-		NES_PEEK(Fds::IrqClock,4030) 
-		{ 
+
+		NES_PEEK(Fds::IrqClock,4030)
+		{
 			Update();
 
 			const uint status = unit.status;
@@ -1052,7 +1052,7 @@ namespace Nes
 			return status;
 		}
 
-		NES_PEEK(Fds,4031) 
+		NES_PEEK(Fds,4031)
 		{
 			NST_VERIFY( regs.ctrl0 & Regs::CTRL0_DISK_ENABLED );
 
@@ -1061,24 +1061,24 @@ namespace Nes
 			if (disks.data)
 			{
 				regs.data = disks.data[io.pos];
-	
+
 				if (regs.ctrl1 & Regs::CTRL1_MOTOR)
 				{
 					io.pos = NST_MIN(io.pos+1,65000U);
 					irq.unit.drive.count = Irq::Drive::FAST;
 				}
 			}
-	
+
 			return regs.data;
 		}
-	
-		NES_PEEK(Fds,4032) 
-		{ 
+
+		NES_PEEK(Fds,4032)
+		{
 			if (disks.data == NULL)
 			{
 				return Regs::STATUS_LATCH|Regs::STATUS_DRIVE_NOT_READY|Regs::STATUS_DISK_EJECTED|Regs::STATUS_DISK_PROTECTED;
 			}
-			else if ((regs.ctrl1 & (Regs::CTRL1_MOTOR|Regs::CTRL1_TRANSFER_RESET)) != Regs::CTRL1_MOTOR)				
+			else if ((regs.ctrl1 & (Regs::CTRL1_MOTOR|Regs::CTRL1_TRANSFER_RESET)) != Regs::CTRL1_MOTOR)
 			{
 				return Regs::STATUS_LATCH|Regs::STATUS_DRIVE_NOT_READY;
 			}
@@ -1087,38 +1087,38 @@ namespace Nes
 				return Regs::STATUS_LATCH;
 			}
 		}
-	
-		NES_PEEK(Fds,4033) 
-		{ 
+
+		NES_PEEK(Fds,4033)
+		{
 			NST_VERIFY( io.port & Io::BATTERY_CHARGED );
 			return io.port & Io::BATTERY_CHARGED;
 		}
-	
-		NES_POKE(Fds::Sound,Nop) 
+
+		NES_POKE(Fds::Sound,Nop)
 		{
 		}
-	
-		NES_PEEK(Fds::Sound,Nop) 
-		{ 
-			return OPEN_BUS; 
-		}
-	
-		NES_PEEK(Fds::Sound,4040) 
+
+		NES_PEEK(Fds::Sound,Nop)
 		{
-			return wave.table[address & 0x3F] | OPEN_BUS; 
+			return OPEN_BUS;
 		}
-	
-		NES_POKE(Fds::Sound,4040) 
-		{ 
+
+		NES_PEEK(Fds::Sound,4040)
+		{
+			return wave.table[address & 0x3F] | OPEN_BUS;
+		}
+
+		NES_POKE(Fds::Sound,4040)
+		{
 			NST_VERIFY( wave.writing );
 
 			if (wave.writing)
 			{
-				cpu.GetApu().Update(); 
+				cpu.GetApu().Update();
 				wave.table[address & 0x3F] = data & 0x3F;
 			}
 		}
-	
+
 		void Fds::Sound::Envelope::Write(const uint data)
 		{
 			ctrl = data;
@@ -1128,120 +1128,120 @@ namespace Nes
 				gain = data & CTRL_COUNT;
 		}
 
-		NES_POKE(Fds::Sound,4080) 
-		{ 
-			cpu.GetApu().Update(); 
+		NES_POKE(Fds::Sound,4080)
+		{
+			cpu.GetApu().Update();
 			envelopes.units[VOLUME].Write( data );
-	
+
 			if ((data & Envelope::CTRL_DISABLE) && !wave.pos)
 				wave.volume = envelopes.units[VOLUME].Output();
 		}
-	
+
 		bool Fds::Sound::CanOutput() const
 		{
 			return (status & STATUS_OUTPUT_ENABLED) && wave.length && !wave.writing && outputVolume;
 		}
 
-		NES_POKE(Fds::Sound,4082) 
-		{ 
-			cpu.GetApu().Update(); 
-	
+		NES_POKE(Fds::Sound,4082)
+		{
+			cpu.GetApu().Update();
+
 			wave.length &= uint(REG3_WAVELENGTH_HIGH) << 8;
 			wave.length |= data;
-	
+
 			active = CanOutput();
 		}
-	
-		NES_POKE(Fds::Sound,4083) 
-		{ 
-			cpu.GetApu().Update(); 
-	
+
+		NES_POKE(Fds::Sound,4083)
+		{
+			cpu.GetApu().Update();
+
 			wave.length &= REG2_WAVELENGTH_LOW;
 			wave.length |= (data & REG3_WAVELENGTH_HIGH) << 8;
-	
+
 			status = ~data & (REG3_OUTPUT_DISABLE|REG3_ENVELOPE_DISABLE);
-	
-			if (data & REG3_OUTPUT_DISABLE) 
+
+			if (data & REG3_OUTPUT_DISABLE)
 			{
 				wave.pos = 0;
 				wave.volume = envelopes.units[VOLUME].Output();
 			}
-	
+
 			active = CanOutput();
 		}
-	
-		NES_POKE(Fds::Sound,4084) 
-		{ 
-			cpu.GetApu().Update(); 
-			envelopes.units[SWEEP].Write( data ); 
+
+		NES_POKE(Fds::Sound,4084)
+		{
+			cpu.GetApu().Update();
+			envelopes.units[SWEEP].Write( data );
 		}
-	
-		NES_POKE(Fds::Sound,4085) 
-		{ 
-			cpu.GetApu().Update(); 
-	
+
+		NES_POKE(Fds::Sound,4085)
+		{
+			cpu.GetApu().Update();
+
 			modulator.sweep = data & (REG5_MOD_SWEEP|REG5_MOD_NEGATE);
 			modulator.pos = 0x00;
 		}
-	
-		NES_POKE(Fds::Sound,4086) 
-		{ 
-			cpu.GetApu().Update(); 
-	
+
+		NES_POKE(Fds::Sound,4086)
+		{
+			cpu.GetApu().Update();
+
 			modulator.length &= uint(REG7_MOD_WAVELENGTH_HIGH) << 8;
 			modulator.length |= data;
-	
+
 			modulator.active = CanModulate();
 		}
-	
-		NES_POKE(Fds::Sound,4087) 
-		{ 
-			cpu.GetApu().Update(); 
-	
+
+		NES_POKE(Fds::Sound,4087)
+		{
+			cpu.GetApu().Update();
+
 			modulator.length &= REG6_MOD_WAVELENGTH_LOW;
 			modulator.length |= (data & REG7_MOD_WAVELENGTH_HIGH) << 8;
 			modulator.writing = data & REG7_MOD_WRITE_MODE;
-	
+
 			modulator.active = CanModulate();
 		}
-	
-		NES_POKE(Fds::Sound,4088) 
-		{ 
+
+		NES_POKE(Fds::Sound,4088)
+		{
 			NST_VERIFY( modulator.writing );
 
 			if (modulator.writing)
 			{
-				cpu.GetApu().Update(); 
+				cpu.GetApu().Update();
 				std::memmove( modulator.table, modulator.table + 1, Modulator::SIZE-1 );
 				modulator.table[Modulator::SIZE-1] = Modulator::steps[data & REG8_MOD_DATA];
 			}
 		}
-	
-		NES_POKE(Fds::Sound,4089) 
-		{ 
-			cpu.GetApu().Update(); 
-	
+
+		NES_POKE(Fds::Sound,4089)
+		{
+			cpu.GetApu().Update();
+
 			volume = volumes[data & REG9_VOLUME];
 			wave.writing = data & REG9_WRITE_MODE;
-	
+
 			active = CanOutput();
 		}
-	
-		NES_POKE(Fds::Sound,408A) 
-		{ 
-			cpu.GetApu().Update(); 
-	
+
+		NES_POKE(Fds::Sound,408A)
+		{
+			cpu.GetApu().Update();
+
 			envelopes.length = data;
 		}
-	
-		NES_PEEK(Fds::Sound,4090) 
-		{ 
-			return envelopes.units[VOLUME].Gain() | OPEN_BUS; 
+
+		NES_PEEK(Fds::Sound,4090)
+		{
+			return envelopes.units[VOLUME].Gain() | OPEN_BUS;
 		}
-	
-		NES_PEEK(Fds::Sound,4092) 
-		{ 
-			return envelopes.units[SWEEP].Gain() | OPEN_BUS; 
+
+		NES_PEEK(Fds::Sound,4092)
+		{
+			return envelopes.units[SWEEP].Gain() | OPEN_BUS;
 		}
 
 		NST_FORCE_INLINE void Fds::Sound::Envelope::Clock()
@@ -1260,17 +1260,17 @@ namespace Nes
 			if (!--envelopes.counter)
 			{
 				envelopes.counter = envelopes.length + 1;
-	
+
 				if (envelopes.length && (status & STATUS_ENVELOPES_ENABLED))
 				{
 					for (uint i=0; i < 2; ++i)
 						envelopes.units[i].Clock();
 				}
 			}
-	
+
 			return Envelopes::PULSE * fixed;
 		}
-	
+
 		NST_FORCE_INLINE dword Fds::Sound::GetModulation() const
 		{
 			if (modulator.active)
@@ -1310,11 +1310,11 @@ namespace Nes
 
 			return wave.length;
 		}
-	
+
 		Fds::Sound::Sample Fds::Sound::GetSample()
 		{
 			NST_ASSERT( bool(modulator.active) == CanModulate() && bool(active) == CanOutput() );
-	
+
 			if (modulator.active)
 			{
 				for (modulator.timer -= modulator.length * rate; modulator.timer & (1UL << Modulator::TIMER_CARRY); modulator.timer += fixed << 16)
@@ -1326,24 +1326,24 @@ namespace Nes
 			}
 
 			dword sample = 0;
-	
+
 			if (active)
 			{
 				static const dword clocks[2][2] =
-				{			
+				{
 					{ Cpu::MC_NTSC, Cpu::MC_DIV_NTSC * Cpu::CLK_NTSC_DIV * 0x10000UL },
 					{ Cpu::MC_PAL,  Cpu::MC_DIV_PAL  * Cpu::CLK_PAL_DIV  * 0x10000UL }
 				};
 
-				const dword pos = wave.pos;	
+				const dword pos = wave.pos;
 				wave.pos = (wave.pos + dword(qword(GetModulation()) * clocks[mode][0] / clocks[mode][1]) + Wave::SIZE * cpu.GetApu().GetSampleRate()) % (Wave::SIZE * cpu.GetApu().GetSampleRate());
-	
+
 				if (wave.pos < pos)
 					wave.volume = envelopes.units[VOLUME].Output();
-	
+
 				sample = wave.volume * volume * wave.table[(wave.pos / cpu.GetApu().GetSampleRate()) & 0x3F] / 30;
-			} 
-	
+			}
+
 			amp = (amp * 2 + sample) / 3;
 
 			return dcBlocker.Apply( amp * outputVolume / DEFAULT_VOLUME );

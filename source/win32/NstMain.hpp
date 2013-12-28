@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -51,7 +51,7 @@
    #ifdef NST_SHOW_INLINING
    #pragma warning( default : 4710 4711 )
    #endif
-  
+
   #endif
 
  #endif
@@ -84,23 +84,22 @@
 // <Windows.h>
 
 #define NOGDICAPMASKS
-#define NOICONS           
-#define NOKEYSTATES       
-#define NORASTEROPS       
-#define NOATOM            
-#define NOCOLOR           
-#define NOKERNEL          
-#define NOMEMMGR          
-#define NOMETAFILE        
-#define NOOPENFILE        
-#define NOSERVICE       
-#define NOSOUND           
-#define NOCOMM            
-#define NOKANJI           
-#define NOHELP            
-#define NOPROFILER        
-#define NODEFERWINDOWPOS  
-#define NOMCX             
+#define NOICONS
+#define NOKEYSTATES
+#define NORASTEROPS
+#define NOATOM
+#define NOKERNEL
+#define NOMEMMGR
+#define NOMETAFILE
+#define NOOPENFILE
+#define NOSERVICE
+#define NOSOUND
+#define NOCOMM
+#define NOKANJI
+#define NOHELP
+#define NOPROFILER
+#define NODEFERWINDOWPOS
+#define NOMCX
 
 #ifndef NOMINMAX
 #define NOMINMAX
@@ -108,36 +107,32 @@
 
 // <commctrl.h>
 
-#define NOUPDOWN     
-#define NOMENUHELP   
-#define NODRAGLIST   
-#define NOPROGRESS   
-#define NOHOTKEY     
-#define NOHEADER     
-#define NOTABCONTROL 
-#define NOANIMATE    
-#define NOBUTTON     
+#define NOUPDOWN
+#define NOMENUHELP
+#define NODRAGLIST
+#define NOPROGRESS
+#define NOHOTKEY
+#define NOHEADER
+#define NOTABCONTROL
+#define NOANIMATE
+#define NOBUTTON
 #define NOSTATIC
-#define NOEDIT      
-#define NOLISTBOX   
-#define NOCOMBOBOX  
+#define NOEDIT
+#define NOLISTBOX
+#define NOCOMBOBOX
 #define NOSCROLLBAR
 
 #define NST_FOURCC(a_,b_,c_,d_) uint((a_) | ((b_) << 8) | ((c_) << 16) | ((d_) << 24))
 
 namespace Nestopia
 {
-#ifndef TRUE
-	enum {FALSE,TRUE};
-#endif
-
 	typedef signed char schar;
 	typedef unsigned char uchar;
 	typedef unsigned short ushort;
 	typedef unsigned int uint;
 	typedef unsigned long ulong;
 	typedef TCHAR tchar;
-	
+
 	using Nes::u8;
 	using Nes::i8;
 	using Nes::u16;
@@ -155,7 +150,7 @@ namespace Nestopia
 	{
 		class Configuration;
 	}
-  
+
 	namespace Collection
 	{
 		template<typename> class Vector;
@@ -204,7 +199,7 @@ namespace Nestopia
 
 	enum
 	{
-		IDM_POS_FILE = 0,    
+		IDM_POS_FILE = 0,
 		IDM_POS_FILE_LOAD = 3,
 		IDM_POS_FILE_SAVE = 4,
 		IDM_POS_FILE_QUICKLOADSTATE = 6,
@@ -216,24 +211,22 @@ namespace Nestopia
 		IDM_POS_MACHINE = 1,
 		IDM_POS_MACHINE_RESET = 1,
 		IDM_POS_MACHINE_INPUT = 3,
-		IDM_POS_MACHINE_INPUT_PORT1 = 1,
-		IDM_POS_MACHINE_INPUT_PORT2 = 2,
-		IDM_POS_MACHINE_INPUT_PORT3 = 3,
-		IDM_POS_MACHINE_INPUT_PORT4 = 4,
-		IDM_POS_MACHINE_INPUT_EXP = 5,
+		IDM_POS_MACHINE_INPUT_PORT1 = 2,
+		IDM_POS_MACHINE_INPUT_PORT2 = 3,
+		IDM_POS_MACHINE_INPUT_PORT3 = 4,
+		IDM_POS_MACHINE_INPUT_PORT4 = 5,
+		IDM_POS_MACHINE_INPUT_EXP = 6,
 		IDM_POS_MACHINE_EXT = 4,
 		IDM_POS_MACHINE_EXT_FDS = 0,
 		IDM_POS_MACHINE_EXT_KEYBOARD = 1,
 		IDM_POS_MACHINE_EXT_TAPE = 2,
 		IDM_POS_MACHINE_EXT_FDS_INSERTDISK = 0,
-		IDM_POS_MACHINE_NSF = 5,
-		IDM_POS_MACHINE_NSF_OPTIONS = 5,
 		IDM_POS_MACHINE_SYSTEM = 6,
 		IDM_POS_MACHINE_OPTIONS = 7,
 		IDM_POS_VIEW = 3,
-		IDM_POS_VIEW_SCREENSIZE = 3,    
+		IDM_POS_VIEW_SCREENSIZE = 3,
 		IDM_POS_OPTIONS = 4,
-		IDM_POS_OPTIONS_AUTOSAVER = 7,
+		IDM_POS_OPTIONS_AUTOSAVER = 9,
 		IDM_POS_OPTIONS_AUTOSAVER_OPTIONS = 0,
 		IDM_POS_OPTIONS_AUTOSAVER_START
 	};

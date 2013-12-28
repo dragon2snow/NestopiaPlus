@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -52,7 +52,7 @@ Output Router<Output,Input,Key>::Hook::Invoke(Input input)
 {
 	for (uint i=0; i < items.Size(); ++i)
 		items[i]( input );
-				 
+
 	return main ? main( input ) : Output(0);
 }
 
@@ -65,8 +65,8 @@ void Router<Output,Input,Key>::Add(KeyParam key,const Callback& callback)
 	if (found)
 	{
 		NST_ASSERT
-		( 
-			hooks && 
+		(
+			hooks &&
 			item.template CodePtr<Hook>() == &Hook::Invoke &&
 			!item.template DataPtr<Hook>()->main
 		);
@@ -127,9 +127,9 @@ void Router<Output,Input,Key>::Remove(KeyParam key,const Callback& callback)
 		{
 			items.Array().Erase( item );
 		}
-		else if 
+		else if
 		(
-	     	item->value.template CodePtr<Hook>() == &Hook::Invoke &&
+			item->value.template CodePtr<Hook>() == &Hook::Invoke &&
 			item->value.template DataPtr<Hook>()->main == callback
 		)
 		{
@@ -151,13 +151,13 @@ void Router<Output,Input,Key>::Remove(const void* const data)
 		}
 		else
 		{
-			if 
+			if
 			(
-     			callback.template CodePtr<Hook>() == &Hook::Invoke &&
-     			callback.template DataPtr<Hook>()->main.VoidPtr() == data
-    		)
-     			callback.template DataPtr<Hook>()->main.Reset();
-		
+				callback.template CodePtr<Hook>() == &Hook::Invoke &&
+				callback.template DataPtr<Hook>()->main.VoidPtr() == data
+			)
+				callback.template DataPtr<Hook>()->main.Reset();
+
 			++i;
 		}
 	}
@@ -203,10 +203,10 @@ void Router<Output,Input,Key>::AddHook(KeyParam key,const typename Hook::Item& n
 
 		if (found)
 			hook->main = callback;
-			
+
 		callback.Set( hook, &Hook::Invoke );
 	}
-	
+
 	hook->items.PushBack( newItem );
 }
 
@@ -218,7 +218,7 @@ ibool Router<Output,Input,Key>::RemoveHook(Item* const mainItem,Hook* const hook
 	hook->items.Erase( hookItem );
 
 	if (hook->items.Size())
-		return FALSE;
+		return false;
 
 	if (hook->main)
 		mainItem->value = hook->main;
@@ -240,7 +240,7 @@ ibool Router<Output,Input,Key>::RemoveHook(Item* const mainItem,Hook* const hook
 	}
 
 	delete hook;
-	return TRUE;
+	return true;
 }
 
 template<typename Output,typename Input,typename Key>
@@ -289,7 +289,7 @@ void Router<Output,Input,Key>::RemoveHooks(const void* const data)
 template<typename Output,typename Input,typename Key> template<typename Match>
 const typename Router<Output,Input,Key>::Callback* Router<Output,Input,Key>::Find
 (
-    const Match& match,
+	const Match& match,
 	const Key** key
 )   const
 {

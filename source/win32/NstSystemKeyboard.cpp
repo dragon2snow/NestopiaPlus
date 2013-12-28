@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -43,7 +43,7 @@ namespace Nestopia
 		{
 			case '0':
 			case '1':
-			case '2':		   
+			case '2':
 			case '3':
 			case '4':
 			case '5':
@@ -80,17 +80,17 @@ namespace Nestopia
 
 					uint length;
 
-					do 
+					do
 					{
 						Reserve( Capacity() + 19 );
 						length = ::GetKeyNameText( key, Ptr(), Capacity() + 1 );
-					} 
+					}
 					while (length == Capacity());
 
 					if (length)
 					{
 						ShrinkTo( length );
-						
+
 						::CharUpperBuff( Ptr(), 1 );
 
 						if (length > 1)
@@ -128,7 +128,7 @@ namespace Nestopia
 
 		switch (indicator)
 		{
-     		case CAPS_LOCK:   key = VK_CAPITAL; break;
+			case CAPS_LOCK:   key = VK_CAPITAL; break;
 			case NUM_LOCK:    key = VK_NUMLOCK; break;
 			case SCROLL_LOCK: key = VK_SCROLL;  break;
 		}
@@ -146,7 +146,7 @@ namespace Nestopia
 
 			input[1].ki.dwFlags = KEYEVENTF_EXTENDEDKEY|KEYEVENTF_KEYUP;
 			::SendInput( 2, input, sizeof(INPUT) );
-			
+
 			return true;
 		}
 

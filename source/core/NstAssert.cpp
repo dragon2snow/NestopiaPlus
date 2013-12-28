@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -24,7 +24,7 @@
 
 #if !defined(NDEBUG) && defined(_WIN32)
 
-#include <cstdio>	
+#include <cstdio>
 #include <cstring>
 #include <cstdlib>
 #include <new>
@@ -57,14 +57,14 @@ namespace Nes
 			const int line
 		)
 		{
-			const ulong length = 
+			const ulong length =
 			(
-				(msg ?        std::strlen(msg)        :  0) + 
-				(expression ? std::strlen(expression) : 16) + 
-				(file ?       std::strlen(file)       : 16) + 
-				(function ?   std::strlen(function)   : 16) + 
+				(msg ?        std::strlen(msg)        :  0) +
+				(expression ? std::strlen(expression) : 16) +
+				(file ?       std::strlen(file)       : 16) +
+				(function ?   std::strlen(function)   : 16) +
 				64 + 1
-			);	
+			);
 
 			static const TCHAR title[] = _T("Nestopia Debug Assertion!");
 			static const char breakpoint[] = "break point";
@@ -72,17 +72,17 @@ namespace Nes
 
 			char* const buffer = new (std::nothrow) char [length];
 
-            #ifdef _UNICODE
+			#ifdef _UNICODE
 			wchar_t* const message = new (std::nothrow) wchar_t [length];
-            #else
+			#else
 			const char* const message = buffer;
-            #endif
+			#endif
 
 			if (!buffer || !message)
 			{
 				::MessageBox
 				(
-     				::GetActiveWindow(),
+					::GetActiveWindow(),
 					_T("Out of memory!"),
 					title,
 					MB_OK|MB_ICONERROR|MB_SETFOREGROUND|MB_TOPMOST
@@ -91,7 +91,7 @@ namespace Nes
 				::FatalExit( EXIT_FAILURE );
 			}
 
-			if (msg) 
+			if (msg)
 			{
 				std::sprintf
 				(
@@ -102,7 +102,7 @@ namespace Nes
 					file,
 					function ? function : unknown,
 					line
-				);  
+				);
 			}
 			else
 			{
@@ -114,34 +114,34 @@ namespace Nes
 					file,
 					function ? function : unknown,
 					line
-				); 
+				);
 			}
 
-            #ifdef _UNICODE
+			#ifdef _UNICODE
 			std::mbstowcs( message, buffer, std::strlen(buffer) + 1 );
 			delete [] buffer;
-            #endif
+			#endif
 
-			int result = ::MessageBox	         						 
-			(																 
-       			::GetActiveWindow(),														 
-				message,                                                       
-				title,										 
+			int result = ::MessageBox
+			(
+				::GetActiveWindow(),
+				message,
+				title,
 				MB_ABORTRETRYIGNORE|MB_SETFOREGROUND|MB_TOPMOST
-			);			
+			);
 
 			delete [] message;
 
 			if (result != IDABORT)
 				return result == IDIGNORE ? 1 : 2;
-			
+
 			result = ::MessageBox
-			(																 
-    			::GetActiveWindow(),														 
+			(
+				::GetActiveWindow(),
 				_T("break into the debugger?"),
-				title, 
+				title,
 				MB_YESNO|MB_SETFOREGROUND|MB_TOPMOST
-			);	
+			);
 
 			if (result == IDNO)
 				::FatalExit( EXIT_FAILURE );

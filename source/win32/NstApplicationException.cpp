@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -24,9 +24,9 @@
 
 #include <new>
 #include <cstring>
-#include "resource/resource.h"
+#include "language/resource.h"
+#include "NstApplicationInstance.hpp"
 #include "NstApplicationException.hpp"
-#include <Windows.h>
 
 namespace Nestopia
 {
@@ -35,20 +35,23 @@ namespace Nestopia
 	class Exception::Message
 	{
 		Message()
-		: id(0), allocated(FALSE), next(NULL) {}
+		: id(0), allocated(false), next(NULL) {}
 
 		Message(uint i,tstring const backup)
-		: id(i), string(backup), allocated(FALSE), next(NULL)
+		: id(i), string(backup), allocated(false), next(NULL)
 		{
-			tchar buffer[MAX_MSG_LENGTH];	
-
-			if (uint length = ::LoadString( ::GetModuleHandle(NULL), i, buffer, MAX_MSG_LENGTH-1 ))
+			if (Application::Instance::IsResourceLoaded())
 			{
-				if (tchar* const block = new (std::nothrow) tchar [++length])
+				tchar buffer[MAX_MSG_LENGTH];
+
+				if (uint length = ::LoadString( Application::Instance::GetResourceHandle(), i, buffer, MAX_MSG_LENGTH-1 ))
 				{
-					string = block;
-					allocated = TRUE;
-					std::memcpy( block, buffer, length * sizeof(tchar) );
+					if (tchar* const block = new (std::nothrow) tchar [++length])
+					{
+						string = block;
+						allocated = true;
+						std::memcpy( block, buffer, length * sizeof(tchar) );
+					}
 				}
 			}
 		}
@@ -100,8 +103,8 @@ namespace Nestopia
 		if (type == CRITICAL)
 		{
 			return Message::GetString
-			( 
-				msgId != NO_ID ? msgId : IDS_ERR_GENERIC, 
+			(
+				msgId != NO_ID ? msgId : IDS_ERR_GENERIC,
 				_T("Unhandled error! Call the Ghostbusters!")
 			);
 		}
@@ -126,30 +129,30 @@ namespace Nestopia
 
 		switch (type)
 		{
-			case WARNING:  
-	
+			case WARNING:
+
 				flags = MB_OK|MB_ICONWARNING|MB_SETFOREGROUND|MB_TOPMOST;
 				break;
-	
-			case UNSTABLE: 
+
+			case UNSTABLE:
 			{
 				flags = MB_YESNO|MB_ICONWARNING|MB_SETFOREGROUND|MB_TOPMOST;
-	
+
 				tstring const unstable = Message::GetString
-				( 
+				(
 					IDS_UNSTABLE, _T("application is unstable! Sure you want to continue?")
 				);
-	
+
 				::_tcscpy( buffer, message );
 				::_tcscat( buffer, _T("\r\n\r\n") );
 				::_tcscat( buffer, unstable );
-	
+
 				message = buffer;
 				break;
 			}
-	
+
 			default:
-	
+
 				flags = MB_OK|MB_ICONERROR|MB_SETFOREGROUND|MB_TOPMOST;
 				break;
 		}

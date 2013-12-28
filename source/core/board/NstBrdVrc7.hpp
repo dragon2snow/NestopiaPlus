@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -89,7 +89,7 @@ namespace Nes
 
 					static const dword PITCH_RATE;
 					static const dword AMP_RATE;
-  
+
 					class Tables
 					{
 					public:
@@ -113,7 +113,7 @@ namespace Nes
 						u16 pitch[PITCH_SIZE];
 						u8  amp[AMP_SIZE];
 						u8  lin2log[LIN2LOG_SIZE];
- 						u32 adr[2][16][16];
+						u32 adr[2][16][16];
 						u16 wave[2][WAVE_SIZE];
 						i16 db2lin[DB2LIN_SIZE];
 						u8  sl[2][8][2];
@@ -159,14 +159,14 @@ namespace Nes
 						void UpdateEgPhase      (const Tables&,uint);
 
 						enum Mode
-						{ 
-							EG_SETTLE, 
-							EG_ATTACK, 
-							EG_DECAY, 
-							EG_HOLD, 
-							EG_SUSTAIN, 
-							EG_RELEASE, 
-							EG_FINISH 
+						{
+							EG_SETTLE,
+							EG_ATTACK,
+							EG_DECAY,
+							EG_HOLD,
+							EG_SUSTAIN,
+							EG_RELEASE,
+							EG_FINISH
 						};
 
 						enum
@@ -175,7 +175,7 @@ namespace Nes
 							REG01_RATE          = b00010000,
 							REG01_HOLD          = b00100000,
 							REG01_USE_VIBRATO   = b01000000,
-							REG01_USE_AMP		= b10000000,
+							REG01_USE_AMP       = b10000000,
 							REG2_TOTAL_LEVEL    = b00111111,
 							REG3_FEEDBACK       = b00000111,
 							REG3_MODULATED_WAVE = b00001000,
@@ -190,7 +190,7 @@ namespace Nes
 							REG9_KEY            = b00010000,
 							REG9_SUSTAIN        = b00100000,
 							REGA_VOLUME         = b00001111,
-							REGA_INSTRUMENT	    = b11110000,
+							REGA_INSTRUMENT     = b11110000,
 							SUSTAIN_LEVEL_MAX   = 0x100
 						};
 
@@ -229,8 +229,8 @@ namespace Nes
 
 							Pg pg;
 							Eg eg;
-							uint tl;	  
-							uint sl;      
+							uint tl;
+							uint sl;
 							Sample output;
 						};
 
@@ -251,13 +251,13 @@ namespace Nes
 					dword samplePhase;
 					dword pitchPhase;
 					dword ampPhase;
-					
+
 					Sample prevSample;
 					Sample nextSample;
 
 					OpllChannel channels[NUM_OPLL_CHANNELS];
 					const Tables tables;
-					
+
 					const ibool hooked;
 				};
 
@@ -266,19 +266,19 @@ namespace Nes
 				Vrc7(Context&);
 
 			private:
-		
+
 				void SubReset(bool);
 				void BaseSave(State::Saver&) const;
 				void BaseLoad(State::Loader&,dword);
 				void VSync();
-		
+
 				NES_DECL_POKE( 9010 )
 				NES_DECL_POKE( 9030 )
 				NES_DECL_POKE( E000 )
 				NES_DECL_POKE( E008 )
 				NES_DECL_POKE( F000 )
 				NES_DECL_POKE( F008 )
-		
+
 				Vrc4::Irq irq;
 				Sound sound;
 			};

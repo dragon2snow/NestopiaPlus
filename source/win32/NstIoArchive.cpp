@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -24,7 +24,6 @@
 
 #ifdef _MSC_VER
 #pragma comment(lib,"zlibstat")
-#pragma comment(lib,"unrar")
 #endif
 
 #include "NstResourceString.hpp"
@@ -39,7 +38,7 @@
 #include <initguid.h>
 #include <ObjBase.h>
 #include <OleAuto.h>
-#include "../unrar/unrar.hpp"
+#include "../unrar/unrar.h"
 #include "../7zip/IArchive.h"
 
 DEFINE_GUID(CLSID_CFormat7z,0x23170F69,0x40C1,0x278A,0x10,0x00,0x00,0x01,0x10,0x07,0x00,0x00);
@@ -92,7 +91,7 @@ namespace Nestopia
 
 		Stream stream;
 		void* const handle;
-		
+
 		ibool Build(Items& files)
 		{
 			uint numFiles;
@@ -100,13 +99,13 @@ namespace Nestopia
 			{
 				unz_global_info_s info;
 
-				if 
+				if
 				(
-			     	::unzGetGlobalInfo( handle, &info ) != UNZ_OK ||
+					::unzGetGlobalInfo( handle, &info ) != UNZ_OK ||
 					info.number_entry == 0 ||
 					::unzGoToFirstFile( handle ) != UNZ_OK
 				)
-					return FALSE;
+					return false;
 
 				numFiles = info.number_entry;
 			}
@@ -121,13 +120,13 @@ namespace Nestopia
 			{
 				if (::unzGetCurrentFileInfo( handle, &info, path, _MAX_PATH, NULL, 0, NULL, 0 ) == UNZ_OK && info.uncompressed_size && *path)
 				{
-                #ifdef UNICODE
+				#ifdef UNICODE
 					wchar_t unipath[_MAX_PATH+1];
 					::MultiByteToWideChar( CP_OEMCP, 0, path, -1, unipath, _MAX_PATH );
 					files.push_back( Item(this,unipath,info.uncompressed_size,i) );
-                #else
+				#else
 					files.push_back( Item(this,Path(path).Ptr(),info.uncompressed_size,i) );
-                #endif
+				#endif
 				}
 			}
 			while (++i < numFiles && ::unzGoToNextFile( handle ) == UNZ_OK);
@@ -142,20 +141,20 @@ namespace Nestopia
 				for (uint i=0; i < index; ++i)
 				{
 					if (::unzGoToNextFile( handle ) != UNZ_OK)
-						return FALSE;
+						return false;
 				}
 
 				if (::unzOpenCurrentFile( handle ) == UNZ_OK)
 				{
 					const int extracted = ::unzReadCurrentFile( handle, buffer, size );
 					::unzCloseCurrentFile( handle );
-					
+
 					if (extracted == (int) size)
 						return size;
 				}
 			}
 
-			return FALSE;
+			return false;
 		}
 
 		static void* ZCALLBACK OnOpen(void* opaque,cstring,int mode)
@@ -223,7 +222,7 @@ namespace Nestopia
 
 				if (stream->pos <= stream->size)
 					return 0L;
-				
+
 				stream->pos = stream->size;
 			}
 
@@ -265,10 +264,10 @@ namespace Nestopia
 		static long ZCALLBACK OnFileSeek(voidpf,voidpf file,ulong distance,int origin)
 		{
 			NST_COMPILE_ASSERT
-			( 
-		     	ZLIB_FILEFUNC_SEEK_SET == Io::File::BEGIN && 
-				ZLIB_FILEFUNC_SEEK_CUR == Io::File::CURRENT && 
-				ZLIB_FILEFUNC_SEEK_END == Io::File::END 
+			(
+				ZLIB_FILEFUNC_SEEK_SET == Io::File::BEGIN &&
+				ZLIB_FILEFUNC_SEEK_CUR == Io::File::CURRENT &&
+				ZLIB_FILEFUNC_SEEK_END == Io::File::END
 			);
 
 			if (file && origin < 3)
@@ -350,19 +349,70 @@ namespace Nestopia
 
 	private:
 
-		Path path; 
+		class Dll : System::Dll
+		{
+			typedef HANDLE (PASCAL *OpenArchiveExFunc)(RAROpenArchiveDataEx*);
+			typedef int    (PASCAL *CloseArchiveFunc)(HANDLE);
+			typedef int    (PASCAL *ReadHeaderFunc)(HANDLE,RARHeaderData*);
+			typedef int    (PASCAL *ReadHeaderExFunc)(HANDLE,RARHeaderDataEx*);
+			typedef int    (PASCAL *ProcessFileFunc)(HANDLE,int,char*,char*);
+			typedef int    (PASCAL *ProcessFileWFunc)(HANDLE,int,wchar_t*,wchar_t*);
+			typedef void   (PASCAL *SetProcessDataProcFunc)(HANDLE,PROCESSDATAPROC);
+
+		public:
+
+			using System::Dll::IsLoaded;
+
+			OpenArchiveExFunc      OpenArchiveEx;
+			CloseArchiveFunc       CloseArchive;
+			ReadHeaderFunc         ReadHeader;
+			ReadHeaderExFunc       ReadHeaderEx;
+			ProcessFileFunc        ProcessFile;
+			ProcessFileWFunc       ProcessFileW;
+			SetProcessDataProcFunc SetProcessDataProc;
+
+			bool Load()
+			{
+				if (IsLoaded())
+				{
+					return true;
+				}
+				else if (System::Dll::Load(_T("unrar.dll")))
+				{
+					if
+					(
+						NULL != (OpenArchiveEx      = (OpenArchiveExFunc)      (*this)( "RAROpenArchiveEx"      )) &&
+						NULL != (CloseArchive       = (CloseArchiveFunc)       (*this)( "RARCloseArchive"       )) &&
+						NULL != (ReadHeader         = (ReadHeaderFunc)         (*this)( "RARReadHeader"         )) &&
+						NULL != (ReadHeaderEx       = (ReadHeaderExFunc)       (*this)( "RARReadHeaderEx"       )) &&
+						NULL != (ProcessFile        = (ProcessFileFunc)        (*this)( "RARProcessFile"        )) &&
+						NULL != (ProcessFileW       = (ProcessFileWFunc)       (*this)( "RARProcessFileW"       )) &&
+						NULL != (SetProcessDataProc = (SetProcessDataProcFunc) (*this)( "RARSetProcessDataProc" ))
+					)
+						return true;
+
+					Unload();
+				}
+
+				return false;
+			}
+		};
+
+		static Dll dll;
 
 		void* Open(uint);
 		uint  Extract(uint,void*,uint);
 		ibool Build(Items&);
+
+		Path path;
 	};
 
-	Archive::UnRar::UnRar(const Path& string)
-	: path(string) 
-	{
-		static System::Dll dll(_T("unrar.dll"));
+	Archive::UnRar::Dll Archive::UnRar::dll;
 
-		if (!dll.IsSupported())
+	Archive::UnRar::UnRar(const Path& string)
+	: path(string)
+	{
+		if (!dll.Load())
 			throw ERR_DLL;
 	}
 
@@ -370,17 +420,17 @@ namespace Nestopia
 	{
 		Object::Pod<RAROpenArchiveDataEx> data;
 
-    #ifdef UNICODE
+	#ifdef UNICODE
 		data.ArcName = NULL;
 		data.ArcNameW = path.Ptr();
-    #else
+	#else
 		data.ArcName = path.Ptr();
 		data.ArcNameW = NULL;
-    #endif
+	#endif
 		data.OpenMode = mode;
 		data.CmtBuf = NULL;
 
-		return ::RAROpenArchiveEx( &data );
+		return dll.OpenArchiveEx( &data );
 	}
 
 	ibool Archive::UnRar::Build(Items& files)
@@ -389,42 +439,42 @@ namespace Nestopia
 		{
 			try
 			{
-            #ifdef UNICODE
+			#ifdef UNICODE
 				Object::Pod<RARHeaderDataEx> header;
-            #else
+			#else
 				Object::Pod<RARHeaderData> header;
-            #endif
+			#endif
 
-            #ifdef UNICODE
-				for (uint i=0; ::RARReadHeaderEx( handle, &header ) == 0; ++i)
-            #else
-				for (uint i=0; ::RARReadHeader( handle, &header ) == 0; ++i)
-            #endif
+			#ifdef UNICODE
+				for (uint i=0; dll.ReadHeaderEx( handle, &header ) == 0; ++i)
+			#else
+				for (uint i=0; dll.ReadHeader( handle, &header ) == 0; ++i)
+			#endif
 				{
 					if (header.UnpSize && *header.FileName)
 					{
-                    #ifdef UNICODE
+					#ifdef UNICODE
 						files.push_back( Item(this,header.FileNameW,header.UnpSize,i) );
-                    #else
+					#else
 						files.push_back( Item(this,header.FileName,header.UnpSize,i) );
-                    #endif
+					#endif
 					}
 
-					if (::RARProcessFile( handle, RAR_SKIP, NULL, NULL ))
+					if (dll.ProcessFile( handle, RAR_SKIP, NULL, NULL ))
 						break;
 				}
 			}
 			catch (...)
-			{	
+			{
 				files.clear();
 			}
 
-			::RARCloseArchive( handle );
-			
+			dll.CloseArchive( handle );
+
 			return !files.empty();
 		}
 
-		return FALSE;
+		return false;
 	}
 
 	uint Archive::UnRar::Extract(uint index,void* buffer,uint size)
@@ -461,7 +511,7 @@ namespace Nestopia
 			stream.pos = 0;
 			stream.size = size;
 
-			::RARSetProcessDataProc( handle, Callback::OnRead );
+			dll.SetProcessDataProc( handle, Callback::OnRead );
 
 			try
 			{
@@ -470,26 +520,26 @@ namespace Nestopia
 
 				for (uint i=0; ; ++i)
 				{
-					if (::RARReadHeader( handle, &header ))
+					if (dll.ReadHeader( handle, &header ))
 						break;
 
 					if (i < index)
 					{
-						if (::RARProcessFile( handle, RAR_SKIP, NULL, NULL ))
+						if (dll.ProcessFile( handle, RAR_SKIP, NULL, NULL ))
 							break;
 					}
 					else
 					{
 						Path path( Application::Instance::GetTmpPath() );
 
-                    #ifdef UNICODE
-						if (::RARProcessFileW( handle, RAR_EXTRACT, NULL, path.Ptr() ) == 0)
-                    #else
+					#ifdef UNICODE
+						if (dll.ProcessFileW( handle, RAR_EXTRACT, NULL, path.Ptr() ) == 0)
+					#else
 						Path oem;
 						oem.Resize( path.Length() );
 
-						if (::CharToOemA( path.Ptr(), oem.Ptr() ) && ::RARProcessFile( handle, RAR_EXTRACT, NULL, oem.Ptr() ) == 0)
-                    #endif
+						if (::CharToOemA( path.Ptr(), oem.Ptr() ) && dll.ProcessFile( handle, RAR_EXTRACT, NULL, oem.Ptr() ) == 0)
+					#endif
 						{
 							if (stream.pos == stream.size)
 								extracted = size;
@@ -503,15 +553,15 @@ namespace Nestopia
 				}
 			}
 			catch (...)
-			{								
+			{
 			}
-			
-			::RARCloseArchive( handle );
+
+			dll.CloseArchive( handle );
 		}
-		
+
 		return extracted;
 	}
-  
+
 	class Archive::Un7zip : public Codec
 	{
 	public:
@@ -780,7 +830,7 @@ namespace Nestopia
 							return S_FALSE;
 						else
 							*ptr = &seqStream;
-						
+
 					case NArchive::NExtract::NAskMode::kSkip:
 						return S_OK;
 
@@ -818,11 +868,11 @@ namespace Nestopia
 
 	IInArchive* Archive::Un7zip::Create()
 	{
-		static System::Dll dll(_T("7zxa.dll"));
+		static System::Dll dll;
 
-		if (!dll.IsSupported())
+		if (!dll.IsLoaded() && !dll.Load(_T("7zxa.dll")))
 			throw ERR_DLL;
-		
+
 		typedef UINT32 (WINAPI *CreateObjectFunc)(const GUID*,const GUID*,void**);
 		CreateObjectFunc const CreateObject = (CreateObjectFunc) dll("CreateObject");
 
@@ -830,7 +880,7 @@ namespace Nestopia
 
 		if (CreateObject == NULL || FAILED(CreateObject( &CLSID_CFormat7z, &IID_IInArchive, &object )))
 			throw ERR_CREATE;
-			
+
 		return static_cast<IInArchive*>(object);
 	}
 
@@ -875,7 +925,7 @@ namespace Nestopia
 	void Archive::Un7zip::Close()
 	{
 		archive.Close();
-		delete stream;		
+		delete stream;
 		archive.Release();
 	}
 
@@ -896,7 +946,7 @@ namespace Nestopia
 
 				if (FAILED(archive.GetProperty( i, kpidSize, &prop )) || prop.vt != VT_UI8 || !prop.uhVal.LowPart || prop.uhVal.HighPart)
 					continue;
-				
+
 				const uint size = prop.uhVal.LowPart;
 
 				prop.vt = VT_EMPTY;
@@ -904,16 +954,16 @@ namespace Nestopia
 				if (FAILED(archive.GetProperty( i, kpidPath, &prop )) || prop.vt != VT_BSTR || prop.bstrVal == NULL)
 					continue;
 
-            #ifdef UNICODE
+			#ifdef UNICODE
 				path = prop.bstrVal;
-            #else
+			#else
 				{
 					char buffer[_MAX_PATH+2];
 
 					if (::WideCharToMultiByte( CP_OEMCP, 0, prop.bstrVal, -1, buffer, _MAX_PATH+1, NULL, NULL ))
 						path = buffer;
 				}
-            #endif
+			#endif
 
 				::VariantClear( reinterpret_cast<VARIANTARG*>(&prop) );
 
@@ -922,7 +972,7 @@ namespace Nestopia
 			}
 		}
 
-		return FALSE;
+		return false;
 	}
 
 	uint Archive::Un7zip::Extract(uint index,void* data,uint size)
@@ -931,7 +981,7 @@ namespace Nestopia
 
 		OutStream outStream( index, data, size );
 		const UInt32 indices[1] = {index};
-		
+
 		if (SUCCEEDED(archive.Extract( indices, NST_COUNT(indices), 0, &outStream )) && outStream.Size() == size)
 			return size;
 		else
@@ -983,12 +1033,12 @@ namespace Nestopia
 					switch (*static_cast<const u32*>(raw))
 					{
 						case FILE_ID_ZIP:
-					
+
 							codec = new UnZip( raw, size );
 							break;
-					
+
 						case FILE_ID_7Z:
-					
+
 							codec = new Un7zip( raw, size );
 							break;
 					}
@@ -996,8 +1046,8 @@ namespace Nestopia
 			}
 			else switch (file->Peek<u32>())
 			{
-		     	case FILE_ID_ZIP:
-				
+				case FILE_ID_ZIP:
+
 					codec = new UnZip( *file );
 					break;
 
@@ -1006,13 +1056,13 @@ namespace Nestopia
 					codec = new Un7zip( *file );
 					break;
 
-			    case FILE_ID_RAR:
-				
+				case FILE_ID_RAR:
+
 					codec = new UnRar( file->GetName() );
 					break;
 			}
 
-			return codec ? codec->Build( files ) : FALSE;
+			return codec ? codec->Build( files ) : false;
 		}
 		catch (...)
 		{
@@ -1020,7 +1070,7 @@ namespace Nestopia
 
 		Close();
 
-		return FALSE;
+		return false;
 	}
 
 	void Archive::Close()
@@ -1041,7 +1091,7 @@ namespace Nestopia
 		const uint s,
 		const uint i
 	)
-	: 
+	:
 	codec     ( c ),
 	name      ( n ),
 	size      ( s ),
@@ -1084,7 +1134,7 @@ namespace Nestopia
 
 		ibool OnInitDialog (Window::Param&);
 		ibool OnCmdOk      (Window::Param&);
-		ibool OnCmdCancel  (Window::Param&);
+		ibool OnCmdAbort   (Window::Param&);
 
 		Window::Dialog dialog;
 		const Items& files;
@@ -1110,18 +1160,18 @@ namespace Nestopia
 	const Window::MsgHandler::Entry<Archive::Gui> Archive::Gui::Handlers::messages[] =
 	{
 		{ WM_INITDIALOG, &Gui::OnInitDialog },
-		{ WM_CLOSE,      &Gui::OnCmdCancel  }
+		{ WM_CLOSE,      &Gui::OnCmdAbort   }
 	};
 
 	const Window::MsgHandler::Entry<Archive::Gui> Archive::Gui::Handlers::commands[] =
 	{
-		{ IDC_COMPRESSED_FILE_OK,     &Gui::OnCmdOk     },
-		{ IDC_COMPRESSED_FILE_CANCEL, &Gui::OnCmdCancel }
+		{ IDC_COMPRESSED_FILE_OK,    &Gui::OnCmdOk    },
+		{ IDC_COMPRESSED_FILE_ABORT, &Gui::OnCmdAbort }
 	};
 
 	Archive::Gui::Gui(const Items& f,const GenericString* e,const uint c)
-	: 
-	dialog ( IDD_COMPRESSED_FILE, this, Handlers::messages, Handlers::commands ), 
+	:
+	dialog ( IDD_COMPRESSED_FILE, this, Handlers::messages, Handlers::commands ),
 	files  ( f ),
 	filter ( e, c )
 	{
@@ -1170,7 +1220,7 @@ namespace Nestopia
 
 		listBox[0].Select();
 
-		return TRUE;
+		return true;
 	}
 
 	ibool Archive::Gui::OnCmdOk(Window::Param& param)
@@ -1178,15 +1228,15 @@ namespace Nestopia
 		if (param.Button().IsClicked())
 			dialog.Close( dialog.ListBox(IDC_COMPRESSED_FILE_LIST).Selection().Data() );
 
-		return TRUE;
+		return true;
 	}
 
-	ibool Archive::Gui::OnCmdCancel(Window::Param& param)
+	ibool Archive::Gui::OnCmdAbort(Window::Param& param)
 	{
 		if (param.Button().IsClicked())
 			dialog.Close( NO_SELECTION );
 
-		return TRUE;
+		return true;
 	}
 
 	uint Archive::UserSelect() const
@@ -1222,6 +1272,6 @@ namespace Nestopia
 		else
 		{
 			return UserSelect();
-		}		
+		}
 	}
 }

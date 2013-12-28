@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -87,7 +87,7 @@ namespace Nes
 					if (function)
 						function( userdata, output );
 				}
-			};			
+			};
 		}
 	}
 
@@ -96,10 +96,10 @@ namespace Nes
 		class Video : public Base
 		{
 		public:
-	
+
 			Video(Emulator& e)
 			: Base(e) {}
-	
+
 			typedef Core::Video::Output Output;
 
 			enum
@@ -145,7 +145,7 @@ namespace Nes
 
 			void EnableUnlimSprites(bool);
 			bool AreUnlimSpritesEnabled() const;
-	
+
 			int GetBrightness() const;
 			int GetSaturation() const;
 			int GetContrast() const;
@@ -155,7 +155,7 @@ namespace Nes
 			int GetColorArtifacts() const;
 			int GetColorFringing() const;
 			int GetHue() const;
-	
+
 			Result SetBrightness(int);
 			Result SetSaturation(int);
 			Result SetContrast(int);
@@ -165,7 +165,7 @@ namespace Nes
 			Result SetColorArtifacts(int);
 			Result SetColorFringing(int);
 			Result SetHue(int);
-			
+
 			void EnableFieldMerging(bool);
 			bool IsFieldMergingEnabled() const;
 
@@ -206,20 +206,23 @@ namespace Nes
 			Result SetDecoder(const Decoder&);
 			const Decoder& GetDecoder() const;
 
+			class Palette;
+			friend class Palette;
+
 			class Palette
 			{
 				friend class Video;
 
 				struct UpdateCaller;
 
-				Core::Video::Renderer& renderer;
+				Video& video;
 
-				Palette(Core::Video::Renderer& r)
-				: renderer(r) {}
+				Palette(Video& v)
+				: video(v) {}
 
 			public:
 
-				enum 
+				enum
 				{
 					NUM_ENTRIES = 64
 				};
@@ -233,19 +236,33 @@ namespace Nes
 
 				typedef const u8 (*Colors)[3];
 
-				Result SetMode(Mode);
-				Mode   GetMode() const;
-				Mode   GetDefaultMode() const;
-				Result SetCustom(Colors);
-				void   ResetCustom();
-				Colors GetColors() const;
+				inline Mode   GetMode() const;
+				inline Mode   GetDefaultMode() const;
+				inline Result SetCustom(Colors);
+				inline void   ResetCustom();
+				inline Colors GetColors() const;
+				inline Result SetMode(Mode);
 
 				typedef void (NST_CALLBACK *UpdateCallback) (UserData,Colors);
 
 				static UpdateCaller updateCallback;
 			};
 
-			Palette GetPalette() const;
+		private:
+
+			Palette::Mode GetPaletteMode() const;
+			Palette::Mode GetDefaultPaletteMode() const;
+			Result SetCustomPalette(Palette::Colors);
+			void ResetCustomPalette();
+			Palette::Colors GetPaletteColors() const;
+			Result SetPaletteMode(Palette::Mode);
+
+		public:
+
+			Palette GetPalette()
+			{
+				return *this;
+			}
 
 			struct RenderState
 			{
@@ -255,11 +272,11 @@ namespace Nes
 					{
 						ulong r,g,b;
 					};
-	
+
 					Mask mask;
 					uchar count;
 				};
-	
+
 				Bits bits;
 				uchar paletteOffset;
 				ushort width;
@@ -276,49 +293,79 @@ namespace Nes
 				enum Filter
 				{
 					FILTER_NONE
-                #ifndef NST_NO_NTSCVIDEO
+				#ifndef NST_NO_NTSCVIDEO
 					,FILTER_NTSC
-                #endif
-                #ifndef NST_NO_2XSAI
+				#endif
+				#ifndef NST_NO_2XSAI
 					,FILTER_2XSAI
 					,FILTER_SUPER_2XSAI
 					,FILTER_SUPER_EAGLE
-                #endif
-                #ifndef NST_NO_SCALE2X
+				#endif
+				#ifndef NST_NO_SCALE2X
 					,FILTER_SCALE2X
 					,FILTER_SCALE3X
-                #endif
-                #ifndef NST_NO_HQ2X
+				#endif
+				#ifndef NST_NO_HQ2X
 					,FILTER_HQ2X
 					,FILTER_HQ3X
-                #endif
+				#endif
 				};
 
 				enum Scale
 				{
 					SCALE_NONE_SCANLINES = 2,
-                #ifndef NST_NO_2XSAI
+				#ifndef NST_NO_2XSAI
 					SCALE_2XSAI = 2,
 					SCALE_SUPER_2XSAI = 2,
 					SCALE_SUPER_EAGLE = 2,
-                #endif
-                #ifndef NST_NO_SCALE2X
+				#endif
+				#ifndef NST_NO_SCALE2X
 					SCALE_SCALE2X = 2,
 					SCALE_SCALE3X = 3,
-                #endif
-                #ifndef NST_NO_HQ2X
+				#endif
+				#ifndef NST_NO_HQ2X
 					SCALE_HQ2X = 2,
 					SCALE_HQ3X = 3,
-                #endif
+				#endif
 					SCALE_NONE = 1
 				};
 
 				Filter filter;
 			};
-	
+
 			Result SetRenderState(const RenderState&);
 			Result GetRenderState(RenderState&) const;
 		};
+
+		inline Video::Palette::Mode Video::Palette::GetMode() const
+		{
+			return video.GetPaletteMode();
+		}
+
+		inline Video::Palette::Mode Video::Palette::GetDefaultMode() const
+		{
+			return video.GetDefaultPaletteMode();
+		}
+
+		inline Result Video::Palette::SetCustom(Colors colors)
+		{
+			return video.SetCustomPalette( colors );
+		}
+
+		inline void Video::Palette::ResetCustom()
+		{
+			video.ResetCustomPalette();
+		}
+
+		inline Video::Palette::Colors Video::Palette::GetColors() const
+		{
+			return video.GetPaletteColors();
+		}
+
+		inline Result Video::Palette::SetMode(Mode mode)
+		{
+			return video.SetPaletteMode( mode );
+		}
 
 		struct Video::Palette::UpdateCaller : Core::UserCallback<Video::Palette::UpdateCallback>
 		{

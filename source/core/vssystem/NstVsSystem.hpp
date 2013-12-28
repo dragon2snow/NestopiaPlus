@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -46,9 +46,19 @@ namespace Nes
 			static VsSystem* Create(Cpu&,Ppu&,dword);
 			static void Destroy(VsSystem*&);
 
+			enum PpuType
+			{
+				RP2C03,
+				RP2C04_0001,
+				RP2C04_0002,
+				RP2C04_0003,
+				RP2C04_0004
+			};
+
 			void Reset(bool);
 			void SaveState(State::Saver&) const;
 			void LoadState(State::Loader&);
+			PpuType EnableYuvConversion(bool);
 
 		protected:
 
@@ -74,7 +84,7 @@ namespace Nes
 
 				inline uint Reg(uint) const;
 				inline void Reset();
-				
+
 				void BeginFrame(Input::Controllers*);
 
 			private:
@@ -94,7 +104,7 @@ namespace Nes
 
 			enum
 			{
-				DIPSWITCH_4016_MASK	 = b00000011,
+				DIPSWITCH_4016_MASK  = b00000011,
 				DIPSWITCH_4016_SHIFT = 3,
 				DIPSWITCH_4017_MASK  = b11111100,
 				DIPSWITCH_4017_SHIFT = 0,
@@ -109,10 +119,6 @@ namespace Nes
 			NES_DECL_POKE( Nop  )
 			NES_DECL_PEEK( 2002 )
 			NES_DECL_POKE( 2002 )
-			NES_DECL_PEEK( 2006 )
-			NES_DECL_POKE( 2006 )
-			NES_DECL_PEEK( 2007 )
-			NES_DECL_POKE( 2007 )
 			NES_DECL_PEEK( 4016 )
 			NES_DECL_POKE( 4016 )
 			NES_DECL_PEEK( 4017 )
@@ -161,16 +167,16 @@ namespace Nes
 				void End() const;
 			};
 
-			const u8* const securityColor;
 			InputMapper* const inputMapper;
 
-			Io::Port p2007;
 			Io::Port p4016;
 			Io::Port p4017;
 
 			uint coin;
 			VsDipSwitches dips;
 			const uint securityPpu;
+			const PpuType ppuType;
+			ibool yuvConvert;
 			Io::Port p2002;
 
 			static const u8 colorMaps[4][64];

@@ -1,21 +1,21 @@
-			////////////////////////////////////////////////////////////////////////////////////////
+             ////////////////////////////////////////////////////////////////////////////////////////
 //
 // Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -31,21 +31,21 @@ namespace Nestopia
 	using namespace Managers;
 
 	TapeRecorder::TapeRecorder(Emulator& e,const Configuration& cfg,Window::Menu& m,const Managers::Paths& paths)
-	: 
+	:
 	dialog   (new Window::TapeRecorder(cfg,paths)),
-	emulator (e), 
+	emulator (e),
 	menu     (m)
 	{
 		static const Window::Menu::CmdHandler::Entry<TapeRecorder> commands[] =
 		{
-			{ IDM_MACHINE_EXT_TAPE_FILE,   &TapeRecorder::OnCmdFile	  },
+			{ IDM_MACHINE_EXT_TAPE_FILE,   &TapeRecorder::OnCmdFile   },
 			{ IDM_MACHINE_EXT_TAPE_RECORD, &TapeRecorder::OnCmdRecord },
-			{ IDM_MACHINE_EXT_TAPE_PLAY,   &TapeRecorder::OnCmdPlay	  },
-			{ IDM_MACHINE_EXT_TAPE_STOP,   &TapeRecorder::OnCmdStop	  }
+			{ IDM_MACHINE_EXT_TAPE_PLAY,   &TapeRecorder::OnCmdPlay   },
+			{ IDM_MACHINE_EXT_TAPE_STOP,   &TapeRecorder::OnCmdStop   }
 		};
 
 		static const Window::Menu::PopupHandler::Entry<TapeRecorder> popups[] =
-		{	  
+		{
 			{ Window::Menu::PopupHandler::Pos<IDM_POS_MACHINE,IDM_POS_MACHINE_EXT,IDM_POS_MACHINE_EXT_TAPE>::ID, &TapeRecorder::OnMenuTape }
 		};
 
@@ -83,7 +83,7 @@ namespace Nestopia
 	}
 
 	void TapeRecorder::OnCmdRecord(uint)
-	{		
+	{
 		Nes::TapeRecorder(emulator).Record();
 		Application::Instance::Post( Application::Instance::WM_NST_COMMAND_RESUME );
 	}

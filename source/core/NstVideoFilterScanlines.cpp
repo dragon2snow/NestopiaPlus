@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -33,12 +33,12 @@ namespace Nes
 	{
 		namespace Video
 		{
-            #ifdef NST_PRAGMA_OPTIMIZE
-            #pragma optimize("s", on)
-            #endif
+			#ifdef NST_PRAGMA_OPTIMIZE
+			#pragma optimize("s", on)
+			#endif
 
 			Renderer::FilterScanlines::FilterScanlines(const RenderState& state)
-			: 
+			:
 			Filter    ( state ),
 			scale     ( state.width != WIDTH ),
 			scanlines ( (100-state.scanlines) * (state.bits.count == 32 ? 256 : 32) / 100 ),
@@ -59,11 +59,11 @@ namespace Nes
 				);
 			}
 
-            #ifdef NST_PRAGMA_OPTIMIZE
-            #pragma optimize("", on)
-            #endif
+			#ifdef NST_PRAGMA_OPTIMIZE
+			#pragma optimize("", on)
+			#endif
 
-			template<typename T> 
+			template<typename T>
 			NST_FORCE_INLINE void Renderer::FilterScanlines::Blit2x(const Input& input,const Output& output) const
 			{
 				const u16* NST_RESTRICT src = input.screen;
@@ -94,7 +94,7 @@ namespace Nes
 				}
 			}
 
-			template<typename T> 
+			template<typename T>
 			NST_FORCE_INLINE void Renderer::FilterScanlines::Blit1x(const Input& input,const Output& output) const
 			{
 				const u16* NST_RESTRICT src = input.screen;
@@ -133,7 +133,7 @@ namespace Nes
 				{
 					case 32: BlitType< u32 >( input, output ); break;
 					case 16: BlitType< u16 >( input, output ); break;
-					
+
 					NST_UNREACHABLE
 				}
 			}

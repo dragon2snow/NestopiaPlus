@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -32,10 +32,10 @@ namespace Nes
 	{
 		namespace Boards
 		{
-            #ifdef NST_PRAGMA_OPTIMIZE
-            #pragma optimize("s", on)
-            #endif
-		
+			#ifdef NST_PRAGMA_OPTIMIZE
+			#pragma optimize("s", on)
+			#endif
+
 			void Unl8237::SubReset(const bool hard)
 			{
 				if (hard)
@@ -56,7 +56,7 @@ namespace Nes
 				Map( 0xE000U, 0xEFFFU, &Unl8237::Poke_E000 );
 				Map( 0xF000U, 0xFFFFU, &Unl8237::Poke_F000 );
 			}
-		
+
 			void Unl8237::SubLoad(State::Loader& state)
 			{
 				while (const dword chunk = state.Begin())
@@ -85,10 +85,10 @@ namespace Nes
 				state.Begin('R','E','G','\0').Write( data ).End();
 			}
 
-            #ifdef NST_PRAGMA_OPTIMIZE
-            #pragma optimize("", on)
-            #endif
-		
+			#ifdef NST_PRAGMA_OPTIMIZE
+			#pragma optimize("", on)
+			#endif
+
 			void Unl8237::UpdatePrg()
 			{
 				if (exRegs[0] & 0x80)
@@ -109,28 +109,28 @@ namespace Nes
 			void Unl8237::UpdateChr() const
 			{
 				ppu.Update();
-			
+
 				const uint swap = (regs.ctrl0 & Regs::CTRL0_XOR_CHR) << 5;
 
 				chr.SwapBanks<SIZE_2K>
-				( 
-			     	0x0000U ^ swap, 
+				(
+					0x0000U ^ swap,
 					exRegs[1] >> 1 | banks.chr[0],
 					exRegs[1] >> 1 | banks.chr[1]
-				); 
+				);
 
 				chr.SwapBanks<SIZE_1K>
 				(
-			     	0x1000U ^ swap, 
+					0x1000U ^ swap,
 					exRegs[1] | banks.chr[2],
 					exRegs[1] | banks.chr[3],
 					exRegs[1] | banks.chr[4],
 					exRegs[1] | banks.chr[5]
-				); 
+				);
 			}
 
-			NES_POKE(Unl8237,5000) 
-			{ 
+			NES_POKE(Unl8237,5000)
+			{
 				if (exRegs[0] != data)
 				{
 					exRegs[0] = data;
@@ -138,8 +138,8 @@ namespace Nes
 				}
 			}
 
-			NES_POKE(Unl8237,5001) 
-			{ 
+			NES_POKE(Unl8237,5001)
+			{
 				data = (data & 0x4) << 6;
 
 				if (exRegs[1] != data)
@@ -149,13 +149,13 @@ namespace Nes
 				}
 			}
 
-			NES_POKE(Unl8237,8000) 
-			{ 
+			NES_POKE(Unl8237,8000)
+			{
 				NES_CALL_POKE(Mmc3,Nmt_Hv,0xA000U,data >> 7 | data);
 			}
 
-			NES_POKE(Unl8237,A000) 
-			{ 
+			NES_POKE(Unl8237,A000)
+			{
 				static const u8 lut[8] = {0,2,6,1,7,3,4,5};
 
 				data = (data & 0xC0) | lut[data & 0x07];
@@ -164,8 +164,8 @@ namespace Nes
 				NES_CALL_POKE(Mmc3,8000,0x8000U,data);
 			}
 
-			NES_POKE(Unl8237,C000) 
-			{ 
+			NES_POKE(Unl8237,C000)
+			{
 				if (exRegs[2])
 				{
 					exRegs[2] = false;
@@ -173,8 +173,8 @@ namespace Nes
 				}
 			}
 
-			NES_POKE(Unl8237,F000) 
-			{ 
+			NES_POKE(Unl8237,F000)
+			{
 				NES_CALL_POKE(Mmc3,E001,0xE001U,data);
 				NES_CALL_POKE(Mmc3,C000,0xC000U,data);
 				NES_CALL_POKE(Mmc3,C001,0xC001U,data);

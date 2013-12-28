@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -42,15 +42,15 @@ namespace Nes
 				class Sound : public Apu::Channel
 				{
 				public:
-		
+
 					Sound(Cpu&,bool=true);
 					~Sound();
-		
+
 					void Poke_E000(uint);
-		
+
 					void LoadState(State::Loader&);
 					void SaveState(State::Saver&) const;
-		
+
 				protected:
 
 					void Reset();
@@ -58,7 +58,7 @@ namespace Nes
 					Sample GetSample();
 
 				private:
-		
+
 					enum
 					{
 						NUM_SQUARES = 3
@@ -125,23 +125,23 @@ namespace Nes
 					class Square
 					{
 					public:
-		
+
 						Square();
 
 						void Reset(uint);
 						void UpdateContext(uint);
 						void SaveState(State::Saver&) const;
 						void LoadState(State::Loader&,uint);
-		
+
 						void WriteReg0(uint,uint);
 						void WriteReg1(uint,uint);
 						void WriteReg2(uint);
 						void WriteReg3(uint);
-		
+
 						NST_FORCE_INLINE dword GetSample(Cycle,uint,uint);
-		
+
 					private:
-		
+
 						void UpdateFrequency(uint);
 
 						iword timer;
@@ -152,7 +152,7 @@ namespace Nes
 						dword dc;
 						uint  length;
 					};
-		
+
 					Apu& apu;
 					uint regSelect;
 					ibool active;
@@ -162,23 +162,23 @@ namespace Nes
 					Apu::DcBlocker dcBlocker;
 					const ibool hooked;
 
-					static const u16 levels[32]; 
+					static const u16 levels[32];
 
 				public:
 
 					void Poke_C000(uint data)
-					{ 
+					{
 						regSelect = data;
 					}
 				};
-		
+
 			protected:
-		
+
 				Fme7(Context&);
 				~Fme7();
-		
+
 			private:
-		
+
 				class BarcodeWorld;
 
 				void SubReset(bool);
@@ -186,21 +186,21 @@ namespace Nes
 				void BaseLoad(State::Loader&,dword);
 				Device QueryDevice(DeviceType);
 				void VSync();
-		
+
 				NES_DECL_POKE( 8000  )
 				NES_DECL_POKE( A000  )
 				NES_DECL_POKE( C000  )
 				NES_DECL_POKE( E000  )
-		
+
 				struct Irq
 				{
 					void Reset(bool);
 					ibool Signal();
-		
+
 					uint count;
 					ibool enabled;
 				};
-		
+
 				uint command;
 				Clock::M2<Irq> irq;
 				Sound sound;

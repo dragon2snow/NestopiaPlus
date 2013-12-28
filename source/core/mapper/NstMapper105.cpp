@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -28,15 +28,15 @@
 #include "../board/NstBrdMmc1.hpp"
 #include "NstMapper105.hpp"
 #include "../api/NstApiUser.hpp"
-			 
+
 namespace Nes
 {
 	namespace Core
 	{
-        #ifdef NST_PRAGMA_OPTIMIZE
-        #pragma optimize("s", on)
-        #endif
-	
+		#ifdef NST_PRAGMA_OPTIMIZE
+		#pragma optimize("s", on)
+		#endif
+
 		Mapper105::CartSwitches::CartSwitches()
 		: time(0), showTime(true) {}
 
@@ -45,7 +45,7 @@ namespace Nes
 		{
 			std::strcpy( text, "Time Left: " );
 		}
-	
+
 		uint Mapper105::CartSwitches::NumDips() const
 		{
 			return 2;
@@ -177,16 +177,16 @@ namespace Nes
 			irqEnabled = false;
 			time = cartSwitches.GetTime();
 
-			Mmc1::SubReset( hard );	
+			Mmc1::SubReset( hard );
 
 			prg.SwapBank<SIZE_16K,0x4000U>( 1 );
 		}
-	
+
 		void Mapper105::SubLoad(State::Loader& state)
 		{
 			irqEnabled = (regs[1] & IRQ_DISABLE) ^ IRQ_DISABLE;
 			frames = 1;
-	
+
 			while (const dword chunk = state.Begin())
 			{
 				if (chunk == NES_STATE_CHUNK_ID('T','I','M','\0'))
@@ -194,20 +194,20 @@ namespace Nes
 					seconds = state.Read32();
 					seconds = NST_CLAMP(seconds,1,time);
 				}
-	
+
 				state.End();
 			}
 		}
-	
+
 		void Mapper105::SubSave(State::Saver& state) const
 		{
 			state.Begin('T','I','M','\0').Write32( seconds ).End();
 		}
-	
-        #ifdef NST_PRAGMA_OPTIMIZE
-        #pragma optimize("", on)
-        #endif
-	
+
+		#ifdef NST_PRAGMA_OPTIMIZE
+		#pragma optimize("", on)
+		#endif
+
 		void Mapper105::UpdatePrg()
 		{
 			if (regs[1] & 0x8)
@@ -216,41 +216,41 @@ namespace Nes
 				{
 					case 0x0:
 					case 0x4:
-				
+
 						prg.SwapBank<SIZE_32K,0x0000U>( 0x4 | (regs[3] >> 1 & 0x3) );
 						break;
-				
+
 					case 0x8:
-				
+
 						prg.SwapBanks<SIZE_16K,0x0000U>( 0x8, 0x8 | (regs[3] & 0x7) );
 						break;
-				
+
 					case 0xC:
-				
+
 						prg.SwapBanks<SIZE_16K,0x0000U>( 0x8 | (regs[3] & 0x7), 0xF );
 						break;
 				}
 			}
 			else
-			{	
+			{
 				prg.SwapBank<SIZE_32K,0x0000U>( regs[1] >> 1 & 0x3 );
 			}
 		}
-	
+
 		void Mapper105::UpdateRegister0()
 		{
 			UpdateMirroring();
 			UpdatePrg();
 		}
-	
+
 		void Mapper105::UpdateRegister1()
 		{
 			const uint state = (regs[1] & IRQ_DISABLE) ^ IRQ_DISABLE;
-	
+
 			if (irqEnabled != state)
 			{
 				irqEnabled = state;
-	
+
 				if (state)
 				{
 					frames = 1;
@@ -261,15 +261,15 @@ namespace Nes
 					cpu.ClearIRQ();
 				}
 			}
-	
+
 			UpdatePrg();
 		}
-	
+
 		void Mapper105::UpdateRegister3()
 		{
 			UpdatePrg();
 		}
-		
+
 		void Mapper105::VSync()
 		{
 			if (irqEnabled)
@@ -277,17 +277,17 @@ namespace Nes
 				if (!--frames)
 				{
 					frames = (cpu.GetMode() == MODE_NTSC ? 60 : 50);
-	
+
 					if (cartSwitches.ShowTime())
 						std::sprintf( text + TIME_OFFSET, "%u:%u", uint(seconds / 60), uint(seconds % 60) );
-	
+
 					if (!--seconds)
 					{
 						seconds = time;
 						cpu.DoIRQ();
 					}
 				}
-	
+
 				if (cartSwitches.ShowTime())
 					Api::User::eventCallback( Api::User::EVENT_DISPLAY_TIMER, text );
 			}

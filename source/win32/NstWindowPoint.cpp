@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -28,10 +28,10 @@ namespace Nestopia
 {
 	uint Window::Point::ScaleToFit(const uint px,const uint py,const Scaling type,const uint limit)
 	{
-		if (x <= 0) 
+		if (x <= 0)
 			x = 1;
 
-		if (y <= 0) 
+		if (y <= 0)
 			y = 1;
 
 		const int ox = x;
@@ -41,12 +41,12 @@ namespace Nestopia
 		while (x + ox <= int(px) && y + oy <= int(py) && s < limit)
 			x += ox, y += oy, ++s;
 
-		if 
-		( 
+		if
+		(
 			s < limit &&
 			(
-    			(type == SCALE_ABOVE && x < int(px) && y < int(py)) || 
-     			(type == SCALE_NEAREST && (px-x) * (py-y) > (x+ox-px) * (y+oy-py))
+				(type == SCALE_ABOVE && x < int(px) && y < int(py)) ||
+				(type == SCALE_NEAREST && (px-x) * (py-y) > (x+ox-px) * (y+oy-py))
 			)
 		)
 			x += ox, y += oy, ++s;
@@ -54,12 +54,36 @@ namespace Nestopia
 		return s;
 	}
 
-	Window::Point::NonClient::NonClient(const uint winStyle,const uint exStyle,const ibool incMenu)
+	Window::Point::NonClient::NonClient(HWND const hWnd)
 	{
 		RECT rect = {0,0,0,0};
-		::AdjustWindowRectEx( &rect, winStyle, incMenu, exStyle );
+
+		::AdjustWindowRectEx
+		(
+			&rect,
+			::GetWindowLongPtr(hWnd,GWL_STYLE),
+			false,
+			::GetWindowLongPtr(hWnd,GWL_EXSTYLE)
+		);
 
 		x = rect.right - rect.left;
 		y = rect.bottom - rect.top;
+
+		if (HMENU const hMenu = ::GetMenu( hWnd ))
+		{
+			MENUBARINFO mbi;
+			mbi.cbSize = sizeof(mbi);
+
+			if (::GetMenuBarInfo( hWnd, OBJID_MENU, 0, &mbi ) && mbi.rcBar.bottom >= mbi.rcBar.top)
+				y += (mbi.rcBar.bottom - mbi.rcBar.top) + 1;
+			else
+				y += ::GetSystemMetrics( SM_CYMENU );
+		}
+
+		for (HWND hChild = ::GetTopWindow(hWnd); hChild; hChild = ::GetNextWindow(hChild,GW_HWNDNEXT))
+		{
+			::GetClientRect( hChild, &rect );
+			y += rect.bottom - rect.top;
+		}
 	}
 }

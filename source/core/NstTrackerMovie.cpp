@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -33,9 +33,9 @@ namespace Nes
 {
 	namespace Core
 	{
-        #ifdef NST_PRAGMA_OPTIMIZE
-        #pragma optimize("s", on)
-        #endif
+		#ifdef NST_PRAGMA_OPTIMIZE
+		#pragma optimize("s", on)
+		#endif
 
 		class Tracker::Movie::Recorder
 		{
@@ -141,7 +141,7 @@ namespace Nes
 		};
 
 		Tracker::Movie::Movie(Api::Emulator& e,EmuReset r,EmuLoadState l,EmuSaveState s,Cpu& c,dword crc)
-		:			
+		:
 		cpu            (c),
 		status         (STOPPED),
 		player         (NULL),
@@ -195,7 +195,7 @@ namespace Nes
 						Close();
 					}
 				}
-				
+
 				if (recorder == NULL)
 					recorder = new Recorder( stream );
 
@@ -221,7 +221,7 @@ namespace Nes
 
 			return RESULT_ERR_NOT_READY;
 		}
-	
+
 		Result Tracker::Movie::Play(StdStream const stream,const bool callback)
 		{
 			NST_ASSERT( stream );
@@ -309,7 +309,7 @@ namespace Nes
 					}
 
 					if (NES_SUCCEEDED(result) && callbackEnable)
-						Api::Movie::stateCallback( recorder ? Api::Movie::STOPPED_RECORDING : Api::Movie::STOPPED_PLAYING ); 
+						Api::Movie::stateCallback( recorder ? Api::Movie::STOPPED_RECORDING : Api::Movie::STOPPED_PLAYING );
 				}
 			}
 
@@ -329,30 +329,30 @@ namespace Nes
 				switch (result)
 				{
 					case RESULT_ERR_OUT_OF_MEMORY:
-				
+
 						state = Api::Movie::ERR_OUT_OF_MEMORY;
 						break;
-				
+
 					case RESULT_ERR_INVALID_FILE:
-					case RESULT_ERR_CORRUPT_FILE:	  
-				
+					case RESULT_ERR_CORRUPT_FILE:
+
 						state = Api::Movie::ERR_CORRUPT_FILE;
 						break;
-				
-					case RESULT_ERR_UNSUPPORTED_GAME: 
-				
-						state = Api::Movie::ERR_UNSUPPORTED_IMAGE; 
+
+					case RESULT_ERR_UNSUPPORTED_GAME:
+
+						state = Api::Movie::ERR_UNSUPPORTED_IMAGE;
 						break;
-				
+
 					default:
-				
-						state = Api::Movie::ERR_GENERIC;           
+
+						state = Api::Movie::ERR_GENERIC;
 						break;
 				}
 
 				Api::Movie::stateCallback( state );
 			}
-			
+
 			return false;
 		}
 
@@ -396,7 +396,7 @@ namespace Nes
 				return Stop( RESULT_ERR_GENERIC );
 			}
 		}
-	
+
 		bool Tracker::Movie::EndFrame()
 		{
 			try
@@ -455,7 +455,7 @@ namespace Nes
 
 			return true;
 		}
-	
+
 		void Tracker::Movie::SaveCpuPorts()
 		{
 			NST_ASSERT( status != STOPPED );
@@ -491,7 +491,7 @@ namespace Nes
 				'N','S','V', 0x1A, VERSION
 			};
 
-			static const u8 reserved[7] = 
+			static const u8 reserved[7] =
 			{
 				0,0,0,0,0,0,0
 			};
@@ -501,7 +501,7 @@ namespace Nes
 			if (end && 0 < (end = state.GetStream().Length()))
 			{
 				frame = ~dword(0);
-				
+
 				if (end >= sizeof(header) + 4 + sizeof(reserved))
 					state.GetStream().Seek( end );
 				else
@@ -546,7 +546,7 @@ namespace Nes
 		void Tracker::Movie::Player::Start(const dword prgCrc)
 		{
 			good = false;
-			
+
 			frame.port = 0;
 			frame.clip = ~dword(0);
 			frame.reset = ~dword(0);
@@ -569,12 +569,12 @@ namespace Nes
 
 			const dword crc = state.GetStream().Read32();
 
-			if 
+			if
 			(
 				crc && prgCrc && crc != prgCrc &&
 				Api::User::questionCallback( Api::User::QUESTION_NSV_PRG_CRC_FAIL_CONTINUE ) == Api::User::ANSWER_NO
 			)
-			    throw RESULT_ERR_INVALID_CRC;
+				throw RESULT_ERR_INVALID_CRC;
 
 			state.GetStream().Seek( 7 );
 
@@ -585,7 +585,7 @@ namespace Nes
 		{
 			if (pos != output.Size())
 				return false;
-			
+
 			pos = 0;
 			offset = 0;
 
@@ -658,7 +658,7 @@ namespace Nes
 				}
 			}
 		}
-	
+
 		NST_FORCE_INLINE void Tracker::Movie::Player::Port::Sync(uint index)
 		{
 			NST_ASSERT( index <= 1 );
@@ -679,31 +679,31 @@ namespace Nes
 				else if (pos < output.Size())
 				{
 					const uint ctrl = output[pos];
-			
+
 					if (ctrl & LOCK_BIT)
 					{
 						next = pos;
 						pos = offset;
-			
+
 						if (ctrl & LOCK_SIZE_BIT)
 						{
 							next += 1;
 							lock = (ctrl & ~uint(LOCK_BIT|LOCK_SIZE_BIT)) + 1;
 						}
-						else 
+						else
 						{
 							next += 4;
-			
+
 							if (next <= output.Size())
 							{
 								lock = 1 +
 								(
-									( (ctrl & ~uint(LOCK_BIT)) << 24) | 
-									( output[next-3]           << 16) | 
-									( output[next-2]           <<  8) | 
+									( (ctrl & ~uint(LOCK_BIT)) << 24) |
+									( output[next-3]           << 16) |
+									( output[next-2]           <<  8) |
 									( output[next-1]           <<  0)
 								);
-							}					
+							}
 							else
 							{
 								throw RESULT_ERR_CORRUPT_FILE;
@@ -730,7 +730,7 @@ namespace Nes
 				return;
 
 			cut = false;
-			
+
 			Flush();
 
 			if (emuFrame)
@@ -749,12 +749,12 @@ namespace Nes
 				Reset( true );
 			}
 
-			frame = emuFrame;			
+			frame = emuFrame;
 		}
 
 		bool Tracker::Movie::Player::BeginFrame
 		(
-	     	const dword emuFrame,
+			const dword emuFrame,
 			Api::Emulator& emulator,
 			EmuLoadState emuLoadState,
 			EmuReset emuReset
@@ -799,13 +799,13 @@ namespace Nes
 					{
 						break;
 					}
-				}			
+				}
 				else if (frame.reset != ~dword(0))
 				{
 					if (frame.reset <= emuFrame)
 					{
 						frame.reset = ~dword(0);
-						
+
 						const Result result = (emulator.*emuReset)( state.Read8() & 0x1 );
 
 						if (NES_SUCCEEDED(result))
@@ -828,7 +828,7 @@ namespace Nes
 					if (frame.wait <= emuFrame)
 					{
 						frame.wait = ~dword(0);
-						
+
 						state.DigOut();
 						state.End();
 					}
@@ -837,49 +837,49 @@ namespace Nes
 						break;
 					}
 				}
-	
+
 				if (!state.GetStream().Eof())
 				{
 					switch (state.Begin())
 					{
 						case NES_STATE_CHUNK_ID('P','T','0','\0'):
-					
+
 							state.DigIn();
 							frame.port = 1;
 							break;
-					
+
 						case NES_STATE_CHUNK_ID('P','T','1','\0'):
-					
+
 							state.DigIn();
 							frame.port = 2;
 							break;
-					
+
 						case NES_STATE_CHUNK_ID('C','L','P','\0'):
-					
+
 							state.DigIn();
 							frame.clip = state.Read32() & ~dword(1);
 							break;
-					
+
 						case NES_STATE_CHUNK_ID('R','E','S','\0'):
-					
+
 							state.DigIn();
 							frame.reset = state.Read32() & ~dword(1);
 							break;
-					
+
 						case NES_STATE_CHUNK_ID('W','A','I','\0'):
-					
+
 							state.DigIn();
 							frame.wait = state.Read32() & ~dword(1);
 							break;
-					
+
 						default:
-					
+
 							return false;
 					}
 				}
 				else
 				{
-					return port[0].pos < port[0].output.Size() || port[1].pos < port[1].output.Size();					
+					return port[0].pos < port[0].output.Size() || port[1].pos < port[1].output.Size();
 				}
 			}
 
@@ -914,11 +914,11 @@ namespace Nes
 			}
 		}
 
-        #ifdef NST_PRAGMA_OPTIMIZE
-        #pragma optimize("", on)
-        #endif
+		#ifdef NST_PRAGMA_OPTIMIZE
+		#pragma optimize("", on)
+		#endif
 
-		uint Tracker::Movie::Recorder::WritePort(const uint index,const uint data)	
+		uint Tracker::Movie::Recorder::WritePort(const uint index,const uint data)
 		{
 			NST_ASSERT( index || !(data & LOCK_BIT) );
 
@@ -954,27 +954,27 @@ namespace Nes
 		{
 			return recorder->WritePort( 0, ports[0]->Peek( 0x4016 ) );
 		}
-	
+
 		NES_PEEK(Tracker::Movie,4016_Play)
 		{
 			return player->ReadPort( 0 );
 		}
-	
+
 		NES_PEEK(Tracker::Movie,4017_Record)
 		{
 			return recorder->WritePort( 1, ports[1]->Peek( 0x4017 ) );
 		}
-	
+
 		NES_PEEK(Tracker::Movie,4017_Play)
 		{
 			return player->ReadPort( 1 );
 		}
-	
+
 		NES_POKE(Tracker::Movie,4016)
 		{
 			ports[0]->Poke( address, data );
 		}
-	
+
 		NES_POKE(Tracker::Movie,4017)
 		{
 			ports[1]->Poke( address, data );

@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -42,13 +42,13 @@ namespace Nes
 				class Sound : public Apu::Channel
 				{
 				public:
-			
+
 					Sound(Cpu&,bool=true);
 					~Sound();
-			
+
 					void SaveState(State::Saver&) const;
 					void LoadState(State::Loader&);
-			
+
 				protected:
 
 					void Reset();
@@ -57,7 +57,7 @@ namespace Nes
 					Sample GetSample();
 
 				private:
-						
+
 					NES_DECL_POKE( 5000 )
 					NES_DECL_POKE( 5002 )
 					NES_DECL_POKE( 5003 )
@@ -73,39 +73,39 @@ namespace Nes
 					NES_DECL_PEEK( 5206 )
 					NES_DECL_POKE( 5206 )
 					NES_DECL_PEEK( Nop  )
-			
-					enum 
+
+					enum
 					{
 						NUM_SQUARES = 2
 					};
-			
+
 					class Square
 					{
 					public:
-			
+
 						Square();
 
-						void Reset();		
-								
+						void Reset();
+
 						NST_FORCE_INLINE dword GetSample(Cycle);
-			
+
 						NST_FORCE_INLINE void WriteReg0(uint);
 						NST_FORCE_INLINE void WriteReg1(uint,uint);
 						NST_FORCE_INLINE void WriteReg2(uint,uint);
-			
+
 						NST_FORCE_INLINE void Enable(uint);
 						NST_FORCE_INLINE void ClockQuarter();
 						NST_FORCE_INLINE void ClockHalf();
-			
+
 						void UpdateContext(uint);
-			
+
 						void SaveState(State::Saver&) const;
 						void LoadState(State::Loader&,dword);
-			
+
 					private:
-			
+
 						inline bool CanOutput() const;
-			
+
 						enum
 						{
 							MIN_FRQ              = 0x4,
@@ -113,25 +113,25 @@ namespace Nes
 							REG2_WAVELENGTH_HIGH = b00000111,
 							DUTY_SHIFT           = 6
 						};
-			
+
 						uint  waveLength;
 						ibool active;
 						Cycle frequency;
 						iword timer;
 						uint  step;
 						uint  duty;
-			
+
 						Apu::LengthCounter lengthCounter;
 						Apu::Envelope envelope;
-			
+
 					public:
-			
+
 						uint GetLengthCounter() const
-						{ 
+						{
 							return lengthCounter.GetCount();
 						}
 					};
-			
+
 					class Pcm
 					{
 					public:
@@ -139,33 +139,33 @@ namespace Nes
 						Pcm();
 
 						void Reset();
-					
+
 						NST_FORCE_INLINE void WriteReg0(uint);
 						NST_FORCE_INLINE void WriteReg1(uint);
-			
+
 						void SaveState(State::Saver&) const;
 						void LoadState(State::Loader&);
-			
+
 					private:
-			
+
 						enum
 						{
 							VOLUME = Apu::OUTPUT_MUL / 4,
 							PCM_DISABLE = 0x1
 						};
-			
+
 						ibool enabled;
 						Sample sample;
 						Sample amp;
-			
+
 					public:
-			
+
 						Sample GetSample()
-						{ 
-							return sample; 
+						{
+							return sample;
 						}
 					};
-			
+
 					uint value[2];
 					Cpu& cpu;
 					uint halfClock;
@@ -176,19 +176,19 @@ namespace Nes
 				};
 
 			protected:
-	
+
 				Mmc5(Context&);
-	
+
 				void SubReset(bool);
-	
+
 			private:
-	
+
 				static uint DetectWRam(dword,dword);
 
 				void VBlank();
 				void HDummy();
 				void HActive0();
-				void HActiveX();	
+				void HActiveX();
 				void VSync();
 				void BaseSave(State::Saver&) const;
 				void BaseLoad(State::Loader&,dword);
@@ -200,7 +200,7 @@ namespace Nes
 				void UpdateChrA() const;
 				void UpdateChrB() const;
 				void UpdateRenderMethod();
-				
+
 				bool ClockSpliter();
 
 				inline void Update();
@@ -211,7 +211,7 @@ namespace Nes
 				uint GetExtPattern(uint) const;
 				uint GetSpliterAttribute() const;
 				uint GetSpliterPattern(uint) const;
-	
+
 				NES_DECL_HOOK( CpuUpdate )
 				NES_DECL_HOOK( PpuBgMode )
 				NES_DECL_HOOK( PpuSpMode )
@@ -259,7 +259,7 @@ namespace Nes
 				NES_DECL_POKE( A000 )
 				NES_DECL_PEEK( C000 )
 				NES_DECL_POKE( C000 )
-	
+
 				struct Flow
 				{
 					void Reset();
@@ -275,12 +275,12 @@ namespace Nes
 					static const Cycle hSync[2];
 				};
 
-				struct Irq 
+				struct Irq
 				{
 					void Reset();
 
 					enum
-					{			  
+					{
 						ENABLED    = 0x01,
 						FRAME      = 0x40,
 						HIT        = 0x80,
@@ -299,10 +299,10 @@ namespace Nes
 					enum
 					{
 						PRG_MODE            = b00000011,
-						PRG_MODE_32K	    = b00000000,
-						PRG_MODE_16K	    = b00000001,
-						PRG_MODE_16K_8K	    = b00000010,
-						PRG_MODE_8K		    = b00000011,
+						PRG_MODE_32K        = b00000000,
+						PRG_MODE_16K        = b00000001,
+						PRG_MODE_16K_8K     = b00000010,
+						PRG_MODE_8K         = b00000011,
 						PRG_ROM_SELECT      = b10000000,
 						PRG_ROM_BANK        = b01111111,
 						PRG_RAM_BANK        = b00000111,
@@ -311,24 +311,24 @@ namespace Nes
 						CHR_MODE_4K         = b00000001,
 						CHR_MODE_2K         = b00000010,
 						CHR_MODE_1K         = b00000011,
-						CHR_HIGH			= b00000011,
+						CHR_HIGH            = b00000011,
 						WRK_WRITABLE_A      = b00000010,
 						WRK_WRITABLE_B      = b00000001,
 						NMT_MODE            = b00000011,
 						NMT_CIRAM_0         = b00000000,
 						NMT_CIRAM_1         = b00000001,
 						NMT_EXRAM           = b00000010,
-						NMT_FILL			= b00000011,
+						NMT_FILL            = b00000011,
 						EXRAM_MODE          = b00000011,
 						EXRAM_MODE_PPU_NT   = b00000000,
 						EXRAM_MODE_PPU_EXT  = b00000001,
 						EXRAM_MODE_CPU_RAM  = b00000010,
 						EXRAM_MODE_CPU_ROM  = b00000011,
-						EXRAM_EXT_CHR_BANK	= b00111111,
-						PPU_CTRL0_SP8X16	= b00100000,
-						PPU_CTRL1_ENABLED	= b00011000
+						EXRAM_EXT_CHR_BANK  = b00111111,
+						PPU_CTRL0_SP8X16    = b00100000,
+						PPU_CTRL1_ENABLED   = b00011000
 					};
-		
+
 					uint prgMode;
 					uint chrMode;
 					uint exRamMode;
@@ -370,7 +370,7 @@ namespace Nes
 					};
 
 					class Wrk
-					{					
+					{
 						u8 banks[8];
 
 					public:
@@ -395,7 +395,7 @@ namespace Nes
 					u8 prg[4];
 					const Wrk wrk;
 				};
-	
+
 				struct Filler
 				{
 					void Reset();
@@ -425,7 +425,7 @@ namespace Nes
 					uint x;
 					uint y;
 				};
-	
+
 				struct ExRam
 				{
 					void Reset(bool);
@@ -433,7 +433,7 @@ namespace Nes
 					uint tile;
 					u8 mem[SIZE_1K];
 				};
-		
+
 				Flow flow;
 				Irq irq;
 				Regs regs;

@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -57,9 +57,9 @@ namespace Nes
 	}
 
 	typedef Core::Sized::Type<sizeof(int) == 2 ?  1 : sizeof(short) == 2 ?  2 : sizeof(long) == 2 ?  3 : 0>::i16 i16;
-    typedef Core::Sized::Type<sizeof(int) == 2 ?  4 : sizeof(short) == 2 ?  5 : sizeof(long) == 2 ?  6 : 0>::u16 u16;
-    typedef Core::Sized::Type<sizeof(int) == 4 ?  7 : sizeof(short) == 4 ?  8 : sizeof(long) == 4 ?  9 : 0>::i32 i32;
-    typedef Core::Sized::Type<sizeof(int) == 4 ? 10 : sizeof(short) == 4 ? 11 : sizeof(long) == 4 ? 12 : 0>::u32 u32;
+	typedef Core::Sized::Type<sizeof(int) == 2 ?  4 : sizeof(short) == 2 ?  5 : sizeof(long) == 2 ?  6 : 0>::u16 u16;
+	typedef Core::Sized::Type<sizeof(int) == 4 ?  7 : sizeof(short) == 4 ?  8 : sizeof(long) == 4 ?  9 : 0>::i32 i32;
+	typedef Core::Sized::Type<sizeof(int) == 4 ? 10 : sizeof(short) == 4 ? 11 : sizeof(long) == 4 ? 12 : 0>::u32 u32;
 
 	typedef Core::Sized::Type<sizeof(int) >= 4 ? 10 : 12>::u32 udword;
 	typedef Core::Sized::Type<sizeof(int) >= 4 ?  7 :  9>::i32 idword;
@@ -167,12 +167,12 @@ namespace Nes
 #if defined(ULLONG_MAX)
 
 	typedef unsigned long long u64;
-    #define NST_NATIVE_U64
+	#define NST_NATIVE_U64
 
 #elif defined(_MSC_VER)
 
-    typedef unsigned __int64 u64;
-    #define NST_NATIVE_U64
+	typedef unsigned __int64 u64;
+	#define NST_NATIVE_U64
 
 #elif defined(NST_U64_DEFINED)
 
@@ -189,7 +189,7 @@ namespace Nes
 		u32 hi;
 
 	public:
-	
+
 		u64() {}
 
 		template<typename V>
@@ -198,7 +198,7 @@ namespace Nes
 
 		u64(u32 msdw,u32 lsdw=0)
 		: lo(lsdw), hi(msdw) {}
-	
+
 		u64(const u64& v)
 		: lo(v.lo), hi(v.hi) {}
 
@@ -210,45 +210,45 @@ namespace Nes
 			return *this;
 		}
 
-		u64& operator = (const u64& v) 
-		{ 
-			lo = v.lo; 
-			hi = v.hi; 
-			return *this; 
+		u64& operator = (const u64& v)
+		{
+			lo = v.lo;
+			hi = v.hi;
+			return *this;
 		}
 
 		template<typename V>
-		u64& operator += (const V& v) 
-		{ 
-			u32 t = lo; 
-			lo += v; 
+		u64& operator += (const V& v)
+		{
+			u32 t = lo;
+			lo += v;
 			hi += (t > lo);
-			return *this; 
+			return *this;
 		}
 
-		u64& operator += (const u64& v) 
-		{ 
-			u32 t = lo; 
-			lo += v.lo; 
-			hi += (t > lo) + v.hi; 
-			return *this; 
+		u64& operator += (const u64& v)
+		{
+			u32 t = lo;
+			lo += v.lo;
+			hi += (t > lo) + v.hi;
+			return *this;
 		}
 
 		template<typename V>
-		u64& operator -= (const V& v) 
-		{ 
-			u32 t = lo; 
+		u64& operator -= (const V& v)
+		{
+			u32 t = lo;
 			lo -= v;
 			hi -= (t < lo);
-			return *this; 
+			return *this;
 		}
 
-		u64& operator -= (const u64& v) 
-		{ 
-			u32 t = lo; 
-			lo -= v.lo; 
-			hi -= (t < lo) + v.hi; 
-			return *this; 
+		u64& operator -= (const u64& v)
+		{
+			u32 t = lo;
+			lo -= v.lo;
+			hi -= (t < lo) + v.hi;
+			return *this;
 		}
 
 		u64 operator ++ (int)
@@ -259,14 +259,14 @@ namespace Nes
 			hi += t.lo > lo;
 			return t;
 		}
-	
+
 		u64& operator ++ ()
 		{
 			u32 t = lo++;
 			hi += t > lo;
 			return *this;
 		}
-	
+
 		u64 operator -- (int)
 		{
 			u64 t;
@@ -275,7 +275,7 @@ namespace Nes
 			hi -= t.lo < lo;
 			return t;
 		}
-	
+
 		u64& operator -- ()
 		{
 			u32 t = lo--;
@@ -290,10 +290,10 @@ namespace Nes
 				lo *= v;
 			else
 				Multiply( u64(v) );
-		
+
 			return *this;
 		}
-	
+
 		u64& operator *= (const u64& v)
 		{
 			Multiply( v );
@@ -307,17 +307,17 @@ namespace Nes
 				lo /= v;
 			else
 				Divide( *this, u64(v), false );
-	
+
 			return *this;
 		}
-	
+
 		u64& operator /= (const u64& v)
 		{
 			if (hi | v.hi)
 				Divide( *this, v, false );
 			else
 				lo /= v.lo;
-	
+
 			return *this;
 		}
 
@@ -328,10 +328,10 @@ namespace Nes
 				lo %= v;
 			else
 				Divide( *this, u64(v), true );
-	
+
 			return *this;
 		}
-	
+
 		u64& operator %= (const u64& v)
 		{
 			Divide( *this, v, true );
@@ -347,7 +347,7 @@ namespace Nes
 		template<typename V> u64& operator |= (const V& v) { lo |= v;         return *this; }
 		template<typename V> u64& operator &= (const V& v) { lo &= v; hi = 0; return *this; }
 		template<typename V> u64& operator ^= (const V& v) { lo ^= v;         return *this; }
-	
+
 		u64& operator |= (const u64& v) { lo |= v.lo; hi |= v.hi; return *this; }
 		u64& operator &= (const u64& v) { lo &= v.lo; hi &= v.hi; return *this; }
 		u64& operator ^= (const u64& v) { lo ^= v.lo; hi ^= v.hi; return *this; }
@@ -378,7 +378,7 @@ namespace Nes
 			}
 			return *this;
 		}
-	
+
 		u64& operator <<= (uint v)
 		{
 			if (v)
@@ -397,76 +397,76 @@ namespace Nes
 			}
 			return *this;
 		}
-	
+
 		u64 operator >> (uint v) const { return u64(*this) >>= v; }
 		u64 operator << (uint v) const { return u64(*this) <<= v; }
 
-		u64 operator ~() const 
+		u64 operator ~() const
 		{
 			return u64( ~hi, ~lo );
 		}
-	
+
 		template<typename V>
 		bool operator == (const V& v) const
-		{ 
-			return !((lo - v) | hi); 
+		{
+			return !((lo - v) | hi);
 		}
-	
+
 		bool operator == (const u64& v) const
-		{ 
-			return !((lo - v.lo) | (hi - v.hi)); 
+		{
+			return !((lo - v.lo) | (hi - v.hi));
 		}
-	
+
 		template<typename V>
 		bool operator < (const V& v) const
-		{ 
-			return (lo < v && !hi); 
+		{
+			return (lo < v && !hi);
 		}
-	
+
 		bool operator < (const u64& v) const
-		{ 
-			return (hi < v.hi) || (lo < v.lo && hi == v.hi); 
+		{
+			return (hi < v.hi) || (lo < v.lo && hi == v.hi);
 		}
-	
+
 		template<typename V>
 		bool operator <= (const V& v) const
-		{ 
-			return (lo <= v && !hi); 
+		{
+			return (lo <= v && !hi);
 		}
-	
+
 		bool operator <= (const u64& v) const
-		{ 
-			return (hi < v.hi) || (hi == v.hi ? (lo <= v.lo) : false); 
-		}
-	
-		template<typename V>
-		bool operator != (const V& v) const 
-		{ 
-			return !(*this == v); 
+		{
+			return (hi < v.hi) || (hi == v.hi ? (lo <= v.lo) : false);
 		}
 
 		template<typename V>
-		bool operator > (const V& v) const 
-		{ 
-			return !(*this <= v); 
+		bool operator != (const V& v) const
+		{
+			return !(*this == v);
 		}
 
 		template<typename V>
-		bool operator >= (const V& v) const 
-		{ 
-			return !(*this < v); 
+		bool operator > (const V& v) const
+		{
+			return !(*this <= v);
 		}
-	
+
+		template<typename V>
+		bool operator >= (const V& v) const
+		{
+			return !(*this < v);
+		}
+
 		bool operator !() const
 		{
-			return !(lo|hi); 
+			return !(lo|hi);
 		}
-	
+
 		operator bool() const
-		{ 
-			return (lo|hi); 
+		{
+			return (lo|hi);
 		}
-	
+
 		operator int    () const { return lo; }
 		operator uint   () const { return lo; }
 		operator char   () const { return lo; }

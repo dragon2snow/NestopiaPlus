@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -57,7 +57,7 @@ namespace Nestopia
 			};
 
 			template<typename T> static T* Remove(T*,T);
-			
+
 			static bool Trim(char*);
 			static bool Trim(wchar_t*);
 
@@ -95,7 +95,7 @@ namespace Nestopia
 				for (uint i=0; i < n; ++i)
 					a[i] = b[i];
 			}
-  
+
 			static void Copy(char* NST_RESTRICT a,const wchar_t* NST_RESTRICT b,uint n)
 			{
 				for (uint i=0; i < n; ++i)
@@ -162,73 +162,73 @@ namespace Nestopia
 
 			template<typename T,typename U>
 			static bool IsEqual(const T& t,const U& u)
-			{ 
+			{
 				return t.Length() == u.Length() && !Compare( t.Ptr(), t.Length(), u.Ptr(), u.Length() );
 			}
 
 			template<typename T,typename U>
 			static bool IsEqual(const T& t,const U*& u)
-			{ 
+			{
 				return !Compare( t.Ptr(), t.Length(), u, -1 );
 			}
 
 			template<typename T,typename U>
 			static bool IsEqual(const T& t,const U* const& u)
-			{ 
+			{
 				return !Compare( t.Ptr(), t.Length(), u, -1 );
 			}
 
 			template<typename T,typename U,size_t N>
 			static bool IsEqual(const T& t,const U (&u)[N])
-			{ 
+			{
 				return !Compare( t.Ptr(), t.Length(), u, -1 );
 			}
 
 			template<typename T,typename U>
 			static bool IsCaseEqual(const T& t,const U& u)
-			{ 
+			{
 				return t.Length() == u.Length() && !CompareCase( t.Ptr(), t.Length(), u.Ptr(), u.Length() );
 			}
 
 			template<typename T,typename U>
 			static bool IsCaseEqual(const T& t,const U*& u)
-			{ 
+			{
 				return !CompareCase( t.Ptr(), t.Length(), u, -1 );
 			}
 
 			template<typename T,typename U>
 			static bool IsCaseEqual(const T& t,const U* const& u)
-			{ 
+			{
 				return !CompareCase( t.Ptr(), t.Length(), u, -1 );
 			}
 
 			template<typename T,typename U,size_t N>
 			static bool IsCaseEqual(const T& t,const U (&u)[N])
-			{ 
+			{
 				return !CompareCase( t.Ptr(), t.Length(), u, -1 );
 			}
 
 			template<typename T,typename U>
 			static int Compare(const T& t,const U& u)
-			{ 
+			{
 				return Compare( t.Ptr(), t.Length(), u.Ptr(), u.Length() );
 			}
 
 			template<typename T,typename U>
 			static int Compare(const T& t,const U*& u)
-			{ 
+			{
 				return Compare( t.Ptr(), t.Length(), u, -1 );
 			}
 
 			template<typename T,typename U>
 			static int Compare(const T& t,const U* const& u)
-			{ 
+			{
 				return Compare( t.Ptr(), t.Length(), u, -1 );
 			}
 
 			template<typename T,typename U,size_t N>
 			static int Compare(const T& t,const U (&u)[N])
-			{ 
+			{
 				return Compare( t.Ptr(), t.Length(), u, -1 );
 			}
 
@@ -284,10 +284,10 @@ namespace Nestopia
 
 			*it = '\0';
 
-			do 
+			do
 			{
 				*--it = (T) ((number % 10) + '0');
-			} 
+			}
 			while (number /= 10);
 
 			return it;
@@ -302,10 +302,10 @@ namespace Nestopia
 
 			*it = '\0';
 
-			do 
+			do
 			{
 				*--it = (T) ((value % 10) + '0');
-			} 
+			}
 			while (value /= 10);
 
 			if (number < 0)
@@ -361,9 +361,9 @@ namespace Nestopia
 				switch (*string)
 				{
 					case '-': neg = true;
-					case '+': ++string; break;		
+					case '+': ++string; break;
 					case '0':
-								
+
 						if (++string != end)
 						{
 							base = 16;
@@ -407,9 +407,9 @@ namespace Nestopia
 							return false;
 						}
 
-						if (value < maxvalue || (value == maxvalue && num <= 0xFFFFFFFFU % base)) 
+						if (value < maxvalue || (value == maxvalue && num <= 0xFFFFFFFFU % base))
 							value = value * base + num;
-						else 
+						else
 							return false;
 					}
 					while (string != end);
@@ -426,9 +426,9 @@ namespace Nestopia
 		template<typename T,typename U>
 		bool Base::ConvertToUnsigned(const T& string,U& value)
 		{
-			u32 u; 
-			const bool r = ToUnsigned( string.Ptr(), string.Length(), u ); 
-			value = (U) u; 
+			u32 u;
+			const bool r = ToUnsigned( string.Ptr(), string.Length(), u );
+			value = (U) u;
 			return r;
 		}
 
@@ -447,7 +447,7 @@ namespace Nestopia
 
 			return p;
 		}
-  
+
 		template<typename T=tchar,bool I=false>
 		class Generic : protected Base
 		{
@@ -461,7 +461,7 @@ namespace Nestopia
 			};
 
 		protected:
-			
+
 			const Type* string;
 			uint length;
 
@@ -473,7 +473,7 @@ namespace Nestopia
 		public:
 
 			Generic()
-			: string(&empty), length(0)	{}
+			: string(&empty), length(0) {}
 
 			Generic(const Type* t,uint l)
 			: string(t), length(l) { NST_ASSERT( t ); }
@@ -550,9 +550,9 @@ namespace Nestopia
 				return Generic( string + p, l );
 			}
 
-			template<typename U> 
-			bool IsEqual(const U& t) const 
-			{ 
+			template<typename U>
+			bool IsEqual(const U& t) const
+			{
 				return Base::IsCaseEqual( *this, t );
 			}
 
@@ -566,21 +566,21 @@ namespace Nestopia
 
 		template<typename T>
 		class Generic<T,true> : public Generic<T,false>
-		{	
+		{
 			void Copy(const Generic&);
 
 			T buffer[Generic::MAX_INT_LENGTH];
 
 			void SetValue(i32 number)
 			{
-				Generic::string = Base::FromSigned( buffer, number ); 
-				Generic::length = buffer + Generic::MAX_INT_LENGTH-1 - Generic::string; 
+				Generic::string = Base::FromSigned( buffer, number );
+				Generic::length = buffer + Generic::MAX_INT_LENGTH-1 - Generic::string;
 			}
 
 			void SetValue(u32 number)
 			{
-				Generic::string = Base::FromUnsigned( buffer, number ); 
-				Generic::length = buffer + Generic::MAX_INT_LENGTH-1 - Generic::string; 
+				Generic::string = Base::FromUnsigned( buffer, number );
+				Generic::length = buffer + Generic::MAX_INT_LENGTH-1 - Generic::string;
 			}
 
 		public:
@@ -591,12 +591,12 @@ namespace Nestopia
 				Copy( g );
 			}
 
-			template<typename U> 
+			template<typename U>
 			Generic(const U& t)
 			: Generic<T,false>(t) {}
 
 			Generic(T c)
-			: Generic<T,false>(Generic::NOP) 
+			: Generic<T,false>(Generic::NOP)
 			{
 				Generic::string = buffer;
 				Generic::length = 1;
@@ -604,14 +604,14 @@ namespace Nestopia
 				buffer[1] = '\0';
 			}
 
-			Generic( schar  i ) : Generic<T,false>(Generic::NOP) { SetValue( (i32) i ); } 
-			Generic( uchar  i ) : Generic<T,false>(Generic::NOP) { SetValue( (u32) i ); } 
-			Generic( short  i ) : Generic<T,false>(Generic::NOP) { SetValue( (i32) i ); } 
-			Generic( ushort i ) : Generic<T,false>(Generic::NOP) { SetValue( (u32) i ); } 
-			Generic( int    i ) : Generic<T,false>(Generic::NOP) { SetValue( (i32) i ); } 
-			Generic( uint   i ) : Generic<T,false>(Generic::NOP) { SetValue( (u32) i ); } 
-			Generic( long   i ) : Generic<T,false>(Generic::NOP) { SetValue( (i32) i ); } 
-			Generic( ulong  i ) : Generic<T,false>(Generic::NOP) { SetValue( (u32) i ); } 
+			Generic( schar  i ) : Generic<T,false>(Generic::NOP) { SetValue( (i32) i ); }
+			Generic( uchar  i ) : Generic<T,false>(Generic::NOP) { SetValue( (u32) i ); }
+			Generic( short  i ) : Generic<T,false>(Generic::NOP) { SetValue( (i32) i ); }
+			Generic( ushort i ) : Generic<T,false>(Generic::NOP) { SetValue( (u32) i ); }
+			Generic( int    i ) : Generic<T,false>(Generic::NOP) { SetValue( (i32) i ); }
+			Generic( uint   i ) : Generic<T,false>(Generic::NOP) { SetValue( (u32) i ); }
+			Generic( long   i ) : Generic<T,false>(Generic::NOP) { SetValue( (i32) i ); }
+			Generic( ulong  i ) : Generic<T,false>(Generic::NOP) { SetValue( (u32) i ); }
 
 			Generic& operator = (const Generic& g)
 			{
@@ -697,7 +697,7 @@ namespace Nestopia
 				TYPE_SIZE = sizeof(Type)
 			};
 
-			template<typename U> 
+			template<typename U>
 			void Assign(const U* NST_RESTRICT,uint);
 
 		protected:
@@ -709,13 +709,13 @@ namespace Nestopia
 		public:
 
 			Sub(T& t,uint o)
-			: string(t), offset(o), length(t.Length() - offset) 
+			: string(t), offset(o), length(t.Length() - offset)
 			{
 				NST_ASSERT( offset + length <= string.Length() );
 			}
 
 			Sub(T& t,uint o,uint l)
-			: string(t), offset(o), length(l) 
+			: string(t), offset(o), length(l)
 			{
 				NST_ASSERT( offset + length <= string.Length() );
 			}
@@ -726,11 +726,11 @@ namespace Nestopia
 				Assign( Base::GetPtr(t), Base::GetLength(t) );
 				return *this;
 			}
-  
+
 			Sub& operator = (Type c)
 			{
-				Assign( &c, 1 ); 
-				return *this; 
+				Assign( &c, 1 );
+				return *this;
 			}
 
 			Sub& operator = (int    i) { Base::AssignSigned   ( *this, i ); return *this; }
@@ -830,9 +830,9 @@ namespace Nestopia
 				return Generic<Type>( string.Ptr() + offset + p, l );
 			}
 
-			template<typename U> 
-			bool IsEqual(const U& t) const 
-			{ 
+			template<typename U>
+			bool IsEqual(const U& t) const
+			{
 				return Base::IsCaseEqual( *this, t );
 			}
 
@@ -866,7 +866,7 @@ namespace Nestopia
 				TYPE_SIZE = sizeof(Type),
 				MAX_LENGTH = N
 			};
-			
+
 			template<typename U> void Assign(const U* NST_RESTRICT,uint);
 			template<typename U> void Append(const U* NST_RESTRICT,uint);
 			template<typename U> void Insert(const uint,const U* NST_RESTRICT,uint);
@@ -1071,7 +1071,7 @@ namespace Nestopia
 			{
 				Resize( n );
 			}
-  
+
 			void Remove(const Type c)
 			{
 				length = Base::Remove( string, c ) - string;
@@ -1107,9 +1107,9 @@ namespace Nestopia
 				return SubString( *this, p, l );
 			}
 
-			template<typename U> 
-			bool IsEqual(const U& t) const 
-			{ 
+			template<typename U>
+			bool IsEqual(const U& t) const
+			{
 				return Base::IsCaseEqual( *this, t );
 			}
 
@@ -1129,11 +1129,11 @@ namespace Nestopia
 			uint i = ~0U;
 			Type c;
 
-			do 
+			do
 			{
 				++i;
 				string[i] = c = t[i];
-			} 
+			}
 			while (c);
 
 			length = i;
@@ -1157,11 +1157,11 @@ namespace Nestopia
 			uint i = length - 1U;
 			Type c;
 
-			do 
+			do
 			{
 				++i;
 				string[i] = c = t[i];
-			} 
+			}
 			while (c);
 
 			length = i;
@@ -1172,7 +1172,7 @@ namespace Nestopia
 		{
 			NST_ASSERT( t && length + n <= MAX_LENGTH );
 
-			Type* const offset = string + length; 
+			Type* const offset = string + length;
 			length += n;
 			Base::Copy( offset, t, n );
 			offset[n] = '\0';
@@ -1182,7 +1182,7 @@ namespace Nestopia
 		void Stack<N,T>::Erase(const uint p,const uint n)
 		{
 			NST_ASSERT( p + n <= length );
-			
+
 			const uint l = length;
 			length -= n;
 			Base::Move( string + p, string + p + n, (l + 1) - (p + n) );
@@ -1238,25 +1238,6 @@ namespace Nestopia
 
 			static Type empty[4];
 
-			void Allocate(const uint size)
-			{
-				NST_ASSERT( size && size+1 );
-				string = (Type*) std::malloc( (size+1) * TYPE_SIZE );
-			}
-
-			void Reallocate(const uint size)
-			{
-				NST_ASSERT( size && size+1 );
-				string = (Type*) std::realloc( string, (size+1) * TYPE_SIZE );
-			}
-
-			void Free()
-			{
-				Type* tmp = string;
-				string = empty;
-				std::free( tmp );
-			}
-							   
 			template<typename U>
 			void Copy(const U* NST_RESTRICT const t,const uint n)
 			{
@@ -1268,7 +1249,7 @@ namespace Nestopia
 		public:
 
 			Heap()
-			: string(empty), length(0), capacity(0) 
+			: string(empty), length(0), capacity(0)
 			{
 				NST_ASSERT( !*empty );
 			}
@@ -1494,10 +1475,10 @@ namespace Nestopia
 				return length;
 			}
 
-			SubString FirstOf(Type c) 
-			{ 
+			SubString FirstOf(Type c)
+			{
 				uint first = FindFirstOf(c,length);
-				return SubString( *this, first, length - first ); 
+				return SubString( *this, first, length - first );
 			}
 
 			template<typename U> bool operator == (const U& t) const { return  Base::IsEqual( *this, t );      }
@@ -1518,7 +1499,7 @@ namespace Nestopia
 
 			if (0 != (capacity = length = n))
 			{
-				Allocate( n );
+				string = (Type*) std::malloc( (n+1) * TYPE_SIZE );
 				Copy( t, n );
 			}
 			else
@@ -1534,16 +1515,8 @@ namespace Nestopia
 			{
 				uint prev = capacity;
 				capacity = n;
-
-				if (prev)
-				{
-					Reallocate( n );
-				}
-				else
-				{
-					Allocate( n );
-					string[0] = '\0';
-				}
+				string = (Type*) std::realloc( prev ? string : NULL, (n+1) * TYPE_SIZE );
+				string[length] = '\0';
 			}
 		}
 
@@ -1560,14 +1533,24 @@ namespace Nestopia
 			if (capacity)
 			{
 				length = capacity = 0;
-				Free();
+				Type* tmp = string;
+				string = empty;
+				std::free( tmp );
 			}
 		}
 
 		template<typename T> template<typename U>
-		void Heap<T>::Assign(const U* NST_RESTRICT t,uint n)
-		{		
-			Resize( n );
+		void Heap<T>::Assign(const U* NST_RESTRICT t,const uint n)
+		{
+			length = n;
+
+			if (capacity < n)
+			{
+				uint prev = capacity;
+				capacity = n;
+				string = (Type*) std::realloc( prev ? string : NULL, (capacity+1) * TYPE_SIZE );
+			}
+
 			Copy( t, n );
 		}
 
@@ -1578,23 +1561,19 @@ namespace Nestopia
 		}
 
 		template<typename T> template<typename U>
-		void Heap<T>::Append(const U* NST_RESTRICT t,uint n)
-		{	
-			if (capacity < length + n)
+		void Heap<T>::Append(const U* NST_RESTRICT t,const uint n)
+		{
+			length += n;
+
+			if (capacity < length)
 			{
 				uint prev = capacity;
-				capacity = capacity * 2 + n;
-
-				if (prev)
-					Reallocate( capacity );
-				else
-					Allocate( capacity );
+				capacity = length * 2;
+				string = (Type*) std::realloc( prev ? string : NULL, (capacity+1) * TYPE_SIZE );
 			}
 
-			Type* const offset = string + length;
-			length += n;
-			Base::Copy( offset, t, n );
-			offset[n] = '\0';
+			Base::Copy( string + length - n, t, n );
+			string[length] = '\0';
 		}
 
 		template<typename T> template<typename U>
@@ -1614,7 +1593,7 @@ namespace Nestopia
 				}
 				else
 				{
-					capacity = NST_MAX(capacity * 2,length + n);
+					capacity = length + n * 2;
 
 					Type* const next = (Type*) std::malloc( (capacity+1) * TYPE_SIZE );
 
@@ -1641,7 +1620,7 @@ namespace Nestopia
 			length -= n;
 			Base::Move( string + p, string + p + n, (l + 1) - (p + n) );
 		}
-  
+
 		template<typename T>
 		void Heap<T>::Defrag()
 		{
@@ -1649,10 +1628,16 @@ namespace Nestopia
 			{
 				capacity = length;
 
-				if (length)
-					Reallocate( length );
+				if (capacity)
+				{
+					string = (Type*) std::realloc( string, (capacity+1) * TYPE_SIZE );
+				}
 				else
-					Free();
+				{
+					Type* tmp = string;
+					string = empty;
+					std::free( tmp );
+				}
 			}
 		}
 
@@ -1672,7 +1657,7 @@ namespace Nestopia
 			Path(const Path& p)
 			: Parent(static_cast<const Parent&>(p)) {}
 
-			template<typename U> 
+			template<typename U>
 			Path(const U& t)
 			: Parent(t) {}
 
@@ -1697,7 +1682,11 @@ namespace Nestopia
 			}
 
 			void Set(Any,Any,Any=Any());
-			void CheckSlash();
+			void MakePretty(ibool=false);
+
+			bool FileExists() const;
+			bool FileProtected() const;
+			bool DirectoryExists() const;
 
 			static const Path Compact(Any,uint);
 
@@ -1712,7 +1701,7 @@ namespace Nestopia
 			static uint ExtensionId(const T* NST_RESTRICT,uint);
 
 			class DirectorySub : public Sub
-			{		
+			{
 			public:
 
 				DirectorySub(Path& path,uint length)
@@ -1781,7 +1770,7 @@ namespace Nestopia
 			};
 
 		public:
-  
+
 			DirectorySub Directory()
 			{
 				return DirectorySub( *this, FindDirectory() );
@@ -1791,18 +1780,18 @@ namespace Nestopia
 			{
 				return Any( Parent::Ptr(), FindDirectory() );
 			}
-  
+
 			Sub File()
 			{
 				return Sub( *this, FindDirectory() );
 			}
-  
+
 			const Any File() const
 			{
 				uint p = FindDirectory();
 				return Any( Parent::Ptr() + p, Parent::Length() - p );
 			}
-  
+
 			ExtensionSub Extension()
 			{
 				uint p[2];
@@ -1816,7 +1805,7 @@ namespace Nestopia
 				FindExtension( p );
 				return ConstExtensionSub( Parent::Ptr() + p[0], p[1] );
 			}
-  
+
 			const Any Archive() const
 			{
 				return Any( Parent::Ptr(), FindArchive() );
@@ -1828,7 +1817,7 @@ namespace Nestopia
 				FindFileInArchive( p );
 				return ArchiveFileSub( Parent::Ptr() + p[0], p[1] );
 			}
-  
+
 			ArchiveFileSub Target() const
 			{
 				const ArchiveFileSub archive( FileInArchive() );
@@ -1858,13 +1847,26 @@ namespace Nestopia
 			if (ext.Length())
 				Extension() = ext;
 		}
-	  
-	    template<typename T>
-	    void Path<T>::CheckSlash()
-	    {
-			if (Parent::Length() && Parent::Back() != '\\' && Parent::Back() != '/')
-				operator << ('\\');
-	    }
+
+		template<typename T>
+		void Path<T>::MakePretty(const ibool checkSlash)
+		{
+			if (Parent::Length())
+			{
+				if
+				(
+					Parent::Length() >= 3 &&
+					Parent::At(0) >= 'a' &&
+					Parent::At(0) <= 'z' &&
+					Parent::At(1) == ':' &&
+					(Parent::At(2) == '\\' || Parent::At(2) == '/')
+				)
+					(*this)[0] -= ('a'-'A');
+
+				if (checkSlash && Parent::Back() != '\\' && Parent::Back() != '/')
+					(*this) << '\\';
+			}
+		}
 
 		template<typename T>
 		uint Path<T>::FindDirectory() const
@@ -1891,20 +1893,20 @@ namespace Nestopia
 			{
 				switch (Parent::At(--i))
 				{
-					case '.': 
-						
+					case '.':
+
 						p[0] = i + 1;
 						p[1] -= p[0];
 						return;
 
 					case '\\':
-					case '/': 
+					case '/':
 
 						i = 0;
 						break;
 
-					case '>': 
-						
+					case '>':
+
 						while (i && Parent::At(--i) != '<');
 
 						if (i && Parent::At(i-1) == ' ')
@@ -1935,11 +1937,11 @@ namespace Nestopia
 
 							return i;
 						}
-					}					
+					}
 					break;
 				}
 			}
-				
+
 			return 0;
 		}
 
@@ -1961,7 +1963,7 @@ namespace Nestopia
 
 							return;
 						}
-					}					
+					}
 					break;
 				}
 			}
@@ -1983,7 +1985,7 @@ namespace Nestopia
 				for (uint i=0; i < length; ++i)
 				{
 					const T c = string[i];
-					
+
 					uint v;
 
 					if (c >= 'a' && c <= 'z')
@@ -2167,17 +2169,17 @@ namespace Nestopia
 
 			*it = '\0';
 
-			static const Type lut[] = 
+			static const Type lut[] =
 			{
 				'0','1','2','3','4','5','6','7',
 				'8','9','A','B','C','D','E','F'
 			};
 
-			do 
+			do
 			{
 				*--it = lut[number % 16];
 				number /= 16;
-			} 
+			}
 			while (it != buffer + 2);
 
 			*--it = 'x';
@@ -2186,29 +2188,29 @@ namespace Nestopia
 
 		template<typename T>
 		Hex<T>::Hex(const u32 i,const bool n0x)
-		: 
-		string(n0x ? buffer + 2 : buffer), 
-		length(n0x ? 8 : 2+8) 
-		{ 
-			Convert( i, 2+8 ); 
+		:
+		string(n0x ? buffer + 2 : buffer),
+		length(n0x ? 8 : 2+8)
+		{
+			Convert( i, 2+8 );
 		}
 
 		template<typename T>
 		Hex<T>::Hex(const u16 i,const bool n0x)
-		: 
-		string(n0x ? buffer + 2 : buffer), 
-		length(n0x ? 4 : 2+4) 
-		{ 
-			Convert( i, 2+4 ); 
+		:
+		string(n0x ? buffer + 2 : buffer),
+		length(n0x ? 4 : 2+4)
+		{
+			Convert( i, 2+4 );
 		}
 
 		template<typename T>
 		Hex<T>::Hex(const u8 i,const bool n0x)
-		: 
-		string(n0x ? buffer + 2 : buffer), 
-		length(n0x ? 2 : 2+2) 
-		{ 
-			Convert( i, 2+2 ); 
+		:
+		string(n0x ? buffer + 2 : buffer),
+		length(n0x ? 2 : 2+2)
+		{
+			Convert( i, 2+2 );
 		}
 	}
 

@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -27,17 +27,17 @@
 #include "../NstClock.hpp"
 #include "../NstPrpBarcodeReader.hpp"
 #include "NstBrdFme7.hpp"
-		   
+
 namespace Nes
 {
 	namespace Core
 	{
 		namespace Boards
 		{
-            #ifdef NST_PRAGMA_OPTIMIZE
-            #pragma optimize("s", on)
-            #endif
-		
+			#ifdef NST_PRAGMA_OPTIMIZE
+			#pragma optimize("s", on)
+			#endif
+
 			class Fme7::BarcodeWorld : public Peripherals::BarcodeReader
 			{
 				bool SubTransfer(cstring,uint,u8*);
@@ -84,7 +84,7 @@ namespace Nes
 				}
 			};
 
-			const u16 Fme7::Sound::levels[32] = 
+			const u16 Fme7::Sound::levels[32] =
 			{
 				// 32 levels, 1.5dB per step
 				0,89,106,127,152,181,216,257,306,364,433,515,613,729,867,1031,1226,1458,
@@ -118,15 +118,15 @@ namespace Nes
 				if (hooked)
 					apu.ReleaseChannel();
 			}
-	
+
 			Fme7::Fme7(Context& c)
-			: 
+			:
 			Mapper       (c,WRAM_8K),
 			irq          (c.cpu),
 			sound        (c.cpu),
 			barcodeWorld (c.pRomCrc == 0x67898319UL ? new BarcodeWorld : NULL)
 			{}
-		
+
 			Fme7::~Fme7()
 			{
 				delete barcodeWorld;
@@ -148,7 +148,7 @@ namespace Nes
 					count = 0;
 				}
 			}
-	
+
 			void Fme7::Sound::Envelope::Reset(const uint fixed)
 			{
 				holding = false;
@@ -186,14 +186,14 @@ namespace Nes
 			{
 				regSelect = 0x0;
 				envelope.Reset( fixed );
-	
+
 				for (uint i=0; i < NUM_SQUARES; ++i)
 					squares[i].Reset( fixed );
 
 				noise.Reset( fixed );
 				dcBlocker.Reset();
 			}
-	
+
 			void Fme7::SubReset(const bool hard)
 			{
 				if (hard)
@@ -204,8 +204,8 @@ namespace Nes
 				if (barcodeWorld)
 					barcodeWorld->Reset( cpu );
 
-				Map( WRK_PEEK );		
-				Map( WRK_POKE_BUS );		
+				Map( WRK_PEEK );
+				Map( WRK_POKE_BUS );
 				Map( 0x8000U, 0x9FFFU, &Fme7::Poke_8000 );
 				Map( 0xA000U, 0xBFFFU, &Fme7::Poke_A000 );
 				Map( 0xC000U, 0xDFFFU, &Fme7::Poke_C000 );
@@ -253,31 +253,31 @@ namespace Nes
 						switch (chunk)
 						{
 							case NES_STATE_CHUNK_ID('R','E','G','\0'):
-						
+
 								command = state.Read8();
 								break;
-						
+
 							case NES_STATE_CHUNK_ID('I','R','Q','\0'):
 							{
 								const State::Loader::Data<3> data( state );
-						
+
 								irq.EnableLine( data[0] & 0x80 );
 								irq.unit.enabled = data[0] & 0x01;
 								irq.unit.count = data[1] | (data[2] << 8);
-						
+
 								break;
 							}
-						
+
 							case NES_STATE_CHUNK_ID('S','N','D','\0'):
-						
+
 								sound.LoadState( State::Loader::Subset(state).Ref() );
 								break;
-						
+
 							case NES_STATE_CHUNK_ID('B','R','C','\0'):
-						
+
 								if (barcodeWorld)
 									barcodeWorld->LoadState( State::Loader::Subset(state).Ref() );
-						
+
 								break;
 						}
 
@@ -285,7 +285,7 @@ namespace Nes
 					}
 				}
 			}
-		
+
 			void Fme7::BaseSave(State::Saver& state) const
 			{
 				state.Begin('F','M','7','\0');
@@ -309,7 +309,7 @@ namespace Nes
 
 				state.End();
 			}
-				
+
 			void Fme7::Sound::SaveState(State::Saver& state) const
 			{
 				state.Begin('R','E','G','\0').Write8( regSelect ).End();
@@ -320,14 +320,14 @@ namespace Nes
 				squares[1].SaveState( State::Saver::Subset(state,'S','Q','1','\0').Ref() );
 				squares[2].SaveState( State::Saver::Subset(state,'S','Q','2','\0').Ref() );
 			}
-				
+
 			void Fme7::Sound::LoadState(State::Loader& state)
 			{
 				while (const dword chunk = state.Begin())
 				{
 					switch (chunk)
 					{
-     					case NES_STATE_CHUNK_ID('R','E','G','\0'):
+						case NES_STATE_CHUNK_ID('R','E','G','\0'):
 
 							regSelect = state.Read8();
 							break;
@@ -366,9 +366,9 @@ namespace Nes
 			{
 				const u8 data[4] =
 				{
-					(holding   ? 0x1 : 0x0) | 
-					(hold      ? 0x2 : 0x1) | 
-					(alternate ? 0x4 : 0x0) | 
+					(holding   ? 0x1 : 0x0) |
+					(hold      ? 0x2 : 0x1) |
+					(alternate ? 0x4 : 0x0) |
 					(attack    ? 0x8 : 0x0),
 					count,
 					length & 0xFF,
@@ -484,7 +484,7 @@ namespace Nes
 					'S',
 					'O',
 					'F',
-					'T'				
+					'T'
 				};
 
 				*stream++ = 0x04;
@@ -502,9 +502,9 @@ namespace Nes
 				return true;
 			}
 
-            #ifdef NST_PRAGMA_OPTIMIZE
-            #pragma optimize("", on)
-            #endif
+			#ifdef NST_PRAGMA_OPTIMIZE
+			#pragma optimize("", on)
+			#endif
 
 			NES_POKE(Fme7::BarcodeWorld,4017)
 			{
@@ -516,13 +516,13 @@ namespace Nes
 				return (IsTransferring() ? Fetch() : 0x00) | p4017.Peek( address );
 			}
 
-			NES_POKE(Fme7,8000) 
-			{ 
+			NES_POKE(Fme7,8000)
+			{
 				command = data;
 			}
-		
-			NES_POKE(Fme7,A000) 
-			{ 
+
+			NES_POKE(Fme7,A000)
+			{
 				switch (const uint bank = (command & 0xF))
 				{
 					case 0x0:
@@ -533,25 +533,25 @@ namespace Nes
 					case 0x5:
 					case 0x6:
 					case 0x7:
-			
+
 						ppu.Update();
 						chr.SwapBank<SIZE_1K>( bank << 10, data );
 						break;
-		
+
 					case 0x8:
 
 						if (!(data & 0x40) || (data & 0x80))
 							wrk.Source( !(data & 0x40) ).SwapBank<SIZE_8K,0x0000U>( data );
 
 						break;
-			
+
 					case 0x9:
 					case 0xA:
 					case 0xB:
-		
+
 						prg.SwapBank<SIZE_8K>( (command - 0x9) << 13, data );
 						break;
-			
+
 					case 0xC:
 					{
 						static const uchar lut[4] =
@@ -561,13 +561,13 @@ namespace Nes
 							Ppu::NMT_ZERO,
 							Ppu::NMT_ONE
 						};
-		
+
 						ppu.SetMirroring( lut[data & 0x3] );
 						break;
 					}
-	
-					case 0xD: 
-						
+
+					case 0xD:
+
 						irq.Update();
 						irq.unit.enabled = data & 0x01;
 
@@ -575,24 +575,24 @@ namespace Nes
 							irq.ClearIRQ();
 
 						break;
-		
-					case 0xE: 
+
+					case 0xE:
 
 						irq.Update();
 						irq.unit.count = (irq.unit.count & 0xFF00U) | data;
 						break;
-		
-					case 0xF: 
+
+					case 0xF:
 
 						irq.Update();
 						irq.unit.count = (irq.unit.count & 0x00FFU) | (data << 8);
 						break;
 				}
 			}
-		
-			NES_POKE(Fme7,C000) 
-			{ 
-				sound.Poke_C000( data ); 
+
+			NES_POKE(Fme7,C000)
+			{
+				sound.Poke_C000( data );
 			}
 
 			void Fme7::Sound::Square::UpdateFrequency(const uint fixed)
@@ -601,19 +601,19 @@ namespace Nes
 				frequency = NST_MAX(length,1) * 16 * fixed;
 				timer = NST_MAX(timer + iword(frequency) - prev,0);
 			}
-						
+
 			void Fme7::Sound::Square::WriteReg0(const uint data,const uint fixed)
 			{
 				length = (length & 0x0F00) | data;
 				UpdateFrequency( fixed );
 			}
-		
+
 			void Fme7::Sound::Square::WriteReg1(const uint data,const uint fixed)
 			{
 				length = (length & 0x00FF) | ((data & 0xF) << 8);
 				UpdateFrequency( fixed );
 			}
-		
+
 			void Fme7::Sound::Square::WriteReg2(const uint data)
 			{
 				status = data & (0x1|0x8);
@@ -621,13 +621,13 @@ namespace Nes
 				if (status & 0x1)
 					dc = ~0UL;
 			}
-		
+
 			void Fme7::Sound::Square::WriteReg3(const uint data)
 			{
 				ctrl = data & 0x1F;
 				volume = levels[(ctrl & 0xF) ? (ctrl & 0xF) * 2 + 1 : 0];
 			}
-		
+
 			void Fme7::Sound::Envelope::UpdateFrequency(const uint fixed)
 			{
 				const iword prev = frequency;
@@ -682,42 +682,42 @@ namespace Nes
 			}
 
 			void Fme7::Sound::Poke_E000(const uint data)
-			{ 
+			{
 				apu.Update();
 				active = true;
-		
+
 				switch (regSelect & 0xF)
 				{
 					case 0x0:
 					case 0x2:
 					case 0x4:
-				
+
 						squares[regSelect >> 1].WriteReg0( data, fixed );
 						break;
-				
+
 					case 0x1:
 					case 0x3:
 					case 0x5:
-				
+
 						squares[regSelect >> 1].WriteReg1( data, fixed );
 						break;
-				
+
 					case 0x6:
 
 						noise.WriteReg( data, fixed );
 						break;
 
-					case 0x7: 
-				
+					case 0x7:
+
 						for (uint i=0; i < NUM_SQUARES; ++i)
 							squares[i].WriteReg2( data >> i );
-				
+
 						break;
-				
+
 					case 0x8:
 					case 0x9:
 					case 0xA:
-				
+
 						squares[regSelect - 0x8].WriteReg3( data );
 						break;
 
@@ -732,15 +732,15 @@ namespace Nes
 						break;
 
 					case 0xD:
-					
+
 						envelope.WriteReg2( data );
 						break;
 				}
 			}
-		
-			NES_POKE(Fme7,E000) 
+
+			NES_POKE(Fme7,E000)
 			{
-				sound.Poke_E000( data ); 
+				sound.Poke_E000( data );
 			}
 
 			ibool Fme7::Irq::Signal()
@@ -748,7 +748,7 @@ namespace Nes
 				count = (count - 1) & 0xFFFFU;
 				return count < enabled;
 			}
-		
+
 			NST_FORCE_INLINE dword Fme7::Sound::Envelope::Clock(const Cycle rate)
 			{
 				if (!holding)
@@ -757,11 +757,11 @@ namespace Nes
 
 					if (timer < 0)
 					{
-						do 
+						do
 						{
 							--count;
 							timer += iword(frequency);
-						} 
+						}
 						while (timer < 0);
 
 						if (count > 0x1F)
@@ -820,12 +820,12 @@ namespace Nes
 					{
 						sum &= dc;
 
-						do 
+						do
 						{
 							dc ^= (status & 0x1) - 1UL;
 							sum += NST_MIN(dword(-timer),frequency) & dc;
 							timer += iword(frequency);
-						} 
+						}
 						while (timer < 0);
 
 						NST_VERIFY( sum <= ULONG_MAX / out + rate/2 );

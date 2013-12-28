@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -24,17 +24,17 @@
 
 #include "../NstMapper.hpp"
 #include "NstBrdS8259.hpp"
-	   
+
 namespace Nes
 {
 	namespace Core
 	{
 		namespace Boards
 		{
-            #ifdef NST_PRAGMA_OPTIMIZE
-            #pragma optimize("s", on)
-            #endif
-	
+			#ifdef NST_PRAGMA_OPTIMIZE
+			#pragma optimize("s", on)
+			#endif
+
 			void S8259::SubReset(const bool hard)
 			{
 				if (hard)
@@ -55,7 +55,7 @@ namespace Nes
 					}
 				}
 			}
-	
+
 			void S8259::BaseLoad(State::Loader& state,const dword id)
 			{
 				NST_VERIFY( id == NES_STATE_CHUNK_ID('S','8','2','\0') );
@@ -74,16 +74,16 @@ namespace Nes
 					}
 				}
 			}
-	
+
 			void S8259::BaseSave(State::Saver& state) const
 			{
 				state.Begin('S','8','2','\0').Begin('R','E','G','\0').Write8( ctrl ).Write( regs ).End().End();
 			}
-	
-            #ifdef NST_PRAGMA_OPTIMIZE
-            #pragma optimize("", on)
-            #endif
-	
+
+			#ifdef NST_PRAGMA_OPTIMIZE
+			#pragma optimize("", on)
+			#endif
+
 			void S8259::UpdateChr() const
 			{
 				for (uint i=0; i < 4; ++i)
@@ -109,14 +109,14 @@ namespace Nes
 
 						if (type == TYPE_A)
 						{
-							bank = (bank << 1) | (i & 0x1); 
+							bank = (bank << 1) | (i & 0x1);
 						}
 						else if (type == TYPE_C)
 						{
-							bank = (bank << 2) | (i & 0x3); 
+							bank = (bank << 2) | (i & 0x3);
 						}
 
-						chr.SwapBank<SIZE_2K>( i << 11, bank ); 
+						chr.SwapBank<SIZE_2K>( i << 11, bank );
 					}
 				}
 			}
@@ -125,7 +125,7 @@ namespace Nes
 			{
 				ctrl = data;
 			}
-	
+
 			NES_POKE(S8259,4101)
 			{
 				regs[ctrl & 0x7] = data;

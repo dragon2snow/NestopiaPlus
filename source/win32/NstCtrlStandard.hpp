@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -37,6 +37,11 @@ namespace Nestopia
 		{
 			class Generic
 			{
+			public:
+
+				ibool IsFixedFont() const;
+				Point GetMaxTextSize() const;
+
 			protected:
 
 				Window::Generic control;
@@ -47,19 +52,19 @@ namespace Nestopia
 				: control(hWnd) {}
 
 				Generic(HWND hWnd,uint id)
-				: control( ::GetDlgItem( hWnd, id ) ) 
+				: control( ::GetDlgItem( hWnd, id ) )
 				{
 					NST_VERIFY( control );
 				}
 
-				void Enable(ibool state=TRUE) const
+				void Enable(ibool state=true) const
 				{
 					control.Enable( state );
 				}
 
 				void Disable() const
 				{
-					Enable( FALSE );
+					Enable( false );
 				}
 
 				ibool IsEnabled() const
@@ -137,7 +142,7 @@ namespace Nestopia
 			template<typename T,size_t N>
 			NotificationHandler::NotificationHandler
 			(
-		       	const uint id,
+				const uint id,
 				MsgHandler& m,
 				T* const data,
 				const Entry<T>(&entries)[N]

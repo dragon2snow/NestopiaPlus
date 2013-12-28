@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -25,15 +25,15 @@
 #include "../NstMapper.hpp"
 #include "../NstClock.hpp"
 #include "NstMapper056.hpp"
-		 
+
 namespace Nes
 {
 	namespace Core
 	{
-        #ifdef NST_PRAGMA_OPTIMIZE
-        #pragma optimize("s", on)
-        #endif
-	
+		#ifdef NST_PRAGMA_OPTIMIZE
+		#pragma optimize("s", on)
+		#endif
+
 		Mapper56::Mapper56(Context& c)
 		: Mapper(c,WRAM_8K), irq(c.cpu) {}
 
@@ -71,10 +71,10 @@ namespace Nes
 				switch (chunk)
 				{
 					case NES_STATE_CHUNK_ID('R','E','G','\0'):
-					
+
 						ctrl = state.Read8();
 						break;
-					
+
 					case NES_STATE_CHUNK_ID('I','R','Q','\0'):
 					{
 						const State::Loader::Data<5> data( state );
@@ -84,14 +84,14 @@ namespace Nes
 						irq.unit.count = data[1] | (data[2] << 8);
 						irq.unit.latch = data[3] | (data[4] << 8);
 
-						break;					
+						break;
 					}
 				}
 
 				state.End();
 			}
 		}
-	
+
 		void Mapper56::SubSave(State::Saver& state) const
 		{
 			state.Begin('R','E','G','\0').Write8( ctrl ).End();
@@ -107,10 +107,10 @@ namespace Nes
 
 			state.Begin('I','R','Q','\0').Write( data ).End();
 		}
-	
-        #ifdef NST_PRAGMA_OPTIMIZE
-        #pragma optimize("", on)
-        #endif
+
+		#ifdef NST_PRAGMA_OPTIMIZE
+		#pragma optimize("", on)
+		#endif
 
 		NES_POKE(Mapper56,8000)
 		{
@@ -139,7 +139,7 @@ namespace Nes
 		NES_POKE(Mapper56,C000)
 		{
 			irq.Update();
-			
+
 			irq.unit.ctrl = data & 0x5;
 
 			if (irq.EnableLine( data & 0x2 ))
@@ -190,8 +190,8 @@ namespace Nes
 					ppu.SetMirroring( (data & 0x1) ? Ppu::NMT_VERTICAL : Ppu::NMT_HORIZONTAL );
 					break;
 
-				case 0xC00: 
-					
+				case 0xC00:
+
 					ppu.Update();
 					chr.SwapBank<SIZE_1K>( (address & 0x7) << 10, data );
 					break;
@@ -202,7 +202,7 @@ namespace Nes
 		{
 			if (count++ != 0xFFFFU)
 				return false;
-			
+
 			count = latch;
 			return true;
 		}

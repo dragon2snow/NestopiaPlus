@@ -5,23 +5,25 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
+#include "resource/resource.h"
+#include "NstResourceString.hpp"
 #include "NstApplicationInstance.hpp"
 #include "NstApplicationException.hpp"
 #include "NstSystemKeyboard.hpp"
@@ -49,9 +51,9 @@ namespace Nestopia
 
 	const Menu::CmdHandler::Entry<Launcher> Launcher::Handlers::commands[] =
 	{
-		{ IDM_LAUNCHER_FILE_RUN,	               &Launcher::OnCmdFileRun                   },
+		{ IDM_LAUNCHER_FILE_RUN,                   &Launcher::OnCmdFileRun                   },
 		{ IDM_LAUNCHER_FILE_REFRESH,               &Launcher::OnCmdFileRefresh               },
-		{ IDM_LAUNCHER_VIEW_SHOWGRIDS,			   &Launcher::OnCmdViewShowGrids             },
+		{ IDM_LAUNCHER_VIEW_SHOWGRIDS,             &Launcher::OnCmdViewShowGrids             },
 		{ IDM_LAUNCHER_VIEW_SHOWDATABASECORRECTED, &Launcher::OnCmdViewShowDatabaseCorrected },
 		{ IDM_LAUNCHER_OPTIONS_COLORS,             &Launcher::OnCmdOptionsColors             },
 		{ IDM_LAUNCHER_OPTIONS_PATHS,              &Launcher::OnCmdOptionsPaths              }
@@ -59,23 +61,23 @@ namespace Nestopia
 
 	const Control::NotificationHandler::Entry<Launcher> Launcher::Handlers::listNotifications[] =
 	{
-		{ LVN_GETDISPINFO,	  &Launcher::OnListGetDisplayInfo    },
-		{ LVN_KEYDOWN,	      &Launcher::OnListKeyDown           },
-		{ LVN_COLUMNCLICK,	  &Launcher::OnListColumnClick       },
-		{ LVN_ITEMACTIVATE,	  &Launcher::OnListItemActivate      },
-		{ LVN_ITEMCHANGED,	  &Launcher::OnListItemChanged       },
-		{ LVN_INSERTITEM,	  &Launcher::OnListInsertItem        },
+		{ LVN_GETDISPINFO,    &Launcher::OnListGetDisplayInfo    },
+		{ LVN_KEYDOWN,        &Launcher::OnListKeyDown           },
+		{ LVN_COLUMNCLICK,    &Launcher::OnListColumnClick       },
+		{ LVN_ITEMACTIVATE,   &Launcher::OnListItemActivate      },
+		{ LVN_ITEMCHANGED,    &Launcher::OnListItemChanged       },
+		{ LVN_INSERTITEM,     &Launcher::OnListInsertItem        },
 		{ LVN_DELETEALLITEMS, &Launcher::OnListDeleteAllItems    },
-		{ LVN_DELETEITEM,	  &Launcher::OnListDeleteItem        },
+		{ LVN_DELETEITEM,     &Launcher::OnListDeleteItem        },
 	};
 
 	const Control::NotificationHandler::Entry<Launcher> Launcher::Handlers::treeNotifications[] =
-	{ 
+	{
 		{ TVN_SELCHANGING, &Launcher::OnTreeSelectionChanging }
 	};
 
 	Launcher::Launcher(const Nes::Cartridge::Database& database,const Managers::Paths& p,const Configuration& cfg)
-	: 
+	:
 	dialog            ( IDD_LAUNCHER, this, Handlers::messages ),
 	menu              ( IDR_MENU_LAUNCHER ),
 	listNotifications ( IDC_LAUNCHER_LIST, dialog.Messages() ),
@@ -88,6 +90,15 @@ namespace Nestopia
 		dialog.Commands().Add( CMD_ENTER, this, &Launcher::OnCmdEnter );
 		listNotifications.Add( this, Handlers::listNotifications );
 		treeNotifications.Add( this, Handlers::treeNotifications );
+
+		initialSize.x = cfg["launcher window size x"];
+		initialSize.y = cfg["launcher window size y"];
+
+		if (!initialSize.x || !initialSize.y)
+		{
+			initialSize.x = 0;
+			initialSize.y = 0;
+		}
 
 		HeapString name;
 
@@ -112,8 +123,14 @@ namespace Nestopia
 		dialog.Close();
 	}
 
-	void Launcher::Save(Configuration& cfg,ibool saveFiles)
+	void Launcher::Save(Configuration& cfg,ibool saveSize,ibool saveFiles)
 	{
+		if (saveSize)
+		{
+			cfg["launcher window size x"] = initialSize.x;
+			cfg["launcher window size y"] = initialSize.y;
+		}
+
 		list.Save( cfg, saveFiles );
 		colors.Save( cfg );
 	}
@@ -148,15 +165,22 @@ namespace Nestopia
 		menu[ IDM_LAUNCHER_VIEW_SHOWDATABASECORRECTED ].Check( list.DatabaseCorrectionEnabled() );
 		menu[ IDM_LAUNCHER_FILE_REFRESH ].Enable( list.CanRefresh() );
 
-		return TRUE;
+		if (initialSize.x && initialSize.y)
+			dialog.Resize( initialSize );
+		else
+			initialSize = dialog.GetNormalWindowRect().Size();
+
+		return true;
 	}
 
 	ibool Launcher::OnDestroy(Param&)
 	{
 		tree.Close();
 		list.Close();
-		
-		return TRUE;
+
+		initialSize = dialog.GetNormalWindowRect().Size();
+
+		return true;
 	}
 
 	ibool Launcher::OnSize(Param& param)
@@ -166,50 +190,58 @@ namespace Nestopia
 			const Point edge( dialog.GetRectangle().Corner() );
 
 			list.GetWindow().Resize
-			( 
-				edge - list.GetWindow().GetPosition() - margin 
+			(
+				edge - list.GetWindow().GetPosition() - margin
 			);
 
 			const Rect rect( tree.GetWindow().GetRectangle() );
 
 			tree.GetWindow().Resize
-			( 
-				Point( rect.right - rect.left, edge.y - rect.top - margin.y ) 
+			(
+				Point( rect.right - rect.left, edge.y - rect.top - margin.y )
 			);
 		}
 
-		return TRUE;
+		return true;
 	}
 
 	ibool Launcher::OnCmdEnter(Param&)
 	{
-		OnCmdFileRun(); 
-		return TRUE;
+		OnCmdFileRun();
+		return true;
 	}
 
 	ibool Launcher::OnDropFiles(Param& param)
 	{
 		list.Insert( param );
-		return TRUE;
+		return true;
 	}
 
 	void Launcher::UpdateItemCount(const u32 count) const
 	{
-		menu[IDM_LAUNCHER_EDIT_FIND].Enable( count != 0 );
+		if (count == 0 || count == 1)
+		{
+			menu[IDM_LAUNCHER_EDIT_FIND].Enable( count );
+			menu[IDM_LAUNCHER_EDIT_CLEAR].Enable( count );
+		}
 
-		statusBar.Text(StatusBar::SECOND_FIELD) << (String::Stack<20,tchar>(_T(" Files: ")) << count).Ptr();
+		static HeapString form( HeapString() << ' ' << Resource::String(IDS_TEXT_FILES) << ": " );
+
+		const uint length = form.Length();
+		statusBar.Text(StatusBar::SECOND_FIELD) << (form << count).Ptr();
+		form.ShrinkTo( length );
 	}
 
 	void Launcher::OnListGetDisplayInfo(const NMHDR& nmhdr)
 	{
-		list.OnGetDisplayInfo( reinterpret_cast<LPARAM>(&nmhdr) ); 
+		list.OnGetDisplayInfo( reinterpret_cast<LPARAM>(&nmhdr) );
 	}
 
 	void Launcher::OnListKeyDown(const NMHDR& nmhdr)
 	{
 		switch (reinterpret_cast<const NMLVKEYDOWN&>(nmhdr).wVKey)
 		{
-			case VK_INSERT: if (menu[ IDM_LAUNCHER_EDIT_INSERT  ].IsEnabled()) dialog.PostCommand( IDM_LAUNCHER_EDIT_INSERT  ); break;	
+			case VK_INSERT: if (menu[ IDM_LAUNCHER_EDIT_INSERT  ].IsEnabled()) dialog.PostCommand( IDM_LAUNCHER_EDIT_INSERT  ); break;
 			case VK_DELETE: if (menu[ IDM_LAUNCHER_EDIT_REMOVE  ].IsEnabled()) dialog.PostCommand( IDM_LAUNCHER_EDIT_REMOVE  ); break;
 			case VK_F3:     if (menu[ IDM_LAUNCHER_EDIT_FIND    ].IsEnabled()) dialog.PostCommand( IDM_LAUNCHER_EDIT_FIND    ); break;
 			case VK_F5:     if (menu[ IDM_LAUNCHER_FILE_REFRESH ].IsEnabled()) dialog.PostCommand( IDM_LAUNCHER_FILE_REFRESH ); break;
@@ -285,40 +317,40 @@ namespace Nestopia
 
 	void Launcher::OnNoSelection() const
 	{
-		statusBar.Text(StatusBar::FIRST_FIELD).Clear(); 
+		statusBar.Text(StatusBar::FIRST_FIELD).Clear();
 
 		menu[IDM_LAUNCHER_FILE_RUN].Disable();
 		menu[IDM_LAUNCHER_EDIT_REMOVE].Disable();
 	}
 
-	void Launcher::OnCmdFileRun(uint) 
+	void Launcher::OnCmdFileRun(uint)
 	{
 		if (const List::Files::Entry* const entry = list.GetSelection())
 			Application::Instance::Launch( Path(entry->GetPath(list.GetStrings()),entry->GetFile(list.GetStrings())).Ptr() );
 	}
 
-	void Launcher::OnCmdFileRefresh(uint) 
+	void Launcher::OnCmdFileRefresh(uint)
 	{
 		list.Refresh();
 	}
 
-	void Launcher::OnCmdViewShowGrids(uint) 
+	void Launcher::OnCmdViewShowGrids(uint)
 	{
 		menu[IDM_LAUNCHER_VIEW_SHOWGRIDS].Check( list.ToggleGrids() );
 	}
 
-	void Launcher::OnCmdViewShowDatabaseCorrected(uint) 
+	void Launcher::OnCmdViewShowDatabaseCorrected(uint)
 	{
 		menu[IDM_LAUNCHER_VIEW_SHOWDATABASECORRECTED].Check( list.ToggleDatabase() );
 	}
 
-	void Launcher::OnCmdOptionsPaths(uint) 
+	void Launcher::OnCmdOptionsPaths(uint)
 	{
 		list.OpenPathDialog();
 		menu[IDM_LAUNCHER_FILE_REFRESH].Enable( list.CanRefresh() );
 	}
 
-	void Launcher::OnCmdOptionsColors(uint) 
+	void Launcher::OnCmdOptionsColors(uint)
 	{
 		colors.Open();
 

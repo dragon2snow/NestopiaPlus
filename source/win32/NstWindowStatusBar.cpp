@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -51,15 +51,15 @@ namespace Nestopia
 				character = tm.tmAveCharWidth;
 
 			first = character * numChars;
-			
+
 			::ReleaseDC( hWnd, hDC );
 		}
 	}
 
 	StatusBar::StatusBar(Custom& p,const uint numChars)
-	: 
+	:
 	parent ( p ),
-	width  ( numChars ) 
+	width  ( numChars )
 	{
 		static const MsgHandler::HookEntry<StatusBar> hooks[] =
 		{
@@ -85,9 +85,9 @@ namespace Nestopia
 			{
 				window = Generic::Create
 				(
-					0,                       
-					STATUSCLASSNAME,         
-					NULL,          
+					0,
+					STATUSCLASSNAME,
+					NULL,
 					WS_CHILD|SBARS_SIZEGRIP|(show ? WS_VISIBLE : 0),
 					0,0,0,0,
 					parent,
@@ -126,9 +126,9 @@ namespace Nestopia
 		operator << (_T(""));
 	}
 
-    #ifdef NST_PRAGMA_OPTIMIZE
-    #pragma optimize("t", on)
-    #endif
+	#ifdef NST_PRAGMA_OPTIMIZE
+	#pragma optimize("t", on)
+	#endif
 
 	uint StatusBar::GetMaxMessageLength() const
 	{
@@ -137,7 +137,7 @@ namespace Nestopia
 			int list[2] = {0,0};
 			window.Send( SB_GETPARTS, 2, list );
 
-			if (list[0] > int(width.character)) 
+			if (list[0] > int(width.character))
 				return uint(list[0]) / (width.character - 1);
 		}
 
@@ -174,8 +174,8 @@ namespace Nestopia
 		return 0;
 	}
 
-    #ifdef NST_PRAGMA_OPTIMIZE
-    #pragma optimize("", on)
-    #endif
+	#ifdef NST_PRAGMA_OPTIMIZE
+	#pragma optimize("", on)
+	#endif
 }
 

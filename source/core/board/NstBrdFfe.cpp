@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -32,10 +32,10 @@ namespace Nes
 	{
 		namespace Boards
 		{
-            #ifdef NST_PRAGMA_OPTIMIZE
-            #pragma optimize("s", on)
-            #endif
-		
+			#ifdef NST_PRAGMA_OPTIMIZE
+			#pragma optimize("s", on)
+			#endif
+
 			uint Ffe::GetIrqBase(dword pRomCrc)
 			{
 				switch (pRomCrc)
@@ -47,26 +47,26 @@ namespace Nes
 					case 0x8F3F8B1FUL: // Spartan X2
 					case 0xA3047263UL: // -||-
 					case 0xC529C604UL: // -||-
-				
+
 						return 0xFFFFU;
 				}
-		
+
 				return 0xCFFFU;
 			}
-		
+
 			Ffe::Ffe(Context& c,const Type t)
-			: 
-			Mapper (c,t == F4_XXX ? CRAM_32K : 0), 
+			:
+			Mapper (c,t == F4_XXX ? CRAM_32K : 0),
 			irq    (t == F3_XXX ? NULL : new Clock::M2<Irq>(c.cpu,GetIrqBase(c.pRomCrc))),
 			type   (t)
 			{
 			}
-		
+
 			Ffe::~Ffe()
 			{
 				delete irq;
 			}
-		
+
 			void Ffe::Irq::Reset(const bool hard)
 			{
 				if (hard)
@@ -75,7 +75,7 @@ namespace Nes
 					enabled = false;
 				}
 			}
-		
+
 			void Ffe::SubReset(const bool hard)
 			{
 				if (hard)
@@ -83,38 +83,38 @@ namespace Nes
 
 				Map( 0x42FEU, &Ffe::Poke_42FE );
 				Map( 0x42FFU, &Ffe::Poke_42FF );
-		
+
 				if (irq)
 				{
 					irq->Reset( hard, hard || irq->IsLineEnabled() );
-		
+
 					Map( 0x4501U, &Ffe::Poke_4501 );
 					Map( 0x4502U, &Ffe::Poke_4502 );
 					Map( 0x4503U, &Ffe::Poke_4503 );
 				}
-		
+
 				switch (type)
 				{
 					case F3_XXX:
-		
+
 						Map( 0x8000U, 0xFFFFU, &Ffe::Poke_Prg_F3 );
 
 						if (hard)
 							prg.SwapBank<SIZE_16K,0x4000U>(1);
 
 						break;
-		
+
 					case F4_XXX:
-		
+
 						Map( 0x8000U, 0xFFFFU, &Ffe::Poke_Prg_F4 );
 
 						if (hard)
 							prg.SwapBank<SIZE_16K,0x4000U>(7);
 
 						break;
-		
+
 					case F8_XXX:
-		
+
 						Map( 0x4504U, PRG_SWAP_8K_0 );
 						Map( 0x4505U, PRG_SWAP_8K_1 );
 						Map( 0x4506U, PRG_SWAP_8K_2 );
@@ -127,11 +127,11 @@ namespace Nes
 						Map( 0x4515U, CHR_SWAP_1K_5 );
 						Map( 0x4516U, CHR_SWAP_1K_6 );
 						Map( 0x4517U, CHR_SWAP_1K_7 );
-		
+
 						break;
 				}
 			}
-		
+
 			void Ffe::BaseLoad(State::Loader& state,const dword id)
 			{
 				NST_VERIFY( id == NES_STATE_CHUNK_ID('F','F','E','\0') );
@@ -143,22 +143,22 @@ namespace Nes
 						switch (chunk)
 						{
 							case NES_STATE_CHUNK_ID('R','E','G','\0'):
-						
+
 								NST_VERIFY( type == F4_XXX );
-						
+
 								if (type == F4_XXX)
 									mode = state.Read8() & 0x1;
-						
+
 								break;
-						
+
 							case NES_STATE_CHUNK_ID('I','R','Q','\0'):
-						
+
 								NST_VERIFY( irq );
-						
+
 								if (irq)
 								{
 									const State::Loader::Data<3> data( state );
-						
+
 									irq->unit.enabled = data[0] & 0x1;
 									irq->unit.count = data[1] | (data[2] << 8);
 								}
@@ -169,7 +169,7 @@ namespace Nes
 					}
 				}
 			}
-		
+
 			void Ffe::BaseSave(State::Saver& state) const
 			{
 				state.Begin('F','F','E','\0');
@@ -191,11 +191,11 @@ namespace Nes
 
 				state.End();
 			}
-		
-            #ifdef NST_PRAGMA_OPTIMIZE
-            #pragma optimize("", on)
-            #endif
-		
+
+			#ifdef NST_PRAGMA_OPTIMIZE
+			#pragma optimize("", on)
+			#endif
+
 			ibool Ffe::Irq::Signal()
 			{
 				if (enabled && count++ == clock)
@@ -204,50 +204,50 @@ namespace Nes
 					enabled = false;
 					return true;
 				}
-		
+
 				return false;
 			}
-		
-			NES_POKE(Ffe,42FE)  
+
+			NES_POKE(Ffe,42FE)
 			{
 				mode = data >> 7 ^ 0x1;
 				ppu.SetMirroring( (data & 0x10) ? Ppu::NMT_ONE : Ppu::NMT_ZERO );
 			}
-		
-			NES_POKE(Ffe,42FF)  
+
+			NES_POKE(Ffe,42FF)
 			{
 				ppu.SetMirroring( (data & 0x10) ? Ppu::NMT_HORIZONTAL : Ppu::NMT_VERTICAL );
 			}
-		
-			NES_POKE(Ffe,4501)  
-			{ 
+
+			NES_POKE(Ffe,4501)
+			{
 				irq->Update();
 				irq->unit.enabled = data & 0x1;
 				irq->ClearIRQ();
 			}
-		
-			NES_POKE(Ffe,4502)  
-			{ 
+
+			NES_POKE(Ffe,4502)
+			{
 				irq->Update();
 				irq->unit.count = (irq->unit.count & 0xFF00U) | data;
 			}
-		
-			NES_POKE(Ffe,4503)  
+
+			NES_POKE(Ffe,4503)
 			{
 				irq->Update();
 				irq->unit.count = (irq->unit.count & 0x00FFU) | (data << 8);
 				irq->unit.enabled = true;
 				irq->ClearIRQ();
 			}
-		
+
 			NES_POKE(Ffe,Prg_F3)
 			{
 				ppu.Update();
 				prg.SwapBank<SIZE_16K,0x0000U>( data >> 3 );
 				chr.SwapBank<SIZE_8K,0x0000U>( data & 0x7 );
 			}
-		
-			NES_POKE(Ffe,Prg_F4) 
+
+			NES_POKE(Ffe,Prg_F4)
 			{
 				ppu.Update();
 

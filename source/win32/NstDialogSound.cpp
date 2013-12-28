@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -41,14 +41,14 @@ namespace Nestopia
 		{ "sound apu square 1 volume", IDC_SOUND_SQUARE1_SLIDER,  IDC_SOUND_SQUARE1_VALUE,  Nes::Sound::CHANNEL_SQUARE1  },
 		{ "sound apu square 2 volume", IDC_SOUND_SQUARE2_SLIDER,  IDC_SOUND_SQUARE2_VALUE,  Nes::Sound::CHANNEL_SQUARE2  },
 		{ "sound apu triangle volume", IDC_SOUND_TRIANGLE_SLIDER, IDC_SOUND_TRIANGLE_VALUE, Nes::Sound::CHANNEL_TRIANGLE },
-		{ "sound apu noise volume",	   IDC_SOUND_NOISE_SLIDER,    IDC_SOUND_NOISE_VALUE,    Nes::Sound::CHANNEL_NOISE    },
-		{ "sound apu dpcm volume",	   IDC_SOUND_DPCM_SLIDER,     IDC_SOUND_DPCM_VALUE,     Nes::Sound::CHANNEL_DPCM     },
-		{ "sound fds volume",	       IDC_SOUND_FDS_SLIDER,      IDC_SOUND_FDS_VALUE,      Nes::Sound::CHANNEL_FDS      },
-		{ "sound mmc5 volume",	       IDC_SOUND_MMC5_SLIDER,     IDC_SOUND_MMC5_VALUE,     Nes::Sound::CHANNEL_MMC5     },
-		{ "sound vrc6 volume",	       IDC_SOUND_VRC6_SLIDER,     IDC_SOUND_VRC6_VALUE,     Nes::Sound::CHANNEL_VRC6     },
-		{ "sound vrc7 volume",	       IDC_SOUND_VRC7_SLIDER,     IDC_SOUND_VRC7_VALUE,     Nes::Sound::CHANNEL_VRC7     },
-		{ "sound n106 volume",	       IDC_SOUND_N106_SLIDER,     IDC_SOUND_N106_VALUE,     Nes::Sound::CHANNEL_N106     },
-		{ "sound s5b volume",	       IDC_SOUND_S5B_SLIDER,      IDC_SOUND_S5B_VALUE,      Nes::Sound::CHANNEL_S5B      }
+		{ "sound apu noise volume",    IDC_SOUND_NOISE_SLIDER,    IDC_SOUND_NOISE_VALUE,    Nes::Sound::CHANNEL_NOISE    },
+		{ "sound apu dpcm volume",     IDC_SOUND_DPCM_SLIDER,     IDC_SOUND_DPCM_VALUE,     Nes::Sound::CHANNEL_DPCM     },
+		{ "sound fds volume",          IDC_SOUND_FDS_SLIDER,      IDC_SOUND_FDS_VALUE,      Nes::Sound::CHANNEL_FDS      },
+		{ "sound mmc5 volume",         IDC_SOUND_MMC5_SLIDER,     IDC_SOUND_MMC5_VALUE,     Nes::Sound::CHANNEL_MMC5     },
+		{ "sound vrc6 volume",         IDC_SOUND_VRC6_SLIDER,     IDC_SOUND_VRC6_VALUE,     Nes::Sound::CHANNEL_VRC6     },
+		{ "sound vrc7 volume",         IDC_SOUND_VRC7_SLIDER,     IDC_SOUND_VRC7_VALUE,     Nes::Sound::CHANNEL_VRC7     },
+		{ "sound n106 volume",         IDC_SOUND_N106_SLIDER,     IDC_SOUND_N106_VALUE,     Nes::Sound::CHANNEL_N106     },
+		{ "sound s5b volume",          IDC_SOUND_S5B_SLIDER,      IDC_SOUND_S5B_VALUE,      Nes::Sound::CHANNEL_S5B      }
 	};
 
 	struct Sound::Handlers
@@ -60,24 +60,20 @@ namespace Nestopia
 	const MsgHandler::Entry<Sound> Sound::Handlers::messages[] =
 	{
 		{ WM_INITDIALOG, &Sound::OnInitDialog },
-		{ WM_VSCROLL,    &Sound::OnVScroll    },
-		{ WM_DESTROY,    &Sound::OnDestroy    }
+		{ WM_VSCROLL,    &Sound::OnVScroll    }
 	};
 
 	const MsgHandler::Entry<Sound> Sound::Handlers::commands[] =
 	{
 		{ IDC_SOUND_DEVICE,        &Sound::OnCmdDevice       },
 		{ IDC_SOUND_DEFAULT,       &Sound::OnCmdDefault      },
-		{ IDC_SOUND_8_BIT,         &Sound::OnCmdBits         },
-		{ IDC_SOUND_16_BIT,        &Sound::OnCmdBits         },
-		{ IDC_SOUND_MONO,          &Sound::OnCmdOutput       },
-		{ IDC_SOUND_STEREO,        &Sound::OnCmdOutput       },
 		{ IDC_SOUND_RESET_SLIDERS, &Sound::OnCmdResetSliders },
-		{ IDC_SOUND_OK,            &Sound::OnCmdOk           }
+		{ IDC_SOUND_OK,            &Sound::OnCmdOk           },
+		{ IDC_SOUND_CANCEL,        &Sound::OnCmdCancel       }
 	};
 
 	Sound::Sound(Managers::Emulator& e,const Adapters& a,const Managers::Paths& paths,const Configuration& cfg)
-	: 
+	:
 	adapters ( a ),
 	nes      ( e ),
 	dialog   ( IDD_SOUND, this, Handlers::messages, Handlers::commands ),
@@ -92,7 +88,7 @@ namespace Nestopia
 			if (device != _T("none"))
 			{
 				const Adapters::const_iterator it( std::find( adapters.begin(), adapters.end(), System::Guid(device) ));
-			
+
 				if (it != adapters.end())
 					settings.adapter = it - adapters.begin();
 				else
@@ -108,20 +104,20 @@ namespace Nestopia
 			case 48000U:
 			case 88200U:
 			case 96000U:
-	
+
 				nes.SetSampleRate( rate );
-		    	break;
+				break;
 		}
-  
+
 		switch (uint bits = cfg["sound sample bits"])
 		{
 			case 8:
 			case 16:
-	
+
 				nes.SetSampleBits( bits );
 				break;
 		}
-  
+
 		nes.SetAutoTranspose( cfg["sound adjust pitch"] == Configuration::YES );
 		nes.SetSpeaker( GenericString(cfg["sound output"]) == _T("stereo") ? Nes::Sound::SPEAKER_STEREO : Nes::Sound::SPEAKER_MONO );
 
@@ -206,9 +202,9 @@ namespace Nestopia
 			{
 				static const tchar rates[][6] =
 				{
-					_T("11025"), 
-					_T("22050"), 
-					_T("44100"), 
+					_T("11025"),
+					_T("22050"),
+					_T("44100"),
 					_T("48000"),
 					_T("88200"),
 					_T("96000")
@@ -223,7 +219,7 @@ namespace Nestopia
 					case 48000U: index = 3; break;
 					case 88200U: index = 4; break;
 					case 96000U: index = 5; break;
-					default:	 index = 2; break;
+					default:     index = 2; break;
 				}
 
 				const Control::ComboBox comboBox( dialog.ComboBox(IDC_SOUND_SAMPLE_RATE) );
@@ -251,28 +247,66 @@ namespace Nestopia
 
 			dialog.CheckBox( IDC_SOUND_ADJUST_PITCH ).Check( nes.IsAutoTransposing() );
 
-			if (settings.adapter == UINT_MAX)
-				Enable( FALSE );
+			if (settings.adapter != UINT_MAX)
+				UpdateVolumeReset();
+			else
+				Enable( false );
 		}
 		else
 		{
 			dialog.Control( IDC_SOUND_DEVICE ).Disable();
 			dialog.Control( IDC_SOUND_DEFAULT ).Disable();
 
-			Enable( FALSE );
+			Enable( false );
 		}
 
-		return TRUE;
+		return true;
 	}
 
-	void Sound::ResetVolumeSliders()
+	void Sound::Enable(const ibool state) const
+	{
+		dialog.Control( IDC_SOUND_SAMPLE_RATE   ).Enable( state );
+		dialog.Control( IDC_SOUND_8_BIT         ).Enable( state );
+		dialog.Control( IDC_SOUND_16_BIT        ).Enable( state );
+		dialog.Control( IDC_SOUND_LATENCY       ).Enable( state );
+		dialog.Control( IDC_SOUND_MONO          ).Enable( state );
+		dialog.Control( IDC_SOUND_STEREO        ).Enable( state );
+		dialog.Control( IDC_SOUND_ADJUST_PITCH  ).Enable( state );
+
+		for (uint i=0; i < NUM_CHANNELS; ++i)
+		{
+			dialog.Control( channelLut[i].ctrlSlider ).Enable( state );
+			dialog.Control( channelLut[i].ctrlValue ).Enable( state );
+		}
+
+		if (state)
+			UpdateVolumeReset();
+		else
+			dialog.Control( IDC_SOUND_RESET_SLIDERS ).Disable();
+	}
+
+	void Sound::ResetVolumeSliders() const
 	{
 		for (uint i=0; i < NUM_CHANNELS; ++i)
 		{
-			settings.volumes[i] = DEFAULT_VOLUME;
-			dialog.Slider( channelLut[i].ctrlSlider ).Position() = VOLUME_MAX - DEFAULT_VOLUME;
+			dialog.Slider( channelLut[i].ctrlSlider ).Position() = VOLUME_MAX-DEFAULT_VOLUME;
 			dialog.Edit( channelLut[i].ctrlValue ) << (uint) DEFAULT_VOLUME;
 		}
+
+		dialog.Control( IDC_SOUND_RESET_SLIDERS ).Disable();
+	}
+
+	void Sound::UpdateVolumeReset() const
+	{
+		uint reset;
+
+		for (reset=0; reset < NUM_CHANNELS; ++reset)
+		{
+			if (dialog.Slider( channelLut[reset].ctrlSlider ).Position() != VOLUME_MAX-DEFAULT_VOLUME)
+				break;
+		}
+
+		dialog.Control( IDC_SOUND_RESET_SLIDERS ).Enable( reset != NUM_CHANNELS );
 	}
 
 	ibool Sound::OnVScroll(Param& param)
@@ -281,70 +315,19 @@ namespace Nestopia
 		{
 			if (param.Slider().IsControl( channelLut[i].ctrlSlider ))
 			{
-				const uchar volume = VOLUME_MAX - param.Slider().Scroll();
-
-				if (settings.volumes[i] != volume)
-				{
-					settings.volumes[i] = volume;
-					dialog.Edit( channelLut[i].ctrlValue ) << volume;
-				}
-
+				dialog.Edit( channelLut[i].ctrlValue ) << (VOLUME_MAX - param.Slider().Scroll());
+				UpdateVolumeReset();
 				break;
 			}
 		}
 
-		return TRUE;
-	}
-
-	ibool Sound::OnDestroy(Param&)
-	{	
-		if (adapters.size())
-		{
-			settings.adapter = dialog.ComboBox( IDC_SOUND_DEVICE ).Selection().GetIndex() - 1U;
-			settings.latency = dialog.Slider( IDC_SOUND_LATENCY ).Position();	
-
-			static const uint rates[] = {11025,22050,44100,48000,88200,96000};
-
-			nes.SetSampleRate( rates[dialog.ComboBox( IDC_SOUND_SAMPLE_RATE ).Selection().GetIndex()] );
-			nes.SetSampleBits( dialog.RadioButton( IDC_SOUND_8_BIT ).IsChecked() ? 8 : 16 );
-			nes.SetSpeaker( dialog.RadioButton( IDC_SOUND_STEREO ).IsChecked() ? Nes::Sound::SPEAKER_STEREO : Nes::Sound::SPEAKER_MONO );
-			nes.SetAutoTranspose( dialog.CheckBox( IDC_SOUND_ADJUST_PITCH ).IsChecked() );
-
-			for (uint i=1; i < NUM_CHANNELS; ++i)
-				nes.SetVolume( channelLut[i].channel, GetVolume( channelLut[i].channel ) );
-		}
-
-		return TRUE;
+		return true;
 	}
 
 	ibool Sound::OnCmdDevice(Param&)
 	{
 		Enable( dialog.ComboBox( IDC_SOUND_DEVICE ).Selection().GetIndex() != 0 );
-		return TRUE;
-	}
-
-	ibool Sound::OnCmdBits(Param& param)
-	{
-		if (param.Button().IsClicked())
-		{
-			const uint cmd = param.Button().GetId();
-			dialog.RadioButton( IDC_SOUND_16_BIT ).Check( cmd == IDC_SOUND_16_BIT );
-			dialog.RadioButton( IDC_SOUND_8_BIT ).Check( cmd == IDC_SOUND_8_BIT );
-		}
-
-		return TRUE;
-	}
-
-	ibool Sound::OnCmdOutput(Param& param)
-	{
-		if (param.Button().IsClicked())
-		{
-			const uint cmd = param.Button().GetId();
-			dialog.RadioButton( IDC_SOUND_MONO ).Check( cmd == IDC_SOUND_MONO );
-			dialog.RadioButton( IDC_SOUND_STEREO ).Check( cmd == IDC_SOUND_STEREO );
-		}
-
-		return TRUE;
+		return true;
 	}
 
 	ibool Sound::OnCmdResetSliders(Param& param)
@@ -352,7 +335,7 @@ namespace Nestopia
 		if (param.Button().IsClicked())
 			ResetVolumeSliders();
 
-		return TRUE;
+		return true;
 	}
 
 	ibool Sound::OnCmdDefault(Param& param)
@@ -361,10 +344,10 @@ namespace Nestopia
 
 		if (param.Button().IsClicked())
 		{
-			Enable( TRUE );
+			Enable( true );
 
 			dialog.ComboBox( IDC_SOUND_DEVICE )[GetDefaultAdapter()+1].Select();
-			dialog.ComboBox( IDC_SOUND_SAMPLE_RATE )[2].Select();	
+			dialog.ComboBox( IDC_SOUND_SAMPLE_RATE )[2].Select();
 
 			dialog.RadioButton( IDC_SOUND_16_BIT ).Check();
 			dialog.RadioButton( IDC_SOUND_8_BIT ).Uncheck();
@@ -378,33 +361,44 @@ namespace Nestopia
 			ResetVolumeSliders();
 		}
 
-		return TRUE;
+		return true;
 	}
 
 	ibool Sound::OnCmdOk(Param& param)
 	{
 		if (param.Button().IsClicked())
-			dialog.Close();
+		{
+			if (adapters.size())
+			{
+				settings.adapter = dialog.ComboBox( IDC_SOUND_DEVICE ).Selection().GetIndex() - 1U;
+				settings.latency = dialog.Slider( IDC_SOUND_LATENCY ).Position();
 
-		return TRUE;
+				static const uint rates[] = {11025,22050,44100,48000,88200,96000};
+
+				nes.SetSampleRate( rates[dialog.ComboBox( IDC_SOUND_SAMPLE_RATE ).Selection().GetIndex()] );
+				nes.SetSampleBits( dialog.RadioButton( IDC_SOUND_8_BIT ).IsChecked() ? 8 : 16 );
+				nes.SetSpeaker( dialog.RadioButton( IDC_SOUND_STEREO ).IsChecked() ? Nes::Sound::SPEAKER_STEREO : Nes::Sound::SPEAKER_MONO );
+				nes.SetAutoTranspose( dialog.CheckBox( IDC_SOUND_ADJUST_PITCH ).IsChecked() );
+
+				for (uint i=0; i < NUM_CHANNELS; ++i)
+					settings.volumes[i] = VOLUME_MAX - dialog.Slider( channelLut[i].ctrlSlider ).Position();
+
+				for (uint i=1; i < NUM_CHANNELS; ++i)
+					nes.SetVolume( channelLut[i].channel, GetVolume( channelLut[i].channel ) );
+			}
+
+			dialog.Close();
+		}
+
+		return true;
 	}
 
-	void Sound::Enable(const ibool state)
+	ibool Sound::OnCmdCancel(Param& param)
 	{
-		dialog.Control( IDC_SOUND_SAMPLE_RATE   ).Enable( state );
-		dialog.Control( IDC_SOUND_8_BIT         ).Enable( state );
-		dialog.Control( IDC_SOUND_16_BIT        ).Enable( state );
-		dialog.Control( IDC_SOUND_LATENCY       ).Enable( state );
-		dialog.Control( IDC_SOUND_MONO          ).Enable( state );
-		dialog.Control( IDC_SOUND_STEREO        ).Enable( state );
-		dialog.Control( IDC_SOUND_ADJUST_PITCH  ).Enable( state );
-		dialog.Control( IDC_SOUND_RESET_SLIDERS ).Enable( state );
+		if (param.Button().IsClicked())
+			dialog.Close();
 
-		for (uint i=0; i < NUM_CHANNELS; ++i)
-		{
-			dialog.Control( channelLut[i].ctrlSlider ).Enable( state );
-			dialog.Control( channelLut[i].ctrlValue ).Enable( state );
-		}
+		return true;
 	}
 
 	struct Sound::Recorder::Handlers
@@ -434,7 +428,7 @@ namespace Nestopia
 		dialog.Edit( IDC_SOUND_CAPTURE_FILE ) << waveFile.Ptr();
 		dialog.Edit( IDC_SOUND_CAPTURE_FILE ).Limit( _MAX_PATH );
 
-		return TRUE;
+		return true;
 	}
 
 	ibool Sound::Recorder::OnCmdClear(Param& param)
@@ -442,19 +436,19 @@ namespace Nestopia
 		if (param.Button().IsClicked())
 			dialog.Edit(IDC_SOUND_CAPTURE_FILE).Clear();
 
-		return TRUE;
+		return true;
 	}
 
 	ibool Sound::Recorder::OnCmdBrowse(Param& param)
 	{
-		if (param.Button().IsClicked())	
+		if (param.Button().IsClicked())
 		{
 			Path tmp;
 			dialog.Edit(IDC_SOUND_CAPTURE_FILE) >> tmp;
 			dialog.Edit(IDC_SOUND_CAPTURE_FILE).Try() << paths.BrowseSave( Managers::Paths::File::WAVE, Managers::Paths::SUGGEST, tmp ).Ptr();
 		}
 
-		return TRUE;
+		return true;
 	}
 
 	ibool Sound::Recorder::OnCmdOk(Param& param)
@@ -466,7 +460,7 @@ namespace Nestopia
 			dialog.Close();
 		}
 
-		return TRUE;
+		return true;
 	}
 
 	ibool Sound::Recorder::OnCmdCancel(Param& param)
@@ -474,6 +468,6 @@ namespace Nestopia
 		if (param.Button().IsClicked())
 			dialog.Close();
 
-		return TRUE;
+		return true;
 	}
 }

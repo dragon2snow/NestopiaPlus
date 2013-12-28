@@ -5,23 +5,23 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
 ////////////////////////////////////////////////////////////////////////////////////////
-							
+
 #ifndef NST_CTRL_LISTVIEW_H
 #define NST_CTRL_LISTVIEW_H
 
@@ -79,7 +79,7 @@ namespace Nestopia
 				{
 					class TextProxy
 					{
-						typedef HeapString Buffer; 
+						typedef HeapString Buffer;
 
 						enum
 						{
@@ -140,9 +140,9 @@ namespace Nestopia
 					: control(w), index(i) {}
 
 					ibool Delete() const;
-					void  Select(ibool=TRUE) const;
+					void  Select(ibool=true) const;
 					void  Show() const;
-					void  Check(ibool=TRUE) const;
+					void  Check(ibool=true) const;
 					ibool IsChecked() const;
 
 					uint GetIndex() const
@@ -172,7 +172,7 @@ namespace Nestopia
 				uint  Size() const;
 				void  Clear() const;
 				void  Reserve(uint) const;
-				int   Add(GenericString = GenericString(),LPARAM=0,ibool=FALSE) const;
+				int   Add(GenericString = GenericString(),LPARAM=0,ibool=false) const;
 				Item  Selection() const;
 				void  SetBkColor(uint) const;
 				void  SetTextColor(uint) const;
@@ -206,7 +206,7 @@ namespace Nestopia
 					Sort( SortFunction(data,code) );
 				}
 
-				int Add(GenericString name,const void* const data,const ibool checked=FALSE) const
+				int Add(GenericString name,const void* const data,const ibool checked=false) const
 				{
 					return Add( name, reinterpret_cast<LPARAM>(data), checked );
 				}

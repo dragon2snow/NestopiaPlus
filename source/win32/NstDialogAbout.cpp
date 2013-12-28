@@ -5,23 +5,24 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
+#include "resource/resource.h"
 #include "NstResourceCursor.hpp"
 #include "NstWindowParam.hpp"
 #include "NstDialogAbout.hpp"
@@ -46,9 +47,9 @@ namespace Nestopia
 
 	const MsgHandler::Entry<About> About::Handlers::commands[] =
 	{
-		{ IDC_ABOUT_GNU, &About::OnCmdClick },
-		{ IDC_ABOUT_URL, &About::OnCmdClick },
-		{ IDC_ABOUT_OK,  &About::OnCmdOk    }
+		{ IDC_ABOUT_URL,  &About::OnCmdClick },
+		{ IDC_ABOUT_MAIL, &About::OnCmdClick },
+		{ IDC_ABOUT_OK,   &About::OnCmdOk    }
 	};
 
 	About::About()
@@ -57,36 +58,39 @@ namespace Nestopia
 	ibool About::OnInitDialog(Param&)
 	{
 		dialog.SetItemIcon( IDC_ABOUT_ICON, Application::Instance::GetIconStyle() == Application::Instance::ICONSTYLE_NES ? IDI_APP : IDI_APP_J );
-		dialog.Control( IDC_ABOUT_NAMEVERSION ).Text() << (String::Heap<char>() << "Nestopia " << Application::Instance::GetVersion()).Ptr();
-		return TRUE;
+		dialog.Control( IDC_ABOUT_NAMEVERSION ).Text() << (String::Heap<char>() << "Nestopia v" << Application::Instance::GetVersion()).Ptr();
+		return true;
 	}
 
 	ibool About::OnSetCursor(Param& param)
 	{
-		HCURSOR const hCursor =
-		(
-			param.Cursor().IsInside( IDC_ABOUT_GNU ) ||
-			param.Cursor().IsInside( IDC_ABOUT_URL )
-		) 
-			? Resource::Cursor::GetUpArrow() : Resource::Cursor::GetArrow();
+		HCURSOR hCursor;
+
+		if (param.Cursor().IsInside( IDC_ABOUT_URL ) || param.Cursor().IsInside( IDC_ABOUT_MAIL ))
+			hCursor = Resource::Cursor::GetHand();
+		else
+			hCursor = Resource::Cursor::GetArrow();
 
 		::SetCursor( hCursor );
-		::SetWindowLongPtr( dialog, DWLP_MSGRESULT, TRUE );
+		::SetWindowLongPtr( dialog, DWLP_MSGRESULT, true );
 
-		return TRUE;
+		return true;
 	}
 
 	ibool About::OnCmdClick(Param& param)
 	{
 		if (param.Button().IsClicked())
 		{
-			HeapString url;
+			HeapString cmd;
 
-			if (dialog.Control( param.Button().GetId() ).Text() >> url)
-				::ShellExecute( NULL, _T("open"), url.Ptr(), NULL, NULL, SW_SHOWNORMAL );
+			if (dialog.Control( param.Button().GetId() ).Text() >> cmd)
+			{
+				cmd.Insert( 0, param.Button().GetId() == IDC_ABOUT_MAIL ? _T("mailto:") : _T("http://") );
+				::ShellExecute( NULL, _T("open"), cmd.Ptr(), NULL, NULL, SW_SHOWNORMAL );
+			}
 		}
 
-		return TRUE;
+		return true;
 	}
 
 	ibool About::OnCmdOk(Param& param)
@@ -94,6 +98,6 @@ namespace Nestopia
 		if (param.Button().IsClicked())
 			dialog.Close();
 
-		return TRUE;
+		return true;
 	}
 }

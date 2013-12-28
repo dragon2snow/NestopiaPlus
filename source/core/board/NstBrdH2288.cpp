@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -32,10 +32,10 @@ namespace Nes
 	{
 		namespace Boards
 		{
-            #ifdef NST_PRAGMA_OPTIMIZE
-            #pragma optimize("s", on)
-            #endif
-		
+			#ifdef NST_PRAGMA_OPTIMIZE
+			#pragma optimize("s", on)
+			#endif
+
 			void H2288::SubReset(const bool hard)
 			{
 				if (hard)
@@ -52,7 +52,7 @@ namespace Nes
 				for (uint i=0x8000U; i < 0x9000U; i += 0x2)
 					Map( i, &H2288::Poke_8000 );
 			}
-		
+
 			void H2288::SubLoad(State::Loader& state)
 			{
 				while (const dword chunk = state.Begin())
@@ -71,7 +71,7 @@ namespace Nes
 
 			void H2288::SubSave(State::Saver& state) const
 			{
-				const u8 data[2] = 
+				const u8 data[2] =
 				{
 					exRegs[0],
 					exRegs[1]
@@ -80,9 +80,9 @@ namespace Nes
 				state.Begin('R','E','G','\0').Write( data ).End();
 			}
 
-            #ifdef NST_PRAGMA_OPTIMIZE
-            #pragma optimize("", on)
-            #endif
+			#ifdef NST_PRAGMA_OPTIMIZE
+			#pragma optimize("", on)
+			#endif
 
 			void H2288::UpdatePrg()
 			{
@@ -95,13 +95,13 @@ namespace Nes
 				return ((address >> 8) & 0xFE) | ((((address & 0x1) ^ 0x1) & ((address >> 8) & 0x1)) ^ 0x1);
 			}
 
-			NES_POKE(H2288,5800) 
-			{ 
+			NES_POKE(H2288,5800)
+			{
 				address &= 0x1;
 
 				if (exRegs[address] != data)
 				{
-					exRegs[address] = data;					
+					exRegs[address] = data;
 
 					if (exRegs[0] & 0x40)
 					{
@@ -118,7 +118,7 @@ namespace Nes
 			}
 
 			NES_POKE(H2288,8000)
-			{ 
+			{
 				static const u8 security[8] = {0,3,1,5,6,7,2,4};
 				NES_CALL_POKE( Mmc3, 8000, address, (data & 0xC0) | security[data & 0x07] );
 			}

@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -42,7 +42,7 @@ namespace Nes
 	{
 		NST_COMPILE_ASSERT
 		(
-	       	Sound::CHANNEL_SQUARE1  == 1U << Core::Apu::CHANNEL_SQUARE1  &&
+			Sound::CHANNEL_SQUARE1  == 1U << Core::Apu::CHANNEL_SQUARE1  &&
 			Sound::CHANNEL_SQUARE2  == 1U << Core::Apu::CHANNEL_SQUARE2  &&
 			Sound::CHANNEL_TRIANGLE == 1U << Core::Apu::CHANNEL_TRIANGLE &&
 			Sound::CHANNEL_NOISE    == 1U << Core::Apu::CHANNEL_NOISE    &&
@@ -53,7 +53,7 @@ namespace Nes
 		{
 			return emulator.cpu.GetApu().SetSampleRate( rate );
 		}
-	
+
 		Result Sound::SetSampleBits(uint bits)
 		{
 			return emulator.cpu.GetApu().SetSampleBits( bits );
@@ -73,7 +73,7 @@ namespace Nes
 		{
 			emulator.cpu.GetApu().SetAutoTranspose( enable );
 		}
-	
+
 		void Sound::SetSpeaker(Speaker speaker)
 		{
 			return emulator.cpu.GetApu().EnableStereo( speaker == SPEAKER_STEREO );
@@ -83,7 +83,7 @@ namespace Nes
 		{
 			return emulator.cpu.GetApu().GetSampleRate();
 		}
-	
+
 		uint Sound::GetSampleBits() const
 		{
 			return emulator.cpu.GetApu().GetSampleBits();
@@ -98,7 +98,7 @@ namespace Nes
 		{
 			return emulator.cpu.GetApu().GetSpeed();
 		}
-	
+
 		bool Sound::IsAudible() const
 		{
 			return emulator.cpu.GetApu().IsAudible();
@@ -113,12 +113,12 @@ namespace Nes
 		{
 			return emulator.cpu.GetApu().InStereo() ? SPEAKER_STEREO : SPEAKER_MONO;
 		}
-	
+
 		uint Sound::GetLatency() const
 		{
 			return emulator.tracker.GetSoundLatency( emulator.cpu.GetApu() );
 		}
-	
+
 		void Sound::EmptyBuffer()
 		{
 			return emulator.cpu.GetApu().ClearBuffers();

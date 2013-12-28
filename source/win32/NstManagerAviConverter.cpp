@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -64,15 +64,15 @@ namespace Nestopia
 		Nes::Video(emulator).GetRenderState( renderState );
 
 		if (on)
-			emulator.SaveState( saveState, FALSE, Emulator::QUIETLY );
+			emulator.SaveState( saveState, false, Emulator::QUIETLY );
 		else
-			emulator.Power( TRUE );
+			emulator.Power( true );
 
 		Nes::Movie(emulator).Play( stream );
 	}
 
 	uint AviConverter::Record(const Path& path) const
-	{	
+	{
 		if (path.Empty())
 			return 0;
 
@@ -110,12 +110,12 @@ namespace Nestopia
 			BOOL Choose(BitmapInfo& bitmapInfo)
 			{
 				return ::ICCompressorChoose
-				( 
-			       	Application::Instance::GetMainWindow(), 
-					ICMF_CHOOSE_DATARATE|ICMF_CHOOSE_KEYFRAME, 
-					&bitmapInfo, 
-					NULL, 
-					this, 
+				(
+					Application::Instance::GetMainWindow(),
+					ICMF_CHOOSE_DATARATE|ICMF_CHOOSE_KEYFRAME,
+					&bitmapInfo,
+					NULL,
+					this,
 					"Choose Video Codec"
 				);
 			}
@@ -128,7 +128,7 @@ namespace Nestopia
 
 		public:
 
-			File(tstring n) 
+			File(tstring n)
 			: name(n)
 			{
 				NST_ASSERT( name && *name );
@@ -149,11 +149,11 @@ namespace Nestopia
 				name = NULL;
 			}
 
-			~File() 
-			{ 
-				if (file) 
+			~File()
+			{
+				if (file)
 				{
-					::AVIFileRelease( file ); 
+					::AVIFileRelease( file );
 
 					if (name)
 						::DeleteFile( name );
@@ -169,10 +169,10 @@ namespace Nestopia
 
 		public:
 
-			Stream() 
+			Stream()
 			: stream(NULL) {}
 
-			Stream(const File* avi,AVISTREAMINFO& info) 
+			Stream(const File* avi,AVISTREAMINFO& info)
 			{
 				NST_ASSERT( !avi || bool(*avi) );
 
@@ -180,7 +180,7 @@ namespace Nestopia
 					stream = NULL;
 			}
 
-			Stream(const File& avi,AVISTREAMINFO& info) 
+			Stream(const File& avi,AVISTREAMINFO& info)
 			{
 				NST_ASSERT( bool(avi) );
 
@@ -202,14 +202,14 @@ namespace Nestopia
 			ibool SetFormat(void* info,uint size) const
 			{
 				NST_ASSERT( stream && info && size );
-				
+
 				return ::AVIStreamSetFormat( stream, 0, info, size ) == AVIERR_OK;
 			}
 
-			~Stream() 
-			{ 
-				if (stream) 
-					::AVIStreamRelease( stream ); 
+			~Stream()
+			{
+				if (stream)
+					::AVIStreamRelease( stream );
 			}
 		};
 
@@ -334,7 +334,7 @@ namespace Nestopia
 
 		Nes::Video::Output videoOutput( pixels.ptr, bitmapInfo.biBitCount / 8 * bitmapInfo.biWidth );
 		Nes::Sound::Output soundOutput( samples.ptr, samples.size / waveFormat.nBlockAlign );
-		
+
 		{
 			Nes::Video::RenderState tmp;
 			Nes::Video(emulator).GetRenderState( tmp );
@@ -364,7 +364,7 @@ namespace Nestopia
 
 			long written[2] = {0,0};
 
-			if 
+			if
 			(
 				(::AVIStreamWrite( compressor, frame, 1, flipped.ptr, flipped.size, AVIIF_KEYFRAME, NULL, written+0 ) != AVIERR_OK) ||
 				(sound && ::AVIStreamWrite( sound, sample, soundOutput.length, samples.ptr, samples.size, 0, NULL, written+1 ) != AVIERR_OK)
@@ -391,7 +391,7 @@ namespace Nestopia
 
 		if (!on)
 		{
-			emulator.Power( FALSE );
+			emulator.Power( false );
 		}
 		else if (saveState.Size())
 		{

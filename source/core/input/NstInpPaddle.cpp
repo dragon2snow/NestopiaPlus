@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -31,22 +31,22 @@ namespace Nes
 	{
 		namespace Input
 		{
-            #ifdef NST_PRAGMA_OPTIMIZE
-            #pragma optimize("s", on)
-            #endif
-		
+			#ifdef NST_PRAGMA_OPTIMIZE
+			#pragma optimize("s", on)
+			#endif
+
 			Paddle::Paddle(bool p)
 			: Device(Api::Input::PADDLE), expPort(p)
 			{
 				Paddle::Reset();
 			}
-		
+
 			void Paddle::Reset()
 			{
 				stream[1] = stream[0] = 0;
 				shifter = 1;
 			}
-		
+
 			void Paddle::SaveState(State::Saver& state,const uchar id) const
 			{
 				state.Begin('P','L',id,'\0').Write8( shifter ^ 1 ).End();
@@ -58,9 +58,9 @@ namespace Nes
 					shifter = (state.Read8() & 0x1) ^ 1;
 			}
 
-            #ifdef NST_PRAGMA_OPTIMIZE
-            #pragma optimize("", on)
-            #endif
+			#ifdef NST_PRAGMA_OPTIMIZE
+			#pragma optimize("", on)
+			#endif
 
 			void Paddle::BeginFrame(Controllers* i)
 			{
@@ -88,7 +88,7 @@ namespace Nes
 					return stream[1];
 				}
 			}
-		
+
 			void Paddle::Poke(uint data)
 			{
 				const uint prev = shifter;
@@ -105,7 +105,7 @@ namespace Nes
 						{
 							data = 0xFF - ((82 + 172 * (NST_CLAMP(paddle.x,32,176) - 32) / 144) & 0xFF);
 
-							x = 
+							x =
 							(
 								(( data & 0x01 ) << 7 ) |
 								(( data & 0x02 ) << 5 ) |
@@ -122,7 +122,7 @@ namespace Nes
 					}
 
 					stream[0] = x;
-					stream[1] = button;				
+					stream[1] = button;
 				}
 			}
 		}

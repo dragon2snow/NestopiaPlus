@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -31,10 +31,10 @@ namespace Nes
 	{
 		namespace Boards
 		{
-            #ifdef NST_PRAGMA_OPTIMIZE
-            #pragma optimize("s", on)
-            #endif
-		
+			#ifdef NST_PRAGMA_OPTIMIZE
+			#pragma optimize("s", on)
+			#endif
+
 			void Bmc64In1Nr::SubReset(bool)
 			{
 				Map( 0x5000U, 0x5003U, &Bmc64In1Nr::Poke_5000 );
@@ -47,7 +47,7 @@ namespace Nes
 
 				Update();
 			}
-		
+
 			void Bmc64In1Nr::SubSave(State::Saver& state) const
 			{
 				state.Begin('R','E','G','\0').Write( regs ).End();
@@ -64,9 +64,9 @@ namespace Nes
 				}
 			}
 
-            #ifdef NST_PRAGMA_OPTIMIZE
-            #pragma optimize("", on)
-            #endif
+			#ifdef NST_PRAGMA_OPTIMIZE
+			#pragma optimize("", on)
+			#endif
 
 			void Bmc64In1Nr::Update()
 			{
@@ -89,14 +89,14 @@ namespace Nes
 				chr.SwapBank<SIZE_8K,0x0000U>( (regs[2] << 2) | (regs[0] >> 1 & 0x3) );
 			}
 
-			NES_POKE(Bmc64In1Nr,5000) 
-			{ 
+			NES_POKE(Bmc64In1Nr,5000)
+			{
 				regs[address & 0x3] = data;
 				Update();
 			}
 
-			NES_POKE(Bmc64In1Nr,8000) 
-			{ 
+			NES_POKE(Bmc64In1Nr,8000)
+			{
 				regs[3] = data;
 				Update();
 			}

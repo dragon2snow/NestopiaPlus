@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -51,7 +51,7 @@ namespace Nestopia
 	{
 		for (int i=0; ListView_SetColumnWidth( control, i, LVSCW_AUTOSIZE_USEHEADER ); ++i)
 		{
-			const int header = ListView_GetColumnWidth( control, i );		
+			const int header = ListView_GetColumnWidth( control, i );
 
 			ListView_SetColumnWidth( control, i, LVSCW_AUTOSIZE );
 
@@ -146,7 +146,7 @@ namespace Nestopia
 
 	ibool ListView::Item::Delete() const
 	{
-		return index != ~0U ? ListView_DeleteItem( control, index ) : FALSE;
+		return index != ~0U ? ListView_DeleteItem( control, index ) : false;
 	}
 
 	void ListView::Item::Select(const ibool state) const
@@ -166,7 +166,7 @@ namespace Nestopia
 
 	void ListView::Item::Show() const
 	{
-		ListView_EnsureVisible( control, index, FALSE );
+		ListView_EnsureVisible( control, index, false );
 	}
 
 	ListView::Item ListView::Selection() const
@@ -209,11 +209,11 @@ namespace Nestopia
 		const int index = ListView_InsertItem( control, &lvItem );
 
 		if (checked)
-			ListView_SetCheckState( control, index, TRUE );
+			ListView_SetCheckState( control, index, true );
 
 		return index;
 	}
-  
+
 	uint ListView::Size() const
 	{
 		const int count = ListView_GetItemCount( control );
@@ -267,7 +267,7 @@ namespace Nestopia
 	int CALLBACK ListView::SortProc(LPARAM obj1,LPARAM obj2,LPARAM ref)
 	{
 		return (*reinterpret_cast<const SortFunction*>(ref))
-		( 
+		(
 			reinterpret_cast<const void*>( obj1 ),
 			reinterpret_cast<const void*>( obj2 )
 		);

@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -55,14 +55,14 @@ namespace Nestopia
 			throw ERR_OPEN;
 	}
 
-	template<typename T> 
+	template<typename T>
 	void Wave::WriteChunk(const T& t,const int size=sizeof(T)) const
 	{
 		if (::mmioWrite( handle, reinterpret_cast<const char*>(&t), size ) != size)
 			throw ERR_OPEN;
 	}
 
-	template<typename T> 
+	template<typename T>
 	void Wave::ReadChunk(T& t,const int size=sizeof(T)) const
 	{
 		if (::mmioRead( handle, reinterpret_cast<char*>(&t), size ) != size)
@@ -151,10 +151,10 @@ namespace Nestopia
 
 				ReadChunk( pcm );
 
-				if 
+				if
 				(
-			     	pcm.wf.wFormatTag != WAVE_FORMAT_PCM ||
-					pcm.wBitsPerSample == 0 || 
+					pcm.wf.wFormatTag != WAVE_FORMAT_PCM ||
+					pcm.wBitsPerSample == 0 ||
 					pcm.wBitsPerSample % 8 ||
 					pcm.wf.nSamplesPerSec == 0 ||
 					pcm.wf.nChannels < 1 || pcm.wf.nChannels > 2 ||
@@ -258,7 +258,7 @@ namespace Nestopia
 					chunkFact.ckid = mmioFOURCC('f','a','c','t');
 					chunkFact.cksize = 0;
 
-					if (::mmioDescend( handle, &chunkFact, &chunkRiff, MMIO_FINDCHUNK ) == MMSYSERR_NOERROR) 
+					if (::mmioDescend( handle, &chunkFact, &chunkRiff, MMIO_FINDCHUNK ) == MMSYSERR_NOERROR)
 					{
 						WriteChunk( DWORD(0) );
 						AscendChunk( chunkFact );

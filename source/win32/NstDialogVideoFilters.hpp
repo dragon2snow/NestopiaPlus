@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -75,17 +75,9 @@ namespace Nestopia
 
 			struct Settings
 			{
+				void Reset(Type);
+
 				i8 attributes[4];
-
-				void Reset()
-				{
-					std::memset( attributes, 0, sizeof(attributes) );
-				}
-
-				Settings()
-				{
-					Reset();
-				}
 			};
 
 			VideoFilters(Nes::Video,uint,Settings&,uint,bool);
@@ -109,7 +101,7 @@ namespace Nestopia
 			{
 				Backup(const Settings&,const Nes::Video);
 
-				const Settings settings;				
+				const Settings settings;
 				const i8 sharpness;
 				const i8 resolution;
 				const i8 bleed;
@@ -118,18 +110,17 @@ namespace Nestopia
 				bool restore;
 			};
 
-			ibool OnInitDialog    (Param&);
-			ibool OnDestroy       (Param&);
-			ibool OnHScroll       (Param&);
-			ibool OnCmdOk         (Param&);
-			ibool OnCmdCancel     (Param&);
-			ibool OnCmdDefault    (Param&);
-			ibool OnCmdBilinear   (Param&);
-			ibool OnCmdNtscFields (Param&);
-			ibool OnCmdNtscCable  (Param&);
-			ibool OnCmd2xSaI      (Param&);
-			ibool OnCmdScaleX     (Param&);
-			ibool OnCmdHqX        (Param&);
+			ibool OnInitDialog   (Param&);
+			ibool OnDestroy      (Param&);
+			ibool OnHScroll      (Param&);
+			ibool OnCmdOk        (Param&);
+			ibool OnCmdCancel    (Param&);
+			ibool OnCmdDefault   (Param&);
+			ibool OnCmdBilinear  (Param&);
+			ibool OnCmdNtscCable (Param&);
+			ibool OnCmd2xSaI     (Param&);
+			ibool OnCmdScaleX    (Param&);
+			ibool OnCmdHqX       (Param&);
 
 			void UpdateScanlinesSlider() const;
 			void UpdateNtscSliders() const;
@@ -141,6 +132,13 @@ namespace Nestopia
 			const ibool canDoBilinear;
 			Nes::Video nes;
 			Dialog dialog;
+
+		public:
+
+			void Open()
+			{
+				dialog.Open();
+			}
 		};
 	}
 }

@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -26,6 +26,8 @@
 #define NST_MANAGER_SAVESTATES_H
 
 #pragma once
+
+#include "NstSystemTime.hpp"
 
 namespace Nestopia
 {
@@ -48,40 +50,37 @@ namespace Nestopia
 
 		private:
 
-			typedef Collection::Buffer Slot;
-
-			enum				
+			enum
 			{
-				SLOT_1,
-				SLOT_2,
-				SLOT_3,
-				SLOT_4,
-				SLOT_5,
-				SLOT_6,
-				SLOT_7,
-				SLOT_8,
-				SLOT_9,
-				SLOT_NONE = SLOT_9,
-				NUM_SLOTS
+				NUM_SLOTS = 9
+			};
+
+			struct Slot
+			{
+				struct Compare;
+
+				System::Time time;
+				Collection::Buffer data;
 			};
 
 			void ImportSlots();
 			void ExportSlot(uint);
+			void UpdateMenuTexts() const;
 
-			void SaveToSlot(uint,ibool=TRUE);
-			void LoadFromSlot(uint,ibool=TRUE);
+			void SaveToSlot(uint,ibool=true);
+			void LoadFromSlot(uint,ibool=true);
 
 			void ToggleAutoSaver(ibool);
 
-			void OnEmuEvent(Emulator::Event);			
+			void OnEmuEvent(Emulator::Event);
 			uint OnTimerAutoSave();
 
 			void OnCmdStateLoad        (uint);
 			void OnCmdStateSave        (uint);
 			void OnCmdSlotSave         (uint);
-			void OnCmdNextSlotSave     (uint);
+			void OnCmdSlotSaveOldest   (uint);
 			void OnCmdSlotLoad         (uint);
-			void OnCmdLastSlotLoad     (uint);
+			void OnCmdSlotLoadNewest   (uint);
 			void OnCmdAutoSaverOptions (uint);
 			void OnCmdAutoSaverStart   (uint);
 
@@ -89,7 +88,6 @@ namespace Nestopia
 			Window::Menu& menu;
 			const Window::Main& window;
 			const Paths& paths;
-			uint lastSaveSlot;
 			ibool autoSaveEnabled;
 			Object::Heap<Window::AutoSaver> autoSaver;
 			Slot slots[NUM_SLOTS];

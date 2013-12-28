@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -27,7 +27,7 @@
 
 #pragma once
 
-#include "resource/resource.h"
+#include "language/resource.h"
 #include "NstResourceMenu.hpp"
 #include "NstSystemAccelerator.hpp"
 #include "NstWindowCustom.hpp"
@@ -47,7 +47,7 @@ namespace Nestopia
 			void  Unhook();
 			uint  GetHeight() const;
 			ibool IsVisible() const;
-			void  Show(ibool=TRUE) const;
+			void  Show(ibool=true) const;
 			ibool Toggle() const;
 			void  EnableAccelerator(ibool);
 			void  SetKeys(const ACCEL*,uint);
@@ -63,8 +63,14 @@ namespace Nestopia
 
 			static void Clear(HMENU);
 			static uint NumItems(HMENU);
+			static void Redraw(const Custom*);
 
 		public:
+
+			void Redraw() const
+			{
+				Redraw( window );
+			}
 
 			class Item
 			{
@@ -116,8 +122,8 @@ namespace Nestopia
 
 				Type GetType() const;
 
-				ibool Enable (ibool=TRUE) const;
-				ibool Check  (ibool=TRUE) const;
+				ibool Enable (ibool=true) const;
+				ibool Check  (ibool=true) const;
 				void  Check  (uint,uint,ibool) const;
 				void  Check  (uint,uint) const;
 
@@ -130,8 +136,8 @@ namespace Nestopia
 				ibool ToggleCheck()  const { return Check( IsUnchecked() ); }
 				ibool ToggleEnable() const { return Enable( IsDisabled() ); }
 
-				ibool Disable () const { return Enable (FALSE); }
-				ibool Uncheck () const { return Check  (FALSE); }
+				ibool Disable () const { return Enable (false); }
+				ibool Uncheck () const { return Check  (false); }
 
 				uint GetCommand() const;
 				void Remove() const;
@@ -150,11 +156,12 @@ namespace Nestopia
 
 				HMENU hMenu;
 				uint pos;
+				const Custom* const window;
 
 			public:
 
-				Item(HMENU h=NULL,uint p=0)
-				: hMenu(h), pos(p) {}
+				Item(const Custom* w,HMENU h=NULL,uint p=0)
+				: window(w), hMenu(h), pos(p) {}
 
 				HMENU GetHandle() const
 				{
@@ -163,7 +170,7 @@ namespace Nestopia
 
 				Item operator [] (uint subPos) const
 				{
-					return Item( ::GetSubMenu( hMenu, pos ), subPos );
+					return Item( window, ::GetSubMenu( hMenu, pos ), subPos );
 				}
 			};
 
@@ -178,8 +185,8 @@ namespace Nestopia
 					HMENU const hKey;
 					const Item item;
 
-					Key(HMENU h=NULL,uint p=0)
-					: hKey(::GetSubMenu(h,p)), item(h,p) {}
+					Key(const Custom* w,HMENU h=NULL,uint p=0)
+					: hKey(::GetSubMenu(h,p)), item(w,h,p) {}
 
 					operator HMENU() const
 					{
@@ -222,7 +229,7 @@ namespace Nestopia
 
 				template<typename Data> struct Entry
 				{
-					typedef	void (Data::*Function)(Param&);
+					typedef void (Data::*Function)(Param&);
 
 					uint id;
 					Function function;
@@ -234,7 +241,7 @@ namespace Nestopia
 
 				Key GetKey(uint) const;
 
-				template<typename Data> 
+				template<typename Data>
 				void Add(Data*,const Entry<Data>*,uint);
 
 				PopupHandler(Menu& m)
@@ -242,7 +249,7 @@ namespace Nestopia
 
 			public:
 
-				template<typename Data,uint COUNT> 
+				template<typename Data,uint COUNT>
 				void Add(Data* data,const Entry<Data>(&list)[COUNT])
 				{
 					Add( data, list, COUNT );
@@ -316,12 +323,12 @@ namespace Nestopia
 
 			Item operator [] (uint pos) const
 			{
-				return Item( handle, pos );
+				return Item( window, handle, pos );
 			}
 
 			void Hide() const
 			{
-				Show( FALSE );
+				Show( false );
 			}
 
 			void Clear() const
@@ -355,7 +362,7 @@ namespace Nestopia
 			}
 		};
 
-		template<typename Data> 
+		template<typename Data>
 		void Menu::PopupHandler::Add(Data* const data,const Entry<Data>* list,const uint count)
 		{
 			for (const Entry<Data>* const end = list + count; list != end; ++list)

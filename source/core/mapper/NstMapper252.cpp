@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -31,9 +31,9 @@ namespace Nes
 {
 	namespace Core
 	{
-        #ifdef NST_PRAGMA_OPTIMIZE
-        #pragma optimize("s", on)
-        #endif
+		#ifdef NST_PRAGMA_OPTIMIZE
+		#pragma optimize("s", on)
+		#endif
 
 		Mapper252::Mapper252(Context& c)
 		: Mapper(c), irq(c.cpu) {}
@@ -41,10 +41,10 @@ namespace Nes
 		void Mapper252::SubReset(const bool hard)
 		{
 			irq.Reset( hard, hard ? false : irq.IsLineEnabled() );
-	
+
 			Map( 0x8000U, 0x8FFFU, PRG_SWAP_8K_0 );
 			Map( 0xA000U, 0xAFFFU, PRG_SWAP_8K_1 );
-	
+
 			for (uint i=0x0000U; i < 0x1000U; i += 0x10)
 			{
 				Map( 0xB000U + i, 0xB003U + i, &Mapper252::Poke_B000 );
@@ -68,11 +68,11 @@ namespace Nes
 				Map( 0xF008U + i, 0xF00BU + i, &Mapper252::Poke_F008 );
 				Map( 0xF00CU + i, 0xF00FU + i, &Mapper252::Poke_F00C );
 			}
-	
+
 			// hack
 			chr.Source().WriteEnable( true );
 		}
-	
+
 		void Mapper252::SubLoad(State::Loader& state)
 		{
 			while (const dword chunk = state.Begin())
@@ -83,20 +83,20 @@ namespace Nes
 				state.End();
 			}
 		}
-	
+
 		void Mapper252::SubSave(State::Saver& state) const
 		{
 			irq.SaveState( State::Saver::Subset(state,'I','R','Q','\0').Ref() );
 		}
-	
-        #ifdef NST_PRAGMA_OPTIMIZE
-        #pragma optimize("", on)
-        #endif
-	
+
+		#ifdef NST_PRAGMA_OPTIMIZE
+		#pragma optimize("", on)
+		#endif
+
 		template<uint MASK,uint SHIFT>
 		void Mapper252::SwapChr(const uint address,const uint data) const
 		{
-			ppu.Update(); 
+			ppu.Update();
 			chr.SwapBank<SIZE_1K>( address, (chr.GetBank<SIZE_1K>(address) & MASK) | (data & 0xF) << SHIFT );
 		}
 
@@ -116,25 +116,25 @@ namespace Nes
 		NES_POKE(Mapper252,E004) { SwapChr<0x0F,4>( 0x1800U, data ); }
 		NES_POKE(Mapper252,E008) { SwapChr<0xF0,0>( 0x1C00U, data ); }
 		NES_POKE(Mapper252,E00C) { SwapChr<0x0F,4>( 0x1C00U, data ); }
-	
-		NES_POKE(Mapper252,F000) 
-		{ 
+
+		NES_POKE(Mapper252,F000)
+		{
 			irq.Update();
 			irq.unit.latch = (irq.unit.latch & 0xF0) | (data & 0x0F);
 		}
 
-		NES_POKE(Mapper252,F004) 
+		NES_POKE(Mapper252,F004)
 		{
 			irq.Update();
 			irq.unit.latch = (irq.unit.latch & 0x0F) | ((data & 0x0F) << 4);
 		}
 
-		NES_POKE(Mapper252,F008) 
+		NES_POKE(Mapper252,F008)
 		{
 			irq.Toggle( data );
 		}
 
-		NES_POKE(Mapper252,F00C) 
+		NES_POKE(Mapper252,F00C)
 		{
 			irq.Toggle();
 		}

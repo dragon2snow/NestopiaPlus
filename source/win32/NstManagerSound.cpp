@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -41,9 +41,9 @@ namespace Nestopia
 
 	struct Sound::Callbacks
 	{
-        #ifdef NST_PRAGMA_OPTIMIZE
-        #pragma optimize("t", on)
-        #endif
+		#ifdef NST_PRAGMA_OPTIMIZE
+		#pragma optimize("t", on)
+		#endif
 
 		static bool NST_CALLBACK Lock(Nes::Sound::UserData data,Nes::Sound::Output&)
 		{
@@ -77,14 +77,14 @@ namespace Nestopia
 				nes.EmptyBuffer();
 		}
 
-        #ifdef NST_PRAGMA_OPTIMIZE
-        #pragma optimize("", on)
-        #endif
+		#ifdef NST_PRAGMA_OPTIMIZE
+		#pragma optimize("", on)
+		#endif
 
-        #ifdef _MSC_VER
-        #pragma warning( push )
-        #pragma warning( disable : 4701 )
-        #endif
+		#ifdef _MSC_VER
+		#pragma warning( push )
+		#pragma warning( disable : 4701 )
+		#endif
 
 		static void NST_CALLBACK Load(Nes::Sound::UserData user,Nes::Sound::Loader::Type type,Nes::Sound::Loader& loader)
 		{
@@ -103,15 +103,15 @@ namespace Nestopia
 				{ Loader::MOERO_PRO_YAKYUU_88,      Loader::MOERO_PRO_YAKYUU_88_SAMPLES,      _T("moepro88") },
 				{ Loader::MOERO_PRO_TENNIS,         Loader::MOERO_PRO_TENNIS_SAMPLES,         _T("mptennis") },
 				{ Loader::TERAO_NO_DOSUKOI_OOZUMOU, Loader::TERAO_NO_DOSUKOI_OOZUMOU_SAMPLES, _T("terao")    },
-				{ Loader::MOE_PRO_90_KANDOU_HEN,	Loader::MOE_PRO_90_KANDOU_HEN_SAMPLES,	  _T("moepro90") },
-				{ Loader::MOE_PRO_SAIKYOU_HEN,		Loader::MOE_PRO_SAIKYOU_HEN_SAMPLES,	  _T("mpsaikyo") },
+				{ Loader::MOE_PRO_90_KANDOU_HEN,    Loader::MOE_PRO_90_KANDOU_HEN_SAMPLES,    _T("moepro90") },
+				{ Loader::MOE_PRO_SAIKYOU_HEN,      Loader::MOE_PRO_SAIKYOU_HEN_SAMPLES,      _T("mpsaikyo") },
 				{ Loader::SHIN_MOERO_PRO_YAKYUU,    Loader::SHIN_MOERO_PRO_YAKYUU_SAMPLES,    _T("smoepro")  },
 				{ Loader::AEROBICS_STUDIO,          Loader::AEROBICS_STUDIO_SAMPLES,          _T("ftaerobi") }
 			};
 
 			const Sound& sound = *static_cast<const Sound*>(user);
 
-			for (uint i=NST_COUNT(games); i--; )
+			for (uint i=8; i--; )
 			{
 				if (type != games[i].type)
 					continue;
@@ -121,22 +121,22 @@ namespace Nestopia
 
 				for (uint j=0; ; ++j)
 				{
-					static const tchar types[][4] = 
+					static const tchar types[][4] =
 					{
-						_T("zip"), 
-						_T("rar"), 
-						_T("7z\0") 
+						_T("zip"),
+						_T("rar"),
+						_T("7z\0")
 					};
 
 					path.Extension() = types[j];
 
-					if (Io::File::FileExist( path.Ptr() ))
+					if (path.FileExists())
 					{
-						Io::Log() << "Sound: Loading " 
-         						  << games[i].samples 
-						          << " samples from \"" 
-       							  << path 
-       							  << "\"\r\n";
+						Io::Log() << "Sound: Loading "
+                                  << games[i].samples
+                                  << " samples from \""
+                                  << path
+                                  << "\"\r\n";
 						break;
 					}
 					else if (j == NST_COUNT(types)-1)
@@ -146,9 +146,9 @@ namespace Nestopia
 
 						path.Extension().Clear();
 
-          				Io::Log() << "Sound: warning, sample package file \"" 
-		     		     		  << path 
-			     		          << ".*\" not found!\r\n";
+						Io::Log() << "Sound: warning, sample package file \""
+                                  << path
+                                  << ".*\" not found!\r\n";
 						return;
 					}
 				}
@@ -156,7 +156,7 @@ namespace Nestopia
 				try
 				{
 					tchar name[] = _T("xx.wav");
-					
+
 					const Io::File file( path, Io::File::READ|Io::File::EXISTING );
 					const Io::Archive archive( file );
 
@@ -184,7 +184,7 @@ namespace Nestopia
 								archive[k].Uncompress( tmp.Ptr() );
 
 								Io::Wave wave( Io::Wave::MODE_READ );
-								
+
 								if (const uint size = wave.Open( tmp.Ptr(), tmp.Size(), format ))
 								{
 									buffer.Resize( size );
@@ -222,9 +222,9 @@ namespace Nestopia
 			}
 		}
 
-        #ifdef _MSC_VER
-        #pragma warning( pop )
-        #endif
+		#ifdef _MSC_VER
+		#pragma warning( pop )
+		#endif
 	};
 
 	Sound::Sound
@@ -236,7 +236,7 @@ namespace Nestopia
 		const Preferences& r,
 		const Configuration& cfg
 	)
-	: 
+	:
 	emulator    ( e ),
 	menu        ( m ),
 	paths       ( p ),
@@ -269,8 +269,8 @@ namespace Nestopia
 	{
 		switch (event)
 		{
-    		case Emulator::EVENT_POWER_ON:
-    		case Emulator::EVENT_SPEED:
+			case Emulator::EVENT_POWER_ON:
+			case Emulator::EVENT_SPEED:
 
 				if (emuOutput)
 				{
@@ -282,7 +282,7 @@ namespace Nestopia
 						Nes::Sound( emulator ).SetSpeed( speed );
 						recorder->Enable( directSound.GetWaveFormat() );
 					}
-					else					
+					else
 					{
 						Disable( errMsg );
 					}
@@ -291,11 +291,11 @@ namespace Nestopia
 
 			case Emulator::EVENT_REWINDING_START:
 			case Emulator::EVENT_REWINDING_STOP:
-				
+
 				Nes::Sound(emulator).SetVolume
-				( 
-			     	Nes::Sound::CHANNEL_DPCM, 
-					event == Emulator::EVENT_REWINDING_START ? 0 : dialog->GetVolume(Nes::Sound::CHANNEL_DPCM) 
+				(
+					Nes::Sound::CHANNEL_DPCM,
+					event == Emulator::EVENT_REWINDING_START ? 0 : dialog->GetVolume(Nes::Sound::CHANNEL_DPCM)
 				);
 
 			case Emulator::EVENT_REWINDING_PREPARE:
@@ -332,7 +332,7 @@ namespace Nestopia
 
 			errMsg = directSound.Update
 			(
-   				dialog->GetAdapter(),
+				dialog->GetAdapter(),
 				nesSound.GetSampleRate(),
 				nesSound.GetSampleBits(),
 				nesSound.GetSpeaker() == Nes::Sound::SPEAKER_STEREO ? DirectX::DirectSound::STEREO : DirectX::DirectSound::MONO,

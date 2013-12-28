@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -40,7 +40,7 @@ namespace Nestopia
 
 		try
 		{
-			if 
+			if
 			(
 				ImageList_Add( static_cast<HIMAGELIST>(handle), Resource::Bitmap( selected   ), NULL ) == -1 ||
 				ImageList_Add( static_cast<HIMAGELIST>(handle), Resource::Bitmap( unselected ), NULL ) == -1
@@ -74,12 +74,12 @@ namespace Nestopia
 
 	void TreeView::Add(const GenericString text) const
 	{
-		TVINSERTSTRUCT tv; 
+		TVINSERTSTRUCT tv;
 
 		tv.hParent = TVI_ROOT;
 		tv.hInsertAfter = TVI_LAST;
 		tv.item.mask = TVIF_TEXT;
-		tv.item.pszText = const_cast<tchar*>( text.Ptr() ); 
+		tv.item.pszText = const_cast<tchar*>( text.Ptr() );
 		tv.item.cchTextMax = text.Length();
 
 		if (TreeView_GetImageList( control, TVSIL_NORMAL ))

@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -45,34 +45,34 @@ namespace Nes
 	{
 		namespace Boards
 		{
-			const u8 Vrc7::Sound::OpllChannel::Patch::preset[15][8] = 
+			const u8 Vrc7::Sound::OpllChannel::Patch::preset[15][8] =
 			{
-				{0x03,0x21,0x04,0x06,0x8D,0xF2,0x42,0x17}, // Violin 
-				{0x13,0x41,0x05,0x0E,0x99,0x96,0x63,0x12}, // Guitar 
-				{0x31,0x11,0x10,0x0A,0xF0,0x9C,0x32,0x02}, // Piano 
-				{0x21,0x61,0x1D,0x07,0x9F,0x64,0x20,0x27}, // Flute 
-				{0x22,0x21,0x1E,0x06,0xF0,0x76,0x08,0x28}, // Clarinet 
-				{0x02,0x01,0x06,0x00,0xF0,0xF2,0x03,0x95}, // Oboe 
-				{0x21,0x61,0x1C,0x07,0x82,0x81,0x16,0x07}, // Trumpet 
-				{0x23,0x21,0x1A,0x17,0xEF,0x82,0x25,0x15}, // Organ 
-				{0x25,0x11,0x1F,0x00,0x86,0x41,0x20,0x11}, // Horn 
-				{0x85,0x01,0x1F,0x0F,0xE4,0xA2,0x11,0x12}, // Synthesizer 
-				{0x07,0xC1,0x2B,0x45,0xB4,0xF1,0x24,0xF4}, // Harpsichord 
-				{0x61,0x23,0x11,0x06,0x96,0x96,0x13,0x16}, // Vibraphone 
+				{0x03,0x21,0x04,0x06,0x8D,0xF2,0x42,0x17}, // Violin
+				{0x13,0x41,0x05,0x0E,0x99,0x96,0x63,0x12}, // Guitar
+				{0x31,0x11,0x10,0x0A,0xF0,0x9C,0x32,0x02}, // Piano
+				{0x21,0x61,0x1D,0x07,0x9F,0x64,0x20,0x27}, // Flute
+				{0x22,0x21,0x1E,0x06,0xF0,0x76,0x08,0x28}, // Clarinet
+				{0x02,0x01,0x06,0x00,0xF0,0xF2,0x03,0x95}, // Oboe
+				{0x21,0x61,0x1C,0x07,0x82,0x81,0x16,0x07}, // Trumpet
+				{0x23,0x21,0x1A,0x17,0xEF,0x82,0x25,0x15}, // Organ
+				{0x25,0x11,0x1F,0x00,0x86,0x41,0x20,0x11}, // Horn
+				{0x85,0x01,0x1F,0x0F,0xE4,0xA2,0x11,0x12}, // Synthesizer
+				{0x07,0xC1,0x2B,0x45,0xB4,0xF1,0x24,0xF4}, // Harpsichord
+				{0x61,0x23,0x11,0x06,0x96,0x96,0x13,0x16}, // Vibraphone
 				{0x01,0x02,0xD3,0x05,0x82,0xA2,0x31,0x51}, // Synthesizer Bass
-				{0x61,0x22,0x0D,0x02,0xC3,0x7F,0x24,0x05}, // Acoustic Bass 
-				{0x21,0x62,0x0E,0x00,0xA1,0xA0,0x44,0x17}  // Electric Guitar 
+				{0x61,0x22,0x0D,0x02,0xC3,0x7F,0x24,0x05}, // Acoustic Bass
+				{0x21,0x62,0x0E,0x00,0xA1,0xA0,0x44,0x17}  // Electric Guitar
 			};
 
 			const dword Vrc7::Sound::PITCH_RATE = 6.4 * (1UL << 16) / Vrc7::Sound::CLOCK_DIV;
 			const dword Vrc7::Sound::AMP_RATE   = 3.7 * (1UL << 16) / Vrc7::Sound::CLOCK_DIV;
 
-            #ifdef NST_PRAGMA_OPTIMIZE
-            #pragma optimize("s", on)
-            #endif
-		
+			#ifdef NST_PRAGMA_OPTIMIZE
+			#pragma optimize("s", on)
+			#endif
+
 			Vrc7::Sound::Tables::Tables()
-			{	
+			{
 				FpuPrecision precision;
 
 				for (uint i=0; i < PITCH_SIZE; ++i)
@@ -139,12 +139,12 @@ namespace Nes
 
 				for (uint i=WAVE_SIZE/2; i < WAVE_SIZE; ++i)
 					wave[1][i] = wave[0][0];
-			
+
 				for (uint i=0; i < DB2LIN_SIZE/2; ++i)
 				{
 					db2lin[i] = (0x7FF * std::pow( 10.0, -(i * 0.1875 / 20) ));
 
-					if (i > EG_MUTE) 
+					if (i > EG_MUTE)
 						db2lin[i] = 0;
 
 					db2lin[DB2LIN_SIZE/2 + i] = -db2lin[i];
@@ -159,7 +159,7 @@ namespace Nes
 							sl[i][j][k] = k ? (j << 1) + i : (j >> 1);
 						}
 					}
-				}	
+				}
 
 				for (uint i=0; i < 16; ++i)
 				{
@@ -173,11 +173,11 @@ namespace Nes
 
 								if (k)
 								{
-									static const double lut[16] = 
+									static const double lut[16] =
 									{
-										 0.000 * 2,  9.000 * 2, 12.000 * 2, 13.875 * 2, 
-										15.000 * 2, 16.125 * 2, 16.875 * 2, 17.625 * 2, 
-										18.000 * 2, 18.750 * 2, 19.125 * 2, 19.500 * 2, 
+                                         0.000 * 2,  9.000 * 2, 12.000 * 2, 13.875 * 2,
+										15.000 * 2, 16.125 * 2, 16.875 * 2, 17.625 * 2,
+										18.000 * 2, 18.750 * 2, 19.125 * 2, 19.500 * 2,
 										19.875 * 2, 20.250 * 2, 20.625 * 2, 21.000 * 2
 									};
 
@@ -199,12 +199,12 @@ namespace Nes
 					{
 						for (uint ml=0; ml < 16; ++ml)
 						{
-							static const u8 lut[16] = 
+							static const u8 lut[16] =
 							{
-								 1 * 1,  1 * 2,  2 * 2,  3 * 2, 
-								 4 * 2,  5 * 2,  6 * 2,  7 * 2, 
-								 8 * 2,  9 * 2, 10 * 2, 10 * 2, 
-								12 * 2, 12 * 2, 15 * 2, 15 * 2 
+                                 1 * 1,  1 * 2,  2 * 2,  3 * 2,
+                                 4 * 2,  5 * 2,  6 * 2,  7 * 2,
+                                 8 * 2,  9 * 2, 10 * 2, 10 * 2,
+								12 * 2, 12 * 2, 15 * 2, 15 * 2
 							};
 
 							phase[i][j][ml] = ((i * lut[ml]) << j) >> 2;
@@ -237,13 +237,13 @@ namespace Nes
 			void Vrc7::SubReset(const bool hard)
 			{
 				irq.Reset( hard, hard ? false : irq.IsLineEnabled() );
-		
+
 				for (dword i=0x8000U; i <= 0xFFFFUL; ++i)
 				{
 					switch (i & 0xF038U)
 					{
 						case 0x8000U: Map( i, PRG_SWAP_8K_0    ); break;
-						case 0x8008U:						
+						case 0x8008U:
 						case 0x8010U: Map( i, PRG_SWAP_8K_1    ); break;
 						case 0x9000U: Map( i, PRG_SWAP_8K_2    ); break;
 						case 0x9010U:
@@ -251,27 +251,27 @@ namespace Nes
 						case 0x9030U:
 						case 0x9038U: Map( i, &Vrc7::Poke_9030 ); break;
 						case 0xA000U: Map( i, CHR_SWAP_1K_0    ); break;
-						case 0xA008U:						
+						case 0xA008U:
 						case 0xA010U: Map( i, CHR_SWAP_1K_1    ); break;
 						case 0xB000U: Map( i, CHR_SWAP_1K_2    ); break;
-						case 0xB008U:						
+						case 0xB008U:
 						case 0xB010U: Map( i, CHR_SWAP_1K_3    ); break;
 						case 0xC000U: Map( i, CHR_SWAP_1K_4    ); break;
-						case 0xC008U:						
+						case 0xC008U:
 						case 0xC010U: Map( i, CHR_SWAP_1K_5    ); break;
 						case 0xD000U: Map( i, CHR_SWAP_1K_6    ); break;
-						case 0xD008U:						
+						case 0xD008U:
 						case 0xD010U: Map( i, CHR_SWAP_1K_7    ); break;
 						case 0xE000U: Map( i, NMT_SWAP_VH01    ); break;
-						case 0xE008U: 
+						case 0xE008U:
 						case 0xE010U: Map( i, &Vrc7::Poke_E008 ); break;
 						case 0xF000U: Map( i, &Vrc7::Poke_F000 ); break;
-						case 0xF008U: 
+						case 0xF008U:
 						case 0xF010U: Map( i, &Vrc7::Poke_F008 ); break;
-					}											   
+					}
 				}
 			}
-		
+
 			void Vrc7::Sound::OpllChannel::Reset()
 			{
 				frequency = 0;
@@ -292,8 +292,8 @@ namespace Nes
 					slots[i].eg.mode = EG_SETTLE;
 					slots[i].eg.counter = EG_BEGIN;
 					slots[i].eg.phase = 0;
-					slots[i].tl = 0;	  
-					slots[i].sl = 0;      
+					slots[i].tl = 0;
+					slots[i].sl = 0;
 					slots[i].output = 0;
 				}
 			}
@@ -337,7 +337,7 @@ namespace Nes
 			}
 
 			void Vrc7::BaseLoad(State::Loader& state,const dword id)
-			{	
+			{
 				NST_VERIFY( id == NES_STATE_CHUNK_ID('V','R','7','\0') );
 
 				if (id == NES_STATE_CHUNK_ID('V','R','7','\0'))
@@ -347,12 +347,12 @@ namespace Nes
 						switch (chunk)
 						{
 							case NES_STATE_CHUNK_ID('I','R','Q','\0'):
-						
+
 								irq.LoadState( State::Loader::Subset(state).Ref() );
 								break;
-						
+
 							case NES_STATE_CHUNK_ID('S','N','D','\0'):
-						
+
 								sound.LoadState( State::Loader::Subset(state).Ref() );
 								break;
 						}
@@ -361,7 +361,7 @@ namespace Nes
 					}
 				}
 			}
-		
+
 			void Vrc7::BaseSave(State::Saver& state) const
 			{
 				state.Begin('V','R','7','\0');
@@ -387,10 +387,10 @@ namespace Nes
 					switch (chunk)
 					{
 						case NES_STATE_CHUNK_ID('R','E','G','\0'):
-					
+
 							reg = state.Read8() & 0x3F;
 							break;
-					
+
 						case NES_STATE_CHUNK_ID('C','H','0','\0'):
 						case NES_STATE_CHUNK_ID('C','H','1','\0'):
 						case NES_STATE_CHUNK_ID('C','H','2','\0'):
@@ -399,7 +399,7 @@ namespace Nes
 						case NES_STATE_CHUNK_ID('C','H','5','\0'):
 
 							chunk = ((chunk >> 16) & 0xFF) - '0';
-							
+
 							if (chunk < NUM_OPLL_CHANNELS)
 								channels[chunk].LoadState( State::Loader::Subset(state).Ref(), tables );
 
@@ -409,7 +409,7 @@ namespace Nes
 					state.End();
 				}
 			}
-		
+
 			void Vrc7::Sound::OpllChannel::SaveState(State::Saver& state) const
 			{
 				const u8 data[11] =
@@ -459,41 +459,41 @@ namespace Nes
 				}
 			}
 
-            #ifdef NST_PRAGMA_OPTIMIZE
-            #pragma optimize("", on)
-            #endif
-		
-			NES_POKE(Vrc7,9010) 
+			#ifdef NST_PRAGMA_OPTIMIZE
+			#pragma optimize("", on)
+			#endif
+
+			NES_POKE(Vrc7,9010)
 			{
 				sound.WriteReg0( data );
 			}
 
-			NES_POKE(Vrc7,9030) 
+			NES_POKE(Vrc7,9030)
 			{
 				cpu.GetApu().Update();
 				sound.WriteReg1( data );
 			}
 
-			NES_POKE(Vrc7,E008) 
-			{ 
+			NES_POKE(Vrc7,E008)
+			{
 				irq.Update();
 				irq.unit.latch = data;
 			}
-			
-			NES_POKE(Vrc7,F000) 
-			{ 
+
+			NES_POKE(Vrc7,F000)
+			{
 				irq.Toggle( data );
 			}
-			
-			NES_POKE(Vrc7,F008) 
-			{ 
+
+			NES_POKE(Vrc7,F008)
+			{
 				irq.Toggle();
 			}
 
 			void Vrc7::VSync()
 			{
 				irq.VSync();
-			}	
+			}
 
 			void Vrc7::Sound::WriteReg0(uint data)
 			{
@@ -571,22 +571,22 @@ namespace Nes
 				switch (slots[i].eg.mode)
 				{
 					case EG_ATTACK:
-				
+
 						slots[i].eg.phase = tables.GetAttack( patch.tone[4+i] >> 4, slots[i].sl );
 						break;
-				
+
 					case EG_DECAY:
-				
+
 						slots[i].eg.phase = tables.GetDecay( patch.tone[4+i] & REG45_DECAY, slots[i].sl );
 						break;
-				
+
 					case EG_SUSTAIN:
-				
+
 						slots[i].eg.phase = tables.GetSustain( patch.tone[6+i] & REG67_RELEASE, slots[i].sl );
 						break;
-				
+
 					case EG_RELEASE:
-				
+
 						if (i != MODULATOR && sustain)
 						{
 							slots[i].eg.phase = tables.GetRelease( 5, slots[i].sl );
@@ -625,7 +625,7 @@ namespace Nes
 				NST_ASSERT( i < NUM_SLOTS );
 				slots[i].tl = tables.GetTotalLevel( frequency, block, (i != MODULATOR) ? volume : (patch.tone[2] & REG2_TOTAL_LEVEL), patch.tone[2+i] >> 6 );
 			}
-  
+
 			void Vrc7::Sound::OpllChannel::Update(const Tables& tables)
 			{
 				for (uint i=0; i < NUM_SLOTS; ++i)
@@ -735,7 +735,7 @@ namespace Nes
 			NST_FORCE_INLINE void Vrc7::Sound::OpllChannel::WriteReg9(const uint data,const Tables& tables)
 			{
 				frequency = (frequency & REG8_FRQ_LO) | ((data & REG9_FRQ_HI) << 8);
-				block = (data & REG9_BLOCK) >> 1;	
+				block = (data & REG9_BLOCK) >> 1;
 				sustain = data & REG9_SUSTAIN;
 
 				if ((data ^ key) & REG9_KEY)
@@ -787,83 +787,83 @@ namespace Nes
 							channels[i].WriteReg0( data, tables );
 
 						break;
-				
+
 					case 0x01:
 
 						for (uint i=0; i < NUM_OPLL_CHANNELS; ++i)
 							channels[i].WriteReg1( data, tables );
 
 						break;
-				
+
 					case 0x02:
 
 						for (uint i=0; i < NUM_OPLL_CHANNELS; ++i)
 							channels[i].WriteReg2( data, tables );
 
 						break;
-				
+
 					case 0x03:
 
 						for (uint i=0; i < NUM_OPLL_CHANNELS; ++i)
 							channels[i].WriteReg3( data );
 
 						break;
-				
+
 					case 0x04:
 
 						for (uint i=0; i < NUM_OPLL_CHANNELS; ++i)
 							channels[i].WriteReg4( data, tables );
 
 						break;
-				
+
 					case 0x05:
 
 						for (uint i=0; i < NUM_OPLL_CHANNELS; ++i)
 							channels[i].WriteReg5( data, tables );
 
 						break;
-				
+
 					case 0x06:
 
 						for (uint i=0; i < NUM_OPLL_CHANNELS; ++i)
 							channels[i].WriteReg6( data, tables );
 
 						break;
-				
+
 					case 0x07:
 
 						for (uint i=0; i < NUM_OPLL_CHANNELS; ++i)
 							channels[i].WriteReg7( data, tables );
 
 						break;
-				
+
 					case 0x10:
 					case 0x11:
 					case 0x12:
 					case 0x13:
 					case 0x14:
 					case 0x15:
-					
+
 						channels[reg - 0x10].WriteReg8( data, tables );
 						break;
-				
+
 					case 0x20:
 					case 0x21:
 					case 0x22:
 					case 0x23:
 					case 0x24:
 					case 0x25:
-					
+
 						channels[reg - 0x20].WriteReg9( data, tables );
 						break;
-				
+
 					case 0x30:
 					case 0x31:
 					case 0x32:
 					case 0x33:
 					case 0x34:
 					case 0x35:
-					
+
 						channels[reg - 0x30].WriteRegA( data, tables );
 						break;
 				}
@@ -887,10 +887,10 @@ namespace Nes
 					switch (slots[i].eg.mode)
 					{
 						case EG_ATTACK:
-					
+
 							egOut[i] = tables.GetLog( egOut[i] );
 							slots[i].eg.counter += slots[i].eg.phase;
-					
+
 							if (slots[i].eg.counter >= EG_BEGIN || (patch.tone[4+i] & REG45_ATTACK) == REG45_ATTACK)
 							{
 								egOut[i] = 0;
@@ -899,7 +899,7 @@ namespace Nes
 								UpdateEgPhase( tables, i );
 							}
 							break;
-					
+
 						case EG_DECAY:
 						{
 							slots[i].eg.counter += slots[i].eg.phase;
@@ -919,28 +919,28 @@ namespace Nes
 							}
 							break;
 						}
-					
+
 						case EG_HOLD:
-					
+
 							if (!(patch.tone[0+i] & REG01_HOLD))
 							{
 								slots[i].eg.mode = EG_SUSTAIN;
 								UpdateEgPhase( tables, i );
 							}
 							break;
-					
+
 						case EG_SUSTAIN:
 						case EG_RELEASE:
-					
+
 							slots[i].eg.counter += slots[i].eg.phase;
-					
+
 							if (egOut[i] <= EG_END)
 								break;
 
 							slots[i].eg.mode = EG_FINISH;
-					
+
 						default:
-					
+
 							egOut[i] = EG_END;
 							break;
 					}
@@ -953,21 +953,21 @@ namespace Nes
 
 				if (slots[CARRIER].eg.mode == EG_FINISH)
 					return 0;
-												
+
 				Sample output = slots[MODULATOR].output;
-				
+
 				if (egOut[MODULATOR] >= EG_MUTE)
 				{
 					slots[MODULATOR].output = 0;
 				}
-				else 
+				else
 				{
 					if (const uint fb = (patch.tone[3] & REG3_FEEDBACK))
 						pgOut[MODULATOR] = uint(int(pgOut[MODULATOR]) + sign_shr(feedback,FEEDBACK_SHIFT-fb)) & WAVE_RANGE;
 
 					slots[MODULATOR].output = tables.GetOutput( (patch.tone[3] & REG3_MODULATED_WAVE) >> 3, pgOut[MODULATOR], egOut[MODULATOR] );
 				}
-				
+
 				feedback = (output + slots[MODULATOR].output) / 2;
 				output = slots[CARRIER].output;
 

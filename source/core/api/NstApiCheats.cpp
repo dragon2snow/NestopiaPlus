@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -34,7 +34,7 @@ namespace Nes
 	namespace Api
 	{
 		Result NST_CALL Cheats::GameGenieEncode(const Code& code,char (&characters)[9])
-		{ 
+		{
 			if (code.address < 0x8000U)
 				return RESULT_ERR_INVALID_PARAM;
 
@@ -68,9 +68,9 @@ namespace Nes
 
 			return RESULT_OK;
 		}
-	
+
 		Result NST_CALL Cheats::GameGenieDecode(const char* const characters,Code& code)
-		{ 
+		{
 			if (characters == NULL)
 				return RESULT_ERR_INVALID_PARAM;
 
@@ -101,14 +101,14 @@ namespace Nes
 
 					default: return RESULT_ERR_INVALID_PARAM;
 				}
-	
+
 				if ((i == 2) && (codes[2] & 0x8))
 					length = 8;
 			}
 
 			code.address = 0x8000U |
 			(
-				( ( codes[4] & 0x1 ) << 0x0 ) | 
+				( ( codes[4] & 0x1 ) << 0x0 ) |
 				( ( codes[4] & 0x2 ) << 0x0 ) |
 				( ( codes[4] & 0x4 ) << 0x0 ) |
 				( ( codes[3] & 0x8 ) << 0x0 ) |
@@ -133,13 +133,13 @@ namespace Nes
 				( ( codes[1] & 0x1 ) << 0x4 ) |
 				( ( codes[1] & 0x2 ) << 0x4 ) |
 				( ( codes[1] & 0x4 ) << 0x4 ) |
-				( ( codes[0] & 0x8 ) << 0x4 ) 
+				( ( codes[0] & 0x8 ) << 0x4 )
 			);
 
 			if (length == 8)
 			{
 				code.useCompare = true;
-				code.value |= codes[7] & 0x8; 
+				code.value |= codes[7] & 0x8;
 				code.compare =
 				(
 					( ( codes[6] & 0x1 ) << 0x0 ) |
@@ -149,7 +149,7 @@ namespace Nes
 					( ( codes[7] & 0x1 ) << 0x4 ) |
 					( ( codes[7] & 0x2 ) << 0x4 ) |
 					( ( codes[7] & 0x4 ) << 0x4 ) |
-					( ( codes[6] & 0x8 ) << 0x4 ) 
+					( ( codes[6] & 0x8 ) << 0x4 )
 				);
 			}
 			else
@@ -192,7 +192,7 @@ namespace Nes
 			for (uint i=0; i < 8; ++i)
 			{
 				const int value = (output >> (i * 4)) & 0xF;
-				characters[i ^ 7] = (value >= 0xA) ? (value - 0xA + 'A') : (value + '0'); 
+				characters[i ^ 7] = (value >= 0xA) ? (value - 0xA + 'A') : (value + '0');
 			}
 
 			return RESULT_OK;
@@ -207,7 +207,7 @@ namespace Nes
 
 			for (uint i=0; i < 8; ++i)
 			{
-				dword num; 
+				dword num;
 				const int character = characters[i ^ 7];
 
 				if (character >= '0' && character <= '9')
@@ -256,18 +256,18 @@ namespace Nes
 		}
 
 		Result Cheats::SetCode(const Code& code)
-		{ 
+		{
 			try
 			{
 				if (emulator.cheats == NULL)
 					emulator.cheats = new Core::Cheats( emulator.cpu );
 
 				return emulator.cheats->SetCode
-				( 
-			     	code.address, 
-					code.value, 
-					code.compare, 
-					code.useCompare, 
+				(
+					code.address,
+					code.value,
+					code.compare,
+					code.useCompare,
 					emulator.Is(Machine::GAME)
 				);
 			}
@@ -280,9 +280,9 @@ namespace Nes
 				return RESULT_ERR_GENERIC;
 			}
 		}
-	
+
 		Result Cheats::DeleteCode(const dword index)
-		{ 
+		{
 			if (emulator.cheats)
 			{
 				const Result result = emulator.cheats->DeleteCode( index );
@@ -294,17 +294,17 @@ namespace Nes
 			}
 			else
 			{
-				return RESULT_ERR_INVALID_PARAM; 
+				return RESULT_ERR_INVALID_PARAM;
 			}
 		}
-	
+
 		dword Cheats::NumCodes() const
-		{ 
-			return emulator.cheats ? emulator.cheats->NumCodes() : 0; 
+		{
+			return emulator.cheats ? emulator.cheats->NumCodes() : 0;
 		}
-	
+
 		Result Cheats::GetCode(dword index,Code& code) const
-		{ 
+		{
 			if (emulator.cheats)
 				return emulator.cheats->GetCode( index, &code.address, &code.value, &code.compare, &code.useCompare );
 			else
@@ -312,7 +312,7 @@ namespace Nes
 		}
 
 		Result Cheats::GetCode(dword index,u16* address,u8* value,u8* compare,bool* useCompare) const
-		{ 
+		{
 			if (emulator.cheats)
 				return emulator.cheats->GetCode( index, address, value, compare, useCompare );
 			else
@@ -326,7 +326,7 @@ namespace Nes
 				delete emulator.cheats;
 				emulator.cheats = NULL;
 
-				return RESULT_OK; 
+				return RESULT_OK;
 			}
 			else
 			{

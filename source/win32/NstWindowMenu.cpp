@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -32,7 +32,7 @@ namespace Nestopia
 
 	Menu::Instances::Translator Menu::Instances::translator = Menu::Instances::TranslateNone;
 	Menu::Instances::Menus Menu::Instances::menus;
-	ibool Menu::Instances::acceleratorsEnabled = TRUE;
+	ibool Menu::Instances::acceleratorsEnabled = true;
 
 	void Menu::Instances::Update()
 	{
@@ -82,7 +82,7 @@ namespace Nestopia
 	Menu::PopupHandler::Key Menu::PopupHandler::GetKey(const uint levels) const
 	{
 		NST_ASSERT
-		( 
+		(
 			( ( ( levels >>  0 ) & 0xFF ) < IDM_OFFSET ) &&
 			( ( ( levels >>  8 ) & 0xFF ) < IDM_OFFSET ) &&
 			( ( ( levels >> 16 ) & 0xFF ) < IDM_OFFSET ) &&
@@ -96,25 +96,25 @@ namespace Nestopia
 		if ( levels & 0x00FF0000U ) { hMenu = ::GetSubMenu( hMenu, pos ); pos = (( levels >> 16 ) - 2) & 0xFF; }
 		if ( levels & 0xFF000000U ) { hMenu = ::GetSubMenu( hMenu, pos ); pos = (( levels >> 24 ) - 3) & 0xFF; }
 
-		return Key( hMenu, pos );
+		return Key( menu.window, hMenu, pos );
 	}
 
-    #ifdef NST_PRAGMA_OPTIMIZE
-    #pragma optimize("t", on)
-    #endif
+	#ifdef NST_PRAGMA_OPTIMIZE
+	#pragma optimize("t", on)
+	#endif
 
 	ibool Menu::Instances::TranslateNone(MSG&)
 	{
 		NST_ASSERT( !acceleratorsEnabled || menus.Empty() );
 
-		return FALSE;
+		return false;
 	}
 
 	ibool Menu::Instances::TranslateSingle(MSG& msg)
 	{
 		NST_ASSERT( acceleratorsEnabled && menus.Size() == 1 );
 
-		return msg.hwnd == *menus.Front()->window ? menus.Front()->accelerator.Translate( msg ) : FALSE;
+		return msg.hwnd == *menus.Front()->window ? menus.Front()->accelerator.Translate( msg ) : false;
 	}
 
 	ibool Menu::Instances::TranslateMulti(MSG& msg)
@@ -131,18 +131,18 @@ namespace Nestopia
 		}
 		while (++menu != end);
 
-		return FALSE;
+		return false;
 	}
 
-    #ifdef NST_PRAGMA_OPTIMIZE
-    #pragma optimize("", on)
-    #endif
+	#ifdef NST_PRAGMA_OPTIMIZE
+	#pragma optimize("", on)
+	#endif
 
 	Menu::Menu(const uint id)
-	: 
+	:
 	handle             ( id   ),
 	window             ( NULL ),
-	acceleratorEnabled ( TRUE )
+	acceleratorEnabled ( true )
 	{
 		if (!handle)
 			throw Application::Exception(_T("LoadMenu() failed!"));
@@ -163,9 +163,9 @@ namespace Nestopia
 
 		static const MsgHandler::HookEntry<Menu> hooks[] =
 		{
-			{ WM_CREATE,     &Menu::OnCreate  },
-			{ WM_INITDIALOG, &Menu::OnCreate  },
-			{ WM_DESTROY,    &Menu::OnDestroy }
+			{ WM_CREATE,     &Menu::OnCreate   },
+			{ WM_INITDIALOG, &Menu::OnCreate   },
+			{ WM_DESTROY,    &Menu::OnDestroy  }
 		};
 
 		Unhook();
@@ -227,9 +227,9 @@ namespace Nestopia
 		Unhook();
 	}
 
-    #ifdef NST_PRAGMA_OPTIMIZE
-    #pragma optimize("t", on)
-    #endif
+	#ifdef NST_PRAGMA_OPTIMIZE
+	#pragma optimize("t", on)
+	#endif
 
 	ibool Menu::OnCommand(Param& param)
 	{
@@ -237,9 +237,9 @@ namespace Nestopia
 
 		if (cmd >= IDM_OFFSET)
 		{
-			if 
+			if
 			(
-		      	(param.wParam & 0xFFFF0000) != 0x00010000 || 
+				(param.wParam & 0xFFFF0000) != 0x00010000 ||
 				(::GetMenuState( handle, cmd, MF_BYCOMMAND ) & (MF_DISABLED|MF_GRAYED)) == 0
 			)
 			{
@@ -252,7 +252,7 @@ namespace Nestopia
 			cmdCallback( param );
 		}
 
-		return TRUE;
+		return true;
 	}
 
 	ibool Menu::OnInitMenuPopup(Param& param)
@@ -261,11 +261,11 @@ namespace Nestopia
 
 		if (const PopupHandler::Handler::Callback* const callback = popupHandler.Find( reinterpret_cast<HMENU>(param.wParam), &key ))
 		{
-			PopupHandler::Param info( key->item, TRUE );
+			PopupHandler::Param info( key->item, true );
 			(*callback)( info );
 		}
 
-		return TRUE;
+		return true;
 	}
 
 	ibool Menu::OnUninitMenuPopup(Param& param)
@@ -274,16 +274,16 @@ namespace Nestopia
 
 		if (const PopupHandler::Handler::Callback* const callback = popupHandler.Find( reinterpret_cast<HMENU>(param.wParam), &key ))
 		{
-			PopupHandler::Param info( key->item, TRUE );
+			PopupHandler::Param info( key->item, true );
 			(*callback)( info );
 		}
 
-		return TRUE;
+		return true;
 	}
 
-    #ifdef NST_PRAGMA_OPTIMIZE
-    #pragma optimize("", on)
-    #endif
+	#ifdef NST_PRAGMA_OPTIMIZE
+	#pragma optimize("", on)
+	#endif
 
 	void Menu::Clear(HMENU const hMenu)
 	{
@@ -291,6 +291,12 @@ namespace Nestopia
 
 		for (int i=::GetMenuItemCount( hMenu ); i > 0; --i)
 			::DeleteMenu( hMenu, 0, MF_BYPOSITION );
+	}
+
+	void Menu::Redraw(const Custom* window)
+	{
+		if (window)
+			::DrawMenuBar( *window );
 	}
 
 	uint Menu::NumItems(HMENU const hMenu)
@@ -338,7 +344,7 @@ namespace Nestopia
 				{
 					NST_ASSERT( accel[i].cmd >= IDM_OFFSET );
 
-					const Item item( handle, accel[i].cmd );
+					const Item item( window, handle, accel[i].cmd );
 
 					if (item.Text() >> string)
 					{
@@ -354,7 +360,7 @@ namespace Nestopia
 		}
 
 		Instances::Update( this );
-	}					
+	}
 
 	void Menu::Insert(const Item& item,const uint cmd,GenericString name) const
 	{
@@ -382,6 +388,8 @@ namespace Nestopia
 			info.dwTypeData = const_cast<tchar*>(name.Ptr());
 
 			::InsertMenuItem( item.hMenu, item.pos, item.pos < IDM_OFFSET, &info );
+
+			Redraw();
 		}
 	}
 
@@ -396,8 +404,7 @@ namespace Nestopia
 
 		::SetMenuInfo( handle, &info );
 
-		if (window)
-			::DrawMenuBar( *window );
+		Redraw();
 	}
 
 	void Menu::ResetColor() const
@@ -410,8 +417,7 @@ namespace Nestopia
 
 		::SetMenuInfo( handle, &info );
 
-		if (window)
-			::DrawMenuBar( *window );
+		Redraw();
 	}
 
 	void Menu::ToggleModeless(ibool modeless) const
@@ -424,8 +430,7 @@ namespace Nestopia
 
 		::SetMenuInfo( handle, &info );
 
-		if (window)
-			::DrawMenuBar( *window );
+		Redraw();
 	}
 
 	Menu::Item::Type Menu::Item::GetType() const
@@ -440,11 +445,11 @@ namespace Nestopia
 			}
 			else
 			{
-				MENUITEMINFO info;	
+				MENUITEMINFO info;
 				info.cbSize = sizeof(info);
 				info.fMask = MIIM_FTYPE|MIIM_SUBMENU|MIIM_ID;
 
-				if (::GetMenuItemInfo( hMenu, pos, TRUE, &info ))
+				if (::GetMenuItemInfo( hMenu, pos, true, &info ))
 				{
 					if (info.hSubMenu)
 					{
@@ -479,7 +484,7 @@ namespace Nestopia
 	{
 		if (hMenu)
 		{
-			MENUITEMINFO info;	
+			MENUITEMINFO info;
 			info.cbSize = sizeof(info);
 			info.fMask = MIIM_ID;
 
@@ -493,7 +498,10 @@ namespace Nestopia
 	void Menu::Item::Remove() const
 	{
 		if (hMenu)
+		{
 			::DeleteMenu( hMenu, pos, Flag() );
+			Redraw( window );
+		}
 	}
 
 	void Menu::Item::Clear() const
@@ -501,12 +509,22 @@ namespace Nestopia
 		NST_ASSERT( pos < IDM_OFFSET );
 
 		if (hMenu)
+		{
 			Menu::Clear( ::GetSubMenu( hMenu, pos ) );
+			Redraw( window );
+		}
 	}
 
 	ibool Menu::Item::Enable(const ibool enable) const
 	{
-		return (hMenu ? ::EnableMenuItem( hMenu, pos, (enable ? MF_ENABLED : MF_GRAYED) | Flag() ) == MF_ENABLED : FALSE);
+		if (hMenu)
+		{
+			ibool result = (::EnableMenuItem( hMenu, pos, (enable ? MF_ENABLED : MF_GRAYED) | Flag() ) == MF_ENABLED);
+			Redraw( window );
+			return result;
+		}
+
+		return false;
 	}
 
 	ibool Menu::Item::IsEnabled() const
@@ -517,12 +535,12 @@ namespace Nestopia
 			return state != uint(-1) && !(state & (MF_DISABLED|MF_GRAYED));
 		}
 
-		return FALSE;
+		return false;
 	}
 
 	ibool Menu::Item::Check(const ibool check) const
 	{
-		return (hMenu ? ::CheckMenuItem( hMenu, pos, (check ? MF_CHECKED : MF_UNCHECKED) | Flag() ) == MF_CHECKED : FALSE);
+		return (hMenu ? ::CheckMenuItem( hMenu, pos, (check ? MF_CHECKED : MF_UNCHECKED) | Flag() ) == MF_CHECKED : false);
 	}
 
 	void Menu::Item::Check(const uint first,const uint last) const
@@ -590,7 +608,7 @@ namespace Nestopia
 			return ::GetMenuItemInfo( item.hMenu, item.pos, item.pos < IDM_OFFSET, &info );
 		}
 
-		return FALSE;
+		return false;
 	}
 
 	void Menu::Item::Stream::SetFullString(tstring string) const
@@ -604,6 +622,8 @@ namespace Nestopia
 			info.dwTypeData = const_cast<tchar*>(string);
 
 			::SetMenuItemInfo( item.hMenu, item.pos, item.pos < IDM_OFFSET, &info );
+
+			Redraw( item.window );
 		}
 	}
 

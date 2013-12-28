@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -45,7 +45,7 @@ namespace Nes
 		#ifdef NST_PRAGMA_OPTIMIZE
 		#pragma optimize("s", on)
 		#endif
-	
+
 		Cartridge::Cartridge(Context& context,Result& result)
 		:
 		Image        (CARTRIDGE),
@@ -65,39 +65,39 @@ namespace Nes
 					case 0x46494E55UL: { Unif unif( context.stream, pRom, cRom, wRam, info, context.database, result ); break; }
 					default: throw RESULT_ERR_INVALID_FILE;
 				}
-		
+
 				if (info.system != Api::Cartridge::SYSTEM_VS)
 					DetectVS();
-			
+
 				if (context.database && context.database->Enabled())
 					DetectBadChr();
 
 				if (DetectEncryption())
 					result = RESULT_WARN_ENCRYPTED_ROM;
-			
+
 				DetectControllers();
 				DetectTurboFile( context );
-			
+
 				if (vs == NULL)
 					dataRecorder = new Peripherals::DataRecorder(context.cpu);
-			
+
 				if (!InitInfo( context.database ))
 				{
 					if (result == RESULT_OK)
 						result = RESULT_WARN_BAD_DUMP;
 				}
-			
+
 				ResetWRam();
-			
+
 				if (info.battery)
 					LoadBattery();
-			
+
 				if (info.system == Api::Cartridge::SYSTEM_VS)
 					vs = VsSystem::Create( context.cpu, context.ppu, info.pRomCrc );
-			
+
 				pRom.Arrange( SIZE_16K );
 				cRom.Arrange( SIZE_8K );
-			
+
 				Mapper::Context settings
 				(
 					info.mapper,
@@ -107,21 +107,21 @@ namespace Nes
 					cRom,
 					wRam,
 					info.mirroring == Api::Cartridge::MIRROR_HORIZONTAL ? Ppu::NMT_HORIZONTAL :
-       				info.mirroring == Api::Cartridge::MIRROR_VERTICAL   ? Ppu::NMT_VERTICAL :
-     				info.mirroring == Api::Cartridge::MIRROR_FOURSCREEN ? Ppu::NMT_FOURSCREEN :
-      				info.mirroring == Api::Cartridge::MIRROR_ZERO       ? Ppu::NMT_ZERO :
-       				info.mirroring == Api::Cartridge::MIRROR_ONE        ? Ppu::NMT_ONE : 
-				                                                          Ppu::NMT_CONTROLLED,
+					info.mirroring == Api::Cartridge::MIRROR_VERTICAL   ? Ppu::NMT_VERTICAL :
+					info.mirroring == Api::Cartridge::MIRROR_FOURSCREEN ? Ppu::NMT_FOURSCREEN :
+					info.mirroring == Api::Cartridge::MIRROR_ZERO       ? Ppu::NMT_ZERO :
+					info.mirroring == Api::Cartridge::MIRROR_ONE        ? Ppu::NMT_ONE :
+                                                                          Ppu::NMT_CONTROLLED,
 					info.battery,
 					info.pRomCrc
-	     	 	);
-			
+				);
+
 				mapper = Mapper::Create( settings );
-			
+
 				if (wRam.Size())
 				{
 					wRamAuto = settings.wRamAuto;
-			
+
 					if (info.battery)
 						batteryCheckSum = Checksum::Md5::Compute( wRam.Mem(), wRam.Size() );
 				}
@@ -132,7 +132,7 @@ namespace Nes
 				throw;
 			}
 		}
-	
+
 		void Cartridge::Destroy()
 		{
 			delete dataRecorder;
@@ -145,17 +145,17 @@ namespace Nes
 		{
 			Destroy();
 		}
-	
+
 		bool Cartridge::InitInfo(const ImageDatabase* const database)
 		{
 			if (info.board.empty())
 				info.board = Mapper::GetBoard( info.mapper );
-	
+
 			if (!info.crc || !database)
 				return true;
-	
+
 			ImageDatabase::Handle handle( database->GetHandle( info.crc ) );
-	
+
 			if (!handle)
 				return true;
 
@@ -164,10 +164,10 @@ namespace Nes
 				info.condition = Api::Cartridge::NO;
 				return false;
 			}
-	
+
 			return true;
 		}
-		
+
 		uint Cartridge::GetDesiredController(uint port) const
 		{
 			NST_ASSERT( port < Api::Input::NUM_CONTROLLERS );
@@ -236,25 +236,27 @@ namespace Nes
 				case 0x54C34223UL: // -||- (E)
 				case 0xACD34C1DUL: // -||-
 				case 0x694041D7UL: // -||-
-			
+				case 0xE85B4D3DUL: // Hit Marmot (J)
+				case 0xE5F4C206UL: // Master Shooter (A)
+
 					info.controllers[0] = Api::Input::PAD1;
 					info.controllers[1] = Api::Input::ZAPPER;
 					info.controllers[2] = Api::Input::UNCONNECTED;
 					info.controllers[3] = Api::Input::UNCONNECTED;
 					info.controllers[4] = Api::Input::UNCONNECTED;
 					break;
-			
+
 				case 0xED588F00UL: // VS Duck Hunt
 				case 0x17AE56BEUL: // VS Freedom Force
 				case 0xFF5135A3UL: // VS Hogan's Alley
-			
+
 					info.controllers[0] = Api::Input::ZAPPER;
 					info.controllers[1] = Api::Input::UNCONNECTED;
 					info.controllers[2] = Api::Input::UNCONNECTED;
 					info.controllers[3] = Api::Input::UNCONNECTED;
 					info.controllers[4] = Api::Input::UNCONNECTED;
 					break;
-			
+
 				case 0x35893B67UL: // Arkanoid (J)
 				case 0x9D0B83E0UL: // -||-
 				case 0x95DBB274UL: // -||-
@@ -264,23 +266,23 @@ namespace Nes
 				case 0x9C6868A8UL: // -||-
 				case 0x8FBF8C2CUL: // -||-
 				case 0xD04D6C50UL: // -||-
-			
+
 					info.controllers[0] = Api::Input::PAD1;
 					info.controllers[1] = Api::Input::PAD2;
 					info.controllers[2] = Api::Input::UNCONNECTED;
 					info.controllers[3] = Api::Input::UNCONNECTED;
 					info.controllers[4] = Api::Input::PADDLE;
 					break;
-			
+
 				case 0xB8BB48D3UL: // Arkanoid (U)
-			
+
 					info.controllers[0] = Api::Input::PAD1;
 					info.controllers[1] = Api::Input::PADDLE;
 					info.controllers[2] = Api::Input::UNCONNECTED;
 					info.controllers[3] = Api::Input::UNCONNECTED;
 					info.controllers[4] = Api::Input::UNCONNECTED;
 					break;
-			
+
 				case 0xBC5F6C94UL: // Athletic World (U)
 				case 0xD836A90BUL: // Dance Aerobics (U)
 				case 0xFD37CA4CUL: // Short Order - Eggsplode (U)
@@ -319,13 +321,13 @@ namespace Nes
 					info.controllers[4] = Api::Input::FAMILYTRAINER;
 					break;
 
-				case 0x868FCD89UL: // Family Basic (Ver 1.0)
-				case 0xF9DEF527UL: // Family Basic (Ver 2.0)
-				case 0xDE34526EUL: // Family Basic (Ver 2.1a)
-				case 0xF050B611UL: // Family Basic (Ver 3)
-				case 0x3AAEED3FUL: // Family Basic (Ver 3) (Alt)
+				case 0x868FCD89UL: // Family BASIC (Ver 1.0)
+				case 0xF9DEF527UL: // Family BASIC (Ver 2.0)
+				case 0xDE34526EUL: // Family BASIC (Ver 2.1a)
+				case 0xF050B611UL: // Family BASIC (Ver 3)
+				case 0x3AAEED3FUL: // Family BASIC (Ver 3) (Alt)
 				case 0xDA03D908UL: // Playbox BASIC (Ver 1.0)
-				case 0x2D6B7E5AUL: // Playbox BASIC
+				case 0x2D6B7E5AUL: // Playbox BASIC Prototype
 
 					info.controllers[0] = Api::Input::PAD1;
 					info.controllers[1] = Api::Input::PAD2;
@@ -342,7 +344,7 @@ namespace Nes
 				case 0x41401C6DUL: // Supor v4.0
 				case 0x41EF9AC4UL: // -||-
 				case 0x5E073A1BUL: // Supor English (Chinese)
-				case 0x8b265862UL: // -||-
+				case 0x8B265862UL: // -||-
 				case 0xABB2F974UL: // Study and Game 32-in-1
 				case 0xD5D6EAC4UL: // Edu (Asia)
 				case 0x368C19A8UL: // LIKO Study Cartridge
@@ -367,7 +369,7 @@ namespace Nes
 
 				case 0x3B997543UL: // Gauntlet 2 (E)
 				case 0x2C609B52UL: // Gauntlet 2 (U)
-				case 0x1352F1B9UL: // Greg Norman's Golf Power (U) 
+				case 0x1352F1B9UL: // Greg Norman's Golf Power (U)
 				case 0xAB8371F6UL: // Kings of the Beach (U)
 				case 0x0939852FUL: // M.U.L.E. (U)
 				case 0xDA2CB59AUL: // Nightmare on Elm Street, A (U)
@@ -391,82 +393,82 @@ namespace Nes
 				case 0x4FB460CDUL: // Nekketsu! Street Basket - Ganbare Dunk Heroes
 				case 0x457BC688UL: // -||- (T)
 				case 0x5D4A01A9UL: // -||- (T)
-			
+
 					info.controllers[0] = Api::Input::PAD1;
 					info.controllers[1] = Api::Input::PAD2;
 					info.controllers[2] = Api::Input::PAD3;
 					info.controllers[3] = Api::Input::PAD4;
 					info.controllers[4] = Api::Input::UNCONNECTED;
 					break;
-			
+
 				case 0xC3C0811DUL: // Oeka Kids - Anpanman no Hiragana Daisuki (J)
 				case 0x9D048EA4UL: // Oeka Kids - Anpanman to Oekaki Shiyou (J)
-			
+
 					info.controllers[0] = Api::Input::UNCONNECTED;
 					info.controllers[1] = Api::Input::UNCONNECTED;
 					info.controllers[2] = Api::Input::UNCONNECTED;
 					info.controllers[3] = Api::Input::UNCONNECTED;
 					info.controllers[4] = Api::Input::OEKAKIDSTABLET;
 					break;
-			
+
 				case 0xFF6621CEUL: // Hyper Olympic
 				case 0x3FC5293EUL: // -||-
 				case 0x39AB6510UL: // -||-
 				case 0xDB9418E8UL: // -||-
 				case 0xAC98CD70UL: // Hyper Sports
 				case 0x435F621EUL: // -||-
-			
+
 					info.controllers[0] = Api::Input::UNCONNECTED;
 					info.controllers[1] = Api::Input::UNCONNECTED;
 					info.controllers[2] = Api::Input::UNCONNECTED;
 					info.controllers[3] = Api::Input::UNCONNECTED;
 					info.controllers[4] = Api::Input::HYPERSHOT;
 					break;
-			
+
 				case 0xC68363F6UL: // Crazy Climber
 				case 0x814188EEUL: // -||-
 				case 0xD9934AEFUL: // -||-
 				case 0xC1DC5B12UL: // -||-
-			
+
 					info.controllers[0] = Api::Input::PAD1;
 					info.controllers[1] = Api::Input::PAD2;
 					info.controllers[2] = Api::Input::UNCONNECTED;
 					info.controllers[3] = Api::Input::UNCONNECTED;
 					info.controllers[4] = Api::Input::CRAZYCLIMBER;
 					break;
-			
+
 				case 0x9FAE4D46UL: // Ide Yousuke Meijin no Jissen Mahjong
 				case 0x3BCEBB61UL: // -||-
 				case 0x7B44FB2AUL: // Ide Yousuke Meijin no Jissen Mahjong 2
-			
+
 					info.controllers[0] = Api::Input::UNCONNECTED;
 					info.controllers[1] = Api::Input::UNCONNECTED;
 					info.controllers[2] = Api::Input::UNCONNECTED;
 					info.controllers[3] = Api::Input::UNCONNECTED;
 					info.controllers[4] = Api::Input::MAHJONG;
 					break;
-			
+
 				case 0x786148B6UL: // Exciting Boxing
-			
+
 					info.controllers[0] = Api::Input::PAD1;
 					info.controllers[1] = Api::Input::PAD2;
 					info.controllers[2] = Api::Input::UNCONNECTED;
 					info.controllers[3] = Api::Input::UNCONNECTED;
 					info.controllers[4] = Api::Input::EXCITINGBOXING;
 					break;
-			
+
 				case 0x20D22251UL: // Top Rider
 				case 0x26171D7DUL: // -||-
-			
+
 					info.controllers[0] = Api::Input::UNCONNECTED;
 					info.controllers[1] = Api::Input::UNCONNECTED;
 					info.controllers[2] = Api::Input::UNCONNECTED;
 					info.controllers[3] = Api::Input::UNCONNECTED;
 					info.controllers[4] = Api::Input::TOPRIDER;
 					break;
-			
+
 				case 0x3993B4EBUL: // Super Mogura Tataki!! - Pokkun Moguraa
-			
+
 					info.controllers[0] = Api::Input::PAD1;
 					info.controllers[1] = Api::Input::UNCONNECTED;
 					info.controllers[2] = Api::Input::UNCONNECTED;
@@ -485,9 +487,9 @@ namespace Nes
 					info.controllers[3] = Api::Input::UNCONNECTED;
 					info.controllers[4] = Api::Input::PARTYTAP;
 					break;
-			}	
+			}
 		}
-	
+
 		void Cartridge::DetectVS()
 		{
 			switch (info.pRomCrc)
@@ -511,7 +513,7 @@ namespace Nes
 				case 0x07138C06UL: // Clu Clu Land
 				case 0x43A357EFUL: // Ice Climber
 				case 0xD4EB5923UL: // -||-
-				case 0x737DD1BFUL: // Super Mario Bros	
+				case 0x737DD1BFUL: // Super Mario Bros
 				case 0x4BF3972DUL: // -||-
 				case 0x8B60CC58UL: // -||-
 				case 0x8192C804UL: // -||-
@@ -535,19 +537,19 @@ namespace Nes
 				case 0xA93A5AEEUL: // Stroke and Match Golf
 				case 0xC99EC059UL: // Raid on Bungeling Bay
 				case 0xCA85E56DUL: // Mighty Bomb Jack
-			
+
 				// DualSystem
 				case 0xB90497AAUL: // Tennis
-				case 0x008A9C16UL: // Wrecking Crew 
+				case 0x008A9C16UL: // Wrecking Crew
 				case 0xAD407F52UL: // Balloon Fight
 				case 0x18A93B7BUL: // Mahjong (J)
-				case 0x13A91937UL: // Baseball 
+				case 0x13A91937UL: // Baseball
 				case 0xF5DEBF88UL: // -||-
 				case 0xF64D7252UL: // -||-
 				case 0x968A6E9DUL: // -||-
 				case 0xF42DAB14UL: // Ice Climber
 				case 0x7D6B764FUL: // -||-
-			
+
 					info.system = Api::Cartridge::SYSTEM_VS;
 					break;
 			}
@@ -594,13 +596,13 @@ namespace Nes
 				switch (info.cRomCrc)
 				{
 					case 0x2B58AA2DUL: // Viva! Las Vegas (J)
-			
+
 						cRom[0] = 0xFF;
 						break;
 				}
 			}
 		}
-	
+
 		bool Cartridge::DetectEncryption() const
 		{
 			switch (info.pRomCrc)
@@ -616,14 +618,14 @@ namespace Nes
 				case 0xB68266C9UL: // Dragon Quest
 				case 0x03D6B055UL: // Dong Fang de Chuan Shuo - The Hyrule Fantasy (Zelda)
 				case 0x746E2815UL: // San Guo Zhi
-			
+
 					Log::Flush( "Cartridge: game is encrypted!" NST_LINEBREAK );
 					return true;
 			}
-	
+
 			return false;
 		}
-	
+
 		void Cartridge::ResetWRam()
 		{
 			NST_ASSERT( (wRam.Size() % SIZE_8K) == 0 );
@@ -648,7 +650,7 @@ namespace Nes
 				ResetWRam();
 
 			mapper->Reset( hard );
-	
+
 			if (vs)
 				vs->Reset( hard );
 
@@ -658,11 +660,11 @@ namespace Nes
 			if (dataRecorder)
 				dataRecorder->Reset();
 		}
-	
+
 		void Cartridge::SaveState(State::Saver& state) const
 		{
 			mapper->SaveState( State::Saver::Subset(state,'M','P','R','\0').Ref() );
-	
+
 			if (vs)
 				vs->SaveState( State::Saver::Subset(state,'V','S','S','\0').Ref() );
 
@@ -672,28 +674,28 @@ namespace Nes
 			if (dataRecorder && dataRecorder->CanSaveState())
 				dataRecorder->SaveState( State::Saver::Subset(state,'D','R','C','\0').Ref() );
 		}
-	
+
 		void Cartridge::LoadState(State::Loader& state)
 		{
 			while (const dword chunk = state.Begin())
 			{
 				switch (chunk)
 				{
-					case NES_STATE_CHUNK_ID('M','P','R','\0'): 
-						
-						mapper->LoadState( State::Loader::Subset(state).Ref() ); 
+					case NES_STATE_CHUNK_ID('M','P','R','\0'):
+
+						mapper->LoadState( State::Loader::Subset(state).Ref() );
 						break;
-	
-					case NES_STATE_CHUNK_ID('V','S','S','\0'): 
-						
+
+					case NES_STATE_CHUNK_ID('V','S','S','\0'):
+
 						NST_VERIFY( vs );
 
 						if (vs)
 							vs->LoadState( State::Loader::Subset(state).Ref() );
-						
+
 						break;
 
-					case NES_STATE_CHUNK_ID('T','B','F','\0'): 
+					case NES_STATE_CHUNK_ID('T','B','F','\0'):
 
 						NST_VERIFY( turboFile );
 
@@ -711,22 +713,22 @@ namespace Nes
 
 						break;
 				}
-	
+
 				state.End();
 			}
 		}
-	
+
 		void Cartridge::LoadBattery()
 		{
 			NST_ASSERT( info.battery && batteryCheckSum.IsNull() );
-	
+
 			std::vector<u8> data;
 			Api::User::fileIoCallback( Api::User::FILE_LOAD_BATTERY, data );
-	
+
 			if (ulong size = data.size())
 			{
 				ulong pad = 0;
-	
+
 				if (size > SIZE_8K * 0xFFUL)
 				{
 					size = SIZE_8K * 0xFFUL;
@@ -735,24 +737,27 @@ namespace Nes
 				else
 				{
 					pad = size % SIZE_8K;
-	
+
 					if (pad)
 						Log::Flush( "Cartridge: warning, save data size is not evenly divisible by 8k!" NST_LINEBREAK );
 				}
-	
+
 				if (wRam.Size() < size)
 				{
 					// Current WRAM size is too small. Resize and do zero-padding.
 					wRam.Set( size + (pad ? SIZE_8K - pad : 0) );
 					std::memset( wRam.Mem(size), 0x00, wRam.Size() - size );
 				}
-	
+
 				std::memcpy( wRam.Mem(), &data.front(), size );
 			}
 		}
-	
-		Result Cartridge::SaveBattery() const
+
+		Result Cartridge::SaveBattery(bool power) const
 		{
+			if (mapper)
+				mapper->Flush( power );
+
 			if (info.battery && wRam.Size())
 			{
 				const Checksum::Md5::Key key( Checksum::Md5::Compute( wRam.Mem(), wRam.Size() ) );
@@ -761,7 +766,7 @@ namespace Nes
 				{
 					try
 					{
-						std::vector<u8> vector( wRam.Mem(), wRam.Mem( wRam.Size() ) );	
+						std::vector<u8> vector( wRam.Mem(), wRam.Mem( wRam.Size() ) );
 						batteryCheckSum = key;
 						Api::User::fileIoCallback( Api::User::FILE_SAVE_BATTERY, vector );
 					}
@@ -771,10 +776,10 @@ namespace Nes
 					}
 				}
 			}
-	
+
 			return RESULT_OK;
 		}
-	
+
 		const void* Cartridge::SearchDatabase(const ImageDatabase& database,const void* data,ulong fullsize,const ulong compsize)
 		{
 			const void* entry = NULL;
@@ -792,10 +797,34 @@ namespace Nes
 			return entry;
 		}
 
-        #ifdef NST_PRAGMA_OPTIMIZE
-        #pragma optimize("", on)
-        #endif
-	
+		Cartridge::PpuType Cartridge::QueryPpu(bool yuvConversion)
+		{
+			if (vs)
+			{
+				switch (vs->EnableYuvConversion( yuvConversion ))
+				{
+					case VsSystem::RP2C04_0001: return RP2C04_0001;
+					case VsSystem::RP2C04_0002: return RP2C04_0002;
+					case VsSystem::RP2C04_0003: return RP2C04_0003;
+					case VsSystem::RP2C04_0004: return RP2C04_0004;
+				}
+
+				return RP2C03;
+			}
+			else if (info.system == Api::Cartridge::SYSTEM_PC10)
+			{
+				return RP2C03;
+			}
+			else
+			{
+				return RP2C02;
+			}
+		}
+
+		#ifdef NST_PRAGMA_OPTIMIZE
+		#pragma optimize("", on)
+		#endif
+
 		void Cartridge::BeginFrame(const Api::Input& input,Input::Controllers* controllers)
 		{
 			if (mapper->GetID() == 188)
@@ -804,7 +833,7 @@ namespace Nes
 			if (vs)
 				vs->BeginFrame( input, controllers );
 		}
-	
+
 		void Cartridge::VSync()
 		{
 			mapper->VSync();
@@ -815,7 +844,7 @@ namespace Nes
 			if (dataRecorder)
 				dataRecorder->VSync();
 		}
-	
+
 		Mode Cartridge::GetMode() const
 		{
 			return info.system == Api::Cartridge::SYSTEM_PAL ? MODE_PAL : MODE_NTSC;

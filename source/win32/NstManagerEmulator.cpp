@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -65,13 +65,9 @@ namespace Nestopia
 
 			if (type == Nes::User::INPUT_CHOOSE_MAPPER)
 			{
-				HeapString message, output;
+				HeapString output;
 
-				message << Resource::String(IDS_EMU_CHOOSE_MAPPER_1_2)
-					    << info
-					    << Resource::String(IDS_EMU_CHOOSE_MAPPER_2_2);
-
-				if (Window::User::Input( output, message.Ptr(), Resource::String(IDS_EMU_TITLE_CHOOSE_MAPPER) ))
+				if (Window::User::Input( output, Resource::String(IDS_EMU_CHOOSE_MAPPER).Invoke(info), Resource::String(IDS_EMU_TITLE_CHOOSE_MAPPER) ))
 				{
 					const String::Heap<char> tmp( output );
 					response.assign( tmp.Ptr(), tmp.Length() );
@@ -87,25 +83,25 @@ namespace Nestopia
 
 			switch (type)
 			{
-				case Nes::User::FILE_LOAD_BATTERY: 
+				case Nes::User::FILE_LOAD_BATTERY:
 				case Nes::User::FILE_LOAD_EEPROM:
 				case Nes::User::FILE_LOAD_TAPE:
 				case Nes::User::FILE_LOAD_TURBOFILE:
-			
-					emulator.LoadImageData( data, type ); 
+
+					emulator.LoadImageData( data, type );
 					break;
-			
-				case Nes::User::FILE_SAVE_BATTERY: 
+
+				case Nes::User::FILE_SAVE_BATTERY:
 				case Nes::User::FILE_SAVE_EEPROM:
 				case Nes::User::FILE_SAVE_TAPE:
 				case Nes::User::FILE_SAVE_TURBOFILE:
 
-					emulator.SaveImageData( data, type ); 
+					emulator.SaveImageData( data, type );
 					break;
-			
+
 				case Nes::User::FILE_SAVE_FDS:
-			
-					emulator.SaveDiskData( data ); 
+
+					emulator.SaveDiskData( data );
 					break;
 			}
 		}
@@ -120,7 +116,7 @@ namespace Nestopia
 					break;
 
 				case Nes::User::EVENT_DISPLAY_TIMER:
-			
+
 					Io::Screen() << static_cast<cstring>( data );
 					break;
 
@@ -144,10 +140,10 @@ namespace Nestopia
 		static void NST_CALLBACK Rewind(Nes::Rewinder::UserData user,Nes::Rewinder::State state)
 		{
 			static_cast<Emulator*>(user)->events
-			( 
-       			state == Nes::Rewinder::PREPARING ? EVENT_REWINDING_PREPARE :
-				state == Nes::Rewinder::REWINDING ? EVENT_REWINDING_START : 
-			                                        EVENT_REWINDING_STOP 
+			(
+				state == Nes::Rewinder::PREPARING ? EVENT_REWINDING_PREPARE :
+				state == Nes::Rewinder::REWINDING ? EVENT_REWINDING_START :
+													EVENT_REWINDING_STOP
 			);
 		}
 	};
@@ -177,23 +173,23 @@ namespace Nestopia
 	}
 
 	inline Emulator::Settings::Cartridge::Cartridge()
-	: writeProtect(FALSE) {}
+	: writeProtect(false) {}
 
 	inline Emulator::Settings::Fds::Fds()
 	: save(DISKIMAGE_SAVE_TO_IMAGE) {}
 
 	inline Emulator::Settings::Timing::Timing()
-	: 
-	speed           (DEFAULT_SPEED), 
-	baseSpeed       (DEFAULT_SPEED), 
-	sync            (false), 
+	:
+	speed           (DEFAULT_SPEED),
+	baseSpeed       (DEFAULT_SPEED),
+	sync            (false),
 	tripleBuffering (false),
-	speeding        (false), 
+	speeding        (false),
 	rewinding       (false)
 	{}
 
 	inline Emulator::Settings::Settings()
-	: askSave(FALSE) {}
+	: askSave(false) {}
 
 	void Emulator::Settings::Reset()
 	{
@@ -202,21 +198,21 @@ namespace Nestopia
 		paths.save.Clear();
 		paths.tape.Clear();
 		fds.original.Destroy();
-		askSave = FALSE;
+		askSave = false;
 	}
 
 	inline Emulator::State::State()
 	:
-	running     (FALSE), 
-	paused      (FALSE),
+	running     (false),
+	paused      (false),
 	frame       (0),
 	activator   (this,&State::NoActivator),
 	inactivator (this,&State::NoInactivator)
 	{}
 
-	ibool Emulator::State::NoActivator() 
+	ibool Emulator::State::NoActivator()
 	{
-		return FALSE;
+		return false;
 	}
 
 	void Emulator::State::NoInactivator()
@@ -240,6 +236,11 @@ namespace Nestopia
 		Unload();
 	}
 
+	void Emulator::Initialize() const
+	{
+		events( EVENT_INIT );
+	}
+
 	void Emulator::Unhook()
 	{
 		state.activator.Set( &state, &State::NoActivator );
@@ -256,7 +257,7 @@ namespace Nestopia
 	{
 		if (state.running)
 		{
-			state.running = FALSE;
+			state.running = false;
 			state.inactivator();
 		}
 	}
@@ -272,28 +273,28 @@ namespace Nestopia
 		if (bool(state.paused) != bool(pause))
 		{
 			Stop();
-			
+
 			state.paused = pause && Is(Nes::Machine::ON);
 			events( state.paused ? EVENT_PAUSE : EVENT_RESUME );
 
 			if (!state.paused)
 				Resume();
 
-			return TRUE;
+			return true;
 		}
 
-		return FALSE;
+		return false;
 	}
 
-    #ifdef NST_PRAGMA_OPTIMIZE
-    #pragma optimize("t", on)
-    #endif
+	#ifdef NST_PRAGMA_OPTIMIZE
+	#pragma optimize("t", on)
+	#endif
 
 	ibool Emulator::UsesBaseSpeed() const
 	{
-		return 
+		return
 		(
-       		(settings.timing.speeding|settings.timing.rewinding) == 0 || 
+			(settings.timing.speeding|settings.timing.rewinding) == 0 ||
 			(settings.timing.speed == DEFAULT_SPEED)
 		);
 	}
@@ -319,9 +320,9 @@ namespace Nestopia
 		return UsesBaseSpeed() ? GetBaseSpeed() : settings.timing.speed;
 	}
 
-    #ifdef NST_PRAGMA_OPTIMIZE
-    #pragma optimize("", on)
-    #endif
+	#ifdef NST_PRAGMA_OPTIMIZE
+	#pragma optimize("", on)
+	#endif
 
 	void Emulator::ResetSpeed(const uint baseSpeed,const ibool sync,const ibool tripleBuffering)
 	{
@@ -365,7 +366,7 @@ namespace Nestopia
 
 	ibool Emulator::IsDiskImage(const Collection::Buffer& buffer) const
 	{
-		return buffer.Size() >= 4 && 
+		return buffer.Size() >= 4 &&
 		(
 			*reinterpret_cast<const u32*>(buffer.Begin()) == 0x1A534446U ||
 			*reinterpret_cast<const u32*>(buffer.Begin()) == 0x494E2A01U
@@ -407,7 +408,7 @@ namespace Nestopia
 				break;
 		}
 
-		if (Io::File::FileExist( path.Ptr() ))
+		if (path.FileExists())
 		{
 			try
 			{
@@ -518,8 +519,8 @@ namespace Nestopia
 		switch (settings.fds.save)
 		{
 			case DISKIMAGE_SAVE_TO_IPS:
-		
-				if (Io::File::FileExist( settings.paths.save.Ptr() ))
+
+				if (settings.paths.save.FileExists())
 				{
 					Io::Ips ips;
 					Io::Ips::PatchData patchData;
@@ -543,10 +544,10 @@ namespace Nestopia
 					Io::Log() << "Emulator: IPS disk data file \"" << settings.paths.save << "\" not found\r\n";
 				}
 				break;
-		
+
 			case DISKIMAGE_SAVE_TO_IMAGE:
-		
-				if (!Io::File::FileExist( settings.paths.image.Ptr() ))
+
+				if (!settings.paths.image.FileExists())
 					Window::User::Warn( IDS_EMU_NOFDSFILE );
 
 				break;
@@ -559,12 +560,12 @@ namespace Nestopia
 
 		if (settings.askSave && !Window::User::Confirm( IDS_EMU_MOVIE_SAVE_FDS ))
 			return;
-		
+
 		switch (settings.fds.save)
 		{
 			case DISKIMAGE_SAVE_TO_IMAGE:
-		
-				if (Io::File::FileExist( settings.paths.image.Ptr() ))
+
+				if (settings.paths.image.FileExists())
 				{
 					try
 					{
@@ -583,7 +584,7 @@ namespace Nestopia
 					Io::Log() << "Emulator: warning, disk image file \"" << settings.paths.image << "\" not found, discarding changes!\r\n";
 				}
 				break;
-		
+
 			case DISKIMAGE_SAVE_TO_IPS:
 
 				if (settings.paths.save.Length())
@@ -610,17 +611,17 @@ namespace Nestopia
 
 					break;
 				}
-		
-			case DISKIMAGE_SAVE_DISABLED:		
+
+			case DISKIMAGE_SAVE_DISABLED:
 
 				Io::Log() << "Emulator: changes made to the disk image was not saved..\r\n";
 				break;
-		}		
+		}
 	}
 
 	ibool Emulator::Load
 	(
-       	Collection::Buffer& image,
+		Collection::Buffer& image,
 		const Path& start,
 		const Io::Nsp::Context& context,
 		const ibool warn
@@ -669,7 +670,7 @@ namespace Nestopia
 			{
 				case Nes::RESULT_WARN_BAD_DUMP:        msg = IDS_EMU_WARN_BAD_DUMP;  break;
 				case Nes::RESULT_WARN_BAD_PROM:        msg = IDS_EMU_WARN_BAD_PROM;  break;
-				case Nes::RESULT_WARN_BAD_CROM:		   msg = IDS_EMU_WARN_BAD_CROM;  break;
+				case Nes::RESULT_WARN_BAD_CROM:        msg = IDS_EMU_WARN_BAD_CROM;  break;
 				case Nes::RESULT_WARN_BAD_FILE_HEADER: msg = IDS_EMU_WARN_BAD_INES;  break;
 				case Nes::RESULT_WARN_ENCRYPTED_ROM:   msg = IDS_EMU_WARN_ENCRYPTED; break;
 			}
@@ -682,7 +683,7 @@ namespace Nestopia
 					Io::Log() << "Emulator: warning, " << Resource::String( msg ) << "\r\n";
 			}
 
-			return TRUE;
+			return true;
 		}
 		else
 		{
@@ -694,20 +695,20 @@ namespace Nestopia
 			{
 				case Nes::RESULT_ERR_CORRUPT_FILE:           msg = IDS_FILE_ERR_CORRUPT;              break;
 				case Nes::RESULT_ERR_INVALID_FILE:           msg = IDS_FILE_ERR_INVALID;              break;
-				case Nes::RESULT_ERR_UNSUPPORTED_GAME:		 msg = IDS_EMU_ERR_UNSUPPORTED_GAME;      break;
+				case Nes::RESULT_ERR_UNSUPPORTED_GAME:       msg = IDS_EMU_ERR_UNSUPPORTED_GAME;      break;
 				case Nes::RESULT_ERR_UNSUPPORTED_SOUND_CHIP: msg = IDS_EMU_ERR_UNSUPPORTED_SOUNDCHIP; break;
 				case Nes::RESULT_ERR_UNSUPPORTED_MAPPER:     msg = IDS_EMU_ERR_UNSUPPORTED_MAPPER;    break;
 				case Nes::RESULT_ERR_UNSUPPORTED_VSSYSTEM:   msg = IDS_EMU_ERR_UNSUPPORTED_VSSYSTEM;  break;
 				case Nes::RESULT_ERR_MISSING_BIOS:           msg = IDS_EMU_ERR_BIOS_FILE_MISSING;     break;
-				case Nes::RESULT_ERR_INVALID_MAPPER:		 msg = IDS_EMU_ERR_INVALID_MAPPER;        break;
+				case Nes::RESULT_ERR_INVALID_MAPPER:         msg = IDS_EMU_ERR_INVALID_MAPPER;        break;
 				case Nes::RESULT_ERR_OUT_OF_MEMORY:          msg = IDS_ERR_OUT_OF_MEMORY;             break;
-				default:									 msg = IDS_ERR_GENERIC;                   break;
+				default:                                     msg = IDS_ERR_GENERIC;                   break;
 			}
 
 			Window::User::Fail( msg );
 		}
 
-		return FALSE;
+		return false;
 	}
 
 	ibool Emulator::Unload()
@@ -722,7 +723,7 @@ namespace Nestopia
 			{
 				Unpause();
 				state.frame = 0;
-				Nes::Machine(*this).Power( FALSE );
+				Nes::Machine(*this).Power( false );
 				events( netplay ? EVENT_NETPLAY_POWER_OFF : EVENT_POWER_OFF );
 			}
 
@@ -744,10 +745,10 @@ namespace Nestopia
 
 		if (Is(Nes::Machine::GAME))
 		{
-			if (Io::File::FileExist( settings.paths.save.Ptr() ))
+			if (settings.paths.save.FileExists())
 				context.save = settings.paths.save;
 
-			if (Io::File::FileExist( settings.paths.tape.Ptr() ))
+			if (settings.paths.tape.FileExists())
 				context.tape = settings.paths.tape;
 
 			NST_COMPILE_ASSERT( Io::Nsp::Context::NUM_CONTROLLER_PORTS == Nes::Input::NUM_PORTS );
@@ -770,17 +771,17 @@ namespace Nestopia
 		}
 
 		if (NES_SUCCEEDED(result))
-			return TRUE;
+			return true;
 
 		uint msg;
 
 		switch (result)
 		{
-			case Nes::RESULT_ERR_CORRUPT_FILE:  msg = IDS_FILE_ERR_CORRUPT;  break;  
+			case Nes::RESULT_ERR_CORRUPT_FILE:  msg = IDS_FILE_ERR_CORRUPT;  break;
 			case Nes::RESULT_ERR_OUT_OF_MEMORY: msg = IDS_ERR_OUT_OF_MEMORY; break;
-			default:						    msg = IDS_EMU_ERR_GENERIC;   break;
+			default:                            msg = IDS_EMU_ERR_GENERIC;   break;
 		}
-  
+
 		if (alert == NOISY)
 		{
 			Window::User::Fail( msg, IDS_EMU_ERR_SAVE_STATE );
@@ -788,28 +789,28 @@ namespace Nestopia
 		else if (alert == STICKY)
 		{
 			Io::Screen() << Resource::String( IDS_EMU_ERR_SAVE_STATE )
-			         	 << ' '
-						 << Resource::String( msg );		
+                         << ' '
+                         << Resource::String( msg );
 		}
 		else
 		{
-			Io::Log() << "Emulator: " 
-				      << Resource::String( IDS_EMU_ERR_SAVE_STATE )
-					  << ' ' 
-					  << Resource::String( msg ) 
-					  << "\r\n";
+			Io::Log() << "Emulator: "
+                      << Resource::String( IDS_EMU_ERR_SAVE_STATE )
+                      << ' '
+                      << Resource::String( msg )
+                      << "\r\n";
 		}
 
-		return FALSE;
+		return false;
 	}
 
 	ibool Emulator::LoadState(Collection::Buffer& buffer,const Alert alert)
 	{
 		const ibool on = Is(Nes::Machine::ON);
 
-		if (!on && !Power( TRUE ))
-			return FALSE;
-		
+		if (!on && !Power( true ))
+			return false;
+
 		Nes::Result result;
 
 		{
@@ -819,10 +820,10 @@ namespace Nestopia
 		}
 
 		if (NES_SUCCEEDED(result))
-			return TRUE;
+			return true;
 
 		if (!on)
-			Power( FALSE );
+			Power( false );
 
 		if (result != Nes::RESULT_ERR_INVALID_CRC)
 		{
@@ -830,14 +831,14 @@ namespace Nestopia
 
 			switch (result)
 			{
-				case Nes::RESULT_ERR_CORRUPT_FILE:             msg = IDS_FILE_ERR_CORRUPT;                 break;  
-				case Nes::RESULT_ERR_INVALID_FILE:             msg = IDS_FILE_ERR_INVALID;                 break;  
-				case Nes::RESULT_ERR_OUT_OF_MEMORY:			   msg = IDS_ERR_OUT_OF_MEMORY;                break;
+				case Nes::RESULT_ERR_CORRUPT_FILE:             msg = IDS_FILE_ERR_CORRUPT;                 break;
+				case Nes::RESULT_ERR_INVALID_FILE:             msg = IDS_FILE_ERR_INVALID;                 break;
+				case Nes::RESULT_ERR_OUT_OF_MEMORY:            msg = IDS_ERR_OUT_OF_MEMORY;                break;
 				case Nes::RESULT_ERR_UNSUPPORTED_FILE_VERSION: msg = IDS_EMU_ERR_UNSUPPORTED_FILE_VERSION; break;
-				case Nes::RESULT_ERR_NOT_READY:				   msg = IDS_EMU_ERR_LOADSTATE_DISABLED;       break;
-				default:								       msg = IDS_EMU_ERR_GENERIC;                  break;
+				case Nes::RESULT_ERR_NOT_READY:                msg = IDS_EMU_ERR_LOADSTATE_DISABLED;       break;
+				default:                                       msg = IDS_EMU_ERR_GENERIC;                  break;
 			}
-  
+
 			if (alert == NOISY)
 			{
 				Window::User::Fail( msg, IDS_EMU_ERR_LOAD_STATE );
@@ -845,20 +846,20 @@ namespace Nestopia
 			else if (alert == STICKY)
 			{
 				Io::Screen() << Resource::String( IDS_EMU_ERR_LOAD_STATE )
-				         	 << ' '
-							 << Resource::String( msg );		
+                             << ' '
+                             << Resource::String( msg );
 			}
 			else
 			{
-				Io::Log() << "Emulator: " 
-					      << Resource::String( IDS_EMU_ERR_LOAD_STATE )
-						  << ' ' 
-						  << Resource::String( msg ) 
-						  << "\r\n";
+				Io::Log() << "Emulator: "
+                          << Resource::String( IDS_EMU_ERR_LOAD_STATE )
+                          << ' '
+                          << Resource::String( msg )
+                          << "\r\n";
 			}
 		}
 
-		return FALSE;
+		return false;
 	}
 
 	ibool Emulator::Power(const ibool turnOn)
@@ -867,13 +868,13 @@ namespace Nestopia
 		{
 			if (turnOn)
 			{
-				const Nes::Result result = Nes::Machine(*this).Power( TRUE );
+				const Nes::Result result = Nes::Machine(*this).Power( true );
 
 				if (NES_SUCCEEDED(result))
 				{
 					events( netplay ? EVENT_NETPLAY_POWER_ON : EVENT_POWER_ON );
 					Resume();
-					return TRUE;
+					return true;
 				}
 				else
 				{
@@ -882,8 +883,8 @@ namespace Nestopia
 
 					Window::User::Fail
 					(
-     					result == Nes::RESULT_ERR_OUT_OF_MEMORY ?
-                        IDS_ERR_OUT_OF_MEMORY : IDS_ERR_GENERIC
+						result == Nes::RESULT_ERR_OUT_OF_MEMORY ?
+						IDS_ERR_OUT_OF_MEMORY : IDS_ERR_GENERIC
 					);
 				}
 			}
@@ -895,14 +896,14 @@ namespace Nestopia
 				{
 					Unpause();
 					state.frame = 0;
-					Nes::Machine(*this).Power( FALSE );
+					Nes::Machine(*this).Power( false );
 					events( netplay ? EVENT_NETPLAY_POWER_OFF : EVENT_POWER_OFF );
-					return TRUE;
+					return true;
 				}
 			}
 		}
 
-		return FALSE;
+		return false;
 	}
 
 	ibool Emulator::Reset(const ibool hard)
@@ -912,7 +913,7 @@ namespace Nestopia
 		if (Is(Nes::Machine::ON) && !Nes::Movie(*this).IsPlaying())
 		{
 			Unpause();
-		
+
 			state.frame = 0;
 			const Nes::Result result = Nes::Machine(*this).Reset( hard );
 
@@ -920,7 +921,7 @@ namespace Nestopia
 			{
 				events( hard ? EVENT_RESET_HARD : EVENT_RESET_SOFT );
 				Resume();
-				return TRUE;
+				return true;
 			}
 			else
 			{
@@ -931,28 +932,28 @@ namespace Nestopia
 					events( netplay ? EVENT_NETPLAY_UNLOAD : EVENT_UNLOAD );
 
 				Window::User::Fail
-				( 
-					result == Nes::RESULT_ERR_OUT_OF_MEMORY ? IDS_ERR_OUT_OF_MEMORY : 
-				                                              IDS_ERR_GENERIC
+				(
+					result == Nes::RESULT_ERR_OUT_OF_MEMORY ? IDS_ERR_OUT_OF_MEMORY :
+                                                              IDS_ERR_GENERIC
 				);
 			}
 		}
 
-		return FALSE;
+		return false;
 	}
 
 	void Emulator::Unpause()
 	{
 		if (state.paused)
 		{
-			state.paused = FALSE;
+			state.paused = false;
 			events( EVENT_RESUME );
 		}
 	}
 
-    #ifdef NST_PRAGMA_OPTIMIZE
-    #pragma optimize("t", on)
-    #endif
+	#ifdef NST_PRAGMA_OPTIMIZE
+	#pragma optimize("t", on)
+	#endif
 
 	void Emulator::Execute
 	(
@@ -969,23 +970,23 @@ namespace Nestopia
 			++state.frame;
 			const Nes::Result result = Nes::Emulator::Execute( video, sound, input );
 
-			if (Is(Nes::Machine::ON))			
+			if (Is(Nes::Machine::ON))
 				return;
-			
+
 			Stop();
 			events( netplay ? EVENT_NETPLAY_POWER_OFF : EVENT_POWER_OFF );
 
 			Window::User::Fail
 			(
-				result == Nes::RESULT_ERR_OUT_OF_MEMORY ? IDS_ERR_OUT_OF_MEMORY : 
-                                           				  IDS_EMU_ERR_GENERIC
+				result == Nes::RESULT_ERR_OUT_OF_MEMORY ? IDS_ERR_OUT_OF_MEMORY :
+                                                          IDS_EMU_ERR_GENERIC
 			);
 		}
 	}
 
-    #ifdef NST_PRAGMA_OPTIMIZE
-    #pragma optimize("", on)
-    #endif
+	#ifdef NST_PRAGMA_OPTIMIZE
+	#pragma optimize("", on)
+	#endif
 
 	ibool Emulator::SetMode(const Nes::Machine::Mode mode)
 	{
@@ -1000,10 +1001,10 @@ namespace Nestopia
 				events( EVENT_SPEED );
 			}
 
-			return TRUE;
+			return true;
 		}
 
-		return FALSE;
+		return false;
 	}
 
 	ibool Emulator::AutoSetMode()
@@ -1014,14 +1015,14 @@ namespace Nestopia
 	void Emulator::BeginNetplayMode()
 	{
 		NST_ASSERT( !netplay && !Is(Nes::Machine::IMAGE) );
-		
+
 		events( EVENT_NETPLAY_MODE_ON );
 	}
 
 	void Emulator::EndNetplayMode()
 	{
 		NST_ASSERT( !netplay && !Is(Nes::Machine::IMAGE) );
-		
+
 		events( EVENT_NETPLAY_MODE_OFF );
 	}
 
@@ -1074,7 +1075,7 @@ namespace Nestopia
 	}
 
 	void Emulator::PlaySong()
-	{	
+	{
 		NST_ASSERT( Is(Nes::Machine::SOUND) );
 
 		if (!state.running && Is(Nes::Machine::ON) && Nes::Nsf(*this).PlaySong() == Nes::RESULT_OK)

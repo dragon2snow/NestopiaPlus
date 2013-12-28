@@ -5,23 +5,23 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
 ////////////////////////////////////////////////////////////////////////////////////////
-		   
+
 #include "NstObjectPod.hpp"
 #include "NstResourceIcon.hpp"
 #include "NstApplicationException.hpp"
@@ -37,13 +37,13 @@ namespace Nestopia
 	: hWnd(handle)
 	{
 		NST_ASSERT( handle );
-		SetWindowRedraw( handle, FALSE );
+		SetWindowRedraw( handle, false );
 	}
 
 	Generic::LockDraw::~LockDraw()
 	{
-		SetWindowRedraw( hWnd, TRUE );
-		::InvalidateRect( hWnd, NULL, FALSE );
+		SetWindowRedraw( hWnd, true );
+		::InvalidateRect( hWnd, NULL, false );
 	}
 
 	uint Generic::Stream::operator >> (ulong& value) const
@@ -93,7 +93,7 @@ namespace Nestopia
 		::SendMessage( hWnd, WM_SYSCOMMAND, SC_MINIMIZE, 0 );
 	}
 
-	void Generic::Restore() const 
+	void Generic::Restore() const
 	{
 		::SendMessage( hWnd, WM_SYSCOMMAND, SC_RESTORE, 0 );
 	}
@@ -114,10 +114,10 @@ namespace Nestopia
 				::SetForegroundWindow( hWnd );
 			}
 
-			return TRUE;
+			return true;
 		}
 
-		return FALSE;
+		return false;
 	}
 
 	void Generic::ValidateRect() const
@@ -127,7 +127,7 @@ namespace Nestopia
 
 	void Generic::InvalidateRect() const
 	{
-		::InvalidateRect( hWnd, NULL, FALSE );
+		::InvalidateRect( hWnd, NULL, false );
 	}
 
 	void Generic::Close() const
@@ -151,7 +151,7 @@ namespace Nestopia
 
 	void Generic::Redraw() const
 	{
-		::InvalidateRect( hWnd, NULL, FALSE );
+		::InvalidateRect( hWnd, NULL, false );
 	}
 
 	void Generic::Set(const Rect& rect,HWND const zOrder,const DWORD flags) const
@@ -168,13 +168,13 @@ namespace Nestopia
 	{
 		::SetWindowPos
 		(
-			hWnd, 
-			zOrder, 
-			pos.x, 
-			pos.y, 
-			size.x, 
-			size.y, 
-			flags 
+			hWnd,
+			zOrder,
+			pos.x,
+			pos.y,
+			size.x,
+			size.y,
+			flags
 		);
 	}
 
@@ -182,12 +182,12 @@ namespace Nestopia
 	{
 		::SetWindowPos
 		(
-			hWnd, 
-			NULL, 
-			0, 
-			0, 
-			size.x, 
-			size.y, 
+			hWnd,
+			NULL,
+			0,
+			0,
+			size.x,
+			size.y,
 			flags|SWP_NOMOVE|SWP_NOZORDER
 		);
 	}
@@ -196,12 +196,12 @@ namespace Nestopia
 	{
 		::SetWindowPos
 		(
-			hWnd, 
-			NULL, 
-			pos.x, 
-			pos.y, 
-			0, 
-			0, 
+			hWnd,
+			NULL,
+			pos.x,
+			pos.y,
+			0,
+			0,
 			flags|SWP_NOSIZE|SWP_NOZORDER
 		);
 	}
@@ -210,13 +210,13 @@ namespace Nestopia
 	{
 		::SetWindowPos
 		(
-			hWnd, 
-			zOrder, 
-			0, 
-			0, 
-			0, 
-			0, 
-			flags|SWP_NOSIZE|SWP_NOMOVE 
+			hWnd,
+			zOrder,
+			0,
+			0,
+			0,
+			0,
+			flags|SWP_NOSIZE|SWP_NOMOVE
 		);
 	}
 
@@ -275,11 +275,11 @@ namespace Nestopia
 		winClass.cbSize        = sizeof(winClass);
 		winClass.style         = classStyle;
 		winClass.lpfnWndProc   = wndProc;
-		winClass.hInstance     = Application::Instance::GetHandle();
+		winClass.hInstance     = ::GetModuleHandle(NULL);
 		winClass.hCursor       = hCursor;
 		winClass.hbrBackground = hBrush;
 		winClass.lpszClassName = className;
-		winClass.hIcon         = 
+		winClass.hIcon         =
 		winClass.hIconSm       = hIcon;
 
 		if (!RegisterClassEx( &winClass ))
@@ -290,7 +290,7 @@ namespace Nestopia
 	{
 		NST_ASSERT( className && *className );
 
-		::UnregisterClass( className, Application::Instance::GetHandle() );
+		::UnregisterClass( className, ::GetModuleHandle(NULL) );
 	}
 
 	Generic Generic::Create
@@ -311,10 +311,10 @@ namespace Nestopia
 		NST_ASSERT( className && *className );
 
 		HWND const hWnd = CreateWindowEx
-		( 
-			exStyle,                       
-			className,         
-			windowName,          
+		(
+			exStyle,
+			className,
+			windowName,
 			style,
 			x,
 			y,
@@ -322,7 +322,7 @@ namespace Nestopia
 			height,
 			hParent,
 			hMenu,
-			Application::Instance::GetHandle(),
+			::GetModuleHandle(NULL),
 			param
 		);
 

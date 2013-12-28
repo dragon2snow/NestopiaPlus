@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -48,12 +48,12 @@ namespace Nestopia
 			Delegate()
 			: data(NULL), code(NULL) {}
 
-			template<typename T> 
+			template<typename T>
 			Delegate(T* d,Output (T::*c)(Input))
 			: data(reinterpret_cast<Data>(d)), code(reinterpret_cast<Code>(c))
-			{ 
+			{
 				NST_COMPILE_ASSERT( sizeof(code) == sizeof(c) );
-				NST_ASSERT( bool(data) == bool(code) ); 
+				NST_ASSERT( bool(data) == bool(code) );
 			}
 
 			Output operator()(Input input) const
@@ -87,7 +87,7 @@ namespace Nestopia
 
 		public:
 
-			operator const Dummy* () const 
+			operator const Dummy* () const
 			{
 				return data ? reinterpret_cast<const Dummy*>(this) : NULL;
 			}
@@ -117,7 +117,7 @@ namespace Nestopia
 			{
 				return data;
 			}
-  
+
 			template<typename T> Output (T::*CodePtr() const) (Input)
 			{
 				typedef Output (T::*F)(Input);
@@ -141,12 +141,12 @@ namespace Nestopia
 			Delegate()
 			: data(NULL), code(NULL) {}
 
-			template<typename T> 
+			template<typename T>
 			Delegate(T* d,Output (T::*c)())
 			: data(reinterpret_cast<Data>(d)), code(reinterpret_cast<Code>(c))
-			{ 
+			{
 				NST_COMPILE_ASSERT( sizeof(code) == sizeof(c) );
-				NST_ASSERT( bool(data) == bool(code) ); 
+				NST_ASSERT( bool(data) == bool(code) );
 			}
 
 			Output operator () () const
@@ -180,7 +180,7 @@ namespace Nestopia
 
 		public:
 
-			operator const Dummy* () const 
+			operator const Dummy* () const
 			{
 				return data ? reinterpret_cast<const Dummy*>(this) : NULL;
 			}
@@ -210,7 +210,7 @@ namespace Nestopia
 			{
 				return data;
 			}
-  
+
 			template<typename T> Output (T::*CodePtr() const) ()
 			{
 				typedef Output (T::*F)();
@@ -236,12 +236,12 @@ namespace Nestopia
 			Delegate2()
 			: data(NULL), code(NULL) {}
 
-			template<typename T> 
+			template<typename T>
 			Delegate2(T* d,Output (T::*c)(Param1,Param2))
 			: data(reinterpret_cast<Data>(d)), code(reinterpret_cast<Code>(c))
-			{ 
+			{
 				NST_COMPILE_ASSERT( sizeof(code) == sizeof(c) );
-				NST_ASSERT( bool(data) == bool(code) ); 
+				NST_ASSERT( bool(data) == bool(code) );
 			}
 
 			Output operator () (Param1 param1,Param2 param2) const
@@ -275,7 +275,7 @@ namespace Nestopia
 
 		public:
 
-			operator const Dummy* () const 
+			operator const Dummy* () const
 			{
 				return data ? reinterpret_cast<const Dummy*>(this) : NULL;
 			}
@@ -305,7 +305,7 @@ namespace Nestopia
 			{
 				return data;
 			}
-  
+
 			template<typename T> Output (T::*CodePtr() const) (Param1,Param2)
 			{
 				typedef Output (T::*F)(Param1,Param2);

@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -25,15 +25,15 @@
 #include "../NstMapper.hpp"
 #include "../NstClock.hpp"
 #include "NstMapper043.hpp"
-	   
+
 namespace Nes
 {
 	namespace Core
 	{
-        #ifdef NST_PRAGMA_OPTIMIZE
-        #pragma optimize("s", on)
-        #endif
-	
+		#ifdef NST_PRAGMA_OPTIMIZE
+		#pragma optimize("s", on)
+		#endif
+
 		Mapper43::Mapper43(Context& c)
 		: Mapper(c,WRAM_NONE), irq(c.cpu) {}
 
@@ -59,7 +59,7 @@ namespace Nes
 			{
 				switch (i & 0x71FFU)
 				{
-       				case 0x0122U: Map( i, &Mapper43::Poke_4122 ); break;
+					case 0x0122U: Map( i, &Mapper43::Poke_4122 ); break;
 					case 0x4022U: Map( i, &Mapper43::Poke_4022 ); break;
 				}
 			}
@@ -67,14 +67,14 @@ namespace Nes
 			Map( 0x5000U, 0x5FFFU, &Mapper43::Peek_5000 );
 			Map( 0x6000U, 0x7FFFU, &Mapper43::Peek_6000 );
 		}
-	
+
 		void Mapper43::SubLoad(State::Loader& state)
 		{
 			while (const dword chunk = state.Begin())
 			{
 				switch (chunk)
 				{
-       				case NES_STATE_CHUNK_ID('I','R','Q','\0'):
+					case NES_STATE_CHUNK_ID('I','R','Q','\0'):
 					{
 						State::Loader::Data<3> data( state );
 						irq.unit.enabled = data[0] & 0x1;
@@ -91,7 +91,7 @@ namespace Nes
 				state.End();
 			}
 		}
-	
+
 		void Mapper43::SubSave(State::Saver& state) const
 		{
 			state.Begin('T','T','L','\0').Write8( title == 0xC000U ? 0x1 : 0x0 ).End();
@@ -105,11 +105,11 @@ namespace Nes
 
 			state.Begin('I','R','Q','\0').Write( data ).End();
 		}
-	
-        #ifdef NST_PRAGMA_OPTIMIZE
-        #pragma optimize("", on)
-        #endif
-	
+
+		#ifdef NST_PRAGMA_OPTIMIZE
+		#pragma optimize("", on)
+		#endif
+
 		void Mapper43::Irq::Reset(const bool hard)
 		{
 			if (hard)

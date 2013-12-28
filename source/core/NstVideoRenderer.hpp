@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -41,14 +41,18 @@ namespace Nes
 				typedef Api::Video::Decoder Decoder;
 
 			public:
-		
+
 				Renderer();
 				~Renderer();
 
 				enum PaletteType
 				{
 					PALETTE_YUV,
-					PALETTE_RGB,
+					PALETTE_PC10,
+					PALETTE_VS1,
+					PALETTE_VS2,
+					PALETTE_VS3,
+					PALETTE_VS4,
 					PALETTE_CUSTOM
 				};
 
@@ -114,12 +118,13 @@ namespace Nes
 					static void ToHSV(double,double,double,double&,double&,double&);
 					static void ToRGB(double,double,double,double&,double&,double&);
 
-					PaletteType type;						
+					PaletteType type;
 					Custom* custom;
 					Decoder decoder;
 					u8 palette[64*8][3];
 
-					static const u8 rgbPalette[64][3];
+					static const u8 pc10Palette[64][3];
+					static const u8 vsPalette[4][64][3];
 
 				public:
 
@@ -143,21 +148,21 @@ namespace Nes
 				class FilterNone;
 				class FilterScanlines;
 
-                #ifndef NST_NO_2XSAI
+				#ifndef NST_NO_2XSAI
 				class Filter2xSaI;
-                #endif
+				#endif
 
-                #ifndef NST_NO_SCALE2X
+				#ifndef NST_NO_SCALE2X
 				class FilterScaleX;
-                #endif
+				#endif
 
-                #ifndef NST_NO_HQ2X
+				#ifndef NST_NO_HQ2X
 				class FilterHqX;
-                #endif
+				#endif
 
-                #ifndef NST_NO_NTSCVIDEO
+				#ifndef NST_NO_NTSCVIDEO
 				template<uint BITS> class FilterNtsc;
-                #endif
+				#endif
 
 				class NST_NO_VTABLE Filter
 				{
@@ -327,7 +332,7 @@ namespace Nes
 				{
 					return palette.GetDecoder();
 				}
-  
+
 				Screen& GetScreen()
 				{
 					return input.screen;

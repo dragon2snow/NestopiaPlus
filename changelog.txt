@@ -1,4 +1,70 @@
 ----------------------------------------------------------------
+1.32
+----------------------------------------------------------------
+
+Shell:
+
+ Additions:
+  
+  - Language plugin system using compiled resource DLLs. LDK included in the source.
+  - Date and time for last state slot write now displayed in the menu.
+  - Most option dialogs now carry a cancel button.
+  - Launcher window size preserved and optionally saved on exit.
+  - More detailed info in some error messages.
+
+ Changes:
+
+  - Various aesthetic fixes and improvements to the GUI.
+  - Alternative screen font for a few selected countries.
+  - Many hardcoded strings moved to the resource string table.
+  - No default directory creation if already user specified.
+  - Swapped load/save state keys (N/SHIFT+N) for a more standard setup.
+  - Different meaning to the SHIFT+0/0 key for save/load state slots.
+    SHIFT+0 to overwrite oldest slot, 0 to load from newest slot.  
+  - Auto monitor frequency option in video dialog now enabled by default.
+  - Updated to newer version of unrar.dll.
+  - unrar.dll and kaillera.dll now only loaded on demand.
+  - Lots of refactoring.
+  - Cleaned up tabs and spaces in source files via internal utility.
+  - Cleaned up HTML in readme file.
+
+ Fixes:
+
+  - More menu/dialog items grayed out when not applicable.
+  - Menu disappearance sometimes after exiting menus/dialogs in fullscreen mode.
+  - Filter settings now properly reset on 'Default' button clicks in the video options dialog.
+  - Display of the 'Name' and 'Maker' launcher column entries now in proper ANSI code page.
+  - Directory string parsing bug if failed to create a default directory.
+  - Auto window sizing quirk.
+  - Incorrect image file properties in some of the database corrected entries in the launcher dialog.
+    Refresh your file list to force the fix to take effect.
+
+Core:
+
+ Additions:
+
+  - Pachinko (via mouse wheel) and Hori Track (via mouse) controllers. Info from Enri.
+  - Nantettatte Baseball Double Cassette System for mapper 68. Info from CaH4e3 and Enri.
+  - Mapper 170 for "Fujiya Thinking Games". Info from Enri.
+  - Mapper 197 for "Super Fighter III". Info from CaH4e3.
+  - Backup-switch for the Family BASIC and Playbox BASIC cartridges (DIP Switches dialog). Info from Enri. 
+  - RP2C04 VS Unisystem palettes. Info from Quietust and Kevtris.
+  - New entries for auto-detection of controllers.
+  - Database entries.
+
+ Changes:
+
+  - Moved "Subor (Russian)" to mapper 166.
+  - Moved "Seicross (J)" back to mapper 185.
+  - Controller names. Info from Pongbashi.
+
+ Fixes:
+  
+  - DIP switch setting for "VS.Bomb Jack".
+  - Lightgun in "VS.Duck Hunt" and "VS.Hogan's Alley" now works again.
+  - Database entries.
+
+----------------------------------------------------------------
 1.31
 ----------------------------------------------------------------
 

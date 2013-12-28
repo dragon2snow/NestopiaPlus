@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -61,7 +61,7 @@ namespace Nestopia
 		const SaveStates& s,
 		Window::Main& w
 	)
-	: 
+	:
 	emulator     ( e ),
 	menu         ( m ),
 	paths        ( p ),
@@ -81,8 +81,8 @@ namespace Nestopia
 
 		static const Window::Menu::CmdHandler::Entry<Files> commands[] =
 		{
-			{ IDM_FILE_OPEN,	 &Files::OnCmdOpen       },
-			{ IDM_FILE_CLOSE,	 &Files::OnCmdClose      },
+			{ IDM_FILE_OPEN,     &Files::OnCmdOpen       },
+			{ IDM_FILE_CLOSE,    &Files::OnCmdClose      },
 			{ IDM_FILE_LOAD_NSP, &Files::OnCmdLoadScript },
 			{ IDM_FILE_SAVE_NSP, &Files::OnCmdSaveScript }
 		};
@@ -106,7 +106,7 @@ namespace Nestopia
 
 		if (!types)
 		{
-			types = 
+			types =
 			(
 				Paths::File::IMAGE |
 				Paths::File::STATE |
@@ -147,8 +147,8 @@ namespace Nestopia
 
 		switch (paths.Load( file, types, path ))
 		{
-     		case Paths::File::NONE:
-    			return;
+			case Paths::File::NONE:
+				return;
 
 			case Paths::File::STATE:
 
@@ -214,7 +214,7 @@ namespace Nestopia
 				break;
 
 			case Paths::File::SCRIPT:
-			
+
 				try
 				{
 					Io::Nsp::File().Load( file.data, context );
@@ -274,7 +274,7 @@ namespace Nestopia
 			if (context.ips.Empty())
 				context.ips = paths.GetIpsPath( context.image, file.type );
 
-			if (Io::File::FileExist( context.ips.Ptr() ))
+			if (context.ips.FileExists())
 			{
 				Paths::File input;
 
@@ -320,7 +320,7 @@ namespace Nestopia
 
 		if (!emulator.Load( file.data, file.name, context, !preferences[Preferences::SUPPRESS_WARNINGS] ))
 			return;
-		
+
 		if (context.mode == Io::Nsp::Context::UNKNOWN && menu[IDM_MACHINE_SYSTEM_AUTO].IsChecked())
 			emulator.AutoSetMode();
 
@@ -334,13 +334,13 @@ namespace Nestopia
 			movie.Load( context.movie, Movie::QUIET );
 
 		cheats.Load( context );
-		
+
 		AutoStart();
 	}
 
 	ibool Files::Close() const
 	{
-		if 
+		if
 		(
 			!emulator.Is( Nes::Machine::ON ) ||
 			!preferences[Preferences::CONFIRM_RESET] ||
@@ -348,21 +348,21 @@ namespace Nestopia
 		)
 		{
 			emulator.Unload();
-			return TRUE;
+			return true;
 		}
 
-		return FALSE;
+		return false;
 	}
 
 	void Files::AutoStart() const
 	{
-		if 
+		if
 		(
 			preferences[Preferences::AUTOSTART_EMULATION] &&
 			emulator.Is(Nes::Machine::IMAGE) && !emulator.Is(Nes::Machine::ON)
 		)
 		{
-			emulator.Power( TRUE );
+			emulator.Power( true );
 
 			if (emulator.Is( Nes::Machine::SOUND ))
 				emulator.PlaySong();
@@ -376,7 +376,7 @@ namespace Nestopia
 		if (dropFiles.Size() && menu[IDM_FILE_OPEN].IsEnabled())
 			Open( dropFiles[0].Ptr() );
 
-		return TRUE;
+		return true;
 	}
 
 	ibool Files::OnMsgCopyData(Window::Param& param)
@@ -397,15 +397,15 @@ namespace Nestopia
 			}
 		}
 
-		param.lResult = TRUE;
-		return TRUE;
+		param.lResult = true;
+		return true;
 	}
 
 	ibool Files::OnMsgLaunch(Window::Param& param)
 	{
 		NST_ASSERT( param.lParam );
 		Open( reinterpret_cast<tstring>(param.lParam), param.wParam );
-		return TRUE;
+		return true;
 	}
 
 	void Files::OnCmdOpen(uint)
@@ -457,32 +457,25 @@ namespace Nestopia
 				const uint length = window.GetMaxMessageLength();
 
 				if (length > 10)
-				{
-					Io::Screen() << Resource::String( IDS_SCREEN_LOADED ) 
-						         << " \""
-								 << Path::Compact( emulator.GetImagePath().Target(), length - 9 ) 
-								 << '\"';
-				}
+					Io::Screen() << Resource::String( IDS_SCREEN_LOADED ).Invoke( Path::Compact( emulator.GetImagePath().Target(), length - 9 ) );
+
 				break;
 			}
-		
+
 			case Emulator::EVENT_UNLOAD:
 			{
-				menu[ IDM_FILE_CLOSE ].Disable();
-				menu[ IDM_POS_FILE ][ IDM_POS_FILE_SAVE ].Disable();
-				menu[ IDM_FILE_SAVE_NSP ].Disable();
-
 				const uint length = window.GetMaxMessageLength();
 
 				if (length > 12)
-				{
-					Io::Screen() << Resource::String( IDS_SCREEN_UNLOADED ) 
-						         << " \""
-								 << Path::Compact( emulator.GetImagePath().Target(), length - 11 ) 
-								 << '\"';
-				}				
+					Io::Screen() << Resource::String( IDS_SCREEN_UNLOADED ).Invoke( Path::Compact( emulator.GetImagePath().Target(), length - 11 ) );
+			}
+
+			case Emulator::EVENT_INIT:
+
+				menu[ IDM_FILE_CLOSE ].Disable();
+				menu[ IDM_POS_FILE ][ IDM_POS_FILE_SAVE ].Disable();
+				menu[ IDM_FILE_SAVE_NSP ].Disable();
 				break;
-			}		
 
 			case Emulator::EVENT_NETPLAY_MODE_ON:
 			case Emulator::EVENT_NETPLAY_MODE_OFF:

@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -61,7 +61,7 @@ namespace Nes
 
 				FilterNtscState
 				(
-			     	const Api::Video::RenderState& r,
+					const Api::Video::RenderState& r,
 					i8 b,
 					i8 s,
 					i8 h,
@@ -74,8 +74,8 @@ namespace Nes
 					bool m,
 					const Api::Video::Decoder& d
 				)
-				: 
-				renderState  (r), 
+				:
+				renderState  (r),
 				brightness   (b),
 				saturation   (s),
 				hue          (h),
@@ -92,7 +92,7 @@ namespace Nes
 
 			template<uint BITS>
 			class Renderer::FilterNtsc : public Renderer::Filter
-			{	
+			{
 				enum
 				{
 					BPP = BITS,
@@ -164,7 +164,7 @@ namespace Nes
 
 			template<uint BITS>
 			Renderer::FilterNtsc<BITS>::FilterNtsc(const FilterNtscState& state)
-			: 
+			:
 			Filter    ( state.renderState ),
 			lut       ( state ),
 			scanlines ( (100-state.renderState.scanlines) * (BPP == 32 ? 256 : 32) / 100 )
@@ -176,7 +176,7 @@ namespace Nes
 			{
 				return
 				(
-				    ( state.bits.count  == (BPP == 32 ? 32 : 16) ) &&
+					( state.bits.count  == (BPP == 32 ? 32 : 16) ) &&
 					( state.bits.mask.r == R_MASK                ) &&
 					( state.bits.mask.g == G_MASK                ) &&
 					( state.bits.mask.b == B_MASK                ) &&
@@ -204,7 +204,7 @@ namespace Nes
 				for (uint y=0; y < HEIGHT; ++y)
 				{
 					NES_NTSC_BEGIN_ROW( &lut, phase, 0xF, 0xF, *src++ );
-					
+
 					Pixel* NST_RESTRICT cache = buffer;
 
 					for (uint x=0; x < NTSC_WIDTH/7-1; ++x)
@@ -250,7 +250,7 @@ namespace Nes
 					phase = (phase + 1) % 3;
 				}
 			}
-     	}
+		}
 	}
 }
 

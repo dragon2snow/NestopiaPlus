@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -27,7 +27,7 @@
 #include "NstState.hpp"
 #include "NstCpu.hpp"
 #include "NstPpu.hpp"
-						 
+
 namespace Nes
 {
 	namespace Core
@@ -69,7 +69,7 @@ namespace Nes
 		};
 
 		static const union { u8 pixels[4]; u32 block; } chrLut[2][16] =
-		{	
+		{
 			{
 				{0x00,0x00,0x00,0x00},
 				{0x01,0x00,0x00,0x00},
@@ -109,7 +109,7 @@ namespace Nes
 		};
 
 		static const union { u8 pixels[4]; u32 block; } chrAttLut[2][64] =
-		{	
+		{
 			{
 				{0x00,0x00,0x00,0x00},
 				{0x01,0x00,0x00,0x00},
@@ -247,42 +247,42 @@ namespace Nes
 		dword Ppu::logged;
 		u16 Ppu::Output::dummy[4];
 
-        #ifdef NST_PRAGMA_OPTIMIZE
-        #pragma optimize("s", on)
-        #endif
-		
-        #ifdef NST_TAILCALL_OPTIMIZE
-  
-          #define NST_PPU_NEXT_PHASE(function_)	\
-												\
-		  if (cycles.count < cycles.round)		\
-			  function_();						\
-		  else									\
-			  phase = &Ppu::function_
+		#ifdef NST_PRAGMA_OPTIMIZE
+		#pragma optimize("s", on)
+		#endif
 
-        #else
+		#ifdef NST_TAILCALL_OPTIMIZE
+
+          #define NST_PPU_NEXT_PHASE(function_) \
+												\
+          if (cycles.count < cycles.round)      \
+              function_();                      \
+          else                                  \
+              phase = &Ppu::function_
+
+		#else
 
           #define NST_PPU_NEXT_PHASE(function_) phase = &Ppu::function_
 
-        #endif
+		#endif
 
 		Ppu::Output::Output(Screen s)
-		: 
+		:
 		emphasisMask (Regs::CTRL1_BG_COLOR),
-		screen       (&s) 
+		screen       (&s)
 		{
 		}
-	
+
 		void Ppu::Output::ClearScreen()
 		{
 			NST_ASSERT( screen );
 			std::memset( screen, 0, sizeof(u16) * SCREEN );
 		}
-	
-        #ifdef _MSC_VER
-        #pragma warning( push )
-        #pragma warning( disable : 4355 )
-        #endif
+
+		#ifdef _MSC_VER
+		#pragma warning( push )
+		#pragma warning( disable : 4355 )
+		#endif
 
 		Ppu::Ppu(Cpu& c,Screen screen)
 		: cpu(c), output(screen), bgHook(this,&Ppu::Hook_Null), spHook(this,&Ppu::Hook_Null)
@@ -291,9 +291,9 @@ namespace Nes
 			SetMode( cpu.GetMode() );
 		}
 
-        #ifdef _MSC_VER
-        #pragma warning( pop )
-        #endif
+		#ifdef _MSC_VER
+		#pragma warning( pop )
+		#endif
 
 		Ppu::~Ppu()
 		{
@@ -302,7 +302,7 @@ namespace Nes
 		void Ppu::Reset(const bool hard)
 		{
 			logged = 0;
-	
+
 			for (uint i=0x2000U; i < 0x4000U; i += 0x8)
 			{
 				cpu.Map( i+0 ).Set( this, &Ppu::Peek_2xxx, &Ppu::Poke_2000 );
@@ -314,9 +314,11 @@ namespace Nes
 				cpu.Map( i+6 ).Set( this, &Ppu::Peek_2xxx, &Ppu::Poke_2006 );
 				cpu.Map( i+7 ).Set( this, &Ppu::Peek_2007, &Ppu::Poke_2007 );
 			}
-	
+
 			cpu.Map( 0x4014U ).Set( this, &Ppu::Peek_4014, &Ppu::Poke_4014 );
-		
+
+			SetYuvMap( NULL, false );
+
 			if (hard)
 			{
 				io.a12.Invalidate();
@@ -326,15 +328,15 @@ namespace Nes
 					0x3F,0x01,0x00,0x01,0x00,0x02,0x02,0x0D,
 					0x08,0x10,0x08,0x24,0x00,0x00,0x04,0x2C,
 					0x09,0x01,0x34,0x03,0x00,0x04,0x00,0x14,
-					0x08,0x3A,0x00,0x02,0x00,0x20,0x2C,0x08 
+					0x08,0x3A,0x00,0x02,0x00,0x20,0x2C,0x08
 				};
 
 				std::memset( oam.ram, Oam::GARBAGE, Oam::SIZE );
 				std::memcpy( palette.ram, powerUpPalette, Palette::SIZE );
 				std::memset( nameTable.ram, NameTable::GARBAGE, NameTable::SIZE );
-	
+
 				io.latch = 0;
-				io.buffer = 0;	
+				io.buffer = 0;
 
 				stage = WARM_UP_FRAMES;
 				phase = &Ppu::WarmUp;
@@ -343,7 +345,7 @@ namespace Nes
 				regs.ctrl1 = 0;
 				regs.frame = 0;
 				regs.status = 0;
-				
+
 				scroll.address = 0;
 				scroll.toggle = 0;
 				scroll.latch = 0;
@@ -355,51 +357,51 @@ namespace Nes
 			{
 				stage = 0;
 				phase = &Ppu::HDummy;
-				
+
 				regs.status = Regs::STATUS_VBLANK;
 			}
-	
+
 			if (chrMem.Source().Empty())
 			{
 				chrMem.Source().Set( nameTable.ram, NameTable::SIZE, true, false );
 				chrMem.SwapBanks<SIZE_2K,0x0000>(0,0,0,0);
 			}
-	
+
 			if (nmtMem.Source().Empty())
 			{
 				nmtMem.Source().Set( nameTable.ram, NameTable::SIZE, true, true );
 				nmtMem.SwapBanks<SIZE_2K,0x0000>(0,0);
 			}
-	
+
 			chrMem.ResetAccessors();
 			nmtMem.ResetAccessors();
-	
+
 			cycles.count = NES_CYCLE_MAX;
 			cycles.spriteOverflow = NES_CYCLE_MAX;
-	
+
 			io.address = 0;
 			io.pattern = 0;
-			
+
 			scanline = SCANLINE_VBLANK;
-	
+
 			tiles.pattern[0] = 0;
 			tiles.pattern[1] = 0;
 			tiles.attribute = 0;
 			tiles.pad = 0;
-	
+
 			oam.address = 0;
 			oam.visible = oam.output;
 			oam.evaluated = oam.buffer;
-	
+
 			UpdateStates();
-	
+
 			output.index = 0;
 			output.ClearScreen();
 
 			RemoveBgHook();
 			RemoveSpHook();
 		}
-	
+
 		void Ppu::UpdateStates()
 		{
 			io.enabled = regs.ctrl1 & (Regs::CTRL1_BG_ENABLED|Regs::CTRL1_SP_ENABLED);
@@ -410,7 +412,7 @@ namespace Nes
 			output.emphasis = (regs.ctrl1 & output.emphasisMask) << 1;
 			output.coloring = (regs.ctrl1 & Regs::CTRL1_MONOCHROME) ? Palette::MONO : Palette::COLOR;
 		}
-	
+
 		void Ppu::SaveState(State::Saver& state) const
 		{
 			{
@@ -431,8 +433,8 @@ namespace Nes
 
 				state.Begin('R','E','G','\0').Write( data ).End();
 			}
-	
-          	state.Begin('P','A','L','\0').Compress( palette.ram   ).End();
+
+			state.Begin('P','A','L','\0').Compress( palette.ram   ).End();
 			state.Begin('O','A','M','\0').Compress( oam.ram       ).End();
 			state.Begin('N','M','T','\0').Compress( nameTable.ram ).End();
 
@@ -442,7 +444,7 @@ namespace Nes
 			if (phase == &Ppu::WarmUp)
 				state.Begin('P','O','W','\0').Write8( WARM_UP_FRAMES-stage ).End();
 		}
-	
+
 		void Ppu::LoadState(State::Loader& state)
 		{
 			phase = &Ppu::HDummy;
@@ -453,7 +455,7 @@ namespace Nes
 			{
 				switch (chunk)
 				{
-					case NES_STATE_CHUNK_ID('R','E','G','\0'): 
+					case NES_STATE_CHUNK_ID('R','E','G','\0'):
 					{
 						const State::Loader::Data<11> data( state );
 
@@ -471,24 +473,24 @@ namespace Nes
 						UpdateStates();
 						break;
 					}
-	
+
 					case NES_STATE_CHUNK_ID('P','A','L','\0'):
-	
+
 						state.Uncompress( palette.ram );
 						break;
-	
-					case NES_STATE_CHUNK_ID('O','A','M','\0'): 
-	
+
+					case NES_STATE_CHUNK_ID('O','A','M','\0'):
+
 						state.Uncompress( oam.ram );
 						break;
-	
-					case NES_STATE_CHUNK_ID('N','M','T','\0'): 
-	
+
+					case NES_STATE_CHUNK_ID('N','M','T','\0'):
+
 						state.Uncompress( nameTable.ram );
 						break;
 
 					case NES_STATE_CHUNK_ID('F','R','M','\0'):
-					
+
 						if (cpu.GetMode() == MODE_NTSC)
 							regs.frame = (state.Read8() & 0x1) ? 0 : Regs::FRAME_ODD;
 
@@ -504,28 +506,28 @@ namespace Nes
 						phase = &Ppu::WarmUp;
 						break;
 				}
-	
+
 				state.End();
 			}
 		}
-	  
+
 		void Ppu::EnableCpuSynchronization()
 		{
 			cpu.AddHook( Hook(this,&Ppu::Hook_Synchronize) );
 		}
-	
+
 		void Ppu::ChrMem::ResetAccessors()
 		{
 			accessors[0].Set( this, &ChrMem::Access_Pattern );
 			accessors[1].Set( this, &ChrMem::Access_Pattern );
 		}
-	
+
 		void Ppu::ChrMem::SetDefaultAccessor(uint i)
 		{
 			NST_ASSERT( i < 2 );
 			accessors[i].Set( this, &ChrMem::Access_Pattern );
 		}
-	
+
 		void Ppu::NmtMem::ResetAccessors()
 		{
 			accessors[0][0].Set( this, &NmtMem::Access_Name_2000 );
@@ -537,38 +539,38 @@ namespace Nes
 			accessors[3][0].Set( this, &NmtMem::Access_Name_2C00 );
 			accessors[3][1].Set( this, &NmtMem::Access_Name_2C00 );
 		}
-	
+
 		void Ppu::NmtMem::SetDefaultAccessor(uint i,uint j)
 		{
 			NST_ASSERT( i < 4 && j < 2 );
-	
+
 			accessors[i][j].Set
-			( 
-		     	this, 
+			(
+				this,
 				i == 0 ? &NmtMem::Access_Name_2000 :
-       	     	i == 1 ? &NmtMem::Access_Name_2400 :
-        		i == 2 ? &NmtMem::Access_Name_2800 :
-				         &NmtMem::Access_Name_2C00 
+				i == 1 ? &NmtMem::Access_Name_2400 :
+				i == 2 ? &NmtMem::Access_Name_2800 :
+                         &NmtMem::Access_Name_2C00
 			);
 		}
-	
+
 		void Ppu::NmtMem::SetDefaultAccessors(uint i)
 		{
 			SetDefaultAccessor( i, 0 );
 			SetDefaultAccessor( i, 1 );
 		}
-	
+
 		void Ppu::LogMsg(cstring const msg,const uint length,const uint which)
 		{
 			NST_ASSERT( msg );
-	
+
 			if (!(logged & which))
 			{
 				logged |= which;
 				Log::Flush( msg, length );
 			}
 		}
-	
+
 		template<size_t N>
 		inline void Ppu::LogMsg(const char (&c)[N],const uint e)
 		{
@@ -596,17 +598,37 @@ namespace Nes
 			}
 		}
 
-        #ifdef NST_PRAGMA_OPTIMIZE
-        #pragma optimize("", on)
-        #endif
+		void Ppu::SetYuvMap(const u8* const map,const bool transform)
+		{
+			if (map && transform)
+			{
+				for (uint i=0; i < Palette::COLORS; ++i)
+				{
+					palette.map[i] = map[i] < 0x40 ? map[i] : i;
+					yuvMap[i] = i;
+				}
+			}
+			else
+			{
+				for (uint i=0; i < Palette::COLORS; ++i)
+				{
+					palette.map[i] = i;
+					yuvMap[i] = map && map[i] < 0x40 ? map[i] : i;
+				}
+			}
+		}
+
+		#ifdef NST_PRAGMA_OPTIMIZE
+		#pragma optimize("", on)
+		#endif
 
 		void Ppu::BeginFrame(const bool render)
 		{
 			NST_ASSERT
-			( 
-     			scanline == SCANLINE_VBLANK &&
-     			(phase == &Ppu::HDummy || phase == &Ppu::WarmUp) &&
-		     	(cpu.GetMode() == MODE_NTSC) == (cycles.one == MC_DIV_NTSC)				
+			(
+				scanline == SCANLINE_VBLANK &&
+				(phase == &Ppu::HDummy || phase == &Ppu::WarmUp) &&
+				(cpu.GetMode() == MODE_NTSC) == (cycles.one == MC_DIV_NTSC)
 			);
 
 			if (render)
@@ -643,7 +665,7 @@ namespace Nes
 
 			cpu.SetupFrame( frame );
 		}
-	
+
 		NES_HOOK(Ppu,Null)
 		{
 		}
@@ -651,78 +673,78 @@ namespace Nes
 		NES_HOOK(Ppu,Synchronize)
 		{
 			const Cycle elapsed = cpu.GetMasterClockCycles();
-	
+
 			if (cycles.count < elapsed)
 			{
 				cycles.round = elapsed;
 
-            #ifdef NST_TAILCALL_OPTIMIZE
+			#ifdef NST_TAILCALL_OPTIMIZE
 				(*this.*phase)();
-            #else
-				do 
+			#else
+				do
 				{
 					(*this.*phase)();
 				}
 				while (cycles.count < elapsed);
-            #endif
+			#endif
 			}
 		}
-	
+
 		void Ppu::EndFrame()
 		{
 			if (cycles.count != NES_CYCLE_MAX)
 			{
 				cycles.round = NES_CYCLE_MAX;
 
-            #ifdef NST_TAILCALL_OPTIMIZE
+			#ifdef NST_TAILCALL_OPTIMIZE
 				(*this.*phase)();
-            #else
-				do 
+			#else
+				do
 				{
 					(*this.*phase)();
 				}
 				while (cycles.count != NES_CYCLE_MAX);
-            #endif
+			#endif
 			}
 		}
-	
+
 		void Ppu::Update()
 		{
 			const Cycle elapsed = cpu.GetMasterClockCycles();
-	
+
 			if (cycles.count < elapsed)
 			{
 				cycles.round = elapsed;
 
-            #ifdef NST_TAILCALL_OPTIMIZE
+			#ifdef NST_TAILCALL_OPTIMIZE
 				(*this.*phase)();
-            #else
-				do 
+			#else
+				do
 				{
 					(*this.*phase)();
 				}
 				while (cycles.count < elapsed);
-            #endif
+			#endif
 			}
 		}
-	
+
 		void Ppu::SetMirroring(uint type)
 		{
 			NST_ASSERT( type < 6 );
 			NST_VERIFY( type < 5 );
-	
+
 			NST_COMPILE_ASSERT
 			(
 				NMT_HORIZONTAL == 0 &&
 				NMT_VERTICAL   == 1 &&
 				NMT_FOURSCREEN == 2 &&
 				NMT_ZERO       == 3 &&
-				NMT_ONE        == 4	&&
+				NMT_ONE        == 4 &&
 				NMT_CONTROLLED == 5
 			);
-	
+
 			Update();
-	
+
 			static const uchar banks[6][4] =
 			{
 				{0,0,1,1}, // horizontal
@@ -730,90 +752,90 @@ namespace Nes
 				{0,1,2,3}, // four-screen
 				{0,0,0,0}, // banks #1
 				{1,1,1,1}, // banks #2
-				{0,1,0,1}  // controlled, default to vertical 
+				{0,1,0,1}  // controlled, default to vertical
 			};
-	
+
 			nmtMem.SwapBanks<SIZE_1K,0x0000U>
-			( 
-		    	banks[type][0],
+			(
+				banks[type][0],
 				banks[type][1],
 				banks[type][2],
 				banks[type][3]
 			);
 		}
-	
+
 		void Ppu::SetMirroring(const uchar (&banks)[4])
 		{
 			Update();
-	
+
 			NST_ASSERT( banks[0] < 4 && banks[1] < 4 && banks[2] < 4 && banks[3] < 4 );
-	
+
 			nmtMem.SwapBanks<SIZE_1K,0x0000U>
-			( 
-		       	banks[0], 
-				banks[1], 
-				banks[2], 
-				banks[3] 
+			(
+				banks[0],
+				banks[1],
+				banks[2],
+				banks[3]
 			);
 		}
 
 		NES_ACCESSOR(Ppu::ChrMem,Pattern)
-		{ 
-			return Peek( address ); 
+		{
+			return Peek( address );
 		}
-	
+
 		NES_ACCESSOR(Ppu::NmtMem,Name_2000)
-		{ 
-			return (*this)[0][address]; 
+		{
+			return (*this)[0][address];
 		}
-	
+
 		NES_ACCESSOR(Ppu::NmtMem,Name_2400)
-		{ 
-			return (*this)[1][address]; 
+		{
+			return (*this)[1][address];
 		}
-	
+
 		NES_ACCESSOR(Ppu::NmtMem,Name_2800)
-		{ 
-			return (*this)[2][address]; 
+		{
+			return (*this)[2][address];
 		}
-	
+
 		NES_ACCESSOR(Ppu::NmtMem,Name_2C00)
-		{ 
-			return (*this)[3][address]; 
+		{
+			return (*this)[3][address];
 		}
-	
+
 		inline uint Ppu::ChrMem::FetchPattern(uint address) const
 		{
 			address &= 0x1FFF;
 			return accessors[address >> 12].Fetch( address );
 		}
-	
+
 		inline uint Ppu::NmtMem::FetchName(const uint address) const
 		{
 			const uint offset = address & (Scroll::Y_TILE|Scroll::X_TILE);
-   	      	return accessors[(address & Scroll::NAME) >> 10][(offset + 0x40) >> 10].Fetch( offset );
+			return accessors[(address & Scroll::NAME) >> 10][(offset + 0x40) >> 10].Fetch( offset );
 		}
-	
+
 		inline uint Ppu::NmtMem::FetchAttribute(const uint address) const
 		{
-  	  		return accessors[(address & Scroll::NAME) >> 10][1].Fetch
-  	  		( 
-			    0x3C0 |
-          		((address & (Scroll::X_TILE ^ b00000011)) >> 2) |
-          		((address & (Scroll::Y_TILE ^ b01100000)) >> 4)
+			return accessors[(address & Scroll::NAME) >> 10][1].Fetch
+			(
+				0x3C0 |
+				((address & (Scroll::X_TILE ^ b00000011)) >> 2) |
+				((address & (Scroll::Y_TILE ^ b01100000)) >> 4)
 			);
 		}
-	
+
 		inline uint Ppu::FetchName() const
 		{
 			return scroll.pattern | (nmtMem.FetchName( io.address ) << 4) | (scroll.address >> 12);
 		}
-	
+
 		inline uint Ppu::FetchAttribute() const
 		{
 			return (nmtMem.FetchAttribute( io.address ) >> ((scroll.address & 0x02) | ((scroll.address & 0x40) >> 4))) & 0x3;
 		}
-	
+
 		inline bool Ppu::IsDead() const
 		{
 			return !io.enabled || scanline >= 240;
@@ -827,38 +849,38 @@ namespace Nes
 			if (io.a12.InUse() && (newAddress & 0x1000) > (oldAddress & 0x1000))
 				io.a12.Toggle( cpu.GetMasterClockCycles() );
 		}
-	
+
 		NES_POKE(Ppu,2000)
 		{
 			Update();
 
 			io.latch = data;
-	
+
 			scroll.latch &= (Scroll::NAME ^ 0x7FFFU);
 			scroll.latch |= (data & Regs::CTRL0_NAME_OFFSET) << 10;
 			scroll.increase = (data & Regs::CTRL0_INC32) ? 32 : 1;
 			scroll.pattern = (data & Regs::CTRL0_BG_OFFSET) << 8;
-	
+
 			const uint old = regs.ctrl0;
 			regs.ctrl0 = data;
-	
+
 			if ((data & regs.status & Regs::CTRL0_NMI) > old)
 				cpu.DoNMI();
 		}
-	
+
 		NES_POKE(Ppu,2001)
 		{
 			Update();
-	
+
 			regs.ctrl1 = io.latch = data;
 			io.enabled = data & (Regs::CTRL1_BG_ENABLED|Regs::CTRL1_SP_ENABLED);
 			tiles.show = (data & Regs::CTRL1_BG_ENABLED) ? ~0U : 0U;
 			oam.show = (data & Regs::CTRL1_SP_ENABLED) ? ~0U : 0U;
-			
+
 			output.emphasis = (data & output.emphasisMask) << 1;
-			output.coloring = (data & Regs::CTRL1_MONOCHROME) ? Palette::MONO : Palette::COLOR;		
+			output.coloring = (data & Regs::CTRL1_MONOCHROME) ? Palette::MONO : Palette::COLOR;
 		}
-	
+
 		NES_PEEK(Ppu,2002)
 		{
 			Update();
@@ -875,35 +897,35 @@ namespace Nes
 
 			return io.latch;
 		}
-	
+
 		NES_POKE(Ppu,2003)
 		{
 			Update();
-	
+
 			oam.address = io.latch = data;
 		}
-	
+
 		NES_POKE(Ppu,2004)
 		{
 			Update();
-	
+
 			NST_ASSERT( oam.address < Oam::SIZE );
 			NST_VERIFY( IsDead() );
-	
+
 			io.latch = data = IsDead() ? data : Oam::GARBAGE;
 			u8& value = oam.ram[oam.address];
 			oam.address = (oam.address + 1) & 0xFF;
 			value = data;
 		}
-	
+
 		NES_PEEK(Ppu,2004)
 		{
 			Update();
-	
+
 			NST_ASSERT( oam.address < Oam::SIZE );
-	
+
 			uint data;
-	
+
 			if (IsDead())
 			{
 				data = oam.ram[oam.address];
@@ -911,7 +933,7 @@ namespace Nes
 			else
 			{
 				data = cpu.GetMasterClockCycles() / cycles.one % 341;
-	
+
 				if (data < 64)
 				{
 					data = Oam::GARBAGE;
@@ -933,16 +955,16 @@ namespace Nes
 					data = oam.ram[0];
 				}
 			}
-	
+
 			return io.latch = data;
 		}
-	
+
 		NES_POKE(Ppu,2005)
 		{
 			Update();
-	
+
 			io.latch = data;
-	
+
 			if (scroll.toggle ^= 1)
 			{
 				scroll.latch &= (Scroll::X_TILE ^ 0x7FFFU);
@@ -955,13 +977,13 @@ namespace Nes
 				scroll.latch |= ((data << 2) | (data << 12)) & (Scroll::Y_TILE|Scroll::Y_FINE);
 			}
 		}
-	
+
 		NES_POKE(Ppu,2006)
 		{
 			Update();
-	
+
 			io.latch = data;
-	
+
 			if (scroll.toggle ^= 1)
 			{
 				scroll.latch &= (Scroll::HIGH ^ 0x7FFFU);
@@ -975,11 +997,11 @@ namespace Nes
 				UpdateScrollAddress( scroll.latch );
 			}
 		}
-	
+
 		NES_POKE(Ppu,2007)
 		{
 			Update();
-	
+
 			NST_VERIFY( IsDead()  );
 
 			io.latch = data;
@@ -991,23 +1013,23 @@ namespace Nes
 			{
 				address &= 0x1F;
 				data &= Palette::COLOR;
-				
+
 				palette.ram[address] = data;
-	
+
 				if (!(address & 0x3))
 					palette.ram[address ^ 0x10] = data;
 			}
-			else 
+			else
 			{
 				address &= 0x3FFF;
-									 
+
 				if (address >= 0x2000)
-					nmtMem.Poke( address & 0xFFF, data );	
+					nmtMem.Poke( address & 0xFFF, data );
 				else
 					chrMem.Poke( address, data );
 			}
 		}
-		
+
 		NES_PEEK(Ppu,2007)
 		{
 			Update();
@@ -1015,7 +1037,7 @@ namespace Nes
 			NST_VERIFY( IsDead() );
 
 			address = scroll.address & 0x3FFF;
-			
+
 			UpdateScrollAddress( (scroll.address + scroll.increase) & 0x7FFF );
 
 			if ((address & 0x3F00) != 0x3F00)
@@ -1030,45 +1052,45 @@ namespace Nes
 
 			return io.latch;
 		}
-	
+
 		NES_POKE(Ppu,2xxx)
 		{
 			io.latch = data;
 		}
-	
+
 		NES_PEEK(Ppu,2xxx)
 		{
 			return io.latch;
 		}
-	
+
 		NES_POKE(Ppu,4014)
 		{
 			Update();
-	
+
 			NST_ASSERT( oam.address < Oam::SIZE );
 			NST_VERIFY( IsDead() );
-	
+
 			if (IsDead())
 			{
 				data <<= 8;
-	
+
 				if (oam.address == 0x00 && data < 0x2000)
 				{
 					std::memcpy( oam.ram, cpu.GetSystemRam() + (data & (Cpu::RAM_SIZE-1)), Oam::SIZE );
 					io.latch = oam.ram[0xFF];
 				}
-				else 
+				else
 				{
 					u8 dst = oam.address;
 					const u8 end = oam.address;
 					register u8 tmp;
-	
-					do 
-					{					
+
+					do
+					{
 						oam.ram[dst++] = tmp = cpu.Peek( data++ );
-					} 
+					}
 					while (dst != end);
-	
+
 					io.latch = tmp;
 				}
 			}
@@ -1076,18 +1098,18 @@ namespace Nes
 			{
 				std::memset( oam.ram, Oam::GARBAGE, Oam::SIZE );
 				io.latch = Oam::GARBAGE;
-	
+
 				LogMsg("Ppu: garbage DMA transfer!" NST_LINEBREAK,1UL << 0);
 			}
-	
+
 			cpu.StealCycles( cpu.GetMasterClockCycle(1) * Oam::DMA_CYCLES );
 		}
-	
+
 		NES_PEEK(Ppu,4014)
 		{
 			return 0x40;
 		}
-	
+
 		inline void Ppu::Scroll::ClockX()
 		{
 			if ((address & X_TILE) != X_TILE)
@@ -1095,13 +1117,13 @@ namespace Nes
 			else
 				address ^= (X_TILE|NAME_LOW);
 		}
-	
+
 		inline void Ppu::Scroll::ResetX()
 		{
 			address &= ((X_TILE|NAME_LOW) ^ 0x7FFFU);
 			address |= latch & (X_TILE|NAME_LOW);
 		}
-	
+
 		inline void Ppu::Scroll::ClockY()
 		{
 			if ((address & Y_FINE) != (7U << 12))
@@ -1115,27 +1137,27 @@ namespace Nes
 				default:         address = (address & (Y_FINE ^ 0x7FFFU)) + (1U << 5); break;
 			}
 		}
-	
+
 		void Ppu::EvaluateSpritesAndRenderPixel()
 		{
 			NST_ASSERT( scanline >= 0 && scanline <= 239 && oam.address < Oam::SIZE );
-	
+
 			oam.evaluated = oam.buffer;
-	
+
 			if (io.enabled)
 			{
 				const uint height = ((regs.ctrl0 & Regs::CTRL0_SP8X16) >> 2) + 8;
 				const uint line = scanline;
-	
+
 				uint i = 0;
-	
+
 				for (;;)
 				{
 					const u8* const NST_RESTRICT obj = oam.ram + i + (i <= 4 ? (oam.address & Oam::OFFSET_TO_0_1) : 0);
 					i += 4;
-	
+
 					uint y = line - obj[0];
-	
+
 					if (y >= height)
 					{
 						if (i == Oam::SIZE)
@@ -1148,32 +1170,32 @@ namespace Nes
 					{
 						if (obj[2] & Oam::Y_FLIP)
 							y ^= 0xF;
-	
+
 						oam.evaluated->comparitor = y;
-	
-						oam.evaluated->attribute = 
+
+						oam.evaluated->attribute =
 						(
 							(i == 4) |
 							((obj[2] & Oam::COLOR) << 2) |
 							(obj[2] & (Oam::BEHIND|Oam::X_FLIP))
 						);
-	
+
 						oam.evaluated->tile = obj[1];
 						oam.evaluated->x = obj[3];
-						
+
 						++oam.evaluated;
-	
+
 						if (i == Oam::SIZE)
 						{
 							RenderPixel();
 							return;
 						}
-	
+
 						if (oam.evaluated == oam.limit)
 							break;
 					}
 				}
-	
+
 				if (cycles.spriteOverflow == NES_CYCLE_MAX)
 				{
 					do
@@ -1191,21 +1213,21 @@ namespace Nes
 					while (i < Oam::SIZE);
 				}
 			}
-	
+
 			RenderPixel();
 		}
-		
+
 		void Ppu::LoadSprite()
 		{
 			NST_ASSERT( oam.loaded < oam.evaluated );
-	
+
 			uint address;
-	
+
 			if (regs.ctrl0 & Regs::CTRL0_SP8X16)
 			{
-				address = 
+				address =
 				(
-					((oam.loaded->tile & (Oam::Buffer::TILE_LSB)) << 12) | 
+					((oam.loaded->tile & (Oam::Buffer::TILE_LSB)) << 12) |
 					((oam.loaded->tile & (Oam::Buffer::TILE_LSB ^ 0xFF)) << 4) |
 					((oam.loaded->comparitor & Oam::Buffer::RANGE_MSB) << 1)
 				);
@@ -1214,18 +1236,18 @@ namespace Nes
 			{
 				address = ((regs.ctrl0 & Regs::CTRL0_SP_OFFSET) << 9) | (oam.loaded->tile << 4);
 			}
-	
+
 			address |= oam.loaded->comparitor & Oam::Buffer::XFINE;
-	
+
 			if (io.a12.InUse() && (address & 0x1000))
 				io.a12.Toggle( cycles.count );
-	
+
 			uint pattern[2] =
 			{
 				chrMem.FetchPattern( address | 0x0 ),
 				chrMem.FetchPattern( address | 0x8 )
 			};
-	
+
 			if (pattern[0] | pattern[1])
 			{
 				if (!(oam.loaded->attribute & Oam::X_FLIP))
@@ -1233,17 +1255,17 @@ namespace Nes
 					pattern[0] = reverseLut[pattern[0]];
 					pattern[1] = reverseLut[pattern[1]];
 				}
-	
+
 				const u32 block[] =
 				{
-					chrLut[0][pattern[0] & 0xF].block | 
+					chrLut[0][pattern[0] & 0xF].block |
 					chrLut[1][pattern[1] & 0xF].block,
-					chrLut[0][pattern[0] >>  4].block | 
+					chrLut[0][pattern[0] >>  4].block |
 					chrLut[1][pattern[1] >>  4].block
 				};
-	
+
 				Oam::Output* const NST_RESTRICT output = oam.visible++;
-	
+
 				output->block[0] = block[0];
 				output->block[1] = block[1];
 
@@ -1252,19 +1274,19 @@ namespace Nes
 				output->x       = oam.loaded->x;
 				output->palette = Palette::SPRITE_OFFSET + (attribute & (uint(Oam::COLOR) << 2));
 				output->zero    = (attribute & 0x1) ? b11 : b00;
-				output->behind  = (attribute & Oam::BEHIND) ? b11 : b00;	
+				output->behind  = (attribute & Oam::BEHIND) ? b11 : b00;
 			}
-	
+
 			++oam.loaded;
 		}
 
 		void Ppu::Tiles::Load()
-		{	
+		{
 			const u32 tmp[] =
 			{
-				chrAttLut[0][(reverseLut[pattern[0]] & 0xF) | (attribute << 4)].block | 
+				chrAttLut[0][(reverseLut[pattern[0]] & 0xF) | (attribute << 4)].block |
 				chrAttLut[1][(reverseLut[pattern[1]] & 0xF) | (attribute << 4)].block,
-				chrAttLut[0][(reverseLut[pattern[0]] >>  4) | (attribute << 4)].block | 
+				chrAttLut[0][(reverseLut[pattern[0]] >>  4) | (attribute << 4)].block |
 				chrAttLut[1][(reverseLut[pattern[1]] >>  4) | (attribute << 4)].block
 			};
 
@@ -1274,11 +1296,11 @@ namespace Nes
 			dst[0] = tmp[0];
 			dst[1] = tmp[1];
 		}
-	
+
 		void Ppu::RenderPixel()
 		{
 			register uint pixel = 0;
-	
+
 			if (io.enabled)
 			{
 				pixel = tiles.pixels[(output.index + scroll.xFine) & 15] & tiles.show & tiles.clip;
@@ -1293,144 +1315,144 @@ namespace Nes
 						continue;
 
 					x = sprite->pixels[x] & oam.show & oam.clip;
-	
+
 					if (x)
 					{
-						// first two bits of sprite->zero and sprite->behind booleans 
+						// first two bits of sprite->zero and sprite->behind booleans
 						// are masked if true (for minimizing branching)
-	
+
 						if (pixel & sprite->zero)
 							regs.status |= Regs::STATUS_SP_ZERO_HIT;
-	
+
 						if (!(pixel & sprite->behind))
 							pixel = sprite->palette + x;
-	
+
 						break;
 					}
 				}
 			}
 			else if ((scroll.address & 0x3F00) == 0x3F00)
-			{					
+			{
 				pixel = scroll.address & 0x1F;
 			}
 
 			++output.index;
 			u16* const NST_RESTRICT screen = output.pixels;
 			output.pixels = reinterpret_cast<u16*>(reinterpret_cast<u8*>(output.pixels) + output.next);
-			*screen = output.emphasis + (output.coloring & palette.ram[pixel]);
+			*screen = output.emphasis + (output.coloring & palette.map[palette.ram[pixel]]);
 		}
-	
+
 		void Ppu::HActive0()
 		{
 			if (io.enabled)
 				io.address = scroll.address;
-	
+
 			tiles.Load();
-	
+
 			if (stage != 8)
 				RenderPixel();
 			else
 				EvaluateSpritesAndRenderPixel();
-	
-			cycles.count += cycles.one;	
+
+			cycles.count += cycles.one;
 			NST_PPU_NEXT_PHASE( HActive1 );
 		}
-	
+
 		void Ppu::HActive1()
 		{
 			if (io.enabled)
 				io.pattern = FetchName();
-	
+
 			RenderPixel();
-	
+
 			cycles.count += cycles.one;
 			NST_PPU_NEXT_PHASE( HActive2 );
 		}
-	
+
 		void Ppu::HActive2()
 		{
 			if (io.enabled)
 				io.address = scroll.address;
-	
+
 			RenderPixel();
-	
+
 			cycles.count += cycles.one;
 			NST_PPU_NEXT_PHASE( HActive3 );
 		}
-	
+
 		void Ppu::HActive3()
 		{
 			if (io.enabled)
 			{
 				tiles.attribute = FetchAttribute();
 				scroll.ClockX();
-	
+
 				if (stage == 31)
 					scroll.ClockY();
 			}
-	
+
 			RenderPixel();
-	
-			cycles.count += cycles.one;	
+
+			cycles.count += cycles.one;
 			NST_PPU_NEXT_PHASE( HActive4 );
 		}
-	
+
 		void Ppu::HActive4()
 		{
 			if (io.enabled)
 			{
 				io.address = io.pattern | 0x0;
-	
+
 				if (io.a12.InUse() && (regs.ctrl0 & Regs::CTRL0_BG_OFFSET))
 					io.a12.Toggle( cycles.count );
 			}
-	
+
 			RenderPixel();
-	
+
 			cycles.count += cycles.one;
 			NST_PPU_NEXT_PHASE( HActive5 );
 		}
-	
+
 		void Ppu::HActive5()
 		{
 			if (io.enabled)
 				tiles.pattern[0] = chrMem.FetchPattern( io.address );
-	
+
 			RenderPixel();
-	
+
 			cycles.count += cycles.one;
 			NST_PPU_NEXT_PHASE( HActive6 );
 		}
-	
+
 		void Ppu::HActive6()
 		{
 			if (io.enabled)
 				io.address = io.pattern | 0x8;
-	
+
 			RenderPixel();
-	
+
 			cycles.count += cycles.one;
 			NST_PPU_NEXT_PHASE( HActive7 );
 		}
-	
+
 		void Ppu::HActive7()
 		{
 			const uint noSpHitOn255 = regs.status;
-	
+
 			RenderPixel();
-	
+
 			oam.clip = ~0U;
 			tiles.clip = ~0U;
-	
+
 			if (io.enabled)
 				tiles.pattern[1] = chrMem.FetchPattern( io.address );
-	
+
 			cycles.count += cycles.one;
-	
+
 			NST_ASSERT( stage < 32 );
-	
+
 			stage = (stage + 1) & 31;
-	
+
 			if (stage)
 			{
 				NST_PPU_NEXT_PHASE( HActive0 );
@@ -1439,11 +1461,11 @@ namespace Nes
 			{
 				cycles.count += cycles.one;
 				regs.status = noSpHitOn255;
-				
+
 				NST_PPU_NEXT_PHASE( HBlank );
 			}
 		}
-	
+
 		void Ppu::HBlank()
 		{
 			NST_ASSERT( stage == 0 );
@@ -1452,18 +1474,18 @@ namespace Nes
 
 			oam.loaded = oam.buffer;
 			oam.visible = oam.output;
-	
+
 			if (io.enabled)
 				scroll.ResetX();
-	
+
 			cycles.count += cycles.four - cycles.one;
 			NST_PPU_NEXT_PHASE( HBlankSp );
 		}
-	
+
 		void Ppu::HBlankSp()
 		{
-        hell:
-	
+		hell:
+
 			if (io.enabled)
 			{
 				if (oam.loaded == oam.evaluated)
@@ -1471,20 +1493,20 @@ namespace Nes
 					if (io.a12.InUse() && (regs.ctrl0 & (Regs::CTRL0_SP_OFFSET|Regs::CTRL0_SP8X16)))
 						io.a12.Toggle( cycles.count );
 				}
-				else 
+				else
 				{
 					LoadSprite();
 				}
 			}
-	
+
 			NST_ASSERT( stage < 8 );
-	
+
 			stage = (stage + 1) & 7;
-	
+
 			if (stage)
 			{
 				cycles.count += cycles.eight;
-	
+
 				if (cycles.count < cycles.round)
 					goto hell;
 				else
@@ -1495,16 +1517,16 @@ namespace Nes
 				if (io.enabled)
 				{
 					// extended +9 sprites
-	
-					while (oam.loaded != oam.evaluated) 
-						LoadSprite(); 
+
+					while (oam.loaded != oam.evaluated)
+						LoadSprite();
 				}
-	
+
 				cycles.count += cycles.four;
 				NST_PPU_NEXT_PHASE( HBlankBg );
 			}
 		}
-	
+
 		void Ppu::HBlankBg()
 		{
 			NST_ASSERT( stage == 0 );
@@ -1512,43 +1534,43 @@ namespace Nes
 			bgHook.Execute();
 
 			tiles.index = 0;
-	
+
 			if (io.enabled)
 				io.address = scroll.address;
-	
+
 			cycles.count += cycles.one;
 			NST_PPU_NEXT_PHASE( HBlankBg1 );
 		}
-	
+
 		void Ppu::HBlankBg0()
 		{
 			if (io.enabled)
 				io.address = scroll.address;
-	
+
 			tiles.Load();
-	
+
 			cycles.count += cycles.one;
 			NST_PPU_NEXT_PHASE( HBlankBg1 );
 		}
-	
+
 		void Ppu::HBlankBg1()
 		{
 			if (io.enabled)
 				io.pattern = FetchName();
-	
+
 			cycles.count += cycles.one;
 			NST_PPU_NEXT_PHASE( HBlankBg2 );
 		}
-	
+
 		void Ppu::HBlankBg2()
 		{
 			if (io.enabled)
 				io.address = scroll.address;
-	
+
 			cycles.count += cycles.one;
 			NST_PPU_NEXT_PHASE( HBlankBg3 );
 		}
-	
+
 		void Ppu::HBlankBg3()
 		{
 			if (io.enabled)
@@ -1556,50 +1578,50 @@ namespace Nes
 				tiles.attribute = FetchAttribute();
 				scroll.ClockX();
 			}
-	
+
 			cycles.count += cycles.one;
 			NST_PPU_NEXT_PHASE( HBlankBg4 );
 		}
-	
+
 		void Ppu::HBlankBg4()
 		{
 			if (io.enabled)
 			{
 				io.address = io.pattern | 0x0;
-	
+
 				if (io.a12.InUse() && (regs.ctrl0 & Regs::CTRL0_BG_OFFSET))
 					io.a12.Toggle( cycles.count );
 			}
-	
+
 			cycles.count += cycles.one;
 			NST_PPU_NEXT_PHASE( HBlankBg5 );
 		}
-	
+
 		void Ppu::HBlankBg5()
 		{
 			if (io.enabled)
 				tiles.pattern[0] = chrMem.FetchPattern( io.address );
-	
+
 			cycles.count += cycles.one;
 			NST_PPU_NEXT_PHASE( HBlankBg6 );
 		}
-	
+
 		void Ppu::HBlankBg6()
 		{
 			if (io.enabled)
 				io.address = io.pattern | 0x8;
-	
+
 			cycles.count += cycles.one;
 			NST_PPU_NEXT_PHASE( HBlankBg7 );
 		}
-	
+
 		void Ppu::HBlankBg7()
 		{
 			NST_ASSERT( stage < 2 && scanline < 240 );
-	
+
 			if (io.enabled)
 				tiles.pattern[1] = chrMem.FetchPattern( io.address );
-	
+
 			if (stage ^= 1)
 			{
 				cycles.count += cycles.one;
@@ -1609,7 +1631,7 @@ namespace Nes
 			{
 				cycles.count += cycles.six;
 
-				oam.clip = (regs.ctrl1 & Regs::CTRL1_SP_NO_CLIPPING) ? ~0U : 0U;			
+				oam.clip = (regs.ctrl1 & Regs::CTRL1_SP_NO_CLIPPING) ? ~0U : 0U;
 				tiles.clip = (regs.ctrl1 & Regs::CTRL1_BG_NO_CLIPPING) ? ~0U : 0U;
 
 				if (scanline != 0)
@@ -1623,14 +1645,14 @@ namespace Nes
 					if (regs.ctrl1 & regs.frame)
 					{
 						output.burstPhase = (output.burstPhase + 2) % 3;
-						cycles.count -= cycles.one;			
+						cycles.count -= cycles.one;
 						cpu.SetupFrame( MC_DIV_NTSC * CC_FRAME_1_NTSC );
 					}
 					else if (cpu.GetMode() == MODE_NTSC)
 					{
 						output.burstPhase = (output.burstPhase + 1) % 3;
 					}
-					
+
 					NST_PPU_NEXT_PHASE( HActive0 );
 				}
 			}
@@ -1652,12 +1674,13 @@ namespace Nes
 		void Ppu::VBlank()
 		{
 			NST_ASSERT( scanline != SCANLINE_VBLANK && oam.address < Oam::SIZE );
-	
+
 			NST_VERIFY_MSG( regs.status & Regs::STATUS_VBLANKING, "Ppu $2002/VBlank conflict!" );
 
 			regs.status = (regs.status & 0xFF) | ((regs.status >> 1) & Regs::STATUS_VBLANK);
 			scanline = SCANLINE_VBLANK;
 			oam.address = 0x00;
+			oam.visible = oam.output;
 
 			if (cycles.spriteOverflow != NES_CYCLE_MAX)
 			{
@@ -1681,27 +1704,27 @@ namespace Nes
 		void Ppu::HDummy()
 		{
 			NST_ASSERT( scanline == SCANLINE_VBLANK );
-	
+
 			regs.status = 0;
 			scanline = SCANLINE_HDUMMY;
 			cycles.count += cycles.four;
-	
+
 			NST_PPU_NEXT_PHASE( HDummyBg );
 		}
-	
+
 		void Ppu::HDummyBg()
 		{
 			NST_ASSERT( scanline == SCANLINE_HDUMMY );
-	
-        hell:
-	
+
+		hell:
+
 			if (io.a12.InUse() && (regs.ctrl0 & Regs::CTRL0_BG_OFFSET) && io.enabled)
 				io.a12.Toggle( cycles.count );
-	
+
 			cycles.count += cycles.eight;
-	
+
 			stage = (stage + 1) & 31;
-	
+
 			if (stage)
 			{
 				if (cycles.count < cycles.round)
@@ -1714,24 +1737,24 @@ namespace Nes
 				NST_PPU_NEXT_PHASE( HDummySp );
 			}
 		}
-	
+
 		void Ppu::HDummySp()
 		{
 			NST_ASSERT( scanline == SCANLINE_HDUMMY );
-	
-        hell:
-	
+
+		hell:
+
 			if (io.a12.InUse() && (regs.ctrl0 & (Regs::CTRL0_SP_OFFSET|Regs::CTRL0_SP8X16)) && io.enabled)
 				io.a12.Toggle( cycles.count );
-	
+
 			stage = (stage + 1) & 7;
-	
+
 			if (stage)
 			{
 				if (stage != 6)
 				{
 					cycles.count += cycles.eight;
-	
+
 					if (cycles.count < cycles.round)
 						goto hell;
 					else
@@ -1747,26 +1770,26 @@ namespace Nes
 			{
 				cycles.count += cycles.four;
 				NST_PPU_NEXT_PHASE( HBlankBg );
-			}		
+			}
 		}
-	
+
 		void Ppu::HDummyScroll()
 		{
 			NST_ASSERT( scanline == SCANLINE_HDUMMY );
-	
+
 			if (io.enabled)
 				scroll.address = scroll.latch;
-	
+
 			cycles.count += cycles.four;
 			NST_PPU_NEXT_PHASE( HDummySp );
 		}
-	
+
 		void Ppu::WarmUp()
 		{
 			NST_ASSERT( stage && phase == &Ppu::WarmUp );
-	
+
 			cycles.count = NES_CYCLE_MAX;
-	
+
 			if (!--stage)
 			{
 				regs.status |= Regs::STATUS_VBLANK;

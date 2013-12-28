@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -53,20 +53,20 @@ namespace Nes
 
 			typedef iword Sample;
 
-			enum 
+			enum
 			{
-				CHANNEL_SQUARE1, 
-				CHANNEL_SQUARE2, 
+				CHANNEL_SQUARE1,
+				CHANNEL_SQUARE2,
 				CHANNEL_TRIANGLE,
-				CHANNEL_NOISE,   
-				CHANNEL_DPCM,    
-				CHANNEL_FDS,     
-				CHANNEL_MMC5,    
-				CHANNEL_VRC6,    
-				CHANNEL_VRC7,    
-				CHANNEL_N106,    
-				CHANNEL_S5B,     
-				MAX_CHANNELS     
+				CHANNEL_NOISE,
+				CHANNEL_DPCM,
+				CHANNEL_FDS,
+				CHANNEL_MMC5,
+				CHANNEL_VRC6,
+				CHANNEL_VRC7,
+				CHANNEL_N106,
+				CHANNEL_S5B,
+				MAX_CHANNELS
 			};
 
 			enum
@@ -84,7 +84,7 @@ namespace Nes
 			void   ClearBuffers();
 			void   SetMode(Mode);
 			Cycle  Clock(Cycle);
-			void   BeginFrame(Sound::Output*);	
+			void   BeginFrame(Sound::Output*);
 			void   EndFrame();
 			void   Poke_4017(uint);
 			uint   GetLatency() const;
@@ -112,7 +112,7 @@ namespace Nes
 
 				virtual void Reset() = 0;
 				virtual Sample GetSample() = 0;
-				
+
 				void SetContext(Cycle,Cycle,Mode,const u8 (&)[MAX_CHANNELS]);
 
 			protected:
@@ -132,8 +132,8 @@ namespace Nes
 			public:
 
 				virtual Cycle Clock()
-				{ 
-					return 0; 
+				{
+					return 0;
 				}
 
 				uint GetOutputVolume() const
@@ -151,10 +151,10 @@ namespace Nes
 				void Reset();
 				Sample Apply(Sample);
 
-				enum 
+				enum
 				{
 					POLE = 3 // ~0.9999
-				}; 
+				};
 
 				iword prev;
 				iword next;
@@ -170,7 +170,7 @@ namespace Nes
 
 			private:
 
-				enum 
+				enum
 				{
 					SHIFT_COUNT = 3
 				};
@@ -209,12 +209,12 @@ namespace Nes
 
 				uint GetCount() const
 				{
-					return count; 
+					return count;
 				}
 
 				bool Clock()
-				{ 
-					return count && !--count; 
+				{
+					return count && !--count;
 				}
 			};
 
@@ -227,7 +227,7 @@ namespace Nes
 				void LoadState(State::Loader&);
 				void SaveState(State::Saver&) const;
 
-				void Clock();		
+				void Clock();
 				void Write(uint);
 
 			private:
@@ -261,25 +261,25 @@ namespace Nes
 
 			public:
 
-				Envelope() 
+				Envelope()
 				: outputVolume(OUTPUT_MUL)
-				{ 
-					Reset(); 
+				{
+					Reset();
 				}
 
 				uint Loop() const
-				{ 
-					return loop; 
+				{
+					return loop;
 				}
 
 				dword Volume() const
 				{
-					return output; 
+					return output;
 				}
 
 				void ResetClock()
 				{
-					reset = true; 
+					reset = true;
 				}
 			};
 
@@ -305,7 +305,7 @@ namespace Nes
 				ENABLE_SQUARE2  = 0x02,
 				ENABLE_TRIANGLE = 0x04,
 				ENABLE_NOISE    = 0x08,
-				ENABLE_DMC		= 0x10
+				ENABLE_DMC      = 0x10
 			};
 
 			enum
@@ -351,7 +351,7 @@ namespace Nes
 			NES_DECL_PEEK( 4015 )
 			NES_DECL_PEEK( 4xxx )
 
-			Sample GetSample();	
+			Sample GetSample();
 
 			void SyncOff (Cycle);
 			void SyncOn  (Cycle);
@@ -418,7 +418,7 @@ namespace Nes
 				NST_FORCE_INLINE void WriteReg1(uint);
 				NST_FORCE_INLINE void WriteReg2(uint);
 				NST_FORCE_INLINE void WriteReg3(uint,bool);
-				
+
 				inline void Toggle(uint);
 				dword GetSample();
 
@@ -561,7 +561,7 @@ namespace Nes
 
 			private:
 
-  				inline bool CanOutput() const;
+				inline bool CanOutput() const;
 
 				enum
 				{
@@ -637,7 +637,7 @@ namespace Nes
 					SAVE_2_LOOP         = b00010000,
 					SAVE_2_IRQ          = b00100000,
 					SAVE_2_ENABLED      = b01000000,
-					SAVE_3_LOAD_ADDRESS	= b11111111,
+					SAVE_3_LOAD_ADDRESS = b11111111,
 					SAVE_4_LOAD_LENGTH  = b11111111,
 					SAVE_5_ADDRESS_LOW  = b11111111,
 					SAVE_6_ADDRESS_HIGH = b01111111,

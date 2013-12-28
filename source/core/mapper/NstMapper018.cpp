@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -26,21 +26,21 @@
 #include "../NstClock.hpp"
 #include "../NstSoundPlayer.hpp"
 #include "NstMapper018.hpp"
-		 
+
 namespace Nes
 {
 	namespace Core
 	{
-        #ifdef NST_PRAGMA_OPTIMIZE
-        #pragma optimize("s", on)
-        #endif
+		#ifdef NST_PRAGMA_OPTIMIZE
+		#pragma optimize("s", on)
+		#endif
 
 		Sound::Player* Mapper18::DetectSound(dword crc,Cpu& cpu)
 		{
 			switch (crc)
 			{
 				case 0x3C361B36UL:
-					
+
 					return Sound::Player::Create
 					(
 						cpu,
@@ -90,8 +90,8 @@ namespace Nes
 		}
 
 		Mapper18::Mapper18(Context& c)
-		: 
-		Mapper (c), 
+		:
+		Mapper (c),
 		irq    (c.cpu),
 		sound  (DetectSound(c.pRomCrc,c.cpu))
 		{}
@@ -142,7 +142,7 @@ namespace Nes
 					Map( 0xF003U + i, &Mapper18::Poke_F003 );
 			}
 		}
-	
+
 		void Mapper18::SubLoad(State::Loader& state)
 		{
 			if (sound)
@@ -173,17 +173,17 @@ namespace Nes
 				state.End();
 			}
 		}
-	
+
 		void Mapper18::SubSave(State::Saver& state) const
 		{
 			const u8 data[5] =
 			{
 				(irq.IsLineEnabled() ? 0x1 : 0x0) |
 				(
-				    irq.unit.mask == 0x000FU ? 0x8 :
-				    irq.unit.mask == 0x00FFU ? 0x4 :
-				    irq.unit.mask == 0x0FFFU ? 0x2 : 
-				                               0x0
+					irq.unit.mask == 0x000FU ? 0x8 :
+					irq.unit.mask == 0x00FFU ? 0x4 :
+					irq.unit.mask == 0x0FFFU ? 0x2 :
+                                               0x0
 				),
 				irq.unit.latch & 0xFF,
 				irq.unit.latch >> 8,
@@ -196,28 +196,28 @@ namespace Nes
 			if (sound)
 				state.Begin('R','E','G','\0').Write8( reg ).End();
 		}
-	
-        #ifdef NST_PRAGMA_OPTIMIZE
-        #pragma optimize("", on)
-        #endif
-	
+
+		#ifdef NST_PRAGMA_OPTIMIZE
+		#pragma optimize("", on)
+		#endif
+
 		template<uint MASK,uint SHIFT>
 		void Mapper18::SwapPrg(const uint address,const uint data)
 		{
 			prg.SwapBank<SIZE_8K>( address, (prg.GetBank<SIZE_8K>(address) & MASK) | ((data & 0xF) << SHIFT) );
 		}
 
-		NES_POKE(Mapper18,8000) { SwapPrg<0xF0,0>( 0x0000U, data ); } 
+		NES_POKE(Mapper18,8000) { SwapPrg<0xF0,0>( 0x0000U, data ); }
 		NES_POKE(Mapper18,8001) { SwapPrg<0x0F,4>( 0x0000U, data ); }
 		NES_POKE(Mapper18,8002) { SwapPrg<0xF0,0>( 0x2000U, data ); }
 		NES_POKE(Mapper18,8003) { SwapPrg<0x0F,4>( 0x2000U, data ); }
 		NES_POKE(Mapper18,9000) { SwapPrg<0xF0,0>( 0x4000U, data ); }
 		NES_POKE(Mapper18,9001) { SwapPrg<0x0F,4>( 0x4000U, data ); }
-	
+
 		template<uint MASK,uint SHIFT>
 		void Mapper18::SwapChr(const uint address,const uint data) const
 		{
-			ppu.Update(); 
+			ppu.Update();
 			chr.SwapBank<SIZE_1K>( address, (chr.GetBank<SIZE_1K>(address) & MASK) | ((data & 0xF) << SHIFT) );
 		}
 
@@ -238,38 +238,38 @@ namespace Nes
 		NES_POKE(Mapper18,D002) { SwapChr<0xF0,0>( 0x1C00U, data ); }
 		NES_POKE(Mapper18,D003) { SwapChr<0x0F,4>( 0x1C00U, data ); }
 
-		NES_POKE(Mapper18,E000) 
-		{ 
-			irq.Update(); 
-			irq.unit.latch = (irq.unit.latch & 0xFFF0U) | (data & 0xF); 
-		}
-
-		NES_POKE(Mapper18,E001) 
-		{
-			irq.Update(); 
-			irq.unit.latch = (irq.unit.latch & 0xFF0FU) | ((data & 0xF) << 4); 
-		}
-
-		NES_POKE(Mapper18,E002) 
+		NES_POKE(Mapper18,E000)
 		{
 			irq.Update();
-			irq.unit.latch = (irq.unit.latch & 0xF0FFU) | ((data & 0xF) << 8); 
+			irq.unit.latch = (irq.unit.latch & 0xFFF0U) | (data & 0xF);
 		}
 
-		NES_POKE(Mapper18,E003) 
-		{ 
+		NES_POKE(Mapper18,E001)
+		{
 			irq.Update();
-			irq.unit.latch = (irq.unit.latch & 0x0FFFU) | ((data & 0xF) << 12); 
+			irq.unit.latch = (irq.unit.latch & 0xFF0FU) | ((data & 0xF) << 4);
 		}
 
-		NES_POKE(Mapper18,F000) 
-		{ 
+		NES_POKE(Mapper18,E002)
+		{
+			irq.Update();
+			irq.unit.latch = (irq.unit.latch & 0xF0FFU) | ((data & 0xF) << 8);
+		}
+
+		NES_POKE(Mapper18,E003)
+		{
+			irq.Update();
+			irq.unit.latch = (irq.unit.latch & 0x0FFFU) | ((data & 0xF) << 12);
+		}
+
+		NES_POKE(Mapper18,F000)
+		{
 			irq.Update();
 			irq.unit.count = irq.unit.latch;
 			irq.ClearIRQ();
 		}
-	
-		NES_POKE(Mapper18,F001) 
+
+		NES_POKE(Mapper18,F001)
 		{
 			irq.Update();
 
@@ -281,14 +281,14 @@ namespace Nes
 			irq.EnableLine( data & 0x1 );
 			irq.ClearIRQ();
 		}
-	
-		NES_POKE(Mapper18,F002) 
+
+		NES_POKE(Mapper18,F002)
 		{
 			ppu.SetMirroring
 			(
-				(data & 0x3) == 0 ? Ppu::NMT_HORIZONTAL : 
-		    	(data & 0x3) == 1 ? Ppu::NMT_VERTICAL :
-                               		Ppu::NMT_ZERO
+				(data & 0x3) == 0 ? Ppu::NMT_HORIZONTAL :
+				(data & 0x3) == 1 ? Ppu::NMT_VERTICAL :
+									Ppu::NMT_ZERO
 			);
 		}
 

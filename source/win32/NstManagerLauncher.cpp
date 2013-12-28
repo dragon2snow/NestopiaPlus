@@ -5,23 +5,24 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
+#include "resource/resource.h"
 #include "NstObjectHeap.hpp"
 #include "NstApplicationConfiguration.hpp"
 #include "NstResourceFile.hpp"
@@ -38,13 +39,13 @@ namespace Nestopia
 	using namespace Managers;
 
 	Launcher::Launcher(Emulator& e,const Configuration& cfg,Window::Menu& m,const Paths& paths,Window::Custom& window)
-	: 
+	:
 	menu     ( m ),
 	emulator ( e ),
 	dialog   ( new Window::Launcher(Nes::Cartridge(ImportDatabase(e)).GetDatabase(),paths,cfg) )
 	{
-		state[FITS] = TRUE;
-		state[AVAILABLE] = TRUE;
+		state[FITS] = true;
+		state[AVAILABLE] = true;
 
 		window.Messages().Hooks().Add( WM_DISPLAYCHANGE, this, &Launcher::OnDisplayChange );
 		m.Commands().Add( IDM_FILE_LAUNCHER, this, &Launcher::OnMenu );
@@ -71,9 +72,9 @@ namespace Nestopia
 		return emulator;
 	}
 
-	void Launcher::Save(Configuration& cfg,ibool saveFiles) const
+	void Launcher::Save(Configuration& cfg,ibool saveSize,ibool saveFiles) const
 	{
-		dialog->Save( cfg, saveFiles );
+		dialog->Save( cfg, saveSize, saveFiles );
 	}
 
 	void Launcher::Update()
@@ -92,11 +93,11 @@ namespace Nestopia
 	void Launcher::OnDisplayChange(Window::Param& param)
 	{
 		state[FITS] =
-		( 
+		(
 			LOWORD(param.lParam) >= MIN_DIALOG_WIDTH &&
 			HIWORD(param.lParam) >= MIN_DIALOG_HEIGHT
 		);
-       
+
 		Update();
 	}
 
@@ -109,7 +110,7 @@ namespace Nestopia
 
 				state[AVAILABLE] = (event == Emulator::EVENT_NETPLAY_MODE_OFF);
 				Update();
-				break;			
+				break;
 		}
 	}
 

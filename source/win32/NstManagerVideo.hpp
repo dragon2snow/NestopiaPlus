@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -54,7 +54,7 @@ namespace Nestopia
 			Video(Window::Custom&,Window::Menu&,Emulator&,const Paths&,const Configuration&);
 			~Video();
 
-			enum 
+			enum
 			{
 				NES_WIDTH = Nes::Video::Output::WIDTH,
 				NES_HEIGHT = Nes::Video::Output::HEIGHT,
@@ -71,7 +71,7 @@ namespace Nestopia
 			void SavePalette(Path&) const;
 			const Rect& GetInputRect() const;
 			ibool MustClearFrameScreen() const;
-			
+
 			Point GetDisplayMode() const;
 
 		private:
@@ -92,22 +92,23 @@ namespace Nestopia
 			ibool SwitchFullscreen(Mode);
 			void  ToggleFps(ibool);
 			void  UpdateScreen();
+			void  UpdateDialogBoxMode();
 			void  UpdateMenuScreenSizes(const Point) const;
 			void  UpdateFieldMergingState() const;
 			void  ResetScreenRect(uint);
 			uint  CalculateWindowScale() const;
 			uint  CalculateFullscreenScale() const;
 			ibool IsWindowMatched() const;
-			
+
 			NST_NO_INLINE void RepairScreen();
 
 			ibool OnPaint         (Window::Param&);
 			ibool OnNcPaint       (Window::Param&);
-			ibool OnEraseBkGnd    (Window::Param&);     
+			ibool OnEraseBkGnd    (Window::Param&);
 			ibool OnDisplayChange (Window::Param&);
 			void  OnEnterSizeMove (Window::Param&);
 			void  OnExitSizeMove  (Window::Param&);
-						
+
 			void OnCmdFileScreenShot          (uint);
 			void OnCmdMachineUnlimitedSprites (uint);
 			void OnCmdViewScreenSize          (uint);
@@ -196,7 +197,7 @@ namespace Nestopia
 
 				return rect;
 			}
-  
+
 			void ClearScreen()
 			{
 				if (!direct2d.ClearScreen())

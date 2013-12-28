@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -85,7 +85,7 @@ namespace Nes
 				SCANLINES_VINT_NTSC   = 20,
 				SCANLINES_VINT_PAL    = 70,
 				SCANLINES_VSLEEP      = 1,
-				SCANLINES_VDUMMY	  = 1,
+				SCANLINES_VDUMMY      = 1,
 				SCANLINES_VBLANK_NTSC = SCANLINES_VSLEEP + SCANLINES_VINT_NTSC + SCANLINES_VDUMMY,
 				SCANLINES_VBLANK_PAL  = SCANLINES_VSLEEP + SCANLINES_VINT_PAL + SCANLINES_VDUMMY,
 				SCANLINES_VSYNC_NTSC  = SCANLINES_VACTIVE + SCANLINES_VBLANK_NTSC,
@@ -104,12 +104,13 @@ namespace Nes
 				CC_FRAME_1_NTSC = CC_HSYNC * SCANLINES_VSYNC_NTSC - 1,
 				CC_FRAME_PAL    = CC_HSYNC * SCANLINES_VSYNC_PAL
 			};
-			
+
 			void Reset(bool=false);
 			void SetMode(Mode);
 			void SetMirroring(uint);
 			void SetMirroring(const uchar (&)[4]);
-			void BeginFrame(bool);	
+			void SetYuvMap(const u8*,bool);
+			void BeginFrame(bool);
 			void EndFrame();
 			void Update();
 			void EnableCpuSynchronization();
@@ -143,6 +144,12 @@ namespace Nes
 				{
 					accessors[0].Set( t, u );
 					accessors[1].Set( t, v );
+				}
+
+				bool SameComponent(uint i,const void* ptr) const
+				{
+					NST_ASSERT( i < 2 );
+					return accessors[i].SameComponent( ptr );
 				}
 			};
 
@@ -192,6 +199,12 @@ namespace Nes
 					accessors[2][1].Set( t, w[1] );
 					accessors[3][0].Set( t, x[0] );
 					accessors[3][1].Set( t, x[1] );
+				}
+
+				bool SameComponent(uint i,uint j,const void* ptr) const
+				{
+					NST_ASSERT( i < 4 && j < 2 );
+					return accessors[i][j].SameComponent( ptr );
 				}
 			};
 
@@ -363,7 +376,7 @@ namespace Nes
 				u8 pattern[2];
 				u8 attribute;
 				u8 pad;
-				
+
 				uint index;
 
 				union
@@ -399,12 +412,14 @@ namespace Nes
 				enum
 				{
 					SIZE          = 0x20,
+					COLORS        = 0x40,
 					SPRITE_OFFSET = 0x10,
 					COLOR         = 0x3F,
 					MONO          = 0x30
 				};
 
 				u8 ram[SIZE];
+				u8 map[COLORS];
 			};
 
 			struct Oam
@@ -456,14 +471,14 @@ namespace Nes
 						u32 block[2];
 					};
 				};
-				
+
 				Output* visible;
 				Buffer* evaluated;
 				const Buffer* loaded;
 				const Buffer* limit;
 				uint show;
 				uint clip;
-				
+
 				Output output[MAX_LINE_SPRITES];
 				Buffer buffer[MAX_LINE_SPRITES];
 
@@ -499,6 +514,7 @@ namespace Nes
 			Palette palette;
 			Oam oam;
 			NameTable nameTable;
+			u8 yuvMap[Palette::COLORS];
 
 			static void LogMsg(cstring,uint,uint);
 
@@ -586,6 +602,12 @@ namespace Nes
 				return (*output.screen)[i];
 			}
 
+			uint GetYuvPixel(uint i) const
+			{
+				NST_ASSERT( i < SCREEN );
+				return yuvMap[(*output.screen)[i] & 0x3F];
+			}
+
 			uint GetPixelCycles() const
 			{
 				return output.index;
@@ -610,7 +632,7 @@ namespace Nes
 			{
 				return oam.limit == (oam.buffer + Oam::MAX_LINE_SPRITES);
 			}
-  
+
 			void EnableEmphasis(bool enable)
 			{
 				output.emphasisMask = (enable ? Regs::CTRL1_BG_COLOR : 0);

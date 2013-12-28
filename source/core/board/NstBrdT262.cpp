@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -31,10 +31,10 @@ namespace Nes
 	{
 		namespace Boards
 		{
-            #ifdef NST_PRAGMA_OPTIMIZE
-            #pragma optimize("s", on)
-            #endif
-		
+			#ifdef NST_PRAGMA_OPTIMIZE
+			#pragma optimize("s", on)
+			#endif
+
 			void T262::SubReset(const bool hard)
 			{
 				mode = false;
@@ -42,7 +42,7 @@ namespace Nes
 
 				Map( 0x8000U, 0xFFFFU, &T262::Poke_Prg );
 			}
-		
+
 			void T262::SubSave(State::Saver& state) const
 			{
 				state.Begin('R','E','G','\0').Write8( mode ).End();
@@ -59,12 +59,12 @@ namespace Nes
 				}
 			}
 
-            #ifdef NST_PRAGMA_OPTIMIZE
-            #pragma optimize("", on)
-            #endif
+			#ifdef NST_PRAGMA_OPTIMIZE
+			#pragma optimize("", on)
+			#endif
 
-			NES_POKE(T262,Prg) 
-			{ 
+			NES_POKE(T262,Prg)
+			{
 				if (mode || address == 0x8000U)
 				{
 					prg.SwapBank<SIZE_16K,0x0000U>( (prg.GetBank<SIZE_16K,0x0000U>() & 0x38) | (data & 0x07) );

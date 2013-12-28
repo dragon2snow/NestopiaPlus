@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -32,7 +32,7 @@ namespace Nestopia
 	(
 		IDC_VIDEO_FILTER_NTSC_RESOLUTION_SLIDER == IDC_VIDEO_FILTER_NTSC_SHARPNESS_SLIDER + 1 &&
 		IDC_VIDEO_FILTER_NTSC_COLORBLEED_SLIDER == IDC_VIDEO_FILTER_NTSC_SHARPNESS_SLIDER + 2 &&
-		IDC_VIDEO_FILTER_NTSC_ARTIFACTS_SLIDER	== IDC_VIDEO_FILTER_NTSC_SHARPNESS_SLIDER + 3 &&
+		IDC_VIDEO_FILTER_NTSC_ARTIFACTS_SLIDER  == IDC_VIDEO_FILTER_NTSC_SHARPNESS_SLIDER + 3 &&
 		IDC_VIDEO_FILTER_NTSC_FRINGING_SLIDER   == IDC_VIDEO_FILTER_NTSC_SHARPNESS_SLIDER + 4
 	);
 
@@ -53,24 +53,29 @@ namespace Nestopia
 
 	const MsgHandler::Entry<VideoFilters> VideoFilters::Handlers::commands[] =
 	{
-		{ IDC_VIDEO_FILTER_OK,                    &VideoFilters::OnCmdOk         },
-		{ IDC_VIDEO_FILTER_DEFAULT,               &VideoFilters::OnCmdDefault    },
-		{ IDC_VIDEO_FILTER_CANCEL,                &VideoFilters::OnCmdCancel     },
-		{ IDC_VIDEO_FILTER_BILINEAR,              &VideoFilters::OnCmdBilinear   },
-		{ IDC_VIDEO_FILTER_NTSC_FIELDS_AUTO,      &VideoFilters::OnCmdNtscFields },
-		{ IDC_VIDEO_FILTER_NTSC_FIELDS_ON,        &VideoFilters::OnCmdNtscFields },
-		{ IDC_VIDEO_FILTER_NTSC_FIELDS_OFF,       &VideoFilters::OnCmdNtscFields },
-		{ IDC_VIDEO_FILTER_NTSC_COMPOSITE,        &VideoFilters::OnCmdNtscCable  },
-		{ IDC_VIDEO_FILTER_NTSC_SVIDEO,           &VideoFilters::OnCmdNtscCable  },
-		{ IDC_VIDEO_FILTER_NTSC_RGB,              &VideoFilters::OnCmdNtscCable  },
-		{ IDC_VIDEO_FILTER_2XSAI_TYPE_2XSAI,	  &VideoFilters::OnCmd2xSaI      },
-		{ IDC_VIDEO_FILTER_2XSAI_TYPE_SUPER2XSAI, &VideoFilters::OnCmd2xSaI      },
-		{ IDC_VIDEO_FILTER_2XSAI_TYPE_SUPEREAGLE, &VideoFilters::OnCmd2xSaI      },
-		{ IDC_VIDEO_FILTER_SCALEX_2X,             &VideoFilters::OnCmdScaleX     },
-		{ IDC_VIDEO_FILTER_SCALEX_3X,             &VideoFilters::OnCmdScaleX     },
-		{ IDC_VIDEO_FILTER_HQX_SCALING_2X,        &VideoFilters::OnCmdHqX        },
-		{ IDC_VIDEO_FILTER_HQX_SCALING_3X,        &VideoFilters::OnCmdHqX        }
+		{ IDC_VIDEO_FILTER_OK,                    &VideoFilters::OnCmdOk        },
+		{ IDC_VIDEO_FILTER_DEFAULT,               &VideoFilters::OnCmdDefault   },
+		{ IDC_VIDEO_FILTER_CANCEL,                &VideoFilters::OnCmdCancel    },
+		{ IDC_VIDEO_FILTER_BILINEAR,              &VideoFilters::OnCmdBilinear  },
+		{ IDC_VIDEO_FILTER_NTSC_COMPOSITE,        &VideoFilters::OnCmdNtscCable },
+		{ IDC_VIDEO_FILTER_NTSC_SVIDEO,           &VideoFilters::OnCmdNtscCable },
+		{ IDC_VIDEO_FILTER_NTSC_RGB,              &VideoFilters::OnCmdNtscCable },
+		{ IDC_VIDEO_FILTER_2XSAI_TYPE_2XSAI,      &VideoFilters::OnCmd2xSaI     },
+		{ IDC_VIDEO_FILTER_2XSAI_TYPE_SUPER2XSAI, &VideoFilters::OnCmd2xSaI     },
+		{ IDC_VIDEO_FILTER_2XSAI_TYPE_SUPEREAGLE, &VideoFilters::OnCmd2xSaI     },
+		{ IDC_VIDEO_FILTER_SCALEX_2X,             &VideoFilters::OnCmdScaleX    },
+		{ IDC_VIDEO_FILTER_SCALEX_3X,             &VideoFilters::OnCmdScaleX    },
+		{ IDC_VIDEO_FILTER_HQX_SCALING_2X,        &VideoFilters::OnCmdHqX       },
+		{ IDC_VIDEO_FILTER_HQX_SCALING_3X,        &VideoFilters::OnCmdHqX       }
 	};
+
+	void VideoFilters::Settings::Reset(Type type)
+	{
+		std::memset( attributes, 0, sizeof(attributes) );
+
+		if (type == TYPE_SCANLINES)
+			attributes[ATR_SCANLINES] = 25;
+	}
 
 	VideoFilters::Backup::Backup(const Settings& s,const Nes::Video nes)
 	:
@@ -84,15 +89,14 @@ namespace Nestopia
 	{}
 
 	VideoFilters::VideoFilters(Nes::Video n,uint idd,Settings& s,uint m,bool b)
-	: 
+	:
 	settings      ( s ),
 	backup        ( s, n ),
-	maxScreenSize ( m ), 
+	maxScreenSize ( m ),
 	canDoBilinear ( b ),
 	nes           ( n ),
 	dialog        ( idd, this,Handlers::messages,Handlers::commands )
 	{
-		dialog.Open();
 	}
 
 	void VideoFilters::RedrawWindow()
@@ -102,6 +106,9 @@ namespace Nestopia
 
 	VideoFilters::Type VideoFilters::Load(const Configuration& cfg,Settings (&settings)[NUM_TYPES],Nes::Video nes,const uint maxScreenSize,const bool bilinear)
 	{
+		for (uint i=0; i < NUM_TYPES; ++i)
+			settings[i].Reset( (Type) i );
+
 		Type type = TYPE_NONE;
 
 		if (maxScreenSize >= MAX_2X_SIZE)
@@ -154,61 +161,61 @@ namespace Nestopia
 			{
 				uint value;
 
-				if (100 >= (value=cfg["video filter scanlines"].Default( 25 ))) 
+				if (100 >= (value=cfg["video filter scanlines"].Default( 25 )))
 					settings[TYPE_SCANLINES].attributes[ATR_SCANLINES] = value;
 
-				if (100 >= (value=cfg["video filter ntsc scanlines"].Default( 0 ))) 
+				if (100 >= (value=cfg["video filter ntsc scanlines"].Default( 0 )))
 					settings[TYPE_NTSC].attributes[ATR_SCANLINES] = value;
 			}
 
 			GenericString value;
 
-			settings[TYPE_NTSC].attributes[ATR_FIELDMERGING] = 
+			settings[TYPE_NTSC].attributes[ATR_FIELDMERGING] =
 			(
-	           	(value=cfg["video filter ntsc fieldmerging"]) == _T("yes") ? ATR_FIELDMERGING_ON : 
-				(value)                                       == _T("no")  ? ATR_FIELDMERGING_OFF : 
-				                                                             ATR_FIELDMERGING_AUTO
+				(value=cfg["video filter ntsc fieldmerging"]) == _T("yes") ? ATR_FIELDMERGING_ON :
+				(value)                                       == _T("no")  ? ATR_FIELDMERGING_OFF :
+                                                                             ATR_FIELDMERGING_AUTO
 			);
 
 			{
 				uint value;
-				
+
 				if (200 >= (value=cfg["video filter ntsc sharpness"].Default( 100 )))
 					nes.SetSharpness( int(value) - 100 );
 
 				if (200 >= (value=cfg["video filter ntsc resolution"].Default( 100 )))
-					 nes.SetColorResolution( int(value) - 100 ); 
+                     nes.SetColorResolution( int(value) - 100 );
 
 				if (200 >= (value=cfg["video filter ntsc colorbleed"].Default( 100 )))
-					 nes.SetColorBleed( int(value) - 100 ); 
+                     nes.SetColorBleed( int(value) - 100 );
 
 				if (200 >= (value=cfg["video filter ntsc artifacts"].Default( 100 )))
-					 nes.SetColorArtifacts( int(value) - 100 ); 
+                     nes.SetColorArtifacts( int(value) - 100 );
 
 				if (200 >= (value=cfg["video filter ntsc fringing"].Default( 100 )))
-					nes.SetColorFringing( int(value) - 100 ); 
+					nes.SetColorFringing( int(value) - 100 );
 			}
 
-			settings[TYPE_NTSC].attributes[ATR_RESCALE_PIC] = 
+			settings[TYPE_NTSC].attributes[ATR_RESCALE_PIC] =
 			(
-	         	cfg["video filter ntsc tv aspect"] == Configuration::NO
-			);
-		
-			settings[TYPE_2XSAI].attributes[ATR_TYPE] = 
-			(
-		     	(value=cfg["video filter 2xsai type"]) == _T("super 2xsai") ? ATR_SUPER2XSAI : 
-				(value)                                == _T("super eagle") ? ATR_SUPEREAGLE :
-				                                                              ATR_2XSAI
-			);
-			
-			settings[TYPE_SCALEX].attributes[ATR_TYPE] =
-			(
-       			(value=cfg["video filter scalex scale"]) == _T("3") ? ATR_SCALE3X : ATR_SCALE2X
+				cfg["video filter ntsc tv aspect"] == Configuration::NO
 			);
 
-			settings[TYPE_HQX].attributes[ATR_TYPE] = 
+			settings[TYPE_2XSAI].attributes[ATR_TYPE] =
 			(
-     			(value=cfg["video filter hqx scale"]) == _T("3") ? ATR_HQ3X : ATR_HQ2X
+				(value=cfg["video filter 2xsai type"]) == _T("super 2xsai") ? ATR_SUPER2XSAI :
+				(value)                                == _T("super eagle") ? ATR_SUPEREAGLE :
+                                                                              ATR_2XSAI
+			);
+
+			settings[TYPE_SCALEX].attributes[ATR_TYPE] =
+			(
+				(value=cfg["video filter scalex scale"]) == _T("3") ? ATR_SCALE3X : ATR_SCALE2X
+			);
+
+			settings[TYPE_HQX].attributes[ATR_TYPE] =
+			(
+				(value=cfg["video filter hqx scale"]) == _T("3") ? ATR_HQ3X : ATR_HQ2X
 			);
 		}
 
@@ -220,12 +227,12 @@ namespace Nestopia
 		{
 			static tstring const names[] =
 			{
-				_T( "none"      ),            
+				_T( "none"      ),
 				_T( "scanlines" ),
 				_T( "ntsc"      ),
-				_T( "2xsai"     ),           
-				_T( "scalex"    ),         
-				_T( "hqx"	    )
+				_T( "2xsai"     ),
+				_T( "scalex"    ),
+				_T( "hqx"       )
 			};
 
 			cfg[ "video filter" ] = names[type];
@@ -251,9 +258,9 @@ namespace Nestopia
 
 		cfg["video filter ntsc fieldmerging"] =
 		(
-     		settings[TYPE_NTSC].attributes[ATR_FIELDMERGING] == ATR_FIELDMERGING_ON  ? _T("yes") :
+			settings[TYPE_NTSC].attributes[ATR_FIELDMERGING] == ATR_FIELDMERGING_ON  ? _T("yes") :
 			settings[TYPE_NTSC].attributes[ATR_FIELDMERGING] == ATR_FIELDMERGING_OFF ? _T("no") :
-			                                                                           _T("auto")
+                                                                                       _T("auto")
 		);
 
 		cfg[ "video filter ntsc sharpness"  ] = (uint) (nes.GetSharpness()       + 100);
@@ -264,24 +271,24 @@ namespace Nestopia
 
 		cfg["video filter ntsc tv aspect"].YesNo() =
 		(
-     		!settings[TYPE_NTSC].attributes[ATR_RESCALE_PIC]
+			!settings[TYPE_NTSC].attributes[ATR_RESCALE_PIC]
 		);
 
 		cfg["video filter 2xsai type"] =
 		(
-       		settings[TYPE_2XSAI].attributes[ATR_TYPE] == ATR_SUPER2XSAI ? _T("super 2xsai")	:
+			settings[TYPE_2XSAI].attributes[ATR_TYPE] == ATR_SUPER2XSAI ? _T("super 2xsai") :
 			settings[TYPE_2XSAI].attributes[ATR_TYPE] == ATR_SUPEREAGLE ? _T("super eagle") :
-	                										      		  _T("2xsai")
+                                                                          _T("2xsai")
 		);
 
 		cfg["video filter scalex scale"] =
 		(
-     		settings[TYPE_SCALEX].attributes[ATR_TYPE] == ATR_SCALE3X ? _T("3") : _T("2") 
+			settings[TYPE_SCALEX].attributes[ATR_TYPE] == ATR_SCALE3X ? _T("3") : _T("2")
 		);
 
 		cfg["video filter hqx scale"] =
 		(
-     		settings[TYPE_HQX].attributes[ATR_TYPE] == ATR_HQ3X ? _T("3") : _T("2")
+			settings[TYPE_HQX].attributes[ATR_TYPE] == ATR_HQ3X ? _T("3") : _T("2")
 		);
 	}
 
@@ -298,9 +305,12 @@ namespace Nestopia
 		{
 			case IDD_VIDEO_FILTER_NTSC:
 
-				dialog.RadioButton( IDC_VIDEO_FILTER_NTSC_FIELDS_AUTO ).Check( settings.attributes[ATR_FIELDMERGING] == ATR_FIELDMERGING_AUTO );
-				dialog.RadioButton( IDC_VIDEO_FILTER_NTSC_FIELDS_ON   ).Check( settings.attributes[ATR_FIELDMERGING] == ATR_FIELDMERGING_ON   );
-				dialog.RadioButton( IDC_VIDEO_FILTER_NTSC_FIELDS_OFF  ).Check( settings.attributes[ATR_FIELDMERGING] == ATR_FIELDMERGING_OFF  );
+				dialog.RadioButton
+				(
+					settings.attributes[ATR_FIELDMERGING] == ATR_FIELDMERGING_ON  ? IDC_VIDEO_FILTER_NTSC_FIELDS_ON :
+					settings.attributes[ATR_FIELDMERGING] == ATR_FIELDMERGING_OFF ? IDC_VIDEO_FILTER_NTSC_FIELDS_OFF :
+																					IDC_VIDEO_FILTER_NTSC_FIELDS_AUTO
+				).Check();
 
 				dialog.CheckBox( IDC_VIDEO_FILTER_NTSC_TV_ASPECT ).Check( !settings.attributes[ATR_RESCALE_PIC] );
 
@@ -361,7 +371,7 @@ namespace Nestopia
 				break;
 		}
 
-		return TRUE;
+		return true;
 	}
 
 	ibool VideoFilters::OnDestroy(Param&)
@@ -370,14 +380,14 @@ namespace Nestopia
 		{
 			settings = backup.settings;
 
-			nes.SetSharpness	   ( backup.sharpness  );
+			nes.SetSharpness       ( backup.sharpness  );
 			nes.SetColorResolution ( backup.resolution );
-			nes.SetColorBleed	   ( backup.bleed      );
+			nes.SetColorBleed      ( backup.bleed      );
 			nes.SetColorArtifacts  ( backup.artifacts  );
 			nes.SetColorFringing   ( backup.fringing   );
 		}
 
-		return TRUE;
+		return true;
 	}
 
 	void VideoFilters::UpdateScanlinesSlider() const
@@ -427,13 +437,13 @@ namespace Nestopia
 		*ptr++ = '\0';
 
 		dialog.Edit( idc ).Text() << string;
-		
+
 		RedrawWindow();
 	}
 
 	ibool VideoFilters::OnHScroll(Param& param)
 	{
-		int value = param.Slider().Scroll(); 
+		int value = param.Slider().Scroll();
 
 		if (param.Slider().IsControl( IDC_VIDEO_FILTER_SCANLINES_SLIDER ))
 		{
@@ -451,25 +461,25 @@ namespace Nestopia
 		else if (param.Slider().IsControl( IDC_VIDEO_FILTER_NTSC_RESOLUTION_SLIDER ))
 		{
 			if (nes.SetColorResolution( value-100 ) != Nes::RESULT_NOP)
-     			UpdateNtscSlider( value, IDC_VIDEO_FILTER_NTSC_RESOLUTION_VAL );
+				UpdateNtscSlider( value, IDC_VIDEO_FILTER_NTSC_RESOLUTION_VAL );
 		}
 		else if (param.Slider().IsControl( IDC_VIDEO_FILTER_NTSC_COLORBLEED_SLIDER ))
 		{
 			if (nes.SetColorBleed( value-100 ) != Nes::RESULT_NOP)
-     			UpdateNtscSlider( value, IDC_VIDEO_FILTER_NTSC_COLORBLEED_VAL );
+				UpdateNtscSlider( value, IDC_VIDEO_FILTER_NTSC_COLORBLEED_VAL );
 		}
 		else if (param.Slider().IsControl( IDC_VIDEO_FILTER_NTSC_ARTIFACTS_SLIDER ))
 		{
 			if (nes.SetColorArtifacts( value-100 ) != Nes::RESULT_NOP)
-     			UpdateNtscSlider( value, IDC_VIDEO_FILTER_NTSC_ARTIFACTS_VAL );
+				UpdateNtscSlider( value, IDC_VIDEO_FILTER_NTSC_ARTIFACTS_VAL );
 		}
 		else if (param.Slider().IsControl( IDC_VIDEO_FILTER_NTSC_FRINGING_SLIDER ))
 		{
 			if (nes.SetColorFringing( value-100 ) != Nes::RESULT_NOP)
-     			UpdateNtscSlider( value, IDC_VIDEO_FILTER_NTSC_FRINGING_VAL );
+				UpdateNtscSlider( value, IDC_VIDEO_FILTER_NTSC_FRINGING_VAL );
 		}
 
-		return TRUE;
+		return true;
 	}
 
 	ibool VideoFilters::OnCmdBilinear(Param& param)
@@ -480,21 +490,7 @@ namespace Nestopia
 			RedrawWindow();
 		}
 
-		return TRUE;
-	}
-
-	ibool VideoFilters::OnCmdNtscFields(Param& param)
-	{
-		if (param.Button().IsClicked())
-		{
-			const uint id = param.Button().GetId();
-
-			dialog.RadioButton( IDC_VIDEO_FILTER_NTSC_FIELDS_AUTO ).Check( id == IDC_VIDEO_FILTER_NTSC_FIELDS_AUTO );
-			dialog.RadioButton( IDC_VIDEO_FILTER_NTSC_FIELDS_ON   ).Check( id == IDC_VIDEO_FILTER_NTSC_FIELDS_ON   );
-			dialog.RadioButton( IDC_VIDEO_FILTER_NTSC_FIELDS_OFF  ).Check( id == IDC_VIDEO_FILTER_NTSC_FIELDS_OFF  );
-		}
-
-		return TRUE;
+		return true;
 	}
 
 	ibool VideoFilters::OnCmdNtscCable(Param& param)
@@ -502,17 +498,17 @@ namespace Nestopia
 		if (param.Button().IsClicked())
 		{
 			const uint id = param.Button().GetId();
-			
-			nes.SetSharpness	   (id == IDC_VIDEO_FILTER_NTSC_COMPOSITE ? Nes::Video::DEFAULT_SHARPNESS_COMP        : id == IDC_VIDEO_FILTER_NTSC_SVIDEO ? Nes::Video::DEFAULT_SHARPNESS_SVIDEO        : Nes::Video::DEFAULT_SHARPNESS_RGB        );
+
+			nes.SetSharpness       (id == IDC_VIDEO_FILTER_NTSC_COMPOSITE ? Nes::Video::DEFAULT_SHARPNESS_COMP        : id == IDC_VIDEO_FILTER_NTSC_SVIDEO ? Nes::Video::DEFAULT_SHARPNESS_SVIDEO        : Nes::Video::DEFAULT_SHARPNESS_RGB        );
 			nes.SetColorResolution (id == IDC_VIDEO_FILTER_NTSC_COMPOSITE ? Nes::Video::DEFAULT_COLOR_RESOLUTION_COMP : id == IDC_VIDEO_FILTER_NTSC_SVIDEO ? Nes::Video::DEFAULT_COLOR_RESOLUTION_SVIDEO : Nes::Video::DEFAULT_COLOR_RESOLUTION_RGB );
-			nes.SetColorBleed	   (id == IDC_VIDEO_FILTER_NTSC_COMPOSITE ? Nes::Video::DEFAULT_COLOR_BLEED_COMP      : id == IDC_VIDEO_FILTER_NTSC_SVIDEO ? Nes::Video::DEFAULT_COLOR_BLEED_SVIDEO      : Nes::Video::DEFAULT_COLOR_BLEED_RGB      );
+			nes.SetColorBleed      (id == IDC_VIDEO_FILTER_NTSC_COMPOSITE ? Nes::Video::DEFAULT_COLOR_BLEED_COMP      : id == IDC_VIDEO_FILTER_NTSC_SVIDEO ? Nes::Video::DEFAULT_COLOR_BLEED_SVIDEO      : Nes::Video::DEFAULT_COLOR_BLEED_RGB      );
 			nes.SetColorArtifacts  (id == IDC_VIDEO_FILTER_NTSC_COMPOSITE ? Nes::Video::DEFAULT_COLOR_ARTIFACTS_COMP  : id == IDC_VIDEO_FILTER_NTSC_SVIDEO ? Nes::Video::DEFAULT_COLOR_ARTIFACTS_SVIDEO  : Nes::Video::DEFAULT_COLOR_ARTIFACTS_RGB  );
 			nes.SetColorFringing   (id == IDC_VIDEO_FILTER_NTSC_COMPOSITE ? Nes::Video::DEFAULT_COLOR_FRINGING_COMP   : id == IDC_VIDEO_FILTER_NTSC_SVIDEO ? Nes::Video::DEFAULT_COLOR_FRINGING_SVIDEO   : Nes::Video::DEFAULT_COLOR_FRINGING_RGB   );
 
 			UpdateNtscSliders();
 		}
 
-		return TRUE;
+		return true;
 	}
 
 	ibool VideoFilters::OnCmd2xSaI(Param& param)
@@ -521,11 +517,11 @@ namespace Nestopia
 		{
 			const uint id = param.Button().GetId();
 
-			settings.attributes[ATR_TYPE] = 
+			settings.attributes[ATR_TYPE] =
 			(
-		     	id == IDC_VIDEO_FILTER_2XSAI_TYPE_2XSAI      ? ATR_2XSAI : 
+				id == IDC_VIDEO_FILTER_2XSAI_TYPE_2XSAI      ? ATR_2XSAI :
 				id == IDC_VIDEO_FILTER_2XSAI_TYPE_SUPER2XSAI ? ATR_SUPER2XSAI :
-				                                               ATR_SUPEREAGLE
+                                                               ATR_SUPEREAGLE
 			);
 
 			dialog.RadioButton( IDC_VIDEO_FILTER_2XSAI_TYPE_2XSAI      ).Check( id == IDC_VIDEO_FILTER_2XSAI_TYPE_2XSAI      );
@@ -535,7 +531,7 @@ namespace Nestopia
 			RedrawWindow();
 		}
 
-		return TRUE;
+		return true;
 	}
 
 	ibool VideoFilters::OnCmdScaleX(Param& param)
@@ -552,7 +548,7 @@ namespace Nestopia
 			RedrawWindow();
 		}
 
-		return TRUE;
+		return true;
 	}
 
 	ibool VideoFilters::OnCmdHqX(Param& param)
@@ -569,7 +565,7 @@ namespace Nestopia
 			RedrawWindow();
 		}
 
-		return TRUE;
+		return true;
 	}
 
 	ibool VideoFilters::OnCmdDefault(Param& param)
@@ -586,12 +582,12 @@ namespace Nestopia
 					dialog.RadioButton( IDC_VIDEO_FILTER_NTSC_FIELDS_AUTO ).Check();
 					dialog.RadioButton( IDC_VIDEO_FILTER_NTSC_FIELDS_ON ).Uncheck();
 					dialog.RadioButton( IDC_VIDEO_FILTER_NTSC_FIELDS_OFF ).Uncheck();
-					
+
 					dialog.CheckBox( IDC_VIDEO_FILTER_NTSC_TV_ASPECT ).Check();
-					
-					nes.SetSharpness	   ( Nes::Video::DEFAULT_SHARPNESS_COMP        );
+
+					nes.SetSharpness       ( Nes::Video::DEFAULT_SHARPNESS_COMP        );
 					nes.SetColorResolution ( Nes::Video::DEFAULT_COLOR_RESOLUTION_COMP );
-					nes.SetColorBleed	   ( Nes::Video::DEFAULT_COLOR_BLEED_COMP      );
+					nes.SetColorBleed      ( Nes::Video::DEFAULT_COLOR_BLEED_COMP      );
 					nes.SetColorArtifacts  ( Nes::Video::DEFAULT_COLOR_ARTIFACTS_COMP  );
 					nes.SetColorFringing   ( Nes::Video::DEFAULT_COLOR_FRINGING_COMP   );
 
@@ -627,7 +623,7 @@ namespace Nestopia
 			RedrawWindow();
 		}
 
-		return TRUE;
+		return true;
 	}
 
 	ibool VideoFilters::OnCmdCancel(Param& param)
@@ -635,7 +631,7 @@ namespace Nestopia
 		if (param.Button().IsClicked())
 			dialog.Close();
 
-		return TRUE;
+		return true;
 	}
 
 	ibool VideoFilters::OnCmdOk(Param& param)
@@ -658,7 +654,7 @@ namespace Nestopia
 					{
 						settings.attributes[ATR_FIELDMERGING] = ATR_FIELDMERGING_OFF;
 					}
-										
+
 					settings.attributes[ATR_RESCALE_PIC] = (bool) dialog.CheckBox(IDC_VIDEO_FILTER_NTSC_TV_ASPECT).IsUnchecked();
 					break;
 			}
@@ -667,6 +663,6 @@ namespace Nestopia
 			dialog.Close();
 		}
 
-		return TRUE;
+		return true;
 	}
 }

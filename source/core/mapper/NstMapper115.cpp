@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -30,10 +30,10 @@ namespace Nes
 {
 	namespace Core
 	{
-        #ifdef NST_PRAGMA_OPTIMIZE
-        #pragma optimize("s", on)
-        #endif
-	
+		#ifdef NST_PRAGMA_OPTIMIZE
+		#pragma optimize("s", on)
+		#endif
+
 		void Mapper115::SubReset(const bool hard)
 		{
 			if (hard)
@@ -43,11 +43,11 @@ namespace Nes
 			}
 
 			Mmc3::SubReset( hard );
-	
+
 			Map( 0x6000U, &Mapper115::Poke_6000 );
 			Map( 0x6001U, &Mapper115::Poke_6001 );
 		}
-	
+
 		void Mapper115::SubLoad(State::Loader& state)
 		{
 			while (const dword chunk = state.Begin())
@@ -58,11 +58,11 @@ namespace Nes
 					exRegs[0] = data[0];
 					exRegs[1] = data[1];
 				}
-	
+
 				state.End();
 			}
 		}
-	
+
 		void Mapper115::SubSave(State::Saver& state) const
 		{
 			const u8 data[2] =
@@ -73,11 +73,11 @@ namespace Nes
 
 			state.Begin('R','E','G','\0').Write( data ).End();
 		}
-	
-        #ifdef NST_PRAGMA_OPTIMIZE
-        #pragma optimize("", on)
-        #endif
-	
+
+		#ifdef NST_PRAGMA_OPTIMIZE
+		#pragma optimize("", on)
+		#endif
+
 		void Mapper115::UpdatePrg()
 		{
 			if (exRegs[0] & 0x80)
@@ -94,22 +94,22 @@ namespace Nes
 			uint high = exRegs[1] << 7 & 0x80;
 
 			chr.SwapBanks<SIZE_2K>
-			( 
-		    	0x0000U ^ swap, 
-				banks.chr[0] | high, 
-				banks.chr[1] | high 
-			); 
-			
+			(
+				0x0000U ^ swap,
+				banks.chr[0] | high,
+				banks.chr[1] | high
+			);
+
 			high <<= 1;
 
 			chr.SwapBanks<SIZE_1K>
-			( 
-		     	0x1000U ^ swap, 
-				banks.chr[2] | high, 
-				banks.chr[3] | high, 
-				banks.chr[4] | high, 
-				banks.chr[5] | high 
-			); 
+			(
+				0x1000U ^ swap,
+				banks.chr[2] | high,
+				banks.chr[3] | high,
+				banks.chr[4] | high,
+				banks.chr[5] | high
+			);
 		}
 
 		NES_POKE(Mapper115,6000)
@@ -120,7 +120,7 @@ namespace Nes
 				Mapper115::UpdatePrg();
 			}
 		}
-	
+
 		NES_POKE(Mapper115,6001)
 		{
 			if (exRegs[1] != data)

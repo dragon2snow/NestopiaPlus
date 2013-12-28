@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -45,8 +45,8 @@ namespace Nestopia
 
 			struct Handlers;
 
-            #pragma pack(push,1)
-		
+			#pragma pack(push,1)
+
 			struct Header
 			{
 				enum
@@ -61,7 +61,7 @@ namespace Nestopia
 					MAPPER_HI  = 0xF000,
 					PAL        = 0x1
 				};
-		
+
 				u32 signature;
 				u8  num16kPRomBanks;
 				u8  num8kCRomBanks;
@@ -70,13 +70,13 @@ namespace Nestopia
 				u8  pal;
 				u8  reserved[6];
 			};
-		
-            #pragma pack(pop)
-		
+
+			#pragma pack(pop)
+
 			NST_COMPILE_ASSERT( sizeof(Header) == 16 );
 
 			static uint Import(const Path&,Collection::Buffer&);
-			static uint Export(const Path&,const Collection::Buffer&);			
+			static uint Export(const Path&,const Collection::Buffer&);
 			static ibool IsBad(const Header&,ulong);
 
 			ibool Save(Header&) const;

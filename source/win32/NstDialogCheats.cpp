@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -41,24 +41,24 @@ namespace Nestopia
 	(
 		IDC_CHEATS_STATIC_CODES  == IDC_CHEATS_TEMP_CODES  - 1 &&
 		IDC_CHEATS_STATIC_ADD    == IDC_CHEATS_TEMP_ADD    - 1 &&
-		IDC_CHEATS_STATIC_REMOVE == IDC_CHEATS_TEMP_REMOVE - 1 &&   
-		IDC_CHEATS_STATIC_IMPORT == IDC_CHEATS_TEMP_IMPORT - 1 &&  
-		IDC_CHEATS_STATIC_EXPORT == IDC_CHEATS_TEMP_EXPORT - 1 &&   
-		IDC_CHEATS_STATIC_CLEAR  == IDC_CHEATS_TEMP_CLEAR  - 1    
+		IDC_CHEATS_STATIC_REMOVE == IDC_CHEATS_TEMP_REMOVE - 1 &&
+		IDC_CHEATS_STATIC_IMPORT == IDC_CHEATS_TEMP_IMPORT - 1 &&
+		IDC_CHEATS_STATIC_EXPORT == IDC_CHEATS_TEMP_EXPORT - 1 &&
+		IDC_CHEATS_STATIC_CLEAR  == IDC_CHEATS_TEMP_CLEAR  - 1
 	);
 
 	NST_COMPILE_ASSERT
 	(
-		IDC_CHEATS_ADDCODE_SEARCH_B			  - IDC_CHEATS_ADDCODE_SEARCH_A == 1 &&
-		IDC_CHEATS_ADDCODE_SEARCH_LIST		  - IDC_CHEATS_ADDCODE_SEARCH_A == 2 &&
-		IDC_CHEATS_ADDCODE_SEARCH_NONE		  - IDC_CHEATS_ADDCODE_SEARCH_A == 3 &&
-		IDC_CHEATS_ADDCODE_SEARCH_R0_A_R1_B	  - IDC_CHEATS_ADDCODE_SEARCH_A == 4 &&
+		IDC_CHEATS_ADDCODE_SEARCH_B           - IDC_CHEATS_ADDCODE_SEARCH_A == 1 &&
+		IDC_CHEATS_ADDCODE_SEARCH_LIST        - IDC_CHEATS_ADDCODE_SEARCH_A == 2 &&
+		IDC_CHEATS_ADDCODE_SEARCH_NONE        - IDC_CHEATS_ADDCODE_SEARCH_A == 3 &&
+		IDC_CHEATS_ADDCODE_SEARCH_R0_A_R1_B   - IDC_CHEATS_ADDCODE_SEARCH_A == 4 &&
 		IDC_CHEATS_ADDCODE_SEARCH_R0_A_R0R1_B - IDC_CHEATS_ADDCODE_SEARCH_A == 5 &&
-		IDC_CHEATS_ADDCODE_SEARCH_R0R1_B	  - IDC_CHEATS_ADDCODE_SEARCH_A == 6 &&
-		IDC_CHEATS_ADDCODE_SEARCH_R0_L_R1	  - IDC_CHEATS_ADDCODE_SEARCH_A == 7 &&
-		IDC_CHEATS_ADDCODE_SEARCH_R0_G_R1	  - IDC_CHEATS_ADDCODE_SEARCH_A == 8 &&
-		IDC_CHEATS_ADDCODE_SEARCH_R0_N_R1	  - IDC_CHEATS_ADDCODE_SEARCH_A == 9 &&
-		IDC_CHEATS_ADDCODE_SEARCH_RESET		  - IDC_CHEATS_ADDCODE_SEARCH_A == 10
+		IDC_CHEATS_ADDCODE_SEARCH_R0R1_B      - IDC_CHEATS_ADDCODE_SEARCH_A == 6 &&
+		IDC_CHEATS_ADDCODE_SEARCH_R0_L_R1     - IDC_CHEATS_ADDCODE_SEARCH_A == 7 &&
+		IDC_CHEATS_ADDCODE_SEARCH_R0_G_R1     - IDC_CHEATS_ADDCODE_SEARCH_A == 8 &&
+		IDC_CHEATS_ADDCODE_SEARCH_R0_N_R1     - IDC_CHEATS_ADDCODE_SEARCH_A == 9 &&
+		IDC_CHEATS_ADDCODE_SEARCH_RESET       - IDC_CHEATS_ADDCODE_SEARCH_A == 10
 	);
 
 	NST_COMPILE_ASSERT
@@ -75,7 +75,7 @@ namespace Nestopia
 	: mem(m) {}
 
 	Cheats::Searcher::Searcher()
-	: hex(FALSE), filter(NO_FILTER), a(0x00), b(0x00) {}
+	: hex(false), filter(NO_FILTER), a(0x00), b(0x00) {}
 
 	inline bool Cheats::List::Code::operator == (uint address) const
 	{
@@ -103,7 +103,7 @@ namespace Nestopia
 
 		Collection::Vector<Code>::Clear();
 	}
-									  
+
 	void Cheats::List::Codes::Load(const Configuration& cfg)
 	{
 		String::Stack<32,char> index("cheat ");
@@ -127,7 +127,7 @@ namespace Nestopia
 
 				if (::_stscanf( string.Ptr(), _T("%8s %3s %255[^\0]"), characters.Ptr(), state.Ptr(), desc.Ptr() ) < 1)
 					continue;
-				
+
 				if (NES_FAILED(Nes::Cheats::GameGenieDecode( String::Stack<8,char>(characters).Ptr(), mem )))
 					continue;
 			}
@@ -151,7 +151,7 @@ namespace Nestopia
 				{
 					continue;
 				}
-				
+
 				if (address < 0x0000 || address > 0xFFFF || value < 0x00 || value > 0xFF)
 					continue;
 
@@ -163,7 +163,7 @@ namespace Nestopia
 
 			state.Validate();
 			code.enabled = (state != _T("off"));
-			
+
 			code.desc = desc.Ptr();
 			code.CheckDesc();
 		}
@@ -181,11 +181,11 @@ namespace Nestopia
 			string.Reserve( 2+4 + 1 + 2+2 + 1 + 2+2 + 4 + 1+1 + it->desc.Length() );
 
 			string << HexString( (u16) it->mem.address )
-				   << ' '
-				   << HexString( (u8) it->mem.value );
+                   << ' '
+                   << HexString( (u8) it->mem.value );
 
-		   if (it->mem.useCompare)
-			   string << ' ' << HexString( (u8) it->mem.compare );
+           if (it->mem.useCompare)
+               string << ' ' << HexString( (u8) it->mem.compare );
 
 			string << (it->enabled ? " on" : " off");
 
@@ -214,7 +214,7 @@ namespace Nestopia
 				cheat.desc = it->desc;
 			}
 		}
-  
+
 		return context.cheats.size() - oldSize;
 	}
 
@@ -233,7 +233,7 @@ namespace Nestopia
 			return Back();
 		}
 	}
-  
+
 	Cheats::List::ListView::ListView(List* const list,Dialog& parent,const uint index)
 	: notificationHandler( IDC_CHEATS_STATIC_CODES + index, parent.Messages() )
 	{
@@ -241,7 +241,7 @@ namespace Nestopia
 
 		static const Control::NotificationHandler::Entry<List> notifications[] =
 		{
-			{ LVN_KEYDOWN,     &List::OnKeyDown	    },
+			{ LVN_KEYDOWN,     &List::OnKeyDown     },
 			{ LVN_ITEMCHANGED, &List::OnItemChanged },
 			{ LVN_INSERTITEM,  &List::OnInsertItem  },
 			{ LVN_DELETEITEM,  &List::OnDeleteItem  }
@@ -277,7 +277,7 @@ namespace Nestopia
 	}
 
 	Cheats::List::List(CodeDialog& cd,const Managers::Paths& p)
-	: 
+	:
 	codeDialog (cd),
 	paths (p),
 	listView (NULL)
@@ -342,7 +342,7 @@ namespace Nestopia
 		desc >> code.desc;
 		code.CheckDesc();
 
-		AddToDialog( code );			
+		AddToDialog( code );
 	}
 
 	void Cheats::List::Load(const Io::Nsp::Context& context)
@@ -363,7 +363,7 @@ namespace Nestopia
 		}
 	}
 
-	void Cheats::List::Import(const GenericString path)  
+	void Cheats::List::Import(const GenericString path)
 	{
 		Managers::Paths::File file;
 
@@ -394,7 +394,7 @@ namespace Nestopia
 
 		listView->Init( parent.ListView(index + IDC_CHEATS_STATIC_CODES) );
 
-		listView->controls[ ADD	   ] = parent.Control( index + IDC_CHEATS_STATIC_ADD    );
+		listView->controls[ ADD    ] = parent.Control( index + IDC_CHEATS_STATIC_ADD    );
 		listView->controls[ REMOVE ] = parent.Control( index + IDC_CHEATS_STATIC_REMOVE );
 		listView->controls[ IMPORT ] = parent.Control( index + IDC_CHEATS_STATIC_IMPORT );
 		listView->controls[ EXPORT ] = parent.Control( index + IDC_CHEATS_STATIC_EXPORT );
@@ -416,7 +416,7 @@ namespace Nestopia
 			listView->controls[ EXPORT ].Disable();
 		}
 
-		listView->Columns().Align();		
+		listView->Columns().Align();
 		listView->controls[REMOVE].Disable();
 	}
 
@@ -424,15 +424,15 @@ namespace Nestopia
 	{
 		switch (reinterpret_cast<const NMLVKEYDOWN&>(nmhdr).wVKey)
 		{
-			case VK_INSERT: 
-	
+			case VK_INSERT:
+
 				if (codes.Size() < MAX_CODES)
 					codeDialog.Open( listView->GetHandle() );
-	
+
 				break;
-	
-			case VK_DELETE: 
-	
+
+			case VK_DELETE:
+
 				listView->Selection().Delete();
 				break;
 		}
@@ -458,7 +458,7 @@ namespace Nestopia
 					break;
 				}
 			}
-		}			
+		}
 	}
 
 	void Cheats::List::OnInsertItem(const NMHDR&)
@@ -492,15 +492,15 @@ namespace Nestopia
 		}
 	}
 
-	ibool Cheats::List::OnCmdAdd(Param& param) 
+	ibool Cheats::List::OnCmdAdd(Param& param)
 	{
 		if (param.Button().IsClicked() && codes.Size() < MAX_CODES)
 			codeDialog.Open( listView->GetHandle() );
 
-		return TRUE;
+		return true;
 	}
 
-	ibool Cheats::List::OnCmdRemove(Param& param)  
+	ibool Cheats::List::OnCmdRemove(Param& param)
 	{
 		if (param.Button().IsClicked())
 		{
@@ -508,10 +508,10 @@ namespace Nestopia
 			listView->Selection().Delete();
 		}
 
-		return TRUE;
+		return true;
 	}
 
-	ibool Cheats::List::OnCmdExport(Param& param)  
+	ibool Cheats::List::OnCmdExport(Param& param)
 	{
 		if (param.Button().IsClicked())
 		{
@@ -523,7 +523,7 @@ namespace Nestopia
 			{
 				Io::Nsp::Context context;
 
-				if (Io::File::FileExist( fileName.Ptr() ) && User::Confirm( IDS_CHEATS_EXPORTEXISTING ))
+				if (fileName.FileExists() && User::Confirm( IDS_CHEATS_EXPORTEXISTING ))
 				{
 					try
 					{
@@ -554,15 +554,15 @@ namespace Nestopia
 			}
 		}
 
-		return TRUE;
+		return true;
 	}
 
-	ibool Cheats::List::OnCmdImport(Param& param)  
+	ibool Cheats::List::OnCmdImport(Param& param)
 	{
 		if (param.Button().IsClicked())
 			Import();
 
-		return TRUE;
+		return true;
 	}
 
 	ibool Cheats::List::OnCmdClear(Param& param)
@@ -573,7 +573,7 @@ namespace Nestopia
 			listView->Clear();
 		}
 
-		return TRUE;
+		return true;
 	}
 
 	template<typename T,typename U,typename V>
@@ -606,7 +606,7 @@ namespace Nestopia
 	};
 
 	const MsgHandler::Entry<Cheats> Cheats::Handlers::codeMessages[] =
-	{												
+	{
 		{ WM_INITDIALOG, &Cheats::OnInitCodeDialog    },
 		{ WM_DESTROY,    &Cheats::OnDestroyCodeDialog }
 	};
@@ -625,18 +625,18 @@ namespace Nestopia
 		{ IDC_CHEATS_ADDCODE_USE_RAW,            &Cheats::OnCodeCmdType     },
 		{ IDC_CHEATS_ADDCODE_USE_GENIE,          &Cheats::OnCodeCmdType     },
 		{ IDC_CHEATS_ADDCODE_USE_ROCKY,          &Cheats::OnCodeCmdType     },
-		{ IDC_CHEATS_ADDCODE_SEARCH_NONE,		 &Cheats::OnCodeSearchType  }, 
-		{ IDC_CHEATS_ADDCODE_SEARCH_R0_A_R1_B,	 &Cheats::OnCodeSearchType  }, 
+		{ IDC_CHEATS_ADDCODE_SEARCH_NONE,        &Cheats::OnCodeSearchType  },
+		{ IDC_CHEATS_ADDCODE_SEARCH_R0_A_R1_B,   &Cheats::OnCodeSearchType  },
 		{ IDC_CHEATS_ADDCODE_SEARCH_R0_A_R0R1_B, &Cheats::OnCodeSearchType  },
-		{ IDC_CHEATS_ADDCODE_SEARCH_R0R1_B,		 &Cheats::OnCodeSearchType  },
-		{ IDC_CHEATS_ADDCODE_SEARCH_R0_L_R1,	 &Cheats::OnCodeSearchType  }, 
-		{ IDC_CHEATS_ADDCODE_SEARCH_R0_G_R1,	 &Cheats::OnCodeSearchType  }, 
-		{ IDC_CHEATS_ADDCODE_SEARCH_R0_N_R1,	 &Cheats::OnCodeSearchType  },
-		{ IDC_CHEATS_ADDCODE_SEARCH_RESET,  	 &Cheats::OnCodeCmdReset    } 
+		{ IDC_CHEATS_ADDCODE_SEARCH_R0R1_B,      &Cheats::OnCodeSearchType  },
+		{ IDC_CHEATS_ADDCODE_SEARCH_R0_L_R1,     &Cheats::OnCodeSearchType  },
+		{ IDC_CHEATS_ADDCODE_SEARCH_R0_G_R1,     &Cheats::OnCodeSearchType  },
+		{ IDC_CHEATS_ADDCODE_SEARCH_R0_N_R1,     &Cheats::OnCodeSearchType  },
+		{ IDC_CHEATS_ADDCODE_SEARCH_RESET,       &Cheats::OnCodeCmdReset    }
 	};
 
 	Cheats::Cheats(Managers::Emulator& e,const Configuration& cfg,const Managers::Paths& paths)
-	: 
+	:
 	mainDialog                  ( IDD_CHEATS, this, Handlers::messages, Handlers::commands ),
 	codeDialog                  ( this, Handlers::codeMessages, Handlers::codeCommands ),
 	staticList                  ( codeDialog, paths ),
@@ -685,7 +685,7 @@ namespace Nestopia
 	{
 		staticList.InitDialog( mainDialog, 0 );
 		tempList.InitDialog( mainDialog, 1 );
-		return TRUE;
+		return true;
 	}
 
 	ibool Cheats::OnDropFiles(Param& param)
@@ -704,7 +704,7 @@ namespace Nestopia
 			}
 		}
 
-		return TRUE;
+		return true;
 	}
 
 	ibool Cheats::OnClose(Param& param)
@@ -712,7 +712,7 @@ namespace Nestopia
 		if (param.Button().IsClicked())
 			mainDialog.Close();
 
-		return TRUE;
+		return true;
 	}
 
 	ibool Cheats::OnInitCodeDialog(Param&)
@@ -722,10 +722,10 @@ namespace Nestopia
 		codeDialog.Edit( IDC_CHEATS_ADDCODE_GENIE   ).Limit( 8   );
 		codeDialog.Edit( IDC_CHEATS_ADDCODE_ROCKY   ).Limit( 8   );
 
-		codeDialog.RadioButton( IDC_CHEATS_ADDCODE_USE_RAW   ).Check( TRUE  );
-		codeDialog.RadioButton( IDC_CHEATS_ADDCODE_USE_GENIE ).Check( FALSE );
-		codeDialog.RadioButton( IDC_CHEATS_ADDCODE_USE_ROCKY ).Check( FALSE );
-		
+		codeDialog.RadioButton( IDC_CHEATS_ADDCODE_USE_RAW   ).Check( true  );
+		codeDialog.RadioButton( IDC_CHEATS_ADDCODE_USE_GENIE ).Check( false );
+		codeDialog.RadioButton( IDC_CHEATS_ADDCODE_USE_ROCKY ).Check( false );
+
 		UpdateInput();
 
 		if (emulator.Is(Nes::Machine::GAME,Nes::Machine::ON))
@@ -761,10 +761,10 @@ namespace Nestopia
 				codeDialog.Control( i ).Disable();
 		}
 
-		codeDialog.CheckBox( IDC_CHEATS_ADDCODE_USE_HEX ).Check( searcher.hex );		
-		UpdateHexView( FALSE );
+		codeDialog.CheckBox( IDC_CHEATS_ADDCODE_USE_HEX ).Check( searcher.hex );
+		UpdateHexView( false );
 
-		return TRUE;
+		return true;
 	}
 
 	void Cheats::OnCodeItemChanged(const NMHDR& nmhdr)
@@ -777,9 +777,9 @@ namespace Nestopia
 
 			if (codeDialog.RadioButton( IDC_CHEATS_ADDCODE_USE_RAW ).IsUnchecked())
 			{
-				codeDialog.RadioButton( IDC_CHEATS_ADDCODE_USE_RAW   ).Check( TRUE  );
-				codeDialog.RadioButton( IDC_CHEATS_ADDCODE_USE_GENIE ).Check( FALSE );
-				codeDialog.RadioButton( IDC_CHEATS_ADDCODE_USE_ROCKY ).Check( FALSE );
+				codeDialog.RadioButton( IDC_CHEATS_ADDCODE_USE_RAW   ).Check( true  );
+				codeDialog.RadioButton( IDC_CHEATS_ADDCODE_USE_GENIE ).Check( false );
+				codeDialog.RadioButton( IDC_CHEATS_ADDCODE_USE_ROCKY ).Check( false );
 				UpdateInput();
 			}
 		}
@@ -867,7 +867,7 @@ namespace Nestopia
 		Application::Instance::Waiter wait;
 
 		Control::ListView list( codeDialog.ListView(IDC_CHEATS_ADDCODE_SEARCH_LIST) );
-		
+
 		const u8 values[] =
 		{
 			GetSearchValue( IDC_CHEATS_ADDCODE_SEARCH_A ),
@@ -897,7 +897,7 @@ namespace Nestopia
 				}
 				break;
 
-			case IDC_CHEATS_ADDCODE_SEARCH_R0_L_R1:	 
+			case IDC_CHEATS_ADDCODE_SEARCH_R0_L_R1:
 
 				for (uint i=0; i < Nes::Cheats::RAM_SIZE; ++i)
 				{
@@ -906,7 +906,7 @@ namespace Nestopia
 				}
 				break;
 
-			case IDC_CHEATS_ADDCODE_SEARCH_R0_G_R1:	 
+			case IDC_CHEATS_ADDCODE_SEARCH_R0_G_R1:
 
 				for (uint i=0; i < Nes::Cheats::RAM_SIZE; ++i)
 				{
@@ -933,7 +933,7 @@ namespace Nestopia
 				}
 				break;
 
-			case IDC_CHEATS_ADDCODE_SEARCH_R0R1_B:	 
+			case IDC_CHEATS_ADDCODE_SEARCH_R0R1_B:
 
 				for (uint i=0; i < Nes::Cheats::RAM_SIZE; ++i)
 				{
@@ -951,27 +951,27 @@ namespace Nestopia
 		HeapString string;
 
 		if (!(codeDialog.Edit( IDC_CHEATS_ADDCODE_ADDRESS ) >> string))
-			return FALSE;
-		
+			return false;
+
 		string.Insert( 0, "0x" );
 
 		uint value;
 
 		if (!(string >> value))
-			return FALSE;
-		
+			return false;
+
 		mem.address = value;
 
 		if (searcher.hex)
 		{
 			if (!(codeDialog.Edit( IDC_CHEATS_ADDCODE_VALUE ) >> string))
-				return FALSE;
-			
+				return false;
+
 			string.Insert( 0, "0x" );
 
 			if (!(string >> value))
-				return FALSE;
-			
+				return false;
+
 			mem.value = value;
 
 			if (codeDialog.Edit( IDC_CHEATS_ADDCODE_COMPARE ) >> string)
@@ -979,7 +979,7 @@ namespace Nestopia
 				string.Insert( 0, "0x" );
 
 				if (!(string >> value))
-					return FALSE;
+					return false;
 
 				mem.compare = value;
 				mem.useCompare = true;
@@ -993,14 +993,14 @@ namespace Nestopia
 		else
 		{
 			if (!(codeDialog.Edit( IDC_CHEATS_ADDCODE_VALUE ) >> value) || value > 0xFF)
-				return FALSE;
+				return false;
 
 			mem.value = value;
 
 			if (codeDialog.Edit( IDC_CHEATS_ADDCODE_COMPARE ) >> value)
 			{
 				if (value > 0xFF)
-					return FALSE;
+					return false;
 
 				mem.compare = value;
 				mem.useCompare = true;
@@ -1012,9 +1012,9 @@ namespace Nestopia
 			}
 		}
 
-		return TRUE;
+		return true;
 	}
-  
+
 	void Cheats::SetRawCode(const Mem& mem) const
 	{
 		codeDialog.Edit( IDC_CHEATS_ADDCODE_ADDRESS ) << HexString( (u16) mem.address, true ).Ptr();
@@ -1094,7 +1094,7 @@ namespace Nestopia
 			UpdateSearchList();
 		}
 
-		return TRUE;
+		return true;
 	}
 
 	ibool Cheats::OnCodeCmdType(Param& param)
@@ -1110,38 +1110,34 @@ namespace Nestopia
 			UpdateInput();
 		}
 
-		return TRUE;
+		return true;
 	}
 
 	ibool Cheats::OnCodeSearchType(Param& param)
 	{
 		if (param.Button().IsClicked())
 		{
-			const uint cmd = searcher.filter = param.Button().GetId();
-
-			for (uint i=IDC_CHEATS_ADDCODE_SEARCH_NONE; i <= IDC_CHEATS_ADDCODE_SEARCH_R0_N_R1; ++i)
-				codeDialog.RadioButton( i ).Check( cmd == i );
-
+			searcher.filter = param.Button().GetId();
 			UpdateSearchList();
 		}
 
-		return TRUE;
+		return true;
 	}
 
 	ibool Cheats::OnCodeCmdHex(Param& param)
 	{
 		if (param.Button().IsClicked())
-			UpdateHexView( TRUE );
+			UpdateHexView( true );
 
-		return TRUE;
+		return true;
 	}
 
-	ibool Cheats::OnCodeCmdCancel(Param& param)  
+	ibool Cheats::OnCodeCmdCancel(Param& param)
 	{
 		if (param.Button().IsClicked())
 			codeDialog.Close();
 
-		return TRUE;
+		return true;
 	}
 
 	ibool Cheats::OnCodeCmdValidate(Param& param)
@@ -1200,10 +1196,10 @@ namespace Nestopia
 				}
 			}
 
-			codeDialog.Edit( IDC_CHEATS_ADDCODE_RESULT ) << (id ? "VALID" : "INVALID");
+			codeDialog.Edit( IDC_CHEATS_ADDCODE_RESULT ) << Resource::String(id ? IDS_CHEATS_RESULT_VALID : IDS_CHEATS_RESULT_INVALID);
 		}
 
-		return TRUE;
+		return true;
 	}
 
 	ibool Cheats::OnCodeCmdSubmit(Param& param)
@@ -1239,7 +1235,7 @@ namespace Nestopia
 			}
 		}
 
-		return TRUE;
+		return true;
 	}
 
 	ibool Cheats::OnDestroyCodeDialog(Param&)
@@ -1247,6 +1243,6 @@ namespace Nestopia
 		searcher.a = GetSearchValue( IDC_CHEATS_ADDCODE_SEARCH_A );
 		searcher.b = GetSearchValue( IDC_CHEATS_ADDCODE_SEARCH_B );
 
-		return TRUE;
+		return true;
 	}
 }

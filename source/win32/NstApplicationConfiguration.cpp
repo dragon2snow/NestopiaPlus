@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -56,7 +56,7 @@ namespace Nestopia
 	{
 		NST_ASSERT( state < 4 );
 
-		static const tchar yesNoOnOff[4][4] = 
+		static const tchar yesNoOnOff[4][4] =
 		{
 			_T("yes"), _T("no"), _T("on"), _T("off")
 		};
@@ -65,7 +65,7 @@ namespace Nestopia
 	}
 
 	Configuration::Configuration()
-	: save(FALSE)
+	: save(false)
 	{
 		items.Reserve( HINTED_SIZE );
 
@@ -76,7 +76,7 @@ namespace Nestopia
 
 				try
 				{
-					Io::File( Instance::GetPath(_T("nestopia.cfg")), Io::File::COLLECT ).ReadText( buffer );
+					Io::File( Instance::GetExePath(_T("nestopia.cfg")), Io::File::COLLECT ).ReadText( buffer );
 				}
 				catch (Io::File::Exception id)
 				{
@@ -94,7 +94,7 @@ namespace Nestopia
 					}
 					catch (Exception)
 					{
-						Reset( FALSE );
+						Reset( false );
 						Application::Exception( IDS_CFG_WARN_CORRUPT, Application::Exception::WARNING ).Issue();
 					}
 				}
@@ -123,28 +123,13 @@ namespace Nestopia
 								quote ^= 1;
 						}
 
-						startupFile.Assign( offset, ptr - offset );					
+						startupFile.Assign( offset, ptr - offset );
 						startupFile.Remove( '\"' );
 						startupFile.Trim();
 
+						// Win98/ME/2k fix
 						if (startupFile.Length())
-						{
-							HeapString buffer;
-							buffer.Reserve( 127 );
-
-							// Win98/ME/2k fix
-							if (DWORD count = ::GetLongPathName( startupFile.Ptr(), buffer.Ptr(), 127+1 ))
-							{
-								if (count > 127+1)
-								{
-									buffer.Reserve( count-1 );
-									count = ::GetLongPathName( startupFile.Ptr(), buffer.Ptr(), count );
-								}
-
-								if (count)
-									startupFile.Assign( buffer.Ptr(), count );
-							}
-						}
+							startupFile = Instance::GetLongPath( startupFile.Ptr() );
 					}
 
 					if (const uint length = _tcslen(ptr))
@@ -157,13 +142,13 @@ namespace Nestopia
 						{
 							Application::Exception( IDS_CMDLINE_ERR, Application::Exception::WARNING ).Issue();
 						}
-					}				
+					}
 				}
 			}
 		}
 		catch (...)
 		{
-			Reset( FALSE );
+			Reset( false );
 			Application::Exception( _T("Configuration::Load() error!"), Application::Exception::UNSTABLE ).Issue();
 		}
 	}
@@ -172,13 +157,13 @@ namespace Nestopia
 	{
 		if (save)
 		{
-			static const char header1[] = 
+			static const char header1[] =
 			(
 				"/////////////////////////////////////////////////////////////////////////////\r\n"
 				"//\r\n"
 				"// Nestopia Configuration File. Version "
 			);
-		
+
 			static const char header2[] =
 			(
 				"\r\n"
@@ -186,16 +171,16 @@ namespace Nestopia
 				"/////////////////////////////////////////////////////////////////////////////\r\n"
 				"\r\n"
 			);
-		
+
 			HeapString buffer;
 			buffer << header1 << Instance::GetVersion() << header2;
-		
+
 			for (Items::ConstIterator it=items.Begin(), end=items.End(); it != end; ++it)
 				buffer << '-' << it->key << " : " << it->value << "\r\n";
-		
+
 			try
 			{
-				Io::File( Instance::GetPath(_T("nestopia.cfg")), Io::File::DUMP ).WriteText( buffer.Ptr(), buffer.Length() );
+				Io::File( Instance::GetExePath(_T("nestopia.cfg")), Io::File::DUMP ).WriteText( buffer.Ptr(), buffer.Length() );
 			}
 			catch (Io::File::Exception)
 			{
@@ -203,7 +188,7 @@ namespace Nestopia
 			}
 		}
 
-		Reset( FALSE );
+		Reset( false );
 	}
 
 	void Configuration::Reset(const ibool notify)
@@ -220,9 +205,9 @@ namespace Nestopia
 		items.Destroy();
 	}
 
-    #ifdef NST_PRAGMA_OPTIMIZE
-    #pragma optimize("t", on)
-    #endif
+	#ifdef NST_PRAGMA_OPTIMIZE
+	#pragma optimize("t", on)
+	#endif
 
 	void Configuration::Parse(tstring string,uint length)
 	{
@@ -290,16 +275,16 @@ namespace Nestopia
 
 			ibool ParseQuoted(tstring (&range)[2])
 			{
-				if (*it == '\"') 
+				if (*it == '\"')
 				{
 					++it;
 					Skip(' ');
 					Parse( range, '\"' );
 
-					return TRUE;
+					return true;
 				}
 
-				return FALSE;
+				return false;
 			}
 
 			void Parse(tstring (&range)[2])
@@ -310,7 +295,7 @@ namespace Nestopia
 
 					while (*it && *it != '\r' && *it != '-' && (it[0] != '/' || it[1] != '/'))
 					{
-						if (*it++ == '\"') 
+						if (*it++ == '\"')
 						{
 							Skip(' ');
 
@@ -374,16 +359,16 @@ namespace Nestopia
 					}
 				}
 
-				if (*it == '-')		
+				if (*it == '-')
 				{
 					++it;
-					return TRUE;
+					return true;
 				}
 
 				if (*it)
 					throw ERR_PARSING;
 
-				return FALSE;
+				return false;
 			}
 		};
 
@@ -401,14 +386,14 @@ namespace Nestopia
 
 		if (const Items::Entry* entry = items.Find( name ))
 		{
-			entry->key.referenced = TRUE;
+			entry->key.referenced = true;
 			match = entry->value;
 		}
 
 		return match;
 	}
 
-    #ifdef NST_PRAGMA_OPTIMIZE										   
-    #pragma optimize("", on)
-    #endif
+	#ifdef NST_PRAGMA_OPTIMIZE
+	#pragma optimize("", on)
+	#endif
 }

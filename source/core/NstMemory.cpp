@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -36,21 +36,21 @@ namespace Nes
 	{
 		LinearMemory::LinearMemory(dword s)
 		: mem(NULL), size(0)
-		{ 
-			Set( s ); 
+		{
+			Set( s );
 		}
 
 		LinearMemory::LinearMemory(const u8* m,dword s)
 		: mem(NULL), size(0)
-		{ 
-			Set( s ); 
+		{
+			Set( s );
 			std::memcpy( mem, m, s );
 		}
 
 		LinearMemory::LinearMemory(const LinearMemory& m)
 		: mem(NULL), size(0)
-		{ 
-			operator = (m); 
+		{
+			operator = (m);
 		}
 
 		void LinearMemory::operator = (const LinearMemory& m)
@@ -67,7 +67,7 @@ namespace Nes
 		}
 
 		void LinearMemory::Destroy()
-		{ 
+		{
 			u8* const tmp = mem;
 			mem = NULL;
 			size = 0;
@@ -76,7 +76,7 @@ namespace Nes
 
 		dword LinearMemory::PowerUp(dword i)
 		{
-			--i;		
+			--i;
 			i |= i >> 1;
 			i |= i >> 2;
 			i |= i >> 4;

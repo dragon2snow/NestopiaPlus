@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -44,25 +44,25 @@ namespace Nes
 				0xDD,0xD5,0xD1,0xD0,0xD6,0xBD,0x00,0x00
 			};
 
-            #ifdef NST_PRAGMA_OPTIMIZE
-            #pragma optimize("s", on)
-            #endif
-		
+			#ifdef NST_PRAGMA_OPTIMIZE
+			#pragma optimize("s", on)
+			#endif
+
 			LightGun::LightGun(Ppu& p)
-			: 
+			:
 			Device (Api::Input::ZAPPER),
 			patch  (PATCH_NORMAL),
 			ppu    (p)
 			{
 				LightGun::Reset();
 			}
-		
+
 			void LightGun::Reset()
 			{
 				shifter = 1;
 				stream = 0x10;
 			}
-		
+
 			void LightGun::Initialize(const dword pRomCrc)
 			{
 				switch (pRomCrc)
@@ -70,22 +70,22 @@ namespace Nes
 					case 0xED588F00UL: // VS.Duck Hunt
 					case 0xFF5135A3UL: // VS.Hogan's Alley
 					case 0x17AE56BEUL: // VS.Freedom Force
-			
+
 						patch = PATCH_VS;
 						break;
-			
+
 					default:
-			
+
 						patch = PATCH_NORMAL;
 						break;
 				}
 			}
-		
+
 			void LightGun::SaveState(State::Saver& state,const uchar id) const
 			{
-				const u8 data[2] = 
-				{ 
-					(patch == PATCH_VS) ? shifter ? 0x1 : 0x3 : 0x0, 
+				const u8 data[2] =
+				{
+					(patch == PATCH_VS) ? shifter ? 0x1 : 0x3 : 0x0,
 					(patch == PATCH_VS) ? stream : 0x00
 				};
 
@@ -106,9 +106,9 @@ namespace Nes
 				}
 			}
 
-            #ifdef NST_PRAGMA_OPTIMIZE
-            #pragma optimize("", on)
-            #endif
+			#ifdef NST_PRAGMA_OPTIMIZE
+			#pragma optimize("", on)
+			#endif
 
 			void LightGun::BeginFrame(Controllers* i)
 			{
@@ -140,12 +140,12 @@ namespace Nes
 					const uint cycle = ppu.GetPixelCycles();
 
 					if (pos < cycle && pos >= cycle - PHOSPHOR_DECAY)
-						return lightMap[ppu.GetPixel( pos ) & 0x3F];
+						return lightMap[ppu.GetYuvPixel( pos )];
 				}
 
 				return 0;
 			}
-		
+
 			void LightGun::Poke(const uint data)
 			{
 				if (patch == PATCH_VS)
@@ -154,7 +154,7 @@ namespace Nes
 					stream = 0x10 | fire | (Poll() >= 0x40 ? 0x40 : 0x00);
 				}
 			}
-		
+
 			uint LightGun::Peek(uint)
 			{
 				if (patch == PATCH_NORMAL)

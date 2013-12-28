@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -39,7 +39,7 @@ namespace Nes
 	{
 		Cartridge::Ines::Ines
 		(
-         	StdStream s,
+			StdStream s,
 			LinearMemory& p,
 			LinearMemory& c,
 			LinearMemory& w,
@@ -47,7 +47,7 @@ namespace Nes
 			const ImageDatabase* const d,
 			Result& r
 		)
-		: 
+		:
 		result   (r),
 		stream   (s),
 		pRom     (p),
@@ -68,8 +68,8 @@ namespace Nes
 				Header header;
 
 				header.num16kPRomBanks = stream.Read8();
-				header.num8kCRomBanks = stream.Read8();		
-				header.flags = stream.Read16();		
+				header.num8kCRomBanks = stream.Read8();
+				header.flags = stream.Read16();
 				header.num8kWRamBanks = stream.Read8();
 				header.pal = stream.Read8() & Header::PAL_BIT;
 				stream.Read( header.reserved, Header::RESERVED_LENGTH );
@@ -136,7 +136,7 @@ namespace Nes
 			}
 
 			info.mapper =
-			( 
+			(
 				((header.flags & FLAGS_MAPPER_LO) >> 4) +
 				((header.flags & FLAGS_MAPPER_HI) >> 8)
 			);
@@ -175,8 +175,8 @@ namespace Nes
 			info.wRam = SIZE_8K * header.num8kWRamBanks;
 
 			log << "Ines: " << (info.pRom / SIZE_1K) << "k PRG-ROM set" NST_LINEBREAK
-			       "Ines: " << (info.cRom / SIZE_1K) << "k CHR-ROM set" NST_LINEBREAK
-			       "Ines: " << (info.wRam / SIZE_1K) << "k WRAM set" NST_LINEBREAK;   
+                   "Ines: " << (info.cRom / SIZE_1K) << "k CHR-ROM set" NST_LINEBREAK
+                   "Ines: " << (info.wRam / SIZE_1K) << "k WRAM set" NST_LINEBREAK;
 		}
 
 		void Cartridge::Ines::TryDatabase()
@@ -219,7 +219,7 @@ namespace Nes
 			const uint trainer = database->HasTrainer( handle ) ? TRAINER_LENGTH : 0;
 
 			if (info.pRom != pRom)
-			{	
+			{
 				const ulong total = trainer + pRom;
 
 				log << title;
@@ -290,7 +290,7 @@ namespace Nes
 					<< "changed WRAM size: "
 					<< (info.wRam / SIZE_1K)
 					<< "k to: "
-				  	<< (wRam / SIZE_1K)
+					<< (wRam / SIZE_1K)
 					<< "k" NST_LINEBREAK;
 
 				info.wRam = wRam;
@@ -324,8 +324,8 @@ namespace Nes
 			{
 				NST_COMPILE_ASSERT
 				(
-					Api::Cartridge::MIRROR_HORIZONTAL < 6 && 
-					Api::Cartridge::MIRROR_VERTICAL < 6 && 
+					Api::Cartridge::MIRROR_HORIZONTAL < 6 &&
+					Api::Cartridge::MIRROR_VERTICAL < 6 &&
 					Api::Cartridge::MIRROR_FOURSCREEN < 6 &&
 					Api::Cartridge::MIRROR_ZERO < 6 &&
 					Api::Cartridge::MIRROR_ONE < 6 &&

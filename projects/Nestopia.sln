@@ -8,6 +8,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Win32", "Win32.vcproj", "{7
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Core", "Core.vcproj", "{CCC3A09C-0F7A-4E12-8594-11F2C60D71DA}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Language", "Language.vcproj", "{C456E741-CF7A-455E-884B-B0F9F86E7C86}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -22,6 +24,10 @@ Global
 		{CCC3A09C-0F7A-4E12-8594-11F2C60D71DA}.Debug|Win32.Build.0 = Debug|Win32
 		{CCC3A09C-0F7A-4E12-8594-11F2C60D71DA}.Release|Win32.ActiveCfg = Release|Win32
 		{CCC3A09C-0F7A-4E12-8594-11F2C60D71DA}.Release|Win32.Build.0 = Release|Win32
+		{C456E741-CF7A-455E-884B-B0F9F86E7C86}.Debug|Win32.ActiveCfg = Debug|Win32
+		{C456E741-CF7A-455E-884B-B0F9F86E7C86}.Debug|Win32.Build.0 = Debug|Win32
+		{C456E741-CF7A-455E-884B-B0F9F86E7C86}.Release|Win32.ActiveCfg = Release|Win32
+		{C456E741-CF7A-455E-884B-B0F9F86E7C86}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

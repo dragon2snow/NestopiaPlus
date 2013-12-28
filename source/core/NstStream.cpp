@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -23,7 +23,7 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 
 #include <string>
-#include <iostream> 
+#include <iostream>
 #include "NstStream.hpp"
 
 namespace Nes
@@ -117,7 +117,7 @@ namespace Nes
 				if (Read8() != check)
 					throw RESULT_ERR_CORRUPT_FILE;
 			}
-			
+
 			void In::Validate(u16 check)
 			{
 				if (Read16() != check)
@@ -132,9 +132,9 @@ namespace Nes
 
 			bool In::Eof()
 			{
-				return 
+				return
 				(
-			       	(static_cast<std::istream*>(stream)->rdstate() & std::istream::eofbit) || 
+					(static_cast<std::istream*>(stream)->rdstate() & std::istream::eofbit) ||
 					Peek() == std::char_traits<char>::eof()
 				);
 			}
@@ -146,7 +146,7 @@ namespace Nes
 				SeekG( stream, 0, std::ios::end );
 
 				const ulong length = GetPos() - current;
-				
+
 				SetPos( current );
 
 				return length;
@@ -176,9 +176,9 @@ namespace Nes
 
 			void Out::Write16(const uint data)
 			{
-				const u8 d[2] = 
+				const u8 d[2] =
 				{
-					data & 0xFF, 
+					data & 0xFF,
 					data >> 8
 				};
 
@@ -187,9 +187,9 @@ namespace Nes
 
 			void Out::Write32(const dword data)
 			{
-				const u8 d[4] = 
+				const u8 d[4] =
 				{
-					data & 0xFF, 
+					data & 0xFF,
 					(data >>  8) & 0xFF,
 					(data >> 16) & 0xFF,
 					data >> 24

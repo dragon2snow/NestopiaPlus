@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -45,7 +45,7 @@ namespace Nestopia
 			HeapString name;
 		};
 
-		template<typename T> 
+		template<typename T>
 		class ComInterface : public Object::Pointer<T>
 		{
 		public:
@@ -57,14 +57,14 @@ namespace Nestopia
 			ComInterface() {}
 
 			explicit ComInterface(T* p)
-			: Object::Pointer<T>(p) 
+			: Object::Pointer<T>(p)
 			{
 				if (p)
 					p->AddRef();
 			}
 
 			ComInterface(const ComInterface& ref)
-			: Object::Pointer<T>(ref.pointer) 
+			: Object::Pointer<T>(ref.pointer)
 			{
 				if (ref.pointer)
 					ref.pointer->AddRef();
@@ -76,7 +76,7 @@ namespace Nestopia
 					this->pointer->Release();
 			}
 
-			operator T* () const 
+			operator T* () const
 			{
 				return this->pointer;
 			}
@@ -96,10 +96,10 @@ namespace Nestopia
 				return this->pointer != p;
 			}
 
-			T** operator & () 
-			{ 
+			T** operator & ()
+			{
 				NST_ASSERT( !this->pointer );
-				return &this->pointer; 
+				return &this->pointer;
 			}
 
 			bool operator ! () const

@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -77,7 +77,7 @@ namespace Nestopia
 			class History
 			{
 			public:
-				
+
 				History();
 
 				void  Reset();
@@ -89,7 +89,7 @@ namespace Nestopia
 
 			private:
 
-				enum 
+				enum
 				{
 					LENGTH = 128,
 					STOP = 0xFF
@@ -99,18 +99,18 @@ namespace Nestopia
 				u8 data[LENGTH][2];
 			};
 
-			void UpdateMode(ibool=FALSE) const;
-			void UpdateColor() const;
+			void UpdateMode(ibool=false);
+			void UpdateColor();
 
 			ibool OnInitDialog  (Param&);
 			ibool OnPaint       (Param&);
 			ibool OnLButtonDown (Param&);
-			ibool OnHScroll 	(Param&);
-			ibool OnCmdUndo		(Param&);
-			ibool OnCmdRedo		(Param&);
-			ibool OnCmdReset	(Param&);
-			ibool OnCmdSave		(Param&);
-			ibool OnCmdCancel	(Param&);
+			ibool OnHScroll     (Param&);
+			ibool OnCmdUndo     (Param&);
+			ibool OnCmdRedo     (Param&);
+			ibool OnCmdReset    (Param&);
+			ibool OnCmdSave     (Param&);
+			ibool OnCmdCancel   (Param&);
 			ibool OnCmdMode     (Param&);
 
 			Dialog dialog;
@@ -124,8 +124,9 @@ namespace Nestopia
 
 		public:
 
-			const Path& GetPaletteFile() const
+			const Path& Open()
 			{
+				dialog.Open();
 				return path;
 			}
 		};

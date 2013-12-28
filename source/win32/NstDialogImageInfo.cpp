@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -23,6 +23,7 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 
 #include "NstWindowParam.hpp"
+#include "NstResourceString.hpp"
 #include "NstDialogImageInfo.hpp"
 #include "NstManagerEmulator.hpp"
 #include "../core/api/NstApiCartridge.hpp"
@@ -46,173 +47,291 @@ namespace Nestopia
 
 	const MsgHandler::Entry<ImageInfo> ImageInfo::Handlers::commands[] =
 	{
-		{ IDC_ROM_INFO_OK, &ImageInfo::OnCmdOk }
+		{ IDC_IMAGE_INFO_OK, &ImageInfo::OnCmdOk }
 	};
 
 	ImageInfo::ImageInfo(Managers::Emulator& e)
-	: dialog(IDD_IMAGEINFO,this,Handlers::messages,Handlers::commands), emulator(e)
+	: dialog(IDD_IMAGE_INFO,this,Handlers::messages,Handlers::commands), emulator(e)
 	{
-		dialog.Open();
 	}
 
 	ibool ImageInfo::OnInitDialog(Param&)
 	{
-		struct State
+		struct Table
 		{
-			static cstring Get(const ibool state)
+			static void Tab(HeapString* const strings,const uint count,const ibool fixed)
 			{
-				return (state ? "yes" : "no");
+				if (fixed)
+				{
+					uint maxTab = 0;
+
+					for (uint i=0; i < count; ++i)
+						maxTab = NST_MAX(maxTab,strings[i].Length());
+
+					maxTab += 2;
+
+					for (uint i=0; i < count; ++i)
+					{
+						if (uint pos = strings[i].Length())
+						{
+							strings[i].Resize( maxTab );
+							strings[i][pos] = ':';
+
+							while (++pos < maxTab)
+								strings[i][pos] = ' ';
+						}
+					}
+				}
+				else for (uint i=0; i < count; ++i)
+				{
+					if (strings[i].Length())
+						strings[i] << ": ";
+				}
 			}
 
-			static cstring Get(const Nes::Cartridge::State state)
+			static void Output(HeapString& output,HeapString* const strings,const uint count)
 			{
-				return 
-				(
-					state == Nes::Cartridge::YES ? "yes" : 
-			     	state == Nes::Cartridge::NO  ? "no" : 
-		                                   	       "unknown"
-				);
+				for (uint i=0; i < count; ++i)
+				{
+					if (strings[i].Length())
+					{
+						output << strings[i];
+
+						if (i < count-1)
+							output << "\r\n";
+					}
+				}
 			}
 		};
 
 		HeapString text;
-		text.Reserve( 479 );
+
+		const ibool fixedFont = dialog.Edit(IDC_IMAGE_INFO_EDIT).IsFixedFont();
 
 		switch (emulator.Is(Nes::Machine::CARTRIDGE|Nes::Machine::DISK|Nes::Machine::SOUND))
 		{
-	     	case Nes::Machine::CARTRIDGE:
+			case Nes::Machine::CARTRIDGE:
 			{
 				const Nes::Cartridge::Info& info = *Nes::Cartridge(emulator).GetInfo();
 
-				cstring const mode =
+				HeapString types[] =
+				{
+                                         Resource::String( IDS_TEXT_FILE        ),
+                                         Resource::String( IDS_TEXT_DIRECTORY   ),
+                                                       _T( "CRC"                ),
+					info.name.size() ?   Resource::String( IDS_TEXT_NAME        ) : HeapString(),
+					info.maker.size() ?  Resource::String( IDS_TEXT_MAKER       ) : HeapString(),
+                                         Resource::String( IDS_TEXT_REGION      ),
+                                         Resource::String( IDS_TEXT_CHIPSBOARDS ),
+					info.mapper <= 255 ? Resource::String( IDS_TEXT_MAPPER      ) : HeapString(),
+                                                       _T( "PRG-ROM"            ),
+                                                       _T( "CHR-ROM"            ),
+                                         Resource::String( IDS_TEXT_MIRRORING   ),
+                                         Resource::String( IDS_TEXT_BATTERY     ),
+					info.battery ?       Resource::String( IDS_TEXT_FILE        ) : HeapString(),
+					info.battery ?       Resource::String( IDS_TEXT_DIRECTORY   ) : HeapString(),
+                                         Resource::String( IDS_TEXT_TRAINER     ),
+                                         Resource::String( IDS_TEXT_CONDITION   )
+				};
+
+				Table::Tab( types, NST_COUNT(types), fixedFont );
+
+				types[0] << emulator.GetImagePath().File();
+				types[1] << emulator.GetImagePath().Directory();
+				types[2] << HexString( (u32) info.crc );
+
+				if (info.name.size())
+					types[3].Import( info.name.c_str() );
+
+				if (info.maker.size())
+					types[4].Import( info.maker.c_str() );
+
+				types[5] <<
 				(
 					info.system == Nes::Cartridge::SYSTEM_NTSC_PAL ? "NTSC/PAL" :
 					info.system == Nes::Cartridge::SYSTEM_PAL      ? "PAL"      :
 					info.system == Nes::Cartridge::SYSTEM_VS       ? "VS"       :
 					info.system == Nes::Cartridge::SYSTEM_PC10     ? "PC10"     :
-		                                                         	 "NTSC"	   
+                                                                     "NTSC"
 				);
 
-				text << "File:        "     << emulator.GetImagePath()
-					 << "\r\ncrc:         " << HexString( (u32) info.crc );
+				types[6].Import( info.board.c_str() );
 
-				if (info.name.size())
-					 (text << "\r\nName:        ").Import( info.name.c_str() );
+				if (types[7].Length())
+					types[7] << info.mapper;
 
-				if (info.maker.size())
-					(text << "\r\nMaker:       ").Import( info.maker.c_str() );
-
-			    text << "\r\nRegion:      " << mode
-					 << "\r\nChips/Board: " << info.board.c_str();
-
-				if (info.mapper <= 255)
-				    text << "\r\nMapper:      " << info.mapper;
-
-				text << "\r\nPRG-ROM:     " << (uint) (info.pRom / 1024U) << "k ";
+				types[8] << (uint) (info.pRom / 1024) << "k";
 
 				if (info.pRom)
-					text << "crc: " << HexString( (u32) info.pRomCrc );
+					types[8] << ", CRC: " << HexString( (u32) info.pRomCrc );
 
-				text << "\r\nCHR-ROM:     " << (uint) (info.cRom / 1024U) << "k ";
+				types[9] << (uint) (info.cRom / 1024) << "k";
 
 				if (info.cRom)
-					text << "crc: " << HexString( (u32) info.cRomCrc );
+					types[9] << ", CRC: " << HexString( (u32) info.cRomCrc );
 
-				cstring const mirroring =
+				types[10] <<
 				(
-					info.mirroring == Nes::Cartridge::MIRROR_HORIZONTAL ? "horizontal"        :
-					info.mirroring == Nes::Cartridge::MIRROR_VERTICAL   ? "vertical"          :
-					info.mirroring == Nes::Cartridge::MIRROR_FOURSCREEN ? "four-screen"       :
-					info.mirroring == Nes::Cartridge::MIRROR_ZERO       ? "$2000"             :
-					info.mirroring == Nes::Cartridge::MIRROR_ONE        ? "$2400"             :
-					info.mirroring == Nes::Cartridge::MIRROR_CONTROLLED ? "mapper controlled" :
-					                                                      "unknown"			 
+					info.mirroring == Nes::Cartridge::MIRROR_HORIZONTAL ? Resource::String( IDS_TEXT_HORIZONTAL       ) :
+					info.mirroring == Nes::Cartridge::MIRROR_VERTICAL   ? Resource::String( IDS_TEXT_VERTICAL         ) :
+					info.mirroring == Nes::Cartridge::MIRROR_FOURSCREEN ? Resource::String( IDS_TEXT_FOURSCREEN       ) :
+					info.mirroring == Nes::Cartridge::MIRROR_ZERO       ?               _T( "$2000"                   ) :
+					info.mirroring == Nes::Cartridge::MIRROR_ONE        ?               _T( "$2400"                   ) :
+					info.mirroring == Nes::Cartridge::MIRROR_CONTROLLED ? Resource::String( IDS_TEXT_MAPPERCONTROLLED ) :
+                                                                          Resource::String( IDS_TEXT_UNKNOWN          )
 				);
 
-				cstring const condition =
+				types[11] << Resource::String
 				(
-					info.condition == Nes::Cartridge::YES ? "good"    :
-		     		info.condition == Nes::Cartridge::NO  ? "bad"     : 
-		                                               		"unknown"
+					info.battery == Nes::Cartridge::YES ? IDS_TEXT_YES :
+					info.battery == Nes::Cartridge::NO  ? IDS_TEXT_NO :
+                                                          IDS_TEXT_UNKNOWN
 				);
-
-				text << "\r\nMirroring:   " << mirroring
-					 << "\r\nBattery:     " << State::Get( info.battery );
 
 				if (info.battery)
-					text << "\r\nFile:        " << emulator.GetSavePath();
+				{
+					types[12] << emulator.GetSavePath().File();
+					types[13] << emulator.GetSavePath().Directory();
+				}
 
-				text << "\r\nTrainer:     " << State::Get( info.trained )
-					 << "\r\nCondition:   " << condition;
+				types[14] << Resource::String( info.trained ? IDS_TEXT_YES : IDS_TEXT_NO );
 
+				types[15] << Resource::String
+				(
+					info.condition == Nes::Cartridge::YES ? IDS_TEXT_GOOD :
+					info.condition == Nes::Cartridge::NO  ? IDS_TEXT_BAD :
+															IDS_TEXT_UNKNOWN
+				);
+
+				Table::Output( text, types, NST_COUNT(types) );
 				break;
 			}
 
-	    	case Nes::Machine::DISK:
+			case Nes::Machine::DISK:
 			{
 				const Nes::Fds fds(emulator);
 
-				text << "File:        "	    << emulator.GetImagePath()
-					 << "\r\nDisks:       " << fds.GetNumDisks()
-					 << "\r\nFile Header: " << State::Get( fds.HasHeader() );
+				HeapString types[] =
+				{
+					Resource::String( IDS_TEXT_FILE      ),
+					Resource::String( IDS_TEXT_DIRECTORY ),
+					Resource::String( IDS_TEXT_DISKS     ),
+					Resource::String( IDS_TEXT_HEADER    )
+				};
 
+				Table::Tab( types, NST_COUNT(types), fixedFont );
+
+				types[0] << emulator.GetImagePath().File();
+				types[1] << emulator.GetImagePath().Directory();
+				types[2] << fds.GetNumDisks();
+				types[3] << Resource::String( fds.HasHeader() ? IDS_TEXT_YES : IDS_TEXT_NO );
+
+				Table::Output( text, types, NST_COUNT(types) );
 				break;
 			}
 
-	     	case Nes::Machine::SOUND:
+			case Nes::Machine::SOUND:
 			{
 				const Nes::Nsf nsf(emulator);
 
-				cstring const mode =
-				(
-					nsf.GetMode() == Nes::Nsf::TUNE_MODE_NTSC ? "NTSC"     :
-			       	nsf.GetMode() == Nes::Nsf::TUNE_MODE_PAL  ? "PAL"      :
-			                                                	"NTSC/PAL"
-				);
+				HeapString types[] =
+				{
+											Resource::String( IDS_TEXT_FILE          ),
+											Resource::String( IDS_TEXT_DIRECTORY     ),
+					*nsf.GetName() ?        Resource::String( IDS_TEXT_NAME          ) : HeapString(),
+					*nsf.GetArtist() ?      Resource::String( IDS_TEXT_ARTIST        ) : HeapString(),
+					*nsf.GetMaker() ?       Resource::String( IDS_TEXT_MAKER         ) : HeapString(),
+											Resource::String( IDS_TEXT_REGION        ),
+											Resource::String( IDS_TEXT_SONGS         ),
+					nsf.GetNumSongs() > 1 ? Resource::String( IDS_TEXT_STARTINGSONG  ) : HeapString(),
+											Resource::String( IDS_TEXT_EXTRACHIPS    ),
+											Resource::String( IDS_TEXT_BANKSWITCHING ),
+											Resource::String( IDS_TEXT_LOADADDRESS   ),
+											Resource::String( IDS_TEXT_INITADDRESS   ),
+											Resource::String( IDS_TEXT_PLAYADDRESS   )
+				};
 
-				text << "File:           " << emulator.GetImagePath();
+				Table::Tab( types, NST_COUNT(types), fixedFont );
+
+				types[0] << emulator.GetImagePath().File();
+				types[1] << emulator.GetImagePath().Directory();
 
 				if (*nsf.GetName())
-					(text << "\r\nName:           ").Import( nsf.GetName() );
+					types[2].Import( nsf.GetName() );
 
 				if (*nsf.GetArtist())
-					(text << "\r\nArtist:         ").Import( nsf.GetArtist() );
+					types[3].Import( nsf.GetArtist() );
 
 				if (*nsf.GetMaker())
-					(text << "\r\nMaker:          ").Import( nsf.GetMaker() );
+					types[4].Import( nsf.GetMaker() );
 
-				text << "\r\nRegion:         " << mode
-					 << "\r\nSongs:          " << nsf.GetNumSongs()
-					 << "\r\nStarting Song   " << (nsf.GetStartingSong() + 1)
-					 << "\r\nExtra Chips:   ";
+				types[5] <<
+				(
+					nsf.GetMode() == Nes::Nsf::TUNE_MODE_NTSC ? "NTSC"     :
+					nsf.GetMode() == Nes::Nsf::TUNE_MODE_PAL  ? "PAL"      :
+																"NTSC/PAL"
+				);
+
+				types[6] << nsf.GetNumSongs();
+
+				if (nsf.GetNumSongs() > 1)
+					types[7] << (nsf.GetStartingSong() + 1);
 
 				if (const uint chips = nsf.GetChips())
 				{
-					if ( chips & Nes::Nsf::CHIP_MMC5 ) text << " MMC5";
-					if ( chips & Nes::Nsf::CHIP_VRC6 ) text << " VRC6";
-					if ( chips & Nes::Nsf::CHIP_VRC7 ) text << " VRC7";
-					if ( chips & Nes::Nsf::CHIP_N106 ) text << " N106";
-					if ( chips & Nes::Nsf::CHIP_S5B  ) text << " Sunsoft5B";
-					if ( chips & Nes::Nsf::CHIP_FDS  ) text << " FDS";
+					cstring c = "";
+
+					if ( chips & Nes::Nsf::CHIP_MMC5 ) { types[8]      << "MMC5";      c = "+"; }
+					if ( chips & Nes::Nsf::CHIP_VRC6 ) { types[8] << c << "VRC6";      c = "+"; }
+					if ( chips & Nes::Nsf::CHIP_VRC7 ) { types[8] << c << "VRC7";      c = "+"; }
+					if ( chips & Nes::Nsf::CHIP_N106 ) { types[8] << c << "N106";      c = "+"; }
+					if ( chips & Nes::Nsf::CHIP_S5B  ) { types[8] << c << "Sunsoft5B"; c = "+"; }
+					if ( chips & Nes::Nsf::CHIP_FDS  ) { types[8] << c << "FDS";       c = "+"; }
 				}
 				else
 				{
-					text << " no";
+					types[8] << Resource::String( IDS_TEXT_NO );
 				}
 
-				text << "\r\nBank Switching: " << State::Get( nsf.UsesBankSwitching() )
-					 << "\r\nLoad Address:   " << HexString( (u16) nsf.GetLoadAddress() )
-					 << "\r\nInit Address:   " << HexString( (u16) nsf.GetInitAddress() )
-					 << "\r\nPlay Address:   " << HexString( (u16) nsf.GetPlayAddress() );
+				types[9] << Resource::String( nsf.UsesBankSwitching() ? IDS_TEXT_YES : IDS_TEXT_NO );
 
+				types[10] << HexString( (u16) nsf.GetLoadAddress() );
+				types[11] << HexString( (u16) nsf.GetInitAddress() );
+				types[12] << HexString( (u16) nsf.GetPlayAddress() );
+
+				Table::Output( text, types, NST_COUNT(types) );
 				break;
 			}
 		}
 
 		if (text.Length())
-			dialog.Edit(IDC_ROM_INFO_EDIT) << text.Ptr();
+		{
+			dialog.Edit(IDC_IMAGE_INFO_EDIT) << text.Ptr();
 
-		return TRUE;
+			Point delta = dialog.Edit(IDC_IMAGE_INFO_EDIT).GetMaxTextSize();
+			Point size = dialog.Edit(IDC_IMAGE_INFO_EDIT).GetWindow().GetSize();
+
+			if (delta.x > size.x)
+			{
+				delta.x = size.x;
+				delta.y += ::GetSystemMetrics(SM_CXVSCROLL);
+				::ShowScrollBar( dialog.Control(IDC_IMAGE_INFO_EDIT).GetWindow(), SB_HORZ, true );
+			}
+
+			if (delta != size)
+			{
+				dialog.Edit(IDC_IMAGE_INFO_EDIT).GetWindow().Resize( delta );
+				delta = size - delta;
+
+				size = dialog.Control(IDC_IMAGE_INFO_OK).GetWindow().GetPosition();
+				::ScreenToClient( dialog, &size );
+				dialog.Control(IDC_IMAGE_INFO_OK).GetWindow().Move( size-delta );
+
+				dialog.Resize( dialog.GetSize() - delta );
+			}
+		}
+
+		return true;
 	}
 
 	ibool ImageInfo::OnCmdOk(Param& param)
@@ -220,6 +339,6 @@ namespace Nestopia
 		if (param.Button().IsClicked())
 			dialog.Close();
 
-		return TRUE;
+		return true;
 	}
 }

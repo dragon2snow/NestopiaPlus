@@ -231,8 +231,8 @@ Flags
        0 1 0    - dictionary size  256 Kb
        0 1 1    - dictionary size  512 Kb
        1 0 0    - dictionary size 1024 Kb
-       1 0 1    - reserved
-       1 1 0    - reserved
+       1 0 1    - dictionary size 2048 KB
+       1 1 0    - dictionary size 4096 KB
        1 1 1    - file is directory
 
   Other bits are reserved.

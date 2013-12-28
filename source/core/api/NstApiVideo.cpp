@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -40,35 +40,28 @@ namespace Nes
 
 	namespace Api
 	{
-		NST_COMPILE_ASSERT
-		(
-			Video::Palette::MODE_YUV    == Core::Video::Renderer::PALETTE_YUV &&
-			Video::Palette::MODE_RGB    == Core::Video::Renderer::PALETTE_RGB &&
-			Video::Palette::MODE_CUSTOM == Core::Video::Renderer::PALETTE_CUSTOM
-		);
-
 		Video::Palette::UpdateCaller Video::Palette::updateCallback;
-		
+
 		void Video::EnableUnlimSprites(bool state)
 		{
 			emulator.ppu.EnableUnlimSprites( state );
 		}
-	
+
 		bool Video::AreUnlimSpritesEnabled() const
 		{
 			return emulator.ppu.AreUnlimSpritesEnabled();
 		}
-	
+
 		int Video::GetBrightness() const
 		{
 			return emulator.renderer.GetBrightness();
 		}
-	
+
 		int Video::GetSaturation() const
 		{
 			return emulator.renderer.GetSaturation();
 		}
-		
+
 		int Video::GetContrast() const
 		{
 			return emulator.renderer.GetContrast();
@@ -108,12 +101,12 @@ namespace Nes
 		{
 			return emulator.renderer.SetBrightness( value );
 		}
-	
+
 		Result Video::SetSaturation(int value)
 		{
 			return emulator.renderer.SetSaturation( value );
 		}
-			
+
 		Result Video::SetContrast(int value)
 		{
 			return emulator.renderer.SetContrast( value );
@@ -162,9 +155,14 @@ namespace Nes
 		Result Video::SetRenderState(const RenderState& state)
 		{
 			emulator.ppu.EnableEmphasis( state.bits.count != 8 );
-			return emulator.renderer.SetState( state );
+			const Result result = emulator.renderer.SetState( state );
+
+			if (NES_SUCCEEDED(result))
+				emulator.UpdateColorMode();
+
+			return result;
 		}
-	
+
 		Result Video::GetRenderState(RenderState& state) const
 		{
 			return emulator.renderer.GetState( state );
@@ -244,42 +242,49 @@ namespace Nes
 			return emulator.renderer.GetDecoder();
 		}
 
-		Video::Palette Video::GetPalette() const
+		Result Video::SetPaletteMode(const Palette::Mode paletteMode)
 		{
-			return emulator.renderer;
+			return emulator.UpdateColorMode
+			(
+				paletteMode == Palette::MODE_RGB    ? Emulator::COLORMODE_RGB :
+				paletteMode == Palette::MODE_CUSTOM ? Emulator::COLORMODE_CUSTOM :
+                                                      Emulator::COLORMODE_YUV
+			);
 		}
 
-		Result Video::Palette::SetMode(Mode mode)
+		Video::Palette::Mode Video::GetPaletteMode() const
 		{
-			if (mode == MODE_YUV || mode == MODE_RGB || mode == MODE_CUSTOM)
-				return renderer.SetPaletteType( (Core::Video::Renderer::PaletteType) mode );
+			switch (emulator.renderer.GetPaletteType())
+			{
+				case Core::Video::Renderer::PALETTE_YUV:
+					return Palette::MODE_YUV;
 
-			return RESULT_ERR_INVALID_PARAM;
+				case Core::Video::Renderer::PALETTE_CUSTOM:
+					return Palette::MODE_CUSTOM;
+			}
+
+			return Palette::MODE_RGB;
 		}
 
-		Video::Palette::Mode Video::Palette::GetMode() const
+		Video::Palette::Mode Video::GetDefaultPaletteMode() const
 		{
-			return (Mode) renderer.GetPaletteType();
+			NST_COMPILE_ASSERT( Core::Video::Renderer::DEFAULT_PALETTE == Core::Video::Renderer::PALETTE_YUV );
+			return Palette::MODE_YUV;
 		}
 
-		Video::Palette::Mode Video::Palette::GetDefaultMode() const
+		Result Video::SetCustomPalette(Palette::Colors colors)
 		{
-			return (Mode) Core::Video::Renderer::DEFAULT_PALETTE;
+			return emulator.renderer.LoadCustomPalette( colors );
 		}
 
-		Result Video::Palette::SetCustom(Colors colors)
+		void Video::ResetCustomPalette()
 		{
-			return renderer.LoadCustomPalette( colors );
+			return emulator.renderer.ResetCustomPalette();
 		}
 
-		void Video::Palette::ResetCustom()
+		Video::Palette::Colors Video::GetPaletteColors() const
 		{
-			return renderer.ResetCustomPalette();
-		}
-
-		Video::Palette::Colors Video::Palette::GetColors() const
-		{
-			return renderer.GetPalette();
+			return emulator.renderer.GetPalette();
 		}
 	}
 }

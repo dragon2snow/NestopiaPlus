@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -45,12 +45,12 @@ namespace Nes
 			enum
 			{
 				NUM_PADS = 4,
-				NUM_CONTROLLERS = 20
+				NUM_CONTROLLERS = 22
 			};
 
 			class Controllers
 			{
-				template<typename T> 
+				template<typename T>
 				struct PollCaller1 : UserCallback<typename T::PollCallback>
 				{
 					bool operator () (T& t) const
@@ -59,7 +59,7 @@ namespace Nes
 					}
 				};
 
-				template<typename T> 
+				template<typename T>
 				struct PollCaller2 : UserCallback<typename T::PollCallback>
 				{
 					bool operator () (T& t,uint a) const
@@ -68,7 +68,7 @@ namespace Nes
 					}
 				};
 
-				template<typename T> 
+				template<typename T>
 				struct PollCaller3 : UserCallback<typename T::PollCallback>
 				{
 					bool operator () (T& t,uint a,uint b) const
@@ -143,7 +143,7 @@ namespace Nes
 				{
 					PowerPad();
 
-					enum 
+					enum
 					{
 						NUM_SIDE_A_BUTTONS = 12,
 						NUM_SIDE_B_BUTTONS = 8
@@ -175,7 +175,7 @@ namespace Nes
 				{
 					FamilyTrainer();
 
-					enum 
+					enum
 					{
 						NUM_SIDE_A_BUTTONS = 12,
 						NUM_SIDE_B_BUTTONS = 8
@@ -193,7 +193,7 @@ namespace Nes
 				{
 					FamilyKeyboard();
 
-					enum 
+					enum
 					{
 						NUM_PARTS = 9,
 						NUM_MODES = 2
@@ -210,7 +210,7 @@ namespace Nes
 				{
 					SuborKeyboard();
 
-					enum 
+					enum
 					{
 						NUM_PARTS = 10,
 						NUM_MODES = 2
@@ -252,6 +252,70 @@ namespace Nes
 					typedef bool (NST_CALLBACK *PollCallback) (void*,DoremikkoKeyboard&,uint,uint);
 
 					static PollCaller3<DoremikkoKeyboard> callback;
+				};
+
+				struct HoriTrack
+				{
+					enum
+					{
+						BUTTON_A      = Pad::A,
+						BUTTON_B      = Pad::B,
+						BUTTON_SELECT = Pad::SELECT,
+						BUTTON_START  = Pad::START,
+						BUTTON_UP     = Pad::UP,
+						BUTTON_DOWN   = Pad::DOWN,
+						BUTTON_LEFT   = Pad::LEFT,
+						BUTTON_RIGHT  = Pad::RIGHT
+					};
+
+					enum
+					{
+						MODE_REVERSED = 0x1,
+						MODE_LOWSPEED = 0x2
+					};
+
+					uint x;
+					uint y;
+					uint buttons;
+					uint mode;
+
+					HoriTrack()
+					: x(0), y(0), buttons(0), mode(0) {}
+
+					typedef bool (NST_CALLBACK *PollCallback) (void*,HoriTrack&);
+
+					static PollCaller1<HoriTrack> callback;
+				};
+
+				struct Pachinko
+				{
+					enum
+					{
+						BUTTON_A      = Pad::A,
+						BUTTON_B      = Pad::B,
+						BUTTON_SELECT = Pad::SELECT,
+						BUTTON_START  = Pad::START,
+						BUTTON_UP     = Pad::UP,
+						BUTTON_DOWN   = Pad::DOWN,
+						BUTTON_LEFT   = Pad::LEFT,
+						BUTTON_RIGHT  = Pad::RIGHT
+					};
+
+					enum
+					{
+						MIN_THROTTLE = -64,
+						MAX_THROTTLE = +63
+					};
+
+					uint buttons;
+					int throttle;
+
+					Pachinko()
+					: buttons(0), throttle(0) {}
+
+					typedef bool (NST_CALLBACK *PollCallback) (void*,Pachinko&);
+
+					static PollCaller1<Pachinko> callback;
 				};
 
 				struct VsSystem
@@ -329,7 +393,7 @@ namespace Nes
 
 				struct Mahjong
 				{
-					enum 
+					enum
 					{
 						PART_1        = 0x02,
 						PART_1_I      = 0x80,
@@ -493,6 +557,8 @@ namespace Nes
 				FamilyKeyboard familyKeyboard;
 				SuborKeyboard suborKeyboard;
 				DoremikkoKeyboard doremikkoKeyboard;
+				HoriTrack horiTrack;
+				Pachinko pachinko;
 				VsSystem vsSystem;
 				OekaKidsTablet oekaKidsTablet;
 				HyperShot hyperShot;
@@ -512,10 +578,10 @@ namespace Nes
 		class Input : public Base
 		{
 		public:
-	
+
 			Input(Emulator& e)
 			: Base(e) {}
-	
+
 			enum
 			{
 				NUM_CONTROLLERS = Core::Input::NUM_CONTROLLERS,
@@ -525,18 +591,20 @@ namespace Nes
 			enum Type
 			{
 				UNCONNECTED,
-				PAD1,       
-				PAD2,       
-				PAD3,       
+				PAD1,
+				PAD2,
+				PAD3,
 				PAD4,
-				ZAPPER,     
-				PADDLE,     
+				ZAPPER,
+				PADDLE,
 				POWERPAD,
 				MOUSE,
 				FAMILYTRAINER,
 				FAMILYKEYBOARD,
 				SUBORKEYBOARD,
 				DOREMIKKOKEYBOARD,
+				HORITRACK,
+				PACHINKO,
 				OEKAKIDSTABLET,
 				HYPERSHOT,
 				CRAZYCLIMBER,
@@ -556,14 +624,14 @@ namespace Nes
 				EXPANSION_PORT,
 				NUM_PORTS
 			};
-	
+
 			typedef Core::Input::Controllers Controllers;
 
 			Result AutoSelectController(uint);
-	
+
 			Result ConnectController(uint,Type);
 			Type GetConnectedController(uint) const;
-	
+
 			bool IsAnyControllerConnected(Type) const;
 			bool IsAnyControllerConnected(Type,Type) const;
 			bool IsAnyControllerConnected(Type,Type,Type) const;

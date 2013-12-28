@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -27,6 +27,7 @@
 
 #pragma once
 
+#include <cstdlib>
 #include "NstMain.hpp"
 
 namespace Nestopia
@@ -37,9 +38,6 @@ namespace Nestopia
 		{
 			class Base
 			{
-				void Allocate(uint);
-				void Reallocate(uint);
-
 			protected:
 
 				union
@@ -60,17 +58,13 @@ namespace Nestopia
 				void Assign(const void* NST_RESTRICT,uint);
 				void Append(const void* NST_RESTRICT,uint);
 				void Insert(void*,const void* NST_RESTRICT,uint);
-				void Erase(void*,void*) throw();
-
-				void Import(void*,uint) throw();
-				void* Export() throw();
-
+				void Erase(void*,void*);
 				void Reserve(uint);
 				void Resize(uint);
 				void Grow(uint);
 
-				ibool Valid(const void*) const throw();
-				ibool InBound(const void*) const throw();
+				ibool Valid(const void*) const;
+				ibool InBound(const void*) const;
 
 				Base()
 				: data(NULL), capacity(0), size(0) {}
@@ -78,14 +72,14 @@ namespace Nestopia
 				~Base()
 				{
 					NST_ASSERT
-					( 
+					(
 						capacity >= size &&
-						bool(data) >= bool(size) && 
+						bool(data) >= bool(size) &&
 						bool(data) >= bool(capacity)
 					);
 
 					if (data)
-						operator delete (data);
+						std::free( data );
 				}
 
 				void Shrink(uint inSize)
@@ -96,9 +90,9 @@ namespace Nestopia
 
 			public:
 
-				void Destroy() throw();
+				void Destroy();
 				void Defrag();
-				void Import(Base&) throw ();
+				void Import(Base&);
 
 				ibool Empty() const
 				{
@@ -211,21 +205,6 @@ namespace Nestopia
 			const Item* Ptr() const
 			{
 				return static_cast<const Item*>(data);
-			}
-
-			void Import(Item* input,uint count)
-			{
-				Base::Import( input, ITEM_SIZE * count );
-			}
-
-			void Import(Vector& vector)
-			{
-				Base::Import( vector );
-			}
-
-			Item* Export()
-			{
-				return static_cast<Item*>( Base::Export() );
 			}
 
 			Iterator Begin()

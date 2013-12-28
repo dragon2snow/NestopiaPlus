@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -23,7 +23,7 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 
 #include <process.h>
-#include "resource/resource.h"
+#include "language/resource.h"
 #include "NstApplicationException.hpp"
 #include "NstWindowParam.hpp"
 #include "NstWindowUser.hpp"
@@ -43,7 +43,7 @@ namespace Nestopia
 	};
 
 	Thread::Event::Event()
-	: handle(::CreateEvent(NULL,FALSE,FALSE,NULL))
+	: handle(::CreateEvent(NULL,false,false,NULL))
 	{
 		if (handle == NULL)
 			throw Application::Exception(_T("::CreateEvent() failed!"));
@@ -124,13 +124,13 @@ namespace Nestopia
 
 		NST_ASSERT( handle );
 
-		::CloseHandle( handle );		
+		::CloseHandle( handle );
 		handle = NULL;
 	}
 
 	void Thread::Unhook()
 	{
-		if (window) 
+		if (window)
 		{
 			window->Messages().Remove( this );
 			window = NULL;
@@ -191,24 +191,24 @@ namespace Nestopia
 		switch (LOWORD(param.wParam))
 		{
 			case ON_EXIT_EXCEPTION:
-		
+
 				throw Application::Exception
-				( 
-					reinterpret_cast<tstring>(param.lParam), 
+				(
+					reinterpret_cast<tstring>(param.lParam),
 					static_cast<Application::Exception::Type>(HIWORD(param.wParam))
 				);
-		
+
 			case ON_EXIT_MESSAGE:
-		
+
 				Window::User::Issue
 				(
-					static_cast<Window::User::Type>(HIWORD(param.wParam)), 
-					LOWORD(param.lParam), 
+					static_cast<Window::User::Type>(HIWORD(param.wParam)),
+					LOWORD(param.lParam),
 					HIWORD(param.lParam)
 				);
 		}
 
-		return TRUE;
+		return true;
 	}
 
 	inline Thread::Interrupt::Interrupt(Thread& input)
@@ -217,11 +217,11 @@ namespace Nestopia
 	uint Thread::Interrupt::ExitSuccess() const
 	{
 		thread.window->Post
-		( 
-			WM_NST_THREAD_EXIT, 
-			ON_EXIT_SUCCESS, 
-			0 
-		);	
+		(
+			WM_NST_THREAD_EXIT,
+			ON_EXIT_SUCCESS,
+			0
+		);
 
 		return EXIT_SUCCESS;
 	}
@@ -230,9 +230,9 @@ namespace Nestopia
 	{
 		thread.window->Post
 		(
-			WM_NST_THREAD_EXIT, 
-			MAKELONG(ON_EXIT_EXCEPTION,exception.GetType()), 
-			exception.GetMessageText() 
+			WM_NST_THREAD_EXIT,
+			MAKELONG(ON_EXIT_EXCEPTION,exception.GetType()),
+			exception.GetMessageText()
 		);
 
 		return EXIT_FAILURE;
@@ -271,8 +271,8 @@ namespace Nestopia
 	uint NST_STDCALL Thread::Starter(void* data)
 	{
 		return Interrupt( static_cast<Initializer*>(data)->thread ).Execute
-		( 
-			static_cast<const Initializer*>(data)->callback 
+		(
+			static_cast<const Initializer*>(data)->callback
 		);
 	}
 }

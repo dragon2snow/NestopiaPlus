@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -27,7 +27,7 @@
 
 #pragma once
 
-#include "resource/resource.h"
+#include "language/resource.h"
 #include "NstWindowCustom.hpp"
 #include "NstCtrlCheckBox.hpp"
 #include "NstCtrlRadioButton.hpp"
@@ -48,10 +48,10 @@ namespace Nestopia
 
 			explicit Dialog(uint);
 
-			template<typename Owner,typename MsgArray> 
+			template<typename Owner,typename MsgArray>
 			Dialog(uint,Owner*,MsgArray&);
 
-			template<typename Owner,typename MsgArray,typename CmdArray> 
+			template<typename Owner,typename MsgArray,typename CmdArray>
 			Dialog(uint,Owner*,MsgArray&,CmdArray&);
 
 			~Dialog();
@@ -128,9 +128,14 @@ namespace Nestopia
 				return id;
 			}
 
-			MsgHandler& Commands() 
-			{ 
-				return cmdHandler; 
+			ibool IsOpen() const
+			{
+				return hWnd != NULL;
+			}
+
+			MsgHandler& Commands()
+			{
+				return cmdHandler;
 			}
 
 			static ibool ProcessMessage(MSG& msg)
@@ -151,7 +156,7 @@ namespace Nestopia
 			}
 		};
 
-        #include "NstWindowDialog.inl"
+		#include "NstWindowDialog.inl"
 	}
 }
 

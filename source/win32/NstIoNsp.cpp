@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -32,28 +32,30 @@ namespace Nestopia
 {
 	NST_COMPILE_ASSERT
 	(
-		Nes::Input::UNCONNECTED	      ==  0 &&
-		Nes::Input::PAD1		      ==  1 &&
-		Nes::Input::PAD2		      ==  2 &&
-		Nes::Input::PAD3		      ==  3 &&
-		Nes::Input::PAD4		      ==  4 &&
-		Nes::Input::ZAPPER		      ==  5 &&
-		Nes::Input::PADDLE		      ==  6 &&
-		Nes::Input::POWERPAD	      ==  7 &&
-		Nes::Input::MOUSE	          ==  8 &&
+		Nes::Input::UNCONNECTED       ==  0 &&
+		Nes::Input::PAD1              ==  1 &&
+		Nes::Input::PAD2              ==  2 &&
+		Nes::Input::PAD3              ==  3 &&
+		Nes::Input::PAD4              ==  4 &&
+		Nes::Input::ZAPPER            ==  5 &&
+		Nes::Input::PADDLE            ==  6 &&
+		Nes::Input::POWERPAD          ==  7 &&
+		Nes::Input::MOUSE             ==  8 &&
 		Nes::Input::FAMILYTRAINER     ==  9 &&
 		Nes::Input::FAMILYKEYBOARD    == 10 &&
 		Nes::Input::SUBORKEYBOARD     == 11 &&
 		Nes::Input::DOREMIKKOKEYBOARD == 12 &&
-		Nes::Input::OEKAKIDSTABLET    == 13 &&
-		Nes::Input::HYPERSHOT	      == 14 &&
-		Nes::Input::CRAZYCLIMBER      == 15 &&
-		Nes::Input::MAHJONG		      == 16 &&
-		Nes::Input::EXCITINGBOXING    == 17 &&
-		Nes::Input::TOPRIDER	      == 18 &&
-		Nes::Input::POKKUNMOGURAA     == 19 &&
-		Nes::Input::PARTYTAP          == 20 &&
-		Nes::Input::NUM_CONTROLLERS   == 20
+		Nes::Input::HORITRACK         == 13 &&
+		Nes::Input::PACHINKO          == 14 &&
+		Nes::Input::OEKAKIDSTABLET    == 15 &&
+		Nes::Input::HYPERSHOT         == 16 &&
+		Nes::Input::CRAZYCLIMBER      == 17 &&
+		Nes::Input::MAHJONG           == 18 &&
+		Nes::Input::EXCITINGBOXING    == 19 &&
+		Nes::Input::TOPRIDER          == 20 &&
+		Nes::Input::POKKUNMOGURAA     == 21 &&
+		Nes::Input::PARTYTAP          == 22 &&
+		Nes::Input::NUM_CONTROLLERS   == 22
 	);
 
 	using Io::Nsp::Context;
@@ -78,7 +80,7 @@ namespace Nestopia
 		movie.Clear();
 		tape.Clear();
 		palette.Clear();
-		
+
 		for (uint i=0; i < NUM_CONTROLLER_PORTS; ++i)
 			controllers[i] = UNKNOWN;
 
@@ -91,66 +93,68 @@ namespace Nestopia
 
 	tstring const File::controllerNames[] =
 	{
-		_T( "unconnected"		),
-		_T( "pad1"				),
-		_T( "pad2"				),
-		_T( "pad3"				),
-		_T( "pad4"				),
-		_T( "zapper"			),
-		_T( "paddle"			),
-		_T( "powerpad"			),
-		_T( "mouse"				),
-		_T( "familytrainer" 	),
-		_T( "familykeyboard"	),
-		_T( "suborkeyboard"	    ),
+		_T( "unconnected"       ),
+		_T( "pad1"              ),
+		_T( "pad2"              ),
+		_T( "pad3"              ),
+		_T( "pad4"              ),
+		_T( "zapper"            ),
+		_T( "paddle"            ),
+		_T( "powerpad"          ),
+		_T( "mouse"             ),
+		_T( "familytrainer"     ),
+		_T( "familykeyboard"    ),
+		_T( "suborkeyboard"     ),
 		_T( "doremikkokeyboard" ),
-		_T( "oekakidstablet"	),
-		_T( "hypershot"			),
-		_T( "crazyclimber"		),
-		_T( "mahjong"			),
-		_T( "excitingboxing"	),
-		_T( "toprider"			),
-		_T( "pokkunmoguraa"		),
-		_T( "partytap"		    )
+		_T( "horitrack"         ),
+		_T( "pachinko"          ),
+		_T( "oekakidstablet"    ),
+		_T( "hypershot"         ),
+		_T( "crazyclimber"      ),
+		_T( "mahjong"           ),
+		_T( "excitingboxing"    ),
+		_T( "toprider"          ),
+		_T( "pokkunmoguraa"     ),
+		_T( "partytap"          )
 	};
 
 	void File::Save(Output& output,const Context& context) const
 	{
-		NST_COMPILE_ASSERT( Context::NUM_CONTROLLER_PORTS == 5 && Context::NUM_CONTROLLERS == 20 );
+		NST_COMPILE_ASSERT( Context::NUM_CONTROLLER_PORTS == 5 && Context::NUM_CONTROLLERS == 22 );
 
 		output << "//\r\n"
-       			  "// Generated Nestopia Script File. Version " << Application::Instance::GetVersion() << "\r\n"
-				  "//\r\n"
-				  "// Syntax:\r\n"
-				  "//\r\n"
-				  "//  -ROM / -IMAGE <filename>\r\n"
-				  "//  -SAVE <filename>\r\n"
-				  "//  -TAPE <filename>\r\n"
-				  "//  -STATE <filename>\r\n"
-				  "//  -MOVIE <filename>\r\n"
-				  "//  -IPS <filename>\r\n"
-				  "//  -PALETTE <filename>\r\n"
-				  "//  -MODE <ntsc/pal>\r\n"
-				  "//  -PORT1..PORT5 <unconnected,pad1,pad2,pad3,pad4,zapper,paddle,powerpad,mouse,\r\n"
-				  "//                 familytrainer,familykeyboard,suborkeyboard,doremikkokeyboard,\r\n"
-				  "//                 oekakidstablet,hypershot,crazyclimber,mahjong,excitingboxing,\r\n"
-				  "//                 toprider,pokkunmoguraa,partytap>\r\n"
-				  "//\r\n"
-				  "//  -GENIE <code> <on,off> (description)\r\n"
-				  "//  -CHEAT <address> <value> (compare value) <on,off> (description)\r\n"
-				  "//\r\n"
-				  "// The values in parenthesis are optional.\r\n"
-				  "// Only one argument per line is allowed.\r\n"
-				  "//\r\n"
-				  "// Example:\r\n"
-				  "//\r\n"
-				  "//  -IMAGE C:\\games\\monkey island 3 (a).nes // C style comment\r\n"
-				  "//  -MODE ntsc\r\n"
-				  "//  -PORT1 pad1\r\n"
-				  "//  -PORT2 unconnected\r\n"
-				  "//  -GENIE SXIOPO on infinite plumbers\r\n"
-				  "//\r\n\r\n";
-				  
+                  "// Generated Nestopia Script File. Version " << Application::Instance::GetVersion() << "\r\n"
+                  "//\r\n"
+                  "// Syntax:\r\n"
+                  "//\r\n"
+                  "//  -ROM / -IMAGE <filename>\r\n"
+                  "//  -SAVE <filename>\r\n"
+                  "//  -TAPE <filename>\r\n"
+                  "//  -STATE <filename>\r\n"
+                  "//  -MOVIE <filename>\r\n"
+                  "//  -IPS <filename>\r\n"
+                  "//  -PALETTE <filename>\r\n"
+                  "//  -MODE <ntsc/pal>\r\n"
+                  "//  -PORT1..PORT5 <unconnected,pad1,pad2,pad3,pad4,zapper,paddle,powerpad,mouse,\r\n"
+                  "//                 familytrainer,familykeyboard,suborkeyboard,doremikkokeyboard,\r\n"
+                  "//                 horitrack,pachinko,oekakidstablet,hypershot,crazyclimber,\r\n"
+                  "//                 mahjong,excitingboxing,toprider,pokkunmoguraa,partytap>\r\n"
+                  "//\r\n"
+                  "//  -GENIE <code> <on,off> (description)\r\n"
+                  "//  -CHEAT <address> <value> (compare value) <on,off> (description)\r\n"
+                  "//\r\n"
+                  "// The values in parenthesis are optional.\r\n"
+                  "// Only one argument per line is allowed.\r\n"
+                  "//\r\n"
+                  "// Example:\r\n"
+                  "//\r\n"
+                  "//  -IMAGE C:\\games\\monkey island 3 (a).nes // C style comment\r\n"
+                  "//  -MODE ntsc\r\n"
+                  "//  -PORT1 pad1\r\n"
+                  "//  -PORT2 unconnected\r\n"
+                  "//  -GENIE SXIOPO on infinite plumbers\r\n"
+                  "//\r\n\r\n";
+
 		if (context.image.Length())
 			output << "-IMAGE " << context.image << "\r\n";
 
@@ -180,15 +184,15 @@ namespace Nestopia
 
 		for (Context::Cheats::const_iterator it(context.cheats.begin()), end(context.cheats.end()); it != end; ++it)
 		{
-			output << "-CHEAT " 
-				   << HexString( (u16) it->address )
-				   << ' '
-				   << HexString( (u8) it->value );
+			output << "-CHEAT "
+                   << HexString( (u16) it->address )
+                   << ' '
+                   << HexString( (u8) it->value );
 
 			if (it->useCompare)
 				output << ' ' << HexString( (u8) it->compare );
-				   
-		    output << (it->enabled ? " on" : " off");
+
+			output << (it->enabled ? " on" : " off");
 
 			if (it->desc.Length())
 			{
@@ -235,12 +239,12 @@ namespace Nestopia
 			if (*it)
 			{
 				if (*it == '-' || (it[0] == '/' && it[1] == '/') || *it == ' ' || *it == '\n')
-					return TRUE;
+					return true;
 
 				throw ERR_SYNTAX;
 			}
 
-			return FALSE;
+			return false;
 		}
 
 		void NextLine()
@@ -255,10 +259,10 @@ namespace Nestopia
 			if (*it == '-')
 			{
 				++it;
-				return TRUE;
+				return true;
 			}
 
-			return FALSE;
+			return false;
 		}
 
 		void ReadType(tstring (&range)[2])
@@ -336,13 +340,13 @@ namespace Nestopia
 			if (values[1][1] - values[1][0])
 			{
 				file.Assign( values[1][0], values[1][1] - values[1][0] );
-				return TRUE;
+				return true;
 			}
 
 			throw ERR_SYNTAX;
 		}
 
-		return FALSE;
+		return false;
 	}
 
 	ibool File::ParsePort(tstring const type,tstring (&values)[2][2],uint& controller)
@@ -354,14 +358,14 @@ namespace Nestopia
 				if (Match( controllerNames[i], values[1] ))
 				{
 					controller = i;
-					return TRUE;
+					return true;
 				}
 			}
 
 			throw ERR_SYNTAX;
 		}
 
-		return FALSE;
+		return false;
 	}
 
 	ibool File::ParseMode(tstring const type,tstring (&values)[2][2],uint& mode)
@@ -371,18 +375,18 @@ namespace Nestopia
 			if (Match( _T("ntsc"), values[1] ))
 			{
 				mode = Nes::Machine::NTSC;
-				return TRUE;
+				return true;
 			}
 			else if (Match( _T("pal"), values[1] ))
 			{
 				mode = Nes::Machine::PAL;
-				return TRUE;
+				return true;
 			}
 
 			throw ERR_SYNTAX;
 		}
 
-		return FALSE;
+		return false;
 	}
 
 	ibool File::ParseGenie(tstring const type,tstring (&values)[2][2],Context::Cheats& cheats,const bool shortcut)
@@ -409,7 +413,7 @@ namespace Nestopia
 
 			Skip( it, end );
 
-			cheat.enabled =	!
+			cheat.enabled = !
 			(
 				(it[0] == 'O' || it[0] == 'o') &&
 				(it[1] == 'F' || it[1] == 'f') &&
@@ -421,10 +425,10 @@ namespace Nestopia
 			if (it < end)
 				cheat.desc.Assign( it, end - it );
 
-			return TRUE;
+			return true;
 		}
 
-		return FALSE;
+		return false;
 	}
 
 	ibool File::ParseCheat(tstring const type,tstring (&values)[2][2],Context::Cheats& cheats)
@@ -464,24 +468,24 @@ namespace Nestopia
 			{
 				throw ERR_SYNTAX;
 			}
-				
+
 			if (address < 0x0000 || address > 0xFFFF || value < 0x00 || value > 0xFF)
 				throw ERR_SYNTAX;
 
 			cheat.address = address;
 			cheat.value = value;
-			
+
 			state.Validate();
 			cheat.enabled = (state != _T("off"));
-		
+
 			desc.Validate();
 			cheat.desc = desc;
 			cheat.desc.Trim();
 
-			return TRUE;
+			return true;
 		}
 
-		return FALSE;
+		return false;
 	}
 
 	void File::Load(const Input input,Context& context) const
@@ -494,11 +498,11 @@ namespace Nestopia
 			if (parser.CheckType())
 			{
 				tstring values[2][2];
-		
+
 				parser.ReadType( values[0] );
 				parser.ReadValue( values[1] );
-		
-				if 
+
+				if
 				(
 					!ParseCheat( _T( "CHEAT "   ), values, context.cheats         ) &&
 					!ParseGenie( _T( "GENIE "   ), values, context.cheats         ) &&
@@ -516,7 +520,7 @@ namespace Nestopia
 					!ParseFile(  _T( "MOVIE "   ), values, context.movie          ) &&
 					!ParseFile(  _T( "IPS "     ), values, context.ips            ) &&
 					!ParseFile(  _T( "TAPE "    ), values, context.tape           ) &&
-					!ParseFile(  _T( "PALETTE " ), values, context.palette        ) 
+					!ParseFile(  _T( "PALETTE " ), values, context.palette        )
 				)
 					throw ERR_SYNTAX;
 			}

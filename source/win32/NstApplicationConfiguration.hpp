@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -41,7 +41,7 @@ namespace Nestopia
 			Configuration();
 			~Configuration();
 
-			void Reset(ibool=TRUE);
+			void Reset(ibool=true);
 
 			enum State
 			{
@@ -62,23 +62,23 @@ namespace Nestopia
 
 				bool operator == (State) const;
 
-				bool operator != (State state) const 
-				{ 
-					return !(*this == state); 
+				bool operator != (State state) const
+				{
+					return !(*this == state);
 				}
 
-				operator long () const 
-				{ 
-					long i; 
-					*this >> i; 
-					return i; 
+				operator long () const
+				{
+					long i;
+					*this >> i;
+					return i;
 				}
 
-				operator ulong () const 
-				{ 
-					ulong i; 
-					*this >> i; 
-					return i; 
+				operator ulong () const
+				{
+					ulong i;
+					*this >> i;
+					return i;
 				}
 
 				operator schar  () const { return ( schar  ) operator long  (); }
@@ -87,13 +87,13 @@ namespace Nestopia
 				operator ushort () const { return ( ushort ) operator ulong (); }
 				operator int    () const { return ( int    ) operator long  (); }
 				operator uint   () const { return ( uint   ) operator ulong (); }
-	  
-				tstring Default(tstring d) const 
-				{ 
+
+				tstring Default(tstring d) const
+				{
 					return Length() ? Ptr() : d;
 				}
 
-				tchar Default(tchar d) const 
+				tchar Default(tchar d) const
 				{
 					return Length() ? Front() : d;
 				}
@@ -125,7 +125,7 @@ namespace Nestopia
 			public:
 
 				Value(HeapString& s)
-				: string(s)	{}
+				: string(s) {}
 
 				class QuoteProxy
 				{
@@ -212,16 +212,16 @@ namespace Nestopia
 
 			enum
 			{
-				HINTED_SIZE = 395
+				HINTED_SIZE = 414
 			};
 
 			struct Command : String::Heap<char>
 			{
 				mutable ibool referenced;
 
-				template<typename T> 
+				template<typename T>
 				Command(const T& t)
-				: String::Heap<char>(t), referenced(FALSE) {}
+				: String::Heap<char>(t), referenced(false) {}
 			};
 
 			typedef Collection::Map< Command, HeapString > Items;
@@ -232,7 +232,7 @@ namespace Nestopia
 
 		public:
 
-			void EnableSaving(ibool enable=TRUE)
+			void EnableSaving(ibool enable=true)
 			{
 				save = enable;
 			}

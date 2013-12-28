@@ -6,17 +6,17 @@
 // Copyright (C) 2001, 2002, 2003, 2004 Andrea Mazzoleni
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -37,29 +37,29 @@ namespace Nes
 	{
 		namespace Video
 		{
-            #ifdef NST_PRAGMA_OPTIMIZE
-            #pragma optimize("s", on)
-            #endif
+			#ifdef NST_PRAGMA_OPTIMIZE
+			#pragma optimize("s", on)
+			#endif
 
 			Renderer::FilterScaleX::FilterScaleX(const RenderState& state)
-			: 
+			:
 			Filter (state),
 			type   (state.filter)
 			{
 			}
-			
+
 			bool Renderer::FilterScaleX::Check(const RenderState& state)
 			{
 				return (state.bits.count == 16 || state.bits.count == 32) && (state.scanlines == 0) &&
 				(
-   					(state.filter == RenderState::FILTER_SCALE2X && state.width == WIDTH*2 && state.height == HEIGHT*2) ||
+					(state.filter == RenderState::FILTER_SCALE2X && state.width == WIDTH*2 && state.height == HEIGHT*2) ||
 					(state.filter == RenderState::FILTER_SCALE3X && state.width == WIDTH*3 && state.height == HEIGHT*3)
 				);
 			}
 
-            #ifdef NST_PRAGMA_OPTIMIZE
-            #pragma optimize("", on)
-            #endif
+			#ifdef NST_PRAGMA_OPTIMIZE
+			#pragma optimize("", on)
+			#endif
 
 			template<typename T,int PREV,int NEXT>
 			NST_FORCE_INLINE T* Renderer::FilterScaleX::Blit2xBorder(T* NST_RESTRICT dst,const u16* NST_RESTRICT src,const u32 (&palette)[PALETTE]) const
@@ -93,12 +93,12 @@ namespace Nes
 						palette[src[  1    ]]
 					};
 
-					if (p[0] != p[1] && p[1] != p[3]) 
+					if (p[0] != p[1] && p[1] != p[3])
 					{
 						dst[0] = p[1] == p[0] ? p[0] : p[2];
 						dst[1] = p[3] == p[0] ? p[0] : p[2];
-					} 
-					else 
+					}
+					else
 					{
 						dst[0] = p[2];
 						dst[1] = p[2];
@@ -108,7 +108,7 @@ namespace Nes
 					dst += 2;
 				}
 
-				const dword p[4] = 
+				const dword p[4] =
 				{
 					palette[src[  PREV ]],
 					palette[src[ -1    ]],
@@ -116,12 +116,12 @@ namespace Nes
 					palette[src[  NEXT ]]
 				};
 
-				if (p[0] != p[3] && p[1] != p[2]) 
+				if (p[0] != p[3] && p[1] != p[2])
 				{
 					dst[0] = p[1] == p[0] ? p[0] : p[2];
 					dst[1] = p[2] == p[0] ? p[0] : p[2];
-				} 
-				else 
+				}
+				else
 				{
 					dst[0] = p[2];
 					dst[1] = p[2];
@@ -247,19 +247,19 @@ namespace Nes
 
 			template<typename T>
 			NST_FORCE_INLINE void Renderer::FilterScaleX::BlitType(const Input& input,const Output& output) const
-			{	
+			{
 				switch (type)
 				{
 					case RenderState::FILTER_SCALE2X:
-				
+
 						Blit2x<T>( input, output );
 						break;
-				
+
 					case RenderState::FILTER_SCALE3X:
-				
+
 						Blit3x<T>( input, output );
 						break;
-				
+
 						NST_UNREACHABLE
 				}
 			}
@@ -270,7 +270,7 @@ namespace Nes
 				{
 					case 32: BlitType<u32>( input, output ); break;
 					case 16: BlitType<u16>( input, output ); break;
-				
+
 					NST_UNREACHABLE
 				}
 			}

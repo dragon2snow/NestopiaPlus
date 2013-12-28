@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -63,9 +63,9 @@ namespace Nestopia
 			void  Post(uint) const;
 			void  PostCommand(uint) const;
 			void  Close() const;
-			void  Invalidate(ibool=TRUE) const;
+			void  Invalidate(ibool=true) const;
 			void  Redraw() const;
-			ibool Activate(ibool=TRUE) const;
+			ibool Activate(ibool=true) const;
 			void  SetStyle(long) const;
 			void  SetStyle(long,long) const;
 			void  ModifyStyle(long,ibool) const;
@@ -85,7 +85,7 @@ namespace Nestopia
 			);
 
 			static void Unregister(tstring);
-            
+
 			static Generic Create
 			(
 				DWORD,
@@ -105,7 +105,7 @@ namespace Nestopia
 			: hWnd(h) {}
 
 			explicit Generic(tstring className)
-			: hWnd(::FindWindow( className, NULL )) 
+			: hWnd(::FindWindow( className, NULL ))
 			{
 				NST_ASSERT( className && *className );
 			}
@@ -121,14 +121,14 @@ namespace Nestopia
 				return hWnd;
 			}
 
-			ibool Enable(ibool state=TRUE) const
+			ibool Enable(ibool state=true) const
 			{
 				return ::EnableWindow( hWnd, state );
 			}
 
 			ibool Disable() const
 			{
-				return Enable( FALSE );
+				return Enable( false );
 			}
 
 			ibool IsEnabled() const
@@ -216,9 +216,9 @@ namespace Nestopia
 			{
 				return ::SendMessage
 				(
-					hWnd, 
-					uMsg, 
-					(WPARAM) param1, 
+					hWnd,
+					uMsg,
+					(WPARAM) param1,
 					(LPARAM) param2
 				);
 			}
@@ -228,9 +228,9 @@ namespace Nestopia
 			{
 				::PostMessage
 				(
-					hWnd, 
-					uMsg, 
-					(WPARAM) param1, 
+					hWnd,
+					uMsg,
+					(WPARAM) param1,
 					(LPARAM) param2
 				);
 			}
@@ -291,7 +291,7 @@ namespace Nestopia
 					operator << (ValueString(value).Ptr());
 				}
 
-				template<typename T> 
+				template<typename T>
 				uint operator >> (T&) const;
 
 				uint operator >> (long&) const;

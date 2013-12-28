@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -38,7 +38,7 @@ namespace Nestopia
 	using System::Timer;
 
 	FrameClock::FrameClock(Window::Menu& m,Emulator& e,const Configuration& cfg)
-	: 
+	:
 	emulator ( e ),
 	menu     ( m ),
 	dialog   ( new Window::FrameClock(cfg) )
@@ -73,19 +73,19 @@ namespace Nestopia
 	}
 
 	void FrameClock::UpdateSettings()
-	{	
+	{
 		UpdateRewinderState();
 
 		settings.autoFrameSkip = dialog->UseAutoFrameSkip();
 		settings.maxFrameSkips = dialog->GetMaxFrameSkips();
 
 		emulator.ResetSpeed
-		( 
-	     	dialog->UseDefaultSpeed() ? Emulator::DEFAULT_SPEED : dialog->GetSpeed(), 
+		(
+			dialog->UseDefaultSpeed() ? Emulator::DEFAULT_SPEED : dialog->GetSpeed(),
 			dialog->UseVSync(),
 			dialog->UseTrippleBuffering()
 		);
-				   
+
 		ResetTimer();
 	}
 
@@ -115,7 +115,7 @@ namespace Nestopia
 				break;
 
 			case Emulator::EVENT_SPEEDING_OFF:
-			
+
 				if (dialog->UseDefaultRewindSpeed() || Rewinder(emulator).GetDirection() == Rewinder::FORWARD)
 				{
 					settings.autoFrameSkip = dialog->UseAutoFrameSkip();
@@ -127,7 +127,7 @@ namespace Nestopia
 					emulator.SetSpeed( dialog->GetRewindSpeed() );
 				}
 				break;
-			
+
 			case Emulator::EVENT_REWINDING_ON:
 
 				if (dialog->UseRewinder())
@@ -138,10 +138,10 @@ namespace Nestopia
 				break;
 
 			case Emulator::EVENT_REWINDING_OFF:
-			
+
 				Rewinder(emulator).SetDirection( Rewinder::FORWARD );
 				break;
- 
+
 			case Emulator::EVENT_SPEED:
 
 				settings.refreshRate = emulator.GetSpeed();
@@ -179,9 +179,9 @@ namespace Nestopia
 		}
 	}
 
-    #ifdef NST_PRAGMA_OPTIMIZE
-    #pragma optimize("t", on)
-    #endif
+	#ifdef NST_PRAGMA_OPTIMIZE
+	#pragma optimize("t", on)
+	#endif
 
 	void FrameClock::Synchronize(const ibool wait,const uint skip)
 	{
@@ -217,7 +217,7 @@ namespace Nestopia
 		}
 	}
 
-    #ifdef NST_PRAGMA_OPTIMIZE
-    #pragma optimize("", on)
-    #endif
+	#ifdef NST_PRAGMA_OPTIMIZE
+	#pragma optimize("", on)
+	#endif
 }

@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -34,14 +34,14 @@ namespace Nes
 {
 	namespace Core
 	{
-        #ifdef NST_PRAGMA_OPTIMIZE
-        #pragma optimize("s", on)
-        #endif
+		#ifdef NST_PRAGMA_OPTIMIZE
+		#pragma optimize("s", on)
+		#endif
 
 		Tracker::Tracker()
-		: 
-		rewinder      (NULL), 
-		movie         (NULL), 
+		:
+		rewinder      (NULL),
+		movie         (NULL),
 		rewinderSound (false)
 		{}
 
@@ -96,14 +96,14 @@ namespace Nes
 		{
 			if (bool(rewinder) == bool(emulator))
 				return RESULT_NOP;
-			
+
 			if (movie)
 				return RESULT_ERR_NOT_READY;
 
 			if (emulator)
 			{
 				rewinder = new Rewinder
-				( 
+				(
 					*emulator,
 					&Api::Emulator::ExecuteFrame,
 					&Api::Emulator::LoadState,
@@ -133,13 +133,13 @@ namespace Nes
 					if (movie == NULL)
 					{
 						movie = new Movie
-						( 
+						(
 							emulator,
 							&Api::Emulator::Reset,
 							&Api::Emulator::LoadState,
 							&Api::Emulator::SaveState,
-							emulator.cpu, 
-							emulator.Is(Api::Machine::CARTRIDGE) ? emulator.image->GetPrgCrc() : 0 
+							emulator.cpu,
+							emulator.Is(Api::Machine::CARTRIDGE) ? emulator.image->GetPrgCrc() : 0
 						);
 					}
 
@@ -185,13 +185,13 @@ namespace Nes
 					if (movie == NULL)
 					{
 						movie = new Movie
-						( 
-					      	emulator,
+						(
+							emulator,
 							&Api::Emulator::Reset,
 							&Api::Emulator::LoadState,
 							&Api::Emulator::SaveState,
-							emulator.cpu, 
-							emulator.image->GetPrgCrc() 
+							emulator.cpu,
+							emulator.image->GetPrgCrc()
 						);
 					}
 
@@ -237,9 +237,9 @@ namespace Nes
 			movie = NULL;
 		}
 
-        #ifdef NST_PRAGMA_OPTIMIZE
-        #pragma optimize("", on)
-        #endif
+		#ifdef NST_PRAGMA_OPTIMIZE
+		#pragma optimize("", on)
+		#endif
 
 		Result Tracker::RewinderStart() const
 		{
@@ -286,7 +286,7 @@ namespace Nes
 
 		Result Tracker::Execute
 		(
-	     	Api::Emulator& emulator,
+			Api::Emulator& emulator,
 			Video::Output* const video,
 			Sound::Output* const sound,
 			Input::Controllers* const input

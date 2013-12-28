@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -49,12 +49,12 @@ namespace Nestopia
 	{
 		{ IDC_LAUNCHER_COLORS_BG_CHANGE, &Colors::OnCmdChangeBackground },
 		{ IDC_LAUNCHER_COLORS_FG_CHANGE, &Colors::OnCmdChangeForeground },
-		{ IDC_LAUNCHER_COLORS_DEFAULT,	 &Colors::OnCmdDefault          },
-		{ IDC_LAUNCHER_COLORS_OK,		 &Colors::OnCmdOk               }
+		{ IDC_LAUNCHER_COLORS_DEFAULT,   &Colors::OnCmdDefault          },
+		{ IDC_LAUNCHER_COLORS_OK,        &Colors::OnCmdOk               }
 	};
 
 	Launcher::Colors::Colors(const Configuration& cfg)
-	: 
+	:
 	background (20,94,74,114),
 	foreground (20,33,74,53),
 	dialog     (IDD_LAUNCHER_COLORS,this,Handlers::messages,Handlers::commands)
@@ -86,7 +86,7 @@ namespace Nestopia
 
 			::SelectObject( hDC, hPenOld );
 			::DeleteObject( hPen );
-			
+
 			::ReleaseDC( dialog, hDC );
 		}
 	}
@@ -101,7 +101,7 @@ namespace Nestopia
 		cc.rgbResult    = color;
 		cc.Flags        = CC_FULLOPEN|CC_RGBINIT;
 
-		if (::ChooseColor( &cc )) 
+		if (::ChooseColor( &cc ))
 			color = cc.rgbResult;
 	}
 
@@ -109,21 +109,21 @@ namespace Nestopia
 	{
 		Paint( background );
 		Paint( foreground );
-		return FALSE;
+		return false;
 	}
 
 	ibool Launcher::Colors::OnCmdChangeBackground(Param&)
 	{
 		ChangeColor( background.color );
 		Paint( background );
-		return TRUE;
+		return true;
 	}
 
 	ibool Launcher::Colors::OnCmdChangeForeground(Param&)
 	{
 		ChangeColor( foreground.color );
 		Paint( foreground );
-		return TRUE;
+		return true;
 	}
 
 	ibool Launcher::Colors::OnCmdDefault(Param&)
@@ -134,7 +134,7 @@ namespace Nestopia
 		Paint( background );
 		Paint( foreground );
 
-		return TRUE;
+		return true;
 	}
 
 	ibool Launcher::Colors::OnCmdOk(Param& param)
@@ -142,6 +142,6 @@ namespace Nestopia
 		if (param.Button().IsClicked())
 			dialog.Close();
 
-		return TRUE;
+		return true;
 	}
 }

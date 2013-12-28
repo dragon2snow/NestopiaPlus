@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -60,7 +60,7 @@ namespace Nes
 
 				Context
 				(
-			     	uint i,
+					uint i,
 					Cpu& c,
 					Ppu& p,
 					LinearMemory& pr,
@@ -87,7 +87,7 @@ namespace Nes
 			static Mapper* Create(Context&);
 			static void Destroy(Mapper*&);
 
-			void Reset     (bool);	
+			void Reset     (bool);
 			void SaveState (State::Saver&) const;
 			void LoadState (State::Loader&);
 
@@ -128,7 +128,7 @@ namespace Nes
 
 		protected:
 
-			enum 
+			enum
 			{
 				WRAM_AUTO     = 0x0000,
 				WRAM_8K       = 0x0001,
@@ -211,7 +211,7 @@ namespace Nes
 			typedef Memory<SIZE_32K,SIZE_8K,2> Prg;
 			typedef Ppu::ChrMem Chr;
 			typedef Ppu::NmtMem Nmt;
-			
+
 			struct Wrk : Memory<SIZE_8K,SIZE_8K,2>
 			{
 				bool HasRam() const
@@ -321,11 +321,12 @@ namespace Nes
 
 		public:
 
+			virtual void Flush(bool) {}
 			virtual void VSync() {}
 
 			uint GetID() const
-			{ 
-				return id; 
+			{
+				return id;
 			}
 		};
 
@@ -334,8 +335,8 @@ namespace Nes
 		{
 			switch (m)
 			{
-     			case NOP_PEEK:      cpu.Map( first, last ).Set( &Mapper::Peek_Nop ); break;
-				case NOP_POKE:	    cpu.Map( first, last ).Set( &Mapper::Poke_Nop ); break;
+				case NOP_PEEK:      cpu.Map( first, last ).Set( &Mapper::Peek_Nop ); break;
+				case NOP_POKE:      cpu.Map( first, last ).Set( &Mapper::Poke_Nop ); break;
 				case NOP_PEEK_POKE: cpu.Map( first, last ).Set( &Mapper::Peek_Nop, &Mapper::Poke_Nop ); break;
 			}
 		}
@@ -344,36 +345,36 @@ namespace Nes
 		inline void Mapper::Map(uint first,uint last,PrgMapping mapping) const
 		{
 			cpu.Map( first, last ).Set
-			( 
+			(
 				mapping == PRG_SWAP_8K_0 ? &Mapper::Poke_Prg_8k_0 :
 				mapping == PRG_SWAP_8K_1 ? &Mapper::Poke_Prg_8k_1 :
 				mapping == PRG_SWAP_8K_2 ? &Mapper::Poke_Prg_8k_2 :
 				mapping == PRG_SWAP_8K_3 ? &Mapper::Poke_Prg_8k_3 :
 				mapping == PRG_SWAP_16K  ? &Mapper::Poke_Prg_16k :
-			                               &Mapper::Poke_Prg_32k
+                                           &Mapper::Poke_Prg_32k
 			);
 		}
-					 
+
 		template<>
 		inline void Mapper::Map(uint first,uint last,ChrMapping mapping) const
 		{
 			cpu.Map( first, last ).Set
-			( 
+			(
 				mapping == CHR_SWAP_1K_0 ? &Mapper::Poke_Chr_1k_0 :
 				mapping == CHR_SWAP_1K_1 ? &Mapper::Poke_Chr_1k_1 :
 				mapping == CHR_SWAP_1K_2 ? &Mapper::Poke_Chr_1k_2 :
 				mapping == CHR_SWAP_1K_3 ? &Mapper::Poke_Chr_1k_3 :
-     			mapping == CHR_SWAP_1K_4 ? &Mapper::Poke_Chr_1k_4 :
-     			mapping == CHR_SWAP_1K_5 ? &Mapper::Poke_Chr_1k_5 :
-    			mapping == CHR_SWAP_1K_6 ? &Mapper::Poke_Chr_1k_6 :
-     			mapping == CHR_SWAP_1K_7 ? &Mapper::Poke_Chr_1k_7 :
+				mapping == CHR_SWAP_1K_4 ? &Mapper::Poke_Chr_1k_4 :
+				mapping == CHR_SWAP_1K_5 ? &Mapper::Poke_Chr_1k_5 :
+				mapping == CHR_SWAP_1K_6 ? &Mapper::Poke_Chr_1k_6 :
+				mapping == CHR_SWAP_1K_7 ? &Mapper::Poke_Chr_1k_7 :
 				mapping == CHR_SWAP_2K_0 ? &Mapper::Poke_Chr_2k_0 :
 				mapping == CHR_SWAP_2K_1 ? &Mapper::Poke_Chr_2k_1 :
 				mapping == CHR_SWAP_2K_2 ? &Mapper::Poke_Chr_2k_2 :
 				mapping == CHR_SWAP_2K_3 ? &Mapper::Poke_Chr_2k_3 :
 				mapping == CHR_SWAP_4K_0 ? &Mapper::Poke_Chr_4k_0 :
 				mapping == CHR_SWAP_4K_1 ? &Mapper::Poke_Chr_4k_1 :
-			                               &Mapper::Poke_Chr_8k
+                                           &Mapper::Poke_Chr_8k
 			);
 		}
 
@@ -381,10 +382,10 @@ namespace Nes
 		inline void Mapper::Map(uint first,uint last,NmtMapping mapping) const
 		{
 			cpu.Map( first, last ).Set
-			( 
-		       	mapping == NMT_SWAP_HV ? &Mapper::Poke_Nmt_Hv : 
-			    mapping == NMT_SWAP_VH ? &Mapper::Poke_Nmt_Vh :
-			                             &Mapper::Poke_Nmt_Vh01
+			(
+				mapping == NMT_SWAP_HV ? &Mapper::Poke_Nmt_Hv :
+				mapping == NMT_SWAP_VH ? &Mapper::Poke_Nmt_Vh :
+                                         &Mapper::Poke_Nmt_Vh01
 			);
 		}
 	}

@@ -17,8 +17,8 @@
 	<Configurations>
 		<Configuration
 			Name="Debug|Win32"
-			OutputDirectory="$(SolutionDir)DebugOut\"
-			IntermediateDirectory="Debug\Core\"
+			OutputDirectory="$(SolutionDir)debugout\"
+			IntermediateDirectory="debug\core\"
 			ConfigurationType="4"
 			CharacterSet="0"
 			>
@@ -93,8 +93,8 @@
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
-			OutputDirectory="$(SolutionDir)ReleaseOut\"
-			IntermediateDirectory="Release\Core\"
+			OutputDirectory="$(SolutionDir)releaseout\"
+			IntermediateDirectory="release\core\"
 			ConfigurationType="4"
 			CharacterSet="0"
 			WholeProgramOptimization="1"
@@ -310,6 +310,10 @@
 		<Filter
 			Name="Mapper"
 			>
+			<File
+				RelativePath="..\source\core\mapper\NstMapper000.cpp"
+				>
+			</File>
 			<File
 				RelativePath="..\source\core\mapper\NstMapper000.hpp"
 				>
@@ -1147,11 +1151,19 @@
 				>
 			</File>
 			<File
-				RelativePath="..\source\core\mapper\NstMapper167.cpp"
+				RelativePath="..\source\core\mapper\NstMapper166.hpp"
 				>
 			</File>
 			<File
 				RelativePath="..\source\core\mapper\NstMapper167.hpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\mapper\NstMapper170.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\mapper\NstMapper170.hpp"
 				>
 			</File>
 			<File
@@ -1160,14 +1172,6 @@
 			</File>
 			<File
 				RelativePath="..\source\core\mapper\NstMapper180.hpp"
-				>
-			</File>
-			<File
-				RelativePath="..\source\core\mapper\NstMapper181.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\source\core\mapper\NstMapper181.hpp"
 				>
 			</File>
 			<File
@@ -1256,6 +1260,14 @@
 			</File>
 			<File
 				RelativePath="..\source\core\mapper\NstMapper195.hpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\mapper\NstMapper197.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\mapper\NstMapper197.hpp"
 				>
 			</File>
 			<File
@@ -1851,6 +1863,14 @@
 				>
 			</File>
 			<File
+				RelativePath="..\source\core\board\NstBrdSubor.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\board\NstBrdSubor.hpp"
+				>
+			</File>
+			<File
 				RelativePath="..\source\core\board\NstBrdSuper24In1.cpp"
 				>
 			</File>
@@ -1971,6 +1991,14 @@
 				>
 			</File>
 			<File
+				RelativePath="..\source\core\input\NstInpHoriTrack.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\input\NstInpHoriTrack.hpp"
+				>
+			</File>
+			<File
 				RelativePath="..\source\core\input\NstInpHyperShot.cpp"
 				>
 			</File>
@@ -2008,6 +2036,14 @@
 			</File>
 			<File
 				RelativePath="..\source\core\input\NstInpOekaKidsTablet.hpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\input\NstInpPachinko.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\input\NstInpPachinko.hpp"
 				>
 			</File>
 			<File

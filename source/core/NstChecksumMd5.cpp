@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -44,45 +44,45 @@ namespace Nes
 					u32 buf[4];
 					u32 bytes[2];
 					u32 in[16];
-		
+
 					Context()
 					{
 						buf[0] = 0x67452301;
 						buf[1] = 0xefcdab89;
 						buf[2] = 0x98badcfe;
 						buf[3] = 0x10325476;
-		
+
 						bytes[0] = 0;
 						bytes[1] = 0;
 					}
 				};
-		
+
 				static void ByteSwap(u32* buf,uint words)
 				{
 					u8* p = reinterpret_cast<u8*>(buf);
-		
-					do 
+
+					do
 					{
 						*buf++ = (u32(uint(p[3] << 8) | p[2]) << 16) | (uint(p[1] << 8) | p[0]);
 						p += 4;
-					} 
+					}
 					while (--words);
 				}
-		
+
 				#define F1(x, y, z) (z ^ (x & (y ^ z)))
 				#define F2(x, y, z) F1(z, x, y)
 				#define F3(x, y, z) (x ^ y ^ z)
 				#define F4(x, y, z) (y ^ (x | ~z))
-		
+
 				#define MD5STEP(f,w,x,y,z,in,s) (w += f(x,y,z) + in, w = (w<<s | w>>(32-s)) + x)
-		
+
 				static void Transform(u32 buf[4],const u32 in[16])
 				{
 					u32 a = buf[0];
 					u32 b = buf[1];
 					u32 c = buf[2];
 					u32 d = buf[3];
-		
+
 					MD5STEP(F1, a, b, c, d, in[0] + 0xd76aa478, 7);
 					MD5STEP(F1, d, a, b, c, in[1] + 0xe8c7b756, 12);
 					MD5STEP(F1, c, d, a, b, in[2] + 0x242070db, 17);
@@ -99,7 +99,7 @@ namespace Nes
 					MD5STEP(F1, d, a, b, c, in[13] + 0xfd987193, 12);
 					MD5STEP(F1, c, d, a, b, in[14] + 0xa679438e, 17);
 					MD5STEP(F1, b, c, d, a, in[15] + 0x49b40821, 22);
-		
+
 					MD5STEP(F2, a, b, c, d, in[1] + 0xf61e2562, 5);
 					MD5STEP(F2, d, a, b, c, in[6] + 0xc040b340, 9);
 					MD5STEP(F2, c, d, a, b, in[11] + 0x265e5a51, 14);
@@ -116,7 +116,7 @@ namespace Nes
 					MD5STEP(F2, d, a, b, c, in[2] + 0xfcefa3f8, 9);
 					MD5STEP(F2, c, d, a, b, in[7] + 0x676f02d9, 14);
 					MD5STEP(F2, b, c, d, a, in[12] + 0x8d2a4c8a, 20);
-		
+
 					MD5STEP(F3, a, b, c, d, in[5] + 0xfffa3942, 4);
 					MD5STEP(F3, d, a, b, c, in[8] + 0x8771f681, 11);
 					MD5STEP(F3, c, d, a, b, in[11] + 0x6d9d6122, 16);
@@ -133,7 +133,7 @@ namespace Nes
 					MD5STEP(F3, d, a, b, c, in[12] + 0xe6db99e5, 11);
 					MD5STEP(F3, c, d, a, b, in[15] + 0x1fa27cf8, 16);
 					MD5STEP(F3, b, c, d, a, in[2] + 0xc4ac5665, 23);
-		
+
 					MD5STEP(F4, a, b, c, d, in[0] + 0xf4292244, 6);
 					MD5STEP(F4, d, a, b, c, in[7] + 0x432aff97, 10);
 					MD5STEP(F4, c, d, a, b, in[14] + 0xab9423a7, 15);
@@ -150,29 +150,29 @@ namespace Nes
 					MD5STEP(F4, d, a, b, c, in[11] + 0xbd3af235, 10);
 					MD5STEP(F4, c, d, a, b, in[2] + 0x2ad7d2bb, 15);
 					MD5STEP(F4, b, c, d, a, in[9] + 0xeb86d391, 21);
-		
+
 					buf[0] += a;
 					buf[1] += b;
 					buf[2] += c;
 					buf[3] += d;
 				}
-		
-                #undef F4
-                #undef F3
-                #undef F2
-                #undef F1
-                #undef MD5STEP
-		
+
+				#undef F4
+				#undef F3
+				#undef F2
+				#undef F1
+				#undef MD5STEP
+
 				static void Update(Context& ctx,const u8* buf,uint len)
 				{
 					u32 t = ctx.bytes[0];
 					ctx.bytes[0] = t + len;
-		
+
 					if (ctx.bytes[0] < t)
 						ctx.bytes[1]++;
-		
+
 					t = 64 - (t & 0x3f);
-		
+
 					if (t > len)
 					{
 						std::memcpy( ctx.in + 64 - t, buf, len);
@@ -180,13 +180,13 @@ namespace Nes
 					else
 					{
 						std::memcpy( ctx.in + 64 - t, buf, t);
-		
+
 						ByteSwap( ctx.in, 16 );
 						Transform( ctx.buf, ctx.in );
 						buf += t;
 						len -= t;
-		
-						while (len >= 64) 
+
+						while (len >= 64)
 						{
 							std::memcpy( ctx.in, buf, 64 );
 							ByteSwap( ctx.in, 16 );
@@ -194,21 +194,21 @@ namespace Nes
 							buf += 64;
 							len -= 64;
 						}
-		
+
 						std::memcpy( ctx.in, buf, len );
 					}
 				}
-		
+
 				static void Final(u8 digest[16],Context& ctx)
 				{
 					int count = ctx.bytes[0] & 0x3f;
 					u8* p = reinterpret_cast<u8*>(ctx.in) + count;
-		
+
 					*p++ = 0x80;
-		
+
 					count = 56 - 1 - count;
-		
-					if (count < 0) 
+
+					if (count < 0)
 					{
 						std::memset( p, 0, count+8 );
 						ByteSwap( ctx.in, 16 );
@@ -216,29 +216,29 @@ namespace Nes
 						p = reinterpret_cast<u8*>(ctx.in);
 						count = 56;
 					}
-		
+
 					std::memset( p, 0, count+8 );
 					ByteSwap( ctx.in, 14 );
-		
+
 					ctx.in[14] = ctx.bytes[0] << 3;
 					ctx.in[15] = ctx.bytes[1] << 3 | ctx.bytes[0] >> 29;
 					Transform( ctx.buf, ctx.in );
-		
+
 					ByteSwap( ctx.buf, 4 );
-					
+
 					std::memcpy( digest, ctx.buf, 16 );
 				}
-		
-				Key Compute(const void* const input,const ulong length) 
-				{ 
+
+				Key Compute(const void* const input,const ulong length)
+				{
 					Key key;
-		
+
 					Context ctx;
 					Update( ctx, static_cast<const u8*>(input), length );
 					Final( key.digest, ctx );
-		
+
 					return key;
-				} 
+				}
 			}
 		}
 	}

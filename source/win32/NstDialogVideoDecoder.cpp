@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -55,7 +55,7 @@ namespace Nestopia
 	const MsgHandler::Entry<VideoDecoder> VideoDecoder::Handlers::messages[] =
 	{
 		{ WM_INITDIALOG,  &VideoDecoder::OnInitDialog },
-		{ WM_HSCROLL,	  &VideoDecoder::OnHScroll	  }
+		{ WM_HSCROLL,     &VideoDecoder::OnHScroll    }
 	};
 
 	const MsgHandler::Entry<VideoDecoder> VideoDecoder::Handlers::commands[] =
@@ -72,13 +72,12 @@ namespace Nestopia
 	};
 
 	VideoDecoder::VideoDecoder(Nes::Video e,ibool ntsc)
-	: 
-	dialog          (IDD_VIDEO_DECODER,this,Handlers::messages,Handlers::commands), 
+	:
+	dialog          (IDD_VIDEO_DECODER,this,Handlers::messages,Handlers::commands),
 	nes             (e),
 	usingNtscFilter (ntsc),
 	final           (e.GetDecoder())
 	{
-		dialog.Open();
 	}
 
 	VideoDecoder::~VideoDecoder()
@@ -99,7 +98,7 @@ namespace Nestopia
 
 		Update();
 
-		return TRUE;
+		return true;
 	}
 
 	ibool VideoDecoder::OnHScroll(Param& param)
@@ -124,20 +123,20 @@ namespace Nestopia
 					Redraw();
 				}
 
-				return TRUE;
+				return true;
 			}
 		}
 
-		return TRUE;
+		return true;
 	}
 
 	ibool VideoDecoder::OnCmdGain(Param& param)
 	{
 		if (param.Edit().Changed())
-		{			
+		{
 			String::Heap<char> string;
 			dialog.Edit( param.Edit().GetId() ) >> string;
-			
+
 			float gain = std::atof( string.Ptr() );
 			gain = NST_CLAMP(gain,0.0f,2.0f);
 
@@ -148,7 +147,7 @@ namespace Nestopia
 				Redraw();
 		}
 
-		return TRUE;
+		return true;
 	}
 
 	ibool VideoDecoder::OnCmdBoostYellow(Param& param)
@@ -161,7 +160,7 @@ namespace Nestopia
 			Redraw();
 		}
 
-		return TRUE;
+		return true;
 	}
 
 	ibool VideoDecoder::OnCmdPreset(Param& param)
@@ -172,9 +171,9 @@ namespace Nestopia
 
 			switch (param.Button().GetId())
 			{
-     			case IDC_VIDEO_DECODER_CONSUMER:    preset = Nes::Api::Video::DECODER_CONSUMER;    break;
-				case IDC_VIDEO_DECODER_ALTERNATIVE:	preset = Nes::Api::Video::DECODER_ALTERNATIVE; break;
-				default:							preset = Nes::Api::Video::DECODER_CANONICAL;   break;
+				case IDC_VIDEO_DECODER_CONSUMER:    preset = Nes::Api::Video::DECODER_CONSUMER;    break;
+				case IDC_VIDEO_DECODER_ALTERNATIVE: preset = Nes::Api::Video::DECODER_ALTERNATIVE; break;
+				default:                            preset = Nes::Api::Video::DECODER_CANONICAL;   break;
 			}
 
 			nes.SetDecoder( preset );
@@ -182,7 +181,7 @@ namespace Nestopia
 			Redraw();
 		}
 
-		return TRUE;
+		return true;
 	}
 
 	ibool VideoDecoder::OnCmdCancel(Param& param)
@@ -190,7 +189,7 @@ namespace Nestopia
 		if (param.Button().IsClicked())
 			dialog.Close();
 
-		return TRUE;
+		return true;
 	}
 
 	ibool VideoDecoder::OnCmdOk(Param& param)
@@ -201,7 +200,7 @@ namespace Nestopia
 			dialog.Close();
 		}
 
-		return TRUE;
+		return true;
 	}
 
 	void VideoDecoder::Update() const

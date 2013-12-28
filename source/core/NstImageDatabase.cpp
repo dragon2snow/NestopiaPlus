@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -37,7 +37,7 @@ namespace Nes
 	{
 		NST_COMPILE_ASSERT
 		(
-       		Api::Cartridge::MIRROR_HORIZONTAL == 0 &&
+			Api::Cartridge::MIRROR_HORIZONTAL == 0 &&
 			Api::Cartridge::MIRROR_VERTICAL   == 1 &&
 			Api::Cartridge::MIRROR_FOURSCREEN == 2 &&
 			Api::Cartridge::MIRROR_ZERO       == 3 &&
@@ -46,25 +46,25 @@ namespace Nes
 		);
 
 		ImageDatabase::ImageDatabase()
-		: 
+		:
 		enabled    (true),
-		numEntries (0), 
+		numEntries (0),
 		entries    (NULL)
 		{
 		}
-	
+
 		ImageDatabase::~ImageDatabase()
 		{
 			Unload();
 		}
-	
+
 		Result ImageDatabase::Load(StdStream input)
 		{
 			Unload();
 
 			Result result;
 			Stream::In stream( input );
-	
+
 			try
 			{
 				numEntries = stream.Read32() & 0xFFFF;
@@ -106,10 +106,10 @@ namespace Nes
 			}
 
 			Unload();
-	
+
 			return result;
 		}
-	
+
 		void ImageDatabase::Unload()
 		{
 			numEntries = 0;
@@ -117,7 +117,7 @@ namespace Nes
 			delete [] entries;
 			entries = NULL;
 		}
-	
+
 		ImageDatabase::Handle ImageDatabase::GetHandle(const dword crc) const
 		{
 			if (const Entry* entry = entries)
@@ -131,18 +131,18 @@ namespace Nes
 
 			return NULL;
 		}
-	
-		Api::Cartridge::System ImageDatabase::GetSystem(Handle h) const 
+
+		Api::Cartridge::System ImageDatabase::GetSystem(Handle h) const
 		{
 			const uint flags = static_cast<Ref>(h)->flags;
 
 			Api::Cartridge::System system;
-	
-			if (flags & Entry::FLAGS_P10) 
+
+			if (flags & Entry::FLAGS_P10)
 			{
 				system = Api::Cartridge::SYSTEM_PC10;
 			}
-			else if (flags & Entry::FLAGS_VS) 
+			else if (flags & Entry::FLAGS_VS)
 			{
 				system = Api::Cartridge::SYSTEM_VS;
 			}
@@ -154,7 +154,7 @@ namespace Nes
 			{
 				system = Api::Cartridge::SYSTEM_NTSC;
 			}
-	
+
 			return system;
 		}
 	}

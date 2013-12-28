@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -27,7 +27,7 @@
 
 #pragma once
 
-#include "resource/resource.h"
+#include "language/resource.h"
 #include "NstObjectHeap.hpp"
 #include "NstCollectionBitSet.hpp"
 #include "NstCollectionVector.hpp"
@@ -57,7 +57,7 @@ namespace Nestopia
 			~Paths();
 
 			struct File
-			{								
+			{
 				typedef Collection::Buffer Data;
 				typedef HeapString Text;
 				typedef Collection::BitSet Types;
@@ -79,7 +79,7 @@ namespace Nestopia
 					ROM     = 0x0800,
 					PALETTE = 0x1000,
 					WAVE    = 0x2000,
-					AVI		= 0x4000,
+					AVI     = 0x4000,
 					ARCHIVE = 0x8000
 				};
 
@@ -119,6 +119,12 @@ namespace Nestopia
 				SUGGEST
 			};
 
+			enum Checking
+			{
+				CHECK_FILE,
+				DONT_CHECK_FILE
+			};
+
 			enum Alert
 			{
 				QUIETLY,
@@ -127,11 +133,11 @@ namespace Nestopia
 			};
 
 			void Save(Configuration&) const;
-			
+
 			void FixFile(File::Type,Path&) const;
 			ibool FindFile(Path&) const;
 			ibool LocateFile(Path&,File::Types) const;
-			
+
 			Path GetIpsPath(const Path&,File::Type) const;
 			Path GetSavePath(const Path&,File::Type) const;
 			Path GetScreenShotPath() const;
@@ -143,7 +149,7 @@ namespace Nestopia
 
 			ibool CheckFile
 			(
-		     	Path&,
+				Path&,
 				File::Types,
 				Alert=QUIETLY,
 				uint=IDS_TITLE_ERROR
@@ -151,34 +157,35 @@ namespace Nestopia
 
 			Path BrowseLoad
 			(
-		     	File::Types,
-				GenericString = GenericString()
+				File::Types,
+				GenericString = GenericString(),
+				Checking=CHECK_FILE
 			)   const;
-					
+
 			Path BrowseSave
 			(
-		     	File::Types,
-				Method = DONT_SUGGEST,
+				File::Types,
+				Method=DONT_SUGGEST,
 				GenericString = GenericString()
 			)   const;
-				
+
 			File::Type Load
 			(
-		    	File&,
+				File&,
 				File::Types,
 				GenericString = GenericString(),
 				Alert=NOISY
 			)   const;
-					
+
 			ibool Save
 			(
-       			const void*,
+				const void*,
 				uint,
 				File::Type,
 				Path,
 				Alert=NOISY
 			)   const;
-							
+
 			const GenericString GetDefaultDirectory(File::Types) const;
 
 		private:
@@ -196,27 +203,27 @@ namespace Nestopia
 			void OnEmuEvent(Emulator::Event);
 
 			static tstring GetDefaultExtension(File::Types);
-			
+
 			void UpdateSettings();
 			void UpdateRecentDirectory(const Path&,File::Types) const;
-			
+
 			static File::Type CheckFile
 			(
-		     	File::Types,
+				File::Types,
 				uint,
 				uint
 			);
 
 			static File::Type LoadFromFile
 			(
-		     	Path&,
+				Path&,
 				File::Data*,
 				File::Types
 			);
 
 			static File::Type LoadFromArchive
 			(
-		     	const Io::Archive&,
+				const Io::Archive&,
 				Path&,
 				File::Data*,
 				const GenericString&,

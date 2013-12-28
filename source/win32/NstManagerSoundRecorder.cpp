@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -43,8 +43,8 @@ namespace Nestopia
 		Window::Sound::Recorder& d,
 		Emulator& e
 	)
-	: 
-	recording ( FALSE ),
+	:
+	recording ( false ),
 	file      ( Io::Wave::MODE_WRITE ),
 	dialog    ( d ),
 	menu      ( m ),
@@ -69,10 +69,10 @@ namespace Nestopia
 
 	ibool Sound::Recorder::CanRecord() const
 	{
-		return 
+		return
 		(
 			dialog.WaveFile().Length() &&
-			waveFormat.nSamplesPerSec && 
+			waveFormat.nSamplesPerSec &&
 			waveFormat.wBitsPerSample &&
 			emulator.Is(Nes::Machine::ON)
 		);
@@ -80,7 +80,7 @@ namespace Nestopia
 
 	void Sound::Recorder::Close()
 	{
-		recording = FALSE;
+		recording = false;
 
 		try
 		{
@@ -116,11 +116,11 @@ namespace Nestopia
 			switch (event)
 			{
 				case Emulator::EVENT_POWER_OFF:
-		
-					recording = FALSE;
-		
+
+					recording = false;
+
 				case Emulator::EVENT_POWER_ON:
-		
+
 					UpdateMenu();
 					return;
 			}
@@ -130,7 +130,7 @@ namespace Nestopia
 		{
 			case Emulator::EVENT_NETPLAY_MODE_ON:
 			case Emulator::EVENT_NETPLAY_MODE_OFF:
-			
+
 				menu[IDM_POS_FILE][IDM_POS_FILE_SOUNDRECORDER].Enable( event == Emulator::EVENT_NETPLAY_MODE_OFF );
 				break;
 		}
@@ -184,13 +184,13 @@ namespace Nestopia
 
 		Io::Screen() << Resource::String(size ? IDS_SCREEN_SOUND_RECORDER_RESUME : IDS_SCREEN_SOUND_RECORDER_START);
 
-		recording = TRUE;
+		recording = true;
 		UpdateMenu();
 	}
 
 	void Sound::Recorder::OnCmdStop(uint)
 	{
-		recording = FALSE;
+		recording = false;
 		UpdateMenu();
 		Io::Screen() << Resource::String(IDS_SCREEN_SOUND_RECORDER_STOP);
 		Application::Instance::Post( Application::Instance::WM_NST_COMMAND_RESUME );
@@ -223,11 +223,11 @@ namespace Nestopia
 			}
 			catch (Io::Wave::Exception ids)
 			{
-				recording = FALSE;
-				
+				recording = false;
+
 				Window::User::Fail( ids );
 				UpdateMenu();
-				
+
 				return;
 			}
 
@@ -240,7 +240,7 @@ namespace Nestopia
 			}
 			else if (size >= nextSmallSizeNotification)
 			{
-				Io::Screen() << (nextSmallSizeNotification / ONE_MB) << Resource::String(IDS_SCREEN_SOUND_RECORDER_WRITTEN);
+				Io::Screen() << Resource::String(IDS_SCREEN_SOUND_RECORDER_WRITTEN).Invoke( HeapString() << (nextSmallSizeNotification / ONE_MB) );
 				nextSmallSizeNotification += SMALL_SIZE;
 			}
 		}

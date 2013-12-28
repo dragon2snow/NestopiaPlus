@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -36,7 +36,7 @@ namespace Nestopia
 	NST_COMPILE_ASSERT
 	(
 		IDC_PALETTE_EDITOR_G_VALUE == IDC_PALETTE_EDITOR_R_VALUE + 1 &&
-		IDC_PALETTE_EDITOR_B_VALUE == IDC_PALETTE_EDITOR_R_VALUE + 2 
+		IDC_PALETTE_EDITOR_B_VALUE == IDC_PALETTE_EDITOR_R_VALUE + 2
 	);
 
 	using namespace Window;
@@ -52,7 +52,7 @@ namespace Nestopia
 		{ WM_INITDIALOG,  &PaletteEditor::OnInitDialog  },
 		{ WM_PAINT,       &PaletteEditor::OnPaint       },
 		{ WM_LBUTTONDOWN, &PaletteEditor::OnLButtonDown },
-		{ WM_HSCROLL,	  &PaletteEditor::OnHScroll		}
+		{ WM_HSCROLL,     &PaletteEditor::OnHScroll     }
 	};
 
 	const MsgHandler::Entry<PaletteEditor> PaletteEditor::Handlers::commands[] =
@@ -154,16 +154,15 @@ namespace Nestopia
 	}
 
 	PaletteEditor::PaletteEditor(Nes::Video& e,const Managers::Paths& p,const Path& d)
-	: 
-	dialog         (IDD_PALETTE_EDITOR,this,Handlers::messages,Handlers::commands), 
-	emulator       (e), 
+	:
+	dialog         (IDD_PALETTE_EDITOR,this,Handlers::messages,Handlers::commands),
+	emulator       (e),
 	colorSelect    (0),
 	paths          (p),
 	path           (d),
-	sliderDragging (FALSE),
+	sliderDragging (false),
 	settings       (e)
 	{
-		dialog.Open();
 	}
 
 	PaletteEditor::~PaletteEditor()
@@ -176,10 +175,10 @@ namespace Nestopia
 		for (uint i=0; i < 3; ++i)
 			dialog.Slider( IDC_PALETTE_EDITOR_R_SLIDER+i ).SetRange( 0, 255 );
 
-		dialog.RadioButton( IDC_PALETTE_EDITOR_CUSTOM ).Check();		
-		UpdateMode( TRUE );
-	
-		return TRUE;
+		dialog.RadioButton( IDC_PALETTE_EDITOR_CUSTOM ).Check();
+		UpdateMode( true );
+
+		return true;
 	}
 
 	ibool PaletteEditor::OnPaint(Param& param)
@@ -196,7 +195,7 @@ namespace Nestopia
 				Bitmap()
 				{
 					std::memset( this, 0, sizeof(*this) );
-					
+
 					bmiHeader.biSize = sizeof(bmiHeader);
 					bmiHeader.biWidth = BMP_COLOR_WIDTH;
 					bmiHeader.biHeight = BMP_COLOR_HEIGHT;
@@ -221,7 +220,7 @@ namespace Nestopia
 						for (uint x=0; x < BMP_ROWS; ++x)
 						{
 							const uint index = y * BMP_ROWS + x;
-							
+
 							*bmiColors = selectColors[selected == index];
 
 							nesColor.rgbRed   = palette[index][0];
@@ -229,19 +228,19 @@ namespace Nestopia
 							nesColor.rgbBlue  = palette[index][2];
 
 							::SetDIBitsToDevice
-							( 
-						     	hdc, 
-								BMP_START_X + x * BMP_COLOR_WIDTH, 
-								BMP_START_Y + y * BMP_COLOR_HEIGHT, 
-								BMP_COLOR_WIDTH, 
-								BMP_COLOR_HEIGHT, 
+							(
+								hdc,
+								BMP_START_X + x * BMP_COLOR_WIDTH,
+								BMP_START_Y + y * BMP_COLOR_HEIGHT,
+								BMP_COLOR_WIDTH,
+								BMP_COLOR_HEIGHT,
 								0,
-								0, 
-								0, 
-								BMP_COLOR_HEIGHT, 
-								&pixels, 
-								this, 
-								DIB_RGB_COLORS 
+								0,
+								0,
+								BMP_COLOR_HEIGHT,
+								&pixels,
+								this,
+								DIB_RGB_COLORS
 							);
 						}
 					}
@@ -255,22 +254,22 @@ namespace Nestopia
 			::RedrawWindow( ::GetParent(::GetParent( param.hWnd )), NULL, NULL, RDW_INVALIDATE );
 		}
 
-		return FALSE;
+		return false;
 	}
 
 	ibool PaletteEditor::OnLButtonDown(Param& param)
 	{
 		const Point point( LOWORD(param.lParam), HIWORD(param.lParam) );
-		
+
 		if (point.x >= BMP_START_X && point.x < BMP_END_X && point.y >= BMP_START_Y && point.y < BMP_END_Y)
 		{
 			colorSelect = ((point.y-BMP_START_Y) / BMP_COLOR_HEIGHT * BMP_ROWS) + ((point.x-BMP_START_X) / BMP_COLOR_WIDTH);
 			UpdateColor();
 			dialog.Redraw();
-			return TRUE;
+			return true;
 		}
 
-		return TRUE;
+		return true;
 	}
 
 	ibool PaletteEditor::OnHScroll(Param& param)
@@ -291,7 +290,7 @@ namespace Nestopia
 		}
 		else
 		{
-			return FALSE;
+			return false;
 		}
 
 		const uint color = dialog.Slider( IDC_PALETTE_EDITOR_R_SLIDER+index ).Position();
@@ -301,12 +300,12 @@ namespace Nestopia
 		{
 			if (!sliderDragging)
 			{
-				sliderDragging = TRUE;
+				sliderDragging = true;
 				history.Add( colorSelect * 3 + index, colors[colorSelect][index] );
 			}
 
 			dialog.Control( IDC_PALETTE_EDITOR_R_VALUE+index ).Text() << color;
-			
+
 			{
 				u8 custom[64][3];
 				std::memcpy( custom, colors, 64 * 3 );
@@ -319,12 +318,12 @@ namespace Nestopia
 
 		if (sliderDragging && param.Slider().Released())
 		{
-			sliderDragging = FALSE;
+			sliderDragging = false;
 			dialog.Control( IDC_PALETTE_EDITOR_REDO ).Disable();
 			dialog.Control( IDC_PALETTE_EDITOR_UNDO ).Enable();
 		}
 
-		return TRUE;
+		return true;
 	}
 
 	ibool PaletteEditor::OnCmdUndo(Param& param)
@@ -333,12 +332,12 @@ namespace Nestopia
 		{
 			colorSelect = history.Undo( emulator );
 			dialog.Control( IDC_PALETTE_EDITOR_REDO ).Enable();
-			dialog.Control( IDC_PALETTE_EDITOR_UNDO ).Enable( history.CanUndo() );			
+			dialog.Control( IDC_PALETTE_EDITOR_UNDO ).Enable( history.CanUndo() );
 			UpdateColor();
 			dialog.Redraw();
 		}
 
-		return TRUE;
+		return true;
 	}
 
 	ibool PaletteEditor::OnCmdRedo(Param& param)
@@ -352,7 +351,7 @@ namespace Nestopia
 			dialog.Redraw();
 		}
 
-		return TRUE;
+		return true;
 	}
 
 	ibool PaletteEditor::OnCmdReset(Param& param)
@@ -361,10 +360,10 @@ namespace Nestopia
 		{
 			history.Reset();
 			emulator.GetPalette().SetCustom( settings.palette );
-			UpdateMode( TRUE );
+			UpdateMode( true );
 		}
 
-		return TRUE;
+		return true;
 	}
 
 	ibool PaletteEditor::OnCmdSave(Param& param)
@@ -381,7 +380,7 @@ namespace Nestopia
 			}
 		}
 
-		return TRUE;
+		return true;
 	}
 
 	ibool PaletteEditor::OnCmdCancel(Param& param)
@@ -389,7 +388,7 @@ namespace Nestopia
 		if (param.Button().IsClicked())
 			dialog.Close();
 
-		return TRUE;
+		return true;
 	}
 
 	ibool PaletteEditor::OnCmdMode(Param& param)
@@ -397,11 +396,11 @@ namespace Nestopia
 		if (param.Button().IsClicked())
 			UpdateMode();
 
-		return TRUE;
+		return true;
 	}
 
-	void PaletteEditor::UpdateMode(const ibool forceUpdate) const
-	{		
+	void PaletteEditor::UpdateMode(const ibool forceUpdate)
+	{
 		Nes::Video::Palette::Mode mode;
 
 		if (dialog.RadioButton(IDC_PALETTE_EDITOR_CUSTOM).IsChecked())
@@ -433,7 +432,7 @@ namespace Nestopia
 		}
 	}
 
-	void PaletteEditor::UpdateColor() const
+	void PaletteEditor::UpdateColor()
 	{
 		const u8 (&colors)[3] = emulator.GetPalette().GetColors()[colorSelect];
 

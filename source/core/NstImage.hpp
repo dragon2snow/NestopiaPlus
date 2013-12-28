@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -57,6 +57,16 @@ namespace Nes
 
 			typedef void* ExternalDevice;
 
+			enum PpuType
+			{
+				RP2C02,
+				RP2C03,
+				RP2C04_0001,
+				RP2C04_0002,
+				RP2C04_0003,
+				RP2C04_0004
+			};
+
 			enum ExternalDeviceType
 			{
 				EXT_DIP_SWITCHES = 1,
@@ -75,7 +85,7 @@ namespace Nes
 				const ImageDatabase* const database;
 
 				Context(Image*& i,Type t,Cpu& c,Ppu& p,StdStream s,const ImageDatabase* d=NULL)
-				: image(i), type(t), cpu(c), ppu(p), stream(s), database(d)	{}
+				: image(i), type(t), cpu(c), ppu(p), stream(s), database(d) {}
 			};
 
 			static Result Load(Context&);
@@ -83,16 +93,16 @@ namespace Nes
 
 			virtual void Reset(bool) = 0;
 
-			virtual Result Flush() const
-			{ 
-				return RESULT_OK; 
+			virtual Result Flush(bool) const
+			{
+				return RESULT_OK;
 			}
 
 			virtual void VSync() {}
 
 			virtual void LoadState(State::Loader&) {}
 			virtual void SaveState(State::Saver&) const {}
-			virtual	uint GetDesiredController(uint) const;
+			virtual uint GetDesiredController(uint) const;
 
 			virtual Mode GetMode() const = 0;
 			virtual void SetMode(Mode) {}
@@ -105,6 +115,11 @@ namespace Nes
 			virtual ExternalDevice QueryExternalDevice(ExternalDeviceType)
 			{
 				return NULL;
+			}
+
+			virtual PpuType QueryPpu(bool)
+			{
+				return RP2C02;
 			}
 
 		protected:

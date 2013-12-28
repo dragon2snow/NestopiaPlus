@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -36,7 +36,7 @@ namespace Nestopia
 	using DirectX::DirectSound;
 
 	DirectSound::Settings::Settings(HWND h)
-	: hWnd(h), deviceId(0), priority(FALSE) {}
+	: hWnd(h), deviceId(0), priority(false) {}
 
 	DirectSound::DirectSound(HWND const hWnd)
 	: settings( hWnd )
@@ -61,10 +61,10 @@ namespace Nestopia
 	BOOL CALLBACK DirectSound::EnumAdapter(LPGUID guid,LPCTSTR desc,LPCTSTR,LPVOID context)
 	{
 		Io::Log() << "DirectSound: enumerating device - name: "
-    		      << (desc && *desc ? desc : _T("unknown"))
-     	      	  << ", GUID: "
-			      << (guid ? System::Guid( *guid ).GetString() : _T("unspecified"))
-			      << "\r\n";
+                  << (desc && *desc ? desc : _T("unknown"))
+                  << ", GUID: "
+                  << (guid ? System::Guid( *guid ).GetString() : _T("unspecified"))
+                  << "\r\n";
 
 		ComInterface<IDirectSound8> device;
 
@@ -73,7 +73,7 @@ namespace Nestopia
 			static_cast<Adapters*>(context)->resize( static_cast<Adapters*>(context)->size() + 1 );
 			Adapter& adapter = static_cast<Adapters*>(context)->back();
 
-			if (guid) 
+			if (guid)
 				adapter.guid = *guid;
 
 			adapter.name = desc;
@@ -83,12 +83,12 @@ namespace Nestopia
 			Io::Log() << "DirectSound: DirectSoundCreate8() failed on this device, continuing enumeration..\r\n";
 		}
 
-		return TRUE;
+		return true;
 	}
 
 	tstring DirectSound::Update
 	(
-     	const uint deviceId,
+		const uint deviceId,
 		const uint rate,
 		const uint bits,
 		const Channels channels,
@@ -101,7 +101,7 @@ namespace Nestopia
 		if (settings.deviceId != deviceId || device == NULL)
 		{
 			settings.deviceId = deviceId;
-			
+
 			Destroy();
 
 			if (FAILED(::DirectSoundCreate8( &adapters[deviceId].guid, &device, NULL )))
@@ -138,7 +138,7 @@ namespace Nestopia
 	DirectSound::Buffer::Buffer()
 	: writeOffset(0)
 	{
-		waveFormat.wFormatTag = WAVE_FORMAT_PCM; 
+		waveFormat.wFormatTag = WAVE_FORMAT_PCM;
 	}
 
 	DirectSound::Buffer::~Buffer()
@@ -215,26 +215,26 @@ namespace Nestopia
 		IDirectSound8& device,
 		const ibool priority,
 		const uint rate,
-		const uint bits,		
+		const uint bits,
 		const Channels channels,
 		const uint speed,
 		const uint latency
 	)
-	{	
+	{
 		const uint size = CalculateSize( rate, bits / 8 * channels, speed, latency );
 
-		if 
+		if
 		(
-		    com &&
-     		waveFormat.nSamplesPerSec == rate &&
-     		waveFormat.wBitsPerSample == bits &&
-     		waveFormat.nChannels == channels &&
+			com &&
+			waveFormat.nSamplesPerSec == rate &&
+			waveFormat.wBitsPerSample == bits &&
+			waveFormat.nChannels == channels &&
 			settings.size == size
 		)
 			return NULL;
 
-		waveFormat.nSamplesPerSec = rate; 
-		waveFormat.wBitsPerSample = (WORD) bits; 
+		waveFormat.nSamplesPerSec = rate;
+		waveFormat.wBitsPerSample = (WORD) bits;
 		waveFormat.nChannels = (WORD) channels;
 		waveFormat.nBlockAlign = (WORD) (waveFormat.wBitsPerSample / 8 * waveFormat.nChannels);
 		waveFormat.nAvgBytesPerSec = waveFormat.nSamplesPerSec * waveFormat.nBlockAlign;
@@ -246,7 +246,7 @@ namespace Nestopia
 
 	tstring DirectSound::Buffer::UpdateSpeed
 	(
-     	IDirectSound8& device,
+		IDirectSound8& device,
 		const ibool priority,
 		const uint speed,
 		const uint latency
@@ -268,7 +268,7 @@ namespace Nestopia
 		if (com)
 		{
 			DWORD status;
-			
+
 			if (FAILED(com->GetStatus( &status )))
 			{
 				com.Release();
@@ -292,8 +292,8 @@ namespace Nestopia
 
 					return;
 				}
-			}							
-			
+			}
+
 			void* data;
 			DWORD size;
 
@@ -311,9 +311,9 @@ namespace Nestopia
 		}
 	}
 
-    #ifdef NST_PRAGMA_OPTIMIZE
-    #pragma optimize("t", on)
-    #endif
+	#ifdef NST_PRAGMA_OPTIMIZE
+	#pragma optimize("t", on)
+	#endif
 
 	ibool DirectSound::Buffer::LockStream(void*& data,uint& size)
 	{
@@ -325,8 +325,8 @@ namespace Nestopia
 		if (SUCCEEDED(hResult))
 		{
 			if (uint(pos >= settings.size) == writeOffset)
-				return FALSE;
-			
+				return false;
+
 			hResult = com->Lock( writeOffset ? settings.size : 0, settings.size, &data, &pos, NULL, NULL, 0 );
 
 			if (SUCCEEDED(hResult) && pos == settings.size)
@@ -336,17 +336,17 @@ namespace Nestopia
 				size = pos / waveFormat.nBlockAlign;
 				writeOffset ^= 1;
 
-				return TRUE;
+				return true;
 			}
 		}
 
 		com->Stop();
 		NST_DEBUG_MSG("DirectSound::Buffer::Lock() failed!");
 
-		return FALSE;
+		return false;
 	}
 
-    #ifdef NST_PRAGMA_OPTIMIZE
-    #pragma optimize("", on)
-    #endif	
+	#ifdef NST_PRAGMA_OPTIMIZE
+	#pragma optimize("", on)
+	#endif
 }

@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -89,7 +89,7 @@ namespace Nes
 					NES_CALL_HOOK(M2,Signaled);
 				}
 
-				void ClearIRQ()	const
+				void ClearIRQ() const
 				{
 					cpu.ClearIRQ();
 				}
@@ -125,9 +125,9 @@ namespace Nes
 			}
 
 			template<typename Unit,uint Divider>
-            #define NES_M2_FUNC_T M2<Unit,Divider> // template comma vs. macro comma
+			#define NES_M2_FUNC_T M2<Unit,Divider> // template comma vs. macro comma
 			NES_HOOK(NES_M2_FUNC_T,Signaled)
-            #undef NES_M2_FUNC_T
+			#undef NES_M2_FUNC_T
 			{
 				NST_COMPILE_ASSERT( Divider <= 8 );
 
@@ -231,14 +231,14 @@ namespace Nes
 
 			template<typename Unit>
 			A12<Unit>::A12(Cpu& c,Ppu& p,uint b,IrqDelay d)
-			: count(0), delay(d), cpu(c), ppu(p), base(b) 
+			: count(0), delay(d), cpu(c), ppu(p), base(b)
 			{
 				VSync();
 			}
-											 
+
 			template<typename Unit> template<typename Param>
 			A12<Unit>::A12(Cpu& c,Ppu& p,uint b,IrqDelay d,Param& a)
-			: count(0), delay(d), cpu(c), ppu(p), unit(a), base(b) 
+			: count(0), delay(d), cpu(c), ppu(p), unit(a), base(b)
 			{
 				VSync();
 			}

@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -60,31 +60,31 @@ namespace Nestopia
 			throw ERR_NOT_FOUND;
 
 		handle = ::CreateFile
-		( 
-       		(name=n).Ptr(), 
+		(
+			(name=n).Ptr(),
 			(
-			    (mode & (READ|WRITE)) == (READ|WRITE) ? (GENERIC_READ|GENERIC_WRITE) :
+				(mode & (READ|WRITE)) == (READ|WRITE) ? (GENERIC_READ|GENERIC_WRITE) :
 				(mode & (READ|WRITE)) == (READ)       ? (GENERIC_READ) :
 				(mode & (READ|WRITE)) == (WRITE)      ? (GENERIC_WRITE) :
-				                                        0
+														0
 			),
 			(
-     			(mode & (READ|WRITE)) == (WRITE) ? 0 : FILE_SHARE_READ
+				(mode & (READ|WRITE)) == (WRITE) ? 0 : FILE_SHARE_READ
 			),
 			NULL,
 			(
 				(mode & (EMPTY|EXISTING)) == (EMPTY)          ? CREATE_ALWAYS :
 				(mode & (EMPTY|EXISTING)) == (EMPTY|EXISTING) ? TRUNCATE_EXISTING :
-				(mode & (EMPTY|EXISTING)) == (EXISTING)		  ? OPEN_EXISTING :
-				(mode & (WRITE))							  ? OPEN_ALWAYS :
-		                                                     	OPEN_EXISTING
+				(mode & (EMPTY|EXISTING)) == (EXISTING)       ? OPEN_EXISTING :
+				(mode & (WRITE))                              ? OPEN_ALWAYS :
+																OPEN_EXISTING
 			),
 			(
 				((mode & WRITE) ? FILE_ATTRIBUTE_NORMAL : 0) |
 				(
-		     		(mode & (READ|RANDOM_ACCESS))     == (READ|RANDOM_ACCESS)     ? FILE_FLAG_RANDOM_ACCESS :
-		     		(mode & (READ|SEQUENTIAL_ACCESS)) == (READ|SEQUENTIAL_ACCESS) ? FILE_FLAG_SEQUENTIAL_SCAN : 0
-     			)
+					(mode & (READ|RANDOM_ACCESS))     == (READ|RANDOM_ACCESS)     ? FILE_FLAG_RANDOM_ACCESS :
+					(mode & (READ|SEQUENTIAL_ACCESS)) == (READ|SEQUENTIAL_ACCESS) ? FILE_FLAG_SEQUENTIAL_SCAN : 0
+				)
 			),
 			NULL
 		);
@@ -104,14 +104,14 @@ namespace Nestopia
 				}
 			}
 		}
-		else 
+		else
 		{
 			handle = NULL;
 			name.Clear();
 
 			switch (::GetLastError())
 			{
-				case ERROR_FILE_NOT_FOUND: 
+				case ERROR_FILE_NOT_FOUND:
 				case ERROR_PATH_NOT_FOUND: throw ERR_NOT_FOUND;
 				case ERROR_ALREADY_EXISTS: throw ERR_ALREADY_EXISTS;
 				default:                   throw ERR_OPEN;
@@ -300,7 +300,7 @@ namespace Nestopia
 		{
 			if (forceUnicode || String::Generic<wchar_t>(string,length).Wide())
 			{
-				const u16 utf = UTF16_LE;				
+				const u16 utf = UTF16_LE;
 				Write( &utf, sizeof(u16) );
 				Write( string, length * sizeof(wchar_t) );
 			}
@@ -344,48 +344,16 @@ namespace Nestopia
 		else if (size)
 		{
 			dst.Assign( static_cast<const char*>(src), size );
-		}		
+		}
 		else
 		{
 			dst.Clear();
 		}
 	}
 
-	ibool File::FileExist(tstring const path)
+	ibool File::Delete(tstring const path)
 	{
-		NST_ASSERT( path );
-
-		if (*path)
-		{
-			const DWORD result = ::GetFileAttributes( path );
-			return (result != INVALID_FILE_ATTRIBUTES) && !(result & FILE_ATTRIBUTE_DIRECTORY);
-		}
-
-		return FALSE;
-	}
-
-	ibool File::FileProtected(tstring const path)
-	{
-		NST_ASSERT( path );
-
-		if (*path)
-		{
-			const DWORD result = ::GetFileAttributes( path );
-			return (result != INVALID_FILE_ATTRIBUTES) && (result & FILE_ATTRIBUTE_READONLY);
-		}
-
-		return FALSE;
-	}
-
-	ibool File::DirExist(tstring const path)
-	{
-		NST_ASSERT( path );
-		return *path && ::GetFileAttributes( path ) != INVALID_FILE_ATTRIBUTES;
-	}
-
-	ibool File::Delete(tstring const file)
-	{
-		NST_ASSERT( file && *file );
-		return ::DeleteFile( file );
+		NST_ASSERT( path && *path );
+		return ::DeleteFile( path );
 	}
 }

@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -52,9 +52,9 @@ namespace Nes
 
 		private:
 
-            #ifdef _MSC_VER
-            #pragma pack(push,1)
-            #endif
+			#ifdef _MSC_VER
+			#pragma pack(push,1)
+			#endif
 
 			struct Entry
 			{
@@ -80,14 +80,14 @@ namespace Nes
 				u16 flags;
 
 				operator u32 () const
-				{ 
-					return crc; 
+				{
+					return crc;
 				}
 			};
 
-            #ifdef _MSC_VER
-            #pragma pack(pop)
-            #endif
+			#ifdef _MSC_VER
+			#pragma pack(pop)
+			#endif
 
 			typedef const Entry* Ref;
 
@@ -107,8 +107,8 @@ namespace Nes
 				return enabled;
 			}
 
-			Api::Cartridge::Mirroring GetMirroring(Handle h) const 
-			{ 
+			Api::Cartridge::Mirroring GetMirroring(Handle h) const
+			{
 				return (Api::Cartridge::Mirroring) ((static_cast<Ref>(h)->flags & Entry::FLAGS_MIRRORING) >> Entry::FLAGS_MIRRORING_SHIFT);
 			}
 
@@ -116,7 +116,7 @@ namespace Nes
 			dword pRomCrc    (Handle h) const { return static_cast<Ref>(h)->pRomCrc;                      }
 			dword pRomSize   (Handle h) const { return static_cast<Ref>(h)->pRomSize * SIZE_16K;          }
 			dword cRomSize   (Handle h) const { return static_cast<Ref>(h)->cRomSize * SIZE_8K;           }
-			dword wRamSize   (Handle h) const { return static_cast<Ref>(h)->wRamSize * SIZE_8K;           }	
+			dword wRamSize   (Handle h) const { return static_cast<Ref>(h)->wRamSize * SIZE_8K;           }
 			uint  Mapper     (Handle h) const { return static_cast<Ref>(h)->mapper;                       }
 			ibool HasBattery (Handle h) const { return static_cast<Ref>(h)->flags & Entry::FLAGS_BATTERY; }
 			ibool HasTrainer (Handle h) const { return static_cast<Ref>(h)->flags & Entry::FLAGS_TRAINER; }

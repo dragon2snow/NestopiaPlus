@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -60,7 +60,7 @@ namespace Nestopia
 	};
 
 	Launcher::List::Paths::Paths(const Configuration& cfg)
-	: 
+	:
 	dialog ( IDD_LAUNCHER_PATHS, this, Handlers::messages, Handlers::commands ),
 	notifications ( IDC_LAUNCHER_PATHS_LIST, dialog.Messages(), this, Handlers::notifications )
 	{
@@ -71,7 +71,7 @@ namespace Nestopia
 		settings.include[ Settings::Include::IPS     ] = ( cfg[ "launcher search files ips"          ] != Configuration::NO  );
 		settings.include[ Settings::Include::NSP     ] = ( cfg[ "launcher search files nsp"          ] != Configuration::NO  );
 		settings.include[ Settings::Include::ARCHIVE ] = ( cfg[ "launcher search files archive"      ] != Configuration::NO  );
-		settings.include[ Settings::Include::ANY     ] = ( cfg[ "launcher search any file extension" ] == Configuration::YES ); 
+		settings.include[ Settings::Include::ANY     ] = ( cfg[ "launcher search any file extension" ] == Configuration::YES );
 		settings.include[ Settings::Include::UNIQUE  ] = ( cfg[ "launcher search no duplicate files" ] != Configuration::NO  );
 
 		NST_COMPILE_ASSERT( LIMIT <= 999 );
@@ -86,6 +86,8 @@ namespace Nestopia
 
 			if (path.Empty())
 				break;
+
+			path.MakePretty( true );
 
 			type << " subs";
 			settings.folders.resize( settings.folders.size() + 1 );
@@ -126,7 +128,7 @@ namespace Nestopia
 	}
 
 	ibool Launcher::List::Paths::OnInitDialog(Param&)
-	{																					 
+	{
 		dialog.CheckBox( IDC_LAUNCHER_PATHS_NES         ).Check( settings.include[ Settings::Include::NES     ] );
 		dialog.CheckBox( IDC_LAUNCHER_PATHS_UNF         ).Check( settings.include[ Settings::Include::UNF     ] );
 		dialog.CheckBox( IDC_LAUNCHER_PATHS_FDS         ).Check( settings.include[ Settings::Include::FDS     ] );
@@ -137,7 +139,7 @@ namespace Nestopia
 		dialog.CheckBox( IDC_LAUNCHER_PATHS_ALLFILES    ).Check( settings.include[ Settings::Include::ANY     ] );
 		dialog.CheckBox( IDC_LAUNCHER_PATHS_UNIQUEFILES ).Check( settings.include[ Settings::Include::UNIQUE  ] );
 
-		dialog.Control( IDC_LAUNCHER_PATHS_REMOVE ).Enable( FALSE );
+		dialog.Control( IDC_LAUNCHER_PATHS_REMOVE ).Enable( false );
 		dialog.Control( IDC_LAUNCHER_PATHS_CLEAR ).Enable( settings.folders.size() );
 
 		const Control::ListView listView( dialog.ListView(IDC_LAUNCHER_PATHS_LIST) );
@@ -148,11 +150,11 @@ namespace Nestopia
 		for (Settings::Folders::const_iterator it(settings.folders.begin()); it != settings.folders.end(); ++it)
 			listView.Add( it->path, LPARAM(0), it->incSubDir );
 
-		return TRUE;
+		return true;
 	}
 
-	ibool Launcher::List::Paths::OnCmdAdd(Param& param) 
-	{ 
+	ibool Launcher::List::Paths::OnCmdAdd(Param& param)
+	{
 		if (param.Button().IsClicked() && dialog.ListView( IDC_LAUNCHER_PATHS_LIST ).Size() < LIMIT)
 		{
 			const Path dir( Browser::SelectDirectory() );
@@ -161,7 +163,7 @@ namespace Nestopia
 				dialog.ListView( IDC_LAUNCHER_PATHS_LIST ).Add( dir );
 		}
 
-		return TRUE;
+		return true;
 	}
 
 	ibool Launcher::List::Paths::OnCmdRemove(Param& param)
@@ -169,7 +171,7 @@ namespace Nestopia
 		if (param.Button().IsClicked())
 			dialog.ListView( IDC_LAUNCHER_PATHS_LIST ).Selection().Delete();
 
-		return TRUE; 
+		return true;
 	}
 
 	ibool Launcher::List::Paths::OnCmdClear(Param& param)
@@ -177,11 +179,11 @@ namespace Nestopia
 		if (param.Button().IsClicked())
 			dialog.ListView( IDC_LAUNCHER_PATHS_LIST ).Clear();
 
-		return TRUE; 
+		return true;
 	}
 
 	ibool Launcher::List::Paths::OnCmdOk(Param& param)
-	{ 
+	{
 		if (param.Button().IsClicked())
 		{
 			settings.include[ Settings::Include::NES     ] = dialog.CheckBox( IDC_LAUNCHER_PATHS_NES         ).IsChecked();
@@ -206,15 +208,15 @@ namespace Nestopia
 			dialog.Close();
 		}
 
-		return TRUE; 
+		return true;
 	}
 
-	ibool Launcher::List::Paths::OnCmdCancel(Param& param) 
-	{ 
+	ibool Launcher::List::Paths::OnCmdCancel(Param& param)
+	{
 		if (param.Button().IsClicked())
 			dialog.Close();
 
-		return TRUE; 
+		return true;
 	}
 
 	void Launcher::List::Paths::OnKeyDown(const NMHDR& nmhdr)
@@ -238,7 +240,7 @@ namespace Nestopia
 	{
 		dialog.Control( IDC_LAUNCHER_PATHS_CLEAR ).Enable();
 	}
-	
+
 	void Launcher::List::Paths::OnDeleteItem(const NMHDR&)
 	{
 		if (dialog.ListView( IDC_LAUNCHER_PATHS_LIST ).Size() <= 1)

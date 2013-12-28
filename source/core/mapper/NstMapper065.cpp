@@ -5,17 +5,17 @@
 // Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -25,18 +25,18 @@
 #include "../NstMapper.hpp"
 #include "../NstClock.hpp"
 #include "NstMapper065.hpp"
-		  
+
 namespace Nes
 {
 	namespace Core
 	{
-        #ifdef NST_PRAGMA_OPTIMIZE
-        #pragma optimize("s", on)
-        #endif
-	
+		#ifdef NST_PRAGMA_OPTIMIZE
+		#pragma optimize("s", on)
+		#endif
+
 		Mapper65::Mapper65(Context& c)
 		: Mapper(c), irq(c.cpu) {}
-	
+
 		void Mapper65::Irq::Reset(const bool hard)
 		{
 			if (hard)
@@ -50,8 +50,8 @@ namespace Nes
 		void Mapper65::SubReset(const bool hard)
 		{
 			irq.Reset( hard, true );
-	
-			Map( 0x9001U, &Mapper65::Poke_9001 );			
+
+			Map( 0x9001U, &Mapper65::Poke_9001 );
 			Map( 0x9003U, &Mapper65::Poke_9003 );
 			Map( 0x9004U, &Mapper65::Poke_9004 );
 			Map( 0x9005U, &Mapper65::Poke_9005 );
@@ -69,7 +69,7 @@ namespace Nes
 			Map( 0xB006U, CHR_SWAP_1K_6 );
 			Map( 0xB007U, CHR_SWAP_1K_7 );
 		}
-	
+
 		void Mapper65::SubLoad(State::Loader& state)
 		{
 			while (const dword chunk = state.Begin())
@@ -86,7 +86,7 @@ namespace Nes
 				state.End();
 			}
 		}
-	
+
 		void Mapper65::SubSave(State::Saver& state) const
 		{
 			const u8 data[5] =
@@ -100,42 +100,42 @@ namespace Nes
 
 			state.Begin('I','R','Q','\0').Write( data ).End();
 		}
-	
-        #ifdef NST_PRAGMA_OPTIMIZE
-        #pragma optimize("", on)
-        #endif
-	
-		NES_POKE(Mapper65,9001) 
-		{ 
+
+		#ifdef NST_PRAGMA_OPTIMIZE
+		#pragma optimize("", on)
+		#endif
+
+		NES_POKE(Mapper65,9001)
+		{
 			ppu.SetMirroring( (data & 0x80) ? Ppu::NMT_HORIZONTAL : Ppu::NMT_VERTICAL );
 		}
-	
-		NES_POKE(Mapper65,9003) 
-		{ 
+
+		NES_POKE(Mapper65,9003)
+		{
 			irq.Update();
 			irq.unit.enabled = data & 0x80;
 			irq.ClearIRQ();
 		}
-	
-		NES_POKE(Mapper65,9004) 
-		{ 
+
+		NES_POKE(Mapper65,9004)
+		{
 			irq.Update();
 			irq.unit.count = irq.unit.latch;
 			irq.ClearIRQ();
 		}
-	
-		NES_POKE(Mapper65,9005) 
+
+		NES_POKE(Mapper65,9005)
 		{
 			irq.Update();
 			irq.unit.latch = (irq.unit.latch & 0x00FFU) | (data << 8);
 		}
-	
-		NES_POKE(Mapper65,9006) 
+
+		NES_POKE(Mapper65,9006)
 		{
 			irq.Update();
 			irq.unit.latch = (irq.unit.latch & 0xFF00U) | data;
 		}
-	
+
 		ibool Mapper65::Irq::Signal()
 		{
 			if (enabled && count && !--count)
