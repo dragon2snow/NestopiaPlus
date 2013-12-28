@@ -118,23 +118,47 @@ ULONG INPUTMANAGER::IsJoystickButtonPressed(ULONG key) const
 {
 	PDX_ASSERT(!(key & NST_USE_JOYSTICK));
 
-	UINT index = 0;
+	const UINT index = key / 64;
+	const DIJOYSTATE& state = ActiveJoysticks[index].state;
 
-	if (key >= 36)
-	{
-		index = key / 36;
-		key %= 36;
-	}
+	key %= 64;
+
+	if (key < 32)
+		return state.rgbButtons[key];
 
 	switch (key)
 	{
-     	case 32: return ActiveJoysticks[index].state.lX < 0;
-     	case 33: return ActiveJoysticks[index].state.lX > 0;
-     	case 34: return ActiveJoysticks[index].state.lY < 0;
-     	case 35: return ActiveJoysticks[index].state.lY > 0;
+     	case 32: return state.lX < 0;
+     	case 33: return state.lX > 0;
+    	case 34: return state.lY < 0;
+     	case 35: return state.lY > 0;
+		case 36: return state.lZ < 0;
+		case 37: return state.lZ > 0;
+		case 38: return state.lRx < 0;
+		case 39: return state.lRx > 0;
+     	case 40: return state.lRy < 0;
+     	case 41: return state.lRy > 0;
+     	case 42: return state.lRz < 0;
+     	case 43: return state.lRz > 0;
+     	case 44: return state.rglSlider[0] < 0;
+     	case 45: return state.rglSlider[0] > 0;
+     	case 46: return state.rglSlider[1] < 0;
+		case 47: return state.rglSlider[1] > 0;
 	}
 
-	return ActiveJoysticks[index].state.rgbButtons[key];
+	key -= 48;
+
+	const DWORD pov = state.rgdwPOV[key / 4];
+
+    switch (key % 4)
+	{
+		case 0: return ( pov & 0xFFFF ) != 0xFFFFU && ( pov >= 31500U || pov <=  4500U ); // up
+		case 1: return ( pov & 0xFFFF ) != 0xFFFFU && ( pov >=  4500U && pov <= 13500U ); // right
+		case 2: return ( pov & 0xFFFF ) != 0xFFFFU && ( pov >= 13500U && pov <= 22500U ); // down
+		case 3: return ( pov & 0xFFFF ) != 0xFFFFU && ( pov >= 22500U && pov <= 31500U ); // left
+	}
+
+	return 0;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -550,7 +574,7 @@ BOOL CALLBACK INPUTMANAGER::StaticKeyPressDialogProc(HWND hDlg,UINT uMsg,WPARAM,
 				{
 					key |= NST_USE_JOYSTICK;
 					
-					const DWORD KeyValue = key + (36 * (index-1));
+					const DWORD KeyValue = key + (64 * (index-1));
 
 					im->map.category[ im->SelectDevice ].keys[ im->SelectKey ].key = KeyValue;
 					im->map.category[ im->SelectDevice ].keys[ im->SelectKey ].device = device;
@@ -848,26 +872,50 @@ const CHAR* INPUTMANAGER::Key2Text(DWORD key)
 
 		PDXSTRING text;
 
-		text = "(joy ";
+		text << "(joy ";
+		text << (key / 64);
+		text << ") ";
 
-	     	 if (key < 36*1) { text << "0) "; key -= 36*0; }
-		else if (key < 36*2) { text << "1) "; key -= 36*1; }
-		else if (key < 36*3) { text << "2) "; key -= 36*2; }
-		else if (key < 36*4) { text << "3) "; key -= 36*3; }
-		else if (key < 36*5) { text << "4) "; key -= 36*4; }
-		else if (key < 36*6) { text << "5) "; key -= 36*5; }
-		else                 { text << "6) "; key -= 36*6; }
+		key %= 64;
 
 		switch (key)
 		{
-     		case 32: text << "-x"; break;
-     		case 33: text << "+x"; break;
-     		case 34: text << "+y"; break;
-     		case 35: text << "-y"; break;
-			default: text << key;  break;
+     		case 32: text << "-x";  break;
+     		case 33: text << "+x";  break;
+     		case 34: text << "+y";  break;
+     		case 35: text << "-y";  break;
+			case 36: text << "+z";  break;
+			case 37: text << "-z";  break;
+			case 38: text << "-rx"; break;
+			case 39: text << "+rx"; break;
+			case 40: text << "+ry"; break;
+			case 41: text << "-ry"; break;
+			case 42: text << "+rz"; break;
+			case 43: text << "-rz"; break;
+			case 44: text << "-s0"; break;
+			case 45: text << "+s0"; break;
+			case 46: text << "-s1"; break;
+			case 47: text << "+s1"; break;
+			case 48: text << "+py"; break;
+			case 49: text << "+px"; break;
+			case 50: text << "-py"; break;
+			case 51: text << "-px"; break;			
+			case 52: text << "+py"; break;
+			case 53: text << "+px"; break;
+			case 54: text << "-py"; break;
+			case 55: text << "-px"; break;
+			case 56: text << "+py"; break;
+			case 57: text << "+px"; break;
+			case 58: text << "-py"; break;
+			case 59: text << "-px"; break;
+			case 60: text << "+py"; break;
+			case 61: text << "+px"; break;
+			case 62: text << "-py"; break;
+			case 63: text << "-px"; break;
+			default: text << key;   break;
 		}
 
-		static CHAR buffer[16];
+		static CHAR buffer[24];
 		strcpy( buffer, text );
 
 		return buffer;

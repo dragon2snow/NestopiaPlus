@@ -318,15 +318,15 @@ BOOL PDXSTRING::operator == (const PDXSTRING& string) const
 
 BOOL PDXSTRING::operator < (const PDXSTRING& string) const
 {
-	const TSIZE length = PDX_MIN(buffer.Size(),string.buffer.Size());
+	const LONG length = PDX_MIN(buffer.Size(),string.buffer.Size()) - 1;
 
-	for (TSIZE i=0; i < length; ++i)
+	for (LONG i=0; i < length; ++i)
 	{
 		if (converter.lower[buffer[i]] < converter.lower[string.buffer[i]]) return TRUE;
 		else if (converter.lower[buffer[i]] > converter.lower[string.buffer[i]]) return FALSE;
 	}
 
-	return FALSE;
+	return buffer.Size() < string.Size();
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////
@@ -340,13 +340,15 @@ BOOL PDXSTRING::operator < (CONSTITERATOR string) const
 	if (buffer.IsEmpty())
 		return *string != '\0';
 
-	for (TSIZE i=0; buffer[i] != '\0' && string[i] != '\0'; ++i)
+	for (UINT i=0; ; ++i)
 	{
+		if (buffer[i] == '\0') return string[i] != '\0';
+		if (string[i] == '\0') break;
 		if (converter.lower[buffer[i]] < converter.lower[string[i]]) return TRUE;
-		else if (converter.lower[buffer[i]] > converter.lower[string[i]]) return FALSE;
+		if (converter.lower[buffer[i]] > converter.lower[string[i]]) break;
 	}
 
-	return FALSE;
+    return FALSE;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////

@@ -31,6 +31,18 @@ NES_NAMESPACE_BEGIN
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
+MAPPER105::MAPPER105(CONTEXT& c)
+: 
+MAPPER       (c,registers,&ready+1), 
+DipValue     (0),
+DisplayTimer (TRUE),
+elapsed      ("Time Left: ")
+{}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
 VOID MAPPER105::Reset()
 {
 	EnableIrqSync(IRQSYNC_COUNT);
@@ -50,6 +62,8 @@ VOID MAPPER105::Reset()
 	latch = 0;
 	count = 0;
 	ready = 0;
+	
+	UpdateTimer();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -129,7 +143,7 @@ VOID MAPPER105::UpdateIRQ()
 	SetIrqEnable(state);
 
 	if (!state)
-		IrqCount = 0;
+		timer = 0;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -175,12 +189,148 @@ VOID MAPPER105::UpdateBanks()
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
+UINT MAPPER105::NumDipSwitches() const 
+{ 
+	return 2; 
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+VOID MAPPER105::GetDipSwitch(const UINT index,IO::DIPSWITCH::CONTEXT& context) const 
+{
+	PDX_ASSERT( index <= 1 );
+
+	switch (index)
+	{
+     	case 0:
+
+			context.name = "Time";
+
+			context.settings.Resize( 16 );
+
+			context.settings[0x0] = "5.001";
+			context.settings[0x1] = "5.316";
+			context.settings[0x2] = "5.629";
+			context.settings[0x3] = "5.942";
+			context.settings[0x4] = "6.254";
+			context.settings[0x5] = "6.567";
+			context.settings[0x6] = "6.880";
+			context.settings[0x7] = "7.193";
+			context.settings[0x8] = "7.505";
+			context.settings[0x9] = "7.818";
+			context.settings[0xA] = "8.131";
+			context.settings[0xB] = "8.444";
+			context.settings[0xC] = "8.756";
+			context.settings[0xD] = "9.070";
+			context.settings[0xE] = "9.318";
+			context.settings[0xF] = "9.695";
+
+			context.index = DipValue;
+			return;
+
+		case 1:
+
+			context.name = "Display Timer";
+
+			context.settings.Resize( 2 );
+
+			context.settings[0x0] = "no";
+			context.settings[0x1] = "yes";
+
+			context.index = DisplayTimer ? 1 : 0;
+			return;
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+VOID MAPPER105::SetDipSwitch(const UINT index,const IO::DIPSWITCH::CONTEXT& context) 
+{
+	PDX_ASSERT( index <= 1 );
+	
+	switch (index)
+	{
+     	case 0:
+
+			PDX_ASSERT( context.index <= 15 );
+			DipValue = context.index;
+			UpdateTimer();
+			return;
+
+		case 1:
+
+			PDX_ASSERT( context.index <= 1 );
+			DisplayTimer = context.index == 1;
+			return;
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+VOID MAPPER105::UpdateTimer()
+{
+	TimerEnd = cpu->IsPAL() ? NES_CPU_CLOCK_HZ_REAL_PAL : NES_CPU_CLOCK_HZ_REAL_NTSC;
+
+	switch (DipValue)
+	{
+		case 0x0: TimerEnd *= 5.001 * 60; return;
+		case 0x1: TimerEnd *= 5.316 * 60; return;
+		case 0x2: TimerEnd *= 5.629 * 60; return;
+		case 0x3: TimerEnd *= 5.942 * 60; return;
+		case 0x4: TimerEnd *= 6.254 * 60; return;
+		case 0x5: TimerEnd *= 6.567 * 60; return;
+		case 0x6: TimerEnd *= 6.880 * 60; return;
+		case 0x7: TimerEnd *= 7.193 * 60; return;
+		case 0x8: TimerEnd *= 7.505 * 60; return;
+		case 0x9: TimerEnd *= 7.818 * 60; return;
+		case 0xA: TimerEnd *= 8.131 * 60; return;
+		case 0xB: TimerEnd *= 8.444 * 60; return;
+		case 0xC: TimerEnd *= 8.756 * 60; return;
+		case 0xD: TimerEnd *= 9.070 * 60; return;
+		case 0xE: TimerEnd *= 9.318 * 60; return;
+		case 0xF: TimerEnd *= 9.695 * 60; return;
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
 VOID MAPPER105::IrqSync(const UINT delta)
 {
-	if (((IrqCount += delta) | 0x21FFFFFFUL) >= 0x3E000000UL)
+	timer += delta;
+
+	if (timer >= TimerEnd)
 	{
-		IrqCount = 0;
+		timer = 0;
 		cpu->DoIRQ();
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+VOID MAPPER105::EndFrame()
+{
+	if (DisplayTimer && IsIrqEnabled())
+	{
+		elapsed.Resize( 11 );
+
+		const DOUBLE cycles = cpu->IsPAL() ? NES_CPU_CLOCK_HZ_REAL_PAL : NES_CPU_CLOCK_HZ_REAL_NTSC;
+		const ULONG seconds = ULONG((TimerEnd - timer) / cycles);
+
+		elapsed += seconds / 60;
+		elapsed += ":";
+		elapsed += seconds % 60;
+
+		MsgOutput( elapsed );
 	}
 }
 

@@ -34,8 +34,9 @@
 
 DIRECTINPUT::DIRECTINPUT()
 : 
-hWnd   (NULL),
-device (NULL)
+hWnd     (NULL),
+device   (NULL),
+keyboard (NULL)
 {
 	memset( KeyboardBuffer, 0x00, sizeof(KeyboardBuffer) );
 }
@@ -122,6 +123,9 @@ PDXRESULT DIRECTINPUT::Initialize(HWND h)
 
 PDXRESULT DIRECTINPUT::SetUpKeyboard()
 {
+	if (!device)
+		return PDX_FAILURE;
+
 	if (FAILED(device->CreateDevice( GUID_SysKeyboard, &keyboard, NULL )))
 		return Error("IDirectInput8::CreateDevice() failed!");
 
@@ -164,15 +168,16 @@ LPDIRECTINPUTDEVICE8 DIRECTINPUT::GetDevice(UINT index)
 
 VOID DIRECTINPUT::AcquireDevices()
 {
-	PDX_ASSERT(keyboard);
-
-	while (keyboard->Acquire() == DIERR_INPUTLOST)
-		Sleep(100);
-
-	for (UINT i=0; i < joysticks.Size(); ++i)
+	if (keyboard)
 	{
-		while (joysticks[i].device->Acquire() == DIERR_INPUTLOST)
+		while (keyboard->Acquire() == DIERR_INPUTLOST)
 			Sleep(100);
+
+		for (UINT i=0; i < joysticks.Size(); ++i)
+		{
+			while (joysticks[i].device->Acquire() == DIERR_INPUTLOST)
+				Sleep(100);
+		}
 	}
 }
 
@@ -182,7 +187,8 @@ VOID DIRECTINPUT::AcquireDevices()
 
 PDXRESULT DIRECTINPUT::SetCooperativeLevel(DWORD flags)
 {
-	PDX_ASSERT(keyboard);
+	if (!keyboard)
+		return PDX_FAILURE;
 
 	flags |= DISCL_NONEXCLUSIVE;
 
@@ -204,16 +210,17 @@ PDXRESULT DIRECTINPUT::SetCooperativeLevel(DWORD flags)
 
 VOID DIRECTINPUT::PollKeyboard()
 {
-	PDX_ASSERT(keyboard);
-
-	PDXMemZero( KeyboardBuffer, KEYBOARD_BUFFER_SIZE );
-
-	if (FAILED(keyboard->GetDeviceState( sizeof(KeyboardBuffer), PDX_CAST(LPVOID,KeyboardBuffer) )))
+	if (keyboard)
 	{
-		while (keyboard->Acquire() == DIERR_INPUTLOST)
-			Sleep(100);
+		PDXMemZero( KeyboardBuffer, KEYBOARD_BUFFER_SIZE );
 
-		keyboard->GetDeviceState( sizeof(KeyboardBuffer), PDX_CAST(LPVOID,KeyboardBuffer) );
+		if (FAILED(keyboard->GetDeviceState( sizeof(KeyboardBuffer), PDX_CAST(LPVOID,KeyboardBuffer) )))
+		{
+			while (keyboard->Acquire() == DIERR_INPUTLOST)
+				Sleep(100);
+
+			keyboard->GetDeviceState( sizeof(KeyboardBuffer), PDX_CAST(LPVOID,KeyboardBuffer) );
+		}
 	}
 }
 
@@ -223,7 +230,8 @@ VOID DIRECTINPUT::PollKeyboard()
 
 BOOL DIRECTINPUT::ScanKeyboard(DWORD& key)
 {
-	PDX_ASSERT(keyboard);
+	if (!keyboard)
+		return PDX_FAILURE;
 
 	PDXMemZero( KeyboardBuffer, KEYBOARD_BUFFER_SIZE );
 
@@ -273,25 +281,36 @@ UINT DIRECTINPUT::ScanJoystick(DWORD& button,LPDIRECTINPUTDEVICE8& device)
 		if (FAILED(device->GetDeviceState(sizeof(DIJOYSTATE),PDX_CAST(LPVOID,&state))))
 			continue;
 
-		for (UINT j=0; j < 32; ++j)
+		const UINT index = i + 1;
+
+		for (UINT j=0; j < joysticks[i].NumButtons; ++j)
 		{
-			if (state.rgbButtons[j]) 
+			if (state.rgbButtons[j])
 			{
 				button = j;
-				return (i+1);
+				return index;
 			}
 		}
 
-		if (state.lX) 
-		{
-			button = 32 + (state.lX > 0 ? 1 : 0);
-			return (i+1);
-		}
+		const UINT axes = joysticks[i].axes;
 
-		if (state.lY) 
+		if ( state.lX           && (axes & 0x01) ) { button = 32 + (state.lX           > 0 ? 1 : 0); return index; }
+		if ( state.lY           && (axes & 0x02) ) { button = 34 + (state.lY           > 0 ? 1 : 0); return index; }
+		if ( state.lZ           && (axes & 0x04) ) { button = 36 + (state.lZ           > 0 ? 1 : 0); return index; }
+		if ( state.lRx          && (axes & 0x08) ) { button = 38 + (state.lRx          > 0 ? 1 : 0); return index; }
+		if ( state.lRy          && (axes & 0x10) ) { button = 40 + (state.lRy          > 0 ? 1 : 0); return index; }
+		if ( state.lRz          && (axes & 0x20) ) { button = 42 + (state.lRz          > 0 ? 1 : 0); return index; }
+		if ( state.rglSlider[0] && (axes & 0x40) ) { button = 44 + (state.rglSlider[0] > 0 ? 1 : 0); return index; }
+		if ( state.rglSlider[1] && (axes & 0x80) ) { button = 46 + (state.rglSlider[1] > 0 ? 1 : 0); return index; }
+
+		for (UINT j=0; j < joysticks[i].NumPOVs; ++j)
 		{
-			button = 34 + (state.lY > 0 ? 1 : 0);
-			return (i+1);
+			const DWORD pov = state.rgdwPOV[j];
+
+			if ( ( pov & 0xFFFF ) != 0xFFFFU && ( pov >= 31500U || pov <=  4500U ) ) { button = 48 + (j * 4); return index; } // up
+			if ( ( pov & 0xFFFF ) != 0xFFFFU && ( pov >=  4500U && pov <= 13500U ) ) { button = 49 + (j * 4); return index; } // right
+			if ( ( pov & 0xFFFF ) != 0xFFFFU && ( pov >= 13500U && pov <= 22500U ) ) { button = 50 + (j * 4); return index; } // down
+			if ( ( pov & 0xFFFF ) != 0xFFFFU && ( pov >= 22500U && pov <= 31500U ) ) { button = 51 + (j * 4); return index; } // left
 		}
 	}
 
@@ -318,59 +337,82 @@ BOOL CALLBACK DIRECTINPUT::EnumJoysticks(LPCDIDEVICEINSTANCE instance,LPVOID con
 
 	PDX_ASSERT(DirectInput.device);
 
-	if (FAILED(DirectInput.device->CreateDevice(instance->guidInstance,&joystick.device,NULL)))
+	if (FAILED(DirectInput.device->CreateDevice( instance->guidInstance, &joystick.device, NULL )))
 		goto hell;
 
-	if (FAILED(joystick.device->SetDataFormat(&c_dfDIJoystick)))
+	if (FAILED(joystick.device->SetDataFormat( &c_dfDIJoystick )))
 		goto hell;
 
 	{
-		DIPROPRANGE range;
+		DIDEVCAPS caps;
+		DIRECTX::InitStruct( caps );
 
-		range.diph.dwSize       = sizeof(range);
-		range.diph.dwHeaderSize = sizeof(range.diph);
-		range.diph.dwHow        = DIPH_BYOFFSET;
-		range.lMin              = -0x10000;
-		range.lMax              = +0x10000;
-
-		range.diph.dwObj = DIJOFS_X;
-
-		if (FAILED(joystick.device->SetProperty(DIPROP_RANGE,&range.diph))) 
+		if (FAILED(joystick.device->GetCapabilities( &caps )))
 			goto hell;
 
-		range.diph.dwObj = DIJOFS_Y;
-
-		if (FAILED(joystick.device->SetProperty(DIPROP_RANGE,&range.diph))) 
-			goto hell;
+		joystick.NumButtons = PDX_MIN(32,caps.dwButtons);
+		joystick.NumPOVs    = PDX_MIN(4,caps.dwPOVs);
 	}
 
 	{
-		DIPROPDWORD prop;
+		static const LONG offsets[8] =
+		{
+			DIJOFS_X,
+			DIJOFS_Y,
+			DIJOFS_Z,
+			DIJOFS_RX,
+			DIJOFS_RY,
+			DIJOFS_RZ,
+			DIJOFS_SLIDER(0),
+			DIJOFS_SLIDER(1)
+		};
 
-		prop.diph.dwSize       = sizeof(prop); 
-		prop.diph.dwHeaderSize = sizeof(prop.diph); 
-		prop.diph.dwHow        = DIPH_BYOFFSET; 
-		prop.dwData            = 1000; 
+		{
+			DIPROPRANGE range;
+			PDXMemZero( range );
 
-		prop.diph.dwObj = DIJOFS_X;
+			range.diph.dwSize       = sizeof(range);
+			range.diph.dwHeaderSize = sizeof(range.diph);
+			range.diph.dwHow        = DIPH_BYOFFSET;
+			range.lMin              = -1000;
+			range.lMax              = +1000;
 
-		if (FAILED(joystick.device->SetProperty(DIPROP_DEADZONE,&prop.diph))) 
-			goto hell;
+			for (UINT i=0; i < 8; ++i)
+			{
+				range.diph.dwObj = offsets[i];
 
-		prop.diph.dwObj = DIJOFS_Y;
+				if (SUCCEEDED(joystick.device->SetProperty( DIPROP_RANGE, &range.diph )))
+					joystick.axes |= (1U << i);
+			}
+		}
 
-		if (FAILED(joystick.device->SetProperty(DIPROP_DEADZONE,&prop.diph))) 
-			goto hell;
+		{
+			DIPROPDWORD prop;
+			PDXMemZero( prop );
 
-		prop.diph.dwHow = DIPH_DEVICE;
-		prop.dwData     = DIPROPAXISMODE_ABS;
-		prop.diph.dwObj = 0;
+			prop.diph.dwSize       = sizeof(prop);
+			prop.diph.dwHeaderSize = sizeof(prop.diph);
+			prop.diph.dwHow        = DIPH_BYOFFSET;
+			prop.dwData            = 2500;
 
-		if (FAILED(joystick.device->SetProperty(DIPROP_AXISMODE,&prop.diph))) 
-			goto hell;
+			for (UINT i=0; i < 8; ++i)
+			{
+				if (joystick.axes & (1U << i))
+				{
+					prop.diph.dwObj = offsets[i];
+					joystick.device->SetProperty( DIPROP_DEADZONE, &prop.diph );
+				}
+			}
+
+			prop.diph.dwObj = 0;
+			prop.diph.dwHow = DIPH_DEVICE;
+			prop.dwData     = DIPROPAXISMODE_ABS;
+
+			joystick.device->SetProperty( DIPROP_AXISMODE, &prop.diph );
+		}
 	}
-  
-	memcpy( &joystick.guid, &instance->guidInstance, sizeof(joystick.guid) );
+
+	PDXMemCopy( joystick.guid, instance->guidInstance );
 
 	return DIENUM_CONTINUE;
 

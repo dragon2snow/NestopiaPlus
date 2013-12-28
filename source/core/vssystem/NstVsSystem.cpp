@@ -496,7 +496,7 @@ VSSYSTEM* VSSYSTEM::New(CPU* const cpu,PPU* const ppu,const ULONG pRomCrc)
 			VsSystem = new VSRBIBASEBALL(context);
 			break; 
 			
-		case 0xED588F00: // Duck Hunt
+		case 0xED588F00UL: // Duck Hunt
 
 			NES_DIPBEGIN ( "Coinage",             0x07, 0 )
 			NES_DIPVALUE ( "1 Coins / 1 Credit",  0x00    )
@@ -663,7 +663,7 @@ VSSYSTEM* VSSYSTEM::New(CPU* const cpu,PPU* const ppu,const ULONG pRomCrc)
 
 			goto hell;
 
-		case 0xCF36261E: // Sky Kid
+		case 0xCF36261EUL: // Sky Kid
 
 			NES_DIPBEGIN    ( "unknown",            0x01, 0 )
 			NES_DIPVALUE    ( "Off",                0x00    )
@@ -694,7 +694,7 @@ VSSYSTEM* VSSYSTEM::New(CPU* const cpu,PPU* const ppu,const ULONG pRomCrc)
 
 			goto hell;
 
-		case 0xE1AA8214: // Star Luster
+		case 0xE1AA8214UL: // Star Luster
 
 			NES_DIPBEGIN    ( "Coinage",            0x03, 0 )
 			NES_DIPVALUE    ( "1 Coins / 1 Credit", 0x00    )
@@ -1251,7 +1251,7 @@ VSSYSTEM* VSSYSTEM::New(CPU* const cpu,PPU* const ppu,const ULONG pRomCrc)
 
 			goto hell;
 
-		case 0xB90497AA: // Tennis
+		case 0xB90497AAUL: // Tennis
 
 			NES_DIPBEGIN ( "Difficulty Vs. Computer", 0x03, 1 )
      		NES_DIPVALUE ( "Easy",                    0x00    )

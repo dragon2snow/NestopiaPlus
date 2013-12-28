@@ -33,16 +33,22 @@ NES_NAMESPACE_BEGIN
 
 VOID MAPPER91::Reset()
 {
-	cpu->SetPort( 0x6000, this, Peek_Nop, Poke_6000 );
-	cpu->SetPort( 0x6001, this, Peek_Nop, Poke_6001 );
-	cpu->SetPort( 0x6002, this, Peek_Nop, Poke_6002 );
-	cpu->SetPort( 0x6003, this, Peek_Nop, Poke_6003 );
-	cpu->SetPort( 0x7000, this, Peek_Nop, Poke_7000 );
-	cpu->SetPort( 0x7001, this, Peek_Nop, Poke_7001 );
-	cpu->SetPort( 0x7002, this, Peek_Nop, Poke_7002 );
-	cpu->SetPort( 0x7003, this, Peek_Nop, Poke_7003 );
+	EnableIrqSync(IRQSYNC_PPU);
 
-	EnableIrqSync(IRQSYNC_COUNT);
+	for (UINT i=0x6000; i <= 0x7FFF; ++i)
+	{
+		switch (i & 0xF003)
+		{
+     		case 0x6000: cpu->SetPort( i, this, Peek_Nop, Poke_6000 ); continue; 
+			case 0x6001: cpu->SetPort( i, this, Peek_Nop, Poke_6001 ); continue;
+			case 0x6002: cpu->SetPort( i, this, Peek_Nop, Poke_6002 ); continue;
+			case 0x6003: cpu->SetPort( i, this, Peek_Nop, Poke_6003 ); continue;
+			case 0x7000: cpu->SetPort( i, this, Peek_Nop, Poke_7000 ); continue;
+			case 0x7001: cpu->SetPort( i, this, Peek_Nop, Poke_7001 ); continue;
+			case 0x7002: cpu->SetPort( i, this, Peek_Nop, Poke_7002 ); continue;
+			case 0x7003: cpu->SetPort( i, this, Peek_Nop, Poke_7003 ); continue;
+		}
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -55,8 +61,8 @@ NES_POKE(MAPPER91,6002) { ppu->Update(); cRom.SwapBanks<n2k,0x1000>(data); }
 NES_POKE(MAPPER91,6003) { ppu->Update(); cRom.SwapBanks<n2k,0x1800>(data); }
 NES_POKE(MAPPER91,7000) { apu->Update(); pRom.SwapBanks<n8k,0x0000>(data); }
 NES_POKE(MAPPER91,7001) { apu->Update(); pRom.SwapBanks<n8k,0x2000>(data); }
-NES_POKE(MAPPER91,7002) { IrqCount = data; }
-NES_POKE(MAPPER91,7003) { SetIrqEnable(data); cpu->ClearIRQ(); }
+NES_POKE(MAPPER91,7002) { SetIrqEnable(FALSE); cpu->ClearIRQ(); IrqCount = 0; }
+NES_POKE(MAPPER91,7003) { SetIrqEnable(TRUE); }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -64,11 +70,8 @@ NES_POKE(MAPPER91,7003) { SetIrqEnable(data); cpu->ClearIRQ(); }
 
 VOID MAPPER91::IrqSync()
 {
-	if (IrqCount-- <= 0)
-	{
-		SetIrqEnable(FALSE);
+	if (++IrqCount >= 8)
 		cpu->DoIRQ();
-	}
 }
 
 NES_NAMESPACE_END

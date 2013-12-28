@@ -244,6 +244,10 @@
 			<File
 				RelativePath="..\source\core\NstGameGenie.h"/>
 			<File
+				RelativePath="..\source\core\NstImageFile.cpp"/>
+			<File
+				RelativePath="..\source\core\NstImageFile.h"/>
+			<File
 				RelativePath="..\source\core\NstInes.cpp"/>
 			<File
 				RelativePath="..\source\core\NstInes.h"/>
@@ -283,6 +287,10 @@
 				RelativePath="..\source\core\NstPpu.inl"/>
 			<File
 				RelativePath="..\source\core\NstTypes.h"/>
+			<File
+				RelativePath="..\source\core\NstUnif.cpp"/>
+			<File
+				RelativePath="..\source\core\NstUnif.h"/>
 			<Filter
 				Name="mapper"
 				Filter="">
@@ -975,6 +983,10 @@
 				RelativePath="..\source\windows\NstTimer.cpp"/>
 			<File
 				RelativePath="..\source\windows\NstTimer.h"/>
+			<File
+				RelativePath="..\source\windows\NstUserInputManager.cpp"/>
+			<File
+				RelativePath="..\source\windows\NstUserInputManager.h"/>
 			<File
 				RelativePath="..\source\windows\NstVsDipswitchManager.cpp"/>
 			<File

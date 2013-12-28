@@ -26,22 +26,10 @@
 #include "../paradox/PdxFile.h"
 #include "mapper/NstMappers.h"
 #include "NstCartridge.h"
+#include "NstImageFile.h"
 #include "NstINes.h"
 
-#ifdef NES_USE_ROM_DATABASE
- 
- #include <Windows.h>
- #include "../windows/resource/resource.h"
-
-#endif
-
 NES_NAMESPACE_BEGIN
-
-#ifdef NES_USE_ROM_DATABASE
-
- PDXMAP<INES::IMAGE,U32> INES::database;
-
-#endif
 
 #define NES_INES_SIGNATURE 0x1A53454EUL
 
@@ -87,8 +75,6 @@ PDXRESULT INES::Import(CARTRIDGE* const cartridge,PDXFILE& file,const IO::GENERA
 	PDX_TRY(CheckDatabase( cartridge, file, context ));
 
   #endif
-
-	DoFinalAdjustments( cartridge );
 
 	return PDX_OK;
 }
@@ -146,117 +132,7 @@ VOID INES::MessWithTheHeader(CARTRIDGE* const cartridge,HEADER& header)
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-VOID INES::DoFinalAdjustments(CARTRIDGE* const cartridge)
-{
-	if (cartridge->info.mirroring == MIRROR_FOURSCREEN)
-	{
-		switch (cartridge->info.mapper)
-		{
-    		case  24:
-     		case  26:
-       		case 118:
-
-     			cartridge->info.mirroring = MIRROR_HORIZONTAL;
-       			break;
-		}
-	}
-
-	if (!cartridge->info.battery)
-	{
-		switch (cartridge->info.pRomCrc)
-		{
-     		case 0xB17574F3UL: // AD&D Heroes of the Lance
-     		case 0x25952141UL: // AD&D Pool of Radiance
-			case 0x1335CB05UL: // Crystalis
-			case 0x2545214CUL: // Dragon Warrior PRG(0,1)
-			case 0x45F03D2EUL: // Faria
-     		case 0xE1383DEBUL: // Mouryou Senki Madara
-          	case 0x3B3F88F0UL: // -||-
-			case 0x889129CBUL: // Startropics
-			case 0xD054FFB0UL: // Startropics 2
-			case 0x7CAB2E9BUL: // -||-
-			case 0x3EE43CDAUL: // -||-
-		
-				cartridge->info.battery = TRUE;
-		}
-	}
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
 #ifdef NES_USE_ROM_DATABASE
-
-VOID INES::ImportDatabase()
-{
-	const CHAR* iterator = NULL;		
-	const CHAR* end = NULL;
-	
-	HGLOBAL hGlobal;
-	HMODULE hModule = GetModuleHandle( NULL );		
-	HRSRC hRsrc = FindResource( hModule, MAKEINTRESOURCE(IDR_ROMDATABASE1),"RomDatabase" );
-
-	if (hRsrc && (hGlobal = LoadResource( hModule, hRsrc )))
-	{
-		const DWORD size = SizeofResource( hModule, hRsrc );
-
-		if (size)
-		{
-			iterator = (const CHAR*) LockResource(hGlobal);
-			end = iterator + size;
-		}
-	}
-
-	if (!iterator)
-		return;
-
-	PDXARRAY<const CHAR*> copyright;
-	copyright.Resize(*PDX_CAST(const U8*,iterator));
-
-	iterator += sizeof(U8);
-
-	for (UINT i=0; i < copyright.Size(); ++i)
-	{
-		copyright[i] = iterator;
-		iterator += strlen(iterator) + 1;
-	}
-
-	while (iterator < end)
-	{
-		const CHAR* const name = iterator;
-		iterator += strlen(name) + 1;
-
-		const DBCHUNK* const chunk = PDX_CAST(const DBCHUNK*,iterator);
-		iterator += sizeof(DBCHUNK);
-
-		IMAGE& image = database[chunk->pRomCrc];
-
-		image.name        = name;
-		image.copyright   = copyright[chunk->copyright];
-		image.pRomCrc     = chunk->pRomCrc;
-		image.pRomSize    = chunk->pRomSize;
-		image.cRomSize    = chunk->cRomSize;
-		image.wRamSize    = chunk->wRamSize;
-		image.mapper      = chunk->mapper;
-		image.pal         = chunk->pal;
-		image.ntsc        = chunk->ntsc;
-		image.vs          = chunk->vs;
-		image.p10         = chunk->p10;
-		image.mirroring   = chunk->mirroring;
-		image.battery     = chunk->battery;
-		image.trainer     = chunk->trainer;
-		image.bad         = chunk->bad;
-		image.hack        = chunk->hack;
-		image.translation = chunk->translation;
-		image.unlicensed  = chunk->unlicensed;
-		image.bootleg     = chunk->bootleg;
-	}
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
 
 PDXRESULT INES::CheckDatabase(CARTRIDGE* const cartridge,PDXFILE& file,const IO::GENERAL::CONTEXT& context)
 {

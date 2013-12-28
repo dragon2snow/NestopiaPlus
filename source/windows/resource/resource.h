@@ -148,6 +148,13 @@
 #define IDM_FILE_MOVIE_REWIND           244
 #define IDM_VIEW_LOGFILE                245
 #define IDM_HELP_LICENCE                246
+#define IDM_VIEW_WINDOWSIZE_MAX         247
+#define IDM_VIEW_WINDOWSIZE_1X          248
+#define IDM_VIEW_WINDOWSIZE_2X          249
+#define IDM_VIEW_WINDOWSIZE_4X          250
+#define IDM_VIEW_WINDOWSIZE_8X          251
+#define IDD_DIALOG1                     600
+#define IDD_USERINPUT                   600
 #define IDC_SOUND_DEVICE                1001
 #define IDC_SOUND_SAMPLE_RATE           1002
 #define IDC_SOUND_ENABLE                1003
@@ -229,9 +236,6 @@
 #define IDC_GRAPHICS_COLORS_BRIGHTNESS_VAL 1612
 #define IDC_GRAPHICS_COLORS_RESET       1613
 #define IDC_GRAPHICS_EFFECTS            1614
-#define IDC_GRAPHICS_SIZE_NORMAL        1615
-#define IDC_GRAPHICS_SIZE_STRETCHED     1616
-#define IDC_GRAPHICS_SIZE_MATCHED       1617
 #define IDC_GRAPHICS_PALETTE_BROWSE     1618
 #define IDC_GRAPHICS_PALETTE_PATH       1619
 #define IDC_GRAPHICS_PALETTE_CLEAR      1620
@@ -313,17 +317,20 @@
 #define IDC_LOGFILE_EDIT                2021
 #define IDC_LICENCE_OK                  2023
 #define IDC_LICENCE_EDIT                2024
-#define IDC_EMAIL                       2027
 #define IDC_ABOUT_URL                   2028
 #define IDC_ABOUT_GNU                   2029
+#define IDC_USERINPUT_ABORT             2030
+#define IDC_USERINPUT_OK                2031
+#define IDC_USERINPUT_EDIT              2032
+#define IDC_USERINPUT_TEXT              2034
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        600
-#define _APS_NEXT_COMMAND_VALUE         247
-#define _APS_NEXT_CONTROL_VALUE         2030
+#define _APS_NEXT_RESOURCE_VALUE        601
+#define _APS_NEXT_COMMAND_VALUE         258
+#define _APS_NEXT_CONTROL_VALUE         2035
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

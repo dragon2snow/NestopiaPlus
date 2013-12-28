@@ -24,46 +24,32 @@
 
 #pragma once
 
-#ifndef NST_MAPPER_187_H
-#define NST_MAPPER_187_H
+#ifndef NST_USERINPUTMANAGER_H
+#define NST_USERINPUTMANAGER_H
 
-NES_NAMESPACE_BEGIN
+#include "NstManager.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
-// mapper 187
+//
 ////////////////////////////////////////////////////////////////////////////////////////
 
-class MAPPER187 : public MAPPER4
+class USERINPUTMANAGER : public MANAGER
 {
 public:
 
-	MAPPER187(CONTEXT& c)
-	: MAPPER4(c,&UseExBank,&ExBanks+2) {}
+	USERINPUTMANAGER()
+	: MANAGER(IDD_USERINPUT) {}
+
+	BOOL Start(const CHAR* const,const CHAR* const,PDXSTRING&);
 
 private:
 
-	VOID UpdatePRom();
-	VOID Reset();
+	BOOL DialogProc(HWND,UINT,WPARAM,LPARAM);
 
-	NES_DECL_POKE( 5000 );
-	NES_DECL_PEEK( 5000 );
-	NES_DECL_POKE( 5001 );
-	NES_DECL_POKE( 8000 );
-	NES_DECL_POKE( 8001	);
-	NES_DECL_POKE( 8003	);
-
-	enum
-	{
-		SWAP_32        = b00100000,
-		SWAP_NO_EXBANK = b10000000
-	};
-
-	BOOL UseExBank;
-	UINT latch;
-	UINT ExBankMode;
-	UINT ExBanks[2];
+	BOOL ok;
+	PDXSTRING title;
+	PDXSTRING msg;
+	PDXSTRING input;
 };
-
-NES_NAMESPACE_END
 
 #endif

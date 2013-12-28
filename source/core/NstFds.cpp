@@ -190,8 +190,16 @@ PDXRESULT FDS::SetBIOS(PDXFILE& file)
 
 		if (file.Readable( sizeof(U8) * n8k ))
 		{
-			if (PDXCRC32::Compute( file.At(file.Position()), n8k ) != 0x5E607DCFUL)
-				MsgWarning("The bios file was not recognized and may not work properly!");
+			switch (PDXCRC32::Compute( file.At(file.Position()), n8k ))
+			{
+     			case 0x5E607DCFUL:
+				case 0x4DF24A6CUL: // twinsys
+					break;
+
+				default:
+
+					MsgWarning("The bios file was not recognized and may not work properly!");
+			}
 
 			BiosLoaded = TRUE;
 			file.Read( bRom, bRom + n8k );

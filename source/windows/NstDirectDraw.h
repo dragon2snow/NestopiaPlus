@@ -51,6 +51,8 @@ public:
 	PDXRESULT EnableGDI(const BOOL);
 	PDXRESULT TryClearScreen();
 
+	VOID UpdateScreenRect(const RECT&);
+
 	inline UINT IsGDI() const
 	{ return GDIMode; }
 	
@@ -81,17 +83,14 @@ public:
 	inline BOOL IsWindowed() const
 	{ return windowed; }
 
-	VOID UpdateScreenRect(const RECT& rect)
-	{
-		PDX_ASSERT(windowed);
-		ScreenRect = rect; 
-	}
-
 	inline LPDIRECTDRAW7 GetDevice()
 	{ return device; }
 
 	inline const RECT& GetScreenRect() const
 	{ return ScreenRect; }
+
+	inline const RECT& GetNesRect() const
+	{ return NesRect; }
 
 	inline UINT GetDisplayWidth() const
 	{ return DisplayMode.width; }
@@ -120,13 +119,6 @@ protected:
 	PDXRESULT SwitchToWindowed()
 	{ return SwitchToWindowed( ScreenRect ); }
 
-	enum SCREENMODE
-	{
-		SCREENMODE_NORMAL,
-		SCREENMODE_MATCHED,
-		SCREENMODE_STRETCHED
-	};
-
 	enum SCREENEFFECT
 	{
 		SCREENEFFECT_NONE,
@@ -140,7 +132,6 @@ protected:
 
 	PDX_NO_INLINE PDXRESULT SetScreenParameters
 	(
-    	const SCREENMODE,
 		const SCREENEFFECT,
 		const BOOL,
 		const RECT&,
@@ -156,7 +147,7 @@ protected:
 
 private:
 
-	static PDXRESULT Error(const CHAR* const);
+	PDXRESULT Error(const CHAR* const);
 
 	static HRESULT CALLBACK EnumDisplayModes(LPDDSURFACEDESC2,LPVOID);
 	static BOOL WINAPI EnumAdapters(LPGUID,LPSTR,LPSTR,LPVOID,HMONITOR);
@@ -165,11 +156,10 @@ private:
 	PDX_NO_INLINE PDXRESULT CreateScreenBuffers();
 	PDX_NO_INLINE PDXRESULT CreateNesBuffer();
 	PDX_NO_INLINE PDXRESULT CreateClipper();
-	PDX_NO_INLINE PDXRESULT UpdateRectangles();
 	
 	PDXRESULT ClearSurface(LPDIRECTDRAWSURFACE7) const;
 	
-	static PDX_NO_INLINE PDXRESULT GetSurfaceDesc(LPDIRECTDRAWSURFACE7,DDSURFACEDESC2&);
+	PDX_NO_INLINE PDXRESULT GetSurfaceDesc(LPDIRECTDRAWSURFACE7,DDSURFACEDESC2&);
 
 	template<class T> PDX_NO_INLINE VOID BltNesScreen(T* const,const LONG);
 	template<class T> PDX_NO_INLINE VOID BltNesScreenUnaligned(T*,const LONG);
@@ -204,7 +194,6 @@ private:
 	BOOL UseVRam;
 	BOOL UseVSync;
 
-	SCREENMODE ScreenMode;
 	SCREENEFFECT ScreenEffect;
 
 	DDCAPS caps;

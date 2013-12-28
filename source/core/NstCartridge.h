@@ -62,6 +62,12 @@ public:
 private:
 
 	friend class INES;
+	friend class UNIF;
+
+	VOID DetectVS();
+	VOID DetectMirroring();
+	VOID DetectBattery();
+	VOID DetectControllers();
 
 	VOID LoadBatteryRam();
 	VOID SaveBatteryRam() const;

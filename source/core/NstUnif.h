@@ -24,44 +24,68 @@
 
 #pragma once
 
-#ifndef NST_MAPPER_187_H
-#define NST_MAPPER_187_H
+#ifndef NST_UNIF_H
+#define NST_UNIF_H
+
+class PDXFILE;
+
+#include "../paradox/PdxMap.h"
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
 
 NES_NAMESPACE_BEGIN
 
-////////////////////////////////////////////////////////////////////////////////////////
-// mapper 187
-////////////////////////////////////////////////////////////////////////////////////////
-
-class MAPPER187 : public MAPPER4
+class UNIF : public IMAGEFILE
 {
 public:
 
-	MAPPER187(CONTEXT& c)
-	: MAPPER4(c,&UseExBank,&ExBanks+2) {}
+	UNIF();
 
+	PDXRESULT Import
+	(
+       	CARTRIDGE* const,
+		PDXFILE&,
+		const IO::GENERAL::CONTEXT&
+	);
+	
 private:
 
-	VOID UpdatePRom();
-	VOID Reset();
+	typedef PDXMAP<U8,PDXSTRING> BOARDS;
 
-	NES_DECL_POKE( 5000 );
-	NES_DECL_PEEK( 5000 );
-	NES_DECL_POKE( 5001 );
-	NES_DECL_POKE( 8000 );
-	NES_DECL_POKE( 8001	);
-	NES_DECL_POKE( 8003	);
+	BOARDS boards;
 
-	enum
+	U32 pRomCrcs[16];
+	U32 cRomCrcs[16];
+
+   #ifdef NES_USE_ROM_DATABASE
+
+	PDXRESULT CheckDatabase
+	(
+		CARTRIDGE* const,
+		PDXFILE&,
+		const IO::GENERAL::CONTEXT&
+	);
+
+   #endif
+
+   #pragma pack(push,1)
+
+	struct HEADER
 	{
-		SWAP_32        = b00100000,
-		SWAP_NO_EXBANK = b10000000
+		CHAR signature[4];
+		U32  revision;
+		U8   reserved[24];
 	};
 
-	BOOL UseExBank;
-	UINT latch;
-	UINT ExBankMode;
-	UINT ExBanks[2];
+	struct CHUNK
+	{
+		CHAR id[4];
+		U32 length;
+	};
+
+   #pragma pack(pop)
 };
 
 NES_NAMESPACE_END

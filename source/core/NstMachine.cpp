@@ -332,7 +332,11 @@ const IO::CARTRIDGE::INFO* MACHINE::GetCartridgeInfo() const
 
 UINT MACHINE::GetNumVsSystemDipSwitches() const
 { 
-	return VsSystem ? VsSystem->NumDipSwitches() : 0; 
+	return 
+	(
+      	VsSystem ? VsSystem->NumDipSwitches() : 
+     	(cartridge ? cartridge->Mapper()->NumDipSwitches() : 0)
+	); 
 }
 
 PDXRESULT MACHINE::GetVsSystemDipSwitch(const UINT index,IO::DIPSWITCH::CONTEXT& context) const
@@ -340,6 +344,12 @@ PDXRESULT MACHINE::GetVsSystemDipSwitch(const UINT index,IO::DIPSWITCH::CONTEXT&
 	if (VsSystem)
 	{
 		VsSystem->GetDipSwitch( index, context );
+		return PDX_OK;
+	}
+
+	if (cartridge && cartridge->Mapper()->NumDipSwitches())
+	{
+		cartridge->Mapper()->GetDipSwitch( index, context );
 		return PDX_OK;
 	}
 
@@ -351,6 +361,12 @@ PDXRESULT MACHINE::SetVsSystemDipSwitch(const UINT index,const IO::DIPSWITCH::CO
 	if (VsSystem)
 	{
 		VsSystem->SetDipSwitch( index, context );
+		return PDX_OK;
+	}
+
+	if (cartridge && cartridge->Mapper()->NumDipSwitches())
+	{
+		cartridge->Mapper()->SetDipSwitch( index, context );
 		return PDX_OK;
 	}
 
@@ -381,12 +397,13 @@ PDXRESULT MACHINE::Load(PDXFILE& file)
 	{
 		switch (file.Peek<U32>())
 		{
-     		case 0x1A53454EUL: return LoadNES( file );
-			case 0x1A534446UL: return LoadFDS( file );
-    		case 0x4D53454EUL: return LoadNSF( file );
-			case 0x43544150UL: return LoadIPS( file );
-			case 0x1A54534EUL: return LoadNST( file );
-			case 0x1A564D4EUL: return LoadMovie( file.Name() );
+     		case 0x1A53454EUL: return LoadINES  ( file );
+			case 0x46494E55UL: return LoadUNIF  ( file );
+			case 0x1A534446UL: return LoadFDS   ( file );
+    		case 0x4D53454EUL: return LoadNSF   ( file );
+			case 0x43544150UL: return LoadIPS   ( file );
+			case 0x1A54534EUL: return LoadNST   ( file );
+			case 0x1A564D4EUL: return LoadMovie ( file.Name() );
 		}
 	}
 
@@ -427,7 +444,7 @@ VOID MACHINE::Unload()
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT MACHINE::LoadNES(PDXFILE& file)
+PDXRESULT MACHINE::LoadINES(PDXFILE& file)
 {
 	Unload();
 
@@ -447,6 +464,53 @@ PDXRESULT MACHINE::LoadNES(PDXFILE& file)
 
 	if (GeneralContext.ApplyIPS)
 		ApplyIPS( file );
+
+	if (PDX_FAILED(cartridge->Load( file, cpu, ppu, GeneralContext )))
+	{
+		Unload();
+		return PDX_FAILURE;
+	}
+
+	if (cartridge->GetInfo().system == SYSTEM_VS)
+	{
+		if (!(VsSystem = VSSYSTEM::New( cpu, ppu, cartridge->GetInfo().pRomCrc )))
+		{
+			Unload();
+			return PDX_FAILURE;
+		}
+	}
+
+	return PDX_OK;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+PDXRESULT MACHINE::LoadUNIF(PDXFILE& file)
+{
+	Unload();
+
+	RecentImage = file.Name();
+
+	{
+		PDXSTRING log;
+
+		log  = "MACHINE: Loading UNIF file \"";
+		log	+= file.Name();
+		log += "\"";
+
+		LogOutput( log );
+	}
+
+	cartridge = new CARTRIDGE;
+
+ #ifdef NES_AUTO_IPS_ON_UNIF // IPS patching is not that useful for UNIF files so default is off
+
+	if (GeneralContext.ApplyIPS)
+		ApplyIPS( file );
+
+ #endif
 
 	if (PDX_FAILED(cartridge->Load( file, cpu, ppu, GeneralContext )))
 	{
@@ -992,105 +1056,21 @@ VOID MACHINE::SetMode(MODE m)
 
 VOID MACHINE::AutoSelectController()
 {
-	ConnectController( 0, CONTROLLER_PAD1        );
-	ConnectController( 1, CONTROLLER_PAD2        );
-	ConnectController( 2, CONTROLLER_UNCONNECTED );
-	ConnectController( 3, CONTROLLER_UNCONNECTED );
-	ConnectController( 4, CONTROLLER_UNCONNECTED );
-
 	if (cartridge)
 	{
-		switch (cartridge->GetInfo().pRomCrc)
-		{
-			case 0xFBFC6A6CUL: // Adventures of Bayou Billy, The (E)
-			case 0xCB275051UL: // Adventures of Bayou Billy, The (U)
-			case 0xFB69C131UL: // Baby Boomer (Unl) (U)
-			case 0xF2641AD0UL: // Barker Bill's Trick Shooting (U)
-			case 0xBC1DCE96UL: // Chiller (Unl) (U)
-			case 0x90CA616DUL: // Duck Hunt (JUE)
-			case 0x59E3343FUL: // Freedom Force (U)
-			case 0x242A270CUL: // Gotcha! (U)
-			case 0x7B5BD2DEUL: // Gumshoe (UE)
-			case 0x255B129CUL: // Gun Sight (J)
-			case 0x8963AE6EUL: // Hogan's Alley (JU)
-			case 0x51D2112FUL: // Laser Invasion (U)
-			case 0x0A866C94UL: // Lone Ranger, The (U)
-			case 0xE4C04EEAUL: // Mad City (J)
-			case 0x9EEF47AAUL: // Mechanized Attack (U)
-			case 0xC2DB7551UL: // Shooting Range (U)
-			case 0x163E86C0UL: // To The Earth (U)
-			case 0x389960DBUL: // Wild Gunman (JUE)
-			case 0xED588f00UL: // VS Duck Hunt
-			case 0x17AE56BEUL: // VS Freedom Force.nes
-			case 0xFF5135A3UL: // VS Hogan's Alley
-
-				LogOutput("MACHINE: auto-connected a standard controller to port 0");
-				LogOutput("MACHINE: auto-connected a zapper to port 1");
-				
-				ConnectController( 1, CONTROLLER_ZAPPER );
-				break;
-
-			case 0x35893B67UL: // Arkanoid (J)
-			case 0x6267FBD1UL: // Arkanoid 2 (J)
-
-				LogOutput("MACHINE: auto-connected a paddle to port 0");
-				LogOutput("MACHINE: auto-connected a standard controller to port 1");
-				
-				ConnectController( 0, CONTROLLER_PADDLE );
-				break;
-
-			case 0xBC5F6C94UL: // Athletic World (U)
-			case 0xD836A90BUL: // Dance Aerobics (U)
-			case 0x96C4CE38UL: // Short Order - Eggsplode (U)
-			case 0x987DCDA3UL: // Street Cop (U)
-
-				LogOutput("MACHINE: auto-connected a standard controller to port 0");
-				LogOutput("MACHINE: auto-connected a power pad to port 1");
-				
-				ConnectController( 1, CONTROLLER_POWERPAD );
-				break;
-
-			case 0xF9DEF527UL: // Family BASIC (Ver 2.0)
-			case 0xDE34526EUL: // Family BASIC (Ver 2.1a)
-			case 0xF050B611UL: // Family BASIC (Ver 3)
-			case 0x3AAEED3FUL: // Family BASIC (Ver 3) (Alt)
-
-				LogOutput("MACHINE: auto-connected a standard controller to port 0");
-				LogOutput("MACHINE: auto-connected a standard controller to port 1");
-				LogOutput("MACHINE: auto-connected a keyboard to the expansion port");
-				
-				ConnectController( 4, CONTROLLER_KEYBOARD );
-				break;
-
-			case 0x3B997543UL: // Gauntlet 2 (E)
-			case 0x2C609B52UL: // Gauntlet 2 (U)
-			case 0x1352F1B9UL: // Greg Norman's Golf Power (U) 
-			case 0xAB8371F6UL: // Kings of the Beach (U)
-			case 0x0939852FUL: // M.U.L.E. (U)
-			case 0xDA2CB59AUL: // Nightmare on Elm Street, A (U)
-			case 0x9EDD2159UL: // R.C. Pro-Am 2 (U)
-			case 0xD3428E2EUL: // Super Jeopardy! (U)
-			case 0x15E98A14UL: // Super Spike V'Ball (U)
-			case 0xEBB9DF3DUL: // Super Spike V'Ball (E)
-			case 0x35190A3FUL: // Super Spike V'Ball - Nintendo World Cup (U)
-			case 0x3417EC46UL: // Swords and Serpents (U)
-			case 0xD153CAF6UL: // Swords and Serpents (E)
-
-				LogOutput("MACHINE: auto-connected a standard controller to port 0");
-				LogOutput("MACHINE: auto-connected a standard controller to port 1");
-				LogOutput("MACHINE: auto-connected a standard controller to port 2");
-				LogOutput("MACHINE: auto-connected a standard controller to port 3");
-
-				ConnectController( 2, CONTROLLER_PAD3 );
-				ConnectController( 3, CONTROLLER_PAD4 );
-				break;
-
-			default:
-
-				LogOutput("MACHINE: auto-connected a standard controller to port 0");
-				LogOutput("MACHINE: auto-connected a standard controller to port 1");
-				break;
-		}
+		ConnectController( 0, cartridge->GetInfo().controllers[0] );
+		ConnectController( 1, cartridge->GetInfo().controllers[1] );
+		ConnectController( 2, cartridge->GetInfo().controllers[2] );
+		ConnectController( 3, cartridge->GetInfo().controllers[3] );
+		ConnectController( 4, cartridge->GetInfo().controllers[4] );
+	}
+	else
+	{
+		ConnectController( 0, CONTROLLER_PAD1        );
+		ConnectController( 1, CONTROLLER_PAD2        );
+		ConnectController( 2, CONTROLLER_UNCONNECTED );
+		ConnectController( 3, CONTROLLER_UNCONNECTED );
+		ConnectController( 4, CONTROLLER_UNCONNECTED );
 	}
 
 	InitializeControllers();

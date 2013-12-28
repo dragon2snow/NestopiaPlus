@@ -48,6 +48,7 @@ class PREFERENCES;
 class ROMINFO;
 class LOGFILEMANAGER;
 class HELPMANAGER;
+class USERINPUTMANAGER;
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // window class
@@ -113,9 +114,10 @@ public:
 	VOID LogOutput(const CHAR* const) const;
 	VOID LogSeparator() const;
 
-	PDXRESULT   OnError    (const CHAR* const);
-	PDXRESULT   OnWarning  (const CHAR* const);
-	BOOL        OnQuestion (const CHAR* const,const CHAR* const);
+	PDXRESULT   OnError     (const CHAR* const);
+	PDXRESULT   OnWarning   (const CHAR* const);
+	BOOL        OnQuestion  (const CHAR* const,const CHAR* const);
+	BOOL        OnUserInput	(const CHAR* const,const CHAR* const,PDXSTRING&);
 
 	enum
 	{
@@ -152,6 +154,9 @@ private:
 	VOID UpdateRecentFiles();
 	VOID UpdateWindowsTitle();
 	VOID UpdateWindowItems();
+	VOID UpdateWindowSizes(const UINT,const UINT);
+	VOID UpdateWindowRect(RECT&,const RECT&);
+	VOID UpdateWindowRect(RECT&);
 	VOID UpdateControllerPorts();
 	VOID UpdateDynamicMenuItems();
 	VOID UpdateSoundRecorderMenu();
@@ -159,6 +164,7 @@ private:
 	VOID UpdateFdsMenu();
 	VOID UpdateNsf();
 	VOID ResetSaveSlots(const BOOL=FALSE);
+	VOID ApplyWindowSizing();
 
 	VOID OutputScreenMsg();
 	VOID OutputNsfInfo();
@@ -193,11 +199,11 @@ private:
 	VOID OnFdsEjectDisk();
 	VOID OnFdsSide(const UINT);
 	VOID OnNsfCommand(const NES::IO::NSF::OP);
-	VOID OnRestoreWindow();
+	VOID OnWindowSize(const UINT,UINT=0,UINT=0);
+	VOID OnOptionsVideo();
 	VOID OnHideMenu();
 	VOID OnShowMenu();
 	VOID OnExit();
-	VOID OnError();
 	VOID OnPause();
 
 	BOOL AcceleratorEnabled;
@@ -216,6 +222,7 @@ private:
 	BOOL      UseZapper;
 	BOOL      ScreenInvisible;
 	BOOL      InBackground;
+	UINT      WindowSize[2];
 	
 	HBRUSH hMenuWindowBrush;
 	HBRUSH hMenuFullscreenBrush;
@@ -241,6 +248,7 @@ private:
 	LOGFILEMANAGER*     const LogFileManager;
 	ROMINFO*            const RomInfo;
 	HELPMANAGER*        const HelpManager;
+	USERINPUTMANAGER*   const UserInputManager;
 
 	NES::IO::INPUT NesInput;
 	NES::MODE NesMode;

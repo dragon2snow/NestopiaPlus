@@ -37,8 +37,13 @@ class MAPPER105 : public MAPPER
 {
 public:
 
-	MAPPER105(CONTEXT& c)
-	: MAPPER(c,registers,&ready+1) {}
+	MAPPER105(CONTEXT&);
+
+	UINT NumDipSwitches() const;
+	VOID GetDipSwitch(const UINT,IO::DIPSWITCH::CONTEXT&) const;
+	VOID SetDipSwitch(const UINT,const IO::DIPSWITCH::CONTEXT&);
+
+	VOID EndFrame();
 
 private:
 
@@ -47,6 +52,7 @@ private:
 	VOID UpdateBanks();
 	VOID UpdateMirroring();
 	VOID IrqSync(const UINT);
+	VOID UpdateTimer();
 
 	NES_DECL_POKE(pRom);
 
@@ -60,7 +66,23 @@ private:
 	UINT registers[4];
 	UINT latch;
 	UINT count;
+	
+   #ifdef PDX_U64_SUPPORT
+
+	U64 timer;
+	U64 TimerEnd;
+
+   #else
+
+	F64 timer;
+	F64 TimerEnd;
+
+   #endif
+
+	UINT DipValue;
 	UINT ready;
+	BOOL DisplayTimer;
+	PDXSTRING elapsed;
 };
 
 NES_NAMESPACE_END

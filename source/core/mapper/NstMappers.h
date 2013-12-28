@@ -69,6 +69,10 @@ public:
 	virtual PDXRESULT LoadState(PDXFILE& file);
 	virtual PDXRESULT SaveState(PDXFILE& file) const;
 
+	virtual UINT NumDipSwitches() const { return 0; }
+	virtual VOID GetDipSwitch(const UINT,IO::DIPSWITCH::CONTEXT&) const {}
+	virtual VOID SetDipSwitch(const UINT,const IO::DIPSWITCH::CONTEXT&) {}
+
 	static const CHAR* boards[256];
 
 protected:
@@ -297,6 +301,8 @@ struct MAPPER::CONTEXT
 	UINT pRomSize;
 	UINT cRomSize;
 	UINT wRamSize;
+
+	BOOL IsCRam;
 
 	UINT wRamInitSize;
 

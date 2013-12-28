@@ -241,8 +241,8 @@ LONG SNDFME7::CHANNEL::Sample()
 	if (!emulate)
 		return 0;
 	
-	const LONG AnyNoise = noise.Update( pal );
-	const LONG EnvVol = envelope.Update( pal );
+	const LONG AnyNoise = noise.Update( rate );
+	const LONG EnvVol = envelope.Update( rate );
 
 	LONG sample;
 

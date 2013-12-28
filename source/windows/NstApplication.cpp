@@ -37,6 +37,7 @@
 #include "NstLogFileManager.h"
 #include "NstRomInfo.h"
 #include "NstHelpManager.h"
+#include "NstUserInputManager.h"
 #include <WindowsX.h>
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -65,6 +66,9 @@ NES_NAMESPACE_BEGIN
 
 	VOID LogOutput(const CHAR* const text)
 	{ LOGFILEMANAGER::LogOutput( text ); }
+
+	BOOL MsgInput(const CHAR* const title,const CHAR* const msg,PDXSTRING& input)
+	{ return application.OnUserInput( title, msg, input ); }
 
 NES_NAMESPACE_END
 
@@ -110,8 +114,12 @@ SaveStateManager     (new SAVESTATEMANAGER   ( IDD_AUTO_SAVE                    
 MovieManager         (new MOVIEMANAGER       ( IDD_MOVIE                               )),
 LogFileManager       (new LOGFILEMANAGER     ( IDD_LOGFILE                             )),
 HelpManager          (new HELPMANAGER),
+UserInputManager     (new USERINPUTMANAGER),
 hMenuWindowBrush     (NULL)
-{}
+{
+	WindowSize[0] = 0;
+	WindowSize[1] = 0;
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -135,6 +143,7 @@ APPLICATION::~APPLICATION()
 	delete LogFileManager;
 	delete RomInfo;
 	delete HelpManager;
+	delete UserInputManager;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -149,6 +158,11 @@ VOID APPLICATION::LogOutput(const CHAR* const msg) const
 VOID APPLICATION::LogSeparator() const
 {
 	return LOGFILEMANAGER::LogSeparator(); 
+}
+
+BOOL APPLICATION::OnUserInput(const CHAR* const title,const CHAR* const text,PDXSTRING& input)
+{
+	return UserInputManager ? UserInputManager->Start( title, text, input ) : FALSE;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -186,10 +200,6 @@ PDXRESULT APPLICATION::Init(HINSTANCE h,const CHAR* const RomImage,const INT iCm
 	if (!RegisterClassEx(&WndClass))
 		return OnError("RegisterClassEx() failed!");
 
-	SetRect( &rcDefClient, 0, 0, 256*2, 224*2 );
-	rcDefWindow = rcDefClient;
-	AdjustWindowRect( &rcDefWindow, NST_WINDOWSTYLE, TRUE );
-
 	hWnd = CreateWindow
 	(
 		TEXT("Nestopia"),
@@ -197,8 +207,8 @@ PDXRESULT APPLICATION::Init(HINSTANCE h,const CHAR* const RomImage,const INT iCm
 		NST_WINDOWSTYLE,
 		CW_USEDEFAULT,
 		CW_USEDEFAULT,
-		rcDefWindow.right - rcDefWindow.left,
-		rcDefWindow.bottom - rcDefWindow.top,
+		256,
+		224,
 		0,
 		LoadMenu(hInstance,MAKEINTRESOURCE(IDR_MENU)),
 		hInstance,
@@ -208,10 +218,20 @@ PDXRESULT APPLICATION::Init(HINSTANCE h,const CHAR* const RomImage,const INT iCm
 	if (!hWnd)
 		return PDX_FAILURE;
 
-	GetWindowRect( hWnd, &rcWindow );
-	rcDefWindow = rcWindow;
-	GetClientRect( hWnd, &rcClient );
-	SetScreenRect( rcScreen );
+	{
+		RECT rect;
+		SetRect( &rect, 0, 0, 0, 0 );
+		
+		GetWindowRect( GetDesktopWindow(), &rect );
+		GetWindowRect( hWnd, &rcWindow );
+		
+		OnWindowSize
+		( 
+	     	1, 
+			PDX_MAX(rect.right - rect.left,256), 
+			PDX_MAX(rect.bottom - rect.top,224) 
+		);
+	}
 
 	{
 		PDXFILE cfgfile;
@@ -244,6 +264,7 @@ PDXRESULT APPLICATION::Init(HINSTANCE h,const CHAR* const RomImage,const INT iCm
 		NST_INIT   ( VsDipSwitchManager     );
 		NST_INIT   ( LogFileManager         );
 		NST_INIT   ( RomInfo                );
+		NST_INIT   ( UserInputManager       );
 	}
 
 	UpdateRecentFiles();
@@ -278,8 +299,7 @@ PDXRESULT APPLICATION::Init(HINSTANCE h,const CHAR* const RomImage,const INT iCm
 		ShowWindow( hWnd, iCmdShow );
 	}
   
-	ready = TRUE;
-	active = TRUE;
+	active = ready = TRUE;
 
 	return PDX_OK;
 }
@@ -299,17 +319,28 @@ PDXRESULT APPLICATION::OnError(const CHAR* const text)
 		error = TRUE;
 		active = ready = FALSE;
 
+		SoundManager->Stop();
+		
 		if (!windowed)
-			SwitchScreen();
+		{	
+			if (GraphicManager->GetDevice())
+			{
+				GraphicManager->GetDevice()->RestoreDisplayMode();
+				windowed = TRUE;
+			}
+		}
 
 		ShowCursor( TRUE );
 
-		GraphicManager->EnableGDI( TRUE );
+		if (!windowed) GraphicManager->EnableGDI( TRUE );
 		MessageBox( hWnd, text, "Nestopia Error!", MB_OK|MB_ICONERROR );
-		GraphicManager->EnableGDI( FALSE );
+		if (!windowed) GraphicManager->EnableGDI( FALSE );
 
-		if (hWnd) 
-			SendMessage( hWnd, WM_CLOSE, 0, 0 );
+		if (hWnd)
+		{
+			DestroyWindow( hWnd );
+			hWnd = NULL;
+		}
 	}
 
 	return PDX_FAILURE;
@@ -380,7 +411,6 @@ PDXRESULT APPLICATION::BeginDialogMode()
 		ShowCursor( TRUE );
 
 	return GraphicManager->BeginDialogMode(); 
-
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -572,10 +602,14 @@ BOOL APPLICATION::OnCommand(const WPARAM wParam)
 		case IDM_VIEW_ROM_INFO:                   RomInfo->StartDialog();                 return TRUE;
 		case IDM_VIEW_LOGFILE:                    LogFileManager->StartDialog();          return TRUE;
 		case IDM_VIEW_SWITCH_SCREEN:              SwitchScreen();                         return TRUE;
-		case IDM_VIEW_NORMAL_WINDOW_SIZE:         OnRestoreWindow();                      return TRUE;
+		case IDM_VIEW_WINDOWSIZE_MAX:             OnWindowSize( UINT_MAX );               return TRUE;
+		case IDM_VIEW_WINDOWSIZE_1X:              OnWindowSize( 0 );                      return TRUE;
+		case IDM_VIEW_WINDOWSIZE_2X:              OnWindowSize( 1 );                      return TRUE;
+		case IDM_VIEW_WINDOWSIZE_4X:              OnWindowSize( 2 );                      return TRUE;
+		case IDM_VIEW_WINDOWSIZE_8X:              OnWindowSize( 3 );                      return TRUE;
 		case IDM_VIEW_HIDE_MENU:                  OnHideMenu();                           return TRUE;
 		case IDM_OPTIONS_PREFERENCES:             preferences        ->StartDialog();     return TRUE;
-		case IDM_OPTIONS_VIDEO:                   GraphicManager     ->StartDialog();     return TRUE;
+		case IDM_OPTIONS_VIDEO:                   OnOptionsVideo();                       return TRUE;
 		case IDM_OPTIONS_SOUND:                   SoundManager       ->StartDialog();     return TRUE;
 		case IDM_OPTIONS_INPUT:                   InputManager       ->StartDialog();     return TRUE;
 		case IDM_OPTIONS_PATHS:                   FileManager        ->StartDialog();     return TRUE;
@@ -748,6 +782,33 @@ VOID APPLICATION::OnAutoSelectController()
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
+VOID APPLICATION::OnOptionsVideo()
+{
+	const RECT rcOld( GraphicManager->GetScreenRect() );
+
+	GraphicManager->StartDialog();
+
+	if (!windowed)
+	{
+		const RECT& rcNew = GraphicManager->GetScreenRect();
+
+		if 
+		(
+	     	rcOld.bottom != rcNew.bottom || 
+			rcOld.top    != rcNew.top    || 
+			rcOld.left   != rcNew.left	 ||
+			rcOld.right  != rcNew.right
+		)
+		{
+			OnWindowSize( 3 );
+		}
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
 VOID CALLBACK APPLICATION::OnScreenMsgEnd(HWND hWnd,UINT,UINT_PTR,DWORD)
 {
 	KillTimer( hWnd, TIMER_ID_SCREEN_MSG );
@@ -870,17 +931,20 @@ VOID APPLICATION::OnInactive(const BOOL force)
 
 VOID APPLICATION::OnOpen(const INT recent)
 {
-	const BOOL WasPAL = nes.IsPAL();
+	const bool WasPAL = nes.IsPAL();
 
 	if (PDX_SUCCEEDED(FileManager->Load( recent, preferences->EmulateImmediately() )))
 	{
-		const BOOL IsPAL = nes.IsPAL();
+		const bool IsPAL = nes.IsPAL();
 
 		if (NesMode == NES::MODE_AUTO)
 		{
 			GraphicManager->EnablePAL( IsPAL );
 			SoundManager->EnablePAL( IsPAL );
 			timer.EnablePAL( IsPAL );
+
+			if (WasPAL != IsPAL)
+				OnWindowSize( WindowSize[windowed ? 0 : 1] );
 		}
 
 		if (AutoSelectController)
@@ -1226,7 +1290,7 @@ VOID APPLICATION::UpdateWindowItems()
 	EnableMenuItem( hMenu, IDM_NSF_PREV,             NST_MENUSTATE( nes.IsOn() && nes.IsNsf()              ) );
 	EnableMenuItem( hMenu, IDM_NSF_NEXT,             NST_MENUSTATE( nes.IsOn() && nes.IsNsf()              ) );
 	EnableMenuItem( hMenu, IDM_VIEW_ROM_INFO,        NST_MENUSTATE( nes.IsCartridge()                      ) );
-	EnableMenuItem( hMenu, IDM_OPTIONS_DIP_SWITCHES, NST_MENUSTATE( info && info->system == NES::SYSTEM_VS ) );
+	EnableMenuItem( hMenu, IDM_OPTIONS_DIP_SWITCHES, NST_MENUSTATE( nes.GetNumVsSystemDipSwitches()        ) );
 
 	CheckMenuItem( hMenu, IDM_MACHINE_PAUSE, nes.IsPaused() ? MF_CHECKED : MF_UNCHECKED );
 
@@ -1446,6 +1510,8 @@ VOID APPLICATION::OnMode(const UINT NewIdm)
 		SoundManager->EnablePAL( IsPAL );
 		timer.EnablePAL( IsPAL );
 
+		OnWindowSize( WindowSize[windowed ? 0 : 1] );
+
 		UINT OldIdm;
 
 		switch (NesMode)
@@ -1557,11 +1623,17 @@ VOID APPLICATION::OnShowMenu()
 
 	if (hMenu && GraphicManager->CanRenderWindowed())
 	{
+		LockWindowUpdate( hWnd );
+
 		GraphicManager->EnableGDI( TRUE );
+		
 		SetMenu( hWnd, hMenu );
 		hMenu = NULL;	
+		
 		hCursor = LoadCursor( NULL, UseZapper ? IDC_CROSS : IDC_ARROW);
-		ShowCursor( TRUE );
+		ShowCursor( TRUE );		
+		
+		LockWindowUpdate( NULL );
 	}
 }
 
@@ -1575,6 +1647,8 @@ VOID APPLICATION::OnHideMenu()
 
 	if (!hMenu)
 	{
+		LockWindowUpdate( hWnd );
+
 		GraphicManager->EnableGDI( FALSE );
 		
 		hMenu = ::GetMenu( hWnd );
@@ -1584,6 +1658,8 @@ VOID APPLICATION::OnHideMenu()
 
 		if (hCursor) ShowCursor( TRUE );
 		else while (ShowCursor( FALSE ) >= 0);
+
+		LockWindowUpdate( NULL );
 	}
 }
 
@@ -1598,15 +1674,13 @@ VOID APPLICATION::OnMove(const LPARAM lParam)
 		SetRect
 		(
 			&rcScreen,
-			LOWORD(lParam),
-			HIWORD(lParam),
-			LOWORD(lParam) + (rcScreen.right - rcScreen.left),
-			HIWORD(lParam) + (rcScreen.bottom - rcScreen.top) 
+			SHORT(LOWORD(lParam)),
+			SHORT(HIWORD(lParam)),
+			SHORT(LOWORD(lParam)) + (rcScreen.right - rcScreen.left),
+			SHORT(HIWORD(lParam)) + (rcScreen.bottom - rcScreen.top) 
 		);
 
-		rcWindow = rcScreen;
-		AdjustWindowRect( &rcWindow, NST_WINDOWSTYLE, TRUE );
-
+		UpdateWindowRect( rcWindow, rcScreen );
 		GraphicManager->UpdateScreenRect( rcScreen );
 		InvalidateRect( hWnd, NULL, FALSE ); 
 	}
@@ -1620,14 +1694,12 @@ VOID APPLICATION::OnSize(const LPARAM lParam)
 {
 	if (windowed)
 	{
-		rcScreen.right  = rcScreen.left + LOWORD(lParam);
-		rcScreen.bottom = rcScreen.top + HIWORD(lParam);
-		rcClient.right  = LOWORD(lParam);
-		rcClient.bottom = HIWORD(lParam);
+		rcScreen.right  = rcScreen.left + SHORT(LOWORD(lParam));
+		rcScreen.bottom = rcScreen.top + SHORT(HIWORD(lParam));
+		rcClient.right  = SHORT(LOWORD(lParam));
+		rcClient.bottom = SHORT(HIWORD(lParam));
 
-		rcWindow = rcScreen;
-		AdjustWindowRect( &rcWindow, NST_WINDOWSTYLE, TRUE );
-
+		UpdateWindowRect( rcWindow, rcScreen );
 		GraphicManager->UpdateScreenRect( rcScreen );
 		InvalidateRect( hWnd, NULL, FALSE ); 
 
@@ -1674,8 +1746,7 @@ VOID APPLICATION::OnExit()
 {
 	nes.Power( FALSE );
 
-	ready = FALSE;
-	active = FALSE;
+	active = ready = FALSE;
 
 	KillTimer( hWnd, TIMER_ID_SCREEN_MSG );
 
@@ -1720,26 +1791,200 @@ VOID APPLICATION::OnExit()
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-VOID APPLICATION::OnRestoreWindow()
+VOID APPLICATION::UpdateWindowRect(RECT& rcTo,const RECT& rcFrom)
 {
+	rcTo = rcFrom;
+	UpdateWindowRect( rcTo );
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+VOID APPLICATION::UpdateWindowRect(RECT& rcTo)
+{
+	AdjustWindowRect( &rcTo, NST_WINDOWSTYLE, hMenu ? FALSE : TRUE );
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+VOID APPLICATION::UpdateWindowSizes(const UINT width,const UINT height)
+{
+	HMENU hMenu = GetMenu();
+
+	HMENU hSubMenu;
+	hSubMenu = GetSubMenu( hMenu, 4 );
+	hSubMenu = GetSubMenu( hSubMenu, 3 );
+
+	while (GetMenuItemCount( hSubMenu ))
+		DeleteMenu( hSubMenu, 0, MF_BYPOSITION );
+
+	AppendMenu
+	( 
+		GetSubMenu( GetSubMenu( hMenu, 4 ), 3 ),
+		MF_BYPOSITION, 
+		IDM_VIEW_WINDOWSIZE_MAX, 
+		"&Max"
+	);
+
+	PDXSTRING MenuText;
+
+	for (UINT j=0,i=1,x=NES::IO::GFX::WIDTH,y=NES::IO::GFX::HEIGHT; x <= width && y <= height && j < 4; ++j, i *= 2, x *= 2, y *= 2) 
+	{
+		MenuText  = "&";
+		MenuText += i;
+		MenuText += "X";
+
+		AppendMenu
+		( 
+			GetSubMenu( GetSubMenu( hMenu, 4 ), 3 ),
+			MF_BYPOSITION, 
+			IDM_VIEW_WINDOWSIZE_1X + j, 
+			MenuText
+		);
+	}
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+VOID APPLICATION::ApplyWindowSizing()
+{
+	if (IsZoomed( hWnd ))
+		SendMessage( hWnd, WM_SYSCOMMAND, SC_RESTORE, 0 );
+
+	rcWindow.right  = rcWindow.left + (rcDefWindow.right  - rcDefWindow.left);
+	rcWindow.bottom = rcWindow.top  + (rcDefWindow.bottom - rcDefWindow.top);
+	rcScreen.right  = rcScreen.left + (rcDefClient.right  - rcDefClient.left);
+	rcScreen.bottom = rcScreen.top  + (rcDefClient.bottom - rcDefClient.top);
+	rcClient = rcDefClient;
+
+	SetWindowPos
+	(
+		hWnd,
+		HWND_NOTOPMOST,
+		0,
+		0,
+		rcWindow.right - rcWindow.left,
+		rcWindow.bottom - rcWindow.top,
+		(IsWindowVisible( hWnd ) ? SWP_SHOWWINDOW : SWP_HIDEWINDOW) | SWP_NOMOVE
+	);		
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+VOID APPLICATION::OnWindowSize(const UINT factor,UINT width,UINT height)
+{
+	if (!width || !height)
+	{
+		width = GraphicManager->GetDisplayWidth();
+		height = GraphicManager->GetDisplayHeight();
+	}
+
+	WindowSize[windowed ? 0 : 1] = factor;
+
+	HMENU hMenu = GetMenu();
+
 	if (windowed)
 	{
-		rcWindow.right  = rcWindow.left + (rcDefWindow.right  - rcDefWindow.left);
-		rcWindow.bottom = rcWindow.top  + (rcDefWindow.bottom - rcDefWindow.top);
-		rcScreen.right  = rcScreen.left + (rcDefClient.right  - rcDefClient.left);
-		rcScreen.bottom = rcScreen.top  + (rcDefClient.bottom - rcDefClient.top);
-		rcClient = rcDefClient;
+		if (factor == UINT_MAX)
+		{
+			ShowWindow( hWnd, SW_MAXIMIZE );
+		}
+		else
+		{
+			SetRect
+			( 
+		     	&rcDefClient, 
+				0, 
+				0,
+				GraphicManager->GetNesRect().right - GraphicManager->GetNesRect().left, 
+				GraphicManager->GetNesRect().bottom - GraphicManager->GetNesRect().top 
+			);
 
-		SetWindowPos
-		(
-			hWnd,
-			HWND_NOTOPMOST,
-			rcWindow.left,
-			rcWindow.top,
-			rcWindow.right - rcWindow.left,
-			rcWindow.bottom - rcWindow.top,
-			SWP_SHOWWINDOW
-		);
+			UpdateWindowSizes( width, height );
+
+			for (UINT i=0; i < factor; ++i)
+			{
+				if (rcDefClient.right * 2 > width || rcDefClient.bottom * 2 > height) 
+					break;
+
+				rcDefClient.right *= 2;
+				rcDefClient.bottom *= 2;
+			}
+
+			rcDefWindow = rcDefClient;
+			AdjustWindowRect( &rcDefWindow, NST_WINDOWSTYLE, FALSE );
+
+			ApplyWindowSizing();
+
+			if (::GetMenu(hWnd))
+			{
+				MENUBARINFO info;
+				PDXMemZero( info );
+				info.cbSize = sizeof(info);
+
+				if (GetMenuBarInfo( hWnd, OBJID_MENU, 0, &info))
+				{
+					rcDefWindow.bottom += (info.rcBar.bottom - info.rcBar.top) + 1;
+					ApplyWindowSizing();
+				}
+			}
+
+			GraphicManager->UpdateScreenRect( rcScreen );
+			InvalidateRect( hWnd, NULL, FALSE ); 
+		}
+	}
+	else
+	{
+		RECT rect;
+
+		if (factor == UINT_MAX)
+		{
+			SetRect
+			( 
+		     	&rect, 
+				0, 
+				0, 
+				GraphicManager->GetDisplayWidth(), 
+				GraphicManager->GetDisplayHeight()
+			);
+		}
+		else
+		{
+			UpdateWindowSizes( width, height );
+
+			UINT x = GraphicManager->GetNesRect().right - GraphicManager->GetNesRect().left;
+			UINT y = GraphicManager->GetNesRect().bottom - GraphicManager->GetNesRect().top;
+
+			for (UINT i=0; i < factor; ++i)
+			{
+				if (x * 2 > width || y * 2 > height) 
+					break;
+
+				x *= 2;
+				y *= 2;
+			}
+
+			x = ( width  - x ) / 2;
+			y = ( height - y ) / 2;
+
+			SetRect
+			(
+				&rect, 
+				x, 
+				y, 
+				width - x, 
+				height - y 
+			);
+		}
+
+		GraphicManager->UpdateScreenRect( rect );
 	}
 }
 
@@ -1756,16 +2001,6 @@ VOID APPLICATION::ResetSaveSlots(const BOOL enabled)
 
 	for (UINT i=IDM_FILE_QUICK_SAVE_STATE_SLOT_NEXT; i <= IDM_FILE_QUICK_SAVE_STATE_SLOT_9; ++i)
 		EnableMenuItem( hMenu, i, enabled ? MF_ENABLED : MF_GRAYED );
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID APPLICATION::OnError()
-{
-	ready = active = FALSE;
-	SendMessage( hWnd, WM_CLOSE, 0, 0 );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -1794,7 +2029,7 @@ INT APPLICATION::Loop()
 				DispatchMessage( &msg );
 			}
 		}
-		else if (active)
+		else if (active && ready)
 		{
 			ExecuteFrame();
 		}
@@ -1893,9 +2128,9 @@ PDXRESULT APPLICATION::SetScreenRect(RECT& rc)
 
 PDXRESULT APPLICATION::SwitchScreen()
 {
-	PDX_ASSERT(hWnd);
+	PDX_ASSERT(hWnd && ready);
 
-	active = FALSE;
+	active = ready = FALSE;
 	
 	PDX_TRY(SoundManager->Stop());
 
@@ -1906,6 +2141,8 @@ PDXRESULT APPLICATION::SwitchScreen()
 
 		if (!preferences->HideMenuInFullScreen())
 			OnRightMouseButtonDown();
+
+		OnWindowSize( 3 );
 	}
 	else
 	{
@@ -1915,14 +2152,17 @@ PDXRESULT APPLICATION::SwitchScreen()
 
 	PDX_TRY(SoundManager->Start());
 
-	active = TRUE;
+	if (windowed)
+		InvalidateRect( NULL, NULL, TRUE );
 
 	if (windowed || GraphicManager->CanRenderWindowed())
 		DrawMenuBar( hWnd );
 
-	Sleep(300);
+	Sleep(500);
 
 	timer.Reset();
+
+	active = ready = TRUE;
 
 	return PDX_OK;
 }
@@ -1936,34 +2176,12 @@ PDXRESULT APPLICATION::PushWindow()
 	PDX_ASSERT(hWnd);
 
 	windowed = FALSE;
+
 	SetWindowLong( hWnd, GWL_STYLE, WS_POPUP|WS_VISIBLE );
 	SetWindowLong( hWnd, GWL_EXSTYLE, WS_EX_TOPMOST );
 
-	if (!hMenu)
-	{
-		hMenu = ::GetMenu( hWnd );
-		SetMenu( hWnd, NULL );
-	}
-
 	ChangeMenuText( IDM_VIEW_SWITCH_SCREEN, "&Window\tCtrl+Shift+F" );	
 	EnableMenuItem( GetMenu(), IDM_VIEW_HIDE_MENU, MF_ENABLED );
-
-	hCursor = UseZapper ? LoadCursor(NULL,IDC_CROSS) : NULL; 
-	SetCursor( hCursor );
-
-	if (hCursor) ShowCursor( TRUE );
-	else while (ShowCursor( FALSE ) >= 0);
-  
-	{
-		MENUITEMINFO info;
-		PDXMemZero( info );
-
-		info.cbSize = sizeof(info);
-		info.fMask  = MIIM_STATE;
-		info.fState	= MFS_DISABLED;
-
-		SetMenuItemInfo( GetMenu(), IDM_VIEW_NORMAL_WINDOW_SIZE, FALSE, &info );
-	}
 
 	{
 		MENUINFO info;
@@ -1982,6 +2200,18 @@ PDXRESULT APPLICATION::PushWindow()
 		SetMenuInfo( GetMenu(), &info );
 	}
 
+	if (!hMenu)
+	{
+		hMenu = ::GetMenu( hWnd );
+		SetMenu( hWnd, NULL );
+	}
+
+	hCursor = UseZapper ? LoadCursor( NULL, IDC_CROSS ) : NULL; 
+	SetCursor( hCursor );
+
+	if (hCursor) ShowCursor( TRUE );
+	else while (ShowCursor( FALSE ) >= 0);
+
 	return PDX_OK;
 }
 
@@ -1994,6 +2224,7 @@ PDXRESULT APPLICATION::PopWindow()
 	PDX_ASSERT(hWnd);
 
 	windowed = TRUE;
+
 	SetWindowLong( hWnd, GWL_STYLE, NST_WINDOWSTYLE );
 	SetWindowLong( hWnd, GWL_EXSTYLE, 0 );
 
@@ -2008,30 +2239,8 @@ PDXRESULT APPLICATION::PopWindow()
 		SWP_SHOWWINDOW
 	);
 
-	if (hMenu)
-	{
-		SetMenu( hWnd, hMenu );
-		hMenu = NULL;
-	}
-
 	ChangeMenuText( IDM_VIEW_SWITCH_SCREEN, "&Fullscreen\tCtrl+Shift+F" );
-
-	hCursor = LoadCursor( NULL, UseZapper ? IDC_CROSS : IDC_ARROW ); 
-	SetCursor( hCursor );
-	ShowCursor( TRUE );
-
 	EnableMenuItem( GetMenu(), IDM_VIEW_HIDE_MENU, MF_GRAYED );
-
-	{
-		MENUITEMINFO info;
-		PDXMemZero( info );
-
-		info.cbSize = sizeof(info);
-		info.fMask  = MIIM_STATE;
-		info.fState	= MFS_ENABLED;
-	
-		SetMenuItemInfo( GetMenu(), IDM_VIEW_NORMAL_WINDOW_SIZE, FALSE, &info );
-	}
 
 	{
 		MENUINFO info;
@@ -2043,6 +2252,18 @@ PDXRESULT APPLICATION::PopWindow()
 
 		SetMenuInfo( GetMenu(), &info );
 	}
+
+	UpdateWindowSizes( GraphicManager->GetDisplayWidth(), GraphicManager->GetDisplayHeight() );
+
+	if (hMenu)
+	{
+		SetMenu( hWnd, hMenu );
+		hMenu = NULL;
+	}
+
+	hCursor = LoadCursor( NULL, UseZapper ? IDC_CROSS : IDC_ARROW ); 
+	SetCursor( hCursor );
+	ShowCursor( TRUE );
 
 	return PDX_OK;
 }

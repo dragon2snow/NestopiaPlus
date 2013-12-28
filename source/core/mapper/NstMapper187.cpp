@@ -36,25 +36,24 @@ VOID MAPPER187::Reset()
 {
 	MAPPER4::Reset();
 
-	cpu->SetPort( 0x5000, this, Peek_5000, Poke_5000 );
+	cpu->SetPort( 0x5000,         this, Peek_5000, Poke_5000 );
 	cpu->SetPort( 0x5001, 0x7FFF, this, Peek_5000, Poke_5001 );
-
-	for (ULONG i=0x8000; i <= 0xFFFFU; ++i)
-	{
-		switch (i & 0xE003)
-		{
-     		case 0x8000: cpu->SetPort( 0x8000, this, Peek_8000, Poke_8000 );
-    		case 0x8001: cpu->SetPort( 0x8001, this, Peek_8000, Poke_8001 );
-     		case 0x8003: cpu->SetPort( 0x8003, this, Peek_8000, Poke_8003 );
-     		case 0xA000: cpu->SetPort( 0xA000, this, Peek_A000, Poke_A000 );
-     		case 0xC000: cpu->SetPort( 0xC000, this, Peek_C000, Poke_C000 );
-     		case 0xC001: cpu->SetPort( 0xC001, this, Peek_C000, Poke_C001 );
-     		case 0xE000: cpu->SetPort( 0xE000, this, Peek_E000, Poke_E000 );
-     		case 0xE002: cpu->SetPort( 0xE002, this, Peek_E000, Poke_E000 );
-     		case 0xE001: cpu->SetPort( 0xE001, this, Peek_E000, Poke_E001 );
-    		case 0xE003: cpu->SetPort( 0xE003, this, Peek_E000, Poke_E001 );
-		}
-	}
+	cpu->SetPort( 0x8000,         this, Peek_8000, Poke_8000 );
+	cpu->SetPort( 0x8001,         this, Peek_8000, Poke_8001 );
+	cpu->SetPort( 0x8002,         this, Peek_8000, Poke_Nop  );
+	cpu->SetPort( 0x8003,         this, Peek_8000, Poke_8003 );
+	cpu->SetPort( 0x8004, 0x9FFF, this, Peek_8000, Poke_Nop  );
+	cpu->SetPort( 0xA000,         this, Peek_A000, Poke_A000 );
+	cpu->SetPort( 0xA001,         this, Peek_A000, Poke_A001 );
+	cpu->SetPort( 0xA003, 0xBFFF, this, Peek_A000, Poke_Nop  );
+	cpu->SetPort( 0xC000,         this, Peek_C000, Poke_C000 );
+	cpu->SetPort( 0xC001,         this, Peek_C000, Poke_C001 );
+	cpu->SetPort( 0xC002, 0xDFFF, this, Peek_C000, Poke_Nop  );
+	cpu->SetPort( 0xE000,         this, Peek_E000, Poke_E000 );
+	cpu->SetPort( 0xE002,         this, Peek_E000, Poke_E000 );
+	cpu->SetPort( 0xE001,         this, Peek_E000, Poke_E001 );
+	cpu->SetPort( 0xE003,         this, Peek_E000, Poke_E001 );
+	cpu->SetPort( 0xE004, 0xFFFF, this, Peek_E000, Poke_Nop  );
 
 	latch = 0;
 
@@ -73,19 +72,37 @@ NES_POKE(MAPPER187,5000)
 {
 	apu->Update();
 
+	latch = data & 0x3;
 	ExBankMode = data;
 
 	if (data & SWAP_NO_EXBANK)
 	{
-		if (data & SWAP_32) pRom.SwapBanks<n32k,0x0000>( (data & 0x1F) >> 1 );
-		else                pRom.SwapBanks<n16k,0x4000>( (data & 0x1F) >> 0 );
+		if (data & SWAP_32)
+		{
+			const UINT bank = (data & 0x1E) << 1;
+
+			pRomBanks[0] = bank + 0;
+			pRomBanks[1] = bank + 1;
+			pRomBanks[2] = bank + 2;
+			pRomBanks[3] = bank + 3;
+		}
+		else
+		{
+			const UINT bank = (data & 0x1F) << 1;
+			
+			pRomBanks[2] = bank + 0;
+			pRomBanks[3] = bank + 1;
+		}
 	}
 	else
 	{
-		pRom.SwapBanks<n8k,0x0000>(ExBanks[0]);
-		pRom.SwapBanks<n8k,0x2000>(ExBanks[1]);
-		pRom.SwapBanks<n16k,0x4000>(pRom.NumBanks<n16k>() - 1);
+		pRomBanks[0] = ExBanks[0];
+		pRomBanks[1] = ExBanks[1];
+		pRomBanks[2] = pRom.NumBanks<n8k>() - 2;
+		pRomBanks[3] = pRom.NumBanks<n8k>() - 1;
 	}
+
+	UpdatePRom();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -94,7 +111,7 @@ NES_POKE(MAPPER187,5000)
 
 NES_POKE(MAPPER187,5001)
 {
-	latch = data;
+	latch = data & 0x3;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -120,12 +137,7 @@ NES_PEEK(MAPPER187,5000)
 NES_POKE(MAPPER187,8000)
 {
 	UseExBank = FALSE;
-
-	const UINT tmp = command;
 	command = data;
-
-	if ((tmp & SWAP_CROM_BANKS) != (data & SWAP_CROM_BANKS))
-		UpdateCRom();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -138,17 +150,21 @@ NES_POKE(MAPPER187,8001)
 
 	switch (index)
 	{
-     	case 0x6: ExBanks[0] = data; break;
-		case 0x7: ExBanks[1] = data; break;
+    	case 0x6:
+		case 0x7:
+
+			ExBanks[index - 0x6] = data;
 	}
 
 	if (UseExBank)
 	{
 		switch (command)
 		{
-     		case 0x2A: apu->Update(); pRom.SwapBanks<n8k,0x2000>(0x0F); return;
-			case 0x28: apu->Update(); pRom.SwapBanks<n8k,0x4000>(0x17); return;
+			case 0x2A: pRomBanks[1] = 0x0F; break;
+			case 0x28: pRomBanks[2] = 0x17; break;
 		}
+
+		UpdatePRom();
 	}
 	else
 	{
@@ -157,7 +173,7 @@ NES_POKE(MAPPER187,8001)
 			case 0x0:		
 			case 0x1:					
 
-				cRomBanks[index] = data >> 1;
+				cRomBanks[index] = (data | 0x100) >> 1;
 				UpdateCRom(); 
 				return;
 
@@ -166,7 +182,7 @@ NES_POKE(MAPPER187,8001)
 			case 0x4:
 			case 0x5:
 		
-				cRomBanks[index] = data;
+				cRomBanks[index] = data >> 0;
 				UpdateCRom(); 
 				return;
 
@@ -190,12 +206,27 @@ NES_POKE(MAPPER187,8001)
 NES_POKE(MAPPER187,8003)
 {
 	UseExBank = TRUE;
+	command = data;
 
 	if (!(data & 0xF0))
 	{
-		apu->Update();
-		pRom.SwapBanks<n8k,0x4000>(pRom.NumBanks<n8k>() - 2);
+		pRomBanks[2] = pRom.NumBanks<n8k>() - 2;
+		UpdatePRom();
 	}
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+VOID MAPPER187::UpdatePRom()
+{
+	apu->Update(); 
+
+	pRom.SwapBanks<n8k,0x0000>( pRomBanks[0] );
+	pRom.SwapBanks<n8k,0x2000>( pRomBanks[1] );
+	pRom.SwapBanks<n8k,0x4000>( pRomBanks[2] );
+	pRom.SwapBanks<n8k,0x6000>( pRomBanks[3] );
 }
 
 NES_NAMESPACE_END

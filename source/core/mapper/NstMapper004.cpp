@@ -105,7 +105,7 @@ NES_POKE(MAPPER4,8001)
      	case 0x0:	
      	case 0x1:	
 
-     		cRomBanks[index] = data >> 1;
+			cRomBanks[index] = data >> 1;
 			UpdateCRom();
      		return;
 
@@ -114,7 +114,7 @@ NES_POKE(MAPPER4,8001)
 		case 0x4:
 		case 0x5:
 
-			cRomBanks[index] = data;
+			cRomBanks[index] = data >> 0;
 			UpdateCRom();
 			return;
 

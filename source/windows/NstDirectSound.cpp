@@ -146,20 +146,20 @@ PDXRESULT DIRECTSOUND::Create(const GUID* const guid)
 	PDX_ASSERT(guid && hWnd);
 
 	if (PDX_FAILED(Destroy()))
-		return PDX_FAILURE;//Error("Failed to release the DirectSound interface!");
+		return PDX_FAILURE;
 
 	PDX_ASSERT(!device);
 
 	if (FAILED(DirectSoundCreate8(guid,&device,NULL)))
 	{
 		Destroy();
-		return PDX_FAILURE;//application.OnWarning("DirectSoundCreate8() failed!");
+		return PDX_FAILURE;
 	}
 
 	if (FAILED(device->SetCooperativeLevel(hWnd,DSSCL_PRIORITY)))
 	{
 		Destroy();
-		return PDX_FAILURE;//Error("IDirectSound8::SetCooperativeLevel() failed!");
+		return PDX_FAILURE;
 	}
 
 	LastOffset = 0;

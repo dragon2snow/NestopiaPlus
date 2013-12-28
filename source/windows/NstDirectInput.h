@@ -83,7 +83,12 @@ private:
 	struct JOYSTICK
 	{
 		JOYSTICK()
-		: device(NULL) {}
+		: 
+		device     (NULL), 
+		NumButtons (0), 
+		NumPOVs    (0),
+		axes       (0) 
+		{}
 
 		~JOYSTICK()
 		{
@@ -96,6 +101,9 @@ private:
 
 		GUID guid;
 		LPDIRECTINPUTDEVICE8 device;
+		UINT NumButtons;
+		UINT NumPOVs;
+		UINT axes;
 	};
 
 protected:

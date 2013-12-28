@@ -80,7 +80,9 @@ PDXRESULT GRAPHICMANAGER::Create(PDXFILE* const file)
 		if (!found)
 		{
 			SelectedAdapter = 0;
-			PDX_TRY(DIRECTDRAW::Create(&adapters[0].guid));
+
+			if (PDX_FAILED(DIRECTDRAW::Create(&adapters[0].guid)))
+				return application.OnError("DirectDrawCreateEx() failed!");
 		}
 
 		UINT bpp;
@@ -133,13 +135,6 @@ PDXRESULT GRAPHICMANAGER::Create(PDXFILE* const file)
 		{
 			SelectedMode = 0;
 			ResetBpp();
-		}
-
-		switch (header.screen)
-		{
-    		case HEADER::SCREEN_NORMAL:    SelectedSize = IDC_GRAPHICS_SIZE_NORMAL;    break;
-     		case HEADER::SCREEN_MATCHED:   SelectedSize = IDC_GRAPHICS_SIZE_MATCHED;   break;
-       		case HEADER::SCREEN_STRETCHED: SelectedSize = IDC_GRAPHICS_SIZE_STRETCHED; break;
 		}
 
 		switch (header.effect)
@@ -197,13 +192,6 @@ PDXRESULT GRAPHICMANAGER::Destroy(PDXFILE* const file)
 			{
      			case IDC_GRAPHICS_16_BIT: header.bpp = HEADER::BPP_16; break;
 				case IDC_GRAPHICS_32_BIT: header.bpp = HEADER::BPP_32; break;
-			}
-
-			switch (SelectedSize)
-		 	{
-		     	case IDC_GRAPHICS_SIZE_NORMAL:    header.screen = HEADER::SCREEN_NORMAL;    break;
-     			case IDC_GRAPHICS_SIZE_MATCHED:   header.screen = HEADER::SCREEN_MATCHED;   break;
-				case IDC_GRAPHICS_SIZE_STRETCHED: header.screen = HEADER::SCREEN_STRETCHED; break;
 			}
 
 			switch (SelectedOffScreen)
@@ -267,7 +255,6 @@ VOID GRAPHICMANAGER::Reset()
 	SelectedOffScreen = IDC_GRAPHICS_SRAM;
 	SelectedPalette = IDC_GRAPHICS_PALETTE_INTERNAL;
 	SelectedTiming  = IDC_GRAPHICS_TIMING_VSYNC;
-	SelectedSize = IDC_GRAPHICS_SIZE_MATCHED;
 	SelectedEffect = 0;
 
 	SetRect( &ntsc, 0, 8, 255, 231 );
@@ -275,7 +262,6 @@ VOID GRAPHICMANAGER::Reset()
 
 	SetScreenParameters
 	(
-    	DIRECTDRAW::SCREENMODE_MATCHED,
 		DIRECTDRAW::SCREENEFFECT_NONE,
 		SelectedOffScreen == IDC_GRAPHICS_VRAM ? TRUE : FALSE,
 		nes->IsPAL() ? pal : ntsc,
@@ -450,17 +436,6 @@ BOOL GRAPHICMANAGER::DialogProc(HWND h,UINT uMsg,WPARAM wParam,LPARAM)
 						UpdateOffScreen();
 					}
 					return TRUE;
-
-				case IDC_GRAPHICS_SIZE_NORMAL:   
-				case IDC_GRAPHICS_SIZE_MATCHED:	 
-				case IDC_GRAPHICS_SIZE_STRETCHED:
-
-					if (SelectedSize != LOWORD(wParam))
-					{
-						SelectedSize = LOWORD(wParam);
-						UpdateSize();				
-					}
-					return TRUE;
   
 				case IDC_GRAPHICS_EFFECTS:
 
@@ -582,9 +557,6 @@ VOID GRAPHICMANAGER::UpdateDirectDraw()
 {
 	SetScreenParameters
 	(
-		SelectedSize == IDC_GRAPHICS_SIZE_NORMAL ? DIRECTDRAW::SCREENMODE_NORMAL :
-     	SelectedSize == IDC_GRAPHICS_SIZE_MATCHED ? DIRECTDRAW::SCREENMODE_MATCHED :
-     	DIRECTDRAW::SCREENMODE_STRETCHED,
 		SelectedEffect == 0 ? 
 		DIRECTDRAW::SCREENEFFECT_NONE : 
      	DIRECTDRAW::SCREENEFFECT_SCANLINES,
@@ -703,18 +675,6 @@ VOID GRAPHICMANAGER::UpdateMode()
 		SelectedMode = 0;
 
 	ComboBox_SetCurSel( item, SelectedMode );
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID GRAPHICMANAGER::UpdateSize()
-{
-	SendMessage( GetDlgItem( hDlg, IDC_GRAPHICS_SIZE_NORMAL    ), BM_SETCHECK, BST_UNCHECKED, 0 );
-	SendMessage( GetDlgItem( hDlg, IDC_GRAPHICS_SIZE_MATCHED   ), BM_SETCHECK, BST_UNCHECKED, 0 );
-	SendMessage( GetDlgItem( hDlg, IDC_GRAPHICS_SIZE_STRETCHED ), BM_SETCHECK, BST_UNCHECKED, 0 );
-	SendMessage( GetDlgItem( hDlg, SelectedSize                ), BM_SETCHECK, BST_CHECKED,   0 );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -863,7 +823,6 @@ VOID GRAPHICMANAGER::UpdateDialog()
 
 	ResetColors();
 	UpdateBpp();
-	UpdateSize();
 	UpdateMode();
 	UpdateEmulation();
 	UpdateEffects();
@@ -926,12 +885,12 @@ BOOL GRAPHICMANAGER::ImportPalette()
 
 VOID GRAPHICMANAGER::UpdateEffects()
 {
-	HWND item = GetDlgItem( hDlg, IDC_GRAPHICS_EFFECTS );
+	HWND hItem = GetDlgItem( hDlg, IDC_GRAPHICS_EFFECTS );
 
-	ComboBox_ResetContent( item );
-	ComboBox_AddString( item, "none" );
-	ComboBox_AddString( item, "scanlines" );
-	ComboBox_SetCurSel( item, SelectedEffect );
+	ComboBox_ResetContent( hItem );
+	ComboBox_AddString( hItem, "none" );
+	ComboBox_AddString( hItem, "scanlines" );
+	ComboBox_SetCurSel( hItem, SelectedEffect );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////

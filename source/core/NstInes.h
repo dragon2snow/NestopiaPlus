@@ -27,17 +27,6 @@
 #ifndef NST_INES_H
 #define NST_INES_H
 
-#ifndef NES_NO_ROM_DATABASE
-#if defined(_WIN32) && defined(_MSC_VER)
-#undef NES_USE_ROM_DATABASE
-#define NES_USE_ROM_DATABASE
-#endif
-#endif
-
-#ifdef NES_USE_ROM_DATABASE
-#include "../paradox/PdxMap.h"
-#endif
-
 class PDXFILE;
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -46,7 +35,7 @@ class PDXFILE;
 
 NES_NAMESPACE_BEGIN
 
-class INES
+class INES : public IMAGEFILE
 {
 public:
 
@@ -94,12 +83,9 @@ private:
 	PDX_COMPILE_ASSERT(sizeof(HEADER) == sizeof(U8) * 16);
 
 	VOID MessWithTheHeader(CARTRIDGE* const,HEADER&);
-	VOID DoFinalAdjustments(CARTRIDGE* const);
 
-  #ifdef NES_USE_ROM_DATABASE
+   #ifdef NES_USE_ROM_DATABASE
 
-	VOID ImportDatabase();	
-	
 	PDXRESULT CheckDatabase
 	(
     	CARTRIDGE* const,
@@ -107,58 +93,7 @@ private:
 		const IO::GENERAL::CONTEXT&
 	);
 
-   #pragma pack(push,1)
-
-	struct IMAGE
-	{
-		PDXSTRING name;
-		PDXSTRING copyright;
-		U32       pRomCrc;
-		U8        pRomSize;
-		U8        cRomSize;
-		U8        wRamSize;
-		U8        mapper;
-		UCHAR     pal         : 1;
-		UCHAR     ntsc        : 1;
-		UCHAR     vs          : 1;
-		UCHAR     p10         : 1;
-		UCHAR     mirroring   : 2;
-		UCHAR     battery     : 1;
-		UCHAR     trainer     : 1;
-		UCHAR     bad         : 1;
-		UCHAR     hack        : 1;
-		UCHAR     translation : 1;
-		UCHAR     unlicensed  : 1;
-		UCHAR     bootleg     : 1;
-	};
-
-	struct DBCHUNK
-	{
-		U8    copyright;
-		U32   pRomCrc;
-		U8    pRomSize;
-		U8    cRomSize;
-		U8    wRamSize;
-		U8    mapper;
-		UCHAR pal         : 1;
-		UCHAR ntsc        : 1;
-		UCHAR vs          : 1;
-		UCHAR p10         : 1;
-		UCHAR mirroring   : 2;
-		UCHAR battery     : 1;
-		UCHAR trainer     : 1;
-		UCHAR bad         : 1;
-		UCHAR hack        : 1;
-		UCHAR translation : 1;
-		UCHAR unlicensed  : 1;
-		UCHAR bootleg     : 1;
-	};
-
-   #pragma pack(pop)
-
-	static PDXMAP<IMAGE,U32> database;
-
-  #endif
+   #endif
 };
 
 NES_NAMESPACE_END

@@ -80,7 +80,6 @@ private:
 	VOID UpdateMode();
 	VOID UpdateBpp();
 	VOID UpdateOffScreen();
-	VOID UpdateSize();
 	VOID UpdateNesScreen(const WPARAM);
 	VOID UpdateEmulation();
 	VOID UpdateColors();
@@ -100,7 +99,6 @@ private:
 	UINT SelectedBpp;
 	UINT SelectedOffScreen;
 	UINT SelectedTiming;
-	UINT SelectedSize;
 	UINT SelectedEffect;
 	UINT SelectedPalette;
 
@@ -141,13 +139,6 @@ private:
 			OFFSCREEN_VRAM
 		};
 
-		enum SCREEN
-		{
-			SCREEN_NORMAL,
-			SCREEN_MATCHED,
-			SCREEN_STRETCHED
-		};
-
 		enum EFFECT
 		{
 			EFFECT_NONE,
@@ -174,7 +165,6 @@ private:
 		RECT pal;
 		U8   bpp : 1;
 		U8   effect : 1;
-		U8   screen : 2;
 		U8   offscreen : 1;
 		U8   timing : 1;
 		U8   InfiniteSprites : 1;

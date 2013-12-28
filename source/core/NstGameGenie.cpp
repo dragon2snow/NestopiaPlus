@@ -375,6 +375,8 @@ VOID GAMEGENIE::CODE::Encode8(UINT* const codes) const
 {
 	EncodeAddress( codes );
 
+	codes[2] |= 0x8;
+
 	codes[0] |= (data & 0x01) >> 0x0;
 	codes[0] |= (data & 0x02) >> 0x0;
 	codes[0] |= (data & 0x04) >> 0x0;

@@ -288,7 +288,7 @@ BOOL FILEMANAGER::DialogProc(HWND h,UINT uMsg,WPARAM wParam,LPARAM)
 				{
 					PDXSTRING path;
 					
-					if (SelectPath( path, "Select your image (*.nes,*.fds,*.nsf) directory.." ))
+					if (SelectPath( path, "Select your image (*.nes,*.unf,*.fds,*.nsf) directory.." ))
 						SetDlgItemText( hDlg, IDC_PATHS_ROM_IMAGES, path );
 
 					return TRUE;
@@ -442,14 +442,16 @@ PDXRESULT FILEMANAGER::Load(INT RecentFileIndex,const BOOL power)
 
 	{
      	PDXARRAY<PDXSTRING> extensions;	
-       	extensions.Resize( 6 );
+       	extensions.Resize( 8 );
 
      	extensions[0] = "nes";
-		extensions[1] = "fds";
-     	extensions[2] = "nsf";
-     	extensions[3] = "nst";
-		extensions[4] = "nsv";
-		extensions[5] = "ips";
+		extensions[1] = "unf";
+		extensions[2] = "unif";
+		extensions[3] = "fds";
+     	extensions[4] = "nsf";
+     	extensions[5] = "nst";
+		extensions[6] = "nsv";
+		extensions[7] = "ips";
 
      	result = LoadFile
 		( 
@@ -458,9 +460,11 @@ PDXRESULT FILEMANAGER::Load(INT RecentFileIndex,const BOOL power)
      		"Open..",
 			(
 				"All supported files\0"
-				"*.nes;*.fds;*.nsf;*.nst;*.nsv;*.ips;*.zip\0"
+				"*.nes;*.unf;*.fds;*.nsf;*.nst;*.nsv;*.ips;*.zip\0"
 				"iNes ROM Images (*.nes)\0"
 				"*.nes\0"
+				"UNIF ROM Images (*.unf)\0"
+				"*.unf\0"
 				"Famicom Disk System Images (*.fds)\0"
 				"*.fds\0"
 				"NES Sound Files (*.nsf)\0"

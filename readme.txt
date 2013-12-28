@@ -1,5 +1,5 @@
 -----------------------------------------------------------------------------
-Nestopia 1.01 - NES/Famicom emulator
+Nestopia 1.02 - NES/Famicom emulator
 -----------------------------------------------------------------------------
 
 Nestopia is Copyright 2003 by Martin Freij
@@ -61,9 +61,10 @@ to contact me and I'll try to help out.
 Minimum System Requirements
 -----------------------------------------------------------------------------
 	
-Processor: Pentium II or comparable AMD
+Processor: Pentium MMX or comparable AMD
 Ram:       32MB
 Video:     DirectDraw 7 compatible graphic card
+Audio:     DirectSound 8.1 compatible sound card
 OS:        Windows 98/Me/NT/2000/XP or greater
 Software:  DirectX 8.1 or greater
 
@@ -75,41 +76,45 @@ note: If you have GdiPlus from Microsoft installed (comes with XP) you'll be
 Supported File Types
 -----------------------------------------------------------------------------
 
-NES - NES Rom Image. Since this fileformat is somewhat lacking in cartridge 
-      info plus many file headers floating around on the net are broken for 
-      some reason or another (think dudes with disks) Nestopia uses the 
-      Nestoy rom database internally and will try to identify and repair them 
-      temporarly in memory using some CRC32 magic.
+NES  - NES Rom Image. Since this fileformat is somewhat lacking in cartridge 
+       info plus many file headers floating around on the net are broken for 
+       some reason or another (think dudes with disks) Nestopia uses the 
+       Nestoy rom database internally and will try to identify and repair them 
+       temporarly in memory using some CRC32 magic.
 
-NSF - Nes Sound File. Scroll down for info on supported sound chips.
+UNIF - NES Rom Image. If Nestopia can't recognize the specified board name you 
+       have the option to select the corresponding mapper the cartridge should 
+       use. IPS patching is not supported for this format.
 
-FDS - Famicom Disk System. Bios rom file required which can be both in iNES 
-      or raw format. Nestopia tries to locate it by searching for "disksys.rom".
-      If it can't find it you can manually select the proper file in the FDS 
-      options in the menu. There's also an option available which lets you 
-      protect the disk files from being written back to. 
+NSF  - Nes Sound File. Scroll down for info on supported sound chips.
 
-SAV - Battery-ram data separated from the rom files. If the cartridge has it 
-      Nestopia automatically searches for a valid save file with the same name 
-      as the rom image file to use during load. Just like the FDS files these 
-      can also be write protected.
+FDS  - Famicom Disk System. Bios rom file required which can be both in iNES 
+       or raw format. Nestopia tries to locate it by searching for "disksys.rom".
+       If it can't find it you can manually select the proper file in the FDS 
+       options in the menu. There's also an option available which lets you 
+       protect the disk files from being written back to. 
 
-IPS - Patch file. Patching of NES and FDS files can be applied both manually 
-      and automatically. If you select "Auto Apply" in the path configuration 
-      dialog Nestopia will search for an IPS file with the same name as the 
-      image file during load and patch it on-the-fly. Keep in mind that the 
-      only files which will be permanently changed (if you've told Nestopia to 
-      do so) are those of the FDS format since they are.. well, disks, and
-      gets written to all the time.
+SAV  - Battery-ram data separated from the rom files. If the cartridge has it 
+       Nestopia automatically searches for a valid save file with the same name 
+       as the rom image file to use during load. Just like the FDS files these 
+       can also be write protected.
 
-ZIP - If Nestopia finds more than one valid file in the archive you may choose 
-      which one you want to open. ZIP files can't be written back to though, 
-      instead you'll be prompted if you want to save any changed data outside 
-      the archive.
+IPS  - Patch file. Patching of NES and FDS files can be applied both manually 
+       and automatically. If you select "Auto Apply" in the path configuration 
+       dialog Nestopia will search for an IPS file with the same name as the 
+       image file during load and patch it on-the-fly. Keep in mind that the 
+       only files which will be permanently changed (if you've told Nestopia to 
+       do so) are those of the FDS format since they are.. well, disks, and
+       gets written to all the time.
 
-NST - Nestopia Save State File. 
+ZIP  - If Nestopia finds more than one valid file in the archive you may choose 
+       which one you want to open. ZIP files can't be written back to though, 
+       instead you'll be prompted if you want to save any changed data outside 
+       the archive.
 
-NSV - Nestopia Movie File.
+NST  - Nestopia Save State File. 
+
+NSV  - Nestopia Movie File.
 
 -----------------------------------------------------------------------------
 Fully or Partially Supported Mappers
@@ -170,7 +175,6 @@ Soccer
 Star Luster
 Super Mario Bros
 Tengen Tetris
-Tennis
 TKO Boxing
 Top Gun
 
@@ -178,29 +182,31 @@ Top Gun
 Credits and Thanks
 -----------------------------------------------------------------------------
 
-Brad Taylor      - PPU and pAPU technical documents
-Chris Covell     - demos, test roms and general info
-Digitoxin        - Nestoy rom database which is the one used internally 
-                   by Nestopia
-FireBug          - mapper documents
-Gilles Vollant   - ZIP file loading routines 
-Goroh            - technical documents on various hardware components
-Groggy           - testing and ideas
-Jean-loup Gailly - ZLib compression library
-Jeremy Chadwick  - NES technical document
-Ki               - pAPU technical info
-Kevin Horton     - NTSC palette emulation info, sound/mapper technical 
-                   documents and some 6502 tidbits
-Loopy            - various info
-Marat Fayzullin  - NES technical document
-Mark Adler       - ZLib compression library
-Mark Knibbs      - various info 
-Matthew Conte    - pAPU technical info
-Matrixz'         - for his neat palette which is the default one Nestopia 
-                   uses internally
-Memblers         - nesdev.parodius.com, simply the best resource for NES 
-                   development
-Quietust         - various info
+Brad Taylor               - PPU and pAPU technical documents
+Chris Covell              - demos, test roms and general info
+Digitoxin                 - Nestoy rom database which is the one used 
+                            internally by Nestopia
+FireBug                   - mapper documents
+Gilles Vollant            - ZIP file loading routines 
+Goroh                     - technical documents on various hardware 
+                            components
+Groggy                    - testing and ideas
+Jean-loup Gailly          - ZLib compression library
+Jeremy Chadwick           - NES technical document
+Ki                        - pAPU technical info
+Kevin Horton              - NTSC palette emulation info, sound/mapper 
+                            technical  documents and some 6502 tidbits
+Loopy                     - various info
+Marat Fayzullin           - NES technical document
+Mark Adler                - ZLib compression library
+Mark Knibbs               - various info 
+Matthew Conte             - pAPU technical info
+Matrixz'                  - for his neat palette which is the default one 
+                            Nestopia uses internally
+Memblers                  - nesdev.parodius.com, simply the best resource 
+                            for NES development
+Tennessee Carmel-Veilleux - UNIF format inventor
+Quietust                  - various info
 
 Also a big thanks to the authors of NNNesterJ and FCEUltra for a good 
 reference on the more exotic mappers, you know, those that made you just 
