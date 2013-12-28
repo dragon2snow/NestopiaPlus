@@ -36,8 +36,8 @@ NES_NAMESPACE_BEGIN
 
 VOID VSRBIBASEBALL::Reset()
 {
-	cpu->SetPort( 0x5E00, this, Peek_5E00, Poke );
-	cpu->SetPort( 0x5E01, this, Peek_5E01, Poke );	
+	cpu.SetPort( 0x5E00, this, Peek_5E00, Poke );
+	cpu.SetPort( 0x5E01, this, Peek_5E01, Poke );	
 	counter = 0;
 }
 

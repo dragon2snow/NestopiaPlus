@@ -43,7 +43,10 @@ public:
 private:
 
 	VOID Reset();
-	NES_DECL_POKE(6000);
+	VOID SetBanks(const UINT);
+
+	NES_DECL_POKE(6000_1);
+	NES_DECL_POKE(6000_2);
 };
 
 NES_NAMESPACE_END

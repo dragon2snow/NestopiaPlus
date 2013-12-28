@@ -33,7 +33,7 @@ NES_NAMESPACE_BEGIN
 
 VOID MAPPER181::Reset()
 {
-	cpu->SetPort( 0x4120, this, Peek_Nop, Poke_4120 );
+	cpu.SetPort( 0x4120, this, Peek_Nop, Poke_4120 );
 	pRom.SwapBanks<n32k,0x0000>(0);
 }
 
@@ -43,8 +43,8 @@ VOID MAPPER181::Reset()
 
 NES_POKE(MAPPER181,4120) 
 { 
-	apu->Update();
-	ppu->Update();
+	apu.Update();
+	ppu.Update();
 	pRom.SwapBanks<n32k,0x0000>( (data & 0x8) >> 3);
 	cRom.SwapBanks<n8k,0x0000>( data & 0x7 );
 }

@@ -38,20 +38,20 @@ VOID MAPPER4::Reset()
 
 	EnableIrqSync(IRQSYNC_PPU);
 
-	cpu->SetPort( 0x6000, 0x7FFF, this, Peek_wRam, Poke_wRam );
+	cpu.SetPort( 0x6000, 0x7FFF, this, Peek_wRam, Poke_wRam );
 
 	for (ULONG i=0x8000; i <= 0xFFFFU; ++i)
 	{
 		switch (i & 0xE001)
 		{
-    	   	case 0x8000: cpu->SetPort( i, this, Peek_8000, Poke_8000 ); continue;
-     		case 0x8001: cpu->SetPort( i, this, Peek_8000, Poke_8001 ); continue;
-     		case 0xA000: cpu->SetPort( i, this, Peek_A000, Poke_A000 ); continue;
-			case 0xA001: cpu->SetPort( i, this, Peek_A000, Poke_A001 ); continue;
-     		case 0xC000: cpu->SetPort( i, this, Peek_C000, Poke_C000 ); continue;
-     		case 0xC001: cpu->SetPort( i, this, Peek_C000, Poke_C001 ); continue;
-     		case 0xE000: cpu->SetPort( i, this, Peek_E000, Poke_E000 ); continue;
-    		case 0xE001: cpu->SetPort( i, this, Peek_E000, Poke_E001 ); continue;
+    	   	case 0x8000: cpu.SetPort( i, this, Peek_8000, Poke_8000 ); continue;
+     		case 0x8001: cpu.SetPort( i, this, Peek_8000, Poke_8001 ); continue;
+     		case 0xA000: cpu.SetPort( i, this, Peek_A000, Poke_A000 ); continue;
+			case 0xA001: cpu.SetPort( i, this, Peek_A000, Poke_A001 ); continue;
+     		case 0xC000: cpu.SetPort( i, this, Peek_C000, Poke_C000 ); continue;
+     		case 0xC001: cpu.SetPort( i, this, Peek_C000, Poke_C001 ); continue;
+     		case 0xE000: cpu.SetPort( i, this, Peek_E000, Poke_E000 ); continue;
+    		case 0xE001: cpu.SetPort( i, this, Peek_E000, Poke_E001 ); continue;
 		}
 	}
 
@@ -73,7 +73,7 @@ VOID MAPPER4::Reset()
 	latched = FALSE;
 	IrqReset = 0;
 
-	ppu->SetMirroring(0,1,2,3);
+	ppu.SetMirroring(0,1,2,3);
 
 	UpdatePRom();
 	UpdateCRom();
@@ -134,7 +134,7 @@ NES_POKE(MAPPER4,8001)
 NES_POKE(MAPPER4,A000)
 {
 	if (mirroring != MIRROR_FOURSCREEN)
-		ppu->SetMirroring((data & 0x1) ? MIRROR_HORIZONTAL : MIRROR_VERTICAL);
+		ppu.SetMirroring((data & 0x1) ? MIRROR_HORIZONTAL : MIRROR_VERTICAL);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -173,7 +173,7 @@ NES_POKE(MAPPER4,E000)
 NES_POKE(MAPPER4,E001) 
 { 
 	SetIrqEnable(TRUE); 
-	cpu->ClearIRQ(); 
+	cpu.ClearIRQ(); 
 
 	if (latched)
 		IrqCount = IrqLatch;
@@ -191,7 +191,7 @@ NES_POKE(MAPPER4,wRam)
 
 NES_PEEK(MAPPER4,wRam)
 {
-	return wRamEnable ? wRam[address - 0x6000] : cpu->GetCache();
+	return wRamEnable ? wRam[address - 0x6000] : cpu.GetCache();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -200,7 +200,7 @@ NES_PEEK(MAPPER4,wRam)
 
 VOID MAPPER4::UpdatePRom()
 {
-	apu->Update(); 
+	apu.Update(); 
 
 	if (command & SWAP_PROM_BANKS)
 	{
@@ -224,7 +224,7 @@ VOID MAPPER4::UpdatePRom()
 
 VOID MAPPER4::UpdateCRom()
 {
-	ppu->Update();
+	ppu.Update();
 
 	if (command & SWAP_CROM_BANKS)
 	{
@@ -257,7 +257,7 @@ VOID MAPPER4::IrqSync()
 	if (IrqCount-- <= 0)
 	{
 		IrqCount = IrqLatch;
-		cpu->DoIRQ();
+		cpu.DoIRQ();
 	}
 }
 

@@ -22,35 +22,31 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstMappers.h"
-#include "NstMapper097.h"
+#pragma once
+
+#ifndef NST_MAPPER_133_H
+#define NST_MAPPER_133_H
 
 NES_NAMESPACE_BEGIN
 
 ////////////////////////////////////////////////////////////////////////////////////////
-//
+// mapper 133
 ////////////////////////////////////////////////////////////////////////////////////////
 
-VOID MAPPER97::Reset()
+class MAPPER133	: public MAPPER
 {
-	cpu.SetPort( 0x8000, 0x9FFF, this, Peek_8000, Poke_8000 );
-	cpu.SetPort( 0xA000, 0xBFFF, this, Peek_A000, Poke_8000 );
-	cpu.SetPort( 0xC000, 0xDFFF, this, Peek_C000, Poke_Nop  );
-	cpu.SetPort( 0xE000, 0xFFFF, this, Peek_E000, Poke_Nop  );
+public:
 
-	pRom.SwapBanks<n16k,0x0000>( pRom.NumBanks<n16k>() - 1 );
-	pRom.SwapBanks<n16k,0x4000>( 0 );
-}
+	MAPPER133(CONTEXT& c)
+	: MAPPER(c) {}
 
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
+private:
 
-NES_POKE(MAPPER97,8000)
-{
-	ppu.SetMirroring( (data & 0x80) ? MIRROR_VERTICAL : MIRROR_HORIZONTAL );
-	apu.Update();
-	pRom.SwapBanks<n16k,0x4000>(data & 0xF);
-}
+	VOID Reset();
+
+	NES_DECL_POKE( 4120 );
+};
 
 NES_NAMESPACE_END
+
+#endif

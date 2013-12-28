@@ -34,7 +34,7 @@ inline UINT DIRECTDRAW::GetPixel(const UINT x,const UINT y) const
 
 inline VOID DIRECTDRAW::ClearScreen()
 { 
-	ClearSurface(windowed ? NesBuffer : BackBuffer); 
+	ClearSurface( windowed ? NesBuffer : BackBuffer ); 
 }
 
 inline VOID DIRECTDRAW::ClearNesScreen()

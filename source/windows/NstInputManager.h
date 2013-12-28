@@ -40,7 +40,7 @@ class INPUTMANAGER : public DIRECTINPUT, public MANAGER
 {
 public:
 
-	INPUTMANAGER(const INT,const UINT);
+	INPUTMANAGER(const INT);
 
 	PDXRESULT Poll();
 
@@ -68,8 +68,8 @@ private:
 	VOID PollArcade();
 	VOID PollPowerPad();
 
-	PDXRESULT Create  (PDXFILE* const);
-	PDXRESULT Destroy (PDXFILE* const);
+	PDXRESULT Create  (CONFIGFILE* const);
+	PDXRESULT Destroy (CONFIGFILE* const);
 
 	VOID PollJoysticks();
 	VOID Reset();
@@ -142,11 +142,15 @@ private:
 	enum
 	{
 		KEY_GENERAL_INSERT_COIN_1,    
-		KEY_GENERAL_INSERT_COIN_2,    
+		KEY_GENERAL_INSERT_COIN_2,
+		KEY_GENERAL_TOGGLE_FPS,
 		NUM_GENERAL_KEYS
 	};
   
 	static const CHAR* Key2Text(DWORD);
+	static DWORD Text2Key(const PDXSTRING&);
+
+	static const CHAR* Map2Text(const UINT,const UINT);
 
 	struct MAP
 	{
@@ -202,6 +206,8 @@ private:
 
 	UINT SelectDevice;
 	UINT SelectKey;
+	BOOL SpeedThrottleKeyDown;
+	UINT SpeedThrottle;
 
 	ACTIVEJOYSTICKS ActiveJoysticks;
 

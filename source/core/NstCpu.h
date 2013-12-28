@@ -156,8 +156,8 @@ public:
 	PDXRESULT LoadState(PDXFILE&);
 	PDXRESULT SaveState(PDXFILE&) const;
 	
-	APU* GetAPU();
-	const APU* GetAPU() const;
+	APU& GetAPU();
+	const APU& GetAPU() const;
 
 	VOID DoNMI();
 	VOID DoIRQ(const UINT=IRQ_EXT);
@@ -380,7 +380,7 @@ private:
 	VOID Brk (); 
 	VOID Jam (); 
 
-    #define NES_EAT_CYCLES(ticks) cycles += (pal ? NES_CPU_TO_PAL(ticks) : NES_CPU_TO_NTSC(ticks))
+    #define NES_EAT_CYCLES(ticks) cycles += CycleTable[pal][(ticks)-1]
 
 	#define crImm	2
 	#define crZpg   3
@@ -833,7 +833,7 @@ private:
 	CPU_MAP map;
 
 	UINT      cache;
-	BOOL      pal;
+	UINT      pal;
 	ULONG     cycles;	
 	LONG      FrameCounter;
 	LONG      DmcCounter;
@@ -850,6 +850,8 @@ private:
 	APU apu;
 
 	bool logged[24];
+
+	static const ULONG CycleTable[2][8];
 
 	typedef VOID (CPU::*INSTRUCTION)();
 	static const INSTRUCTION instructions[256];

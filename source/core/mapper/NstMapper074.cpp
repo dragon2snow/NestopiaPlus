@@ -44,7 +44,7 @@ VOID MAPPER74::Reset()
 
 VOID MAPPER74::UpdatePRom()
 {
-	apu->Update(); 
+	apu.Update(); 
 
 	if (command & SWAP_PROM_BANKS)
 	{

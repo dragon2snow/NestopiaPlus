@@ -38,12 +38,15 @@ class MAPPER64 : public MAPPER
 public:
 
 	MAPPER64(CONTEXT& c)
-	: MAPPER(c,regs,regs+3) {}
+	: MAPPER(c,regs[0],&IrqNext+1) {}
 
 private:
 
 	VOID Reset();
 	VOID IrqSync();
+	VOID IrqSync(const UINT delta);
+	VOID UpdateBanks();
+	VOID EndFrame();
 
 	NES_DECL_POKE( 8000 );
 	NES_DECL_POKE( 8001 );
@@ -53,7 +56,13 @@ private:
 	NES_DECL_POKE( E000 );
 	NES_DECL_POKE( E001 );
 
-	UINT regs[3];
+	UINT regs[2][8];
+	UINT command;
+	UINT mode;
+	UINT ScanLine;
+	BOOL IrqOn;
+	UINT IrqMode;
+	UINT IrqNext;
 };
 
 NES_NAMESPACE_END

@@ -27,28 +27,53 @@
 #ifndef NST_TIMER_H
 #define NST_TIMER_H
 
+#include "NstManager.h"
+
 ////////////////////////////////////////////////////////////////////////////////////////
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-class TIMER
+class TIMERMANAGER : public MANAGER
 {
 public:
 
-	TIMER();
-	~TIMER();
+	TIMERMANAGER(const INT);
+	~TIMERMANAGER();
 
-	UINT SynchRefreshRate(const BOOL,const BOOL);
-	VOID Reset();
+	UINT SynchRefreshRate(const BOOL);
+	VOID EnableCustomFPS(const BOOL);
 	VOID EnablePAL(const BOOL);
+	VOID Reset();
 
 private:
 
+	VOID UpdateRefreshRate();
+
+	PDXRESULT Create  (CONFIGFILE* const);
+	PDXRESULT Destroy (CONFIGFILE* const);
+
+	BOOL DialogProc(HWND,UINT,WPARAM,LPARAM);
+
+	VOID UpdateDialog(HWND);
+	VOID ResetDialog();
+
 	enum
 	{
-		MAX_SKIP_FRAMES = 8,
-		RESET_TIMER_FRAMES = 16
+		MIN_FPS = 30,
+		MAX_FPS = 240,
+		MIN_FRAME_SKIPS = 1,
+		MAX_FRAME_SKIPS = 16,
+		DEFAULT_FPS = NES_FPS_NTSC,
+		DEFAULT_FRAME_SKIPS = 8
 	};
+
+	BOOL IsPAL;
+	BOOL UseDefaultFps;
+	UINT MaxFrameSkips;
+	UINT CustomFps;
+	UINT fps;
+	BOOL UseVSync;
+	BOOL AutoFrameSkip;
 
 	const BOOL HasPFCounter;
 
@@ -57,6 +82,7 @@ private:
 		struct  
 		{
 			I64 pfTicksPerMilli;
+			I64 pfRefreshFrequency;
 			I64 pfRefreshClockNTSC;
 			I64 pfRefreshClockPAL;
 			I64 pfRefreshClock;
@@ -65,6 +91,7 @@ private:
 
 		struct  
 		{
+			DOUBLE dbRefreshFrequency;
 			DOUBLE dbRefreshClockNTSC;
 			DOUBLE dbRefreshClockPAL;
 			DOUBLE dbRefreshClock;

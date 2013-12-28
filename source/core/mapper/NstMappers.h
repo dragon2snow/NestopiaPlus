@@ -58,13 +58,13 @@ public:
 
 	VOID VSync();
 
-	inline CPU* GetCPU() { return cpu; }
-	inline PPU* GetPPU() { return ppu; }
-	inline APU* GetAPU() { return apu; }
+	inline CPU& GetCPU() { return cpu; }
+	inline PPU& GetPPU() { return ppu; }
+	inline APU& GetAPU() { return apu; }
 
-	inline const CPU* GetCPU() const { return cpu; }
-	inline const PPU* GetPPU() const { return ppu; }
-	inline const APU* GetAPU() const { return apu; }
+	inline const CPU& GetCPU() const { return cpu; }
+	inline const PPU& GetPPU() const { return ppu; }
+	inline const APU& GetAPU() const { return apu; }
 
 	virtual PDXRESULT LoadState(PDXFILE& file);
 	virtual PDXRESULT SaveState(PDXFILE& file) const;
@@ -91,7 +91,8 @@ protected:
 		IRQSYNC_NONE,
 		IRQSYNC_PPU,
 		IRQSYNC_PPU_ALWAYS,
-		IRQSYNC_COUNT
+		IRQSYNC_COUNT,
+		IRQSYNC_COMBINED
 	};
 
 	VOID EnableIrqSync(const IRQSYNCTYPE);
@@ -141,9 +142,9 @@ protected:
 	typedef CHIP<n8k,8>  VRAM;
 	typedef CHIP<n4k,4>  CIRAM;
 
-	CPU* const cpu;
-	APU* const apu;
-	PPU* const ppu;
+	CPU& cpu;
+	APU& apu;
+	PPU& ppu;
 
 	PROM pRom;
 	CROM cRom;
@@ -253,14 +254,14 @@ inline BOOL MAPPER::SetIrqEnable(const BOOL state)
 {
 	if (!state)
 	{
-		cpu->ClearIRQ();
+		cpu.ClearIRQ();
 		IrqEnabled = FALSE;
 		return FALSE;
 	}
 	else
 	{
 		if (!IrqEnabled)
-			IrqCycles = cpu->GetCycles<CPU::CYCLE_MASTER>();
+			IrqCycles = cpu.GetCycles<CPU::CYCLE_MASTER>();
 
 		IrqEnabled = TRUE;
 		return TRUE;

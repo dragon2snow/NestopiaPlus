@@ -34,7 +34,7 @@ NES_NAMESPACE_BEGIN
 MAPPER69::MAPPER69(CONTEXT& c)
 : 
 MAPPER (c,&UseWRam,&command+1),
-sound  (c.cpu)
+sound  (*c.cpu)
 {}
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -48,11 +48,11 @@ VOID MAPPER69::Reset()
 	UseWRam = TRUE;
 	command = 0x0;
 
-	cpu->SetPort( 0x6000, 0x7FFF, this, Peek_6000, Poke_6000 );
-	cpu->SetPort( 0x8000, 0x9FFF, this, Peek_8000, Poke_8000 );
-	cpu->SetPort( 0xA000, 0xBFFF, this, Peek_A000, Poke_A000 );
-	cpu->SetPort( 0xC000, 0xDFFF, this, Peek_C000, Poke_C000 );
-	cpu->SetPort( 0xE000, 0xFFFF, this, Peek_E000, Poke_E000 );
+	cpu.SetPort( 0x6000, 0x7FFF, this, Peek_6000, Poke_6000 );
+	cpu.SetPort( 0x8000, 0x9FFF, this, Peek_8000, Poke_8000 );
+	cpu.SetPort( 0xA000, 0xBFFF, this, Peek_A000, Poke_A000 );
+	cpu.SetPort( 0xC000, 0xDFFF, this, Peek_C000, Poke_C000 );
+	cpu.SetPort( 0xE000, 0xFFFF, this, Peek_E000, Poke_E000 );
 
 	sound.Reset();
 }
@@ -107,8 +107,8 @@ NES_POKE(MAPPER69,8000)
 
 NES_POKE(MAPPER69,A000) 
 { 
-	apu->Update(); 
-	ppu->Update();
+	apu.Update(); 
+	ppu.Update();
 
 	switch (command)
 	{
@@ -151,7 +151,7 @@ NES_POKE(MAPPER69,A000)
 
 			const UCHAR* const index = select[data & 0x3];
 
-			ppu->SetMirroring
+			ppu.SetMirroring
 			(
 				index[0],
 				index[1],
@@ -187,7 +187,7 @@ VOID MAPPER69::IrqSync(const UINT delta)
 	{
 		IrqCount = 0xFFFF;
 		SetIrqEnable(FALSE);
-		cpu->TryIRQ();
+		cpu.TryIRQ();
 	}
 }
 

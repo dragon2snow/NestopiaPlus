@@ -64,7 +64,7 @@ VOID MOVIEMANAGER::Forward() { if (nes->CanForwardMovie()) nes->ForwardMovie(); 
 
 VOID MOVIEMANAGER::UpdateDialog(HWND hDlg)
 {
-	SetDlgItemText( hDlg, IDC_MOVIE_FILE, file );	
+	SetDlgItemText( hDlg, IDC_MOVIE_FILE, file.String() );	
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -99,7 +99,7 @@ VOID MOVIEMANAGER::OnBrowse(HWND hDlg)
 	ofn.hwndOwner       = hWnd;
 	ofn.lpstrFilter     = "NES Movie File (*.nsv)\0*.nsv\0All Files (*.*)\0*.*\0";
 	ofn.nFilterIndex    = 1;
-	ofn.lpstrInitialDir	= application.GetFileManager().GetNstPath();
+	ofn.lpstrInitialDir	= application.GetFileManager().GetNstPath().String();
 	ofn.lpstrFile       = file.Begin();
 	ofn.lpstrTitle      = "Select NES Movie File";
 	ofn.nMaxFile        = NST_MAX_PATH;
@@ -112,7 +112,7 @@ VOID MOVIEMANAGER::OnBrowse(HWND hDlg)
 		if (file.Length() && file.GetFileExtension().IsEmpty())
 			file += ".nsv";
 
-		SetDlgItemText( hDlg, IDC_MOVIE_FILE, file );
+		SetDlgItemText( hDlg, IDC_MOVIE_FILE, file.String() );
 	}
 }
 

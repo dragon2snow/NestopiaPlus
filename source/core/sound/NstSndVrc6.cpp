@@ -34,14 +34,14 @@ NES_NAMESPACE_BEGIN
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-SNDVRC6::SNDVRC6(CPU* const c)
+SNDVRC6::SNDVRC6(CPU& c)
 : 
 cpu (c),
-apu (c->GetAPU())
+apu (c.GetAPU())
 {
-	apu->HookChannel( PDX_STATIC_CAST(APU::CHANNEL* const,square+0)  );
-	apu->HookChannel( PDX_STATIC_CAST(APU::CHANNEL* const,square+1)  );
-	apu->HookChannel( PDX_STATIC_CAST(APU::CHANNEL* const,&sawtooth) );
+	apu.HookChannel( PDX_STATIC_CAST(APU::CHANNEL* const,square+0)  );
+	apu.HookChannel( PDX_STATIC_CAST(APU::CHANNEL* const,square+1)  );
+	apu.HookChannel( PDX_STATIC_CAST(APU::CHANNEL* const,&sawtooth) );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -50,9 +50,9 @@ apu (c->GetAPU())
 
 SNDVRC6::~SNDVRC6()
 {
-	apu->ReleaseChannel( PDX_STATIC_CAST(APU::CHANNEL* const,square+0)  );
-	apu->ReleaseChannel( PDX_STATIC_CAST(APU::CHANNEL* const,square+1)  );
-	apu->ReleaseChannel( PDX_STATIC_CAST(APU::CHANNEL* const,&sawtooth) );
+	apu.ReleaseChannel( PDX_STATIC_CAST(APU::CHANNEL* const,square+0)  );
+	apu.ReleaseChannel( PDX_STATIC_CAST(APU::CHANNEL* const,square+1)  );
+	apu.ReleaseChannel( PDX_STATIC_CAST(APU::CHANNEL* const,&sawtooth) );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -170,15 +170,15 @@ PDXRESULT SNDVRC6::SAWTOOTH::SaveState(PDXFILE& file) const
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-VOID SNDVRC6::WriteSquare1Reg0  (const UINT data) { apu->Update(); square[0].WriteReg0 ( data ); }
-VOID SNDVRC6::WriteSquare1Reg1  (const UINT data) { apu->Update(); square[0].WriteReg1 ( data ); }
-VOID SNDVRC6::WriteSquare1Reg2  (const UINT data) { apu->Update(); square[0].WriteReg2 ( data ); }
-VOID SNDVRC6::WriteSquare2Reg0  (const UINT data) { apu->Update(); square[1].WriteReg0 ( data ); }
-VOID SNDVRC6::WriteSquare2Reg1  (const UINT data) { apu->Update(); square[1].WriteReg1 ( data ); }
-VOID SNDVRC6::WriteSquare2Reg2  (const UINT data) { apu->Update(); square[1].WriteReg2 ( data ); }
-VOID SNDVRC6::WriteSawToothReg0 (const UINT data) { apu->Update(); sawtooth.WriteReg0  ( data ); }
-VOID SNDVRC6::WriteSawToothReg1 (const UINT data) { apu->Update(); sawtooth.WriteReg1  ( data ); }
-VOID SNDVRC6::WriteSawToothReg2 (const UINT data) { apu->Update(); sawtooth.WriteReg2  ( data ); }
+VOID SNDVRC6::WriteSquare1Reg0  (const UINT data) { apu.Update(); square[0].WriteReg0 ( data ); }
+VOID SNDVRC6::WriteSquare1Reg1  (const UINT data) { apu.Update(); square[0].WriteReg1 ( data ); }
+VOID SNDVRC6::WriteSquare1Reg2  (const UINT data) { apu.Update(); square[0].WriteReg2 ( data ); }
+VOID SNDVRC6::WriteSquare2Reg0  (const UINT data) { apu.Update(); square[1].WriteReg0 ( data ); }
+VOID SNDVRC6::WriteSquare2Reg1  (const UINT data) { apu.Update(); square[1].WriteReg1 ( data ); }
+VOID SNDVRC6::WriteSquare2Reg2  (const UINT data) { apu.Update(); square[1].WriteReg2 ( data ); }
+VOID SNDVRC6::WriteSawToothReg0 (const UINT data) { apu.Update(); sawtooth.WriteReg0  ( data ); }
+VOID SNDVRC6::WriteSawToothReg1 (const UINT data) { apu.Update(); sawtooth.WriteReg1  ( data ); }
+VOID SNDVRC6::WriteSawToothReg2 (const UINT data) { apu.Update(); sawtooth.WriteReg2  ( data ); }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -244,33 +244,21 @@ LONG SNDVRC6::SQUARE::Sample()
 {
 	if (active)
 	{
-		if ((timer += rate) > 0)
+		LONG weight = PDX_MIN(rate,timer);
+		LONG sum = (step < duty) ? +weight : -weight;
+
+		for (timer -= rate; timer < 0; )
 		{
-			LONG sum = 0;
-			INT num = 0;
+			weight = frequency;
 
-			do
-			{
-				step = (step + 1) & 0xF;
+			if ((timer += frequency) > 0)
+				weight -= timer;
 
-				if (!step) 
-				{
-					amp = +volume;
-				}
-				else if (step == duty)
-				{
-					amp = -volume;
-				}
-
-				sum += amp;
-				++num;
-			}
-			while ((timer -= frequency) > 0);
-
-			return sum / num;
+			step = (step + 1) & 0xF;
+			sum += (step < duty) ? +weight : -weight;
 		}
 
-		return amp;
+		amp = LONG(floor(FLOAT(volume * sum) / FLOAT(rate) + 0.5));
 	}
 	else
 	{

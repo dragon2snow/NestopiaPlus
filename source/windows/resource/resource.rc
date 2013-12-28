@@ -75,7 +75,7 @@ STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION |
 CAPTION "Video Options"
 FONT 8, "MS Shell Dlg", 0, 0, 0x0
 BEGIN
-    DEFPUSHBUTTON   "OK",IDC_GRAPHICS_OK,360,210,43,19
+    DEFPUSHBUTTON   "OK",IDC_GRAPHICS_OK,354,210,49,19
     GROUPBOX        "Fullscreen Display Mode",IDC_STATIC,7,7,139,67
     LTEXT           "Device",IDC_STATIC,14,17,25,10
     COMBOBOX        IDC_GRAPHICS_DEVICE,41,16,94,46,CBS_DROPDOWNLIST | 
@@ -139,16 +139,12 @@ BEGIN
                     ES_READONLY | NOT WS_TABSTOP
     PUSHBUTTON      "Browse",IDC_GRAPHICS_PALETTE_BROWSE,188,164,31,12
     PUSHBUTTON      "Clear",IDC_GRAPHICS_PALETTE_CLEAR,222,164,29,12
-    GROUPBOX        "Off-screen buffer location",IDC_STATIC,7,194,140,35
-    RADIOBUTTON     "System Memory",IDC_GRAPHICS_SRAM,14,209,67,10,
+    GROUPBOX        "Off-Screen Buffer Location",IDC_STATIC,7,194,217,35
+    RADIOBUTTON     "System Memory",IDC_GRAPHICS_SRAM,35,209,67,10,
                     WS_TABSTOP
-    RADIOBUTTON     "Video Memory",IDC_GRAPHICS_VRAM,85,210,57,10,WS_TABSTOP
-    GROUPBOX        "Timing",IDC_STATIC,151,194,157,35
-    RADIOBUTTON     "VSync (NTSC only)",IDC_GRAPHICS_TIMING_VSYNC,156,208,75,
-                    11,WS_TABSTOP
-    RADIOBUTTON     "Auto Frame Skip",IDC_GRAPHICS_TIMING_FRAMESKIP,234,207,
-                    67,15,WS_TABSTOP
-    PUSHBUTTON      "Default",IDC_GRAPHICS_DEFAULT,311,210,44,19
+    RADIOBUTTON     "Video Memory",IDC_GRAPHICS_VRAM,120,210,57,10,
+                    WS_TABSTOP
+    PUSHBUTTON      "Default",IDC_GRAPHICS_DEFAULT,281,210,58,19
 END
 
 IDD_PATHS DIALOGEX 0, 0, 308, 289
@@ -189,8 +185,7 @@ BEGIN
     PUSHBUTTON      "Browse",IDC_PATHS_IPS_BROWSE,263,218,37,18
     CONTROL         "Auto apply",IDC_PATHS_NSP_AUTO_APPLY,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,189,140,51,10
-    GROUPBOX        "Script Files",IDC_STATIC,6,109,250,44,BS_LEFT | 
-                    WS_GROUP
+    GROUPBOX        "NSP Files",IDC_STATIC,6,109,250,44,BS_LEFT | WS_GROUP
     CONTROL         "Look in image file directory first",IDC_PATHS_NSP_ROM,
                     "Button",BS_AUTOCHECKBOX | WS_TABSTOP,67,139,115,12
     PUSHBUTTON      "Browse",IDC_PATHS_NSP_BROWSE,263,117,37,18
@@ -251,7 +246,7 @@ STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION |
 CAPTION "About"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    CTEXT           "Nestopia 1.03 \n\nCopyright (c) 2003 Martin Freij\nunder the terms and conditions of the\nGNU General Public License.",
+    CTEXT           "Nestopia 1.04 \n\nCopyright (c) 2003 Martin Freij\nunder the terms and conditions of the\nGNU General Public License.",
                     IDC_STATIC,14,22,133,42
     GROUPBOX        "",IDC_STATIC,7,7,147,124
     CTEXT           "http://sourceforge.net/projects/nestopia",
@@ -270,38 +265,38 @@ FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
 END
 
-IDD_ROM_INFO DIALOGEX 0, 0, 234, 160
+IDD_ROM_INFO DIALOGEX 0, 0, 269, 160
 STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 EXSTYLE WS_EX_STATICEDGE
 CAPTION "Image File Info"
 FONT 8, "Fixedsys", 400, 0, 0x0
 BEGIN
-    LTEXT           "",IDC_ROM_INFO_EDIT,7,7,220,146,WS_BORDER,
+    LTEXT           "",IDC_ROM_INFO_EDIT,7,7,255,146,WS_BORDER,
                     WS_EX_CLIENTEDGE
 END
 
-IDD_INPUT DIALOGEX 0, 0, 257, 190
+IDD_INPUT DIALOGEX 0, 0, 257, 241
 STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | 
     WS_SYSMENU
 CAPTION "Input Options"
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
-    DEFPUSHBUTTON   "OK",IDC_INPUT_OK,218,168,32,14
-    GROUPBOX        "Device",IDC_STATIC,7,7,66,132
-    LISTBOX         IDC_INPUT_DEVICES,14,18,53,111,LBS_NOINTEGRALHEIGHT | 
+    DEFPUSHBUTTON   "OK",IDC_INPUT_OK,218,219,32,14
+    GROUPBOX        "Device",IDC_STATIC,7,7,66,187
+    LISTBOX         IDC_INPUT_DEVICES,14,18,53,167,LBS_NOINTEGRALHEIGHT | 
                     WS_VSCROLL
-    GROUPBOX        "Keys/Buttons",IDC_STATIC,77,7,103,132
-    LISTBOX         IDC_INPUT_KEYS,82,18,92,111,LBS_NOINTEGRALHEIGHT | 
+    GROUPBOX        "Keys/Buttons",IDC_STATIC,77,7,103,187
+    LISTBOX         IDC_INPUT_KEYS,82,18,92,167,LBS_NOINTEGRALHEIGHT | 
                     LBS_NOSEL | WS_VSCROLL
-    GROUPBOX        "Mapping",IDC_STATIC,185,7,65,155
-    LISTBOX         IDC_INPUT_MAP,191,18,53,112,LBS_NOINTEGRALHEIGHT | 
+    GROUPBOX        "Mapping",IDC_STATIC,185,7,65,208
+    LISTBOX         IDC_INPUT_MAP,191,18,53,167,LBS_NOINTEGRALHEIGHT | 
                     WS_VSCROLL
-    LTEXT           "",IDC_INPUT_KEYPRESS_TEXT,7,168,163,14,WS_BORDER,
+    LTEXT           "",IDC_INPUT_KEYPRESS_TEXT,7,219,163,14,WS_BORDER,
                     WS_EX_CLIENTEDGE
-    PUSHBUTTON      "Set",IDC_INPUT_SET,190,135,26,9
-    PUSHBUTTON      "Clear",IDC_INPUT_CLEAR,219,135,23,9
-    PUSHBUTTON      "Default",IDC_INPUT_DEFAULT,177,168,37,14
-    PUSHBUTTON      "Set All",IDC_INPUT_SETALL,204,148,26,9
+    PUSHBUTTON      "Set",IDC_INPUT_SET,190,188,26,9
+    PUSHBUTTON      "Clear",IDC_INPUT_CLEAR,219,188,23,9
+    PUSHBUTTON      "Default",IDC_INPUT_DEFAULT,177,219,37,14
+    PUSHBUTTON      "Set All",IDC_INPUT_SETALL,204,201,26,9
 END
 
 IDD_GAMEGENIE DIALOGEX 0, 0, 321, 183
@@ -421,13 +416,13 @@ BEGIN
     CONTROL         "On exit, first power off machine",
                     IDC_PREFERENCES_CLOSE_POWER_OFF,"Button",BS_AUTOCHECKBOX | 
                     WS_TABSTOP,14,124,128,12
-    CONTROL         "Automatically hide menu when switching to fullscreen (may be brought back with right mouse button click)",
+    CONTROL         "Automatically hide menu when switching to fullscreen (may be brought back with ESC or right mouse button)",
                     IDC_PREFERENCES_HIDE_MENU_FULLSCREEN,"Button",
-                    BS_AUTOCHECKBOX | BS_MULTILINE | WS_TABSTOP,14,142,185,
+                    BS_AUTOCHECKBOX | BS_MULTILINE | WS_TABSTOP,14,142,188,
                     18
     CONTROL         "Confirm on exit",IDC_PREFERENCES_CONFIRM_EXIT,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,14,166,66,12
-    PUSHBUTTON      "Default",IDC_PREFERENCES_DEFAULT,108,212,50,14
+    PUSHBUTTON      "Default",IDC_PREFERENCES_DEFAULT,59,212,50,14
     CONTROL         "Always play NSF files in background",
                     IDC_PREFERENCES_NSF_IN_BACKGROUND,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,14,53,129,11
@@ -435,6 +430,7 @@ BEGIN
                     BS_AUTOCHECKBOX | WS_TABSTOP,14,184,54,12
     CONTROL         "High Priority",IDC_PREFERENCES_HIGH_PRIORITY,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,14,70,53,12
+    PUSHBUTTON      "Cancel",IDC_PREFERENCES_CANCEL,115,212,50,14
 END
 
 IDD_AUTO_SAVE DIALOGEX 0, 0, 251, 161
@@ -530,8 +526,7 @@ BEGIN
 END
 
 IDD_USERINPUT DIALOGEX 0, 0, 222, 130
-STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | 
-    WS_SYSMENU
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION
 FONT 8, "MS Shell Dlg", 400, 0, 0x1
 BEGIN
     DEFPUSHBUTTON   "OK",IDC_USERINPUT_OK,108,109,50,14
@@ -539,6 +534,34 @@ BEGIN
     EDITTEXT        IDC_USERINPUT_EDIT,7,86,208,13,ES_AUTOHSCROLL
     LTEXT           "",IDC_USERINPUT_TEXT,14,14,194,39
     GROUPBOX        "",IDC_STATIC,7,7,208,69
+END
+
+IDD_TIMING DIALOGEX 0, 0, 228, 150
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | 
+    WS_SYSMENU
+CAPTION "Timing Options"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "OK",IDC_TIMING_OK,171,129,50,14
+    CONTROL         "Synchronize to Refresh Rate",IDC_TIMING_SYNC_REFRESH,
+                    "Button",BS_AUTORADIOBUTTON,14,20,108,12
+    CONTROL         "Auto Frame Skip",IDC_TIMING_AUTO_FRAME_SKIP,"Button",
+                    BS_AUTORADIOBUTTON,132,22,69,9
+    CONTROL         "VSync",IDC_TIMING_VSYNC,"Button",BS_AUTOCHECKBOX | 
+                    WS_TABSTOP,177,43,37,8
+    GROUPBOX        "Timing",IDC_STATIC,7,7,214,56
+    PUSHBUTTON      "Default",IDC_TIMING_DEFAULT,109,129,50,14
+    GROUPBOX        "Speed",IDC_STATIC,7,66,214,57
+    CONTROL         "",IDC_TIMING_FPS,"msctls_trackbar32",TBS_BOTH | 
+                    TBS_NOTICKS | WS_TABSTOP,30,99,148,13,WS_EX_STATICEDGE
+    CTEXT           "0",IDC_TIMING_FPS_NUM,183,99,19,12,SS_SUNKEN
+    CONTROL         "Use Default FPS",IDC_TIMING_DEFAULT_FPS,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,14,82,67,10
+    CONTROL         "",IDC_TIMING_FRAME_SKIPS,"msctls_trackbar32",TBS_BOTH | 
+                    TBS_NOTICKS | WS_TABSTOP,73,41,71,12,WS_EX_STATICEDGE
+    LTEXT           "Max Frame Skips",IDC_TIMING_FRAME_SKIPS_TEXT,14,42,54,8
+    CTEXT           "0",IDC_TIMING_FRAME_SKIPS_NUM,149,41,19,12,SS_SUNKEN
+    LTEXT           "FPS",IDC_TIMING_FPS_TEXT,14,101,14,11
 END
 
 
@@ -593,7 +616,7 @@ BEGIN
     IDD_ROM_INFO, DIALOG
     BEGIN
         LEFTMARGIN, 7
-        RIGHTMARGIN, 227
+        RIGHTMARGIN, 262
         TOPMARGIN, 7
         BOTTOMMARGIN, 153
     END
@@ -603,7 +626,7 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 250
         TOPMARGIN, 7
-        BOTTOMMARGIN, 182
+        BOTTOMMARGIN, 233
     END
 
     IDD_GAMEGENIE, DIALOG
@@ -700,6 +723,14 @@ BEGIN
         RIGHTMARGIN, 215
         TOPMARGIN, 7
         BOTTOMMARGIN, 123
+    END
+
+    IDD_TIMING, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 221
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 143
     END
 END
 #endif    // APSTUDIO_INVOKED
@@ -956,7 +987,7 @@ BEGIN
     BEGIN
         MENUITEM "&Image File Info",            IDM_VIEW_ROM_INFO, GRAYED
         MENUITEM "&Log file",                   IDM_VIEW_LOGFILE
-        MENUITEM "&Fullscreen\tCtrl+Shift+F",   IDM_VIEW_SWITCH_SCREEN
+        MENUITEM "&Fullscreen\tAlt+Return",     IDM_VIEW_SWITCH_SCREEN
         POPUP "&Screen Size"
         BEGIN
             MENUITEM "&1X",                         IDM_VIEW_WINDOWSIZE_1X
@@ -965,17 +996,18 @@ BEGIN
             MENUITEM "&8X",                         IDM_VIEW_WINDOWSIZE_8X
             MENUITEM "&Max",                        IDM_VIEW_WINDOWSIZE_MAX
         END
-        MENUITEM "Hide &Menu",                  IDM_VIEW_HIDE_MENU, GRAYED
+        MENUITEM "Hide &Menu\tEsc",             IDM_VIEW_HIDE_MENU, GRAYED
     END
     POPUP "&Options"
     BEGIN
         MENUITEM "&Video..",                    IDM_OPTIONS_VIDEO
         MENUITEM "&Sound..",                    IDM_OPTIONS_SOUND
         MENUITEM "&Input..",                    IDM_OPTIONS_INPUT
+        MENUITEM "&Timing..",                   IDM_OPTIONS_TIMING
         MENUITEM "&Paths..",                    IDM_OPTIONS_PATHS
         MENUITEM "P&references..",              IDM_OPTIONS_PREFERENCES
         MENUITEM "&Game Genie..",               IDM_OPTIONS_GAME_GENIE
-        MENUITEM "&Auto Save..",                IDM_OPTIONS_AUTO_SAVE
+        MENUITEM "&Auto Saver..",               IDM_OPTIONS_AUTO_SAVE
         MENUITEM "&Dip Switches..",             IDM_OPTIONS_DIP_SWITCHES
         , GRAYED
     END
@@ -994,6 +1026,8 @@ END
 
 IDR_ACCELERATOR ACCELERATORS 
 BEGIN
+    "W",            IDM_FILE_LOAD_SCRIPT,   VIRTKEY, SHIFT, CONTROL, 
+                                                    NOINVERT
     "E",            IDM_FILE_LOAD_STATE,    VIRTKEY, SHIFT, CONTROL, 
                                                     NOINVERT
     "O",            IDM_FILE_OPEN,          VIRTKEY, SHIFT, CONTROL, 
@@ -1030,6 +1064,10 @@ BEGIN
     "0",            IDM_FILE_QUICK_SAVE_STATE_SLOT_NEXT, VIRTKEY, NOINVERT
     "X",            IDM_FILE_QUIT,          VIRTKEY, ALT, NOINVERT
     "E",            IDM_FILE_SAVE_SCREENSHOT, VIRTKEY, ALT, NOINVERT
+    "S",            IDM_FILE_SAVE_SCRIPT,   VIRTKEY, SHIFT, CONTROL, 
+                                                    NOINVERT
+    "D",            IDM_FILE_SAVE_STATE,    VIRTKEY, SHIFT, CONTROL, 
+                                                    NOINVERT
     "P",            IDM_MACHINE_PAUSE,      VIRTKEY, SHIFT, NOINVERT
     "F",            IDM_MACHINE_POWER_OFF,  VIRTKEY, SHIFT, NOINVERT
     "D",            IDM_MACHINE_POWER_ON,   VIRTKEY, SHIFT, NOINVERT
@@ -1039,23 +1077,10 @@ BEGIN
     VK_UP,          IDM_NSF_PLAY,           VIRTKEY, SHIFT, NOINVERT
     VK_LEFT,        IDM_NSF_PREV,           VIRTKEY, SHIFT, NOINVERT
     VK_DOWN,        IDM_NSF_STOP,           VIRTKEY, SHIFT, NOINVERT
-    "F",            IDM_VIEW_SWITCH_SCREEN, VIRTKEY, SHIFT, CONTROL, 
-                                                    NOINVERT
-    "D",            IDM_FILE_SAVE_STATE,    VIRTKEY, SHIFT, CONTROL, 
-                                                    NOINVERT
-    "W",            IDM_FILE_LOAD_SCRIPT,   VIRTKEY, SHIFT, CONTROL, 
-                                                    NOINVERT
-    "S",            IDM_FILE_SAVE_SCRIPT,   VIRTKEY, SHIFT, CONTROL, 
-                                                    NOINVERT
+    VK_RETURN,      IDM_VIEW_SWITCH_SCREEN, VIRTKEY, ALT, NOINVERT
+    VK_ESCAPE,      ID_TOGGLE_MENU,         VIRTKEY, NOINVERT
 END
 
-
-/////////////////////////////////////////////////////////////////////////////
-//
-// ROMDATABASE
-//
-
-IDR_ROMDATABASE1        ROMDATABASE             "RomDatabase.dat"
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -1063,6 +1088,13 @@ IDR_ROMDATABASE1        ROMDATABASE             "RomDatabase.dat"
 //
 
 IDR_COPYING1            COPYING                 "copying.txt"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// ROMDATABASE
+//
+
+IDR_ROMDATABASE1        ROMDATABASE             "RomDatabase.dat"
 #endif    // Swedish resources
 /////////////////////////////////////////////////////////////////////////////
 

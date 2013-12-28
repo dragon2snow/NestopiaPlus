@@ -44,7 +44,7 @@ U8   FDS::bRom[n8k];
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-FDS::FDS(CPU* const c,PPU* const p)
+FDS::FDS(CPU& c,PPU& p)
 : 
 sound  (c),
 cpu    (c), 
@@ -60,7 +60,7 @@ last   (0)
 FDS::~FDS()
 {
 	WriteDiskFile();
-	cpu->RemoveEvent( this );
+	cpu.RemoveEvent( this );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -150,7 +150,7 @@ PDXRESULT FDS::SetContext(const IO::FDS::CONTEXT& context)
 			string += (context.CurrentSide ? "B inserted.." : "A inserted..");
 		}
 
-		MsgOutput( string );
+		MsgOutput( string.String() );
 	}
 
 	return PDX_OK;
@@ -190,6 +190,8 @@ PDXRESULT FDS::SetBIOS(PDXFILE& file)
 
 		if (file.Readable( sizeof(U8) * n8k ))
 		{
+           #ifdef NES_WARN_ABOUT_BIOS
+
 			switch (PDXCRC32::Compute( file.At(file.Position()), n8k ))
 			{
      			case 0x5E607DCFUL:
@@ -200,6 +202,8 @@ PDXRESULT FDS::SetBIOS(PDXFILE& file)
 
 					MsgWarning("The bios file was not recognized and may not work properly!");
 			}
+
+           #endif
 
 			BiosLoaded = TRUE;
 			file.Read( bRom, bRom + n8k );
@@ -299,23 +303,23 @@ VOID FDS::Reset(const BOOL)
 	WriteSkip   = 0;
 	InsertWait  = 180;
 
-	cpu->RemoveEvent( this );
-	cpu->SetEvent( this, IrqSync );
-	cpu->SetLine(  CPU::IRQ_EXT_1 | CPU::IRQ_EXT_2 );
-	cpu->ClearIRQ( CPU::IRQ_EXT_1 | CPU::IRQ_EXT_2 ); 
+	cpu.RemoveEvent( this );
+	cpu.SetEvent( this, IrqSync );
+	cpu.SetLine(  CPU::IRQ_EXT_1 | CPU::IRQ_EXT_2 );
+	cpu.ClearIRQ( CPU::IRQ_EXT_1 | CPU::IRQ_EXT_2 ); 
 
-	cpu->SetPort( 0x4020,         this, Peek_Nop,  Poke_4020 );
-	cpu->SetPort( 0x4021,         this, Peek_Nop,  Poke_4021 );
-	cpu->SetPort( 0x4022,         this, Peek_Nop,  Poke_4022 );
-	cpu->SetPort( 0x4023,         this, Peek_Nop,  Poke_4023 );
-	cpu->SetPort( 0x4024,         this, Peek_Nop,  Poke_4024 );
-	cpu->SetPort( 0x4025,         this, Peek_Nop,  Poke_4025 );
-	cpu->SetPort( 0x4030,         this, Peek_4030, Poke_Nop  );
-	cpu->SetPort( 0x4031,         this, Peek_4031, Poke_Nop  );
-	cpu->SetPort( 0x4032,         this, Peek_4032, Poke_Nop  );
-	cpu->SetPort( 0x4033,         this, Peek_4033, Poke_Nop  );
-	cpu->SetPort( 0x6000, 0xDFFF, this, Peek_wRam, Poke_wRam );
-	cpu->SetPort( 0xE000, 0xFFFF, this, Peek_bRom, Poke_Nop  );
+	cpu.SetPort( 0x4020,         this, Peek_Nop,  Poke_4020 );
+	cpu.SetPort( 0x4021,         this, Peek_Nop,  Poke_4021 );
+	cpu.SetPort( 0x4022,         this, Peek_Nop,  Poke_4022 );
+	cpu.SetPort( 0x4023,         this, Peek_Nop,  Poke_4023 );
+	cpu.SetPort( 0x4024,         this, Peek_Nop,  Poke_4024 );
+	cpu.SetPort( 0x4025,         this, Peek_Nop,  Poke_4025 );
+	cpu.SetPort( 0x4030,         this, Peek_4030, Poke_Nop  );
+	cpu.SetPort( 0x4031,         this, Peek_4031, Poke_Nop  );
+	cpu.SetPort( 0x4032,         this, Peek_4032, Poke_Nop  );
+	cpu.SetPort( 0x4033,         this, Peek_4033, Poke_Nop  );
+	cpu.SetPort( 0x6000, 0xDFFF, this, Peek_wRam, Poke_wRam );
+	cpu.SetPort( 0xE000, 0xFFFF, this, Peek_bRom, Poke_Nop  );
 
 	sound.Reset();
 }
@@ -329,12 +333,12 @@ VOID FDS::LogReset()
 	PDXSTRING log("FDS: ");
 	
 	log += "reset";
-	LogOutput( log );
+	LogOutput( log.String() );
 
 	log.Resize( 5 );
 	log += disks.Size() / 2;
 	log += " disk(s) present";
-	LogOutput( log );
+	LogOutput( log.String() );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -394,7 +398,7 @@ PDXRESULT FDS::LoadState(PDXFILE& file)
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-NES_PEEK(FDS,Nop)  { return cpu->GetCache();        }
+NES_PEEK(FDS,Nop)  { return cpu.GetCache();        }
 NES_POKE(FDS,Nop)  {                                }
 NES_PEEK(FDS,wRam) { return wRam[address - 0x6000]; }
 NES_POKE(FDS,wRam) { wRam[address - 0x6000] = data; }
@@ -406,7 +410,7 @@ NES_PEEK(FDS,bRom) { return bRom[address - 0xE000]; }
 
 NES_POKE(FDS,4020) 
 { 
-	cpu->ClearIRQ(CPU::IRQ_EXT_1); 
+	cpu.ClearIRQ(CPU::IRQ_EXT_1); 
 	IrqLatch.b.l = data; 
 }
 
@@ -416,7 +420,7 @@ NES_POKE(FDS,4020)
 
 NES_POKE(FDS,4021) 
 { 
-	cpu->ClearIRQ(CPU::IRQ_EXT_1); 
+	cpu.ClearIRQ(CPU::IRQ_EXT_1); 
 	IrqLatch.b.h = data; 
 }
 
@@ -426,7 +430,7 @@ NES_POKE(FDS,4021)
 
 NES_POKE(FDS,4022) 
 { 
-	cpu->ClearIRQ(CPU::IRQ_EXT_1); 
+	cpu.ClearIRQ(CPU::IRQ_EXT_1); 
 	
 	IrqCount   = IrqLatch.d; 
 	IrqEnabled = (data & IRQ_ENABLE) ? TRUE : FALSE;
@@ -467,7 +471,7 @@ NES_POKE(FDS,4024)
 
 NES_POKE(FDS,4025) 
 {
-	cpu->ClearIRQ(CPU::IRQ_EXT_2);
+	cpu.ClearIRQ(CPU::IRQ_EXT_2);
 	
 	if (offset != DISK_EJECTED && offset == last)
 	{
@@ -489,7 +493,7 @@ NES_POKE(FDS,4025)
 		}
 	}
 
-	ppu->SetMirroring( (data & CTRL_MIRRORING_HORIZONTAL) ? MIRROR_HORIZONTAL : MIRROR_VERTICAL );
+	ppu.SetMirroring( (data & CTRL_MIRRORING_HORIZONTAL) ? MIRROR_HORIZONTAL : MIRROR_VERTICAL );
 
 	ctrl = data;
 }
@@ -502,10 +506,10 @@ NES_PEEK(FDS,4030)
 { 
 	UINT status = 0x00;
 
-	if (cpu->IsIRQ(CPU::IRQ_EXT_1)) status |= IO_STATUS_IRQ_1;
-	if (cpu->IsIRQ(CPU::IRQ_EXT_2)) status |= IO_STATUS_IRQ_2;
+	if (cpu.IsIRQ(CPU::IRQ_EXT_1)) status |= IO_STATUS_IRQ_1;
+	if (cpu.IsIRQ(CPU::IRQ_EXT_2)) status |= IO_STATUS_IRQ_2;
 
-	cpu->ClearIRQ(CPU::IRQ_EXT_1 | CPU::IRQ_EXT_2);
+	cpu.ClearIRQ(CPU::IRQ_EXT_1 | CPU::IRQ_EXT_2);
 
 	return status; 
 }
@@ -516,7 +520,7 @@ NES_PEEK(FDS,4030)
 
 NES_PEEK(FDS,4031) 
 {
-	cpu->ClearIRQ(CPU::IRQ_EXT_2);
+	cpu.ClearIRQ(CPU::IRQ_EXT_2);
 
 	if (offset != DISK_EJECTED && offset == last)
 	{
@@ -531,7 +535,7 @@ NES_PEEK(FDS,4031)
 		return data;
 	}
 
-	return cpu->GetCache();
+	return cpu.GetCache();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -540,7 +544,7 @@ NES_PEEK(FDS,4031)
 
 NES_PEEK(FDS,4032) 
 { 
-	UINT status = cpu->GetCache() & ~0x7;
+	UINT status = cpu.GetCache() & ~0x7;
 
 	const BOOL eject = (offset == DISK_EJECTED || offset != last);
 
@@ -573,8 +577,8 @@ VOID FDS::IrqSync()
 {
 	if (IrqWait > 0 || IrqEnabled)
 	{
-		const ULONG CpuCycles = cpu->GetCycles<CPU::CYCLE_MASTER>();
-		const ULONG delta = (CpuCycles - IrqCycles) / (cpu->IsPAL() ? NES_CPU_PAL_FIXED : NES_CPU_NTSC_FIXED);
+		const ULONG CpuCycles = cpu.GetCycles<CPU::CYCLE_MASTER>();
+		const ULONG delta = (CpuCycles - IrqCycles) / (cpu.IsPAL() ? NES_CPU_PAL_FIXED : NES_CPU_NTSC_FIXED);
 
 		if (IrqCount && IrqEnabled && (IrqCount -= delta) <= 0)
 		{
@@ -582,11 +586,11 @@ VOID FDS::IrqSync()
 				IrqEnabled = FALSE;
 
 			IrqCount = IrqLatch.d;
-			cpu->DoIRQ(CPU::IRQ_EXT_1);
+			cpu.DoIRQ(CPU::IRQ_EXT_1);
 		}
   
 		if (IrqWait > 0 && (IrqWait -= delta) <= 0 && (ctrl & CTRL_DISK_IRQ_ENABLED))
-			cpu->DoIRQ(CPU::IRQ_EXT_2);
+			cpu.DoIRQ(CPU::IRQ_EXT_2);
 
 		IrqCycles = CpuCycles;
 	}

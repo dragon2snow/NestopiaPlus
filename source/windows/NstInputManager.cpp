@@ -186,29 +186,29 @@ VOID INPUTMANAGER::PollPad(const UINT pad,const UINT index)
 	PDX_ASSERT(pad < 4);
 	PDX_ASSERT(index <= CATEGORY_PAD4);
 
-	format.pad[pad].buttons =
-	(
-     	( IsButtonPressed( map.category[ index ].keys[ KEY_UP     ].key ) ? NES::IO::INPUT::PAD::UP     : 0 ) |
-		( IsButtonPressed( map.category[ index ].keys[ KEY_RIGHT  ].key ) ? NES::IO::INPUT::PAD::RIGHT  : 0 ) |
-		( IsButtonPressed( map.category[ index ].keys[ KEY_DOWN   ].key ) ? NES::IO::INPUT::PAD::DOWN   : 0 ) |
-		( IsButtonPressed( map.category[ index ].keys[ KEY_LEFT   ].key ) ? NES::IO::INPUT::PAD::LEFT   : 0 ) |
-		( IsButtonPressed( map.category[ index ].keys[ KEY_SELECT ].key ) ? NES::IO::INPUT::PAD::SELECT : 0 ) |
-		( IsButtonPressed( map.category[ index ].keys[ KEY_START  ].key ) ? NES::IO::INPUT::PAD::START  : 0 ) |
-		( IsButtonPressed( map.category[ index ].keys[ KEY_A      ].key ) ? NES::IO::INPUT::PAD::A      : 0 ) |
-		( IsButtonPressed( map.category[ index ].keys[ KEY_B      ].key ) ? NES::IO::INPUT::PAD::B      : 0 )
-	);
+	const MAP::CATEGORY::KEYS& keys = map.category[index].keys;
+
+	UINT buttons = 0;
+
+	if (IsButtonPressed( keys[ KEY_UP     ].key )) buttons |= NES::IO::INPUT::PAD::UP;
+	if (IsButtonPressed( keys[ KEY_RIGHT  ].key )) buttons |= NES::IO::INPUT::PAD::RIGHT;
+	if (IsButtonPressed( keys[ KEY_DOWN   ].key )) buttons |= NES::IO::INPUT::PAD::DOWN;
+	if (IsButtonPressed( keys[ KEY_LEFT   ].key )) buttons |= NES::IO::INPUT::PAD::LEFT;
+	if (IsButtonPressed( keys[ KEY_SELECT ].key )) buttons |= NES::IO::INPUT::PAD::SELECT;
+	if (IsButtonPressed( keys[ KEY_START  ].key )) buttons |= NES::IO::INPUT::PAD::START;
+	if (IsButtonPressed( keys[ KEY_A      ].key )) buttons |= NES::IO::INPUT::PAD::A;
+	if (IsButtonPressed( keys[ KEY_B      ].key )) buttons |= NES::IO::INPUT::PAD::B;
 
 	if (++AutoFireStep >= 3)
 	{
 		if (AutoFireStep == 6)
 			AutoFireStep = 0;
 
-		if (IsButtonPressed(map.category[index].keys[KEY_AUTOFIRE_A].key))
-			format.pad[pad].buttons |= NES::IO::INPUT::PAD::A;
-
-		if (IsButtonPressed(map.category[index].keys[KEY_AUTOFIRE_B].key))
-			format.pad[pad].buttons |= NES::IO::INPUT::PAD::B;
+		if (IsButtonPressed( keys[ KEY_AUTOFIRE_A ].key )) buttons |= NES::IO::INPUT::PAD::A;
+		if (IsButtonPressed( keys[ KEY_AUTOFIRE_B ].key )) buttons |= NES::IO::INPUT::PAD::B;
 	}
+
+	format.pad[pad].buttons = buttons;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -241,14 +241,16 @@ VOID INPUTMANAGER::PollPowerPad()
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-INPUTMANAGER::INPUTMANAGER(const INT id,const UINT chunk)
+INPUTMANAGER::INPUTMANAGER(const INT id)
 : 
-MANAGER      (id,chunk), 
-hDlg         (NULL),
-AutoFireStep (0),
-SelectDevice (0),
-SelectKey    (0),
-MenuHeight   (GetSystemMetrics(SM_CYMENU))
+MANAGER              (id), 
+hDlg                 (NULL),
+AutoFireStep         (0),
+SelectDevice         (0),
+SelectKey            (0),
+SpeedThrottle        (0),
+SpeedThrottleKeyDown (FALSE),
+MenuHeight           (GetSystemMetrics(SM_CYMENU))
 {
 	map.category[ CATEGORY_PAD1     ].keys.Resize( NUM_PAD_KEYS      );
 	map.category[ CATEGORY_PAD2     ].keys.Resize( NUM_PAD_KEYS      );
@@ -264,39 +266,79 @@ MenuHeight   (GetSystemMetrics(SM_CYMENU))
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT INPUTMANAGER::Create(PDXFILE* const file)
+PDXRESULT INPUTMANAGER::Create(CONFIGFILE* const ConfigFile)
 {
 	SelectDevice = 0;
-	SelectKey    = 0;
+	SelectKey = 0;
 
 	PDX_TRY(DIRECTINPUT::Initialize( MANAGER::hWnd ));
 
-	if (file)
+	Reset();
+
+	if (ConfigFile)
 	{
+		CONFIGFILE& file = *ConfigFile;
+	
+		PDXARRAY<UINT> indices;
+
+		{
+			PDXSTRING string("input device ");
+	
+			for (UINT i=0; ; ++i)
+			{
+				string.Resize(13);
+				string << i;
+	
+				const PDXSTRING& input = file[string];
+	
+				if (input.IsEmpty())
+					break;
+	
+				indices.InsertBack(UINT_MAX);
+
+				const GUID guid(CONFIGFILE::ToGUID(input.String()));
+	
+				for (UINT j=0; j < joysticks.Size(); ++j)
+				{
+					if (!memcmp(&guid,&joysticks[j].guid,sizeof(guid)))
+					{
+						indices.Back() = j;
+						break;
+					}
+				}
+			}
+		}
+	
 		for (UINT i=0; i < NUM_CATEGORIES; ++i)
 		{
 			for (UINT j=0; j < map.category[i].keys.Size(); ++j)
 			{
-				MAP::CATEGORY::KEY& key = map.category[i].keys[j];
+				const PDXSTRING& text = file[Map2Text(i,j)];
 
-				key.device = NULL;
-
-				const UINT index = file->Read<U8>();
-
-				if (index != 0xFF)
+				if (text.Length())
 				{
-					key.device = GetDevice(index);
-					key.key = file->Read<U32>();
-				}
+					MAP::CATEGORY::KEY& mapping = map.category[i].keys[j];
 
-				if (!key.device)
-					key.key = 0;
+					const ULONG key = Text2Key(text);
+
+					if (key & NST_USE_JOYSTICK)
+					{
+						const UINT index = (key & ~NST_USE_JOYSTICK) / 64;
+
+						if (indices.Size() <= index || indices[index] == UINT_MAX)
+							continue;
+
+						mapping.device = joysticks[indices[index]].device;
+						mapping.key = ((key & ~NST_USE_JOYSTICK) % 64) + (indices[index] * 64) | NST_USE_JOYSTICK;
+					}
+					else
+					{
+						mapping.device = GetDevice(0);
+						mapping.key = key;
+					}
+				}
 			}
 		}
-	}
-	else
-	{
-		Reset();
 	}
 
 	ActiveJoysticks.Resize( joysticks.Size() );
@@ -313,48 +355,34 @@ PDXRESULT INPUTMANAGER::Create(PDXFILE* const file)
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT INPUTMANAGER::Destroy(PDXFILE* const file)
+PDXRESULT INPUTMANAGER::Destroy(CONFIGFILE* const ConfigFile)
 {
-	if (file)
+	if (ConfigFile)
 	{
-		for (UINT i=0; i < NUM_CATEGORIES; ++i)
+		CONFIGFILE& file = *ConfigFile;
+
 		{
-			for (UINT j=0; j < map.category[i].keys.Size(); ++j)
+			PDXSTRING string("input device ");
+
+			DIDEVICEINSTANCE info;
+			DIRECTX::InitStruct(info);
+
+			for (UINT i=0; i < ActiveJoysticks.Size(); ++i)
 			{
-				const U32 key = map.category[i].keys[j].key;
-
-				if (!key)
+				if (ActiveJoysticks[i].active && ActiveJoysticks[i].device->GetDeviceInfo( &info ) == DI_OK)
 				{
-					file->Write(U8(0xFF));
-				}
-				else
-				{
-					LPDIRECTINPUTDEVICE8 device = map.category[i].keys[j].device;
-
-					if (!device)
-					{
-						file->Write(U8(0));
-						file->Write(key);
-					}
-					else
-					{
-						const UINT index = GetDeviceIndex(device);
-
-						if (index == UINT_MAX)
-						{
-							file->Write(U8(0xFF));
-						}
-						else
-						{
-							file->Write(U8(index));
-							file->Write(key);
-						}
-					}
+					string.Resize(13);
+					string << i;
+					file[string] = CONFIGFILE::FromGUID(info.guidInstance);
 				}
 			}
 		}
+
+		for (UINT i=0; i < NUM_CATEGORIES; ++i)
+			for (UINT j=0; j < map.category[i].keys.Size(); ++j)
+				file[Map2Text(i,j)] = Key2Text(map.category[i].keys[j].key);
 	}
-  
+
 	return DIRECTINPUT::Destroy();
 }
 
@@ -413,6 +441,7 @@ VOID INPUTMANAGER::Reset()
 
 	map.category[ CATEGORY_GENERAL ].keys[ KEY_GENERAL_INSERT_COIN_1 ].key = DIK_F2;    
 	map.category[ CATEGORY_GENERAL ].keys[ KEY_GENERAL_INSERT_COIN_2 ].key = DIK_F3;    
+	map.category[ CATEGORY_GENERAL ].keys[ KEY_GENERAL_TOGGLE_FPS    ].key = DIK_F5;    
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -423,6 +452,20 @@ PDXRESULT INPUTMANAGER::Poll()
 {
 	PollKeyboard();
 	PollJoysticks();
+
+	if (IsButtonPressed(map.category[CATEGORY_GENERAL].keys[KEY_GENERAL_TOGGLE_FPS].key))
+	{
+		if (!SpeedThrottleKeyDown)
+		{
+			SpeedThrottleKeyDown = TRUE;
+			application.GetTimerManager().EnableCustomFPS( SpeedThrottle );
+			SpeedThrottle ^= 1;
+		}
+	}
+	else
+	{
+		SpeedThrottleKeyDown = FALSE;
+	}
 	
 	if (nes->ConnectedController(4) != NES::CONTROLLER_KEYBOARD)
 	{
@@ -824,9 +867,11 @@ VOID INPUTMANAGER::UpdateDlgButtonTexts()
 
 			ListBox_AddString( hKeys, "Insert Coin (slot 1)" );
 			ListBox_AddString( hKeys, "Insert Coin (slot 2)" );
+			ListBox_AddString( hKeys, "Speed Throttle"       );
 
 			ListBox_AddString( hMap, Key2Text( map.category[ CATEGORY_GENERAL ].keys[ KEY_GENERAL_INSERT_COIN_1 ].key ) );
 			ListBox_AddString( hMap, Key2Text( map.category[ CATEGORY_GENERAL ].keys[ KEY_GENERAL_INSERT_COIN_2 ].key ) );
+			ListBox_AddString( hMap, Key2Text( map.category[ CATEGORY_GENERAL ].keys[ KEY_GENERAL_TOGGLE_FPS    ].key ) );
 			break;
 	}
 
@@ -899,6 +944,102 @@ VOID INPUTMANAGER::UpdateJoystickDevices()
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
+const CHAR* INPUTMANAGER::Map2Text(const UINT category,const UINT key)
+{
+	PDX_ASSERT(category < NUM_CATEGORIES);
+
+	if (category < NUM_CATEGORIES)
+	{
+		static CHAR buffer[128];
+
+		static const CHAR* types[NUM_CATEGORIES] =
+		{
+			"input pad1 ",
+			"input pad2 ",
+			"input pad3 ",
+			"input pad4 ",
+			"input powerpad ",
+			"input general "
+		};
+
+		strcpy( buffer, types[category] );
+		const CHAR* button = NULL;
+
+		switch (category)
+		{
+			case CATEGORY_PAD1:
+			case CATEGORY_PAD2:
+			case CATEGORY_PAD3:
+			case CATEGORY_PAD4:
+
+				switch (key)
+				{
+					case KEY_A:          button = "a";			 break;
+					case KEY_B:          button = "b";			 break;
+					case KEY_SELECT:     button = "select";	     break;
+					case KEY_START:      button = "start";	     break;
+					case KEY_UP:         button = "up";		     break;
+					case KEY_DOWN:       button = "down";	     break;
+					case KEY_LEFT:       button = "left";	     break;
+					case KEY_RIGHT:      button = "right";	     break;
+					case KEY_AUTOFIRE_A: button = "auto fire a"; break;
+					case KEY_AUTOFIRE_B: button = "auto fire b"; break;
+					default: return NULL;
+				}
+				break;
+
+			case CATEGORY_POWERPAD:
+
+				switch (key)
+				{
+					case KEY_POWERPAD_SIDE_A_1:	 button = "side a 1";  break;
+					case KEY_POWERPAD_SIDE_A_2:	 button = "side a 2";  break;
+					case KEY_POWERPAD_SIDE_A_3:	 button = "side a 3";  break;
+					case KEY_POWERPAD_SIDE_A_4:	 button = "side a 4";  break;
+					case KEY_POWERPAD_SIDE_A_5:	 button = "side a 5";  break;
+					case KEY_POWERPAD_SIDE_A_6:	 button = "side a 6";  break;
+					case KEY_POWERPAD_SIDE_A_7:	 button = "side a 7";  break;
+					case KEY_POWERPAD_SIDE_A_8:	 button = "side a 8";  break;
+					case KEY_POWERPAD_SIDE_A_9:	 button = "side a 9";  break;
+					case KEY_POWERPAD_SIDE_A_10: button = "side a 10"; break;
+					case KEY_POWERPAD_SIDE_A_11: button = "side a 11"; break;
+					case KEY_POWERPAD_SIDE_A_12: button = "side a 12"; break;
+					case KEY_POWERPAD_SIDE_B_3:  button = "side b 3";  break;
+					case KEY_POWERPAD_SIDE_B_2:	 button = "side b 2";  break;
+					case KEY_POWERPAD_SIDE_B_8:	 button = "side b 8";  break;
+					case KEY_POWERPAD_SIDE_B_7:	 button = "side b 7";  break;
+					case KEY_POWERPAD_SIDE_B_6:	 button = "side b 6";  break;
+					case KEY_POWERPAD_SIDE_B_5:	 button = "side b 5";  break;
+					case KEY_POWERPAD_SIDE_B_11: button = "side b 11"; break;
+					case KEY_POWERPAD_SIDE_B_10: button = "side b 10"; break;
+					default: return NULL;
+				}
+				break;
+
+			case CATEGORY_GENERAL:
+
+				switch (key)
+				{
+					case KEY_GENERAL_INSERT_COIN_1: button = "insert coin 1";  break;
+					case KEY_GENERAL_INSERT_COIN_2: button = "insert coin 2";  break;
+					case KEY_GENERAL_TOGGLE_FPS:    button = "speed throttle"; break;
+					default: return NULL;
+				}
+				break;
+		}
+
+		strcat( buffer, button );
+
+		return buffer;
+	}
+
+	return NULL;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
 #define NST_CASE(a,b) case a: return b;
 
 const CHAR* INPUTMANAGER::Key2Text(DWORD key)
@@ -953,7 +1094,7 @@ const CHAR* INPUTMANAGER::Key2Text(DWORD key)
 		}
 
 		static CHAR buffer[24];
-		strcpy( buffer, text );
+		strcpy( buffer, text.String() );
 
 		return buffer;
 	}
@@ -1109,4 +1250,221 @@ const CHAR* INPUTMANAGER::Key2Text(DWORD key)
 	}
 
 	return "...";
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+#undef NST_CASE
+#define NST_CASE(a,b) if (text == b) return a;
+#define NST_J_CASE(a,b) if (!strcmp( button, a )) return NST_USE_JOYSTICK | (index + b);
+
+DWORD INPUTMANAGER::Text2Key(const PDXSTRING& text)
+{
+	if (text.IsEmpty() || (text[0] == '.' && text[1] == '.' && text[3] == '.'))
+		return 0;
+
+	if (text[0] == '(' && text[1] == 'j' && text[2] == 'o' && text[3] == 'y' && text[4] == ' ')
+	{
+		UINT stop = 5;
+
+		while (text[stop] != ')' && text[stop] != '\0')
+			++stop;
+
+		if (stop == 5 || text[++stop] != ' ')
+			return 0;
+
+		const UINT index = strtoul( text.At(5), NULL, 10 ) * 64;
+		const CHAR* const button = text.At(stop+1);
+
+		NST_J_CASE( "-x",  32 )
+		NST_J_CASE( "+x",  33 )
+		NST_J_CASE( "+y",  34 )
+		NST_J_CASE( "-y",  35 )
+		NST_J_CASE( "+z",  36 )
+		NST_J_CASE( "-z",  37 )
+		NST_J_CASE( "-rx", 38 )
+		NST_J_CASE( "+rx", 39 )
+		NST_J_CASE( "+ry", 40 )
+		NST_J_CASE( "-ry", 41 )
+		NST_J_CASE( "+rz", 42 )
+		NST_J_CASE( "-rz", 43 )
+		NST_J_CASE( "-s0", 44 )
+		NST_J_CASE( "+s0", 45 )
+		NST_J_CASE( "-s1", 46 )
+		NST_J_CASE( "+s1", 47 )
+		NST_J_CASE( "+py", 48 )
+		NST_J_CASE( "+px", 49 )
+		NST_J_CASE( "-py", 50 )
+		NST_J_CASE( "-px", 51 )
+		NST_J_CASE( "+py", 52 )
+		NST_J_CASE( "+px", 53 )
+		NST_J_CASE( "-py", 54 )
+		NST_J_CASE( "-px", 55 )
+		NST_J_CASE( "+py", 56 )
+		NST_J_CASE( "+px", 57 )
+		NST_J_CASE( "-py", 58 )
+		NST_J_CASE( "-px", 59 )
+		NST_J_CASE( "+py", 60 )
+		NST_J_CASE( "+px", 61 )
+		NST_J_CASE( "-py", 62 )
+		NST_J_CASE( "-px", 63 )
+
+		const UINT key = strtoul( text.At(stop), NULL, 10 );
+
+		if (key > 31)
+			return 0;
+
+		return NST_USE_JOYSTICK | (index + key);
+	}
+	else
+	{
+		NST_CASE( DIK_ESCAPE       , "ESCAPE"       )      
+		NST_CASE( DIK_1            , "1"			)
+		NST_CASE( DIK_2            , "2"            )      
+		NST_CASE( DIK_3            , "3"            )      
+		NST_CASE( DIK_4            , "4"            )      
+		NST_CASE( DIK_5            , "5"            )      
+		NST_CASE( DIK_6            , "6"            )      
+		NST_CASE( DIK_7            , "7"            )      
+		NST_CASE( DIK_8            , "8"            )      
+		NST_CASE( DIK_9            , "9"            )      
+		NST_CASE( DIK_0            , "0"            )      
+		NST_CASE( DIK_MINUS        , "-"            )      
+		NST_CASE( DIK_EQUALS       , "="            )      
+		NST_CASE( DIK_BACK         , "BACK"         )      
+		NST_CASE( DIK_TAB          , "TAB"          )      
+		NST_CASE( DIK_Q            , "Q"            )      
+		NST_CASE( DIK_W            , "W"            )      
+		NST_CASE( DIK_E            , "E"            )      
+		NST_CASE( DIK_R            , "R"            )      
+		NST_CASE( DIK_T            , "T"            )      
+		NST_CASE( DIK_Y            , "Y"            )      
+		NST_CASE( DIK_U            , "U"            )      
+		NST_CASE( DIK_I            , "I"            )      
+		NST_CASE( DIK_O            , "O"            )      
+		NST_CASE( DIK_P            , "P"            )      
+		NST_CASE( DIK_LBRACKET     , "["            )      
+		NST_CASE( DIK_RBRACKET     , "]"            )      
+		NST_CASE( DIK_RETURN       , "RETURN"       )      
+		NST_CASE( DIK_LCONTROL     , "LCTRL"        )      
+		NST_CASE( DIK_A            , "A"            )      
+		NST_CASE( DIK_S            , "S"            )      
+		NST_CASE( DIK_D            , "D"            )      
+		NST_CASE( DIK_F            , "F"            )      
+		NST_CASE( DIK_G            , "G"            )      
+		NST_CASE( DIK_H            , "H"            )      
+		NST_CASE( DIK_J            , "J"            )      
+		NST_CASE( DIK_K            , "K"            )      
+		NST_CASE( DIK_L            , "L"            )      
+		NST_CASE( DIK_SEMICOLON    , ";"            )      
+		NST_CASE( DIK_APOSTROPHE   , "'"            )      
+		NST_CASE( DIK_GRAVE        , "§"            )      
+		NST_CASE( DIK_LSHIFT       , "LSHIFT"       )      
+		NST_CASE( DIK_BACKSLASH    , "\\"           )      
+		NST_CASE( DIK_Z            , "Z"            )      
+		NST_CASE( DIK_X            , "X"            )      
+		NST_CASE( DIK_C            , "C"            )      
+		NST_CASE( DIK_V            , "V"            )      
+		NST_CASE( DIK_B            , "B"            )      
+		NST_CASE( DIK_N            , "N"            )      
+		NST_CASE( DIK_M            , "M"            )      
+		NST_CASE( DIK_COMMA        , ","            )      
+		NST_CASE( DIK_PERIOD       , "."            )      
+		NST_CASE( DIK_SLASH        , "/"            )      
+		NST_CASE( DIK_RSHIFT       , "RSHIFT"       )      
+		NST_CASE( DIK_MULTIPLY     , "NUMPAD *"     )      
+		NST_CASE( DIK_LMENU        , "LMENU"        )      
+		NST_CASE( DIK_SPACE        , "SPACE"        )      
+		NST_CASE( DIK_CAPITAL      , "CAPS-LOCK"    )      
+		NST_CASE( DIK_F1           , "F1"           )      
+		NST_CASE( DIK_F2           , "F2"           )      
+		NST_CASE( DIK_F3           , "F3"           )      
+		NST_CASE( DIK_F4           , "F4"           )      
+		NST_CASE( DIK_F5           , "F5"           )      
+		NST_CASE( DIK_F6           , "F6"           )      
+		NST_CASE( DIK_F7           , "F7"           )      
+		NST_CASE( DIK_F8           , "F8"           )      
+		NST_CASE( DIK_F9           , "F9"           )      
+		NST_CASE( DIK_F10          , "F10"          )      
+		NST_CASE( DIK_NUMLOCK      , "NUMLOCK"      )      
+		NST_CASE( DIK_SCROLL       , "SCROLL"       )      
+		NST_CASE( DIK_NUMPAD7      , "NUMPAD 7"     )      
+		NST_CASE( DIK_NUMPAD8      , "NUMPAD 8"     )      
+		NST_CASE( DIK_NUMPAD9      , "NUMPAD 9"     )      
+		NST_CASE( DIK_SUBTRACT     , "NUMPAD -"     )      
+		NST_CASE( DIK_NUMPAD4      , "NUMPAD 4"     )      
+		NST_CASE( DIK_NUMPAD5      , "NUMPAD 5"     )      
+		NST_CASE( DIK_NUMPAD6      , "NUMPAD 6"     )      
+		NST_CASE( DIK_ADD          , "NUMPAD +"     )      
+		NST_CASE( DIK_NUMPAD1      , "NUMPAD 1"     )      
+		NST_CASE( DIK_NUMPAD2      , "NUMPAD 2"     )      
+		NST_CASE( DIK_NUMPAD3      , "NUMPAD 3"     )      
+		NST_CASE( DIK_NUMPAD0      , "NUMPAD 0"     )      
+		NST_CASE( DIK_DECIMAL      , "NUMPAD ."     )      
+		NST_CASE( DIK_OEM_102      , "OEM 102"      )      
+		NST_CASE( DIK_F11          , "F11"          )      
+		NST_CASE( DIK_F12          , "F12"          )      
+		NST_CASE( DIK_F13          , "F13"          )      
+		NST_CASE( DIK_F14          , "F14"          )      
+		NST_CASE( DIK_F15          , "F15"          )      
+		NST_CASE( DIK_KANA         , "KANA"         )      
+		NST_CASE( DIK_ABNT_C1      , "ABNT C1"      )      
+		NST_CASE( DIK_CONVERT      , "CONVERT"      )      
+		NST_CASE( DIK_NOCONVERT    , "NOCONVERT"    )      
+		NST_CASE( DIK_YEN          , "YEN"          )      
+		NST_CASE( DIK_ABNT_C2      , "ABNT C2"      )      
+		NST_CASE( DIK_NUMPADEQUALS , "NUMPAD ="     )      
+		NST_CASE( DIK_PREVTRACK    , "PREVTRACK"    )      
+		NST_CASE( DIK_AT           , "AT"           )      
+		NST_CASE( DIK_COLON        , ":"            )     
+		NST_CASE( DIK_UNDERLINE    , "_"            )      
+		NST_CASE( DIK_KANJI        , "KANJI"        )      
+		NST_CASE( DIK_STOP         , "STOP"         )      
+		NST_CASE( DIK_AX           , "AX"           )      
+		NST_CASE( DIK_UNLABELED    , "UNLABELED"    )      
+		NST_CASE( DIK_NEXTTRACK    , "NEXTTRACK"    )      
+		NST_CASE( DIK_NUMPADENTER  , "NUMPAD ENTER" )      
+		NST_CASE( DIK_RCONTROL     , "RCTRL"        )      
+		NST_CASE( DIK_MUTE         , "MUTE"         )      
+		NST_CASE( DIK_CALCULATOR   , "CALCULATOR"   )      
+		NST_CASE( DIK_PLAYPAUSE    , "PLAYPAUSE"    )      
+		NST_CASE( DIK_MEDIASTOP    , "MEDIASTOP"    )      
+		NST_CASE( DIK_VOLUMEDOWN   , "VOLUMEDOWN"   )      
+		NST_CASE( DIK_VOLUMEUP     , "VOLUMEUP"     )      
+		NST_CASE( DIK_WEBHOME      , "WEBHOME"      )      
+		NST_CASE( DIK_NUMPADCOMMA  , "NUMPAD ,"     )      
+		NST_CASE( DIK_DIVIDE       , "NUMPAD /"     )      
+		NST_CASE( DIK_SYSRQ        , "SYSRQ"        )      
+		NST_CASE( DIK_RMENU        , "RMENU"        )      
+		NST_CASE( DIK_PAUSE        , "PAUSE"        )      
+		NST_CASE( DIK_HOME         , "HOME"         )      
+		NST_CASE( DIK_UP           , "UP"           )      
+		NST_CASE( DIK_PRIOR        , "PAGE-UP"      )     
+		NST_CASE( DIK_LEFT         , "LEFT"         )      
+		NST_CASE( DIK_RIGHT        , "RIGHT"        )      
+		NST_CASE( DIK_END          , "END"          )      
+		NST_CASE( DIK_DOWN         , "DOWN"         )      
+		NST_CASE( DIK_NEXT         , "PAGE-DOWN"    )      
+		NST_CASE( DIK_INSERT       , "INSERT"       )      
+		NST_CASE( DIK_DELETE       , "DELETE"       )      
+		NST_CASE( DIK_LWIN         , "LWIN"         )      
+		NST_CASE( DIK_RWIN         , "RWIN"         )      
+		NST_CASE( DIK_APPS         , "APPS"         )      
+		NST_CASE( DIK_POWER        , "POWER"        )      
+		NST_CASE( DIK_SLEEP        , "SLEEP"        )      
+		NST_CASE( DIK_WAKE         , "WAKE"         )      
+		NST_CASE( DIK_WEBSEARCH    , "WEBSEARCH"    )      
+		NST_CASE( DIK_WEBFAVORITES , "WEBFAVORITES" )      
+		NST_CASE( DIK_WEBREFRESH   , "WEBREFRESH"   )      
+		NST_CASE( DIK_WEBSTOP      , "WEBSTOP"      )      
+		NST_CASE( DIK_WEBFORWARD   , "WEBFORWARD"   )      
+		NST_CASE( DIK_WEBBACK      , "WEBBACK"      )      
+		NST_CASE( DIK_MYCOMPUTER   , "MYCOMPUTER"   )      
+		NST_CASE( DIK_MAIL         , "MAIL"         )      
+		NST_CASE( DIK_MEDIASELECT  , "MEDIASELECT"  )      
+	}
+
+	return 0;
 }

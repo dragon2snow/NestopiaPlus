@@ -83,8 +83,10 @@ VOID IMAGEFILE::ImportDatabase()
 
 		IMAGE& image = database[chunk->pRomCrc];
 
+		if (chunk->copyright < copyright.Size())
+			image.copyright  = copyright[chunk->copyright];
+
 		image.name        = name;
-		image.copyright   = copyright[chunk->copyright];
 		image.pRomCrc     = chunk->pRomCrc;
 		image.pRomSize    = chunk->pRomSize;
 		image.cRomSize    = chunk->cRomSize;

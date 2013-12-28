@@ -33,7 +33,7 @@ NES_NAMESPACE_BEGIN
 
 VOID MAPPER237::Reset()
 {
-	cpu->SetPort( 0x8000, 0xFFFF, this, Peek_pRom, Poke_pRom );
+	cpu.SetPort( 0x8000, 0xFFFF, this, Peek_pRom, Poke_pRom );
 	memset( ExRam, 0x00, sizeof(U8) * 0x8000 );
 	UseExRam = FALSE;
 }
@@ -55,7 +55,7 @@ NES_POKE(MAPPER237,pRom)
 { 
 	if (address & 0x4000)
 	{
-		apu->Update(); 
+		apu.Update(); 
 
 		switch (address & 0x0030)
 		{
@@ -109,7 +109,7 @@ NES_POKE(MAPPER237,pRom)
 	}
 	else
 	{
-		ppu->SetMirroring( (address & 0x0020) ? MIRROR_VERTICAL : MIRROR_HORIZONTAL );
+		ppu.SetMirroring( (address & 0x0020) ? MIRROR_VERTICAL : MIRROR_HORIZONTAL );
 		cRom.SwapBanks<n8k,0x0000>( address & 0x7 );
 	}
 }

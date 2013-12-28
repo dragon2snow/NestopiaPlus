@@ -659,6 +659,10 @@
 				<File
 					RelativePath="..\source\core\mapper\NstMapper122.h"/>
 				<File
+					RelativePath="..\source\core\mapper\NstMapper133.cpp"/>
+				<File
+					RelativePath="..\source\core\mapper\NstMapper133.h"/>
+				<File
 					RelativePath="..\source\core\mapper\NstMapper140.cpp"/>
 				<File
 					RelativePath="..\source\core\mapper\NstMapper140.h"/>
@@ -939,6 +943,10 @@
 				RelativePath="..\source\windows\NstApplication.h"/>
 			<File
 				RelativePath="..\source\windows\NstApplication.inl"/>
+			<File
+				RelativePath="..\source\windows\NstConfigFile.cpp"/>
+			<File
+				RelativePath="..\source\windows\NstConfigFile.h"/>
 			<File
 				RelativePath="..\source\windows\NstFdsManager.cpp"/>
 			<File

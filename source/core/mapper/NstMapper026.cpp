@@ -43,29 +43,29 @@ VOID MAPPER26::Reset()
 	{
 		switch (((i & 0xFFFC) | ((i >> 1) & 0x1) | ((i << 1) & 0x2)) & 0xF003)
 		{
-       		case 0x8000: cpu->SetPort( i, m24, MAPPER24::Peek_pRom, MAPPER24::Poke_8000 ); continue;
-			case 0x9000: cpu->SetPort( i, m24, MAPPER24::Peek_pRom, MAPPER24::Poke_9000 ); continue;
-			case 0x9001: cpu->SetPort( i, m24, MAPPER24::Peek_pRom, MAPPER24::Poke_9001 ); continue;
-			case 0x9002: cpu->SetPort( i, m24, MAPPER24::Peek_pRom, MAPPER24::Poke_9002 ); continue;
-			case 0xA000: cpu->SetPort( i, m24, MAPPER24::Peek_pRom, MAPPER24::Poke_A000 ); continue;
-			case 0xA001: cpu->SetPort( i, m24, MAPPER24::Peek_pRom, MAPPER24::Poke_A001 ); continue;
-			case 0xA002: cpu->SetPort( i, m24, MAPPER24::Peek_pRom, MAPPER24::Poke_A002 ); continue;
-			case 0xB000: cpu->SetPort( i, m24, MAPPER24::Peek_pRom, MAPPER24::Poke_B000 ); continue;
-			case 0xB001: cpu->SetPort( i, m24, MAPPER24::Peek_pRom, MAPPER24::Poke_B001 ); continue;
-			case 0xB002: cpu->SetPort( i, m24, MAPPER24::Peek_pRom, MAPPER24::Poke_B002 ); continue;
-			case 0xB003: cpu->SetPort( i, m24, MAPPER24::Peek_pRom, MAPPER24::Poke_B003 ); continue;
-			case 0xC000: cpu->SetPort( i, m24, MAPPER24::Peek_pRom, MAPPER24::Poke_C000 ); continue;
-			case 0xD000: cpu->SetPort( i, m24, MAPPER24::Peek_pRom, MAPPER24::Poke_D000 ); continue;
-			case 0xD001: cpu->SetPort( i, m24, MAPPER24::Peek_pRom, MAPPER24::Poke_D001 ); continue;
-			case 0xD002: cpu->SetPort( i, m24, MAPPER24::Peek_pRom, MAPPER24::Poke_D002 ); continue;
-			case 0xD003: cpu->SetPort( i, m24, MAPPER24::Peek_pRom, MAPPER24::Poke_D003 ); continue;
-			case 0xE000: cpu->SetPort( i, m24, MAPPER24::Peek_pRom, MAPPER24::Poke_E000 ); continue;
-			case 0xE001: cpu->SetPort( i, m24, MAPPER24::Peek_pRom, MAPPER24::Poke_E001 ); continue;
-			case 0xE002: cpu->SetPort( i, m24, MAPPER24::Peek_pRom, MAPPER24::Poke_E002 ); continue;
-			case 0xE003: cpu->SetPort( i, m24, MAPPER24::Peek_pRom, MAPPER24::Poke_E003 ); continue;
-			case 0xF000: cpu->SetPort( i, m24, MAPPER24::Peek_pRom, MAPPER24::Poke_F000 ); continue;
-			case 0xF001: cpu->SetPort( i, m24, MAPPER24::Peek_pRom, MAPPER24::Poke_F001 ); continue;
-			case 0xF002: cpu->SetPort( i, m24, MAPPER24::Peek_pRom, MAPPER24::Poke_F002 ); continue;
+       		case 0x8000: cpu.SetPort( i, m24, MAPPER24::Peek_pRom, MAPPER24::Poke_8000 ); continue;
+			case 0x9000: cpu.SetPort( i, m24, MAPPER24::Peek_pRom, MAPPER24::Poke_9000 ); continue;
+			case 0x9001: cpu.SetPort( i, m24, MAPPER24::Peek_pRom, MAPPER24::Poke_9001 ); continue;
+			case 0x9002: cpu.SetPort( i, m24, MAPPER24::Peek_pRom, MAPPER24::Poke_9002 ); continue;
+			case 0xA000: cpu.SetPort( i, m24, MAPPER24::Peek_pRom, MAPPER24::Poke_A000 ); continue;
+			case 0xA001: cpu.SetPort( i, m24, MAPPER24::Peek_pRom, MAPPER24::Poke_A001 ); continue;
+			case 0xA002: cpu.SetPort( i, m24, MAPPER24::Peek_pRom, MAPPER24::Poke_A002 ); continue;
+			case 0xB000: cpu.SetPort( i, m24, MAPPER24::Peek_pRom, MAPPER24::Poke_B000 ); continue;
+			case 0xB001: cpu.SetPort( i, m24, MAPPER24::Peek_pRom, MAPPER24::Poke_B001 ); continue;
+			case 0xB002: cpu.SetPort( i, m24, MAPPER24::Peek_pRom, MAPPER24::Poke_B002 ); continue;
+			case 0xB003: cpu.SetPort( i, m24, MAPPER24::Peek_pRom, MAPPER24::Poke_B003 ); continue;
+			case 0xC000: cpu.SetPort( i, m24, MAPPER24::Peek_pRom, MAPPER24::Poke_C000 ); continue;
+			case 0xD000: cpu.SetPort( i, m24, MAPPER24::Peek_pRom, MAPPER24::Poke_D000 ); continue;
+			case 0xD001: cpu.SetPort( i, m24, MAPPER24::Peek_pRom, MAPPER24::Poke_D001 ); continue;
+			case 0xD002: cpu.SetPort( i, m24, MAPPER24::Peek_pRom, MAPPER24::Poke_D002 ); continue;
+			case 0xD003: cpu.SetPort( i, m24, MAPPER24::Peek_pRom, MAPPER24::Poke_D003 ); continue;
+			case 0xE000: cpu.SetPort( i, m24, MAPPER24::Peek_pRom, MAPPER24::Poke_E000 ); continue;
+			case 0xE001: cpu.SetPort( i, m24, MAPPER24::Peek_pRom, MAPPER24::Poke_E001 ); continue;
+			case 0xE002: cpu.SetPort( i, m24, MAPPER24::Peek_pRom, MAPPER24::Poke_E002 ); continue;
+			case 0xE003: cpu.SetPort( i, m24, MAPPER24::Peek_pRom, MAPPER24::Poke_E003 ); continue;
+			case 0xF000: cpu.SetPort( i, m24, MAPPER24::Peek_pRom, MAPPER24::Poke_F000 ); continue;
+			case 0xF001: cpu.SetPort( i, m24, MAPPER24::Peek_pRom, MAPPER24::Poke_F001 ); continue;
+			case 0xF002: cpu.SetPort( i, m24, MAPPER24::Peek_pRom, MAPPER24::Poke_F002 ); continue;
 		}																		
 	}
 }

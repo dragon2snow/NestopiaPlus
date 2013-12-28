@@ -39,7 +39,7 @@ class SNDVRC6
 {
 public:
 
-	SNDVRC6(CPU* const);
+	SNDVRC6(CPU&);
 	~SNDVRC6();
 
 	VOID Reset();
@@ -173,8 +173,8 @@ private:
        #pragma pack(pop)
 	};
 
-	CPU* const cpu;
-	APU* const apu;
+	CPU& cpu;
+	APU& apu;
 
 	SQUARE square[2];
 	SAWTOOTH sawtooth;

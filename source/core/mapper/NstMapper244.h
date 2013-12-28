@@ -44,7 +44,8 @@ private:
 
 	VOID Reset();       
 
-	NES_DECL_POKE( pRom );
+	NES_DECL_POKE(8065);
+	NES_DECL_POKE(80A5);
 };
 
 NES_NAMESPACE_END

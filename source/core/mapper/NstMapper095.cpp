@@ -39,8 +39,8 @@ VOID MAPPER95::Reset()
 	{
 		switch (i & 0xF001)
 		{
-       		case 0x8000: cpu->SetPort( i, this, Peek_8000, Poke_8000 ); continue;
-			case 0x8001: cpu->SetPort( i, this, Peek_8000, Poke_8001 ); continue;
+       		case 0x8000: cpu.SetPort( i, this, Peek_8000, Poke_8000 ); continue;
+			case 0x8001: cpu.SetPort( i, this, Peek_8000, Poke_8001 ); continue;
 		}
 	}
 }
@@ -60,14 +60,14 @@ NES_POKE(MAPPER95,8000)
 
 NES_POKE(MAPPER95,8001)
 {
-	apu->Update();
-	ppu->Update();
+	apu.Update();
+	ppu.Update();
 
 	UINT bank = data;
 
 	if (command < 6)
 	{
-		ppu->SetMirroring( (data & 0x20) ? MIRROR_ONE : MIRROR_ZERO );
+		ppu.SetMirroring( (data & 0x20) ? MIRROR_ONE : MIRROR_ZERO );
 		bank &= 0x1F;
 	}
 

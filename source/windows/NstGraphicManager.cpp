@@ -35,11 +35,12 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-GRAPHICMANAGER::GRAPHICMANAGER(const INT id,const UINT chunk)
-: MANAGER( id, chunk ), ShouldBeFullscreen(FALSE), PreviousMode(-1), GdiPlusAvailable(FALSE)
+GRAPHICMANAGER::GRAPHICMANAGER(const INT id)
+: 
+MANAGER            (id), 
+ShouldBeFullscreen (FALSE), 
+GdiPlusAvailable   (FALSE)
 {
-	SetRect( &SaveRect, 0, 0, 0, 0 );
-
 	format.device = PDX_CAST(VOID*,PDX_STATIC_CAST(DIRECTDRAW*,this));
 
 	HMODULE hDLL = LoadLibrary("GdiPlus.dll");
@@ -55,124 +56,139 @@ GRAPHICMANAGER::GRAPHICMANAGER(const INT id,const UINT chunk)
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT GRAPHICMANAGER::Create(PDXFILE* const file)
+PDXRESULT GRAPHICMANAGER::Create(CONFIGFILE* const ConfigFile)
 {
 	PDX_TRY(DIRECTDRAW::Initialize( MANAGER::hWnd ));
 
 	if (adapters.IsEmpty() || adapters.Front().DisplayModes.IsEmpty())
 		return application.OnError("Found no valid graphic adapter!?");
 	
-	if (file && file->Read<U8>() == 0xBA)
+	if (ConfigFile)
 	{
-		HEADER header;
-		file->Read(header);
-
-		BOOL found = FALSE;
-
-		for (UINT i=0; i < adapters.Size(); ++i)
-		{
-			if (!memcmp(&header.guid,&adapters[i].guid,sizeof(header.guid)))
-			{
-				SelectedAdapter = i;
-				found = PDX_SUCCEEDED(DIRECTDRAW::Create(&header.guid));
-				break;
-			}
-		}
-
-		if (!found)
-		{
-			SelectedAdapter = 0;
-
-			if (PDX_FAILED(DIRECTDRAW::Create(&adapters[0].guid)))
-				return application.OnError("DirectDrawCreateEx() failed!");
-		}
-
-		UINT bpp;
-
-		switch (header.bpp)
-		{
-     		case HEADER::BPP_16: bpp = 16; SelectedBpp = IDC_GRAPHICS_16_BIT; break;
-			case HEADER::BPP_32: bpp = 32; SelectedBpp = IDC_GRAPHICS_32_BIT; break;
-		}
-
+		CONFIGFILE& file = *ConfigFile;
+	
+		const GUID guid(CONFIGFILE::ToGUID(file["video device"].String()));
+	
+		if (PDX_FAILED(CreateDevice( guid )))
+			return PDX_FAILURE;
+	
+		SelectedBpp       = (file[ "video fullscreen bpp"           ] == "32"  ? IDC_GRAPHICS_32_BIT : IDC_GRAPHICS_16_BIT);
+		SelectedOffScreen = (file[ "video offscreen buffer in vram" ] == "yes" ? IDC_GRAPHICS_VRAM : IDC_GRAPHICS_SRAM);	
+	
 		EnableBpp();
-
-		switch (header.offscreen)
+	
 		{
-    		case HEADER::OFFSCREEN_SRAM: SelectedOffScreen = IDC_GRAPHICS_SRAM; break;
-			case HEADER::OFFSCREEN_VRAM: SelectedOffScreen = IDC_GRAPHICS_VRAM; break;
-		}
-
-		switch (header.timing)
-		{
-    		case HEADER::TIMING_VSYNC:     SelectedTiming = IDC_GRAPHICS_TIMING_VSYNC;     break;
-			case HEADER::TIMING_FRAMESKIP: SelectedTiming = IDC_GRAPHICS_TIMING_FRAMESKIP; break;
-		}
-
-		found = FALSE;
-		ModeIndices.Clear();
-
-		const ADAPTER& adapter = adapters[SelectedAdapter];
-
-		for (UINT i=0; i < adapter.DisplayModes.Size(); ++i)
-		{
-			const DISPLAYMODE& mode = adapter.DisplayModes[i];
-
-			if (mode.bpp == bpp)
+			const UINT width  = file[ "video fullscreen width"  ].ToUlong();
+			const UINT height = file[ "video fullscreen height" ].ToUlong();
+			const UINT bpp    = (SelectedBpp == IDC_GRAPHICS_32_BIT ? 32 : 16);
+	
+			BOOL found = FALSE;
+			ModeIndices.Clear();
+	
+			const ADAPTER& adapter = adapters[SelectedAdapter];
+	
+			for (UINT i=0; i < adapter.DisplayModes.Size(); ++i)
 			{
-				if (mode.width == header.width && mode.height == header.height)
+				const DISPLAYMODE& mode = adapter.DisplayModes[i];
+	
+				if (mode.bpp == bpp)
 				{
-					found = TRUE;
-					SelectedMode = ModeIndices.Size();
+					if (mode.width == width && mode.height == height)
+					{
+						found = TRUE;
+						SelectedMode = ModeIndices.Size();
+					}
+	
+					ModeIndices.InsertBack(i);
 				}
-
-				ModeIndices.InsertBack(i);
+			}
+	
+			if (ModeIndices.IsEmpty())
+				ModeIndices.InsertBack(0);
+	
+			if (!found)
+			{
+				SelectedMode = 0;
+				ResetBpp();
 			}
 		}
-
-		if (ModeIndices.IsEmpty())
-			ModeIndices.InsertBack(0);
-
-		if (!found)
+		 
 		{
-			SelectedMode = 0;
-			ResetBpp();
+			const PDXSTRING& filter = file["video filter"];
+	
+			SelectedEffect =
+			(
+         		filter == "scanlines"   ? 1 :
+       			filter == "tv"          ? 2 :
+        		filter == "2xsai"       ? 3 :
+         		filter == "super 2xsai" ? 4 :
+           		filter == "super eagle" ? 5 :
+			                              0
+			);
 		}
 
-		switch (header.effect)
 		{
-     		case HEADER::EFFECT_NONE:        SelectedEffect = 0; break;
-     		case HEADER::EFFECT_SCANLINES:   SelectedEffect = 1; break;
-			case HEADER::EFFECT_2XSAI:       SelectedEffect = 2; break;
-			case HEADER::EFFECT_SUPER_2XSAI: SelectedEffect = 3; break;
-			case HEADER::EFFECT_SUPER_EAGLE: SelectedEffect = 4; break;
+			const PDXSTRING& factor = file["video screen"];
+	
+			SelectedFactor =
+			(
+         		factor == "1x"        ? SCREEN_FACTOR_1X :
+       			factor == "2x"        ? SCREEN_FACTOR_2X :
+        		factor == "3x"        ? SCREEN_FACTOR_3X :
+         		factor == "stretched" ? SCREEN_STRETCHED :
+			                            SCREEN_FACTOR_4X
+			);
 		}
 
-		switch (header.palette)
 		{
-     		case HEADER::PALETTE_EMULATED: SelectedPalette = IDC_GRAPHICS_PALETTE_EMULATED; break;
-     		case HEADER::PALETTE_INTERNAL: SelectedPalette = IDC_GRAPHICS_PALETTE_INTERNAL; break;
-			case HEADER::PALETTE_CUSTOM:   SelectedPalette = IDC_GRAPHICS_PALETTE_CUSTOM;   break;
+			const PDXSTRING& palette = file["video palette"];
+	
+			SelectedPalette =
+			(
+         		palette == "emulated" ? IDC_GRAPHICS_PALETTE_EMULATED :
+        		palette == "custom"   ? IDC_GRAPHICS_PALETTE_CUSTOM   :
+			                            IDC_GRAPHICS_PALETTE_INTERNAL
+			);
 		}
+	
+		context.InfiniteSprites = (file[ "video infinite sprites" ] == "yes" ? TRUE : FALSE);
+		
+		const PDXSTRING* string;
 
-		context.InfiniteSprites = header.InfiniteSprites;
+		string = &file[ "video ntsc left"   ]; ntsc.left   = string->Length() ? string->ToUlong() : 0;
+		string = &file[ "video ntsc top"    ]; ntsc.top    = string->Length() ? string->ToUlong() : 8;
+		string = &file[ "video ntsc right"  ]; ntsc.right  = string->Length() ? string->ToUlong() : 255;
+		string = &file[ "video ntsc bottom" ]; ntsc.bottom = string->Length() ? string->ToUlong() : 231;
+		string = &file[ "video pal left"    ]; pal.left    = string->Length() ? string->ToUlong() : 0;
+		string = &file[ "video pal top"     ]; pal.top     = string->Length() ? string->ToUlong() : 0;
+		string = &file[ "video pal right"   ]; pal.right   = string->Length() ? string->ToUlong() : 255;
+		string = &file[ "video pal bottom"  ]; pal.bottom  = string->Length() ? string->ToUlong() : 239;
 
-		ntsc = header.ntsc;
-		pal  = header.pal;
-
-		context.brightness = header.brightness;
-		context.saturation = header.saturation;
-		context.hue        = header.hue;
-
-		file->Text().Read(PaletteFile);
-
-		UpdateDirectDraw();
+		ntsc.left   = PDX_CLAMP( ntsc.left,   0,         255 );
+		ntsc.top    = PDX_CLAMP( ntsc.top,    0,         239 );
+		ntsc.right  = PDX_CLAMP( ntsc.right,  ntsc.left, 255 );
+		ntsc.bottom = PDX_CLAMP( ntsc.bottom, ntsc.top,  239 );
+		pal.left    = PDX_CLAMP( pal.left,    0,         255 );
+		pal.top     = PDX_CLAMP( pal.top,     0,         239 );
+		pal.right   = PDX_CLAMP( pal.right,   pal.left,  255 );
+		pal.bottom  = PDX_CLAMP( pal.bottom,  pal.top,   239 );
+	
+		string = &file[ "video color brightness" ]; context.brightness = string->Length() ? string->ToUlong() : 128;
+		string = &file[ "video color saturation" ]; context.saturation = string->Length() ? string->ToUlong() : 128;
+		string = &file[ "video color hue"        ]; context.hue        = string->Length() ? string->ToUlong() : 128;
+		
+		context.brightness = PDX_MIN(context.brightness,255);
+		context.saturation = PDX_MIN(context.saturation,255);
+		context.hue        = PDX_MIN(context.hue,255);
+	
+		PaletteFile = file["video palette file"];
 	}
 	else
 	{
-		PDX_TRY(DIRECTDRAW::Create(&adapters[0].guid));
 		Reset();
 	}
+
+	UpdateDirectDraw();
 
 	return PDX_OK;
 }
@@ -181,68 +197,117 @@ PDXRESULT GRAPHICMANAGER::Create(PDXFILE* const file)
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT GRAPHICMANAGER::Destroy(PDXFILE* const file)
+PDXRESULT GRAPHICMANAGER::CreateDevice(GUID guid)
 {
-	if (file)
+	for (UINT i=0; i < adapters.Size(); ++i)
 	{
-		const U8 good = adapters.Size() > SelectedAdapter ? 0xBA : 0x00;
-
-		file->Write(good);
-
-		if (good)
+		if (!memcmp(&guid,&adapters[i].guid,sizeof(guid)))
 		{
-			HEADER header;
-
-			switch (SelectedBpp)
+			if (PDX_SUCCEEDED(DIRECTDRAW::Create(guid)))
 			{
-     			case IDC_GRAPHICS_16_BIT: header.bpp = HEADER::BPP_16; break;
-				case IDC_GRAPHICS_32_BIT: header.bpp = HEADER::BPP_32; break;
+				SelectedAdapter = i;
+				return PDX_OK;
 			}
-
-			switch (SelectedOffScreen)
-			{
-     			case IDC_GRAPHICS_SRAM: header.offscreen = HEADER::OFFSCREEN_SRAM; break;
-				case IDC_GRAPHICS_VRAM: header.offscreen = HEADER::OFFSCREEN_VRAM; break;
-			}
-
-			switch (SelectedTiming)
-			{
-     			case IDC_GRAPHICS_TIMING_VSYNC:     header.timing = HEADER::TIMING_VSYNC;     break;
-				case IDC_GRAPHICS_TIMING_FRAMESKIP: header.timing = HEADER::TIMING_FRAMESKIP; break;
-			}
-
-			switch (SelectedEffect)
-			{
-     			case 0: header.effect = HEADER::EFFECT_NONE;        break;
-				case 1: header.effect = HEADER::EFFECT_SCANLINES;   break;
-				case 2: header.effect = HEADER::EFFECT_2XSAI;       break;
-				case 3: header.effect = HEADER::EFFECT_SUPER_2XSAI; break;
-				case 4: header.effect = HEADER::EFFECT_SUPER_EAGLE; break;
-			}
-
-			switch (SelectedPalette)
-			{
-     			case IDC_GRAPHICS_PALETTE_EMULATED: header.palette = HEADER::PALETTE_EMULATED; break;
-     			case IDC_GRAPHICS_PALETTE_INTERNAL: header.palette = HEADER::PALETTE_INTERNAL; break;
-				case IDC_GRAPHICS_PALETTE_CUSTOM:   header.palette = HEADER::PALETTE_CUSTOM;   break;
-			}
-
-			header.width           = adapters[SelectedAdapter].DisplayModes[ModeIndices[SelectedMode]].width;
-			header.height          = adapters[SelectedAdapter].DisplayModes[ModeIndices[SelectedMode]].height;
-			header.InfiniteSprites = context.InfiniteSprites ? 1 : 0;
-			header.brightness      = context.brightness;
-			header.saturation      = context.saturation;
-			header.hue             = context.hue;
-			header.ntsc            = ntsc;
-			header.pal             = pal;
-
-			memcpy( &header.guid, &adapters[SelectedAdapter].guid, sizeof(header.guid) );
-
-			file->Write(header);
-			file->Text().Write(PaletteFile);
+			break;
 		}
 	}
+
+	PDXMemZero( guid );
+
+	for (UINT i=0; i < adapters.Size(); ++i)
+	{
+		if (!memcmp(&guid,&adapters[i].guid,sizeof(guid)))
+		{
+			if (PDX_SUCCEEDED(DIRECTDRAW::Create(guid)))
+			{
+				SelectedAdapter = i;
+				return PDX_OK;
+			}
+			break;
+		}
+	}
+
+	if (PDX_SUCCEEDED(DIRECTDRAW::Create(adapters[0].guid)))
+	{
+		SelectedAdapter = 0;
+		return PDX_OK;
+	}
+
+	return application.OnError("DirectDrawCreateEx() failed!");
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+PDXRESULT GRAPHICMANAGER::Destroy(CONFIGFILE* const ConfigFile)
+{
+	if (ConfigFile)
+	{
+		CONFIGFILE& file = *ConfigFile;
 	
+		if (adapters.Size() > SelectedAdapter)
+		{
+			file[ "video device"            ] = CONFIGFILE::FromGUID( adapters[SelectedAdapter].guid );
+			file[ "video fullscreen width"  ] = adapters[SelectedAdapter].DisplayModes[ModeIndices[SelectedMode]].width;
+			file[ "video fullscreen height" ] = adapters[SelectedAdapter].DisplayModes[ModeIndices[SelectedMode]].height;
+			file[ "video fullscreen bpp"    ] = adapters[SelectedAdapter].DisplayModes[ModeIndices[SelectedMode]].bpp;
+		}
+		else
+		{
+			file[ "video device"            ];
+			file[ "video fullscreen width"  ];
+			file[ "video fullscreen height" ];
+			file[ "video fullscreen bpp"    ];
+		}
+	
+		switch (SelectedOffScreen)
+		{
+        	case IDC_GRAPHICS_VRAM: file[ "video offscreen buffer in vram" ] = "yes"; break;
+			default:                file[ "video offscreen buffer in vram" ] = "no";  break;
+		}
+	
+		switch (SelectedEffect)
+		{
+			case 1:  file[ "video filter" ] = "scanlines";   break;
+			case 2:  file[ "video filter" ] = "tv";          break;
+			case 3:  file[ "video filter" ] = "2xsai";       break;
+			case 4:  file[ "video filter" ] = "super 2xsai"; break;
+			case 5:  file[ "video filter" ] = "super eagle"; break;
+			default: file[ "video filter" ] = "none";        break;
+		}
+
+		switch (SelectedFactor)
+		{
+			case SCREEN_FACTOR_1X: file[ "video screen" ] = "1x";        break;
+			case SCREEN_FACTOR_2X: file[ "video screen" ] = "2x";        break;
+			case SCREEN_FACTOR_3X: file[ "video screen" ] = "3x";        break;
+			case SCREEN_FACTOR_4X: file[ "video screen" ] = "4x";        break;
+			default:               file[ "video screen" ] = "stretched"; break;
+		}
+
+		switch (SelectedPalette)
+		{
+         	case IDC_GRAPHICS_PALETTE_EMULATED: file[ "video palette" ] = "emulated"; break;
+         	case IDC_GRAPHICS_PALETTE_CUSTOM:   file[ "video palette" ] = "custom";   break;
+         	default:                            file[ "video palette" ] = "internal"; break;
+		}
+		
+		file[ "video palette file"     ] = PaletteFile;	
+		file[ "video infinite sprites" ] = (context.InfiniteSprites ? "yes" : "no");	
+		file[ "video ntsc left"        ] = ntsc.left;
+		file[ "video ntsc top"         ] = ntsc.top;
+		file[ "video ntsc right"       ] = ntsc.right;
+		file[ "video ntsc bottom"      ] = ntsc.bottom;	
+		file[ "video pal left"         ] = pal.left;
+		file[ "video pal top"          ] = pal.top;
+		file[ "video pal right"        ] = pal.right;
+		file[ "video pal bottom"       ] = pal.bottom;	
+		file[ "video color brightness" ] = context.brightness;
+		file[ "video color saturation" ] = context.saturation;
+		file[ "video color hue"        ] = context.hue;
+	}
+
 	return DIRECTDRAW::Destroy();
 }
 
@@ -278,7 +343,14 @@ PDXRESULT GRAPHICMANAGER::LoadPalette(const PDXSTRING& name)
 
 VOID GRAPHICMANAGER::Reset()
 {
-	SelectedAdapter = 0;
+	{
+		GUID guid;
+		PDXMemZero( guid );
+
+		if (PDX_FAILED(CreateDevice( guid )))
+			return;
+	}
+
 	SelectedMode = 0;
 
 	if (ModeIndices.IsEmpty())
@@ -288,8 +360,8 @@ VOID GRAPHICMANAGER::Reset()
 
 	SelectedOffScreen = IDC_GRAPHICS_SRAM;
 	SelectedPalette = IDC_GRAPHICS_PALETTE_INTERNAL;
-	SelectedTiming  = IDC_GRAPHICS_TIMING_VSYNC;
 	SelectedEffect = 0;
+	SelectedFactor = SCREEN_FACTOR_4X;
 
 	SetRect( &ntsc, 0, 8, 255, 231 );
 	SetRect( &pal,  0, 0, 255, 239 );
@@ -298,11 +370,8 @@ VOID GRAPHICMANAGER::Reset()
 	(
 		DIRECTDRAW::SCREENEFFECT_NONE,
 		SelectedOffScreen == IDC_GRAPHICS_VRAM ? TRUE : FALSE,
-		nes->IsPAL() ? pal : ntsc,
-		TRUE
+		nes->IsPAL() ? pal : ntsc
 	);
-
-	SetRefreshRate( nes->IsPAL() ? NES_FPS_PAL : NES_FPS_NTSC );
 
 	PaletteFile.Clear();
 
@@ -374,8 +443,6 @@ PDXRESULT GRAPHICMANAGER::BeginDialogMode()
 
 	if (!IsWindowed())
 	{
-		SaveRect = GetScreenRect();
-
 		if (CanRenderWindowed())
 		{
 			const DISPLAYMODE& mode = adapters[SelectedAdapter].DisplayModes[ModeIndices[SelectedMode]];
@@ -408,16 +475,13 @@ PDXRESULT GRAPHICMANAGER::EndDialogMode()
 	if (!IsWindowed() || ShouldBeFullscreen)
 	{
 		ShouldBeFullscreen = FALSE;
-		
-		if (PreviousMode != SelectedMode)
-		{
-			PreviousMode = SelectedMode;
-			SetScreenSize( SCREEN_FACTOR_4X, SaveRect );
-		}
 
 		const DISPLAYMODE& mode = adapters[SelectedAdapter].DisplayModes[ModeIndices[SelectedMode]];
 
-		PDX_TRY(DIRECTDRAW::SwitchToFullScreen( mode.width, mode.height, mode.bpp, &SaveRect ));
+		RECT rect;
+		SetScreenSize( SelectedFactor, rect );
+
+		PDX_TRY(DIRECTDRAW::SwitchToFullScreen( mode.width, mode.height, mode.bpp, &rect ));
 		PDX_TRY(DIRECTDRAW::EnableGDI( FALSE ));
 
 		application.UpdateWindowSizes( mode.width, mode.height );
@@ -439,7 +503,6 @@ BOOL GRAPHICMANAGER::DialogProc(HWND h,UINT uMsg,WPARAM wParam,LPARAM)
     	case WM_INITDIALOG:
 
 			hDlg = h;
-			PreviousMode = SelectedMode;
 			UpdateDialog();
      		return TRUE;
 
@@ -522,16 +585,6 @@ BOOL GRAPHICMANAGER::DialogProc(HWND h,UINT uMsg,WPARAM wParam,LPARAM)
 					}
 					return TRUE;
 
-				case IDC_GRAPHICS_TIMING_VSYNC:
-				case IDC_GRAPHICS_TIMING_FRAMESKIP:
-
-					if (SelectedTiming != LOWORD(wParam))
-					{
-						SelectedTiming = LOWORD(wParam);
-						UpdateTiming();
-					}
-					return TRUE;
-
 				case IDC_GRAPHICS_COLORS_RESET:
 
 					context.brightness = 128;
@@ -580,23 +633,13 @@ BOOL GRAPHICMANAGER::DialogProc(HWND h,UINT uMsg,WPARAM wParam,LPARAM)
 
 			hDlg = NULL;
 
-			if (PDX_SUCCEEDED(DIRECTDRAW::Create(&adapters[SelectedAdapter].guid)))
+			if (PDX_SUCCEEDED(CreateDevice(adapters[SelectedAdapter].guid)))
 				UpdateDirectDraw();
 
 			return TRUE;
 	}
 
 	return FALSE;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID GRAPHICMANAGER::EnablePAL(const BOOL UsePAL)
-{
-	UpdateDirectDraw();
-	SetRefreshRate(UsePAL ? NES_FPS_PAL : NES_FPS_NTSC);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -610,17 +653,17 @@ VOID GRAPHICMANAGER::UpdateDirectDraw()
 	switch (SelectedEffect)
 	{
 		case 1: effect = DIRECTDRAW::SCREENEFFECT_SCANLINES;   break;
-		case 2: effect = DIRECTDRAW::SCREENEFFECT_2XSAI;       break;
-		case 3: effect = DIRECTDRAW::SCREENEFFECT_SUPER_2XSAI; break;
-		case 4: effect = DIRECTDRAW::SCREENEFFECT_SUPER_EAGLE; break;
+		case 2: effect = DIRECTDRAW::SCREENEFFECT_TV;          break;
+		case 3: effect = DIRECTDRAW::SCREENEFFECT_2XSAI;       break;
+		case 4: effect = DIRECTDRAW::SCREENEFFECT_SUPER_2XSAI; break;
+		case 5: effect = DIRECTDRAW::SCREENEFFECT_SUPER_EAGLE; break;
 	}
 
 	SetScreenParameters
 	(
 	    effect,
 		SelectedOffScreen == IDC_GRAPHICS_VRAM ? TRUE : FALSE,
-		nes->IsPAL() ? pal : ntsc,
-		SelectedTiming == IDC_GRAPHICS_TIMING_VSYNC ? TRUE : FALSE
+		nes->IsPAL() ? pal : ntsc
 	);
 
 	context.palette = NULL;
@@ -692,17 +735,6 @@ VOID GRAPHICMANAGER::UpdateOffScreen()
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-VOID GRAPHICMANAGER::UpdateTiming()
-{
-	SendMessage( GetDlgItem( hDlg, IDC_GRAPHICS_TIMING_VSYNC     ), BM_SETCHECK, BST_UNCHECKED, 0 );
-	SendMessage( GetDlgItem( hDlg, IDC_GRAPHICS_TIMING_FRAMESKIP ), BM_SETCHECK, BST_UNCHECKED, 0 );
-	SendMessage( GetDlgItem( hDlg, SelectedTiming                ), BM_SETCHECK, BST_CHECKED,   0 );
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
 VOID GRAPHICMANAGER::UpdateMode()
 {
 	HWND item = GetDlgItem( hDlg, IDC_GRAPHICS_MODE );
@@ -755,9 +787,9 @@ VOID GRAPHICMANAGER::UpdatePalette()
 
 VOID GRAPHICMANAGER::ResetColors()
 {
-	SetDlgItemText( hDlg, IDC_GRAPHICS_COLORS_BRIGHTNESS_VAL, PDXSTRING( context.brightness ) );
-	SetDlgItemText( hDlg, IDC_GRAPHICS_COLORS_SATURATION_VAL, PDXSTRING( context.saturation ) );
-	SetDlgItemText( hDlg, IDC_GRAPHICS_COLORS_HUE_VAL,        PDXSTRING( context.hue        ) );
+	SetDlgItemText( hDlg, IDC_GRAPHICS_COLORS_BRIGHTNESS_VAL, PDXSTRING( context.brightness ).String() );
+	SetDlgItemText( hDlg, IDC_GRAPHICS_COLORS_SATURATION_VAL, PDXSTRING( context.saturation ).String() );
+	SetDlgItemText( hDlg, IDC_GRAPHICS_COLORS_HUE_VAL,        PDXSTRING( context.hue        ).String() );
 
 	SendMessage( GetDlgItem( hDlg, IDC_GRAPHICS_COLORS_BRIGHTNESS ), TBM_SETPOS, WPARAM(TRUE), context.brightness );
 	SendMessage( GetDlgItem( hDlg, IDC_GRAPHICS_COLORS_SATURATION ), TBM_SETPOS, WPARAM(TRUE), context.saturation );
@@ -886,7 +918,6 @@ VOID GRAPHICMANAGER::UpdateDialog()
 	UpdateEffects();
 	UpdatePalette();
 	UpdateOffScreen();
-	UpdateTiming();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -945,11 +976,13 @@ VOID GRAPHICMANAGER::UpdateEffects()
 	HWND hItem = GetDlgItem( hDlg, IDC_GRAPHICS_EFFECTS );
 
 	ComboBox_ResetContent( hItem );
-	ComboBox_AddString( hItem, "none" );
-	ComboBox_AddString( hItem, "scanlines" );
-	ComboBox_AddString( hItem, "2xSaI" );
-	ComboBox_AddString( hItem, "Super 2xSaI" );
-	ComboBox_AddString( hItem, "Super Eagle" );
+
+	ComboBox_AddString( hItem, "None"         );
+	ComboBox_AddString( hItem, "Scanlines"    );
+	ComboBox_AddString( hItem, "TV-Mode"      );
+	ComboBox_AddString( hItem, "2xSaI"        );
+	ComboBox_AddString( hItem, "Super 2xSaI"  );
+	ComboBox_AddString( hItem, "Super Eagle"  );
 	ComboBox_SetCurSel( hItem, SelectedEffect );
 }
 
@@ -968,11 +1001,11 @@ PDXRESULT GRAPHICMANAGER::SwitchToWindowed(const RECT& rect)
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT GRAPHICMANAGER::SwitchToFullScreen(const SCREENTYPE ScreenType)
+PDXRESULT GRAPHICMANAGER::SwitchToFullScreen()
 {
 	RECT rect;
-	SetScreenSize( ScreenType, rect );
-	
+	SetScreenSize( SelectedFactor, rect );
+
 	const DISPLAYMODE& mode = adapters[SelectedAdapter].DisplayModes[ModeIndices[SelectedMode]];
 	PDX_TRY(DIRECTDRAW::SwitchToFullScreen( mode.width, mode.height, mode.bpp, &rect ));
 	
@@ -985,10 +1018,29 @@ PDXRESULT GRAPHICMANAGER::SwitchToFullScreen(const SCREENTYPE ScreenType)
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT GRAPHICMANAGER::SetScreenSize(const SCREENTYPE ScreenType)
+BOOL GRAPHICMANAGER::ValidScreenRect(const RECT& rect) const
+{
+	for (UINT i=0; i < 5; ++i)
+	{
+		RECT valid;
+		SetScreenSize( SCREENTYPE(i), valid );
+
+		if (!memcmp(&rect,&valid,sizeof(rect)))
+			return TRUE;
+	}
+
+	return FALSE;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+PDXRESULT GRAPHICMANAGER::SetScreenSize(const SCREENTYPE type)
 {
 	RECT rect;
-	SetScreenSize( ScreenType, rect );
+	SelectedFactor = type;
+	SetScreenSize( type, rect );
 	UpdateScreenRect( rect );
 	return PDX_OK;
 }
@@ -997,12 +1049,12 @@ PDXRESULT GRAPHICMANAGER::SetScreenSize(const SCREENTYPE ScreenType)
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-VOID GRAPHICMANAGER::SetScreenSize(const SCREENTYPE ScreenType,RECT& rect)
+VOID GRAPHICMANAGER::SetScreenSize(const SCREENTYPE type,RECT& rect) const
 {
 	const UINT width  = adapters[SelectedAdapter].DisplayModes[ModeIndices[SelectedMode]].width;
 	const UINT height = adapters[SelectedAdapter].DisplayModes[ModeIndices[SelectedMode]].height;
 
-	if (ScreenType == SCREEN_STRETCHED)
+	if (type == SCREEN_STRETCHED)
 	{
 		SetRect
 		( 
@@ -1018,7 +1070,7 @@ VOID GRAPHICMANAGER::SetScreenSize(const SCREENTYPE ScreenType,RECT& rect)
 		UINT x = GetNesRect().right - GetNesRect().left;
 		UINT y = GetNesRect().bottom - GetNesRect().top;
 
-		const UINT factor = UINT(ScreenType);
+		const UINT factor = UINT(type);
 
 		for (UINT i=0; i < factor; ++i)
 		{
@@ -1210,7 +1262,7 @@ PDXRESULT GRAPHICMANAGER::ExportBitmap(const PDXSTRING& filename)
 		goto hell;
 
 	WCHAR* const wString = new WCHAR[filename.Length() + 1];
-	mbstowcs( wString, filename, filename.Length() + 1 );
+	mbstowcs( wString, filename.String(), filename.Length() + 1 );
 
 	SAVEIMAGE SaveImage = NST_GETFUNCTION
 	(

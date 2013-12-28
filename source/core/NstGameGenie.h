@@ -41,7 +41,7 @@ class GAMEGENIE
 {
 public:
 
-	GAMEGENIE(CPU* const);
+	GAMEGENIE(CPU&);
 	~GAMEGENIE();
 
 	VOID Destroy();
@@ -121,7 +121,7 @@ private:
 	NES_DECL_POKE(wizard);
 
 	CODES codes;
-	CPU* const cpu;
+	CPU& cpu;
 };
 
 NES_NAMESPACE_END

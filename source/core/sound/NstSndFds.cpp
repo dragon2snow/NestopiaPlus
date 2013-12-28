@@ -34,12 +34,12 @@ NES_NAMESPACE_BEGIN
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-SNDFDS::SNDFDS(CPU* const c)
+SNDFDS::SNDFDS(CPU& c)
 : 
 cpu (c),
-apu (c->GetAPU())
+apu (c.GetAPU())
 {
-	apu->HookChannel( PDX_STATIC_CAST(APU::CHANNEL*,&channel) );
+	apu.HookChannel( PDX_STATIC_CAST(APU::CHANNEL*,&channel) );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -48,7 +48,7 @@ apu (c->GetAPU())
 
 SNDFDS::~SNDFDS()
 {
-	apu->ReleaseChannel( PDX_STATIC_CAST(APU::CHANNEL*,&channel) );
+	apu.ReleaseChannel( PDX_STATIC_CAST(APU::CHANNEL*,&channel) );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -57,19 +57,19 @@ SNDFDS::~SNDFDS()
 
 VOID SNDFDS::Reset()
 {
-	cpu->SetPort( 0x4040, 0x407F, this, Peek_4040, Poke_4040 );
-	cpu->SetPort( 0x4080,         this, Peek_bad,  Poke_4080 );
-	cpu->SetPort( 0x4082,         this, Peek_bad,  Poke_4082 );
-	cpu->SetPort( 0x4083,         this, Peek_bad,  Poke_4083 );
-	cpu->SetPort( 0x4084,         this, Peek_bad,  Poke_4084 );
-	cpu->SetPort( 0x4085,         this, Peek_bad,  Poke_4085 );
-	cpu->SetPort( 0x4086,         this, Peek_bad,  Poke_4086 );
-	cpu->SetPort( 0x4087,         this, Peek_bad,  Poke_4087 );
-	cpu->SetPort( 0x4088,         this, Peek_bad,  Poke_4088 );
-	cpu->SetPort( 0x4089,         this, Peek_bad,  Poke_4089 );
-	cpu->SetPort( 0x408A,         this, Peek_bad,  Poke_408A );
-	cpu->SetPort( 0x4090,         this, Peek_4090, Poke_bad  );
-	cpu->SetPort( 0x4092,         this, Peek_4092, Poke_bad  );
+	cpu.SetPort( 0x4040, 0x407F, this, Peek_4040, Poke_4040 );
+	cpu.SetPort( 0x4080,         this, Peek_bad,  Poke_4080 );
+	cpu.SetPort( 0x4082,         this, Peek_bad,  Poke_4082 );
+	cpu.SetPort( 0x4083,         this, Peek_bad,  Poke_4083 );
+	cpu.SetPort( 0x4084,         this, Peek_bad,  Poke_4084 );
+	cpu.SetPort( 0x4085,         this, Peek_bad,  Poke_4085 );
+	cpu.SetPort( 0x4086,         this, Peek_bad,  Poke_4086 );
+	cpu.SetPort( 0x4087,         this, Peek_bad,  Poke_4087 );
+	cpu.SetPort( 0x4088,         this, Peek_bad,  Poke_4088 );
+	cpu.SetPort( 0x4089,         this, Peek_bad,  Poke_4089 );
+	cpu.SetPort( 0x408A,         this, Peek_bad,  Poke_408A );
+	cpu.SetPort( 0x4090,         this, Peek_4090, Poke_bad  );
+	cpu.SetPort( 0x4092,         this, Peek_4092, Poke_bad  );
 
 	channel.Reset();
 }
@@ -86,7 +86,7 @@ PDXRESULT SNDFDS::SaveState(PDXFILE& file) const { return channel.SaveState( fil
 ////////////////////////////////////////////////////////////////////////////////////////
 
 NES_POKE(SNDFDS,bad) {}
-NES_PEEK(SNDFDS,bad) { return cpu->GetCache(); }
+NES_PEEK(SNDFDS,bad) { return cpu.GetCache(); }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -94,13 +94,13 @@ NES_PEEK(SNDFDS,bad) { return cpu->GetCache(); }
 
 NES_PEEK(SNDFDS,4040) 
 { 
-	apu->Update(); 
-	return channel.ReadWave( address - 0x4040 ) | (cpu->GetCache() & 0xC0); 
+	apu.Update(); 
+	return channel.ReadWave( address - 0x4040 ) | (cpu.GetCache() & 0xC0); 
 }
 
 NES_POKE(SNDFDS,4040) 
 { 
-	apu->Update(); 
+	apu.Update(); 
 	channel.WriteWave( address - 0x4040, data ); 
 }
 
@@ -108,16 +108,16 @@ NES_POKE(SNDFDS,4040)
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-NES_POKE(SNDFDS,4080) { apu->Update(); channel.WriteReg0( data ); }
-NES_POKE(SNDFDS,4082) { apu->Update(); channel.WriteReg2( data ); }
-NES_POKE(SNDFDS,4083) { apu->Update(); channel.WriteReg3( data ); }
-NES_POKE(SNDFDS,4084) { apu->Update(); channel.WriteReg4( data ); }
-NES_POKE(SNDFDS,4085) { apu->Update(); channel.WriteReg5( data ); }
-NES_POKE(SNDFDS,4086) { apu->Update(); channel.WriteReg6( data ); }
-NES_POKE(SNDFDS,4087) { apu->Update(); channel.WriteReg7( data ); }
-NES_POKE(SNDFDS,4088) { apu->Update(); channel.WriteReg8( data ); }
-NES_POKE(SNDFDS,4089) { apu->Update(); channel.WriteReg9( data ); }
-NES_POKE(SNDFDS,408A) { apu->Update(); channel.WriteRegA( data ); }
+NES_POKE(SNDFDS,4080) { apu.Update(); channel.WriteReg0( data ); }
+NES_POKE(SNDFDS,4082) { apu.Update(); channel.WriteReg2( data ); }
+NES_POKE(SNDFDS,4083) { apu.Update(); channel.WriteReg3( data ); }
+NES_POKE(SNDFDS,4084) { apu.Update(); channel.WriteReg4( data ); }
+NES_POKE(SNDFDS,4085) { apu.Update(); channel.WriteReg5( data ); }
+NES_POKE(SNDFDS,4086) { apu.Update(); channel.WriteReg6( data ); }
+NES_POKE(SNDFDS,4087) { apu.Update(); channel.WriteReg7( data ); }
+NES_POKE(SNDFDS,4088) { apu.Update(); channel.WriteReg8( data ); }
+NES_POKE(SNDFDS,4089) { apu.Update(); channel.WriteReg9( data ); }
+NES_POKE(SNDFDS,408A) { apu.Update(); channel.WriteRegA( data ); }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -125,14 +125,14 @@ NES_POKE(SNDFDS,408A) { apu->Update(); channel.WriteRegA( data ); }
 
 NES_PEEK(SNDFDS,4090) 
 { 
-	apu->Update(); 
-	return channel.ReadWaveAmp() | (cpu->GetCache() & 0xC0); 
+	apu.Update(); 
+	return channel.ReadWaveAmp() | (cpu.GetCache() & 0xC0); 
 }
 
 NES_PEEK(SNDFDS,4092) 
 { 
-	apu->Update(); 
-	return channel.ReadModAmp() | (cpu->GetCache() & 0xC0); 
+	apu.Update(); 
+	return channel.ReadModAmp() | (cpu.GetCache() & 0xC0); 
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////

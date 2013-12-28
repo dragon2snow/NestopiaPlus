@@ -7,11 +7,13 @@
 #include "2xSai.h"
 
 #ifdef MMX
-EXTERN_C void _2xSaILine  (uint8 *srcPtr, uint8 *deltaPtr, uint32 srcPitch, uint32 width,
-                        uint8 *dstPtr, uint32 dstPitch);
-EXTERN_C void _2xSaISuperEagleLine  (uint8 *srcPtr, uint8 *deltaPtr, uint32 srcPitch, uint32 width,
-                        uint8 *dstPtr, uint32 dstPitch);
-EXTERN_C int Init_2xSaIMMX (uint32 BitFormat);
+EXTERN_C void _2xSaILine(uint8 *srcPtr,uint8 *deltaPtr,uint32 srcPitch, uint32 width,uint8 *dstPtr,uint32 dstPitch);
+EXTERN_C void _2xSaISuperEagleLine(uint8 *srcPtr,uint8 *deltaPtr,uint32 srcPitch,uint32 width,uint8 *dstPtr,uint32 dstPitch);
+EXTERN_C int Init_2xSaIMMX(uint32 BitFormat);
+EXTERN_C void BilinearMMX(uint16 *A,uint16 *B,uint16 *C,uint16 *D,uint16 *dx,uint16 *dy,uint32 dP);
+EXTERN_C void BilinearMMXGrid0(uint16 *A,uint16 *B,uint16 *C,uint16 *D,uint16 *dx,uint16 *dy,uint32 dP);
+EXTERN_C void BilinearMMXGrid1(uint16 *A,uint16 *B,uint16 *C,uint16 *D,uint16 *dx,uint16 *dy,uint32 dP);
+EXTERN_C void EndMMX();
 #endif
 
 bool mmx_cpu = false;

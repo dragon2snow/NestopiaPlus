@@ -52,14 +52,14 @@ MAPPER77::~MAPPER77()
 
 VOID MAPPER77::Reset()
 {
-	cpu->SetPort( 0x8000, 0x9FFF, this, Peek_8000, Poke_pRom );
-	cpu->SetPort( 0xA000, 0xBFFF, this, Peek_A000, Poke_pRom );
-	cpu->SetPort( 0xC000, 0xDFFF, this, Peek_C000, Poke_pRom );
-	cpu->SetPort( 0xE000, 0xFFFF, this, Peek_E000, Poke_pRom );
+	cpu.SetPort( 0x8000, 0x9FFF, this, Peek_8000, Poke_pRom );
+	cpu.SetPort( 0xA000, 0xBFFF, this, Peek_A000, Poke_pRom );
+	cpu.SetPort( 0xC000, 0xDFFF, this, Peek_C000, Poke_pRom );
+	cpu.SetPort( 0xE000, 0xFFFF, this, Peek_E000, Poke_pRom );
 
 	delete cRam;
 	cRam = new CRAM( cRom.Ram(), cRom.Size() );
-	ppu->SetPort( 0x0000, 0x1FFF, this, Peek_cRam, Poke_cRam );
+	ppu.SetPort( 0x0000, 0x1FFF, this, Peek_cRam, Poke_cRam );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -88,8 +88,8 @@ PDXRESULT MAPPER77::SaveState(PDXFILE& file) const
 
 NES_POKE(MAPPER77,pRom) 
 {
-	apu->Update(); 
-	ppu->Update();
+	apu.Update(); 
+	ppu.Update();
 	pRom.SwapBanks<n32k,0x0000>((data & 0x07) >> 0);
 	cRam->SwapBanks< n2k,0x0000>((data & 0xF0) >> 4);
 }

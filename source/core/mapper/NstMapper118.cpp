@@ -37,7 +37,7 @@ VOID MAPPER118::Reset()
 	MAPPER4::Reset();
 
 	for (UINT i=0x8001; i <= 0x8FFF; i += 2)
-		cpu->SetPort( i, this, Peek_8000, Poke_8001 );
+		cpu.SetPort( i, this, Peek_8000, Poke_8001 );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -47,7 +47,7 @@ VOID MAPPER118::Reset()
 NES_POKE(MAPPER118,8001)
 {
 	if ((command & 0x7) < 6)
-		ppu->SetMirroring( (data & 0x80) ? MIRROR_ZERO : MIRROR_ONE );
+		ppu.SetMirroring( (data & 0x80) ? MIRROR_ZERO : MIRROR_ONE );
 
 	MAPPER4::Poke_8001(0x8001,data);
 }

@@ -37,8 +37,8 @@ VOID MAPPER243::Reset()
 	{
 		switch (i & 0x4101)
 		{
-     		case 0x4100: cpu->SetPort( i, this, Peek_Nop, Poke_4100 ); continue;
-			case 0x4101: cpu->SetPort( i, this, Peek_Nop, Poke_4101 ); continue;
+     		case 0x4100: cpu.SetPort( i, this, Peek_Nop, Poke_4100 ); continue;
+			case 0x4101: cpu.SetPort( i, this, Peek_Nop, Poke_4101 ); continue;
 		}
 	}
 
@@ -47,7 +47,7 @@ VOID MAPPER243::Reset()
 	if (cRom.NumBanks<n1k>() > 32)
 		cRom.SwapBanks<n8k,0x0000>(3);
 
-	ppu->SetMirroring(MIRROR_HORIZONTAL);
+	ppu.SetMirroring(MIRROR_HORIZONTAL);
 
 	command  = 0;
 	pRomBank = 0;
@@ -70,7 +70,7 @@ NES_POKE(MAPPER243,4100)
 
 NES_POKE(MAPPER243,4101) 
 {
-	apu->Update();
+	apu.Update();
 
 	switch (command & 0x7)
 	{
@@ -81,7 +81,7 @@ NES_POKE(MAPPER243,4101)
 		case 0x7: vertical = (data & 0x1);							 break;
 	}
 
-	ppu->SetMirroring( vertical ? MIRROR_VERTICAL : MIRROR_HORIZONTAL );
+	ppu.SetMirroring( vertical ? MIRROR_VERTICAL : MIRROR_HORIZONTAL );
 
 	pRom.SwapBanks<n32k,0x0000>(pRomBank);
 	cRom.SwapBanks<n8k,0x0000>(cRomBank);

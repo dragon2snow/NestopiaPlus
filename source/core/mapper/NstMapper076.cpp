@@ -37,9 +37,9 @@ VOID MAPPER76::Reset()
 	{
 		switch (i & 0xE001)
 		{
-       		case 0x8000: cpu->SetPort( i, this, Peek_8000, Poke_8000 ); continue;
-			case 0x8001: cpu->SetPort( i, this, Peek_8000, Poke_8001 ); continue;
-			case 0xA000: cpu->SetPort( i, this, Peek_A000, Poke_A000 ); continue;
+       		case 0x8000: cpu.SetPort( i, this, Peek_8000, Poke_8000 ); continue;
+			case 0x8001: cpu.SetPort( i, this, Peek_8000, Poke_8001 ); continue;
+			case 0xA000: cpu.SetPort( i, this, Peek_A000, Poke_A000 ); continue;
 		}
 	}
 }
@@ -59,8 +59,8 @@ NES_POKE(MAPPER76,8000)
 
 NES_POKE(MAPPER76,8001) 
 {
-	apu->Update(); 
-	ppu->Update();
+	apu.Update(); 
+	ppu.Update();
 
 	switch (command)
 	{
@@ -88,7 +88,7 @@ NES_POKE(MAPPER76,8001)
 
 NES_POKE(MAPPER76,A000) 
 {
-	ppu->SetMirroring( (data & 0x1) ? MIRROR_VERTICAL : MIRROR_HORIZONTAL );
+	ppu.SetMirroring( (data & 0x1) ? MIRROR_VERTICAL : MIRROR_HORIZONTAL );
 }
 
 NES_NAMESPACE_END

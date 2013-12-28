@@ -492,7 +492,7 @@ PDXRESULT NSP::Save(PDXFILE& file) const
 	PDXSTRING string = 
 	(
 	    "//\r\n"
-	    "// Nestopia generated game configuration file. Version 0.1\r\n"
+	    "// Nestopia generated game configuration file. Version 1.04\r\n"
 		"//\r\n"
 		"// Syntax:\r\n"
 		"//\r\n"

@@ -45,7 +45,7 @@ class NSF
 {
 public:
 
-	NSF(CPU* const);
+	NSF(CPU&);
 	~NSF();
 
 	VOID Reset();
@@ -60,7 +60,7 @@ public:
 	PDXRESULT SetContext(const IO::NSF::CONTEXT&);
 
 	VOID SetMode(const MODE mode)
-	{ cpu->SetFrameCycles( mode == MODE_PAL ? NES_CPU_MCC_FRAME_PAL : NES_CPU_MCC_FRAME_NTSC); }
+	{ cpu.SetFrameCycles( mode == MODE_PAL ? NES_CPU_MCC_FRAME_PAL : NES_CPU_MCC_FRAME_NTSC); }
 
 	inline BOOL IsPAL() const
 	{ return context.mode.pal; }
@@ -198,8 +198,8 @@ private:
 
    #pragma pack(pop)
 
-	CPU* const cpu;
-	APU* const apu;
+	CPU& cpu;
+	APU& apu;
 
 	typedef CHIP<n32k,8> PROM;
 	typedef PDXARRAY<U8> WRAM;

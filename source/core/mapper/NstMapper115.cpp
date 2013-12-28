@@ -36,8 +36,8 @@ VOID MAPPER115::Reset()
 {
 	MAPPER4::Reset();
 
-	cpu->SetPort( 0x6000,         this, Peek_Nop, Poke_6000 );
-	cpu->SetPort( 0x6001, 0x7FFF, this, Peek_Nop, Poke_6001 );
+	cpu.SetPort( 0x6000,         this, Peek_Nop, Poke_6000 );
+	cpu.SetPort( 0x6001, 0x7FFF, this, Peek_Nop, Poke_6001 );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////

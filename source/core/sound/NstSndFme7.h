@@ -39,7 +39,7 @@ class SNDFME7
 {
 public:
 
-	SNDFME7(CPU* const);
+	SNDFME7(CPU&);
 	~SNDFME7();
 
 	VOID Reset();
@@ -163,7 +163,7 @@ private:
 		NOISE    noise;
 	};
 
-	APU* const apu;
+	APU& apu;
 
 	CHANNEL channel;
 };

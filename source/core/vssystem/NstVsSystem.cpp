@@ -127,8 +127,8 @@ VSSYSTEM::DIPSWITCH& VSSYSTEM::DIPSWITCH::operator = (const DIPSWITCH& DipSwitch
 
 VSSYSTEM::VSSYSTEM(CONTEXT& context)
 : 
-cpu               (context.cpu), 
-ppu               (context.ppu), 
+cpu               (*context.cpu), 
+ppu               (*context.ppu), 
 ColorMap          (context.ColorMapIndex < 4 ? ColorMaps[context.ColorMapIndex] : NULL),
 DipSwitches       (context.DipSwitches),
 CopyProtectionPPU (context.CopyProtectionPPU),
@@ -162,26 +162,26 @@ VOID VSSYSTEM::Reset(const BOOL)
 	{
 		LogOutput("VSSYSTEM: scrambled color table present");
 
-		p2007 = cpu->GetPort( 0x2007 );
+		p2007 = cpu.GetPort( 0x2007 );
 
 		for (UINT i=0x2000; i < 0x4000; i += 0x8)
-			cpu->SetPort( i + 0x7, this, Peek_2007, Poke_2007 );
+			cpu.SetPort( i + 0x7, this, Peek_2007, Poke_2007 );
 	}
 
 	if (CopyProtectionPPU)
 	{
 		LogOutput("VSSYSTEM: PPU copy protection present");
 
-    	CPU_PORT p2000 = cpu->GetPort( 0x2000 );
-    	CPU_PORT p2001 = cpu->GetPort( 0x2001 );
+    	CPU_PORT p2000 = cpu.GetPort( 0x2000 );
+    	CPU_PORT p2001 = cpu.GetPort( 0x2001 );
 
-    	p2002 = cpu->GetPort( 0x2002 );
+    	p2002 = cpu.GetPort( 0x2002 );
 
 		for (UINT i=0x2000; i < 0x4000; i += 0x8)
 		{
-			cpu->SetPort( i + 0x0, p2001.object, p2001.reader, p2001.writer );
-			cpu->SetPort( i + 0x1, p2000.object, p2000.reader, p2000.writer );
-			cpu->SetPort( i + 0x2, this, Peek_2002, Poke_2002 );
+			cpu.SetPort( i + 0x0, p2001.object, p2001.reader, p2001.writer );
+			cpu.SetPort( i + 0x1, p2000.object, p2000.reader, p2000.writer );
+			cpu.SetPort( i + 0x2, this, Peek_2002, Poke_2002 );
 		}
 	}
 
@@ -191,11 +191,11 @@ VOID VSSYSTEM::Reset(const BOOL)
 	coin = 0;
 	flags[0] &= ~COIN;
 
-	p4016 = cpu->GetPort( 0x4016 );
-	p4017 = cpu->GetPort( 0x4017 );
+	p4016 = cpu.GetPort( 0x4016 );
+	p4017 = cpu.GetPort( 0x4017 );
 
-	cpu->SetPort( 0x4016, this, Peek_4016, Poke_4016 );
-	cpu->SetPort( 0x4017, this, Peek_4017, Poke_4017 );
+	cpu.SetPort( 0x4016, this, Peek_4016, Poke_4016 );
+	cpu.SetPort( 0x4017, this, Peek_4017, Poke_4017 );
 
 	Reset();
 }
@@ -271,11 +271,11 @@ NES_PEEK(VSSYSTEM,2007)
 
 NES_POKE(VSSYSTEM,2007)
 {
-	ppu->Update();
+	ppu.Update();
 
 	UINT color = data;
 
-	if (ppu->GetVRamAddress() >= 0x3F00)
+	if (ppu.GetVRamAddress() >= 0x3F00)
 	{
 		color &= 0x3F;
 
@@ -395,7 +395,7 @@ VOID VSSYSTEM::DipSkip(VSSYSTEM::CONTEXT& context)
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-VSSYSTEM* VSSYSTEM::New(CPU* const cpu,PPU* const ppu,const ULONG pRomCrc)
+VSSYSTEM* VSSYSTEM::New(CPU& cpu,PPU& ppu,const ULONG pRomCrc)
 {
 	switch (pRomCrc)
 	{
@@ -421,8 +421,8 @@ VSSYSTEM* VSSYSTEM::New(CPU* const cpu,PPU* const ppu,const ULONG pRomCrc)
 
 	VSSYSTEM::CONTEXT context;
 
-	context.cpu = cpu;
-	context.ppu = ppu;
+	context.cpu = &cpu;
+	context.ppu = &ppu;
 
 	// Credits to the MAME people for the dipswitch discoveries and descriptions.
 

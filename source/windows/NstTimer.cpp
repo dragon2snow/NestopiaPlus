@@ -22,19 +22,14 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#endif
-
-#ifndef VC_EXTRALEAN
-#define VC_EXTRALEAN
-#endif 
-
 #include <Windows.h>
 #include <MMSystem.h>
-#include "../paradox/PdxLibrary.h"
-#include "../NstNes.h"
+#include <CommCtrl.h>
+#include <WindowsX.h>
+#include "resource/resource.h"
 #include "NstTimer.h"
+#include "NstApplication.h"
+#include "NstSoundManager.h"
 
 #pragma comment(lib,"winmm")
 
@@ -42,23 +37,28 @@
 // constructor
 ////////////////////////////////////////////////////////////////////////////////////////
 
-TIMER::TIMER()
+TIMERMANAGER::TIMERMANAGER(const INT a)
 : 
-HasPFCounter(QueryPerformanceFrequency(PDX_CAST(LARGE_INTEGER*,&pfRefreshClockNTSC)))
+MANAGER       (a),
+CustomFps     (NES_FPS_NTSC),
+fps           (NES_FPS_NTSC),
+IsPAL         (FALSE),
+MaxFrameSkips (DEFAULT_FRAME_SKIPS),
+HasPFCounter  (QueryPerformanceFrequency(PDX_CAST(LARGE_INTEGER*,&pfRefreshFrequency)) && bool(pfRefreshFrequency))
 {
 	if (HasPFCounter)
 	{
-		PDX_ASSERT(pfRefreshClockNTSC);
-
-		pfTicksPerMilli = pfRefreshClockNTSC / 1000;
-		pfRefreshClockPAL = pfRefreshClockNTSC / NES_FPS_REAL_PAL;
-		pfRefreshClock = pfRefreshClockNTSC /= NES_FPS_NTSC;
+		pfTicksPerMilli = pfRefreshFrequency / 1000;
+		pfRefreshClockPAL = pfRefreshFrequency / NES_FPS_PAL;
+		pfRefreshClockNTSC = pfRefreshFrequency / NES_FPS_NTSC;
+		pfRefreshClock = pfRefreshClockNTSC;
 		pfLast = 0;		
 	}
 	else
 	{
-		dbRefreshClockPAL = 1000.0 / NES_FPS_PAL;
-		dbRefreshClock = dbRefreshClockNTSC = 1000.0 / NES_FPS_NTSC;
+		dbRefreshClockPAL = 1000.0 / DOUBLE(NES_FPS_PAL);
+		dbRefreshClockNTSC = 1000.0 / DOUBLE(NES_FPS_NTSC);
+		dbRefreshClock = dbRefreshClockNTSC;
 		dbLast = 0.0;
 		period = FALSE;
 
@@ -77,7 +77,7 @@ HasPFCounter(QueryPerformanceFrequency(PDX_CAST(LARGE_INTEGER*,&pfRefreshClockNT
 // destructor
 ////////////////////////////////////////////////////////////////////////////////////////
 
-TIMER::~TIMER()
+TIMERMANAGER::~TIMERMANAGER()
 {
 	if (!HasPFCounter && period)
 		timeEndPeriod( resolution );
@@ -87,17 +87,64 @@ TIMER::~TIMER()
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-VOID TIMER::EnablePAL(const BOOL pal)
+PDXRESULT TIMERMANAGER::Create(CONFIGFILE* const ConfigFile)
 {
-	if (pal)
+	if (ConfigFile)
 	{
-		if (HasPFCounter) pfRefreshClock = pfRefreshClockPAL;
-		else              dbRefreshClock = dbRefreshClockPAL;
+		CONFIGFILE& file = *ConfigFile;
+		
+		AutoFrameSkip = file[ "timer auto frame skip" ] == "yes" ? TRUE : FALSE;
+		MaxFrameSkips = file[ "timer max frame skips" ].ToUlong();
+		UseVSync      = file[ "timer vsync"           ] == "no"  ? FALSE : TRUE;
+		UseDefaultFps = file[ "timer default fps"     ] == "no"  ? FALSE : TRUE;
+		CustomFps     = file[ "timer custom fps"      ].ToUlong();
+
+		if (MaxFrameSkips) MaxFrameSkips = PDX_CLAMP(MaxFrameSkips,MIN_FRAME_SKIPS,MAX_FRAME_SKIPS);
+		else               MaxFrameSkips = DEFAULT_FRAME_SKIPS;
+
+		if (CustomFps) CustomFps = PDX_CLAMP(CustomFps,MIN_FPS,MAX_FPS);
+		else           CustomFps = DEFAULT_FPS;
+
+		UpdateRefreshRate();
 	}
 	else
 	{
-		if (HasPFCounter) pfRefreshClock = pfRefreshClockNTSC;
-		else              dbRefreshClock = dbRefreshClockNTSC;
+		ResetDialog();
+	}
+
+	return PDX_OK;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+PDXRESULT TIMERMANAGER::Destroy(CONFIGFILE* const ConfigFile)
+{
+	if (ConfigFile)
+	{
+		CONFIGFILE& file = *ConfigFile;
+
+		file[ "timer auto frame skip" ] = (AutoFrameSkip ? "yes" : "no");
+		file[ "timer max frame skips" ] = MaxFrameSkips;
+		file[ "timer vsync"           ] = (UseVSync      ? "yes" : "no");
+		file[ "timer default fps"     ] = (UseDefaultFps ? "yes" : "no");
+		file[ "timer custom fps"      ] = CustomFps;
+	}
+
+	return PDX_OK;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+VOID TIMERMANAGER::EnableCustomFPS(const BOOL state)
+{
+	if (bool(UseDefaultFps) == bool(state))
+	{
+		UseDefaultFps = !state;
+		UpdateRefreshRate();
 	}
 }
 
@@ -105,7 +152,266 @@ VOID TIMER::EnablePAL(const BOOL pal)
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-VOID TIMER::Reset()
+VOID TIMERMANAGER::ResetDialog()
+{
+	AutoFrameSkip = FALSE;
+	UseVSync = TRUE;
+	CustomFps = DEFAULT_FPS;
+	UseDefaultFps = TRUE;
+	MaxFrameSkips = DEFAULT_FRAME_SKIPS;
+	
+	UpdateRefreshRate();
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+BOOL TIMERMANAGER::DialogProc(HWND hDlg,UINT uMsg,WPARAM wParam,LPARAM lParam)
+{
+	switch (uMsg) 
+	{
+     	case WM_INITDIALOG:
+
+			SendMessage
+			( 
+				GetDlgItem(hDlg,IDC_TIMING_FPS), 
+				TBM_SETRANGE, 
+				WPARAM(FALSE), 
+				LPARAM(MAKELONG(MIN_FPS,MAX_FPS)) 
+			);
+
+			SendMessage
+			( 
+				GetDlgItem(hDlg,IDC_TIMING_FRAME_SKIPS), 
+				TBM_SETRANGE, 
+				WPARAM(FALSE), 
+				LPARAM(MAKELONG(MIN_FRAME_SKIPS,MAX_FRAME_SKIPS)) 
+			);
+
+			UpdateDialog( hDlg );
+			return TRUE;
+			
+		case WM_COMMAND:
+
+			switch (LOWORD(wParam))
+			{
+				case IDC_TIMING_SYNC_REFRESH:
+				case IDC_TIMING_AUTO_FRAME_SKIP:
+
+					AutoFrameSkip = IsDlgButtonChecked( hDlg, IDC_TIMING_AUTO_FRAME_SKIP );
+					
+					EnableWindow( GetDlgItem( hDlg, IDC_TIMING_FRAME_SKIPS      ), AutoFrameSkip );
+					EnableWindow( GetDlgItem( hDlg, IDC_TIMING_FRAME_SKIPS_TEXT ), AutoFrameSkip );
+					EnableWindow( GetDlgItem( hDlg, IDC_TIMING_FRAME_SKIPS_NUM  ), AutoFrameSkip );
+					return TRUE;
+
+				case IDC_TIMING_VSYNC:
+
+					UseVSync = IsDlgButtonChecked( hDlg, IDC_TIMING_VSYNC );
+					return TRUE;
+
+				case IDC_TIMING_DEFAULT_FPS:
+				
+					UseDefaultFps = IsDlgButtonChecked( hDlg, IDC_TIMING_DEFAULT_FPS );
+
+					EnableWindow( GetDlgItem( hDlg, IDC_TIMING_FPS      ), !UseDefaultFps );
+					EnableWindow( GetDlgItem( hDlg, IDC_TIMING_FPS_TEXT ), !UseDefaultFps );
+					EnableWindow( GetDlgItem( hDlg, IDC_TIMING_FPS_NUM  ), !UseDefaultFps );
+					return TRUE;
+
+				case IDC_TIMING_DEFAULT:
+
+					ResetDialog();
+					UpdateDialog( hDlg );
+					return TRUE;
+
+				case IDC_TIMING_OK:
+
+					EndDialog( hDlg, 0 );
+					return TRUE;
+			}
+			return FALSE;
+
+		case WM_HSCROLL:
+		
+     		if (HWND(lParam) == GetDlgItem(hDlg,IDC_TIMING_FPS))
+			{
+				const UINT fps = (UINT) SendMessage
+				(
+					GetDlgItem(hDlg,IDC_TIMING_FPS),
+					TBM_GETPOS,
+					WPARAM(0),
+					LPARAM(0)
+				);
+
+				if (CustomFps != fps)
+				{
+					CustomFps = fps;
+
+					SetWindowText
+					( 
+						GetDlgItem(hDlg,IDC_TIMING_FPS_NUM), 
+						PDXSTRING(fps).String() 
+					);
+				}
+			}
+			else if (HWND(lParam) == GetDlgItem(hDlg,IDC_TIMING_FRAME_SKIPS))
+			{
+				const UINT skips = (UINT) SendMessage
+				(
+					GetDlgItem(hDlg,IDC_TIMING_FRAME_SKIPS),
+					TBM_GETPOS,
+					WPARAM(0),
+					LPARAM(0)
+				);
+
+				if (MaxFrameSkips != skips)
+				{
+					MaxFrameSkips = skips;
+
+					SetWindowText
+					( 
+						GetDlgItem(hDlg,IDC_TIMING_FRAME_SKIPS_NUM), 
+						PDXSTRING(skips).String() 
+					);
+				}
+			}			
+			return TRUE;
+
+     	case WM_CLOSE:
+
+     		EndDialog( hDlg, 0 );
+     		return TRUE;
+
+		case WM_DESTROY:
+
+			UpdateRefreshRate();
+			return TRUE;
+	}
+
+	return FALSE;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+VOID TIMERMANAGER::UpdateDialog(HWND hDlg)
+{
+	SendMessage
+	( 
+     	GetDlgItem(hDlg,IDC_TIMING_FPS), 
+		TBM_SETPOS, 
+		WPARAM(TRUE), 
+		LPARAM(CustomFps) 
+	);
+	
+	SetWindowText
+	( 
+     	GetDlgItem(hDlg,IDC_TIMING_FPS_NUM), 
+		PDXSTRING(CustomFps).String() 
+	);
+
+	SendMessage
+	( 
+		GetDlgItem(hDlg,IDC_TIMING_FRAME_SKIPS), 
+		TBM_SETPOS, 
+		WPARAM(TRUE), 
+		LPARAM(MaxFrameSkips) 
+	);
+
+	SetWindowText
+	( 
+		GetDlgItem(hDlg,IDC_TIMING_FRAME_SKIPS_NUM), 
+		PDXSTRING(MaxFrameSkips).String() 
+	);
+
+	CheckDlgButton
+	( 
+     	hDlg, 
+		IDC_TIMING_SYNC_REFRESH, 
+		AutoFrameSkip ? BST_UNCHECKED : BST_CHECKED 
+	);
+
+	CheckDlgButton
+	( 
+     	hDlg, 
+		IDC_TIMING_AUTO_FRAME_SKIP, 
+		AutoFrameSkip ? BST_CHECKED : BST_UNCHECKED 
+	);
+
+	CheckDlgButton
+	( 
+     	hDlg, 
+		IDC_TIMING_VSYNC, 
+		UseVSync ? BST_CHECKED : BST_UNCHECKED 
+	);
+
+	CheckDlgButton
+	( 
+     	hDlg, 
+		IDC_TIMING_DEFAULT_FPS, 
+		UseDefaultFps ? BST_CHECKED : BST_UNCHECKED 
+	);
+
+	EnableWindow( GetDlgItem( hDlg, IDC_TIMING_FRAME_SKIPS      ), AutoFrameSkip  );
+	EnableWindow( GetDlgItem( hDlg, IDC_TIMING_FRAME_SKIPS_TEXT ), AutoFrameSkip  );
+	EnableWindow( GetDlgItem( hDlg, IDC_TIMING_FRAME_SKIPS_NUM  ), AutoFrameSkip  );
+	EnableWindow( GetDlgItem( hDlg, IDC_TIMING_FPS              ), !UseDefaultFps );
+	EnableWindow( GetDlgItem( hDlg, IDC_TIMING_FPS_TEXT         ), !UseDefaultFps );
+	EnableWindow( GetDlgItem( hDlg, IDC_TIMING_FPS_NUM          ), !UseDefaultFps );
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+VOID TIMERMANAGER::EnablePAL(const BOOL pal)
+{
+	IsPAL = pal;
+	UpdateRefreshRate();
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+VOID TIMERMANAGER::UpdateRefreshRate()
+{
+	if (UseDefaultFps)
+	{
+		if (IsPAL)
+		{
+			fps = NES_FPS_PAL;
+
+			if (HasPFCounter) pfRefreshClock = pfRefreshClockPAL;
+			else              dbRefreshClock = dbRefreshClockPAL;
+		}
+		else
+		{
+			fps = NES_FPS_NTSC;
+
+			if (HasPFCounter) pfRefreshClock = pfRefreshClockNTSC;
+			else              dbRefreshClock = dbRefreshClockNTSC;
+		}
+	}
+	else
+	{
+		fps = CustomFps;
+
+		if (HasPFCounter) pfRefreshClock = pfRefreshFrequency / CustomFps;
+		else              dbRefreshClock = dbRefreshFrequency / CustomFps;
+	}
+
+	application.GetSoundManager().SetRefreshRate( IsPAL, fps );
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+VOID TIMERMANAGER::Reset()
 {
 	if (HasPFCounter) 
 	{
@@ -121,8 +427,14 @@ VOID TIMER::Reset()
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-UINT TIMER::SynchRefreshRate(const BOOL AutoFrameSkip,const BOOL InBackground)
+UINT TIMERMANAGER::SynchRefreshRate(const BOOL InBackground)
 {
+	if (application.GetGraphicManager().UpdateRefresh( UseVSync, fps ))
+	{
+		if (!AutoFrameSkip)
+			return 0;
+	}
+
 	if (HasPFCounter)
 	{
 		I64 pfCurrent;
@@ -152,7 +464,7 @@ UINT TIMER::SynchRefreshRate(const BOOL AutoFrameSkip,const BOOL InBackground)
 		{
 			UINT SkipFrames = (pfCurrent - pfLast) / pfRefreshClock;
 
-			if (SkipFrames > RESET_TIMER_FRAMES)
+			if (SkipFrames > MAX_FRAME_SKIPS)
 			{
 				pfLast = pfCurrent;
 			}
@@ -160,8 +472,8 @@ UINT TIMER::SynchRefreshRate(const BOOL AutoFrameSkip,const BOOL InBackground)
 			{
 				--SkipFrames;
 
-				if (SkipFrames > MAX_SKIP_FRAMES)
-					SkipFrames = MAX_SKIP_FRAMES;
+				if (SkipFrames > MaxFrameSkips)
+					SkipFrames = MaxFrameSkips;
 
 				pfLast += pfRefreshClock * SkipFrames;
 				return SkipFrames;
@@ -191,7 +503,7 @@ UINT TIMER::SynchRefreshRate(const BOOL AutoFrameSkip,const BOOL InBackground)
 		{
 			UINT SkipFrames = (dbCurrent - dbLast) / dbRefreshClock;
 
-			if (SkipFrames > RESET_TIMER_FRAMES)
+			if (SkipFrames > MAX_FRAME_SKIPS)
 			{
 				dbLast = dbCurrent;
 			}
@@ -199,8 +511,8 @@ UINT TIMER::SynchRefreshRate(const BOOL AutoFrameSkip,const BOOL InBackground)
 			{
 				--SkipFrames;
 
-				if (SkipFrames > MAX_SKIP_FRAMES)
-					SkipFrames = MAX_SKIP_FRAMES;
+				if (SkipFrames > MaxFrameSkips)
+					SkipFrames = MaxFrameSkips;
 
 				dbLast += dbRefreshClock * SkipFrames;
 				return SkipFrames;

@@ -43,7 +43,7 @@ inline HMENU APPLICATION::GetMenu() const
 
 inline VOID APPLICATION::ResetTimer()
 {
-	timer.Reset();
+	TimerManager->Reset();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -73,6 +73,8 @@ inline GAMEGENIEMANAGER& APPLICATION::GetGameGenieManager() { return *GameGenieM
 inline GRAPHICMANAGER&   APPLICATION::GetGraphicManager()   { return *GraphicManager;     }
 inline PREFERENCES&      APPLICATION::GetPreferences()      { return *preferences;        }
 inline MOVIEMANAGER&     APPLICATION::GetMovieManager()     { return *MovieManager;       }
+inline SOUNDMANAGER&     APPLICATION::GetSoundManager()     { return *SoundManager;       }
+inline TIMERMANAGER&     APPLICATION::GetTimerManager()     { return *TimerManager;       }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //

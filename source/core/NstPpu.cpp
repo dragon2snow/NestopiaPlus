@@ -33,7 +33,7 @@ NES_NAMESPACE_BEGIN
 // constructor
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PPU::PPU(CPU* const c)
+PPU::PPU(CPU& c)
 :
 CiRam       (n4k),
 GarbageLine (new IO::GFX::PIXEL[MARGIN + IO::GFX::WIDTH]),
@@ -120,17 +120,17 @@ VOID PPU::Reset(const BOOL hard)
 
 	for (UINT i=0x2000; i < 0x4000; i += 0x8)
 	{
-		cpu->SetPort( i + 0x0, this, Peek_2xxx, Poke_2000 );
-		cpu->SetPort( i + 0x1, this, Peek_2xxx, Poke_2001 );
-		cpu->SetPort( i + 0x2, this, Peek_2002, Poke_2xxx );
-		cpu->SetPort( i + 0x3, this, Peek_2xxx, Poke_2003 );
-		cpu->SetPort( i + 0x4, this, Peek_2004, Poke_2004 );
-		cpu->SetPort( i + 0x5, this, Peek_2xxx, Poke_2005 );
-		cpu->SetPort( i + 0x6, this, Peek_2xxx, Poke_2006 );
-		cpu->SetPort( i + 0x7, this, Peek_2007, Poke_2007 );
+		cpu.SetPort( i + 0x0, this, Peek_2xxx, Poke_2000 );
+		cpu.SetPort( i + 0x1, this, Peek_2xxx, Poke_2001 );
+		cpu.SetPort( i + 0x2, this, Peek_2002, Poke_2xxx );
+		cpu.SetPort( i + 0x3, this, Peek_2xxx, Poke_2003 );
+		cpu.SetPort( i + 0x4, this, Peek_2004, Poke_2004 );
+		cpu.SetPort( i + 0x5, this, Peek_2xxx, Poke_2005 );
+		cpu.SetPort( i + 0x6, this, Peek_2xxx, Poke_2006 );
+		cpu.SetPort( i + 0x7, this, Peek_2007, Poke_2007 );
 	}
 
-	cpu->SetPort( 0x4014, this, Peek_4014, Poke_4014 );
+	cpu.SetPort( 0x4014, this, Peek_4014, Poke_4014 );
 
 	PDXMemZero( SpBuffer,    64 );
 	PDXMemZero( SpTmpBuffer, 64 );
@@ -288,7 +288,7 @@ VOID PPU::Update()
 	const ULONG target = PDX_MIN
 	(
     	cycles.frame,
-		cpu->GetCycles<CPU::CYCLE_MASTER>()
+		cpu.GetCycles<CPU::CYCLE_MASTER>()
 	);
 
 	while (cycles.count < target)
@@ -313,12 +313,12 @@ NES_POKE(PPU,2000)
 	vRamLatch &= ~VRAM_NAME;
 	vRamLatch |= (data & CTRL0_NAME_OFFSET) << 10;
 
-	const BOOL retrigger = !cpu->IsLine(CPU::NMI) && (data & CTRL0_NMI) && (status & STATUS_VBLANK);
+	const BOOL retrigger = !cpu.IsLine(CPU::NMI) && (data & CTRL0_NMI) && (status & STATUS_VBLANK);
 
-	cpu->SetLine(CPU::NMI,data & CTRL0_NMI);
+	cpu.SetLine(CPU::NMI,data & CTRL0_NMI);
 
 	if (retrigger)
-		cpu->DoNMI();
+		cpu.DoNMI();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -531,7 +531,7 @@ NES_PEEK(PPU,2007)
 	UINT offset = vRamAddress;
 	vRamAddress += AddressIncrease;
 
-	// first read is always a throw-away read (except Palette RAM)
+	// first read is always a throw-away read (except palette RAM)
 
 	if (offset >= 0x3F00)
 	{
@@ -588,7 +588,7 @@ NES_POKE(PPU,4014)
 
 		for (UINT i=offset; i < length; ++i)
 		{
-			byte = cpu->Peek(i);
+			byte = cpu.Peek(i);
 
 			if (OamLatch >= 0x8)
 			{
@@ -605,7 +605,7 @@ NES_POKE(PPU,4014)
 		}
 
 		latch = byte;
-		cpu->AdvanceCycles( pal ? NES_PPU_MCC_SPRITE_DMA_PAL : NES_PPU_MCC_SPRITE_DMA_NTSC );
+		cpu.AdvanceCycles( pal ? NES_PPU_MCC_SPRITE_DMA_PAL : NES_PPU_MCC_SPRITE_DMA_NTSC );
 	}
 	else
 	{
@@ -1167,8 +1167,8 @@ VOID PPU::BeginFrame(IO::GFX* const gfx)
 
 	cycles.Reset( pal, EvenFrame ^= 1 );
 
-	cpu->SetFrameCycles( cycles.frame );
-	cpu->DoNMI();
+	cpu.SetFrameCycles( cycles.frame );
+	cpu.DoNMI();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////

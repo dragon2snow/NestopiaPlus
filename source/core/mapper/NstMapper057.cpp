@@ -33,8 +33,8 @@ NES_NAMESPACE_BEGIN
 
 VOID MAPPER57::Reset()
 {
-	cpu->SetPort( 0x8000, 0x8003, this, Peek_8000, Poke_8000 );
-	cpu->SetPort( 0x8800,         this, Peek_8000, Poke_8800 );
+	cpu.SetPort( 0x8000, 0x8003, this, Peek_8000, Poke_8000 );
+	cpu.SetPort( 0x8800,         this, Peek_8000, Poke_8800 );
 
 	reg = 0x00;
 
@@ -50,7 +50,7 @@ NES_POKE(MAPPER57,8000)
 {
 	if (data & 0x40)
 	{
-		ppu->Update();
+		ppu.Update();
 
 		cRom.SwapBanks<n8k,0x0000>
 		( 
@@ -67,11 +67,11 @@ NES_POKE(MAPPER57,8000)
 
 NES_POKE(MAPPER57,8800) 
 {
-	apu->Update();
+	apu.Update();
 
 	reg = data;
 
-	ppu->SetMirroring( (data & 0x8) ? MIRROR_HORIZONTAL : MIRROR_VERTICAL );
+	ppu.SetMirroring( (data & 0x8) ? MIRROR_HORIZONTAL : MIRROR_VERTICAL );
 
 	if (data & 0x80)
 	{

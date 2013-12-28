@@ -36,20 +36,20 @@ VOID MAPPER189::Reset()
 {
 	MAPPER4::Reset();
 
-	cpu->SetPort( 0x6000, 0x7FFF, this, Peek_Nop, Poke_Nop );
+	cpu.SetPort( 0x6000, 0x7FFF, this, Peek_Nop, Poke_Nop );
 
 	for (ULONG i=0x4100; i <= 0x8FFF; ++i)
 	{
 		switch (i & 0xF100)
 		{
-   			case 0x4100: cpu->SetPort( i, this, Peek_Nop, Poke_4100 ); continue;
-			case 0x6100: cpu->SetPort( i, this, Peek_Nop, Poke_6100 ); continue;
+   			case 0x4100: cpu.SetPort( i, this, Peek_Nop, Poke_4100 ); continue;
+			case 0x6100: cpu.SetPort( i, this, Peek_Nop, Poke_6100 ); continue;
 		}
 
 		switch (i & 0xE001)
 		{
-   			case 0x8000: cpu->SetPort( i, this, Peek_8000, Poke_8000 ); continue;
-   			case 0x8001: cpu->SetPort( i, this, Peek_8000, Poke_8001 ); continue;
+   			case 0x8000: cpu.SetPort( i, this, Peek_8000, Poke_8000 ); continue;
+   			case 0x8001: cpu.SetPort( i, this, Peek_8000, Poke_8001 ); continue;
 		}
 	}
 
@@ -62,7 +62,7 @@ VOID MAPPER189::Reset()
 
 NES_POKE(MAPPER189,4100)
 {
-	apu->Update();
+	apu.Update();
 	pRom.SwapBanks<n32k,0x0000>( data >> 4 );
 }
 
@@ -72,7 +72,7 @@ NES_POKE(MAPPER189,4100)
 
 NES_POKE(MAPPER189,6100)
 {
-	apu->Update();
+	apu.Update();
 	pRom.SwapBanks<n32k,0x0000>( data & 0x3 );
 }
 
@@ -91,7 +91,7 @@ NES_POKE(MAPPER189,8000)
 
 NES_POKE(MAPPER189,8001)
 {
-	ppu->Update();
+	ppu.Update();
 
 	switch (command)
 	{
@@ -113,7 +113,7 @@ VOID MAPPER189::IrqSync()
 	if (IrqCount-- <= 0)
 	{
 		IrqCount = 0;
-		cpu->DoIRQ();
+		cpu.DoIRQ();
 	}
 }
 

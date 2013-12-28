@@ -80,7 +80,7 @@ PDXRESULT GAMEGENIE::GetContext(IO::GAMEGENIE::CONTEXT& context) const
 	switch (context.op)
 	{
     	case IO::GAMEGENIE::ENCODE:   return Encode ( context.packed, context.characters );
-		case IO::GAMEGENIE::DECODE:   return Decode ( context.characters, context.packed );
+		case IO::GAMEGENIE::DECODE:   return Decode ( context.characters.String(), context.packed );
 		case IO::GAMEGENIE::PACK:     return Pack   ( context.address, context.value, context.compare, context.UseCompare, context.packed );
 		case IO::GAMEGENIE::UNPACK:   return Unpack ( context.packed, context.address, context.value, context.compare, context.UseCompare );
 		case IO::GAMEGENIE::GETSTATE: context.state = IsCodeEnabled( context.packed ); return PDX_OK;
@@ -492,7 +492,7 @@ inline VOID GAMEGENIE::CODE::Poke(const UINT address,const UINT value)
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-GAMEGENIE::GAMEGENIE(CPU* const c)
+GAMEGENIE::GAMEGENIE(CPU& c)
 : cpu(c) {}
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -512,10 +512,10 @@ VOID GAMEGENIE::Destroy()
 {
 	for (CODES::ITERATOR iterator = codes.Begin(); iterator != codes.End(); ++iterator)
 	{
-		if (this == cpu->GetPort( (*iterator).First() ).Object<GAMEGENIE>())
+		if (this == cpu.GetPort( (*iterator).First() ).Object<GAMEGENIE>())
 		{
 			const CPU_PORT& port = (*iterator).Second().GetPort();
-			cpu->SetPort( (*iterator).First(), port.object, port.reader, port.writer );
+			cpu.SetPort( (*iterator).First(), port.object, port.reader, port.writer );
 		}
 	}
 }
@@ -540,20 +540,20 @@ VOID GAMEGENIE::Map(CODE& code)
 
 	if (code.IsEnabled())
 	{
-		const CPU_PORT& port = cpu->GetPort(address);
+		const CPU_PORT& port = cpu.GetPort(address);
 
 		if (this != port.Object<GAMEGENIE>())
 		{
 			code.SetPort( port );
-			cpu->SetPort( address, this, Peek_wizard, Poke_wizard );
+			cpu.SetPort( address, this, Peek_wizard, Poke_wizard );
 		}
 	}
 	else
 	{
-		if (this == cpu->GetPort(address).Object<GAMEGENIE>())
+		if (this == cpu.GetPort(address).Object<GAMEGENIE>())
 		{
 			const CPU_PORT& port = code.GetPort();
-			cpu->SetPort( address, port.object, port.reader, port.writer );
+			cpu.SetPort( address, port.object, port.reader, port.writer );
 		}
 	}
 }

@@ -77,8 +77,8 @@ private:
 		return index;
 	}
 
-	PDXRESULT Create  (PDXFILE* const);
-	PDXRESULT Destroy (PDXFILE* const);
+	PDXRESULT Create  (CONFIGFILE* const);
+	PDXRESULT Destroy (CONFIGFILE* const);
 
 	VOID UpdateDialog(HWND);
 	VOID UpdateDialogTime(HWND,const WPARAM);

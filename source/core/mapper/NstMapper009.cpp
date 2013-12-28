@@ -33,17 +33,17 @@ NES_NAMESPACE_BEGIN
 
 VOID MAPPER9::Reset()
 {
-	cpu->SetPort( 0xA000, 0xAFFF, this, Peek_A000, Poke_A000 );
-	cpu->SetPort( 0xB000, 0xBFFF, this, Peek_B000, Poke_B000 );
-	cpu->SetPort( 0xC000, 0xCFFF, this, Peek_C000, Poke_C000 );
-	cpu->SetPort( 0xD000, 0xDFFF, this, Peek_D000, Poke_D000 );
-	cpu->SetPort( 0xE000, 0xEFFF, this, Peek_E000, Poke_E000 );
-	cpu->SetPort( 0xF000, 0xFFFF, this, Peek_F000, Poke_F000 );
+	cpu.SetPort( 0xA000, 0xAFFF, this, Peek_A000, Poke_A000 );
+	cpu.SetPort( 0xB000, 0xBFFF, this, Peek_B000, Poke_B000 );
+	cpu.SetPort( 0xC000, 0xCFFF, this, Peek_C000, Poke_C000 );
+	cpu.SetPort( 0xD000, 0xDFFF, this, Peek_D000, Poke_D000 );
+	cpu.SetPort( 0xE000, 0xEFFF, this, Peek_E000, Poke_E000 );
+	cpu.SetPort( 0xF000, 0xFFFF, this, Peek_F000, Poke_F000 );
 
-	ppu->SetPort( 0x0FD0, 0x0FDF, this, Latch_0FD0, Poke_Nop );
-	ppu->SetPort( 0x0FE0, 0x0FEF, this, Latch_0FE0, Poke_Nop );
-	ppu->SetPort( 0x1FD0, 0x1FDF, this, Latch_1FD0, Poke_Nop );
-	ppu->SetPort( 0x1FE0, 0x1FEF, this, Latch_1FE0, Poke_Nop );
+	ppu.SetPort( 0x0FD0, 0x0FDF, this, Latch_0FD0, Poke_Nop );
+	ppu.SetPort( 0x0FE0, 0x0FEF, this, Latch_0FE0, Poke_Nop );
+	ppu.SetPort( 0x1FD0, 0x1FDF, this, Latch_1FD0, Poke_Nop );
+	ppu.SetPort( 0x1FE0, 0x1FEF, this, Latch_1FE0, Poke_Nop );
 
 	pRom.SwapBanks<n8k,0x0000>(0);
 	pRom.SwapBanks<n8k,0x2000>(pRom.NumBanks<n8k>() - 3);
@@ -65,7 +65,7 @@ VOID MAPPER9::Reset()
 
 NES_POKE(MAPPER9,A000)
 {
-	apu->Update(); 
+	apu.Update(); 
 	pRom.SwapBanks<n8k,0x0000>(data);
 }
 
@@ -79,7 +79,7 @@ NES_POKE(MAPPER9,B000)
 	
 	if (latch[0] == 0xFD) 
 	{
-		ppu->Update();
+		ppu.Update();
 		cRom.SwapBanks<n4k,0x0000>(data);
 	}
 }
@@ -94,7 +94,7 @@ NES_POKE(MAPPER9,C000)
 	
 	if (latch[0] == 0xFE) 
 	{
-		ppu->Update();
+		ppu.Update();
 		cRom.SwapBanks<n4k,0x0000>(data);
 	}
 }
@@ -109,7 +109,7 @@ NES_POKE(MAPPER9,D000)
 	
 	if (latch[1] == 0xFD) 
 	{
-		ppu->Update();
+		ppu.Update();
 		cRom.SwapBanks<n4k,0x1000>(data);
 	}
 }
@@ -124,7 +124,7 @@ NES_POKE(MAPPER9,E000)
 	
 	if (latch[1] == 0xFE) 
 	{
-		ppu->Update();
+		ppu.Update();
 		cRom.SwapBanks<n4k,0x1000>(data);
 	}
 }
@@ -135,7 +135,7 @@ NES_POKE(MAPPER9,E000)
 
 NES_POKE(MAPPER9,F000)
 {
-	ppu->SetMirroring((data & 0x1) ? MIRROR_HORIZONTAL : MIRROR_VERTICAL);
+	ppu.SetMirroring((data & 0x1) ? MIRROR_HORIZONTAL : MIRROR_VERTICAL);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////

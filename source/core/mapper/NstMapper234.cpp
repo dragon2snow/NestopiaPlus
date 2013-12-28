@@ -33,14 +33,14 @@ NES_NAMESPACE_BEGIN
 
 VOID MAPPER234::Reset()
 {
-	cpu->SetPort( 0xFF80, 0xFF9F, this, Peek_FF80, Poke_FF80 );
-	cpu->SetPort( 0xFFE8, 0xFFF7, this, Peek_FFE8, Poke_FFE8 );
-	cpu->SetPort( 0x6000, 0x7FFF, this, Peek_Nop,  Poke_Nop  );
+	cpu.SetPort( 0xFF80, 0xFF9F, this, Peek_FF80, Poke_FF80 );
+	cpu.SetPort( 0xFFE8, 0xFFF7, this, Peek_FFE8, Poke_FFE8 );
+	cpu.SetPort( 0x6000, 0x7FFF, this, Peek_Nop,  Poke_Nop  );
 
 	banks[0] = 0;
 	banks[1] = 0;
 
-	ppu->SetMirroring(MIRROR_HORIZONTAL);
+	ppu.SetMirroring(MIRROR_HORIZONTAL);
 	pRom.SwapBanks<n32k,0x0000>(0);
 }
 
@@ -50,8 +50,8 @@ VOID MAPPER234::Reset()
 
 VOID MAPPER234::UpdateBanks()
 {
-	apu->Update();
-	ppu->Update();
+	apu.Update();
+	ppu.Update();
 
 	if (banks[0] & 0x40)
 	{
@@ -74,7 +74,7 @@ VOID MAPPER234::UpdateBank0(const UINT data)
 	if (!banks[0])
 	{
 		banks[0] = data;
-		ppu->SetMirroring( (data & 0x80) ? MIRROR_VERTICAL : MIRROR_HORIZONTAL );
+		ppu.SetMirroring( (data & 0x80) ? MIRROR_VERTICAL : MIRROR_HORIZONTAL );
 		UpdateBanks();
 	}
 }
@@ -95,8 +95,8 @@ VOID MAPPER234::UpdateBank1(const UINT data)
 
 NES_PEEK(MAPPER234,FF80) 
 { 
-	const UINT data = pRom[address];
-	UpdateBank0(data);
+	const UINT data = pRom[address - 0x8000];
+	UpdateBank0(0);
 	return data;
 }
 
@@ -115,7 +115,7 @@ NES_POKE(MAPPER234,FF80)
 
 NES_PEEK(MAPPER234,FFE8) 
 { 
-	const UINT data = pRom[address];
+	const UINT data = pRom[address - 0x8000];
 	UpdateBank1(data);
 	return data;
 }

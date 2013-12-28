@@ -34,10 +34,10 @@ NES_NAMESPACE_BEGIN
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-SNDFME7::SNDFME7(CPU* const cpu)
-: apu(cpu->GetAPU())
+SNDFME7::SNDFME7(CPU& cpu)
+: apu(cpu.GetAPU())
 {
-	apu->HookChannel( PDX_STATIC_CAST(APU::CHANNEL*,&channel)  );
+	apu.HookChannel( PDX_STATIC_CAST(APU::CHANNEL*,&channel)  );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -46,7 +46,7 @@ SNDFME7::SNDFME7(CPU* const cpu)
 
 SNDFME7::~SNDFME7()
 {
-	apu->ReleaseChannel( PDX_STATIC_CAST(APU::CHANNEL*,&channel) );
+	apu.ReleaseChannel( PDX_STATIC_CAST(APU::CHANNEL*,&channel) );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -82,7 +82,7 @@ PDXRESULT SNDFME7::SaveState(PDXFILE& file) const
 
 VOID SNDFME7::Poke_C000(const UINT data)
 { 
-	apu->Update(); 
+	apu.Update(); 
 	channel.WriteReg0( data );
 }
 
@@ -92,7 +92,7 @@ VOID SNDFME7::Poke_C000(const UINT data)
 
 VOID SNDFME7::Poke_E000(const UINT data)
 { 
-	apu->Update(); 
+	apu.Update(); 
 	channel.WriteReg1( data );
 }
 

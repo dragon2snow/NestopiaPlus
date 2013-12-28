@@ -102,10 +102,10 @@ VOID VSDIPSWITCHMANAGER::InitDialog(HWND hDlg)
 		{
 			nes->GetVsSystemDipSwitch( i, context );
 
-			SetWindowText( hTxt, context.name );
+			SetWindowText( hTxt, context.name.String() );
 
 			for (UINT j=0; j < context.settings.Size(); ++j)
-				ComboBox_AddString( hCmd, context.settings[j] );
+				ComboBox_AddString( hCmd, context.settings[j].String() );
 
 			ComboBox_SetCurSel( hCmd, context.index );
 		}

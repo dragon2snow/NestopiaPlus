@@ -72,10 +72,10 @@ BOOL USERINPUTMANAGER::DialogProc(HWND hDlg,UINT uMsg,WPARAM wParam,LPARAM)
 			input.Clear();
 			
 			if (msg.Length())
-				SetDlgItemText( hDlg, IDC_USERINPUT_TEXT, msg );
+				SetDlgItemText( hDlg, IDC_USERINPUT_TEXT, msg.String() );
 
 			if (title.Length())
-				SetWindowText( hDlg, title );
+				SetWindowText( hDlg, title.String() );
 
 			return TRUE;
 

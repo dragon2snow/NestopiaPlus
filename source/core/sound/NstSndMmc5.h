@@ -39,7 +39,7 @@ class SNDMMC5
 {
 public:
 
-	SNDMMC5(CPU* const);
+	SNDMMC5(CPU&);
 	~SNDMMC5();
 
 	VOID Reset();
@@ -154,8 +154,8 @@ private:
 		SQUARE_1_ENABLE = 0x2
 	};
 
-	CPU* const cpu;
-	APU* const apu;
+	CPU& cpu;
+	APU& apu;
 	
 	UINT value[2];
 

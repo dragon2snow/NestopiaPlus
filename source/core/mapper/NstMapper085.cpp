@@ -45,30 +45,30 @@ VOID MAPPER85::Reset()
 	{
 		switch (i & 0xF038)
 		{
-			case 0x8000: cpu->SetPort( i, this, Peek_8000, Poke_8000 ); continue;
+			case 0x8000: cpu.SetPort( i, this, Peek_8000, Poke_8000 ); continue;
 			case 0x8008: 
-			case 0x8010: cpu->SetPort( i, this, Peek_8000, Poke_8008 ); continue;
-			case 0x9000: cpu->SetPort( i, this, Peek_9000, Poke_9000 ); continue;
+			case 0x8010: cpu.SetPort( i, this, Peek_8000, Poke_8008 ); continue;
+			case 0x9000: cpu.SetPort( i, this, Peek_9000, Poke_9000 ); continue;
 			case 0x9010: 
-			case 0x9030: cpu->SetPort( i, this, Peek_9000, Poke_9010 ); continue;
-			case 0xA000: cpu->SetPort( i, this, Peek_A000, Poke_A000 ); continue;
+			case 0x9030: cpu.SetPort( i, this, Peek_9000, Poke_9010 ); continue;
+			case 0xA000: cpu.SetPort( i, this, Peek_A000, Poke_A000 ); continue;
 			case 0xA008: 
-			case 0xA010: cpu->SetPort( i, this, Peek_A000, Poke_A008 ); continue;
-			case 0xB000: cpu->SetPort( i, this, Peek_B000, Poke_B000 ); continue;
+			case 0xA010: cpu.SetPort( i, this, Peek_A000, Poke_A008 ); continue;
+			case 0xB000: cpu.SetPort( i, this, Peek_B000, Poke_B000 ); continue;
 			case 0xB008: 
-			case 0xB010: cpu->SetPort( i, this, Peek_B000, Poke_B008 ); continue;
-			case 0xC000: cpu->SetPort( i, this, Peek_C000, Poke_C000 ); continue;
+			case 0xB010: cpu.SetPort( i, this, Peek_B000, Poke_B008 ); continue;
+			case 0xC000: cpu.SetPort( i, this, Peek_C000, Poke_C000 ); continue;
 			case 0xC008: 
-			case 0xC010: cpu->SetPort( i, this, Peek_C000, Poke_C008 ); continue;
-			case 0xD000: cpu->SetPort( i, this, Peek_D000, Poke_D000 ); continue;
+			case 0xC010: cpu.SetPort( i, this, Peek_C000, Poke_C008 ); continue;
+			case 0xD000: cpu.SetPort( i, this, Peek_D000, Poke_D000 ); continue;
 			case 0xD008: 
-			case 0xD010: cpu->SetPort( i, this, Peek_D000, Poke_D008 ); continue;
-			case 0xE000: cpu->SetPort( i, this, Peek_E000, Poke_E000 ); continue;
+			case 0xD010: cpu.SetPort( i, this, Peek_D000, Poke_D008 ); continue;
+			case 0xE000: cpu.SetPort( i, this, Peek_E000, Poke_E000 ); continue;
 			case 0xE008: 
-			case 0xE010: cpu->SetPort( i, this, Peek_E000, Poke_E008 ); continue;
-			case 0xF000: cpu->SetPort( i, this, Peek_F000, Poke_F000 ); continue;
+			case 0xE010: cpu.SetPort( i, this, Peek_E000, Poke_E008 ); continue;
+			case 0xF000: cpu.SetPort( i, this, Peek_F000, Poke_F000 ); continue;
 			case 0xF008: 
-			case 0xF010: cpu->SetPort( i, this, Peek_F000, Poke_F008 ); continue;
+			case 0xF010: cpu.SetPort( i, this, Peek_F000, Poke_F008 ); continue;
 		}											   
 	}
 }
@@ -77,9 +77,9 @@ VOID MAPPER85::Reset()
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-NES_POKE(MAPPER85,8000) { apu->Update(); pRom.SwapBanks<n8k,0x0000>(data); }
-NES_POKE(MAPPER85,8008) { apu->Update(); pRom.SwapBanks<n8k,0x2000>(data); }
-NES_POKE(MAPPER85,9000) { apu->Update(); pRom.SwapBanks<n8k,0x4000>(data); }
+NES_POKE(MAPPER85,8000) { apu.Update(); pRom.SwapBanks<n8k,0x0000>(data); }
+NES_POKE(MAPPER85,8008) { apu.Update(); pRom.SwapBanks<n8k,0x2000>(data); }
+NES_POKE(MAPPER85,9000) { apu.Update(); pRom.SwapBanks<n8k,0x4000>(data); }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -93,14 +93,14 @@ NES_POKE(MAPPER85,9010)
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-NES_POKE(MAPPER85,A000) { ppu->Update(); cRom.SwapBanks<n1k,0x0000>(data); }
-NES_POKE(MAPPER85,A008) { ppu->Update(); cRom.SwapBanks<n1k,0x0400>(data); }
-NES_POKE(MAPPER85,B000) { ppu->Update(); cRom.SwapBanks<n1k,0x0800>(data); }
-NES_POKE(MAPPER85,B008) { ppu->Update(); cRom.SwapBanks<n1k,0x0C00>(data); }
-NES_POKE(MAPPER85,C000) { ppu->Update(); cRom.SwapBanks<n1k,0x1000>(data); }
-NES_POKE(MAPPER85,C008) { ppu->Update(); cRom.SwapBanks<n1k,0x1400>(data); }
-NES_POKE(MAPPER85,D000) { ppu->Update(); cRom.SwapBanks<n1k,0x1800>(data); }
-NES_POKE(MAPPER85,D008) { ppu->Update(); cRom.SwapBanks<n1k,0x1C00>(data); }
+NES_POKE(MAPPER85,A000) { ppu.Update(); cRom.SwapBanks<n1k,0x0000>(data); }
+NES_POKE(MAPPER85,A008) { ppu.Update(); cRom.SwapBanks<n1k,0x0400>(data); }
+NES_POKE(MAPPER85,B000) { ppu.Update(); cRom.SwapBanks<n1k,0x0800>(data); }
+NES_POKE(MAPPER85,B008) { ppu.Update(); cRom.SwapBanks<n1k,0x0C00>(data); }
+NES_POKE(MAPPER85,C000) { ppu.Update(); cRom.SwapBanks<n1k,0x1000>(data); }
+NES_POKE(MAPPER85,C008) { ppu.Update(); cRom.SwapBanks<n1k,0x1400>(data); }
+NES_POKE(MAPPER85,D000) { ppu.Update(); cRom.SwapBanks<n1k,0x1800>(data); }
+NES_POKE(MAPPER85,D008) { ppu.Update(); cRom.SwapBanks<n1k,0x1C00>(data); }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -118,7 +118,7 @@ NES_POKE(MAPPER85,E000)
 
 	const UCHAR* const index = select[data & 0x3];
 
-	ppu->SetMirroring
+	ppu.SetMirroring
 	(
 	    index[0],
 		index[1],
@@ -165,7 +165,7 @@ VOID MAPPER85::IrqSync(const UINT delta)
 		if (++IrqCount >= 0xFF)
 		{
 			IrqCount = IrqLatch;
-			cpu->TryIRQ();
+			cpu.TryIRQ();
 		}
 	}
 }

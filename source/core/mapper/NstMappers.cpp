@@ -112,6 +112,7 @@
 #include "NstMapper118.h"
 #include "NstMapper119.h"
 #include "NstMapper122.h"
+#include "NstMapper133.h"
 #include "NstMapper140.h"
 #include "NstMapper144.h"
 #include "NstMapper151.h"
@@ -261,6 +262,7 @@ MAPPER* MAPPER::New(CONTEXT& context)
 		NES_CASE_( 118 );
 		NES_CASE_( 119 );
 		NES_CASE_( 122 );
+		NES_CASE_( 133 );
 		NES_CASE_( 140 );
 		NES_CASE_( 144 );
 		NES_CASE_( 151 );
@@ -320,9 +322,9 @@ MAPPER::MAPPER(CONTEXT& context,VOID* const begin1,const VOID* const end1,VOID* 
 :
 pRom         (context.pRom,context.pRomSize),
 cRom         (context.cRom,context.cRomSize),
-cpu          (context.cpu),
+cpu          (*context.cpu),
 apu          (context.cpu->GetAPU()),
-ppu          (context.ppu),
+ppu          (*context.ppu),
 mirroring    (context.mirroring),
 id           (context.id),
 wRamInitSize (context.wRamInitSize),
@@ -344,8 +346,8 @@ StateSize2   (PDX_CAST(const CHAR*,end2) - PDX_CAST(const CHAR*,begin2))
 
 MAPPER::~MAPPER()
 {
-	cpu->RemoveEvent(this);
-	cpu->RemoveEvent(PPU::Update);
+	cpu.RemoveEvent(this);
+	cpu.RemoveEvent(PPU::Update);
 	wRam.UnHook();
 }
 
@@ -367,30 +369,30 @@ VOID MAPPER::Reset(const BOOL hard)
 	pRom.SwapBanks<n16k,0x0000>(0);
 	pRom.SwapBanks<n16k,0x4000>(pRom.NumBanks<n16k>() - 1);
 
-	cpu->SetPort( 0x4020, 0x5FFF, this, Peek_Nop,  Poke_Nop  );
-	cpu->SetPort( 0x6000, 0x7FFF, this, Peek_6000, Poke_6000 );
-	cpu->SetPort( 0x8000, 0x9FFF, this, Peek_8000, Poke_Nop  );
-	cpu->SetPort( 0xA000, 0xBFFF, this, Peek_A000, Poke_Nop  );
-	cpu->SetPort( 0xC000, 0xDFFF, this, Peek_C000, Poke_Nop  );
-	cpu->SetPort( 0xE000, 0xFFFF, this, Peek_E000, Poke_Nop  );
+	cpu.SetPort( 0x4020, 0x5FFF, this, Peek_Nop,  Poke_Nop  );
+	cpu.SetPort( 0x6000, 0x7FFF, this, Peek_6000, Poke_6000 );
+	cpu.SetPort( 0x8000, 0x9FFF, this, Peek_8000, Poke_Nop  );
+	cpu.SetPort( 0xA000, 0xBFFF, this, Peek_A000, Poke_Nop  );
+	cpu.SetPort( 0xC000, 0xDFFF, this, Peek_C000, Poke_Nop  );
+	cpu.SetPort( 0xE000, 0xFFFF, this, Peek_E000, Poke_Nop  );
 
 	if (cRom.Size())
 	{
 		cRom.SwapBanks<n8k,0x0000>(0);
 
-		ppu->SetPort( 0x0000, 0x03FF, this, Peek_cRom_0000, Poke_cRom );
-		ppu->SetPort( 0x0400, 0x07FF, this, Peek_cRom_0400, Poke_cRom );
-		ppu->SetPort( 0x0800, 0x0BFF, this, Peek_cRom_0800, Poke_cRom );
-		ppu->SetPort( 0x0C00, 0x0FFF, this, Peek_cRom_0C00, Poke_cRom );
-		ppu->SetPort( 0x1000, 0x13FF, this, Peek_cRom_1000, Poke_cRom );
-		ppu->SetPort( 0x1400, 0x17FF, this, Peek_cRom_1400, Poke_cRom );
-		ppu->SetPort( 0x1800, 0x1BFF, this, Peek_cRom_1800, Poke_cRom );
-		ppu->SetPort( 0x1C00, 0x1FFF, this, Peek_cRom_1C00, Poke_cRom );
+		ppu.SetPort( 0x0000, 0x03FF, this, Peek_cRom_0000, Poke_cRom );
+		ppu.SetPort( 0x0400, 0x07FF, this, Peek_cRom_0400, Poke_cRom );
+		ppu.SetPort( 0x0800, 0x0BFF, this, Peek_cRom_0800, Poke_cRom );
+		ppu.SetPort( 0x0C00, 0x0FFF, this, Peek_cRom_0C00, Poke_cRom );
+		ppu.SetPort( 0x1000, 0x13FF, this, Peek_cRom_1000, Poke_cRom );
+		ppu.SetPort( 0x1400, 0x17FF, this, Peek_cRom_1400, Poke_cRom );
+		ppu.SetPort( 0x1800, 0x1BFF, this, Peek_cRom_1800, Poke_cRom );
+		ppu.SetPort( 0x1C00, 0x1FFF, this, Peek_cRom_1C00, Poke_cRom );
 	}
 
-	ppu->SetMirroring( mirroring );
+	ppu.SetMirroring( mirroring );
 
-	cpu->ClearIRQ();
+	cpu.ClearIRQ();
 
 	IrqEnabled = 0;
 	IrqCount   = 0;
@@ -418,21 +420,21 @@ VOID MAPPER::ResetLog()
 	const TSIZE length = log.Length();
 
 	log += "reset";
-	LogOutput( log );
+	LogOutput( log.String() );
 
 	if (strlen(boards[id]))
 	{
 		log.Resize( length );
 		log += "board name: ";
 		log += boards[id];
-		LogOutput( log );
+		LogOutput( log.String() );
 	}
 
 	log.Resize( length );
 	log += (pRom.Size() / 1024);
 	log += "k PRG-ROM present";
 
-	LogOutput( log );
+	LogOutput( log.String() );
 
 	log.Resize( length );
 
@@ -446,7 +448,7 @@ VOID MAPPER::ResetLog()
 		log += "no CHR-ROM present";
 	}
 
-	LogOutput( log );
+	LogOutput( log.String() );
 
 	log.Resize( length );
 	log += (wRam.Size() / 1024);
@@ -455,7 +457,7 @@ VOID MAPPER::ResetLog()
 	if (wRam.Size() != wRamInitSize)
 		log += " for compatibility";
 
-	LogOutput( log );
+	LogOutput( log.String() );
 
 	log.Resize( length );
 	log += "defaulting to ";
@@ -474,7 +476,7 @@ VOID MAPPER::ResetLog()
 
 	log += " PPU name-table mirroring";
 
-	LogOutput( log );
+	LogOutput( log.String() );
 
 	log.Resize( length );
 
@@ -483,10 +485,11 @@ VOID MAPPER::ResetLog()
         case IRQSYNC_PPU:	
         case IRQSYNC_PPU_ALWAYS: log += "PPU synchronized IRQ counter present"; break;
         case IRQSYNC_COUNT:   	 log += "IRQ counter present";                  break;
+		case IRQSYNC_COMBINED: 	 log += "CPU and PPU IRQ counter present";      break;
 		default:          	     log += "no IRQ counter present";               break;
 	}
 
-	LogOutput( log );
+	LogOutput( log.String() );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -496,7 +499,7 @@ VOID MAPPER::ResetLog()
 VOID MAPPER::VSync()
 {
 	if (IrqEnabled)
-		IrqCycles -= cpu->GetFrameCycles<CPU::CYCLE_MASTER>();
+		IrqCycles -= cpu.GetFrameCycles<CPU::CYCLE_MASTER>();
 
 	EndFrame();
 }
@@ -512,20 +515,20 @@ VOID MAPPER::EnableCartridgeCRam(const BOOL state,const UINT size)
 		cRom.ReAssign( size );
 		cRom.SwapBanks<n8k,0x0000>(0);
 
-		if (IrqSyncType == IRQSYNC_PPU || IrqSyncType == IRQSYNC_PPU_ALWAYS)
+		if (IrqSyncType == IRQSYNC_PPU || IrqSyncType == IRQSYNC_PPU_ALWAYS || IrqSyncType == IRQSYNC_COMBINED)
 		{
 			EnableIrqSync( IrqSyncType );
 		}
 		else
 		{
-			ppu->SetPort( 0x0000, 0x03FF, this, Peek_cRom_0000, Poke_cRom );
-			ppu->SetPort( 0x0400, 0x07FF, this, Peek_cRom_0400, Poke_cRom );
-			ppu->SetPort( 0x0800, 0x0BFF, this, Peek_cRom_0800, Poke_cRom );
-			ppu->SetPort( 0x0C00, 0x0FFF, this, Peek_cRom_0C00, Poke_cRom );
-			ppu->SetPort( 0x1000, 0x13FF, this, Peek_cRom_1000, Poke_cRom );
-			ppu->SetPort( 0x1400, 0x17FF, this, Peek_cRom_1400, Poke_cRom );
-			ppu->SetPort( 0x1800, 0x1BFF, this, Peek_cRom_1800, Poke_cRom );
-			ppu->SetPort( 0x1C00, 0x1FFF, this, Peek_cRom_1C00, Poke_cRom );
+			ppu.SetPort( 0x0000, 0x03FF, this, Peek_cRom_0000, Poke_cRom );
+			ppu.SetPort( 0x0400, 0x07FF, this, Peek_cRom_0400, Poke_cRom );
+			ppu.SetPort( 0x0800, 0x0BFF, this, Peek_cRom_0800, Poke_cRom );
+			ppu.SetPort( 0x0C00, 0x0FFF, this, Peek_cRom_0C00, Poke_cRom );
+			ppu.SetPort( 0x1000, 0x13FF, this, Peek_cRom_1000, Poke_cRom );
+			ppu.SetPort( 0x1400, 0x17FF, this, Peek_cRom_1400, Poke_cRom );
+			ppu.SetPort( 0x1800, 0x1BFF, this, Peek_cRom_1800, Poke_cRom );
+			ppu.SetPort( 0x1C00, 0x1FFF, this, Peek_cRom_1C00, Poke_cRom );
 		}
 	}
 }
@@ -536,42 +539,47 @@ VOID MAPPER::EnableCartridgeCRam(const BOOL state,const UINT size)
 
 VOID MAPPER::EnableIrqSync(const IRQSYNCTYPE type)
 {
-	cpu->RemoveEvent(this);
-	cpu->RemoveEvent(PPU::Update);
+	cpu.RemoveEvent(this);
+	cpu.RemoveEvent(PPU::Update);
 
 	switch (IrqSyncType = type)
 	{
+     	case IRQSYNC_COMBINED:
     	case IRQSYNC_PPU:
 
-			cpu->SetEvent( ppu, PPU::Update );
+			cpu.SetEvent( &ppu, PPU::Update );
 
-			ppu->SetPort( 0x0000, 0x03FF, this, cRom.Size() ? Peek_cRom_0_A13_0000 : Peek_cRam_0_A13_Lo, cRom.Size() ? Poke_cRom : Poke_cRam );
-			ppu->SetPort( 0x0400, 0x07FF, this, cRom.Size() ? Peek_cRom_0_A13_0400 : Peek_cRam_0_A13_Lo, cRom.Size() ? Poke_cRom : Poke_cRam );
-			ppu->SetPort( 0x0800, 0x0BFF, this, cRom.Size() ? Peek_cRom_0_A13_0800 : Peek_cRam_0_A13_Lo, cRom.Size() ? Poke_cRom : Poke_cRam );
-			ppu->SetPort( 0x0C00, 0x0FFF, this, cRom.Size() ? Peek_cRom_0_A13_0C00 : Peek_cRam_0_A13_Lo, cRom.Size() ? Poke_cRom : Poke_cRam );
-			ppu->SetPort( 0x1000, 0x13FF, this, cRom.Size() ? Peek_cRom_0_A13_1000 : Peek_cRam_0_A13_Hi, cRom.Size() ? Poke_cRom : Poke_cRam );
-			ppu->SetPort( 0x1400, 0x17FF, this, cRom.Size() ? Peek_cRom_0_A13_1400 : Peek_cRam_0_A13_Hi, cRom.Size() ? Poke_cRom : Poke_cRam );
-			ppu->SetPort( 0x1800, 0x1BFF, this, cRom.Size() ? Peek_cRom_0_A13_1800 : Peek_cRam_0_A13_Hi, cRom.Size() ? Poke_cRom : Poke_cRam );
-			ppu->SetPort( 0x1C00, 0x1FFF, this, cRom.Size() ? Peek_cRom_0_A13_1C00 : Peek_cRam_0_A13_Hi, cRom.Size() ? Poke_cRom : Poke_cRam );
+			ppu.SetPort( 0x0000, 0x03FF, this, cRom.Size() ? Peek_cRom_0_A13_0000 : Peek_cRam_0_A13_Lo, cRom.Size() ? Poke_cRom : Poke_cRam );
+			ppu.SetPort( 0x0400, 0x07FF, this, cRom.Size() ? Peek_cRom_0_A13_0400 : Peek_cRam_0_A13_Lo, cRom.Size() ? Poke_cRom : Poke_cRam );
+			ppu.SetPort( 0x0800, 0x0BFF, this, cRom.Size() ? Peek_cRom_0_A13_0800 : Peek_cRam_0_A13_Lo, cRom.Size() ? Poke_cRom : Poke_cRam );
+			ppu.SetPort( 0x0C00, 0x0FFF, this, cRom.Size() ? Peek_cRom_0_A13_0C00 : Peek_cRam_0_A13_Lo, cRom.Size() ? Poke_cRom : Poke_cRam );
+			ppu.SetPort( 0x1000, 0x13FF, this, cRom.Size() ? Peek_cRom_0_A13_1000 : Peek_cRam_0_A13_Hi, cRom.Size() ? Poke_cRom : Poke_cRam );
+			ppu.SetPort( 0x1400, 0x17FF, this, cRom.Size() ? Peek_cRom_0_A13_1400 : Peek_cRam_0_A13_Hi, cRom.Size() ? Poke_cRom : Poke_cRam );
+			ppu.SetPort( 0x1800, 0x1BFF, this, cRom.Size() ? Peek_cRom_0_A13_1800 : Peek_cRam_0_A13_Hi, cRom.Size() ? Poke_cRom : Poke_cRam );
+			ppu.SetPort( 0x1C00, 0x1FFF, this, cRom.Size() ? Peek_cRom_0_A13_1C00 : Peek_cRam_0_A13_Hi, cRom.Size() ? Poke_cRom : Poke_cRam );
+
+			if (IrqSyncType == IRQSYNC_COMBINED)
+				cpu.SetEvent( this, IrqSyncCheck );
+
 			return;
 
     	case IRQSYNC_PPU_ALWAYS:
 
-			cpu->SetEvent( ppu, PPU::Update );
+			cpu.SetEvent( &ppu, PPU::Update );
 
-			ppu->SetPort( 0x0000, 0x03FF, this, cRom.Size() ? Peek_cRom_1_A13_0000 : Peek_cRam_1_A13_Lo, cRom.Size() ? Poke_cRom : Poke_cRam );
-			ppu->SetPort( 0x0400, 0x07FF, this, cRom.Size() ? Peek_cRom_1_A13_0400 : Peek_cRam_1_A13_Lo, cRom.Size() ? Poke_cRom : Poke_cRam );
-			ppu->SetPort( 0x0800, 0x0BFF, this, cRom.Size() ? Peek_cRom_1_A13_0800 : Peek_cRam_1_A13_Lo, cRom.Size() ? Poke_cRom : Poke_cRam );
-			ppu->SetPort( 0x0C00, 0x0FFF, this, cRom.Size() ? Peek_cRom_1_A13_0C00 : Peek_cRam_1_A13_Lo, cRom.Size() ? Poke_cRom : Poke_cRam );
-			ppu->SetPort( 0x1000, 0x13FF, this, cRom.Size() ? Peek_cRom_1_A13_1000 : Peek_cRam_1_A13_Hi, cRom.Size() ? Poke_cRom : Poke_cRam );
-			ppu->SetPort( 0x1400, 0x17FF, this, cRom.Size() ? Peek_cRom_1_A13_1400 : Peek_cRam_1_A13_Hi, cRom.Size() ? Poke_cRom : Poke_cRam );
-			ppu->SetPort( 0x1800, 0x1BFF, this, cRom.Size() ? Peek_cRom_1_A13_1800 : Peek_cRam_1_A13_Hi, cRom.Size() ? Poke_cRom : Poke_cRam );
-			ppu->SetPort( 0x1C00, 0x1FFF, this, cRom.Size() ? Peek_cRom_1_A13_1C00 : Peek_cRam_1_A13_Hi, cRom.Size() ? Poke_cRom : Poke_cRam );
+			ppu.SetPort( 0x0000, 0x03FF, this, cRom.Size() ? Peek_cRom_1_A13_0000 : Peek_cRam_1_A13_Lo, cRom.Size() ? Poke_cRom : Poke_cRam );
+			ppu.SetPort( 0x0400, 0x07FF, this, cRom.Size() ? Peek_cRom_1_A13_0400 : Peek_cRam_1_A13_Lo, cRom.Size() ? Poke_cRom : Poke_cRam );
+			ppu.SetPort( 0x0800, 0x0BFF, this, cRom.Size() ? Peek_cRom_1_A13_0800 : Peek_cRam_1_A13_Lo, cRom.Size() ? Poke_cRom : Poke_cRam );
+			ppu.SetPort( 0x0C00, 0x0FFF, this, cRom.Size() ? Peek_cRom_1_A13_0C00 : Peek_cRam_1_A13_Lo, cRom.Size() ? Poke_cRom : Poke_cRam );
+			ppu.SetPort( 0x1000, 0x13FF, this, cRom.Size() ? Peek_cRom_1_A13_1000 : Peek_cRam_1_A13_Hi, cRom.Size() ? Poke_cRom : Poke_cRam );
+			ppu.SetPort( 0x1400, 0x17FF, this, cRom.Size() ? Peek_cRom_1_A13_1400 : Peek_cRam_1_A13_Hi, cRom.Size() ? Poke_cRom : Poke_cRam );
+			ppu.SetPort( 0x1800, 0x1BFF, this, cRom.Size() ? Peek_cRom_1_A13_1800 : Peek_cRam_1_A13_Hi, cRom.Size() ? Poke_cRom : Poke_cRam );
+			ppu.SetPort( 0x1C00, 0x1FFF, this, cRom.Size() ? Peek_cRom_1_A13_1C00 : Peek_cRam_1_A13_Hi, cRom.Size() ? Poke_cRom : Poke_cRam );
 			return;
 
 		case IRQSYNC_COUNT:
 
-			cpu->SetEvent( this, IrqSyncCheck );
+			cpu.SetEvent( this, IrqSyncCheck );
 			return;
 	}
 }
@@ -584,8 +592,8 @@ VOID MAPPER::IrqSyncCheck()
 {
 	if (IrqEnabled)
 	{
-		const ULONG CpuCycles = cpu->GetCycles<CPU::CYCLE_MASTER>();
-		IrqSync( (CpuCycles - IrqCycles) / (cpu->IsPAL() ? NES_CPU_PAL_FIXED : NES_CPU_NTSC_FIXED) );
+		const ULONG CpuCycles = cpu.GetCycles<CPU::CYCLE_MASTER>();
+		IrqSync( (CpuCycles - IrqCycles) / (cpu.IsPAL() ? NES_CPU_PAL_FIXED : NES_CPU_NTSC_FIXED) );
 		IrqCycles = CpuCycles;
 	}
 }
@@ -661,12 +669,12 @@ NES_PEEK(MAPPER,cRom_1C00) { return cRom( 7, address & 0x3FF ); }
 
 NES_PEEK(MAPPER,cRam) 
 { 
-	return ppu->Peek_cRam( address & 0x1FFF ); 
+	return ppu.Peek_cRam( address & 0x1FFF ); 
 }
 
 NES_POKE(MAPPER,cRam) 
 { 
-	ppu->Poke_cRam( address & 0x1FFF, data );
+	ppu.Poke_cRam( address & 0x1FFF, data );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -694,10 +702,10 @@ NES_PEEK(MAPPER,cRom_1_A13_1C00) { TriggerA13Hi1(); return cRom( 7, address & 0x
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-NES_PEEK(MAPPER,cRam_0_A13_Lo) { TriggerA13Lo0(); return ppu->Peek_cRam( address & 0x1FFF ); }
-NES_PEEK(MAPPER,cRam_0_A13_Hi) { TriggerA13Hi0(); return ppu->Peek_cRam( address & 0x1FFF ); }
-NES_PEEK(MAPPER,cRam_1_A13_Lo) { TriggerA13Lo1(); return ppu->Peek_cRam( address & 0x1FFF ); }
-NES_PEEK(MAPPER,cRam_1_A13_Hi) { TriggerA13Hi1(); return ppu->Peek_cRam( address & 0x1FFF ); }
+NES_PEEK(MAPPER,cRam_0_A13_Lo) { TriggerA13Lo0(); return ppu.Peek_cRam( address & 0x1FFF ); }
+NES_PEEK(MAPPER,cRam_0_A13_Hi) { TriggerA13Hi0(); return ppu.Peek_cRam( address & 0x1FFF ); }
+NES_PEEK(MAPPER,cRam_1_A13_Lo) { TriggerA13Lo1(); return ppu.Peek_cRam( address & 0x1FFF ); }
+NES_PEEK(MAPPER,cRam_1_A13_Hi) { TriggerA13Hi1(); return ppu.Peek_cRam( address & 0x1FFF ); }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -722,7 +730,7 @@ NES_PEEK(MAPPER,6000) { return wRam[address - 0x6000]; }
 
 NES_PEEK(MAPPER,Nop)
 {
-	return cpu->GetCache();
+	return cpu.GetCache();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -1044,7 +1052,7 @@ const CHAR* MAPPER::boards[256] =
 	"",					               // 056
 	"GAME STAR GK-54",	               // 057
 	"STUDY & GAME 32-IN-1",            // 058
-	"T3H53",			               // 059
+	"BMC-T3H53",		               // 059
 	"RESET-TRIGGERED 4-IN-1",          // 060
 	"20-IN-1",			               // 061
 	"700-IN-1",			               // 062

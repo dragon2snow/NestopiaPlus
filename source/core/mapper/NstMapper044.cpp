@@ -38,10 +38,10 @@ VOID MAPPER44::Reset()
 
 	MAPPER4::Reset();
 
-	cpu->SetPort( 0x6000, 0x7FFF, this, Peek_Nop, Poke_Nop );
+	cpu.SetPort( 0x6000, 0x7FFF, this, Peek_Nop, Poke_Nop );
 
 	for (UINT i=0xA001; i <= 0xBFFF; i += 2)
-		cpu->SetPort( i, this, Peek_A000, Poke_A001 );
+		cpu.SetPort( i, this, Peek_A000, Poke_A001 );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -61,7 +61,7 @@ NES_POKE(MAPPER44,A001)
 
 VOID MAPPER44::UpdatePRom()
 {
-	apu->Update(); 
+	apu.Update(); 
 
 	const UINT bank = status << 4;
 	const UINT mask1 = (status == 6) ? 0x1E : 0x0E;
@@ -89,7 +89,7 @@ VOID MAPPER44::UpdatePRom()
 
 VOID MAPPER44::UpdateCRom()
 {
-	ppu->Update();
+	ppu.Update();
 
 	const UINT bank = status << 7;
 	const UINT mask = (status == 6) ? 0xFF : 0x7F;

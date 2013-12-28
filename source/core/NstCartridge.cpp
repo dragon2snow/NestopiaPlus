@@ -55,7 +55,7 @@ CARTRIDGE::~CARTRIDGE()
 // load rom image
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT CARTRIDGE::Load(PDXFILE& ImageFile,const PDXSTRING* const save,CPU* const cpu,PPU* const ppu,const IO::GENERAL::CONTEXT& c)
+PDXRESULT CARTRIDGE::Load(PDXFILE& ImageFile,const PDXSTRING* const save,CPU& cpu,PPU& ppu,const IO::GENERAL::CONTEXT& c)
 {
 	Unload();
 
@@ -94,8 +94,8 @@ PDXRESULT CARTRIDGE::Load(PDXFILE& ImageFile,const PDXSTRING* const save,CPU* co
 	MAPPER::CONTEXT context;
 
 	context.id           = info.mapper;
-	context.cpu          = cpu;
-	context.ppu          = ppu;
+	context.cpu          = &cpu;
+	context.ppu          = &ppu;
 	context.pRom         = pRom.Begin();
 	context.cRom         = cRom.Begin();
 	context.wRam         = wRam.Begin();
@@ -397,7 +397,7 @@ VOID CARTRIDGE::LoadBatteryRam()
 		log = "CARTRIDGE: battery-backup ram was not read from any file";
 	}
 
-	LogOutput( log );
+	LogOutput( log.String() );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -425,7 +425,7 @@ VOID CARTRIDGE::SaveBatteryRam() const
 		}
 	}
 
-	LogOutput( log );
+	LogOutput( log.String() );
 }
 
 NES_NAMESPACE_END

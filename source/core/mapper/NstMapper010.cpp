@@ -36,7 +36,7 @@ VOID MAPPER10::Reset()
 {
 	MAPPER9::Reset();
 
-	cpu->SetPort( 0xA000, 0xAFFF, this, Peek_A000, Poke_A000 );
+	cpu.SetPort( 0xA000, 0xAFFF, this, Peek_A000, Poke_A000 );
 
 	pRom.SwapBanks<n16k,0x0000>(0);
 	pRom.SwapBanks<n16k,0x4000>(pRom.NumBanks<n16k>());
@@ -48,7 +48,7 @@ VOID MAPPER10::Reset()
 
 NES_POKE(MAPPER10,A000)
 {
-	apu->Update(); 
+	apu.Update(); 
 	pRom.SwapBanks<n16k,0x0000>(data);
 }
 

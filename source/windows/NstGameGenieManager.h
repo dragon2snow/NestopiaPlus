@@ -50,7 +50,7 @@ public:
 
 private:
 
-	PDXRESULT Create(PDXFILE* const);
+	PDXRESULT Create(CONFIGFILE* const);
 
 	struct CODE
 	{

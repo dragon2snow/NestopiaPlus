@@ -35,20 +35,20 @@ VOID MAPPER114::Reset()
 {
 	EnableIrqSync(IRQSYNC_PPU);
 
-	cpu->SetPort( 0x6000, 0x7FFF, this, Peek_Nop, Poke_6000 );
+	cpu.SetPort( 0x6000, 0x7FFF, this, Peek_Nop, Poke_6000 );
 
 	for (ULONG i=0x8000; i < 0xFFFFU; ++i)
 	{
 		switch (i & 0xE000)
 		{
-     		case 0x8000: cpu->SetPort( i, this, Peek_8000, Poke_8000 ); continue;
-			case 0xA000: cpu->SetPort( i, this, Peek_A000, Poke_A000 ); continue;
-			case 0xC000: cpu->SetPort( i, this, Peek_C000, Poke_C000 ); continue;
+     		case 0x8000: cpu.SetPort( i, this, Peek_8000, Poke_8000 ); continue;
+			case 0xA000: cpu.SetPort( i, this, Peek_A000, Poke_A000 ); continue;
+			case 0xC000: cpu.SetPort( i, this, Peek_C000, Poke_C000 ); continue;
 		}
 	}
 
-	cpu->SetPort( 0xE002, this, Peek_E000, Poke_E002 );
-	cpu->SetPort( 0xE003, this, Peek_E000, Poke_E003 );
+	cpu.SetPort( 0xE002, this, Peek_E000, Poke_E002 );
+	cpu.SetPort( 0xE003, this, Peek_E000, Poke_E003 );
 
 	ctrl = 0;
 	ready = FALSE;
@@ -64,7 +64,7 @@ VOID MAPPER114::Reset()
 
 VOID MAPPER114::UpdatePRom()
 {
-	apu->Update();
+	apu.Update();
 
 	if (ctrl & 0x80)
 	{
@@ -83,7 +83,7 @@ VOID MAPPER114::UpdatePRom()
 
 VOID MAPPER114::UpdateCRom()
 {
-	ppu->Update();
+	ppu.Update();
 
 	cRom.SwapBanks<n2k,0x0000>( banks[0] >> 1 );
 	cRom.SwapBanks<n2k,0x0800>( banks[2] >> 1 );
@@ -109,7 +109,7 @@ NES_POKE(MAPPER114,6000)
 
 NES_POKE(MAPPER114,8000)
 {
-	ppu->SetMirroring( (data & 0x1) ? MIRROR_HORIZONTAL : MIRROR_VERTICAL );
+	ppu.SetMirroring( (data & 0x1) ? MIRROR_HORIZONTAL : MIRROR_VERTICAL );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -159,7 +159,7 @@ NES_POKE(MAPPER114,C000)
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-NES_POKE(MAPPER114,E002) { cpu->ClearIRQ(); }
+NES_POKE(MAPPER114,E002) { cpu.ClearIRQ(); }
 NES_POKE(MAPPER114,E003) { SetIrqEnable(IrqCount = data); }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -171,7 +171,7 @@ VOID MAPPER114::IrqSync()
 	if (!--IrqCount)
 	{
 		SetIrqEnable(FALSE);
-		cpu->DoIRQ();
+		cpu.DoIRQ();
 	}
 }
 

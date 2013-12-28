@@ -43,13 +43,13 @@ cram   (n16k)
 
 VOID MAPPER13::Reset()
 {
-	cpu->SetPort( 0x8000, 0x9FFF, this, Peek_8000, Poke_pRom );
-	cpu->SetPort( 0xA000, 0xBFFF, this, Peek_A000, Poke_pRom );
-	cpu->SetPort( 0xC000, 0xDFFF, this, Peek_C000, Poke_pRom );
-	cpu->SetPort( 0xE000, 0xFFFF, this, Peek_E000, Poke_pRom );
+	cpu.SetPort( 0x8000, 0x9FFF, this, Peek_8000, Poke_pRom );
+	cpu.SetPort( 0xA000, 0xBFFF, this, Peek_A000, Poke_pRom );
+	cpu.SetPort( 0xC000, 0xDFFF, this, Peek_C000, Poke_pRom );
+	cpu.SetPort( 0xE000, 0xFFFF, this, Peek_E000, Poke_pRom );
 
 	pRom.SwapBanks<n32k,0x0000>(0);
-	ppu->SetPort( 0x0000, 0x1FFF, &cram, CRAM::Peek, CRAM::Poke );
+	ppu.SetPort( 0x0000, 0x1FFF, &cram, CRAM::Peek, CRAM::Poke );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -58,8 +58,8 @@ VOID MAPPER13::Reset()
 
 NES_POKE(MAPPER13,pRom)
 {
-	apu->Update();
-	ppu->Update();
+	apu.Update();
+	ppu.Update();
 	pRom.SwapBanks<n32k,0x0000>( (data & 0x30) >> 4 );
 	cram.SwapBanks<n4k,0x1000> ( (data & 0x03) >> 0 );
 }

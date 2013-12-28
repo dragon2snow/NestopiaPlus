@@ -44,8 +44,7 @@ private:
 
 	VOID Reset();
 
-	NES_DECL_PEEK( 5000 );
-	NES_DECL_POKE( 5000 );
+	NES_DECL_POKE(8000);
 };
 
 NES_NAMESPACE_END

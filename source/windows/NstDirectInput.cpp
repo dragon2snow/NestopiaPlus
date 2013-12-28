@@ -56,7 +56,10 @@ DIRECTINPUT::~DIRECTINPUT()
 
 PDXRESULT DIRECTINPUT::Error(const CHAR* const msg)
 {
-	application.LogOutput(PDXSTRING("DIRECTINPUT: ") + msg);
+	PDXSTRING string("DIRECTINPUT: ");
+	string << msg;
+
+	application.LogOutput( string.String() );
 	application.OnError( msg );
 
 	return PDX_FAILURE;
@@ -111,7 +114,7 @@ PDXRESULT DIRECTINPUT::Initialize(HWND h)
 		log += joysticks.Size();
 		log += " attached joystick(s)";
 
-		application.LogOutput( log );
+		application.LogOutput( log.String() );
 	}
 
 	return PDX_OK;

@@ -37,26 +37,20 @@ class MAPPER6 : public MAPPER
 {
 public:
 
-	MAPPER6(CONTEXT&);
-
-	PDXRESULT LoadState(PDXFILE&);
-	PDXRESULT SaveState(PDXFILE&) const;
+	MAPPER6(CONTEXT& c)
+	: MAPPER(c) {}
 
 private:
 
 	VOID Reset();
+	VOID IrqSync(const UINT);
 
 	NES_DECL_POKE( pRom );
-	NES_DECL_POKE( cRam );
-	NES_DECL_PEEK( cRam );
-
 	NES_DECL_POKE( 42FE );
 	NES_DECL_POKE( 42FF );
 	NES_DECL_POKE( 4501 );
 	NES_DECL_POKE( 4502 );
 	NES_DECL_POKE( 4503 );
-
-	CRAM cram;
 };
 
 NES_NAMESPACE_END

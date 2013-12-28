@@ -38,8 +38,8 @@ VOID MAPPER100::Reset()
 
 	for (UINT i=0x8000; i < 0x9000; i += 2)
 	{
-		cpu->SetPort( i+0x0, this, Peek_8000, Poke_8000 );
-		cpu->SetPort( i+0x1, this, Peek_8000, Poke_8001 );
+		cpu.SetPort( i+0x0, this, Peek_8000, Poke_8000 );
+		cpu.SetPort( i+0x1, this, Peek_8000, Poke_8001 );
 	}
 }
 
@@ -135,7 +135,7 @@ NES_POKE(MAPPER100,8001)
 
 VOID MAPPER100::UpdatePRom()
 {
-	apu->Update(); 
+	apu.Update(); 
 
 	pRom.SwapBanks<n8k,0x0000>( pRomBanks[0] );
 	pRom.SwapBanks<n8k,0x2000>( pRomBanks[1] );
@@ -149,7 +149,7 @@ VOID MAPPER100::UpdatePRom()
 
 VOID MAPPER100::UpdateCRom()
 {
-	ppu->Update();
+	ppu.Update();
 
 	cRom.SwapBanks<n1k,0x0000>( cRomBanks[0] ); 
 	cRom.SwapBanks<n1k,0x0400>( cRomBanks[1] ); 

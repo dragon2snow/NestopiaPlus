@@ -41,7 +41,7 @@ class GRAPHICMANAGER : public DIRECTDRAW, public MANAGER
 {
 public:
 
-	GRAPHICMANAGER(const INT,const UINT);
+	GRAPHICMANAGER(const INT);
 
 	enum SCREENTYPE
 	{
@@ -52,7 +52,7 @@ public:
 		SCREEN_STRETCHED
 	};
 
-	PDXRESULT SwitchToFullScreen(const SCREENTYPE);
+	PDXRESULT SwitchToFullScreen();
 	PDXRESULT SwitchToWindowed(const RECT&);
 	PDXRESULT BeginDialogMode();
 	PDXRESULT EndDialogMode();
@@ -60,16 +60,13 @@ public:
 	PDXRESULT LoadPalette(const PDXSTRING&);
 	PDXRESULT SetScreenSize(const SCREENTYPE);
 
+	VOID UpdateDirectDraw();
+
 	inline UINT GetSelectedDisplayWidth()  const { return adapters[SelectedAdapter].DisplayModes[ModeIndices[SelectedMode]].width;  }
 	inline UINT GetSelectedDisplayHeight() const { return adapters[SelectedAdapter].DisplayModes[ModeIndices[SelectedMode]].height; }
 
 	inline BOOL CanExportBitmaps() const
 	{ return GdiPlusAvailable; }
-
-	inline BOOL AutoFrameSkip() const
-	{ return SelectedTiming == IDC_GRAPHICS_TIMING_FRAMESKIP; }
-
-	VOID EnablePAL(const BOOL);
 
 	inline NES::IO::GFX* GetFormat()
 	{ return &format; }
@@ -85,10 +82,13 @@ public:
 
 private:
 
-	VOID SetScreenSize(const SCREENTYPE,RECT&);
+	PDXRESULT CreateDevice(GUID);
 
-	PDXRESULT Create  (PDXFILE* const);
-	PDXRESULT Destroy (PDXFILE* const);
+	BOOL ValidScreenRect(const RECT&) const;
+	VOID SetScreenSize(const SCREENTYPE,RECT&) const;
+
+	PDXRESULT Create  (CONFIGFILE* const);
+	PDXRESULT Destroy (CONFIGFILE* const);
 
 	PDXRESULT ExportBitmap(const PDXSTRING&);
 
@@ -106,8 +106,6 @@ private:
 	VOID UpdateEmulation();
 	VOID UpdateColors();
 	VOID UpdateEffects();
-	VOID UpdateTiming();
-	VOID UpdateDirectDraw();
 	VOID UpdatePalette();
 	VOID BrowsePalette();
 	BOOL ImportPalette();
@@ -120,11 +118,9 @@ private:
 	UINT SelectedMode;
 	UINT SelectedBpp;
 	UINT SelectedOffScreen;
-	UINT SelectedTiming;
 	UINT SelectedEffect;
-	UINT SelectedPalette;
-
-	INT PreviousMode;
+	UINT SelectedPalette;	
+	SCREENTYPE SelectedFactor;
 
 	BOOL Support16Bpp;
 	BOOL Support32Bpp;
@@ -132,7 +128,6 @@ private:
 
 	RECT ntsc;
 	RECT pal;
-	RECT SaveRect;
 
 	PDXSTRING PaletteFile;
 	
@@ -147,62 +142,6 @@ private:
 
 	BOOL GdiPlusAvailable;
 	BOOL ShouldBeFullscreen;
-
-   #pragma pack(push,1)
-
-	struct HEADER
-	{
-		enum BPP
-		{
-			BPP_16,
-			BPP_32
-		};
-
-		enum OFFSCREEN
-		{
-			OFFSCREEN_SRAM,
-			OFFSCREEN_VRAM
-		};
-
-		enum EFFECT
-		{
-			EFFECT_NONE,
-			EFFECT_SCANLINES,
-			EFFECT_2XSAI,
-			EFFECT_SUPER_2XSAI,
-			EFFECT_SUPER_EAGLE
-		};
-
-		enum PALETTE
-		{
-			PALETTE_EMULATED,
-			PALETTE_INTERNAL,
-			PALETTE_CUSTOM
-		};
-
-		enum TIMING
-		{
-			TIMING_VSYNC,
-			TIMING_FRAMESKIP
-		};
-
-		GUID guid;
-		U16  width;
-		U16  height;
-		RECT ntsc;
-		RECT pal;
-		U8   bpp : 1;
-		U8   effect : 3;
-		U8   offscreen : 1;
-		U8   timing : 1;
-		U8   InfiniteSprites : 1;
-		U8   palette : 2;
-		U8   brightness;
-		U8   saturation;
-		U8   hue;
-	};
-
-   #pragma pack(pop)
 };
 
 #endif

@@ -48,7 +48,10 @@ public:
 	enum POSITION {BEGIN,CURRENT,END};
 
 	explicit PDXFILE(const MODE=APPEND);
+
 	PDXFILE(const CHAR* const,const MODE=APPEND);	
+	PDXFILE(const PDXSTRING&,const MODE=APPEND);	
+
 	~PDXFILE();
 
 	PDXRESULT Open(const CHAR* const,const MODE);
@@ -57,6 +60,12 @@ public:
 	PDXRESULT Open();
 	PDXRESULT Close();
 	PDXRESULT Flush();
+
+	PDXRESULT Open(const PDXSTRING& s,const MODE m)
+	{ return Open(s.String(),m); }
+
+	PDXRESULT Open(const PDXSTRING& s)
+	{ return Open(s.String()); }
 
 	template<class T> 
 	inline PDXFILE& operator << (const T& t)

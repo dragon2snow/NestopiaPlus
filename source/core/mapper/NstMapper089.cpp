@@ -36,7 +36,7 @@ VOID MAPPER89::Reset()
 	for (ULONG i=0x8000; i <= 0xFFFFU; ++i)
 	{
 		if ((i & 0xFF00) == 0xC000)
-			cpu->SetPort( i, this, Peek_C000, Poke_pRom );
+			cpu.SetPort( i, this, Peek_C000, Poke_pRom );
 	}
 }
 
@@ -46,9 +46,9 @@ VOID MAPPER89::Reset()
 
 NES_POKE(MAPPER89,pRom)
 {
-	apu->Update();
+	apu.Update();
 
-	ppu->SetMirroring( (data & 0x8) ? MIRROR_ONE : MIRROR_ZERO );
+	ppu.SetMirroring( (data & 0x8) ? MIRROR_ONE : MIRROR_ZERO );
 
 	pRom.SwapBanks<n16k,0x0000>( (data & 0x70) >> 4 );
 	cRom.SwapBanks<n8k,0x0000>( ((data & 0x80) >> 4) | (data & 0x7) );

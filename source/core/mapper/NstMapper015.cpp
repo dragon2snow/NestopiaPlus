@@ -33,10 +33,10 @@ NES_NAMESPACE_BEGIN
 
 VOID MAPPER15::Reset()
 {
-	cpu->SetPort( 0x8000, this, Peek_8000, Poke_8000 );
-	cpu->SetPort( 0x8001, this, Peek_8000, Poke_8001 );
-	cpu->SetPort( 0x8002, this, Peek_8000, Poke_8002 );
-	cpu->SetPort( 0x8003, this, Peek_8000, Poke_8003 );
+	cpu.SetPort( 0x8000, this, Peek_8000, Poke_8000 );
+	cpu.SetPort( 0x8001, this, Peek_8000, Poke_8001 );
+	cpu.SetPort( 0x8002, this, Peek_8000, Poke_8002 );
+	cpu.SetPort( 0x8003, this, Peek_8000, Poke_8003 );
 
 	pRom.SwapBanks<n32k,0x0000>(0); 
 }
@@ -47,7 +47,7 @@ VOID MAPPER15::Reset()
 
 NES_POKE(MAPPER15,8000)
 {
-	apu->Update();
+	apu.Update();
 
 	if (data & 0x80)
 	{
@@ -62,7 +62,7 @@ NES_POKE(MAPPER15,8000)
 		pRom.SwapBanks<n16k,0x4000>( data + 1 );
 	}
 
-	ppu->SetMirroring( (data & 0x40) ? MIRROR_HORIZONTAL : MIRROR_VERTICAL ); 
+	ppu.SetMirroring( (data & 0x40) ? MIRROR_HORIZONTAL : MIRROR_VERTICAL ); 
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -71,12 +71,12 @@ NES_POKE(MAPPER15,8000)
 
 NES_POKE(MAPPER15,8001)
 {
-	apu->Update();
+	apu.Update();
 
 	pRom.SwapBanks<n16k,0x0000>( data );
 	pRom.SwapBanks<n16k,0x4000>( ~0U  );
 
-	ppu->SetMirroring( MIRROR_VERTICAL );
+	ppu.SetMirroring( MIRROR_VERTICAL );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -85,7 +85,7 @@ NES_POKE(MAPPER15,8001)
 
 NES_POKE(MAPPER15,8002)
 {
-	apu->Update();
+	apu.Update();
 
 	const UINT bank = (data << 1) + ((data & 0x80) ? 1 : 0);
 
@@ -101,7 +101,7 @@ NES_POKE(MAPPER15,8002)
 
 NES_POKE(MAPPER15,8003)
 {
-	apu->Update();
+	apu.Update();
 
 	if (data & 0x80)
 	{
@@ -113,7 +113,7 @@ NES_POKE(MAPPER15,8003)
 		pRom.SwapBanks<n16k,0x4000>( data );
 	}
 
-	ppu->SetMirroring( (data & 0x40) ? MIRROR_HORIZONTAL : MIRROR_VERTICAL ); 
+	ppu.SetMirroring( (data & 0x40) ? MIRROR_HORIZONTAL : MIRROR_VERTICAL ); 
 }
 
 NES_NAMESPACE_END

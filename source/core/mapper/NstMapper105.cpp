@@ -47,10 +47,10 @@ VOID MAPPER105::Reset()
 {
 	EnableIrqSync(IRQSYNC_COUNT);
 
-	cpu->SetPort( 0x8000, 0x9FFF, this, Peek_8000, Poke_pRom );
-	cpu->SetPort( 0xA000, 0xBFFF, this, Peek_A000, Poke_pRom );
-	cpu->SetPort( 0xC000, 0xDFFF, this, Peek_C000, Poke_pRom );
-	cpu->SetPort( 0xE000, 0xFFFF, this, Peek_E000, Poke_pRom );
+	cpu.SetPort( 0x8000, 0x9FFF, this, Peek_8000, Poke_pRom );
+	cpu.SetPort( 0xA000, 0xBFFF, this, Peek_A000, Poke_pRom );
+	cpu.SetPort( 0xC000, 0xDFFF, this, Peek_C000, Poke_pRom );
+	cpu.SetPort( 0xE000, 0xFFFF, this, Peek_E000, Poke_pRom );
 
 	registers[0] = REG0_RESET;
 	registers[1] = 0x00;
@@ -123,7 +123,7 @@ VOID MAPPER105::UpdateMirroring()
 
 	const UCHAR* const index = select[registers[0] & 0x3];
 
-	ppu->SetMirroring
+	ppu.SetMirroring
 	(
 	    index[0],
 		index[1],
@@ -152,7 +152,7 @@ VOID MAPPER105::UpdateIRQ()
 
 VOID MAPPER105::UpdateBanks()
 {
-	apu->Update();
+	apu.Update();
 
 	if (registers[1] & 0x8)
 	{
@@ -275,7 +275,7 @@ VOID MAPPER105::SetDipSwitch(const UINT index,const IO::DIPSWITCH::CONTEXT& cont
 
 VOID MAPPER105::UpdateTimer()
 {
-	TimerEnd = cpu->IsPAL() ? NES_CPU_CLOCK_HZ_REAL_PAL : NES_CPU_CLOCK_HZ_REAL_NTSC;
+	TimerEnd = cpu.IsPAL() ? NES_CPU_CLOCK_HZ_REAL_PAL : NES_CPU_CLOCK_HZ_REAL_NTSC;
 
 	switch (DipValue)
 	{
@@ -309,7 +309,7 @@ VOID MAPPER105::IrqSync(const UINT delta)
 	if (timer >= TimerEnd)
 	{
 		timer = 0;
-		cpu->DoIRQ();
+		cpu.DoIRQ();
 	}
 }
 
@@ -323,14 +323,14 @@ VOID MAPPER105::EndFrame()
 	{
 		elapsed.Resize( 11 );
 
-		const DOUBLE cycles = cpu->IsPAL() ? NES_CPU_CLOCK_HZ_REAL_PAL : NES_CPU_CLOCK_HZ_REAL_NTSC;
+		const DOUBLE cycles = cpu.IsPAL() ? NES_CPU_CLOCK_HZ_REAL_PAL : NES_CPU_CLOCK_HZ_REAL_NTSC;
 		const ULONG seconds = ULONG((TimerEnd - timer) / cycles);
 
 		elapsed += seconds / 60;
 		elapsed += ":";
 		elapsed += seconds % 60;
 
-		MsgOutput( elapsed );
+		MsgOutput( elapsed.String() );
 	}
 }
 

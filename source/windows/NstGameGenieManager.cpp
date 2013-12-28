@@ -35,7 +35,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT GAMEGENIEMANAGER::Create(PDXFILE* const)
+PDXRESULT GAMEGENIEMANAGER::Create(CONFIGFILE* const)
 {
 	hDlg = NULL;
 	hList = NULL;
@@ -82,7 +82,7 @@ PDXRESULT GAMEGENIEMANAGER::GetCode(const UINT index,PDXSTRING& characters,PDXST
 PDXRESULT GAMEGENIEMANAGER::AddCode(const PDXSTRING& characters,const BOOL state,const PDXSTRING* const comment)
 {
 	ULONG packed;
-	PDX_TRY(NesDecode( characters, packed ));
+	PDX_TRY(NesDecode( characters.String(), packed ));
 
 	CODE code;
 	code.code = packed;
@@ -212,7 +212,7 @@ VOID GAMEGENIEMANAGER::SubmitCode(HWND hDlg)
 	code.comment.Buffer().Resize( 512 );
 	code.comment.Buffer().Resize( GetDlgItemText( hDlg, IDC_GAMEGENIE_ADDCODE_COMMENT, code.comment.Begin(), code.comment.Length() ) + 1);
 
-	if (PDX_SUCCEEDED(NesDecode( characters, code.code )) && codes.Find( code ) == codes.End() && AddCode( code, TRUE ))
+	if (PDX_SUCCEEDED(NesDecode( characters.String(), code.code )) && codes.Find( code ) == codes.End() && AddCode( code, TRUE ))
 	{
 		codes.Insert( code );
 
@@ -249,7 +249,7 @@ VOID GAMEGENIEMANAGER::ValidateCode(HWND hDlg) const
 
 					if (PDX_SUCCEEDED(NesEncode( packed, characters )))
 					{
-						SetDlgItemText( hDlg, IDC_GAMEGENIE_ADDCODE_CHARACTERS, characters );
+						SetDlgItemText( hDlg, IDC_GAMEGENIE_ADDCODE_CHARACTERS, characters.String() );
 						SetDlgItemText( hDlg, IDC_GAMEGENIE_ADDCODE_RESULT, "VALID" );
 						return;
 					}
@@ -774,7 +774,7 @@ VOID GAMEGENIEMANAGER::ImportCodes()
 	ofn.lStructSize     = sizeof(ofn);
 	ofn.hwndOwner       = NULL;
 	ofn.nFilterIndex    = 1;
-	ofn.lpstrInitialDir	= application.GetFileManager().GetNspPath();
+	ofn.lpstrInitialDir	= application.GetFileManager().GetNspPath().String();
 	ofn.lpstrFile       = name.Begin();
 	ofn.lpstrTitle      = "Import Game Genie codes";
 	ofn.nMaxFile        = NST_MAX_PATH;

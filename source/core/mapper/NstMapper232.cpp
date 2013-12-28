@@ -33,10 +33,10 @@ NES_NAMESPACE_BEGIN
 
 VOID MAPPER232::Reset()
 {
-	cpu->SetPort( 0x9000,         this, Peek_9000, Poke_9000 );
-	cpu->SetPort( 0xA000, 0xBFFF, this, Peek_A000, Poke_A000 );
-	cpu->SetPort( 0xC000, 0xDFFF, this, Peek_C000, Poke_A000 );
-	cpu->SetPort( 0xE000, 0xFFFF, this, Peek_E000, Poke_A000 );
+	cpu.SetPort( 0x9000,         this, Peek_9000, Poke_9000 );
+	cpu.SetPort( 0xA000, 0xBFFF, this, Peek_A000, Poke_A000 );
+	cpu.SetPort( 0xC000, 0xDFFF, this, Peek_C000, Poke_A000 );
+	cpu.SetPort( 0xE000, 0xFFFF, this, Peek_E000, Poke_A000 );
 
 	regs[0] = 0x0C;
 	regs[1] = 0x00;
@@ -55,7 +55,7 @@ NES_POKE(MAPPER232,A000) { regs[1] = (data & 0x03) >> 0; BankSwitch(); }
 
 VOID MAPPER232::BankSwitch()
 {
-	apu->Update();
+	apu.Update();
 	pRom.SwapBanks<n16k,0x0000>( regs[0] | regs[1] );
 	pRom.SwapBanks<n16k,0x4000>( regs[0] | 0x3     );
 }

@@ -37,8 +37,8 @@ class PREFERENCES : public MANAGER
 {
 public:
 
-	PREFERENCES(const INT a,const UINT b)
-	: MANAGER(a,b) {}
+	PREFERENCES(const INT a)
+	: MANAGER(a) {}
 
 	inline BOOL HighPriority()         const { return highpriority;       }
 	inline BOOL EmulateImmediately()   const { return emulateimmediately; }
@@ -54,8 +54,8 @@ public:
 
 private:
 
-	PDXRESULT Create  (PDXFILE* const);
-	PDXRESULT Destroy (PDXFILE* const);
+	PDXRESULT Create  (CONFIGFILE* const);
+	PDXRESULT Destroy (CONFIGFILE* const);
 
 	BOOL DialogProc(HWND,UINT,WPARAM,LPARAM);
 

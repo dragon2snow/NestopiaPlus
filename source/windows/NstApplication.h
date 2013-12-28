@@ -81,8 +81,10 @@ public:
 	FILEMANAGER&      GetFileManager();     
 	GAMEGENIEMANAGER& GetGameGenieManager();
 	GRAPHICMANAGER&   GetGraphicManager();  
+	SOUNDMANAGER&     GetSoundManager();
 	PREFERENCES&      GetPreferences();
 	MOVIEMANAGER&     GetMovieManager();
+	TIMERMANAGER&     GetTimerManager();
 
 	NES::MODE GetNesMode() const;
 
@@ -107,18 +109,6 @@ public:
 	};
 
 private:
-
-	enum
-	{
-		CHUNK_GRAPHICMANAGER     = 0x11,
-		CHUNK_SOUNDMANAGER       = 0x22,
-		CHUNK_INPUTMANAGER       = 0x33,
-		CHUNK_FILEMANAGER        = 0x44,
-		CHUNK_VSDIPSWITCHMANAGER = 0x66,
-		CHUNK_PREFERENCES        = 0x77,
-		CHUNK_ROMINFOMANAGER     = 0x88,
-		CHUNK_FDSMANAGER         = 0x99
-	};
 
 	enum FILETYPE
 	{
@@ -150,8 +140,8 @@ private:
 	VOID ResetSaveSlots(const BOOL=FALSE);
 	VOID ApplyWindowSizing();
 
-	VOID OutputScreenMsg();
-	VOID OutputNsfInfo();
+	PDX_NO_INLINE VOID OutputScreenMsg();
+	PDX_NO_INLINE VOID OutputNsfInfo();
 
 	VOID OnPaint();
 	VOID OnMode(const UINT);
@@ -182,6 +172,7 @@ private:
 	VOID OnPower(const BOOL);
 	VOID OnClose();
 	VOID OnCloseWindow();
+	UINT GetAspectRatio() const;
 	VOID OnFdsInsertDisk(const UINT);
 	VOID OnFdsEjectDisk();
 	VOID OnFdsSide(const UINT);
@@ -208,7 +199,6 @@ private:
 	BOOL      UseZapper;
 	BOOL      ScreenInvisible;
 	BOOL      InBackground;
-	UINT      WindowSize[2];
 	
 	HBRUSH hMenuWindowBrush;
 	HBRUSH hMenuFullscreenBrush;
@@ -218,9 +208,9 @@ private:
 	RECT rcScreen;
 	RECT rcDefWindow;
 	RECT rcDefClient;
+	RECT rcRestoreWindow;
 
-	TIMER timer;
-
+	TIMERMANAGER*       const TimerManager;
 	GRAPHICMANAGER*     const GraphicManager;
 	SOUNDMANAGER*       const SoundManager;
 	INPUTMANAGER*       const InputManager;

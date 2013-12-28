@@ -123,7 +123,7 @@ public:
 	PDX_NO_INLINE VOID Reset(const BOOL);
 	PDX_NO_INLINE VOID SetContext(IO::INPUT* const);
 
-	static VSSYSTEM* New(CPU* const,PPU* const,const ULONG);
+	static VSSYSTEM* New(CPU&,PPU&,const ULONG);
 
 	inline UINT NumDipSwitches() const
 	{ return DipSwitches.Size(); }
@@ -161,8 +161,8 @@ protected:
 	NES_DECL_PEEK( 4020 );
 	NES_DECL_POKE( 4020 );
 	
-	CPU* const cpu;
-	PPU* const ppu;
+	CPU& cpu;
+	PPU& ppu;
 
 	const U8* const ColorMap;
 

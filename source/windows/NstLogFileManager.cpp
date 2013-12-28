@@ -93,7 +93,7 @@ BOOL LOGFILEMANAGER::DialogProc(HWND hDlg,UINT uMsg,WPARAM wParam,LPARAM)
 	{
      	case WM_INITDIALOG:
 		
-			SetDlgItemText( hDlg, IDC_LOGFILE_EDIT, LogString );
+			SetDlgItemText( hDlg, IDC_LOGFILE_EDIT, LogString.String() );
 			return TRUE;
 		    
 		case WM_COMMAND:

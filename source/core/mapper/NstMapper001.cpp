@@ -38,11 +38,11 @@ VOID MAPPER1::Reset()
 	if (!cRom.Size())
 		EnableCartridgeCRam();
 
-	cpu->SetPort( 0x6000, 0x7FFF, this, Peek_wRam, Poke_wRam );
-	cpu->SetPort( 0x8000, 0x9FFF, this, Peek_8000, Poke_pRom );
-	cpu->SetPort( 0xA000, 0xBFFF, this, Peek_A000, Poke_pRom );
-	cpu->SetPort( 0xC000, 0xDFFF, this, Peek_C000, Poke_pRom );
-	cpu->SetPort( 0xE000, 0xFFFF, this, Peek_E000, Poke_pRom );
+	cpu.SetPort( 0x6000, 0x7FFF, this, Peek_wRam, Poke_wRam );
+	cpu.SetPort( 0x8000, 0x9FFF, this, Peek_8000, Poke_pRom );
+	cpu.SetPort( 0xA000, 0xBFFF, this, Peek_A000, Poke_pRom );
+	cpu.SetPort( 0xC000, 0xDFFF, this, Peek_C000, Poke_pRom );
+	cpu.SetPort( 0xE000, 0xFFFF, this, Peek_E000, Poke_pRom );
 
 	registers[0] = REG0_RESET;
 	registers[1] = 0x00;
@@ -60,7 +60,7 @@ VOID MAPPER1::Reset()
 	base  = 0;
 
 	cycles = 0;
-	ResetCycles = cpu->IsPAL() ? NES_CPU_TO_PAL(2) : NES_CPU_TO_NTSC(2);
+	ResetCycles = cpu.IsPAL() ? NES_CPU_TO_PAL(2) : NES_CPU_TO_NTSC(2);
 
 	SetBanks();
 }
@@ -71,7 +71,7 @@ VOID MAPPER1::Reset()
 
 VOID MAPPER1::SetBanks()
 {
-	apu->Update(); 
+	apu.Update(); 
 
 	pRom.SwapBanks<n8k,0x0000>( base + banks[0] );
 	pRom.SwapBanks<n8k,0x2000>( base + banks[1] );
@@ -85,7 +85,7 @@ VOID MAPPER1::SetBanks()
 
 NES_POKE(MAPPER1,pRom)
 {
-	const ULONG elapsed = cpu->GetCycles<CPU::CYCLE_MASTER>();
+	const ULONG elapsed = cpu.GetCycles<CPU::CYCLE_MASTER>();
 
 	if (elapsed >= cycles)
 	{
@@ -134,7 +134,7 @@ NES_POKE(MAPPER1,pRom)
 
 NES_PEEK(MAPPER1,wRam)
 {
-	return (registers[3] & REG3_NO_WRAM) ? cpu->GetCache() : wRam[address - 0x6000];
+	return (registers[3] & REG3_NO_WRAM) ? cpu.GetCache() : wRam[address - 0x6000];
 }
 
 NES_POKE(MAPPER1,wRam)
@@ -159,7 +159,7 @@ VOID MAPPER1::ProcessRegister0()
 
 	const UCHAR* const index = select[registers[0] & 0x3];
 
-	ppu->SetMirroring
+	ppu.SetMirroring
 	(
 	    index[0],
 		index[1],
@@ -181,7 +181,7 @@ VOID MAPPER1::ProcessRegister1()
 	}
 	else
 	{
-		ppu->Update();
+		ppu.Update();
 
 		if (registers[0] & CROM_SWAP_4K) cRom.SwapBanks<n4k,0x0000>(registers[1] >> 0);
 		else                             cRom.SwapBanks<n8k,0x0000>(registers[1] >> 1);
@@ -196,7 +196,7 @@ VOID MAPPER1::ProcessRegister2()
 {
 	if (registers[0] & CROM_SWAP_4K)
 	{
-		ppu->Update();
+		ppu.Update();
 		cRom.SwapBanks<n4k,0x1000>(registers[2]);
 	}
 }

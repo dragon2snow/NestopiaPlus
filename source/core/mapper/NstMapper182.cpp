@@ -39,10 +39,10 @@ VOID MAPPER182::Reset()
 	{
 		switch (i & 0xF003)
 		{
-     		case 0x8001: cpu->SetPort( i, this, Peek_8000, Poke_8001 ); continue;
-    		case 0xA000: cpu->SetPort( i, this, Peek_A000, Poke_A000 ); continue;
-     		case 0xC000: cpu->SetPort( i, this, Peek_C000, Poke_C000 ); continue;
-     		case 0xE003: cpu->SetPort( i, this, Peek_E000, Poke_E003 ); continue;
+     		case 0x8001: cpu.SetPort( i, this, Peek_8000, Poke_8001 ); continue;
+    		case 0xA000: cpu.SetPort( i, this, Peek_A000, Poke_A000 ); continue;
+     		case 0xC000: cpu.SetPort( i, this, Peek_C000, Poke_C000 ); continue;
+     		case 0xE003: cpu.SetPort( i, this, Peek_E000, Poke_E003 ); continue;
 		}
 	}
 }
@@ -53,7 +53,7 @@ VOID MAPPER182::Reset()
 
 NES_POKE(MAPPER182,8001)
 {
-	ppu->SetMirroring( (data & 0x1) ? MIRROR_HORIZONTAL : MIRROR_VERTICAL );
+	ppu.SetMirroring( (data & 0x1) ? MIRROR_HORIZONTAL : MIRROR_VERTICAL );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -71,8 +71,8 @@ NES_POKE(MAPPER182,A000)
 
 NES_POKE(MAPPER182,C000)
 {
-	apu->Update();
-	ppu->Update();
+	apu.Update();
+	ppu.Update();
 
 	switch (command)
 	{
@@ -107,7 +107,7 @@ VOID MAPPER182::IrqSync()
 	{
 		IrqCount = 0;
 		SetIrqEnable(FALSE);
-		cpu->TryIRQ();
+		cpu.TryIRQ();
 	}
 }
 

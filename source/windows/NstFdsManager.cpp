@@ -32,18 +32,18 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT FDSMANAGER::Create(PDXFILE* const file)
+PDXRESULT FDSMANAGER::Create(CONFIGFILE* const ConfigFile)
 {
-	if (file)
+	if (ConfigFile)
 	{
-		WriteProtect = file->Read<U8>();
-		file->Text().Read( bios );
+		CONFIGFILE& file = *ConfigFile;
 
-		if (bios.IsEmpty() || GetFileAttributes(bios) == INVALID_FILE_ATTRIBUTES)
-		{
-			bios.Clear();
+		bios = file["files fds bios"];
+
+		if (bios.IsEmpty() || GetFileAttributes(bios.String()) == INVALID_FILE_ATTRIBUTES)
 			Reset();
-		}
+
+		WriteProtect = (file["files write protect fds"] == "yes" ? TRUE : FALSE);
 	}
 	else
 	{
@@ -59,15 +59,14 @@ PDXRESULT FDSMANAGER::Create(PDXFILE* const file)
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT FDSMANAGER::Destroy(PDXFILE* const file)
+PDXRESULT FDSMANAGER::Destroy(CONFIGFILE* const ConfigFile)
 {
-	if (file)
+	if (ConfigFile)
 	{
-		if (bios.IsEmpty() || GetFileAttributes(bios) == INVALID_FILE_ATTRIBUTES)
-			bios.Clear();
+		CONFIGFILE& file = *ConfigFile;
 
-		file->Write( U8(WriteProtect ? 1 : 0) );
-		file->Text().Write( bios );
+		file["files write protect fds"] = (WriteProtect ? "yes" : "no");
+		file["files fds bios"] = bios;
 	}
 
 	return PDX_OK;
@@ -143,7 +142,7 @@ VOID FDSMANAGER::SubmitBios(const BOOL SkipBios)
 
 				file.Close();
 
-				if (application.GetFileManager().OpenZipFile( "Choose BIOS Rom", bios, extensions, file ) == 0)
+				if (application.GetFileManager().OpenZipFile( "Choose BIOS Rom", bios.String(), extensions, file ) == 0)
 				{
 					file.Close();
 					application.OnWarning("Either the zip file is corrupt or the bios file could not be found inside it!");
@@ -166,7 +165,7 @@ VOID FDSMANAGER::SubmitBios(const BOOL SkipBios)
 
 VOID FDSMANAGER::UpdateDialog(HWND hDlg)
 {
-	SetDlgItemText( hDlg, IDC_FDS_BIOS, bios );	
+	SetDlgItemText( hDlg, IDC_FDS_BIOS, bios.String() );	
 	CheckDlgButton( hDlg, IDC_FDS_WRITE_PROTECT, WriteProtect ? BST_CHECKED : BST_UNCHECKED );
 }
 
@@ -200,7 +199,7 @@ VOID FDSMANAGER::OnBrowse(HWND hDlg)
 	ofn.lStructSize     = sizeof(ofn);
 	ofn.hwndOwner       = hWnd;
 	ofn.nFilterIndex    = 1;
-	ofn.lpstrInitialDir	= application.GetFileManager().GetRomPath();
+	ofn.lpstrInitialDir	= application.GetFileManager().GetRomPath().String();
 	ofn.lpstrFile       = file.Begin();
 	ofn.lpstrTitle      = "Famicom Disk System Bios Rom";
 	ofn.nMaxFile        = NST_MAX_PATH;
@@ -223,7 +222,7 @@ VOID FDSMANAGER::OnBrowse(HWND hDlg)
 	if (GetOpenFileName(&ofn))
 	{
 		file.Validate();
-		SetDlgItemText( hDlg, IDC_FDS_BIOS, file );
+		SetDlgItemText( hDlg, IDC_FDS_BIOS, file.String() );
 	}
 }
 

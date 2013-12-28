@@ -35,23 +35,23 @@ VOID MAPPER17::Reset()
 {
 	EnableIrqSync(IRQSYNC_PPU);
 
-	cpu->SetPort( 0x42FE, this, Peek_Nop, Poke_42FE );
-	cpu->SetPort( 0x42FF, this, Peek_Nop, Poke_42FF );
-	cpu->SetPort( 0x4501, this, Peek_Nop, Poke_4501 );
-	cpu->SetPort( 0x4502, this, Peek_Nop, Poke_4502 );
-	cpu->SetPort( 0x4503, this, Peek_Nop, Poke_4503 );
-	cpu->SetPort( 0x4504, this, Peek_Nop, Poke_4504 );
-	cpu->SetPort( 0x4505, this, Peek_Nop, Poke_4505 );
-	cpu->SetPort( 0x4506, this, Peek_Nop, Poke_4506 );
-	cpu->SetPort( 0x4507, this, Peek_Nop, Poke_4507 );
-	cpu->SetPort( 0x4510, this, Peek_Nop, Poke_4510 );
-	cpu->SetPort( 0x4511, this, Peek_Nop, Poke_4511 );
-	cpu->SetPort( 0x4512, this, Peek_Nop, Poke_4512 );
-	cpu->SetPort( 0x4513, this, Peek_Nop, Poke_4513 );
-	cpu->SetPort( 0x4514, this, Peek_Nop, Poke_4514 );
-	cpu->SetPort( 0x4515, this, Peek_Nop, Poke_4515 );
-	cpu->SetPort( 0x4516, this, Peek_Nop, Poke_4516 );
-	cpu->SetPort( 0x4517, this, Peek_Nop, Poke_4517 );
+	cpu.SetPort( 0x42FE, this, Peek_Nop, Poke_42FE );
+	cpu.SetPort( 0x42FF, this, Peek_Nop, Poke_42FF );
+	cpu.SetPort( 0x4501, this, Peek_Nop, Poke_4501 );
+	cpu.SetPort( 0x4502, this, Peek_Nop, Poke_4502 );
+	cpu.SetPort( 0x4503, this, Peek_Nop, Poke_4503 );
+	cpu.SetPort( 0x4504, this, Peek_Nop, Poke_4504 );
+	cpu.SetPort( 0x4505, this, Peek_Nop, Poke_4505 );
+	cpu.SetPort( 0x4506, this, Peek_Nop, Poke_4506 );
+	cpu.SetPort( 0x4507, this, Peek_Nop, Poke_4507 );
+	cpu.SetPort( 0x4510, this, Peek_Nop, Poke_4510 );
+	cpu.SetPort( 0x4511, this, Peek_Nop, Poke_4511 );
+	cpu.SetPort( 0x4512, this, Peek_Nop, Poke_4512 );
+	cpu.SetPort( 0x4513, this, Peek_Nop, Poke_4513 );
+	cpu.SetPort( 0x4514, this, Peek_Nop, Poke_4514 );
+	cpu.SetPort( 0x4515, this, Peek_Nop, Poke_4515 );
+	cpu.SetPort( 0x4516, this, Peek_Nop, Poke_4516 );
+	cpu.SetPort( 0x4517, this, Peek_Nop, Poke_4517 );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -61,7 +61,7 @@ VOID MAPPER17::Reset()
 NES_POKE(MAPPER17,42FE)  
 {
 	const UINT m = (data & 0x10) ? 1 : 0;
-	ppu->SetMirroring(m,m,m,m);
+	ppu.SetMirroring(m,m,m,m);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -70,7 +70,7 @@ NES_POKE(MAPPER17,42FE)
 
 NES_POKE(MAPPER17,42FF)  
 {
-	ppu->SetMirroring( (data & 0x10) ? MIRROR_HORIZONTAL : MIRROR_VERTICAL);
+	ppu.SetMirroring( (data & 0x10) ? MIRROR_HORIZONTAL : MIRROR_VERTICAL);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -97,23 +97,23 @@ NES_POKE(MAPPER17,4503)
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-NES_POKE(MAPPER17,4504) { apu->Update(); pRom.SwapBanks<n8k,0x0000>( data ); }
-NES_POKE(MAPPER17,4505) { apu->Update(); pRom.SwapBanks<n8k,0x2000>( data ); }
-NES_POKE(MAPPER17,4506) { apu->Update(); pRom.SwapBanks<n8k,0x4000>( data ); }
-NES_POKE(MAPPER17,4507) { apu->Update(); pRom.SwapBanks<n8k,0x6000>( data ); }
+NES_POKE(MAPPER17,4504) { apu.Update(); pRom.SwapBanks<n8k,0x0000>( data ); }
+NES_POKE(MAPPER17,4505) { apu.Update(); pRom.SwapBanks<n8k,0x2000>( data ); }
+NES_POKE(MAPPER17,4506) { apu.Update(); pRom.SwapBanks<n8k,0x4000>( data ); }
+NES_POKE(MAPPER17,4507) { apu.Update(); pRom.SwapBanks<n8k,0x6000>( data ); }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-NES_POKE(MAPPER17,4510) { ppu->Update(); cRom.SwapBanks<n1k,0x0000>( data ); }
-NES_POKE(MAPPER17,4511) { ppu->Update(); cRom.SwapBanks<n1k,0x0400>( data ); }
-NES_POKE(MAPPER17,4512) { ppu->Update(); cRom.SwapBanks<n1k,0x0800>( data ); }
-NES_POKE(MAPPER17,4513) { ppu->Update(); cRom.SwapBanks<n1k,0x0C00>( data ); }
-NES_POKE(MAPPER17,4514) { ppu->Update(); cRom.SwapBanks<n1k,0x1000>( data ); }
-NES_POKE(MAPPER17,4515) { ppu->Update(); cRom.SwapBanks<n1k,0x1400>( data ); }
-NES_POKE(MAPPER17,4516) { ppu->Update(); cRom.SwapBanks<n1k,0x1800>( data ); }
-NES_POKE(MAPPER17,4517) { ppu->Update(); cRom.SwapBanks<n1k,0x1C00>( data ); }
+NES_POKE(MAPPER17,4510) { ppu.Update(); cRom.SwapBanks<n1k,0x0000>( data ); }
+NES_POKE(MAPPER17,4511) { ppu.Update(); cRom.SwapBanks<n1k,0x0400>( data ); }
+NES_POKE(MAPPER17,4512) { ppu.Update(); cRom.SwapBanks<n1k,0x0800>( data ); }
+NES_POKE(MAPPER17,4513) { ppu.Update(); cRom.SwapBanks<n1k,0x0C00>( data ); }
+NES_POKE(MAPPER17,4514) { ppu.Update(); cRom.SwapBanks<n1k,0x1000>( data ); }
+NES_POKE(MAPPER17,4515) { ppu.Update(); cRom.SwapBanks<n1k,0x1400>( data ); }
+NES_POKE(MAPPER17,4516) { ppu.Update(); cRom.SwapBanks<n1k,0x1800>( data ); }
+NES_POKE(MAPPER17,4517) { ppu.Update(); cRom.SwapBanks<n1k,0x1C00>( data ); }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -127,7 +127,7 @@ VOID MAPPER17::IrqSync()
 	{
 		IrqCount = 0;
 		SetIrqEnable(FALSE);
-		cpu->TryIRQ();
+		cpu.TryIRQ();
 	}
 }
 

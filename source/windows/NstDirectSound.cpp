@@ -55,8 +55,8 @@ BOOL CALLBACK DIRECTSOUND::EnumAdapters(LPGUID guid,LPCSTR desc,LPCSTR,LPVOID co
 	PDX_CAST(ADAPTERS*,context)->Grow();
 	ADAPTER& adapter = PDX_CAST(ADAPTERS*,context)->Back();
 
-	if (guid) memcpy( &adapter.guid, guid, sizeof(GUID) );
-	else      memset( &adapter.guid, 0x00, sizeof(GUID) );
+	if (guid) adapter.guid = *guid;
+	else PDXMemZero( guid );
 
 	adapter.name = desc;
 
@@ -66,9 +66,9 @@ BOOL CALLBACK DIRECTSOUND::EnumAdapters(LPGUID guid,LPCSTR desc,LPCSTR,LPVOID co
 	adapter.SampleBits8 = bool(caps.dwFlags & DSCAPS_SECONDARY8BIT);
 	adapter.SampleBits16 = bool(caps.dwFlags & DSCAPS_SECONDARY16BIT);
 
-	const UINT rates[] = {11025,22050,44100,48000,96000,192000};
+	const UINT rates[6] = {11025,22050,44100,48000,96000,192000};
 
-	for (UINT i=0; i < sizeof(rates) / sizeof(*rates); ++i)
+	for (UINT i=0; i < 6; ++i)
 	{
 		if (rates[i] <= caps.dwMaxSecondarySampleRate && rates[i] >= caps.dwMinSecondarySampleRate)
 			adapter.SampleRates.InsertBack( rates[i] );
@@ -86,15 +86,16 @@ BOOL CALLBACK DIRECTSOUND::EnumAdapters(LPGUID guid,LPCSTR desc,LPCSTR,LPVOID co
 
 DIRECTSOUND::DIRECTSOUND()
 :
-hWnd          (NULL),
-device        (NULL),
-secondary     (NULL),
-NotifyOffset  (0),
-LastOffset    (0)
+hWnd         (NULL),
+device       (NULL),
+secondary    (NULL),
+NotifyOffset (0),
+LastOffset   (0)
 {
 	locked.data = NULL;
 	locked.size = 0;
 
+	PDXMemZero( guid );
 	PDXMemZero( WaveFormat );
 }
 
@@ -113,7 +114,10 @@ DIRECTSOUND::~DIRECTSOUND()
 
 PDXRESULT DIRECTSOUND::Error(const CHAR* const msg)
 {
-	application.LogOutput(PDXSTRING("DIRECTSOUND: ") + msg);
+	PDXSTRING string("DIRECTSOUND: ");
+	string << msg;
+
+	application.LogOutput( string.String() );
 	application.OnError( msg );
 
 	return PDX_FAILURE;
@@ -141,18 +145,28 @@ PDXRESULT DIRECTSOUND::Initialize(HWND h)
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT DIRECTSOUND::Create(const GUID* const guid)
+PDXRESULT DIRECTSOUND::Create(const GUID& g)
 {
-	PDX_ASSERT(guid && hWnd);
+	PDX_ASSERT(hWnd);
+
+	if (device && !memcmp( &guid, &g, sizeof(guid) ))
+		return PDX_OK;
 
 	PDX_TRY(Destroy());
 
-	PDX_ASSERT(!device);
+	guid = g;
 
-	if (FAILED(DirectSoundCreate8(guid,&device,NULL)))
+	if (FAILED(DirectSoundCreate8(&guid,&device,NULL)))
 	{
 		Destroy();
 		return PDX_FAILURE;
+	}
+
+	{
+		PDXSTRING string("DIRECTSOUND: creating device - guid: ");
+		string << CONFIGFILE::FromGUID( guid );
+
+		application.LogOutput( string.String() );
 	}
 
 	if (FAILED(device->SetCooperativeLevel(hWnd,DSSCL_PRIORITY)))
@@ -170,13 +184,11 @@ PDXRESULT DIRECTSOUND::Create(const GUID* const guid)
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT DIRECTSOUND::CreateBuffer(const UINT latency,const UINT fps,const BOOL volume)
+PDXRESULT DIRECTSOUND::CreateBuffer(const UINT latency,const UINT rate,const BOOL pal,const BOOL volume)
 {
 	PDX_ASSERT(latency && latency <= 10);
 
-	const DOUBLE rate = (fps == NES_FPS_NTSC ? NES_FPS_NTSC : NES_FPS_REAL_PAL);
-
-	NotifySize = (WaveFormat.nSamplesPerSec * latency * WaveFormat.nBlockAlign) / rate;
+	NotifySize  = DWORD(DOUBLE(WaveFormat.nSamplesPerSec * latency * WaveFormat.nBlockAlign) / 60.0 * (DOUBLE(rate) / (pal ? 50.0 : 60.0)));
 	NotifySize -= NotifySize % WaveFormat.nBlockAlign;
 	BufferSize  = NotifySize * 2;
 	LastOffset  = 0;
@@ -187,15 +199,15 @@ PDXRESULT DIRECTSOUND::CreateBuffer(const UINT latency,const UINT fps,const BOOL
 		log  = "DIRECTSOUND: creating ";
 		log += BufferSize;
 		log += " byte sound buffer";
-		application.LogOutput( log );
+		application.LogOutput( log.String() );
 
 		log  = "DIRECTSOUND: sample rate - ";
 		log += WaveFormat.nSamplesPerSec;
-		application.LogOutput( log );
+		application.LogOutput( log.String() );
 
 		log  = "DIRECTSOUND: sample bits - ";
 		log += WaveFormat.wBitsPerSample;
-		application.LogOutput( log );
+		application.LogOutput( log.String() );
 	}
 
 	DSBUFFERDESC desc;
@@ -326,8 +338,29 @@ PDXRESULT DIRECTSOUND::ClearBuffer()
 // set format
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT DIRECTSOUND::SetFormat(const DWORD SampleRate,const DWORD SampleBits,const UINT latency,const UINT fps,const BOOL volume)
+PDXRESULT DIRECTSOUND::SetFormat(const DWORD SampleRate,const DWORD SampleBits,const UINT latency,const BOOL pal,const UINT fps,const BOOL volume)
 {
+	const BOOL set = 
+	(
+     	secondary && 
+		data.SampleRate == SampleRate && 
+		data.SampleBits == SampleBits && 
+		data.latency == latency && 
+		data.fps == fps && 
+		data.pal == pal &&
+		data.volume == volume
+	);
+
+	if (set)
+		return PDX_OK;
+
+	data.SampleRate = SampleRate;
+	data.SampleBits = SampleBits;
+	data.latency    = latency;
+	data.fps        = fps;
+	data.pal        = pal;
+	data.volume     = volume;
+
 	PDXMemZero( WaveFormat );
 
 	WaveFormat.wFormatTag      = WAVE_FORMAT_PCM; 
@@ -337,7 +370,7 @@ PDXRESULT DIRECTSOUND::SetFormat(const DWORD SampleRate,const DWORD SampleBits,c
 	WaveFormat.nBlockAlign     = WaveFormat.wBitsPerSample / 8;
 	WaveFormat.nAvgBytesPerSec = WaveFormat.nSamplesPerSec * WaveFormat.nBlockAlign;
 
-	return CreateBuffer(latency,fps,volume);
+	return CreateBuffer(latency,fps,pal,volume);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -430,6 +463,7 @@ PDXRESULT DIRECTSOUND::Destroy()
 	}
 
 	DIRECTX::Release(device,TRUE);
+	PDXMemZero( guid );
 
 	return PDX_OK;
 }

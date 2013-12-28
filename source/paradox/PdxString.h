@@ -56,10 +56,10 @@ public:
 
 	PDX_DEFAULT_CONSTRUCTOR(PDXSTRING)
 
-	explicit PDXSTRING(const PDXSTRING& s)
+	PDXSTRING(const PDXSTRING& s)
 	: buffer(s.buffer) {}
 
-	explicit PDXSTRING(CONSTITERATOR s)
+	PDXSTRING(CONSTITERATOR s)
 	: buffer(s,&s[strlen(s)+1]) 
 	{ PDX_ASSERT(buffer.Back() == '\0'); }
 
@@ -77,6 +77,8 @@ public:
 
 	inline VOID Set(CONSTITERATOR s,const TSIZE l)
 	{ Set(s,&s[l]); }
+
+	VOID InsertBack(const CHAR);
 
 	PDXSTRING& Append(CONSTITERATOR s)
 	{ PDX_ASSERT(s); return Append(s,&s[strlen(s)]); }
@@ -287,6 +289,8 @@ public:
 	VOID Resize (const TSIZE,const CHAR=' ');
 	VOID Grow   (const TSIZE,const CHAR=' ');
 
+	ULONG ToUlong() const;
+
 	VOID Validate();
 
 	inline PDXSTRING SubString(CONSTITERATOR a,CONSTITERATOR b) const
@@ -313,9 +317,6 @@ public:
 	inline TSIZE Capacity() const
 	{ return buffer.Capacity(); }
 
-	inline operator const CHAR*() const
-	{ return String(); }
-
 	inline const CHAR* String() const
 	{ 
 		PDX_ASSERT(nill == '\0');
@@ -339,7 +340,7 @@ public:
 		PDX_ASSERT(nill == '\0');
 		return buffer.Size() ? buffer[i] : nill; 
 	}
-
+  
 	inline CHAR& Front()
 	{ 
 		PDX_ASSERT(buffer.Size() >= 2); 

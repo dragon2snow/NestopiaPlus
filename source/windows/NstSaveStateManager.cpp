@@ -39,7 +39,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT SAVESTATEMANAGER::Create(PDXFILE* const)
+PDXRESULT SAVESTATEMANAGER::Create(CONFIGFILE* const)
 {
 	Reset();
 	return PDX_OK;
@@ -49,7 +49,7 @@ PDXRESULT SAVESTATEMANAGER::Create(PDXFILE* const)
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT SAVESTATEMANAGER::Destroy(PDXFILE* const)
+PDXRESULT SAVESTATEMANAGER::Destroy(CONFIGFILE* const)
 {
 	for (UINT i=0; i < MAX_SLOTS; ++i)
 	{
@@ -241,7 +241,7 @@ VOID SAVESTATEMANAGER::UpdateAutoSaveTimer()
 
 VOID SAVESTATEMANAGER::UpdateDialog(HWND hDlg)
 {
-	SetDlgItemText( hDlg, IDC_AUTOSAVE_FILE, AutoSave.name );	
+	SetDlgItemText( hDlg, IDC_AUTOSAVE_FILE, AutoSave.name.String() );	
 	SetDlgItemInt( hDlg, IDC_AUTOSAVE_TIME, NST_FROM_MILLI(AutoSave.time), FALSE );	
 	CheckDlgButton( hDlg, IDC_AUTOSAVE_ENABLED, AutoSave.enabled );
 	CheckDlgButton( hDlg, IDC_AUTOSAVE_ENABLE_MSG, AutoSave.msg );
@@ -307,7 +307,7 @@ VOID SAVESTATEMANAGER::OnBrowse(HWND hDlg)
 	ofn.hwndOwner       = hWnd;
 	ofn.lpstrFilter     = "NES State (*.nst)\0*.nst\0All Files (*.*)\0*.*\0";
 	ofn.nFilterIndex    = 1;
-	ofn.lpstrInitialDir	= application.GetFileManager().GetNstPath();
+	ofn.lpstrInitialDir	= application.GetFileManager().GetNstPath().String();
 	ofn.lpstrFile       = file.Begin();
 	ofn.lpstrTitle      = "Save State File";
 	ofn.nMaxFile        = NST_MAX_PATH;
@@ -320,7 +320,7 @@ VOID SAVESTATEMANAGER::OnBrowse(HWND hDlg)
 		if (file.Length() && file.GetFileExtension().IsEmpty())
 			file.Append( ".nst" );
 
-		SetDlgItemText( hDlg, IDC_AUTOSAVE_FILE, file );
+		SetDlgItemText( hDlg, IDC_AUTOSAVE_FILE, file.String() );
 	}
 }
 

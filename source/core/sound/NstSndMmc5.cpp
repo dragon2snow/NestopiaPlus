@@ -34,14 +34,14 @@ NES_NAMESPACE_BEGIN
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-SNDMMC5::SNDMMC5(CPU* const c)
+SNDMMC5::SNDMMC5(CPU& c)
 : 
 cpu (c),
-apu (c->GetAPU())
+apu (c.GetAPU())
 {
-	apu->HookChannel( PDX_STATIC_CAST(APU::CHANNEL* const,square+0) );
-	apu->HookChannel( PDX_STATIC_CAST(APU::CHANNEL* const,square+1) );
-	apu->HookChannel( PDX_STATIC_CAST(APU::CHANNEL* const,&pcm)     );
+	apu.HookChannel( PDX_STATIC_CAST(APU::CHANNEL* const,square+0) );
+	apu.HookChannel( PDX_STATIC_CAST(APU::CHANNEL* const,square+1) );
+	apu.HookChannel( PDX_STATIC_CAST(APU::CHANNEL* const,&pcm)     );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -50,9 +50,9 @@ apu (c->GetAPU())
 
 SNDMMC5::~SNDMMC5()
 {
-	apu->ReleaseChannel( PDX_STATIC_CAST(APU::CHANNEL* const,square+0) );
-	apu->ReleaseChannel( PDX_STATIC_CAST(APU::CHANNEL* const,square+1) );
-	apu->ReleaseChannel( PDX_STATIC_CAST(APU::CHANNEL* const,&pcm)     );
+	apu.ReleaseChannel( PDX_STATIC_CAST(APU::CHANNEL* const,square+0) );
+	apu.ReleaseChannel( PDX_STATIC_CAST(APU::CHANNEL* const,square+1) );
+	apu.ReleaseChannel( PDX_STATIC_CAST(APU::CHANNEL* const,&pcm)     );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -61,17 +61,17 @@ SNDMMC5::~SNDMMC5()
 
 VOID SNDMMC5::Reset()
 {
-	cpu->SetPort( 0x5000, this, Peek_Nop,  Poke_5000 );
-	cpu->SetPort( 0x5002, this, Peek_Nop,  Poke_5002 );
-	cpu->SetPort( 0x5003, this, Peek_Nop,  Poke_5003 );
-	cpu->SetPort( 0x5004, this, Peek_Nop,  Poke_5004 );
-	cpu->SetPort( 0x5006, this, Peek_Nop,  Poke_5006 );
-	cpu->SetPort( 0x5007, this, Peek_Nop,  Poke_5007 );
-	cpu->SetPort( 0x5011, this, Peek_Nop,  Poke_5011 );
-	cpu->SetPort( 0x5010, this, Peek_Nop,  Poke_5010 );
-	cpu->SetPort( 0x5015, this, Peek_Nop,  Poke_5015 );
-	cpu->SetPort( 0x5205, this, Peek_5205, Poke_5205 );
-	cpu->SetPort( 0x5206, this, Peek_5206, Poke_5206 );
+	cpu.SetPort( 0x5000, this, Peek_Nop,  Poke_5000 );
+	cpu.SetPort( 0x5002, this, Peek_Nop,  Poke_5002 );
+	cpu.SetPort( 0x5003, this, Peek_Nop,  Poke_5003 );
+	cpu.SetPort( 0x5004, this, Peek_Nop,  Poke_5004 );
+	cpu.SetPort( 0x5006, this, Peek_Nop,  Poke_5006 );
+	cpu.SetPort( 0x5007, this, Peek_Nop,  Poke_5007 );
+	cpu.SetPort( 0x5011, this, Peek_Nop,  Poke_5011 );
+	cpu.SetPort( 0x5010, this, Peek_Nop,  Poke_5010 );
+	cpu.SetPort( 0x5015, this, Peek_Nop,  Poke_5015 );
+	cpu.SetPort( 0x5205, this, Peek_5205, Poke_5205 );
+	cpu.SetPort( 0x5206, this, Peek_5206, Poke_5206 );
 
 	value[0] = 0;
 	value[1] = 0;
@@ -150,7 +150,7 @@ NES_POKE(SNDMMC5,5206) { value[1] = data; }
 
 NES_PEEK(SNDMMC5,Nop)
 {
-	return cpu->GetCache();
+	return cpu.GetCache();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -328,33 +328,21 @@ LONG SNDMMC5::SQUARE::Sample()
 {
 	if (active)
 	{
-		if ((timer += rate) > 0)
+		LONG weight = PDX_MIN(rate,timer);
+		LONG sum = (step < DutyPeriod) ? +weight : -weight;
+
+		for (timer -= rate; timer < 0; )
 		{
-			LONG sum = 0;
-			INT num = 0;
+			weight = frequency;
 
-			do
-			{
-				step = (step + 1) & 0xF;
+			if ((timer += frequency) > 0)
+				weight -= timer;
 
-				if (!step) 
-				{
-					amp = +volume;
-				}
-				else if (step == DutyPeriod)
-				{
-					amp = -volume;
-				}
-
-				sum += amp;
-				++num;
-			}
-			while ((timer -= frequency) > 0);
-
-			return sum / num;
+			step = (step + 1) & 0xF;
+			sum += (step < DutyPeriod) ? +weight : -weight;
 		}
 
-		return amp;
+		amp = LONG(floor(FLOAT(volume * sum) / FLOAT(rate) + 0.5f));
 	}
 	else
 	{

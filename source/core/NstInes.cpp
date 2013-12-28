@@ -169,7 +169,7 @@ PDXRESULT INES::CheckDatabase(CARTRIDGE* const cartridge,PDXFILE& file,const IO:
 			log += cartridge->info.mapper;
 			log += " as defined in the file header is wrong and should be ";
 			log += image.mapper;
-			LogOutput( log );
+			LogOutput( log.String() );
 
 			cartridge->info.mapper = image.mapper;
 		}
@@ -190,7 +190,7 @@ PDXRESULT INES::CheckDatabase(CARTRIDGE* const cartridge,PDXFILE& file,const IO:
 			log += " and not ";
 			log += (image.battery ? "disabled" : "enabled");
 			log += " as defined in the file header";
-			LogOutput( log );
+			LogOutput( log.String() );
 
 			cartridge->info.battery = image.battery;
 		}
@@ -206,7 +206,7 @@ PDXRESULT INES::CheckDatabase(CARTRIDGE* const cartridge,PDXFILE& file,const IO:
 			log += "k as defined in the file header is wrong and should be ";
 			log += (cartridge->info.pRom / 1024);
 			log += "k";
-			LogOutput( log );
+			LogOutput( log.String() );
 
 			if (!DisableWarning)
 			{
@@ -230,7 +230,7 @@ PDXRESULT INES::CheckDatabase(CARTRIDGE* const cartridge,PDXFILE& file,const IO:
 			log += "k as defined in the file header is wrong and should be ";
 			log += (cartridge->info.cRom / 1024);
 			log += "k";
-			LogOutput( log );
+			LogOutput( log.String() );
 
 			if (!DisableWarning)
 			{
@@ -254,7 +254,7 @@ PDXRESULT INES::CheckDatabase(CARTRIDGE* const cartridge,PDXFILE& file,const IO:
 			log += "k as defined in the file header is wrong and should be ";
 			log += (image.wRamSize / 1024);
 			log += "k";
-			LogOutput( log );
+			LogOutput( log.String() );
 
 			cartridge->info.wRam = image.wRamSize;
 			cartridge->wRam.Resize( image.wRamSize );

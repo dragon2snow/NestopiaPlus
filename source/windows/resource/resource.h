@@ -2,6 +2,7 @@
 // Microsoft Visual C++ generated include file.
 // Used by resource.rc
 //
+#define IDC_TIMING_DEFAULT              3
 #define IDI_GEEK_1                      101
 #define IDI_GEEK_2                      102
 #define IDD_ABOUT                       103
@@ -17,7 +18,6 @@
 #define IDD_SOUND                       113
 #define IDR_MENU                        114
 #define IDD_PREFERENCES                 115
-#define IDR_ROMDATABASE1                116
 #define IDD_AUTO_SAVE                   117
 #define IDR_ACCELERATOR                 118
 #define IDD_FDS                         119
@@ -158,7 +158,11 @@
 #define IDM_FILE_LOAD_STATE3            269
 #define IDM_FILE_SAVE_STATE4            270
 #define IDM_FILE_MOVIE_FORWARD          276
+#define ID_TOGGLE_MENU                  277
+#define IDM_OPTIONS_TIMING              280
 #define IDD_USERINPUT                   600
+#define IDR_ROMDATABASE1                602
+#define IDD_TIMING                      603
 #define IDC_SOUND_DEVICE                1001
 #define IDC_SOUND_SAMPLE_RATE           1002
 #define IDC_SOUND_ENABLE                1003
@@ -296,6 +300,7 @@
 #define IDC_PREFERENCES_NSF_IN_BACKGROUND 1809
 #define IDC_PREFERENCES_LOGFILE         1810
 #define IDC_PREFERENCES_HIGH_PRIORITY   1811
+#define IDC_PREFERENCES_CANCEL          1812
 #define IDC_FDS_BROWSE                  1900
 #define IDC_FDS_CLEAR                   1901
 #define IDC_FDS_BIOS                    1902
@@ -336,14 +341,26 @@
 #define IDC_USERINPUT_OK                2031
 #define IDC_USERINPUT_EDIT              2032
 #define IDC_USERINPUT_TEXT              2034
+#define IDC_TIMING_SYNC_REFRESH         2036
+#define IDC_TIMING_AUTO_FRAME_SKIP      2037
+#define IDC_TIMING_VSYNC                2038
+#define IDC_TIMING_OK                   2040
+#define IDC_TIMING_FPS                  2041
+#define IDC_TIMING_FPS_NUM              2042
+#define IDC_TIMING_DEFAULT_FPS          2043
+#define IDC_TIMING_FRAME_SKIPS          2044
+#define IDC_TIMING_MAX_FRAME_SKIPS_NUM  2045
+#define IDC_TIMING_FRAME_SKIPS_NUM      2045
+#define IDC_TIMING_FPS_TEXT             2046
+#define IDC_TIMING_FRAME_SKIPS_TEXT     2047
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
-#define _APS_NEXT_RESOURCE_VALUE        601
-#define _APS_NEXT_COMMAND_VALUE         277
-#define _APS_NEXT_CONTROL_VALUE         2035
+#define _APS_NEXT_RESOURCE_VALUE        604
+#define _APS_NEXT_COMMAND_VALUE         281
+#define _APS_NEXT_CONTROL_VALUE         2048
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

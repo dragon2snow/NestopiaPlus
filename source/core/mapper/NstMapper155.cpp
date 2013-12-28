@@ -35,7 +35,7 @@ NES_NAMESPACE_BEGIN
 VOID MAPPER155::Reset()
 {
 	MAPPER1::Reset();
-	cpu->SetPort( 0x6000, 0x7FFF, this, Peek_wRam, Poke_wRam );
+	cpu.SetPort( 0x6000, 0x7FFF, this, Peek_wRam, Poke_wRam );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////

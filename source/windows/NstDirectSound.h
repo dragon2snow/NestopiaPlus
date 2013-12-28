@@ -54,8 +54,8 @@ protected:
 	PDXRESULT Unlock();	
 	PDXRESULT Initialize(HWND);
 	PDXRESULT Destroy();
-	PDXRESULT Create(const GUID* const);
-	PDXRESULT SetFormat(const DWORD,const DWORD,const UINT,const UINT,const BOOL);
+	PDXRESULT Create(const GUID&);
+	PDXRESULT SetFormat(const DWORD,const DWORD,const UINT,const BOOL,const UINT,const BOOL);
 
 	inline const WAVEFORMATEX& GetWaveFormat() const
 	{ return WaveFormat; }
@@ -105,7 +105,7 @@ private:
 	PDXRESULT LockSecondary(const DWORD,const DWORD);
 	PDXRESULT ClearBuffer();
 	PDXRESULT RestoreBuffer(BOOL* const=NULL);
-	PDXRESULT CreateBuffer(const UINT,const UINT,const BOOL);
+	PDXRESULT CreateBuffer(const UINT,const UINT,const BOOL,const BOOL);
 
 	struct LOCKED
 	{
@@ -122,6 +122,29 @@ private:
 	DWORD NotifySize;
 	DWORD BufferSize;
 	DWORD LastOffset;
+
+	struct DATA
+	{
+		DATA()
+		:
+		SampleRate (0),
+		SampleBits (0),
+		latency    (0),
+		fps        (0),
+		pal        (FALSE),
+		volume     (0)
+		{}
+
+		DWORD SampleRate;
+		DWORD SampleBits;
+		UINT latency;
+		UINT fps;
+		BOOL pal;
+		BOOL volume;
+	};
+
+	GUID guid;
+	DATA data;
 };
 
 #endif

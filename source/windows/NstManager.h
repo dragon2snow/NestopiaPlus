@@ -28,6 +28,7 @@
 #define NST_MANAGER_H
 
 #include "../NstNes.h"
+#include "NstConfigFile.h"
 
 class PDXFILE;
 
@@ -42,18 +43,18 @@ public:
 	enum {NO_FILE=0};
 	enum {NO_DIALOG=INT_MAX};
 
-	MANAGER(const INT=NO_DIALOG,const UINT=NO_FILE);
+	MANAGER(const INT=NO_DIALOG);
 	virtual ~MANAGER() {}
 
-	PDXRESULT Init(HWND,HINSTANCE,NES::MACHINE* const=NULL,PDXFILE* const=NULL);
-	PDXRESULT Close(PDXFILE* const=NULL);
+	PDXRESULT Init(HWND,HINSTANCE,NES::MACHINE* const=NULL,CONFIGFILE* const=NULL);
+	PDXRESULT Close(CONFIGFILE* const);
 
 	VOID StartDialog();
 
 protected:
 
-	virtual PDXRESULT Create  (PDXFILE* const) { return PDX_OK; }
-	virtual PDXRESULT Destroy (PDXFILE* const) { return PDX_OK; }
+	virtual PDXRESULT Create  (CONFIGFILE* const) { return PDX_OK; }
+	virtual PDXRESULT Destroy (CONFIGFILE* const) { return PDX_OK; }
 
 	HWND hWnd;
 	HINSTANCE hInstance;
@@ -67,7 +68,6 @@ private:
 	static BOOL CALLBACK StaticDialogProc(HWND,UINT,WPARAM,LPARAM);
 
 	const INT DialogID;
-	const UINT FileChunk;
 };
 
 #endif

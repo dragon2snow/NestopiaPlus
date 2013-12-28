@@ -41,12 +41,12 @@ class SOUNDMANAGER : public DIRECTSOUND, public MANAGER
 {
 public:
 
-	SOUNDMANAGER(const INT,const UINT);
+	SOUNDMANAGER(const INT);
 
 	PDXRESULT Clear();
 	PDXRESULT Lock(NES::IO::SFX&);
 	PDXRESULT Unlock();	
-	PDXRESULT EnablePAL(const BOOL);
+	PDXRESULT SetRefreshRate(const BOOL,const UINT);
 
 	inline NES::IO::SFX* GetFormat()
 	{ return &format; }
@@ -61,27 +61,31 @@ public:
 
 private:
 
-	PDXRESULT Create  (PDXFILE* const);
-	PDXRESULT Destroy (PDXFILE* const);
+	PDXRESULT Create  (CONFIGFILE* const);
+	PDXRESULT Destroy (CONFIGFILE* const);
+
+	PDXRESULT CreateDevice(GUID);
+
+	VOID SetSampleRate(const DWORD=44100);
+	VOID SetSampleBits(const UINT=16);
 
 	BOOL DialogProc(HWND,UINT,WPARAM,LPARAM);
 
 	VOID Reset();
 	VOID OnEnable(HWND);
 	VOID UpdateDialog(HWND);
-	BOOL UpdateSoundParameters();
-	VOID ResetSoundParameters();
+	VOID UpdateRefreshRate();
+	
+	PDXRESULT UpdateDirectSound(const GUID* const=NULL);
 
 	BOOL enabled;
-	BOOL pal;
-
 	UINT SelectedAdapter;
 	UINT SelectedSampleRate;
 	UINT SelectedSampleBits;
 	UINT SelectedLatency;
 	INT  SelectedVolume;
-	
-	BOOL ChangedDevice;
+	UINT RefreshRate;
+	BOOL IsPAL;
 	BOOL ChangedSampleParameters;
 
 	NES::IO::SFX format;
@@ -128,43 +132,6 @@ private:
 	};
 
 	SOUNDRECORDER SoundRecorder;
-
-    #pragma pack(push,1)
-
-	struct HEADER
-	{
-		enum SAMPLERATE
-		{
-			SAMPLERATE_11025,
-			SAMPLERATE_22050,
-			SAMPLERATE_44100,
-			SAMPLERATE_48000,
-			SAMPLERATE_96000,
-			SAMPLERATE_192000
-		};
-
-		enum SAMPLEBITS
-		{
-			SAMPLEBITS_8,
-			SAMPLEBITS_16
-		};
-
-		GUID guid;
-
-		U8  enabled    : 1;
-		U8  SampleRate : 4;
-		U8  SampleBits : 1;
-		U8  latency    : 4;
-		I16 volume;
-		U8  square1    : 1;
-		U8  square2    : 1;
-		U8  triangle   : 1;
-		U8  noise      : 1;
-		U8  dpcm       : 1;
-		U8  external   : 1;
-	};
-
-    #pragma pack(pop)
 };
 
 #endif

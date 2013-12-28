@@ -49,7 +49,7 @@ class APU
 {
 public:
 
-	APU(CPU* const);
+	APU(CPU&);
 
 	VOID Reset();
 	VOID ClearBuffers();
@@ -464,7 +464,7 @@ private:
 	{
 	public:
 
-		DMC(CPU* const c)
+		DMC(CPU& c)
 		: cpu(c) {}
 
 		VOID Reset();
@@ -505,7 +505,7 @@ private:
 		UINT output;
 		INT  LoadedLengthCounter;
 		BOOL loop;
-		CPU* const cpu;
+		CPU& cpu;
 
        #pragma pack(push,1)
 
@@ -580,14 +580,14 @@ private:
 		BOOL Bit16;
 	};
 
-	CPU* const cpu;
-
-	CYCLES cycles;
 	BUFFER buffer;
+	CYCLES cycles;
 
-	IO::SFX* stream;
+	CPU& cpu;
 
 	UINT pal;
+
+	IO::SFX* stream;
 
 	SQUARE      square1;
 	SQUARE      square2;

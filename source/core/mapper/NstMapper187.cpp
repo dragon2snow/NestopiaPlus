@@ -36,24 +36,24 @@ VOID MAPPER187::Reset()
 {
 	MAPPER4::Reset();
 
-	cpu->SetPort( 0x5000,         this, Peek_5000, Poke_5000 );
-	cpu->SetPort( 0x5001, 0x7FFF, this, Peek_5000, Poke_5001 );
-	cpu->SetPort( 0x8000,         this, Peek_8000, Poke_8000 );
-	cpu->SetPort( 0x8001,         this, Peek_8000, Poke_8001 );
-	cpu->SetPort( 0x8002,         this, Peek_8000, Poke_Nop  );
-	cpu->SetPort( 0x8003,         this, Peek_8000, Poke_8003 );
-	cpu->SetPort( 0x8004, 0x9FFF, this, Peek_8000, Poke_Nop  );
-	cpu->SetPort( 0xA000,         this, Peek_A000, Poke_A000 );
-	cpu->SetPort( 0xA001,         this, Peek_A000, Poke_A001 );
-	cpu->SetPort( 0xA003, 0xBFFF, this, Peek_A000, Poke_Nop  );
-	cpu->SetPort( 0xC000,         this, Peek_C000, Poke_C000 );
-	cpu->SetPort( 0xC001,         this, Peek_C000, Poke_C001 );
-	cpu->SetPort( 0xC002, 0xDFFF, this, Peek_C000, Poke_Nop  );
-	cpu->SetPort( 0xE000,         this, Peek_E000, Poke_E000 );
-	cpu->SetPort( 0xE002,         this, Peek_E000, Poke_E000 );
-	cpu->SetPort( 0xE001,         this, Peek_E000, Poke_E001 );
-	cpu->SetPort( 0xE003,         this, Peek_E000, Poke_E001 );
-	cpu->SetPort( 0xE004, 0xFFFF, this, Peek_E000, Poke_Nop  );
+	cpu.SetPort( 0x5000,         this, Peek_5000, Poke_5000 );
+	cpu.SetPort( 0x5001, 0x7FFF, this, Peek_5000, Poke_5001 );
+	cpu.SetPort( 0x8000,         this, Peek_8000, Poke_8000 );
+	cpu.SetPort( 0x8001,         this, Peek_8000, Poke_8001 );
+	cpu.SetPort( 0x8002,         this, Peek_8000, Poke_Nop  );
+	cpu.SetPort( 0x8003,         this, Peek_8000, Poke_8003 );
+	cpu.SetPort( 0x8004, 0x9FFF, this, Peek_8000, Poke_Nop  );
+	cpu.SetPort( 0xA000,         this, Peek_A000, Poke_A000 );
+	cpu.SetPort( 0xA001,         this, Peek_A000, Poke_A001 );
+	cpu.SetPort( 0xA003, 0xBFFF, this, Peek_A000, Poke_Nop  );
+	cpu.SetPort( 0xC000,         this, Peek_C000, Poke_C000 );
+	cpu.SetPort( 0xC001,         this, Peek_C000, Poke_C001 );
+	cpu.SetPort( 0xC002, 0xDFFF, this, Peek_C000, Poke_Nop  );
+	cpu.SetPort( 0xE000,         this, Peek_E000, Poke_E000 );
+	cpu.SetPort( 0xE002,         this, Peek_E000, Poke_E000 );
+	cpu.SetPort( 0xE001,         this, Peek_E000, Poke_E001 );
+	cpu.SetPort( 0xE003,         this, Peek_E000, Poke_E001 );
+	cpu.SetPort( 0xE004, 0xFFFF, this, Peek_E000, Poke_Nop  );
 
 	latch = 0;
 
@@ -70,7 +70,7 @@ VOID MAPPER187::Reset()
 
 NES_POKE(MAPPER187,5000)
 {
-	apu->Update();
+	apu.Update();
 
 	latch = data & 0x3;
 	ExBankMode = data;
@@ -221,7 +221,7 @@ NES_POKE(MAPPER187,8003)
 
 VOID MAPPER187::UpdatePRom()
 {
-	apu->Update(); 
+	apu.Update(); 
 
 	pRom.SwapBanks<n8k,0x0000>( pRomBanks[0] );
 	pRom.SwapBanks<n8k,0x2000>( pRomBanks[1] );

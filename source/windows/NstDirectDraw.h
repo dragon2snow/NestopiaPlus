@@ -63,6 +63,7 @@ public:
 	PDXRESULT EnableGDI(const BOOL);
 	PDXRESULT TryClearScreen();
 
+	BOOL UpdateRefresh(const BOOL,const UINT);
 	VOID UpdateScreenRect(const RECT&,const BOOL=FALSE);
 
 	BOOL IsGDI()      const;
@@ -95,13 +96,11 @@ protected:
 	DIRECTDRAW();
 	~DIRECTDRAW();
 
-	PDX_NO_INLINE VOID SetRefreshRate(const UINT);
-
-	PDX_NO_INLINE PDXRESULT Initialize(HWND,const UINT=DEFAULT_REFRESH_RATE);
+	PDX_NO_INLINE PDXRESULT Initialize(HWND);
 	PDX_NO_INLINE PDXRESULT Destroy();
 	PDX_NO_INLINE PDXRESULT SwitchToFullScreen(const UINT,const UINT,const UINT,const RECT* const=NULL);
 	PDX_NO_INLINE PDXRESULT SwitchToWindowed(const RECT&);
-	PDX_NO_INLINE PDXRESULT Create(GUID* const);
+	PDX_NO_INLINE PDXRESULT Create(const GUID&);
 	PDX_NO_INLINE PDXRESULT ValidateSurface(LPDIRECTDRAWSURFACE7) const;
 
 	PDXRESULT DrawNesBuffer();
@@ -110,6 +109,7 @@ protected:
 	{
 		SCREENEFFECT_NONE,
 		SCREENEFFECT_SCANLINES,
+		SCREENEFFECT_TV,
 		SCREENEFFECT_2XSAI,
 		SCREENEFFECT_SUPER_2XSAI,
 		SCREENEFFECT_SUPER_EAGLE
@@ -120,15 +120,7 @@ protected:
 	PDXRESULT LockNesBuffer(DDSURFACEDESC2&);
 	PDXRESULT UnlockNesBuffer();
 
-	PDX_NO_INLINE PDXRESULT SetScreenParameters
-	(
-		const SCREENEFFECT,
-		const BOOL,
-		const RECT&,
-		const BOOL
-	);
-
-	enum {DEFAULT_REFRESH_RATE=NES_FPS_NTSC};
+	PDX_NO_INLINE PDXRESULT SetScreenParameters(const SCREENEFFECT,const BOOL,const RECT&);
 
 	LPDIRECTDRAWSURFACE7 GetNesBuffer() const;
 
@@ -147,9 +139,6 @@ private:
 	PDX_NO_INLINE PDXRESULT CreateScreenBuffers();
 	PDX_NO_INLINE PDXRESULT CreateNesBuffer();
 	PDX_NO_INLINE PDXRESULT CreateClipper();
-	
-	BOOL CanBltFast() const;
-	DWORD GetFlipFlags() const;
 
 	PDXRESULT ClearSurface(LPDIRECTDRAWSURFACE7);
 	
@@ -160,8 +149,10 @@ private:
 	template<class T> PDX_NO_INLINE VOID BltNesScreen(T* const,const LONG);
 	template<class T> VOID BltNesScreenAligned(T* const);
 	template<class T> PDX_NO_INLINE VOID BltNesScreenUnaligned(T*,const LONG);
-	template<class T> PDX_NO_INLINE VOID BltNesScreenScanLines(T*,const LONG);
+	template<class T> PDX_NO_INLINE VOID BltNesScreenScanLines1(T*,const LONG);
+	template<class T> PDX_NO_INLINE VOID BltNesScreenScanLinesFactor(T*,const LONG);
 	template<class T> PDX_NO_INLINE VOID BltNesScreen2xSaI(F2XAI,T*,const LONG);
+	template<class T> PDX_NO_INLINE VOID BltNesScreenTV(T*,const LONG);
 
 	VOID DrawWindowText();
 
@@ -181,20 +172,17 @@ private:
 
 	BOOL  windowed;
 	BOOL  ready;
-	UINT  RefreshRate;
 	UINT  SelectedDevice;
 	UINT  GDIMode;
 	BOOL  DontFlip;
+	DWORD FlipFlags;
 	UINT  ScaleFactor;
 	BOOL  PaletteChanged;
 	BOOL  UseVRam;
-	BOOL  UseVSync;
 	BOOL  Use2xSaI;
 	BOOL  Use2xSaI565;
 	BOOL  IsNesBuffer2xSaI;
-	BOOL  ShouldBltFast;
-	DWORD FlipFlags;
-	BOOL  BltFailed;
+	BOOL  DDError;
 	
 	DDSURFACEDESC2 FrontDesc;
 	DDSURFACEDESC2 BackDesc;
@@ -204,6 +192,23 @@ protected:
 
 	struct DISPLAYMODE
 	{
+		DISPLAYMODE()
+		: 
+		width       (0),
+		height      (0),
+		bpp         (0),
+		RefreshRate (0),
+		rMask       (0),
+		gMask       (0),
+		bMask       (0),
+		rShiftLeft  (0),
+		gShiftLeft  (0),
+		bShiftLeft  (0),
+		rShiftRight (0),
+		gShiftRight (0),
+		bShiftRight (0)
+		{}
+
 		BOOL operator < (const DISPLAYMODE&) const;
 		BOOL operator == (const DISPLAYMODE&) const;
 		
@@ -252,6 +257,11 @@ protected:
 
 	struct ADAPTER
 	{
+		ADAPTER()
+		{
+			PDXMemZero(guid);
+		}
+
 		GUID guid;
 		PDXSTRING name;
 		DISPLAYMODES DisplayModes;
@@ -271,6 +281,25 @@ private:
 
 	U16 EffectBuffer[EFFECT_BUFFER_LENGTH];
 	U16 ConvBuffer[CONV_BUFFER_LENGTH];
+
+	GUID guid;
+
+	struct DATA
+	{
+		DATA()
+		: 
+		effect (SCREENEFFECT_NONE),
+		vram   (FALSE)
+		{
+			SetRect( &rect, 0, 0, 0, 0 );
+		}
+
+		SCREENEFFECT effect;
+		BOOL vram;
+		RECT rect;	
+	};
+
+	DATA data;
 };
 
 #include "NstDirectDraw.inl"

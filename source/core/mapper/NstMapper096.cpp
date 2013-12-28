@@ -38,19 +38,19 @@ VOID MAPPER96::Reset()
 	latch[0] = 0;
 	latch[1] = 0;
 
-	cpu->SetPort( 0x8000, 0x9FFF, this, Peek_8000, Poke_pRom );
-	cpu->SetPort( 0xA000, 0xBFFF, this, Peek_A000, Poke_pRom );
-	cpu->SetPort( 0xC000, 0xDFFF, this, Peek_C000, Poke_pRom );
-	cpu->SetPort( 0xE000, 0xFFFF, this, Peek_E000, Poke_pRom );
+	cpu.SetPort( 0x8000, 0x9FFF, this, Peek_8000, Poke_pRom );
+	cpu.SetPort( 0xA000, 0xBFFF, this, Peek_A000, Poke_pRom );
+	cpu.SetPort( 0xC000, 0xDFFF, this, Peek_C000, Poke_pRom );
+	cpu.SetPort( 0xE000, 0xFFFF, this, Peek_E000, Poke_pRom );
 
-	ppu->SetPort( 0x2000, 0x23BF, this, Peek_NameRam, Poke_NameRam );
-	ppu->SetPort( 0x2400, 0x27BF, this, Peek_NameRam, Poke_NameRam );
-	ppu->SetPort( 0x2800, 0x2BBF, this, Peek_NameRam, Poke_NameRam );
-	ppu->SetPort( 0x2C00, 0x2FBF, this, Peek_NameRam, Poke_NameRam );
-	ppu->SetPort( 0x3000, 0x33BF, this, Peek_NameRam, Poke_NameRam );
-	ppu->SetPort( 0x3400, 0x37BF, this, Peek_NameRam, Poke_NameRam );
-	ppu->SetPort( 0x3800, 0x3BBF, this, Peek_NameRam, Poke_NameRam );
-	ppu->SetPort( 0x3C00, 0x3FBF, this, Peek_NameRam, Poke_NameRam );
+	ppu.SetPort( 0x2000, 0x23BF, this, Peek_NameRam, Poke_NameRam );
+	ppu.SetPort( 0x2400, 0x27BF, this, Peek_NameRam, Poke_NameRam );
+	ppu.SetPort( 0x2800, 0x2BBF, this, Peek_NameRam, Poke_NameRam );
+	ppu.SetPort( 0x2C00, 0x2FBF, this, Peek_NameRam, Poke_NameRam );
+	ppu.SetPort( 0x3000, 0x33BF, this, Peek_NameRam, Poke_NameRam );
+	ppu.SetPort( 0x3400, 0x37BF, this, Peek_NameRam, Poke_NameRam );
+	ppu.SetPort( 0x3800, 0x3BBF, this, Peek_NameRam, Poke_NameRam );
+	ppu.SetPort( 0x3C00, 0x3FBF, this, Peek_NameRam, Poke_NameRam );
 
 	pRom.SwapBanks<n32k,0x0000>( 0x0 );
 	cRom.SwapBanks<n4k,0x0000>( 0x0 );
@@ -69,12 +69,12 @@ NES_PEEK(MAPPER96,NameRam)
 		(latch[1] = ((address >> 8) & 0x3))
 	);
 
-	return ppu->Peek_CiRam( address & 0x1FFF );
+	return ppu.Peek_CiRam( address & 0x1FFF );
 }
 
 NES_POKE(MAPPER96,NameRam)
 {
-	ppu->Poke_CiRam( address & 0x1FFF, data );
+	ppu.Poke_CiRam( address & 0x1FFF, data );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -83,8 +83,8 @@ NES_POKE(MAPPER96,NameRam)
 
 NES_POKE(MAPPER96,pRom)
 {
-	apu->Update();
-	ppu->Update();
+	apu.Update();
+	ppu.Update();
 
 	latch[0] = data;
 

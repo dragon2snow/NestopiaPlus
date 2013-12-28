@@ -202,7 +202,7 @@ VOID APU::BUFFER::Flush8(IO::SFX* const stream,const TSIZE NewStart)
 // Constructor
 ////////////////////////////////////////////////////////////////////////////////////////
 
-APU::APU(CPU* const c) 
+APU::APU(CPU& c) 
 :
 square1  (0),
 square2  (1),
@@ -247,24 +247,24 @@ VOID APU::Reset()
 {
 	LogOutput("APU: reset");
 
-	cpu->SetPort( 0x4000, this, Peek_4xxx, Poke_4000 );
-	cpu->SetPort( 0x4001, this, Peek_4xxx, Poke_4001 );
-	cpu->SetPort( 0x4002, this, Peek_4xxx, Poke_4002 );
-	cpu->SetPort( 0x4003, this, Peek_4xxx, Poke_4003 );
-	cpu->SetPort( 0x4004, this, Peek_4xxx, Poke_4004 );
-	cpu->SetPort( 0x4005, this, Peek_4xxx, Poke_4005 );
-	cpu->SetPort( 0x4006, this, Peek_4xxx, Poke_4006 );
-	cpu->SetPort( 0x4007, this, Peek_4xxx, Poke_4007 );
-	cpu->SetPort( 0x4008, this, Peek_4xxx, Poke_4008 );
-	cpu->SetPort( 0x400A, this, Peek_4xxx, Poke_400A );
-	cpu->SetPort( 0x400B, this, Peek_4xxx, Poke_400B );
-	cpu->SetPort( 0x400C, this, Peek_4xxx, Poke_400C );
-	cpu->SetPort( 0x400E, this, Peek_4xxx, Poke_400E );
-	cpu->SetPort( 0x400F, this, Peek_4xxx, Poke_400F );
-	cpu->SetPort( 0x4010, this, Peek_4xxx, Poke_4010 );
-	cpu->SetPort( 0x4011, this, Peek_4xxx, Poke_4011 );
-	cpu->SetPort( 0x4012, this, Peek_4xxx, Poke_4012 );
-	cpu->SetPort( 0x4013, this, Peek_4xxx, Poke_4013 );
+	cpu.SetPort( 0x4000, this, Peek_4xxx, Poke_4000 );
+	cpu.SetPort( 0x4001, this, Peek_4xxx, Poke_4001 );
+	cpu.SetPort( 0x4002, this, Peek_4xxx, Poke_4002 );
+	cpu.SetPort( 0x4003, this, Peek_4xxx, Poke_4003 );
+	cpu.SetPort( 0x4004, this, Peek_4xxx, Poke_4004 );
+	cpu.SetPort( 0x4005, this, Peek_4xxx, Poke_4005 );
+	cpu.SetPort( 0x4006, this, Peek_4xxx, Poke_4006 );
+	cpu.SetPort( 0x4007, this, Peek_4xxx, Poke_4007 );
+	cpu.SetPort( 0x4008, this, Peek_4xxx, Poke_4008 );
+	cpu.SetPort( 0x400A, this, Peek_4xxx, Poke_400A );
+	cpu.SetPort( 0x400B, this, Peek_4xxx, Poke_400B );
+	cpu.SetPort( 0x400C, this, Peek_4xxx, Poke_400C );
+	cpu.SetPort( 0x400E, this, Peek_4xxx, Poke_400E );
+	cpu.SetPort( 0x400F, this, Peek_4xxx, Poke_400F );
+	cpu.SetPort( 0x4010, this, Peek_4xxx, Poke_4010 );
+	cpu.SetPort( 0x4011, this, Peek_4xxx, Poke_4011 );
+	cpu.SetPort( 0x4012, this, Peek_4xxx, Poke_4012 );
+	cpu.SetPort( 0x4013, this, Peek_4xxx, Poke_4013 );
 
 	cycles.Reset( emulation.SampleRate, pal );
 	buffer.Reset( emulation.SampleBits );
@@ -335,8 +335,8 @@ VOID APU::Synchronize()
 	(
      	PDX_MIN
 		(
-	    	cpu->GetCycles<CPU::CYCLE_MASTER>(),
-			cpu->GetFrameCycles<CPU::CYCLE_MASTER>()
+	    	cpu.GetCycles<CPU::CYCLE_MASTER>(),
+			cpu.GetFrameCycles<CPU::CYCLE_MASTER>()
 		)
 	);
 }
@@ -425,7 +425,7 @@ VOID APU::UpdatePhase()
 				ExtChannels[i]->UpdateWhole();
 		}
 
-		if (!(cpu->GetStatus() & CPU::STATUS_EXT_IRQ))
+		if (!(cpu.GetStatus() & CPU::STATUS_EXT_IRQ))
 			cycles.PhaseIndex = 0;
 	}
 }
@@ -499,7 +499,7 @@ VOID APU::Poke_4017(const UINT data)
 	if (data & CPU::STATUS_EXT_IRQ)
 		UpdatePhase();
 
-	cycles.FrameInit = -cpu->GetCycles<CPU::CYCLE_MASTER>();
+	cycles.FrameInit = -cpu.GetCycles<CPU::CYCLE_MASTER>();
 	cycles.FrameCounter = cycles.QuarterFrame;
 }
 
@@ -509,7 +509,7 @@ VOID APU::Poke_4017(const UINT data)
 
 NES_PEEK(APU,4xxx)
 {
-	return cpu->GetCache();
+	return cpu.GetCache();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -591,7 +591,7 @@ VOID APU::BeginFrame(IO::SFX* const s)
 
 VOID APU::EndFrame()
 {
-	const ULONG frame = cpu->GetFrameCycles<CPU::CYCLE_MASTER>();
+	const ULONG frame = cpu.GetFrameCycles<CPU::CYCLE_MASTER>();
 	Synchronize(frame);
 
 	cycles.elapsed = 0;
@@ -915,31 +915,21 @@ LONG APU::SQUARE::Sample()
 {
 	if (active)
 	{
-		if ((timer += rate) > 0)
+		LONG weight = PDX_MIN(rate,timer);
+		LONG sum = (step < DutyPeriod) ? +weight : -weight;
+
+		for (timer -= rate; timer < 0; )
 		{
-			LONG sum = 0;
-			INT num = 0;
+			weight = frequency;
 
-			do
-			{
-				step = (step + 1) & 0xF;
-			
-				if (!step) 
-				{
-					amp = +volume;
-				}
-				else if (step == DutyPeriod)
-				{
-					amp = -volume;
-				}
-				
-				sum += amp;
-				++num;
-			}
-			while ((timer -= frequency) > 0);
+			if ((timer += frequency) > 0)
+				weight -= timer;
 
-			return sum / num;
+			step = (step + 1) & 0xF;
+			sum += (step < DutyPeriod) ? +weight : -weight;
 		}
+
+		amp = LONG(floor(FLOAT(volume * sum) / FLOAT(rate) + 0.5f));
 	}
 	else
 	{
@@ -1141,12 +1131,22 @@ VOID APU::TRIANGLE::UpdateWhole()
 
 LONG APU::TRIANGLE::Sample()
 {
-	amp -= (amp >> 7);
-
 	if (active)
 	{
-		for (timer += rate; timer > 0; timer -= frequency)
-			amp += (++step & 0x10) ? NES_APU_OUTPUT(2) : -NES_APU_OUTPUT(2);
+		LONG sum = (((step & 0x10) ? 0x1F : 0x00) ^ step) * PDX_MIN(rate,timer);
+
+		for (timer -= rate; timer < 0;) 
+		{
+			LONG weight = frequency;
+       
+			if ((timer += frequency) > 0)
+				weight -= timer;
+
+			step = (step + 1) & 0x1F;
+			sum += (((step & 0x10) ? 0x1F : 0x00) ^ step) * weight;
+		}
+
+		amp = LONG(floor(FLOAT(sum * 512) / FLOAT(rate) + 0.5f));
 	}
 
 	return (amp * 21) >> 4;
@@ -1336,24 +1336,21 @@ LONG APU::NOISE::Sample()
 {
 	if (active)
 	{
-		if ((timer += rate) > 0)
+		LONG weight = PDX_MIN(rate,timer);
+		LONG sum = (bits & 0x4000U) ? +weight : -weight;
+
+		for (timer -= rate; timer < 0; )
 		{
-			LONG sum = 0;
-			INT num = 0;
+			weight = frequency;
 
-			do
-			{
-				bits = (bits << 1) | (((bits >> 14) ^ (bits >> shifter)) & 0x1);
-				amp = (bits & 0x4000U) ? -volume : +volume;
-				sum += amp;
-				++num;
-			}
-			while ((timer -= frequency) > 0);
+			if ((timer += frequency) > 0)
+				weight -= timer;
 
-			return sum / num;
+			bits = (bits << 1) | (((bits >> 14) ^ (bits >> shifter)) & 0x1);
+			sum += (bits & 0x4000U) ? +weight : -weight;
 		}
 
-		return amp;
+		amp = LONG(floor(FLOAT(volume * sum) / FLOAT(rate) + 0.5f));
 	}
 	else
 	{
@@ -1428,8 +1425,8 @@ VOID APU::DMC::Reset()
 	LoadedAddress = 0xC000;
 	output = 0;
 
-	cpu->SetLine(CPU::IRQ_DMC,FALSE);
-	cpu->DisableDmcCounter();
+	cpu.SetLine(CPU::IRQ_DMC,FALSE);
+	cpu.DisableDmcCounter();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -1438,7 +1435,7 @@ VOID APU::DMC::Reset()
 
 VOID APU::DMC::Toggle(const BOOL TurnOn)
 {
-	cpu->ClearIRQ(CPU::IRQ_DMC);
+	cpu.ClearIRQ(CPU::IRQ_DMC);
 
 	if (TurnOn && !enabled)
 	{
@@ -1446,12 +1443,12 @@ VOID APU::DMC::Toggle(const BOOL TurnOn)
 		LengthCounter = LoadedLengthCounter;
 		address = LoadedAddress;
 		timer = 0;
-		cpu->SetDmcLengthCounter(LoadedLengthCounter);
-		cpu->SetDmcCounter(0);
+		cpu.SetDmcLengthCounter(LoadedLengthCounter);
+		cpu.SetDmcCounter(0);
 	}
 
 	if (!(enabled = TurnOn))
-		cpu->DisableDmcCounter();
+		cpu.DisableDmcCounter();
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -1464,7 +1461,7 @@ VOID APU::DMC::WriteReg0(const UINT data)
 	reg.latch = data;
 
 	loop = reg.loop;
-	cpu->SetLine(CPU::IRQ_DMC,reg.GenerateIrq);
+	cpu.SetLine(CPU::IRQ_DMC,reg.GenerateIrq);
 
 	static const USHORT table[2][16] = 
 	{
@@ -1486,8 +1483,8 @@ VOID APU::DMC::WriteReg0(const UINT data)
  
 	if (enabled)
 	{
-		cpu->SetDmcCounter(frequency);
-		cpu->SetDmcLengthCounter(LengthCounter);
+		cpu.SetDmcCounter(frequency);
+		cpu.SetDmcLengthCounter(LengthCounter);
 	}
 
 	frequency >>= 3; 
@@ -1537,7 +1534,7 @@ LONG APU::DMC::Sample()
 			if (++BitCounter == 8)
 			{
 				BitCounter = 0;
-				latch = cpu->Peek(address);
+				latch = cpu.Peek(address);
 				address = 0x8000U + ((address + 1) & 0x7FFF);
 
 				if (!--LengthCounter)

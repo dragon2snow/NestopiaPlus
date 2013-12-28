@@ -36,7 +36,7 @@ VOID MAPPER249::Reset()
 {
 	reg = 0;
 	MAPPER4::Reset();
-	cpu->SetPort( 0x5000, this, Peek_Nop, Poke_5000 );
+	cpu.SetPort( 0x5000, this, Peek_Nop, Poke_5000 );
 }
 
 
@@ -78,7 +78,7 @@ VOID MAPPER249::Reset()
 
 VOID MAPPER249::UpdatePRom()
 {
-	apu->Update(); 
+	apu.Update(); 
 
 	if (command & SWAP_PROM_BANKS)
 	{
@@ -123,7 +123,7 @@ VOID MAPPER249::UpdatePRom()
 
 VOID MAPPER249::UpdateCRom()
 {
-	ppu->Update();
+	ppu.Update();
 
 	if (command & SWAP_CROM_BANKS)
 	{

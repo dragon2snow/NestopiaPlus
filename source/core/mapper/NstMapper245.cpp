@@ -33,8 +33,8 @@ NES_NAMESPACE_BEGIN
 
 VOID MAPPER245::Reset()
 {
-	cpu->SetPort( 0x8000, this, Peek_8000, Poke_8000 );
-	cpu->SetPort( 0x8001, this, Peek_8000, Poke_8001 );
+	cpu.SetPort( 0x8000, this, Peek_8000, Poke_8000 );
+	cpu.SetPort( 0x8001, this, Peek_8000, Poke_8001 );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -52,7 +52,7 @@ NES_POKE(MAPPER245,8000)
 
 NES_POKE(MAPPER245,8001) 
 {
-	apu->Update();
+	apu.Update();
 
 	switch (command & 0x7)
 	{

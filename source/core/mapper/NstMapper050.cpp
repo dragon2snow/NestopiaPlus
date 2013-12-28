@@ -33,8 +33,7 @@ NES_NAMESPACE_BEGIN
 
 MAPPER50::~MAPPER50()
 {
-	if (cpu)
-		cpu->RemoveEvent( this );
+	cpu.RemoveEvent( this );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -43,23 +42,23 @@ MAPPER50::~MAPPER50()
 
 VOID MAPPER50::Reset()
 {
-	cpu->RemoveEvent( this );
-	cpu->SetEvent( this, Synch );
+	cpu.RemoveEvent( this );
+	cpu.SetEvent( this, Synch );
 
 	for (UINT i=0x4020; i < 0x6000; ++i)
 	{
 		if ((i & 0xE060) == 0x4020)
 		{
-			if (i & 0x0100) cpu->SetPort( i, this, Peek_Nop, Poke_4120 );
-			else            cpu->SetPort( i, this, Peek_Nop, Poke_4020 );
+			if (i & 0x0100) cpu.SetPort( i, this, Peek_Nop, Poke_4120 );
+			else            cpu.SetPort( i, this, Peek_Nop, Poke_4020 );
 		}
 	}
 
-	cpu->SetPort( 0x6000, 0x7FFF, this, Peek_wRom, Poke_Nop );
-	cpu->SetPort( 0x8000, 0x9FFF, this, Peek_8000, Poke_Nop );
-	cpu->SetPort( 0xA000, 0xBFFF, this, Peek_A000, Poke_Nop );
-	cpu->SetPort( 0xC000, 0xDFFF, this, Peek_C000, Poke_Nop );
-	cpu->SetPort( 0xE000, 0xFFFF, this, Peek_E000, Poke_Nop );
+	cpu.SetPort( 0x6000, 0x7FFF, this, Peek_wRom, Poke_Nop );
+	cpu.SetPort( 0x8000, 0x9FFF, this, Peek_8000, Poke_Nop );
+	cpu.SetPort( 0xA000, 0xBFFF, this, Peek_A000, Poke_Nop );
+	cpu.SetPort( 0xC000, 0xDFFF, this, Peek_C000, Poke_Nop );
+	cpu.SetPort( 0xE000, 0xFFFF, this, Peek_E000, Poke_Nop );
 
 	pRom.SwapBanks<n8k,0x0000>( 0x8 );
 	pRom.SwapBanks<n8k,0x2000>( 0x9 );
@@ -82,7 +81,7 @@ NES_PEEK(MAPPER50,wRom)
 
 NES_POKE(MAPPER50,4020) 
 {
-	apu->Update();
+	apu.Update();
 
 	pRom.SwapBanks<n8k,0x4000>
 	( 
@@ -107,10 +106,10 @@ NES_POKE(MAPPER50,4120)
 
 VOID MAPPER50::Synch()
 {
-	ppu->Update();
+	ppu.Update();
 
-	if (ppu->GetScanLine() == 20)
-		cpu->TryIRQ();
+	if (ppu.GetScanLine() == 20)
+		cpu.TryIRQ();
 }
 
 NES_NAMESPACE_END

@@ -38,15 +38,15 @@ class FDSMANAGER : public MANAGER
 {
 public:
 
-	FDSMANAGER(const INT id,const UINT b) 
-	: MANAGER(id,b) {}
+	FDSMANAGER(const INT id) 
+	: MANAGER(id) {}
 
 	~FDSMANAGER() {}
 
 private:
 
-	PDXRESULT Create  (PDXFILE* const);
-	PDXRESULT Destroy (PDXFILE* const);
+	PDXRESULT Create  (CONFIGFILE* const);
+	PDXRESULT Destroy (CONFIGFILE* const);
 
 	BOOL DialogProc(HWND,UINT,WPARAM,LPARAM);
 

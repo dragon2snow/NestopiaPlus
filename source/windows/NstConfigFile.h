@@ -1,4 +1,4 @@
-////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////
 //
 // Nestopia - NES / Famicom emulator written in C++
 //
@@ -22,35 +22,52 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstMappers.h"
-#include "NstMapper097.h"
+#pragma once
 
-NES_NAMESPACE_BEGIN
+#ifndef NST_CONFIGFILE_H
+#define NST_CONFIGFILE_H
 
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER97::Reset()
-{
-	cpu.SetPort( 0x8000, 0x9FFF, this, Peek_8000, Poke_8000 );
-	cpu.SetPort( 0xA000, 0xBFFF, this, Peek_A000, Poke_8000 );
-	cpu.SetPort( 0xC000, 0xDFFF, this, Peek_C000, Poke_Nop  );
-	cpu.SetPort( 0xE000, 0xFFFF, this, Peek_E000, Poke_Nop  );
-
-	pRom.SwapBanks<n16k,0x0000>( pRom.NumBanks<n16k>() - 1 );
-	pRom.SwapBanks<n16k,0x4000>( 0 );
-}
+#include "../paradox/PdxFile.h"
+#include "../paradox/PdxMap.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-NES_POKE(MAPPER97,8000)
+class CONFIGFILE
 {
-	ppu.SetMirroring( (data & 0x80) ? MIRROR_VERTICAL : MIRROR_HORIZONTAL );
-	apu.Update();
-	pRom.SwapBanks<n16k,0x4000>(data & 0xF);
-}
+public:
 
-NES_NAMESPACE_END
+	CONFIGFILE() {}
+
+	PDXRESULT Load(const PDXSTRING&);
+	PDXRESULT Save(const PDXSTRING&);
+
+	PDXSTRING& operator [] (const CHAR* const);
+	PDXSTRING& operator [] (const PDXSTRING&);
+
+	static const CHAR* FromGUID(const GUID&);
+	static GUID ToGUID(const CHAR* const);
+
+private:
+
+	static VOID WriteGuid(PDXSTRING&,const GUID&);
+	static VOID FormatString(PDXSTRING&);
+
+	VOID ParseOptions(PDXSTRING* const);
+	VOID WriteCommentHeader();
+//	VOID WriteCommentVideo();
+//	VOID WriteCommentSound();
+//	VOID WriteCommentFiles();
+//	VOID WriteCommentInput();
+//	VOID WriteCommentPreferences();
+
+private:
+
+	typedef PDXMAP<PDXSTRING,PDXSTRING> TREE;
+
+	PDXFILE file;
+	TREE tree;
+};
+
+#endif

@@ -36,7 +36,7 @@ VOID MAPPER45::Reset()
 {
 	memset( regs, 0x00, sizeof(UINT) * 5 );
 	MAPPER4::Reset();
-	cpu->SetPort( 0x6000, 0x7FFF, this, Peek_Nop, Poke_6000 );
+	cpu.SetPort( 0x6000, 0x7FFF, this, Peek_Nop, Poke_6000 );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -61,7 +61,7 @@ NES_POKE(MAPPER45,6000)
 
 VOID MAPPER45::UpdatePRom()
 {
-	apu->Update(); 
+	apu.Update(); 
 
 	const UINT r = (regs[3] & 0x3F) ^ 0x3F;
 
@@ -87,7 +87,7 @@ VOID MAPPER45::UpdatePRom()
 
 VOID MAPPER45::UpdateCRom()
 {
-	ppu->Update();
+	ppu.Update();
 
 	const UINT r1 = (regs[2] & 0x8) ? (1 << ((regs[2] & 0x7) + 1)) - 1 : 0;
 	const UINT r2 = regs[0] | ((regs[2] & 0x10) << 4);

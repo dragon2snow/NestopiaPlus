@@ -33,7 +33,7 @@ NES_NAMESPACE_BEGIN
 
 VOID MAPPER122::Reset()
 {
-	cpu->SetPort( 0x6000, this, Peek_Nop, Poke_6000 );
+	cpu.SetPort( 0x6000, this, Peek_Nop, Poke_6000 );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -42,7 +42,7 @@ VOID MAPPER122::Reset()
 
 NES_POKE(MAPPER122,6000) 
 {
-	ppu->Update();
+	ppu.Update();
 	cRom.SwapBanks<n4k,0x0000>( (data & 0x07) >> 0 );
 	cRom.SwapBanks<n4k,0x1000>( (data & 0x70) >> 4 );
 }

@@ -36,14 +36,14 @@ VOID MAPPER119::Reset()
 {
 	MAPPER4::Reset();
 
-	ppu->SetPort( 0x0000, 0x03FF, this, Peek_0000, Poke_0000 );
-	ppu->SetPort( 0x0400, 0x07FF, this, Peek_0400, Poke_0400 );
-	ppu->SetPort( 0x0800, 0x0BFF, this, Peek_0800, Poke_0800 );
-	ppu->SetPort( 0x0C00, 0x0FFF, this, Peek_0C00, Poke_0C00 );
-	ppu->SetPort( 0x1000, 0x13FF, this, Peek_1000, Poke_1000 );
-	ppu->SetPort( 0x1400, 0x17FF, this, Peek_1400, Poke_1400 );
-	ppu->SetPort( 0x1800, 0x1BFF, this, Peek_1800, Poke_1800 );
-	ppu->SetPort( 0x1C00, 0x1FFF, this, Peek_1C00, Poke_1C00 );
+	ppu.SetPort( 0x0000, 0x03FF, this, Peek_0000, Poke_0000 );
+	ppu.SetPort( 0x0400, 0x07FF, this, Peek_0400, Poke_0400 );
+	ppu.SetPort( 0x0800, 0x0BFF, this, Peek_0800, Poke_0800 );
+	ppu.SetPort( 0x0C00, 0x0FFF, this, Peek_0C00, Poke_0C00 );
+	ppu.SetPort( 0x1000, 0x13FF, this, Peek_1000, Poke_1000 );
+	ppu.SetPort( 0x1400, 0x17FF, this, Peek_1400, Poke_1400 );
+	ppu.SetPort( 0x1800, 0x1BFF, this, Peek_1800, Poke_1800 );
+	ppu.SetPort( 0x1C00, 0x1FFF, this, Peek_1C00, Poke_1C00 );
 
 	PDXMemZero( SelectCRam, 6 );
 }
@@ -54,7 +54,7 @@ VOID MAPPER119::Reset()
 
 VOID MAPPER119::UpdateCRom()
 {
-	ppu->Update();
+	ppu.Update();
 
 	if (command & SWAP_CROM_BANKS)
 	{

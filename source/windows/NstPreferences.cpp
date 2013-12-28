@@ -35,23 +35,22 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT PREFERENCES::Create(PDXFILE* const file)
+PDXRESULT PREFERENCES::Create(CONFIGFILE* const ConfigFile)
 {
-	if (file)
+	if (ConfigFile)
 	{
-		HEADER header;
-		file->Read(header);
+		CONFIGFILE& file = *ConfigFile;
 
-		emulateimmediately = header.emulateimmediately;
-		backgroundnsf      = header.backgroundnsf;
-		background         = header.background;
-		fullscreen         = header.fullscreen;
-		nowarnings         = header.nowarnings;
-		closepoweroff      = header.closepoweroff;
-		hidemenu           = header.hidemenu;
-		confirmexit        = header.confirmexit;
-		uselogfile         = header.logfile;
-		highpriority       = header.highpriority;
+		emulateimmediately = ( file[ "preferences emulate at once"         ] == "no"  ? FALSE : TRUE );
+		background         = ( file[ "preferences run in background"       ] == "yes" ? TRUE : FALSE );
+		backgroundnsf      = ( file[ "preferences nsf in background"       ] == "no"  ? FALSE : TRUE );
+		highpriority       = ( file[ "preferences high priority"           ] == "yes" ? TRUE : FALSE );
+		fullscreen         = ( file[ "preferences fullscreen on start"     ] == "yes" ? TRUE : FALSE );
+		nowarnings         = ( file[ "preferences warnings"                ] == "no"  ? TRUE : FALSE );
+		closepoweroff      = ( file[ "preferences power off on exit"       ] == "yes" ? TRUE : FALSE );
+		hidemenu           = ( file[ "preferences hide menu in fullscreen" ] == "yes" ? TRUE : FALSE );
+		confirmexit        = ( file[ "preferences confirm exit"            ] == "no"  ? FALSE : TRUE );
+		uselogfile         = ( file[ "preferences save logfile"            ] == "yes" ? TRUE : FALSE );
 	}
 	else
 	{
@@ -70,24 +69,22 @@ PDXRESULT PREFERENCES::Create(PDXFILE* const file)
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT PREFERENCES::Destroy(PDXFILE* const file)
+PDXRESULT PREFERENCES::Destroy(CONFIGFILE* const ConfigFile)
 {
-	if (file)
+	if (ConfigFile)
 	{
-		HEADER header;
+		CONFIGFILE& file = *ConfigFile;
 
-		header.emulateimmediately = emulateimmediately ? 1 : 0;
-		header.background         = background         ? 1 : 0;
-		header.backgroundnsf      = backgroundnsf      ? 1 : 0;
-		header.fullscreen         = fullscreen         ? 1 : 0;
-		header.nowarnings         = nowarnings         ? 1 : 0;   
-		header.closepoweroff      = closepoweroff      ? 1 : 0;
-		header.hidemenu           = hidemenu           ? 1 : 0;
-		header.confirmexit        = confirmexit        ? 1 : 0;
-		header.logfile            = uselogfile         ? 1 : 0;
-		header.highpriority       = highpriority       ? 1 : 0;
-
-		file->Write( header );
+		file[ "preferences emulate at once"         ] = ( emulateimmediately ? "yes" : "no" );
+		file[ "preferences run in background"       ] = ( background         ? "yes" : "no" );	  
+		file[ "preferences nsf in background"       ] = ( backgroundnsf      ? "yes" : "no" );
+		file[ "preferences high priority"           ] = ( highpriority       ? "yes" : "no" );
+		file[ "preferences fullscreen on start"     ] = ( fullscreen         ? "yes" : "no" );
+		file[ "preferences warnings"                ] = ( nowarnings         ? "no" : "yes" );
+		file[ "preferences power off on exit"       ] = ( closepoweroff      ? "yes" : "no" );
+		file[ "preferences hide menu in fullscreen" ] = ( hidemenu           ? "yes" : "no" );
+		file[ "preferences confirm exit"            ] = ( confirmexit        ? "yes" : "no" );
+		file[ "preferences save logfile"            ] = ( uselogfile         ? "yes" : "no" );
 	}
 
 	return PDX_OK;
@@ -176,6 +173,10 @@ BOOL PREFERENCES::DialogProc(HWND hDlg,UINT uMsg,WPARAM wParam,LPARAM)
 			{
 				case IDC_PREFERENCES_OK:
 
+					SetContext( hDlg );
+
+				case IDC_PREFERENCES_CANCEL:
+
 					EndDialog( hDlg, 0 );
 					return TRUE;
 
@@ -191,11 +192,6 @@ BOOL PREFERENCES::DialogProc(HWND hDlg,UINT uMsg,WPARAM wParam,LPARAM)
 
      		EndDialog( hDlg, 0 );
      		return TRUE;
-
-    	case WM_DESTROY:
-
-			SetContext( hDlg );
-    		return TRUE;
 	}
 
 	return FALSE;

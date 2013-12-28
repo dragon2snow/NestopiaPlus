@@ -33,8 +33,8 @@ NES_NAMESPACE_BEGIN
 
 VOID MAPPER99::Reset()
 {
-	p4016 = cpu->GetPort( 0x4016 );
-	cpu->SetPort( 0x4016, 0x4016, this, Peek_4016, Poke_4016 );
+	p4016 = cpu.GetPort( 0x4016 );
+	cpu.SetPort( 0x4016, 0x4016, this, Peek_4016, Poke_4016 );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -43,7 +43,7 @@ VOID MAPPER99::Reset()
 
 NES_POKE(MAPPER99,4016)
 {
-	ppu->Update();
+	ppu.Update();
 	cRom.SwapBanks<n8k,0x0000>( (data >> 2) & 0x1 );
 	p4016.Poke(0x4016,data);
 }

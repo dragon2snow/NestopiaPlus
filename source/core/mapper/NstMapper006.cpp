@@ -28,39 +28,29 @@
 NES_NAMESPACE_BEGIN
 
 ////////////////////////////////////////////////////////////////////////////////////////
-// constructor
-////////////////////////////////////////////////////////////////////////////////////////
-
-MAPPER6::MAPPER6(CONTEXT& c)
-: 
-MAPPER (c),
-cram   (n32k)
-{}
-
-////////////////////////////////////////////////////////////////////////////////////////
 // reset
 ////////////////////////////////////////////////////////////////////////////////////////
 
 VOID MAPPER6::Reset()
 {
-	cpu->SetPort( 0x42FE, this, Peek_Nop, Poke_42FE );
-	cpu->SetPort( 0x42FF, this, Peek_Nop, Poke_42FF );
-	cpu->SetPort( 0x4501, this, Peek_Nop, Poke_4501 );
-	cpu->SetPort( 0x4502, this, Peek_Nop, Poke_4502 );
-	cpu->SetPort( 0x4503, this, Peek_Nop, Poke_4503 );
+	if (!cRom.Size())
+		EnableCartridgeCRam(TRUE,n32k);
 
-	cpu->SetPort( 0x8000, 0x9FFF, this, Peek_8000, Poke_pRom );
-	cpu->SetPort( 0xA000, 0xBFFF, this, Peek_A000, Poke_pRom );
-	cpu->SetPort( 0xC000, 0xDFFF, this, Peek_C000, Poke_pRom );
-	cpu->SetPort( 0xE000, 0xFFFF, this, Peek_E000, Poke_pRom );
+	EnableIrqSync(IRQSYNC_COUNT);
 
-	ppu->SetPort( 0x0000, 0x1FFF, this, Peek_cRam, Poke_cRam );
+	cpu.SetPort( 0x42FE, this, Peek_Nop, Poke_42FE );
+	cpu.SetPort( 0x42FF, this, Peek_Nop, Poke_42FF );
+	cpu.SetPort( 0x4501, this, Peek_Nop, Poke_4501 );
+	cpu.SetPort( 0x4502, this, Peek_Nop, Poke_4502 );
+	cpu.SetPort( 0x4503, this, Peek_Nop, Poke_4503 );
+
+	cpu.SetPort( 0x8000, 0x9FFF, this, Peek_8000, Poke_pRom );
+	cpu.SetPort( 0xA000, 0xBFFF, this, Peek_A000, Poke_pRom );
+	cpu.SetPort( 0xC000, 0xDFFF, this, Peek_C000, Poke_pRom );
+	cpu.SetPort( 0xE000, 0xFFFF, this, Peek_E000, Poke_pRom );
 
 	pRom.SwapBanks<n16k,0x0000>(0);
 	pRom.SwapBanks<n16k,0x4000>(7);
-	cram.SwapBanks<n8k,0x0000>(0);
-  
-	cpu->SetEvent( ppu, PPU::Update );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -70,7 +60,7 @@ VOID MAPPER6::Reset()
 NES_POKE(MAPPER6,42FE) 
 {
 	const UINT m = (data & 0x10) ? 1 : 0;
-	ppu->SetMirroring(m,m,m,m);
+	ppu.SetMirroring(m,m,m,m);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -79,7 +69,7 @@ NES_POKE(MAPPER6,42FE)
 
 NES_POKE(MAPPER6,42FF) 
 {
-	ppu->SetMirroring((data & 0x10) ? MIRROR_HORIZONTAL : MIRROR_VERTICAL);
+	ppu.SetMirroring((data & 0x10) ? MIRROR_HORIZONTAL : MIRROR_VERTICAL);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -116,57 +106,24 @@ NES_POKE(MAPPER6,4503)
 
 NES_POKE(MAPPER6,pRom) 
 {
-	apu->Update();
-	ppu->Update();
-	pRom.SwapBanks<n16k,0x0000>(data >> 2);
-	cram.SwapBanks<n8k,0x0000>(data & 0x3);
+	apu.Update();
+	ppu.Update();
+
+	pRom.SwapBanks<n16k,0x0000>( (data & 0x3C) >> 2 );
+	cRom.SwapBanks<n8k,0x0000>(  (data & 0x03) >> 0 );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-NES_POKE(MAPPER6,cRam)
+VOID MAPPER6::IrqSync(const UINT delta)
 {
-	cram[address] = data;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_PEEK(MAPPER6,cRam)
-{
-	if (IsIrqEnabled())
+	if ((IrqCount += delta) >= 0xFFFFUL)
 	{
-		if ((IrqCount += 4) == 0x10000UL)
-		{
-			IrqCount = 0;
-			cpu->TryIRQ();
-		}
+		IrqCount = 0;
+		cpu.DoIRQ();
 	}
-
-	return cram[address];
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-PDXRESULT MAPPER6::LoadState(PDXFILE& file)
-{
-	PDX_TRY(MAPPER::LoadState(file));
-	return cram.LoadState(file);
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-PDXRESULT MAPPER6::SaveState(PDXFILE& file) const
-{
-	PDX_TRY(MAPPER::SaveState(file));
-	return cram.SaveState(file);
 }
 
 NES_NAMESPACE_END

@@ -39,7 +39,7 @@ class SNDFDS
 {
 public:
 
-	SNDFDS(CPU* const);
+	SNDFDS(CPU&);
 	~SNDFDS();
 
 	VOID Reset();
@@ -148,8 +148,8 @@ private:
 		U8      cWave[0x40];
 	};
 
-	CPU* const cpu;
-	APU* const apu;
+	CPU& cpu;
+	APU& apu;
 
 	CHANNEL channel;
 };

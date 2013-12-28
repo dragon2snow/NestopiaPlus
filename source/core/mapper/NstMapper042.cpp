@@ -77,16 +77,16 @@ VOID MAPPER42::Reset()
 	delete ExRom;
 	ExRom = new EXROM( pRom.Ram(), pRom.Size() );
 
-	cpu->SetPort( 0x6000, 0x7FFF, this, Peek_ExRom, Poke_Nop );
+	cpu.SetPort( 0x6000, 0x7FFF, this, Peek_ExRom, Poke_Nop );
 
 	for (ULONG i=0x8000; i <= 0xFFFFU; ++i)
 	{
 		switch (i & 0xE003)
 		{
-    		case 0x8000: cpu->SetPort( i, this, Peek_8000, Poke_8000 ); continue;
-     		case 0xE000: cpu->SetPort( i, this, Peek_E000, Poke_E000 ); continue;
-     		case 0xE001: cpu->SetPort( i, this, Peek_E000, Poke_E001 ); continue;
-			case 0xE002: cpu->SetPort( i, this, Peek_E000, Poke_E002 ); continue;
+    		case 0x8000: cpu.SetPort( i, this, Peek_8000, Poke_8000 ); continue;
+     		case 0xE000: cpu.SetPort( i, this, Peek_E000, Poke_E000 ); continue;
+     		case 0xE001: cpu.SetPort( i, this, Peek_E000, Poke_E001 ); continue;
+			case 0xE002: cpu.SetPort( i, this, Peek_E000, Poke_E002 ); continue;
 		}
 	}
 
@@ -102,7 +102,7 @@ VOID MAPPER42::Reset()
 
 NES_POKE(MAPPER42,8000) 
 {
-	ppu->Update();
+	ppu.Update();
 	cRom.SwapBanks<n8k,0x0000>(data & 0x1F);
 }
 
@@ -121,7 +121,7 @@ NES_POKE(MAPPER42,E000)
 
 NES_POKE(MAPPER42,E001) 
 { 
-	ppu->SetMirroring( (data & 0x8) ? MIRROR_HORIZONTAL : MIRROR_VERTICAL );
+	ppu.SetMirroring( (data & 0x8) ? MIRROR_HORIZONTAL : MIRROR_VERTICAL );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -154,7 +154,7 @@ VOID MAPPER42::IrqSync(const UINT delta)
 	if ((IrqCount += delta) >= 24576)
 	{
 		SetIrqEnable(FALSE);
-		cpu->TryIRQ();
+		cpu.TryIRQ();
 	}
 }
 

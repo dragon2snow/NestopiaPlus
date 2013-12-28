@@ -1,5 +1,5 @@
 -----------------------------------------------------------------------------
-Nestopia 1.03 - NES/Famicom emulator
+Nestopia 1.04 - NES/Famicom emulator
 -----------------------------------------------------------------------------
 
 Nestopia is Copyright 2003 by Martin Freij
@@ -42,9 +42,6 @@ many games that rely on perfect timing work flawlessly on Nestopia (Mach Rider,
 Slalom, Marble Maddness etc). However, in comparision to other emulators which 
 are either scanline or tile based this is slower but if you're running it on.. 
 say a P4 or at least a very fast P3 there shouldn't be any notable speed loss. 
-Now, if you really want to loose speed set the resolution and bit depth to 
-1600*1200 32bpp, stretch the picture to fit screen, enable scanlines, adjust to 
-maximum sample rate and bit depth and go nuts. 
 
 -----------------------------------------------------------------------------
 About the Source Code
@@ -79,9 +76,9 @@ Supported File Types
 
 NES  - NES Rom Image. Since this fileformat is somewhat lacking in cartridge 
        info plus many file headers floating around on the net are broken for 
-       some reason or another (think dudes with disks) Nestopia uses the 
-       Nestoy rom database internally and will try to identify and repair them 
-       temporarly in memory using some CRC32 magic.
+       some reason or another (think dudes with disks) Nestopia uses a rom 
+       database internally and will try to identify and repair them temporarly 
+       in memory using some CRC32 magic.
 
 UNIF - NES Rom Image. If Nestopia can't recognize the specified board name you 
        have the option to select the corresponding mapper the cartridge should 
@@ -158,13 +155,13 @@ NSV  - Nestopia Movie File. Available commands are located in the menu. One note
 Fully or Partially Supported Mappers
 -----------------------------------------------------------------------------
 
-1,2,3,4,5,6,7,8,9,10,11,13,15,16,17,18,19,21,22,23,24,25,26,32,33
-34,40,41,42,43,44,45,46,47,48,49,50,51,52,57,58,60,61,62,64,65,66
-67,68,69,70,71,72,73,74,75,76,77,78,79,80,82,83,85,86,87,88,89,90
-91,92,93,94,95,96,97,99,100,101,105,112,113,114,115,117,118,119,122
-140,144,151,152,153,154,155,156,157,160,180,181,182,183,184,185,187
-188,189,222,225,226,227,228,229,230,231,232,233,234,235,236,237,240
-241,242,243,244,245,246,248,249,250,255 = a total of 132
+1,2,3,4,5,6,7,8,9,10,11,13,15,16,17,18,19,21,22,23,24,25,26,32,33,
+34,40,41,42,43,44,45,46,47,48,49,50,51,52,57,58,60,61,62,64,65,66,
+67,68,69,70,71,72,73,74,75,76,77,78,79,80,82,83,85,86,87,88,89,90,
+91,92,93,94,95,96,97,99,100,101,105,112,113,114,115,117,118,119,122,
+133,140,144,151,152,153,154,155,156,157,160,180,181,182,183,184,185,
+187,188,189,222,225,226,227,228,229,230,231,232,233,234,235,236,237,
+240,241,242,243,244,245,246,248,249,250,255 = a total of 133
 
 -----------------------------------------------------------------------------
 Supported Sound Chips

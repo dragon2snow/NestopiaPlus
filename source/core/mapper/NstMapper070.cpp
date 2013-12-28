@@ -33,20 +33,53 @@ NES_NAMESPACE_BEGIN
 
 VOID MAPPER70::Reset()
 {
-	cpu->SetPort( 0x6000, 0x7FFF, this, Peek_Nop, Poke_6000 );
+	switch (pRomCrc)
+	{
+     	case 0xA59CA2EF: // Kamen Rider Club(J)
+		case 0x0CD00488: // Space Shadow(J)
+     	case 0x10BB8F9A: // Family Trainer - Manhattan Police(J)
+
+			cpu.SetPort( 0x8000, 0xFFFF, this, Peek_pRom, Poke_6000_1 );
+			break;
+
+		default:
+
+			cpu.SetPort( 0x8000, 0xFFFF, this, Peek_pRom, Poke_6000_2 );
+			break;
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-NES_POKE(MAPPER70,6000) 
+VOID MAPPER70::SetBanks(const UINT data)
 {
-	apu->Update();
-	ppu->Update();
+	apu.Update();
+	ppu.Update();
 
+	pRom.SwapBanks<n16k,0x0000>( (data & 0x70) >> 4); 
 	cRom.SwapBanks<n8k,0x0000> ( (data & 0x0F) >> 0);
-	pRom.SwapBanks<n16k,0x0000>( (data & 0xF0) >> 4); 
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+NES_POKE(MAPPER70,6000_1) 
+{
+	SetBanks(data);
+	ppu.SetMirroring( (data & 0x80) ? MIRROR_ONE : MIRROR_ZERO );
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+NES_POKE(MAPPER70,6000_2) 
+{
+	SetBanks(data);
+	ppu.SetMirroring( (data & 0x80) ? MIRROR_HORIZONTAL : MIRROR_VERTICAL );
 }
 
 NES_NAMESPACE_END

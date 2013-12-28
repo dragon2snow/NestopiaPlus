@@ -34,13 +34,13 @@ NES_NAMESPACE_BEGIN
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-SNDN106::SNDN106(CPU* const c)
-: apu(c->GetAPU())
+SNDN106::SNDN106(CPU& c)
+: apu(c.GetAPU())
 {
 	for (UINT i=0; i < NUM_CHANNELS; ++i)
 	{
 		channels[i] = new CHANNEL(this,i);
-		apu->HookChannel( PDX_STATIC_CAST(APU::CHANNEL*,channels[i]) );
+		apu.HookChannel( PDX_STATIC_CAST(APU::CHANNEL*,channels[i]) );
 	}
 }
 
@@ -52,7 +52,7 @@ SNDN106::~SNDN106()
 {
 	for (UINT i=0; i < NUM_CHANNELS; ++i)
 	{
-		apu->ReleaseChannel( PDX_STATIC_CAST(APU::CHANNEL*,channels[i]) );
+		apu.ReleaseChannel( PDX_STATIC_CAST(APU::CHANNEL*,channels[i]) );
 		delete channels[i];
 	}
 }
@@ -121,7 +121,7 @@ PDXRESULT SNDN106::SaveState(PDXFILE& file) const
 
 UINT SNDN106::Peek_4800()
 {
-	apu->Update(); 
+	apu.Update(); 
 
 	const UINT data = ExRam[address];
 	address = (address + AddressIncrease) & ADDRESS_MAX;
@@ -135,7 +135,7 @@ UINT SNDN106::Peek_4800()
 
 VOID SNDN106::Poke_4800(const UINT data)
 { 
-	apu->Update(); 
+	apu.Update(); 
 
 	ExRam[address] = data;
 	tone[(address << 1) + 0] = ((data & 0xF) << 2) - 0x20;
@@ -172,7 +172,7 @@ VOID SNDN106::Poke_4800(const UINT data)
 
 VOID SNDN106::Poke_F800(const UINT data)
 { 
-	apu->Update(); 
+	apu.Update(); 
 	address = data & ADDRESS_MAX;
 	AddressIncrease = (data & ADDRESS_INC) ? 1 : 0;
 }
@@ -209,7 +209,7 @@ VOID SNDN106::CHANNEL::Reset()
 VOID SNDN106::CHANNEL::UpdateContext()
 {
 	IO::SFX::CONTEXT context;
-	mother->apu->GetContext( context );
+	mother->apu.GetContext( context );
 	rate = ULONG((NES_MASTER_CLOCK_HZ_REAL_NTSC / (45.0L * context.SampleRate)) * (1UL << SPEED_SHIFT));
 }
 

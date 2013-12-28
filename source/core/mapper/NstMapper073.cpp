@@ -35,12 +35,12 @@ VOID MAPPER73::Reset()
 {
 	EnableIrqSync(IRQSYNC_COUNT);
 
-	cpu->SetPort( 0x8000, 0x8FFF, this, Peek_8000, Poke_8000 );
-	cpu->SetPort( 0x9000, 0x9FFF, this, Peek_9000, Poke_9000 );
-	cpu->SetPort( 0xA000, 0xAFFF, this, Peek_A000, Poke_A000 );
-	cpu->SetPort( 0xB000, 0xBFFF, this, Peek_B000, Poke_B000 );
-	cpu->SetPort( 0xC000, 0xCFFF, this, Peek_C000, Poke_C000 );
-	cpu->SetPort( 0xF000, 0xFFFF, this, Peek_F000, Poke_F000 );
+	cpu.SetPort( 0x8000, 0x8FFF, this, Peek_8000, Poke_8000 );
+	cpu.SetPort( 0x9000, 0x9FFF, this, Peek_9000, Poke_9000 );
+	cpu.SetPort( 0xA000, 0xAFFF, this, Peek_A000, Poke_A000 );
+	cpu.SetPort( 0xB000, 0xBFFF, this, Peek_B000, Poke_B000 );
+	cpu.SetPort( 0xC000, 0xCFFF, this, Peek_C000, Poke_C000 );
+	cpu.SetPort( 0xF000, 0xFFFF, this, Peek_F000, Poke_F000 );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -67,7 +67,7 @@ NES_POKE(MAPPER73,C000)
 
 NES_POKE(MAPPER73,F000)
 {
-	apu->Update(); 
+	apu.Update(); 
 	pRom.SwapBanks<n16k,0x0000>(data);
 }
 
@@ -83,7 +83,7 @@ VOID MAPPER73::IrqSync(const UINT delta)
 	{
 		IrqCount &= 0xFFFFU;
 		SetIrqEnable(FALSE);
-		cpu->TryIRQ();
+		cpu.TryIRQ();
 	}
 }
 

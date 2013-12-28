@@ -40,8 +40,8 @@ class FILEMANAGER : public MANAGER
 {
 public:
 
-	FILEMANAGER(const INT id,const UINT chunk)
-	: MANAGER( id, chunk ), ZipFile(NULL) {}
+	FILEMANAGER(const INT id)
+	: MANAGER(id), ZipFile(NULL) {}
 
 	PDXRESULT Load(INT=-1,const BOOL=TRUE);
 	PDXRESULT LoadNSP(INT=-1,const BOOL=TRUE);
@@ -81,9 +81,10 @@ private:
 
 	PDXRESULT ApplyRom (const PDXSTRING&,PDXFILE&,PDXSTRING&);
 	PDXRESULT ApplyNps (const PDXSTRING&,NES::IO::NSP::CONTEXT&,BOOL&) const;
-	PDXRESULT ApplySav (const PDXSTRING&,PDXSTRING&);
 	PDXRESULT ApplyIps (PDXFILE&,PDXSTRING&,BOOL&);
 	PDXRESULT ApplyNst (PDXFILE&,PDXSTRING&,BOOL&) const;
+
+	VOID ApplySav (const PDXSTRING&,PDXSTRING&);
 
 	BOOL FindRom (const PDXSTRING&,PDXSTRING&) const;
 	BOOL FindIps (const PDXSTRING&,PDXSTRING&) const;
@@ -93,8 +94,8 @@ private:
 
 	VOID UpdateContext();
 
-	PDXRESULT Create  (PDXFILE* const);
-	PDXRESULT Destroy (PDXFILE* const);
+	PDXRESULT Create  (CONFIGFILE* const);
+	PDXRESULT Destroy (CONFIGFILE* const);
 
 	enum
 	{

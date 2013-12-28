@@ -58,57 +58,57 @@ VOID MAPPER90::Reset()
 	delete CiRom; CiRom = new CIROM( cRom.Ram(), cRom.Size() );
 	delete ExRom; ExRom = new EXROM( pRom.Ram(), pRom.Size() );
 
-	cpu->SetPort( 0x5000, this, Peek_5000, Poke_Nop  );
-	cpu->SetPort( 0x5800, this, Peek_5800, Poke_5800 );
-	cpu->SetPort( 0x5801, this, Peek_5801, Poke_5801 );
-	cpu->SetPort( 0x5803, this, Peek_5803, Poke_5803 );
+	cpu.SetPort( 0x5000, this, Peek_5000, Poke_Nop  );
+	cpu.SetPort( 0x5800, this, Peek_5800, Poke_5800 );
+	cpu.SetPort( 0x5801, this, Peek_5801, Poke_5801 );
+	cpu.SetPort( 0x5803, this, Peek_5803, Poke_5803 );
 
 	for (ULONG i=0x0000; i < 0x0FFF; i += 0x8)
 	{
-		cpu->SetPort( 0x8000 + i, this, Peek_8000, Poke_8000 );
-		cpu->SetPort( 0x8001 + i, this, Peek_8000, Poke_8001 );
-		cpu->SetPort( 0x8002 + i, this, Peek_8000, Poke_8002 );
-		cpu->SetPort( 0x8003 + i, this, Peek_8000, Poke_8003 );
-		cpu->SetPort( 0x8004 + i, this, Peek_8000, Poke_8000 );
-		cpu->SetPort( 0x8005 + i, this, Peek_8000, Poke_8001 );
-		cpu->SetPort( 0x8006 + i, this, Peek_8000, Poke_8002 );
-		cpu->SetPort( 0x8007 + i, this, Peek_8000, Poke_8003 );
-		cpu->SetPort( 0x9000 + i, this, Peek_9000, Poke_9000 );
-		cpu->SetPort( 0x9001 + i, this, Peek_9000, Poke_9001 );
-		cpu->SetPort( 0x9002 + i, this, Peek_9000, Poke_9002 );
-		cpu->SetPort( 0x9003 + i, this, Peek_9000, Poke_9003 );
-		cpu->SetPort( 0x9004 + i, this, Peek_9000, Poke_9004 );
-		cpu->SetPort( 0x9005 + i, this, Peek_9000, Poke_9005 );
-		cpu->SetPort( 0x9006 + i, this, Peek_9000, Poke_9006 );
-		cpu->SetPort( 0x9007 + i, this, Peek_9000, Poke_9007 );
-		cpu->SetPort( 0xA000 + i, this, Peek_A000, Poke_A000 );
-		cpu->SetPort( 0xA001 + i, this, Peek_A000, Poke_A001 );
-		cpu->SetPort( 0xA002 + i, this, Peek_A000, Poke_A002 );
-		cpu->SetPort( 0xA003 + i, this, Peek_A000, Poke_A003 );
-		cpu->SetPort( 0xA004 + i, this, Peek_A000, Poke_A004 );
-		cpu->SetPort( 0xA005 + i, this, Peek_A000, Poke_A005 );
-		cpu->SetPort( 0xA006 + i, this, Peek_A000, Poke_A006 );
-		cpu->SetPort( 0xA007 + i, this, Peek_A000, Poke_A007 );
-		cpu->SetPort( 0xB000 + i, this, Peek_B000, Poke_B000 );
-		cpu->SetPort( 0xB001 + i, this, Peek_B000, Poke_B001 );
-		cpu->SetPort( 0xB002 + i, this, Peek_B000, Poke_B002 );
-		cpu->SetPort( 0xB003 + i, this, Peek_B000, Poke_B003 );
-		cpu->SetPort( 0xB004 + i, this, Peek_B000, Poke_B004 );
-		cpu->SetPort( 0xB005 + i, this, Peek_B000, Poke_B005 );
-		cpu->SetPort( 0xB006 + i, this, Peek_B000, Poke_B006 );
-		cpu->SetPort( 0xB007 + i, this, Peek_B000, Poke_B007 );
-		cpu->SetPort( 0xC002 + i, this, Peek_C000, Poke_C002 );
-		cpu->SetPort( 0xC003 + i, this, Peek_C000, Poke_C003 );
-		cpu->SetPort( 0xC004 + i, this, Peek_C000, Poke_C003 );
-		cpu->SetPort( 0xC005 + i, this, Peek_C000, Poke_C005 );
-		cpu->SetPort( 0xD000 + i, this, Peek_D000, Poke_D000 );
-		cpu->SetPort( 0xD001 + i, this, Peek_D000, Poke_D001 );
+		cpu.SetPort( 0x8000 + i, this, Peek_8000, Poke_8000 );
+		cpu.SetPort( 0x8001 + i, this, Peek_8000, Poke_8001 );
+		cpu.SetPort( 0x8002 + i, this, Peek_8000, Poke_8002 );
+		cpu.SetPort( 0x8003 + i, this, Peek_8000, Poke_8003 );
+		cpu.SetPort( 0x8004 + i, this, Peek_8000, Poke_8000 );
+		cpu.SetPort( 0x8005 + i, this, Peek_8000, Poke_8001 );
+		cpu.SetPort( 0x8006 + i, this, Peek_8000, Poke_8002 );
+		cpu.SetPort( 0x8007 + i, this, Peek_8000, Poke_8003 );
+		cpu.SetPort( 0x9000 + i, this, Peek_9000, Poke_9000 );
+		cpu.SetPort( 0x9001 + i, this, Peek_9000, Poke_9001 );
+		cpu.SetPort( 0x9002 + i, this, Peek_9000, Poke_9002 );
+		cpu.SetPort( 0x9003 + i, this, Peek_9000, Poke_9003 );
+		cpu.SetPort( 0x9004 + i, this, Peek_9000, Poke_9004 );
+		cpu.SetPort( 0x9005 + i, this, Peek_9000, Poke_9005 );
+		cpu.SetPort( 0x9006 + i, this, Peek_9000, Poke_9006 );
+		cpu.SetPort( 0x9007 + i, this, Peek_9000, Poke_9007 );
+		cpu.SetPort( 0xA000 + i, this, Peek_A000, Poke_A000 );
+		cpu.SetPort( 0xA001 + i, this, Peek_A000, Poke_A001 );
+		cpu.SetPort( 0xA002 + i, this, Peek_A000, Poke_A002 );
+		cpu.SetPort( 0xA003 + i, this, Peek_A000, Poke_A003 );
+		cpu.SetPort( 0xA004 + i, this, Peek_A000, Poke_A004 );
+		cpu.SetPort( 0xA005 + i, this, Peek_A000, Poke_A005 );
+		cpu.SetPort( 0xA006 + i, this, Peek_A000, Poke_A006 );
+		cpu.SetPort( 0xA007 + i, this, Peek_A000, Poke_A007 );
+		cpu.SetPort( 0xB000 + i, this, Peek_B000, Poke_B000 );
+		cpu.SetPort( 0xB001 + i, this, Peek_B000, Poke_B001 );
+		cpu.SetPort( 0xB002 + i, this, Peek_B000, Poke_B002 );
+		cpu.SetPort( 0xB003 + i, this, Peek_B000, Poke_B003 );
+		cpu.SetPort( 0xB004 + i, this, Peek_B000, Poke_B004 );
+		cpu.SetPort( 0xB005 + i, this, Peek_B000, Poke_B005 );
+		cpu.SetPort( 0xB006 + i, this, Peek_B000, Poke_B006 );
+		cpu.SetPort( 0xB007 + i, this, Peek_B000, Poke_B007 );
+		cpu.SetPort( 0xC002 + i, this, Peek_C000, Poke_C002 );
+		cpu.SetPort( 0xC003 + i, this, Peek_C000, Poke_C003 );
+		cpu.SetPort( 0xC004 + i, this, Peek_C000, Poke_C003 );
+		cpu.SetPort( 0xC005 + i, this, Peek_C000, Poke_C005 );
+		cpu.SetPort( 0xD000 + i, this, Peek_D000, Poke_D000 );
+		cpu.SetPort( 0xD001 + i, this, Peek_D000, Poke_D001 );
 	}
 
-	ppu->SetPort( 0x0000, 0x1FFF, this, Peek_CRom , Poke_Nop   );
-	ppu->SetPort( 0x2000, 0x2FFF, this, Peek_CiRam, Poke_CiRam );
+	ppu.SetPort( 0x0000, 0x1FFF, this, Peek_CRom , Poke_Nop   );
+	ppu.SetPort( 0x2000, 0x2FFF, this, Peek_CiRam, Poke_CiRam );
 
-	cpu->SetEvent( ppu, PPU::Update );
+	cpu.SetEvent( &ppu, PPU::Update );
 
 	pRom.SwapBanks<n32k,0x0000>(pRom.NumBanks<n32k>() - 1);
 
@@ -265,7 +265,7 @@ NES_POKE(MAPPER90,D001)
 
 VOID MAPPER90::UpdateCRom()
 {
-	ppu->Update();
+	ppu.Update();
 
 	switch (status & CROM_BANK_MODE)
 	{
@@ -308,7 +308,7 @@ VOID MAPPER90::UpdateCRom()
 
 VOID MAPPER90::UpdatePRom()
 {
-	apu->Update();
+	apu.Update();
 
 	switch (status & PROM_BANK_MODE)
 	{
@@ -338,7 +338,7 @@ VOID MAPPER90::UpdatePRom()
 				if (status & EXROM_BANK_SWAP)
 				{
 					ExRom->SwapBanks<n8k,0x0000>( pRomBanks[3] );
-					cpu->SetPort( 0x6000, 0x7FFF, this, Peek_ExRom, Poke_Nop );
+					cpu.SetPort( 0x6000, 0x7FFF, this, Peek_ExRom, Poke_Nop );
 				}
 
 				pRom.SwapBanks<n8k,0x6000>( pRom.NumBanks<n8k>() - 1 );
@@ -361,7 +361,7 @@ VOID MAPPER90::UpdatePRom()
 
 VOID MAPPER90::UpdateCiRom() 
 {
-	ppu->Update();
+	ppu.Update();
 
 	if (status & SELECT_CIROM)
 	{
@@ -376,7 +376,7 @@ VOID MAPPER90::UpdateCiRom()
 			CiRom->SwapBanks<n1k,0x0800>( CiRomBanks[2].d );
 			CiRom->SwapBanks<n1k,0x0C00>( CiRomBanks[3].d );
 
-			ppu->SetPort( 0x2000, 0x2FFF, this, Peek_CiRom, Poke_Nop );
+			ppu.SetPort( 0x2000, 0x2FFF, this, Peek_CiRom, Poke_Nop );
 		}
 	}
 	else
@@ -394,7 +394,7 @@ VOID MAPPER90::UpdateCiRom()
 		CiRam.SwapBanks<n1k,0x0800>( select[mirror][2] );
 		CiRam.SwapBanks<n1k,0x0C00>( select[mirror][3] );
 
-		ppu->SetPort( 0x2000, 0x2FFF, this, Peek_CiRam, Poke_CiRam );
+		ppu.SetPort( 0x2000, 0x2FFF, this, Peek_CiRam, Poke_CiRam );
 	}
 }
 
@@ -411,7 +411,7 @@ VOID MAPPER90::IrqSync(const UINT address)
 		if (IsIrqEnabled())
 		{
 			SetIrqEnable(FALSE);
-			cpu->DoIRQ();
+			cpu.DoIRQ();
 		}
 	}
 

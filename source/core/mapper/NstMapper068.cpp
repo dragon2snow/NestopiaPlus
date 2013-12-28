@@ -53,19 +53,19 @@ MAPPER68::~MAPPER68()
 
 VOID MAPPER68::Reset()
 {
-	cpu->SetPort( 0x8000, 0x8FFF, this, Peek_8000, Poke_8000 );
-	cpu->SetPort( 0x9000, 0x9FFF, this, Peek_9000, Poke_9000 );
-	cpu->SetPort( 0xA000, 0xAFFF, this, Peek_A000, Poke_A000 );
-	cpu->SetPort( 0xB000, 0xBFFF, this, Peek_B000, Poke_B000 );
-	cpu->SetPort( 0xC000, 0xCFFF, this, Peek_C000, Poke_C000 );
-	cpu->SetPort( 0xD000, 0xDFFF, this, Peek_D000, Poke_D000 );
-	cpu->SetPort( 0xE000, 0xEFFF, this, Peek_E000, Poke_E000 );
-	cpu->SetPort( 0xF000, 0xFFFF, this, Peek_F000, Poke_F000 );
+	cpu.SetPort( 0x8000, 0x8FFF, this, Peek_8000, Poke_8000 );
+	cpu.SetPort( 0x9000, 0x9FFF, this, Peek_9000, Poke_9000 );
+	cpu.SetPort( 0xA000, 0xAFFF, this, Peek_A000, Poke_A000 );
+	cpu.SetPort( 0xB000, 0xBFFF, this, Peek_B000, Poke_B000 );
+	cpu.SetPort( 0xC000, 0xCFFF, this, Peek_C000, Poke_C000 );
+	cpu.SetPort( 0xD000, 0xDFFF, this, Peek_D000, Poke_D000 );
+	cpu.SetPort( 0xE000, 0xEFFF, this, Peek_E000, Poke_E000 );
+	cpu.SetPort( 0xF000, 0xFFFF, this, Peek_F000, Poke_F000 );
 
 	delete CiRom; 
 	CiRom = new CIROM( cRom.Ram(), cRom.Size() );
 
-	ppu->SetPort( 0x2000, 0x2FFF, this, Peek_CiRam, Poke_CiRam );
+	ppu.SetPort( 0x2000, 0x2FFF, this, Peek_CiRam, Poke_CiRam );
 
 	status = 0;
 	CiRomBanks[0] = 0;
@@ -98,10 +98,10 @@ PDXRESULT MAPPER68::SaveState(PDXFILE& file) const
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-NES_POKE(MAPPER68,8000) { ppu->Update(); cRom.SwapBanks<n2k,0x0000>(data); }
-NES_POKE(MAPPER68,9000) { ppu->Update(); cRom.SwapBanks<n2k,0x0800>(data); }
-NES_POKE(MAPPER68,A000) { ppu->Update(); cRom.SwapBanks<n2k,0x1000>(data); }
-NES_POKE(MAPPER68,B000) { ppu->Update(); cRom.SwapBanks<n2k,0x1800>(data); }
+NES_POKE(MAPPER68,8000) { ppu.Update(); cRom.SwapBanks<n2k,0x0000>(data); }
+NES_POKE(MAPPER68,9000) { ppu.Update(); cRom.SwapBanks<n2k,0x0800>(data); }
+NES_POKE(MAPPER68,A000) { ppu.Update(); cRom.SwapBanks<n2k,0x1000>(data); }
+NES_POKE(MAPPER68,B000) { ppu.Update(); cRom.SwapBanks<n2k,0x1800>(data); }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -117,7 +117,7 @@ NES_POKE(MAPPER68,E000) { status = data;        UpdateMirroring(); }
 
 NES_POKE(MAPPER68,F000) 
 { 
-	apu->Update(); 
+	apu.Update(); 
 	pRom.SwapBanks<n16k,0x0000>(data); 
 }
 
@@ -163,7 +163,7 @@ VOID MAPPER68::UpdateMirroring()
 		CiRom->SwapBanks<n1k,0x0800>( BANK_OFFSET + CiRomBanks[index[2]] );
 		CiRom->SwapBanks<n1k,0x0C00>( BANK_OFFSET + CiRomBanks[index[3]] );
 
-		ppu->SetPort( 0x2000, 0x2FFF, this, Peek_CiRom, Poke_Nop );
+		ppu.SetPort( 0x2000, 0x2FFF, this, Peek_CiRom, Poke_Nop );
 	}
 	else
 	{
@@ -172,7 +172,7 @@ VOID MAPPER68::UpdateMirroring()
 		CiRam.SwapBanks<n1k,0x0800>( index[2] );
 		CiRam.SwapBanks<n1k,0x0C00>( index[3] );
 
-		ppu->SetPort( 0x2000, 0x2FFF, this, Peek_CiRam, Poke_Nop );
+		ppu.SetPort( 0x2000, 0x2FFF, this, Peek_CiRam, Poke_Nop );
 	}
 }
 

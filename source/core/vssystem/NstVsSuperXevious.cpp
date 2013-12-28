@@ -36,10 +36,10 @@ NES_NAMESPACE_BEGIN
 
 VOID VSSUPERXEVIOUS::Reset()
 {
-	cpu->SetPort( 0x54FF, this, Peek_54FF, Poke );
-	cpu->SetPort( 0x5567, this, Peek_5567, Poke );
-	cpu->SetPort( 0x5678, this, Peek_5678, Poke );
-	cpu->SetPort( 0x578F, this, Peek_578F, Poke );
+	cpu.SetPort( 0x54FF, this, Peek_54FF, Poke );
+	cpu.SetPort( 0x5567, this, Peek_5567, Poke );
+	cpu.SetPort( 0x5678, this, Peek_5678, Poke );
+	cpu.SetPort( 0x578F, this, Peek_578F, Poke );
 
 	protection = 0;
 }

@@ -29,63 +29,36 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-MANAGER::MANAGER(const INT did,const UINT chunk)
+MANAGER::MANAGER(const INT did)
 : 
 nes       (NULL), 
 hWnd      (NULL),
 hInstance (NULL),
-DialogID  (did),
-FileChunk (chunk)
+DialogID  (did)
 {}
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT MANAGER::Init(HWND w,HINSTANCE i,NES::MACHINE* const n,PDXFILE* const file)
+PDXRESULT MANAGER::Init(HWND w,HINSTANCE i,NES::MACHINE* const n,CONFIGFILE* const ConfigFile)
 {
 	hWnd = w;
 	hInstance = i;
 	nes = n;
-
-	BOOL IsNull = TRUE;
-
-	if (file && !file->IsEmpty() && FileChunk != NO_FILE)
-	{
-		if (FileChunk == file->Read<U8>())
-		{
-			IsNull = FALSE;
-		}
-		else
-		{
-			file->Seek( PDXFILE::CURRENT, -LONG(sizeof(U8)) );
-		}
-	}
-
-	return Create( IsNull ? NULL : file );
+	return Create( ConfigFile );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-PDXRESULT MANAGER::Close(PDXFILE* const file)
+PDXRESULT MANAGER::Close(CONFIGFILE* const ConfigFile)
 {
 	hWnd = NULL;
 	hInstance = NULL;
-
-	BOOL IsNull = TRUE;
-
-	if (file && FileChunk != NO_FILE)
-	{
-		IsNull = FALSE;
-		file->Write( U8(FileChunk) );
-	}
-  
-	PDXRESULT result = Destroy( IsNull ? NULL : file );
-
+	PDXRESULT result = Destroy( ConfigFile );
 	nes = NULL;
-
 	return result;
 }
 

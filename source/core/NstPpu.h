@@ -45,7 +45,7 @@ public:
 
 	typedef PPU_PORT PORT;
 
-	PPU(CPU* const);
+	PPU(CPU&);
 	~PPU();
 
 	PDX_NO_INLINE VOID Reset(const BOOL=FALSE);	
@@ -72,6 +72,8 @@ public:
 	template<class OBJECT,class READER,class WRITER>
 	VOID SetPort(const UINT,const UINT,OBJECT*,READER,WRITER);
 
+	ULONG GetCycles() const;
+
 	PORT& GetPort(const UINT);
 	const PORT& GetPort(const UINT) const;
 
@@ -80,6 +82,9 @@ public:
 
 	INT GetScanLine() const;
 	UINT GetVRamAddress() const;
+
+	BOOL IsBgEnabled() const;
+	BOOL IsSpEnabled() const;
 
 	NES_DECL_PEEK( cRam   );
 	NES_DECL_POKE( cRam   );
@@ -257,7 +262,7 @@ private:
 	};
 
 	IO::GFX* screen;
-	CPU* const cpu;
+	CPU& cpu;
 
 	BOOL pal;
 	UINT EvenFrame;

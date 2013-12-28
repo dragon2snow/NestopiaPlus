@@ -33,10 +33,10 @@ NES_NAMESPACE_BEGIN
 
 VOID MAPPER92::Reset()
 {
-	cpu->SetPort( 0x8000, 0x8FFF, this, Peek_8000, Poke_8000 );
-	cpu->SetPort( 0xA000, 0xBFFF, this, Peek_A000, Poke_9000 );
-	cpu->SetPort( 0xC000, 0xDFFF, this, Peek_C000, Poke_9000 );
-	cpu->SetPort( 0xE000, 0xFFFF, this, Peek_E000, Poke_9000 );
+	cpu.SetPort( 0x8000, 0x8FFF, this, Peek_8000, Poke_8000 );
+	cpu.SetPort( 0xA000, 0xBFFF, this, Peek_A000, Poke_9000 );
+	cpu.SetPort( 0xC000, 0xDFFF, this, Peek_C000, Poke_9000 );
+	cpu.SetPort( 0xE000, 0xFFFF, this, Peek_E000, Poke_9000 );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -49,14 +49,14 @@ NES_POKE(MAPPER92,8000)
 	{
        	case 0xB0: 
 			
-			apu->Update();
+			apu.Update();
 			pRom.SwapBanks<n16k,0x0000>( 0 ); 
 			pRom.SwapBanks<n16k,0x4000>( address & 0xF );
 			return;
 
 		case 0x70: 
 			
-			ppu->Update();
+			ppu.Update();
 			cRom.SwapBanks<n8k,0x0000>( address & 0xF );
 			return;
 	}
@@ -72,14 +72,14 @@ NES_POKE(MAPPER92,9000)
 	{
        	case 0xD0: 
 			
-			apu->Update();
+			apu.Update();
 			pRom.SwapBanks<n16k,0x0000>( 0 ); 
 			pRom.SwapBanks<n16k,0x4000>( address & 0xF );
 			return;
 
 		case 0xE0: 
 			
-			ppu->Update();
+			ppu.Update();
 			cRom.SwapBanks<n8k,0x0000>( address & 0xF );
 			return;
 	}

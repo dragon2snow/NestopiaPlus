@@ -36,10 +36,10 @@ VOID MAPPER250::Reset()
 {
 	MAPPER4::Reset();
 
-	cpu->SetPort( 0x8000, 0x9FFF, this, Peek_8000, Poke_8000 );
-	cpu->SetPort( 0xA000, 0xBFFF, this, Peek_A000, Poke_8000 );
-	cpu->SetPort( 0xC000, 0xDFFF, this, Peek_C000, Poke_C000 );
-	cpu->SetPort( 0xE000, 0xFFFF, this, Peek_E000, Poke_C000 );
+	cpu.SetPort( 0x8000, 0x9FFF, this, Peek_8000, Poke_8000 );
+	cpu.SetPort( 0xA000, 0xBFFF, this, Peek_A000, Poke_8000 );
+	cpu.SetPort( 0xC000, 0xDFFF, this, Peek_C000, Poke_C000 );
+	cpu.SetPort( 0xE000, 0xFFFF, this, Peek_E000, Poke_C000 );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////

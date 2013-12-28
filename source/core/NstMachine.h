@@ -27,18 +27,19 @@
 #ifndef NST_MACHINE_H
 #define NST_MACHINE_H
 
+#include "NstCpu.h"
+#include "NstApu.h"
+#include "NstPpu.h"
+#include "NstPalette.h"
+
 ////////////////////////////////////////////////////////////////////////////////////////
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
 NES_NAMESPACE_BEGIN
 
-class CPU;
-class APU;
-class PPU;
 class FDS;
 class CARTRIDGE;
-class PALETTE;
 class VSSYSTEM;
 class GAMEGENIE;
 class NSF;
@@ -198,14 +199,14 @@ private:
 	NES_DECL_POKE( 4017 );					    
 	NES_DECL_PEEK( 4017 );
 
-	CPU* const cpu;
-	APU* const apu;
-	PPU* const ppu;
+	CPU  cpu;
+	APU& apu;
+	PPU  ppu;
 	CARTRIDGE* cartridge;
 	CONTROLLER* controller[4];
 	CONTROLLER* expansion;
 	VSSYSTEM* VsSystem;
-	PALETTE* const palette;
+	PALETTE palette;
 	GAMEGENIE* const GameGenie;
 	FDS* fds;
 	NSF* nsf;

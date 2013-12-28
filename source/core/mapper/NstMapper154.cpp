@@ -34,8 +34,8 @@ NES_NAMESPACE_BEGIN
 
 VOID MAPPER154::Reset()
 {
-	cpu->SetPort( 0x8000, this, Peek_8000, Poke_8000 );
-	cpu->SetPort( 0xC000, this, Peek_C000, Poke_Nop  );
+	cpu.SetPort( 0x8000, this, Peek_8000, Poke_8000 );
+	cpu.SetPort( 0xC000, this, Peek_C000, Poke_Nop  );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -45,7 +45,7 @@ VOID MAPPER154::Reset()
 NES_POKE(MAPPER154,8000)
 {
 	command = data & 0x7;
-	ppu->SetMirroring( (data & 0x40) ? MIRROR_ONE : MIRROR_ZERO );
+	ppu.SetMirroring( (data & 0x40) ? MIRROR_ONE : MIRROR_ZERO );
 }
 
 NES_NAMESPACE_END

@@ -35,19 +35,19 @@ VOID MAPPER248::Reset()
 {
 	EnableIrqSync(IRQSYNC_PPU);
 
-	cpu->SetPort( 0x6000, 0x7FFF, this, Peek_Nop, Poke_6000 );
+	cpu.SetPort( 0x6000, 0x7FFF, this, Peek_Nop, Poke_6000 );
 
 	for (ULONG i=0x8000; i <= 0xFFFFU; ++i)
 	{
 		switch (i & 0xF001)
 		{
-			case 0x8000: cpu->SetPort( i, this, Peek_8000, Poke_8000 ); continue;
-			case 0x8001: cpu->SetPort( i, this, Peek_8000, Poke_8001 ); continue;
-			case 0xA000: cpu->SetPort( i, this, Peek_A000, Poke_A000 ); continue;
-			case 0xC000: cpu->SetPort( i, this, Peek_C000, Poke_C000 ); continue;
-			case 0xC001: cpu->SetPort( i, this, Peek_C000, Poke_C001 ); continue;
-			case 0xE000: cpu->SetPort( i, this, Peek_E000, Poke_E000 ); continue;
-			case 0xE001: cpu->SetPort( i, this, Peek_E000, Poke_E001 ); continue;
+			case 0x8000: cpu.SetPort( i, this, Peek_8000, Poke_8000 ); continue;
+			case 0x8001: cpu.SetPort( i, this, Peek_8000, Poke_8001 ); continue;
+			case 0xA000: cpu.SetPort( i, this, Peek_A000, Poke_A000 ); continue;
+			case 0xC000: cpu.SetPort( i, this, Peek_C000, Poke_C000 ); continue;
+			case 0xC001: cpu.SetPort( i, this, Peek_C000, Poke_C001 ); continue;
+			case 0xE000: cpu.SetPort( i, this, Peek_E000, Poke_E000 ); continue;
+			case 0xE001: cpu.SetPort( i, this, Peek_E000, Poke_E001 ); continue;
 		}
 	}
 
@@ -63,7 +63,7 @@ VOID MAPPER248::Reset()
 
 VOID MAPPER248::SwapBanks()
 {
-	apu->Update();
+	apu.Update();
 
 	if (status & SELECT_PROM_16)
 	{
@@ -101,7 +101,7 @@ NES_POKE(MAPPER248,8000)
 
 NES_POKE(MAPPER248,8001)
 {
-	ppu->Update();
+	ppu.Update();
 
 	switch (command & 0x7)
 	{
@@ -123,7 +123,7 @@ NES_POKE(MAPPER248,8001)
 NES_POKE(MAPPER248,A000)
 {
 	if (mirroring != MIRROR_FOURSCREEN)
-		ppu->SetMirroring( (data & 0x1) ? MIRROR_HORIZONTAL : MIRROR_VERTICAL );
+		ppu.SetMirroring( (data & 0x1) ? MIRROR_HORIZONTAL : MIRROR_VERTICAL );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -144,7 +144,7 @@ VOID MAPPER248::IrqSync()
 	if (--IrqCount < 0)
 	{
 		IrqCount = IrqLatch;
-		cpu->DoIRQ();
+		cpu.DoIRQ();
 	}
 }
 

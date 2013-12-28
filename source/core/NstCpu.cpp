@@ -106,6 +106,34 @@ NES_NAMESPACE_BEGIN
 #define FDD flags.d.d
 
 ////////////////////////////////////////////////////////////////////////////////////////
+//
+////////////////////////////////////////////////////////////////////////////////////////
+
+const ULONG CPU::CycleTable[2][8] =
+{
+	{
+		NES_CPU_TO_NTSC(1),
+		NES_CPU_TO_NTSC(2),
+		NES_CPU_TO_NTSC(3),
+		NES_CPU_TO_NTSC(4),
+		NES_CPU_TO_NTSC(5),
+		NES_CPU_TO_NTSC(6),
+		NES_CPU_TO_NTSC(7),
+		NES_CPU_TO_NTSC(8)
+	},
+	{
+		NES_CPU_TO_PAL(1),
+		NES_CPU_TO_PAL(2),
+		NES_CPU_TO_PAL(3),
+		NES_CPU_TO_PAL(4),
+		NES_CPU_TO_PAL(5),
+		NES_CPU_TO_PAL(6),
+		NES_CPU_TO_PAL(7),
+		NES_CPU_TO_PAL(8)
+	}
+};
+
+////////////////////////////////////////////////////////////////////////////////////////
 // helper macros
 ////////////////////////////////////////////////////////////////////////////////////////
 
@@ -134,7 +162,7 @@ NES_NAMESPACE_BEGIN
 #define CPU_WRITE_ZPG(v,w)   ram[v] = (w)
 #define CPU_READ_PCB()       (cache = map[PCD++])
 #define CPU_READ_PCW()       ((cache = map[PCD]) + ((cache = map[(++PCD)++]) << 8))
-#define CPU_EAT_CYCLES(n)    cycles += (pal ? NES_CPU_TO_PAL(n) : NES_CPU_TO_NTSC(n))
+#define CPU_EAT_CYCLES(n)    cycles += CycleTable[pal][(n)-1]
 
 ////////////////////////////////////////////////////////////////////////////////////////
 // opcode function pointer table
@@ -183,8 +211,8 @@ const CPU::INSTRUCTION CPU::instructions[0x100] =
 CPU::CPU()
 :
 FrameCycles (0),
-pal         (FALSE),
-apu         (this)
+pal         (0),
+apu         (*this)
 {
 	ResetPorts();
 }
@@ -208,7 +236,7 @@ VOID CPU::ResetPorts()
 VOID CPU::SetMode(const MODE mode)
 {
 	cycles = 0;
-	pal = (mode == MODE_PAL ? TRUE : FALSE);
+	pal = (mode == MODE_PAL ? 1 : 0);
 	apu.SetMode( mode );
 }
 
@@ -1227,17 +1255,17 @@ VOID CPU::ResetLog()
 
 	PDXSTRING log("CPU: ");
 
-	log.Resize( 5 ); log += "Program Counter: "; log.Append( PCD, PDXSTRING::HEX );     LogOutput( log );
-	log.Resize( 5 ); log += "Stack Pointer: ";   log.Append( SPD, PDXSTRING::HEX );     LogOutput( log );
-	log.Resize( 5 ); log += "A register: ";      log.Append( AD,  PDXSTRING::HEX );     LogOutput( log );
-	log.Resize( 5 ); log += "X register: ";      log.Append( XD,  PDXSTRING::HEX );     LogOutput( log );
-	log.Resize( 5 ); log += "Y register: ";      log.Append( YD,  PDXSTRING::HEX );     LogOutput( log );
-	log.Resize( 5 ); log += "C flag: ";          log += (FCD ? "1" : "0");      		LogOutput( log );
-	log.Resize( 5 ); log += "Z flag: ";          log += (FZD ? "0" : "1");              LogOutput( log );	
-	log.Resize( 5 ); log += "I flag: ";          log += (FID ? "1" : "0");              LogOutput( log );
-	log.Resize( 5 ); log += "D flag: ";          log += (FDD ? "1" : "0");              LogOutput( log );	
-	log.Resize( 5 ); log += "V flag: ";          log += (FVD ? "1" : "0");              LogOutput( log );	
-	log.Resize( 5 ); log += "N flag: ";          log += ((FND & FLAGS::N) ? "1" : "0"); LogOutput( log );
+	log.Resize( 5 ); log += "Program Counter: "; log.Append( PCD, PDXSTRING::HEX );     LogOutput( log.String() );
+	log.Resize( 5 ); log += "Stack Pointer: ";   log.Append( SPD, PDXSTRING::HEX );     LogOutput( log.String() );
+	log.Resize( 5 ); log += "A register: ";      log.Append( AD,  PDXSTRING::HEX );     LogOutput( log.String() );
+	log.Resize( 5 ); log += "X register: ";      log.Append( XD,  PDXSTRING::HEX );     LogOutput( log.String() );
+	log.Resize( 5 ); log += "Y register: ";      log.Append( YD,  PDXSTRING::HEX );     LogOutput( log.String() );
+	log.Resize( 5 ); log += "C flag: ";          log += (FCD ? "1" : "0");      		LogOutput( log.String() );
+	log.Resize( 5 ); log += "Z flag: ";          log += (FZD ? "0" : "1");              LogOutput( log.String() );	
+	log.Resize( 5 ); log += "I flag: ";          log += (FID ? "1" : "0");              LogOutput( log.String() );
+	log.Resize( 5 ); log += "D flag: ";          log += (FDD ? "1" : "0");              LogOutput( log.String() );	
+	log.Resize( 5 ); log += "V flag: ";          log += (FVD ? "1" : "0");              LogOutput( log.String() );	
+	log.Resize( 5 ); log += "N flag: ";          log += ((FND & FLAGS::N) ? "1" : "0"); LogOutput( log.String() );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////

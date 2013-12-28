@@ -44,7 +44,7 @@ class FDS
 {
 public:
 
-	FDS(CPU* const,PPU* const);
+	FDS(CPU&,PPU&);
 	~FDS();
 
 	PDXRESULT Load(PDXFILE&);
@@ -136,8 +136,8 @@ private:
 	LONG    IrqWait;
 	LONG    IrqCycles;
 
-	CPU* const cpu;
-	PPU* const ppu;
+	CPU& cpu;
+	PPU& ppu;
 
 	DISKS disks;
 
@@ -185,7 +185,7 @@ inline BOOL FDS::IsWriteProtected()
 
 inline VOID FDS::VSync()
 {
-	IrqCycles = cpu->GetCycles<CPU::CYCLE_MASTER>();
+	IrqCycles = cpu.GetCycles<CPU::CYCLE_MASTER>();
 
 	if (InsertWait < 180)
 		++InsertWait;

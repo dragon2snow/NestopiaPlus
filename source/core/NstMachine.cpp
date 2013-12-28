@@ -23,19 +23,15 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 
 #include "../paradox/PdxFile.h"
-#include "NstTypes.h"
+#include "NstTypes.h"				
 #include "NstMap.h"
-#include "NstCpu.h"
-#include "NstApu.h"
-#include "NstPpu.h"
+#include "NstMachine.h"
 #include "NstFds.h"
-#include "NstPalette.h"
 #include "mapper/NstMappers.h"
 #include "NstCartridge.h"
 #include "vssystem/NstVsSystem.h"
 #include "NstGameGenie.h"
 #include "NstNsf.h"
-#include "NstMachine.h"
 #include "input/NstPad.h"
 #include "input/NstZapper.h"
 #include "input/NstPaddle.h"
@@ -51,11 +47,9 @@ NES_NAMESPACE_BEGIN
 
 MACHINE::MACHINE()
 : 
-cpu       (new CPU),
-apu       (cpu->GetAPU()),
-ppu       (new PPU(cpu)),
+apu       (cpu.GetAPU()),
+ppu       (cpu),
 fds       (NULL),
-palette   (new PALETTE),
 cartridge (NULL),
 on        (FALSE),
 paused    (FALSE),
@@ -86,12 +80,9 @@ MACHINE::~MACHINE()
 	delete controller[3];
 	delete nsf;
 	delete GameGenie;
-	delete palette;
 	delete VsSystem;
 	delete cartridge;
 	delete fds;
-	delete ppu;
-	delete cpu;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -131,7 +122,7 @@ NES_POKE(MACHINE,4017)
 		controller[3]->Poke_4017( data );
 	}
 
-	cpu->Poke_4017( data );
+	cpu.Poke_4017( data );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -145,7 +136,7 @@ NES_PEEK(MACHINE,4016)
 		return 
 		(
     		expansion->Peek_4016() |
-			(cpu->GetCache() & 0xC0)
+			(cpu.GetCache() & 0xC0)
 		);
 	}
 	else
@@ -156,7 +147,7 @@ NES_PEEK(MACHINE,4016)
 			controller[1]->Peek_4016() |
 			controller[2]->Peek_4016() |
 			controller[3]->Peek_4016() |
-			(cpu->GetCache() & 0xC0)
+			(cpu.GetCache() & 0xC0)
 		);
 	}
 }
@@ -172,7 +163,7 @@ NES_PEEK(MACHINE,4017)
 		return 
 		(
 			expansion->Peek_4017() |
-			(cpu->GetCache() & 0xC0)
+			(cpu.GetCache() & 0xC0)
 		);
 	}
 	else
@@ -183,7 +174,7 @@ NES_PEEK(MACHINE,4017)
 			controller[1]->Peek_4017() | 
 			controller[2]->Peek_4017() | 
 			controller[3]->Peek_4017() |
-			cpu->Peek_4017()
+			cpu.Peek_4017()
 		);
 	}
 }
@@ -194,7 +185,7 @@ NES_PEEK(MACHINE,4017)
 
 VOID MACHINE::GetGraphicContext(IO::GFX::CONTEXT& context) const
 { 
-	ppu->GetContext(context); 
+	ppu.GetContext(context); 
 }
 
 VOID MACHINE::SetGraphicContext(const IO::GFX::CONTEXT& context)
@@ -208,13 +199,13 @@ VOID MACHINE::SetGraphicContext(const IO::GFX::CONTEXT& context)
 		case IO::GFX::PALETTE_INTERNAL: type = PALETTE::INTERNAL; break;
 	}
 
-	palette->SetHue        ( context.hue        );
-	palette->SetBrightness ( context.brightness );
-	palette->SetSaturation ( context.saturation );
-	palette->SetType       ( type               );
-	palette->Import        ( context.palette    );
+	palette.SetHue        ( context.hue        );
+	palette.SetBrightness ( context.brightness );
+	palette.SetSaturation ( context.saturation );
+	palette.SetType       ( type               );
+	palette.Import        ( context.palette    );
 
-	ppu->SetContext( context ); 
+	ppu.SetContext( context ); 
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -223,12 +214,12 @@ VOID MACHINE::SetGraphicContext(const IO::GFX::CONTEXT& context)
 
 VOID MACHINE::SetAudioContext(const IO::SFX::CONTEXT& context)
 { 
-	apu->SetContext(context); 
+	apu.SetContext(context); 
 }
 
 VOID MACHINE::GetAudioContext(IO::SFX::CONTEXT& context) const
 { 
-	apu->GetContext(context); 
+	apu.GetContext(context); 
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -440,11 +431,11 @@ PDXRESULT MACHINE::LoadINES(PDXFILE& ImageFile,const PDXSTRING* const SaveFile)
 	{
 		PDXSTRING log;
 		
-		log  = "MACHINE: Loading NES file \"";
+		log  = "MACHINE: loading NES file \"";
 		log	+= ImageFile.Name();
 		log += "\"";
 		
-		LogOutput( log );
+		LogOutput( log.String() );
 	}
 
 	cartridge = new CARTRIDGE;
@@ -478,11 +469,11 @@ PDXRESULT MACHINE::LoadUNIF(PDXFILE& ImageFile,const PDXSTRING* const SaveFile)
 	{
 		PDXSTRING log;
 
-		log  = "MACHINE: Loading UNIF file \"";
+		log  = "MACHINE: loading UNIF file \"";
 		log	+= ImageFile.Name();
 		log += "\"";
 
-		LogOutput( log );
+		LogOutput( log.String() );
 	}
 
 	cartridge = new CARTRIDGE;
@@ -516,11 +507,11 @@ PDXRESULT MACHINE::LoadFDS(PDXFILE& ImageFile)
 	{
 		PDXSTRING log;
 
-		log  = "MACHINE: Loading FDS file \"";
+		log  = "MACHINE: loading FDS file \"";
 		log	+= ImageFile.Name();
 		log += "\"";
 
-		LogOutput( log );
+		LogOutput( log.String() );
 	}
 
 	fds = new FDS(cpu,ppu);
@@ -545,11 +536,11 @@ PDXRESULT MACHINE::LoadNSF(PDXFILE& ImageFile)
 	{
 		PDXSTRING log;
 
-		log  = "MACHINE: Loading NSF file \"";
+		log  = "MACHINE: loading NSF file \"";
 		log	+= ImageFile.Name();
 		log += "\"";
 
-		LogOutput( log );
+		LogOutput( log.String() );
 	}
 
 	nsf = new NSF(cpu);
@@ -609,9 +600,9 @@ PDXRESULT MACHINE::LoadNST(PDXFILE& file)
 		}
 	}
 
-	PDX_TRY( cpu->LoadState( file ) );
-	PDX_TRY( apu->LoadState( file ) );
-	PDX_TRY( ppu->LoadState( file ) );
+	PDX_TRY( cpu.LoadState( file ) );
+	PDX_TRY( apu.LoadState( file ) );
+	PDX_TRY( ppu.LoadState( file ) );
 
 	if (!file.Readable(sizeof(U8)))
 		return MsgWarning("Corrupt data!");
@@ -642,9 +633,9 @@ PDXRESULT MACHINE::SaveNST(PDXFILE& file) const
 	file << U32(0x1A54534EUL);
 	file << U32(cartridge ? cartridge->GetInfo().crc : 0);
 
-	PDX_TRY( cpu->SaveState( file ));
-	PDX_TRY( apu->SaveState( file ));
-	PDX_TRY( ppu->SaveState( file ));
+	PDX_TRY( cpu.SaveState( file ));
+	PDX_TRY( apu.SaveState( file ));
+	PDX_TRY( ppu.SaveState( file ));
 
 	if (cartridge)
 	{
@@ -831,15 +822,15 @@ PDXRESULT MACHINE::Execute(IO::GFX* const gfx,IO::SFX* const sfx,IO::INPUT* cons
 	{
 		if (nsf)
 		{
-			apu->BeginFrame( sfx );
+			apu.BeginFrame( sfx );
 			nsf->Execute();
 		}
 		else
 		{
 			if (gfx)
 			{
-				gfx->PaletteChanged = palette->Update();
-				gfx->palette = palette->GetData();
+				gfx->PaletteChanged = palette.Update();
+				gfx->palette = palette.GetData();
 			}
 
 			if (VsSystem)
@@ -863,10 +854,10 @@ PDXRESULT MACHINE::Execute(IO::GFX* const gfx,IO::SFX* const sfx,IO::INPUT* cons
 					CloseMovie();
 			}
 
-			ppu->BeginFrame( gfx );
-			apu->BeginFrame( sfx );
-			cpu->Execute();
-			ppu->EndFrame();
+			ppu.BeginFrame( gfx );
+			apu.BeginFrame( sfx );
+			cpu.Execute();
+			ppu.EndFrame();
 
 			if (cartridge)
 			{
@@ -897,8 +888,8 @@ VOID MACHINE::SetMode(MODE m)
 		if (m == MODE_AUTO)
 			m = (cartridge && cartridge->GetInfo().system == SYSTEM_PAL) || (nsf && nsf->IsPAL()) ? MODE_PAL : MODE_NTSC;
 
-		cpu->SetMode( m );
-		ppu->SetMode( m );
+		cpu.SetMode( m );
+		ppu.SetMode( m );
 
 		if (nsf)
 			nsf->SetMode( m );
@@ -963,9 +954,9 @@ VOID MACHINE::ConnectController(const UINT port,const CONTROLLERTYPE type)
 
 			switch (type)
 			{
-     			case CONTROLLER_ZAPPER:   controller[port] = new ZAPPER(port,ppu); break;
-     			case CONTROLLER_PADDLE:   controller[port] = new PADDLE(port);     break;
-     			case CONTROLLER_POWERPAD: controller[port] = new POWERPAD(port);   break;
+     			case CONTROLLER_ZAPPER:   controller[port] = new ZAPPER(port,&ppu); break;
+     			case CONTROLLER_PADDLE:   controller[port] = new PADDLE(port);      break;
+     			case CONTROLLER_POWERPAD: controller[port] = new POWERPAD(port);    break;
 			}
 
 		case 2:
@@ -1038,8 +1029,8 @@ PDXRESULT MACHINE::Reset(const BOOL hard)
 	{
 		if (nsf)
 		{
-			cpu->ResetPorts();
-			cpu->Reset( TRUE );
+			cpu.ResetPorts();
+			cpu.Reset( TRUE );
 			nsf->Reset();
 		}
 		else
@@ -1052,13 +1043,13 @@ PDXRESULT MACHINE::Reset(const BOOL hard)
 
 			InitializeControllers();
 
-			cpu->SetPort( 0x4016, this, Peek_4016, Poke_4016 );
-			cpu->SetPort( 0x4017, this, Peek_4017, Poke_4017 );
+			cpu.SetPort( 0x4016, this, Peek_4016, Poke_4016 );
+			cpu.SetPort( 0x4017, this, Peek_4017, Poke_4017 );
 
 			for (UINT i=0; i < 4; ++i)
 				controller[i]->Reset();
 
-			ppu->Reset( hard );
+			ppu.Reset( hard );
 
 			if (cartridge)
 			{
@@ -1070,10 +1061,10 @@ PDXRESULT MACHINE::Reset(const BOOL hard)
 			}
 			else
 			{
-				cpu->ResetPorts();
+				cpu.ResetPorts();
 			}
 
-			cpu->Reset( hard );
+			cpu.Reset( hard );
 
 			if (VsSystem)
 				VsSystem->Reset( hard );
@@ -1083,7 +1074,7 @@ PDXRESULT MACHINE::Reset(const BOOL hard)
 			if (cartridge && cartridge->GetInfo().pRomCrc == 0x885ACC2BUL)
 			{
 				// bad dump of SMB1, but I'm willing to help..
-				cpu->ClearRAM();
+				cpu.ClearRAM();
 			}
 		}
 
@@ -1091,8 +1082,8 @@ PDXRESULT MACHINE::Reset(const BOOL hard)
 		{
 			const MODE m = IsPAL() ? MODE_PAL : MODE_NTSC;
 
-			cpu->SetMode( m );
-			ppu->SetMode( m );
+			cpu.SetMode( m );
+			ppu.SetMode( m );
 
 			if (nsf)
 				nsf->SetMode( m );
@@ -1102,7 +1093,7 @@ PDXRESULT MACHINE::Reset(const BOOL hard)
 			log  = "MACHINE: auto-changed to ";
 			log += (m == MODE_NTSC ? "NTSC" : "PAL");
 			
-			LogOutput( log );
+			LogOutput( log.String() );
 		}
 	}
 

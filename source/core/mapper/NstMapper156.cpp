@@ -33,19 +33,19 @@ NES_NAMESPACE_BEGIN
 
 VOID MAPPER156::Reset()
 {
-	cpu->SetPort( 0xC000, 0xC003, this, Peek_C000, Poke_C000 );
-	cpu->SetPort( 0xC008, 0xC00B, this, Peek_C000, Poke_C008 );
-	cpu->SetPort( 0xC010,         this, Peek_C000, Poke_C010 );
+	cpu.SetPort( 0xC000, 0xC003, this, Peek_C000, Poke_C000 );
+	cpu.SetPort( 0xC008, 0xC00B, this, Peek_C000, Poke_C008 );
+	cpu.SetPort( 0xC010,         this, Peek_C000, Poke_C010 );
 
-	ppu->SetMirroring( MIRROR_ZERO );
+	ppu.SetMirroring( MIRROR_ZERO );
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-NES_POKE(MAPPER156,C000) { ppu->Update(); cRom.SwapBanks<n1k>( 0x0000 + (address & 0x3) * n1k, data ); }
-NES_POKE(MAPPER156,C008) { ppu->Update(); cRom.SwapBanks<n1k>( 0x1000 + (address & 0x3) * n1k, data ); }
-NES_POKE(MAPPER156,C010) { apu->Update(); pRom.SwapBanks<n16k,0x0000>(data); }
+NES_POKE(MAPPER156,C000) { ppu.Update(); cRom.SwapBanks<n1k>( 0x0000 + (address & 0x3) * n1k, data ); }
+NES_POKE(MAPPER156,C008) { ppu.Update(); cRom.SwapBanks<n1k>( 0x1000 + (address & 0x3) * n1k, data ); }
+NES_POKE(MAPPER156,C010) { apu.Update(); pRom.SwapBanks<n16k,0x0000>(data); }
 
 NES_NAMESPACE_END

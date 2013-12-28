@@ -39,7 +39,7 @@ class SNDN106
 {
 public:
 
-	SNDN106(CPU* const);
+	SNDN106(CPU&);
 	~SNDN106();
 
 	VOID Reset();
@@ -101,7 +101,7 @@ private:
 
 	friend class CHANNEL;
 
-	APU* const apu;
+	APU& apu;
 
 	UINT address;
 	UINT AddressIncrease;

@@ -35,12 +35,12 @@ VOID MAPPER43::Reset()
 {
 	EnableIrqSync(IRQSYNC_COUNT);
 
-	cpu->SetPort( 0x8122,         this, Peek_8000, Poke_8122 );
-	cpu->SetPort( 0x5000, 0x5FFF, this, Peek_5000, Poke_Nop  );
-	cpu->SetPort( 0x6000, 0x7FFF, this, Peek_6000, Poke_Nop  );
+	cpu.SetPort( 0x8122,         this, Peek_8000, Poke_8122 );
+	cpu.SetPort( 0x5000, 0x5FFF, this, Peek_5000, Poke_Nop  );
+	cpu.SetPort( 0x6000, 0x7FFF, this, Peek_6000, Poke_Nop  );
 
 	for (UINT i=0x4022; i <= 0x4FFF; i += 0x20)
-   		cpu->SetPort( i, this, Peek_Nop, Poke_4022 );
+   		cpu.SetPort( i, this, Peek_Nop, Poke_4022 );
 
     pRom.SwapBanks<n8k,0x0000>( 1 );
 	pRom.SwapBanks<n8k,0x2000>( 0 );
@@ -54,7 +54,7 @@ VOID MAPPER43::Reset()
 
 NES_POKE(MAPPER43,4022) 
 {
-	apu->Update(); 
+	apu.Update(); 
 	static const UCHAR banks[8] = {4,3,4,4,4,7,5,6};
 	pRom.SwapBanks<n8k,0x4000>(banks[data & 0x7]);
 }
@@ -65,7 +65,7 @@ NES_POKE(MAPPER43,4022)
 
 NES_POKE(MAPPER43,8122) 
 {
-	cpu->ClearIRQ();
+	cpu.ClearIRQ();
 	SetIrqEnable(data & 0x2);
 
 	if (!(data & 0x2))
@@ -86,7 +86,7 @@ NES_PEEK(MAPPER43,6000) { return *pRom.Ram( 0x00004000UL + (address - 0x6000) );
 VOID MAPPER43::IrqSync(const UINT delta)
 {
 	if ((IrqCount += delta) >= 0x1000)
-		cpu->DoIRQ();
+		cpu.DoIRQ();
 }
 
 NES_NAMESPACE_END
