@@ -35,17 +35,6 @@
 #include "NstCollectionVector.hpp"
 #include <dinput.h>
 
-#ifdef _MSC_VER
-#pragma warning( push )
-#pragma warning( disable : 4201 )
-#endif
-
-#include <MMSystem.h>
-
-#ifdef _MSC_VER
-#pragma warning( pop )
-#endif
-
 namespace Nestopia
 {
 	namespace DirectX
@@ -99,10 +88,8 @@ namespace Nestopia
 
 			void  Acquire();
 			void  Unacquire();
-			void  Update(uint=UINT_MAX-1);
-			ibool Poll();
-			void  StaticPoll();
-			void  Build(const Key*,uint,uint);
+			void  Poll();
+			void  Build(const Key*,uint);
 			ibool MapKey(Key&,tstring,const System::Guid* = NULL,uint=0) const;
 			const HeapString GetKeyName(const Key&) const;
 
@@ -182,42 +169,11 @@ namespace Nestopia
 				HWND const hWnd;
 			};
 
-			class Notifier
-			{
-				void Run();
-
-				enum
-				{
-					EVENT_INPUT,
-					EVENT_STOP,
-					EVENT_ENTER
-				};
-
-				HANDLE events[3];
-				volatile uint timeInput;
-				uint signal;
-				volatile uint signaled;
-
-			public:
-
-				Notifier();
-				~Notifier();
-
-				HANDLE Start(bool);
-				void   Stop();
-
-				inline ibool Running() const;
-				inline ibool Update(uint=UINT_MAX-1);
-				inline uint  Flush();
-				inline void  Reset();
-				inline ibool Signaling() const;
-			};
-
 			class Device
 			{
 			public:
 
-				void Enable(ibool,ibool);
+				void Enable(ibool);
 
 			protected:
 
@@ -227,19 +183,8 @@ namespace Nestopia
 				ibool Acquire(void*,uint);
 				void  Unacquire();
 
-				inline ibool Update(uint);
-				inline ibool Poll();
-				inline uint  Flush();
-				inline void  Reset();
-				inline void  StaticPoll() const;
-				inline ibool Signaling() const;
-
+				ibool enabled;
 				IDirectInputDevice8& com;
-
-			private:
-
-				ibool mustPoll;
-				Notifier notifier;
 			};
 
 			class Keyboard : public Device
@@ -257,8 +202,7 @@ namespace Nestopia
 				void Acquire();
 				void Unacquire();
 
-				NST_FORCE_INLINE void Update(uint);
-				NST_FORCE_INLINE uint Poll();
+				NST_FORCE_INLINE void Poll();
 
 				ibool Map(Key&,tstring) const;
 				ibool Map(Key&,uint) const;
@@ -284,7 +228,6 @@ namespace Nestopia
 
 				void SetCooperativeLevel(HWND,DWORD) const;
 				void Clear();
-				void GetState();
 
 				NST_NO_INLINE void OnError(HRESULT);
 
@@ -326,10 +269,8 @@ namespace Nestopia
 
 				void Acquire();
 				void Unacquire();
-				void StaticPoll();
 
-				NST_FORCE_INLINE void Update(uint);
-				NST_FORCE_INLINE uint Poll();
+				NST_FORCE_INLINE void Poll();
 
 				ibool Map(Key&,tstring) const;
 
@@ -346,7 +287,6 @@ namespace Nestopia
 				static IDirectInputDevice8& Create(Base&,const GUID&);
 
 				void Clear();
-				void GetState();
 
 				NST_NO_INLINE void OnError(HRESULT);
 

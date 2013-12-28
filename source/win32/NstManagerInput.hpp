@@ -67,7 +67,9 @@ namespace Nestopia
 
 		private:
 
-			void PollKeys() const;
+			inline void CheckPoll();
+			void ForcePoll();
+
 			void UpdateDevices();
 			void UpdateSettings();
 			void OnEmuEvent(Emulator::Event);
@@ -240,7 +242,7 @@ namespace Nestopia
 			Rects rects;
 			Window::Menu& menu;
 			Emulator& emulator;
-			uint timeStamp;
+			ibool polled;
 			AutoFire autoFire;
 			Cursor cursor;
 			Nes::Input::Controllers nesControllers;
@@ -259,10 +261,10 @@ namespace Nestopia
 
 			void Poll()
 			{
-				timeStamp = ::timeGetTime();
+				polled ^= true;
 
-				if (directInput.Poll())
-					PollKeys();
+				if (polled)
+					ForcePoll();
 
 				if (cursor.MustAutoHide())
 					cursor.AutoHide();

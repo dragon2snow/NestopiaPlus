@@ -33,7 +33,6 @@
 #include "NstDirectInput.hpp"
 #include "NstIoScreen.hpp"
 #include "NstIoLog.hpp"
-#include <process.h>
 
 namespace Nestopia
 {
@@ -89,78 +88,6 @@ namespace Nestopia
 		#pragma optimize("t", on)
 		#endif
 
-		inline ibool DirectInput::Notifier::Running() const
-		{
-			return events[EVENT_INPUT] != NULL;
-		}
-
-		inline ibool DirectInput::Notifier::Update(uint timeCheck)
-		{
-			return events[EVENT_INPUT] && timeInput <= timeCheck ? timeInput=UINT_MAX, true : false;
-		}
-
-		inline ibool DirectInput::Notifier::Signaling() const
-		{
-			return signal;
-		}
-
-		inline void DirectInput::Notifier::Reset()
-		{
-			timeInput = 0;
-		}
-
-		inline uint DirectInput::Notifier::Flush()
-		{
-			uint tmp = signaled;
-			signaled = 0;
-			return tmp;
-		}
-
-		inline ibool DirectInput::Device::Signaling() const
-		{
-			return notifier.Signaling();
-		}
-
-		inline void DirectInput::Device::Reset()
-		{
-			notifier.Reset();
-		}
-
-		inline ibool DirectInput::Device::Update(uint timeStamp)
-		{
-			return notifier.Update( timeStamp );
-		}
-
-		inline void DirectInput::Device::StaticPoll() const
-		{
-			if (mustPoll)
-				com.Poll();
-		}
-
-		inline ibool DirectInput::Device::Poll()
-		{
-			return notifier.Update() ? StaticPoll(), true : false;
-		}
-
-		inline uint DirectInput::Device::Flush()
-		{
-			return notifier.Flush();
-		}
-
-		NST_FORCE_INLINE void DirectInput::Keyboard::Update(uint timeStamp)
-		{
-			if (Device::Update( timeStamp ))
-				GetState();
-		}
-
-		NST_FORCE_INLINE uint DirectInput::Keyboard::Poll()
-		{
-			if (Device::Poll())
-				GetState();
-
-			return Device::Flush();
-		}
-
 		inline void DirectInput::Joystick::Calibrator::Fix(DIJOYSTATE& state) const
 		{
 			state.lX -= lX;
@@ -171,42 +98,36 @@ namespace Nestopia
 			state.lRz -= lRz;
 		}
 
-		NST_FORCE_INLINE void DirectInput::Joystick::Update(uint timeStamp)
+		NST_FORCE_INLINE void DirectInput::Keyboard::Poll()
 		{
-			if (Device::Update( timeStamp ))
-				GetState();
+			if (enabled)
+			{
+				HRESULT hResult;
+
+				if (FAILED(hResult=com.Poll()) || FAILED(hResult=com.GetDeviceState( Buffer::SIZE, buffer )))
+					OnError( hResult );
+			}
 		}
 
-		NST_FORCE_INLINE uint DirectInput::Joystick::Poll()
+		NST_FORCE_INLINE void DirectInput::Joystick::Poll()
 		{
-			if (Device::Poll())
-				GetState();
+			if (enabled)
+			{
+				HRESULT hResult;
 
-			return Device::Flush();
+				if (SUCCEEDED(hResult=com.Poll()) && SUCCEEDED(hResult=com.GetDeviceState( sizeof(state), &state )))
+					calibrator.Fix( state );
+				else
+					OnError( hResult );
+			}
 		}
 
-		void DirectInput::Update(const uint timeStamp)
+		void DirectInput::Poll()
 		{
-			keyboard.Update( timeStamp );
+			keyboard.Poll();
 
 			for (Joysticks::Iterator it=joysticks.Begin(), end=joysticks.End(); it != end; ++it)
-				it->Update( timeStamp );
-		}
-
-		ibool DirectInput::Poll()
-		{
-			uint signaled = keyboard.Poll();
-
-			for (Joysticks::Iterator it=joysticks.Begin(), end=joysticks.End(); it != end; ++it)
-				signaled |= it->Poll();
-
-			return signaled;
-		}
-
-		void DirectInput::StaticPoll()
-		{
-			for (Joysticks::Iterator it=joysticks.Begin(), end=joysticks.End(); it != end; ++it)
-				it->StaticPoll();
+				it->Poll();
 		}
 
 		#ifdef NST_PRAGMA_OPTIMIZE
@@ -316,29 +237,31 @@ namespace Nestopia
 				it->EndScanMode();
 		}
 
-		void DirectInput::Build(const Key* const keys,const uint commands,const uint count)
+		void DirectInput::Build(const Key* const keys,const uint count)
 		{
-			const Key* key = NULL;
+			keyboard.Enable( false );
 
 			for (const Key *it=keys, *end=keys+count; it != end; ++it)
 			{
 				if (keyboard.Assigned( *it ))
-					key = it;
+				{
+					keyboard.Enable( true );
+					break;
+				}
 			}
-
-			keyboard.Enable( key != NULL, key != NULL && key >= keys+commands );
 
 			for (Joysticks::Iterator it=joysticks.Begin(), end=joysticks.End(); it != end; ++it)
 			{
-				key = NULL;
+				it->Enable( false );
 
 				for (const Key *jt=keys, *jend=keys+count; jt != jend; ++jt)
 				{
 					if (it->Assigned( *jt ))
-						key = jt;
+					{
+						it->Enable( true );
+						break;
+					}
 				}
-
-				it->Enable( key != NULL, key != NULL && key >= keys+commands );
 			}
 		}
 
@@ -449,33 +372,22 @@ namespace Nestopia
 		}
 
 		DirectInput::Device::Device(IDirectInputDevice8& c)
-		: com(c), mustPoll(true) {}
+		: com(c), enabled(false) {}
 
 		DirectInput::Device::~Device()
 		{
 			com.Unacquire();
-			com.SetEventNotification( NULL );
 			com.Release();
 		}
 
-		void DirectInput::Device::Enable(ibool enable,ibool signaling)
+		void DirectInput::Device::Enable(ibool enable)
 		{
-			com.Unacquire();
-
-			if (enable)
-			{
-				mustPoll = (com.SetEventNotification( notifier.Start(signaling) ) == DI_POLLEDDEVICE);
-			}
-			else
-			{
-				notifier.Stop();
-				com.SetEventNotification( NULL );
-			}
+			enabled = enable;
 		}
 
 		ibool DirectInput::Device::Acquire(void* const data,const uint size)
 		{
-			return notifier.Running() && SUCCEEDED(com.Acquire()) && (!mustPoll || SUCCEEDED(com.Poll())) && SUCCEEDED(com.GetDeviceState( size, data ));
+			return enabled && SUCCEEDED(com.Acquire()) && SUCCEEDED(com.Poll()) && SUCCEEDED(com.GetDeviceState( size, data ));
 		}
 
 		void DirectInput::Device::Unacquire()
@@ -619,8 +531,6 @@ namespace Nestopia
 		{
 			NST_ASSERT( FAILED(hResult) );
 
-			Reset();
-
 			switch (hResult)
 			{
 				case DIERR_INPUTLOST:
@@ -666,22 +576,6 @@ namespace Nestopia
 			Device::Unacquire();
 			Clear();
 		}
-
-		#ifdef NST_PRAGMA_OPTIMIZE
-		#pragma optimize("t", on)
-		#endif
-
-		void DirectInput::Keyboard::GetState()
-		{
-			HRESULT hResult = com.GetDeviceState( Buffer::SIZE, buffer );
-
-			if (FAILED(hResult))
-				OnError( hResult );
-		}
-
-		#ifdef NST_PRAGMA_OPTIMIZE
-		#pragma optimize("", on)
-		#endif
 
 		DirectInput::Joystick::Joystick(Base& base,const DIDEVICEINSTANCE& instance)
 		:
@@ -879,42 +773,6 @@ namespace Nestopia
 			Clear();
 		}
 
-		#ifdef NST_PRAGMA_OPTIMIZE
-		#pragma optimize("t", on)
-		#endif
-
-		void DirectInput::Joystick::GetState()
-		{
-			HRESULT hResult = com.GetDeviceState( sizeof(state), &state );
-
-			if (SUCCEEDED(hResult))
-				calibrator.Fix( state );
-			else
-				OnError( hResult );
-		}
-
-		void DirectInput::Joystick::StaticPoll()
-		{
-			if (Device::Signaling())
-			{
-				Device::StaticPoll();
-
-				if (SUCCEEDED(com.GetDeviceState( sizeof(state), &state )))
-				{
-					calibrator.Fix( state );
-				}
-				else
-				{
-					com.Acquire();
-					Clear();
-				}
-			}
-		}
-
-		#ifdef NST_PRAGMA_OPTIMIZE
-		#pragma optimize("", on)
-		#endif
-
 		void DirectInput::Joystick::Calibrator::Reset(DIJOYSTATE& state)
 		{
 			if (must)
@@ -1054,8 +912,6 @@ namespace Nestopia
 		{
 			NST_ASSERT( FAILED(hResult) );
 
-			Reset();
-
 			switch (hResult)
 			{
 				case DIERR_INPUTLOST:
@@ -1066,7 +922,7 @@ namespace Nestopia
 
 				case DIERR_UNPLUGGED:
 
-					Enable( false, false );
+					Enable( false );
 					Clear();
 					Io::Screen() << _T("Error! Joystick unplugged!");
 					break;
@@ -1078,103 +934,9 @@ namespace Nestopia
 			}
 		}
 
-		DirectInput::Notifier::Notifier()
-		: timeInput(0), signal(0), signaled(0)
-		{
-			for (uint i=0; i < 3; ++i)
-				events[i] = NULL;
-		}
-
-		DirectInput::Notifier::~Notifier()
-		{
-			Stop();
-		}
-
-		HANDLE DirectInput::Notifier::Start(const bool signaling)
-		{
-			if (events[EVENT_INPUT] == NULL)
-			{
-				struct Thread
-				{
-					static void NST_CDECL Run(void* data)
-					{
-						static_cast<Notifier*>(data)->Run();
-					}
-				};
-
-				try
-				{
-					for (uint i=0; i < 3; ++i)
-					{
-						if (NULL == (events[i] = ::CreateEvent( NULL, false, false, NULL )))
-							throw Application::Exception(_T("::CreateEvent() failed!"));
-					}
-
-					if (!::_beginthread( Thread::Run, 0, this ))
-						throw Application::Exception(_T("::_beginthread() failed!"));
-				}
-				catch (...)
-				{
-					if (HANDLE const handle = events[EVENT_INPUT])
-					{
-						events[EVENT_INPUT] = NULL;
-						CloseHandle( handle );
-					}
-
-					throw;
-				}
-
-				::WaitForSingleObject( events[EVENT_ENTER], INFINITE );
-			}
-
-			timeInput = 0;
-			signal = signaling;
-			signaled = signaling;
-
-			return events[EVENT_INPUT];
-		}
-
-		void DirectInput::Notifier::Stop()
-		{
-			for (uint i=0; i < 3; ++i)
-			{
-				if (events[i])
-				{
-					if (i == EVENT_INPUT)
-					{
-						::ResetEvent( events[EVENT_ENTER] );
-						::SetEvent( events[EVENT_STOP] );
-						::WaitForSingleObject( events[EVENT_ENTER], INFINITE );
-					}
-
-					::CloseHandle( events[i] );
-					events[i] = NULL;
-				}
-			}
-
-			timeInput = 0;
-			signaled = 0;
-		}
-
 		#ifdef NST_PRAGMA_OPTIMIZE
 		#pragma optimize("t", on)
 		#endif
-
-		void DirectInput::Notifier::Run()
-		{
-			NST_ASSERT( events[EVENT_INPUT] && events[EVENT_STOP] && events[EVENT_ENTER] );
-
-			::SetThreadPriority( ::GetCurrentThread(), THREAD_PRIORITY_HIGHEST );
-			::SetEvent( events[EVENT_ENTER] );
-
-			while (::WaitForMultipleObjects( 2, events, false, INFINITE ) == WAIT_OBJECT_0)
-			{
-				timeInput = ::timeGetTime();
-				signaled = signal;
-			}
-
-			::SetEvent( events[EVENT_ENTER] );
-		}
 
 		uint DirectInput::KeyDown(const void* const data)
 		{
