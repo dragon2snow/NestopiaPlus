@@ -34,7 +34,7 @@ namespace Nestopia
 {
 	namespace System
 	{
-		class Dll
+		class Dll : public ImplicitBool<Dll>
 		{
 		public:
 
@@ -70,9 +70,9 @@ namespace Nestopia
 				}
 			}
 
-			bool Loaded() const
+			bool operator ! () const
 			{
-				return hModule;
+				return hModule == NULL;
 			}
 
 			HMODULE GetHandle() const
@@ -80,17 +80,11 @@ namespace Nestopia
 				return hModule;
 			}
 
-			FARPROC operator () (cstring name) const
-			{
-				NST_ASSERT( hModule && name && *name );
-				return ::GetProcAddress( hModule, name );
-			}
-
 			template<typename T>
 			T Fetch(cstring name) const
 			{
 				NST_ASSERT( name && *name );
-				return hModule ? (T) ::GetProcAddress( hModule, name ) : NULL;
+				return hModule ? reinterpret_cast<T>(::GetProcAddress( hModule, name )) : NULL;
 			}
 		};
 	}

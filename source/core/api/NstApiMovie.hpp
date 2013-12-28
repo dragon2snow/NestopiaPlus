@@ -46,7 +46,7 @@ namespace Nes
 	{
 		class Movie : public Base
 		{
-			struct StateCaller;
+			struct EventCaller;
 
 		public:
 
@@ -60,47 +60,39 @@ namespace Nes
 				APPEND
 			};
 
-			enum CallbackMode
-			{
-				DISABLE_CALLBACK,
-				ENABLE_CALLBACK
-			};
-
-			Result Play(std::istream&,CallbackMode=ENABLE_CALLBACK) throw();
-			Result Record(std::ostream&,How=CLEAN,CallbackMode=ENABLE_CALLBACK) throw();
-
-			void Stop() throw();
-			void Eject() throw();
-			void Cut() throw();
+			Result Play(std::istream&) throw();
+			Result Record(std::iostream&,How=CLEAN) throw();
+			void   Stop() throw();
+			void   Eject() {}
 
 			bool IsPlaying() const throw();
 			bool IsRecording() const throw();
-			bool IsInserted() const throw();
 			bool IsStopped() const throw();
 
-			enum State
+			enum Event
 			{
-				ERR_CORRUPT_FILE = -4,
-				ERR_OUT_OF_MEMORY,
-				ERR_UNSUPPORTED_IMAGE,
-				ERR_GENERIC,
-				STOPPED_PLAYING = 1,
-				STOPPED_RECORDING,
-				RECORDING,
-				PLAYING
+				EVENT_PLAYING,
+				EVENT_PLAYING_STOPPED,
+				EVENT_RECORDING,
+				EVENT_RECORDING_STOPPED
 			};
 
-			typedef void (NST_CALLBACK *StateCallback) (UserData,State);
+			enum
+			{
+				NUM_EVENT_CALLBACKS = 4
+			};
 
-			static StateCaller stateCallback;
+			typedef void (NST_CALLBACK *EventCallback) (UserData,Event,Result);
+
+			static EventCaller eventCallback;
 		};
 
-		struct Movie::StateCaller : Core::UserCallback<Movie::StateCallback>
+		struct Movie::EventCaller : Core::UserCallback<Movie::EventCallback>
 		{
-			void operator () (State state) const
+			void operator () (Event event,Result result=RESULT_OK) const
 			{
 				if (function)
-					function( userdata, state );
+					function( userdata, event, result );
 			}
 		};
 	}

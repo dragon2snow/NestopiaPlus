@@ -50,7 +50,6 @@ namespace Nes
 		image         (NULL),
 		cheats        (NULL),
 		imageDatabase (NULL),
-		padding       (NULL),
 		ppu           (cpu)
 		{
 		}
@@ -77,6 +76,7 @@ namespace Nes
 			(
 				static_cast<Image::Type>(type),
 				cpu,
+				cpu.GetApu(),
 				ppu,
 				stream,
 				imageDatabase
@@ -92,12 +92,12 @@ namespace Nes
 
 					switch (static_cast<const Cartridge*>(image)->GetInfo().setup.system)
 					{
-						case SYSTEM_VS:
+						case Api::Cartridge::SYSTEM_VS:
 
 							state |= Api::Machine::VS;
 							break;
 
-						case SYSTEM_PC10:
+						case Api::Cartridge::SYSTEM_PC10:
 
 							state |= Api::Machine::PC10;
 							break;
@@ -117,17 +117,17 @@ namespace Nes
 
 			UpdateColorMode();
 
+			Api::Machine::eventCallback( Api::Machine::EVENT_LOAD, context.result );
+
 			return context.result;
 		}
 
-		bool Machine::Unload()
+		Result Machine::Unload()
 		{
 			if (!image)
-				return true;
+				return RESULT_OK;
 
-			const bool saved = PowerOff();
-
-			state &= (Api::Machine::NTSC|Api::Machine::PAL);
+			const Result result = PowerOff();
 
 			tracker.Unload();
 			UpdateColorMode();
@@ -135,7 +135,11 @@ namespace Nes
 			Image::Unload( image );
 			image = NULL;
 
-			return saved;
+			state &= (Api::Machine::NTSC|Api::Machine::PAL);
+
+			Api::Machine::eventCallback( Api::Machine::EVENT_UNLOAD, result );
+
+			return result;
 		}
 
 		Result Machine::UpdateColorMode()
@@ -150,20 +154,20 @@ namespace Nes
 
 		Result Machine::UpdateColorMode(const ColorMode colorMode)
 		{
-			const PpuType ppuType = image ? image->QueryPpu( colorMode == COLORMODE_YUV ) : PPU_RP2C02;
+			const Revision::Ppu ppuRev = (image ? image->QueryPpu( colorMode == COLORMODE_YUV ) : Revision::PPU_RP2C02);
 			Video::Renderer::PaletteType paletteType;
 
 			switch (colorMode)
 			{
 				case COLORMODE_RGB:
 
-					switch (ppuType)
+					switch (ppuRev)
 					{
-						case PPU_RP2C04_0001: paletteType = Video::Renderer::PALETTE_VS1;  break;
-						case PPU_RP2C04_0002: paletteType = Video::Renderer::PALETTE_VS2;  break;
-						case PPU_RP2C04_0003: paletteType = Video::Renderer::PALETTE_VS3;  break;
-						case PPU_RP2C04_0004: paletteType = Video::Renderer::PALETTE_VS4;  break;
-						default:              paletteType = Video::Renderer::PALETTE_PC10; break;
+						case Revision::PPU_RP2C04_0001: paletteType = Video::Renderer::PALETTE_VS1;  break;
+						case Revision::PPU_RP2C04_0002: paletteType = Video::Renderer::PALETTE_VS2;  break;
+						case Revision::PPU_RP2C04_0003: paletteType = Video::Renderer::PALETTE_VS3;  break;
+						case Revision::PPU_RP2C04_0004: paletteType = Video::Renderer::PALETTE_VS4;  break;
+						default:                        paletteType = Video::Renderer::PALETTE_PC10; break;
 					}
 					break;
 
@@ -181,21 +185,25 @@ namespace Nes
 			return renderer.SetPaletteType( paletteType );
 		}
 
-		bool Machine::PowerOff()
+		Result Machine::PowerOff(Result result)
 		{
 			if (state & Api::Machine::ON)
 			{
+				tracker.PowerOff();
+
+				if (image && !image->PowerOff() && NES_SUCCEEDED(result))
+					result = RESULT_WARN_SAVEDATA_LOST;
+
+				ppu.PowerOff();
+				cpu.PowerOff();
+
 				state &= ~uint(Api::Machine::ON);
 				frame = 0;
 
-				ppu.ClearScreen();
-				cpu.GetApu().ClearBuffers();
-
-				if (image)
-					return image->PowerOff();
+				Api::Machine::eventCallback( Api::Machine::EVENT_POWER_OFF, result );
 			}
 
-			return true;
+			return result;
 		}
 
 		void Machine::Reset(const bool hard)
@@ -203,7 +211,7 @@ namespace Nes
 			try
 			{
 				frame = 0;
-				cpu.Boot();
+				cpu.Reset( hard || (state & Api::Machine::SOUND) );
 
 				if (!(state & Api::Machine::SOUND))
 				{
@@ -220,20 +228,27 @@ namespace Nes
 					if (image)
 						image->Reset( hard );
 
-					cpu.Reset( hard );
-
 					if (cheats)
 						cheats->Reset();
 
-					tracker.Reset( hard );
+					tracker.Reset();
 				}
 				else
 				{
 					image->Reset( true );
-					cpu.Reset( true );
 				}
 
-				state |= Api::Machine::ON;
+				cpu.Boot();
+
+				if (state & Api::Machine::ON)
+				{
+					Api::Machine::eventCallback( hard ? Api::Machine::EVENT_RESET_HARD : Api::Machine::EVENT_RESET_SOFT );
+				}
+				else
+				{
+					state |= Api::Machine::ON;
+					Api::Machine::eventCallback( Api::Machine::EVENT_POWER_ON );
+				}
 			}
 			catch (...)
 			{
@@ -242,18 +257,22 @@ namespace Nes
 			}
 		}
 
-		void Machine::SetMode(const Mode mode)
+		void Machine::SwitchMode()
 		{
-			state &= ~uint(Api::Machine::PAL|Api::Machine::NTSC);
-			state |= (mode == MODE_NTSC ? Api::Machine::NTSC : Api::Machine::PAL);
+			const Region::Type region = (state & Api::Machine::NTSC) ? Region::PAL : Region::NTSC;
 
-			cpu.SetMode( mode );
-			ppu.SetMode( mode );
+			state &= ~uint(Api::Machine::PAL|Api::Machine::NTSC);
+			state |= (region == Region::NTSC ? Api::Machine::NTSC : Api::Machine::PAL);
+
+			cpu.SetRegion( region );
+			ppu.SetRegion( region );
 
 			if (image)
-				image->SetMode( mode );
+				image->SetRegion( region );
 
-			renderer.SetMode( mode );
+			renderer.SetRegion( region );
+
+			Api::Machine::eventCallback( region == Region::NTSC ? Api::Machine::EVENT_MODE_NTSC : Api::Machine::EVENT_MODE_PAL );
 		}
 
 		void Machine::InitializeInputDevices() const
@@ -275,9 +294,8 @@ namespace Nes
 
 			saver.Begin( AsciiId<'N','F','O'>::V ).Write32( image->GetPrgCrc() ).Write32( frame ).End();
 
-			cpu.SaveState( saver, AsciiId<'C','P','U'>::V );
+			cpu.SaveState( saver, AsciiId<'C','P','U'>::V, AsciiId<'A','P','U'>::V );
 			ppu.SaveState( saver, AsciiId<'P','P','U'>::V );
-			cpu.GetApu().SaveState( saver, AsciiId<'A','P','U'>::V );
 			image->SaveState( saver, AsciiId<'I','M','G'>::V );
 
 			saver.Begin( AsciiId<'P','R','T'>::V );
@@ -300,7 +318,7 @@ namespace Nes
 			saver.End();
 		}
 
-		bool Machine::LoadState(State::Loader& loader)
+		bool Machine::LoadState(State::Loader& loader,const bool resetOnError)
 		{
 			NST_ASSERT( (state & (Api::Machine::GAME|Api::Machine::ON)) > Api::Machine::ON );
 
@@ -309,9 +327,9 @@ namespace Nes
 				if (loader.Begin() != (AsciiId<'N','S','T'>::V | 0x1AUL << 24))
 					throw RESULT_ERR_INVALID_FILE;
 
-				while (const dword id = loader.Begin())
+				while (const dword chunk = loader.Begin())
 				{
-					switch (id)
+					switch (chunk)
 					{
 						case AsciiId<'N','F','O'>::V:
 						{
@@ -335,18 +353,14 @@ namespace Nes
 						}
 
 						case AsciiId<'C','P','U'>::V:
+						case AsciiId<'A','P','U'>::V:
 
-							cpu.LoadState( loader );
+							cpu.LoadState( loader, AsciiId<'C','P','U'>::V, AsciiId<'A','P','U'>::V, chunk );
 							break;
 
 						case AsciiId<'P','P','U'>::V:
 
 							ppu.LoadState( loader );
-							break;
-
-						case AsciiId<'A','P','U'>::V:
-
-							cpu.GetApu().LoadState( loader );
 							break;
 
 						case AsciiId<'I','M','G'>::V:
@@ -398,7 +412,9 @@ namespace Nes
 			}
 			catch (...)
 			{
-				PowerOff();
+				if (resetOnError)
+					Reset( true );
+
 				throw;
 			}
 
@@ -409,7 +425,7 @@ namespace Nes
 		#pragma optimize("", on)
 		#endif
 
-		void Machine::ExecuteFrame
+		void Machine::Execute
 		(
 			Video::Output* const video,
 			Sound::Output* const sound,
@@ -426,13 +442,12 @@ namespace Nes
 				extPort->BeginFrame( input );
 				expPort->BeginFrame( input );
 
-				ppu.BeginFrame();
+				ppu.BeginFrame( tracker.IsFrameLocked() );
 
 				if (cheats)
-					cheats->BeginFrame();
+					cheats->BeginFrame( tracker.IsFrameLocked() );
 
-				cpu.BeginFrame( sound );
-				cpu.ExecuteFrame();
+				cpu.ExecuteFrame( sound );
 				ppu.EndFrame();
 
 				if (video)
@@ -449,15 +464,14 @@ namespace Nes
 			{
 				static_cast<Nsf*>(image)->BeginFrame();
 
-				cpu.BeginFrame( sound );
-				cpu.ExecuteFrame();
+				cpu.ExecuteFrame( sound );
 				cpu.EndFrame();
 
 				image->VSync();
 			}
 		}
 
-		NES_POKE(Machine,4016)
+		NES_POKE_D(Machine,4016)
 		{
 			extPort->Poke( data );
 			expPort->Poke( data );
@@ -468,9 +482,9 @@ namespace Nes
 			return OPEN_BUS | extPort->Peek(0) | expPort->Peek(0);
 		}
 
-		NES_POKE(Machine,4017)
+		NES_POKE_D(Machine,4017)
 		{
-			cpu.GetApu().Poke_4017( data );
+			cpu.GetApu().WriteFrameCtrl( data );
 		}
 
 		NES_PEEK(Machine,4017)

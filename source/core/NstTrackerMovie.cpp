@@ -26,6 +26,7 @@
 #include "NstMachine.hpp"
 #include "NstState.hpp"
 #include "NstTrackerMovie.hpp"
+#include "NstZlib.hpp"
 #include "api/NstApiMovie.hpp"
 #include "api/NstApiUser.hpp"
 
@@ -37,92 +38,30 @@ namespace Nes
 		#pragma optimize("s", on)
 		#endif
 
-		class Tracker::Movie::Recorder
-		{
-		public:
-
-			void Start(bool,dword);
-			void BeginFrame(dword,Machine&,EmuSaveState);
-			uint WritePort(uint,uint);
-			void Reset(bool);
-			void EndFrame();
-			void Stop();
-			void Cut();
-
-		private:
-
-			void Flush();
-
-			typedef Vector<byte> Buffer;
-
-			struct Port
-			{
-				bool Unlock();
-				NST_FORCE_INLINE void Flush(State::Saver&,uint);
-				NST_FORCE_INLINE void Sync(uint);
-
-				dword lock;
-				Buffer input;
-				Buffer recent;
-				Buffer output;
-
-				Port()
-				: lock(0) {}
-			};
-
-			struct Saver : State::Saver
-			{
-				explicit Saver(StdStream s)
-				: State::Saver(s,true,true) {}
-
-				void WriteHeader(bool,dword);
-
-				bool operator != (StdStream s) const
-				{
-					return stream != s;
-				}
-			};
-
-			ibool good;
-			dword frame;
-			ibool cut;
-			Port port[2];
-			Saver state;
-
-		public:
-
-			explicit Recorder(StdStream stream)
-			: good(true), frame(0), cut(false), state(stream) {}
-
-			bool operator != (StdStream stream) const
-			{
-				return state != stream;
-			}
-		};
-
 		class Tracker::Movie::Player
 		{
 		public:
 
-			void Start(dword);
-			bool BeginFrame(dword,Machine&,EmuLoadState,EmuReset);
-			inline uint ReadPort(uint);
-			void EndFrame();
+			~Player();
+
+			void Relink();
 
 		private:
 
-			typedef Vector<byte> Buffer;
+			static dword Validate(State::Loader&,const Cpu&,dword,bool);
 
-			struct Port
+			enum
 			{
-				bool Load(State::Loader&);
-				NST_FORCE_INLINE void Sync(uint);
+				MAX_BUFFER_MASK = 0xFFFFFF,
+				OPEN_BUS = 0x40
+			};
 
-				dword lock;
-				dword next;
-				dword offset;
+			struct Buffer : Vector<byte>
+			{
 				dword pos;
-				Buffer output;
+
+				Buffer()
+				: pos(0) {}
 			};
 
 			struct Loader : State::Loader
@@ -130,195 +69,458 @@ namespace Nes
 				explicit Loader(StdStream s)
 				: State::Loader(s,false) {}
 
-				void ReadHeader(dword);
-
-				bool Eof()
+				bool operator == (StdStream s) const
 				{
-					return stream.Eof();
-				}
-
-				bool operator != (StdStream s) const
-				{
-					return stream != s;
+					return stream == s;
 				}
 			};
 
-			ibool good;
+			NES_DECL_PEEK( Port );
+			NES_DECL_POKE( Port );
 
-			struct
-			{
-				uint port;
-				dword clip;
-				dword reset;
-				dword wait;
-			}   frame;
-
-			Port port[2];
+			const Io::Port* ports[2];
+			dword frame;
+			Buffer buffers[2];
 			Loader state;
+			Cpu& cpu;
 
 		public:
 
-			explicit Player(StdStream stream)
-			: state(stream) {}
-
-			bool operator != (StdStream stream) const
+			static dword Validate(StdStream stream,const Cpu& cpu,dword prgCrc)
 			{
-				return state != stream;
+				Loader state( stream );
+				return Validate( state, cpu, prgCrc, true );
+			}
+
+			Player(StdStream stream,Cpu& c,const dword prgCrc)
+			: frame(0), state(stream), cpu(c)
+			{
+				Validate( state, cpu, prgCrc, false );
+				Relink();
+			}
+
+			bool operator == (StdStream stream) const
+			{
+				return state == stream;
 			}
 
 			void Stop()
 			{
+				state.End();
+			}
+
+			bool Execute(Machine& emulator,EmuLoadState loadState)
+			{
+				NST_ASSERT( loadState );
+
+				if (buffers[0].pos > buffers[0].Size() || buffers[1].pos > buffers[1].Size())
+					throw RESULT_ERR_CORRUPT_FILE;
+
+				if (frame)
+				{
+					--frame;
+				}
+				else for (;;)
+				{
+					NST_VERIFY( buffers[0].pos == buffers[0].Size() && buffers[1].pos == buffers[1].Size() );
+
+					const dword chunk = state.Begin();
+
+					if (chunk == AsciiId<'K','E','Y'>::V)
+					{
+						for (uint i=0; i < 2; ++i)
+						{
+							buffers[i].pos = 0;
+							buffers[i].Clear();
+						}
+
+						while (const dword subChunk = state.Begin())
+						{
+							switch (subChunk)
+							{
+								case AsciiId<'S','A','V'>::V:
+
+									(emulator.*loadState)( state, false );
+									break;
+
+								case AsciiId<'P','T','0'>::V:
+								case AsciiId<'P','T','1'>::V:
+								{
+									const uint i = (subChunk == AsciiId<'P','T','1'>::V);
+
+									buffers[i].Resize( state.Read32() & MAX_BUFFER_MASK );
+									state.Uncompress( buffers[i].Begin(), buffers[i].Size() );
+									break;
+								}
+
+								case AsciiId<'L','E','N'>::V:
+
+									frame = state.Read32();
+									NST_VERIFY( frame <= 0xFFFFF );
+									break;
+							}
+
+							state.End();
+						}
+
+						state.End();
+						break;
+					}
+					else if (chunk)
+					{
+						state.End();
+					}
+					else
+					{
+						return false;
+					}
+				}
+
+				return true;
 			}
 		};
 
-		Tracker::Movie::Movie(Machine& e,EmuReset r,EmuLoadState l,EmuSaveState s,Cpu& c,dword crc)
+		Tracker::Movie::Player::~Player()
+		{
+			for (uint i=0; i < 2; ++i)
+				cpu.Unlink( 0x4016 + i, this, &Player::Peek_Port, &Player::Poke_Port );
+		}
+
+		dword Tracker::Movie::Player::Validate(State::Loader& state,const Cpu& cpu,const dword prgCrc,const bool end)
+		{
+			if (state.Begin() != (AsciiId<'N','S','V'>::V | 0x1AUL << 24))
+				throw RESULT_ERR_INVALID_FILE;
+
+			const dword length = state.Length();
+
+			Region::Type region = Region::NTSC;
+			dword crc = 0;
+
+			while (const dword chunk = state.Check())
+			{
+				if (chunk == AsciiId<'P','A','L'>::V)
+				{
+					state.Begin();
+					region = Region::PAL;
+					state.End();
+				}
+				else if (chunk == AsciiId<'C','R','C'>::V)
+				{
+					state.Begin();
+					crc = state.Read32();
+					state.End();
+				}
+				else if (chunk & 0xFFFFFF00)
+				{
+					break;
+				}
+				else
+				{
+					throw RESULT_ERR_UNSUPPORTED_FILE_VERSION;
+				}
+			}
+
+			if (end)
+				state.End( length );
+
+			if (region != cpu.GetRegion())
+				throw RESULT_ERR_WRONG_MODE;
+
+			if (crc && prgCrc && crc != prgCrc && Api::User::questionCallback( Api::User::QUESTION_NSV_PRG_CRC_FAIL_CONTINUE ) == Api::User::ANSWER_NO)
+				throw RESULT_ERR_INVALID_CRC;
+
+			return length;
+		}
+
+		void Tracker::Movie::Player::Relink()
+		{
+			for (uint i=0; i < 2; ++i)
+				ports[i] = cpu.Link( 0x4016 + i, Cpu::LEVEL_HIGHEST, this, &Player::Peek_Port, &Player::Poke_Port );
+		}
+
+		#ifdef NST_MSVC_OPTIMIZE
+		#pragma optimize("", on)
+		#endif
+
+		NES_PEEK_A(Tracker::Movie::Player,Port)
+		{
+			address &= 0x1;
+			const uint pos = buffers[address].pos++;
+
+			if (pos < buffers[address].Size())
+			{
+				return buffers[address][pos];
+			}
+			else
+			{
+				NST_DEBUG_MSG("buffer >> data failed!");
+				return OPEN_BUS;
+			}
+		}
+
+		NES_POKE_AD(Tracker::Movie::Player,Port)
+		{
+			ports[address & 0x1]->Poke( address, data );
+		}
+
+		#ifdef NST_MSVC_OPTIMIZE
+		#pragma optimize("s", on)
+		#endif
+
+		class Tracker::Movie::Recorder
+		{
+		public:
+
+			~Recorder();
+
+			void Relink();
+
+		private:
+
+			void BeginKey(Machine&,EmuSaveState);
+			void EndKey();
+
+			enum
+			{
+				BAD_FRAME = dword(~0UL),
+				MAX_BUFFER_BLOCK = SIZE_1K * 8192UL
+			};
+
+			typedef Vector<byte> Buffer;
+
+			struct Saver : State::Saver
+			{
+				Saver(StdStream s,dword a)
+				: State::Saver(s,true,true,a) {}
+
+				bool operator == (StdStream s) const
+				{
+					return stream == s;
+				}
+			};
+
+			NES_DECL_PEEK( Port );
+			NES_DECL_POKE( Port );
+
+			const Io::Port* ports[2];
+			ibool resync;
+			dword frame;
+			Buffer buffers[2];
+			Saver state;
+			Cpu& cpu;
+
+		public:
+
+			Recorder(StdStream stream,Cpu& c,const dword prgCrc,const bool append)
+			: resync(true), frame(0), state(stream,append ? Player::Validate(stream,c,prgCrc) : 0), cpu(c)
+			{
+				if (!append)
+				{
+					state.Begin( AsciiId<'N','S','V'>::V | 0x1AUL << 24 );
+
+					if (cpu.GetRegion() == Region::PAL)
+						state.Begin( AsciiId<'P','A','L'>::V ).End();
+
+					if (prgCrc)
+						state.Begin( AsciiId<'C','R','C'>::V ).Write32( prgCrc ).End();
+				}
+
+				Relink();
+			}
+
+			bool operator == (StdStream stream) const
+			{
+				return state == stream;
+			}
+
+			void Resync()
+			{
+				resync = true;
+			}
+
+			void Stop()
+			{
+				EndKey();
+
+				state.End();
+			}
+
+			void Execute(Machine& machine,EmuSaveState saveState)
+			{
+				NST_ASSERT( saveState );
+
+				if (frame == BAD_FRAME)
+					throw RESULT_ERR_OUT_OF_MEMORY;
+
+				if (resync || buffers[0].Size() >= MAX_BUFFER_BLOCK || buffers[1].Size() >= MAX_BUFFER_BLOCK)
+				{
+					EndKey();
+					BeginKey( machine, saveState );
+				}
+
+				++frame;
+			}
+		};
+
+		Tracker::Movie::Recorder::~Recorder()
+		{
+			for (uint i=0; i < 2; ++i)
+				cpu.Unlink( 0x4016 + i, this, &Recorder::Peek_Port, &Recorder::Poke_Port );
+		}
+
+		void Tracker::Movie::Recorder::Relink()
+		{
+			for (uint i=0; i < 2; ++i)
+				ports[i] = cpu.Link( 0x4016 + i, Cpu::LEVEL_HIGHEST, this, &Recorder::Peek_Port, &Recorder::Poke_Port );
+		}
+
+		void Tracker::Movie::Recorder::BeginKey(Machine& machine,EmuSaveState saveState)
+		{
+			state.Begin( AsciiId<'K','E','Y'>::V );
+
+			if (resync)
+			{
+				resync = false;
+
+				state.Begin( AsciiId<'S','A','V'>::V );
+				(machine.*saveState)( state );
+				state.End();
+			}
+		}
+
+		void Tracker::Movie::Recorder::EndKey()
+		{
+			if (frame == BAD_FRAME)
+				throw RESULT_ERR_OUT_OF_MEMORY;
+
+			if (frame)
+			{
+				state.Begin( AsciiId<'L','E','N'>::V ).Write32( frame-1 ).End();
+				frame = 0;
+
+				for (uint i=0; i < 2; ++i)
+				{
+					if (buffers[i].Size())
+					{
+						state.Begin( AsciiId<'P','T','0'>::R(0,0,i) ).Write32( buffers[i].Size() ).Compress( buffers[i].Begin(), buffers[i].Size() ).End();
+						buffers[i].Clear();
+					}
+				}
+
+				state.End();
+			}
+		}
+
+		#ifdef NST_MSVC_OPTIMIZE
+		#pragma optimize("", on)
+		#endif
+
+		NES_PEEK_A(Tracker::Movie::Recorder,Port)
+		{
+			const uint data = ports[address & 0x1]->Peek( address );
+
+			if (frame != BAD_FRAME)
+			{
+				try
+				{
+					buffers[address & 0x1].Append( data );
+				}
+				catch (...)
+				{
+					frame = BAD_FRAME;
+				}
+			}
+
+			return data;
+		}
+
+		NES_POKE_AD(Tracker::Movie::Recorder,Port)
+		{
+			ports[address & 0x1]->Poke( address, data );
+		}
+
+		#ifdef NST_MSVC_OPTIMIZE
+		#pragma optimize("s", on)
+		#endif
+
+		Tracker::Movie::Movie(Machine& e,EmuLoadState l,EmuSaveState s,Cpu& c,dword crc)
 		:
-		cpu            (c),
-		status         (STOPPED),
-		player         (NULL),
-		recorder       (NULL),
-		emulator       (e),
-		emuSaveState   (s),
-		emuLoadState   (l),
-		emuReset       (r),
-		callbackEnable (false),
-		prgCrc         (crc)
+		player    (NULL),
+		recorder  (NULL),
+		emulator  (e),
+		saveState (s),
+		loadState (l),
+		cpu       (c),
+		prgCrc    (crc)
 		{
 		}
 
 		Tracker::Movie::~Movie()
 		{
-			Close();
-		}
-
-		void Tracker::Movie::Close()
-		{
 			Stop();
-
-			delete player;
-			player = NULL;
-
-			delete recorder;
-			recorder = NULL;
 		}
 
-		bool Tracker::Movie::Record(StdStream const stream,const bool end,const bool callback)
+		bool Tracker::Movie::Record(StdStream const stream,const bool append)
 		{
 			NST_ASSERT( stream );
 
-			if (status == PLAYING)
-				throw RESULT_ERR_NOT_READY;
-
-			callbackEnable = callback;
+			if (!Zlib::AVAILABLE)
+				throw RESULT_ERR_UNSUPPORTED;
 
 			if (player)
-			{
-				Close();
-			}
-			else if (recorder)
-			{
-				if (*recorder != stream)
-				{
-					Close();
-				}
-				else if (status == RECORDING)
-				{
-					return false;
-				}
-			}
+				throw RESULT_ERR_NOT_READY;
 
-			if (recorder == NULL)
-				recorder = new Recorder( stream );
+			if (recorder && *recorder == stream)
+				return false;
 
-			try
-			{
-				recorder->Start( end, prgCrc );
-			}
-			catch (...)
-			{
-				delete recorder;
-				recorder = NULL;
-				throw;
-			}
+			Stop();
 
-			status = RECORDING;
-			SaveCpuPorts();
+			recorder = new Recorder( stream, cpu, prgCrc, append );
 
-			if (callbackEnable)
-				Api::Movie::stateCallback( Api::Movie::RECORDING );
+			Api::Movie::eventCallback( Api::Movie::EVENT_RECORDING );
 
 			return true;
 		}
 
-		bool Tracker::Movie::Play(StdStream const stream,const bool callback)
+		bool Tracker::Movie::Play(StdStream const stream)
 		{
 			NST_ASSERT( stream );
 
-			if (status == RECORDING)
-				throw RESULT_ERR_NOT_READY;
-
-			callbackEnable = callback;
+			if (!Zlib::AVAILABLE)
+				throw RESULT_ERR_UNSUPPORTED;
 
 			if (recorder)
-			{
-				Close();
-			}
-			else if (player)
-			{
-				if (*player != stream)
-				{
-					Close();
-				}
-				else if (status == PLAYING)
-				{
-					return false;
-				}
-			}
+				throw RESULT_ERR_NOT_READY;
 
-			if (player == NULL)
-				player = new Player( stream );
+			if (player && *player == stream)
+				return false;
 
-			try
-			{
-				player->Start( prgCrc );
-			}
-			catch (...)
-			{
-				delete player;
-				player = NULL;
-				throw;
-			}
+			Stop();
 
-			status = PLAYING;
-			SaveCpuPorts();
+			player = new Player( stream, cpu, prgCrc );
 
-			if (callbackEnable)
-				Api::Movie::stateCallback( Api::Movie::PLAYING );
+			Api::Movie::eventCallback( Api::Movie::EVENT_PLAYING );
 
 			return true;
+		}
+
+		void Tracker::Movie::Stop()
+		{
+			Stop( RESULT_OK );
 		}
 
 		bool Tracker::Movie::Stop(Result result)
 		{
-			if (status != STOPPED)
+			if (recorder || player)
 			{
-				cpu.Unlink( 0x4016, this, status == PLAYING ? &Movie::Peek_4016_Play : &Movie::Peek_4016_Record, &Movie::Poke_4016 );
-				cpu.Unlink( 0x4017, this, status == PLAYING ? &Movie::Peek_4017_Play : &Movie::Peek_4017_Record, &Movie::Poke_4017 );
-
-				status = STOPPED;
-
 				if (NES_SUCCEEDED(result))
 				{
 					try
 					{
 						if (recorder)
-						{
 							recorder->Stop();
-						}
-						else if (player)
-						{
+						else
 							player->Stop();
-						}
 					}
 					catch (Result r)
 					{
@@ -332,661 +534,87 @@ namespace Nes
 					{
 						result = RESULT_ERR_GENERIC;
 					}
-
-					if (NES_SUCCEEDED(result) && callbackEnable)
-						Api::Movie::stateCallback( recorder ? Api::Movie::STOPPED_RECORDING : Api::Movie::STOPPED_PLAYING );
-				}
-			}
-
-			if (NES_SUCCEEDED(result))
-				return true;
-
-			delete recorder;
-			recorder = NULL;
-
-			delete player;
-			player = NULL;
-
-			if (callbackEnable)
-			{
-				Api::Movie::State state;
-
-				switch (result)
-				{
-					case RESULT_ERR_OUT_OF_MEMORY:
-
-						state = Api::Movie::ERR_OUT_OF_MEMORY;
-						break;
-
-					case RESULT_ERR_INVALID_FILE:
-					case RESULT_ERR_CORRUPT_FILE:
-
-						state = Api::Movie::ERR_CORRUPT_FILE;
-						break;
-
-					case RESULT_ERR_UNSUPPORTED_GAME:
-
-						state = Api::Movie::ERR_UNSUPPORTED_IMAGE;
-						break;
-
-					default:
-
-						state = Api::Movie::ERR_GENERIC;
-						break;
 				}
 
-				Api::Movie::stateCallback( state );
-			}
-
-			return false;
-		}
-
-		void Tracker::Movie::Stop()
-		{
-			Stop( RESULT_OK );
-		}
-
-		void Tracker::Movie::Cut()
-		{
-			if (status == RECORDING)
-				recorder->Cut();
-		}
-
-		#ifdef NST_MSVC_OPTIMIZE
-		#pragma optimize("", on)
-		#endif
-
-		bool Tracker::Movie::BeginFrame(const dword frame)
-		{
-			try
-			{
-				if (status == RECORDING)
+				if (recorder)
 				{
-					recorder->BeginFrame( frame, emulator, emuSaveState );
+					delete recorder;
+					recorder = NULL;
+
+					Api::Movie::eventCallback( Api::Movie::EVENT_RECORDING_STOPPED, result );
 				}
-				else if (status == PLAYING)
+				else
 				{
-					if (!player->BeginFrame( frame, emulator, emuLoadState, emuReset ))
-						Stop();
-				}
+					delete player;
+					player = NULL;
 
-				return true;
-			}
-			catch (Result result)
-			{
-				return Stop( result );
-			}
-			catch (const std::bad_alloc&)
-			{
-				return Stop( RESULT_ERR_OUT_OF_MEMORY );
-			}
-			catch (...)
-			{
-				return Stop( RESULT_ERR_GENERIC );
-			}
-		}
+					Api::Movie::eventCallback( Api::Movie::EVENT_PLAYING_STOPPED, result );
 
-		bool Tracker::Movie::EndFrame()
-		{
-			try
-			{
-				if (status == RECORDING)
-				{
-					recorder->EndFrame();
-				}
-				else if (status == PLAYING)
-				{
-					player->EndFrame();
-				}
-
-				return true;
-			}
-			catch (Result result)
-			{
-				return Stop( result );
-			}
-			catch (const std::bad_alloc&)
-			{
-				return Stop( RESULT_ERR_OUT_OF_MEMORY );
-			}
-			catch (...)
-			{
-				return Stop( RESULT_ERR_GENERIC );
-			}
-		}
-
-		#ifdef NST_MSVC_OPTIMIZE
-		#pragma optimize("s", on)
-		#endif
-
-		bool Tracker::Movie::Reset(const bool hard)
-		{
-			if (status != STOPPED)
-			{
-				SaveCpuPorts();
-
-				if (status == RECORDING)
-				{
-					try
-					{
-						recorder->Reset( hard );
-					}
-					catch (Result result)
-					{
-						return Stop( result );
-					}
-					catch (const std::bad_alloc&)
-					{
-						return Stop( RESULT_ERR_OUT_OF_MEMORY );
-					}
-					catch (...)
-					{
-						return Stop( RESULT_ERR_GENERIC );
-					}
+					if (NES_FAILED(result))
+						return false;
 				}
 			}
 
 			return true;
 		}
 
-		void Tracker::Movie::SaveCpuPorts()
+		void Tracker::Movie::Reset()
 		{
-			NST_ASSERT( status != STOPPED );
+			if (recorder)
+			{
+				recorder->Relink();
+			}
+			else if (player)
+			{
+				player->Relink();
+			}
 
-			const bool recording = (status == RECORDING);
+			Resync();
+		}
 
-			ports[0] = cpu.Link( 0x4016, Cpu::LEVEL_HIGHEST, this, recording ? &Movie::Peek_4016_Record : &Movie::Peek_4016_Play, &Movie::Poke_4016 );
-			ports[1] = cpu.Link( 0x4017, Cpu::LEVEL_HIGHEST, this, recording ? &Movie::Peek_4017_Record : &Movie::Peek_4017_Play, &Movie::Poke_4017 );
+		void Tracker::Movie::Resync()
+		{
+			if (recorder)
+				recorder->Resync();
 		}
 
 		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
-		NST_FORCE_INLINE void Tracker::Movie::Recorder::Port::Flush(State::Saver& state,const uint index)
+		bool Tracker::Movie::Execute()
 		{
-			Unlock();
-			recent.Clear();
+			Result result = RESULT_OK;
 
-			if (output.Size())
+			try
 			{
-				state.Begin( AsciiId<'P','T','0'>::R(0,0,index) ).Write32( output.Size() - 1 ).Compress( output.Begin(), output.Size() ).End();
-				output.Clear();
-			}
-		}
-
-		void Tracker::Movie::Recorder::Flush()
-		{
-			for (uint i=0; i < 2; ++i)
-				port[i].Flush( state, i );
-		}
-
-		#ifdef NST_MSVC_OPTIMIZE
-		#pragma optimize("s", on)
-		#endif
-
-		void Tracker::Movie::Recorder::Saver::WriteHeader(const bool end,const dword prgCrc)
-		{
-			const byte header[16] =
-			{
-				Ascii<'N'>::V,
-				Ascii<'S'>::V,
-				Ascii<'V'>::V,
-				0x1A,
-				VERSION,
-				prgCrc >>  0 & 0xFF,
-				prgCrc >>  8 & 0xFF,
-				prgCrc >> 16 & 0xFF,
-				prgCrc >> 24 & 0xFF,
-				0,
-				0,
-				0,
-				0,
-				0,
-				0,
-				0
-			};
-
-			stream.Write( header );
-
-			if (end)
-				stream.SeekEnd();
-		}
-
-		void Tracker::Movie::Recorder::Start(const bool end,const dword prgCrc)
-		{
-			cut = false;
-			frame = NO_FRAME;
-			state.WriteHeader( end, prgCrc );
-		}
-
-		void Tracker::Movie::Recorder::Stop()
-		{
-			NST_VERIFY( bool(frame) >= bool(port[0].output.Size() || port[1].output.Size()) );
-
-			Flush();
-
-			if (frame && frame != NO_FRAME)
-				state.Begin( AsciiId<'W','A','I'>::V ).Write32( frame ).End();
-		}
-
-		void Tracker::Movie::Recorder::Cut()
-		{
-			Stop();
-			cut = true;
-		}
-
-		void Tracker::Movie::Recorder::Reset(const bool hard)
-		{
-			if (frame)
-			{
-				Flush();
-				state.Begin( AsciiId<'R','E','S'>::V ).Write32( frame != NO_FRAME ? frame : 0 ).Write8( hard ).End();
-				frame = 0;
-			}
-		}
-
-		void Tracker::Movie::Player::Loader::ReadHeader(const dword prgCrc)
-		{
-			if (stream.Read32() != (AsciiId<'N','S','V'>::V | 0x1AUL << 24))
-				throw RESULT_ERR_INVALID_FILE;
-
-			if (stream.Read8() != VERSION)
-				throw RESULT_ERR_UNSUPPORTED_FILE_VERSION;
-
-			const dword crc = stream.Read32();
-
-			if
-			(
-				crc && prgCrc && crc != prgCrc &&
-				Api::User::questionCallback( Api::User::QUESTION_NSV_PRG_CRC_FAIL_CONTINUE ) == Api::User::ANSWER_NO
-			)
-				throw RESULT_ERR_INVALID_CRC;
-
-			stream.Seek( 7 );
-		}
-
-		void Tracker::Movie::Player::Start(const dword prgCrc)
-		{
-			good = false;
-
-			frame.port = 0;
-			frame.clip = NO_FRAME;
-			frame.reset = NO_FRAME;
-			frame.wait = NO_FRAME;
-
-			for (uint i=0; i < 2; ++i)
-			{
-				port[i].pos = 0;
-				port[i].offset = 0;
-				port[i].lock = 0;
-				port[i].next = 0;
-				port[i].output.Clear();
-			}
-
-			state.ReadHeader( prgCrc );
-
-			good = true;
-		}
-
-		#ifdef NST_MSVC_OPTIMIZE
-		#pragma optimize("", on)
-		#endif
-
-		bool Tracker::Movie::Player::Port::Load(State::Loader& state)
-		{
-			if (pos != output.Size())
-				return false;
-
-			pos = 0;
-			offset = 0;
-
-			const dword size = state.Read32() + 1;
-
-			if (size <= 0x02000000UL)
-			{
-				output.Resize( size );
-				state.Uncompress( output.Begin(), size );
-				return true;
-			}
-			else
-			{
-				throw RESULT_ERR_CORRUPT_FILE;
-			}
-		}
-
-		bool Tracker::Movie::Recorder::Port::Unlock()
-		{
-			if (dword count = lock)
-			{
-				lock = 0;
-
-				output.Expand( --count < LOCK_SIZE_BIT ? 1 : 4 );
-
-				if (count < LOCK_SIZE_BIT)
+				if (recorder)
 				{
-					output.Back() = (LOCK_BIT|LOCK_SIZE_BIT) | count;
+					recorder->Execute( emulator, saveState );
+					return true;
 				}
-				else
+				else if (player && player->Execute( emulator, loadState ))
 				{
-					byte* const ptr = output.End() - 4;
-
-					ptr[0] = count >> 24 & 0xFF | LOCK_BIT;
-					ptr[1] = count >> 16 & 0xFF;
-					ptr[2] = count >>  8 & 0xFF;
-					ptr[3] = count >>  0 & 0xFF;
+					return true;
 				}
-
-				return true;
 			}
+			catch (Result r)
+			{
+				result = r;
+			}
+			catch (const std::bad_alloc&)
+			{
+				result = RESULT_ERR_OUT_OF_MEMORY;
+			}
+			catch (...)
+			{
+				result = RESULT_ERR_GENERIC;
+			}
+
+			if (!Stop( result ))
+				throw result;
 
 			return false;
-		}
-
-		NST_FORCE_INLINE void Tracker::Movie::Recorder::Port::Sync(const uint index)
-		{
-			NST_ASSERT( index <= 1 );
-
-			if (input.Size())
-			{
-				if (input.Size() <= MAX_FRAME_READS)
-				{
-					if (recent == input)
-					{
-						++lock;
-					}
-					else
-					{
-						if (!Unlock() && index && recent.Size())
-							output.Append( 0x00 ); // $4016 can afford one bit while $4017 can't
-
-						recent = input;
-						output += input;
-					}
-				}
-				else
-				{
-					throw RESULT_ERR_UNSUPPORTED_GAME;
-				}
-			}
-		}
-
-		NST_FORCE_INLINE void Tracker::Movie::Player::Port::Sync(uint index)
-		{
-			NST_ASSERT( index <= 1 );
-
-			if (pos > offset)
-			{
-				if (lock)
-				{
-					if (--lock)
-					{
-						pos = offset;
-					}
-					else
-					{
-						pos = offset = next;
-					}
-				}
-				else if (pos < output.Size())
-				{
-					const uint ctrl = output[pos];
-
-					if (ctrl & LOCK_BIT)
-					{
-						next = pos;
-						pos = offset;
-
-						if (ctrl & LOCK_SIZE_BIT)
-						{
-							next += 1;
-							lock = (ctrl & ~uint(LOCK_BIT|LOCK_SIZE_BIT)) + 1;
-						}
-						else
-						{
-							next += 4;
-
-							if (next <= output.Size())
-							{
-								lock = 1 +
-								(
-									dword(ctrl & ~uint(LOCK_BIT)) << 24 |
-									dword(output[next-3])         << 16 |
-									dword(output[next-2])         <<  8 |
-									dword(output[next-1])         <<  0
-								);
-							}
-							else
-							{
-								throw RESULT_ERR_CORRUPT_FILE;
-							}
-						}
-					}
-					else
-					{
-						pos += index; // $4016 can afford one bit while $4017 can't
-						offset = pos;
-					}
-				}
-			}
-		}
-
-		void Tracker::Movie::Recorder::BeginFrame(const dword emuFrame,Machine& emulator,EmuSaveState emuSaveState)
-		{
-			NST_VERIFY( frame <= emuFrame || frame == NO_FRAME );
-
-			for (uint i=0; i < 2; ++i)
-				port[i].input.Clear();
-
-			if (frame == emuFrame && !cut)
-				return;
-
-			cut = false;
-
-			Flush();
-
-			state.Begin( AsciiId<'C','L','P'>::V );
-			state.Write32( frame != NO_FRAME ? frame : 0 );
-			(emulator.*emuSaveState)( state );
-			state.End();
-
-			frame = emuFrame;
-		}
-
-		bool Tracker::Movie::Player::BeginFrame
-		(
-			const dword emuFrame,
-			Machine& emulator,
-			EmuLoadState emuLoadState,
-			EmuReset emuReset
-		)
-		{
-			for (;;)
-			{
-				if (frame.port)
-				{
-					NST_ASSERT( frame.port <= 2 );
-
-					if (port[frame.port - 1].Load( state ))
-					{
-						frame.port = 0;
-						state.End();
-					}
-					else
-					{
-						break;
-					}
-				}
-				else if (frame.clip != NO_FRAME)
-				{
-					if (frame.clip <= emuFrame)
-					{
-						frame.clip = NO_FRAME;
-						(emulator.*emuLoadState)( state );
-						state.End();
-					}
-					else
-					{
-						break;
-					}
-				}
-				else if (frame.reset != NO_FRAME)
-				{
-					if (frame.reset <= emuFrame)
-					{
-						frame.reset = NO_FRAME;
-						(emulator.*emuReset)( state.Read8() & 0x1 );
-						state.End();
-					}
-					else
-					{
-						break;
-					}
-				}
-				else if (frame.wait != NO_FRAME)
-				{
-					if (frame.wait <= emuFrame)
-					{
-						frame.wait = NO_FRAME;
-						state.End();
-					}
-					else
-					{
-						break;
-					}
-				}
-
-				if (!state.Eof())
-				{
-					switch (state.Begin())
-					{
-						case AsciiId<'P','T','0'>::V:
-
-							frame.port = 1;
-							break;
-
-						case AsciiId<'P','T','1'>::V:
-
-							frame.port = 2;
-							break;
-
-						case AsciiId<'C','L','P'>::V:
-
-							frame.clip = state.Read32() & VALID_FRAME;
-							break;
-
-						case AsciiId<'R','E','S'>::V:
-
-							frame.reset = state.Read32() & VALID_FRAME;
-							break;
-
-						case AsciiId<'W','A','I'>::V:
-
-							frame.wait = state.Read32() & VALID_FRAME;
-							break;
-
-						default:
-
-							return false;
-					}
-				}
-				else
-				{
-					return port[0].pos < port[0].output.Size() || port[1].pos < port[1].output.Size();
-				}
-			}
-
-			return true;
-		}
-
-		void Tracker::Movie::Recorder::EndFrame()
-		{
-			if (good)
-			{
-				++frame;
-
-				for (uint i=0; i < 2; ++i)
-					port[i].Sync( i );
-			}
-			else
-			{
-				throw RESULT_ERR_OUT_OF_MEMORY;
-			}
-		}
-
-		void Tracker::Movie::Player::EndFrame()
-		{
-			if (good)
-			{
-				for (uint i=0; i < 2; ++i)
-					port[i].Sync( i );
-			}
-			else
-			{
-				throw RESULT_ERR_CORRUPT_FILE;
-			}
-		}
-
-		uint Tracker::Movie::Recorder::WritePort(const uint index,const uint data)
-		{
-			NST_ASSERT( index || !(data & LOCK_BIT) );
-
-			if (good)
-			{
-				try
-				{
-					port[index].input.Append( data );
-				}
-				catch (...)
-				{
-					good = false;
-				}
-			}
-
-			return data;
-		}
-
-		inline uint Tracker::Movie::Player::ReadPort(const uint index)
-		{
-			if (good)
-			{
-				if (port[index].pos < port[index].output.Size())
-					return port[index].output[port[index].pos++];
-
-				good = false;
-			}
-
-			return OPEN_BUS;
-		}
-
-		NES_PEEK(Tracker::Movie,4016_Record)
-		{
-			return recorder->WritePort( 0, ports[0]->Peek( 0x4016 ) );
-		}
-
-		NES_PEEK(Tracker::Movie,4016_Play)
-		{
-			return player->ReadPort( 0 );
-		}
-
-		NES_PEEK(Tracker::Movie,4017_Record)
-		{
-			return recorder->WritePort( 1, ports[1]->Peek( 0x4017 ) );
-		}
-
-		NES_PEEK(Tracker::Movie,4017_Play)
-		{
-			return player->ReadPort( 1 );
-		}
-
-		NES_POKE(Tracker::Movie,4016)
-		{
-			ports[0]->Poke( address, data );
-		}
-
-		NES_POKE(Tracker::Movie,4017)
-		{
-			ports[1]->Poke( address, data );
 		}
 	}
 }

@@ -37,6 +37,11 @@ namespace Nes
 {
 	namespace Core
 	{
+		namespace Input
+		{
+			class Controllers;
+		}
+
 		class NST_NO_VTABLE Mapper
 		{
 		public:
@@ -46,6 +51,7 @@ namespace Nes
 				const uint id;
 
 				Cpu& cpu;
+				Apu& apu;
 				Ppu& ppu;
 
 				Ram& prg;
@@ -62,24 +68,26 @@ namespace Nes
 				(
 					uint i,
 					Cpu& c,
+					Apu& a,
 					Ppu& p,
 					Ram& pr,
 					Ram& cr,
 					Ram& wr,
 					Ppu::Mirroring m,
 					dword b,
-					uint a
+					uint at
 				)
 				:
 				id        (i),
 				cpu       (c),
+				apu       (a),
 				ppu       (p),
 				prg       (pr),
 				chr       (cr),
 				wrk       (wr),
 				mirroring (m),
 				wrkBacked (b),
-				attribute (a),
+				attribute (at),
 				chrRam    (0),
 				wrkAuto   (false)
 				{}
@@ -92,8 +100,14 @@ namespace Nes
 			void SaveState (State::Saver&,dword) const;
 			void LoadState (State::Loader&);
 
-			virtual void PowerOff() {}
-			virtual void VSync() {}
+			enum Event
+			{
+				EVENT_END_FRAME,
+				EVENT_BEGIN_FRAME,
+				EVENT_POWER_OFF
+			};
+
+			virtual void Sync(Event,Input::Controllers*) {};
 
 			typedef void* Device;
 
@@ -125,60 +139,69 @@ namespace Nes
 				EXT_A65AS,
 				EXT_EDU2000,
 				EXT_TF1201,
-				EXT_KS7032,
 				EXT_GS2004,
-				NUM_EXT_MAPPERS = 17
+				EXT_AX5705,
+				EXT_T230,
+				EXT_190IN1,
+				EXT_CTC65,
+				NUM_EXT_MAPPERS = 20
 			};
 
 			static cstring GetBoard(uint);
 
 		protected:
 
-			Mapper(Context&,uint=0);
+			explicit Mapper(Context&,dword=0);
 			virtual ~Mapper();
 
 			enum
 			{
-				PROM_DEFAULT   = 0U  << 0,
-				PROM_MAX_16K   = 1U  << 0,
-				PROM_MAX_32K   = 2U  << 0,
-				PROM_MAX_64K   = 3U  << 0,
-				PROM_MAX_128K  = 4U  << 0,
-				PROM_MAX_256K  = 5U  << 0,
-				PROM_MAX_512K  = 6U  << 0,
-				PROM_MAX_1024K = 7U  << 0,
-				PROM_SETTINGS  = 7U  << 0,
-				CROM_DEFAULT   = 0U  << 3,
-				CROM_NONE      = 1U  << 3,
-				CROM_MAX_8K    = 2U  << 3,
-				CROM_MAX_16K   = 3U  << 3,
-				CROM_MAX_32K   = 4U  << 3,
-				CROM_MAX_64K   = 5U  << 3,
-				CROM_MAX_128K  = 6U  << 3,
-				CROM_MAX_256K  = 7U  << 3,
-				CROM_MAX_512K  = 8U  << 3,
-				CROM_MAX_1024K = 9U  << 3,
-				CROM_SETTINGS  = 15U << 3,
-				CRAM_DEFAULT   = 0U  << 7,
-				CRAM_1K        = 1U  << 7,
-				CRAM_2K        = 2U  << 7,
-				CRAM_4K        = 3U  << 7,
-				CRAM_8K        = 4U  << 7,
-				CRAM_16K       = 5U  << 7,
-				CRAM_32K       = 6U  << 7,
-				CRAM_SETTINGS  = 7U  << 7,
-				WRAM_AUTO      = 0U  << 10,
-				WRAM_DEFAULT   = 1U  << 10,
-				WRAM_NONE      = 2U  << 10,
-				WRAM_1K        = 3U  << 10,
-				WRAM_2K        = 4U  << 10,
-				WRAM_4K        = 5U  << 10,
-				WRAM_8K        = 6U  << 10,
-				WRAM_16K       = 7U  << 10,
-				WRAM_32K       = 8U  << 10,
-				WRAM_40K       = 9U  << 10,
-				WRAM_64K       = 10U << 10,
-				WRAM_SETTINGS  = 15U << 10
+				PROM_DEFAULT   = 0U   << 0,
+				PROM_MAX_16K   = 1U   << 0,
+				PROM_MAX_32K   = 2U   << 0,
+				PROM_MAX_64K   = 3U   << 0,
+				PROM_MAX_128K  = 4U   << 0,
+				PROM_MAX_256K  = 5U   << 0,
+				PROM_MAX_512K  = 6U   << 0,
+				PROM_MAX_1024K = 7U   << 0,
+				PROM_SETTINGS  = 7U   << 0,
+				CROM_DEFAULT   = 0U   << 3,
+				CROM_NONE      = 1U   << 3,
+				CROM_MAX_8K    = 2U   << 3,
+				CROM_MAX_16K   = 3U   << 3,
+				CROM_MAX_32K   = 4U   << 3,
+				CROM_MAX_64K   = 5U   << 3,
+				CROM_MAX_128K  = 6U   << 3,
+				CROM_MAX_256K  = 7U   << 3,
+				CROM_MAX_512K  = 8U   << 3,
+				CROM_MAX_1024K = 9U   << 3,
+				CROM_SETTINGS  = 15U  << 3,
+				CRAM_DEFAULT   = 0U   << 7,
+				CRAM_1K        = 1U   << 7,
+				CRAM_2K        = 2U   << 7,
+				CRAM_4K        = 3U   << 7,
+				CRAM_8K        = 4U   << 7,
+				CRAM_16K       = 5U   << 7,
+				CRAM_32K       = 6U   << 7,
+				CRAM_SETTINGS  = 7U   << 7,
+				WRAM_AUTO      = 0U   << 10,
+				WRAM_DEFAULT   = 1U   << 10,
+				WRAM_NONE      = 2U   << 10,
+				WRAM_1K        = 3U   << 10,
+				WRAM_2K        = 4U   << 10,
+				WRAM_4K        = 5U   << 10,
+				WRAM_8K        = 6U   << 10,
+				WRAM_16K       = 7U   << 10,
+				WRAM_32K       = 8U   << 10,
+				WRAM_40K       = 9U   << 10,
+				WRAM_64K       = 10U  << 10,
+				WRAM_SETTINGS  = 15U  << 10,
+				NMT_DEFAULT    = 0UL  << 14,
+				NMT_HORIZONTAL = 1UL  << 14,
+				NMT_VERTICAL   = 2UL  << 14,
+				NMT_ZERO       = 3UL  << 14,
+				NMT_FOURSCREEN = 4UL  << 14,
+				NMT_SETTINGS   = 7UL  << 14
 			};
 
 			enum PrgMapping
@@ -316,8 +339,7 @@ namespace Nes
 			NES_DECL_PEEK( Nop );
 			NES_DECL_POKE( Nop );
 
-			struct Setup;
-			static const Setup setup[256+NUM_EXT_MAPPERS];
+			static cstring const boards[256+NUM_EXT_MAPPERS];
 
 		protected:
 

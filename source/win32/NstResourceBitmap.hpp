@@ -41,7 +41,7 @@ namespace Nestopia
 		public:
 
 			explicit Bitmap(uint);
-			~Bitmap ();
+			~Bitmap();
 
 			operator HBITMAP () const
 			{

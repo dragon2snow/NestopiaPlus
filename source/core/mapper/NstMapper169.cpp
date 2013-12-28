@@ -33,13 +33,38 @@ namespace Nes
 		#pragma optimize("s", on)
 		#endif
 
-		void Mapper169::SubReset(bool)
+		void Mapper169::SubReset(const bool hard)
 		{
-			for (dword i=0x8000; i <= 0xFFFF; i += 0x4)
+			Map( 0x8000U, 0xBFFFU, &Mapper169::Poke_8000 );
+			Map( 0xC000U, 0xFFFFU, &Mapper169::Poke_C000 );
+
+			if (hard)
 			{
-				Map( i + 0x0, &Mapper169::Poke_8000 );
-				Map( i + 0x2, &Mapper169::Poke_8002 );
-				Map( i + 0x3, &Mapper169::Poke_8000 );
+				ctrl = 0;
+				bank = 0;
+
+				UpdatePrg();
+			}
+		}
+
+		void Mapper169::SubSave(State::Saver& state) const
+		{
+			state.Begin( AsciiId<'R','E','G'>::V ).Write16( ctrl ).Write8( bank ).End();
+		}
+
+		void Mapper169::SubLoad(State::Loader& state)
+		{
+			while (const dword chunk = state.Begin())
+			{
+				if (chunk == AsciiId<'R','E','G'>::V)
+				{
+					ctrl = state.Read16();
+					bank = state.Read8();
+
+					UpdatePrg();
+				}
+
+				state.End();
 			}
 		}
 
@@ -47,14 +72,34 @@ namespace Nes
 		#pragma optimize("", on)
 		#endif
 
-		NES_POKE(Mapper169,8000)
+		void Mapper169::UpdatePrg()
 		{
-			prg.SwapBank<SIZE_32K,0x0000>( data >> 1 & 0x1F );
+			prg.SwapBanks<SIZE_16K,0x0000>
+			(
+				(ctrl >> 2 & 0x38) | ((ctrl & 0x102) == 0x002 ? (bank & 0x6) : bank),
+				(ctrl >> 2 & 0x38) | ((ctrl & 0x102) == 0x102 ? 0x7 : (bank | (ctrl >> 1 & 0x1)))
+			);
 		}
 
-		NES_POKE(Mapper169,8002)
+		NES_POKE_A(Mapper169,8000)
 		{
-			prg.SwapBanks<SIZE_16K,0x0000>( (data & 0x3F) + (data >> 7), (data & 0x3F) + (data >> 7) );
+			if (ctrl != address)
+			{
+				ctrl = address;
+				UpdatePrg();
+				ppu.SetMirroring( (ctrl & 0x1) ? Ppu::NMT_HORIZONTAL : Ppu::NMT_VERTICAL );
+			}
+		}
+
+		NES_POKE_A(Mapper169,C000)
+		{
+			address &= 0x7;
+
+			if (bank != address)
+			{
+				bank = address;
+				UpdatePrg();
+			}
 		}
 	}
 }

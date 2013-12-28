@@ -70,6 +70,12 @@ namespace Nestopia
 				PRIORITY_HIGH
 			};
 
+			struct MenuLook
+			{
+				COLORREF color;
+				bool enabled;
+			};
+
 		private:
 
 			enum
@@ -96,12 +102,8 @@ namespace Nestopia
 			struct Settings : Collection::BitSet
 			{
 				Priority priority;
-
-				struct
-				{
-					COLORREF color;
-					bool enabled;
-				}   menuLookDesktop, menuLookFullscreen;
+				MenuLook menuLookDesktop;
+				MenuLook menuLookFullscreen;
 			};
 
 			Settings settings;

@@ -36,16 +36,16 @@ namespace Nes
 		void Mapper143::SubReset(bool)
 		{
 			for (uint i=0x4100; i < 0x6000; i += 0x200)
-				Map( i, i + 0x100, &Mapper143::Peek_4100 );
+				Map( i + 0x00, i + 0xFF, &Mapper143::Peek_4100 );
 		}
 
 		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
-		NES_PEEK(Mapper143,4100)
+		NES_PEEK_A(Mapper143,4100)
 		{
-			return 0x40 | (~address & 0x3F);
+			return (~address & 0x3F) | 0x40;
 		}
 	}
 }

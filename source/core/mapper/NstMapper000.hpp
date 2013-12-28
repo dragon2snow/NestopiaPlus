@@ -49,8 +49,14 @@ namespace Nes
 			};
 
 			void SubReset(bool);
-			void PowerOff();
+			void Sync(Event,Input::Controllers*);
 			Device QueryDevice(DeviceType);
+			static dword DetectWRam(const Context&);
+
+			NES_DECL_PEEK( Wrk_6 );
+			NES_DECL_POKE( Wrk_6 );
+			NES_DECL_PEEK( Wrk_7 );
+			NES_DECL_POKE( Wrk_7 );
 
 			class CartSwitch;
 			CartSwitch* const cartSwitch;

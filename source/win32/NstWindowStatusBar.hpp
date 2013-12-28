@@ -79,7 +79,7 @@ namespace Nestopia
 			};
 
 			Width width;
-			const Custom& parent;
+			Custom& parent;
 			Generic window;
 
 		public:

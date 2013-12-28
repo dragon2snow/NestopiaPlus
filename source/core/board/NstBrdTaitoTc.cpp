@@ -38,8 +38,8 @@ namespace Nes
 
 			TaitoTc::TaitoTc(Context& c,const Type type)
 			:
-			Mapper (c,CROM_MAX_512K|WRAM_DEFAULT),
-			irq    (type == TYPE_TC190V ? new Mmc3::Irq(c.cpu,c.ppu,Mmc3::Irq::IRQ_DELAY) : NULL)
+			Mapper (c,CROM_MAX_512K|WRAM_DEFAULT|NMT_VERTICAL),
+			irq    (type == TYPE_TC190V ? new Mmc3::Irq<IRQ_DELAY>(c.cpu,c.ppu,false) : NULL)
 			{
 			}
 
@@ -51,7 +51,7 @@ namespace Nes
 			void TaitoTc::SubReset(const bool hard)
 			{
 				if (irq)
-					irq->Reset( hard, hard || irq->IsLineEnabled() );
+					irq->Reset( hard, hard || irq->Connected() );
 
 				for (uint i=0x0000; i < 0x1000; i += 0x4)
 				{
@@ -79,11 +79,11 @@ namespace Nes
 				}
 			}
 
-			void TaitoTc::BaseLoad(State::Loader& state,const dword id)
+			void TaitoTc::BaseLoad(State::Loader& state,const dword baseChunk)
 			{
-				NST_VERIFY( id == (AsciiId<'T','T','C'>::V) );
+				NST_VERIFY( baseChunk == (AsciiId<'T','T','C'>::V) );
 
-				if (id == AsciiId<'T','T','C'>::V)
+				if (baseChunk == AsciiId<'T','T','C'>::V)
 				{
 					while (const dword chunk = state.Begin())
 					{
@@ -114,13 +114,13 @@ namespace Nes
 			#pragma optimize("", on)
 			#endif
 
-			NES_POKE(TaitoTc,8000)
+			NES_POKE_D(TaitoTc,8000)
 			{
 				prg.SwapBank<SIZE_8K,0x0000>( data );
 				ppu.SetMirroring( (data & 0x40) ? Ppu::NMT_HORIZONTAL : Ppu::NMT_VERTICAL );
 			}
 
-			NES_POKE(TaitoTc,C000)
+			NES_POKE_D(TaitoTc,C000)
 			{
 				irq->Update();
 				irq->unit.SetLatch( (0x100 - data) & 0xFF );
@@ -144,15 +144,18 @@ namespace Nes
 				irq->unit.Disable( cpu );
 			}
 
-			NES_POKE(TaitoTc,E000)
+			NES_POKE_D(TaitoTc,E000)
 			{
 				ppu.SetMirroring( (data & 0x40) ? Ppu::NMT_HORIZONTAL : Ppu::NMT_VERTICAL );
 			}
 
-			void TaitoTc::VSync()
+			void TaitoTc::Sync(Event event,Input::Controllers*)
 			{
-				if (irq)
-					irq->VSync();
+				if (event == EVENT_END_FRAME)
+				{
+					if (irq)
+						irq->VSync();
+				}
 			}
 		}
 	}

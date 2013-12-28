@@ -128,8 +128,8 @@ namespace Nestopia
 			bool SwitchFullscreen(const Adapter::Modes::const_iterator);
 			bool SwitchWindowed();
 			void UpdateWindowView();
-			void UpdateWindowView(const Point&,const float[4],int,Adapter::Filter,bool);
-			void UpdateFullscreenView(const Rect&,const Point&,const float[4],int,Adapter::Filter,bool);
+			void UpdateWindowView(const Point&,const Rect&,int,Adapter::Filter,bool);
+			void UpdateFullscreenView(const Rect&,const Point&,const Rect&,int,Adapter::Filter,bool);
 			void UpdateFrameRate(uint,bool,bool);
 			void EnableDialogBoxMode(bool);
 			bool Reset();
@@ -413,7 +413,7 @@ namespace Nestopia
 					FVF = D3DFVF_XYZRHW|D3DFVF_TEX1
 				};
 
-				void Update(const Rect&,const float[4],float,uint,int);
+				void Update(const Rect&,const Rect&,float,uint,int);
 				HRESULT Validate(IDirect3DDevice9&,bool=true);
 				void Invalidate();
 

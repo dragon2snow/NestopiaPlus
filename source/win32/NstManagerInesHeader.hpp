@@ -39,7 +39,7 @@ namespace Nestopia
 
 		private:
 
-			void OnEmuEvent(Emulator::Event);
+			void OnEmuEvent(Emulator::Event,Emulator::Data);
 			void OnCmdEditInesHeader(uint);
 
 			const Paths& paths;

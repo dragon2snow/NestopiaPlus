@@ -72,39 +72,21 @@ namespace Nes
 				1733,2060,2449,2911,3460,4113,4889,5811,6907,8209,9757,11597,13784,16383
 			};
 
-			Fme7::Sound::Sound(Cpu& cpu,bool hook)
-			: apu(cpu.GetApu()), active(false), hooked(hook)
+			Fme7::Sound::Sound(Apu& a,bool connect)
+			: Channel(a), fixed(1)
 			{
-				if (hook)
-					apu.HookChannel( this );
-			}
+				Reset();
+				bool audible = UpdateSettings();
 
-			Fme7::Sound::Envelope::Envelope()
-			{
-				Reset(1);
-			}
-
-			Fme7::Sound::Noise::Noise()
-			{
-				Reset(1);
-			}
-
-			Fme7::Sound::Square::Square()
-			{
-				Reset(1);
-			}
-
-			Fme7::Sound::~Sound()
-			{
-				if (hooked)
-					apu.ReleaseChannel();
+				if (connect)
+					Connect( audible );
 			}
 
 			Fme7::Fme7(Context& c)
 			:
-			Mapper       (c,CROM_MAX_256K),
+			Mapper       (c,CROM_MAX_256K|NMT_VERTICAL),
 			irq          (c.cpu),
-			sound        (c.cpu),
+			sound        (c.apu),
 			barcodeWorld (c.attribute == ATR_BARCODE_READER ? new BarcodeWorld : NULL)
 			{}
 
@@ -137,34 +119,36 @@ namespace Nes
 				alternate = 0;
 				attack = 0;
 				timer = 0;
+				frequency = 1 * 8 * fixed;
 				length = 0;
 				count = 0;
 				volume = 0;
-				UpdateFrequency( fixed );
 			}
 
 			void Fme7::Sound::Noise::Reset(const uint fixed)
 			{
 				timer = 0;
+				frequency = 1 * 16 * fixed;
 				length = 0;
 				rng = 1;
 				dc = 0;
-				UpdateFrequency( fixed );
 			}
 
 			void Fme7::Sound::Square::Reset(const uint fixed)
 			{
 				timer = 0;
+				frequency = 1 * 16 * fixed;
 				status = 0;
 				ctrl = 0;
 				volume = 0;
 				dc = 0;
 				length = 0;
-				UpdateFrequency( fixed );
 			}
 
 			void Fme7::Sound::Reset()
 			{
+				active = false;
+
 				regSelect = 0x0;
 				envelope.Reset( fixed );
 
@@ -188,7 +172,7 @@ namespace Nes
 				if (hard)
 					command = 0x0;
 
-				irq.Reset( hard, hard ? false : irq.IsLineEnabled() );
+				irq.Reset( hard, hard ? false : irq.Connected() );
 
 				if (barcodeWorld)
 					barcodeWorld->Reset( cpu );
@@ -201,41 +185,47 @@ namespace Nes
 				Map( 0xE000U, 0xFFFFU, &Fme7::Poke_E000 );
 			}
 
-			void Fme7::Sound::Envelope::UpdateContext(const uint fixed)
+			void Fme7::Sound::Envelope::UpdateSettings(const uint fixed)
 			{
 				timer = 0;
 				UpdateFrequency( fixed );
 			}
 
-			void Fme7::Sound::Noise::UpdateContext(const uint fixed)
+			void Fme7::Sound::Noise::UpdateSettings(const uint fixed)
 			{
 				timer = 0;
 				UpdateFrequency( fixed );
 			}
 
-			void Fme7::Sound::Square::UpdateContext(const uint fixed)
+			void Fme7::Sound::Square::UpdateSettings(const uint fixed)
 			{
 				timer = 0;
 				UpdateFrequency( fixed );
 			}
 
-			void Fme7::Sound::UpdateContext(uint,const byte (&outputLevels)[MAX_CHANNELS])
+			bool Fme7::Sound::UpdateSettings()
 			{
-				outputVolume = outputLevels[Apu::CHANNEL_S5B] * 94U / DEFAULT_VOLUME;
-				envelope.UpdateContext( fixed );
+				output = GetVolume(EXT_S5B) * 94U / DEFAULT_VOLUME;
+
+				GetOscillatorClock( rate, fixed );
+
+				envelope.UpdateSettings( fixed );
 
 				for (uint i=0; i < NUM_SQUARES; ++i)
-					squares[i].UpdateContext( fixed );
+					squares[i].UpdateSettings( fixed );
 
-				noise.UpdateContext( fixed );
+				noise.UpdateSettings( fixed );
+
 				dcBlocker.Reset();
+
+				return output;
 			}
 
-			void Fme7::BaseLoad(State::Loader& state,const dword id)
+			void Fme7::BaseLoad(State::Loader& state,const dword baseChunk)
 			{
-				NST_VERIFY( id == (AsciiId<'F','M','7'>::V) );
+				NST_VERIFY( baseChunk == (AsciiId<'F','M','7'>::V) );
 
-				if (id == AsciiId<'F','M','7'>::V)
+				if (baseChunk == AsciiId<'F','M','7'>::V)
 				{
 					while (const dword chunk = state.Begin())
 					{
@@ -250,7 +240,7 @@ namespace Nes
 							{
 								State::Loader::Data<3> data( state );
 
-								irq.EnableLine( data[0] & 0x80 );
+								irq.Connect( data[0] & 0x80 );
 								irq.unit.enabled = data[0] & 0x01;
 								irq.unit.count = data[1] | data[2] << 8;
 
@@ -283,7 +273,7 @@ namespace Nes
 				{
 					const byte data[3] =
 					{
-						(irq.IsLineEnabled() ? 0x80U : 0x00U) | (irq.unit.enabled ? 0x1U : 0x0U),
+						(irq.Connected() ? 0x80U : 0x00U) | (irq.unit.enabled ? 0x1U : 0x0U),
 						irq.unit.count & 0xFF,
 						irq.unit.count >> 8
 					};
@@ -299,9 +289,9 @@ namespace Nes
 				state.End();
 			}
 
-			void Fme7::Sound::SaveState(State::Saver& state,const dword id) const
+			void Fme7::Sound::SaveState(State::Saver& state,const dword baseChunk) const
 			{
-				state.Begin( id );
+				state.Begin( baseChunk );
 
 				state.Begin( AsciiId<'R','E','G'>::V ).Write8( regSelect ).End();
 
@@ -355,7 +345,7 @@ namespace Nes
 				}
 			}
 
-			void Fme7::Sound::Envelope::SaveState(State::Saver& state,const dword id) const
+			void Fme7::Sound::Envelope::SaveState(State::Saver& state,const dword chunk) const
 			{
 				const byte data[4] =
 				{
@@ -368,15 +358,15 @@ namespace Nes
 					length >> 8
 				};
 
-				state.Begin( id ).Begin( AsciiId<'R','E','G'>::V ).Write( data ).End().End();
+				state.Begin( chunk ).Begin( AsciiId<'R','E','G'>::V ).Write( data ).End().End();
 			}
 
-			void Fme7::Sound::Noise::SaveState(State::Saver& state,const dword id) const
+			void Fme7::Sound::Noise::SaveState(State::Saver& state,const dword chunk) const
 			{
-				state.Begin( id ).Begin( AsciiId<'R','E','G'>::V ).Write8( length ).End().End();
+				state.Begin( chunk ).Begin( AsciiId<'R','E','G'>::V ).Write8( length ).End().End();
 			}
 
-			void Fme7::Sound::Square::SaveState(State::Saver& state,const dword id) const
+			void Fme7::Sound::Square::SaveState(State::Saver& state,const dword chunk) const
 			{
 				const byte data[3] =
 				{
@@ -385,12 +375,12 @@ namespace Nes
 					(length >> 8) | ((status & 0x8) << 1),
 				};
 
-				state.Begin( id ).Begin( AsciiId<'R','E','G'>::V ).Write( data ).End().End();
+				state.Begin( chunk ).Begin( AsciiId<'R','E','G'>::V ).Write( data ).End().End();
 			}
 
-			void Fme7::BarcodeWorld::SaveState(State::Saver& state,const dword id)
+			void Fme7::BarcodeWorld::SaveState(State::Saver& state,const dword baseChunk)
 			{
-				state.Begin( id );
+				state.Begin( baseChunk );
 				BarcodeReader::SaveState( state );
 				state.End();
 			}
@@ -411,7 +401,7 @@ namespace Nes
 						length = data[2] | (data[3] << 8 & 0xF00);
 						volume = levels[count ^ attack];
 
-						UpdateContext( fixed );
+						UpdateSettings( fixed );
 					}
 
 					state.End();
@@ -428,7 +418,7 @@ namespace Nes
 						dc = 0;
 						rng = 1;
 
-						UpdateContext( fixed );
+						UpdateSettings( fixed );
 					}
 
 					state.End();
@@ -449,7 +439,7 @@ namespace Nes
 						volume = levels[(ctrl & 0xF) ? (ctrl & 0xF) * 2 + 1 : 0];
 						dc = (status & 0x1) ? ~0UL : 0UL;
 
-						UpdateContext( fixed );
+						UpdateSettings( fixed );
 					}
 
 					state.End();
@@ -467,7 +457,7 @@ namespace Nes
 				}
 			}
 
-			bool Fme7::BarcodeWorld::SubTransfer(cstring const string,const uint length,byte* NST_RESTRICT stream)
+			bool Fme7::BarcodeWorld::SubTransfer(cstring const string,const uint length,byte* NST_RESTRICT output)
 			{
 				NST_COMPILE_ASSERT( MAX_DATA_LENGTH >= 191 );
 
@@ -494,16 +484,16 @@ namespace Nes
 				code[NUM_DIGITS+5] = Ascii<'F'>::V;
 				code[NUM_DIGITS+6] = Ascii<'T'>::V;
 
-				*stream++ = 0x04;
+				*output++ = 0x04;
 
 				for (uint i=0; i < NUM_DIGITS+7; ++i)
 				{
-					*stream++ = 0x04;
+					*output++ = 0x04;
 
 					for (uint j=0x01, c=code[i]; j != 0x100; j <<= 1)
-						*stream++ = (c & j) ? 0x00 : 0x04;
+						*output++ = (c & j) ? 0x00 : 0x04;
 
-					*stream++ = 0x00;
+					*output++ = 0x00;
 				}
 
 				return true;
@@ -513,22 +503,22 @@ namespace Nes
 			#pragma optimize("", on)
 			#endif
 
-			NES_POKE(Fme7::BarcodeWorld,4017)
+			NES_POKE_AD(Fme7::BarcodeWorld,4017)
 			{
 				p4017.Poke( address, data );
 			}
 
-			NES_PEEK(Fme7::BarcodeWorld,4017)
+			NES_PEEK_A(Fme7::BarcodeWorld,4017)
 			{
 				return (IsTransferring() ? Fetch() : 0x00) | p4017.Peek( address );
 			}
 
-			NES_POKE(Fme7,8000)
+			NES_POKE_D(Fme7,8000)
 			{
 				command = data;
 			}
 
-			NES_POKE(Fme7,A000)
+			NES_POKE_D(Fme7,A000)
 			{
 				switch (const uint bank = (command & 0xF))
 				{
@@ -569,7 +559,7 @@ namespace Nes
 						irq.Update();
 						irq.unit.enabled = data & 0x01;
 
-						if (!irq.EnableLine( data & 0x80 ))
+						if (!irq.Connect( data & 0x80 ))
 							irq.ClearIRQ();
 
 						break;
@@ -588,9 +578,9 @@ namespace Nes
 				}
 			}
 
-			NES_POKE(Fme7,C000)
+			NES_POKE_D(Fme7,C000)
 			{
-				sound.Poke_C000( data );
+				sound.SelectReg( data );
 			}
 
 			void Fme7::Sound::Square::UpdateFrequency(const uint fixed)
@@ -679,9 +669,9 @@ namespace Nes
 				UpdateFrequency( fixed );
 			}
 
-			void Fme7::Sound::Poke_E000(const uint data)
+			void Fme7::Sound::WriteReg(const uint data)
 			{
-				apu.Update();
+				Update();
 				active = true;
 
 				switch (regSelect & 0xF)
@@ -736,18 +726,18 @@ namespace Nes
 				}
 			}
 
-			NES_POKE(Fme7,E000)
+			NES_POKE_D(Fme7,E000)
 			{
-				sound.Poke_E000( data );
+				sound.WriteReg( data );
 			}
 
-			ibool Fme7::Irq::Signal()
+			bool Fme7::Irq::Clock()
 			{
 				count = (count - 1U) & 0xFFFF;
 				return count < enabled;
 			}
 
-			NST_FORCE_INLINE dword Fme7::Sound::Envelope::Clock(const Cycle rate)
+			NST_SINGLE_CALL dword Fme7::Sound::Envelope::Clock(const Cycle rate)
 			{
 				if (!holding)
 				{
@@ -788,7 +778,7 @@ namespace Nes
 				return volume;
 			}
 
-			NST_FORCE_INLINE dword Fme7::Sound::Noise::Clock(const Cycle rate)
+			NST_SINGLE_CALL dword Fme7::Sound::Noise::Clock(const Cycle rate)
 			{
 				for (timer -= idword(rate); timer < 0; timer += idword(frequency))
 				{
@@ -801,7 +791,7 @@ namespace Nes
 				return dc;
 			}
 
-			NST_FORCE_INLINE dword Fme7::Sound::Square::GetSample(const Cycle rate,const uint envelope,const uint noise)
+			NST_SINGLE_CALL dword Fme7::Sound::Square::GetSample(const Cycle rate,const uint envelope,const uint noise)
 			{
 				dword sum = timer;
 				timer -= idword(rate);
@@ -844,14 +834,14 @@ namespace Nes
 
 			Fme7::Sound::Sample Fme7::Sound::GetSample()
 			{
-				if (active && outputVolume)
+				if (active && output)
 				{
 					dword sample = 0;
 
 					for (dword i=0, e=envelope.Clock( rate ), n=noise.Clock( rate ); i < NUM_SQUARES; ++i)
 						sample += squares[i].GetSample( rate, e, n );
 
-					return dcBlocker.Apply( sample * outputVolume / DEFAULT_VOLUME );
+					return dcBlocker.Apply( sample * output / DEFAULT_VOLUME );
 				}
 				else
 				{
@@ -859,9 +849,10 @@ namespace Nes
 				}
 			}
 
-			void Fme7::VSync()
+			void Fme7::Sync(Event event,Input::Controllers*)
 			{
-				irq.VSync();
+				if (event == EVENT_END_FRAME)
+					irq.VSync();
 			}
 		}
 	}

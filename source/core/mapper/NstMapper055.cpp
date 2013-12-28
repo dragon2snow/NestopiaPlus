@@ -33,27 +33,30 @@ namespace Nes
 		#pragma optimize("s", on)
 		#endif
 
-		void Mapper55::SubReset(bool)
+		void Mapper55::SubReset(const bool hard)
 		{
 			Map( 0x6000U, 0x6FFFU, &Mapper55::Peek_Prg  );
 			Map( 0x7000U, 0x7FFFU, &Mapper55::Peek_wRam, &Mapper55::Poke_wRam );
+
+			if (hard)
+				prg.SwapBank<SIZE_32K,0x0000>(0);
 		}
 
 		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
-		NES_PEEK(Mapper55,Prg)
+		NES_PEEK_A(Mapper55,Prg)
 		{
 			return *prg.Source().Mem(0x8000 + (address & 0x7FF));
 		}
 
-		NES_PEEK(Mapper55,wRam)
+		NES_PEEK_A(Mapper55,wRam)
 		{
 			return wrk[0][address & 0x7FF];
 		}
 
-		NES_POKE(Mapper55,wRam)
+		NES_POKE_AD(Mapper55,wRam)
 		{
 			wrk[0][address & 0x7FF] = data;
 		}

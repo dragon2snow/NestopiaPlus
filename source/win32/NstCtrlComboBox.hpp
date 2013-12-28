@@ -43,7 +43,7 @@ namespace Nestopia
 
 			private:
 
-				class Item
+				class Item : public ImplicitBool<Item>
 				{
 					class DataProxy
 					{
@@ -74,9 +74,9 @@ namespace Nestopia
 						return index;
 					}
 
-					bool Valid() const
+					bool operator ! () const
 					{
-						return index >= 0;
+						return index < 0;
 					}
 
 					DataProxy Data() const

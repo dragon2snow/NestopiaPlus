@@ -69,19 +69,15 @@ namespace Nestopia
 			Window::License().Open();
 		}
 
-		void Help::OnEmuEvent(Emulator::Event event)
+		void Help::OnEmuEvent(const Emulator::Event event,const Emulator::Data data)
 		{
 			switch (event)
 			{
-				case Emulator::EVENT_NETPLAY_MODE_ON:
-				case Emulator::EVENT_NETPLAY_MODE_OFF:
-				{
-					const bool state = (event == Emulator::EVENT_NETPLAY_MODE_OFF);
+				case Emulator::EVENT_NETPLAY_MODE:
 
-					menu[IDM_HELP_ABOUT].Enable( state );
-					menu[IDM_HELP_LICENSE].Enable( state );
+					menu[IDM_HELP_ABOUT].Enable( !data );
+					menu[IDM_HELP_LICENSE].Enable( !data );
 					break;
-				}
 			}
 		}
 	}

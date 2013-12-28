@@ -33,37 +33,39 @@ namespace Nes
 {
 	namespace Core
 	{
-	#ifndef NST_NO_FASTDELEGATE
+	#ifdef NST_FASTDELEGATE
 
 		class Hook
 		{
 			class Component {};
-			typedef void (Component::*Function)();
+			typedef void (Component::*Executor)();
 
 			Component* component;
-			Function function;
+			Executor executor;
+
+			NST_COMPILE_ASSERT( sizeof(Executor) <= sizeof(void (*)(void*)) );
 
 		public:
 
 			Hook() {}
 
 			template<typename T>
-			Hook(T* c,void (T::*t)())
+			Hook(T* c,void (T::*e)())
 			:
 			component ( reinterpret_cast<Component*>(c) ),
-			function  ( reinterpret_cast<Function>(t) )
+			executor  ( reinterpret_cast<Executor>(e) )
 			{
-				NST_COMPILE_ASSERT( sizeof(function) == sizeof(t) );
+				NST_COMPILE_ASSERT( sizeof(executor) == sizeof(e) );
 			}
 
 			void Execute() const
 			{
-				(*component.*function)();
+				(*component.*executor)();
 			}
 
 			bool operator == (const Hook& h) const
 			{
-				return function == h.function && component == h.component;
+				return executor == h.executor && component == h.component;
 			}
 		};
 
@@ -77,56 +79,56 @@ namespace Nes
 		class Hook
 		{
 			typedef void* Component;
-			typedef void (*Function)(Component);
+			typedef void (NST_REGCALL *Executor)(Component);
 
 			Component component;
-			Function function;
+			Executor executor;
 
 		public:
 
 			Hook() {}
 
-			Hook(Component c,Function t)
+			Hook(Component c,Executor e)
 			:
 			component ( c ),
-			function  ( t )
+			executor  ( e )
 			{}
 
 			void Execute() const
 			{
-				function( component );
+				executor( component );
 			}
 
 			bool operator == (const Hook& h) const
 			{
-				return function == h.function && component == h.component;
+				return executor == h.executor && component == h.component;
 			}
 		};
 
-		#define NES_DECL_HOOK(a_)                    \
-                                                     \
-			void Hook_M_##a_();                      \
-			static void Hook_##a_(void*)
+		#define NES_DECL_HOOK(a_)                                   \
+																	\
+			NST_FORCE_INLINE void NST_FASTCALL Hook_M_##a_();       \
+			static void NST_REGCALL Hook_##a_(void*)
 
-		#define NES_HOOK(o_,a_)                      \
-                                                     \
-			void o_::Hook_##a_(void* p_)             \
-			{                                        \
-				static_cast<o_*>(p_)->Hook_M_##a_(); \
-			}                                        \
-                                                     \
-			void o_::Hook_M_##a_()
+		#define NES_HOOK(o_,a_)                                     \
+																	\
+			void NST_REGCALL o_::Hook_##a_(void* p_)                \
+			{                                                       \
+				static_cast<o_*>(p_)->Hook_M_##a_();                \
+			}                                                       \
+																	\
+			NST_FORCE_INLINE void NST_FASTCALL o_::Hook_M_##a_()
 
-		#define NES_HOOK_T(t_,o_,a_)                 \
-                                                     \
-			t_ void o_::Hook_##a_(void* p_)          \
-			{                                        \
-				static_cast<o_*>(p_)->Hook_M_##a_(); \
-			}                                        \
-                                                     \
-			t_ void o_::Hook_M_##a_()
+		#define NES_HOOK_T(t_,o_,a_)                                \
+																	\
+			t_ void NST_REGCALL o_::Hook_##a_(void* p_)             \
+			{                                                       \
+				static_cast<o_*>(p_)->Hook_M_##a_();                \
+			}                                                       \
+																	\
+			t_ NST_FORCE_INLINE void NST_FASTCALL o_::Hook_M_##a_()
 
-		#define NES_DO_HOOK(a_) Hook_M_##a_()
+		#define NES_DO_HOOK(a_) Hook_##a_(this)
 
 	#endif
 	}

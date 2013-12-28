@@ -35,7 +35,7 @@ namespace Nes
 		#pragma optimize("s", on)
 		#endif
 
-		Sound::Player* Mapper18::DetectSound(uint attribute,Cpu& cpu)
+		Sound::Player* Mapper18::DetectSound(uint attribute,Apu& apu)
 		{
 			switch (attribute)
 			{
@@ -43,7 +43,7 @@ namespace Nes
 
 					return Sound::Player::Create
 					(
-						cpu,
+						apu,
 						Sound::Loader::TERAO_NO_DOSUKOI_OOZUMOU,
 						Sound::Loader::TERAO_NO_DOSUKOI_OOZUMOU_SAMPLES
 					);
@@ -54,7 +54,7 @@ namespace Nes
 
 					return Sound::Player::Create
 					(
-						cpu,
+						apu,
 						Sound::Loader::MOERO_PRO_YAKYUU_88,
 						Sound::Loader::MOERO_PRO_YAKYUU_88_SAMPLES
 					);
@@ -75,9 +75,9 @@ namespace Nes
 
 		Mapper18::Mapper18(Context& c)
 		:
-		Mapper (c,CROM_MAX_256K),
+		Mapper (c,CROM_MAX_256K|NMT_HORIZONTAL),
 		irq    (c.cpu),
-		sound  (DetectSound(c.attribute,c.cpu))
+		sound  (DetectSound(c.attribute,c.apu))
 		{}
 
 		Mapper18::~Mapper18()
@@ -91,7 +91,7 @@ namespace Nes
 				wrk.Source().SetSecurity( false, false );
 
 			reg = 0;
-			irq.Reset( hard, hard ? false : irq.IsLineEnabled() );
+			irq.Reset( hard, hard ? false : irq.Connected() );
 
 			Map( WRK_SAFE_PEEK_POKE );
 
@@ -145,7 +145,7 @@ namespace Nes
 				{
 					State::Loader::Data<5> data( state );
 
-					irq.EnableLine( data[0] & 0x1 );
+					irq.Connect( data[0] & 0x1 );
 
 					if      (data[0] & 0x8) irq.unit.mask = 0x000F;
 					else if (data[0] & 0x4) irq.unit.mask = 0x00FF;
@@ -169,7 +169,7 @@ namespace Nes
 		{
 			const byte data[5] =
 			{
-				(irq.IsLineEnabled() ? 0x1U : 0x0U) |
+				(irq.Connected() ? 0x1U : 0x0U) |
 				(
 					irq.unit.mask == 0x000F ? 0x8U :
 					irq.unit.mask == 0x00FF ? 0x4U :
@@ -198,14 +198,14 @@ namespace Nes
 			prg.SwapBank<SIZE_8K>( address, (prg.GetBank<SIZE_8K>(address) & MASK) | (data & 0xF) << SHIFT );
 		}
 
-		NES_POKE(Mapper18,8000) { SwapPrg<0xF0,0>( 0x0000, data ); }
-		NES_POKE(Mapper18,8001) { SwapPrg<0x0F,4>( 0x0000, data ); }
-		NES_POKE(Mapper18,8002) { SwapPrg<0xF0,0>( 0x2000, data ); }
-		NES_POKE(Mapper18,8003) { SwapPrg<0x0F,4>( 0x2000, data ); }
-		NES_POKE(Mapper18,9000) { SwapPrg<0xF0,0>( 0x4000, data ); }
-		NES_POKE(Mapper18,9001) { SwapPrg<0x0F,4>( 0x4000, data ); }
+		NES_POKE_D(Mapper18,8000) { SwapPrg<0xF0,0>( 0x0000, data ); }
+		NES_POKE_D(Mapper18,8001) { SwapPrg<0x0F,4>( 0x0000, data ); }
+		NES_POKE_D(Mapper18,8002) { SwapPrg<0xF0,0>( 0x2000, data ); }
+		NES_POKE_D(Mapper18,8003) { SwapPrg<0x0F,4>( 0x2000, data ); }
+		NES_POKE_D(Mapper18,9000) { SwapPrg<0xF0,0>( 0x4000, data ); }
+		NES_POKE_D(Mapper18,9001) { SwapPrg<0x0F,4>( 0x4000, data ); }
 
-		NES_POKE(Mapper18,9002)
+		NES_POKE_D(Mapper18,9002)
 		{
 			NST_VERIFY( data == 0x3 || data == 0x0 );
 			wrk.Source().SetSecurity( data & 0x1, data & 0x2 );
@@ -223,42 +223,42 @@ namespace Nes
 			chr.SwapBank<SIZE_1K>( address, (chr.GetBank<SIZE_1K>(address) & MASK) | (data & 0xF) << SHIFT );
 		}
 
-		NES_POKE(Mapper18,A000) { SwapChr<0xF0,0>( 0x0000, data ); }
-		NES_POKE(Mapper18,A001) { SwapChr<0x0F,4>( 0x0000, data ); }
-		NES_POKE(Mapper18,A002) { SwapChr<0xF0,0>( 0x0400, data ); }
-		NES_POKE(Mapper18,A003) { SwapChr<0x0F,4>( 0x0400, data ); }
-		NES_POKE(Mapper18,B000) { SwapChr<0xF0,0>( 0x0800, data ); }
-		NES_POKE(Mapper18,B001) { SwapChr<0x0F,4>( 0x0800, data ); }
-		NES_POKE(Mapper18,B002) { SwapChr<0xF0,0>( 0x0C00, data ); }
-		NES_POKE(Mapper18,B003) { SwapChr<0x0F,4>( 0x0C00, data ); }
-		NES_POKE(Mapper18,C000) { SwapChr<0xF0,0>( 0x1000, data ); }
-		NES_POKE(Mapper18,C001) { SwapChr<0x0F,4>( 0x1000, data ); }
-		NES_POKE(Mapper18,C002) { SwapChr<0xF0,0>( 0x1400, data ); }
-		NES_POKE(Mapper18,C003) { SwapChr<0x0F,4>( 0x1400, data ); }
-		NES_POKE(Mapper18,D000) { SwapChr<0xF0,0>( 0x1800, data ); }
-		NES_POKE(Mapper18,D001) { SwapChr<0x0F,4>( 0x1800, data ); }
-		NES_POKE(Mapper18,D002) { SwapChr<0xF0,0>( 0x1C00, data ); }
-		NES_POKE(Mapper18,D003) { SwapChr<0x0F,4>( 0x1C00, data ); }
+		NES_POKE_D(Mapper18,A000) { SwapChr<0xF0,0>( 0x0000, data ); }
+		NES_POKE_D(Mapper18,A001) { SwapChr<0x0F,4>( 0x0000, data ); }
+		NES_POKE_D(Mapper18,A002) { SwapChr<0xF0,0>( 0x0400, data ); }
+		NES_POKE_D(Mapper18,A003) { SwapChr<0x0F,4>( 0x0400, data ); }
+		NES_POKE_D(Mapper18,B000) { SwapChr<0xF0,0>( 0x0800, data ); }
+		NES_POKE_D(Mapper18,B001) { SwapChr<0x0F,4>( 0x0800, data ); }
+		NES_POKE_D(Mapper18,B002) { SwapChr<0xF0,0>( 0x0C00, data ); }
+		NES_POKE_D(Mapper18,B003) { SwapChr<0x0F,4>( 0x0C00, data ); }
+		NES_POKE_D(Mapper18,C000) { SwapChr<0xF0,0>( 0x1000, data ); }
+		NES_POKE_D(Mapper18,C001) { SwapChr<0x0F,4>( 0x1000, data ); }
+		NES_POKE_D(Mapper18,C002) { SwapChr<0xF0,0>( 0x1400, data ); }
+		NES_POKE_D(Mapper18,C003) { SwapChr<0x0F,4>( 0x1400, data ); }
+		NES_POKE_D(Mapper18,D000) { SwapChr<0xF0,0>( 0x1800, data ); }
+		NES_POKE_D(Mapper18,D001) { SwapChr<0x0F,4>( 0x1800, data ); }
+		NES_POKE_D(Mapper18,D002) { SwapChr<0xF0,0>( 0x1C00, data ); }
+		NES_POKE_D(Mapper18,D003) { SwapChr<0x0F,4>( 0x1C00, data ); }
 
-		NES_POKE(Mapper18,E000)
+		NES_POKE_D(Mapper18,E000)
 		{
 			irq.Update();
 			irq.unit.latch = (irq.unit.latch & 0xFFF0) | (data & 0xF) << 0;
 		}
 
-		NES_POKE(Mapper18,E001)
+		NES_POKE_D(Mapper18,E001)
 		{
 			irq.Update();
 			irq.unit.latch = (irq.unit.latch & 0xFF0F) | (data & 0xF) << 4;
 		}
 
-		NES_POKE(Mapper18,E002)
+		NES_POKE_D(Mapper18,E002)
 		{
 			irq.Update();
 			irq.unit.latch = (irq.unit.latch & 0xF0FF) | (data & 0xF) << 8;
 		}
 
-		NES_POKE(Mapper18,E003)
+		NES_POKE_D(Mapper18,E003)
 		{
 			irq.Update();
 			irq.unit.latch = (irq.unit.latch & 0x0FFF) | (data & 0xF) << 12;
@@ -271,7 +271,7 @@ namespace Nes
 			irq.ClearIRQ();
 		}
 
-		NES_POKE(Mapper18,F001)
+		NES_POKE_D(Mapper18,F001)
 		{
 			irq.Update();
 
@@ -280,11 +280,11 @@ namespace Nes
 			else if (data & 0x2) irq.unit.mask = 0x0FFF;
 			else                 irq.unit.mask = 0xFFFF;
 
-			irq.EnableLine( data & 0x1 );
+			irq.Connect( data & 0x1 );
 			irq.ClearIRQ();
 		}
 
-		NES_POKE(Mapper18,F003)
+		NES_POKE_D(Mapper18,F003)
 		{
 			NST_ASSERT( sound );
 
@@ -295,14 +295,15 @@ namespace Nes
 				sound->Play( data >> 2 & 0x1F );
 		}
 
-		ibool Mapper18::Irq::Signal()
+		bool Mapper18::Irq::Clock()
 		{
 			return (count & mask) && !(--count & mask);
 		}
 
-		void Mapper18::VSync()
+		void Mapper18::Sync(Event event,Input::Controllers*)
 		{
-			irq.VSync();
+			if (event == EVENT_END_FRAME)
+				irq.VSync();
 		}
 	}
 }

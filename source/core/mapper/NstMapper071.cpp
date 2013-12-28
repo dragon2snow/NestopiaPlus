@@ -35,7 +35,7 @@ namespace Nes
 
 		Mapper71::Mapper71(Context& c)
 		:
-		Mapper  (c,c.attribute == ATR_BF9093 || c.attribute == ATR_BF9097 ? CROM_MAX_8K|WRAM_NONE : CROM_MAX_8K|WRAM_DEFAULT),
+		Mapper  (c,c.attribute == ATR_BF9097 ? (CROM_MAX_8K|WRAM_NONE|NMT_ZERO) : c.attribute == ATR_BF9093 ? (CROM_MAX_8K|WRAM_NONE) : CROM_MAX_8K),
 		nmtCtrl (c.attribute == ATR_BF9097)
 		{}
 
@@ -51,7 +51,7 @@ namespace Nes
 		#pragma optimize("", on)
 		#endif
 
-		NES_POKE(Mapper71,8000)
+		NES_POKE_D(Mapper71,8000)
 		{
 			ppu.SetMirroring( (data & 0x10) ? Ppu::NMT_ONE : Ppu::NMT_ZERO );
 		}

@@ -32,30 +32,30 @@ namespace Nestopia
 	{
 		NST_COMPILE_ASSERT
 		(
-			Preferences::START_IN_FULLSCREEN      == Window::Preferences::START_IN_FULLSCREEN &&
-			Preferences::SUPPRESS_WARNINGS        == Window::Preferences::SUPPRESS_WARNINGS &&
-			Preferences::FIRST_UNLOAD_ON_EXIT     == Window::Preferences::FIRST_UNLOAD_ON_EXIT &&
-			Preferences::CONFIRM_EXIT             == Window::Preferences::CONFIRM_EXIT &&
-			Preferences::RUN_IN_BACKGROUND        == Window::Preferences::RUN_IN_BACKGROUND &&
-			Preferences::AUTOSTART_EMULATION      == Window::Preferences::AUTOSTART_EMULATION &&
-			Preferences::SAVE_LOGFILE             == Window::Preferences::SAVE_LOGFILE &&
-			Preferences::AUTOCORRECT_IMAGES       == Window::Preferences::AUTOCORRECT_IMAGES &&
-			Preferences::ALLOW_MULTIPLE_INSTANCES == Window::Preferences::ALLOW_MULTIPLE_INSTANCES &&
-			Preferences::SAVE_SETTINGS            == Window::Preferences::SAVE_SETTINGS &&
-			Preferences::SAVE_LAUNCHER            == Window::Preferences::SAVE_LAUNCHER &&
-			Preferences::CONFIRM_RESET            == Window::Preferences::CONFIRM_RESET &&
-			Preferences::SAVE_CHEATS              == Window::Preferences::SAVE_CHEATS &&
-			Preferences::SAVE_NETPLAY_GAMELIST    == Window::Preferences::SAVE_NETPLAY_GAMELIST &&
-			Preferences::SAVE_WINDOWPOS           == Window::Preferences::SAVE_WINDOWPOS &&
-			Preferences::SAVE_LAUNCHERSIZE        == Window::Preferences::SAVE_LAUNCHERSIZE &&
-			Preferences::NUM_SETTINGS             == Window::Preferences::NUM_SETTINGS
+			Preferences::START_IN_FULLSCREEN      - Window::Preferences::START_IN_FULLSCREEN      == 0 &&
+			Preferences::SUPPRESS_WARNINGS        - Window::Preferences::SUPPRESS_WARNINGS        == 0 &&
+			Preferences::FIRST_UNLOAD_ON_EXIT     - Window::Preferences::FIRST_UNLOAD_ON_EXIT     == 0 &&
+			Preferences::CONFIRM_EXIT             - Window::Preferences::CONFIRM_EXIT             == 0 &&
+			Preferences::RUN_IN_BACKGROUND        - Window::Preferences::RUN_IN_BACKGROUND        == 0 &&
+			Preferences::AUTOSTART_EMULATION      - Window::Preferences::AUTOSTART_EMULATION      == 0 &&
+			Preferences::SAVE_LOGFILE             - Window::Preferences::SAVE_LOGFILE             == 0 &&
+			Preferences::AUTOCORRECT_IMAGES       - Window::Preferences::AUTOCORRECT_IMAGES       == 0 &&
+			Preferences::ALLOW_MULTIPLE_INSTANCES - Window::Preferences::ALLOW_MULTIPLE_INSTANCES == 0 &&
+			Preferences::SAVE_SETTINGS            - Window::Preferences::SAVE_SETTINGS            == 0 &&
+			Preferences::SAVE_LAUNCHER            - Window::Preferences::SAVE_LAUNCHER            == 0 &&
+			Preferences::CONFIRM_RESET            - Window::Preferences::CONFIRM_RESET            == 0 &&
+			Preferences::SAVE_CHEATS              - Window::Preferences::SAVE_CHEATS              == 0 &&
+			Preferences::SAVE_NETPLAY_GAMELIST    - Window::Preferences::SAVE_NETPLAY_GAMELIST    == 0 &&
+			Preferences::SAVE_WINDOWPOS           - Window::Preferences::SAVE_WINDOWPOS           == 0 &&
+			Preferences::SAVE_LAUNCHERSIZE        - Window::Preferences::SAVE_LAUNCHERSIZE        == 0 &&
+			Preferences::NUM_SETTINGS             - Window::Preferences::NUM_SETTINGS             == 0
 		);
 
 		NST_COMPILE_ASSERT
 		(
-			Preferences::PRIORITY_NORMAL       == Window::Preferences::PRIORITY_NORMAL &&
-			Preferences::PRIORITY_ABOVE_NORMAL == Window::Preferences::PRIORITY_ABOVE_NORMAL &&
-			Preferences::PRIORITY_HIGH         == Window::Preferences::PRIORITY_HIGH
+			Preferences::PRIORITY_NORMAL       - Window::Preferences::PRIORITY_NORMAL       == 0 &&
+			Preferences::PRIORITY_ABOVE_NORMAL - Window::Preferences::PRIORITY_ABOVE_NORMAL == 0 &&
+			Preferences::PRIORITY_HIGH         - Window::Preferences::PRIORITY_HIGH         == 0
 		);
 
 		Preferences::Preferences(Emulator& e,const Configuration& cfg,Window::Menu& m)
@@ -78,26 +78,22 @@ namespace Nestopia
 
 		void Preferences::UpdateMenuColor() const
 		{
-			if (inFullscreen)
-			{
-				if (dialog->GetSettings().menuLookFullscreen.enabled)
-					menu.SetColor( dialog->GetSettings().menuLookFullscreen.color );
-				else
-					menu.ResetColor();
-			}
+			const Window::Preferences::MenuLook& look =
+			(
+				inFullscreen ? dialog->GetSettings().menuLookFullscreen :
+                               dialog->GetSettings().menuLookDesktop
+			);
+
+			if (look.enabled)
+				menu.SetColor( look.color );
 			else
-			{
-				if (dialog->GetSettings().menuLookDesktop.enabled)
-					menu.SetColor( dialog->GetSettings().menuLookDesktop.color );
-				else
-					menu.ResetColor();
-			}
+				menu.ResetColor();
 		}
 
 		void Preferences::UpdateSettings()
 		{
 			settings.flags = dialog->GetSettings();
-			settings.priority = (Priority) dialog->GetSettings().priority;
+			settings.priority = static_cast<Priority>(dialog->GetSettings().priority);
 			UpdateMenuColor();
 		}
 
@@ -107,30 +103,28 @@ namespace Nestopia
 			UpdateSettings();
 		}
 
-		void Preferences::OnEmuEvent(Emulator::Event event)
+		void Preferences::OnEmuEvent(const Emulator::Event event,const Emulator::Data data)
 		{
 			switch (event)
 			{
-				case Emulator::EVENT_NETPLAY_LOAD:
+				case Emulator::EVENT_NETPLAY_MODE:
 
-					settings.flags[RUN_IN_BACKGROUND] = true;
-					settings.flags[AUTOSTART_EMULATION] = true;
-					settings.flags[CONFIRM_RESET] = false;
+					if (data)
+					{
+						settings.flags[RUN_IN_BACKGROUND] = true;
+						settings.flags[AUTOSTART_EMULATION] = true;
+						settings.flags[CONFIRM_RESET] = false;
+						settings.flags[SUPPRESS_WARNINGS] = true;
 
-					if (settings.priority == PRIORITY_NORMAL)
-						settings.priority = PRIORITY_ABOVE_NORMAL;
+						if (settings.priority == PRIORITY_NORMAL)
+							settings.priority = PRIORITY_ABOVE_NORMAL;
+					}
+					else
+					{
+						UpdateSettings();
+					}
 
-					break;
-
-				case Emulator::EVENT_NETPLAY_UNLOAD:
-
-					UpdateSettings();
-					break;
-
-				case Emulator::EVENT_NETPLAY_MODE_ON:
-				case Emulator::EVENT_NETPLAY_MODE_OFF:
-
-					menu[IDM_OPTIONS_PREFERENCES].Enable( event == Emulator::EVENT_NETPLAY_MODE_OFF );
+					menu[IDM_OPTIONS_PREFERENCES].Enable( !data );
 					break;
 			}
 		}
@@ -140,14 +134,9 @@ namespace Nestopia
 			switch (event)
 			{
 				case Instance::EVENT_FULLSCREEN:
-
-					inFullscreen = true;
-					UpdateMenuColor();
-					break;
-
 				case Instance::EVENT_DESKTOP:
 
-					inFullscreen = false;
+					inFullscreen = (event == Instance::EVENT_FULLSCREEN);
 					UpdateMenuColor();
 					break;
 			}

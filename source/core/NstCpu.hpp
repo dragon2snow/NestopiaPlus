@@ -47,29 +47,15 @@ namespace Nes
 
 			enum
 			{
-				CYCLE_MAX    = Cycle(~0UL),
-				CLK_NTSC     = 39375000UL,
-				CLK_NTSC_DIV = 11,
-				CLK_PAL      = 35468950UL,
-				CLK_PAL_DIV  = 8,
-				MC_MUL       = 6,
-				MC_NTSC      = CLK_NTSC * dword(MC_MUL),
-				MC_PAL       = CLK_PAL * dword(MC_MUL),
-				MC_DIV_NTSC  = 12,
-				MC_DIV_PAL   = 16,
-				RAM_SIZE     = SIZE_2K,
-				IRQ_FRAME    = b01000000,
-				IRQ_EXT      = b00000001,
-				IRQ_DMC      = b10000000,
-				IRQ_ANY      = b11000001
+				CYCLE_MAX = Cycle(~0UL),
+				RAM_SIZE  = SIZE_2K
 			};
 
-			enum CycleType
+			enum IrqLine
 			{
-				CYCLE_MASTER,
-				CYCLE_NTSC,
-				CYCLE_PAL,
-				CYCLE_AUTO
+				IRQ_EXT   = 0x01,
+				IRQ_FRAME = 0x40,
+				IRQ_DMC   = 0x80
 			};
 
 			enum Level
@@ -79,25 +65,32 @@ namespace Nes
 				LEVEL_HIGHEST = 10
 			};
 
-			void Boot();
 			void Reset(bool);
-			void BeginFrame(Sound::Output*);
+			void Boot();
+			void ExecuteFrame(Sound::Output*);
 			void EndFrame();
+			void PowerOff();
 
 			void DoNMI(Cycle);
-			void DoIRQ(uint,Cycle);
+			void DoIRQ(IrqLine,Cycle);
 
 			uint Peek(uint) const;
 			void Poke(uint,uint) const;
 
-			void SetMode(Mode);
+			bool IsOddCycle() const;
+
+			void SetRegion(Region::Type);
 			void AddHook(const Hook&);
 			void RemoveHook(const Hook&);
 
-			void SaveState(State::Saver&,dword) const;
-			void LoadState(State::Loader&);
+			void SaveState(State::Saver&,dword,dword) const;
+			void LoadState(State::Loader&,dword,dword,dword);
+
+			static Cycle ClockConvert(Cycle,Region::Type);
 
 		private:
+
+			static void NotifyOp(const char (&)[4],dword);
 
 			enum
 			{
@@ -115,19 +108,10 @@ namespace Nes
 				PLP_CYCLES     = 4,
 				JSR_CYCLES     = 6,
 				JMP_ABS_CYCLES = 3,
-				JMP_IND_CYCLES = 5,
-				SAVE_INT_NMI   = b00000001,
-				SAVE_INT_FRAME = b00000010,
-				SAVE_INT_DMC   = b00000100,
-				SAVE_INT_EXT   = b00001000,
-				SAVE_JAMMED    = b01000000,
-				SAVE_PAL       = b10000000
+				JMP_IND_CYCLES = 5
 			};
 
-			static void TryLogMsg(cstring,uint,dword);
-
-			template<uint N>
-			static inline void LogMsg(const char (&)[N],dword);
+			void Reset(bool,bool);
 
 			NES_DECL_POKE( Nop      );
 			NES_DECL_PEEK( Nop      );
@@ -198,29 +182,29 @@ namespace Nes
 			inline void Ldx (uint);
 			inline void Ldy (uint);
 
-			NST_FORCE_INLINE uint Sta() const;
-			NST_FORCE_INLINE uint Stx() const;
-			NST_FORCE_INLINE uint Sty() const;
+			inline uint Sta() const;
+			inline uint Stx() const;
+			inline uint Sty() const;
 
-			NST_FORCE_INLINE void Tax ();
-			NST_FORCE_INLINE void Tay ();
-			NST_FORCE_INLINE void Txa ();
-			NST_FORCE_INLINE void Tya ();
+			NST_SINGLE_CALL void Tax ();
+			NST_SINGLE_CALL void Tay ();
+			NST_SINGLE_CALL void Txa ();
+			NST_SINGLE_CALL void Tya ();
 
-			NST_FORCE_INLINE void JmpAbs ();
-			NST_FORCE_INLINE void JmpInd ();
-			NST_FORCE_INLINE void Jsr    ();
-			NST_FORCE_INLINE void Rts    ();
-			NST_FORCE_INLINE void Rti    ();
+			NST_SINGLE_CALL void JmpAbs ();
+			NST_SINGLE_CALL void JmpInd ();
+			NST_SINGLE_CALL void Jsr    ();
+			NST_SINGLE_CALL void Rts    ();
+			NST_SINGLE_CALL void Rti    ();
 
-			NST_FORCE_INLINE void Bcc ();
-			NST_FORCE_INLINE void Bcs ();
-			NST_FORCE_INLINE void Beq ();
-			NST_FORCE_INLINE void Bmi ();
-			NST_FORCE_INLINE void Bne ();
-			NST_FORCE_INLINE void Bpl ();
-			NST_FORCE_INLINE void Bvc ();
-			NST_FORCE_INLINE void Bvs ();
+			NST_SINGLE_CALL void Bcc ();
+			NST_SINGLE_CALL void Bcs ();
+			NST_SINGLE_CALL void Beq ();
+			NST_SINGLE_CALL void Bmi ();
+			NST_SINGLE_CALL void Bne ();
+			NST_SINGLE_CALL void Bpl ();
+			NST_SINGLE_CALL void Bvc ();
+			NST_SINGLE_CALL void Bvs ();
 
 			inline void Adc (uint);
 			inline void Sbc (uint);
@@ -242,35 +226,35 @@ namespace Nes
 			inline uint Dec (uint);
 			inline uint Inc (uint);
 
-			NST_FORCE_INLINE void Dex ();
-			NST_FORCE_INLINE void Dey ();
-			NST_FORCE_INLINE void Inx ();
-			NST_FORCE_INLINE void Iny ();
+			NST_SINGLE_CALL void Dex ();
+			NST_SINGLE_CALL void Dey ();
+			NST_SINGLE_CALL void Inx ();
+			NST_SINGLE_CALL void Iny ();
 
-			NST_FORCE_INLINE void Clc ();
-			NST_FORCE_INLINE void Cld ();
-			NST_FORCE_INLINE void Clv ();
-			NST_FORCE_INLINE void Sec ();
-			NST_FORCE_INLINE void Sed ();
-			NST_FORCE_INLINE void Sei ();
-			NST_FORCE_INLINE void Cli ();
+			NST_SINGLE_CALL void Clc ();
+			NST_SINGLE_CALL void Cld ();
+			NST_SINGLE_CALL void Clv ();
+			NST_SINGLE_CALL void Sec ();
+			NST_SINGLE_CALL void Sed ();
+			NST_SINGLE_CALL void Sei ();
+			NST_SINGLE_CALL void Cli ();
 
-			NST_FORCE_INLINE void Php ();
-			NST_FORCE_INLINE void Plp ();
-			NST_FORCE_INLINE void Pha ();
-			NST_FORCE_INLINE void Pla ();
-			NST_FORCE_INLINE void Tsx ();
-			NST_FORCE_INLINE void Txs ();
+			NST_SINGLE_CALL void Php ();
+			NST_SINGLE_CALL void Plp ();
+			NST_SINGLE_CALL void Pha ();
+			NST_SINGLE_CALL void Pla ();
+			NST_SINGLE_CALL void Tsx ();
+			NST_SINGLE_CALL void Txs ();
 
-			NST_FORCE_INLINE void Ane (uint);
-			NST_FORCE_INLINE void Arr (uint);
-			NST_FORCE_INLINE void Asr (uint);
-			NST_FORCE_INLINE void Las (uint);
-			NST_FORCE_INLINE void Lxa (uint);
-			NST_FORCE_INLINE void Sbx (uint);
-			NST_FORCE_INLINE uint Shs (uint);
-			NST_FORCE_INLINE uint Shx (uint) const;
-			NST_FORCE_INLINE uint Shy (uint) const;
+			NST_SINGLE_CALL void Ane (uint);
+			NST_SINGLE_CALL void Arr (uint);
+			NST_SINGLE_CALL void Asr (uint);
+			NST_SINGLE_CALL void Las (uint);
+			NST_SINGLE_CALL void Lxa (uint);
+			NST_SINGLE_CALL void Sbx (uint);
+			NST_SINGLE_CALL uint Shs (uint);
+			NST_SINGLE_CALL uint Shx (uint);
+			NST_SINGLE_CALL uint Shy (uint);
 
 			NST_NO_INLINE void Anc (uint);
 			NST_NO_INLINE uint Dcp (uint);
@@ -278,15 +262,15 @@ namespace Nes
 			NST_NO_INLINE void Lax (uint);
 			NST_NO_INLINE uint Rla (uint);
 			NST_NO_INLINE uint Rra (uint);
-			NST_NO_INLINE uint Sax () const;
-			NST_NO_INLINE uint Sha (uint) const;
+			NST_NO_INLINE uint Sax ();
+			NST_NO_INLINE uint Sha (uint);
 			NST_NO_INLINE uint Slo (uint);
 			NST_NO_INLINE uint Sre (uint);
 
-			void Dop () const;
-			void Top (uint) const;
+			void Dop ();
+			void Top (uint);
 
-			NST_FORCE_INLINE void Brk ();
+			NST_SINGLE_CALL void Brk ();
 			NST_NO_INLINE void Jam ();
 
 			void op0x00(); void op0x01(); void op0x02(); void op0x03();
@@ -354,6 +338,97 @@ namespace Nes
 			void op0xF8(); void op0xF9(); void op0xFA(); void op0xFB();
 			void op0xFC(); void op0xFD(); void op0xFE(); void op0xFF();
 
+			struct Cycles
+			{
+				void SetRegion(Region::Type);
+
+				inline uint NmiEdge() const;
+				inline uint IrqEdge() const;
+				inline void NextRound(Cycle);
+
+				Cycle count;
+				byte clock[8];
+				Cycle round;
+				Cycle frame;
+			};
+
+			struct Flags
+			{
+				uint Pack() const;
+				void Unpack(uint);
+
+				enum
+				{
+					C = 0x01,  // carry
+					Z = 0x02,  // zero
+					I = 0x04,  // interrupt enable/disable
+					D = 0x08,  // decimal mode (not supported on the N2A03)
+					B = 0x10,  // software interrupt
+					R = 0x20,  // unused but always set
+					V = 0x40,  // overflow
+					N = 0x80   // negative
+				};
+
+				uint nz;
+				uint c;
+				uint v;
+				uint i;
+				uint d;
+			};
+
+			struct Interrupt
+			{
+				void Reset();
+				void SetRegion(Region::Type);
+
+				NST_FORCE_INLINE uint Clock(Cycle);
+				NST_SINGLE_CALL void EndFrame(Cycle);
+
+				Cycle nmiClock;
+				Cycle irqClock;
+				uint low;
+			};
+
+			class Hooks
+			{
+			public:
+
+				Hooks();
+				~Hooks();
+
+				void Add(const Hook&);
+				void Remove(const Hook&);
+
+				void Clear();
+				inline uint Size() const;
+				inline const Hook* Ptr() const;
+
+			private:
+
+				Hook* hooks;
+				word size;
+				word capacity;
+			};
+
+			struct Ram
+			{
+				typedef byte (&Ref)[RAM_SIZE];
+				typedef const byte (&ConstRef)[RAM_SIZE];
+
+				void Reset();
+
+				NES_DECL_PEEK( Ram_0 );
+				NES_DECL_POKE( Ram_0 );
+				NES_DECL_PEEK( Ram_1 );
+				NES_DECL_POKE( Ram_1 );
+				NES_DECL_PEEK( Ram_2 );
+				NES_DECL_POKE( Ram_2 );
+				NES_DECL_PEEK( Ram_3 );
+				NES_DECL_POKE( Ram_3 );
+
+				byte mem[RAM_SIZE];
+			};
+
 			struct IoMap : Io::Map<SIZE_64K>
 			{
 				template<typename T,typename U>
@@ -387,106 +462,6 @@ namespace Nes
 				void Remove(Address,const Io::Port&,IoMap&);
 			};
 
-			struct Ram
-			{
-				typedef byte (&Ref)[RAM_SIZE];
-				typedef const byte (&ConstRef)[RAM_SIZE];
-
-				void Reset();
-
-				NES_DECL_PEEK( Ram_0 );
-				NES_DECL_POKE( Ram_0 );
-				NES_DECL_PEEK( Ram_1 );
-				NES_DECL_POKE( Ram_1 );
-				NES_DECL_PEEK( Ram_2 );
-				NES_DECL_POKE( Ram_2 );
-				NES_DECL_PEEK( Ram_3 );
-				NES_DECL_POKE( Ram_3 );
-
-				byte mem[RAM_SIZE];
-			};
-
-			struct Cycles
-			{
-				Cycles();
-
-				void Update(Mode);
-				void Reset();
-
-				inline void NextRound(Cycle);
-
-				Cycle count;
-				byte clock[8];
-				Cycle round;
-
-				static const byte clocks[2][8];
-			};
-
-			struct Flags
-			{
-				uint Pack() const;
-				void Unpack(uint);
-
-				enum
-				{
-					C = 0x01,  // carry
-					Z = 0x02,  // zero
-					I = 0x04,  // interrupt enable/disable
-					D = 0x08,  // decimal mode (not supported on the N2A03)
-					B = 0x10,  // software interrupt
-					R = 0x20,  // unused but always set
-					V = 0x40,  // overflow
-					N = 0x80   // negative
-				};
-
-				uint nz;
-				uint c;
-				uint v;
-				uint i;
-				uint d;
-			};
-
-			struct Interrupt
-			{
-				void Reset();
-				void Jam();
-
-				NST_FORCE_INLINE uint Clock(Cycle);
-				NST_FORCE_INLINE void EndFrame(Cycle);
-
-				Cycle nmiClock;
-				Cycle irqClock;
-				uint source;
-				uint low;
-			};
-
-			class Hooks
-			{
-			public:
-
-				Hooks();
-				~Hooks();
-
-				void Add(const Hook&);
-				void Remove(const Hook&);
-
-				inline void Clear();
-				inline const Hook* Ptr() const;
-
-			private:
-
-				Hook* hooks;
-				uint size;
-				uint capacity;
-
-			public:
-
-				uint Size() const
-				{
-					return size;
-				}
-			};
-
 			uint pc;
 			Cycles cycles;
 			uint a;
@@ -495,19 +470,17 @@ namespace Nes
 			uint sp;
 			Flags flags;
 			Interrupt interrupt;
-			Cycle frameClock;
-			ibool jammed;
-			Ram ram;
 			Hooks hooks;
-			Mode mode;
+			word jammed;
+			word region;
 			Linker linker;
-			const dword padding;
 			qword ticks;
+			Ram ram;
 			Apu apu;
 			IoMap map;
 
-			static void (Cpu::*const opcodes[0x100])();
 			static dword logged;
+			static void (Cpu::*const opcodes[0x100])();
 
 		public:
 
@@ -516,66 +489,22 @@ namespace Nes
 				return apu;
 			}
 
-			const Apu& GetApu() const
-			{
-				return apu;
-			}
-
-			void SetupFrame(Cycle count)
-			{
-				frameClock = count;
-				cycles.round = NST_MIN(cycles.round,count);
-			}
-
-			void ExecuteFrame()
-			{
-				switch (hooks.Size())
-				{
-					case 0:  Run0(); break;
-					case 1:  Run1(); break;
-					default: Run2(); break;
-				}
-			}
-
 			void DoNMI()
 			{
 				DoNMI( cycles.count );
 			}
 
-			void DoIRQ(uint line=IRQ_EXT)
+			void DoIRQ(IrqLine line=IRQ_EXT)
 			{
 				DoIRQ( line, cycles.count );
 			}
 
-			void ClearIRQ(uint line=IRQ_EXT)
+			void ClearIRQ(IrqLine line=IRQ_EXT)
 			{
-				interrupt.low &= ~line;
+				interrupt.low &= line ^ uint(IRQ_EXT|IRQ_FRAME|IRQ_DMC);
 
 				if (!interrupt.low)
 					interrupt.irqClock = CYCLE_MAX;
-			}
-
-			void SetLine(uint line=IRQ_EXT,ibool state=true)
-			{
-				if (state)
-				{
-					interrupt.source |= line;
-				}
-				else
-				{
-					interrupt.source &= ~line;
-					interrupt.low &= ~line;
-				}
-			}
-
-			ibool IsIRQ(uint line=IRQ_EXT) const
-			{
-				return interrupt.low & line;
-			}
-
-			ibool IsLine(uint line=IRQ_EXT) const
-			{
-				return interrupt.source & line;
 			}
 
 			uint GetIRQ() const
@@ -583,9 +512,20 @@ namespace Nes
 				return interrupt.low;
 			}
 
-			Mode GetMode() const
+			Region::Type GetRegion() const
 			{
-				return mode;
+				return static_cast<Region::Type>(region);
+			}
+
+			Cycle GetClock(uint count=1) const
+			{
+				NST_ASSERT( count >= 1 && count <= 8 );
+				return cycles.clock[count-1];
+			}
+
+			Cycle GetCycles() const
+			{
+				return cycles.count;
 			}
 
 			void StealCycles(Cycle count)
@@ -593,33 +533,25 @@ namespace Nes
 				cycles.count += count;
 			}
 
-			Cycle GetMasterClockCycles() const
+			Cycle GetFrameCycles() const
 			{
-				return cycles.count;
+				return cycles.frame;
 			}
 
-			Cycle GetMasterClockFrameCycles() const
+			void SetFrameCycles(Cycle count)
 			{
-				return frameClock;
+				cycles.frame = count;
+
+				if (cycles.round > count)
+					cycles.round = count;
 			}
 
-			Cycle GetMasterClockCycle(uint cpuCycle) const
-			{
-				NST_ASSERT( cpuCycle && cpuCycle <= 8 );
-				return cycles.clock[cpuCycle-1];
-			}
-
-			byte* SystemRam(uint i)
-			{
-				return ram.mem + i;
-			}
-
-			Ram::Ref SystemRam()
+			Ram::Ref GetRam()
 			{
 				return ram.mem;
 			}
 
-			Ram::ConstRef SystemRam() const
+			Ram::ConstRef GetRam() const
 			{
 				return ram.mem;
 			}
@@ -635,7 +567,7 @@ namespace Nes
 			}
 
 			template<typename T,typename U,typename V>
-			const Io::Port* Link(Address address,uint level,T t,U u,V v)
+			const Io::Port* Link(Address address,Level level,T t,U u,V v)
 			{
 				return linker.Add( address, level, Io::Port(t,u,v), map );
 			}
@@ -645,17 +577,7 @@ namespace Nes
 			{
 				linker.Remove( address, Io::Port(t,u,v), map );
 			}
-
-			bool IsOddCycle() const
-			{
-				return (ticks + cycles.count) % cycles.clock[1] != 0;
-			}
 		};
-
-		inline void Apu::Update()
-		{
-			(*this.*updater)( cpu.GetMasterClockCycles() * cycles.fixed );
-		}
 	}
 }
 

@@ -30,7 +30,7 @@
 #include "NstWindowDialog.hpp"
 #include "NstDialogVideoFilters.hpp"
 #include "NstDirect2D.hpp"
-#include "../core/api/NstApiVideo.hpp"
+#include "../core/api/NstApiMachine.hpp"
 
 namespace Nestopia
 {
@@ -68,7 +68,7 @@ namespace Nestopia
 			void UnloadGamePalette();
 			void SavePalette(Path&) const;
 			void UpdateAutoModes() const;
-			void GetRenderState(Nes::Video::RenderState&,float[4],const Point) const;
+			const Rect GetRenderState(Nes::Video::RenderState&,const Point) const;
 			Modes::const_iterator GetDialogMode() const;
 
 		private:
@@ -251,9 +251,14 @@ namespace Nestopia
 				return settings.texMem == Settings::TEXMEM_VIDMEM;
 			}
 
+			const Rect& GetNesRect(Nes::Machine::Mode mode) const
+			{
+				return mode == Nes::Machine::NTSC ? settings.rects.outNtsc : settings.rects.outPal;
+			}
+
 			const Rect& GetNesRect() const
 			{
-				return Nes::Machine(nes).GetMode() == Nes::Machine::NTSC ? settings.rects.outNtsc : settings.rects.outPal;
+				return GetNesRect( Nes::Machine(nes).GetMode() );
 			}
 		};
 	}

@@ -37,8 +37,8 @@ namespace Nes
 		{
 			for (dword i=0xF000; i <= 0xFFFF; i += 0x100)
 			{
-				Map( i+0x00, i+0x7F, CHR_SWAP_4K_0 );
-				Map( i+0x80, i+0xFF, CHR_SWAP_4K_1 );
+				Map( uint(i)+0x00, uint(i)+0x7F, CHR_SWAP_4K_0 );
+				Map( uint(i)+0x80, uint(i)+0xFF, CHR_SWAP_4K_1 );
 			}
 		}
 

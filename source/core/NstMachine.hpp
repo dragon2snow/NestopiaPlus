@@ -66,7 +66,7 @@ namespace Nes
 			Machine();
 			~Machine();
 
-			void ExecuteFrame
+			void Execute
 			(
 				Video::Output*,
 				Sound::Output*,
@@ -81,11 +81,11 @@ namespace Nes
 			};
 
 			Result Load(StdStream,uint);
-			bool   Unload();
-			bool   PowerOff();
+			Result Unload();
+			Result PowerOff(Result=RESULT_OK);
 			void   Reset(bool);
-			void   SetMode(Mode);
-			bool   LoadState(State::Loader&);
+			void   SwitchMode();
+			bool   LoadState(State::Loader&,bool);
 			void   SaveState(State::Saver&) const;
 			void   InitializeInputDevices() const;
 			Result UpdateColorMode();
@@ -104,16 +104,15 @@ namespace Nes
 			NES_DECL_PEEK( 4017 );
 
 			uint state;
+			dword frame;
 
 		public:
 
-			dword frame;
 			Input::Adapter* extPort;
 			Input::Device* expPort;
 			Image* image;
 			Cheats* cheats;
 			ImageDatabase* imageDatabase;
-			const void* const padding;
 			Tracker tracker;
 			Cpu cpu;
 			Ppu ppu;

@@ -40,7 +40,7 @@ namespace Nestopia
 			explicit Movie(const Managers::Paths&);
 			~Movie();
 
-			bool SetMovieFile(const Path&);
+			void SetMovieFile(const Path&);
 			const Path GetMovieFile() const;
 
 		private:

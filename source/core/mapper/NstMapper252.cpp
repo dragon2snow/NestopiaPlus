@@ -43,7 +43,7 @@ namespace Nes
 
 		void Mapper252::SubReset(const bool hard)
 		{
-			irq.Reset( hard, hard ? false : irq.IsLineEnabled() );
+			irq.Reset( hard, hard ? false : irq.Connected() );
 
 			Map( 0x8000U, 0x8FFFU, PRG_SWAP_8K_0 );
 			Map( 0xA000U, 0xAFFFU, PRG_SWAP_8K_1 );
@@ -103,36 +103,36 @@ namespace Nes
 			chr.SwapBank<SIZE_1K>( address, (chr.GetBank<SIZE_1K>(address) & MASK) | (data & 0xF) << SHIFT );
 		}
 
-		NES_POKE(Mapper252,B000) { SwapChr<0xF0,0>( 0x0000, data ); }
-		NES_POKE(Mapper252,B004) { SwapChr<0x0F,4>( 0x0000, data ); }
-		NES_POKE(Mapper252,B008) { SwapChr<0xF0,0>( 0x0400, data ); }
-		NES_POKE(Mapper252,B00C) { SwapChr<0x0F,4>( 0x0400, data ); }
-		NES_POKE(Mapper252,C000) { SwapChr<0xF0,0>( 0x0800, data ); }
-		NES_POKE(Mapper252,C004) { SwapChr<0x0F,4>( 0x0800, data ); }
-		NES_POKE(Mapper252,C008) { SwapChr<0xF0,0>( 0x0C00, data ); }
-		NES_POKE(Mapper252,C00C) { SwapChr<0x0F,4>( 0x0C00, data ); }
-		NES_POKE(Mapper252,D000) { SwapChr<0xF0,0>( 0x1000, data ); }
-		NES_POKE(Mapper252,D004) { SwapChr<0x0F,4>( 0x1000, data ); }
-		NES_POKE(Mapper252,D008) { SwapChr<0xF0,0>( 0x1400, data ); }
-		NES_POKE(Mapper252,D00C) { SwapChr<0x0F,4>( 0x1400, data ); }
-		NES_POKE(Mapper252,E000) { SwapChr<0xF0,0>( 0x1800, data ); }
-		NES_POKE(Mapper252,E004) { SwapChr<0x0F,4>( 0x1800, data ); }
-		NES_POKE(Mapper252,E008) { SwapChr<0xF0,0>( 0x1C00, data ); }
-		NES_POKE(Mapper252,E00C) { SwapChr<0x0F,4>( 0x1C00, data ); }
+		NES_POKE_D(Mapper252,B000) { SwapChr<0xF0,0>( 0x0000, data ); }
+		NES_POKE_D(Mapper252,B004) { SwapChr<0x0F,4>( 0x0000, data ); }
+		NES_POKE_D(Mapper252,B008) { SwapChr<0xF0,0>( 0x0400, data ); }
+		NES_POKE_D(Mapper252,B00C) { SwapChr<0x0F,4>( 0x0400, data ); }
+		NES_POKE_D(Mapper252,C000) { SwapChr<0xF0,0>( 0x0800, data ); }
+		NES_POKE_D(Mapper252,C004) { SwapChr<0x0F,4>( 0x0800, data ); }
+		NES_POKE_D(Mapper252,C008) { SwapChr<0xF0,0>( 0x0C00, data ); }
+		NES_POKE_D(Mapper252,C00C) { SwapChr<0x0F,4>( 0x0C00, data ); }
+		NES_POKE_D(Mapper252,D000) { SwapChr<0xF0,0>( 0x1000, data ); }
+		NES_POKE_D(Mapper252,D004) { SwapChr<0x0F,4>( 0x1000, data ); }
+		NES_POKE_D(Mapper252,D008) { SwapChr<0xF0,0>( 0x1400, data ); }
+		NES_POKE_D(Mapper252,D00C) { SwapChr<0x0F,4>( 0x1400, data ); }
+		NES_POKE_D(Mapper252,E000) { SwapChr<0xF0,0>( 0x1800, data ); }
+		NES_POKE_D(Mapper252,E004) { SwapChr<0x0F,4>( 0x1800, data ); }
+		NES_POKE_D(Mapper252,E008) { SwapChr<0xF0,0>( 0x1C00, data ); }
+		NES_POKE_D(Mapper252,E00C) { SwapChr<0x0F,4>( 0x1C00, data ); }
 
-		NES_POKE(Mapper252,F000)
+		NES_POKE_D(Mapper252,F000)
 		{
 			irq.Update();
 			irq.unit.latch = (irq.unit.latch & 0xF0) | (data & 0x0F);
 		}
 
-		NES_POKE(Mapper252,F004)
+		NES_POKE_D(Mapper252,F004)
 		{
 			irq.Update();
 			irq.unit.latch = (irq.unit.latch & 0x0F) | (data & 0x0F) << 4;
 		}
 
-		NES_POKE(Mapper252,F008)
+		NES_POKE_D(Mapper252,F008)
 		{
 			irq.Toggle( data );
 		}
@@ -142,9 +142,10 @@ namespace Nes
 			irq.Toggle();
 		}
 
-		void Mapper252::VSync()
+		void Mapper252::Sync(Event event,Input::Controllers*)
 		{
-			irq.VSync();
+			if (event == EVENT_END_FRAME)
+				irq.VSync();
 		}
 	}
 }

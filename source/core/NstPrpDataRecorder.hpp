@@ -51,7 +51,7 @@ namespace Nes
 				Result Record();
 				Result Play();
 				Result Stop();
-				bool   CanPlay();
+				bool   Playable();
 				void   VSync();
 				void   SaveState(State::Saver&,dword) const;
 				void   LoadState(State::Loader&);

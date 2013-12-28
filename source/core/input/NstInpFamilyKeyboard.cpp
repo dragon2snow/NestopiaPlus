@@ -47,16 +47,16 @@ namespace Nes
 				mode = 0;
 			}
 
-			void FamilyKeyboard::SaveState(State::Saver& state,const byte id) const
+			void FamilyKeyboard::SaveState(State::Saver& saver,const byte id) const
 			{
-				state.Begin( AsciiId<'K','B'>::R(0,0,id) ).Write8( mode | (scan << 1) ).End();
+				saver.Begin( AsciiId<'K','B'>::R(0,0,id) ).Write8( mode | (scan << 1) ).End();
 			}
 
-			void FamilyKeyboard::LoadState(State::Loader& state,const dword id)
+			void FamilyKeyboard::LoadState(State::Loader& loader,const dword id)
 			{
 				if (id == AsciiId<'K','B'>::V)
 				{
-                     const uint data = state.Read8();
+                     const uint data = loader.Read8();
 
                      mode = data & 0x1;
                      scan = data >> 1 & 0xF;

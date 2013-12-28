@@ -35,14 +35,14 @@ namespace Nes
 
 		void Mapper184::SubReset(bool)
 		{
-			Map( 0x6000U, 0xFFFFU, &Mapper184::Poke_Prg );
+			Map( 0x6000U, 0x7FFFU, &Mapper184::Poke_6000 );
 		}
 
 		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
-		NES_POKE(Mapper184,Prg)
+		NES_POKE_D(Mapper184,6000)
 		{
 			ppu.Update();
 			chr.SwapBanks<SIZE_4K,0x0000>( data >> 0, data >> 4 );

@@ -49,7 +49,7 @@ namespace Nestopia
 			void OnMenu(uint);
 			void OnLock(uint);
 			void OnClear(uint);
-			void OnEmuEvent(Emulator::Event);
+			void OnEmuEvent(Emulator::Event,Emulator::Data);
 			void Add(uint,const HeapString&) const;
 		};
 	}

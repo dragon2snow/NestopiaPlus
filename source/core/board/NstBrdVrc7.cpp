@@ -63,10 +63,6 @@ namespace Nes
 				{0x21,0x62,0x0E,0x00,0xA1,0xA0,0x44,0x17}  // Electric Guitar
 			};
 
-			const dword Vrc7::Sound::PITCH_RATE = 6.4 * (1UL << 16) / Vrc7::Sound::CLOCK_DIV;
-			const dword Vrc7::Sound::AMP_RATE   = 3.7 * (1UL << 16) / Vrc7::Sound::CLOCK_DIV;
-			const double Vrc7::Sound::PI_2      = 6.2831853071795863;
-
 			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("s", on)
 			#endif
@@ -75,11 +71,13 @@ namespace Nes
 			{
 				FpuPrecision precision;
 
+				const double pi2 = 6.2831853071795863;
+
 				for (uint i=0; i < PITCH_SIZE; ++i)
-					pitch[i] = AMP_SIZE * std::pow( 2, 13.75 * std::sin( PI_2 * i / PITCH_SIZE ) / 1200 );
+					pitch[i] = AMP_SIZE * std::pow( 2, 13.75 * std::sin( pi2 * i / PITCH_SIZE ) / 1200 );
 
 				for (uint i=0; i < AMP_SIZE; ++i)
-					amp[i] = 4.8 / 2 / 0.1875 * (1 + std::sin( PI_2 * i / AMP_SIZE ));
+					amp[i] = 4.8 / 2 / 0.1875 * (1 + std::sin( pi2 * i / AMP_SIZE ));
 
 				lin2log[0] = 128;
 
@@ -115,7 +113,7 @@ namespace Nes
 				for (uint i=0; i < WAVE_SIZE/4; ++i)
 				{
 					uint v = EG_MUTE;
-					const double d = std::sin( PI_2 * i / WAVE_SIZE );
+					const double d = std::sin( pi2 * i / WAVE_SIZE );
 
 					if (d > DBL_EPSILON)
 					{
@@ -142,9 +140,9 @@ namespace Nes
 
 				for (uint i=0; i < DB2LIN_SIZE/2; ++i)
 				{
-					db2lin[i] = (0x7FF * std::pow( 10.0, -(i * 0.1875 / 20) ));
-
-					if (i > EG_MUTE)
+					if (i < EG_MUTE)
+						db2lin[i] = 0x7FF * std::pow( 10.0, -(i * 0.1875 / 20) );
+					else
 						db2lin[i] = 0;
 
 					db2lin[DB2LIN_SIZE/2 + i] = -db2lin[i];
@@ -173,18 +171,18 @@ namespace Nes
 
 								if (k)
 								{
-									static const double lut[16] =
+									static const word lut[16] =
 									{
-                                         0.000 * 2,  9.000 * 2, 12.000 * 2, 13.875 * 2,
-										15.000 * 2, 16.125 * 2, 16.875 * 2, 17.625 * 2,
-										18.000 * 2, 18.750 * 2, 19.125 * 2, 19.500 * 2,
-										19.875 * 2, 20.250 * 2, 20.625 * 2, 21.000 * 2
+										0,     18000, 24000, 27750,
+										30000, 32250, 33750, 35250,
+										36000, 37500, 38250, 39000,
+										39750, 40500, 41250, 42000
 									};
 
-									const int tmp = lut[i] - (3*2) * (7-j);
+									const idword tmp = idword(lut[i]) - 6000 * (7 - idword(j));
 
 									if (tmp > 0)
-										val += (uint(tmp) >> (3-k)) / 0.375;
+										val += ((tmp / 1000UL) >> (3-k)) * 1000 / 375;
 								}
 
 								tl[i][j][t][k] = val;
@@ -213,35 +211,25 @@ namespace Nes
 				}
 			}
 
-			Vrc7::Sound::OpllChannel::OpllChannel()
+			Vrc7::Sound::Sound(Apu& a,bool connect)
+			: Channel(a)
 			{
 				Reset();
-			}
+				bool audible = UpdateSettings();
 
-			Vrc7::Sound::Sound(Cpu& cpu,bool hook)
-			: apu(cpu.GetApu()), hooked(hook)
-			{
-				if (hook)
-					apu.HookChannel( this );
-			}
-
-			Vrc7::Sound::~Sound()
-			{
-				if (hooked)
-					apu.ReleaseChannel();
+				if (connect)
+					Connect( audible );
 			}
 
 			Vrc7::Vrc7(Context& c)
 			:
-			Mapper (c,CROM_MAX_256K),
+			Mapper (c,CROM_MAX_256K|NMT_VERTICAL),
 			irq    (c.cpu),
-			sound  (c.cpu)
+			sound  (c.apu)
 			{}
 
 			void Vrc7::SubReset(const bool hard)
 			{
-				irq.Reset( hard, hard ? false : irq.IsLineEnabled() );
-
 				for (dword i=0x8000; i <= 0xFFFF; ++i)
 				{
 					switch (i & 0xF038)
@@ -274,6 +262,11 @@ namespace Nes
 						case 0xF010: Map( i, &Vrc7::Poke_F008 ); break;
 					}
 				}
+
+				irq.Reset( hard, hard ? false : irq.Connected() );
+
+				if (hard)
+					prg.SwapBanks<SIZE_8K,0x0000>(0U,0U,0U,~0U);
 			}
 
 			void Vrc7::Sound::OpllChannel::Reset()
@@ -304,29 +297,25 @@ namespace Nes
 
 			void Vrc7::Sound::Reset()
 			{
-				ResetClock();
+				regSelect = 0;
 
 				for (uint i=0; i < NUM_OPLL_CHANNELS; ++i)
 					channels[i].Reset();
 
-				for (uint i=0; i < 0x40; ++i)
-				{
-					WriteReg0( 0x00 );
-					WriteReg1( 0x00 );
-				}
-
-				reg = 0x00;
+				ResetClock();
 			}
 
 			void Vrc7::Sound::ResetClock()
 			{
-				sampleRate = 0x80000000UL / apu.GetSampleRate();
+				sampleRate = 0x80000000UL / GetSampleRate();
 				samplePhase = 0;
-				nextSample = prevSample = 0;
-				pitchPhase = ampPhase = 0;
+				prevSample = 0;
+				nextSample = 0;
+				ampPhase = 0;
+				pitchPhase = 0;
 			}
 
-			void Vrc7::Sound::RefreshContext()
+			void Vrc7::Sound::Refresh()
 			{
 				ResetClock();
 
@@ -334,17 +323,20 @@ namespace Nes
 					channels[i].Update( tables );
 			}
 
-			void Vrc7::Sound::UpdateContext(uint,const byte (&outputLevels)[MAX_CHANNELS])
+			bool Vrc7::Sound::UpdateSettings()
 			{
-				outputVolume = outputLevels[Apu::CHANNEL_VRC7];
-				RefreshContext();
+				output = GetVolume(EXT_VRC7);
+
+				Refresh();
+
+				return output;
 			}
 
-			void Vrc7::BaseLoad(State::Loader& state,const dword id)
+			void Vrc7::BaseLoad(State::Loader& state,const dword baseChunk)
 			{
-				NST_VERIFY( id == (AsciiId<'V','R','7'>::V) );
+				NST_VERIFY( baseChunk == (AsciiId<'V','R','7'>::V) );
 
-				if (id == AsciiId<'V','R','7'>::V)
+				if (baseChunk == AsciiId<'V','R','7'>::V)
 				{
 					while (const dword chunk = state.Begin())
 					{
@@ -376,11 +368,11 @@ namespace Nes
 				state.End();
 			}
 
-			void Vrc7::Sound::SaveState(State::Saver& state,const dword id) const
+			void Vrc7::Sound::SaveState(State::Saver& state,const dword baseChunk) const
 			{
-				state.Begin( id );
+				state.Begin( baseChunk );
 
-				state.Begin( AsciiId<'R','E','G'>::V ).Write8( reg ).End();
+				state.Begin( AsciiId<'R','E','G'>::V ).Write8( regSelect ).End();
 
 				for (uint i=0; i < NUM_OPLL_CHANNELS; ++i)
 					channels[i].SaveState( state, AsciiId<'C','H','0'>::R(0,0,i) );
@@ -390,7 +382,7 @@ namespace Nes
 
 			void Vrc7::Sound::LoadState(State::Loader& state)
 			{
-				RefreshContext();
+				Refresh();
 
 				while (dword chunk = state.Begin())
 				{
@@ -398,7 +390,7 @@ namespace Nes
 					{
 						case AsciiId<'R','E','G'>::V:
 
-							reg = state.Read8() & 0x3F;
+							regSelect = state.Read8();
 							break;
 
 						case AsciiId<'C','H','0'>::V:
@@ -420,7 +412,7 @@ namespace Nes
 				}
 			}
 
-			void Vrc7::Sound::OpllChannel::SaveState(State::Saver& state,const dword id) const
+			void Vrc7::Sound::OpllChannel::SaveState(State::Saver& state,const dword chunk) const
 			{
 				const byte data[11] =
 				{
@@ -437,7 +429,7 @@ namespace Nes
 					(volume >> 2) | (patch.instrument << 4)
 				};
 
-				state.Begin( id ).Begin( AsciiId<'R','E','G'>::V ).Write( data ).End().End();
+				state.Begin( chunk ).Begin( AsciiId<'R','E','G'>::V ).Write( data ).End().End();
 			}
 
 			void Vrc7::Sound::OpllChannel::LoadState(State::Loader& state,const Tables& tables)
@@ -473,24 +465,23 @@ namespace Nes
 			#pragma optimize("", on)
 			#endif
 
-			NES_POKE(Vrc7,9010)
+			NES_POKE_D(Vrc7,9010)
 			{
-				sound.WriteReg0( data );
+				sound.SelectReg( data );
 			}
 
-			NES_POKE(Vrc7,9030)
+			NES_POKE_D(Vrc7,9030)
 			{
-				cpu.GetApu().Update();
-				sound.WriteReg1( data );
+				sound.WriteReg( data );
 			}
 
-			NES_POKE(Vrc7,E008)
+			NES_POKE_D(Vrc7,E008)
 			{
 				irq.Update();
 				irq.unit.latch = data;
 			}
 
-			NES_POKE(Vrc7,F000)
+			NES_POKE_D(Vrc7,F000)
 			{
 				irq.Toggle( data );
 			}
@@ -500,14 +491,10 @@ namespace Nes
 				irq.Toggle();
 			}
 
-			void Vrc7::VSync()
+			void Vrc7::Sync(Event event,Input::Controllers*)
 			{
-				irq.VSync();
-			}
-
-			void Vrc7::Sound::WriteReg0(uint data)
-			{
-				reg = data & 0x3F;
+				if (event == EVENT_END_FRAME)
+					irq.VSync();
 			}
 
 			inline uint Vrc7::Sound::Tables::GetAmp(uint i) const
@@ -540,26 +527,26 @@ namespace Nes
 				return lin2log[egOut];
 			}
 
-			inline dword Vrc7::Sound::Tables::GetAttack(uint tone,uint sl) const
+			inline dword Vrc7::Sound::Tables::GetAttack(uint tone,uint pos) const
 			{
-				NST_ASSERT( tone < 16 && sl < 16 );
-				return adr[0][tone][sl];
+				NST_ASSERT( tone < 16 && pos < 16 );
+				return adr[0][tone][pos];
 			}
 
-			inline dword Vrc7::Sound::Tables::GetDecay(uint tone,uint sl) const
+			inline dword Vrc7::Sound::Tables::GetDecay(uint tone,uint pos) const
 			{
-				NST_ASSERT( tone < 16 && sl < 16 );
-				return adr[1][tone][sl];
+				NST_ASSERT( tone < 16 && pos < 16 );
+				return adr[1][tone][pos];
 			}
 
-			inline dword Vrc7::Sound::Tables::GetSustain(uint tone,uint sl) const
+			inline dword Vrc7::Sound::Tables::GetSustain(uint tone,uint pos) const
 			{
-				return GetDecay( tone, sl );
+				return GetDecay( tone, pos );
 			}
 
-			inline dword Vrc7::Sound::Tables::GetRelease(uint tone,uint sl) const
+			inline dword Vrc7::Sound::Tables::GetRelease(uint tone,uint pos) const
 			{
-				return GetDecay( tone, sl );
+				return GetDecay( tone, pos );
 			}
 
 			inline dword Vrc7::Sound::Tables::GetPhase(uint frequency,uint block,uint tone) const
@@ -647,7 +634,7 @@ namespace Nes
 				}
 			}
 
-			NST_FORCE_INLINE void Vrc7::Sound::OpllChannel::WriteReg0(const uint data,const Tables& tables)
+			NST_SINGLE_CALL void Vrc7::Sound::OpllChannel::WriteReg0(const uint data,const Tables& tables)
 			{
 				patch.custom[0] = data;
 
@@ -660,7 +647,7 @@ namespace Nes
 				}
 			}
 
-			NST_FORCE_INLINE void Vrc7::Sound::OpllChannel::WriteReg1(const uint data,const Tables& tables)
+			NST_SINGLE_CALL void Vrc7::Sound::OpllChannel::WriteReg1(const uint data,const Tables& tables)
 			{
 				patch.custom[1] = data;
 
@@ -673,7 +660,7 @@ namespace Nes
 				}
 			}
 
-			NST_FORCE_INLINE void Vrc7::Sound::OpllChannel::WriteReg2(const uint data,const Tables& tables)
+			NST_SINGLE_CALL void Vrc7::Sound::OpllChannel::WriteReg2(const uint data,const Tables& tables)
 			{
 				patch.custom[2] = data;
 
@@ -684,7 +671,7 @@ namespace Nes
 				}
 			}
 
-			NST_FORCE_INLINE void Vrc7::Sound::OpllChannel::WriteReg3(const uint data)
+			NST_SINGLE_CALL void Vrc7::Sound::OpllChannel::WriteReg3(const uint data)
 			{
 				patch.custom[3] = data;
 
@@ -692,7 +679,7 @@ namespace Nes
 					patch.tone[3] = data;
 			}
 
-			NST_FORCE_INLINE void Vrc7::Sound::OpllChannel::WriteReg4(const uint data,const Tables& tables)
+			NST_SINGLE_CALL void Vrc7::Sound::OpllChannel::WriteReg4(const uint data,const Tables& tables)
 			{
 				patch.custom[4] = data;
 
@@ -703,7 +690,7 @@ namespace Nes
 				}
 			}
 
-			NST_FORCE_INLINE void Vrc7::Sound::OpllChannel::WriteReg5(const uint data,const Tables& tables)
+			NST_SINGLE_CALL void Vrc7::Sound::OpllChannel::WriteReg5(const uint data,const Tables& tables)
 			{
 				patch.custom[5] = data;
 
@@ -714,7 +701,7 @@ namespace Nes
 				}
 			}
 
-			NST_FORCE_INLINE void Vrc7::Sound::OpllChannel::WriteReg6(const uint data,const Tables& tables)
+			NST_SINGLE_CALL void Vrc7::Sound::OpllChannel::WriteReg6(const uint data,const Tables& tables)
 			{
 				patch.custom[6] = data;
 
@@ -725,7 +712,7 @@ namespace Nes
 				}
 			}
 
-			NST_FORCE_INLINE void Vrc7::Sound::OpllChannel::WriteReg7(const uint data,const Tables& tables)
+			NST_SINGLE_CALL void Vrc7::Sound::OpllChannel::WriteReg7(const uint data,const Tables& tables)
 			{
 				patch.custom[7] = data;
 
@@ -736,13 +723,13 @@ namespace Nes
 				}
 			}
 
-			NST_FORCE_INLINE void Vrc7::Sound::OpllChannel::WriteReg8(const uint data,const Tables& tables)
+			NST_SINGLE_CALL void Vrc7::Sound::OpllChannel::WriteReg8(const uint data,const Tables& tables)
 			{
 				frequency = (frequency & (uint(REG9_FRQ_HI) << 8)) | data;
 				Update( tables );
 			}
 
-			NST_FORCE_INLINE void Vrc7::Sound::OpllChannel::WriteReg9(const uint data,const Tables& tables)
+			NST_SINGLE_CALL void Vrc7::Sound::OpllChannel::WriteReg9(const uint data,const Tables& tables)
 			{
 				frequency = (frequency & REG8_FRQ_LO) | ((data & REG9_FRQ_HI) << 8);
 				block = (data & REG9_BLOCK) >> 1;
@@ -773,7 +760,7 @@ namespace Nes
 				Update( tables );
 			}
 
-			NST_FORCE_INLINE void Vrc7::Sound::OpllChannel::WriteRegA(uint data,const Tables& tables)
+			NST_SINGLE_CALL void Vrc7::Sound::OpllChannel::WriteRegA(uint data,const Tables& tables)
 			{
 				volume = (data & REGA_VOLUME) << 2;
 				data >>= 4;
@@ -787,9 +774,11 @@ namespace Nes
 				Update( tables );
 			}
 
-			void Vrc7::Sound::WriteReg1(const uint data)
+			void Vrc7::Sound::WriteReg(const uint data)
 			{
-				switch (reg)
+				Update();
+
+				switch (regSelect & 0x3F)
 				{
 					case 0x00:
 
@@ -854,7 +843,7 @@ namespace Nes
 					case 0x14:
 					case 0x15:
 
-						channels[reg - 0x10].WriteReg8( data, tables );
+						channels[regSelect - 0x10].WriteReg8( data, tables );
 						break;
 
 					case 0x20:
@@ -864,7 +853,7 @@ namespace Nes
 					case 0x24:
 					case 0x25:
 
-						channels[reg - 0x20].WriteReg9( data, tables );
+						channels[regSelect - 0x20].WriteReg9( data, tables );
 						break;
 
 					case 0x30:
@@ -874,12 +863,12 @@ namespace Nes
 					case 0x34:
 					case 0x35:
 
-						channels[reg - 0x30].WriteRegA( data, tables );
+						channels[regSelect - 0x30].WriteRegA( data, tables );
 						break;
 				}
 			}
 
-			NST_FORCE_INLINE Vrc7::Sound::Sample Vrc7::Sound::OpllChannel::GetSample(const uint pitch,const uint amp,const Tables& tables)
+			NST_SINGLE_CALL Vrc7::Sound::Sample Vrc7::Sound::OpllChannel::GetSample(const uint pitch,const uint amp,const Tables& tables)
 			{
 				uint pgOut[NUM_SLOTS], egOut[NUM_SLOTS];
 
@@ -991,7 +980,7 @@ namespace Nes
 
 			Vrc7::Sound::Sample Vrc7::Sound::GetSample()
 			{
-				if (outputVolume)
+				if (output)
 				{
 					while (samplePhase < sampleRate)
 					{
@@ -1015,7 +1004,7 @@ namespace Nes
 
 					samplePhase -= sampleRate;
 
-					return signed_shl( (prevSample * idword(samplePhase) + nextSample * idword(CLOCK_RATE - samplePhase)) / idword(CLOCK_RATE), 3 ) * idword(outputVolume) / DEFAULT_VOLUME;
+					return signed_shl( (prevSample * idword(samplePhase) + nextSample * idword(CLOCK_RATE - samplePhase)) / idword(CLOCK_RATE), 3 ) * idword(output) / DEFAULT_VOLUME;
 				}
 				else
 				{

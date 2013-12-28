@@ -37,23 +37,35 @@ namespace Nes
 		{
 		public:
 
-			explicit Mapper57(Context& c)
-			: Mapper(c,PROM_MAX_128K|CROM_MAX_128K|WRAM_DEFAULT) {}
+			explicit Mapper57(Context&);
 
 		private:
 
-			~Mapper57() {}
+			~Mapper57();
+
+			class CartSwitches;
+
+			enum Attribute
+			{
+				ATR_103 = 1,
+				ATR_GK_54,
+				ATR_GK_L01A,
+				ATR_GK_L02A,
+				ATR_GK_47
+			};
 
 			void SubReset(bool);
 			void SubSave(State::Saver&) const;
 			void SubLoad(State::Loader&);
+			Device QueryDevice(DeviceType);
 			void UpdateChr() const;
 
 			NES_DECL_PEEK( 6000 );
 			NES_DECL_POKE( 8000 );
 			NES_DECL_POKE( 8800 );
 
-			uint regs[3];
+			uint regs[2];
+			CartSwitches* const cartSwitches;
 		};
 	}
 }

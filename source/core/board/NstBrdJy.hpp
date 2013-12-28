@@ -61,7 +61,7 @@ namespace Nes
 					CartSwitches(uint,bool);
 
 					inline uint GetSetting() const;
-					inline ibool IsPpuLatched() const;
+					inline bool IsPpuLatched() const;
 
 				private:
 
@@ -70,7 +70,7 @@ namespace Nes
 					cstring GetDipName(uint) const;
 					cstring GetValueName(uint,uint) const;
 					uint GetValue(uint) const;
-					bool SetValue(uint,uint);
+					void SetValue(uint,uint);
 
 					uint data;
 					const ibool ppuLatched;
@@ -78,8 +78,8 @@ namespace Nes
 
 				enum
 				{
-					DIPSWITCH_NMT  = b00000011,
-					DIPSWITCH_GAME = b11000000
+					DIPSWITCH_NMT  = 0x03,
+					DIPSWITCH_GAME = 0xC0
 				};
 
 				void SubReset(bool);
@@ -91,10 +91,10 @@ namespace Nes
 				void UpdateExChr();
 				void UpdateNmt();
 				Device QueryDevice(DeviceType);
-				void VSync();
+				void Sync(Event,Input::Controllers*);
 
-				NES_DECL_HOOK( PpuBg );
-				NES_DECL_HOOK( PpuSp );
+				NES_DECL_HOOK( HActive );
+				NES_DECL_HOOK( HBlank  );
 
 				NES_DECL_ACCESSOR( Chr_0000 );
 				NES_DECL_ACCESSOR( Chr_1000 );
@@ -124,26 +124,26 @@ namespace Nes
 
 					enum
 					{
-						CTRL0_PRG_MODE      = b00000011,
-						CTRL0_PRG_SWAP_32K  = b00000000,
-						CTRL0_PRG_SWAP_16K  = b00000001,
-						CTRL0_PRG_SWAP_8K   = b00000010,
-						CTRL0_PRG_SWAP_8K_R = b00000011,
-						CTRL0_PRG_NOT_LAST  = b00000100,
-						CTRL0_CHR_MODE      = b00011000,
-						CTRL0_CHR_SWAP_8K   = b00000000,
-						CTRL0_CHR_SWAP_4K   = b00001000,
-						CTRL0_CHR_SWAP_2K   = b00010000,
-						CTRL0_CHR_SWAP_1K   = b00011000,
-						CTRL0_NMT_CHR       = b00100000,
-						CTRL0_NMT_CHR_ROM   = b01000000,
-						CTRL0_PRG6_ENABLE   = b10000000,
-						CTRL1_MIRRORING     = b00000011,
-						CTRL2_NMT_USE_RAM   = b10000000,
-						CTRL3_NO_EX_CHR     = b00100000,
-						CTRL3_EX_CHR_0      = b00000001,
-						CTRL3_EX_CHR_1      = b00011000,
-						CTRL3_EX_PRG        = b00000110
+						CTRL0_PRG_MODE      = 0x03,
+						CTRL0_PRG_SWAP_32K  = 0x00,
+						CTRL0_PRG_SWAP_16K  = 0x01,
+						CTRL0_PRG_SWAP_8K   = 0x02,
+						CTRL0_PRG_SWAP_8K_R = 0x03,
+						CTRL0_PRG_NOT_LAST  = 0x04,
+						CTRL0_CHR_MODE      = 0x18,
+						CTRL0_CHR_SWAP_8K   = 0x00,
+						CTRL0_CHR_SWAP_4K   = 0x08,
+						CTRL0_CHR_SWAP_2K   = 0x10,
+						CTRL0_CHR_SWAP_1K   = 0x18,
+						CTRL0_NMT_CHR       = 0x20,
+						CTRL0_NMT_CHR_ROM   = 0x40,
+						CTRL0_PRG6_ENABLE   = 0x80,
+						CTRL1_MIRRORING     = 0x03,
+						CTRL2_NMT_USE_RAM   = 0x80,
+						CTRL3_NO_EX_CHR     = 0x20,
+						CTRL3_EX_CHR_0      = 0x01,
+						CTRL3_EX_CHR_1      = 0x18,
+						CTRL3_EX_PRG        = 0x06
 					};
 
 					NES_DECL_PEEK( 5001 );
@@ -186,7 +186,7 @@ namespace Nes
 						explicit A12(Irq&);
 
 						void Reset(bool);
-						ibool Signal();
+						bool Clock();
 
 						Irq& base;
 					};
@@ -196,7 +196,7 @@ namespace Nes
 						explicit M2(Irq&);
 
 						void Reset(bool);
-						ibool Signal();
+						bool Clock();
 
 						Irq& base;
 					};
@@ -204,24 +204,24 @@ namespace Nes
 					Irq(Cpu&,Ppu&);
 
 					void Reset();
-					ibool IsEnabled() const;
-					ibool IsEnabled(uint) const;
-					ibool Signal();
+					bool IsEnabled() const;
+					bool IsEnabled(uint) const;
+					bool Clock();
 					inline void Update();
 
 					enum
 					{
-						TOGGLE            = b00000001,
-						MODE_SOURCE       = b00000011,
-						MODE_M2           = b00000000,
-						MODE_PPU_A12      = b00000001,
-						MODE_PPU_READ     = b00000010,
-						MODE_CPU_WRITE    = b00000011,
-						MODE_SCALE_3BIT   = b00000100,
-						MODE_SCALE_ADJUST = b00001000,
-						MODE_COUNT_ENABLE = b11000000,
-						MODE_COUNT_UP     = b01000000,
-						MODE_COUNT_DOWN   = b10000000
+						TOGGLE            = 0x01,
+						MODE_SOURCE       = 0x03,
+						MODE_M2           = 0x00,
+						MODE_PPU_A12      = 0x01,
+						MODE_PPU_READ     = 0x02,
+						MODE_CPU_WRITE    = 0x03,
+						MODE_SCALE_3BIT   = 0x04,
+						MODE_SCALE_ADJUST = 0x08,
+						MODE_COUNT_ENABLE = 0xC0,
+						MODE_COUNT_UP     = 0x40,
+						MODE_COUNT_DOWN   = 0x80
 					};
 
 					uint enabled;
@@ -230,8 +230,8 @@ namespace Nes
 					uint scale;
 					uint count;
 					uint flip;
-					Clock::A12<A12> a12;
-					Clock::M2<M2> m2;
+					ClockUnits::A12<A12> a12;
+					ClockUnits::M2<M2> m2;
 				};
 
 				Regs regs;

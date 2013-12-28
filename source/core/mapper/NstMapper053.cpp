@@ -36,7 +36,7 @@ namespace Nes
 
 		Mapper53::Mapper53(Context& c)
 		:
-		Mapper     (c,CROM_MAX_8K|WRAM_NONE),
+		Mapper     (c,CROM_MAX_8K|WRAM_NONE|NMT_VERTICAL),
 		epromFirst (c.prg.Size() >= SIZE_32K && Crc32::Compute(c.prg.Mem(),SIZE_32K) == EPROM_CRC)
 		{
 		}
@@ -101,14 +101,14 @@ namespace Nes
 			);
 		}
 
-		NES_POKE(Mapper53,6000)
+		NES_POKE_D(Mapper53,6000)
 		{
 			regs[0] = data;
 			UpdatePrg();
 			ppu.SetMirroring( (data & 0x20) ? Ppu::NMT_HORIZONTAL : Ppu::NMT_VERTICAL );
 		}
 
-		NES_POKE(Mapper53,8000)
+		NES_POKE_D(Mapper53,8000)
 		{
 			regs[1] = data;
 			UpdatePrg();

@@ -36,7 +36,7 @@ namespace Nes
 			#pragma optimize("s", on)
 			#endif
 
-			Sound::Player* Jaleco::DetectSound(Type type,uint attribute,Cpu& cpu)
+			Sound::Player* Jaleco::DetectSound(Type type,uint attribute,Apu& apu)
 			{
 				switch (type)
 				{
@@ -46,7 +46,7 @@ namespace Nes
 						{
 							return Sound::Player::Create
 							(
-								cpu,
+								apu,
 								Sound::Loader::MOERO_PRO_TENNIS,
 								Sound::Loader::MOERO_PRO_TENNIS_SAMPLES
 							);
@@ -59,7 +59,7 @@ namespace Nes
 						{
 							return Sound::Player::Create
 							(
-								cpu,
+								apu,
 								Sound::Loader::MOERO_PRO_YAKYUU_88,
 								Sound::Loader::MOERO_PRO_YAKYUU_88_SAMPLES
 							);
@@ -72,7 +72,7 @@ namespace Nes
 						{
 							return Sound::Player::Create
 							(
-								cpu,
+								apu,
 								Sound::Loader::MOERO_PRO_YAKYUU,
 								Sound::Loader::MOERO_PRO_YAKYUU_SAMPLES
 							);
@@ -86,7 +86,7 @@ namespace Nes
 			Jaleco::Jaleco(Context& c,Type t)
 			:
 			Mapper    (c,WRAM_DEFAULT),
-			sound     (DetectSound(t,c.attribute,c.cpu)),
+			sound     (DetectSound(t,c.attribute,c.apu)),
 			prgOffset (t == TYPE_1 ? 0x4000 : 0x0000),
 			type      (t)
 			{
@@ -97,7 +97,7 @@ namespace Nes
 				Sound::Player::Destroy( sound );
 			}
 
-			void Jaleco::SubReset(bool)
+			void Jaleco::SubReset(const bool hard)
 			{
 				if (type == TYPE_2)
 				{
@@ -105,6 +105,9 @@ namespace Nes
 
 					if (sound)
 						Map( 0x7000U, &Jaleco::Poke_7000 );
+
+					if (hard)
+						NES_DO_POKE(6000,0x6000,0x00);
 				}
 				else
 				{
@@ -116,14 +119,14 @@ namespace Nes
 			#pragma optimize("", on)
 			#endif
 
-			NES_POKE(Jaleco,6000)
+			NES_POKE_D(Jaleco,6000)
 			{
 				ppu.Update();
 				prg.SwapBank<SIZE_32K,0x0000>( data >> 4 & 0x3 );
 				chr.SwapBank<SIZE_8K,0x0000>( (data >> 4 & 0x4) | (data & 0x3) );
 			}
 
-			NES_POKE(Jaleco,7000)
+			NES_POKE_D(Jaleco,7000)
 			{
 				NST_ASSERT( sound );
 
@@ -131,7 +134,7 @@ namespace Nes
 					sound->Play( data & 0xF );
 			}
 
-			NES_POKE(Jaleco,8000)
+			NES_POKE_AD(Jaleco,8000)
 			{
 				if (data & 0x40)
 				{

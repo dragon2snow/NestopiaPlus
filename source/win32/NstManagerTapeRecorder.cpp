@@ -23,6 +23,8 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 
 #include "NstManager.hpp"
+#include "NstIoScreen.hpp"
+#include "NstResourceString.hpp"
 #include "NstManagerTapeRecorder.hpp"
 #include "NstDialogTapeRecorder.hpp"
 #include "../core/api/NstApiTapeRecorder.hpp"
@@ -48,10 +50,11 @@ namespace Nestopia
 
 			static const Window::Menu::PopupHandler::Entry<TapeRecorder> popups[] =
 			{
-				{ Window::Menu::PopupHandler::Pos<IDM_POS_MACHINE,IDM_POS_MACHINE_EXT,IDM_POS_MACHINE_EXT_TAPE>::ID, &TapeRecorder::OnMenuTape }
+				{ Window::Menu::PopupHandler::Pos<IDM_POS_MACHINE,IDM_POS_MACHINE_EXT>::ID,                          &TapeRecorder::OnMenuExt     },
+				{ Window::Menu::PopupHandler::Pos<IDM_POS_MACHINE,IDM_POS_MACHINE_EXT,IDM_POS_MACHINE_EXT_TAPE>::ID, &TapeRecorder::OnMenuExtTape }
 			};
 
-			menu.PopupRouter().Add( this, popups );
+			menu.Popups().Add( this, popups );
 		}
 
 		TapeRecorder::~TapeRecorder()
@@ -76,53 +79,119 @@ namespace Nestopia
 			}
 		}
 
+		bool TapeRecorder::Available() const
+		{
+			return
+			(
+				!emulator.NetPlayers() &&
+				(!emulator.IsImage() || Nes::TapeRecorder(emulator).IsConnected())
+			);
+		}
+
+		bool TapeRecorder::CanSetFile() const
+		{
+			return
+			(
+				!emulator.IsImage() &&
+				!emulator.NetPlayers()
+			);
+		}
+
+		bool TapeRecorder::CanPlay() const
+		{
+			return
+			(
+				emulator.IsOn() &&
+				!emulator.NetPlayers() &&
+				!emulator.IsLocked() &&
+				Nes::TapeRecorder(emulator).IsPlayable() &&
+				Nes::TapeRecorder(emulator).IsStopped()
+			);
+		}
+
+		bool TapeRecorder::CanRecord() const
+		{
+			return
+			(
+				emulator.IsOn() &&
+				!emulator.NetPlayers() &&
+				!emulator.IsLocked() &&
+				Nes::TapeRecorder(emulator).IsConnected() &&
+				Nes::TapeRecorder(emulator).IsStopped()
+			);
+		}
+
+		bool TapeRecorder::CanStop() const
+		{
+			return
+			(
+				emulator.IsOn() &&
+				!emulator.NetPlayers() &&
+				!emulator.IsLocked() &&
+				!Nes::TapeRecorder(emulator).IsStopped()
+			);
+		}
+
+		void TapeRecorder::OnMenuExt(const Window::Menu::PopupHandler::Param& param)
+		{
+			param.menu[ IDM_POS_MACHINE_EXT_TAPE ].Enable( !param.show || Available() );
+		}
+
+		void TapeRecorder::OnMenuExtTape(const Window::Menu::PopupHandler::Param& param)
+		{
+			param.menu[ IDM_MACHINE_EXT_TAPE_FILE   ].Enable( !param.show || CanSetFile() );
+			param.menu[ IDM_MACHINE_EXT_TAPE_STOP   ].Enable( !param.show || CanStop()    );
+			param.menu[ IDM_MACHINE_EXT_TAPE_PLAY   ].Enable( !param.show || CanPlay()    );
+			param.menu[ IDM_MACHINE_EXT_TAPE_RECORD ].Enable( !param.show || CanRecord()  );
+		}
+
 		void TapeRecorder::OnCmdFile(uint)
 		{
-			dialog->Open();
+			if (CanSetFile())
+				dialog->Open();
 		}
 
 		void TapeRecorder::OnCmdRecord(uint)
 		{
-			Nes::TapeRecorder(emulator).Record();
-			Application::Instance::GetMainWindow().Post( Application::Instance::WM_NST_COMMAND_RESUME );
+			if (CanRecord())
+			{
+				Nes::TapeRecorder(emulator).Record();
+				Resume();
+			}
 		}
 
 		void TapeRecorder::OnCmdPlay(uint)
 		{
-			Nes::TapeRecorder(emulator).Play();
-			Application::Instance::GetMainWindow().Post( Application::Instance::WM_NST_COMMAND_RESUME );
+			if (CanPlay())
+			{
+				Nes::TapeRecorder(emulator).Play();
+				Resume();
+			}
 		}
 
 		void TapeRecorder::OnCmdStop(uint)
 		{
-			Nes::TapeRecorder(emulator).Stop();
-			Application::Instance::GetMainWindow().Post( Application::Instance::WM_NST_COMMAND_RESUME );
+			if (CanStop())
+			{
+				Nes::TapeRecorder(emulator).Stop();
+				Resume();
+			}
 		}
 
-		void TapeRecorder::OnMenuTape(Window::Menu::PopupHandler::Param& param)
-		{
-			const Nes::TapeRecorder tapeRecorder( emulator );
-			const bool stopped = tapeRecorder.IsStopped();
-
-			param.menu[ IDM_MACHINE_EXT_TAPE_PLAY   ].Enable( stopped && tapeRecorder.CanPlay() );
-			param.menu[ IDM_MACHINE_EXT_TAPE_RECORD ].Enable( stopped && tapeRecorder.CanRecord() );
-			param.menu[ IDM_MACHINE_EXT_TAPE_STOP   ].Enable( !stopped && tapeRecorder.CanStop() );
-		}
-
-		void TapeRecorder::OnEmuEvent(Emulator::Event event)
+		void TapeRecorder::OnEmuEvent(const Emulator::Event event,Emulator::Data)
 		{
 			switch (event)
 			{
-				case Emulator::EVENT_LOAD:
-				case Emulator::EVENT_UNLOAD:
+				case Emulator::EVENT_TAPE_PLAYING:
+				case Emulator::EVENT_TAPE_RECORDING:
+				case Emulator::EVENT_TAPE_STOPPED:
 
-					menu[ IDM_MACHINE_EXT_TAPE_FILE ].Enable( event == Emulator::EVENT_UNLOAD );
-					break;
-
-				case Emulator::EVENT_NETPLAY_MODE_ON:
-				case Emulator::EVENT_NETPLAY_MODE_OFF:
-
-					menu[IDM_POS_MACHINE][IDM_POS_MACHINE_EXT][IDM_POS_MACHINE_EXT_TAPE].Enable( event == Emulator::EVENT_NETPLAY_MODE_OFF );
+					Io::Screen() << Resource::String
+					(
+						event == Emulator::EVENT_TAPE_PLAYING   ? IDS_SCREEN_TAPE_PLAYING :
+						event == Emulator::EVENT_TAPE_RECORDING ? IDS_SCREEN_TAPE_RECORDING :
+                                                                  IDS_SCREEN_TAPE_STOPPED
+					);
 					break;
 			}
 		}

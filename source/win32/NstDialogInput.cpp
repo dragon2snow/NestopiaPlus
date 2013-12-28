@@ -1037,7 +1037,7 @@ namespace Nestopia
 		ibool Input::OnCmdCalibrate(Param& param)
 		{
 			if (param.Button().Clicked())
-				directInput.Calibrate( dialog.ComboBox(IDC_INPUT_JOYSTICKS).Selection().GetIndex(), true );
+				directInput.Calibrate( dialog.ComboBox(IDC_INPUT_JOYSTICKS).Selection().GetIndex() );
 
 			return true;
 		}
@@ -1235,7 +1235,7 @@ namespace Nestopia
 
 		public:
 
-			KeyPressWindow(Input& b)
+			explicit KeyPressWindow(Input& b)
 			: base(b), result(RESULT_ABORT)
 			{
 				static const MsgHandler::Entry<KeyPressWindow> messages[] =

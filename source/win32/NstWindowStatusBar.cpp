@@ -67,12 +67,13 @@ namespace Nestopia
 				{ WM_DESTROY, &StatusBar::OnDestroy }
 			};
 
-			p.Messages().Hooks().Add( this, hooks );
+			parent.Messages().Hooks().Add( this, hooks );
 		}
 
 		StatusBar::~StatusBar()
 		{
 			window.Destroy();
+			parent.Messages().Hooks().Remove( this );
 		}
 
 		void StatusBar::Enable(const bool enable,const bool show)
@@ -97,7 +98,7 @@ namespace Nestopia
 					);
 
 					if (window == NULL)
-						throw Application::Exception( IDS_FAILED, _T("CreateWindowEx()") );
+						throw Application::Exception( IDS_ERR_FAILED, _T("CreateWindowEx()") );
 
 					width.Calculate( window );
 					Update();

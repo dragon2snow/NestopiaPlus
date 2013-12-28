@@ -48,17 +48,17 @@ namespace Nes
 				state = 0xFF0000;
 			}
 
-			void Pachinko::SaveState(State::Saver& state,const byte id) const
+			void Pachinko::SaveState(State::Saver& saver,const byte id) const
 			{
-				state.Begin( AsciiId<'P','A'>::R(0,0,id) ).Write8( strobe ).Write32( stream ).End();
+				saver.Begin( AsciiId<'P','A'>::R(0,0,id) ).Write8( strobe ).Write32( stream ).End();
 			}
 
-			void Pachinko::LoadState(State::Loader& state,const dword id)
+			void Pachinko::LoadState(State::Loader& loader,const dword id)
 			{
 				if (id == AsciiId<'P','A'>::V)
 				{
-					strobe = state.Read8() & 0x1;
-					stream = state.Read32();
+					strobe = loader.Read8() & 0x1;
+					stream = loader.Read32();
 				}
 			}
 
@@ -94,7 +94,7 @@ namespace Nes
 
 						if (Controllers::Pachinko::callback( pachinko ))
 						{
-							uint throttle = NST_CLAMP(pachinko.throttle,-64,+63) + 192;
+							uint throttle = Clamp<-64,+63>(pachinko.throttle) + 192;
 
 							throttle =
 							(

@@ -76,6 +76,11 @@ namespace Nes
 				REWINDING
 			};
 
+			enum
+			{
+				NUM_STATE_CALLBACKS = 3
+			};
+
 			typedef void (NST_CALLBACK *StateCallback) (UserData,State);
 
 			static StateCaller stateCallback;

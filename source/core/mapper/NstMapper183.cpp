@@ -99,7 +99,7 @@ namespace Nes
 		#pragma optimize("", on)
 		#endif
 
-		ibool Mapper183::Irq::Signal()
+		bool Mapper183::Irq::Clock()
 		{
 			if (++count[0] < 114)
 				return false;
@@ -108,7 +108,7 @@ namespace Nes
 			return enabled && (++count[1] & 0xFF) == 0;
 		}
 
-		NES_POKE(Mapper183,B000)
+		NES_POKE_AD(Mapper183,B000)
 		{
 			ppu.Update();
 			const uint part = address & 0x4;
@@ -116,19 +116,19 @@ namespace Nes
 			chr.SwapBank<SIZE_1K>( address, (chr.GetBank<SIZE_1K>(address) & 0xF0 >> part) | (data & 0x0F) << part );
 		}
 
-		NES_POKE(Mapper183,F000)
+		NES_POKE_D(Mapper183,F000)
 		{
 			irq.Update();
 			irq.unit.count[1] = (irq.unit.count[1] & 0xF0) | (data << 0 & 0x0F);
 		}
 
-		NES_POKE(Mapper183,F004)
+		NES_POKE_D(Mapper183,F004)
 		{
 			irq.Update();
 			irq.unit.count[1] = (irq.unit.count[1] & 0x0F) | (data << 4 & 0xF0);
 		}
 
-		NES_POKE(Mapper183,F008)
+		NES_POKE_D(Mapper183,F008)
 		{
 			irq.Update();
 			irq.unit.enabled = data;
@@ -141,10 +141,13 @@ namespace Nes
 		{
 		}
 
-		void Mapper183::VSync()
+		void Mapper183::Sync(Event event,Input::Controllers*)
 		{
-			irq.VSync();
-			irq.unit.count[0] = 0;
+			if (event == EVENT_END_FRAME)
+			{
+				irq.VSync();
+				irq.unit.count[0] = 0;
+			}
 		}
 	}
 }

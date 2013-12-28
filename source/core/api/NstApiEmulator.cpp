@@ -61,18 +61,15 @@ namespace Nes
 			}
 			catch (Result result)
 			{
-				machine.PowerOff();
-				return result;
+				return machine.PowerOff( result );
 			}
 			catch (std::bad_alloc&)
 			{
-				machine.PowerOff();
-				return RESULT_ERR_OUT_OF_MEMORY;
+				return machine.PowerOff( RESULT_ERR_OUT_OF_MEMORY );
 			}
 			catch (...)
 			{
-				machine.PowerOff();
-				return RESULT_ERR_GENERIC;
+				return machine.PowerOff( RESULT_ERR_GENERIC );
 			}
 		}
 

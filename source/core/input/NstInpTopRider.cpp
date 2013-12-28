@@ -54,22 +54,22 @@ namespace Nes
 				pos = 0;
 			}
 
-			void TopRider::SaveState(State::Saver& state,const byte id) const
+			void TopRider::SaveState(State::Saver& saver,const byte id) const
 			{
-				state.Begin( AsciiId<'T','R'>::R(0,0,id) ).End();
+				saver.Begin( AsciiId<'T','R'>::R(0,0,id) ).End();
 			}
 
 			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("", on)
 			#endif
 
-			void TopRider::BeginFrame(Controllers* const input)
+			void TopRider::BeginFrame(Controllers* const controllers)
 			{
-				if (input)
+				if (controllers)
 				{
-					Controllers::TopRider::callback( input->topRider );
+					Controllers::TopRider::callback( controllers->topRider );
 
-					uint data = input->topRider.buttons;
+					uint data = controllers->topRider.buttons;
 
 					if ((data & STEERING) == STEERING)
 						data &= STEERING ^ 0xFFU;

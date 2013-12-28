@@ -72,7 +72,7 @@ namespace Nes
 				r = 32;
 			}
 
-			void PowerGlove::SaveState(State::Saver& state,const byte id) const
+			void PowerGlove::SaveState(State::Saver& saver,const byte id) const
 			{
 				const byte data[4] =
 				{
@@ -82,10 +82,10 @@ namespace Nes
 					counter
 				};
 
-				state.Begin( AsciiId<'P','G'>::R(0,0,id) ).Write( data ).End();
+				saver.Begin( AsciiId<'P','G'>::R(0,0,id) ).Write( data ).End();
 			}
 
-			void PowerGlove::LoadState(State::Loader& state,const dword id)
+			void PowerGlove::LoadState(State::Loader& loader,const dword id)
 			{
 				buffer[3] = 0;
 				buffer[4] = 0;
@@ -95,7 +95,7 @@ namespace Nes
 
 				if (id == AsciiId<'P','G'>::V)
 				{
-					State::Loader::Data<4> data( state );
+					State::Loader::Data<4> data( loader );
 
 					latch = data[0];
 					stream = data[1] < (12U << 3) ? data[1] : ~0U;
@@ -169,7 +169,7 @@ namespace Nes
 				}
 			}
 
-			uint PowerGlove::Peek(uint port)
+			uint PowerGlove::Peek(uint)
 			{
 				uint data = 0;
 

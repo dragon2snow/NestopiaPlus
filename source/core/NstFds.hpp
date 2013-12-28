@@ -58,8 +58,24 @@ namespace Nes
 			{
 			public:
 
-				explicit Sound(Cpu&,bool=true);
-				~Sound();
+				explicit Sound(Apu&,bool=true);
+
+				uint ReadWaveData(uint) const;
+				void WriteWaveData(uint,uint);
+
+				void WriteReg0(uint);
+				void WriteReg1(uint);
+				void WriteReg2(uint);
+				void WriteReg3(uint);
+				void WriteReg4(uint);
+				void WriteReg5(uint);
+				void WriteReg6(uint);
+				void WriteReg7(uint);
+				void WriteReg8(uint);
+				void WriteReg9(uint);
+
+				uint ReadVolumeGain() const;
+				uint ReadSweepGain() const;
 
 				void SaveState(State::Saver&,dword) const;
 				void LoadState(State::Loader&);
@@ -67,50 +83,31 @@ namespace Nes
 			protected:
 
 				void Reset();
-				void UpdateContext(uint,const byte (&w)[MAX_CHANNELS]);
+				bool UpdateSettings();
 				Sample GetSample();
-				Cycle Clock();
+				Cycle Clock(Cycle,Cycle,Cycle);
 
 			private:
 
 				bool CanOutput() const;
 				inline bool CanModulate() const;
 
-				void ResetChannel();
-
-				NST_FORCE_INLINE uint GetModulation() const;
-
-				NES_DECL_PEEK( Nop  );
-				NES_DECL_POKE( Nop  );
-				NES_DECL_PEEK( 4040 );
-				NES_DECL_POKE( 4040 );
-				NES_DECL_POKE( 4080 );
-				NES_DECL_POKE( 4082 );
-				NES_DECL_POKE( 4083 );
-				NES_DECL_POKE( 4084 );
-				NES_DECL_POKE( 4085 );
-				NES_DECL_POKE( 4086 );
-				NES_DECL_POKE( 4087 );
-				NES_DECL_POKE( 4088 );
-				NES_DECL_POKE( 4089 );
-				NES_DECL_POKE( 408A );
-				NES_DECL_PEEK( 4090 );
-				NES_DECL_PEEK( 4092 );
+				NST_SINGLE_CALL dword GetModulation() const;
 
 				enum
 				{
-					REG2_WAVELENGTH_LOW      = b11111111,
-					REG3_WAVELENGTH_HIGH     = b00001111,
-					REG3_ENVELOPE_DISABLE    = b01000000,
-					REG3_OUTPUT_DISABLE      = b10000000,
-					REG5_MOD_SWEEP           = b00111111,
-					REG5_MOD_NEGATE          = b01000000,
-					REG6_MOD_WAVELENGTH_LOW  = b11111111,
-					REG7_MOD_WAVELENGTH_HIGH = b00001111,
-					REG7_MOD_WRITE_MODE      = b10000000,
-					REG8_MOD_DATA            = b00000111,
-					REG9_VOLUME              = b00000011,
-					REG9_WRITE_MODE          = b10000000
+					REG2_WAVELENGTH_LOW      = 0xFF,
+					REG3_WAVELENGTH_HIGH     = 0x0F,
+					REG3_ENVELOPE_DISABLE    = 0x40,
+					REG3_OUTPUT_DISABLE      = 0x80,
+					REG5_MOD_SWEEP           = 0x3F,
+					REG5_MOD_NEGATE          = 0x40,
+					REG6_MOD_WAVELENGTH_LOW  = 0xFF,
+					REG7_MOD_WAVELENGTH_HIGH = 0x0F,
+					REG7_MOD_WRITE_MODE      = 0x80,
+					REG8_MOD_DATA            = 0x07,
+					REG9_VOLUME              = 0x03,
+					REG9_WRITE_MODE          = 0x80
 				};
 
 				enum
@@ -126,16 +123,19 @@ namespace Nes
 					void Reset();
 					void Write(uint);
 
-					NST_FORCE_INLINE void Clock();
+					NST_SINGLE_CALL void Clock();
+
+					inline uint Gain() const;
+					inline uint Output() const;
 
 					void SaveState(State::Saver&,dword) const;
 					void LoadState(State::Loader&);
 
 					enum
 					{
-						CTRL_COUNT   = b00111111,
-						CTRL_UP      = b01000000,
-						CTRL_DISABLE = b10000000
+						CTRL_COUNT   = 0x3F,
+						CTRL_UP      = 0x40,
+						CTRL_DISABLE = 0x80
 					};
 
 				private:
@@ -146,21 +146,10 @@ namespace Nes
 						GAIN_MIN = 0x00
 					};
 
-					uint ctrl;
-					uint counter;
-					uint gain;
-
-				public:
-
-					uint Gain() const
-					{
-						return gain;
-					}
-
-					uint Output() const
-					{
-						return NST_MIN(gain,GAIN_MAX);
-					}
+					byte counter;
+					byte ctrl;
+					byte gain;
+					byte output;
 				};
 
 				struct Modulator
@@ -171,12 +160,14 @@ namespace Nes
 						SIZE = 0x20
 					};
 
-					ibool active;
-					ibool writing;
-					uint pos;
+					bool active;
+					bool writing;
+					byte sweep;
+					byte pos;
 					uint length;
+					dword rate;
 					dword timer;
-					uint sweep;
+					dword clock;
 					byte table[SIZE];
 
 					static const byte steps[8];
@@ -192,8 +183,9 @@ namespace Nes
 				{
 					enum {PULSE = 8};
 
-					uint counter;
-					uint length;
+					byte counter;
+					byte length;
+					word clock;
 					Envelope units[2];
 				};
 
@@ -201,14 +193,17 @@ namespace Nes
 				{
 					enum {SIZE = 0x40};
 
-					ibool writing;
-					uint length;
+					word length;
+					byte volume;
+					bool writing;
 					dword pos;
-					uint volume;
+					dword rate;
+					dword frame;
+					dword clock;
 					byte table[SIZE];
 				};
 
-				Cpu& cpu;
+				ibool active;
 
 				Wave wave;
 				Envelopes envelopes;
@@ -216,12 +211,11 @@ namespace Nes
 
 				uint volume;
 				dword amp;
+				uint output;
 				uint status;
-				Apu::DcBlocker dcBlocker;
+				DcBlocker dcBlocker;
 
 				static const byte volumes[4];
-
-				const ibool hooked;
 			};
 
 		private:
@@ -234,7 +228,7 @@ namespace Nes
 			uint GetDesiredAdapter() const;
 			void LoadState(State::Loader&);
 			void SaveState(State::Saver&,dword) const;
-			bool PowerOff() const;
+			bool PowerOff();
 
 			NES_DECL_PEEK( Nop  );
 			NES_DECL_POKE( Nop  );
@@ -243,11 +237,25 @@ namespace Nes
 			NES_DECL_POKE( 4026 );
 			NES_DECL_PEEK( 4031 );
 			NES_DECL_PEEK( 4033 );
+			NES_DECL_PEEK( 4040 );
+			NES_DECL_POKE( 4040 );
+			NES_DECL_POKE( 4080 );
+			NES_DECL_POKE( 4082 );
+			NES_DECL_POKE( 4083 );
+			NES_DECL_POKE( 4084 );
+			NES_DECL_POKE( 4085 );
+			NES_DECL_POKE( 4086 );
+			NES_DECL_POKE( 4087 );
+			NES_DECL_POKE( 4088 );
+			NES_DECL_POKE( 4089 );
+			NES_DECL_POKE( 408A );
+			NES_DECL_PEEK( 4090 );
+			NES_DECL_PEEK( 4092 );
 
 			enum
 			{
-				SIDE_SIZE            = 65500U,
-				MAX_SIDE_SIZE        = 68000U,
+				SIDE_SIZE            = 65500,
+				MAX_SIDE_SIZE        = 68000,
 				CTRL1_NMT_HORIZONTAL = 0x08,
 				OPEN_BUS             = 0x40,
 				DOREMIKKO_ID         = 0xA4445245
@@ -320,7 +328,7 @@ namespace Nes
 				explicit Unit(const Disks::Sides&);
 
 				void Reset(bool);
-				ibool Signal();
+				ibool Clock();
 
 				enum
 				{
@@ -335,7 +343,7 @@ namespace Nes
 					void Reset();
 					void Advance(uint&);
 
-					inline bool Clock();
+					NST_SINGLE_CALL bool Clock();
 
 					enum
 					{
@@ -344,8 +352,8 @@ namespace Nes
 					};
 
 					uint ctrl;
-					uint count;
-					uint latch;
+					word count;
+					word latch;
 				};
 
 				struct Drive
@@ -358,9 +366,8 @@ namespace Nes
 					void  Mount(byte*,bool);
 					ibool Advance(uint&);
 
-					inline bool Clock();
-
-					NST_FORCE_INLINE void Write(uint);
+					NST_SINGLE_CALL bool Clock();
+					NST_SINGLE_CALL void Write(uint);
 
 					enum
 					{
@@ -369,7 +376,7 @@ namespace Nes
 						BYTES_GAP_INIT = CLK_HEAD/8UL * 398 / 1000,
 						BYTES_GAP_NEXT = CLK_HEAD/8UL * 10  / 1000,
 
-						CLK_BYTE = Cpu::MC_NTSC / (CLK_HEAD/8UL * Cpu::CLK_NTSC_DIV * Cpu::MC_DIV_NTSC),
+						CLK_BYTE = Clocks::NTSC_CLK / (CLK_HEAD/8UL * Clocks::RP2A03_CC * Clocks::NTSC_DIV),
 
 						CLK_MOTOR  = CLK_HEAD/8UL * 100 * CLK_BYTE / 1000,
 						CLK_REWIND = CLK_HEAD/8UL * 135 * CLK_BYTE / 1000,
@@ -398,15 +405,15 @@ namespace Nes
 
 					dword count;
 					dword headPos;
-					uint dataPos;
-					uint gap;
 					byte* io;
-					uint ctrl;
-					uint length;
-					uint in;
-					uint out;
-					uint status;
-					mutable ibool dirty;
+					word dataPos;
+					word gap;
+					word length;
+					word in;
+					byte out;
+					byte ctrl;
+					byte status;
+					mutable bool dirty;
 					const Disks::Sides& sides;
 				};
 
@@ -415,7 +422,7 @@ namespace Nes
 				uint status;
 			};
 
-			class Adapter : Clock::M2<Unit>
+			class Adapter : ClockUnits::M2<Unit>
 			{
 				NES_DECL_PEEK( Nop  );
 				NES_DECL_POKE( Nop  );
@@ -430,20 +437,19 @@ namespace Nes
 
 				Adapter(Cpu&,const Disks::Sides&);
 
-				void Reset(byte*,bool=false);
-
-				NST_FORCE_INLINE void Write(uint);
-				NST_FORCE_INLINE uint Read();
-
+				void Reset(Cpu&,byte*,bool=false);
 				void LoadState(State::Loader&,dword,Ppu&);
 				void SaveState(State::Saver&) const;
+				bool Dirty() const;
 
-				inline void  Mount(byte*,bool=false);
-				inline void  WriteProtect();
-				inline ibool Dirty() const;
-				inline uint  Activity() const;
+				inline void Mount(byte*,bool=false);
 
-				using Clock::M2<Unit>::VSync;
+				NST_SINGLE_CALL void Write(uint);
+				NST_SINGLE_CALL uint Read();
+				NST_SINGLE_CALL void WriteProtect();
+				NST_SINGLE_CALL uint Activity() const;
+
+				using ClockUnits::M2<Unit>::VSync;
 			};
 
 			struct Io
@@ -458,9 +464,9 @@ namespace Nes
 					BATTERY_CHARGED    = 0x80
 				};
 
-				uint ctrl;
-				uint port;
-				mutable uint led;
+				byte ctrl;
+				byte port;
+				mutable word led;
 			};
 
 			Disks disks;
@@ -476,9 +482,9 @@ namespace Nes
 
 		public:
 
-			Mode GetMode() const
+			Region::Type GetRegion() const
 			{
-				return MODE_NTSC;
+				return Region::NTSC;
 			}
 
 			bool IsAnyDiskInserted() const
@@ -488,12 +494,12 @@ namespace Nes
 
 			int CurrentDisk() const
 			{
-				return disks.current != Disks::EJECTED ? int(disks.current / 2) : -1;
+				return disks.current != Disks::EJECTED ? int(disks.current / 2U) : -1;
 			}
 
 			int CurrentDiskSide() const
 			{
-				return disks.current != Disks::EJECTED ? int(disks.current % 2) : -1;
+				return disks.current != Disks::EJECTED ? int(disks.current % 2U) : -1;
 			}
 
 			uint NumSides() const
@@ -503,7 +509,7 @@ namespace Nes
 
 			uint NumDisks() const
 			{
-				return (disks.sides.count / 2) + (disks.sides.count % 2);
+				return (disks.sides.count / 2U) + (disks.sides.count % 2U);
 			}
 
 			dword GetPrgCrc() const
@@ -513,7 +519,7 @@ namespace Nes
 
 			bool CanChangeDiskSide() const
 			{
-				return disks.current != Disks::EJECTED && (disks.current % 2 || disks.current+1U < disks.sides.count);
+				return disks.current != Disks::EJECTED && (disks.current | 1U) < disks.sides.count;
 			}
 
 			bool HasHeader() const

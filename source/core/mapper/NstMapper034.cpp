@@ -33,7 +33,7 @@ namespace Nes
 		#pragma optimize("s", on)
 		#endif
 
-		void Mapper34::SubReset(bool)
+		void Mapper34::SubReset(const bool hard)
 		{
 			if (chr.Source().Writable())
 			{
@@ -49,6 +49,9 @@ namespace Nes
 				Map( 0x7FFEU, CHR_SWAP_4K_0 );
 				Map( 0x7FFFU, CHR_SWAP_4K_1 );
 			}
+
+			if (hard)
+				prg.SwapBank<SIZE_32K,0x0000>(0);
 		}
 
 		#ifdef NST_MSVC_OPTIMIZE

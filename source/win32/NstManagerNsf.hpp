@@ -41,8 +41,8 @@ namespace Nestopia
 
 		private:
 
-			void OnEmuEvent(Emulator::Event);
-
+			void OnMenu         (const Window::Menu::PopupHandler::Param&);
+			void OnEmuEvent     (Emulator::Event,Emulator::Data);
 			void OnCmdPlayInBkg (uint);
 			void OnCmd          (uint);
 		};

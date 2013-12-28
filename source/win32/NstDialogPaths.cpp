@@ -170,7 +170,7 @@ namespace Nestopia
 				{
 					if (format == Lut::screenShots[i].cfg)
 					{
-						settings.screenShotFormat = (ScreenShotFormat) Lut::screenShots[i].type;
+						settings.screenShotFormat = static_cast<ScreenShotFormat>(Lut::screenShots[i].type);
 						break;
 					}
 				}
@@ -326,7 +326,7 @@ namespace Nestopia
 				{
 					if (dialog.RadioButton( Lut::screenShots[i].dlg ).Checked())
 					{
-						settings.screenShotFormat = (ScreenShotFormat) Lut::screenShots[i].type;
+						settings.screenShotFormat = static_cast<ScreenShotFormat>(Lut::screenShots[i].type);
 						break;
 					}
 				}

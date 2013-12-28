@@ -46,6 +46,8 @@ namespace Nes
 	{
 		class Machine : public Base
 		{
+			struct EventCaller;
+
 		public:
 
 			template<typename T>
@@ -70,6 +72,16 @@ namespace Nes
 				PAL  = 0x08
 			};
 
+			enum
+			{
+				CLK_NTSC_DOT   = Clocks::NTSC_CLK,
+				CLK_NTSC_DIV   = Clocks::NTSC_DIV,
+				CLK_NTSC_VSYNC = Clocks::RP2C02_HVSYNC * ulong(Clocks::NTSC_DIV),
+				CLK_PAL_DOT    = Clocks::PAL_CLK,
+				CLK_PAL_DIV    = Clocks::PAL_DIV,
+				CLK_PAL_VSYNC  = Clocks::RP2C07_HVSYNC * ulong(Clocks::PAL_DIV)
+			};
+
 			Result Load          (std::istream&) throw();
 			Result LoadCartridge (std::istream&) throw();
 			Result LoadDisk      (std::istream&) throw();
@@ -79,8 +91,8 @@ namespace Nes
 			Result Power (bool) throw();
 			Result Reset (bool) throw();
 
-			Mode GetMode() const throw();
-			Mode GetDesiredMode() const throw();
+			Mode   GetMode() const throw();
+			Mode   GetDesiredMode() const throw();
 			Result SetMode (Mode) throw();
 
 			enum Compression
@@ -95,11 +107,41 @@ namespace Nes
 			uint Is (uint) const throw();
 			bool Is (uint,uint) const throw();
 
-			bool IsLocked() const throw();
+			bool IsLocked() const;
+
+			enum Event
+			{
+				EVENT_LOAD,
+				EVENT_UNLOAD,
+				EVENT_POWER_ON,
+				EVENT_POWER_OFF,
+				EVENT_RESET_SOFT,
+				EVENT_RESET_HARD,
+				EVENT_MODE_NTSC,
+				EVENT_MODE_PAL
+			};
+
+			enum
+			{
+				NUM_EVENT_CALLBACKS = 8
+			};
+
+			typedef void (NST_CALLBACK *EventCallback) (UserData,Event,Result);
+
+			static EventCaller eventCallback;
 
 		private:
 
 			Result Load(std::istream&,uint);
+		};
+
+		struct Machine::EventCaller : Core::UserCallback<Machine::EventCallback>
+		{
+			void operator () (Event event,Result result=RESULT_OK) const
+			{
+				if (function)
+					function( userdata, event, result );
+			}
 		};
 	}
 }

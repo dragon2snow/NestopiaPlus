@@ -53,6 +53,7 @@ namespace Nes
 			chrRom = 0;
 			chrRam = 0;
 			chrRamBacked = 0;
+			cpu = CPU_RP2A03;
 			ppu = PPU_RP2C02;
 			mirroring = MIRROR_HORIZONTAL;
 			mapper = 0;
@@ -165,12 +166,12 @@ namespace Nes
 			return emulator.imageDatabase ? Core::Cartridge::Ines::SearchDatabase( *emulator.imageDatabase, static_cast<const byte*>(file), length ) : NULL;
 		}
 
-		System Cartridge::Database::GetSystem(Entry entry) const throw()
+		Cartridge::System Cartridge::Database::GetSystem(Entry entry) const throw()
 		{
 			return emulator.imageDatabase && entry ? emulator.imageDatabase->GetSystem( entry ) : SYSTEM_HOME;
 		}
 
-		Region Cartridge::Database::GetRegion(Entry entry) const throw()
+		Cartridge::Region Cartridge::Database::GetRegion(Entry entry) const throw()
 		{
 			return emulator.imageDatabase && entry ? emulator.imageDatabase->GetRegion( entry ) : REGION_NTSC;
 		}

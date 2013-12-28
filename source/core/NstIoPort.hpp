@@ -35,25 +35,31 @@ namespace Nes
 	{
 		namespace Io
 		{
-		#ifndef NST_NO_FASTDELEGATE
+		#ifdef NST_FASTDELEGATE
 
 			class Port
 			{
 				class Component {};
 
-				typedef Data (NES_IO_CALL Component::*Reader)(Address);
-				typedef void (NES_IO_CALL Component::*Writer)(Address,Data);
+				typedef Data (NST_FASTCALL Component::*Reader)(Address);
+				typedef void (NST_FASTCALL Component::*Writer)(Address,Data);
 
 				Component* component;
 				Reader reader;
 				Writer writer;
+
+				NST_COMPILE_ASSERT
+				(
+					sizeof( Reader ) <= sizeof( Data (*)(void*,Address)      ) &&
+					sizeof( Writer ) <= sizeof( Data (*)(void*,Address,Data) )
+				);
 
 			public:
 
 				Port() {}
 
 				template<typename T>
-				Port(T* c,Data (NES_IO_CALL T::*r)(Address),void (NES_IO_CALL T::*w)(Address,Data))
+				Port(T* c,Data (NST_FASTCALL T::*r)(Address),void (NST_FASTCALL T::*w)(Address,Data))
 				:
 				component ( reinterpret_cast<Component*>(c) ),
 				reader    ( reinterpret_cast<Reader>(r)    ),
@@ -63,7 +69,7 @@ namespace Nes
 				}
 
 				template<typename T>
-				void Set(T* c,Data (NES_IO_CALL T::*r)(Address),void (NES_IO_CALL T::*w)(Address,Data))
+				void Set(T* c,Data (NST_FASTCALL T::*r)(Address),void (NST_FASTCALL T::*w)(Address,Data))
 				{
 					NST_COMPILE_ASSERT( sizeof(reader) == sizeof(r) && sizeof(writer) == sizeof(w) );
 
@@ -73,7 +79,7 @@ namespace Nes
 				}
 
 				template<typename T>
-				void Set(Data (NES_IO_CALL T::*r)(Address))
+				void Set(Data (NST_FASTCALL T::*r)(Address))
 				{
 					NST_COMPILE_ASSERT( sizeof(reader) == sizeof(r) );
 
@@ -81,7 +87,7 @@ namespace Nes
 				}
 
 				template<typename T>
-				void Set(void (NES_IO_CALL T::*w)(Address,Data))
+				void Set(void (NST_FASTCALL T::*w)(Address,Data))
 				{
 					NST_COMPILE_ASSERT( sizeof(writer) == sizeof(w) );
 
@@ -89,7 +95,7 @@ namespace Nes
 				}
 
 				template<typename T>
-				void Set(Data (NES_IO_CALL T::*r)(Address),void (NES_IO_CALL T::*w)(Address,Data))
+				void Set(Data (NST_FASTCALL T::*r)(Address),void (NST_FASTCALL T::*w)(Address,Data))
 				{
 					NST_COMPILE_ASSERT( sizeof(reader) == sizeof(r) && sizeof(writer) == sizeof(w) );
 
@@ -107,33 +113,33 @@ namespace Nes
 					(*component.*writer)( address, data );
 				}
 
-				bool operator == (const void* ptr) const
-				{
-					return static_cast<const void*>(component) == ptr;
-				}
-
 				bool operator == (const Port& p) const
 				{
 					return component == p.component && reader == p.reader && writer == p.writer;
 				}
 			};
 
-			#define NES_DECL_PEEK(a_) Data NES_IO_CALL Peek_##a_(Address)
-			#define NES_DECL_POKE(a_) void NES_IO_CALL Poke_##a_(Address,Data)
+			#define NES_DECL_PEEK(a_) Data NST_FASTCALL Peek_##a_(Address)
+			#define NES_DECL_POKE(a_) void NST_FASTCALL Poke_##a_(Address,Data)
 
-			#define NES_PEEK(o_,a_) Data NES_IO_CALL o_::Peek_##a_(Address address)
-			#define NES_POKE(o_,a_) void NES_IO_CALL o_::Poke_##a_(Address address,Data data)
+			#define NES_PEEK(o_,a_) Data NST_FASTCALL o_::Peek_##a_(Address)
+			#define NES_PEEK_A(o_,a_) Data NST_FASTCALL o_::Peek_##a_(Address address)
+
+			#define NES_POKE(o_,a_) void NST_FASTCALL o_::Poke_##a_(Address,Data)
+			#define NES_POKE_A(o_,a_) void NST_FASTCALL o_::Poke_##a_(Address address,Data)
+			#define NES_POKE_D(o_,a_) void NST_FASTCALL o_::Poke_##a_(Address,Data data)
+			#define NES_POKE_AD(o_,a_) void NST_FASTCALL o_::Poke_##a_(Address address,Data data)
 
 			#define NES_DO_POKE(a_,p_,d_) Poke_##a_(p_,d_)
-			#define NES_DO_PEEK(a_,p_)    Peek_##a_(p_)
+			#define NES_DO_PEEK(a_,p_) Peek_##a_(p_)
 
 		#else
 
 			class Port
 			{
 				typedef void* Component;
-				typedef Data (NES_IO_CALL *Reader)(Component,Address);
-				typedef void (NES_IO_CALL *Writer)(Component,Address,Data);
+				typedef Data (NST_REGCALL *Reader)(Component,Address);
+				typedef void (NST_REGCALL *Writer)(Component,Address,Data);
 
 				Component component;
 				Reader reader;
@@ -143,14 +149,14 @@ namespace Nes
 
 				Port() {}
 
-				Port(void* c,Reader r,Writer w)
+				Port(Component c,Reader r,Writer w)
 				:
 				component ( c ),
 				reader    ( r ),
 				writer    ( w )
 				{}
 
-				void Set(void* c,Reader r,Writer w)
+				void Set(Component c,Reader r,Writer w)
 				{
 					component = c;
 					reader    = r;
@@ -183,47 +189,78 @@ namespace Nes
 					writer( component, address, data );
 				}
 
-				bool operator == (const void* ptr) const
-				{
-					return component == ptr;
-				}
-
 				bool operator == (const Port& p) const
 				{
 					return component == p.component && reader == p.reader && writer == p.writer;
 				}
 			};
 
-			#define NES_DECL_PEEK(a_)                                       \
-																			\
-				Data NES_IO_CALL Peek_M_##a_(Address);                      \
-				static Data NES_IO_CALL Peek_##a_(void*,Address)
+			#define NES_DECL_PEEK(a_)                                                        \
+                                                                                             \
+				NST_SINGLE_CALL Data NST_FASTCALL Peek_M_##a_(Address);                      \
+				static Data NST_REGCALL Peek_##a_(void*,Address)
 
-			#define NES_DECL_POKE(a_)                                       \
-																			\
-				void NES_IO_CALL Poke_M_##a_(Address,Data);                 \
-				static void NES_IO_CALL Poke_##a_(void*,Address,Data)
+			#define NES_DECL_POKE(a_)                                                        \
+                                                                                             \
+				NST_SINGLE_CALL void NST_FASTCALL Poke_M_##a_(Address,Data);                 \
+				static void NST_REGCALL Poke_##a_(void*,Address,Data)
 
-			#define NES_PEEK(o_,a_)                                         \
-																			\
-				Data NES_IO_CALL o_::Peek_##a_(void* p_,Address i_)         \
-				{                                                           \
-					return static_cast<o_*>(p_)->Peek_M_##a_(i_);           \
-				}                                                           \
-																			\
-				Data NES_IO_CALL o_::Peek_M_##a_(Address address)
+			#define NES_PEEK(o_,a_)                                                          \
+                                                                                             \
+				Data NST_REGCALL o_::Peek_##a_(void* p_,Address i_)                          \
+				{                                                                            \
+					return static_cast<o_*>(p_)->Peek_M_##a_(i_);                            \
+				}                                                                            \
+                                                                                             \
+				NST_SINGLE_CALL Data NST_FASTCALL o_::Peek_M_##a_(Address)
 
-			#define NES_POKE(o_,a_)                                         \
-																			\
-				void NES_IO_CALL o_::Poke_##a_(void* p_,Address i_,Data j_) \
-				{                                                           \
-					static_cast<o_*>(p_)->Poke_M_##a_(i_,j_);               \
-				}                                                           \
-																			\
-				void NES_IO_CALL o_::Poke_M_##a_(Address address,Data data)
+			#define NES_PEEK_A(o_,a_)                                                        \
+                                                                                             \
+				Data NST_REGCALL o_::Peek_##a_(void* p_,Address i_)                          \
+				{                                                                            \
+					return static_cast<o_*>(p_)->Peek_M_##a_(i_);                            \
+				}                                                                            \
+                                                                                             \
+				NST_SINGLE_CALL Data NST_FASTCALL o_::Peek_M_##a_(Address address)
 
-			#define NES_DO_POKE(a_,p_,d_) Poke_M_##a_(p_,d_)
-			#define NES_DO_PEEK(a_,p_)    Peek_M_##a_(p_)
+			#define NES_POKE(o_,a_)                                                          \
+                                                                                             \
+				void NST_REGCALL o_::Poke_##a_(void* p_,Address i_,Data j_)                  \
+				{                                                                            \
+					static_cast<o_*>(p_)->Poke_M_##a_(i_,j_);                                \
+				}                                                                            \
+                                                                                             \
+				NST_SINGLE_CALL void NST_FASTCALL o_::Poke_M_##a_(Address,Data)
+
+			#define NES_POKE_A(o_,a_)                                                        \
+                                                                                             \
+				void NST_REGCALL o_::Poke_##a_(void* p_,Address i_,Data j_)                  \
+				{                                                                            \
+					static_cast<o_*>(p_)->Poke_M_##a_(i_,j_);                                \
+				}                                                                            \
+                                                                                             \
+				NST_SINGLE_CALL void NST_FASTCALL o_::Poke_M_##a_(Address address,Data)
+
+			#define NES_POKE_D(o_,a_)                                                        \
+                                                                                             \
+				void NST_REGCALL o_::Poke_##a_(void* p_,Address i_,Data j_)                  \
+				{                                                                            \
+					static_cast<o_*>(p_)->Poke_M_##a_(i_,j_);                                \
+				}                                                                            \
+                                                                                             \
+				NST_SINGLE_CALL void NST_FASTCALL o_::Poke_M_##a_(Address,Data data)
+
+			#define NES_POKE_AD(o_,a_)                                                       \
+                                                                                             \
+				void NST_REGCALL o_::Poke_##a_(void* p_,Address i_,Data j_)                  \
+				{                                                                            \
+					static_cast<o_*>(p_)->Poke_M_##a_(i_,j_);                                \
+				}                                                                            \
+                                                                                             \
+				NST_SINGLE_CALL void NST_FASTCALL o_::Poke_M_##a_(Address address,Data data)
+
+			#define NES_DO_POKE(a_,p_,d_) Poke_##a_(this,p_,d_)
+			#define NES_DO_PEEK(a_,p_)    Peek_##a_(this,p_)
 
 		#endif
 		}

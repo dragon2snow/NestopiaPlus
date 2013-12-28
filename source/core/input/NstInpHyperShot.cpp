@@ -47,15 +47,15 @@ namespace Nes
 				state = 0;
 			}
 
-			void HyperShot::SaveState(State::Saver& state,const byte id) const
+			void HyperShot::SaveState(State::Saver& saver,const byte id) const
 			{
-				state.Begin( AsciiId<'H','S'>::R(0,0,id) ).Write8( strobe ).End();
+				saver.Begin( AsciiId<'H','S'>::R(0,0,id) ).Write8( strobe ).End();
 			}
 
-			void HyperShot::LoadState(State::Loader& state,const dword id)
+			void HyperShot::LoadState(State::Loader& loader,const dword id)
 			{
 				if (id == AsciiId<'H','S'>::V)
-					strobe = state.Read8() & 0x1;
+					strobe = loader.Read8() & 0x1;
 			}
 
 			#ifdef NST_MSVC_OPTIMIZE

@@ -40,17 +40,6 @@ namespace Nes
 
 			void S8259::SubReset(const bool hard)
 			{
-				if (hard)
-				{
-					ctrl = 0;
-
-					for (uint i=0; i < 8; ++i)
-						regs[i] = 0;
-				}
-
-				if (type == TYPE_D && !chr.Source().Writable())
-					chr.SwapBank<SIZE_4K,0x1000>( ~0U );
-
 				for (uint i=0x4100; i < 0x8000; i += 0x200)
 				{
 					for (uint j=0; j < 0x100; j += 0x2)
@@ -59,13 +48,26 @@ namespace Nes
 						Map( i + j + 0x1, &S8259::Poke_4101 );
 					}
 				}
+
+				if (hard)
+				{
+					ctrl = 0;
+
+					for (uint i=0; i < 8; ++i)
+						regs[i] = 0;
+
+					prg.SwapBank<SIZE_32K,0x0000>(0);
+				}
+
+				if (type == TYPE_D && !chr.Source().Writable())
+					chr.SwapBank<SIZE_4K,0x1000>( ~0U );
 			}
 
-			void S8259::BaseLoad(State::Loader& state,const dword id)
+			void S8259::BaseLoad(State::Loader& state,const dword baseChunk)
 			{
-				NST_VERIFY( id == (AsciiId<'S','8','2'>::V) );
+				NST_VERIFY( baseChunk == (AsciiId<'S','8','2'>::V) );
 
-				if (id == AsciiId<'S','8','2'>::V)
+				if (baseChunk == AsciiId<'S','8','2'>::V)
 				{
 					while (const dword chunk = state.Begin())
 					{
@@ -89,12 +91,12 @@ namespace Nes
 			#pragma optimize("", on)
 			#endif
 
-			NES_POKE(S8259,4100)
+			NES_POKE_D(S8259,4100)
 			{
 				ctrl = data;
 			}
 
-			NES_POKE(S8259,4101)
+			NES_POKE_D(S8259,4101)
 			{
 				regs[ctrl & 0x7] = data;
 

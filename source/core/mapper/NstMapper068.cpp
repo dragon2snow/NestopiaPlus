@@ -48,9 +48,9 @@ namespace Nes
 				prgBank = 0;
 			}
 
-			void SaveState(State::Saver& state,const dword id)
+			void SaveState(State::Saver& state,const dword chunk)
 			{
-				state.Begin( id ).Write8( prgBank ).Write16( counter ).End();
+				state.Begin( chunk ).Write8( prgBank ).Write16( counter ).End();
 			}
 
 			void LoadState(State::Loader& state)
@@ -82,7 +82,7 @@ namespace Nes
 
 		Mapper68::Mapper68(Context& c)
 		:
-		Mapper         (c,CROM_MAX_512K),
+		Mapper         (c,CROM_MAX_512K|NMT_VERTICAL),
 		doubleCassette (c.attribute == ATR_DOUBLECASSETTE ? new DoubleCassette : NULL)
 		{
 		}
@@ -193,13 +193,13 @@ namespace Nes
 				nmt.Source( isCrom ).SwapBank<SIZE_1K>( i * SIZE_1K, isCrom ? regs.nmt[index[i]] : index[i] );
 		}
 
-		NES_POKE(Mapper68,6000)
+		NES_POKE_D(Mapper68,6000)
 		{
 			if (data == 0x00)
 				prg.SwapBank<SIZE_16K,0x0000>( doubleCassette->Begin() );
 		}
 
-		NES_PEEK(Mapper68,8000)
+		NES_PEEK_A(Mapper68,8000)
 		{
 			if (const uint bank = doubleCassette->End())
 				prg.SwapBank<SIZE_16K,0x0000>( bank & 0xF );
@@ -207,25 +207,25 @@ namespace Nes
 			return prg.Peek( address - 0x8000 );
 		}
 
-		NES_POKE(Mapper68,C000)
+		NES_POKE_D(Mapper68,C000)
 		{
 			regs.nmt[0] = Regs::BANK_OFFSET | data;
 			UpdateMirroring();
 		}
 
-		NES_POKE(Mapper68,D000)
+		NES_POKE_D(Mapper68,D000)
 		{
 			regs.nmt[1] = Regs::BANK_OFFSET | data;
 			UpdateMirroring();
 		}
 
-		NES_POKE(Mapper68,E000)
+		NES_POKE_D(Mapper68,E000)
 		{
 			regs.ctrl = data;
 			UpdateMirroring();
 		}
 
-		NES_POKE(Mapper68,F000)
+		NES_POKE_D(Mapper68,F000)
 		{
 			prg.SwapBank<SIZE_16K,0x0000>( doubleCassette->Swap(data) );
 		}

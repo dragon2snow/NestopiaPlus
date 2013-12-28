@@ -295,7 +295,7 @@ namespace Nestopia
 
 			do
 			{
-				*--it = (T) ((number % 10) + '0');
+				*--it = '0' + number % 10;
 			}
 			while (number /= 10);
 
@@ -313,7 +313,7 @@ namespace Nestopia
 
 			do
 			{
-				*--it = (T) ((value % 10) + '0');
+				*--it = '0' + value % 10;
 			}
 			while (value /= 10);
 
@@ -437,7 +437,7 @@ namespace Nestopia
 		{
 			uint u;
 			const bool r = ToUnsigned( string.Ptr(), string.Length(), u );
-			value = (U) u;
+			value = U(u);
 			return r;
 		}
 
@@ -579,26 +579,28 @@ namespace Nestopia
 		template<typename T>
 		class Generic<T,true> : public Generic<T,false>
 		{
+			typedef Generic<T,false> Parent;
+
 			void Copy(const Generic&);
 
-			T buffer[Generic::MAX_INT_LENGTH];
+			T buffer[Parent::MAX_INT_LENGTH];
 
 			void SetValue(int number)
 			{
-				Generic::string = Base::FromSigned( buffer, number );
-				Generic::length = buffer + Generic::MAX_INT_LENGTH-1 - Generic::string;
+				Parent::string = Base::FromSigned( buffer, number );
+				Parent::length = buffer + Parent::MAX_INT_LENGTH-1 - Parent::string;
 			}
 
 			void SetValue(uint number)
 			{
-				Generic::string = Base::FromUnsigned( buffer, number );
-				Generic::length = buffer + Generic::MAX_INT_LENGTH-1 - Generic::string;
+				Parent::string = Base::FromUnsigned( buffer, number );
+				Parent::length = buffer + Parent::MAX_INT_LENGTH-1 - Parent::string;
 			}
 
 		public:
 
 			Generic(const Generic& g)
-			: Generic<T,false>(Generic::NOP)
+			: Generic<T,false>(Parent::NOP)
 			{
 				Copy( g );
 			}
@@ -608,22 +610,22 @@ namespace Nestopia
 			: Generic<T,false>(t) {}
 
 			Generic(T c)
-			: Generic<T,false>(Generic::NOP)
+			: Generic<T,false>(Parent::NOP)
 			{
-				Generic::string = buffer;
-				Generic::length = 1;
+				Parent::string = buffer;
+				Parent::length = 1;
 				buffer[0] = c;
 				buffer[1] = '\0';
 			}
 
-			Generic( schar  i ) : Generic<T,false>(Generic::NOP) { SetValue( int  (i) ); }
-			Generic( uchar  i ) : Generic<T,false>(Generic::NOP) { SetValue( uint (i) ); }
-			Generic( short  i ) : Generic<T,false>(Generic::NOP) { SetValue( int  (i) ); }
-			Generic( ushort i ) : Generic<T,false>(Generic::NOP) { SetValue( uint (i) ); }
-			Generic( int    i ) : Generic<T,false>(Generic::NOP) { SetValue( int  (i) ); }
-			Generic( uint   i ) : Generic<T,false>(Generic::NOP) { SetValue( uint (i) ); }
-			Generic( long   i ) : Generic<T,false>(Generic::NOP) { SetValue( int  (i) ); }
-			Generic( ulong  i ) : Generic<T,false>(Generic::NOP) { SetValue( uint (i) ); }
+			Generic( schar  i ) : Generic<T,false>(Parent::NOP) { SetValue( int  (i) ); }
+			Generic( uchar  i ) : Generic<T,false>(Parent::NOP) { SetValue( uint (i) ); }
+			Generic( short  i ) : Generic<T,false>(Parent::NOP) { SetValue( int  (i) ); }
+			Generic( ushort i ) : Generic<T,false>(Parent::NOP) { SetValue( uint (i) ); }
+			Generic( int    i ) : Generic<T,false>(Parent::NOP) { SetValue( int  (i) ); }
+			Generic( uint   i ) : Generic<T,false>(Parent::NOP) { SetValue( uint (i) ); }
+			Generic( long   i ) : Generic<T,false>(Parent::NOP) { SetValue( int  (i) ); }
+			Generic( ulong  i ) : Generic<T,false>(Parent::NOP) { SetValue( uint (i) ); }
 
 			Generic& operator = (const Generic& g)
 			{
@@ -634,14 +636,14 @@ namespace Nestopia
 			template<typename U>
 			Generic& operator = (const U& t)
 			{
-				Generic<T,false>::operator = (t);
+				Parent::operator = (t);
 				return *this;
 			}
 
 			Generic& operator = (T c)
 			{
-				Generic::string = buffer;
-				Generic::length = 1;
+				Parent::string = buffer;
+				Parent::length = 1;
 				buffer[0] = c;
 				buffer[1] = '\0';
 				return *this;
@@ -1512,7 +1514,7 @@ namespace Nestopia
 
 			if (0 != (capacity = length = n))
 			{
-				string = (Type*) std::malloc( (n+1) * TYPE_SIZE );
+				string = static_cast<Type*>(std::malloc( (n+1) * TYPE_SIZE ));
 				Copy( t, n );
 			}
 			else
@@ -1528,7 +1530,7 @@ namespace Nestopia
 			{
 				uint prev = capacity;
 				capacity = n;
-				string = (Type*) std::realloc( prev ? string : NULL, (n+1) * TYPE_SIZE );
+				string = static_cast<Type*>(std::realloc( prev ? string : NULL, (n+1) * TYPE_SIZE ));
 				string[length] = '\0';
 			}
 		}
@@ -1561,7 +1563,7 @@ namespace Nestopia
 			{
 				uint prev = capacity;
 				capacity = n;
-				string = (Type*) std::realloc( prev ? string : NULL, (capacity+1) * TYPE_SIZE );
+				string = static_cast<Type*>(std::realloc( prev ? string : NULL, (capacity+1) * TYPE_SIZE ));
 			}
 
 			Copy( t, n );
@@ -1582,7 +1584,7 @@ namespace Nestopia
 			{
 				uint prev = capacity;
 				capacity = length * 2;
-				string = (Type*) std::realloc( prev ? string : NULL, (capacity+1) * TYPE_SIZE );
+				string = static_cast<Type*>(std::realloc( prev ? string : NULL, (capacity+1) * TYPE_SIZE ));
 			}
 
 			Base::Copy( string + length - n, t, n );
@@ -1608,7 +1610,7 @@ namespace Nestopia
 				{
 					capacity = length + n * 2;
 
-					Type* const next = (Type*) std::malloc( (capacity+1) * TYPE_SIZE );
+					Type* const next = static_cast<Type*>(std::malloc( (capacity+1) * TYPE_SIZE ));
 
 					Base::Copy( next, string, pos );
 					Base::Copy( next + pos + n, string + pos, length + 1 - pos );
@@ -1643,7 +1645,7 @@ namespace Nestopia
 
 				if (capacity)
 				{
-					string = (Type*) std::realloc( string, (capacity+1) * TYPE_SIZE );
+					string = static_cast<Type*>(std::realloc( string, (capacity+1) * TYPE_SIZE ));
 				}
 				else
 				{

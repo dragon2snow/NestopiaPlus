@@ -101,8 +101,8 @@ namespace Nestopia
 			inline bool Fullscreen() const;
 			inline bool Windowed() const;
 
-			bool CanRunInBackground();
-			bool ToggleMenu();
+			bool CanRunInBackground() const;
+			bool ToggleMenu() const;
 
 			bool OnStartEmulation();
 			void OnStopEmulation();
@@ -114,10 +114,10 @@ namespace Nestopia
 			ibool OnCommand           (Param&);
 			ibool OnEnable            (Param&);
 			ibool OnEnterSizeMoveMenu (Param&);
-			ibool OnExitSizeMoveMenu  (Param&);
 			ibool OnActivate          (Param&);
 			ibool OnSysCommand        (Param&);
 			ibool OnNclButton         (Param&);
+			ibool OnNcrButton         (Param&);
 			ibool OnPowerBroadCast    (Param&);
 			ibool OnCommandResume     (Param&);
 
@@ -125,7 +125,7 @@ namespace Nestopia
 			void OnCmdViewShowOnTop     (uint);
 			void OnCmdViewShowMenu      (uint);
 
-			void OnEmuEvent(Managers::Emulator::Event);
+			void OnEmuEvent(Managers::Emulator::Event,Managers::Emulator::Data);
 			void OnAppEvent(Application::Instance::Event,const void*);
 
 			const Managers::Preferences& preferences;

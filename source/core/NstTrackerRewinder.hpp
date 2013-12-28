@@ -44,11 +44,11 @@ namespace Nes
 		{
 			typedef void (Machine::*EmuExecute)(Video::Output*,Sound::Output*,Input::Controllers*);
 			typedef void (Machine::*EmuSaveState)(State::Saver&) const;
-			typedef bool (Machine::*EmuLoadState)(State::Loader&);
+			typedef bool (Machine::*EmuLoadState)(State::Loader&,bool);
 
 		public:
 
-			Rewinder(Machine&,EmuExecute,EmuLoadState,EmuSaveState,Cpu&,Ppu&,bool);
+			Rewinder(Machine&,EmuExecute,EmuLoadState,EmuSaveState,Cpu&,const Apu&,Ppu&,bool);
 			~Rewinder();
 
 			Result Start();

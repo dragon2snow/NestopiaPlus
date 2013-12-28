@@ -37,6 +37,8 @@ namespace Nes
 	{
 		class ImageDatabase
 		{
+			typedef Api::Cartridge Cart;
+
 		public:
 
 			ImageDatabase();
@@ -49,10 +51,9 @@ namespace Nes
 
 			Handle Search(dword) const;
 
-			System GetSystem(Handle) const;
-			Region GetRegion(Handle) const;
-
-			Api::Cartridge::Condition GetCondition(Handle) const;
+			Cart::System GetSystem(Handle) const;
+			Cart::Region GetRegion(Handle) const;
+			Cart::Condition GetCondition(Handle) const;
 
 			enum
 			{
@@ -156,7 +157,7 @@ namespace Nes
 
 			Api::Cartridge::Mirroring GetMirroring(Handle h) const
 			{
-				return static_cast<Api::Cartridge::Mirroring>(((static_cast<Ref>(h)->flags & uint(Entry::FLAGS_MIRRORING)) >> Entry::FLAGS_MIRRORING_SHIFT));
+				return static_cast<Cart::Mirroring>(((static_cast<Ref>(h)->flags & uint(Entry::FLAGS_MIRRORING)) >> Entry::FLAGS_MIRRORING_SHIFT));
 			}
 
 			dword Crc          (Handle h) const { return static_cast<Ref>(h)->crc;                                  }

@@ -46,24 +46,24 @@ namespace Nes
 			void SubReset(bool);
 			void SubLoad(State::Loader&);
 			void SubSave(State::Saver&) const;
-			void VSync();
+			void Sync(Event,Input::Controllers*);
 
 			NES_DECL_POKE( F000 );
 
 			struct Irq
 			{
 				void Reset(bool);
-				ibool Signal();
+				bool Clock();
 
 				enum
 				{
-					SIGNAL_DURATION = 16
+					CLOCK_FILTER = 16
 				};
 
 				uint count;
 			};
 
-			Clock::A12<Irq> irq;
+			ClockUnits::A12<Irq,Irq::CLOCK_FILTER> irq;
 		};
 	}
 }

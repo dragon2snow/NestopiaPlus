@@ -64,9 +64,9 @@ namespace Nes
 				cpu.Map( 0x4017 ).Set( this, &TurboFile::Peek_4017, &TurboFile::Poke_4017 );
 			}
 
-			void TurboFile::SaveState(State::Saver& state,const dword id) const
+			void TurboFile::SaveState(State::Saver& state,const dword baseChunk) const
 			{
-				state.Begin( id );
+				state.Begin( baseChunk );
 
 				uint count;
 				for (count=0; bit && bit != (1U << count); ++count);
@@ -116,7 +116,7 @@ namespace Nes
 			#pragma optimize("", on)
 			#endif
 
-			NES_POKE(TurboFile,4016)
+			NES_POKE_AD(TurboFile,4016)
 			{
 				if (!(data & NO_RESET))
 				{
@@ -149,17 +149,17 @@ namespace Nes
 				p4016.Poke( address, data );
 			}
 
-			NES_PEEK(TurboFile,4016)
+			NES_PEEK_A(TurboFile,4016)
 			{
 				return p4016.Peek( address );
 			}
 
-			NES_POKE(TurboFile,4017)
+			NES_POKE_AD(TurboFile,4017)
 			{
 				p4017.Poke( address, data );
 			}
 
-			NES_PEEK(TurboFile,4017)
+			NES_PEEK_A(TurboFile,4017)
 			{
 				return p4017.Peek( address ) | out;
 			}

@@ -56,7 +56,7 @@ namespace Nes
 				virtual uint NumPorts() const = 0;
 				virtual Device& GetDevice(uint) const = 0;
 				virtual Device& Connect(uint,Device&) = 0;
-				virtual void SetType(Type);
+				virtual bool SetType(Type) = 0;
 
 				Type GetType() const
 				{
@@ -76,6 +76,7 @@ namespace Nes
 				uint NumPorts() const;
 				Device& GetDevice(uint) const;
 				Device& Connect(uint,Device&);
+				bool SetType(Type);
 
 				Device* devices[2];
 
@@ -96,7 +97,7 @@ namespace Nes
 				uint NumPorts() const;
 				Device& GetDevice(uint) const;
 				Device& Connect(uint,Device&);
-				void SetType(Type);
+				bool SetType(Type);
 
 				uint increaser;
 				uint count[2];

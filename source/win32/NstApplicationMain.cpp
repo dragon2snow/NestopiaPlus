@@ -25,6 +25,7 @@
 #include "NstWindowUser.hpp"
 #include "NstWindowParam.hpp"
 #include "NstApplicationMain.hpp"
+#include "../core/api/NstApiMachine.hpp"
 
 namespace Nestopia
 {
@@ -45,7 +46,7 @@ namespace Nestopia
 		launcher      ( emulator, instance.GetConfiguration(), menu, paths, window.Get() ),
 		fds           ( emulator, instance.GetConfiguration(), menu, paths ),
 		tapeRecorder  ( emulator, instance.GetConfiguration(), menu, paths ),
-		dipSwitches   ( emulator, menu ),
+		dipSwitches   ( emulator, instance.GetConfiguration(), menu ),
 		barcodeReader ( emulator, menu ),
 		nsf           ( emulator, instance.GetConfiguration(), menu ),
 		movie         ( emulator, menu, paths ),
@@ -66,7 +67,6 @@ namespace Nestopia
 			menu.Commands().Add( IDM_FILE_QUIT, this, &Main::OnCmdFileExit );
 
 			instance.GetConfiguration().Reset();
-			emulator.Initialize();
 
 			if (instance.GetConfiguration().GetStartupFile().Length())
 				window.Get().Send( Instance::WM_NST_LAUNCH, 0, instance.GetConfiguration().GetStartupFile().Ptr() );
@@ -75,6 +75,9 @@ namespace Nestopia
 		Main::~Main()
 		{
 			emulator.Unload();
+
+			menu.Commands().Remove( this );
+			window.Get().Messages().Remove( this );
 		}
 
 		void Main::Save()
@@ -88,6 +91,7 @@ namespace Nestopia
 			launcher.Save     ( cfg, preferences[Managers::Preferences::SAVE_LAUNCHERSIZE], preferences[Managers::Preferences::SAVE_LAUNCHER] );
 			netplay.Save      ( cfg, preferences[Managers::Preferences::SAVE_NETPLAY_GAMELIST] );
 			fds.Save          ( cfg );
+			dipSwitches.Save  ( cfg );
 			tapeRecorder.Save ( cfg );
 			nsf.Save          ( cfg );
 			window.Save       ( cfg );
@@ -118,7 +122,7 @@ namespace Nestopia
 			return
 			(
 				preferences[Managers::Preferences::FIRST_UNLOAD_ON_EXIT] &&
-				emulator.Is(Nes::Machine::IMAGE)
+				emulator.IsImage()
 			);
 		}
 
@@ -133,7 +137,7 @@ namespace Nestopia
 
 		void Main::Exit()
 		{
-			if (!netplay.Close())
+			if (netplay.Close())
 			{
 				if (FirstUnloadOnExit())
 				{
@@ -144,7 +148,7 @@ namespace Nestopia
 					emulator.Unload();
 
 					if (menu[IDM_MACHINE_SYSTEM_AUTO].Checked())
-						emulator.SetMode( Nes::Machine::NTSC );
+						Nes::Machine(emulator).SetMode( Nes::Machine::NTSC );
 
 					::PostQuitMessage( EXIT_SUCCESS );
 				}
@@ -161,17 +165,17 @@ namespace Nestopia
 		{
 			netplay.Close();
 
-			if (emulator.Is(Nes::Machine::IMAGE))
+			if (emulator.IsImage())
 				window.Get().SendCommand( IDM_FILE_CLOSE );
 
-			param.lParam = !emulator.Is(Nes::Machine::IMAGE);
+			param.lParam = !emulator.IsImage();
 			return true;
 		}
 
 		void Main::OnCmdFileExit(uint)
 		{
 			Exit();
-			Instance::GetMainWindow().Post( Instance::WM_NST_COMMAND_RESUME );
+			Managers::Manager::Resume();
 		}
 	}
 }

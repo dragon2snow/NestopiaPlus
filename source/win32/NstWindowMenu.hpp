@@ -94,7 +94,7 @@ namespace Nestopia
 						GetFullString( string.Ptr(), string.Length() );
 					}
 
-					Stream(const Item& i)
+					explicit Stream(const Item& i)
 					: item(i) {}
 
 				public:
@@ -185,8 +185,11 @@ namespace Nestopia
 					HMENU const hKey;
 					const Item item;
 
-					explicit Key(const Custom* w,HMENU h=NULL,uint p=0)
+					Key(const Custom* w,HMENU h,uint p)
 					: hKey(::GetSubMenu(h,p)), item(w,h,p) {}
+
+					explicit Key(WPARAM wParam)
+					: hKey(reinterpret_cast<HMENU>(wParam)), item(NULL) {}
 
 					operator HMENU() const
 					{
@@ -229,7 +232,7 @@ namespace Nestopia
 
 				template<typename Data> struct Entry
 				{
-					typedef void (Data::*Function)(Param&);
+					typedef void (Data::*Function)(const Param&);
 
 					uint id;
 					Function function;
@@ -237,7 +240,7 @@ namespace Nestopia
 
 			private:
 
-				typedef Collection::Router<void,Param&,Key> Handler;
+				typedef Collection::Router<void,const Param&,Key> Handler;
 
 				Key GetKey(uint) const;
 
@@ -257,7 +260,7 @@ namespace Nestopia
 
 				void Remove(const void* data)
 				{
-					menu.popupHandler.Remove( data );
+					menu.popupHandler.Hooks().Remove( data );
 				}
 			};
 
@@ -290,12 +293,12 @@ namespace Nestopia
 			private:
 
 				static void Update();
-				static ibool TranslateNone   (MSG&);
-				static ibool TranslateSingle (MSG&);
-				static ibool TranslateMulti  (MSG&);
+				static bool TranslateNone   (MSG&);
+				static bool TranslateSingle (MSG&);
+				static bool TranslateMulti  (MSG&);
 
 				typedef Collection::Vector<const Menu*> Menus;
-				typedef ibool (*Translator)(MSG&);
+				typedef bool (*Translator)(MSG&);
 
 				static Translator translator;
 				static Menus menus;
@@ -303,7 +306,7 @@ namespace Nestopia
 
 			public:
 
-				static ibool TransAccelerator(MSG& msg)
+				static bool TransAccelerator(MSG& msg)
 				{
 					return translator( msg );
 				}
@@ -341,12 +344,12 @@ namespace Nestopia
 				return cmdHandler;
 			}
 
-			PopupHandler PopupRouter()
+			PopupHandler Popups()
 			{
-				return PopupHandler(*this);
+				return *this;
 			}
 
-			static ibool TransAccelerator(MSG& msg)
+			static bool TransAccelerator(MSG& msg)
 			{
 				return Instances::TransAccelerator( msg );
 			}
@@ -361,7 +364,7 @@ namespace Nestopia
 		void Menu::PopupHandler::Add(Data* const data,const Entry<Data>* list,const uint count)
 		{
 			for (const Entry<Data>* const end = list + count; list != end; ++list)
-				menu.popupHandler.Add( GetKey(list->id), data, list->function );
+				menu.popupHandler.Hooks().Add( GetKey(list->id), data, list->function );
 		}
 	}
 }

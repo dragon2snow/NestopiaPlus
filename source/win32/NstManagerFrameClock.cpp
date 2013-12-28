@@ -91,11 +91,31 @@ namespace Nestopia
 
 		void FrameClock::ResetTimer()
 		{
-			counter = 0;
 			timer.Reset( dialog->UsePerformanceCounter() ? System::Timer::PERFORMANCE : System::Timer::MULTIMEDIA );
+
+			counter = 0;
+			clkMul = timer.GetFrequency();
+			clkDiv = settings.refreshRate;
+
+			if (Nes::Machine(emulator).Is(Nes::Machine::NTSC))
+			{
+				if (settings.refreshRate == Nes::Machine::CLK_NTSC_DOT/Nes::Machine::CLK_NTSC_VSYNC)
+				{
+					clkMul *= uint(Nes::Machine::CLK_NTSC_VSYNC);
+					clkDiv = Nes::Machine::CLK_NTSC_DOT;
+				}
+			}
+			else
+			{
+				if (settings.refreshRate == Nes::Machine::CLK_PAL_DOT/Nes::Machine::CLK_PAL_VSYNC)
+				{
+					clkMul *= uint(Nes::Machine::CLK_PAL_VSYNC);
+					clkDiv = Nes::Machine::CLK_PAL_DOT;
+				}
+			}
 		}
 
-		void FrameClock::OnEmuEvent(Emulator::Event event)
+		void FrameClock::OnEmuEvent(const Emulator::Event event,const Emulator::Data data)
 		{
 			typedef Nes::Rewinder Rewinder;
 
@@ -103,7 +123,7 @@ namespace Nestopia
 			{
 				case Emulator::EVENT_SPEEDING_ON:
 
-					settings.autoFrameSkip = (dialog->UseAutoFrameSkip() || dialog->GetAltSpeed() > MAX_SPEED_NO_FRAMESKIP);
+					settings.autoFrameSkip = (dialog->UseAutoFrameSkip() || dialog->GetAltSpeed() > emulator.GetDefaultSpeed());
 					emulator.SetSpeed( dialog->GetAltSpeed() );
 					break;
 
@@ -116,7 +136,7 @@ namespace Nestopia
 					}
 					else
 					{
-						settings.autoFrameSkip = (dialog->UseAutoFrameSkip() || dialog->GetRewindSpeed() > MAX_SPEED_NO_FRAMESKIP);
+						settings.autoFrameSkip = (dialog->UseAutoFrameSkip() || dialog->GetRewindSpeed() > emulator.GetDefaultSpeed());
 						emulator.SetSpeed( dialog->GetRewindSpeed() );
 					}
 					break;
@@ -145,7 +165,7 @@ namespace Nestopia
 
 					if (!dialog->UseDefaultRewindSpeed() && !emulator.Speeding())
 					{
-						settings.autoFrameSkip = (dialog->UseAutoFrameSkip() || dialog->GetRewindSpeed() > MAX_SPEED_NO_FRAMESKIP);
+						settings.autoFrameSkip = (dialog->UseAutoFrameSkip() || dialog->GetRewindSpeed() > emulator.GetDefaultSpeed());
 						emulator.SetSpeed( dialog->GetRewindSpeed() );
 					}
 
@@ -163,11 +183,10 @@ namespace Nestopia
 					ResetTimer();
 					break;
 
-				case Emulator::EVENT_NETPLAY_MODE_ON:
-				case Emulator::EVENT_NETPLAY_MODE_OFF:
+				case Emulator::EVENT_NETPLAY_MODE:
 
-					UpdateRewinderState( event == Emulator::EVENT_NETPLAY_MODE_OFF );
-					menu[IDM_OPTIONS_TIMING].Enable( event == Emulator::EVENT_NETPLAY_MODE_OFF );
+					UpdateRewinderState( !data );
+					menu[IDM_OPTIONS_TIMING].Enable( !data );
 					break;
 			}
 		}
@@ -178,37 +197,36 @@ namespace Nestopia
 
 		uint FrameClock::Synchronize(const bool throttle,uint skips)
 		{
-			System::Timer::Value current( timer.Elapsed() );
-
-			counter += timer.GetFrequency();
-			const System::Timer::Value next( counter / settings.refreshRate );
+			const System::Timer::Value current( timer.Elapsed() );
+			const System::Timer::Value next( clkMul * ++counter / clkDiv );
 
 			if (current > next)
 			{
-				current *= settings.refreshRate;
+				const uint frames = current * clkDiv / clkMul;
 
 				if (skips & settings.autoFrameSkip)
 				{
-					skips = (current - counter) / timer.GetFrequency() + 1;
+					skips = frames + 1 - counter;
 
 					if (skips > settings.maxFrameSkips)
 						skips = settings.maxFrameSkips;
 
-					counter += timer.GetFrequency() * skips;
+					counter += skips;
 				}
 				else
 				{
 					skips = 0;
 				}
 
-				if (counter < current)
-					counter = current - current % timer.GetFrequency();
+				if (counter < frames)
+					counter = frames;
 
 				return skips;
 			}
 			else if (throttle)
 			{
-				timer.Wait( current, next );
+				if (!timer.Wait( current, next ))
+					ResetTimer();
 			}
 
 			return 0;

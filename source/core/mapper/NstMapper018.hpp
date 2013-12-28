@@ -48,7 +48,7 @@ namespace Nes
 
 			~Mapper18();
 
-			static Sound::Player* DetectSound(dword,Cpu&);
+			static Sound::Player* DetectSound(uint,Apu&);
 
 			enum
 			{
@@ -61,7 +61,7 @@ namespace Nes
 			void SubReset(bool);
 			void SubSave(State::Saver&) const;
 			void SubLoad(State::Loader&);
-			void VSync();
+			void Sync(Event,Input::Controllers*);
 
 			template<uint MASK,uint SHIFT> void SwapPrg(uint,uint);
 			template<uint MASK,uint SHIFT> void SwapChr(uint,uint) const;
@@ -101,14 +101,14 @@ namespace Nes
 			struct Irq
 			{
 				void Reset(bool);
-				ibool Signal();
+				bool Clock();
 
 				uint mask;
 				uint count;
 				uint latch;
 			};
 
-			Clock::M2<Irq> irq;
+			ClockUnits::M2<Irq> irq;
 			uint reg;
 			Sound::Player* const sound;
 		};

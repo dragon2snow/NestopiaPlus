@@ -35,17 +35,20 @@ namespace Nes
 			#pragma optimize("s", on)
 			#endif
 
-			void Edu2000::SubReset(bool)
+			void Edu2000::SubReset(const bool hard)
 			{
 				Map( WRK_PEEK_POKE );
 				Map( 0x8000U, 0xFFFFU, &Edu2000::Poke_Prg );
+
+				if (hard)
+					NES_DO_POKE(Prg,0x8000,0x00);
 			}
 
 			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("", on)
 			#endif
 
-			NES_POKE(Edu2000,Prg)
+			NES_POKE_D(Edu2000,Prg)
 			{
 				prg.SwapBank<SIZE_32K,0x0000>( data );
 				wrk.SwapBank<SIZE_8K,0x0000>( data >> 6 & 0x3 );

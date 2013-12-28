@@ -48,9 +48,9 @@ namespace Nes
 				part = 0;
 			}
 
-			void DoremikkoKeyboard::SaveState(State::Saver& state,const byte id) const
+			void DoremikkoKeyboard::SaveState(State::Saver& saver,const byte id) const
 			{
-				state.Begin( AsciiId<'D','K'>::R(0,0,id) ).End();
+				saver.Begin( AsciiId<'D','K'>::R(0,0,id) ).End();
 			}
 
 			#ifdef NST_MSVC_OPTIMIZE

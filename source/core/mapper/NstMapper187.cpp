@@ -127,7 +127,7 @@ namespace Nes
 			return protection[exLast & 0x3];
 		}
 
-		NES_POKE(Mapper187,5000)
+		NES_POKE_D(Mapper187,5000)
 		{
 			exLast = data;
 
@@ -138,7 +138,7 @@ namespace Nes
 			}
 		}
 
-		NES_POKE(Mapper187,5001)
+		NES_POKE_D(Mapper187,5001)
 		{
 			if (suppressIrq)
 			{
@@ -149,19 +149,19 @@ namespace Nes
 			exLast = data;
 		}
 
-		NES_POKE(Mapper187,8000)
+		NES_POKE_AD(Mapper187,8000)
 		{
 			exMode = true;
 			Mmc3::NES_DO_POKE(8000,address,data);
 		}
 
-		NES_POKE(Mapper187,8001)
+		NES_POKE_AD(Mapper187,8001)
 		{
 			if (exMode)
 				Mmc3::NES_DO_POKE(8001,address,data);
 		}
 
-		NES_POKE(Mapper187,8003)
+		NES_POKE_D(Mapper187,8003)
 		{
 			exMode = false;
 

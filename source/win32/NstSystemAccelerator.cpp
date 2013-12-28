@@ -71,7 +71,7 @@ namespace Nestopia
 			if (entries.Size())
 			{
 				if (::CopyAcceleratorTable( handle, entries.Ptr(), entries.Size() ) != int(entries.Size()))
-					throw Application::Exception( IDS_FAILED, _T("CopyAcceleratorTable()") );
+					throw Application::Exception( IDS_ERR_FAILED, _T("CopyAcceleratorTable()") );
 
 				return true;
 			}
@@ -97,7 +97,7 @@ namespace Nestopia
 				}
 
 				if (actualSize && (handle = ::CreateAcceleratorTable( actualEntries.Ptr(), actualSize )) == 0)
-					throw Application::Exception( IDS_FAILED, _T("CreateAcceleratorTable()") );
+					throw Application::Exception( IDS_ERR_FAILED, _T("CreateAcceleratorTable()") );
 			}
 		}
 

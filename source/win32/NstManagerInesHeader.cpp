@@ -43,14 +43,13 @@ namespace Nestopia
 			Window::InesHeader( Nes::Cartridge(emulator).GetDatabase(), paths ).Open( paths.BrowseLoad( Paths::File::INES ) );
 		}
 
-		void InesHeader::OnEmuEvent(Emulator::Event event)
+		void InesHeader::OnEmuEvent(const Emulator::Event event,const Emulator::Data data)
 		{
 			switch (event)
 			{
-				case Emulator::EVENT_NETPLAY_MODE_ON:
-				case Emulator::EVENT_NETPLAY_MODE_OFF:
+				case Emulator::EVENT_NETPLAY_MODE:
 
-					menu[IDM_FILE_EDIT_INES_HEADER].Enable( event == Emulator::EVENT_NETPLAY_MODE_OFF );
+					menu[IDM_FILE_EDIT_INES_HEADER].Enable( !data );
 					break;
 			}
 		}

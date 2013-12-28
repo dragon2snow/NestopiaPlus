@@ -45,6 +45,8 @@ namespace Nes
 	{
 		class Nsf : public Base
 		{
+			struct EventCaller;
+
 		public:
 
 			template<typename T>
@@ -94,6 +96,31 @@ namespace Nes
 			Result SelectPrevSong() throw();
 			Result PlaySong() throw();
 			Result StopSong() throw();
+
+			enum Event
+			{
+				EVENT_SELECT_SONG,
+				EVENT_PLAY_SONG,
+				EVENT_STOP_SONG
+			};
+
+			enum
+			{
+				NUM_EVENT_CALLBACKS = 3
+			};
+
+			typedef void (NST_CALLBACK *EventCallback) (UserData,Event);
+
+			static EventCaller eventCallback;
+		};
+
+		struct Nsf::EventCaller : Core::UserCallback<Nsf::EventCallback>
+		{
+			void operator () (Event event) const
+			{
+				if (function)
+					function( userdata, event );
+			}
 		};
 	}
 }

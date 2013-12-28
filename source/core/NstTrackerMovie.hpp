@@ -35,85 +35,46 @@ namespace Nes
 	{
 		class Tracker::Movie
 		{
-			typedef bool (Machine::*EmuLoadState)(State::Loader&);
+			typedef bool (Machine::*EmuLoadState)(State::Loader&,bool);
 			typedef void (Machine::*EmuSaveState)(State::Saver&) const;
-			typedef void (Machine::*EmuReset)(bool);
 
 		public:
 
-			Movie(Machine&,EmuReset,EmuLoadState,EmuSaveState,Cpu&,dword);
+			Movie(Machine&,EmuLoadState,EmuSaveState,Cpu&,dword);
 			~Movie();
 
-			bool Play(StdStream,bool);
-			bool Record(StdStream,bool,bool);
+			bool Play(StdStream);
+			bool Record(StdStream,bool);
 			void Stop();
-			void Cut();
-
-			bool Reset(bool);
-			bool BeginFrame(dword);
-			bool EndFrame();
+			void Resync();
+			void Reset();
+			bool Execute();
 
 		private:
 
-			void SaveCpuPorts();
 			bool Stop(Result);
-			void Close();
-
-			enum
-			{
-				VERSION         = 0x01,
-				MAX_FRAME_READS = 64,
-				LOCK_BIT        = 0x80,
-				LOCK_SIZE_BIT   = 0x40,
-				OPEN_BUS        = 0x40,
-				NO_FRAME        = dword(~0UL),
-				VALID_FRAME     = dword(~1UL)
-			};
-
-			enum Status
-			{
-				STOPPED,
-				PLAYING,
-				RECORDING
-			};
 
 			class Player;
 			class Recorder;
 
-			NES_DECL_PEEK( 4016_Record );
-			NES_DECL_PEEK( 4017_Record );
-			NES_DECL_PEEK( 4016_Play   );
-			NES_DECL_PEEK( 4017_Play   );
-			NES_DECL_POKE( 4016        );
-			NES_DECL_POKE( 4017        );
-
-			const Io::Port* ports[2];
-			Cpu& cpu;
-			Status status;
 			Player* player;
 			Recorder* recorder;
 			Machine& emulator;
-			const EmuSaveState emuSaveState;
-			const EmuLoadState emuLoadState;
-			const EmuReset emuReset;
-			ibool callbackEnable;
+			const EmuSaveState saveState;
+			const EmuLoadState loadState;
+			Cpu& cpu;
 			const dword prgCrc;
 
 		public:
 
 			bool IsPlaying() const
 			{
-				return status == PLAYING;
+				return player;
 			}
 
 			bool IsRecording() const
 			{
-				return status == RECORDING;
-			}
-
-			bool IsStopped() const
-			{
-				return status == STOPPED;
+				return recorder;
 			}
 		};
 	}

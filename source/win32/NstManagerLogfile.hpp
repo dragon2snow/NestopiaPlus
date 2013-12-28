@@ -53,8 +53,12 @@ namespace Nestopia
 
 			void Open();
 			void Close();
+
+			bool Available() const;
+			void UpdateMenu() const;
+
 			void OnCommand(uint);
-			void OnEmuEvent(Emulator::Event);
+			void OnEmuEvent(Emulator::Event,Emulator::Data);
 
 			const Preferences& preferences;
 			Io::File file;

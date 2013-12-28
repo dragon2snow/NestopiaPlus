@@ -37,10 +37,11 @@ namespace Nes
 
 			void T262::SubReset(bool)
 			{
-				mode = false;
-				prg.SwapBanks<SIZE_16K,0x0000>( 0x0, 0x7 );
-
 				Map( 0x8000U, 0xFFFFU, &T262::Poke_Prg );
+
+				mode = false;
+				NES_DO_POKE(Prg,0x8001,0x00);
+				mode = false;
 			}
 
 			void T262::SubSave(State::Saver& state) const
@@ -63,7 +64,7 @@ namespace Nes
 			#pragma optimize("", on)
 			#endif
 
-			NES_POKE(T262,Prg)
+			NES_POKE_AD(T262,Prg)
 			{
 				if (mode || address == 0x8000)
 				{

@@ -36,61 +36,16 @@ namespace Nes
 			#pragma optimize("s", on)
 			#endif
 
-			NST_COMPILE_ASSERT( MODE_NTSC == 0 && MODE_PAL == 1 );
+			const byte Mmc5::Filler::squared[4] = {0x00,0x55,0xAA,0xFF};
 
-			const dword Mmc5::Flow::vSync[2] =
-			{
-				Ppu::MC_DIV_NTSC * dword(Ppu::CC_VINT_NTSC),
-				Ppu::MC_DIV_PAL  * dword(Ppu::CC_VINT_PAL)
-			};
-
-			const dword Mmc5::Flow::hDummy[2][2] =
-			{
-				{
-					Ppu::MC_DIV_NTSC * (Ppu::CC_HSYNC - 0),
-					Ppu::MC_DIV_NTSC * (Ppu::CC_HSYNC - 1)
-				},
-				{
-					Ppu::MC_DIV_PAL * Ppu::CC_HSYNC,
-					Ppu::MC_DIV_PAL * Ppu::CC_HSYNC
-				}
-			};
-
-			const dword Mmc5::Flow::hSync[2] =
-			{
-				Ppu::MC_DIV_NTSC * Ppu::CC_HSYNC,
-				Ppu::MC_DIV_PAL  * Ppu::CC_HSYNC
-			};
-
-			const byte Mmc5::Filler::squared[4] =
-			{
-				b00000000,
-				b01010101,
-				b10101010,
-				b11111111
-			};
-
-			Mmc5::Sound::Square::Square()
+			Mmc5::Sound::Sound(Apu& a,bool connect)
+			: Channel(a)
 			{
 				Reset();
-			}
+				bool audible = UpdateSettings();
 
-			Mmc5::Sound::Pcm::Pcm()
-			{
-				Reset();
-			}
-
-			Mmc5::Sound::Sound(Cpu& c,bool hook)
-			: cpu(c), hooked(hook)
-			{
-				if (hook)
-					cpu.GetApu().HookChannel( this );
-			}
-
-			Mmc5::Sound::~Sound()
-			{
-				if (hooked)
-					cpu.GetApu().ReleaseChannel();
+				if (connect)
+					Connect( audible );
 			}
 
 			Mmc5::Banks::Wrk::Wrk(dword s)
@@ -113,7 +68,7 @@ namespace Nes
 			Mmc5::Banks::Banks(uint wrkSize)
 			: wrk(wrkSize) {}
 
-			uint Mmc5::BoardToWRam(Board board,dword wRamSize)
+			dword Mmc5::BoardToWRam(Board board,dword wRamSize)
 			{
 				switch (board)
 				{
@@ -136,7 +91,7 @@ namespace Nes
 			:
 			Mapper (c,BoardToWRam(board,c.wrk.Size())),
 			banks  (wrk.Source(0).Size()),
-			sound  (c.cpu)
+			sound  (c.apu)
 			{
 				nmt.Source(1).Set( exRam.mem, sizeof(exRam.mem), true, true );
 			}
@@ -160,6 +115,8 @@ namespace Nes
 				prgMode = PRG_MODE_8K;
 				chrMode = CHR_MODE_8K;
 				exRamMode = EXRAM_MODE_PPU_NT;
+				mul[0] = 0;
+				mul[1] = 0;
 			}
 
 			void Mmc5::Banks::Reset()
@@ -228,37 +185,30 @@ namespace Nes
 
 			void Mmc5::Sound::Reset()
 			{
-				cpu.Map( 0x5000 ).Set( this, &Mmc5::Sound::Peek_Nop,  &Mmc5::Sound::Poke_5000 );
-				cpu.Map( 0x5002 ).Set( this, &Mmc5::Sound::Peek_Nop,  &Mmc5::Sound::Poke_5002 );
-				cpu.Map( 0x5003 ).Set( this, &Mmc5::Sound::Peek_Nop,  &Mmc5::Sound::Poke_5003 );
-				cpu.Map( 0x5004 ).Set( this, &Mmc5::Sound::Peek_Nop,  &Mmc5::Sound::Poke_5000 );
-				cpu.Map( 0x5006 ).Set( this, &Mmc5::Sound::Peek_Nop,  &Mmc5::Sound::Poke_5002 );
-				cpu.Map( 0x5007 ).Set( this, &Mmc5::Sound::Peek_Nop,  &Mmc5::Sound::Poke_5003 );
-				cpu.Map( 0x5011 ).Set( this, &Mmc5::Sound::Peek_Nop,  &Mmc5::Sound::Poke_5011 );
-				cpu.Map( 0x5010 ).Set( this, &Mmc5::Sound::Peek_Nop,  &Mmc5::Sound::Poke_5010 );
-				cpu.Map( 0x5015 ).Set( this, &Mmc5::Sound::Peek_5015, &Mmc5::Sound::Poke_5015 );
-				cpu.Map( 0x5205 ).Set( this, &Mmc5::Sound::Peek_5205, &Mmc5::Sound::Poke_5205 );
-				cpu.Map( 0x5206 ).Set( this, &Mmc5::Sound::Peek_5206, &Mmc5::Sound::Poke_5206 );
-
-				value[0] = 0;
-				value[1] = 0;
-
-				halfClock = 0;
+				atHalfClock = 0;
 
 				for (uint i=0; i < NUM_SQUARES; ++i)
 					square[i].Reset();
 
 				pcm.Reset();
 				dcBlocker.Reset();
-				cpu.GetApu().SetExternalClock(0);
 			}
 
 			void Mmc5::SubReset(const bool hard)
 			{
-				cpu.AddHook( Hook(this,&Mmc5::Hook_CpuUpdate) );
-				ppu.SetBgHook( Hook(this,&Mmc5::Hook_PpuBgMode) );
-				ppu.SetSpHook( Hook(this,&Mmc5::Hook_PpuSpMode) );
+				cpu.AddHook( Hook(this,&Mmc5::Hook_Cpu) );
+				ppu.SetHActiveHook( Hook(this,&Mmc5::Hook_HActive) );
+				ppu.SetHBlankHook( Hook(this,&Mmc5::Hook_HBlank) );
 
+				Map( 0x5000U,          &Mmc5::Poke_5000 );
+				Map( 0x5002U,          &Mmc5::Poke_5002 );
+				Map( 0x5003U,          &Mmc5::Poke_5003 );
+				Map( 0x5004U,          &Mmc5::Poke_5004 );
+				Map( 0x5006U,          &Mmc5::Poke_5006 );
+				Map( 0x5007U,          &Mmc5::Poke_5007 );
+				Map( 0x5010U,          &Mmc5::Poke_5010 );
+				Map( 0x5011U,          &Mmc5::Poke_5011 );
+				Map( 0x5015U,          &Mmc5::Peek_5015, &Mmc5::Poke_5015 );
 				Map( 0x5100U,          &Mmc5::Poke_5100 );
 				Map( 0x5101U,          &Mmc5::Poke_5101 );
 				Map( 0x5102U,          &Mmc5::Poke_5102 );
@@ -277,6 +227,8 @@ namespace Nes
 				Map( 0x5202U,          &Mmc5::Poke_5202 );
 				Map( 0x5203U,          &Mmc5::Poke_5203 );
 				Map( 0x5204U,          &Mmc5::Peek_5204, &Mmc5::Poke_5204 );
+				Map( 0x5205U,          &Mmc5::Peek_5205, &Mmc5::Poke_5205 );
+				Map( 0x5206U,          &Mmc5::Peek_5206, &Mmc5::Poke_5206 );
 				Map( 0x5C00U, 0x5FFFU, &Mmc5::Peek_5C00, &Mmc5::Poke_5C00 );
 				Map( 0x6000U, 0x7FFFU, &Mmc5::Peek_6000, &Mmc5::Poke_6000 );
 				Map( 0x8000U, 0x9FFFU, &Mmc5::Peek_8000, &Mmc5::Poke_8000 );
@@ -309,20 +261,26 @@ namespace Nes
 				return lengthCounter.GetCount() && waveLength >= MIN_FRQ;
 			}
 
-			void Mmc5::Sound::Square::UpdateContext(const uint fixed)
+			void Mmc5::Sound::Square::UpdateSettings(const uint fixed)
 			{
 				active = CanOutput();
 				frequency = (waveLength + 1UL) * fixed * 2;
 			}
 
-			void Mmc5::Sound::UpdateContext(uint,const byte (&outputLevels)[MAX_CHANNELS])
+			bool Mmc5::Sound::UpdateSettings()
 			{
-				outputVolume = outputLevels[Apu::CHANNEL_MMC5];
+				output = GetVolume(EXT_MMC5);
+
+				GetOscillatorClock( rate, fixed );
 
 				for (uint i=0; i < NUM_SQUARES; ++i)
-					square[i].UpdateContext( fixed );
+					square[i].UpdateSettings( fixed );
+
+				quarterClock = (GetRegion() == Region::NTSC ? RP2A03_M2_QUARTER : RP2A07_M2_QUARTER);
 
 				dcBlocker.Reset();
+
+				return output;
 			}
 
 			void Mmc5::BaseSave(State::Saver& state) const
@@ -370,6 +328,11 @@ namespace Nes
 				}
 
 				{
+					const byte data[2] = { regs.mul[0], regs.mul[1] };
+					state.Begin( AsciiId<'M','U','L'>::V ).Write( data ).End();
+				}
+
+				{
 					const byte data[2] =
 					{
 						irq.state,
@@ -380,16 +343,17 @@ namespace Nes
 				}
 
 				state.Begin( AsciiId<'R','A','M'>::V ).Compress( exRam.mem ).End();
+
 				sound.SaveState( state, AsciiId<'S','N','D'>::V );
 
 				state.End();
 			}
 
-			void Mmc5::BaseLoad(State::Loader& state,const dword id)
+			void Mmc5::BaseLoad(State::Loader& state,const dword baseChunk)
 			{
-				NST_VERIFY( id == (AsciiId<'M','M','5'>::V) );
+				NST_VERIFY( baseChunk == (AsciiId<'M','M','5'>::V) );
 
-				if (id == AsciiId<'M','M','5'>::V)
+				if (baseChunk == AsciiId<'M','M','5'>::V)
 				{
 					while (const dword chunk = state.Begin())
 					{
@@ -441,6 +405,15 @@ namespace Nes
 								break;
 							}
 
+							case AsciiId<'M','U','L'>::V:
+							{
+								State::Loader::Data<2> data( state );
+
+								regs.mul[0] = data[0];
+								regs.mul[1] = data[1];
+								break;
+							}
+
 							case AsciiId<'I','R','Q'>::V:
 							{
 								State::Loader::Data<2> data( state );
@@ -468,20 +441,11 @@ namespace Nes
 				}
 			}
 
-			void Mmc5::Sound::SaveState(State::Saver& state,const dword id) const
+			void Mmc5::Sound::SaveState(State::Saver& state,const dword baseChunk) const
 			{
-				state.Begin( id );
+				state.Begin( baseChunk );
 
-				{
-					const byte data[3] =
-					{
-						value[0],
-						value[1],
-						halfClock
-					};
-
-					state.Begin( AsciiId<'R','E','G'>::V ).Write( data ).End();
-				}
+				state.Begin( AsciiId<'C','L','K'>::V ).Write8( atHalfClock ).End();
 
 				square[0].SaveState( state, AsciiId<'S','Q','0'>::V  );
 				square[1].SaveState( state, AsciiId<'S','Q','1'>::V );
@@ -496,16 +460,10 @@ namespace Nes
 				{
 					switch (chunk)
 					{
-						case AsciiId<'R','E','G'>::V:
-						{
-							State::Loader::Data<3> data( state );
+						case AsciiId<'C','L','K'>::V:
 
-							for (uint i=0; i < 2; ++i)
-								value[i] = data[i];
-
-							halfClock = data[2] & 0x1;
+							atHalfClock = state.Read8() & 0x1;
 							break;
-						}
 
 						case AsciiId<'S','Q','0'>::V:
 
@@ -527,9 +485,9 @@ namespace Nes
 				}
 			}
 
-			void Mmc5::Sound::Square::SaveState(State::Saver& state,const dword id) const
+			void Mmc5::Sound::Square::SaveState(State::Saver& state,const dword chunk) const
 			{
-				state.Begin( id );
+				state.Begin( chunk );
 
 				{
 					const byte data[3] =
@@ -580,9 +538,9 @@ namespace Nes
 				active = CanOutput();
 			}
 
-			void Mmc5::Sound::Pcm::SaveState(State::Saver& state,const dword id) const
+			void Mmc5::Sound::Pcm::SaveState(State::Saver& state,const dword chunk) const
 			{
-				state.Begin( id ).Write16( (enabled != 0) | dword(amp / VOLUME) << 8 ).End();
+				state.Begin( chunk ).Write16( (enabled != 0) | dword(amp / VOLUME) << 8 ).End();
 			}
 
 			void Mmc5::Sound::Pcm::LoadState(State::Loader& state)
@@ -602,9 +560,12 @@ namespace Nes
 			{
 				NST_ASSERT( flow.cycles == 0 );
 
-				flow.cycles = Flow::vSync[cpu.GetMode()];
+				if (cpu.GetRegion() == Region::NTSC)
+					flow.cycles = Clocks::RP2C02_HVINT;
+				else
+					flow.cycles = Clocks::RP2C07_HVINT;
 
-				if (flow.cycles <= cpu.GetMasterClockCycles())
+				if (flow.cycles <= cpu.GetCycles())
 					HDummy();
 				else
 					flow.phase = &Mmc5::HDummy;
@@ -615,9 +576,12 @@ namespace Nes
 				if (ppu.IsEnabled())
 					++irq.count;
 
-				flow.cycles += Flow::hDummy[cpu.GetMode()][!ppu.IsShortFrame()];
+				if (cpu.GetRegion() == Region::NTSC)
+					flow.cycles += Clocks::RP2C02_HSYNC - (ppu.IsShortFrame() ? Clocks::RP2C07_CC : 0);
+				else
+					flow.cycles += Clocks::RP2C07_HSYNC;
 
-				if (flow.cycles <= cpu.GetMasterClockCycles())
+				if (flow.cycles <= cpu.GetCycles())
 					HActive0();
 				else
 					flow.phase = &Mmc5::HActive0;
@@ -632,10 +596,14 @@ namespace Nes
 					cpu.ClearIRQ();
 				}
 
-				flow.cycles += Flow::hSync[cpu.GetMode()];
+				if (cpu.GetRegion() == Region::NTSC)
+					flow.cycles += Clocks::RP2C02_HSYNC;
+				else
+					flow.cycles += Clocks::RP2C07_HSYNC;
+
 				flow.scanline = 0;
 
-				if (flow.cycles <= cpu.GetMasterClockCycles())
+				if (flow.cycles <= cpu.GetCycles())
 					HActiveX();
 				else
 					flow.phase = &Mmc5::HActiveX;
@@ -656,11 +624,14 @@ namespace Nes
 							cpu.DoIRQ( Cpu::IRQ_EXT, flow.cycles );
 					}
 
-					flow.cycles += Flow::hSync[cpu.GetMode()];
+					if (cpu.GetRegion() == Region::NTSC)
+						flow.cycles += Clocks::RP2C02_HSYNC;
+					else
+						flow.cycles += Clocks::RP2C07_HSYNC;
 
 					if (flow.scanline < 240)
 					{
-						if (flow.cycles > cpu.GetMasterClockCycles())
+						if (flow.cycles > cpu.GetCycles())
 							break;
 					}
 					else
@@ -686,24 +657,27 @@ namespace Nes
 
 			inline void Mmc5::Update()
 			{
-				if (flow.cycles <= cpu.GetMasterClockCycles())
+				if (flow.cycles <= cpu.GetCycles())
 					(*this.*flow.phase)();
 			}
 
-			void Mmc5::VSync()
+			void Mmc5::Sync(Event event,Input::Controllers*)
 			{
-				Update();
+				if (event == EVENT_END_FRAME)
+				{
+					Update();
 
-				flow.cycles = 0;
-				flow.phase = &Mmc5::VBlank;
+					flow.cycles = 0;
+					flow.phase = &Mmc5::VBlank;
+				}
 			}
 
-			NES_HOOK(Mmc5,CpuUpdate)
+			NES_HOOK(Mmc5,Cpu)
 			{
 				Update();
 			}
 
-			NES_HOOK(Mmc5,PpuBgMode)
+			NES_HOOK(Mmc5,HActive)
 			{
 				banks.fetchMode = Banks::FETCH_MODE_BG;
 
@@ -730,7 +704,7 @@ namespace Nes
 				}
 			}
 
-			NES_HOOK(Mmc5,PpuSpMode)
+			NES_HOOK(Mmc5,HBlank)
 			{
 				banks.fetchMode = Banks::FETCH_MODE_SP;
 				spliter.inside = false;
@@ -941,18 +915,21 @@ namespace Nes
 				return Filler::squared[exRam.tile >> 6];
 			}
 
-			NES_ACCESSOR_T(uint,NT,Mmc5,Nt)
+			template<Mmc5::FetchType NT>
+			inline uint Mmc5::FetchNt(uint address) const
 			{
 				return FetchByte<NT>( address );
 			}
 
-			NES_ACCESSOR_T(uint,NT,Mmc5,NtExt)
+			template<Mmc5::FetchType NT>
+			inline uint Mmc5::FetchNtExt(uint address)
 			{
 				exRam.tile = exRam.mem[address];
 				return FetchByte<NT>( address );
 			}
 
-			NES_ACCESSOR_T(uint,NT,Mmc5,NtSplit)
+			template<Mmc5::FetchType NT>
+			inline uint Mmc5::FetchNtSplit(uint address)
 			{
 				if (ClockSpliter())
 					return exRam.mem[spliter.tile];
@@ -960,7 +937,8 @@ namespace Nes
 					return FetchByte<NT>( address );
 			}
 
-			NES_ACCESSOR_T(uint,NT,Mmc5,NtExtSplit)
+			template<Mmc5::FetchType NT>
+			inline uint Mmc5::FetchNtExtSplit(uint address)
 			{
 				if (ClockSpliter())
 				{
@@ -978,13 +956,38 @@ namespace Nes
 				return Filler::squared[(exRam.mem[0x3C0 + (spliter.tile >> 4 & 0x38) + (spliter.tile >> 2 & 0x7)] >> ((spliter.tile >> 4 & 0x4) | (spliter.tile & 0x2))) & 0x3];
 			}
 
-			NES_ACCESSOR_T(uint,AT,Mmc5,AtSplit)
+			template<Mmc5::FetchType AT>
+			inline uint Mmc5::FetchAtSplit(uint address) const
 			{
 				if (spliter.inside)
 					return GetSpliterAttribute();
 				else
 					return FetchByte<AT>( address );
 			}
+
+			NES_ACCESSOR( Mmc5, Nt_CiRam_0         ) { return FetchNt         < NT_CIRAM_0 >( address ); }
+			NES_ACCESSOR( Mmc5, Nt_CiRam_1         ) { return FetchNt         < NT_CIRAM_1 >( address ); }
+			NES_ACCESSOR( Mmc5, Nt_ExRam           ) { return FetchNt         < NT_EXRAM   >( address ); }
+			NES_ACCESSOR( Mmc5, Nt_Fill            ) { return FetchNt         < NT_FILL    >( address ); }
+			NES_ACCESSOR( Mmc5, Nt_Zero            ) { return FetchNt         < NT_ZERO    >( address ); }
+			NES_ACCESSOR( Mmc5, At_Fill            ) { return FetchNt         < AT_FILL    >( address ); }
+			NES_ACCESSOR( Mmc5, At_ExRam           ) { return FetchNt         < AT_EXRAM   >( address ); }
+			NES_ACCESSOR( Mmc5, NtExt_CiRam_0      ) { return FetchNtExt      < NT_CIRAM_0 >( address ); }
+			NES_ACCESSOR( Mmc5, NtExt_CiRam_1      ) { return FetchNtExt      < NT_CIRAM_1 >( address ); }
+			NES_ACCESSOR( Mmc5, NtExt_ExRam        ) { return FetchNtExt      < NT_EXRAM   >( address ); }
+			NES_ACCESSOR( Mmc5, NtExt_Fill         ) { return FetchNtExt      < NT_FILL    >( address ); }
+			NES_ACCESSOR( Mmc5, NtSplit_CiRam_0    ) { return FetchNtSplit    < NT_CIRAM_0 >( address ); }
+			NES_ACCESSOR( Mmc5, NtSplit_CiRam_1    ) { return FetchNtSplit    < NT_CIRAM_1 >( address ); }
+			NES_ACCESSOR( Mmc5, NtSplit_ExRam      ) { return FetchNtSplit    < NT_EXRAM   >( address ); }
+			NES_ACCESSOR( Mmc5, NtSplit_Fill       ) { return FetchNtSplit    < NT_FILL    >( address ); }
+			NES_ACCESSOR( Mmc5, AtSplit_CiRam_0    ) { return FetchAtSplit    < NT_CIRAM_0 >( address ); }
+			NES_ACCESSOR( Mmc5, AtSplit_CiRam_1    ) { return FetchAtSplit    < NT_CIRAM_1 >( address ); }
+			NES_ACCESSOR( Mmc5, AtSplit_ExRam      ) { return FetchAtSplit    < NT_EXRAM   >( address ); }
+			NES_ACCESSOR( Mmc5, AtSplit_Fill       ) { return FetchAtSplit    < NT_FILL    >( address ); }
+			NES_ACCESSOR( Mmc5, NtExtSplit_CiRam_0 ) { return FetchNtExtSplit < NT_CIRAM_0 >( address ); }
+			NES_ACCESSOR( Mmc5, NtExtSplit_CiRam_1 ) { return FetchNtExtSplit < NT_CIRAM_1 >( address ); }
+			NES_ACCESSOR( Mmc5, NtExtSplit_ExRam   ) { return FetchNtExtSplit < NT_EXRAM   >( address ); }
+			NES_ACCESSOR( Mmc5, NtExtSplit_Fill    ) { return FetchNtExtSplit < NT_FILL    >( address ); }
 
 			NES_ACCESSOR(Mmc5,CRom)
 			{
@@ -1033,93 +1036,97 @@ namespace Nes
 				}
 			}
 
-			const Io::Accessor::Type<Mmc5>::Function Mmc5::nmtMethods[8][4][2] =
-			{
-				{   // PPU NT
-					{ &Mmc5::Access_Nt<NT_CIRAM_0>,         &Mmc5::Access_Nt<NT_CIRAM_0>      },
-					{ &Mmc5::Access_Nt<NT_CIRAM_1>,         &Mmc5::Access_Nt<NT_CIRAM_1>      },
-					{ &Mmc5::Access_Nt<NT_EXRAM>,           &Mmc5::Access_Nt<NT_EXRAM>        },
-					{ &Mmc5::Access_Nt<NT_FILL>,            &Mmc5::Access_Nt<AT_FILL>         }
-				},
-				{   // PPU EXT
-					{ &Mmc5::Access_NtExt<NT_CIRAM_0>,      &Mmc5::Access_Nt<AT_EXRAM>        },
-					{ &Mmc5::Access_NtExt<NT_CIRAM_1>,      &Mmc5::Access_Nt<AT_EXRAM>        },
-					{ &Mmc5::Access_NtExt<NT_EXRAM>,        &Mmc5::Access_Nt<AT_EXRAM>        },
-					{ &Mmc5::Access_NtExt<NT_FILL>,         &Mmc5::Access_Nt<AT_EXRAM>        }
-				},
-				{   // CPU EXRAM
-					{ &Mmc5::Access_Nt<NT_CIRAM_0>,         &Mmc5::Access_Nt<NT_CIRAM_0>      },
-					{ &Mmc5::Access_Nt<NT_CIRAM_1>,         &Mmc5::Access_Nt<NT_CIRAM_1>      },
-					{ &Mmc5::Access_Nt<NT_ZERO>,            &Mmc5::Access_Nt<NT_ZERO>         },
-					{ &Mmc5::Access_Nt<NT_FILL>,            &Mmc5::Access_Nt<AT_FILL>         }
-				},
-				{   // CPU EXROM
-					{ &Mmc5::Access_Nt<NT_CIRAM_0>,         &Mmc5::Access_Nt<NT_CIRAM_0>      },
-					{ &Mmc5::Access_Nt<NT_CIRAM_1>,         &Mmc5::Access_Nt<NT_CIRAM_1>      },
-					{ &Mmc5::Access_Nt<NT_ZERO>,            &Mmc5::Access_Nt<NT_ZERO>         },
-					{ &Mmc5::Access_Nt<NT_FILL>,            &Mmc5::Access_Nt<AT_FILL>         }
-				},
-				{   // PPU NT + SPLIT
-					{ &Mmc5::Access_NtSplit<NT_CIRAM_0>,    &Mmc5::Access_AtSplit<NT_CIRAM_0> },
-					{ &Mmc5::Access_NtSplit<NT_CIRAM_1>,    &Mmc5::Access_AtSplit<NT_CIRAM_1> },
-					{ &Mmc5::Access_NtSplit<NT_EXRAM>,      &Mmc5::Access_AtSplit<NT_EXRAM>   },
-					{ &Mmc5::Access_NtSplit<NT_FILL>,       &Mmc5::Access_AtSplit<NT_FILL>    }
-				},
-				{   // PPU EXT + SPLIT
-					{ &Mmc5::Access_NtExtSplit<NT_CIRAM_0>, &Mmc5::Access_AtSplit<AT_EXRAM>   },
-					{ &Mmc5::Access_NtExtSplit<NT_CIRAM_1>, &Mmc5::Access_AtSplit<AT_EXRAM>   },
-					{ &Mmc5::Access_NtExtSplit<NT_EXRAM>,   &Mmc5::Access_AtSplit<AT_EXRAM>   },
-					{ &Mmc5::Access_NtExtSplit<NT_FILL>,    &Mmc5::Access_AtSplit<AT_EXRAM>   }
-				},
-				{   // CPU EXRAM + denied SPLIT
-					{ &Mmc5::Access_Nt<NT_CIRAM_0>,         &Mmc5::Access_Nt<NT_CIRAM_0>      },
-					{ &Mmc5::Access_Nt<NT_CIRAM_1>,         &Mmc5::Access_Nt<NT_CIRAM_1>      },
-					{ &Mmc5::Access_Nt<NT_ZERO>,            &Mmc5::Access_Nt<NT_ZERO>         },
-					{ &Mmc5::Access_Nt<NT_FILL>,            &Mmc5::Access_Nt<AT_FILL>         }
-				},
-				{   // CPU EXROM + denied SPLIT
-					{ &Mmc5::Access_Nt<NT_CIRAM_0>,         &Mmc5::Access_Nt<NT_CIRAM_0>      },
-					{ &Mmc5::Access_Nt<NT_CIRAM_1>,         &Mmc5::Access_Nt<NT_CIRAM_1>      },
-					{ &Mmc5::Access_Nt<NT_ZERO>,            &Mmc5::Access_Nt<NT_ZERO>         },
-					{ &Mmc5::Access_Nt<NT_FILL>,            &Mmc5::Access_Nt<AT_FILL>         }
-				}
-			};
-
-			const Io::Accessor::Type<Mmc5>::Function Mmc5::chrMethods[8] =
-			{
-				&Mmc5::Access_CRom,         // PPU NT
-				&Mmc5::Access_CRomExt,      // PPU EXT
-				&Mmc5::Access_CRom,         // CPU EXRAM
-				&Mmc5::Access_CRom,         // CPU EXROM
-				&Mmc5::Access_CRomSplit,    // PPU NT + SPLIT
-				&Mmc5::Access_CRomExtSplit, // PPU EXT + SPLIT
-				&Mmc5::Access_CRom,         // CPU EXRAM + denied SPLIT
-				&Mmc5::Access_CRom          // CPU EXROM + denied SPLIT
-			};
-
 			void Mmc5::UpdateRenderMethod()
 			{
 				ppu.Update();
 
 				const uint method = regs.exRamMode | (spliter.ctrl >> 5 & 0x4);
 
-				chr.SetAccessors
-				(
-					this,
-					chrMethods[method],
-					chrMethods[method]
-				);
+				{
+					static const Io::Accessor::Type<Mmc5>::Function chrMethods[8] =
+					{
+						&Mmc5::Access_CRom,         // PPU NT
+						&Mmc5::Access_CRomExt,      // PPU EXT
+						&Mmc5::Access_CRom,         // CPU EXRAM
+						&Mmc5::Access_CRom,         // CPU EXROM
+						&Mmc5::Access_CRomSplit,    // PPU NT + SPLIT
+						&Mmc5::Access_CRomExtSplit, // PPU EXT + SPLIT
+						&Mmc5::Access_CRom,         // CPU EXRAM + denied SPLIT
+						&Mmc5::Access_CRom          // CPU EXROM + denied SPLIT
+					};
+
+					chr.SetAccessors
+					(
+						this,
+						chrMethods[method],
+						chrMethods[method]
+					);
+				}
 
 				uint bank = banks.nmt;
 
-				nmt.SetAccessors
-				(
-					this,
-					nmtMethods[method][bank >> 0 & Regs::NMT_MODE],
-					nmtMethods[method][bank >> 2 & Regs::NMT_MODE],
-					nmtMethods[method][bank >> 4 & Regs::NMT_MODE],
-					nmtMethods[method][bank >> 6 & Regs::NMT_MODE]
-				);
+				{
+					static const Io::Accessor::Type<Mmc5>::Function nmtMethods[8][4][2] =
+					{
+						{   // PPU NT
+							{ &Mmc5::Access_Nt_CiRam_0,         &Mmc5::Access_Nt_CiRam_0      },
+							{ &Mmc5::Access_Nt_CiRam_1,         &Mmc5::Access_Nt_CiRam_1      },
+							{ &Mmc5::Access_Nt_ExRam,           &Mmc5::Access_Nt_ExRam        },
+							{ &Mmc5::Access_Nt_Fill,            &Mmc5::Access_At_Fill         }
+						},
+						{   // PPU EXT
+							{ &Mmc5::Access_NtExt_CiRam_0,      &Mmc5::Access_At_ExRam        },
+							{ &Mmc5::Access_NtExt_CiRam_1,      &Mmc5::Access_At_ExRam        },
+							{ &Mmc5::Access_NtExt_ExRam,        &Mmc5::Access_At_ExRam        },
+							{ &Mmc5::Access_NtExt_Fill,         &Mmc5::Access_At_ExRam        }
+						},
+						{   // CPU EXRAM
+							{ &Mmc5::Access_Nt_CiRam_0,         &Mmc5::Access_Nt_CiRam_0      },
+							{ &Mmc5::Access_Nt_CiRam_1,         &Mmc5::Access_Nt_CiRam_1      },
+							{ &Mmc5::Access_Nt_Zero,            &Mmc5::Access_Nt_Zero         },
+							{ &Mmc5::Access_Nt_Fill,            &Mmc5::Access_At_Fill         }
+						},
+						{   // CPU EXROM
+							{ &Mmc5::Access_Nt_CiRam_0,         &Mmc5::Access_Nt_CiRam_0      },
+							{ &Mmc5::Access_Nt_CiRam_1,         &Mmc5::Access_Nt_CiRam_1      },
+							{ &Mmc5::Access_Nt_Zero,            &Mmc5::Access_Nt_Zero         },
+							{ &Mmc5::Access_Nt_Fill,            &Mmc5::Access_At_Fill         }
+						},
+						{   // PPU NT + SPLIT
+							{ &Mmc5::Access_NtSplit_CiRam_0,    &Mmc5::Access_AtSplit_CiRam_0 },
+							{ &Mmc5::Access_NtSplit_CiRam_1,    &Mmc5::Access_AtSplit_CiRam_1 },
+							{ &Mmc5::Access_NtSplit_ExRam,      &Mmc5::Access_AtSplit_ExRam   },
+							{ &Mmc5::Access_NtSplit_Fill,       &Mmc5::Access_AtSplit_Fill    }
+						},
+						{   // PPU EXT + SPLIT
+							{ &Mmc5::Access_NtExtSplit_CiRam_0, &Mmc5::Access_AtSplit_ExRam   },
+							{ &Mmc5::Access_NtExtSplit_CiRam_1, &Mmc5::Access_AtSplit_ExRam   },
+							{ &Mmc5::Access_NtExtSplit_ExRam,   &Mmc5::Access_AtSplit_ExRam   },
+							{ &Mmc5::Access_NtExtSplit_Fill,    &Mmc5::Access_AtSplit_ExRam   }
+						},
+						{   // CPU EXRAM + denied SPLIT
+							{ &Mmc5::Access_Nt_CiRam_0,         &Mmc5::Access_Nt_CiRam_0      },
+							{ &Mmc5::Access_Nt_CiRam_1,         &Mmc5::Access_Nt_CiRam_1      },
+							{ &Mmc5::Access_Nt_Zero,            &Mmc5::Access_Nt_Zero         },
+							{ &Mmc5::Access_Nt_Fill,            &Mmc5::Access_At_Fill         }
+						},
+						{   // CPU EXROM + denied SPLIT
+							{ &Mmc5::Access_Nt_CiRam_0,         &Mmc5::Access_Nt_CiRam_0      },
+							{ &Mmc5::Access_Nt_CiRam_1,         &Mmc5::Access_Nt_CiRam_1      },
+							{ &Mmc5::Access_Nt_Zero,            &Mmc5::Access_Nt_Zero         },
+							{ &Mmc5::Access_Nt_Fill,            &Mmc5::Access_At_Fill         }
+						}
+					};
+
+					nmt.SetAccessors
+					(
+						this,
+						nmtMethods[method][bank >> 0 & Regs::NMT_MODE],
+						nmtMethods[method][bank >> 2 & Regs::NMT_MODE],
+						nmtMethods[method][bank >> 4 & Regs::NMT_MODE],
+						nmtMethods[method][bank >> 6 & Regs::NMT_MODE]
+					);
+				}
 
 				for (uint address=0; address < SIZE_4K; address += SIZE_1K, bank >>= 2)
 				{
@@ -1139,7 +1146,7 @@ namespace Nes
 				}
 			}
 
-			NES_POKE(Mmc5,2001)
+			NES_POKE_AD(Mmc5,2001)
 			{
 				Update();
 
@@ -1154,119 +1161,62 @@ namespace Nes
 				p2001.Poke( address, data );
 			}
 
-			NES_PEEK(Mmc5,2001)
+			NES_PEEK_A(Mmc5,2001)
 			{
 				return p2001.Peek( address );
 			}
 
-			NST_FORCE_INLINE void Mmc5::Sound::Square::WriteReg0(const uint data)
+			NES_POKE_D(Mmc5,5000)
 			{
-				envelope.Write( data );
-				duty = data >> DUTY_SHIFT;
+				sound.WriteSquareReg0( 0, data );
 			}
 
-			NST_FORCE_INLINE void Mmc5::Sound::Square::WriteReg1(const uint data,const uint fixed)
+			NES_POKE_D(Mmc5,5002)
 			{
-				waveLength &= uint(REG2_WAVELENGTH_HIGH) << 8;
-				waveLength |= data;
-				frequency = (waveLength + 1UL) * fixed * 2;
-
-				active = CanOutput();
+				sound.WriteSquareReg1( 0, data );
 			}
 
-			NST_FORCE_INLINE void Mmc5::Sound::Square::WriteReg2(const uint data,const uint fixed)
+			NES_POKE_D(Mmc5,5003)
 			{
-				step = 0;
-				envelope.ResetClock();
-
-				lengthCounter.Write( data );
-
-				waveLength &= REG1_WAVELENGTH_LOW;
-				waveLength |= (data & REG2_WAVELENGTH_HIGH) << 8;
-				frequency = (waveLength + 1UL) * fixed * 2;
-
-				active = CanOutput();
+				sound.WriteSquareReg2( 0, data );
 			}
 
-			NES_POKE(Mmc5::Sound,5000)
+			NES_POKE_D(Mmc5,5004)
 			{
-				cpu.GetApu().Update();
-				square[address >> 2 & 0x1].WriteReg0( data );
+				sound.WriteSquareReg0( 1, data );
 			}
 
-			NES_POKE(Mmc5::Sound,5002)
+			NES_POKE_D(Mmc5,5006)
 			{
-				cpu.GetApu().Update();
-				square[address >> 2 & 0x1].WriteReg1( data, fixed );
+				sound.WriteSquareReg1( 1, data );
 			}
 
-			NES_POKE(Mmc5::Sound,5003)
+			NES_POKE_D(Mmc5,5007)
 			{
-				cpu.GetApu().Update();
-				square[address >> 2 & 0x1].WriteReg2( data, fixed );
+				sound.WriteSquareReg2( 1, data );
 			}
 
-			NST_FORCE_INLINE void Mmc5::Sound::Pcm::WriteReg0(const uint data)
+			NES_POKE_D(Mmc5,5010)
 			{
-				enabled = ~data & PCM_DISABLE;
-				sample = enabled ? amp : 0;
+				sound.WritePcmReg0( data );
 			}
 
-			NST_FORCE_INLINE void Mmc5::Sound::Pcm::WriteReg1(const uint data)
+			NES_POKE_D(Mmc5,5011)
 			{
-				amp = data * VOLUME;
-				sample = enabled ? amp : 0;
+				sound.WritePcmReg1( data );
 			}
 
-			NES_POKE(Mmc5::Sound,5010)
+			NES_PEEK(Mmc5,5015)
 			{
-				cpu.GetApu().Update();
-				pcm.WriteReg0( data );
+				return sound.ReadCtrl();
 			}
 
-			NES_POKE(Mmc5::Sound,5011)
+			NES_POKE_D(Mmc5,5015)
 			{
-				cpu.GetApu().Update();
-				pcm.WriteReg1( data );
+				sound.WriteCtrl( data );
 			}
 
-			NES_PEEK(Mmc5::Sound,5015)
-			{
-				cpu.GetApu().Update();
-
-				uint data = 0;
-
-				if (square[0].GetLengthCounter()) data |= 0x1;
-				if (square[1].GetLengthCounter()) data |= 0x2;
-
-				return data;
-			}
-
-			NST_FORCE_INLINE void Mmc5::Sound::Square::Enable(const uint state)
-			{
-				lengthCounter.Enable( state );
-
-				if (!state)
-				{
-					active = false;
-					timer = 0;
-				}
-			}
-
-			NES_POKE(Mmc5::Sound,5015)
-			{
-				cpu.GetApu().Update();
-
-				for (uint i=0; i < NUM_SQUARES; ++i)
-					square[i].Enable( data & (i+1) );
-			}
-
-			NES_PEEK(Mmc5::Sound,Nop)
-			{
-				return 0x50;
-			}
-
-			NES_POKE(Mmc5,5100)
+			NES_POKE_D(Mmc5,5100)
 			{
 				data &= Regs::PRG_MODE;
 
@@ -1277,7 +1227,7 @@ namespace Nes
 				}
 			}
 
-			NES_POKE(Mmc5,5101)
+			NES_POKE_D(Mmc5,5101)
 			{
 				data &= Regs::CHR_MODE;
 
@@ -1297,7 +1247,7 @@ namespace Nes
 				}
 			}
 
-			NES_POKE(Mmc5,5102)
+			NES_POKE_D(Mmc5,5102)
 			{
 				if (data == Regs::WRK_WRITABLE_A)
 					banks.security |= Regs::WRK_WRITABLE_A;
@@ -1305,7 +1255,7 @@ namespace Nes
 					banks.security &= ~uint(Regs::WRK_WRITABLE_A);
 			}
 
-			NES_POKE(Mmc5,5103)
+			NES_POKE_D(Mmc5,5103)
 			{
 				if (data == Regs::WRK_WRITABLE_B)
 					banks.security |= Regs::WRK_WRITABLE_B;
@@ -1313,7 +1263,7 @@ namespace Nes
 					banks.security &= ~uint(Regs::WRK_WRITABLE_B);
 			}
 
-			NES_POKE(Mmc5,5104)
+			NES_POKE_D(Mmc5,5104)
 			{
 				data &= Regs::EXRAM_MODE;
 
@@ -1324,7 +1274,7 @@ namespace Nes
 				}
 			}
 
-			NES_POKE(Mmc5,5105)
+			NES_POKE_D(Mmc5,5105)
 			{
 				if (banks.nmt != data)
 				{
@@ -1333,7 +1283,7 @@ namespace Nes
 				}
 			}
 
-			NES_POKE(Mmc5,5106)
+			NES_POKE_D(Mmc5,5106)
 			{
 				if (banks.nmt & (banks.nmt << 1))
 					ppu.Update();
@@ -1341,7 +1291,7 @@ namespace Nes
 				filler.tile = data;
 			}
 
-			NES_POKE(Mmc5,5107)
+			NES_POKE_D(Mmc5,5107)
 			{
 				if (banks.nmt & (banks.nmt << 1))
 					ppu.Update();
@@ -1349,7 +1299,7 @@ namespace Nes
 				filler.attribute = Filler::squared[data & 0x3];
 			}
 
-			NES_POKE(Mmc5,5113)
+			NES_POKE_D(Mmc5,5113)
 			{
 				data = banks.wrk[data & Regs::PRG_RAM_BANK];
 
@@ -1364,7 +1314,7 @@ namespace Nes
 				}
 			}
 
-			NES_POKE(Mmc5,5114)
+			NES_POKE_AD(Mmc5,5114)
 			{
 				if (banks.prg[address - 0x5114] != data)
 				{
@@ -1373,7 +1323,7 @@ namespace Nes
 				}
 			}
 
-			NES_POKE(Mmc5,5120)
+			NES_POKE_AD(Mmc5,5120)
 			{
 				data |= banks.chrHigh << 2;
 				address &= 0x7;
@@ -1390,7 +1340,7 @@ namespace Nes
 				}
 			}
 
-			NES_POKE(Mmc5,5128)
+			NES_POKE_AD(Mmc5,5128)
 			{
 				data |= banks.chrHigh << 2;
 				address &= 0x3;
@@ -1407,7 +1357,7 @@ namespace Nes
 				}
 			}
 
-			NES_POKE(Mmc5,5130)
+			NES_POKE_D(Mmc5,5130)
 			{
 				data = (data & Regs::CHR_HIGH) << 6;
 
@@ -1418,7 +1368,7 @@ namespace Nes
 				}
 			}
 
-			NES_POKE(Mmc5,5200)
+			NES_POKE_D(Mmc5,5200)
 			{
 				if (spliter.ctrl != data)
 				{
@@ -1428,7 +1378,7 @@ namespace Nes
 				}
 			}
 
-			NES_POKE(Mmc5,5201)
+			NES_POKE_D(Mmc5,5201)
 			{
 				if (data >= 240)
 					data -= 16;
@@ -1440,7 +1390,7 @@ namespace Nes
 				}
 			}
 
-			NES_POKE(Mmc5,5202)
+			NES_POKE_D(Mmc5,5202)
 			{
 				const dword chrBank = dword(data) << 12;
 
@@ -1451,7 +1401,7 @@ namespace Nes
 				}
 			}
 
-			NES_POKE(Mmc5,5203)
+			NES_POKE_D(Mmc5,5203)
 			{
 				Update();
 				irq.target = data;
@@ -1469,7 +1419,7 @@ namespace Nes
 				return status;
 			}
 
-			NES_POKE(Mmc5,5204)
+			NES_POKE_D(Mmc5,5204)
 			{
 				Update();
 
@@ -1487,27 +1437,27 @@ namespace Nes
 				}
 			}
 
-			NES_PEEK(Mmc5::Sound,5205)
+			NES_PEEK(Mmc5,5205)
 			{
-				return ((value[0] * value[1]) & 0x00FF) >> 0;
+				return (regs.mul[0] * regs.mul[1]) >> 0 & 0xFF;
 			}
 
-			NES_PEEK(Mmc5::Sound,5206)
+			NES_PEEK(Mmc5,5206)
 			{
-				return ((value[0] * value[1]) & 0xFF00) >> 8;
+				return (regs.mul[0] * regs.mul[1]) >> 8 & 0xFF;
 			}
 
-			NES_POKE(Mmc5::Sound,5205)
+			NES_POKE_D(Mmc5,5205)
 			{
-				value[0] = data;
+				regs.mul[0] = data;
 			}
 
-			NES_POKE(Mmc5::Sound,5206)
+			NES_POKE_D(Mmc5,5206)
 			{
-				value[1] = data;
+				regs.mul[1] = data;
 			}
 
-			NES_PEEK(Mmc5,5C00)
+			NES_PEEK_A(Mmc5,5C00)
 			{
 				if (regs.exRamMode & Regs::EXRAM_MODE_CPU_RAM)
 					return exRam.mem[address - 0x5C00];
@@ -1515,7 +1465,7 @@ namespace Nes
 					return address >> 8;
 			}
 
-			NES_POKE(Mmc5,5C00)
+			NES_POKE_AD(Mmc5,5C00)
 			{
 				switch (regs.exRamMode)
 				{
@@ -1538,7 +1488,7 @@ namespace Nes
 				}
 			}
 
-			NES_POKE(Mmc5,6000)
+			NES_POKE_AD(Mmc5,6000)
 			{
 				NST_VERIFY( (banks.security & Banks::CAN_WRITE_6) == Banks::CAN_WRITE_6 );
 
@@ -1546,7 +1496,7 @@ namespace Nes
 					wrk[0][address - 0x6000] = data;
 			}
 
-			NES_POKE(Mmc5,8000)
+			NES_POKE_AD(Mmc5,8000)
 			{
 				NST_VERIFY( (banks.security & Banks::CAN_WRITE_8) == Banks::CAN_WRITE_8 );
 
@@ -1554,7 +1504,7 @@ namespace Nes
 					prg[0][address - 0x8000] = data;
 			}
 
-			NES_POKE(Mmc5,A000)
+			NES_POKE_AD(Mmc5,A000)
 			{
 				NST_VERIFY( (banks.security & Banks::CAN_WRITE_A) == Banks::CAN_WRITE_A );
 
@@ -1562,7 +1512,7 @@ namespace Nes
 					prg[1][address - 0xA000] = data;
 			}
 
-			NES_POKE(Mmc5,C000)
+			NES_POKE_AD(Mmc5,C000)
 			{
 				NST_VERIFY( (banks.security & Banks::CAN_WRITE_C) == Banks::CAN_WRITE_C );
 
@@ -1570,31 +1520,146 @@ namespace Nes
 					prg[2][address - 0xC000] = data;
 			}
 
-			NES_PEEK(Mmc5,6000)
+			NES_PEEK_A(Mmc5,6000)
 			{
 				NST_VERIFY( banks.security & Banks::READABLE_6 );
 				return (banks.security & Banks::READABLE_6) ? wrk[0][address - 0x6000] : (address >> 8);
 			}
 
-			NES_PEEK(Mmc5,8000)
+			NES_PEEK_A(Mmc5,8000)
 			{
 				NST_VERIFY( banks.security & Banks::READABLE_8 );
 				return (banks.security & Banks::READABLE_8) ? prg[0][address - 0x8000] : (address >> 8);
 			}
 
-			NES_PEEK(Mmc5,A000)
+			NES_PEEK_A(Mmc5,A000)
 			{
 				NST_VERIFY( banks.security & Banks::READABLE_A );
 				return (banks.security & Banks::READABLE_A) ? prg[1][address - 0xA000] : (address >> 8);
 			}
 
-			NES_PEEK(Mmc5,C000)
+			NES_PEEK_A(Mmc5,C000)
 			{
 				NST_VERIFY( banks.security & Banks::READABLE_C );
 				return (banks.security & Banks::READABLE_C) ? prg[2][address - 0xC000] : (address >> 8);
 			}
 
-			NST_FORCE_INLINE dword Mmc5::Sound::Square::GetSample(const Cycle rate)
+			NST_SINGLE_CALL void Mmc5::Sound::Square::Disable(const uint disable)
+			{
+				if (disable)
+				{
+					timer = 0;
+					active = 0;
+				}
+
+				lengthCounter.Disable( disable );
+			}
+
+			void Mmc5::Sound::WriteCtrl(uint data)
+			{
+				Update();
+
+				data = ~data;
+
+				for (uint i=0; i < NUM_SQUARES; ++i)
+					square[i].Disable( data >> i & 0x1 );
+			}
+
+			inline uint Mmc5::Sound::Square::GetLengthCounter() const
+			{
+				return lengthCounter.GetCount();
+			}
+
+			uint Mmc5::Sound::ReadCtrl() const
+			{
+				Update();
+
+				uint data = 0;
+
+				for (uint i=0; i < NUM_SQUARES; ++i)
+				{
+					if (square[i].GetLengthCounter())
+						data |= 0x1U << i;
+				}
+
+				return data;
+			}
+
+			NST_SINGLE_CALL void Mmc5::Sound::Square::WriteReg0(const uint data)
+			{
+				envelope.Write( data );
+				duty = data >> DUTY_SHIFT;
+			}
+
+			NST_SINGLE_CALL void Mmc5::Sound::Square::WriteReg1(const uint data,const uint fixed)
+			{
+				waveLength &= uint(REG2_WAVELENGTH_HIGH) << 8;
+				waveLength |= data;
+				frequency = (waveLength + 1UL) * fixed * 2;
+
+				active = CanOutput();
+			}
+
+			NST_SINGLE_CALL void Mmc5::Sound::Square::WriteReg2(const uint data,const uint fixed)
+			{
+				step = 0;
+				envelope.ResetClock();
+
+				lengthCounter.Write( data );
+
+				waveLength &= REG1_WAVELENGTH_LOW;
+				waveLength |= (data & REG2_WAVELENGTH_HIGH) << 8;
+				frequency = (waveLength + 1UL) * fixed * 2;
+
+				active = CanOutput();
+			}
+
+			void Mmc5::Sound::WriteSquareReg0(uint index,uint data)
+			{
+				Update();
+				NST_ASSERT( index < NUM_SQUARES );
+				square[index].WriteReg0( data );
+			}
+
+			void Mmc5::Sound::WriteSquareReg1(uint index,uint data)
+			{
+				Update();
+				NST_ASSERT( index < NUM_SQUARES );
+				square[index].WriteReg1( data, fixed );
+			}
+
+			void Mmc5::Sound::WriteSquareReg2(uint index,uint data)
+			{
+				Update();
+				NST_ASSERT( index < NUM_SQUARES );
+				square[index].WriteReg2( data, fixed );
+			}
+
+			NST_SINGLE_CALL void Mmc5::Sound::Pcm::WriteReg0(const uint data)
+			{
+				enabled = ~data & PCM_DISABLE;
+				sample = enabled ? amp : 0;
+			}
+
+			NST_SINGLE_CALL void Mmc5::Sound::Pcm::WriteReg1(const uint data)
+			{
+				amp = data * VOLUME;
+				sample = enabled ? amp : 0;
+			}
+
+			void Mmc5::Sound::WritePcmReg0(uint data)
+			{
+				Update();
+				pcm.WriteReg0( data );
+			}
+
+			void Mmc5::Sound::WritePcmReg1(uint data)
+			{
+				Update();
+				pcm.WriteReg1( data );
+			}
+
+			NST_SINGLE_CALL dword Mmc5::Sound::Square::GetSample(const Cycle rate)
 			{
 				NST_VERIFY( bool(active) == CanOutput() && timer >= 0 );
 
@@ -1635,9 +1700,14 @@ namespace Nes
 				}
 			}
 
+			inline Mmc5::Sound::Sample Mmc5::Sound::Pcm::GetSample() const
+			{
+				return sample;
+			}
+
 			Mmc5::Sound::Sample Mmc5::Sound::GetSample()
 			{
-				if (outputVolume)
+				if (output)
 				{
 					dword sample = 0;
 
@@ -1646,7 +1716,7 @@ namespace Nes
 
 					sample += pcm.GetSample();
 
-					return dcBlocker.Apply( sample * 2 * outputVolume / DEFAULT_VOLUME );
+					return dcBlocker.Apply( sample * 2 * output / DEFAULT_VOLUME );
 				}
 				else
 				{
@@ -1654,31 +1724,39 @@ namespace Nes
 				}
 			}
 
-			NST_FORCE_INLINE void Mmc5::Sound::Square::ClockQuarter()
+			NST_SINGLE_CALL void Mmc5::Sound::Square::ClockQuarter()
 			{
 				envelope.Clock();
 			}
 
-			NST_FORCE_INLINE void Mmc5::Sound::Square::ClockHalf()
+			NST_SINGLE_CALL void Mmc5::Sound::Square::ClockHalf()
 			{
-				if (!envelope.Loop() && lengthCounter.Clock())
+				if (!envelope.Looping() && lengthCounter.Clock())
 					active = false;
 			}
 
-			Cycle Mmc5::Sound::Clock()
+			Cycle Mmc5::Sound::Clock(Cycle rateCycles,Cycle rateClock,const Cycle targetCycles)
 			{
-				for (uint i=0; i < NUM_SQUARES; ++i)
-					square[i].ClockQuarter();
+				rateClock *= quarterClock;
 
-				halfClock ^= 1;
-
-				if (halfClock)
+				do
 				{
 					for (uint i=0; i < NUM_SQUARES; ++i)
-						square[i].ClockHalf();
-				}
+						square[i].ClockQuarter();
 
-				return dword(Apu::FRAME_CLOCK_NTSC) * fixed / 2;
+					if (atHalfClock)
+					{
+						for (uint i=0; i < NUM_SQUARES; ++i)
+							square[i].ClockHalf();
+					}
+
+					atHalfClock ^= 1;
+
+					rateCycles += rateClock;
+				}
+				while (rateCycles <= targetCycles);
+
+				return rateCycles;
 			}
 		}
 	}

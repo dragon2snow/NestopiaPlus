@@ -51,7 +51,7 @@ namespace Nes
 			if (hard)
 				prg.SwapBanks<SIZE_8K,0x0000>( 8, 9, 0, 11 );
 
-			irq.Reset( hard, hard ? false : irq.IsLineEnabled() );
+			irq.Reset( hard, hard ? false : irq.Connected() );
 
 			for (uint i=0x4020; i < 0x6000; i += 0x80)
 				Map( i+0x00, i+0x20, (i & 0x100) ? &Mapper50::Poke_4120 : &Mapper50::Poke_4020 );
@@ -67,7 +67,7 @@ namespace Nes
 				{
 					State::Loader::Data<3> data( state );
 
-					irq.EnableLine( data[0] & 0x1 );
+					irq.Connect( data[0] & 0x1 );
 					irq.unit.count = data[1] | data[2] << 8;
 				}
 
@@ -79,7 +79,7 @@ namespace Nes
 		{
 			const byte data[3] =
 			{
-				irq.IsLineEnabled() ? 0x1 : 0x0,
+				irq.Connected() ? 0x1 : 0x0,
 				irq.unit.count & 0xFF,
 				irq.unit.count >> 8
 			};
@@ -91,12 +91,12 @@ namespace Nes
 		#pragma optimize("", on)
 		#endif
 
-		NES_PEEK(Mapper50,wRom)
+		NES_PEEK_A(Mapper50,wRom)
 		{
 			return *prg.Source().Mem( (SIZE_128K-SIZE_8K-0x6000) + address );
 		}
 
-		NES_POKE(Mapper50,4020)
+		NES_POKE_D(Mapper50,4020)
 		{
 			prg.SwapBank<SIZE_8K,0x4000>
 			(
@@ -106,22 +106,25 @@ namespace Nes
 			);
 		}
 
-		NES_POKE(Mapper50,4120)
+		NES_POKE_D(Mapper50,4120)
 		{
 			irq.Update();
-			irq.EnableLine( data & 0x1 );
+			irq.Connect( data & 0x1 );
 			irq.ClearIRQ();
 		}
 
-		ibool Mapper50::Irq::Signal()
+		bool Mapper50::Irq::Clock()
 		{
 			return ++count == 0x1000;
 		}
 
-		void Mapper50::VSync()
+		void Mapper50::Sync(Event event,Input::Controllers*)
 		{
-			irq.unit.count = 0;
-			irq.VSync();
+			if (event == EVENT_END_FRAME)
+			{
+				irq.unit.count = 0;
+				irq.VSync();
+			}
 		}
 	}
 }

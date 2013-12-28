@@ -59,7 +59,7 @@ namespace Nes
 				cstring GetDipName(uint) const;
 				cstring GetValueName(uint,uint) const;
 				uint GetValue(uint) const;
-				bool SetValue(uint,uint);
+				void SetValue(uint,uint);
 
 				uint time;
 				ibool showTime;
@@ -74,11 +74,11 @@ namespace Nes
 
 			void UpdateTimer();
 			void UpdateRegisters(uint);
-			void VSync();
+			void Sync(Event,Input::Controllers*);
 
 			enum
 			{
-				IRQ_DISABLE = b00010000
+				IRQ_DISABLE = 0x10
 			};
 
 			enum

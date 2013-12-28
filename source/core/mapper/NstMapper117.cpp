@@ -37,7 +37,7 @@ namespace Nes
 		Mapper117::Mapper117(Context& c)
 		:
 		Mapper (c,CROM_MAX_256K|WRAM_DEFAULT),
-		irq    (c.cpu,c.ppu,Irq::SIGNAL_DURATION)
+		irq    (c.cpu,c.ppu)
 		{}
 
 		void Mapper117::Irq::Reset(bool)
@@ -103,12 +103,12 @@ namespace Nes
 		#pragma optimize("", on)
 		#endif
 
-		ibool Mapper117::Irq::Signal()
+		bool Mapper117::Irq::Clock()
 		{
 			return (enabled && count && !--count);
 		}
 
-		NES_POKE(Mapper117,C001)
+		NES_POKE_D(Mapper117,C001)
 		{
 			irq.Update();
 			irq.unit.latch = data;
@@ -125,15 +125,16 @@ namespace Nes
 			irq.unit.count = irq.unit.latch;
 		}
 
-		NES_POKE(Mapper117,E000)
+		NES_POKE_D(Mapper117,E000)
 		{
 			irq.Update();
 			irq.unit.enabled = data & 0x1;
 		}
 
-		void Mapper117::VSync()
+		void Mapper117::Sync(Event event,Input::Controllers*)
 		{
-			irq.VSync();
+			if (event == EVENT_END_FRAME)
+				irq.VSync();
 		}
 	}
 }

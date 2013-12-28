@@ -187,7 +187,7 @@ namespace Nestopia
 
 				void UnlockStream(void** data,uint* size) const
 				{
-					NST_ASSERT( data && com != NULL );
+					NST_ASSERT( data && com );
 					com->Unlock( data[0], size[0]*waveFormat.nBlockAlign, data[1], size[1]*waveFormat.nBlockAlign );
 				}
 
@@ -197,7 +197,7 @@ namespace Nestopia
 
 					return
 					(
-						com != NULL && SUCCEEDED(com->GetStatus( &status )) &&
+						com && SUCCEEDED(com->GetStatus( &status )) &&
 						(status & (DSBSTATUS_BUFFERLOST|DSBSTATUS_PLAYING|DSBSTATUS_LOOPING)) == (DSBSTATUS_PLAYING|DSBSTATUS_LOOPING)
 					);
 				}

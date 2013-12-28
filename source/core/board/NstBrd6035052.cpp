@@ -70,7 +70,7 @@ namespace Nes
 				return security;
 			}
 
-			NES_POKE(Unl6035052,4020)
+			NES_POKE_D(Unl6035052,4020)
 			{
 				security = data & 0x3;
 

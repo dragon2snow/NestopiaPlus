@@ -56,8 +56,7 @@ namespace Nes
 				{
 				public:
 
-					explicit Sound(Cpu&,bool=true);
-					~Sound();
+					explicit Sound(Apu&,bool=true);
 
 					void WriteSquareReg0 (uint,uint);
 					void WriteSquareReg1 (uint,uint);
@@ -72,7 +71,7 @@ namespace Nes
 				protected:
 
 					void Reset();
-					void UpdateContext(uint,const byte (&w)[MAX_CHANNELS]);
+					bool UpdateSettings();
 					Sample GetSample();
 
 				private:
@@ -95,19 +94,17 @@ namespace Nes
 					{
 					public:
 
-						Square();
-
 						void Reset();
 
-						NST_FORCE_INLINE dword GetSample(Cycle);
-						NST_FORCE_INLINE void WriteReg0(uint);
-						NST_FORCE_INLINE void WriteReg1(uint,dword);
-						NST_FORCE_INLINE void WriteReg2(uint,dword);
+						NST_SINGLE_CALL dword GetSample(Cycle);
+						NST_SINGLE_CALL void WriteReg0(uint);
+						NST_SINGLE_CALL void WriteReg1(uint,dword);
+						NST_SINGLE_CALL void WriteReg2(uint,dword);
 
 						void SaveState(State::Saver&,dword) const;
 						void LoadState(State::Loader&,uint);
 
-						void UpdateContext(uint);
+						void UpdateSettings(uint);
 
 					private:
 
@@ -115,18 +112,18 @@ namespace Nes
 
 						enum
 						{
-							VOLUME = Apu::OUTPUT_MUL * 2,
+							VOLUME = OUTPUT_MUL * 2,
 							MIN_FRQ = 0x04
 						};
 
 						enum
 						{
-							REG0_VOLUME          = b00001111,
-							REG0_DUTY            = b01110000,
-							REG0_DIGITIZED       = b10000000,
-							REG1_WAVELENGTH_LOW  = b11111111,
-							REG2_WAVELENGTH_HIGH = b00001111,
-							REG2_ENABLE          = b10000000,
+							REG0_VOLUME          = 0x0F,
+							REG0_DUTY            = 0x70,
+							REG0_DIGITIZED       = 0x80,
+							REG1_WAVELENGTH_LOW  = 0xFF,
+							REG2_WAVELENGTH_HIGH = 0x0F,
+							REG2_ENABLE          = 0x80,
 							REG0_DUTY_SHIFT      = 4
 						};
 
@@ -139,19 +136,17 @@ namespace Nes
 					{
 					public:
 
-						Saw();
-
 						void Reset();
 
-						NST_FORCE_INLINE dword GetSample(Cycle);
-						NST_FORCE_INLINE void WriteReg0(uint);
-						NST_FORCE_INLINE void WriteReg1(uint,dword);
-						NST_FORCE_INLINE void WriteReg2(uint,dword);
+						NST_SINGLE_CALL dword GetSample(Cycle);
+						NST_SINGLE_CALL void WriteReg0(uint);
+						NST_SINGLE_CALL void WriteReg1(uint,dword);
+						NST_SINGLE_CALL void WriteReg2(uint,dword);
 
 						void SaveState(State::Saver&,dword) const;
 						void LoadState(State::Loader&,uint);
 
-						void UpdateContext(uint);
+						void UpdateSettings(uint);
 
 					private:
 
@@ -159,28 +154,29 @@ namespace Nes
 
 						enum
 						{
-							VOLUME = Apu::OUTPUT_MUL * 2,
+							VOLUME = OUTPUT_MUL * 2,
 							MIN_FRQ = 0x4,
 							FRQ_SHIFT = 1
 						};
 
 						enum
 						{
-							REG0_PHASE           = b00111111,
-							REG1_WAVELENGTH_LOW  = b11111111,
-							REG2_WAVELENGTH_HIGH = b00001111,
-							REG2_ENABLE          = b10000000
+							REG0_PHASE           = 0x3F,
+							REG1_WAVELENGTH_LOW  = 0xFF,
+							REG2_WAVELENGTH_HIGH = 0x0F,
+							REG2_ENABLE          = 0x80
 						};
 
 						uint phase;
 						dword amp;
 					};
 
-					Apu& apu;
+					uint output;
+					Cycle rate;
+					uint fixed;
 					Square square[2];
 					Saw saw;
-					Apu::DcBlocker dcBlocker;
-					const ibool hooked;
+					DcBlocker dcBlocker;
 				};
 
 			private:
@@ -188,7 +184,7 @@ namespace Nes
 				void SubReset(bool);
 				void BaseSave(State::Saver&) const;
 				void BaseLoad(State::Loader&,dword);
-				void VSync();
+				void Sync(Event,Input::Controllers*);
 
 				NES_DECL_POKE( 9000 );
 				NES_DECL_POKE( 9001 );

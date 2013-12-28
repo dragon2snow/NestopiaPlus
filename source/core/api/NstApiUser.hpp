@@ -76,10 +76,7 @@ namespace Nes
 			{
 				EVENT_CPU_JAM = 1,
 				EVENT_DISPLAY_TIMER,
-				EVENT_TAPE_PLAYING,
-				EVENT_TAPE_RECORDING,
-				EVENT_TAPE_STOPPED,
-				EVENT_NONSTANDARD_DISK
+				EVENT_CPU_UNOFFICIAL_OPCODE
 			};
 
 			enum File
@@ -98,6 +95,14 @@ namespace Nes
 			enum Input
 			{
 				INPUT_CHOOSE_MAPPER = 1
+			};
+
+			enum
+			{
+				NUM_QUESTION_CALLBACKS = 2,
+				NUM_EVENT_CALLBACKS = 3,
+				NUM_FILE_CALLBACKS = 9,
+				NUM_INPUT_CALLBACKS = 1
 			};
 
 			typedef std::string String;

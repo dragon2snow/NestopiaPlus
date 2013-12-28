@@ -52,7 +52,7 @@ namespace Nes
 
 			NES_DECL_POKE( Prg );
 
-			uint nmt[2];
+			Ppu::Mirroring nmt[2];
 		};
 	}
 }

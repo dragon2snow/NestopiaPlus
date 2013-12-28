@@ -66,7 +66,7 @@ namespace Nestopia
 			winClass.hIconSm       = create.hIcon;
 
 			if (!RegisterClassEx( &winClass ))
-				throw Application::Exception( IDS_FAILED, _T("RegisterClassEx()") );
+				throw Application::Exception( IDS_ERR_FAILED, _T("RegisterClassEx()") );
 
 			className = create.className;
 
@@ -87,7 +87,7 @@ namespace Nestopia
 			);
 
 			if (!hWnd)
-				throw Application::Exception( IDS_FAILED, _T("CreateWindowEx()") );
+				throw Application::Exception( IDS_ERR_FAILED, _T("CreateWindowEx()") );
 		}
 
 		void Dynamic::Destroy()
@@ -111,7 +111,7 @@ namespace Nestopia
 			const LONG_PTR ptr = reinterpret_cast<LONG_PTR>( instances.Size() == 1 ? WndProcSingle : WndProcMulti );
 
 			if (!::SetWindowLongPtr( hWnd, GWLP_WNDPROC, ptr ))
-				throw Application::Exception( IDS_FAILED, _T("SetWindowLongPtr()") );
+				throw Application::Exception( IDS_ERR_FAILED, _T("SetWindowLongPtr()") );
 		}
 
 		ibool Dynamic::OnNcDestroy(Param&)

@@ -48,10 +48,9 @@ namespace Nes
 				{
 				public:
 
-					explicit Sound(Cpu&,bool=true);
-					~Sound();
+					explicit Sound(Apu&,bool=true);
 
-					void Poke_E000(uint);
+					void WriteReg(uint);
 
 					void LoadState(State::Loader&);
 					void SaveState(State::Saver&,dword) const;
@@ -59,7 +58,7 @@ namespace Nes
 				protected:
 
 					void Reset();
-					void UpdateContext(uint,const byte (&)[MAX_CHANNELS]);
+					bool UpdateSettings();
 					Sample GetSample();
 
 				private:
@@ -73,10 +72,8 @@ namespace Nes
 					{
 					public:
 
-						Envelope();
-
 						void Reset(uint);
-						void UpdateContext(uint);
+						void UpdateSettings(uint);
 						void SaveState(State::Saver&,dword) const;
 						void LoadState(State::Loader&,uint);
 
@@ -84,7 +81,7 @@ namespace Nes
 						void WriteReg1(uint,uint);
 						void WriteReg2(uint);
 
-						NST_FORCE_INLINE dword Clock(Cycle);
+						NST_SINGLE_CALL dword Clock(Cycle);
 
 					private:
 
@@ -105,16 +102,14 @@ namespace Nes
 					{
 					public:
 
-						Noise();
-
 						void Reset(uint);
-						void UpdateContext(uint);
+						void UpdateSettings(uint);
 						void SaveState(State::Saver&,dword) const;
 						void LoadState(State::Loader&,uint);
 
 						void WriteReg(uint,uint);
 
-						NST_FORCE_INLINE dword Clock(Cycle);
+						NST_SINGLE_CALL dword Clock(Cycle);
 
 					private:
 
@@ -131,10 +126,8 @@ namespace Nes
 					{
 					public:
 
-						Square();
-
 						void Reset(uint);
-						void UpdateContext(uint);
+						void UpdateSettings(uint);
 						void SaveState(State::Saver&,dword) const;
 						void LoadState(State::Loader&,uint);
 
@@ -143,7 +136,7 @@ namespace Nes
 						void WriteReg2(uint);
 						void WriteReg3(uint);
 
-						NST_FORCE_INLINE dword GetSample(Cycle,uint,uint);
+						NST_SINGLE_CALL dword GetSample(Cycle,uint,uint);
 
 					private:
 
@@ -158,20 +151,21 @@ namespace Nes
 						uint length;
 					};
 
-					Apu& apu;
-					uint regSelect;
 					ibool active;
+					uint output;
+					Cycle rate;
+					uint fixed;
+					uint regSelect;
 					Envelope envelope;
 					Noise noise;
 					Square squares[NUM_SQUARES];
-					Apu::DcBlocker dcBlocker;
-					const ibool hooked;
+					DcBlocker dcBlocker;
 
 					static const word levels[32];
 
 				public:
 
-					void Poke_C000(uint data)
+					void SelectReg(uint data)
 					{
 						regSelect = data;
 					}
@@ -190,7 +184,7 @@ namespace Nes
 				void BaseSave(State::Saver&) const;
 				void BaseLoad(State::Loader&,dword);
 				Device QueryDevice(DeviceType);
-				void VSync();
+				void Sync(Event,Input::Controllers*);
 
 				NES_DECL_POKE( 8000  );
 				NES_DECL_POKE( A000  );
@@ -200,14 +194,14 @@ namespace Nes
 				struct Irq
 				{
 					void Reset(bool);
-					ibool Signal();
+					bool Clock();
 
 					uint count;
 					ibool enabled;
 				};
 
 				uint command;
-				Clock::M2<Irq> irq;
+				ClockUnits::M2<Irq> irq;
 				Sound sound;
 				BarcodeWorld* const barcodeWorld;
 			};

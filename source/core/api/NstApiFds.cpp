@@ -38,8 +38,8 @@ namespace Nes
 		#pragma optimize("s", on)
 		#endif
 
-		Fds::DiskChange Fds::diskChangeCallback;
-		Fds::Lamp Fds::diskAccessLampCallback;
+		Fds::DiskCaller Fds::diskCallback;
+		Fds::DriveCaller Fds::driveCallback;
 
 		Fds::DiskData::File::File() throw()
 		:
@@ -79,7 +79,7 @@ namespace Nes
 		Result Fds::InsertDisk(uint disk,uint side) throw()
 		{
 			if (emulator.Is(Machine::DISK) && !emulator.tracker.IsLocked())
-				return emulator.tracker.Flush( static_cast<Core::Fds*>(emulator.image)->InsertDisk( disk, side ) );
+				return emulator.tracker.TryResync( static_cast<Core::Fds*>(emulator.image)->InsertDisk( disk, side ) );
 
 			return RESULT_ERR_NOT_READY;
 		}
@@ -89,7 +89,7 @@ namespace Nes
 			const int disk = GetCurrentDisk();
 
 			if (disk != NO_DISK)
-				return InsertDisk( disk, GetCurrentDiskSide() == 0 ? 1 : 0 );
+				return InsertDisk( disk, GetCurrentDiskSide() ^ 1 );
 
 			return RESULT_ERR_NOT_READY;
 		}
@@ -97,13 +97,16 @@ namespace Nes
 		Result Fds::EjectDisk() throw()
 		{
 			if (emulator.Is(Machine::DISK) && !emulator.tracker.IsLocked())
-				return emulator.tracker.Flush( static_cast<Core::Fds*>(emulator.image)->EjectDisk() );
+				return emulator.tracker.TryResync( static_cast<Core::Fds*>(emulator.image)->EjectDisk() );
 
 			return RESULT_ERR_NOT_READY;
 		}
 
 		Result Fds::SetBIOS(std::istream* const stdStream) throw()
 		{
+			if (emulator.Is(Machine::GAME,Machine::ON))
+				return RESULT_ERR_NOT_READY;
+
 			try
 			{
 				if (stdStream)

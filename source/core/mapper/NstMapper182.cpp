@@ -37,7 +37,7 @@ namespace Nes
 		Mapper182::Mapper182(Context& c)
 		:
 		Mapper (c,CROM_MAX_256K|WRAM_DEFAULT),
-		irq    (c.cpu,c.ppu)
+		irq    (c.cpu,c.ppu,false)
 		{}
 
 		void Mapper182::SubReset(const bool hard)
@@ -45,7 +45,7 @@ namespace Nes
 			if (hard)
 				command = 0;
 
-			irq.Reset( hard, hard || irq.IsLineEnabled() );
+			irq.Reset( hard, hard || irq.Connected() );
 
 			for (uint i=0x0000; i < 0x1000; i += 0x4)
 			{
@@ -87,12 +87,12 @@ namespace Nes
 		#pragma optimize("", on)
 		#endif
 
-		NES_POKE(Mapper182,A000)
+		NES_POKE_D(Mapper182,A000)
 		{
 			command = data;
 		}
 
-		NES_POKE(Mapper182,C000)
+		NES_POKE_D(Mapper182,C000)
 		{
 			ppu.Update();
 
@@ -109,7 +109,7 @@ namespace Nes
 			}
 		}
 
-		NES_POKE(Mapper182,E003)
+		NES_POKE_D(Mapper182,E003)
 		{
 			irq.Update();
 
@@ -126,9 +126,10 @@ namespace Nes
 			}
 		}
 
-		void Mapper182::VSync()
+		void Mapper182::Sync(Event event,Input::Controllers*)
 		{
-			irq.VSync();
+			if (event == EVENT_END_FRAME)
+				irq.VSync();
 		}
 	}
 }

@@ -81,7 +81,7 @@ namespace Nes
 		#pragma optimize("", on)
 		#endif
 
-		NES_POKE(Mapper114,5000)
+		NES_POKE_D(Mapper114,5000)
 		{
 			exRegs[0] = data;
 
@@ -96,7 +96,7 @@ namespace Nes
 			}
 		}
 
-		NES_POKE(Mapper114,A000)
+		NES_POKE_D(Mapper114,A000)
 		{
 			static const byte security[8] = {0,3,1,5,6,7,2,4};
 
@@ -106,7 +106,7 @@ namespace Nes
 			Mmc3::NES_DO_POKE(8000,0x8000,data);
 		}
 
-		NES_POKE(Mapper114,C000)
+		NES_POKE_D(Mapper114,C000)
 		{
 			if (exRegs[1] && ((exRegs[0] & 0x80) == 0 || (regs.ctrl0 & Regs::CTRL0_MODE) < 6))
 			{
@@ -115,7 +115,7 @@ namespace Nes
 			}
 		}
 
-		NES_POKE(Mapper114,E003)
+		NES_POKE_D(Mapper114,E003)
 		{
 			Mmc3::NES_DO_POKE(E001,0xE001,data);
 			Mmc3::NES_DO_POKE(C000,0xC000,data);

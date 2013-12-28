@@ -41,7 +41,7 @@ namespace Nes
 			trigger = 0x00;
 			security = 0x00;
 
-			ppu.SetSpHook( Hook(this,&Mapper163::Hook_Ppu) );
+			ppu.SetHBlankHook( Hook(this,&Mapper163::Hook_HBlank) );
 
 			for (uint i=0x5000; i < 0x6000; i += 0x800)
 			{
@@ -115,7 +115,7 @@ namespace Nes
 			return 0x4;
 		}
 
-		NES_POKE(Mapper163,5000)
+		NES_POKE_AD(Mapper163,5000)
 		{
 			regs[address >> 9 & 0x1] = data;
 			prg.SwapBank<SIZE_32K,0x0000>( (regs[0] & 0xFU) | (regs[1] << 4) );
@@ -134,22 +134,22 @@ namespace Nes
 			return security;
 		}
 
-		NES_POKE(Mapper163,5100)
+		NES_POKE_D(Mapper163,5100)
 		{
 			if (data == 0x6)
 				prg.SwapBank<SIZE_32K,0x0000>( 0x3 );
 		}
 
-		NES_POKE(Mapper163,5101)
+		NES_POKE_D(Mapper163,5101)
 		{
-			address = strobe;
+			const uint address = strobe;
 			strobe = data;
 
 			if (address && !data)
 				trigger ^= 0xFFU;
 		}
 
-		NES_POKE(Mapper163,5300)
+		NES_POKE_D(Mapper163,5300)
 		{
 			security = data;
 		}
@@ -159,7 +159,7 @@ namespace Nes
 			return security & trigger;
 		}
 
-		NES_HOOK(Mapper163,Ppu)
+		NES_HOOK(Mapper163,HBlank)
 		{
 			if ((regs[0] & 0x80U) && ppu.IsEnabled())
 			{

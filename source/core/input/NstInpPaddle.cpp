@@ -50,15 +50,15 @@ namespace Nes
 				button = 0;
 			}
 
-			void Paddle::SaveState(State::Saver& state,const byte id) const
+			void Paddle::SaveState(State::Saver& saver,const byte id) const
 			{
-				state.Begin( AsciiId<'P','L'>::R(0,0,id) ).Write8( shifter ^ 1 ).End();
+				saver.Begin( AsciiId<'P','L'>::R(0,0,id) ).Write8( shifter ^ 1 ).End();
 			}
 
-			void Paddle::LoadState(State::Loader& state,const dword id)
+			void Paddle::LoadState(State::Loader& loader,const dword id)
 			{
 				if (id == AsciiId<'P','L'>::V)
-					shifter = ~state.Read8() & 0x1;
+					shifter = ~loader.Read8() & 0x1;
 			}
 
 			#ifdef NST_MSVC_OPTIMIZE
@@ -99,7 +99,7 @@ namespace Nes
 
 						if (Controllers::Paddle::callback( paddle ))
 						{
-							data = 0xFF - ((82 + 172 * (NST_CLAMP(paddle.x,32,176) - 32) / 144) & 0xFF);
+							data = 0xFF - ((82 + 172 * (Clamp<32,176>(paddle.x) - 32U) / 144) & 0xFF);
 
 							x =
 							(

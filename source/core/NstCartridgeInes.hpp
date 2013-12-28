@@ -37,6 +37,8 @@ namespace Nes
 
 		class Cartridge::Ines
 		{
+			typedef Api::Cartridge Ref;
+
 		public:
 
 			Ines
@@ -45,7 +47,7 @@ namespace Nes
 				Ram&,
 				Ram&,
 				Ram&,
-				Api::Cartridge::Info&,
+				Ref::Info&,
 				const ImageDatabase*,
 				ImageDatabase::Handle&
 			);
@@ -57,8 +59,8 @@ namespace Nes
 				TRAINER_LENGTH = 0x0200
 			};
 
-			static Result ReadHeader(Api::Cartridge::Setup&,const byte*,ulong);
-			static Result WriteHeader(const Api::Cartridge::Setup&,byte*,ulong);
+			static Result ReadHeader(Ref::Setup&,const byte*,ulong);
+			static Result WriteHeader(const Ref::Setup&,byte*,ulong);
 
 			static ImageDatabase::Handle SearchDatabase(const ImageDatabase&,const byte*,ulong);
 
@@ -84,7 +86,7 @@ namespace Nes
 			Ram& chr;
 			Ram& wrk;
 
-			Api::Cartridge::Info& info;
+			Ref::Info& info;
 
 			const ImageDatabase* const database;
 			ImageDatabase::Handle& databaseHandle;

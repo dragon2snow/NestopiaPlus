@@ -66,9 +66,9 @@ namespace Nes
 			{
 				enum
 				{
-					CTRL_CROM      = b00010000,
-					CTRL_MIRRORING = b00000011,
-					BANK_OFFSET    = b10000000
+					CTRL_MIRRORING = 0x03,
+					CTRL_CROM      = 0x10,
+					BANK_OFFSET    = 0x80
 				};
 
 				uint ctrl;

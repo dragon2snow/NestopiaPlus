@@ -35,10 +35,7 @@ namespace Nes
 			#pragma optimize("s", on)
 			#endif
 
-			Mmc3::Irq::Irq(Cpu& cpu,Ppu& ppu,IrqDelay delay,bool persistant)
-			: Clock::A12<BaseIrq>(cpu,ppu,SIGNAL_DURATION,delay,persistant) {}
-
-			uint Mmc3::BoardToWRam(Board board,uint settings)
+			dword Mmc3::BoardToWRam(Board board,dword settings)
 			{
 				switch (board)
 				{
@@ -48,19 +45,20 @@ namespace Nes
 
 					case BRD_TKROM:
 					case BRD_TSROM:
+					case BRD_TNROM:
 
-						return (settings & ~uint(WRAM_SETTINGS)) | WRAM_8K;
+						return (settings & ~dword(WRAM_SETTINGS)) | WRAM_8K;
 
 					default:
 
-						return (settings & ~uint(WRAM_SETTINGS)) | WRAM_NONE;
+						return (settings & ~dword(WRAM_SETTINGS)) | WRAM_NONE;
 				}
 			}
 
-			Mmc3::Mmc3(Context& c,Board b,uint settings,Revision revision)
+			Mmc3::Mmc3(Context& c,Board b,dword settings,Revision revision)
 			:
 			Mapper (c,BoardToWRam(b,settings)),
-			irq    (c.cpu,c.ppu,Irq::NO_IRQ_DELAY,revision != REV_A)
+			irq    (c.cpu,c.ppu,revision != REV_A)
 			{
 			}
 
@@ -105,7 +103,7 @@ namespace Nes
 					wrk.Source().SetSecurity( false, false );
 				}
 
-				irq.Reset( hard, hard || irq.IsLineEnabled() );
+				irq.Reset( hard, hard || irq.Connected() );
 
 				for (uint i=0x0000; i < 0x2000; i += 0x2)
 				{
@@ -141,7 +139,7 @@ namespace Nes
 				latch = data[2];
 			}
 
-			void Mmc3::BaseIrq::SaveState(State::Saver& state,const dword id) const
+			void Mmc3::BaseIrq::SaveState(State::Saver& state,const dword chunk) const
 			{
 				const byte data[3] =
 				{
@@ -150,14 +148,14 @@ namespace Nes
 					latch
 				};
 
-				state.Begin( id ).Write( data ).End();
+				state.Begin( chunk ).Write( data ).End();
 			}
 
-			void Mmc3::BaseLoad(State::Loader& state,const dword id)
+			void Mmc3::BaseLoad(State::Loader& state,const dword baseChunk)
 			{
-				NST_VERIFY( id == (AsciiId<'M','M','3'>::V) );
+				NST_VERIFY( baseChunk == (AsciiId<'M','M','3'>::V) );
 
-				if (id == AsciiId<'M','M','3'>::V)
+				if (baseChunk == AsciiId<'M','M','3'>::V)
 				{
 					while (const dword chunk = state.Begin())
 					{
@@ -227,7 +225,7 @@ namespace Nes
 			#pragma optimize("", on)
 			#endif
 
-			NES_POKE(Mmc3,8000)
+			NES_POKE_D(Mmc3,8000)
 			{
 				const uint diff = regs.ctrl0 ^ data;
 				regs.ctrl0 = data;
@@ -239,9 +237,9 @@ namespace Nes
 					UpdateChr();
 			}
 
-			NES_POKE(Mmc3,8001)
+			NES_POKE_D(Mmc3,8001)
 			{
-				address = regs.ctrl0 & Regs::CTRL0_MODE;
+				const uint address = regs.ctrl0 & Regs::CTRL0_MODE;
 
 				if (address < 6)
 				{
@@ -264,7 +262,7 @@ namespace Nes
 				}
 			}
 
-			NES_POKE(Mmc3,A001)
+			NES_POKE_D(Mmc3,A001)
 			{
 				regs.ctrl1 = data;
 
@@ -275,7 +273,7 @@ namespace Nes
 				);
 			}
 
-			NES_POKE(Mmc3,C000)
+			NES_POKE_D(Mmc3,C000)
 			{
 				irq.Update();
 				irq.unit.SetLatch( data );
@@ -316,9 +314,10 @@ namespace Nes
 				chr.SwapBanks<SIZE_1K>( 0x1000 ^ swap, banks.chr[2], banks.chr[3], banks.chr[4], banks.chr[5] );
 			}
 
-			void Mmc3::VSync()
+			void Mmc3::Sync(Event event,Input::Controllers*)
 			{
-				irq.VSync();
+				if (event == EVENT_END_FRAME)
+					irq.VSync();
 			}
 		}
 	}

@@ -50,6 +50,8 @@ namespace Nes
 
 			NES_DECL_POKE( Prg );
 			NES_DECL_ACCESSOR( Chr );
+
+			uint openBus;
 		};
 	}
 }

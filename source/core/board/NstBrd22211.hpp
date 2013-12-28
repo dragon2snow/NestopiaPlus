@@ -46,7 +46,7 @@ namespace Nes
 					TYPE_SECURITY_2
 				};
 
-				explicit Unl22211(Context&,Type);
+				Unl22211(Context&,Type);
 				~Unl22211() {}
 
 			private:

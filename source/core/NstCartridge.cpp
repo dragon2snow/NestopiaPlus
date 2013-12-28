@@ -30,7 +30,6 @@
 #include "NstCartridge.hpp"
 #include "NstCartridgeInes.hpp"
 #include "NstCartridgeUnif.hpp"
-#include "mapper/NstMapper188.hpp"
 #include "vssystem/NstVsSystem.hpp"
 #include "NstPrpTurboFile.hpp"
 #include "NstPrpDataRecorder.hpp"
@@ -51,6 +50,25 @@ namespace Nes
 		turboFile    (NULL),
 		dataRecorder (NULL)
 		{
+			NST_COMPILE_ASSERT
+			(
+				Revision::PPU_RP2C02      - Api::Cartridge::PPU_RP2C02      == 0 &&
+				Revision::PPU_RP2C03B     - Api::Cartridge::PPU_RP2C03B     == 0 &&
+				Revision::PPU_RP2C03G     - Api::Cartridge::PPU_RP2C03G     == 0 &&
+				Revision::PPU_RP2C04_0001 - Api::Cartridge::PPU_RP2C04_0001 == 0 &&
+				Revision::PPU_RP2C04_0002 - Api::Cartridge::PPU_RP2C04_0002 == 0 &&
+				Revision::PPU_RP2C04_0003 - Api::Cartridge::PPU_RP2C04_0003 == 0 &&
+				Revision::PPU_RP2C04_0004 - Api::Cartridge::PPU_RP2C04_0004 == 0 &&
+				Revision::PPU_RC2C03B     - Api::Cartridge::PPU_RC2C03B     == 0 &&
+				Revision::PPU_RC2C03C     - Api::Cartridge::PPU_RC2C03C     == 0 &&
+				Revision::PPU_RC2C05_01   - Api::Cartridge::PPU_RC2C05_01   == 0 &&
+				Revision::PPU_RC2C05_02   - Api::Cartridge::PPU_RC2C05_02   == 0 &&
+				Revision::PPU_RC2C05_03   - Api::Cartridge::PPU_RC2C05_03   == 0 &&
+				Revision::PPU_RC2C05_04   - Api::Cartridge::PPU_RC2C05_04   == 0 &&
+				Revision::PPU_RC2C05_05   - Api::Cartridge::PPU_RC2C05_05   == 0 &&
+				Revision::PPU_RP2C07      - Api::Cartridge::PPU_RP2C07      == 0
+			);
+
 			try
 			{
 				ImageDatabase::Handle databaseHandle = NULL;
@@ -92,6 +110,7 @@ namespace Nes
 				(
 					info.setup.mapper,
 					context.cpu,
+					context.apu,
 					context.ppu,
 					prg,
 					chr,
@@ -133,13 +152,13 @@ namespace Nes
 					info.crc = Crc32::Compute( chr.Mem(), chr.Size(), info.crc );
 				}
 
-				if (info.setup.system == SYSTEM_VS)
+				if (info.setup.system == Api::Cartridge::SYSTEM_VS)
 				{
 					vs = VsSystem::Create
 					(
 						context.cpu,
 						context.ppu,
-						info.setup.ppu,
+						static_cast<Revision::Ppu>(info.setup.ppu),
 						info.setup.security == 1 ? VsSystem::MODE_RBI :
 						info.setup.security == 2 ? VsSystem::MODE_TKO :
 						info.setup.security == 3 ? VsSystem::MODE_XEV :
@@ -148,12 +167,15 @@ namespace Nes
 						info.setup.version == 0 || (context.database && context.database->Enabled())
 					);
 
-					info.setup.ppu = vs->GetPpuType();
+					info.setup.ppu = static_cast<Api::Cartridge::Ppu>(vs->GetPpuRevion());
 				}
-				else if (info.setup.system == SYSTEM_HOME)
+				else if (info.setup.system == Api::Cartridge::SYSTEM_HOME)
 				{
 					dataRecorder = new Peripherals::DataRecorder(context.cpu);
 				}
+
+				if (Cartridge::QueryExternalDevice( EXT_DIP_SWITCHES ))
+					Log::Flush( "Cartridge: DIP Switches present" NST_LINEBREAK );
 			}
 			catch (...)
 			{
@@ -186,9 +208,9 @@ namespace Nes
 			return info.adapter;
 		}
 
-		Cartridge::ExternalDevice Cartridge::QueryExternalDevice(ExternalDeviceType type)
+		Cartridge::ExternalDevice Cartridge::QueryExternalDevice(ExternalDeviceType deviceType)
 		{
-			switch (type)
+			switch (deviceType)
 			{
 				case EXT_TURBO_FILE:
 					return turboFile;
@@ -207,7 +229,7 @@ namespace Nes
 					return mapper->QueryDevice( Mapper::DEVICE_BARCODE_READER );
 
 				default:
-					return Image::QueryExternalDevice( type );
+					return Image::QueryExternalDevice( deviceType );
 			}
 		}
 
@@ -352,12 +374,12 @@ namespace Nes
 				dataRecorder->Reset();
 		}
 
-		bool Cartridge::PowerOff() const
+		bool Cartridge::PowerOff()
 		{
 			try
 			{
 				if (mapper)
-					mapper->PowerOff();
+					mapper->Sync( Mapper::EVENT_POWER_OFF, NULL );
 
 				wrk.Save( info );
 
@@ -375,9 +397,9 @@ namespace Nes
 			}
 		}
 
-		void Cartridge::SaveState(State::Saver& state,const dword id) const
+		void Cartridge::SaveState(State::Saver& state,const dword baseChunk) const
 		{
-			state.Begin( id );
+			state.Begin( baseChunk );
 
 			mapper->SaveState( state, AsciiId<'M','P','R'>::V );
 
@@ -477,17 +499,17 @@ namespace Nes
 				file.Save( File::SAVE_BATTERY, Mem(), info.setup.wrkRamBacked );
 		}
 
-		PpuType Cartridge::QueryPpu(bool yuvConversion)
+		Revision::Ppu Cartridge::QueryPpu(bool yuvConversion)
 		{
 			if (vs)
 				vs->EnableYuvConversion( yuvConversion );
 
-			return info.setup.ppu;
+			return static_cast<Revision::Ppu>(info.setup.ppu);
 		}
 
-		Mode Cartridge::GetMode() const
+		Region::Type Cartridge::GetRegion() const
 		{
-			return info.setup.region == REGION_PAL ? MODE_PAL : MODE_NTSC;
+			return info.setup.region == Api::Cartridge::REGION_PAL ? Region::PAL : Region::NTSC;
 		}
 
 		#ifdef NST_MSVC_OPTIMIZE
@@ -496,8 +518,7 @@ namespace Nes
 
 		void Cartridge::BeginFrame(const Api::Input& input,Input::Controllers* controllers)
 		{
-			if (info.setup.mapper == 188)
-				static_cast<Mapper188*>(mapper)->BeginFrame( controllers );
+			mapper->Sync( Mapper::EVENT_BEGIN_FRAME, controllers );
 
 			if (vs)
 				vs->BeginFrame( input, controllers );
@@ -505,7 +526,7 @@ namespace Nes
 
 		void Cartridge::VSync()
 		{
-			mapper->VSync();
+			mapper->Sync( Mapper::EVENT_END_FRAME, NULL );
 
 			if (vs)
 				vs->VSync();

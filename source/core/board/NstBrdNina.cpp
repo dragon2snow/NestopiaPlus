@@ -41,10 +41,13 @@ namespace Nes
 			type   (t)
 			{}
 
-			void Nina::SubReset(bool)
+			void Nina::SubReset(const bool hard)
 			{
 				for (uint i=0x4100; i < 0x6000; i += 0x200)
 					Map( i+0x00, i+0xFF, type == TYPE_003_006_STD ? &Nina::Poke_4100 : &Nina::Poke_4100_Nmt );
+
+				if (hard)
+					Update(0);
 			}
 
 			#ifdef NST_MSVC_OPTIMIZE
@@ -57,13 +60,13 @@ namespace Nes
 				chr.SwapBank<SIZE_8K,0x0000>( (data >> 3 & 0x8) | (data & 0x7) );
 			}
 
-			NES_POKE(Nina,4100)
+			NES_POKE_D(Nina,4100)
 			{
 				ppu.Update();
 				Update( data );
 			}
 
-			NES_POKE(Nina,4100_Nmt)
+			NES_POKE_D(Nina,4100_Nmt)
 			{
 				ppu.SetMirroring( (data & 0x80) ? Ppu::NMT_VERTICAL : Ppu::NMT_HORIZONTAL );
 				Update( data );

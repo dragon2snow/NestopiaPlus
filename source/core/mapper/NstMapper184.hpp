@@ -46,7 +46,7 @@ namespace Nes
 
 			void SubReset(bool);
 
-			NES_DECL_POKE( Prg );
+			NES_DECL_POKE( 6000 );
 		};
 	}
 }

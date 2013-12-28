@@ -46,7 +46,7 @@ namespace Nes
 			void SubReset(bool);
 			void SubSave(State::Saver&) const;
 			void SubLoad(State::Loader&);
-			void VSync();
+			void Sync(Event,Input::Controllers*);
 
 			template<uint MASK,uint SHIFT>
 			void SwapChr(uint,uint) const;

@@ -48,17 +48,17 @@ namespace Nes
 				state = 0x55FFUL << 3;
 			}
 
-			void PowerPad::SaveState(State::Saver& state,const byte id) const
+			void PowerPad::SaveState(State::Saver& saver,const byte id) const
 			{
-				state.Begin( AsciiId<'P','P'>::R(0,0,id) ).Write8( shifter >> 1 ^ 0x1 ).Write16( stream >> 3 ^ 0x55FFU ).End();
+				saver.Begin( AsciiId<'P','P'>::R(0,0,id) ).Write8( shifter >> 1 ^ 0x1 ).Write16( stream >> 3 ^ 0x55FFU ).End();
 			}
 
-			void PowerPad::LoadState(State::Loader& state,const dword id)
+			void PowerPad::LoadState(State::Loader& loader,const dword id)
 			{
 				if (id == AsciiId<'P','P'>::V)
 				{
-					shifter = (~state.Read8() & 0x1) << 1;
-					stream = ((state.Read16() & 0x55FFUL) ^ 0x55FFUL) << 3;
+					shifter = (~loader.Read8() & 0x1) << 1;
+					stream = ((loader.Read16() & 0x55FFUL) ^ 0x55FFUL) << 3;
 				}
 			}
 

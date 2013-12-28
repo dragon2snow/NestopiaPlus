@@ -102,7 +102,7 @@ namespace Nestopia
 		dialog    (IDD_LAUNCHER_COLUMNS,this,Handlers::messages,Handlers::commands)
 		{
 			for (uint i=0; i < NUM_TYPES; ++i)
-				available[i] = Types::Item(i);
+				available[i] = i;
 
 			selected.Reserve( NUM_TYPES );
 
@@ -134,10 +134,10 @@ namespace Nestopia
 			available.Resize( NUM_DEFAULT_AVAILABLE_TYPES );
 
 			for (uint i=0; i < NUM_DEFAULT_SELECTED_TYPES; ++i)
-				selected[i] = Types::Item(i);
+				selected[i] = i;
 
 			for (uint i=0; i < NUM_DEFAULT_AVAILABLE_TYPES; ++i)
-				available[i] = Types::Item(NUM_DEFAULT_SELECTED_TYPES+i);
+				available[i] = NUM_DEFAULT_SELECTED_TYPES + i;
 		}
 
 		void Launcher::List::Columns::Update(const uchar* const order)
@@ -157,7 +157,7 @@ namespace Nestopia
 
 			dialog.Control(IDC_LAUNCHER_COLUMNSELECT_REMOVE).Enable
 			(
-				list.Size() > 1 && list.Selection().Valid()
+				list.Size() > 1 && list.Selection()
 			);
 		}
 
@@ -165,7 +165,7 @@ namespace Nestopia
 		{
 			dialog.Control(IDC_LAUNCHER_COLUMNSELECT_ADD).Enable
 			(
-				dialog.ListBox(IDC_LAUNCHER_COLUMNSELECT_AVAILABLE).Selection().Valid()
+				dialog.ListBox(IDC_LAUNCHER_COLUMNSELECT_AVAILABLE).Selection()
 			);
 		}
 
@@ -273,7 +273,7 @@ namespace Nestopia
 						{
 							if (text == Resource::String( IDS_LAUNCHER_COLUMN_FILE + k))
 							{
-								types[j] = (Types::Item) k;
+								types[j] = k;
 								break;
 							}
 						}

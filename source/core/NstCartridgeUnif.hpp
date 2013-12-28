@@ -35,6 +35,8 @@ namespace Nes
 	{
 		class Cartridge::Unif
 		{
+			typedef Api::Cartridge Ref;
+
 		public:
 
 			Unif
@@ -43,7 +45,7 @@ namespace Nes
 				Ram&,
 				Ram&,
 				Ram&,
-				Api::Cartridge::Info&,
+				Ref::Info&,
 				const ImageDatabase*,
 				ImageDatabase::Handle&
 			);
@@ -108,10 +110,10 @@ namespace Nes
 			Stream::In stream;
 			Ram& prg;
 			Ram& chr;
-			Api::Cartridge::Info& info;
+			Ref::Info& info;
 			Rom roms[2][16];
-			ibool knownBoard;
 			Result result;
+			bool knownBoard;
 
 		public:
 

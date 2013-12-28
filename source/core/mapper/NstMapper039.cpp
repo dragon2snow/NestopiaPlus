@@ -33,9 +33,12 @@ namespace Nes
 		#pragma optimize("s", on)
 		#endif
 
-		void Mapper39::SubReset(bool)
+		void Mapper39::SubReset(const bool hard)
 		{
 			Map( 0x8000U, 0xFFFFU, PRG_SWAP_32K );
+
+			if (hard)
+				prg.SwapBank<SIZE_32K,0x0000>(0);
 		}
 
 		#ifdef NST_MSVC_OPTIMIZE

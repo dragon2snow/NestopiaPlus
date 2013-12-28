@@ -42,35 +42,32 @@ namespace Nes
 				struct Irq
 				{
 					void Reset(bool);
-					ibool Signal();
+					bool Clock();
 
 					uint count;
 				};
 
-				Clock::M2<Irq> irq;
+				ClockUnits::M2<Irq> irq;
 				Sound sound;
 
-				explicit Chips(Cpu& cpu)
-				: irq(cpu), sound(cpu) {}
+				Chips(Cpu& c,Apu& a)
+				: irq(c), sound(a) {}
 			};
 
-			N106::Sound::Sound(Cpu& c,bool hook)
-			: apu(c.GetApu()), hooked(hook)
+			N106::Sound::Sound(Apu& a,bool connect)
+			: Channel(a)
 			{
-				if (hook)
-					apu.HookChannel( this );
-			}
+				Reset();
+				bool audible = UpdateSettings();
 
-			N106::Sound::~Sound()
-			{
-				if (hooked)
-					apu.ReleaseChannel();
+				if (connect)
+					Connect( audible );
 			}
 
 			N106::N106(Context& c,const Type type)
 			:
 			Mapper (c,PROM_MAX_512K|CROM_MAX_256K|CRAM_8K),
-			chips  (type == TYPE_ADD_ONS ? new Chips(c.cpu) : NULL)
+			chips  (type == TYPE_ADD_ONS ? new Chips(c.cpu,c.apu) : NULL)
 			{
 			}
 
@@ -93,17 +90,13 @@ namespace Nes
 
 			void N106::Sound::Reset()
 			{
-				Apu::Channel::Reset();
-
 				exAddress = 0x00;
 				exIncrease = 0x01;
 				startChannel = NUM_CHANNELS;
 				frequency = 0;
 
-				for (uint i=0; i < 0x100; ++i)
-					wave[i] = 0;
-
-				std::memset( exRam, 0x00, sizeof(exRam) );
+				std::memset( wave, 0, sizeof(wave) );
+				std::memset( exRam, 0, sizeof(exRam) );
 
 				for (uint i=0; i < NUM_CHANNELS; ++i)
 					channels[i].Reset();
@@ -139,7 +132,7 @@ namespace Nes
 
 				if (chips)
 				{
-					chips->irq.Reset( hard, hard || chips->irq.IsLineEnabled() );
+					chips->irq.Reset( hard, hard || chips->irq.Connected() );
 
 					Map( 0x4800U, 0x4FFFU, &N106::Peek_4800, &N106::Poke_4800 );
 					Map( 0x5000U, 0x57FFU, &N106::Peek_5000, &N106::Poke_5000 );
@@ -152,9 +145,9 @@ namespace Nes
 				}
 			}
 
-			void N106::Sound::SaveState(State::Saver& state,const dword id) const
+			void N106::Sound::SaveState(State::Saver& state,const dword baseChunk) const
 			{
-				state.Begin( id );
+				state.Begin( baseChunk );
 				state.Begin( AsciiId<'R','E','G'>::V ).Write8( exAddress | (exIncrease << 7) ).End();
 				state.Begin( AsciiId<'R','A','M'>::V ).Compress( exRam ).End();
 				state.End();
@@ -206,11 +199,11 @@ namespace Nes
 				}
 			}
 
-			void N106::BaseLoad(State::Loader& state,const dword id)
+			void N106::BaseLoad(State::Loader& state,const dword baseChunk)
 			{
-				NST_VERIFY( id == (AsciiId<'N','M','6'>::V) );
+				NST_VERIFY( baseChunk == (AsciiId<'N','M','6'>::V) );
 
-				if (id == AsciiId<'N','M','6'>::V)
+				if (baseChunk == AsciiId<'N','M','6'>::V)
 				{
 					while (const dword chunk = state.Begin())
 					{
@@ -272,7 +265,7 @@ namespace Nes
 			#pragma optimize("", on)
 			#endif
 
-			ibool N106::Chips::Irq::Signal()
+			bool N106::Chips::Irq::Clock()
 			{
 				return (count - 0x8000 < 0x7FFF) && (++count == 0xFFFF);
 			}
@@ -337,14 +330,14 @@ namespace Nes
 
 			N106::Sound::Sample N106::Sound::GetSample()
 			{
-				if (outputVolume)
+				if (output)
 				{
 					dword sample = 0;
 
 					for (BaseChannel* channel = channels+startChannel; channel != channels+NUM_CHANNELS; ++channel)
 						sample += channel->GetSample( rate, frequency, wave );
 
-					return dcBlocker.Apply( sample * outputVolume / DEFAULT_VOLUME );
+					return dcBlocker.Apply( sample * output / DEFAULT_VOLUME );
 				}
 				else
 				{
@@ -352,17 +345,19 @@ namespace Nes
 				}
 			}
 
-			void N106::Sound::UpdateContext(uint,const byte (&outputLevels)[MAX_CHANNELS])
+			bool N106::Sound::UpdateSettings()
 			{
-				outputVolume = outputLevels[Apu::CHANNEL_N106] * 68U / DEFAULT_VOLUME;
+				output = GetVolume(EXT_N106) * 68U / DEFAULT_VOLUME;
 
 				rate =
 				(
-					qword(mode == MODE_NTSC ? Cpu::MC_NTSC : Cpu::MC_PAL) * (1UL << SPEED_SHIFT) /
-					(apu.GetSampleRate() * 45UL * (mode == MODE_NTSC ? Cpu::CLK_NTSC_DIV : Cpu::CLK_PAL_DIV))
+					qword(GetRegion() == Region::NTSC ? Clocks::NTSC_CLK : Clocks::PAL_CLK) * (1UL << SPEED_SHIFT) /
+					(GetSampleRate() * 45UL * (GetRegion() == Region::NTSC ? Clocks::NTSC_DIV : Clocks::PAL_DIV))
 				);
 
 				dcBlocker.Reset();
+
+				return output;
 			}
 
 			inline void N106::Sound::SetChannelState(uint data)
@@ -391,7 +386,7 @@ namespace Nes
 				wave[index+1] = (data >>  4) << 2;
 			}
 
-			uint N106::Sound::Peek_4800()
+			uint N106::Sound::ReadData()
 			{
 				const uint data = exRam[exAddress];
 				exAddress = (exAddress + exIncrease) & 0x7F;
@@ -400,12 +395,12 @@ namespace Nes
 
 			NES_PEEK(N106,4800)
 			{
-				return chips->sound.Peek_4800();
+				return chips->sound.ReadData();
 			}
 
-			void N106::Sound::Poke_4800(const uint data)
+			void N106::Sound::WriteData(const uint data)
 			{
-				apu.Update();
+				Update();
 
 				WriteWave( data );
 				exRam[exAddress] = data;
@@ -447,9 +442,9 @@ namespace Nes
 				exAddress = (exAddress + exIncrease) & 0x7F;
 			}
 
-			NES_POKE(N106,4800)
+			NES_POKE_D(N106,4800)
 			{
-				chips->sound.Poke_4800( data );
+				chips->sound.WriteData( data );
 			}
 
 			NES_PEEK(N106,5000)
@@ -458,7 +453,7 @@ namespace Nes
 				return chips->irq.unit.count & 0xFF;
 			}
 
-			NES_POKE(N106,5000)
+			NES_POKE_D(N106,5000)
 			{
 				chips->irq.Update();
 				chips->irq.unit.count = (chips->irq.unit.count & 0xFF00) | data;
@@ -471,27 +466,27 @@ namespace Nes
 				return chips->irq.unit.count >> 8;
 			}
 
-			NES_POKE(N106,5800)
+			NES_POKE_D(N106,5800)
 			{
 				chips->irq.Update();
 				chips->irq.unit.count = (chips->irq.unit.count & 0x00FF) | (data << 8);
 				chips->irq.ClearIRQ();
 			}
 
-			void N106::SwapChr(const uint address,const uint data,uint reg) const
+			void N106::SwapChr(const uint address,const uint data,uint chrBits) const
 			{
 				ppu.Update();
-				chr.Source( data >= 0xE0 && reg == 0x00 ).SwapBank<SIZE_1K>( address, data );
+				chr.Source( data >= 0xE0 && chrBits == 0x00 ).SwapBank<SIZE_1K>( address, data );
 			}
 
-			NES_POKE(N106,8000) { SwapChr( 0x0000, data, reg & 0x40 ); }
-			NES_POKE(N106,8800) { SwapChr( 0x0400, data, reg & 0x40 ); }
-			NES_POKE(N106,9000) { SwapChr( 0x0800, data, reg & 0x40 ); }
-			NES_POKE(N106,9800) { SwapChr( 0x0C00, data, reg & 0x40 ); }
-			NES_POKE(N106,A000) { SwapChr( 0x1000, data, reg & 0x80 ); }
-			NES_POKE(N106,A800) { SwapChr( 0x1400, data, reg & 0x80 ); }
-			NES_POKE(N106,B000) { SwapChr( 0x1800, data, reg & 0x80 ); }
-			NES_POKE(N106,B800) { SwapChr( 0x1C00, data, reg & 0x80 ); }
+			NES_POKE_D(N106,8000) { SwapChr( 0x0000, data, reg & 0x40 ); }
+			NES_POKE_D(N106,8800) { SwapChr( 0x0400, data, reg & 0x40 ); }
+			NES_POKE_D(N106,9000) { SwapChr( 0x0800, data, reg & 0x40 ); }
+			NES_POKE_D(N106,9800) { SwapChr( 0x0C00, data, reg & 0x40 ); }
+			NES_POKE_D(N106,A000) { SwapChr( 0x1000, data, reg & 0x80 ); }
+			NES_POKE_D(N106,A800) { SwapChr( 0x1400, data, reg & 0x80 ); }
+			NES_POKE_D(N106,B000) { SwapChr( 0x1800, data, reg & 0x80 ); }
+			NES_POKE_D(N106,B800) { SwapChr( 0x1C00, data, reg & 0x80 ); }
 
 			void N106::SwapNmt(const uint address,const uint data) const
 			{
@@ -499,28 +494,28 @@ namespace Nes
 				nmt.Source( data < 0xE0 ).SwapBank<SIZE_1K>( address, data & (data >= 0xE0 ? 0x01 : 0xFF) );
 			}
 
-			NES_POKE(N106,C000) { SwapNmt( 0x0000, data ); }
-			NES_POKE(N106,C800) { SwapNmt( 0x0400, data ); }
-			NES_POKE(N106,D000) { SwapNmt( 0x0800, data ); }
-			NES_POKE(N106,D800) { SwapNmt( 0x0C00, data ); }
+			NES_POKE_D(N106,C000) { SwapNmt( 0x0000, data ); }
+			NES_POKE_D(N106,C800) { SwapNmt( 0x0400, data ); }
+			NES_POKE_D(N106,D000) { SwapNmt( 0x0800, data ); }
+			NES_POKE_D(N106,D800) { SwapNmt( 0x0C00, data ); }
 
-			NES_POKE(N106,E000)
+			NES_POKE_D(N106,E000)
 			{
 				prg.SwapBank<SIZE_8K,0x0000>( data );
 			}
 
-			NES_POKE(N106,E800)
+			NES_POKE_D(N106,E800)
 			{
 				reg = data;
 				prg.SwapBank<SIZE_8K,0x2000>( data );
 			}
 
-			NES_POKE(N106,F000)
+			NES_POKE_D(N106,F000)
 			{
 				prg.SwapBank<SIZE_8K,0x4000>( data );
 			}
 
-			void N106::Sound::Poke_F800(const uint data)
+			void N106::Sound::WriteAddress(const uint data)
 			{
 				NST_COMPILE_ASSERT( EXRAM_INC == 0x80 );
 
@@ -528,15 +523,18 @@ namespace Nes
 				exIncrease = data >> 7;
 			}
 
-			NES_POKE(N106,F800)
+			NES_POKE_D(N106,F800)
 			{
-				chips->sound.Poke_F800( data );
+				chips->sound.WriteAddress( data );
 			}
 
-			void N106::VSync()
+			void N106::Sync(Event event,Input::Controllers*)
 			{
-				if (chips)
-					chips->irq.VSync();
+				if (event == EVENT_END_FRAME)
+				{
+					if (chips)
+						chips->irq.VSync();
+				}
 			}
 		}
 	}

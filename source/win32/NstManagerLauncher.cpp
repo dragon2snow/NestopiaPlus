@@ -30,16 +30,16 @@
 #include "NstManager.hpp"
 #include "NstDialogLauncher.hpp"
 #include "NstManagerLauncher.hpp"
-#include "../core/api/NstApiCartridge.hpp"
 
 namespace Nestopia
 {
 	namespace Managers
 	{
-		Launcher::Launcher(Emulator& e,const Configuration& cfg,Window::Menu& m,const Paths& paths,Window::Custom& window)
+		Launcher::Launcher(Emulator& e,const Configuration& cfg,Window::Menu& m,const Paths& paths,Window::Custom& w)
 		:
-		Manager    ( e, m, this, &Launcher::OnEmuEvent ),
+		Manager    ( e, m, this, &Launcher::OnEmuEvent, IDM_FILE_LAUNCHER, &Launcher::OnCmdLauncher, &Launcher::OnAppEvent ),
 		fullscreen ( false ),
+		window     ( w ),
 		dialog     ( new Window::Launcher(Nes::Cartridge(ImportDatabase(e)).GetDatabase(),paths,cfg) )
 		{
 			state[FITS] = true;
@@ -52,13 +52,11 @@ namespace Nestopia
 			};
 
 			window.Messages().Hooks().Add( this, hooks );
-			menu.Commands().Add( IDM_FILE_LAUNCHER, this, &Launcher::OnMenu );
-
-			Application::Instance::Events::Add( this, &Launcher::OnAppEvent );
 		}
 
 		Launcher::~Launcher()
 		{
+			window.Messages().Hooks().Remove( this );
 		}
 
 		Nes::Emulator& Launcher::ImportDatabase(Nes::Emulator& emulator)
@@ -87,9 +85,8 @@ namespace Nestopia
 			menu[IDM_FILE_LAUNCHER].Enable( state[FITS] && state[AVAILABLE] );
 		}
 
-		void Launcher::OnMenu(uint)
+		void Launcher::OnCmdLauncher(uint)
 		{
-			emulator.Wait();
 			dialog->Open( fullscreen );
 		}
 
@@ -110,14 +107,13 @@ namespace Nestopia
 			Update();
 		}
 
-		void Launcher::OnEmuEvent(Emulator::Event event)
+		void Launcher::OnEmuEvent(const Emulator::Event event,const Emulator::Data data)
 		{
 			switch (event)
 			{
-				case Emulator::EVENT_NETPLAY_MODE_ON:
-				case Emulator::EVENT_NETPLAY_MODE_OFF:
+				case Emulator::EVENT_NETPLAY_MODE:
 
-					state[AVAILABLE] = (event == Emulator::EVENT_NETPLAY_MODE_OFF);
+					state[AVAILABLE] = !data;
 					Update();
 					break;
 			}

@@ -49,7 +49,7 @@ namespace Nes
 				void UpdatePrg(uint);
 				void SubLoad(State::Loader&);
 				void SubSave(State::Saver&) const;
-				void VSync();
+				void Sync(Event,Input::Controllers*);
 
 				NES_DECL_POKE( 8000 );
 				NES_DECL_POKE( 9001 );
@@ -62,11 +62,11 @@ namespace Nes
 				struct Irq
 				{
 					void Reset(bool);
-					ibool Signal();
+					bool Clock();
 
 					enum
 					{
-						SIGNAL_DURATION = 16
+						CLOCK_FILTER = 16
 					};
 
 					ibool enabled;
@@ -74,7 +74,7 @@ namespace Nes
 				};
 
 				uint prgSelect;
-				Clock::A12<Irq> irq;
+				ClockUnits::A12<Irq,Irq::CLOCK_FILTER> irq;
 			};
 		}
 	}

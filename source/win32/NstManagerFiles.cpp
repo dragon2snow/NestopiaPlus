@@ -38,6 +38,7 @@
 #include "NstManagerCheats.hpp"
 #include "NstManagerFiles.hpp"
 #include "NstWindowMain.hpp"
+#include "../core/api/NstApiMachine.hpp"
 #include "../core/api/NstApiCartridge.hpp"
 
 namespace Nestopia
@@ -73,7 +74,7 @@ namespace Nestopia
 				{ Application::Instance::WM_NST_LAUNCH, &Files::OnMsgLaunch    }
 			};
 
-			w.Get().Messages().Add( this, messages );
+			window.Get().Messages().Add( this, messages );
 
 			static const Window::Menu::CmdHandler::Entry<Files> commands[] =
 			{
@@ -84,11 +85,27 @@ namespace Nestopia
 			};
 
 			menu.Commands().Add( this, commands );
+
+			UpdateMenu();
+		}
+
+		Files::~Files()
+		{
+			window.Get().Messages().Remove( this );
+		}
+
+		void Files::UpdateMenu() const
+		{
+			const bool available = (emulator.NetPlayers() == 0 && emulator.IsGame());
+
+			menu[IDM_FILE_CLOSE].Enable( emulator.IsImage() );
+			menu[IDM_POS_FILE][IDM_POS_FILE_SAVE].Enable( available );
+			menu[IDM_FILE_SAVE_NSP].Enable( available );
 		}
 
 		void Files::Open(tstring const name,uint types) const
 		{
-			emulator.Wait();
+			Application::Instance::Events::Signal( Application::Instance::EVENT_SYSTEM_BUSY );
 
 			if (!window.Get().Activate())
 				return;
@@ -141,7 +158,7 @@ namespace Nestopia
 
 				case Paths::File::STATE:
 
-					if (emulator.Is(Nes::Machine::GAME))
+					if (emulator.IsGame())
 					{
 						saveStates.Load( file.data, file.name );
 						return;
@@ -153,7 +170,7 @@ namespace Nestopia
 
 				case Paths::File::MOVIE:
 
-					if (emulator.Is(Nes::Machine::GAME))
+					if (emulator.IsGame())
 					{
 						if (movie.Load( file.name, Movie::NOISY ) && preferences[Preferences::AUTOSTART_EMULATION])
 						{
@@ -170,7 +187,7 @@ namespace Nestopia
 
 				case Paths::File::BATTERY:
 
-					if (emulator.Is(Nes::Machine::CARTRIDGE) && Nes::Cartridge(emulator).GetInfo()->setup.wrkRamBacked)
+					if (emulator.IsCart() && Nes::Cartridge(emulator).GetInfo()->setup.wrkRamBacked)
 					{
 						if (Window::User::Confirm( IDS_LOAD_APPLY_CURRENT_GAME ))
 							context.image = emulator.GetImagePath();
@@ -192,7 +209,7 @@ namespace Nestopia
 						return;
 					}
 
-					if (emulator.Is(Nes::Machine::GAME))
+					if (emulator.IsGame())
 					{
 						if (Window::User::Confirm( IDS_LOAD_APPLY_CURRENT_GAME ))
 							context.image = emulator.GetImagePath();
@@ -214,7 +231,7 @@ namespace Nestopia
 						return;
 					}
 
-					if (context.image.Empty() && emulator.Is(Nes::Machine::GAME))
+					if (context.image.Empty() && emulator.IsGame())
 					{
 						if (Window::User::Confirm( IDS_LOAD_APPLY_CURRENT_GAME ))
 							context.image = emulator.GetImagePath();
@@ -311,7 +328,7 @@ namespace Nestopia
 				return;
 
 			if (context.mode == Io::Nsp::Context::UNKNOWN && menu[IDM_MACHINE_SYSTEM_AUTO].Checked())
-				emulator.AutoSetMode();
+				Nes::Machine(emulator).SetMode( Nes::Machine(emulator).GetDesiredMode() );
 
 			if (context.state.Length())
 			{
@@ -331,7 +348,7 @@ namespace Nestopia
 		{
 			if
 			(
-				!emulator.Is(Nes::Machine::ON) ||
+				!emulator.IsOn() ||
 				!preferences[Preferences::CONFIRM_RESET] ||
 				Window::User::Confirm( IDS_ARE_YOU_SURE, IDS_MACHINE_POWER_OFF_TITLE )
 			)
@@ -348,14 +365,18 @@ namespace Nestopia
 			if
 			(
 				preferences[Preferences::AUTOSTART_EMULATION] &&
-				emulator.Is(Nes::Machine::IMAGE) && !emulator.Is(Nes::Machine::ON)
+				emulator.IsImage() && !emulator.IsOn()
 			)
-			{
 				emulator.Power( true );
+		}
 
-				if (emulator.Is( Nes::Machine::SOUND ))
-					emulator.PlaySong();
-			}
+		void Files::DisplayLoadMessage(const bool loaded) const
+		{
+			const uint length = window.GetMaxMessageLength();
+			const uint threshold = (loaded ? 10 : 12);
+
+			if (length > threshold)
+				Io::Screen() << Resource::String( loaded ? IDS_SCREEN_LOADED : IDS_SCREEN_UNLOADED ).Invoke( Path::Compact( emulator.GetImagePath().Target(), length - (threshold - 1) ) );
 		}
 
 		ibool Files::OnMsgDropFiles(Window::Param& param)
@@ -414,7 +435,7 @@ namespace Nestopia
 
 		void Files::OnCmdSaveScript(uint)
 		{
-			if (emulator.Is(Nes::Machine::GAME))
+			if (emulator.IsGame())
 			{
 				Io::Nsp::Context context;
 
@@ -433,49 +454,23 @@ namespace Nestopia
 			}
 		}
 
-		void Files::OnEmuEvent(Emulator::Event event)
+		void Files::OnEmuEvent(const Emulator::Event event,const Emulator::Data data)
 		{
 			switch (event)
 			{
 				case Emulator::EVENT_LOAD:
-				{
-					menu[ IDM_FILE_CLOSE ].Enable();
-					menu[ IDM_POS_FILE ][ IDM_POS_FILE_SAVE ].Enable( emulator.Is(Nes::Machine::GAME) );
-					menu[ IDM_FILE_SAVE_NSP ].Enable( emulator.Is(Nes::Machine::GAME) );
-
-					const uint length = window.GetMaxMessageLength();
-
-					if (length > 10)
-						Io::Screen() << Resource::String( IDS_SCREEN_LOADED ).Invoke( Path::Compact( emulator.GetImagePath().Target(), length - 9 ) );
-
-					break;
-				}
-
 				case Emulator::EVENT_UNLOAD:
-				{
-					const uint length = window.GetMaxMessageLength();
 
-					if (length > 12)
-						Io::Screen() << Resource::String( IDS_SCREEN_UNLOADED ).Invoke( Path::Compact( emulator.GetImagePath().Target(), length - 11 ) );
-				}
-
-				case Emulator::EVENT_INIT:
-
-					menu[ IDM_FILE_CLOSE ].Disable();
-					menu[ IDM_POS_FILE ][ IDM_POS_FILE_SAVE ].Disable();
-					menu[ IDM_FILE_SAVE_NSP ].Disable();
+					DisplayLoadMessage( event == Emulator::EVENT_LOAD );
+					UpdateMenu();
 					break;
 
-				case Emulator::EVENT_NETPLAY_MODE_ON:
-				case Emulator::EVENT_NETPLAY_MODE_OFF:
-				{
-					const bool state = (event == Emulator::EVENT_NETPLAY_MODE_OFF);
+				case Emulator::EVENT_NETPLAY_MODE:
 
-					menu[ IDM_FILE_OPEN ].Enable( state );
-					menu[ IDM_FILE_LOAD_NSP ].Enable( state );
-					menu[ IDM_POS_FILE ][ IDM_POS_FILE_LOAD ].Enable( state );
+					menu[IDM_FILE_OPEN].Enable( !data );
+					menu[IDM_FILE_LOAD_NSP].Enable( !data );
+					menu[IDM_POS_FILE][IDM_POS_FILE_LOAD].Enable( !data );
 					break;
-				}
 			}
 		}
 	}

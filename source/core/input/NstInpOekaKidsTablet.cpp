@@ -49,9 +49,9 @@ namespace Nes
 				bits   = 0;
 			}
 
-			void OekaKidsTablet::SaveState(State::Saver& state,const byte id) const
+			void OekaKidsTablet::SaveState(State::Saver& saver,const byte id) const
 			{
-				state.Begin( AsciiId<'O','T'>::R(0,0,id) ).End();
+				saver.Begin( AsciiId<'O','T'>::R(0,0,id) ).End();
 			}
 
 			#ifdef NST_MSVC_OPTIMIZE

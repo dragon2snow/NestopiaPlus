@@ -53,18 +53,26 @@ namespace Nestopia
 
 			struct Callbacks;
 
+			enum
+			{
+				MAX_SIDES = IDM_MACHINE_EXT_FDS_INSERT_DISK_8_SIDE_B+1 - IDM_MACHINE_EXT_FDS_INSERT_DISK_1_SIDE_A
+			};
+
+			bool CanInsertDisk() const;
+			bool CanEjectDisk() const;
+			bool CanChangeSide() const;
+
 			void UpdateSettings() const;
+			void UpdateMenuDisks() const;
 
-			void OnEmuEvent (Emulator::Event);
-			void OnDiskChange (Nes::Fds::Event,uint,uint) const;
-			void OnMenuInsert (Window::Menu::PopupHandler::Param&);
+			void OnMenuExtFds       (const Window::Menu::PopupHandler::Param&);
+			void OnMenuExtFdsInsert (const Window::Menu::PopupHandler::Param&);
+			void OnEmuEvent         (Emulator::Event,Emulator::Data);
+			void OnCmdInsertDisk    (uint);
+			void OnCmdChangeSide    (uint);
+			void OnCmdEjectDisk     (uint);
+			void OnCmdOptions       (uint);
 
-			void OnCmdInsertDisk (uint);
-			void OnCmdChangeSide (uint);
-			void OnCmdEjectDisk  (uint);
-			void OnCmdOptions    (uint);
-
-			bool master;
 			Object::Heap<Window::Fds> dialog;
 		};
 	}

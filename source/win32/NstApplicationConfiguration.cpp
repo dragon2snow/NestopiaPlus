@@ -31,35 +31,6 @@ namespace Nestopia
 {
 	namespace Application
 	{
-		void Configuration::Value::YesNoProxy::operator = (bool i)
-		{
-			string.Assign( i ? "yes" : "no", i ? 3 : 2 );
-		}
-
-		void Configuration::Value::OnOffProxy::operator = (bool i)
-		{
-			string.Assign( i ? "on" : "off", i ? 2 : 3 );
-		}
-
-		void Configuration::Value::QuoteProxy::operator = (const GenericString& input)
-		{
-			string.Clear();
-			string.Reserve( 2 + input.Length() );
-			string << '\"' << input << '\"';
-		}
-
-		bool Configuration::ConstValue::operator == (State state) const
-		{
-			NST_ASSERT( state < 4 );
-
-			static const tchar yesNoOnOff[4][4] =
-			{
-				_T("yes"), _T("no"), _T("on"), _T("off")
-			};
-
-			return GenericString::operator == (yesNoOnOff[state]);
-		}
-
 		Configuration::Configuration()
 		: save(false)
 		{
@@ -154,19 +125,17 @@ namespace Nestopia
 			if (save)
 			{
 				static const char header1[] =
-				(
+
 					"/////////////////////////////////////////////////////////////////////////////\r\n"
 					"//\r\n"
-					"// Nestopia Configuration File. Version "
-				);
+					"// Nestopia Configuration File. Version ";
 
 				static const char header2[] =
-				(
+
 					"\r\n"
 					"//\r\n"
 					"/////////////////////////////////////////////////////////////////////////////\r\n"
-					"\r\n"
-				);
+					"\r\n";
 
 				HeapString buffer;
 				buffer << header1 << Instance::GetVersion() << header2;
@@ -205,10 +174,8 @@ namespace Nestopia
 		{
 			class CommandLine
 			{
-				class Stream : public HeapString
+				struct Stream : HeapString
 				{
-				public:
-
 					Stream(const tchar* NST_RESTRICT src,const uint length)
 					{
 						if (length)
@@ -383,6 +350,35 @@ namespace Nestopia
 			}
 
 			return match;
+		}
+
+		void Configuration::Value::YesNoProxy::operator = (bool i)
+		{
+			string.Assign( i ? "yes" : "no", i ? 3 : 2 );
+		}
+
+		void Configuration::Value::OnOffProxy::operator = (bool i)
+		{
+			string.Assign( i ? "on" : "off", i ? 2 : 3 );
+		}
+
+		void Configuration::Value::QuoteProxy::operator = (const GenericString& input)
+		{
+			string.Clear();
+			string.Reserve( 2 + input.Length() );
+			string << '\"' << input << '\"';
+		}
+
+		bool Configuration::ConstValue::operator == (State state) const
+		{
+			NST_ASSERT( state < 4 );
+
+			static const tchar yesNoOnOff[4][4] =
+			{
+				_T("yes"), _T("no"), _T("on"), _T("off")
+			};
+
+			return GenericString::operator == (yesNoOnOff[state]);
 		}
 	}
 }

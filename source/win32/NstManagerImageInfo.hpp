@@ -39,7 +39,10 @@ namespace Nestopia
 
 		private:
 
-			void OnEmuEvent(Emulator::Event);
+			bool Available() const;
+			void UpdateMenu() const;
+
+			void OnEmuEvent(Emulator::Event,Emulator::Data);
 			void OnCmd(uint);
 		};
 	}

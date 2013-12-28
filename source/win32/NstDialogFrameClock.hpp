@@ -28,6 +28,8 @@
 #pragma once
 
 #include "NstWindowDialog.hpp"
+#include "NstManagerEmulator.hpp"
+#include "../core/api/NstApiMachine.hpp"
 
 namespace Nestopia
 {
@@ -51,8 +53,8 @@ namespace Nestopia
 				MAX_SPEED = 240,
 				MIN_FRAME_SKIPS = 1,
 				MAX_FRAME_SKIPS = 16,
-				DEFAULT_SPEED = 60,
-				DEFAULT_ALT_SPEED = 120,
+				DEFAULT_SPEED = Nes::Machine::CLK_NTSC_DOT / Nes::Machine::CLK_NTSC_VSYNC,
+				DEFAULT_ALT_SPEED = DEFAULT_SPEED * 2,
 				DEFAULT_REWIND_SPEED = DEFAULT_SPEED,
 				DEFAULT_FRAME_SKIPS = 8,
 				MAX_MHZ_TRIPLE_BUFFERING_ENABLE = 1350,

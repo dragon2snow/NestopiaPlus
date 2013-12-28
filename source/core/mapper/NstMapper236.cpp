@@ -23,6 +23,7 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 
 #include "../NstMapper.hpp"
+#include "../NstDipSwitches.hpp"
 #include "NstMapper236.hpp"
 
 namespace Nes
@@ -33,14 +34,98 @@ namespace Nes
 		#pragma optimize("s", on)
 		#endif
 
-		void Mapper236::SubReset(const bool hard)
+		Mapper236::CartSwitches::CartSwitches(const Context& c)
+		:
+		mode (c.attribute == ATR_800_IN_1 ? 0x6 : c.attribute == ATR_76_IN_1 ? 0xD : 0x0),
+		type (c.attribute < NUM_ATTRIBUTES ? static_cast<Attribute>(c.attribute) : ATR_GENERIC)
+		{}
+
+		inline void Mapper236::CartSwitches::SetMode(uint value)
+		{
+			mode = value;
+		}
+
+		inline uint Mapper236::CartSwitches::GetMode() const
+		{
+			return mode;
+		}
+
+		uint Mapper236::CartSwitches::GetValue(uint) const
+		{
+			return mode;
+		}
+
+		void Mapper236::CartSwitches::SetValue(uint,uint value)
+		{
+			mode = value;
+		}
+
+		uint Mapper236::CartSwitches::NumDips() const
+		{
+			return 1;
+		}
+
+		uint Mapper236::CartSwitches::NumValues(uint) const
+		{
+			return 16;
+		}
+
+		cstring Mapper236::CartSwitches::GetDipName(uint) const
+		{
+			return "Mode";
+		}
+
+		cstring Mapper236::CartSwitches::GetValueName(uint,uint i) const
+		{
+			NST_COMPILE_ASSERT
+			(
+				ATR_GENERIC  == 0 &&
+				ATR_800_IN_1 == 1 &&
+				ATR_76_IN_1  == 2
+			);
+
+			static cstring const names[3][16] =
+			{
+				{
+					"1",  "2",  "3",  "4",
+					"5",  "6",  "7",  "8",
+					"9",  "10", "11", "12",
+					"13", "14", "15", "16"
+				},
+				{
+					"76-in-1",   "150-in-1",     "168-in-1",     "190-in-1",
+					"400-in-1",  "500-in-1",     "800-in-1",     "1200-in-1",
+					"2000-in-1", "5000-in-1",    "300-in-1",     "1500-in-1",
+					"3000-in-1", "1010000-in-1", "5010000-in-1", "10000000-in-1"
+				},
+				{
+					"4-in-1",  "5-in-1",  "6-in-1",  "77-in-1",
+					"22-in-1", "38-in-1", "44-in-1", "46-in-1",
+					"52-in-1", "55-in-1", "63-in-1", "66-in-1",
+					"68-in-1", "70-in-1", "32-in-1", "80-in-1"
+				}
+			};
+
+			return names[type][i];
+		}
+
+		Mapper236::Mapper236(Context& c)
+		:
+		Mapper       (c,CROM_MAX_64K|WRAM_DEFAULT|NMT_VERTICAL),
+		cartSwitches (c)
+		{}
+
+		Mapper236::Device Mapper236::QueryDevice(DeviceType type)
+		{
+			if (type == DEVICE_DIP_SWITCHES)
+				return &cartSwitches;
+			else
+				return Mapper::QueryDevice( type );
+		}
+
+		void Mapper236::SubReset(bool)
 		{
 			mode = 0x0;
-
-			if (hard)
-				title = 0x6;
-			else
-				title = (title + 1) & 0xF;
 
 			Map( 0x8000U, 0xFFFFU, &Mapper236::Peek_Prg, &Mapper236::Poke_Prg );
 
@@ -54,9 +139,9 @@ namespace Nes
 			{
 				if (chunk == AsciiId<'R','E','G'>::V)
 				{
-					mode = state.Read8();
-					title = mode & 0xF;
-					mode = mode >> 4 & 0x1;
+					const uint data = state.Read8();
+					mode = data >> 4 & 0x1;
+					cartSwitches.SetMode( data & 0xF );
 				}
 
 				state.End();
@@ -65,19 +150,19 @@ namespace Nes
 
 		void Mapper236::SubSave(State::Saver& state) const
 		{
-			state.Begin( AsciiId<'R','E','G'>::V ).Write8( (mode << 4) | title ).End();
+			state.Begin( AsciiId<'R','E','G'>::V ).Write8( cartSwitches.GetMode() | (mode << 4) ).End();
 		}
 
 		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
-		NES_PEEK(Mapper236,Prg)
+		NES_PEEK_A(Mapper236,Prg)
 		{
-			return prg.Peek( mode ? (address & 0x7FF0) | title : address - 0x8000 );
+			return prg.Peek( mode ? (address & 0x7FF0) | cartSwitches.GetMode() : address - 0x8000 );
 		}
 
-		NES_POKE(Mapper236,Prg)
+		NES_POKE_A(Mapper236,Prg)
 		{
 			uint banks[2] =
 			{

@@ -93,7 +93,7 @@ namespace Nes
 		#pragma optimize("", on)
 		#endif
 
-		ibool Mapper73::Irq::Signal()
+		bool Mapper73::Irq::Clock()
 		{
 			if (enabled)
 			{
@@ -109,31 +109,31 @@ namespace Nes
 			return false;
 		}
 
-		NES_POKE(Mapper73,8000)
+		NES_POKE_D(Mapper73,8000)
 		{
 			irq.Update();
 			irq.unit.count = (irq.unit.count & 0xFFF0) | (data & 0xF) << 0;
 		}
 
-		NES_POKE(Mapper73,9000)
+		NES_POKE_D(Mapper73,9000)
 		{
 			irq.Update();
 			irq.unit.count = (irq.unit.count & 0xFF0F) | (data & 0xF) << 4;
 		}
 
-		NES_POKE(Mapper73,A000)
+		NES_POKE_D(Mapper73,A000)
 		{
 			irq.Update();
 			irq.unit.count = (irq.unit.count & 0xF0FF) | (data & 0xF) << 8;
 		}
 
-		NES_POKE(Mapper73,B000)
+		NES_POKE_D(Mapper73,B000)
 		{
 			irq.Update();
 			irq.unit.count = (irq.unit.count & 0x0FFF) | (data & 0xF) << 12;
 		}
 
-		NES_POKE(Mapper73,C000)
+		NES_POKE_D(Mapper73,C000)
 		{
 			irq.Update();
 			irq.unit.enabled = data & 0x2;
@@ -147,9 +147,10 @@ namespace Nes
 			irq.ClearIRQ();
 		}
 
-		void Mapper73::VSync()
+		void Mapper73::Sync(Event event,Input::Controllers*)
 		{
-			irq.VSync();
+			if (event == EVENT_END_FRAME)
+				irq.VSync();
 		}
 	}
 }

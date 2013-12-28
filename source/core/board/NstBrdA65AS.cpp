@@ -35,16 +35,19 @@ namespace Nes
 			#pragma optimize("s", on)
 			#endif
 
-			void A65AS::SubReset(bool)
+			void A65AS::SubReset(const bool hard)
 			{
 				Map( 0x8000U, 0xFFFFU, &A65AS::Poke_Prg );
+
+				if (hard)
+					NES_DO_POKE(Prg,0x8000,0x00);
 			}
 
 			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("", on)
 			#endif
 
-			NES_POKE(A65AS,Prg)
+			NES_POKE_D(A65AS,Prg)
 			{
 				if (data & 0x40)
 					prg.SwapBank<SIZE_32K,0x0000>( data >> 1 & 0xF );

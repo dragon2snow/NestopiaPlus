@@ -37,10 +37,10 @@ namespace Nestopia
 		{
 		public:
 
-			AviConverter(Emulator&,std::fstream&);
+			explicit AviConverter(Emulator&);
 			~AviConverter();
 
-			uint Record(const Path&) const;
+			uint Record(const Path&,const Path&) const;
 
 		private:
 
@@ -65,8 +65,8 @@ namespace Nestopia
 			void* nesSoundLockData;
 			Nes::Sound::Output::UnlockCallback nesSoundUnlockFunc;
 			void* nesSoundUnlockData;
-			Nes::Movie::StateCallback nesMovieStateFunc;
-			void* nesMovieStateData;
+			Nes::Movie::EventCallback nesMovieEventFunc;
+			void* nesMovieEventData;
 
 			Collection::Buffer saveState;
 		};

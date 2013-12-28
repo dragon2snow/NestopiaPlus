@@ -34,6 +34,8 @@ namespace Nestopia
 {
 	namespace Window
 	{
+		using Application::Configuration;
+
 		struct Param;
 		typedef Collection::Router<ibool,Param&,uint> MsgHandler;
 

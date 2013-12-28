@@ -35,18 +35,14 @@ namespace Nes
 
 		void Mapper89::SubReset(bool)
 		{
-			for (dword i=0x8000; i <= 0xFFFF; ++i)
-			{
-				if ((i & 0xFF00) == 0xC000)
-					Map( i, &Mapper89::Poke_Prg );
-			}
+			Map( 0x8000U, 0xFFFFU, &Mapper89::Poke_Prg );
 		}
 
 		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
-		NES_POKE(Mapper89,Prg)
+		NES_POKE_D(Mapper89,Prg)
 		{
 			ppu.SetMirroring( (data & 0x8) ? Ppu::NMT_ONE : Ppu::NMT_ZERO );
 			prg.SwapBank<SIZE_16K,0x0000>( data >> 4 );

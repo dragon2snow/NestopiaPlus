@@ -39,27 +39,35 @@ namespace Nestopia
 			{
 				NST_ASSERT( data && text );
 
-				Logfile& log = *static_cast<Logfile*>(data);
-
-				if (length && log.preferences[Preferences::SAVE_LOGFILE])
+				if (length)
 				{
-					try
-					{
-						if (log.file.IsOpen())
-						{
-							if (log.file.Size() > MAX_SIZE)
-								log.file.Truncate( log.msgOffset );
-						}
-						else
-						{
-							log.Open();
-						}
+				#ifndef NDEBUG
+					::OutputDebugString( text );
+				#endif
 
-						log.file.Write( text, length * sizeof(tchar) );
-					}
-					catch (Io::File::Exception)
+					Logfile& log = *static_cast<Logfile*>(data);
+
+					if (log.preferences[Preferences::SAVE_LOGFILE])
 					{
-						log.Close();
+
+						try
+						{
+							if (log.file.IsOpen())
+							{
+								if (log.file.Size() > MAX_SIZE)
+									log.file.Truncate( log.msgOffset );
+							}
+							else
+							{
+								log.Open();
+							}
+
+							log.file.Write( text, length * sizeof(tchar) );
+						}
+						catch (Io::File::Exception)
+						{
+							log.Close();
+						}
 					}
 				}
 			}
@@ -85,6 +93,8 @@ namespace Nestopia
 		{
 			Io::Log::SetCallback( this, Callbacks::DoOutput );
 			Nes::User::logCallback.Set( &Callbacks::DoCharOutput, this );
+
+			UpdateMenu();
 		}
 
 		Logfile::~Logfile()
@@ -93,15 +103,23 @@ namespace Nestopia
 			Nes::User::logCallback.Unset();
 		}
 
-		void Logfile::OnEmuEvent(Emulator::Event event)
+		bool Logfile::Available() const
+		{
+			return emulator.NetPlayers() == 0 && file.IsOpen();
+		}
+
+		void Logfile::UpdateMenu() const
+		{
+			menu[IDM_VIEW_LOGFILE].Enable( Available() );
+		}
+
+		void Logfile::OnEmuEvent(const Emulator::Event event,Emulator::Data)
 		{
 			switch (event)
 			{
-				case Emulator::EVENT_INIT:
-				case Emulator::EVENT_NETPLAY_MODE_ON:
-				case Emulator::EVENT_NETPLAY_MODE_OFF:
+				case Emulator::EVENT_NETPLAY_MODE:
 
-					menu[IDM_VIEW_LOGFILE].Enable( event != Emulator::EVENT_NETPLAY_MODE_ON && file.IsOpen() );
+					UpdateMenu();
 					break;
 			}
 		}
@@ -144,7 +162,7 @@ namespace Nestopia
 			file.WriteText( text.Ptr(), text.Length(), true );
 			msgOffset = file.Position();
 
-			menu[IDM_VIEW_LOGFILE].Enable();
+			UpdateMenu();
 		}
 
 		void Logfile::Close()
@@ -152,9 +170,9 @@ namespace Nestopia
 			Io::Log::UnsetCallback();
 			Nes::User::logCallback.Unset();
 
-			menu[IDM_VIEW_LOGFILE].Disable();
-
 			file.Close();
+
+			UpdateMenu();
 		}
 	}
 }

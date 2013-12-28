@@ -31,34 +31,47 @@ namespace Nestopia
 	namespace Managers
 	{
 		BarcodeReader::BarcodeReader(Emulator& e,Window::Menu& m)
-		: Manager(e,m,this,&BarcodeReader::OnEmuEvent,IDM_MACHINE_EXT_BARCODE,&BarcodeReader::OnMenuCmd)
+		: Manager(e,m)
 		{
+			static const Window::Menu::CmdHandler::Entry<BarcodeReader> commands[] =
+			{
+				{ IDM_MACHINE_EXT_BARCODE, &BarcodeReader::OnMenuCmd }
+			};
+
+			menu.Commands().Add( this, commands );
+
+			static const Window::Menu::PopupHandler::Entry<BarcodeReader> popups[] =
+			{
+				{ Window::Menu::PopupHandler::Pos<IDM_POS_MACHINE,IDM_POS_MACHINE_EXT>::ID, &BarcodeReader::OnMenuExt }
+			};
+
+			menu.Popups().Add( this, popups );
 		}
 
 		BarcodeReader::~BarcodeReader()
 		{
 		}
 
-		void BarcodeReader::OnMenuCmd(uint)
+		bool BarcodeReader::Available() const
 		{
-			Window::BarcodeReader( emulator, lastCode ).Open();
+			return
+			(
+				Nes::BarcodeReader(emulator).IsConnected() &&
+				!emulator.NetPlayers() &&
+				emulator.IsOn() &&
+				!emulator.IsLocked()
+			);
 		}
 
-		void BarcodeReader::OnEmuEvent(Emulator::Event event)
+		void BarcodeReader::OnMenuExt(const Window::Menu::PopupHandler::Param& param)
 		{
-			switch (event)
-			{
-				case Emulator::EVENT_INIT:
-				case Emulator::EVENT_POWER_ON:
-				case Emulator::EVENT_POWER_OFF:
+			param.menu[IDM_MACHINE_EXT_BARCODE].Enable( !param.show || Available() );
+		}
 
-					menu[IDM_MACHINE_EXT_BARCODE].Enable
-					(
-						event == Emulator::EVENT_POWER_ON &&
-						Nes::BarcodeReader(emulator).IsConnected()
-					);
-					break;
-			}
+		void BarcodeReader::OnMenuCmd(uint)
+		{
+			if (Available())
+				Window::BarcodeReader( emulator, lastCode ).Open();
 		}
 	}
 }

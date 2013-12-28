@@ -35,12 +35,19 @@ namespace Nestopia
 		{
 		public:
 
-			DipSwitches(Emulator&,Window::Menu&);
+			DipSwitches(Emulator&,const Configuration&,Window::Menu&);
+
+			void Save(Configuration&) const;
 
 		private:
 
-			void OnEmuEvent(Emulator::Event);
-			void OnMenuCmd(uint);
+			bool Available() const;
+			void OpenDialog() const;
+
+			void OnMenuExt(const Window::Menu::PopupHandler::Param&);
+			void OnEmuEvent(Emulator::Event,Emulator::Data);
+			void OnCmdDipSwitches(uint);
+			void OnCmdDipSwitchesOnLoad(uint);
 		};
 	}
 }

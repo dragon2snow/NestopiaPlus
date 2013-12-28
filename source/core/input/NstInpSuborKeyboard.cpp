@@ -47,16 +47,16 @@ namespace Nes
 				mode = 0;
 			}
 
-			void SuborKeyboard::SaveState(State::Saver& state,const byte id) const
+			void SuborKeyboard::SaveState(State::Saver& saver,const byte id) const
 			{
-				state.Begin( AsciiId<'S','K'>::R(0,0,id) ).Write8( mode | (scan << 1) ).End();
+				saver.Begin( AsciiId<'S','K'>::R(0,0,id) ).Write8( mode | (scan << 1) ).End();
 			}
 
-			void SuborKeyboard::LoadState(State::Loader& state,const dword id)
+			void SuborKeyboard::LoadState(State::Loader& loader,const dword id)
 			{
 				if (id == AsciiId<'S','K'>::V)
 				{
-                     const uint data = state.Read8();
+                     const uint data = loader.Read8();
 
                      mode = data & 0x1;
                      scan = data >> 1 & 0xF;

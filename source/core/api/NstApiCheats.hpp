@@ -60,7 +60,7 @@ namespace Nes
 				uchar compare;
 				bool useCompare;
 
-				explicit Code(ushort a=0,uchar v=0,uchar c=0,bool u=false)
+				Code(ushort a=0,uchar v=0,uchar c=0,bool u=false)
 				: address(a), value(v), compare(c), useCompare(u) {}
 			};
 

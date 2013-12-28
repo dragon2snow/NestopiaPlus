@@ -27,7 +27,7 @@
 
 #pragma once
 
-#include <fstream>
+#include <iosfwd>
 #include "NstObjectHeap.hpp"
 
 namespace Nestopia
@@ -67,25 +67,8 @@ namespace Nestopia
 
 		private:
 
-			enum Pos
-			{
-				REWOUND,
-				FORWARDED
-			};
-
-			struct Callbacks;
-
-			void Close (Pos=REWOUND,bool=true);
-			bool Open  (std::fstream::openmode);
-
-			bool CanPlay    () const;
-			bool CanRecord  () const;
-			bool CanStop    () const;
-			bool CanRewind  () const;
-			bool CanForward () const;
-
-			void OnEmuEvent     (Emulator::Event);
-			void OnMenuView     (Window::Menu::PopupHandler::Param&);
+			void OnMenu         (const Window::Menu::PopupHandler::Param&);
+			void OnEmuEvent     (Emulator::Event,Emulator::Data);
 			void OnCmdFile      (uint);
 			void OnCmdRecord    (uint);
 			void OnCmdPlay      (uint);
@@ -94,8 +77,51 @@ namespace Nestopia
 			void OnCmdForward   (uint);
 			void OnCmdExportAvi (uint);
 
-			Pos pos;
-			std::fstream stream;
+			class File
+			{
+			public:
+
+				explicit File(Emulator&);
+				~File();
+
+				enum Pos
+				{
+					POS_BEG,
+					POS_END
+				};
+
+				enum Mode
+				{
+					MODE_PLAY,
+					MODE_RECORD
+				};
+
+				bool Start(Mode);
+				void Stop(Pos=POS_BEG);
+				void Update(const Path&);
+				bool Rewind();
+				bool Forward();
+
+				bool CanPlay() const;
+				bool CanRecord() const;
+				bool CanStop() const;
+				bool CanRewind() const;
+				bool CanForward() const;
+
+				const Path& GetPath() const;
+
+			private:
+
+				bool IsReady() const;
+				bool CanSetPos() const;
+
+				std::iostream* stream;
+				Pos pos;
+				Emulator& emulator;
+				Path path;
+			};
+
+			File file;
 			Object::Heap<Window::Movie> dialog;
 			const Paths& paths;
 		};

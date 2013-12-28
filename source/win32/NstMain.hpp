@@ -52,10 +52,18 @@
 
 #elif NST_MSVC
 
- #pragma warning( disable : 4018 4127 4244 4355 4389 4512 4800 4996 )
+ #pragma warning( disable : 4018 4127 4244 4245 4355 4389 4512 4800 4996 )
 
- #if defined(NDEBUG) && defined(NST_SHOW_INLINING)
- #pragma warning( default : 4710 4711 )
+ #if NST_MSVC >= 1400
+
+  #pragma warning( default : 4263 4287 4289 4296 4350 4545 4546 4547 4549 4555 4557 4686 4836 4905 4906 4928 4946 )
+
+  #if 0
+  #pragma warning( default : 4820 ) // byte padding on structs
+  #pragma warning( default : 4710 ) // function not inlined
+  #pragma warning( default : 4711 ) // function auto inlined
+  #endif
+
  #endif
 
 #endif
@@ -64,7 +72,7 @@
 
 #define WINVER         0x0500
 #define _WIN32_WINDOWS 0x0410
-#define _WIN32_WINNT   0x0403
+#define _WIN32_WINNT   0x0500
 #define _WIN32_IE      0x0401
 
 #define _WIN32_DCOM
@@ -113,8 +121,6 @@
 #define NOCOMBOBOX
 #define NOSCROLLBAR
 
-#define NST_FOURCC(a_,b_,c_,d_) (uint(a_) | (uint(b_) << 8) | (uint(c_) << 16) | (uint(d_) << 24))
-
 namespace Nestopia
 {
 	typedef signed char schar;
@@ -129,8 +135,54 @@ namespace Nestopia
 	typedef const TCHAR* tstring;
 	typedef Nes::qword qword;
 
+	#define NST_CLAMP(t_,x_,y_) ((t_) < (x_) ? (x_) : (t_) > (y_) ? (y_) : (t_))
+
 	template<typename T,uint N>
 	char(& array(T(&)[N]))[N];
+
+	template<typename T>
+	class ImplicitBool;
+
+	template<>
+	class ImplicitBool<void>
+	{
+	public:
+
+		int type;
+		typedef int ImplicitBool<void>::*Type;
+	};
+
+	template<typename T>
+	class ImplicitBool
+	{
+		template<typename U> void operator == (const ImplicitBool<U>&) const;
+		template<typename U> void operator != (const ImplicitBool<U>&) const;
+
+	public:
+
+		operator ImplicitBool<void>::Type () const
+		{
+			return !static_cast<const T&>(*this) ? 0 : &ImplicitBool<void>::type;
+		}
+	};
+
+	template<uchar A=0,uchar B=0,uchar C=0,uchar D=0>
+	struct FourCC
+	{
+		enum
+		{
+			V = uint(A) << 0 | uint(B) << 8 | uint(C) << 16 | uint(D) << 24
+		};
+
+		template<typename P>
+		static uint T(const P*);
+	};
+
+	template<uchar A,uchar B,uchar C,uchar D> template<typename P>
+	uint FourCC<A,B,C,D>::T(const P* p)
+	{
+		return (p[0] & 0xFFU) << 0 | (p[1] & 0xFFU) << 8 | (p[2] & 0xFFU) << 16 | (p[3] & 0xFFU) << 24;
+	}
 
 	namespace Collection
 	{
@@ -142,37 +194,6 @@ namespace Nestopia
 	{
 		class Configuration;
 	}
-
-	namespace Managers
-	{
-		using Application::Configuration;
-	}
-
-	namespace Window
-	{
-		using Application::Configuration;
-	}
-
-	template<typename T> struct ConstParam
-	{
-		typedef const T& Type;
-	};
-
-	template<typename T> struct ConstParam<T*>
-	{
-		typedef const T* const Type;
-	};
-
-	template<> struct ConstParam< bool   > { typedef const bool   Type; };
-	template<> struct ConstParam< char   > { typedef const int    Type; };
-	template<> struct ConstParam< schar  > { typedef const int    Type; };
-	template<> struct ConstParam< uchar  > { typedef const uint   Type; };
-	template<> struct ConstParam< short  > { typedef const int    Type; };
-	template<> struct ConstParam< ushort > { typedef const uint   Type; };
-	template<> struct ConstParam< int    > { typedef const int    Type; };
-	template<> struct ConstParam< uint   > { typedef const uint   Type; };
-	template<> struct ConstParam< long   > { typedef const long   Type; };
-	template<> struct ConstParam< ulong  > { typedef const ulong  Type; };
 
 	enum
 	{
@@ -193,12 +214,14 @@ namespace Nestopia
 		IDM_POS_MACHINE_INPUT_PORT3 = 4,
 		IDM_POS_MACHINE_INPUT_PORT4 = 5,
 		IDM_POS_MACHINE_INPUT_EXP = 6,
+		IDM_POS_MACHINE_INPUT_ADAPTER = 8,
 		IDM_POS_MACHINE_EXT = 4,
 		IDM_POS_MACHINE_EXT_FDS = 0,
 		IDM_POS_MACHINE_EXT_KEYBOARD = 1,
 		IDM_POS_MACHINE_EXT_TAPE = 2,
-		IDM_POS_MACHINE_EXT_FDS_INSERTDISK = 0,
-		IDM_POS_MACHINE_SYSTEM = 6,
+		IDM_POS_MACHINE_EXT_FDS_INSERT = 0,
+		IDM_POS_MACHINE_NSF = 5,
+		IDM_POS_MACHINE_REGION = 6,
 		IDM_POS_MACHINE_OPTIONS = 7,
 		IDM_POS_VIEW = 3,
 		IDM_POS_VIEW_SCREENSIZE = 3,

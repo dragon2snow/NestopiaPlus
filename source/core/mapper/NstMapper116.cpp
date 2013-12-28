@@ -37,12 +37,12 @@ namespace Nes
 		Mapper116::Mapper116(Context& c)
 		:
 		Mapper (c,WRAM_DEFAULT),
-		irq    (c.cpu,c.ppu)
+		irq    (c.cpu,c.ppu,false)
 		{}
 
 		void Mapper116::SubReset(const bool hard)
 		{
-			irq.Reset( hard, hard || irq.IsLineEnabled() );
+			irq.Reset( hard, hard || irq.Connected() );
 
 			if (hard)
 			{
@@ -213,35 +213,35 @@ namespace Nes
 
 		void Mapper116::UpdateNmt() const
 		{
-			uint nmt;
+			Ppu::Mirroring nmtCtrl;
 
 			switch (mode & 0x3)
 			{
 				case 0x0:
 
-					nmt = (vrc2.nmt & 0x1U) ? Ppu::NMT_HORIZONTAL : Ppu::NMT_VERTICAL;
+					nmtCtrl = (vrc2.nmt & 0x1U) ? Ppu::NMT_HORIZONTAL : Ppu::NMT_VERTICAL;
 					break;
 
 				case 0x1:
 
-					nmt = (mmc3.nmt & 0x1U) ? Ppu::NMT_HORIZONTAL : Ppu::NMT_VERTICAL;
+					nmtCtrl = (mmc3.nmt & 0x1U) ? Ppu::NMT_HORIZONTAL : Ppu::NMT_VERTICAL;
 					break;
 
 				case 0x2:
 
 					switch (mmc1.regs[0] & 0x3U)
 					{
-						case 0x0: nmt = Ppu::NMT_ZERO;       break;
-						case 0x1: nmt = Ppu::NMT_ONE;        break;
-						case 0x2: nmt = Ppu::NMT_VERTICAL;   break;
-						default:  nmt = Ppu::NMT_HORIZONTAL; break;
+						case 0x0: nmtCtrl = Ppu::NMT_ZERO;       break;
+						case 0x1: nmtCtrl = Ppu::NMT_ONE;        break;
+						case 0x2: nmtCtrl = Ppu::NMT_VERTICAL;   break;
+						default:  nmtCtrl = Ppu::NMT_HORIZONTAL; break;
 					}
 					break;
 
 				default: return;
 			}
 
-			ppu.SetMirroring( nmt );
+			ppu.SetMirroring( nmtCtrl );
 		}
 
 		void Mapper116::Poke_Vrc2_8000(uint address,uint data)
@@ -258,7 +258,7 @@ namespace Nes
 			}
 		}
 
-		void Mapper116::Poke_Vrc2_9000(uint address,uint data)
+		void Mapper116::Poke_Vrc2_9000(uint,uint data)
 		{
 			NST_ASSERT( (mode & 0x3) == 0 );
 
@@ -354,7 +354,7 @@ namespace Nes
 				irq.unit.SetLatch( data );
 		}
 
-		void Mapper116::Poke_Mmc3_E000(uint address,uint data)
+		void Mapper116::Poke_Mmc3_E000(uint address,uint)
 		{
 			NST_ASSERT( (mode & 0x3) == 1 );
 
@@ -408,7 +408,7 @@ namespace Nes
 			}
 		}
 
-		NES_POKE(Mapper116,4100)
+		NES_POKE_D(Mapper116,4100)
 		{
 			if (mode != data)
 			{
@@ -423,7 +423,7 @@ namespace Nes
 			}
 		}
 
-		NES_POKE(Mapper116,8000)
+		NES_POKE_AD(Mapper116,8000)
 		{
 			switch (mode & 0x3)
 			{
@@ -433,7 +433,7 @@ namespace Nes
 			}
 		}
 
-		NES_POKE(Mapper116,9000)
+		NES_POKE_AD(Mapper116,9000)
 		{
 			switch (mode & 0x3)
 			{
@@ -443,7 +443,7 @@ namespace Nes
 			}
 		}
 
-		NES_POKE(Mapper116,A000)
+		NES_POKE_AD(Mapper116,A000)
 		{
 			switch (mode & 0x3)
 			{
@@ -453,7 +453,7 @@ namespace Nes
 			}
 		}
 
-		NES_POKE(Mapper116,B000)
+		NES_POKE_AD(Mapper116,B000)
 		{
 			switch (mode & 0x3)
 			{
@@ -463,7 +463,7 @@ namespace Nes
 			}
 		}
 
-		NES_POKE(Mapper116,C000)
+		NES_POKE_AD(Mapper116,C000)
 		{
 			switch (mode & 0x3)
 			{
@@ -473,7 +473,7 @@ namespace Nes
 			}
 		}
 
-		NES_POKE(Mapper116,D000)
+		NES_POKE_AD(Mapper116,D000)
 		{
 			switch (mode & 0x3)
 			{
@@ -483,7 +483,7 @@ namespace Nes
 			}
 		}
 
-		NES_POKE(Mapper116,E000)
+		NES_POKE_AD(Mapper116,E000)
 		{
 			switch (mode & 0x3)
 			{
@@ -493,7 +493,7 @@ namespace Nes
 			}
 		}
 
-		NES_POKE(Mapper116,F000)
+		NES_POKE_AD(Mapper116,F000)
 		{
 			switch (mode & 0x3)
 			{
@@ -503,9 +503,10 @@ namespace Nes
 			}
 		}
 
-		void Mapper116::VSync()
+		void Mapper116::Sync(Event event,Input::Controllers*)
 		{
-			irq.VSync();
+			if (event == EVENT_END_FRAME)
+				irq.VSync();
 		}
 	}
 }

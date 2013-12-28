@@ -88,14 +88,14 @@ namespace Nestopia
 
 			void Acquire();
 			void Unacquire();
-			void Calibrate(bool);
+			void Calibrate();
 			void Poll();
 			void Build(const Key*,uint);
 			bool MapKey(Key&,tstring,const System::Guid* = NULL,uint=0) const;
 			const HeapString GetKeyName(const Key&) const;
 
 			void BeginScanMode(HWND) const;
-			ScanResult ScanKey(Key&,ScanMode=SCAN_MODE_ALL) const;
+			ScanResult ScanKey(Key&,ScanMode=SCAN_MODE_ALL);
 			void EndScanMode() const;
 
 			class Key
@@ -268,14 +268,14 @@ namespace Nestopia
 
 				void Acquire();
 				void Unacquire();
-				void Calibrate(bool);
+				void Calibrate();
 
 				NST_FORCE_INLINE void Poll();
 
 				bool Map(Key&,tstring) const;
 
 				void BeginScanMode() const;
-				bool Scan(Key&) const;
+				bool Scan(Key&);
 				void EndScanMode() const;
 
 				bool Assigned(const Key&) const;
@@ -344,6 +344,7 @@ namespace Nestopia
 				const Caps caps;
 				Object::Pod<DIJOYSTATE> state;
 				Calibrator calibrator;
+				bool calibrated;
 				bool scanEnabled;
 				uint deadZone;
 				uint axes;
@@ -460,10 +461,10 @@ namespace Nestopia
 				return joysticks[index].GetName();
 			}
 
-			void Calibrate(uint index,bool full)
+			void Calibrate(uint index)
 			{
 				NST_ASSERT( index < joysticks.Size() );
-				joysticks[index].Calibrate( full );
+				joysticks[index].Calibrate();
 			}
 
 			bool SetAxisDeadZone(uint index,uint deadZone)
@@ -507,7 +508,7 @@ namespace Nestopia
 				return keyboard.GetBuffer();
 			}
 
-			bool AnyPressed() const
+			bool AnyPressed()
 			{
 				Key key;
 				return ScanKey( key ) != SCAN_NO_KEY;

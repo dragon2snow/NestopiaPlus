@@ -56,7 +56,7 @@ namespace Nes
 
 			private:
 
-				static Sound::Player* DetectSound(Type,uint,Cpu&);
+				static Sound::Player* DetectSound(Type,uint,Apu&);
 
 				enum
 				{

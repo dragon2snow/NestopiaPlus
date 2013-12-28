@@ -43,15 +43,17 @@ namespace Nes
 
 			void Unl22211::SubReset(const bool hard)
 			{
+				Map( 0x4100U,          &Unl22211::Peek_4100 );
+				Map( 0x4100U, 0x4103U, &Unl22211::Poke_4100 );
+				Map( 0x8000U, 0xFFFFU, &Unl22211::Poke_8000 );
+
 				if (hard)
 				{
 					for (uint i=0; i < 4; ++i)
 						regs[i] = 0;
-				}
 
-				Map( 0x4100U,          &Unl22211::Peek_4100 );
-				Map( 0x4100U, 0x4103U, &Unl22211::Poke_4100 );
-				Map( 0x8000U, 0xFFFFU, &Unl22211::Poke_8000 );
+					NES_DO_POKE(8000,0x8000,0x00);
+				}
 			}
 
 			void Unl22211::SubLoad(State::Loader& state)
@@ -79,12 +81,12 @@ namespace Nes
 				return (uint(regs[1]) ^ regs[2]) | (type == TYPE_SECURITY_2 ? 0x41 : 0x40);
 			}
 
-			NES_POKE(Unl22211,4100)
+			NES_POKE_AD(Unl22211,4100)
 			{
 				regs[address & 0x3] = data;
 			}
 
-			NES_POKE(Unl22211,8000)
+			NES_POKE_D(Unl22211,8000)
 			{
 				ppu.Update();
 				prg.SwapBank<SIZE_32K,0x0000>( regs[2] >> 2 );

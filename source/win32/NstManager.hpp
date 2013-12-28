@@ -34,12 +34,19 @@ namespace Nestopia
 {
 	namespace Managers
 	{
+		using Application::Configuration;
+
 		class Manager
 		{
 		protected:
 
 			Emulator& emulator;
 			Window::Menu& menu;
+
+			Manager(Emulator& e,Window::Menu& m)
+			: emulator(e), menu(m)
+			{
+			}
 
 			template<typename Data,typename EmuCode>
 			Manager(Emulator& e,Window::Menu& m,Data* data,EmuCode emuCode)
@@ -74,6 +81,10 @@ namespace Nestopia
 			}
 
 			~Manager();
+
+		public:
+
+			static void Resume();
 		};
 	}
 }

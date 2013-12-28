@@ -34,23 +34,19 @@
 #pragma comment(lib,"comctl32")
 #endif
 
-#define NST_MENU_CLASS_NAME   _T("#32768") // name for menus as documented on MSDN
-#define NST_APP_CLASS_NAME    _T("Nestopia")
-#define NST_STATUS_CLASS_NAME STATUSCLASSNAME
-#define NST_IME_CLASS_NAME    _T("IME")
-#define NST_APP_MUTEX_NAME    _T("Nestopia Mutex")
-
 namespace Nestopia
 {
 	namespace Application
 	{
+		const tchar Instance::appClassName[] = _T("Nestopia");
+
 		struct Instance::Global
 		{
 			Global();
 
 			struct Paths
 			{
-				Paths(HINSTANCE);
+				explicit Paths(HINSTANCE);
 
 				Path exePath;
 				Path wrkPath;
@@ -58,11 +54,11 @@ namespace Nestopia
 
 			struct Hooks
 			{
-				Hooks(HINSTANCE const);
+				explicit Hooks(HINSTANCE);
 				~Hooks();
 
-				void OnCreate(const CREATESTRUCT&,HWND const);
-				void OnDestroy(HWND const);
+				void OnCreate(const CREATESTRUCT&,HWND);
+				void OnDestroy(HWND);
 
 				static LRESULT CALLBACK CBTProc(int,WPARAM,LPARAM);
 
@@ -131,16 +127,18 @@ namespace Nestopia
 			if (window == createStruct.hwndParent || !window)
 			{
 				{
+					static const tchar menuClassName[] = _T("#32768"); // documented on MSDN
+
 					enum
 					{
-						MAX_LENGTH = NST_MAX( sizeof(array(NST_APP_CLASS_NAME)) - 1,
-                                     NST_MAX( sizeof(array(NST_STATUS_CLASS_NAME)) - 1, sizeof(array(NST_MENU_CLASS_NAME)) - 1 ))
+						MAX_LENGTH = NST_MAX( sizeof(array(appClassName)) - 1,
+                                     NST_MAX( sizeof(array(STATUSCLASSNAME)) - 1, sizeof(array(menuClassName)) - 1 ))
 					};
 
 					String::Stack<MAX_LENGTH,tchar> name;
 					name.ShrinkTo( ::GetClassName( hWnd, name.Ptr(), MAX_LENGTH+1 ) );
 
-					if (name.Equal( NST_MENU_CLASS_NAME ) || name.Equal( NST_STATUS_CLASS_NAME ) || name.Equal( NST_IME_CLASS_NAME ))
+					if (name.Equal( menuClassName ) || name.Equal( STATUSCLASSNAME ) || name.Equal( _T("IME") ))
 						return;
 
 					if (window)
@@ -148,7 +146,7 @@ namespace Nestopia
 						children.PushBack( hWnd );
 						Events::Signal( EVENT_SYSTEM_BUSY );
 					}
-					else if (name.Equal( NST_APP_CLASS_NAME ))
+					else if (name.Equal( appClassName ))
 					{
 						window = hWnd;
 					}
@@ -431,11 +429,11 @@ namespace Nestopia
 		{
 			if (static_cast<const Configuration&>(cfg)["preferences allow multiple instances"] != Configuration::YES)
 			{
-				::CreateMutex( NULL, true, NST_APP_MUTEX_NAME );
+				::CreateMutex( NULL, true, _T("Nestopia Mutex") );
 
 				if (::GetLastError() == ERROR_ALREADY_EXISTS)
 				{
-					if (Window::Generic window = Window::Generic::Find( NST_APP_CLASS_NAME ))
+					if (Window::Generic window = Window::Generic::Find( appClassName ))
 					{
 						window.Activate();
 
@@ -461,10 +459,10 @@ namespace Nestopia
 			global.language.Load( cfg );
 
 			if (global.hooks.handle == NULL)
-				throw Exception( IDS_FAILED, _T("SetWindowsHookEx()") );
+				throw Exception( IDS_ERR_FAILED, _T("SetWindowsHookEx()") );
 
 			if (FAILED(::CoInitializeEx( NULL, COINIT_APARTMENTTHREADED )))
-				throw Exception( IDS_FAILED, _T("CoInitializeEx()") );
+				throw Exception( IDS_ERR_FAILED, _T("CoInitializeEx()") );
 
 			Object::Pod<INITCOMMONCONTROLSEX> initCtrlEx;
 

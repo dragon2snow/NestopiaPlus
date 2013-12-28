@@ -22,6 +22,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
+#include <fstream>
 #include "NstObjectPod.hpp"
 #include "NstWindowUser.hpp"
 #include "NstManager.hpp"
@@ -47,38 +48,46 @@ namespace Nestopia
 {
 	namespace Managers
 	{
-		AviConverter::AviConverter(Emulator& e,std::fstream& stream)
-		: emulator(e), on(e.Is(Nes::Machine::ON))
+		AviConverter::AviConverter(Emulator& e)
+		: emulator(e), on(e.IsOn())
 		{
 			Nes::Video::Output::lockCallback.Get( nesVideoLockFunc, nesVideoLockData );
 			Nes::Video::Output::unlockCallback.Get( nesVideoUnlockFunc, nesVideoUnlockData );
 			Nes::Sound::Output::lockCallback.Get( nesSoundLockFunc, nesSoundLockData );
 			Nes::Sound::Output::unlockCallback.Get( nesSoundUnlockFunc, nesSoundUnlockData );
-			Nes::Movie::stateCallback.Get( nesMovieStateFunc, nesMovieStateData );
+			Nes::Movie::eventCallback.Get( nesMovieEventFunc, nesMovieEventData );
 
 			Nes::Video::Output::lockCallback.Unset();
 			Nes::Video::Output::unlockCallback.Unset();
 			Nes::Sound::Output::lockCallback.Unset();
 			Nes::Sound::Output::unlockCallback.Unset();
-			Nes::Movie::stateCallback.Unset();
+			Nes::Movie::eventCallback.Unset();
 
 			Nes::Video(emulator).GetRenderState( renderState );
 
-			if (on)
-				emulator.SaveState( saveState, false, Emulator::QUIETLY );
-			else
+			if (!on)
 				emulator.Power( true );
 
-			Nes::Movie(emulator).Play( stream );
+			if (emulator.IsOn())
+				emulator.SaveState( saveState, false, Emulator::QUIETLY );
 		}
 
-		uint AviConverter::Record(const Path& path) const
+		uint AviConverter::Record(const Path& moviePath,const Path& aviPath) const
 		{
-			if (path.Empty())
+			if (moviePath.Empty() || aviPath.Empty() || !emulator.IsOn())
 				return 0;
 
-			if (!Nes::Movie(emulator).IsPlaying())
-				return IDS_EMU_ERR_MOVIE_PLAY;
+			std::ifstream movie( moviePath.Ptr(), std::fstream::binary|std::fstream::in );
+
+			if (!movie.is_open())
+				return IDS_FILE_ERR_OPEN;
+
+			{
+				const Nes::Result result = Nes::Movie(emulator).Play( movie );
+
+				if (NES_FAILED(result))
+					return Emulator::ResultToString( result );
+			}
 
 			struct BitmapInfo : Object::Pod<BITMAPINFOHEADER>
 			{
@@ -131,7 +140,7 @@ namespace Nestopia
 
 			public:
 
-				File(tstring n)
+				explicit File(tstring n)
 				: name(n)
 				{
 					NST_ASSERT( name && *name );
@@ -236,12 +245,12 @@ namespace Nestopia
 
 			struct VideoInfo : Object::Pod<AVISTREAMINFO>
 			{
-				VideoInfo(const Nes::Machine machine,const BitmapInfo& bitmapInfo,const CompressVars& compressVars)
+				VideoInfo(Emulator& emulator,const BitmapInfo& bitmapInfo,const CompressVars& compressVars)
 				{
 					fccType               = streamtypeVIDEO;
 					fccHandler            = compressVars.fccHandler;
 					dwScale               = 1;
-					dwRate                = (machine.Is(Nes::Machine::NTSC) ? Nes::FPS_NTSC : Nes::FPS_PAL);
+					dwRate                = emulator.GetDefaultSpeed();
 					dwQuality             = compressVars.lQ;
 					dwSuggestedBufferSize = bitmapInfo.biSizeImage;
 					rcFrame.right         = bitmapInfo.biWidth;
@@ -271,7 +280,7 @@ namespace Nestopia
 					dwScale         = waveFormat.nBlockAlign;
 					dwInitialFrames = 1;
 					dwRate          = waveFormat.nAvgBytesPerSec;
-					dwQuality       = (DWORD) -1;
+					dwQuality       = DWORD(-1);
 					dwSampleSize    = waveFormat.nBlockAlign;
 				}
 			};
@@ -293,7 +302,7 @@ namespace Nestopia
 
 			Application::Instance::Waiter wait;
 
-			const File avi( path.Ptr() );
+			const File avi( aviPath.Ptr() );
 
 			if (!avi)
 				return IDS_AVI_WRITE_ERR;
@@ -388,22 +397,19 @@ namespace Nestopia
 
 		AviConverter::~AviConverter()
 		{
-			Nes::Movie(emulator).Eject();
+			Nes::Movie(emulator).Stop();
+
+			if (saveState.Size())
+				emulator.LoadState( saveState, Emulator::QUIETLY );
 
 			if (!on)
-			{
 				emulator.Power( false );
-			}
-			else if (saveState.Size())
-			{
-				emulator.LoadState( saveState, Emulator::QUIETLY );
-			}
 
 			Nes::Video::Output::lockCallback.Set( nesVideoLockFunc, nesVideoLockData );
 			Nes::Video::Output::unlockCallback.Set( nesVideoUnlockFunc, nesVideoUnlockData );
 			Nes::Sound::Output::lockCallback.Set( nesSoundLockFunc, nesSoundLockData );
 			Nes::Sound::Output::unlockCallback.Set( nesSoundUnlockFunc, nesSoundUnlockData );
-			Nes::Movie::stateCallback.Set( nesMovieStateFunc, nesMovieStateData );
+			Nes::Movie::eventCallback.Set( nesMovieEventFunc, nesMovieEventData );
 
 			Nes::Video(emulator).SetRenderState( renderState );
 

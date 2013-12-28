@@ -33,16 +33,20 @@ namespace Nes
 {
 	namespace Core
 	{
-		class Mapper22 : public Boards::Vrc4
+		class Mapper22 : public Mapper
 		{
 		public:
 
 			explicit Mapper22(Context& c)
-			: Vrc4(c,TYPE_A) {}
+			: Mapper(c,CROM_MAX_128K|NMT_VERTICAL) {}
 
 		private:
 
 			~Mapper22() {}
+
+			void SubReset(bool);
+
+			NES_DECL_POKE( Prg );
 		};
 	}
 }

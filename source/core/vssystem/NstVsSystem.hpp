@@ -49,7 +49,7 @@ namespace Nes
 				MODE_XEV
 			};
 
-			static VsSystem* Create(Cpu&,Ppu&,PpuType,Mode,dword,bool);
+			static VsSystem* Create(Cpu&,Ppu&,Revision::Ppu,Mode,dword,bool);
 			static void Destroy(VsSystem*);
 
 			void Reset(bool);
@@ -95,7 +95,7 @@ namespace Nes
 				cstring GetDipName(uint) const;
 				cstring GetValueName(uint,uint) const;
 				uint GetValue(uint) const;
-				bool SetValue(uint,uint);
+				void SetValue(uint,uint);
 
 				uint coinTimer;
 				Dip* const table;
@@ -105,9 +105,9 @@ namespace Nes
 
 			enum
 			{
-				DIPSWITCH_4016_MASK  = b00000011,
+				DIPSWITCH_4016_MASK  = 0x03,
 				DIPSWITCH_4016_SHIFT = 3,
-				DIPSWITCH_4017_MASK  = b11111100,
+				DIPSWITCH_4017_MASK  = 0xFC,
 				DIPSWITCH_4017_SHIFT = 0,
 				COIN_1               = Input::Controllers::VsSystem::COIN_1,
 				COIN_2               = Input::Controllers::VsSystem::COIN_2,
@@ -176,7 +176,7 @@ namespace Nes
 			VsDipSwitches dips;
 			Io::Port p2002;
 			uint coin;
-			const PpuType ppuType;
+			const Revision::Ppu ppuRev;
 			ibool yuvMapping;
 
 			static const byte yuvMaps[4][0x40];
@@ -197,9 +197,9 @@ namespace Nes
 					inputMapper->End();
 			}
 
-			PpuType GetPpuType() const
+			Revision::Ppu GetPpuRevion() const
 			{
-				return ppuType;
+				return ppuRev;
 			}
 
 			DipSwitches& GetDipSwiches()

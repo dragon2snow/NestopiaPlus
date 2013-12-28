@@ -35,11 +35,11 @@ namespace Nes
 
 		void Mapper41::SubReset(const bool hard)
 		{
-			if (hard)
-				reg = 0x4;
-
 			Map( 0x6000U, 0x67FFU, &Mapper41::Poke_6000 );
 			Map( 0x8000U, 0xFFFFU, &Mapper41::Poke_Prg );
+
+			if (hard)
+				NES_DO_POKE(6000,0x6000,0x00);
 		}
 
 		void Mapper41::SubLoad(State::Loader& state)
@@ -62,20 +62,21 @@ namespace Nes
 		#pragma optimize("", on)
 		#endif
 
-		NES_POKE(Mapper41,6000)
+		NES_POKE_A(Mapper41,6000)
 		{
 			reg = address & 0xFF;
 			prg.SwapBank<SIZE_32K,0x0000>( address & 0x7 );
-			ppu.SetMirroring( (data & 0x20) ? Ppu::NMT_VERTICAL : Ppu::NMT_HORIZONTAL );
+			ppu.SetMirroring( (address & 0x10) ? Ppu::NMT_HORIZONTAL : Ppu::NMT_VERTICAL );
 		}
 
-		NES_POKE(Mapper41,Prg)
+		NES_POKE_D(Mapper41,Prg)
 		{
+			NST_VERIFY( reg & 0x4 );
+
 			if (reg & 0x4)
 			{
-				data = (reg >> 1 & 0xC) | (data & 0x3);
 				ppu.Update();
-				chr.SwapBank<SIZE_8K,0x0000>( data );
+				chr.SwapBank<SIZE_8K,0x0000>( (reg >> 1 & 0xC) | (data & 0x3) );
 			}
 		}
 	}

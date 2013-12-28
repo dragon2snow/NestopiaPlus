@@ -91,14 +91,13 @@ namespace Nestopia
 			UpdateSettings();
 		}
 
-		void Paths::OnEmuEvent(Emulator::Event event)
+		void Paths::OnEmuEvent(const Emulator::Event event,const Emulator::Data data)
 		{
 			switch (event)
 			{
-				case Emulator::EVENT_NETPLAY_MODE_ON:
-				case Emulator::EVENT_NETPLAY_MODE_OFF:
+				case Emulator::EVENT_NETPLAY_MODE:
 
-					menu[IDM_OPTIONS_PATHS].Enable( event == Emulator::EVENT_NETPLAY_MODE_OFF );
+					menu[IDM_OPTIONS_PATHS].Enable( !data );
 					break;
 			}
 		}
@@ -169,7 +168,7 @@ namespace Nestopia
 
 			for (uint i=0; i < Window::Paths::NUM_DIRS; ++i)
 			{
-				path.Directory() = dialog->GetDirectory( (Window::Paths::Type) i );
+				path.Directory() = dialog->GetDirectory( static_cast<Window::Paths::Type>(i) );
 
 				if (path.FileExists())
 					return true;
@@ -422,7 +421,7 @@ namespace Nestopia
 				file.name = BrowseLoad( types );
 			}
 
-			if (file.name.Empty())
+			if (file.name.Empty() || (alert == QUIETLY && !file.name.FileExists()))
 				return File::NONE;
 
 			try
@@ -609,7 +608,7 @@ namespace Nestopia
 				type = CheckFile
 				(
 					types,
-					NST_FOURCC((*data)[0],(*data)[1],(*data)[2],(*data)[3]),
+					FourCC<>::T( data->Ptr() ),
 					archive[index].GetName().Extension().Id()
 				);
 
@@ -647,35 +646,35 @@ namespace Nestopia
 					{
 						// raw or text file, must check the file extension
 
-						case NST_FOURCC('n','s','p','\0'):  if (types( File::SCRIPT  )) type = File::SCRIPT;  break;
-						case NST_FOURCC('s','a','v','\0'):  if (types( File::BATTERY )) type = File::BATTERY; break;
-						case NST_FOURCC('t','p','\0','\0'): if (types( File::TAPE    )) type = File::TAPE;    break;
-						case NST_FOURCC('r','o','m','\0'):  if (types( File::ROM     )) type = File::ROM;     break;
-						case NST_FOURCC('p','a','l','\0'):  if (types( File::PALETTE )) type = File::PALETTE; break;
-						case NST_FOURCC('w','a','v','\0'):  if (types( File::WAVE    )) type = File::WAVE;    break;
-						case NST_FOURCC('a','v','i','\0'):  if (types( File::AVI     )) type = File::AVI;     break;
+						case FourCC<'n','s','p'>::V: if (types( File::SCRIPT  )) type = File::SCRIPT;  break;
+						case FourCC<'s','a','v'>::V: if (types( File::BATTERY )) type = File::BATTERY; break;
+						case FourCC<'t','p'>::V:     if (types( File::TAPE    )) type = File::TAPE;    break;
+						case FourCC<'r','o','m'>::V: if (types( File::ROM     )) type = File::ROM;     break;
+						case FourCC<'p','a','l'>::V: if (types( File::PALETTE )) type = File::PALETTE; break;
+						case FourCC<'w','a','v'>::V: if (types( File::WAVE    )) type = File::WAVE;    break;
+						case FourCC<'a','v','i'>::V: if (types( File::AVI     )) type = File::AVI;     break;
 
-						case NST_FOURCC('n','e','s','\0'):
-						case NST_FOURCC('u','n','f','\0'):
-						case NST_FOURCC('u','n','i', 'f'):
-						case NST_FOURCC('f','d','s','\0'):
-						case NST_FOURCC('n','s','f','\0'):
-						case NST_FOURCC('i','p','s','\0'):
-						case NST_FOURCC('n','s','v','\0'):
-						case NST_FOURCC('n','s','t','\0'):
-						case NST_FOURCC('n','s','0','\0'):
-						case NST_FOURCC('n','s','1','\0'):
-						case NST_FOURCC('n','s','2','\0'):
-						case NST_FOURCC('n','s','3','\0'):
-						case NST_FOURCC('n','s','4','\0'):
-						case NST_FOURCC('n','s','5','\0'):
-						case NST_FOURCC('n','s','6','\0'):
-						case NST_FOURCC('n','s','7','\0'):
-						case NST_FOURCC('n','s','8','\0'):
-						case NST_FOURCC('n','s','9','\0'):
-						case NST_FOURCC('z','i','p','\0'):
-						case NST_FOURCC('r','a','r','\0'):
-						case NST_FOURCC('7','z','\0','\0'):
+						case FourCC<'n','e','s'>::V:
+						case FourCC<'u','n','f'>::V:
+						case FourCC<'u','n','i'>::V:
+						case FourCC<'f','d','s'>::V:
+						case FourCC<'n','s','f'>::V:
+						case FourCC<'i','p','s'>::V:
+						case FourCC<'n','s','v'>::V:
+						case FourCC<'n','s','t'>::V:
+						case FourCC<'n','s','0'>::V:
+						case FourCC<'n','s','1'>::V:
+						case FourCC<'n','s','2'>::V:
+						case FourCC<'n','s','3'>::V:
+						case FourCC<'n','s','4'>::V:
+						case FourCC<'n','s','5'>::V:
+						case FourCC<'n','s','6'>::V:
+						case FourCC<'n','s','7'>::V:
+						case FourCC<'n','s','8'>::V:
+						case FourCC<'n','s','9'>::V:
+						case FourCC<'z','i','p'>::V:
+						case FourCC<'r','a','r'>::V:
+						case FourCC<'7','z'>::V:
 
 							// either corrupt data or wrong extension, bail..
 

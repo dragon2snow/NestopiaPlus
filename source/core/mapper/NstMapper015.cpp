@@ -43,7 +43,7 @@ namespace Nes
 		#pragma optimize("", on)
 		#endif
 
-		NES_POKE(Mapper15,Prg)
+		NES_POKE_AD(Mapper15,Prg)
 		{
 			ppu.SetMirroring( (data & 0x40) ? Ppu::NMT_HORIZONTAL : Ppu::NMT_VERTICAL );
 

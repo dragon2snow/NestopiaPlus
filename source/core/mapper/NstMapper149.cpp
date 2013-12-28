@@ -42,7 +42,7 @@ namespace Nes
 		#pragma optimize("", on)
 		#endif
 
-		NES_POKE(Mapper149,Prg)
+		NES_POKE_D(Mapper149,Prg)
 		{
 			ppu.Update();
 			chr.SwapBank<SIZE_8K,0x0000>( data >> 7 );

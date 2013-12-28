@@ -59,7 +59,7 @@ namespace Nestopia
 				OTHER_SIZE     = 0x40000000,
 				OTHER_SIZE_DIV = SIZETYPE_STD_8K|SIZETYPE_STD_16K,
 				HEADER_SIZE    = 16,
-				HEADER_ID      = NST_FOURCC('N','E','S',0x1A)
+				HEADER_ID      = FourCC<'N','E','S',0x1A>::V
 			};
 
 			typedef uchar Header[HEADER_SIZE];
@@ -67,12 +67,12 @@ namespace Nestopia
 			static uint Import(const Path&,Collection::Buffer&);
 			static uint Export(const Path&,const Collection::Buffer&);
 
-			void UpdateHeader(const Nes::Api::Cartridge::Setup&) const;
+			void UpdateHeader(const Nes::Cartridge::Setup&) const;
 			void UpdateVersion() const;
 			void UpdateSystem() const;
 			void UpdateSizes(uint,SizeType,uint) const;
 
-			void DetectHeader(Nes::Api::Cartridge::Setup&) const;
+			void DetectHeader(Nes::Cartridge::Setup&) const;
 			bool SaveHeader(Header&) const;
 			uint GetMaxSize(uint) const;
 			bool OkToSave(uint) const;

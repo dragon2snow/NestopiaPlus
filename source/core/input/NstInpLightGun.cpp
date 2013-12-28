@@ -133,7 +133,7 @@ namespace Nes
 				arcade = a;
 			}
 
-			void LightGun::SaveState(State::Saver& state,const byte id) const
+			void LightGun::SaveState(State::Saver& saver,const byte id) const
 			{
 				const byte data[2] =
 				{
@@ -141,14 +141,14 @@ namespace Nes
 					arcade ? stream : 0x00
 				};
 
-				state.Begin( AsciiId<'L','G'>::R(0,0,id) ).Write( data ).End();
+				saver.Begin( AsciiId<'L','G'>::R(0,0,id) ).Write( data ).End();
 			}
 
-			void LightGun::LoadState(State::Loader& state,const dword id)
+			void LightGun::LoadState(State::Loader& loader,const dword id)
 			{
 				if (id == AsciiId<'L','G'>::V)
 				{
-					State::Loader::Data<2> data( state );
+					State::Loader::Data<2> data( loader );
 
 					if (data[0] & 0x1U)
 					{

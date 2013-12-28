@@ -38,16 +38,22 @@ namespace Nes
 			Adapter::Adapter(Type t)
 			: type(t) {}
 
-			void Adapter::SetType(Type t)
-			{
-				type = t;
-			}
-
 			AdapterTwo::AdapterTwo(Device& a,Device& b,Type t)
 			: Adapter(t)
 			{
 				devices[0] = &a;
 				devices[1] = &b;
+			}
+
+			bool AdapterTwo::SetType(Type t)
+			{
+				if (type != t)
+				{
+					type = t;
+					return true;
+				}
+
+				return false;
 			}
 
 			Device& AdapterTwo::Connect(uint port,Device& device)
@@ -148,7 +154,7 @@ namespace Nes
 					devices[i]->Reset();
 			}
 
-			void AdapterFour::SetType(Type t)
+			bool AdapterFour::SetType(Type t)
 			{
 				if (type != t)
 				{
@@ -156,10 +162,14 @@ namespace Nes
 					increaser = 1;
 					count[0] = 0;
 					count[1] = 0;
+
+					return true;
 				}
+
+				return false;
 			}
 
-			void AdapterFour::SaveState(State::Saver& state,const dword id) const
+			void AdapterFour::SaveState(State::Saver& state,const dword chunk) const
 			{
 				if (type == Api::Input::ADAPTER_NES)
 				{
@@ -168,7 +178,7 @@ namespace Nes
 						increaser ^ 1, count[0], count[1]
 					};
 
-					state.Begin( id ).Write( data ).End();
+					state.Begin( chunk ).Write( data ).End();
 				}
 			}
 

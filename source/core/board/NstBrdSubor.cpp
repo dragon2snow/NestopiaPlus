@@ -71,7 +71,7 @@ namespace Nes
 			#pragma optimize("", on)
 			#endif
 
-			NES_POKE(Subor,Prg)
+			NES_POKE_AD(Subor,Prg)
 			{
 				regs[address >> 13 & 0x3] = data;
 

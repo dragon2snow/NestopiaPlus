@@ -54,12 +54,11 @@ namespace Nes
 				{
 				public:
 
-					explicit Sound(Cpu&,bool=true);
-					~Sound();
+					explicit Sound(Apu&,bool=true);
 
-					void Poke_4800(uint);
-					uint Peek_4800();
-					void Poke_F800(uint);
+					void WriteData(uint);
+					uint ReadData();
+					void WriteAddress(uint);
 
 					void SaveState(State::Saver&,dword) const;
 					void LoadState(State::Loader&);
@@ -67,7 +66,7 @@ namespace Nes
 				protected:
 
 					void Reset();
-					void UpdateContext(uint,const byte (&w)[MAX_CHANNELS]);
+					bool UpdateSettings();
 					Sample GetSample();
 
 				private:
@@ -80,10 +79,10 @@ namespace Nes
 					enum
 					{
 						NUM_CHANNELS     = 8,
-						EXRAM_INC        = b10000000,
-						REG_WAVELENGTH   = b00011100,
+						EXRAM_INC        = 0x80,
+						REG_WAVELENGTH   = 0x1C,
 						REG_ENABLE_SHIFT = 5,
-						REG_VOLUME       = b00001111,
+						REG_VOLUME       = 0x0F,
 						PHASE_SHIFT      = 18,
 						SPEED_SHIFT      = 20
 					};
@@ -107,7 +106,7 @@ namespace Nes
 
 						enum
 						{
-							VOLUME = Apu::OUTPUT_MUL / 16
+							VOLUME = OUTPUT_MUL / 16
 						};
 
 						inline bool CanOutput() const;
@@ -122,8 +121,9 @@ namespace Nes
 						uint  volume;
 					};
 
-					Apu& apu;
+					uint output;
 
+					Cycle rate;
 					Cycle frequency;
 
 					uint exAddress;
@@ -135,9 +135,7 @@ namespace Nes
 
 					BaseChannel channels[NUM_CHANNELS];
 
-					Apu::DcBlocker dcBlocker;
-
-					const ibool hooked;
+					DcBlocker dcBlocker;
 				};
 
 			private:
@@ -147,7 +145,7 @@ namespace Nes
 				void BaseLoad(State::Loader&,dword);
 				void SwapChr(uint,uint,uint) const;
 				void SwapNmt(uint,uint) const;
-				void VSync();
+				void Sync(Event,Input::Controllers*);
 
 				NES_DECL_PEEK( 4800 );
 				NES_DECL_POKE( 4800 );

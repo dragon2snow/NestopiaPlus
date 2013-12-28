@@ -105,7 +105,7 @@ namespace Nes
 			if (!emulator.tracker.IsLocked())
 			{
 				if (Core::Peripherals::BarcodeReader* const barcodeReader = Query())
-					return emulator.tracker.Flush( barcodeReader->Transfer( string, length ) ? RESULT_OK : RESULT_ERR_INVALID_PARAM );
+					return emulator.tracker.TryResync( barcodeReader->Transfer( string, length ) ? RESULT_OK : RESULT_ERR_INVALID_PARAM );
 			}
 
 			return RESULT_ERR_NOT_READY;

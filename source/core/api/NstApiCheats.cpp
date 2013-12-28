@@ -53,7 +53,7 @@ namespace Nes
 				(code.useCompare ? ((code.compare >> 4 & 0x7U) | (code.value   >> 0 & 0x8U)) : 0)
 			};
 
-			uint i = code.useCompare ? 8 : 6;
+			uint i = (code.useCompare ? 8 : 6);
 
 			characters[i--] = '\0';
 
@@ -257,18 +257,25 @@ namespace Nes
 
 		Result Cheats::SetCode(const Code& code) throw()
 		{
+			if (emulator.tracker.IsLocked( true ))
+				return RESULT_ERR_NOT_READY;
+
 			try
 			{
 				if (emulator.cheats == NULL)
 					emulator.cheats = new Core::Cheats( emulator.cpu );
 
-				return emulator.cheats->SetCode
+				return emulator.tracker.TryResync
 				(
-					code.address,
-					code.value,
-					code.compare,
-					code.useCompare,
-					emulator.Is(Machine::GAME)
+					emulator.cheats->SetCode
+					(
+						code.address,
+						code.value,
+						code.compare,
+						code.useCompare,
+						emulator.Is(Machine::GAME)
+					),
+					true
 				);
 			}
 			catch (const std::bad_alloc&)
@@ -283,19 +290,21 @@ namespace Nes
 
 		Result Cheats::DeleteCode(const ulong index) throw()
 		{
-			if (emulator.cheats)
-			{
-				const Result result = emulator.cheats->DeleteCode( index );
+			if (emulator.tracker.IsLocked( true ))
+				return RESULT_ERR_NOT_READY;
 
-				if (NES_SUCCEEDED(result) && emulator.cheats->NumCodes() == 0)
-					ClearCodes();
-
-				return result;
-			}
-			else
-			{
+			if (!emulator.cheats)
 				return RESULT_ERR_INVALID_PARAM;
+
+			const Result result = emulator.tracker.TryResync( emulator.cheats->DeleteCode( index ), true );
+
+			if (!emulator.cheats->NumCodes())
+			{
+				delete emulator.cheats;
+				emulator.cheats = NULL;
 			}
+
+			return result;
 		}
 
 		ulong Cheats::NumCodes() const throw()
@@ -318,22 +327,24 @@ namespace Nes
 
 		Result Cheats::ClearCodes() throw()
 		{
-			if (emulator.cheats)
-			{
-				delete emulator.cheats;
-				emulator.cheats = NULL;
+			if (emulator.tracker.IsLocked( true ))
+				return RESULT_ERR_NOT_READY;
 
-				return RESULT_OK;
-			}
-			else
-			{
+			if (!emulator.cheats)
 				return RESULT_NOP;
-			}
+
+			if (emulator.cheats->NumCodes())
+				emulator.tracker.Resync( true );
+
+			delete emulator.cheats;
+			emulator.cheats = NULL;
+
+			return RESULT_OK;
 		}
 
 		Cheats::Ram Cheats::GetRam() const throw()
 		{
-			return emulator.cpu.SystemRam();
+			return emulator.cpu.GetRam();
 		}
 
 		#ifdef NST_MSVC_OPTIMIZE

@@ -44,7 +44,7 @@ namespace Nestopia
 		};
 
 		template<typename T>
-		class ComInterface
+		class ComInterface : public ImplicitBool< ComInterface<T> >
 		{
 			T* com;
 
@@ -70,14 +70,9 @@ namespace Nestopia
 				return 0;
 			}
 
-			bool operator == (const T* p) const
+			bool operator ! () const
 			{
-				return com == p;
-			}
-
-			bool operator != (const T* p) const
-			{
-				return com != p;
+				return com == NULL;
 			}
 
 			T* operator * () const

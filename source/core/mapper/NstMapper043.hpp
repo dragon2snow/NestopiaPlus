@@ -46,24 +46,23 @@ namespace Nes
 			void SubReset(bool);
 			void SubSave(State::Saver&) const;
 			void SubLoad(State::Loader&);
-			void VSync();
+			void Sync(Event,Input::Controllers*);
 
 			NES_DECL_POKE( 4022 );
 			NES_DECL_POKE( 4122 );
 			NES_DECL_PEEK( 5000 );
-			NES_DECL_PEEK( 6000 );
 
 			struct Irq
 			{
-				void Reset(bool=true);
-				ibool Signal();
+				void Reset(bool);
+				bool Clock();
 
 				ibool enabled;
 				uint count;
 			};
 
-			Clock::M2<Irq> irq;
-			uint title;
+			const dword prg2;
+			ClockUnits::M2<Irq> irq;
 		};
 	}
 }

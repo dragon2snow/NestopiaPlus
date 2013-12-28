@@ -89,13 +89,13 @@ namespace Nes
 				chr.SwapBank<SIZE_8K,0x0000>( (regs[2] << 2) | (regs[0] >> 1 & 0x3U) );
 			}
 
-			NES_POKE(Bmc64In1Nr,5000)
+			NES_POKE_AD(Bmc64In1Nr,5000)
 			{
 				regs[address & 0x3] = data;
 				Update();
 			}
 
-			NES_POKE(Bmc64In1Nr,8000)
+			NES_POKE_D(Bmc64In1Nr,8000)
 			{
 				regs[3] = data;
 				Update();

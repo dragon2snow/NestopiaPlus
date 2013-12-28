@@ -52,53 +52,59 @@ namespace Nes
 
 		class Tracker
 		{
-			class Movie;
-			class Rewinder;
-
-			dword frame;
-			ibool rewinderSound;
-			Rewinder* rewinder;
-			Movie* movie;
-
 		public:
 
 			Tracker();
 			~Tracker();
 
-			void   Reset(bool);
+			void   Reset();
+			void   PowerOff();
 			Result Execute(Machine&,Video::Output*,Sound::Output*,Input::Controllers*);
-			void   Flush();
-			Result Flush(Result);
+			void   Resync(bool=false) const;
+			Result TryResync(Result,bool=false) const;
 			void   Unload();
-			bool   IsLocked() const;
+			bool   IsActive() const;
+			bool   IsLocked(bool=false) const;
 
-			Result RewinderEnable(Machine*);
-			void   RewinderEnableSound(bool);
-			void   RewinderReset() const;
-			Result RewinderStart() const;
-			Result RewinderStop() const;
+			Result EnableRewinder(Machine*);
+			void   EnableRewinderSound(bool);
+			void   ResetRewinder() const;
+			Result StartRewinding() const;
+			Result StopRewinding() const;
 			bool   IsRewinding() const;
 
-			Result MoviePlay(Machine&,StdStream,bool);
-			Result MovieRecord(Machine&,StdStream,bool,bool);
-			void   MovieStop();
-			void   MovieCut();
-			void   MovieEject();
-			bool   MovieIsPlaying() const;
-			bool   MovieIsRecording() const;
-			bool   MovieIsStopped() const;
+			Result PlayMovie(Machine&,StdStream);
+			Result RecordMovie(Machine&,StdStream,bool);
+			void   StopMovie();
+			bool   IsMoviePlaying() const;
+			bool   IsMovieRecording() const;
 
-			bool RewinderIsEnabled() const
+		private:
+
+			void UpdateRewinderState(bool);
+
+			class Movie;
+			class Rewinder;
+
+			dword frame;
+			ibool rewinderSound;
+			Machine* rewinderEnabled;
+			Rewinder* rewinder;
+			Movie* movie;
+
+		public:
+
+			bool IsRewinderEnabled() const
 			{
-				return rewinder;
+				return rewinderEnabled;
 			}
 
-			bool RewinderIsSoundEnabled() const
+			bool IsRewinderSoundEnabled() const
 			{
 				return rewinderSound;
 			}
 
-			bool MovieIsInserted() const
+			bool IsFrameLocked() const
 			{
 				return movie;
 			}

@@ -36,13 +36,13 @@ namespace Nes
 
 		Mapper64::Irq::Irq(Cpu& cpu,Ppu& ppu)
 		:
-		a12 ( cpu, ppu, A12_SIGNAL, A12::IRQ_DELAY, unit ),
+		a12 ( cpu, ppu, unit ),
 		m2  ( cpu, unit )
 		{}
 
 		Mapper64::Mapper64(Context& c)
 		:
-		Mapper (c,CROM_MAX_256K|WRAM_DEFAULT),
+		Mapper (c,CROM_MAX_256K|WRAM_DEFAULT|NMT_VERTICAL),
 		irq    (c.cpu,c.ppu)
 		{}
 
@@ -70,8 +70,8 @@ namespace Nes
 
 		void Mapper64::SubReset(const bool hard)
 		{
-			irq.a12.Reset( hard, hard || irq.a12.IsLineEnabled() );
-			irq.m2.Reset( hard, !hard || irq.m2.IsLineEnabled() );
+			irq.a12.Reset( hard, hard || irq.a12.Connected() );
+			irq.m2.Reset( hard, !hard || irq.m2.Connected() );
 
 			if (hard)
 				regs.Reset();
@@ -117,8 +117,8 @@ namespace Nes
 						State::Loader::Data<3> data( state );
 
 						irq.unit.enabled = data[0] & 0x1;
-						irq.a12.EnableLine( data[0] & 0x2 );
-						irq.m2.EnableLine( data[0] & 0x2 );
+						irq.a12.Connect( data[0] & 0x2 );
+						irq.m2.Connect( data[0] & 0x2 );
 						irq.unit.reload = data[0] & 0x4;
 						irq.unit.latch = data[1];
 						irq.unit.count = data[2];
@@ -156,9 +156,9 @@ namespace Nes
 			{
 				const byte data[3] =
 				{
-					(irq.unit.enabled       ? 0x1U : 0x0U) |
-					(irq.m2.IsLineEnabled() ? 0x2U : 0x0U) |
-					(irq.unit.reload        ? 0x4U : 0x0U),
+					(irq.unit.enabled   ? 0x1U : 0x0U) |
+					(irq.m2.Connected() ? 0x2U : 0x0U) |
+					(irq.unit.reload    ? 0x4U : 0x0U),
 					irq.unit.latch,
 					irq.unit.count & 0xFF
 				};
@@ -171,7 +171,7 @@ namespace Nes
 		#pragma optimize("", on)
 		#endif
 
-		ibool Mapper64::Irq::Unit::Signal()
+		bool Mapper64::Irq::Unit::Clock()
 		{
 			if (!reload)
 			{
@@ -227,7 +227,7 @@ namespace Nes
 			chr.SwapBanks<SIZE_1K>( offset ^ 0x1000, regs.chr[2], regs.chr[3], regs.chr[4], regs.chr[5] );
 		}
 
-		NES_POKE(Mapper64,8000)
+		NES_POKE_D(Mapper64,8000)
 		{
 			const uint diff = regs.ctrl ^ data;
 			regs.ctrl = data;
@@ -239,7 +239,7 @@ namespace Nes
 				UpdateChr();
 		}
 
-		NES_POKE(Mapper64,8001)
+		NES_POKE_D(Mapper64,8001)
 		{
 			const uint index = regs.ctrl & 0xF;
 
@@ -284,21 +284,21 @@ namespace Nes
 			}
 		}
 
-		NES_POKE(Mapper64,C000)
+		NES_POKE_D(Mapper64,C000)
 		{
 			irq.Update();
 			irq.unit.latch = data;
 		}
 
-		NES_POKE(Mapper64,C001)
+		NES_POKE_D(Mapper64,C001)
 		{
 			irq.Update();
 
 			irq.unit.reload = true;
 			data &= Irq::SOURCE;
 
-			irq.a12.EnableLine( data == Irq::SOURCE_PPU );
-			irq.m2.EnableLine( data == Irq::SOURCE_CPU );
+			irq.a12.Connect( data == Irq::SOURCE_PPU );
+			irq.m2.Connect( data == Irq::SOURCE_CPU );
 		}
 
 		NES_POKE(Mapper64,E000)
@@ -314,10 +314,13 @@ namespace Nes
 			irq.unit.enabled = true;
 		}
 
-		void Mapper64::VSync()
+		void Mapper64::Sync(Event event,Input::Controllers*)
 		{
-			irq.a12.VSync();
-			irq.m2.VSync();
+			if (event == EVENT_END_FRAME)
+			{
+				irq.a12.VSync();
+				irq.m2.VSync();
+			}
 		}
 	}
 }

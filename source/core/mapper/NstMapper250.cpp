@@ -45,9 +45,9 @@ namespace Nes
 		#pragma optimize("", on)
 		#endif
 
-		NES_POKE(Mapper250,Prg)
+		NES_POKE_A(Mapper250,Prg)
 		{
-			data = address & 0xFF;
+			const uint data = address & 0xFF;
 			address = (address & 0xE000) | (address >> 10 & 0x1);
 
 			switch (address)

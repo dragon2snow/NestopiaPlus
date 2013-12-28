@@ -46,7 +46,7 @@ namespace Nes
 			virtual cstring GetDipName(uint) const = 0;
 			virtual cstring GetValueName(uint,uint) const = 0;
 			virtual uint GetValue(uint) const = 0;
-			virtual bool SetValue(uint,uint) = 0;
+			virtual void SetValue(uint,uint) = 0;
 		};
 	}
 }

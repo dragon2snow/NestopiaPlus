@@ -46,9 +46,9 @@ namespace Nes
 				state = 0x1E;
 			}
 
-			void PokkunMoguraa::SaveState(State::Saver& state,const byte id) const
+			void PokkunMoguraa::SaveState(State::Saver& saver,const byte id) const
 			{
-				state.Begin( AsciiId<'P','M'>::R(0,0,id) ).End();
+				saver.Begin( AsciiId<'P','M'>::R(0,0,id) ).End();
 			}
 
 			#ifdef NST_MSVC_OPTIMIZE

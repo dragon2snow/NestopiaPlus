@@ -64,6 +64,7 @@ namespace Nes
 				uint  Read8();
 				uint  Read16();
 				dword Read32();
+				qword Read64();
 				uint  SafeRead8();
 				uint  Peek8();
 				uint  Peek16();
@@ -107,6 +108,7 @@ namespace Nes
 				void Write8(uint);
 				void Write16(uint);
 				void Write32(dword);
+				void Write64(qword);
 				void Seek(idword);
 				bool SeekEnd();
 

@@ -60,7 +60,7 @@ namespace Nestopia
 		private:
 
 			void OnCmdOptions(uint);
-			void OnEmuEvent(Emulator::Event);
+			void OnEmuEvent(Emulator::Event,Emulator::Data);
 			void UpdateCodes() const;
 
 			Object::Heap<Window::Cheats> dialog;

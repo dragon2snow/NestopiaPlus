@@ -145,7 +145,7 @@ namespace Nes
 				MAX_HUE                         =  +45
 			};
 
-			void EnableUnlimSprites(bool) throw();
+			Result EnableUnlimSprites(bool) throw();
 			bool AreUnlimSpritesEnabled() const throw();
 
 			int GetBrightness() const throw();
@@ -185,6 +185,7 @@ namespace Nes
 				Decoder(DecoderPreset=DECODER_CANONICAL) throw();
 
 				bool operator == (const Decoder&) const throw();
+				bool operator != (const Decoder&) const throw();
 
 				enum
 				{
@@ -196,11 +197,11 @@ namespace Nes
 
 				struct
 				{
-					uint angle;
 					float gain;
+					uint angle;
 				}   axes[NUM_AXES];
 
-				bool boostYellow;
+				uint boostYellow;
 			};
 
 			Result SetDecoder(const Decoder&) throw();
@@ -253,6 +254,8 @@ namespace Nes
 
 			struct RenderState
 			{
+				RenderState() throw();
+
 				struct Bits
 				{
 					struct Mask

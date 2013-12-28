@@ -40,21 +40,43 @@ namespace Nes
 			public:
 
 				explicit Unl8157(Context& c)
-				: Mapper(c,PROM_MAX_512K|CROM_MAX_8K|WRAM_DEFAULT) {}
+				: Mapper(c,PROM_MAX_512K|CROM_MAX_8K|WRAM_DEFAULT|NMT_VERTICAL) {}
 
 			private:
 
 				~Unl8157() {}
 
+				class CartSwitches : public DipSwitches
+				{
+					uint mode;
+
+				public:
+
+					CartSwitches();
+
+					inline void SetMode(uint);
+					inline uint GetMode() const;
+
+				private:
+
+					uint GetValue(uint) const;
+					void SetValue(uint,uint);
+					uint NumDips() const;
+					uint NumValues(uint) const;
+					cstring GetDipName(uint) const;
+					cstring GetValueName(uint,uint) const;
+				};
+
 				void SubReset(bool);
 				void SubSave(State::Saver&) const;
 				void SubLoad(State::Loader&);
+				Device QueryDevice(DeviceType);
 
 				NES_DECL_PEEK( Prg );
 				NES_DECL_POKE( Prg );
 
-				uint menu;
 				uint trash;
+				CartSwitches cartSwitches;
 			};
 		}
 	}

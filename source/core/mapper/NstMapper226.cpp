@@ -35,13 +35,15 @@ namespace Nes
 
 		void Mapper226::SubReset(const bool hard)
 		{
+			Map( 0x8000U, 0xFFFFU, &Mapper226::Poke_Prg );
+
 			if (hard)
 			{
 				regs[0] = 0;
 				regs[1] = 0;
-			}
 
-			Map( 0x8000U, 0xFFFFU, &Mapper226::Poke_Prg );
+				NES_DO_POKE(Prg,0x8000,0x00);
+			}
 		}
 
 		void Mapper226::SubLoad(State::Loader& state)
@@ -69,7 +71,7 @@ namespace Nes
 		#pragma optimize("", on)
 		#endif
 
-		NES_POKE(Mapper226,Prg)
+		NES_POKE_AD(Mapper226,Prg)
 		{
 			regs[address & 0x1] = data;
 

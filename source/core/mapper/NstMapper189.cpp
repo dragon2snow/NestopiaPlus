@@ -48,7 +48,7 @@ namespace Nes
 		#pragma optimize("", on)
 		#endif
 
-		NES_POKE(Mapper189,4120)
+		NES_POKE_D(Mapper189,4120)
 		{
 			prg.SwapBank<SIZE_32K,0x0000>( (data >> 4) | data );
 		}

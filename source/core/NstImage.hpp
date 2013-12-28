@@ -41,6 +41,7 @@ namespace Nes
 
 		class ImageDatabase;
 		class Cpu;
+		class Apu;
 		class Ppu;
 
 		class NST_NO_VTABLE Image
@@ -69,13 +70,14 @@ namespace Nes
 			{
 				const Type type;
 				Cpu& cpu;
+				Apu& apu;
 				Ppu& ppu;
 				StdStream const stream;
 				const ImageDatabase* const database;
 				Result result;
 
-				Context(Type t,Cpu& c,Ppu& p,StdStream s,const ImageDatabase* d=NULL)
-				: type(t), cpu(c), ppu(p), stream(s), database(d), result(RESULT_OK) {}
+				Context(Type t,Cpu& c,Apu& a,Ppu& p,StdStream s,const ImageDatabase* d=NULL)
+				: type(t), cpu(c), apu(a), ppu(p), stream(s), database(d), result(RESULT_OK) {}
 			};
 
 			static Image* Load(Context&);
@@ -83,7 +85,7 @@ namespace Nes
 
 			virtual void Reset(bool) = 0;
 
-			virtual bool PowerOff() const
+			virtual bool PowerOff()
 			{
 				return true;
 			}
@@ -96,8 +98,8 @@ namespace Nes
 			virtual uint GetDesiredController(uint) const;
 			virtual uint GetDesiredAdapter() const;
 
-			virtual Mode GetMode() const = 0;
-			virtual void SetMode(Mode) {}
+			virtual Region::Type GetRegion() const = 0;
+			virtual void SetRegion(Region::Type) {}
 
 			virtual dword GetPrgCrc() const
 			{
@@ -109,9 +111,9 @@ namespace Nes
 				return NULL;
 			}
 
-			virtual PpuType QueryPpu(bool)
+			virtual Revision::Ppu QueryPpu(bool)
 			{
-				return PPU_RP2C02;
+				return Revision::PPU_RP2C02;
 			}
 
 		protected:

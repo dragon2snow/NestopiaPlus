@@ -60,16 +60,17 @@ namespace Nestopia
 			};
 
 			void Update();
-			void OnMenu(uint);
+			void OnCmdLauncher(uint);
 			void OnActivate(Window::Param&);
 			void OnDisplayChange(Window::Param&);
-			void OnEmuEvent(Emulator::Event);
+			void OnEmuEvent(Emulator::Event,Emulator::Data);
 			void OnAppEvent(Application::Instance::Event,const void*);
 
 			static Nes::Emulator& ImportDatabase(Nes::Emulator&);
 
 			Collection::BitSet state;
 			bool fullscreen;
+			Window::Custom& window;
 			Object::Heap<Window::Launcher> dialog;
 		};
 	}

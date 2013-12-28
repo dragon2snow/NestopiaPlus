@@ -38,8 +38,8 @@ namespace Nes
 			for (uint i=0x5000; i < 0x6000; i += 0x400)
 				Map( i + 0x00, i + 0x1FF, &Mapper164::Poke_5000 );
 
-			regs[0] = 0xFFF;
-			regs[1] = 0x00;
+			regs[0] = ~0U;
+			regs[1] = 0;
 
 			NES_DO_POKE(5000,0x5000,0x00);
 		}
@@ -70,7 +70,7 @@ namespace Nes
 		#pragma optimize("", on)
 		#endif
 
-		NES_POKE(Mapper164,5000)
+		NES_POKE_AD(Mapper164,5000)
 		{
 			address = address >> 8 & 0x1;
 

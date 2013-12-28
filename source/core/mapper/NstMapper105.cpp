@@ -37,7 +37,7 @@ namespace Nes
 		#endif
 
 		Mapper105::CartSwitches::CartSwitches()
-		: time(0), showTime(true) {}
+		: time(4), showTime(true) {}
 
 		Mapper105::Mapper105(Context& c)
 		: Mmc1(c,BRD_GENERIC_WRAM,REV_B)
@@ -103,32 +103,20 @@ namespace Nes
 			return (dip == 0) ? time : showTime;
 		}
 
-		bool Mapper105::CartSwitches::SetValue(uint dip,uint value)
+		void Mapper105::CartSwitches::SetValue(uint dip,uint value)
 		{
 			NST_ASSERT( dip < 2 );
 
 			if (dip == 0)
 			{
 				NST_ASSERT( value < 16 );
-
-				if (time != value)
-				{
-					time = value;
-					return true;
-				}
+				time = value;
 			}
 			else
 			{
 				NST_ASSERT( value < 2 );
-
-				if (showTime != value)
-				{
-					showTime = value;
-					return true;
-				}
+				showTime = value;
 			}
-
-			return false;
 		}
 
 		uint Mapper105::CartSwitches::GetTime() const
@@ -191,7 +179,15 @@ namespace Nes
 				if (chunk == AsciiId<'T','I','M'>::V)
 				{
 					seconds = state.Read32();
-					seconds = NST_CLAMP(seconds,1,time);
+
+					if (seconds > time)
+					{
+						seconds = time;
+					}
+					else if (seconds == 0)
+					{
+						seconds = 1;
+					}
 				}
 
 				state.End();
@@ -267,29 +263,32 @@ namespace Nes
 			}
 		}
 
-		void Mapper105::VSync()
+		void Mapper105::Sync(Event event,Input::Controllers* controllers)
 		{
-			if (irqEnabled)
+			if (event == EVENT_END_FRAME)
 			{
-				if (!--frames)
+				if (irqEnabled)
 				{
-					frames = (cpu.GetMode() == MODE_NTSC ? 60 : 50);
+					if (!--frames)
+					{
+						frames = ppu.GetFps();
+
+						if (cartSwitches.ShowTime())
+							std::sprintf( text + TIME_OFFSET, "%u:%u", uint(seconds / 60), uint(seconds % 60) );
+
+						if (!--seconds)
+						{
+							seconds = time;
+							cpu.DoIRQ();
+						}
+					}
 
 					if (cartSwitches.ShowTime())
-						std::sprintf( text + TIME_OFFSET, "%u:%u", uint(seconds / 60), uint(seconds % 60) );
-
-					if (!--seconds)
-					{
-						seconds = time;
-						cpu.DoIRQ();
-					}
+						Api::User::eventCallback( Api::User::EVENT_DISPLAY_TIMER, text );
 				}
 
-				if (cartSwitches.ShowTime())
-					Api::User::eventCallback( Api::User::EVENT_DISPLAY_TIMER, text );
+				Mmc1::Sync( event, controllers );
 			}
-
-			Mmc1::VSync();
 		}
 	}
 }

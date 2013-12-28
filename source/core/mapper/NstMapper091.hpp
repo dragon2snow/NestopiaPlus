@@ -46,12 +46,12 @@ namespace Nes
 			void SubReset(bool);
 			void SubSave(State::Saver&) const;
 			void SubLoad(State::Loader&);
-			void VSync();
+			void Sync(Event,Input::Controllers*);
 
 			NES_DECL_POKE( 7002 );
 			NES_DECL_POKE( 7003 );
 
-			Boards::Mmc3::Irq irq;
+			Boards::Mmc3::Irq<> irq;
 		};
 	}
 }

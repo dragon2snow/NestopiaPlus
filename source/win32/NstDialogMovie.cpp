@@ -61,12 +61,10 @@ namespace Nestopia
 			return Application::Instance::GetFullPath( movieFile );
 		}
 
-		bool Movie::SetMovieFile(const Path& file)
+		void Movie::SetMovieFile(const Path& file)
 		{
-			const Path old( movieFile );
 			movieFile = file;
 			paths.FixFile( Managers::Paths::File::MOVIE, movieFile );
-			return movieFile != old;
 		}
 
 		ibool Movie::OnInitDialog(Param&)

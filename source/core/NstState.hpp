@@ -45,13 +45,14 @@ namespace Nes
 			{
 			public:
 
-				Saver(StdStream,bool,bool);
+				Saver(StdStream,bool,bool,dword=0);
 				~Saver();
 
 				Saver& Begin(dword);
 				Saver& Write8(uint);
 				Saver& Write16(uint);
 				Saver& Write32(dword);
+				Saver& Write64(qword);
 				Saver& Write(const byte*,dword);
 				Saver& Compress(const byte*,dword);
 				Saver& End();
@@ -101,12 +102,16 @@ namespace Nes
 				~Loader();
 
 				dword Begin();
+				dword Check();
+				dword Length() const;
 				uint  Read8();
 				uint  Read16();
 				dword Read32();
+				qword Read64();
 				void  Read(byte*,dword);
 				void  Uncompress(byte*,dword);
 				void  End();
+				void  End(dword);
 
 				template<uint N>
 				class Data

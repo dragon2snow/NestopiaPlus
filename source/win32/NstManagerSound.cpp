@@ -77,20 +77,20 @@ namespace Nestopia
 
 		bool Sound::CanRunInBackground() const
 		{
-			if (emulator.Is(Nes::Machine::SOUND))
+			if (emulator.IsNsf())
 				return menu[IDM_MACHINE_NSF_OPTIONS_PLAYINBACKGROUND].Checked();
 			else
 				return preferences[Managers::Preferences::RUN_IN_BACKGROUND];
 		}
 
-		void Sound::OnEmuEvent(Emulator::Event event)
+		void Sound::OnEmuEvent(const Emulator::Event event,const Emulator::Data data)
 		{
 			switch (event)
 			{
 				case Emulator::EVENT_POWER_ON:
 				case Emulator::EVENT_SPEED:
 
-					if (emuOutput)
+					if (emuOutput && emulator.NetPlayers() == 0)
 					{
 						Nes::Sound( emulator ).SetSpeed( emulator.GetSpeed() );
 						Nes::Sound( emulator ).EmptyBuffer();
@@ -111,10 +111,9 @@ namespace Nestopia
 					directSound.StopStream();
 					break;
 
-				case Emulator::EVENT_NETPLAY_MODE_ON:
-				case Emulator::EVENT_NETPLAY_MODE_OFF:
+				case Emulator::EVENT_NETPLAY_MODE:
 
-					menu[IDM_OPTIONS_SOUND].Enable( event == Emulator::EVENT_NETPLAY_MODE_OFF );
+					menu[IDM_OPTIONS_SOUND].Enable( !data );
 					break;
 			}
 		}
@@ -144,7 +143,7 @@ namespace Nestopia
 					nesSound.GetSampleRate(),
 					nesSound.GetSampleBits(),
 					nesSound.GetSpeaker() == Nes::Sound::SPEAKER_STEREO ? DirectX::DirectSound::STEREO : DirectX::DirectSound::MONO,
-					emulator.Is(Nes::Machine::SOUND) ? 500 : (dialog->GetLatency() + 2) * 21,
+					emulator.IsNsf() ? 500 : (dialog->GetLatency() + 2) * 21,
 					dialog->GetPool(),
 					CanRunInBackground()
 				);
@@ -153,7 +152,7 @@ namespace Nestopia
 				{
 					emuOutput = &output;
 					nesSound.SetSpeed( emulator.GetSpeed() );
-					recorder->Enable( directSound.GetWaveFormat() );
+					recorder->Enable( &directSound.GetWaveFormat() );
 					return;
 				}
 			}
@@ -169,10 +168,10 @@ namespace Nestopia
 		{
 			emuOutput = NULL;
 			Nes::Sound( emulator ).SetVolume( Nes::Sound::ALL_CHANNELS, 0 );
-			recorder->Disable();
+			recorder->Enable( NULL );
 
 			if (errMsg)
-				Window::User::Fail( Resource::String( IDS_SOUND_FAILED ).Invoke( errMsg ) );
+				Window::User::Fail( Resource::String( IDS_ERR_SOUND_FAILED ).Invoke( errMsg ) );
 		}
 
 		void Sound::StartEmulation() const
@@ -272,7 +271,7 @@ namespace Nestopia
 					else if (j == sizeof(array(types))-1)
 					{
 						if (!sound.preferences[Preferences::SUPPRESS_WARNINGS])
-							Window::User::Warn( IDS_EMU_NO_SAMPLES );
+							Window::User::Warn( IDS_EMU_SAMPLES_UNAVAILABLE );
 
 						path.Extension().Clear();
 

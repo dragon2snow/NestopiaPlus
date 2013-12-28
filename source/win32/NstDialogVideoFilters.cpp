@@ -250,13 +250,13 @@ namespace Nestopia
 			{
 				static tstring const names[] =
 				{
-					_T( "standard"  ),
-					_T( "ntsc"      ),
-					_T( "scalex"    ),
-					_T( "hqx"       )
+					_T( "standard" ),
+					_T( "ntsc"     ),
+					_T( "scalex"   ),
+					_T( "hqx"      )
 				};
 
-				cfg[ "video filter" ] = names[type];
+				cfg["video filter"] = names[type];
 			}
 
 			for (uint i=0; i < NUM_TYPES; ++i)
@@ -534,7 +534,7 @@ namespace Nestopia
 		{
 			if (param.Button().Clicked())
 			{
-				settings.attributes[ATR_BILINEAR] = (bool) dialog.CheckBox( IDC_VIDEO_FILTER_BILINEAR ).Checked();
+				settings.attributes[ATR_BILINEAR] = bool(dialog.CheckBox( IDC_VIDEO_FILTER_BILINEAR ).Checked());
 				Application::Instance::GetMainWindow().Redraw();
 			}
 
@@ -696,7 +696,7 @@ namespace Nestopia
 							settings.attributes[ATR_FIELDMERGING] = ATR_FIELDMERGING_OFF;
 						}
 
-						settings.attributes[ATR_RESCALE_PIC] = (bool) dialog.CheckBox(IDC_VIDEO_FILTER_NTSC_TV_ASPECT).Unchecked();
+						settings.attributes[ATR_RESCALE_PIC] = bool(dialog.CheckBox(IDC_VIDEO_FILTER_NTSC_TV_ASPECT).Unchecked());
 						break;
 				}
 

@@ -37,7 +37,7 @@ namespace Nes
 		Mapper3::Mapper3(Context& c)
 		:
 		Mapper (c,PROM_MAX_32K | (c.attribute == ATR_X79B ? WRAM_8K : WRAM_DEFAULT)),
-		sound  (c.attribute == ATR_SAMPLES_AS ? Sound::Player::Create(cpu,Sound::Loader::AEROBICS_STUDIO,Sound::Loader::AEROBICS_STUDIO_SAMPLES) : NULL)
+		sound  (c.attribute == ATR_SAMPLES_AS ? Sound::Player::Create(c.apu,Sound::Loader::AEROBICS_STUDIO,Sound::Loader::AEROBICS_STUDIO_SAMPLES) : NULL)
 		{}
 
 		Mapper3::~Mapper3()
@@ -57,7 +57,7 @@ namespace Nes
 		#pragma optimize("", on)
 		#endif
 
-		NES_POKE(Mapper3,6000)
+		NES_POKE_D(Mapper3,6000)
 		{
 			NST_ASSERT( sound );
 

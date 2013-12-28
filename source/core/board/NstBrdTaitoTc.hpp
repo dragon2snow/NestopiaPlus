@@ -53,7 +53,12 @@ namespace Nes
 				void SubReset(bool);
 				void BaseSave(State::Saver&) const;
 				void BaseLoad(State::Loader&,dword);
-				void VSync();
+				void Sync(Event,Input::Controllers*);
+
+				enum
+				{
+					IRQ_DELAY = 2
+				};
 
 				NES_DECL_POKE( 8000 );
 				NES_DECL_POKE( C000 );
@@ -62,7 +67,7 @@ namespace Nes
 				NES_DECL_POKE( C003 );
 				NES_DECL_POKE( E000 );
 
-				Mmc3::Irq* const irq;
+				Mmc3::Irq<IRQ_DELAY>* const irq;
 			};
 		}
 	}

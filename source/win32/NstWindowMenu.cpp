@@ -103,21 +103,21 @@ namespace Nestopia
 		#pragma optimize("t", on)
 		#endif
 
-		ibool Menu::Instances::TranslateNone(MSG&)
+		bool Menu::Instances::TranslateNone(MSG&)
 		{
 			NST_ASSERT( !acceleratorsEnabled || menus.Empty() );
 
 			return false;
 		}
 
-		ibool Menu::Instances::TranslateSingle(MSG& msg)
+		bool Menu::Instances::TranslateSingle(MSG& msg)
 		{
 			NST_ASSERT( acceleratorsEnabled && menus.Size() == 1 );
 
 			return msg.hwnd == *menus.Front()->window ? menus.Front()->accelerator.Translate( msg ) : false;
 		}
 
-		ibool Menu::Instances::TranslateMulti(MSG& msg)
+		bool Menu::Instances::TranslateMulti(MSG& msg)
 		{
 			NST_ASSERT( acceleratorsEnabled && menus.Size() >= 2 );
 
@@ -145,7 +145,7 @@ namespace Nestopia
 		acceleratorEnabled ( true )
 		{
 			if (!handle)
-				throw Application::Exception( IDS_FAILED, _T("LoadMenu()") );
+				throw Application::Exception( IDS_ERR_FAILED, _T("LoadMenu()") );
 		}
 
 		Menu::~Menu()
@@ -262,26 +262,16 @@ namespace Nestopia
 
 		ibool Menu::OnInitMenuPopup(Param& param)
 		{
-			const PopupHandler::Key* key;
-
-			if (const PopupHandler::Handler::Callback* const callback = popupHandler.Find( reinterpret_cast<HMENU>(param.wParam), &key ))
-			{
-				PopupHandler::Param info( key->item, true );
-				(*callback)( info );
-			}
+			if (const PopupHandler::Handler::Item* const item = popupHandler( PopupHandler::Key(param.wParam) ))
+				item->value( PopupHandler::Param( item->key.item, true ) );
 
 			return true;
 		}
 
 		ibool Menu::OnUninitMenuPopup(Param& param)
 		{
-			const PopupHandler::Key* key;
-
-			if (const PopupHandler::Handler::Callback* const callback = popupHandler.Find( reinterpret_cast<HMENU>(param.wParam), &key ))
-			{
-				PopupHandler::Param info( key->item, true );
-				(*callback)( info );
-			}
+			if (const PopupHandler::Handler::Item* const item = popupHandler( PopupHandler::Key(param.wParam) ))
+				item->value( PopupHandler::Param( item->key.item, false ) );
 
 			return true;
 		}

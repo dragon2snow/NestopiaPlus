@@ -155,7 +155,7 @@ namespace Nestopia
 
 			bool SoundEnabled() const
 			{
-				return settings.adapter != UINT_MAX && nes.IsAudible();
+				return settings.adapter != UINT_MAX;
 			}
 
 			uint GetAdapter() const

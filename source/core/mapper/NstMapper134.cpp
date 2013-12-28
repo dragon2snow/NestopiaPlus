@@ -1,21 +1,21 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003-2005 Martin Freij
+// Copyright (C) 2003-2007 Martin Freij
 //
 // This file is part of Nestopia.
-// 
+//
 // Nestopia is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
 // the Free Software Foundation; either version 2 of the License, or
 // (at your option) any later version.
-// 
+//
 // Nestopia is distributed in the hope that it will be useful,
 // but WITHOUT ANY WARRANTY; without even the implied warranty of
 // MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 // GNU General Public License for more details.
-// 
+//
 // You should have received a copy of the GNU General Public License
 // along with Nestopia; if not, write to the Free Software
 // Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -23,99 +23,91 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 
 #include "../NstMapper.hpp"
+#include "../board/NstBrdMmc3.hpp"
 #include "NstMapper134.hpp"
-		 
+
 namespace Nes
 {
 	namespace Core
 	{
-        #ifdef NST_PRAGMA_OPTIMIZE
-        #pragma optimize("s", on)
-        #endif
-	
+		#ifdef NST_MSVC_OPTIMIZE
+		#pragma optimize("s", on)
+		#endif
+
 		void Mapper134::SubReset(const bool hard)
 		{
 			if (hard)
-				command = 0x0;
+				exReg = 0;
 
-			for (uint i=0x4100U; i < 0x6000U; ++i)
-			{
-				switch (i & 0x4101U)
-				{
-					case 0x4100U: Map( i, &Mapper134::Poke_4100 ); break;
-					case 0x4101U: Map( i, &Mapper134::Poke_4101 ); break;
-				}
-			}
+			Mmc3::SubReset( hard );
+
+			Map( 0x6001U, 0x6001U, &Mapper134::Poke_6001 );
 		}
-	
+
 		void Mapper134::SubLoad(State::Loader& state)
 		{
 			while (const dword chunk = state.Begin())
 			{
-				if (chunk == NES_STATE_CHUNK_ID('R','E','G','\0'))
-					command = state.Read8();
-	
+				if (chunk == AsciiId<'R','E','G'>::V)
+					exReg = state.Read8();
+
 				state.End();
 			}
 		}
-	
+
 		void Mapper134::SubSave(State::Saver& state) const
 		{
-			state.Begin('R','E','G','\0').Write8( command ).End();
-		}
-	
-        #ifdef NST_PRAGMA_OPTIMIZE
-        #pragma optimize("", on)
-        #endif
-
-		NES_POKE(Mapper134,4100) 
-		{ 
-			command = data;
+			state.Begin( AsciiId<'R','E','G'>::V ).Write8( exReg ).End();
 		}
 
-		NES_POKE(Mapper134,4101) 
-		{ 
-			uint banks[2] = {~0U,~0U};
+		#ifdef NST_MSVC_OPTIMIZE
+		#pragma optimize("", on)
+		#endif
 
-			switch (command & 0x7)
+		NES_POKE_D(Mapper134,6001)
+		{
+			if (exReg != data)
 			{
-				case 0x0: 
-
-					banks[0] = 0;
-					banks[1] = 3;
-					break;
-
-				case 0x4: 
-
-					banks[1] = (chr.GetBank<NES_8K,0x0000U>() & 0x3) | ((data & 0x7) << 2);
-					break;
-
-				case 0x5: 
-					
-					banks[0] = data & 0x7;
-					break;
-
-				case 0x6: 
-				
-					banks[1] = (chr.GetBank<NES_8K,0x0000U>() & 0x1C) | (data & 0x3);
-					break;
-
-				case 0x7: 
-					
-					ppu.SetMirroring( (data & 0x1) ? Ppu::NMT_VERTICAL : Ppu::NMT_HORIZONTAL );
-
-				default:
-					return;
+				exReg = data;
+				Mapper134::UpdatePrg();
+				Mapper134::UpdateChr();
 			}
+		}
 
-			if (banks[0] != ~0U)
-				prg.SwapBank<NES_32K,0x0000U>( banks[0] );
+		void Mapper134::UpdatePrg()
+		{
+			const uint i = (regs.ctrl0 & Regs::CTRL0_XOR_PRG) >> 5;
 
-			if (banks[1] != ~0U)
-			{
-				ppu.Update();
-				chr.SwapBank<NES_8K,0x0000U>( banks[1] );
-			}
+			prg.SwapBanks<SIZE_8K,0x0000>
+			(
+				(banks.prg[i]   & 0x1F) | (exReg << 4 & 0x20),
+				(banks.prg[1]   & 0x1F) | (exReg << 4 & 0x20),
+				(banks.prg[i^2] & 0x1F) | (exReg << 4 & 0x20),
+				(banks.prg[3]   & 0x1F) | (exReg << 4 & 0x20)
+			);
+		}
+
+		void Mapper134::UpdateChr() const
+		{
+			ppu.Update();
+
+			const uint swap = (regs.ctrl0 & Regs::CTRL0_XOR_CHR) << 5;
+
+			chr.SwapBanks<SIZE_2K>
+			(
+				0x0000 ^ swap,
+				banks.chr[0] | (exReg << 2 & 0x80),
+				banks.chr[1] | (exReg << 2 & 0x80)
+			);
+
+			chr.SwapBanks<SIZE_1K>
+			(
+				0x1000 ^ swap,
+				banks.chr[2] | (exReg << 3 & 0x100),
+				banks.chr[3] | (exReg << 3 & 0x100),
+				banks.chr[4] | (exReg << 3 & 0x100),
+				banks.chr[5] | (exReg << 3 & 0x100)
+			);
 		}
 	}
 }

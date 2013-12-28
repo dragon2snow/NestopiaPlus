@@ -31,7 +31,6 @@
 #include "NstObjectDelegate.hpp"
 #include "NstString.hpp"
 #include "../core/api/NstApiEmulator.hpp"
-#include "../core/api/NstApiMachine.hpp"
 #include "../core/api/NstApiVideo.hpp"
 #include "../core/api/NstApiSound.hpp"
 #include "../core/api/NstApiInput.hpp"
@@ -66,29 +65,7 @@ namespace Nestopia
 			Emulator();
 			~Emulator();
 
-		private:
-
-			struct Netplay
-			{
-				Netplay();
-
-				typedef Object::Delegate<void,Nes::Input::Controllers*> Callback;
-
-				Callback callback;
-				uint player, players;
-
-				operator bool () const
-				{
-					return callback;
-				}
-			};
-
-		public:
-
-			enum
-			{
-				DEFAULT_SPEED = 0
-			};
+			typedef int Data;
 
 			enum Alert
 			{
@@ -106,8 +83,7 @@ namespace Nestopia
 
 			enum Event
 			{
-				EVENT_INIT = 1,
-				EVENT_LOAD,
+				EVENT_LOAD = 1,
 				EVENT_UNLOAD,
 				EVENT_POWER_ON,
 				EVENT_POWER_OFF,
@@ -117,16 +93,22 @@ namespace Nestopia
 				EVENT_MODE_PAL,
 				EVENT_PAUSE,
 				EVENT_RESUME,
-				EVENT_NETPLAY_MODE_ON,
-				EVENT_NETPLAY_MODE_OFF,
-				EVENT_NETPLAY_LOAD,
-				EVENT_NETPLAY_UNLOAD,
-				EVENT_NETPLAY_POWER_ON,
-				EVENT_NETPLAY_POWER_OFF,
+				EVENT_NETPLAY_MODE,
 				EVENT_SPEED,
 				EVENT_BASE_SPEED,
 				EVENT_SPEEDING_ON,
 				EVENT_SPEEDING_OFF,
+				EVENT_DISK_INSERT,
+				EVENT_DISK_EJECT,
+				EVENT_DISK_NONSTANDARD,
+				EVENT_DISK_QUERY_BIOS,
+				EVENT_TAPE_PLAYING,
+				EVENT_TAPE_RECORDING,
+				EVENT_TAPE_STOPPED,
+				EVENT_MOVIE_PLAYING,
+				EVENT_MOVIE_PLAYING_STOPPED,
+				EVENT_MOVIE_RECORDING,
+				EVENT_MOVIE_RECORDING_STOPPED,
 				EVENT_REWINDING_ON,
 				EVENT_REWINDING_OFF,
 				EVENT_REWINDING_PREPARE,
@@ -134,66 +116,84 @@ namespace Nestopia
 				EVENT_REWINDING_STOP,
 				EVENT_NSF_PLAY,
 				EVENT_NSF_STOP,
-				EVENT_NSF_NEXT,
-				EVENT_NSF_PREV,
+				EVENT_NSF_SELECT,
 				EVENT_PORT1_CONTROLLER,
 				EVENT_PORT2_CONTROLLER,
 				EVENT_PORT3_CONTROLLER,
 				EVENT_PORT4_CONTROLLER,
 				EVENT_PORT5_CONTROLLER,
-				EVENT_QUERY_FDS_BIOS
+				EVENT_PORT_ADAPTER
 			};
 
-			void Initialize() const;
+			enum Command
+			{
+				COMMAND_RESET = 1,
+				COMMAND_DISK_INSERT,
+				COMMAND_DISK_EJECT
+			};
+
+			enum
+			{
+				NUM_COMMANDS = 3,
+				DEFAULT_SPEED = 0,
+				MASTER = 0
+			};
+
 			void Stop();
-			void Resume();
-			void Wait();
-			bool Pause(bool);
+			void Pause(bool);
 			void ResetSpeed(uint,bool,bool);
 			void SetSpeed(uint);
+			uint GetDefaultSpeed();
 			uint GetBaseSpeed();
 			uint GetSpeed();
-			bool SetMode(Nes::Machine::Mode);
 			void ToggleSpeed(bool);
 			void ToggleRewind(bool);
-			bool AutoSetMode();
-			void AutoSelectController(uint);
-			void AutoSelectControllers();
-			void ConnectController(uint,Nes::Input::Type);
-			void PlaySong();
-			void StopSong();
-			void SelectNextSong();
-			void SelectPrevSong();
 			void Save(Io::Nsp::Context&);
 			bool Load(Collection::Buffer&,const Path&,const Io::Nsp::Context&,bool);
-			bool Unload();
+			void Unload();
+			void SendCommand(Command,Data=0);
 			bool SaveState(Collection::Buffer&,bool,Alert=NOISY);
 			bool LoadState(Collection::Buffer&,Alert=NOISY);
 			bool Power(bool);
-			bool Reset(bool);
 			void Execute(Nes::Video::Output*,Nes::Sound::Output*,Nes::Input::Controllers*);
 			void BeginNetplayMode();
 			void EndNetplayMode();
-			void DisableNetplay();
+			void StopNetplay();
 			void Unhook();
+
+			bool IsImage();
+			bool IsGame();
+			bool IsCart();
+			bool IsFds();
+			bool IsNsf();
+			bool IsOn();
+			bool IsImageOn();
+			bool IsGameOn();
+			bool IsCartOn();
+			bool IsFdsOn();
+			bool IsNsfOn();
+			bool IsLocked();
+
+			static uint ResultToString(Nes::Result);
 
 		private:
 
 			struct Callbacks;
+			struct CallbackData;
 
 			class EventHandler
 			{
 				friend class Emulator;
 				friend struct Callbacks;
 
-				typedef Object::Delegate<void,Event> Callback;
+				typedef Object::Delegate2<void,Event,Data> Callback;
 				typedef Collection::Vector<Callback> Callbacks;
 
 				Callbacks callbacks;
 
 				~EventHandler();
 
-				void operator () (Event) const;
+				void operator () (Event,Data=0) const;
 				void Add(const Callback&);
 
 			public:
@@ -272,12 +272,28 @@ namespace Nestopia
 				Inactivator inactivator;
 			};
 
+			struct Netplay : ImplicitBool<Netplay>
+			{
+				Netplay();
+
+				typedef Object::Delegate2<void,Command,Data> Commander;
+				typedef Object::Delegate<void,Nes::Input::Controllers&> Executor;
+
+				Executor executor;
+				Commander commander;
+				uint player;
+				uint players;
+
+				bool operator ! () const
+				{
+					return !executor;
+				}
+			};
+
 			bool IsDiskImage(const Collection::Buffer&) const;
 			bool UsesBaseSpeed() const;
-			void EnableNetplay(const Netplay::Callback&,uint,uint);
-			void Unpause();
-
-			struct CallbackData;
+			void StartNetplay(const Netplay::Executor&,const Netplay::Commander&,uint,uint);
+			bool Start();
 
 			void LoadImageData(CallbackData&);
 			void SaveImageData(CallbackData&) const;
@@ -291,14 +307,14 @@ namespace Nestopia
 
 		public:
 
+			bool Resume()
+			{
+				return state.running || Start();
+			}
+
 			bool Running() const
 			{
 				return state.running;
-			}
-
-			bool Idle() const
-			{
-				return !state.running;
 			}
 
 			bool Paused() const
@@ -314,16 +330,6 @@ namespace Nestopia
 			bool Rewinding() const
 			{
 				return settings.timing.rewinding;
-			}
-
-			bool Is(uint a)
-			{
-				return Nes::Machine(*this).Is( a );
-			}
-
-			bool Is(uint a,uint b)
-			{
-				return Nes::Machine(*this).Is( a, b );
 			}
 
 			void AskBeforeSaving()
@@ -381,14 +387,9 @@ namespace Nestopia
 				return netplay.player;
 			}
 
-			uint NumPlayers() const
+			uint NetPlayers() const
 			{
 				return netplay.players;
-			}
-
-			bool IsNetplaying() const
-			{
-				return netplay;
 			}
 
 			EventHandler& Events()
@@ -403,10 +404,10 @@ namespace Nestopia
 				state.inactivator.Set( data, inactivator );
 			}
 
-			template<typename Data,typename Code>
-			void EnableNetplay(Data data,Code code,uint player,uint players)
+			template<typename Data,typename Executor,typename Commander>
+			void StartNetplay(Data data,Executor executor,Commander commander,uint player,uint players)
 			{
-				EnableNetplay( Netplay::Callback(data,code), player, players );
+				StartNetplay( Netplay::Executor(data,executor), Netplay::Commander(data,commander), player, players );
 			}
 		};
 	}

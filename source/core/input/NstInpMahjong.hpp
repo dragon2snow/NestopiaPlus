@@ -52,7 +52,7 @@ namespace Nes
 
 				enum
 				{
-					PART = b00000110
+					PART = 0x06
 				};
 
 				uint stream;

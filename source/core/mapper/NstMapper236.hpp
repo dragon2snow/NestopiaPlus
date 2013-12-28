@@ -37,22 +37,52 @@ namespace Nes
 		{
 		public:
 
-			explicit Mapper236(Context& c)
-			: Mapper(c,CROM_MAX_64K|WRAM_DEFAULT) {}
+			explicit Mapper236(Context&);
 
 		private:
 
 			~Mapper236() {}
 
+			enum Attribute
+			{
+				ATR_GENERIC,
+				ATR_800_IN_1,
+				ATR_76_IN_1,
+				NUM_ATTRIBUTES
+			};
+
+			class CartSwitches : public DipSwitches
+			{
+				uint mode;
+				const Attribute type;
+
+			public:
+
+				explicit CartSwitches(const Context&);
+
+				inline void SetMode(uint);
+				inline uint GetMode() const;
+
+			private:
+
+				uint GetValue(uint) const;
+				void SetValue(uint,uint);
+				uint NumDips() const;
+				uint NumValues(uint) const;
+				cstring GetDipName(uint) const;
+				cstring GetValueName(uint,uint) const;
+			};
+
 			void SubReset(bool);
 			void SubSave(State::Saver&) const;
 			void SubLoad(State::Loader&);
+			Device QueryDevice(DeviceType);
 
 			NES_DECL_POKE( Prg );
 			NES_DECL_PEEK( Prg );
 
-			uint title;
 			uint mode;
+			CartSwitches cartSwitches;
 		};
 	}
 }

@@ -32,7 +32,6 @@
 #include "NstManagerPaths.hpp"
 #include "NstDialogLauncher.hpp"
 #include "../core/NstCrc32.hpp"
-#include "../core/api/NstApiCartridge.hpp"
 
 namespace Nestopia
 {
@@ -152,7 +151,7 @@ namespace Nestopia
 			{
 				if (include[Include::ANY])
 				{
-					if (extension == NST_FOURCC('n','s','p','\0'))
+					if (extension == FourCC<'n','s','p'>::V)
 						return include[Include::NSP] ? &Inserter::ParseNsp : NULL;
 					else
 						return &Inserter::ParseAny;
@@ -161,16 +160,16 @@ namespace Nestopia
 				{
 					switch (extension)
 					{
-						case NST_FOURCC('n','e','s','\0'): return include[Include::NES] ? &Inserter::ParseNes : NULL;
-						case NST_FOURCC('u','n','f','\0'):
-						case NST_FOURCC('u','n','i', 'f'): return include[Include::UNF] ? &Inserter::ParseUnf : NULL;
-						case NST_FOURCC('f','d','s','\0'): return include[Include::FDS] ? &Inserter::ParseFds : NULL;
-						case NST_FOURCC('n','s','f','\0'): return include[Include::NSF] ? &Inserter::ParseNsf : NULL;
-						case NST_FOURCC('i','p','s','\0'): return include[Include::IPS] ? &Inserter::ParseIps : NULL;
-						case NST_FOURCC('n','s','p','\0'): return include[Include::NSP] ? &Inserter::ParseNsp : NULL;
-						case NST_FOURCC('z','i','p','\0'):
-						case NST_FOURCC('r','a','r','\0'):
-						case NST_FOURCC('7','z','\0','\0'): return include[Include::ARCHIVE] ? &Inserter::ParseArchive : NULL;
+						case FourCC<'n','e','s'>::V:     return include[Include::NES] ? &Inserter::ParseNes : NULL;
+						case FourCC<'u','n','f'>::V:
+						case FourCC<'u','n','i','f'>::V: return include[Include::UNF] ? &Inserter::ParseUnf : NULL;
+						case FourCC<'f','d','s'>::V:     return include[Include::FDS] ? &Inserter::ParseFds : NULL;
+						case FourCC<'n','s','f'>::V:     return include[Include::NSF] ? &Inserter::ParseNsf : NULL;
+						case FourCC<'i','p','s'>::V:     return include[Include::IPS] ? &Inserter::ParseIps : NULL;
+						case FourCC<'n','s','p'>::V:     return include[Include::NSP] ? &Inserter::ParseNsp : NULL;
+						case FourCC<'z','i','p'>::V:
+						case FourCC<'r','a','r'>::V:
+						case FourCC<'7','z'>::V:         return include[Include::ARCHIVE] ? &Inserter::ParseArchive : NULL;
 					}
 				}
 			}
@@ -193,7 +192,7 @@ namespace Nestopia
 			if (path.reference == PATH_NOT_ADDED)
 				path.reference = (strings << path.string.Directory());
 
-			NST_ASSERT( path.string.Directory() == strings[path.reference] );
+			NST_VERIFY( path.string.Directory() == strings[path.reference] );
 
 			back.path = path.reference;
 
@@ -203,7 +202,7 @@ namespace Nestopia
 
 		bool Launcher::List::Files::Inserter::Add(const GenericString fileName)
 		{
-			NST_ASSERT( fileName.Length() && fileName.Length() <= _MAX_PATH );
+			NST_ASSERT( fileName.Length() && fileName.Length() <= MAX_PATH );
 
 			if (entries.Size() == HEADER_MAX_ENTRIES)
 				return false;
@@ -306,7 +305,7 @@ namespace Nestopia
 			return
 			(
 				buffer.Size() >= minSize &&
-				(!fileId || fileId == NST_FOURCC(buffer[0],buffer[1],buffer[2],buffer[3]))
+				(!fileId || fileId == FourCC<>::T( buffer.Ptr() ))
 			);
 		}
 
@@ -314,11 +313,11 @@ namespace Nestopia
 		{
 			if (PrepareFile( 16, Managers::Paths::File::ID_INES ))
 			{
-				Nes::Api::Cartridge::Setup setup;
+				Nes::Cartridge::Setup setup;
 
 				if (UniqueFile())
 				{
-					Nes::Api::Cartridge::ReadNesHeader( setup, buffer.Ptr(), buffer.Size() );
+					Nes::Cartridge::ReadNesHeader( setup, buffer.Ptr(), buffer.Size() );
 
 					Entry entry( Entry::NES | compressed );
 
@@ -329,19 +328,19 @@ namespace Nestopia
 
 					entry.attributes =
 					(
-						( setup.wrkRamBacked >= Nes::Core::SIZE_1K ? Entry::ATR_BATTERY : 0 ) |
-						( setup.trainer                            ? Entry::ATR_TRAINER : 0 ) |
-						( setup.system == Nes::SYSTEM_VS           ? Entry::ATR_VS      : 0 ) |
+						( setup.wrkRamBacked >= Nes::Core::SIZE_1K  ? Entry::ATR_BATTERY : 0 ) |
+						( setup.trainer                             ? Entry::ATR_TRAINER : 0 ) |
+						( setup.system == Nes::Cartridge::SYSTEM_VS ? Entry::ATR_VS      : 0 ) |
 						(
-							setup.region == Nes::REGION_BOTH ? Entry::ATR_NTSC_PAL :
-							setup.region == Nes::REGION_PAL  ? Entry::ATR_PAL :
-                                                               Entry::ATR_NTSC
+							setup.region == Nes::Cartridge::REGION_BOTH ? Entry::ATR_NTSC_PAL :
+							setup.region == Nes::Cartridge::REGION_PAL  ? Entry::ATR_PAL :
+                                                                          Entry::ATR_NTSC
 						)
 							|
 						(
-							setup.mirroring == Nes::Api::Cartridge::MIRROR_FOURSCREEN ? Entry::MIRROR_FOURSCREEN :
-							setup.mirroring == Nes::Api::Cartridge::MIRROR_VERTICAL   ? Entry::MIRROR_VERTICAL   :
-																						Entry::MIRROR_HORIZONTAL
+							setup.mirroring == Nes::Cartridge::MIRROR_FOURSCREEN ? Entry::MIRROR_FOURSCREEN :
+							setup.mirroring == Nes::Cartridge::MIRROR_VERTICAL   ? Entry::MIRROR_VERTICAL   :
+                                                                                   Entry::MIRROR_HORIZONTAL
 						)
 					);
 
@@ -367,14 +366,14 @@ namespace Nestopia
 					cstring const end = buffer.End() - 8;
 					uint pRom = 0, cRom = 0;
 
-					for (char* it = buffer.At(32); it <= end; it += 8 + NST_FOURCC(it[4],it[5],it[6],it[7]))
+					for (char* it = buffer.At(32); it <= end; it += 8 + FourCC<>::T( it+4 ))
 					{
-						switch (NST_FOURCC(it[0],it[1],it[2],it[3]))
+						switch (FourCC<>::T( it+0 ))
 						{
-							case NST_FOURCC('N','A','M','E'):
+							case FourCC<'N','A','M','E'>::V:
 
 								// limit to 255 characters by looking at the first byte only
-								if (it+1 < end && NST_FOURCC(it[4],it[5],it[6],it[7]) > 1)
+								if (it+1 < end && FourCC<>::T( it+4 ) > 1)
 								{
 									// in case string is not terminated
 									it[8-1 + NST_MIN( it[4], end-it )] = '\0';
@@ -382,47 +381,47 @@ namespace Nestopia
 								}
 								break;
 
-							case NST_FOURCC('P','R','G','0'):
-							case NST_FOURCC('P','R','G','1'):
-							case NST_FOURCC('P','R','G','2'):
-							case NST_FOURCC('P','R','G','3'):
-							case NST_FOURCC('P','R','G','4'):
-							case NST_FOURCC('P','R','G','5'):
-							case NST_FOURCC('P','R','G','6'):
-							case NST_FOURCC('P','R','G','7'):
-							case NST_FOURCC('P','R','G','8'):
-							case NST_FOURCC('P','R','G','9'):
-							case NST_FOURCC('P','R','G','A'):
-							case NST_FOURCC('P','R','G','B'):
-							case NST_FOURCC('P','R','G','C'):
-							case NST_FOURCC('P','R','G','D'):
-							case NST_FOURCC('P','R','G','E'):
-							case NST_FOURCC('P','R','G','F'):
+							case FourCC<'P','R','G','0'>::V:
+							case FourCC<'P','R','G','1'>::V:
+							case FourCC<'P','R','G','2'>::V:
+							case FourCC<'P','R','G','3'>::V:
+							case FourCC<'P','R','G','4'>::V:
+							case FourCC<'P','R','G','5'>::V:
+							case FourCC<'P','R','G','6'>::V:
+							case FourCC<'P','R','G','7'>::V:
+							case FourCC<'P','R','G','8'>::V:
+							case FourCC<'P','R','G','9'>::V:
+							case FourCC<'P','R','G','A'>::V:
+							case FourCC<'P','R','G','B'>::V:
+							case FourCC<'P','R','G','C'>::V:
+							case FourCC<'P','R','G','D'>::V:
+							case FourCC<'P','R','G','E'>::V:
+							case FourCC<'P','R','G','F'>::V:
 
-								entry.pRom = (pRom += NST_FOURCC(it[4],it[5],it[6],it[7])) / Nes::Core::SIZE_1K;
+								entry.pRom = (pRom += FourCC<>::T( it+4 )) / Nes::Core::SIZE_1K;
 								break;
 
-							case NST_FOURCC('C','H','R','0'):
-							case NST_FOURCC('C','H','R','1'):
-							case NST_FOURCC('C','H','R','2'):
-							case NST_FOURCC('C','H','R','3'):
-							case NST_FOURCC('C','H','R','4'):
-							case NST_FOURCC('C','H','R','5'):
-							case NST_FOURCC('C','H','R','6'):
-							case NST_FOURCC('C','H','R','7'):
-							case NST_FOURCC('C','H','R','8'):
-							case NST_FOURCC('C','H','R','9'):
-							case NST_FOURCC('C','H','R','A'):
-							case NST_FOURCC('C','H','R','B'):
-							case NST_FOURCC('C','H','R','C'):
-							case NST_FOURCC('C','H','R','D'):
-							case NST_FOURCC('C','H','R','E'):
-							case NST_FOURCC('C','H','R','F'):
+							case FourCC<'C','H','R','0'>::V:
+							case FourCC<'C','H','R','1'>::V:
+							case FourCC<'C','H','R','2'>::V:
+							case FourCC<'C','H','R','3'>::V:
+							case FourCC<'C','H','R','4'>::V:
+							case FourCC<'C','H','R','5'>::V:
+							case FourCC<'C','H','R','6'>::V:
+							case FourCC<'C','H','R','7'>::V:
+							case FourCC<'C','H','R','8'>::V:
+							case FourCC<'C','H','R','9'>::V:
+							case FourCC<'C','H','R','A'>::V:
+							case FourCC<'C','H','R','B'>::V:
+							case FourCC<'C','H','R','C'>::V:
+							case FourCC<'C','H','R','D'>::V:
+							case FourCC<'C','H','R','E'>::V:
+							case FourCC<'C','H','R','F'>::V:
 
-								entry.cRom = (cRom += NST_FOURCC(it[4],it[5],it[6],it[7])) / Nes::Core::SIZE_1K;
+								entry.cRom = (cRom += FourCC<>::T( it+4 )) / Nes::Core::SIZE_1K;
 								break;
 
-							case NST_FOURCC('T','V','C','I'):
+							case FourCC<'T','V','C','I'>::V:
 
 								if (it < end)
 								{
@@ -435,12 +434,12 @@ namespace Nestopia
 								}
 								break;
 
-							case NST_FOURCC('B','A','T','R'):
+							case FourCC<'B','A','T','R'>::V:
 
 								entry.attributes |= Entry::ATR_BATTERY;
 								break;
 
-							case NST_FOURCC('M','I','R','R'):
+							case FourCC<'M','I','R','R'>::V:
 
 								if (it < end)
 								{
@@ -941,7 +940,7 @@ namespace Nestopia
 				dirty = true;
 
 				Clear();
-				User::Warn( IDS_INVALID_LAUNCHERFILE );
+				User::Warn( IDS_LAUNCHER_ERR_LOAD_DB );
 			}
 		}
 
@@ -1019,7 +1018,7 @@ namespace Nestopia
 					}
 					catch (...)
 					{
-						User::Warn( IDS_LAUNCHERFILE_ERR_SAVE );
+						User::Warn( IDS_LAUNCHER_ERR_SAVE_DB );
 					}
 				}
 				else if (fileName.FileExists())
@@ -1186,19 +1185,19 @@ namespace Nestopia
 			{
 				switch (db->GetSystem( dBaseEntry ))
 				{
-					case Nes::SYSTEM_VS:
+					case Nes::Cartridge::SYSTEM_VS:
 						return SYSTEM_VS;
 
-					case Nes::SYSTEM_PC10:
+					case Nes::Cartridge::SYSTEM_PC10:
 						return SYSTEM_PC10;
 				}
 
 				switch (db->GetRegion( dBaseEntry ))
 				{
-					case Nes::REGION_BOTH:
+					case Nes::Cartridge::REGION_BOTH:
 						return SYSTEM_NTSC_PAL;
 
-					case Nes::REGION_PAL:
+					case Nes::Cartridge::REGION_PAL:
 						return SYSTEM_PAL;
 				}
 

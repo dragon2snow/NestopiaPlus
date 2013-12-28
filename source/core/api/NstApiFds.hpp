@@ -47,8 +47,8 @@ namespace Nes
 	{
 		class Fds : public Base
 		{
-			struct DiskChange;
-			struct Lamp;
+			struct DiskCaller;
+			struct DriveCaller;
 
 		public:
 
@@ -59,12 +59,6 @@ namespace Nes
 			enum
 			{
 				NO_DISK = -1
-			};
-
-			enum Event
-			{
-				DISK_INSERT,
-				DISK_EJECT
 			};
 
 			bool IsAnyDiskInserted() const throw();
@@ -119,6 +113,13 @@ namespace Nes
 
 			Result GetDiskData(uint,DiskData&) const throw();
 
+			enum Event
+			{
+				DISK_INSERT,
+				DISK_EJECT,
+				DISK_NONSTANDARD
+			};
+
 			enum Motor
 			{
 				MOTOR_OFF,
@@ -126,14 +127,20 @@ namespace Nes
 				MOTOR_WRITE
 			};
 
-			typedef void (NST_CALLBACK *DiskChangeCallback)(UserData,Event,uint,uint);
-			typedef void (NST_CALLBACK *DiskAccessLampCallback)(UserData,Motor);
+			enum
+			{
+				NUM_DISK_CALLBACKS = 3,
+				NUM_DRIVE_CALLBACKS = 3
+			};
 
-			static Lamp diskAccessLampCallback;
-			static DiskChange diskChangeCallback;
+			typedef void (NST_CALLBACK *DiskCallback)(UserData,Event,uint,uint);
+			typedef void (NST_CALLBACK *DriveCallback)(UserData,Motor);
+
+			static DiskCaller diskCallback;
+			static DriveCaller driveCallback;
 		};
 
-		struct Fds::DiskChange : Core::UserCallback<Fds::DiskChangeCallback>
+		struct Fds::DiskCaller : Core::UserCallback<Fds::DiskCallback>
 		{
 			void operator () (Event event,uint disk,uint side) const
 			{
@@ -142,7 +149,7 @@ namespace Nes
 			}
 		};
 
-		struct Fds::Lamp : Core::UserCallback<Fds::DiskAccessLampCallback>
+		struct Fds::DriveCaller : Core::UserCallback<Fds::DriveCallback>
 		{
 			void operator () (Motor motor) const
 			{

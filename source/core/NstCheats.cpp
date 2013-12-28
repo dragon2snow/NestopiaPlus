@@ -35,7 +35,7 @@ namespace Nes
 		#endif
 
 		Cheats::Cheats(Cpu& c)
-		: cpu(c) {}
+		: cpu(c), frameLocked(false) {}
 
 		Cheats::~Cheats()
 		{
@@ -209,14 +209,19 @@ namespace Nes
 		#pragma optimize("", on)
 		#endif
 
-		void Cheats::BeginFrame() const
+		void Cheats::BeginFrame(bool frameLock)
 		{
-			for (const LoCode* NST_RESTRICT it=loCodes.Begin(), *const end=loCodes.End(); it != end; ++it)
-			{
-				const uint address = it->address & (Cpu::RAM_SIZE-1);
+			frameLocked = frameLock;
 
-				if (!it->useCompare || *cpu.SystemRam(address) == it->compare)
-					*cpu.SystemRam(address) = it->data;
+			if (!frameLock)
+			{
+				for (const LoCode* NST_RESTRICT it=loCodes.Begin(), *const end=loCodes.End(); it != end; ++it)
+				{
+					const uint address = it->address & (Cpu::RAM_SIZE-1);
+
+					if (!it->useCompare || cpu.GetRam()[address] == it->compare)
+						cpu.GetRam()[address] = it->data;
+				}
 			}
 		}
 
@@ -235,24 +240,31 @@ namespace Nes
 			return a < c.address;
 		}
 
-		NES_PEEK(Cheats,Wizard)
+		NES_PEEK_A(Cheats,Wizard)
 		{
 			NST_ASSERT( address >= 0x2000 );
 
 			const HiCode* const NST_RESTRICT code = std::lower_bound( hiCodes.Begin(), hiCodes.End(), address );
 
-			if (code->useCompare)
+			if (!frameLocked)
 			{
-				const uint data = code->port->Peek( address );
+				if (code->useCompare)
+				{
+					const uint data = code->port->Peek( address );
 
-				if (code->compare != data)
-					return data;
+					if (code->compare != data)
+						return data;
+				}
+
+				return code->data;
 			}
-
-			return code->data;
+			else
+			{
+				return code->port->Peek( address );
+			}
 		}
 
-		NES_POKE(Cheats,Wizard)
+		NES_POKE_AD(Cheats,Wizard)
 		{
 			NST_ASSERT( address >= 0x2000 );
 

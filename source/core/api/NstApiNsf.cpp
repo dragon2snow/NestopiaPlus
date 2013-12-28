@@ -35,6 +35,8 @@ namespace Nes
 		#pragma optimize("s", on)
 		#endif
 
+		Nsf::EventCaller Nsf::eventCallback;
+
 		const char* Nsf::GetName() const throw()
 		{
 			if (emulator.Is(Machine::SOUND))

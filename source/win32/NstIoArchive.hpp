@@ -42,7 +42,7 @@ namespace Nestopia
 
 			Archive();
 			explicit Archive(const File&);
-			explicit Archive(const void*,uint);
+			Archive(const void*,uint);
 			~Archive();
 
 			bool Open(const File&);
@@ -55,9 +55,9 @@ namespace Nestopia
 				FIRST_FILE    = 1,
 				NO_FILES      = INT_MAX,
 				MAX_ITEM_SIZE = INT_MAX-1,
-				FILE_ID_ZIP   = NST_FOURCC('P','K',0x03,0x04),
-				FILE_ID_7Z    = NST_FOURCC('7','z',0xBC,0xAF),
-				FILE_ID_RAR   = NST_FOURCC('R','a','r','!')
+				FILE_ID_ZIP   = FourCC<'P','K',0x03,0x04>::V,
+				FILE_ID_7Z    = FourCC<'7','z',0xBC,0xAF>::V,
+				FILE_ID_RAR   = FourCC<'R','a','r','!'>::V
 			};
 
 			uint UserSelect() const;

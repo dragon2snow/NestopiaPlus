@@ -47,7 +47,7 @@ namespace Nestopia
 		file      ( Io::Wave::MODE_WRITE ),
 		dialog    ( d )
 		{
-			static const Window::Menu::CmdHandler::Entry<Sound::Recorder> commands[] =
+			static const Window::Menu::CmdHandler::Entry<Recorder> commands[] =
 			{
 				{ IDM_FILE_SOUND_RECORDER_FILE,   &Recorder::OnCmdFile   },
 				{ IDM_FILE_SOUND_RECORDER_START,  &Recorder::OnCmdRecord },
@@ -56,6 +56,13 @@ namespace Nestopia
 			};
 
 			menu.Commands().Add( this, commands );
+
+			static const Window::Menu::PopupHandler::Entry<Recorder> popups[] =
+			{
+				{ Window::Menu::PopupHandler::Pos<IDM_POS_FILE,IDM_POS_FILE_SOUNDRECORDER>::ID, &Recorder::OnMenu }
+			};
+
+			menu.Popups().Add( this, popups );
 		}
 
 		Sound::Recorder::~Recorder()
@@ -66,11 +73,23 @@ namespace Nestopia
 		{
 			return
 			(
+				!recording &&
 				dialog.WaveFile().Length() &&
 				waveFormat.nSamplesPerSec &&
 				waveFormat.wBitsPerSample &&
-				emulator.Is(Nes::Machine::ON)
+				!emulator.NetPlayers() &&
+				emulator.IsOn()
 			);
+		}
+
+		bool Sound::Recorder::CanRewind() const
+		{
+			return !recording && file.IsOpen();
+		}
+
+		bool Sound::Recorder::CanStop() const
+		{
+			return recording;
 		}
 
 		void Sound::Recorder::Close()
@@ -85,132 +104,117 @@ namespace Nestopia
 			{
 				Window::User::Fail( id );
 			}
-
-			UpdateMenu();
 		}
 
-		void Sound::Recorder::Enable(const WAVEFORMATEX& newWaveFormat)
+		void Sound::Recorder::Enable(const WAVEFORMATEX* newWaveFormat)
 		{
-			if (waveFormat != newWaveFormat)
+			if (newWaveFormat)
 			{
-				waveFormat = newWaveFormat;
-				Close();
-			}
-		}
+				if (waveFormat == *newWaveFormat)
+					return;
 
-		void Sound::Recorder::Disable()
-		{
-			waveFormat.Clear();
+				waveFormat = *newWaveFormat;
+			}
+			else
+			{
+				waveFormat.Clear();
+			}
+
 			Close();
 		}
 
-		void Sound::Recorder::OnEmuEvent(Emulator::Event event)
+		void Sound::Recorder::OnMenu(const Window::Menu::PopupHandler::Param& param)
 		{
-			if (dialog.WaveFile().Length())
-			{
-				switch (event)
-				{
-					case Emulator::EVENT_POWER_OFF:
-
-						recording = false;
-
-					case Emulator::EVENT_POWER_ON:
-
-						UpdateMenu();
-						return;
-				}
-			}
-
-			switch (event)
-			{
-				case Emulator::EVENT_NETPLAY_MODE_ON:
-				case Emulator::EVENT_NETPLAY_MODE_OFF:
-
-					menu[IDM_POS_FILE][IDM_POS_FILE_SOUNDRECORDER].Enable( event == Emulator::EVENT_NETPLAY_MODE_OFF );
-					break;
-			}
+			menu[ IDM_FILE_SOUND_RECORDER_START  ].Enable( !param.show || CanRecord() );
+			menu[ IDM_FILE_SOUND_RECORDER_STOP   ].Enable( !param.show || CanStop()   );
+			menu[ IDM_FILE_SOUND_RECORDER_REWIND ].Enable( !param.show || CanRewind() );
 		}
 
-		void Sound::Recorder::UpdateMenu() const
+		void Sound::Recorder::OnEmuEvent(const Emulator::Event event,const Emulator::Data data)
 		{
-			const bool canRecord = CanRecord();
-			NST_ASSERT( recording <= canRecord );
+			switch (event)
+			{
+				case Emulator::EVENT_POWER_OFF:
 
-			menu[ IDM_FILE_SOUND_RECORDER_START  ].Enable( canRecord && !recording );
-			menu[ IDM_FILE_SOUND_RECORDER_STOP   ].Enable( recording );
-			menu[ IDM_FILE_SOUND_RECORDER_REWIND ].Enable( canRecord && !recording );
+					recording = false;
+					break;
+
+				case Emulator::EVENT_NETPLAY_MODE:
+
+					menu[IDM_POS_FILE][IDM_POS_FILE_SOUNDRECORDER].Enable( !data );
+					break;
+			}
 		}
 
 		void Sound::Recorder::OnCmdFile(uint)
 		{
 			dialog.Open();
 
-			if (file.GetName() != dialog.WaveFile())
-			{
-				if (file.IsOpen())
-					Close();
-				else
-					UpdateMenu();
-			}
+			if (file.IsOpen() && file.GetName() != dialog.WaveFile())
+				Close();
 		}
 
 		void Sound::Recorder::OnCmdRecord(uint)
 		{
-			NST_ASSERT( !recording && dialog.WaveFile().Length() );
-
-			Application::Instance::GetMainWindow().Post( Application::Instance::WM_NST_COMMAND_RESUME );
-
-			if (!file.IsOpen())
+			if (CanRecord())
 			{
-				try
+				if (!file.IsOpen())
 				{
-					file.Open( dialog.WaveFile(), waveFormat );
-				}
-				catch (Io::Wave::Exception id)
-				{
-					Window::User::Fail( id );
-					return;
+					try
+					{
+						file.Open( dialog.WaveFile(), waveFormat );
+					}
+					catch (Io::Wave::Exception id)
+					{
+						Window::User::Fail( id );
+						return;
+					}
+
+					size = 0;
+					nextSmallSizeNotification = SMALL_SIZE;
+					nextBigSizeNotification = BIG_SIZE;
 				}
 
-				size = 0;
-				nextSmallSizeNotification = SMALL_SIZE;
-				nextBigSizeNotification = BIG_SIZE;
+				Io::Screen() << Resource::String(size ? IDS_SCREEN_SOUND_RECORDER_RESUME : IDS_SCREEN_SOUND_RECORDER_START);
+
+				recording = true;
+				Resume();
 			}
-
-			Io::Screen() << Resource::String(size ? IDS_SCREEN_SOUND_RECORDER_RESUME : IDS_SCREEN_SOUND_RECORDER_START);
-
-			recording = true;
-			UpdateMenu();
 		}
 
 		void Sound::Recorder::OnCmdStop(uint)
 		{
-			recording = false;
-			UpdateMenu();
-			Io::Screen() << Resource::String(IDS_SCREEN_SOUND_RECORDER_STOP);
-			Application::Instance::GetMainWindow().Post( Application::Instance::WM_NST_COMMAND_RESUME );
+			if (CanStop())
+			{
+				Io::Screen() << Resource::String(IDS_SCREEN_SOUND_RECORDER_STOP);
+
+				recording = false;
+				Resume();
+			}
 		}
 
 		void Sound::Recorder::OnCmdRewind(uint)
 		{
-			try
+			if (CanRewind())
 			{
-				file.Close();
-			}
-			catch (Io::Wave::Exception id)
-			{
-				Window::User::Fail( id );
-			}
+				try
+				{
+					file.Close();
+				}
+				catch (Io::Wave::Exception id)
+				{
+					Window::User::Fail( id );
+				}
 
-			UpdateMenu();
-			Application::Instance::GetMainWindow().Post( Application::Instance::WM_NST_COMMAND_RESUME );
+				Resume();
+			}
 		}
 
 		void Sound::Recorder::Flush(const Nes::Sound::Output& output)
 		{
 			if (recording)
 			{
-				NST_ASSERT( file.IsOpen() );
+				NST_VERIFY( file.IsOpen() );
 
 				try
 				{
@@ -220,10 +224,7 @@ namespace Nestopia
 				catch (Io::Wave::Exception ids)
 				{
 					recording = false;
-
 					Window::User::Fail( ids );
-					UpdateMenu();
-
 					return;
 				}
 

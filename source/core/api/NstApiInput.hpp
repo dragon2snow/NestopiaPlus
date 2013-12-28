@@ -88,14 +88,14 @@ namespace Nes
 				{
 					enum
 					{
-						A      = b00000001,
-						B      = b00000010,
-						SELECT = b00000100,
-						START  = b00001000,
-						UP     = b00010000,
-						DOWN   = b00100000,
-						LEFT   = b01000000,
-						RIGHT  = b10000000
+						A      = 0x01,
+						B      = 0x02,
+						SELECT = 0x04,
+						START  = 0x08,
+						UP     = 0x10,
+						DOWN   = 0x20,
+						LEFT   = 0x40,
+						RIGHT  = 0x80
 					};
 
 					enum
@@ -105,7 +105,7 @@ namespace Nes
 
 					uint buttons;
 					uint mic;
-					bool allowSimulAxes;
+					uint allowSimulAxes;
 
 					Pad()
 					: buttons(0), mic(0), allowSimulAxes(false) {}
@@ -239,7 +239,7 @@ namespace Nes
 						NUM_MODES = 2
 					};
 
-					uchar parts[NUM_PARTS];
+					uchar parts[NUM_PARTS+3];
 
 					typedef bool (NST_CALLBACK *PollCallback) (void*,FamilyKeyboard&,uint,uint);
 
@@ -256,7 +256,7 @@ namespace Nes
 						NUM_MODES = 2
 					};
 
-					uchar parts[NUM_PARTS];
+					uchar parts[NUM_PARTS+2];
 
 					typedef bool (NST_CALLBACK *PollCallback) (void*,SuborKeyboard&,uint,uint);
 
@@ -362,8 +362,8 @@ namespace Nes
 				{
 					enum
 					{
-						COIN_1 = b00100000,
-						COIN_2 = b01000000
+						COIN_1 = 0x20,
+						COIN_2 = 0x40
 					};
 
 					uint insertCoin;
@@ -394,10 +394,10 @@ namespace Nes
 				{
 					enum
 					{
-						PLAYER1_BUTTON_1 = b00000010,
-						PLAYER1_BUTTON_2 = b00000100,
-						PLAYER2_BUTTON_1 = b00001000,
-						PLAYER2_BUTTON_2 = b00010000
+						PLAYER1_BUTTON_1 = 0x02,
+						PLAYER1_BUTTON_2 = 0x04,
+						PLAYER2_BUTTON_1 = 0x08,
+						PLAYER2_BUTTON_2 = 0x10
 					};
 
 					uint buttons;
@@ -618,6 +618,9 @@ namespace Nes
 	{
 		class Input : public Base
 		{
+			struct ControllerCaller;
+			struct AdapterCaller;
+
 		public:
 
 			template<typename T>
@@ -678,15 +681,40 @@ namespace Nes
 			typedef Core::Input::Controllers Controllers;
 
 			Result AutoSelectController(uint) throw();
-			void AutoSelectAdapter() throw();
+			void AutoSelectControllers() throw();
+			Result AutoSelectAdapter() throw();
 
 			Result ConnectController(uint,Type) throw();
-			void ConnectAdapter(Adapter) throw();
+			Result ConnectAdapter(Adapter) throw();
 
 			Type GetConnectedController(uint) const throw();
 			Adapter GetConnectedAdapter() const throw();
 
 			bool IsControllerConnected(Type) const throw();
+
+			typedef void (NST_CALLBACK *ControllerCallback) (UserData,uint,Type);
+			typedef void (NST_CALLBACK *AdapterCallback) (UserData,Adapter);
+
+			static ControllerCaller controllerCallback;
+			static AdapterCaller adapterCallback;
+		};
+
+		struct Input::ControllerCaller : Core::UserCallback<Input::ControllerCallback>
+		{
+			void operator () (uint port,Type type) const
+			{
+				if (function)
+					function( userdata, port, type );
+			}
+		};
+
+		struct Input::AdapterCaller : Core::UserCallback<Input::AdapterCallback>
+		{
+			void operator () (Adapter adapter) const
+			{
+				if (function)
+					function( userdata, adapter );
+			}
 		};
 	}
 }

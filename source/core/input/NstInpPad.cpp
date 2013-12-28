@@ -62,21 +62,21 @@ namespace Nes
 				mic = 0;
 			}
 
-			void Pad::SaveState(State::Saver& state,const byte id) const
+			void Pad::SaveState(State::Saver& saver,const byte id) const
 			{
 				const byte data[2] =
 				{
 					strobe, stream ^ 0xFF
 				};
 
-				state.Begin( AsciiId<'P','D'>::R(0,0,id) ).Write( data ).End();
+				saver.Begin( AsciiId<'P','D'>::R(0,0,id) ).Write( data ).End();
 			}
 
-			void Pad::LoadState(State::Loader& state,const dword id)
+			void Pad::LoadState(State::Loader& loader,const dword id)
 			{
 				if (id == AsciiId<'P','D'>::V)
 				{
-					State::Loader::Data<2> data( state );
+					State::Loader::Data<2> data( loader );
 
 					strobe = data[0] & 0x1;
 					stream = data[1] ^ 0xFF;
@@ -100,8 +100,7 @@ namespace Nes
 
 			void Pad::Poll()
 			{
-				const uint nextStamp = cpu.GetMasterClockCycles() / 0x10000;
-				NST_VERIFY( input == NULL || timeStamp <= nextStamp );
+				const uint nextStamp = cpu.GetCycles() / 0x10000;
 
 				if (timeStamp <= nextStamp)
 				{

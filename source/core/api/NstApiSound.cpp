@@ -45,11 +45,17 @@ namespace Nes
 	{
 		NST_COMPILE_ASSERT
 		(
-			Sound::CHANNEL_SQUARE1  == 1U << Core::Apu::CHANNEL_SQUARE1  &&
-			Sound::CHANNEL_SQUARE2  == 1U << Core::Apu::CHANNEL_SQUARE2  &&
-			Sound::CHANNEL_TRIANGLE == 1U << Core::Apu::CHANNEL_TRIANGLE &&
-			Sound::CHANNEL_NOISE    == 1U << Core::Apu::CHANNEL_NOISE    &&
-			Sound::CHANNEL_DPCM     == 1U << Core::Apu::CHANNEL_DPCM
+			Sound::CHANNEL_SQUARE1  == 1U << Core::Apu::Channel::APU_SQUARE1  &&
+			Sound::CHANNEL_SQUARE2  == 1U << Core::Apu::Channel::APU_SQUARE2  &&
+			Sound::CHANNEL_TRIANGLE == 1U << Core::Apu::Channel::APU_TRIANGLE &&
+			Sound::CHANNEL_NOISE    == 1U << Core::Apu::Channel::APU_NOISE    &&
+			Sound::CHANNEL_DPCM     == 1U << Core::Apu::Channel::APU_DPCM     &&
+			Sound::CHANNEL_FDS      == 1U << Core::Apu::Channel::EXT_FDS      &&
+			Sound::CHANNEL_MMC5     == 1U << Core::Apu::Channel::EXT_MMC5     &&
+			Sound::CHANNEL_VRC6     == 1U << Core::Apu::Channel::EXT_VRC6     &&
+			Sound::CHANNEL_VRC7     == 1U << Core::Apu::Channel::EXT_VRC7     &&
+			Sound::CHANNEL_N106     == 1U << Core::Apu::Channel::EXT_N106     &&
+			Sound::CHANNEL_S5B      == 1U << Core::Apu::Channel::EXT_S5B
 		);
 
 		Result Sound::SetSampleRate(ulong rate) throw()

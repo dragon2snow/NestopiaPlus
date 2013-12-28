@@ -38,16 +38,22 @@ namespace Nes
 		public:
 
 			explicit Mapper169(Context& c)
-			: Mapper(c,CROM_MAX_8K) {}
+			: Mapper(c,CROM_MAX_8K|PROM_MAX_1024K|WRAM_DEFAULT|NMT_VERTICAL) {}
 
 		private:
 
 			~Mapper169() {}
 
 			void SubReset(bool);
+			void SubSave(State::Saver&) const;
+			void SubLoad(State::Loader&);
+			void UpdatePrg();
 
 			NES_DECL_POKE( 8000 );
-			NES_DECL_POKE( 8002 );
+			NES_DECL_POKE( C000 );
+
+			uint ctrl;
+			uint bank;
 		};
 	}
 }

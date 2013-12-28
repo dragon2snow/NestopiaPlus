@@ -39,7 +39,7 @@ namespace Nes
 			{
 			protected:
 
-				explicit Mmc3Waixing(Context&,uint=0);
+				explicit Mmc3Waixing(Context&,dword=0);
 				~Mmc3Waixing() {}
 
 				void SubReset(bool);

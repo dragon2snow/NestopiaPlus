@@ -47,7 +47,7 @@ namespace Nes
 			void SubSave(State::Saver&) const;
 			void SubLoad(State::Loader&);
 			void UpdateChr(uint,uint) const;
-			void VSync();
+			void Sync(Event,Input::Controllers*);
 
 			NES_DECL_POKE( B000 );
 			NES_DECL_POKE( F000 );
@@ -58,13 +58,13 @@ namespace Nes
 			struct Irq
 			{
 				void Reset(bool);
-				ibool Signal();
+				bool Clock();
 
 				ibool enabled;
 				uint count[2];
 			};
 
-			Clock::M2<Irq> irq;
+			ClockUnits::M2<Irq> irq;
 		};
 	}
 }

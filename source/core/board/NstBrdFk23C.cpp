@@ -23,6 +23,7 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 
 #include "../NstMapper.hpp"
+#include "../NstDipSwitches.hpp"
 #include "../NstCrc32.hpp"
 #include "NstBrdMmc3.hpp"
 #include "NstBrdFk23C.hpp"
@@ -37,19 +38,154 @@ namespace Nes
 			#pragma optimize("s", on)
 			#endif
 
+			#if NST_MSVC >= 1200
+			#pragma warning( push )
+			#pragma warning( disable : 4309 )
+			#endif
+
+			class Fk23C::CartSwitches : public DipSwitches
+			{
+				enum Type
+				{
+					CRC_4_IN_1  = 0x38BA830E,
+					CRC_15_IN_1 = 0x30FF6159,
+					CRC_18_IN_1 = 0x83A38A2F,
+					CRC_20_IN_1 = 0xFD9D1925
+				};
+
+				uint mode;
+				const Type type;
+
+				explicit CartSwitches(Type t)
+				: mode(0), type(t) {}
+
+			public:
+
+				static CartSwitches* Create(const Context& c)
+				{
+					switch (const dword crc = Crc32::Compute(c.prg.Mem(),c.prg.Size()))
+					{
+						case CRC_4_IN_1:
+						case CRC_15_IN_1:
+						case CRC_18_IN_1:
+						case CRC_20_IN_1:
+
+							return new CartSwitches( static_cast<Type>(crc) );
+					}
+
+					return NULL;
+				}
+
+				void SetMode(uint value)
+				{
+					const uint num = (type == CRC_4_IN_1 ? 1 : 7);
+					mode = NST_MIN(value,num);
+				}
+
+				uint GetMode() const
+				{
+					return mode;
+				}
+
+			private:
+
+				uint GetValue(uint) const
+				{
+					return mode;
+				}
+
+				void SetValue(uint,uint value)
+				{
+					mode = value;
+				}
+
+				uint NumDips() const
+				{
+					return 1;
+				}
+
+				uint NumValues(uint) const
+				{
+					return type == CRC_4_IN_1 ? 2 : 8;
+				}
+
+				cstring GetDipName(uint) const
+				{
+					return "Mode";
+				}
+
+				cstring GetValueName(uint,uint i) const
+				{
+					switch (type)
+					{
+						case CRC_4_IN_1:
+						{
+							static const char names[2][8] =
+							{
+								"4-in-1",
+								"7-in-1"
+							};
+
+							return names[i];
+						}
+
+						case CRC_15_IN_1:
+						case CRC_20_IN_1:
+						{
+							static const char names[8][9] =
+							{
+								"15-in-1",
+								"80-in-1",
+								"160-in-1",
+								"20-in-1",
+								"99-in-1",
+								"210-in-1",
+								"25-in-1",
+								"260-in-1"
+							};
+
+							return names[i];
+						}
+
+						case CRC_18_IN_1:
+						{
+							static const char names[8][9] =
+							{
+								"18-in-1",
+								"58-in-1",
+								"160-in-1",
+								"15-in-1",
+								"52-in-1",
+								"180-in-1",
+								"30-in-1",
+								"288-in-1"
+							};
+
+							return names[i];
+						}
+					}
+
+					return NULL;
+				}
+			};
+
+			#if NST_MSVC >= 1200
+			#pragma warning( pop )
+			#endif
+
 			Fk23C::Fk23C(Context& c)
 			:
-			Mmc3    (c,BRD_GENERIC,PROM_MAX_1024K|CROM_MAX_1024K|WRAM_DEFAULT),
-			dipMask (Crc32::Compute(c.prg.Mem(),c.prg.Size()) == CRC_4_IN_1 ? 0x1 : 0x7)
+			Mmc3         (c,BRD_GENERIC,PROM_MAX_1024K|CROM_MAX_1024K|WRAM_DEFAULT),
+			cartSwitches (CartSwitches::Create(c))
 			{}
+
+			Fk23C::~Fk23C()
+			{
+				delete cartSwitches;
+			}
 
 			void Fk23C::SubReset(const bool hard)
 			{
-				if (hard)
-					dipSwitch = 0x0;
-				else
-					dipSwitch = (dipSwitch + 1) & dipMask;
-
 				for (uint i=0; i < 4; ++i)
 					exRegs[i] = 0x00;
 
@@ -64,6 +200,14 @@ namespace Nes
 				Map( 0x8000U, 0xFFFFU, &Fk23C::Poke_Prg  );
 			}
 
+			Fk23C::Device Fk23C::QueryDevice(DeviceType type)
+			{
+				if (type == DEVICE_DIP_SWITCHES)
+					return cartSwitches;
+				else
+					return Mapper::QueryDevice( type );
+			}
+
 			void Fk23C::SubLoad(State::Loader& state)
 			{
 				while (const dword chunk = state.Begin())
@@ -76,7 +220,9 @@ namespace Nes
 							exRegs[i] = data[i];
 
 						unromChr = data[8] & 0x3;
-						dipSwitch = data[8] >> 2 & 0x3;
+
+						if (cartSwitches)
+							cartSwitches->SetMode( data[8] >> 2 & 0x7 );
 					}
 
 					state.End();
@@ -95,7 +241,7 @@ namespace Nes
 					exRegs[5],
 					exRegs[6],
 					exRegs[7],
-					unromChr | dipSwitch << 2
+					unromChr | (cartSwitches ? cartSwitches->GetMode() << 2 : 0)
 				};
 
 				state.Begin( AsciiId<'R','E','G'>::V ).Write( data ).End();
@@ -160,9 +306,9 @@ namespace Nes
 				}
 			}
 
-			NES_POKE(Fk23C,5001)
+			NES_POKE_AD(Fk23C,5001)
 			{
-				if ((address & (1U << (dipSwitch+4))))
+				if (address & (1U << ((cartSwitches ? cartSwitches->GetMode() : 0) + 4)))
 				{
 					exRegs[address & 0x3] = data;
 					Fk23C::UpdatePrg();
@@ -170,7 +316,7 @@ namespace Nes
 				}
 			}
 
-			NES_POKE(Fk23C,Prg)
+			NES_POKE_AD(Fk23C,Prg)
 			{
 				if (exRegs[0] & 0x40U)
 				{

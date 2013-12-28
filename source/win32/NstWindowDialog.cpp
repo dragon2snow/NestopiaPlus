@@ -95,21 +95,21 @@ namespace Nestopia
 		#pragma optimize("t", on)
 		#endif
 
-		ibool Dialog::ModelessDialogs::ProcessNone(MSG&)
+		bool Dialog::ModelessDialogs::ProcessNone(MSG&)
 		{
 			NST_ASSERT( instances.Size() == 0 );
 
 			return false;
 		}
 
-		ibool Dialog::ModelessDialogs::ProcessSingle(MSG& msg)
+		bool Dialog::ModelessDialogs::ProcessSingle(MSG& msg)
 		{
 			NST_ASSERT( instances.Size() == 1 );
 
 			return ::IsDialogMessage( instances.Front(), &msg );
 		}
 
-		ibool Dialog::ModelessDialogs::ProcessMultiple(MSG& msg)
+		bool Dialog::ModelessDialogs::ProcessMultiple(MSG& msg)
 		{
 			NST_ASSERT( instances.Size() >= 2 );
 
@@ -130,8 +130,28 @@ namespace Nestopia
 		#pragma optimize("", on)
 		#endif
 
-		Dialog::Dialog(const uint i)
-		: id(i), noTaskbarWindow(NULL) {}
+		Dialog::Dialog(uint i)
+		: id(i)
+		{
+			Init();
+		}
+
+		void Dialog::Init()
+		{
+			noTaskbarWindow = NULL;
+
+			static const MsgHandler::HookEntry<Dialog> hooks[] =
+			{
+				{ WM_ENTERMENULOOP, &Dialog::OnIdle       },
+				{ WM_ENTERSIZEMOVE, &Dialog::OnIdle       },
+				{ WM_SYSCOMMAND,    &Dialog::OnSysCommand },
+				{ WM_NCLBUTTONDOWN, &Dialog::OnNclButton  },
+				{ WM_NCRBUTTONDOWN, &Dialog::OnNcrButton  },
+				{ WM_MOUSEACTIVATE, &Dialog::OnIdle       }
+			};
+
+			msgHandler.Hooks().Add( this, hooks );
+		}
 
 		INT_PTR Dialog::Open(const Type type)
 		{
@@ -142,6 +162,8 @@ namespace Nestopia
 
 				return 0;
 			}
+
+			Application::Instance::Events::Signal( Application::Instance::EVENT_SYSTEM_BUSY );
 
 			NST_ASSERT( !noTaskbarWindow );
 
@@ -189,7 +211,7 @@ namespace Nestopia
 			);
 
 			if (hWnd == NULL)
-				throw Application::Exception( IDS_FAILED, _T("CreateDialogParam()") );
+				throw Application::Exception( IDS_ERR_FAILED, _T("CreateDialogParam()") );
 
 			ModelessDialogs::Add( hWnd );
 
@@ -200,6 +222,8 @@ namespace Nestopia
 		{
 			if (hWnd)
 			{
+				Application::Instance::Events::Signal( Application::Instance::EVENT_SYSTEM_BUSY );
+
 				if (ModelessDialogs::Remove( hWnd ))
 				{
 					::DestroyWindow( hWnd );
@@ -222,13 +246,57 @@ namespace Nestopia
 
 		void Dialog::SetItemIcon(uint item,uint id) const
 		{
-			::SendDlgItemMessage( hWnd, item, STM_SETIMAGE, IMAGE_ICON, (LPARAM) (HICON) Resource::Icon(id) );
+			::SendDlgItemMessage( hWnd, item, STM_SETIMAGE, IMAGE_ICON, reinterpret_cast<LPARAM>(static_cast<HICON>(Resource::Icon(id))) );
 		}
 
 		ibool Dialog::OnClose(Param&)
 		{
 			Close();
 			return true;
+		}
+
+		void Dialog::OnIdle(Param&)
+		{
+			Application::Instance::Events::Signal( Application::Instance::EVENT_SYSTEM_BUSY );
+		}
+
+		void Dialog::OnSysCommand(Param& param)
+		{
+			switch (param.wParam & 0xFFF0)
+			{
+				case SC_MINIMIZE:
+				case SC_RESTORE:
+
+					Application::Instance::Events::Signal( Application::Instance::EVENT_SYSTEM_BUSY );
+					break;
+			}
+		}
+
+		void Dialog::OnNclButton(Param& param)
+		{
+			switch (param.wParam)
+			{
+				case HTCAPTION:
+				case HTMINBUTTON:
+				case HTMAXBUTTON:
+				case HTCLOSE:
+
+					Application::Instance::Events::Signal( Application::Instance::EVENT_SYSTEM_BUSY );
+					break;
+			}
+		}
+
+		void Dialog::OnNcrButton(Param& param)
+		{
+			switch (param.wParam)
+			{
+				case HTCAPTION:
+				case HTSYSMENU:
+				case HTMINBUTTON:
+
+					Application::Instance::Events::Signal( Application::Instance::EVENT_SYSTEM_BUSY );
+					break;
+			}
 		}
 
 		void Dialog::Fetch(HWND const handle)

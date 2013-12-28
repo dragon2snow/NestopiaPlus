@@ -35,9 +35,9 @@ namespace Nes
 {
 	namespace Core
 	{
-		template<typename T> class Pointer
+		template<typename T> class Pointer : public ImplicitBool< Pointer<T> >
 		{
-		protected:
+			Pointer(const Pointer&);
 
 			T* const ptr;
 
@@ -48,6 +48,7 @@ namespace Nes
 
 			~Pointer()
 			{
+				typedef char TypeComplete[sizeof(T)];
 				delete ptr;
 			}
 
@@ -56,9 +57,14 @@ namespace Nes
 				return ptr;
 			}
 
-			operator T* () const
+			T& operator * () const
 			{
-				return ptr;
+				return *ptr;
+			}
+
+			bool operator ! () const
+			{
+				return !ptr;
 			}
 		};
 
@@ -692,7 +698,7 @@ namespace Nes
 		}
 
 		template<dword SPACE,uint U,uint V>
-		void Memory<SPACE,U,V>::SaveState(State::Saver& state,const dword id,const uint sourceMask) const
+		void Memory<SPACE,U,V>::SaveState(State::Saver& state,const dword baseChunk,const uint sourceMask) const
 		{
 			byte pageData[MEM_NUM_PAGES*3];
 
@@ -705,7 +711,7 @@ namespace Nes
 				pageData[i*3+2] = bank >> 8;
 			}
 
-			Memory<0,0,0>::SaveState( state, id, sources, NUM_SOURCES, sourceMask, pageData, MEM_NUM_PAGES );
+			Memory<0,0,0>::SaveState( state, baseChunk, sources, NUM_SOURCES, sourceMask, pageData, MEM_NUM_PAGES );
 		}
 
 		template<dword SPACE,uint U,uint V>

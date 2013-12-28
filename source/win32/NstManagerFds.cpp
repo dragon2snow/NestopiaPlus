@@ -25,6 +25,7 @@
 #include "NstResourceString.hpp"
 #include "NstObjectHeap.hpp"
 #include "NstIoScreen.hpp"
+#include "NstWindowUser.hpp"
 #include "NstSystemKeyboard.hpp"
 #include "NstManager.hpp"
 #include "NstManagerFds.hpp"
@@ -55,10 +56,7 @@ namespace Nestopia
 
 		struct Fds::Callbacks
 		{
-			static void NST_CALLBACK OnDiskChange(Nes::Fds::UserData user,Nes::Fds::Event event,uint disk,uint side)
-			{
-				static_cast<Fds*>(user)->OnDiskChange( event, disk, side );
-			}
+			NST_COMPILE_ASSERT( Nes::Fds::NUM_DRIVE_CALLBACKS == 3 );
 
 			static void NST_CALLBACK OnDiskAccessNumLock(Nes::Fds::UserData,Nes::Fds::Motor motor)
 			{
@@ -77,18 +75,15 @@ namespace Nestopia
 
 			static void NST_CALLBACK OnDiskAccessScreen(Nes::Fds::UserData,Nes::Fds::Motor motor)
 			{
-				Io::Screen(15000) << (motor ? Resource::String(motor == Nes::Fds::MOTOR_READ ? IDS_SCREEN_FDS_READING : IDS_SCREEN_FDS_WRITING).Ptr() : _T(""));
+				Io::Screen(15000) << (motor != Nes::Fds::MOTOR_OFF ? Resource::String(motor == Nes::Fds::MOTOR_READ ? IDS_SCREEN_FDS_READING : IDS_SCREEN_FDS_WRITING).Ptr() : _T(""));
 			}
 		};
 
 		Fds::Fds(Emulator& e,const Configuration& cfg,Window::Menu& m,const Paths& paths)
 		:
 		Manager  ( e, m, this, &Fds::OnEmuEvent ),
-		master   ( false ),
 		dialog   ( new Window::Fds(e,cfg,paths) )
 		{
-			Nes::Fds::diskChangeCallback.Set( Callbacks::OnDiskChange, this );
-
 			static const Window::Menu::CmdHandler::Entry<Fds> commands[] =
 			{
 				{ IDM_MACHINE_EXT_FDS_INSERT_DISK_1_SIDE_A, &Fds::OnCmdInsertDisk },
@@ -116,18 +111,19 @@ namespace Nestopia
 
 			static const Window::Menu::PopupHandler::Entry<Fds> popups[] =
 			{
-				{ Window::Menu::PopupHandler::Pos<IDM_POS_MACHINE,IDM_POS_MACHINE_EXT,IDM_POS_MACHINE_EXT_FDS,IDM_POS_MACHINE_EXT_FDS_INSERTDISK>::ID, &Fds::OnMenuInsert }
+				{ Window::Menu::PopupHandler::Pos<IDM_POS_MACHINE,IDM_POS_MACHINE_EXT,IDM_POS_MACHINE_EXT_FDS>::ID,                                &Fds::OnMenuExtFds       },
+				{ Window::Menu::PopupHandler::Pos<IDM_POS_MACHINE,IDM_POS_MACHINE_EXT,IDM_POS_MACHINE_EXT_FDS,IDM_POS_MACHINE_EXT_FDS_INSERT>::ID, &Fds::OnMenuExtFdsInsert }
 			};
 
-			menu.PopupRouter().Add( this, popups );
+			menu.Popups().Add( this, popups );
 
 			UpdateSettings();
+			UpdateMenuDisks();
 		}
 
 		Fds::~Fds()
 		{
-			Nes::Fds::diskChangeCallback.Unset();
-			Nes::Fds::diskAccessLampCallback.Unset();
+			Nes::Fds::driveCallback.Unset();
 		}
 
 		void Fds::Save(Configuration& cfg) const
@@ -137,57 +133,135 @@ namespace Nestopia
 
 		void Fds::UpdateSettings() const
 		{
-			Nes::Fds::diskAccessLampCallback.Set
+			const Window::Fds::Led led = dialog->GetLed();
+
+			Nes::Fds::driveCallback.Set
 			(
-				dialog->GetLed() == Window::Fds::LED_SCREEN      ? Callbacks::OnDiskAccessScreen :
-				dialog->GetLed() == Window::Fds::LED_NUM_LOCK    ? Callbacks::OnDiskAccessNumLock :
-				dialog->GetLed() == Window::Fds::LED_CAPS_LOCK   ? Callbacks::OnDiskAccessCapsLock :
-				dialog->GetLed() == Window::Fds::LED_SCROLL_LOCK ? Callbacks::OnDiskAccessScrollLock : NULL,
+				led == Window::Fds::LED_SCREEN      ? Callbacks::OnDiskAccessScreen :
+				led == Window::Fds::LED_NUM_LOCK    ? Callbacks::OnDiskAccessNumLock :
+				led == Window::Fds::LED_CAPS_LOCK   ? Callbacks::OnDiskAccessCapsLock :
+				led == Window::Fds::LED_SCROLL_LOCK ? Callbacks::OnDiskAccessScrollLock :
+                                                      NULL,
 				NULL
 			);
 		}
 
-		void Fds::OnDiskChange(const Nes::Fds::Event event,const uint disk,const uint side) const
+		void Fds::UpdateMenuDisks() const
 		{
-			const bool inserted = (event == Nes::Fds::DISK_INSERT);
+			const Window::Menu::Item subMenu
+			(
+				menu[IDM_POS_MACHINE][IDM_POS_MACHINE_EXT][IDM_POS_MACHINE_EXT_FDS][IDM_POS_MACHINE_EXT_FDS_INSERT]
+			);
 
-			menu[IDM_MACHINE_EXT_FDS_CHANGE_SIDE].Enable( inserted && master && Nes::Fds(emulator).CanChangeDiskSide() );
-			menu[IDM_MACHINE_EXT_FDS_EJECT_DISK].Enable( inserted && master );
+			subMenu.Enable( emulator.IsFds() );
+			subMenu.Clear();
 
-			Io::Screen() << Resource::String( inserted ? side ? IDS_SCREEN_DISK_SIDE_B_INSERTED : IDS_SCREEN_DISK_SIDE_A_INSERTED : IDS_SCREEN_DISK_EJECTED ).Invoke( tchar('1' + disk) );
+			if (uint numSides = Nes::Fds(emulator).GetNumSides())
+			{
+				NST_VERIFY( numSides <= MAX_SIDES );
+
+				if (numSides > MAX_SIDES)
+					numSides = MAX_SIDES;
+
+				for (uint i=0; i < numSides; ++i)
+				{
+					menu.Insert
+					(
+						subMenu[i],
+						IDM_MACHINE_EXT_FDS_INSERT_DISK_1_SIDE_A + i,
+						Resource::String( (i % 2) ? IDS_FDS_DISK_SIDE_B : IDS_FDS_DISK_SIDE_A ).Invoke( tchar('1' + i / 2) )
+					);
+				}
+			}
 		}
 
-		void Fds::OnMenuInsert(Window::Menu::PopupHandler::Param& param)
+		bool Fds::CanInsertDisk() const
 		{
-			const Nes::Fds fds(emulator);
-			const int disk = fds.GetCurrentDisk();
-
-			param.menu[IDM_MACHINE_EXT_FDS_INSERT_DISK_1_SIDE_A + (disk != Nes::Fds::NO_DISK ? disk*2+fds.GetCurrentDiskSide() : 0)].Check
+			return
 			(
-				IDM_MACHINE_EXT_FDS_INSERT_DISK_1_SIDE_A,
-				IDM_MACHINE_EXT_FDS_INSERT_DISK_1_SIDE_A + fds.GetNumSides(),
-				disk != Nes::Fds::NO_DISK
+				emulator.IsFds() &&
+				!emulator.IsLocked() &&
+				emulator.GetPlayer() == Emulator::MASTER
 			);
+		}
+
+		bool Fds::CanEjectDisk() const
+		{
+			return
+			(
+				Nes::Fds(emulator).IsAnyDiskInserted() &&
+				!emulator.IsLocked() &&
+				emulator.GetPlayer() == Emulator::MASTER
+			);
+		}
+
+		bool Fds::CanChangeSide() const
+		{
+			return
+			(
+				Nes::Fds(emulator).CanChangeDiskSide() &&
+				!emulator.IsLocked() &&
+				emulator.GetPlayer() == Emulator::MASTER
+			);
+		}
+
+		void Fds::OnMenuExtFds(const Window::Menu::PopupHandler::Param& param)
+		{
+			param.menu[ IDM_MACHINE_EXT_FDS_CHANGE_SIDE ].Enable( !param.show || CanChangeSide() );
+			param.menu[ IDM_MACHINE_EXT_FDS_EJECT_DISK  ].Enable( !param.show || CanEjectDisk()  );
+		}
+
+		void Fds::OnMenuExtFdsInsert(const Window::Menu::PopupHandler::Param& param)
+		{
+			if (uint numSides = Nes::Fds(emulator).GetNumSides())
+			{
+				if (numSides > MAX_SIDES)
+					numSides = MAX_SIDES;
+
+				const bool checked = (param.show && Nes::Fds(emulator).IsAnyDiskInserted());
+
+				param.menu[IDM_MACHINE_EXT_FDS_INSERT_DISK_1_SIDE_A + (checked ? Nes::Fds(emulator).GetCurrentDisk() * 2 + Nes::Fds(emulator).GetCurrentDiskSide() : 0)].Check
+				(
+					IDM_MACHINE_EXT_FDS_INSERT_DISK_1_SIDE_A,
+					IDM_MACHINE_EXT_FDS_INSERT_DISK_1_SIDE_A + numSides,
+					checked
+				);
+
+				const bool enabled = (!checked || CanInsertDisk());
+
+				do
+				{
+					param.menu[IDM_MACHINE_EXT_FDS_INSERT_DISK_1_SIDE_A + --numSides].Enable( enabled );
+				}
+				while (numSides);
+			}
 		}
 
 		void Fds::OnCmdInsertDisk(uint disk)
 		{
-			disk -= IDM_MACHINE_EXT_FDS_INSERT_DISK_1_SIDE_A;
-
-			Nes::Fds(emulator).InsertDisk( disk / 2, disk % 2 );
-			Application::Instance::GetMainWindow().Post( Application::Instance::WM_NST_COMMAND_RESUME );
+			if (CanInsertDisk())
+			{
+				emulator.SendCommand( Emulator::COMMAND_DISK_INSERT, disk - IDM_MACHINE_EXT_FDS_INSERT_DISK_1_SIDE_A );
+				Resume();
+			}
 		}
 
 		void Fds::OnCmdChangeSide(uint)
 		{
-			Nes::Fds(emulator).ChangeSide();
-			Application::Instance::GetMainWindow().Post( Application::Instance::WM_NST_COMMAND_RESUME );
+			if (CanChangeSide())
+			{
+				emulator.SendCommand( Emulator::COMMAND_DISK_INSERT, Nes::Fds(emulator).GetCurrentDisk() * 2 + (Nes::Fds(emulator).GetCurrentDiskSide() == 0) );
+				Resume();
+			}
 		}
 
 		void Fds::OnCmdEjectDisk(uint)
 		{
-			Nes::Fds(emulator).EjectDisk();
-			Application::Instance::GetMainWindow().Post( Application::Instance::WM_NST_COMMAND_RESUME );
+			if (CanEjectDisk())
+			{
+				emulator.SendCommand( Emulator::COMMAND_DISK_EJECT );
+				Resume();
+			}
 		}
 
 		void Fds::OnCmdOptions(uint)
@@ -196,60 +270,39 @@ namespace Nestopia
 			UpdateSettings();
 		}
 
-		void Fds::OnEmuEvent(Emulator::Event event)
+		void Fds::OnEmuEvent(const Emulator::Event event,const Emulator::Data data)
 		{
 			switch (event)
 			{
+				case Emulator::EVENT_DISK_INSERT:
+				case Emulator::EVENT_DISK_EJECT:
+
+					Io::Screen() << Resource::String( event == Emulator::EVENT_DISK_EJECT ? IDS_SCREEN_DISK_EJECTED : (data % 2U ? IDS_SCREEN_DISK_SIDE_B_INSERTED : IDS_SCREEN_DISK_SIDE_A_INSERTED) ).Invoke( tchar('1' + data / 2U) );
+					break;
+
 				case Emulator::EVENT_LOAD:
-				case Emulator::EVENT_NETPLAY_LOAD:
-
-					if (emulator.Is(Nes::Machine::DISK))
-					{
-						master = (event == Emulator::EVENT_LOAD || emulator.GetPlayer() == 1);
-
-						const Window::Menu::Item subMenu( menu[IDM_POS_MACHINE][IDM_POS_MACHINE_EXT][IDM_POS_MACHINE_EXT_FDS][IDM_POS_MACHINE_EXT_FDS_INSERTDISK] );
-
-						subMenu.Enable();
-						subMenu.Clear();
-
-						Nes::Fds fds( emulator );
-
-						for (uint i=0, n=fds.GetNumSides(); i < n; ++i)
-						{
-							menu.Insert
-							(
-								subMenu[i],
-								IDM_MACHINE_EXT_FDS_INSERT_DISK_1_SIDE_A + i,
-								Resource::String( (i % 2) ? IDS_FDS_DISK_SIDE_B : IDS_FDS_DISK_SIDE_A ).Invoke( tchar('1' + (i / 2)) )
-							);
-
-							if (!master)
-								menu[IDM_MACHINE_EXT_FDS_INSERT_DISK_1_SIDE_A + i].Disable();
-						}
-
-						fds.InsertDisk( 0, 0 );
-					}
-					break;
-
-				case Emulator::EVENT_INIT:
 				case Emulator::EVENT_UNLOAD:
-				case Emulator::EVENT_NETPLAY_UNLOAD:
 
-					menu[IDM_MACHINE_EXT_FDS_CHANGE_SIDE].Disable();
-					menu[IDM_MACHINE_EXT_FDS_EJECT_DISK].Disable();
-					menu[IDM_POS_MACHINE][IDM_POS_MACHINE_EXT][IDM_POS_MACHINE_EXT_FDS][IDM_POS_MACHINE_EXT_FDS_INSERTDISK].Clear();
-					menu[IDM_POS_MACHINE][IDM_POS_MACHINE_EXT][IDM_POS_MACHINE_EXT_FDS][IDM_POS_MACHINE_EXT_FDS_INSERTDISK].Disable();
+					UpdateMenuDisks();
+
+					if (emulator.IsFds())
+						emulator.SendCommand( Emulator::COMMAND_DISK_INSERT );
+
 					break;
 
-				case Emulator::EVENT_NETPLAY_MODE_ON:
-				case Emulator::EVENT_NETPLAY_MODE_OFF:
+				case Emulator::EVENT_DISK_NONSTANDARD:
 
-					menu[IDM_MACHINE_EXT_FDS_OPTIONS].Enable( event == Emulator::EVENT_NETPLAY_MODE_OFF );
+					Window::User::Warn( IDS_FDS_NONSTANDARD );
 					break;
 
-				case Emulator::EVENT_QUERY_FDS_BIOS:
+				case Emulator::EVENT_DISK_QUERY_BIOS:
 
 					dialog->QueryBiosFile();
+					break;
+
+				case Emulator::EVENT_NETPLAY_MODE:
+
+					menu[IDM_MACHINE_EXT_FDS_OPTIONS].Enable( !data );
 					break;
 			}
 		}

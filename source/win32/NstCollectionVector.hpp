@@ -34,7 +34,31 @@ namespace Nestopia
 {
 	namespace Collection
 	{
-		class VectorBase
+		template<typename T> struct ConstParam
+		{
+			typedef const T& Type;
+		};
+
+		template<typename T> struct ConstParam<T*>
+		{
+			typedef const T* const Type;
+		};
+
+		template<> struct ConstParam< bool   > { typedef const bool   Type; };
+		template<> struct ConstParam< char   > { typedef const int    Type; };
+		template<> struct ConstParam< schar  > { typedef const int    Type; };
+		template<> struct ConstParam< uchar  > { typedef const uint   Type; };
+		template<> struct ConstParam< short  > { typedef const int    Type; };
+		template<> struct ConstParam< ushort > { typedef const uint   Type; };
+		template<> struct ConstParam< int    > { typedef const int    Type; };
+		template<> struct ConstParam< uint   > { typedef const uint   Type; };
+		template<> struct ConstParam< long   > { typedef const long   Type; };
+		template<> struct ConstParam< ulong  > { typedef const ulong  Type; };
+
+		template<typename T> class Vector;
+
+		template<>
+		class Vector<void>
 		{
 		protected:
 
@@ -47,11 +71,11 @@ namespace Nestopia
 			uint capacity;
 			uint size;
 
-			explicit VectorBase(uint);
-			explicit VectorBase(const VectorBase&);
-			VectorBase(const void* NST_RESTRICT,uint);
+			explicit Vector(uint);
+			Vector(const Vector&);
+			Vector(const void* NST_RESTRICT,uint);
 
-			void operator = (const VectorBase&);
+			void operator = (const Vector&);
 
 			void Assign(const void* NST_RESTRICT,uint);
 			void Append(const void* NST_RESTRICT,uint);
@@ -64,10 +88,10 @@ namespace Nestopia
 			bool Valid(const void*) const;
 			bool InBound(const void*) const;
 
-			VectorBase()
+			Vector()
 			: data(NULL), capacity(0), size(0) {}
 
-			~VectorBase()
+			~Vector()
 			{
 				NST_ASSERT
 				(
@@ -89,7 +113,7 @@ namespace Nestopia
 
 			void Destroy();
 			void Defrag();
-			void Import(VectorBase&);
+			void Import(Vector&);
 
 			bool Empty() const
 			{
@@ -102,7 +126,7 @@ namespace Nestopia
 			}
 		};
 
-		template<typename T> class Vector : public VectorBase
+		template<typename T> class Vector : public Vector<void>
 		{
 		public:
 
@@ -119,58 +143,58 @@ namespace Nestopia
 			Vector() {}
 
 			Vector(const Item* items,uint count)
-			: VectorBase(items,ITEM_SIZE * count) {}
+			: Vector<void>(items,ITEM_SIZE * count) {}
 
 			explicit Vector(uint count)
-			: VectorBase(count * ITEM_SIZE) {}
+			: Vector<void>(count * ITEM_SIZE) {}
 
-			explicit Vector(const Vector& vector)
-			: VectorBase(vector) {}
+			Vector(const Vector<T>& vector)
+			: Vector<void>(vector) {}
 
-			Vector& operator = (const Vector& vector)
+			Vector& operator = (const Vector<T>& vector)
 			{
-				VectorBase::operator = (vector);
+				Vector<void>::operator = (vector);
 				return *this;
 			}
 
 			void PushBack(const Item& item)
 			{
-				VectorBase::Append( &item, ITEM_SIZE );
+				Vector<void>::Append( &item, ITEM_SIZE );
 			}
 
-			void PushBack(const Vector& vector)
+			void PushBack(const Vector<T>& vector)
 			{
-				VectorBase::Append( vector.data, vector.size );
+				Vector<void>::Append( vector.data, vector.size );
 			}
 
 			void Assign(ConstIterator items,uint count)
 			{
-				VectorBase::Assign( items, ITEM_SIZE * count );
+				Vector<void>::Assign( items, ITEM_SIZE * count );
 			}
 
 			void Append(ConstIterator items,uint count)
 			{
-				VectorBase::Append( items, ITEM_SIZE * count );
+				Vector<void>::Append( items, ITEM_SIZE * count );
 			}
 
 			void Insert(Iterator pos,ConstIterator items,uint count)
 			{
-				VectorBase::Insert( pos, items, ITEM_SIZE * count );
+				Vector<void>::Insert( pos, items, ITEM_SIZE * count );
 			}
 
 			void Insert(Iterator pos,const Item& item)
 			{
-				VectorBase::Insert( pos, &item, ITEM_SIZE );
+				Vector<void>::Insert( pos, &item, ITEM_SIZE );
 			}
 
 			void Erase(Iterator begin,Iterator end)
 			{
-				VectorBase::Erase( begin, end );
+				Vector<void>::Erase( begin, end );
 			}
 
 			void Erase(Iterator offset,uint count=1)
 			{
-				VectorBase::Erase( offset, offset + count );
+				Vector<void>::Erase( offset, offset + count );
 			}
 
 			Item& operator [] (uint i)
@@ -226,25 +250,25 @@ namespace Nestopia
 			Item& Front()
 			{
 				NST_ASSERT( size );
-				return *static_cast<Item*>(data);
+				return *static_cast<Iterator>(data);
 			}
 
 			const Item& Front() const
 			{
 				NST_ASSERT( size );
-				return *static_cast<const Item*>(data);
+				return *static_cast<ConstIterator>(data);
 			}
 
 			Item& Back()
 			{
 				NST_ASSERT( size );
-				return *(reinterpret_cast<Item*>(bytes + size) - 1);
+				return *(reinterpret_cast<Iterator>(bytes + size) - 1);
 			}
 
 			const Item& Back() const
 			{
 				NST_ASSERT( size );
-				return *(reinterpret_cast<const Item*>(bytes + size) - 1);
+				return *(reinterpret_cast<ConstIterator>(bytes + size) - 1);
 			}
 
 			uint Size() const
@@ -266,12 +290,12 @@ namespace Nestopia
 
 			void Reserve(uint count)
 			{
-				VectorBase::Reserve( count * ITEM_SIZE );
+				Vector<void>::Reserve( count * ITEM_SIZE );
 			}
 
 			void Resize(uint count)
 			{
-				VectorBase::Resize( count * ITEM_SIZE );
+				Vector<void>::Resize( count * ITEM_SIZE );
 			}
 
 			void SetTo(uint count)
@@ -282,22 +306,22 @@ namespace Nestopia
 
 			void Grow(uint count=1)
 			{
-				VectorBase::Grow( count * ITEM_SIZE );
+				Vector<void>::Grow( count * ITEM_SIZE );
 			}
 
 			void Shrink(uint count=1)
 			{
-				VectorBase::Shrink( count * ITEM_SIZE );
+				Vector<void>::Shrink( count * ITEM_SIZE );
 			}
 
 			bool InBound(ConstIterator it) const
 			{
-				return VectorBase::InBound( it );
+				return Vector<void>::InBound( it );
 			}
 
 			bool Valid(ConstIterator it) const
 			{
-				return VectorBase::Valid( it );
+				return Vector<void>::Valid( it );
 			}
 
 			template<typename Value>
@@ -306,7 +330,7 @@ namespace Nestopia
 			template<typename Value>
 			Iterator Find(const Value& value)
 			{
-				ConstIterator const it = static_cast<const Vector*>(this)->Find( value );
+				ConstIterator const it = static_cast<const Vector<T>*>(this)->Find( value );
 				return reinterpret_cast<Item*>(bytes + (reinterpret_cast<const uchar*>(it) - bytes));
 			}
 		};

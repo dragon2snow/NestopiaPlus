@@ -119,10 +119,10 @@ namespace Nestopia
 
 		void FrameClock::Save(Configuration& cfg) const
 		{
-			cfg[ "timer speed"                ] = (uint) settings.speed;
-			cfg[ "timer alternative speed"    ] = (uint) settings.altSpeed;
-			cfg[ "timer rewind speed"         ] = (uint) settings.rewindSpeed;
-			cfg[ "timer max frame skips"      ] = (uint) settings.maxFrameSkips;
+			cfg[ "timer speed"                ] = uint(settings.speed);
+			cfg[ "timer alternative speed"    ] = uint(settings.altSpeed);
+			cfg[ "timer rewind speed"         ] = uint(settings.rewindSpeed);
+			cfg[ "timer max frame skips"      ] = uint(settings.maxFrameSkips);
 			cfg[ "timer auto frame skip"      ].YesNo() = settings.autoFrameSkip;
 			cfg[ "timer vsync"                ].YesNo() = settings.vsync;
 			cfg[ "timer triple buffering"     ].YesNo() = settings.tripleBuffering;
@@ -184,9 +184,9 @@ namespace Nestopia
 		{
 			NST_COMPILE_ASSERT
 			(
-				IDC_TIMING_SPEED == IDC_TIMING_SPEED_NUM-1 &&
-				IDC_TIMING_FRAME_SKIPS == IDC_TIMING_FRAME_SKIPS_NUM-1 &&
-				IDC_TIMING_ALT_SPEED == IDC_TIMING_ALT_SPEED_NUM-1 &&
+				IDC_TIMING_SPEED          == IDC_TIMING_SPEED_NUM-1          &&
+				IDC_TIMING_FRAME_SKIPS    == IDC_TIMING_FRAME_SKIPS_NUM-1    &&
+				IDC_TIMING_ALT_SPEED      == IDC_TIMING_ALT_SPEED_NUM-1      &&
 				IDC_TIMING_REWINDER_SPEED == IDC_TIMING_REWINDER_SPEED_NUM-1
 			);
 

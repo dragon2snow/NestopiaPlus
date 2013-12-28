@@ -116,6 +116,10 @@ namespace Nestopia
 				useImageDatabase = &imageDatabase;
 		}
 
+		Launcher::List::~List()
+		{
+		}
+
 		void Launcher::List::operator = (const Control::ListView& listView)
 		{
 			files.Load( imageDatabase );
@@ -542,8 +546,8 @@ namespace Nestopia
 					{
 						const uint battery[] =
 						{
-							a.GetBattery( useImageDatabase ) + (bool) (a.GetType() & (List::Files::Entry::NES|List::Files::Entry::UNF)),
-							b.GetBattery( useImageDatabase ) + (bool) (b.GetType() & (List::Files::Entry::NES|List::Files::Entry::UNF))
+							a.GetBattery( useImageDatabase ) + bool(a.GetType() & (List::Files::Entry::NES|List::Files::Entry::UNF)),
+							b.GetBattery( useImageDatabase ) + bool(b.GetType() & (List::Files::Entry::NES|List::Files::Entry::UNF))
 						};
 
 						if (battery[0] == battery[1])

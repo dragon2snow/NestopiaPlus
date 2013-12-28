@@ -46,9 +46,9 @@ namespace Nes
 				stream = 0;
 			}
 
-			void Mahjong::SaveState(State::Saver& state,const byte id) const
+			void Mahjong::SaveState(State::Saver& saver,const byte id) const
 			{
-				state.Begin( AsciiId<'M','J'>::R(0,0,id) ).End();
+				saver.Begin( AsciiId<'M','J'>::R(0,0,id) ).End();
 			}
 
 			#ifdef NST_MSVC_OPTIMIZE

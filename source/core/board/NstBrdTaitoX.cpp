@@ -37,7 +37,7 @@ namespace Nes
 
 			TaitoX::TaitoX(Context& c,Type t)
 			:
-			Mapper (c,CROM_MAX_128K),
+			Mapper (c,CROM_MAX_128K | (type == TYPE_A ? NMT_DEFAULT : NMT_HORIZONTAL)),
 			type   (t)
 			{}
 
@@ -67,23 +67,23 @@ namespace Nes
 				chr.SwapBank<SIZE_2K>( address, data >> 1 );
 			}
 
-			NES_POKE(TaitoX,7EF0_0)
+			NES_POKE_D(TaitoX,7EF0_0)
 			{
 				SwapChr( 0x0000, data );
 			}
 
-			NES_POKE(TaitoX,7EF0_1)
+			NES_POKE_D(TaitoX,7EF0_1)
 			{
 				SwapChr( 0x0000, data );
 				nmt.SwapBanks<SIZE_1K,0x0000>( data >> 7, data >> 7 );
 			}
 
-			NES_POKE(TaitoX,7EF1_0)
+			NES_POKE_D(TaitoX,7EF1_0)
 			{
 				SwapChr( 0x0800U, data );
 			}
 
-			NES_POKE(TaitoX,7EF1_1)
+			NES_POKE_D(TaitoX,7EF1_1)
 			{
 				SwapChr( 0x0800, data );
 				nmt.SwapBanks<SIZE_1K,0x0800>( data >> 7, data >> 7 );

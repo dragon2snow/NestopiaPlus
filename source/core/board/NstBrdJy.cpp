@@ -38,7 +38,7 @@ namespace Nes
 			Jy::CartSwitches::CartSwitches(uint d,bool l)
 			: data(d), ppuLatched(l) {}
 
-			inline ibool Jy::CartSwitches::IsPpuLatched() const
+			inline bool Jy::CartSwitches::IsPpuLatched() const
 			{
 				return ppuLatched;
 			}
@@ -55,7 +55,7 @@ namespace Nes
 			#endif
 
 			Jy::Irq::Irq(Cpu& cpu,Ppu& ppu)
-			: a12(cpu,ppu,0,Clock::A12<A12>::NO_IRQ_DELAY,*this), m2(cpu,*this) {}
+			: a12(cpu,ppu,*this), m2(cpu,*this) {}
 
 			#if NST_MSVC >= 1200
 			#pragma warning( pop )
@@ -63,7 +63,7 @@ namespace Nes
 
 			Jy::Jy(Context& c,const DefaultDipSwitch d,bool l)
 			:
-			Mapper       (c,WRAM_NONE),
+			Mapper       (c,WRAM_NONE|NMT_DEFAULT),
 			irq          (c.cpu,c.ppu),
 			cartSwitches (d,l)
 			{}
@@ -160,8 +160,8 @@ namespace Nes
 				banks.Reset();
 				irq.Reset();
 
-				ppu.SetBgHook( Hook(this,&Jy::Hook_PpuBg) );
-				ppu.SetSpHook( Hook(this,&Jy::Hook_PpuSp) );
+				ppu.SetHActiveHook( Hook(this,&Jy::Hook_HActive) );
+				ppu.SetHBlankHook( Hook(this,&Jy::Hook_HBlank) );
 
 				if (cartSwitches.IsPpuLatched())
 				{
@@ -175,11 +175,11 @@ namespace Nes
 				UpdateNmt();
 			}
 
-			void Jy::BaseLoad(State::Loader& state,const dword id)
+			void Jy::BaseLoad(State::Loader& state,const dword baseChunk)
 			{
-				NST_VERIFY( id == (AsciiId<'B','T','K'>::V) );
+				NST_VERIFY( baseChunk == (AsciiId<'B','T','K'>::V) );
 
-				if (id == AsciiId<'B','T','K'>::V)
+				if (baseChunk == AsciiId<'B','T','K'>::V)
 				{
 					while (const dword chunk = state.Begin())
 					{
@@ -366,11 +366,9 @@ namespace Nes
 					return data & DIPSWITCH_NMT;
 			}
 
-			bool Jy::CartSwitches::SetValue(uint dip,uint value)
+			void Jy::CartSwitches::SetValue(uint dip,uint value)
 			{
 				NST_ASSERT( dip < 2 );
-
-				const uint prev = data;
 
 				if (dip == 0)
 				{
@@ -382,8 +380,6 @@ namespace Nes
 					NST_ASSERT( value < 3 );
 					data = (data & ~uint(DIPSWITCH_NMT)) | (value << 0);
 				}
-
-				return prev != data;
 			}
 
 			Jy::Device Jy::QueryDevice(DeviceType type)
@@ -409,7 +405,7 @@ namespace Nes
 				m2.Update();
 			}
 
-			ibool Jy::Irq::IsEnabled() const
+			bool Jy::Irq::IsEnabled() const
 			{
 				return enabled &&
 				(
@@ -418,12 +414,12 @@ namespace Nes
 				);
 			}
 
-			ibool Jy::Irq::IsEnabled(uint checkMode) const
+			bool Jy::Irq::IsEnabled(uint checkMode) const
 			{
 				return (mode & MODE_SOURCE) == checkMode && IsEnabled();
 			}
 
-			ibool Jy::Irq::Signal()
+			bool Jy::Irq::Clock()
 			{
 				NST_ASSERT( IsEnabled() );
 
@@ -433,14 +429,14 @@ namespace Nes
 					return (++prescaler & scale) == 0x00 && (++count & 0xFF) == 0x00;
 			}
 
-			ibool Jy::Irq::A12::Signal()
+			bool Jy::Irq::A12::Clock()
 			{
-				return base.IsEnabled(MODE_PPU_A12) && base.Signal();
+				return base.IsEnabled(MODE_PPU_A12) && base.Clock();
 			}
 
-			ibool Jy::Irq::M2::Signal()
+			bool Jy::Irq::M2::Clock()
 			{
-				return base.IsEnabled(MODE_M2) && base.Signal();
+				return base.IsEnabled(MODE_M2) && base.Clock();
 			}
 
 			uint Jy::Banks::Unscramble(const uint bank)
@@ -456,31 +452,31 @@ namespace Nes
 				);
 			}
 
-			NES_HOOK(Jy,PpuBg)
+			NES_HOOK(Jy,HActive)
 			{
 				if (irq.IsEnabled(Irq::MODE_PPU_READ) && ppu.IsEnabled())
 				{
 					for (uint i=0, hit=false; i < (32*4) * 2; i += 2)
 					{
-						if (irq.Signal() && !hit)
+						if (irq.Clock() && !hit)
 						{
 							hit = true;
-							cpu.DoIRQ( Cpu::IRQ_EXT, cpu.GetMasterClockCycles() + ppu.GetOneCycle() * i );
+							cpu.DoIRQ( Cpu::IRQ_EXT, cpu.GetCycles() + ppu.GetClock() * i );
 						}
 					}
 				}
 			}
 
-			NES_HOOK(Jy,PpuSp)
+			NES_HOOK(Jy,HBlank)
 			{
 				if (irq.IsEnabled(Irq::MODE_PPU_READ) && ppu.IsEnabled())
 				{
 					for (uint i=0, hit=false; i < (8*4+2*4+2) * 2; i += 2)
 					{
-						if (irq.Signal() && !hit)
+						if (irq.Clock() && !hit)
 						{
 							hit = true;
-							cpu.DoIRQ( Cpu::IRQ_EXT, cpu.GetMasterClockCycles() + ppu.GetOneCycle() * i );
+							cpu.DoIRQ( Cpu::IRQ_EXT, cpu.GetCycles() + ppu.GetClock() * i );
 						}
 					}
 				}
@@ -518,26 +514,26 @@ namespace Nes
 				return data;
 			}
 
-			NES_PEEK(Jy,5000)
+			NES_PEEK_A(Jy,5000)
 			{
 				return (cartSwitches.GetSetting() & DIPSWITCH_GAME) | (address >> 8 & ~uint(DIPSWITCH_GAME));
 			}
 
-			NES_POKE(Jy::Regs,5800) { mul[0] = data; }
-			NES_POKE(Jy::Regs,5801) { mul[1] = data; }
-			NES_POKE(Jy::Regs,5803) { tmp = data;  }
+			NES_POKE_D(Jy::Regs,5800) { mul[0] = data; }
+			NES_POKE_D(Jy::Regs,5801) { mul[1] = data; }
+			NES_POKE_D(Jy::Regs,5803) { tmp = data;  }
 
 			NES_PEEK(Jy::Regs,5800) { return (mul[0] * mul[1]) & 0xFF; }
 			NES_PEEK(Jy::Regs,5801) { return (mul[0] * mul[1]) >> 8;   }
 			NES_PEEK(Jy::Regs,5803) { return tmp; }
 
-			NES_PEEK(Jy,6000)
+			NES_PEEK_A(Jy,6000)
 			{
 				NST_VERIFY( banks.prg6 );
 				return banks.prg6 ? banks.prg6[address - 0x6000] : (address >> 8);
 			}
 
-			NES_POKE(Jy,8000)
+			NES_POKE_AD(Jy,8000)
 			{
 				address &= 0x3;
 				data &= 0x3F;
@@ -549,7 +545,7 @@ namespace Nes
 				}
 			}
 
-			NES_POKE(Jy,9000)
+			NES_POKE_AD(Jy,9000)
 			{
 				address &= 0x7;
 				data |= banks.chr[address] & 0xFF00;
@@ -561,7 +557,7 @@ namespace Nes
 				}
 			}
 
-			NES_POKE(Jy,A000)
+			NES_POKE_AD(Jy,A000)
 			{
 				address &= 0x7;
 				data = data << 8 | (banks.chr[address] & 0x00FF);
@@ -573,7 +569,7 @@ namespace Nes
 				}
 			}
 
-			NES_POKE(Jy,B000)
+			NES_POKE_AD(Jy,B000)
 			{
 				address &= 0x3;
 				data |= banks.nmt[address] & 0xFF00;
@@ -585,10 +581,10 @@ namespace Nes
 				}
 			}
 
-			NES_POKE(Jy,B004)
+			NES_POKE_AD(Jy,B004)
 			{
 				address &= 0x3;
-				data = data << 8 | (banks.nmt[address] & 0x00FU);
+				data = data << 8 | (banks.nmt[address] & 0x00FF);
 
 				if (banks.nmt[address] != data)
 				{
@@ -597,7 +593,7 @@ namespace Nes
 				}
 			}
 
-			NES_POKE(Jy,C000)
+			NES_POKE_D(Jy,C000)
 			{
 				data &= Irq::TOGGLE;
 
@@ -611,7 +607,7 @@ namespace Nes
 				}
 			}
 
-			NES_POKE(Jy,C001)
+			NES_POKE_D(Jy,C001)
 			{
 				if (irq.mode != data)
 				{
@@ -651,24 +647,24 @@ namespace Nes
 				}
 			}
 
-			NES_POKE(Jy,C004)
+			NES_POKE_D(Jy,C004)
 			{
 				irq.Update();
 				irq.prescaler = data ^ irq.flip;
 			}
 
-			NES_POKE(Jy,C005)
+			NES_POKE_D(Jy,C005)
 			{
 				irq.Update();
 				irq.count = data ^ irq.flip;
 			}
 
-			NES_POKE(Jy,C006)
+			NES_POKE_D(Jy,C006)
 			{
 				irq.flip = data;
 			}
 
-			NES_POKE(Jy,D000)
+			NES_POKE_D(Jy,D000)
 			{
 				if (regs.ctrl[0] != data)
 				{
@@ -680,7 +676,7 @@ namespace Nes
 				}
 			}
 
-			NES_POKE(Jy,D001)
+			NES_POKE_D(Jy,D001)
 			{
 				if (regs.ctrl[1] != data)
 				{
@@ -689,7 +685,7 @@ namespace Nes
 				}
 			}
 
-			NES_POKE(Jy,D002)
+			NES_POKE_D(Jy,D002)
 			{
 				if (regs.ctrl[2] != data)
 				{
@@ -698,7 +694,7 @@ namespace Nes
 				}
 			}
 
-			NES_POKE(Jy,D003)
+			NES_POKE_D(Jy,D003)
 			{
 				if (regs.ctrl[3] != data)
 				{
@@ -867,10 +863,13 @@ namespace Nes
 				}
 			}
 
-			void Jy::VSync()
+			void Jy::Sync(Event event,Input::Controllers*)
 			{
-				irq.a12.VSync();
-				irq.m2.VSync();
+				if (event == EVENT_END_FRAME)
+				{
+					irq.a12.VSync();
+					irq.m2.VSync();
+				}
 			}
 		}
 	}

@@ -38,7 +38,7 @@ namespace Nestopia
 		{
 		public:
 
-			CustomSize(uint&);
+			explicit CustomSize(uint&);
 
 		private:
 
@@ -175,6 +175,25 @@ namespace Nestopia
 
 		ibool InesHeader::OnInitDialog(Param&)
 		{
+			NST_COMPILE_ASSERT
+			(
+				Nes::Cartridge::PPU_RP2C02      ==  0 &&
+				Nes::Cartridge::PPU_RP2C03B     ==  1 &&
+				Nes::Cartridge::PPU_RP2C03G     ==  2 &&
+				Nes::Cartridge::PPU_RP2C04_0001 ==  3 &&
+				Nes::Cartridge::PPU_RP2C04_0002 ==  4 &&
+				Nes::Cartridge::PPU_RP2C04_0003 ==  5 &&
+				Nes::Cartridge::PPU_RP2C04_0004 ==  6 &&
+				Nes::Cartridge::PPU_RC2C03B     ==  7 &&
+				Nes::Cartridge::PPU_RC2C03C     ==  8 &&
+				Nes::Cartridge::PPU_RC2C05_01   ==  9 &&
+				Nes::Cartridge::PPU_RC2C05_02   == 10 &&
+				Nes::Cartridge::PPU_RC2C05_03   == 11 &&
+				Nes::Cartridge::PPU_RC2C05_04   == 12 &&
+				Nes::Cartridge::PPU_RC2C05_05   == 13 &&
+				Nes::Cartridge::PPU_RP2C07      == 14
+			);
+
 			static const tstring vsPPU[] =
 			{
 				_T( "RP2C03B"     ),
@@ -213,8 +232,8 @@ namespace Nestopia
 
 			dialog.Control( IDC_INES_HEADER_DETECT ).Enable( dbEntry );
 
-			Nes::Api::Cartridge::Setup setup;
-			Nes::Api::Cartridge::ReadNesHeader( setup, header, HEADER_SIZE );
+			Nes::Cartridge::Setup setup;
+			Nes::Cartridge::ReadNesHeader( setup, header, HEADER_SIZE );
 			UpdateHeader( setup );
 
 			return true;
@@ -235,34 +254,34 @@ namespace Nestopia
 
 		bool InesHeader::SaveHeader(Header& save) const
 		{
-			Nes::Api::Cartridge::Setup setup;
+			Nes::Cartridge::Setup setup;
 
 			setup.version = (dialog.RadioButton( IDC_INES_HEADER_TYPE_EXT ).Checked() ? 2 : 0);
 
 			if (dialog.RadioButton( IDC_INES_HEADER_SYSTEM_VS ).Checked())
 			{
-				setup.system = Nes::SYSTEM_VS;
+				setup.system = Nes::Cartridge::SYSTEM_VS;
 			}
 			else if (dialog.RadioButton( IDC_INES_HEADER_SYSTEM_PC10 ).Checked())
 			{
-				setup.system = Nes::SYSTEM_PC10;
+				setup.system = Nes::Cartridge::SYSTEM_PC10;
 			}
 			else
 			{
-				setup.system = Nes::SYSTEM_HOME;
+				setup.system = Nes::Cartridge::SYSTEM_HOME;
 			}
 
 			if (dialog.RadioButton( IDC_INES_HEADER_REGION_BOTH ).Checked())
 			{
-				setup.region = Nes::REGION_BOTH;
+				setup.region = Nes::Cartridge::REGION_BOTH;
 			}
 			else if (dialog.RadioButton( IDC_INES_HEADER_REGION_PAL ).Checked())
 			{
-				setup.region = Nes::REGION_PAL;
+				setup.region = Nes::Cartridge::REGION_PAL;
 			}
 			else
 			{
-				setup.region = Nes::REGION_NTSC;
+				setup.region = Nes::Cartridge::REGION_NTSC;
 			}
 
 			setup.prgRom       = dialog.ComboBox( IDC_INES_HEADER_PRGROM_LIST ).Selection().Data();
@@ -272,28 +291,28 @@ namespace Nestopia
 			setup.chrRam       = dialog.ComboBox( IDC_INES_HEADER_CHRRAM_LIST ).Selection().Data();
 			setup.chrRamBacked = dialog.ComboBox( IDC_INES_HEADER_CHRRAM_BACKED_LIST ).Selection().Data();
 
-			if (setup.system == Nes::SYSTEM_VS)
+			if (setup.system == Nes::Cartridge::SYSTEM_VS)
 			{
-				setup.ppu = (Nes::PpuType) (dialog.ComboBox( IDC_INES_HEADER_VS_PPU_LIST ).Selection().GetIndex() + 1);
+				setup.ppu = static_cast<Nes::Cartridge::Ppu>(dialog.ComboBox( IDC_INES_HEADER_VS_PPU_LIST ).Selection().GetIndex() + 1);
 				setup.security = dialog.ComboBox( IDC_INES_HEADER_VS_MODE_LIST ).Selection().GetIndex();
 			}
 			else
 			{
-				setup.ppu = Nes::PPU_RP2C02;
+				setup.ppu = Nes::Cartridge::PPU_RP2C02;
 				setup.security = 0;
 			}
 
 			if (dialog.RadioButton( IDC_INES_HEADER_FOURSCREEN ).Checked())
 			{
-				setup.mirroring = Nes::Api::Cartridge::MIRROR_FOURSCREEN;
+				setup.mirroring = Nes::Cartridge::MIRROR_FOURSCREEN;
 			}
 			else if (dialog.RadioButton( IDC_INES_HEADER_HORIZONTAL ).Checked())
 			{
-				setup.mirroring = Nes::Api::Cartridge::MIRROR_HORIZONTAL;
+				setup.mirroring = Nes::Cartridge::MIRROR_HORIZONTAL;
 			}
 			else
 			{
-				setup.mirroring = Nes::Api::Cartridge::MIRROR_VERTICAL;
+				setup.mirroring = Nes::Cartridge::MIRROR_VERTICAL;
 			}
 
 			if (!(dialog.Edit( IDC_INES_HEADER_MAPPER_BASE_VALUE ) >> setup.mapper))
@@ -306,7 +325,7 @@ namespace Nestopia
 
 			setup.trainer = dialog.CheckBox( IDC_INES_HEADER_TRAINER ).Checked();
 
-			if (NES_FAILED(Nes::Api::Cartridge::WriteNesHeader( setup, save, HEADER_SIZE )))
+			if (NES_FAILED(Nes::Cartridge::WriteNesHeader( setup, save, HEADER_SIZE )))
 				return false;
 
 			uchar reserved[HEADER_SIZE];
@@ -343,7 +362,7 @@ namespace Nestopia
 			return true;
 		}
 
-		void InesHeader::UpdateHeader(const Nes::Api::Cartridge::Setup& setup) const
+		void InesHeader::UpdateHeader(const Nes::Cartridge::Setup& setup) const
 		{
 			dialog.RadioButton( IDC_INES_HEADER_TYPE_STD ).Check( !setup.version );
 			dialog.RadioButton( IDC_INES_HEADER_TYPE_EXT ).Check(  setup.version );
@@ -351,17 +370,17 @@ namespace Nestopia
 			dialog.Edit( IDC_INES_HEADER_MAPPER_BASE_VALUE ).Text() << uint(setup.mapper);
 			dialog.Edit( IDC_INES_HEADER_MAPPER_SUB_VALUE ).Text() << uint(setup.subMapper);
 
-			dialog.RadioButton( IDC_INES_HEADER_FOURSCREEN ).Check( setup.mirroring == Nes::Api::Cartridge::MIRROR_FOURSCREEN );
-			dialog.RadioButton( IDC_INES_HEADER_VERTICAL   ).Check( setup.mirroring == Nes::Api::Cartridge::MIRROR_VERTICAL   );
-			dialog.RadioButton( IDC_INES_HEADER_HORIZONTAL ).Check( setup.mirroring != Nes::Api::Cartridge::MIRROR_VERTICAL && setup.mirroring != Nes::Api::Cartridge::MIRROR_FOURSCREEN );
+			dialog.RadioButton( IDC_INES_HEADER_FOURSCREEN ).Check( setup.mirroring == Nes::Cartridge::MIRROR_FOURSCREEN );
+			dialog.RadioButton( IDC_INES_HEADER_VERTICAL   ).Check( setup.mirroring == Nes::Cartridge::MIRROR_VERTICAL   );
+			dialog.RadioButton( IDC_INES_HEADER_HORIZONTAL ).Check( setup.mirroring != Nes::Cartridge::MIRROR_VERTICAL && setup.mirroring != Nes::Cartridge::MIRROR_FOURSCREEN );
 
-			dialog.RadioButton( IDC_INES_HEADER_SYSTEM_VS   ).Check( setup.system == Nes::SYSTEM_VS   );
-			dialog.RadioButton( IDC_INES_HEADER_SYSTEM_PC10 ).Check( setup.system == Nes::SYSTEM_PC10 );
-			dialog.RadioButton( IDC_INES_HEADER_SYSTEM_HOME ).Check( setup.system == Nes::SYSTEM_HOME );
+			dialog.RadioButton( IDC_INES_HEADER_SYSTEM_VS   ).Check( setup.system == Nes::Cartridge::SYSTEM_VS   );
+			dialog.RadioButton( IDC_INES_HEADER_SYSTEM_PC10 ).Check( setup.system == Nes::Cartridge::SYSTEM_PC10 );
+			dialog.RadioButton( IDC_INES_HEADER_SYSTEM_HOME ).Check( setup.system == Nes::Cartridge::SYSTEM_HOME );
 
-			dialog.RadioButton( IDC_INES_HEADER_REGION_BOTH ).Check( setup.region == Nes::REGION_BOTH  );
-			dialog.RadioButton( IDC_INES_HEADER_REGION_PAL  ).Check( setup.region == Nes::REGION_PAL   );
-			dialog.RadioButton( IDC_INES_HEADER_REGION_NTSC ).Check( setup.region == Nes::REGION_NTSC  );
+			dialog.RadioButton( IDC_INES_HEADER_REGION_BOTH ).Check( setup.region == Nes::Cartridge::REGION_BOTH  );
+			dialog.RadioButton( IDC_INES_HEADER_REGION_PAL  ).Check( setup.region == Nes::Cartridge::REGION_PAL   );
+			dialog.RadioButton( IDC_INES_HEADER_REGION_NTSC ).Check( setup.region == Nes::Cartridge::REGION_NTSC  );
 
 			dialog.CheckBox( IDC_INES_HEADER_TRAINER ).Check( setup.trainer );
 
@@ -378,7 +397,7 @@ namespace Nestopia
 			UpdateSizes( IDC_INES_HEADER_CHRRAM_BACKED_LIST, SIZETYPE_EXT, setup.chrRamBacked );
 		}
 
-		void InesHeader::DetectHeader(Nes::Api::Cartridge::Setup& setup) const
+		void InesHeader::DetectHeader(Nes::Cartridge::Setup& setup) const
 		{
 			NST_ASSERT( dbEntry );
 
@@ -453,7 +472,7 @@ namespace Nestopia
 			if (sizeType == SIZETYPE_STD_8K || sizeType == SIZETYPE_STD_16K)
 			{
 				combo.Reserve( 1+8+1, 8 );
-				combo.Add( Resource::String(IDS_NONE).Ptr() ).Data() = 0;
+				combo.Add( Resource::String(IDS_TEXT_NONE).Ptr() ).Data() = 0;
 
 				uint selection = 0;
 				uint match = 0;
@@ -512,7 +531,7 @@ namespace Nestopia
 				};
 
 				combo.Reserve( 1+14, 16 );
-				combo.Add( Resource::String(IDS_NONE).Ptr() ).Data() = 0;
+				combo.Add( Resource::String(IDS_TEXT_NONE).Ptr() ).Data() = 0;
 
 				uint selection = sizeSelect ? UINT_MAX : 0;
 
@@ -626,8 +645,8 @@ namespace Nestopia
 		{
 			if (param.Button().Clicked())
 			{
-				Nes::Api::Cartridge::Setup setup;
-				Nes::Api::Cartridge::ReadNesHeader( setup, header, HEADER_SIZE );
+				Nes::Cartridge::Setup setup;
+				Nes::Cartridge::ReadNesHeader( setup, header, HEADER_SIZE );
 				UpdateHeader( setup );
 			}
 
@@ -638,7 +657,7 @@ namespace Nestopia
 		{
 			if (param.Button().Clicked())
 			{
-				Nes::Api::Cartridge::Setup setup;
+				Nes::Cartridge::Setup setup;
 				DetectHeader( setup );
 				UpdateHeader( setup );
 			}

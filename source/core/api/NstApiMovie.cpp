@@ -34,52 +34,37 @@ namespace Nes
 		#pragma optimize("s", on)
 		#endif
 
-		Movie::StateCaller Movie::stateCallback;
+		Movie::EventCaller Movie::eventCallback;
 
-		Result Movie::Play(std::istream& stream,CallbackMode mode) throw()
+		Result Movie::Play(std::istream& stream) throw()
 		{
 			Api::TapeRecorder(emulator).Stop();
-			return emulator.tracker.MoviePlay( emulator, &stream, mode == ENABLE_CALLBACK );
+			return emulator.tracker.PlayMovie( emulator, &stream );
 		}
 
-		Result Movie::Record(std::ostream& stream,How how,CallbackMode mode) throw()
+		Result Movie::Record(std::iostream& stream,How how) throw()
 		{
-			return emulator.tracker.MovieRecord( emulator, &stream, how == APPEND, mode == ENABLE_CALLBACK );
+			return emulator.tracker.RecordMovie( emulator, &stream, how == APPEND );
 		}
 
 		void Movie::Stop() throw()
 		{
-			emulator.tracker.MovieStop();
-		}
-
-		void Movie::Eject() throw()
-		{
-			emulator.tracker.MovieEject();
-		}
-
-		void Movie::Cut() throw()
-		{
-			emulator.tracker.MovieCut();
+			emulator.tracker.StopMovie();
 		}
 
 		bool Movie::IsPlaying() const throw()
 		{
-			return emulator.tracker.MovieIsPlaying();
+			return emulator.tracker.IsMoviePlaying();
 		}
 
 		bool Movie::IsRecording() const throw()
 		{
-			return emulator.tracker.MovieIsRecording();
+			return emulator.tracker.IsMovieRecording();
 		}
 
 		bool Movie::IsStopped() const throw()
 		{
-			return emulator.tracker.MovieIsStopped();
-		}
-
-		bool Movie::IsInserted() const throw()
-		{
-			return emulator.tracker.MovieIsInserted();
+			return !IsPlaying() && !IsRecording();
 		}
 
 		#ifdef NST_MSVC_OPTIMIZE

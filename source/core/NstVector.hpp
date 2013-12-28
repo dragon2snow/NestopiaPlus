@@ -85,9 +85,9 @@ namespace Nes
 
 			Vector();
 			explicit Vector(dword);
-			Vector(const Vector&);
+			Vector(const Vector<T>&);
 
-			bool operator == (const Vector&) const;
+			bool operator == (const Vector<T>&) const;
 
 			void Reserve(dword);
 			void Resize(dword);
@@ -100,19 +100,19 @@ namespace Nes
 			void Destroy();
 			void Defrag();
 
-			static void Swap(Vector&,Vector&);
+			static void Swap(Vector<T>&,Vector<T>&);
 
 			~Vector()
 			{
 				Allocator::Free( data );
 			}
 
-			void operator = (const Vector& vector)
+			void operator = (const Vector<T>& vector)
 			{
 				Assign( vector.data, vector.size );
 			}
 
-			void operator += (const Vector& vector)
+			void operator += (const Vector<T>& vector)
 			{
 				Append( vector.data, vector.size );
 			}
@@ -280,9 +280,8 @@ namespace Nes
 			{
 				MakeRoom( size );
 			}
-			else
+			else if (void* const tmp = data)
 			{
-				void* const tmp = data;
 				data = NULL;
 				capacity = 0;
 				Allocator::Free( tmp );
@@ -290,7 +289,7 @@ namespace Nes
 		}
 
 		template<typename T>
-		bool Vector<T>::operator == (const Vector& vector) const
+		bool Vector<T>::operator == (const Vector<T>& vector) const
 		{
 			if (size != vector.size)
 				return false;
@@ -317,7 +316,7 @@ namespace Nes
 		}
 
 		template<typename T>
-		void Vector<T>::Swap(Vector& a,Vector& b)
+		void Vector<T>::Swap(Vector<T>& a,Vector<T>& b)
 		{
 			T* t = a.data;
 			a.data = b.data;

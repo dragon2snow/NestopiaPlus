@@ -113,9 +113,11 @@ namespace Nes
 					{
 						return RESULT_ERR_INVALID_PARAM;
 					}
-					else if (dipSwitches->SetValue( dip, value ))
+					else if (value != dipSwitches->GetValue( dip ))
 					{
-						emulator.tracker.Flush();
+						emulator.tracker.Resync();
+						dipSwitches->SetValue( dip, value );
+
 						return RESULT_OK;
 					}
 					else

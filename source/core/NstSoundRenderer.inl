@@ -43,7 +43,10 @@ namespace Nes
 				start = (start + block.length) & MASK;
 
 				if (start == pos)
-					start = pos = 0;
+				{
+					start = 0;
+					pos = 0;
+				}
 			}
 
 			inline Buffer::Block::Block(uint l)
@@ -57,9 +60,9 @@ namespace Nes
 			{}
 
 			template<typename T>
-			inline Buffer::BaseRenderer<T>::operator bool () const
+			inline bool Buffer::BaseRenderer<T>::operator !() const
 			{
-				return dst != end;
+				return dst == end;
 			}
 
 			template<typename T>

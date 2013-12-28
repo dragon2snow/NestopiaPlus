@@ -46,17 +46,17 @@ namespace Nes
 
 				enum
 				{
-					SIZE = 0x8000,
+					SIZE = 0x4000,
 					MASK = SIZE-1
 				};
 
 				struct Block
 				{
+					inline explicit Block(uint);
+
 					const iword* data;
 					uint start;
 					uint length;
-
-					inline explicit Block(uint);
 				};
 
 				void Reset(uint,bool=true);
@@ -68,7 +68,7 @@ namespace Nes
 			private:
 
 				template<typename T>
-				class BaseRenderer
+				class BaseRenderer : public ImplicitBool< BaseRenderer<T> >
 				{
 				protected:
 
@@ -79,7 +79,7 @@ namespace Nes
 
 				public:
 
-					inline operator bool () const;
+					inline bool operator !() const;
 				};
 
 				struct History

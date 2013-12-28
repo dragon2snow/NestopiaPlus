@@ -37,12 +37,12 @@ namespace Nes
 		Mapper91::Mapper91(Context& c)
 		:
 		Mapper (c,CROM_MAX_512K|WRAM_NONE),
-		irq    (c.cpu,c.ppu)
+		irq    (c.cpu,c.ppu,false)
 		{}
 
 		void Mapper91::SubReset(const bool hard)
 		{
-			irq.Reset( hard, hard || irq.IsLineEnabled() );
+			irq.Reset( hard, hard || irq.Connected() );
 
 			for (uint i=0x0000; i < 0x1000; i += 0x4)
 			{
@@ -91,9 +91,10 @@ namespace Nes
 			irq.unit.SetLatch( 7 );
 		}
 
-		void Mapper91::VSync()
+		void Mapper91::Sync(Event event,Input::Controllers*)
 		{
-			irq.VSync();
+			if (event == EVENT_END_FRAME)
+				irq.VSync();
 		}
 	}
 }

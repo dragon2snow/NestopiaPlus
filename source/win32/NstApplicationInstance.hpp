@@ -134,6 +134,8 @@ namespace Nestopia
 			struct Global;
 			static Global global;
 
+			static const tchar appClassName[];
+
 		public:
 
 			Configuration& GetConfiguration()
@@ -143,7 +145,7 @@ namespace Nestopia
 
 			static tstring GetClassName()
 			{
-				return _T("Nestopia");
+				return appClassName;
 			}
 
 			class Waiter

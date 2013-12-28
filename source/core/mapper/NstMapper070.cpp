@@ -54,7 +54,7 @@ namespace Nes
 		#pragma optimize("", on)
 		#endif
 
-		NES_POKE(Mapper70,Prg)
+		NES_POKE_D(Mapper70,Prg)
 		{
 			ppu.Update();
 			chr.SwapBank<SIZE_8K,0x0000>( data );
@@ -67,7 +67,7 @@ namespace Nes
 			return (data & 0xFE) | (data << 1 & 0x2);
 		}
 
-		NES_POKE(Mapper70,SpaceShadow)
+		NES_POKE_AD(Mapper70,SpaceShadow)
 		{
 			p4016.Poke( address, data );
 		}

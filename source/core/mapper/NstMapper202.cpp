@@ -33,16 +33,19 @@ namespace Nes
 		#pragma optimize("s", on)
 		#endif
 
-		void Mapper202::SubReset(bool)
+		void Mapper202::SubReset(const bool hard)
 		{
 			Map( 0x4020U, 0xFFFFU, &Mapper202::Poke_Prg );
+
+			if (hard)
+				NES_DO_POKE(Prg,0x8000,0x00);
 		}
 
 		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
-		NES_POKE(Mapper202,Prg)
+		NES_POKE_A(Mapper202,Prg)
 		{
 			ppu.SetMirroring( (address & 0x1) ? Ppu::NMT_HORIZONTAL : Ppu::NMT_VERTICAL );
 

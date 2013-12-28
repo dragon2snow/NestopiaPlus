@@ -113,7 +113,7 @@ namespace Nes
 			);
 		}
 
-		NES_POKE(Mapper115,6000)
+		NES_POKE_D(Mapper115,6000)
 		{
 			if (exRegs[0] != data)
 			{
@@ -122,7 +122,7 @@ namespace Nes
 			}
 		}
 
-		NES_POKE(Mapper115,6001)
+		NES_POKE_D(Mapper115,6001)
 		{
 			if (exRegs[1] != data)
 			{

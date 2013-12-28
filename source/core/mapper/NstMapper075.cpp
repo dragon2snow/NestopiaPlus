@@ -47,7 +47,7 @@ namespace Nes
 		#pragma optimize("", on)
 		#endif
 
-		NES_POKE(Mapper75,9000)
+		NES_POKE_D(Mapper75,9000)
 		{
 			ppu.SetMirroring( (data & 0x1) ? Ppu::NMT_HORIZONTAL : Ppu::NMT_VERTICAL );
 
@@ -58,13 +58,13 @@ namespace Nes
 			);
 		}
 
-		NES_POKE(Mapper75,E000)
+		NES_POKE_D(Mapper75,E000)
 		{
 			ppu.Update();
 			chr.SwapBank<SIZE_4K,0x0000>( (chr.GetBank<SIZE_4K,0x0000>() & 0x10) | (data & 0xF) );
 		}
 
-		NES_POKE(Mapper75,F000)
+		NES_POKE_D(Mapper75,F000)
 		{
 			ppu.Update();
 			chr.SwapBank<SIZE_4K,0x1000>( (chr.GetBank<SIZE_4K,0x1000>() & 0x10) | (data & 0xF) );

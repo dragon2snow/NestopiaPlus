@@ -35,7 +35,7 @@ namespace Nes
 			#pragma optimize("s", on)
 			#endif
 
-			void Ws::SubReset(bool)
+			void Ws::SubReset(const bool hard)
 			{
 				reg = 0x00;
 
@@ -44,6 +44,9 @@ namespace Nes
 					Map( i + 0x0, &Ws::Poke_6000 );
 					Map( i + 0x1, &Ws::Poke_6001 );
 				}
+
+				if (hard)
+					NES_DO_POKE(6000,0x6000,0x00);
 			}
 
 			void Ws::SubLoad(State::Loader& state)
@@ -66,7 +69,7 @@ namespace Nes
 			#pragma optimize("", on)
 			#endif
 
-			NES_POKE(Ws,6000)
+			NES_POKE_D(Ws,6000)
 			{
 				if (!reg)
 				{
@@ -76,7 +79,7 @@ namespace Nes
 				}
 			}
 
-			NES_POKE(Ws,6001)
+			NES_POKE_D(Ws,6001)
 			{
 				if (!reg)
 				{

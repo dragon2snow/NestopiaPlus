@@ -40,15 +40,15 @@ namespace Nes
 			public:
 
 				template<uint N>
-				class E24C0X;
+				class X24C0X;
 
 				explicit Eeprom(Type);
 
 				void Load();
 				void Save() const;
 
-				Pointer< E24C0X<128> > e24C01;
-				Pointer< E24C0X<256> > e24C02;
+				Pointer< X24C0X<128> > x24C01;
+				Pointer< X24C0X<256> > x24C02;
 
 			private:
 
@@ -56,7 +56,7 @@ namespace Nes
 			};
 
 			template<uint N>
-			class Bandai::Eeprom::E24C0X
+			class Bandai::Eeprom::X24C0X
 			{
 			public:
 
@@ -112,7 +112,7 @@ namespace Nes
 
 			public:
 
-				E24C0X()
+				X24C0X()
 				{
 					std::memset( mem, 0, SIZE );
 				}
@@ -144,7 +144,7 @@ namespace Nes
 			};
 
 			template<uint N>
-			void Bandai::Eeprom::E24C0X<N>::Reset()
+			void Bandai::Eeprom::X24C0X<N>::Reset()
 			{
 				line.scl      = 0;
 				line.sda      = 0;
@@ -158,9 +158,9 @@ namespace Nes
 			}
 
 			template<uint N>
-			void Bandai::Eeprom::E24C0X<N>::SaveState(State::Saver& state,const dword id) const
+			void Bandai::Eeprom::X24C0X<N>::SaveState(State::Saver& state,const dword baseChunk) const
 			{
-				state.Begin( id );
+				state.Begin( baseChunk );
 
 				const byte data[6] =
 				{
@@ -179,7 +179,7 @@ namespace Nes
 			}
 
 			template<uint N>
-			void Bandai::Eeprom::E24C0X<N>::LoadState(State::Loader& state)
+			void Bandai::Eeprom::X24C0X<N>::LoadState(State::Loader& state)
 			{
 				while (const dword chunk = state.Begin())
 				{
@@ -218,7 +218,7 @@ namespace Nes
 			}
 
 			template<>
-			void Bandai::Eeprom::E24C0X<128>::Start()
+			void Bandai::Eeprom::X24C0X<128>::Start()
 			{
 				mode = MODE_ADDRESS;
 				latch.bit = 0;
@@ -227,7 +227,7 @@ namespace Nes
 			}
 
 			template<>
-			void Bandai::Eeprom::E24C0X<256>::Start()
+			void Bandai::Eeprom::X24C0X<256>::Start()
 			{
 				mode = MODE_DATA;
 				latch.bit = 0;
@@ -235,14 +235,14 @@ namespace Nes
 			}
 
 			template<uint N>
-			void Bandai::Eeprom::E24C0X<N>::Stop()
+			void Bandai::Eeprom::X24C0X<N>::Stop()
 			{
 				mode = MODE_IDLE;
 				output = 0x10;
 			}
 
 			template<>
-			void Bandai::Eeprom::E24C0X<128>::Rise(const uint bit)
+			void Bandai::Eeprom::X24C0X<128>::Rise(const uint bit)
 			{
 				NST_ASSERT( bit <= 1 );
 
@@ -302,7 +302,7 @@ namespace Nes
 			}
 
 			template<>
-			void Bandai::Eeprom::E24C0X<128>::Fall()
+			void Bandai::Eeprom::X24C0X<128>::Fall()
 			{
 				switch (mode)
 				{
@@ -345,7 +345,7 @@ namespace Nes
 			}
 
 			template<>
-			void Bandai::Eeprom::E24C0X<256>::Rise(const uint bit)
+			void Bandai::Eeprom::X24C0X<256>::Rise(const uint bit)
 			{
 				NST_ASSERT( bit <= 1 );
 
@@ -407,7 +407,7 @@ namespace Nes
 			}
 
 			template<>
-			void Bandai::Eeprom::E24C0X<256>::Fall()
+			void Bandai::Eeprom::X24C0X<256>::Fall()
 			{
 				switch (mode)
 				{
@@ -491,7 +491,7 @@ namespace Nes
 			}
 
 			template<uint N>
-			void Bandai::Eeprom::E24C0X<N>::Set(const uint scl,const uint sda)
+			void Bandai::Eeprom::X24C0X<N>::Set(const uint scl,const uint sda)
 			{
 				if (line.scl && sda < line.sda)
 				{
@@ -550,8 +550,8 @@ namespace Nes
 				{
 					if (cycles != Cpu::CYCLE_MAX)
 					{
-						if (cycles >= cpu.GetMasterClockFrameCycles())
-							cycles -= cpu.GetMasterClockFrameCycles();
+						if (cycles >= cpu.GetFrameCycles())
+							cycles -= cpu.GetFrameCycles();
 						else
 							cycles = 0;
 					}
@@ -572,17 +572,17 @@ namespace Nes
 
 			Bandai::Eeprom::Eeprom(const Type t)
 			:
-			e24C01 (t == TYPE_DATACH || t == TYPE_E2401 ? new E24C0X<128> : NULL),
-			e24C02 (t == TYPE_DATACH || t == TYPE_E2402 ? new E24C0X<256> : NULL)
+			x24C01 (t == TYPE_DATACH || t == TYPE_LZ93D50_E2401 ? new X24C0X<128> : NULL),
+			x24C02 (t == TYPE_DATACH || t == TYPE_LZ93D50_E2402 ? new X24C0X<256> : NULL)
 			{
 			}
 
 			Bandai::Bandai(Context& c,const Type t)
 			:
-			Mapper (c,t == TYPE_WRAM ? CROM_MAX_256K : CROM_MAX_256K|WRAM_DEFAULT),
+			Mapper (c,t == TYPE_WRAM ? CROM_MAX_256K|NMT_VERTICAL : CROM_MAX_256K|WRAM_DEFAULT|NMT_VERTICAL),
 			irq    (c.cpu),
 			datach (t == TYPE_DATACH ? new DatachJointSystem(c.cpu) : NULL),
-			eeprom (t != TYPE_WRAM   ? new Eeprom(t)                : NULL),
+			eeprom (t == TYPE_DATACH || t == TYPE_LZ93D50_E2401 || t == TYPE_LZ93D50_E2402 ? new Eeprom(t) : NULL),
 			type   (t)
 			{
 				if (eeprom)
@@ -593,17 +593,11 @@ namespace Nes
 			{
 			}
 
-			void Bandai::PowerOff()
-			{
-				if (eeprom)
-					eeprom->Save();
-			}
-
 			Bandai::Device Bandai::QueryDevice(DeviceType devType)
 			{
 				if (devType == DEVICE_BARCODE_READER && datach)
 				{
-					return datach;
+					return &*datach;
 				}
 				else
 				{
@@ -616,26 +610,26 @@ namespace Nes
 				byte buffer[256+128];
 				std::memset( buffer, 0, sizeof(buffer) );
 
-				file.Load( File::LOAD_EEPROM, buffer, (e24C02 ? 256 : 0) + (e24C01 ? 128 : 0) );
+				file.Load( File::LOAD_EEPROM, buffer, (x24C02 ? 256 : 0) + (x24C01 ? 128 : 0) );
 
-				if (e24C02)
-					e24C02->Load( buffer );
+				if (x24C02)
+					x24C02->Load( buffer );
 
-				if (e24C01)
-					e24C01->Load( buffer + (e24C02 ? 256 : 0) );
+				if (x24C01)
+					x24C01->Load( buffer + (x24C02 ? 256 : 0) );
 			}
 
 			void Bandai::Eeprom::Save() const
 			{
 				byte buffer[256+128];
 
-				if (e24C02)
-					e24C02->Save( buffer );
+				if (x24C02)
+					x24C02->Save( buffer );
 
-				if (e24C01)
-					e24C01->Save( buffer + (e24C02 ? 256 : 0) );
+				if (x24C01)
+					x24C01->Save( buffer + (x24C02 ? 256 : 0) );
 
-				file.Save( File::SAVE_EEPROM, buffer, (e24C02 ? 256 : 0) + (e24C01 ? 128 : 0) );
+				file.Save( File::SAVE_EEPROM, buffer, (x24C02 ? 256 : 0) + (x24C01 ? 128 : 0) );
 			}
 
 			void Bandai::Irq::Reset(const bool hard)
@@ -657,47 +651,22 @@ namespace Nes
 
 			void Bandai::SubReset(const bool hard)
 			{
-				irq.Reset( hard, hard ? false : irq.IsLineEnabled() );
+				irq.Reset( hard, hard ? false : irq.Connected() );
 
 				if (datach)
 					datach->Reset();
 
 				if (eeprom)
 				{
-					if (eeprom->e24C01)
-						eeprom->e24C01->Reset();
+					if (eeprom->x24C01)
+						eeprom->x24C01->Reset();
 
-					if (eeprom->e24C02)
-						eeprom->e24C02->Reset();
+					if (eeprom->x24C02)
+						eeprom->x24C02->Reset();
 				}
 
 				switch (type)
 				{
-					case TYPE_E2401:
-					case TYPE_E2402:
-
-						for (uint i=0x6000; i <= 0x7FFF; i += 0x100)
-							Map( i, eeprom->e24C01 ? &Bandai::Peek_6000_A1 : &Bandai::Peek_6000_A2 );
-
-						for (dword i=0x6000; i <= 0xFFFF; i += 0x10)
-						{
-							Map( i + 0x0, CHR_SWAP_1K_0      );
-							Map( i + 0x1, CHR_SWAP_1K_1      );
-							Map( i + 0x2, CHR_SWAP_1K_2      );
-							Map( i + 0x3, CHR_SWAP_1K_3      );
-							Map( i + 0x4, CHR_SWAP_1K_4      );
-							Map( i + 0x5, CHR_SWAP_1K_5      );
-							Map( i + 0x6, CHR_SWAP_1K_6      );
-							Map( i + 0x7, CHR_SWAP_1K_7      );
-							Map( i + 0x8, PRG_SWAP_16K_0     );
-							Map( i + 0x9, NMT_SWAP_VH01      );
-							Map( i + 0xA, &Bandai::Poke_800A );
-							Map( i + 0xB, &Bandai::Poke_800B );
-							Map( i + 0xC, &Bandai::Poke_800C );
-							Map( i + 0xD, eeprom->e24C01 ? &Bandai::Poke_800D_A1 : &Bandai::Poke_800D_A2 );
-						}
-						break;
-
 					case TYPE_WRAM:
 
 						for (dword i=0x8000; i <= 0xFFFF; i += 0x10)
@@ -718,23 +687,52 @@ namespace Nes
 
 						for (dword i=0x6000; i <= 0xFFFF; i += 0x10)
 						{
-							Map( i + 0x0, i + 0x7, &Bandai::Poke_8000_C );
-							Map( i + 0x8,          PRG_SWAP_16K_0       );
-							Map( i + 0x9,          NMT_SWAP_VH01        );
-							Map( i + 0xA,          &Bandai::Poke_800A   );
-							Map( i + 0xB,          &Bandai::Poke_800B   );
-							Map( i + 0xC,          &Bandai::Poke_800C   );
-							Map( i + 0xD,          &Bandai::Poke_800D_C );
+							Map( uint(i) + 0x0, uint(i) + 0x7, &Bandai::Poke_8000_C );
+							Map( uint(i) + 0x8,                PRG_SWAP_16K_0       );
+							Map( uint(i) + 0x9,                NMT_SWAP_VH01        );
+							Map( uint(i) + 0xA,                &Bandai::Poke_800A   );
+							Map( uint(i) + 0xB,                &Bandai::Poke_800B   );
+							Map( uint(i) + 0xC,                &Bandai::Poke_800C   );
+							Map( uint(i) + 0xD,                &Bandai::Poke_800D_C );
+						}
+						break;
+
+					default:
+
+						if (eeprom)
+						{
+							for (uint i=0x6000; i <= 0x7FFF; i += 0x100)
+								Map( i, eeprom->x24C01 ? &Bandai::Peek_6000_A1 : &Bandai::Peek_6000_A2 );
+						}
+
+						for (dword i=0x6000; i <= 0xFFFF; i += 0x10)
+						{
+							Map( i + 0x0, CHR_SWAP_1K_0      );
+							Map( i + 0x1, CHR_SWAP_1K_1      );
+							Map( i + 0x2, CHR_SWAP_1K_2      );
+							Map( i + 0x3, CHR_SWAP_1K_3      );
+							Map( i + 0x4, CHR_SWAP_1K_4      );
+							Map( i + 0x5, CHR_SWAP_1K_5      );
+							Map( i + 0x6, CHR_SWAP_1K_6      );
+							Map( i + 0x7, CHR_SWAP_1K_7      );
+							Map( i + 0x8, PRG_SWAP_16K_0     );
+							Map( i + 0x9, NMT_SWAP_VH01      );
+							Map( i + 0xA, &Bandai::Poke_800A );
+							Map( i + 0xB, &Bandai::Poke_800B );
+							Map( i + 0xC, &Bandai::Poke_800C );
+
+							if (eeprom)
+								Map( i + 0xD, eeprom->x24C01 ? &Bandai::Poke_800D_A1 : &Bandai::Poke_800D_A2 );
 						}
 						break;
 				}
 			}
 
-			void Bandai::BaseLoad(State::Loader& state,const dword id)
+			void Bandai::BaseLoad(State::Loader& state,const dword baseChunk)
 			{
-				NST_VERIFY( id == (AsciiId<'B','A','N'>::V) );
+				NST_VERIFY( baseChunk == (AsciiId<'B','A','N'>::V) );
 
-				if (id == AsciiId<'B','A','N'>::V)
+				if (baseChunk == AsciiId<'B','A','N'>::V)
 				{
 					while (const dword chunk = state.Begin())
 					{
@@ -744,7 +742,7 @@ namespace Nes
 							{
 								State::Loader::Data<5> data( state );
 
-								irq.EnableLine( data[0] & 0x1 );
+								irq.Connect( data[0] & 0x1 );
 								irq.unit.latch = data[1] | data[2] << 8;
 								irq.unit.count = data[3] | data[4] << 8;
 								break;
@@ -761,19 +759,19 @@ namespace Nes
 
 							case AsciiId<'C','0','1'>::V:
 
-								NST_VERIFY( eeprom && eeprom->e24C01 );
+								NST_VERIFY( eeprom && eeprom->x24C01 );
 
-								if (eeprom && eeprom->e24C01)
-									eeprom->e24C01->LoadState( state );
+								if (eeprom && eeprom->x24C01)
+									eeprom->x24C01->LoadState( state );
 
 								break;
 
 							case AsciiId<'C','0','2'>::V:
 
-								NST_VERIFY( eeprom && eeprom->e24C02 );
+								NST_VERIFY( eeprom && eeprom->x24C02 );
 
-								if (eeprom && eeprom->e24C02)
-									eeprom->e24C02->LoadState( state );
+								if (eeprom && eeprom->x24C02)
+									eeprom->x24C02->LoadState( state );
 
 								break;
 						}
@@ -805,7 +803,7 @@ namespace Nes
 					if (cycles > CC_INTERVAL)
 						cycles = CC_INTERVAL;
 
-					cycles = cpu.GetMasterClockCycles() + cpu.GetMasterClockCycle(1) * cycles;
+					cycles = cpu.GetCycles() + cpu.GetClock() * cycles;
 				}
 				else
 				{
@@ -820,7 +818,7 @@ namespace Nes
 
 				const byte data[5] =
 				{
-					irq.IsLineEnabled() ? 0x1 : 0x0,
+					irq.Connected() ? 0x1 : 0x0,
 					irq.unit.latch & 0xFF,
 					irq.unit.latch >> 8,
 					irq.unit.count & 0xFF,
@@ -834,26 +832,26 @@ namespace Nes
 
 				if (eeprom)
 				{
-					if (eeprom->e24C01)
-						eeprom->e24C01->SaveState( state, AsciiId<'C','0','1'>::V );
+					if (eeprom->x24C01)
+						eeprom->x24C01->SaveState( state, AsciiId<'C','0','1'>::V );
 
-					if (eeprom->e24C02)
-						eeprom->e24C02->SaveState( state, AsciiId<'C','0','2'>::V );
+					if (eeprom->x24C02)
+						eeprom->x24C02->SaveState( state, AsciiId<'C','0','2'>::V );
 				}
 
 				state.End();
 			}
 
-			void Bandai::DatachJointSystem::SaveState(State::Saver& state,const dword id) const
+			void Bandai::DatachJointSystem::SaveState(State::Saver& state,const dword baseChunk) const
 			{
 				NST_ASSERT( IsTransferring() && cycles != Cpu::CYCLE_MAX );
 
-				state.Begin( id );
+				state.Begin( baseChunk );
 
 				uint next;
 
-				if (cycles > cpu.GetMasterClockCycles())
-					next = (cycles - cpu.GetMasterClockCycles()) / (cpu.GetMode() == MODE_NTSC ? Cpu::MC_DIV_NTSC : Cpu::MC_DIV_PAL);
+				if (cycles > cpu.GetCycles())
+					next = (cycles - cpu.GetCycles()) / (cpu.GetRegion() == Region::NTSC ? Clocks::RP2A03_CC : Clocks::RP2A07_CC);
 				else
 					next = 0;
 
@@ -863,7 +861,7 @@ namespace Nes
 				state.End();
 			}
 
-			bool Bandai::DatachJointSystem::SubTransfer(cstring const string,uint length,byte* NST_RESTRICT stream)
+			bool Bandai::DatachJointSystem::SubTransfer(cstring const string,uint length,byte* NST_RESTRICT output)
 			{
 				if (length != MAX_DIGITS && length != MIN_DIGITS)
 					return false;
@@ -915,11 +913,11 @@ namespace Nes
 				}
 
 				for (uint i=0; i < 1+32; ++i)
-					*stream++ = 8;
+					*output++ = 8;
 
-				*stream++ = 0;
-				*stream++ = 8;
-				*stream++ = 0;
+				*output++ = 0;
+				*output++ = 8;
+				*output++ = 0;
 
 				uint sum = 0;
 
@@ -930,25 +928,25 @@ namespace Nes
 						if (prefixParityType[code[0]][i])
 						{
 							for (uint j=0; j < 7; ++j)
-								*stream++ = dataLeftOdd[code[i+1]][j];
+								*output++ = dataLeftOdd[code[i+1]][j];
 						}
 						else
 						{
 							for (uint j=0; j < 7; ++j)
-								*stream++ = dataLeftEven[code[i+1]][j];
+								*output++ = dataLeftEven[code[i+1]][j];
 						}
 					}
 
-					*stream++ = 8;
-					*stream++ = 0;
-					*stream++ = 8;
-					*stream++ = 0;
-					*stream++ = 8;
+					*output++ = 8;
+					*output++ = 0;
+					*output++ = 8;
+					*output++ = 0;
+					*output++ = 8;
 
 					for (uint i=7; i < 12; ++i)
 					{
 						for (uint j=0; j < 7; ++j)
-							*stream++ = dataRight[code[i]][j];
+							*output++ = dataRight[code[i]][j];
 					}
 
 					for (uint i=0; i < 12; ++i)
@@ -959,19 +957,19 @@ namespace Nes
 					for (uint i=0; i < 4; ++i)
 					{
 						for (uint j=0; j < 7; ++j)
-							*stream++ = dataLeftOdd[code[i]][j];
+							*output++ = dataLeftOdd[code[i]][j];
 					}
 
-					*stream++ = 8;
-					*stream++ = 0;
-					*stream++ = 8;
-					*stream++ = 0;
-					*stream++ = 8;
+					*output++ = 8;
+					*output++ = 0;
+					*output++ = 8;
+					*output++ = 0;
+					*output++ = 8;
 
 					for (uint i=4; i < 7; ++i)
 					{
 						for (uint j=0; j < 7; ++j)
-							*stream++ = dataRight[code[i]][j];
+							*output++ = dataRight[code[i]][j];
 					}
 
 					for (uint i=0; i < 7; ++i)
@@ -981,16 +979,16 @@ namespace Nes
 				sum = (10 - (sum % 10)) % 10;
 
 				for (uint i=0; i < 7; ++i)
-					*stream++ = dataRight[sum][i];
+					*output++ = dataRight[sum][i];
 
-				*stream++ = 0;
-				*stream++ = 8;
-				*stream++ = 0;
+				*output++ = 0;
+				*output++ = 8;
+				*output++ = 0;
 
 				for (uint i=0; i < 32; ++i)
-					*stream++ = 8;
+					*output++ = 8;
 
-				cycles = cpu.GetMasterClockCycles() + cpu.GetMasterClockCycle(1) * CC_INTERVAL;
+				cycles = cpu.GetCycles() + cpu.GetClock() * CC_INTERVAL;
 
 				return true;
 			}
@@ -1001,13 +999,13 @@ namespace Nes
 
 			NES_HOOK(Bandai::DatachJointSystem,Transfer)
 			{
-				while (cycles <= cpu.GetMasterClockCycles())
+				while (cycles <= cpu.GetCycles())
 				{
 					data = Fetch();
 
 					if (data != END)
 					{
-						cycles += cpu.GetMasterClockCycle(1) * CC_INTERVAL;
+						cycles += cpu.GetClock() * CC_INTERVAL;
 					}
 					else
 					{
@@ -1020,86 +1018,94 @@ namespace Nes
 
 			NES_PEEK(Bandai,6000_A1)
 			{
-				return eeprom->e24C01->Read();
+				return eeprom->x24C01->Read();
 			}
 
 			NES_PEEK(Bandai,6000_A2)
 			{
-				return eeprom->e24C02->Read();
+				return eeprom->x24C02->Read();
 			}
 
 			NES_PEEK(Bandai,6000_C)
 			{
-				return datach->GetData() | (eeprom->e24C01->Read() & eeprom->e24C02->Read());
+				return datach->GetData() | (eeprom->x24C01->Read() & eeprom->x24C02->Read());
 			}
 
-			NES_POKE(Bandai,8000_B)
+			NES_POKE_D(Bandai,8000_B)
 			{
-				data = (data & 0x1) << 4;
+				data = data << 4 & 0x10;
 				prg.SwapBanks<SIZE_16K,0x0000>( data | (prg.GetBank<SIZE_16K,0x0000>() & 0x0F), data | 0xF );
 			}
 
-			NES_POKE(Bandai,8008_B)
+			NES_POKE_D(Bandai,8008_B)
 			{
 				prg.SwapBank<SIZE_16K,0x0000>( (prg.GetBank<SIZE_16K,0x0000>() & 0x10) | (data & 0x0F) );
 			}
 
-			NES_POKE(Bandai,8000_C)
+			NES_POKE_AD(Bandai,8000_C)
 			{
 				if (!chr.Source().Writable())
 					chr.SwapBank<SIZE_1K>( (address & 0x7) << 10, data );
 
-				eeprom->e24C01->SetScl( data << 2 & 0x20 );
+				eeprom->x24C01->SetScl( data << 2 & 0x20 );
 			}
 
-			NES_POKE(Bandai,800A)
+			NES_POKE_D(Bandai,800A)
 			{
 				irq.Update();
 				irq.unit.count = irq.unit.latch + 1;
-				irq.EnableLine( data & 0x1 );
+				irq.Connect( data & 0x1 );
 				irq.ClearIRQ();
 			}
 
-			NES_POKE(Bandai,800B)
+			NES_POKE_D(Bandai,800B)
 			{
 				irq.Update();
 				irq.unit.latch = (irq.unit.latch & 0xFF00) | data << 0;
 			}
 
-			NES_POKE(Bandai,800C)
+			NES_POKE_D(Bandai,800C)
 			{
 				irq.Update();
 				irq.unit.latch = (irq.unit.latch & 0x00FF) | data << 8;
 			}
 
-			NES_POKE(Bandai,800D_A1)
+			NES_POKE_D(Bandai,800D_A1)
 			{
-				eeprom->e24C01->Set( data & 0x20, data & 0x40 );
+				eeprom->x24C01->Set( data & 0x20, data & 0x40 );
 			}
 
-			NES_POKE(Bandai,800D_A2)
+			NES_POKE_D(Bandai,800D_A2)
 			{
-				eeprom->e24C02->Set( data & 0x20, data & 0x40 );
+				eeprom->x24C02->Set( data & 0x20, data & 0x40 );
 			}
 
-			NES_POKE(Bandai,800D_C)
+			NES_POKE_D(Bandai,800D_C)
 			{
-				eeprom->e24C02->Set( data & 0x20, data & 0x40 );
-				eeprom->e24C01->SetSda( data & 0x40 );
+				eeprom->x24C02->Set( data & 0x20, data & 0x40 );
+				eeprom->x24C01->SetSda( data & 0x40 );
 			}
 
-			ibool Bandai::Irq::Signal()
+			bool Bandai::Irq::Clock()
 			{
 				count = (count - 1U) & 0xFFFF;
 				return count == 0;
 			}
 
-			void Bandai::VSync()
+			void Bandai::Sync(Event event,Input::Controllers*)
 			{
-				irq.VSync();
+				if (event == EVENT_END_FRAME)
+				{
+					irq.VSync();
 
-				if (datach)
-					datach->VSync();
+					if (datach)
+						datach->VSync();
+				}
+				else if (event == EVENT_POWER_OFF)
+				{
+					if (eeprom)
+						eeprom->Save();
+				}
 			}
 		}
 	}

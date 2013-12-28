@@ -55,15 +55,15 @@ namespace Nes
 		{
 			NST_COMPILE_ASSERT
 			(
-				LOAD_BATTERY   == Api::User::FILE_LOAD_BATTERY   &&
-				SAVE_BATTERY   == Api::User::FILE_SAVE_BATTERY   &&
-				SAVE_FDS       == Api::User::FILE_SAVE_FDS       &&
-				LOAD_EEPROM    == Api::User::FILE_LOAD_EEPROM    &&
-				SAVE_EEPROM    == Api::User::FILE_SAVE_EEPROM    &&
-				LOAD_TAPE      == Api::User::FILE_LOAD_TAPE      &&
-				SAVE_TAPE      == Api::User::FILE_SAVE_TAPE      &&
-				LOAD_TURBOFILE == Api::User::FILE_LOAD_TURBOFILE &&
-				SAVE_TURBOFILE == Api::User::FILE_SAVE_TURBOFILE
+				LOAD_BATTERY   - Api::User::FILE_LOAD_BATTERY   == 0 &&
+				SAVE_BATTERY   - Api::User::FILE_SAVE_BATTERY   == 0 &&
+				SAVE_FDS       - Api::User::FILE_SAVE_FDS       == 0 &&
+				LOAD_EEPROM    - Api::User::FILE_LOAD_EEPROM    == 0 &&
+				SAVE_EEPROM    - Api::User::FILE_SAVE_EEPROM    == 0 &&
+				LOAD_TAPE      - Api::User::FILE_LOAD_TAPE      == 0 &&
+				SAVE_TAPE      - Api::User::FILE_SAVE_TAPE      == 0 &&
+				LOAD_TURBOFILE - Api::User::FILE_LOAD_TURBOFILE == 0 &&
+				SAVE_TURBOFILE - Api::User::FILE_SAVE_TURBOFILE == 0
 			);
 		}
 

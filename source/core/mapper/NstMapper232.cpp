@@ -54,17 +54,17 @@ namespace Nes
 			prg.SwapBanks<SIZE_16K,0x0000>( base | (prg.GetBank<SIZE_16K,0x0000>() & 0x3), base | 0x3 );
 		}
 
-		NES_POKE(Mapper232,8000)
+		NES_POKE_D(Mapper232,8000)
 		{
 			SwapBasePrg( (data & 0x8) | (data >> 2 & 0x4) );
 		}
 
-		NES_POKE(Mapper232,8000_A)
+		NES_POKE_D(Mapper232,8000_A)
 		{
 			SwapBasePrg( data >> 1 & 0xC );
 		}
 
-		NES_POKE(Mapper232,A000)
+		NES_POKE_D(Mapper232,A000)
 		{
 			prg.SwapBank<SIZE_16K,0x0000>( (prg.GetBank<SIZE_16K,0x0000>() & 0xC) | (data & 0x3) );
 		}

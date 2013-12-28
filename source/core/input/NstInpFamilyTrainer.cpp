@@ -47,15 +47,15 @@ namespace Nes
 				state = ~0U;
 			}
 
-			void FamilyTrainer::SaveState(State::Saver& state,const byte id) const
+			void FamilyTrainer::SaveState(State::Saver& saver,const byte id) const
 			{
-				state.Begin( AsciiId<'F','T'>::R(0,0,id) ).Write8( output ).End();
+				saver.Begin( AsciiId<'F','T'>::R(0,0,id) ).Write8( output ).End();
 			}
 
-			void FamilyTrainer::LoadState(State::Loader& state,const dword id)
+			void FamilyTrainer::LoadState(State::Loader& loader,const dword id)
 			{
 				if (id == AsciiId<'F','T'>::V)
-					output = state.Read8() & 0x1E;
+					output = loader.Read8() & 0x1E;
 			}
 
 			#ifdef NST_MSVC_OPTIMIZE

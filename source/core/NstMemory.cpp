@@ -36,7 +36,7 @@ namespace Nes
 		void Memory<0,0,0>::SaveState
 		(
 			State::Saver& state,
-			const dword id,
+			const dword baseChunk,
 			const Ram* const NST_RESTRICT sources,
 			const uint numSources,
 			const uint sourceMask,
@@ -46,7 +46,7 @@ namespace Nes
 		{
 			NST_ASSERT( numSources >= 1 && numSources <= MAX_SOURCES && numPages );
 
-			state.Begin( id );
+			state.Begin( baseChunk );
 
 			{
 				byte data[MAX_SOURCES];

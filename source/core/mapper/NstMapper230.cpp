@@ -71,7 +71,7 @@ namespace Nes
 		#pragma optimize("", on)
 		#endif
 
-		NES_POKE(Mapper230,Prg)
+		NES_POKE_D(Mapper230,Prg)
 		{
 			if (romSwitch)
 			{

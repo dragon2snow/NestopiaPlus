@@ -48,6 +48,7 @@ namespace Nes
 				case ATR_TR1ROM: return BRD_TR1ROM;
 				case ATR_TSROM:  return BRD_TSROM;
 				case ATR_TVROM:  return BRD_TVROM;
+				case ATR_TNROM:  return BRD_TNROM;
 			}
 
 			return BRD_GENERIC;
@@ -128,22 +129,22 @@ namespace Nes
 		#pragma optimize("", on)
 		#endif
 
-		inline ibool Mapper4::Mmc6::IsWRamEnabled() const
+		inline bool Mapper4::Mmc6::IsWRamEnabled() const
 		{
 			return wRam & (WRAM_LO_BANK_ENABLED|WRAM_HI_BANK_ENABLED);
 		}
 
-		inline ibool Mapper4::Mmc6::IsWRamReadable(uint address) const
+		inline bool Mapper4::Mmc6::IsWRamReadable(uint address) const
 		{
 			return (wRam >> (address >> 8 & 0x2)) & 0x20;
 		}
 
-		inline ibool Mapper4::Mmc6::IsWRamWritable(uint address) const
+		inline bool Mapper4::Mmc6::IsWRamWritable(uint address) const
 		{
 			return ((wRam >> (address >> 8 & 0x2)) & 0x30) == 0x30;
 		}
 
-		NES_POKE(Mapper4,Mmc6_wRam)
+		NES_POKE_AD(Mapper4,Mmc6_wRam)
 		{
 			NST_VERIFY( mmc6.IsWRamWritable( address ) );
 
@@ -151,7 +152,7 @@ namespace Nes
 				wrk[0][address & 0x3FF] = data;
 		}
 
-		NES_PEEK(Mapper4,Mmc6_wRam)
+		NES_PEEK_A(Mapper4,Mmc6_wRam)
 		{
 			NST_VERIFY( mmc6.IsWRamEnabled() );
 
@@ -161,7 +162,7 @@ namespace Nes
 				return address >> 8;
 		}
 
-		NES_POKE(Mapper4,Mmc6_A001)
+		NES_POKE_D(Mapper4,Mmc6_A001)
 		{
 			if ((mmc6.wRam & 0x1) | (regs.ctrl0 & Mmc6::WRAM_ENABLE))
 				mmc6.wRam = data | 0x1;

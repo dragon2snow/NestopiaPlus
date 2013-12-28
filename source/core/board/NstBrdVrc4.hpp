@@ -41,21 +41,22 @@ namespace Nes
 
 				enum Type
 				{
-					TYPE_2A,
-					TYPE_A,
-					TYPE_B,
-					TYPE_Y
+					TYPE_VRC4_352889,
+					TYPE_VRC4_352396,
+					TYPE_VRC4_351406
 				};
 
-				Vrc4(Context&,Type);
-				~Vrc4();
+				Vrc4(Context&,Type,dword=CROM_MAX_256K|NMT_VERTICAL);
+				~Vrc4() {}
+
+				void SubReset(bool);
 
 			private:
 
 				struct BaseIrq
 				{
 					void Reset(bool);
-					ibool Signal();
+					bool Clock();
 
 					enum
 					{
@@ -72,7 +73,7 @@ namespace Nes
 
 			public:
 
-				struct Irq : Clock::M2<BaseIrq>
+				struct Irq : ClockUnits::M2<BaseIrq>
 				{
 					void WriteLatch0(uint);
 					void WriteLatch1(uint);
@@ -81,53 +82,46 @@ namespace Nes
 					void LoadState(State::Loader&);
 					void SaveState(State::Saver&,dword) const;
 
-					explicit Irq(Cpu& cpu)
-					: Clock::M2<BaseIrq>(cpu) {}
+					explicit Irq(Cpu& c)
+					: ClockUnits::M2<BaseIrq>(c) {}
 				};
 
 			private:
 
-				void SubReset(bool);
 				void BaseSave(State::Saver&) const;
 				void BaseLoad(State::Loader&,dword);
-				void VSync();
-				void SwapChrA(uint,uint) const;
+				void Sync(Event,Input::Controllers*);
 
-				template<uint MASK,uint SHIFT>
-				void SwapChrB(uint,uint) const;
+				template<uint OFFSET>
+				void SwapChr(uint,uint) const;
 
-				NES_DECL_POKE( 8    );
-				NES_DECL_POKE( 9    );
-				NES_DECL_POKE( B0_A );
-				NES_DECL_POKE( B0_B );
-				NES_DECL_POKE( B1_A );
-				NES_DECL_POKE( B1_B );
-				NES_DECL_POKE( B2_B );
-				NES_DECL_POKE( B3_B );
-				NES_DECL_POKE( C0_A );
-				NES_DECL_POKE( C0_B );
-				NES_DECL_POKE( C1_A );
-				NES_DECL_POKE( C1_B );
-				NES_DECL_POKE( C2_B );
-				NES_DECL_POKE( C3_B );
-				NES_DECL_POKE( D0_A );
-				NES_DECL_POKE( D0_B );
-				NES_DECL_POKE( D1_A );
-				NES_DECL_POKE( D1_B );
-				NES_DECL_POKE( D2_B );
-				NES_DECL_POKE( D3_B );
-				NES_DECL_POKE( E0_A );
-				NES_DECL_POKE( E0_B );
-				NES_DECL_POKE( E1_A );
-				NES_DECL_POKE( E1_B );
-				NES_DECL_POKE( E2_B );
-				NES_DECL_POKE( E3_B );
-				NES_DECL_POKE( F0   );
-				NES_DECL_POKE( F1   );
-				NES_DECL_POKE( F2   );
-				NES_DECL_POKE( F3   );
+				NES_DECL_POKE( 8  );
+				NES_DECL_POKE( 9  );
+				NES_DECL_POKE( B0 );
+				NES_DECL_POKE( B1 );
+				NES_DECL_POKE( B2 );
+				NES_DECL_POKE( B3 );
+				NES_DECL_POKE( C0 );
+				NES_DECL_POKE( C1 );
+				NES_DECL_POKE( C2 );
+				NES_DECL_POKE( C3 );
+				NES_DECL_POKE( D0 );
+				NES_DECL_POKE( D1 );
+				NES_DECL_POKE( D2 );
+				NES_DECL_POKE( D3 );
+				NES_DECL_POKE( E0 );
+				NES_DECL_POKE( E1 );
+				NES_DECL_POKE( E2 );
+				NES_DECL_POKE( E3 );
+				NES_DECL_POKE( F0 );
+				NES_DECL_POKE( F1 );
+				NES_DECL_POKE( F2 );
+				NES_DECL_POKE( F3 );
 
-				Irq* const irq;
+				Irq irq;
+
+			protected:
+
 				uint prgSwap;
 				const Type type;
 			};

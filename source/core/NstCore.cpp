@@ -55,7 +55,8 @@ namespace Nes
 	void qword::Multiply(qword multiplier)
 	{
 		qword multiplicand(*this);
-		hi = lo = 0;
+		lo = 0;
+		hi = 0;
 
 		while (multiplicand)
 		{
@@ -72,7 +73,7 @@ namespace Nes
 
 	void qword::Divide(qword& dividend,const qword divisor,const bool mod)
 	{
-		NST_ASSERT( divisor != 0 );
+		NST_ASSERT( bool(divisor) );
 
 		qword remainder(0);
 		qword quotient(0);

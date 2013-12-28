@@ -94,7 +94,7 @@ namespace Nestopia
 
 			const bool fixedFont = dialog.Edit(IDC_IMAGE_INFO_EDIT).FixedFont();
 
-			if (emulator.Is(Nes::Machine::CARTRIDGE))
+			if (emulator.IsCart())
 			{
 				const Nes::Cartridge::Info& info = *Nes::Cartridge(emulator).GetInfo();
 
@@ -135,11 +135,11 @@ namespace Nestopia
 
 				types[5] <<
 				(
-					info.setup.system == Nes::SYSTEM_VS   ? "VS"       :
-					info.setup.system == Nes::SYSTEM_PC10 ? "PC10"     :
-					info.setup.region == Nes::REGION_BOTH ? "NTSC/PAL" :
-					info.setup.region == Nes::REGION_PAL  ? "PAL"      :
-															"NTSC"
+					info.setup.system == Nes::Cartridge::SYSTEM_VS   ? "VS"       :
+					info.setup.system == Nes::Cartridge::SYSTEM_PC10 ? "PC10"     :
+					info.setup.region == Nes::Cartridge::REGION_BOTH ? "NTSC/PAL" :
+					info.setup.region == Nes::Cartridge::REGION_PAL  ? "PAL"      :
+                                                                       "NTSC"
 				);
 
 				types[6].Import( info.board.c_str() );
@@ -195,7 +195,7 @@ namespace Nestopia
 
 				Table::Output( text, types, sizeof(array(types)) );
 			}
-			else if (emulator.Is(Nes::Machine::DISK))
+			else if (emulator.IsFds())
 			{
 				const Nes::Fds fds(emulator);
 
@@ -235,7 +235,7 @@ namespace Nestopia
 
 				Table::Output( text, &types.front(), types.size() );
 			}
-			else if (emulator.Is(Nes::Machine::SOUND))
+			else if (emulator.IsNsf())
 			{
 				const Nes::Nsf nsf(emulator);
 

@@ -64,14 +64,13 @@ namespace Nestopia
 			}
 		}
 
-		void Language::OnEmuEvent(const Emulator::Event event)
+		void Language::OnEmuEvent(const Emulator::Event event,const Emulator::Data data)
 		{
 			switch (event)
 			{
-				case Emulator::EVENT_NETPLAY_MODE_ON:
-				case Emulator::EVENT_NETPLAY_MODE_OFF:
+				case Emulator::EVENT_NETPLAY_MODE:
 
-					menu[IDM_OPTIONS_LANGUAGE].Enable( event == Emulator::EVENT_NETPLAY_MODE_OFF );
+					menu[IDM_OPTIONS_LANGUAGE].Enable( !data );
 					break;
 			}
 		}

@@ -30,29 +30,77 @@ namespace Nestopia
 {
 	namespace Managers
 	{
-		DipSwitches::DipSwitches(Emulator& e,Window::Menu& m)
-		: Manager(e,m,this,&DipSwitches::OnEmuEvent,IDM_MACHINE_EXT_DIPSWITCHES,&DipSwitches::OnMenuCmd)
+		DipSwitches::DipSwitches(Emulator& e,const Configuration& cfg,Window::Menu& m)
+		: Manager(e,m,this,&DipSwitches::OnEmuEvent)
 		{
+			static const Window::Menu::CmdHandler::Entry<DipSwitches> commands[] =
+			{
+				{ IDM_MACHINE_EXT_DIPSWITCHES,           &DipSwitches::OnCmdDipSwitches       },
+				{ IDM_MACHINE_OPTIONS_DIPSWITCHESONLOAD, &DipSwitches::OnCmdDipSwitchesOnLoad }
+			};
+
+			menu.Commands().Add( this, commands );
+
+			static const Window::Menu::PopupHandler::Entry<DipSwitches> popups[] =
+			{
+				{ Window::Menu::PopupHandler::Pos<IDM_POS_MACHINE,IDM_POS_MACHINE_EXT>::ID, &DipSwitches::OnMenuExt }
+			};
+
+			menu.Popups().Add( this, popups );
+
+			menu[IDM_MACHINE_OPTIONS_DIPSWITCHESONLOAD].Check( cfg["machine dipswitches on load"] == Configuration::YES );
 		}
 
-		void DipSwitches::OnMenuCmd(uint)
+		void DipSwitches::Save(Configuration& cfg) const
 		{
-			Window::DipSwitches( emulator ).Open();
+			cfg["machine dipswitches on load"].YesNo() = menu[IDM_MACHINE_OPTIONS_DIPSWITCHESONLOAD].Checked();
 		}
 
-		void DipSwitches::OnEmuEvent(Emulator::Event event)
+		bool DipSwitches::Available() const
+		{
+			return
+			(
+				Nes::DipSwitches(emulator).NumDips() &&
+				!emulator.NetPlayers() &&
+				!emulator.IsLocked()
+			);
+		}
+
+		void DipSwitches::OpenDialog() const
+		{
+			if (Available())
+				Window::DipSwitches( emulator ).Open();
+		}
+
+		void DipSwitches::OnMenuExt(const Window::Menu::PopupHandler::Param& param)
+		{
+			param.menu[IDM_MACHINE_EXT_DIPSWITCHES].Enable( !param.show || Available() );
+		}
+
+		void DipSwitches::OnCmdDipSwitches(uint)
+		{
+			OpenDialog();
+		}
+
+		void DipSwitches::OnCmdDipSwitchesOnLoad(uint)
+		{
+			menu[IDM_MACHINE_OPTIONS_DIPSWITCHESONLOAD].ToggleCheck();
+		}
+
+		void DipSwitches::OnEmuEvent(const Emulator::Event event,const Emulator::Data data)
 		{
 			switch (event)
 			{
-				case Emulator::EVENT_INIT:
 				case Emulator::EVENT_LOAD:
-				case Emulator::EVENT_UNLOAD:
 
-					menu[IDM_MACHINE_EXT_DIPSWITCHES].Enable
-					(
-						event == Emulator::EVENT_LOAD &&
-						Nes::DipSwitches(emulator).NumDips()
-					);
+					if (menu[IDM_MACHINE_OPTIONS_DIPSWITCHESONLOAD].Checked())
+						OpenDialog();
+
+					break;
+
+				case Emulator::EVENT_NETPLAY_MODE:
+
+					menu[IDM_MACHINE_OPTIONS_DIPSWITCHESONLOAD].Enable( !data );
 					break;
 			}
 		}

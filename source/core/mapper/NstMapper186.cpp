@@ -36,9 +36,6 @@ namespace Nes
 
 		void Mapper186::SubReset(const bool hard)
 		{
-			if (hard)
-				std::memset( ram, 0, sizeof(ram) );
-
 			Map( 0x4200U, 0x4201U, &Mapper186::Peek_4200 );
 			Map( 0x4202U,          &Mapper186::Peek_4202 );
 			Map( 0x4203U,          &Mapper186::Peek_4200 );
@@ -52,6 +49,12 @@ namespace Nes
 
 			Map( 0x4400U, 0x4EFFU, &Mapper186::Peek_4400, &Mapper186::Poke_4400 );
 			Map( WRK_PEEK );
+
+			if (hard)
+			{
+				std::memset( ram, 0, sizeof(ram) );
+				prg.SwapBanks<SIZE_16K,0x0000>(0,0);
+			}
 		}
 
 		void Mapper186::SubLoad(State::Loader& state)
@@ -89,17 +92,17 @@ namespace Nes
 			return 0xFF;
 		}
 
-		NES_POKE(Mapper186,4200)
+		NES_POKE_D(Mapper186,4200)
 		{
 			wrk.SwapBank<SIZE_8K,0x0000>( data >> 6 );
 		}
 
-		NES_PEEK(Mapper186,4400)
+		NES_PEEK_A(Mapper186,4400)
 		{
 			return ram[address - 0x4400];
 		}
 
-		NES_POKE(Mapper186,4400)
+		NES_POKE_AD(Mapper186,4400)
 		{
 			ram[address - 0x4400] = data;
 		}

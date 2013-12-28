@@ -22,39 +22,45 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-template<typename T> template<typename Key>
-const typename Set<T>::Item* Set<T>::FindItem(Key key) const
+namespace Nestopia
 {
-	const uint pos = LowerBound<Key>( key );
-	return pos != array.Size() && array[pos] == key ? array.At(pos) : NULL;
-}
-
-template<typename T> template<typename Key>
-typename Set<T>::Item& Set<T>::LocateItem(Key key)
-{
-	const uint pos = LowerBound<Key>( key );
-	NST_ASSERT( pos != array.Size() && array[pos] == key );
-	return array[pos];
-}
-
-template<typename T> template<typename Key>
-typename Set<T>::Item& Set<T>::GetItem(Key key,bool& found)
-{
-	const uint pos = LowerBound<Key>( key );
-	found = pos != array.Size() && array[pos] == key;
-
-	if (!found)
+	namespace Collection
 	{
-		array.Insert( array.At(pos), NULL, 1 );
-		new (static_cast<void*>(array.At(pos))) Item( key );
+		template<typename T> template<typename Key>
+		const typename Set<T>::Item* Set<T>::FindItem(Key key) const
+		{
+			const uint pos = LowerBound<Key>( key );
+			return pos != array.Size() && array[pos] == key ? array.At(pos) : NULL;
+		}
+
+		template<typename T> template<typename Key>
+		typename Set<T>::Item& Set<T>::LocateItem(Key key)
+		{
+			const uint pos = LowerBound<Key>( key );
+			NST_ASSERT( pos != array.Size() && array[pos] == key );
+			return array[pos];
+		}
+
+		template<typename T> template<typename Key>
+		typename Set<T>::Item& Set<T>::GetItem(Key key,bool& found)
+		{
+			const uint pos = LowerBound<Key>( key );
+			found = pos != array.Size() && array[pos] == key;
+
+			if (!found)
+			{
+				array.Insert( array.At(pos), NULL, 1 );
+				new (static_cast<void*>(array.At(pos))) Item( key );
+			}
+
+			return array[pos];
+		}
+
+		template<typename T> template<typename Key>
+		typename Set<T>::Item& Set<T>::GetItem(Key key)
+		{
+			bool found;
+			return GetItem<Key>( key, found );
+		}
 	}
-
-	return array[pos];
-}
-
-template<typename T> template<typename Key>
-typename Set<T>::Item& Set<T>::GetItem(Key key)
-{
-	bool found;
-	return GetItem<Key>( key, found );
 }

@@ -49,14 +49,19 @@ namespace Nestopia
 
 			bool  Reset(Type);
 			Value Elapsed() const;
-			void  Wait(Value,Value);
+			bool  Wait(Value,Value);
 
 		private:
+
+			static inline bool QueryPf(Value&);
 
 			enum
 			{
 				THRESHOLD = 1,
-				CHECKPOINT = 60
+				CHECKPOINT = 60,
+				SUSPICIOUS = 3,
+				MIN_PF_FRQ = 1000,
+				MAX_PF_FRQ = 0x10000000
 			};
 
 			struct Settings

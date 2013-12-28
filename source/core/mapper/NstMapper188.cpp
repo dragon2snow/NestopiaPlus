@@ -47,20 +47,7 @@ namespace Nes
 		#pragma optimize("", on)
 		#endif
 
-		void Mapper188::BeginFrame(Input::Controllers* input)
-		{
-			if (input)
-			{
-				Input::Controllers::KaraokeStudio::callback( input->karaokeStudio );
-				mic = input->karaokeStudio.buttons & 0x7 ^ 0x3;
-			}
-			else
-			{
-				mic = 0x3;
-			}
-		}
-
-		NES_POKE(Mapper188,Prg)
+		NES_POKE_D(Mapper188,Prg)
 		{
 			prg.SwapBank<SIZE_16K,0x0000>
 			(
@@ -71,6 +58,22 @@ namespace Nes
 		NES_PEEK(Mapper188,Mic)
 		{
 			return mic;
+		}
+
+		void Mapper188::Sync(Event event,Input::Controllers* controllers)
+		{
+			if (event == EVENT_BEGIN_FRAME)
+			{
+				if (controllers)
+				{
+					Input::Controllers::KaraokeStudio::callback( controllers->karaokeStudio );
+					mic = controllers->karaokeStudio.buttons & 0x7 ^ 0x3;
+				}
+				else
+				{
+					mic = 0x3;
+				}
+			}
 		}
 	}
 }

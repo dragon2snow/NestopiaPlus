@@ -53,9 +53,9 @@ namespace Nes
 
 				enum
 				{
-					COMMAND_RESET = b00000001,
-					COMMAND_SCAN  = b00000010,
-					COMMAND_KEY   = b00000100
+					COMMAND_RESET = 0x01,
+					COMMAND_SCAN  = 0x02,
+					COMMAND_KEY   = 0x04
 				};
 
 				uint mode;

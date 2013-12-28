@@ -45,7 +45,7 @@ namespace Nestopia
 			Thread();
 			~Thread();
 
-			class Terminator
+			class Terminator : public ImplicitBool<Terminator>
 			{
 				friend class Thread;
 
@@ -55,9 +55,9 @@ namespace Nestopia
 
 			public:
 
-				operator bool () const
+				bool operator ! () const
 				{
-					return ::WaitForSingleObject( hAbort, 0 ) == WAIT_OBJECT_0;
+					return ::WaitForSingleObject( hAbort, 0 ) != WAIT_OBJECT_0;
 				}
 			};
 

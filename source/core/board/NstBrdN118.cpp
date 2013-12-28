@@ -37,7 +37,7 @@ namespace Nes
 
 			N118::N118(Context& c,Type t)
 			:
-			Mapper (c,CROM_MAX_256K|WRAM_DEFAULT),
+			Mapper (c,(CROM_MAX_256K|WRAM_DEFAULT) | (t == TYPE_NORMAL ? NMT_DEFAULT : NMT_ZERO)),
 			type   (t)
 			{}
 
@@ -53,11 +53,11 @@ namespace Nes
 				}
 			}
 
-			void N118::BaseLoad(State::Loader& state,const dword id)
+			void N118::BaseLoad(State::Loader& state,const dword baseChunk)
 			{
-				NST_VERIFY( id == (AsciiId<'M','M','8'>::V) );
+				NST_VERIFY( baseChunk == (AsciiId<'M','M','8'>::V) );
 
-				if (id == AsciiId<'N','M','8'>::V)
+				if (baseChunk == AsciiId<'N','M','8'>::V)
 				{
 					while (const dword chunk = state.Begin())
 					{
@@ -78,7 +78,7 @@ namespace Nes
 			#pragma optimize("", on)
 			#endif
 
-			NES_POKE(N118,8000)
+			NES_POKE_D(N118,8000)
 			{
 				reg = data;
 
@@ -86,7 +86,7 @@ namespace Nes
 					ppu.SetMirroring( (data & 0x40) ? Ppu::NMT_ONE : Ppu::NMT_ZERO );
 			}
 
-			NES_POKE(N118,8001)
+			NES_POKE_D(N118,8001)
 			{
 				const uint index = reg & 0x7;
 

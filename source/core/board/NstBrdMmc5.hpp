@@ -57,8 +57,17 @@ namespace Nes
 				{
 				public:
 
-					explicit Sound(Cpu&,bool=true);
-					~Sound();
+					explicit Sound(Apu&,bool=true);
+
+					void WriteCtrl(uint);
+					uint ReadCtrl() const;
+
+					void WriteSquareReg0(uint,uint);
+					void WriteSquareReg1(uint,uint);
+					void WriteSquareReg2(uint,uint);
+
+					void WritePcmReg0(uint);
+					void WritePcmReg1(uint);
 
 					void SaveState(State::Saver&,dword) const;
 					void LoadState(State::Loader&);
@@ -66,52 +75,38 @@ namespace Nes
 				protected:
 
 					void Reset();
-					void UpdateContext(uint,const byte (&w)[MAX_CHANNELS]);
-					Cycle Clock();
+					bool UpdateSettings();
+					Cycle Clock(Cycle,Cycle,Cycle);
 					Sample GetSample();
 
 				private:
 
-					NES_DECL_POKE( 5000 );
-					NES_DECL_POKE( 5002 );
-					NES_DECL_POKE( 5003 );
-					NES_DECL_POKE( 5004 );
-					NES_DECL_POKE( 5006 );
-					NES_DECL_POKE( 5007 );
-					NES_DECL_POKE( 5011 );
-					NES_DECL_POKE( 5010 );
-					NES_DECL_PEEK( 5015 );
-					NES_DECL_POKE( 5015 );
-					NES_DECL_PEEK( 5205 );
-					NES_DECL_POKE( 5205 );
-					NES_DECL_PEEK( 5206 );
-					NES_DECL_POKE( 5206 );
-					NES_DECL_PEEK( Nop  );
-
 					enum
 					{
-						NUM_SQUARES = 2
+						NUM_SQUARES = 2,
+						RP2A03_M2_QUARTER = Clocks::NTSC_CLK / (240UL * Clocks::NTSC_DIV * Clocks::RP2A03_CC) * Clocks::RP2A03_CC,
+						RP2A07_M2_QUARTER = Clocks::PAL_CLK  / (200UL * Clocks::PAL_DIV  * Clocks::RP2A07_CC) * Clocks::RP2A07_CC
 					};
 
 					class Square
 					{
 					public:
 
-						Square();
-
 						void Reset();
 
-						NST_FORCE_INLINE dword GetSample(Cycle);
+						NST_SINGLE_CALL dword GetSample(Cycle);
 
-						NST_FORCE_INLINE void WriteReg0(uint);
-						NST_FORCE_INLINE void WriteReg1(uint,uint);
-						NST_FORCE_INLINE void WriteReg2(uint,uint);
+						NST_SINGLE_CALL void WriteReg0(uint);
+						NST_SINGLE_CALL void WriteReg1(uint,uint);
+						NST_SINGLE_CALL void WriteReg2(uint,uint);
 
-						NST_FORCE_INLINE void Enable(uint);
-						NST_FORCE_INLINE void ClockQuarter();
-						NST_FORCE_INLINE void ClockHalf();
+						NST_SINGLE_CALL void Disable(uint);
+						NST_SINGLE_CALL void ClockQuarter();
+						NST_SINGLE_CALL void ClockHalf();
 
-						void UpdateContext(uint);
+						inline uint GetLengthCounter() const;
+
+						void UpdateSettings(uint);
 
 						void SaveState(State::Saver&,dword) const;
 						void LoadState(State::Loader&,dword);
@@ -123,8 +118,8 @@ namespace Nes
 						enum
 						{
 							MIN_FRQ              = 0x4,
-							REG1_WAVELENGTH_LOW  = b11111111,
-							REG2_WAVELENGTH_HIGH = b00000111,
+							REG1_WAVELENGTH_LOW  = 0xFF,
+							REG2_WAVELENGTH_HIGH = 0x07,
 							DUTY_SHIFT           = 6
 						};
 
@@ -135,27 +130,20 @@ namespace Nes
 						uint   step;
 						uint   duty;
 
-						Apu::LengthCounter lengthCounter;
-						Apu::Envelope envelope;
-
-					public:
-
-						uint GetLengthCounter() const
-						{
-							return lengthCounter.GetCount();
-						}
+						LengthCounter lengthCounter;
+						Envelope envelope;
 					};
 
 					class Pcm
 					{
 					public:
 
-						Pcm();
-
 						void Reset();
 
-						NST_FORCE_INLINE void WriteReg0(uint);
-						NST_FORCE_INLINE void WriteReg1(uint);
+						inline Sample GetSample() const;
+
+						NST_SINGLE_CALL void WriteReg0(uint);
+						NST_SINGLE_CALL void WriteReg1(uint);
 
 						void SaveState(State::Saver&,dword) const;
 						void LoadState(State::Loader&);
@@ -164,34 +152,27 @@ namespace Nes
 
 						enum
 						{
-							VOLUME = Apu::OUTPUT_MUL / 4,
+							VOLUME = OUTPUT_MUL / 4,
 							PCM_DISABLE = 0x1
 						};
 
 						ibool enabled;
 						Sample sample;
 						Sample amp;
-
-					public:
-
-						Sample GetSample()
-						{
-							return sample;
-						}
 					};
 
-					uint value[2];
-					Cpu& cpu;
-					uint halfClock;
+					uint output;
+					Cycle rate;
+					uint fixed;
+					uint atHalfClock;
+					dword quarterClock;
 					Square square[NUM_SQUARES];
 					Pcm pcm;
-					Apu::DcBlocker dcBlocker;
-					const ibool hooked;
+					DcBlocker dcBlocker;
 				};
 
-			private:
-
-				enum
+				// Needs to be public because of bug in GCC 3.x.x
+				enum FetchType
 				{
 					NT_CIRAM_0,
 					NT_CIRAM_1,
@@ -202,14 +183,16 @@ namespace Nes
 					AT_EXRAM
 				};
 
-				static uint BoardToWRam(Board,dword);
+			private:
+
+				static dword BoardToWRam(Board,dword);
 
 				void SubReset(bool);
 				void VBlank();
 				void HDummy();
 				void HActive0();
 				void HActiveX();
-				void VSync();
+				void Sync(Event,Input::Controllers*);
 
 				void BaseSave(State::Saver&) const;
 				void BaseLoad(State::Loader&,dword);
@@ -226,22 +209,55 @@ namespace Nes
 
 				inline void Update();
 
-				template<uint>
-				inline uint FetchByte(uint) const;
-
 				uint GetExtPattern(uint) const;
 				uint GetSpliterAttribute() const;
 				uint GetSpliterPattern(uint) const;
 
-				NES_DECL_HOOK( CpuUpdate );
-				NES_DECL_HOOK( PpuBgMode );
-				NES_DECL_HOOK( PpuSpMode );
+				template<FetchType>
+				inline uint FetchByte(uint) const;
 
-				NES_DECL_ACCESSOR_T( uint, NT, Nt         );
-				NES_DECL_ACCESSOR_T( uint, NT, NtExt      );
-				NES_DECL_ACCESSOR_T( uint, NT, NtSplit    );
-				NES_DECL_ACCESSOR_T( uint, NT, NtExtSplit );
-				NES_DECL_ACCESSOR_T( uint, AT, AtSplit    );
+				template<FetchType NT>
+				inline uint FetchNt(uint) const;
+
+				template<FetchType NT>
+				inline uint FetchNtExt(uint);
+
+				template<FetchType NT>
+				inline uint FetchNtSplit(uint);
+
+				template<FetchType NT>
+				inline uint FetchNtExtSplit(uint);
+
+				template<FetchType AT>
+				inline uint FetchAtSplit(uint) const;
+
+				NES_DECL_HOOK( Cpu     );
+				NES_DECL_HOOK( HActive );
+				NES_DECL_HOOK( HBlank  );
+
+				NES_DECL_ACCESSOR( Nt_CiRam_0         );
+				NES_DECL_ACCESSOR( Nt_CiRam_1         );
+				NES_DECL_ACCESSOR( Nt_ExRam           );
+				NES_DECL_ACCESSOR( Nt_Fill            );
+				NES_DECL_ACCESSOR( Nt_Zero            );
+				NES_DECL_ACCESSOR( At_Fill            );
+				NES_DECL_ACCESSOR( At_ExRam           );
+				NES_DECL_ACCESSOR( NtExt_CiRam_0      );
+				NES_DECL_ACCESSOR( NtExt_CiRam_1      );
+				NES_DECL_ACCESSOR( NtExt_ExRam        );
+				NES_DECL_ACCESSOR( NtExt_Fill         );
+				NES_DECL_ACCESSOR( NtSplit_CiRam_0    );
+				NES_DECL_ACCESSOR( NtSplit_CiRam_1    );
+				NES_DECL_ACCESSOR( NtSplit_ExRam      );
+				NES_DECL_ACCESSOR( NtSplit_Fill       );
+				NES_DECL_ACCESSOR( AtSplit_CiRam_0    );
+				NES_DECL_ACCESSOR( AtSplit_CiRam_1    );
+				NES_DECL_ACCESSOR( AtSplit_ExRam      );
+				NES_DECL_ACCESSOR( AtSplit_Fill       );
+				NES_DECL_ACCESSOR( NtExtSplit_CiRam_0 );
+				NES_DECL_ACCESSOR( NtExtSplit_CiRam_1 );
+				NES_DECL_ACCESSOR( NtExtSplit_ExRam   );
+				NES_DECL_ACCESSOR( NtExtSplit_Fill    );
 
 				NES_DECL_ACCESSOR( CRom         );
 				NES_DECL_ACCESSOR( CRomExt      );
@@ -251,6 +267,16 @@ namespace Nes
 				NES_DECL_POKE( 2001 );
 				NES_DECL_PEEK( 2001 );
 
+				NES_DECL_POKE( 5000 );
+				NES_DECL_POKE( 5002 );
+				NES_DECL_POKE( 5003 );
+				NES_DECL_POKE( 5004 );
+				NES_DECL_POKE( 5006 );
+				NES_DECL_POKE( 5007 );
+				NES_DECL_POKE( 5010 );
+				NES_DECL_POKE( 5011 );
+				NES_DECL_PEEK( 5015 );
+				NES_DECL_POKE( 5015 );
 				NES_DECL_POKE( 5100 );
 				NES_DECL_POKE( 5101 );
 				NES_DECL_POKE( 5102 );
@@ -270,6 +296,10 @@ namespace Nes
 				NES_DECL_POKE( 5203 );
 				NES_DECL_PEEK( 5204 );
 				NES_DECL_POKE( 5204 );
+				NES_DECL_PEEK( 5205 );
+				NES_DECL_POKE( 5205 );
+				NES_DECL_PEEK( 5206 );
+				NES_DECL_POKE( 5206 );
 				NES_DECL_PEEK( 5C00 );
 				NES_DECL_POKE( 5C00 );
 				NES_DECL_PEEK( 6000 );
@@ -290,10 +320,6 @@ namespace Nes
 					Cycle cycles;
 					Phase phase;
 					uint scanline;
-
-					static const dword vSync[2];
-					static const dword hDummy[2][2];
-					static const dword hSync[2];
 				};
 
 				struct Irq
@@ -319,40 +345,41 @@ namespace Nes
 
 					enum
 					{
-						PRG_MODE            = b00000011,
-						PRG_MODE_32K        = b00000000,
-						PRG_MODE_16K        = b00000001,
-						PRG_MODE_16K_8K     = b00000010,
-						PRG_MODE_8K         = b00000011,
-						PRG_ROM_SELECT      = b10000000,
-						PRG_ROM_BANK        = b01111111,
-						PRG_RAM_BANK        = b00000111,
-						CHR_MODE            = b00000011,
-						CHR_MODE_8K         = b00000000,
-						CHR_MODE_4K         = b00000001,
-						CHR_MODE_2K         = b00000010,
-						CHR_MODE_1K         = b00000011,
-						CHR_HIGH            = b00000011,
-						WRK_WRITABLE_A      = b00000010,
-						WRK_WRITABLE_B      = b00000001,
-						NMT_MODE            = b00000011,
-						NMT_CIRAM_0         = b00000000,
-						NMT_CIRAM_1         = b00000001,
-						NMT_EXRAM           = b00000010,
-						NMT_FILL            = b00000011,
-						EXRAM_MODE          = b00000011,
-						EXRAM_MODE_PPU_NT   = b00000000,
-						EXRAM_MODE_PPU_EXT  = b00000001,
-						EXRAM_MODE_CPU_RAM  = b00000010,
-						EXRAM_MODE_CPU_ROM  = b00000011,
-						EXRAM_EXT_CHR_BANK  = b00111111,
-						PPU_CTRL0_SP8X16    = b00100000,
-						PPU_CTRL1_ENABLED   = b00011000
+						PRG_MODE            = 0x03,
+						PRG_MODE_32K        = 0x00,
+						PRG_MODE_16K        = 0x01,
+						PRG_MODE_16K_8K     = 0x02,
+						PRG_MODE_8K         = 0x03,
+						PRG_ROM_SELECT      = 0x80,
+						PRG_ROM_BANK        = 0x7F,
+						PRG_RAM_BANK        = 0x07,
+						CHR_MODE            = 0x03,
+						CHR_MODE_8K         = 0x00,
+						CHR_MODE_4K         = 0x01,
+						CHR_MODE_2K         = 0x02,
+						CHR_MODE_1K         = 0x03,
+						CHR_HIGH            = 0x03,
+						WRK_WRITABLE_A      = 0x02,
+						WRK_WRITABLE_B      = 0x01,
+						NMT_MODE            = 0x03,
+						NMT_CIRAM_0         = 0x00,
+						NMT_CIRAM_1         = 0x01,
+						NMT_EXRAM           = 0x02,
+						NMT_FILL            = 0x03,
+						EXRAM_MODE          = 0x03,
+						EXRAM_MODE_PPU_NT   = 0x00,
+						EXRAM_MODE_PPU_EXT  = 0x01,
+						EXRAM_MODE_CPU_RAM  = 0x02,
+						EXRAM_MODE_CPU_ROM  = 0x03,
+						EXRAM_EXT_CHR_BANK  = 0x3F,
+						PPU_CTRL0_SP8X16    = 0x20,
+						PPU_CTRL1_ENABLED   = 0x18
 					};
 
 					uint prgMode;
 					uint chrMode;
 					uint exRamMode;
+					uint mul[2];
 				};
 
 				struct Banks
@@ -401,7 +428,7 @@ namespace Nes
 							INVALID = 8
 						};
 
-						Wrk(dword);
+						explicit Wrk(dword);
 
 						inline uint operator [] (uint) const;
 					};
@@ -433,9 +460,9 @@ namespace Nes
 
 					enum
 					{
-						CTRL_START      = b00011111,
-						CTRL_RIGHT_SIDE = b01000000,
-						CTRL_ENABLED    = b10000000
+						CTRL_START      = 0x1F,
+						CTRL_RIGHT_SIDE = 0x40,
+						CTRL_ENABLED    = 0x80
 					};
 
 					uint ctrl;
@@ -465,9 +492,6 @@ namespace Nes
 				Io::Port p2001;
 				ExRam exRam;
 				Sound sound;
-
-				static const Io::Accessor::Type<Mmc5>::Function chrMethods[8];
-				static const Io::Accessor::Type<Mmc5>::Function nmtMethods[8][4][2];
 			};
 		}
 	}

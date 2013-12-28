@@ -23,6 +23,7 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 
 #include "../NstMapper.hpp"
+#include "../NstDipSwitches.hpp"
 #include "NstMapper060.hpp"
 
 namespace Nes
@@ -33,31 +34,136 @@ namespace Nes
 		#pragma optimize("s", on)
 		#endif
 
+		class Mapper60::CartSwitches : public DipSwitches
+		{
+			uint mode;
+			const Attribute type;
+
+		public:
+
+			explicit CartSwitches(const Context& c)
+			: mode(0), type(static_cast<Attribute>(c.attribute)) {}
+
+			static bool CanCreate(const Context& c)
+			{
+				switch (c.attribute)
+				{
+					case ATR_STD:
+					case ATR_6_IN_1:
+					case ATR_65_IN_1:
+					case ATR_55_IN_1:
+					case ATR_54_IN_1:
+					case ATR_12_IN_1:
+					case ATR_28_IN_1:
+
+						return true;
+				}
+
+				return false;
+			}
+
+			void SetMode(uint value)
+			{
+				mode = value;
+			}
+
+			uint GetMode() const
+			{
+				return mode;
+			}
+
+		private:
+
+			uint GetValue(uint) const
+			{
+				return mode;
+			}
+
+			void SetValue(uint,uint value)
+			{
+				mode = value;
+			}
+
+			uint NumDips() const
+			{
+				return 1;
+			}
+
+			uint NumValues(uint) const
+			{
+				return 4;
+			}
+
+			cstring GetDipName(uint) const
+			{
+				return "Mode";
+			}
+
+			cstring GetValueName(uint,uint i) const
+			{
+				NST_COMPILE_ASSERT
+				(
+					ATR_STD     == 0 &&
+					ATR_6_IN_1  == 1 &&
+					ATR_65_IN_1 == 2 &&
+					ATR_55_IN_1 == 3 &&
+					ATR_54_IN_1 == 4 &&
+					ATR_12_IN_1 == 5 &&
+					ATR_28_IN_1 == 6
+				);
+
+				static cstring const names[7][4] =
+				{
+					{ "1",       "2",       "3",       "4"        },
+					{ "6-in-1",  "15-in-1", "35-in-1", "43-in-1"  },
+					{ "65-in-1", "75-in-1", "85-in-1", "95-in-1"  },
+					{ "55-in-1", "65-in-1", "75-in-1", "85-in-1"  },
+					{ "54-in-1", "64-in-1", "74-in-1", "84-in-1"  },
+					{ "12-in-1", "66-in-1", "77-in-1", "88-in-1"  },
+					{ "28-in-1", "46-in-1", "63-in-1", "118-in-1" }
+				};
+
+				return names[type][i];
+			}
+		};
+
 		Mapper60::Mapper60(Context& c)
 		:
-		Mapper       (c,PROM_MAX_128K|CROM_MAX_64K|WRAM_DEFAULT),
-		menu         (0),
-		resetTrigger (c.attribute == ATR_RESET_TRIGGER)
+		Mapper       (c,(PROM_MAX_128K|CROM_MAX_64K|WRAM_DEFAULT) | (CartSwitches::CanCreate(c) ? NMT_VERTICAL : NMT_DEFAULT)),
+		cartSwitches (CartSwitches::CanCreate(c) ? new CartSwitches(c) : NULL)
 		{}
+
+		Mapper60::~Mapper60()
+		{
+			delete cartSwitches;
+		}
+
+		Mapper60::Device Mapper60::QueryDevice(DeviceType type)
+		{
+			if (type == DEVICE_DIP_SWITCHES)
+				return cartSwitches;
+			else
+				return Mapper::QueryDevice( type );
+		}
 
 		void Mapper60::SubReset(const bool hard)
 		{
-			latch = 0;
-
-			if (resetTrigger)
+			if (cartSwitches)
 			{
-				if (hard)
-					menu = 0;
-				else
-					menu = (menu + 1) & 0x3;
+				Map( 0x8000U, 0xFFFFU, &Mapper60::Peek_Prg, &Mapper60::Poke_Prg );
 
-				chr.SwapBank<SIZE_8K,0x0000>( menu );
-				prg.SwapBanks<SIZE_16K,0x0000>( menu, menu );
+				if (hard)
+					NES_DO_POKE(Prg,0x8000,0x00);
 			}
 			else
 			{
-				Map( 0x8000U, 0xFFFFU, &Mapper60::Peek_Prg, &Mapper60::Poke_Prg );
-				NES_DO_POKE(Prg,0x8000,0x00);
+				if (hard)
+					resetSwitch = 0;
+				else
+					resetSwitch = (resetSwitch + 1) & 0x3;
+
+				chr.SwapBank<SIZE_8K,0x0000>( resetSwitch );
+				prg.SwapBanks<SIZE_16K,0x0000>( resetSwitch, resetSwitch );
 			}
 		}
 
@@ -67,9 +173,17 @@ namespace Nes
 			{
 				if (chunk == AsciiId<'R','E','G'>::V)
 				{
-					latch = state.Read8();
-					menu = latch & 0x3;
-					latch = latch << 1 & 0x100;
+					const uint data = state.Read8();
+
+					if (cartSwitches)
+					{
+						cartMode = data << 1 & 0x100;
+						cartSwitches->SetMode( data & 0x3 );
+					}
+					else
+					{
+						resetSwitch = data & 0x3;
+					}
 				}
 
 				state.End();
@@ -78,21 +192,21 @@ namespace Nes
 
 		void Mapper60::SubSave(State::Saver& state) const
 		{
-			state.Begin( AsciiId<'R','E','G'>::V ).Write8( latch >> 1 | menu ).End();
+			state.Begin( AsciiId<'R','E','G'>::V ).Write8( cartSwitches ? (cartSwitches->GetMode() | cartMode >> 1) : resetSwitch ).End();
 		}
 
 		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
-		NES_PEEK(Mapper60,Prg)
+		NES_PEEK_A(Mapper60,Prg)
 		{
-			return !latch ? prg.Peek( address - 0x8000 ) : menu;
+			return !cartMode ? prg.Peek( address - 0x8000 ) : cartSwitches->GetMode();
 		}
 
-		NES_POKE(Mapper60,Prg)
+		NES_POKE_A(Mapper60,Prg)
 		{
-			latch = address & 0x100;
+			cartMode = address & 0x100;
 			ppu.SetMirroring( (address & 0x8) ? Ppu::NMT_HORIZONTAL : Ppu::NMT_VERTICAL );
 			prg.SwapBanks<SIZE_16K,0x0000>( (address >> 4) & ~(~address >> 7 & 0x1), (address >> 4) | (~address >> 7 & 0x1) );
 			chr.SwapBank<SIZE_8K,0x0000>( address );

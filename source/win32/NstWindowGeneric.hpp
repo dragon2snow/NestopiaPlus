@@ -240,12 +240,12 @@ namespace Nestopia
 				uint operator >> (long&) const;
 				uint operator >> (ulong&) const;
 
-				uint operator >> ( schar&  i ) const { long  t; const uint r = operator >> (t); i = ( schar  ) t; return r; }
-				uint operator >> ( uchar&  i ) const { ulong t; const uint r = operator >> (t); i = ( uchar  ) t; return r; }
-				uint operator >> ( short&  i ) const { long  t; const uint r = operator >> (t); i = ( short  ) t; return r; }
-				uint operator >> ( ushort& i ) const { ulong t; const uint r = operator >> (t); i = ( ushort ) t; return r; }
-				uint operator >> ( int&    i ) const { long  t; const uint r = operator >> (t); i = ( int    ) t; return r; }
-				uint operator >> ( uint&   i ) const { ulong t; const uint r = operator >> (t); i = ( uint   ) t; return r; }
+				uint operator >> ( schar&  i ) const { long  t; uint r = operator >> (t); i = schar  (t); return r; }
+				uint operator >> ( uchar&  i ) const { ulong t; uint r = operator >> (t); i = uchar  (t); return r; }
+				uint operator >> ( short&  i ) const { long  t; uint r = operator >> (t); i = short  (t); return r; }
+				uint operator >> ( ushort& i ) const { ulong t; uint r = operator >> (t); i = ushort (t); return r; }
+				uint operator >> ( int&    i ) const { long  t; uint r = operator >> (t); i = int    (t); return r; }
+				uint operator >> ( uint&   i ) const { ulong t; uint r = operator >> (t); i = uint   (t); return r; }
 
 				void Clear() const;
 			};

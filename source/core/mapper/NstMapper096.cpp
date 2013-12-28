@@ -33,7 +33,7 @@ namespace Nes
 		#pragma optimize("s", on)
 		#endif
 
-		void Mapper96::SubReset(bool)
+		void Mapper96::SubReset(const bool hard)
 		{
 			nmt.SetAccessor( 0, 0, this, &Mapper96::Access_Name_2000 );
 			nmt.SetAccessor( 1, 0, this, &Mapper96::Access_Name_2400 );
@@ -46,6 +46,9 @@ namespace Nes
 
 			for (uint i=0x2006; i < 0x4000; i += 0x8)
 				cpu.Map( i ).Set( this, &Mapper96::Peek_2006, &Mapper96::Poke_2006 );
+
+			if (hard)
+				NES_DO_POKE(Prg,0x8000,0x00);
 		}
 
 		#ifdef NST_MSVC_OPTIMIZE
@@ -81,22 +84,22 @@ namespace Nes
 			return nmt[3][address];
 		}
 
-		NES_PEEK(Mapper96,2006)
+		NES_PEEK_A(Mapper96,2006)
 		{
 			return p2006.Peek( address );
 		}
 
-		NES_POKE(Mapper96,2006)
+		NES_POKE_D(Mapper96,2006)
 		{
 			p2006.Poke( 0x2006, data );
 
-			address = ppu.GetVRamAddress();
+			const uint address = ppu.GetVRamAddress();
 
 			if ((address & 0x3000) == 0x2000)
 				UpdateLatch( address & 0x0300 );
 		}
 
-		NES_POKE(Mapper96,Prg)
+		NES_POKE_D(Mapper96,Prg)
 		{
 			ppu.Update();
 			prg.SwapBank<SIZE_32K,0x0000>( data );

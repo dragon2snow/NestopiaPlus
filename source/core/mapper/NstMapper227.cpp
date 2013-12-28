@@ -35,15 +35,15 @@ namespace Nes
 
 		void Mapper227::SubReset(bool)
 		{
-			NES_DO_POKE(Prg,0x8000,0x00);
 			Map( 0x8000U, 0xFFFFU, &Mapper227::Poke_Prg );
+			NES_DO_POKE(Prg,0x8000,0x00);
 		}
 
 		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
-		NES_POKE(Mapper227,Prg)
+		NES_POKE_A(Mapper227,Prg)
 		{
 			const uint bank = (address >> 4 & 0x10) | (address >> 3 & 0x0F);
 

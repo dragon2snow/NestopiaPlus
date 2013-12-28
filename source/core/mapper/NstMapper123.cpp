@@ -88,12 +88,12 @@ namespace Nes
 				Mmc3::UpdatePrg();
 		}
 
-		NES_PEEK(Mapper123,5000)
+		NES_PEEK_A(Mapper123,5000)
 		{
 			return (address >> 8 & 0xFE) | (((~address & 0x1) & (address >> 8 & 0x1)) ^ 0x1);
 		}
 
-		NES_POKE(Mapper123,5800)
+		NES_POKE_AD(Mapper123,5800)
 		{
 			address &= 0x1;
 
@@ -115,7 +115,7 @@ namespace Nes
 			}
 		}
 
-		NES_POKE(Mapper123,8000)
+		NES_POKE_AD(Mapper123,8000)
 		{
 			static const byte security[8] = {0,3,1,5,6,7,2,4};
 			Mmc3::NES_DO_POKE(8000,address,(data & 0xC0) | security[data & 0x07]);

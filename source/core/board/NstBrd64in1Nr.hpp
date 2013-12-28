@@ -40,7 +40,7 @@ namespace Nes
 			public:
 
 				explicit Bmc64In1Nr(Context& c)
-				: Mapper(c,PROM_MAX_1024K) {}
+				: Mapper(c,PROM_MAX_1024K|NMT_VERTICAL) {}
 
 			private:
 

@@ -63,12 +63,12 @@ namespace Nes
 		#pragma optimize("", on)
 		#endif
 
-		NES_POKE(Mapper170,7000)
+		NES_POKE_D(Mapper170,7000)
 		{
 			reg = data << 1 & 0x80;
 		}
 
-		NES_PEEK(Mapper170,7001)
+		NES_PEEK_A(Mapper170,7001)
 		{
 			return reg | (address >> 8 & 0x7F);
 		}

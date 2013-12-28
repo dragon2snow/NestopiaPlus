@@ -181,7 +181,7 @@ namespace Nestopia
 			(
 				WM_SETICON,
 				ICON_SMALL,
-				(HICON) Resource::Icon(Application::Instance::GetIconStyle() == Application::Instance::ICONSTYLE_NES ? IDI_PAD : IDI_PAD_J)
+				static_cast<HICON>(Resource::Icon(Application::Instance::GetIconStyle() == Application::Instance::ICONSTYLE_NES ? IDI_PAD : IDI_PAD_J))
 			);
 
 			margin = dialog.Coordinates().Corner() - list.GetWindow().Coordinates().Corner();
@@ -298,9 +298,9 @@ namespace Nestopia
 						{
 							Path path( entry->GetPath(list.GetStrings()), entry->GetFile(list.GetStrings()) );
 
-							if (path.Length() > _MAX_PATH)
+							if (path.Length() > MAX_PATH)
 							{
-								path.ShrinkTo( _MAX_PATH-3 );
+								path.ShrinkTo( MAX_PATH-3 );
 								path << "...";
 							}
 
@@ -339,6 +339,7 @@ namespace Nestopia
 
 		void Launcher::OnTreeSelectionChanging(const NMHDR& nmhdr)
 		{
+			Application::Instance::Events::Signal( Application::Instance::EVENT_SYSTEM_BUSY );
 			list.Draw( tree.GetType(reinterpret_cast<const NMTREEVIEW&>(nmhdr).itemNew.hItem) );
 		}
 

@@ -36,17 +36,13 @@ namespace Nes
 			#pragma optimize("s", on)
 			#endif
 
-			Vrc4::Vrc4(Context& c,const Type t)
+			Vrc4::Vrc4(Context& c,const Type t,dword settings)
 			:
-			Mapper (c,CROM_MAX_256K),
-			irq    (t != TYPE_A ? new Irq(c.cpu) : NULL),
-			type   (t)
+			Mapper  (c,settings),
+			irq     (c.cpu),
+			prgSwap (0),
+			type    (t)
 			{}
-
-			Vrc4::~Vrc4()
-			{
-				delete irq;
-			}
 
 			void Vrc4::BaseIrq::Reset(bool)
 			{
@@ -58,141 +54,125 @@ namespace Nes
 
 			void Vrc4::SubReset(const bool hard)
 			{
-				if (type == TYPE_A)
+				if (hard)
+					prgSwap = 0;
+
+				irq.Reset( hard, hard ? false : irq.Connected() );
+
+				Map( 0x8000U, 0x8FFFU, &Vrc4::Poke_8 );
+				Map( 0xA000U, 0xAFFFU, PRG_SWAP_8K_1 );
+
+				switch (type)
 				{
-					Map( 0x8000U, 0x8FFFU, PRG_SWAP_8K_0 );
-					Map( 0x9000U, 0x9FFFU, NMT_SWAP_VH01 );
-					Map( 0xA000U, 0xAFFFU, PRG_SWAP_8K_1 );
+					case TYPE_VRC4_352889:
 
-					for (uint i=0x0000; i < 0x1000; i += 0x4)
-					{
-						Map( 0xB000 + i, &Vrc4::Poke_B0_A );
-						Map( 0xB001 + i, &Vrc4::Poke_B1_A );
-						Map( 0xC000 + i, &Vrc4::Poke_C0_A );
-						Map( 0xC001 + i, &Vrc4::Poke_C1_A );
-						Map( 0xD000 + i, &Vrc4::Poke_D0_A );
-						Map( 0xD001 + i, &Vrc4::Poke_D1_A );
-						Map( 0xE000 + i, &Vrc4::Poke_E0_A );
-						Map( 0xE001 + i, &Vrc4::Poke_E1_A );
-					}
-				}
-				else
-				{
-					if (hard)
-						prgSwap = 0;
-
-					irq->Reset( hard, hard ? false : irq->IsLineEnabled() );
-
-					Map( 0x8000U, 0x8FFFU, &Vrc4::Poke_8 );
-					Map( 0xA000U, 0xAFFFU, PRG_SWAP_8K_1 );
-
-					if (type == TYPE_2A)
-					{
 						for (dword i=0x9000; i <= 0xFFFF; ++i)
 						{
-							switch ((i | (i >> 5 & 0xF)) & 0xF006)
+							switch ((((i >> 1) | (i >> 6)) & 0x3) | (i & 0xF000))
 							{
 								case 0x9000:
-								case 0x9002: Map( i, NMT_SWAP_VH01    ); break;
-								case 0x9004:
-								case 0x9006: Map( i, &Vrc4::Poke_9    ); break;
-								case 0xB000: Map( i, &Vrc4::Poke_B0_B ); break;
-								case 0xB002: Map( i, &Vrc4::Poke_B1_B ); break;
-								case 0xB004: Map( i, &Vrc4::Poke_B2_B ); break;
-								case 0xB006: Map( i, &Vrc4::Poke_B3_B ); break;
-								case 0xC000: Map( i, &Vrc4::Poke_C0_B ); break;
-								case 0xC002: Map( i, &Vrc4::Poke_C1_B ); break;
-								case 0xC004: Map( i, &Vrc4::Poke_C2_B ); break;
-								case 0xC006: Map( i, &Vrc4::Poke_C3_B ); break;
-								case 0xD000: Map( i, &Vrc4::Poke_D0_B ); break;
-								case 0xD002: Map( i, &Vrc4::Poke_D1_B ); break;
-								case 0xD004: Map( i, &Vrc4::Poke_D2_B ); break;
-								case 0xD006: Map( i, &Vrc4::Poke_D3_B ); break;
-								case 0xE000: Map( i, &Vrc4::Poke_E0_B ); break;
-								case 0xE002: Map( i, &Vrc4::Poke_E1_B ); break;
-								case 0xE004: Map( i, &Vrc4::Poke_E2_B ); break;
-								case 0xE006: Map( i, &Vrc4::Poke_E3_B ); break;
-								case 0xF000: Map( i, &Vrc4::Poke_F0   ); break;
-								case 0xF002: Map( i, &Vrc4::Poke_F1   ); break;
-								case 0xF004: Map( i, &Vrc4::Poke_F2   ); break;
-								case 0xF006: Map( i, &Vrc4::Poke_F3   ); break;
-							}
-						}
-					}
-					else if (type == TYPE_B)
-					{
-						for (dword i=0x9000; i <= 0xFFFF; ++i)
-						{
-							switch (((i | (i >> 2) | (i >> 4) | (i >> 6)) & 0x3) | (i & 0xF000))
-							{
-								case 0x9000:
-								case 0x9001: Map( i, NMT_SWAP_VH01    ); break;
+								case 0x9001: Map( i, NMT_SWAP_VH01  ); break;
 								case 0x9002:
-								case 0x9003: Map( i, &Vrc4::Poke_9    ); break;
-								case 0xB000: Map( i, &Vrc4::Poke_B0_B ); break;
-								case 0xB001: Map( i, &Vrc4::Poke_B1_B ); break;
-								case 0xB002: Map( i, &Vrc4::Poke_B2_B ); break;
-								case 0xB003: Map( i, &Vrc4::Poke_B3_B ); break;
-								case 0xC000: Map( i, &Vrc4::Poke_C0_B ); break;
-								case 0xC001: Map( i, &Vrc4::Poke_C1_B ); break;
-								case 0xC002: Map( i, &Vrc4::Poke_C2_B ); break;
-								case 0xC003: Map( i, &Vrc4::Poke_C3_B ); break;
-								case 0xD000: Map( i, &Vrc4::Poke_D0_B ); break;
-								case 0xD001: Map( i, &Vrc4::Poke_D1_B ); break;
-								case 0xD002: Map( i, &Vrc4::Poke_D2_B ); break;
-								case 0xD003: Map( i, &Vrc4::Poke_D3_B ); break;
-								case 0xE000: Map( i, &Vrc4::Poke_E0_B ); break;
-								case 0xE001: Map( i, &Vrc4::Poke_E1_B ); break;
-								case 0xE002: Map( i, &Vrc4::Poke_E2_B ); break;
-								case 0xE003: Map( i, &Vrc4::Poke_E3_B ); break;
-								case 0xF000: Map( i, &Vrc4::Poke_F0   ); break;
-								case 0xF001: Map( i, &Vrc4::Poke_F1   ); break;
-								case 0xF002: Map( i, &Vrc4::Poke_F2   ); break;
-								case 0xF003: Map( i, &Vrc4::Poke_F3   ); break;
+								case 0x9003: Map( i, &Vrc4::Poke_9  ); break;
+								case 0xB000: Map( i, &Vrc4::Poke_B0 ); break;
+								case 0xB001: Map( i, &Vrc4::Poke_B1 ); break;
+								case 0xB002: Map( i, &Vrc4::Poke_B2 ); break;
+								case 0xB003: Map( i, &Vrc4::Poke_B3 ); break;
+								case 0xC000: Map( i, &Vrc4::Poke_C0 ); break;
+								case 0xC001: Map( i, &Vrc4::Poke_C1 ); break;
+								case 0xC002: Map( i, &Vrc4::Poke_C2 ); break;
+								case 0xC003: Map( i, &Vrc4::Poke_C3 ); break;
+								case 0xD000: Map( i, &Vrc4::Poke_D0 ); break;
+								case 0xD001: Map( i, &Vrc4::Poke_D1 ); break;
+								case 0xD002: Map( i, &Vrc4::Poke_D2 ); break;
+								case 0xD003: Map( i, &Vrc4::Poke_D3 ); break;
+								case 0xE000: Map( i, &Vrc4::Poke_E0 ); break;
+								case 0xE001: Map( i, &Vrc4::Poke_E1 ); break;
+								case 0xE002: Map( i, &Vrc4::Poke_E2 ); break;
+								case 0xE003: Map( i, &Vrc4::Poke_E3 ); break;
+								case 0xF000: Map( i, &Vrc4::Poke_F0 ); break;
+								case 0xF001: Map( i, &Vrc4::Poke_F1 ); break;
+								case 0xF002: Map( i, &Vrc4::Poke_F2 ); break;
+								case 0xF003: Map( i, &Vrc4::Poke_F3 ); break;
 							}
 						}
-					}
-					else
-					{
+						break;
+
+					case TYPE_VRC4_352396:
+
+						for (dword i=0x9000; i <= 0xFFFF; ++i)
+						{
+							switch ((((i >> 0) | (i >> 2) | (i >> 4) | (i >> 6)) & 0x3) | (i & 0xF000))
+							{
+								case 0x9000:
+								case 0x9001: Map( i, NMT_SWAP_VH01  ); break;
+								case 0x9002:
+								case 0x9003: Map( i, &Vrc4::Poke_9  ); break;
+								case 0xB000: Map( i, &Vrc4::Poke_B0 ); break;
+								case 0xB001: Map( i, &Vrc4::Poke_B1 ); break;
+								case 0xB002: Map( i, &Vrc4::Poke_B2 ); break;
+								case 0xB003: Map( i, &Vrc4::Poke_B3 ); break;
+								case 0xC000: Map( i, &Vrc4::Poke_C0 ); break;
+								case 0xC001: Map( i, &Vrc4::Poke_C1 ); break;
+								case 0xC002: Map( i, &Vrc4::Poke_C2 ); break;
+								case 0xC003: Map( i, &Vrc4::Poke_C3 ); break;
+								case 0xD000: Map( i, &Vrc4::Poke_D0 ); break;
+								case 0xD001: Map( i, &Vrc4::Poke_D1 ); break;
+								case 0xD002: Map( i, &Vrc4::Poke_D2 ); break;
+								case 0xD003: Map( i, &Vrc4::Poke_D3 ); break;
+								case 0xE000: Map( i, &Vrc4::Poke_E0 ); break;
+								case 0xE001: Map( i, &Vrc4::Poke_E1 ); break;
+								case 0xE002: Map( i, &Vrc4::Poke_E2 ); break;
+								case 0xE003: Map( i, &Vrc4::Poke_E3 ); break;
+								case 0xF000: Map( i, &Vrc4::Poke_F0 ); break;
+								case 0xF001: Map( i, &Vrc4::Poke_F1 ); break;
+								case 0xF002: Map( i, &Vrc4::Poke_F2 ); break;
+								case 0xF003: Map( i, &Vrc4::Poke_F3 ); break;
+							}
+						}
+						break;
+
+					case TYPE_VRC4_351406:
+
 						for (dword i=0x9000; i <= 0xFFFF; ++i)
 						{
 							switch ((i | (i >> 2 & 0x3)) & 0xF003)
 							{
 								case 0x9000:
-								case 0x9002: Map( i, NMT_SWAP_VH01    ); break;
+								case 0x9002: Map( i, NMT_SWAP_VH01  ); break;
 								case 0x9001:
-								case 0x9003: Map( i, &Vrc4::Poke_9    ); break;
-								case 0xB000: Map( i, &Vrc4::Poke_B0_B ); break;
-								case 0xB001: Map( i, &Vrc4::Poke_B2_B ); break;
-								case 0xB002: Map( i, &Vrc4::Poke_B1_B ); break;
-								case 0xB003: Map( i, &Vrc4::Poke_B3_B ); break;
-								case 0xC000: Map( i, &Vrc4::Poke_C0_B ); break;
-								case 0xC001: Map( i, &Vrc4::Poke_C2_B ); break;
-								case 0xC002: Map( i, &Vrc4::Poke_C1_B ); break;
-								case 0xC003: Map( i, &Vrc4::Poke_C3_B ); break;
-								case 0xD000: Map( i, &Vrc4::Poke_D0_B ); break;
-								case 0xD001: Map( i, &Vrc4::Poke_D2_B ); break;
-								case 0xD002: Map( i, &Vrc4::Poke_D1_B ); break;
-								case 0xD003: Map( i, &Vrc4::Poke_D3_B ); break;
-								case 0xE000: Map( i, &Vrc4::Poke_E0_B ); break;
-								case 0xE001: Map( i, &Vrc4::Poke_E2_B ); break;
-								case 0xE002: Map( i, &Vrc4::Poke_E1_B ); break;
-								case 0xE003: Map( i, &Vrc4::Poke_E3_B ); break;
-								case 0xF000: Map( i, &Vrc4::Poke_F0   ); break;
-								case 0xF001: Map( i, &Vrc4::Poke_F2   ); break;
-								case 0xF002: Map( i, &Vrc4::Poke_F1   ); break;
-								case 0xF003: Map( i, &Vrc4::Poke_F3   ); break;
+								case 0x9003: Map( i, &Vrc4::Poke_9  ); break;
+								case 0xB000: Map( i, &Vrc4::Poke_B0 ); break;
+								case 0xB001: Map( i, &Vrc4::Poke_B2 ); break;
+								case 0xB002: Map( i, &Vrc4::Poke_B1 ); break;
+								case 0xB003: Map( i, &Vrc4::Poke_B3 ); break;
+								case 0xC000: Map( i, &Vrc4::Poke_C0 ); break;
+								case 0xC001: Map( i, &Vrc4::Poke_C2 ); break;
+								case 0xC002: Map( i, &Vrc4::Poke_C1 ); break;
+								case 0xC003: Map( i, &Vrc4::Poke_C3 ); break;
+								case 0xD000: Map( i, &Vrc4::Poke_D0 ); break;
+								case 0xD001: Map( i, &Vrc4::Poke_D2 ); break;
+								case 0xD002: Map( i, &Vrc4::Poke_D1 ); break;
+								case 0xD003: Map( i, &Vrc4::Poke_D3 ); break;
+								case 0xE000: Map( i, &Vrc4::Poke_E0 ); break;
+								case 0xE001: Map( i, &Vrc4::Poke_E2 ); break;
+								case 0xE002: Map( i, &Vrc4::Poke_E1 ); break;
+								case 0xE003: Map( i, &Vrc4::Poke_E3 ); break;
+								case 0xF000: Map( i, &Vrc4::Poke_F0 ); break;
+								case 0xF001: Map( i, &Vrc4::Poke_F2 ); break;
+								case 0xF002: Map( i, &Vrc4::Poke_F1 ); break;
+								case 0xF003: Map( i, &Vrc4::Poke_F3 ); break;
 							}
 						}
-					}
+						break;
 				}
 			}
 
-			void Vrc4::BaseLoad(State::Loader& state,const dword id)
+			void Vrc4::BaseLoad(State::Loader& state,const dword baseChunk)
 			{
-				NST_VERIFY( id == (AsciiId<'V','R','4'>::V) );
+				NST_VERIFY( baseChunk == (AsciiId<'V','R','4'>::V) );
 
-				if (id == AsciiId<'V','R','4'>::V)
+				if (baseChunk == AsciiId<'V','R','4'>::V)
 				{
 					while (const dword chunk = state.Begin())
 					{
@@ -200,20 +180,12 @@ namespace Nes
 						{
 							case AsciiId<'R','E','G'>::V:
 
-								NST_VERIFY( type != TYPE_A );
-
-								if (type != TYPE_A)
-									prgSwap = state.Read8() & 0x2;
-
+								prgSwap = state.Read8() & 0x2;
 								break;
 
 							case AsciiId<'I','R','Q'>::V:
 
-								NST_VERIFY( type != TYPE_A );
-
-								if (type != TYPE_A)
-									irq->LoadState( state );
-
+								irq.LoadState( state );
 								break;
 						}
 
@@ -226,11 +198,8 @@ namespace Nes
 			{
 				state.Begin( AsciiId<'V','R','4'>::V );
 
-				if (type != TYPE_A)
-				{
-					state.Begin( AsciiId<'R','E','G'>::V ).Write8( prgSwap ).End();
-					irq->SaveState( state, AsciiId<'I','R','Q'>::V );
-				}
+				state.Begin( AsciiId<'R','E','G'>::V ).Write8( prgSwap ).End();
+				irq.SaveState( state, AsciiId<'I','R','Q'>::V );
 
 				state.End();
 			}
@@ -240,36 +209,36 @@ namespace Nes
 				State::Loader::Data<5> data( state );
 
 				unit.ctrl = data[0] & (BaseIrq::ENABLE_1|BaseIrq::NO_PPU_SYNC);
-				EnableLine( data[0] & BaseIrq::ENABLE_0 );
+				Connect( data[0] & BaseIrq::ENABLE_0 );
 				unit.latch = data[1];
 				unit.count[0] = NST_MIN(340,data[2] | data[3] << 8);
 				unit.count[1] = data[4];
 			}
 
-			void Vrc4::Irq::SaveState(State::Saver& state,const dword id) const
+			void Vrc4::Irq::SaveState(State::Saver& state,const dword chunk) const
 			{
 				const byte data[5] =
 				{
-					unit.ctrl | (IsLineEnabled() ? BaseIrq::ENABLE_0 : 0),
+					unit.ctrl | (Connected() ? BaseIrq::ENABLE_0 : 0),
 					unit.latch,
 					unit.count[0] & 0xFF,
 					unit.count[0] >> 8,
 					unit.count[1]
 				};
 
-				state.Begin( id ).Write( data ).End();
+				state.Begin( chunk ).Write( data ).End();
 			}
 
 			#ifdef NST_MSVC_OPTIMIZE
 			#pragma optimize("", on)
 			#endif
 
-			NES_POKE(Vrc4,8)
+			NES_POKE_D(Vrc4,8)
 			{
 				prg.SwapBank<SIZE_8K>( prgSwap << 13, data );
 			}
 
-			NES_POKE(Vrc4,9)
+			NES_POKE_D(Vrc4,9)
 			{
 				data &= 0x2;
 
@@ -285,55 +254,40 @@ namespace Nes
 				}
 			}
 
-			void Vrc4::SwapChrA(const uint address,const uint data) const
+			template<uint OFFSET>
+			void Vrc4::SwapChr(const uint address,const uint data) const
 			{
 				ppu.Update();
-				chr.SwapBank<SIZE_1K>( address, data >> 1 );
+				chr.SwapBank<SIZE_1K>( address, (chr.GetBank<SIZE_1K>(address) & (0xF0U >> OFFSET)) | ((data & 0xF) << OFFSET) );
 			}
 
-			NES_POKE(Vrc4,B0_A) { SwapChrA( 0x0000, data ); }
-			NES_POKE(Vrc4,B1_A) { SwapChrA( 0x0400, data ); }
-			NES_POKE(Vrc4,C0_A) { SwapChrA( 0x0800, data ); }
-			NES_POKE(Vrc4,C1_A) { SwapChrA( 0x0C00, data ); }
-			NES_POKE(Vrc4,D0_A) { SwapChrA( 0x1000, data ); }
-			NES_POKE(Vrc4,D1_A) { SwapChrA( 0x1400, data ); }
-			NES_POKE(Vrc4,E0_A) { SwapChrA( 0x1800, data ); }
-			NES_POKE(Vrc4,E1_A) { SwapChrA( 0x1C00, data ); }
-
-			template<uint MASK,uint SHIFT>
-			void Vrc4::SwapChrB(const uint address,const uint data) const
-			{
-				ppu.Update();
-				chr.SwapBank<SIZE_1K>( address, (chr.GetBank<SIZE_1K>(address) & MASK) | ((data & 0xF) << SHIFT) );
-			}
-
-			NES_POKE(Vrc4,B0_B) { SwapChrB<0xF0,0>( 0x0000, data ); }
-			NES_POKE(Vrc4,B1_B) { SwapChrB<0x0F,4>( 0x0000, data ); }
-			NES_POKE(Vrc4,B2_B) { SwapChrB<0xF0,0>( 0x0400, data ); }
-			NES_POKE(Vrc4,B3_B) { SwapChrB<0x0F,4>( 0x0400, data ); }
-			NES_POKE(Vrc4,C0_B) { SwapChrB<0xF0,0>( 0x0800, data ); }
-			NES_POKE(Vrc4,C1_B) { SwapChrB<0x0F,4>( 0x0800, data ); }
-			NES_POKE(Vrc4,C2_B) { SwapChrB<0xF0,0>( 0x0C00, data ); }
-			NES_POKE(Vrc4,C3_B) { SwapChrB<0x0F,4>( 0x0C00, data ); }
-			NES_POKE(Vrc4,D0_B) { SwapChrB<0xF0,0>( 0x1000, data ); }
-			NES_POKE(Vrc4,D1_B) { SwapChrB<0x0F,4>( 0x1000, data ); }
-			NES_POKE(Vrc4,D2_B) { SwapChrB<0xF0,0>( 0x1400, data ); }
-			NES_POKE(Vrc4,D3_B) { SwapChrB<0x0F,4>( 0x1400, data ); }
-			NES_POKE(Vrc4,E0_B) { SwapChrB<0xF0,0>( 0x1800, data ); }
-			NES_POKE(Vrc4,E1_B) { SwapChrB<0x0F,4>( 0x1800, data ); }
-			NES_POKE(Vrc4,E2_B) { SwapChrB<0xF0,0>( 0x1C00, data ); }
-			NES_POKE(Vrc4,E3_B) { SwapChrB<0x0F,4>( 0x1C00, data ); }
+			NES_POKE_D(Vrc4,B0) { SwapChr<0>( 0x0000, data ); }
+			NES_POKE_D(Vrc4,B1) { SwapChr<4>( 0x0000, data ); }
+			NES_POKE_D(Vrc4,B2) { SwapChr<0>( 0x0400, data ); }
+			NES_POKE_D(Vrc4,B3) { SwapChr<4>( 0x0400, data ); }
+			NES_POKE_D(Vrc4,C0) { SwapChr<0>( 0x0800, data ); }
+			NES_POKE_D(Vrc4,C1) { SwapChr<4>( 0x0800, data ); }
+			NES_POKE_D(Vrc4,C2) { SwapChr<0>( 0x0C00, data ); }
+			NES_POKE_D(Vrc4,C3) { SwapChr<4>( 0x0C00, data ); }
+			NES_POKE_D(Vrc4,D0) { SwapChr<0>( 0x1000, data ); }
+			NES_POKE_D(Vrc4,D1) { SwapChr<4>( 0x1000, data ); }
+			NES_POKE_D(Vrc4,D2) { SwapChr<0>( 0x1400, data ); }
+			NES_POKE_D(Vrc4,D3) { SwapChr<4>( 0x1400, data ); }
+			NES_POKE_D(Vrc4,E0) { SwapChr<0>( 0x1800, data ); }
+			NES_POKE_D(Vrc4,E1) { SwapChr<4>( 0x1800, data ); }
+			NES_POKE_D(Vrc4,E2) { SwapChr<0>( 0x1C00, data ); }
+			NES_POKE_D(Vrc4,E3) { SwapChr<4>( 0x1C00, data ); }
 
 			void Vrc4::Irq::WriteLatch0(const uint data)
 			{
 				Update();
-				unit.latch = (unit.latch & 0xF0) | (data & 0xF);
+				unit.latch = (unit.latch & 0xF0) | (data << 0 & 0x0F);
 			}
 
 			void Vrc4::Irq::WriteLatch1(const uint data)
 			{
 				Update();
-				unit.latch = (unit.latch & 0x0F) | (data & 0xF) << 4;
+				unit.latch = (unit.latch & 0x0F) | (data << 4 & 0xF0);
 			}
 
 			void Vrc4::Irq::Toggle(const uint data)
@@ -341,7 +295,7 @@ namespace Nes
 				Update();
 				unit.ctrl = data & (BaseIrq::ENABLE_1|BaseIrq::NO_PPU_SYNC);
 
-				if (EnableLine( data & BaseIrq::ENABLE_0 ))
+				if (Connect( data & BaseIrq::ENABLE_0 ))
 				{
 					unit.count[0] = 0;
 					unit.count[1] = unit.latch;
@@ -353,55 +307,58 @@ namespace Nes
 			void Vrc4::Irq::Toggle()
 			{
 				Update();
-				EnableLine( unit.ctrl & BaseIrq::ENABLE_1 );
+				Connect( unit.ctrl & BaseIrq::ENABLE_1 );
 				ClearIRQ();
 			}
 
-			NES_POKE(Vrc4,F0)
+			NES_POKE_D(Vrc4,F0)
 			{
-				irq->WriteLatch0( data );
+				irq.WriteLatch0( data );
 			}
 
-			NES_POKE(Vrc4,F1)
+			NES_POKE_D(Vrc4,F1)
 			{
-				irq->WriteLatch1( data );
+				irq.WriteLatch1( data );
 			}
 
-			NES_POKE(Vrc4,F2)
+			NES_POKE_D(Vrc4,F2)
 			{
-				irq->Toggle( data );
+				irq.Toggle( data );
 			}
 
 			NES_POKE(Vrc4,F3)
 			{
-				irq->Toggle();
+				irq.Toggle();
 			}
 
-			ibool Vrc4::BaseIrq::Signal()
+			bool Vrc4::BaseIrq::Clock()
 			{
 				if (!(ctrl & NO_PPU_SYNC))
 				{
-					count[0] += 3;
-
-					if (count[0] < 341)
+					if (count[0] < 341-3)
+					{
+						count[0] += 3;
 						return false;
+					}
 
-					count[0] -= 341;
+					count[0] -= 341-3;
 				}
 
-				if (count[1]++ == 0xFF)
+				if (count[1] != 0xFF)
 				{
-					count[1] = latch;
-					return true;
+					count[1]++;
+					return false;
 				}
 
-				return false;
+				count[1] = latch;
+
+				return true;
 			}
 
-			void Vrc4::VSync()
+			void Vrc4::Sync(Event event,Input::Controllers*)
 			{
-				if (irq)
-					irq->VSync();
+				if (event == EVENT_END_FRAME)
+					irq.VSync();
 			}
 		}
 	}

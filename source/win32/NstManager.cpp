@@ -33,8 +33,13 @@ namespace Nestopia
 		{
 			emulator.Events().Remove( this );
 			menu.Commands().RemoveAll( this );
-			menu.PopupRouter().Remove( this );
+			menu.Popups().Remove( this );
 			Application::Instance::Events::Remove( this );
+		}
+
+		void Manager::Resume()
+		{
+			Application::Instance::GetMainWindow().Post( Application::Instance::WM_NST_COMMAND_RESUME );
 		}
 	}
 }

@@ -48,7 +48,7 @@ namespace Nes
 			void SubLoad(State::Loader&);
 			void UpdatePrg();
 			void UpdateChr() const;
-			void VSync();
+			void Sync(Event,Input::Controllers*);
 
 			NES_DECL_POKE( 8000 );
 			NES_DECL_POKE( 8001 );
@@ -76,7 +76,8 @@ namespace Nes
 				enum
 				{
 					M2_CLOCK   = 4,
-					A12_SIGNAL = 16,
+					A12_FILTER = 16,
+					IRQ_DELAY  = 2,
 					SOURCE_PPU = 0x0,
 					SOURCE_CPU = 0x1,
 					SOURCE     = 0x1
@@ -84,8 +85,8 @@ namespace Nes
 
 				struct Unit
 				{
-					void Reset(bool=true);
-					ibool Signal();
+					void Reset(bool);
+					bool Clock();
 
 					uint count;
 					uint latch;
@@ -93,8 +94,8 @@ namespace Nes
 					ibool enabled;
 				};
 
-				typedef Clock::A12<Unit&> A12;
-				typedef Clock::M2<Unit&,M2_CLOCK> M2;
+				typedef ClockUnits::A12<Unit&,A12_FILTER,IRQ_DELAY> A12;
+				typedef ClockUnits::M2<Unit&,M2_CLOCK> M2;
 
 				Unit unit;
 				A12 a12;

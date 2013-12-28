@@ -57,6 +57,12 @@ namespace Nes
 	#pragma optimize("s", on)
 	#endif
 
+	namespace Api
+	{
+		Input::ControllerCaller Input::controllerCallback;
+		Input::AdapterCaller Input::adapterCallback;
+	}
+
 	namespace Core
 	{
 		namespace Input
@@ -344,13 +350,22 @@ namespace Nes
 
 			delete old;
 			emulator.InitializeInputDevices();
+			controllerCallback( port, type );
 
 			return RESULT_OK;
 		}
 
-		void Input::ConnectAdapter(Adapter adapter) throw()
+		Result Input::ConnectAdapter(Adapter adapter) throw()
 		{
-			emulator.extPort->SetType( adapter );
+			if (emulator.extPort->SetType( adapter ))
+			{
+				adapterCallback( adapter );
+				return RESULT_OK;
+			}
+			else
+			{
+				return RESULT_NOP;
+			}
 		}
 
 		Result Input::AutoSelectController(uint port) throw()
@@ -374,9 +389,15 @@ namespace Nes
 			return ConnectController( port, type );
 		}
 
-		void Input::AutoSelectAdapter() throw()
+		void Input::AutoSelectControllers() throw()
 		{
-			ConnectAdapter( emulator.image ? static_cast<Adapter>(emulator.image->GetDesiredAdapter()) : ADAPTER_NES );
+			for (uint i=0; i < NUM_PORTS; ++i)
+				AutoSelectController( i );
+		}
+
+		Result Input::AutoSelectAdapter() throw()
+		{
+			return ConnectAdapter( emulator.image ? static_cast<Adapter>(emulator.image->GetDesiredAdapter()) : ADAPTER_NES );
 		}
 
 		Input::Type Input::GetConnectedController(uint port) const throw()

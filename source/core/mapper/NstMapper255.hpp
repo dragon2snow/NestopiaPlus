@@ -38,7 +38,7 @@ namespace Nes
 		public:
 
 			explicit Mapper255(Context& c)
-			: Mapper(c,WRAM_DEFAULT) {}
+			: Mapper(c,WRAM_DEFAULT|NMT_VERTICAL) {}
 
 		private:
 

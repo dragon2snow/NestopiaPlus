@@ -119,7 +119,7 @@ namespace Nestopia
 		{
 			NST_ASSERT( deviceId < adapters.list.size() );
 
-			if (device.id != deviceId || device == NULL)
+			if (device.id != deviceId || !device)
 			{
 				device.id = deviceId;
 
@@ -177,7 +177,7 @@ namespace Nestopia
 
 		void DirectSound::Buffer::Release()
 		{
-			if (com != NULL)
+			if (com)
 			{
 				com->Stop();
 				com.Release();
@@ -268,7 +268,7 @@ namespace Nestopia
 
 			if
 			(
-				com != NULL &&
+				com &&
 				waveFormat.nSamplesPerSec == rate &&
 				waveFormat.wBitsPerSample == bits &&
 				waveFormat.nChannels == channels &&
@@ -293,7 +293,7 @@ namespace Nestopia
 
 		void DirectSound::Buffer::StartStream()
 		{
-			if (com != NULL)
+			if (com)
 			{
 				DWORD status;
 
@@ -339,7 +339,7 @@ namespace Nestopia
 
 		void DirectSound::Buffer::StopStream(IDirectSound8* const device,const bool priority)
 		{
-			if (com != NULL)
+			if (com)
 			{
 				if (device)
 					Create( *device, priority );

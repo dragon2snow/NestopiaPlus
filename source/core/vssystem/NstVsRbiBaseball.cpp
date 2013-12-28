@@ -48,9 +48,9 @@ namespace Nes
 			state.Begin( AsciiId<'R','B','I'>::V ).Write8( counter & 0xFF ).End();
 		}
 
-		void Cartridge::VsSystem::RbiBaseball::SubLoad(State::Loader& state,const dword id)
+		void Cartridge::VsSystem::RbiBaseball::SubLoad(State::Loader& state,const dword chunk)
 		{
-			if (id == AsciiId<'R','B','I'>::V)
+			if (chunk == AsciiId<'R','B','I'>::V)
 				counter = state.Read8();
 		}
 

@@ -170,6 +170,13 @@ namespace Nestopia
 				Managers::Emulator::DISKIMAGE_SAVE_TO_IPS   == IDC_FDS_SAVETOIPS   - IDC_FDS_SAVEDISABLE
 			);
 
+			if (emulator.IsFdsOn())
+			{
+				dialog.Control( IDC_FDS_BIOS   ).Disable();
+				dialog.Control( IDC_FDS_CLEAR  ).Disable();
+				dialog.Control( IDC_FDS_BROWSE ).Disable();
+			}
+
 			dialog.Edit( IDC_FDS_BIOS ) << settings.bios.Ptr();
 			dialog.RadioButton( IDC_FDS_SAVEDISABLE + emulator.GetDiskImageSaveMethod() ).Check();
 

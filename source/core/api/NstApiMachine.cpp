@@ -32,6 +32,8 @@ namespace Nes
 {
 	namespace Api
 	{
+		Machine::EventCaller Machine::eventCallback;
+
 		uint Machine::Is(uint a) const throw()
 		{
 			return emulator.Is( a );
@@ -42,7 +44,7 @@ namespace Nes
 			return emulator.Is( a, b );
 		}
 
-		bool Machine::IsLocked() const throw()
+		bool Machine::IsLocked() const
 		{
 			return emulator.tracker.IsLocked();
 		}
@@ -61,9 +63,9 @@ namespace Nes
 			{
 				result = emulator.Load( &stream, type );
 			}
-			catch (Result result)
+			catch (Result r)
 			{
-				return result;
+				return r;
 			}
 			catch (const std::bad_alloc&)
 			{
@@ -105,10 +107,7 @@ namespace Nes
 			if (!Is(IMAGE))
 				return RESULT_NOP;
 
-			if (emulator.Unload())
-				return RESULT_OK;
-			else
-				return RESULT_WARN_SAVEDATA_LOST;
+			return emulator.Unload();
 		}
 
 		Result Machine::Power(const bool on) throw()
@@ -134,14 +133,13 @@ namespace Nes
 				{
 					return RESULT_ERR_GENERIC;
 				}
+
+				return RESULT_OK;
 			}
 			else
 			{
-				if (!emulator.PowerOff())
-					return RESULT_WARN_SAVEDATA_LOST;
+				return emulator.PowerOff();
 			}
-
-			return RESULT_OK;
 		}
 
 		Result Machine::Reset(const bool hard) throw()
@@ -176,15 +174,19 @@ namespace Nes
 
 		Machine::Mode Machine::GetDesiredMode() const throw()
 		{
-			return (!emulator.image || emulator.image->GetMode() == Core::MODE_NTSC) ? NTSC : PAL;
+			return (!emulator.image || emulator.image->GetRegion() == Core::Region::NTSC) ? NTSC : PAL;
 		}
 
 		Result Machine::SetMode(const Mode mode) throw()
 		{
+			if (emulator.tracker.IsActive())
+				return RESULT_ERR_NOT_READY;
+
 			if (mode == GetMode())
 				return RESULT_NOP;
 
-			emulator.SetMode( mode == PAL ? Core::MODE_PAL : Core::MODE_NTSC );
+			emulator.tracker.Resync();
+			emulator.SwitchMode();
 
 			return RESULT_OK;
 		}
@@ -196,10 +198,10 @@ namespace Nes
 
 			try
 			{
-				emulator.tracker.Flush();
+				emulator.tracker.Resync();
 				Core::State::Loader loader( &stream, true );
 
-				if (emulator.LoadState( loader ))
+				if (emulator.LoadState( loader, true ))
 					return RESULT_OK;
 				else
 					return RESULT_ERR_INVALID_CRC;

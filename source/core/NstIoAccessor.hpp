@@ -35,12 +35,21 @@ namespace Nes
 	{
 		namespace Io
 		{
-		#ifndef NST_NO_FASTDELEGATE
+		#ifdef NST_FASTDELEGATE
 
 			class Accessor
 			{
+			public:
+
+				template<typename T> struct Type
+				{
+					typedef Data (NST_FASTCALL T::*Function)(Address);
+				};
+
+			private:
+
 				class Component {};
-				typedef Data (NES_IO_CALL Component::*Function)(Address);
+				typedef Type<Component>::Function Function;
 
 				Component* component;
 				Function function;
@@ -50,50 +59,38 @@ namespace Nes
 				Accessor() {}
 
 				template<typename T>
-				Accessor(T* c,Data (NES_IO_CALL T::*t)(Address))
+				Accessor(T* c,typename Type<T>::Function f)
 				:
 				component ( reinterpret_cast<Component*>(c) ),
-				function  ( reinterpret_cast<Function>(t) )
+				function  ( reinterpret_cast<Function>(f) )
 				{
-					NST_COMPILE_ASSERT( sizeof(function) == sizeof(t) );
+					NST_COMPILE_ASSERT( sizeof(function) == sizeof(f) );
 				}
 
 				template<typename T>
-				void Set(T* c,Data (NES_IO_CALL T::*t)(Address))
+				void Set(T* c,typename Type<T>::Function f)
 				{
-					NST_COMPILE_ASSERT( sizeof(function) == sizeof(t) );
+					NST_COMPILE_ASSERT( sizeof(function) == sizeof(f) );
 
 					component = reinterpret_cast<Component*>(c);
-					function  = reinterpret_cast<Function>(t);
+					function  = reinterpret_cast<Function>(f);
 				}
 
 				Data Fetch(Address address) const
 				{
 					return (*component.*function)( address );
 				}
-
-				bool operator == (const void* ptr) const
-				{
-					return static_cast<const void*>(component) == ptr;
-				}
-
-				template<typename T> struct Type
-				{
-					typedef Data (NES_IO_CALL T::*Function)(Address);
-				};
 			};
 
-			#define NES_DECL_ACCESSOR(a_) Data NES_IO_CALL Access_##a_(Address)
-			#define NES_DECL_ACCESSOR_T(t_,n_,a_) template<t_ n_> NES_DECL_ACCESSOR(a_)
-			#define NES_ACCESSOR(o_,a_) Data NES_IO_CALL o_::Access_##a_(Address address)
-			#define NES_ACCESSOR_T(t_,n_,o_,a_) template<t_ n_> NES_ACCESSOR(o_,a_)
+			#define NES_DECL_ACCESSOR(a_) Data NST_FASTCALL Access_##a_(Address)
+			#define NES_ACCESSOR(o_,a_) Data NST_FASTCALL o_::Access_##a_(Address address)
 
 		#else
 
 			class Accessor
 			{
 				typedef void* Component;
-				typedef Data (NES_IO_CALL *Function)(Component,Address);
+				typedef Data (NST_REGCALL *Function)(Component,Address);
 
 				Component component;
 				Function function;
@@ -119,46 +116,25 @@ namespace Nes
 					return function( component, address );
 				}
 
-				bool operator == (const void* ptr) const
-				{
-					return component == ptr;
-				}
-
 				template<typename T> struct Type
 				{
-					typedef Data (NES_IO_CALL *Function)(Component,Address);
+					typedef Data (NST_REGCALL *Function)(Component,Address);
 				};
 			};
 
-			#define NES_DECL_ACCESSOR(a_)                                          \
-                                                                                   \
-				Data NES_IO_CALL Access_M_##a_(Address);                           \
-				static Data NES_IO_CALL Access_##a_(void*,Address)
+			#define NES_DECL_ACCESSOR(a_)                                             \
+                                                                                      \
+				NST_SINGLE_CALL Data NST_FASTCALL Access_M_##a_(Address);             \
+				static NST_NO_INLINE Data NST_REGCALL Access_##a_(void*,Address)
 
-			#define NES_DECL_ACCESSOR_T(t_,n_,a_)                                  \
-                                                                                   \
-				template<t_ n_> Data NES_IO_CALL Access_M_##a_(Address);           \
-				template<t_ n_> static Data NES_IO_CALL Access_##a_(void*,Address)
-
-			#define NES_ACCESSOR(o_,a_)                                            \
-                                                                                   \
-				Data NES_IO_CALL o_::Access_##a_(void* p_,Address i_)              \
-				{                                                                  \
-					return static_cast<o_*>(p_)->Access_M_##a_(i_);                \
-				}                                                                  \
-                                                                                   \
-				Data NES_IO_CALL o_::Access_M_##a_(Address address)
-
-			#define NES_ACCESSOR_T(t_,n_,o_,a_)                                    \
-                                                                                   \
-				template<t_ n_>                                                    \
-				Data NES_IO_CALL o_::Access_##a_(void* p_,Address i_)              \
-				{                                                                  \
-					return static_cast<o_*>(p_)->Access_M_##a_<n_>(i_);            \
-				}                                                                  \
-                                                                                   \
-				template<t_ n_>                                                    \
-				Data NES_IO_CALL o_::Access_M_##a_(Address address)
+			#define NES_ACCESSOR(o_,a_)                                               \
+                                                                                      \
+				NST_NO_INLINE Data NST_REGCALL o_::Access_##a_(void* p_,Address i_)   \
+				{                                                                     \
+					return static_cast<o_*>(p_)->Access_M_##a_(i_);                   \
+				}                                                                     \
+                                                                                      \
+				NST_SINGLE_CALL Data NST_FASTCALL o_::Access_M_##a_(Address address)
 
 		#endif
 		}

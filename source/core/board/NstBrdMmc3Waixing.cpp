@@ -37,8 +37,8 @@ namespace Nes
 			#pragma optimize("s", on)
 			#endif
 
-			Mmc3Waixing::Mmc3Waixing(Context& c,uint flags)
-			: Mmc3(c,BRD_GENERIC,flags|WRAM_8K) {}
+			Mmc3Waixing::Mmc3Waixing(Context& c,dword settings)
+			: Mmc3(c,BRD_GENERIC,settings|WRAM_8K) {}
 
 			void Mmc3Waixing::SubReset(const bool hard)
 			{
@@ -54,11 +54,11 @@ namespace Nes
 					Map( i, NMT_SWAP_VH01 );
 			}
 
-			void Mmc3Waixing::BaseLoad(State::Loader& state,const dword id)
+			void Mmc3Waixing::BaseLoad(State::Loader& state,const dword baseChunk)
 			{
-				NST_VERIFY( id == (AsciiId<'T','M','3'>::V) );
+				NST_VERIFY( baseChunk == (AsciiId<'T','M','3'>::V) );
 
-				if (id == AsciiId<'T','M','3'>::V)
+				if (baseChunk == AsciiId<'T','M','3'>::V)
 				{
 					while (const dword chunk = state.Begin())
 					{
@@ -100,12 +100,12 @@ namespace Nes
 				SwapChr( 0x1C00 ^ swap, banks.chr[5]          );
 			}
 
-			NES_PEEK(Mmc3Waixing,ExRam)
+			NES_PEEK_A(Mmc3Waixing,ExRam)
 			{
 				return exRam[address-0x5000];
 			}
 
-			NES_POKE(Mmc3Waixing,ExRam)
+			NES_POKE_AD(Mmc3Waixing,ExRam)
 			{
 				exRam[address-0x5000] = data;
 			}

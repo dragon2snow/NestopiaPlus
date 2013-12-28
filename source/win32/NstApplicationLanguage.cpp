@@ -41,7 +41,7 @@ namespace Nestopia
 
 		void Instance::Language::Load(const Configuration& cfg)
 		{
-			if (!resource.Loaded())
+			if (!resource)
 				Load( cfg["language"].Ptr() );
 		}
 

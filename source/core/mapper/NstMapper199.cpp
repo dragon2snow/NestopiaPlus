@@ -37,7 +37,8 @@ namespace Nes
 
 		void Mapper199::SubReset(const bool hard)
 		{
-			exChr[1] = exChr[0] = 0;
+			exChr[0] = 0;
+			exChr[1] = 0;
 
 			Mmc3Waixing::SubReset( hard );
 
@@ -71,11 +72,9 @@ namespace Nes
 		#pragma optimize("", on)
 		#endif
 
-		NES_POKE(Mapper199,8001)
+		NES_POKE_D(Mapper199,8001)
 		{
-			address = regs.ctrl0 & 0xF;
-
-			switch (address)
+			switch (const uint index = (regs.ctrl0 & 0xF))
 			{
 				case 0x0:
 				case 0x1:
@@ -84,7 +83,7 @@ namespace Nes
 				case 0x4:
 				case 0x5:
 
-					banks.chr[address] = data;
+					banks.chr[index] = data;
 					Mapper199::UpdateChr();
 					break;
 
@@ -93,14 +92,14 @@ namespace Nes
 				case 0x8:
 				case 0x9:
 
-					banks.prg[address - 0x6] = data;
+					banks.prg[index - 0x6] = data;
 					Mmc3Waixing::UpdatePrg();
 					break;
 
 				case 0xA:
 				case 0xB:
 
-					exChr[address - 0xA] = data;
+					exChr[index - 0xA] = data;
 					Mapper199::UpdateChr();
 					break;
 			}

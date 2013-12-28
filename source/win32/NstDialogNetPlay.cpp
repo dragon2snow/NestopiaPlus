@@ -29,7 +29,6 @@
 #include "NstWindowDropFiles.hpp"
 #include "NstManagerPaths.hpp"
 #include "NstDialogNetPlay.hpp"
-#include "../core/api/NstApiCartridge.hpp"
 #include <CommCtrl.h>
 
 namespace Nestopia

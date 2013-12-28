@@ -239,9 +239,9 @@ namespace Nestopia
 				array.Destroy();
 			}
 		};
-
-		#include "NstCollectionSet.inl"
 	}
 }
+
+#include "NstCollectionSet.inl"
 
 #endif

@@ -46,15 +46,38 @@ namespace Nes
 
 				~StreetHeroes() {}
 
+				class CartSwitches : public DipSwitches
+				{
+					uint region;
+
+				public:
+
+					CartSwitches();
+
+					inline void SetRegion(uint);
+					inline uint GetRegion() const;
+
+				private:
+
+					uint GetValue(uint) const;
+					void SetValue(uint,uint);
+					uint NumDips() const;
+					uint NumValues(uint) const;
+					cstring GetDipName(uint) const;
+					cstring GetValueName(uint,uint) const;
+				};
+
 				void SubReset(bool);
 				void SubLoad(State::Loader&);
 				void SubSave(State::Saver&) const;
+				Device QueryDevice(DeviceType);
 				void UpdateChr() const;
 
 				NES_DECL_POKE( 4100 );
 				NES_DECL_PEEK( 4100 );
 
-				uint exRegs[2];
+				uint exReg;
+				CartSwitches cartSwitches;
 			};
 		}
 	}

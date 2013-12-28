@@ -150,7 +150,7 @@ namespace Nes
 			}
 		}
 
-		NES_POKE(Mapper14,Prg)
+		NES_POKE_AD(Mapper14,Prg)
 		{
 			if ((address & 0xA131) == 0xA131 && exMode != data)
 			{

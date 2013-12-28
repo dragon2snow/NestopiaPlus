@@ -38,7 +38,7 @@ namespace Nes
 		public:
 
 			explicit Mapper112(Context& c)
-			: Mapper(c,PROM_MAX_512K|CROM_MAX_256K) {}
+			: Mapper(c,PROM_MAX_512K|CROM_MAX_512K|NMT_VERTICAL) {}
 
 		private:
 
@@ -47,12 +47,15 @@ namespace Nes
 			void SubReset(bool);
 			void SubSave(State::Saver&) const;
 			void SubLoad(State::Loader&);
+			void UpdateChr() const;
 
 			NES_DECL_POKE( 8000 );
 			NES_DECL_POKE( A000 );
 			NES_DECL_POKE( C000 );
+			NES_DECL_POKE( E000 );
 
 			uint command;
+			struct { byte chr[8]; } banks;
 		};
 	}
 }

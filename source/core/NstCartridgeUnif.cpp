@@ -69,6 +69,7 @@ namespace Nes
 			{"NROM-256",               0,0},
 			{"RROM",                   0,0},
 			{"RROM-128",               0,0},
+			{"FAMILYBASIC",            0,SIZE_2K},
 			{"SAROM",                  1,SIZE_8K},
 			{"SBROM",                  1,0},
 			{"SCROM",                  1,0},
@@ -120,13 +121,24 @@ namespace Nes
 			{"AOROM",                  7,0},
 			{"PNROM",                  9,0},
 			{"PEEOROM",                9,0},
-			{"FJROM",                  10,0},
+			{"FJROM",                  10,SIZE_8K},
+			{"FKROM",                  10,SIZE_8K},
 			{"CDREAMS",                11,0},
 			{"AVENINA-07",             11,0},
 			{"CPROM",                  13,0},
 			{"SL1632",                 14,0},
+			{"BANDAI-FCG-1",           16,0},
+			{"BANDAI-FCG-2",           16,0},
+			{"BANDAI-LZ93D50",         16,0},
+			{"KONAMI-VRC-4C",          21,SIZE_8K},
+			{"KONAMI-VRC-2B",          23,0},
+			{"KONAMI-VRC-4B",          25,SIZE_8K},
+			{"TAITO-TC0190FMC",        33,0},
 			{"BNROM",                  34,0},
 			{"AVENINA-01",             34,SIZE_8K},
+			{"PAL-ZZ",                 37,0},
+			{"MLT-CALTRON6IN1",        41,0},
+			{"SMB2J",                  43,0},
 			{"1991SUPERHIK7IN1",       45,0},
 			{"SUPERHIK8IN1",           45,0},
 			{"QJ",                     47,0},
@@ -144,10 +156,22 @@ namespace Nes
 			{"NTBROM",                 68,0},
 			{"TEN800042",              68,0},
 			{"BTR",                    69,SIZE_8K},
+			{"JLROM",                  69,SIZE_8K},
+			{"JSROM",                  69,SIZE_8K},
+			{"SUNSOFT-FME-7",          69,SIZE_8K},
+			{"BANDAI-LS161+LS32",      70,0},
 			{"CAMBF9093",              71,0},
 			{"CAMALADDINNORMAL",       71,0},
+			{"KONAMI-VRC-1",           75,0},
 			{"AVENINA-03",             79,0},
 			{"AVENINA-06",             79,0},
+			{"TAITO-X1-005",           80,0},
+			{"KONAMI-VRC-7",           85,0},
+			{"JALECO-LS139+LS174*2",   86,0},
+			{"KONAMI-LS139+LS74",      87,0},
+			{"TAITO-LS139+LS74",       87,0},
+			{"JALECO-LS139+LS74",      87,0},
+			{"NAMCO-118+LS32",         88,0},
 			{"TEK90",                  90,0},
 			{"TEN800037",              118,0},
 			{"TLSROM",                 118,0},
@@ -160,6 +184,7 @@ namespace Nes
 			{"SACHEN-8259B",           138,0},
 			{"SACHEN-8259C",           139,0},
 			{"SACHEN-8259A",           141,0},
+			{"KS7032",                 142,0},
 			{"SA-NROM",                143,0},
 			{"SA-72007",               145,0},
 			{"SA-016-1M",              146,0},
@@ -167,15 +192,19 @@ namespace Nes
 			{"SA-0037",                148,0},
 			{"SA-0036",                149,0},
 			{"SACHEN-74LS374N",        150,0},
+			{"N625092",                169,0},
+			{"SUNSOFT-1",              184,0},
 			{"DEROM",                  206,0},
 			{"DE1ROM",                 206,0},
 			{"DRROM",                  206,0},
 			{"TEN800030",              206,0},
 			{"TEN800002",              206,0},
 			{"TEN800004",              206,0},
+			{"MLT-ACT52",              228,0},
 			{"CAMBF9096",              232,0},
 			{"CAMALADDINQUATTRO",      232,0},
 			{"42IN1RESETSWITCH",       233,0},
+			{"MAXI15",                 234,0},
 			{"GOLDENGAME150IN1",       235,0},
 			{"70IN1",                  236,0},
 			{"70IN1B",                 236,0},
@@ -194,8 +223,11 @@ namespace Nes
 			{"A65AS",                  Mapper::EXT_A65AS,0},
 			{"EDU2000",                Mapper::EXT_EDU2000,SIZE_32K},
 			{"TF1201",                 Mapper::EXT_TF1201,0},
-			{"KS7032",                 Mapper::EXT_KS7032,0},
-			{"GS-2004",                Mapper::EXT_GS2004,0}
+			{"GS-2004",                Mapper::EXT_GS2004,0},
+			{"AX5705",                 Mapper::EXT_AX5705,0},
+			{"T-230",                  Mapper::EXT_T230,0},
+			{"190IN1",                 Mapper::EXT_190IN1,0},
+			{"GHOSTBUSTERS63IN1",      Mapper::EXT_CTC65,0}
 		};
 
 		bool Cartridge::Unif::Boards::Board::operator < (const Board& board) const
@@ -240,7 +272,7 @@ namespace Nes
 			Ram& p,
 			Ram& c,
 			Ram& wrk,
-			Api::Cartridge::Info& i,
+			Ref::Info& i,
 			const ImageDatabase* const database,
 			ImageDatabase::Handle& databaseHandle
 		)
@@ -249,8 +281,8 @@ namespace Nes
 		prg        (p),
 		chr        (c),
 		info       (i),
-		knownBoard (false),
-		result     (RESULT_OK)
+		result     (RESULT_OK),
+		knownBoard (false)
 		{
 			info.Clear();
 
@@ -471,9 +503,24 @@ namespace Nes
 		{
 			switch (stream.Read8())
 			{
-				case 0:  info.setup.region = REGION_NTSC;  Log::Flush( "Unif: NTSC system"     NST_LINEBREAK ); break;
-				case 1:  info.setup.region = REGION_PAL;   Log::Flush( "Unif: PAL system"      NST_LINEBREAK ); break;
-				default: info.setup.region = REGION_BOTH;  Log::Flush( "Unif: NTSC/PAL system" NST_LINEBREAK ); break;
+				case 0:
+
+					Log::Flush( "Unif: NTSC system" NST_LINEBREAK );
+					break;
+
+				case 1:
+
+					info.setup.cpu = Ref::CPU_RP2A07;
+					info.setup.ppu = Ref::PPU_RP2C07;
+					info.setup.region = Ref::REGION_PAL;
+					Log::Flush( "Unif: PAL system" NST_LINEBREAK );
+					break;
+
+				default:
+
+					info.setup.region = Ref::REGION_BOTH;
+					Log::Flush( "Unif: NTSC/PAL system" NST_LINEBREAK );
+					break;
 			}
 
 			return 1;
@@ -590,12 +637,12 @@ namespace Nes
 		{
 			switch (stream.Read8())
 			{
-				case 0:  info.setup.mirroring = Api::Cartridge::MIRROR_HORIZONTAL; Log::Flush( "Unif: horizontal mirroring"        NST_LINEBREAK ); break;
-				case 1:  info.setup.mirroring = Api::Cartridge::MIRROR_VERTICAL;   Log::Flush( "Unif: vertical mirroring"          NST_LINEBREAK ); break;
-				case 2:  info.setup.mirroring = Api::Cartridge::MIRROR_ZERO;       Log::Flush( "Unif: zero mirroring"              NST_LINEBREAK ); break;
-				case 3:  info.setup.mirroring = Api::Cartridge::MIRROR_ONE;        Log::Flush( "Unif: one mirroring"               NST_LINEBREAK ); break;
-				case 4:  info.setup.mirroring = Api::Cartridge::MIRROR_FOURSCREEN; Log::Flush( "Unif: four-screen mirroring"       NST_LINEBREAK ); break;
-				default: info.setup.mirroring = Api::Cartridge::MIRROR_CONTROLLED; Log::Flush( "Unif: mapper controlled mirroring" NST_LINEBREAK ); break;
+				case 0:  info.setup.mirroring = Ref::MIRROR_HORIZONTAL; Log::Flush( "Unif: horizontal mirroring"        NST_LINEBREAK ); break;
+				case 1:  info.setup.mirroring = Ref::MIRROR_VERTICAL;   Log::Flush( "Unif: vertical mirroring"          NST_LINEBREAK ); break;
+				case 2:  info.setup.mirroring = Ref::MIRROR_ZERO;       Log::Flush( "Unif: zero mirroring"              NST_LINEBREAK ); break;
+				case 3:  info.setup.mirroring = Ref::MIRROR_ONE;        Log::Flush( "Unif: one mirroring"               NST_LINEBREAK ); break;
+				case 4:  info.setup.mirroring = Ref::MIRROR_FOURSCREEN; Log::Flush( "Unif: four-screen mirroring"       NST_LINEBREAK ); break;
+				default: info.setup.mirroring = Ref::MIRROR_CONTROLLED; Log::Flush( "Unif: mapper controlled mirroring" NST_LINEBREAK ); break;
 			}
 
 			return 1;
@@ -709,7 +756,7 @@ namespace Nes
 							else
 							{
 								msg = " CRC check failed" NST_LINEBREAK;
-								info.condition = Api::Cartridge::DUMP_BAD;
+								info.condition = Ref::DUMP_BAD;
 								result = (i ? RESULT_WARN_BAD_CROM : RESULT_WARN_BAD_PROM);
 							}
 
@@ -746,16 +793,16 @@ namespace Nes
 
 					switch (database->GetSystem(handle))
 					{
-						case SYSTEM_VS:
+						case Ref::SYSTEM_VS:
 
-							info.setup.system = SYSTEM_VS;
-							info.setup.ppu = PPU_RP2C03B;
+							info.setup.system = Ref::SYSTEM_VS;
+							info.setup.ppu = Ref::PPU_RP2C03B;
 							break;
 
-						case SYSTEM_PC10:
+						case Ref::SYSTEM_PC10:
 
-							info.setup.system = SYSTEM_PC10;
-							info.setup.ppu = PPU_RP2C03B;
+							info.setup.system = Ref::SYSTEM_PC10;
+							info.setup.ppu = Ref::PPU_RP2C03B;
 							break;
 					}
 

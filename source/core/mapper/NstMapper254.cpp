@@ -67,12 +67,12 @@ namespace Nes
 		#pragma optimize("", on)
 		#endif
 
-		NES_PEEK(Mapper254,Wrk)
+		NES_PEEK_A(Mapper254,Wrk)
 		{
 			return wrk[0][address - 0x6000] ^ (regs.ctrl1 & security);
 		}
 
-		NES_POKE(Mapper254,8000)
+		NES_POKE_AD(Mapper254,8000)
 		{
 			security = 0U;
 			Mmc3::NES_DO_POKE(8000,address,data);

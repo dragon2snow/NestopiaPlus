@@ -35,17 +35,19 @@ namespace Nes
 
 		void Mapper51::SubReset(const bool hard)
 		{
-			if (hard)
-			{
-				bank = 0;
-				mode = 1;
-			}
-
 			Map( WRK_PEEK );
 			Map( 0x6000U, 0x7FFFU, &Mapper51::Poke_6000 );
 			Map( 0x8000U, 0xBFFFU, &Mapper51::Poke_8000 );
 			Map( 0xC000U, 0xDFFFU, &Mapper51::Poke_C000 );
 			Map( 0xE000U, 0xFFFFU, &Mapper51::Poke_8000 );
+
+			if (hard)
+			{
+				bank = 0x0;
+				mode = 0x1;
+
+				UpdateBanks();
+			}
 		}
 
 		void Mapper51::SubLoad(State::Loader& state)
@@ -95,19 +97,19 @@ namespace Nes
 			ppu.SetMirroring( (mode == 0x3) ? Ppu::NMT_HORIZONTAL : Ppu::NMT_VERTICAL );
 		}
 
-		NES_POKE(Mapper51,6000)
+		NES_POKE_D(Mapper51,6000)
 		{
 			mode = (data >> 3 & 0x2) | (data >> 1 & 0x1);
 			UpdateBanks();
 		}
 
-		NES_POKE(Mapper51,8000)
+		NES_POKE_D(Mapper51,8000)
 		{
 			bank = data & 0xF;
 			UpdateBanks();
 		}
 
-		NES_POKE(Mapper51,C000)
+		NES_POKE_D(Mapper51,C000)
 		{
 			bank = data & 0xF;
 			mode = (data >> 3 & 0x2) | (mode & 0x1);

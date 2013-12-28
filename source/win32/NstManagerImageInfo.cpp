@@ -33,6 +33,7 @@ namespace Nestopia
 		ImageInfo::ImageInfo(Emulator& e,Window::Menu& m)
 		: Manager(e,m,this,&ImageInfo::OnEmuEvent,IDM_VIEW_IMAGE_INFO,&ImageInfo::OnCmd)
 		{
+			UpdateMenu();
 		}
 
 		void ImageInfo::OnCmd(uint)
@@ -40,15 +41,24 @@ namespace Nestopia
 			Window::ImageInfo( emulator ).Open();
 		}
 
-		void ImageInfo::OnEmuEvent(Emulator::Event event)
+		bool ImageInfo::Available() const
+		{
+			return emulator.NetPlayers() == 0 && emulator.IsImage();
+		}
+
+		void ImageInfo::UpdateMenu() const
+		{
+			menu[IDM_VIEW_IMAGE_INFO].Enable( Available() );
+		}
+
+		void ImageInfo::OnEmuEvent(const Emulator::Event event,Emulator::Data)
 		{
 			switch (event)
 			{
-				case Emulator::EVENT_INIT:
 				case Emulator::EVENT_LOAD:
 				case Emulator::EVENT_UNLOAD:
 
-					menu[IDM_VIEW_IMAGE_INFO].Enable( event == Emulator::EVENT_LOAD );
+					UpdateMenu();
 					break;
 			}
 		}

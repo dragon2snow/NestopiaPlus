@@ -72,7 +72,7 @@ namespace Nes
 		#pragma optimize("", on)
 		#endif
 
-		NES_POKE(Mapper12,4100)
+		NES_POKE_D(Mapper12,4100)
 		{
 			exRegs[0] = (data & 0x01) << 8;
 			exRegs[1] = (data & 0x10) << 4;

@@ -41,7 +41,7 @@ namespace Nes
 		{
 			try
 			{
-				return emulator.tracker.RewinderEnable( enable ? &emulator : NULL );
+				return emulator.tracker.EnableRewinder( enable ? &emulator : NULL );
 			}
 			catch (Result result)
 			{
@@ -59,17 +59,17 @@ namespace Nes
 
 		bool Rewinder::IsEnabled() const throw()
 		{
-			return emulator.tracker.RewinderIsEnabled();
+			return emulator.tracker.IsRewinderEnabled();
 		}
 
 		bool Rewinder::IsSoundEnabled() const throw()
 		{
-			return emulator.tracker.RewinderIsSoundEnabled();
+			return emulator.tracker.IsRewinderSoundEnabled();
 		}
 
 		void Rewinder::EnableSound(bool enable) throw()
 		{
-			emulator.tracker.RewinderEnableSound( enable );
+			emulator.tracker.EnableRewinderSound( enable );
 		}
 
 		Rewinder::Direction Rewinder::GetDirection() const throw()
@@ -82,9 +82,9 @@ namespace Nes
 			if (emulator.Is(Machine::GAME,Machine::ON))
 			{
 				if (dir == BACKWARD)
-					return emulator.tracker.RewinderStart();
+					return emulator.tracker.StartRewinding();
 				else
-					return emulator.tracker.RewinderStop();
+					return emulator.tracker.StopRewinding();
 			}
 
 			return RESULT_ERR_NOT_READY;
@@ -93,7 +93,7 @@ namespace Nes
 		void Rewinder::Reset() throw()
 		{
 			if (emulator.Is(Machine::GAME,Machine::ON))
-				emulator.tracker.RewinderReset();
+				emulator.tracker.ResetRewinder();
 		}
 
 		#ifdef NST_MSVC_OPTIMIZE

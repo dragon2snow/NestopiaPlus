@@ -66,18 +66,18 @@ namespace Nes
 			class VsSystem;
 
 			void Reset(bool);
-			bool PowerOff() const;
+			bool PowerOff();
 			void LoadState(State::Loader&);
 			void SaveState(State::Saver&,dword) const;
 			void Destroy();
 			void VSync();
 
-			Mode GetMode() const;
+			Region::Type GetRegion() const;
 			uint GetDesiredController(uint) const;
 			uint GetDesiredAdapter() const;
 			void DetectControllers(uint);
 			ExternalDevice QueryExternalDevice(ExternalDeviceType);
-			PpuType QueryPpu(bool);
+			Revision::Ppu QueryPpu(bool);
 
 			class Wrk : public Ram
 			{

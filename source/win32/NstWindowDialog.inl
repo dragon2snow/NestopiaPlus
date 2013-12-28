@@ -22,27 +22,36 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-template<typename Owner,typename MsgArray>
-Dialog::Dialog(uint i,Owner* owner,MsgArray& msgArray)
-:
-Custom          ( owner, msgArray ),
-id              ( i ),
-noTaskbarWindow ( NULL )
-{}
+namespace Nestopia
+{
+	namespace Window
+	{
+		template<typename Owner,typename MsgArray>
+		Dialog::Dialog(uint i,Owner* owner,MsgArray& msgArray)
+		:
+		Custom ( owner, msgArray ),
+		id     ( i )
+		{
+			Init();
+		}
 
-template<typename Owner,typename MsgArray,typename CmdArray>
-Dialog::Dialog(uint i,Owner* owner,MsgArray& msgArray,CmdArray& cmdArray)
-:
-Custom          ( owner, msgArray ),
-cmdHandler      ( owner, cmdArray ),
-id              ( i ),
-noTaskbarWindow ( NULL )
-{}
+		template<typename Owner,typename MsgArray,typename CmdArray>
+		Dialog::Dialog(uint i,Owner* owner,MsgArray& msgArray,CmdArray& cmdArray)
+		:
+		Custom     ( owner, msgArray ),
+		cmdHandler ( owner, cmdArray ),
+		id         ( i )
+		{
+			Init();
+		}
 
-template<typename Owner,typename Msg>
-Dialog::Dialog(uint i,uint mid,Owner* owner,Msg msg)
-:
-Custom          ( mid, owner, msg ),
-id              ( i ),
-noTaskbarWindow ( NULL )
-{}
+		template<typename Owner,typename Msg>
+		Dialog::Dialog(uint i,uint mid,Owner* owner,Msg msg)
+		:
+		Custom ( mid, owner, msg ),
+		id     ( i )
+		{
+			Init();
+		}
+	}
+}

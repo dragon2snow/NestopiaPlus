@@ -43,6 +43,14 @@ namespace Nestopia
 			};
 
 			menu.Commands().Add( this, commands );
+
+			static const Window::Menu::PopupHandler::Entry<Nsf> popups[] =
+			{
+				{ Window::Menu::PopupHandler::Pos<IDM_POS_MACHINE,IDM_POS_MACHINE_NSF>::ID, &Nsf::OnMenu }
+			};
+
+			menu.Popups().Add( this, popups );
+
 			menu[IDM_MACHINE_NSF_OPTIONS_PLAYINBACKGROUND].Check( cfg["nsf in background"] != Configuration::NO );
 		}
 
@@ -51,49 +59,49 @@ namespace Nestopia
 			cfg["nsf in background"].YesNo() = menu[IDM_MACHINE_NSF_OPTIONS_PLAYINBACKGROUND].Checked();
 		}
 
-		void Nsf::OnEmuEvent(Emulator::Event event)
+		void Nsf::OnMenu(const Window::Menu::PopupHandler::Param& param)
+		{
+			const bool on = emulator.IsNsfOn();
+			const Nes::Nsf nsf( emulator );
+
+			menu[IDM_MACHINE_NSF_PLAY].Enable( !param.show || (on && !nsf.IsPlaying()) );
+			menu[IDM_MACHINE_NSF_STOP].Enable( !param.show || (on && nsf.IsPlaying()) );
+			menu[IDM_MACHINE_NSF_NEXT].Enable( !param.show || (on && nsf.GetCurrentSong() + 1 < nsf.GetNumSongs()) );
+			menu[IDM_MACHINE_NSF_PREV].Enable( !param.show || (on && nsf.GetCurrentSong() > 0) );
+		}
+
+		void Nsf::OnEmuEvent(const Emulator::Event event,const Emulator::Data data)
 		{
 			switch (event)
 			{
-				case Emulator::EVENT_NSF_STOP:
-				case Emulator::EVENT_NSF_NEXT:
-				case Emulator::EVENT_NSF_PREV:
-				case Emulator::EVENT_NSF_PLAY:
 				case Emulator::EVENT_POWER_ON:
-				case Emulator::EVENT_POWER_OFF:
-				case Emulator::EVENT_INIT:
-				{
-					const bool on = emulator.Is(Nes::Machine::SOUND,Nes::Machine::ON);
-					const Nes::Nsf nsf( emulator );
 
-					menu[ IDM_MACHINE_NSF_PLAY ].Enable( on && !nsf.IsPlaying() );
-					menu[ IDM_MACHINE_NSF_STOP ].Enable( on && nsf.IsPlaying() );
-					menu[ IDM_MACHINE_NSF_NEXT ].Enable( on && nsf.GetCurrentSong() + 1 < int(nsf.GetNumSongs()) );
-					menu[ IDM_MACHINE_NSF_PREV ].Enable( on && nsf.GetCurrentSong() > 0 );
+					if (emulator.IsNsf())
+						Nes::Nsf(emulator).PlaySong();
+
 					break;
-				}
 
-				case Emulator::EVENT_NETPLAY_MODE_ON:
-				case Emulator::EVENT_NETPLAY_MODE_OFF:
+				case Emulator::EVENT_NETPLAY_MODE:
 
-					menu[IDM_MACHINE_NSF_OPTIONS_PLAYINBACKGROUND].Enable( event == Emulator::EVENT_NETPLAY_MODE_OFF );
+					menu[IDM_MACHINE_NSF_OPTIONS_PLAYINBACKGROUND].Enable( !data );
+					menu[IDM_POS_MACHINE][IDM_POS_MACHINE_NSF].Enable( !data );
 					break;
 			}
 		}
 
 		void Nsf::OnCmd(uint cmd)
 		{
-			NST_ASSERT( emulator.Is(Nes::Machine::SOUND,Nes::Machine::ON) );
+			Nes::Nsf nsf(emulator);
 
 			switch (cmd)
 			{
-				case IDM_MACHINE_NSF_PLAY: emulator.PlaySong(); break;
-				case IDM_MACHINE_NSF_STOP: emulator.StopSong(); break;
-				case IDM_MACHINE_NSF_NEXT: emulator.SelectNextSong(); break;
-				case IDM_MACHINE_NSF_PREV: emulator.SelectPrevSong(); break;
+				case IDM_MACHINE_NSF_PLAY: nsf.PlaySong(); break;
+				case IDM_MACHINE_NSF_STOP: nsf.StopSong(); break;
+				case IDM_MACHINE_NSF_NEXT: nsf.SelectNextSong(); break;
+				case IDM_MACHINE_NSF_PREV: nsf.SelectPrevSong(); break;
 			}
 
-			Application::Instance::GetMainWindow().Post( Application::Instance::WM_NST_COMMAND_RESUME );
+			Resume();
 		}
 
 		void Nsf::OnCmdPlayInBkg(uint)

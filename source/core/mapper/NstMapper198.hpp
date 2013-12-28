@@ -38,7 +38,7 @@ namespace Nes
 		public:
 
 			explicit Mapper198(Context& c)
-			: Mmc3Waixing(c,PROM_MAX_1024K|CROM_MAX_256K) {}
+			: Mmc3Waixing(c,PROM_MAX_1024K|CROM_MAX_256K|NMT_VERTICAL) {}
 
 		private:
 

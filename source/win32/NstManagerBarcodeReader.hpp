@@ -40,7 +40,9 @@ namespace Nestopia
 
 		private:
 
-			void OnEmuEvent(Emulator::Event);
+			bool Available() const;
+
+			void OnMenuExt(const Window::Menu::PopupHandler::Param&);
 			void OnMenuCmd(uint);
 
 			String::Heap<char> lastCode;

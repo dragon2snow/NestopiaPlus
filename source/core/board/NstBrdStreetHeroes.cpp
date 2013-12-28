@@ -23,6 +23,7 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 
 #include "../NstMapper.hpp"
+#include "../NstDipSwitches.hpp"
 #include "NstBrdMmc3.hpp"
 #include "NstBrdStreetHeroes.hpp"
 
@@ -36,17 +37,61 @@ namespace Nes
 			#pragma optimize("s", on)
 			#endif
 
+			StreetHeroes::CartSwitches::CartSwitches()
+			: region(0x00) {}
+
+			inline void StreetHeroes::CartSwitches::SetRegion(uint value)
+			{
+				region = value ? 0xFF : 0x00;
+			}
+
+			inline uint StreetHeroes::CartSwitches::GetRegion() const
+			{
+				return region;
+			}
+
+			uint StreetHeroes::CartSwitches::GetValue(uint) const
+			{
+				return region ? 1 : 0;
+			}
+
+			void StreetHeroes::CartSwitches::SetValue(uint,uint value)
+			{
+				region = value ? 0xFF : 0x00;
+			}
+
+			uint StreetHeroes::CartSwitches::NumDips() const
+			{
+				return 1;
+			}
+
+			uint StreetHeroes::CartSwitches::NumValues(uint) const
+			{
+				return 2;
+			}
+
+			cstring StreetHeroes::CartSwitches::GetDipName(uint) const
+			{
+				return "Region";
+			}
+
+			cstring StreetHeroes::CartSwitches::GetValueName(uint,uint i) const
+			{
+				return i ? "Asia" : "US";
+			}
+
+			StreetHeroes::Device StreetHeroes::QueryDevice(DeviceType type)
+			{
+				if (type == DEVICE_DIP_SWITCHES)
+					return &cartSwitches;
+				else
+					return Mapper::QueryDevice( type );
+			}
+
 			void StreetHeroes::SubReset(const bool hard)
 			{
 				if (hard)
-				{
-					exRegs[0] = 0x00;
-					exRegs[1] = 0x00;
-				}
-				else
-				{
-					exRegs[0] ^= 0xFF;
-				}
+					exReg = 0;
 
 				Mmc3::SubReset( hard );
 
@@ -61,8 +106,8 @@ namespace Nes
 					{
 						State::Loader::Data<2> data( state );
 
-						exRegs[0] = (data[0] & 0x1) ? 0xFF : 0x00;
-						exRegs[1] = data[1];
+						exReg = data[1];
+						cartSwitches.SetRegion( data[0] & 0x1 );
 					}
 
 					state.End();
@@ -71,7 +116,12 @@ namespace Nes
 
 			void StreetHeroes::SubSave(State::Saver& state) const
 			{
-				const byte data[2] = {exRegs[0] ? 0x1 : 0x0, exRegs[1]};
+				const byte data[2] =
+				{
+					cartSwitches.GetRegion() ? 0x1 : 0x0,
+					exReg
+				};
+
 				state.Begin( AsciiId<'R','E','G'>::V ).Write( data ).End();
 			}
 
@@ -83,7 +133,7 @@ namespace Nes
 			{
 				ppu.Update();
 
-				if (exRegs[1] & 0x40)
+				if (exReg & 0x40)
 				{
 					chr.Source(1).SwapBank<SIZE_8K,0x0000>(0);
 				}
@@ -94,33 +144,33 @@ namespace Nes
 					chr.SwapBanks<SIZE_2K>
 					(
 						0x0000 ^ swap,
-						banks.chr[0] | (exRegs[1] << (swap ? 7 : 4) & 0x80),
-						banks.chr[1] | (exRegs[1] << (swap ? 6 : 5) & 0x80)
+						banks.chr[0] | (exReg << (swap ? 7 : 4) & 0x80),
+						banks.chr[1] | (exReg << (swap ? 6 : 5) & 0x80)
 					);
 
 					chr.SwapBanks<SIZE_1K>
 					(
 						0x1000 ^ swap,
-						banks.chr[2] | (exRegs[1] << (swap ? 5 : 8) & 0x100),
-						banks.chr[3] | (exRegs[1] << (swap ? 5 : 8) & 0x100),
-						banks.chr[4] | (exRegs[1] << (swap ? 6 : 7) & 0x100),
-						banks.chr[5] | (exRegs[1] << (swap ? 6 : 7) & 0x100)
+						banks.chr[2] | (exReg << (swap ? 5 : 8) & 0x100),
+						banks.chr[3] | (exReg << (swap ? 5 : 8) & 0x100),
+						banks.chr[4] | (exReg << (swap ? 6 : 7) & 0x100),
+						banks.chr[5] | (exReg << (swap ? 6 : 7) & 0x100)
 					);
 				}
 			}
 
-			NES_POKE(StreetHeroes,4100)
+			NES_POKE_D(StreetHeroes,4100)
 			{
-				if (exRegs[1] != data)
+				if (exReg != data)
 				{
-					exRegs[1] = data;
+					exReg = data;
 					StreetHeroes::UpdateChr();
 				}
 			}
 
 			NES_PEEK(StreetHeroes,4100)
 			{
-				return exRegs[0];
+				return cartSwitches.GetRegion();
 			}
 		}
 	}

@@ -94,7 +94,7 @@ namespace Nes
 			}
 		}
 
-		ibool Mapper40::Irq::Signal()
+		bool Mapper40::Irq::Clock()
 		{
 			if (enabled)
 			{
@@ -110,7 +110,7 @@ namespace Nes
 			return false;
 		}
 
-		NES_PEEK(Mapper40,6000)
+		NES_PEEK_A(Mapper40,6000)
 		{
 			return *prg.Source().Mem( (SIZE_64K-SIZE_16K-0x6000) + address );
 		}
@@ -118,7 +118,8 @@ namespace Nes
 		NES_POKE(Mapper40,8000)
 		{
 			irq.Update();
-			irq.unit.Reset();
+			irq.unit.enabled = false;
+			irq.unit.count = 0;
 			irq.ClearIRQ();
 		}
 
@@ -128,14 +129,15 @@ namespace Nes
 			irq.unit.enabled = true;
 		}
 
-		NES_POKE(Mapper40,E000)
+		NES_POKE_D(Mapper40,E000)
 		{
 			prg.SwapBank<SIZE_8K,0x4000>(data & 0x7);
 		}
 
-		void Mapper40::VSync()
+		void Mapper40::Sync(Event event,Input::Controllers*)
 		{
-			irq.VSync();
+			if (event == EVENT_END_FRAME)
+				irq.VSync();
 		}
 	}
 }

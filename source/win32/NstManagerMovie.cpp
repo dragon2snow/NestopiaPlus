@@ -22,7 +22,7 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include <iostream>
+#include <fstream>
 #include "NstIoLog.hpp"
 #include "NstIoScreen.hpp"
 #include "NstIoNsp.hpp"
@@ -32,79 +32,15 @@
 #include "NstDialogMovie.hpp"
 #include "NstManagerAviConverter.hpp"
 #include "NstManagerMovie.hpp"
-#include "../core/api/NstApiRewinder.hpp"
 
 namespace Nestopia
 {
 	namespace Managers
 	{
-		struct Movie::Callbacks
-		{
-			static void NST_CALLBACK OnState(Nes::Movie::UserData data,Nes::Movie::State state)
-			{
-				NST_ASSERT( data );
-
-				uint msg;
-				Movie& movie = *static_cast<Movie*>(data);
-
-				if (NES_SUCCEEDED(state))
-				{
-					switch (state)
-					{
-						case Nes::Movie::PLAYING:
-
-							msg = IDS_SCREEN_MOVIE_PLAY_STARTED;
-							break;
-
-						case Nes::Movie::RECORDING:
-
-							msg = IDS_SCREEN_MOVIE_REC_STARTED;
-							break;
-
-						case Nes::Movie::STOPPED_PLAYING:
-
-							movie.Close( REWOUND );
-							msg = IDS_SCREEN_MOVIE_PLAY_STOPPED;
-							break;
-
-						case Nes::Movie::STOPPED_RECORDING:
-
-							movie.Close( FORWARDED );
-							msg = IDS_SCREEN_MOVIE_REC_STOPPED;
-							break;
-
-						default:
-
-							NST_DEBUG_MSG("Movie::Callbacks::OnState() unknown state!");
-							return;
-					}
-
-					Io::Screen() << Resource::String( msg );
-				}
-				else
-				{
-					movie.Close( REWOUND, false );
-
-					switch (state)
-					{
-						case Nes::Movie::ERR_CORRUPT_FILE:      msg = IDS_FILE_ERR_CORRUPT;         break;
-						case Nes::Movie::ERR_OUT_OF_MEMORY:     msg = IDS_ERR_OUT_OF_MEMORY;        break;
-						case Nes::Movie::ERR_UNSUPPORTED_IMAGE: msg = IDS_EMU_ERR_UNSUPPORTED_GAME; break;
-						case Nes::Movie::ERR_GENERIC:
-						default:                                msg = IDS_ERR_GENERIC;              break;
-					}
-
-					Io::Screen() << Resource::String( Nes::Movie(movie.emulator).IsPlaying() ? IDS_EMU_ERR_MOVIE_PLAY : IDS_EMU_ERR_MOVIE_REC )
-                                 << ' '
-                                 << Resource::String( msg );
-				}
-			}
-		};
-
 		Movie::Movie(Emulator& e,Window::Menu& m,const Paths& p)
 		:
 		Manager ( e, m, this, &Movie::OnEmuEvent ),
-		pos     ( REWOUND ),
+		file    ( e ),
 		dialog  ( new Window::Movie(p) ),
 		paths   ( p )
 		{
@@ -123,127 +59,35 @@ namespace Nestopia
 
 			static const Window::Menu::PopupHandler::Entry<Movie> popups[] =
 			{
-				{ Window::Menu::PopupHandler::Pos<IDM_POS_FILE,IDM_POS_FILE_MOVIE>::ID, &Movie::OnMenuView }
+				{ Window::Menu::PopupHandler::Pos<IDM_POS_FILE,IDM_POS_FILE_MOVIE>::ID, &Movie::OnMenu }
 			};
 
-			menu.PopupRouter().Add( this, popups );
-
-			Nes::Movie::stateCallback.Set( &Callbacks::OnState, this );
+			menu.Popups().Add( this, popups );
 		}
 
 		Movie::~Movie()
 		{
-			Nes::Movie::stateCallback.Unset();
 		}
 
-		bool Movie::CanPlay() const
+		bool Movie::Load(const Path& path,const Alert alert)
 		{
-			const Path path( dialog->GetMovieFile() );
-
-			return
-			(
-				emulator.Is(Nes::Machine::GAME) &&
-				Nes::Movie( emulator ).IsStopped() &&
-				path.Length() && path.FileExists()
-			);
-		}
-
-		bool Movie::CanRecord() const
-		{
-			const Path path( dialog->GetMovieFile() );
-
-			return
-			(
-				emulator.Is(Nes::Machine::GAME) &&
-				Nes::Movie( emulator ).IsStopped() &&
-				path.Length() && !path.FileProtected()
-			);
-		}
-
-		bool Movie::CanStop() const
-		{
-			return !Nes::Movie( emulator ).IsStopped();
-		}
-
-		bool Movie::CanRewind() const
-		{
-			return pos != REWOUND && CanPlay();
-		}
-
-		bool Movie::CanForward() const
-		{
-			const Path path( dialog->GetMovieFile() );
-
-			return
-			(
-				pos != FORWARDED &&
-				emulator.Is(Nes::Machine::GAME) &&
-				Nes::Movie( emulator ).IsStopped() &&
-				path.Length() &&
-				path.FileExists() &&
-				!path.FileProtected()
-			);
-		}
-
-		void Movie::OnMenuView(Window::Menu::PopupHandler::Param& param)
-		{
-			param.menu[ IDM_FILE_MOVIE_PLAY       ].Enable( CanPlay()    );
-			param.menu[ IDM_FILE_MOVIE_RECORD     ].Enable( CanRecord()  );
-			param.menu[ IDM_FILE_MOVIE_STOP       ].Enable( CanStop()    );
-			param.menu[ IDM_FILE_MOVIE_REWIND     ].Enable( CanRewind()  );
-			param.menu[ IDM_FILE_MOVIE_FORWARD    ].Enable( CanForward() );
-			param.menu[ IDM_FILE_MOVIE_EXPORT_AVI ].Enable( CanPlay()    );
-		}
-
-		bool Movie::Open(const std::fstream::openmode mode)
-		{
-			NST_ASSERT( dialog->GetMovieFile().Length() && !stream.is_open() );
-
-			stream.clear();
-			stream.open( dialog->GetMovieFile().Ptr(), mode | std::fstream::binary );
-
-			if (stream.is_open())
-				return true;
-
-			Io::Screen() << Resource::String( (mode & std::fstream::out) ? IDS_EMU_ERR_MOVIE_REC : IDS_EMU_ERR_MOVIE_PLAY )
-                         << ' '
-                         << Resource::String( IDS_FILE_ERR_OPEN );
-
-			return false;
-		}
-
-		void Movie::Close(Pos p,bool ok)
-		{
-			pos = p;
-
-			if (stream.is_open())
+			if (path.Archive().Length())
 			{
-				stream.seekp( 0, ok ? std::fstream::end : std::fstream::beg );
-				stream.close();
-			}
-		}
-
-		bool Movie::Load(const Path& fileName,const Alert alert)
-		{
-			if (fileName.Archive().Length())
-			{
-				Nes::Movie(emulator).Eject();
-
 				dialog->ClearMovieFile();
 
 				if (alert == NOISY)
 					Window::User::Fail( IDS_FILE_ERR_CANT_USE_IN_ARCHIVE );
 				else
 					Io::Log() << "Movie: ignoring file, can't use it while it's archived..\r\n";
-
-				return false;
 			}
-			else if (dialog->SetMovieFile( fileName ))
+			else
 			{
-				Nes::Movie(emulator).Eject();
+				dialog->SetMovieFile( path );
 			}
 
-			return true;
+			file.Update( dialog->GetMovieFile() );
+
+			return !file.GetPath().Empty();
 		}
 
 		void Movie::Save(Io::Nsp::Context& context) const
@@ -251,176 +95,277 @@ namespace Nestopia
 			context.movie = dialog->GetMovieFile();
 		}
 
+		void Movie::OnMenu(const Window::Menu::PopupHandler::Param& param)
+		{
+			param.menu[ IDM_FILE_MOVIE_PLAY       ].Enable( !param.show || file.CanPlay()    );
+			param.menu[ IDM_FILE_MOVIE_RECORD     ].Enable( !param.show || file.CanRecord()  );
+			param.menu[ IDM_FILE_MOVIE_STOP       ].Enable( !param.show || file.CanStop()    );
+			param.menu[ IDM_FILE_MOVIE_REWIND     ].Enable( !param.show || file.CanRewind()  );
+			param.menu[ IDM_FILE_MOVIE_FORWARD    ].Enable( !param.show || file.CanForward() );
+			param.menu[ IDM_FILE_MOVIE_EXPORT_AVI ].Enable( !param.show || file.CanPlay()    );
+		}
+
 		void Movie::OnCmdFile(uint)
 		{
-			const Path old( dialog->GetMovieFile() );
 			dialog->Open();
-
-			if (dialog->GetMovieFile().Empty())
-				pos = REWOUND;
-
-			if (old != dialog->GetMovieFile())
-				Nes::Movie(emulator).Eject();
+			file.Update( dialog->GetMovieFile() );
 		}
 
 		void Movie::OnCmdRecord(uint)
 		{
-			const bool on = emulator.Is(Nes::Machine::ON);
+			if (file.Start( File::MODE_RECORD ) && !emulator.Power( true ))
+				Nes::Movie(emulator).Stop();
 
-			if (CanRecord() && (on || emulator.Power( true )))
-			{
-				if (Nes::Rewinder(emulator).IsEnabled())
-				{
-					Io::Screen() << Resource::String( IDS_EMU_ERR_MOVIE_REWINDER );
-				}
-				else if (Open( (pos == REWOUND) ? (std::fstream::trunc|std::fstream::in|::std::fstream::out) : (std::fstream::in|std::fstream::out) ))
-				{
-					const Nes::Result result = Nes::Movie(emulator).Record( stream, pos == REWOUND ? Nes::Movie::CLEAN : Nes::Movie::APPEND );
-
-					if (NES_FAILED(result))
-					{
-						Close( REWOUND, false );
-
-						if (!on)
-							emulator.Power( false );
-
-						uint msg;
-
-						switch (result)
-						{
-							case Nes::RESULT_ERR_CORRUPT_FILE:  msg = IDS_FILE_ERR_CORRUPT;  break;
-							case Nes::RESULT_ERR_INVALID_FILE:  msg = IDS_FILE_ERR_INVALID;  break;
-							case Nes::RESULT_ERR_OUT_OF_MEMORY: msg = IDS_ERR_OUT_OF_MEMORY; break;
-							default:                            msg = IDS_EMU_ERR_GENERIC;   break;
-						}
-
-						Io::Screen() << Resource::String( IDS_EMU_ERR_MOVIE_REC )
-                                     << ' '
-                                     << Resource::String( msg );
-					}
-				}
-			}
-
-			Application::Instance::GetMainWindow().Post( Application::Instance::WM_NST_COMMAND_RESUME );
+			Resume();
 		}
 
 		void Movie::OnCmdPlay(uint)
 		{
-			const bool on = emulator.Is(Nes::Machine::ON);
-
-			if (CanPlay() && (on || emulator.Power( true )))
+			if (file.Start( File::MODE_PLAY ))
 			{
-				if (Nes::Rewinder(emulator).IsEnabled())
-				{
-					Io::Screen() << Resource::String( IDS_EMU_ERR_MOVIE_REWINDER );
-				}
-				else if (Open( std::fstream::in ))
-				{
-					const Nes::Result result = Nes::Movie(emulator).Play( stream );
-
-					if (NES_SUCCEEDED(result))
-					{
-						emulator.AskBeforeSaving();
-					}
-					else
-					{
-						Close( REWOUND, false );
-
-						if (!on)
-							emulator.Power( false );
-
-						if (result != Nes::RESULT_ERR_INVALID_CRC)
-						{
-							uint msg;
-
-							switch (result)
-							{
-								case Nes::RESULT_ERR_CORRUPT_FILE:             msg = IDS_FILE_ERR_CORRUPT;                 break;
-								case Nes::RESULT_ERR_INVALID_FILE:             msg = IDS_FILE_ERR_INVALID;                 break;
-								case Nes::RESULT_ERR_OUT_OF_MEMORY:            msg = IDS_ERR_OUT_OF_MEMORY;                break;
-								case Nes::RESULT_ERR_UNSUPPORTED_FILE_VERSION: msg = IDS_EMU_ERR_UNSUPPORTED_FILE_VERSION; break;
-								default:                                       msg = IDS_EMU_ERR_GENERIC;                  break;
-							}
-
-							Io::Screen() << Resource::String( IDS_EMU_ERR_MOVIE_PLAY )
-                                         << ' '
-                                         << Resource::String( msg );
-						}
-					}
-				}
+				if (emulator.Power( true ))
+					emulator.AskBeforeSaving();
+				else
+					Nes::Movie(emulator).Stop();
 			}
 
-			Application::Instance::GetMainWindow().Post( Application::Instance::WM_NST_COMMAND_RESUME );
+			Resume();
 		}
 
 		void Movie::OnCmdExportAvi(uint)
 		{
-			if (CanPlay())
+			if (file.CanPlay())
 			{
-				if (Nes::Rewinder(emulator).IsEnabled())
+				if (const uint ids = AviConverter( emulator ).Record( file.GetPath(), paths.BrowseSave( Paths::File::AVI, Paths::SUGGEST, file.GetPath() ) ))
 				{
-					Io::Screen() << Resource::String( IDS_EMU_ERR_MOVIE_REWINDER );
-				}
-				else if (Open( std::fstream::in ))
-				{
-					if (const uint ids = AviConverter( emulator, stream ).Record( paths.BrowseSave( Paths::File::AVI, Paths::SUGGEST, dialog->GetMovieFile() ) ))
-					{
-						if (ids == IDS_AVI_WRITE_ABORT || ids == IDS_AVI_WRITE_FINISHED)
-							Window::User::Inform( ids );
-						else
-							Window::User::Fail( ids );
-					}
-
-					Close( REWOUND );
+					if (ids == IDS_AVI_WRITE_ABORT || ids == IDS_AVI_WRITE_FINISHED)
+						Window::User::Inform( ids );
+					else
+						Window::User::Fail( ids );
 				}
 			}
 		}
 
 		void Movie::OnCmdStop(uint)
 		{
-			Nes::Movie(emulator).Eject();
-			Application::Instance::GetMainWindow().Post( Application::Instance::WM_NST_COMMAND_RESUME );
+			Nes::Movie(emulator).Stop();
+			Resume();
 		}
 
 		void Movie::OnCmdRewind(uint)
 		{
-			if (CanRewind())
-			{
-				pos = REWOUND;
+			if (file.Rewind())
 				Io::Screen() << Resource::String( IDS_SCREEN_MOVIE_REWOUND );
-			}
 
-			Application::Instance::GetMainWindow().Post( Application::Instance::WM_NST_COMMAND_RESUME );
+			Resume();
 		}
 
 		void Movie::OnCmdForward(uint)
 		{
-			if (CanForward())
-			{
-				pos = FORWARDED;
+			if (file.Forward())
 				Io::Screen() << Resource::String( IDS_SCREEN_MOVIE_FORWARDED );
-			}
 
-			Application::Instance::GetMainWindow().Post( Application::Instance::WM_NST_COMMAND_RESUME );
+			Resume();
 		}
 
-		void Movie::OnEmuEvent(Emulator::Event event)
+		void Movie::OnEmuEvent(const Emulator::Event event,const Emulator::Data data)
 		{
 			switch (event)
 			{
-				case Emulator::EVENT_NETPLAY_MODE_ON:
-				case Emulator::EVENT_NETPLAY_MODE_OFF:
+				case Emulator::EVENT_MOVIE_PLAYING:
+				case Emulator::EVENT_MOVIE_PLAYING_STOPPED:
+				case Emulator::EVENT_MOVIE_RECORDING:
+				case Emulator::EVENT_MOVIE_RECORDING_STOPPED:
 
-					menu[IDM_POS_FILE][IDM_POS_FILE_MOVIE].Enable( event == Emulator::EVENT_NETPLAY_MODE_OFF );
+					if (event == Emulator::EVENT_MOVIE_PLAYING || event == Emulator::EVENT_MOVIE_RECORDING)
+					{
+						Io::Screen() << Resource::String
+						(
+							event == Emulator::EVENT_MOVIE_PLAYING ? IDS_SCREEN_MOVIE_PLAY_STARTED :
+                                                                     IDS_SCREEN_MOVIE_REC_STARTED
+						);
+					}
+					else
+					{
+						const uint op =
+						(
+							event == Emulator::EVENT_MOVIE_PLAYING_STOPPED ? IDS_SCREEN_MOVIE_PLAY_STOPPED :
+                                                                             IDS_SCREEN_MOVIE_REC_STOPPED
+						);
+
+						const Nes::Result result = static_cast<Nes::Result>(data);
+
+						if (NES_SUCCEEDED(result))
+						{
+							file.Stop( event == Emulator::EVENT_MOVIE_PLAYING_STOPPED ? File::POS_BEG : File::POS_END );
+
+							Io::Screen() << Resource::String( op );
+						}
+						else
+						{
+							file.Stop( File::POS_BEG );
+
+							const uint msg = Emulator::ResultToString( result );
+
+							Io::Screen() << Resource::String( op )
+                                         << ' '
+                                         << Resource::String( msg ? msg : IDS_ERR_GENERIC );
+						}
+					}
 					break;
 
-				case Emulator::EVENT_POWER_OFF:
+				case Emulator::EVENT_LOAD:
+				case Emulator::EVENT_UNLOAD:
 
-					if (Nes::Movie(emulator).IsPlaying())
-						Nes::Movie(emulator).Eject();
+					if (emulator.NetPlayers())
+						menu[IDM_POS_FILE][IDM_POS_FILE_MOVIE].Enable( event == Emulator::EVENT_UNLOAD );
 
 					break;
 			}
+		}
+
+		Movie::File::File(Emulator& e)
+		: stream(NULL), pos(POS_BEG), emulator(e)
+		{
+		}
+
+		Movie::File::~File()
+		{
+			Nes::Movie(emulator).Stop();
+			Stop();
+		}
+
+		const Path& Movie::File::GetPath() const
+		{
+			return path;
+		}
+
+		void Movie::File::Update(const Path& newPath)
+		{
+			if (path != newPath)
+			{
+				Nes::Movie(emulator).Stop();
+				path = newPath;
+				pos = POS_BEG;
+			}
+		}
+
+		bool Movie::File::Start(const Mode mode)
+		{
+			if (!(mode == MODE_PLAY ? CanPlay() : CanRecord()))
+				return false;
+
+			uint msg;
+
+			if (mode == MODE_PLAY || !path.FileProtected())
+			{
+				std::fstream* const file = new std::fstream
+				(
+					path.Ptr(),
+					mode == MODE_PLAY ? (std::fstream::binary|std::fstream::in) :
+					pos  == POS_BEG   ? (std::fstream::binary|std::fstream::in|std::fstream::out|std::fstream::trunc) :
+										(std::fstream::binary|std::fstream::in|std::fstream::out)
+				);
+
+				stream = file;
+
+				if (file->is_open())
+				{
+					const Nes::Result result =
+					(
+						mode == MODE_RECORD ? Nes::Movie(emulator).Record( *stream, pos == POS_BEG ? Nes::Movie::CLEAN : Nes::Movie::APPEND ) :
+                                              Nes::Movie(emulator).Play( *stream )
+					);
+
+					if (NES_SUCCEEDED(result))
+						return true;
+
+					msg = Emulator::ResultToString( result );
+				}
+				else
+				{
+					msg = IDS_FILE_ERR_OPEN;
+				}
+			}
+			else
+			{
+				msg = IDS_FILE_ERR_WRITE_PROTECTED;
+			}
+
+			if (msg)
+			{
+				Io::Screen() << Resource::String( mode == MODE_RECORD ? IDS_EMU_ERR_MOVIE_REC : IDS_EMU_ERR_MOVIE_PLAY )
+                             << ' '
+                             << Resource::String( msg );
+			}
+
+			Stop();
+
+			return false;
+		}
+
+		void Movie::File::Stop(Pos p)
+		{
+			pos = p;
+			delete stream;
+			stream = NULL;
+		}
+
+		bool Movie::File::Rewind()
+		{
+			if (CanRewind())
+			{
+				pos = POS_BEG;
+				return true;
+			}
+
+			return false;
+		}
+
+		bool Movie::File::Forward()
+		{
+			if (CanForward())
+			{
+				pos = POS_END;
+				return true;
+			}
+
+			return false;
+		}
+
+		bool Movie::File::CanPlay() const
+		{
+			return IsReady() && !emulator.NetPlayers() && Nes::Movie(emulator).IsStopped() && path.FileExists();
+		}
+
+		bool Movie::File::CanRecord() const
+		{
+			return IsReady() && Nes::Movie(emulator).IsStopped();
+		}
+
+		bool Movie::File::CanStop() const
+		{
+			return stream;
+		}
+
+		bool Movie::File::CanRewind() const
+		{
+			return pos != POS_BEG && CanSetPos();
+		}
+
+		bool Movie::File::CanForward() const
+		{
+			return pos != POS_END && CanSetPos();
+		}
+
+		bool Movie::File::IsReady() const
+		{
+			return path.Length() && emulator.IsGame();
+		}
+
+		bool Movie::File::CanSetPos() const
+		{
+			return IsReady() && Nes::Movie(emulator).IsStopped() && path.FileExists();
 		}
 	}
 }

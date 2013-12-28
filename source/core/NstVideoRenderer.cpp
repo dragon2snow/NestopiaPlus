@@ -206,10 +206,7 @@ namespace Nes
 			void Renderer::Palette::Store(const double (&src)[3],byte (&dst)[3])
 			{
 				for (uint i=0; i < 3; ++i)
-				{
-					int c = src[i] * 255 + 0.5;
-					dst[i] = NST_CLAMP(c,0,255);
-				}
+					dst[i] = Clamp<0,255>( src[i] * 255 + 0.5 );
 			}
 
 			Result Renderer::Palette::LoadCustom(const byte (*colors)[3],const bool emphasis)
@@ -312,12 +309,12 @@ namespace Nes
 
 				const double matrix[6] =
 				{
-					std::sin( (90  - 33 - hue) * Constants::deg ) * 0.570 * 2,
-					std::cos( (90  - 33 - hue) * Constants::deg ) * 0.570 * 2,
-					std::sin( (236 - 33 - hue) * Constants::deg ) * 0.351 * 2,
-					std::cos( (236 - 33 - hue) * Constants::deg ) * 0.351 * 2,
-					std::sin( (0   - 33 - hue) * Constants::deg ) * 1.015 * 2,
-					std::cos( (0   - 33 - hue) * Constants::deg ) * 1.015 * 2
+					std::sin( (90  - 33 - hue) * Constants::deg ) * (0.570 * 2),
+					std::cos( (90  - 33 - hue) * Constants::deg ) * (0.570 * 2),
+					std::sin( (236 - 33 - hue) * Constants::deg ) * (0.351 * 2),
+					std::cos( (236 - 33 - hue) * Constants::deg ) * (0.351 * 2),
+					std::sin( (0   - 33 - hue) * Constants::deg ) * (1.015 * 2),
+					std::cos( (0   - 33 - hue) * Constants::deg ) * (1.015 * 2)
 				};
 
 				const byte (*from)[3] =
@@ -517,6 +514,9 @@ namespace Nes
 
 			Renderer::State::State()
 			:
+			filter       (RenderState::FILTER_NONE),
+			width        (0),
+			height       (0),
 			update       (UPDATE_PALETTE),
 			brightness   (0),
 			saturation   (0),
@@ -529,7 +529,11 @@ namespace Nes
 			fringing     (0),
 			scanlines    (0),
 			fieldMerging (0)
-			{}
+			{
+				mask.r = 0;
+				mask.g = 0;
+				mask.b = 0;
+			}
 
 			Renderer::Renderer()
 			: filter(NULL) {}
@@ -668,12 +672,12 @@ namespace Nes
 					state.update |= uint(State::UPDATE_NTSC);
 			}
 
-			void Renderer::SetMode(Mode mode)
+			void Renderer::SetRegion(Region::Type region)
 			{
 				const bool old = state.fieldMerging;
 				state.fieldMerging &= uint(State::FIELD_MERGING_USER);
 
-				if (mode == MODE_PAL)
+				if (region == Region::PAL)
 					state.fieldMerging |= uint(State::FIELD_MERGING_PAL);
 
 				if (bool(state.fieldMerging) != old)

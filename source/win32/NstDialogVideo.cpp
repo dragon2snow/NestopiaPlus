@@ -366,7 +366,7 @@ namespace Nestopia
 				cfg,
 				settings.filters,
 				Nes::Video(nes),
-				(Filter::Type) (settings.filter - settings.filters)
+				static_cast<Filter::Type>(settings.filter - settings.filters)
 			);
 
 			cfg[ "video texture location" ] = (settings.texMem == Settings::TEXMEM_SYSMEM ? "sysmem" : "vidmem");
@@ -427,18 +427,11 @@ namespace Nestopia
 			VideoFilters::UpdateAutoModes( settings.filters, nes, mode );
 		}
 
-		void Video::GetRenderState(Nes::Video::RenderState& state,float rect[4],const Point screen) const
+		const Rect Video::GetRenderState(Nes::Video::RenderState& state,const Point screen) const
 		{
 			typedef Nes::Video::RenderState State;
 
-			{
-				const Rect& nesRect = (Nes::Machine(nes).GetMode() == Nes::Machine::NTSC ? settings.rects.ntsc : settings.rects.pal);
-
-				rect[0] = nesRect.left;
-				rect[1] = nesRect.top;
-				rect[2] = nesRect.right;
-				rect[3] = nesRect.bottom;
-			}
+			Rect rect( Nes::Machine(nes).GetMode() == Nes::Machine::NTSC ? settings.rects.ntsc : settings.rects.pal );
 
 			state.width = NES_WIDTH;
 			state.height = NES_HEIGHT;
@@ -453,7 +446,7 @@ namespace Nestopia
 
 					state.scanlines = settings.filters[Filter::TYPE_STD].attributes[Filter::ATR_SCANLINES];
 
-					if (state.scanlines && settings.adapter->maxScreenSize >= Filter::MAX_2X_SIZE && screen.y >= (rect[3]-rect[1]) * 2)
+					if (state.scanlines && settings.adapter->maxScreenSize >= Filter::MAX_2X_SIZE && screen.y >= rect.Height() * 2)
 						scale = 2;
 
 					break;
@@ -462,13 +455,10 @@ namespace Nestopia
 
 					NST_ASSERT( settings.adapter->maxScreenSize >= Filter::MAX_NTSC_SIZE );
 
-					if (rect[0] < 1)
-						rect[0] = 1;
-
-					rect[0] *= float( NTSC_WIDTH  ) / NES_WIDTH;
-					rect[1] *= float( NTSC_HEIGHT ) / NES_HEIGHT;
-					rect[2] *= float( NTSC_WIDTH  ) / NES_WIDTH;
-					rect[3] *= float( NTSC_HEIGHT ) / NES_HEIGHT;
+					rect.left   = (rect.left   * (NTSC_WIDTH  - 4) + NES_WIDTH  / 2) / NES_WIDTH  + 3;
+					rect.top    = (rect.top    * (NTSC_HEIGHT - 0) + NES_HEIGHT / 2) / NES_HEIGHT + 0;
+					rect.right  = (rect.right  * (NTSC_WIDTH  - 4) + NES_WIDTH  / 2) / NES_WIDTH  + 3;
+					rect.bottom = (rect.bottom * (NTSC_HEIGHT - 0) + NES_HEIGHT / 2) / NES_HEIGHT + 0;
 
 					state.width = NTSC_WIDTH;
 					state.height = NTSC_HEIGHT;
@@ -484,7 +474,7 @@ namespace Nestopia
 
 					if (attribute == Filter::ATR_SCALEAX)
 					{
-						const Point nes( rect[2]-rect[0], rect[3]-rect[1] );
+						const Point nes( rect.Size() );
 
 						if (screen.x >= nes.x*3 && screen.y >= nes.y*3)
 						{
@@ -524,7 +514,7 @@ namespace Nestopia
 
 					if (attribute == Filter::ATR_HQAX)
 					{
-						const Point nes( rect[2]-rect[0], rect[3]-rect[1] );
+						const Point nes( rect.Size() );
 
 						if (screen.x >= nes.x*4 && screen.y >= nes.y*4)
 						{
@@ -573,8 +563,12 @@ namespace Nestopia
 			state.width = state.width * scale;
 			state.height = state.height * scale;
 
-			for (uint i=0; i < 4; ++i)
-				rect[i] *= scale;
+			rect.left   *= scale;
+			rect.top    *= scale;
+			rect.right  *= scale;
+			rect.bottom *= scale;
+
+			return rect;
 		}
 
 		void Video::LoadGamePalette(const Path& path)
@@ -644,19 +638,12 @@ namespace Nestopia
 
 				if (settings.filter == settings.filters + Filter::TYPE_NTSC)
 				{
-					if (rect.left < 1)
-						rect.left = 1;
-
 					if (settings.tvAspect || !settings.filters[Filter::TYPE_NTSC].attributes[Filter::ATR_RESCALE_PIC])
 					{
-						rect.left   = (rect.left   * NTSC_WIDTH  + NES_WIDTH  / 2) / NES_WIDTH;
-						rect.top    = (rect.top    * NTSC_HEIGHT + NES_HEIGHT / 2) / NES_HEIGHT;
-						rect.right  = (rect.right  * NTSC_WIDTH  + NES_WIDTH  / 2) / NES_WIDTH;
-						rect.bottom = (rect.bottom * NTSC_HEIGHT + NES_HEIGHT / 2) / NES_HEIGHT;
-					}
-					else
-					{
-						rect.right += 2;
+						rect.left   = (rect.left   * (NTSC_WIDTH  - 4) + NES_WIDTH  / 2) / NES_WIDTH  + 3;
+						rect.top    = (rect.top    * (NTSC_HEIGHT - 0) + NES_HEIGHT / 2) / NES_HEIGHT + 0;
+						rect.right  = (rect.right  * (NTSC_WIDTH  - 4) + NES_WIDTH  / 2) / NES_WIDTH  + 3;
+						rect.bottom = (rect.bottom * (NTSC_HEIGHT - 0) + NES_HEIGHT / 2) / NES_HEIGHT + 0;
 					}
 				}
 				else if (settings.tvAspect)
@@ -862,7 +849,7 @@ namespace Nestopia
 			if (param.ComboBox().SelectionChanged())
 			{
 				const uint method = GetFullscreenScaleMethod();
-				settings.filter = settings.filters + (Filter::Type) (Control::ComboBox::Value) dialog.ComboBox( IDC_VIDEO_EFFECTS ).Selection().Data();
+				settings.filter = settings.filters + dialog.ComboBox( IDC_VIDEO_EFFECTS ).Selection().Data();
 				UpdateFullscreenScaleMethod( method );
 
 				UpdatePalette();

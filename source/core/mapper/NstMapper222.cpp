@@ -37,7 +37,7 @@ namespace Nes
 		Mapper222::Mapper222(Context& c)
 		:
 		Mapper (c,CROM_MAX_256K|WRAM_DEFAULT),
-		irq    (c.cpu,c.ppu,Irq::SIGNAL_DURATION)
+		irq    (c.cpu,c.ppu)
 		{}
 
 		void Mapper222::Irq::Reset(bool)
@@ -86,7 +86,7 @@ namespace Nes
 		#pragma optimize("", on)
 		#endif
 
-		ibool Mapper222::Irq::Signal()
+		bool Mapper222::Irq::Clock()
 		{
 			if (!count || ++count < 240)
 				return false;
@@ -95,16 +95,17 @@ namespace Nes
 			return true;
 		}
 
-		NES_POKE(Mapper222,F000)
+		NES_POKE_D(Mapper222,F000)
 		{
 			irq.Update();
 			irq.ClearIRQ();
 			irq.unit.count = data;
 		}
 
-		void Mapper222::VSync()
+		void Mapper222::Sync(Event event,Input::Controllers*)
 		{
-			irq.VSync();
+			if (event == EVENT_END_FRAME)
+				irq.VSync();
 		}
 	}
 }

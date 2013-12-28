@@ -35,16 +35,6 @@ namespace Nes
 		#pragma optimize("s", on)
 		#endif
 
-		NST_COMPILE_ASSERT
-		(
-			Api::Cartridge::MIRROR_HORIZONTAL == 0 &&
-			Api::Cartridge::MIRROR_VERTICAL   == 1 &&
-			Api::Cartridge::MIRROR_FOURSCREEN == 2 &&
-			Api::Cartridge::MIRROR_ZERO       == 3 &&
-			Api::Cartridge::MIRROR_ONE        == 4 &&
-			Api::Cartridge::MIRROR_CONTROLLED == 5
-		);
-
 		const dword ImageDatabase::ramSizes[16] =
 		{
 			0,
@@ -70,6 +60,15 @@ namespace Nes
 		numEntries (0),
 		entries    (NULL)
 		{
+			NST_COMPILE_ASSERT
+			(
+				Cart::MIRROR_HORIZONTAL == 0 &&
+				Cart::MIRROR_VERTICAL   == 1 &&
+				Cart::MIRROR_FOURSCREEN == 2 &&
+				Cart::MIRROR_ZERO       == 3 &&
+				Cart::MIRROR_ONE        == 4 &&
+				Cart::MIRROR_CONTROLLED == 5
+			);
 		}
 
 		ImageDatabase::~ImageDatabase()
@@ -156,52 +155,52 @@ namespace Nes
 			return NULL;
 		}
 
-		System ImageDatabase::GetSystem(Handle h) const
+		ImageDatabase::Cart::System ImageDatabase::GetSystem(Handle h) const
 		{
 			const uint flags = static_cast<Ref>(h)->flags;
 
 			if (flags & Entry::FLAGS_VS)
 			{
-				return SYSTEM_VS;
+				return Cart::SYSTEM_VS;
 			}
 			else if (flags & Entry::FLAGS_P10)
 			{
-				return SYSTEM_PC10;
+				return Cart::SYSTEM_PC10;
 			}
 			else
 			{
-				return SYSTEM_HOME;
+				return Cart::SYSTEM_HOME;
 			}
 		}
 
-		Region ImageDatabase::GetRegion(Handle h) const
+		ImageDatabase::Cart::Region ImageDatabase::GetRegion(Handle h) const
 		{
 			switch (uint(static_cast<Ref>(h)->flags) & (Entry::FLAGS_NTSC|Entry::FLAGS_PAL))
 			{
 				case (Entry::FLAGS_NTSC|Entry::FLAGS_PAL):
-					return REGION_BOTH;
+					return Cart::REGION_BOTH;
 
 				case Entry::FLAGS_PAL:
-					return REGION_PAL;
+					return Cart::REGION_PAL;
 
 				default:
-					return REGION_NTSC;
+					return Cart::REGION_NTSC;
 			}
 		}
 
-		Api::Cartridge::Condition ImageDatabase::GetCondition(Handle h) const
+		ImageDatabase::Cart::Condition ImageDatabase::GetCondition(Handle h) const
 		{
 			if (uint(static_cast<Ref>(h)->flags) & Entry::FLAGS_BAD)
 			{
-				return Api::Cartridge::DUMP_BAD;
+				return Cart::DUMP_BAD;
 			}
 			else if ((uint(static_cast<Ref>(h)->prgSkip) | uint(static_cast<Ref>(h)->chrSkip)) && !(uint(static_cast<Ref>(h)->flags) & Entry::FLAGS_P10))
 			{
-				return Api::Cartridge::DUMP_REPAIRABLE;
+				return Cart::DUMP_REPAIRABLE;
 			}
 			else
 			{
-				return Api::Cartridge::DUMP_OK;
+				return Cart::DUMP_OK;
 			}
 		}
 

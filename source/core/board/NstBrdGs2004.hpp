@@ -47,8 +47,6 @@ namespace Nes
 				~Gs2004() {}
 
 				void SubReset(bool);
-
-				NES_DECL_POKE( Prg );
 			};
 		}
 	}

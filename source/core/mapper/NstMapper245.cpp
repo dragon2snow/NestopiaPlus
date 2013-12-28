@@ -87,7 +87,7 @@ namespace Nes
 				Mmc3::UpdateChr();
 		}
 
-		NES_POKE(Mapper245,8001)
+		NES_POKE_AD(Mapper245,8001)
 		{
 			if (!(regs.ctrl0 & Regs::CTRL0_MODE))
 			{

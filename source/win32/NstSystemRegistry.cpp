@@ -213,7 +213,7 @@ namespace Nestopia
 			for (uint i=0; ; ++i)
 			{
 				DWORD storedType;
-				tchar storedValue[NST_MAX(_MAX_PATH+1,512)];
+				tchar storedValue[NST_MAX(MAX_PATH+1,512)];
 				DWORD storedValueSize = sizeof(storedValue);
 				DWORD storedDataSize = storedData.Size() * sizeof(tchar);
 

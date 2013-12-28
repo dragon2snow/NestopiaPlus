@@ -250,26 +250,19 @@ namespace Nes
 			return table[dip].Selection();
 		}
 
-		bool Cartridge::VsSystem::VsDipSwitches::SetValue(uint dip,uint value)
+		void Cartridge::VsSystem::VsDipSwitches::SetValue(uint dip,uint value)
 		{
 			NST_ASSERT( dip < size && value < table[dip].Size() );
 
 			const uint old = table[dip].Selection();
 
-			if (old != value)
-			{
-				regs[0] &= ~((table[dip][old] & DIPSWITCH_4016_MASK) << DIPSWITCH_4016_SHIFT);
-				regs[1] &= ~((table[dip][old] & DIPSWITCH_4017_MASK) << DIPSWITCH_4017_SHIFT);
+			regs[0] &= ~((table[dip][old] & DIPSWITCH_4016_MASK) << DIPSWITCH_4016_SHIFT);
+			regs[1] &= ~((table[dip][old] & DIPSWITCH_4017_MASK) << DIPSWITCH_4017_SHIFT);
 
-				table[dip].Select( value );
+			table[dip].Select( value );
 
-				regs[0] |= (table[dip][value] & DIPSWITCH_4016_MASK) << DIPSWITCH_4016_SHIFT;
-				regs[1] |= (table[dip][value] & DIPSWITCH_4017_MASK) << DIPSWITCH_4017_SHIFT;
-
-				return true;
-			}
-
-			return false;
+			regs[0] |= (table[dip][value] & DIPSWITCH_4016_MASK) << DIPSWITCH_4016_SHIFT;
+			regs[1] |= (table[dip][value] & DIPSWITCH_4017_MASK) << DIPSWITCH_4017_SHIFT;
 		}
 
 		#ifdef NST_MSVC_OPTIMIZE
@@ -307,7 +300,7 @@ namespace Nes
 			uint numDips;
 			Cpu& cpu;
 			Ppu& ppu;
-			PpuType ppuType;
+			Revision::Ppu ppuRev;
 			Mode mode;
 			InputMapper::Type inputMapper;
 
@@ -317,7 +310,7 @@ namespace Nes
 			numDips     (0),
 			cpu         (c),
 			ppu         (p),
-			ppuType     (PPU_RP2C03B),
+			ppuRev      (Revision::PPU_RP2C03B),
 			mode        (MODE_STD),
 			inputMapper (InputMapper::TYPE_NONE)
 			{
@@ -334,7 +327,7 @@ namespace Nes
 		(
 			Cpu& cpu,
 			Ppu& ppu,
-			const PpuType ppuType,
+			const Revision::Ppu ppuRev,
 			const Mode mode,
 			const dword prgCrc,
 			const bool correctData
@@ -488,7 +481,7 @@ namespace Nes
 						context.dips[4][0] = Dip::Value( "Off",                 0x00 );
 						context.dips[4][1] = Dip::Value( "On",                  0x80 );
 
-						context.ppuType = PPU_RC2C05_01;
+						context.ppuRev = Revision::PPU_RC2C05_01;
 						context.inputMapper = InputMapper::TYPE_3;
 						break;
 
@@ -547,7 +540,7 @@ namespace Nes
 						context.dips[4][0] = Dip::Value( "Off",                 0x00 );
 						context.dips[4][1] = Dip::Value( "On",                  0x80 );
 
-						context.ppuType = PPU_RC2C05_04;
+						context.ppuRev = Revision::PPU_RC2C05_04;
 						context.inputMapper = InputMapper::TYPE_1;
 						break;
 
@@ -578,7 +571,7 @@ namespace Nes
 						context.dips[4][0] = Dip::Value( "Off",                 0x00 );
 						context.dips[4][1] = Dip::Value( "On",                  0x80 );
 
-						context.ppuType = PPU_RP2C04_0002;
+						context.ppuRev = Revision::PPU_RP2C04_0002;
 						context.inputMapper = InputMapper::TYPE_1;
 						break;
 
@@ -662,7 +655,7 @@ namespace Nes
 						context.dips[4][0] = Dip::Value( "Off",                       0x00 );
 						context.dips[4][1] = Dip::Value( "On",                        0x80 );
 
-						context.ppuType = PPU_RP2C04_0003;
+						context.ppuRev = Revision::PPU_RP2C04_0003;
 						context.inputMapper = InputMapper::TYPE_2;
 						break;
 
@@ -691,7 +684,7 @@ namespace Nes
 						context.dips[3][0] = Dip::Value( "Normal",             0x00 );
 						context.dips[3][1] = Dip::Value( "Hard",               0x40 );
 
-						context.ppuType = PPU_RP2C04_0002;
+						context.ppuRev = Revision::PPU_RP2C04_0002;
 						context.inputMapper = InputMapper::TYPE_1;
 						break;
 
@@ -723,7 +716,7 @@ namespace Nes
 						context.dips[5][6] = Dip::Value( "5 Coins / 1 Credit", 0xC0 );
 						context.dips[5][7] = Dip::Value( "Free Play",          0xE0 );
 
-						context.ppuType = PPU_RP2C04_0001;
+						context.ppuRev = Revision::PPU_RP2C04_0001;
 						context.inputMapper = InputMapper::TYPE_1;
 						break;
 
@@ -753,9 +746,9 @@ namespace Nes
 						context.dips[3][1] = Dip::Value( "Hard",                     0x40 );
 
 						if (prgCrc == 0x29155E0C)
-							context.ppuType = PPU_RP2C04_0004;
+							context.ppuRev = Revision::PPU_RP2C04_0004;
 						else
-							context.ppuType = PPU_RP2C04_0003;
+							context.ppuRev = Revision::PPU_RP2C04_0003;
 
 						context.inputMapper = InputMapper::TYPE_1;
 						break;
@@ -787,7 +780,7 @@ namespace Nes
 						context.dips[4][0] = Dip::Value( "Off",                0x00 );
 						context.dips[4][1] = Dip::Value( "On",                 0x80 );
 
-						context.ppuType = PPU_RP2C04_0004;
+						context.ppuRev = Revision::PPU_RP2C04_0004;
 						context.inputMapper = InputMapper::TYPE_2;
 						break;
 
@@ -816,7 +809,7 @@ namespace Nes
 						context.dips[3][0] = Dip::Value( "Long",                 0x00 );
 						context.dips[3][1] = Dip::Value( "Short",                0x40 );
 
-						context.ppuType = PPU_RP2C04_0004;
+						context.ppuRev = Revision::PPU_RP2C04_0004;
 
 						if (prgCrc == 0x43A357EF)
 							context.inputMapper = InputMapper::TYPE_2;
@@ -855,7 +848,7 @@ namespace Nes
 						context.dips[4][0] = Dip::Value( "3",                  0x80 );
 						context.dips[4][1] = Dip::Value( "4",                  0x00 );
 
-						context.ppuType = PPU_RP2C04_0004;
+						context.ppuRev = Revision::PPU_RP2C04_0004;
 						context.inputMapper = InputMapper::TYPE_1;
 						break;
 
@@ -889,7 +882,7 @@ namespace Nes
 
 						if (prgCrc == 0xEC461DB9)
 						{
-							context.ppuType = PPU_RP2C04_0001;
+							context.ppuRev = Revision::PPU_RP2C04_0001;
 							context.inputMapper = InputMapper::TYPE_1;
 						}
 						else
@@ -923,7 +916,7 @@ namespace Nes
 						context.dips[4][0] = Dip::Value( "Off",                0x00 );
 						context.dips[4][1] = Dip::Value( "On",                 0x80 );
 
-						context.ppuType = PPU_RP2C04_0001;
+						context.ppuRev = Revision::PPU_RP2C04_0001;
 						context.inputMapper = InputMapper::TYPE_1;
 						break;
 
@@ -955,7 +948,7 @@ namespace Nes
 						context.dips[4][0] = Dip::Value( "Off",                0x00 );
 						context.dips[4][1] = Dip::Value( "On",                 0x80 );
 
-						context.ppuType = PPU_RP2C04_0002;
+						context.ppuRev = Revision::PPU_RP2C04_0002;
 						context.inputMapper = InputMapper::TYPE_1;
 						break;
 
@@ -982,7 +975,7 @@ namespace Nes
 						context.dips[2][2] = Dip::Value( "Hard",               0x20 );
 						context.dips[2][3] = Dip::Value( "Very Hard",          0x60 );
 
-						context.ppuType = PPU_RP2C04_0003;
+						context.ppuRev = Revision::PPU_RP2C04_0003;
 						context.inputMapper = InputMapper::TYPE_2;
 						break;
 
@@ -1014,7 +1007,7 @@ namespace Nes
 						context.dips[6][2] = Dip::Value( "RP2C04-0003",           0x80 );
 						context.dips[6][3] = Dip::Value( "RP2C04-0004",           0xC0 );
 
-						context.ppuType = PPU_RP2C04_0001;
+						context.ppuRev = Revision::PPU_RP2C04_0001;
 						context.inputMapper = InputMapper::TYPE_2;
 						break;
 
@@ -1045,7 +1038,7 @@ namespace Nes
 						context.dips[4][0] = Dip::Value( "Off",                0x00 );
 						context.dips[4][1] = Dip::Value( "On",                 0x80 );
 
-						context.ppuType = PPU_RP2C04_0001;
+						context.ppuRev = Revision::PPU_RP2C04_0001;
 						context.inputMapper = InputMapper::TYPE_2;
 						break;
 
@@ -1077,7 +1070,7 @@ namespace Nes
 						context.dips[5][0] = Dip::Value( "Off",                0x00 );
 						context.dips[5][1] = Dip::Value( "On",                 0x80 );
 
-						context.ppuType = PPU_RP2C04_0003;
+						context.ppuRev = Revision::PPU_RP2C04_0003;
 						context.inputMapper = InputMapper::TYPE_1;
 						break;
 
@@ -1107,7 +1100,7 @@ namespace Nes
 						context.dips[3][2] = Dip::Value( "80000",              0x80 );
 						context.dips[3][3] = Dip::Value( "100000",             0xC0 );
 
-						context.ppuType = PPU_RP2C04_0001;
+						context.ppuRev = Revision::PPU_RP2C04_0001;
 						break;
 
 					case 0x17AE56BE: // Freedom Force
@@ -1138,7 +1131,7 @@ namespace Nes
 						context.dips[5][0] = Dip::Value( "Off",                0x00 );
 						context.dips[5][1] = Dip::Value( "On",                 0x80 );
 
-						context.ppuType = PPU_RP2C04_0001;
+						context.ppuRev = Revision::PPU_RP2C04_0001;
 						break;
 
 					case 0xC99EC059: // Raid on Bungeling Bay
@@ -1169,7 +1162,7 @@ namespace Nes
 						context.dips[5][0] = Dip::Value( "Off",                0x00 );
 						context.dips[5][1] = Dip::Value( "On",                 0x80 );
 
-						context.ppuType = PPU_RP2C04_0002;
+						context.ppuRev = Revision::PPU_RP2C04_0002;
 						context.inputMapper = InputMapper::TYPE_4;
 						break;
 
@@ -1202,14 +1195,14 @@ namespace Nes
 						context.dips[5][3] = Dip::Value( "RP2C04-0004",        0xC0 );
 
 						context.inputMapper = InputMapper::TYPE_1;
-						context.ppuType = PPU_RP2C04_0001;
+						context.ppuRev = Revision::PPU_RP2C04_0001;
 						context.mode = MODE_XEV;
 						break;
 
 					case 0xCC2C4B5D: // Golf (J)
 					case 0x86167220: // Lady Golf
 
-						context.ppuType = PPU_RP2C04_0002;
+						context.ppuRev = Revision::PPU_RP2C04_0002;
 
 					case 0xA93A5AEE: // Golf
 
@@ -1268,7 +1261,7 @@ namespace Nes
 						context.dips[4][0] = Dip::Value( "Off",                0x00 );
 						context.dips[4][1] = Dip::Value( "On",                 0x80 );
 
-						context.ppuType = PPU_RC2C05_02;
+						context.ppuRev = Revision::PPU_RC2C05_02;
 						context.inputMapper = InputMapper::TYPE_1;
 						break;
 
@@ -1300,7 +1293,7 @@ namespace Nes
 						context.dips[4][0] = Dip::Value( "80000",               0x00 );
 						context.dips[4][1] = Dip::Value( "100000",              0x80 );
 
-						context.ppuType = PPU_RC2C05_03;
+						context.ppuRev = Revision::PPU_RC2C05_03;
 						break;
 
 					default:
@@ -1314,8 +1307,8 @@ namespace Nes
 							context.dips[i][1] = Dip::Value( "On",      1U << i );
 						}
 
-						if (ppuType != PPU_RP2C02)
-							context.ppuType = ppuType;
+						if (ppuRev != Revision::PPU_RP2C02)
+							context.ppuRev = ppuRev;
 
 						context.mode = mode;
 						break;
@@ -1323,8 +1316,8 @@ namespace Nes
 
 				if (!correctData)
 				{
-					if (ppuType != PPU_RP2C02)
-						context.ppuType = ppuType;
+					if (ppuRev != Revision::PPU_RP2C02)
+						context.ppuRev = ppuRev;
 
 					context.mode = mode;
 				}
@@ -1474,18 +1467,18 @@ namespace Nes
 		ppu         (context.ppu),
 		inputMapper (InputMapper::Create( context.inputMapper )),
 		dips        (context.dips,context.numDips),
-		ppuType     (context.ppuType),
+		ppuRev      (context.ppuRev),
 		yuvMapping  (false)
 		{
 			NST_COMPILE_ASSERT
 			(
-				PPU_RP2C04_0002 == PPU_RP2C04_0001+1 &&
-				PPU_RP2C04_0003 == PPU_RP2C04_0001+2 &&
-				PPU_RP2C04_0004 == PPU_RP2C04_0001+3 &&
-				PPU_RC2C05_02   == PPU_RC2C05_01+1   &&
-				PPU_RC2C05_03   == PPU_RC2C05_01+2   &&
-				PPU_RC2C05_04   == PPU_RC2C05_01+3   &&
-				PPU_RC2C05_05   == PPU_RC2C05_01+4
+				Revision::PPU_RP2C04_0002 == Revision::PPU_RP2C04_0001+1 &&
+				Revision::PPU_RP2C04_0003 == Revision::PPU_RP2C04_0001+2 &&
+				Revision::PPU_RP2C04_0004 == Revision::PPU_RP2C04_0001+3 &&
+				Revision::PPU_RC2C05_02   == Revision::PPU_RC2C05_01+1   &&
+				Revision::PPU_RC2C05_03   == Revision::PPU_RC2C05_01+2   &&
+				Revision::PPU_RC2C05_04   == Revision::PPU_RC2C05_01+3   &&
+				Revision::PPU_RC2C05_05   == Revision::PPU_RC2C05_01+4
 			);
 		}
 
@@ -1496,7 +1489,7 @@ namespace Nes
 
 		void Cartridge::VsSystem::EnableYuvConversion(bool enable)
 		{
-			const uint type = uint(ppuType) - PPU_RP2C04_0001;
+			const uint type = uint(ppuRev) - Revision::PPU_RP2C04_0001;
 
 			if (type < 4 && bool(yuvMapping) != enable)
 			{
@@ -1507,12 +1500,12 @@ namespace Nes
 
 		void Cartridge::VsSystem::Reset(bool)
 		{
-			switch (const uint type = ppuType)
+			switch (const uint type = ppuRev)
 			{
-				case PPU_RC2C05_01:
-				case PPU_RC2C05_02:
-				case PPU_RC2C05_03:
-				case PPU_RC2C05_04:
+				case Revision::PPU_RC2C05_01:
+				case Revision::PPU_RC2C05_02:
+				case Revision::PPU_RC2C05_03:
+				case Revision::PPU_RC2C05_04:
 
 					p2002 = cpu.Map( 0x2002 );
 
@@ -1521,14 +1514,14 @@ namespace Nes
 						cpu.Map( i ).Set
 						(
 							this,
-							type == PPU_RC2C05_03 ? &VsSystem::Peek_2002_RC2C05_03 :
-							type == PPU_RC2C05_02 ? &VsSystem::Peek_2002_RC2C05_02 :
-													&VsSystem::Peek_2002_RC2C05_01_04,
+							type == Revision::PPU_RC2C05_03 ? &VsSystem::Peek_2002_RC2C05_03 :
+							type == Revision::PPU_RC2C05_02 ? &VsSystem::Peek_2002_RC2C05_02 :
+                                                              &VsSystem::Peek_2002_RC2C05_01_04,
 							&VsSystem::Poke_2002
 						);
 					}
 
-				case PPU_RC2C05_05:
+				case Revision::PPU_RC2C05_05:
 				{
 					const Io::Port p2000( cpu.Map( 0x2000 ) );
 					const Io::Port p2001( cpu.Map( 0x2001 ) );
@@ -1542,12 +1535,12 @@ namespace Nes
 					break;
 				}
 
-				case PPU_RP2C04_0001:
-				case PPU_RP2C04_0002:
-				case PPU_RP2C04_0003:
-				case PPU_RP2C04_0004:
+				case Revision::PPU_RP2C04_0001:
+				case Revision::PPU_RP2C04_0002:
+				case Revision::PPU_RP2C04_0003:
+				case Revision::PPU_RP2C04_0004:
 
-					ppu.SetYuvMap( yuvMaps[type - PPU_RP2C04_0001], yuvMapping );
+					ppu.SetYuvMap( yuvMaps[type - Revision::PPU_RP2C04_0001], yuvMapping );
 					break;
 			}
 
@@ -1567,9 +1560,9 @@ namespace Nes
 			Reset();
 		}
 
-		void Cartridge::VsSystem::SaveState(State::Saver& state,const dword id) const
+		void Cartridge::VsSystem::SaveState(State::Saver& state,const dword baseChunk) const
 		{
-			state.Begin( id );
+			state.Begin( baseChunk );
 
 			state.Write8( coin );
 			SubSave( state );
@@ -1581,9 +1574,9 @@ namespace Nes
 		{
 			coin = state.Read8();
 
-			while (const dword id = state.Begin())
+			while (const dword chunk = state.Begin())
 			{
-				SubLoad( state, id );
+				SubLoad( state, chunk );
 				state.End();
 			}
 		}
@@ -1592,7 +1585,7 @@ namespace Nes
 		#pragma optimize("", on)
 		#endif
 
-		NES_PEEK(Cartridge::VsSystem,Nop)
+		NES_PEEK_A(Cartridge::VsSystem,Nop)
 		{
 			return address >> 8;
 		}
@@ -1601,42 +1594,42 @@ namespace Nes
 		{
 		}
 
-		NES_PEEK(Cartridge::VsSystem,2002_RC2C05_01_04)
+		NES_PEEK_A(Cartridge::VsSystem,2002_RC2C05_01_04)
 		{
 			return p2002.Peek( address ) & 0xC0 | 0x1B;
 		}
 
-		NES_PEEK(Cartridge::VsSystem,2002_RC2C05_02)
+		NES_PEEK_A(Cartridge::VsSystem,2002_RC2C05_02)
 		{
 			return p2002.Peek( address ) & 0xC0 | 0x3D;
 		}
 
-		NES_PEEK(Cartridge::VsSystem,2002_RC2C05_03)
+		NES_PEEK_A(Cartridge::VsSystem,2002_RC2C05_03)
 		{
 			return p2002.Peek( address ) & 0xC0 | 0x1C;
 		}
 
-		NES_POKE(Cartridge::VsSystem,2002)
+		NES_POKE_AD(Cartridge::VsSystem,2002)
 		{
 			p2002.Poke( address, data );
 		}
 
-		NES_PEEK(Cartridge::VsSystem,4016)
+		NES_PEEK_A(Cartridge::VsSystem,4016)
 		{
 			return dips.Reg(0) | p4016.Peek( address ) & (STATUS_4016_MASK^0xFFU);
 		}
 
-		NES_POKE(Cartridge::VsSystem,4016)
+		NES_POKE_AD(Cartridge::VsSystem,4016)
 		{
 			p4016.Poke( address, data );
 		}
 
-		NES_PEEK(Cartridge::VsSystem,4017)
+		NES_PEEK_A(Cartridge::VsSystem,4017)
 		{
 			return dips.Reg(1) | p4017.Peek( address ) & (STATUS_4017_MASK^0xFFU);
 		}
 
-		NES_POKE(Cartridge::VsSystem,4017)
+		NES_POKE_AD(Cartridge::VsSystem,4017)
 		{
 			p4017.Poke( address, data );
 		}
@@ -1646,7 +1639,7 @@ namespace Nes
 			return coin;
 		}
 
-		NES_POKE(Cartridge::VsSystem,4020)
+		NES_POKE_D(Cartridge::VsSystem,4020)
 		{
 			coin = data;
 		}

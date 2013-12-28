@@ -35,14 +35,19 @@ namespace Nes
 	{
 		class Mapper16 : public Boards::Bandai
 		{
+			~Mapper16() {}
+
+			enum
+			{
+				ATR_LZ93D50 = 1,
+				ATR_FCG1,
+				ATR_FCG2
+			};
+
 		public:
 
 			explicit Mapper16(Context& c)
-			: Bandai(c,TYPE_E2402) {}
-
-		private:
-
-			~Mapper16() {}
+			: Bandai(c,c.attribute == ATR_FCG1 ? TYPE_FCG1 : c.attribute == ATR_FCG2 ? TYPE_FCG2 : TYPE_LZ93D50_E2402) {}
 		};
 	}
 }

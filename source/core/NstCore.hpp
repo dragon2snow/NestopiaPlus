@@ -51,19 +51,22 @@
  #if NST_MSVC >= 800
 
   #ifdef NST_WIN32
-  #define NES_IO_CALL __fastcall
+  #define NST_FASTCALL __fastcall
+  #define NST_REGCALL NST_FASTCALL
   #endif
 
   #if NST_MSVC >= 1200
 
-   #ifdef NDEBUG
-   #define NST_MSVC_OPTIMIZE
-   #pragma inline_depth( 255 )
-   #pragma inline_recursion( on )
+   #ifndef NST_FASTDELEGATE
+   #define NST_FASTDELEGATE
    #endif
 
    #ifdef NDEBUG
+   #define NST_MSVC_OPTIMIZE
    #define NST_FORCE_INLINE __forceinline
+   #define NST_SINGLE_CALL __forceinline
+   #pragma inline_depth( 255 )
+   #pragma inline_recursion( on )
    #endif
 
    #if NST_MSVC >= 1300
@@ -79,7 +82,7 @@
 	#define NST_UNREACHABLE default: __assume(0);
 	#define NST_NO_VTABLE __declspec(novtable)
 
-	#if defined(NDEBUG) && !defined(NST_TAILCALL_OPTIMIZE) && !NST_ICC
+	#if !defined(NST_TAILCALL_OPTIMIZE) && !NST_ICC
 	#define NST_TAILCALL_OPTIMIZE
 	#endif
 
@@ -87,6 +90,15 @@
 
      #ifndef NST_RESTRICT
      #define NST_RESTRICT __restrict
+     #endif
+
+     #pragma warning( default : 4191 4263 4287 4289 4296 4350 4545 4546 4547 4549 4555 4557 4686 4836 4905 4906 4928 4946 )
+
+     #if 0
+     #pragma warning( default : 4820 ) // byte padding on structs
+     #pragma warning( default : 4710 ) // function not inlined
+     #pragma warning( default : 4711 ) // function auto inlined
+     #pragma warning( default : 4100 ) // unreferenced parameter
      #endif
 
 	#endif
@@ -111,6 +123,14 @@
    #define NST_NO_INLINE __attribute__((noinline))
    #endif
 
+   #ifdef NDEBUG
+   #define NST_SINGLE_CALL __attribute__((always_inline))
+   #endif
+
+   #if (NST_GCC >= 304) && defined(__i386__)
+   #define NST_REGCALL __attribute__((regparm(2)))
+   #endif
+
   #endif
 
  #endif
@@ -119,7 +139,7 @@
 
 #if NST_ICC
 
- #pragma warning( disable : 11 304 373 383 444 810 869 981 1418 1572 1599 1786 )
+ #pragma warning( disable : 11 69 304 373 383 444 810 869 981 1418 1572 1599 1786 )
 
  #if !defined(NST_RESTRICT) && NST_ICC >= 810
  #define NST_RESTRICT restrict
@@ -128,6 +148,10 @@
 #endif
 
 #define NST_NOP() ((void)0)
+
+#ifndef NST_SINGLE_CALL
+#define NST_SINGLE_CALL inline
+#endif
 
 #ifndef NST_FORCE_INLINE
 #define NST_FORCE_INLINE inline
@@ -153,13 +177,16 @@
 #define NST_UNREACHABLE
 #endif
 
-#ifndef NES_IO_CALL
-#define NES_IO_CALL
+#ifndef NST_FASTCALL
+#define NST_FASTCALL
+#endif
+
+#ifndef NST_REGCALL
+#define NST_REGCALL
 #endif
 
 #define NST_MIN(x_,y_) ((x_) < (y_) ? (x_) : (y_))
 #define NST_MAX(x_,y_) ((x_) < (y_) ? (y_) : (x_))
-#define NST_CLAMP(t_,x_,y_) ((t_) < (x_) ? (x_) : (t_) > (y_) ? (y_) : (t_))
 
 #define NST_COMMA ,
 
@@ -230,6 +257,32 @@ namespace Nes
 
 		template<typename T,dword N>
 		char(& array(T(&)[N]))[N];
+
+		template<typename T>
+		class ImplicitBool;
+
+		template<>
+		class ImplicitBool<void>
+		{
+		public:
+
+			int type;
+			typedef int ImplicitBool<void>::*Type;
+		};
+
+		template<typename T>
+		class ImplicitBool
+		{
+			template<typename U> void operator == (const ImplicitBool<U>&) const;
+			template<typename U> void operator != (const ImplicitBool<U>&) const;
+
+		public:
+
+			operator ImplicitBool<void>::Type () const
+			{
+				return !static_cast<const T&>(*this) ? 0 : &ImplicitBool<void>::type;
+			}
+		};
 
 		namespace Helper
 		{
@@ -316,11 +369,48 @@ namespace Nes
 			return Helper::SignExtend8<T,NATIVE>::Convert( v );
 		}
 
-		enum Mode
+		template<idword Min,idword Max>
+		inline idword Clamp(idword value)
 		{
-			MODE_NTSC,
-			MODE_PAL
-		};
+			return (value <= Max) ? (value >= Min) ? value : Min : Max;
+		}
+
+		namespace Region
+		{
+			enum Type
+			{
+				NTSC,
+				PAL
+			};
+		}
+
+		namespace Revision
+		{
+			enum Cpu
+			{
+				CPU_RP2A03,
+				CPU_RP2A07
+			};
+
+			enum Ppu
+			{
+				PPU_RP2C02,
+				PPU_RP2C03B,
+				PPU_RP2C03G,
+				PPU_RP2C04_0001,
+				PPU_RP2C04_0002,
+				PPU_RP2C04_0003,
+				PPU_RP2C04_0004,
+				PPU_RC2C03B,
+				PPU_RC2C03C,
+				PPU_RC2C05_01,
+				PPU_RC2C05_02,
+				PPU_RC2C05_03,
+				PPU_RC2C05_04,
+				PPU_RC2C05_05,
+				PPU_RP2C07
+			};
+		}
 
 		enum
 		{
@@ -385,10 +475,10 @@ namespace Nes
 					( T == '\a' ) ? 0x07 :
 					( T == '\b' ) ? 0x08 :
 					( T == '\t' ) ? 0x09 :
-					( T == '\v' ) ? 0x0b :
-					( T == '\n' ) ? 0x0a :
-					( T == '\r' ) ? 0x0d :
-					( T == '\f' ) ? 0x0c :
+					( T == '\v' ) ? 0x0B :
+					( T == '\n' ) ? 0x0A :
+					( T == '\r' ) ? 0x0D :
+					( T == '\f' ) ? 0x0C :
 					( T == '\b' ) ? 0x08 : 0xFF
 			};
 
@@ -432,7 +522,7 @@ namespace Nes
 	typedef unsigned long qword;
 	#define NST_NATIVE_QWORD
 
-#elif defined(ULLONG_MAX) && (ULLONG_MAX > 0xFFFFFFFF) && (ULLONG_MAX / 0xFFFFFFFF - 1 > 0xFFFFFFFF)
+#elif (defined(ULLONG_MAX) && (ULLONG_MAX > 0xFFFFFFFF) && (ULLONG_MAX / 0xFFFFFFFF - 1 > 0xFFFFFFFF)) || (NST_GCC >= 300)
 
 	#if NST_GCC
 	__extension__ typedef unsigned long long qword;

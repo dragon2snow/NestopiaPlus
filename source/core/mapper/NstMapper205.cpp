@@ -65,7 +65,7 @@ namespace Nes
 		#pragma optimize("", on)
 		#endif
 
-		NES_POKE(Mapper205,6800)
+		NES_POKE_D(Mapper205,6800)
 		{
 			data = data << 4 & 0x30;
 

@@ -79,17 +79,17 @@ namespace Nes
 			// controlled by $4800..$4FFF
 		}
 
-		NES_POKE(Mapper208,4800)
+		NES_POKE_D(Mapper208,4800)
 		{
 			prg.SwapBank<SIZE_32K,0x0000>( (data & 0x1) | (data >> 3 & 0x2) );
 		}
 
-		NES_POKE(Mapper208,5000)
+		NES_POKE_D(Mapper208,5000)
 		{
 			regs.select = data;
 		}
 
-		NES_POKE(Mapper208,5800)
+		NES_POKE_AD(Mapper208,5800)
 		{
 			static const byte lut[256] =
 			{
@@ -114,7 +114,7 @@ namespace Nes
 			regs.buffer[address & 0x3] = data ^ lut[regs.select];
 		}
 
-		NES_PEEK(Mapper208,5800)
+		NES_PEEK_A(Mapper208,5800)
 		{
 			return regs.buffer[address & 0x3];
 		}

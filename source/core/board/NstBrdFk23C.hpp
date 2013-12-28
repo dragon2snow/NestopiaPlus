@@ -43,17 +43,14 @@ namespace Nes
 
 			private:
 
-				~Fk23C() {}
+				~Fk23C();
 
-				enum
-				{
-					CRC_4_IN_1 = 0x38BA830E
-				};
+				class CartSwitches;
 
 				void SubReset(bool);
 				void SubLoad(State::Loader&);
 				void SubSave(State::Saver&) const;
-
+				Device QueryDevice(DeviceType);
 				void UpdatePrg();
 				void UpdateChr() const;
 
@@ -62,8 +59,7 @@ namespace Nes
 
 				byte exRegs[8];
 				uint unromChr;
-				uint dipSwitch;
-				const uint dipMask;
+				CartSwitches* const cartSwitches;
 			};
 		}
 	}

@@ -35,6 +35,8 @@ namespace Nestopia
 	{
 		template<typename T,uint N=0> class Heap
 		{
+			Heap(const Heap&);
+
 			T* const array;
 
 		public:
@@ -49,6 +51,7 @@ namespace Nestopia
 
 			~Heap()
 			{
+				typedef char TypeComplete[sizeof(T)];
 				delete [] array;
 			}
 
@@ -60,10 +63,9 @@ namespace Nestopia
 
 		template<typename T> class Heap<T,0>
 		{
-			T& ref;
-
 			Heap(const Heap&);
-			void operator = (const Heap&);
+
+			T& ref;
 
 		public:
 
@@ -78,6 +80,7 @@ namespace Nestopia
 
 			~Heap()
 			{
+				typedef char TypeComplete[sizeof(T)];
 				delete &ref;
 			}
 
@@ -95,10 +98,9 @@ namespace Nestopia
 		template<>
 		class Heap<void,0>
 		{
-			void* const ref;
-
 			Heap(const Heap&);
-			void operator = (const Heap&);
+
+			void* const ref;
 
 		public:
 

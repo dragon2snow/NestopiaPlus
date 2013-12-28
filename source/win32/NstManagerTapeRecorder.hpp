@@ -50,15 +50,21 @@ namespace Nestopia
 			void Save(Configuration&) const;
 			const Path GetFile(Path) const;
 
+		private:
 
-        private:
+			bool Available() const;
+			bool CanSetFile() const;
+			bool CanPlay() const;
+			bool CanRecord() const;
+			bool CanStop() const;
 
-			void OnEmuEvent(Emulator::Event);
+			void OnMenuExt(const Window::Menu::PopupHandler::Param&);
+			void OnMenuExtTape(const Window::Menu::PopupHandler::Param&);
+			void OnEmuEvent(Emulator::Event,Emulator::Data);
 			void OnCmdFile(uint);
 			void OnCmdRecord(uint);
 			void OnCmdPlay(uint);
 			void OnCmdStop(uint);
-			void OnMenuTape(Window::Menu::PopupHandler::Param&);
 
 			Object::Heap<Window::TapeRecorder> dialog;
 		};

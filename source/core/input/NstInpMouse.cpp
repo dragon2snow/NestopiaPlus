@@ -48,21 +48,21 @@ namespace Nes
 				state = 0;
 			}
 
-			void Mouse::SaveState(State::Saver& state,const byte id) const
+			void Mouse::SaveState(State::Saver& saver,const byte id) const
 			{
 				const byte data[2] =
 				{
 					strobe, stream ^ 0xFF
 				};
 
-				state.Begin( AsciiId<'M','S'>::R(0,0,id) ).Write( data ).End();
+				saver.Begin( AsciiId<'M','S'>::R(0,0,id) ).Write( data ).End();
 			}
 
-			void Mouse::LoadState(State::Loader& state,const dword id)
+			void Mouse::LoadState(State::Loader& loader,const dword id)
 			{
 				if (id == AsciiId<'M','S'>::V)
 				{
-					State::Loader::Data<2> data( state );
+					State::Loader::Data<2> data( loader );
 
 					strobe = data[0] & 0x1;
 					stream = data[1] ^ 0xFF;

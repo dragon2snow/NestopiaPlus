@@ -31,7 +31,7 @@ namespace Nestopia
 {
 	namespace Managers
 	{
-		class Netplay
+		class Netplay : Manager
 		{
 		public:
 
@@ -46,16 +46,17 @@ namespace Nestopia
 			class Dll;
 			class Kaillera;
 
-			void OnCmdStart      (uint);
-			void OnCmdDisconnect (uint);
-			void OnCmdChat       (uint);
+			void UpdateMenu () const;
+
+			void OnEmuEvent      (Emulator::Event,Emulator::Data);
 			void OnAppEvent      (Application::Instance::Event,const void*);
+			void OnCmdConnection (uint);
+			void OnCmdChat       (uint);
 
 			Kaillera* kaillera;
-			Emulator& emulator;
-			Window::Menu& menu;
 			Window::Custom& window;
 			const Paths& paths;
+			bool fullscreen;
 			const bool doFullscreen;
 		};
 	}

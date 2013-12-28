@@ -39,7 +39,7 @@ namespace Nes
 			Ffe::Ffe(Context& c,const Type t)
 			:
 			Mapper (c,t == F4_XXX ? CRAM_32K : WRAM_8K),
-			irq    (t == F3_XXX ? NULL : new Clock::M2<Irq>(c.cpu,t == F8_XXX_1 ? 0xFFFF : 0xCFFF)),
+			irq    (t == F3_XXX ? NULL : new ClockUnits::M2<Irq>(c.cpu,t == F8_XXX_1 ? 0xFFFF : 0xCFFF)),
 			type   (t)
 			{
 			}
@@ -68,7 +68,7 @@ namespace Nes
 
 				if (irq)
 				{
-					irq->Reset( hard, hard || irq->IsLineEnabled() );
+					irq->Reset( hard, hard || irq->Connected() );
 
 					Map( 0x4501U, &Ffe::Poke_4501 );
 					Map( 0x4502U, &Ffe::Poke_4502 );
@@ -82,7 +82,7 @@ namespace Nes
 						Map( 0x8000U, 0xFFFFU, &Ffe::Poke_Prg_F3 );
 
 						if (hard)
-							prg.SwapBank<SIZE_16K,0x4000>(1);
+							prg.SwapBank<SIZE_32K,0x0000>(0);
 
 						break;
 
@@ -115,11 +115,11 @@ namespace Nes
 				}
 			}
 
-			void Ffe::BaseLoad(State::Loader& state,const dword id)
+			void Ffe::BaseLoad(State::Loader& state,const dword baseChunk)
 			{
-				NST_VERIFY( id == (AsciiId<'F','F','E'>::V) );
+				NST_VERIFY( baseChunk == (AsciiId<'F','F','E'>::V) );
 
-				if (id == AsciiId<'F','F','E'>::V)
+				if (baseChunk == AsciiId<'F','F','E'>::V)
 				{
 					while (const dword chunk = state.Begin())
 					{
@@ -179,7 +179,7 @@ namespace Nes
 			#pragma optimize("", on)
 			#endif
 
-			ibool Ffe::Irq::Signal()
+			bool Ffe::Irq::Clock()
 			{
 				if (enabled && count++ == clock)
 				{
@@ -191,31 +191,31 @@ namespace Nes
 				return false;
 			}
 
-			NES_POKE(Ffe,42FE)
+			NES_POKE_D(Ffe,42FE)
 			{
 				mode = data >> 7 ^ 0x1;
 				ppu.SetMirroring( (data & 0x10) ? Ppu::NMT_ONE : Ppu::NMT_ZERO );
 			}
 
-			NES_POKE(Ffe,42FF)
+			NES_POKE_D(Ffe,42FF)
 			{
 				ppu.SetMirroring( (data & 0x10) ? Ppu::NMT_HORIZONTAL : Ppu::NMT_VERTICAL );
 			}
 
-			NES_POKE(Ffe,4501)
+			NES_POKE_D(Ffe,4501)
 			{
 				irq->Update();
 				irq->unit.enabled = data & 0x1;
 				irq->ClearIRQ();
 			}
 
-			NES_POKE(Ffe,4502)
+			NES_POKE_D(Ffe,4502)
 			{
 				irq->Update();
 				irq->unit.count = (irq->unit.count & 0xFF00) | data;
 			}
 
-			NES_POKE(Ffe,4503)
+			NES_POKE_D(Ffe,4503)
 			{
 				irq->Update();
 				irq->unit.count = (irq->unit.count & 0x00FF) | (data << 8);
@@ -223,14 +223,14 @@ namespace Nes
 				irq->ClearIRQ();
 			}
 
-			NES_POKE(Ffe,Prg_F3)
+			NES_POKE_D(Ffe,Prg_F3)
 			{
 				ppu.Update();
 				prg.SwapBank<SIZE_16K,0x0000>( data >> 3 );
 				chr.SwapBank<SIZE_8K,0x0000>( data & 0x7 );
 			}
 
-			NES_POKE(Ffe,Prg_F4)
+			NES_POKE_D(Ffe,Prg_F4)
 			{
 				ppu.Update();
 
@@ -243,10 +243,13 @@ namespace Nes
 				chr.Source( mode ).SwapBank<SIZE_8K,0x0000>( data );
 			}
 
-			void Ffe::VSync()
+			void Ffe::Sync(Event event,Input::Controllers*)
 			{
-				if (irq)
-					irq->VSync();
+				if (event == EVENT_END_FRAME)
+				{
+					if (irq)
+						irq->VSync();
+				}
 			}
 		}
 	}

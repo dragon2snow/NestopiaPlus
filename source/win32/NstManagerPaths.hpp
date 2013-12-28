@@ -93,17 +93,17 @@ namespace Nestopia
 
 				enum
 				{
-					ID_INES    = NST_FOURCC('N','E','S',0x1A),
-					ID_UNIF    = NST_FOURCC('U','N','I','F'),
-					ID_FDS     = NST_FOURCC('F','D','S',0x1A),
-					ID_NSF     = NST_FOURCC('N','E','S','M'),
-					ID_IPS     = NST_FOURCC('P','A','T','C'),
-					ID_NST     = NST_FOURCC('N','S','T',0x1A),
-					ID_NSV     = NST_FOURCC('N','S','V',0x1A),
-					ID_ZIP     = NST_FOURCC('P','K',0x03,0x04),
-					ID_RAR     = NST_FOURCC('R','a','r','!'),
-					ID_7Z      = NST_FOURCC('7','z',0xBC,0xAF),
-					ID_FDS_RAW = NST_FOURCC(0x01,0x2A,0x4E,0x49)
+					ID_INES    = FourCC<'N','E','S',0x1A>::V,
+					ID_UNIF    = FourCC<'U','N','I','F'>::V,
+					ID_FDS     = FourCC<'F','D','S',0x1A>::V,
+					ID_NSF     = FourCC<'N','E','S','M'>::V,
+					ID_IPS     = FourCC<'P','A','T','C'>::V,
+					ID_NST     = FourCC<'N','S','T',0x1A>::V,
+					ID_NSV     = FourCC<'N','S','V',0x1A>::V,
+					ID_ZIP     = FourCC<'P','K',0x03,0x04>::V,
+					ID_RAR     = FourCC<'R','a','r','!'>::V,
+					ID_7Z      = FourCC<'7','z',0xBC,0xAF>::V,
+					ID_FDS_RAW = FourCC<0x01,0x2A,0x4E,0x49>::V
 				};
 
 				Type type;
@@ -198,7 +198,7 @@ namespace Nestopia
 			};
 
 			void OnMenu(uint);
-			void OnEmuEvent(Emulator::Event);
+			void OnEmuEvent(Emulator::Event,Emulator::Data);
 
 			static tstring GetDefaultExtension(File::Types);
 

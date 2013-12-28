@@ -136,7 +136,7 @@ namespace Nestopia
 			}
 		}
 
-		void RecentFiles::OnEmuEvent(Emulator::Event event)
+		void RecentFiles::OnEmuEvent(const Emulator::Event event,const Emulator::Data data)
 		{
 			switch (event)
 			{
@@ -163,13 +163,9 @@ namespace Nestopia
 					}
 					break;
 
-				case Emulator::EVENT_NETPLAY_MODE_ON:
-				case Emulator::EVENT_NETPLAY_MODE_OFF:
+				case Emulator::EVENT_NETPLAY_MODE:
 
-					menu[IDM_POS_FILE][IDM_POS_FILE_RECENTFILES].Enable
-					(
-						event == Emulator::EVENT_NETPLAY_MODE_OFF
-					);
+					menu[IDM_POS_FILE][IDM_POS_FILE_RECENTFILES].Enable( !data );
 					break;
 			}
 		}

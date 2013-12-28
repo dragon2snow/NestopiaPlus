@@ -82,7 +82,7 @@ namespace Nes
 				void UpdateWrk();
 				void UpdateChr() const;
 				void UpdateNmt();
-				void VSync();
+				void Sync(Event,Input::Controllers*);
 
 				enum
 				{
@@ -94,17 +94,17 @@ namespace Nes
 
 				enum
 				{
-					CTRL_MIRRORING     = b00000011,
-					CTRL_PRG_SWAP_LOW  = b00000100,
-					CTRL_PRG_SWAP_16K  = b00001000,
-					CTRL_CHR_SWAP_4K   = b00010000,
+					CTRL_MIRRORING     = 0x03,
+					CTRL_PRG_SWAP_LOW  = 0x04,
+					CTRL_PRG_SWAP_16K  = 0x08,
+					CTRL_CHR_SWAP_4K   = 0x10,
 					CTRL_RESET         = CTRL_PRG_SWAP_LOW|CTRL_PRG_SWAP_16K,
-					PRG0_WRAM_DISABLED = b00010000
+					PRG0_WRAM_DISABLED = 0x10
 				};
 
 			private:
 
-				static uint BoardToWRam(Board);
+				static dword BoardToWRam(Board);
 
 				void BaseSave(State::Saver&) const;
 				void BaseLoad(State::Loader&,dword);

@@ -62,7 +62,7 @@ namespace Nes
 		#pragma optimize("", on)
 		#endif
 
-		NES_POKE(Mapper78,Prg)
+		NES_POKE_D(Mapper78,Prg)
 		{
 			ppu.SetMirroring( nmt[data >> 3 & 0x1] );
 			prg.SwapBank<SIZE_16K,0x0000>( data );

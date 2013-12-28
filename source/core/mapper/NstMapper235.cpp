@@ -35,7 +35,7 @@ namespace Nes
 
 		Mapper235::Mapper235(Context& c)
 		:
-		Mapper (c,CROM_MAX_8K|WRAM_DEFAULT),
+		Mapper (c,CROM_MAX_8K|WRAM_DEFAULT|NMT_VERTICAL),
 		selector
 		(
 			prg.Source().Size() == SIZE_1024K ? 0 :
@@ -47,13 +47,16 @@ namespace Nes
 
 		void Mapper235::SubReset(const bool hard)
 		{
-			if (hard)
-				open = false;
-
 			Map( 0x8000U, 0xFFFFU, &Mapper235::Poke_Prg );
 
 			if (selector != 3)
 				Map( 0x8000U, 0xFFFFU, &Mapper235::Peek_Prg );
+
+			if (hard)
+			{
+				open = false;
+				NES_DO_POKE(Prg,0x8000,0x00);
+			}
 		}
 
 		void Mapper235::SubLoad(State::Loader& state)
@@ -80,7 +83,7 @@ namespace Nes
 		#pragma optimize("", on)
 		#endif
 
-		NES_POKE(Mapper235,Prg)
+		NES_POKE_A(Mapper235,Prg)
 		{
 			ppu.SetMirroring
 			(
@@ -111,7 +114,7 @@ namespace Nes
 			}
 		}
 
-		NES_PEEK(Mapper235,Prg)
+		NES_PEEK_A(Mapper235,Prg)
 		{
 			return !open ? prg.Peek(address - 0x8000) : (address >> 8);
 		}

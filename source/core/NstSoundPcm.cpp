@@ -35,15 +35,10 @@ namespace Nes
 			#pragma optimize("s", on)
 			#endif
 
-			Pcm::Pcm(Cpu& c)
-			: cpu(c)
+			Pcm::Pcm(Apu& a)
+			: Channel(a)
 			{
-				cpu.GetApu().HookChannel( this );
-			}
-
-			Pcm::~Pcm()
-			{
-				cpu.GetApu().ReleaseChannel();
+				Connect( UpdateSettings() );
 			}
 
 			Result Pcm::CanDo(const void* data,dword length,uint bits,dword rate)
@@ -59,12 +54,16 @@ namespace Nes
 
 			void Pcm::Reset()
 			{
-				wave.data = NULL;
+				Stop();
 			}
 
-			void Pcm::UpdateContext(uint,const byte (&)[MAX_CHANNELS])
+			bool Pcm::UpdateSettings()
 			{
-				wave.data = NULL;
+				Stop();
+
+				rate = GetSampleRate();
+
+				return true;
 			}
 
 			#ifdef NST_MSVC_OPTIMIZE
@@ -80,8 +79,15 @@ namespace Nes
 				wave.data = w;
 				wave.length = l;
 				wave.rate = r;
+			}
 
-				rate = cpu.GetApu().GetSampleRate();
+			void Pcm::Stop()
+			{
+				pos = 0;
+
+				wave.data = NULL;
+				wave.length = 0;
+				wave.rate = 0;
 			}
 
 			Pcm::Sample Pcm::GetSample()

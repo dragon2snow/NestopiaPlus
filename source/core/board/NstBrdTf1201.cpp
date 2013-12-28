@@ -39,7 +39,7 @@ namespace Nes
 			Tf1201::Tf1201(Context& c)
 			:
 			Mapper (c,CROM_MAX_256K),
-			irq    (c.cpu,c.ppu,Irq::SIGNAL_DURATION)
+			irq    (c.cpu,c.ppu)
 			{
 			}
 
@@ -51,10 +51,10 @@ namespace Nes
 
 			void Tf1201::SubReset(const bool hard)
 			{
+				irq.Reset( true, true );
+
 				if (hard)
 					prgSelect = 0;
-
-				irq.Reset( true, true );
 
 				for (uint i=0x0000; i < 0x1000; i += 0x4)
 				{
@@ -123,44 +123,44 @@ namespace Nes
 				prg.SwapBank<SIZE_8K,0x4000>( (prgSelect & 0x2) ? bank : ~1U );
 			}
 
-			NES_POKE(Tf1201,8000)
+			NES_POKE_D(Tf1201,8000)
 			{
 				UpdatePrg( data );
 			}
 
-			NES_POKE(Tf1201,9001)
+			NES_POKE_D(Tf1201,9001)
 			{
 				prgSelect = data;
 				UpdatePrg( prg.GetBank<SIZE_8K,0x0000>() );
 			}
 
-			NES_POKE(Tf1201,B000)
+			NES_POKE_AD(Tf1201,B000)
 			{
 				ppu.Update();
 				address = (((address >> 11) - 6) | (address & 0x1)) << 10 & 0x1FFF;
 				chr.SwapBank<SIZE_1K>( address, (chr.GetBank<SIZE_1K>(address) & 0xF0) | (data << 0 & 0x0F) );
 			}
 
-			NES_POKE(Tf1201,B002)
+			NES_POKE_AD(Tf1201,B002)
 			{
 				ppu.Update();
 				address = (((address >> 11) - 6) | (address & 0x1)) << 10 & 0x1FFF;
 				chr.SwapBank<SIZE_1K>( address, (chr.GetBank<SIZE_1K>(address) & 0x0F) | (data << 4 & 0xF0) );
 			}
 
-			NES_POKE(Tf1201,F000)
+			NES_POKE_D(Tf1201,F000)
 			{
 				irq.Update();
 				irq.unit.count = (irq.unit.count & 0xF0) | (data << 0 & 0x0F);
 			}
 
-			NES_POKE(Tf1201,F002)
+			NES_POKE_D(Tf1201,F002)
 			{
 				irq.Update();
 				irq.unit.count = (irq.unit.count & 0x0F) | (data << 4 & 0xF0);
 			}
 
-			NES_POKE(Tf1201,F001)
+			NES_POKE_D(Tf1201,F001)
 			{
 				irq.Update();
 				irq.unit.enabled = data & 0x2;
@@ -172,14 +172,15 @@ namespace Nes
 					irq.unit.count -= 8;
 			}
 
-			ibool Tf1201::Irq::Signal()
+			bool Tf1201::Irq::Clock()
 			{
 				return enabled && (++count & 0xFF) == 238;
 			}
 
-			void Tf1201::VSync()
+			void Tf1201::Sync(Event event,Input::Controllers*)
 			{
-				irq.VSync();
+				if (event == EVENT_END_FRAME)
+					irq.VSync();
 			}
 		}
 	}

@@ -38,9 +38,19 @@
 #include <Windows.h>
 
 #ifdef _UNICODE
-#define NST_MESSAGEBOX MessageBoxA
+ #define NST_MESSAGEBOX MessageBoxA
 #else
-#define NST_MESSAGEBOX MessageBox
+ #define NST_MESSAGEBOX MessageBox
+#endif
+
+#if NST_MSVC >= 1200
+ #ifdef _UNICODE
+  #define NST_DEBUGSTRING(s_) OutputDebugStringA( s_ );
+ #else
+  #define NST_DEBUGSTRING(s_) OutputDebugString( s_ );
+ #endif
+#else
+ #define NST_DEBUGSTRING(s_)
 #endif
 
 namespace Nes
@@ -70,14 +80,16 @@ namespace Nes
 				std::sprintf
 				(
 					buffer,
-					msg ? "%s, Expression: %s\n\n File: %s\n Function: %s\n Line: %i" :
-                          "%sExpression: %s\n\n File: %s\n Function: %s\n Line: %i",
+					msg ? "%s, Expression: %s\n\n File: %s\n Function: %s\n Line: %i\n\n" :
+                          "%sExpression: %s\n\n File: %s\n Function: %s\n Line: %i\n\n",
 					msg ? msg : "",
 					expression ? expression : "break point",
 					file,
 					function ? function : "unknown",
 					line
 				);
+
+				NST_DEBUGSTRING( buffer );
 
 				int result = NST_MESSAGEBOX
 				(

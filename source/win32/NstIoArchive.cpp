@@ -76,7 +76,7 @@ namespace Nestopia
 				uint pos;
 				const uint size;
 
-				Stream(const void* b=NULL,uint s=0)
+				explicit Stream(const void* b=NULL,uint s=0)
 				: buffer(static_cast<const uchar*>(b)), pos(0), size(s) {}
 			};
 
@@ -103,17 +103,17 @@ namespace Nestopia
 
 				files.reserve( numFiles );
 
-				char path[_MAX_PATH+1];
+				char path[MAX_PATH+1];
 				unz_file_info info;
 				uint i=0;
 
 				do
 				{
-					if (::unzGetCurrentFileInfo( handle, &info, path, _MAX_PATH, NULL, 0, NULL, 0 ) == UNZ_OK && info.uncompressed_size && *path)
+					if (::unzGetCurrentFileInfo( handle, &info, path, MAX_PATH, NULL, 0, NULL, 0 ) == UNZ_OK && info.uncompressed_size && *path)
 					{
 					#ifdef UNICODE
-						wchar_t unipath[_MAX_PATH+1];
-						::MultiByteToWideChar( CP_OEMCP, 0, path, -1, unipath, _MAX_PATH );
+						wchar_t unipath[MAX_PATH+1];
+						::MultiByteToWideChar( CP_OEMCP, 0, path, -1, unipath, MAX_PATH );
 						files.push_back( Item(this,unipath,info.uncompressed_size,i) );
 					#else
 						files.push_back( Item(this,Path(path).Ptr(),info.uncompressed_size,i) );
@@ -265,7 +265,7 @@ namespace Nestopia
 				{
 					try
 					{
-						static_cast<const File*>(file)->Seek( (File::Offset) origin, distance );
+						static_cast<const File*>(file)->Seek( static_cast<File::Offset>(origin), distance );
 						return 0L;
 					}
 					catch (...)
@@ -336,7 +336,7 @@ namespace Nestopia
 		{
 		public:
 
-			UnRar(const Path&);
+			explicit UnRar(const Path&);
 
 		private:
 
@@ -352,8 +352,6 @@ namespace Nestopia
 
 			public:
 
-				using System::Dll::Loaded;
-
 				OpenArchiveExFunc      OpenArchiveEx;
 				CloseArchiveFunc       CloseArchive;
 				ReadHeaderFunc         ReadHeader;
@@ -364,7 +362,7 @@ namespace Nestopia
 
 				bool Load()
 				{
-					if (Loaded())
+					if (*this)
 					{
 						return true;
 					}
@@ -372,13 +370,13 @@ namespace Nestopia
 					{
 						if
 						(
-							NULL != (OpenArchiveEx      = (OpenArchiveExFunc)      (*this)( "RAROpenArchiveEx"      )) &&
-							NULL != (CloseArchive       = (CloseArchiveFunc)       (*this)( "RARCloseArchive"       )) &&
-							NULL != (ReadHeader         = (ReadHeaderFunc)         (*this)( "RARReadHeader"         )) &&
-							NULL != (ReadHeaderEx       = (ReadHeaderExFunc)       (*this)( "RARReadHeaderEx"       )) &&
-							NULL != (ProcessFile        = (ProcessFileFunc)        (*this)( "RARProcessFile"        )) &&
-							NULL != (ProcessFileW       = (ProcessFileWFunc)       (*this)( "RARProcessFileW"       )) &&
-							NULL != (SetProcessDataProc = (SetProcessDataProcFunc) (*this)( "RARSetProcessDataProc" ))
+							NULL != (OpenArchiveEx      = Fetch< OpenArchiveExFunc      >( "RAROpenArchiveEx"      )) &&
+							NULL != (CloseArchive       = Fetch< CloseArchiveFunc       >( "RARCloseArchive"       )) &&
+							NULL != (ReadHeader         = Fetch< ReadHeaderFunc         >( "RARReadHeader"         )) &&
+							NULL != (ReadHeaderEx       = Fetch< ReadHeaderExFunc       >( "RARReadHeaderEx"       )) &&
+							NULL != (ProcessFile        = Fetch< ProcessFileFunc        >( "RARProcessFile"        )) &&
+							NULL != (ProcessFileW       = Fetch< ProcessFileWFunc       >( "RARProcessFileW"       )) &&
+							NULL != (SetProcessDataProc = Fetch< SetProcessDataProcFunc >( "RARSetProcessDataProc" ))
 						)
 							return true;
 
@@ -557,7 +555,7 @@ namespace Nestopia
 		{
 		public:
 
-			Un7zip(const File&);
+			explicit Un7zip(const File&);
 			Un7zip(const void*,uint);
 
 		private:
@@ -607,7 +605,7 @@ namespace Nestopia
 
 			public:
 
-				InStream(uint s)
+				explicit InStream(uint s)
 				: refCount(0), size(s) {}
 			};
 
@@ -647,7 +645,7 @@ namespace Nestopia
 					{
 						try
 						{
-							origin = file.Seek( File::Offset(origin), int(offset) );
+							origin = file.Seek( static_cast<File::Offset>(origin), int(offset) );
 						}
 						catch (File::Exception)
 						{
@@ -667,7 +665,7 @@ namespace Nestopia
 
 			public:
 
-				InFileStream(const File& f)
+				explicit InFileStream(const File& f)
 				: InStream(f.Size()), file(f) {}
 			};
 
@@ -861,11 +859,11 @@ namespace Nestopia
 		{
 			static System::Dll dll;
 
-			if (!dll.Loaded() && !dll.Load(_T("7zxa.dll")))
+			if (!dll && !dll.Load(_T("7zxa.dll")))
 				throw ERR_DLL;
 
 			typedef UINT32 (WINAPI *CreateObjectFunc)(const GUID*,const GUID*,void**);
-			CreateObjectFunc const CreateObject = (CreateObjectFunc) dll("CreateObject");
+			CreateObjectFunc const CreateObject = dll.Fetch<CreateObjectFunc>("CreateObject");
 
 			void* object;
 
@@ -949,9 +947,9 @@ namespace Nestopia
 					path = prop.bstrVal;
 				#else
 					{
-						char buffer[_MAX_PATH+2];
+						char buffer[MAX_PATH+2];
 
-						if (::WideCharToMultiByte( CP_OEMCP, 0, prop.bstrVal, -1, buffer, _MAX_PATH+1, NULL, NULL ))
+						if (::WideCharToMultiByte( CP_OEMCP, 0, prop.bstrVal, -1, buffer, MAX_PATH+1, NULL, NULL ))
 							path = buffer;
 					}
 				#endif
@@ -1021,9 +1019,7 @@ namespace Nestopia
 				{
 					if (size >= 4)
 					{
-						const uchar* const mem = static_cast<const uchar*>(raw);
-
-						switch (NST_FOURCC(mem[0],mem[1],mem[2],mem[3]))
+						switch (FourCC<>::T(static_cast<const uchar*>(raw)))
 						{
 							case FILE_ID_ZIP:
 
@@ -1112,10 +1108,10 @@ namespace Nestopia
 		{
 		public:
 
-			Gui
+			explicit Gui
 			(
 				const Items&,
-				const GenericString* =NULL,
+				const GenericString* = NULL,
 				const uint=0
 			);
 

@@ -72,9 +72,9 @@ namespace Nes
 				Result SetState(const RenderState&);
 				Result GetState(RenderState&) const;
 				Result SetHue(int);
-				void Blit(Output&,Input&,uint=1);
+				void Blit(Output&,Input&,uint);
 
-				void SetMode(Mode);
+				void SetRegion(Region::Type);
 				Result SetDecoder(const Decoder&);
 
 				Result SetPaletteType(PaletteType);
@@ -232,7 +232,6 @@ namespace Nes
 				Filter* filter;
 				State state;
 				Palette palette;
-				Decoder decoder;
 
 			public:
 

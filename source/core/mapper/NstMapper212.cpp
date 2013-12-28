@@ -33,10 +33,13 @@ namespace Nes
 		#pragma optimize("s", on)
 		#endif
 
-		void Mapper212::SubReset(bool)
+		void Mapper212::SubReset(const bool hard)
 		{
 			Map( 0x8000U, 0xBFFFU, &Mapper212::Poke_8000 );
 			Map( 0xC000U, 0xFFFFU, &Mapper212::Poke_C000 );
+
+			if (hard)
+				NES_DO_POKE(C000,0xFFFF,0x00);
 		}
 
 		#ifdef NST_MSVC_OPTIMIZE
@@ -49,13 +52,13 @@ namespace Nes
 			chr.SwapBank<SIZE_8K,0x0000>( address );
 		}
 
-		NES_POKE(Mapper212,8000)
+		NES_POKE_A(Mapper212,8000)
 		{
 			prg.SwapBanks<SIZE_16K,0x0000>( address, address );
 			SwapGfx( address );
 		}
 
-		NES_POKE(Mapper212,C000)
+		NES_POKE_A(Mapper212,C000)
 		{
 			prg.SwapBank<SIZE_32K,0x0000>( address >> 1 );
 			SwapGfx( address );

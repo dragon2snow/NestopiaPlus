@@ -67,7 +67,7 @@ namespace Nestopia
 			}
 		}
 
-		// LOCALE_INVARIANT would be better but is only available in XP or greater
+		// LOCALE_INVARIANT would be better but is only available in XP or later
 
 		int Base::Compare(const char* t,int n,const char* u,int m)
 		{

@@ -28,7 +28,6 @@
 #include "NstWindowParam.hpp"
 #include "NstManagerPaths.hpp"
 #include "NstDialogSound.hpp"
-#include "../core/api/NstApiSound.hpp"
 
 namespace Nestopia
 {
@@ -206,7 +205,7 @@ namespace Nestopia
 				{
 					const Control::ComboBox comboBox( dialog.ComboBox(IDC_SOUND_DEVICE) );
 
-					comboBox.Add( Resource::String(IDS_NONE) );
+					comboBox.Add( Resource::String(IDS_TEXT_NONE) );
 
 					for (Adapters::const_iterator it(adapters.begin()), end(adapters.end()); it != end; ++it)
 						comboBox.Add( it->name.Ptr() );
@@ -442,7 +441,7 @@ namespace Nestopia
 		ibool Sound::Recorder::OnInitDialog(Param&)
 		{
 			dialog.Edit( IDC_SOUND_CAPTURE_FILE ) << waveFile.Ptr();
-			dialog.Edit( IDC_SOUND_CAPTURE_FILE ).Limit( _MAX_PATH );
+			dialog.Edit( IDC_SOUND_CAPTURE_FILE ).Limit( MAX_PATH );
 
 			return true;
 		}

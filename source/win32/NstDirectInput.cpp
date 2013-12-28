@@ -150,7 +150,7 @@ namespace Nestopia
 			IDirectInput8* com;
 
 			if (FAILED(::DirectInput8Create( ::GetModuleHandle(NULL), DIRECTINPUT_VERSION, IID_IDirectInput8, reinterpret_cast<void**>(&com), NULL )))
-				throw Application::Exception( IDS_FAILED, _T("DirectInput8Create()") );
+				throw Application::Exception( IDS_ERR_FAILED, _T("DirectInput8Create()") );
 
 			return *com;
 		}
@@ -220,10 +220,10 @@ namespace Nestopia
 				it->Unacquire();
 		}
 
-		void DirectInput::Calibrate(bool full)
+		void DirectInput::Calibrate()
 		{
 			for (Joysticks::Iterator it(joysticks.Begin()), end(joysticks.End()); it != end; ++it)
-				it->Calibrate( full );
+				it->Calibrate();
 		}
 
 		void DirectInput::BeginScanMode(HWND hWnd) const
@@ -270,7 +270,7 @@ namespace Nestopia
 			}
 		}
 
-		DirectInput::ScanResult DirectInput::ScanKey(Key& key,const ScanMode scanMode) const
+		DirectInput::ScanResult DirectInput::ScanKey(Key& key,const ScanMode scanMode)
 		{
 			const ScanResult scan = (scanMode == SCAN_MODE_ALL ? keyboard.Scan( key ) : SCAN_NO_KEY);
 
@@ -278,7 +278,7 @@ namespace Nestopia
 			{
 				if (scan == SCAN_NO_KEY)
 				{
-					for (Joysticks::ConstIterator it(joysticks.Begin()), end(joysticks.End()); it != end; ++it)
+					for (Joysticks::Iterator it(joysticks.Begin()), end(joysticks.End()); it != end; ++it)
 					{
 						if (it->Scan( key ))
 							return SCAN_GOOD_KEY;
@@ -416,12 +416,12 @@ namespace Nestopia
 			IDirectInputDevice8* com;
 
 			if (FAILED(base.CreateDevice( GUID_SysKeyboard, &com, NULL )))
-				throw Application::Exception( IDS_FAILED, _T("IDirectInput8::CreateDevice()") );
+				throw Application::Exception( IDS_ERR_FAILED, _T("IDirectInput8::CreateDevice()") );
 
 			if (FAILED(com->SetDataFormat( &c_dfDIKeyboard )))
 			{
 				com->Release();
-				throw Application::Exception( IDS_FAILED, _T("IDirectInputDevice8::SetDataFormat()") );
+				throw Application::Exception( IDS_ERR_FAILED, _T("IDirectInputDevice8::SetDataFormat()") );
 			}
 
 			return *com;
@@ -448,7 +448,7 @@ namespace Nestopia
 		void DirectInput::Keyboard::SetCooperativeLevel(HWND const hWnd,const DWORD flags) const
 		{
 			if (FAILED(com.SetCooperativeLevel( hWnd, flags )))
-				throw Application::Exception( IDS_FAILED, _T("IDirectInputDevice8::SetCooperativeLevel()") );
+				throw Application::Exception( IDS_ERR_FAILED, _T("IDirectInputDevice8::SetCooperativeLevel()") );
 		}
 
 		bool DirectInput::Keyboard::Map(Key& key,tstring name) const
@@ -580,6 +580,7 @@ namespace Nestopia
 		:
 		Device      (Create(base,instance.guidInstance)),
 		caps        (com,instance),
+		calibrated  (false),
 		scanEnabled (true),
 		deadZone    (UINT_MAX),
 		axes        (DEFAULT_AXES)
@@ -756,9 +757,19 @@ namespace Nestopia
 		void DirectInput::Joystick::Acquire()
 		{
 			if (Device::Acquire( &state, sizeof(state) ))
+			{
+				if (!calibrated)
+				{
+					calibrated = true;
+					calibrator.Reset( state, false );
+				}
+
 				calibrator.Fix( state );
+			}
 			else
+			{
 				Clear();
+			}
 		}
 
 		void DirectInput::Joystick::Unacquire()
@@ -777,14 +788,17 @@ namespace Nestopia
 			lRz = state.lRz;
 		}
 
-		void DirectInput::Joystick::Calibrate(bool full)
+		void DirectInput::Joystick::Calibrate()
 		{
 			if (SUCCEEDED(com.Acquire()))
 			{
 				Object::Pod<DIJOYSTATE> tmp;
 
 				if (SUCCEEDED(com.Poll()) && SUCCEEDED(com.GetDeviceState( sizeof(tmp), &tmp )))
-					calibrator.Reset( tmp, full );
+				{
+					calibrated = true;
+					calibrator.Reset( tmp, true );
+				}
 
 				com.Unacquire();
 			}
@@ -800,12 +814,18 @@ namespace Nestopia
 			com.Unacquire();
 		}
 
-		bool DirectInput::Joystick::Scan(Key& key) const
+		bool DirectInput::Joystick::Scan(Key& key)
 		{
 			DIJOYSTATE tmp;
 
 			if (scanEnabled && SUCCEEDED(com.Poll()) && SUCCEEDED(com.GetDeviceState( sizeof(tmp), &tmp )))
 			{
+				if (!calibrated)
+				{
+					calibrated = true;
+					calibrator.Reset( tmp, false );
+				}
+
 				calibrator.Fix( tmp );
 
 				for (uint i=0; i < Caps::NUM_BUTTONS; ++i)

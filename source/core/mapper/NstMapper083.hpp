@@ -41,18 +41,21 @@ namespace Nes
 
 		private:
 
-			~Mapper83() {}
+			~Mapper83();
+
+			class CartSwitches;
 
 			enum
 			{
-				ATR_LANGUAGE_SELECT = 1
+				ATR_REGION_SELECT = 1
 			};
 
 			void SubReset(bool);
 			void SubSave(State::Saver&) const;
 			void SubLoad(State::Loader&);
+			Device QueryDevice(DeviceType);
 			void UpdatePrg();
-			void VSync();
+			void Sync(Event,Input::Controllers*);
 
 			NES_DECL_PEEK( 5000   );
 			NES_DECL_PEEK( 5100   );
@@ -69,7 +72,7 @@ namespace Nes
 			struct Irq
 			{
 				void Reset(bool);
-				ibool Signal();
+				bool Clock();
 
 				ibool enabled;
 				uint count;
@@ -83,9 +86,8 @@ namespace Nes
 				byte pr8;
 			}   regs;
 
-			Clock::M2<Irq> irq;
-			uint dipSwitch;
-			const uint language;
+			ClockUnits::M2<Irq> irq;
+			CartSwitches* const cartSwitches;
 		};
 	}
 }

@@ -47,7 +47,7 @@ namespace Nestopia
 							ImageList_AddMasked( static_cast<HIMAGELIST>(handle), Resource::Bitmap( selected   ), 0 ) == -1 ||
 							ImageList_AddMasked( static_cast<HIMAGELIST>(handle), Resource::Bitmap( unselected ), 0 ) == -1
 						)
-							throw Application::Exception( IDS_FAILED, _T("ImageList_Add()") );
+							throw Application::Exception( IDS_ERR_FAILED, _T("ImageList_Add()") );
 					}
 					catch (const Application::Exception& exception)
 					{
@@ -57,7 +57,7 @@ namespace Nestopia
 				}
 				else
 				{
-					throw Application::Exception( IDS_FAILED, _T("ImageList_Create()") );
+					throw Application::Exception( IDS_ERR_FAILED, _T("ImageList_Create()") );
 				}
 			}
 
@@ -106,7 +106,7 @@ namespace Nestopia
 				for (uint i=index; i; --i)
 					hItem = TreeView_GetNextSibling( control, hItem );
 
-				return Item( control, hItem, hItem ? index : -1 );
+				return Item( control, hItem, hItem ? int(index) : -1 );
 			}
 
 			int TreeView::GetIndex(void* const handle) const

@@ -35,7 +35,7 @@ namespace Nes
 			#pragma optimize("s", on)
 			#endif
 
-			uint Mmc1::BoardToWRam(Board board)
+			dword Mmc1::BoardToWRam(Board board)
 			{
 				switch (board)
 				{
@@ -68,7 +68,7 @@ namespace Nes
 
 			Mmc1::Mmc1(Context& c,Board b,Revision rev)
 			:
-			Mapper   (c,BoardToWRam(b) | (PROM_MAX_512K|CROM_MAX_128K)),
+			Mapper   (c,BoardToWRam(b) | (PROM_MAX_512K|CROM_MAX_128K|NMT_ZERO)),
 			revision (rev)
 			{
 			}
@@ -91,7 +91,7 @@ namespace Nes
 
 				Map( 0x8000U, 0xFFFFU, &Mmc1::Poke_Prg );
 
-				serial.ready = cpu.GetMasterClockCycle(Serial::RESET_CYCLES);
+				serial.ready = cpu.GetClock(Serial::RESET_CYCLES);
 
 				if (hard)
 				{
@@ -102,13 +102,13 @@ namespace Nes
 				}
 			}
 
-			void Mmc1::BaseLoad(State::Loader& state,dword id)
+			void Mmc1::BaseLoad(State::Loader& state,dword baseChunk)
 			{
-				NST_VERIFY( id == (AsciiId<'M','M','1'>::V) );
+				NST_VERIFY( baseChunk == (AsciiId<'M','M','1'>::V) );
 
 				serial.ready = 0;
 
-				if (id == AsciiId<'M','M','1'>::V)
+				if (baseChunk == AsciiId<'M','M','1'>::V)
 				{
 					while (const dword chunk = state.Begin())
 					{
@@ -215,9 +215,9 @@ namespace Nes
 				}
 			}
 
-			NES_POKE(Mmc1,Prg)
+			NES_POKE_AD(Mmc1,Prg)
 			{
-				if (cpu.GetMasterClockCycles() >= serial.ready)
+				if (cpu.GetCycles() >= serial.ready)
 				{
 					if (!(data & Serial::RESET_BIT))
 					{
@@ -240,7 +240,7 @@ namespace Nes
 					}
 					else
 					{
-						serial.ready = cpu.GetMasterClockCycles() + cpu.GetMasterClockCycle(Serial::RESET_CYCLES);
+						serial.ready = cpu.GetCycles() + cpu.GetClock(Serial::RESET_CYCLES);
 						serial.buffer = 0;
 						serial.shifter = 0;
 
@@ -260,12 +260,15 @@ namespace Nes
 				}
 			}
 
-			void Mmc1::VSync()
+			void Mmc1::Sync(Event event,Input::Controllers*)
 			{
-				if (serial.ready <= cpu.GetMasterClockFrameCycles())
-					serial.ready = 0;
-				else
-					serial.ready -= cpu.GetMasterClockFrameCycles();
+				if (event == EVENT_END_FRAME)
+				{
+					if (serial.ready <= cpu.GetFrameCycles())
+						serial.ready = 0;
+					else
+						serial.ready -= cpu.GetFrameCycles();
+				}
 			}
 		}
 	}

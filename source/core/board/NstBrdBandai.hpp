@@ -41,8 +41,10 @@ namespace Nes
 
 				enum Type
 				{
-					TYPE_E2401,
-					TYPE_E2402,
+					TYPE_FCG1,
+					TYPE_FCG2,
+					TYPE_LZ93D50_E2401,
+					TYPE_LZ93D50_E2402,
 					TYPE_WRAM,
 					TYPE_DATACH
 				};
@@ -58,8 +60,7 @@ namespace Nes
 				void SubReset(bool);
 				void BaseSave(State::Saver&) const;
 				void BaseLoad(State::Loader&,dword);
-				void VSync();
-				void PowerOff();
+				void Sync(Event,Input::Controllers*);
 				Device QueryDevice(DeviceType);
 
 				NES_DECL_PEEK( 6000_A1 );
@@ -78,13 +79,13 @@ namespace Nes
 				struct Irq
 				{
 					void Reset(bool);
-					ibool Signal();
+					bool Clock();
 
 					uint count;
 					uint latch;
 				};
 
-				Clock::M2<Irq> irq;
+				ClockUnits::M2<Irq> irq;
 				Pointer<DatachJointSystem> datach;
 				Pointer<Eeprom> eeprom;
 				const Type type;

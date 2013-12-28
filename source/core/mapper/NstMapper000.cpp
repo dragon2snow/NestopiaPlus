@@ -37,70 +37,97 @@ namespace Nes
 
 		class Mapper0::CartSwitch : public DipSwitches
 		{
+		public:
+
+			void Flush() const;
+
+		private:
+
 			Wrk& wrk;
+			bool init;
 
 			uint NumDips() const
 			{
 				return 1;
 			}
 
-			uint NumValues(uint dip) const
+			uint NumValues(uint) const
 			{
-				NST_ASSERT( dip == 0 );
 				return 2;
 			}
 
-			cstring GetDipName(uint dip) const
+			cstring GetDipName(uint) const
 			{
-				NST_ASSERT( dip == 0 );
 				return "Backup Switch";
 			}
 
-			cstring GetValueName(uint dip,uint value) const
+			cstring GetValueName(uint,uint value) const
 			{
-				NST_ASSERT( dip == 0 && value < 2 );
+				NST_ASSERT( value < 2 );
 				return value == 0 ? "Off" : "On";
 			}
 
-			uint GetValue(uint dip) const
+			uint GetValue(uint) const
 			{
-				NST_ASSERT( dip == 0 );
 				return wrk.Source().Writable() ? 0 : 1;
 			}
 
-			bool SetValue(uint dip,uint value)
+			void SetValue(uint,uint value)
 			{
-				NST_ASSERT( dip == 0 && value < 2 );
-
-				if (wrk.Source().Writable() != !value)
-				{
-					wrk.Source().SetSecurity( true, !value );
-					return true;
-				}
-
-				return false;
+				NST_ASSERT( value < 2 );
+				wrk.Source().SetSecurity( true, !value );
 			}
 
 		public:
 
 			explicit CartSwitch(Wrk& w)
-			: wrk(w) {}
+			: wrk(w), init(true) {}
 
-			void Flush() const;
+			void Reset(bool hard)
+			{
+				if (init)
+				{
+					init = false;
+				}
+				else if (hard)
+				{
+					Flush();
+				}
+			}
 		};
 
 		void Mapper0::CartSwitch::Flush() const
 		{
 			if (wrk.Source().Writable())
 			{
-				wrk.Source().Fill( 0xFF );
+				wrk.Source().Fill( 0x00 );
 				Log::Flush( "Mapper0: battery-switch OFF, discarding W-RAM.." NST_LINEBREAK );
+			}
+		}
+
+		dword Mapper0::DetectWRam(const Context& c)
+		{
+			if (c.attribute != ATR_BACKUP_SWITCH)
+			{
+				return WRAM_DEFAULT;
+			}
+			else if (c.wrk.Size() == SIZE_2K)
+			{
+				return WRAM_2K;
+			}
+			else if (c.wrk.Size() == SIZE_4K)
+			{
+				return WRAM_4K;
+			}
+			else
+			{
+				return WRAM_8K;
 			}
 		}
 
 		Mapper0::Mapper0(Context& c)
 		:
-		Mapper     (c,c.attribute == ATR_BACKUP_SWITCH ? PROM_MAX_32K|CROM_MAX_8K|WRAM_8K : PROM_MAX_32K|CROM_MAX_8K|WRAM_DEFAULT),
+		Mapper     (c,(PROM_MAX_32K|CROM_MAX_8K) | DetectWRam(c) ),
 		cartSwitch (c.attribute == ATR_BACKUP_SWITCH ? new CartSwitch(wrk) : NULL)
 		{}
 
@@ -113,17 +140,35 @@ namespace Nes
 		{
 			if (cartSwitch)
 			{
-				if (hard)
-					cartSwitch->Flush();
+				cartSwitch->Reset( hard );
 
-				Map( WRK_SAFE_PEEK_POKE );
+				switch (wrk.Size())
+				{
+					case SIZE_8K:
+
+						Map( 0x6000U, 0x7FFFU, &Mapper0::Peek_Wrk_6, &Mapper0::Poke_Wrk_6 );
+						break;
+
+					case SIZE_4K:
+
+						Map( 0x6000U, 0x7000U, &Mapper0::Peek_Wrk_6, &Mapper0::Poke_Wrk_6 );
+						break;
+
+					case SIZE_2K:
+
+						Map( 0x7000U, 0x7800U, &Mapper0::Peek_Wrk_7, &Mapper0::Poke_Wrk_7 );
+						break;
+				}
 			}
 		}
 
-		void Mapper0::PowerOff()
+		void Mapper0::Sync(Event event,Input::Controllers*)
 		{
-			if (cartSwitch)
-				cartSwitch->Flush();
+			if (event == EVENT_POWER_OFF)
+			{
+				if (cartSwitch)
+					cartSwitch->Flush();
+			}
 		}
 
 		Mapper0::Device Mapper0::QueryDevice(DeviceType type)
@@ -137,5 +182,31 @@ namespace Nes
 		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
+
+		NES_POKE_AD(Mapper0,Wrk_6)
+		{
+			NST_VERIFY( wrk.Writable(0) );
+
+			if (wrk.Writable(0))
+				wrk[0][address - 0x6000] = data;
+		}
+
+		NES_PEEK_A(Mapper0,Wrk_6)
+		{
+			return wrk[0][address - 0x6000];
+		}
+
+		NES_POKE_AD(Mapper0,Wrk_7)
+		{
+			NST_VERIFY( wrk.Writable(0) );
+
+			if (wrk.Writable(0))
+				wrk[0][address - 0x7000] = data;
+		}
+
+		NES_PEEK_A(Mapper0,Wrk_7)
+		{
+			return wrk[0][address - 0x7000];
+		}
 	}
 }

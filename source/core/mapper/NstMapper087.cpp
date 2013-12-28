@@ -33,11 +33,8 @@ namespace Nes
 		#pragma optimize("s", on)
 		#endif
 
-		void Mapper87::SubReset(const bool hard)
+		void Mapper87::SubReset(bool)
 		{
-			if (hard && prg.Source().Size() >= SIZE_32K)
-				prg.SwapBank<SIZE_16K,0x4000>( 1 );
-
 			Map( 0x6000U, 0xFFFFU, &Mapper87::Poke_6000 );
 		}
 
@@ -45,7 +42,7 @@ namespace Nes
 		#pragma optimize("", on)
 		#endif
 
-		NES_POKE(Mapper87,6000)
+		NES_POKE_D(Mapper87,6000)
 		{
 			ppu.Update();
 			chr.SwapBank<SIZE_8K,0x0000>(data >> 1);

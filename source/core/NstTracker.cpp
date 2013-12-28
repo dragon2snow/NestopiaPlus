@@ -39,10 +39,11 @@ namespace Nes
 
 		Tracker::Tracker()
 		:
-		frame         (0),
-		rewinderSound (false),
-		rewinder      (NULL),
-		movie         (NULL)
+		frame           (0),
+		rewinderSound   (false),
+		rewinderEnabled (NULL),
+		rewinder        (NULL),
+		movie           (NULL)
 		{}
 
 		Tracker::~Tracker()
@@ -58,46 +59,62 @@ namespace Nes
 			if (rewinder)
 				rewinder->Unload();
 			else
-				MovieEject();
+				StopMovie();
 		}
 
-		void Tracker::Reset(bool hard)
+		void Tracker::Reset()
 		{
 			frame = 0;
 
-			if (!movie)
+			if (rewinder)
 			{
-				RewinderReset();
+				rewinder->Reset();
 			}
-			else if (!movie->Reset( hard ))
+			else if (movie)
 			{
-				MovieEject();
+				movie->Reset();
 			}
 		}
 
-		void Tracker::Flush()
+		void Tracker::PowerOff()
 		{
-			RewinderReset();
-			MovieCut();
+			StopMovie();
 		}
 
-		Result Tracker::Flush(Result lastResult)
+		void Tracker::Resync(bool excludeFrame) const
+		{
+			if (rewinder)
+			{
+				rewinder->Reset();
+			}
+			else if (movie && !excludeFrame)
+			{
+				movie->Resync();
+			}
+		}
+
+		Result Tracker::TryResync(Result lastResult,bool excludeFrame) const
 		{
 			NST_VERIFY( NES_SUCCEEDED(lastResult) );
 
 			if (NES_SUCCEEDED(lastResult) && lastResult != RESULT_NOP)
-				Flush();
+				Resync( excludeFrame );
 
 			return lastResult;
 		}
 
-		void Tracker::RewinderReset() const
+		Result Tracker::EnableRewinder(Machine* const emulator)
 		{
-			if (rewinder)
-				rewinder->Reset();
+			if (rewinderEnabled == emulator)
+				return RESULT_NOP;
+
+			rewinderEnabled = emulator;
+			UpdateRewinderState( true );
+
+			return RESULT_OK;
 		}
 
-		void Tracker::RewinderEnableSound(bool enable)
+		void Tracker::EnableRewinderSound(bool enable)
 		{
 			rewinderSound = enable;
 
@@ -105,40 +122,44 @@ namespace Nes
 				rewinder->EnableSound( enable );
 		}
 
-		Result Tracker::RewinderEnable(Machine* emulator)
+		void Tracker::ResetRewinder() const
 		{
-			if (bool(rewinder) == bool(emulator))
-				return RESULT_NOP;
+			if (rewinder)
+				rewinder->Reset();
+		}
 
-			if (movie)
-				return RESULT_ERR_NOT_READY;
-
-			if (emulator)
+		void Tracker::UpdateRewinderState(bool enable)
+		{
+			if (enable && rewinderEnabled && !movie)
 			{
-				rewinder = new Rewinder
-				(
-					*emulator,
-					&Machine::ExecuteFrame,
-					&Machine::LoadState,
-					&Machine::SaveState,
-					emulator->cpu,
-					emulator->ppu,
-					rewinderSound
-				);
+				if (!rewinder)
+				{
+					rewinder = new Rewinder
+					(
+						*rewinderEnabled,
+						&Machine::Execute,
+						&Machine::LoadState,
+						&Machine::SaveState,
+						rewinderEnabled->cpu,
+						rewinderEnabled->cpu.GetApu(),
+						rewinderEnabled->ppu,
+						rewinderSound
+					);
+				}
 			}
 			else
 			{
 				delete rewinder;
 				rewinder = NULL;
 			}
-
-			return RESULT_OK;
 		}
 
-		Result Tracker::MoviePlay(Machine& emulator,StdStream stream,bool mode)
+		Result Tracker::PlayMovie(Machine& emulator,StdStream const stream)
 		{
-			if (rewinder || !emulator.Is(Api::Machine::GAME))
+			if (!emulator.Is(Api::Machine::GAME))
 				return RESULT_ERR_NOT_READY;
+
+			UpdateRewinderState( false );
 
 			Result result;
 
@@ -149,7 +170,6 @@ namespace Nes
 					movie = new Movie
 					(
 						emulator,
-						&Machine::Reset,
 						&Machine::LoadState,
 						&Machine::SaveState,
 						emulator.cpu,
@@ -157,7 +177,7 @@ namespace Nes
 					);
 				}
 
-				if (movie->Play( stream, mode ))
+				if (movie->Play( stream ))
 				{
 					if (emulator.Is(Api::Machine::ON))
 						emulator.Reset( true );
@@ -182,15 +202,17 @@ namespace Nes
 				result = RESULT_ERR_GENERIC;
 			}
 
-			MovieEject();
+			StopMovie();
 
 			return result;
 		}
 
-		Result Tracker::MovieRecord(Machine& emulator,StdStream stream,bool how,bool mode)
+		Result Tracker::RecordMovie(Machine& emulator,StdStream const stream,const bool append)
 		{
-			if (rewinder || !emulator.Is(Api::Machine::GAME))
+			if (!emulator.Is(Api::Machine::GAME))
 				return RESULT_ERR_NOT_READY;
+
+			UpdateRewinderState( false );
 
 			Result result;
 
@@ -201,7 +223,6 @@ namespace Nes
 					movie = new Movie
 					(
 						emulator,
-						&Machine::Reset,
 						&Machine::LoadState,
 						&Machine::SaveState,
 						emulator.cpu,
@@ -209,7 +230,7 @@ namespace Nes
 					);
 				}
 
-				return movie->Record( stream, how, mode ) ? RESULT_OK : RESULT_NOP;
+				return movie->Record( stream, append ) ? RESULT_OK : RESULT_NOP;
 			}
 			catch (Result r)
 			{
@@ -224,39 +245,29 @@ namespace Nes
 				result = RESULT_ERR_GENERIC;
 			}
 
-			MovieEject();
+			StopMovie();
 
 			return result;
 		}
 
-		void Tracker::MovieStop()
-		{
-			if (movie)
-				movie->Stop();
-		}
-
-		void Tracker::MovieCut()
-		{
-			if (movie)
-				movie->Cut();
-		}
-
-		void Tracker::MovieEject()
+		void Tracker::StopMovie()
 		{
 			delete movie;
 			movie = NULL;
+
+			UpdateRewinderState( true );
 		}
 
 		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
-		Result Tracker::RewinderStart() const
+		Result Tracker::StartRewinding() const
 		{
 			return rewinder ? rewinder->Start() : RESULT_ERR_NOT_READY;
 		}
 
-		Result Tracker::RewinderStop() const
+		Result Tracker::StopRewinding() const
 		{
 			return rewinder ? rewinder->Stop() : RESULT_NOP;
 		}
@@ -266,24 +277,24 @@ namespace Nes
 			return rewinder && rewinder->IsRewinding();
 		}
 
-		bool Tracker::MovieIsPlaying() const
+		bool Tracker::IsMoviePlaying() const
 		{
 			return movie && movie->IsPlaying();
 		}
 
-		bool Tracker::MovieIsRecording() const
+		bool Tracker::IsMovieRecording() const
 		{
 			return movie && movie->IsRecording();
 		}
 
-		bool Tracker::MovieIsStopped() const
+		bool Tracker::IsLocked(bool excludeFrame) const
 		{
-			return !movie || movie->IsStopped();
+			return IsRewinding() || (!excludeFrame && IsMoviePlaying());
 		}
 
-		bool Tracker::IsLocked() const
+		bool Tracker::IsActive() const
 		{
-			return IsRewinding() || MovieIsPlaying();
+			return IsRewinding() || movie;
 		}
 
 		Result Tracker::Execute
@@ -291,7 +302,7 @@ namespace Nes
 			Machine& emulator,
 			Video::Output* const video,
 			Sound::Output* const sound,
-			Input::Controllers* const input
+			Input::Controllers* input
 		)
 		{
 			if (emulator.Is(Api::Machine::ON))
@@ -307,19 +318,18 @@ namespace Nes
 					}
 					else if (movie)
 					{
-						if (!movie->BeginFrame( emulator.frame ))
-							MovieEject();
-
-						emulator.ExecuteFrame( video, sound, input );
-
-						if (!movie->EndFrame())
-							MovieEject();
-
-						return RESULT_OK;
+						if (!movie->Execute())
+						{
+							StopMovie();
+						}
+						else if (movie->IsPlaying())
+						{
+							input = NULL;
+						}
 					}
 				}
 
-				emulator.ExecuteFrame( video, sound, input );
+				emulator.Execute( video, sound, input );
 				return RESULT_OK;
 			}
 			else

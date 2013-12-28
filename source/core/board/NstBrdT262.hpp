@@ -40,7 +40,7 @@ namespace Nes
 			public:
 
 				explicit T262(Context& c)
-				: Mapper(c,PROM_MAX_1024K|CROM_MAX_8K|WRAM_DEFAULT) {}
+				: Mapper(c,PROM_MAX_1024K|CROM_MAX_8K|WRAM_DEFAULT|NMT_VERTICAL) {}
 
 			private:
 

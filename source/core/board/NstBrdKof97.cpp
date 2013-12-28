@@ -77,32 +77,32 @@ namespace Nes
 				);
 			}
 
-			NES_POKE(Kof97,8000)
+			NES_POKE_D(Kof97,8000)
 			{
 				Mmc3::NES_DO_POKE(8000,0x8000,Unscramble(data));
 			}
 
-			NES_POKE(Kof97,8001)
+			NES_POKE_D(Kof97,8001)
 			{
 				Mmc3::NES_DO_POKE(8001,0x8001,Unscramble(data));
 			}
 
-			NES_POKE(Kof97,C000)
+			NES_POKE_D(Kof97,C000)
 			{
 				Mmc3::NES_DO_POKE(C000,0xC000,Unscramble(data));
 			}
 
-			NES_POKE(Kof97,C001)
+			NES_POKE_D(Kof97,C001)
 			{
 				Mmc3::NES_DO_POKE(C001,0xC001,Unscramble(data));
 			}
 
-			NES_POKE(Kof97,E000)
+			NES_POKE_D(Kof97,E000)
 			{
 				Mmc3::NES_DO_POKE(E000,0xE000,Unscramble(data));
 			}
 
-			NES_POKE(Kof97,E001)
+			NES_POKE_D(Kof97,E001)
 			{
 				Mmc3::NES_DO_POKE(E001,0xE001,Unscramble(data));
 			}

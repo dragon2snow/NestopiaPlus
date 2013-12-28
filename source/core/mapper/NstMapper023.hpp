@@ -37,12 +37,17 @@ namespace Nes
 		{
 		public:
 
-			explicit Mapper23(Context& c)
-			: Vrc4(c,TYPE_B) {}
+			explicit Mapper23(Context&);
 
 		private:
 
 			~Mapper23() {}
+
+			void SubReset(bool);
+
+			NES_DECL_POKE( 8000 );
+			NES_DECL_POKE( A000 );
+			NES_DECL_POKE( B000 );
 		};
 	}
 }

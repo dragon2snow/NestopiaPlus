@@ -49,9 +49,9 @@ namespace Nes
 				stream = 0;
 			}
 
-			void PartyTap::SaveState(State::Saver& state,const byte id) const
+			void PartyTap::SaveState(State::Saver& saver,const byte id) const
 			{
-				state.Begin( AsciiId<'P','T'>::R(0,0,id) ).End();
+				saver.Begin( AsciiId<'P','T'>::R(0,0,id) ).End();
 			}
 
 			#ifdef NST_MSVC_OPTIMIZE

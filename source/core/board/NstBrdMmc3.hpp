@@ -43,6 +43,11 @@ namespace Nes
 				{
 				public:
 
+					enum
+					{
+						CLOCK_FILTER = 16
+					};
+
 					void Reset(bool);
 					void LoadState(State::Loader&);
 					void SaveState(State::Saver&,dword) const;
@@ -60,7 +65,7 @@ namespace Nes
 					explicit BaseIrq(bool p=false)
 					: persistant(p) {}
 
-					ibool Signal()
+					bool Clock()
 					{
 						uint tmp = count;
 
@@ -101,14 +106,11 @@ namespace Nes
 
 			public:
 
-				struct Irq : Clock::A12<BaseIrq>
+				template<uint Delay=0>
+				struct Irq : ClockUnits::A12<BaseIrq,BaseIrq::CLOCK_FILTER,Delay>
 				{
-					enum
-					{
-						SIGNAL_DURATION = 16
-					};
-
-					Irq(Cpu&,Ppu&,IrqDelay=NO_IRQ_DELAY,bool=false);
+					Irq(Cpu& c,Ppu& p,bool persistant)
+					: ClockUnits::A12<BaseIrq,BaseIrq::CLOCK_FILTER,Delay>(c,p,persistant) {}
 				};
 
 			protected:
@@ -125,7 +127,8 @@ namespace Nes
 					BRD_TLSROM,
 					BRD_TR1ROM,
 					BRD_TSROM,
-					BRD_TVROM
+					BRD_TVROM,
+					BRD_TNROM
 				};
 
 				enum Revision
@@ -135,7 +138,7 @@ namespace Nes
 					REV_C
 				};
 
-				explicit Mmc3(Context&,Board=BRD_GENERIC,uint=WRAM_AUTO,Revision=REV_B);
+				explicit Mmc3(Context&,Board=BRD_GENERIC,dword=WRAM_AUTO,Revision=REV_B);
 				~Mmc3() {}
 
 				void SubReset(bool);
@@ -155,11 +158,11 @@ namespace Nes
 				{
 					enum
 					{
-						CTRL0_MODE          = b00000111,
-						CTRL0_XOR_PRG       = b01000000,
-						CTRL0_XOR_CHR       = b10000000,
-						CTRL1_WRAM_READONLY = b01000000,
-						CTRL1_WRAM_ENABLED  = b10000000,
+						CTRL0_MODE          = 0x07,
+						CTRL0_XOR_PRG       = 0x40,
+						CTRL0_XOR_CHR       = 0x80,
+						CTRL1_WRAM_READONLY = 0x40,
+						CTRL1_WRAM_ENABLED  = 0x80,
 						CTRL1_WRAM          = CTRL1_WRAM_ENABLED|CTRL1_WRAM_READONLY
 					};
 
@@ -182,13 +185,13 @@ namespace Nes
 
 			private:
 
-				static uint BoardToWRam(Board,uint);
+				static dword BoardToWRam(Board,dword);
 
 				void BaseSave(State::Saver&) const;
 				void BaseLoad(State::Loader&,dword);
-				void VSync();
+				void Sync(Event,Input::Controllers*);
 
-				Irq irq;
+				Irq<> irq;
 			};
 		}
 	}

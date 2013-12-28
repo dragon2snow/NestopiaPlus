@@ -81,12 +81,12 @@ namespace Nestopia
 					return i;
 				}
 
-				operator schar  () const { return ( schar  ) operator long  (); }
-				operator uchar  () const { return ( uchar  ) operator ulong (); }
-				operator short  () const { return ( short  ) operator long  (); }
-				operator ushort () const { return ( ushort ) operator ulong (); }
-				operator int    () const { return ( int    ) operator long  (); }
-				operator uint   () const { return ( uint   ) operator ulong (); }
+				operator schar  () const { return schar  (operator long  ()); }
+				operator uchar  () const { return uchar  (operator ulong ()); }
+				operator short  () const { return short  (operator long  ()); }
+				operator ushort () const { return ushort (operator ulong ()); }
+				operator int    () const { return int    (operator long  ()); }
+				operator uint   () const { return uint   (operator ulong ()); }
 
 				tstring Default(tstring d) const
 				{
@@ -110,12 +110,12 @@ namespace Nestopia
 					return (*this >> i) ? i : d;
 				}
 
-				schar  Default( schar  i ) const { return ( schar  ) Default( ( long  ) i ); }
-				uchar  Default( uchar  i ) const { return ( uchar  ) Default( ( ulong ) i ); }
-				short  Default( short  i ) const { return ( short  ) Default( ( long  ) i ); }
-				ushort Default( ushort i ) const { return ( ushort ) Default( ( ulong ) i ); }
-				int    Default( int    i ) const { return ( int    ) Default( ( long  ) i ); }
-				uint   Default( uint   i ) const { return ( uint   ) Default( ( ulong ) i ); }
+				schar  Default( schar  i ) const { return schar  (Default( long  (i) )); }
+				uchar  Default( uchar  i ) const { return uchar  (Default( ulong (i) )); }
+				short  Default( short  i ) const { return short  (Default( long  (i) )); }
+				ushort Default( ushort i ) const { return ushort (Default( ulong (i) )); }
+				int    Default( int    i ) const { return int    (Default( long  (i) )); }
+				uint   Default( uint   i ) const { return uint   (Default( ulong (i) )); }
 			};
 
 			class Value
@@ -201,7 +201,7 @@ namespace Nestopia
 			{
 				UTF16_LE = 0xFEFF,
 				UTF16_BE = 0xFFFE,
-				HINTED_SIZE = 415
+				HINTED_SIZE = 414
 			};
 
 			enum Error

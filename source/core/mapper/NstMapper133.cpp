@@ -42,7 +42,7 @@ namespace Nes
 		#pragma optimize("", on)
 		#endif
 
-		NES_POKE(Mapper133,4100)
+		NES_POKE_D(Mapper133,4100)
 		{
 			ppu.Update();
 			prg.SwapBank<SIZE_32K,0x0000>( data >> 2 );

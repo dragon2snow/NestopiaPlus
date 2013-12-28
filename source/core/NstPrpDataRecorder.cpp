@@ -27,7 +27,7 @@
 #include "NstState.hpp"
 #include "NstFile.hpp"
 #include "NstPrpDataRecorder.hpp"
-#include "api/NstApiUser.hpp"
+#include "api/NstApiTapeRecorder.hpp"
 
 namespace Nes
 {
@@ -41,14 +41,14 @@ namespace Nes
 
 			const dword DataRecorder::clocks[2][2] =
 			{
-				{ Cpu::CLK_NTSC_DIV * 16, Cpu::MC_NTSC * (16UL/1) / (CLOCK/1)   },
-				{ Cpu::CLK_PAL_DIV * 320, Cpu::MC_PAL * (320UL/16) / (CLOCK/16) }
+				{ Clocks::NTSC_DIV * 16, Clocks::NTSC_CLK * (16UL/1) / (CLOCK/1)   },
+				{ Clocks::PAL_DIV * 320, Clocks::PAL_CLK * (320UL/16) / (CLOCK/16) }
 			};
 
 			DataRecorder::DataRecorder(Cpu& c)
 			: cpu(c), cycles(Cpu::CYCLE_MAX), status(STOPPED), loaded(false)
 			{
-				NST_COMPILE_ASSERT( MODE_NTSC == 0 && MODE_PAL == 1 );
+				NST_COMPILE_ASSERT( Region::NTSC == 0 && Region::PAL == 1 );
 			}
 
 			DataRecorder::~DataRecorder()
@@ -70,23 +70,23 @@ namespace Nes
 					file.Save( File::SAVE_TAPE, stream.Begin(), stream.Size() );
 			}
 
-			void DataRecorder::SaveState(State::Saver& state,const dword id) const
+			void DataRecorder::SaveState(State::Saver& state,const dword baseChunk) const
 			{
 				if (stream.Size())
 				{
-					state.Begin( id );
+					state.Begin( baseChunk );
 
 					if (status != STOPPED)
 					{
 						const dword p = (status == PLAYING ? pos : 0);
-						Cycle c = cycles / clocks[cpu.GetMode()][0];
+						Cycle c = cycles / clocks[cpu.GetRegion()][0];
 
-						if (c > cpu.GetMasterClockCycles())
-							c -= cpu.GetMasterClockCycles();
+						if (c > cpu.GetCycles())
+							c -= cpu.GetCycles();
 						else
 							c = 0;
 
-						c /= cpu.GetMasterClockCycle(1);
+						c /= cpu.GetClock();
 
 						const byte data[] =
 						{
@@ -135,8 +135,8 @@ namespace Nes
 							if (status != STOPPED)
 							{
 								cycles  = data[7] | data[8] << 8 | dword(data[9]) << 16 | dword(data[10]) << 24;
-								cycles *= cpu.GetMasterClockCycle(1) * clocks[cpu.GetMode()][0];
-								cycles += cpu.GetMasterClockCycles() * clocks[cpu.GetMode()][0];
+								cycles *= cpu.GetClock() * clocks[cpu.GetRegion()][0];
+								cycles += cpu.GetCycles() * clocks[cpu.GetRegion()][0];
 							}
 
 							break;
@@ -164,7 +164,7 @@ namespace Nes
 
 				if (status != STOPPED)
 				{
-					if (stream.Size() && pos < stream.Size() && cycles <= clocks[cpu.GetMode()][1] * 2)
+					if (stream.Size() && pos < stream.Size() && cycles <= clocks[cpu.GetRegion()][1] * 2)
 					{
 						Start();
 					}
@@ -176,7 +176,7 @@ namespace Nes
 				}
 			}
 
-			bool DataRecorder::CanPlay()
+			bool DataRecorder::Playable()
 			{
 				if (!loaded)
 				{
@@ -220,7 +220,7 @@ namespace Nes
 				if (status == PLAYING)
 					return RESULT_NOP;
 
-				if (status == RECORDING || !CanPlay())
+				if (status == RECORDING || !Playable())
 					return RESULT_ERR_NOT_READY;
 
 				status = PLAYING;
@@ -238,7 +238,7 @@ namespace Nes
 			{
 				p4016 = cpu.Link( 0x4016, Cpu::LEVEL_LOW, this, &DataRecorder::Peek_4016, &DataRecorder::Poke_4016 );
 				cpu.AddHook( Hook(this,&DataRecorder::Hook_Tape) );
-				Api::User::eventCallback( status == PLAYING ? Api::User::EVENT_TAPE_PLAYING : Api::User::EVENT_TAPE_RECORDING, NULL );
+				Api::TapeRecorder::eventCallback( status == PLAYING ? Api::TapeRecorder::EVENT_PLAYING : Api::TapeRecorder::EVENT_RECORDING );
 			}
 
 			Result DataRecorder::Stop()
@@ -249,7 +249,7 @@ namespace Nes
 				status = STOPPED;
 				cycles = Cpu::CYCLE_MAX-1UL;
 				cpu.Unlink( 0x4016, this, &DataRecorder::Peek_4016, &DataRecorder::Poke_4016 );
-				Api::User::eventCallback( Api::User::EVENT_TAPE_STOPPED, NULL );
+				Api::TapeRecorder::eventCallback( Api::TapeRecorder::EVENT_STOPPED );
 
 				return RESULT_OK;
 			}
@@ -261,7 +261,7 @@ namespace Nes
 
 				if (cycles != Cpu::CYCLE_MAX-1UL)
 				{
-					const Cycle frame = cpu.GetMasterClockFrameCycles() * clocks[cpu.GetMode()][0];
+					const Cycle frame = cpu.GetFrameCycles() * clocks[cpu.GetRegion()][0];
 
 					if (cycles > frame)
 						cycles -= frame;
@@ -281,7 +281,7 @@ namespace Nes
 
 			NES_HOOK(DataRecorder,Tape)
 			{
-				for (const Cycle next = cpu.GetMasterClockCycles() * clocks[cpu.GetMode()][0]; cycles < next; cycles += clocks[cpu.GetMode()][1])
+				for (const Cycle next = cpu.GetCycles() * clocks[cpu.GetRegion()][0]; cycles < next; cycles += clocks[cpu.GetRegion()][1])
 				{
 					if (status == PLAYING)
 					{
@@ -321,13 +321,13 @@ namespace Nes
 				}
 			}
 
-			NES_POKE(DataRecorder,4016)
+			NES_POKE_AD(DataRecorder,4016)
 			{
 				out = data;
 				p4016->Poke( address, data );
 			}
 
-			NES_PEEK(DataRecorder,4016)
+			NES_PEEK_A(DataRecorder,4016)
 			{
 				return p4016->Peek( address ) | in;
 			}

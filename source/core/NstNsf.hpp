@@ -53,9 +53,10 @@ namespace Nes
 			~Nsf();
 
 			void Reset(bool);
+			bool PowerOff();
 			void InitSong();
-			void SetMode(Mode);
-			Mode GetMode() const;
+			void SetRegion(Region::Type);
+			Region::Type GetRegion() const;
 
 			inline uint FetchLast(uint) const;
 
@@ -104,6 +105,32 @@ namespace Nes
 			NES_DECL_POKE( 5FFE );
 			NES_DECL_POKE( 5FFF );
 
+			NES_DECL_PEEK( Prg_8 );
+			NES_DECL_PEEK( Prg_9 );
+			NES_DECL_PEEK( Prg_A );
+			NES_DECL_PEEK( Prg_B );
+			NES_DECL_PEEK( Prg_C );
+			NES_DECL_PEEK( Prg_D );
+			NES_DECL_PEEK( Prg_E );
+			NES_DECL_PEEK( Prg_F );
+
+			NES_DECL_PEEK( Wrk );
+			NES_DECL_POKE( Wrk );
+
+			NES_DECL_PEEK( Fds_4040 );
+			NES_DECL_POKE( Fds_4040 );
+			NES_DECL_POKE( Fds_4080 );
+			NES_DECL_POKE( Fds_4082 );
+			NES_DECL_POKE( Fds_4083 );
+			NES_DECL_POKE( Fds_4084 );
+			NES_DECL_POKE( Fds_4085 );
+			NES_DECL_POKE( Fds_4086 );
+			NES_DECL_POKE( Fds_4087 );
+			NES_DECL_POKE( Fds_4088 );
+			NES_DECL_POKE( Fds_4089 );
+			NES_DECL_POKE( Fds_408A );
+			NES_DECL_PEEK( Fds_4090 );
+			NES_DECL_PEEK( Fds_4092 );
 			NES_DECL_POKE( Fds_5FF6 );
 			NES_DECL_POKE( Fds_5FF7 );
 			NES_DECL_POKE( Fds_5FF8 );
@@ -114,22 +141,25 @@ namespace Nes
 			NES_DECL_POKE( Fds_5FFD );
 			NES_DECL_POKE( Fds_5FFE );
 			NES_DECL_POKE( Fds_5FFF );
+			NES_DECL_PEEK( Fds_Ram  );
+			NES_DECL_POKE( Fds_Ram  );
 
-			NES_DECL_PEEK( Ram   );
-			NES_DECL_POKE( Ram   );
-			NES_DECL_PEEK( ExRam );
-			NES_DECL_POKE( ExRam );
-			NES_DECL_PEEK( Fds   );
-			NES_DECL_POKE( Fds   );
-
-			NES_DECL_PEEK( Prg_8 );
-			NES_DECL_PEEK( Prg_9 );
-			NES_DECL_PEEK( Prg_A );
-			NES_DECL_PEEK( Prg_B );
-			NES_DECL_PEEK( Prg_C );
-			NES_DECL_PEEK( Prg_D );
-			NES_DECL_PEEK( Prg_E );
-			NES_DECL_PEEK( Prg_F );
+			NES_DECL_POKE( Mmc5_5000 );
+			NES_DECL_POKE( Mmc5_5002 );
+			NES_DECL_POKE( Mmc5_5003 );
+			NES_DECL_POKE( Mmc5_5004 );
+			NES_DECL_POKE( Mmc5_5006 );
+			NES_DECL_POKE( Mmc5_5007 );
+			NES_DECL_POKE( Mmc5_5010 );
+			NES_DECL_POKE( Mmc5_5011 );
+			NES_DECL_POKE( Mmc5_5015 );
+			NES_DECL_PEEK( Mmc5_5015 );
+			NES_DECL_PEEK( Mmc5_5205 );
+			NES_DECL_PEEK( Mmc5_5206 );
+			NES_DECL_POKE( Mmc5_5205 );
+			NES_DECL_POKE( Mmc5_5206 );
+			NES_DECL_PEEK( Mmc5_5C00 );
+			NES_DECL_POKE( Mmc5_5C00 );
 
 			NES_DECL_POKE( Vrc6_9000 );
 			NES_DECL_POKE( Vrc6_9001 );
@@ -247,13 +277,14 @@ namespace Nes
 			Prg        prg;
 			Routine    routine;
 			Cpu&       cpu;
+			Apu&       apu;
 			Chips*     chips;
 			Songs      songs;
 			Addressing addressing;
 			Speed      speed;
 			uint       tuneMode;
 			byte       banks[8];
-			byte       ram[SIZE_8K];
+			byte       wrk[SIZE_8K];
 
 		public:
 

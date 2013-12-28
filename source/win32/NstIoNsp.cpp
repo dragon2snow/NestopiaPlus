@@ -25,8 +25,8 @@
 #include "NstIoFile.hpp"
 #include "NstIoNsp.hpp"
 #include "NstApplicationInstance.hpp"
-#include "../core/api/NstApiCheats.hpp"
 #include "../core/api/NstApiMachine.hpp"
+#include "../core/api/NstApiCheats.hpp"
 
 namespace Nestopia
 {

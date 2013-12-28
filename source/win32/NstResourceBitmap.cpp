@@ -34,7 +34,7 @@ namespace Nestopia
 		: handle(::LoadBitmap(::GetModuleHandle(NULL),MAKEINTRESOURCE(id)))
 		{
 			if (!handle)
-				throw Application::Exception( IDS_FAILED, _T("LoadBitmap()") );
+				throw Application::Exception( IDS_ERR_FAILED, _T("LoadBitmap()") );
 		}
 
 		Bitmap::~Bitmap ()

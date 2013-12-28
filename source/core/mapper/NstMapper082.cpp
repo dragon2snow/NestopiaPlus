@@ -70,50 +70,50 @@ namespace Nes
 		#pragma optimize("", on)
 		#endif
 
-		NES_POKE(Mapper82,7EF0)
+		NES_POKE_D(Mapper82,7EF0)
 		{
 			ppu.Update();
 			chr.SwapBank<SIZE_2K>( swapOffset | 0x0000, data >> 1 );
 		}
 
-		NES_POKE(Mapper82,7EF1)
+		NES_POKE_D(Mapper82,7EF1)
 		{
 			ppu.Update();
 			chr.SwapBank<SIZE_2K>( swapOffset | 0x0800, data >> 1 );
 		}
 
-		NES_POKE(Mapper82,7EF2)
+		NES_POKE_D(Mapper82,7EF2)
 		{
 			ppu.Update();
 			chr.SwapBank<SIZE_1K>( swapOffset ^ 0x1000, data );
 		}
 
-		NES_POKE(Mapper82,7EF3)
+		NES_POKE_D(Mapper82,7EF3)
 		{
 			ppu.Update();
 			chr.SwapBank<SIZE_1K>( swapOffset ^ 0x1400, data );
 		}
 
-		NES_POKE(Mapper82,7EF4)
+		NES_POKE_D(Mapper82,7EF4)
 		{
 			ppu.Update();
 			chr.SwapBank<SIZE_1K>( swapOffset ^ 0x1800, data );
 		}
 
-		NES_POKE(Mapper82,7EF5)
+		NES_POKE_D(Mapper82,7EF5)
 		{
 			ppu.Update();
 			chr.SwapBank<SIZE_1K>( swapOffset ^ 0x1C00, data );
 		}
 
-		NES_POKE(Mapper82,7EF6)
+		NES_POKE_D(Mapper82,7EF6)
 		{
 			swapOffset = (data & 0x2) << 11;
 			ppu.SetMirroring( (data & 0x1) ? Ppu::NMT_VERTICAL : Ppu::NMT_HORIZONTAL );
 		}
 
-		NES_POKE(Mapper82,7EFA) { prg.SwapBank<SIZE_8K,0x0000>(data >> 2); }
-		NES_POKE(Mapper82,7EFB) { prg.SwapBank<SIZE_8K,0x2000>(data >> 2); }
-		NES_POKE(Mapper82,7EFC) { prg.SwapBank<SIZE_8K,0x4000>(data >> 2); }
+		NES_POKE_D(Mapper82,7EFA) { prg.SwapBank<SIZE_8K,0x0000>(data >> 2); }
+		NES_POKE_D(Mapper82,7EFB) { prg.SwapBank<SIZE_8K,0x2000>(data >> 2); }
+		NES_POKE_D(Mapper82,7EFC) { prg.SwapBank<SIZE_8K,0x4000>(data >> 2); }
 	}
 }

@@ -46,7 +46,7 @@ namespace Nes
 			void SubReset(bool);
 			void SubSave(State::Saver&) const;
 			void SubLoad(State::Loader&);
-			void VSync();
+			void Sync(Event,Input::Controllers*);
 
 			NES_DECL_POKE( E000 );
 			NES_DECL_POKE( E001 );
@@ -55,7 +55,7 @@ namespace Nes
 			struct Irq
 			{
 				void Reset(bool);
-				ibool Signal();
+				bool Clock();
 
 				uint count;
 				Cpu& cpu;
@@ -64,7 +64,7 @@ namespace Nes
 				: cpu(c) {}
 			};
 
-			Clock::M2<Irq> irq;
+			ClockUnits::M2<Irq> irq;
 		};
 	}
 }

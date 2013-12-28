@@ -73,7 +73,7 @@ namespace Nes
 							for (; src != end; src += 2)
 							{
 								const idword sample = (idword(uint(src[0]) << 8) - 32768) + (idword(uint(src[1]) << 8) - 32768);
-								*data++ = NST_CLAMP(sample,Apu::OUTPUT_MIN,Apu::OUTPUT_MAX);
+								*data++ = Clamp<Apu::Channel::OUTPUT_MIN,Apu::Channel::OUTPUT_MAX>(sample);
 							}
 						}
 						else
@@ -81,7 +81,7 @@ namespace Nes
 							for (; src != end; src += 1)
 							{
 								const idword sample = idword(uint(*src) << 8) - 32768;
-								*data++ = NST_CLAMP(sample,Apu::OUTPUT_MIN,Apu::OUTPUT_MAX);
+								*data++ = Clamp<Apu::Channel::OUTPUT_MIN,Apu::Channel::OUTPUT_MAX>(sample);
 							}
 						}
 					}
@@ -97,7 +97,7 @@ namespace Nes
 							for (; src != end; src += 2)
 							{
 								const idword sample = src[0] + src[1];
-								*data++ = NST_CLAMP(sample,Apu::OUTPUT_MIN,Apu::OUTPUT_MAX);
+								*data++ = Clamp<Apu::Channel::OUTPUT_MIN,Apu::Channel::OUTPUT_MAX>(sample);
 							}
 						}
 						else
@@ -105,7 +105,7 @@ namespace Nes
 							for (; src != end; src += 1)
 							{
 								const idword sample = *src;
-								*data++ = NST_CLAMP(sample,Apu::OUTPUT_MIN,Apu::OUTPUT_MAX);
+								*data++ = Clamp<Apu::Channel::OUTPUT_MIN,Apu::Channel::OUTPUT_MAX>(sample);
 							}
 						}
 					}
@@ -127,8 +127,8 @@ namespace Nes
 				delete [] data;
 			}
 
-			Player::Player(Cpu& c,uint n)
-			: Pcm(c), slots(new Slot [n]), numSlots(n)
+			Player::Player(Apu& a,uint n)
+			: Pcm(a), slots(new Slot [n]), numSlots(n)
 			{
 				NST_ASSERT( n );
 			}
@@ -138,11 +138,11 @@ namespace Nes
 				delete [] slots;
 			}
 
-			Player* Player::Create(Cpu& cpu,Loader::Type type,uint samples)
+			Player* Player::Create(Apu& apu,Loader::Type type,uint samples)
 			{
 				if (samples)
 				{
-					if (Player* const player = new (std::nothrow) Player(cpu,samples))
+					if (Player* const player = new (std::nothrow) Player(apu,samples))
 					{
 						{
 							SampleLoader loader( player->slots, samples );

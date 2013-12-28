@@ -26,13 +26,13 @@
 #include "NstIoScreen.hpp"
 #include "NstSystemDll.hpp"
 #include "NstResourceString.hpp"
-#include "NstWindowUser.hpp"
 #include "NstWindowParam.hpp"
 #include "NstSystemThread.hpp"
 #include "NstManagerPaths.hpp"
 #include "NstDialogNetplay.hpp"
 #include "NstManagerNetplay.hpp"
 #include "../kaillera/kailleraclient.h"
+#include "../core/api/NstApiMachine.hpp"
 #include "../core/api/NstApiFds.hpp"
 #include <Shlwapi.h>
 
@@ -60,7 +60,7 @@ namespace Nestopia
 
 		public:
 
-			using System::Dll::Loaded;
+			using System::Dll::operator !;
 
 			GetVersionFunc         const GetVersion;
 			SetInfosFunc           const SetInfos;
@@ -72,9 +72,9 @@ namespace Nestopia
 			Dll()
 			:
 			System::Dll        (_T("kailleraclient.dll")),
-			GetVersion         (Fetch< GetVersionFunc         >( "_kailleraGetVersion@4"         )),
 			Init               (Fetch< InitFunc               >( "_kailleraInit@0"               )),
 			Shutdown           (Fetch< ShutdownFunc           >( "_kailleraShutdown@0"           )),
+			GetVersion         (Fetch< GetVersionFunc         >( "_kailleraGetVersion@4"         )),
 			SetInfos           (Fetch< SetInfosFunc           >( "_kailleraSetInfos@4"           )),
 			SelectServerDialog (Fetch< SelectServerDialogFunc >( "_kailleraSelectServerDialog@4" )),
 			ModifyPlayValues   (Fetch< ModifyPlayValuesFunc   >( "_kailleraModifyPlayValues@8"   )),
@@ -99,7 +99,7 @@ namespace Nestopia
 
 			~Dll()
 			{
-				if (Loaded())
+				if (*this)
 					Shutdown();
 			}
 		};
@@ -116,8 +116,7 @@ namespace Nestopia
 				ERR_LOAD
 			};
 
-			void Start();
-			void Disconnect();
+			void ToggleConnection();
 			void Chat();
 			bool Close() const;
 
@@ -132,117 +131,249 @@ namespace Nestopia
 				WM_NST_START_GAME   = WM_APP + 59
 			};
 
+			enum Mode
+			{
+				MODE_INPUT,
+				MODE_COMMAND
+			};
+
 			class Command
 			{
-			public:
-
-				void Capture();
-				void Release() const;
-				void Begin();
-				void End();
-				uint GetCode();
-				void Dispatch(const uint,Nes::Input::Controllers&) const;
-
-			private:
-
-				struct Handler;
-				typedef Window::Menu::CmdHandler CmdHandler;
-				typedef CmdHandler::Callback MenuCallback;
-
-				enum
-				{
-					CALLBACK_RESET            = 0,
-					CALLBACK_INSERT_DISK      = CALLBACK_RESET + 2,
-					CALLBACK_EJECT_DISK       = CALLBACK_INSERT_DISK + 8*2,
-					CALLBACK_CHANGE_DISK_SIDE = CALLBACK_EJECT_DISK + 1,
-					NUM_CALLBACKS             = CALLBACK_CHANGE_DISK_SIDE + 1
-				};
-
 				enum
 				{
 					PACKET_TYPE                 = 0x0F,
 					PACKET_DATA                 = 0xF0,
-					PACKET_DATA_SYSTEM          = 0x03,
-					PACKET_DATA_SYSTEM_AUTO     = 0x00,
-					PACKET_DATA_SYSTEM_NTSC     = 0x01,
-					PACKET_DATA_SYSTEM_PAL      = 0x02,
-					PACKET_DATA_NO_SPRITE_LIMIT = 0x04,
+					PACKET_DATA_REGION_PAL      = 0x01,
+					PACKET_DATA_ADAPTER_FAMICOM = 0x02,
 					PACKET_DATA_SHIFT           = 4,
 					PACKET_STARTUP              = 1,
 					PACKET_RESET                = 2,
-					PACKET_INSERT_DISK_SIDE_A   = 3,
-					PACKET_INSERT_DISK_SIDE_B   = 4,
-					PACKET_EJECT_DISK           = 5,
-					PACKET_INSERT_COIN_1        = 6,
-					PACKET_INSERT_COIN_2        = 7
+					PACKET_INSERT_DISK          = 3,
+					PACKET_EJECT_DISK           = 4,
+					PACKET_INSERT_COIN          = 5
 				};
-
-				struct CoinCallback
-				{
-					Nes::Input::UserData data;
-					Nes::Input::Controllers::VsSystem::PollCallback code;
-
-					CoinCallback()
-					: code(NULL) {}
-				};
-
-				void OnReset      (uint);
-				void OnInsertDisk (uint);
-				void OnEjectDisk  (uint);
-				void OnDiskSide   (uint);
 
 				uint command;
-				MenuCallback menuCallbacks[NUM_CALLBACKS];
-				CoinCallback coinCallback;
 
 				struct
 				{
-					uint system;
-					bool noSpriteLimit;
+					Nes::Input::UserData data;
+					Nes::Input::Controllers::VsSystem::PollCallback code;
+				}   coinCallback;
+
+				struct
+				{
+					bool regionPal;
+					bool adapterFamicom;
+					bool unlimSprites;
 				}   settings;
+
+			public:
+
+				void Begin()
+				{
+					if (Nes::Machine(instance->emulator).Is(Nes::Machine::VS))
+					{
+						Nes::Input::Controllers::VsSystem::callback.Get( coinCallback.code, coinCallback.data );
+						Nes::Input::Controllers::VsSystem::callback.Unset();
+					}
+					else
+					{
+						coinCallback.code = NULL;
+						coinCallback.data = NULL;
+					}
+
+					settings.regionPal = (Nes::Machine(instance->emulator).GetMode() == Nes::Machine::PAL);
+					settings.adapterFamicom = (Nes::Input(instance->emulator).GetConnectedAdapter() == Nes::Input::ADAPTER_FAMICOM);
+					settings.unlimSprites = Nes::Video(instance->emulator).AreUnlimSpritesEnabled();
+
+					Nes::Video(instance->emulator).EnableUnlimSprites( false );
+
+					if (instance->network.player == MASTER)
+					{
+						command = PACKET_STARTUP;
+
+						if (settings.regionPal)
+							command |= uint(PACKET_DATA_REGION_PAL) << PACKET_DATA_SHIFT;
+
+						if (settings.adapterFamicom)
+							command |= uint(PACKET_DATA_ADAPTER_FAMICOM) << PACKET_DATA_SHIFT;
+					}
+					else
+					{
+						command = 0;
+					}
+				}
+
+				void Send(Emulator::Command input,uint state)
+				{
+					NST_COMPILE_ASSERT( Emulator::NUM_COMMANDS == 3 );
+					NST_VERIFY( command == 0 );
+
+					if (command == 0 && instance->network.player == MASTER)
+					{
+						switch (input)
+						{
+							case Emulator::COMMAND_RESET:
+
+								command = PACKET_RESET | (state & 0x1) << PACKET_DATA_SHIFT;
+								break;
+
+							case Emulator::COMMAND_DISK_INSERT:
+
+								command = PACKET_INSERT_DISK | state << PACKET_DATA_SHIFT;
+								break;
+
+							case Emulator::COMMAND_DISK_EJECT:
+
+								command = PACKET_EJECT_DISK;
+								break;
+						}
+					}
+				}
+
+				NST_FORCE_INLINE uint GetCode()
+				{
+					if (instance->network.player != MASTER)
+						return 0;
+
+					if (coinCallback.code)
+					{
+						Nes::Input::Controllers::VsSystem vs;
+						coinCallback.code( coinCallback.data, vs );
+
+						if (vs.insertCoin & (Nes::Input::Controllers::VsSystem::COIN_1|Nes::Input::Controllers::VsSystem::COIN_2))
+						{
+							return PACKET_INSERT_COIN |
+							(
+								((vs.insertCoin & Nes::Input::Controllers::VsSystem::COIN_1) ? (0x1U << PACKET_DATA_SHIFT) : 0) |
+								((vs.insertCoin & Nes::Input::Controllers::VsSystem::COIN_2) ? (0x2U << PACKET_DATA_SHIFT) : 0)
+							);
+						}
+					}
+
+					return command;
+				}
+
+				NST_FORCE_INLINE bool Dispatch(const uint packet,Nes::Input::Controllers& controllers)
+				{
+					if (packet != 0xFF)
+					{
+						command = 0;
+
+						const uint data = packet >> PACKET_DATA_SHIFT;
+
+						switch (packet & PACKET_TYPE)
+						{
+							case PACKET_INSERT_COIN:
+
+								controllers.vsSystem.insertCoin =
+								(
+									((data & 0x1) ? Nes::Input::Controllers::VsSystem::COIN_1 : 0U) |
+									((data & 0x2) ? Nes::Input::Controllers::VsSystem::COIN_2 : 0U)
+								);
+								break;
+
+							case PACKET_RESET:
+
+								Nes::Machine(instance->emulator).Reset( data & 0x1 );
+								break;
+
+							case PACKET_INSERT_DISK:
+
+								Nes::Fds(instance->emulator).InsertDisk( data / 2, data % 2 );
+								break;
+
+							case PACKET_EJECT_DISK:
+
+								Nes::Fds(instance->emulator).EjectDisk();
+								break;
+
+							case PACKET_STARTUP:
+
+								Nes::Machine(instance->emulator).SetMode( (data & PACKET_DATA_REGION_PAL) ? Nes::Machine::PAL : Nes::Machine::NTSC );
+								Nes::Input(instance->emulator).ConnectAdapter( (data & PACKET_DATA_ADAPTER_FAMICOM) ? Nes::Input::ADAPTER_FAMICOM : Nes::Input::ADAPTER_NES );
+								break;
+
+							default:
+
+								NST_DEBUG_MSG("unknown netplay package");
+								break;
+						}
+
+						return true;
+					}
+
+					return false;
+				}
+
+				void End()
+				{
+					if (coinCallback.code)
+					{
+						Nes::Input::Controllers::VsSystem::callback.Set( coinCallback.code, coinCallback.data );
+						coinCallback.code = NULL;
+						coinCallback.data = NULL;
+					}
+
+					Nes::Machine(instance->emulator).SetMode( settings.regionPal ? Nes::Machine::PAL : Nes::Machine::NTSC );
+					Nes::Input(instance->emulator).ConnectAdapter( settings.adapterFamicom ? Nes::Input::ADAPTER_FAMICOM : Nes::Input::ADAPTER_NES );
+					Nes::Video(instance->emulator).EnableUnlimSprites( settings.unlimSprites );
+				}
 			};
 
 			class Input
 			{
-			public:
-
-				void Capture();
-				void Release() const;
-				void Begin();
-				void UpdatePorts(uint);
-
-			private:
-
-				uint pads[4];
-
 				struct
 				{
 					Nes::Input::UserData data;
 					Nes::Input::Controllers::Pad::PollCallback code;
 				}   pollCallback;
 
-				Nes::Input::Type normalSetup[5];
-
 			public:
 
-				void Dispatch(const uint port,const uint packet,Nes::Input::Controllers& controllers) const
+				void Capture()
 				{
-					NST_ASSERT( port < 4 );
-					controllers.pad[pads[port]].buttons = packet;
+					Nes::Input::Controllers::Pad::callback.Get( pollCallback.code, pollCallback.data );
+					Nes::Input::Controllers::Pad::callback.Unset();
+
+					NST_ASSERT( pollCallback.code );
 				}
 
-				uint GetCode() const
+				NST_FORCE_INLINE uint GetCode() const
 				{
-					if (instance->network.player <= 4)
+					uint index = instance->network.player - 1U;
+
+					if (index < 4)
 					{
-						Nes::Input::Controllers::Pad pad;
-						pollCallback.code( pollCallback.data, pad, pads[instance->network.player-1] );
-						return pad.buttons;
+						index = Nes::Input(instance->emulator).GetConnectedController(index) - uint(Nes::Input::PAD1);
+						NST_VERIFY( index < 4 );
+
+						if (index < 4)
+						{
+							Nes::Input::Controllers::Pad pad;
+							pollCallback.code( pollCallback.data, pad, index );
+							return pad.buttons;
+						}
 					}
-					else
-					{
-						return 0;
-					}
+
+					return 0;
+				}
+
+				NST_FORCE_INLINE void Dispatch(uint port,uint packet,Nes::Input::Controllers& controllers) const
+				{
+					NST_ASSERT( port < 4 );
+
+					uint index = Nes::Input(instance->emulator).GetConnectedController(port) - uint(Nes::Input::PAD1);
+					NST_VERIFY( index < 4 );
+
+					if (index < 4)
+						controllers.pad[index].buttons = packet;
+				}
+
+				void Release() const
+				{
+					Nes::Input::Controllers::Pad::callback.Set( pollCallback.code, pollCallback.data );
 				}
 			};
 
@@ -252,10 +383,7 @@ namespace Nestopia
 			struct Callbacks;
 			class Client;
 
-			bool ResetWindow() const;
-			void Initialize();
-			void DisableVisualStyles();
-			void RestoreVisualStyles();
+			void Disconnect();
 			void StartNetwork(System::Thread::Terminator);
 
 			ibool OnOpenClient  (Window::Param&);
@@ -263,8 +391,9 @@ namespace Nestopia
 			ibool OnStartGame   (Window::Param&);
 			ibool OnEnable      (Window::Param&);
 
-			void OnEmuFrame (Nes::Input::Controllers*);
-			void OnEmuEvent (Emulator::Event);
+			void OnEmuFrame   (Nes::Input::Controllers&);
+			void OnEmuCommand (Emulator::Command,Emulator::Data);
+			void OnEmuEvent   (Emulator::Event,Emulator::Data);
 
 			const Dll dll;
 			Window::Custom& window;
@@ -276,14 +405,13 @@ namespace Nestopia
 			struct
 			{
 				bool connected;
+				Mode mode;
 				Command command;
 				Input input;
 				uint player;
 				uint players;
 				Path game;
 			}   network;
-
-			DWORD visualStyles;
 
 			static Kaillera* instance;
 
@@ -298,22 +426,13 @@ namespace Nestopia
 			{
 				dialog.SaveFile();
 			}
-
-			bool Idle() const
-			{
-				return thread.Idle();
-			}
 		};
 
 		struct Netplay::Kaillera::Callbacks
 		{
 			static int WINAPI Start(char* game,int player,int players)
 			{
-				NST_VERIFY( game && *game && players );
-
-				uchar dummy[MAX_PLAYERS * 2];
-
-				if (game && *game && instance->dll.ModifyPlayValues( dummy, 2 ) != -1)
+				if (game && *game && player > 0 && players > 0 && player-1U < players)
 				{
 					instance->network.game = game;
 					instance->network.player = player;
@@ -323,6 +442,7 @@ namespace Nestopia
 				else
 				{
 					instance->dll.EndGame();
+					NST_DEBUG_MSG("Kaillera::Start() failed!");
 				}
 
 				return 0;
@@ -339,7 +459,7 @@ namespace Nestopia
 
 			static void WINAPI ChatRecieve(char* nick,char* text)
 			{
-				static const HeapString says( HeapString() << Resource::String(IDS_TEXT_SAYS) << ": " );
+				static const HeapString says( HeapString() << ' ' << Resource::String(IDS_TEXT_SAYS) << ": " );
 
 				if (nick && *nick && text && *text)
 					Io::Screen() << HeapString().Import(nick,true) << says << HeapString().Import(text,true);
@@ -363,6 +483,8 @@ namespace Nestopia
 				: hHook(NULL) {}
 			};
 
+			DWORD visualStyles;
+
 			static Instance instance;
 
 			class Callbacks
@@ -371,7 +493,12 @@ namespace Nestopia
 				{
 					HeapString name;
 					window.Text() >> name;
-					return name.Length() >= 8 && name(0,8) == _T("Kaillera");
+
+					return
+					(
+						(name.Length() >= 8 && name(0,8) == _T( "Kaillera" )) ||
+						(name.Length() >= 6 && name(0,6) == _T( "Anti3D"   ))
+					);
 				}
 
 			public:
@@ -437,6 +564,72 @@ namespace Nestopia
 				return ::CallNextHookEx( instance.hHook, iCode, wParam, lParam );
 			}
 
+			void DisableVisualStyles()
+			{
+				// Kaillera doesn't like XP Visual Styles
+
+				struct ComCtl32
+				{
+					static bool IsVersion6()
+					{
+						const System::Dll comctl32(_T("comctl32.dll"));
+
+						if (DLLGETVERSIONPROC const getVersion = comctl32.Fetch<DLLGETVERSIONPROC>("DllGetVersion"))
+						{
+							DLLVERSIONINFO info;
+							info.cbSize = sizeof(info);
+
+							return getVersion( &info ) == NOERROR && info.dwMajorVersion >= 6;
+						}
+
+						return false;
+					}
+				};
+
+				visualStyles = 0;
+
+				static const bool isVersion6 = ComCtl32::IsVersion6();
+
+				if (isVersion6)
+				{
+					const System::Dll uxtheme(_T("uxtheme.dll"));
+
+					typedef DWORD (STDAPICALLTYPE* GetProperty)();
+					typedef void (STDAPICALLTYPE* SetProperty)(DWORD);
+
+					if (GetProperty const getProperty = uxtheme.Fetch<GetProperty>("GetThemeAppProperties"))
+					{
+						visualStyles = getProperty();
+
+						if (visualStyles)
+						{
+							if (SetProperty const setProperty = uxtheme.Fetch<SetProperty>("SetThemeAppProperties"))
+							{
+								setProperty( 0 );
+								Application::Instance::GetMainWindow().Post( WM_THEMECHANGED );
+							}
+						}
+					}
+				}
+			}
+
+			void RestoreVisualStyles()
+			{
+				if (visualStyles)
+				{
+					const System::Dll uxtheme(_T("uxtheme.dll"));
+
+					typedef void (STDAPICALLTYPE* SetProperty)(DWORD);
+
+					if (SetProperty const setProperty = uxtheme.Fetch<SetProperty>("SetThemeAppProperties"))
+					{
+						setProperty( visualStyles );
+						visualStyles = 0;
+						Application::Instance::GetMainWindow().Post( WM_THEMECHANGED );
+					}
+				}
+			}
+
 		public:
 
 			NST_NO_INLINE Client()
@@ -457,6 +650,8 @@ namespace Nestopia
 					throw "SetWindowsHookEx() failed!";
 
 				Kaillera::instance->window.Post( WM_NST_OPEN_CLIENT );
+
+				DisableVisualStyles();
 			}
 
 			static void Run()
@@ -482,11 +677,6 @@ namespace Nestopia
 					Enumerate( Callbacks::Destroy, 0 );
 			}
 
-			static bool IsOpen()
-			{
-				return instance.hHook;
-			}
-
 			NST_NO_INLINE ~Client()
 			{
 				NST_ASSERT( instance.hHook );
@@ -494,325 +684,11 @@ namespace Nestopia
 				::UnhookWindowsHookEx( instance.hHook );
 				instance.hHook = NULL;
 
+				RestoreVisualStyles();
+
 				Kaillera::instance->window.Post( WM_NST_CLOSE_CLIENT );
 			}
 		};
-
-		struct Netplay::Kaillera::Command::Handler
-		{
-			static const Window::Menu::CmdHandler::Entry<Command> messages[];
-		};
-
-		const Window::Menu::CmdHandler::Entry<Netplay::Kaillera::Command> Netplay::Kaillera::Command::Handler::messages[] =
-		{
-			{ IDM_MACHINE_RESET_SOFT,                   &Command::OnReset      },
-			{ IDM_MACHINE_RESET_HARD,                   &Command::OnReset      },
-			{ IDM_MACHINE_EXT_FDS_INSERT_DISK_1_SIDE_A, &Command::OnInsertDisk },
-			{ IDM_MACHINE_EXT_FDS_INSERT_DISK_1_SIDE_B, &Command::OnInsertDisk },
-			{ IDM_MACHINE_EXT_FDS_INSERT_DISK_2_SIDE_A, &Command::OnInsertDisk },
-			{ IDM_MACHINE_EXT_FDS_INSERT_DISK_2_SIDE_B, &Command::OnInsertDisk },
-			{ IDM_MACHINE_EXT_FDS_INSERT_DISK_3_SIDE_A, &Command::OnInsertDisk },
-			{ IDM_MACHINE_EXT_FDS_INSERT_DISK_3_SIDE_B, &Command::OnInsertDisk },
-			{ IDM_MACHINE_EXT_FDS_INSERT_DISK_4_SIDE_A, &Command::OnInsertDisk },
-			{ IDM_MACHINE_EXT_FDS_INSERT_DISK_4_SIDE_B, &Command::OnInsertDisk },
-			{ IDM_MACHINE_EXT_FDS_INSERT_DISK_5_SIDE_A, &Command::OnInsertDisk },
-			{ IDM_MACHINE_EXT_FDS_INSERT_DISK_5_SIDE_B, &Command::OnInsertDisk },
-			{ IDM_MACHINE_EXT_FDS_INSERT_DISK_6_SIDE_A, &Command::OnInsertDisk },
-			{ IDM_MACHINE_EXT_FDS_INSERT_DISK_6_SIDE_B, &Command::OnInsertDisk },
-			{ IDM_MACHINE_EXT_FDS_INSERT_DISK_7_SIDE_A, &Command::OnInsertDisk },
-			{ IDM_MACHINE_EXT_FDS_INSERT_DISK_7_SIDE_B, &Command::OnInsertDisk },
-			{ IDM_MACHINE_EXT_FDS_INSERT_DISK_8_SIDE_A, &Command::OnInsertDisk },
-			{ IDM_MACHINE_EXT_FDS_INSERT_DISK_8_SIDE_B, &Command::OnInsertDisk },
-			{ IDM_MACHINE_EXT_FDS_EJECT_DISK,           &Command::OnEjectDisk  },
-			{ IDM_MACHINE_EXT_FDS_CHANGE_SIDE,          &Command::OnDiskSide   }
-		};
-
-		void Netplay::Kaillera::Command::Capture()
-		{
-			CmdHandler& menu = instance->menu.Commands();
-
-			for (uint i=0; i < sizeof(array(Handler::messages)); ++i)
-				menuCallbacks[i] = menu[Handler::messages[i].key].Replace( this, Handler::messages[i].function );
-		}
-
-		void Netplay::Kaillera::Command::Release() const
-		{
-			CmdHandler& menu = instance->menu.Commands();
-
-			for (uint i=0; i < sizeof(array(Handler::messages)); ++i)
-				menu[Handler::messages[i].key] = menuCallbacks[i];
-		}
-
-		void Netplay::Kaillera::Command::Begin()
-		{
-			if (instance->emulator.Is(Nes::Machine::VS))
-			{
-				Nes::Input::Controllers::VsSystem::callback.Get( coinCallback.code, coinCallback.data );
-				Nes::Input::Controllers::VsSystem::callback.Unset();
-			}
-
-			if (instance->menu[IDM_MACHINE_SYSTEM_NTSC].Checked())
-			{
-				settings.system = IDM_MACHINE_SYSTEM_NTSC;
-			}
-			else if (instance->menu[IDM_MACHINE_SYSTEM_PAL].Checked())
-			{
-				settings.system = IDM_MACHINE_SYSTEM_PAL;
-			}
-			else
-			{
-				settings.system = IDM_MACHINE_SYSTEM_AUTO;
-			}
-
-			settings.noSpriteLimit = Nes::Video(instance->emulator).AreUnlimSpritesEnabled();
-
-			if (instance->network.player == MASTER)
-			{
-				command = PACKET_STARTUP;
-
-				if (settings.noSpriteLimit)
-					command |= uint(PACKET_DATA_NO_SPRITE_LIMIT) << PACKET_DATA_SHIFT;
-
-				switch (settings.system)
-				{
-					case IDM_MACHINE_SYSTEM_NTSC: command |= uint(PACKET_DATA_SYSTEM_NTSC) << PACKET_DATA_SHIFT; break;
-					case IDM_MACHINE_SYSTEM_PAL:  command |= uint(PACKET_DATA_SYSTEM_PAL)  << PACKET_DATA_SHIFT; break;
-				}
-			}
-			else
-			{
-				command = 0;
-			}
-		}
-
-		void Netplay::Kaillera::Command::End()
-		{
-			if (coinCallback.code)
-			{
-				Nes::Input::Controllers::VsSystem::callback.Set( coinCallback.code, coinCallback.data );
-				coinCallback.code = NULL;
-			}
-
-			if (instance->network.player != MASTER)
-			{
-				instance->window.PostCommand( settings.system );
-
-				if (settings.noSpriteLimit != bool(Nes::Video(instance->emulator).AreUnlimSpritesEnabled()))
-					Nes::Video(instance->emulator).EnableUnlimSprites( settings.noSpriteLimit );
-			}
-		}
-
-		void Netplay::Kaillera::Command::Dispatch(const uint packet,Nes::Input::Controllers& controllers) const
-		{
-			if (packet)
-			{
-				if (packet == PACKET_INSERT_COIN_1)
-				{
-					controllers.vsSystem.insertCoin = Nes::Input::Controllers::VsSystem::COIN_1;
-				}
-				else if (packet == PACKET_INSERT_COIN_2)
-				{
-					controllers.vsSystem.insertCoin = Nes::Input::Controllers::VsSystem::COIN_2;
-				}
-				else
-				{
-					uint data = packet >> PACKET_DATA_SHIFT;
-
-					switch (packet & PACKET_TYPE)
-					{
-						case PACKET_RESET:
-
-							NST_VERIFY( data < 2 );
-
-							if (data < 2)
-								menuCallbacks[CALLBACK_RESET + data](IDM_MACHINE_RESET_SOFT + data);
-
-							break;
-
-						case PACKET_INSERT_DISK_SIDE_A:
-						case PACKET_INSERT_DISK_SIDE_B:
-
-							data = data * 2 + ((packet & PACKET_TYPE) == PACKET_INSERT_DISK_SIDE_B);
-
-							NST_VERIFY( data < 16 );
-
-							if (data < 16)
-								menuCallbacks[CALLBACK_INSERT_DISK + data](IDM_MACHINE_EXT_FDS_INSERT_DISK_1_SIDE_A + data);
-
-							break;
-
-						case PACKET_EJECT_DISK:
-
-							NST_VERIFY( data == 0 );
-
-							menuCallbacks[CALLBACK_EJECT_DISK](IDM_MACHINE_EXT_FDS_EJECT_DISK);
-							break;
-
-						case PACKET_STARTUP:
-
-							if (instance->network.player != MASTER)
-							{
-								instance->window.SendCommand
-								(
-									(data & PACKET_DATA_SYSTEM) == PACKET_DATA_SYSTEM_NTSC ? IDM_MACHINE_SYSTEM_NTSC :
-									(data & PACKET_DATA_SYSTEM) == PACKET_DATA_SYSTEM_PAL  ? IDM_MACHINE_SYSTEM_PAL  :
-                                                                                             IDM_MACHINE_SYSTEM_AUTO
-								);
-
-								if (settings.noSpriteLimit != bool(data & PACKET_DATA_NO_SPRITE_LIMIT))
-									Nes::Video(instance->emulator).EnableUnlimSprites( !settings.noSpriteLimit );
-							}
-							break;
-					}
-				}
-			}
-		}
-
-		#ifdef NST_MSVC_OPTIMIZE
-		#pragma optimize("t", on)
-		#endif
-
-		uint Netplay::Kaillera::Command::GetCode()
-		{
-			if (instance->network.player == MASTER)
-			{
-				if (coinCallback.code)
-				{
-					Nes::Input::Controllers::VsSystem vs;
-					coinCallback.code( coinCallback.data, vs );
-
-					switch (vs.insertCoin)
-					{
-						case Nes::Input::Controllers::VsSystem::COIN_1:
-						case Nes::Input::Controllers::VsSystem::COIN_1|Nes::Input::Controllers::VsSystem::COIN_2:
-							return PACKET_INSERT_COIN_1;
-
-						case Nes::Input::Controllers::VsSystem::COIN_2:
-							return PACKET_INSERT_COIN_2;
-					}
-				}
-
-				const uint code = command;
-				command = 0;
-				return code;
-			}
-
-			return 0;
-		}
-
-		#ifdef NST_MSVC_OPTIMIZE
-		#pragma optimize("", on)
-		#endif
-
-		void Netplay::Kaillera::Command::OnReset(uint idm)
-		{
-			idm -= IDM_MACHINE_RESET_SOFT;
-			command = PACKET_RESET | (idm << PACKET_DATA_SHIFT);
-		}
-
-		void Netplay::Kaillera::Command::OnInsertDisk(uint idm)
-		{
-			idm -= IDM_MACHINE_EXT_FDS_INSERT_DISK_1_SIDE_A;
-			command = (PACKET_INSERT_DISK_SIDE_A + (idm % 2)) | ((idm / 2) << PACKET_DATA_SHIFT);
-		}
-
-		void Netplay::Kaillera::Command::OnEjectDisk(uint)
-		{
-			command = PACKET_EJECT_DISK;
-		}
-
-		void Netplay::Kaillera::Command::OnDiskSide(uint)
-		{
-			const int disk = Nes::Fds(instance->emulator).GetCurrentDisk();
-
-			if (disk != Nes::Fds::NO_DISK)
-				command = (PACKET_INSERT_DISK_SIDE_A + (Nes::Fds(instance->emulator).GetCurrentDiskSide() ^ 1U)) | (uint(disk) << PACKET_DATA_SHIFT);
-		}
-
-		void Netplay::Kaillera::Input::Capture()
-		{
-			for (uint i=0; i < 5; ++i)
-				normalSetup[i] = Nes::Input(instance->emulator).GetConnectedController( i );
-
-			Nes::Input::Controllers::Pad::callback.Get( pollCallback.code, pollCallback.data );
-			Nes::Input::Controllers::Pad::callback.Unset();
-		}
-
-		void Netplay::Kaillera::Input::Release() const
-		{
-			Nes::Input::Controllers::Pad::callback.Set( pollCallback.code, pollCallback.data );
-
-			for (uint i=0; i < 5; ++i)
-				instance->emulator.ConnectController( i, normalSetup[i] );
-		}
-
-		void Netplay::Kaillera::Input::Begin()
-		{
-			if (instance->network.player <= 4)
-			{
-				Nes::Input::Type defaultPad;
-
-				switch (normalSetup[0])
-				{
-					case Nes::Input::PAD2:
-					case Nes::Input::PAD3:
-					case Nes::Input::PAD4:
-
-						defaultPad = normalSetup[0];
-						break;
-
-					default:
-
-						defaultPad = Nes::Input::PAD1;
-						break;
-				}
-
-				instance->emulator.ConnectController( instance->network.player-1, defaultPad );
-				UpdatePorts( instance->network.player-1 );
-			}
-			else for (uint i=0; i < 4; ++i)
-			{
-				pads[i] = i;
-				instance->emulator.ConnectController( i, (Nes::Input::Type) (Nes::Input::PAD1+i) );
-			}
-
-			for (uint i=instance->network.players; i < 4; ++i)
-				instance->emulator.ConnectController( i, Nes::Input::UNCONNECTED );
-
-			instance->emulator.ConnectController( 4, Nes::Input::UNCONNECTED );
-		}
-
-		void Netplay::Kaillera::Input::UpdatePorts(const uint port)
-		{
-			if (port == instance->network.player-1)
-			{
-				switch (const Nes::Input::Type type = Nes::Input(instance->emulator).GetConnectedController( port ))
-				{
-					case Nes::Input::PAD1:
-					case Nes::Input::PAD2:
-					case Nes::Input::PAD3:
-					case Nes::Input::PAD4:
-
-						pads[port] = type - Nes::Input::PAD1;
-						break;
-
-					default:
-
-						pads[port] = 0;
-						instance->emulator.ConnectController( port, Nes::Input::PAD1 );
-						return;
-				}
-
-				for (uint i=1; i < 4; ++i)
-					pads[(port+i) & 3] = (pads[port] + i) & 3;
-
-				for (uint i=0, n=NST_MIN(4,instance->network.players); i < n; ++i)
-				{
-					if (i != port)
-						instance->emulator.ConnectController( i, (Nes::Input::Type) (Nes::Input::PAD1 + pads[i]) );
-				}
-			}
-		}
 
 		Netplay::Kaillera* Netplay::Kaillera::instance = NULL;
 		Netplay::Kaillera::Client::Instance Netplay::Kaillera::Client::instance;
@@ -828,10 +704,10 @@ namespace Nestopia
 		:
 		Manager ( e, m, this, &Kaillera::OnEmuEvent ),
 		window  ( w ),
-		dialog  ( emulator, paths, doFullscreen ),
-		chat    ( dll.ChatSend )
+		chat    ( dll.ChatSend ),
+		dialog  ( e, paths, doFullscreen )
 		{
-			if (!dll.Loaded())
+			if (!dll)
 				throw ERR_LOAD;
 
 			NST_ASSERT( instance == NULL );
@@ -844,133 +720,13 @@ namespace Nestopia
 			instance = NULL;
 		}
 
-		void Netplay::Kaillera::Initialize()
-		{
-			static const Window::MsgHandler::Entry<Kaillera> messages[] =
-			{
-				{ WM_NST_OPEN_CLIENT,  &Kaillera::OnOpenClient  },
-				{ WM_NST_CLOSE_CLIENT, &Kaillera::OnCloseClient },
-				{ WM_NST_START_GAME,   &Kaillera::OnStartGame   }
-			};
-
-			window.Messages().Add( this, messages );
-
-			NST_ASSERT( dialog.GetNumGames() );
-
-			String::Heap<char> strings;
-
-			for (uint i=0, n=dialog.GetNumGames(); i < n; ++i)
-				strings << dialog.GetGame(i) << '\0';
-
-			String::Heap<char> name;
-			name << "Nestopia " << Application::Instance::GetVersion();
-
-			kailleraInfos info;
-
-			info.appName               = name.Ptr();
-			info.gameList              = strings.Ptr();
-			info.gameCallback          = Callbacks::Start;
-			info.chatReceivedCallback  = Callbacks::ChatRecieve;
-			info.clientDroppedCallback = Callbacks::ClientDrop;
-			info.moreInfosCallback     = NULL;
-
-			dll.SetInfos( &info );
-		}
-
-		void Netplay::Kaillera::DisableVisualStyles()
-		{
-			// Kaillera doesn't seem to like XP Visual Styles
-
-			struct ComCtl32
-			{
-				static bool IsVersion6()
-				{
-					System::Dll comctl32(_T("comctl32.dll"));
-
-					if (comctl32.Loaded())
-					{
-						if (DLLGETVERSIONPROC getVersion = (DLLGETVERSIONPROC) comctl32("DllGetVersion"))
-						{
-							DLLVERSIONINFO info;
-							info.cbSize = sizeof(info);
-
-							return getVersion( &info ) == NOERROR && info.dwMajorVersion >= 6;
-						}
-					}
-
-					return false;
-				}
-			};
-
-			visualStyles = 0;
-
-			static const bool isVersion6 = ComCtl32::IsVersion6();
-
-			if (isVersion6)
-			{
-				System::Dll uxtheme(_T("uxtheme.dll"));
-
-				if (uxtheme.Loaded())
-				{
-					typedef DWORD (STDAPICALLTYPE* GetProperty)();
-					typedef void (STDAPICALLTYPE* SetProperty)(DWORD);
-
-					if (GetProperty getProperty = (GetProperty) uxtheme("GetThemeAppProperties"))
-					{
-						visualStyles = getProperty();
-
-						if (visualStyles)
-						{
-							if (SetProperty setProperty = (SetProperty) uxtheme("SetThemeAppProperties"))
-							{
-								setProperty( 0 );
-								Application::Instance::GetMainWindow().Send( WM_THEMECHANGED );
-							}
-						}
-					}
-				}
-			}
-		}
-
-		void Netplay::Kaillera::RestoreVisualStyles()
-		{
-			if (visualStyles)
-			{
-				System::Dll uxtheme(_T("uxtheme.dll"));
-
-				if (uxtheme.Loaded())
-				{
-					typedef void (STDAPICALLTYPE* SetProperty)(DWORD);
-
-					if (SetProperty setProperty = (SetProperty) uxtheme("SetThemeAppProperties"))
-					{
-						setProperty( visualStyles );
-						visualStyles = 0;
-						Application::Instance::GetMainWindow().Send( WM_THEMECHANGED );
-					}
-				}
-			}
-		}
-
 		void Netplay::Kaillera::StartNetwork(System::Thread::Terminator)
 		{
 			Client().Run();
 		}
 
-		void Netplay::Kaillera::Start()
-		{
-			if (ResetWindow() && dialog.Open())
-			{
-				DisableVisualStyles();
-				Initialize();
-				thread.Start( System::Thread::Callback(this,&Kaillera::StartNetwork) );
-			}
-		}
-
 		ibool Netplay::Kaillera::OnOpenClient(Window::Param&)
 		{
-			menu[IDM_NETPLAY_START].Disable();
-			network.command.Capture();
 			network.input.Capture();
 			emulator.BeginNetplayMode();
 			return true;
@@ -978,37 +734,34 @@ namespace Nestopia
 
 		ibool Netplay::Kaillera::OnCloseClient(Window::Param&)
 		{
-			menu[IDM_NETPLAY_START].Enable();
-			network.command.Release();
 			network.input.Release();
 			window.Messages().Remove( this );
 			emulator.EndNetplayMode();
-			RestoreVisualStyles();
-
 			return true;
 		}
 
 		bool Netplay::Kaillera::Close() const
 		{
-			if (Client::IsOpen())
+			if (emulator.NetPlayers())
 			{
-				if (!emulator.Unload())
+				if (emulator.IsImage())
+					emulator.Unload();
+				else
 					Client::Close();
 
-				return true;
+				return false;
 			}
 
-			return false;
+			return true;
 		}
 
 		ibool Netplay::Kaillera::OnStartGame(Window::Param&)
 		{
-			network.connected = false;
-
-			emulator.EnableNetplay
+			emulator.StartNetplay
 			(
 				this,
 				&Kaillera::OnEmuFrame,
+				&Kaillera::OnEmuCommand,
 				network.player,
 				network.players
 			);
@@ -1020,9 +773,9 @@ namespace Nestopia
 				dialog.GetPath(network.game.Ptr())
 			);
 
-			if (!emulator.Is(Nes::Machine::ON))
+			if (!emulator.IsOn())
 			{
-				emulator.DisableNetplay();
+				emulator.StopNetplay();
 				dll.EndGame();
 			}
 
@@ -1033,75 +786,106 @@ namespace Nestopia
 		#pragma optimize("t", on)
 		#endif
 
-		void Netplay::Kaillera::OnEmuFrame(Nes::Input::Controllers* controllers)
+		void Netplay::Kaillera::OnEmuFrame(Nes::Input::Controllers& controllers)
 		{
-			NST_ASSERT( controllers );
-
-			std::memset( controllers->pad, 0, sizeof(controllers->pad) );
-			controllers->vsSystem.insertCoin = 0;
+			controllers.vsSystem.insertCoin = 0;
 
 			if (network.connected)
 			{
-				uchar packets[MAX_PLAYERS][2];
+				uchar packet[MAX_PLAYERS];
 
-				packets[0][0] = network.input.GetCode();
-				packets[0][1] = network.command.GetCode();
+				const uint code = network.command.GetCode();
 
-				if (dll.ModifyPlayValues( packets, 2 ) != -1)
+				if (network.mode == MODE_INPUT)
 				{
-					for (uint i=0, ports=NST_MIN(4,network.players); i < ports; ++i)
+					packet[0] = (code ? 0xFF : network.input.GetCode());
+
+					if (dll.ModifyPlayValues( packet, 1 ) != -1)
 					{
-						network.input.Dispatch( i, packets[i][0], *controllers );
-						network.command.Dispatch( packets[i][1], *controllers );
+						if (packet[0] == 0xFF)
+						{
+							network.mode = MODE_COMMAND;
+						}
+						else for (uint i=0, n=NST_MIN(4,network.players); i < n; ++i)
+						{
+							network.input.Dispatch( i, packet[i], controllers );
+						}
+						return;
 					}
 				}
 				else
 				{
-					network.connected = false;
-					window.PostCommand( IDM_NETPLAY_DISCONNECT );
+					packet[0] = code;
+
+					if (dll.ModifyPlayValues( packet, 1 ) != -1)
+					{
+						if (network.command.Dispatch( packet[0], controllers ))
+							network.mode = MODE_INPUT;
+
+						return;
+					}
 				}
 			}
+
+			network.connected = false;
+			window.PostCommand( IDM_NETPLAY_CONNECTION );
+		}
+
+		void Netplay::Kaillera::OnEmuCommand(Emulator::Command command,Emulator::Data data)
+		{
+			if (network.connected)
+				network.command.Send( command, data );
 		}
 
 		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
-		bool Netplay::Kaillera::ResetWindow() const
-		{
-			window.SendCommand( IDM_FILE_CLOSE );
-
-			if (emulator.Is(Nes::Machine::IMAGE))
-			{
-				// user refused, ok,
-				// no netplay then..
-
-				return false;
-			}
-
-			while (Application::Instance::NumChildWindows())
-			{
-				if (!Application::Instance::GetChildWindow().Destroy())
-				{
-					// some window didn't want to
-					// close itself, better abort..
-
-					return false;
-				}
-			}
-
-			return true;
-		}
-
 		void Netplay::Kaillera::Chat()
 		{
 			chat.Open();
 		}
 
-		void Netplay::Kaillera::Disconnect()
+		void Netplay::Kaillera::ToggleConnection()
 		{
-			network.connected = false;
-			emulator.Unload();
+			if (emulator.NetPlayers())
+			{
+				Close();
+			}
+			else if (!emulator.IsImage() && dialog.Open())
+			{
+				static const Window::MsgHandler::Entry<Kaillera> messages[] =
+				{
+					{ WM_NST_OPEN_CLIENT,  &Kaillera::OnOpenClient  },
+					{ WM_NST_CLOSE_CLIENT, &Kaillera::OnCloseClient },
+					{ WM_NST_START_GAME,   &Kaillera::OnStartGame   }
+				};
+
+				window.Messages().Add( this, messages );
+
+				NST_ASSERT( dialog.GetNumGames() );
+
+				String::Heap<char> strings;
+
+				for (uint i=0, n=dialog.GetNumGames(); i < n; ++i)
+					strings << dialog.GetGame(i) << '\0';
+
+				String::Heap<char> name;
+				name << "Nestopia " << Application::Instance::GetVersion();
+
+				kailleraInfos info;
+
+				info.appName               = name.Ptr();
+				info.gameList              = strings.Ptr();
+				info.gameCallback          = Callbacks::Start;
+				info.chatReceivedCallback  = Callbacks::ChatRecieve;
+				info.clientDroppedCallback = Callbacks::ClientDrop;
+				info.moreInfosCallback     = NULL;
+
+				dll.SetInfos( &info );
+
+				thread.Start( System::Thread::Callback(this,&Kaillera::StartNetwork) );
+			}
 		}
 
 		ibool Netplay::Kaillera::OnEnable(Window::Param& param)
@@ -1112,71 +896,59 @@ namespace Nestopia
 			return true;
 		}
 
-		void Netplay::Kaillera::OnEmuEvent(Emulator::Event event)
+		void Netplay::Kaillera::OnEmuEvent(const Emulator::Event event,Emulator::Data)
 		{
-			static Window::MsgHandler::Callback old;
-
-			switch (event)
+			if (emulator.NetPlayers())
 			{
-				case Emulator::EVENT_NETPLAY_POWER_ON:
+				static Window::MsgHandler::Callback old;
 
-					if (emulator.Is(Nes::Machine::GAME))
-					{
-						Client::Hide();
-						network.connected = true;
+				switch (event)
+				{
+					case Emulator::EVENT_POWER_ON:
 
-						menu[IDM_NETPLAY_DISCONNECT].Enable();
-						menu[IDM_NETPLAY_CHAT].Enable();
+						if (emulator.IsGame())
+						{
+							Client::Hide();
 
-						if (dialog.ShouldGoFullscreen())
-							window.SendCommand( IDM_VIEW_SWITCH_SCREEN );
+							network.connected = true;
+							network.mode = MODE_INPUT;
+							network.command.Begin();
 
-						network.command.Begin();
-						network.input.Begin();
-						enableCallback = window.Messages()[WM_ENABLE].Replace( this, &Kaillera::OnEnable );
-					}
-					break;
+							menu[IDM_NETPLAY_CHAT].Enable();
 
-				case Emulator::EVENT_PORT1_CONTROLLER:
-				case Emulator::EVENT_PORT2_CONTROLLER:
-				case Emulator::EVENT_PORT3_CONTROLLER:
-				case Emulator::EVENT_PORT4_CONTROLLER:
+							if (dialog.ShouldGoFullscreen())
+								window.SendCommand( IDM_VIEW_SWITCH_SCREEN );
 
-					if (network.connected)
-						network.input.UpdatePorts( event - Emulator::EVENT_PORT1_CONTROLLER );
+							enableCallback = window.Messages()[WM_ENABLE].Replace( this, &Kaillera::OnEnable );
+						}
+						break;
 
-					break;
+					case Emulator::EVENT_POWER_OFF:
 
-				case Emulator::EVENT_NETPLAY_POWER_OFF:
+						if (emulator.IsGame())
+						{
+							network.connected = false;
+							network.command.End();
 
-					if (emulator.Is(Nes::Machine::GAME))
-					{
-						menu[IDM_NETPLAY_DISCONNECT].Disable();
-						menu[IDM_NETPLAY_CHAT].Disable();
+							menu[IDM_NETPLAY_CHAT].Disable();
 
-						chat.Close();
+							chat.Close();
 
-						if (dialog.ShouldGoFullscreen())
-							window.SendCommand( IDM_VIEW_SWITCH_SCREEN );
+							if (dialog.ShouldGoFullscreen())
+								window.SendCommand( IDM_VIEW_SWITCH_SCREEN );
 
-						network.command.End();
-						window.Messages()[WM_ENABLE] = enableCallback;
+							window.Messages()[WM_ENABLE] = enableCallback;
 
-						Client::Show();
-						dll.EndGame();
-					}
-					break;
+							Client::Show();
+							dll.EndGame();
+						}
+						break;
 
-				case Emulator::EVENT_NETPLAY_UNLOAD:
+					case Emulator::EVENT_UNLOAD:
 
-					emulator.DisableNetplay();
-					break;
-
-				case Emulator::EVENT_INIT:
-
-					menu[IDM_NETPLAY_DISCONNECT].Disable();
-					menu[IDM_NETPLAY_CHAT].Disable();
-					break;
+						emulator.StopNetplay();
+						break;
+				}
 			}
 		}
 
@@ -1189,29 +961,34 @@ namespace Nestopia
 			Window::Custom& w
 		)
 		:
+		Manager      ( e, m, this, &Netplay::OnEmuEvent ),
 		kaillera     ( NULL ),
-		emulator     ( e ),
-		menu         ( m ),
-		paths        ( p ),
 		window       ( w ),
+		paths        ( p ),
+		fullscreen   ( false ),
 		doFullscreen ( cfg["netplay in fullscreen"] == Configuration::YES )
 		{
-			const Dll dll;
+			menu[IDM_NETPLAY_CONNECTION].Text() << Resource::String( IDS_MENU_NETPLAY_CONNECT );
+			menu[IDM_NETPLAY_CHAT].Disable();
 
-			menu[ IDM_NETPLAY_START ].Enable( dll.Loaded() );
-			menu[ IDM_NETPLAY_DISCONNECT ].Disable();
-			menu[ IDM_NETPLAY_CHAT ].Disable();
+			const Dll dll;
 
 			Io::Log log;
 
-			if (dll.Loaded())
+			if (!dll)
+			{
+				log << "Kaillera: file \"kailleraclient.dll\" not found or initialization failed. "
+                       "netplay will be disabled!\r\n";
+
+				menu[IDM_NETPLAY_CONNECTION].Disable();
+			}
+			else
 			{
 				Application::Instance::Events::Add( this, &Netplay::OnAppEvent );
 
 				static const Window::Menu::CmdHandler::Entry<Netplay> commands[] =
 				{
-					{ IDM_NETPLAY_START,      &Netplay::OnCmdStart      },
-					{ IDM_NETPLAY_DISCONNECT, &Netplay::OnCmdDisconnect },
+					{ IDM_NETPLAY_CONNECTION, &Netplay::OnCmdConnection },
 					{ IDM_NETPLAY_CHAT,       &Netplay::OnCmdChat       }
 				};
 
@@ -1221,6 +998,7 @@ namespace Nestopia
 				version[0] = '\0';
 
 				dll.GetVersion( version );
+				version[15] = '\0';
 
 				if (*version)
 				{
@@ -1233,11 +1011,8 @@ namespace Nestopia
 				{
 					log << "Kaillera: warning, unknown version of \"kailleraclient.dll\"!\r\n";
 				}
-			}
-			else
-			{
-				log << "Kaillera: file \"kailleraclient.dll\" not found or initialization failed. "
-                       "netplay will be disabled!\r\n";
+
+				UpdateMenu();
 			}
 		}
 
@@ -1247,7 +1022,57 @@ namespace Nestopia
 			delete kaillera;
 		}
 
-		void Netplay::OnCmdStart(uint)
+		void Netplay::Save(Configuration& cfg,const bool saveGameList) const
+		{
+			cfg["netplay in fullscreen"].YesNo() = (kaillera ? kaillera->ShouldGoFullscreen() : doFullscreen);
+
+			if (kaillera && saveGameList)
+				kaillera->SaveFile();
+		}
+
+		bool Netplay::Close() const
+		{
+			return kaillera ? kaillera->Close() : true;
+		}
+
+		void Netplay::UpdateMenu() const
+		{
+			menu[IDM_NETPLAY_CONNECTION].Enable
+			(
+				emulator.NetPlayers() || (!fullscreen && !emulator.IsImage())
+			);
+		}
+
+		void Netplay::OnEmuEvent(const Emulator::Event event,const Emulator::Data data)
+		{
+			switch (event)
+			{
+				case Emulator::EVENT_NETPLAY_MODE:
+
+					menu[IDM_NETPLAY_CONNECTION].Text() << Resource::String( data ? IDS_MENU_NETPLAY_DISCONNECT : IDS_MENU_NETPLAY_CONNECT );
+
+				case Emulator::EVENT_LOAD:
+				case Emulator::EVENT_UNLOAD:
+
+					UpdateMenu();
+					break;
+			}
+		}
+
+		void Netplay::OnAppEvent(Application::Instance::Event event,const void*)
+		{
+			switch (event)
+			{
+				case Application::Instance::EVENT_DESKTOP:
+				case Application::Instance::EVENT_FULLSCREEN:
+
+					fullscreen = (event == Application::Instance::EVENT_FULLSCREEN);
+					UpdateMenu();
+					break;
+			}
+		}
+
+		void Netplay::OnCmdConnection(uint)
 		{
 			if (kaillera == NULL)
 			{
@@ -1261,47 +1086,13 @@ namespace Nestopia
 				}
 			}
 
-			kaillera->Start();
-		}
-
-		void Netplay::OnCmdDisconnect(uint)
-		{
-			if (kaillera)
-				kaillera->Disconnect();
+			kaillera->ToggleConnection();
 		}
 
 		void Netplay::OnCmdChat(uint)
 		{
 			if (kaillera)
 				kaillera->Chat();
-		}
-
-		void Netplay::OnAppEvent(Application::Instance::Event event,const void*)
-		{
-			if (kaillera == NULL || kaillera->Idle())
-			{
-				switch (event)
-				{
-					case Application::Instance::EVENT_DESKTOP:
-					case Application::Instance::EVENT_FULLSCREEN:
-
-						menu[IDM_NETPLAY_START].Enable( event == Application::Instance::EVENT_DESKTOP );
-						break;
-				}
-			}
-		}
-
-		void Netplay::Save(Configuration& cfg,const bool saveGameList) const
-		{
-			cfg["netplay in fullscreen"].YesNo() = (kaillera ? kaillera->ShouldGoFullscreen() : doFullscreen);
-
-			if (kaillera && saveGameList)
-				kaillera->SaveFile();
-		}
-
-		bool Netplay::Close() const
-		{
-			return kaillera ? kaillera->Close() : false;
 		}
 	}
 }

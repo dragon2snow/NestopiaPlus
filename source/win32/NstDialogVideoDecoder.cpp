@@ -152,7 +152,7 @@ namespace Nestopia
 
 			if (i < 3)
 			{
-				Nes::Api::Video::Decoder decoder( nes.GetDecoder() );
+				Nes::Video::Decoder decoder( nes.GetDecoder() );
 
 				static const ushort offsets[3] = {60, 200, 330};
 				uint angle = param.Slider().Scroll() + offsets[i];
@@ -182,7 +182,7 @@ namespace Nestopia
 				float gain = std::atof( string.Ptr() );
 				gain = NST_CLAMP(gain,0.0f,2.0f);
 
-				Nes::Api::Video::Decoder decoder( nes.GetDecoder() );
+				Nes::Video::Decoder decoder( nes.GetDecoder() );
 				decoder.axes[param.Edit().GetId() - IDC_VIDEO_DECODER_RY_GAIN].gain = gain;
 
 				if (nes.SetDecoder( decoder ) != Nes::RESULT_NOP)
@@ -196,7 +196,7 @@ namespace Nestopia
 		{
 			if (param.Button().Clicked())
 			{
-				Nes::Api::Video::Decoder decoder( nes.GetDecoder() );
+				Nes::Video::Decoder decoder( nes.GetDecoder() );
 				decoder.boostYellow = dialog.CheckBox(IDC_VIDEO_DECODER_BOOST_YELLOW).Checked();
 				nes.SetDecoder( decoder );
 				Application::Instance::GetMainWindow().Redraw();
@@ -209,13 +209,13 @@ namespace Nestopia
 		{
 			if (param.Button().Clicked())
 			{
-				Nes::Api::Video::DecoderPreset preset;
+				Nes::Video::DecoderPreset preset;
 
 				switch (param.Button().GetId())
 				{
-					case IDC_VIDEO_DECODER_CONSUMER:    preset = Nes::Api::Video::DECODER_CONSUMER;    break;
-					case IDC_VIDEO_DECODER_ALTERNATIVE: preset = Nes::Api::Video::DECODER_ALTERNATIVE; break;
-					default:                            preset = Nes::Api::Video::DECODER_CANONICAL;   break;
+					case IDC_VIDEO_DECODER_CONSUMER:    preset = Nes::Video::DECODER_CONSUMER;    break;
+					case IDC_VIDEO_DECODER_ALTERNATIVE: preset = Nes::Video::DECODER_ALTERNATIVE; break;
+					default:                            preset = Nes::Video::DECODER_CANONICAL;   break;
 				}
 
 				nes.SetDecoder( preset );
@@ -239,7 +239,7 @@ namespace Nestopia
 
 		void VideoDecoder::Update() const
 		{
-			Nes::Api::Video::Decoder decoder( nes.GetDecoder() );
+			Nes::Video::Decoder decoder( nes.GetDecoder() );
 
 			for (uint i=0; i < 3; ++i)
 			{

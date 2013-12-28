@@ -40,7 +40,7 @@ namespace Nes
 			protected:
 
 				explicit Mmc2(Context& c)
-				: Mapper(c,CROM_MAX_1024K|WRAM_DEFAULT) {}
+				: Mapper(c,CROM_MAX_1024K|WRAM_DEFAULT|NMT_VERTICAL) {}
 
 				~Mmc2() {}
 
@@ -50,18 +50,17 @@ namespace Nes
 
 				void BaseSave(State::Saver&) const;
 				void BaseLoad(State::Loader&,dword);
-				void UpdateChr() const;
 
-				NES_DECL_POKE( B000 );
-				NES_DECL_POKE( C000 );
-				NES_DECL_POKE( D000 );
-				NES_DECL_POKE( E000 );
+				template<uint ADDRESS>
+				NST_FORCE_INLINE uint FetchChr(uint);
+
+				NES_DECL_POKE( Prg );
 
 				NES_DECL_ACCESSOR( Chr_0000 );
 				NES_DECL_ACCESSOR( Chr_1000 );
 
 				uint selector[2];
-				uint banks[2][2];
+				byte banks[4];
 			};
 		}
 	}

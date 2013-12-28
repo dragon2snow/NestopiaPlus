@@ -57,7 +57,7 @@ namespace Nes
 			NES_DECL_POKE( 5300 );
 			NES_DECL_PEEK( 5500 );
 
-			NES_DECL_HOOK( Ppu );
+			NES_DECL_HOOK( HBlank );
 
 			byte regs[2];
 			byte strobe;

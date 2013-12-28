@@ -42,12 +42,12 @@ namespace Nes
 			{
 			public:
 
-				static Player* Create(Cpu&,Loader::Type,uint);
+				static Player* Create(Apu&,Loader::Type,uint);
 				static void Destroy(Player*);
 
 			private:
 
-				Player(Cpu&,uint);
+				Player(Apu&,uint);
 				~Player();
 
 				class SampleLoader;

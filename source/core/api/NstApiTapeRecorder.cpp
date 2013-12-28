@@ -37,9 +37,11 @@ namespace Nes
 		#pragma optimize("s", on)
 		#endif
 
+		TapeRecorder::EventCaller TapeRecorder::eventCallback;
+
 		Core::Peripherals::DataRecorder* TapeRecorder::Query() const
 		{
-			if (emulator.image && emulator.Is(Machine::ON))
+			if (emulator.image)
 			{
 				if (Core::Image::ExternalDevice device = emulator.image->QueryExternalDevice( Core::Image::EXT_DATA_RECORDER ))
 					return static_cast<Core::Peripherals::DataRecorder*>(device);
@@ -72,41 +74,50 @@ namespace Nes
 			return true;
 		}
 
-		Core::Peripherals::DataRecorder* TapeRecorder::CommandQuery() const
+		bool TapeRecorder::IsPlayable() const throw()
 		{
-			return emulator.tracker.IsLocked() ? NULL : Query();
-		}
-
-		bool TapeRecorder::CanPlay() const throw()
-		{
-			if (Core::Peripherals::DataRecorder* const dataRecorder = CommandQuery())
-				return dataRecorder->CanPlay();
+			if (Core::Peripherals::DataRecorder* const dataRecorder = Query())
+				return dataRecorder->Playable();
 
 			return false;
 		}
 
 		Result TapeRecorder::Play() throw()
 		{
-			if (Core::Peripherals::DataRecorder* const dataRecorder = CommandQuery())
-				return emulator.tracker.Flush( dataRecorder->Play() );
+			if (Core::Peripherals::DataRecorder* const dataRecorder = Query())
+			{
+				if (emulator.Is(Machine::ON) && !emulator.tracker.IsLocked())
+					return emulator.tracker.TryResync( dataRecorder->Play() );
+			}
 
 			return RESULT_ERR_NOT_READY;
 		}
 
 		Result TapeRecorder::Record() throw()
 		{
-			if (Core::Peripherals::DataRecorder* const dataRecorder = CommandQuery())
-				return emulator.tracker.Flush( dataRecorder->Record() );
+			if (Core::Peripherals::DataRecorder* const dataRecorder = Query())
+			{
+				if (emulator.Is(Machine::ON) && !emulator.tracker.IsLocked())
+					return emulator.tracker.TryResync( dataRecorder->Record() );
+			}
 
 			return RESULT_ERR_NOT_READY;
 		}
 
 		Result TapeRecorder::Stop() throw()
 		{
-			if (Core::Peripherals::DataRecorder* const dataRecorder = CommandQuery())
-				return emulator.tracker.Flush( dataRecorder->Stop() );
+			if (Core::Peripherals::DataRecorder* const dataRecorder = Query())
+			{
+				if (dataRecorder->IsPlaying())
+				{
+					if (emulator.tracker.IsLocked())
+						return RESULT_ERR_NOT_READY;
 
-			return RESULT_ERR_NOT_READY;
+					return emulator.tracker.TryResync( dataRecorder->Stop() );
+				}
+			}
+
+			return RESULT_NOP;
 		}
 
 		#ifdef NST_MSVC_OPTIMIZE

@@ -53,8 +53,9 @@ namespace Nes
 	{
 		class TapeRecorder : public Base
 		{
+			struct EventCaller;
+
 			Core::Peripherals::DataRecorder* Query() const;
-			Core::Peripherals::DataRecorder* CommandQuery() const;
 
 		public:
 
@@ -65,8 +66,7 @@ namespace Nes
 			bool IsPlaying() const throw();
 			bool IsRecording() const throw();
 			bool IsStopped() const throw();
-
-			bool CanPlay() const throw();
+			bool IsPlayable() const throw();
 
 			Result Play() throw();
 			Result Record() throw();
@@ -77,14 +77,29 @@ namespace Nes
 				return Query();
 			}
 
-			bool CanRecord() const throw()
+			enum Event
 			{
-				return CommandQuery();
-			}
+				EVENT_PLAYING,
+				EVENT_RECORDING,
+				EVENT_STOPPED
+			};
 
-			bool CanStop() const throw()
+			enum
 			{
-				return CommandQuery();
+				NUM_EVENT_CALLBACKS = 3
+			};
+
+			typedef void (NST_CALLBACK *EventCallback) (UserData,Event);
+
+			static EventCaller eventCallback;
+		};
+
+		struct TapeRecorder::EventCaller : Core::UserCallback<TapeRecorder::EventCallback>
+		{
+			void operator () (Event event) const
+			{
+				if (function)
+					function( userdata, event );
 			}
 		};
 	}

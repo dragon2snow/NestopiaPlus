@@ -68,6 +68,18 @@ namespace Nes
 				return data[0] | uint(data[1]) << 8 | dword(data[2]) << 16 | dword(data[3]) << 24;
 			}
 
+			qword In::Read64()
+			{
+				byte data[8];
+				Read( data, 8 );
+
+				return
+				(
+					qword(data[4] | uint(data[5]) << 8 | dword(data[6]) << 16 | dword(data[7]) << 24) << 32 |
+					dword(data[0] | uint(data[1]) << 8 | dword(data[2]) << 16 | dword(data[3]) << 24)
+				);
+			}
+
 			uint In::SafeRead8()
 			{
 				byte data;
@@ -281,6 +293,23 @@ namespace Nes
 				};
 
 				Write( d, 4 );
+			}
+
+			void Out::Write64(const qword data)
+			{
+				const byte d[8] =
+				{
+					data >>  0 & 0xFF,
+					data >>  8 & 0xFF,
+					data >> 16 & 0xFF,
+					data >> 24 & 0xFF,
+					data >> 32 & 0xFF,
+					data >> 40 & 0xFF,
+					data >> 48 & 0xFF,
+					data >> 56 & 0xFF
+				};
+
+				Write( d, 8 );
 			}
 
 			#ifdef NST_MSVC_OPTIMIZE

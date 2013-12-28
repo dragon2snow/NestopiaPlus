@@ -70,7 +70,7 @@ namespace Nestopia
 				NUM_EXTENSIONS = 5
 			};
 
-			Association(bool=false);
+			explicit Association(bool=false);
 			~Association();
 
 			void Create(uint,uint);
@@ -117,8 +117,8 @@ namespace Nestopia
 			{
 				User::Inform
 				(
-					IDS_DIALOGS_PREFERENCES_REGISTRYUPDATED,
-					IDS_DIALOGS_PREFERENCES_REGISTRYUPDATED_TITLE
+					IDS_DIALOG_PREFERENCES_REGISTRYUPDATED,
+					IDS_DIALOG_PREFERENCES_REGISTRYUPDATED_TITLE
 				);
 			}
 		}
@@ -533,7 +533,7 @@ namespace Nestopia
 						settings[i] = dialog.CheckBox( IDC_PREFERENCES_STARTUP_FULLSCREEN + i ).Checked();
 				}
 
-				settings.priority = (Priority) dialog.ComboBox( IDC_PREFERENCES_PRIORITY ).Selection().GetIndex();
+				settings.priority = static_cast<Priority>(dialog.ComboBox( IDC_PREFERENCES_PRIORITY ).Selection().GetIndex());
 
 				settings.menuLookDesktop.color = menuColorWindows[0].color;
 				settings.menuLookFullscreen.color = menuColorWindows[1].color;

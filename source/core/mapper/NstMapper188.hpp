@@ -45,13 +45,12 @@ namespace Nes
 			explicit Mapper188(Context& c)
 			: Mapper(c,CROM_MAX_8K|WRAM_NONE) {}
 
-			void BeginFrame(Input::Controllers*);
-
 		private:
 
 			~Mapper188() {}
 
 			void SubReset(bool);
+			void Sync(Event,Input::Controllers*);
 
 			NES_DECL_POKE( Prg );
 			NES_DECL_PEEK( Mic );

@@ -41,23 +41,37 @@ namespace Nes
 
 		private:
 
-			~Mapper60() {}
+			~Mapper60();
 
-			enum
+			enum Attribute
 			{
-				ATR_RESET_TRIGGER = 1
+				ATR_STD,
+				ATR_6_IN_1,
+				ATR_65_IN_1,
+				ATR_55_IN_1,
+				ATR_54_IN_1,
+				ATR_12_IN_1,
+				ATR_28_IN_1,
+				ATR_RESET_TRIGGERED
 			};
+
+			class CartSwitches;
 
 			void SubReset(bool);
 			void SubSave(State::Saver&) const;
 			void SubLoad(State::Loader&);
+			Device QueryDevice(DeviceType);
 
 			NES_DECL_PEEK( Prg );
 			NES_DECL_POKE( Prg );
 
-			uint latch;
-			uint menu;
-			const ibool resetTrigger;
+			union
+			{
+				uint resetSwitch;
+				uint cartMode;
+			};
+
+			CartSwitches* const cartSwitches;
 		};
 	}
 }

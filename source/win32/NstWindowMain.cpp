@@ -49,7 +49,7 @@ namespace Nestopia
 
 			context.className   = Application::Instance::GetClassName();
 			context.classStyle  = CLASS_STYLE;
-			context.hBackground = (HBRUSH) ::GetStockObject( NULL_BRUSH );
+			context.hBackground = reinterpret_cast<HBRUSH>(::GetStockObject( NULL_BRUSH ));
 			context.hIcon       = Resource::Icon( Application::Instance::GetIconStyle() == Application::Instance::ICONSTYLE_NES ? IDI_PAD : IDI_PAD_J );
 			context.windowName  = name;
 			context.winStyle    = WIN_STYLE;
@@ -94,11 +94,10 @@ namespace Nestopia
 				{ WM_SYSCOMMAND,                                &Main::OnSysCommand        },
 				{ WM_ENTERSIZEMOVE,                             &Main::OnEnterSizeMoveMenu },
 				{ WM_ENTERMENULOOP,                             &Main::OnEnterSizeMoveMenu },
-				{ WM_EXITSIZEMOVE,                              &Main::OnExitSizeMoveMenu  },
-				{ WM_EXITMENULOOP,                              &Main::OnExitSizeMoveMenu  },
 				{ WM_ENABLE,                                    &Main::OnEnable            },
 				{ WM_ACTIVATE,                                  &Main::OnActivate          },
 				{ WM_NCLBUTTONDOWN,                             &Main::OnNclButton         },
+				{ WM_NCRBUTTONDOWN,                             &Main::OnNcrButton         },
 				{ WM_POWERBROADCAST,                            &Main::OnPowerBroadCast    },
 				{ Application::Instance::WM_NST_COMMAND_RESUME, &Main::OnCommandResume     }
 			};
@@ -140,8 +139,6 @@ namespace Nestopia
 					window.SetPlacement( rect );
 			}
 
-			input.Calibrate( false );
-
 			if (preferences[Managers::Preferences::START_IN_FULLSCREEN])
 				window.PostCommand( IDM_VIEW_SWITCH_SCREEN );
 			else
@@ -150,8 +147,10 @@ namespace Nestopia
 
 		Main::~Main()
 		{
+			menu.Commands().Remove( this );
+			window.Messages().Remove( this );
 			emulator.Unhook();
-			window.Messages().RemoveAll( this );
+			menu.Unhook();
 		}
 
 		inline bool Main::Fullscreen() const
@@ -205,12 +204,12 @@ namespace Nestopia
 					::DispatchMessage( &msg );
 				}
 
-				if (emulator.Idle())
+				if (!emulator.Resume())
 					continue;
 
 				for (;;)
 				{
-					if (video.MustClearFrameScreen() && emulator.Is(Nes::Machine::GAME))
+					if (video.MustClearFrameScreen() && emulator.IsGame())
 						video.ClearScreen();
 
 					while (::PeekMessage( &msg, NULL, 0, 0, PM_REMOVE ))
@@ -225,9 +224,9 @@ namespace Nestopia
 							return msg.wParam;
 					}
 
-					if (emulator.Running())
+					if (emulator.Resume())
 					{
-						if (emulator.Is(Nes::Machine::GAME))
+						if (emulator.IsGame())
 						{
 							for (uint skips=frameClock.GameSynchronize( video.ThrottleRequired(frameClock.GetRefreshRate()) ); skips; --skips)
 								emulator.Execute( NULL, sound.GetOutput(), input.GetOutput() );
@@ -238,7 +237,7 @@ namespace Nestopia
 						}
 						else
 						{
-							NST_ASSERT( emulator.Is(Nes::Machine::SOUND) );
+							NST_ASSERT( emulator.IsNsf() );
 							emulator.Execute( NULL, sound.GetOutput(), NULL );
 							frameClock.SoundSynchronize();
 						}
@@ -272,31 +271,17 @@ namespace Nestopia
 			return video.GetMaxMessageLength();
 		}
 
-		void Main::OnStopEmulation()
-		{
-			::SetThreadPriority( ::GetCurrentThread(), THREAD_PRIORITY_NORMAL );
-
-			sound.StopEmulation();
-			video.StopEmulation();
-			input.StopEmulation();
-			frameClock.StopEmulation();
-
-			menu.ToggleModeless( false );
-		}
-
 		bool Main::OnStartEmulation()
 		{
 			if (window.Enabled() && (CanRunInBackground() || (window.Active() && !window.Minimized() && (Windowed() || !menu.Visible()))))
 			{
-				menu.ToggleModeless( CanRunInBackground() );
-
 				int priority;
 
 				switch (preferences.GetPriority())
 				{
 					case Managers::Preferences::PRIORITY_HIGH:
 
-						if (emulator.Is(Nes::Machine::GAME) && !CanRunInBackground())
+						if (emulator.IsGame() && !CanRunInBackground())
 						{
 							priority = THREAD_PRIORITY_HIGHEST;
 							break;
@@ -326,6 +311,16 @@ namespace Nestopia
 			return false;
 		}
 
+		void Main::OnStopEmulation()
+		{
+			::SetThreadPriority( ::GetCurrentThread(), THREAD_PRIORITY_NORMAL );
+
+			sound.StopEmulation();
+			video.StopEmulation();
+			input.StopEmulation();
+			frameClock.StopEmulation();
+		}
+
 		void Main::Load(const Io::Nsp::Context& context)
 		{
 			video.LoadPalette( context.palette );
@@ -336,7 +331,7 @@ namespace Nestopia
 			video.SavePalette( context.palette );
 		}
 
-		bool Main::ToggleMenu()
+		bool Main::ToggleMenu() const
 		{
 			bool visible = menu.Visible();
 
@@ -346,9 +341,6 @@ namespace Nestopia
 					emulator.Stop();
 
 				visible = menu.Toggle();
-
-				if (Fullscreen() && !visible)
-					emulator.Resume();
 			}
 			else
 			{
@@ -373,9 +365,9 @@ namespace Nestopia
 			return visible;
 		}
 
-		bool Main::CanRunInBackground()
+		bool Main::CanRunInBackground() const
 		{
-			if (emulator.Is(Nes::Machine::SOUND))
+			if (emulator.IsNsf())
 				return menu[IDM_MACHINE_NSF_OPTIONS_PLAYINBACKGROUND].Checked();
 
 			return preferences[Managers::Preferences::RUN_IN_BACKGROUND];
@@ -398,7 +390,7 @@ namespace Nestopia
 				case SC_MONITORPOWER:
 				case SC_SCREENSAVE:
 
-					return Fullscreen() || emulator.Is(Nes::Machine::ON);
+					return Fullscreen() || emulator.IsOn();
 
 				case SC_MAXIMIZE:
 
@@ -409,7 +401,7 @@ namespace Nestopia
 				case SC_RESTORE:
 
 					if (Windowed())
-						emulator.Wait();
+						emulator.Stop();
 
 					break;
 			}
@@ -419,25 +411,13 @@ namespace Nestopia
 
 		ibool Main::OnEnterSizeMoveMenu(Param&)
 		{
-			if (!CanRunInBackground())
-				emulator.Stop();
-
-			return true;
-		}
-
-		ibool Main::OnExitSizeMoveMenu(Param&)
-		{
-			if (!CanRunInBackground())
-				emulator.Resume();
-
+			emulator.Stop();
 			return true;
 		}
 
 		ibool Main::OnEnable(Param& param)
 		{
-			if (param.wParam)
-				emulator.Resume();
-			else
+			if (!param.wParam)
 				emulator.Stop();
 
 			return true;
@@ -448,32 +428,43 @@ namespace Nestopia
 			if (param.Activator().Entering())
 			{
 				if (Fullscreen() && param.Activator().Minimized())
-				{
 					emulator.Stop();
-				}
-				else
-				{
-					emulator.Resume();
-				}
 			}
 			else
 			{
-				if (!CanRunInBackground())
-				{
+				if (!CanRunInBackground() || (Fullscreen() && param.Activator().OutsideApplication()))
 					emulator.Stop();
-				}
-				else if (Fullscreen() && param.Activator().OutsideApplication())
-				{
-					emulator.Wait();
-				}
 			}
 
 			return false;
 		}
 
-		ibool Main::OnNclButton(Param&)
+		ibool Main::OnNclButton(Param& param)
 		{
-			emulator.Wait();
+			switch (param.wParam)
+			{
+				case HTCAPTION:
+				case HTMINBUTTON:
+				case HTMAXBUTTON:
+				case HTCLOSE:
+
+					emulator.Stop();
+			}
+
+			return false;
+		}
+
+		ibool Main::OnNcrButton(Param& param)
+		{
+			switch (param.wParam)
+			{
+				case HTCAPTION:
+				case HTSYSMENU:
+				case HTMINBUTTON:
+
+					emulator.Stop();
+			}
+
 			return false;
 		}
 
@@ -484,20 +475,19 @@ namespace Nestopia
 				case PBT_APMQUERYSUSPEND:
 
 					emulator.Stop();
-					return true;
 
 				case PBT_APMRESUMESUSPEND:
 
-					emulator.Resume();
 					return true;
 			}
 
 			return false;
+
 		}
 
 		ibool Main::OnCommandResume(Param& param)
 		{
-			if (HIWORD(param.wParam) == 0 && Fullscreen() && emulator.Is(Nes::Machine::ON) && menu.Visible())
+			if (HIWORD(param.wParam) == 0 && Fullscreen() && emulator.IsOn() && menu.Visible())
 				window.PostCommand( IDM_VIEW_MENU ); // Hide menu and resume emulation
 
 			return true;
@@ -527,7 +517,7 @@ namespace Nestopia
 
 				video.SwitchScreen();
 
-				if (!emulator.Is(Nes::Machine::ON))
+				if (!emulator.IsOn())
 					menu.Show();
 			}
 			else
@@ -558,8 +548,6 @@ namespace Nestopia
 			}
 
 			::Sleep( 500 );
-
-			emulator.Resume();
 		}
 
 		void Main::OnCmdViewShowOnTop(uint)
@@ -577,14 +565,18 @@ namespace Nestopia
 				Application::Instance::ShowChildWindows( visible );
 		}
 
-		void Main::OnEmuEvent(Managers::Emulator::Event event)
+		void Main::OnEmuEvent(const Managers::Emulator::Event event,const Managers::Emulator::Data data)
 		{
 			switch (event)
 			{
 				case Managers::Emulator::EVENT_POWER_ON:
 				case Managers::Emulator::EVENT_POWER_OFF:
 
-					if (Fullscreen())
+					if (emulator.NetPlayers())
+					{
+						menu.ToggleModeless( event == Managers::Emulator::EVENT_POWER_ON );
+					}
+					else if (Fullscreen())
 					{
 						const bool show = (event == Managers::Emulator::EVENT_POWER_OFF);
 						menu.Show( show );
@@ -593,15 +585,14 @@ namespace Nestopia
 					break;
 
 				case Managers::Emulator::EVENT_LOAD:
-				case Managers::Emulator::EVENT_NETPLAY_LOAD:
 				{
 					Path name;
 
-					if (emulator.Is(Nes::Machine::CARTRIDGE))
+					if (emulator.IsCart())
 					{
 						name.Import( Nes::Cartridge(emulator).GetInfo()->name.c_str() );
 					}
-					else if (emulator.Is(Nes::Machine::SOUND))
+					else if (emulator.IsNsf())
 					{
 						name.Import( Nes::Nsf(emulator).GetName() );
 					}
@@ -619,15 +610,13 @@ namespace Nestopia
 				}
 
 				case Managers::Emulator::EVENT_UNLOAD:
-				case Managers::Emulator::EVENT_NETPLAY_UNLOAD:
 
 					window.Text() << MainWindow::name;
 					break;
 
-				case Managers::Emulator::EVENT_NETPLAY_MODE_ON:
-				case Managers::Emulator::EVENT_NETPLAY_MODE_OFF:
+				case Managers::Emulator::EVENT_NETPLAY_MODE:
 
-					menu[IDM_VIEW_SWITCH_SCREEN].Enable( event == Managers::Emulator::EVENT_NETPLAY_MODE_OFF );
+					menu[IDM_VIEW_SWITCH_SCREEN].Enable( !data );
 					break;
 			}
 		}
@@ -635,7 +624,7 @@ namespace Nestopia
 		void Main::OnAppEvent(Application::Instance::Event event,const void*)
 		{
 			if (event == Application::Instance::EVENT_SYSTEM_BUSY)
-				emulator.Wait();
+				emulator.Stop();
 		}
 	}
 }

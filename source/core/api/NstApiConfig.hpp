@@ -91,12 +91,16 @@
 //                              assert( miss_july == hot );
 //                             #endif
 //
-// NST_NO_FASTDELEGATE       - Casting a class member function to a member function of a
-//                             different class with the same function signature and then
-//                             calling it will work as expected on most implementations
-//                             but ISO C++ doesn't guarantee that, i.e the behaviour is
-//                             undefined. Define this for more standard conforming code
-//                             at the expense of some speed.
+// NST_FASTDELEGATE          - Define this if your compiler can handle casts between member
+//                             function pointers of different types and calls through them.
+//
+//                             If the size required to store a non-virtual member function
+//                             pointer is deemed too large, as in
+//
+//                             sizeof( void (Class::*)() ) > sizeof( void (*)() )
+//
+//                             this option is not worth using and Nestopia will force a
+//                             compile time error. Auto-defined if compiler is MSVC.
 //
 // NST_TAILCALL_OPTIMIZE     - Define this if your compiler can do tail-call optimizations,
 //                             i.e it will convert a CALL+RET into a JMP. Compiling with
@@ -104,10 +108,10 @@
 //                             However, if the compiler does *not* perform this optimization
 //                             it could cause the opposite, possibly leading to a stack
 //                             overflow crash.
-//                             Auto-defined if compiler is MSVC. Altough GCC is generally
+//                             Auto-defined if compiler is MSVC. Although GCC is generally
 //                             known to have this optimization feature, it's not auto-defined
 //                             for safety reasons as not all brands of GCC may do it. This
-//                             macro has no effect on debug builds (NDEBUG undefined).
+//                             macro has no effect on debug builds (NDEBUG not defined).
 //
 // Abbrevations:
 //

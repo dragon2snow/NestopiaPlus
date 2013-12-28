@@ -48,9 +48,9 @@ namespace Nes
 			state.Begin( AsciiId<'T','K','O'>::V ).Write8( counter & 0x1F ).End();
 		}
 
-		void Cartridge::VsSystem::TkoBoxing::SubLoad(State::Loader& state,const dword id)
+		void Cartridge::VsSystem::TkoBoxing::SubLoad(State::Loader& state,const dword chunk)
 		{
-			if (id == AsciiId<'T','K','O'>::V)
+			if (chunk == AsciiId<'T','K','O'>::V)
 				counter = state.Read8() & 0x1F;
 		}
 

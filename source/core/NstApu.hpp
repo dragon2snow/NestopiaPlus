@@ -51,41 +51,14 @@ namespace Nes
 
 			explicit Apu(Cpu&);
 
-			typedef Sound::Sample Sample;
+			void Reset(bool);
+			void PowerOff();
+			void ClearBuffers();
+			void UpdateRegion();
+			void BeginFrame(Sound::Output*);
+			void EndFrame();
+			void WriteFrameCtrl(uint);
 
-			enum
-			{
-				CHANNEL_SQUARE1,
-				CHANNEL_SQUARE2,
-				CHANNEL_TRIANGLE,
-				CHANNEL_NOISE,
-				CHANNEL_DPCM,
-				CHANNEL_FDS,
-				CHANNEL_MMC5,
-				CHANNEL_VRC6,
-				CHANNEL_VRC7,
-				CHANNEL_N106,
-				CHANNEL_S5B,
-				MAX_CHANNELS
-			};
-
-			enum
-			{
-				FRAME_CLOCK_NTSC =  14915,
-				FRAME_CLOCK_PAL  =  16626,
-				OUTPUT_MIN       = -32767,
-				OUTPUT_MAX       = +32767,
-				OUTPUT_MUL       =  256,
-				OUTPUT_DECAY     =  OUTPUT_MUL / 4 - 1,
-				DEFAULT_VOLUME   =  85
-			};
-
-			void   Reset(bool);
-			void   ClearBuffers();
-			void   SetMode(Mode);
-			void   BeginFrame(Sound::Output*);
-			void   EndFrame();
-			void   Poke_4017(uint);
 			Result SetSampleRate(dword);
 			Result SetSampleBits(uint);
 			Result SetSpeed(uint);
@@ -94,216 +67,204 @@ namespace Nes
 			void   SetAutoTranspose(bool);
 			void   EnableStereo(bool);
 
-			inline void Update();
+			void SaveState(State::Saver&,dword) const;
+			void LoadState(State::Loader&);
 
 			class NST_NO_VTABLE Channel
 			{
+				Apu& apu;
+
+			protected:
+
+				Channel(Apu&);
+				~Channel();
+
+				void  Update() const;
+				void  Connect(bool);
+				dword GetSampleRate() const;
+				uint  GetVolume(uint) const;
+				void  GetOscillatorClock(Cycle&,uint&) const;
+				Region::Type GetRegion() const;
+
 			public:
 
-				typedef Apu::Sample Sample;
+				typedef Sound::Sample Sample;
 
 				enum
 				{
-					MAX_CHANNELS = Apu::MAX_CHANNELS,
-					DEFAULT_VOLUME = Apu::DEFAULT_VOLUME
+					APU_SQUARE1,
+					APU_SQUARE2,
+					APU_TRIANGLE,
+					APU_NOISE,
+					APU_DPCM,
+					EXT_FDS,
+					EXT_MMC5,
+					EXT_VRC6,
+					EXT_VRC7,
+					EXT_N106,
+					EXT_S5B
+				};
+
+				enum
+				{
+					OUTPUT_MIN     = -32767,
+					OUTPUT_MAX     = +32767,
+					OUTPUT_MUL     =  256,
+					OUTPUT_DECAY   =  OUTPUT_MUL / 4 - 1,
+					DEFAULT_VOLUME =  85
 				};
 
 				virtual void Reset() = 0;
 				virtual Sample GetSample() = 0;
+				virtual Cycle Clock(Cycle,Cycle,Cycle);
+				virtual bool UpdateSettings() = 0;
 
-				void SetContext(Cycle,Cycle,Mode,const byte (&)[MAX_CHANNELS]);
-
-			protected:
-
-				Channel();
-				~Channel() {}
-
-				Mode mode;
-				uint fixed;
-				ibool active;
-				Cycle rate;
-				uint outputVolume;
-
-			private:
-
-				virtual void UpdateContext(uint,const byte (&)[MAX_CHANNELS]) = 0;
-
-			public:
-
-				virtual Cycle Clock()
+				class LengthCounter
 				{
-					return 0;
-				}
+				public:
 
-				uint GetOutputVolume() const
-				{
-					return outputVolume;
-				}
-			};
+					LengthCounter();
 
-			void HookChannel(Channel*);
-			void SaveState(State::Saver&,dword) const;
-			void LoadState(State::Loader&);
+					void Reset();
+					void LoadState(State::Loader&);
+					void SaveState(State::Saver&,dword) const;
 
-			struct DcBlocker
-			{
-				void Reset();
-				Sample Apply(Sample);
+				private:
 
-				enum
-				{
-					POLE = 3 // ~0.9999
+					uint enabled;
+					uint count;
+
+					static const byte lut[32];
+
+				public:
+
+					uint Disable(uint disable)
+					{
+						NST_ASSERT( disable <= 1 );
+						enabled = disable - 1;
+						count &= enabled;
+						return enabled;
+					}
+
+					void Write(uint data)
+					{
+						NST_ASSERT( (data >> 3) < sizeof(array(lut)) );
+						count = lut[data >> 3] & enabled;
+					}
+
+					void Write(uint data,const Cycle frameCounterDelta)
+					{
+						NST_VERIFY_MSG( frameCounterDelta, "APU $40xx/framecounter conflict" );
+
+						if (frameCounterDelta || !count)
+							Write( data );
+					}
+
+					uint GetCount() const
+					{
+						return count;
+					}
+
+					bool Clock()
+					{
+						return count && !--count;
+					}
 				};
 
-				idword prev;
-				idword next;
-				idword acc;
-			};
-
-			class LengthCounter
-			{
-			public:
-
-				void LoadState(State::Loader&);
-				void SaveState(State::Saver&,dword) const;
-
-			private:
-
-				enum
+				class Envelope
 				{
-					SHIFT_COUNT = 3
+				public:
+
+					Envelope();
+
+					void Reset();
+					void SetOutputVolume(uint);
+					void LoadState(State::Loader&);
+					void SaveState(State::Saver&,dword) const;
+
+					void Clock();
+					void Write(uint);
+
+				private:
+
+					void UpdateOutput();
+
+					dword output;
+					uint  outputVolume;
+					byte  regs[2];
+					byte  count;
+					bool  reset;
+
+				public:
+
+					bool Looping() const
+					{
+						return regs[1] & 0x20U;
+					}
+
+					dword Volume() const
+					{
+						return output;
+					}
+
+					void ResetClock()
+					{
+						reset = true;
+					}
 				};
 
-				ibool enabled;
-				uint count;
-
-				static const byte lut[32];
-
-			public:
-
-				LengthCounter()
-				: enabled(false), count(0) {}
-
-				void Reset()
+				class DcBlocker
 				{
-					enabled = false;
-					count = 0;
-				}
+				public:
 
-				void Enable(ibool state)
-				{
-					enabled = state;
+					DcBlocker();
 
-					if (!state)
-						count = 0;
-				}
+					void Reset();
+					Sample Apply(Sample);
 
-				void Write(uint data)
-				{
-					NST_ASSERT( (data >> SHIFT_COUNT) < sizeof(array(lut)) );
+				private:
 
-					if (enabled)
-						count = lut[data >> SHIFT_COUNT];
-				}
+					enum
+					{
+						POLE = 3 // ~0.9999
+					};
 
-				uint GetCount() const
-				{
-					return count;
-				}
-
-				bool Clock()
-				{
-					return count && !--count;
-				}
-			};
-
-			class Envelope
-			{
-			public:
-
-				Envelope();
-
-				void Reset();
-				void SetOutputVolume(uint);
-				void LoadState(State::Loader&);
-				void SaveState(State::Saver&,dword) const;
-
-				void Clock();
-				void Write(uint);
-
-			private:
-
-				inline void UpdateOutput();
-
-				enum
-				{
-					DECAY_RATE           = b00001111,
-					DECAY_DISABLE        = b00010000,
-					DECAY_LOOP           = b00100000,
-					SAVE_0_COUNT         = b00001111,
-					SAVE_1_VOLUME        = b00001111,
-					SAVE_1_RESET         = b10000000,
-					SAVE_1_RESET_SHIFT   = 7,
-					SAVE_2_DECAY_RATE    = b00001111,
-					SAVE_2_DECAY_DISABLE = b00010000,
-					SAVE_2_DECAY_LOOP    = b00100000
+					idword prev;
+					idword next;
+					idword acc;
 				};
-
-				dword output;
-				uint  outputVolume;
-				bool  reset;
-				byte  reg;
-				byte  count;
-				byte  volume;
-
-			public:
-
-				uint Loop() const
-				{
-					return reg & uint(DECAY_LOOP);
-				}
-
-				dword Volume() const
-				{
-					return output;
-				}
-
-				void ResetClock()
-				{
-					reset = true;
-				}
 			};
 
 		private:
 
-			typedef void (Apu::*Updater)(Cycle);
+			typedef void (NST_FASTCALL Apu::*Updater)(Cycle);
 
 			inline void Update(Cycle);
+			inline void Update();
 			inline void UpdateLatency();
+			inline Cycle UpdateDelta();
 
-			inline bool NoFrameClockCollision() const;
-			void CalculateOscillatorClock(Cycle&,Cycle&) const;
+			void Reset(bool,bool);
+			void CalculateOscillatorClock(Cycle&,uint&) const;
+			void Resync(dword);
+			NST_NO_INLINE void ClearBuffers(bool);
 
 			enum
 			{
+				MAX_CHANNELS            = 11,
 				RESET_CYCLES            = 2048,
-				ENABLE_SQUARE1          = 0x01,
-				ENABLE_SQUARE2          = 0x02,
-				ENABLE_TRIANGLE         = 0x04,
-				ENABLE_NOISE            = 0x08,
-				ENABLE_DMC              = 0x10,
-				STATUS_NO_FRAME_IRQ     = b01000000,
-				STATUS_SEQUENCE_5_STEP  = b10000000,
+				STATUS_NO_FRAME_IRQ     = 0x40,
+				STATUS_SEQUENCE_5_STEP  = 0x80,
 				STATUS_FRAME_IRQ_ENABLE = 0,
 				STATUS_BITS             = STATUS_NO_FRAME_IRQ|STATUS_SEQUENCE_5_STEP,
 				NLN_VOL                 = 192,
 				NLN_SQ_F                = 900,
-				NLN_SQ_0                = 9552UL * OUTPUT_MUL * NLN_VOL * (NLN_SQ_F/100),
-				NLN_SQ_1                = 8128UL * OUTPUT_MUL * NLN_SQ_F,
+				NLN_SQ_0                = 9552UL * Channel::OUTPUT_MUL * NLN_VOL * (NLN_SQ_F/100),
+				NLN_SQ_1                = 8128UL * Channel::OUTPUT_MUL * NLN_SQ_F,
 				NLN_SQ_2                = NLN_SQ_F * 100UL,
 				NLN_TND_F               = 500,
-				NLN_TND_0               = 16367UL * OUTPUT_MUL * NLN_VOL * (NLN_TND_F/100),
-				NLN_TND_1               = 24329UL * OUTPUT_MUL * NLN_TND_F,
+				NLN_TND_0               = 16367UL * Channel::OUTPUT_MUL * NLN_VOL * (NLN_TND_F/100),
+				NLN_TND_1               = 24329UL * Channel::OUTPUT_MUL * NLN_TND_F,
 				NLN_TND_2               = NLN_TND_F * 100UL
 			};
 
@@ -329,39 +290,60 @@ namespace Nes
 			NES_DECL_PEEK( 4015 );
 			NES_DECL_PEEK( 4xxx );
 
-			Sample GetSample();
+			NST_NO_INLINE Channel::Sample GetSample();
 
-			void SyncOff (Cycle);
-			void SyncOn  (Cycle);
+			void NST_FASTCALL SyncOn    (Cycle);
+			void NST_FASTCALL SyncOnExt (Cycle);
+			void NST_FASTCALL SyncOff   (Cycle);
 
-			Cycle ClockOscillators();
+			NST_NO_INLINE void ClockFrameIRQ(Cycle);
+			NST_NO_INLINE void ClockFrameCounter();
+			void ClockOscillators(bool);
 			void ClockDmc(Cycle);
-			NST_NO_INLINE void ClockFrameIRQ();
 
 			template<typename T,bool STEREO>
 			void FlushSound();
 
 			void UpdateSettings();
+			void UpdateSettings(Region::Type);
+			void UpdateVolumes();
 
 			struct Cycles
 			{
 				Cycles();
 
-				void Update(dword,uint,Mode);
-				void Reset(Mode);
+				void Update(dword,uint,Region::Type);
+				void Reset(bool);
 
-				uint  fixed;
+				uint fixed;
 				Cycle rate;
 				Cycle rateCounter;
 				Cycle frameCounter;
 				Cycle extCounter;
-				uint  frameDivider;
-				uint  frameIrqRepeat;
+				Region::Type region;
+				word frameDivider;
+				word frameIrqRepeat;
 				Cycle frameIrqClock;
 				Cycle dmcClock;
 
-				static const dword frame[2];
-				static const dword frameClocks[2][2][4];
+				static const dword frameClocks[2][4];
+				static const dword oscillatorClocks[2][2][4];
+			};
+
+			class Synchronizer
+			{
+				uint sync;
+				uint duty;
+				dword streamed;
+				dword rate;
+
+			public:
+
+				Synchronizer();
+
+				void Reset(uint,Region::Type,dword);
+				void Resync(uint,Region::Type);
+				NST_SINGLE_CALL dword Clock(dword,Region::Type,dword);
 			};
 
 			class Oscillator
@@ -371,7 +353,7 @@ namespace Nes
 				Oscillator();
 
 				void Reset();
-				void SetContext(dword,uint);
+				void UpdateSettings(dword,uint);
 
 				ibool active;
 				idword timer;
@@ -390,85 +372,77 @@ namespace Nes
 			public:
 
 				void Reset();
-				void SetContext(dword,uint,uint);
-
-				NST_FORCE_INLINE void WriteReg0(uint);
-				NST_FORCE_INLINE void WriteReg1(uint);
-				NST_FORCE_INLINE void WriteReg2(uint);
-				NST_FORCE_INLINE void WriteReg3(uint,bool);
-
-				inline void Toggle(uint);
-				dword GetSample();
-
-				void ClockEnvelope();
-				void ClockSweep(uint);
-
-				inline uint GetLengthCounter() const;
-
+				void UpdateSettings(dword,uint,uint);
 				void LoadState(State::Loader&);
 				void SaveState(State::Saver&,dword) const;
+
+				NST_SINGLE_CALL void WriteReg0(uint);
+				NST_SINGLE_CALL void WriteReg1(uint);
+				NST_SINGLE_CALL void WriteReg2(uint);
+				NST_SINGLE_CALL void WriteReg3(uint,Cycle);
+				NST_SINGLE_CALL void Disable(uint);
+
+				dword GetSample();
+
+				NST_SINGLE_CALL void ClockEnvelope();
+				NST_SINGLE_CALL void ClockSweep(uint);
+
+				inline uint GetLengthCounter() const;
 
 			private:
 
 				inline bool CanOutput() const;
-				bool UpdateFrequency();
+				void UpdateFrequency();
 
 				enum
 				{
-					MIN_FRQ                = 0x008,
-					MAX_FRQ                = 0x7FF,
-					REG0_DUTY_SHIFT        = 6,
-					REG1_SWEEP_SHIFT       = b00000111,
-					REG1_SWEEP_DECREASE    = b00001000,
-					REG1_SWEEP_RATE        = b01110000,
-					REG1_SWEEP_RATE_SHIFT  = 4,
-					REG1_SWEEP_ENABLED     = b10000000,
-					REG2_WAVELENGTH_LOW    = b11111111,
-					REG3_WAVELENGTH_HIGH   = b00000111,
-					SAVE_1_WAVELENGTH_LOW  = b11111111,
-					SAVE_1_WAVELENGTH_HIGH = b00000111,
-					SAVE_1_DUTY            = b01111000,
-					SAVE_2_SWEEP_RATE      = b00000111,
-					SAVE_2_SWEEP_ENABLE    = b00001000,
-					SAVE_2_SWEEP_COUNT     = b01110000,
-					SAVE_2_SWEEP_RELOAD    = b10000000,
-					SAVE_3_SWEEP_SHIFT     = b00000111,
-					SAVE_3_SWEEP_DECREASE  = b00001000
+					MIN_FRQ               = 0x008,
+					MAX_FRQ               = 0x7FF,
+					REG0_DUTY_SHIFT       = 6,
+					REG1_SWEEP_SHIFT      = 0x07,
+					REG1_SWEEP_DECREASE   = 0x08,
+					REG1_SWEEP_RATE       = 0x70,
+					REG1_SWEEP_RATE_SHIFT = 4,
+					REG1_SWEEP_ENABLED    = 0x80,
+					REG3_WAVELENGTH_LOW   = 0x00FF,
+					REG3_WAVELENGTH_HIGH  = 0x0700
 				};
 
 				uint step;
 				uint duty;
-				LengthCounter lengthCounter;
-				Envelope envelope;
-				uint sweepCount;
-				uint sweepRate;
-				uint sweepShift;
-				ibool sweepReload;
+				Channel::Envelope envelope;
+				Channel::LengthCounter lengthCounter;
+				bool validFrequency;
+				bool sweepReload;
+				byte sweepCount;
+				byte sweepRate;
 				uint sweepIncrease;
-				uint waveLength;
-				ibool validFrequency;
+				word sweepShift;
+				word waveLength;
 			};
 
 			class Triangle : public Oscillator
 			{
 			public:
 
+				Triangle();
+
 				void Reset();
-				void SetContext(dword,uint,uint);
-
-				NST_FORCE_INLINE void WriteReg0(uint);
-				NST_FORCE_INLINE void WriteReg2(uint);
-				NST_FORCE_INLINE void WriteReg3(uint,bool);
-				NST_FORCE_INLINE void Toggle(uint);
-				NST_FORCE_INLINE dword GetSample();
-
-				void ClockLinearCounter();
-				void ClockLengthCounter();
-
-				inline uint GetLengthCounter() const;
-
+				void UpdateSettings(dword,uint,uint);
 				void LoadState(State::Loader&);
 				void SaveState(State::Saver&,dword) const;
+
+				NST_SINGLE_CALL void WriteReg0(uint);
+				NST_SINGLE_CALL void WriteReg2(uint);
+				NST_SINGLE_CALL void WriteReg3(uint,Cycle);
+				NST_SINGLE_CALL void Disable(uint);
+
+				NST_SINGLE_CALL dword GetSample();
+
+				NST_SINGLE_CALL void ClockLinearCounter();
+				NST_SINGLE_CALL void ClockLengthCounter();
+
+				inline uint GetLengthCounter() const;
 
 			private:
 
@@ -476,72 +450,65 @@ namespace Nes
 
 				enum
 				{
+					MIN_FRQ                   = 2 + 1,
+					STEP_CHECK                = 0x00, // >= 0x1F is technically correct but will produce clicks/pops
+					REG0_LINEAR_COUNTER_LOAD  = 0x7F,
+					REG0_LINEAR_COUNTER_START = 0x80,
+					REG2_WAVE_LENGTH_LOW      = 0x00FF,
+					REG3_WAVE_LENGTH_HIGH     = 0x0700
+				};
+
+				enum Status
+				{
 					STATUS_COUNTING,
 					STATUS_RELOAD
 				};
 
-				enum
-				{
-					MIN_FRQ                   = 2 + 1,
-					STEP_CHECK                = 0x00, // >= 0x1F is technically correct but will produce clicks/pops
-					REG0_LINEAR_COUNTER_LOAD  = b01111111,
-					REG0_LINEAR_COUNTER_START = b10000000,
-					REG2_WAVE_LENGTH_LOW      = b11111111,
-					REG3_WAVE_LENGTH_HIGH     = b00000111,
-					SAVE_0_WAVELENGTH_LOW     = b11111111,
-					SAVE_1_WAVELENGTH_HIGH    = b00000111,
-					SAVE_2_LINEAR_COUNT       = b01111111,
-					SAVE_2_LINEAR_STATUS      = b10000000,
-					SAVE_3_LINEAR_CTRL        = b11111111
-				};
-
 				uint step;
-				uint status;
-				uint linearCtrl;
-				uint linearCounter;
-				uint waveLength;
 				uint outputVolume;
-				LengthCounter lengthCounter;
+				Status status;
+				word waveLength;
+				byte linearCtrl;
+				byte linearCounter;
+				Channel::LengthCounter lengthCounter;
 			};
 
 			class Noise : public Oscillator
 			{
 			public:
 
-				void Reset();
-				void SetContext(dword,uint,uint,Mode);
+				void Reset(Region::Type);
+				void UpdateSettings(dword,uint,uint,Region::Type);
+				void LoadState(State::Loader&,Region::Type);
+				void SaveState(State::Saver&,dword) const;
 
-				NST_FORCE_INLINE void WriteReg0(uint);
-				NST_FORCE_INLINE void WriteReg2(uint);
-				NST_FORCE_INLINE void WriteReg3(uint,bool);
-				NST_FORCE_INLINE void Toggle(uint);
-				NST_FORCE_INLINE dword GetSample();
+				NST_SINGLE_CALL void WriteReg0(uint);
+				NST_SINGLE_CALL void WriteReg2(uint,Region::Type);
+				NST_SINGLE_CALL void WriteReg3(uint,Cycle);
+				NST_SINGLE_CALL void Disable(uint);
 
-				void ClockEnvelope();
-				void ClockLengthCounter();
+				NST_SINGLE_CALL dword GetSample();
+
+				NST_SINGLE_CALL void ClockEnvelope();
+				NST_SINGLE_CALL void ClockLengthCounter();
 
 				inline uint GetLengthCounter() const;
-
-				void LoadState(State::Loader&);
-				void SaveState(State::Saver&,dword) const;
 
 			private:
 
 				inline bool CanOutput() const;
+				uint GetFrequencyIndex() const;
 
 				enum
 				{
-					REG2_SAMPLE_RATE = b00001111,
-					REG2_93BIT_MODE  = b10000000,
-					SAVE_WAVELENGTH  = b00001111,
-					SAVE_93BIT_MODE  = b00010000
+					REG2_FREQUENCY  = 0x0F,
+					REG2_93BIT_MODE = 0x80
 				};
 
 				uint bits;
 				uint shifter;
-				Mode mode;
-				LengthCounter lengthCounter;
-				Envelope envelope;
+				Channel::Envelope envelope;
+				Channel::LengthCounter lengthCounter;
 
 				static const word lut[2][16];
 			};
@@ -552,88 +519,75 @@ namespace Nes
 
 				Dmc();
 
-				void Reset(Cpu&);
-				void SetContext(uint,Mode);
-
-				NST_FORCE_INLINE void Toggle(uint,Cpu&);
-				NST_FORCE_INLINE void WriteReg0(uint,Cpu&);
-				NST_FORCE_INLINE void WriteReg1(uint);
-				NST_FORCE_INLINE void WriteReg2(uint);
-				NST_FORCE_INLINE void WriteReg3(uint);
-				NST_FORCE_INLINE dword GetSample();
-				NST_FORCE_INLINE void Clock(Cpu&);
-
-				inline uint CheckSample() const;
-				inline void ClearAmp();
-				inline uint SetSample(uint);
-				inline Cycle GetFrequency() const;
-				inline uint GetLengthCounter() const;
-
-				void LoadState(State::Loader&,Cpu&,Cycle&);
+				void Reset(Region::Type);
+				void UpdateSettings(Cycle&,uint,Region::Type);
+				void LoadState(State::Loader&,const Cpu&,Region::Type,Cycle&);
 				void SaveState(State::Saver&,dword,const Cpu&,Cycle) const;
 
-				static Cycle GetResetFrequency(Mode);
+				NST_SINGLE_CALL bool WriteReg0(uint,Region::Type);
+				NST_SINGLE_CALL void WriteReg1(uint);
+				NST_SINGLE_CALL void WriteReg2(uint);
+				NST_SINGLE_CALL void WriteReg3(uint);
+				NST_SINGLE_CALL void Disable(uint,Cpu&);
+
+				NST_SINGLE_CALL dword GetSample();
+
+				NST_SINGLE_CALL bool ClockDAC();
+				NST_SINGLE_CALL void Update();
+				NST_SINGLE_CALL Cycle ClockDMA(Cpu&);
+
+				inline void ClearAmp();
+				inline uint GetLengthCounter() const;
+
+				static Cycle GetResetFrequency(Region::Type);
 
 			private:
 
-				void OutputBuffer();
 				void DoDMA(Cpu&);
 
 				enum
 				{
-					DMA_CYCLES          = 4,
-					REG0_FREQUENCY      = b00001111,
-					REG0_LOOP           = b01000000,
-					REG0_IRQ_ENABLE     = b10000000,
-					INP_STEP            = 8,
-					SAVE_2_FREQUENCY    = b00001111,
-					SAVE_2_LOOP         = b00010000,
-					SAVE_2_IRQ          = b00100000,
-					SAVE_2_ENABLED      = b01000000,
-					SAVE_3_LOAD_ADDRESS = b11111111,
-					SAVE_4_LOAD_LENGTH  = b11111111,
-					SAVE_5_ADDRESS_LOW  = b11111111,
-					SAVE_6_ADDRESS_HIGH = b01111111,
-					SAVE_6_BUFFERED     = b10000000,
-					SAVE_7_LENGTH       = b11111111,
-					SAVE_8_DMA_BUFFER   = b11111111,
-					SAVE_9_SHIFTER      = b00000111,
-					SAVE_10_OUT_BUFFER  = b11111111,
-					SAVE_11_DAC         = b01111111
+					DMA_CYCLES      = 4,
+					REG0_FREQUENCY  = 0x0F,
+					REG0_LOOP       = 0x40,
+					REG0_IRQ_ENABLE = 0x80,
+					INP_STEP        = 8
 				};
-
-				Mode mode;
-				ibool loop;
-				uint loadedAddress;
-				uint loadedLengthCount;
-				uint active;
-				Cycle frequency;
-
-				struct
-				{
-					uint dac;
-					uint shifter;
-					uint buffer;
-				}   out;
-
-				struct
-				{
-					uint lengthCounter;
-					ibool buffered;
-					uint address;
-					uint buffer;
-				}   dma;
 
 				uint curSample;
 				uint linSample;
 				uint outputVolume;
+				Cycle frequency;
+
+				struct
+				{
+					uint ctrl;
+					word lengthCounter;
+					word address;
+				}   regs;
+
+				struct
+				{
+					byte shifter;
+					byte dac;
+					byte buffer;
+					bool active;
+				}   out;
+
+				struct
+				{
+					word lengthCounter;
+					word address;
+					word buffered;
+					word buffer;
+				}   dma;
 
 				static const word lut[2][16];
 			};
 
-			struct Context
+			struct Settings
 			{
-				Context();
+				Settings();
 
 				dword rate;
 				byte bits;
@@ -644,74 +598,62 @@ namespace Nes
 				byte volumes[MAX_CHANNELS];
 			};
 
-			Sound::Output* stream;
 			uint ctrl;
 			Updater updater;
 			Cpu& cpu;
 			Cycles cycles;
-			Mode mode;
+			Synchronizer synchronizer;
 			Square square[2];
 			Triangle triangle;
 			Noise noise;
 			Dmc dmc;
 			Channel* extChannel;
-			DcBlocker dcBlocker;
+			Channel::DcBlocker dcBlocker;
+			Sound::Output* stream;
 			Sound::Buffer buffer;
-			Context context;
-			const dword padding;
+			Settings settings;
 
 		public:
 
-			dword GetSampleRate() const
-			{
-				return context.rate;
-			}
-
-			uint GetSampleBits() const
-			{
-				return context.bits;
-			}
-
-			uint GetSpeed() const
-			{
-				return context.speed;
-			}
-
-			bool IsAutoTransposing() const
-			{
-				return context.transpose;
-			}
-
-			bool InStereo() const
-			{
-				return context.stereo;
-			}
-
-			bool IsAudible() const
-			{
-				return context.audible;
-			}
-
-			void ReleaseChannel()
-			{
-				extChannel = NULL;
-			}
-
-			void SetExternalClock(Cycle clock)
-			{
-				NST_ASSERT( extChannel );
-				cycles.extCounter = clock;
-			}
-
 			Cycle Clock(const Cycle elapsed)
 			{
-				while (cycles.frameIrqClock <= elapsed)
-					ClockFrameIRQ();
+				if (cycles.frameIrqClock <= elapsed)
+					ClockFrameIRQ( elapsed );
 
 				if (cycles.dmcClock <= elapsed)
 					ClockDmc( elapsed );
 
 				return NST_MIN(cycles.frameIrqClock,cycles.dmcClock);
+			}
+
+			dword GetSampleRate() const
+			{
+				return settings.rate;
+			}
+
+			uint GetSampleBits() const
+			{
+				return settings.bits;
+			}
+
+			uint GetSpeed() const
+			{
+				return settings.speed;
+			}
+
+			bool IsAutoTransposing() const
+			{
+				return settings.transpose;
+			}
+
+			bool InStereo() const
+			{
+				return settings.stereo;
+			}
+
+			bool IsAudible() const
+			{
+				return settings.audible;
 			}
 		};
 	}

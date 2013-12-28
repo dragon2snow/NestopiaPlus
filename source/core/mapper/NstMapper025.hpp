@@ -38,7 +38,7 @@ namespace Nes
 		public:
 
 			explicit Mapper25(Context& c)
-			: Vrc4(c,TYPE_Y) {}
+			: Vrc4(c,TYPE_VRC4_351406) {}
 
 		private:
 

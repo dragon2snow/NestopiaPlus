@@ -92,7 +92,7 @@ namespace Nes
 			template<dword N>
 			static void Flush(const char (&c)[N])
 			{
-				NST_COMPILE_ASSERT( N );
+				NST_COMPILE_ASSERT( N > 0 );
 				Flush( c, N-1 );
 			}
 		};

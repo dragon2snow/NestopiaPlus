@@ -67,9 +67,6 @@ namespace Nestopia
 			void RemoveAll(const void*);
 			void Defrag();
 
-			template<typename Match>
-			const Callback* Find(const Match&,const Key** = NULL) const;
-
 			Callback& operator [] (KeyParam);
 
 		private:
@@ -108,7 +105,7 @@ namespace Nestopia
 			};
 
 			NST_NO_INLINE void AddHook(KeyParam,const typename Hook::Item&);
-			NST_NO_INLINE bool RemoveHook(Item* const,Hook*,typename Hook::Item*);
+			NST_NO_INLINE uint RemoveHook(Item*,Hook*,typename Hook::Item*);
 			NST_NO_INLINE void RemoveHook(KeyParam,const typename Hook::Item&);
 			NST_NO_INLINE void RemoveHooks(const void*);
 
@@ -204,9 +201,9 @@ namespace Nestopia
 				Remove( key, Callback(data,code) );
 			}
 		};
-
-		#include "NstCollectionRouter.inl"
 	}
 }
+
+#include "NstCollectionRouter.inl"
 
 #endif

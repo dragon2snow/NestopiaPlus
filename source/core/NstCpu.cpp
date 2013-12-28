@@ -23,9 +23,8 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 
 #include <cstring>
-#include "NstLog.hpp"
-#include "NstHook.hpp"
 #include "NstCpu.hpp"
+#include "NstHook.hpp"
 #include "NstState.hpp"
 #include "api/NstApiUser.hpp"
 
@@ -33,10 +32,6 @@ namespace Nes
 {
 	namespace Core
 	{
-		#ifdef NST_MSVC_OPTIMIZE
-		#pragma optimize("s", on)
-		#endif
-
 		dword Cpu::logged = 0;
 
 		void (Cpu::*const Cpu::opcodes[0x100])() =
@@ -107,63 +102,318 @@ namespace Nes
 			&Cpu::op0xFC, &Cpu::op0xFD, &Cpu::op0xFE, &Cpu::op0xFF
 		};
 
-		template<typename T,typename U>
-		Cpu::IoMap::IoMap(Cpu* cpu,T peek,U poke)
-		: Io::Map<SIZE_64K>( cpu, peek, poke ) {}
+		#ifdef NST_MSVC_OPTIMIZE
+		#pragma optimize("s", on)
+		#endif
 
-		Cpu::Linker::Chain::Chain(const Port& p,uint a,uint l)
-		: Port(p), address(a), level(l) {}
+		#if NST_MSVC >= 1200
+		#pragma warning( push )
+		#pragma warning( disable : 4355 )
+		#endif
 
-		Cpu::Linker::Linker()
-		: chain(NULL) {}
-
-		void Cpu::Linker::Clear()
+		Cpu::Cpu()
+		:
+		region ( Region::NTSC ),
+		apu    ( *this ),
+		map    ( this, &Cpu::Peek_Overflow, &Cpu::Poke_Overflow )
 		{
-			if (Chain* next = chain)
-			{
-				chain = NULL;
+			Reset( false, false );
+			cycles.SetRegion( GetRegion() );
+		}
 
-				do
+		#if NST_MSVC >= 1200
+		#pragma warning( pop )
+		#endif
+
+		void Cpu::PowerOff()
+		{
+			Reset( false, true );
+		}
+
+		void Cpu::Reset(bool hard)
+		{
+			Reset( true, hard );
+		}
+
+		void Cpu::Reset(const bool on,const bool hard)
+		{
+			if (!on || hard)
+			{
+				ram.Reset();
+
+				a = 0x00;
+				x = 0x00;
+				y = 0x00;
+				sp = 0xFD;
+
+				flags.nz = 0U ^ 1U;
+				flags.c = 0;
+				flags.v = 0;
+				flags.d = 0;
+			}
+			else
+			{
+				sp = (sp - 3) & 0xFF;
+			}
+
+			pc      = RESET_VECTOR;
+			flags.i = Flags::I;
+			jammed  = false;
+			ticks   = 0;
+			logged  = 0;
+
+			cycles.count = 0;
+			cycles.round = 0;
+			cycles.frame = (region == Region::NTSC ? Clocks::RP2C02_HVSYNC : Clocks::RP2C07_HVSYNC);
+
+			interrupt.Reset();
+			hooks.Clear();
+			linker.Clear();
+
+			if (on)
+			{
+				map( 0x0000, 0x07FF ).Set( &ram, &Cpu::Ram::Peek_Ram_0, &Cpu::Ram::Poke_Ram_0 );
+				map( 0x0800, 0x0FFF ).Set( &ram, &Cpu::Ram::Peek_Ram_1, &Cpu::Ram::Poke_Ram_1 );
+				map( 0x1000, 0x17FF ).Set( &ram, &Cpu::Ram::Peek_Ram_2, &Cpu::Ram::Poke_Ram_2 );
+				map( 0x1800, 0x1FFF ).Set( &ram, &Cpu::Ram::Peek_Ram_3, &Cpu::Ram::Poke_Ram_3 );
+				map( 0x2000, 0xFFFF ).Set( this, &Cpu::Peek_Nop,        &Cpu::Poke_Nop        );
+				map( 0xFFFC         ).Set( this, &Cpu::Peek_Jam_1,      &Cpu::Poke_Nop        );
+				map( 0xFFFD         ).Set( this, &Cpu::Peek_Jam_2,      &Cpu::Poke_Nop        );
+
+				apu.Reset( hard );
+			}
+			else
+			{
+				map( 0x0000, 0xFFFF ).Set( this, &Cpu::Peek_Nop, &Cpu::Poke_Nop );
+
+				if (hard)
+					apu.PowerOff();
+			}
+		}
+
+		void Cpu::SetRegion(const Region::Type r)
+		{
+			if (region != r)
+			{
+				region = r;
+				cycles.SetRegion( r );
+				interrupt.SetRegion( r );
+
+				ticks = ticks / uint(r == Region::NTSC ? Clocks::RP2A07_CC : Clocks::RP2A03_CC) *
+								uint(r == Region::NTSC ? Clocks::RP2A03_CC : Clocks::RP2A07_CC);
+
+				apu.UpdateRegion();
+			}
+		}
+
+		void Cpu::AddHook(const Hook& hook)
+		{
+			hooks.Add( hook );
+		}
+
+		void Cpu::RemoveHook(const Hook& hook)
+		{
+			hooks.Remove( hook );
+		}
+
+		Cycle Cpu::ClockConvert(Cycle clock,Region::Type region)
+		{
+			return
+			(
+				clock / (region == Region::NTSC ? Clocks::RP2A07_CC : Clocks::RP2A03_CC) *
+						(region == Region::NTSC ? Clocks::RP2A03_CC : Clocks::RP2A07_CC)
+			);
+		}
+
+		#ifdef NST_MSVC_OPTIMIZE
+		#pragma optimize("", on)
+		#endif
+
+		bool Cpu::IsOddCycle() const
+		{
+			return uint((ticks + cycles.count) % cycles.clock[1]);
+		}
+
+		inline uint Cpu::Cycles::NmiEdge() const
+		{
+			return clock[0] + clock[0] / 2;
+		}
+
+		inline uint Cpu::Cycles::IrqEdge() const
+		{
+			return clock[1];
+		}
+
+		#ifdef NST_MSVC_OPTIMIZE
+		#pragma optimize("s", on)
+		#endif
+
+		void Cpu::SaveState(State::Saver& state,const dword cpuChunk,const dword apuChunk) const
+		{
+			state.Begin( cpuChunk );
+
+			{
+				const byte data[7] =
 				{
-					Chain* tmp = next->next;
-					delete next;
-					next = tmp;
+					pc & 0xFF,
+					pc >> 8,
+					sp,
+					a,
+					x,
+					y,
+					flags.Pack()
+				};
+
+				state.Begin( AsciiId<'R','E','G'>::V ).Write( data ).End();
+			}
+
+			state.Begin( AsciiId<'R','A','M'>::V ).Compress( ram.mem ).End();
+
+			{
+				const byte data[5] =
+				{
+					((interrupt.nmiClock != CYCLE_MAX) ? 0x01U : 0x00U) |
+					((interrupt.low & IRQ_FRAME)       ? 0x02U : 0x00U) |
+					((interrupt.low & IRQ_DMC)         ? 0x04U : 0x00U) |
+					((interrupt.low & IRQ_EXT)         ? 0x08U : 0x00U) |
+					(jammed                            ? 0x40U : 0x00U) |
+					(region == Region::PAL             ? 0x80U : 0x00U),
+					cycles.count & 0xFF,
+					cycles.count >> 8,
+					(interrupt.nmiClock != CYCLE_MAX) ? interrupt.nmiClock+1 : 0,
+					(interrupt.irqClock != CYCLE_MAX) ? interrupt.irqClock+1 : 0
+				};
+
+				state.Begin( AsciiId<'F','R','M'>::V ).Write( data ).End();
+			}
+
+			state.Begin( AsciiId<'C','L','K'>::V ).Write64( ticks ).End();
+
+			state.End();
+
+			apu.SaveState( state, apuChunk );
+		}
+
+		void Cpu::LoadState(State::Loader& state,const dword cpuChunk,const dword apuChunk,const dword baseChunk)
+		{
+			if (baseChunk == cpuChunk)
+			{
+				Region::Type stateRegion = GetRegion();
+				ticks = 0;
+
+				while (const dword chunk = state.Begin())
+				{
+					switch (chunk)
+					{
+						case AsciiId<'R','E','G'>::V:
+						{
+							State::Loader::Data<7> data( state );
+
+							pc = data[0] | data[1] << 8;
+							sp = data[2];
+							a  = data[3];
+							x  = data[4];
+							y  = data[5];
+
+							flags.Unpack( data[6] );
+							break;
+						}
+
+						case AsciiId<'R','A','M'>::V:
+
+							state.Uncompress( ram.mem );
+							break;
+
+						case AsciiId<'F','R','M'>::V:
+						{
+							State::Loader::Data<5> data( state );
+
+							stateRegion = (data[0] & 0x80) ? Region::PAL : Region::NTSC;
+
+							interrupt.nmiClock = CYCLE_MAX;
+							interrupt.irqClock = CYCLE_MAX;
+							interrupt.low = 0;
+
+							if (data[0] & (0x2|0x4|0x8))
+							{
+								interrupt.low =
+								(
+									((data[0] & 0x2) ? IRQ_FRAME : 0) |
+									((data[0] & 0x4) ? IRQ_DMC   : 0) |
+									((data[0] & 0x8) ? IRQ_EXT   : 0)
+								);
+
+								if (!flags.i)
+									interrupt.irqClock = data[4] ? data[4] - 1 : 0;
+							}
+
+							cycles.count = data[1] | data[2] << 8;
+
+							if (data[0] & 0x1)
+								interrupt.nmiClock = data[3] ? data[3] - 1 : cycles.NmiEdge();
+
+							jammed = data[0] >> 6 & 0x1;
+
+							if (jammed)
+								interrupt.Reset();
+
+							break;
+						}
+
+						case AsciiId<'C','L','K'>::V:
+
+							ticks = state.Read64();
+							break;
+					}
+
+					state.End();
 				}
-				while (next);
+
+				const Region::Type actualRegion = GetRegion();
+
+				if (stateRegion != actualRegion)
+				{
+					cycles.SetRegion( actualRegion );
+					interrupt.SetRegion( actualRegion );
+
+					ticks = ticks / uint(actualRegion == Region::NTSC ? Clocks::RP2A07_CC : Clocks::RP2A03_CC) *
+									uint(actualRegion == Region::NTSC ? Clocks::RP2A03_CC : Clocks::RP2A07_CC);
+				}
+
+				NST_VERIFY( cycles.count < cycles.frame );
+
+				if (cycles.count >= cycles.frame)
+					cycles.count = 0;
+
+				ticks -= (ticks + cycles.count) % cycles.clock[0];
+			}
+			else if (baseChunk == apuChunk)
+			{
+				apu.LoadState( state );
 			}
 		}
 
-		Cpu::Linker::~Linker()
+		void Cpu::NotifyOp(const char (&code)[4],const dword which)
 		{
-			Clear();
-		}
-
-		const byte Cpu::Cycles::clocks[2][8] =
-		{
+			if (!(logged & which))
 			{
-				MC_DIV_NTSC * 1,
-				MC_DIV_NTSC * 2,
-				MC_DIV_NTSC * 3,
-				MC_DIV_NTSC * 4,
-				MC_DIV_NTSC * 5,
-				MC_DIV_NTSC * 6,
-				MC_DIV_NTSC * 7,
-				MC_DIV_NTSC * 8
-			},
-			{
-				MC_DIV_PAL * 1,
-				MC_DIV_PAL * 2,
-				MC_DIV_PAL * 3,
-				MC_DIV_PAL * 4,
-				MC_DIV_PAL * 5,
-				MC_DIV_PAL * 6,
-				MC_DIV_PAL * 7,
-				MC_DIV_PAL * 8
+				logged |= which;
+				Api::User::eventCallback( Api::User::EVENT_CPU_UNOFFICIAL_OPCODE, code );
 			}
-		};
+		}
 
 		Cpu::Hooks::Hooks()
 		: hooks(new Hook [2]), size(0), capacity(2) {}
+
+		Cpu::Hooks::~Hooks()
+		{
+			delete [] hooks;
+		}
+
+		void Cpu::Hooks::Clear()
+		{
+			size = 0;
+		}
 
 		void Cpu::Hooks::Add(const Hook& hook)
 		{
@@ -203,9 +453,13 @@ namespace Nes
 			}
 		}
 
-		inline void Cpu::Hooks::Clear()
+		#ifdef NST_MSVC_OPTIMIZE
+		#pragma optimize("", on)
+		#endif
+
+		inline uint Cpu::Hooks::Size() const
 		{
-			size = 0;
+			return size;
 		}
 
 		inline const Hook* Cpu::Hooks::Ptr() const
@@ -213,49 +467,35 @@ namespace Nes
 			return hooks;
 		}
 
-		Cpu::Hooks::~Hooks()
-		{
-			delete [] hooks;
-		}
-
-		Cpu::Cycles::Cycles()
-		: count(0), round(0)
-		{
-			std::memcpy( clock, clocks[0], sizeof(clocks[0]) );
-		}
-
-		#if NST_MSVC >= 1200
-		#pragma warning( push )
-		#pragma warning( disable : 4355 )
+		#ifdef NST_MSVC_OPTIMIZE
+		#pragma optimize("s", on)
 		#endif
 
-		Cpu::Cpu()
-		:
-		frameClock ( 0 ),
-		mode       ( MODE_NTSC ),
-		padding    ( 0 ),
-		apu        ( *this ),
-		map        ( this, &Cpu::Peek_Overflow, &Cpu::Poke_Overflow )
+		Cpu::Linker::Chain::Chain(const Port& p,uint a,uint l)
+		: Port(p), address(a), level(l) {}
+
+		Cpu::Linker::Linker()
+		: chain(NULL) {}
+
+		Cpu::Linker::~Linker()
 		{
-			Boot();
+			Clear();
 		}
 
-		#if NST_MSVC >= 1200
-		#pragma warning( pop )
-		#endif
-
-		void Cpu::Boot()
+		void Cpu::Linker::Clear()
 		{
-			hooks.Clear();
-			linker.Clear();
+			if (Chain* next = chain)
+			{
+				chain = NULL;
 
-			map( 0x0000, 0x07FF ).Set( &ram, &Cpu::Ram::Peek_Ram_0, &Cpu::Ram::Poke_Ram_0 );
-			map( 0x0800, 0x0FFF ).Set( &ram, &Cpu::Ram::Peek_Ram_1, &Cpu::Ram::Poke_Ram_1 );
-			map( 0x1000, 0x17FF ).Set( &ram, &Cpu::Ram::Peek_Ram_2, &Cpu::Ram::Poke_Ram_2 );
-			map( 0x1800, 0x1FFF ).Set( &ram, &Cpu::Ram::Peek_Ram_3, &Cpu::Ram::Poke_Ram_3 );
-			map( 0x2000, 0xFFFF ).Set( this, &Cpu::Peek_Nop,        &Cpu::Poke_Nop        );
-			map( 0xFFFC         ).Set( this, &Cpu::Peek_Jam_1,      &Cpu::Poke_Nop        );
-			map( 0xFFFD         ).Set( this, &Cpu::Peek_Jam_2,      &Cpu::Poke_Nop        );
+				do
+				{
+					Chain* tmp = next->next;
+					delete next;
+					next = tmp;
+				}
+				while (next);
+			}
 		}
 
 		const Io::Port* Cpu::Linker::Add(const Address address,const uint level,const Io::Port& port,IoMap& map)
@@ -358,307 +598,22 @@ namespace Nes
 			}
 		}
 
-		void Cpu::Cycles::Update(const Mode mode)
+		void Cpu::Cycles::SetRegion(Region::Type region)
 		{
-			NST_COMPILE_ASSERT( MODE_NTSC == 0 && MODE_PAL == 1 );
+			count = ClockConvert( count, region );
 
-			count = count * (mode == MODE_NTSC ? 3 : 4) / (mode == MODE_NTSC ? 4 : 3);
-			std::memcpy( clock, clocks[mode], sizeof(clocks[0]) );
-		}
-
-		void Cpu::SetMode(const Mode m)
-		{
-			if (mode != m)
-			{
-				mode = m;
-				ticks = ticks * (m == MODE_NTSC ? 3 : 4) / (m == MODE_NTSC ? 4 : 3);
-				cycles.Update( m );
-				apu.SetMode( m );
-			}
-		}
-
-		void Cpu::AddHook(const Hook& hook)
-		{
-			hooks.Add( hook );
-		}
-
-		void Cpu::RemoveHook(const Hook& hook)
-		{
-			hooks.Remove( hook );
-		}
-
-		void Cpu::Cycles::Reset()
-		{
-			count = clock[RESET_CYCLES-1];
-			round = 0;
-		}
-
-		void Cpu::Interrupt::Reset()
-		{
-			nmiClock = CYCLE_MAX;
-			irqClock = CYCLE_MAX;
-			source = IRQ_FRAME|IRQ_EXT;
-			low = 0;
-		}
-
-		void Cpu::Interrupt::Jam()
-		{
-			nmiClock = CYCLE_MAX;
-			irqClock = CYCLE_MAX;
-			low = 0;
-		}
-
-		void Cpu::Ram::Reset()
-		{
-			std::memset( mem + 0x000, 0xFF, 0x3F0 );
-			std::memset( mem + 0x3F0, 0x00, 0x010 );
-			std::memset( mem + 0x400, 0xFF, 0x1F0 );
-			std::memset( mem + 0x5F0, 0x00, 0x010 );
-			std::memset( mem + 0x600, 0xFF, 0x200 );
-
-			mem[0x08] = 0xF7;
-			mem[0x09] = 0xEF;
-			mem[0x0A] = 0xDF;
-			mem[0x0F] = 0xBF;
+			for (uint i=0; i < 8; ++i)
+				clock[i] = (i+1) * (region == Region::NTSC ? Clocks::RP2A03_CC : Clocks::RP2A07_CC);
 		}
 
 		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
-		inline uint Cpu::IoMap::Peek8(const uint address) const
+		inline void Cpu::Cycles::NextRound(const Cycle next)
 		{
-			NST_ASSERT( address < FULL_SIZE );
-			return ports[address].Peek( address );
-		}
-
-		inline uint Cpu::IoMap::Peek16(const uint address) const
-		{
-			NST_ASSERT( address < FULL_SIZE-1 );
-			return ports[address].Peek( address ) | ports[address + 1].Peek( address + 1 ) << 8;
-		}
-
-		inline void Cpu::IoMap::Poke8(const uint address,const uint data) const
-		{
-			NST_ASSERT( address < FULL_SIZE );
-			ports[address].Poke( address, data );
-		}
-
-		#ifdef NST_MSVC_OPTIMIZE
-		#pragma optimize("s", on)
-		#endif
-
-		void Cpu::Reset(const bool hard)
-		{
-			if (hard)
-			{
-				ram.Reset();
-
-				a = 0x00;
-				x = 0x00;
-				y = 0x00;
-				sp = 0xFD;
-
-				flags.nz = 0U ^ 1U;
-				flags.c = 0;
-				flags.v = 0;
-				flags.d = 0;
-			}
-			else
-			{
-				sp = (sp - 3) & 0xFF;
-			}
-
-			cycles.Reset();
-			interrupt.Reset();
-
-			flags.i  = Flags::I;
-			pc       = RESET_VECTOR;
-			jammed   = false;
-			ticks    = 0;
-			logged   = 0;
-
-			apu.Reset( hard );
-
-			pc = map.Peek16( pc );
-
-			Log::Flush( "Cpu: reset" NST_LINEBREAK );
-		}
-
-		void Cpu::SaveState(State::Saver& state,const dword id) const
-		{
-			state.Begin( id );
-
-			{
-				const byte data[7] =
-				{
-					pc & 0xFF,
-					pc >> 8,
-					sp,
-					a,
-					x,
-					y,
-					flags.Pack()
-				};
-
-				state.Begin( AsciiId<'R','E','G'>::V ).Write( data ).End();
-			}
-
-			state.Begin( AsciiId<'R','A','M'>::V ).Compress( ram.mem ).End();
-
-			{
-				const byte data[5] =
-				{
-					((interrupt.nmiClock != CYCLE_MAX) ? uint(SAVE_INT_NMI)   : 0U) |
-					((interrupt.low & IRQ_FRAME)       ? uint(SAVE_INT_FRAME) : 0U) |
-					((interrupt.low & IRQ_DMC)         ? uint(SAVE_INT_DMC)   : 0U) |
-					((interrupt.low & IRQ_EXT)         ? uint(SAVE_INT_EXT)   : 0U) |
-					(jammed                            ? uint(SAVE_JAMMED)    : 0U) |
-					(mode == MODE_PAL                  ? uint(SAVE_PAL)       : 0U),
-					cycles.count & 0xFF,
-					cycles.count >>  8 & 0xFF,
-					cycles.count >> 16 & 0xFF,
-					cycles.count >> 24 & 0xFF
-				};
-
-				state.Begin( AsciiId<'F','R','M'>::V ).Write( data ).End();
-			}
-
-			state.End();
-		}
-
-		void Cpu::LoadState(State::Loader& state)
-		{
-			while (const dword chunk = state.Begin())
-			{
-				switch (chunk)
-				{
-					case AsciiId<'R','E','G'>::V:
-					{
-						State::Loader::Data<7> data( state );
-
-						pc = data[0] | data[1] << 8;
-						sp = data[2];
-						a  = data[3];
-						x  = data[4];
-						y  = data[5];
-
-						flags.Unpack( data[6] );
-						break;
-					}
-
-					case AsciiId<'R','A','M'>::V:
-
-						state.Uncompress( ram.mem );
-						break;
-
-					case AsciiId<'F','R','M'>::V:
-					{
-						State::Loader::Data<5> data( state );
-
-						if (data[0] & SAVE_INT_NMI)
-							interrupt.nmiClock = cycles.clock[0];
-						else
-							interrupt.nmiClock = CYCLE_MAX;
-
-						interrupt.low = 0;
-						interrupt.irqClock = CYCLE_MAX;
-
-						if (data[0] & (SAVE_INT_FRAME|SAVE_INT_DMC|SAVE_INT_EXT))
-						{
-							interrupt.low =
-							(
-								( ( data[0] & SAVE_INT_FRAME ) ? IRQ_FRAME : 0 ) |
-								( ( data[0] & SAVE_INT_DMC   ) ? IRQ_DMC   : 0 ) |
-								( ( data[0] & SAVE_INT_EXT   ) ? IRQ_EXT   : 0 )
-							);
-
-							if (!flags.i)
-								interrupt.irqClock = 0;
-						}
-
-						cycles.count = data[1] | data[2] << 8 | dword(data[3]) << 16 | dword(data[4]) << 24;
-
-						if (bool(mode == MODE_PAL) != bool(data[0] & SAVE_PAL))
-							cycles.Update( mode );
-
-						if (cycles.count >= frameClock)
-							cycles.count = 0;
-
-						jammed = data[0] & SAVE_JAMMED;
-
-						if (jammed)
-							interrupt.Jam();
-
-						break;
-					}
-				}
-
-				state.End();
-			}
-		}
-
-		void Cpu::TryLogMsg(cstring const msg,const uint length,const dword which)
-		{
-			NST_DEBUG_MSG( msg );
-
-			if (!(logged & which))
-			{
-				logged |= which;
-				Log::Flush( msg, length );
-			}
-		}
-
-		template<uint N>
-		inline void Cpu::LogMsg(const char (&c)[N],const dword e)
-		{
-			TryLogMsg( c, N-1, e );
-		}
-
-		#ifdef NST_MSVC_OPTIMIZE
-		#pragma optimize("", on)
-		#endif
-
-		NES_PEEK(Cpu::Ram,Ram_0) { return mem[address - 0x0000]; }
-		NES_PEEK(Cpu::Ram,Ram_1) { return mem[address - 0x0800]; }
-		NES_PEEK(Cpu::Ram,Ram_2) { return mem[address - 0x1000]; }
-		NES_PEEK(Cpu::Ram,Ram_3) { return mem[address - 0x1800]; }
-
-		NES_POKE(Cpu::Ram,Ram_0) { mem[address - 0x0000] = data; }
-		NES_POKE(Cpu::Ram,Ram_1) { mem[address - 0x0800] = data; }
-		NES_POKE(Cpu::Ram,Ram_2) { mem[address - 0x1000] = data; }
-		NES_POKE(Cpu::Ram,Ram_3) { mem[address - 0x1800] = data; }
-
-		NES_PEEK(Cpu,Nop)
-		{
-			return address >> 8;
-		}
-
-		NES_POKE(Cpu,Nop)
-		{
-		}
-
-		NES_PEEK(Cpu,Overflow)
-		{
-			pc &= 0xFFFF;
-			return ram.mem[address & 0x7FF];
-		}
-
-		NES_POKE(Cpu,Overflow)
-		{
-			pc &= 0xFFFF;
-			ram.mem[address & 0x7FF] = data;
-		}
-
-		NES_PEEK(Cpu,Jam_1)
-		{
-			pc = (pc - 1) & 0xFFFF;
-			return 0xFC;
-		}
-
-		NES_PEEK(Cpu,Jam_2)
-		{
-			return 0xFF;
+			if (round > next)
+				round = next;
 		}
 
 		uint Cpu::Flags::Pack() const
@@ -686,11 +641,29 @@ namespace Nes
 			d =  f & D;
 		}
 
-		inline void Cpu::Cycles::NextRound(const Cycle next)
+		#ifdef NST_MSVC_OPTIMIZE
+		#pragma optimize("s", on)
+		#endif
+
+		void Cpu::Interrupt::Reset()
 		{
-			if (round > next)
-				round = next;
+			nmiClock = CYCLE_MAX;
+			irqClock = CYCLE_MAX;
+			low = 0;
 		}
+
+		void Cpu::Interrupt::SetRegion(Region::Type region)
+		{
+			if (nmiClock != CYCLE_MAX)
+				nmiClock = ClockConvert( nmiClock, region );
+
+			if (irqClock != CYCLE_MAX)
+				irqClock = ClockConvert( nmiClock, region );
+		}
+
+		#ifdef NST_MSVC_OPTIMIZE
+		#pragma optimize("", on)
+		#endif
 
 		NST_FORCE_INLINE uint Cpu::Interrupt::Clock(const Cycle cycle)
 		{
@@ -713,16 +686,110 @@ namespace Nes
 			}
 		}
 
-		NST_FORCE_INLINE void Cpu::Interrupt::EndFrame(const Cycle frameClock)
+		NST_SINGLE_CALL void Cpu::Interrupt::EndFrame(const Cycle frameCycles)
 		{
 			if (nmiClock != CYCLE_MAX)
 			{
-				NST_VERIFY( nmiClock >= frameClock );
-				nmiClock -= frameClock;
+				NST_VERIFY( nmiClock >= frameCycles );
+				nmiClock -= frameCycles;
 			}
 
 			if (irqClock != CYCLE_MAX)
-				irqClock = irqClock > frameClock ? irqClock - frameClock : 0;
+				irqClock = irqClock > frameCycles ? irqClock - frameCycles : 0;
+		}
+
+		#ifdef NST_MSVC_OPTIMIZE
+		#pragma optimize("s", on)
+		#endif
+
+		template<typename T,typename U>
+		Cpu::IoMap::IoMap(Cpu* cpu,T peek,U poke)
+		: Io::Map<SIZE_64K>( cpu, peek, poke ) {}
+
+		#ifdef NST_MSVC_OPTIMIZE
+		#pragma optimize("", on)
+		#endif
+
+		inline uint Cpu::IoMap::Peek8(const uint address) const
+		{
+			NST_ASSERT( address < FULL_SIZE );
+			return ports[address].Peek( address );
+		}
+
+		inline uint Cpu::IoMap::Peek16(const uint address) const
+		{
+			NST_ASSERT( address < FULL_SIZE-1 );
+			return ports[address].Peek( address ) | ports[address + 1].Peek( address + 1 ) << 8;
+		}
+
+		inline void Cpu::IoMap::Poke8(const uint address,const uint data) const
+		{
+			NST_ASSERT( address < FULL_SIZE );
+			ports[address].Poke( address, data );
+		}
+
+		#ifdef NST_MSVC_OPTIMIZE
+		#pragma optimize("s", on)
+		#endif
+
+		void Cpu::Ram::Reset()
+		{
+			std::memset( mem + 0x000, 0xFF, 0x3F0 );
+			std::memset( mem + 0x3F0, 0x00, 0x010 );
+			std::memset( mem + 0x400, 0xFF, 0x1F0 );
+			std::memset( mem + 0x5F0, 0x00, 0x010 );
+			std::memset( mem + 0x600, 0xFF, 0x200 );
+
+			mem[0x08] = 0xF7;
+			mem[0x09] = 0xEF;
+			mem[0x0A] = 0xDF;
+			mem[0x0F] = 0xBF;
+		}
+
+		#ifdef NST_MSVC_OPTIMIZE
+		#pragma optimize("", on)
+		#endif
+
+		NES_PEEK_A(Cpu::Ram,Ram_0) { return mem[address - 0x0000]; }
+		NES_PEEK_A(Cpu::Ram,Ram_1) { return mem[address - 0x0800]; }
+		NES_PEEK_A(Cpu::Ram,Ram_2) { return mem[address - 0x1000]; }
+		NES_PEEK_A(Cpu::Ram,Ram_3) { return mem[address - 0x1800]; }
+
+		NES_POKE_AD(Cpu::Ram,Ram_0) { mem[address - 0x0000] = data; }
+		NES_POKE_AD(Cpu::Ram,Ram_1) { mem[address - 0x0800] = data; }
+		NES_POKE_AD(Cpu::Ram,Ram_2) { mem[address - 0x1000] = data; }
+		NES_POKE_AD(Cpu::Ram,Ram_3) { mem[address - 0x1800] = data; }
+
+		NES_PEEK_A(Cpu,Nop)
+		{
+			return address >> 8;
+		}
+
+		NES_POKE(Cpu,Nop)
+		{
+		}
+
+		NES_PEEK_A(Cpu,Overflow)
+		{
+			pc &= 0xFFFF;
+			return ram.mem[address & 0x7FF];
+		}
+
+		NES_POKE_AD(Cpu,Overflow)
+		{
+			pc &= 0xFFFF;
+			ram.mem[address & 0x7FF] = data;
+		}
+
+		NES_PEEK(Cpu,Jam_1)
+		{
+			pc = (pc - 1) & 0xFFFF;
+			return 0xFC;
+		}
+
+		NES_PEEK(Cpu,Jam_2)
+		{
+			return 0xFF;
 		}
 
 		inline uint Cpu::FetchZpg16(const uint address) const
@@ -1106,36 +1173,36 @@ namespace Nes
 		// store instructions
 		////////////////////////////////////////////////////////////////////////////////////////
 
-		NST_FORCE_INLINE uint Cpu::Sta() const { return a; }
-		NST_FORCE_INLINE uint Cpu::Stx() const { return x; }
-		NST_FORCE_INLINE uint Cpu::Sty() const { return y; }
+		inline uint Cpu::Sta() const { return a; }
+		inline uint Cpu::Stx() const { return x; }
+		inline uint Cpu::Sty() const { return y; }
 
 		////////////////////////////////////////////////////////////////////////////////////////
 		// transfer instructions
 		////////////////////////////////////////////////////////////////////////////////////////
 
-		NST_FORCE_INLINE void Cpu::Tax()
+		NST_SINGLE_CALL void Cpu::Tax()
 		{
 			cycles.count += cycles.clock[1];
 			x = a;
 			flags.nz = a;
 		}
 
-		NST_FORCE_INLINE void Cpu::Tay()
+		NST_SINGLE_CALL void Cpu::Tay()
 		{
 			cycles.count += cycles.clock[1];
 			y = a;
 			flags.nz = a;
 		}
 
-		NST_FORCE_INLINE void Cpu::Txa()
+		NST_SINGLE_CALL void Cpu::Txa()
 		{
 			cycles.count += cycles.clock[1];
 			a = x;
 			flags.nz = x;
 		}
 
-		NST_FORCE_INLINE void Cpu::Tya()
+		NST_SINGLE_CALL void Cpu::Tya()
 		{
 			cycles.count += cycles.clock[1];
 			a = y;
@@ -1146,13 +1213,13 @@ namespace Nes
 		// flow control instructions
 		////////////////////////////////////////////////////////////////////////////////////////
 
-		NST_FORCE_INLINE void Cpu::JmpAbs()
+		NST_SINGLE_CALL void Cpu::JmpAbs()
 		{
 			pc = map.Peek16( pc );
 			cycles.count += cycles.clock[JMP_ABS_CYCLES-1];
 		}
 
-		NST_FORCE_INLINE void Cpu::JmpInd()
+		NST_SINGLE_CALL void Cpu::JmpInd()
 		{
 			// 6502 trap, can't cross between pages
 
@@ -1162,7 +1229,7 @@ namespace Nes
 			cycles.count += cycles.clock[JMP_IND_CYCLES-1];
 		}
 
-		NST_FORCE_INLINE void Cpu::Jsr()
+		NST_SINGLE_CALL void Cpu::Jsr()
 		{
 			// 6502 trap, return address pushed on the stack is
 			// one byte prior to the next instruction
@@ -1172,13 +1239,13 @@ namespace Nes
 			cycles.count += cycles.clock[JSR_CYCLES-1];
 		}
 
-		NST_FORCE_INLINE void Cpu::Rts()
+		NST_SINGLE_CALL void Cpu::Rts()
 		{
 			pc = Pull16() + 1;
 			cycles.count += cycles.clock[RTS_CYCLES-1];
 		}
 
-		NST_FORCE_INLINE void Cpu::Rti()
+		NST_SINGLE_CALL void Cpu::Rti()
 		{
 			cycles.count += cycles.clock[RTI_CYCLES-1];
 
@@ -1199,14 +1266,14 @@ namespace Nes
 			}
 		}
 
-		NST_FORCE_INLINE void Cpu::Bne() { Branch< true  >( flags.nz & 0xFF  ); }
-		NST_FORCE_INLINE void Cpu::Beq() { Branch< false >( flags.nz & 0xFF  ); }
-		NST_FORCE_INLINE void Cpu::Bmi() { Branch< true  >( flags.nz & 0x180 ); }
-		NST_FORCE_INLINE void Cpu::Bpl() { Branch< false >( flags.nz & 0x180 ); }
-		NST_FORCE_INLINE void Cpu::Bcs() { Branch< true  >( flags.c          ); }
-		NST_FORCE_INLINE void Cpu::Bcc() { Branch< false >( flags.c          ); }
-		NST_FORCE_INLINE void Cpu::Bvs() { Branch< true  >( flags.v          ); }
-		NST_FORCE_INLINE void Cpu::Bvc() { Branch< false >( flags.v          ); }
+		NST_SINGLE_CALL void Cpu::Bne() { Branch< true  >( flags.nz & 0xFF  ); }
+		NST_SINGLE_CALL void Cpu::Beq() { Branch< false >( flags.nz & 0xFF  ); }
+		NST_SINGLE_CALL void Cpu::Bmi() { Branch< true  >( flags.nz & 0x180 ); }
+		NST_SINGLE_CALL void Cpu::Bpl() { Branch< false >( flags.nz & 0x180 ); }
+		NST_SINGLE_CALL void Cpu::Bcs() { Branch< true  >( flags.c          ); }
+		NST_SINGLE_CALL void Cpu::Bcc() { Branch< false >( flags.c          ); }
+		NST_SINGLE_CALL void Cpu::Bvs() { Branch< true  >( flags.v          ); }
+		NST_SINGLE_CALL void Cpu::Bvc() { Branch< false >( flags.v          ); }
 
 		////////////////////////////////////////////////////////////////////////////////////////
 		// math operations
@@ -1333,28 +1400,28 @@ namespace Nes
 			return flags.nz;
 		}
 
-		NST_FORCE_INLINE void Cpu::Dex()
+		NST_SINGLE_CALL void Cpu::Dex()
 		{
 			cycles.count += cycles.clock[1];
 			x = (x - 1) & 0xFF;
 			flags.nz = x;
 		}
 
-		NST_FORCE_INLINE void Cpu::Dey()
+		NST_SINGLE_CALL void Cpu::Dey()
 		{
 			cycles.count += cycles.clock[1];
 			y = (y - 1) & 0xFF;
 			flags.nz = y;
 		}
 
-		NST_FORCE_INLINE void Cpu::Inx()
+		NST_SINGLE_CALL void Cpu::Inx()
 		{
 			cycles.count += cycles.clock[1];
 			x = (x + 1) & 0xFF;
 			flags.nz = x;
 		}
 
-		NST_FORCE_INLINE void Cpu::Iny()
+		NST_SINGLE_CALL void Cpu::Iny()
 		{
 			cycles.count += cycles.clock[1];
 			y = (y + 1) & 0xFF;
@@ -1365,37 +1432,37 @@ namespace Nes
 		// flags instructions
 		////////////////////////////////////////////////////////////////////////////////////////
 
-		NST_FORCE_INLINE void Cpu::Clc()
+		NST_SINGLE_CALL void Cpu::Clc()
 		{
 			cycles.count += cycles.clock[1];
 			flags.c = 0;
 		}
 
-		NST_FORCE_INLINE void Cpu::Sec()
+		NST_SINGLE_CALL void Cpu::Sec()
 		{
 			cycles.count += cycles.clock[1];
 			flags.c = Flags::C;
 		}
 
-		NST_FORCE_INLINE void Cpu::Cld()
+		NST_SINGLE_CALL void Cpu::Cld()
 		{
 			cycles.count += cycles.clock[1];
 			flags.d = 0;
 		}
 
-		NST_FORCE_INLINE void Cpu::Sed()
+		NST_SINGLE_CALL void Cpu::Sed()
 		{
 			cycles.count += cycles.clock[1];
 			flags.d = Flags::D;
 		}
 
-		NST_FORCE_INLINE void Cpu::Clv()
+		NST_SINGLE_CALL void Cpu::Clv()
 		{
 			cycles.count += cycles.clock[1];
 			flags.v = 0;
 		}
 
-		NST_FORCE_INLINE void Cpu::Sei()
+		NST_SINGLE_CALL void Cpu::Sei()
 		{
 			cycles.count += cycles.clock[1];
 
@@ -1411,7 +1478,7 @@ namespace Nes
 			}
 		}
 
-		NST_FORCE_INLINE void Cpu::Cli()
+		NST_SINGLE_CALL void Cpu::Cli()
 		{
 			cycles.count += cycles.clock[1];
 
@@ -1435,13 +1502,13 @@ namespace Nes
 		// stack operations
 		////////////////////////////////////////////////////////////////////////////////////////
 
-		NST_FORCE_INLINE void Cpu::Pha()
+		NST_SINGLE_CALL void Cpu::Pha()
 		{
 			cycles.count += cycles.clock[PHA_CYCLES-1];
 			Push8( a );
 		}
 
-		NST_FORCE_INLINE void Cpu::Php()
+		NST_SINGLE_CALL void Cpu::Php()
 		{
 			// 6502 trap, B flag joins the club
 
@@ -1449,14 +1516,14 @@ namespace Nes
 			Push8( flags.Pack() | Flags::B );
 		}
 
-		NST_FORCE_INLINE void Cpu::Pla()
+		NST_SINGLE_CALL void Cpu::Pla()
 		{
 			cycles.count += cycles.clock[PLA_CYCLES-1];
 			a = Pull8();
 			flags.nz = a;
 		}
 
-		NST_FORCE_INLINE void Cpu::Plp()
+		NST_SINGLE_CALL void Cpu::Plp()
 		{
 			cycles.count += cycles.clock[PLP_CYCLES-1];
 
@@ -1480,14 +1547,14 @@ namespace Nes
 			}
 		}
 
-		NST_FORCE_INLINE void Cpu::Tsx()
+		NST_SINGLE_CALL void Cpu::Tsx()
 		{
 			cycles.count += cycles.clock[1];
 			x = sp;
 			flags.nz = sp;
 		}
 
-		NST_FORCE_INLINE void Cpu::Txs()
+		NST_SINGLE_CALL void Cpu::Txs()
 		{
 			cycles.count += cycles.clock[1];
 			sp = x;
@@ -1506,38 +1573,38 @@ namespace Nes
 			a &= data;
 			flags.nz = a;
 			flags.c = flags.nz >> 7;
-			LogMsg("Cpu: unofficial opcode executed - ANC" NST_LINEBREAK,1UL << 0);
+			NotifyOp("ANC",1UL << 0);
 		}
 
-		NST_FORCE_INLINE void Cpu::Ane(const uint data)
+		NST_SINGLE_CALL void Cpu::Ane(const uint data)
 		{
 			a = (a | 0xEE) & x & data;
 			flags.nz = a;
-			LogMsg("Cpu: unofficial opcode executed - ANE" NST_LINEBREAK,1UL << 1);
+			NotifyOp("ANE",1UL << 1);
 		}
 
-		NST_FORCE_INLINE void Cpu::Arr(const uint data)
+		NST_SINGLE_CALL void Cpu::Arr(const uint data)
 		{
 			a = ((data & a) >> 1) | (flags.c << 7);
 			flags.nz = a;
 			flags.c = a >> 6 & 0x1;
 			flags.v = (a >> 6 ^ a >> 5) & 0x1;
-			LogMsg("Cpu: unofficial opcode executed - ARR" NST_LINEBREAK,1UL << 2);
+			NotifyOp("ARR",1UL << 2);
 		}
 
-		NST_FORCE_INLINE void Cpu::Asr(const uint data)
+		NST_SINGLE_CALL void Cpu::Asr(const uint data)
 		{
 			flags.c = data & a & 0x1;
 			a = (data & a) >> 1;
 			flags.nz = a;
-			LogMsg("Cpu: unofficial opcode executed - ASR" NST_LINEBREAK,1UL << 3);
+			NotifyOp("ASR",1UL << 3);
 		}
 
 		NST_NO_INLINE uint Cpu::Dcp(uint data)
 		{
 			data = (data - 1) & 0xFF;
 			Cmp( data );
-			LogMsg("Cpu: unofficial opcode executed - DCP" NST_LINEBREAK,1UL << 4);
+			NotifyOp("DCP",1UL << 4);
 			return data;
 		}
 
@@ -1545,17 +1612,17 @@ namespace Nes
 		{
 			data = (data + 1) & 0xFF;
 			Sbc( data );
-			LogMsg("Cpu: unofficial opcode executed - ISB" NST_LINEBREAK,1UL << 5);
+			NotifyOp("ISB",1UL << 5);
 			return data;
 		}
 
-		NST_FORCE_INLINE void Cpu::Las(const uint data)
+		NST_SINGLE_CALL void Cpu::Las(const uint data)
 		{
 			sp &= data;
 			x = sp;
 			a = sp;
 			flags.nz = sp;
-			LogMsg("Cpu: unofficial opcode executed - LAS" NST_LINEBREAK,1UL << 6);
+			NotifyOp("LAS",1UL << 6);
 		}
 
 		NST_NO_INLINE void Cpu::Lax(const uint data)
@@ -1563,15 +1630,15 @@ namespace Nes
 			a = data;
 			x = data;
 			flags.nz = data;
-			LogMsg("Cpu: unofficial opcode executed - LAX" NST_LINEBREAK,1UL << 7);
+			NotifyOp("LAX",1UL << 7);
 		}
 
-		NST_FORCE_INLINE void Cpu::Lxa(const uint data)
+		NST_SINGLE_CALL void Cpu::Lxa(const uint data)
 		{
 			a &= data;
 			x = a;
 			flags.nz = a;
-			LogMsg("Cpu: unofficial opcode executed - LXA" NST_LINEBREAK,1UL << 8);
+			NotifyOp("LXA",1UL << 8);
 		}
 
 		NST_NO_INLINE uint Cpu::Rla(uint data)
@@ -1581,7 +1648,7 @@ namespace Nes
 			data = (data << 1 & 0xFF) | carry;
 			a &= data;
 			flags.nz = a;
-			LogMsg("Cpu: unofficial opcode executed - RLA" NST_LINEBREAK,1UL << 9);
+			NotifyOp("RLA",1UL << 9);
 			return data;
 		}
 
@@ -1591,52 +1658,52 @@ namespace Nes
 			flags.c = data & 0x01;
 			data = (data >> 1) | carry;
 			Adc( data );
-			LogMsg("Cpu: unofficial opcode executed - RRA" NST_LINEBREAK,1UL << 10);
+			NotifyOp("RRA",1UL << 10);
 			return data;
 		}
 
-		NST_NO_INLINE uint Cpu::Sax() const
+		NST_NO_INLINE uint Cpu::Sax()
 		{
 			const uint data = a & x;
-			LogMsg("Cpu: unofficial opcode executed - SAX" NST_LINEBREAK,1UL << 11);
+			NotifyOp("SAX",1UL << 11);
 			return data;
 		}
 
-		NST_FORCE_INLINE void Cpu::Sbx(uint data)
+		NST_SINGLE_CALL void Cpu::Sbx(uint data)
 		{
 			data = (a & x) - data;
 			flags.c = (data <= 0xFF);
 			x = data & 0xFF;
 			flags.nz = x;
-			LogMsg("Cpu: unofficial opcode executed - SBX" NST_LINEBREAK,1UL << 12);
+			NotifyOp("SBX",1UL << 12);
 		}
 
-		NST_NO_INLINE uint Cpu::Sha(uint address) const
+		NST_NO_INLINE uint Cpu::Sha(uint address)
 		{
 			address = a & x & ((address >> 8) + 1);
-			LogMsg("Cpu: unofficial opcode executed - SHA" NST_LINEBREAK,1UL << 13);
+			NotifyOp("SHA",1UL << 13);
 			return address;
 		}
 
-		NST_FORCE_INLINE uint Cpu::Shs(uint address)
+		NST_SINGLE_CALL uint Cpu::Shs(uint address)
 		{
 			sp = a & x;
 			address = sp & ((address >> 8) + 1);
-			LogMsg("Cpu: unofficial opcode executed - SHS" NST_LINEBREAK,1UL << 14);
+			NotifyOp("SHS",1UL << 14);
 			return address;
 		}
 
-		NST_FORCE_INLINE uint Cpu::Shx(uint address) const
+		NST_SINGLE_CALL uint Cpu::Shx(uint address)
 		{
 			address = x & ((address >> 8) + 1);
-			LogMsg("Cpu: unofficial opcode executed - SHX" NST_LINEBREAK,1UL << 15);
+			NotifyOp("SHX",1UL << 15);
 			return address;
 		}
 
-		NST_FORCE_INLINE uint Cpu::Shy(uint address) const
+		NST_SINGLE_CALL uint Cpu::Shy(uint address)
 		{
 			address = y & ((address >> 8) + 1);
-			LogMsg("Cpu: unofficial opcode executed - SHY" NST_LINEBREAK,1UL << 16);
+			NotifyOp("SHY",1UL << 16);
 			return address;
 		}
 
@@ -1646,7 +1713,7 @@ namespace Nes
 			data = data << 1 & 0xFF;
 			a |= data;
 			flags.nz = a;
-			LogMsg("Cpu: unofficial opcode executed - SLO" NST_LINEBREAK,1UL << 17);
+			NotifyOp("SLO",1UL << 17);
 			return data;
 		}
 
@@ -1656,25 +1723,25 @@ namespace Nes
 			data >>= 1;
 			a ^= data;
 			flags.nz = a;
-			LogMsg("Cpu: unofficial opcode executed - SRE" NST_LINEBREAK,1UL << 18);
+			NotifyOp("SRE",1UL << 18);
 			return data;
 		}
 
-		void Cpu::Dop() const
+		void Cpu::Dop()
 		{
-			LogMsg("Cpu: unofficial opcode executed - DOP" NST_LINEBREAK,1UL << 19);
+			NotifyOp("DOP",1UL << 19);
 		}
 
-		void Cpu::Top(uint=0) const
+		void Cpu::Top(uint=0)
 		{
-			LogMsg("Cpu: unofficial opcode executed - TOP" NST_LINEBREAK,1UL << 20);
+			NotifyOp("TOP",1UL << 20);
 		}
 
 		////////////////////////////////////////////////////////////////////////////////////////
 		// interrupts
 		////////////////////////////////////////////////////////////////////////////////////////
 
-		NST_FORCE_INLINE void Cpu::Brk()
+		NST_SINGLE_CALL void Cpu::Brk()
 		{
 			Push16( pc + 1 );
 			Push8( flags.Pack() | Flags::B );
@@ -1689,7 +1756,7 @@ namespace Nes
 			pc = map.Peek16( vector ? vector : IRQ_VECTOR );
 			cycles.count += cycles.clock[BRK_CYCLES-1];
 
-			LogMsg("Cpu: opcode executed - BRK" NST_LINEBREAK,1UL << 21);
+			NST_DEBUG_MSG("6502 BRK");
 		}
 
 		NST_NO_INLINE void Cpu::Jam()
@@ -1702,10 +1769,9 @@ namespace Nes
 			if (!jammed)
 			{
 				jammed = true;
-				interrupt.Jam();
-				NST_DEBUG_MSG("6502 jam");
+				interrupt.Reset();
+				NST_DEBUG_MSG("6502 JAM");
 				Api::User::eventCallback( Api::User::EVENT_CPU_JAM );
-				Log::Flush( "Cpu: jammed" NST_LINEBREAK );
 			}
 		}
 
@@ -1725,16 +1791,13 @@ namespace Nes
 			}
 		}
 
-		void Cpu::DoIRQ(const uint line,const Cycle cycle)
+		void Cpu::DoIRQ(const IrqLine line,const Cycle cycle)
 		{
-			NST_VERIFY( interrupt.source & line );
-
 			interrupt.low |= line;
 
 			if (!flags.i && interrupt.irqClock == CYCLE_MAX)
 			{
-				// give some time for the falling edge
-				interrupt.irqClock = cycle + cycles.clock[1];
+				interrupt.irqClock = cycle + cycles.IrqEdge();
 				cycles.NextRound( interrupt.irqClock );
 			}
 		}
@@ -1743,8 +1806,7 @@ namespace Nes
 		{
 			if (interrupt.nmiClock == CYCLE_MAX)
 			{
-				// give some time for the falling edge
-				interrupt.nmiClock = cycle + cycles.clock[0] + cycles.clock[0] / 2;
+				interrupt.nmiClock = cycle + cycles.NmiEdge();
 				cycles.NextRound( interrupt.nmiClock );
 			}
 		}
@@ -1753,24 +1815,41 @@ namespace Nes
 		// main
 		////////////////////////////////////////////////////////////////////////////////////////
 
-		void Cpu::BeginFrame(Sound::Output* const sound)
+		void Cpu::Boot()
 		{
-			NST_VERIFY( cycles.count < frameClock );
+			NST_VERIFY( pc == RESET_VECTOR );
+
+			cycles.count = cycles.clock[RESET_CYCLES-1];
+			cycles.round = 0;
+
+			pc = map.Peek16( RESET_VECTOR );
+		}
+
+		void Cpu::ExecuteFrame(Sound::Output* sound)
+		{
+			NST_VERIFY( cycles.count < cycles.frame );
 
 			apu.BeginFrame( sound );
 
 			Clock();
+
+			switch (hooks.Size())
+			{
+				case 0:  Run0(); break;
+				case 1:  Run1(); break;
+				default: Run2(); break;
+			}
 		}
 
 		void Cpu::EndFrame()
 		{
 			apu.EndFrame();
 
-			NST_VERIFY( cycles.count >= frameClock );
+			NST_VERIFY( cycles.count >= cycles.frame );
 
-			ticks += frameClock;
-			cycles.count -= frameClock;
-			interrupt.EndFrame( frameClock );
+			ticks += cycles.frame;
+			cycles.count -= cycles.frame;
+			interrupt.EndFrame( cycles.frame );
 		}
 
 		void Cpu::Clock()
@@ -1786,8 +1865,8 @@ namespace Nes
 			if (clock > interrupt.nmiClock)
 				clock = interrupt.nmiClock;
 
-			if (clock > frameClock)
-				clock = frameClock;
+			if (clock > cycles.frame)
+				clock = cycles.frame;
 
 			cycles.round = clock;
 		}
@@ -1804,7 +1883,7 @@ namespace Nes
 
 				Clock();
 			}
-			while (cycles.count < frameClock);
+			while (cycles.count < cycles.frame);
 		}
 
 		void Cpu::Run1()
@@ -1822,7 +1901,7 @@ namespace Nes
 
 				Clock();
 			}
-			while (cycles.count < frameClock);
+			while (cycles.count < cycles.frame);
 		}
 
 		void Cpu::Run2()
@@ -1850,7 +1929,7 @@ namespace Nes
 
 				Clock();
 			}
-			while (cycles.count < frameClock);
+			while (cycles.count < cycles.frame);
 		}
 
 		uint Cpu::Peek(const uint address) const

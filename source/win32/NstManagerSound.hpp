@@ -29,7 +29,6 @@
 
 #include "NstDirectSound.hpp"
 #include "NstObjectHeap.hpp"
-#include "../core/api/NstApiSound.hpp"
 
 namespace Nestopia
 {
@@ -57,7 +56,7 @@ namespace Nestopia
 		private:
 
 			void OnMenuOptionsSound(uint);
-			void OnEmuEvent(Emulator::Event);
+			void OnEmuEvent(Emulator::Event,Emulator::Data);
 			void Disable(cstring=NULL);
 			void UpdateSettings();
 			bool CanRunInBackground() const;

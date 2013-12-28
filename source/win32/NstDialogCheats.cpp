@@ -709,7 +709,7 @@ namespace Nestopia
 
 			UpdateInput();
 
-			if (emulator.Is(Nes::Machine::GAME,Nes::Machine::ON))
+			if (emulator.IsGameOn())
 			{
 				Control::ListView listView( codeDialog.ListView(IDC_CHEATS_ADDCODE_SEARCH_LIST) );
 
@@ -790,7 +790,7 @@ namespace Nestopia
 			{
 				changed = GetRawCode( mem );
 
-				if (emulator.Is(Nes::Machine::GAME,Nes::Machine::ON))
+				if (emulator.IsGameOn())
 				{
 					searcher.a = GetSearchValue( IDC_CHEATS_ADDCODE_SEARCH_A );
 					searcher.b = GetSearchValue( IDC_CHEATS_ADDCODE_SEARCH_B );
@@ -816,7 +816,7 @@ namespace Nestopia
 				codeDialog.Edit( IDC_CHEATS_ADDCODE_COMPARE ).Clear();
 			}
 
-			if (emulator.Is(Nes::Machine::GAME,Nes::Machine::ON))
+			if (emulator.IsGameOn())
 			{
 				codeDialog.Edit( IDC_CHEATS_ADDCODE_SEARCH_A ).Limit( digits );
 				codeDialog.Edit( IDC_CHEATS_ADDCODE_SEARCH_B ).Limit( digits );

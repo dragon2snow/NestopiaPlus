@@ -85,7 +85,7 @@ namespace Nes
 			#pragma optimize("", on)
 			#endif
 
-			NES_POKE(Super24In1,5FF0)
+			NES_POKE_D(Super24In1,5FF0)
 			{
 				if (exRegs[0] != data)
 				{
@@ -95,7 +95,7 @@ namespace Nes
 				}
 			}
 
-			NES_POKE(Super24In1,5FF1)
+			NES_POKE_D(Super24In1,5FF1)
 			{
 				if (exRegs[1] != (data << 1))
 				{
@@ -104,7 +104,7 @@ namespace Nes
 				}
 			}
 
-			NES_POKE(Super24In1,5FF2)
+			NES_POKE_D(Super24In1,5FF2)
 			{
 				if (exRegs[2] != (data << 2))
 				{

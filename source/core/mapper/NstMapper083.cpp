@@ -24,6 +24,7 @@
 
 #include "../NstMapper.hpp"
 #include "../NstClock.hpp"
+#include "../NstDipSwitches.hpp"
 #include "NstMapper083.hpp"
 
 namespace Nes
@@ -33,6 +34,58 @@ namespace Nes
 		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("s", on)
 		#endif
+
+		class Mapper83::CartSwitches : public DipSwitches
+		{
+			uint region;
+
+		public:
+
+			CartSwitches()
+			: region(0) {}
+
+			void SetRegion(uint value)
+			{
+				region = value ? 1 : 0;
+			}
+
+			uint GetRegion() const
+			{
+				return region ? 0xFF : 0x00;
+			}
+
+		private:
+
+			uint GetValue(uint) const
+			{
+				return region;
+			}
+
+			void SetValue(uint,uint value)
+			{
+				region = value;
+			}
+
+			uint NumDips() const
+			{
+				return 1;
+			}
+
+			uint NumValues(uint) const
+			{
+				return 2;
+			}
+
+			cstring GetDipName(uint) const
+			{
+				return "Region";
+			}
+
+			cstring GetValueName(uint,uint i) const
+			{
+				return i ? "Asia" : "US";
+			}
+		};
 
 		void Mapper83::Irq::Reset(const bool hard)
 		{
@@ -46,10 +99,23 @@ namespace Nes
 
 		Mapper83::Mapper83(Context& c)
 		:
-		Mapper   (c,WRAM_DEFAULT),
-		irq      (c.cpu),
-		language (c.attribute == ATR_LANGUAGE_SELECT ? 0xFF : 0x00)
+		Mapper       (c,WRAM_DEFAULT|NMT_VERTICAL),
+		irq          (c.cpu),
+		cartSwitches (c.attribute == ATR_REGION_SELECT ? new CartSwitches : NULL)
 		{}
+
+		Mapper83::~Mapper83()
+		{
+			delete cartSwitches;
+		}
+
+		Mapper83::Device Mapper83::QueryDevice(DeviceType type)
+		{
+			if (type == DEVICE_DIP_SWITCHES)
+				return cartSwitches;
+			else
+				return Mapper::QueryDevice( type );
+		}
 
 		void Mapper83::SubReset(const bool hard)
 		{
@@ -63,10 +129,7 @@ namespace Nes
 					regs.prg[i] = 0;
 
 				regs.pr8 = 0;
-				dipSwitch = 0xFF;
 			}
-
-			dipSwitch ^= language;
 
 			UpdatePrg();
 
@@ -138,7 +201,11 @@ namespace Nes
 
 					case AsciiId<'L','A','N'>::V:
 
-						dipSwitch = (state.Read8() & 0x1) ? 0xFF : 0x00;
+						NST_VERIFY( cartSwitches );
+
+						if (cartSwitches)
+							cartSwitches->SetRegion( state.Read8() & 0x1 );
+
 						break;
 				}
 
@@ -176,7 +243,8 @@ namespace Nes
 				state.Begin( AsciiId<'I','R','Q'>::V ).Write( data ).End();
 			}
 
-			state.Begin( AsciiId<'L','A','N'>::V ).Write8( dipSwitch & 0x1 ).End();
+			if (cartSwitches)
+				state.Begin( AsciiId<'L','A','N'>::V ).Write8( cartSwitches->GetRegion() ? 0x1 : 0x0 ).End();
 		}
 
 		#ifdef NST_MSVC_OPTIMIZE
@@ -199,7 +267,7 @@ namespace Nes
 
 		NES_PEEK(Mapper83,5000)
 		{
-			return dipSwitch;
+			return cartSwitches ? cartSwitches->GetRegion() : 0xFF;
 		}
 
 		NES_PEEK(Mapper83,5100)
@@ -207,12 +275,12 @@ namespace Nes
 			return regs.pr8;
 		}
 
-		NES_POKE(Mapper83,5100)
+		NES_POKE_D(Mapper83,5100)
 		{
 			regs.pr8 = data;
 		}
 
-		NES_PEEK(Mapper83,6000)
+		NES_PEEK_A(Mapper83,6000)
 		{
 			NST_VERIFY( regs.ctrl & 0x20U );
 
@@ -227,7 +295,7 @@ namespace Nes
 			}
 		}
 
-		NES_POKE(Mapper83,8000)
+		NES_POKE_D(Mapper83,8000)
 		{
 			if (regs.prg[4] != data)
 			{
@@ -236,7 +304,7 @@ namespace Nes
 			}
 		}
 
-		NES_POKE(Mapper83,8100)
+		NES_POKE_D(Mapper83,8100)
 		{
 			const uint diff = data ^ regs.ctrl;
 			regs.ctrl = data;
@@ -254,14 +322,14 @@ namespace Nes
 				SetMirroringVH01( data );
 		}
 
-		NES_POKE(Mapper83,8200)
+		NES_POKE_D(Mapper83,8200)
 		{
 			irq.Update();
 			irq.unit.count = (irq.unit.count & 0xFF00) | data;
 			irq.ClearIRQ();
 		}
 
-		NES_POKE(Mapper83,8201)
+		NES_POKE_D(Mapper83,8201)
 		{
 			irq.Update();
 			irq.unit.count = (irq.unit.count & 0x00FF) | (data << 8);
@@ -269,19 +337,19 @@ namespace Nes
 			irq.ClearIRQ();
 		}
 
-		NES_POKE(Mapper83,8310_0)
+		NES_POKE_AD(Mapper83,8310_0)
 		{
 			ppu.Update();
 			chr.SwapBank<SIZE_1K>( (address & 0x7) << 10, (regs.prg[4] << 4 & 0x300U) | data );
 		}
 
-		NES_POKE(Mapper83,8310_1)
+		NES_POKE_AD(Mapper83,8310_1)
 		{
 			ppu.Update();
 			chr.SwapBank<SIZE_2K>( (address & 0x3) << 11, data );
 		}
 
-		NES_POKE(Mapper83,8300)
+		NES_POKE_AD(Mapper83,8300)
 		{
 			data &= 0x1F;
 
@@ -292,7 +360,7 @@ namespace Nes
 			}
 		}
 
-		ibool Mapper83::Irq::Signal()
+		bool Mapper83::Irq::Clock()
 		{
 			if (enabled && count)
 			{
@@ -308,9 +376,10 @@ namespace Nes
 			return false;
 		}
 
-		void Mapper83::VSync()
+		void Mapper83::Sync(Event event,Input::Controllers*)
 		{
-			irq.VSync();
+			if (event == EVENT_END_FRAME)
+				irq.VSync();
 		}
 	}
 }

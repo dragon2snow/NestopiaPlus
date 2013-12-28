@@ -60,7 +60,7 @@ namespace Nes
 				void* samples[2];
 				uint length[2];
 
-				explicit Output(void* s0=0,uint l0=0,void* s1=0,uint l1=0)
+				Output(void* s0=0,uint l0=0,void* s1=0,uint l1=0)
 				{
 					samples[0] = s0;
 					samples[1] = s1;
@@ -79,7 +79,7 @@ namespace Nes
 			{
 				bool operator () (Output& output) const
 				{
-					return (!function || function( userdata, output )) && output.samples && output.length;
+					return (!function || function( userdata, output ));
 				}
 			};
 

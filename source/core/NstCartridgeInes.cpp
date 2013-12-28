@@ -44,7 +44,7 @@ namespace Nes
 			Ram& p,
 			Ram& c,
 			Ram& w,
-			Api::Cartridge::Info& i,
+			Ref::Info& i,
 			const ImageDatabase* d,
 			ImageDatabase::Handle& h
 		)
@@ -59,19 +59,19 @@ namespace Nes
 		{
 			NST_COMPILE_ASSERT
 			(
-				PPU_RP2C03B     ==  1 &&
-				PPU_RP2C03G     ==  2 &&
-				PPU_RP2C04_0001 ==  3 &&
-				PPU_RP2C04_0002 ==  4 &&
-				PPU_RP2C04_0003 ==  5 &&
-				PPU_RP2C04_0004 ==  6 &&
-				PPU_RC2C03B     ==  7 &&
-				PPU_RC2C03C     ==  8 &&
-				PPU_RC2C05_01   ==  9 &&
-				PPU_RC2C05_02   == 10 &&
-				PPU_RC2C05_03   == 11 &&
-				PPU_RC2C05_04   == 12 &&
-				PPU_RC2C05_05   == 13
+				Ref::PPU_RP2C03B     ==  1 &&
+				Ref::PPU_RP2C03G     ==  2 &&
+				Ref::PPU_RP2C04_0001 ==  3 &&
+				Ref::PPU_RP2C04_0002 ==  4 &&
+				Ref::PPU_RP2C04_0003 ==  5 &&
+				Ref::PPU_RP2C04_0004 ==  6 &&
+				Ref::PPU_RC2C03B     ==  7 &&
+				Ref::PPU_RC2C03C     ==  8 &&
+				Ref::PPU_RC2C05_01   ==  9 &&
+				Ref::PPU_RC2C05_02   == 10 &&
+				Ref::PPU_RC2C05_03   == 11 &&
+				Ref::PPU_RC2C05_04   == 12 &&
+				Ref::PPU_RC2C05_05   == 13
 			);
 
 			result = Collect();
@@ -114,7 +114,7 @@ namespace Nes
 			return ReadHeader( info.setup, header, 16 );
 		}
 
-		Result Cartridge::Ines::ReadHeader(Api::Cartridge::Setup& setup,const byte* const file,const ulong length)
+		Result Cartridge::Ines::ReadHeader(Ref::Setup& setup,const byte* const file,const ulong length)
 		{
 			if (file == NULL)
 				return RESULT_ERR_INVALID_PARAM;
@@ -179,28 +179,28 @@ namespace Nes
 
 			if (header[6] & 0x8U)
 			{
-				setup.mirroring = Api::Cartridge::MIRROR_FOURSCREEN;
+				setup.mirroring = Ref::MIRROR_FOURSCREEN;
 			}
 			else if (header[6] & 0x1U)
 			{
-				setup.mirroring = Api::Cartridge::MIRROR_VERTICAL;
+				setup.mirroring = Ref::MIRROR_VERTICAL;
 			}
 			else
 			{
-				setup.mirroring = Api::Cartridge::MIRROR_HORIZONTAL;
+				setup.mirroring = Ref::MIRROR_HORIZONTAL;
 			}
 
 			setup.security = 0;
 
 			if (header[7] & 0x1U)
 			{
-				setup.system = SYSTEM_VS;
-				setup.ppu = PPU_RP2C03B;
+				setup.system = Ref::SYSTEM_VS;
+				setup.ppu = Ref::PPU_RP2C03B;
 
 				if (setup.version)
 				{
 					if ((header[13] & 0xFU) < 13)
-						setup.ppu = static_cast<PpuType>((header[13] & 0xFU) + 1);
+						setup.ppu = static_cast<Ref::Ppu>((header[13] & 0xFU) + 1);
 
 					if ((header[13] >> 4) < 4)
 						setup.security = header[13] >> 4;
@@ -208,26 +208,32 @@ namespace Nes
 			}
 			else if (setup.version && (header[7] & 0x2U))
 			{
-				setup.system = SYSTEM_PC10;
-				setup.ppu = PPU_RP2C03B;
+				setup.system = Ref::SYSTEM_PC10;
+				setup.ppu = Ref::PPU_RP2C03B;
 			}
 			else
 			{
-				setup.system = SYSTEM_HOME;
-				setup.ppu = PPU_RP2C02;
+				setup.system = Ref::SYSTEM_HOME;
+				setup.ppu = Ref::PPU_RP2C02;
 			}
 
 			if (setup.version && (header[12] & 0x2U))
 			{
-				setup.region = REGION_BOTH;
+				setup.region = Ref::REGION_BOTH;
+				setup.cpu = Ref::CPU_RP2A03;
 			}
 			else if (header[setup.version ? 12 : 9] & 0x1U)
 			{
-				setup.region = REGION_PAL;
+				setup.region = Ref::REGION_PAL;
+				setup.cpu = Ref::CPU_RP2A07;
+
+				if (setup.ppu == Ref::PPU_RP2C02)
+					setup.ppu = Ref::PPU_RP2C07;
 			}
 			else
 			{
-				setup.region = REGION_NTSC;
+				setup.region = Ref::REGION_NTSC;
+				setup.cpu = Ref::CPU_RP2A03;
 			}
 
 			if (setup.version)
@@ -248,14 +254,14 @@ namespace Nes
 			return result;
 		}
 
-		Result Cartridge::Ines::WriteHeader(const Api::Cartridge::Setup& setup,byte* const file,const ulong length)
+		Result Cartridge::Ines::WriteHeader(const Ref::Setup& setup,byte* const file,const ulong length)
 		{
 			if
 			(
 				(file == NULL || length < 16) ||
 				(setup.prgRom > (setup.version ? 0xFFFUL * SIZE_16K : 0xFFUL * SIZE_16K)) ||
 				(setup.chrRom > (setup.version ? 0xFFFUL * SIZE_8K : 0xFFUL * SIZE_8K)) ||
-				(setup.mapper > (setup.version ? 0x1FFUL : 0xFF)) ||
+				(setup.mapper > (setup.version ? 0x1FF : 0xFF)) ||
 				(setup.version && setup.subMapper > 0xF)
 			)
 				return RESULT_ERR_INVALID_PARAM;
@@ -292,11 +298,11 @@ namespace Nes
 				header[9] |= (setup.chrRom / SIZE_8K) >> 4 & 0xF0;
 			}
 
-			if (setup.mirroring == Api::Cartridge::MIRROR_FOURSCREEN)
+			if (setup.mirroring == Ref::MIRROR_FOURSCREEN)
 			{
 				header[6] |= 0x8U;
 			}
-			else if (setup.mirroring == Api::Cartridge::MIRROR_VERTICAL)
+			else if (setup.mirroring == Ref::MIRROR_VERTICAL)
 			{
 				header[6] |= 0x1U;
 			}
@@ -307,11 +313,11 @@ namespace Nes
 			if (setup.trainer)
 				header[6] |= 0x4U;
 
-			if (setup.system == SYSTEM_VS)
+			if (setup.system == Ref::SYSTEM_VS)
 			{
 				header[7] |= 0x1U;
 			}
-			else if (setup.version && setup.system == SYSTEM_PC10)
+			else if (setup.version && setup.system == Ref::SYSTEM_PC10)
 			{
 				header[7] |= 0x2U;
 			}
@@ -358,16 +364,16 @@ namespace Nes
 
 				header[11] |= i << 4;
 
-				if (setup.region == REGION_BOTH)
+				if (setup.region == Ref::REGION_BOTH)
 				{
 					header[12] |= 0x2U;
 				}
-				else if (setup.region == REGION_PAL)
+				else if (setup.region == Ref::REGION_PAL)
 				{
 					header[12] |= 0x1U;
 				}
 
-				if (setup.system == SYSTEM_VS)
+				if (setup.system == Ref::SYSTEM_VS)
 				{
 					if (setup.ppu > 0xF || setup.security > 0xF)
 						return RESULT_ERR_INVALID_PARAM;
@@ -381,7 +387,7 @@ namespace Nes
 			else
 			{
 				header[8] = setup.wrkRam / SIZE_8K;
-				header[9] = (setup.region == REGION_PAL ? 0x1 : 0x0);
+				header[9] = (setup.region == Ref::REGION_PAL ? 0x1 : 0x0);
 			}
 
 			std::memcpy( file, header, 16 );
@@ -446,19 +452,19 @@ namespace Nes
 
 			log << title <<
 			(
-				info.setup.mirroring == Api::Cartridge::MIRROR_FOURSCREEN ? "four-screen" :
-				info.setup.mirroring == Api::Cartridge::MIRROR_VERTICAL   ? "vertical" :
-																			"horizontal"
+				info.setup.mirroring == Ref::MIRROR_FOURSCREEN ? "four-screen" :
+				info.setup.mirroring == Ref::MIRROR_VERTICAL   ? "vertical" :
+                                                                 "horizontal"
 			) << " mirroring set" NST_LINEBREAK;
 
 			log << title <<
 			(
-				info.setup.region == REGION_BOTH ? "NTSC/PAL" :
-				info.setup.region == REGION_PAL  ? "PAL":
-                                                   "NTSC"
+				info.setup.region == Ref::REGION_BOTH ? "NTSC/PAL" :
+				info.setup.region == Ref::REGION_PAL  ? "PAL":
+														"NTSC"
 			) << " set" NST_LINEBREAK;
 
-			if (info.setup.system == SYSTEM_VS)
+			if (info.setup.system == Ref::SYSTEM_VS)
 			{
 				log << title << "VS System set" NST_LINEBREAK;
 
@@ -501,17 +507,17 @@ namespace Nes
 					}
 				}
 			}
-			else if (info.setup.system == SYSTEM_PC10)
+			else if (info.setup.system == Ref::SYSTEM_PC10)
 			{
 				log << title << "Playchoice 10 set" NST_LINEBREAK;
 			}
 
 			log << title << "mapper " << info.setup.mapper << " set";
 
-			if (info.setup.system != SYSTEM_VS && (info.setup.mapper == VS_MAPPER_99 || info.setup.mapper == VS_MAPPER_151))
+			if (info.setup.system != Ref::SYSTEM_VS && (info.setup.mapper == VS_MAPPER_99 || info.setup.mapper == VS_MAPPER_151))
 			{
-				info.setup.system = SYSTEM_VS;
-				info.setup.ppu = PPU_RP2C03B;
+				info.setup.system = Ref::SYSTEM_VS;
+				info.setup.ppu = Ref::PPU_RP2C03B;
 				log << ", forcing VS System";
 			}
 
@@ -608,10 +614,10 @@ namespace Nes
 
 			NST_VERIFY( database->PrgRom(handle) );
 
-			if (!info.setup.version && info.setup.system == SYSTEM_HOME && database->GetSystem(handle) == SYSTEM_PC10)
+			if (!info.setup.version && info.setup.system == Ref::SYSTEM_HOME && database->GetSystem(handle) == Ref::SYSTEM_PC10)
 			{
-				info.setup.system = SYSTEM_PC10;
-				info.setup.ppu = PPU_RP2C03B;
+				info.setup.system = Ref::SYSTEM_PC10;
+				info.setup.ppu = Ref::PPU_RP2C03B;
 			}
 
 			if (!database->Enabled() || !database->PrgRom(handle))
@@ -652,7 +658,7 @@ namespace Nes
 
 				log << title;
 
-				if (chrSkip == SIZE_8K && info.setup.chrRom+chrSkip == chrRom && database->GetSystem(handle) == SYSTEM_PC10)
+				if (chrSkip == SIZE_8K && info.setup.chrRom+chrSkip == chrRom && database->GetSystem(handle) == Ref::SYSTEM_PC10)
 				{
 					log << "ignored last 8k CHR-ROM" NST_LINEBREAK;
 				}
@@ -710,16 +716,16 @@ namespace Nes
 
 			if (info.setup.mirroring != database->GetMirroring(handle))
 			{
-				const Api::Cartridge::Mirroring mirroring = info.setup.mirroring;
+				const Ref::Mirroring mirroring = info.setup.mirroring;
 				info.setup.mirroring = database->GetMirroring(handle);
 
 				if (result == RESULT_OK)
 				{
 					switch (info.setup.mirroring)
 					{
-						case Api::Cartridge::MIRROR_HORIZONTAL:
-						case Api::Cartridge::MIRROR_VERTICAL:
-						case Api::Cartridge::MIRROR_FOURSCREEN:
+						case Ref::MIRROR_HORIZONTAL:
+						case Ref::MIRROR_VERTICAL:
+						case Ref::MIRROR_FOURSCREEN:
 
 							result = RESULT_WARN_INCORRECT_FILE_HEADER;
 							break;
@@ -728,22 +734,22 @@ namespace Nes
 
 				NST_COMPILE_ASSERT
 				(
-					Api::Cartridge::MIRROR_HORIZONTAL < 6 &&
-					Api::Cartridge::MIRROR_VERTICAL   < 6 &&
-					Api::Cartridge::MIRROR_FOURSCREEN < 6 &&
-					Api::Cartridge::MIRROR_ZERO       < 6 &&
-					Api::Cartridge::MIRROR_ONE        < 6 &&
-					Api::Cartridge::MIRROR_CONTROLLED < 6
+					Ref::MIRROR_HORIZONTAL < 6 &&
+					Ref::MIRROR_VERTICAL   < 6 &&
+					Ref::MIRROR_FOURSCREEN < 6 &&
+					Ref::MIRROR_ZERO       < 6 &&
+					Ref::MIRROR_ONE        < 6 &&
+					Ref::MIRROR_CONTROLLED < 6
 				);
 
 				cstring types[6];
 
-				types[ Api::Cartridge::MIRROR_HORIZONTAL ] = "horizontal mirroring";
-				types[ Api::Cartridge::MIRROR_VERTICAL   ] = "vertical mirroring";
-				types[ Api::Cartridge::MIRROR_FOURSCREEN ] = "four-screen mirroring";
-				types[ Api::Cartridge::MIRROR_ZERO       ] = "$2000 mirroring";
-				types[ Api::Cartridge::MIRROR_ONE        ] = "$2400 mirroring";
-				types[ Api::Cartridge::MIRROR_CONTROLLED ] = "mapper controlled mirroring";
+				types[ Ref::MIRROR_HORIZONTAL ] = "horizontal mirroring";
+				types[ Ref::MIRROR_VERTICAL   ] = "vertical mirroring";
+				types[ Ref::MIRROR_FOURSCREEN ] = "four-screen mirroring";
+				types[ Ref::MIRROR_ZERO       ] = "$2000 mirroring";
+				types[ Ref::MIRROR_ONE        ] = "$2400 mirroring";
+				types[ Ref::MIRROR_CONTROLLED ] = "mapper controlled mirroring";
 
 				log << title
 					<< "changed "
@@ -765,33 +771,38 @@ namespace Nes
 
 			if (info.setup.system != database->GetSystem(handle))
 			{
-				const System system = info.setup.system;
+				const Ref::System system = info.setup.system;
 				info.setup.system = database->GetSystem(handle);
 
-				if (result == RESULT_OK && system != SYSTEM_PC10 && info.setup.system != SYSTEM_PC10)
+				if (result == RESULT_OK && system != Ref::SYSTEM_PC10 && info.setup.system != Ref::SYSTEM_PC10)
 					result = RESULT_WARN_INCORRECT_FILE_HEADER;
 
 				log << title
 					<< "changed "
-					<< (system == SYSTEM_VS ? "VS" : system == SYSTEM_PC10 ? "Playchoice" : "home")
+					<< (system == Ref::SYSTEM_VS ? "VS" : system == Ref::SYSTEM_PC10 ? "Playchoice" : "home")
 					<< " system to "
-					<< (info.setup.system == SYSTEM_VS ? "VS" : info.setup.system == SYSTEM_PC10 ? "Playchoice" : "home")
+					<< (info.setup.system == Ref::SYSTEM_VS ? "VS" : info.setup.system == Ref::SYSTEM_PC10 ? "Playchoice" : "home")
 					<< " system" NST_LINEBREAK;
 			}
 
 			if (info.setup.region != database->GetRegion(handle))
 			{
-				const Region region = info.setup.region;
+				const Ref::Region region = info.setup.region;
 				info.setup.region = database->GetRegion(handle);
 
-				if (result == RESULT_OK && region != REGION_BOTH && info.setup.region != REGION_BOTH)
+				info.setup.cpu = (info.setup.region == Ref::REGION_PAL ? Ref::CPU_RP2A07 : Ref::CPU_RP2A03);
+
+				if (info.setup.ppu == Ref::PPU_RP2C02 || info.setup.ppu == Ref::PPU_RP2C07)
+					info.setup.ppu = (info.setup.region == Ref::REGION_PAL ? Ref::PPU_RP2C07 : Ref::PPU_RP2C02);
+
+				if (result == RESULT_OK && region != Ref::REGION_BOTH && info.setup.region != Ref::REGION_BOTH)
 					result = RESULT_WARN_INCORRECT_FILE_HEADER;
 
 				log << title
 					<< "changed "
-					<< (region == REGION_BOTH ? "NTSC/PAL" : region == REGION_PAL ? "PAL" : "NTSC")
+					<< (region == Ref::REGION_BOTH ? "NTSC/PAL" : region == Ref::REGION_PAL ? "PAL" : "NTSC")
 					<< " to "
-					<< (info.setup.region == REGION_BOTH ? "NTSC/PAL" : info.setup.region == REGION_PAL ? "PAL" : "NTSC")
+					<< (info.setup.region == Ref::REGION_BOTH ? "NTSC/PAL" : info.setup.region == Ref::REGION_PAL ? "PAL" : "NTSC")
 					<< NST_LINEBREAK;
 			}
 

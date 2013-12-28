@@ -38,7 +38,7 @@ namespace Nes
 		public:
 
 			explicit Mapper15(Context& c)
-			: Mapper(c,CROM_MAX_8K) {}
+			: Mapper(c,CROM_MAX_8K|NMT_VERTICAL) {}
 
 		private:
 

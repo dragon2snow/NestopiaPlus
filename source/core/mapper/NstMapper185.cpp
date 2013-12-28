@@ -36,11 +36,13 @@ namespace Nes
 		void Mapper185::SubReset(bool)
 		{
 			Map( 0x8000U, 0xFFFFU, &Mapper185::Poke_Prg );
+
+			openBus = 0;
 		}
 
 		void Mapper185::SubSave(State::Saver& state) const
 		{
-			state.Begin( AsciiId<'O','P','B'>::V ).Write8( chr.SameComponent(0,this) ? 0x1 : 0x0 ).End();
+			state.Begin( AsciiId<'O','P','B'>::V ).Write8( openBus ).End();
 		}
 
 		void Mapper185::SubLoad(State::Loader& state)
@@ -49,7 +51,9 @@ namespace Nes
 			{
 				if (chunk == AsciiId<'O','P','B'>::V)
 				{
-					if (state.Read8() & 0x1)
+					openBus = state.Read8() & 0x1;
+
+					if (openBus)
 						chr.SetAccessors( this, &Mapper185::Access_Chr, &Mapper185::Access_Chr );
 					else
 						chr.ResetAccessors();
@@ -68,16 +72,18 @@ namespace Nes
 			return 0xFF;
 		}
 
-		NES_POKE(Mapper185,Prg)
+		NES_POKE_D(Mapper185,Prg)
 		{
 			ppu.Update();
 
 			chr.SwapBank<SIZE_8K,0x0000>( data );
 
-			if (chr.SameComponent( 0, this ))
-				chr.ResetAccessors();
-			else
+			openBus ^= 0x1;
+
+			if (openBus)
 				chr.SetAccessors( this, &Mapper185::Access_Chr, &Mapper185::Access_Chr );
+			else
+				chr.ResetAccessors();
 		}
 	}
 }

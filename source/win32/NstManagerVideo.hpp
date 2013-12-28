@@ -97,8 +97,10 @@ namespace Nestopia
 			void UpdateMenuScreenSizes(const Point) const;
 			void UpdateFieldMergingState() const;
 			void ResetScreenRect(uint);
+			uint CalculateWindowScale(const Rect&) const;
 			uint CalculateWindowScale() const;
 			uint CalculateFullscreenScale() const;
+			bool WindowMatched(const Rect&) const;
 			bool WindowMatched() const;
 
 			NST_NO_INLINE void RepairScreen();
@@ -118,10 +120,10 @@ namespace Nestopia
 			void OnCmdViewStatusBar           (uint);
 			void OnCmdOptionsVideo            (uint);
 
-			void OnEmuEvent (Emulator::Event);
+			void OnEmuEvent (Emulator::Event,Emulator::Data);
 			void OnAppEvent (Instance::Event,const void*);
-			void OnMenuScreenSizes  (Window::Menu::PopupHandler::Param&);
-			void OnMenuUnlimSprites (Window::Menu::PopupHandler::Param&);
+			void OnMenuScreenSizes  (const Window::Menu::PopupHandler::Param&);
+			void OnMenuUnlimSprites (const Window::Menu::PopupHandler::Param&);
 			void OnScreenText (const GenericString&,uint);
 			uint OnTimerFps();
 			uint OnTimerText();

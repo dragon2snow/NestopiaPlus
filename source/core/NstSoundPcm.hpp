@@ -37,28 +37,25 @@ namespace Nes
 		{
 			class Pcm : Apu::Channel
 			{
+			public:
+
+				void Stop();
+
 			protected:
 
-				explicit Pcm(Cpu&);
-				~Pcm();
+				explicit Pcm(Apu&);
 
-				void Reset();
 				void Play(const iword*,dword,dword);
 
 				static Result CanDo(const void*,dword,uint,dword);
 
 			private:
 
-				qword pos;
-
-			public:
-
-				Cpu& cpu;
-
-			private:
-
-				void UpdateContext(uint,const byte (&)[MAX_CHANNELS]);
+				void Reset();
+				bool UpdateSettings();
 				Sample GetSample();
+
+				qword pos;
 
 				struct
 				{
@@ -68,13 +65,6 @@ namespace Nes
 				}   wave;
 
 				dword rate;
-
-			public:
-
-				void Stop()
-				{
-					wave.data = NULL;
-				}
 			};
 		}
 	}

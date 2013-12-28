@@ -63,6 +63,7 @@ namespace Nes
 				ATR_TR1ROM,
 				ATR_TSROM,
 				ATR_TVROM,
+				ATR_TNROM,
 				ATR_BOARD  = 0x1F,
 				ATR_MMC3A  = 1U << 5,
 				ATR_MMC6   = 2U << 5,
@@ -84,17 +85,17 @@ namespace Nes
 
 			struct Mmc6
 			{
-				inline ibool IsWRamEnabled() const;
-				inline ibool IsWRamReadable(uint) const;
-				inline ibool IsWRamWritable(uint) const;
+				inline bool IsWRamEnabled() const;
+				inline bool IsWRamReadable(uint) const;
+				inline bool IsWRamWritable(uint) const;
 
 				enum
 				{
-					WRAM_ENABLE           = b00100000,
-					WRAM_LO_BANK_ENABLED  = b00100000,
-					WRAM_LO_BANK_WRITABLE = b00010000,
-					WRAM_HI_BANK_ENABLED  = b10000000,
-					WRAM_HI_BANK_WRITABLE = b01000000
+					WRAM_ENABLE           = 0x20,
+					WRAM_LO_BANK_WRITABLE = 0x10,
+					WRAM_LO_BANK_ENABLED  = 0x20,
+					WRAM_HI_BANK_WRITABLE = 0x40,
+					WRAM_HI_BANK_ENABLED  = 0x80
 				};
 
 				uint wRam;

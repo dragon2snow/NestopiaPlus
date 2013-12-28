@@ -108,12 +108,12 @@ namespace Nes
 		#pragma optimize("", on)
 		#endif
 
-		NES_POKE(Mapper65,9001)
+		NES_POKE_D(Mapper65,9001)
 		{
 			ppu.SetMirroring( (data & 0x80) ? Ppu::NMT_HORIZONTAL : Ppu::NMT_VERTICAL );
 		}
 
-		NES_POKE(Mapper65,9003)
+		NES_POKE_D(Mapper65,9003)
 		{
 			irq.Update();
 			irq.unit.enabled = data & 0x80;
@@ -127,19 +127,19 @@ namespace Nes
 			irq.ClearIRQ();
 		}
 
-		NES_POKE(Mapper65,9005)
+		NES_POKE_D(Mapper65,9005)
 		{
 			irq.Update();
 			irq.unit.latch = (irq.unit.latch & 0x00FF) | data << 8;
 		}
 
-		NES_POKE(Mapper65,9006)
+		NES_POKE_D(Mapper65,9006)
 		{
 			irq.Update();
 			irq.unit.latch = (irq.unit.latch & 0xFF00) | data << 0;
 		}
 
-		ibool Mapper65::Irq::Signal()
+		bool Mapper65::Irq::Clock()
 		{
 			if (enabled && count && !--count)
 			{
@@ -150,9 +150,10 @@ namespace Nes
 			return false;
 		}
 
-		void Mapper65::VSync()
+		void Mapper65::Sync(Event event,Input::Controllers*)
 		{
-			irq.VSync();
+			if (event == EVENT_END_FRAME)
+				irq.VSync();
 		}
 	}
 }

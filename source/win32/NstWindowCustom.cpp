@@ -57,7 +57,7 @@ namespace Nestopia
 			timers[id].active = true;
 
 			if (!::SetTimer( hWnd, id, duration, &TimerProc ))
-				throw Application::Exception( IDS_FAILED, _T("SetTimer()") );
+				throw Application::Exception( IDS_ERR_FAILED, _T("SetTimer()") );
 		}
 
 		bool Custom::StopTimer(const TimerCallback timer) const

@@ -84,7 +84,7 @@ namespace Nestopia
 			void UpdateSettings();
 			void UpdateMenuColor() const;
 			void OnCmdOptions(uint);
-			void OnEmuEvent(Emulator::Event);
+			void OnEmuEvent(Emulator::Event,Emulator::Data);
 			void OnAppEvent(Instance::Event,const void*);
 
 			struct

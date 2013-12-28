@@ -35,13 +35,16 @@ namespace Nes
 
 		void Mapper243::SubReset(const bool hard)
 		{
-			if (hard)
-				command = 0;
-
 			for (uint i=0x4100; i < 0x5000; i += 0x2)
 			{
 				Map( i + 0x0, &Mapper243::Poke_4100 );
 				Map( i + 0x1, &Mapper243::Poke_4101 );
+			}
+
+			if (hard)
+			{
+				command = 0;
+				prg.SwapBank<SIZE_32K,0x0000>(0);
 			}
 		}
 
@@ -65,12 +68,12 @@ namespace Nes
 		#pragma optimize("", on)
 		#endif
 
-		NES_POKE(Mapper243,4100)
+		NES_POKE_D(Mapper243,4100)
 		{
 			command = data;
 		}
 
-		NES_POKE(Mapper243,4101)
+		NES_POKE_D(Mapper243,4101)
 		{
 			ppu.Update();
 

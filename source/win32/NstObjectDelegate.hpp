@@ -33,7 +33,7 @@ namespace Nestopia
 {
 	namespace Object
 	{
-		template<typename Output=void,typename Input=void> class Delegate
+		template<typename Output=void,typename Input=void> class Delegate : public ImplicitBool< Delegate<Output,Input> >
 		{
 			class Object {};
 
@@ -81,15 +81,9 @@ namespace Nestopia
 				return code != delegate.code || data != delegate.data;
 			}
 
-		private:
-
-			class Dummy;
-
-		public:
-
-			operator const Dummy* () const
+			bool operator ! () const
 			{
-				return data ? reinterpret_cast<const Dummy*>(this) : NULL;
+				return data == NULL;
 			}
 
 			void Unset()
@@ -126,7 +120,7 @@ namespace Nestopia
 			}
 		};
 
-		template<typename Output> class Delegate<Output,void>
+		template<typename Output> class Delegate<Output,void> : public ImplicitBool< Delegate<Output,void> >
 		{
 			class Object {};
 
@@ -174,15 +168,9 @@ namespace Nestopia
 				return code != delegate.code || data != delegate.data;
 			}
 
-		private:
-
-			class Dummy;
-
-		public:
-
-			operator const Dummy* () const
+			bool operator ! () const
 			{
-				return data ? reinterpret_cast<const Dummy*>(this) : NULL;
+				return data == NULL;
 			}
 
 			void Unset()
@@ -221,7 +209,7 @@ namespace Nestopia
 
 		typedef Delegate<> Procedure;
 
-		template<typename Output,typename Param1,typename Param2> class Delegate2
+		template<typename Output,typename Param1,typename Param2> class Delegate2 : public ImplicitBool< Delegate2<Output,Param1,Param2> >
 		{
 			class Object {};
 
@@ -269,15 +257,9 @@ namespace Nestopia
 				return code != delegate.code || data != delegate.data;
 			}
 
-		private:
-
-			class Dummy;
-
-		public:
-
-			operator const Dummy* () const
+			bool operator ! () const
 			{
-				return data ? reinterpret_cast<const Dummy*>(this) : NULL;
+				return data == NULL;
 			}
 
 			void Unset()

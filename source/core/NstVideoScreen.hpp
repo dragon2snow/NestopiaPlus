@@ -46,7 +46,7 @@ namespace Nes
 					WIDTH = 256,
 					HEIGHT = 240,
 					PIXELS = uint(WIDTH) * HEIGHT,
-					PIXELS_PADDING = 2,
+					PIXELS_PADDING = 8,
 					PALETTE = 64 * 8
 				};
 

@@ -279,7 +279,7 @@ namespace Nestopia
 				}
 			}
 
-			if (com != NULL)
+			if (com)
 			{
 				Object::Pod<D3DXFONT_DESC> desc;
 				com->GetDesc( &desc );
@@ -311,7 +311,7 @@ namespace Nestopia
 		{
 			TEXTMETRIC metric;
 
-			if (com != NULL && SUCCEEDED(com->GetTextMetrics( &metric )))
+			if (com && SUCCEEDED(com->GetTextMetrics( &metric )))
 				return metric.tmAveCharWidth;
 			else
 				return 0;
@@ -325,13 +325,13 @@ namespace Nestopia
 
 		void Direct2D::Device::Fonts::Font::OnReset() const
 		{
-			if (com != NULL)
+			if (com)
 				com->OnResetDevice();
 		}
 
 		void Direct2D::Device::Fonts::Font::OnLost() const
 		{
-			if (com != NULL)
+			if (com)
 				com->OnLostDevice();
 		}
 
@@ -340,7 +340,7 @@ namespace Nestopia
 			string = newstring;
 			length = newstring.Length();
 
-			if (length && com != NULL)
+			if (length && com)
 				com->PreloadText( string.Ptr(), string.Length() );
 		}
 
@@ -390,7 +390,7 @@ namespace Nestopia
 
 		inline bool Direct2D::Device::Fonts::Font::CanDraw() const
 		{
-			return length && com != NULL;
+			return length && com;
 		}
 
 		inline void Direct2D::Device::Fonts::Font::Draw(const D3DCOLOR color,const DWORD flags,Rect rect) const
@@ -712,7 +712,7 @@ namespace Nestopia
 				}
 				else throw Application::Exception
 				(
-					IDS_FAILED,
+					IDS_ERR_FAILED,
 					hResult == D3DERR_INVALIDCALL         ? _T( "IDirect3DDevice9::Reset() (code: D3DERR_INVALIDCALL)"         ) :
 					hResult == D3DERR_OUTOFVIDEOMEMORY    ? _T( "IDirect3DDevice9::Reset() (code: D3DERR_OUTOFVIDEOMEMORY)"    ) :
 					hResult == D3DERR_DRIVERINTERNALERROR ? _T( "IDirect3DDevice9::Reset() (code: D3DERR_DRIVERINTERNALERROR)" ) :
@@ -724,7 +724,7 @@ namespace Nestopia
 			NST_ASSERT( !presentation.Windowed || !presentation.Flags );
 
 			if (presentation.Flags == D3DPRESENTFLAG_LOCKABLE_BACKBUFFER && FAILED(com->SetDialogBoxMode( true )))
-				throw Application::Exception( IDS_FAILED, _T("IDirect3DDevice9::SetDialogBoxMode()") );
+				throw Application::Exception( IDS_ERR_FAILED, _T("IDirect3DDevice9::SetDialogBoxMode()") );
 
 			Prepare();
 			fonts.OnReset();
@@ -778,7 +778,7 @@ namespace Nestopia
 			com->SetTextureStageState( 0, D3DTSS_COLOROP, D3DTOP_SELECTARG1 );
 
 			if (FAILED(com->SetFVF( VertexBuffer::FVF )))
-				throw Application::Exception( IDS_FAILED, _T("IDirect3DDevice9::SetFVF()") );
+				throw Application::Exception( IDS_ERR_FAILED, _T("IDirect3DDevice9::SetFVF()") );
 		}
 
 		uint Direct2D::Device::GetMaxMessageLength() const
@@ -844,7 +844,7 @@ namespace Nestopia
 
 						default:
 
-							id = IDS_FAILED;
+							id = IDS_ERR_FAILED;
 							msg = _T("IDirect3DDevice9::TestCooperativeLevel()");
 							break;
 					}
@@ -1003,13 +1003,13 @@ namespace Nestopia
 		void Direct2D::VertexBuffer::Update
 		(
 			const Rect& picture,
-			const float clip[4],
+			const Rect& clip,
 			const float scale,
 			const uint patches,
 			const int screenCurvature
 		)
 		{
-			NST_ASSERT( picture.Width() > 0 && picture.Height() > 0 && clip[2]-clip[0] > 0 && clip[3]-clip[1] > 0 );
+			NST_ASSERT( picture.Width() > 0 && picture.Height() > 0 && clip.Width() > 0 && clip.Height() > 0 );
 
 			if (vertices.size() != (patches+1) * (patches+1))
 			{
@@ -1035,7 +1035,7 @@ namespace Nestopia
 					float weight = float(y) / patches;
 					::D3DXVec2Hermite( &vy, &p0, &t, &p1, &t, weight );
 
-					vy.x = (clip[1] + (clip[3]-clip[1]) * weight) / scale;
+					vy.x = (clip.top + clip.Height() * weight) / scale;
 
 					for (uint x=0; x <= patches; ++x, ++v)
 					{
@@ -1046,7 +1046,7 @@ namespace Nestopia
 
 						v->x = vx.x;
 						v->y = vy.y;
-						v->u = (clip[0] + (clip[2]-clip[0]) * weight) / scale;
+						v->u = (clip.left + clip.Width() * weight) / scale;
 						v->v = vy.x;
 					}
 				}
@@ -1055,20 +1055,20 @@ namespace Nestopia
 			{
 				vertices[0].x = picture.left - 0.5f;
 				vertices[0].y = picture.top - 0.5f;
-				vertices[0].u = clip[0] / scale;
-				vertices[0].v = clip[1] / scale;
+				vertices[0].u = clip.left / scale;
+				vertices[0].v = clip.top / scale;
 				vertices[1].x = picture.left - 0.5f;
 				vertices[1].y = picture.bottom - 0.5f;
-				vertices[1].u = clip[0] / scale;
-				vertices[1].v = clip[3] / scale;
+				vertices[1].u = clip.left / scale;
+				vertices[1].v = clip.bottom / scale;
 				vertices[2].x = picture.right - 0.5f;
 				vertices[2].y = picture.top - 0.5f;
-				vertices[2].u = clip[2] / scale;
-				vertices[2].v = clip[1] / scale;
+				vertices[2].u = clip.right / scale;
+				vertices[2].v = clip.top / scale;
 				vertices[3].x = picture.right - 0.5f;
 				vertices[3].y = picture.bottom - 0.5f;
-				vertices[3].u = clip[2] / scale;
-				vertices[3].v = clip[3] / scale;
+				vertices[3].u = clip.right / scale;
+				vertices[3].v = clip.bottom / scale;
 			}
 		}
 
@@ -1082,7 +1082,7 @@ namespace Nestopia
 
 		void Direct2D::VertexBuffer::Invalidate()
 		{
-			if (com != NULL)
+			if (com)
 			{
 				IDirect3DDevice9* device;
 
@@ -1098,7 +1098,7 @@ namespace Nestopia
 
 		HRESULT Direct2D::VertexBuffer::Validate(IDirect3DDevice9& device,bool dirty)
 		{
-			if (com == NULL)
+			if (!com)
 			{
 				const HRESULT hResult = device.CreateVertexBuffer
 				(
@@ -1113,7 +1113,7 @@ namespace Nestopia
 				if (SUCCEEDED(hResult))
 				{
 					if (FAILED(device.SetStreamSource( 0, *com, 0, sizeof(Vertex) )))
-						throw Application::Exception( IDS_FAILED, _T("IDirect3DDevice9::SetStreamSource()") );
+						throw Application::Exception( IDS_ERR_FAILED, _T("IDirect3DDevice9::SetStreamSource()") );
 
 					dirty = true;
 				}
@@ -1123,7 +1123,7 @@ namespace Nestopia
 				}
 				else
 				{
-					throw Application::Exception( IDS_FAILED, _T("IDirect3DDevice9::CreateVertexBuffer()") );
+					throw Application::Exception( IDS_ERR_FAILED, _T("IDirect3DDevice9::CreateVertexBuffer()") );
 				}
 			}
 
@@ -1143,7 +1143,7 @@ namespace Nestopia
 				}
 				else
 				{
-					throw Application::Exception( IDS_FAILED, _T("IDirect3DVertexBuffer9::Lock()") );
+					throw Application::Exception( IDS_ERR_FAILED, _T("IDirect3DVertexBuffer9::Lock()") );
 				}
 			}
 
@@ -1176,7 +1176,7 @@ namespace Nestopia
 
 		void Direct2D::IndexBuffer::Invalidate()
 		{
-			if (com != NULL)
+			if (com)
 			{
 				IDirect3DDevice9* device;
 
@@ -1194,7 +1194,7 @@ namespace Nestopia
 		{
 			if (strips)
 			{
-				if (com == NULL)
+				if (!com)
 				{
 					const HRESULT hResult = device.CreateIndexBuffer
 					(
@@ -1209,7 +1209,7 @@ namespace Nestopia
 					if (SUCCEEDED(hResult))
 					{
 						if (FAILED(device.SetIndices( *com )))
-							throw Application::Exception( IDS_FAILED, _T("IDirect3DDevice9::SetIndices()") );
+							throw Application::Exception( IDS_ERR_FAILED, _T("IDirect3DDevice9::SetIndices()") );
 
 						dirty = true;
 					}
@@ -1219,7 +1219,7 @@ namespace Nestopia
 					}
 					else
 					{
-						throw Application::Exception( IDS_FAILED, _T("IDirect3DDevice9::CreateIndexBuffer()") );
+						throw Application::Exception( IDS_ERR_FAILED, _T("IDirect3DDevice9::CreateIndexBuffer()") );
 					}
 				}
 
@@ -1270,7 +1270,7 @@ namespace Nestopia
 					}
 					else
 					{
-						throw Application::Exception( IDS_FAILED, _T("IDirect3DIndexBuffer9::Lock()") );
+						throw Application::Exception( IDS_ERR_FAILED, _T("IDirect3DIndexBuffer9::Lock()") );
 					}
 				}
 			}
@@ -1287,10 +1287,10 @@ namespace Nestopia
 		width     (256),
 		height    (256),
 		size      (256),
+		filter    (Adapter::FILTER_NONE),
 		useVidMem (true),
 		lockFlags (D3DLOCK_NOSYSLOCK),
-		format    (backBufferFormat),
-		filter    (Adapter::FILTER_NONE)
+		format    (backBufferFormat)
 		{}
 
 		Direct2D::Texture::~Texture()
@@ -1331,7 +1331,7 @@ namespace Nestopia
 
 		void Direct2D::Texture::Invalidate()
 		{
-			if (com != NULL)
+			if (com)
 			{
 				IDirect3DDevice9* device;
 
@@ -1347,7 +1347,7 @@ namespace Nestopia
 
 		HRESULT Direct2D::Texture::Validate(IDirect3DDevice9& device,const Adapter& adapter,const D3DFORMAT backBufferFormat)
 		{
-			if (com == NULL)
+			if (!com)
 			{
 				const HRESULT hResult = ::D3DXCreateTexture
 				(
@@ -1366,7 +1366,7 @@ namespace Nestopia
 					Object::Pod<D3DSURFACE_DESC> desc;
 
 					if (FAILED(com->GetLevelDesc( 0, &desc )))
-						throw Application::Exception( IDS_FAILED, _T("IDirect3DDevice9::GetLevelDesc()") );
+						throw Application::Exception( IDS_ERR_FAILED, _T("IDirect3DDevice9::GetLevelDesc()") );
 
 					format = desc.Format;
 					lockFlags = (desc.Usage & D3DUSAGE_DYNAMIC) ? (D3DLOCK_DISCARD|D3DLOCK_NOSYSLOCK) : D3DLOCK_NOSYSLOCK;
@@ -1378,7 +1378,7 @@ namespace Nestopia
 						throw Application::Exception(_T("Unsupported bits-per-pixel format!"));
 
 					if (FAILED(device.SetTexture( 0, *com )))
-						throw Application::Exception( IDS_FAILED, _T("IDirect3DDevice9::SetTexture()") );
+						throw Application::Exception( IDS_ERR_FAILED, _T("IDirect3DDevice9::SetTexture()") );
 				}
 				else if (hResult == D3DERR_DEVICELOST)
 				{
@@ -1386,7 +1386,7 @@ namespace Nestopia
 				}
 				else
 				{
-					throw Application::Exception( IDS_FAILED, _T("IDirect3DDevice9::CreateTexture()") );
+					throw Application::Exception( IDS_ERR_FAILED, _T("IDirect3DDevice9::CreateTexture()") );
 				}
 			}
 
@@ -1404,7 +1404,7 @@ namespace Nestopia
 		{
 			NST_ASSERT( file && *file && width && height );
 
-			if (com == NULL)
+			if (!com)
 				return false;
 
 			ComInterface<IDirect3DSurface9> surface;
@@ -1646,7 +1646,7 @@ namespace Nestopia
 		void Direct2D::UpdateWindowView
 		(
 			const Point& screen,
-			const float clipping[4],
+			const Rect& clipping,
 			const int screenCurvature,
 			const Adapter::Filter filter,
 			const bool useVidMem
@@ -1686,7 +1686,7 @@ namespace Nestopia
 		(
 			const Rect& picture,
 			const Point& screen,
-			const float clipping[4],
+			const Rect& clipping,
 			const int screenCurvature,
 			const Adapter::Filter filter,
 			const bool useVidMem

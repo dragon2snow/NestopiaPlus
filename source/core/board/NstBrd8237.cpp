@@ -129,7 +129,7 @@ namespace Nes
 				);
 			}
 
-			NES_POKE(Unl8237,5000)
+			NES_POKE_D(Unl8237,5000)
 			{
 				if (exRegs[0] != data)
 				{
@@ -138,7 +138,7 @@ namespace Nes
 				}
 			}
 
-			NES_POKE(Unl8237,5001)
+			NES_POKE_D(Unl8237,5001)
 			{
 				data = data << 6 & 0x100;
 
@@ -149,12 +149,12 @@ namespace Nes
 				}
 			}
 
-			NES_POKE(Unl8237,8000)
+			NES_POKE_D(Unl8237,8000)
 			{
 				SetMirroringHV( data >> 7 | data );
 			}
 
-			NES_POKE(Unl8237,A000)
+			NES_POKE_D(Unl8237,A000)
 			{
 				static const byte lut[8] = {0,2,6,1,7,3,4,5};
 
@@ -164,7 +164,7 @@ namespace Nes
 				Mmc3::NES_DO_POKE(8000,0x8000,data);
 			}
 
-			NES_POKE(Unl8237,C000)
+			NES_POKE_D(Unl8237,C000)
 			{
 				if (exRegs[2])
 				{
@@ -173,7 +173,7 @@ namespace Nes
 				}
 			}
 
-			NES_POKE(Unl8237,F000)
+			NES_POKE_D(Unl8237,F000)
 			{
 				Mmc3::NES_DO_POKE(E001,0xE001,data);
 				Mmc3::NES_DO_POKE(C000,0xC000,data);

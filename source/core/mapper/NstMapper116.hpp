@@ -46,7 +46,7 @@ namespace Nes
 			void SubReset(bool);
 			void SubSave(State::Saver&) const;
 			void SubLoad(State::Loader&);
-			void VSync();
+			void Sync(Event,Input::Controllers*);
 
 			void UpdatePrg();
 			void UpdateChr() const;
@@ -98,7 +98,7 @@ namespace Nes
 				byte padding[2];
 			}   mmc1;
 
-			Boards::Mmc3::Irq irq;
+			Boards::Mmc3::Irq<> irq;
 		};
 	}
 }

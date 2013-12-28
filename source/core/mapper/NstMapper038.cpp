@@ -33,16 +33,19 @@ namespace Nes
 		#pragma optimize("s", on)
 		#endif
 
-		void Mapper38::SubReset(bool)
+		void Mapper38::SubReset(const bool hard)
 		{
 			Map( 0x6000U, 0x7FFFU, &Mapper38::Poke_6000 );
+
+			if (hard)
+				NES_DO_POKE(6000,0x6000,0x00);
 		}
 
 		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
-		NES_POKE(Mapper38,6000)
+		NES_POKE_D(Mapper38,6000)
 		{
 			ppu.Update();
 			chr.SwapBank<SIZE_8K,0x0000>( data >> 2 );

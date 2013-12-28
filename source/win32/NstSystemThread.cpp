@@ -52,7 +52,7 @@ namespace Nestopia
 				NULL == (hExit  = ::CreateEvent( NULL, false, false, NULL )) ||
 				NULL == (hAbort = ::CreateEvent( NULL, false, false, NULL ))
 			)
-				throw Application::Exception( IDS_FAILED, _T("CreateEvent()") );
+				throw Application::Exception( IDS_ERR_FAILED, _T("CreateEvent()") );
 
 			class Entry
 			{
@@ -93,7 +93,7 @@ namespace Nestopia
 			Entry entry( callback, priority, hEnter, hExit, Terminator(hAbort) );
 
 			if (!::_beginthread( Entry::Run, 0, &entry ))
-				throw Application::Exception( IDS_FAILED, _T("_beginthread()") );
+				throw Application::Exception( IDS_ERR_FAILED, _T("_beginthread()") );
 
 			::WaitForSingleObject( hEnter, INFINITE );
 		}

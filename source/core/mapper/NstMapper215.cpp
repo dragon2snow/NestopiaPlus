@@ -156,7 +156,7 @@ namespace Nes
 			);
 		}
 
-		NES_POKE(Mapper215,5000)
+		NES_POKE_D(Mapper215,5000)
 		{
 			if (exRegs[0] != data)
 			{
@@ -165,7 +165,7 @@ namespace Nes
 			}
 		}
 
-		NES_POKE(Mapper215,5001)
+		NES_POKE_D(Mapper215,5001)
 		{
 			if (exRegs[1] != data)
 			{
@@ -174,7 +174,7 @@ namespace Nes
 			}
 		}
 
-		NES_POKE(Mapper215,5007)
+		NES_POKE_D(Mapper215,5007)
 		{
 			exRegs[2] = data;
 
@@ -183,13 +183,13 @@ namespace Nes
 			Mapper215::UpdateChr();
 		}
 
-		NES_POKE(Mapper215,8000)
+		NES_POKE_D(Mapper215,8000)
 		{
 			if (!exRegs[2])
 				Mmc3::NES_DO_POKE(8000,0x8000,data);
 		}
 
-		NES_POKE(Mapper215,8001)
+		NES_POKE_D(Mapper215,8001)
 		{
 			if (exRegs[2])
 			{
@@ -205,7 +205,7 @@ namespace Nes
 			}
 		}
 
-		NES_POKE(Mapper215,A000)
+		NES_POKE_D(Mapper215,A000)
 		{
 			if (exRegs[2])
 			{
@@ -222,7 +222,7 @@ namespace Nes
 			}
 		}
 
-		NES_POKE(Mapper215,C000)
+		NES_POKE_D(Mapper215,C000)
 		{
 			if (exRegs[2])
 				SetMirroringHV( data >> 7 | data );
@@ -230,7 +230,7 @@ namespace Nes
 				Mmc3::NES_DO_POKE(C000,0xC000,data);
 		}
 
-		NES_POKE(Mapper215,C001)
+		NES_POKE_D(Mapper215,C001)
 		{
 			if (exRegs[2])
 				Mmc3::NES_DO_POKE(E001,0xE001,data);
@@ -238,7 +238,7 @@ namespace Nes
 				Mmc3::NES_DO_POKE(C001,0xC001,data);
 		}
 
-		NES_POKE(Mapper215,E001)
+		NES_POKE_D(Mapper215,E001)
 		{
 			if (exRegs[2])
 			{

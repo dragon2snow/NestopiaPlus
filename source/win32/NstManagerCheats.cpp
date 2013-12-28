@@ -79,7 +79,7 @@ namespace Nestopia
 			}
 		}
 
-		void Cheats::OnEmuEvent(Emulator::Event event)
+		void Cheats::OnEmuEvent(const Emulator::Event event,const Emulator::Data data)
 		{
 			switch (event)
 			{
@@ -92,10 +92,9 @@ namespace Nestopia
 
 					break;
 
-				case Emulator::EVENT_NETPLAY_MODE_ON:
-				case Emulator::EVENT_NETPLAY_MODE_OFF:
+				case Emulator::EVENT_NETPLAY_MODE:
 
-					menu[IDM_OPTIONS_CHEATS].Enable( event == Emulator::EVENT_NETPLAY_MODE_OFF );
+					menu[IDM_OPTIONS_CHEATS].Enable( !data );
 					break;
 			}
 		}

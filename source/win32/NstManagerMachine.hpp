@@ -41,9 +41,12 @@ namespace Nestopia
 
 		private:
 
-			void OnMenuSystem (Window::Menu::PopupHandler::Param&);
-			void OnEmuEvent (Emulator::Event);
+			void UpdateMenu() const;
+			void UpdateMenuPowerState() const;
 
+			bool SetRegion(uint) const;
+
+			void OnEmuEvent  (Emulator::Event,Emulator::Data);
 			void OnCmdPower  (uint);
 			void OnCmdReset  (uint);
 			void OnCmdPause  (uint);

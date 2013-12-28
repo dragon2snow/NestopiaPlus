@@ -41,9 +41,9 @@ namespace Nes
 {
 	namespace Core
 	{
-		namespace Clock
+		namespace ClockUnits
 		{
-			template<typename Unit,uint Divider=1U>
+			template<typename Unit,uint Divider=1>
 			class M2
 			{
 			public:
@@ -56,35 +56,35 @@ namespace Nes
 				template<typename Param>
 				M2(Cpu&,const Param&);
 
+				void Reset(bool,bool);
+				void VSync();
+
+			private:
+
 				enum
 				{
 					IRQ_DELAY_CYCLES = 2
 				};
 
-				void Reset(bool,bool);
-				void VSync();
-
-			protected:
-
 				NES_DECL_HOOK( Signaled );
 
 				Cycle count;
+				ibool connected;
 				Cpu& cpu;
-				ibool enabled;
 
 			public:
 
 				Unit unit;
 
-				ibool EnableLine(ibool enable)
+				bool Connect(bool connect)
 				{
-					enabled = enable;
-					return enable;
+					connected = connect;
+					return connect;
 				}
 
-				ibool IsLineEnabled() const
+				bool Connected() const
 				{
-					return enabled;
+					return connected;
 				}
 
 				void Update()
@@ -100,29 +100,29 @@ namespace Nes
 
 			template<typename Unit,uint Divider>
 			M2<Unit,Divider>::M2(Cpu& c)
-			: count(0), cpu(c), enabled(false)
+			: count(0), connected(false), cpu(c)
 			{
 			}
 
 			template<typename Unit,uint Divider>
 			template<typename Param>
 			M2<Unit,Divider>::M2(Cpu& c,Param& p)
-			: count(0), cpu(c), enabled(false), unit(p)
+			: count(0), connected(false), cpu(c), unit(p)
 			{
 			}
 
 			template<typename Unit,uint Divider>
 			template<typename Param>
 			M2<Unit,Divider>::M2(Cpu& c,const Param& p)
-			: count(0), cpu(c), enabled(false), unit(p)
+			: count(0), connected(false), cpu(c), unit(p)
 			{
 			}
 
 			template<typename Unit,uint Divider>
-			void M2<Unit,Divider>::Reset(const bool hard,const bool enable)
+			void M2<Unit,Divider>::Reset(const bool hard,const bool connect)
 			{
-				enabled = enable;
 				count = 0;
+				connected = connect;
 				unit.Reset( hard );
 				cpu.AddHook( Hook(this,&M2::Hook_Signaled) );
 			}
@@ -131,60 +131,94 @@ namespace Nes
 			{
 				NST_COMPILE_ASSERT( Divider <= 8 );
 
-				while (count < cpu.GetMasterClockCycles())
+				while (count < cpu.GetCycles())
 				{
-					if (enabled && unit.Signal())
-						cpu.DoIRQ( Cpu::IRQ_EXT, count + cpu.GetMasterClockCycle(IRQ_DELAY_CYCLES) );
+					if (connected && unit.Clock())
+						cpu.DoIRQ( Cpu::IRQ_EXT, count + cpu.GetClock(IRQ_DELAY_CYCLES) );
 
-					count += cpu.GetMasterClockCycle( Divider );
+					count += cpu.GetClock(Divider);
 				}
 			}
 
 			template<typename Unit,uint Divider>
 			void M2<Unit,Divider>::VSync()
 			{
-				count = (count > cpu.GetMasterClockFrameCycles() ? count - cpu.GetMasterClockFrameCycles() : 0);
+				count = (count > cpu.GetFrameCycles() ? count - cpu.GetFrameCycles() : 0);
 			}
 
-			template<typename Unit>
-			class A12
+			template<typename Unit,uint Hold,uint Delay>
+			class A12;
+
+			template<>
+			class A12<void,0,0>
+			{
+			protected:
+
+				template<uint Hold>
+				class Filter
+				{
+					Cycle clock;
+
+				public:
+
+					Filter()
+					: clock(0) {}
+
+					void Reset()
+					{
+						clock = 0;
+					}
+
+					bool Clock(const Ppu& ppu,Cycle cycle)
+					{
+						const Cycle next = clock;
+						clock = cycle + ppu.GetClock(Hold);
+						return cycle >= next;
+					}
+
+					void VSync(const Cpu& cpu)
+					{
+						clock = (clock > cpu.GetFrameCycles() ? clock - cpu.GetFrameCycles() : 0);
+					}
+				};
+			};
+
+			template<>
+			class A12<void,0,0>::Filter<0>
+			{
+				const Cycle clock;
+
+			public:
+
+				Filter()
+				: clock(0) {}
+
+				void Reset() const
+				{
+				}
+
+				bool Clock(const Ppu&,Cycle) const
+				{
+					return true;
+				}
+
+				void VSync(const Cpu&) const
+				{
+				}
+			};
+
+			template<typename Unit,uint Hold=0,uint Delay=0>
+			class A12 : A12<void,0,0>
 			{
 			public:
 
-				enum IrqDelay
-				{
-					NO_IRQ_DELAY,
-					IRQ_DELAY
-				};
-
-				enum
-				{
-					IRQ_DELAY_CYCLES = 2
-				};
-
-				A12(Cpu&,Ppu&,uint=0,IrqDelay=NO_IRQ_DELAY);
-
-				template<typename Param>
-				A12(Cpu&,Ppu&,uint,IrqDelay,Param&);
-
 				void Reset(bool,bool);
-				void VSync();
 
 			private:
 
 				NES_DECL_LINE( Signaled );
 
-				struct Base
-				{
-					NST_COMPILE_ASSERT( MODE_NTSC == 0 && MODE_PAL == 1 );
-
-					explicit Base(uint);
-					Cycle clock[2];
-				};
-
-				Cycle count;
-				Cycle duration;
-				Cycle delay;
+				Filter<Hold> filter;
 				Cpu& cpu;
 				Ppu& ppu;
 
@@ -192,23 +226,24 @@ namespace Nes
 
 				Unit unit;
 
-			private:
+				A12(Cpu& c,Ppu& p)
+				: cpu(c), ppu(p) {}
 
-				const Base base;
+				template<typename Param>
+				A12(Cpu& c,Ppu& p,Param& a)
+				: cpu(c), ppu(p), unit(a) {}
 
-			public:
-
-				void EnableLine(bool enable)
+				void Connect(bool connect)
 				{
-					if (enable)
-						ppu.ConnectA12( this, &A12::Line_Signaled );
+					if (connect)
+						ppu.A12().Set( this, &A12<Unit,Hold,Delay>::Line_Signaled );
 					else
-						ppu.DisconnectA12();
+						ppu.A12().Unset();
 				}
 
-				bool IsLineEnabled() const
+				bool Connected() const
 				{
-					return ppu.IsA12Connected();
+					return ppu.A12();
 				}
 
 				void Update() const
@@ -220,56 +255,28 @@ namespace Nes
 				{
 					cpu.ClearIRQ();
 				}
+
+				void VSync()
+				{
+					filter.VSync( cpu );
+				}
 			};
 
-			template<typename Unit>
-			A12<Unit>::Base::Base(uint d)
+			template<typename Unit,uint Hold,uint Delay>
+			void A12<Unit,Hold,Delay>::Reset(bool hard,bool connect)
 			{
-				clock[MODE_NTSC] = d * Ppu::MC_DIV_NTSC;
-				clock[MODE_PAL] = d * Ppu::MC_DIV_PAL;
-			}
-
-			template<typename Unit>
-			A12<Unit>::A12(Cpu& c,Ppu& p,uint b,IrqDelay d)
-			: count(0), delay(d), cpu(c), ppu(p), base(b)
-			{
-				VSync();
-			}
-
-			template<typename Unit> template<typename Param>
-			A12<Unit>::A12(Cpu& c,Ppu& p,uint b,IrqDelay d,Param& a)
-			: count(0), delay(d), cpu(c), ppu(p), unit(a), base(b)
-			{
-				VSync();
-			}
-
-			template<typename Unit>
-			void A12<Unit>::Reset(const bool hard,const bool enable)
-			{
-				count = 0;
-				VSync();
+				filter.Reset();
 				unit.Reset( hard );
-				EnableLine( enable );
+				Connect( connect );
 				ppu.EnableCpuSynchronization();
 			}
 
-			NES_LINE_T(template<typename Unit>,A12<Unit>,Signaled)
+			NES_LINE_T(template<typename Unit NST_COMMA uint Hold NST_COMMA uint Delay>,A12<Unit NST_COMMA Hold NST_COMMA Delay>,Signaled)
 			{
-				const Cycle target = count;
-				count = cycle + duration;
+				NST_COMPILE_ASSERT( Delay <= 8 );
 
-				if (cycle >= target && unit.Signal())
-					cpu.DoIRQ( Cpu::IRQ_EXT, cycle + delay );
-			}
-
-			template<typename Unit>
-			void A12<Unit>::VSync()
-			{
-				count = (count > cpu.GetMasterClockFrameCycles() ? count - cpu.GetMasterClockFrameCycles() : 0);
-				duration = base.clock[cpu.GetMode()];
-
-				if (delay)
-					delay = cpu.GetMasterClockCycle( IRQ_DELAY_CYCLES );
+				if (filter.Clock(ppu,cycle) && unit.Clock())
+					cpu.DoIRQ( Cpu::IRQ_EXT, cycle + (Delay ? cpu.GetClock(Delay) : 0) );
 			}
 		}
 	}

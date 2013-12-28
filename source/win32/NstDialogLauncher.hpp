@@ -119,6 +119,8 @@ namespace Nestopia
 					const Nes::Cartridge::Database&
 				);
 
+				~List();
+
 				void operator = (const Control::ListView&);
 
 				enum Updater
@@ -362,7 +364,7 @@ namespace Nestopia
 
 						Type GetType() const
 						{
-							return (Type) type;
+							return static_cast<Type>(type);
 						}
 
 						tstring GetPath(const Strings& strings) const
@@ -467,7 +469,7 @@ namespace Nestopia
 
 					enum
 					{
-						HEADER_ID = NST_FOURCC('n','s','d',0),
+						HEADER_ID = FourCC<'n','s','d'>::V,
 						HEADER_MAX_ENTRIES = 0xFFFFF,
 						HEADER_VERSION = 3,
 						HEADER_FLAGS_UTF16 = 0x1,

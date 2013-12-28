@@ -48,17 +48,17 @@ namespace Nes
 				state = 0xFF00U|CONNECTED;
 			}
 
-			void HoriTrack::SaveState(State::Saver& state,const byte id) const
+			void HoriTrack::SaveState(State::Saver& saver,const byte id) const
 			{
-				state.Begin( AsciiId<'H','T'>::R(0,0,id) ).Write8( strobe ).Write32( stream ).End();
+				saver.Begin( AsciiId<'H','T'>::R(0,0,id) ).Write8( strobe ).Write32( stream ).End();
 			}
 
-			void HoriTrack::LoadState(State::Loader& state,const dword id)
+			void HoriTrack::LoadState(State::Loader& loader,const dword id)
 			{
 				if (id == AsciiId<'H','T'>::V)
 				{
-					strobe = state.Read8() & 0x1;
-					stream = state.Read32();
+					strobe = loader.Read8() & 0x1;
+					stream = loader.Read32();
 				}
 			}
 

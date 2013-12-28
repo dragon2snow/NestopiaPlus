@@ -1,4 +1,63 @@
 ----------------------------------------------------------------
+1.37
+----------------------------------------------------------------
+
+Shell:
+
+ Additions:
+  
+  - Menu option for DIP switch window popup on file load.
+  - Movie recording now supported during netplay.
+
+ Changes:
+ 
+  - Smaller netplay data packets.
+  - Minor GUI adjustments.
+  - Refactoring.
+  
+ Fixes:
+ 
+  - Scaling artifacts with NTSC filter on certain resolutions.
+  - Auto NTSC/PAL window resize bug.
+  - Sound stuttering on window clicks.
+  - Netplay bugs/quirks.
+  - Joystick auto-calibration bug.
+
+Core:
+
+ Additions:
+
+  - Mapper 63.
+  - Mapper 121 and 134. Info from CaH4e3.
+  - Mapper 136 for Sachen board SA-002 3011. Info from Enri.
+  - Mapper 178 for "San Guo Zhong Lie Zhuan (Ch)". Info from temryu.
+  - UNIF boards: AX5705, T-230, CTC-65 and 190IN1. Info from CaH4e3.
+  - Adaptive sound streaming synchronization.
+  - More optimization hints for GCC.
+  - Database entries.
+
+ Changes:
+ 
+  - Movie file format rewritten. Older files will no longer work (sorry, had to 
+    be done sooner or later). New format is much more flexible and extendable.
+  - Lower memory consumption.    
+  - APU speed optimizations.
+  - Most DIP switches are now configurable through dialogs instead being
+    soft-reset-triggered.
+  - Board names. Info from Pongbashi and Bootgod.
+  - Refactoring.
+
+ Fixes:
+ 
+  - Mapper 41 and 43.
+  - Mapper 112. Fixes "Fighting Hero III". Info from temryu.
+  - Minor save state inaccuracy.
+  - FDS sound emulation inaccuracy. 
+    Fixes "Nazo no Magazine Disk - Nazoraa Land Dai 3 Gou".
+  - Small rewinder bug.
+  - Database entries.
+
+----------------------------------------------------------------
 1.36
 ----------------------------------------------------------------
 
@@ -27,8 +86,8 @@ Core:
  Additions:
 
   - Power Glove peripheral support.
-  - Mapper 38, 108 and 173. Info from Ca4He3.
-  - UNIF boards: TF1201, KS7038 and GS-2004. Info from Ca4He3.
+  - Mapper 38, 108 and 173. Info from CaH4e3.
+  - UNIF boards: TF1201, KS7038 and GS-2004. Info from CaH4e3.
   - Mapper 150 reset-triggered DIP switch toggling.
   - Database entries.
 
@@ -86,7 +145,7 @@ Core:
 
   - Preliminary support for NES 2.0 file headers.
   - R.O.B / Famicom Robot peripheral support.
-  - Mapper 14, 196, 214 and 169 (partially). Info from Ca4He3.
+  - Mapper 14, 196, 214 and 169 (partially). Info from CaH4e3.
   - Mapper 171 (KAISER KS7058) for "Tui Do Woo Ma Jeung".
   - Mapper 172 (IDEA-TEK CNROM +SECURITY) for "1991 Du Ma Racing" (unaltered version).
   - Database entries.
@@ -328,9 +387,9 @@ Core:
      "Terao no Dosukoi Oozumou" -> "terao"
 
     Info from Hap and Pongbashi.    
-  - Mapper 132. Info from Ca4He3.
-  - Unif Boards "UNL-603-5052", "A65AS" and "EDU2000". Info from Ca4He3.
-  - Mouse support for "Educational Computer 2000". Info from Ca4He3.
+  - Mapper 132. Info from CaH4e3.
+  - Unif Boards "UNL-603-5052", "A65AS" and "EDU2000". Info from CaH4e3.
+  - Mouse support for "Educational Computer 2000". Info from CaH4e3.
 
  Changes:
 
@@ -348,10 +407,10 @@ Core:
   - More accurate PAL APU DMC rates. Info from Blargg.
   - Mapper 4. Now defaulting to MMC3B IRQ hardware. Fixes "Star Trek - 25th Anniversary".
   - Mapper 19. Fixes "Final Lap".
-  - Mapper 60, menu select for "TN 95-in-1" and "Super 35-in-1" via soft reset. Info from Ca4He3.
+  - Mapper 60, menu select for "TN 95-in-1" and "Super 35-in-1" via soft reset. Info from CaH4e3.
   - Mapper 163. Fixes "Kou Dai Bao Shi - Hong (ch)" and "Kou Dai Bao Shi - Lan (ch)".
-  - Mapper 198, CHR banking. Fixes "Super Fighter III". Info from Ca4He3.
-  - Mapper 209, CHR 4K PPU latch mode. Fixes "Power Rangers" and others. Info from Ca4He3.
+  - Mapper 198, CHR banking. Fixes "Super Fighter III". Info from CaH4e3.
+  - Mapper 209, CHR 4K PPU latch mode. Fixes "Power Rangers" and others. Info from CaH4e3.
   - Database entries.
 
 ----------------------------------------------------------------

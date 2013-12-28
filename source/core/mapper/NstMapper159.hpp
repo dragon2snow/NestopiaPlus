@@ -38,7 +38,7 @@ namespace Nes
 		public:
 
 			explicit Mapper159(Context& c)
-			: Bandai(c,TYPE_E2401) {}
+			: Bandai(c,TYPE_LZ93D50_E2401) {}
 
 		private:
 

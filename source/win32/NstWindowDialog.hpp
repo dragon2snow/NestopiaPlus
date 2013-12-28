@@ -76,8 +76,15 @@ namespace Nestopia
 
 			typedef Collection::Vector<Dialog*> Instances;
 
+			void Init();
+
 			ibool OnCommand (Param&);
 			ibool OnClose   (Param&);
+
+			void OnIdle       (Param&);
+			void OnSysCommand (Param&);
+			void OnNclButton  (Param&);
+			void OnNcrButton  (Param&);
 
 			NST_NO_INLINE void Fetch(HWND);
 			NST_NO_INLINE void Ditch(Instances::Iterator);
@@ -97,20 +104,20 @@ namespace Nestopia
 
 			private:
 
-				typedef ibool (*Processor)(MSG&);
+				typedef bool (*Processor)(MSG&);
 				typedef Collection::Vector<HWND> Instances;
 
 				static void Update();
-				static ibool ProcessNone (MSG&);
-				static ibool ProcessSingle (MSG&);
-				static ibool ProcessMultiple (MSG&);
+				static bool ProcessNone (MSG&);
+				static bool ProcessSingle (MSG&);
+				static bool ProcessMultiple (MSG&);
 
 				static Processor processor;
 				static Instances instances;
 
 			public:
 
-				static ibool ProcessMessage(MSG& msg)
+				static bool ProcessMessage(MSG& msg)
 				{
 					return processor( msg );
 				}
@@ -145,7 +152,7 @@ namespace Nestopia
 				return cmdHandler;
 			}
 
-			static ibool ProcessMessage(MSG& msg)
+			static bool ProcessMessage(MSG& msg)
 			{
 				return ModelessDialogs::ProcessMessage( msg );
 			}
@@ -162,9 +169,9 @@ namespace Nestopia
 				return ModelessDialogs::Remove( hWnd );
 			}
 		};
-
-		#include "NstWindowDialog.inl"
 	}
 }
+
+#include "NstWindowDialog.inl"
 
 #endif

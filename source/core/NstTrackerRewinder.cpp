@@ -43,7 +43,7 @@ namespace Nes
 
 		public:
 
-			Mutex(const ReverseVideo& r)
+			explicit Mutex(const ReverseVideo& r)
 			: ppu(r.ppu), pixels(r.ppu.GetOutputPixels()) {}
 
 			void Flush(Video::Screen::Pixel* src) const
@@ -145,10 +145,10 @@ namespace Nes
 		apu     (a)
 		{}
 
-		Tracker::Rewinder::Rewinder(Machine& e,EmuExecute x,EmuLoadState l,EmuSaveState s,Cpu& c,Ppu& p,bool b)
+		Tracker::Rewinder::Rewinder(Machine& e,EmuExecute x,EmuLoadState l,EmuSaveState s,Cpu& c,const Apu& a,Ppu& p,bool b)
 		:
 		rewinding    (false),
-		sound        (c.GetApu(),b),
+		sound        (a,b),
 		video        (p),
 		emulator     (e),
 		emuExecute   (x),
@@ -157,7 +157,7 @@ namespace Nes
 		cpu          (c),
 		ppu          (p)
 		{
-			Reset( false );
+			Reset( true );
 		}
 
 		Tracker::Rewinder::ReverseVideo::~ReverseVideo()
@@ -470,7 +470,7 @@ namespace Nes
 			stream.clear();
 
 			State::Loader loader( &static_cast<std::istream&>(stream), false );
-			(emulator.*loadState)( loader );
+			(emulator.*loadState)( loader, true );
 		}
 
 		void Tracker::Rewinder::Key::BeginBackward(Machine& emulator,EmuLoadState loadState)
@@ -813,7 +813,7 @@ namespace Nes
 			return RESULT_OK;
 		}
 
-		NES_PEEK(Tracker::Rewinder,Port_Put)
+		NES_PEEK_A(Tracker::Rewinder,Port_Put)
 		{
 			return key->Put( ports[address-0x4016]->Peek( address ) );
 		}
@@ -823,7 +823,7 @@ namespace Nes
 			return key->Get();
 		}
 
-		NES_POKE(Tracker::Rewinder,Port)
+		NES_POKE_AD(Tracker::Rewinder,Port)
 		{
 			ports[address-0x4016]->Poke( address, data );
 		}

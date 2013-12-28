@@ -37,20 +37,27 @@ namespace Nes
 		{
 		public:
 
-			explicit Mapper233(Context& c)
-			: Mapper(c,PROM_MAX_1024K|CROM_MAX_8K|WRAM_DEFAULT) {}
+			explicit Mapper233(Context&);
 
 		private:
 
-			~Mapper233() {}
+			~Mapper233();
+
+			enum
+			{
+				ATR_22_20_IN_1 = 1
+			};
+
+			class CartSwitches;
 
 			void SubReset(bool);
 			void SubSave(State::Saver&) const;
 			void SubLoad(State::Loader&);
+			Device QueryDevice(DeviceType);
 
 			NES_DECL_POKE( Prg );
 
-			uint games;
+			CartSwitches* const cartSwitches;
 		};
 	}
 }

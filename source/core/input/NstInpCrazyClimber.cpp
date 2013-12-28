@@ -52,15 +52,15 @@ namespace Nes
 				state[RIGHT] = 0;
 			}
 
-			void CrazyClimber::SaveState(State::Saver& state,const byte id) const
+			void CrazyClimber::SaveState(State::Saver& saver,const byte id) const
 			{
-				state.Begin( AsciiId<'C','C'>::R(0,0,id) ).Write8( shifter ^ 1 ).End();
+				saver.Begin( AsciiId<'C','C'>::R(0,0,id) ).Write8( shifter ^ 1 ).End();
 			}
 
-			void CrazyClimber::LoadState(State::Loader& state,const dword id)
+			void CrazyClimber::LoadState(State::Loader& loader,const dword id)
 			{
 				if (id == AsciiId<'C','C'>::V)
-					shifter = ~state.Read8() & 0x1;
+					shifter = ~loader.Read8() & 0x1;
 			}
 
 			#ifdef NST_MSVC_OPTIMIZE

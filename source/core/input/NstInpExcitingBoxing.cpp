@@ -46,9 +46,9 @@ namespace Nes
 				state = 0x1E;
 			}
 
-			void ExcitingBoxing::SaveState(State::Saver& state,const byte id) const
+			void ExcitingBoxing::SaveState(State::Saver& saver,const byte id) const
 			{
-				state.Begin( AsciiId<'E','B'>::R(0,0,id) ).End();
+				saver.Begin( AsciiId<'E','B'>::R(0,0,id) ).End();
 			}
 
 			#ifdef NST_MSVC_OPTIMIZE

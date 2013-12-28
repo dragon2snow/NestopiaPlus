@@ -33,40 +33,16 @@ namespace Nes
 {
 	namespace Core
 	{
-		class Mapper142 : public Mapper
+		class Mapper142 : public Boards::Kaiser
 		{
 		public:
 
-			explicit Mapper142(Context&);
+			explicit Mapper142(Context& c)
+			: Kaiser(c,TYPE_7032) {}
 
 		private:
 
 			~Mapper142() {}
-
-			void SubReset(bool);
-			void SubLoad(State::Loader&);
-			void SubSave(State::Saver&) const;
-			void VSync();
-
-			NES_DECL_POKE( 8000 );
-			NES_DECL_POKE( 9000 );
-			NES_DECL_POKE( A000 );
-			NES_DECL_POKE( B000 );
-			NES_DECL_POKE( C000 );
-			NES_DECL_POKE( E000 );
-			NES_DECL_POKE( F000 );
-
-			struct Irq
-			{
-				void Reset(bool);
-				ibool Signal();
-
-				ibool enabled;
-				uint count;
-			};
-
-			uint ctrl;
-			Clock::M2<Irq> irq;
 		};
 	}
 }

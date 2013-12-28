@@ -55,10 +55,14 @@ namespace Nestopia
 				Window::Main&
 			);
 
+			~Files();
+
 		private:
 
 			void Open(tstring=NULL,uint=0) const;
 			bool Close() const;
+			void DisplayLoadMessage(bool) const;
+			void UpdateMenu() const;
 			void AutoStart() const;
 
 			ibool OnMsgDropFiles (Window::Param&);
@@ -70,7 +74,7 @@ namespace Nestopia
 			void OnCmdLoadScript (uint);
 			void OnCmdSaveScript (uint);
 
-			void OnEmuEvent (Emulator::Event);
+			void OnEmuEvent (Emulator::Event,Emulator::Data);
 
 			const Paths& paths;
 			const Preferences& preferences;

@@ -41,11 +41,20 @@ namespace Nes
 			#pragma optimize("s", on)
 			#endif
 
-			Saver::Saver(StdStream p,bool c,bool i)
+			Saver::Saver(StdStream p,bool c,bool i,dword append)
 			: stream(p), chunks(CHUNK_RESERVE), useCompression(c), internal(i)
 			{
+				NST_COMPILE_ASSERT( CHUNK_RESERVE >= 2 );
+
 				chunks.SetTo(1);
 				chunks.Front() = 0;
+
+				if (append)
+				{
+					chunks.SetTo(2);
+					chunks[1] = append;
+					stream.Seek( 4 + 4 + append );
+				}
 			}
 
 			Saver::~Saver()
@@ -57,9 +66,9 @@ namespace Nes
 			#pragma optimize("", on)
 			#endif
 
-			Saver& Saver::Begin(dword id)
+			Saver& Saver::Begin(dword chunk)
 			{
-				stream.Write32( id );
+				stream.Write32( chunk );
 				stream.Write32( 0 );
 				chunks.Append( 0 );
 
@@ -98,6 +107,13 @@ namespace Nes
 			{
 				chunks.Back() += 4;
 				stream.Write32( data );
+				return *this;
+			}
+
+			Saver& Saver::Write64(qword data)
+			{
+				chunks.Back() += 8;
+				stream.Write64( data );
 				return *this;
 			}
 
@@ -156,7 +172,7 @@ namespace Nes
 				if (chunks.Size() && !chunks.Back())
 					return 0;
 
-				const dword id = stream.Read32();
+				const dword chunk = stream.Read32();
 				const dword length = stream.Read32();
 
 				if (chunks.Size())
@@ -169,7 +185,17 @@ namespace Nes
 
 				chunks.Append( length );
 
-				return id;
+				return chunk;
+			}
+
+			dword Loader::Length() const
+			{
+				return chunks.Size() ? chunks.Back() : 0;
+			}
+
+			dword Loader::Check()
+			{
+				return chunks.Size() && !chunks.Back() ? 0 : stream.Peek32();
 			}
 
 			void Loader::End()
@@ -179,6 +205,12 @@ namespace Nes
 					NST_DEBUG_MSG("unreferenced state chunk data!");
 					stream.Seek( remaining );
 				}
+			}
+
+			void Loader::End(dword rollBack)
+			{
+				if (const idword back = -idword(rollBack+4+4) + idword(chunks.Pop()))
+					stream.Seek( back );
 			}
 
 			void Loader::CheckRead(dword length)
@@ -205,6 +237,12 @@ namespace Nes
 			{
 				CheckRead( 4 );
 				return stream.Read32();
+			}
+
+			qword Loader::Read64()
+			{
+				CheckRead( 8 );
+				return stream.Read64();
 			}
 
 			void Loader::Read(byte* const data,const dword length)

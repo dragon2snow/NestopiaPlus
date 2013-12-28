@@ -33,16 +33,19 @@ namespace Nes
 		#pragma optimize("s", on)
 		#endif
 
-		void Mapper255::SubReset(bool)
+		void Mapper255::SubReset(const bool hard)
 		{
 			Map( 0x8000U, 0xFFFFU, &Mapper255::Poke_Prg );
+
+			if (hard)
+				NES_DO_POKE(Prg,0x8000,0x00);
 		}
 
 		#ifdef NST_MSVC_OPTIMIZE
 		#pragma optimize("", on)
 		#endif
 
-		NES_POKE(Mapper255,Prg)
+		NES_POKE_A(Mapper255,Prg)
 		{
 			const uint mode = (~address >> 12 & 0x1);
 			const uint bank = (address >> 8 & 0x40) | (address >> 6 & 0x3F);

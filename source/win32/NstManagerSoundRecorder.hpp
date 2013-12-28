@@ -36,19 +36,20 @@ namespace Nestopia
 			Recorder(Window::Menu&,Window::Sound::Recorder&,Emulator&);
 			~Recorder();
 
-			void Enable(const WAVEFORMATEX&);
-			void Disable();
+			void Enable(const WAVEFORMATEX*);
 
 			NST_NO_INLINE void Flush(const Nes::Sound::Output&);
 
 		private:
 
-			void UpdateMenu() const;
 			void Close();
 
-			void OnEmuEvent(Emulator::Event);
 			bool CanRecord() const;
+			bool CanRewind() const;
+			bool CanStop() const;
 
+			void OnMenu      (const Window::Menu::PopupHandler::Param&);
+			void OnEmuEvent  (Emulator::Event,Emulator::Data);
 			void OnCmdFile   (uint);
 			void OnCmdRecord (uint);
 			void OnCmdStop   (uint);

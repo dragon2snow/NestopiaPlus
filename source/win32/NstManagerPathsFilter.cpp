@@ -30,57 +30,6 @@ namespace Nestopia
 {
 	namespace Managers
 	{
-		#define NST_FILTER_INES_ALL         ", *.nes"
-		#define NST_FILTER_UNIF_ALL         ", *.unf"
-		#define NST_FILTER_FDS_ALL          ", *.fds"
-		#define NST_FILTER_NSF_ALL          ", *.nsf"
-		#define NST_FILTER_ROM_ALL          ", *.rom"
-		#define NST_FILTER_SCRIPT_ALL       ", *.nsp"
-		#define NST_FILTER_BATTERY_ALL      ", *.sav"
-		#define NST_FILTER_TAPE_ALL         ", *.tp"
-		#define NST_FILTER_STATE_ALL        ", *.nst"
-		#define NST_FILTER_MOVIE_ALL        ", *.nsv"
-		#define NST_FILTER_IPS_ALL          ", *.ips"
-		#define NST_FILTER_SLOTS_ALL        ", *.ns1..9"
-		#define NST_FILTER_PALETTE_ALL      ", *.pal"
-		#define NST_FILTER_WAVE_ALL         ", *.wav"
-		#define NST_FILTER_AVI_ALL          ", *.avi"
-		#define NST_FILTER_ARCHIVE_ALL      ", *.zip, *.rar, *.7z"
-		#define NST_FILTER_INES             ";*.nes"
-		#define NST_FILTER_UNIF             ";*.unf;*.unif"
-		#define NST_FILTER_FDS              ";*.fds"
-		#define NST_FILTER_NSF              ";*.nsf"
-		#define NST_FILTER_ROM              ";*.rom"
-		#define NST_FILTER_SCRIPT           ";*.nsp"
-		#define NST_FILTER_BATTERY          ";*.sav"
-		#define NST_FILTER_TAPE             ";*.tp"
-		#define NST_FILTER_STATE            ";*.nst"
-		#define NST_FILTER_MOVIE            ";*.nsv"
-		#define NST_FILTER_IPS              ";*.ips"
-		#define NST_FILTER_SLOTS            ";*.ns1;*.ns2;*.ns3;*.ns4;*.ns5;*.ns6;*.ns7;*.ns8;*.ns9"
-		#define NST_FILTER_PALETTE          ";*.pal"
-		#define NST_FILTER_WAVE             ";*.wav"
-		#define NST_FILTER_AVI              ";*.avi"
-		#define NST_FILTER_ARCHIVE          ";*.zip;*.rar;*.7z"
-		#define NST_FILTER_INES_DESC        " (*.nes)\t*.nes"
-		#define NST_FILTER_UNIF_DESC        " (*.unf,*.unif)\t*.unf;*.unif"
-		#define NST_FILTER_FDS_DESC         " (*.fds)\t*.fds"
-		#define NST_FILTER_NSF_DESC         " (*.nsf)\t*.nsf"
-		#define NST_FILTER_ROM_DESC         " (*.rom)\t*.rom"
-		#define NST_FILTER_SCRIPT_DESC      " (*.nsp)\t*.nsp"
-		#define NST_FILTER_BATTERY_DESC     " (*.sav)\t*.sav"
-		#define NST_FILTER_TAPE_DESC        " (*.tp)\t*.tp"
-		#define NST_FILTER_STATE_SLOTS_DESC " (*.nst,*.ns1..9)\t*.nst;*.ns1;*.ns2;*.ns3;*.ns4;*.ns5;*.ns6;*.ns7;*.ns8;*.ns9"
-		#define NST_FILTER_STATE_DESC       " (*.nst)\t*.nst"
-		#define NST_FILTER_SLOTS_DESC       " (*.ns1..9)\t*.ns1;*.ns2;*.ns3;*.ns4;*.ns5;*.ns6;*.ns7;*.ns8;*.ns9"
-		#define NST_FILTER_MOVIE_DESC       " (*.nsv)\t*.nsv"
-		#define NST_FILTER_IPS_DESC         " (*.ips)\t*.ips"
-		#define NST_FILTER_PALETTE_DESC     " (*.pal)\t*.pal"
-		#define NST_FILTER_WAVE_DESC        " (*.wav)\t*.wav"
-		#define NST_FILTER_AVI_DESC         " (*.avi)\t*.avi"
-		#define NST_FILTER_ARCHIVE_DESC     " (*.zip,*.rar,*.7z)\t*.zip;*.rar;*.7z"
-		#define NST_FILTER_ALL_DESC         " (*.*)\t*.*\t"
-
 		Paths::Filter::Filter(const File::Types types)
 		{
 			NST_ASSERT( types.Word() );
@@ -89,22 +38,22 @@ namespace Nestopia
 
 			uint offset = Length();
 
-			if (types( File::INES    )) (*this) << NST_FILTER_INES_ALL;
-			if (types( File::UNIF    )) (*this) << NST_FILTER_UNIF_ALL;
-			if (types( File::FDS     )) (*this) << NST_FILTER_FDS_ALL;
-			if (types( File::NSF     )) (*this) << NST_FILTER_NSF_ALL;
-			if (types( File::ROM     )) (*this) << NST_FILTER_ROM_ALL;
-			if (types( File::SCRIPT  )) (*this) << NST_FILTER_SCRIPT_ALL;
-			if (types( File::BATTERY )) (*this) << NST_FILTER_BATTERY_ALL;
-			if (types( File::TAPE    )) (*this) << NST_FILTER_TAPE_ALL;
-			if (types( File::STATE   )) (*this) << NST_FILTER_STATE_ALL;
-			if (types( File::SLOTS   )) (*this) << NST_FILTER_SLOTS_ALL;
-			if (types( File::MOVIE   )) (*this) << NST_FILTER_MOVIE_ALL;
-			if (types( File::IPS     )) (*this) << NST_FILTER_IPS_ALL;
-			if (types( File::PALETTE )) (*this) << NST_FILTER_PALETTE_ALL;
-			if (types( File::WAVE    )) (*this) << NST_FILTER_WAVE_ALL;
-			if (types( File::AVI     )) (*this) << NST_FILTER_AVI_ALL;
-			if (types( File::ARCHIVE )) (*this) << NST_FILTER_ARCHIVE_ALL;
+			if (types( File::INES    )) (*this) << ", *.nes";
+			if (types( File::UNIF    )) (*this) << ", *.unf";
+			if (types( File::FDS     )) (*this) << ", *.fds";
+			if (types( File::NSF     )) (*this) << ", *.nsf";
+			if (types( File::ROM     )) (*this) << ", *.rom";
+			if (types( File::SCRIPT  )) (*this) << ", *.nsp";
+			if (types( File::BATTERY )) (*this) << ", *.sav";
+			if (types( File::TAPE    )) (*this) << ", *.tp";
+			if (types( File::STATE   )) (*this) << ", *.nst";
+			if (types( File::SLOTS   )) (*this) << ", *.ns1..9";
+			if (types( File::MOVIE   )) (*this) << ", *.nsv";
+			if (types( File::IPS     )) (*this) << ", *.ips";
+			if (types( File::PALETTE )) (*this) << ", *.pal";
+			if (types( File::WAVE    )) (*this) << ", *.wav";
+			if (types( File::AVI     )) (*this) << ", *.avi";
+			if (types( File::ARCHIVE )) (*this) << ", *.zip, *.rar, *.7z";
 
 			if (Length() <= MAX_FILE_DIALOG_WIDTH)
 			{
@@ -119,49 +68,49 @@ namespace Nestopia
 				ShrinkTo( offset );
 			}
 
-			if (types( File::INES    )) (*this) << NST_FILTER_INES;
-			if (types( File::UNIF    )) (*this) << NST_FILTER_UNIF;
-			if (types( File::FDS     )) (*this) << NST_FILTER_FDS;
-			if (types( File::NSF     )) (*this) << NST_FILTER_NSF;
-			if (types( File::ROM     )) (*this) << NST_FILTER_ROM;
-			if (types( File::SCRIPT  )) (*this) << NST_FILTER_SCRIPT;
-			if (types( File::BATTERY )) (*this) << NST_FILTER_BATTERY;
-			if (types( File::TAPE    )) (*this) << NST_FILTER_TAPE;
-			if (types( File::STATE   )) (*this) << NST_FILTER_STATE;
-			if (types( File::MOVIE   )) (*this) << NST_FILTER_MOVIE;
-			if (types( File::IPS     )) (*this) << NST_FILTER_IPS;
-			if (types( File::SLOTS   )) (*this) << NST_FILTER_SLOTS;
-			if (types( File::PALETTE )) (*this) << NST_FILTER_PALETTE;
-			if (types( File::WAVE    )) (*this) << NST_FILTER_WAVE;
-			if (types( File::AVI     )) (*this) << NST_FILTER_AVI;
-			if (types( File::ARCHIVE )) (*this) << NST_FILTER_ARCHIVE;
+			if (types( File::INES    )) (*this) << ";*.nes";
+			if (types( File::UNIF    )) (*this) << ";*.unf;*.unif";
+			if (types( File::FDS     )) (*this) << ";*.fds";
+			if (types( File::NSF     )) (*this) << ";*.nsf";
+			if (types( File::ROM     )) (*this) << ";*.rom";
+			if (types( File::SCRIPT  )) (*this) << ";*.nsp";
+			if (types( File::BATTERY )) (*this) << ";*.sav";
+			if (types( File::TAPE    )) (*this) << ";*.tp";
+			if (types( File::STATE   )) (*this) << ";*.nst";
+			if (types( File::MOVIE   )) (*this) << ";*.nsv";
+			if (types( File::IPS     )) (*this) << ";*.ips";
+			if (types( File::SLOTS   )) (*this) << ";*.ns1;*.ns2;*.ns3;*.ns4;*.ns5;*.ns6;*.ns7;*.ns8;*.ns9";
+			if (types( File::PALETTE )) (*this) << ";*.pal";
+			if (types( File::WAVE    )) (*this) << ";*.wav";
+			if (types( File::AVI     )) (*this) << ";*.avi";
+			if (types( File::ARCHIVE )) (*this) << ";*.zip;*.rar;*.7z";
 
 			At(offset) = '\t';
 
-			if (types( File::INES     )) (*this) << '\t' << Resource::String( IDS_FILES_INES    ) << NST_FILTER_INES_DESC;
-			if (types( File::UNIF     )) (*this) << '\t' << Resource::String( IDS_FILES_UNIF    ) << NST_FILTER_UNIF_DESC;
-			if (types( File::FDS      )) (*this) << '\t' << Resource::String( IDS_FILES_FDS     ) << NST_FILTER_FDS_DESC;
-			if (types( File::NSF      )) (*this) << '\t' << Resource::String( IDS_FILES_NSF     ) << NST_FILTER_NSF_DESC;
-			if (types( File::ROM      )) (*this) << '\t' << Resource::String( IDS_FILES_ROM     ) << NST_FILTER_ROM_DESC;
-			if (types( File::SCRIPT   )) (*this) << '\t' << Resource::String( IDS_FILES_SCRIPT  ) << NST_FILTER_SCRIPT_DESC;
-			if (types( File::BATTERY  )) (*this) << '\t' << Resource::String( IDS_FILES_BATTERY ) << NST_FILTER_BATTERY_DESC;
-			if (types( File::TAPE     )) (*this) << '\t' << Resource::String( IDS_FILES_TAPE    ) << NST_FILTER_TAPE_DESC;
+			if (types( File::INES     )) (*this) << '\t' << Resource::String( IDS_FILES_INES    ) << " (*.nes)\t*.nes";
+			if (types( File::UNIF     )) (*this) << '\t' << Resource::String( IDS_FILES_UNIF    ) << " (*.unf,*.unif)\t*.unf;*.unif";
+			if (types( File::FDS      )) (*this) << '\t' << Resource::String( IDS_FILES_FDS     ) << " (*.fds)\t*.fds";
+			if (types( File::NSF      )) (*this) << '\t' << Resource::String( IDS_FILES_NSF     ) << " (*.nsf)\t*.nsf";
+			if (types( File::ROM      )) (*this) << '\t' << Resource::String( IDS_FILES_ROM     ) << " (*.rom)\t*.rom";
+			if (types( File::SCRIPT   )) (*this) << '\t' << Resource::String( IDS_FILES_SCRIPT  ) << " (*.nsp)\t*.nsp";
+			if (types( File::BATTERY  )) (*this) << '\t' << Resource::String( IDS_FILES_BATTERY ) << " (*.sav)\t*.sav";
+			if (types( File::TAPE     )) (*this) << '\t' << Resource::String( IDS_FILES_TAPE    ) << " (*.tp)\t*.tp";
 
 			switch (types( File::STATE|File::SLOTS ))
 			{
-				case File::STATE:             (*this) << '\t' << Resource::String( IDS_FILES_STATE       ) << NST_FILTER_STATE_DESC;       break;
-				case File::SLOTS:             (*this) << '\t' << Resource::String( IDS_FILES_STATE_SLOTS ) << NST_FILTER_SLOTS_DESC;       break;
-				case File::STATE|File::SLOTS: (*this) << '\t' << Resource::String( IDS_FILES_STATE       ) << NST_FILTER_STATE_SLOTS_DESC; break;
+				case File::STATE:             (*this) << '\t' << Resource::String( IDS_FILES_STATE       ) << " (*.nst)\t*.nst"; break;
+				case File::SLOTS:             (*this) << '\t' << Resource::String( IDS_FILES_STATE_SLOTS ) << " (*.ns1..9)\t*.ns1;*.ns2;*.ns3;*.ns4;*.ns5;*.ns6;*.ns7;*.ns8;*.ns9"; break;
+				case File::STATE|File::SLOTS: (*this) << '\t' << Resource::String( IDS_FILES_STATE       ) << " (*.nst,*.ns1..9)\t*.nst;*.ns1;*.ns2;*.ns3;*.ns4;*.ns5;*.ns6;*.ns7;*.ns8;*.ns9"; break;
 			}
 
-			if (types( File::MOVIE    )) (*this) << '\t' << Resource::String( IDS_FILES_MOVIE   ) << NST_FILTER_MOVIE_DESC;
-			if (types( File::IPS      )) (*this) << '\t' << Resource::String( IDS_FILES_IPS     ) << NST_FILTER_IPS_DESC;
-			if (types( File::PALETTE  )) (*this) << '\t' << Resource::String( IDS_FILES_PALETTE ) << NST_FILTER_PALETTE_DESC;
-			if (types( File::WAVE     )) (*this) << '\t' << Resource::String( IDS_FILES_WAVE    ) << NST_FILTER_WAVE_DESC;
-			if (types( File::AVI      )) (*this) << '\t' << Resource::String( IDS_FILES_AVI     ) << NST_FILTER_AVI_DESC;
-			if (types( File::ARCHIVE  )) (*this) << '\t' << Resource::String( IDS_FILES_ARCHIVE ) << NST_FILTER_ARCHIVE_DESC;
+			if (types( File::MOVIE    )) (*this) << '\t' << Resource::String( IDS_FILES_MOVIE   ) << " (*.nsv)\t*.nsv";
+			if (types( File::IPS      )) (*this) << '\t' << Resource::String( IDS_FILES_IPS     ) << " (*.ips)\t*.ips";
+			if (types( File::PALETTE  )) (*this) << '\t' << Resource::String( IDS_FILES_PALETTE ) << " (*.pal)\t*.pal";
+			if (types( File::WAVE     )) (*this) << '\t' << Resource::String( IDS_FILES_WAVE    ) << " (*.wav)\t*.wav";
+			if (types( File::AVI      )) (*this) << '\t' << Resource::String( IDS_FILES_AVI     ) << " (*.avi)\t*.avi";
+			if (types( File::ARCHIVE  )) (*this) << '\t' << Resource::String( IDS_FILES_ARCHIVE ) << " (*.zip,*.rar,*.7z)\t*.zip;*.rar;*.7z";
 
-			(*this) << '\t' << Resource::String( IDS_FILES_ALL ) << NST_FILTER_ALL_DESC;
+			(*this) << '\t' << Resource::String( IDS_FILES_ALL ) << " (*.*)\t*.*\t";
 		}
 	}
 }

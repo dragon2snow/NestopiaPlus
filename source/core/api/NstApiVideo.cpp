@@ -43,14 +43,24 @@ namespace Nes
 		#pragma optimize("s", on)
 		#endif
 
-		void Video::EnableUnlimSprites(bool state) throw()
+		Result Video::EnableUnlimSprites(bool state) throw()
 		{
-			emulator.ppu.EnableUnlimSprites( state );
+			if (emulator.tracker.IsLocked( true ))
+				return RESULT_ERR_NOT_READY;
+
+			if (!emulator.ppu.HasSpriteLimit() != state)
+			{
+				emulator.ppu.EnableSpriteLimit( !state );
+				emulator.tracker.Resync( true );
+				return RESULT_OK;
+			}
+
+			return RESULT_NOP;
 		}
 
 		bool Video::AreUnlimSpritesEnabled() const throw()
 		{
-			return emulator.ppu.AreUnlimSpritesEnabled();
+			return !emulator.ppu.HasSpriteLimit();
 		}
 
 		int Video::GetBrightness() const throw()
@@ -179,6 +189,19 @@ namespace Nes
 			return RESULT_ERR_NOT_READY;
 		}
 
+		Video::RenderState::RenderState() throw()
+		:
+		width     (0),
+		height    (0),
+		scanlines (0),
+		filter    (FILTER_NONE)
+		{
+			bits.count = 0;
+			bits.mask.r = 0;
+			bits.mask.g = 0;
+			bits.mask.b = 0;
+		}
+
 		Video::Decoder::Decoder(DecoderPreset preset) throw()
 		{
 			switch (preset)
@@ -226,10 +249,15 @@ namespace Nes
 					return false;
 			}
 
-			if (boostYellow != decoder.boostYellow)
+			if (bool(boostYellow) != bool(decoder.boostYellow))
 				return false;
 
 			return true;
+		}
+
+		bool Video::Decoder::operator != (const Decoder& decoder) const throw()
+		{
+			return !(*this == decoder);
 		}
 
 		Result Video::SetDecoder(const Decoder& decoder) throw()
@@ -268,7 +296,8 @@ namespace Nes
 
 		Video::Palette::Mode Video::Palette::GetDefaultMode() const throw()
 		{
-			NST_COMPILE_ASSERT( Core::Video::Renderer::DEFAULT_PALETTE == Core::Video::Renderer::PALETTE_YUV );
+			NST_COMPILE_ASSERT( Core::Video::Renderer::DEFAULT_PALETTE - Core::Video::Renderer::PALETTE_YUV == 0 );
+
 			return MODE_YUV;
 		}
 

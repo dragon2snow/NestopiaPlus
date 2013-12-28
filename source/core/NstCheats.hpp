@@ -45,7 +45,7 @@ namespace Nes
 			~Cheats();
 
 			void Reset();
-			void BeginFrame() const;
+			void BeginFrame(bool);
 			void ClearCodes();
 
 			Result GetCode (dword,ushort*,uchar*,uchar*,bool*) const;
@@ -85,6 +85,7 @@ namespace Nes
 			void Map(HiCode&);
 
 			Cpu& cpu;
+			ibool frameLocked;
 			LoCodes loCodes;
 			HiCodes hiCodes;
 

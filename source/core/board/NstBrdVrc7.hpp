@@ -48,11 +48,9 @@ namespace Nes
 				{
 				public:
 
-					explicit Sound(Cpu&,bool=true);
-					~Sound();
+					explicit Sound(Apu&,bool=true);
 
-					void WriteReg0(uint);
-					void WriteReg1(uint);
+					void WriteReg(uint);
 
 					void SaveState(State::Saver&,dword) const;
 					void LoadState(State::Loader&);
@@ -60,13 +58,13 @@ namespace Nes
 				protected:
 
 					void Reset();
-					void UpdateContext(uint,const byte (&w)[MAX_CHANNELS]);
+					bool UpdateSettings();
 					Sample GetSample();
 
 				private:
 
 					void ResetClock();
-					void RefreshContext();
+					void Refresh();
 
 					enum
 					{
@@ -89,12 +87,10 @@ namespace Nes
 						CLOCK_DIV      = 3579545 / 72,
 						CLOCK_RATE     = (1UL << 31) / CLOCK_DIV,
 						PG_PHASE_RANGE = (1UL << 18) - 1,
-						EG_BEGIN       = 1UL << 22
+						EG_BEGIN       = 1UL << 22,
+						PITCH_RATE     = 64UL * (1UL << 16) / CLOCK_DIV / 10,
+						AMP_RATE       = 37UL * (1UL << 16) / CLOCK_DIV / 10
 					};
-
-					static const dword PITCH_RATE;
-					static const dword AMP_RATE;
-					static const double PI_2;
 
 					class Tables
 					{
@@ -136,26 +132,24 @@ namespace Nes
 					{
 					public:
 
-						OpllChannel();
-
 						void Reset();
 						void Update(const Tables&);
 						void SaveState(State::Saver&,dword) const;
 						void LoadState(State::Loader&,const Tables&);
 
-						NST_FORCE_INLINE void WriteReg0 (uint,const Tables&);
-						NST_FORCE_INLINE void WriteReg1 (uint,const Tables&);
-						NST_FORCE_INLINE void WriteReg2 (uint,const Tables&);
-						NST_FORCE_INLINE void WriteReg3 (uint);
-						NST_FORCE_INLINE void WriteReg4 (uint,const Tables&);
-						NST_FORCE_INLINE void WriteReg5 (uint,const Tables&);
-						NST_FORCE_INLINE void WriteReg6 (uint,const Tables&);
-						NST_FORCE_INLINE void WriteReg7 (uint,const Tables&);
-						NST_FORCE_INLINE void WriteReg8 (uint,const Tables&);
-						NST_FORCE_INLINE void WriteReg9 (uint,const Tables&);
-						NST_FORCE_INLINE void WriteRegA (uint,const Tables&);
+						NST_SINGLE_CALL void WriteReg0 (uint,const Tables&);
+						NST_SINGLE_CALL void WriteReg1 (uint,const Tables&);
+						NST_SINGLE_CALL void WriteReg2 (uint,const Tables&);
+						NST_SINGLE_CALL void WriteReg3 (uint);
+						NST_SINGLE_CALL void WriteReg4 (uint,const Tables&);
+						NST_SINGLE_CALL void WriteReg5 (uint,const Tables&);
+						NST_SINGLE_CALL void WriteReg6 (uint,const Tables&);
+						NST_SINGLE_CALL void WriteReg7 (uint,const Tables&);
+						NST_SINGLE_CALL void WriteReg8 (uint,const Tables&);
+						NST_SINGLE_CALL void WriteReg9 (uint,const Tables&);
+						NST_SINGLE_CALL void WriteRegA (uint,const Tables&);
 
-						NST_FORCE_INLINE Sample GetSample(uint,uint,const Tables&);
+						NST_SINGLE_CALL Sample GetSample(uint,uint,const Tables&);
 
 					private:
 
@@ -177,26 +171,26 @@ namespace Nes
 
 						enum
 						{
-							REG01_MULTIPLE      = b00001111,
-							REG01_RATE          = b00010000,
-							REG01_HOLD          = b00100000,
-							REG01_USE_VIBRATO   = b01000000,
-							REG01_USE_AMP       = b10000000,
-							REG2_TOTAL_LEVEL    = b00111111,
-							REG3_FEEDBACK       = b00000111,
-							REG3_MODULATED_WAVE = b00001000,
-							REG3_CARRIER_WAVE   = b00010000,
-							REG45_DECAY         = b00001111,
-							REG45_ATTACK        = b11110000,
-							REG67_RELEASE       = b00001111,
-							REG67_SUSTAIN_LEVEL = b11110000,
-							REG8_FRQ_LO         = b11111111,
-							REG9_FRQ_HI         = b00000001,
-							REG9_BLOCK          = b00001110,
-							REG9_KEY            = b00010000,
-							REG9_SUSTAIN        = b00100000,
-							REGA_VOLUME         = b00001111,
-							REGA_INSTRUMENT     = b11110000,
+							REG01_MULTIPLE      = 0x0F,
+							REG01_RATE          = 0x10,
+							REG01_HOLD          = 0x20,
+							REG01_USE_VIBRATO   = 0x40,
+							REG01_USE_AMP       = 0x80,
+							REG2_TOTAL_LEVEL    = 0x3F,
+							REG3_FEEDBACK       = 0x07,
+							REG3_MODULATED_WAVE = 0x08,
+							REG3_CARRIER_WAVE   = 0x10,
+							REG45_DECAY         = 0x0F,
+							REG45_ATTACK        = 0xF0,
+							REG67_RELEASE       = 0x0F,
+							REG67_SUSTAIN_LEVEL = 0xF0,
+							REG8_FRQ_LO         = 0xFF,
+							REG9_FRQ_HI         = 0x01,
+							REG9_BLOCK          = 0x0E,
+							REG9_KEY            = 0x10,
+							REG9_SUSTAIN        = 0x20,
+							REGA_VOLUME         = 0x0F,
+							REGA_INSTRUMENT     = 0xF0,
 							SUSTAIN_LEVEL_MAX   = 0x100
 						};
 
@@ -248,8 +242,8 @@ namespace Nes
 						Sample feedback;
 					};
 
-					Apu& apu;
-					uint reg;
+					uint output;
+					uint regSelect;
 
 					dword sampleRate;
 					dword samplePhase;
@@ -262,7 +256,12 @@ namespace Nes
 					OpllChannel channels[NUM_OPLL_CHANNELS];
 					const Tables tables;
 
-					const ibool hooked;
+				public:
+
+					void SelectReg(uint data)
+					{
+						regSelect = data;
+					}
 				};
 
 			private:
@@ -270,7 +269,7 @@ namespace Nes
 				void SubReset(bool);
 				void BaseSave(State::Saver&) const;
 				void BaseLoad(State::Loader&,dword);
-				void VSync();
+				void Sync(Event,Input::Controllers*);
 
 				NES_DECL_POKE( 9010 );
 				NES_DECL_POKE( 9030 );

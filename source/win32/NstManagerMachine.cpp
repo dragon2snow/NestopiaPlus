@@ -28,6 +28,7 @@
 #include "NstManager.hpp"
 #include "NstManagerPreferences.hpp"
 #include "NstManagerMachine.hpp"
+#include "../core/api/NstApiMachine.hpp"
 
 namespace Nestopia
 {
@@ -57,34 +58,67 @@ namespace Nestopia
 
 			menu.Commands().Add( this, commands );
 
-			static const Window::Menu::PopupHandler::Entry<Machine> popups[] =
-			{
-				{ Window::Menu::PopupHandler::Pos<IDM_POS_MACHINE,IDM_POS_MACHINE_SYSTEM>::ID, &Machine::OnMenuSystem }
-			};
-
-			menu.PopupRouter().Add( this, popups );
-
 			const GenericString type( cfg["machine region"] );
-			const uint id = (type == _T("ntsc") ? IDM_MACHINE_SYSTEM_NTSC : type == _T("pal") ? IDM_MACHINE_SYSTEM_PAL : IDM_MACHINE_SYSTEM_AUTO);
 
-			menu[id].Check( IDM_MACHINE_SYSTEM_AUTO, IDM_MACHINE_SYSTEM_PAL );
+			SetRegion
+			(
+				type == _T("ntsc") ? IDM_MACHINE_SYSTEM_NTSC :
+				type == _T("pal")  ? IDM_MACHINE_SYSTEM_PAL  :
+                                     IDM_MACHINE_SYSTEM_AUTO
+			);
 
-			if (id == IDM_MACHINE_SYSTEM_AUTO)
-				emulator.AutoSetMode();
-			else
-				emulator.SetMode( id == IDM_MACHINE_SYSTEM_NTSC ? Nes::Machine::NTSC : Nes::Machine::PAL );
+			UpdateMenu();
+			UpdateMenuPowerState();
 		}
 
 		void Machine::Save(Configuration& cfg) const
 		{
-			cfg[ "machine region" ] = menu[IDM_MACHINE_SYSTEM_AUTO].Checked() ? _T( "auto" ) :
-                                      emulator.Is(Nes::Machine::NTSC) ?         _T( "ntsc" ) :
-																				_T( "pal"  );
+			cfg["machine region"] =
+			(
+				menu[IDM_MACHINE_SYSTEM_AUTO].Checked()       ? _T( "auto" ) :
+				Nes::Machine(emulator).Is(Nes::Machine::NTSC) ? _T( "ntsc" ) :
+																_T( "pal"  )
+			);
+		}
+
+		void Machine::UpdateMenu() const
+		{
+			const bool on = emulator.IsOn();
+			const bool reset = (on && emulator.GetPlayer() == Emulator::MASTER);
+			const bool pause = (on && emulator.NetPlayers() == 0);
+
+			menu[IDM_MACHINE_POWER].Text() << Resource::String( on ? IDS_MENU_POWER_OFF : IDS_MENU_POWER_ON );
+			menu[IDM_MACHINE_RESET_SOFT].Enable( reset );
+			menu[IDM_MACHINE_RESET_HARD].Enable( reset );
+			menu[IDM_POS_MACHINE][IDM_POS_MACHINE_RESET].Enable( reset );
+			menu[IDM_MACHINE_PAUSE].Enable( pause );
+		}
+
+		void Machine::UpdateMenuPowerState() const
+		{
+			menu[IDM_MACHINE_POWER].Enable( emulator.IsImage() && emulator.NetPlayers() == 0 );
+		}
+
+		bool Machine::SetRegion(const uint id) const
+		{
+			const Nes::Result result = Nes::Machine(emulator).SetMode
+			(
+				id == IDM_MACHINE_SYSTEM_AUTO ? Nes::Machine(emulator).GetDesiredMode() :
+				id == IDM_MACHINE_SYSTEM_NTSC ? Nes::Machine::NTSC : Nes::Machine::PAL
+			);
+
+			if (NES_SUCCEEDED(result))
+			{
+				menu[id].Check( IDM_MACHINE_SYSTEM_AUTO, IDM_MACHINE_SYSTEM_PAL );
+				return result != Nes::RESULT_NOP;
+			}
+
+			return false;
 		}
 
 		void Machine::OnCmdPower(uint)
 		{
-			if (emulator.Is( Nes::Machine::ON ))
+			if (emulator.IsOn())
 			{
 				if
 				(
@@ -99,7 +133,6 @@ namespace Nestopia
 			else if (emulator.Power( true ))
 			{
 				Io::Screen() << Resource::String(IDS_SCREEN_POWER_ON);
-				emulator.Resume();
 			}
 		}
 
@@ -110,109 +143,92 @@ namespace Nestopia
 				!preferences[Preferences::CONFIRM_RESET] ||
 				Window::User::Confirm( IDS_ARE_YOU_SURE, IDS_MACHINE_RESET_TITLE )
 			)
-			{
-				if (emulator.Reset( hard == IDM_MACHINE_RESET_HARD ))
-					Io::Screen() << Resource::String(hard == IDM_MACHINE_RESET_HARD ? IDS_SCREEN_RESET_HARD : IDS_SCREEN_RESET_SOFT);
-			}
+				emulator.SendCommand( Emulator::COMMAND_RESET, hard == IDM_MACHINE_RESET_HARD );
 
-			Application::Instance::GetMainWindow().Post( Application::Instance::WM_NST_COMMAND_RESUME );
+			Resume();
 		}
 
 		void Machine::OnCmdPause(uint)
 		{
-			const bool state = !emulator.Paused();
+			const bool pause = !emulator.Paused();
 
-			if (emulator.Pause( state ))
-				Io::Screen() << Resource::String(state ? IDS_SCREEN_PAUSE : IDS_SCREEN_RESUME);
+			emulator.Pause( pause );
+			Io::Screen() << Resource::String(pause ? IDS_SCREEN_PAUSE : IDS_SCREEN_RESUME);
 
-			if (!state)
-				Application::Instance::GetMainWindow().Post( Application::Instance::WM_NST_COMMAND_RESUME );
+			if (!pause)
+				Resume();
 		}
 
 		void Machine::OnCmdSystem(uint id)
 		{
-			menu[id].Check( IDM_MACHINE_SYSTEM_AUTO, IDM_MACHINE_SYSTEM_PAL );
+			if (SetRegion( id ))
+				Io::Screen() << Resource::String(Nes::Machine(emulator).Is(Nes::Machine::NTSC) ? IDS_SCREEN_NTSC : IDS_SCREEN_PAL);
 
-			if (id == IDM_MACHINE_SYSTEM_AUTO)
-				id = emulator.AutoSetMode();
-			else
-				id = emulator.SetMode( id == IDM_MACHINE_SYSTEM_NTSC ? Nes::Machine::NTSC : Nes::Machine::PAL );
-
-			if (id)
-			{
-				id = emulator.Is(Nes::Machine::NTSC) ? IDS_SCREEN_NTSC : IDS_SCREEN_PAL;
-				Io::Screen() << Resource::String(id);
-			}
-
-			Application::Instance::GetMainWindow().Post( Application::Instance::WM_NST_COMMAND_RESUME );
+			Resume();
 		}
 
-		void Machine::OnMenuSystem(Window::Menu::PopupHandler::Param& param)
-		{
-			if (param.menu[IDM_MACHINE_SYSTEM_AUTO].Unchecked())
-				param.menu[emulator.Is(Nes::Machine::NTSC) ? IDM_MACHINE_SYSTEM_NTSC : IDM_MACHINE_SYSTEM_PAL].Check( IDM_MACHINE_SYSTEM_AUTO, IDM_MACHINE_SYSTEM_PAL );
-		}
-
-		void Machine::OnEmuEvent(Emulator::Event event)
+		void Machine::OnEmuEvent(const Emulator::Event event,Emulator::Data)
 		{
 			switch (event)
 			{
+				case Emulator::EVENT_RESET_SOFT:
+				case Emulator::EVENT_RESET_HARD:
+
+					Io::Screen() << Resource::String(event == Emulator::EVENT_RESET_HARD ? IDS_SCREEN_RESET_HARD : IDS_SCREEN_RESET_SOFT);
+					break;
+
+				case Emulator::EVENT_MODE_NTSC:
+				case Emulator::EVENT_MODE_PAL:
+
+					if (menu[IDM_MACHINE_SYSTEM_AUTO].Unchecked())
+						menu[event == Emulator::EVENT_MODE_NTSC ? IDM_MACHINE_SYSTEM_NTSC : IDM_MACHINE_SYSTEM_PAL].Check( IDM_MACHINE_SYSTEM_AUTO, IDM_MACHINE_SYSTEM_PAL );
+
+					break;
+
 				case Emulator::EVENT_PAUSE:
 				case Emulator::EVENT_RESUME:
 
-					menu[ IDM_MACHINE_PAUSE ].Check( event == Emulator::EVENT_PAUSE );
+					menu[IDM_MACHINE_PAUSE].Check( event == Emulator::EVENT_PAUSE );
 					break;
+
+				case Emulator::EVENT_MOVIE_PLAYING:
+				case Emulator::EVENT_MOVIE_PLAYING_STOPPED:
+				case Emulator::EVENT_MOVIE_RECORDING:
+				case Emulator::EVENT_MOVIE_RECORDING_STOPPED:
+				{
+					const bool noplay = (event != Emulator::EVENT_MOVIE_PLAYING);
+					const bool stopped = (event == Emulator::EVENT_MOVIE_PLAYING_STOPPED || event == Emulator::EVENT_MOVIE_RECORDING_STOPPED);
+
+					menu[IDM_MACHINE_RESET_SOFT].Enable( noplay );
+					menu[IDM_MACHINE_RESET_HARD].Enable( noplay );
+					menu[IDM_POS_MACHINE][IDM_POS_MACHINE_RESET].Enable( noplay );
+
+					for (uint i=IDM_MACHINE_SYSTEM_AUTO; i <= IDM_MACHINE_SYSTEM_PAL; ++i)
+						menu[i].Enable( stopped );
+
+					break;
+				}
 
 				case Emulator::EVENT_POWER_ON:
 				case Emulator::EVENT_POWER_OFF:
-				{
-					const bool state = (event == Emulator::EVENT_POWER_ON);
 
-					menu[ IDM_MACHINE_POWER ].Text() << Resource::String( state ? IDS_MENU_POWER_OFF : IDS_MENU_POWER_ON);
-					menu[ IDM_MACHINE_RESET_SOFT ].Enable( state );
-					menu[ IDM_MACHINE_RESET_HARD ].Enable( state );
-					menu[ IDM_MACHINE_PAUSE ].Enable( state );
+					UpdateMenu();
 					break;
-				}
-
-				case Emulator::EVENT_NETPLAY_POWER_ON:
-				case Emulator::EVENT_NETPLAY_POWER_OFF:
-				{
-					const bool state = (event == Emulator::EVENT_NETPLAY_POWER_ON && emulator.GetPlayer() == 1);
-
-					menu[ IDM_MACHINE_RESET_SOFT ].Enable( state );
-					menu[ IDM_MACHINE_RESET_HARD ].Enable( state );
-					break;
-				}
 
 				case Emulator::EVENT_LOAD:
 				case Emulator::EVENT_UNLOAD:
 
-					menu[ IDM_MACHINE_POWER ].Enable( event == Emulator::EVENT_LOAD );
-					break;
+					UpdateMenuPowerState();
 
-				case Emulator::EVENT_NETPLAY_LOAD:
+					if (emulator.NetPlayers())
+					{
+						const bool enable = (event == Emulator::EVENT_UNLOAD);
 
-					if (emulator.GetPlayer() == 1 && menu[IDM_MACHINE_SYSTEM_AUTO].Checked())
-						emulator.AutoSetMode();
+						menu[IDM_POS_MACHINE][IDM_POS_MACHINE_REGION].Enable( enable );
 
-				case Emulator::EVENT_NETPLAY_UNLOAD:
-				{
-					const bool state = (event == Emulator::EVENT_NETPLAY_UNLOAD);
-
-					menu[ IDM_MACHINE_SYSTEM_AUTO ].Enable( state );
-					menu[ IDM_MACHINE_SYSTEM_NTSC ].Enable( state );
-					menu[ IDM_MACHINE_SYSTEM_PAL  ].Enable( state );
-					break;
-				}
-
-				case Emulator::EVENT_INIT:
-
-					menu[ IDM_MACHINE_POWER ].Text() << Resource::String(IDS_MENU_POWER_ON);
-					menu[ IDM_MACHINE_POWER ].Disable();
-					menu[ IDM_MACHINE_RESET_SOFT ].Disable();
-					menu[ IDM_MACHINE_RESET_HARD ].Disable();
-					menu[ IDM_MACHINE_PAUSE ].Disable();
+						for (uint i=IDM_MACHINE_SYSTEM_AUTO; i <= IDM_MACHINE_SYSTEM_PAL; ++i)
+							menu[i].Enable( enable );
+					}
 					break;
 			}
 		}

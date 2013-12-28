@@ -36,34 +36,21 @@ namespace Nes
 			#pragma optimize("s", on)
 			#endif
 
-			Vrc6::Sound::Square::Square()
+			Vrc6::Sound::Sound(Apu& a,bool connect)
+			: Channel(a)
 			{
 				Reset();
-			}
+				bool audible = UpdateSettings();
 
-			Vrc6::Sound::Saw::Saw()
-			{
-				Reset();
-			}
-
-			Vrc6::Sound::Sound(Cpu& cpu,bool hook)
-			: apu(cpu.GetApu()), hooked(hook)
-			{
-				if (hook)
-					apu.HookChannel( this );
-			}
-
-			Vrc6::Sound::~Sound()
-			{
-				if (hooked)
-					apu.ReleaseChannel();
+				if (connect)
+					Connect( audible );
 			}
 
 			Vrc6::Vrc6(Context& c,const Type t)
 			:
-			Mapper (c,CROM_MAX_256K),
+			Mapper (c,CROM_MAX_256K|NMT_VERTICAL),
 			irq    (c.cpu),
-			sound  (c.cpu),
+			sound  (c.apu),
 			type   (t)
 			{}
 
@@ -97,17 +84,16 @@ namespace Nes
 
 			void Vrc6::Sound::Reset()
 			{
-				Apu::Channel::Reset();
+				for (uint i=0; i < 2; ++i)
+					square[i].Reset();
 
-				square[0].Reset();
-				square[1].Reset();
 				saw.Reset();
 				dcBlocker.Reset();
 			}
 
 			void Vrc6::SubReset(const bool hard)
 			{
-				irq.Reset( hard, hard ? false : irq.IsLineEnabled() );
+				irq.Reset( hard, hard ? false : irq.Connected() );
 
 				for (dword i=0x8000; i <= 0xFFFF; ++i)
 				{
@@ -150,33 +136,39 @@ namespace Nes
 				return enabled && phase && waveLength >= MIN_FRQ;
 			}
 
-			void Vrc6::Sound::Square::UpdateContext(const uint fixed)
+			void Vrc6::Sound::Square::UpdateSettings(const uint fixed)
 			{
 				active = CanOutput();
 				frequency = (waveLength + 1U) * fixed;
 			}
 
-			void Vrc6::Sound::Saw::UpdateContext(const uint fixed)
+			void Vrc6::Sound::Saw::UpdateSettings(const uint fixed)
 			{
 				active = CanOutput();
 				frequency = ((waveLength + 1UL) << FRQ_SHIFT) * fixed;
 			}
 
-			void Vrc6::Sound::UpdateContext(uint,const byte (&outputLevels)[MAX_CHANNELS])
+			bool Vrc6::Sound::UpdateSettings()
 			{
-				outputVolume = outputLevels[Apu::CHANNEL_VRC6];
+				output = GetVolume(EXT_VRC6);
 
-				square[0].UpdateContext( fixed );
-				square[1].UpdateContext( fixed );
-				saw.UpdateContext( fixed );
+				GetOscillatorClock( rate, fixed );
+
+				for (uint i=0; i < 2; ++i)
+					square[i].UpdateSettings( fixed );
+
+				saw.UpdateSettings( fixed );
+
 				dcBlocker.Reset();
+
+				return output;
 			}
 
-			void Vrc6::BaseLoad(State::Loader& state,const dword id)
+			void Vrc6::BaseLoad(State::Loader& state,const dword baseChunk)
 			{
-				NST_VERIFY( id == (AsciiId<'V','R','6'>::V) );
+				NST_VERIFY( baseChunk == (AsciiId<'V','R','6'>::V) );
 
-				if (id == AsciiId<'V','R','6'>::V)
+				if (baseChunk == AsciiId<'V','R','6'>::V)
 				{
 					while (const dword chunk = state.Begin())
 					{
@@ -208,9 +200,9 @@ namespace Nes
 				state.End();
 			}
 
-			void Vrc6::Sound::SaveState(State::Saver& state,const dword id) const
+			void Vrc6::Sound::SaveState(State::Saver& state,const dword baseChunk) const
 			{
-				state.Begin( id );
+				state.Begin( baseChunk );
 
 				square[0].SaveState( state, AsciiId<'S','Q','0'>::V );
 				square[1].SaveState( state, AsciiId<'S','Q','1'>::V );
@@ -245,7 +237,7 @@ namespace Nes
 				}
 			}
 
-			void Vrc6::Sound::Square::SaveState(State::Saver& state,const dword id) const
+			void Vrc6::Sound::Square::SaveState(State::Saver& state,const dword chunk) const
 			{
 				const byte data[4] =
 				{
@@ -255,7 +247,7 @@ namespace Nes
 					(duty - 1) | ((volume / VOLUME) << 3)
 				};
 
-				state.Begin( id ).Begin( AsciiId<'R','E','G'>::V ).Write( data ).End().End();
+				state.Begin( chunk ).Begin( AsciiId<'R','E','G'>::V ).Write( data ).End().End();
 			}
 
 			void Vrc6::Sound::Square::LoadState(State::Loader& state,const uint fixed)
@@ -275,14 +267,14 @@ namespace Nes
 						timer = 0;
 						step = 0;
 
-						UpdateContext( fixed );
+						UpdateSettings( fixed );
 					}
 
 					state.End();
 				}
 			}
 
-			void Vrc6::Sound::Saw::SaveState(State::Saver& state,const dword id) const
+			void Vrc6::Sound::Saw::SaveState(State::Saver& state,const dword chunk) const
 			{
 				const byte data[3] =
 				{
@@ -291,7 +283,7 @@ namespace Nes
 					waveLength >> 8
 				};
 
-				state.Begin( id ).Begin( AsciiId<'R','E','G'>::V ).Write( data ).End().End();
+				state.Begin( chunk ).Begin( AsciiId<'R','E','G'>::V ).Write( data ).End().End();
 			}
 
 			void Vrc6::Sound::Saw::LoadState(State::Loader& state,const uint fixed)
@@ -310,7 +302,7 @@ namespace Nes
 						step = 0;
 						amp = 0;
 
-						UpdateContext( fixed );
+						UpdateSettings( fixed );
 					}
 
 					state.End();
@@ -321,7 +313,7 @@ namespace Nes
 			#pragma optimize("", on)
 			#endif
 
-			NST_FORCE_INLINE void Vrc6::Sound::Square::WriteReg0(const uint data)
+			NST_SINGLE_CALL void Vrc6::Sound::Square::WriteReg0(const uint data)
 			{
 				volume = (data & REG0_VOLUME) * VOLUME;
 				duty = ((data & REG0_DUTY) >> REG0_DUTY_SHIFT) + 1;
@@ -330,7 +322,7 @@ namespace Nes
 				active = CanOutput();
 			}
 
-			NST_FORCE_INLINE void Vrc6::Sound::Square::WriteReg1(const uint data,const dword fixed)
+			NST_SINGLE_CALL void Vrc6::Sound::Square::WriteReg1(const uint data,const dword fixed)
 			{
 				waveLength &= uint(REG2_WAVELENGTH_HIGH) << 8;
 				waveLength |= data;
@@ -338,7 +330,7 @@ namespace Nes
 				active = CanOutput();
 			}
 
-			NST_FORCE_INLINE void Vrc6::Sound::Square::WriteReg2(const uint data,const dword fixed)
+			NST_SINGLE_CALL void Vrc6::Sound::Square::WriteReg2(const uint data,const dword fixed)
 			{
 				waveLength &= REG1_WAVELENGTH_LOW;
 				waveLength |= (data & REG2_WAVELENGTH_HIGH) << 8;
@@ -347,13 +339,13 @@ namespace Nes
 				active = CanOutput();
 			}
 
-			NST_FORCE_INLINE void Vrc6::Sound::Saw::WriteReg0(const uint data)
+			NST_SINGLE_CALL void Vrc6::Sound::Saw::WriteReg0(const uint data)
 			{
 				phase = data & REG0_PHASE;
 				active = CanOutput();
 			}
 
-			NST_FORCE_INLINE void Vrc6::Sound::Saw::WriteReg1(const uint data,const dword fixed)
+			NST_SINGLE_CALL void Vrc6::Sound::Saw::WriteReg1(const uint data,const dword fixed)
 			{
 				waveLength &= uint(REG2_WAVELENGTH_HIGH) << 8;
 				waveLength |= data;
@@ -361,7 +353,7 @@ namespace Nes
 				active = CanOutput();
 			}
 
-			NST_FORCE_INLINE void Vrc6::Sound::Saw::WriteReg2(const uint data,const dword fixed)
+			NST_SINGLE_CALL void Vrc6::Sound::Saw::WriteReg2(const uint data,const dword fixed)
 			{
 				waveLength &= REG1_WAVELENGTH_LOW;
 				waveLength |= (data & REG2_WAVELENGTH_HIGH) << 8;
@@ -372,51 +364,51 @@ namespace Nes
 
 			void Vrc6::Sound::WriteSquareReg0(uint i,uint data)
 			{
-				apu.Update();
+				Update();
 				square[i].WriteReg0( data );
 			}
 
 			void Vrc6::Sound::WriteSquareReg1(uint i,uint data)
 			{
-				apu.Update();
+				Update();
 				square[i].WriteReg1( data, fixed );
 			}
 
 			void Vrc6::Sound::WriteSquareReg2(uint i,uint data)
 			{
-				apu.Update();
+				Update();
 				square[i].WriteReg2( data, fixed );
 			}
 
 			void Vrc6::Sound::WriteSawReg0(uint data)
 			{
-				apu.Update();
+				Update();
 				saw.WriteReg0( data );
 			}
 
 			void Vrc6::Sound::WriteSawReg1(uint data)
 			{
-				apu.Update();
+				Update();
 				saw.WriteReg1( data, fixed );
 			}
 
 			void Vrc6::Sound::WriteSawReg2(uint data)
 			{
-				apu.Update();
+				Update();
 				saw.WriteReg2( data, fixed );
 			}
 
-			NES_POKE(Vrc6,9000) { sound.WriteSquareReg0 ( 0, data ); }
-			NES_POKE(Vrc6,9001) { sound.WriteSquareReg1 ( 0, data ); }
-			NES_POKE(Vrc6,9002) { sound.WriteSquareReg2 ( 0, data ); }
-			NES_POKE(Vrc6,A000) { sound.WriteSquareReg0 ( 1, data ); }
-			NES_POKE(Vrc6,A001) { sound.WriteSquareReg1 ( 1, data ); }
-			NES_POKE(Vrc6,A002) { sound.WriteSquareReg2 ( 1, data ); }
-			NES_POKE(Vrc6,B000) { sound.WriteSawReg0    (    data ); }
-			NES_POKE(Vrc6,B001) { sound.WriteSawReg1    (    data ); }
-			NES_POKE(Vrc6,B002) { sound.WriteSawReg2    (    data ); }
+			NES_POKE_D(Vrc6,9000) { sound.WriteSquareReg0 ( 0, data ); }
+			NES_POKE_D(Vrc6,9001) { sound.WriteSquareReg1 ( 0, data ); }
+			NES_POKE_D(Vrc6,9002) { sound.WriteSquareReg2 ( 0, data ); }
+			NES_POKE_D(Vrc6,A000) { sound.WriteSquareReg0 ( 1, data ); }
+			NES_POKE_D(Vrc6,A001) { sound.WriteSquareReg1 ( 1, data ); }
+			NES_POKE_D(Vrc6,A002) { sound.WriteSquareReg2 ( 1, data ); }
+			NES_POKE_D(Vrc6,B000) { sound.WriteSawReg0    (    data ); }
+			NES_POKE_D(Vrc6,B001) { sound.WriteSawReg1    (    data ); }
+			NES_POKE_D(Vrc6,B002) { sound.WriteSawReg2    (    data ); }
 
-			NST_FORCE_INLINE dword Vrc6::Sound::Square::GetSample(const Cycle rate)
+			NST_SINGLE_CALL dword Vrc6::Sound::Square::GetSample(const Cycle rate)
 			{
 				NST_VERIFY( bool(active) == CanOutput() && timer >= 0 );
 
@@ -452,7 +444,7 @@ namespace Nes
 				return 0;
 			}
 
-			NST_FORCE_INLINE dword Vrc6::Sound::Saw::GetSample(const Cycle rate)
+			NST_SINGLE_CALL dword Vrc6::Sound::Saw::GetSample(const Cycle rate)
 			{
 				NST_VERIFY( bool(active) == CanOutput() && timer >= 0 );
 
@@ -493,7 +485,7 @@ namespace Nes
 
 			Vrc6::Sound::Sample Vrc6::Sound::GetSample()
 			{
-				if (outputVolume)
+				if (output)
 				{
 					dword sample = 0;
 
@@ -502,7 +494,7 @@ namespace Nes
 
 					sample += saw.GetSample( rate );
 
-					return dcBlocker.Apply( sample * outputVolume / DEFAULT_VOLUME );
+					return dcBlocker.Apply( sample * output / DEFAULT_VOLUME );
 				}
 				else
 				{
@@ -510,18 +502,18 @@ namespace Nes
 				}
 			}
 
-			NES_POKE(Vrc6,B003)
+			NES_POKE_D(Vrc6,B003)
 			{
 				SetMirroringVH01( data >> 2 );
 			}
 
-			NES_POKE(Vrc6,F000)
+			NES_POKE_D(Vrc6,F000)
 			{
 				irq.Update();
 				irq.unit.latch = data;
 			}
 
-			NES_POKE(Vrc6,F001)
+			NES_POKE_D(Vrc6,F001)
 			{
 				irq.Toggle( data );
 			}
@@ -531,9 +523,10 @@ namespace Nes
 				irq.Toggle();
 			}
 
-			void Vrc6::VSync()
+			void Vrc6::Sync(Event event,Input::Controllers*)
 			{
-				irq.VSync();
+				if (event == EVENT_END_FRAME)
+					irq.VSync();
 			}
 		}
 	}

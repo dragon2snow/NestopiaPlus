@@ -45,26 +45,21 @@ namespace Nestopia
 			FrameClock(Window::Menu&,Emulator&,const Configuration&,bool);
 			~FrameClock();
 
-			typedef System::Timer::Value Value;
-
 			void Save(Configuration&) const;
 
 		private:
 
-			void OnEmuEvent(Emulator::Event);
+			void OnEmuEvent(Emulator::Event,Emulator::Data);
 			void OnMenuOptionsTiming(uint);
 			uint Synchronize(bool,uint);
 			void UpdateRewinderState(bool=true) const;
 			void UpdateSettings();
 			void ResetTimer();
 
-			enum
-			{
-				MAX_SPEED_NO_FRAMESKIP = 60
-			};
-
 			System::Timer timer;
-			System::Timer::Value counter;
+			System::Timer::Value clkMul;
+			uint counter;
+			uint clkDiv;
 
 			struct
 			{
@@ -77,9 +72,9 @@ namespace Nestopia
 
 		public:
 
-			uint GameSynchronize(ibool throttle)
+			uint GameSynchronize(bool throttle)
 			{
-				return (throttle | settings.autoFrameSkip) ? Synchronize( throttle, ~0U ) : 0;
+				return (uint(throttle) | settings.autoFrameSkip) ? Synchronize( throttle, ~0U ) : 0;
 			}
 
 			void SoundSynchronize()

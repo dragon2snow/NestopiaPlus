@@ -49,8 +49,17 @@ namespace Nestopia
 		Timer::Settings::Settings()
 		: period(0)
 		{
-			if (!::QueryPerformanceFrequency( reinterpret_cast<LARGE_INTEGER*>(&pfFrequency) ))
+			LARGE_INTEGER li;
+
+			if (::QueryPerformanceFrequency( &li ))
+			{
+				pfFrequency = li.HighPart;
+				pfFrequency = pfFrequency << 32 | li.LowPart;
+			}
+			else
+			{
 				pfFrequency = 0;
+			}
 
 			if (::timeBeginPeriod( 1 ) != TIMERR_NOCANDO)
 			{
@@ -81,17 +90,36 @@ namespace Nestopia
 			Reset( desired );
 		}
 
+		#ifdef NST_MSVC_OPTIMIZE
+		#pragma optimize("t", on)
+		#endif
+
+		inline bool Timer::QueryPf(Value& value)
+		{
+			LARGE_INTEGER li;
+
+			if (::QueryPerformanceCounter( &li ))
+			{
+				value = li.HighPart;
+				value = value << 32 | li.LowPart;
+				return true;
+			}
+			else
+			{
+				return false;
+			}
+		}
+
+		#ifdef NST_MSVC_OPTIMIZE
+		#pragma optimize("", on)
+		#endif
+
 		bool Timer::Reset(const Type desired)
 		{
 			threshold = THRESHOLD;
 			giveup = 0;
 
-			if
-			(
-				desired == PERFORMANCE &&
-				settings.pfFrequency &&
-				::QueryPerformanceCounter( reinterpret_cast<LARGE_INTEGER*>(&start) )
-			)
+			if (desired == PERFORMANCE && settings.pfFrequency - uint(MIN_PF_FRQ) <= uint(MAX_PF_FRQ) && QueryPf( start ))
 			{
 				frequency = settings.pfFrequency;
 				checkPoint = settings.pfFrequency * uint(CHECKPOINT);
@@ -117,11 +145,7 @@ namespace Nestopia
 			if (type == PERFORMANCE)
 			{
 				Value current;
-
-				if (::QueryPerformanceCounter( reinterpret_cast<LARGE_INTEGER*>(&current) ))
-					return current - start;
-				else
-					return 0;
+				return QueryPf( current ) ? current - start : Value(0);
 			}
 			else
 			{
@@ -129,11 +153,17 @@ namespace Nestopia
 			}
 		}
 
-		void Timer::Wait(Value current,const Value target)
+		bool Timer::Wait(Value current,const Value target)
 		{
 			NST_ASSERT( target >= current );
 
-			const uint milliSecs = (target - current) * 1000 / frequency;
+			if (target - current >= frequency * uint(SUSPICIOUS))
+			{
+				NST_DEBUG_MSG("timer clock jump!");
+				return false;
+			}
+
+			const uint milliSecs( (target - current) * 1000 / frequency );
 
 			if (milliSecs > settings.period + threshold)
 			{
@@ -155,14 +185,14 @@ namespace Nestopia
 
 			if (type == PERFORMANCE)
 			{
-				while (current < target && ::QueryPerformanceCounter( reinterpret_cast<LARGE_INTEGER*>(&current) ))
-					current -= start;
+				for (const Value s(start); current < target && QueryPf( current ); current -= s);
 			}
 			else
 			{
-				while (uint(current) < uint(target))
-					current = ::timeGetTime() - uint(start);
+				for (uint c=current, t=target, s=start; c < t; c = ::timeGetTime() - s);
 			}
+
+			return true;
 		}
 
 		#ifdef NST_MSVC_OPTIMIZE

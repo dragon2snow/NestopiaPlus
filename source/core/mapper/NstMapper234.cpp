@@ -35,14 +35,16 @@ namespace Nes
 
 		void Mapper234::SubReset(const bool hard)
 		{
+			Map( 0xFF80U, 0xFF9FU, &Mapper234::Peek_FF80, &Mapper234::Poke_FF80 );
+			Map( 0xFFE8U, 0xFFF7U, &Mapper234::Peek_FFE8, &Mapper234::Poke_FFE8 );
+
 			if (hard)
 			{
 				regs[0] = 0;
 				regs[1] = 0;
-			}
 
-			Map( 0xFF80U, 0xFF9FU, &Mapper234::Peek_FF80, &Mapper234::Poke_FF80 );
-			Map( 0xFFE8U, 0xFFF7U, &Mapper234::Peek_FFE8, &Mapper234::Poke_FFE8 );
+				Update();
+			}
 		}
 
 		void Mapper234::SubLoad(State::Loader& state)
@@ -76,7 +78,7 @@ namespace Nes
 			chr.SwapBank<SIZE_8K,0x0000>( (regs[0] << 2 & (regs[0] >> 4 & 0x4 ^ 0x3C)) | (regs[1] >> 4 & (regs[0] >> 4 & 0x4 | 0x3)) );
 		}
 
-		NES_POKE(Mapper234,FF80)
+		NES_POKE_D(Mapper234,FF80)
 		{
 			if (!(regs[0] & 0x3F))
 			{
@@ -86,21 +88,21 @@ namespace Nes
 			}
 		}
 
-		NES_PEEK(Mapper234,FF80)
+		NES_PEEK_A(Mapper234,FF80)
 		{
 			const uint data = prg[3][address - 0xE000];
 			NES_DO_POKE(FF80,address,data);
 			return data;
 		}
 
-		NES_POKE(Mapper234,FFE8)
+		NES_POKE_D(Mapper234,FFE8)
 		{
 			regs[1] = data;
 			ppu.Update();
 			Update();
 		}
 
-		NES_PEEK(Mapper234,FFE8)
+		NES_PEEK_A(Mapper234,FFE8)
 		{
 			const uint data = prg[3][address - 0xE000];
 			NES_DO_POKE(FFE8,address,data);

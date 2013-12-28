@@ -81,7 +81,7 @@ namespace Nes
 		#pragma optimize("", on)
 		#endif
 
-		NES_POKE(Mapper45,6000)
+		NES_POKE_AD(Mapper45,6000)
 		{
 			if (exRegs[3] & 0x40)
 			{

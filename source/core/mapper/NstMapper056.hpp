@@ -22,8 +22,8 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#ifndef NST_MAPPER_56_H
-#define NST_MAPPER_56_H
+#ifndef NST_BOARDS_KAISER_H
+#define NST_BOARDS_KAISER_H
 
 #ifdef NST_PRAGMA_ONCE
 #pragma once
@@ -33,42 +33,16 @@ namespace Nes
 {
 	namespace Core
 	{
-		class Mapper56 : public Mapper
+		class Mapper56 : public Boards::Kaiser
 		{
 		public:
 
-			explicit Mapper56(Context&);
+			explicit Mapper56(Context& c)
+			: Kaiser(c,TYPE_202) {}
 
 		private:
 
 			~Mapper56() {}
-
-			void SubReset(bool);
-			void SubLoad(State::Loader&);
-			void SubSave(State::Saver&) const;
-			void VSync();
-
-			NES_DECL_POKE( 8000 );
-			NES_DECL_POKE( 9000 );
-			NES_DECL_POKE( A000 );
-			NES_DECL_POKE( B000 );
-			NES_DECL_POKE( C000 );
-			NES_DECL_POKE( D000 );
-			NES_DECL_POKE( E000 );
-			NES_DECL_POKE( F000 );
-
-			struct Irq
-			{
-				void Reset(bool);
-				ibool Signal();
-
-				uint count;
-				uint latch;
-				uint ctrl;
-			};
-
-			uint ctrl;
-			Clock::M2<Irq> irq;
 		};
 	}
 }

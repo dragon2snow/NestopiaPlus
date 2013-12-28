@@ -28,14 +28,10 @@
 #pragma once
 
 #include "NstDirectInput.hpp"
+#include "NstResourceCursor.hpp"
 
 namespace Nestopia
 {
-	namespace Resource
-	{
-		class Cursor;
-	}
-
 	namespace Window
 	{
 		class Input;
@@ -70,48 +66,44 @@ namespace Nestopia
 			inline void CheckPoll();
 			void ForcePoll();
 
+			bool SetAdapter(uint) const;
+			void SyncControllers(uint,Nes::Input::Type,uint) const;
+
 			void UpdateDevices();
 			void UpdateSettings();
-			void OnEmuEvent(Emulator::Event);
-			void OnMenuKeyboard(Window::Menu::PopupHandler::Param&);
-			void OnMenuPort1(Window::Menu::PopupHandler::Param&);
-			void OnMenuPort2(Window::Menu::PopupHandler::Param&);
-			void OnMenuPort3(Window::Menu::PopupHandler::Param&);
-			void OnMenuPort4(Window::Menu::PopupHandler::Param&);
-			void OnMenuExpPort(Window::Menu::PopupHandler::Param&);
+			void UpdateAdapterPort(Nes::Input::Adapter) const;
+
+			void OnMenuPort1(const Window::Menu::PopupHandler::Param&);
+			void OnMenuPort2(const Window::Menu::PopupHandler::Param&);
+			void OnMenuPort3(const Window::Menu::PopupHandler::Param&);
+			void OnMenuPort4(const Window::Menu::PopupHandler::Param&);
+			void OnMenuPort5(const Window::Menu::PopupHandler::Param&);
+			void OnEmuEvent(Emulator::Event,Emulator::Data);
 			void OnCmdMachineAutoSelectController(uint);
 			void OnCmdMachinePort(uint);
 			void OnCmdMachineAdapter(uint);
-			void OnCmdMachineKeyboardPaste(uint);
 			void OnCmdOptionsInput(uint);
 
 			class Callbacks;
-
-			struct Rects
-			{
-				Rects(const Screening&,const Screening&);
-
-				const Screening getInput;
-				const Screening getOutput;
-			};
 
 			class Cursor
 			{
 			public:
 
-				explicit Cursor(Window::Custom&);
+				Cursor(Window::Custom&,const Screening&,const Screening&);
+				~Cursor();
 
 				void Acquire(Emulator&);
 				void Unacquire();
 				void AutoHide();
-
-				inline int GetWheel() const;
+				bool Poll(uint&,uint&,uint&,uint* = NULL) const;
 
 			private:
 
 				enum
 				{
 					TIME_OUT    = 3000,
+					NO_DEADLINE = DWORD(~0UL),
 					WHEEL_MIN   = -WHEEL_DELTA*30,
 					WHEEL_MAX   = +WHEEL_DELTA*30,
 					WHEEL_SCALE = 56
@@ -131,27 +123,33 @@ namespace Nestopia
 				DWORD deadline;
 				Window::Custom& window;
 				int wheel;
-
-				static const Resource::Cursor gun;
+				const Screening getInputRect;
+				const Screening getOutputRect;
+				const Resource::Cursor gun;
+				const uint primaryButtonId;
+				const uint secondaryButtonId;
 
 			public:
 
-				bool MustAutoHide() const
+				int GetWheel() const
 				{
-					return deadline != DWORD(~0UL) && deadline <= ::GetTickCount();
+					return wheel / WHEEL_SCALE;
 				}
 
-				static const uint primaryButtonId;
-				static const uint secondaryButtonId;
+				bool MustAutoHide() const
+				{
+					return deadline != NO_DEADLINE && deadline <= ::GetTickCount();
+				}
 			};
 
-			class CmdKeys
+			class Commands
 			{
 				typedef DirectX::DirectInput::Key Key;
 
 			public:
 
-				CmdKeys(Window::Custom&,DirectX::DirectInput&);
+				Commands(Window::Custom&,DirectX::DirectInput&);
+				~Commands();
 
 				void BeginAdd();
 				void Add(const Key&,uint);
@@ -159,11 +157,7 @@ namespace Nestopia
 				void Acquire();
 				void Unacquire();
 
-				inline void Poll();
-
 			private:
-
-				inline bool CanPoll() const;
 
 				bool ForcePoll();
 				void Update();
@@ -191,21 +185,28 @@ namespace Nestopia
 				bool acquired;
 				Keys keys;
 				uint clock;
-				const Window::Custom& window;
+				Window::Custom& window;
 				DirectX::DirectInput& directInput;
-			};
 
-			class ClipBoard : String::Heap<wchar_t>
-			{
-				uint pos;
-				uchar releasing;
-				uchar hold;
-				bool shifted;
-				bool paste;
+				bool CanPoll() const
+				{
+					return !keys.Empty() && window.Focused();
+				}
 
 			public:
 
-				ClipBoard();
+				void Poll()
+				{
+					if (CanPoll())
+						ForcePoll();
+				}
+			};
+
+			class Clipboard : Manager
+			{
+			public:
+
+				Clipboard(Emulator&,Window::Menu&);
 
 				enum Type
 				{
@@ -214,42 +215,73 @@ namespace Nestopia
 				};
 
 				uint Query(const uchar* NST_RESTRICT,Type);
-				bool CanPaste() const;
-				void Paste();
 				void Clear();
 				void operator ++ ();
-				inline uint operator * ();
-				inline bool Shifted() const;
-				inline void Shift();
+
+			private:
+
+				bool CanPaste() const;
+				void OnCmdMachineKeyboardPaste(uint);
+				void OnMenuKeyboard(const Window::Menu::PopupHandler::Param&);
+
+				uint pos;
+				uchar releasing;
+				uchar hold;
+				bool shifted;
+				bool paste;
+				String::Heap<wchar_t> buffer;
+
+			public:
+
+				bool Shifted() const
+				{
+					return shifted;
+				}
+
+				void Shift()
+				{
+					shifted = true;
+				}
+
+				uint operator * ()
+				{
+					return releasing ? (--releasing, UINT_MAX) : buffer[pos];
+				}
 			};
 
-			class AutoFire
+			class AutoFire : public ImplicitBool<AutoFire>
 			{
+			public:
+
+				inline AutoFire();
+				void operator = (uint);
+
+			private:
+
 				uint step;
 				uint signal;
 
 			public:
 
-				inline AutoFire();
-				inline bool Signaled() const;
-				void operator = (uint);
-
-				void Step()
+				bool operator ! () const
 				{
-					if (++step > signal)
-						step = 0;
+					return step < signal;
+				}
+
+				void operator ++ ()
+				{
+					step = (step < signal) ? (step + 1) : 0;
 				}
 			};
 
-			Rects rects;
 			ibool polled;
 			AutoFire autoFire;
 			Cursor cursor;
 			Nes::Input::Controllers nesControllers;
 			DirectX::DirectInput directInput;
 			Object::Heap<Window::Input> dialog;
-			CmdKeys cmdKeys;
-			ClipBoard clipBoard;
+			Commands commands;
+			Clipboard clipboard;
 
 		public:
 
@@ -260,13 +292,13 @@ namespace Nestopia
 
 			Nes::Input::Controllers* GetOutput()
 			{
-				autoFire.Step();
+				++autoFire;
 				return &nesControllers;
 			}
 
 			void Poll()
 			{
-				polled ^= true;
+				polled ^= 1;
 
 				if (polled)
 					ForcePoll();
