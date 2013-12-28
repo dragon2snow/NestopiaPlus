@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -368,7 +368,7 @@ namespace Nes
 
 				rate =
 				(
-     				(u64(mode == MODE_NTSC ? Cpu::MC_NTSC : Cpu::MC_PAL) * (1UL << SPEED_SHIFT)) /
+     				qword(mode == MODE_NTSC ? Cpu::MC_NTSC : Cpu::MC_PAL) * (1UL << SPEED_SHIFT) /
 					(apu.GetSampleRate() * 45UL * (mode == MODE_NTSC ? Cpu::CLK_NTSC_DIV : Cpu::CLK_PAL_DIV))
 				);
 

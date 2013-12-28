@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -24,11 +24,11 @@
 
 #include <cstdlib>
 #include <cstring>
-#include <cfloat>
 #include <cmath>
 #include <new>
 #include "NstCore.hpp"
 #include "api/NstApiVideo.hpp"
+#include "NstFpuPrecision.hpp"
 #include "NstVideoRenderer.hpp"
 #include "NstVideoFilterNone.hpp"
 #include "NstVideoFilterScanlines.hpp"
@@ -207,13 +207,13 @@ namespace Nes
 				return RESULT_OK;
 			}
 		
-			void Renderer::Palette::Build(const int b,const int s,int hue)
+			void Renderer::Palette::Build(const int b,const int s,const int c,const int hue)
 			{
 				NST_ASSERT( type == PALETTE_CUSTOM || type == PALETTE_RGB );
 
-				const double brightness = (b - 128) / 256.0;
-				const double saturation = s / 128.0;
-				hue = (hue - 128) / 4;
+				const double brightness = b / 200.0;
+				const double saturation = (s + 100) / 100.0;
+				const double contrast = (c + 100) / 100.0;
 				
 				const u8 (*const from)[3] = (type == PALETTE_CUSTOM ? custom->palette : rgbPalette);
 				NST_ASSERT( from );
@@ -234,7 +234,7 @@ namespace Nes
 						ToHSV( rgb[0], rgb[1], rgb[2], h, s, v );
 		
 						s *= saturation;
-						v += brightness;
+						v  = v * contrast + brightness;
 						h += hue;
 		
 						if (h >= 360.0)
@@ -269,13 +269,14 @@ namespace Nes
 				}
 			}
 		
-			void Renderer::Palette::Generate(const int b,const int s,int hue)
+			void Renderer::Palette::Generate(const int b,const int s,const int c,int hue)
 			{
 				NST_ASSERT( type == PALETTE_YUV );
 		
-				const double saturation = s / 128.0;
-				const double brightness = (b - 128) / 256.0;
-				hue = HUE_OFFSET + (hue - 128) / 4;
+				const double brightness = b / 200.0;
+				const double saturation = (s + 100) / 100.0;
+				const double contrast = (c + 100) / 100.0;
+				hue += 33;
 				
 				const double matrix[6] =
 				{
@@ -318,7 +319,7 @@ namespace Nes
 
 					double y = (level[1] + level[0]) * 0.5;
 					double s = (level[1] - level[0]) * 0.5;
-					double h = NST_PI / 12 * (color * 2 - 7);
+					double h = NST_PI / 6 * (color - 3);
 
 					double i = std::sin( h ) * s;
 					double q = std::cos( h ) * s;
@@ -367,7 +368,7 @@ namespace Nes
 
 					i *= saturation;
 					q *= saturation;
-					y += brightness;
+					y = y * contrast + brightness;
 
 					const double rgb[3] =
 					{
@@ -380,9 +381,10 @@ namespace Nes
 				}
 			}
 
-			void Renderer::Palette::Update(uint brightness,uint saturation,uint hue)
+			void Renderer::Palette::Update(int brightness,int saturation,int contrast,int hue)
 			{
-				(*this.*(type == PALETTE_YUV ? &Palette::Generate : &Palette::Build))( brightness, saturation, hue );
+				FpuPrecision precision;
+				(*this.*(type == PALETTE_YUV ? &Palette::Generate : &Palette::Build))( brightness, saturation, contrast, hue );
 			}
 
 			inline const Renderer::PaletteEntries& Renderer::Palette::Get() const
@@ -437,11 +439,15 @@ namespace Nes
 			Renderer::State::State()
 			: 
 			update       (UPDATE_PALETTE), 
-			brightness   (DEFAULT_BRIGHTNESS), 
-			saturation   (DEFAULT_SATURATION), 
-			hue          (DEFAULT_HUE),
-			contrast     (DEFAULT_CONTRAST),
-			sharpness    (DEFAULT_SHARPNESS),
+			brightness   (0), 
+			saturation   (0), 
+			hue          (0),
+			contrast     (0),
+			sharpness    (0),
+			resolution   (0),
+			bleed        (0),
+			artifacts    (0),
+			fringing     (0),
 			scanlines    (0),
 			fieldMerging (0)
 			{}
@@ -528,20 +534,37 @@ namespace Nes
                 #ifndef NST_NO_NTSCVIDEO
 
 					case RenderState::FILTER_NTSC:
-					
+					{	
+						const FilterNtscState ntscState
+						(
+       						renderState,
+							state.brightness,
+							state.saturation,
+							state.hue,
+							state.contrast,
+							state.sharpness,
+							state.resolution,
+							state.bleed,
+							state.artifacts,
+							state.fringing,
+							state.fieldMerging,
+							palette.GetDecoder()
+						);
+
 						if (FilterNtsc<32>::Check( renderState ))
 						{
-							filter = new (std::nothrow) FilterNtsc<32>( renderState, state.brightness, state.saturation, state.hue, state.contrast, state.sharpness, state.fieldMerging, palette.GetDecoder() );
+							filter = new (std::nothrow) FilterNtsc<32>( ntscState );
 						}
 						else if (FilterNtsc<16>::Check( renderState ))
 						{
-							filter = new (std::nothrow) FilterNtsc<16>( renderState, state.brightness, state.saturation, state.hue, state.contrast, state.sharpness, state.fieldMerging, palette.GetDecoder() );
+							filter = new (std::nothrow) FilterNtsc<16>( ntscState );
 						}
 						else if (FilterNtsc<15>::Check( renderState ))
 						{
-							filter = new (std::nothrow) FilterNtsc<15>( renderState, state.brightness, state.saturation, state.hue, state.contrast, state.sharpness, state.fieldMerging, palette.GetDecoder() );
+							filter = new (std::nothrow) FilterNtsc<15>( ntscState );
 						}
 						break;
+					}
 
                 #endif
 				}
@@ -618,11 +641,28 @@ namespace Nes
 					state.update |= State::UPDATE_FILTER;
 			}
 
-			Result Renderer::SetLevel(u8& type,u8 value)
+			Result Renderer::SetHue(int h)
 			{
+				if (h < -45 || h > 45)
+					return RESULT_ERR_INVALID_PARAM;
+
+				if (state.hue == h)
+					return RESULT_NOP;
+
+				state.hue = h;
+				state.update |= State::UPDATE_PALETTE|State::UPDATE_FILTER;
+
+				return RESULT_OK;
+			}
+
+			Result Renderer::SetLevel(i8& type,int value)
+			{
+				if (value < -100 || value > 100)
+					return RESULT_ERR_INVALID_PARAM;
+
 				if (type == value)				
 					return RESULT_NOP;
-				
+
 				type = value;
 				state.update |= State::UPDATE_PALETTE|State::UPDATE_FILTER;
 
@@ -633,11 +673,11 @@ namespace Nes
 			{
 				const Result result = palette.SetDecoder( decoder );
 
-				if (result == RESULT_OK && palette.GetType() == PALETTE_YUV)
+				if (result == RESULT_OK && (palette.GetType() == PALETTE_YUV || state.filter == RenderState::FILTER_NTSC))
 					state.update |= State::UPDATE_PALETTE|State::UPDATE_FILTER;
 
 				return result;
-			}
+			}																									
 
 			Result Renderer::SetPaletteType(PaletteType type)
 			{
@@ -685,7 +725,7 @@ namespace Nes
 				if (state.update & State::UPDATE_PALETTE)
 				{
 					state.update &= ~u8(State::UPDATE_PALETTE);
-					palette.Update( state.brightness, state.saturation, state.hue );
+					palette.Update( state.brightness, state.saturation, state.contrast, state.hue );
 				}
 
 				return palette.Get();

@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -210,7 +210,7 @@ namespace Nes
 		
 			NES_POKE(Ffe,42FE)  
 			{
-				mode = (data >> 7) ^ 0x1;
+				mode = data >> 7 ^ 0x1;
 				ppu.SetMirroring( (data & 0x10) ? Ppu::NMT_ONE : Ppu::NMT_ZERO );
 			}
 		

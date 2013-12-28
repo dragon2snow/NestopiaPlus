@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -71,8 +71,8 @@ namespace Nestopia
 
 		static char name[] = "launcher column xx";
 
-		name[16] = (char) (i < 9 ? '1' + i : '1');
-		name[17] = (char) (i < 9 ? '\0' : '0' + i - 9);
+		name[16] = (i < 9 ? '1' + i : '1');
+		name[17] = (i < 9 ? '\0' : '0' + i - 9);
 
 		return name;
 	}

@@ -1,8 +1,8 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -22,76 +22,93 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstMappers.h"
-#include "NstMapper236.h"
-	 
-NES_NAMESPACE_BEGIN
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER236::Reset()
+#include "../NstMapper.hpp"
+#include "NstMapper236.hpp"
+		
+namespace Nes
 {
-	cpu.SetPort( 0x8000, 0x9FFF, this, Peek_8000, Poke_pRom );
-	cpu.SetPort( 0xA000, 0xBFFF, this, Peek_A000, Poke_pRom );
-	cpu.SetPort( 0xC000, 0xDFFF, this, Peek_C000, Poke_pRom );
-	cpu.SetPort( 0xE000, 0xFFFF, this, Peek_E000, Poke_pRom );
+	namespace Core
+	{
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("s", on)
+        #endif
+	
+		void Mapper236::SubReset(const bool hard)
+		{
+			mode = 0x0;
 
-	bank = 0;
-	mode = 0;
+			if (hard)
+				title = 0x6;
+			else
+				title = (title + 1) & 0xF;
+
+			Map( 0x8000U, 0xFFFFU, &Mapper236::Peek_Prg, &Mapper236::Poke_Prg );
+
+			NES_CALL_POKE(Mapper236,Prg,0x8000,0x00);
+			NES_CALL_POKE(Mapper236,Prg,0xC000,0x00);
+		}
+	  
+		void Mapper236::SubLoad(State::Loader& state)
+		{
+			while (const dword chunk = state.Begin())
+			{
+				if (chunk == NES_STATE_CHUNK_ID('R','E','G','\0'))
+				{
+					mode = state.Read8();
+					title = mode & 0xF;
+					mode = mode >> 4 & 0x1;
+				}
+	
+				state.End();
+			}
+		}
+	
+		void Mapper236::SubSave(State::Saver& state) const
+		{
+			state.Begin('R','E','G','\0').Write8( (mode << 4) | title ).End();
+		}
+		
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("", on)
+        #endif
+
+		NES_PEEK(Mapper236,Prg)
+		{
+			return prg.Peek( mode ? (address & 0x7FF0) | title : address - 0x8000U );
+		}
+
+		NES_POKE(Mapper236,Prg) 
+		{ 
+			uint banks[2] = 
+			{
+				prg.GetBank<SIZE_16K,0x0000U>(),
+				prg.GetBank<SIZE_16K,0x4000U>()
+			};
+
+			if (address < 0xC000U)
+			{
+				ppu.SetMirroring( (address & 0x20) ? Ppu::NMT_HORIZONTAL : Ppu::NMT_VERTICAL );
+
+				if (chr.Source().IsWritable())
+				{
+					banks[0] = (banks[0] & 0x7) | (address << 3 & 0x38);
+					banks[1] = (banks[1] & 0x7) | (address << 3 & 0x38);
+				}
+				else
+				{
+				    chr.SwapBank<SIZE_8K,0x0000U>( address & 0x7 );
+					return;
+				}
+			}
+			else switch (address & 0x30)
+			{
+				case 0x00: mode = 0x0; banks[0] = (banks[0] & 0x38) | (address & 0x7); banks[1] = banks[0] | 0x7; break;
+				case 0x10: mode = 0x1; banks[0] = (banks[0] & 0x38) | (address & 0x7); banks[1] = banks[0] | 0x7; break;
+				case 0x20: mode = 0x0; banks[0] = (banks[0] & 0x38) | (address & 0x6); banks[1] = banks[0] | 0x1; break;
+				case 0x30: mode = 0x0; banks[0] = (banks[0] & 0x38) | (address & 0x7); banks[1] = banks[0] | 0x0; break;
+			}
+
+    		prg.SwapBanks<SIZE_16K,0x0000U>( banks[0], banks[1] );
+		}
+	}
 }
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER236,pRom) 
-{ 
-	if (address >= 0x8000 && address <= 0xBFFF)
-	{
-		bank = ((address & 0x3) << 4) | (bank & 0x07);
-	}
-	else
-	{
-		bank = ((address & 0x7) << 0) | (bank & 0x30);
-		mode = address & 0x30;
-	}
-
-	ppu.SetMirroring( (address & 0x20) ? MIRROR_HORIZONTAL : MIRROR_VERTICAL );
-
-	apu.Update();
-
-	switch (mode)
-	{
-		case 0x00:
-
-			bank |= 0x08;
-			pRom.SwapBanks<n16k,0x0000>( (bank | 0x00) );
-			pRom.SwapBanks<n16k,0x4000>( (bank | 0x07) );
-			return;
-
-		case 0x10:
-
-			bank &= 0x37;
-			pRom.SwapBanks<n16k,0x0000>( (bank | 0x00) );
-			pRom.SwapBanks<n16k,0x4000>( (bank | 0x07) );
-			return;
-
-		case 0x20:
-
-			bank |= 0x08;
-			pRom.SwapBanks<n16k,0x0000>( (bank & 0xFE) + 0 );
-			pRom.SwapBanks<n16k,0x4000>( (bank & 0xFE) + 1 );
-			return;
-
-		case 0x30:
-
-			bank |= 0x08;
-			pRom.SwapBanks<n16k,0x0000>( bank );
-			pRom.SwapBanks<n16k,0x4000>( bank );
-			return;
-	}
-}
-
-NES_NAMESPACE_END

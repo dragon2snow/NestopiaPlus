@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -30,7 +30,6 @@
 #include "NstManagerPaths.hpp"
 #include "NstManagerEmulator.hpp"
 #include "NstDialogNetPlay.hpp"
-#include "../core/NstCrc32.hpp"
 #include "../core/api/NstApiCartridge.hpp"
 #include <CommCtrl.h>
 

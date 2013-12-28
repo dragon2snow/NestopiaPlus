@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -244,7 +244,7 @@ namespace Nes
 			NST_ASSERT( (mode & 0x3) == 0 );
 
 			data &= 0x1F;
-			address = (address >> 13) & 0x1;
+			address = address >> 13 & 0x1;
 
 			if (vrc2.prg[address] != data)
 			{
@@ -270,8 +270,8 @@ namespace Nes
 		{
 			NST_ASSERT( (mode & 0x3) == 0 );
 
-			data = (data & 0xF) << ((address & 0x2) << 1);
-			address = (((address - 0xB000U) >> 11) & 0x6) + (address & 0x1);
+			data = (data & 0xF) << (address << 1 & 0x4);
+			address = ((address - 0xB000U) >> 11 & 0x6) | (address & 0x1);
 
 			if (vrc2.chr[address] != data)
 			{
@@ -376,7 +376,7 @@ namespace Nes
 				data = mmc1.buffer;
 				mmc1.buffer = 0;
 
-				address = (address >> 13) & 0x3;
+				address = address >> 13 & 0x3;
 
 				if (mmc1.regs[address] != data)
 				{

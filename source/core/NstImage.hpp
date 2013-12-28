@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -33,11 +33,6 @@ namespace Nes
 {
 	namespace Core
 	{
-		namespace Input
-		{
-			class Controllers;
-		}
-
 		namespace State
 		{
 			class Loader;
@@ -45,7 +40,6 @@ namespace Nes
 		}
 
 		class ImageDatabase;
-		class BarcodeReader;
 		class Cpu;
 		class Ppu;
 

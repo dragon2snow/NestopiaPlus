@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -604,7 +604,7 @@ namespace Nes
 				NST_FORCE_INLINE void WriteReg2(uint);
 				NST_FORCE_INLINE void WriteReg3(uint);
 				NST_FORCE_INLINE dword GetSample();
-				NST_FORCE_INLINE uint Clock(Cpu&);
+				NST_FORCE_INLINE void Clock(Cpu&);
 
 				inline uint CheckSample() const;
 				inline void ClearAmp();
@@ -665,7 +665,6 @@ namespace Nes
 				};
 
 				Mode mode;
-				ibool emulate;
 				ibool loop;
 				uint loadedAddress;
 				uint loadedLengthCount;

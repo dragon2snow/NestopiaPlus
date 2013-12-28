@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -39,17 +39,10 @@
 
 namespace Nes
 {
-	namespace Core
-	{
-		class Rewinder;
-	}
-
 	namespace Api
 	{
 		class Movie : public Base
 		{
-			friend class Core::Rewinder;
-
 			struct StateCaller;
 
 		public:
@@ -96,18 +89,6 @@ namespace Nes
 			typedef void (NST_CALLBACK *StateCallback) (UserData,State);
 
 			static StateCaller stateCallback;
-
-		private:
-
-			Result Play   (std::istream&,CallbackMode,bool,const void*);
-			Result Record (std::ostream&,How,CallbackMode,const void*);
-
-			void Stop  (const void*);
-			void Eject (const void*);
-
-			bool IsPlaying   (const void*) const;
-			bool IsRecording (const void*) const;
-			bool IsStopped   (const void*) const;
 		};
 
 		struct Movie::StateCaller : Core::UserCallback<Movie::StateCallback>

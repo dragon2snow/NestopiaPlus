@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -606,7 +606,7 @@ namespace Nes
 	
 			return
 			(
-				((nz | (nz >> 1)) & N) |
+				((nz | nz >> 1) & N) |
 				((nz & 0xFF) ? 0 : Z) |
 				c |
 				(v ? V : 0) |
@@ -955,13 +955,12 @@ namespace Nes
 		////////////////////////////////////////////////////////////////////////////////////////
 										
 		template<bool STATE>
-		inline void Cpu::Branch(uint tmp)
+		NST_FORCE_INLINE void Cpu::Branch(uint tmp)
 		{
 			if ((!!tmp) == STATE)
 			{
-				tmp = pc;
-				pc = (++tmp + sign_cast<i8>(map.Peek8( pc ))) & 0xFFFFU;
-				cycles.count += cycles.clock[2 + (((tmp ^ pc) >> 8) & 1)];
+				pc = ((tmp=pc+1) + sign_cast<i8>(map.Peek8( pc ))) & 0xFFFFU;
+				cycles.count += cycles.clock[2 + ((tmp^pc) >> 8 & 1)];
 			}
 			else
 			{

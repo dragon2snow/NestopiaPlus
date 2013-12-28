@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -32,7 +32,7 @@
 #include "NstIoLog.hpp"
 #include "NstManagerPaths.hpp"
 #include "NstDialogLauncher.hpp"
-#include "../core/NstCrc32.hpp"
+#include "../core/NstChecksumCrc32.hpp"
 #include "../core/api/NstApiCartridge.hpp"
 
 namespace Nestopia
@@ -50,7 +50,7 @@ namespace Nestopia
 	cRom       (0), 
 	wRam       (0), 
 	mapper     (0), 
-	type       (u8(t)), 
+	type       (t), 
 	flags      (0) 
 	{}
 
@@ -276,7 +276,7 @@ namespace Nestopia
 	inline u32 Launcher::List::Files::Inserter::Crc(const uint start,const uint length) const
 	{
 		NST_ASSERT( buffer.Size() );
-		return Nes::Core::Crc32::Compute( &buffer[start], length );
+		return Nes::Core::Checksum::Crc32::Compute( &buffer[start], length );
 	}
 
 	ibool Launcher::List::Files::Inserter::IsFileUnique()
@@ -430,7 +430,7 @@ namespace Nestopia
 						case NST_FOURCC('P','R','G','E'):
 						case NST_FOURCC('P','R','G','F'):
 					
-							entry.pRom = (u16) ((pRom += reinterpret_cast<const u32&>(it[4])) / Nes::Core::SIZE_1K);
+							entry.pRom = (pRom += reinterpret_cast<const u32&>(it[4])) / Nes::Core::SIZE_1K;
 							break;
 					
 						case NST_FOURCC('C','H','R','0'):
@@ -450,7 +450,7 @@ namespace Nestopia
 						case NST_FOURCC('C','H','R','E'):
 						case NST_FOURCC('C','H','R','F'):
 					
-							entry.cRom = (u16) ((cRom += reinterpret_cast<const u32&>(it[4])) / Nes::Core::SIZE_1K);
+							entry.cRom = (cRom += reinterpret_cast<const u32&>(it[4])) / Nes::Core::SIZE_1K;
 							break;
 					
 						case NST_FOURCC('T','V','C','I'):
@@ -508,7 +508,7 @@ namespace Nestopia
 			{
 				Entry entry( Entry::FDS | compressed );
 
-				entry.pRom = (u16) ((buffer.Size() - (hasHeader ? 16 : 0)) / Nes::Core::SIZE_1K);
+				entry.pRom = (buffer.Size() - (hasHeader ? 16 : 0)) / Nes::Core::SIZE_1K;
 				entry.wRam = 32;
 				entry.bits.ntsc = TRUE;
 
@@ -555,7 +555,7 @@ namespace Nestopia
 
 				Entry entry( Entry::NSF | compressed );
 
-				entry.pRom = (u16) ((buffer.Size() - sizeof(Header)) / Nes::Core::SIZE_1K);
+				entry.pRom = (buffer.Size() - sizeof(Header)) / Nes::Core::SIZE_1K;
 
 				switch (header.mode & 0x3)
 				{

@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -113,12 +113,11 @@ namespace Nestopia
 				return reinterpret_cast<T*>(data);
 			}
 
-			template<> 
-			void* DataPtr() const
+			void* VoidPtr() const
 			{
 				return data;
 			}
-
+  
 			template<typename T> Output (T::*CodePtr() const) (Input)
 			{
 				typedef Output (T::*F)(Input);
@@ -207,12 +206,11 @@ namespace Nestopia
 				return reinterpret_cast<T*>(data);
 			}
 
-			template<> 
-			void* DataPtr() const
+			void* VoidPtr() const
 			{
 				return data;
 			}
-
+  
 			template<typename T> Output (T::*CodePtr() const) ()
 			{
 				typedef Output (T::*F)();
@@ -258,7 +256,7 @@ namespace Nestopia
 				NST_ASSERT( bool(data) == bool(code) );
 
 				data = reinterpret_cast<Data>(d);
-				code = reinterpret_cast<Code>(f);
+				code = reinterpret_cast<Code>(c);
 			}
 
 			ibool operator == (const Delegate2& delegate) const
@@ -303,12 +301,11 @@ namespace Nestopia
 				return reinterpret_cast<T*>(data);
 			}
 
-			template<> 
-			void* DataPtr() const
+			void* VoidPtr() const
 			{
 				return data;
 			}
-
+  
 			template<typename T> Output (T::*CodePtr() const) (Param1,Param2)
 			{
 				typedef Output (T::*F)(Param1,Param2);

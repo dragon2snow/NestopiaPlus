@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -136,22 +136,22 @@ namespace Nes
 		{
 			static const u16 lut[16] =
 			{
-				5.001 * 60,
-				5.316 * 60,
-				5.629 * 60,
-				5.942 * 60,
-				6.254 * 60,
-				6.567 * 60,
-				6.880 * 60,
-				7.193 * 60,
-				7.505 * 60,
-				7.818 * 60,
-				8.131 * 60,
-				8.444 * 60,
-				8.756 * 60,
-				9.070 * 60,
-				9.318 * 60,
-				9.695 * 60
+				300, // 5.001 * 60
+				318, // 5.316 * 60
+				337, // 5.629 * 60
+				356, // 5.942 * 60
+				375, // 6.254 * 60
+				394, // 6.567 * 60
+				412, // 6.880 * 60
+				431, // 7.193 * 60
+				450, // 7.505 * 60
+				469, // 7.818 * 60
+				487, // 8.131 * 60
+				506, // 8.444 * 60
+				525, // 8.756 * 60
+				544, // 9.070 * 60
+				559, // 9.318 * 60
+				581  // 9.695 * 60
 			};
 
 			NST_ASSERT( time < 16 );
@@ -217,23 +217,23 @@ namespace Nes
 					case 0x0:
 					case 0x4:
 				
-						prg.SwapBank<SIZE_32K,0x0000U>( (0x8 + (regs[3] & 0x6)) >> 1 );
+						prg.SwapBank<SIZE_32K,0x0000U>( 0x4 | (regs[3] >> 1 & 0x3) );
 						break;
 				
 					case 0x8:
 				
-						prg.SwapBanks<SIZE_16K,0x0000U>( 0x8, 0x8 + (regs[3] & 0x7) );
+						prg.SwapBanks<SIZE_16K,0x0000U>( 0x8, 0x8 | (regs[3] & 0x7) );
 						break;
 				
 					case 0xC:
 				
-						prg.SwapBanks<SIZE_16K,0x0000U>( 0x8 + (regs[3] & 0x7), 0xF );
+						prg.SwapBanks<SIZE_16K,0x0000U>( 0x8 | (regs[3] & 0x7), 0xF );
 						break;
 				}
 			}
 			else
 			{	
-				prg.SwapBank<SIZE_32K,0x0000U>( (regs[1] & 0x6) >> 1 );
+				prg.SwapBank<SIZE_32K,0x0000U>( regs[1] >> 1 & 0x3 );
 			}
 		}
 	

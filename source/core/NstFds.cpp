@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -25,7 +25,7 @@
 #include <cstring>
 #include <new>
 #include "NstLog.hpp"
-#include "NstCrc32.hpp"
+#include "NstChecksumCrc32.hpp"
 #include "NstState.hpp"
 #include "NstPpu.hpp"
 #include "NstFds.hpp"
@@ -90,7 +90,7 @@ namespace Nes
 	
 					instance.loaded = true;
 	
-					switch (Crc32::Compute( instance.rom, SIZE_8K ))
+					switch (Checksum::Crc32::Compute( instance.rom, SIZE_8K ))
 					{
 						case 0x5E607DCFUL: // standard
 						case 0x4DF24A6CUL: // twinsys
@@ -252,15 +252,15 @@ namespace Nes
 				( sides.data[0][0x12] <<  0 )
 			);
 
-			sides.crc = Crc32::Compute( sides.data, sides.count * SIDE_SIZE );
-			sides.checksum = Md5::Compute( sides.data, sides.count * SIDE_SIZE );
+			sides.crc = Checksum::Crc32::Compute( sides.data, sides.count * SIDE_SIZE );
+			sides.checksum = Checksum::Md5::Compute( sides.data, sides.count * SIDE_SIZE );
 
 			return sides;
 		}
 
 		void Fds::Disks::Sides::Save() const
 		{
-			if (!count || checksum == Md5::Compute( data, count * SIDE_SIZE ))
+			if (!count || checksum == Checksum::Md5::Compute( data, count * SIDE_SIZE ))
 				return;
 	
 			try
@@ -1336,7 +1336,7 @@ namespace Nes
 				};
 
 				const dword pos = wave.pos;	
-				wave.pos = (wave.pos + dword((u64(GetModulation()) * clocks[mode][0]) / clocks[mode][1]) + Wave::SIZE * cpu.GetApu().GetSampleRate()) % (Wave::SIZE * cpu.GetApu().GetSampleRate());
+				wave.pos = (wave.pos + dword(qword(GetModulation()) * clocks[mode][0] / clocks[mode][1]) + Wave::SIZE * cpu.GetApu().GetSampleRate()) % (Wave::SIZE * cpu.GetApu().GetSampleRate());
 	
 				if (wave.pos < pos)
 					wave.volume = envelopes.units[VOLUME].Output();
@@ -1354,14 +1354,9 @@ namespace Nes
 			if ((ctrl & CTRL_ENABLED) && count && !--count)
 			{
 				if (ctrl & CTRL_REPEAT)
-				{
 					count = latch;
-				}
 				else
-				{
-					ctrl = 0;
-					latch = 0;
-				}
+					ctrl &= CTRL_ENABLED^0xFF;
 
 				status |= PENDING_CTRL;
 			}

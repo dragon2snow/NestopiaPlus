@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -221,7 +221,7 @@ namespace Nestopia
 
 		for (uint i=0; i < NUM_SLOTS; ++i)
 		{
-			path.Back() = (char) ('1' + i);
+			path.Back() = '1' + i;
 
 			if (paths.Load( file, Paths::File::SLOTS, path, Paths::QUIETLY ))
 			{

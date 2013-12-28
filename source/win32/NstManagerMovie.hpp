@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -74,7 +74,7 @@ namespace Nestopia
 			struct Callbacks;
 
 			void  Close (Pos=REWINDED,ibool=TRUE);
-			ibool Open  (std::fstream::open_mode);
+			ibool Open  (std::fstream::openmode);
 
 			ibool CanPlay    () const;
 			ibool CanRecord  () const;

@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -57,7 +57,7 @@ namespace Nes
 				case 0x20:
 				case 0x10:
 				
-					address = ((address & 0x0F) << 1) | ((address & 0x20) >> 4);
+					address = (address << 1 & 0x1E) | (address >> 4 & 0x02);
 					prg.SwapBanks<SIZE_16K,0x0000U>( address, address );
 					break;
 			}

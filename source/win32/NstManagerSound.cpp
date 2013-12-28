@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -159,16 +159,18 @@ namespace Nestopia
 				}
 				break;
 
-			case Emulator::EVENT_REWINDING_PREPARE:
+			case Emulator::EVENT_REWINDING_START:
 			case Emulator::EVENT_REWINDING_STOP:
-
-				directSound.StopStream();
 				
 				Nes::Sound(emulator).SetVolume
 				( 
 			     	Nes::Sound::CHANNEL_DPCM, 
-					event == Emulator::EVENT_REWINDING_PREPARE ? 0 : dialog->GetVolume(Nes::Sound::CHANNEL_DPCM) 
+					event == Emulator::EVENT_REWINDING_START ? 0 : dialog->GetVolume(Nes::Sound::CHANNEL_DPCM) 
 				);
+
+			case Emulator::EVENT_REWINDING_PREPARE:
+
+				directSound.StopStream();
 				break;
 
 			case Emulator::EVENT_NETPLAY_MODE_ON:

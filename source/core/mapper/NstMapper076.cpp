@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -33,63 +33,23 @@ namespace Nes
         #pragma optimize("s", on)
         #endif
 	
+		Mapper76::Mapper76(Context& c)
+		: Mmc3(c) {}
+
 		void Mapper76::SubReset(const bool hard)
 		{
-			if (hard)
-				command = 0;
+			Mmc3::SubReset( hard );
+			Map( 0xC000U, 0xFFFFU, NOP_POKE );
+		}
 
-			for (uint i=0x0000U; i < 0x2000U; i += 0x2)
-			{
-				Map( 0x8000U + i, &Mapper76::Poke_8000 );
-				Map( 0x8001U + i, &Mapper76::Poke_8001 );
-				Map( 0xA000U + i, NMT_SWAP_HV          );
-			}
-		}
-	
-		void Mapper76::SubLoad(State::Loader& state)
-		{
-			while (const dword chunk = state.Begin())
-			{
-				if (chunk == NES_STATE_CHUNK_ID('R','E','G','\0'))
-					command = state.Read8();
-	
-				state.End();
-			}
-		}
-	
-		void Mapper76::SubSave(State::Saver& state) const
-		{
-			state.Begin('R','E','G','\0').Write8( command ).End();
-		}
-	
         #ifdef NST_PRAGMA_OPTIMIZE
         #pragma optimize("", on)
         #endif
-	
-		NES_POKE(Mapper76,8000) 
+
+		void Mapper76::UpdateChr() const
 		{
-			command = data;
-		}
-	
-		NES_POKE(Mapper76,8001) 
-		{
-			switch (const uint index = (command & 0x7))
-			{
-				case 0x2:
-				case 0x3:
-				case 0x4:
-				case 0x5:
-
-					ppu.Update();
-					chr.SwapBank<SIZE_2K>( (index - 0x2) << 11, data );
-					break;
-
-				case 0x6:
-				case 0x7:
-
-					prg.SwapBank<SIZE_8K>( (index == 0x6) ? (command & 0x40) << 8 : 0x2000U, data );
-					break;
-			}
+			ppu.Update();
+			chr.SwapBanks<SIZE_2K,0x0000U>( banks.chr[2], banks.chr[3], banks.chr[4], banks.chr[5] ); 
 		}
 	}
 }

@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -33,6 +33,52 @@ namespace Nestopia
 {
 	namespace Collection
 	{
+		template<typename Key,typename Value,bool B>
+		struct MapEntry
+		{
+			const Key key;
+			Value value;
+
+			template<typename T>
+			MapEntry(const T& t)
+			: key(t) {}
+
+			template<typename T>
+			ibool operator == (const T& t) const
+			{
+				return key == t;
+			}
+
+			template<typename T>
+			ibool operator < (const T& t) const
+			{
+				return key < t;
+			}
+		};
+
+		template<typename Key,typename Value>
+		struct MapEntry<Key,Value,true>
+		{
+			const Key key;
+			Value value;
+
+			template<typename T>
+			MapEntry(const T& t)
+			: key(t), value(t) {}
+
+			template<typename T>
+			ibool operator == (const T& t) const
+			{
+				return key == t;
+			}
+
+			template<typename T>
+			ibool operator < (const T& t) const
+			{
+				return key < t;
+			}
+		};
+
 		template<typename K,typename V,bool B=false> class Map
 		{
 		public:
@@ -45,52 +91,7 @@ namespace Nestopia
 				VALUE_SIZE = sizeof(Value)
 			};
 
-		private:
-
-			struct KeyStorage
-			{
-				const Key key;
-
-				template<typename T>
-				KeyStorage(const T& t)
-				: key(t) {}
-
-				template<typename T>
-				ibool operator == (const T& t) const
-				{
-					return key == t;
-				}
-
-				template<typename T>
-				ibool operator < (const T& t) const
-				{
-					return key < t;
-				}
-			};
-
-			template<bool C>
-			struct EntryStorage : KeyStorage
-			{
-				Value value;
-
-				template<typename T>
-				EntryStorage(const T& t)
-				: KeyStorage(t), value(t) {}
-			};
-
-			template<>
-			struct EntryStorage<false> : KeyStorage
-			{
-				Value value;
-
-				template<typename T>
-				EntryStorage(const T& t)
-				: KeyStorage(t) {}
-			};
-
-		public:
-
-			typedef EntryStorage<B> Entry;
+			typedef MapEntry<K,V,B> Entry;
 
 		private:
 

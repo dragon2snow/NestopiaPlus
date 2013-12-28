@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -308,7 +308,7 @@ namespace Nestopia
 	{
 		static const uchar speeds[Window::Input::Settings::AUTOFIRE_NUM_SPEEDS] =
 		{
-			7,6,5,4,3,2
+			7,6,5,4,3,2,1
 		};
 
 		signal = speeds[speed];
@@ -317,7 +317,7 @@ namespace Nestopia
 	void Input::ClipBoard::Clear()
 	{
 		paste = false;
-		Heap::Destroy();
+		Destroy();
 	}
 
 	ibool Input::ClipBoard::CanPaste() const
@@ -367,7 +367,7 @@ namespace Nestopia
 								}
 								else if (p > 122)
 								{
-									if (p == '¥')
+									if (p == 165) // '¥'
 									{
 										p = '\\';
 									}
@@ -480,14 +480,14 @@ namespace Nestopia
 								if (kana != mode)
 								{
 									kana = mode;
-									Heap::operator << (char(0xFF));
+									operator << (char(0xFF));
 								}
 
-								Heap::operator << (p);
+								operator << (p);
 							}
 
 							if (kana)
-								Heap::operator << (char(0xFF));
+								operator << (char(0xFF));
 
 							::GlobalUnlock( handle );
 						}
@@ -677,7 +677,7 @@ namespace Nestopia
 
 			for (uint i=0; i < 5; ++i)
 			{
-				string[13] = (char) ('1' + i);
+				string[13] = '1' + i;
 				const GenericString type( cfg[string] );
 
 				Nes::Input::Type controller = Nes::Input::UNCONNECTED;
@@ -768,7 +768,7 @@ namespace Nestopia
 					default:                            type = _T( "unconnected"       ); break;
 				}
 
-				string[13] = (char) ('1' + i);
+				string[13] = '1' + i;
 				cfg[string] = type;
 			}
 		}
@@ -1516,7 +1516,7 @@ namespace Nestopia
 
         #undef NST_2
 
-		keyboard.parts[part] = (uchar) key;
+		keyboard.parts[part] = key;
 
 		return true;
 	}
@@ -1666,7 +1666,7 @@ namespace Nestopia
 
         #undef NST_2
 
-		keyboard.parts[part] = (uchar) key;
+		keyboard.parts[part] = key;
 
 		return true;
 	}

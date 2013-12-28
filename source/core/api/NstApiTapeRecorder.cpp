@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -26,7 +26,7 @@
 #include "../NstImage.hpp"
 #include "NstApiEmulator.hpp"
 #include "NstApiMachine.hpp"
-#include "../NstDataRecorder.hpp"
+#include "../NstPrpDataRecorder.hpp"
 #include "NstApiTapeRecorder.hpp"
 
 #ifdef NST_PRAGMA_OPTIMIZE
@@ -37,12 +37,12 @@ namespace Nes
 {
 	namespace Api
 	{
-		Core::DataRecorder* TapeRecorder::Query() const
+		Core::Peripherals::DataRecorder* TapeRecorder::Query() const
 		{
 			if (emulator.image && emulator.Is(Machine::ON))
 			{
 				if (Core::Image::ExternalDevice device = emulator.image->QueryExternalDevice( Core::Image::EXT_DATA_RECORDER ))
-					return static_cast<Core::DataRecorder*>(device);
+					return static_cast<Core::Peripherals::DataRecorder*>(device);
 			}
 
 			return NULL;
@@ -50,7 +50,7 @@ namespace Nes
 
 		bool TapeRecorder::IsStopped() const
 		{
-			if (Core::DataRecorder* const dataRecorder = Query())
+			if (Core::Peripherals::DataRecorder* const dataRecorder = Query())
 				return dataRecorder->IsStopped();
 
 			return true;
@@ -58,7 +58,7 @@ namespace Nes
 
 		bool TapeRecorder::IsPlaying() const
 		{
-			if (Core::DataRecorder* const dataRecorder = Query())
+			if (Core::Peripherals::DataRecorder* const dataRecorder = Query())
 				return dataRecorder->IsPlaying();
 
 			return false;
@@ -66,7 +66,7 @@ namespace Nes
 	
 		bool TapeRecorder::IsRecording() const
 		{
-			if (Core::DataRecorder* const dataRecorder = Query())
+			if (Core::Peripherals::DataRecorder* const dataRecorder = Query())
 				return dataRecorder->IsRecording();
 
 			return false;
@@ -74,7 +74,7 @@ namespace Nes
 
 		bool TapeRecorder::CanPlay() const
 		{
-			if (Core::DataRecorder* const dataRecorder = Query())
+			if (Core::Peripherals::DataRecorder* const dataRecorder = Query())
 				return dataRecorder->CanPlay();
 
 			return false;
@@ -82,7 +82,7 @@ namespace Nes
 
 		Result TapeRecorder::Play()
 		{
-			if (Core::DataRecorder* const dataRecorder = Query())
+			if (Core::Peripherals::DataRecorder* const dataRecorder = Query())
 				return dataRecorder->Play();
 
 			return RESULT_ERR_NOT_READY;
@@ -90,7 +90,7 @@ namespace Nes
 	
 		Result TapeRecorder::Record()
 		{
-			if (Core::DataRecorder* const dataRecorder = Query())
+			if (Core::Peripherals::DataRecorder* const dataRecorder = Query())
 				return dataRecorder->Record();
 
 			return RESULT_ERR_NOT_READY;
@@ -98,7 +98,7 @@ namespace Nes
 	
 		void TapeRecorder::Stop()
 		{
-			if (Core::DataRecorder* const dataRecorder = Query())
+			if (Core::Peripherals::DataRecorder* const dataRecorder = Query())
 				dataRecorder->Stop();
 		}
 	}

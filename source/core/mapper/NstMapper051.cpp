@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -97,20 +97,20 @@ namespace Nes
 
 		NES_POKE(Mapper51,6000) 
 		{
-			mode = ((data & 0x10) >> 3) | ((data & 0x02) >> 1);	
+			mode = (data >> 3 & 0x2) | (data >> 1 & 0x1);	
 			UpdateBanks();
 		}
 	
 		NES_POKE(Mapper51,8000) 
 		{
-			bank = data & 0x0F;
+			bank = data & 0xF;
 			UpdateBanks();
 		}
 	
 		NES_POKE(Mapper51,C000)
 		{
-			bank = data & 0x0F;
-			mode = (mode & 0x01) | ((data & 0x10) >> 3);
+			bank = data & 0xF;
+			mode = (data >> 3 & 0x2) | (mode & 0x1);
 			UpdateBanks();
 		}
 	}

@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -23,6 +23,7 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 
 #include "../NstMapper.hpp"
+#include "../NstClock.hpp"
 #include "NstMapper222.hpp"
 	   
 namespace Nes
@@ -33,8 +34,18 @@ namespace Nes
         #pragma optimize("s", on)
         #endif
 	
+		Mapper222::Mapper222(Context& c)
+		: Mapper(c), irq(c.cpu,c.ppu,Irq::SIGNAL_DURATION) {}
+
+		void Mapper222::Irq::Reset(bool)
+		{
+			count = 0;
+		}
+
 		void Mapper222::SubReset(bool)
 		{
+			irq.Reset( true, true );
+
 			for (uint i=0x0000U; i < 0x1000U; i += 0x4)
 			{
 				Map( 0x8000U + i, PRG_SWAP_8K_0 );
@@ -47,11 +58,49 @@ namespace Nes
 				Map( 0xD002U + i, CHR_SWAP_1K_5 );
 				Map( 0xE000U + i, CHR_SWAP_1K_6 );
 				Map( 0xE002U + i, CHR_SWAP_1K_7 );
+				Map( 0xF000U + i, &Mapper222::Poke_F000 );
 			}
 		}
 	
+		void Mapper222::SubLoad(State::Loader& state)
+		{
+			while (const dword chunk = state.Begin())
+			{
+				if (chunk == NES_STATE_CHUNK_ID('I','R','Q','\0'))
+					irq.unit.count = state.Read8();
+
+				state.End();
+			}
+		}
+
+		void Mapper222::SubSave(State::Saver& state) const
+		{
+			state.Begin('I','R','Q','\0').Write8( irq.unit.count ).End();
+		}
+
         #ifdef NST_PRAGMA_OPTIMIZE
         #pragma optimize("", on)
         #endif
+
+		ibool Mapper222::Irq::Signal()
+		{
+			if (!count || ++count < 240)
+				return false;
+			
+			count = 0;
+			return true;
+		}
+
+		NES_POKE(Mapper222,F000)
+		{
+			irq.Update();
+			irq.ClearIRQ();
+			irq.unit.count = data;
+		}
+
+		void Mapper222::VSync()
+		{
+			irq.VSync();
+		}
 	}
 }

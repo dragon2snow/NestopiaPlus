@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -30,6 +30,7 @@
 #include "NstApiMachine.hpp"
 #include "../NstCartridge.hpp"
 #include "../input/NstInpDevice.hpp"
+#include "../input/NstInpAdapter.hpp"
 #include "../input/NstInpPad.hpp"
 #include "../input/NstInpLightGun.hpp"
 #include "../input/NstInpPaddle.hpp"
@@ -46,7 +47,6 @@
 #include "../input/NstInpTopRider.hpp"
 #include "../input/NstInpPokkunMoguraa.hpp"
 #include "../input/NstInpPartyTap.hpp"
-#include "../NstIoAdapter.hpp"
 #include "../NstMapper.hpp"
 #include "../NstClock.hpp"
 #include "../board/NstBrdBandai.hpp"

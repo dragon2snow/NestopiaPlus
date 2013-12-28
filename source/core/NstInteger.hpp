@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -196,7 +196,7 @@ namespace Nes
 		u64(const V& v)
 		: lo(v), hi(0) {}
 
-		u64(u32 msdw,u32 lsdw)
+		u64(u32 msdw,u32 lsdw=0)
 		: lo(lsdw), hi(msdw) {}
 	
 		u64(const u64& v)
@@ -212,8 +212,8 @@ namespace Nes
 
 		u64& operator = (const u64& v) 
 		{ 
-			lo=v.lo; 
-			hi=v.hi; 
+			lo = v.lo; 
+			hi = v.hi; 
 			return *this; 
 		}
 
@@ -283,9 +283,6 @@ namespace Nes
 			return *this;
 		}
 
-		template<typename V> u64 operator + (const V& v) const { u64 t(*this); return t += v; }
-		template<typename V> u64 operator - (const V& v) const { u64 t(*this); return t -= v; }
-
 		template<typename V>
 		u64& operator *= (const V& v)
 		{
@@ -301,13 +298,6 @@ namespace Nes
 		{
 			Multiply( v );
 			return *this;
-		}
-
-		template<typename V> 
-		u64 operator * (const V& v) const 
-		{ 
-			u64 t( *this ); 
-			return t *= v; 
 		}
 
 		template<typename V>
@@ -332,13 +322,6 @@ namespace Nes
 		}
 
 		template<typename V>
-		u64 operator / (const V& v) const 
-		{ 
-			u64 t( *this );
-			return t /= v; 
-		}
-
-		template<typename V>
 		u64& operator %= (const V& v)
 		{
 			if (!hi)
@@ -355,12 +338,11 @@ namespace Nes
 			return *this;
 		}
 
-		template<typename V> 
-		u64 operator % (const V& v) const 
-		{ 
-			u64 t( *this ); 
-			return t %= v; 
-		}
+		template<typename V> u64 operator + (const V& v) const { return u64(*this) += v; }
+		template<typename V> u64 operator - (const V& v) const { return u64(*this) -= v; }
+		template<typename V> u64 operator * (const V& v) const { return u64(*this) *= v; }
+		template<typename V> u64 operator / (const V& v) const { return u64(*this) /= v; }
+		template<typename V> u64 operator % (const V& v) const { return u64(*this) %= v; }
 
 		template<typename V> u64& operator |= (const V& v) { lo |= v;         return *this; }
 		template<typename V> u64& operator &= (const V& v) { lo &= v; hi = 0; return *this; }
@@ -416,8 +398,8 @@ namespace Nes
 			return *this;
 		}
 	
-		u64 operator >> (uint v) const { u64 t(*this); return t >>= v; }
-		u64 operator << (uint v) const { u64 t(*this); return t <<= v; }
+		u64 operator >> (uint v) const { return u64(*this) >>= v; }
+		u64 operator << (uint v) const { return u64(*this) <<= v; }
 
 		u64 operator ~() const 
 		{
@@ -487,11 +469,11 @@ namespace Nes
 	
 		operator int    () const { return lo; }
 		operator uint   () const { return lo; }
-		operator char   () const { return (char) lo; }
-		operator schar  () const { return (schar) lo; }
-		operator uchar  () const { return (uchar) lo; }
-		operator short  () const { return (short) lo; }
-		operator ushort () const { return (ushort) lo; }
+		operator char   () const { return lo; }
+		operator schar  () const { return lo; }
+		operator uchar  () const { return lo; }
+		operator short  () const { return lo; }
+		operator ushort () const { return lo; }
 		operator long   () const { return lo; }
 		operator ulong  () const { return lo; }
 	};

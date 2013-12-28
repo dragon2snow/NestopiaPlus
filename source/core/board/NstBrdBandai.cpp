@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -25,7 +25,7 @@
 #include <cstring>
 #include "../NstMapper.hpp"
 #include "../NstClock.hpp"
-#include "../NstBarcodeReader.hpp"
+#include "../NstPrpBarcodeReader.hpp"
 #include "../api/NstApiUser.hpp"
 #include "NstBrdBandai.hpp"
 	   
@@ -514,7 +514,7 @@ namespace Nes
             #pragma optimize("s", on)
             #endif
 
-			class Bandai::DatachJointSystem : public BarcodeReader
+			class Bandai::DatachJointSystem : public Peripherals::BarcodeReader
 			{
 				enum
 				{
@@ -1096,7 +1096,7 @@ namespace Nes
 			ibool Bandai::Irq::Signal()
 			{
 				count = (count - 1) & 0xFFFFU;
-				return count == 0;//0xFFFF;
+				return count == 0;
 			}
 
 			void Bandai::VSync()

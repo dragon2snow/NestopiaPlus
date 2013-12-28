@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -438,10 +438,15 @@ namespace Nes
 
 			if (cpu.GetMode() == MODE_NTSC)
 				state.Begin('F','R','M','\0').Write8( (regs.frame & Regs::FRAME_ODD) == 0 ).End();
+
+			if (phase == &Ppu::WarmUp)
+				state.Begin('P','O','W','\0').Write8( WARM_UP_FRAMES-stage ).End();
 		}
 	
 		void Ppu::LoadState(State::Loader& state)
 		{
+			phase = &Ppu::HDummy;
+			stage = 0;
 			output.burstPhase = 0;
 
 			while (const dword chunk = state.Begin())
@@ -462,10 +467,6 @@ namespace Nes
 						oam.address    = data[8];
 						io.buffer      = data[9];
 						io.latch       = data[10];
-
-						phase = &Ppu::HDummy;
-						stage = 0;
-						regs.status |= Regs::STATUS_VBLANK;
 
 						UpdateStates();
 						break;
@@ -491,6 +492,16 @@ namespace Nes
 						if (cpu.GetMode() == MODE_NTSC)
 							regs.frame = (state.Read8() & 0x1) ? 0 : Regs::FRAME_ODD;
 
+						break;
+
+					case NES_STATE_CHUNK_ID('P','O','W','\0'):
+
+						stage = uint(WARM_UP_FRAMES) - (state.Read8() & 0x7U);
+
+						if (stage > WARM_UP_FRAMES)
+							stage = WARM_UP_FRAMES;
+
+						phase = &Ppu::WarmUp;
 						break;
 				}
 	
@@ -695,26 +706,6 @@ namespace Nes
 			}
 		}
 	
-		void Ppu::UpdateLatency()
-		{
-			const Cycle elapsed = cpu.GetMasterClockCycles() + cycles.one;
-
-			if (cycles.count < elapsed)
-			{
-				cycles.round = elapsed;
-
-            #ifdef NST_TAILCALL_OPTIMIZE
-				(*this.*phase)();
-            #else
-				do 
-				{					
-					(*this.*phase)();
-				} 
-				while (cycles.count < elapsed);
-            #endif
-			}
-		}
-	
 		void Ppu::SetMirroring(uint type)
 		{
 			NST_ASSERT( type < 6 );
@@ -848,7 +839,7 @@ namespace Nes
 			scroll.increase = (data & Regs::CTRL0_INC32) ? 32 : 1;
 			scroll.pattern = (data & Regs::CTRL0_BG_OFFSET) << 8;
 	
-			register const uint old = regs.ctrl0;
+			const uint old = regs.ctrl0;
 			regs.ctrl0 = data;
 	
 			if ((data & regs.status & Regs::CTRL0_NMI) > old)
@@ -857,7 +848,7 @@ namespace Nes
 	
 		NES_POKE(Ppu,2001)
 		{
-			UpdateLatency();
+			Update();
 	
 			regs.ctrl1 = io.latch = data;
 			io.enabled = data & (Regs::CTRL1_BG_ENABLED|Regs::CTRL1_SP_ENABLED);
@@ -872,7 +863,7 @@ namespace Nes
 		{
 			Update();
 
-			register uint status = regs.status & 0xFF;
+			uint status = regs.status & 0xFF;
 			regs.status &= (Regs::STATUS_VBLANK ^ 0xFF);
 
 			scroll.toggle = 0;
@@ -887,14 +878,14 @@ namespace Nes
 	
 		NES_POKE(Ppu,2003)
 		{
-			UpdateLatency();
+			Update();
 	
 			oam.address = io.latch = data;
 		}
 	
 		NES_POKE(Ppu,2004)
 		{
-			UpdateLatency();
+			Update();
 	
 			NST_ASSERT( oam.address < Oam::SIZE );
 			NST_VERIFY( IsDead() );
@@ -948,7 +939,7 @@ namespace Nes
 	
 		NES_POKE(Ppu,2005)
 		{
-			UpdateLatency();
+			Update();
 	
 			io.latch = data;
 	
@@ -967,7 +958,7 @@ namespace Nes
 	
 		NES_POKE(Ppu,2006)
 		{
-			UpdateLatency();
+			Update();
 	
 			io.latch = data;
 	
@@ -987,7 +978,7 @@ namespace Nes
 	
 		NES_POKE(Ppu,2007)
 		{
-			UpdateLatency();
+			Update();
 	
 			NST_VERIFY( IsDead()  );
 
@@ -1052,7 +1043,7 @@ namespace Nes
 	
 		NES_POKE(Ppu,4014)
 		{
-			UpdateLatency();
+			Update();
 	
 			NST_ASSERT( oam.address < Oam::SIZE );
 			NST_VERIFY( IsDead() );
@@ -1068,14 +1059,13 @@ namespace Nes
 				}
 				else 
 				{
-					uint dst = oam.address;
-					const uint end = oam.address;
-					register uint tmp;
+					u8 dst = oam.address;
+					const u8 end = oam.address;
+					register u8 tmp;
 	
 					do 
 					{					
-						oam.ram[dst] = tmp = cpu.Peek( data++ );
-						dst = (dst + 1) & 0xFF;
+						oam.ram[dst++] = tmp = cpu.Peek( data++ );
 					} 
 					while (dst != end);
 	
@@ -1132,7 +1122,7 @@ namespace Nes
 	
 			oam.evaluated = oam.buffer;
 	
-			if (io.enabled && scanline != 239)
+			if (io.enabled)
 			{
 				const uint height = ((regs.ctrl0 & Regs::CTRL0_SP8X16) >> 2) + 8;
 				const uint line = scanline;
@@ -1190,11 +1180,11 @@ namespace Nes
 					{
 						if (line - oam.ram[i] >= height)
 						{
-							i += 5;
+							i = ((i + 4) & 0x1FC) + ((i + 1) & 0x03);
 						}
 						else
 						{
-							cycles.spriteOverflow = cycles.count + cycles.one * (i / 4 * 3 + 2);
+							cycles.spriteOverflow = cycles.count + cycles.one * (45 + i/4 * 2);
 							break;
 						}
 					}

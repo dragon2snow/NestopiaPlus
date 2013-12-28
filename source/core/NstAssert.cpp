@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -66,7 +66,7 @@ namespace Nes
 				64 + 1
 			);	
 
-			static const TCHAR title[] = __T("Nestopia Debug Assertion!");
+			static const TCHAR title[] = _T("Nestopia Debug Assertion!");
 			static const char breakpoint[] = "break point";
 			static const char unknown[] = "unknown";
 
@@ -83,7 +83,7 @@ namespace Nes
 				::MessageBox
 				(
      				::GetActiveWindow(),
-					__T("Out of memory!"),
+					_T("Out of memory!"),
 					title,
 					MB_OK|MB_ICONERROR|MB_SETFOREGROUND|MB_TOPMOST
 				);
@@ -138,7 +138,7 @@ namespace Nes
 			result = ::MessageBox
 			(																 
     			::GetActiveWindow(),														 
-				__T("break into the debugger?"),
+				_T("break into the debugger?"),
 				title, 
 				MB_YESNO|MB_SETFOREGROUND|MB_TOPMOST
 			);	

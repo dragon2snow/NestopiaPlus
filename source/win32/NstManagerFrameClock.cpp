@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -132,38 +132,40 @@ namespace Nestopia
 
 				if (dialog->UseRewinder())
 				{
-					if (NES_SUCCEEDED(Rewinder(emulator).SetDirection( Rewinder::BACKWARD )))
-					{
-						if (!dialog->UseDefaultRewindSpeed() && !emulator.IsSpeeding())
-						{
-							settings.autoFrameSkip = (dialog->UseAutoFrameSkip() || dialog->GetRewindSpeed() > MAX_SPEED_NO_FRAMESKIP);
-							emulator.SetSpeed( dialog->GetRewindSpeed() );
-						}
-					}
-					else
-					{
+					if (NES_FAILED(Rewinder(emulator).SetDirection( Rewinder::BACKWARD )))
 						Io::Screen() << Resource::String( IDS_EMU_ERR_CANT_REWIND );
-					}
 				}
 				break;
 
 			case Emulator::EVENT_REWINDING_OFF:
 			
 				Rewinder(emulator).SetDirection( Rewinder::FORWARD );
+				break;
+ 
+			case Emulator::EVENT_SPEED:
+
+				settings.refreshRate = emulator.GetSpeed();
+				ResetTimer();
+				break;
+
+			case Emulator::EVENT_REWINDING_START:
+
+				if (!dialog->UseDefaultRewindSpeed() && !emulator.IsSpeeding())
+				{
+					settings.autoFrameSkip = (dialog->UseAutoFrameSkip() || dialog->GetRewindSpeed() > MAX_SPEED_NO_FRAMESKIP);
+					emulator.SetSpeed( dialog->GetRewindSpeed() );
+				}
+
+				ResetTimer();
+				break;
+
+			case Emulator::EVENT_REWINDING_STOP:
 
 				if (!emulator.IsSpeeding())
 				{
 					settings.autoFrameSkip = dialog->UseAutoFrameSkip();
 					emulator.SetSpeed( Emulator::DEFAULT_SPEED );
 				}
-				break;
- 
-			case Emulator::EVENT_SPEED:
-
-				settings.refreshRate = emulator.GetSpeed();
-
-			case Emulator::EVENT_REWINDING_START:
-			case Emulator::EVENT_REWINDING_STOP:
 
 				ResetTimer();
 				break;

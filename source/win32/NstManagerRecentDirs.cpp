@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -56,7 +56,7 @@ namespace Nestopia
 
 		for (uint i=0; i < MAX_DIRS; ++i)
 		{
-			index.Back() = (char) ('1' + i);
+			index.Back() = '1' + i;
 			const GenericString dir( cfg[index] );
 
 			if (dir.Length())
@@ -87,7 +87,7 @@ namespace Nestopia
 
 		for (uint i=0; i < MAX_DIRS && menu[IDM_FILE_RECENT_DIR_1 + i].Text() >> dir; ++i)
 		{
-			index.Back() = (char) ('1' + i);
+			index.Back() = '1' + i;
 			cfg[index].Quote() = dir(3);
 		}
 
@@ -142,7 +142,7 @@ namespace Nestopia
 					for (uint i=IDM_FILE_RECENT_DIR_1, j=0; i <= IDM_FILE_RECENT_DIR_5 && menu[i].Text() >> items[j]; ++i)
 					{
 						if (items[j](3) != curDir)
-							items[j][1] = (char) ('2' + j), ++j;
+							items[j][1] = ('2' + j), ++j;
 					}
 			
 					Add( IDM_FILE_RECENT_DIR_1, Name("&1 ") << curDir );

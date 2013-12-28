@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -56,7 +56,7 @@ namespace Nestopia
 				DEFAULT_HEIGHT   = 480,
 				DEFAULT_BPP      = 16,
 				SCREEN_MATCHED   = 8,
-				SCREEN_STRETCHED = INT_MAX
+				SCREEN_STRETCHED = 255
 			};
 
 			Video(Managers::Emulator&,const Adapters&,const Managers::Paths&,const Configuration&);
@@ -66,10 +66,8 @@ namespace Nestopia
 			void LoadGamePalette(const Path&);
 			void UnloadGamePalette();
 			void SavePalette(Path&) const;
-			void UpdatePaletteMode() const;
-
+			void UpdatePaletteMode() const;			
 			void GetRenderState(Nes::Video::RenderState&,float[4],const Window::Generic) const;
-			const Rect GetNesRect() const;
 			ibool PutTextureInVideoMemory() const;
 			Modes::const_iterator GetDialogMode() const;
 
@@ -80,6 +78,7 @@ namespace Nestopia
 			uint GetFullscreenScaleMethod() const;
 			void UpdateFullscreenScaleMethod(uint);
 			void UpdateNtscFilter() const;
+			void UpdateFinalRects();
 			Nes::Video::Palette::Mode GetDesiredPaletteMode() const;
 
 			enum
@@ -87,7 +86,8 @@ namespace Nestopia
 				NTSC_CLIP_TOP = 8,
 				NTSC_CLIP_BOTTOM = NES_HEIGHT - 8,
 				PAL_CLIP_TOP = 1,
-				PAL_CLIP_BOTTOM = NES_HEIGHT - 0
+				PAL_CLIP_BOTTOM = NES_HEIGHT - 0,
+				TV_WIDTH = 288
 			};
 
 			typedef VideoFilters Filter;
@@ -100,6 +100,8 @@ namespace Nestopia
 				{
 					Rect ntsc;
 					Rect pal;
+					Rect outNtsc;
+					Rect outPal;
 				};
 
 				enum TexMem
@@ -115,12 +117,13 @@ namespace Nestopia
 				Filter::Settings* filter;
 				Filter::Settings filters[Filter::NUM_TYPES];
 				Rects rects;
-				uint fullscreenScale;
 				Path palette;
 				Path lockedPalette;
 				Nes::Video::Palette::Mode lockedMode;
-				ibool autoPalette;
-				ibool autoHz;
+				u8 fullscreenScale;
+				bool autoPalette;
+				bool autoHz;
+				bool tvAspect;
 			};
 
 			ibool OnInitDialog        (Param&);
@@ -141,6 +144,7 @@ namespace Nestopia
 			ibool OnCmdAutoHz         (Param&);
 			ibool OnCmdDefault        (Param&);
 			ibool OnCmdOk             (Param&);
+			ibool OnDestroy           (Param&);
 
 			void UpdateDevice(Mode);
 			void UpdateResolutions(Mode);
@@ -177,6 +181,18 @@ namespace Nestopia
 				return (Nes::Machine(nes).GetMode() == Nes::Machine::NTSC ? settings.rects.ntsc : settings.rects.pal);														
 			}
   
+			bool ToggleTvAspect()
+			{
+				settings.tvAspect = !settings.tvAspect;
+				UpdateFinalRects();
+				return settings.tvAspect;
+			}
+
+			bool IsTvAspect() const
+			{
+				return settings.tvAspect;
+			}
+
 			Modes::const_iterator GetMode() const
 			{
 				return settings.mode;
@@ -218,6 +234,11 @@ namespace Nestopia
 			ibool EnableFieldMerging() const
 			{
 				return settings.filters[Filter::TYPE_NTSC].attributes[Filter::ATR_FIELDMERGING] == Filter::ATR_FIELDMERGING_ON;
+			}
+
+			const Rect& GetNesRect() const
+			{
+				return Nes::Machine(nes).GetMode() == Nes::Machine::NTSC ? settings.rects.outNtsc : settings.rects.outPal;
 			}
 		};
 	}

@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -22,8 +22,10 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
+#ifdef _MSC_VER
 #pragma comment(lib,"d3d9")
 #pragma comment(lib,"d3dx9")
+#endif
 
 #include "NstIoLog.hpp"
 #include "NstDirect2D.hpp"
@@ -121,7 +123,8 @@ namespace Nestopia
 						if (display.Width < Mode::MIN_WIDTH || display.Height < Mode::MIN_HEIGHT || display.RefreshRate > Mode::MAX_RATE)
 							continue;
 						
-						modes.insert(Mode( display.Width, display.Height, format ? 32 : 16 )).first->rates.insert( (uchar) display.RefreshRate );
+						// C++ standard vagueness, sometimes set::iterator == set::const_iterator
+						const_cast<Mode::Rates&>(modes.insert(Mode( display.Width, display.Height, format ? 32 : 16 )).first->rates).insert( display.RefreshRate );
 					}
 				}
 
@@ -913,7 +916,7 @@ namespace Nestopia
 
 	ibool Direct2D::Device::ResetFrameRate(uint frameRate,bool vsync,bool tripleBuffering,const Base& base)
 	{
-		timing.frameRate = (u8) frameRate;
+		timing.frameRate = frameRate;
 		timing.vsync = vsync;
 
 		if (timing.tripleBuffering != tripleBuffering)
@@ -1145,7 +1148,7 @@ namespace Nestopia
 				const uint bpp = GetBitsPerPixel();
 
 				if (!bpp)
-					throw Application::Exception(_T("Unsupported bit-per-pixel format!"));
+					throw Application::Exception(_T("Unsupported bits-per-pixel format!"));
 
 				if (FAILED(device.SetTexture( 0, com )))
 					throw Application::Exception(_T("IDirect3DDevice9::SetTexture() failed!"));
@@ -1307,7 +1310,7 @@ namespace Nestopia
 		if (picture.x > 0 && picture.y > 0)
 		{
 			texture.Update( screen, filter, useVidMem );
-			vertexBuffer.Update( picture, clipping, (float) texture.Size() );
+			vertexBuffer.Update( picture, clipping, texture.Size() );
 
 			const Point client( Rect::Client( device.GetPresentation().hDeviceWindow ).Size() );
 			NST_ASSERT( client.x >= picture.x && client.y >= picture.y );
@@ -1335,7 +1338,7 @@ namespace Nestopia
 		NST_ASSERT( picture.Width() && picture.Height() );
 
 		texture.Update( screen, filter, useVidMem );
-		vertexBuffer.Update( picture, clipping, (float) texture.Size() );
+		vertexBuffer.Update( picture, clipping, texture.Size() );
 		ValidateObjects();
 	}
 

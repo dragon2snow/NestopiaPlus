@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -32,28 +32,42 @@ namespace Nes
         #ifdef NST_PRAGMA_OPTIMIZE
         #pragma optimize("s", on)
         #endif
-	
-		Mapper185::Mapper185(Context& c)
-		: 
-		Mapper  (c,CRAM_8K), 
-		compare (c.pRomCrc == 0xB36457C7UL ? 0x3 : c.pRomCrc == 0xA03C98A7UL ? 0x1 : 0x0) // Spy vs Spy, Seicross
-		{}
-	
-		void Mapper185::SubReset(const bool hard)
+
+		void Mapper185::SubReset(bool)
 		{
-			if (hard)
-			{
-				chr.Source(1).Fill(0xFF);
-				chr.Source(1).SwapBank<SIZE_8K,0x0000U>(0);
-			}
+			openChrBus = 0x00;
+
+			for (uint i=0; i < 2; ++i)
+				chr.SetAccessor( i, this, &Mapper185::Access_Chr );
 
 			Map( 0x8000U, 0xFFFFU, &Mapper185::Poke_Prg );
 		}
 	
+		void Mapper185::SubSave(State::Saver& state) const
+		{
+			state.Begin('O','P','B','\0').Write8( openChrBus ? 0x1 : 0x0 ).End();
+		}
+
+		void Mapper185::SubLoad(State::Loader& state)
+		{
+			while (const dword chunk = state.Begin())
+			{
+				if (chunk == NES_STATE_CHUNK_ID('O','P','B','\0'))
+					openChrBus = (state.Read8() & 0x1) ? 0xFF : 0x00;
+
+				state.End();
+			}
+		}
+
         #ifdef NST_PRAGMA_OPTIMIZE
         #pragma optimize("", on)
         #endif
 	
+		NES_ACCESSOR(Mapper185,Chr)
+		{
+			return chr.Peek( address ) | openChrBus;
+		}
+
 		NES_POKE(Mapper185,Prg)
 		{
 			// Bird Week  : $C020:F0 $C021:0F
@@ -62,11 +76,10 @@ namespace Nes
 			// Sansuu 2.. : $805C:20 $805D:22
 			// Sanssu 2.. : $803F:20 $8040:22
 			// Sanssu 3.. : $805C:00 $805D:FF
-			// Seicross   : $80DF:21 $80DE:20
 			// Spy vs Spy : $8090:13 $8091:21
 
 			ppu.Update();	
-			chr.Source( (data & 0x3) == compare ).SwapBank<SIZE_8K,0x0000U>(0);
+			openChrBus = !(data & 0x03) || (data == 0x13) ? 0xFF : 0x00;
 		}
 	}
 }

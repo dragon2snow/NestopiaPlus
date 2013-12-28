@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -71,9 +71,9 @@ namespace Nes
 	
 			uint bank = 
 			(
-				((regs[0] & 0x1E) >> 1) |
-				((regs[0] & 0x80) >> 3) |
-				((regs[1] & 0x01) << 5)
+				(regs[0] >> 1 & 0x0F) |
+				(regs[0] >> 3 & 0x10) |
+				(regs[1] << 5 & 0x20)
 			);
 	
 			if (regs[0] & 0x20)

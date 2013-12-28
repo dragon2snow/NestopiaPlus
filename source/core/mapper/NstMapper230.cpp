@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -36,12 +36,16 @@ namespace Nes
 		void Mapper230::SubReset(const bool hard)
 		{
 			if (hard)
-				romSwitch = 1;
-	
-			romSwitch ^= 1;
-			prg.SwapBanks<SIZE_16K,0x0000U>( romSwitch ? 0U : 8U, romSwitch ? 7U : ~0U );
+				romSwitch = 0;
+			else
+				romSwitch ^= 1;
+
+			prg.SwapBanks<SIZE_16K,0x0000U>( romSwitch ? 0 : 8, romSwitch ? 7 : 39 );
 	
 			Map( 0x8000U, 0xFFFFU, &Mapper230::Poke_Prg );
+
+			// for the soft reset triggering feature
+			cpu.Poke( 0x2000, 0x00 );
 		}
 	
 		void Mapper230::SubLoad(State::Loader& state)
@@ -77,7 +81,7 @@ namespace Nes
 				if (data & 0x20)
 					prg.SwapBanks<SIZE_16K,0x0000U>( 8 + (data & 0x1F), 8 + (data & 0x1F) );
 				else
-					prg.SwapBank<SIZE_32K,0x0000U>( 4 + ((data & 0x1E) >> 1) );
+					prg.SwapBank<SIZE_32K,0x0000U>( 4 + (data >> 1 & 0xF) );
 			}
 		}
 	}

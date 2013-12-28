@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -38,7 +38,7 @@ namespace Nes
 			for (uint i=0x5000U; i < 0x6000U; i += 0x400)
 				Map( i + 0x00, i + 0x1FF, &Mapper164::Poke_5000 );
 
-			regs[0] = 0xFF;
+			regs[0] = 0xFFF;
 			regs[1] = 0x00;
 
 			NES_CALL_POKE(Mapper164,5000,0x5000U,0x00);
@@ -72,31 +72,31 @@ namespace Nes
 
 		NES_POKE(Mapper164,5000)
 		{
-			address = (address >> 8) & 0x1;
+			address = address >> 8 & 0x1;
 
 			if (regs[address] != data)
 			{
 				regs[address] = data;				
-				data = (regs[1] & 0x1) << 5;
+				data = regs[1] << 5 & 0x20;
 			
-				switch ((regs[0] >> 4) & 0x7)
+				switch (regs[0] & 0x70)
 				{
-					case 0:
-					case 2:
-					case 4:
-					case 6:
+					case 0x00:
+					case 0x20:
+					case 0x40:
+					case 0x60:
 			
-						prg.SwapBanks<SIZE_16K,0x0000U>( data + (regs[0] & 0xF) + ((regs[0] & 0x20) >> 1), data + 0x1F );
+						prg.SwapBanks<SIZE_16K,0x0000U>( data | (regs[0] >> 1 & 0x10) | (regs[0] & 0xF), data | 0x1F );
 						break;
 			
-					case 5:
+					case 0x50:
 			
-						prg.SwapBank<SIZE_32K,0x0000U>( (data >> 1) + (regs[0] & 0xF) );
+						prg.SwapBank<SIZE_32K,0x0000U>( (data >> 1) | (regs[0] & 0xF) );
 						break;
 			
-					case 7:
+					case 0x70:
 			
-						prg.SwapBanks<SIZE_16K,0x0000U>( data + (regs[0] & 0xF) + ((regs[0] & 0x8) << 1), data + 0x1F );
+						prg.SwapBanks<SIZE_16K,0x0000U>( data | (regs[0] << 1 & 0x10) | (regs[0] & 0xF), data | 0x1F );
 						break;
 				}
 			}

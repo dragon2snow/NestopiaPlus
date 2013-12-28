@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -166,7 +166,7 @@ namespace Nes
 	
 		Result Machine::Reset(const bool hard)
 		{
-			if ((emulator.state & ON) && !Api::Movie(emulator).IsPlaying())
+			if ((emulator.state & ON) && !emulator.tracker.IsLocked())
 			{
 				Result result = emulator.Reset( hard );
 	
@@ -208,7 +208,7 @@ namespace Nes
 
 		Result Machine::LoadState(std::istream& stream)
 		{
-			if (Api::Movie(emulator).IsStopped())
+			if (!emulator.tracker.MovieIsInserted() && !emulator.tracker.IsRewinding())
 			{
 				Api::Rewinder(emulator).Reset();
 				return emulator.LoadState( &stream );

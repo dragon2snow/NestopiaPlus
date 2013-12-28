@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -46,18 +46,13 @@ namespace Nes
 			dword size;
 			dword capacity;
 
-        #ifndef NDEBUG
-
-			Vector(const Vector&);
-
-        #endif
-
 		public:
 
 			typedef T Type;
 
 			Vector();
 			explicit Vector(dword);
+			Vector(const Vector&);
 			~Vector();
 
 			void operator << (const T&);				
@@ -70,6 +65,7 @@ namespace Nes
 			void Append(const T*,dword);
 			void Erase(T*,dword=1);
 			void Destroy();
+			void Defrag();
 
 			void operator = (const Vector& vector)
 			{
@@ -136,6 +132,20 @@ namespace Nes
 		{
 			if (count && data == NULL)
 				throw RESULT_ERR_OUT_OF_MEMORY;				
+		}
+
+		template<typename T>
+		Vector<T>::Vector(const Vector<T>& v)
+		: data(v.size ? static_cast<T*>(std::malloc(v.size * sizeof(T))) : NULL), size(v.size), capacity(v.size) 
+		{
+			if (data)
+			{
+				std::memcpy( data, v.data, capacity * sizeof(T) );
+			}
+			else if (capacity)
+			{
+				throw RESULT_ERR_OUT_OF_MEMORY;				
+			}
 		}
 
 		template<typename T>
@@ -224,6 +234,13 @@ namespace Nes
 		{
 			size += count;
 			Reserve( size );
+		}
+
+		template<typename T>
+		void Vector<T>::Defrag()
+		{
+			if (size < capacity)
+				Reallocate( size );
 		}
 
 		template<typename T>

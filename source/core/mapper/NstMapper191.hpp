@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -33,18 +33,19 @@ namespace Nes
 {
 	namespace Core
 	{
-		class Mapper191 : public Boards::Mmc3
+		class Mapper191 : public Boards::TaiwanMmc3
 		{
 		public:
 
 			Mapper191(Context& c)
-			: Mmc3(c,WRAM_8K|CRAM_2K) {}
+			: TaiwanMmc3(c,CRAM_2K) {}
 
 		private:
 
-			void SubReset(bool);   
-			void UpdateChr() const;
-			void SwapChr(uint,uint) const;
+			uint GetChrSource(uint bank) const
+			{
+				return bank >> 7 & 0x1;
+			}
 		};
 	}
 }

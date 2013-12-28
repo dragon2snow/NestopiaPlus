@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -57,12 +57,6 @@ namespace Nestopia
 
 	NST_COMPILE_ASSERT
 	(
-       	IDC_GRAPHICS_COLORS_SATURATION == IDC_GRAPHICS_COLORS_BRIGHTNESS + 1 &&
-     	IDC_GRAPHICS_COLORS_HUE        == IDC_GRAPHICS_COLORS_BRIGHTNESS + 2
-	);
-
-	NST_COMPILE_ASSERT
-	(
 		IDC_GRAPHICS_NESTEXTURE_VIDMEM == IDC_GRAPHICS_NESTEXTURE_AUTO + 1 &&
 		IDC_GRAPHICS_NESTEXTURE_SYSMEM == IDC_GRAPHICS_NESTEXTURE_AUTO + 2
 	);
@@ -78,6 +72,13 @@ namespace Nestopia
 		IDC_GRAPHICS_PALETTE_EDITOR	  == IDC_GRAPHICS_PALETTE_AUTO + 7
 	);
 
+	NST_COMPILE_ASSERT
+	(
+    	Nes::Video::MIN_BRIGHTNESS == -100 && Nes::Video::DEFAULT_BRIGHTNESS == 0 && Nes::Video::MAX_BRIGHTNESS == +100 &&
+		Nes::Video::MIN_SATURATION == -100 && Nes::Video::DEFAULT_SATURATION == 0 && Nes::Video::MAX_SATURATION == +100 &&
+		Nes::Video::MIN_CONTRAST   == -100 && Nes::Video::DEFAULT_CONTRAST   == 0 && Nes::Video::MAX_CONTRAST   == +100 
+	);
+
 	using namespace Window;
 
 	struct Video::Handlers
@@ -89,6 +90,7 @@ namespace Nestopia
 	const MsgHandler::Entry<Video> Video::Handlers::messages[] =
 	{
 		{ WM_INITDIALOG, &Video::OnInitDialog },
+		{ WM_DESTROY,    &Video::OnDestroy    },
 		{ WM_HSCROLL,    &Video::OnHScroll    }
 	};
 
@@ -157,24 +159,14 @@ namespace Nestopia
 		if (settings.mode == settings.adapter->modes.end())
 			settings.mode = GetDefaultMode();
 
-		{
-			const GenericString type( cfg["view size fullscreen"] );
-
-			if (type.Length() > 1)
-			{
-				if (type == _T("stretched"))
-					settings.fullscreenScale = SCREEN_STRETCHED;
-			}
-			else if (type.Length() && type[0] >= '1' && type[0] <= '9')
-			{
-				settings.fullscreenScale = type[0] - '1';
-			}
-		}
+		if (GenericString(cfg["view size fullscreen"]) == _T("stretched"))
+			settings.fullscreenScale = SCREEN_STRETCHED;
 
 		settings.filter = settings.filters + Filter::Load
 		( 
 	       	cfg, 
 			settings.filters, 
+			Nes::Video(nes),
 			settings.adapter->maxScreenSize, 
 			settings.adapter->filters & Adapter::FILTER_BILINEAR
 		);
@@ -210,14 +202,27 @@ namespace Nestopia
 			pal.bottom  = cfg[ "video pal bottom"  ].Default( PAL_CLIP_BOTTOM-1  );
 		}
 
-		ValidateRects();
+		{
+			uint value;
+
+			if (200 >= (value=cfg["video color brightness"].Default( 100 )))
+				Nes::Video(nes).SetBrightness( int(value) - 100 );
+
+			if (200 >= (value=cfg["video color saturation"].Default( 100 )))
+				Nes::Video(nes).SetSaturation( int(value) - 100 );
+
+			if (200 >= (value=cfg["video color contrast"].Default( 100 )))
+				Nes::Video(nes).SetContrast( int(value) - 100 );
+		}
 
 		{
-			uint color;
+			int hue = (uint) cfg["video color hue"].Default( 0 );
 
-			if (255 >= (color = cfg[ "video color brightness" ].Default( 128U ))) Nes::Video(nes).SetBrightness( color );
-			if (255 >= (color = cfg[ "video color saturation" ].Default( 128U ))) Nes::Video(nes).SetSaturation( color );
-			if (255 >= (color = cfg[ "video color hue"        ].Default( 128U ))) Nes::Video(nes).SetHue( color );
+			if (hue > 180 && hue <= 360)
+				hue -= 360;
+
+			if (hue >= Nes::Video::MIN_HUE && hue <= Nes::Video::MAX_HUE)
+				Nes::Video(nes).SetHue( hue );
 		}
 
 		{
@@ -242,7 +247,7 @@ namespace Nestopia
 
 				if (string.Length())
 				{
-					decoder.axes[i].gain = (float) _tstof( string.Ptr() );
+					decoder.axes[i].gain = std::atof( String::Heap<char>(string).Ptr() );
 					decoder.axes[i].gain = NST_CLAMP(decoder.axes[i].gain,0.0f,2.0f);
 				}
 			}
@@ -283,8 +288,9 @@ namespace Nestopia
 		}
 
 		settings.autoHz = (cfg["video auto display frequency"] == Configuration::YES);
+		settings.tvAspect = (cfg["video tv aspect ratio"] == Configuration::YES);
 
-		UpdateNtscFilter();
+		ValidateRects();
 	}
 
 	Video::~Video()
@@ -305,19 +311,11 @@ namespace Nestopia
 			}
 		}
 
-		{
-			HeapString& value = cfg["view size fullscreen"].GetString();
-
-			if (settings.fullscreenScale <= 8)
-				value << (settings.fullscreenScale + 1U);
-			else
-				value << "stretched";
-		}
-
 		Filter::Save
 		( 
 			cfg, 
-			settings.filters, 
+			settings.filters,
+			Nes::Video(nes),
 			(Filter::Type) (settings.filter - settings.filters) 
 		);
 
@@ -378,10 +376,13 @@ namespace Nestopia
 		cfg[ "video pal top"                ] = settings.rects.pal.top;
 		cfg[ "video pal right"              ] = settings.rects.pal.right - 1;
 		cfg[ "video pal bottom"             ] = settings.rects.pal.bottom - 1;	
-		cfg[ "video color brightness"       ] = Nes::Video(nes).GetBrightness();
-		cfg[ "video color saturation"       ] = Nes::Video(nes).GetSaturation();
-		cfg[ "video color hue"              ] = Nes::Video(nes).GetHue();
+		cfg[ "video color brightness"       ] = uint( 100 + Nes::Video(nes).GetBrightness() );
+		cfg[ "video color saturation"       ] = uint( 100 + Nes::Video(nes).GetSaturation() );
+		cfg[ "video color contrast"         ] = uint( 100 + Nes::Video(nes).GetContrast()   );
+		cfg[ "video color hue"              ] = uint( Nes::Video(nes).GetHue() + (Nes::Video(nes).GetHue() < 0 ? 360 : 0) );
 		cfg[ "video auto display frequency" ].YesNo() = settings.autoHz;
+		cfg[ "video tv aspect ratio"        ].YesNo() = settings.tvAspect;
+		cfg[ "view size fullscreen"         ] = (settings.fullscreenScale == SCREEN_STRETCHED ? _T("stretched") : _T("matched"));
 	}
 
 	Nes::Video::Palette::Mode Video::GetDesiredPaletteMode() const
@@ -407,51 +408,6 @@ namespace Nestopia
 		}
 	}
 
-	void Video::UpdateNtscFilter() const
-	{
-		Nes::Video(nes).SetContrast( (uint(settings.filters[Filter::TYPE_NTSC].attributes[Filter::ATR_CONTRAST] - Filter::ATR_CONTRAST_MIN) * 255 + (Filter::ATR_CONTRAST_MAX-Filter::ATR_CONTRAST_MIN)/2) / (Filter::ATR_CONTRAST_MAX-Filter::ATR_CONTRAST_MIN) );
-		Nes::Video(nes).SetSharpness( (uint(settings.filters[Filter::TYPE_NTSC].attributes[Filter::ATR_SHARPNESS] - Filter::ATR_SHARPNESS_MIN) * 255 + (Filter::ATR_SHARPNESS_MAX-Filter::ATR_SHARPNESS_MIN)/2) / (Filter::ATR_SHARPNESS_MAX-Filter::ATR_SHARPNESS_MIN) );
-	}
-
-    #ifdef NST_PRAGMA_OPTIMIZE
-    #pragma optimize("t", on)
-    #endif
-
-	const Rect Video::GetNesRect() const
-	{
-		const Rect& rect = (Nes::Machine(nes).GetMode() == Nes::Machine::NTSC ? settings.rects.ntsc : settings.rects.pal);
-
-		if (settings.filter != settings.filters + Filter::TYPE_NTSC)
-		{
-			return rect;
-		}
-		else
-		{
-			Rect tmp( rect );
-
-			if (tmp.left < 1)
-				tmp.left = 1;
-
-			if (settings.filters[Filter::TYPE_NTSC].attributes[Filter::ATR_NO_WIDESCREEN])
-			{
-				tmp.right += 2;
-			}
-			else
-			{
-				tmp.left   = (tmp.left   * NTSC_WIDTH  + NES_WIDTH  / 2) / NES_WIDTH; 
-				tmp.top    = (tmp.top    * NTSC_HEIGHT + NES_HEIGHT / 2) / NES_HEIGHT; 
-				tmp.right  = (tmp.right  * NTSC_WIDTH  + NES_WIDTH  / 2) / NES_WIDTH; 
-				tmp.bottom = (tmp.bottom * NTSC_HEIGHT + NES_HEIGHT / 2) / NES_HEIGHT; 
-			}
-
-			return tmp;
-		}
-	}
-
-    #ifdef NST_PRAGMA_OPTIMIZE
-    #pragma optimize("", on)
-    #endif
-
 	void Video::GetRenderState(Nes::Video::RenderState& state,float rect[4],const Window::Generic window) const
 	{
 		typedef Nes::Video::RenderState State;
@@ -459,10 +415,10 @@ namespace Nestopia
 		{
 			const Rect& nesRect = (Nes::Machine(nes).GetMode() == Nes::Machine::NTSC ? settings.rects.ntsc : settings.rects.pal);
 
-			rect[0] = (float) nesRect.left;
-			rect[1] = (float) nesRect.top;
-			rect[2] = (float) nesRect.right;
-			rect[3] = (float) nesRect.bottom;
+			rect[0] = nesRect.left;
+			rect[1] = nesRect.top;
+			rect[2] = nesRect.right;
+			rect[3] = nesRect.bottom;
 		}
 
 		state.width = NES_WIDTH;
@@ -558,8 +514,8 @@ namespace Nestopia
 				break;
 		}
 
-		state.width = (ushort) (state.width * scale);
-		state.height = (ushort) (state.height * scale);
+		state.width = state.width * scale;
+		state.height = state.height * scale;
 
 		for (uint i=0; i < 4; ++i)
 			rect[i] *= scale;
@@ -614,13 +570,45 @@ namespace Nestopia
 
 	uint Video::GetFullscreenScaleMethod() const
 	{
-		return settings.filter == settings.filters+Filter::TYPE_NTSC ? settings.filters[Filter::TYPE_NTSC].attributes[Filter::ATR_NO_WIDESCREEN] ? 1 : 2 : 0;
+		return settings.filter == settings.filters+Filter::TYPE_NTSC ? settings.filters[Filter::TYPE_NTSC].attributes[Filter::ATR_RESCALE_PIC] ? 1 : 2 : 0;
 	}
 
 	void Video::UpdateFullscreenScaleMethod(uint prev)
 	{
 		if (settings.fullscreenScale != SCREEN_STRETCHED && prev != GetFullscreenScaleMethod())
 			settings.fullscreenScale = SCREEN_MATCHED;
+	}
+
+	void Video::UpdateFinalRects()
+	{
+		for (uint i=0; i < 2; ++i)
+		{
+			Rect& rect = (i ? settings.rects.outPal : settings.rects.outNtsc);
+			rect = (i ? settings.rects.pal : settings.rects.ntsc);
+
+			if (settings.filter == settings.filters + Filter::TYPE_NTSC)
+			{
+				if (rect.left < 1)
+					rect.left = 1;
+
+				if (settings.tvAspect || !settings.filters[Filter::TYPE_NTSC].attributes[Filter::ATR_RESCALE_PIC])
+				{
+					rect.left   = (rect.left   * NTSC_WIDTH  + NES_WIDTH  / 2) / NES_WIDTH; 
+					rect.top    = (rect.top    * NTSC_HEIGHT + NES_HEIGHT / 2) / NES_HEIGHT; 
+					rect.right  = (rect.right  * NTSC_WIDTH  + NES_WIDTH  / 2) / NES_WIDTH; 
+					rect.bottom = (rect.bottom * NTSC_HEIGHT + NES_HEIGHT / 2) / NES_HEIGHT; 
+				}
+				else
+				{
+					rect.right += 2;
+				}
+			}
+			else if (settings.tvAspect)
+			{
+				rect.left  = (rect.left  * TV_WIDTH + NES_WIDTH / 2) / NES_WIDTH; 
+				rect.right = (rect.right * TV_WIDTH + NES_WIDTH / 2) / NES_WIDTH; 
+			}
+		}
 	}
 
 	ibool Video::PutTextureInVideoMemory() const
@@ -633,24 +621,26 @@ namespace Nestopia
 
 	void Video::ValidateRects()
 	{
-		Rect& ntsc = settings.rects.ntsc;
-		Rect& pal = settings.rects.pal;
+		Settings::Rects& r = settings.rects;
 
-		ntsc.left   = NST_CLAMP( ntsc.left,   0,         NES_WIDTH  -1 );
-		ntsc.top    = NST_CLAMP( ntsc.top,    0,         NES_HEIGHT -1 );
-		ntsc.right  = NST_CLAMP( ntsc.right,  ntsc.left, NES_WIDTH  -1 ) + 1;
-		ntsc.bottom = NST_CLAMP( ntsc.bottom, ntsc.top,  NES_HEIGHT -1 ) + 1;
-		pal.left    = NST_CLAMP( pal.left,    0,         NES_WIDTH  -1 );
-		pal.top     = NST_CLAMP( pal.top,     0,         NES_HEIGHT -1 );
-		pal.right   = NST_CLAMP( pal.right,   pal.left,  NES_WIDTH  -1 ) + 1;
-		pal.bottom  = NST_CLAMP( pal.bottom,  pal.top,   NES_HEIGHT -1 ) + 1;
+		r.ntsc.left   = NST_CLAMP( r.ntsc.left,   0,           NES_WIDTH  -1 );
+		r.ntsc.top    = NST_CLAMP( r.ntsc.top,    0,           NES_HEIGHT -1 );
+		r.ntsc.right  = NST_CLAMP( r.ntsc.right,  r.ntsc.left, NES_WIDTH  -1 ) + 1;
+		r.ntsc.bottom = NST_CLAMP( r.ntsc.bottom, r.ntsc.top,  NES_HEIGHT -1 ) + 1;
+		r.pal.left    = NST_CLAMP( r.pal.left,    0,           NES_WIDTH  -1 );
+		r.pal.top     = NST_CLAMP( r.pal.top,     0,           NES_HEIGHT -1 );
+		r.pal.right   = NST_CLAMP( r.pal.right,   r.pal.left,  NES_WIDTH  -1 ) + 1;
+		r.pal.bottom  = NST_CLAMP( r.pal.bottom,  r.pal.top,   NES_HEIGHT -1 ) + 1;
+
+		UpdateFinalRects();
 	}
 
 	void Video::ResetColors()
 	{
-		Nes::Video(nes).SetBrightness ( Nes::Video(nes).GetDefaultBrightness() );
-		Nes::Video(nes).SetSaturation ( Nes::Video(nes).GetDefaultSaturation() );
-		Nes::Video(nes).SetHue        ( Nes::Video(nes).GetDefaultHue()        );   
+		Nes::Video(nes).SetBrightness ( Nes::Video::DEFAULT_BRIGHTNESS );
+		Nes::Video(nes).SetSaturation ( Nes::Video::DEFAULT_SATURATION );
+		Nes::Video(nes).SetContrast   ( Nes::Video::DEFAULT_CONTRAST   );   
+		Nes::Video(nes).SetHue        ( Nes::Video::DEFAULT_HUE        );   
 	}
 
 	Video::Modes::const_iterator Video::GetDefaultMode() const
@@ -683,8 +673,10 @@ namespace Nestopia
 		for (uint i=IDC_GRAPHICS_NTSC_LEFT; i <= IDC_GRAPHICS_PAL_BOTTOM; ++i)
 			dialog.Edit( i ).Limit( 3 );
 
-		for (uint i=IDC_GRAPHICS_COLORS_BRIGHTNESS; i <= IDC_GRAPHICS_COLORS_HUE; ++i)
-			dialog.Slider( i ).SetRange( 0, 255 );
+		dialog.Slider( IDC_GRAPHICS_COLORS_BRIGHTNESS ).SetRange( 0, Nes::Video::MAX_BRIGHTNESS-Nes::Video::MIN_BRIGHTNESS );
+		dialog.Slider( IDC_GRAPHICS_COLORS_SATURATION ).SetRange( 0, Nes::Video::MAX_SATURATION-Nes::Video::MIN_SATURATION );
+		dialog.Slider( IDC_GRAPHICS_COLORS_CONTRAST   ).SetRange( 0, Nes::Video::MAX_CONTRAST-Nes::Video::MIN_CONTRAST );
+		dialog.Slider( IDC_GRAPHICS_COLORS_HUE        ).SetRange( 0, Nes::Video::MAX_HUE-Nes::Video::MIN_HUE );
 
 		dialog.CheckBox( IDC_GRAPHICS_AUTO_HZ ).Check( settings.autoHz );
 
@@ -697,13 +689,30 @@ namespace Nestopia
 		return TRUE;
 	}
 
+	ibool Video::OnDestroy(Param&)
+	{
+		dialog.Control( IDC_GRAPHICS_NTSC_LEFT   ).Text() >> settings.rects.ntsc.left;
+		dialog.Control( IDC_GRAPHICS_NTSC_TOP    ).Text() >> settings.rects.ntsc.top;
+		dialog.Control( IDC_GRAPHICS_NTSC_RIGHT  ).Text() >> settings.rects.ntsc.right;
+		dialog.Control( IDC_GRAPHICS_NTSC_BOTTOM ).Text() >> settings.rects.ntsc.bottom;
+		dialog.Control( IDC_GRAPHICS_PAL_LEFT    ).Text() >> settings.rects.pal.left;
+		dialog.Control( IDC_GRAPHICS_PAL_TOP     ).Text() >> settings.rects.pal.top;
+		dialog.Control( IDC_GRAPHICS_PAL_RIGHT   ).Text() >> settings.rects.pal.right;
+		dialog.Control( IDC_GRAPHICS_PAL_BOTTOM  ).Text() >> settings.rects.pal.bottom;
+
+		ValidateRects();
+
+		return TRUE;
+	}
+
 	ibool Video::OnHScroll(Param& param)
 	{
-		const uint value = param.Slider().Scroll();
+		const int value = param.Slider().Scroll();
 
-		     if (param.Slider().IsControl( IDC_GRAPHICS_COLORS_BRIGHTNESS )) Nes::Video(nes).SetBrightness ( value );
-		else if (param.Slider().IsControl( IDC_GRAPHICS_COLORS_SATURATION )) Nes::Video(nes).SetSaturation ( value );
-		else if (param.Slider().IsControl( IDC_GRAPHICS_COLORS_HUE        )) Nes::Video(nes).SetHue        ( value );
+		     if (param.Slider().IsControl( IDC_GRAPHICS_COLORS_BRIGHTNESS )) Nes::Video(nes).SetBrightness ( value + Nes::Video::MIN_BRIGHTNESS );
+		else if (param.Slider().IsControl( IDC_GRAPHICS_COLORS_SATURATION )) Nes::Video(nes).SetSaturation ( value + Nes::Video::MIN_SATURATION );
+		else if (param.Slider().IsControl( IDC_GRAPHICS_COLORS_CONTRAST   )) Nes::Video(nes).SetContrast   ( value + Nes::Video::MIN_CONTRAST   );
+		else if (param.Slider().IsControl( IDC_GRAPHICS_COLORS_HUE        )) Nes::Video(nes).SetHue        ( value + Nes::Video::MIN_HUE        );
 		else return TRUE;
 
 		UpdateColors();
@@ -783,6 +792,7 @@ namespace Nestopia
 
 				VideoFilters filterDialog
 				( 
+     				Nes::Video(nes),
 			       	idd[settings.filter-settings.filters], 
 					*settings.filter, 
 					settings.adapter->maxScreenSize,
@@ -790,7 +800,6 @@ namespace Nestopia
 				);
 			}
 			
-			UpdateNtscFilter();
 			UpdateFullscreenScaleMethod( method );
 			UpdateScreen( param.hWnd );
 		}
@@ -982,20 +991,7 @@ namespace Nestopia
 	ibool Video::OnCmdOk(Param& param)
 	{
 		if (param.Button().IsClicked())
-		{
-			dialog.Control( IDC_GRAPHICS_NTSC_LEFT   ).Text() >> settings.rects.ntsc.left;
-			dialog.Control( IDC_GRAPHICS_NTSC_TOP    ).Text() >> settings.rects.ntsc.top;
-			dialog.Control( IDC_GRAPHICS_NTSC_RIGHT  ).Text() >> settings.rects.ntsc.right;
-			dialog.Control( IDC_GRAPHICS_NTSC_BOTTOM ).Text() >> settings.rects.ntsc.bottom;
-			dialog.Control( IDC_GRAPHICS_PAL_LEFT    ).Text() >> settings.rects.pal.left;
-			dialog.Control( IDC_GRAPHICS_PAL_TOP     ).Text() >> settings.rects.pal.top;
-			dialog.Control( IDC_GRAPHICS_PAL_RIGHT   ).Text() >> settings.rects.pal.right;
-			dialog.Control( IDC_GRAPHICS_PAL_BOTTOM  ).Text() >> settings.rects.pal.bottom;
-
-			ValidateRects();
-
 			dialog.Close();
-		}
 
 		return TRUE;
 	}
@@ -1116,32 +1112,58 @@ namespace Nestopia
 
 	void Video::UpdateColors() const
 	{
-		const uint colors[] =
+		int colors[] =
 		{
 			Nes::Video(nes).GetBrightness(),
 			Nes::Video(nes).GetSaturation(),
+			Nes::Video(nes).GetContrast(),
 			Nes::Video(nes).GetHue()       
 		};
 
-		dialog.Control( IDC_GRAPHICS_COLORS_BRIGHTNESS_VAL ).Text() << colors[0];
-		dialog.Control( IDC_GRAPHICS_COLORS_SATURATION_VAL ).Text() << colors[1];
-		dialog.Control( IDC_GRAPHICS_COLORS_HUE_VAL        ).Text() << colors[2];
+		dialog.Slider( IDC_GRAPHICS_COLORS_BRIGHTNESS ).Position() = colors[0] - Nes::Video::MIN_BRIGHTNESS;
+		dialog.Slider( IDC_GRAPHICS_COLORS_SATURATION ).Position() = colors[1] - Nes::Video::MIN_SATURATION;
+		dialog.Slider( IDC_GRAPHICS_COLORS_CONTRAST   ).Position() = colors[2] - Nes::Video::MIN_CONTRAST;
+		dialog.Slider( IDC_GRAPHICS_COLORS_HUE        ).Position() = colors[3] - Nes::Video::MIN_HUE;
 
-		dialog.Slider( IDC_GRAPHICS_COLORS_BRIGHTNESS ).Position() = colors[0];
-		dialog.Slider( IDC_GRAPHICS_COLORS_SATURATION ).Position() = colors[1];
-		dialog.Slider( IDC_GRAPHICS_COLORS_HUE        ).Position() = colors[2];
+		colors[1] += 100;
+		colors[2] += 100;
+
+		for (uint i=0; i < 3; ++i)
+		{
+			tchar string[6];
+			tchar* ptr = string;
+			
+			if (colors[i] < 0)
+			{
+				colors[i] = -colors[i];
+				*ptr++ = '-';
+			}
+	  
+			*ptr++ = (tchar) ('0' + (colors[i] / 100));
+			*ptr++ = '.';
+			*ptr++ = (tchar) ('0' + (colors[i] % 100 / 10));
+
+			if (colors[i] % 100)
+				*ptr++ = (tchar) ('0' + (colors[i] % 10));
+
+			*ptr++ = '\0';
+
+			dialog.Control( IDC_GRAPHICS_COLORS_BRIGHTNESS_VAL+i ).Text() << string;
+		}
+
+		dialog.Control( IDC_GRAPHICS_COLORS_HUE_VAL ).Text() << colors[3];
 	}
 
 	void Video::UpdateRects() const
 	{
-		dialog.Control( IDC_GRAPHICS_NTSC_LEFT   ).Text() << (settings.rects.ntsc.left);
-		dialog.Control( IDC_GRAPHICS_NTSC_TOP    ).Text() << (settings.rects.ntsc.top);
-		dialog.Control( IDC_GRAPHICS_NTSC_RIGHT  ).Text() << (settings.rects.ntsc.right - 1);
-		dialog.Control( IDC_GRAPHICS_NTSC_BOTTOM ).Text() << (settings.rects.ntsc.bottom - 1);
-		dialog.Control( IDC_GRAPHICS_PAL_LEFT    ).Text() << (settings.rects.pal.left);
-		dialog.Control( IDC_GRAPHICS_PAL_TOP     ).Text() << (settings.rects.pal.top);
-		dialog.Control( IDC_GRAPHICS_PAL_RIGHT   ).Text() << (settings.rects.pal.right - 1);
-		dialog.Control( IDC_GRAPHICS_PAL_BOTTOM  ).Text() << (settings.rects.pal.bottom - 1);
+		dialog.Control( IDC_GRAPHICS_NTSC_LEFT   ).Text() << uint(settings.rects.ntsc.left);
+		dialog.Control( IDC_GRAPHICS_NTSC_TOP    ).Text() << uint(settings.rects.ntsc.top);
+		dialog.Control( IDC_GRAPHICS_NTSC_RIGHT  ).Text() << uint(settings.rects.ntsc.right - 1);
+		dialog.Control( IDC_GRAPHICS_NTSC_BOTTOM ).Text() << uint(settings.rects.ntsc.bottom - 1);
+		dialog.Control( IDC_GRAPHICS_PAL_LEFT    ).Text() << uint(settings.rects.pal.left);
+		dialog.Control( IDC_GRAPHICS_PAL_TOP     ).Text() << uint(settings.rects.pal.top);
+		dialog.Control( IDC_GRAPHICS_PAL_RIGHT   ).Text() << uint(settings.rects.pal.right - 1);
+		dialog.Control( IDC_GRAPHICS_PAL_BOTTOM  ).Text() << uint(settings.rects.pal.bottom - 1);
 	}
 
 	void Video::UpdatePalette() const
@@ -1160,7 +1182,7 @@ namespace Nestopia
 
 		const Nes::Video::Palette::Mode mode = Nes::Video(nes).GetPalette().GetMode();
 
-		dialog.Control( IDC_GRAPHICS_COLORS_ADVANCED ).Enable( mode == Nes::Video::Palette::MODE_YUV );
+		dialog.Control( IDC_GRAPHICS_COLORS_ADVANCED ).Enable( mode == Nes::Video::Palette::MODE_YUV || settings.filter == settings.filters + Filter::TYPE_NTSC );
 
 		dialog.RadioButton( IDC_GRAPHICS_PALETTE_AUTO     ).Check( settings.autoPalette );
 		dialog.RadioButton( IDC_GRAPHICS_PALETTE_YUV      ).Check( !settings.autoPalette && mode == Nes::Video::Palette::MODE_YUV    );

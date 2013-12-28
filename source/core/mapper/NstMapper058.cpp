@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -39,11 +39,8 @@ namespace Nes
 		studyGame ((c.pRomCrc == 0xABB2F974UL) || (c.pRomCrc == 0x6A24FA34UL)) // Study and Game 32-in-1
 		{}
 	
-		void Mapper58::SubReset(const bool hard)
+		void Mapper58::SubReset(bool)
 		{
-			if (hard)
-				prg.SwapBank<SIZE_16K,0x4000U>( studyGame );
-
 			Map( 0x8000U, 0xFFFFU, &Mapper58::Poke_Prg );
 		}
 	
@@ -55,19 +52,18 @@ namespace Nes
 		{
 			if (studyGame)
 			{
-				// Study and Game 32-in-1
 				prg.SwapBank<SIZE_32K,0x0000U>( data & 0x1F );
 			}
 			else
 			{
-				ppu.SetMirroring( (data & 0x2) ? Ppu::NMT_VERTICAL : Ppu::NMT_HORIZONTAL );
+				ppu.SetMirroring( (address & 0x80) ? Ppu::NMT_HORIZONTAL : Ppu::NMT_VERTICAL );
 	
 				if (address & 0x40)
 					prg.SwapBanks<SIZE_16K,0x0000U>( address & 0x7, address & 0x7 );
 				else
-					prg.SwapBank<SIZE_32K,0x0000U>( (address & 0x6) >> 1 );
+					prg.SwapBank<SIZE_32K,0x0000U>( address >> 1 & 0x3 );
 	
-				chr.SwapBank<SIZE_8K,0x0000U>( (address & 0x38) >> 3 );
+				chr.SwapBank<SIZE_8K,0x0000U>( address >> 3 & 0x7 );
 			}
 		}
 	}

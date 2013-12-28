@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -33,6 +33,12 @@ namespace Nes
         #ifdef NST_PRAGMA_OPTIMIZE
         #pragma optimize("s", on)
         #endif
+
+		Mapper45::Mapper45(Context& c)
+		: 
+		Mmc3 (c,WRAM_8K), 
+		mask (c.pRomCrc == 0xB8FB3383 ? 0xFF : 0x00) // Famicon Yarou Vol.5 (7-in-1)
+		{}
 
 		void Mapper45::SubReset(const bool hard)
 		{
@@ -113,17 +119,14 @@ namespace Nes
 	
 		void Mapper45::UpdateChr() const
 		{
+			if (chr.Source().IsWritable())
+				return;
+
 			ppu.Update();
-	
-			static const uchar masks[16] =
-			{
-				0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
-				0x01,0x03,0x07,0x0F,0x1F,0x3F,0x7F,0xFF
-			};
 	
 			const uint r[2] =
 			{
-				masks[exRegs[2] & 0x0F],
+				(exRegs[2] & 0x8) ? (1U << ((exRegs[2] & 0x7) + 1)) - 1 : mask,
 				exRegs[0] | ((exRegs[2] & 0xF0) << 4)
 			};
 	

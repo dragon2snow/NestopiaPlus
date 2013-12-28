@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -105,8 +105,8 @@ namespace Nestopia
 
 	void PaletteEditor::History::Add(uint index,uint color)
 	{
-		data[pos][0] = (u8) index;
-		data[pos][1] = (u8) color;
+		data[pos][0] = index;
+		data[pos][1] = color;
 		pos = (pos+1) & (LENGTH-1);
 		data[pos][0] = STOP;
 	}
@@ -212,8 +212,8 @@ namespace Nestopia
 				{
 					const RGBQUAD selectColors[2] =
 					{
-						{BMP_COLOR_UNSELECT,BMP_COLOR_UNSELECT,BMP_COLOR_UNSELECT},
-						{BMP_COLOR_SELECT,BMP_COLOR_SELECT,BMP_COLOR_SELECT}
+						{BMP_COLOR_UNSELECT,BMP_COLOR_UNSELECT,BMP_COLOR_UNSELECT,0},
+						{BMP_COLOR_SELECT,BMP_COLOR_SELECT,BMP_COLOR_SELECT,0}
 					};
 
 					for (uint y=0; y < BMP_COLUMNS; ++y)
@@ -310,7 +310,7 @@ namespace Nestopia
 			{
 				u8 custom[64][3];
 				std::memcpy( custom, colors, 64 * 3 );
-				custom[colorSelect][index] = (u8) color;
+				custom[colorSelect][index] = color;
 				emulator.GetPalette().SetCustom( custom );
 			}
 

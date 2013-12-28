@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -36,10 +36,12 @@ namespace Nes
 		void Mapper57::SubReset(const bool hard)
 		{
 			if (hard)
-				reg = 0x00;
+				regs[2] = regs[1] = regs[0] = 0;
+			else
+				regs[0] = (regs[0] + 1) % 4;
 
-			Map( 0x8000U, 0x8003U, &Mapper57::Poke_8000 );
-			Map( 0x8800U,          &Mapper57::Poke_8800 );
+			Map( 0x6000U,          &Mapper57::Peek_6000 );
+			Map( 0x8000U, 0xFFFFU, &Mapper57::Poke_8000 );
 		}
 	
 		void Mapper57::SubLoad(State::Loader& state)
@@ -47,7 +49,12 @@ namespace Nes
 			while (const dword chunk = state.Begin())
 			{
 				if (chunk == NES_STATE_CHUNK_ID('R','E','G','\0'))
-					reg = state.Read8();
+				{
+					const State::Loader::Data<3> data( state );
+					regs[0] = data[0] % 4;
+					regs[1] = data[1];
+					regs[2] = data[2];
+				}
 	
 				state.End();
 			}
@@ -55,40 +62,39 @@ namespace Nes
 	
 		void Mapper57::SubSave(State::Saver& state) const
 		{
-			state.Begin('R','E','G','\0').Write8( reg ).End();
+			const u8 data[3] = {regs[0],regs[1],regs[2]};
+			state.Begin('R','E','G','\0').Write( data ).End();
 		}
 	
         #ifdef NST_PRAGMA_OPTIMIZE
         #pragma optimize("", on)
         #endif
-	
+
+		NES_PEEK(Mapper57,6000)
+		{
+			return regs[0];
+		}
+
 		NES_POKE(Mapper57,8000) 
 		{
-			if (data & 0x40)
+			if ((address & 0x8800U) == 0x8800U)
 			{
-				ppu.Update();
-	
-				chr.SwapBank<SIZE_8K,0x0000U>
-				( 
-					((data & 0x03) >> 0) + 
-					((reg  & 0x10) >> 1) +
-					((reg  & 0x07) >> 0)
-				);
+				regs[1] = data;
+
+				if (data & 0x80)
+					prg.SwapBank<SIZE_32K,0x0000U>( data >> 6 );
+				else
+					prg.SwapBanks<SIZE_16K,0x0000U>( data >> 5, data >> 5 );
+
+				ppu.SetMirroring( (data & 0x8) ? Ppu::NMT_HORIZONTAL : Ppu::NMT_VERTICAL );
 			}
-		}
-	
-		NES_POKE(Mapper57,8800) 
-		{
-			reg = data;
-	
-			ppu.SetMirroring( (data & 0x8) ? Ppu::NMT_HORIZONTAL : Ppu::NMT_VERTICAL );
-	
-			if (data & 0x80)
-				prg.SwapBank<SIZE_32K,0x0000U>( ((data & 0x40) >> 6) + 2 );
 			else
-				prg.SwapBanks<SIZE_16K,0x0000U>( (data & 0x60) >> 5, (data & 0x60) >> 5 );
-	
-			chr.SwapBank<SIZE_8K,0x0000U>( ((data & 0x07) >> 0) + ((data & 0x10) >> 1) );
+			{
+				regs[2] = data;
+				ppu.Update();
+			}
+
+			chr.SwapBank<SIZE_8K,0x0000U>( (regs[1] >> 1 & 0x8) | (regs[1] & 0x7) | (regs[2] & 0x3) );
 		}
 	}
 }

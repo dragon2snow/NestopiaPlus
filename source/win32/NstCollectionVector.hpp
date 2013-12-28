@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -145,8 +145,8 @@ namespace Nestopia
 				return *this;
 			}
 
-			template<typename T>
-			Vector& operator << (const T& t)
+			template<typename U>
+			Vector& operator << (const U& t)
 			{
 				NST_COMPILE_ASSERT( ITEM_SIZE == sizeof(char) );
 				Base::Append( &t, sizeof(t) );

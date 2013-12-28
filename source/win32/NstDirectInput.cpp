@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -22,8 +22,10 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
+#ifdef _MSC_VER
 #pragma comment(lib,"dinput8")
 #pragma comment(lib,"dxguid")
+#endif
 
 #include "NstApplicationException.hpp"
 #include "NstApplicationInstance.hpp"
@@ -49,38 +51,38 @@ namespace Nestopia
 
 	const DirectInput::Joystick::Lookup DirectInput::Joystick::table[TABLE_KEYS] =
 	{
-		{ KeyPosDir,   (ushort) DIJOFS_Y,         AXIS_Y,        _T("+y")   },
-		{ KeyPosDir,   (ushort) DIJOFS_X,         AXIS_X,        _T("+x")   },
-		{ KeyNegDir,   (ushort) DIJOFS_Y,         AXIS_Y,        _T("-y")   },
-		{ KeyNegDir,   (ushort) DIJOFS_X,         AXIS_X,        _T("-x")   },
-		{ KeyPosDir,   (ushort) DIJOFS_Z,         AXIS_Z,        _T("+z")   },
-		{ KeyNegDir,   (ushort) DIJOFS_Z,         AXIS_Z,        _T("-z")   },
-		{ KeyPosDir,   (ushort) DIJOFS_RY,        AXIS_RY,       _T("+ry")  },
-		{ KeyPosDir,   (ushort) DIJOFS_RX,        AXIS_RX,       _T("+rx")  },
-		{ KeyPosDir,   (ushort) DIJOFS_RY,        AXIS_RY,       _T("-ry")  },
-		{ KeyNegDir,   (ushort) DIJOFS_RX,        AXIS_RX,       _T("-rx")  },
-		{ KeyPosDir,   (ushort) DIJOFS_RZ,        AXIS_RZ,       _T("+rz")  },
-		{ KeyNegDir,   (ushort) DIJOFS_RZ,        AXIS_RZ,       _T("-rz")  },
-		{ KeyNegDir,   (ushort) DIJOFS_SLIDER(0), AXIS_SLIDER_0, _T("-s0")  },
-		{ KeyPosDir,   (ushort) DIJOFS_SLIDER(0), AXIS_SLIDER_0, _T("+s0")  },
-		{ KeyNegDir,   (ushort) DIJOFS_SLIDER(1), AXIS_SLIDER_1, _T("-s1")  },
-		{ KeyPosDir,   (ushort) DIJOFS_SLIDER(1), AXIS_SLIDER_1, _T("+s1")  },
-		{ KeyPovUp,	   (ushort) DIJOFS_POV(0),    AXIS_POV_0,    _T("-p0y") },
-		{ KeyPovRight, (ushort) DIJOFS_POV(0),    AXIS_POV_0,    _T("+p0x") },
-		{ KeyPovDown,  (ushort) DIJOFS_POV(0),    AXIS_POV_0,    _T("+p0y") },
-		{ KeyPovLeft,  (ushort) DIJOFS_POV(0),    AXIS_POV_0,    _T("-p0x") },
-		{ KeyPovUp,	   (ushort) DIJOFS_POV(1),    AXIS_POV_1,    _T("-p1y") },
-		{ KeyPovRight, (ushort) DIJOFS_POV(1),    AXIS_POV_1,    _T("+p1x") },
-		{ KeyPovDown,  (ushort) DIJOFS_POV(1),    AXIS_POV_1,    _T("+p1y") },
-		{ KeyPovLeft,  (ushort) DIJOFS_POV(1),    AXIS_POV_1,    _T("-p1x") },
-		{ KeyPovUp,	   (ushort) DIJOFS_POV(2),    AXIS_POV_2,    _T("-p2y") },
-		{ KeyPovRight, (ushort) DIJOFS_POV(2),    AXIS_POV_2,    _T("+p2x") },
-		{ KeyPovDown,  (ushort) DIJOFS_POV(2),    AXIS_POV_2,    _T("+p2y") },
-		{ KeyPovLeft,  (ushort) DIJOFS_POV(2),    AXIS_POV_2,    _T("-p2x") },
-		{ KeyPovUp,	   (ushort) DIJOFS_POV(3),    AXIS_POV_3,    _T("-p3y") },
-		{ KeyPovRight, (ushort) DIJOFS_POV(3),    AXIS_POV_3,    _T("+p3x") },
-		{ KeyPovDown,  (ushort) DIJOFS_POV(3),    AXIS_POV_3,    _T("+p3y") },
-		{ KeyPovLeft,  (ushort) DIJOFS_POV(3),    AXIS_POV_3,    _T("-p3x") }
+		{ KeyPosDir,   DIJOFS_Y,         AXIS_Y,        _T("+y")   },
+		{ KeyPosDir,   DIJOFS_X,         AXIS_X,        _T("+x")   },
+		{ KeyNegDir,   DIJOFS_Y,         AXIS_Y,        _T("-y")   },
+		{ KeyNegDir,   DIJOFS_X,         AXIS_X,        _T("-x")   },
+		{ KeyPosDir,   DIJOFS_Z,         AXIS_Z,        _T("+z")   },
+		{ KeyNegDir,   DIJOFS_Z,         AXIS_Z,        _T("-z")   },
+		{ KeyPosDir,   DIJOFS_RY,        AXIS_RY,       _T("+ry")  },
+		{ KeyPosDir,   DIJOFS_RX,        AXIS_RX,       _T("+rx")  },
+		{ KeyPosDir,   DIJOFS_RY,        AXIS_RY,       _T("-ry")  },
+		{ KeyNegDir,   DIJOFS_RX,        AXIS_RX,       _T("-rx")  },
+		{ KeyPosDir,   DIJOFS_RZ,        AXIS_RZ,       _T("+rz")  },
+		{ KeyNegDir,   DIJOFS_RZ,        AXIS_RZ,       _T("-rz")  },
+		{ KeyNegDir,   DIJOFS_SLIDER(0), AXIS_SLIDER_0, _T("-s0")  },
+		{ KeyPosDir,   DIJOFS_SLIDER(0), AXIS_SLIDER_0, _T("+s0")  },
+		{ KeyNegDir,   DIJOFS_SLIDER(1), AXIS_SLIDER_1, _T("-s1")  },
+		{ KeyPosDir,   DIJOFS_SLIDER(1), AXIS_SLIDER_1, _T("+s1")  },
+		{ KeyPovUp,	   DIJOFS_POV(0),    AXIS_POV_0,    _T("-p0y") },
+		{ KeyPovRight, DIJOFS_POV(0),    AXIS_POV_0,    _T("+p0x") },
+		{ KeyPovDown,  DIJOFS_POV(0),    AXIS_POV_0,    _T("+p0y") },
+		{ KeyPovLeft,  DIJOFS_POV(0),    AXIS_POV_0,    _T("-p0x") },
+		{ KeyPovUp,	   DIJOFS_POV(1),    AXIS_POV_1,    _T("-p1y") },
+		{ KeyPovRight, DIJOFS_POV(1),    AXIS_POV_1,    _T("+p1x") },
+		{ KeyPovDown,  DIJOFS_POV(1),    AXIS_POV_1,    _T("+p1y") },
+		{ KeyPovLeft,  DIJOFS_POV(1),    AXIS_POV_1,    _T("-p1x") },
+		{ KeyPovUp,	   DIJOFS_POV(2),    AXIS_POV_2,    _T("-p2y") },
+		{ KeyPovRight, DIJOFS_POV(2),    AXIS_POV_2,    _T("+p2x") },
+		{ KeyPovDown,  DIJOFS_POV(2),    AXIS_POV_2,    _T("+p2y") },
+		{ KeyPovLeft,  DIJOFS_POV(2),    AXIS_POV_2,    _T("-p2x") },
+		{ KeyPovUp,	   DIJOFS_POV(3),    AXIS_POV_3,    _T("-p3y") },
+		{ KeyPovRight, DIJOFS_POV(3),    AXIS_POV_3,    _T("+p3x") },
+		{ KeyPovDown,  DIJOFS_POV(3),    AXIS_POV_3,    _T("+p3y") },
+		{ KeyPovLeft,  DIJOFS_POV(3),    AXIS_POV_3,    _T("-p3x") }
 	};
 
 	IDirectInput8& DirectInput::Base::Create()

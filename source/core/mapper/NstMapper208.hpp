@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -33,39 +33,32 @@ namespace Nes
 {
 	namespace Core
 	{
-		class Mapper208 : public Mapper
+		class Mapper208 : public Boards::Mmc3
 		{
 		public:
 
-			Mapper208(Context&);
+			Mapper208(Context& c)
+			: Mmc3(c) {}
 
 		private:
 
 			void SubReset(bool);
 			void SubSave(State::Saver&) const;
 			void SubLoad(State::Loader&);
-			void VSync();
+			void UpdatePrg();
 
 			NES_DECL_POKE( 4800 )
 			NES_DECL_POKE( 5000 )
 			NES_DECL_POKE( 5800 )
 			NES_DECL_PEEK( 5800 )
-			NES_DECL_POKE( 8000 )
-			NES_DECL_POKE( 8001 )
-			NES_DECL_POKE( C000 )
-			NES_DECL_POKE( C001 )
-			NES_DECL_POKE( E000 )
-			NES_DECL_POKE( E001 )
 
 			struct Regs
 			{
-				uint command;
 				uint select;
 				uchar buffer[4];
 			};
 
 			Regs regs;
-			Boards::Mmc3::Irq irq;
 		};
 	}
 }

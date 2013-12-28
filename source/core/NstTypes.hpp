@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -95,8 +95,12 @@
 
 #elif defined(__GNUC__)
 
- #ifndef NST_NO_INLINE
- #define NST_NO_INLINE __attribute__ ((noinline))
+ #if (__GNUC__ >= 3) && (__GNUC_MINOR__ >= 1)
+
+  #ifndef NST_NO_INLINE
+  #define NST_NO_INLINE __attribute__ ((noinline))
+  #endif
+
  #endif
 
  #if (__GNUC__ >= 2) && (__GNUC_MINOR__ >= 91)

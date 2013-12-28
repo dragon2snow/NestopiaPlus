@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -26,7 +26,7 @@
 #include "../NstCore.hpp"
 #include "NstApiEmulator.hpp"
 #include "../NstImage.hpp"
-#include "../NstBarcodeReader.hpp"
+#include "../NstPrpBarcodeReader.hpp"
 #include "NstApiBarcodeReader.hpp"
 
 #ifdef NST_PRAGMA_OPTIMIZE
@@ -37,12 +37,12 @@ namespace Nes
 {
 	namespace Api
 	{
-		Core::BarcodeReader* BarcodeReader::Query() const
+		Core::Peripherals::BarcodeReader* BarcodeReader::Query() const
 		{
 			if (emulator.image)
 			{
 				if (Core::Image::ExternalDevice device = emulator.image->QueryExternalDevice( Core::Image::EXT_BARCODE_READER ))
-					return static_cast<Core::BarcodeReader*>(device);
+					return static_cast<Core::Peripherals::BarcodeReader*>(device);
 			}
 
 			return NULL;
@@ -52,7 +52,7 @@ namespace Nes
 		{			
 			uint digits = 0;
 
-			if (Core::BarcodeReader* const barcodeReader = Query())
+			if (Core::Peripherals::BarcodeReader* const barcodeReader = Query())
 			{
 				static uint extra = 0x1234;
 				std::srand( std::time(NULL) + extra++ );
@@ -89,7 +89,7 @@ namespace Nes
 
 		bool BarcodeReader::IsDigitsSupported(uint count) const
 		{
-			if (Core::BarcodeReader* const barcodeReader = Query())
+			if (Core::Peripherals::BarcodeReader* const barcodeReader = Query())
 				return barcodeReader->IsDigitsSupported( count );
 
 			return false;
@@ -97,7 +97,7 @@ namespace Nes
 
 		Result BarcodeReader::Transfer(const char* string,uint length)
 		{
-			if (Core::BarcodeReader* const barcodeReader = Query())
+			if (Core::Peripherals::BarcodeReader* const barcodeReader = Query())
 				return barcodeReader->Transfer( string, length ) ? RESULT_OK : RESULT_ERR_INVALID_PARAM;
 
 			return RESULT_ERR_UNSUPPORTED;

@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -58,11 +58,6 @@ namespace Nes
 				}
 			}
 		
-			uint Buffer::Latency() const
-			{
-				return (pos >= start) ? (pos - start) : (SIZE - start) + pos;
-			}
-
             #ifdef NST_PRAGMA_OPTIMIZE
             #pragma optimize("", on)
             #endif
@@ -71,15 +66,12 @@ namespace Nes
 			{
 				NST_ASSERT( block.length );
 		
-				iword delta = pos - start;
-		
-				if (delta < 0)
-					delta += (iword) SIZE;
+				const uint delta = Latency();
 		
 				block.data = output;
 				block.start = start;
 		
-				if (block.length > (uint) delta)
+				if (block.length > delta)
 					block.length = delta;
 		
 				start = (start + block.length) & MASK;

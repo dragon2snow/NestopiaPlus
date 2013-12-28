@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -96,6 +96,7 @@ namespace Nestopia
 			void  UpdateFieldMergingState() const;
 			void  ResetScreenRect(uint);
 			uint  CalculateWindowScale() const;
+			uint  CalculateFullscreenScale() const;
 			ibool IsWindowMatched() const;
 			
 			NST_NO_INLINE void RepairScreen();
@@ -110,6 +111,7 @@ namespace Nestopia
 			void OnCmdFileScreenShot          (uint);
 			void OnCmdMachineUnlimitedSprites (uint);
 			void OnCmdViewScreenSize          (uint);
+			void OnCmdViewTvAspect            (uint);
 			void OnCmdViewFps                 (uint);
 			void OnCmdViewStatusBar           (uint);
 			void OnCmdOptionsVideo            (uint);

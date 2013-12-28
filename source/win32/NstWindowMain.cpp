@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -36,6 +36,7 @@
 #include "NstWindowMain.hpp"
 #include "NstIoLog.hpp"
 #include "../core/api/NstApiCartridge.hpp"
+#include <Pbt.h>
 
 namespace Nestopia
 {
@@ -233,7 +234,7 @@ namespace Nestopia
 							emulator.Execute( NULL, sound.GetOutput(), input.GetOutput() );
 
 						emulator.Execute( video.GetOutput(), sound.GetOutput(), input.GetOutput() );
-						input.RefreshCursor();					
+						input.RefreshCursor();
 						frameClock.GameSynchronize( video.IsThrottleRequired() );
 						video.PresentScreen();
 					}
@@ -540,6 +541,7 @@ namespace Nestopia
 			menu.Hide();
 
 			video.SwitchScreen();
+			window.Show( SW_HIDE );
 			window.SetStyle( WIN_STYLE, WIN_EXSTYLE );
 
 			menu[ IDM_VIEW_ON_TOP ].Enable();
@@ -553,14 +555,13 @@ namespace Nestopia
 
 			window.SetNormalWindowRect( state.rect );
 			window.Reorder( menu[IDM_VIEW_ON_TOP].IsChecked() ? HWND_TOPMOST : HWND_NOTOPMOST );
+			window.Show( SW_SHOW );
 
 			Application::Instance::ShowChildWindows();
-
-			::InvalidateRect( NULL, NULL, FALSE );
 		}
-
-		::Sleep( FULLSCREEN_RECOVER_TIME );
 		
+		::Sleep( 500 );
+
 		emulator.Resume();
 	}
 

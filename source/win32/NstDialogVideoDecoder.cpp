@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -135,10 +135,10 @@ namespace Nestopia
 	{
 		if (param.Edit().Changed())
 		{			
-			HeapString string;
+			String::Heap<char> string;
 			dialog.Edit( param.Edit().GetId() ) >> string;
 			
-			float gain = (float) _tstof( string.Ptr() );
+			float gain = std::atof( string.Ptr() );
 			gain = NST_CLAMP(gain,0.0f,2.0f);
 
 			Nes::Api::Video::Decoder decoder( nes.GetDecoder() );

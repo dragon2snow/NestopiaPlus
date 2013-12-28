@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -102,24 +102,69 @@ namespace Nes
 	
 			typedef Core::Video::Output Output;
 
+			enum
+			{
+				MIN_BRIGHTNESS                  = -100,
+				DEFAULT_BRIGHTNESS              =    0,
+				MAX_BRIGHTNESS                  = +100,
+				MIN_SATURATION                  = -100,
+				DEFAULT_SATURATION              =    0,
+				MAX_SATURATION                  = +100,
+				MIN_CONTRAST                    = -100,
+				DEFAULT_CONTRAST                =    0,
+				MAX_CONTRAST                    = +100,
+				MIN_SHARPNESS                   = -100,
+				DEFAULT_SHARPNESS_COMP          =    0,
+				DEFAULT_SHARPNESS_SVIDEO        =   20,
+				DEFAULT_SHARPNESS_RGB           =   20,
+				MAX_SHARPNESS                   = +100,
+				MIN_COLOR_RESOLUTION            = -100,
+				DEFAULT_COLOR_RESOLUTION_COMP   =    0,
+				DEFAULT_COLOR_RESOLUTION_SVIDEO =   20,
+				DEFAULT_COLOR_RESOLUTION_RGB    =   70,
+				MAX_COLOR_RESOLUTION            = +100,
+				MIN_COLOR_BLEED                 = -100,
+				DEFAULT_COLOR_BLEED_COMP        =    0,
+				DEFAULT_COLOR_BLEED_SVIDEO      =    0,
+				DEFAULT_COLOR_BLEED_RGB         = -100,
+				MAX_COLOR_BLEED                 = +100,
+				MIN_COLOR_ARTIFACTS             = -100,
+				DEFAULT_COLOR_ARTIFACTS_COMP    =    0,
+				DEFAULT_COLOR_ARTIFACTS_SVIDEO  = -100,
+				DEFAULT_COLOR_ARTIFACTS_RGB     = -100,
+				MAX_COLOR_ARTIFACTS             = +100,
+				MIN_COLOR_FRINGING              = -100,
+				DEFAULT_COLOR_FRINGING_COMP     =    0,
+				DEFAULT_COLOR_FRINGING_SVIDEO   = -100,
+				DEFAULT_COLOR_FRINGING_RGB      = -100,
+				MAX_COLOR_FRINGING              = +100,
+				MIN_HUE                         =  -45,
+				DEFAULT_HUE                     =    0,
+				MAX_HUE                         =  +45
+			};
+
 			void EnableUnlimSprites(bool);
 			bool AreUnlimSpritesEnabled() const;
 	
-			uint GetDefaultBrightness() const;
-			uint GetDefaultSaturation() const;
-			uint GetDefaultHue() const;
+			int GetBrightness() const;
+			int GetSaturation() const;
+			int GetContrast() const;
+			int GetSharpness() const;
+			int GetColorResolution() const;
+			int GetColorBleed() const;
+			int GetColorArtifacts() const;
+			int GetColorFringing() const;
+			int GetHue() const;
 	
-			uint GetBrightness() const;
-			uint GetSaturation() const;
-			uint GetContrast() const;
-			uint GetSharpness() const;
-			uint GetHue() const;
-	
-			Result SetBrightness(uint);
-			Result SetSaturation(uint);
-			Result SetContrast(uint);
-			Result SetSharpness(uint);
-			Result SetHue(uint);
+			Result SetBrightness(int);
+			Result SetSaturation(int);
+			Result SetContrast(int);
+			Result SetSharpness(int);
+			Result SetColorResolution(int);
+			Result SetColorBleed(int);
+			Result SetColorArtifacts(int);
+			Result SetColorFringing(int);
+			Result SetHue(int);
 			
 			void EnableFieldMerging(bool);
 			bool IsFieldMergingEnabled() const;

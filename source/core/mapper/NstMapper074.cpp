@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -24,6 +24,7 @@
 
 #include "../NstMapper.hpp"
 #include "../board/NstBrdMmc3.hpp"
+#include "../board/NstBrdTaiwanMmc3.hpp"
 #include "NstMapper074.hpp"
 
 namespace Nes
@@ -34,36 +35,42 @@ namespace Nes
         #pragma optimize("s", on)
         #endif
 	
+		uint Mapper74::GetType(dword crc)
+		{
+			switch (crc)
+			{
+       			case 0xC856F188UL: return CRAM_4K; // Crystalis (C)
+				case 0x1A13BA25UL: return CRAM_4K; // Captain Tsubasa Vol 2 - Super Striker (C)
+				case 0xE80D8741UL: return CRAM_8K; // Sangokushi - Hanou No Tairiku (C)
+				case 0xA3279880UL: return CRAM_8K; // Dragon Ball Z 2 - Gekishin Freeza! (C)
+				case 0x12B496E2UL: return CRAM_8K; // Dragon Ball Z Gaiden - Saiya Jin Zetsumetsu Keikaku (C)
+			}
+
+			return CRAM_2K;
+		}
+
 		Mapper74::Mapper74(Context& c)
 		: 
-		Mmc3(c,c.cRom.Size() ? CRAM_4K : 0), 
-		GetChrType
-		(
-	     	c.pRomCrc == 0xC856F188UL  ? GetChrType3 : // Crystalis (Chinese)
-			c.pRomCrc == 0x1A13BA25UL  ? GetChrType3 : // Captain Tsubasa Vol 2 - Super Striker (Chinese)
-			c.pRomCrc == 0x1EE6D43BUL  ? GetChrType4 : // Young Chivalry (Chinese)
-			c.pRomCrc == 0x9767DC74UL  ? GetChrType4 : // Ying Lie Qun Xia Zhuan (Chinese)
-			c.pRom.Size() == SIZE_512K ? GetChrType1 : 
-			                             GetChrType2
-		) 
+		TaiwanMmc3 (c,GetType(c.pRomCrc)), 
+		type       (GetType(c.pRomCrc))
 		{}
-	
-		void Mapper74::SubReset(bool hard)
-		{
-			Mmc3::SubReset( hard );
 
-			if (hard)
-				std::memset( ram, 0, sizeof(ram) );
-
-			Map( 0x5000U, 0x5FFFU, &Mapper74::Peek_Ram, &Mapper74::Poke_Ram );
-		}
-	
 		void Mapper74::SubLoad(State::Loader& state)
 		{
 			while (const dword chunk = state.Begin())
 			{
-				if (chunk == NES_STATE_CHUNK_ID('R','A','M','\0'))
-					state.Uncompress( ram );
+				if (chunk == NES_STATE_CHUNK_ID('E','C','H','\0'))
+				{
+					NST_VERIFY( type == CRAM_8K );
+
+					if (type == CRAM_8K)
+					{
+						const State::Loader::Data<2> data( state );
+
+						exChr[0] = data[0];
+						exChr[1] = data[1];
+					}
+				}
 
 				state.End();
 			}
@@ -71,62 +78,94 @@ namespace Nes
 
 		void Mapper74::SubSave(State::Saver& state) const
 		{
-			state.Begin('R','A','M','\0').Compress( ram ).End();
+			if (type == CRAM_8K)
+			{
+				const u8 data[] = { exChr[0], exChr[1] };
+				state.Begin('E','C','H','\0').Write( data ).End();
+			}
+		}
+	
+		void Mapper74::SubReset(const bool hard)
+		{
+			exChr[1] = exChr[0] = 0;
+
+			TaiwanMmc3::SubReset( hard );
+
+			if (type == CRAM_8K)
+			{
+				for (uint i=0x0000U; i < 0x2000U; i += 0x2)
+					Map( i + 0x8001U, &Mapper74::Poke_8001 );
+			}
 		}
 
         #ifdef NST_PRAGMA_OPTIMIZE
         #pragma optimize("", on)
         #endif
-	
-		uint Mapper74::GetChrType1(const uint bank)
+
+		NES_POKE(Mapper74,8001)
 		{
-			return bank == 8 || bank == 9;
-		}
-	
-		uint Mapper74::GetChrType2(const uint bank)
-		{
-			return bank <= 1;
+			NST_ASSERT( type == CRAM_8K );
+
+			address = regs.ctrl0 & 0xF;
+
+			switch (address)
+			{
+				case 0x0:
+				case 0x1:
+				case 0x2:
+				case 0x3:
+				case 0x4:
+				case 0x5:
+
+					banks.chr[address] = data;
+					Mapper74::UpdateChr();
+					break;
+
+				case 0x6:
+				case 0x7:
+				case 0x8:
+				case 0x9:
+
+					banks.prg[address - 0x6] = data;
+					TaiwanMmc3::UpdatePrg();
+					break;
+				
+				case 0xA:
+				case 0xB:
+
+					exChr[address - 0xA] = data;
+					Mapper74::UpdateChr();
+					break;
+			}
 		}
 
-		uint Mapper74::GetChrType3(const uint bank)
+		uint Mapper74::GetChrSource(uint bank) const
 		{
-			return bank <= 3;
+			NST_ASSERT( type == CRAM_4K || type == CRAM_2K );
+			return (type == CRAM_4K) ? (bank - 0U <= 3U) : (bank - 8U <= 1U);
 		}
 
-		uint Mapper74::GetChrType4(const uint bank)
-		{
-			return bank >= 8 && bank <= 11;
-		}
-
-		void Mapper74::SwapChr(const uint address,const uint bank) const
-		{
-			chr.Source( GetChrType(bank) ).SwapBank<SIZE_1K>( address, bank ); 
-		}
-	
 		void Mapper74::UpdateChr() const
 		{
-			ppu.Update();
-	
-			const uint swap = (regs.ctrl0 & Regs::CTRL0_XOR_CHR) << 5;
-	
-			SwapChr( 0x0000U ^ swap, (banks.chr[0] << 1) | 0 ); 
-			SwapChr( 0x0400U ^ swap, (banks.chr[0] << 1) | 1 ); 
-			SwapChr( 0x0800U ^ swap, (banks.chr[1] << 1) | 0 ); 
-			SwapChr( 0x0C00U ^ swap, (banks.chr[1] << 1) | 1 ); 
-			SwapChr( 0x1000U ^ swap,  banks.chr[2]           ); 
-			SwapChr( 0x1400U ^ swap,  banks.chr[3]           ); 
-			SwapChr( 0x1800U ^ swap,  banks.chr[4]           ); 
-			SwapChr( 0x1C00U ^ swap,  banks.chr[5]           ); 
-		}
+			if (type == CRAM_8K)
+			{
+				ppu.Update();
 
-		NES_PEEK(Mapper74,Ram)
-		{
-			return ram[address-0x5000];
-		}
+				const uint swap = (regs.ctrl0 & Regs::CTRL0_XOR_CHR) << 5;
 
-		NES_POKE(Mapper74,Ram)
-		{
-			ram[address-0x5000] = data;
+				chr.Source( banks.chr[0] <= 7 ).SwapBank<SIZE_1K>( 0x0000U ^ swap, banks.chr[0] ); 
+				chr.Source( exChr[0]     <= 7 ).SwapBank<SIZE_1K>( 0x0400U ^ swap, exChr[0]     ); 
+				chr.Source( banks.chr[1] <= 7 ).SwapBank<SIZE_1K>( 0x0800U ^ swap, banks.chr[1] ); 
+				chr.Source( exChr[1]     <= 7 ).SwapBank<SIZE_1K>( 0x0C00U ^ swap, exChr[1]     ); 
+				chr.Source( banks.chr[2] <= 7 ).SwapBank<SIZE_1K>( 0x1000U ^ swap, banks.chr[2] ); 
+				chr.Source( banks.chr[3] <= 7 ).SwapBank<SIZE_1K>( 0x1400U ^ swap, banks.chr[3] ); 
+				chr.Source( banks.chr[4] <= 7 ).SwapBank<SIZE_1K>( 0x1800U ^ swap, banks.chr[4] ); 
+				chr.Source( banks.chr[5] <= 7 ).SwapBank<SIZE_1K>( 0x1C00U ^ swap, banks.chr[5] ); 
+			}
+			else
+			{
+				TaiwanMmc3::UpdateChr();
+			}
 		}
 	}
 }

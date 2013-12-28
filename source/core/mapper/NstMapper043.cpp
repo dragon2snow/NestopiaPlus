@@ -1,8 +1,8 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
-// Copyright (C) 2003 Martin Freij
+// Copyright (C) 2003-2006 Martin Freij
 //
 // This file is part of Nestopia.
 // 
@@ -22,72 +22,146 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#include "NstMappers.h"
-#include "NstMapper043.h"
-			
-NES_NAMESPACE_BEGIN
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER43::Reset()
+#include "../NstMapper.hpp"
+#include "../NstClock.hpp"
+#include "NstMapper043.hpp"
+	   
+namespace Nes
 {
-	EnableIrqSync(IRQSYNC_COUNT);
+	namespace Core
+	{
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("s", on)
+        #endif
+	
+		Mapper43::Mapper43(Context& c)
+		: Mapper(c,WRAM_NONE), irq(c.cpu) {}
 
-	cpu.SetPort( 0x8122,         this, Peek_8000, Poke_8122 );
-	cpu.SetPort( 0x5000, 0x5FFF, this, Peek_5000, Poke_Nop  );
-	cpu.SetPort( 0x6000, 0x7FFF, this, Peek_6000, Poke_Nop  );
+		void Mapper43::SubReset(const bool hard)
+		{
+			if (hard)
+			{
+				title = 0xB000U;
+				prg.SwapBanks<SIZE_8K,0x0000U>( 1, 0, 0, 9 );
+			}
+			else if (title == 0xB000U)
+			{
+				title = 0xC000U;
+			}
+			else
+			{
+				title = 0xB000U;
+			}
 
-	for (UINT i=0x4022; i <= 0x4FFF; i += 0x20)
-   		cpu.SetPort( i, this, Peek_Nop, Poke_4022 );
+			irq.Reset( hard, true );
 
-    pRom.SwapBanks<n8k,0x0000>( 1 );
-	pRom.SwapBanks<n8k,0x2000>( 0 );
-	pRom.SwapBanks<n8k,0x4000>( 4 );
-	pRom.SwapBanks<n8k,0x6000>( 9 );
+			for (dword i=0x4022U; i < 0x10000UL; i += 0x100)
+			{
+				switch (i & 0x71FFU)
+				{
+       				case 0x0122U: Map( i, &Mapper43::Poke_4122 ); break;
+					case 0x4022U: Map( i, &Mapper43::Poke_4022 ); break;
+				}
+			}
+
+			Map( 0x5000U, 0x5FFFU, &Mapper43::Peek_5000 );
+			Map( 0x6000U, 0x7FFFU, &Mapper43::Peek_6000 );
+		}
+	
+		void Mapper43::SubLoad(State::Loader& state)
+		{
+			while (const dword chunk = state.Begin())
+			{
+				switch (chunk)
+				{
+       				case NES_STATE_CHUNK_ID('I','R','Q','\0'):
+					{
+						State::Loader::Data<3> data( state );
+						irq.unit.enabled = data[0] & 0x1;
+						irq.unit.count = data[1] | ((data[2] & 0xF) << 8);
+						break;
+					}
+
+					case NES_STATE_CHUNK_ID('T','T','L','\0'):
+
+						title = (state.Read8() & 0x1) ? 0xC000U : 0xB000U;
+						break;
+				}
+
+				state.End();
+			}
+		}
+	
+		void Mapper43::SubSave(State::Saver& state) const
+		{
+			state.Begin('T','T','L','\0').Write8( title == 0xC000U ? 0x1 : 0x0 ).End();
+
+			const u8 data[3] =
+			{
+				irq.unit.enabled != 0,
+				irq.unit.count & 0xFF,
+				irq.unit.count >> 8
+			};
+
+			state.Begin('I','R','Q','\0').Write( data ).End();
+		}
+	
+        #ifdef NST_PRAGMA_OPTIMIZE
+        #pragma optimize("", on)
+        #endif
+	
+		void Mapper43::Irq::Reset(const bool hard)
+		{
+			if (hard)
+			{
+				enabled = false;
+				count = 0;
+			}
+		}
+
+		ibool Mapper43::Irq::Signal()
+		{
+			if (enabled)
+			{
+				count = (count + 1) & 0xFFFU;
+
+				if (!count)
+				{
+					enabled = false;
+					return true;
+				}
+			}
+
+			return false;
+		}
+
+		NES_POKE(Mapper43,4022)
+		{
+			static const u8 banks[8] = {4,3,4,4,4,7,5,6};
+			prg.SwapBank<SIZE_8K,0x4000U>( banks[data & 0x7] );
+		}
+
+		NES_POKE(Mapper43,4122)
+		{
+			irq.Update();
+			irq.ClearIRQ();
+			irq.unit.enabled = data & 0x3;
+			irq.unit.count = 0;
+		}
+
+		NES_PEEK(Mapper43,5000)
+		{
+			return *prg.Source().Mem( address + title );
+		}
+
+		NES_PEEK(Mapper43,6000)
+		{
+			return *prg.Source().Mem( address - (0x6000U-0x4000U) );
+		}
+
+		void Mapper43::VSync()
+		{
+			irq.VSync();
+		}
+	}
 }
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER43,4022) 
-{
-	apu.Update(); 
-	static const UCHAR banks[8] = {4,3,4,4,4,7,5,6};
-	pRom.SwapBanks<n8k,0x4000>(banks[data & 0x7]);
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_POKE(MAPPER43,8122) 
-{
-	cpu.ClearIRQ();
-	SetIrqEnable(data & 0x2);
-
-	if (!(data & 0x2))
-		IrqCount = 0;
-}
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-NES_PEEK(MAPPER43,5000) { return *pRom.Ram( 0x00011000UL + (address - 0x5000) ); }
-NES_PEEK(MAPPER43,6000) { return *pRom.Ram( 0x00004000UL + (address - 0x6000) ); }
-
-////////////////////////////////////////////////////////////////////////////////////////
-//
-////////////////////////////////////////////////////////////////////////////////////////
-
-VOID MAPPER43::IrqSync(const UINT delta)
-{
-	if ((IrqCount += delta) >= 0x1000)
-		cpu.DoIRQ();
-}
-
-NES_NAMESPACE_END
-

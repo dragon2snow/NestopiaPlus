@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -22,8 +22,10 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
+#ifdef _MSC_VER
 #pragma comment(lib,"zlibstat")
 #pragma comment(lib,"unrar")
+#endif
 
 #include "NstResourceString.hpp"
 #include "NstApplicationInstance.hpp"
@@ -35,6 +37,8 @@
 #include "NstIoLog.hpp"
 #include "NstIoArchive.hpp"
 #include <initguid.h>
+#include <ObjBase.h>
+#include <OleAuto.h>
 #include "../unrar/unrar.hpp"
 #include "../7zip/IArchive.h"
 
@@ -1132,6 +1136,7 @@ namespace Nestopia
 	ibool Archive::Gui::OnInitDialog(Window::Param&)
 	{
 		const Window::Control::ListBox listBox( dialog.ListBox(IDC_COMPRESSED_FILE_LIST) );
+		Window::Control::ListBox::HScrollBar hScrollBar( listBox.GetWindow() );
 
 		if (filter.count)
 		{
@@ -1143,6 +1148,7 @@ namespace Nestopia
 				{
 					if (filter.extensions[i] == extension)
 					{
+						hScrollBar.Update( it->GetName().Ptr(), it->GetName().Length() );
 						listBox.Add( it->GetName().Ptr() ).Data() = it - files.begin();
 						break;
 					}
@@ -1154,7 +1160,10 @@ namespace Nestopia
 			listBox.Reserve( files.size() );
 
 			for (Items::const_iterator it(files.begin()); it != files.end(); ++it)
+			{
+				hScrollBar.Update( it->GetName().Ptr(), it->GetName().Length() );
 				listBox.Add( it->GetName().Ptr() ).Data() = it - files.begin();
+			}
 		}
 
 		NST_VERIFY( listBox.Size() );
@@ -1164,15 +1173,19 @@ namespace Nestopia
 		return TRUE;
 	}
 
-	ibool Archive::Gui::OnCmdOk(Window::Param&)
+	ibool Archive::Gui::OnCmdOk(Window::Param& param)
 	{
-		dialog.Close( dialog.ListBox(IDC_COMPRESSED_FILE_LIST).Selection().Data() );
+		if (param.Button().IsClicked())
+			dialog.Close( dialog.ListBox(IDC_COMPRESSED_FILE_LIST).Selection().Data() );
+
 		return TRUE;
 	}
 
-	ibool Archive::Gui::OnCmdCancel(Window::Param&)
+	ibool Archive::Gui::OnCmdCancel(Window::Param& param)
 	{
-		dialog.Close( NO_SELECTION );
+		if (param.Button().IsClicked())
+			dialog.Close( NO_SELECTION );
+
 		return TRUE;
 	}
 

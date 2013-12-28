@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -43,8 +43,10 @@
 
 #ifdef _MSC_VER
 #define NES_IO_CALL __fastcall
-//#elif defined(__GNUC__)
-//#define NES_IO_CALL __attribute__ ((fastcall)) // seems to be broken in GCC
+/*
+#elif defined(__GNUC__) && defined(__i386__)
+#define NES_IO_CALL __attribute__((regparm(3)))
+*/
 #else
 #define NES_IO_CALL
 #endif

@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -46,16 +46,15 @@ namespace Nes
 			void SubSave(State::Saver&) const;
 			void SubLoad(State::Loader&);
 
+			uint Select1024k(const uint,uint);
+			uint Select2048k(const uint,uint);
+			uint Select3072k(const uint,uint);
+
 			NES_DECL_POKE( Prg )
 			NES_DECL_PEEK( Prg )
 
-			void Select1024k (uint);
-			void Select2048k (uint);
-			void Select3072k (uint);
+			uint (Mapper235::*SelectCartridge)(const uint,uint);
 
-			void (Mapper235::*SelectCartridge)(uint);
-
-			uint bank;
 			uint open;
 		};
 	}

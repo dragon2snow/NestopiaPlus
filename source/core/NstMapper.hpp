@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -115,7 +115,12 @@ namespace Nes
 				EXT_DREAMTECH01,
 				EXT_H2288,
 				EXT_CC21,
-				NUM_EXT_MAPPERS = 9
+				EXT_KOF97,
+				EXT_64IN1NR,
+				EXT_STREETHEROES,
+				EXT_T262,
+				EXT_FK23C,
+				NUM_EXT_MAPPERS = 14
 			};
 
 			static cstring GetBoard(uint);
@@ -304,7 +309,7 @@ namespace Nes
 			static bool CheckNoStartingFrameIrq(dword);
 			dword GetStateName() const;
 
-			virtual void SubReset(bool) {}
+			virtual void SubReset(bool) = 0;
 			virtual void SubSave(State::Saver&) const {}
 			virtual void SubLoad(State::Loader&) {}
 			virtual void BaseSave(State::Saver&) const {}
@@ -315,9 +320,7 @@ namespace Nes
 
 		public:
 
-			virtual void VSync() 
-			{
-			}
+			virtual void VSync() {}
 
 			uint GetID() const
 			{ 

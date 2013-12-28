@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -22,7 +22,9 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
+#ifdef _MSC_VER
 #pragma comment(lib,"comctl32")
+#endif
 
 #include "NstResourceCursor.hpp"
 #include "NstResourceVersion.hpp"
@@ -311,7 +313,7 @@ namespace Nestopia
 	{
 		for (Callbacks::Iterator it(callbacks.Begin()); it != callbacks.End(); ++it)
 		{
-			if (it->DataPtr<void>() == instance)
+			if (it->VoidPtr() == instance)
 			{
 				callbacks.Erase( it );
 				break;

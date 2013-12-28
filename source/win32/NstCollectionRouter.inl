@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -29,11 +29,11 @@ Router<Output,Input,Key>::Router(KeyParam key,Data* const data,Code code)
 	Add( key, Callback(data,code) );
 }
 
-template<typename Output,typename Input,typename Key> template<typename Data,uint COUNT>
-Router<Output,Input,Key>::Router(Data* const data,const Entry<Data>(&list)[COUNT])
+template<typename Output,typename Input,typename Key> template<typename Data,typename Array>
+Router<Output,Input,Key>::Router(Data* const data,const Array& array)
 : hooks(NULL)
 {
-	Add( data, list, COUNT );
+	Add( data, array, NST_COUNT(array) );
 }
 
 template<typename Output,typename Input,typename Key>
@@ -67,11 +67,11 @@ void Router<Output,Input,Key>::Add(KeyParam key,const Callback& callback)
 		NST_ASSERT
 		( 
 			hooks && 
-			item.CodePtr<Hook>() == &Hook::Invoke &&
-			!item.DataPtr<Hook>()->main
+			item.template CodePtr<Hook>() == &Hook::Invoke &&
+			!item.template DataPtr<Hook>()->main
 		);
 
-		item.DataPtr<Hook>()->main = callback;
+		item.template DataPtr<Hook>()->main = callback;
 	}
 	else
 	{
@@ -100,8 +100,8 @@ void Router<Output,Input,Key>::Set(KeyParam key,const Callback& callback)
 {
 	if (Item* const item = items.Find( key ))
 	{
-		if (item->value.CodePtr<Hook>() == &Hook::Invoke)
-			item->value.DataPtr<Hook>()->main = callback;
+		if (item->value.template CodePtr<Hook>() == &Hook::Invoke)
+			item->value.template DataPtr<Hook>()->main = callback;
 		else
 			item->value = callback;
 	}
@@ -129,11 +129,11 @@ void Router<Output,Input,Key>::Remove(KeyParam key,const Callback& callback)
 		}
 		else if 
 		(
-	     	item->value.CodePtr<Hook>() == &Hook::Invoke &&
-			item->value.DataPtr<Hook>()->main == callback
+	     	item->value.template CodePtr<Hook>() == &Hook::Invoke &&
+			item->value.template DataPtr<Hook>()->main == callback
 		)
 		{
-			item->value.DataPtr<Hook>()->main.Reset();
+			item->value.template DataPtr<Hook>()->main.Reset();
 		}
 	}
 }
@@ -145,7 +145,7 @@ void Router<Output,Input,Key>::Remove(const void* const data)
 	{
 		const Callback& callback = items[i].value;
 
-		if (callback.DataPtr<void>() == data)
+		if (callback.VoidPtr() == data)
 		{
 			items.Array().Erase( items.At(i) );
 		}
@@ -153,10 +153,10 @@ void Router<Output,Input,Key>::Remove(const void* const data)
 		{
 			if 
 			(
-     			callback.CodePtr<Hook>() == &Hook::Invoke &&
-     			callback.DataPtr<Hook>()->main.DataPtr<void>() == data
+     			callback.template CodePtr<Hook>() == &Hook::Invoke &&
+     			callback.template DataPtr<Hook>()->main.VoidPtr() == data
     		)
-     			callback.DataPtr<Hook>()->main.Reset();
+     			callback.template DataPtr<Hook>()->main.Reset();
 		
 			++i;
 		}
@@ -171,16 +171,16 @@ void Router<Output,Input,Key>::RemoveAll(const void* const data)
 }
 
 template<typename Output,typename Input,typename Key>
-void Router<Output,Input,Key>::AddHook(KeyParam key,typename const Hook::Item& newItem)
+void Router<Output,Input,Key>::AddHook(KeyParam key,const typename Hook::Item& newItem)
 {
 	Hook* hook;
 
 	ibool found;
 	Callback& callback = items( key, found );
 
-	if (found && callback.CodePtr<Hook>() == &Hook::Invoke)
+	if (found && callback.template CodePtr<Hook>() == &Hook::Invoke)
 	{
-		hook = callback.DataPtr<Hook>();
+		hook = callback.template DataPtr<Hook>();
 		NST_ASSERT( hook && hook->items.Size() );
 	}
 	else
@@ -244,16 +244,16 @@ ibool Router<Output,Input,Key>::RemoveHook(Item* const mainItem,Hook* const hook
 }
 
 template<typename Output,typename Input,typename Key>
-void Router<Output,Input,Key>::RemoveHook(KeyParam key,typename const Hook::Item& item)
+void Router<Output,Input,Key>::RemoveHook(KeyParam key,const typename Hook::Item& item)
 {
 	if (Item* const mainItem = items.Find( key ))
 	{
-		NST_ASSERT( mainItem->value.CodePtr<Hook>() == &Hook::Invoke );
+		NST_ASSERT( mainItem->value.template CodePtr<Hook>() == &Hook::Invoke );
 
-		Hook* const hook = mainItem->value.DataPtr<Hook>();
+		Hook* const hook = mainItem->value.template DataPtr<Hook>();
 		NST_ASSERT( hook );
 
-		if (Hook::Item* const hookItem = hook->items.Find( item ))
+		if (typename Hook::Item* const hookItem = hook->items.Find( item ))
 			RemoveHook( mainItem, hook, hookItem );
 	}
 }
@@ -263,16 +263,16 @@ void Router<Output,Input,Key>::RemoveHooks(const void* const data)
 {
 	for (Item* mainItem = items.Begin(); mainItem != items.End(); ++mainItem)
 	{
-		if (mainItem->value.CodePtr<Hook>() == &Hook::Invoke)
+		if (mainItem->value.template CodePtr<Hook>() == &Hook::Invoke)
 		{
-			Hook* const hook = mainItem->value.DataPtr<Hook>();
+			Hook* const hook = mainItem->value.template DataPtr<Hook>();
 			NST_ASSERT( hook );
 
 			for (uint i=0; i < hook->items.Size(); )
 			{
-				Hook::Item* const hookItem = hook->items.At(i);
+				typename Hook::Item* const hookItem = hook->items.At(i);
 
-				if (hookItem->DataPtr<void>() == data)
+				if (hookItem->VoidPtr() == data)
 				{
 					if (RemoveHook( mainItem, hook, hookItem ))
 						break;
@@ -287,7 +287,7 @@ void Router<Output,Input,Key>::RemoveHooks(const void* const data)
 }
 
 template<typename Output,typename Input,typename Key> template<typename Match>
-typename const Router<Output,Input,Key>::Callback* Router<Output,Input,Key>::Find
+const typename Router<Output,Input,Key>::Callback* Router<Output,Input,Key>::Find
 (
     const Match& match,
 	const Key** key
@@ -298,8 +298,8 @@ typename const Router<Output,Input,Key>::Callback* Router<Output,Input,Key>::Fin
 		if (key)
 			*key = &item->key;
 
-		if (item->value.CodePtr<Hook>() == &Hook::Invoke)
-			return &item->value.DataPtr<Hook>()->main;
+		if (item->value.template CodePtr<Hook>() == &Hook::Invoke)
+			return &item->value.template DataPtr<Hook>()->main;
 		else
 			return &item->value;
 	}
@@ -312,8 +312,8 @@ typename Router<Output,Input,Key>::Callback& Router<Output,Input,Key>::operator 
 {
 	Callback& callback = items.Locate( key );
 
-	if (callback.CodePtr<Hook>() == &Hook::Invoke)
-		return callback.DataPtr<Hook>()->main;
+	if (callback.template CodePtr<Hook>() == &Hook::Invoke)
+		return callback.template DataPtr<Hook>()->main;
 
 	return callback;
 }

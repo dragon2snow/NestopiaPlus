@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -42,7 +42,8 @@ namespace Nes
 				enum Type
 				{
 					TYPE_NORMAL,
-					TYPE_MIRROR_CTRL
+					TYPE_MIRROR_CTRL_0,
+					TYPE_MIRROR_CTRL_1
 				};
 						
 			private:

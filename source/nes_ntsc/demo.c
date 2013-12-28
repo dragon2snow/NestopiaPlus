@@ -1,9 +1,13 @@
 
 /* Uses nes_ntsc to display a raw NES image on screen with adjustment of
-hue and sharpness using mouse. Writes "nes.pal" RGB color file on exit.
+sharpness and hue warping using mouse. Writes "nes.pal" RGB color file on exit.
 
-Spacebar    Toggles field merging
-S           Toggles between standard and Sony decoder matrix
+Space   Toggles field merging
+C       Composite video quality
+S       S-video quality
+R       RGB video quality
+M       Monochrome video quality
+D       Toggles between standard and Sony decoder matrix
 */
 
 #include "nes_ntsc.h"
@@ -13,12 +17,12 @@ S           Toggles between standard and Sony decoder matrix
 #include "SDL.h"
 
 /* NES pixel buffer size */
-enum { nes_width  = nes_ntsc_min_in_width };
+enum { nes_width  = 256 };
 enum { nes_height = 240 };
 
 /* Output size */
-enum { width  = nes_ntsc_min_out_width };
-enum { height = nes_height * 2 };
+enum { out_width  = NES_NTSC_OUT_WIDTH( nes_width ) };
+enum { out_height = nes_height * 2 };
 
 /* Shell */
 void fatal_error( const char* str );
@@ -29,56 +33,65 @@ int sdl_run();
 static unsigned char* sdl_pixels;
 static long sdl_pitch;
 static float mouse_x = 0.5f, mouse_y = 0.5f; /* 0.0 to 1.0 */
+static int mouse_moved;
 static int key_pressed;
 
 /* Globals */
 static unsigned char* nes_pixels;
-static nes_ntsc_setup_t setup; /* making this static conveniently clears all fields to 0 */
+static nes_ntsc_setup_t setup;
 static nes_ntsc_t* ntsc;
-static int phase;
+static int burst_phase = 0;
 
 static void init()
 {
-	FILE* file;
+	/* read raw image */
+	FILE* file = fopen( "nes.raw", "rb" );
+	if ( !file )
+		fatal_error( "Couldn't open image file" );
+	nes_pixels = (unsigned char*) malloc( (long) nes_height * nes_width );
+	if ( !nes_pixels )
+		fatal_error( "Out of memory" );
+	fread( nes_pixels, nes_width, nes_height, file );
+	fclose( file );
 	
 	/* allocate memory for nes_ntsc and initialize */
 	ntsc = (nes_ntsc_t*) malloc( sizeof (nes_ntsc_t) );
 	if ( !ntsc )
 		fatal_error( "Out of memory" );
-	setup.merge_fields = 1;
 	nes_ntsc_init( ntsc, &setup );
-	
-	/* read raw nes image */
-	file = fopen( "nes.raw", "rb" );
-	nes_pixels = (unsigned char*) malloc( (long) nes_height * nes_width );
-	if ( !nes_pixels )
-		fatal_error( "Out of memory" );
-	if ( !file )
-		fatal_error( "Couldn't open image file" );
-	fread( nes_pixels, nes_width, nes_height, file );
-	fclose( file );
 }
 
 static void display()
 {
-	int i;
 	sdl_lock_pixels();
 	
 	/* force phase to 0 if merge_fields is on */
-	phase ^= 1;
+	burst_phase ^= 1;
 	if ( setup.merge_fields )
-		phase = 0;
+		burst_phase = 0;
 	
-	/* blit nes image on every other scanline of output by halving the height
-	and doubling the output pitch */
-	nes_ntsc_blit( ntsc, nes_pixels, nes_width, phase, width, height / 2,
-			(unsigned short*) sdl_pixels, sdl_pitch * 2 );
+	/* blit image to every other row of output by doubling output pitch */
+	nes_ntsc_blit( ntsc, nes_pixels, nes_width, burst_phase,
+			nes_width, nes_height, sdl_pixels, sdl_pitch * 2 );
 	
-	/* fill in blank scanlines with duplicates */
-	for ( i = 0; i < height; i += 2 )
+	/* interpolate and darken between scanlines */
 	{
-		unsigned char* line = sdl_pixels + i * sdl_pitch;
-		memcpy( line + sdl_pitch, line, width * 2 );
+		int y;
+		for ( y = 1; y < out_height - 1; y += 2 )
+		{
+			unsigned char* io = sdl_pixels + y * sdl_pitch;
+			int n;
+			for ( n = out_width; n; --n )
+			{
+				unsigned prev = *(unsigned short*) (io - sdl_pitch);
+				unsigned next = *(unsigned short*) (io + sdl_pitch);
+				/* mix 16-bit rgb without losing low bits */
+				unsigned mixed = prev + next + ((prev ^ next) & 0x0821);
+				/* darken by 12% */
+				*(unsigned short*) io = (mixed >> 1) - (mixed >> 4 & 0x18E3);
+				io += 2;
+			}
+		}
 	}
 	
 	sdl_display();
@@ -98,48 +111,56 @@ static void write_palette()
 
 int main( int argc, char** argv )
 {
+	int merge_fields = 1;
+	int sony_decoder = 0;
+	
+	setup = nes_ntsc_composite;
 	init();
-	sdl_init( width, height, 16 ); /* 16-bit RGB pixel buffer */
+	sdl_init( out_width, out_height, 16 ); /* 16-bit RGB output buffer */
 	
 	/* keep displaying frames until mouse is clicked */
 	while ( sdl_run() )
 	{
 		display();
 		
-		/* mouse controls saturation and sharpness */
-		if ( mouse_x >= 0 )
+		switch ( key_pressed )
 		{
-			/* available parameters: hue, saturation, contrast, brightness,
-			sharpness, hue_warping */
-			setup.saturation = mouse_x * 2 - 1;
-			setup.sharpness  = mouse_y * 2 - 1;
+			case SDLK_SPACE: merge_fields = !merge_fields; break;
 			
-			nes_ntsc_init( ntsc, &setup );
-			mouse_x = -1; /* only call nes_ntsc_init when mouse moves */
+			case SDLK_c    : setup = nes_ntsc_composite; break;
+			
+			case SDLK_s    : setup = nes_ntsc_svideo; break;
+			
+			case SDLK_r    : setup = nes_ntsc_rgb; break;
+			
+			case SDLK_m    : setup = nes_ntsc_monochrome; break;
+			
+			case SDLK_d    : sony_decoder = !sony_decoder; break;
 		}
 		
-		/* space toggles field merging */
-		if ( key_pressed == SDLK_SPACE )
+		if ( key_pressed || mouse_moved )
 		{
-			setup.merge_fields = !setup.merge_fields;
-			nes_ntsc_init( ntsc, &setup );
-		}
-		
-		/* S toggles between standard and Sony decoder matrix */
-		if ( key_pressed == SDLK_s )
-		{
-			if ( !setup.decoder_matrix )
+			/* convert mouse range to -1 to +1 */
+			float x = mouse_x * 2 - 1;
+			float y = mouse_y * 2 - 1;
+			
+			/* parameters: hue, saturation, contrast, brightness, sharpness,
+			gamma, bleed, resolution, artifacts, fringing, hue_warping */
+			setup.sharpness   = x;
+			setup.hue_warping = y;
+			
+			setup.merge_fields = merge_fields;
+			
+			setup.decoder_matrix = 0;
+			setup.hue = 0;
+			if ( sony_decoder )
 			{
 				/* Sony CXA2095S US */
 				static float matrix [6] = { 1.539, -0.622, -0.571, -0.185, 0.000, 2.000 };
 				setup.decoder_matrix = matrix;
-				setup.hue = 33 / 180.0;
+				setup.hue += 33 / 180.0;
 			}
-			else
-			{
-				setup.decoder_matrix = 0;
-				setup.hue = 0;
-			}
+			
 			nes_ntsc_init( ntsc, &setup );
 		}
 	}
@@ -190,6 +211,7 @@ int sdl_run()
 	while ( SDL_GetTicks() < next_time ) { }
 	next_time = start + 1000 / 60;
 	
+	mouse_moved = 0;
 	key_pressed = 0;
 	
 	while ( SDL_PollEvent( &e ) )
@@ -208,6 +230,7 @@ int sdl_run()
 		{
 			int x, y;
 			SDL_GetMouseState( &x, &y );
+			mouse_moved = 1;
 			mouse_x = x / (float) (SDL_GetVideoSurface()->w - 1);
 			mouse_y = 1 - y / (float) (SDL_GetVideoSurface()->h - 1);
 		}

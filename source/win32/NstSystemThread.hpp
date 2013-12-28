@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -128,11 +128,15 @@ namespace Nestopia
 
 			struct Initializer;
 
-			enum
+			enum OnMsgType
 			{
 				ON_EXIT_SUCCESS,
 				ON_EXIT_EXCEPTION,
-				ON_EXIT_MESSAGE,
+				ON_EXIT_MESSAGE
+			};
+
+			enum
+			{
 				WM_NST_THREAD_EXIT = WM_APP + 54
 			};
 

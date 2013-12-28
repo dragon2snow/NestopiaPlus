@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -61,12 +61,12 @@ namespace Nestopia
 
 		for (uint i=0; i < MAX_FILES; ++i)
 		{
-			index.Back() = (char) ('1' + i);
+			index.Back() = '1' + i;
 			const GenericString file( cfg[index] );
 
 			if (file.Length())
 			{
-				name[1] = (tchar) ('1' + count);
+				name[1] = '1' + count;
 				name(3) = file;
 				menu[IDM_FILE_RECENT_1 + count++].Text() << name;
 			}
@@ -92,7 +92,7 @@ namespace Nestopia
 
 		for (uint i=0; i < MAX_FILES && menu[IDM_FILE_RECENT_1 + i].Text() >> file; ++i)
 		{
-			index.Back() = (char) ('1' + i);
+			index.Back() = '1' + i;
 			cfg[index].Quote() = file(3);
 		}
 
@@ -147,7 +147,7 @@ namespace Nestopia
 					{
 						if (items[j](3) != emulator.GetStartPath())
 						{
-							items[j][1] = (char) ('2' + j);
+							items[j][1] = '2' + j;
 							++j;
 						}
 					}

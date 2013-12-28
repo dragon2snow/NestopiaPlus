@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -22,7 +22,9 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
+#ifdef _MSC_VER
 #pragma comment(lib,"dsound")
+#endif
 
 #include "NstDirectSound.hpp"
 #include "NstApplicationException.hpp"
@@ -298,7 +300,7 @@ namespace Nestopia
 			if (SUCCEEDED(com->Lock( 0, 0, &data, &size, NULL, NULL, DSBLOCK_ENTIREBUFFER )))
 			{
 				std::memset( data, waveFormat.wBitsPerSample == 16 ? DC_OFFSET_16 : DC_OFFSET_8, size );
-				com->Unlock( data, size, NULL, NULL );
+				com->Unlock( data, size, NULL, 0 );
 			}
 
 			writeOffset = 0;

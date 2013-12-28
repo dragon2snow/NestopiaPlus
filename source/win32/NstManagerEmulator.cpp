@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -73,8 +73,8 @@ namespace Nestopia
 
 				if (Window::User::Input( output, message.Ptr(), Resource::String(IDS_EMU_TITLE_CHOOSE_MAPPER) ))
 				{
-					const String::Heap<char>( output );
-					response.assign( output.Ptr(), output.Length() );
+					const String::Heap<char> tmp( output );
+					response.assign( tmp.Ptr(), tmp.Length() );
 				}
 			}
 		}
@@ -162,7 +162,7 @@ namespace Nestopia
 	{
 		for (Callbacks::Iterator it(callbacks.Begin()); it != callbacks.End(); ++it)
 		{
-			if (it->DataPtr<void>() == instance)
+			if (it->VoidPtr() == instance)
 			{
 				callbacks.Erase( it );
 				break;

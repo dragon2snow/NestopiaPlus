@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -398,7 +398,7 @@ namespace Nestopia
 		ctrl.Columns().GetOrder( array, columns.Count() );
 
 		for (uint i=0; i < columns.Count(); ++i)
-			order[i] = (uchar) columns.GetType( array[i] );
+			order[i] = columns.GetType( array[i] );
 	}
 
 	void Launcher::List::UpdateSortColumnOrder(const uint firstSortColumn)
@@ -406,12 +406,12 @@ namespace Nestopia
 		int array[Columns::NUM_TYPES];
 		ctrl.Columns().GetOrder( array, columns.Count() );
 
-		order[0] = (uchar) columns.GetType( firstSortColumn );
+		order[0] = columns.GetType( firstSortColumn );
 
 		for (uint i=0, j=1; i < columns.Count(); ++i)
 		{
 			if (uint(array[i]) != firstSortColumn)
-				order[j++] = (uchar) columns.GetType( array[i] );
+				order[j++] = columns.GetType( array[i] );
 		}
 	}
 

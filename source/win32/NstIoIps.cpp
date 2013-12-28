@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -53,9 +53,9 @@ namespace Nestopia
 
 				patch.Grow( 3 );
 
-				patch[pos+0] = (u8) ((value >> 16 )       );
-				patch[pos+1] = (u8) ((value >>  8 ) & 0xFF);
-				patch[pos+2] = (u8) ((value >>  0 ) & 0xFF);
+				patch[pos+0] = (value >> 16 );
+				patch[pos+1] = (value >>  8 ) & 0xFF;
+				patch[pos+2] = (value >>  0 ) & 0xFF;
 			}
 
 			static void Write2(PatchData& patch,const uint value)
@@ -64,8 +64,8 @@ namespace Nestopia
 
 				patch.Grow( 2 );
 
-				patch[pos+0] = (u8) ((value >> 8)       );
-				patch[pos+1] = (u8) ((value >> 0) & 0xFF);
+				patch[pos+0] = (value >> 8);
+				patch[pos+1] = (value >> 0) & 0xFF;
 			}
 
 			static void Write1(PatchData& patch,const uint value)

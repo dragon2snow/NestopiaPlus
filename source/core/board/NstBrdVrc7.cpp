@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -27,6 +27,7 @@
 #include "../NstMapper.hpp"
 #include "../NstClock.hpp"
 #include "../NstSignedArithmetic.hpp"
+#include "../NstFpuPrecision.hpp"
 #include "NstBrdVrc4.hpp"
 #include "NstBrdVrc7.hpp"
 
@@ -71,7 +72,9 @@ namespace Nes
             #endif
 		
 			Vrc7::Sound::Tables::Tables()
-			{	  
+			{	
+				FpuPrecision precision;
+
 				for (uint i=0; i < PITCH_SIZE; ++i)
 					pitch[i] = AMP_SIZE * std::pow( 2, 13.75 * std::sin( 2 * NST_PI * i / PITCH_SIZE ) / 1200 );
 
@@ -319,13 +322,18 @@ namespace Nes
 				pitchPhase = ampPhase = 0;
 			}
 
-			void Vrc7::Sound::UpdateContext(uint,const u8 (&volumes)[MAX_CHANNELS])
+			void Vrc7::Sound::UpdateContext()
 			{
-				outputVolume = volumes[Apu::CHANNEL_VRC7];
 				ResetClock();
 
 				for (uint i=0; i < NUM_OPLL_CHANNELS; ++i)
 					channels[i].Update( tables );
+			}
+
+			void Vrc7::Sound::UpdateContext(uint,const u8 (&volumes)[MAX_CHANNELS])
+			{
+				outputVolume = volumes[Apu::CHANNEL_VRC7];
+				UpdateContext();
 			}
 
 			void Vrc7::BaseLoad(State::Loader& state,const dword id)
@@ -372,7 +380,7 @@ namespace Nes
 
 			void Vrc7::Sound::LoadState(State::Loader& state)
 			{
-//				UpdateContext(0);
+				UpdateContext();
 
 				while (dword chunk = state.Begin())
 				{

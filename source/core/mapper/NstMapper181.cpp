@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -24,7 +24,7 @@
 
 #include "../NstMapper.hpp"
 #include "NstMapper181.hpp"
-		 
+	  
 namespace Nes
 {
 	namespace Core
@@ -32,21 +32,46 @@ namespace Nes
         #ifdef NST_PRAGMA_OPTIMIZE
         #pragma optimize("s", on)
         #endif
-	
-		void Mapper181::SubReset(const bool hard)
+
+		void Mapper181::SubReset(bool)
 		{
-			Map( 0x4120U, &Mapper181::Poke_4120 );
+			openChrBus = 0x00;
+
+			for (uint i=0; i < 2; ++i)
+				chr.SetAccessor( i, this, &Mapper181::Access_Chr );
+
+			Map( 0x8000U, 0xFFFFU, &Mapper181::Poke_Prg );
 		}
 	
+		void Mapper181::SubSave(State::Saver& state) const
+		{
+			state.Begin('O','P','B','\0').Write8( openChrBus ? 0x1 : 0x0 ).End();
+		}
+
+		void Mapper181::SubLoad(State::Loader& state)
+		{
+			while (const dword chunk = state.Begin())
+			{
+				if (chunk == NES_STATE_CHUNK_ID('O','P','B','\0'))
+					openChrBus = (state.Read8() & 0x1) ? 0xFF : 0x00;
+
+				state.End();
+			}
+		}
+
         #ifdef NST_PRAGMA_OPTIMIZE
         #pragma optimize("", on)
         #endif
-	
-		NES_POKE(Mapper181,4120) 
-		{ 
-			ppu.Update();
-			prg.SwapBank<SIZE_32K,0x0000U>( (data & 0x8) >> 3);
-			chr.SwapBank<SIZE_8K,0x0000U>( data & 0x7 );
+
+		NES_ACCESSOR(Mapper181,Chr)
+		{
+			return chr.Peek( address ) | openChrBus;
+		}
+
+		NES_POKE(Mapper181,Prg)
+		{
+			ppu.Update();	
+			openChrBus = (data & 0x01) ? 0xFF : 0x00;
 		}
 	}
 }

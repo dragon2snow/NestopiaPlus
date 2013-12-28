@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -74,7 +74,7 @@
 //
 // #define NST_NO_HQ2X - omit hq2x and hq3x filter
 //
-// #define NST_NO_NTSCVIDEO - omit NTSC composite video filter
+// #define NST_NO_NTSCVIDEO - omit NTSC filter
 //
 // remarks: GCC = GNU Compiler
 //          ICC = Intel C++ Compiler

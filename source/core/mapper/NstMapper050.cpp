@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -99,9 +99,9 @@ namespace Nes
 		{
 			prg.SwapBank<SIZE_8K,0x4000U>
 			( 
-				((data & 0x8) << 0) |
-				((data & 0x1) << 2)	|
-				((data & 0x6) >> 1)
+				(data << 0 & 0x8) |
+				(data << 2 & 0x4) |
+				(data >> 1 & 0x3)
 			);
 		}
 	

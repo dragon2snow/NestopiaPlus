@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -59,7 +59,7 @@ namespace Nestopia
 
 		static void NST_CALLBACK OnDiskAccessScreen(Nes::Fds::UserData,bool on)
 		{
-			Io::Screen() << (on ? Resource::String(IDS_SCREEN_FDS_LED) : _T(""));
+			Io::Screen() << (on ? Resource::String(IDS_SCREEN_FDS_LED).Ptr() : _T(""));
 		}
 	};
 

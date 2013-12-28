@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -57,15 +57,27 @@ namespace Nes
 				void VSync();
 
 				static uint GetIrqBase(dword);
-				
+
+				NES_DECL_POKE( 42FC )
+				NES_DECL_POKE( 42FD )
+
 				NES_DECL_POKE( 42FE )
 				NES_DECL_POKE( 42FF )
+
+				NES_DECL_POKE( 43FC )
+				NES_DECL_POKE( 43FD )
+				NES_DECL_POKE( 43FE )
+				NES_DECL_POKE( 43FF )
+
 				NES_DECL_POKE( 4501 )
 				NES_DECL_POKE( 4502 )
 				NES_DECL_POKE( 4503 )
+
 				NES_DECL_POKE( Prg_F3 )
 				NES_DECL_POKE( Prg_F4 )
-		
+
+				NES_DECL_POKE( Prg_X )
+
 				struct Irq
 				{
 					void Reset(bool);

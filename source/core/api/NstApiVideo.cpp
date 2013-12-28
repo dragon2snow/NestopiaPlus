@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -59,69 +59,94 @@ namespace Nes
 			return emulator.ppu.AreUnlimSpritesEnabled();
 		}
 	
-		uint Video::GetDefaultBrightness() const
-		{
-			return Core::Video::Renderer::DEFAULT_BRIGHTNESS;
-		}
-	
-		uint Video::GetDefaultSaturation() const
-		{
-			return Core::Video::Renderer::DEFAULT_SATURATION;
-		}
-	
-		uint Video::GetDefaultHue() const
-		{
-			return Core::Video::Renderer::DEFAULT_HUE;
-		}
-	
-		uint Video::GetBrightness() const
+		int Video::GetBrightness() const
 		{
 			return emulator.renderer.GetBrightness();
 		}
 	
-		uint Video::GetSaturation() const
+		int Video::GetSaturation() const
 		{
 			return emulator.renderer.GetSaturation();
 		}
-	
-		uint Video::GetHue() const
-		{
-			return emulator.renderer.GetHue();
-		}
-	
-		uint Video::GetContrast() const
+		
+		int Video::GetContrast() const
 		{
 			return emulator.renderer.GetContrast();
 		}
 
-		uint Video::GetSharpness() const
+		int Video::GetSharpness() const
 		{
 			return emulator.renderer.GetSharpness();
 		}
 
-		Result Video::SetBrightness(uint value)
+		int Video::GetColorResolution() const
+		{
+			return emulator.renderer.GetColorResolution();
+		}
+
+		int Video::GetColorBleed() const
+		{
+			return emulator.renderer.GetColorBleed();
+		}
+
+		int Video::GetColorArtifacts() const
+		{
+			return emulator.renderer.GetColorArtifacts();
+		}
+
+		int Video::GetColorFringing() const
+		{
+			return emulator.renderer.GetColorFringing();
+		}
+
+		int Video::GetHue() const
+		{
+			return emulator.renderer.GetHue();
+		}
+
+		Result Video::SetBrightness(int value)
 		{
 			return emulator.renderer.SetBrightness( value );
 		}
 	
-		Result Video::SetSaturation(uint value)
+		Result Video::SetSaturation(int value)
 		{
 			return emulator.renderer.SetSaturation( value );
 		}
-	
-		Result Video::SetHue(uint value)
-		{
-			return emulator.renderer.SetHue( value );
-		}
-		
-		Result Video::SetContrast(uint value)
+			
+		Result Video::SetContrast(int value)
 		{
 			return emulator.renderer.SetContrast( value );
 		}
 
-		Result Video::SetSharpness(uint value)
+		Result Video::SetSharpness(int value)
 		{
 			return emulator.renderer.SetSharpness( value );
+		}
+
+		Result Video::SetColorResolution(int value)
+		{
+			return emulator.renderer.SetColorResolution( value );
+		}
+
+		Result Video::SetColorBleed(int value)
+		{
+			return emulator.renderer.SetColorBleed( value );
+		}
+
+		Result Video::SetColorArtifacts(int value)
+		{
+			return emulator.renderer.SetColorArtifacts( value );
+		}
+
+		Result Video::SetColorFringing(int value)
+		{
+			return emulator.renderer.SetColorFringing( value );
+		}
+
+		Result Video::SetHue(int value)
+		{
+			return emulator.renderer.SetHue( value );
 		}
 
 		void Video::EnableFieldMerging(bool state)
@@ -173,22 +198,22 @@ namespace Nes
 
 				case DECODER_ALTERNATIVE:
 
-					axes[0].angle = 90;
+					axes[0].angle = 105;
 					axes[0].gain  = 0.570f;
-					axes[1].angle = 236;
-					axes[1].gain  = 0.348f;
-					axes[2].angle = 0;
+					axes[1].angle = 251;
+					axes[1].gain  = 0.351f;
+					axes[2].angle = 15;
 					axes[2].gain  = 1.015f;
 					boostYellow   = true;
 					break;
 
 				default:
 
-					axes[0].angle = 90;
+					axes[0].angle = 105;
 					axes[0].gain  = 0.570f;
-					axes[1].angle = 236;
-					axes[1].gain  = 0.348f;
-					axes[2].angle = 0;
+					axes[1].angle = 251;
+					axes[1].gain  = 0.351f;
+					axes[2].angle = 15;
 					axes[2].gain  = 1.015f;
 					boostYellow   = false;
 					break;

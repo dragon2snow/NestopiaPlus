@@ -51,7 +51,7 @@
 				BufferSecurityCheck="true"
 				EnableFunctionLevelLinking="true"
 				FloatingPointModel="0"
-				FloatingPointExceptions="false"
+				FloatingPointExceptions="true"
 				DefaultCharIsUnsigned="true"
 				RuntimeTypeInfo="false"
 				UsePrecompiledHeader="0"

@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -83,7 +83,7 @@ namespace Nestopia
 				Data4[1] = ( u8  ) ConvertData( text( 21, 2 ) );
 
 				for (uint i=2; i < 8; ++i)
-					Data4[i] = (u8) ConvertData( text( 20 + i * 2, 2 ) );
+					Data4[i] = ConvertData( text( 20 + i * 2, 2 ) );
 			}
 			catch (Exception)
 			{

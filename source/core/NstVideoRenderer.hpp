@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -58,16 +58,12 @@ namespace Nes
 					HEIGHT = 240,
 					PIXELS = dword(WIDTH) * HEIGHT,
 					PALETTE = 64 * 8,
-					DEFAULT_HUE = 128,
-					DEFAULT_BRIGHTNESS = 128,
-					DEFAULT_SATURATION = 128,
-					DEFAULT_CONTRAST = 128,
-					DEFAULT_SHARPNESS = 128,
 					DEFAULT_PALETTE = PALETTE_YUV
 				};
 
 				Result SetState(const RenderState&);
 				Result GetState(RenderState&) const;
+				Result SetHue(int);
 				void Blit(Output&,uint=1);
 
 				void SetMode(Mode);
@@ -87,7 +83,7 @@ namespace Nes
 			private:
 
 				void UpdateFilter();
-				Result SetLevel(u8&,u8);
+				Result SetLevel(i8&,int);
 
 				class Palette
 				{
@@ -99,25 +95,20 @@ namespace Nes
 					Result SetType(PaletteType);
 					Result LoadCustom(const u8 (*)[3]);
 					bool   ResetCustom();
-					void   Update(uint,uint,uint);
+					void   Update(int,int,int,int);
 					Result SetDecoder(const Decoder&);
 
 					inline const PaletteEntries& Get() const;
 
 				private:
 
-					enum
-					{
-						HUE_OFFSET = 33
-					};
-
 					struct Custom
 					{
 						u8 palette[64][3];
 					};
 
-					void Generate(int,int,int);
-					void Build(int,int,int);
+					void Generate(int,int,int,int);
+					void Build(int,int,int,int);
 
 					static void ToPAL(const double (&)[3],u8 (&)[3]);
 					static void ToHSV(double,double,double,double&,double&,double&);
@@ -215,11 +206,15 @@ namespace Nes
 					u16 width;
 					u16 height;
 					u8 update;
-					u8 brightness;
-					u8 saturation;
-					u8 hue;
-					u8 contrast;
-					u8 sharpness;
+					i8 brightness;
+					i8 saturation;
+					i8 hue;
+					i8 contrast;
+					i8 sharpness;
+					i8 resolution;
+					i8 bleed;
+					i8 artifacts;
+					i8 fringing;
 					u8 scanlines;
 					u8 fieldMerging;
 					RenderState::Bits::Mask mask;
@@ -233,54 +228,89 @@ namespace Nes
 
 			public:
 
-				Result SetBrightness(u8 brightness)
+				Result SetBrightness(int brightness)
 				{
 					return SetLevel( state.brightness, brightness );
 				}
 
-				Result SetSaturation(u8 saturation)
+				Result SetSaturation(int saturation)
 				{
 					return SetLevel( state.saturation, saturation );
 				}
 
-				Result SetHue(u8 hue)
-				{
-					return SetLevel( state.hue, hue );
-				}
-
-				Result SetContrast(u8 contrast)
+				Result SetContrast(int contrast)
 				{
 					return SetLevel( state.contrast, contrast );
 				}
 
-				Result SetSharpness(u8 sharpness)
+				Result SetSharpness(int sharpness)
 				{
 					return SetLevel( state.sharpness, sharpness );
 				}
 
-				uint GetBrightness() const
+				Result SetColorResolution(int resolution)
+				{
+					return SetLevel( state.resolution, resolution );
+				}
+
+				Result SetColorBleed(int bleed)
+				{
+					return SetLevel( state.bleed, bleed );
+				}
+
+				Result SetColorArtifacts(int artifacts)
+				{
+					return SetLevel( state.artifacts, artifacts );
+				}
+
+				Result SetColorFringing(int fringing)
+				{
+					return SetLevel( state.fringing, fringing );
+				}
+
+				int GetBrightness() const
 				{
 					return state.brightness;
 				}
 
-				uint GetSaturation() const
+				int GetSaturation() const
 				{
 					return state.saturation;
 				}
 
-				uint GetHue() const
-				{
-					return state.hue;
-				}
-
-				uint GetContrast() const
+				int GetContrast() const
 				{
 					return state.contrast;
 				}
 
-				uint GetSharpness() const
+				int GetSharpness() const
 				{
 					return state.sharpness;
+				}
+
+				int GetColorResolution() const
+				{
+					return state.resolution;
+				}
+
+				int GetColorBleed() const
+				{
+					return state.bleed;
+				}
+
+				int GetColorArtifacts() const
+				{
+					return state.artifacts;
+				}
+
+				int GetColorFringing() const
+				{
+					return state.fringing;
+				}
+
+				int GetHue() const
+				{
+					return state.hue;
 				}
 
 				bool IsFieldMergingEnabled() const

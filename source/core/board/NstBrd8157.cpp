@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -35,17 +35,50 @@ namespace Nes
             #pragma optimize("s", on)
             #endif
 		
-			void Unl8157::SubReset(bool)
+			void Unl8157::SubReset(const bool hard)
 			{
-				Map( 0x8000U, 0xFFFFU, &Unl8157::Poke_Prg );
+				if (hard)
+					menu = 0x100;
+				else
+					menu ^= 0x100;
+
+				trash = 0;
+
+				Map( 0x8000U, 0xFFFFU, &Unl8157::Peek_Prg, &Unl8157::Poke_Prg );
 			}
 		
+			void Unl8157::SubSave(State::Saver& state) const
+			{
+				state.Begin('R','E','G','\0').Write8( (menu >> 8) | (trash >> 7) ).End();
+			}
+
+			void Unl8157::SubLoad(State::Loader& state)
+			{
+				while (const dword chunk = state.Begin())
+				{
+					if (chunk == NES_STATE_CHUNK_ID('R','E','G','\0'))
+					{
+						trash = state.Read8();
+						menu = trash << 8 & 0x100;
+						trash = trash << 7 & 0x100;
+					}
+
+					state.End();
+				}
+			}
+
             #ifdef NST_PRAGMA_OPTIMIZE
             #pragma optimize("", on)
             #endif
-		
+
+			NES_PEEK(Unl8157,Prg) 
+			{ 
+				return !trash ? prg.Peek( address - 0x8000U ) : 0xFF;
+			}
+
 			NES_POKE(Unl8157,Prg) 
 			{ 
+				trash = address & menu;
 				const uint base = (address & 0x0060) >> 2;
 				prg.SwapBanks<SIZE_16K,0x0000U>( base | ((address & 0x001C) >> 2), base | ((address & 0x0200) ? 0x7 : 0x0) );
 				ppu.SetMirroring( (address & 0x0002) ? Ppu::NMT_HORIZONTAL : Ppu::NMT_VERTICAL );

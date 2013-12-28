@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -22,7 +22,9 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
+#ifdef _MSC_VER
 #pragma comment(lib,"version")
+#endif
 
 #include <cstdlib>
 #include <cstring>
@@ -55,12 +57,12 @@ namespace Nestopia
 					char* string = buffer;
 
 					if (HIWORD(info.dwFileVersionMS))
-						*string++ = (char) ('0' + HIWORD(info.dwFileVersionMS));
+						*string++ = '0' + HIWORD(info.dwFileVersionMS);
 
-					string[0] = (char) ('0' + LOWORD(info.dwFileVersionMS));
+					string[0] = '0' + LOWORD(info.dwFileVersionMS);
 					string[1] = '.';
-					string[2] = (char) ('0' + HIWORD(info.dwFileVersionLS));
-					string[3] = (char) ('0' + LOWORD(info.dwFileVersionLS));
+					string[2] = '0' + HIWORD(info.dwFileVersionLS);
+					string[3] = '0' + LOWORD(info.dwFileVersionLS);
 					string[4] = '\0';
 				}
 			}
@@ -68,6 +70,6 @@ namespace Nestopia
 			operator delete (data);
 		}
 
-		Heap::operator = (buffer);
+		String::Heap<char>::operator = (buffer);
 	}
 }

@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -25,16 +25,16 @@
 #include <cstring>
 #include <new>
 #include "NstLog.hpp"
-#include "NstCrc32.hpp"
+#include "NstChecksumCrc32.hpp"
 #include "NstState.hpp"
 #include "NstImageDatabase.hpp"
 #include "NstCartridge.hpp"
-#include "NstInes.hpp"
-#include "NstUnif.hpp"
+#include "NstCartridgeInes.hpp"
+#include "NstCartridgeUnif.hpp"
 #include "NstMapper.hpp"
 #include "vssystem/NstVsSystem.hpp"
-#include "NstTurboFile.hpp"
-#include "NstDataRecorder.hpp"
+#include "NstPrpTurboFile.hpp"
+#include "NstPrpDataRecorder.hpp"
 #include "api/NstApiUser.hpp"
 
 namespace Nes
@@ -68,6 +68,9 @@ namespace Nes
 				if (info.system != Api::Cartridge::SYSTEM_VS)
 					DetectVS();
 			
+				if (context.database && context.database->Enabled())
+					DetectBadChr();
+
 				if (DetectEncryption())
 					result = RESULT_WARN_ENCRYPTED_ROM;
 			
@@ -75,7 +78,7 @@ namespace Nes
 				DetectTurboFile( context );
 			
 				if (vs == NULL)
-					dataRecorder = new DataRecorder(context.cpu);
+					dataRecorder = new Peripherals::DataRecorder(context.cpu);
 			
 				if (!InitInfo( context.database ))
 				{
@@ -119,7 +122,7 @@ namespace Nes
 					wRamAuto = settings.wRamAuto;
 			
 					if (info.battery)
-						batteryCheckSum = Md5::Compute( wRam.Mem(), wRam.Size() );
+						batteryCheckSum = Checksum::Md5::Compute( wRam.Mem(), wRam.Size() );
 				}
 			}
 			catch (...)
@@ -569,12 +572,26 @@ namespace Nes
 				case 0x343E9146UL: // Wizardry - Proving Grounds of the Mad Overlord (J)
 				case 0x33D07E45UL: // Wizardry - The Knight of Diamonds (J)
 
-					turboFile = new TurboFile( context.cpu );
+					turboFile = new Peripherals::TurboFile( context.cpu );
 					break;
 			}
 		}
+
+		void Cartridge::DetectBadChr()
+		{
+			if (cRom.Size())
+			{
+				switch (info.cRomCrc)
+				{
+					case 0x2B58AA2DUL: // Viva! Las Vegas (J)
+			
+						cRom[0] = 0xFF;
+						break;
+				}
+			}
+		}
 	
-		bool Cartridge::DetectEncryption()
+		bool Cartridge::DetectEncryption() const
 		{
 			switch (info.pRomCrc)
 			{
@@ -728,7 +745,7 @@ namespace Nes
 		{
 			if (info.battery && wRam.Size())
 			{
-				const Md5::Key key( Md5::Compute( wRam.Mem(), wRam.Size() ) );
+				const Checksum::Md5::Key key( Checksum::Md5::Compute( wRam.Mem(), wRam.Size() ) );
 
 				if (batteryCheckSum != key)
 				{
@@ -756,10 +773,10 @@ namespace Nes
 			{
 				fullsize -= 16;
 				data = static_cast<const void*>(static_cast<const u8*>(data) + 16);
-				entry = database.GetHandle( Crc32::Compute( data, fullsize ) );
+				entry = database.GetHandle( Checksum::Crc32::Compute( data, fullsize ) );
 
 				if (entry == NULL && compsize && compsize < fullsize)
-					entry = database.GetHandle( Crc32::Compute( data, compsize ) );
+					entry = database.GetHandle( Checksum::Crc32::Compute( data, compsize ) );
 			}
 
 			return entry;

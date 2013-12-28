@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -61,6 +61,7 @@ namespace Nes
 				private:
 
 					void ResetClock();
+					void UpdateContext();
 
 					enum
 					{
@@ -190,7 +191,7 @@ namespace Nes
 							REG9_SUSTAIN        = b00100000,
 							REGA_VOLUME         = b00001111,
 							REGA_INSTRUMENT	    = b11110000,
-							SUSTAIN_LEVEL_MAX   = 0x100,
+							SUSTAIN_LEVEL_MAX   = 0x100
 						};
 
 						struct Patch

@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -32,7 +32,7 @@
 #include "NstImage.hpp"
 #include "NstCpu.hpp"
 #include "NstClock.hpp"
-#include "NstMd5.hpp"
+#include "NstChecksumMd5.hpp"
 
 namespace Nes
 {
@@ -313,7 +313,7 @@ namespace Nes
 					const u8* header;
 					dword id;
 					dword crc;
-					Md5::Key checksum;
+					Checksum::Md5::Key checksum;
 				};
 
 				static const Sides Create(StdStream);

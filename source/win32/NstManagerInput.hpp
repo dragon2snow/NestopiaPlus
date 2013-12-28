@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -220,7 +220,7 @@ namespace Nestopia
 
 				void Step()
 				{
-					if (++step > signal * 2)
+					if (++step > signal)
 						step = 0;
 				}
 			};

@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -99,7 +99,7 @@ namespace Nestopia
 			static void Copy(char* NST_RESTRICT a,const wchar_t* NST_RESTRICT b,uint n)
 			{
 				for (uint i=0; i < n; ++i)
-					a[i] = (char) b[i];
+					a[i] = b[i];
 			}
 
 			static void Move(char* a,const char* b,uint n)
@@ -113,7 +113,7 @@ namespace Nestopia
 			}
 
 			template<typename T>
-			static typename const T::Type* GetPtr(const T& t)
+			static const typename T::Type* GetPtr(const T& t)
 			{
 				return t.Ptr();
 			}
@@ -257,7 +257,7 @@ namespace Nestopia
 			template<typename T>
 			static void Append(T& t,char c)
 			{
-				const T::Type v = c;
+				const typename T::Type v = c;
 				t.Append( &v, 1 );
 			}
 
@@ -317,32 +317,32 @@ namespace Nestopia
 		template<typename T>
 		void Base::AssignUnsigned(T& t,const u32 i)
 		{
-			T::Type buffer[MAX_INT_LENGTH];
-			const T::Type* const offset = FromUnsigned( buffer, i );
+			typename T::Type buffer[MAX_INT_LENGTH];
+			const typename T::Type* const offset = FromUnsigned( buffer, i );
 			t.Assign( offset, buffer + MAX_INT_LENGTH-1 - offset );
 		}
 
 		template<typename T>
 		void Base::AssignSigned(T& t,const i32 i)
 		{
-			T::Type buffer[MAX_INT_LENGTH];
-			const T::Type* const offset = FromUnsigned( buffer, i );
+			typename T::Type buffer[MAX_INT_LENGTH];
+			const typename T::Type* const offset = FromSigned( buffer, i );
 			t.Assign( offset, buffer + MAX_INT_LENGTH-1 - offset );
 		}
 
 		template<typename T>
 		void Base::AppendUnsigned(T& t,const u32 i)
 		{
-			T::Type buffer[MAX_INT_LENGTH];
-			const T::Type* const offset = FromUnsigned( buffer, i );
+			typename T::Type buffer[MAX_INT_LENGTH];
+			const typename T::Type* const offset = FromUnsigned( buffer, i );
 			t.Append( offset, buffer + MAX_INT_LENGTH-1 - offset );
 		}
 
 		template<typename T>
 		void Base::AppendSigned(T& t,const i32 i)
 		{
-			T::Type buffer[MAX_INT_LENGTH];
-			const T::Type* const offset = FromUnsigned( buffer, i );
+			typename T::Type buffer[MAX_INT_LENGTH];
+			const typename T::Type* const offset = FromSigned( buffer, i );
 			t.Append( offset, buffer + MAX_INT_LENGTH-1 - offset );
 		}
 
@@ -478,12 +478,12 @@ namespace Nestopia
 			Generic(const Type* t,uint l)
 			: string(t), length(l) { NST_ASSERT( t ); }
 
-			template<typename T>
-			Generic(const T& t)
+			template<typename U>
+			Generic(const U& t)
 			: string(Base::GetPtr(t)), length(Base::GetLength(t)) {}
 
-			template<typename T>
-			Generic& operator = (const T& t)
+			template<typename U>
+			Generic& operator = (const U& t)
 			{
 				string = Base::GetPtr(t);
 				length = Base::GetLength(t);
@@ -550,8 +550,8 @@ namespace Nestopia
 				return Generic( string + p, l );
 			}
 
-			template<typename T> 
-			bool IsEqual(const T& t) const 
+			template<typename U> 
+			bool IsEqual(const U& t) const 
 			{ 
 				return Base::IsCaseEqual( *this, t );
 			}
@@ -569,24 +569,24 @@ namespace Nestopia
 		{	
 			void Copy(const Generic&);
 
-			Type buffer[MAX_INT_LENGTH];
+			T buffer[Generic::MAX_INT_LENGTH];
 
 			void SetValue(i32 number)
 			{
-				string = Base::FromSigned( buffer, number ); 
-				length = buffer + MAX_INT_LENGTH-1 - string; 
+				Generic::string = Base::FromSigned( buffer, number ); 
+				Generic::length = buffer + Generic::MAX_INT_LENGTH-1 - Generic::string; 
 			}
 
 			void SetValue(u32 number)
 			{
-				string = Base::FromUnsigned( buffer, number ); 
-				length = buffer + MAX_INT_LENGTH-1 - string; 
+				Generic::string = Base::FromUnsigned( buffer, number ); 
+				Generic::length = buffer + Generic::MAX_INT_LENGTH-1 - Generic::string; 
 			}
 
 		public:
 
 			Generic(const Generic& g)
-			: Generic<T,false>(NOP)
+			: Generic<T,false>(Generic::NOP)
 			{
 				Copy( g );
 			}
@@ -595,23 +595,23 @@ namespace Nestopia
 			Generic(const U& t)
 			: Generic<T,false>(t) {}
 
-			Generic(Type c)
-			: Generic<T,false>(NOP) 
+			Generic(T c)
+			: Generic<T,false>(Generic::NOP) 
 			{
-				string = buffer;
-				length = 1;
+				Generic::string = buffer;
+				Generic::length = 1;
 				buffer[0] = c;
 				buffer[1] = '\0';
 			}
 
-			Generic( schar  i ) : Generic<T,false>(NOP) { SetValue( (i32) i ); } 
-			Generic( uchar  i ) : Generic<T,false>(NOP) { SetValue( (u32) i ); } 
-			Generic( short  i ) : Generic<T,false>(NOP) { SetValue( (i32) i ); } 
-			Generic( ushort i ) : Generic<T,false>(NOP) { SetValue( (u32) i ); } 
-			Generic( int    i ) : Generic<T,false>(NOP) { SetValue( (i32) i ); } 
-			Generic( uint   i ) : Generic<T,false>(NOP) { SetValue( (u32) i ); } 
-			Generic( long   i ) : Generic<T,false>(NOP) { SetValue( (i32) i ); } 
-			Generic( ulong  i ) : Generic<T,false>(NOP) { SetValue( (u32) i ); } 
+			Generic( schar  i ) : Generic<T,false>(Generic::NOP) { SetValue( (i32) i ); } 
+			Generic( uchar  i ) : Generic<T,false>(Generic::NOP) { SetValue( (u32) i ); } 
+			Generic( short  i ) : Generic<T,false>(Generic::NOP) { SetValue( (i32) i ); } 
+			Generic( ushort i ) : Generic<T,false>(Generic::NOP) { SetValue( (u32) i ); } 
+			Generic( int    i ) : Generic<T,false>(Generic::NOP) { SetValue( (i32) i ); } 
+			Generic( uint   i ) : Generic<T,false>(Generic::NOP) { SetValue( (u32) i ); } 
+			Generic( long   i ) : Generic<T,false>(Generic::NOP) { SetValue( (i32) i ); } 
+			Generic( ulong  i ) : Generic<T,false>(Generic::NOP) { SetValue( (u32) i ); } 
 
 			Generic& operator = (const Generic& g)
 			{
@@ -626,10 +626,10 @@ namespace Nestopia
 				return *this;
 			}
 
-			Generic& operator = (Type c)
+			Generic& operator = (T c)
 			{
-				string = buffer;
-				length = 1;
+				Generic::string = buffer;
+				Generic::length = 1;
 				buffer[0] = c;
 				buffer[1] = '\0';
 				return *this;
@@ -651,20 +651,20 @@ namespace Nestopia
 		public:
 
 			Num(uint v)
-			: Generic(v) {}
+			: Generic<T,true>(v) {}
 
 			Num(int v)
-			: Generic(v) {}
+			: Generic<T,true>(v) {}
 
 			Num& operator = (uint v)
 			{
-				Generic::operator = (v);
+				Generic<T,true>::operator = (v);
 				return *this;
 			}
 
 			Num& operator = (int v)
 			{
-				Generic::operator = (v);
+				Generic<T,true>::operator = (v);
 				return *this;
 			}
 		};
@@ -672,16 +672,16 @@ namespace Nestopia
 		template<typename T>
 		void Generic<T,true>::Copy(const Generic& g)
 		{
-			length = g.length;
+			Generic::length = g.length;
 
-			if (g.string < g.buffer || g.string >= g.buffer + MAX_INT_LENGTH)
+			if (g.string < g.buffer || g.string >= g.buffer + Generic::MAX_INT_LENGTH)
 			{
-				string = g.string;
+				Generic::string = g.string;
 			}
 			else
 			{
-				string = buffer + (g.string - g.buffer);
-				Base::Copy( buffer, g.buffer, MAX_INT_LENGTH );
+				Generic::string = buffer + (g.string - g.buffer);
+				Base::Copy( buffer, g.buffer, Generic::MAX_INT_LENGTH );
 			}
 		}
 
@@ -694,7 +694,7 @@ namespace Nestopia
 
 			enum
 			{
-				TYPE_SIZE = typename T::TYPE_SIZE
+				TYPE_SIZE = sizeof(Type)
 			};
 
 			template<typename U> 
@@ -830,8 +830,8 @@ namespace Nestopia
 				return Generic<Type>( string.Ptr() + offset + p, l );
 			}
 
-			template<typename T> 
-			bool IsEqual(const T& t) const 
+			template<typename U> 
+			bool IsEqual(const U& t) const 
 			{ 
 				return Base::IsCaseEqual( *this, t );
 			}
@@ -924,8 +924,8 @@ namespace Nestopia
 				Assign( t );
 			}
 
-			template<typename U,size_t N>
-			Stack(const U (&t)[N])
+			template<typename U,size_t C>
+			Stack(const U (&t)[C])
 			{
 				Assign( t );
 			}
@@ -957,8 +957,8 @@ namespace Nestopia
 				return *this;
 			}
 
-			template<typename U,size_t N>
-			Stack& operator = (const U (&t)[N])
+			template<typename U,size_t C>
+			Stack& operator = (const U (&t)[C])
 			{
 				Assign( t );
 				return *this;
@@ -1107,8 +1107,8 @@ namespace Nestopia
 				return SubString( *this, p, l );
 			}
 
-			template<typename T> 
-			bool IsEqual(const T& t) const 
+			template<typename U> 
+			bool IsEqual(const U& t) const 
 			{ 
 				return Base::IsCaseEqual( *this, t );
 			}
@@ -1508,7 +1508,7 @@ namespace Nestopia
 		};
 
 		template<typename T>
-		typename Heap<T>::Type typename Heap<T>::empty[4] = {'\0','\0','\0','\0'};
+		typename Heap<T>::Type Heap<T>::empty[4] = {'\0','\0','\0','\0'};
 
 		template<typename T> template<typename U>
 		void Heap<T>::Init(const U* NST_RESTRICT const t,const uint n)
@@ -1658,43 +1658,47 @@ namespace Nestopia
 		template<typename T=tchar>
 		class Path : public Heap<T>
 		{
+			typedef Heap<T> Parent;
+			typedef Generic<T> Any;
+			typedef typename Heap<T>::SubString Sub;
+
 		public:
 
 			Path() {}
 
-			Path(Generic<Type>,Generic<Type>,Generic<Type> = Generic<Type>());
+			Path(Any,Any,Any=Any());
 
 			Path(const Path& p)
-			: Heap(static_cast<const Heap&>(p)) {}
+			: Parent(static_cast<const Parent&>(p)) {}
 
 			template<typename U> 
 			Path(const U& t)
-			: Heap(t) {}
+			: Parent(t) {}
 
 			Path& operator = (const Path& t)
 			{
-				Heap::operator = (static_cast<const Heap&>(t));
+				Parent::operator = (static_cast<const Parent&>(t));
 				return *this;
 			}
 
 			template<typename U>
 			Path& operator = (const U& t)
 			{
-				Heap::operator = (t);
+				Parent::operator = (t);
 				return *this;
 			}
 
 			template<typename U>
 			Path& operator << (const U& t)
 			{
-				Heap::operator << (t);
+				Parent::operator << (t);
 				return *this;
 			}
 
-			void Set(Generic<Type>,Generic<Type>,Generic<Type> = Generic<Type>());
+			void Set(Any,Any,Any=Any());
 			void CheckSlash();
 
-			static const Path Compact(Generic<Type>,uint);
+			static const Path Compact(Any,uint);
 
 		private:
 
@@ -1704,28 +1708,28 @@ namespace Nestopia
 			void FindExtension(uint (&)[2]) const;
 			uint FindArchive() const;
 			void FindFileInArchive(uint (&)[2]) const;
-			static uint ExtensionId(const Type* NST_RESTRICT,uint);
+			static uint ExtensionId(const T* NST_RESTRICT,uint);
 
-			class DirectorySub : public SubString
+			class DirectorySub : public Sub
 			{		
 			public:
 
 				DirectorySub(Path& path,uint length)
-				: SubString( path, 0, length ) {}
+				: Sub( path, 0, length ) {}
 
-				void operator  = (Generic<Type>);
-				void operator += (Generic<Type>);
+				void operator  = (Any);
+				void operator += (Any);
 				void operator -= (uint);
 			};
 
-			class ExtensionSub : public SubString
+			class ExtensionSub : public Sub
 			{
 			public:
 
 				ExtensionSub(Path& path,uint pos,uint length)
-				: SubString( path, pos, length ) {}
+				: Sub( path, pos, length ) {}
 
-				void Assign(const Type* NST_RESTRICT,uint);
+				void Assign(const T* NST_RESTRICT,uint);
 				void Clear();
 
 				template<typename U>
@@ -1736,38 +1740,38 @@ namespace Nestopia
 
 				uint Id() const
 				{
-					return ExtensionId( Ptr(), Length() );
+					return ExtensionId( Sub::Ptr(), Sub::Length() );
 				}
 			};
 
-			class ConstExtensionSub : public Generic<Type>
+			class ConstExtensionSub : public Any
 			{
 			public:
 
-				ConstExtensionSub(const Type* string,uint length)
-				: Generic( string, length ) {}
+				ConstExtensionSub(const T* string,uint length)
+				: Any( string, length ) {}
 
 				uint Id() const
 				{
-					return ExtensionId( Ptr(), Length() );
+					return ExtensionId( Any::Ptr(), Any::Length() );
 				}
 			};
 
-			class ArchiveFileSub : public Generic<Type>
+			class ArchiveFileSub : public Any
 			{
 			public:
 
-				ArchiveFileSub(const Type* string,uint length)
-				: Generic( string, length ) {}
+				ArchiveFileSub(const T* string,uint length)
+				: Any( string, length ) {}
 
-				const Generic File() const
+				const Any File() const
 				{
-					for (uint i=length; i; )
+					for (uint i=Any::length; i; )
 					{
-						switch (string[--i])
+						switch (Any::string[--i])
 						{
 							case '\\':
-							case '/': return Generic( string + i + 1, length - (i + 1) );
+							case '/': return Any( Any::string + i + 1, Any::length - (i + 1) );
 						}
 					}
 
@@ -1782,20 +1786,20 @@ namespace Nestopia
 				return DirectorySub( *this, FindDirectory() );
 			}
 
-			const Generic<Type> Directory() const
+			const Any Directory() const
 			{
-				return Generic<Type>( Ptr(), FindDirectory() );
+				return Any( Parent::Ptr(), FindDirectory() );
 			}
   
-			SubString File()
+			Sub File()
 			{
-				return SubString( *this, FindDirectory() );
+				return Sub( *this, FindDirectory() );
 			}
   
-			const Generic<Type> File() const
+			const Any File() const
 			{
 				uint p = FindDirectory();
-				return Generic<Type>( Ptr() + p, Length() - p );
+				return Any( Parent::Ptr() + p, Parent::Length() - p );
 			}
   
 			ExtensionSub Extension()
@@ -1809,19 +1813,19 @@ namespace Nestopia
 			{
 				uint p[2];
 				FindExtension( p );
-				return ConstExtensionSub( Ptr() + p[0], p[1] );
+				return ConstExtensionSub( Parent::Ptr() + p[0], p[1] );
 			}
   
-			const Generic<Type> Archive() const
+			const Any Archive() const
 			{
-				return Generic<Type>( Ptr(), FindArchive() );
+				return Any( Parent::Ptr(), FindArchive() );
 			}
 
 			ArchiveFileSub FileInArchive() const
 			{
 				uint p[2];
 				FindFileInArchive( p );
-				return ArchiveFileSub( Ptr() + p[0], p[1] );
+				return ArchiveFileSub( Parent::Ptr() + p[0], p[1] );
 			}
   
 			ArchiveFileSub Target() const
@@ -1831,20 +1835,20 @@ namespace Nestopia
 				if (archive.Length())
 					return archive;
 
-				return ArchiveFileSub( Ptr(), Length() );
+				return ArchiveFileSub( Parent::Ptr(), Parent::Length() );
 			}
 		};
 
 		template<typename T>
-		Path<T>::Path(const Generic<Type> dir,const Generic<Type> file,const Generic<Type> ext)
+		Path<T>::Path(const Any dir,const Any file,const Any ext)
 		{
 			Set( dir, file, ext );
 		}
 
 		template<typename T>
-		void Path<T>::Set(const Generic<Type> dir,const Generic<Type> file,const Generic<Type> ext)
+		void Path<T>::Set(const Any dir,const Any file,const Any ext)
 		{
-			Clear();
+			Parent::Clear();
 			Reserve( dir.Length() + file.Length() + ext.Length() );
 
 			Directory() = dir;
@@ -1857,20 +1861,20 @@ namespace Nestopia
 	    template<typename T>
 	    void Path<T>::CheckSlash()
 	    {
-			if (Length() && Back() != '\\' && Back() != '/')
+			if (Parent::Length() && Parent::Back() != '\\' && Parent::Back() != '/')
 				operator << ('\\');
 	    }
 
 		template<typename T>
 		uint Path<T>::FindDirectory() const
 		{
-			for (uint i=Length(); i; )
+			for (uint i=Parent::Length(); i; )
 			{
-				switch (At(--i))
+				switch (Parent::At(--i))
 				{
 					case '\\':
 					case '/': return i + 1;
-					case '>': while (i && At(--i) != '<'); break;
+					case '>': while (i && Parent::At(--i) != '<'); break;
 				}
 			}
 
@@ -1880,11 +1884,11 @@ namespace Nestopia
 		template<typename T>
 		void Path<T>::FindExtension(uint (&p)[2]) const
 		{
-			p[1] = Length();
+			p[1] = Parent::Length();
 
-			for (uint i=Length(); i; )
+			for (uint i=Parent::Length(); i; )
 			{
-				switch (At(--i))
+				switch (Parent::At(--i))
 				{
 					case '.': 
 						
@@ -1900,9 +1904,9 @@ namespace Nestopia
 
 					case '>': 
 						
-						while (i && At(--i) != '<');
+						while (i && Parent::At(--i) != '<');
 
-						if (i && At(i-1) == ' ')
+						if (i && Parent::At(i-1) == ' ')
 							--i;
 
 						p[1] = i;
@@ -1917,15 +1921,15 @@ namespace Nestopia
 		template<typename T>
 		uint Path<T>::FindArchive() const
 		{
-			for (uint i=Length(); i; )
+			for (uint i=Parent::Length(); i; )
 			{
-				if (At(--i) == '>')
+				if (Parent::At(--i) == '>')
 				{
 					while (i)
 					{
-						if (At(--i) == '<')
+						if (Parent::At(--i) == '<')
 						{
-							if (i && At(i-1) == ' ')
+							if (i && Parent::At(i-1) == ' ')
 								--i;
 
 							return i;
@@ -1941,15 +1945,15 @@ namespace Nestopia
 		template<typename T>
 		void Path<T>::FindFileInArchive(uint (&p)[2]) const
 		{
-			for (uint i=Length(); i; )
+			for (uint i=Parent::Length(); i; )
 			{
-				if (At(--i) == '>')
+				if (Parent::At(--i) == '>')
 				{
 					p[1] = i;
 
 					while (i)
 					{
-						if (At(--i) == '<')
+						if (Parent::At(--i) == '<')
 						{
 							p[0] = i + 1;
 							p[1] -= p[0];
@@ -1961,12 +1965,12 @@ namespace Nestopia
 				}
 			}
 
-			p[0] = Length();
+			p[0] = Parent::Length();
 			p[1] = 0;
 		}
 
 		template<typename T>
-		uint Path<T>::ExtensionId(const Type* NST_RESTRICT const string,uint length)
+		uint Path<T>::ExtensionId(const T* NST_RESTRICT const string,uint length)
 		{
 			uint id = 0;
 
@@ -1977,7 +1981,7 @@ namespace Nestopia
 
 				for (uint i=0; i < length; ++i)
 				{
-					const Type c = string[i];
+					const T c = string[i];
 					
 					uint v;
 
@@ -2006,35 +2010,35 @@ namespace Nestopia
 		}
 
 		template<typename T>
-		void Path<T>::DirectorySub::operator = (const Generic<Type> t)
+		void Path<T>::DirectorySub::operator = (const Any t)
 		{
-			Clear();
+			Sub::Clear();
 
 			if (t.Length())
 			{
-				string.Insert( 0, t.Ptr(), t.Length() );
-				length = t.Length();
+				Sub::string.Insert( 0, t.Ptr(), t.Length() );
+				Sub::length = t.Length();
 
 				if (t.Back() != '\\' && t.Back() != '/')
 				{
-					const Type c = '\\';
-					string.Insert( length++, &c, 1 );
+					const T c = '\\';
+					Sub::string.Insert( Sub::length++, &c, 1 );
 				}
 			}
 		}
 
 		template<typename T>
-		void Path<T>::DirectorySub::operator += (const Generic<Type> t)
+		void Path<T>::DirectorySub::operator += (const Any t)
 		{
 			if (t.Length())
 			{
-				string.Insert( length, t.Ptr(), t.Length() );
-				length += t.Length();
+				Sub::string.Insert( Sub::length, t.Ptr(), t.Length() );
+				Sub::length += t.Length();
 
 				if (t.Back() != '\\' && t.Back() != '/')
 				{
-					const Type c = '\\';
-					string.Insert( length++, &c, 1 );
+					const T c = '\\';
+					Sub::string.Insert( Sub::length++, &c, 1 );
 				}
 			}
 		}
@@ -2042,14 +2046,14 @@ namespace Nestopia
 		template<typename T>
 		void Path<T>::DirectorySub::operator -= (uint subs)
 		{
-			if (subs && length && (Back() == '\\' || Back() == '/'))
+			if (subs && Sub::length && (Sub::Back() == '\\' || Sub::Back() == '/'))
 			{
-				uint i = length - 1;
+				uint i = Sub::length - 1;
 				uint p = ~0U;
 
 				do
 				{
-					if (string.At(--i) == '\\' || string.At(i) == '/')
+					if (Sub::string.At(--i) == '\\' || Sub::string.At(i) == '/')
 					{
 						p = i;
 
@@ -2061,9 +2065,9 @@ namespace Nestopia
 
 				if (p != ~0U)
 				{
-					const uint n = length;
-					length = ++p;
-					string.Erase( p, n - p );
+					const uint n = Sub::length;
+					Sub::length = ++p;
+					Sub::string.Erase( p, n - p );
 				}
 			}
 		}
@@ -2071,14 +2075,14 @@ namespace Nestopia
 		template<typename T>
 		void Path<T>::ExtensionSub::Clear()
 		{
-			const uint dot = (offset && string[offset-1] == '.');
-			const uint n = length;
-			length = 0;
-			string.Erase( offset -= dot, n + dot );
+			const uint dot = (Sub::offset && Sub::string[Sub::offset-1] == '.');
+			const uint n = Sub::length;
+			Sub::length = 0;
+			Sub::string.Erase( Sub::offset -= dot, n + dot );
 		}
 
 		template<typename T>
-		void Path<T>::ExtensionSub::Assign(const Type* NST_RESTRICT t,uint n)
+		void Path<T>::ExtensionSub::Assign(const T* NST_RESTRICT t,uint n)
 		{
 			Clear();
 
@@ -2092,16 +2096,16 @@ namespace Nestopia
 
 				if (n)
 				{
-					length = n;
-					const Type c = '.';
-					string.Insert( offset++, &c, 1 );
-					string.Insert( offset, t, n );
+					Sub::length = n;
+					const T c = '.';
+					Sub::string.Insert( Sub::offset++, &c, 1 );
+					Sub::string.Insert( Sub::offset, t, n );
 				}
 			}
 		}
 
 		template<typename T>
-		const Path<T> Path<T>::Compact(const Generic<Type> t,const uint maxLength)
+		const Path<T> Path<T>::Compact(const Any t,const uint maxLength)
 		{
 			Path path;
 

@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -34,12 +34,6 @@ namespace Nes
         #pragma optimize("s", on)
         #endif
 
-		Mapper47::Mapper47(Context& c)
-		: 
-		Mmc3  (c,WRAM_NONE), 
-		patch (c.pRomCrc == 0x7EEF434CUL) // Super Mario Bros, Tetris, World Cup 
-		{}
-
 		void Mapper47::SubReset(const bool hard)
 		{
 			if (hard)
@@ -55,7 +49,7 @@ namespace Nes
 			while (const dword chunk = state.Begin())
 			{
 				if (chunk == NES_STATE_CHUNK_ID('R','E','G','\0'))
-					exReg = state.Read8() & (patch ? 0x3 : 0x1);
+					exReg = state.Read8() & 0x1;
 
 				state.End();
 			}
@@ -72,34 +66,32 @@ namespace Nes
 
 		NES_POKE(Mapper47,6000) 
 		{
-			exReg = patch ? ((data >> 1) & 0x3) : (data & 0x1);
+			data &= 0x1;
 
-			Mapper47::UpdatePrg();
-			Mapper47::UpdateChr();
+			if (exReg != data)
+			{
+				exReg = data;
+				Mapper47::UpdatePrg();
+				Mapper47::UpdateChr();
+			}
 		}
 
 		void Mapper47::UpdatePrg()
 		{
-			const uint base = patch ? (exReg << 3) : (exReg << 4);
+			const uint base = exReg << 4;
 			const uint swap = (regs.ctrl0 & Regs::CTRL0_XOR_PRG) << 8;
-
-			const uint hack[2] =
-			{
-				patch ? (exReg == 0x2 ? 0xE : 0x6) : (banks.prg[2] & 0xF),
-				patch ? (exReg == 0x2 ? 0xF : 0x7) : (banks.prg[3] & 0xF)
-			};
 
 			prg.SwapBank<SIZE_8K>( 0x0000U ^ swap, base | (banks.prg[0] & 0xF) );
 			prg.SwapBank<SIZE_8K>( 0x2000U,        base | (banks.prg[1] & 0xF) );
-			prg.SwapBank<SIZE_8K>( 0x4000U ^ swap, base | hack[0] );
-			prg.SwapBank<SIZE_8K>( 0x6000U,        base | hack[1] );	
+			prg.SwapBank<SIZE_8K>( 0x4000U ^ swap, base | (banks.prg[2] & 0xF) );
+			prg.SwapBank<SIZE_8K>( 0x6000U,        base | (banks.prg[3] & 0xF) );	
 		}
 
 		void Mapper47::UpdateChr() const
 		{
 			ppu.Update();
 
-			const uint base = patch ? ((exReg & 0x2) << 6) : (exReg << 7);
+			const uint base = exReg << 7;
 			const uint swap = (regs.ctrl0 & Regs::CTRL0_XOR_CHR) << 5;
 
 			chr.SwapBanks<SIZE_2K>

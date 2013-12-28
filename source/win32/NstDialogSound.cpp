@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -132,7 +132,7 @@ namespace Nestopia
 			if (volume > VOLUME_MAX)
 				volume = DEFAULT_VOLUME;
 
-			settings.volumes[i] = (u8) volume;
+			settings.volumes[i] = volume;
 
 			if (channelLut[i].channel)
 				nes.SetVolume( channelLut[i].channel, GetVolume( channelLut[i].channel ) );
@@ -281,7 +281,7 @@ namespace Nestopia
 		{
 			if (param.Slider().IsControl( channelLut[i].ctrlSlider ))
 			{
-				const uchar volume = (uchar) (VOLUME_MAX - param.Slider().Scroll());
+				const uchar volume = VOLUME_MAX - param.Slider().Scroll();
 
 				if (settings.volumes[i] != volume)
 				{

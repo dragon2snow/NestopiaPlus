@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -97,5 +97,38 @@ namespace Nestopia
 	void ListBox::Clear() const
 	{
 		ListBox_ResetContent( control );
+	}
+
+	ListBox::HScrollBar::HScrollBar(HWND h)
+	: width(0), hWnd(h), hDC(h ? ::GetDC(h) : NULL) 
+	{
+		NST_VERIFY( hWnd );
+	}
+
+	void ListBox::HScrollBar::Update(tstring string,uint length)
+	{
+		NST_ASSERT( string || !length );
+
+		SIZE size;
+
+		if (hDC && ::GetTextExtentPoint32( hDC, string, length, &size ) && width < size.cx)
+			width = size.cx;
+	}
+
+	ListBox::HScrollBar::~HScrollBar()
+	{
+		if (hDC)
+		{
+			::ReleaseDC( hWnd, hDC );
+
+			if (width)
+			{
+				RECT rect;
+				::GetClientRect( hWnd, &rect );
+
+				if (width > rect.right)
+					ListBox_SetHorizontalExtent( hWnd, width );
+			}
+		}
 	}
 }

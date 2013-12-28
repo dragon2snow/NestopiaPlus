@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -58,8 +58,8 @@ namespace Nestopia
 			template<typename Data,typename Code>
 			Router(KeyParam,Data*,Code);
 
-			template<typename Data,uint COUNT>
-			Router(Data*,const Entry<Data>(&)[COUNT]);
+			template<typename Data,typename Array>
+			Router(Data*,const Array&);
 
 			~Router();
 
@@ -108,7 +108,7 @@ namespace Nestopia
 
 			NST_NO_INLINE void  AddHook(KeyParam,const typename Hook::Item&);
 			NST_NO_INLINE ibool RemoveHook(Item* const,Hook*,typename Hook::Item*);
-			NST_NO_INLINE void  RemoveHook(KeyParam,typename const Hook::Item&);
+			NST_NO_INLINE void  RemoveHook(KeyParam,const typename Hook::Item&);
 			NST_NO_INLINE void  RemoveHooks(const void*);
 
 			class HookRouter
@@ -131,10 +131,10 @@ namespace Nestopia
 					router.AddHook( key, Callback(data,code) );
 				}
 
-				template<typename Data,uint COUNT>
-				void Add(Data* data,const HookEntry<Data>(&list)[COUNT])
+				template<typename Data,typename Hooks>
+				void Add(Data* data,const Hooks& hooks)
 				{
-					Add( data, list, COUNT );
+					Add( data, hooks, NST_COUNT(hooks) );
 				}
 
 				void Remove(const void* data)
@@ -172,17 +172,17 @@ namespace Nestopia
 				Add( key, Callback(data,code) );
 			}
 
-			template<typename Data,uint COUNT> 
-			void Add(Data* data,const Entry<Data>(&list)[COUNT])
+			template<typename Data,typename Array> 
+			void Add(Data* data,const Array& array)
 			{
-				Add( data, list, COUNT );
+				Add( data, array, NST_COUNT(array) );
 			}
 
-			template<typename Data,uint COUNT,uint HOOK_COUNT> 
-			void Add(Data* data,const Entry<Data>(&list)[COUNT],const HookEntry<Data>(&hooks)[HOOK_COUNT])
+			template<typename Data,typename Array,typename HookArray> 
+			void Add(Data* data,const Array& array,const HookArray& hookArray)
 			{
-				Add( data, list, COUNT );
-				Hooks().Add( data, hooks );
+				Add( data, array, NST_COUNT(array) );
+				Hooks().Add( data, hookArray );
 			}
 
 			template<typename Data,typename Code> 
@@ -191,10 +191,10 @@ namespace Nestopia
 				Set( key, Callback(data,code) );
 			}
 
-			template<typename Data,uint COUNT> 
-			void Set(Data* data,const Entry<Data>(&list)[COUNT])
+			template<typename Data,typename Array> 
+			void Set(Data* data,const Array& array)
 			{
-				Set( data, list, COUNT );
+				Set( data, array, NST_COUNT(array) );
 			}
 
 			template<typename Data,typename Code> 

@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -84,7 +84,7 @@ namespace Nes
 
 				case 0x2:
 
-					chr.SwapBank<SIZE_8K,0x0000U>( (chr.GetBank<SIZE_8K,0x0000U>() & 0x7) | ((data & 0x1) << 3) );
+					chr.SwapBank<SIZE_8K,0x0000U>( (chr.GetBank<SIZE_8K,0x0000U>() & 0x7) | (data << 3 & 0x8) );
 					break;
 
 				case 0x4: 
@@ -99,7 +99,7 @@ namespace Nes
 
 				case 0x6: 
 				
-					chr.SwapBank<SIZE_8K,0x0000U>( (chr.GetBank<SIZE_8K,0x0000U>() & 0x9) | ((data & 0x3) << 1) );
+					chr.SwapBank<SIZE_8K,0x0000U>( (chr.GetBank<SIZE_8K,0x0000U>() & 0x9) | (data << 1 & 0x6) );
 					break;
 
 				case 0x7: 

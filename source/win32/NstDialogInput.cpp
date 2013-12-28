@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -622,7 +622,7 @@ namespace Nestopia
 				while (tstring const quote=::StrChr( keyName.Ptr(), _T('\"') ))
 					keyName( quote - keyName.Ptr() ) = _T("quotation");
 
-				cfg[mapping.cfgName].Quote() = keyName;
+				cfg[mapping.cfgName].Quote() = GenericString(keyName);
 			}
 		}
 	}
@@ -941,211 +941,211 @@ namespace Nestopia
 		return TRUE;
 	}
 
-	INT_PTR Input::ScanKeys()
+	class Input::KeyPressWindow : Dynamic
 	{
-		class KeyPressWindow : Dynamic
+	public:
+
+		enum Result
 		{
-		public:
-
-			enum Result
-			{
-				RESULT_OK,
-				RESULT_ABORT,
-				RESULT_DUPLICATE,
-				RESULT_INVALID
-			};
-
-		private:
-
-			struct Timer
-			{
-				enum 
-				{
-					RATE = 50,
-					CLOCK = 1000,
-					START = 5000,
-					SEC   = 1000
-				};
-
-				int remaining;
-				int clock;
-
-				Timer()
-				: remaining(START), clock(START) {}
-			};
-
-			Input& base;
-			Timer timer;
-			Result result;
-
-			void Close(Result r)
-			{
-				result = r;
-				base.dialog.Enable( TRUE );
-				Destroy();
-			}
-
-			uint OnTimer()
-			{
-				timer.remaining -= Timer::RATE;
-
-				if (timer.remaining <= 0 || *this != ::GetForegroundWindow())
-				{
-					Close( RESULT_ABORT );
-					return FALSE;
-				}
-
-				if (timer.remaining <= timer.clock)
-				{
-					uint msgId;
-
-					if (base.dialog.ListBox(IDC_INPUT_DEVICES).Selection().GetIndex() >= Settings::TYPE_COMMAND)
-						msgId = IDS_DIALOG_INPUT_PRESS_ANY_KEY_MENU;
-					else
-						msgId = IDS_DIALOG_INPUT_PRESS_ANY_KEY_EMU;
-
-					base.dialog.Control(IDC_INPUT_KEYPRESS_TEXT).Text() <<
-					( 
-						HeapString() << Resource::String(msgId) 
-						             << " ("
-						             << (tchar) ('0' + (timer.clock / Timer::SEC))
-						             << ')'
-					).Ptr();
-
-					timer.clock -= Timer::CLOCK;
-				}
-
-				DirectX::DirectInput::ScanMode scanMode;
-				
-				if (base.dialog.ListBox(IDC_INPUT_DEVICES).Selection().GetIndex() < Settings::TYPE_COMMAND)
-					scanMode = DirectX::DirectInput::SCAN_MODE_ALL;
-				else
-					scanMode = DirectX::DirectInput::SCAN_MODE_JOY;
-				
-				Settings::Key key;
-
- 				switch (base.directInput.ScanKey( key, scanMode ))
-				{
-					case DirectX::DirectInput::SCAN_GOOD_KEY: 
-				
-						for (uint i=10; i && base.directInput.IsAnyPressed(); --i)
-							::Sleep( 100 );
-				
-						if (base.MapSelectedKey( key ))
-						{
-							Close( RESULT_OK );
-							return FALSE;
-						}
-						else
-						{
-							Close( RESULT_DUPLICATE );
-							return FALSE;
-						}
-						break;
-				
-					case DirectX::DirectInput::SCAN_INVALID_KEY: 
-				
-						Close( RESULT_INVALID );
-						return FALSE;
-				}
-				
-				return TRUE;
-			}
-
-			ibool OnCreate(Param& param)
-			{
-				base.dialog.Enable( FALSE );
-
-				if (base.dialog.ListBox(IDC_INPUT_DEVICES).Selection().GetIndex() < Settings::TYPE_COMMAND)
-					base.directInput.BeginScanMode( param.hWnd );
-
-				StartTimer( this, &KeyPressWindow::OnTimer, Timer::RATE );
-				::SetWindowPos( param.hWnd, HWND_TOP, 0, 0, 0, 0, SWP_HIDEWINDOW );
-
-				return FALSE;
-			}
-
-			ibool OnDestroy(Param&)
-			{
-				StopTimer( this, &KeyPressWindow::OnTimer );
-
-				if (base.dialog.ListBox(IDC_INPUT_DEVICES).Selection().GetIndex() < Settings::TYPE_COMMAND)
-					base.directInput.EndScanMode();
-
-				base.dialog.Control(IDC_INPUT_KEYPRESS_TEXT).Text().Clear();
-
-				return FALSE;
-			}
-
-			ibool OnKeyDown(Param& param)
-			{
-				if (base.dialog.ListBox(IDC_INPUT_DEVICES).Selection().GetIndex() >= Settings::TYPE_COMMAND)
-				{
-					if (param.wParam != VK_SHIFT && param.wParam != VK_CONTROL && param.wParam != VK_MENU)
-					{
-						const uint vKeys[3] =
-						{
-							(::GetAsyncKeyState( VK_SHIFT   ) & 0x8000) ? VK_SHIFT   : 0,
-							(::GetAsyncKeyState( VK_CONTROL ) & 0x8000) ? VK_CONTROL : 0,
-							(::GetAsyncKeyState( VK_MENU    ) & 0x8000) ? VK_MENU    : 0
-						};
-
-						Settings::Key key;
-
-						if (!key.MapVirtKey( param.wParam, vKeys[0], vKeys[1], vKeys[2] ))
-						{
-							Close( RESULT_INVALID );
-						}
-						else if (!base.MapSelectedKey( key ))
-						{
-							Close( RESULT_DUPLICATE );
-						}
-						else
-						{
-							Close( RESULT_OK );
-						}
-					}
-				}
-
-				return FALSE;
-			}
-
-		public:
-
-			KeyPressWindow(Input& b)
-			: base(b), result(RESULT_ABORT)
-			{
-				static const MsgHandler::Entry<KeyPressWindow> messages[] =
-				{
-					{ WM_CREATE,     &KeyPressWindow::OnCreate  },
-					{ WM_DESTROY,    &KeyPressWindow::OnDestroy },
-					{ WM_KEYDOWN,    &KeyPressWindow::OnKeyDown },
-					{ WM_SYSKEYDOWN, &KeyPressWindow::OnKeyDown }
-				};
-
-				Messages().Set( this, messages );
-
-				Context context;
-
-				context.windowName = context.className = _T("Poll Key");
-				context.winStyle = WS_POPUP;
-				context.hParent = base.dialog;
-
-				Create( context );
-			}
-
-			Result Poll() const
-			{
-				for (MSG msg; *this && ::GetMessage( &msg, NULL, 0, 0 ) > 0; )
-				{
-					::TranslateMessage( &msg );
-					::DispatchMessage( &msg );
-				}
-
-				return result;
-			}
+			RESULT_OK,
+			RESULT_ABORT,
+			RESULT_DUPLICATE,
+			RESULT_INVALID
 		};
 
+	private:
+
+		struct Timer
+		{
+			enum 
+			{
+				RATE = 50,
+				CLOCK = 1000,
+				START = 5000,
+				SEC   = 1000
+			};
+
+			int remaining;
+			int clock;
+
+			Timer()
+				: remaining(START), clock(START) {}
+		};
+
+		Input& base;
+		Timer timer;
+		Result result;
+
+		void Close(Result r)
+		{
+			result = r;
+			base.dialog.Enable( TRUE );
+			Destroy();
+		}
+
+		uint OnTimer()
+		{
+			timer.remaining -= Timer::RATE;
+
+			if (timer.remaining <= 0 || *this != ::GetForegroundWindow())
+			{
+				Close( RESULT_ABORT );
+				return FALSE;
+			}
+
+			if (timer.remaining <= timer.clock)
+			{
+				uint msgId;
+
+				if (base.dialog.ListBox(IDC_INPUT_DEVICES).Selection().GetIndex() >= Settings::TYPE_COMMAND)
+					msgId = IDS_DIALOG_INPUT_PRESS_ANY_KEY_MENU;
+				else
+					msgId = IDS_DIALOG_INPUT_PRESS_ANY_KEY_EMU;
+
+				base.dialog.Control(IDC_INPUT_KEYPRESS_TEXT).Text() <<
+				( 
+					HeapString() << Resource::String(msgId) 
+					<< " ("
+					<< (tchar) ('0' + (timer.clock / Timer::SEC))
+					<< ')'
+				).Ptr();
+
+				timer.clock -= Timer::CLOCK;
+			}
+
+			DirectX::DirectInput::ScanMode scanMode;
+
+			if (base.dialog.ListBox(IDC_INPUT_DEVICES).Selection().GetIndex() < Settings::TYPE_COMMAND)
+				scanMode = DirectX::DirectInput::SCAN_MODE_ALL;
+			else
+				scanMode = DirectX::DirectInput::SCAN_MODE_JOY;
+
+			Settings::Key key;
+
+			switch (base.directInput.ScanKey( key, scanMode ))
+			{
+			case DirectX::DirectInput::SCAN_GOOD_KEY: 
+
+				for (uint i=10; i && base.directInput.IsAnyPressed(); --i)
+					::Sleep( 100 );
+
+				if (base.MapSelectedKey( key ))
+				{
+					Close( RESULT_OK );
+					return FALSE;
+				}
+				else
+				{
+					Close( RESULT_DUPLICATE );
+					return FALSE;
+				}
+				break;
+
+			case DirectX::DirectInput::SCAN_INVALID_KEY: 
+
+				Close( RESULT_INVALID );
+				return FALSE;
+			}
+
+			return TRUE;
+		}
+
+		ibool OnCreate(Param& param)
+		{
+			base.dialog.Enable( FALSE );
+
+			if (base.dialog.ListBox(IDC_INPUT_DEVICES).Selection().GetIndex() < Settings::TYPE_COMMAND)
+				base.directInput.BeginScanMode( param.hWnd );
+
+			StartTimer( this, &KeyPressWindow::OnTimer, Timer::RATE );
+			::SetWindowPos( param.hWnd, HWND_TOP, 0, 0, 0, 0, SWP_HIDEWINDOW );
+
+			return FALSE;
+		}
+
+		ibool OnDestroy(Param&)
+		{
+			StopTimer( this, &KeyPressWindow::OnTimer );
+
+			if (base.dialog.ListBox(IDC_INPUT_DEVICES).Selection().GetIndex() < Settings::TYPE_COMMAND)
+				base.directInput.EndScanMode();
+
+			base.dialog.Control(IDC_INPUT_KEYPRESS_TEXT).Text().Clear();
+
+			return FALSE;
+		}
+
+		ibool OnKeyDown(Param& param)
+		{
+			if (base.dialog.ListBox(IDC_INPUT_DEVICES).Selection().GetIndex() >= Settings::TYPE_COMMAND)
+			{
+				if (param.wParam != VK_SHIFT && param.wParam != VK_CONTROL && param.wParam != VK_MENU)
+				{
+					const uint vKeys[3] =
+					{
+						(::GetAsyncKeyState( VK_SHIFT   ) & 0x8000) ? VK_SHIFT   : 0,
+						(::GetAsyncKeyState( VK_CONTROL ) & 0x8000) ? VK_CONTROL : 0,
+						(::GetAsyncKeyState( VK_MENU    ) & 0x8000) ? VK_MENU    : 0
+					};
+
+					Settings::Key key;
+
+					if (!key.MapVirtKey( param.wParam, vKeys[0], vKeys[1], vKeys[2] ))
+					{
+						Close( RESULT_INVALID );
+					}
+					else if (!base.MapSelectedKey( key ))
+					{
+						Close( RESULT_DUPLICATE );
+					}
+					else
+					{
+						Close( RESULT_OK );
+					}
+				}
+			}
+
+			return FALSE;
+		}
+
+	public:
+
+		KeyPressWindow(Input& b)
+		: base(b), result(RESULT_ABORT)
+		{
+			static const MsgHandler::Entry<KeyPressWindow> messages[] =
+			{
+				{ WM_CREATE,     &KeyPressWindow::OnCreate  },
+				{ WM_DESTROY,    &KeyPressWindow::OnDestroy },
+				{ WM_KEYDOWN,    &KeyPressWindow::OnKeyDown },
+				{ WM_SYSKEYDOWN, &KeyPressWindow::OnKeyDown }
+			};
+
+			Messages().Set( this, messages );
+
+			Context context;
+
+			context.windowName = context.className = _T("Poll Key");
+			context.winStyle = WS_POPUP;
+			context.hParent = base.dialog;
+
+			Create( context );
+		}
+
+		Result Poll() const
+		{
+			for (MSG msg; *this && ::GetMessage( &msg, NULL, 0, 0 ) > 0; )
+			{
+				::TranslateMessage( &msg );
+				::DispatchMessage( &msg );
+			}
+
+			return result;
+		}
+	};
+
+	INT_PTR Input::ScanKeys()
+	{
 		switch (KeyPressWindow(*this).Poll())
 		{
      		case KeyPressWindow::RESULT_INVALID:

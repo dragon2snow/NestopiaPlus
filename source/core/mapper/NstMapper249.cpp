@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -124,8 +124,8 @@ namespace Nes
 			chr.SwapBanks<SIZE_2K>
 			( 
 		    	0x0000U ^ swap, 
-				UnscrambleChr( ((banks.chr[0] << 1) | 0 ) ) >> 1,
-				UnscrambleChr( ((banks.chr[1] << 1) | 1 ) ) >> 1
+				UnscrambleChr( banks.chr[0] << 1 | 0 ) >> 1,
+				UnscrambleChr( banks.chr[1] << 1 | 1 ) >> 1
 			);
 	
 			chr.SwapBanks<SIZE_1K>

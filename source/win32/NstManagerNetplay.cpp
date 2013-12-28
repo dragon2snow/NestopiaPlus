@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -22,7 +22,9 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
+#ifdef _MSC_VER
 #pragma comment(lib,"kailleraclient")
+#endif
 
 #include "NstIoLog.hpp"
 #include "NstIoScreen.hpp"
@@ -1014,8 +1016,8 @@ namespace Nestopia
 		{
 			u8 packets[MAX_PLAYERS][2];
 
-			packets[0][0] = (u8) network.input.GetCode();
-			packets[0][1] = (u8) network.command.GetCode();
+			packets[0][0] = network.input.GetCode();
+			packets[0][1] = network.command.GetCode();
 
 			if (::kailleraModifyPlayValues( packets, 2 ) != -1)
 			{

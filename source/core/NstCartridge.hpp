@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -32,7 +32,7 @@
 #include "NstMemory.hpp"
 #include "NstImage.hpp"
 #include "api/NstApiCartridge.hpp"
-#include "NstMd5.hpp"
+#include "NstChecksumMd5.hpp"
 
 namespace Nes
 {
@@ -43,8 +43,12 @@ namespace Nes
 		class Ppu;
 		class ImageDatabase;
 		class VsSystem;
-		class TurboFile;
-		class DataRecorder;
+
+		namespace Peripherals
+		{
+			class TurboFile;
+			class DataRecorder;
+		}
 
 		class Cartridge : public Image
 		{
@@ -69,11 +73,15 @@ namespace Nes
 
 		private:
 
+			class Ines;
+			class Unif;
+
 			void Destroy();
 			void DetectControllers();
 			void DetectVS();
 			void DetectTurboFile(Context&);
-			bool DetectEncryption();
+			bool DetectEncryption() const;
+			void DetectBadChr();
 
 			bool InitInfo(const ImageDatabase*);
 			void ResetWRam();
@@ -83,14 +91,14 @@ namespace Nes
 
 			Mapper* mapper;
 			VsSystem* vs;
-			TurboFile* turboFile;
-			DataRecorder* dataRecorder;
+			Peripherals::TurboFile* turboFile;
+			Peripherals::DataRecorder* dataRecorder;
 			LinearMemory pRom;
 			LinearMemory cRom;
 			LinearMemory wRam;
 			Info info;
 			ibool wRamAuto;
-			mutable Md5::Key batteryCheckSum;
+			mutable Checksum::Md5::Key batteryCheckSum;
 
 		public:
 

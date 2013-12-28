@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -45,6 +45,7 @@ namespace Nestopia
 		private:
 
 			struct Handlers;
+			class KeyPressWindow;
 
 			enum
 			{
@@ -308,9 +309,9 @@ namespace Nestopia
 
 				enum
 				{
-					AUTOFIRE_MAX_SPEED = 5,
-					AUTOFIRE_NUM_SPEEDS = 6,
-					AUTOFIRE_DEFAULT_SPEED = 4
+					AUTOFIRE_MAX_SPEED = 6,
+					AUTOFIRE_NUM_SPEEDS = 7,
+					AUTOFIRE_DEFAULT_SPEED = 3
 				};
 
 				typedef DirectX::DirectInput::Key Key;

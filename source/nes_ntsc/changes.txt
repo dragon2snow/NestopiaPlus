@@ -1,6 +1,33 @@
 nes_ntsc Change Log
 -------------------
 
+nes_ntsc 0.2.0
+--------------
+- Significantly improved NTSC signal processing to give clearer image and
+better sharpness control
+
+- Added parameters for gamma, resolution, color bleed, artifacts, and color
+fringing
+
+- Added presets for composite video, S-video, RGB, and monochrome
+
+- Added NES_NTSC_OUT_WIDTH() and NES_NTSC_IN_WIDTH() for calculating
+input/output widths
+
+- Improved default blitter to support emphasis and allow specification of RGB
+output bit depth
+
+- Improved demo with more controls and interpolation and darkenening of
+scanlines rather than duplicating them
+
+- Improved documentation
+
+- Interface changes: nes_ntsc_blit() now takes *input* size rather than output
+size. NES_NTSC_BEGIN_ROW now takes two additional pixels.
+
+- Deprecated: nes_ntsc_x_in/out_width, NES_NTSC_RGBnn_OUT, and NES_NTSC_RAW_OUT
+
+
 nes_ntsc 0.1.7
 --------------
 - Fixed color emphasis to affect xD colors instead of incorrectly leaving them

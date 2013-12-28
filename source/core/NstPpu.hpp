@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -29,9 +29,9 @@
 #pragma once
 #endif
 
-#include "NstPort.hpp"
-#include "NstAccessor.hpp"
-#include "NstLine.hpp"
+#include "NstIoPort.hpp"
+#include "NstIoAccessor.hpp"
+#include "NstIoLine.hpp"
 #include "NstHook.hpp"
 #include "NstChip.hpp"
 
@@ -229,7 +229,6 @@ namespace Nes
 			inline uint FetchAttribute() const;
 			inline void UpdateScrollAddress(uint);
 
-			void UpdateLatency();
 			void UpdateStates();
 			void EvaluateSpritesAndRenderPixel();
 			void LoadSprite();

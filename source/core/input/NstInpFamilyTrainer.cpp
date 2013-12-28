@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -90,7 +90,7 @@ namespace Nes
 						( 1U << 12 ) ^ 0x1FFFU
 					};
 
-					register uint bits = ~0U;
+					uint bits = ~0U;
 
 					for (uint i=0; i < Controllers::FamilyTrainer::NUM_SIDE_A_BUTTONS; ++i)
 					{

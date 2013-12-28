@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -25,7 +25,7 @@
 #include <cstdlib>
 #include "../NstMapper.hpp"
 #include "../NstClock.hpp"
-#include "../NstBarcodeReader.hpp"
+#include "../NstPrpBarcodeReader.hpp"
 #include "NstBrdFme7.hpp"
 		   
 namespace Nes
@@ -38,7 +38,7 @@ namespace Nes
             #pragma optimize("s", on)
             #endif
 		
-			class Fme7::BarcodeWorld : public BarcodeReader
+			class Fme7::BarcodeWorld : public Peripherals::BarcodeReader
 			{
 				bool SubTransfer(cstring,uint,u8*);
 

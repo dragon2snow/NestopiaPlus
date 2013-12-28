@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -127,6 +127,20 @@ namespace Nestopia
 				{
 					return Item( control, i );
 				}
+
+				class HScrollBar
+				{
+					long width;
+					HWND const hWnd;
+					HDC const hDC;
+
+				public:
+
+					HScrollBar(HWND);
+					~HScrollBar();
+
+					void Update(tstring,uint);					
+				};
 			};
 
 			template<typename T>

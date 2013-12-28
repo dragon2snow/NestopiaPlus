@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -261,7 +261,7 @@ namespace Nestopia
 	void ListView::Sort(const SortFunction& sortFunction) const
 	{
 		if (Size() > 1)
-			ListView_SortItems( control, SortProc, &sortFunction );
+			ListView_SortItems( control, SortProc, reinterpret_cast<WPARAM>(&sortFunction) );
 	}
 
 	int CALLBACK ListView::SortProc(LPARAM obj1,LPARAM obj2,LPARAM ref)

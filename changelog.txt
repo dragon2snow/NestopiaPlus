@@ -1,4 +1,76 @@
 ----------------------------------------------------------------
+1.29
+----------------------------------------------------------------
+
+Shell:
+
+ Additions:
+
+  - TV Aspect option.
+  - UI contrast slider.
+
+ Changes:
+
+  - UI color slider scales.
+  - Increase of auto-fire speed and granularity.
+  - Smoother fullscreen entering/exiting.
+  - Real-time updates with the video filter UI controls.
+  - Better compability across different compilers.
+
+ Fixes:
+
+  - Horizontal scroll-bar in the 'Open' dialog for compressed files.
+  - User input bug in the 'UNIF-to-mapper' dialog.
+  - NTSC/PAL window size issue on startup.
+  - Various GUI fixes.
+
+Core:
+
+ Additions:
+
+  - UNIF boards "KOF97", "64-IN-1 No Repeat", "SHERO", "T-262" and "FK23C". Info from CaH4e3.
+  - Mapper 43 and 236. Info from FE.
+  - Database entries.
+
+ Changes:
+
+  - Update to version 0.2.0 of Blargg's NTSC video filter.
+  - Board/Chip names. Info from Pongbashi.
+  - Rewinder no longer forces alignment to a specific frame.
+  - Sprite overflow timing and flag quirks. Info from Blargg.
+  - Automatic use of ::_controlfp(..) for FPU double-precision mode or better.
+  - Mapper 95 now derived from NAMCOT 118 instead of MMC3.
+  - Mappers 189, 198 and 208 now derived from MMC3.
+  - Mapper 211 now derived from JY-xxx (90).
+  - Various mapper code cleanups.
+  - Moved the following games to new mappers:
+
+     "SMB+Tetris+NWC" -> mapper 37
+     "Jia A Fung Yun (chinese)" -> mapper 74
+     "Aladdin (pirate)" -> mapper 90
+     "Seicross (redump)" -> mapper 181
+     "Ying Lie Qun Xia Zhuan (chinese)" -> mapper 192
+     "Young Chivalry (chinese)" -> mapper 192
+     "Dai-2-Ji - Super Robot Taisen (chinese)" -> mapper 194
+
+ Fixes:
+
+  - APU sample rate counter overflow bug.
+  - Rewinder stop bug when running at non-default speed.
+  - FDS IRQ counter. Fixes "Druid - Kyoufu no Tobira".
+  - Mapper 45, no bankswitching with CHR-RAM. Fixes "Famicom Yarou Vol.1 7-in-1".
+  - Mapper 57, menu switch on soft-reset. Info from CaH4e3.
+  - Mapper 58, 115, 222, 150 and 188. Info from CaH4e3.
+  - Mapper 74. Fixes "Sangokushi (chinese)" and others.
+  - Mapper 83, language mode on soft-reset for "World Heroes 2" and "Fatal Fury 2".
+  - Mapper 90/209/211, M2 based IRQ counter added. Fixes "Goal!!" in "45-in-1".
+  - Mapper 117, IRQ counter. Fixes "San Guo Zhi 4 - Chi Bi Feng Yun".
+  - Mapper 255, menu screen bugs as on the real cart.
+  - Soft reset for mapper 230 and 255.
+  - Small VRC7 sound chip load-state bug.
+  - Database entries.
+
+----------------------------------------------------------------
 1.28
 ----------------------------------------------------------------
 

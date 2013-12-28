@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -72,13 +72,13 @@ namespace Nestopia
 
 			~ComInterface()
 			{
-				if (pointer)
-					pointer->Release();
+				if (this->pointer)
+					this->pointer->Release();
 			}
 
 			operator T* () const 
 			{
-				return pointer;
+				return this->pointer;
 			}
 
 			T* operator = (const ComInterface& ref)
@@ -88,38 +88,38 @@ namespace Nestopia
 
 			ibool operator == (const T* p) const
 			{
-				return pointer == p;
+				return this->pointer == p;
 			}
 
 			ibool operator != (const T* p) const
 			{
-				return pointer != p;
+				return this->pointer != p;
 			}
 
 			T** operator & () 
 			{ 
-				NST_ASSERT( !pointer );
-				return &pointer; 
+				NST_ASSERT( !this->pointer );
+				return &this->pointer; 
 			}
 
 			bool operator ! () const
 			{
-				return !pointer;
+				return !this->pointer;
 			}
 		};
 
 		template<typename T>
 		T* ComInterface<T>::operator = (T* p)
 		{
-			if (pointer != p)
+			if (this->pointer != p)
 			{
-				if (pointer)
-					pointer->Release();
+				if (this->pointer)
+					this->pointer->Release();
 
 				if (p)
 					p->AddRef();
 
-				pointer = p;
+				this->pointer = p;
 			}
 
 			return p;
@@ -128,9 +128,9 @@ namespace Nestopia
 		template<typename T>
 		ulong ComInterface<T>::Release()
 		{
-			if (T* const tmp = pointer)
+			if (T* const tmp = this->pointer)
 			{
-				pointer = NULL;
+				this->pointer = NULL;
 				return tmp->Release();
 			}
 

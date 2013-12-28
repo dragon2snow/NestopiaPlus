@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -97,12 +97,12 @@ namespace Nes
 	
 		uint Mapper217::GetPrgBank(const uint bank) const
 		{
-			const uint high = (exRegs[1] & 0x3) << 5;
+			const uint high = exRegs[1] << 5 & 0x60;
 
 			if (exRegs[1] & 0x8)
-				return (bank & 0x1F) | high;
+				return high | (bank & 0x1F);
 			else
-				return (bank & 0x0F) | high | (exRegs[1] & 0x10);
+				return high | (exRegs[1] & 0x10) | (bank & 0x0F);
 		}
 
 		void Mapper217::UpdatePrg()
@@ -120,12 +120,12 @@ namespace Nes
 
 		uint Mapper217::GetChrBank(const uint bank) const
 		{
-			const uint high = (exRegs[1] & 0x3) << 8;
+			const uint high = exRegs[1] << 8 & 0x300;
 
 			if (exRegs[1] & 0x8)
-				return bank | high;
+				return high | bank;
 			else
-				return (bank & 0x7F) | high | ((exRegs[1] & 0x10) << 3);
+				return high | (exRegs[1] << 3 & 0x80) | (bank & 0x7F);
 		}
 
 		void Mapper217::UpdateChr() const
@@ -137,10 +137,10 @@ namespace Nes
 			chr.SwapBanks<SIZE_1K>
 			( 
 		     	0x0000U ^ swap, 
-				GetChrBank( ((banks.chr[0] << 1) | 0x0) ), 
-				GetChrBank( ((banks.chr[0] << 1) | 0x1) ),
-				GetChrBank( ((banks.chr[1] << 1) | 0x0) ), 
-				GetChrBank( ((banks.chr[1] << 1) | 0x1) )
+				GetChrBank( banks.chr[0] << 1 | 0x0 ), 
+				GetChrBank( banks.chr[0] << 1 | 0x1 ),
+				GetChrBank( banks.chr[1] << 1 | 0x0 ), 
+				GetChrBank( banks.chr[1] << 1 | 0x1 )
 			);
 
 			chr.SwapBanks<SIZE_1K>
@@ -159,7 +159,7 @@ namespace Nes
 
 			if (data & 0x80)
 			{
-				data = (data & 0xF) | ((exRegs[1] & 0x3) << 4);
+				data = (data & 0x0F) | (exRegs[1] << 4 & 0x30);
 				prg.SwapBanks<SIZE_16K,0x0000U>( data, data );
 			}
 			else

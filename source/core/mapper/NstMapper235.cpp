@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -36,10 +36,7 @@ namespace Nes
 		void Mapper235::SubReset(const bool hard)
 		{
 			if (hard)
-			{
-				open = 0;
-				bank = 0;
-			}
+				open = false;
 
 			Map( 0x8000U, 0xFFFFU, &Mapper235::Peek_Prg, &Mapper235::Poke_Prg );
 		
@@ -72,29 +69,34 @@ namespace Nes
         #pragma optimize("", on)
         #endif
 	
-		void Mapper235::Select1024k(const uint address)
+		uint Mapper235::Select1024k(const uint address,uint bank)
 		{
 			open = address & 0x0300;
+			return bank;
 		}
 	
-		void Mapper235::Select2048k(const uint address)
+		uint Mapper235::Select2048k(const uint address,uint bank)
 		{
 			switch (address & 0x0300)
 			{
 				case 0x0100:
-				case 0x0300: open = 1; break;
+				case 0x0300: open = true; break;
 				case 0x0200: bank = (bank & 0x1F) | 0x20; break;
 			}
+
+			return bank;
 		}
 	
-		void Mapper235::Select3072k(const uint address)
+		uint Mapper235::Select3072k(const uint address,uint bank)
 		{
 			switch (address & 0x0300)
 			{
-				case 0x0100: open = 1; break;
+				case 0x0100: open = true; break;
 				case 0x0200: bank = (bank & 0x1F) | 0x20; break;
 				case 0x0300: bank = (bank & 0x1F) | 0x40; break;
 			}
+
+			return bank;
 		}
 	
 		NES_POKE(Mapper235,Prg) 
@@ -106,16 +108,16 @@ namespace Nes
                            	       	  Ppu::NMT_VERTICAL 
 			);
 	
-		    open = 0;
-			bank = ((address & 0x0300U) >> 3) | (address & 0x001F);
+			open = false;
+			uint bank = (address >> 3 & 0x60) | (address & 0x1F);
 	
 			if (SelectCartridge)
-				(*this.*SelectCartridge)(address);
+				bank = (*this.*SelectCartridge)( address, bank );
 	
-			if (address & 0x0800)
+			if (address & 0x800)
 			{
-				data = (bank << 1) | ((address >> 12) & 0x1);
-				prg.SwapBanks<SIZE_16K,0x0000U>( data, data );
+				bank = (bank << 1) | (address >> 12 & 0x1);
+				prg.SwapBanks<SIZE_16K,0x0000U>( bank, bank );
 			}
 			else
 			{
@@ -125,7 +127,7 @@ namespace Nes
 	
 		NES_PEEK(Mapper235,Prg)
 		{
-			return (open == 0 ? prg.Peek(address - 0x8000U) : address >> 8);
+			return open == 0 ? prg.Peek(address - 0x8000U) : address >> 8;
 		}
 	}
 }

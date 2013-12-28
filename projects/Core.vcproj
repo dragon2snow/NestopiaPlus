@@ -50,7 +50,7 @@
 				RuntimeLibrary="1"
 				EnableFunctionLevelLinking="true"
 				FloatingPointModel="0"
-				FloatingPointExceptions="false"
+				FloatingPointExceptions="true"
 				DisableLanguageExtensions="false"
 				DefaultCharIsUnsigned="true"
 				RuntimeTypeInfo="false"
@@ -475,6 +475,14 @@
 				>
 			</File>
 			<File
+				RelativePath="..\source\core\mapper\NstMapper037.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\mapper\NstMapper037.hpp"
+				>
+			</File>
+			<File
 				RelativePath="..\source\core\mapper\NstMapper040.cpp"
 				>
 			</File>
@@ -496,6 +504,14 @@
 			</File>
 			<File
 				RelativePath="..\source\core\mapper\NstMapper042.hpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\mapper\NstMapper043.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\mapper\NstMapper043.hpp"
 				>
 			</File>
 			<File
@@ -835,10 +851,6 @@
 				>
 			</File>
 			<File
-				RelativePath="..\source\core\mapper\NstMapper095.cpp"
-				>
-			</File>
-			<File
 				RelativePath="..\source\core\mapper\NstMapper095.hpp"
 				>
 			</File>
@@ -1107,14 +1119,6 @@
 				>
 			</File>
 			<File
-				RelativePath="..\source\core\mapper\NstMapper160.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\source\core\mapper\NstMapper160.hpp"
-				>
-			</File>
-			<File
 				RelativePath="..\source\core\mapper\NstMapper163.cpp"
 				>
 			</File>
@@ -1227,11 +1231,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\source\core\mapper\NstMapper191.cpp"
+				RelativePath="..\source\core\mapper\NstMapper191.hpp"
 				>
 			</File>
 			<File
-				RelativePath="..\source\core\mapper\NstMapper191.hpp"
+				RelativePath="..\source\core\mapper\NstMapper192.hpp"
 				>
 			</File>
 			<File
@@ -1240,6 +1244,10 @@
 			</File>
 			<File
 				RelativePath="..\source\core\mapper\NstMapper193.hpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\mapper\NstMapper194.hpp"
 				>
 			</File>
 			<File
@@ -1324,10 +1332,6 @@
 			</File>
 			<File
 				RelativePath="..\source\core\mapper\NstMapper210.hpp"
-				>
-			</File>
-			<File
-				RelativePath="..\source\core\mapper\NstMapper211.cpp"
 				>
 			</File>
 			<File
@@ -1468,6 +1472,14 @@
 			</File>
 			<File
 				RelativePath="..\source\core\mapper\NstMapper235.hpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\mapper\NstMapper236.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\mapper\NstMapper236.hpp"
 				>
 			</File>
 			<File
@@ -1615,6 +1627,14 @@
 			Name="Board"
 			>
 			<File
+				RelativePath="..\source\core\board\NstBrd64in1Nr.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\board\NstBrd64in1Nr.hpp"
+				>
+			</File>
+			<File
 				RelativePath="..\source\core\board\NstBrd8157.cpp"
 				>
 			</File>
@@ -1636,14 +1656,6 @@
 			</File>
 			<File
 				RelativePath="..\source\core\board\NstBrdBandai.hpp"
-				>
-			</File>
-			<File
-				RelativePath="..\source\core\board\NstBrdBtlTek2A.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\source\core\board\NstBrdBtlTek2A.hpp"
 				>
 			</File>
 			<File
@@ -1679,6 +1691,14 @@
 				>
 			</File>
 			<File
+				RelativePath="..\source\core\board\NstBrdFk23C.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\board\NstBrdFk23C.hpp"
+				>
+			</File>
+			<File
 				RelativePath="..\source\core\board\NstBrdFme7.cpp"
 				>
 			</File>
@@ -1692,6 +1712,22 @@
 			</File>
 			<File
 				RelativePath="..\source\core\board\NstBrdH2288.hpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\board\NstBrdJy.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\board\NstBrdJy.hpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\board\NstBrdKof97.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\board\NstBrdKof97.hpp"
 				>
 			</File>
 			<File
@@ -1767,11 +1803,27 @@
 				>
 			</File>
 			<File
+				RelativePath="..\source\core\board\NstBrdStreetHeroes.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\board\NstBrdStreetHeroes.hpp"
+				>
+			</File>
+			<File
 				RelativePath="..\source\core\board\NstBrdSuper24In1.cpp"
 				>
 			</File>
 			<File
 				RelativePath="..\source\core\board\NstBrdSuper24In1.hpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\board\NstBrdT262.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\board\NstBrdT262.hpp"
 				>
 			</File>
 			<File
@@ -1788,6 +1840,14 @@
 			</File>
 			<File
 				RelativePath="..\source\core\board\NstBrdTaitoX.hpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\board\NstBrdTaiwanMmc3.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\board\NstBrdTaiwanMmc3.hpp"
 				>
 			</File>
 			<File
@@ -1826,6 +1886,14 @@
 		<Filter
 			Name="Input"
 			>
+			<File
+				RelativePath="..\source\core\input\NstInpAdapter.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\input\NstInpAdapter.hpp"
+				>
+			</File>
 			<File
 				RelativePath="..\source\core\input\NstInpCrazyClimber.cpp"
 				>
@@ -1963,11 +2031,11 @@
 			Name="VideoFilters"
 			>
 			<File
-				RelativePath="..\source\nes_ntsc\nes_ntsc.cpp"
+				RelativePath="..\source\nes_ntsc\nes_ntsc.h"
 				>
 			</File>
 			<File
-				RelativePath="..\source\nes_ntsc\nes_ntsc.h"
+				RelativePath="..\source\nes_ntsc\nes_ntsc.inl"
 				>
 			</File>
 			<File
@@ -1995,6 +2063,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\source\core\NstVideoFilterNtsc.cpp"
+				>
+			</File>
+			<File
 				RelativePath="..\source\core\NstVideoFilterNtsc.hpp"
 				>
 			</File>
@@ -2015,10 +2087,34 @@
 				>
 			</File>
 		</Filter>
-		<File
-			RelativePath="..\source\core\NstAccessor.hpp"
+		<Filter
+			Name="Peripherals"
 			>
-		</File>
+			<File
+				RelativePath="..\source\core\NstPrpBarcodeReader.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\NstPrpBarcodeReader.hpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\NstPrpDataRecorder.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\NstPrpDataRecorder.hpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\NstPrpTurboFile.cpp"
+				>
+			</File>
+			<File
+				RelativePath="..\source\core\NstPrpTurboFile.hpp"
+				>
+			</File>
+		</Filter>
 		<File
 			RelativePath="..\source\core\NstApu.cpp"
 			>
@@ -2036,14 +2132,6 @@
 			>
 		</File>
 		<File
-			RelativePath="..\source\core\NstBarcodeReader.cpp"
-			>
-		</File>
-		<File
-			RelativePath="..\source\core\NstBarcodeReader.hpp"
-			>
-		</File>
-		<File
 			RelativePath="..\source\core\NstCartridge.cpp"
 			>
 		</File>
@@ -2052,11 +2140,43 @@
 			>
 		</File>
 		<File
+			RelativePath="..\source\core\NstCartridgeInes.cpp"
+			>
+		</File>
+		<File
+			RelativePath="..\source\core\NstCartridgeInes.hpp"
+			>
+		</File>
+		<File
+			RelativePath="..\source\core\NstCartridgeUnif.cpp"
+			>
+		</File>
+		<File
+			RelativePath="..\source\core\NstCartridgeUnif.hpp"
+			>
+		</File>
+		<File
 			RelativePath="..\source\core\NstCheats.cpp"
 			>
 		</File>
 		<File
 			RelativePath="..\source\core\NstCheats.hpp"
+			>
+		</File>
+		<File
+			RelativePath="..\source\core\NstChecksumCrc32.cpp"
+			>
+		</File>
+		<File
+			RelativePath="..\source\core\NstChecksumCrc32.hpp"
+			>
+		</File>
+		<File
+			RelativePath="..\source\core\NstChecksumMd5.cpp"
+			>
+		</File>
+		<File
+			RelativePath="..\source\core\NstChecksumMd5.hpp"
 			>
 		</File>
 		<File
@@ -2084,22 +2204,6 @@
 			>
 		</File>
 		<File
-			RelativePath="..\source\core\NstCrc32.cpp"
-			>
-		</File>
-		<File
-			RelativePath="..\source\core\NstCrc32.hpp"
-			>
-		</File>
-		<File
-			RelativePath="..\source\core\NstDataRecorder.cpp"
-			>
-		</File>
-		<File
-			RelativePath="..\source\core\NstDataRecorder.hpp"
-			>
-		</File>
-		<File
 			RelativePath="..\source\core\NstDipSwitches.hpp"
 			>
 		</File>
@@ -2109,6 +2213,10 @@
 		</File>
 		<File
 			RelativePath="..\source\core\NstFds.hpp"
+			>
+		</File>
+		<File
+			RelativePath="..\source\core\NstFpuPrecision.hpp"
 			>
 		</File>
 		<File
@@ -2132,14 +2240,6 @@
 			>
 		</File>
 		<File
-			RelativePath="..\source\core\NstInes.cpp"
-			>
-		</File>
-		<File
-			RelativePath="..\source\core\NstInes.hpp"
-			>
-		</File>
-		<File
 			RelativePath="..\source\core\NstInteger.cpp"
 			>
 		</File>
@@ -2148,15 +2248,19 @@
 			>
 		</File>
 		<File
-			RelativePath="..\source\core\NstIoAdapter.cpp"
+			RelativePath="..\source\core\NstIoAccessor.hpp"
 			>
 		</File>
 		<File
-			RelativePath="..\source\core\NstIoAdapter.hpp"
+			RelativePath="..\source\core\NstIoLine.hpp"
 			>
 		</File>
 		<File
-			RelativePath="..\source\core\NstLine.hpp"
+			RelativePath="..\source\core\NstIoMap.hpp"
+			>
+		</File>
+		<File
+			RelativePath="..\source\core\NstIoPort.hpp"
 			>
 		</File>
 		<File
@@ -2168,23 +2272,11 @@
 			>
 		</File>
 		<File
-			RelativePath="..\source\core\NstMap.hpp"
-			>
-		</File>
-		<File
 			RelativePath="..\source\core\NstMapper.cpp"
 			>
 		</File>
 		<File
 			RelativePath="..\source\core\NstMapper.hpp"
-			>
-		</File>
-		<File
-			RelativePath="..\source\core\NstMd5.cpp"
-			>
-		</File>
-		<File
-			RelativePath="..\source\core\NstMd5.hpp"
 			>
 		</File>
 		<File
@@ -2196,23 +2288,11 @@
 			>
 		</File>
 		<File
-			RelativePath="..\source\core\NstMovie.cpp"
-			>
-		</File>
-		<File
-			RelativePath="..\source\core\NstMovie.hpp"
-			>
-		</File>
-		<File
 			RelativePath="..\source\core\NstNsf.cpp"
 			>
 		</File>
 		<File
 			RelativePath="..\source\core\NstNsf.hpp"
-			>
-		</File>
-		<File
-			RelativePath="..\source\core\NstPort.hpp"
 			>
 		</File>
 		<File
@@ -2224,15 +2304,15 @@
 			>
 		</File>
 		<File
-			RelativePath="..\source\core\NstRewinder.cpp"
-			>
-		</File>
-		<File
-			RelativePath="..\source\core\NstRewinder.hpp"
-			>
-		</File>
-		<File
 			RelativePath="..\source\core\NstSignedArithmetic.hpp"
+			>
+		</File>
+		<File
+			RelativePath="..\source\core\NstSoundPcm.cpp"
+			>
+		</File>
+		<File
+			RelativePath="..\source\core\NstSoundPcm.hpp"
 			>
 		</File>
 		<File
@@ -2241,14 +2321,6 @@
 		</File>
 		<File
 			RelativePath="..\source\core\NstSoundRenderer.hpp"
-			>
-		</File>
-		<File
-			RelativePath="..\source\core\NstSoundWave.cpp"
-			>
-		</File>
-		<File
-			RelativePath="..\source\core\NstSoundWave.hpp"
 			>
 		</File>
 		<File
@@ -2268,23 +2340,31 @@
 			>
 		</File>
 		<File
-			RelativePath="..\source\core\NstTurboFile.cpp"
+			RelativePath="..\source\core\NstTracker.cpp"
 			>
 		</File>
 		<File
-			RelativePath="..\source\core\NstTurboFile.hpp"
+			RelativePath="..\source\core\NstTracker.hpp"
+			>
+		</File>
+		<File
+			RelativePath="..\source\core\NstTrackerMovie.cpp"
+			>
+		</File>
+		<File
+			RelativePath="..\source\core\NstTrackerMovie.hpp"
+			>
+		</File>
+		<File
+			RelativePath="..\source\core\NstTrackerRewinder.cpp"
+			>
+		</File>
+		<File
+			RelativePath="..\source\core\NstTrackerRewinder.hpp"
 			>
 		</File>
 		<File
 			RelativePath="..\source\core\NstTypes.hpp"
-			>
-		</File>
-		<File
-			RelativePath="..\source\core\NstUnif.cpp"
-			>
-		</File>
-		<File
-			RelativePath="..\source\core\NstUnif.hpp"
 			>
 		</File>
 		<File

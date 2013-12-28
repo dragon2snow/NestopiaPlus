@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -182,6 +182,7 @@ namespace Nes
 		}
 	
 		Apu::Cycles::Cycles()
+		: frameCounter(0), rateCounter(0), extCounter(NES_CYCLE_MAX), fixed(1)
 		{
 			Update( 44100U, 0, MODE_NTSC );
 			Reset( MODE_NTSC );
@@ -189,6 +190,12 @@ namespace Nes
 	
 		void Apu::Cycles::Update(dword sampleRate,const uint speed,const Mode mode)
 		{
+			frameCounter /= fixed;
+			rateCounter /= fixed;
+
+			if (extCounter != NES_CYCLE_MAX)
+				extCounter /= fixed;
+
 			uint i=0;
 
 			if (mode == MODE_NTSC)
@@ -196,9 +203,9 @@ namespace Nes
 				if (speed)
 					sampleRate = sampleRate * FPS_NTSC / speed;
 
-				while (++i < 512 && u64(Cpu::MC_NTSC) * i % sampleRate);
+				while (++i < 512 && qword(Cpu::MC_NTSC) * i % sampleRate);
 
-				rate = u64(Cpu::MC_NTSC) * i / sampleRate;
+				rate = qword(Cpu::MC_NTSC) * i / sampleRate;
 				fixed = Cpu::CLK_NTSC_DIV * i; 
 			}
 			else
@@ -206,11 +213,33 @@ namespace Nes
 				if (speed)
 					sampleRate = sampleRate * FPS_PAL / speed;
 
-				while (++i < 512 && u64(Cpu::MC_PAL) * i % sampleRate);
+				while (++i < 512 && qword(Cpu::MC_PAL) * i % sampleRate);
 
-				rate = u64(Cpu::MC_PAL) * i / sampleRate;
+				rate = qword(Cpu::MC_PAL) * i / sampleRate;
 				fixed = Cpu::CLK_PAL_DIV * i; 
 			}
+
+			frameCounter *= fixed;
+			rateCounter *= fixed;
+
+			if (extCounter != NES_CYCLE_MAX)
+				extCounter *= fixed;
+		}
+	
+		void Apu::Cycles::Reset(const Mode mode)
+		{
+			rateCounter = 0;
+			frameDivider = 0;
+			frameIrqClock = NES_CYCLE_MAX;
+			frameIrqRepeat = 0;
+			extCounter = NES_CYCLE_MAX;
+			dmcClock = Dmc::GetResetFrequency( mode );
+			frameCounter = frame[mode] * fixed;
+		}
+
+		void Apu::DcBlocker::Reset()
+		{
+			next = prev = acc = 0;
 		}
 	
 		void Apu::Envelope::Reset()
@@ -224,22 +253,6 @@ namespace Nes
 			output = 0;
 		}
 
-		void Apu::Cycles::Reset(const Mode mode)
-		{
-			rateCounter = 0;
-			frameDivider = 0;
-			frameIrqClock = NES_CYCLE_MAX;
-			frameIrqRepeat = 0;
-			extCounter = NES_CYCLE_MAX;
-			dmcClock = Dmc::GetResetFrequency( mode );
-			frameCounter = frame[mode];
-		}
-
-		void Apu::DcBlocker::Reset()
-		{
-			next = prev = acc = 0;
-		}
-	
 		Apu::Dmc::Dmc()
 		: outputVolume(0), linSample(0), curSample(0) {}
 
@@ -289,7 +302,7 @@ namespace Nes
 				ctrl = STATUS_FRAME_IRQ_ENABLE;
 
 			if (ctrl == STATUS_FRAME_IRQ_ENABLE)
-				cycles.frameIrqClock = cycles.frameCounter - (mode == MODE_NTSC ? Cpu::MC_DIV_NTSC * 1 : Cpu::MC_DIV_PAL * 1);
+				cycles.frameIrqClock = (cycles.frameCounter / cycles.fixed) - (mode == MODE_NTSC ? Cpu::MC_DIV_NTSC * 1 : Cpu::MC_DIV_PAL * 1);
 
 			square[0].Reset();
 			square[1].Reset();
@@ -437,9 +450,9 @@ namespace Nes
 				if (context.transpose && context.speed)
 					sampleRate = sampleRate * FPS_NTSC / context.speed;
 
-				while (++i < 0x1000 && u64(Cpu::MC_NTSC) * (i+1) / sampleRate <= 0x7FFFFUL && u64(Cpu::MC_NTSC) * i % sampleRate);
+				while (++i < 0x1000 && qword(Cpu::MC_NTSC) * (i+1) / sampleRate <= 0x7FFFFUL && qword(Cpu::MC_NTSC) * i % sampleRate);
 
-				rate = u64(Cpu::MC_NTSC) * i / sampleRate;
+				rate = qword(Cpu::MC_NTSC) * i / sampleRate;
 				fixed = i * Cpu::CLK_NTSC_DIV * Cpu::MC_DIV_NTSC; 
 			}
 			else
@@ -447,9 +460,9 @@ namespace Nes
 				if (context.transpose && context.speed)
 					sampleRate = sampleRate * FPS_PAL / context.speed;
 
-				while (++i < 0x1000 && u64(Cpu::MC_PAL) * (i+1) / sampleRate <= 0x7FFFFUL && u64(Cpu::MC_PAL) * i % sampleRate);
+				while (++i < 0x1000 && qword(Cpu::MC_PAL) * (i+1) / sampleRate <= 0x7FFFFUL && qword(Cpu::MC_PAL) * i % sampleRate);
 
-				rate = u64(Cpu::MC_PAL) * i / sampleRate;
+				rate = qword(Cpu::MC_PAL) * i / sampleRate;
 				fixed = i * Cpu::CLK_PAL_DIV * Cpu::MC_DIV_PAL; 
 			}
 		}
@@ -743,7 +756,7 @@ namespace Nes
 			loadedLengthCount = 1;
 			loadedAddress     = 0xC000U;
 			out.dac           = 0;
-			out.shifter       = 7;
+			out.shifter       = 1;
 			out.buffer        = 0x00;
 			dma.lengthCounter = 0;
 			dma.buffered      = false;
@@ -1316,36 +1329,29 @@ namespace Nes
 			loadedLengthCount = (data << 4) + 1;
 		}
 	
-		NST_FORCE_INLINE uint Apu::Dmc::Clock(Cpu& cpu)
+		NST_FORCE_INLINE void Apu::Dmc::Clock(Cpu& cpu)
 		{
-			const uint old = curSample;
-	
 			if (active)
 				OutputBuffer();
 	
-			out.shifter = (out.shifter + 1) & 0x7;
-	
-			if (out.shifter)
-				return old;
-	
-			active = dma.buffered;
-	
-			if (!active)
-				return old;
-	
-			// fetch next sample from the DMA unit 
-			// and start a new output sequence
-	
-			active = outputVolume;
-			dma.buffered = false;
-			out.buffer = dma.buffer;
-	
-			if (dma.lengthCounter)
-				DoDMA( cpu );
-	
-			NST_VERIFY( !(dma.lengthCounter && !dma.buffered) );
-	
-			return old;
+			if (!--out.shifter)
+			{
+				out.shifter = 8;
+				active = dma.buffered;
+
+				if (active)
+				{
+					// fetch next sample from the DMA unit 
+					// and start a new output sequence
+
+					active = outputVolume;
+					dma.buffered = false;
+					out.buffer = dma.buffer;
+
+					if (dma.lengthCounter)
+						DoDMA( cpu );
+				}
+			}
 		}
 	
 		Cycle Apu::ClockOscillators()
@@ -1395,7 +1401,9 @@ namespace Nes
 	
 			do 
 			{		
-				uint sample = dmc.Clock( cpu );
+				uint sample = dmc.CheckSample();
+				
+				dmc.Clock( cpu );
 	
 				if (sample != dmc.CheckSample())
 				{
@@ -2086,7 +2094,7 @@ namespace Nes
 				((dma.address >> 8) & SAVE_6_ADDRESS_HIGH) | (dma.buffered ? SAVE_6_BUFFERED : 0),
 				dma.lengthCounter ? (dma.lengthCounter - 1) >> 4 : 0,
 				dma.buffer,
-				out.shifter,
+				8 - out.shifter,
 				out.buffer,
 				out.dac
 			};
@@ -2126,7 +2134,7 @@ namespace Nes
 						dma.buffered      = data[6] & SAVE_6_BUFFERED;
 						dma.lengthCounter = (data[2] & SAVE_2_ENABLED) ? (data[7] << 4) + 1 : 0;
 						dma.buffer        = data[8];
-						out.shifter       = data[9] & SAVE_9_SHIFTER;
+						out.shifter       = 8 - (data[9] & SAVE_9_SHIFTER);
 						out.buffer        = data[10];
 						out.dac           = data[11] & SAVE_11_DAC;
 

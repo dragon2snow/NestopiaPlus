@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -44,7 +44,7 @@
 
  #else
 
-  #pragma warning( disable : 4355 4511 4512 4800 4996 )
+  #pragma warning( disable : 4244 4355 4511 4512 4800 4996 )
 
   #ifdef NDEBUG
 
@@ -58,9 +58,13 @@
 
  #define NST_CDECL __cdecl
  #define NST_STDCALL __stdcall
- #define NST_FASTCALL __fastcall
 
  #define NST_SIGN_SHIFT
+
+#elif defined(__GNUC__)
+
+ #define NST_CDECL __cdecl
+ #define NST_STDCALL __stdcall
 
 #endif
 
@@ -88,7 +92,6 @@
 #define NOKERNEL          
 #define NOMEMMGR          
 #define NOMETAFILE        
-#define NOMINMAX          
 #define NOOPENFILE        
 #define NOSERVICE       
 #define NOSOUND           
@@ -98,6 +101,10 @@
 #define NOPROFILER        
 #define NODEFERWINDOWPOS  
 #define NOMCX             
+
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
 
 // <commctrl.h>
 

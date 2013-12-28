@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -29,7 +29,7 @@
 #pragma once
 #endif
 
-#include "NstMap.hpp"
+#include "NstIoMap.hpp"
 #include "NstApu.hpp"
 #include "NstVector.hpp"
 
@@ -184,7 +184,7 @@ namespace Nes
 			NST_FORCE_INLINE uint AbsReg_W (uint);
 
 			template<bool STATE>
-			inline void Branch(uint);
+			NST_FORCE_INLINE void Branch(uint);
 
 			inline uint Imm_R  ();	
 			inline uint Zpg_R  ();
@@ -499,7 +499,7 @@ namespace Nes
 			Hooks hooks;
 			ibool jammed;
 			Mode mode;
-			u64 ticks;
+			qword ticks;
 			Linker linker;
 			Apu apu;
 

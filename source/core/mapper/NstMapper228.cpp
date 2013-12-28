@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -44,31 +44,20 @@ namespace Nes
 	
 		NES_POKE(Mapper228,Prg) 
 		{
-			uint pBank = ((address & 0x0780U) >> 7);
-	
-			switch ((address & 0x1800U) >> 11)
-			{
-		     	case 1: pBank |= 0x10; break;
-         		case 3:	pBank |= 0x20; break;
-			}
+			uint bank = (address >> 7 & 0x1F) + (address >> 7 & address >> 8 & 0x10);
 	
 			if (address & 0x20)
 			{
-				pBank <<= 1;
-	
-				if (address & 0x40)
-					++pBank;
-	
-				prg.SwapBanks<SIZE_16K,0x0000U>( pBank << 1, pBank << 1 );
+				bank = (bank << 2) | (address >> 5 & 0x2);
+				prg.SwapBanks<SIZE_16K,0x0000U>( bank, bank );
 			}
 			else
 			{
-				prg.SwapBank<SIZE_32K,0x0000U>( pBank );
+				prg.SwapBank<SIZE_32K,0x0000U>( bank );
 			}
 	
-			ppu.SetMirroring( (address & 0x2000U) ? Ppu::NMT_HORIZONTAL : Ppu::NMT_VERTICAL );
-	
-			chr.SwapBank<SIZE_8K,0x0000U>( ((address & 0xF) << 2) | (data & 0x3) );
+			ppu.SetMirroring( (address & 0x2000U) ? Ppu::NMT_HORIZONTAL : Ppu::NMT_VERTICAL );	
+			chr.SwapBank<SIZE_8K,0x0000U>( (address << 2 & 0x3C) | (data & 0x3) );
 		}
 	}
 }

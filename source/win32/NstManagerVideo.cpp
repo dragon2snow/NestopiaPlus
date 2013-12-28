@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -198,6 +198,7 @@ namespace Nestopia
 			{ IDM_VIEW_WINDOWSIZE_8X,               &Video::OnCmdViewScreenSize          },
 			{ IDM_VIEW_WINDOWSIZE_9X,               &Video::OnCmdViewScreenSize          },
 			{ IDM_VIEW_WINDOWSIZE_MAX,              &Video::OnCmdViewScreenSize          },
+			{ IDM_VIEW_WINDOWSIZE_TVASPECT,         &Video::OnCmdViewTvAspect            },
 			{ IDM_VIEW_STATUSBAR,	                &Video::OnCmdViewStatusBar           },
 			{ IDM_VIEW_FPS,                         &Video::OnCmdViewFps                 }
 		};
@@ -243,6 +244,8 @@ namespace Nestopia
 			ResetScreenRect( (type.Length() == 1 && type[0] >= '2' && type[0] <= '9') ? type[0] - '1' : 0 );
 		}
   
+		menu[IDM_VIEW_WINDOWSIZE_TVASPECT].Check( dialog->IsTvAspect() );
+
 		UpdateMenuScreenSizes( GetDisplayMode() );
 	}
 
@@ -320,6 +323,16 @@ namespace Nestopia
 	void Video::OnCmdViewScreenSize(uint id)
 	{
 		ResetScreenRect( id == IDM_VIEW_WINDOWSIZE_MAX ? Window::Video::SCREEN_STRETCHED : id - IDM_VIEW_WINDOWSIZE_1X );
+	}
+
+	void Video::OnCmdViewTvAspect(uint)
+	{
+		menu[IDM_VIEW_WINDOWSIZE_TVASPECT].Check( dialog->ToggleTvAspect() );
+
+		if (IsWindowed())
+			window.PostCommand( IDM_VIEW_WINDOWSIZE_1X + CalculateWindowScale() );
+		else
+			window.Redraw();
 	}
 
 	void Video::OnCmdViewStatusBar(uint)
@@ -421,26 +434,38 @@ namespace Nestopia
 	{
 		return Point(dialog->GetNesRect().Size()).ScaleToFit( Rect::Picture(window), Point::SCALE_NEAREST );
 	}
-  
+
+	uint Video::CalculateFullscreenScale() const
+	{
+		const Point screen( GetDisplayMode() );
+		return Point(dialog->GetNesRect()).ScaleToFit( screen + (screen / SCALE_TOLERANCE), Point::SCALE_BELOW, dialog->GetFullscreenScale() );
+	}
+
 	void Video::OnMenuScreenSizes(Window::Menu::PopupHandler::Param& param)
 	{		
 		uint scale;
 
 		if (IsFullscreen())
 		{
-			scale = dialog->GetFullscreenScale();
+			if (dialog->GetFullscreenScale() == Window::Video::SCREEN_STRETCHED)
+				scale = Window::Video::SCREEN_STRETCHED;
+			else				
+				scale = CalculateFullscreenScale();
 		}
-		else if (window.Maximized())
+		else 
 		{
-			scale = Window::Video::SCREEN_STRETCHED;
-		}
-		else if (IsWindowMatched())
-		{
-			scale = CalculateWindowScale();
-		}
-		else
-		{
-			scale = 0xBEDBABE;
+			if (window.Maximized())
+			{
+				scale = Window::Video::SCREEN_STRETCHED;
+			}
+			else if (IsWindowMatched())
+			{
+				scale = CalculateWindowScale();
+			}
+			else
+			{
+				scale = 0xBEDBABE;
+			}
 		}
 
 		ibool check;
@@ -675,11 +700,11 @@ namespace Nestopia
 
 	ibool Video::SwitchFullscreen(Mode mode)
 	{
-		const ibool fullscreen = IsFullscreen();
+		const ibool prevFullscreen = IsFullscreen();
 
 		if (direct2d.SwitchFullscreen( mode ))
 		{
-			if (fullscreen && dialog->GetFullscreenScale() != Window::Video::SCREEN_STRETCHED)
+			if (prevFullscreen && dialog->GetFullscreenScale() != Window::Video::SCREEN_STRETCHED)
 				dialog->SetFullscreenScale( Window::Video::SCREEN_MATCHED );
 
 			window.Redraw();
@@ -764,7 +789,7 @@ namespace Nestopia
 		{
 			Nes::Video::RenderState renderState;
 		
-			renderState.bits.count = (uchar) direct2d.GetBitsPerPixel();
+			renderState.bits.count = direct2d.GetBitsPerPixel();
 			NST_ASSERT( renderState.bits.count == 16 || renderState.bits.count == 32 );
 		
 			direct2d.GetBitMask( renderState.bits.mask.r, renderState.bits.mask.g, renderState.bits.mask.b );
@@ -798,7 +823,7 @@ namespace Nestopia
 				else // scale up and center to screen
 				{	
 					Point nesPoint( dialog->GetNesRect() );
-					dialog->SetFullscreenScale( nesPoint.ScaleToFit( screen + (screen / SCALE_TOLERANCE), Point::SCALE_BELOW, dialog->GetFullscreenScale() ) );
+					nesPoint.ScaleToFit( screen + (screen / SCALE_TOLERANCE), Point::SCALE_BELOW, dialog->GetFullscreenScale() );
 					picture = nesPoint;
 					picture.Center() = screen.Center();
 

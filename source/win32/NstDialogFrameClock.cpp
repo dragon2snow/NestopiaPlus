@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -75,25 +75,25 @@ namespace Nestopia
 		if (!System::Timer::HasPerformanceCounter())
 			settings.pfCounter = FALSE;
 
-		settings.maxFrameSkips = (uchar)
+		settings.maxFrameSkips =
 		(
 			settings.maxFrameSkips ? NST_CLAMP(settings.maxFrameSkips,MIN_FRAME_SKIPS,MAX_FRAME_SKIPS) : 
 	    	                         DEFAULT_FRAME_SKIPS
 		);
 
-		settings.speed = (uchar)
+		settings.speed =
 		(
 			settings.speed ? NST_CLAMP(settings.speed,MIN_SPEED,MAX_SPEED) : 
 	                     	 DEFAULT_SPEED
 		);
 
-		settings.altSpeed =	(uchar)
+		settings.altSpeed =
 		(
     		settings.altSpeed ? NST_CLAMP(settings.altSpeed,MIN_SPEED,MAX_SPEED) : 
     		                    DEFAULT_ALT_SPEED
 		);
 
-		settings.rewindSpeed = (uchar)
+		settings.rewindSpeed =
 		(
     		settings.rewindSpeed ? NST_CLAMP(settings.rewindSpeed,MIN_SPEED,MAX_SPEED) : 
     		                       DEFAULT_REWIND_SPEED
@@ -181,7 +181,7 @@ namespace Nestopia
 	{
 		if (param.Slider().IsControl( IDC_TIMING_SPEED ))
 		{
-			const uchar speed = (uchar) param.Slider().Scroll();
+			const uchar speed = param.Slider().Scroll();
 
 			if (settings.speed != speed)
 			{
@@ -191,7 +191,7 @@ namespace Nestopia
 		}
 		else if (param.Slider().IsControl( IDC_TIMING_ALT_SPEED ))
 		{
-			const uchar altSpeed = (uchar) param.Slider().Scroll();
+			const uchar altSpeed = param.Slider().Scroll();
 
 			if (settings.altSpeed != altSpeed)
 			{
@@ -201,7 +201,7 @@ namespace Nestopia
 		}		
 		else if (param.Slider().IsControl( IDC_TIMING_REWINDER_SPEED ))
 		{
-			const uchar rewindSpeed = (uchar) param.Slider().Scroll();
+			const uchar rewindSpeed = param.Slider().Scroll();
 
 			if (settings.rewindSpeed != rewindSpeed)
 			{
@@ -211,7 +211,7 @@ namespace Nestopia
 		}		
 		else if (param.Slider().IsControl( IDC_TIMING_FRAME_SKIPS ))
 		{
-			const uchar maxFrameSkips = (uchar) param.Slider().Scroll();
+			const uchar maxFrameSkips = param.Slider().Scroll();
 
 			if (settings.maxFrameSkips != maxFrameSkips)
 			{

@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -61,8 +61,6 @@ namespace Nes
 				};
 		
 				void Reset(uint,bool=true);
-				uint Latency() const;
-		
 				void operator >> (Block&);
 		
 				template<typename,uint>
@@ -128,6 +126,11 @@ namespace Nes
 					const uint p = pos;
 					pos = (pos + 1) & MASK;
 					output[p] = sample;
+				}
+
+				uint Latency() const
+				{
+					return (dword(pos) + SIZE - start) & MASK;
 				}
 			};
 						

@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -37,15 +37,19 @@ namespace Nes
 		Mapper117::Mapper117(Context& c)
 		: 
 		Mapper (c),
-		irq    (c.cpu,c.ppu)
+		irq    (c.cpu,c.ppu,Irq::SIGNAL_DURATION)
 		{}
-	
-		void Mapper117::SubReset(const bool hard)
-		{
-			if (hard)
-				irqState = 0;
 
-			irq.Reset( hard, hard || irq.IsLineEnabled() );
+		void Mapper117::Irq::Reset(bool)
+		{
+			enabled = false;
+			count = 0;
+			latch = 0;
+		}
+
+		void Mapper117::SubReset(bool)
+		{
+			irq.Reset( true, true );
 
 			Map( 0x8000U, PRG_SWAP_8K_0 );
 			Map( 0x8001U, PRG_SWAP_8K_1 );
@@ -71,8 +75,11 @@ namespace Nes
 			{
 				if (chunk == NES_STATE_CHUNK_ID('I','R','Q','\0'))
 				{
-					irq.unit.LoadState( state );
-					irqState = state.Read8() & (IRQ_LATCH_0|IRQ_LATCH_1);
+					const State::Loader::Data<3> data( state );
+
+					irq.unit.enabled = data[0] & 0x1;
+					irq.unit.latch = data[1];
+					irq.unit.count = data[2];
 				}
 
 				state.End();
@@ -81,20 +88,29 @@ namespace Nes
 
 		void Mapper117::SubSave(State::Saver& state) const
 		{
-			state.Begin('I','R','Q','\0');
-			irq.unit.SaveState( state );
-			state.Write8( irqState );
-			state.End();
+			const u8 data[3] =
+			{
+				irq.unit.enabled ? 0x1 : 0x0,
+				irq.unit.latch,
+				irq.unit.count
+			};
+
+			state.Begin('I','R','Q','\0').Write( data ).End();
 		}
 	
         #ifdef NST_PRAGMA_OPTIMIZE
         #pragma optimize("", on)
         #endif
-	
+
+		ibool Mapper117::Irq::Signal()
+		{
+			return (enabled && count && !--count);
+		}
+
 		NES_POKE(Mapper117,C001) 
 		{ 
 			irq.Update();
-			irq.unit.SetLatch( data );
+			irq.unit.latch = data;
 		}
 	
 		NES_POKE(Mapper117,C002) 
@@ -105,27 +121,13 @@ namespace Nes
 		NES_POKE(Mapper117,C003) 
 		{ 
 			irq.Update();
-	
-			irqState |= IRQ_LATCH_0;
-	
-			if (irqState == IRQ_ENABLE)
-				irq.unit.Enable();
-			else
-				irq.unit.Disable( cpu );
-	
-			irq.unit.Reload();
+			irq.unit.count = irq.unit.latch;
 		}
 	
 		NES_POKE(Mapper117,E000) 
 		{ 
 			irq.Update();
-	
-			irqState = (irqState & ~uint(IRQ_LATCH_1)) | (data & IRQ_LATCH_1);
-	
-			if (irqState == IRQ_ENABLE)
-				irq.unit.Enable();
-			else
-				irq.unit.Disable( cpu );
+			irq.unit.enabled = data & 0x1;
 		}
 
 		void Mapper117::VSync()

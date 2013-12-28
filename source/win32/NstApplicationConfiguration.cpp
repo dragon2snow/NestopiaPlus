@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -61,7 +61,7 @@ namespace Nestopia
 			_T("yes"), _T("no"), _T("on"), _T("off")
 		};
 
-		return Generic::operator == (yesNoOnOff[state]);
+		return GenericString::operator == (yesNoOnOff[state]);
 	}
 
 	Configuration::Configuration()

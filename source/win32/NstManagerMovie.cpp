@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -192,7 +192,7 @@ namespace Nestopia
 		param.menu[ IDM_FILE_MOVIE_EXPORT_AVI ].Enable( CanPlay()    );
 	}
 
-	ibool Movie::Open(const std::fstream::open_mode mode)
+	ibool Movie::Open(const std::fstream::openmode mode)
 	{
 		NST_ASSERT( dialog->GetMovieFile().Length() && !stream.is_open() );
 

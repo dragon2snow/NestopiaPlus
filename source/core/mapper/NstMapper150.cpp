@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -36,7 +36,7 @@ namespace Nes
 		void Mapper150::SubReset(const bool hard)
 		{
 			if (hard)
-				command = 0x0;
+				command = 0x00;
 
 			for (uint i=0x4100U; i < 0x6000U; ++i)
 			{
@@ -79,15 +79,15 @@ namespace Nes
 
 			switch (command & 0x7)
 			{
-				case 0x0: 
+				case 0x2: 
 
-					banks[0] = 0;
-					banks[1] = 3;
+					banks[0] = data & 0x1;
+					banks[1] = (chr.GetBank<SIZE_8K,0x0000U>() & ~0x8U) | (data << 3 & 0x8);
 					break;
 
 				case 0x4: 
 
-					banks[1] = (chr.GetBank<SIZE_8K,0x0000U>() & 0x3) | ((data & 0x7) << 2);
+					banks[1] = (chr.GetBank<SIZE_8K,0x0000U>() & ~0x4U) | (data << 2 & 0x4);
 					break;
 
 				case 0x5: 
@@ -97,12 +97,21 @@ namespace Nes
 
 				case 0x6: 
 				
-					banks[1] = (chr.GetBank<SIZE_8K,0x0000U>() & 0x1C) | (data & 0x3);
+					banks[1] = (chr.GetBank<SIZE_8K,0x0000U>() & ~0x3U) | (data << 0 & 0x3);
 					break;
 
 				case 0x7: 
-					
-					ppu.SetMirroring( (data & 0x1) ? Ppu::NMT_VERTICAL : Ppu::NMT_HORIZONTAL );
+				{
+					static const u8 mirroring[4][4] =
+					{
+						{0,1,0,1},
+						{0,0,1,1},
+						{0,1,1,1},
+						{0,0,0,0}
+					};
+
+					ppu.SetMirroring( mirroring[data >> 1 & 0x3] );
+				}
 
 				default:
 					return;

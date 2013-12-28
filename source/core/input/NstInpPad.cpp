@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -94,14 +94,14 @@ namespace Nes
 			void Pad::Poll()
 			{
 				NST_ASSERT( input );
-
+				
 				Controllers::Pad& pad = input->pad[type - Api::Input::PAD1];
 				input = NULL;
 
 				if (Controllers::Pad::callback( pad, type - Api::Input::PAD1 ))
 				{
 					mic |= pad.mic;
-					register uint buttons = pad.buttons;
+					uint buttons = pad.buttons;
 
 					enum
 					{
@@ -135,7 +135,7 @@ namespace Nes
 				}
 				else
 				{
-					NST_DEBUG_MSG("Pad::Peek() input stuck!");
+				//	NST_DEBUG_MSG("Pad::Peek() input stuck!");
 
 					if (input)
 						Poll();

@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -30,7 +30,13 @@
 #endif
 
 #include <cmath>
+#include "NstFpuPrecision.hpp"
 #include "../nes_ntsc/nes_ntsc.h"
+
+#ifdef _MSC_VER
+#pragma warning( push )
+#pragma warning( disable : 4127 )
+#endif
 
 namespace Nes
 {
@@ -38,6 +44,52 @@ namespace Nes
 	{
 		namespace Video
 		{
+			struct FilterNtscState
+			{
+				const Api::Video::RenderState& renderState;
+				const i8 brightness;
+				const i8 saturation;
+				const i8 hue;
+				const i8 contrast;
+				const i8 sharpness;
+				const i8 resolution;
+				const i8 bleed;
+				const i8 artifacts;
+				const i8 fringing;
+				const bool fieldMerging;
+				const Api::Video::Decoder& decoder;
+
+				FilterNtscState
+				(
+			     	const Api::Video::RenderState& r,
+					i8 b,
+					i8 s,
+					i8 h,
+					i8 c,
+					i8 p,
+					i8 e,
+					i8 l,
+					i8 a,
+					i8 f,
+					bool m,
+					const Api::Video::Decoder& d
+				)
+				: 
+				renderState  (r), 
+				brightness   (b),
+				saturation   (s),
+				hue          (h),
+				contrast     (c),
+				sharpness    (p),
+				resolution   (e),
+				bleed        (l),
+				artifacts    (a),
+				fringing     (f),
+				fieldMerging (m),
+				decoder      (d)
+				{}
+			};
+
 			template<uint BITS>
 			class Renderer::FilterNtsc : public Renderer::Filter
 			{	
@@ -64,31 +116,38 @@ namespace Nes
 				{
 					const uint noFieldMerging;
 
-					Lut(int brightness,int saturation,int hue,int contrast,int sharpness,bool mergeFields,const Api::Video::Decoder& decoder)
-					: noFieldMerging(mergeFields ? 0U : ~0U)
+					Lut(const FilterNtscState& state)
+					: noFieldMerging(state.fieldMerging ? 0U : ~0U)
 					{
+						FpuPrecision precision;
+
 						const float matrix[6] =
 						{
-							std::sin( decoder.axes[0].angle * NST_DEG ) * decoder.axes[0].gain * 2,
-							std::cos( decoder.axes[0].angle * NST_DEG ) * decoder.axes[0].gain * 2,
-							std::sin( decoder.axes[1].angle * NST_DEG ) * decoder.axes[1].gain * 2,
-							std::cos( decoder.axes[1].angle * NST_DEG ) * decoder.axes[1].gain * 2,
-							std::sin( decoder.axes[2].angle * NST_DEG ) * decoder.axes[2].gain * 2,
-							std::cos( decoder.axes[2].angle * NST_DEG ) * decoder.axes[2].gain * 2
+							std::sin( state.decoder.axes[0].angle * NST_DEG ) * state.decoder.axes[0].gain * 2,
+							std::cos( state.decoder.axes[0].angle * NST_DEG ) * state.decoder.axes[0].gain * 2,
+							std::sin( state.decoder.axes[1].angle * NST_DEG ) * state.decoder.axes[1].gain * 2,
+							std::cos( state.decoder.axes[1].angle * NST_DEG ) * state.decoder.axes[1].gain * 2,
+							std::sin( state.decoder.axes[2].angle * NST_DEG ) * state.decoder.axes[2].gain * 2,
+							std::cos( state.decoder.axes[2].angle * NST_DEG ) * state.decoder.axes[2].gain * 2
 						};
 
 						nes_ntsc_setup_t setup;
 
-						setup.hue = 33.0f/360.f + (hue - 128) / 768.f;
-						setup.saturation = (saturation - 128) / 128.f;
-						setup.contrast = (contrast - 128) / 128.f;
-						setup.brightness = (brightness - 128) / 128.f;
-						setup.sharpness = (sharpness - 128) / 128.f;
-						setup.hue_warping = 0.0f;
-						setup.merge_fields = mergeFields;
+						setup.hue = (33 + state.hue) / 180.0;
+						setup.saturation = state.saturation / 100.0;
+						setup.contrast = state.contrast / 100.0;
+						setup.brightness = state.brightness / 100.0;
+						setup.sharpness = state.sharpness / 100.0;
+						setup.gamma = 0.0;
+						setup.resolution = state.resolution / 100.0;
+						setup.artifacts = state.artifacts / 100.0;
+						setup.fringing = state.fringing / 100.0;
+						setup.bleed = state.bleed / 100.0;
+						setup.hue_warping = 0.0;
+						setup.merge_fields = state.fieldMerging;
 						setup.decoder_matrix = matrix;
 						setup.palette_out = NULL;
-					
+
 						::nes_ntsc_init_emph( this, &setup );
 					}
 				};
@@ -98,27 +157,17 @@ namespace Nes
 
 			public:
 
-				FilterNtsc(const RenderState&,uint,uint,uint,uint,uint,bool,const Api::Video::Decoder&);
+				FilterNtsc(const FilterNtscState&);
 
 				static bool Check(const RenderState&);
 			};
 
 			template<uint BITS>
-			Renderer::FilterNtsc<BITS>::FilterNtsc
-			(
-		       	const RenderState& state,
-				uint brightness,
-				uint saturation,
-				uint hue,
-				uint contrast,
-				uint sharpness,
-				bool fieldMerging,
-				const Api::Video::Decoder& decoder
-			)
+			Renderer::FilterNtsc<BITS>::FilterNtsc(const FilterNtscState& state)
 			: 
-			Filter    ( state ),
-			lut       ( brightness, saturation, hue, contrast, sharpness, fieldMerging, decoder ),
-			scanlines ( (100-state.scanlines) * (BPP == 32 ? 256 : 32) / 100 )
+			Filter    ( state.renderState ),
+			lut       ( state ),
+			scanlines ( (100-state.renderState.scanlines) * (BPP == 32 ? 256 : 32) / 100 )
 			{
 			}
 
@@ -154,7 +203,7 @@ namespace Nes
 
 				for (uint y=0; y < HEIGHT; ++y)
 				{
-					NES_NTSC_BEGIN_ROW( &lut, phase, *src++ );
+					NES_NTSC_BEGIN_ROW( &lut, phase, 0xF, 0xF, *src++ );
 					
 					Pixel* NST_RESTRICT cache = buffer;
 
@@ -204,6 +253,10 @@ namespace Nes
      	}
 	}
 }
+
+#ifdef _MSC_VER
+#pragma warning( pop )
+#endif
 
 #endif
 

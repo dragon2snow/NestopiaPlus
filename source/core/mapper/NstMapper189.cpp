@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -38,18 +38,8 @@ namespace Nes
 		{
 			Mmc3::SubReset( hard );
 	
-			for (uint i=0x0000U; i < 0x1000U; i += 0x200)
-			{
-				Map( 0x4100U + i, 0x41FFU + i, &Mapper189::Poke_4100 );
-				Map( 0x6100U + i, 0x61FFU + i, &Mapper189::Poke_6100 );
-			}
+			Map( 0x4120U, 0x7FFFU, &Mapper189::Poke_4120 );
 
-			for (uint i=0x8000U; i < 0xA000U; i += 0x2)
-			{
-				Map( i + 0x0, &Mapper189::Poke_8000 );
-				Map( i + 0x1, &Mapper189::Poke_8001 );
-			}
-	
 			if (hard)
 				prg.SwapBank<SIZE_32K,0x0000U>(0);
 		}
@@ -58,34 +48,14 @@ namespace Nes
         #pragma optimize("", on)
         #endif
 	
-		NES_POKE(Mapper189,4100)
+		NES_POKE(Mapper189,4120)
 		{
-			prg.SwapBank<SIZE_32K,0x0000U>( data >> 4 );
+			prg.SwapBank<SIZE_32K,0x0000U>( (data >> 4 | data) & 3 );
 		}
 	
-		NES_POKE(Mapper189,6100)
+		void Mapper189::UpdatePrg()
 		{
-			prg.SwapBank<SIZE_32K,0x0000U>( data & 0x3 );
-		}
-	
-		NES_POKE(Mapper189,8000)
-		{
-			regs.ctrl0 = data & Regs::CTRL0_MODE;
-		}
-	
-		NES_POKE(Mapper189,8001)
-		{
-			ppu.Update();
-	
-			switch (regs.ctrl0)
-			{
-				case 0: chr.SwapBank<SIZE_2K,0x0000U>(data >> 1); break;
-				case 1: chr.SwapBank<SIZE_2K,0x0800U>(data >> 1); break;
-				case 2: chr.SwapBank<SIZE_1K,0x1000U>(data);      break;
-				case 3: chr.SwapBank<SIZE_1K,0x1400U>(data);      break;
-				case 4: chr.SwapBank<SIZE_1K,0x1800U>(data);      break;
-				case 5: chr.SwapBank<SIZE_1K,0x1C00U>(data);      break;
-			}
+			// 4120..7FFF controlled
 		}
 	}
 }

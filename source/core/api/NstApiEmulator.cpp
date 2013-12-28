@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -32,16 +32,13 @@
 #include "../NstVideoRenderer.hpp"
 #include "../NstImage.hpp"
 #include "../input/NstInpDevice.hpp"
+#include "../input/NstInpAdapter.hpp"
 #include "../input/NstInpPad.hpp"
 #include "../NstCartridge.hpp"
 #include "../NstCheats.hpp"
 #include "../NstNsf.hpp"
-#include "../NstIoAdapter.hpp"
-#include "../NstMovie.hpp"
-#include "../NstRewinder.hpp"
 #include "../NstImageDatabase.hpp"
   
-
 namespace Nes
 {
 	namespace Api
@@ -57,11 +54,8 @@ namespace Nes
 		extPort       (new Core::Input::AdapterTwo( new Core::Input::Pad(0), new Core::Input::Pad(1) )),
 		expPort       (new Core::Input::Device),
 		image         (NULL),
-		movie         (NULL),
 		renderer      (*new Core::Video::Renderer),
 		ppu           (cpu,renderer.GetScreen()),
-		rewinder      (NULL),
-		rewinderSound (true),
 		cheats        (NULL),
 		imageDatabase (NULL)
 		{
@@ -71,7 +65,6 @@ namespace Nes
 		{
 			Unload();
 
-			delete rewinder;
 			delete imageDatabase;
 			delete cheats;
 			delete &renderer;
@@ -85,7 +78,7 @@ namespace Nes
 
 		bool Emulator::GoodSaveTime() const
 		{
-			return image && (!movie || rewinder);
+			return image && !tracker.MovieIsInserted();
 		}
 
 		Result Emulator::Load(Core::StdStream stream,uint type)
@@ -107,8 +100,7 @@ namespace Nes
 	
 		void Emulator::Unload()
 		{
-			Core::Movie::Destroy( movie );
-
+			tracker.Unload();
 			frame = 0;
 
 			if (image)
@@ -127,9 +119,6 @@ namespace Nes
 		{
 			frame = 0;
 
-			if (rewinder)
-				rewinder->Reset();
-
 			ppu.ClearScreen();
 			cpu.GetApu().ClearBuffers();
 
@@ -147,9 +136,6 @@ namespace Nes
 	
 				if (!(state & Machine::SOUND))
 				{
-					if (rewinder && rewinder->InBadState())
-						rewinder->Reset();
-
 					InitializeInputDevices();
 	
 					cpu.Map( 0x4016U ).Set( this, &Emulator::Peek_4016, &Emulator::Poke_4016 );
@@ -168,8 +154,7 @@ namespace Nes
 					if (cheats)
 						cheats->Reset();
 	
-					if (movie && !movie->MachineReset( hard ))
-						Core::Movie::Destroy( movie );
+					tracker.Reset( hard );
 
 					return GoodSaveTime() ? image->Flush() : RESULT_OK;
 				}
@@ -196,9 +181,6 @@ namespace Nes
 	
 		void Emulator::SetMode(const Core::Mode mode)
 		{
-			if (rewinder)
-				rewinder->Reset();
-
 			cpu.SetMode( mode );
 			ppu.SetMode( mode );
 	
@@ -409,19 +391,6 @@ namespace Nes
         #pragma optimize("", on)
         #endif
 
-		Result Emulator::Execute
-		(
-        	Core::Video::Output* const video,
-			Core::Sound::Output* const sound,
-			Core::Input::Controllers* const input
-		)		
-		{
-			if (rewinder == NULL || (state & Machine::SOUND))
-				return ExecuteFrame( video, sound, input );
-			else
-				return rewinder->Execute( video, sound, input );
-		}
-
 		Result Emulator::ExecuteFrame
 		(
         	Core::Video::Output* const video,
@@ -429,64 +398,55 @@ namespace Nes
 			Core::Input::Controllers* const input
 		)
 		{
-			if (state & Machine::ON)
+			NST_ASSERT( (state & (Machine::IMAGE|Machine::ON)) > Machine::ON );
+
+			try
 			{
-				try
+				if (!(state & Machine::SOUND))
 				{
-					if (!(state & Machine::SOUND))
-					{
-						if (state & Machine::CARTRIDGE)
-							static_cast<Core::Cartridge*>(image)->BeginFrame( Api::Input(*this), input );
-
-						if (movie && !movie->BeginFrame( frame, *this, &Emulator::SaveState, &Emulator::LoadState, &Emulator::Reset ))
-							Core::Movie::Destroy( movie );
+					if (state & Machine::CARTRIDGE)
+						static_cast<Core::Cartridge*>(image)->BeginFrame( Api::Input(*this), input );
 	
-						extPort->BeginFrame( input );
-						expPort->BeginFrame( input );
+					extPort->BeginFrame( input );
+					expPort->BeginFrame( input );
 	
-						ppu.BeginFrame( video != NULL || ppu.GetScreen() != renderer.GetScreen() );
+					ppu.BeginFrame( video != NULL || ppu.GetScreen() != renderer.GetScreen() );
 
-						if (cheats)
-							cheats->BeginFrame();
+					if (cheats)
+						cheats->BeginFrame();
 
-						cpu.BeginFrame( sound );
-						cpu.ExecuteFrame();
-						ppu.EndFrame();
+					cpu.BeginFrame( sound );
+					cpu.ExecuteFrame();
+					ppu.EndFrame();
 
-						if (video)
-							renderer.Blit( *video, ppu.GetBurstPhase() );
+					if (video)
+						renderer.Blit( *video, ppu.GetBurstPhase() );
 
-						cpu.EndFrame();
+					cpu.EndFrame();
 
-						if (image)
-							image->VSync();
-
-						if (movie && !movie->EndFrame())
-							Core::Movie::Destroy( movie );
-
-						++frame;
-					}
-					else
-					{
-						static_cast<Core::Nsf*>(image)->BeginFrame();
-						
-						cpu.BeginFrame( sound );
-						cpu.ExecuteFrame();
-						cpu.EndFrame();
-						
+					if (image)
 						image->VSync();
-					}
 
-					return RESULT_OK;
+					++frame;
 				}
-				catch (...)
+				else
 				{
-					PowerOff();
-					return RESULT_ERR_GENERIC;
+					static_cast<Core::Nsf*>(image)->BeginFrame();
+					
+					cpu.BeginFrame( sound );
+					cpu.ExecuteFrame();
+					cpu.EndFrame();
+					
+					image->VSync();
 				}
+
+				return RESULT_OK;
 			}
-	
-			return RESULT_ERR_NOT_READY;
+			catch (...)
+			{
+				PowerOff();
+				return RESULT_ERR_GENERIC;
+			}
 		}
 	
 		NES_POKE(Emulator,4016)

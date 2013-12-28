@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -71,7 +71,7 @@ namespace Nestopia
 				bool operator <  (const Mode&) const;
 
 				uint width, height, bpp;
-				Rates rates;
+				Rates rates; 
 
 				bool operator != (const Mode& mode) const
 				{

@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -72,7 +72,7 @@ namespace Nestopia
 		for (uint i=0; i < NUM_RECENT_DIRS; ++i)
 		{
 			if (Io::File::DirExist( recentDirs[i].Ptr() ))
-				cfg[recentDirCfgNames[i]].Quote() = recentDirs[i];
+				cfg[recentDirCfgNames[i]].Quote() = GenericString(recentDirs[i]);
 		}
 	}
 
@@ -148,7 +148,7 @@ namespace Nestopia
 			{ File::ARCHIVE,           _T( "7z"  ) }
 		};
 
-		for (uint i=0; i < NST_COUNT(lut); ++i)
+		for (uint i=0; i < 17; ++i)
 		{
 			if (types( lut[i].type ))
 			{

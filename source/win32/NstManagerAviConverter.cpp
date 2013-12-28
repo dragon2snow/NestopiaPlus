@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -22,7 +22,9 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
-#pragma	comment(lib,"vfw32")
+#ifdef _MSC_VER
+#pragma comment(lib,"vfw32")
+#endif
 
 #include "NstObjectPod.hpp"
 #include "NstWindowUser.hpp"

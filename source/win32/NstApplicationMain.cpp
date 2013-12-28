@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -140,6 +140,10 @@ namespace Nestopia
 			else if (IsOkToExit()) 
 			{
 				emulator.Unload();
+
+				if (menu[IDM_MACHINE_SYSTEM_AUTO].IsChecked())
+					emulator.SetMode( Nes::Machine::NTSC );
+
 				::PostQuitMessage( EXIT_SUCCESS );
 			}
 		}

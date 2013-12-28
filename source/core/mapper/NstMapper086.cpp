@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -25,7 +25,7 @@
 #include <cstring>
 #include <new>
 #include "../NstMapper.hpp"
-#include "../NstSoundWave.hpp"
+#include "../NstSoundPcm.hpp"
 #include "../api/NstApiSound.hpp"
 #include "NstMapper086.hpp"
 	   
@@ -37,7 +37,7 @@ namespace Nes
         #pragma optimize("s", on)
         #endif
 	
-		class Mapper86::Sound : public SoundWave
+		class Mapper86::Sound : public Core::Sound::Pcm
 		{
 		public:
 
@@ -50,7 +50,7 @@ namespace Nes
 		private:
 
 			Sound(Cpu& c)
-			: SoundWave(c) {}
+			: Pcm(c) {}
 
 			class Loader;
 			friend class Loader;
@@ -177,7 +177,7 @@ namespace Nes
 			reg = 0x10;
 			cpu.Map( 0x7000U ).Set( this, &Sound::Peek_7000, &Sound::Poke_7000 );
 
-			SoundWave::Reset();
+			Pcm::Reset();
 		}
 
 		void Mapper86::SubReset(bool)
@@ -237,8 +237,8 @@ namespace Nes
 		{
 			ppu.Update();
 	
-			prg.SwapBank<SIZE_32K,0x0000U>( (data & 0x30) >> 4 );
-			chr.SwapBank<SIZE_8K,0x0000U>( (data & 0x03) | ((data & 0x40) >> 4) );
+			prg.SwapBank<SIZE_32K,0x0000U>( data >> 4 & 0x3 );
+			chr.SwapBank<SIZE_8K,0x0000U>( (data >> 4 & 0x4) | (data & 0x3) );
 		}
 
 		NES_POKE(Mapper86::Sound,7000)

@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -58,7 +58,7 @@ namespace Nestopia
 			public:
 
 				ConstValue(const GenericString& g)
-				: Generic(g) {}
+				: GenericString(g) {}
 
 				bool operator == (State) const;
 
@@ -212,7 +212,7 @@ namespace Nestopia
 
 			enum
 			{
-				HINTED_SIZE = 385
+				HINTED_SIZE = 390
 			};
 
 			struct Command : String::Heap<char>

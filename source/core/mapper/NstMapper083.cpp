@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -61,10 +61,14 @@ namespace Nes
 					regs.prg[i] = 0;
 
 				regs.pr8 = 0;
+				title = 0xFF;
 			}
+
+			title ^= 0xFF;
 
 			UpdatePrg();
 
+			Map( 0x5000U, &Mapper83::Peek_5000 );
 			Map( 0x5100U, 0x51FF, &Mapper83::Peek_5100, &Mapper83::Poke_5100 );
 
 			if (!wrk.Source().IsWritable())
@@ -129,6 +133,11 @@ namespace Nes
 						
 						break;
 					}
+
+					case NES_STATE_CHUNK_ID('L','A','N','\0'):
+
+						title = (state.Read8() & 0x1) ? 0xFF : 0x00;
+						break;
 				}
 
 				state.End();
@@ -164,6 +173,8 @@ namespace Nes
 
 				state.Begin('I','R','Q','\0').Write( data ).End();
 			}
+
+			state.Begin('L','A','N','\0').Write8( title & 0x1 ).End();
 		}
 
         #ifdef NST_PRAGMA_OPTIMIZE
@@ -182,6 +193,11 @@ namespace Nes
 				prg.SwapBank<SIZE_16K,0x0000U>( regs.prg[4] & 0x3F );
 				prg.SwapBank<SIZE_16K,0x4000U>( (regs.prg[4] & 0x30) | 0x0F );
 			}
+		}
+
+		NES_PEEK(Mapper83,5000)
+		{
+			return title;
 		}
 
 		NES_PEEK(Mapper83,5100)
@@ -264,7 +280,7 @@ namespace Nes
 		NES_POKE(Mapper83,8310_0) 
 		{
 			ppu.Update();
-			chr.SwapBank<SIZE_1K>( (address & 0x7) << 10, data | ((regs.prg[4] & 0x30) << 4) );
+			chr.SwapBank<SIZE_1K>( (address & 0x7) << 10, (regs.prg[4] << 4 & 0x300) | data );
 		}
 
 		NES_POKE(Mapper83,8310_1) 

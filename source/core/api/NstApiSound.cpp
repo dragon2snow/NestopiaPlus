@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -25,8 +25,6 @@
 #include "../NstCore.hpp"
 #include "NstApiSound.hpp"
 #include "NstApiEmulator.hpp"
-#include "NstApiMovie.hpp"
-#include "../NstRewinder.hpp"
 
 namespace Nes
 {
@@ -118,10 +116,7 @@ namespace Nes
 	
 		uint Sound::GetLatency() const
 		{
-			if (!emulator.rewinder || !emulator.rewinder->IsSoundRewinding())
-				return emulator.cpu.GetApu().GetLatency();
-			else
-				return emulator.rewinder->GetSoundLatency();
+			return emulator.tracker.GetSoundLatency( emulator.cpu.GetApu() );
 		}
 	
 		void Sound::EmptyBuffer()

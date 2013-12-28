@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -33,11 +33,12 @@ namespace Nes
         #pragma optimize("s", on)
         #endif
 	
-		void Mapper163::SubReset(bool)
+		void Mapper163::SubReset(const bool hard)
 		{
-			ppu.SetSpHook( Hook(this,&Mapper163::Hook_Ppu) );
+			if (hard)
+				regs[1] = regs[0] = 0;
 
-			regs[1] = regs[0] = 0;
+			ppu.SetSpHook( Hook(this,&Mapper163::Hook_Ppu) );
 
 			for (uint i=0x5000U; i < 0x6000U; i += 0x200)
 				Map( i + 0x00, i + 0xFF, &Mapper163::Poke_5000 );
@@ -71,8 +72,8 @@ namespace Nes
 
 		NES_POKE(Mapper163,5000)
 		{
-			regs[(address >> 9) & 0x1] = data;	
-			prg.SwapBank<SIZE_32K,0x0000U>( (regs[0] & 0xF) + ((regs[1] & 0x3) << 4) );
+			regs[address >> 9 & 0x1] = data;	
+			prg.SwapBank<SIZE_32K,0x0000U>( (regs[0] & 0xF) | (regs[1] << 4 & 0x30) );
 			
 			ppu.Update();
 			chr.SwapBank<SIZE_4K,0x0000U>(0);

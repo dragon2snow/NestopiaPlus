@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -33,65 +33,12 @@ namespace Nes
 {
 	namespace Core
 	{
-		class Mapper211 : public Mapper
+		class Mapper211 : public Boards::Jy
 		{
 		public:
 
-			Mapper211(Context&);
-
-		private:
-
-			void SubReset(bool);
-			void SubSave(State::Saver&) const;
-			void SubLoad(State::Loader&);
-			void UpdatePrg();
-			void UpdateChr() const;
-			void VSync();
-
-			NES_DECL_PEEK( 5000 )
-			NES_DECL_PEEK( 5800 )
-			NES_DECL_POKE( 5800 )
-			NES_DECL_PEEK( 5801 )
-			NES_DECL_POKE( 5801 )
-			NES_DECL_PEEK( 5803 )
-			NES_DECL_POKE( 5803 )
-			NES_DECL_POKE( 8000 )
-			NES_DECL_POKE( 9000 )
-			NES_DECL_POKE( B000 )
-			NES_DECL_POKE( C002 )
-			NES_DECL_POKE( C004 )
-			NES_DECL_POKE( C005 )
-			NES_DECL_POKE( D000 )
-
-			struct Regs
-			{
-				enum
-				{
-					PROM_BANKSWITCH = b00000011,
-					PROM_SWAP_16K	= b00000001,
-					PROM_SWAP_8K	= b00000010,
-					CROM_BANKSWITCH = b00011000,
-					CROM_SWAP_8K    = b00000000,
-					CROM_SWAP_4K    = b00001000,
-					CROM_SWAP_2K    = b00010000,
-					CROM_SWAP_1K    = b00011000
-				};
-
-				uint toggle;
-				uint command;
-				uint mul[2];
-				uint tmp;
-			};
-
-			struct Banks
-			{
-				uchar prg[4];
-				uchar chr[8];
-			};
-
-			Regs regs;
-			Banks banks;
-			Boards::Mmc3::Irq irq;
+			Mapper211(Context& c)
+			: Jy(c,DEFAULT_DIP_NMT_ON) {}
 		};
 	}
 }

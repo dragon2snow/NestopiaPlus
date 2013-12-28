@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -89,15 +89,20 @@ namespace Nes
 				for (uint i=0x0000U; i < 0x2000U; i += 0x2)
 				{
 					Map( 0x8000U + i, &Mmc3::Poke_8000 );
-					Map( 0x8001U + i, &Mmc3::Poke_8001 );				
-					Map( 0xA000U + i, NMT_SWAP_HV      );
+					Map( 0x8001U + i, &Mmc3::Poke_8001 );
 					Map( 0xA001U + i, &Mmc3::Poke_A001 );
 					Map( 0xC000U + i, &Mmc3::Poke_C000 );
 					Map( 0xC001U + i, &Mmc3::Poke_C001 );
 					Map( 0xE000U + i, &Mmc3::Poke_E000 );
 					Map( 0xE001U + i, &Mmc3::Poke_E001 );
 				}
-		
+
+				if (mirroring != Ppu::NMT_FOURSCREEN)
+				{
+					for (uint i=0xA000U; i < 0xC000U; i += 0x2)
+						Map( i, NMT_SWAP_HV );
+				}
+
 				if (wrk.HasRam())
 					Map( WRK_PEEK_POKE_BUS );
 						

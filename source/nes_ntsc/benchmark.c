@@ -9,20 +9,17 @@ arrange for this or else the performance will be reported lower than it really i
 #include <stdio.h>
 #include <time.h>
 
-enum { in_width   = nes_ntsc_min_in_width };
+enum { in_width   = 256 };
 enum { in_height  = 240 };
 
-enum { out_width  = nes_ntsc_min_out_width };
+enum { out_width  = NES_NTSC_OUT_WIDTH( in_width ) };
 enum { out_height = in_height };
-
-typedef unsigned char  in_pixel_t;
-typedef unsigned short out_pixel_t;
 
 struct data_t
 {
 	nes_ntsc_t ntsc;
-	in_pixel_t  in  [in_height]  [in_width];
-	out_pixel_t out [out_height] [out_width];
+	unsigned char  in  [ in_height] [ in_width];
+	unsigned short out [out_height] [out_width];
 };
 
 static int time_blitter( void );
@@ -32,9 +29,7 @@ int main()
 	struct data_t* data = (struct data_t*) malloc( sizeof *data );
 	if ( data )
 	{
-		static nes_ntsc_setup_t setup;
-		
-		/* fill with random pixel data (actually more stressful than a normal image) */
+		/* fill with random pixel data */
 		int y;
 		for ( y = 0; y < in_height; y++ )
 		{
@@ -46,13 +41,13 @@ int main()
 		printf( "Timing nes_ntsc...\n" );
 		fflush( stdout );
 		
-		nes_ntsc_init( &data->ntsc, &setup );
+		nes_ntsc_init( &data->ntsc, 0 );
 		
 		/* measure frame rate */
 		while ( time_blitter() )
 		{
-			nes_ntsc_blit( &data->ntsc, data->in [0], sizeof data->in [0], 0,
-				out_width, out_height, data->out [0], sizeof data->out [0] );
+			nes_ntsc_blit( &data->ntsc, data->in [0], in_width, 0,
+				in_width, in_height, data->out [0], sizeof data->out [0] );
 		}
 		
 		free( data );

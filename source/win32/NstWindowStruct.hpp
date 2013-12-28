@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -38,13 +38,13 @@ namespace Nestopia
 			void Clear()
 			{
 				Object::Pod<Type>::Clear();
-				dwSize = sizeof(Type);
+				this->dwSize = sizeof(Type);
 			}
 
 			Struct()
 			{
 				NST_COMPILE_ASSERT( sizeof(*this) == sizeof(Type) );
-				dwSize = sizeof(Type);
+				this->dwSize = sizeof(Type);
 			}
 		};
 	}

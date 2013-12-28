@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -26,7 +26,6 @@
 #include "NstApiEmulator.hpp"
 #include "NstApiMachine.hpp"
 #include "NstApiFds.hpp"
-#include "NstApiMovie.hpp"
 #include "../NstFds.hpp"
 
 namespace Nes
@@ -46,46 +45,42 @@ namespace Nes
 	
 		Result Fds::InsertDisk(uint disk,uint side)
 		{
-			if (emulator.Is(Machine::DISK) && !Nes::Api::Movie(emulator).IsPlaying())
+			if (emulator.Is(Machine::DISK) && !emulator.tracker.IsLocked())
 			{
 				const Result result = static_cast<Core::Fds*>(emulator.image)->InsertDisk( disk, side );
 
 				if (result == RESULT_OK)
-					Nes::Api::Movie(emulator).Cut();
+					emulator.tracker.Flush();
 
 				return result;
 			}
-			else
-			{
-				return RESULT_ERR_NOT_READY;
-			}
+
+			return RESULT_ERR_NOT_READY;
 		}
 	
 		Result Fds::ChangeSide()
 		{
-			const int disk = static_cast<const Core::Fds*>(emulator.image)->CurrentDisk();
+			const int disk = GetCurrentDisk();
 
-			if (disk != NO_DISK && !Nes::Api::Movie(emulator).IsPlaying())
-				return InsertDisk( disk, static_cast<const Core::Fds*>(emulator.image)->CurrentDiskSide() == 0 ? 1 : 0 );
-			else
-				return RESULT_ERR_NOT_READY;
+			if (disk != NO_DISK)
+				return InsertDisk( disk, GetCurrentDiskSide() == 0 ? 1 : 0 );
+
+			return RESULT_ERR_NOT_READY;
 		}
 
 		Result Fds::EjectDisk()
 		{
-			if (emulator.Is(Machine::DISK) && !Nes::Api::Movie(emulator).IsPlaying())
+			if (emulator.Is(Machine::DISK) && !emulator.tracker.IsLocked())
 			{
 				const Result result = static_cast<Core::Fds*>(emulator.image)->EjectDisk();
 
 				if (result == RESULT_OK)
-					Nes::Api::Movie(emulator).Cut();
+					emulator.tracker.Flush();
 
 				return result;
 			}
-			else
-			{
-				return RESULT_ERR_NOT_READY;
-			}
+
+			return RESULT_ERR_NOT_READY;
 		}
 	
 		Result Fds::SetBIOS(std::istream* const stream)

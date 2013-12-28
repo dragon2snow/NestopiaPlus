@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -30,14 +30,17 @@
 #include "NstObjectPod.hpp"
 #include "NstDirectX.hpp"
 
-#define NOMMIDS  
-#define NONEWWAVE
-#define NONEWRIFF
-#define NOJPEGDIB
-#define NONEWIC  
-#define NOBITMAP 
+#ifdef _MSC_VER
+#pragma warning( push )
+#pragma warning( disable : 4201 )
+#endif
 
-#include <MMReg.h>
+#include <MMSystem.h>
+
+#ifdef _MSC_VER
+#pragma warning( pop )
+#endif
+
 #include <dsound.h>
 
 namespace Nestopia
@@ -128,7 +131,7 @@ namespace Nestopia
 				void UnlockStream(void* data) const
 				{
 					NST_ASSERT( data && com );
-					com->Unlock( data, settings.size, NULL, NULL );
+					com->Unlock( data, settings.size, NULL, 0 );
 				}
 
 				ibool IsStreaming() const

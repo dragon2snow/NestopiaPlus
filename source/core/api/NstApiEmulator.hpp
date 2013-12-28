@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -36,6 +36,7 @@
 #include "../NstCore.hpp"
 #include "../NstCpu.hpp"
 #include "../NstPpu.hpp"
+#include "../NstTracker.hpp"
 
 namespace Nes
 {
@@ -60,12 +61,8 @@ namespace Nes
 		}
 
 		class Image;
-		class GameGenie;
 		class Cheats;
 		class ImageDatabase;
-		class Movie;
-		class BarcodeReader;
-		class Rewinder;
 	}
 
 	namespace Api
@@ -76,14 +73,7 @@ namespace Nes
 	
 			Emulator();
 			~Emulator();
-	
-			Result Execute
-			(
-				Core::Video::Output*,
-				Core::Sound::Output*,
-				Core::Input::Controllers*
-			);
-	
+		
 		private:
 	
 			friend class Machine;
@@ -95,11 +85,11 @@ namespace Nes
 			friend class Nsf;
 			friend class Movie;
 			friend class Cheats;
-			friend class GameGenie;
 			friend class DipSwitches;
 			friend class BarcodeReader;
 			friend class TapeRecorder;
 			friend class Rewinder;
+			friend class Core::Tracker;
 	
 			enum
 			{
@@ -134,18 +124,28 @@ namespace Nes
 			Core::Input::Adapter* extPort;
 			Core::Input::Device* expPort;
 			Core::Image* image;
-			Core::Movie* movie;
+			Core::Tracker tracker;
 			Core::Video::Renderer& renderer;
 			Core::Cpu cpu;
 			Core::Ppu ppu;
-			Core::Rewinder* rewinder;
-			ibool rewinderSound;
 			Core::Cheats* cheats;
 			Core::ImageDatabase* imageDatabase;
 	
 			uint Is(uint what) const
 			{
 				return state & what;
+			}
+
+		public:
+
+			Result Execute
+			(
+				Core::Video::Output* video,
+				Core::Sound::Output* sound,
+				Core::Input::Controllers* input
+			)
+			{
+				return tracker.Execute( *this, video, sound, input );
 			}
 		};
 	}

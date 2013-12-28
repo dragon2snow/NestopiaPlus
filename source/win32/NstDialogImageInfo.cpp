@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -93,24 +93,27 @@ namespace Nestopia
 		                                                         	 "NTSC"	   
 				);
 
-				text << "File:       "     << emulator.GetImagePath()
-					 << "\r\ncrc:        " << HexString( (u32) info.crc );
+				text << "File:        "     << emulator.GetImagePath()
+					 << "\r\ncrc:         " << HexString( (u32) info.crc );
 
 				if (info.name.size())
-					 text << "\r\nName:       " << info.name.c_str();
+					 text << "\r\nName:        " << info.name.c_str();
 
 				if (info.maker.size())
-					text << "\r\nMaker:      " << info.maker.c_str();
+					text << "\r\nMaker:       " << info.maker.c_str();
 
-			    text << "\r\nRegion:     " << mode
-					 << "\r\nBoard:      " << info.board.c_str()
-					 << "\r\nMapper:     " << info.mapper
-					 << "\r\nPRG-ROM:    " << (uint) (info.pRom / 1024U) << "k ";
+			    text << "\r\nRegion:      " << mode
+					 << "\r\nChips/Board: " << info.board.c_str();
+
+				if (info.mapper <= 255)
+				    text << "\r\nMapper:      " << info.mapper;
+
+				text << "\r\nPRG-ROM:     " << (uint) (info.pRom / 1024U) << "k ";
 
 				if (info.pRom)
 					text << "crc: " << HexString( (u32) info.pRomCrc );
 
-				text << "\r\nCHR-ROM:    " << (uint) (info.cRom / 1024U) << "k ";
+				text << "\r\nCHR-ROM:     " << (uint) (info.cRom / 1024U) << "k ";
 
 				if (info.cRom)
 					text << "crc: " << HexString( (u32) info.cRomCrc );
@@ -133,14 +136,14 @@ namespace Nestopia
 		                                               		"unknown"
 				);
 
-				text << "\r\nMirroring:  " << mirroring
-					 << "\r\nBattery:    " << State::Get( info.battery );
+				text << "\r\nMirroring:   " << mirroring
+					 << "\r\nBattery:     " << State::Get( info.battery );
 
 				if (info.battery)
-					text << "\r\nFile:       " << emulator.GetSavePath();
+					text << "\r\nFile:        " << emulator.GetSavePath();
 
-				text << "\r\nTrainer:    " << State::Get( info.trained )
-					 << "\r\nCondition:  " << condition;
+				text << "\r\nTrainer:     " << State::Get( info.trained )
+					 << "\r\nCondition:   " << condition;
 
 				break;
 			}

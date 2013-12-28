@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -139,7 +139,7 @@ namespace Nestopia
 				if (count > 2 && compare >= 0x00 && compare <= 0xFF)
 				{
 					mem.useCompare = true;
-					mem.compare = (u8) compare;
+					mem.compare = compare;
 				}
 				else if (count == 2)
 				{
@@ -155,8 +155,8 @@ namespace Nestopia
 				if (address < 0x0000 || address > 0xFFFF || value < 0x00 || value > 0xFF)
 					continue;
 
-				mem.address = (u16) address;
-				mem.value = (u8) value;
+				mem.address = address;
+				mem.value = value;
 			}
 
 			Code& code = Add( mem );
@@ -811,8 +811,8 @@ namespace Nestopia
 
 			if (emulator.Is( Nes::Machine::GAME, Nes::Machine::ON ))
 			{
-				searcher.a = (u8) GetSearchValue( IDC_CHEATS_ADDCODE_SEARCH_A );
-				searcher.b = (u8) GetSearchValue( IDC_CHEATS_ADDCODE_SEARCH_B );
+				searcher.a = GetSearchValue( IDC_CHEATS_ADDCODE_SEARCH_A );
+				searcher.b = GetSearchValue( IDC_CHEATS_ADDCODE_SEARCH_B );
 			}
 
 			searcher.hex = codeDialog.CheckBox( IDC_CHEATS_ADDCODE_USE_HEX ).IsChecked();
@@ -870,8 +870,8 @@ namespace Nestopia
 		
 		const u8 values[] =
 		{
-			(u8) GetSearchValue( IDC_CHEATS_ADDCODE_SEARCH_A ),
-			(u8) GetSearchValue( IDC_CHEATS_ADDCODE_SEARCH_B )
+			GetSearchValue( IDC_CHEATS_ADDCODE_SEARCH_A ),
+			GetSearchValue( IDC_CHEATS_ADDCODE_SEARCH_B )
 		};
 
 		list.Clear();
@@ -960,7 +960,7 @@ namespace Nestopia
 		if (!(string >> value))
 			return FALSE;
 		
-		mem.address = (u16) value;
+		mem.address = value;
 
 		if (searcher.hex)
 		{
@@ -972,7 +972,7 @@ namespace Nestopia
 			if (!(string >> value))
 				return FALSE;
 			
-			mem.value = (u8) value;
+			mem.value = value;
 
 			if (codeDialog.Edit( IDC_CHEATS_ADDCODE_COMPARE ) >> string)
 			{
@@ -981,7 +981,7 @@ namespace Nestopia
 				if (!(string >> value))
 					return FALSE;
 
-				mem.compare = (u8) value;
+				mem.compare = value;
 				mem.useCompare = true;
 			}
 			else
@@ -995,14 +995,14 @@ namespace Nestopia
 			if (!(codeDialog.Edit( IDC_CHEATS_ADDCODE_VALUE ) >> value) || value > 0xFF)
 				return FALSE;
 
-			mem.value = (u8) value;
+			mem.value = value;
 
 			if (codeDialog.Edit( IDC_CHEATS_ADDCODE_COMPARE ) >> value)
 			{
 				if (value > 0xFF)
 					return FALSE;
 
-				mem.compare = (u8) value;
+				mem.compare = value;
 				mem.useCompare = true;
 			}
 			else
@@ -1117,7 +1117,7 @@ namespace Nestopia
 	{
 		if (param.Button().IsClicked())
 		{
-			const uint cmd = searcher.filter = (u16) param.Button().GetId();
+			const uint cmd = searcher.filter = param.Button().GetId();
 
 			for (uint i=IDC_CHEATS_ADDCODE_SEARCH_NONE; i <= IDC_CHEATS_ADDCODE_SEARCH_R0_N_R1; ++i)
 				codeDialog.RadioButton( i ).Check( cmd == i );
@@ -1244,8 +1244,8 @@ namespace Nestopia
 
 	ibool Cheats::OnDestroyCodeDialog(Param&)
 	{
-		searcher.a = (u8) GetSearchValue( IDC_CHEATS_ADDCODE_SEARCH_A );
-		searcher.b = (u8) GetSearchValue( IDC_CHEATS_ADDCODE_SEARCH_B );
+		searcher.a = GetSearchValue( IDC_CHEATS_ADDCODE_SEARCH_A );
+		searcher.b = GetSearchValue( IDC_CHEATS_ADDCODE_SEARCH_B );
 
 		return TRUE;
 	}

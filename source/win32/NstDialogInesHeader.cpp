@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -26,7 +26,6 @@
 #include "NstIoFile.hpp"
 #include "NstWindowUser.hpp"
 #include "../core/api/NstApiCartridge.hpp"
-#include "../core/NstCrc32.hpp"
 #include "NstManagerPaths.hpp"
 #include "NstDialogInesHeader.hpp"
 
@@ -209,9 +208,9 @@ namespace Nestopia
 
 			switch (i)
 			{
-				case IDC_INESHEADER_PRGROM: saveHeader.num16kPRomBanks = (u8) data; break;
-				case IDC_INESHEADER_CHRROM: saveHeader.num8kCRomBanks = (u8) data; break;
-				case IDC_INESHEADER_WRKRAM: saveHeader.num8kWRamBanks = (u8) data; break;
+				case IDC_INESHEADER_PRGROM: saveHeader.num16kPRomBanks = data; break;
+				case IDC_INESHEADER_CHRROM: saveHeader.num8kCRomBanks = data; break;
+				case IDC_INESHEADER_WRKRAM: saveHeader.num8kWRamBanks = data; break;
 				case IDC_INESHEADER_MAPPER: flags |= ((data & 0x0F) << 4) | ((data & 0xF0) << 8); break;
 			}
 		}
@@ -250,14 +249,14 @@ namespace Nestopia
 
 			if (i >= IDC_INESHEADER_RESERVED_2)
 			{
-				saveHeader.reserved[i - IDC_INESHEADER_RESERVED_2] = (u8) data;
+				saveHeader.reserved[i - IDC_INESHEADER_RESERVED_2] = data;
 			}
 			else if (i == IDC_INESHEADER_RESERVED_1)
 			{
 				if (data > 0x7F)
 					return FALSE;
 
-				saveHeader.pal = (u8) (data << 1);
+				saveHeader.pal = data << 1;
 			}
 			else
 			{
@@ -268,7 +267,7 @@ namespace Nestopia
 			}
 		}
 
-		saveHeader.flags = (u16) flags;
+		saveHeader.flags = flags;
 
 		if (dialog.CheckBox( IDC_INESHEADER_PAL ).IsChecked())
 			saveHeader.pal |= Header::PAL;

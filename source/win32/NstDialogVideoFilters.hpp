@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -52,14 +52,9 @@ namespace Nestopia
 
 			enum
 			{
-				ATR_SCANLINES_MAX = 100,
 				ATR_FIELDMERGING_AUTO = 0,
 				ATR_FIELDMERGING_ON,
 				ATR_FIELDMERGING_OFF,
-				ATR_CONTRAST_MIN = -5,
-				ATR_CONTRAST_MAX = +5,
-				ATR_SHARPNESS_MIN = -5,
-				ATR_SHARPNESS_MAX = +5,
 				ATR_2XSAI = 0,
 				ATR_SUPER2XSAI,
 				ATR_SUPEREAGLE,
@@ -74,15 +69,13 @@ namespace Nestopia
 				ATR_BILINEAR = 0,
 				ATR_TYPE = 1,
 				ATR_SCANLINES = 1,
-				ATR_NO_WIDESCREEN = 2,
-				ATR_FIELDMERGING = 3,
-				ATR_CONTRAST = 4,
-				ATR_SHARPNESS = 5
+				ATR_RESCALE_PIC = 2,
+				ATR_FIELDMERGING = 3
 			};
 
 			struct Settings
 			{
-				i8 attributes[8];
+				i8 attributes[4];
 
 				void Reset()
 				{
@@ -95,10 +88,11 @@ namespace Nestopia
 				}
 			};
 
-			VideoFilters(uint,Settings&,uint,bool);
+			VideoFilters(Nes::Video,uint,Settings&,uint,bool);
 
-			static Type Load(const Configuration&,Settings (&)[NUM_TYPES],uint,bool);
-			static void Save(Configuration&,const Settings (&)[NUM_TYPES],Type);
+			static Type Load(const Configuration&,Settings (&)[NUM_TYPES],Nes::Video,uint,bool);
+			static void Save(Configuration&,const Settings (&)[NUM_TYPES],Nes::Video,Type);
+			static void RedrawWindow();
 
 			enum
 			{
@@ -111,16 +105,41 @@ namespace Nestopia
 
 			struct Handlers;
 
+			struct Backup
+			{
+				Backup(const Settings&,const Nes::Video);
+
+				const Settings settings;				
+				const i8 sharpness;
+				const i8 resolution;
+				const i8 bleed;
+				const i8 artifacts;
+				const i8 fringing;
+				bool restore;
+			};
+
 			ibool OnInitDialog    (Param&);
+			ibool OnDestroy       (Param&);
 			ibool OnHScroll       (Param&);
 			ibool OnCmdOk         (Param&);
 			ibool OnCmdCancel     (Param&);
 			ibool OnCmdDefault    (Param&);
+			ibool OnCmdBilinear   (Param&);
 			ibool OnCmdNtscFields (Param&);
+			ibool OnCmdNtscCable  (Param&);
+			ibool OnCmd2xSaI      (Param&);
+			ibool OnCmdScaleX     (Param&);
+			ibool OnCmdHqX        (Param&);
+
+			void UpdateScanlinesSlider() const;
+			void UpdateNtscSliders() const;
+			void UpdateNtscSlider(int,uint) const;
 
 			Settings& settings;
+			Backup backup;
 			const uint maxScreenSize;
 			const ibool canDoBilinear;
+			Nes::Video nes;
 			Dialog dialog;
 		};
 	}

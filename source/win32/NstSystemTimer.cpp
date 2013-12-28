@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -22,7 +22,9 @@
 //
 ////////////////////////////////////////////////////////////////////////////////////////
 
+#ifdef _MSC_VER
 #pragma comment(lib,"winmm")
+#endif
 
 #include "NstApplicationException.hpp"
 #include "NstSystemTimer.hpp"
@@ -120,7 +122,7 @@ namespace Nestopia
 		}
 		else
 		{
-			return ::timeGetTime() - start;
+			return ::timeGetTime() - DWORD(start);
 		}
 	}
 

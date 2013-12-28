@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -119,7 +119,7 @@ namespace Nes
 			if (exRegs[1] & 0x4)
 				return bank | 0x100;
 			else
-				return (bank & 0x7F) | ((exRegs[1] & 0x10) << 3);
+				return (bank & 0x7F) | (exRegs[1] << 3 & 0x80);
 		}
 
 		void Mapper215::UpdateChr() const
@@ -131,10 +131,10 @@ namespace Nes
 			chr.SwapBanks<SIZE_1K>
 			( 
 		     	0x0000U ^ swap, 
-				GetChrBank( ((banks.chr[0] << 1) | 0x0) ), 
-				GetChrBank( ((banks.chr[0] << 1) | 0x1) ),
-				GetChrBank( ((banks.chr[1] << 1) | 0x0) ), 
-				GetChrBank( ((banks.chr[1] << 1) | 0x1) )
+				GetChrBank( banks.chr[0] << 1 | 0x0 ), 
+				GetChrBank( banks.chr[0] << 1 | 0x1 ),
+				GetChrBank( banks.chr[1] << 1 | 0x0 ), 
+				GetChrBank( banks.chr[1] << 1 | 0x1 )
 			);
 
 			chr.SwapBanks<SIZE_1K>
@@ -221,7 +221,7 @@ namespace Nes
 		NES_POKE(Mapper215,C000)
 		{
 			if (exRegs[2])
-				NES_CALL_POKE(Mmc3,Nmt_Hv,0xA000U,data | (data >> 7));
+				NES_CALL_POKE(Mmc3,Nmt_Hv,0xA000U,data >> 7 | data);
 			else
 				NES_CALL_POKE(Mmc3,C000,0xC000U,data);
 		}

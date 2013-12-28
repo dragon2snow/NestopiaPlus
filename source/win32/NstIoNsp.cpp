@@ -1,6 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////////////
 //
-// Nestopia - NES / Famicom emulator written in C++
+// Nestopia - NES/Famicom emulator written in C++
 //
 // Copyright (C) 2003-2006 Martin Freij
 //
@@ -450,7 +450,7 @@ namespace Nestopia
 			if (count > 2 && compare >= 0x00 && compare <= 0xFF)
 			{
 				cheat.useCompare = true;
-				cheat.compare = (u8) compare;
+				cheat.compare = compare;
 			}
 			else if (count == 2)
 			{
@@ -466,8 +466,8 @@ namespace Nestopia
 			if (address < 0x0000 || address > 0xFFFF || value < 0x00 || value > 0xFF)
 				throw ERR_SYNTAX;
 
-			cheat.address = (u16) address;
-			cheat.value = (u8) value;
+			cheat.address = address;
+			cheat.value = value;
 			
 			state.Validate();
 			cheat.enabled = (state != _T("off"));
